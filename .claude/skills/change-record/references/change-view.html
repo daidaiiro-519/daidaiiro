@@ -1,0 +1,115 @@
+<!-- 変更提示ページの雛形。{{ }} を埋めて使う。1枚で完結させる -->
+<title>{{タイトル}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600;700&display=swap">
+<style>
+:root{--paper:#FBFAF7;--ink:#191C1F;--muted:#6C7076;--rule:#E3DFD7;--panel:#F4F1EA;--panelrule:#DAD4C8;
+ --key:#2F4858;--add:#A6543A;--del:#8A8479;--mark:#F7E2BC;--markh:#F0CE92;--markink:#191C1F;--pop:#FDF6E9;--popline:#D9B77E}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#15171A;--ink:#E8E5DF;--muted:#9AA0A8;--rule:#2C3036;
+ --panel:#1D2024;--panelrule:#333940;--key:#8FB4C8;--add:#E0A184;--del:#7E838B;--mark:#4A3826;--markh:#5F4830;--markink:#F2EDE5;--pop:#241D14;--popline:#6E5738}}
+:root[data-theme="dark"]{--paper:#15171A;--ink:#E8E5DF;--muted:#9AA0A8;--rule:#2C3036;
+ --panel:#1D2024;--panelrule:#333940;--key:#8FB4C8;--add:#E0A184;--del:#7E838B;--mark:#4A3826;--markh:#5F4830;--markink:#F2EDE5;--pop:#241D14;--popline:#6E5738}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans JP",system-ui,sans-serif;font-size:15.5px;line-height:1.85;-webkit-font-smoothing:antialiased}
+main{max-width:53rem;margin:0 auto;padding:0 1.5rem 6rem}
+h1{font-family:"Noto Serif JP",serif;font-weight:700;font-size:1.85rem;line-height:1.35;margin:3.4rem 0 1.2rem;padding-bottom:.6rem;border-bottom:2px solid var(--key)}
+h2{font-family:"Noto Serif JP",serif;font-weight:600;font-size:1.26rem;margin:2.6rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--rule)}
+h3{font-size:1.01rem;font-weight:700;margin:1.9rem 0 .6rem}
+h4{font-size:.94rem;font-weight:700;margin:1.4rem 0 .5rem;color:var(--muted)}
+p{margin:0 0 1rem}hr{border:none;border-top:1px solid var(--rule);margin:2.1rem 0}
+code{font-family:ui-monospace,monospace;font-size:.88em;background:var(--panel);padding:.1em .35em;border-radius:.2em}
+pre{background:var(--panel);border:1px solid var(--panelrule);border-radius:.4rem;padding:.9rem 1.1rem;overflow-x:auto;font-size:.79rem;line-height:1.7;margin:0 0 1.1rem;font-family:ui-monospace,monospace}
+pre code{background:none;padding:0}
+blockquote{margin:0 0 1.1rem;padding:.5rem 0 .5rem 1rem;border-left:3px solid var(--key)}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:0 0 1.1rem}
+th,td{text-align:left;vertical-align:top;padding:.5rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-weight:700;font-size:.75rem;letter-spacing:.05em;color:var(--muted);border-bottom:1.5px solid var(--rule)}
+.wrap{overflow-x:auto}
+
+/* 変更箇所 */
+mark.chg{background:var(--mark);color:var(--markink);border-radius:.15em;cursor:pointer;
+ box-shadow:-.2em 0 0 var(--mark),.2em 0 0 var(--mark);border-bottom:2px solid var(--add);transition:background .12s}
+@media(prefers-reduced-motion:reduce){mark.chg{transition:none}}
+mark.chg:hover,mark.chg:focus{background:var(--markh);box-shadow:-.2em 0 0 var(--markh),.2em 0 0 var(--markh);outline:none}
+mark.chg:focus-visible{outline:2px solid var(--add);outline-offset:2px}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--add);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+/* 削除した箇所に置く印 */
+mark.chg.del{background:none;box-shadow:none;color:var(--del);font-size:.86rem;border-bottom:1px dashed var(--del)}
+
+/* 開くパネル。[hidden] を必ず添える。無いと閉じない */
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--add);
+ border-radius:.3rem;padding:.75rem .95rem;margin:.6rem 0;font-size:.85rem;line-height:1.75;color:var(--ink);font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--add);margin-bottom:.35rem}
+.pop .why{display:block;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--popline)}
+.pop .why b{color:var(--key)}
+
+.hd{position:sticky;top:0;background:var(--paper);border-bottom:1px solid var(--rule);padding:.85rem 0;margin-bottom:1.6rem;z-index:9;
+ display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.hd .t{font-family:"Noto Serif JP",serif;font-weight:700;font-size:1.02rem;flex:1;min-width:12rem}
+.hd .t small{display:block;font-family:"Noto Sans JP",sans-serif;font-weight:400;font-size:.78rem;color:var(--muted);margin-top:.1rem}
+.hd button{font:inherit;font-size:.82rem;font-weight:700;padding:.35rem .9rem;border-radius:.3rem;cursor:pointer;
+ background:var(--panel);color:var(--ink);border:1px solid var(--panelrule)}
+.hd button:hover{background:var(--markh)}
+.hd button:focus-visible{outline:2px solid var(--add);outline-offset:2px}
+.note{background:var(--panel);border:1px solid var(--panelrule);border-left:3px solid var(--key);border-radius:.3rem;padding:1rem 1.2rem;margin:0 0 1.8rem;font-size:.92rem}
+.note ol{margin:.6rem 0 0;padding-left:1.3rem}.note li{margin-bottom:.25rem}
+</style>
+
+<main>
+<div class="hd">
+  <div class="t">{{タイトル}}<small>色の付いた箇所を押すと、変更前と理由が開きます（<span id="n">0</span>か所）</small></div>
+  <button id="all" type="button">すべて開く</button>
+</div>
+
+<div class="note">{{何をなぜ直したかの要約。1〜3文}}</div>
+
+<!-- ここから下に、変更後の全文を描画して置く。
+     変わった箇所は次の形で囲む。data-b は変更前の原文、data-w はなぜ変えたか。
+
+     <mark class="chg" tabindex="0" role="button" aria-expanded="false"
+           data-b="変更前の原文" data-w="なぜ変えたか">変更後の本文</mark>
+
+     削除した箇所は、消えた位置に印だけを置く。
+
+     <p><mark class="chg del" tabindex="0" role="button" aria-expanded="false"
+              data-b="消した内容" data-w="なぜ消したか">この表から7行目を削除した</mark></p>
+-->
+{{変更後の全文}}
+</main>
+
+<script>
+(function(){
+  var marks=[].slice.call(document.querySelectorAll('mark.chg'));
+  function panel(m){
+    var p=m.nextElementSibling;
+    if(p&&p.classList&&p.classList.contains('pop'))return p;
+    p=document.createElement('span');p.className='pop';
+    var b=document.createElement('b');b.textContent='変更前';p.appendChild(b);
+    p.appendChild(document.createTextNode(m.getAttribute('data-b')||''));
+    var w=m.getAttribute('data-w');
+    if(w){var d=document.createElement('span');d.className='why';
+      var wb=document.createElement('b');wb.textContent='なぜ';d.appendChild(wb);
+      d.appendChild(document.createTextNode(w));p.appendChild(d);}
+    m.parentNode.insertBefore(p,m.nextSibling);p.hidden=true;return p;
+  }
+  function toggle(m,force){
+    var p=panel(m),open=(force===undefined)?p.hidden:force;
+    p.hidden=!open;m.setAttribute('aria-expanded',open?'true':'false');
+  }
+  marks.forEach(function(m){
+    m.addEventListener('click',function(){toggle(m);});
+    m.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(m);}
+    });
+  });
+  var btn=document.getElementById('all'),open=false;
+  btn.addEventListener('click',function(){
+    open=!open;marks.forEach(function(m){toggle(m,open);});
+    btn.textContent=open?'すべて閉じる':'すべて開く';
+  });
+  document.getElementById('n').textContent=marks.length;
+})();
+</script>

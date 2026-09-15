@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://waffle.local/skill-router/skill-wiring.schema.json",
+  "title": "配線表",
+  "description": "どの作業のときに、何を、どのSkillに頼むか。1行が1つの頼みごと。行はプロジェクトごとに違うので、skill-router 本体ではなくこのファイルに置く。",
+  "type": "object",
+  "required": [
+    "配線"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "配線": {
+      "type": "array",
+      "minItems": 0,
+      "description": "1行が1つの頼みごと。0行でもよい（配線が無い状態は失敗ではない）。",
+      "items": {
+        "type": "object",
+        "required": [
+          "何を頼むか",
+          "どの作業のとき",
+          "呼ぶSkill",
+          "結果をどれだけ当てにするか"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "何を頼むか": {
+            "type": "string",
+            "minLength": 1,
+            "description": "頼む内容。Skillの名前ではなく、してほしいことを書く（例:「認証まわりの安全性を見てもらう」）"
+          },
+          "どの作業のとき": {
+            "type": "string",
+            "minLength": 1,
+            "description": "その頼みごとが必要になる作業。同じ作業でも対象で変わるなら、対象まで書く"
+          },
+          "呼ぶSkill": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "頼む相手のSkill名。複数書いてよい"
+          },
+          "結果をどれだけ当てにするか": {
+            "enum": [
+              "結果が要る",
+              "結果は参考",
+              "呼べたら呼ぶ"
+            ],
+            "description": "結果が要る＝呼んで、結果が返るまで作業を進めない（呼べなければ止める）／結果は参考＝呼ぶが結果を待たずに進める／呼べたら呼ぶ＝相手が居なければ呼ばずに進む"
+          }
+        }
+      }
+    },
+    "このプロジェクトの決め事": {
+      "type": "string",
+      "description": "どのSkillを呼んでよいかなど、このプロジェクトだけの取り決め。skill-router 本体は、ここに何が書かれていても振る舞いを変えない（読むのは人とAIである）"
+    }
+  }
+}

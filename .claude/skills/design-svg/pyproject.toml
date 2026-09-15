@@ -1,0 +1,62 @@
+# 宣言からSVGを組み立てる描画エンジンのパッケージ設定。
+#
+# 依存は空である。これは方針ではなく実測で、標準ライブラリ以外の import が
+# 1件も無い（配置アルゴリズムも図形の重なりも自前で解いている）。おかげで、
+# pip で入れても芋づるで入るものが1つも無い。
+#
+# **この Skill を、他の Skill へ写してはならない。**design-svg は単独で成立する
+# Skill であり、図が要る Skill はこれを「呼ぶ」── 写しを持つのではない。
+# どの作業でどれを呼ぶかは配線表が持ち、組み合わせは呼ぶ側が決める。
+# 写しを置くと同じものが2つになり、片方が古くなったときに誰も気づけない。
+# 呼ぶ側が自分でこのディレクトリを探しにいくのも同じことで、依存の向きが逆になる。
+#
+# 依存を持たないぶん、そのバグは全部こちらが持つ。同等だと言えるための物差しは
+# svg_engine/tests/bench_layout.py が持つ（同じ図を Graphviz dot にも解かせて測る）。
+[project]
+name = "svg-engine"
+version = "0.1.0"
+description = "宣言（節点・辺・囲み）からSVGを組み立てる、外部依存を持たない描画エンジン"
+readme = "README.md"
+# 3.10 が下限。3.9 でも実際には動く（3.8 は tuple[...] の実行時評価で落ちる、と
+# 4版で走らせて確かめた）が、静的検査器がもう 3.9 を対象に取れない。検査できない
+# 下限を宣言すると、守れているかを誰も確かめられないので、検査できる下限に揃える。
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# 利用側には要らない。試験と物差しを走らせるときだけ。
+dev = ["pytest>=7", "mypy>=1.8"]
+
+[project.scripts]
+# 目録をJSONで吐く。利用側はこれだけを見れば変換器を書ける。
+svg-engine-catalog = "svg_engine.catalog:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+# パッケージの根は Skill 直下なので、references/ の下にあるナレッジへの
+# シンボリックリンク（実体は .waffle/ の外）まで拾ってしまう。配るのは
+# エンジンだけ。
+include = ["svg_engine", "README.md", "pyproject.toml"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["svg_engine"]
+# 試験と例は配らない。このディレクトリをそのまま読む使い方では読める ──
+# 配布物に入れないだけで、消すわけではない。
+exclude = ["svg_engine/tests", "svg_engine/examples"]
+
+[tool.pytest.ini_options]
+testpaths = ["svg_engine/tests"]
+
+[tool.mypy]
+# 静的検査は通ることを要件にする。天井を置いて漸減させる形は採らない
+# ── 46件から始めて全部潰した。増やさないための設定をここに固定する。
+python_version = "3.10"
+files = ["svg_engine"]
+# 注釈の無い関数の中身も見る。既定では素通りするので、注釈を書いた関数だけが
+# 守られ、書いていない関数が検査の外に残る。
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true

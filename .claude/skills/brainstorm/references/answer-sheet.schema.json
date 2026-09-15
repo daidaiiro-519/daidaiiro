@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://waffle.local/brainstorm/answer-sheet.schema.json",
+  "title": "承認の画面から返る回答1件",
+  "description": "1回の回答が1件。承認・差し戻し・書き足しを、問いごとに持つ。論点ごとに送るのは1件だけで、複数の答えがある論点では、どれを決定にするかを chosenVersion で指す。機械が見るのは形だけで、書き足しの中身が妥当かは見られない。",
+  "type": "object",
+  "required": [
+    "board",
+    "answeredAt",
+    "answers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "board": {
+      "type": "string",
+      "minLength": 1,
+      "description": "どの盤面に対する回答か。盤面のファイル名（拡張子を除く）を入れる。"
+    },
+    "answeredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "画面で「私に渡す」を押した時刻。時差を含めて書く。"
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "何回目のまとまりか。分からなければ省いてよい。"
+    },
+    "answers": {
+      "type": "array",
+      "minItems": 1,
+      "description": "問いごとの回答。答えなかった問いも unanswered として残す ── 答えなかったことも情報である。",
+      "items": {
+        "type": "object",
+        "required": [
+          "questionId",
+          "verdict"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "pattern": "^Q[0-9]+$",
+            "description": "画面の問いの番号。Q1・Q2 …"
+          },
+          "topic": {
+            "type": "string",
+            "description": "対応する論点の名前。あれば入れる。"
+          },
+          "title": {
+            "type": "string",
+            "description": "問いの見出し。あれば入れる。"
+          },
+          "verdict": {
+            "enum": [
+              "approved",
+              "returned",
+              "unanswered"
+            ],
+            "description": "承認したか、差し戻したか、答えなかったか。"
+          },
+          "returnReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000,
+            "description": "差し戻した理由。自由文である ── 決められた値だけでは言えない理由が出る。画面はよく使う理由をボタンで差し込めるようにしてよいが、値は限定しない。差し戻し以外では null。"
+          },
+          "note": {
+            "type": "string",
+            "description": "書き足し。自由文のままにしてある ── 決められた値だけでは言えないことが出るため。"
+          },
+          "chosenVersion": {
+            "type": "string",
+            "minLength": 1,
+            "description": "その論点で、どの答えを決定として選んだか。論点ごとに1つだけ選べる ── 論点に対して決定は1つだからである。省いたときは、いちばん新しい答えを選んだものとして読む。"
+          },
+          "chosenLabel": {
+            "type": "string",
+            "description": "選んだ答えの見出し。あれば入れる。"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "returned"
+                }
+              },
+              "required": [
+                "verdict"
+              ]
+            },
+            "then": {
+              "required": [
+                "returnReason"
+              ],
+              "properties": {
+                "returnReason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "enum": [
+                    "approved",
+                    "unanswered"
+                  ]
+                }
+              },
+              "required": [
+                "verdict"
+              ]
+            },
+            "then": {
+              "properties": {
+                "returnReason": {
+                  "const": null
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
