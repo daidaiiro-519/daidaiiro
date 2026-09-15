@@ -28,6 +28,20 @@ f = Figure(Palette.from_theme('../themes/warm-paper.css'))
 | `accent` | `--accent` | 強調 |
 | `on_accent` | `--on-accent` | 強調面の上に置く文字 |
 
+## 面を敷いたら、文字色は `on()` で引く
+
+`paper` を敷いて `ink` を載せると、**地が暗いテーマで文字が消える。**
+`--ink` は地に対する本文色であって、明るい面に対する色ではない。
+
+```python
+b += f.rect(452, 166, 250, 74, f.p.paper, 12, f.p.line)
+b += f.text(477, 198, '使ってみたい場面を話す', 19, f.on(f.p.paper))   # ← ink ではない
+```
+
+これは実際に起きた。4配色で同じ1枚を描いたとき、`deep-navy` でだけ
+カードの中の文字が消えていた（`--ink` #EAF0F5 を `--paper` #F3EFE7 に載せて 1.00）。
+**数値の表では気づかず、描画して初めて見えた。**
+
 **図の線は、本文の文字色とは別のトークンから取る。**
 同じ色にすると、文字と線が同じ濃さで並び、どちらが構造かが読めなくなる。
 
@@ -42,6 +56,7 @@ f = Figure(Palette.from_theme('../themes/warm-paper.css'))
 | `circle(x, y, r, fill, stroke)` | 丸 |
 | `person(x, y, scale)` | 人。頭と肩の線画 |
 | `icon(x, y, 種類, color, scale)` | 絵。8種（下表） |
+| `on(面の色)` | その面の上に置く文字の色。**面を敷いたら、文字色はこれで引く** |
 | `svg(ラベル, 中身, height)` | 図1つを包む器 |
 
 絵は8種ある。**無い名前を渡すと、ある名前を並べて止まる。**

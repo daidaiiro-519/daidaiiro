@@ -16,6 +16,8 @@ ROLES = {
     'line': '--diagram-line',       # 図の線。本文の文字色とは分ける
     'panel': '--surface',           # 面
     'paper': '--paper',             # 明るい面
+    'on_paper': '--on-paper',       # 明るい面の上に置く文字
+    'on_paper_dim': '--on-paper-dim',  # 明るい面の上に置く補足
     'accent': '--accent',           # 強調。1つの図に1か所
     'on_accent': '--on-accent',     # 強調面の上に置く文字
 }
@@ -118,6 +120,16 @@ class Figure:
                 + self.path(self.ICONS[kind], color or self.p.ink, 2.3) + '</g>')
 
     # ── 器 ────────────────────────────────────────────────
+    def on(self, fill):
+        """その面の上に置く文字の色を返す。
+
+        `paper` を敷いて `ink` を載せると、地が暗いテーマで文字が消える
+        （`--ink` は地に対する本文色であって、明るい面に対する色ではない）。
+        面を選んだら、文字色はこれで引く。
+        """
+        return {self.p.paper: self.p.on_paper,
+                self.p.accent: self.p.on_accent}.get(fill, self.p.ink)
+
     def svg(self, label, body, height=330):
         """図1つを包む。幅は本文領域に合わせて固定する。
 
