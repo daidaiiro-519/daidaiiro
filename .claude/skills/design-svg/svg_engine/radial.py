@@ -124,7 +124,7 @@ def layout_radial(node_sizes: dict[str, tuple[float, float]],
 
     # 輪の内側を横切る辺が、当事者でない節点の箱を突っ切っていないか。
     # 突っ切るなら、この置き方では描けない ── 黙って歪んだ絵を返さず申告する。
-    # 閾値は置かない。箱そのものと交わるかを見る。
+    # 閾値は置かない。箱そのものと交わるかを判定する。
     boxes = {k: (positions[k][0], positions[k][1],
                  positions[k][0] + node_sizes[k][0],
                  positions[k][1] + node_sizes[k][1]) for k in ids}

@@ -10,7 +10,7 @@
 そのブレストの持ち物だからである（例: `.brainstorm/{board}/answers`）。
 回答は消さない ── 何を差し戻したかが、あとから順に読めるようにするためである。
 
-形は answer-sheet.schema.json が決めるが、ここでは**素の形だけ**を見る
+形は answer-sheet.schema.json が決めるが、ここでは**素の形だけ**を検査する
 （必須の欄が在るか、諾否が決められた値か）。中身が妥当かは機械には分からない。
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ COMMON_REASONS = ("もっと単純に", "前提が違う", "別の道も見た�
 
 
 def _fault(body: dict) -> list[str]:
-    """回答1件の素の形を見る。返るのは、直すべきことの一覧（空なら通る）。"""
+    """回答1件の素の形を検査する。返るのは、直すべきことの一覧（空なら通る）。"""
     bad: list[str] = []
     if not isinstance(body, dict):
         return ["いちばん外側が object ではない"]

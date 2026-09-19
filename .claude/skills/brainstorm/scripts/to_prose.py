@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""盤面のHTMLを、文章だけへ変換する。
+"""ブレストボードのHTMLを、文章だけへ変換する。
 
     python3 to_prose.py <ブレストのフォルダ>
 
 そのフォルダの `board.html` を読み、`board-prose.md` を書く。
 用途は2つ ── 文章の検査（doc-writing-skills の gate）にかけること、
-そして盤面の中身を、ブラウザを開かずに読み返せるようにすることである。
+そしてブレストボードの中身を、ブラウザを開かずに読み返せるようにすることである。
 
 **この取り出しを、作業用の一時領域に置かない。**セッションが変わると
 失われ、成果物から書き起こすことになる。実際にそうなった。

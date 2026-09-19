@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""coding-essence のブレスト盤面が持つ図を、構造化データの宣言から組む。
+"""coding-essence のブレストブレストボードが持つ図を、構造化データの宣言から組む。
 
 固有の語彙（原典・判定・除外先・規則文書）から、エンジンが知っている
 節点・辺・囲みへ直す変換は、呼ぶ側であるこの module に置く
@@ -77,7 +77,7 @@ def fit(draw, target: float = FIG_WIDTH) -> str:
 
 # ── 1枚目：2段のふるい ────────────────────────────────────────────
 # 本線は左から右へ（判定1 → 判定2 → 載る）、除外の経路は真下へ。
-# どこに置くかを言っているのは辺ではなく座標なので、格子に解かせる。
+# どこに置くかを決めているのは辺ではなく座標なので、格子に解かせる。
 _SIEVE_AT = {
     "origin": ("a", 1),
     "judge1": ("a", 2), "judge2": ("b", 2), "goal": ("c", 2),
@@ -93,7 +93,7 @@ def sieve(theme: dict, raw: bool = False):
     """
     nodes = [
         {"id": "origin", "label": "原典 ── 公式の情報 ・ 確立された設計論"},
-        {"id": "judge1", "label": "何を見れば守れたと言えるかを、書けるか", "role": "focus"},
+        {"id": "judge1", "label": "何を確認すれば適合と判定できるかを、書けるか", "role": "focus"},
         {"id": "judge2", "label": "担い手が走る場が、決まっているか", "role": "focus"},
         {"id": "goal", "label": "「Go の規則」に載る　＋　検証方法"},
         {"id": "drop1", "label": "載らない ── 原典を読めばよい", "role": "muted"},
@@ -125,11 +125,11 @@ def doc(theme: dict, raw: bool = False):
         {"id": "m2", "label": "承認"},
     ]}
     spec = {"direction": stack, "nodes": [
-        {"id": "s1", "label": "守るべき内容"},
+        {"id": "s1", "label": "遵守すべき内容"},
         {"id": "s2", "label": "水準"},
     ]}
     verify = {"direction": stack, "nodes": [
-        {"id": "v1", "label": "何を見れば守れたと言えるか"},
+        {"id": "v1", "label": "何を確認すれば適合と判定できるか"},
         {"id": "v2", "label": "担い手"},
         {"id": "v3", "label": "最後に見直した日", "role": "added"},
     ]}

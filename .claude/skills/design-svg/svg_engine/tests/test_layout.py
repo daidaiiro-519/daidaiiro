@@ -1,4 +1,4 @@
-"""層1 ── 配置の計算そのもの。SVGを1文字も作らずに座標と個数を確かめる。"""
+"""層1 ── 配置の計算そのもの。SVGを1文字も作らずに座標と個数を検証する。"""
 from __future__ import annotations
 
 import math
@@ -117,7 +117,7 @@ class TestRadial:
         assert max(radii) - min(radii) < 1.0
 
     def test_節点が大きいほど輪も大きい(self):
-        """半径を決め打ちしていないことを、大きさを変えて確かめる。"""
+        """半径を決め打ちしていないことを、大きさを変えて検証する。"""
         small = layout_radial({k: (40.0, 20.0) for k in "abcd"}, [], 40, 30)
         big = layout_radial({k: (200.0, 100.0) for k in "abcd"}, [], 40, 30)
         assert big.width > small.width
@@ -282,7 +282,7 @@ class Test図の中に図:
     """図を部品として置く ── 決定「図を、部品として置けるようにする」の裏づけ。
 
     子図の中で守られている性質が入れ子にしても壊れないこと、親が子図の実際の
-    大きさを知って場所を取ることを確かめる。
+    大きさを知って場所を取ることを検証する。
     """
 
     CHILD = {"nodes": [{"id": "x", "label": "子1"}, {"id": "y", "label": "子2"}],

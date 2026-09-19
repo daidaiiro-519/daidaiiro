@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""調査対象の原文を取得し、書こうとしているものが原文に在るかを確かめる。
+"""調査対象の原文を取得し、書こうとしているものが原文に在るかを検査する。
 
   python3 source.py fetch  <URL> [--dir <保存先>]
   python3 source.py verify <原文> --as identifier|quote|text <照合するもの>...
@@ -12,7 +12,7 @@
 
 **この道具が返すのは、真偽ではない。**
 見つかった位置と、**読めなかった範囲**である。
-0件は「無い」ではなく「**読めた範囲には**無い」としか言えない ──
+0件は「無い」ではなく「**読めた範囲には**無い」としか判定できない ──
 読めなかったファイルを黙って除外すれば、道具の側が推測で断定することになる。
 
 実際に起きたこと（2026-09-05）──
@@ -247,7 +247,7 @@ def acceptable(code: str, ctype: str, size: int) -> bool:
     """取得したものを原文として受け取るか。**HTML も原文である。**
 
     タグを剥がしたり Markdown へ変換したりはしない ── 変換した時点で、
-    「原文と1文字ずつ同じ」が言えなくなる。
+    「原文と1文字ずつ同じ」が主張できなくなる。
     """
     return code == "200" and size > 0
 
@@ -315,7 +315,7 @@ def report(path: str, s: Scan, near: str | None, within: int) -> int:
     else:
         print(f"── {path}  {s.docs_read:,} ファイル")
     if near:
-        print(f"   アンカー「{near}」の ±{within} 行の内側だけを見る")
+        print(f"   アンカー「{near}」の ±{within} 行の内側だけを検査する")
     how = s.results[0].how if s.results else ""
     print(f"   照合の種類: {how}" + ("　※ 探索のための種類。照合した証しにはならない" if how == "text" else ""))
     for r in s.results:

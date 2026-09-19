@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""ゲート1の振る舞いを、事例で確かめる。
+"""ゲート1の振る舞いを、事例で検証する。
 
 **0件にできる検査だけを置いている。**
-だから確かめるのは、出ることと、**出てはいけない場所で出ないこと**の両方である。
+だから検証するのは、出ることと、**出てはいけない場所で出ないこと**の両方である。
 
   python3 test_gate.py
 """
@@ -67,7 +67,7 @@ class 並んだ項目の語尾(unittest.TestCase):
         self.assertFalse(names("- 項目を書く\n- 項目を書く。\n", self.C))
 
     def test_体言と常体が並んでも出ない(self):
-        """品詞を見ないと分けられないものを、分けたことにしない。"""
+        """品詞を判定しないと分けられないものを、分けたことにしない。"""
         self.assertFalse(names("- 調査結果の記録\n- 記録を残す\n", self.C))
 
     def test_項目が1つなら出ない(self):
@@ -99,12 +99,12 @@ class 同じ意味の語(unittest.TestCase):
     def test_対を与えれば出る(self):
         gate.SYNONYM_PAIRS = [("性質", "特徴")]
         try:
-            self.assertTrue(names("性質を見る。特徴を見る。\n", self.C))
+            self.assertTrue(names("性質を確認する。特徴を確認する。\n", self.C))
         finally:
             gate.SYNONYM_PAIRS = []
 
     def test_対を与えなければ出ない(self):
-        self.assertFalse(names("性質を見る。特徴を見る。\n", self.C))
+        self.assertFalse(names("性質を確認する。特徴を確認する。\n", self.C))
 
 
 class 描画されない強調(unittest.TestCase):

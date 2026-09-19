@@ -4,7 +4,7 @@
 グラフ図にも共通する一般名詞だけ。呼ぶ側が固有の語彙を持っていても、それを
 この形へ直す役目は核の外（呼び出し側の変換）が担う。
 
-**この核が守る性質** ── 判断が最も集まる場所なので、何を守っているのかを
+**この核が保証する性質** ── 判断が最も集まる場所なので、何を保証しているのかを
 ここに集める。個々の実測の記録は、それぞれの行のコメントに残してある。
 
 1. **辺は必ず、両端のインクに着く。** 着き先は部品が申告した形ではなく、
@@ -14,7 +14,7 @@
    どの辺から出すかだけを相手の位置で決め、その辺の中央を狙う。
    （方向へ直接引くと、角のすぐ脇に着いて不自然に見える）
 3. **線は曲げない。曲げるのは節点を避けるときだけ。** 札は動かせるので
-   障害物に数えない ── 札を守るために曲げると、まっすぐでよい関係まで大回りする。
+   障害物に数えない ── 札を避けるために曲げると、まっすぐでよい関係まで大回りする。
 4. **迂回用の車線は、節点どうしと同じ間隔だけ離れる。** 車線は仮の節点の列
    なので、節点と同じ間隔で並ぶのが筋。（線幅ぶんだけでは迂回に見えない）
 5. **動かせるものが譲り、動かせないものは動かない。** 札（辺の札・囲みの札）が
@@ -198,7 +198,7 @@ def _detour_aim(pos, size, routed, direction: str):
     """迂回経路の辺が「どちら側を回るか」を返す。まっすぐなら None。
 
     中継点のうち、節点の中心から横（TBなら左右、LRなら上下）へ最も離れた
-    ものを見る。その隔たりが節点の半分を超えていれば、そちら側へ回り込んでいる。
+    ものを選ぶ。その隔たりが節点の半分を超えていれば、そちら側へ回り込んでいる。
 
     Args:
         pos: 節点の左上の絶対座標。
@@ -415,7 +415,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         pts[-1] = _cardinal(coords[b], sizes[b], ib, prv, flow)
         # 端の2つ以外が占めている領域のうち、動かせないもの（節点）だけが
         # 障害物。札は動かせるので、線を曲げさせず札のほうを後で避けさせる
-        # （札を守るために線を曲げると、まっすぐでよい関係まで大回りする）。
+        # （札を避けるために線を曲げると、まっすぐでよい関係まで大回りする）。
         obstacles = [(coords[n][0], coords[n][1],
                       coords[n][0] + sizes[n][0], coords[n][1] + sizes[n][1])
                      for n in coords if n not in (a, b)]
@@ -425,7 +425,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         # ままだと、横から来た線が底辺の中点へ刺さり、矢じりが箱へめり込む。
         if len(routed) > 1:
             # まっすぐな辺は相手の方を向く。迂回経路の辺（中継点を持つ）は、
-            # 回る側の辺から出入りする ── すぐ隣の中継点だけを見ると、
+            # 回る側の辺から出入りする ── すぐ隣の中継点だけを参照すると、
             # 1段下の中継点に引かれて底辺から出てしまい、同じ「迂回」なのに
             # 図によって出る辺が変わる（実測：循環は左辺、多段またぎは底辺）。
             aim_a = _detour_aim(coords[a], sizes[a], routed, direction)
@@ -486,7 +486,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
             lw = (_text_width(g["label"], frame_style.num("font.size-small"),
                               frame_style.num("font.latin-width-ratio")) + pad_x)
             # 札の縦位置は、部品が実際に描く位置と同じ式から出す。ここを
-            # ずらすと、当たり判定が実物と別の場所を見ることになる。
+            # ずらすと、当たり判定が実物と別の場所を参照することになる。
             fs = frame_style.num("font.size-small")
             top = b.y + label_h - fs * frame_style.num("size.frame-label-rise")
             bottom = top + fs * frame_style.num("size.frame-label-h")
@@ -547,7 +547,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     for n in nodes:
         x, y = coords[n["id"]]
         # 節点であることに印を付ける。検査は「辺の終端が節点のインクに着いて
-        # いるか」を見るので、どこからどこまでが節点なのかを外から判る形で
+        # いるか」を判定するので、どこからどこまでが節点なのかを外から判る形で
         # 残す必要がある（位置の付け方から推測させると、囲みや辺と混ざる）。
         body.append(f'<g class="wf-node" transform="translate({x:.1f},{y:.1f})">'
                     f'{rendered[n["id"]].svg}</g>')

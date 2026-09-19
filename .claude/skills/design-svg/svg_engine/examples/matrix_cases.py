@@ -4,7 +4,7 @@
 いるので、片方を直すと別が壊れる（実際に2度起きた）。だから全部を毎回かける。
 
 手で走らせる入口（verify_matrix.py）と自動テスト（tests/test_matrix.py）が
-同じ表を見るよう、表はここ1か所に置く。
+同じ表を参照するよう、表はここ1か所に置く。
 """
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 """出典の原文を取得し、MANIFEST.json に URL ・ sha256 ・ 取得した日を残す。
 
   python3 scripts/fetch_sources.py           sources/ へ取得し、MANIFEST.json を書く
-  python3 scripts/fetch_sources.py --check   手元のものが MANIFEST と一致するかを見る
+  python3 scripts/fetch_sources.py --check   手元のものが MANIFEST と一致するかを検査する
 
 **この Skill は、外の Skill に依存しない。**
 使うのは Python の標準ライブラリだけである。

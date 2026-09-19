@@ -26,7 +26,7 @@ class Fragment:
 
     width: float
     height: float
-    """外側から見える大きさ。意味は型ごとに違う（各型の説明を見る）。"""
+    """外側から見える大きさ。意味は型ごとに違う（各型の説明を参照する）。"""
 
     labels_itself: bool = False
     """渡された名前を、この部品が自分で描いたか。

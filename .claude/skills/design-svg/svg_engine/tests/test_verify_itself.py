@@ -3,7 +3,7 @@
 検査は2度、静かに壊れた。1度目は祖先の変換を合成しておらず全部が原点付近に
 居ることになって偽の重なりを36件出し、2度目は折れ線の端点しか見ておらず
 箱を突っ切る線を素通りさせた。どちらも「破綻0件」という表示は出ていた。
-だから、検査が実際に鳴ることを確かめる試験を、検査と同じだけ持つ。
+だから、検査が実際に鳴ることを検証する試験を、検査と同じだけ持つ。
 """
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ class TestShapeChecks:
         assert check_shapes(_svg(_box(10, 10) + _box(200, 10))) == []
 
     def test_箱を突っ切る線で鳴る(self):
-        """両端は箱の外にある。端点だけを見る検査はこれを見逃した。"""
+        """両端は箱の外にある。端点だけを標本にする検査はこれを見逃した。"""
         inner = _box(150, 80) + ('<path d="M20,100 L380,100" fill="none" '
                                  'stroke="#000" stroke-width="2"/>')
         assert "辺が箱を突っ切る" in check_shapes(_svg(inner))
@@ -183,7 +183,7 @@ class TestComponentContract:
         assert out == [], "申告した大きさの外へインクが出ている: " + " / ".join(out)
 
     def test_わざと外へ出せば鳴る(self, style):
-        """この検査自身が機能していることを確かめる。"""
+        """この検査自身が機能していることを検証する。"""
         from svg_engine.registry import OwnOrigin
         r = OwnOrigin(svg='<rect x="-9" y="0" width="20" height="10"/>',
                             width=20, height=10)

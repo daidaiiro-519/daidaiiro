@@ -10,7 +10,7 @@
 
 固有の語彙を持つ側から使うときは、この核の外に変換を置き、その語彙から
 nodes/edges/groups へ直してから render_figure() を呼ぶ。何を受け取れるかは
-catalog.py が目録として公開しているので、変換を書く人はそれだけを見れば済む。
+catalog.py が目録として公開しているので、変換を書く人はそれだけを参照すれば済む。
 """
 from . import (  # noqa: F401,E501
     shapes, shapes_decor, shapes_freeform, shapes_hex, shapes_interaction, shapes_quantity, shapes_table, shapes_titled,

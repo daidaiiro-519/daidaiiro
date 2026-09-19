@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""図の中の文字が、重なっていないか・枠からはみ出していないかを見る。
+"""図の中の文字が、重なっていないか・枠からはみ出していないかを検査する。
 
   python3 figcheck.py <図を持つモジュール名> ...
 
@@ -37,7 +37,7 @@ def check(name, fig):
            if abs(y - y2) < 10 and a < b2 - 2 and a2 < b - 2]
     over = [t for (y, a, b, t) in items if b > vb[0] + 2 or y > vb[1]]
 
-    # 線が箱を貫いていないか（縦横の線だけを見る）
+    # 線が箱を貫いていないか（縦横の線だけを対象にする）
     rects = [tuple(map(float, m)) for m in
              re.findall(r'<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"', svg)]
     pierced = []

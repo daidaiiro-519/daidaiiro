@@ -62,7 +62,7 @@ class Test目録は使える形で出る:
         assert d["nodes"]["id"]["required"]
         assert d["edges"]["from"]["required"] and d["edges"]["to"]["required"]
         # 囲みの members は合成では読まれず、群を畳む側で読まれる。
-        # 入口の関数だけを見ると欠落する鍵なので、名指しで縛る
+        # 入口の関数だけを走査すると欠落する鍵なので、名指しで縛る
         assert d["groups"]["members"]["required"]
 
     def test_素通しする部品は渡し先を公開している(self, cat):

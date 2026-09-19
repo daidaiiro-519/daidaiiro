@@ -89,7 +89,7 @@ class TestRanges:
         lo, hi = TOKEN_RANGES[key]
         assert resolve_style(overrides={key: (lo + hi) / 2}).num(key) == (lo + hi) / 2
 
-    def test_既定のテーマ自身が範囲を守っている(self):
+    def test_既定のテーマ自身が範囲へ適合している(self):
         resolve_style()
 
 

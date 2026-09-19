@@ -1,10 +1,10 @@
-"""構造の検査 ── 「図ごとにコアを触らなくてよい」と言えるかを、2点で試す。
+"""構造の検査 ── 「図ごとにコアを触らなくてよい」と判定できるかを、2点で試す。
 
 ①寸法がテーマに比例するか ── 書体と間隔を大きく／小さくしても破綻しないか。
   絶対値の定数が残っていれば、ここで露見する。
 ②配置が任意の位相を扱えるか ── 未検証の形で壊れないか。
 
-通ることではなく、どこで壊れるかを見るための試験。
+通ることではなく、どこで壊れるかを確認するための試験。
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ for name, kw in TOPO.items():
     try:
         svg = render_figure(kw["nodes"], kw["edges"], groups=kw["groups"], direction="TB")
         cases.append((f"② {name}", svg))
-    except Exception as e:  # noqa: BLE001 — どこで壊れるかを見たいので握って記録する
+    except Exception as e:  # noqa: BLE001 — どこで壊れるかを確認したいので握って記録する
         cases.append((f"② {name}", f'<p style="color:#8C2F39">{type(e).__name__}: {e}</p>'))
 
 cards = "".join(f'<section class="c"><h2>{n}</h2><div class="s">{s}</div></section>'

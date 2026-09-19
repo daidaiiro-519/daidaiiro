@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""ブレストの中身（JSON）を読んで、盤面を組む。
+"""ブレストの中身（JSON）を読んで、ブレストボードを組む。
 
     python3 build_from_json.py <ブレストのフォルダ>
 
