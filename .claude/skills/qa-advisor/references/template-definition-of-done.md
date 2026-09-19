@@ -10,7 +10,7 @@
 
 「このタスクの完了基準は何か」「このAcceptanceCriteriaで十分か」等、Definition of Doneの策定を求める相談
 
-{{対象（ユーザーが提示したタスク・usecase・PBI）}}の完了基準について判断します。
+{{対象（ユーザーが提示したタスク・usecase・PBI）}}の完了基準について判断する。
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 判定
 
-「{{対象}}の完了基準は「{{Definition of Done／Acceptance Criteria}}」の階層に属します。」と明示した上で、{{definition-of-done.mdの定義・両者の階層関係を引用しつつ、判定理由を説明する}}
+「{{対象}}の完了基準は「{{Definition of Done／Acceptance Criteria}}」の階層に属する。」と明示した上で、{{definition-of-done.mdの定義・両者の階層関係を引用しつつ、判定理由を説明する}}
 
 ---
 
