@@ -66,6 +66,16 @@ def _fault(body: dict) -> list[str]:
 class Handler(SimpleHTTPRequestHandler):
     answers_dir: Path = Path("answers")
 
+    def translate_path(self, path):  # type: ignore[override]
+        """`/` を board.html へ向ける。
+
+        **index.html を書き出さないため**である。複製を置くと、board.html を
+        作り直したときに片方が古くなる。配る側で向き先を決めれば、複製は要らない。
+        """
+        if path in ("/", ""):
+            path = "/board.html"
+        return super().translate_path(path)
+
     def end_headers(self) -> None:  # 文字コードを言わないと、日本語が化ける
         if self.path.endswith(".html") or self.path.endswith("/"):
             self.send_header("Cache-Control", "no-store")

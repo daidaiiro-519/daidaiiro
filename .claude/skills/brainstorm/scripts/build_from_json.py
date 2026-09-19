@@ -5,7 +5,7 @@
 
     python3 build_from_json.py <ブレストのフォルダ>
 
-そのフォルダの `topics.json` を読み、`board.html` と `index.html` を書く。
+そのフォルダの `topics.json` を読み、`board.html` を書く。
 図は同じフォルダの `figures/<名前>.svg` から読む。
 
 **論点の中身は、ここに置かない。**それはブレストごとの持ち物なので、
@@ -55,8 +55,6 @@ def main(folder: str) -> int:
                 board=data.get("board", here.name),
                 round_no=data.get("round", 1))
     write(html, str(here / "board.html"), data["theme"])
-    (here / "index.html").write_text((here / "board.html").read_text(encoding="utf-8"),
-                                     encoding="utf-8")
     n_open = sum(1 for t in topics if t.status != "決着" and (t.pick or t.decision))
     print(f"論点 {len(topics)} 件 ／ 開いている {n_open} 件 ／ 図 {sum(len(t.figures) for t in topics)} 枚")
     return 0
