@@ -151,7 +151,7 @@ class 検査そのものの規律(unittest.TestCase):
         self.assertEqual([c.basis for c in others], ["媒体の決め"])
 
     def test_検査を列挙できる(self):
-        self.assertEqual(len(gate.all_checks()), 6)
+        self.assertEqual(len(gate.all_checks()), 7)
 
     def test_印のある文書は検査しない(self):
         self.assertEqual(names("<!-- doc-writing-skills: exempt -->\n\n# あ\n\n#### い\n"), [])
