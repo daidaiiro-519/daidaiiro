@@ -17,7 +17,7 @@ import render
 
 
 def mark(h, marks):
-    """標準エラーへの報告を捨てて、印を付けた HTML を返す。"""
+    """標準エラーへの報告を破棄して、印を付けた HTML を返す。"""
     with redirect_stderr(io.StringIO()):
         return render.mark(h, marks)
 

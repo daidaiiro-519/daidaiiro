@@ -41,7 +41,7 @@ font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace}
 <hr>
 <h2>規則</h2>
 <h3>1　名前</h3>
-<h4>1-1　頭字語は、大文字か小文字かで揃える</h4>
+<h4>1-1　頭字語は、大文字か小文字かで統一する</h4>
 <div class="wrap"><table><tr><td><b>要求レベル</b></td><td>必須</td></tr><tr><td><b>検証方法</b></td><td><b>機械が判定する。</b> 識別子を語へ分け、<code>URL</code> <code>HTTP</code> <code>XML</code> <code>ID</code> <code>API</code> などの頭字語が <code>Url</code> <code>Http</code> のような形で現れないことを確認する</td></tr></table></div>
 <p><b>規定</b><br>頭字語は、<code>URL</code> か <code>url</code> のどちらかで書かなければならない。<code>Url</code> と書いてはならない。<br><code>ID</code> も同じで、<code>appId</code> ではなく <code>appID</code> と書く。<br>プロトコルバッファの生成したコードは、この規則の外に置く。</p>
 <p><b>出典</b></p>
@@ -65,8 +65,8 @@ font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace}
 <blockquote>Variable names in Go should be short rather than long. This is especially true for local<br>variables with limited scope. Prefer <code>c</code> to <code>lineCount</code>. Prefer <code>i</code> to <code>sliceIndex</code>.</blockquote>
 <blockquote>The basic rule: the further from its declaration that a name is used, the more descriptive<br>the name must be.</blockquote>
 <h4>1-5　受け手の名前は、型の1文字か2文字の略にする</h4>
-<div class="wrap"><table><tr><td><b>要求レベル</b></td><td>必須（<code>me</code> <code>this</code> <code>self</code> の禁止と、型の中で揃えること）／推奨（長さ）</td></tr><tr><td><b>検証方法</b></td><td><b>機械が判定する。</b> 受け手の名前が <code>me</code> <code>this</code> <code>self</code> でないこと、同じ型のすべてのメソッドで同じ名前であることを確認する</td></tr></table></div>
-<p><b>規定</b><br>メソッドの受け手の名前は、その型を表す1文字か2文字の略にするとよい<br>（<code>Client</code> なら <code>c</code> や <code>cl</code>）。<br><code>me</code> <code>this</code> <code>self</code> のような名前を使ってはならない。<br>1つの型の中で、受け手の名前を揃えなければならない。</p>
+<div class="wrap"><table><tr><td><b>要求レベル</b></td><td>必須（<code>me</code> <code>this</code> <code>self</code> の禁止と、型の中で統一すること）／推奨（長さ）</td></tr><tr><td><b>検証方法</b></td><td><b>機械が判定する。</b> 受け手の名前が <code>me</code> <code>this</code> <code>self</code> でないこと、同じ型のすべてのメソッドで同じ名前であることを確認する</td></tr></table></div>
+<p><b>規定</b><br>メソッドの受け手の名前は、その型を表す1文字か2文字の略にするとよい<br>（<code>Client</code> なら <code>c</code> や <code>cl</code>）。<br><code>me</code> <code>this</code> <code>self</code> のような名前を使ってはならない。<br>1つの型の中で、受け手の名前を統一しなければならない。</p>
 <p><b>出典</b></p>
 <blockquote>The name of a method&#x27;s receiver should be a reflection of its identity; often a one or two<br>letter abbreviation of its type suffices (such as &quot;c&quot; or &quot;cl&quot; for &quot;Client&quot;). Don&#x27;t use<br>generic names such as &quot;me&quot;, &quot;this&quot; or &quot;self&quot; ...</blockquote>
 <blockquote>Be consistent, too: if you call the receiver &quot;c&quot; in one method, don&#x27;t call it &quot;cl&quot; in another.</blockquote>
@@ -76,9 +76,9 @@ font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace}
 <p><b>規定</b><br><code>errors.New</code> と <code>fmt.Errorf</code> へ渡す文字列は、小文字で始めるとよい。<br>固有名詞と頭字語で始まるものを除く。末尾に <code>.</code> <code>!</code> <code>?</code> を置かない。<br>ほかの文脈に続けて表示されるからである。</p>
 <p><b>出典</b></p>
 <blockquote>Error strings should not be capitalized (unless beginning with proper nouns or acronyms)<br>or end with punctuation, since they are usually printed following other context.<br>That is, use <code>fmt.Errorf(&quot;something bad&quot;)</code> not <code>fmt.Errorf(&quot;Something bad&quot;)</code></blockquote>
-<h4>2-2　error を、<code>_</code> で捨てない</h4>
+<h4>2-2　error を、<code>_</code> で破棄しない</h4>
 <div class="wrap"><table><tr><td><b>要求レベル</b></td><td>必須</td></tr><tr><td><b>検証方法</b></td><td><b>機械が判定する。</b> 戻り値に <code>error</code> を持つ関数の呼び出しを集め、その戻り値が <code>_</code> へ束ねられていないことを確認する</td></tr></table></div>
-<p><b>規定</b><br><code>error</code> を返す関数の戻り値を、<code>_</code> で捨ててはならない。<br>受け取ったうえで、扱うか、返すか、例外的な場合にかぎり <code>panic</code> する。</p>
+<p><b>規定</b><br><code>error</code> を返す関数の戻り値を、<code>_</code> で破棄してはならない。<br>受け取ったうえで、扱うか、返すか、例外的な場合にかぎり <code>panic</code> する。</p>
 <p><b>出典</b></p>
 <blockquote>Do not discard errors using <code>_</code> variables. If a function returns an error, check it to<br>make sure the function succeeded. Handle the error, return it, or, in truly exceptional<br>situations, panic.</blockquote>
 <h4>2-3　通常の失敗に、panic を使わない</h4>

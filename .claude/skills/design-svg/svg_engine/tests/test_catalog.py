@@ -61,7 +61,7 @@ class Test目録は使える形で出る:
         d = cat["declaration"]
         assert d["nodes"]["id"]["required"]
         assert d["edges"]["from"]["required"] and d["edges"]["to"]["required"]
-        # 囲みの members は合成では読まれず、群を畳む側で読まれる。
+        # 囲みの members は合成では読まれず、群を集約する側で読まれる。
         # 入口の関数だけを走査すると欠落する鍵なので、名指しで縛る
         assert d["groups"]["members"]["required"]
 

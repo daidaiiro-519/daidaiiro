@@ -158,10 +158,10 @@ def cjk(ch: str) -> bool:
 
 
 def _fold(text: str) -> tuple[str, list[int]]:
-    """空白の連なりを畳む。畳んだ先から元の位置へ戻れるようにする。
+    """空白の連なりを圧縮する。圧縮した先から元の位置へ戻れるようにする。
 
-    **畳んだ先は、前後の文字で決まる。**
-    日本語どうしの間なら**無**に、そうでなければ**空白1つ**に畳む ──
+    **圧縮した先は、前後の文字で決まる。**
+    日本語どうしの間なら**無**に、そうでなければ**空白1つ**に圧縮する ──
     原文が行で折り返されているだけの箇所に、空白を作り出さないためである。
     英語は語の切れ目に空白を持つので、逆に空白1つが要る。
     """
@@ -189,7 +189,7 @@ def _fold(text: str) -> tuple[str, list[int]]:
 
 
 def _find_quote(text: str, needle: str) -> list[int]:
-    """引用として照合する。**空白と改行の畳み方だけを揃え、語は1文字も変えない。**"""
+    """引用として照合する。**空白と改行の圧縮規則だけを統一し、語は1文字も変えない。**"""
     folded, idx = _fold(text)
     n = _fold(needle)[0].strip()
     if not n:
@@ -335,7 +335,7 @@ def report(path: str, s: Scan, near: str | None, within: int) -> int:
         print("見つからない原因は4つ──①名前を言い換えた ②別のページに在る "
               "③読めなかった範囲に在る ④本当に無い。")
         print("①なら直す。②なら該当ページを取得して照合し直す。③なら読めるようにする。"
-              "④なら「無い」と書く。**推測で埋めない。**")
+              "④なら「無い」と書く。**推測で補完しない。**")
     return 1 if (s.missing or s.unreadable) else 0
 
 
@@ -374,7 +374,7 @@ def main(argv: list[str]) -> int:
         except ValueError as e:
             print(f"× {e}")
             print("  identifier ── 語として照合する（前後が語の文字なら別の名前）")
-            print("  quote      ── 引用として照合する（空白の畳み方だけ揃え、語は変えない）")
+            print("  quote      ── 引用として照合する（空白の圧縮規則だけ統一し、語は変えない）")
             print("  text       ── そのまま探す（探索用。照合した証しにはならない）")
             return 2
         return report(path, s, near, within)

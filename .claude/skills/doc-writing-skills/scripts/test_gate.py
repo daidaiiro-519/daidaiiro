@@ -57,7 +57,7 @@ class 文体の混在(unittest.TestCase):
 
 
 class 並んだ項目の語尾(unittest.TestCase):
-    C = "並んだ項目の語尾が揃っていない"
+    C = "並んだ項目の語尾が統一されていない"
 
     def test_敬体と非敬体が混ざれば出る(self):
         self.assertTrue(names("- 項目を書く\n- 項目を書きます\n", self.C))

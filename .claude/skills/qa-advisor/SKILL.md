@@ -3,7 +3,7 @@ name: "qa-advisor"
 description: "テスト・シナリオの品質評価に関する相談(「このテストは弱くないか」「このタスクの完了基準は何か」「どこにテスト工数を厚くすべきか」等)を受けたときに使う。確立されたテスト理論の原則に基づいて評価するが、直接テスト・specを書き換えはしない(評価はするが手は動かさない)。"
 ---
 
-# テスト・シナリオの品質評価を担うadvisor Skill：qa-advisor
+# テスト・シナリオの品質評価を担当するadvisor Skill：qa-advisor
 
 ## 目的
 
@@ -60,7 +60,7 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 - テスト計画 → risk-based-testing.md／boundary-value-analysis-equivalence-partitioning.md／exploratory-testing.md
 - 複数の概念が関連する場合は全て読み込む
 
-### Step 3: テンプレートを埋めて回答を生成する
+### Step 3: テンプレートを補完して回答を生成する
 
 タイプに応じたテンプレートファイルに定義されたプレースホルダーを、knowledgeファイルの内容に基づいて埋め、回答を生成する。
 

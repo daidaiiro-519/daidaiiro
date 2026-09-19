@@ -3,7 +3,7 @@
 段ごとに要素を隣り合わせるだけでは足りない。群が段をまたぐと、斜めに離れた
 要素の外接矩形が間の非メンバーまで飲み込む（実測で確認）。囲みが意味を成すには
 「群の要素だけが、群の矩形の内側に居る」ことが要る。それを構造として保証するには、
-群を先に配置して1つの大きさへ畳み、親はそれを1個として置くしかない。
+群を先に配置して1つの大きさへ集約し、親はそれを1個として置くしかない。
 
 辺は群の箱ではなく、実際の節点の位置へ描く。だから「できあがった配置の一部を
 枠で囲む」という注記の使い方も、鎖を切らずに成り立つ。
@@ -44,7 +44,7 @@ def _build_tree(node_ids: list[str], groups: list[dict]) -> _Container:
 
     Raises:
         UnsupportedByStrategy: 入れ子でない群の重なりがあるとき。この配置は
-            群を入れ子の箱として畳むので、片方だけに属させる形へ縮退させると
+            群を入れ子の箱として集約するので、片方だけに属させる形へ縮退させると
             もう片方から要素が黙って消える。
     """
     indexed = [(f"__g{i}", g) for i, g in enumerate(groups)]
@@ -57,7 +57,7 @@ def _build_tree(node_ids: list[str], groups: list[dict]) -> _Container:
                 raise UnsupportedByStrategy(
                     f"群 {ga.get('label') or ka!r} と {gb.get('label') or kb!r} が"
                     f"入れ子でなく重なっている（共通の要素: "
-                    f"{sorted(sa & sb)}）。この配置は群を入れ子の箱として畳むので、"
+                    f"{sorted(sa & sb)}）。この配置は群を入れ子の箱として集約するので、"
                     f"この重なりは描けない。")
 
     parent: dict[str, str | None] = {}

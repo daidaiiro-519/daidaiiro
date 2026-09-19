@@ -1,4 +1,4 @@
-# 構造化データからSVGを組むのを担うSkill：design-svg
+# 構造化データからSVGを組むのを担当するSkill：design-svg
 
 ## 目的
 

@@ -70,7 +70,7 @@ class Test綴り違いは描く前に失敗する:
 
     def test_鍵の欠けたテーマは描く前に失敗する(self):
         # 欠けたまま描き始めると、その鍵を参照する部品に当たった時点で
-        # 組みかけのSVGを捨てることになる
+        # 組みかけのSVGを破棄することになる
         with pytest.raises(IncompleteThemeError):
             resolve_style(theme={"font.size": 12})
 

@@ -444,7 +444,7 @@ def _panel(t: Topic, theme: str) -> str:
         folds.append(_fold(f"反証で分かったこと（{len(t.found)}件）",
                            '<ul class="plain">' + "".join(f"<li>{x}</li>" for x in t.found) + "</ul>"))
     if t.costs:
-        folds.append(_fold(f"引き受けること（{len(t.costs)}件）",
+        folds.append(_fold(f"負担すること（{len(t.costs)}件）",
                            '<ul class="plain">' + "".join(f"<li>{c}</li>" for c in t.costs) + "</ul>"))
     if t.weaknesses:
         folds.append(_fold(f"まだ弱いところ（{len(t.weaknesses)}件）",
@@ -486,7 +486,7 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
     """
     for t in topics:
         if len(t.kept) == 1:
-            raise ValueError(f"論点{t.no}: 反証を通過した案が1つしかない。論点の立て方を見直す "
+            raise ValueError(f"論点{t.no}: 反証を通過した案が1つしかない。論点の立て方を再確認する "
                              "── 1つしか残らないなら、それは選択ではない。"
                              "まだ案を出していない論点は、案を空にして置く")
 

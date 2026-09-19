@@ -67,7 +67,7 @@ class 識別子として照合する(unittest.TestCase):
 
 
 class 引用として照合する(unittest.TestCase):
-    """原文と1文字も違わず、続けて在ることを検査する。空白と改行だけ揃える。"""
+    """原文と1文字も違わず、続けて在ることを検査する。空白と改行だけ統一する。"""
 
     def 当たるか(self, needle, text):
         s = source.scan(doc(text), [needle], how="quote")
@@ -86,22 +86,22 @@ class 引用として照合する(unittest.TestCase):
         self.assertTrue(self.当たるか("trigger は manual", "trigger　は    manual である"))
 
     def test_日本語が行で折り返されていても当たる(self):
-        """**日本語は、行の折り返しに空白を持たない。**畳んだ先に空白を作らない。"""
+        """**日本語は、行の折り返しに空白を持たない。**圧縮した先に空白を作らない。"""
         self.assertTrue(self.当たるか("圧縮の起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
 
-    def test_畳み方は原文と引用の両方に同じ規則で当たる(self):
-        """引用側に空白が在っても無くても、同じに畳まれるので一致する。"""
+    def test_圧縮規則は原文と引用の両方に同じものが適用される(self):
+        """引用側に空白が在っても無くても、同じに圧縮されるので一致する。"""
         self.assertTrue(self.当たるか("圧縮の 起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
 
     def test_英語が行で折り返されていれば空白1つになる(self):
         self.assertTrue(self.当たるか("the compact summary", "see\nthe compact\nsummary here"))
 
     def test_日本語の間の空白は無いものとして扱う(self):
-        """原文に空白が在っても、日本語どうしの間なら畳んで無にする。"""
+        """原文に空白が在っても、日本語どうしの間なら圧縮して無にする。"""
         self.assertTrue(self.当たるか("圧縮の起こし方", "…圧縮の 起こし方…"))
 
     def test_英語の語の間の空白は消さない(self):
-        """畳むのは空白の連なりであって、空白そのものではない。"""
+        """圧縮するのは空白の連なりであって、空白そのものではない。"""
         self.assertFalse(self.当たるか("compact summary", "the compactsummary here"))
 
     def test_日本語と英数字の間の空白は残る(self):

@@ -1,13 +1,13 @@
 ---
 id: "knowledge-cand-declaration-text-arbitrates-violation-claims"
 type: "Knowledge"
-title: "適合の主張と、宣言そのものへの異議を見分ける：knowledge-cand-declaration-text-arbitrates-violation-claims"
-description: "「宣言に適合しているか」と「その宣言が正しいか」は別の問いで、答えを持つ相手が違う。前者は宣言の文言が、後者は knowledge が裁く。混ぜると、宣言が反証不能になるか、knowledge が何でも押し通せるかのどちらかに倒れる。"
+title: "適合の主張と、宣言そのものへの異議を識別する：knowledge-cand-declaration-text-arbitrates-violation-claims"
+description: "「宣言に適合しているか」と「その宣言が正しいか」は別の問いで、答えを持つ相手が違う。前者は宣言の文言が、後者は knowledge が裁く。混ぜると、宣言が反証不能になるか、knowledge が何でも押し通せるかのどちらかに帰着する。"
 tags: ["framework:ddd", "topic:advisory-quality"]
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# 適合の主張と、宣言そのものへの異議を見分ける：knowledge-cand-declaration-text-arbitrates-violation-claims
+# 適合の主張と、宣言そのものへの異議を識別する：knowledge-cand-declaration-text-arbitrates-violation-claims
 
 ## 概要
 
@@ -17,7 +17,7 @@ schemaRef: "KnowledgeSchema/v5"
 - 宣言そのものが誤っていると考えるとき、どう主張すべきか
 - 宣言と knowledge が食い違ったとき、どちらを正本とするか
 
-「宣言に適合しているか」と「その宣言が正しいか」は別の問いで、答えを持つ相手が違う。前者は宣言の文言が、後者は knowledge が裁く。混ぜると、宣言が反証不能になるか、knowledge が何でも押し通せるかのどちらかに倒れる。
+「宣言に適合しているか」と「その宣言が正しいか」は別の問いで、答えを持つ相手が違う。前者は宣言の文言が、後者は knowledge が裁く。混ぜると、宣言が反証不能になるか、knowledge が何でも押し通せるかのどちらかに帰着する。
 
 ---
 
@@ -102,6 +102,6 @@ flowchart LR
 
 | 関連概念 | 関係 |
 |---|---|
-| knowledge-cand-avoidable-friction-is-not-detection | 同じ一件から出たもう1つの規律。塞ぎ方を規約とknowledgeから導くこと |
+| knowledge-cand-avoidable-friction-is-not-detection | 同じ一件から出たもう1つの規律。解消方法を規約とknowledgeから導くこと |
 | knowledge-cand-investigate-before-explain | 実物を確認してから述べるという規律を、助言を受け取る側から見たもの |
 | knowledge-cand-aggregate-declaration-is-not-class-existence | 宣言と実装の対応を読み違えると、厳しすぎて同時に緩すぎる判定になる例 |

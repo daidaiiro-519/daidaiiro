@@ -201,7 +201,7 @@ CLAIMS: list[dict] = [
             {"key": "c", "name": "向きのある関係", "value": 30},
             {"key": "d", "name": "一列に並ぶ", "value": 7}]},
 
- {"asserts": "時間変化", "reading": "決定は日をまたいで積み上がった。",
+ {"asserts": "時間変化", "reading": "決定は日をまたいで蓄積した。",
   "items": [{"key": "a", "name": "調べる", "span": [0, 3]},
             {"key": "b", "name": "決める", "span": [3, 2]},
             {"key": "c", "name": "引き継ぐ", "span": [5, 1]},

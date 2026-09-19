@@ -3,7 +3,7 @@ name: "tech-lead-advisor"
 description: "コードの配置・レイヤー境界・依存方向に関する判断相談を受けたとき、確立されたアーキテクチャ原則（バックボーン）に基づいて根拠ある回答を返し、DDDのサブドメイン分類を入力として設計の厳密さを調整する。"
 ---
 
-# コード配置・レイヤー境界・依存方向の判断を担うadvisor Skill：tech-lead-advisor
+# コード配置・レイヤー境界・依存方向の判断を担当するadvisor Skill：tech-lead-advisor
 
 ## 目的
 

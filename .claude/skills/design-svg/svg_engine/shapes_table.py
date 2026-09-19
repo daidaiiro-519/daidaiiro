@@ -81,7 +81,7 @@ def table(props: dict, style: Style) -> OwnOrigin:
                f'fill="none" stroke="{style.text("color.box-stroke")}"/></g>')
     base = fs_small * style.num("font.baseline-ratio")
     if len(axes) > 1:
-        # 横が何を表すか ── 表の上、いちばん左の列に揃える
+        # 横が何を表すか ── 表の上、いちばん左の列と左端を統一する
         body.append(f'<text x="{left:.1f}" y="{band / 2 + base:.1f}" '
                     f'font-family="{style.text("font.family")}" font-size="{fs_small}" '
                     f'fill="{style.text("color.ink-faint")}">{_e(str(axes[1]))}</text>')

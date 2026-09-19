@@ -213,7 +213,7 @@ def _has_crossing(a: list[Point], b: list[Point]) -> bool:
 
 
 def boolean_op(shapes: list[list[Point]], op: str) -> list[list[Point]]:
-    """3つ以上の形も、先頭から順に演算を畳み込んで処理する。
+    """3つ以上の形も、先頭から順に演算を適用して処理する。
 
     Args:
         shapes: 多角形(点の並び)を2つ以上。

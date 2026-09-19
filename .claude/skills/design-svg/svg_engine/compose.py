@@ -2,7 +2,7 @@
 
 ここが知っているのは「節点(nodes)・辺(edges)・囲み(groups)」という、どんな
 グラフ図にも共通する一般名詞だけ。呼ぶ側が固有の語彙を持っていても、それを
-この形へ直す役目は核の外（呼び出し側の変換）が担う。
+この形へ直す役目は核の外（呼び出し側の変換）が担当する。
 
 **この核が保証する性質** ── 判断が最も集まる場所なので、何を保証しているのかを
 ここに集める。個々の実測の記録は、それぞれの行のコメントに残してある。
@@ -13,8 +13,8 @@
 2. **同じ節点へ集まる辺は、同じ点へ収束する。** 相手の方向へそのまま引かず、
    どの辺から出すかだけを相手の位置で決め、その辺の中央を狙う。
    （方向へ直接引くと、角のすぐ脇に着いて不自然に見える）
-3. **線は曲げない。曲げるのは節点を避けるときだけ。** 札は動かせるので
-   障害物に数えない ── 札を避けるために曲げると、まっすぐでよい関係まで大回りする。
+3. **線は迂回させない。迂回させるのは節点を避けるときだけ。** 札は動かせるので
+   障害物に数えない ── 札を避けるために迂回させると、まっすぐでよい関係まで大回りする。
 4. **迂回用の車線は、節点どうしと同じ間隔だけ離れる。** 車線は仮の節点の列
    なので、節点と同じ間隔で並ぶのが筋。（線幅ぶんだけでは迂回に見えない）
 5. **動かせるものが譲り、動かせないものは動かない。** 札（辺の札・囲みの札）が
@@ -24,7 +24,7 @@
 7. **画布は、描いたものを全部含む。** 節点だけでなく、外へはみ出す囲み・
    迂回経路の辺・その上に乗る札まで含めて取る。余白は四辺へ均等に。
 8. **群の要素だけが、群の矩形の内側に居る。** これは nesting.py が保証する
-   （群を先に畳み、親は1個として置く）。ここはその結果を使うだけ。
+   （群を先に集約し、親は1個として置く）。ここはその結果を使うだけ。
 
 **描く順序**は 囲み → 辺 → 札 → 節点。札を辺より後に描くのは、避けられな
 かったときでも帯が線を断って読めるようにするため（性質5）。
@@ -69,7 +69,7 @@ def _avoid(pts, obstacles, direction: str, margin: float, keep_out=None):
         margin: 障害物から空ける量。
         keep_out: 迂回路が「中を並走してはいけない」矩形の並び（囲みの内側）。
             囲みを跨ぐのは正常なので障害物にはしないが、その縁に沿って
-            長く並走すると枠線と見分けが付かなくなる。迂回の位置だけ外へ出す。
+            長く並走すると枠線と識別できなくなる。迂回の位置だけ外へ出す。
     """
     out = [pts[0]]
     for a, b in zip(pts, pts[1:]):
@@ -144,7 +144,7 @@ def _cardinal(pos, size, ink, toward, flow=None):
     """相手が居る側を上下左右のどれかに決め、その側のインクへ着ける。
 
     相手の方向へそのまま引くと、輪郭の角の近くへ着いて不自然に見える
-    （実測：箱の左辺の下端すれすれに矢印が刺さった）。どの辺から出すかだけを
+    （実測：箱の左辺の下端すれすれに矢印が接続した）。どの辺から出すかだけを
     相手の位置で決め、その辺の中央を狙う ── 図として規則的になり、同じ節点へ
     集まる線が同じ点へ収束する。
 
@@ -258,7 +258,7 @@ def _nested(decl: dict, theme: dict, depth: int, label: str | None = None) -> Ow
     # 指しているようにしか見えなかった）。
     #
     # 囲みと名札は群のために既にある部品を使う。同じ「塊に名前を付ける」ことを
-    # 2つの方法で描くと、テーマを差し替えたときに見た目が揃わなくなる。
+    # 2つの方法で描くと、テーマを差し替えたときに見た目が一致しなくなる。
     style = resolve_style("plain", None, theme)
     pad = style.num("font.size-small") * style.num("size.frame-pad-ratio")
     label_h = style.num("font.size-small") * style.num("size.label-line-h")
@@ -312,8 +312,8 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     groups = groups or []
     theme = theme or DEFAULT_THEME
     depth = _depth
-    # 段が進む向き。層状のときだけ辺の出入りに効かせるので、既定値で埋める前に見る
-    # ── 埋めた後だと、戦略を選ばなかったことが分からなくなる。
+    # 段が進む向き。層状のときだけ辺の出入りに効かせるので、既定値で補完する前に確認する
+    # ── 補完した後だと、戦略を選ばなかったことが分からなくなる。
     flow = (1 if direction == "TB" else 0) if layout is None else None
     layout = layout or layout_graph
     nested_layout = nested_layout or layout_nested
@@ -364,7 +364,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
             gap_rank = max(gap_rank, num(theme, "size.label-band-h") + num(theme, "size.gap-order"))
 
     if groups:
-        # 群があるときは、群を先に解いて1つの大きさへ畳み、親はそれを1個として置く。
+        # 群があるときは、群を先に解いて1つの大きさへ集約し、親はそれを1個として置く。
         # こうしないと、段をまたぐ群の外接矩形が間の非メンバーを飲み込む。
         node_boxes, group_boxes, nested_paths, total_w, total_h = nested_layout(
             sizes, edge_pairs, groups, gap_rank,
@@ -415,13 +415,13 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         pts[-1] = _cardinal(coords[b], sizes[b], ib, prv, flow)
         # 端の2つ以外が占めている領域のうち、動かせないもの（節点）だけが
         # 障害物。札は動かせるので、線を曲げさせず札のほうを後で避けさせる
-        # （札を避けるために線を曲げると、まっすぐでよい関係まで大回りする）。
+        # （札を避けるために線を迂回させると、まっすぐでよい関係まで大回りする）。
         obstacles = [(coords[n][0], coords[n][1],
                       coords[n][0] + sizes[n][0], coords[n][1] + sizes[n][1])
                      for n in coords if n not in (a, b)]
         routed = _avoid(pts, obstacles, direction, edge_style.num("size.stroke-width") * 2,
                         keep_out=frame_bounds)
-        # 迂回で入り方が変わったら、接続点も決め直す。曲げる前の向きで決めた
+        # 迂回で入り方が変わったら、接続点も決め直す。迂回させる前の向きで決めた
         # ままだと、横から来た線が底辺の中点へ刺さり、矢じりが箱へめり込む。
         if len(routed) > 1:
             # まっすぐな辺は相手の方を向く。迂回経路の辺（中継点を持つ）は、

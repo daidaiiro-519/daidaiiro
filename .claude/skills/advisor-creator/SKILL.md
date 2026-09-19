@@ -73,7 +73,7 @@ references/knowledge-template.mdを読み込み、専門領域ごとの概念（
 
 ### Step 5: responseTypesごとの判断テンプレートを作成する（該当する場合のみ）
 
-相談種別ごとに回答形式を揃えたい場合、references/template-{種別}.mdをSKILL.mdと同じ {advisor名}/references/ 配下に作成する。
+相談種別ごとに回答形式を統一したい場合、references/template-{種別}.mdをSKILL.mdと同じ {advisor名}/references/ 配下に作成する。
 
 - knowledgeファイルの決定木だけで十分な場合はこのStepを省略してよい
 

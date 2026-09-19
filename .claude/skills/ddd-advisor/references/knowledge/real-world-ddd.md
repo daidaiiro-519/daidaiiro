@@ -38,7 +38,7 @@ schemaRef: "KnowledgeSchema/v6"
 |---|---|
 | subdomain | 業務領域の分類（中核・一般・補完）の特定 |
 | bounded-context | 区切られた文脈の設計と、物理的な境界への変換 |
-| context-integration | 連係方法の見直し先 |
+| context-integration | 連係方法を精査するときの参照先 |
 | event-storming | 失われた業務知識を取り戻す手段 |
 | evolving-design | 実装方法を移していく手順の詳細 |
 | design-heuristics | 実装方法と技術方式を選ぶ経験則 |

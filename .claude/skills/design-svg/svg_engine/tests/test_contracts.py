@@ -22,7 +22,7 @@ _ENGINE = pathlib.Path(__file__).resolve().parents[1]
 
 # 責務の層。数字が小さいほど土台に近い。
 # 依存の深さ（import の連鎖）とは別物である ── 深さは「呼ぶ順序」と「型をどこから
-# 借りたか」を映すだけで、責務の層とは偶然おおむね揃っているにすぎない。だから
+# 借りたか」を映すだけで、責務の層とは偶然おおむね一致しているにすぎない。だから
 # 責務の側をここに明示し、揃い続けることを機械で検証する。
 LAYER: dict[str, int] = {
     # 0 語彙・台帳 ── 誰の都合も知らない。名前・数・形・登録簿
@@ -62,10 +62,10 @@ def _imports(tree: ast.Module) -> set[str]:
 class Test規約1_層:
     """下から上を呼ばない。層を飛ばさない。"""
 
-    def test_全てのモジュールが層に割り当てられている(self):
-        # 割り当て漏れがあると、そのモジュールだけ検査の外に出る
+    def test_全てのモジュールが層に配分されている(self):
+        # 配分の漏れがあると、そのモジュールだけ検査の外に出る
         known = set(LAYER) | ORTHOGONAL | {"__main__"}
-        assert set(_modules()) <= known, f"層の割り当てが無い: {sorted(set(_modules()) - known)}"
+        assert set(_modules()) <= known, f"層の配分が無い: {sorted(set(_modules()) - known)}"
 
     def test_下から上を呼ばない(self):
         bad = []

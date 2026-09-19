@@ -95,6 +95,6 @@ knowledgeファイルの判断基準（決定木）を辿り、判定結果と�
 - `references/knowledge/reliability-targets-and-error-budgets.md`: SLI/SLO/エラーバジェットという可用性目標の定義方法と、エラーバジェット消費に応じたリリース可否の判断基準
 - `references/knowledge/security-boundary-and-least-privilege.md`: 最小権限の原則・多層防御という、アクセス権・セキュリティ対策の設計基準
 - `references/knowledge/observability-design.md`: メトリクス・ログ・トレースという可観測性の3種類と、監視項目を取捨選択する判断基準
-- `references/knowledge/performance-efficiency.md`: データに基づく構成選択・マネージドサービスの活用・定期的な見直しという性能効率の判断基準
+- `references/knowledge/performance-efficiency.md`: データに基づく構成選択・マネージドサービスの活用・定期的な精査という性能効率の判断基準
 - `references/knowledge/cost-optimization.md`: 消費モデル・効率性の測定・差別化されない作業の外部化・コストの帰属というコスト最適化の判断基準
 - `references/knowledge/sustainability.md`: 使用率の最大化・需要平準化・データライフサイクル管理という、環境負荷を最小化する判断基準
