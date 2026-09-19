@@ -1,8 +1,8 @@
 """検査そのものの検査 ── 壊れた図を渡して鳴ること、正しい図で鳴らないこと。
 
-検査は2度、静かに壊れた。1度目は祖先の変換を積んでおらず全部が原点付近に
+検査は2度、静かに壊れた。1度目は祖先の変換を合成しておらず全部が原点付近に
 居ることになって偽の重なりを36件出し、2度目は折れ線の端点しか見ておらず
-箱を突っ切る線を素通りさせた。どちらも「崩れ0件」という表示は出ていた。
+箱を突っ切る線を素通りさせた。どちらも「破綻0件」という表示は出ていた。
 だから、検査が実際に鳴ることを確かめる試験を、検査と同じだけ持つ。
 """
 from __future__ import annotations
@@ -46,7 +46,7 @@ class TestTextChecks:
                  f'<g transform="translate(0,100)">{_text(10, 50, "かきくけこ")}</g>')
         assert check(_svg(inner)) == []
 
-    def test_viewBoxが無ければそれ自体を崩れとする(self):
+    def test_viewBoxが無ければそれ自体を破綻とする(self):
         assert check('<svg xmlns="http://www.w3.org/2000/svg"></svg>') == ["viewBoxが無い"]
 
 
@@ -97,9 +97,9 @@ class TestShapeChecks:
 
 
 class TestAttachmentChecks:
-    """辺の終端がインクに着いているか ── 3度目の静かな崩れを捕まえる番人。
+    """辺の終端がインクに着いているか ── 3度目の静かな破綻を捕まえる番人。
 
-    22通りの置き方すべてで「崩れ0件」と出ていたが、実際には波・三日月・
+    22通りの置き方すべてで「破綻0件」と出ていたが、実際には波・三日月・
     円グラフ・棒グラフで辺が何も無いところを指していた。0件という表示は、
     見ていない項目については何も言っていない。
     """
@@ -131,7 +131,7 @@ class TestAttachmentChecks:
         assert check_attachment(self._fig(node, "M30,20 L130,88")) == []
 
     def test_標本の粗さで誤って鳴らない(self):
-        """線分どうしで測らず点で測ると、標本の隙間に落ちた終端で誤検知する。"""
+        """線分どうしで測らず点で測ると、標本の隙間に入った終端で誤検知する。"""
         node = '<path d="M0,0 L200,0" fill="none" stroke="#000" stroke-width="1"/>'
         assert check_attachment(self._fig(node, "M30,20 L143.7,100")) == []
 
@@ -159,7 +159,7 @@ class TestComponentContract:
                 max(x for x, _ in pts), max(y for _, y in pts))
 
     def test_台帳の全部品に入力が用意されている(self, sample_props):
-        """入力が無い部品は契約の試験を素通りする。素通りを試験で落とす。"""
+        """入力が無い部品は契約の試験を素通りする。素通りを試験で検出する。"""
         from svg_engine.registry import OwnOrigin, known_kinds
         missing = [k for k in known_kinds() if k not in sample_props]
         assert missing == [], f"conftest の sample_props に足りない: {missing}"
@@ -183,7 +183,7 @@ class TestComponentContract:
         assert out == [], "申告した大きさの外へインクが出ている: " + " / ".join(out)
 
     def test_わざと外へ出せば鳴る(self, style):
-        """この検査自身が効いていることを確かめる。"""
+        """この検査自身が機能していることを確かめる。"""
         from svg_engine.registry import OwnOrigin
         r = OwnOrigin(svg='<rect x="-9" y="0" width="20" height="10"/>',
                             width=20, height=10)

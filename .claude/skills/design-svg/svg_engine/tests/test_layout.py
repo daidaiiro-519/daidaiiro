@@ -138,7 +138,7 @@ class TestRadial:
 
     def test_輪の並び順は宣言順でなく辺から決まる(self):
         """宣言順に従うと、隣り合うべき節点が輪の反対側へ行き、
-        絵はもつれた星になる。幾何的な崩れは出ないので検査は通ってしまう。"""
+        絵はもつれた星になる。幾何的な破綻は出ないので検査は通ってしまう。"""
         keys = [f"n{i}" for i in range(8)]
         cyc = [(keys[i], keys[(i + 1) % 8]) for i in range(8)]
         shuffled = keys[::2] + keys[1::2]
@@ -232,7 +232,7 @@ class TestTree:
         assert max(t.width, t.height) < max(g.width, g.height)
 
     def test_輪になっていても解ける(self):
-        """木に入らない辺があっても落ちない。"""
+        """木に入らない辺があっても失敗しない。"""
         sizes = _sizes("a", "b", "c")
         r = layout_tree(sizes, [("a", "b"), ("b", "c"), ("c", "a")], 40, 30)
         assert len(r.positions) == 3

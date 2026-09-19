@@ -181,7 +181,7 @@ def layout_nested(node_sizes: dict[str, tuple[float, float]],
             return (0.0, 0.0)
         res = (layout or layout_graph)(sizes, pairs, gap_rank, gap_order, direction)
         solved[c.key] = (res.width, res.height, dict(res.positions))
-        # 経路は、その段の layout_graph が仮節点を通して解いたものを使う。
+        # 経路は、その段の layout_graph が仮節点を経由して解いたものを使う。
         # 始点と終点だけの直線に置き換えると、多段をまたぐ辺が間の箱を突き抜ける。
         paths_local[c.key] = (local_of, dict(res.edge_paths))
         return (res.width, res.height)

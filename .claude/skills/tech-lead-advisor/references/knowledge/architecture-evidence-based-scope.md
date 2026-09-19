@@ -87,5 +87,5 @@ updatedAt: "2026-07-08T00:00:00Z"
 
 | 関連概念 | 関係 |
 |---|---|
-| architecture-layer-boundary | 層を増やすかどうかにも、先回りのコスト（選択権の喪失と価値実現の遅れ）が同じ形で効く |
+| architecture-layer-boundary | 層を増やすかどうかにも、先回りのコスト（選択権の喪失と価値実現の遅れ）が同じ形で生じる |
 | architecture-cross-cutting-concerns | 横断的関心事を共通化するかどうかにも、同じコストの見方が使える |

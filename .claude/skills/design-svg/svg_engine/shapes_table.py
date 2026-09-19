@@ -12,7 +12,7 @@
 - props は headers/rows という構造だけを持ち、色・寸法は一切書かない（契約3）
 - 列幅はセルの文字幅から動的に決める。固定pxにしない（契約4。spatial部品で
   固定幅が原因の不具合を踏んだのと同じ轍を踏まないため）
-- テキストはhtml.escapeを通す（契約7）
+- テキストには html.escape を適用する（契約7）
 - <svg>ルートタグは持たない。<g>フラグメントだけを返す（契約5）
 - 呼ぶ側の語彙は知らない。受け取るのは見出しと行だけ（契約6）
 """
@@ -52,7 +52,7 @@ def table(props: dict, style: Style) -> OwnOrigin:
 
     col_x = [sum(col_w[:c]) for c in range(len(headers))]
     grid_w = sum(col_w)
-    # 軸の名前は表の外側に置く。縦の名前は左へ回し、横の名前は上へ載せる。
+    # 軸の名前は表の外側に置く。縦の名前は左へ縦書きで置き、横の名前は上へ載せる。
     # 帯の厚みは書体から導く（決め打ちを置かない）。
     band = fs_small * style.num("size.label-line-h") if axes else 0.0
     left = band if len(axes) > 0 else 0.0
@@ -86,7 +86,7 @@ def table(props: dict, style: Style) -> OwnOrigin:
                     f'font-family="{style.text("font.family")}" font-size="{fs_small}" '
                     f'fill="{style.text("color.ink-faint")}">{_e(str(axes[1]))}</text>')
     if len(axes) > 0:
-        # 縦が何を表すか ── 表の左、90度回して縦書きにする
+        # 縦が何を表すか ── 表の左で、90度回転させて縦書きにする
         cy = top + grid_h / 2
         body.append(f'<text x="{band / 2 + base - fs_small:.1f}" y="{cy:.1f}" text-anchor="middle" '
                     f'transform="rotate(-90 {band / 2 + base - fs_small:.1f} {cy:.1f})" '

@@ -6,7 +6,7 @@
 marks.json の形。find は描画後のHTMLに現れる文字列。
   [{"find": "...", "before": "変更前の原文", "why": "なぜ変えたか"}, ...]
 
-当たらなかった find は標準エラーに出す。黙って落とさない。
+一致しなかった find は標準エラーに出す。黙って除外しない。
 """
 import re, html, io, sys, json
 
@@ -17,7 +17,7 @@ def inline(t):
     return t.replace('&lt;br&gt;', '<br>').replace('&lt;br/&gt;', '<br>')
 
 def render(md):
-    # HTML のコメントは、描画すると文字として出る。落とす
+    # HTML のコメントは、描画すると文字として出る。除去する
     md = re.sub(r'<!--.*?-->', '', md, flags=re.S)
     out, L, i = [], md.split('\n'), 0
     while i < len(L):
@@ -91,7 +91,7 @@ def mark(h, marks):
 
     **位置は、差し込む前のHTMLに対して先に全部決める。**
     差し込んだ `data-b` ・ `data-w` はHTMLの一部になるので、
-    差し込みながら探すと、**次の印が前の印の理由文の中に当たる**。
+    差し込みながら探すと、**次の印が前の印の理由文の中へ入る**。
     実際にそれで属性の中へ `<mark>` が入り、面が壊れた。
     """
     spans = outside_pre(h)
@@ -99,7 +99,7 @@ def mark(h, marks):
     for c in marks:
         f = c["find"]
         if f not in h:
-            print("  当たらず: " + f[:60], file=sys.stderr)
+            print("  一致せず: " + f[:60], file=sys.stderr)
             continue
         at = next((h.find(f, a, b) for a, b in spans if h.find(f, a, b) >= 0), None)
         if at is None:
@@ -109,7 +109,7 @@ def mark(h, marks):
             print("  なぜが無い: " + f[:60], file=sys.stderr)
         plan.append((at, len(f), c))
 
-    # 重なりを落とす。同じ場所へ2つ差し込むと、片方が他方の中へ入る
+    # 重なりを除外する。同じ場所へ2つ差し込むと、片方が他方の中へ入る
     plan.sort(key=lambda x: (x[0], -x[1]))
     kept, end = [], -1
     for at, ln, c in plan:

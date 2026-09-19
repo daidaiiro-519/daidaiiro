@@ -25,7 +25,7 @@ branching = render_chart("exchange", {
     "participants": ["呼ぶ側", "文書", "型"],
     "steps": [
         {"from": "呼ぶ側", "to": "文書", "label": "逸脱していないか判定する"},
-        {"from": "文書", "to": "型", "label": "読み方の指針を引く"},
+        {"from": "文書", "to": "型", "label": "読み方の指針を参照する"},
         {"from": "文書", "to": "呼ぶ側", "label": "適合を返す", "kind": "return"},
         {"from": "文書", "to": "呼ぶ側", "label": "適合しない箇所を返す", "kind": "return"},
     ],

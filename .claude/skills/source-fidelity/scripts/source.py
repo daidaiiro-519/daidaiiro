@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-"""調査対象の原文を落とし、書こうとしているものが原文に在るかを確かめる。
+"""調査対象の原文を取得し、書こうとしているものが原文に在るかを確かめる。
 
   python3 source.py fetch  <URL> [--dir <保存先>]
-  python3 source.py verify <原文> --as identifier|quote|text <当てるもの>...
+  python3 source.py verify <原文> --as identifier|quote|text <照合するもの>...
                            [--from <1行1個で書いたファイル>] [--near <アンカー>] [--within <行数>]
   python3 source.py list   [--dir <保存先>]
 
 **要約を経由して原典を読んではいけない。**
-項目名は説明ではなく鍵である。1文字違えば、その鍵で引く実装は必ず空を返す。
+項目名は説明ではなく鍵である。1文字違えば、その鍵で参照する実装は必ず空を返す。
 空が返ることと、その事象が起きなかったことは、あとから区別できない。
 
 **この道具が返すのは、真偽ではない。**
 見つかった位置と、**読めなかった範囲**である。
 0件は「無い」ではなく「**読めた範囲には**無い」としか言えない ──
-読めなかったファイルを黙って落とせば、道具の側が推測で断定することになる。
+読めなかったファイルを黙って除外すれば、道具の側が推測で断定することになる。
 
 実際に起きたこと（2026-09-05）──
 公式ページを要約させて読み、要約したモデルが項目名を言い換えた。
@@ -41,7 +41,7 @@ SKIP = {".git", "node_modules", "target", "dist", "build", ".venv", "__pycache__
 HOWS = ("identifier", "quote", "text")
 
 # 語の文字。英数と、識別子で必ず語の内側になる区切り。
-# それ以外の区切り（. / : ~ など）は、**当てる語自身が含んでいるときだけ**内側とする
+# それ以外の区切り（. / : ~ など）は、**照合する語自身が含んでいるときだけ**内側とする
 #   ── 語は、自分の記法を自分の中に持っている。
 ALWAYS_WORD = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
 
@@ -104,7 +104,7 @@ class Scan:
 # ── 原文を読む ────────────────────────────────────────────────
 
 def read_docs(path: str, max_bytes: int = MAX_BYTES) -> tuple[list[Doc], list[tuple[str, str]]]:
-    """原文を読む。**読めなかったものは、黙って落とさず返す。**"""
+    """原文を読む。**読めなかったものは、黙って除外せず返す。**"""
     docs: list[Doc] = []
     bad: list[tuple[str, str]] = []
     if os.path.isfile(path):
@@ -135,10 +135,10 @@ def read_docs(path: str, max_bytes: int = MAX_BYTES) -> tuple[list[Doc], list[tu
     return docs, bad
 
 
-# ── 当て方は3つ。呼ぶ側が名前で選ぶ ──────────────────────────────
+# ── 照合の種類は3つ。呼ぶ側が名前で選ぶ ──────────────────────────────
 
 def _find_identifier(text: str, needle: str) -> list[int]:
-    """語として当てる。前後が語の文字なら、それは別の名前である。"""
+    """語として照合する。前後が語の文字なら、それは別の名前である。"""
     w = word_chars(needle)
     out, i = [], text.find(needle)
     while i >= 0:
@@ -189,7 +189,7 @@ def _fold(text: str) -> tuple[str, list[int]]:
 
 
 def _find_quote(text: str, needle: str) -> list[int]:
-    """引用として当てる。**空白と改行の畳み方だけを揃え、語は1文字も変えない。**"""
+    """引用として照合する。**空白と改行の畳み方だけを揃え、語は1文字も変えない。**"""
     folded, idx = _fold(text)
     n = _fold(needle)[0].strip()
     if not n:
@@ -215,10 +215,10 @@ FINDERS = {"identifier": _find_identifier, "quote": _find_quote, "text": _find_t
 
 def scan(path: str, needles: list[str], how: str = "", near: str | None = None,
          within: int = 40, max_bytes: int = MAX_BYTES) -> Scan:
-    """原文に当てる。**種類を渡さなければ止まる ── 道具の側で決めない。**"""
+    """原文と照合する。**種類を渡さなければ止まる ── 道具の側で決めない。**"""
     if how not in FINDERS:
         raise ValueError(
-            f"当て方を渡していない（--as {' / '.join(HOWS)}）。受け取ったもの: {how!r}")
+            f"照合の種類を渡していない（--as {' / '.join(HOWS)}）。受け取ったもの: {how!r}")
     docs, bad = read_docs(path, max_bytes)
     find = FINDERS[how]
     results = []
@@ -235,7 +235,7 @@ def scan(path: str, needles: list[str], how: str = "", near: str | None = None,
     return Scan(results, bad, len(docs))
 
 
-# ── 原文を落とす ──────────────────────────────────────────────
+# ── 原文を取得する ──────────────────────────────────────────────
 
 def slug(url: str) -> str:
     s = re.sub(r"^https?://", "", url)
@@ -244,7 +244,7 @@ def slug(url: str) -> str:
 
 
 def acceptable(code: str, ctype: str, size: int) -> bool:
-    """落としたものを原文として受け取るか。**HTML も原文である。**
+    """取得したものを原文として受け取るか。**HTML も原文である。**
 
     タグを剥がしたり Markdown へ変換したりはしない ── 変換した時点で、
     「原文と1文字ずつ同じ」が言えなくなる。
@@ -253,7 +253,7 @@ def acceptable(code: str, ctype: str, size: int) -> bool:
 
 
 def fetch(url: str, outdir: str) -> str | None:
-    """原文を落とす。まず <URL>.md を試し、無ければ本体を取る。"""
+    """原文を取得する。まず <URL>.md を試し、無ければ本体を取る。"""
     os.makedirs(outdir, exist_ok=True)
     tried = []
     cands = [url] if url.endswith((".md", ".txt", ".json")) else [url + ".md", url]
@@ -276,13 +276,13 @@ def fetch(url: str, outdir: str) -> str | None:
                     "content_type": ctype}
             with open(path + ".meta.json", "w", encoding="utf-8") as f:
                 json.dump(meta, f, ensure_ascii=False, indent=1)
-            print(f"落とした: {path}")
+            print(f"取得した: {path}")
             print(f"  {meta['bytes']:,} バイト ・ {meta['lines']:,} 行 ・ {ctype}")
             print(f"  sha256 {meta['sha256'][:16]}…")
             return path
         if os.path.exists(path):
             os.remove(path)   # 受け取らなかったものを残さない。一覧に出ないゴミになる
-    print("落とせなかった。試したもの:")
+    print("取得できなかった。試したもの:")
     for c, code, ctype, size in tried:
         print(f"  {code}  {size:>9,}  {ctype[:30]:32}{c}")
     return None
@@ -290,14 +290,14 @@ def fetch(url: str, outdir: str) -> str | None:
 
 def lst(outdir: str) -> int:
     if not os.path.isdir(outdir):
-        print(f"まだ何も落としていない: {outdir}")
+        print(f"まだ何も取得していない: {outdir}")
         return 0
     rows = []
     for f in sorted(os.listdir(outdir)):
         if f.endswith(".meta.json"):
             m = json.load(open(os.path.join(outdir, f), encoding="utf-8"))
             rows.append((m["fetched_at"][:10], m["lines"], m["url"]))
-    print(f"{'落とした日':12}{'行':>8}  出どころ")
+    print(f"{'取得した日':12}{'行':>8}  出どころ")
     for d, l, u in rows:
         print(f"{d:12}{l:>8,}  {u}")
     print(f"── {len(rows)} 件")
@@ -311,20 +311,20 @@ def report(path: str, s: Scan, near: str | None, within: int) -> int:
     if os.path.exists(meta_path):
         m = json.load(open(meta_path, encoding="utf-8"))
         print(f"── {m['url']}")
-        print(f"   {m['bytes']:,} バイト ・ {m['lines']:,} 行 ・ 落とした日 {m['fetched_at'][:10]}")
+        print(f"   {m['bytes']:,} バイト ・ {m['lines']:,} 行 ・ 取得した日 {m['fetched_at'][:10]}")
     else:
         print(f"── {path}  {s.docs_read:,} ファイル")
     if near:
         print(f"   アンカー「{near}」の ±{within} 行の内側だけを見る")
     how = s.results[0].how if s.results else ""
-    print(f"   当て方: {how}" + ("　※ 探索のための種類。照合した証しにはならない" if how == "text" else ""))
+    print(f"   照合の種類: {how}" + ("　※ 探索のための種類。照合した証しにはならない" if how == "text" else ""))
     for r in s.results:
         if r.hits:
             where = " ・ ".join(f"{h.doc}:{h.line}" for h in r.hits[:2])
             print(f"  ok   {r.needle:34} {len(r.hits)} か所　{where}")
         else:
             print(f"  ×    {r.needle:34} 読めた範囲には無い")
-    print(f"── 当てた {len(s.results)} ／ 読めた範囲に無い {len(s.missing)}"
+    print(f"── 照合できた {len(s.results)} ／ 読めた範囲に無い {len(s.missing)}"
           f" ／ 読めなかった {len(s.unreadable)}")
     if s.unreadable:
         print("\n**読めなかった範囲が在る。0件を「原文に無い」と結論してはいけない。**")
@@ -334,7 +334,7 @@ def report(path: str, s: Scan, near: str | None, within: int) -> int:
         print("\n**読めた範囲に無いものを、原典の名前として書いてはいけない。**")
         print("見つからない原因は4つ──①名前を言い換えた ②別のページに在る "
               "③読めなかった範囲に在る ④本当に無い。")
-        print("①なら直す。②なら該当ページを落として照合し直す。③なら読めるようにする。"
+        print("①なら直す。②なら該当ページを取得して照合し直す。③なら読めるようにする。"
               "④なら「無い」と書く。**推測で埋めない。**")
     return 1 if (s.missing or s.unreadable) else 0
 
@@ -367,14 +367,14 @@ def main(argv: list[str]) -> int:
         needles = ([x.strip() for x in open(src, encoding="utf-8") if x.strip()] if src
                    else [a for a in args[1:] if not a.startswith("--")])
         if not needles:
-            print("当てるものを渡す")
+            print("照合するものを渡す")
             return 2
         try:
             s = scan(path, needles, how=how, near=near, within=within)
         except ValueError as e:
             print(f"× {e}")
-            print("  identifier ── 語として当てる（前後が語の文字なら別の名前）")
-            print("  quote      ── 引用として当てる（空白の畳み方だけ揃え、語は変えない）")
+            print("  identifier ── 語として照合する（前後が語の文字なら別の名前）")
+            print("  quote      ── 引用として照合する（空白の畳み方だけ揃え、語は変えない）")
             print("  text       ── そのまま探す（探索用。照合した証しにはならない）")
             return 2
         return report(path, s, near, within)

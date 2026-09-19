@@ -125,7 +125,7 @@ class Figure:
 
         `paper` を敷いて `ink` を載せると、地が暗いテーマで文字が消える
         （`--ink` は地に対する本文色であって、明るい面に対する色ではない）。
-        面を選んだら、文字色はこれで引く。
+        面を選んだら、文字色はこれで参照する。
         """
         return {self.p.paper: self.p.on_paper,
                 self.p.accent: self.p.on_accent}.get(fill, self.p.ink)

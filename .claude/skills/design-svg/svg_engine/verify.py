@@ -1,4 +1,4 @@
-"""描いた結果の機械検査 ── 崩れているかどうかを、絵を見ずに判定する。
+"""描いた結果の機械検査 ── 破綻しているかどうかを、絵を見ずに判定する。
 
 アセット追加の契約が「この検査を通ること」を求めている以上、検査は例に
 置く道具ではなくエンジン本体の持ち物である。新しい部品を足した人は、
@@ -45,11 +45,11 @@ _SCALE = re.compile(r"scale\(\s*(-?[\d.]+)\s*\)")
 
 
 def _text_boxes(svg: str) -> list[tuple[float, float, float, float, str]]:
-    """文字の外接矩形を、祖先の変換を積んだ絶対座標で返す。
+    """文字の外接矩形を、祖先の変換を合成した絶対座標で返す。
 
     節点は <g transform="translate(...)"> で包まれるので、変換を無視して生の
     座標を読むと、全部が原点付近に居ることになって偽の重なりを大量に出す
-    （最初の実装がそうなっていた）。祖先を辿って積む。
+    （最初の実装がそうなっていた）。祖先を辿って合成する。
     """
     import xml.etree.ElementTree as ET
     try:
@@ -88,7 +88,7 @@ def _text_boxes(svg: str) -> list[tuple[float, float, float, float, str]]:
 
 
 def _shapes(svg: str):
-    """箱・囲み・辺を、祖先の変換を積んだ絶対座標で拾う。
+    """箱・囲み・辺を、祖先の変換を合成した絶対座標で収集する。
 
     Returns:
         (節点の箱の並び, 囲みの箱の並び, 辺の点列の並び)。
@@ -144,7 +144,7 @@ def _shapes(svg: str):
 
 
 # 読み取りの細かさは、対象そのものの大きさから決める。決め打ちの分割数だと、
-# 大きな図ほど粗くなり、細かい崩れを跳び越す。分けの細かさは、描く側が輪郭を
+# 大きな図ほど粗くなり、細かい破綻を跳び越す。分けの細かさは、描く側が輪郭を
 # 何向きで表すかと同じ尺度に合わせる（別の尺度を持つと、描く側が細かくした
 # ときに検査だけが粗いまま残る）。
 _FINENESS = int(num(DEFAULT_THEME, "size.outline-facets"))
@@ -162,7 +162,7 @@ def _step_for(points) -> float:
 
 def _sample_path(d: str):
     """path を点列にする。刻み幅はその path 自身の広がりから決める。"""
-    rough = _sample_path_shared(d, _VERTICES_ONLY)   # まず頂点だけ拾って広がりを知る
+    rough = _sample_path_shared(d, _VERTICES_ONLY)   # まず頂点だけ収集して広がりを知る
     return _sample_path_shared(d, _step_for(rough))
 
 
@@ -241,7 +241,7 @@ def _overlaps(a, b) -> bool:
 
 
 def check(svg: str) -> list[str]:
-    """崩れを列挙する。空なら崩れ無し。"""
+    """破綻を列挙する。空なら破綻無し。"""
     faults = []
     m = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
     if not m:
@@ -279,7 +279,7 @@ def _node_ink(root, fineness: int):
     推測すると、囲みや辺と混ざる。
 
     返すのは点ではなく**線分の並び**。点までの距離で測ると、標本と標本の
-    あいだに落ちた終端が、標本の粗さのぶんだけ「離れている」と出る（実測：
+    あいだに入った終端が、標本の粗さのぶんだけ「離れている」と出る（実測：
     着いているのに1.5〜1.7の隔たりと報告した）。線分までの距離なら、
     標本の粗さが結果に出ない。
 
@@ -384,7 +384,7 @@ def check_attachment(svg: str) -> list[str]:
         svg: 完成したSVG文字列。
 
     Returns:
-        崩れの説明の並び。空なら崩れ無し。
+        破綻の説明の並び。空なら破綻無し。
 
     Raises:
         なし。

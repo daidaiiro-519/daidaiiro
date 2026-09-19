@@ -54,13 +54,13 @@ class Test役割はテーマが持つ:
         assert not [k for k in resolve_style("focus").values if k.startswith("role.")]
 
 
-class Test綴り違いは描く前に落ちる:
+class Test綴り違いは描く前に失敗する:
     """未知の役割は例外にするのに、未知のトークン名は素通りしていた。
 
     範囲外の値をその場で弾いているのだから、名前の間違いだけ通すのは筋が通らない。
     """
 
-    def test_テーマに無い名前で上書きしたら落ちる(self):
+    def test_テーマに無い名前で上書きしたら失敗する(self):
         with pytest.raises(UnknownTokenError) as e:
             resolve_style(overrides={"size.box-hight": 40})   # height の綴り違い
         assert "size.box-hight" in str(e.value)
@@ -68,8 +68,8 @@ class Test綴り違いは描く前に落ちる:
     def test_ある名前での上書きは通る(self):
         assert resolve_style(overrides={"size.box-h": 40}).num("size.box-h") == 40
 
-    def test_鍵の欠けたテーマは描く前に落ちる(self):
-        # 欠けたまま描き始めると、その鍵を引く部品に当たった時点で
+    def test_鍵の欠けたテーマは描く前に失敗する(self):
+        # 欠けたまま描き始めると、その鍵を参照する部品に当たった時点で
         # 組みかけのSVGを捨てることになる
         with pytest.raises(IncompleteThemeError):
             resolve_style(theme={"font.size": 12})

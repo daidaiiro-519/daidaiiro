@@ -1,5 +1,5 @@
 """svg_engine は Waffle 本体の import グラフの外にある独立パッケージなので、
-本体の tests/ とは別に、自分で自分の import 経路を通す。
+本体の tests/ とは別に、自分で自分の import 経路を設定する。
 """
 from __future__ import annotations
 

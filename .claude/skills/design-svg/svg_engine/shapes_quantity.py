@@ -144,14 +144,14 @@ def pie(props: dict, style: Style) -> OwnOrigin:
 @component("bars")
 def bars(props: dict, style: Style) -> OwnOrigin:
     """縦棒。`baseline`を与えると、そこからの正負の差として伸びる(偏差)。
-    無指定なら0から積む(量の大小・分布)。
+    無指定なら0から伸ばす(量の大小・分布)。
 
     props: bars（[{"name","value"},...]）／baseline（任意）／
            axis_label（値の軸が何を表すか、任意）／
            item_axis_label（**項目の軸**が何を表すか、任意）
 
     軸を2本持てるのは、「量の大小」が読む枠に軸を2本要求するため。1本しか
-    持てなかったときは項目の軸が落ちていた ── 仕様が必須と定めた欄を落とさない。
+    持てなかったときは項目の軸が欠落していた ── 仕様が必須と定めた欄を欠落させない。
     """
     items = props["bars"]
     baseline = props.get("baseline", 0)
@@ -190,7 +190,7 @@ def bars(props: dict, style: Style) -> OwnOrigin:
     # 負に伸びる棒は、値の札を作図領域の下へ出す。名前の行は全部の棒で同じ高さに
     # あって動かせないので、札の帯を先に確保してから名前を置く（上の軸ラベルで
     # 使っている考え方の裏返し）。確保しないと、下まで伸びた棒の値が名前へ重なる
-    # ── 基準からのずれを描いたときだけ、値の札の置き場所が無くなって落ちた。
+    # ── 基準からのずれを描いたときだけ、値の札の置き場所が無くなって破綻した。
     value_band = (gap / 2 + fs_small * (style.num("font.cap-ratio") + style.num("font.descender-ratio"))
                   if min(values) < 0 else 0.0)
     item_axis_band = (fs_small * style.num("size.label-line-h")
@@ -460,9 +460,9 @@ def spatial(props: dict, style: Style) -> OwnOrigin:
            ground（この空間が何の上にあるか、任意）／
            axis_label（縦が何を表すか、任意）
 
-    **at があれば座標で置く。** 無ければ宣言の並び順のまま積む（従来の形）。
+    **at があれば座標で置く。** 無ければ宣言の並び順のまま並べる（従来の形）。
     座標と地を受け取れるのは、「空間」が読む枠に地と軸を要求するため ── 深さと
-    列数しか取れなかったときは、座標も地も落ちて単なる並びになっていた。
+    列数しか取れなかったときは、座標も地も欠落して単なる並びになっていた。
 
     箱の幅は、列ごとに最長のラベルへ合わせる(固定幅にすると、実測で長い
     ラベルがはみ出す不具合が出た)。

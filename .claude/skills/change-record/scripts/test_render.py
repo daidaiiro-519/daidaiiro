@@ -44,8 +44,8 @@ class 印を付ける(unittest.TestCase):
         out = mark("<p>あいうえお</p>", [{"find": "いう", "before": "旧", "why": "理由"}])
         self.assertEqual(re.sub(r"<[^>]+>", "", out), "あいうえお")
 
-    def test_当たらない語は報告する(self):
-        self.assertIn("当たらず", log("<p>あ</p>", [{"find": "無い語", "before": "x", "why": "y"}]))
+    def test_一致しない語は報告する(self):
+        self.assertIn("一致せず", log("<p>あ</p>", [{"find": "無い語", "before": "x", "why": "y"}]))
 
     def test_コードの中にしかない語には付かない(self):
         h = "<pre>いう</pre><p>あお</p>"
@@ -91,7 +91,7 @@ class 印が_別の印の中へ入らない(unittest.TestCase):
 
 
 class 位置が重なる印(unittest.TestCase):
-    def test_同じ語を2度指したら_報告して落とす(self):
+    def test_同じ語を2度指したら_報告して除外する(self):
         h = "<p>あいうえお</p>"
         ms = [
             {"find": "いう", "before": "旧1", "why": "理由1"},
@@ -101,7 +101,7 @@ class 位置が重なる印(unittest.TestCase):
         self.assertEqual(out.count('<mark class="chg"'), 1)
         self.assertIn("重なる", log(h, ms))
 
-    def test_一方が他方を含んでいたら_報告して落とす(self):
+    def test_一方が他方を含んでいたら_報告して除外する(self):
         h = "<p>あいうえお</p>"
         ms = [
             {"find": "あいうえ", "before": "旧1", "why": "理由1"},

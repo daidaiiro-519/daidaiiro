@@ -105,7 +105,7 @@ font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace}
 <blockquote>Go interfaces generally belong in the package that uses values of the interface type,<br>not the package that implements those values. The implementing package should return<br>concrete (usually pointer or struct) types: that way, new methods can be added to<br>implementations without requiring extensive refactoring.</blockquote>
 <h4>3-2　受け手の型を、1つの型の中で混ぜない</h4>
 <div class="wrap"><table><tr><td><b>要求レベル</b></td><td>必須</td></tr><tr><td><b>検証方法</b></td><td><b>機械が見る。</b> 同じ型のメソッドが、値と指し手の両方を受け手に持っていないことを見る</td></tr></table></div>
-<p><b>規定</b><br>1つの型のメソッドで、値の受け手と指し手の受け手を混ぜてはならない。<br>迷うなら指し手にする。<br>受け手を書き換えるなら、指し手でなければならない。<br><code>sync.Mutex</code> のような同期の欄を持つ構造体も、写しを作らないために指し手でなければならない。</p>
+<p><b>規定</b><br>1つの型のメソッドで、値の受け手と指し手の受け手を混ぜてはならない。<br>迷うなら指し手にする。<br>受け手を書き換えるなら、指し手でなければならない。<br><code>sync.Mutex</code> のような同期の欄を持つ構造体も、複製を作らないために指し手でなければならない。</p>
 <p><b>出典</b></p>
 <blockquote>Don&#x27;t mix receiver types. Choose either pointers or struct types for all available methods.</blockquote>
 <blockquote>If the method needs to mutate the receiver, the receiver must be a pointer.</blockquote>
@@ -125,7 +125,7 @@ font-size:.85rem;font-family:"JetBrains Mono",ui-monospace,monospace}
 <h3>5　テストと説明</h3>
 <h4>5-1　テストの失敗は、入力と実際と期待を示す</h4>
 <div class="wrap"><table><tr><td><b>要求レベル</b></td><td>推奨</td></tr><tr><td><b>検証方法</b></td><td><b>人が見る。</b> 機械は <code>t.Errorf</code> の書式に引数が3つ以上あることまでしか言えない。読んで分かるかは、人が決める</td></tr></table></div>
-<p><b>規定</b><br>テストは、何がどの入力で、実際にどうなり、何を期待していたのかを示して落ちるとよい。<br><code>t.Errorf(&quot;Foo(%q) = %d; want %d&quot;, tt.in, got, tt.want)</code> の形にする。<br>並びは実際・期待の順にし、文もその順で書く。</p>
+<p><b>規定</b><br>テストは、何がどの入力で、実際にどうなり、何を期待していたのかを示して失敗するとよい。<br><code>t.Errorf(&quot;Foo(%q) = %d; want %d&quot;, tt.in, got, tt.want)</code> の形にする。<br>並びは実際・期待の順にし、文もその順で書く。</p>
 <p><b>出典</b></p>
 <blockquote>Tests should fail with helpful messages saying what was wrong, with what inputs, what was<br>actually got, and what was expected.</blockquote>
 <blockquote>Note that the order here is actual != expected, and the message uses that order too.<br>Some test frameworks encourage writing these backwards: 0 != x, &quot;expected 0, got x&quot;,<br>and so on. Go does not.</blockquote>

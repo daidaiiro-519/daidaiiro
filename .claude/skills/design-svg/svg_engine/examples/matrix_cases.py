@@ -17,7 +17,7 @@ from svg_engine.examples.all_claims import CLAIMS, convert
 
 
 def scaled(k: float) -> dict:
-    """全体倍率 k のテーマ。族ごとに効き方を変える（線は弱く、下限でクランプ）。"""
+    """全体倍率 k のテーマ。族ごとに倍率の掛け方を変える（線は弱く、下限でクランプ）。"""
     t = dict(DEFAULT_THEME)
     for key, v in DEFAULT_THEME.items():
         if not isinstance(v, (int, float)) or isinstance(v, bool):
@@ -34,7 +34,7 @@ def scaled(k: float) -> dict:
 
 SCALES = [0.8, 1.0, 1.6, 2.5]
 
-# 組み合わせ ── 単体では出ない崩れを狙う
+# 組み合わせ ── 単体では出ない破綻を狙う
 COMBOS: dict[str, dict[str, list]] = {
     "群の入れ子": dict(nodes=[{"id": c, "label": c.upper()} for c in "abcd"],
                        edges=[{"from": "a", "to": "b"}, {"from": "c", "to": "d"}],
@@ -62,7 +62,7 @@ def cases() -> list[tuple[str, str, "Callable[[], str]"]]:
     """全ての図を、まだ組み立てずに数え上げる。
 
     組み立てそのものを呼び出し側へ預けるのは、1つの図が組み立てに失敗した
-    ときに、その1件だけを落として残りを走らせ切るため（表を先に全部組むと、
+    ときに、その1件だけを除外して残りを走らせ切るため（表を先に全部組むと、
     1件の例外が表全体を巻き込んで、何件通ったのかが分からなくなる）。
 
     Returns:

@@ -92,5 +92,5 @@ flowchart LR
 
 | 関連概念 | 関係 |
 |---|---|
-| architecture-layer-boundary | 依存方向の原則を、具体的にどこに境界線を引くかの判断に適用したもの |
+| architecture-layer-boundary | 依存方向の原則を、具体的にどこに境界線を設定するかの判断に適用したもの |
 | architecture-port-adapter | 依存性逆転の原則を具体的に実装するパターンの一つ |

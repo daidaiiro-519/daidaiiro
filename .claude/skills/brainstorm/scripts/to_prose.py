@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""盤面のHTMLを、文章だけに落とす。
+"""盤面のHTMLを、文章だけへ変換する。
 
     python3 to_prose.py <ブレストのフォルダ>
 

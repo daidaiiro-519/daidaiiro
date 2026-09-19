@@ -6,7 +6,7 @@
 
 ただし輪に置くだけでは足りない。輪の上の並び順を辺から決めないと、
 宣言の順しだいで隣り合うべき節点が輪の反対側へ行き、絵はもつれた星に
-なる（幾何的な崩れは出ないので、検査は通ってしまう）。だから並び順は
+なる（幾何的な破綻は出ないので、検査は通ってしまう）。だから並び順は
 辺をたどって決める。
 
 たどりきれない形（1つの節点から3方向以上へ分かれる木など）は、この
@@ -99,7 +99,7 @@ def layout_radial(node_sizes: dict[str, tuple[float, float]],
     # そこから半径を出す（決め打ちの半径を置かない）。
     span = sum(max(w, h) for w, h in node_sizes.values()) + gap * n
     radius = span / (2 * math.pi)
-    # 隣り合う節点が重ならない半径も別途要る（少数のときはこちらが効く）。
+    # 隣り合う節点が重ならない半径も別途要る（少数のときはこちらが支配的になる）。
     biggest = max(max(w, h) for w, h in node_sizes.values())
     chord = biggest + gap
     radius = max(radius, chord / (2 * math.sin(math.pi / n)))

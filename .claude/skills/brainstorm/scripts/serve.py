@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 daidaiiro
-"""承認の画面を配り、押された回答を1件ずつファイルに落とす小さなサーバー。
+"""承認の画面を配り、押された回答を1件ずつファイルへ書き出す小さなサーバー。
 
-    python3 serve.py <配るディレクトリ> [--port 8731] [--answers <積む先>]
+    python3 serve.py <配るディレクトリ> [--port 8731] [--answers <蓄積先>]
 
 画面からの POST /answer を受け、本文（JSON）を `<answers>/<日時>.json` に書く。
-積む先に `{board}` を書くと、本文の board の値へ置き換わる ── 回答は、
+蓄積先に `{board}` を書くと、本文の board の値へ置き換わる ── 回答は、
 そのブレストの持ち物だからである（例: `.brainstorm/{board}/answers`）。
 回答は消さない ── 何を差し戻したかが、あとから順に読めるようにするためである。
 
@@ -84,7 +84,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(raw)
 
     def _dir_for(self, body: dict) -> Path | None:
-        """積む先を決める。`{board}` は本文の board の値へ置き換える。"""
+        """蓄積先を決める。`{board}` は本文の board の値へ置き換える。"""
         raw = str(self.answers_dir)
         if "{board}" not in raw:
             return Path(raw)
@@ -148,7 +148,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("root", nargs="?", default=".", help="画面を置いてあるディレクトリ")
     p.add_argument("--port", type=int, default=8731)
-    p.add_argument("--answers", default="answers", help="回答を積む先。置き場所は呼び出し側が決める")
+    p.add_argument("--answers", default="answers", help="回答の蓄積先。置き場所は呼び出し側が決める")
     a = p.parse_args()
 
     Handler.answers_dir = Path(a.answers).resolve()
@@ -160,7 +160,7 @@ def main() -> int:
     handler = lambda *args, **kw: Handler(*args, directory=str(root), **kw)  # noqa: E731
     with ThreadingHTTPServer(("127.0.0.1", a.port), handler) as httpd:
         print(f"配る  : {root}")
-        print(f"積む  : {Handler.answers_dir}")
+        print(f"蓄積  : {Handler.answers_dir}")
         print(f"開く  : http://127.0.0.1:{a.port}/")
         try:
             httpd.serve_forever()

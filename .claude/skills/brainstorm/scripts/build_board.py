@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 
 LETTERS = "ABCDEFGH"
 
-# 盤面の色。図を描く側は、これを自分のエンジンのトークンへ写す。
+# 盤面の色。図を描く側は、これを自分のエンジンのトークンへ複製する。
 #
 # **ここが色の正本である。**盤面の CSS を持っているのはこのファイルなので、
 # 描く側が自分で色を決めると、色を決める場所が2つになる。
@@ -119,7 +119,7 @@ class Topic:
     status は「未」「新規」「決着」のいずれか。決着した論点は kept を持たず、
     decision（決定・理由・次にすること）と、必要なら extras（節の見出しと中身）だけを持つ。
 
-    path は、その結論に至った道筋。何を問うて何が落ちたかを順に並べる ──
+    path は、その結論に至った道筋。何を問うて何が除外されたかを順に並べる ──
     結論と根拠だけでは「なぜ他が残らなかったか」が見えない。
     """
     no: int
@@ -146,7 +146,7 @@ class Topic:
 # ──────────────────────────────────────────────────────────────
 # 見た目 ── 承認の画面を正とし、論点が増えたらタブで切り替える。
 # 盤面と承認の画面を別ページにすると、開いている論点の中身が二重になる
-# （実際になった）。決着は同じ1枚に積み、後の論点はそれを前提にする。
+# （実際になった）。決着は同じ1枚に蓄積し、後の論点はそれを前提にする。
 # ──────────────────────────────────────────────────────────────
 
 HEAD = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
@@ -357,7 +357,7 @@ SCRIPT = r"""<script>
     fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
       .then(function(r){return r.json().then(function(j){
         out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
-      .catch(function(){ /* サーバーが無ければ、貼る形に落ちる */ });
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
     out.scrollIntoView({block:"nearest",behavior:"smooth"});
   });
 })();
@@ -397,7 +397,7 @@ def _panel(t: Topic, theme: str) -> str:
                                    for k, v in t.decision]))
 
     if t.figures:
-        # 図は縦に積む。横に並べると、縦横比の違う図が幅に合わせて縮み、
+        # 図は縦方向へ並べる。横に並べると、縦横比の違う図が幅に合わせて縮み、
         # 文字が読めなくなる（742×100 の図が 380px で潰れた）
         out.append('<div class="figs">' + "".join(
             f"<figure>{svg}<figcaption>{cap}</figcaption></figure>"
@@ -435,8 +435,8 @@ def _panel(t: Topic, theme: str) -> str:
         folds.append(_fold(tb.caption, (f'<p class="note-s">{tb.lead}</p>' if tb.lead else "")
                            + _tbl([""] + tb.columns, rows)))
     if t.dropped:
-        folds.append(_fold(f"落とした案と、何が壊れるか（{len(t.dropped)}件）",
-                           _tbl(["", "落とした案", "何が壊れるか"],
+        folds.append(_fold(f"除外した案と、何が壊れるか（{len(t.dropped)}件）",
+                           _tbl(["", "除外した案", "何が壊れるか"],
                                 [[f'<span class="n out">×</span>',
                                   _mark(f"<b>{d}</b>", "この案は残っていた", w, deleted=True), w]
                                  for d, w in t.dropped])))

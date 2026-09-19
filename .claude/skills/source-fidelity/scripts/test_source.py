@@ -24,8 +24,8 @@ def doc(text):
     return d
 
 
-class 識別子として当てる(unittest.TestCase):
-    """語の文字 ＝ 英数と _ ＋ 当てる語自身が含む区切り文字。"""
+class 識別子として照合する(unittest.TestCase):
+    """語の文字 ＝ 英数と _ ＋ 照合する語自身が含む区切り文字。"""
 
     def 当たるか(self, needle, text):
         s = source.scan(doc(text), [needle], how="identifier")
@@ -63,10 +63,10 @@ class 識別子として当てる(unittest.TestCase):
         self.assertFalse(self.当たるか("compact_Summary", "項目名 compact_summary"))
 
     def test_記号に囲まれていても当たる(self):
-        self.assertTrue(self.当たるか("compact_summary", "`compact_summary` を引く"))
+        self.assertTrue(self.当たるか("compact_summary", "`compact_summary` を参照する"))
 
 
-class 引用として当てる(unittest.TestCase):
+class 引用として照合する(unittest.TestCase):
     """原文と1文字も違わず、続けて在ることを見る。空白と改行だけ揃える。"""
 
     def 当たるか(self, needle, text):
@@ -76,7 +76,7 @@ class 引用として当てる(unittest.TestCase):
     def test_原文どおりの引用は当たる(self):
         self.assertTrue(self.当たるか("圧縮の起こし方", "| trigger | 圧縮の起こし方 |"))
 
-    def test_語を落とした引用は当たらない(self):
+    def test_語を除いた引用は当たらない(self):
         self.assertFalse(self.当たるか("その場合に出る", "その場合にのみ出る"))
 
     def test_語を足した引用は当たらない(self):
@@ -111,14 +111,14 @@ class 引用として当てる(unittest.TestCase):
         self.assertTrue(self.当たるか("起こし方", "圧縮の起こし方である"))
 
 
-class 部分一致として当てる(unittest.TestCase):
+class 部分一致として照合する(unittest.TestCase):
     """探索のための種類。名前を付けて、明示して選ぶ。"""
 
     def test_切り詰めた名前でも当たる(self):
         s = source.scan(doc("field: tool_use_id"), ["tool_use"], how="text")
         self.assertTrue(s.results[0].hits)
 
-    def test_どの種類で当てたかが結果に残る(self):
+    def test_どの種類で照合したかが結果に残る(self):
         s = source.scan(doc("field: tool_use_id"), ["tool_use"], how="text")
         self.assertEqual(s.results[0].how, "text")
 
@@ -175,7 +175,7 @@ class アンカーとの近さ(unittest.TestCase):
         self.assertFalse(s.results[0].hits)
 
 
-class 読めなかったものを黙って落とさない(unittest.TestCase):
+class 読めなかったものを黙って除外しない(unittest.TestCase):
     """0件は「無い」ではなく「読めた範囲には無い」である。"""
 
     def test_読めないファイルは読めなかったとして出る(self):
@@ -208,7 +208,7 @@ class 読めなかったものを黙って落とさない(unittest.TestCase):
         self.assertFalse(s.can_conclude_absent)
 
 
-class 落とすときの判定(unittest.TestCase):
+class 取得するときの判定(unittest.TestCase):
     """HTML しか返らない頁も、原文として残す。"""
 
     def test_マークダウンは受け取る(self):

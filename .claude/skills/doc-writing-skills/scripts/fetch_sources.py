@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""出典の原文を落とし、MANIFEST.json に URL ・ sha256 ・ 落とした日を残す。
+"""出典の原文を取得し、MANIFEST.json に URL ・ sha256 ・ 取得した日を残す。
 
-  python3 scripts/fetch_sources.py           sources/ へ落とし、MANIFEST.json を書く
+  python3 scripts/fetch_sources.py           sources/ へ取得し、MANIFEST.json を書く
   python3 scripts/fetch_sources.py --check   手元のものが MANIFEST と一致するかを見る
 
 **この Skill は、外の Skill に依存しない。**
@@ -76,10 +76,10 @@ def fetch() -> int:
             with urllib.request.urlopen(req, timeout=120) as r, open(path, "wb") as f:
                 shutil.copyfileobj(r, f)
         except Exception as e:                                  # noqa: BLE001
-            print(f"落とせない {url}\n  {e}", file=sys.stderr)
+            print(f"取得できない {url}\n  {e}", file=sys.stderr)
             continue
         size = os.path.getsize(path)
-        print(f"落とした {name}  {size:,} バイト")
+        print(f"取得した {name}  {size:,} バイト")
         if name.endswith(".pdf"):
             to_text(path)
         entries.append({"url": url, "fetched": src, "file": name,
@@ -97,7 +97,7 @@ def fetch() -> int:
 
 def check() -> int:
     if not os.path.exists(MANIFEST):
-        print("MANIFEST.json が無い。先に落とす", file=sys.stderr)
+        print("MANIFEST.json が無い。先に取得する", file=sys.stderr)
         return 1
     with open(MANIFEST, encoding="utf-8") as f:
         entries = json.load(f)["sources"]

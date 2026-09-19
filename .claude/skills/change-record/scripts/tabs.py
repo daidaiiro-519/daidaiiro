@@ -18,7 +18,7 @@ spec.json の形。
 **タブの中身は、拡張子で決まる。**
 
   .md    render.py で描画する
-  .html  そのままの見た目で置く。iframe に流し込み、届かなければ Shadow DOM へ落とす
+  .html  そのままの見た目で置く。iframe に流し込み、届かなければ Shadow DOM へ切り替える
 
 **どちらの入れ方でも、印の付け方と開閉は同じである。**
 印は `mark.chg` で、押すと変更前と理由が開く。
@@ -48,9 +48,9 @@ from render import render, mark, outside_pre  # noqa: E402
 def strip_document(src):
     """<head> の <style> と <body> の中身だけを取り出す。
 
-    `<html>` と `<body>` を落とすのは、入れ子にすると
-    親の文書構造が壊れるためである。`<style>` は落とさない。
-    落とすと、見た目がそのままでなくなる。
+    `<html>` と `<body>` を除去するのは、入れ子にすると
+    親の文書構造が壊れるためである。`<style>` は除去しない。
+    除去すると、見た目がそのままでなくなる。
     """
     styles = re.findall(r"<style\b[^>]*>.*?</style>", src, re.S | re.I)
     m = re.search(r"<body\b[^>]*>(.*?)</body>", src, re.S | re.I)
@@ -69,7 +69,7 @@ def scope_for_shadow(chunk):
     """Shadow DOM に入れるとき、:root と body を :host へ寄せる。
 
     Shadow の中に `:root` は無い。寄せないと、そこで定めた
-    カスタムプロパティが1つも効かず、色が全部落ちる。
+    カスタムプロパティが1つも適用されず、色が全部失われる。
     """
     chunk = re.sub(r"(?<![\w-]):root(?![\w-])", ":host", chunk)
     chunk = re.sub(r"(?m)^(\s*)body(\s*[,{])", r"\1:host\2", chunk)
@@ -160,7 +160,7 @@ JS = r"""
 (function(){
   var MARKCSS = document.getElementById("markcss").textContent;
 
-  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手が効く */
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
   function wire(root, doc){
     root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
       var p = doc.createElement("div");
@@ -196,7 +196,7 @@ JS = r"""
     });
   }
 
-  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ落とす */
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
   document.querySelectorAll(".pane.html").forEach(function(pane){
     var tpl = pane.querySelector("template");
     var src = tpl.innerHTML;
@@ -217,7 +217,7 @@ JS = r"""
       if (window.ResizeObserver) {
         new ResizeObserver(resizeAll).observe(d.documentElement);
       }
-      /* 中のタブを押しても測り直す。中の作りに依らず効く */
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
       d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
       [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
       pane.querySelector(".how").textContent = "iframe で置いた";
@@ -235,7 +235,7 @@ JS = r"""
           return;
         }
       } catch(e){}
-      /* 届かなかった。Shadow DOM へ落とす */
+      /* 届かなかった。Shadow DOM へ切り替える */
       fr.remove();
       frames = frames.filter(function(x){ return x !== fr; });
       var holder = document.createElement("div");
@@ -256,8 +256,8 @@ JS = r"""
 
      **内側のタブの作り方を、こちらは知らない。**
      設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
-     JS で切り替える作りもある。**どちらでも効くように、
-     切り替えを1つずつ当てて、印が出たところで止める。** */
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
   function reveal(m){
     if (m.offsetParent) return true;
     var n = m;
@@ -341,15 +341,15 @@ JS = r"""
 def landed(body, ms):
     """実際に印が付いたものだけを返す。
 
-    **当たらなかったものを一覧に載せると、押しても運べない。**
-    タブの数字と一覧の件数も食い違う。**落としたものは、必ず報告する。**
+    **印が付かなかったものを一覧に載せると、押しても運べない。**
+    タブの数字と一覧の件数も食い違う。**除外したものは、必ず報告する。**
     """
     keep, lost = [], []
     for c in ms:
         key = 'data-b="' + html.escape(c.get("before", ""), quote=True) + '"'
         (keep if key in body else lost).append(c)
     for c in lost:
-        print("  一覧から外した（印が当たらず）: " + c["find"][:50], file=sys.stderr)
+        print("  一覧から外した（印が付かず）: " + c["find"][:50], file=sys.stderr)
     return keep
 
 

@@ -1,8 +1,8 @@
-"""16の主張すべてを、宣言から絵まで通す。
+"""16の主張すべてを、宣言から絵まで一続きに変換する。
 
 ここに書いた `convert()` が、ADRで言う「アダプタの内側」の実体。
 ホストの語彙（asserts/items/links/frame）を受け取り、描画エンジンの
-呼び出しへ写す。主張ごとの組み方は design-svg の記法に従う。
+呼び出しへ変換する。主張ごとの組み方は design-svg の記法に従う。
 """
 from __future__ import annotations
 
@@ -173,7 +173,7 @@ CLAIMS: list[dict] = [
  {"asserts": "やり取り", "reading": "判定の結果で応答が分かれる。",
   "items": [{"key": "c", "name": "呼ぶ側"}, {"key": "d", "name": "文書"}, {"key": "t", "name": "型"}],
   "links": [{"from": "c", "to": "d", "name": "判定する"},
-            {"from": "d", "to": "t", "name": "指針を引く"},
+            {"from": "d", "to": "t", "name": "指針を参照する"},
             {"from": "d", "to": "c", "name": "適合を返す", "kind": "return"},
             {"from": "d", "to": "c", "name": "不適合を返す", "kind": "return"}],
   "frame": {"groups": [{"label": "結果で分かれる", "cases": [
@@ -239,7 +239,7 @@ CLAIMS: list[dict] = [
 
 # 読み込むだけで図を描かない。CLAIMS と convert() は他（検証・テスト）から
 # import されるので、ここで描いてしまうと、部品1つの例外が import ごと
-# 巻き込み、テストが1件も走らないまま収集で落ちる（実際にそうなった）。
+# 巻き込み、テストが1件も走らないまま収集で失敗する（実際にそうなった）。
 if __name__ == "__main__":
     results: list[dict] = [{"declaration": d, "svg": convert(d)} for d in CLAIMS]
     (OUT / "all_claims.json").write_text(

@@ -21,7 +21,7 @@ def hexagon(props: dict, style: Style) -> OwnOrigin:
     h = style.num("size.box-h")
     w = max(style.num("size.box-min-w"),
             _text_width(label, fs, style.num("font.latin-width-ratio")) + pad_x * 2 + h)
-    cut = h / 2   # 斜めに切り落とす幅。左右で h/2 ずつ要るので幅にも足す
+    cut = h / 2   # 斜めに切り取る幅。左右で h/2 ずつ要るので幅にも足す
     pts = f"{cut},0 {w - cut},0 {w},{h / 2} {w - cut},{h} {cut},{h} 0,{h / 2}"
     svg = (f'<g class="svg-box">'
            f'<polygon points="{pts}" fill="{style.text("color.box-fill")}" '
