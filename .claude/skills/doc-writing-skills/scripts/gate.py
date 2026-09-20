@@ -4,6 +4,7 @@
   python3 gate.py <ファイル...>
   python3 gate.py --list
   python3 gate.py --synonyms 用語.tsv <ファイル...>
+  python3 gate.py --retired 廃語.json <ファイル...>
 
 **この道具は3つの型でできている。**
 
@@ -232,6 +233,12 @@ def _drawn_figure(u: Unit) -> list[str]:
 
 SYNONYM_PAIRS: list[tuple[str, str]] = []
 
+# 廃語 ── 一度破棄した語と、その言い換え先。**この一覧は、このSkillの外にある。**
+# 語をいつ破棄したかはプロジェクトごとに相違する。ここへ書くと、書いたプロジェクトでしか
+# 使えない検査になる。既定では対象のファイルから上へたどって
+# `.doc-writing/retired-words.json` を探し、無ければこの検査は走らない。
+RETIRED: list[tuple[str, str, str]] = []
+
 
 def _synonym(units: list[Unit]) -> list[Finding]:
     """概念7。同じ文脈では、1つの意味に1つの語だけを対応づける。
@@ -242,6 +249,21 @@ def _synonym(units: list[Unit]) -> list[Finding]:
     body = "\n".join(_without_code(u.raw) for u in units if u.kind != "コード")
     return [Finding("同じ意味の語が2つある", "概念7", 0, f"「{a}」と「{b}」")
             for a, b in SYNONYM_PAIRS if a in body and b in body]
+
+
+def _retired_word(u: Unit) -> list[str]:
+    """廃語 ── 一度破棄した語を、また使用していないか。
+
+    **和語の述部と違い、この検査は語の一覧を持たない。**廃語も、いつ破棄したかも
+    プロジェクトごとに相違する。一覧が渡されなければ、何も出ない。
+    """
+    hits = []
+    for word, to, whence in RETIRED:
+        i = u.text.find(word)
+        if i >= 0:
+            hits.append(f"…{u.text[max(0, i - 10):i]}<{word}>"
+                        f"{u.text[i + len(word):i + len(word) + 8]}… → {to}（{whence}）")
+    return hits
 
 
 def _without_code(text: str) -> str:
@@ -353,6 +375,9 @@ CHECKS: list[Check] = [
     Check("述部が和語である", "概念8", _wago_predicate,
           frozenset({"本文", "見出し", "箇条書き", "表のセル"}),
           "公用文 Ⅲ－４ ウ。引用は検査しない ── 原文を書き換えてはならない"),
+    Check("廃語を使用している", "概念7", _retired_word,
+          frozenset({"本文", "見出し", "箇条書き", "表のセル"}),
+          "一覧は .doc-writing/retired-words.json が持つ。渡されなければ何も出ない"),
     Check("強調が描画されない", "媒体の決め", _broken_emphasis, RENDERED,
           "概念からは導けない。CommonMark の記法に拠る"),
 ]
@@ -393,9 +418,35 @@ def print_checks() -> int:
     return 0
 
 
+def _find_retired(start: Path) -> Path | None:
+    """対象のファイルから上へたどり、`.doc-writing/retired-words.json` を探す。
+
+    **見つからないことを、失敗として扱わない。**一覧を持たないプロジェクトでも
+    この道具はそのまま動く ── 持ち出した先で必ず止まる作りにしない。
+    """
+    here = start.resolve()
+    for d in [here] + list(here.parents):
+        c = d / ".doc-writing" / "retired-words.json"
+        if c.exists():
+            return c
+    return None
+
+
+def _load_retired(path: Path) -> list[tuple[str, str, str]]:
+    """一覧を読む。形が違えば、そのまま例外で止まる ── 黙って空にしない。"""
+    import json
+    d = json.loads(path.read_text(encoding="utf-8"))
+    return [(x["語"], x["言い換え先"], x.get("出どころ", "")) for x in d["廃語"]]
+
+
 def main(argv: list[str]) -> int:
-    global SYNONYM_PAIRS
+    global SYNONYM_PAIRS, RETIRED
     args = list(argv)
+    retired_path: Path | None = None
+    if "--retired" in args:
+        i = args.index("--retired")
+        retired_path = Path(args[i + 1])
+        del args[i:i + 2]
     if "--synonyms" in args:
         i = args.index("--synonyms")
         p = Path(args[i + 1])
@@ -404,6 +455,10 @@ def main(argv: list[str]) -> int:
         del args[i:i + 2]
     if "--list" in args:
         return print_checks()
+    if retired_path is None and args:
+        retired_path = _find_retired(Path(args[0]))
+    if retired_path and retired_path.exists():
+        RETIRED = _load_retired(retired_path)
     if not args:
         print(__doc__)
         return 2

@@ -7,9 +7,12 @@
 |---|---|---|---|
 | `coding-essence/` | Coding の本質は何か | `https://claude.ai/artifact/RzwbD1Cvt75TrEg3v6UKUf` | Round 28（2026-09-15） |
 | `schema-three-tiers/` | schema 観の三層 | `https://claude.ai/code/artifact/b85a142f-d6b5-4964-844c-0f7c64383882` | 論点20のうち14が決着（2026-09-06） |
+| `coding-rule-form/` | 規則の形式 ── CodingSkills を何で構成するか | `https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` | Round 1（2026-09-20） |
 
 `coding-essence/trial/language-go.html` は、論点5 を検証するために書いた Go の規則16件の試作である。
 Artifact 版は `https://claude.ai/artifact/U9mEBvpgYys8d12kVN6Mbq` にある。
 
-**2つのブレストボードは互いを参照している**。`coding-essence` の論点6 は、`schema-three-tiers` の論点14
+`coding-rule-form/` は `coding-essence/` と別系統である。あちらの結論を前提に置かず、文書が腐敗する機構から再導出した。両者の結論は接続していない。
+
+**coding-essence と schema-three-tiers は互いを参照している**。`coding-essence` の論点6 は、`schema-three-tiers` の論点14
 （何を1つの型として立てるか）が決着するまで開かない。
