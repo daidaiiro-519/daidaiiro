@@ -115,7 +115,7 @@ def build(spec: dict) -> tuple[str, int]:
     head = header(spec)
     if not docs:
         # 新規の決定。差分が無いので、節だけの1枚になる
-        from tabs import CSS as BASE
+        from .panes import CSS as BASE
         return ('<meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width,initial-scale=1">'
                 f'<title>{_h.escape(spec["title"])}</title>'
