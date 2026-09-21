@@ -62,14 +62,14 @@ def meeting():
 
 def support():
     a=person(95,147,1.6)+text(95,236,'参加者',25,weight=700,anchor='middle')
-    a+=person(1013,147,1.6)+text(1013,236,'主催者',25,weight=700,anchor='middle')
+    a+=person(1013,147,1.6)+text(1013,236,'運営',25,weight=700,anchor='middle')
     a+=rect(336,12,442,107,PAPER,12,LINE)+icon(362,39,'book',scale=.8)
     a+=text(426,53,'ブログ・動画',25,weight=700)+text(426,86,'必要なときに、自分で学ぶ',19,DIM)
     a+=path('M969 120 V65 H778',INK,3)+path('M336 65 H137 V110 M130 102 L137 110 L144 102',INK,3)
     a+=rect(336,182,442,112,ACCENT)+icon(365,216,'chat',PAPER,.8)
-    a+=text(428,223,'Teamsで相談する',25,PAPER,700)+text(428,259,'投稿 ＋ 月1回のよろず相談会（案）',17,PAPER)
+    a+=text(428,223,'Teamsで相談する',25,PAPER,700)+text(428,259,'投稿 ＋ 月1回の定例相談会（案）',17,PAPER)
     a+=path('M137 187 V260 H336',ACCENT,3)+path('M778 260 H969 V191 M962 199 L969 191 L976 199',ACCENT,3)
-    return svg('主催者のブログや動画から学び、Teamsで主催者に相談する',a)
+    return svg('運営のブログや動画から学び、Teamsで運営に相談する',a)
 
 def handoff():
     a=person(105,134,1.5)+text(105,220,'自分',23,weight=700,anchor='middle')
@@ -92,14 +92,15 @@ def evaluation():
         a+=circle(x,97,24,PANEL,LINE)+text(x,104,str(i+1),20,anchor='middle')
         a+=text(x,147,t,21,anchor='middle')
     a+=text(28,192,['実務で使った日数 ／ できることを5段階で回答'],17,DIM)
-    a+=text(28,239,'向上・同じ・低下の人数',26,ACCENT,700)
-    a+=text(28,267,'項目ごとに集計する',17,DIM)
+    a+=rect(28,214,484,46,ACCENT,8)
+    a+=text(46,246,'向上・同じ・低下の人数',24,PAPER,700)
+    a+=text(28,285,'項目ごとに集計する',17,DIM)
     a+=rect(574,8,538,278,PAPER,12,LINE)+text(602,47,'実際にできたことを確認する',25,weight=700)
     a+=icon(620,84,'doc',scale=.9)+arrow(696,112,741,112)+icon(782,86,'check',scale=1.05)
-    a+=text(874,105,['成果物','他者の試用記録'],20)
+    a+=text(874,105,['成果物','他の人の試用記録'],20)
     a+=text(602,192,'新しくできたことの実例',21,weight=700)
-    a+=text(602,238,['他者が使って役立った仕組みと、','まだ難しかったことを報告する'],20,DIM)
-    return svg('3時点のアンケートの人数比較と、成果物や他者の試用記録による確認を組み合わせる',a,310)
+    a+=text(602,238,['他の人が使って役立った仕組みと、','まだ難しかったことを報告する'],20,DIM)
+    return svg('3時点のアンケートの人数比較と、成果物や他の人の試用記録による確認を組み合わせる',a,310)
 
 CORE_QUESTIONS=[
  'AIを使えそうな仕事を思いつけますか。',
