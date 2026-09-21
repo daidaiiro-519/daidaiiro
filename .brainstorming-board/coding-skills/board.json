@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── 規則と、それを使う仕組みをどう作るか",
  "board": "coding-skills",
- "round": 19,
+ "round": 20,
  "intro": [
   {
    "kind": "para",
@@ -153,12 +153,12 @@
    "why": "論点5 ・ 論点8 を統合し、内を指す出典を識別子だけに限定した。この答えを承認すると、規則の形が1種に確定する"
   },
   {
-   "no": 11,
-   "why": "論点9 が決着したので開いた。実行するのは自分の成果物への検査だけに直してある"
-  },
-  {
    "no": 6,
    "why": "宣言という語を除去した。論点10 との食い違いは解消しているので、軸の本数だけを見てほしい"
+  },
+  {
+   "no": 11,
+   "why": "引く相手を Coding と CI の2つへ直した。検証方法の欄が、実行するコマンドの正本になる"
   }
  ],
  "topics": [
@@ -1987,7 +1987,7 @@
                 "言語（go）",
                 [
                  "識別子の書き方 ・ <code>gofmt</code> の実行 ・ <code>_test.go</code> と <code>TestXxx</code>",
-                 "有効にする lint の集合（<code>go vet</code> ・ <code>golint</code> は原典に無い）・ モジュール名",
+                 "有効にする lint の集合（golint は原典に無い）・ モジュール名",
                  "<b>照合済み</b> 2026-09-21"
                 ]
                ],
@@ -2433,6 +2433,20 @@
        "text": "<b>したがって、外を指す規則が持てるのは依存の向きだけである</b> ── 層の名前と並びは原典に無いので、内を指す規則が持つ"
       }
      ]
+    },
+    {
+     "kind": "card",
+     "heading": "静的解析の道具を照合したところ、原典に在った",
+     "events": [
+      {
+       "tag": "finding",
+       "text": "<b><code>go vet</code> は go.dev/ref/mod が列挙している</b> ── 「原典に無い」と書いていたのは誤りだった。<code>golint</code> は無い"
+      },
+      {
+       "tag": "content",
+       "text": "<code>go test</code> ・ <code>go build</code> ・ <code>go fmt</code> も同じ一覧に在る"
+      }
+     ]
     }
    ],
    "grounds": [
@@ -2461,10 +2475,10 @@
      "source": "react.dev/versions（:7・:15。取得日 2026-09-21）"
     },
     {
-     "supports": "<code>go vet</code> と <code>golint</code> が原典に無いこと",
-     "basis": "識別子として照合し、読めた範囲に無かった（<code>gofmt</code> は5か所にある）",
-     "tag": "measured",
-     "source": "go.dev/wiki/CodeReviewComments の照合（2026-09-21）"
+     "supports": "golint が原典に無いこと（go vet は在る）",
+     "basis": "golint は go.dev/ref/mod の一覧に無い。go vet ・ go test ・ go build ・ go fmt は在る",
+     "tag": "primary",
+     "source": "go.dev/ref/mod:1740 ・ 1248 ・ 2613（2026-09-22 取得）"
     },
     {
      "supports": "逆流を機械で検出すること",
@@ -2729,6 +2743,12 @@
      "basis": "Otherwise, if the command name is found, but it is not an executable utility, the exit status shall be 126.",
      "tag": "primary",
      "source": "POSIX Shell Command Language 2.8.2（V3_chap02.html:1703。2026-09-22 に取り直して sha256 一致）"
+    },
+    {
+     "supports": "静的解析の道具が原典に在ること",
+     "basis": "go vet ・ go test ・ go build ・ go fmt を identifier として照合した",
+     "tag": "primary",
+     "source": "go.dev/ref/mod:1740 ・ 1248 ・ 2613（2026-09-22 取得）"
     }
    ],
    "requirements": [
@@ -3000,22 +3020,31 @@
    "name": "検証方法をいつ実行するのか",
    "status": "open",
    "question": "検証方法は、誰がいつ実行するのか",
-   "answer": "規則が指す CLI はプロジェクトの CI が走らせ、この Skill 自身の検査は同じ CI に1工程として足す。",
+   "answer": "検証方法の欄は2つが引く ── Coding は作業中に引いて実行し、CI は同じ欄を引いて実行する。<b>保証されるのは CI だけ</b>で、工程が無い規則は「未検証」になる。",
    "decision": {
     "letter": "D",
     "text": [
      {
       "kind": "para",
-      "text": "<b>規則が指す CLI はプロジェクトの CI が走らせ、この Skill 自身の検査は同じ CI に1工程として足す。</b>"
+      "text": "<b>検証方法の欄は2つが引く ── Coding が作業中に、CI が保証の場として。</b>引き先は1つの欄である。"
      },
      {
       "kind": "fold",
-      "heading": "この答えを導いたもの（3件）",
+      "heading": "この答えを導いたもの（6件）",
       "body": [
        {
         "kind": "list",
         "ordered": false,
         "items": [
+         {
+          "text": "<b>引き先は規則の検証方法の欄1つである</b> ── Coding 側にコマンドの一覧を持たせない。持たせると正本が2つになる"
+         },
+         {
+          "text": "<b>Coding 時の実行は保証されない</b> ── 意志に依存する。だが引き先が同じ欄なので、CI と食い違うことはない"
+         },
+         {
+          "text": "<b>種類ごとに規則が1件である</b> ── 整形 ・ 静的解析 ・ テスト ・ ビルド ・ 脆弱性検証。1件が道具1つを指すので、Coding 側はその軸の規則を集めて全部を引く"
+         },
          {
           "text": "この Skill は規則の CLI を実行しない ── 論点9 の決着である"
          },
@@ -3035,7 +3064,7 @@
     {
      "kind": "figure",
      "name": "run",
-     "caption": "実行が保証されるのは CI だけである。工程が無い規則は「未検証」になる。"
+     "caption": "検証方法の欄を、Coding と CI の2つが引く。引き先は1つである。保証されるのは CI だけで、工程が無い規則は「未検証」になる。"
     }
    ],
    "passed": [
@@ -3174,6 +3203,24 @@
      "basis": "このリポジトリにも、waffle にも、CI の設定を確認していない",
      "tag": "unverified",
      "source": "各リポジトリの CI 設定（未取得）"
+    },
+    {
+     "supports": "静的解析 ・ テスト ・ ビルド ・ 整形の道具が原典に在ること",
+     "basis": "go vet ・ go test ・ go build ・ go fmt を identifier として照合した（2 ・ 9 ・ 12 ・ 1 か所）",
+     "tag": "primary",
+     "source": "go.dev/ref/mod:1740 ・ 1248 ・ 2613（2026-09-22 に取り直して sha256 一致）"
+    },
+    {
+     "supports": "脆弱性検証の道具が原典に在ること",
+     "basis": "$ govulncheck ./...",
+     "tag": "primary",
+     "source": "go.dev/doc/security/vuln:493（2026-09-22 取得）"
+    },
+    {
+     "supports": "Coding が引く先を規則に置くこと",
+     "basis": "よくよく考えるとさ、Coding時に規則に従って、テストや静的解析、脆弱性検証、ビルド、フォーマッター、このあたりの言語やフレームワークにおけるCLIを実行するのって、規則から引っ張るよね。",
+     "tag": "assumption",
+     "source": "利用者の発言 2026-09-22"
     }
    ],
    "requirements": [
@@ -3181,7 +3228,9 @@
     "この Skill が足す工程の費用を負担する ── 規則の CLI はプロジェクトの CI に任せる",
     "CI を保持しないプロジェクトでは、すべての規則が未検証になる",
     "実行に時間がかかる規則を、どこまで載せるかの判断が要る",
-    "「未検証」を表示する形を決める必要がある"
+    "「未検証」を表示する形を決める必要がある",
+    "Coding 側が、その軸の規則を集めて検証方法を全部引く ── 1件ずつ指定させない",
+    "道具の呼び方を配列で保持する ── 殻の引用符を経由すると、引いた側で展開が変わる"
    ],
    "out_of_scope": [
     {
@@ -3198,6 +3247,85 @@
      "item": "<b>実際に CI へ工程を足して動かしていない。</b>未検証という状態が、実際に表示できるかを確認していない",
      "treatment": "later",
      "note": "この答えを試すのは下流の論点ではなく<b>外の作業</b>である。CI に工程を1つ足し、規則1件で 合格／不合格／未検証 が出ることを確認する"
+    },
+    {
+     "item": "<b>引く順序を誰が持つかを決めていない</b> ── 整形 → 静的解析 → テスト → ビルド の順序は、規則1件の中には無い",
+     "treatment": "later",
+     "note": "規則は順序を保持しない（論点7 が決めたのは軸のあいだの順序である）。Coding 側が持つのか、軸の記録が持つのかを、次の回で決める"
+    },
+    {
+     "item": "Coding 時の実行が、CI と同じ結果になるかを確認していない ── 版が違えば道具の出力も違う",
+     "treatment": "later",
+     "note": "外の作業である。同じ規則1件を、手元と CI の両方で実行して出力を比べる"
+    }
+   ],
+   "panels": [
+    {
+     "heading": "この答えの履歴 ── 1件",
+     "body": [
+      {
+       "kind": "previous",
+       "letter": "D",
+       "body": "規則が指す CLI はプロジェクトの CI が走らせ、この Skill 自身の検査は同じ CI に1工程として足す",
+       "why": "実行の時点だけを答えていて、<b>誰が引くか</b>を書いていなかった ── Coding は作業中に検証方法の欄を引いて実行する。引き先が同じ欄なので、CI と食い違わない。保証されるのは CI だけである、という判定は変わらない",
+       "user_words": "よくよく考えるとさ、Coding時に規則に従って、テストや静的解析、脆弱性検証、ビルド、フォーマッター、このあたりの言語やフレームワークにおけるCLIを実行するのって、規則から引っ張るよね。きっと。"
+      }
+     ]
+    }
+   ],
+   "example": [
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "規則から引く道具 ── 種類ごとに規則が1件（言語の軸 <code>go</code> の例）"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "道具",
+      "原典の行"
+     ],
+     "rows": [
+      [
+       "整形",
+       [
+        "<code>gofmt -l .</code>",
+        "go.dev/wiki/CodeReviewComments:454"
+       ]
+      ],
+      [
+       "静的解析",
+       [
+        "<code>go vet ./...</code>",
+        "go.dev/ref/mod:1740"
+       ]
+      ],
+      [
+       "テスト",
+       [
+        "<code>go test ./...</code>",
+        "go.dev/ref/mod:1248"
+       ]
+      ],
+      [
+       "ビルド",
+       [
+        "<code>go build ./...</code>",
+        "go.dev/ref/mod:1248"
+       ]
+      ],
+      [
+       "脆弱性検証",
+       [
+        "<code>govulncheck ./...</code>",
+        "go.dev/doc/security/vuln:493"
+       ]
+      ]
+     ]
+    },
+    {
+     "kind": "note",
+     "text": "<b>5件とも道具の名前が原典に在る</b> ── だから外を指す規則として書ける。<code>golint</code> は原典に無いので、採用するなら内を指す規則になる。"
     }
    ]
   }
