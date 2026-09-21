@@ -215,6 +215,8 @@ python3 scripts/cli.py render .acdr/0007-<短い名詞句> --check 1   差が無
 
 ### 正本と組み立て
 
+- `references/acdr.template.html`: **出来上がりの形の正本。** 節 ・ 面 ・ 印 ・ 差分の部品を持ち、組み立ては値を差し込むだけである ── **形をコードの中の文字列に散らさない**
+- `scripts/lib/template.py`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で例外にする** ── 埋め忘れも、余分な値も、出てから気づく形にしない
 - `references/acdr.schema.json`: **入力の契約。** `acdr.json` の形を決める。**鍵は ASCII である**（`decision` ・ `why` ・ `applies_to` ・ `shift` ・ `alternatives` ・ `after_approval` …）── 日本語のまま残るのは、人が読む本文だけである
 - `references/tokens.json`: **デザイントークンの単一の正本。3段である** ── 基礎（原始値）→ 意味（役割）→ 部品。意味の段は基礎の鍵だけを参照し、部品の段は意味か基礎の鍵だけを参照する。**明暗は1つの表から3つの選択子を生成する** ── 手で3か所へ記述すると、1つの鍵が片側から脱落しても誰も検出しない
 - `references/tokens.schema.json`: トークンの形の契約。段を跨いだ直値と、明暗の鍵集合の不一致を弾く
@@ -229,3 +231,4 @@ python3 scripts/cli.py render .acdr/0007-<短い名詞句> --check 1   差が無
 - `references/acdr.schema.json`: `acdr.json` の形を検査するJSON Schema
 - `references/spec-template.json`: `acdr.json` の雛形。`new` が複製する
 - `scripts/tests/test_render_acdr.py`: 雛形から起こせるか ・ 欠けた欄で止まるか ・ **同じ入力から同じ出力が出るか** ・ 実行場所に依存しないか ・ 承認済みの記録が封印されるか ・ コードが Git の差分になるか ・ 理由の欠けを検出するかを検証する。`python3 scripts/tests/test_render_acdr.py` で実行する（17件）
+- `scripts/tests/test_template.py`: 型が満たすことを検証する ── 部品を組めるか ・ 差し込みの過不足で例外になるか ・ 組み立ての側に構造を作る文字列が残っていないか（19件）

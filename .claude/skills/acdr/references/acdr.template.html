@@ -1,0 +1,85 @@
+<!-- 意思決定の記録の型。**形はここが持つ** ── 組み立てのコードは、値を差し込むだけである。
+     差し込む場所は {{名前}} で、過不足は `lib/template.py` がその場で例外にする。
+     1つの部品の中で、同じ名前を何度使ってもよい。 -->
+
+<!-- ── 節（決定そのもの） ───────────────────────────────── -->
+<template data-part="acdr"><div class="acdr"><div class="hd">{{chip}}<h1 class="t">{{title}}</h1><span class="st {{status}}">{{label}}</span><span class="stnote">{{note}}</span><span class="when">{{when}}</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide">{{decision}}</div>{{body}}</div></template>
+
+<template data-part="chip"><span class="no">{{no}}</span></template>
+<template data-part="sec"><div class="sec"><h4>{{heading}}</h4>{{body}}</div></template>
+<template data-part="para"><p>{{body}}</p></template>
+<template data-part="none"><span class="none">{{text}}</span></template>
+<template data-part="list"><ul>{{items}}</ul></template>
+<template data-part="list-item"><li>{{item}}</li></template>
+<template data-part="figure"><figure class="fig">{{svg}}<figcaption>{{caption}}</figcaption></figure></template>
+
+<!-- 比較した案 ── どれも反証を通過しなかったものである -->
+<template data-part="dropped"><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody>{{rows}}</tbody></table></template>
+<template data-part="dropped-row"><tr><td>{{option}}</td><td>{{why_not}}</td></tr></template>
+
+<!-- 形の変化 ── 抽象の対比。具体の差分は面が持つ -->
+<template data-part="shift"><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody>{{rows}}</tbody></table></template>
+<template data-part="shift-row"><tr><td>{{what}}</td><td>{{before}}</td><td>{{after}}</td></tr></template>
+
+<!-- 対象の文書が無い決定。差分が出ないので、節だけの1枚になる -->
+<template data-part="page-bare"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style><div class="wrap">{{head}}<p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p></div></template>
+
+<template data-part="bridge"><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p></template>
+
+<!-- ── 面（対象の文書と、その上の印） ─────────────────────── -->
+<template data-part="page"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{title}}</title>
+<style>{{style}}</style>
+<style id="markcss-live">{{markcss}}</style>
+<script type="text/plain" id="markcss">{{embed}}</script>
+
+<div class="wrap">
+{{heading}}
+<p class="lede">{{lede}}</p>
+{{intro}}
+<div id="bar"><b>変更 {{total}} 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist">{{tabs}}</div>
+{{panes}}
+</div>
+<script>{{js}}</script>
+</template>
+
+<template data-part="tab"><button class="tab" role="tab" data-t="{{key}}">{{label}}<span class="n">{{count}}</span></button></template>
+
+<template data-part="pane-code"><section class="pane code-pane" data-k="{{key}}" hidden><div class="lane code-lane">{{lane}}</div>{{index}}{{body}}</section></template>
+<template data-part="pane-md"><section class="pane md" data-k="{{key}}" hidden>{{index}}<div class="doc">{{body}}</div></section></template>
+<template data-part="pane-html"><section class="pane html" data-k="{{key}}" data-tab="{{tab}}" hidden><div class="lane"><b>そのままの見た目で置く</b><span class="how">経路を確認している…</span></div>{{index}}<template data-shadowcss="{{shadowcss}}">{{body}}</template></section></template>
+
+<template data-part="lane-code"><b>コードとして置く</b><span class="how">{{note}}</span></template>
+<template data-part="lane-diff"><b>Git の差分として置く</b><span class="how">まとまり {{count}} 件{{why}}</span></template>
+<template data-part="lane-nowhy"> ／ <b class="nowhy">理由が付いていないもの {{count}} 件</b></template>
+
+<!-- 面の頭に置く、変更の一覧。印が内側の隠れたタブに入ることがある -->
+<template data-part="index"><details class="idx" open><summary>この面の変更 {{count}} 件</summary><ol>{{items}}</ol></details></template>
+<template data-part="index-item"><li><b>{{find}}</b><button class="go" data-i="{{at}}">その場所へ</button><div class="b">{{why}}</div></li></template>
+
+<!-- 印 ── 3つの面のどれでも、この1つの形である -->
+<template data-part="mark"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="{{before}}" data-w="{{why}}">{{body}}</mark></template>
+
+<!-- ── マークダウンの描画 ─────────────────────────────────── -->
+<template data-part="md-pre"><pre class="{{cls}}">{{body}}</pre></template>
+<template data-part="md-heading"><h{{level}}>{{body}}</h{{level}}></template>
+<template data-part="md-table"><div class="wrap"><table>{{rows}}</table></div></template>
+<template data-part="md-tr"><tr>{{cells}}</tr></template>
+<template data-part="md-th"><th>{{cell}}</th></template>
+<template data-part="md-td"><td>{{cell}}</td></template>
+<template data-part="md-quote"><blockquote>{{body}}</blockquote></template>
+<template data-part="md-hr"><hr></template>
+<template data-part="md-code"><code>{{body}}</code></template>
+<template data-part="md-strong"><strong>{{body}}</strong></template>
+
+<!-- ── コードと差分 ───────────────────────────────────────── -->
+<template data-part="code-block"><div class="code" data-lang="{{lang}}"><table><tbody>{{rows}}</tbody></table></div></template>
+<template data-part="code-row"><tr id="L{{no}}"><td class="ln">{{no}}</td><td class="cd">{{body}}</td></tr></template>
+<template data-part="token"><span class="t-{{kind}}">{{body}}</span></template>
+<template data-part="diff-block"><div class="code diff" data-lang="{{lang}}"><table><tbody>{{rows}}</tbody></table></div></template>
+<template data-part="hunk-head"><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 {{old}} ／ 新 {{new}} @@{{note}}</td></tr></template>
+<template data-part="hunk-nowhy"> <span class="nowhy">理由が付いていない</span></template>
+<template data-part="diff-row"><tr class="r{{cls}}"><td class="ln">{{old}}</td><td class="ln">{{new}}</td><td class="mk">{{mk}}</td><td class="cd">{{body}}</td></tr></template>

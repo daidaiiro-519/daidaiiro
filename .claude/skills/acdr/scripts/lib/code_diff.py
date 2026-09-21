@@ -6,12 +6,16 @@
 
 **色付けは近似である。** 構文解析を実施せず、行ごとに正規表現を適用する ──
 文字列の中の予約語のような事例は取り違える。読解の補助であり、判定の根拠にしない。
+
+**HTML の形は、ここが持たない** ── `references/acdr.template.html` が持つ。
 """
 from __future__ import annotations
 
 import difflib
 import html
 import re
+
+from .template import part as _t
 
 # 拡張子と言語の対応。**ここに無い拡張子は、コードとして扱わない。**
 LANGS: dict[str, str] = {
@@ -99,7 +103,7 @@ def _tokens(line: str, lang: str) -> str:
         if a < at:
             continue
         out.append(line[at:a])
-        out.append(f'<span class="t-{kind}">{line[a:b]}</span>')
+        out.append(_t("token", kind=kind, body=line[a:b]))
         at = b
     out.append(line[at:])
     return "".join(out)
@@ -124,12 +128,10 @@ def render_code(src: str, ext: str, marks: list[dict]) -> str:
         body = _tokens(html.escape(raw), lang) or "&nbsp;"
         c = at.get(i)
         if c:
-            body = (f'<mark class="chg" tabindex="0" role="button" aria-expanded="false"'
-                    f' data-b="{html.escape(c.get("before", ""), quote=True)}"'
-                    f' data-w="{html.escape(c.get("why", ""), quote=True)}">{body}</mark>')
-        rows.append(f'<tr id="L{i + 1}"><td class="ln">{i + 1}</td><td class="cd">{body}</td></tr>')
-    return (f'<div class="code" data-lang="{lang}"><table><tbody>'
-            + "".join(rows) + "</tbody></table></div>")
+            body = _t("mark", before=html.escape(c.get("before", ""), quote=True),
+                      why=html.escape(c.get("why", ""), quote=True), body=body)
+        rows.append(_t("code-row", no=i + 1, body=body))
+    return _t("code-block", lang=lang, rows="".join(rows))
 
 
 def hunks(old: list[str], new: list[str], ctx: int = 3) -> list[list[tuple]]:
@@ -206,26 +208,21 @@ def render_diff(old_src: str, new_src: str, ext: str, marks: list[dict]) -> tupl
         a = next((x for x, _, _, _ in h if x), None)
         b = next((y for _, y, _, _ in h if y), None)
         c = at.get(i)
-        head = (f'<tr class="hh"><td class="ln"></td><td class="ln"></td>'
-                f'<td class="mk"></td><td class="cd">'
-                f'@@ 旧 {a or "-"} ／ 新 {b or "-"} @@'
-                + ("" if c else ' <span class="nowhy">理由が付いていない</span>')
-                + "</td></tr>")
+        head = _t("hunk-head", old=a or "-", new=b or "-",
+                  note="" if c else _t("hunk-nowhy"))
         rows.append(head)
         for x, y, mk, line in h:
             body = _tokens(html.escape(line), lang) or "&nbsp;"
             if c and mk == "+" and c.get("find", "") in line and "chg" not in head:
-                body = (f'<mark class="chg" tabindex="0" role="button" aria-expanded="false"'
-                        f' data-b="{html.escape(c.get("before", "── 上の - の行が変更前である"), quote=True)}"'
-                        f' data-w="{html.escape(c.get("why", ""), quote=True)}">{body}</mark>')
+                body = _t("mark",
+                          before=html.escape(c.get("before", "── 上の - の行が変更前である"),
+                                             quote=True),
+                          why=html.escape(c.get("why", ""), quote=True), body=body)
                 head = head + "chg"
             cls = {"-": "d", "+": "a", " ": ""}[mk]
-            rows.append(f'<tr class="r{cls}"><td class="ln">{x or ""}</td>'
-                        f'<td class="ln">{y or ""}</td>'
-                        f'<td class="mk">{html.escape(mk)}</td>'
-                        f'<td class="cd">{body}</td></tr>')
-    return (f'<div class="code diff" data-lang="{lang}"><table><tbody>'
-            + "".join(rows) + "</tbody></table></div>", len(hs), len(at))
+            rows.append(_t("diff-row", cls=cls, old=x or "", new=y or "",
+                           mk=html.escape(mk), body=body))
+    return _t("diff-block", lang=lang, rows="".join(rows)), len(hs), len(at)
 
 
 """見た目は `acdr_css.CODE` が保持する。**ここに CSS を書かない。**"""

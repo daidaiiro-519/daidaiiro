@@ -6,6 +6,8 @@
 **この道具は、変更後の中身を複製しない。** 節が持つのは決定であり、
 変更そのものは対象の文書の上に印として出る（tabs.build が組む）。
 対象が無い決定（新規）は、節だけの1枚になる ── 例外にせず、同じ器で空にする。
+
+**HTML の形は、ここが持たない** ── `references/acdr.template.html` が持つ。
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ import sys
 from . import REFERENCES
 from . import acdr_css as _css
 from . import validate_input as _vi
+from .template import part as _t
 from .panes import build as build_docs, check as check_docs
 
 # 承認の状態。これ以外を書かせない ── 状態が自由文になると、
@@ -39,21 +42,16 @@ CSS = _css.SECTION
 
 def _list(items: list[str]) -> str:
     if not items:
-        return '<span class="none">無し</span>'
-    return "<ul>" + "".join(f"<li>{v}</li>" for v in items) + "</ul>"
+        return _t("none", text="無し")
+    return _t("list", items="".join(_t("list-item", item=v) for v in items))
 
 
 def _dropped(rows: list) -> str:
     """比較した案。**どれも反証を通過しなかったものである** ── 未解決の懸念ではない。"""
     if not rows:
-        return '<span class="none">比較した案は無い</span>'
-    body = "".join(
-        f"<tr><td>{r['option']}</td><td>{r['why_not']}</td></tr>"
-        for r in rows)
-    return ('<p class="lead">どれも反証を通過しなかった案である ── '
-            '未解決のまま残っているものではない。</p>'
-            "<table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead>"
-            f"<tbody>{body}</tbody></table>")
+        return _t("none", text="比較した案は無い")
+    return _t("dropped", rows="".join(
+        _t("dropped-row", option=r["option"], why_not=r["why_not"]) for r in rows))
 
 
 def _shift(rows: list) -> str:
@@ -62,11 +60,9 @@ def _shift(rows: list) -> str:
     **具体の差分は面が持つ。** ここが持つのは、何がどう変わるかの形である ──
     抽象の対比が無いと、下に並ぶ具体の差分が何のためかを読み手が復元することになる。
     """
-    body = "".join(f"<tr><td>{r['what']}</td><td>{r['from']}</td>"
-                   f"<td>{r['to']}</td></tr>" for r in rows)
-    return ("<table class=\"shift\"><thead><tr><th>何が</th><th>いまの形</th>"
-            "<th>これからの形</th></tr></thead>"
-            f"<tbody>{body}</tbody></table>")
+    return _t("shift", rows="".join(
+        _t("shift-row", what=r["what"], before=r["from"], after=r["to"])
+        for r in rows))
 
 
 def header(spec: dict) -> str:
@@ -85,29 +81,24 @@ def header(spec: dict) -> str:
     num = _h.escape(str(spec.get("no", "")))
     when = _h.escape(str(spec.get("date", "")))
 
-    secs = [("なぜ、いま決めるのか", f'<p>{spec["why"]}</p>')]
+    secs = [("なぜ、いま決めるのか", _t("para", body=spec["why"]))]
     if spec.get("shift"):
         secs.append(("形の変化", _shift(spec["shift"])))
     if spec.get("_図"):
-        secs.append(("図で確認する", f'<figure class="fig">{spec["_図"]}'
-                                   f'<figcaption>{spec.get("figure_caption", "")}</figcaption></figure>'))
+        secs.append(("図で確認する", _t("figure", svg=spec["_図"],
+                                    caption=spec.get("figure_caption", ""))))
     if spec.get("how"):
-        secs.append(("実現の形", f'<p>{spec["how"]}</p>'))
-    secs += [("適用先", f'<p>{spec["applies_to"]}</p>'),
+        secs.append(("実現の形", _t("para", body=spec["how"])))
+    secs += [("適用先", _t("para", body=spec["applies_to"])),
              ("比較した案", _dropped(spec.get("alternatives", []))),
              ("承認後に実施すること", _list(spec.get("after_approval", [])))]
     if spec.get("supersedes"):
-        secs.append(("supersedes", f'<p>{spec["supersedes"]}</p>'))
-    body = "".join(f'<div class="sec"><h4>{k}</h4>{v}</div>' for k, v in secs)
+        secs.append(("supersedes", _t("para", body=spec["supersedes"])))
+    body = "".join(_t("sec", heading=k, body=v) for k, v in secs)
 
-    chip = '<span class="no">' + num + '</span>' if num else ''
-    return (f'<div class="acdr"><div class="hd">{chip}'
-            f'<h1 class="t">{_h.escape(spec["title"])}</h1>'
-            f'<span class="st {st}">{label}</span>'
-            f'<span class="stnote">{note}</span>'
-            f'<span class="when">{when}</span></div>'
-            f'<div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div>'
-            f'<div class="decide">{spec["decision"]}</div>{body}</div>')
+    return _t("acdr", chip=_t("chip", no=num) if num else "",
+              title=_h.escape(spec["title"]), status=st, label=label, note=note,
+              when=when, decision=spec["decision"], body=body)
 
 
 def build(spec: dict) -> tuple[str, int]:
@@ -116,28 +107,15 @@ def build(spec: dict) -> tuple[str, int]:
     if not docs:
         # 新規の決定。差分が無いので、節だけの1枚になる
         from .panes import CSS as BASE
-        return ('<meta charset="utf-8">'
-                '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                f'<title>{_h.escape(spec["title"])}</title>'
-                f"<style>{BASE}{CSS}</style>"
-                f'<div class="wrap">{head}'
-                f'<p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p>'
-                f"</div>", 0)
+        return _t("page-bare", title=_h.escape(spec["title"]),
+                  style=BASE + CSS, head=head), 0
 
-    inner = dict(spec)
-    inner["title"] = spec["title"]
-    out, total = build_docs(inner)
-    # tabs.build が組んだ1枚の、見出しの直後へ節を差し込む
-    anchor = f'<h1>{_h.escape(spec["title"])}</h1>'
-    if anchor not in out:
-        raise ValueError("差し込む位置が見つからない ── tabs.build の出力が変わっている")
-    out = out.replace("</style>\n<style id=\"markcss-live\">",
-                      f"{CSS}</style>\n<style id=\"markcss-live\">", 1)
-    # 題は節が持つ。面の見出しと二重に出さない。
+    # 題は節が持つ。面の見出しと二重に出さない ── 面の見出しの場所を、節で差し替える。
     # 節と面のあいだに橋を1行置く ── 下に並ぶのは、この決定を採ったときの具体である
-    bridge = ('<p class="bridge">下に並ぶのは、この決定を採ったときに'
-              '<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>')
-    return out.replace(anchor, head + bridge, 1), total
+    inner = dict(spec)
+    inner["_heading"] = head + _t("bridge")
+    inner["_css"] = CSS
+    return build_docs(inner)
 
 
 def check(out: str, spec: dict, total: int) -> list[tuple[str, bool]]:

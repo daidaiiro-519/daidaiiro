@@ -8,13 +8,17 @@ marks.json の形。find は描画後のHTMLに現れる文字列。
   [{"find": "...", "before": "変更前の原文", "why": "なぜ変えたか"}, ...]
 
 一致しなかった find は標準エラーに出す。黙って除外しない。
+
+**HTML の形は、ここが持たない** ── `references/acdr.template.html` が持つ。
 """
 import re, html, io, sys, json
 
+from .template import part as _t
+
 def inline(t):
     t = html.escape(t)
-    t = re.sub(r'`([^`]+)`', r'<code>\1</code>', t)
-    t = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', t)
+    t = re.sub(r'`([^`]+)`', _t("md-code", body=r"\1"), t)
+    t = re.sub(r'\*\*(.+?)\*\*', _t("md-strong", body=r"\1"), t)
     return t.replace('&lt;br&gt;', '<br>').replace('&lt;br/&gt;', '<br>')
 
 def render(md):
@@ -28,12 +32,12 @@ def render(md):
             while j < len(L) and not L[j].startswith('```'):
                 b.append(L[j]); j += 1
             cls = 'mermaid' if lang == 'mermaid' else 'code'
-            out.append(f'<pre class="{cls}">' + html.escape('\n'.join(b)) + '</pre>')
+            out.append(_t("md-pre", cls=cls, body=html.escape('\n'.join(b))))
             i = j + 1; continue
         m = re.match(r'^(#{1,4})\s+(.*)', l)
         if m:
             n = len(m.group(1))
-            out.append(f'<h{n}>{inline(m.group(2))}</h{n}>'); i += 1; continue
+            out.append(_t("md-heading", level=n, body=inline(m.group(2)))); i += 1; continue
         if l.startswith('|'):
             rows = []
             while i < len(L) and L[i].startswith('|'):
@@ -43,31 +47,33 @@ def render(md):
                 return all(re.match(r'^:?-{2,}:?$', c.strip()) for c in row if c.strip()) \
                        and any(c.strip() for c in row)
             body = [c for c in cells if not sep(c)]
-            t = '<div class="wrap"><table>'
+            rows = []
             # 見出しが全部空なら、見出しの行を出さない。
             # 空の <th> を並べると、中身の無い帯が表の上に1本出る
             if body and not any(c.strip() for c in body[0]):
                 body = body[1:]
             elif len(body) > 1:
-                t += '<tr>' + ''.join(f'<th>{inline(c)}</th>' for c in body[0]) + '</tr>'
+                rows.append(_t("md-tr", cells=''.join(
+                    _t("md-th", cell=inline(c)) for c in body[0])))
                 body = body[1:]
             for r in body:
-                t += '<tr>' + ''.join(f'<td>{inline(c)}</td>' for c in r) + '</tr>'
-            out.append(t + '</table></div>'); continue
+                rows.append(_t("md-tr", cells=''.join(
+                    _t("md-td", cell=inline(c)) for c in r)))
+            out.append(_t("md-table", rows=''.join(rows))); continue
         if l.startswith('>'):
             b = []
             while i < len(L) and L[i].startswith('>'):
                 b.append(L[i][1:].strip()); i += 1
-            out.append('<blockquote>' + inline('<br>'.join(b)) + '</blockquote>'); continue
+            out.append(_t("md-quote", body=inline('<br>'.join(b)))); continue
         if l.strip() == '---':
-            out.append('<hr>'); i += 1; continue
+            out.append(_t("md-hr")); i += 1; continue
         if not l.strip():
             i += 1; continue
         b = []
         while i < len(L) and L[i].strip() and not L[i].startswith(('|', '>', '#', '```')) \
               and L[i].strip() != '---':
             b.append(L[i]); i += 1
-        out.append('<p>' + inline('<br>'.join(b)) + '</p>')
+        out.append(_t("para", body=inline('<br>'.join(b))))
     return '\n'.join(out)
 
 def outside_pre(h):
@@ -125,8 +131,6 @@ def mark(h, marks):
         a = html.escape(c.get("before", ""), quote=True)
         w = html.escape(c.get("why", ""), quote=True)
         f = c["find"]
-        h = (h[:at] + f'<mark class="chg" tabindex="0" role="button" '
-                      f'aria-expanded="false" data-b="{a}" data-w="{w}">{f}</mark>'
-             + h[at + ln:])
+        h = h[:at] + _t("mark", before=a, why=w, body=f) + h[at + ln:]
     print(f"  {len(kept)}/{len(marks)} 件に印を付けた", file=sys.stderr)
     return h

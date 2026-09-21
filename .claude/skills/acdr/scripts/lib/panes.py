@@ -33,6 +33,8 @@ spec.json の形。
   6 タブとパネルの数が合うか
   7 波括弧が閉じているか               —— 3つ未閉鎖でスタイルが全滅した
   8 HTML を入れた面に、雛形が在るか
+
+**HTML の形は、ここが持たない** ── `references/acdr.template.html` が持つ。
 """
 import html
 import io
@@ -43,6 +45,7 @@ import subprocess
 import sys
 
 from .markdown import render, mark, outside_pre  # noqa: E402
+from .template import part as _t  # noqa: E402
 from . import acdr_css as _css  # noqa: E402
 from .code_diff import is_code, render_code, render_diff  # noqa: E402
 
@@ -314,14 +317,10 @@ def index_html(ms):
     """
     if not ms:
         return ""
-    li = []
-    for i, c in enumerate(ms):
-        li.append(
-            f'<li><b>{html.escape(c["find"][:40])}</b>'
-            f'<button class="go" data-i="{i}">その場所へ</button>'
-            f'<div class="b">{html.escape(c.get("why",""))}</div></li>')
-    return (f'<details class="idx" open><summary>この面の変更 {len(ms)} 件</summary>'
-            f'<ol>{"".join(li)}</ol></details>')
+    li = [_t("index-item", find=html.escape(c["find"][:40]), at=i,
+             why=html.escape(c.get("why", "")))
+          for i, c in enumerate(ms)]
+    return _t("index", count=len(ms), items="".join(li))
 
 
 NOWHY: list[tuple] = []
@@ -364,69 +363,46 @@ def build(spec):
             base = before_of(d)
             if base is None:
                 body = render_code(src, ext, ms)
-                lane = ('<b>コードとして置く</b><span class="how">'
-                        '変更前を取得できないので、全文を置く</span>')
+                lane = _t("lane-code", note="変更前を取得できないので、全文を置く")
             else:
                 body, nh, nw = render_diff(base, src, ext, ms)
                 if not nh:
                     body = render_code(src, ext, ms)
-                    lane = ('<b>コードとして置く</b><span class="how">'
-                            '差分が無いので、全文を置く</span>')
+                    lane = _t("lane-code", note="差分が無いので、全文を置く")
                 else:
                     miss = nh - nw
                     if miss:
                         NOWHY.append((d["key"], miss, nh))
-                    lane = (f'<b>Git の差分として置く</b><span class="how">'
-                            f'まとまり {nh} 件'
-                            + (f' ／ <b class="nowhy">理由が付いていないもの {miss} 件</b>'
-                               if miss else " ／ 全件に理由が付いている")
-                            + "</span>")
+                    lane = _t("lane-diff", count=nh,
+                              why=(_t("lane-nowhy", count=miss) if miss
+                                   else " ／ 全件に理由が付いている"))
             ms = landed(body, ms)
-            panes.append(
-                f'<section class="pane code-pane" data-k="{d["key"]}" hidden>'
-                f'<div class="lane code-lane">{lane}</div>'
-                f'{index_html(ms)}{body}</section>')
+            panes.append(_t("pane-code", key=d["key"], lane=lane,
+                            index=index_html(ms), body=body))
         elif ext == ".md":
             body = mark(render(src), ms)
             ms = landed(body, ms)
-            panes.append(
-                f'<section class="pane md" data-k="{d["key"]}" hidden>'
-                f'{index_html(ms)}<div class="doc">{body}</div></section>')
+            panes.append(_t("pane-md", key=d["key"], index=index_html(ms), body=body))
         else:
             chunk = mark_html(strip_document(src), ms)
             ms = landed(chunk, ms)
             shadow = html.escape(scope_for_shadow(
                 "".join(re.findall(r"<style\b[^>]*>(.*?)</style>", chunk, re.S | re.I))))
-            panes.append(
-                f'<section class="pane html" data-k="{d["key"]}" data-tab="{html.escape(d["tab"])}" hidden>'
-                f'<div class="lane"><b>そのままの見た目で置く</b>'
-                f'<span class="how">経路を確認している…</span></div>'
-                f'{index_html(ms)}'
-                f'<template data-shadowcss="{shadow}">{chunk}</template>'
-                f'</section>')
+            panes.append(_t("pane-html", key=d["key"], tab=html.escape(d["tab"]),
+                            index=index_html(ms), shadowcss=shadow, body=chunk))
         n = len(re.findall(r'mark class="chg"', panes[-1]))
         total += n
-        tabs.append(f'<button class="tab" role="tab" data-t="{d["key"]}">'
-                    f'{html.escape(d["tab"])}<span class="n">{n}</span></button>')
+        tabs.append(_t("tab", key=d["key"], label=html.escape(d["tab"]), count=n))
 
-    return f"""<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(spec["title"])}</title>
-<style>{CSS}{CODECSS}</style>
-<style id="markcss-live">{MARKCSS}</style>
-<script type="text/plain" id="markcss">{_css.TOKENS_EMBED}{MARKCSS}</script>
-
-<div class="wrap">
-<h1>{html.escape(spec["title"])}</h1>
-<p class="lede">{spec.get("lede","")}</p>
-{spec.get("intro","")}
-<div id="bar"><b>変更 {total} 件</b>
-<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
-<div id="tabs" role="tablist">{"".join(tabs)}</div>
-{"".join(panes)}
-</div>
-<script>{JS}</script>
-""", total
+    # 見出しと、足す CSS は、呼ぶ側が差し替えられる ── 組んだあとの文字列を
+    # 置換して差し込むと、置換の当て先が変わったときに黙って外れる
+    return _t("page", title=html.escape(spec["title"]),
+              heading=spec.get("_heading")
+              or _t("md-heading", level=1, body=html.escape(spec["title"])),
+              style=CSS + CODECSS + spec.get("_css", ""),
+              markcss=MARKCSS, embed=_css.TOKENS_EMBED + MARKCSS,
+              lede=spec.get("lede", ""), intro=spec.get("intro", ""), total=total,
+              tabs="".join(tabs), panes="".join(panes), js=JS), total
 
 
 def check(out, spec, total):
