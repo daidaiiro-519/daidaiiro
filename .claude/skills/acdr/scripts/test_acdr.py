@@ -15,6 +15,7 @@ import tempfile
 import unittest
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 CLI = HERE / "build_acdr.py"
 
 
@@ -132,6 +133,94 @@ class Idempotent(unittest.TestCase):
             spec["決定"] = "別の決定を記述する"
             (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
             self.assertEqual(run(str(f), "--check").returncode, 1)
+
+
+class Code(unittest.TestCase):
+    def test_コードは行の単位で印が付く(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d)
+            doc = f / "対象.py"
+            doc.write_text("# 注記である\nimport os\n\n\ndef 甲():\n    return 1\n",
+                           encoding="utf-8")
+            minimal(f, doc)
+            spec = json.loads((f / "acdr.json").read_text(encoding="utf-8"))
+            spec["docs"][0]["marks"] = [{"find": "def 甲", "before": "def 乙", "why": "改称した"}]
+            (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(run(str(f)).returncode, 0)
+            out = (f / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="code"', out)
+            self.assertIn('data-lang="python"', out)
+            self.assertIn('class="t-k"', out)       # 予約語の色付け
+            self.assertIn('class="t-c"', out)       # 注記の色付け
+            self.assertIn('<td class="ln">5</td>', out)
+            self.assertEqual(out.count('<mark class="chg"'), 1)
+
+    def test_言語ごとに印が変わる(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d)
+            doc = f / "対象.json"
+            doc.write_text('{\n "甲": true\n}\n', encoding="utf-8")
+            minimal(f, doc)
+            spec = json.loads((f / "acdr.json").read_text(encoding="utf-8"))
+            spec["docs"][0]["marks"] = [{"find": "甲", "before": "乙", "why": "改称した"}]
+            (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+            run(str(f))
+            out = (f / "index.html").read_text(encoding="utf-8")
+            self.assertIn('data-lang="json"', out)
+
+    def test_コードの面も押せるように配線される(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d)
+            doc = f / "対象.py"
+            doc.write_text("import os\n\n\ndef 甲():\n    return 1\n", encoding="utf-8")
+            minimal(f, doc)
+            spec = json.loads((f / "acdr.json").read_text(encoding="utf-8"))
+            spec["docs"][0]["marks"] = [{"find": "def 甲", "before": "def 乙", "why": "改称した"}]
+            (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+            run(str(f))
+            out = (f / "index.html").read_text(encoding="utf-8")
+            # 押す処理の配線と、枠を行として挿入する経路が在ること
+            self.assertIn(".pane.md, .pane.code-pane", out)
+            self.assertIn('tr.className = "poprow"', out)
+            self.assertIn("td.colSpan = row.children.length", out)
+
+    def test_コード以外の拡張子はコードとして扱わない(self):
+        from code import is_code
+        self.assertTrue(is_code(".py"))
+        self.assertTrue(is_code(".GO"))
+        self.assertFalse(is_code(".md"))
+        self.assertFalse(is_code(".html"))
+
+
+class Diff(unittest.TestCase):
+    def test_まとまりを組む(self):
+        from code import hunks
+        old = list("abcdefghi")
+        new = list("abcDefghi")
+        hs = hunks(old, new)
+        self.assertEqual(len(hs), 1)
+        self.assertEqual([m for _, _, m, _ in hs[0]], [" ", " ", " ", "-", "+", " ", " ", " "])
+
+    def test_離れた変更は別のまとまりになる(self):
+        from code import hunks
+        old = [str(i) for i in range(40)]
+        new = list(old)
+        new[2] = "甲"
+        new[30] = "乙"
+        self.assertEqual(len(hunks(old, new)), 2)
+
+    def test_理由の欠けを数える(self):
+        from code import render_diff
+        old = "a\nb\nc\n"
+        new = "a\n甲\nc\n"
+        html_, nh, nw = render_diff(old, new, ".py", [])
+        self.assertEqual((nh, nw), (1, 0))
+        self.assertIn("理由が付いていない", html_)
+        html_, nh, nw = render_diff(old, new, ".py",
+                                    [{"find": "甲", "why": "改称した"}])
+        self.assertEqual((nh, nw), (1, 1))
+        self.assertNotIn("理由が付いていない", html_)
+        self.assertIn('class="chg"', html_)
 
 
 class Seal(unittest.TestCase):

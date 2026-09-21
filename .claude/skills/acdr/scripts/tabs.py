@@ -37,11 +37,13 @@ import html
 import io
 import json
 import re
+import subprocess
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from render import render, mark, outside_pre  # noqa: E402
+from code import CSS as CODECSS, is_code, render_code, render_diff  # noqa: E402
 
 # ── HTML を、そのままの見た目で置くために取り出す ─────────────────
 
@@ -170,9 +172,23 @@ JS = r"""
       var b2 = doc.createElement("b"); b2.textContent = "なぜ";
       var w = doc.createElement("div"); w.textContent = m.dataset.w;
       p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
-      var host = m.closest("td") || m.closest("li") || m.parentNode;
-      if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
-      else host.parentNode.appendChild(p);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
       function tg(){
         var opening = p.hidden;
         p.hidden = !opening;
@@ -307,7 +323,8 @@ JS = r"""
   });
 
   /* マークダウンの面 */
-  document.querySelectorAll(".pane.md").forEach(function(p){ wire(p, document); });
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
 
   function allPops(){
     var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
@@ -371,13 +388,69 @@ def index_html(ms):
             f'<ol>{"".join(li)}</ol></details>')
 
 
+NOWHY: list[tuple] = []
+
+
+def before_of(d):
+    """変更前の中身を取得する。**記録へ複製しない** ── git から取る。
+
+    `基準` が無ければ HEAD を使う。取得できなければ None を返し、呼ぶ側が全文へ落とす。
+    """
+    if "変更前" in d:                      # 直に渡された場合はそれを使う
+        return d["変更前"]
+    rev = d.get("基準", "HEAD")
+    path = os.path.abspath(d["file"])
+    root = path
+    while root != os.path.dirname(root):
+        root = os.path.dirname(root)
+        if os.path.exists(os.path.join(root, ".git")):
+            break
+    else:
+        return None
+    rel = os.path.relpath(path, root)
+    try:
+        r = subprocess.run(["git", "-C", root, "show", f"{rev}:{rel}"],
+                           capture_output=True, timeout=20)
+        return r.stdout.decode("utf-8") if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
 def build(spec):
     tabs, panes, total = [], [], 0
+    global NOWHY
+    NOWHY = []
     for d in spec["docs"]:
         src = io.open(d["file"], encoding="utf-8").read()
         ms = d.get("marks", [])
         ext = os.path.splitext(d["file"])[1].lower()
-        if ext == ".md":
+        if is_code(ext):
+            base = before_of(d)
+            if base is None:
+                body = render_code(src, ext, ms)
+                lane = ('<b>コードとして置く</b><span class="how">'
+                        '変更前を取得できないので、全文を置く</span>')
+            else:
+                body, nh, nw = render_diff(base, src, ext, ms)
+                if not nh:
+                    body = render_code(src, ext, ms)
+                    lane = ('<b>コードとして置く</b><span class="how">'
+                            '差分が無いので、全文を置く</span>')
+                else:
+                    miss = nh - nw
+                    if miss:
+                        NOWHY.append((d["key"], miss, nh))
+                    lane = (f'<b>Git の差分として置く</b><span class="how">'
+                            f'まとまり {nh} 件'
+                            + (f' ／ <b class="nowhy">理由が付いていないもの {miss} 件</b>'
+                               if miss else " ／ 全件に理由が付いている")
+                            + "</span>")
+            ms = landed(body, ms)
+            panes.append(
+                f'<section class="pane code-pane" data-k="{d["key"]}" hidden>'
+                f'<div class="lane code-lane">{lane}</div>'
+                f'{index_html(ms)}{body}</section>')
+        elif ext == ".md":
             body = mark(render(src), ms)
             ms = landed(body, ms)
             panes.append(
@@ -403,7 +476,7 @@ def build(spec):
     return f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(spec["title"])}</title>
-<style>{CSS}</style>
+<style>{CSS}{CODECSS}</style>
 <style id="markcss-live">{MARKCSS}</style>
 <script type="text/plain" id="markcss">{MARKCSS}</script>
 
@@ -430,12 +503,21 @@ def check(out, spec, total):
     ok.append((f"印ごとに data-b と data-w（{nb}／{nw}）", nb == nw == total))
     ok.append(("表の中に <div> が無い", "<tbody><div" not in out and "<tr><div" not in out))
     nt = len(re.findall(r'<button class="tab" role="tab"', out))
-    npn = len(re.findall(r'<section class="pane (?:md|html)"', out))
+    npn = len(re.findall(r'<section class="pane (?:md|html|code-pane)"', out))
     ok.append((f"タブとパネルの数が合う（{nt}／{npn}）", nt == npn == len(spec["docs"])))
-    body = out.split("<script>")[0]
+    # 面の中身は対象の文書である ── 波括弧が釣り合う保証は無い。数えるのは枠だけにする
+    body = re.sub(r'<section class="pane.*?</section>', "",
+                  out.split("<script>")[0], flags=re.S)
     ok.append((f"波括弧が閉じている（{body.count('{')}／{body.count('}')}）",
                body.count("{") == body.count("}")))
-    nhtml = sum(1 for d in spec["docs"] if not d["file"].lower().endswith(".md"))
+    if NOWHY:
+        for key, miss, nh in NOWHY:
+            ok.append((f"{key}: まとまり {nh} 件のうち {miss} 件に理由が付いていない", False))
+    else:
+        ok.append(("差分のまとまりに、全件理由が付いている", True))
+    nhtml = sum(1 for d in spec["docs"]
+                if not d["file"].lower().endswith(".md")
+                and not is_code(os.path.splitext(d["file"])[1]))
     ok.append((f"HTML の面に雛形が在る（{out.count('<template')}／{nhtml}）",
                out.count("<template") == nhtml))
     return ok

@@ -151,7 +151,18 @@ class 検査そのものの規律(unittest.TestCase):
         self.assertEqual([c.basis for c in others], ["媒体の決め"])
 
     def test_検査を列挙できる(self):
-        self.assertEqual(len(gate.all_checks()), 7)
+        """**数ではなく名前で照合する。** 数で照合すると、検査を足した時点で落ちる ──
+        実際に、廃語の検査を足した時点から落ちたまま気づかなかった。"""
+        self.assertEqual([c.name for c in gate.all_checks()], [
+            "見出しの階層が飛んでいる",
+            "文体が混ざっている",
+            "並んだ項目の語尾が統一されていない",
+            "文字で図や表を描いている",
+            "同じ意味の語が2つある",
+            "述部が和語である",
+            "廃語を使用している",
+            "強調が描画されない",
+        ])
 
     def test_印のある文書は検査しない(self):
         self.assertEqual(names("<!-- doc-writing-skills: exempt -->\n\n# あ\n\n#### い\n"), [])
