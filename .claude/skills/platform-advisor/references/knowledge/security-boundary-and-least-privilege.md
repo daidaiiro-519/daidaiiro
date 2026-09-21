@@ -1,12 +1,12 @@
 ---
 id: "security-boundary-and-least-privilege"
 type: "Knowledge"
-title: "セキュリティ境界と最小権限の原則を扱う概念：security-boundary-and-least-privilege"
+title: "セキュリティ境界と最小権限の原則を対象とする概念：security-boundary-and-least-privilege"
 description: "最小権限の原則（必要な範囲だけにアクセス権を絞る）と多層防御（複数の層でセキュリティ対策を重ねる）という、確立されたセキュリティ境界設計の原則。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# セキュリティ境界と最小権限の原則を扱う概念：security-boundary-and-least-privilege
+# セキュリティ境界と最小権限の原則を対象とする概念：security-boundary-and-least-privilege
 
 ## 概要
 

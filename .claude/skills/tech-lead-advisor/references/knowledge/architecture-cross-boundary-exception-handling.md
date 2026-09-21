@@ -1,14 +1,14 @@
 ---
 id: "architecture-cross-boundary-exception-handling"
 type: "Knowledge"
-title: "レイヤー境界を跨ぐ例外処理の設計原則を扱う概念：architecture-cross-boundary-exception-handling"
+title: "レイヤー境界を跨ぐ例外処理の設計原則を対象とする概念：architecture-cross-boundary-exception-handling"
 description: "例外もデータと同じくレイヤー境界を越えて伝播する。境界を越えるたびに、その例外は受け取る側の層の語彙に翻訳されるべきであり、外側の技術的な例外型をそのまま内側の層に漏らしてはならない、という原則。"
 tags: ["advisor:tech-lead", "domain:architecture"]
 schemaRef: "KnowledgeSchema/v5"
 updatedAt: "2026-07-08T00:00:00Z"
 ---
 
-# レイヤー境界を跨ぐ例外処理の設計原則を扱う概念：architecture-cross-boundary-exception-handling
+# レイヤー境界を跨ぐ例外処理の設計原則を対象とする概念：architecture-cross-boundary-exception-handling
 
 ## 概要
 

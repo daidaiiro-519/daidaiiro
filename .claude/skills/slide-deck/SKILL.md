@@ -7,7 +7,7 @@ version: 1.2.0
 ## 目的
 
 **HTMLのスライドデッキを、1枚1主張・量の上限・描画確認の3つを遵守して作る。**
-**配色は選ぶ ── `references/themes/` の1本を適用する。図は `references/figures/` の語彙で組む。**
+**配色は選ぶ ── `references/themes/` の1本を適用する。図は組ませて、返った SVG をそのまま置く。**
 **規則が立っている考え方は `references/knowledge/visual-design-for-slide-decks.md` にある。**
 新しくデッキを起こすとき、既存の枚を直すとき、短い版に集約するときに使う。
 
@@ -108,21 +108,32 @@ version: 1.2.0
 
 ### Step 4: 骨組みから書く
 
-`references/deck-template.html` を複製し、`:root` の「▼ テーマ」から「▲ テーマここまで」の間を、選んだテーマの中身で置き換える。
+```
+python3 scripts/cli.py new <出力.html> --theme <テーマの名前> --title <題>
+```
+
+骨組みを複製し、「▼ テーマ」から「▲ テーマここまで」の間へ、選んだテーマの中身を貼る。
 
 - 固定ステージと拡大縮小のしくみが入っている。この部分は書き換えない
 - `.chrome` と `.progress` は `.stage` の中に置く
 - 画面幅を参照するメディアクエリを足さない
 - **色を1つずつ直さない。** 直すならテーマの側を直す
 
-### Step 5: 図を組む
+### Step 5: 図を組ませる
 
-**`references/figures.md` を読み、`figures/figures.py` の部品で組む。**
-`Palette.from_theme()` が選んだテーマから色を読むので、図に色を直書きしない。
+**この Skill は図を描かない。描き方も、描く道具も保持しない。** 渡すのは配色と、何を描くかである ── **組ませる相手は配線表が決める。**
 
-- 幅は `svg()` が1112pxに固定する。枚ごとに変えない
-- `label` に、何を示す図かを1文で書く。書けないなら、その図はまだ決まっていない
-- 新しい分類色を足す前に、位置・ラベル・線の違いで区別できるかを考える
+```
+python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を写して渡す
+```
+
+- **配色を図の側へ書かない。** 正本は `references/themes/<名前>.css` の1か所である
+- 幅は 1112px に統一する。枚ごとに変えない
+- 何を示す図かを1文で書く。書けないなら、その図はまだ決まっていない
+- 新しい分類色を足す前に、位置・ラベル・線の違いで区別できるかを判定する
+- **描く側の幾何の検査を実行し、そのうえで描画して目視する**
+
+渡し方と色の対応は `references/figures.md` が持つ。
 
 ### Step 6: 数値を原典で確認する
 
@@ -210,6 +221,10 @@ version: 1.2.0
 - `references/deck-template.html`: 固定ステージと部品クラスを備えた骨組み。配色は保持せず、テーマを貼る場所だけを持つ
 - `references/themes.md`: テーマの選び方、22の鍵と満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
-- `references/themes/check.py`: 鍵の欠け・適合条件・色の直書きを検査する道具
-- `references/figures.md`: 図の語彙の使い方。色の取り方、部品、絵の種類、幅の約束
-- `references/figures/figures.py`: 図を組む部品。色を保持せず、テーマから読む
+- `scripts/lib/themes.py`: 鍵の欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
+- `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどの鍵から出るか。**この Skill は図を描かない**
+- `scripts/cli.py`: **唯一の入口。** `new` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `scripts/mcp.py` ・ `mcp.json`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/lib/deck.py`: 骨組みにテーマを貼って、1枚の HTML を起こす
+- `scripts/tests/`: テーマと骨組みの検証（15件）

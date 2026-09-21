@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+"""{{Skill名}} の道具の宣言。**能力の正本はここである。**
+
+CLI も MCP も、この宣言から組む ── 能力を2回書くと、片方だけが古くなる。
+"""
+from __future__ import annotations
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from contract import Arg, Tool, result  # noqa: E402
+
+
+def {{道具の名前}}({{引数}}: str) -> dict:
+    """{{この道具が何をするか。印字はしない ── 印字は入口が持つ。}}"""
+    findings = []          # 検出したもの。**誤りではない**
+    return result(ok=True, findings=findings, {{機械が読む本体}}={{値}})
+
+
+def _human_{{道具の名前}}(res: dict) -> str:
+    """人が読む形。**同じ内容を、別の形で出す** ── 中身を増減させない。"""
+    n = len(res["findings"])
+    return f"{{見出し}}　{n} 件" if n else "{{見出し}}　0 件"
+
+
+TOOLS = [
+    Tool(name="{{道具の名前}}", summary="{{一覧に出る1行}}",
+         args=[Arg("{{引数}}", "{{引数の説明}}")],
+         run={{道具の名前}}, human=_human_{{道具の名前}}),
+]

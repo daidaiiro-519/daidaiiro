@@ -1,137 +1,185 @@
 {
   "$schema": "./.claude/skills/skill-router/references/skill-wiring.schema.json",
-  "配線": [
+  "wiring": [
     {
-      "何を頼むか": "論点を立てて案を出し、出した案を先に反証してもらう",
-      "どの作業のとき": "決めることがある作業の入口（方針・設計・構成をまだ決めていないとき）",
-      "呼ぶSkill": [
+      "request": "論点を立てて案を出し、出した案を先に反証してもらう",
+      "when": "決めることがある作業の入口（方針・設計・構成をまだ決めていないとき）",
+      "skills": [
         "brainstorming-board"
       ],
-      "結果をどれだけ当てにするか": "結果は参考"
+      "reliance": "advisory"
     },
     {
-      "何を頼むか": "原典を取得して、原文の文字列で照合してもらう",
-      "どの作業のとき": "外にある情報源（公式リファレンス・API仕様・OSSの実装・論文・規格）の内容を文書・設計・実装へ取り込むとき",
-      "呼ぶSkill": [
+      "request": "原典を取得して、原文の文字列で照合してもらう",
+      "when": "外にある情報源（公式リファレンス・API仕様・OSSの実装・論文・規格）の内容を文書・設計・実装へ取り込むとき",
+      "skills": [
         "source-fidelity"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "原典を取得して、原文の文字列で照合してもらう",
-      "どの作業のとき": "brainstorming-board（原典の札を付けるとき）",
-      "呼ぶSkill": [
+      "request": "原典を取得して、原文の文字列で照合してもらう",
+      "when": "brainstorming-board（原典の札を付けるとき）",
+      "skills": [
         "source-fidelity"
       ],
-      "結果をどれだけ当てにするか": "呼べたら呼ぶ"
+      "reliance": "optional"
     },
     {
-      "何を頼むか": "業務領域の切り方（区切られた文脈・集約・ユビキタス言語）を原典に照らして見てもらう",
-      "どの作業のとき": "brainstorming-board（業務の構造を決める論点を扱うとき）",
-      "呼ぶSkill": [
+      "request": "業務領域の切り方（区切られた文脈・集約・ユビキタス言語）を原典に照らして見てもらう",
+      "when": "brainstorming-board（業務の構造を決める論点を扱うとき）",
+      "skills": [
         "ddd-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果は参考"
+      "reliance": "advisory"
     },
     {
-      "何を頼むか": "構造化データから図を組み、SVGファイルとして返してもらう",
-      "どの作業のとき": "brainstorming-board（ブレストボードや承認の画面に図を載せるとき）",
-      "呼ぶSkill": [
+      "request": "構造化データから図を組み、SVGファイルとして返してもらう",
+      "when": "brainstorming-board（ブレストボードや承認の画面に図を載せるとき）",
+      "skills": [
         "design-svg"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "構造化データから図を組んでもらう",
-      "どの作業のとき": "ddd-advisor（説明に図を添えるとき）",
-      "呼ぶSkill": [
+      "request": "構造化データから図を組んでもらう",
+      "when": "ddd-advisor（説明に図を添えるとき）",
+      "skills": [
         "design-svg"
       ],
-      "結果をどれだけ当てにするか": "呼べたら呼ぶ"
+      "reliance": "optional"
     },
     {
-      "何を頼むか": "日本語の文書として、論・構造・文調・語彙に判定を適用してもらう",
-      "どの作業のとき": "人が読む文書（設計文書・仕様・報告・README・学術文書）を書き起こすとき、および既存の本文を直すとき",
-      "呼ぶSkill": [
+      "request": "図の中の役割ごとの色（ink ・ dim ・ faint ・ line ・ paper ・ surface ・ accent ・ on-accent）と、何を描くかを渡して、SVG を返してもらう",
+      "when": "slide-deck（枚に図を置くとき）。色は slide-deck の theme が出し、呼ぶ側が相手のトークン名へ直して渡す ── ink→color.ink ／ dim→color.ink-soft ／ faint→color.ink-faint ／ line→color.line と color.box-stroke ／ paper→color.box-fill ／ surface→color.accent-bg ／ accent→color.accent ／ on-accent→color.accent-fg",
+      "skills": [
+        "design-svg"
+      ],
+      "reliance": "required"
+    },
+    {
+      "request": "日本語の文書として、論・構造・文調・語彙に判定を適用してもらう",
+      "when": "人が読む文書（設計文書・仕様・報告・README・学術文書）を書き起こすとき、および既存の本文を直すとき",
+      "skills": [
         "doc-writing-skills"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "決定と、変更前・変更理由が開く形の差分を1枚の記録にしてもらう",
-      "どの作業のとき": "文書・コード・設計を正本へ適用する前、および決定を記録として保存するとき",
-      "呼ぶSkill": [
+      "request": "決定と、変更前・変更理由が開く形の差分を1枚の記録にしてもらう",
+      "when": "文書・コード・設計を正本へ適用する前、および決定を記録として保存するとき",
+      "skills": [
         "acdr"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "業務領域のモデルと、その置き場所・依存方向を見てもらう",
-      "どの作業のとき": "設計判断（業務領域のモデルを決めるもの）",
-      "呼ぶSkill": [
+      "request": "業務領域のモデルと、その置き場所・依存方向を見てもらう",
+      "when": "設計判断（業務領域のモデルを決めるもの）",
+      "skills": [
         "ddd-advisor",
         "tech-lead-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "コードの配置・レイヤー境界・依存方向を見てもらう",
-      "どの作業のとき": "設計判断（技術の選び方・構造の切り方を決めるもの）",
-      "呼ぶSkill": [
+      "request": "コードの配置・レイヤー境界・依存方向を見てもらう",
+      "when": "設計判断（技術の選び方・構造の切り方を決めるもの）",
+      "skills": [
         "tech-lead-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "デプロイ単位の可用性・スケーラビリティ・セキュリティ境界・インフラ構成を見てもらう",
-      "どの作業のとき": "設計判断（デプロイ単位の動かし方・外部との接続を含むもの）",
-      "呼ぶSkill": [
+      "request": "デプロイ単位の可用性・スケーラビリティ・セキュリティ境界・インフラ構成を見てもらう",
+      "when": "設計判断（デプロイ単位の動かし方・外部との接続を含むもの）",
+      "skills": [
         "platform-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "画面・コンポーネント構造・デザイントークンの一貫性を見てもらう",
-      "どの作業のとき": "設計判断（画面設計・UIコンポーネントを含むもの）",
-      "呼ぶSkill": [
+      "request": "画面・コンポーネント構造・デザイントークンの一貫性を見てもらう",
+      "when": "設計判断（画面設計・UIコンポーネントを含むもの）",
+      "skills": [
         "ux-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果は参考"
+      "reliance": "advisory"
     },
     {
-      "何を頼むか": "テストの方針と観点の抜け、および完了基準を見てもらう",
-      "どの作業のとき": "完了基準・テスト方針を決めるとき",
-      "呼ぶSkill": [
+      "request": "テストの方針と観点の抜け、および完了基準を見てもらう",
+      "when": "完了基準・テスト方針を決めるとき",
+      "skills": [
         "qa-advisor"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "Skillの器（フォルダ構成・SKILL.md・ガードレール）を作ってもらい、その本文に判定を適用してもらう",
-      "どの作業のとき": "新しいSkillを作るとき（advisor以外）",
-      "呼ぶSkill": [
+      "request": "Skillの器（フォルダ構成・SKILL.md・ガードレール）を作ってもらい、その本文に判定を適用してもらう",
+      "when": "新しいSkillを作るとき（advisor以外）",
+      "skills": [
         "skills-creator",
         "doc-writing-skills"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "advisorの判断力の器とbackbone knowledge文書を作ってもらい、その本文に判定を適用してもらう",
-      "どの作業のとき": "新しいadvisorを作るとき",
-      "呼ぶSkill": [
+      "request": "advisorの判断力の器とbackbone knowledge文書を作ってもらい、その本文に判定を適用してもらう",
+      "when": "新しいadvisorを作るとき",
+      "skills": [
         "advisor-creator",
         "doc-writing-skills"
       ],
-      "結果をどれだけ当てにするか": "結果が要る"
+      "reliance": "required"
     },
     {
-      "何を頼むか": "次のセッションが続きから始めるための現在地と、外を指すポインタを記録してもらう",
-      "どの作業のとき": "作業を中断するとき、およびユーザーから覚えておくよう頼まれたとき",
-      "呼ぶSkill": [
+      "request": "次のセッションが続きから始めるための現在地と、外を指すポインタを記録してもらう",
+      "when": "作業を中断するとき、およびユーザーから覚えておくよう頼まれたとき",
+      "skills": [
         "memory-cultivator"
       ],
-      "結果をどれだけ当てにするか": "呼べたら呼ぶ"
+      "reliance": "optional"
+    },
+    {
+      "request": "サブドメイン分類とテストの比率が食い違っていないかを判定してもらう",
+      "when": "qa-advisor（弱いテストの原因が、上流の業務領域の分類に在る疑いのとき）",
+      "skills": [
+        "ddd-advisor"
+      ],
+      "reliance": "advisory"
+    },
+    {
+      "request": "レイヤー配置・依存方向が、テスト容易性の低さの原因かを判定してもらう",
+      "when": "qa-advisor（Hard to Test Code の原因が配置に在る疑いのとき）",
+      "skills": [
+        "tech-lead-advisor"
+      ],
+      "reliance": "advisory"
+    },
+    {
+      "request": "プレゼンテーション層の依存方向の適合を判定してもらう",
+      "when": "ux-advisor（presentation がユースケースの port を正しく呼んでいるかが要るとき）",
+      "skills": [
+        "tech-lead-advisor"
+      ],
+      "reliance": "required"
+    },
+    {
+      "request": "関心事がアプリケーション内部のレイヤー配置か、運用側かを切り分けてもらう",
+      "when": "platform-advisor（内部の層配置の判定が要るとき）",
+      "skills": [
+        "tech-lead-advisor"
+      ],
+      "reliance": "required"
+    },
+    {
+      "request": "業務領域の分類（中核 ・ 一般 ・ 補完）を判定してもらう",
+      "when": "tech-lead-advisor ・ qa-advisor（分類が入力に無いとき）",
+      "skills": [
+        "ddd-advisor"
+      ],
+      "reliance": "advisory"
     }
   ],
-  "このプロジェクトの決め事": "呼んでよいのは .claude/skills/ に置いてあるSkillだけである。「見てもらう」頼みごとの相手には、助言専門のSkill（ddd-advisor・tech-lead-advisor・platform-advisor・qa-advisor・ux-advisor）だけを充てる。それ以外を呼びたくなったときは、作業の切り方が細かすぎないかを先に疑う。"
+  "project_rules": "呼んでよいのは .claude/skills/ に置いてあるSkillだけである。「見てもらう」頼みごとの相手には、助言専門のSkill（ddd-advisor・tech-lead-advisor・platform-advisor・qa-advisor・ux-advisor）だけを充てる。それ以外を呼びたくなったときは、作業の切り方が細かすぎないかを先に疑う。"
 }

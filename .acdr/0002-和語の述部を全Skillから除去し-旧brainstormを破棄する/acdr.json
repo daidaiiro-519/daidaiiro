@@ -1,55 +1,55 @@
 {
- "番号": "ACDR 0002",
- "題": "和語の述部を全Skillから除去し、旧 brainstorm を破棄する",
- "日付": "2026-09-21",
- "状態": "accepted",
- "決定": "<b>全ての Skill の SKILL.md を、ゲート1 が0件になる状態にする。</b>そして <code>brainstorming-board</code> が置換した旧 <code>brainstorm</code> を破棄する。",
- "なぜ": "ACDR 0001 で語彙表を21語に広げた結果、<b>他の Skill で32件が検出された</b> ── 語彙表に無い和語が通過していたためである。規則を広げた時点で既存の文書が違反するのは当然であり、違反したまま放置すると<b>規則の側が信用されなくなる</b>。旧 <code>brainstorm</code> は <code>brainstorming-board</code> が置換済みであるが、フォルダが残存していた ── 同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。",
- "形の変化": [
+ "no": "ACDR 0002",
+ "title": "和語の述部を全Skillから除去し、旧 brainstorm を破棄する",
+ "date": "2026-09-21",
+ "status": "accepted",
+ "decision": "<b>全ての Skill の SKILL.md を、ゲート1 が0件になる状態にする。</b>そして <code>brainstorming-board</code> が置換した旧 <code>brainstorm</code> を破棄する。",
+ "why": "ACDR 0001 で語彙表を21語に広げた結果、<b>他の Skill で32件が検出された</b> ── 語彙表に無い和語が通過していたためである。規則を広げた時点で既存の文書が違反するのは当然であり、違反したまま放置すると<b>規則の側が信用されなくなる</b>。旧 <code>brainstorm</code> は <code>brainstorming-board</code> が置換済みであるが、フォルダが残存していた ── 同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。",
+ "shift": [
   {
-   "何が": "ゲート1 の結果（15の Skill）",
-   "いまの形": "32件が検出される",
-   "これからの形": "<b>0件</b>（CLAUDE.md も0件）"
+   "what": "ゲート1 の結果（15の Skill）",
+   "from": "32件が検出される",
+   "to": "<b>0件</b>（CLAUDE.md も0件）"
   },
   {
-   "何が": "同じ役割の Skill",
-   "いまの形": "<code>brainstorm</code> と <code>brainstorming-board</code> が併存する",
-   "これからの形": "<code>brainstorming-board</code> の1つだけ。Skill は16から<b>15</b>になる"
+   "what": "同じ役割の Skill",
+   "from": "<code>brainstorm</code> と <code>brainstorming-board</code> が併存する",
+   "to": "<code>brainstorming-board</code> の1つだけ。Skill は16から<b>15</b>になる"
   },
   {
-   "何が": "語彙表に無い和語",
-   "いまの形": "検出手段が存在しない",
-   "これからの形": "<code>tails.py</code> で収集し、人が判定して語彙表へ追加する"
+   "what": "語彙表に無い和語",
+   "from": "検出手段が存在しない",
+   "to": "<code>tails.py</code> で収集し、人が判定して語彙表へ追加する"
   },
   {
-   "何が": "承認済みの記録",
-   "いまの形": "組み直すと、後の状態で上書きされる（0001 で実際に発生した）",
-   "これからの形": "<b>封印する</b> ── 対象の文書の sha256 を記録へ保存し、変化した状態での組み直しを拒否する"
+   "what": "承認済みの記録",
+   "from": "組み直すと、後の状態で上書きされる（0001 で実際に発生した）",
+   "to": "<b>封印する</b> ── 対象の文書の sha256 を記録へ保存し、変化した状態での組み直しを拒否する"
   }
  ],
- "図ファイル": "flow.svg",
- "図の説明": "1周目は語彙表で照合するので、表に無い和語が通過する。2周目が句の末尾を全部収集し、確定したものを語彙表へ追加する ── 次からは1周目が検出する。",
- "実現の形": "9つの SKILL.md で32件を置換する（絞る→限定する ・ 当たらない→該当しない ・ 知らない→認知しない ・ で走る→で実行する ・ 持たない→保持しない ・ 扱う→処理する ・ 終わった→終了した ・ 混ぜない→混在させない ほか）。旧 <code>brainstorm</code> は <code>git rm</code> で破棄し、<code>LICENSE</code> だけ <code>brainstorming-board</code> へ移す ── 他の Skill には存在しないファイルであり、破棄すると失われる。　あわせて、承認済みの記録を<b>封印</b>する機構を追加する ── 承認後の最初の組成で対象の文書の sha256 を記録へ保存し、以降、対象の文書が変化した状態での組み直しを拒否する（<code>--force</code> で強制できる）。",
- "適用先": "<code>.claude/skills/*/SKILL.md</code> 9件、<code>.claude/skills/brainstorm/</code>（破棄）、<code>.claude/skills/brainstorming-board/LICENSE</code>（移設）、<code>.claude/skills/acdr/scripts/build_acdr.py</code>（封印の機構）",
- "比較した案": [
+ "figure": "flow.svg",
+ "figure_caption": "1周目は語彙表で照合するので、表に無い和語が通過する。2周目が句の末尾を全部収集し、確定したものを語彙表へ追加する ── 次からは1周目が検出する。",
+ "how": "9つの SKILL.md で32件を置換する（絞る→限定する ・ 当たらない→該当しない ・ 知らない→認知しない ・ で走る→で実行する ・ 持たない→保持しない ・ 扱う→処理する ・ 終わった→終了した ・ 混ぜない→混在させない ほか）。旧 <code>brainstorm</code> は <code>git rm</code> で破棄し、<code>LICENSE</code> だけ <code>brainstorming-board</code> へ移す ── 他の Skill には存在しないファイルであり、破棄すると失われる。　あわせて、承認済みの記録を<b>封印</b>する機構を追加する ── 承認後の最初の組成で対象の文書の sha256 を記録へ保存し、以降、対象の文書が変化した状態での組み直しを拒否する（<code>--force</code> で強制できる）。",
+ "applies_to": "<code>.claude/skills/*/SKILL.md</code> 9件、<code>.claude/skills/brainstorm/</code>（破棄）、<code>.claude/skills/brainstorming-board/LICENSE</code>（移設）、<code>.claude/skills/acdr/scripts/build_acdr.py</code>（封印の機構）",
+ "alternatives": [
   {
-   "案": "語彙表を広げた分を元に戻し、既存の文書を変更しない",
-   "採らなかった理由": "「当たる先」という節名が通過した事例が実在する ── 語彙表を戻すと、同じ誤りを次も検出できない"
+   "option": "語彙表を広げた分を元に戻し、既存の文書を変更しない",
+   "why_not": "「当たる先」という節名が通過した事例が実在する ── 語彙表を戻すと、同じ誤りを次も検出できない"
   },
   {
-   "案": "新しく書く文書にのみ適用し、既存の文書は据え置く",
-   "採らなかった理由": "ゲート1 が常に非0を返す状態になる。非0が通常になると、新しい違反が既存の違反に埋没する"
+   "option": "新しく書く文書にのみ適用し、既存の文書は据え置く",
+   "why_not": "ゲート1 が常に非0を返す状態になる。非0が通常になると、新しい違反が既存の違反に埋没する"
   },
   {
-   "案": "<code>tails.py</code> が収集した基本動詞（使う ・ 読む ・ 示す ・ 伝える ・ 決める）も全て置換する",
-   "採らなかった理由": "公用文 Ⅲ-4 ウ が対象とするのは意味の範囲が広い和語であり、基本動詞の全廃ではない。そして Skill の説明文は呼び出しの合致に使用されるので、「使う」の置換は合致の挙動を変化させる"
+   "option": "<code>tails.py</code> が収集した基本動詞（使う ・ 読む ・ 示す ・ 伝える ・ 決める）も全て置換する",
+   "why_not": "公用文 Ⅲ-4 ウ が対象とするのは意味の範囲が広い和語であり、基本動詞の全廃ではない。そして Skill の説明文は呼び出しの合致に使用されるので、「使う」の置換は合致の挙動を変化させる"
   },
   {
-   "案": "旧 <code>brainstorm</code> をそのまま残す",
-   "採らなかった理由": "同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。旧い側は10件の違反を保持している"
+   "option": "旧 <code>brainstorm</code> をそのまま残す",
+   "why_not": "同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。旧い側は10件の違反を保持している"
   }
  ],
- "承認後に実施すること": [
+ "after_approval": [
   "基本動詞（使う ・ 読む ・ 示す ・ 伝える ・ 決める）の扱いは未決のまま持ち越す ── <code>tails.py</code> で確認できる状態にはなっている",
   "新しい Skill を追加するたびにゲート1 を実行する ── 0件が通常の状態である"
  ],
@@ -210,7 +210,7 @@
    ]
   }
  ],
- "封印": {
+ "seal": {
   "bb": "0a3ab739b0243263c97149e0f14cbb7f1a5d3b0a6e93a0fcadd747fb8d7e7761",
   "sf": "841bb7d115796744b159bcaad07de10481d70978dc324059b434f0f6fc59c2ae",
   "ds": "d158da6daca70bb9fcd1835d3dbe6537a1ff68dc8d1ae9f6d6f8ae5da5f9a034",

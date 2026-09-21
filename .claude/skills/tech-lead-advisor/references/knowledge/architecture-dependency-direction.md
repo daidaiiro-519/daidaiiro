@@ -1,14 +1,14 @@
 ---
 id: "architecture-dependency-direction"
 type: "Knowledge"
-title: "依存方向（常に内側へ）の原則を扱う概念：architecture-dependency-direction"
+title: "依存方向（常に内側へ）の原則を対象とする概念：architecture-dependency-direction"
 description: "ソフトウェアの層（レイヤー）間の依存は、常により変化しにくい・より本質的な層（ビジネスロジック）に向かって流れるべきであり、逆方向の依存を禁止する原則。クリーンアーキテクチャ・オニオンアーキテクチャ・ヘキサゴナルアーキテクチャは、いずれもこの同じ原則を異なる図・異なる用語で表現したものである。"
 tags: ["advisor:tech-lead", "domain:architecture"]
 schemaRef: "KnowledgeSchema/v5"
 updatedAt: "2026-07-07T00:00:00Z"
 ---
 
-# 依存方向（常に内側へ）の原則を扱う概念：architecture-dependency-direction
+# 依存方向（常に内側へ）の原則を対象とする概念：architecture-dependency-direction
 
 ## 概要
 

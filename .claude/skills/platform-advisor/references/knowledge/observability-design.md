@@ -1,12 +1,12 @@
 ---
 id: "observability-design"
 type: "Knowledge"
-title: "可観測性（ログ・メトリクス・トレース）の設計原則を扱う概念：observability-design"
+title: "可観測性（ログ・メトリクス・トレース）の設計原則を対象とする概念：observability-design"
 description: "可観測性（オブザーバビリティ）とは、稼働中のシステムが自分の内部状態（何が起きているか）を外部から把握できるように、メトリクス・ログ・トレースの3種類の情報を出力できるように設計しておくことである。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# 可観測性（ログ・メトリクス・トレース）の設計原則を扱う概念：observability-design
+# 可観測性（ログ・メトリクス・トレース）の設計原則を対象とする概念：observability-design
 
 ## 概要
 

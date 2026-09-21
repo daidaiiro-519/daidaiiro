@@ -79,7 +79,7 @@ flowchart LR
 
 ## 出典・根拠の透明性
 
-クリーンアーキテクチャ・ヘキサゴナルアーキテクチャの命名原則と、DDDのユビキタス言語原則（一語一義・業務用語のみ）の交差点をAIが総合し、has-udd独自にまとめたものである。ユビキタス言語そのものの原則はddd-advisorの`ubiquitous-language.md`が扱い、本ファイルはそれをレイヤー横断の命名規約として実務適用する部分のみを扱う（[[brainstorm-platform-engineering-application]] 論点11拡張を受けて着手）。
+クリーンアーキテクチャ・ヘキサゴナルアーキテクチャの命名原則と、DDDのユビキタス言語原則（一語一義・業務用語のみ）の交差点をAIが総合し、has-udd独自にまとめたものである。ユビキタス言語そのものの原則はddd-advisorの`ubiquitous-language.md`が扱い、本ファイルはそれをレイヤー横断の命名規約として実務適用する部分のみを対象とする（[[brainstorm-platform-engineering-application]] 論点11拡張を受けて着手）。
 
 ---
 

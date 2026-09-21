@@ -75,7 +75,7 @@ version: 2.0.0
 ### Step 1: 原文を取得する
 
 ```
-python3 <skill>/scripts/source.py fetch <URL>
+python3 <skill>/scripts/cli.py fetch <URL>
 ```
 
 `<skill>` は、このスキルを置いた場所である。
@@ -112,8 +112,8 @@ python3 <skill>/scripts/source.py fetch <URL>
 ### Step 3: 原文と照合する
 
 ```
-python3 <skill>/scripts/source.py verify <原文> --as identifier <識別子>...
-python3 <skill>/scripts/source.py verify <原文> --as identifier --from names.txt
+python3 <skill>/scripts/cli.py verify <原文> <識別子>... --as identifier
+python3 <skill>/scripts/cli.py verify <原文> --as identifier --from names.txt
 ```
 
 **照合の種類を渡さなければ止まる。**
@@ -142,7 +142,7 @@ python3 <skill>/scripts/source.py verify <原文> --as identifier --from names.t
 **アンカーを渡すと、文脈まで検査する。**
 
 ```
-python3 <skill>/scripts/source.py verify <原文> --as identifier compact_summary \
+python3 <skill>/scripts/cli.py verify <原文> compact_summary --as identifier \
         --near "PostCompact input" --within 25
 ```
 
@@ -210,7 +210,7 @@ python3 <skill>/scripts/source.py verify <原文> --as identifier compact_summar
 **引用が原文と1文字ずつ同じかは、`verify` で検証できる。**
 
 ```
-python3 <skill>/scripts/source.py verify <原文> --as quote --from quotes.txt
+python3 <skill>/scripts/cli.py verify <原文> --as quote --from quotes.txt
 ```
 
 **引用は1行ずつ渡す。**
@@ -277,7 +277,8 @@ Step 3 は「こちらが書いたものが原文に在るか」を検査する�
 - **`--as text` の結果を、照合した証しにしない**。探索のための種類である
 - **「公式にはこう書いてある」と書くなら、原文のどこかを提示できるようにする**
 - **原典が誤っていると結論する前に、自分の読み方を疑う。**
-  実際に「公式が間違っている」と結論し、**誤っていたのは読み方だった**
+  **原典の誤りと読み方の誤りは、同じ観測を生む** ── 観測だけでは区別できないので、
+  検証の負荷が小さい側（自分の読み方）から先に検証する
 - **取得した日と版を残す**。同じ URL でも中身は変わる
 - **OSS は読んだ commit を記録する**。「そのリポジトリではこうなっている」は版に依存する
 - **第三者の実装の主張を、公式の記述として書かない**。印を分ける
@@ -289,5 +290,8 @@ Step 3 は「こちらが書いたものが原文に在るか」を検査する�
 
 ## 参照
 
-- `scripts/source.py`: 原文を取得し、照合するものが原文に在るかを検査する。**保存先は `--dir` で受け取る**
-- `scripts/test_source.py`: この道具の振る舞いを事例で検証する。`python3 test_source.py` で実行する
+- `scripts/cli.py`: 唯一の入口。`fetch` ・ `list` ・ `verify` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `scripts/lib/source.py`: 取得と照合の実体。**互換の入口を保持する** ── 宣言の `LEGACY` に載せてあるので、契約の検査は通る
+- `scripts/mcp.py`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/tests/test_source.py`: この道具の振る舞いを事例で検証する。`python3 scripts/tests/test_source.py` で実行する

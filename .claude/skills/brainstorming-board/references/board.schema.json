@@ -3,174 +3,666 @@
   "title": "ブレストボードの入力",
   "description": "JSON が正本で、HTML は生成物である。**この入力は宣言だけを保持し、組み上がった HTML 断片を保持しない** ── 断片を入れると、散文の検査が当たらなくなり（区切りが消えるため）、整形を重ねた結果が入力へ戻る。",
   "type": "object",
-  "required": ["題", "板", "回", "論点"],
+  "required": [
+    "title",
+    "board",
+    "round",
+    "topics"
+  ],
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
-    "題": { "type": "string", "minLength": 1 },
-    "板": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-    "回": { "type": "integer", "minimum": 1 },
-    "前書き": { "$ref": "#/$defs/宣言の並び" },
-    "面": { "type": "array", "items": { "$ref": "#/$defs/面" } },
-    "行列": {
+    "$schema": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "board": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "intro": {
+      "$ref": "#/$defs/blocks"
+    },
+    "panels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/panel"
+      }
+    },
+    "queue": {
       "description": "いま見る論点と、なぜいま開いたか。",
       "type": "array",
       "items": {
-        "type": "object", "required": ["番号", "なぜ"], "additionalProperties": false,
-        "properties": { "番号": { "type": "integer" }, "なぜ": { "$ref": "#/$defs/升" } }
+        "type": "object",
+        "required": [
+          "no",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "no": {
+            "type": "integer"
+          },
+          "why": {
+            "$ref": "#/$defs/cell"
+          }
+        }
       }
     },
-    "節の名前": {
-      "type": "object", "additionalProperties": { "type": "string" },
+    "section_names": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
       "description": "道筋の節の名前。{n} が件数に置き換わる。"
     },
-    "論点": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/論点" } }
+    "topics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/topic"
+      }
+    }
   },
   "$defs": {
-    "升": {
+    "cell": {
       "description": "人が読む1つの升。生の文字列を保持する ── 整形はレンダラが当てる。",
-      "type": "string", "minLength": 1, "maxLength": 2000
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
     },
-    "面": {
-      "type": "object", "required": ["見出し", "中身"], "additionalProperties": false,
-      "properties": { "見出し": { "type": "string", "minLength": 1 },
-                      "中身": { "$ref": "#/$defs/宣言の並び" } }
-    },
-    "宣言の並び": { "type": "array", "items": { "$ref": "#/$defs/宣言" } },
-    "宣言": {
+    "panel": {
       "type": "object",
-      "required": ["種類"],
-      "properties": { "種類": { "enum": ["文", "注記", "見出し", "組み上がり", "箇条",
-                                        "開閉", "カード", "表", "卓", "前の答え", "図"] } },
-      "allOf": [
-        { "if": { "properties": { "種類": { "const": "文" } } },
-          "then": { "required": ["本文"], "additionalProperties": false,
-                    "properties": { "種類": true, "本文": { "$ref": "#/$defs/升" },
-                                    "入れ子": { "$ref": "#/$defs/宣言の並び" } } } },
-        { "if": { "properties": { "種類": { "const": "注記" } } },
-          "then": { "required": ["本文"], "additionalProperties": false,
-                    "properties": { "種類": true, "本文": { "$ref": "#/$defs/升" },
-                                    "入れ子": { "$ref": "#/$defs/宣言の並び" } } } },
-        { "if": { "properties": { "種類": { "const": "見出し" } } },
-          "then": { "required": ["段", "本文"], "additionalProperties": false,
-                    "properties": { "種類": true, "段": { "enum": [3, 4] },
-                                    "本文": { "$ref": "#/$defs/升" } } } },
-        { "if": { "properties": { "種類": { "const": "組み上がり" } } },
-          "then": { "required": ["本文"], "additionalProperties": false,
-                    "properties": { "種類": true, "本文": { "type": "string" } } } },
-        { "if": { "properties": { "種類": { "const": "箇条" } } },
-          "then": { "required": ["項目"], "additionalProperties": false,
-                    "properties": { "種類": true, "順序": { "type": "boolean" },
-                                    "項目": { "type": "array", "minItems": 1,
-                                             "items": { "$ref": "#/$defs/項" } } } } },
-        { "if": { "properties": { "種類": { "const": "開閉" } } },
-          "then": { "required": ["見出し", "中身"], "additionalProperties": false,
-                    "properties": { "種類": true, "見出し": { "type": "string" },
-                                    "中身": { "$ref": "#/$defs/宣言の並び" } } } },
-        { "if": { "properties": { "種類": { "const": "カード" } } },
-          "then": { "required": ["見出し"], "additionalProperties": false,
-                    "properties": { "種類": true, "記号": { "$ref": "#/$defs/記号" },
-                                    "見出し": { "$ref": "#/$defs/升" },
-                                    "出来事": { "type": "array",
-                                               "items": { "$ref": "#/$defs/出来事" } } } } },
-        { "if": { "properties": { "種類": { "const": "表" } } },
-          "then": { "required": ["列", "行"], "additionalProperties": false,
-                    "properties": { "種類": true,
-                                    "列": { "type": "array", "minItems": 1,
-                                           "items": { "type": "string" } },
-                                    "行": { "type": "array", "minItems": 1,
-                                           "items": { "type": "array", "minItems": 2,
-                                                     "maxItems": 2,
-                                                     "prefixItems": [
-                                                       { "type": "string" },
-                                                       { "type": "array" }] } } } } },
-        { "if": { "properties": { "種類": { "const": "卓" } } },
-          "then": { "required": ["列", "行"], "additionalProperties": false,
-                    "properties": { "種類": true,
-                                    "列": { "type": "array", "items": { "type": "string" } },
-                                    "行": { "type": "array",
-                                           "items": { "type": "array" } } } } },
-        { "if": { "properties": { "種類": { "const": "前の答え" } } },
-          "then": { "required": ["記号", "中身", "なぜ"], "additionalProperties": false,
-                    "properties": { "種類": true, "記号": { "$ref": "#/$defs/記号" },
-                                    "中身": { "$ref": "#/$defs/升" },
-                                    "なぜ": { "$ref": "#/$defs/升" },
-                                    "利用者の言葉": { "type": "string" } } } },
-        { "if": { "properties": { "種類": { "const": "図" } } },
-          "then": { "required": ["名前"], "additionalProperties": false,
-                    "properties": { "種類": true,
-                                    "名前": { "type": "string",
-                                             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-                                    "注記": { "type": "string" } } } }
-      ]
-    },
-    "項": {
-      "type": "object", "required": ["本文"], "additionalProperties": false,
-      "properties": { "本文": { "$ref": "#/$defs/升" },
-                      "入れ子": { "$ref": "#/$defs/宣言の並び" } }
-    },
-    "記号": { "type": "string", "pattern": "^[A-Z]$" },
-    "出来事": {
-      "description": "札は4値に限る。利用者の言葉は「内容」ではなく「差し戻し」である。",
-      "type": "object", "required": ["札", "本文"], "additionalProperties": false,
-      "properties": { "札": { "enum": ["差し戻し", "失効した点", "判明事項", "内容"] },
-                      "本文": { "$ref": "#/$defs/升" } }
-    },
-    "論点": {
-      "type": "object",
-      "required": ["番号", "名前", "状態", "問い", "答え"],
+      "required": [
+        "heading",
+        "body"
+      ],
       "additionalProperties": false,
       "properties": {
-        "番号": { "type": "integer", "minimum": 1 },
-        "名前": { "type": "string", "minLength": 1 },
-        "状態": { "enum": ["未", "新規", "決着"] },
-        "問い": { "type": "string", "minLength": 1 },
-        "答え": { "$ref": "#/$defs/升" },
-        "前書き": { "$ref": "#/$defs/升" },
-        "決定": {
-          "type": "object", "required": ["記号", "本文"], "additionalProperties": false,
-          "properties": { "記号": { "$ref": "#/$defs/記号" },
-                          "本文": { "$ref": "#/$defs/宣言の並び" } }
+        "heading": {
+          "type": "string",
+          "minLength": 1
         },
-        "実例": { "$ref": "#/$defs/宣言の並び" },
-        "図": { "type": "array", "items": { "$ref": "#/$defs/宣言" } },
-        "通過": {
-          "description": "1件だけの状態は、選択ではない ── 2件以上を要する。",
-          "type": "array", "minItems": 2,
-          "items": { "type": "object", "required": ["記号", "中身", "代償"],
-                     "additionalProperties": false,
-                     "properties": { "記号": { "$ref": "#/$defs/記号" },
-                                     "中身": { "$ref": "#/$defs/升" },
-                                     "代償": { "$ref": "#/$defs/升" } } }
+        "body": {
+          "$ref": "#/$defs/blocks"
+        }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/block"
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "para",
+            "note",
+            "heading",
+            "html",
+            "list",
+            "fold",
+            "card",
+            "table",
+            "grid",
+            "previous",
+            "figure"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "para"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "text": {
+                "$ref": "#/$defs/cell"
+              },
+              "nested": {
+                "$ref": "#/$defs/blocks"
+              }
+            }
+          }
         },
-        "除外": {
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "note"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "text": {
+                "$ref": "#/$defs/cell"
+              },
+              "nested": {
+                "$ref": "#/$defs/blocks"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "heading"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "level",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "level": {
+                "enum": [
+                  3,
+                  4
+                ]
+              },
+              "text": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "html"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "list"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "items"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "ordered": {
+                "type": "boolean"
+              },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/item"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "fold"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "heading",
+              "body"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "heading": {
+                "type": "string"
+              },
+              "body": {
+                "$ref": "#/$defs/blocks"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "card"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "heading"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "letter": {
+                "$ref": "#/$defs/letter"
+              },
+              "heading": {
+                "$ref": "#/$defs/cell"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/event"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "table"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "cols",
+              "rows"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "cols": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "grid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "cols",
+              "rows"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "cols": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "previous"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "letter",
+              "body",
+              "why"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "letter": {
+                "$ref": "#/$defs/letter"
+              },
+              "body": {
+                "$ref": "#/$defs/cell"
+              },
+              "why": {
+                "$ref": "#/$defs/cell"
+              },
+              "user_words": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "figure"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": true,
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "caption": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/cell"
+        },
+        "nested": {
+          "$ref": "#/$defs/blocks"
+        }
+      }
+    },
+    "letter": {
+      "type": "string",
+      "pattern": "^[A-Z]$"
+    },
+    "event": {
+      "description": "札は4値に限る。利用者の言葉は「内容」ではなく「差し戻し」である。",
+      "type": "object",
+      "required": [
+        "tag",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tag": {
+          "enum": [
+            "returned",
+            "obsolete",
+            "finding",
+            "content"
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/cell"
+        }
+      }
+    },
+    "topic": {
+      "type": "object",
+      "required": [
+        "no",
+        "name",
+        "status",
+        "question",
+        "answer"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "waiting",
+            "open",
+            "settled"
+          ]
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer": {
+          "$ref": "#/$defs/cell"
+        },
+        "intro": {
+          "$ref": "#/$defs/cell"
+        },
+        "decision": {
+          "type": "object",
+          "required": [
+            "letter",
+            "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "letter": {
+              "$ref": "#/$defs/letter"
+            },
+            "text": {
+              "$ref": "#/$defs/blocks"
+            }
+          }
+        },
+        "example": {
+          "$ref": "#/$defs/blocks"
+        },
+        "figures": {
           "type": "array",
-          "items": { "type": "object", "required": ["中身", "理由"],
-                     "additionalProperties": false,
-                     "properties": { "中身": { "$ref": "#/$defs/升" },
-                                     "理由": { "$ref": "#/$defs/升" } } }
+          "items": {
+            "$ref": "#/$defs/block"
+          }
         },
-        "道筋": { "$ref": "#/$defs/宣言の並び" },
-        "判明事項": { "type": "array", "items": { "$ref": "#/$defs/升" } },
-        "前提": {
+        "passed": {
+          "description": "1件だけの状態は、選択ではない ── 2件以上を要する。",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "letter",
+              "body",
+              "cost"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "letter": {
+                "$ref": "#/$defs/letter"
+              },
+              "body": {
+                "$ref": "#/$defs/cell"
+              },
+              "cost": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "body",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/$defs/cell"
+              },
+              "reason": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
+        },
+        "path": {
+          "$ref": "#/$defs/blocks"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cell"
+          }
+        },
+        "grounds": {
           "description": "支える先・もとにしたこと・札・出どころの4欄で、欠けを許さない。",
           "type": "array",
-          "items": { "type": "object", "required": ["支える", "もと", "札", "出どころ"],
-                     "additionalProperties": false,
-                     "properties": { "支える": { "$ref": "#/$defs/升" },
-                                     "もと": { "$ref": "#/$defs/升" },
-                                     "札": { "enum": ["実測", "原典", "決まり",
-                                                     "前提", "未確認"] },
-                                     "出どころ": { "$ref": "#/$defs/升" } } }
+          "items": {
+            "type": "object",
+            "required": [
+              "supports",
+              "basis",
+              "tag",
+              "source"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "supports": {
+                "$ref": "#/$defs/cell"
+              },
+              "basis": {
+                "$ref": "#/$defs/cell"
+              },
+              "tag": {
+                "enum": [
+                  "measured",
+                  "primary",
+                  "rule",
+                  "assumption",
+                  "unverified"
+                ]
+              },
+              "source": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
         },
-        "要求": { "type": "array", "items": { "$ref": "#/$defs/升" } },
-        "扱わない": {
+        "requirements": {
           "type": "array",
-          "items": { "type": "object", "required": ["事項"], "additionalProperties": false,
-                     "properties": { "事項": { "$ref": "#/$defs/升" },
-                                     "扱い": { "$ref": "#/$defs/升" } } }
+          "items": {
+            "$ref": "#/$defs/cell"
+          }
         },
-        "面": { "type": "array", "items": { "$ref": "#/$defs/面" } }
+        "out_of_scope": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "item"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "item": {
+                "$ref": "#/$defs/cell"
+              },
+              "treatment": {
+                "enum": [
+                  "out",
+                  "later",
+                  "resolved"
+                ],
+                "description": "対象外 ／ 後続で決定 ／ 解消済。**札の語は組み立て側が保持する**"
+              },
+              "note": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/panel"
+          }
+        }
       }
     }
   }

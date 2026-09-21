@@ -95,8 +95,8 @@ version: 1.0.0
 **ゲート1は機械が決める。**
 
 ```
-python3 <skill>/scripts/gate.py <ファイル...>
-python3 <skill>/scripts/gate.py --synonyms 用語.tsv <ファイル...>
+python3 <skill>/scripts/cli.py check <ファイル...>
+python3 <skill>/scripts/cli.py check <ファイル...> --synonyms 用語.tsv
 ```
 
 | 検査 | 拠って立つもの |
@@ -141,7 +141,7 @@ python3 <skill>/scripts/gate.py --synonyms 用語.tsv <ファイル...>
 - **廃語を使用しない**。一度破棄した語の一覧は**このSkillの外**にある ── いつ何を破棄したかはプロジェクトごとに相違するので、ここへ書くと書いたプロジェクトでしか使えない検査になる。既定では `.doc-writing/retired-words.json` を、対象のファイルから上へたどって探す。**無ければこの検査は走らない**（失敗にしない）
 - **和語へ言い換えない**。**名前も、述部もである**。原典が和語を勧めるのは広報・解説であって、事務的・専門的な文書ではない。名前を和語にすると**必ず新語になり**（メタデータ→「頭」、出典→「指す先」）、述部を和語にすると**意味の範囲が広がる**（適用される ・ 有効である ・ 作用する が、1語にまとまってしまう）。**判定は2つ ── その語を検索して同じ意味が出てくるか。意味を特定できる漢語が在るか**
 
-  **言い換え先は、`scripts/gate.py` の `WAGO` が定義する。**
+  **言い換え先は、`scripts/lib/gate.py` の `WAGO` が定義する。**
   ゲート1の「述部が和語である」はその定義で検出し、**検出した1件ごとに言い換え先を出力する**。
   **この文書は定義を複製しない** ── 複製は本体とずれ、どちらが正しいかを毎回確認することになる。
 - **指し先の無い名詞句を書かない**。「ずれ」「外を指す名前」のように、それが何を指すかを文書の中に書いていない語を使わない。**見出しに置く語は、見出しだけで指し先が分かる形にする**（「ずれた34件」ではなく「仕様と実装のずれ34件」）
@@ -184,8 +184,8 @@ python3 <skill>/scripts/gate.py --synonyms 用語.tsv <ファイル...>
 **入れてあるのは `sources/MANIFEST.json` だけで、URL ・ sha256 ・ 取得した日を持つ。**
 
 ```
-python3 scripts/fetch_sources.py            # 取得する。MANIFEST.json を書く
-python3 scripts/fetch_sources.py --check    # 手元のものが MANIFEST と一致するかを検査する
+python3 scripts/cli.py sources              # 取得する。MANIFEST.json を書く
+python3 scripts/cli.py sources --check 1    # 手元のものが MANIFEST と一致するかを検査する
 ```
 
 **この Skill は、外の Skill にも、Linux にも依存しない。**
@@ -280,7 +280,7 @@ PDF のテキスト化だけは `pdftotext` が在れば行い、無ければ PD
 **原典の強度は「効果が得られることがある」── 推奨である。**
 ゲート1 の「述部が和語である」は、それを技術文書に対して**必須**へ上げた、このリポジトリの決定である。
 根拠は エ のただし書きで、技術文書は厳密に意味を特定しなければならない文書である。
-**原典の規定として書いてはならない。** 決定の記録は `.acdr/` が保持する。
+**原典の規定として書いてはならない。** 決定の記録は、この Skill の外が保持する。
 
 **「基本動詞は対象外」という区分も、原典に無い。** 原典が持つのは和語の動詞という語種の区分だけで、
 使う ・ 読む ・ 示す ・ 伝える ・ 決める も全て和語である。
@@ -294,7 +294,10 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 
 ## 9. 参照
 
-- `scripts/gate.py`: ゲート1の検査。**拠って立つものは `--list` で見られる**
-- `scripts/tails.py`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `gate.py` の WAGO へ追加する
-- `scripts/test_gate.py`: この検査の振る舞いを事例で検証する。`python3 test_gate.py` で実行する
-- `scripts/fetch_sources.py`: **出典8本の原文を取得し、`sources/MANIFEST.json` に URL と sha256 を残す**。`--check` で手元のものと突き合わせる
+- `scripts/cli.py`: 唯一の入口。`check` ・ `checks` ・ `tails` ・ `sources` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用
+- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `scripts/lib/gate.py`: ゲート1の検査。**拠って立つものは `checks` で見られる**。**互換の入口を保持する** ── 宣言の `LEGACY` に載せてある
+- `scripts/lib/tails.py`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `gate.py` の WAGO へ追加する
+- `scripts/tests/test_gate.py`: この検査の振る舞いを事例で検証する。`python3 scripts/tests/test_gate.py` で実行する
+- `scripts/lib/fetch_sources.py`: **出典8本の原文を取得し、`sources/MANIFEST.json` に URL と sha256 を残す**。取得と検査は `cli.py sources` から呼ぶ
+- `scripts/mcp.py`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**

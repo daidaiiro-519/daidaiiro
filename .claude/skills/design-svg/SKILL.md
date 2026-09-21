@@ -6,7 +6,7 @@
 宣言し、見た目はトークンで決め、座標は配置戦略に解かせる。紹介ページの主画像・概念の説明図・
 仕組みの内訳図・量を示す図のいずれも、単体で完結するインラインSVGとして得られる。
 
-この Skill が持つ描画エンジン（`svg_engine/`）が実体で、**外部依存を保持しない**（標準ライブラリのみ、
+この Skill が持つ描画エンジン（`scripts/lib/svg_engine/`）が実体で、**外部依存を保持しない**（標準ライブラリのみ、
 Python 3.10 以上）。インストール操作なしに、このディレクトリのまま動く。
 
 ---
@@ -47,7 +47,7 @@ Python 3.10 以上）。インストール操作なしに、このディレク�
 ### Step 1: 何を受け取れるかを目録で確認する
 
 ```
-python -m svg_engine            # 目録をJSONで吐く
+python3 scripts/cli.py catalog   # 目録をJSONで出す
 ```
 
 目録は、**どの部品があり、それぞれがどんな値を読み、どんなトークンで見た目が決まり、
@@ -81,6 +81,27 @@ svg = render_figure(
 from svg_engine import render_chart
 svg = render_chart("bars", {"bars": [{"name": "文書", "value": 13}]})
 ```
+
+意匠そのものを組むとき（面 ・ 文字 ・ 人 ・ 絵 ・ 任意の曲線）は、画布へ直に置く。
+
+```python
+from svg_engine import render_canvas
+svg = render_canvas(600, 200, layers=[
+    {"kind": "panel", "x": 20, "y": 20, "props": {"width": 240, "height": 120}},
+    {"kind": "text", "x": 40, "y": 44,
+     "props": {"text": ["見出し", "説明の行"], "size": 18, "weight": "bold"}},
+    {"kind": "icon", "x": 320, "y": 40, "props": {"name": "person", "size": 64}},
+    {"kind": "icon", "x": 420, "y": 48, "props": {"name": "doc", "size": 32}},
+    {"kind": "path", "x": 460, "y": 40,
+     "props": {"d": "M0,0 a30 30 0 0 1 60,0", "filled": False}},
+])
+```
+
+- **`text`** ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。**中央へ置くのは呼ぶ側の仕事である**（部品は自分の原点を基準に描く。幅は `svg_engine.text.text_width` で測れる）
+- **`panel`** ── 塗りと枠だけの面。**囲み（`frame`）とは別である** ── 囲みは「ここは領域の内側」を示す破線の注記で、面は意匠そのものである
+- **`icon`** ── 絵記号（人も含む）。**どれも 0..24 の同じ枠で描く**ので、並べたときに揃う。**拡大しても線は太らない** ── 枠ごと拡大すると、大きい絵だけ重くなる
+- **`path`** ── **SVG のパスの文法をそのまま受ける**（`M/L/H/V/C/S/Q/T/A/Z` を絶対でも相対でも）。**座標は書き換えない** ── 外接矩形ぶんの平行移動で置く
+- 色は濃さの呼び名で渡す（`ink` ・ `soft` ・ `faint` ・ `accent` ・ `accent-bg` ・ `on-accent` ・ `fill` ・ `line`）。**直値を渡さない**
 
 好きな位置へ重ねたいときは画布を使う。
 
@@ -203,5 +224,8 @@ def bookmark(props, style):
 - `README.md`: エンジンの入口（使い方・目録・配置・開発）
 - `references/knowledge/svg-engine-discipline.md`: エンジンが遵守する規律と、外へ公開する面
 - `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各段が保証すること
-- `python -m svg_engine`: 目録（部品・トークン・役割・配置戦略。実装から導かれる）
-- `svg_engine/tests/`: 規約・契約・幾何の検査。何が守られているかが読める
+- `scripts/cli.py`: **唯一の入口。** `catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `scripts/lib/svg_engine/` は読み込まれるものであり、入口を保持しない
+- `scripts/mcp.py` ・ `mcp.json`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**
+- 目録は `cli.py catalog` が出す（部品・トークン・役割・配置戦略。実装から導かれる）
+- `scripts/tests/`: 規約・契約・幾何の検査。何が守られているかが読める

@@ -1,31 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "意思決定の記録（ACDR）の spec",
-  "description": "build_acdr.py が読む入力。節と、対象の文書ごとの3つ組を持つ。変更後の中身は持たない ── それは対象の文書が持つ。",
+  "title": "意思決定の記録（ACDR）の入力",
+  "description": "acdr.json の形。**節と、対象の文書ごとの3つ組だけを保持する** ── 変更後の中身は対象の文書が保持する。",
   "type": "object",
   "required": [
-    "題",
-    "決定",
-    "対象",
-    "なぜ",
-    "状態"
+    "title",
+    "decision",
+    "why",
+    "applies_to",
+    "status"
   ],
   "additionalProperties": false,
   "properties": {
-    "番号": {
+    "$schema": {
+      "type": "string"
+    },
+    "no": {
       "type": "string",
       "description": "連番。例 ACDR 0001"
     },
-    "題": {
+    "title": {
       "type": "string",
       "minLength": 1,
       "description": "短い名詞句"
     },
-    "日付": {
+    "date": {
       "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$|^YYYY-MM-DD$",
       "description": "決めた日。YYYY-MM-DD"
     },
-    "状態": {
+    "status": {
       "enum": [
         "proposed",
         "accepted",
@@ -33,48 +37,83 @@
       ],
       "description": "proposed は未承認で適用してはならない。accepted は承認済み。superseded は後の記録が置き換えた"
     },
-    "決定": {
+    "decision": {
       "type": "string",
       "minLength": 1,
-      "description": "**決めてほしいこと1件**。手段ではなく、何を採るかを1文で書く"
+      "description": "**決めてほしいこと1件**。手段ではなく、何を採るかを1文で記述する"
     },
-    "対象": {
+    "applies_to": {
       "type": "string",
       "minLength": 1,
-      "description": "適用先 ── どの正本が変わるか"
+      "description": "どの正本が変化するか"
     },
-    "なぜ": {
+    "why": {
       "type": "string",
       "minLength": 1,
       "description": "なぜ、いま決めるのか。何と食い違っていて、何に一致させたか"
     },
-    "除外した案": {
+    "shift": {
       "type": "array",
-      "description": "検討して採らなかった案。消さずに残す",
+      "description": "**抽象の側の変更前と変更後**。具体の差分は面が保持する",
       "items": {
         "type": "object",
         "required": [
-          "案",
-          "何が壊れるか"
+          "what",
+          "from",
+          "to"
         ],
         "additionalProperties": false,
         "properties": {
-          "案": {
+          "what": {
             "type": "string"
           },
-          "何が壊れるか": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
             "type": "string"
           }
         }
       }
     },
-    "負担すること": {
+    "figure": {
+      "type": "string",
+      "description": "隣に置いた SVG のファイル名。**この Skill は描画しない** ── 描くのは design-svg である"
+    },
+    "figure_caption": {
+      "type": "string",
+      "description": "図が示すものを1文で記述する"
+    },
+    "how": {
+      "type": "string",
+      "description": "その決定をどう実現するか（手段）。決定の文に混在させない"
+    },
+    "alternatives": {
+      "type": "array",
+      "description": "**どれも反証を通過しなかった案である** ── 未解決の懸念ではない",
+      "items": {
+        "type": "object",
+        "required": [
+          "option"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "option": {
+            "type": "string"
+          },
+          "why_not": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "after_approval": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "置き換えた記録": {
+    "supersedes": {
       "type": "string",
       "description": "この決定が置き換えた記録の番号"
     },
@@ -106,7 +145,15 @@
           },
           "file": {
             "type": "string",
-            "description": "対象の文書のパス（.md は描画、それ以外はそのままの見た目）"
+            "description": "リポジトリの根からの相対パス"
+          },
+          "rev": {
+            "type": "string",
+            "description": "変更前を取得する git の版。既定は HEAD"
+          },
+          "before": {
+            "type": "string",
+            "description": "変更前の中身を直に渡す場合。既定は git から取得する"
           },
           "marks": {
             "type": "array",
@@ -121,11 +168,11 @@
               "properties": {
                 "find": {
                   "type": "string",
-                  "description": "どこ ── 描画したあとの本文に現れる文字列。これを印で囲む。マークダウンの記法（** やバッククォート）を含めない ── 描画後はタグになっていて一致しない"
+                  "description": "どこ ── 描画したあとの本文に現れる文字列。記法を含めない"
                 },
                 "before": {
                   "type": "string",
-                  "description": "変更前の原文。要約しない。**平文である**。コードの面では省略してよい ── 差分の - の行が変更前を示す"
+                  "description": "変更前の原文。要約しない。**平文である**"
                 },
                 "why": {
                   "type": "string",
@@ -133,30 +180,18 @@
                 }
               }
             }
-          },
-          "基準": {
-            "type": "string",
-            "description": "変更前を取得する git の版。既定は HEAD ── コードの面でのみ使用する"
-          },
-          "変更前": {
-            "type": "string",
-            "description": "変更前の中身を直に渡す場合。既定は git から取得する"
           }
         }
       }
     },
-    "実現の形": {
-      "type": "string",
-      "description": "その決定をどう実現するか（手段）。決定の文に混ぜない"
-    },
-    "封印": {
+    "seal": {
       "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "description": "承認時点の対象の文書の sha256。承認後の最初の組成で自動的に記録される ── 以降、対象の文書が変化した状態での組み直しを拒否する"
+      "description": "承認時点の対象の文書の sha256。**承認済みの記録は、承認時点の姿を保持する**"
     },
-    "封印の注記": {
+    "seal_note": {
       "type": "string",
       "description": "封印についての補足"
     }

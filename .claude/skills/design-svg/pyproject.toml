@@ -27,9 +27,9 @@ dependencies = []
 # 利用側には要らない。試験と物差しを走らせるときだけ。
 dev = ["pytest>=7", "mypy>=1.8"]
 
-[project.scripts]
-# 目録をJSONで吐く。利用側はこれだけを参照すれば変換器を書ける。
-svg-engine-catalog = "svg_engine.catalog:main"
+# **入口は増やさない。** この Skill の入口は scripts/cli.py の1つだけで、
+# 目録は `python3 scripts/cli.py catalog` が出す ── 同じ能力に呼び方が2つ在ると、
+# どちらが正かを呼ぶ側が判定することになる。
 
 [build-system]
 requires = ["hatchling"]
@@ -39,22 +39,23 @@ build-backend = "hatchling.build"
 # パッケージの根は Skill 直下なので、references/ の下にあるナレッジへの
 # シンボリックリンク（実体は .waffle/ の外）まで収集してしまう。配るのは
 # エンジンだけ。
-include = ["svg_engine", "README.md", "pyproject.toml"]
+include = ["scripts/lib/svg_engine", "README.md", "pyproject.toml"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["svg_engine"]
-# 試験と例は配らない。このディレクトリをそのまま読む使い方では読める ──
-# 配布物に入れないだけで、消すわけではない。
-exclude = ["svg_engine/tests", "svg_engine/examples"]
+packages = ["scripts/lib/svg_engine"]
+# 例は配らない。このディレクトリをそのまま読む使い方では読める ──
+# 配布物に入れないだけで、消すわけではない。試験は scripts/tests に在り、
+# 包みの外なので、除外の指定も要らない。
+exclude = ["scripts/lib/svg_engine/examples"]
 
 [tool.pytest.ini_options]
-testpaths = ["svg_engine/tests"]
+testpaths = ["scripts/tests"]
 
 [tool.mypy]
 # 静的検査は通ることを要件にする。天井を置いて漸減させる形は採らない
 # ── 46件から始めて全部潰した。増やさないための設定をここに固定する。
 python_version = "3.10"
-files = ["svg_engine"]
+files = ["scripts/lib/svg_engine"]
 # 注釈の無い関数の中身も見る。既定では素通りするので、注釈を書いた関数だけが
 # 守られ、書いていない関数が検査の外に残る。
 check_untyped_defs = true

@@ -2,7 +2,7 @@
 
 宣言（節点・辺・囲み）から、その場でSVGを組み立てる描画エンジン。
 
-**外部依存を持たない。** 標準ライブラリ以外の import が1件も無く、配置アルゴリズムも
+**外部依存を保持しない。** 標準ライブラリ以外の import が1件も無く、配置アルゴリズムも
 図形の重なりも自前で解いている。Python 3.9 以上があれば動く。
 
 ## 使う
@@ -19,8 +19,7 @@ svg = render_figure(
 ## 何を受け取れるか
 
 ```
-python -m svg_engine          # 目録をJSONで吐く
-svg-engine-catalog            # 入れた場合は同じものがコマンドで引ける
+python3 scripts/cli.py catalog   # 目録をJSONで出す
 ```
 
 目録は、どの部品があり、それぞれがどんな値を読み、どんなトークンで見た目が決まり、
@@ -44,14 +43,14 @@ svg-engine-catalog            # 入れた場合は同じものがコマンドで
 層状・環状・放射の木・格子の4つが同じ契約を返し、`layout=` で差し替える。
 層状は Graphviz の `dot` と同じ系統（網状単体法で辺の長さの総和を最小化し、
 等調回帰で段の中を詰める）。同じ図を `dot` にも解かせて突き合わせる物差しを
-`svg_engine/tests/bench_layout.py` に持つ。
+`scripts/tests/bench_layout.py` に持つ。
 
 ## 開発
 
 ```
-pytest svg_engine/tests        # 試験
+pytest scripts/tests           # 試験
 mypy                           # 静的検査（設定は pyproject.toml）
-python svg_engine/tests/bench_layout.py   # 本家との突き合わせ
+python3 scripts/tests/bench_layout.py    # 本家との突き合わせ
 ```
 
 規律は3条 ── 下から上を呼ばない／段ごとに型が変わり前の段を飛ばせない／

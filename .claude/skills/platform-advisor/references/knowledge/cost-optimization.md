@@ -1,12 +1,12 @@
 ---
 id: "cost-optimization"
 type: "Knowledge"
-title: "インフラ・システムのコスト管理の判断を扱う概念：cost-optimization"
+title: "インフラ・システムのコスト管理の判断を対象とする概念：cost-optimization"
 description: "コスト最適化とは、無駄な支出を避けながら、事業成果に対して最大の投資対効果を得られるようにシステムを継続的に改善する設計原則である。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# インフラ・システムのコスト管理の判断を扱う概念：cost-optimization
+# インフラ・システムのコスト管理の判断を対象とする概念：cost-optimization
 
 ## 概要
 

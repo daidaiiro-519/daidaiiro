@@ -1,12 +1,12 @@
 ---
 id: "business-domain"
 type: "Knowledge"
-title: "事業領域を扱う概念：business-domain"
+title: "事業領域を対象とする概念：business-domain"
 description: "企業が事業活動を展開する領域。顧客に提供するサービスの大枠であり、複数の業務領域から構成される。会社と1対1で対応するとは限らず、時とともに移り変わることもある。分析はこの単位で区切って始める。"
 schemaRef: "KnowledgeSchema/v6"
 ---
 
-# 事業領域を扱う概念：business-domain
+# 事業領域を対象とする概念：business-domain
 
 ## 概要
 

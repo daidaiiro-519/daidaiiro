@@ -1,12 +1,12 @@
 ---
 id: "progressive-disclosure"
 type: "Knowledge"
-title: "情報を段階的に開示するUI設計原則を扱う概念：progressive-disclosure"
+title: "情報を段階的に開示するUI設計原則を対象とする概念：progressive-disclosure"
 description: "プログレッシブディスクロージャー（段階的開示）とは、情報を一度に全て見せるのではなく、利用者の操作（選択・展開・絞り込み等）に応じて必要な分だけ段階的に開示する設計原則である。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# 情報を段階的に開示するUI設計原則を扱う概念：progressive-disclosure
+# 情報を段階的に開示するUI設計原則を対象とする概念：progressive-disclosure
 
 ## 概要
 

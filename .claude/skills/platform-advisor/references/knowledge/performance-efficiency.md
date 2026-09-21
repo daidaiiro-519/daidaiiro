@@ -1,12 +1,12 @@
 ---
 id: "performance-efficiency"
 type: "Knowledge"
-title: "パフォーマンス効率の設計判断を扱う概念：performance-efficiency"
+title: "パフォーマンス効率の設計判断を対象とする概念：performance-efficiency"
 description: "性能効率とは、リソースを効率的に使い、需要の変化やアーキテクチャの進化に応じて効率性を維持する設計原則である。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# パフォーマンス効率の設計判断を扱う概念：performance-efficiency
+# パフォーマンス効率の設計判断を対象とする概念：performance-efficiency
 
 ## 概要
 

@@ -1,12 +1,12 @@
 ---
 id: "design-system-tokens"
 type: "Knowledge"
-title: "デザイントークンの設計原則を扱う概念：design-system-tokens"
+title: "デザイントークンの設計原則を対象とする概念：design-system-tokens"
 description: "デザイントークンとは、色・タイポグラフィ・余白・角丸等の視覚的決定を、コード中に直接埋め込むのではなく、名前付きの再利用可能な値として一箇所に集約したものである。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# デザイントークンの設計原則を扱う概念：design-system-tokens
+# デザイントークンの設計原則を対象とする概念：design-system-tokens
 
 ## 概要
 
@@ -33,7 +33,7 @@ schemaRef: "KnowledgeSchema/v5"
 
 | 分類 | 特徴 |
 |---|---|
-| 基礎トークン (foundational) | 色・タイポグラフィ・余白等、それ自体では意味を持たない生の値（例: #1A2B3C、16px） |
+| 基礎トークン (foundational) | 色・タイポグラフィ・余白等、それ自体では意味を保持しない生の値（例: #1A2B3C、16px） |
 | 意味トークン (semantic) | 基礎トークンに役割を与えたもの（例: primary-action-color、heading-font） |
 | コンポーネントトークン | 特定のコンポーネント専用の値（例: button-border-radius）。基礎/意味トークンから派生させ、独自の値を直接持たない |
 

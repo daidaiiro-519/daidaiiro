@@ -1,12 +1,12 @@
 ---
 id: "reliability-targets-and-error-budgets"
 type: "Knowledge"
-title: "信頼性目標とエラーバジェットの設定を扱う概念：reliability-targets-and-error-budgets"
+title: "信頼性目標とエラーバジェットの設定を対象とする概念：reliability-targets-and-error-budgets"
 description: "SLI（サービスレベル指標）・SLO（サービスレベル目標）・エラーバジェット（許容できる障害の予算）とは、可用性・信頼性を感覚ではなく数値目標として定義し、その目標に対する余裕（バジェット）を使い切ったかどうかで意思決定するための枠組みである。"
 schemaRef: "KnowledgeSchema/v5"
 ---
 
-# 信頼性目標とエラーバジェットの設定を扱う概念：reliability-targets-and-error-budgets
+# 信頼性目標とエラーバジェットの設定を対象とする概念：reliability-targets-and-error-budgets
 
 ## 概要
 
