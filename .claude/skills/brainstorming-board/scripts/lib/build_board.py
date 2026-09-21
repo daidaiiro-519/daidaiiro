@@ -235,7 +235,7 @@ border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5re
 .note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
 padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
 .note b{color:var(--ink)}
-figure{margin:0;background:var(--sunk);border:1px solid var(--rule-soft);border-radius:.45rem;
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
 padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
 figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
 figcaption{font-size:.82rem;color:var(--muted)}
@@ -249,10 +249,6 @@ details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--p
 details+details{margin-top:.5rem}
 summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
 details>div{padding:0 .9rem .9rem}
-/* 完成イメージ ── 開いたまま置くので、答えの続きとして見えるようにする。
-   **塗り分けは開いているときだけに限る** ── 閉じると色分けの根拠（畳まない節である）が
-   消えるので、色だけが残って裏づけの列の中で浮く */
-details.image[open]{border-color:var(--key);background:var(--card)}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
 background:var(--card);border-radius:.3rem;overflow:hidden}
