@@ -58,6 +58,11 @@ ol.path .q-in::after{content:"」"}
       図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
       **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
       design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 図の台は、テンプレートと同じ面（card）にする ── 面の背景と同じ色だと段差が消える。
+   **箱は一段下げる** ── 図は fill="var(--card)" で描かれているので、
+   台と同じ色になって潰れる。design-svg は生成後の CSS での上書きを認めている */
+.ex figure .svg-box rect,.figs figure .svg-box rect,
+figure.fig-top .svg-box rect{fill:var(--sunk)}
 .ex figure,.figs figure,figure.fig-top{background:var(--fig-bg);
 border:var(--bw-hair) solid var(--rule);border-radius:var(--rd-lg);
 padding:var(--sp-6) var(--sp-6);margin:var(--sp-4) 0}
@@ -79,12 +84,11 @@ white-space:pre}
 /* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ── */
 details.why-in li > details,details.why-in details.why-in{
 margin:var(--sp-3) 0 var(--sp-1);border:0;
-border-left:var(--nest-guide) solid var(--rule);border-radius:0;background:none}
+border-left:var(--nest-guide) solid var(--key);border-radius:0;
+background:var(--card)}
 details.why-in li > details > summary,details.why-in details.why-in > summary{
-padding:var(--sp-1) var(--sp-4);font-size:var(--fs-xs);font-weight:700;
-color:var(--muted)}
-details.why-in li > details[open] > summary,
-details.why-in details.why-in[open] > summary{color:var(--key)}
+padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);font-weight:700;
+color:var(--key)}
 details.why-in li > details > div,details.why-in details.why-in > div{
 padding:0 0 var(--sp-2) var(--sp-4)}
 
