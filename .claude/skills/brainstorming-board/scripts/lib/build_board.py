@@ -197,6 +197,9 @@ SCRIPT = r"""<script>
       });
       b.setAttribute("aria-selected","true");
       document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを帯の中へ送る** ── 携帯では帯が横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
       window.scrollTo({top:0,behavior:"smooth"});
     });
   });
