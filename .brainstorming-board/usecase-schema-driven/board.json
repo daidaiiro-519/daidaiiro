@@ -2,58 +2,14 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "ユースケース駆動と、それを支える schema 駆動",
  "board": "usecase-schema-driven",
- "round": 33,
+ "round": 34,
  "panels": [
   {
-   "heading": "決まったこと（6本）",
+   "heading": "いま見る論点",
    "body": [
     {
      "kind": "para",
-     "text": "<b>6本すべてが決着した。</b>上から順に、下の論点が上の答えを前提にしている。"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "決まり"
-     ],
-     "rows": [
-      [
-       "論点1　道具の範囲",
-       [
-        "仕様を出し、契約を定め、突き合わせるまで。<b>契約はソースの外に置き、道具はソースを読まない</b>"
-       ]
-      ],
-      [
-       "論点2　方法論の注入",
-       [
-        "基盤は方法論も AI ツールも知らない。<b>注入点は2つ</b>。射影は承認の HTML と、変換機が出すツールごとの形"
-       ]
-      ],
-      [
-       "論点3　仕様の外に出られなくする",
-       [
-        "単位は宣言とシナリオ。引き算は3系統。<b>置き場所は、事業領域で切ったフォルダの根から決まる</b>"
-       ]
-      ],
-      [
-       "論点6　宣言の種類と多重度",
-       [
-        "宣言は6種類。多重度は4本を1で固定し、<b>業務領域と文脈の対応は導出する</b>"
-       ]
-      ],
-      [
-       "論点4　振る舞いの持ち方",
-       [
-        "振る舞いを持つのは、集約 ・ ユースケース ・ 業務サービスの3つ。<b>シナリオはテストと結ぶ単位</b>で、前提は宣言済みの操作の列で書く"
-       ]
-      ],
-      [
-       "論点5　人が承認するもの",
-       [
-        "承認は1段。人が読むのは<b>シナリオの射影だけ</b>。結ばれているかは道具、通るかは CI が担保する"
-       ]
-      ]
-     ]
+     "text": "<b>6本は決着し、3本を足した。</b>足したのは、決着の過程で<b>置き場所が無いと判明したもの</b>と、<b>一度も反証していない前提</b>である。<br><b>論点7（既存の道具を借りる範囲）だけを開く</b> ── 論点8（版と移行）と論点9（文脈どうしの関係）は、土台が決まってからでないと書けない。"
     }
    ]
   },
@@ -176,7 +132,12 @@
    ]
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 7,
+   "why": "<b>決着した6本を覆しうる前提が、1つ残っていた</b> ── 自作するという前提である。調査は済んでいるのに、板へ1行も記録していなかった<br><b>論点8 ・ 9 は待ちである</b> ── 土台が決まらないと、版の付け方も関係の書き方も決まらない"
+  }
+ ],
  "topics": [
   {
    "no": 1,
@@ -2938,6 +2899,248 @@
      "caption": "<b>4本は1で固定し、1本は導出のままにする。</b>ユースケースと集約は、業務領域も文脈も<b>1件だけ</b>指す ── <b>またいだ時点で、引き方が誤っている</b>。<br>破線は<b>持たない参照</b>である ── 業務領域と文脈の対応は、ユースケースの2本から<b>導出</b>する。<b>ここを1に固定すると、原典が名指しするアンチパターンになる</b>（一つの業務領域に一つのモデルという固定観念）。"
     }
    ]
+  },
+  {
+   "no": 7,
+   "name": "既存の道具を借りる範囲",
+   "status": "open",
+   "question": "既存の道具を、どこまで借りるか",
+   "intro": "<b>自作するという前提が、一度も反証されていない</b> ── 2026-09-20 の調査で、<code>sources/</code> に原文243ファイルを取得したまま、板へ1行も記録していなかった。<br><b>調査の結論は「6つの軸に発明すべきものは1つも無い。6つを束ねたものが無い」である</b> ── ここで決めるのは、束ねる作業をどこから始めるかである。<br><b>決着した6本が、判定の基準になる</b> ── とくに論点1（言語に依存しない）と論点2（基盤は方法論も AI ツールも知らない）である。",
+   "answer": "C ── <b>形だけを借り、土台には載せない</b>。射影の出し分けは Smithy の形、版の付け方は TypeSpec の形を参照する",
+   "decision": {
+    "letter": "C",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>借りるのは形であって、土台ではない。</b>"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>射影の出し分け</b> ── Smithy の <code>smithy-build.json</code> の形（<code>projections</code> と <code>transforms</code>）を参照する"
+       },
+       {
+        "text": "<b>版の付け方</b> ── TypeSpec の <code>@added</code> ・ <code>@removed</code> ・ <code>@renamedFrom</code> の形を参照する（版を決めるときに使う）"
+       },
+       {
+        "text": "<b>土台には、どれも載せない</b> ── Smithy と TypeSpec は<b>サービスと API の語彙が最初から入っている</b>。Malli は<b>実行時が Clojure/Script である</b>"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>これは決着した2本が下している判定である</b> ── 論点2 が「基盤は方法論も AI ツールも知らない」と決め、論点1 が「道具はソースを読まない（言語に依存しない）」と決めた。<b>語彙を持つ土台も、言語に縛る土台も、その2本に違反する。</b>"
+     }
+    ]
+   },
+   "passed": [
+    {
+     "name": "形だけ借りる",
+     "body": "射影の出し分けと版の付け方を、既存の形に合わせる",
+     "cost": "<b>借りた形は凍る</b> ── 借り元が変わっても追随しない。どこから借りたかを根拠として記録することになる"
+    },
+    {
+     "name": "土台ごと採る（Smithy）",
+     "body": "<code>projections</code> と <code>transforms</code> で射影を出し、trait で語彙を足す",
+     "cost": "<b>サービスと API の語彙が最初から入る</b>（論点2 に違反する）。<b>承認も、人が読む射影も持たない</b> ── 取得3ページに <code>approv</code> が0件、<code>render</code> が0件である"
+    },
+    {
+     "name": "何も見ない（完全自作）",
+     "body": "既存の実装を参照せず、6軸を最初から組む",
+     "cost": "<b>同じことをしている実装が在るのに、失敗の型を学ばない</b> ── 射影の出し分けも版の付け方も、既に形が在る"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "Malli を土台にする",
+     "reason": "<b>実行時が Clojure/Script である</b>（「Think of JSON Schema, but for Clojure/Script.」）── 基盤が言語に依存し、論点1 に違反する"
+    },
+    {
+     "body": "TypeSpec を土台にする",
+     "reason": "版と移行は持つが、<b>API 記述言語である</b> ── Smithy と同じ理由で、方法論の語彙が最初から入る"
+    },
+    {
+     "body": "JSON Schema の <code>$vocabulary</code> だけで、意味まで賄う",
+     "reason": "<b>意味を表す仕組みを、規格が持たない</b> ── 語彙の外で鍵の意味を表す方法は定義されていない。意味は自分で持つことになる"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "6つの軸に対して、何が在るか（2026-09-20 の調査）",
+     "cols": [
+      "何を持つか",
+      "借りるか"
+     ],
+     "rows": [
+      [
+       "<b>Smithy</b>",
+       [
+        "同一性 ・ trait ・ 操作 ・ <b>射影</b> ・ 参照（6軸中5つ）",
+        "<b>射影の出し分けの形だけ</b>"
+       ]
+      ],
+      [
+       "<b>Malli</b>",
+       [
+        "レジストリで名前から引く。構想に最も近い",
+        "<b>借りない</b>"
+       ]
+      ],
+      [
+       "<b>TypeSpec</b>",
+       [
+        "<code>@added</code> ・ <code>@removed</code> ・ <code>@renamedFrom</code>（版と移行）",
+        "<b>版の付け方の形だけ</b>"
+       ]
+      ],
+      [
+       "<b>JSON Schema</b>",
+       [
+        "<code>$vocabulary</code> は非公開の語彙を明示的に許す",
+        "<b>土台にする</b>"
+       ]
+      ]
+     ],
+     "plain": true
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "borrow",
+     "caption": "<b>借りるのは形だけで、土台には載せない。</b>Smithy と TypeSpec は<b>方法論の語彙が最初から入る</b>ので土台にできず、Malli は<b>実行時が言語に縛られる</b>。"
+    }
+   ],
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>「形を借りる」とは、これである。</b>左が原文、右がこちらの宣言で、<b>実装は1行も借りない</b>。"
+    },
+    {
+     "kind": "note",
+     "text": "① Smithy の原文 ── 射影の出し分け（smithy-build.json）"
+    },
+    {
+     "kind": "html",
+     "text": "{\n    &quot;version&quot;: &quot;1.0&quot;,\n    &quot;outputDirectory&quot;: &quot;build/output&quot;,\n    &quot;projections&quot;: {\n        &quot;projection-name&quot;: {\n            &quot;transforms&quot;: [ { &quot;name&quot;: &quot;excludeShapesByTag&quot;, … } ] } } }"
+    },
+    {
+     "kind": "note",
+     "text": "② こちらの宣言 ── 同じ形で、変換機の出し分けを書く"
+    },
+    {
+     "kind": "html",
+     "text": "{\n    &quot;projections&quot;: {\n        &quot;claude-code&quot;: { &quot;emit&quot;: &quot;hooks.json&quot; },\n        &quot;codex&quot;:       { &quot;emit&quot;: &quot;config.toml&quot; },\n        &quot;approval&quot;:    { &quot;emit&quot;: &quot;index.html&quot; } } }"
+    },
+    {
+     "kind": "note",
+     "text": "<b>借りたのは、出し分けを1か所へ宣言するという形だけである</b> ── Smithy の trait も shape も、こちらは保持しない"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "6本を決着させたあと、<b>自作という前提が一度も反証されていない</b>ことに気づいた"
+    },
+    {
+     "kind": "para",
+     "text": "取得済みの原文（243ファイル）で、Smithy ・ Malli ・ TypeSpec を照合した"
+    },
+    {
+     "kind": "para",
+     "text": "<b>Smithy に承認も人が読む射影も無いことが、0件として出た</b>"
+    },
+    {
+     "kind": "para",
+     "text": "Malli は<b>実行時が Clojure/Script</b> で、基盤が言語に縛られる"
+    },
+    {
+     "kind": "para",
+     "text": "<b>借りられるのは形だけだと判明した</b> ── 射影の出し分けと、版の付け方"
+    }
+   ],
+   "findings": [
+    "<b>6つの軸に発明すべきものは1つも無い。6つを束ねたものが無い</b>",
+    "<b>既存の道具は、どれも「方法論を注入する口」を保持しない</b> ── 語彙が最初から入っている",
+    "<b>承認は、どこにも無い</b> ── Smithy の取得3ページに <code>approv</code> が0件である",
+    "<b>この判定は、決着した2本が既に下していた</b> ── 論点1 と論点2 である。新しい判断ではなく、前提の確認である"
+   ],
+   "grounds": [
+    {
+     "supports": "Smithy が承認も射影も持たないこと",
+     "basis": "取得3ページに <code>approv</code> が0件 ・ <code>render</code> が0件",
+     "tag": "measured",
+     "source": "smithy.io の3ページ（2026-09-20 取得）"
+    },
+    {
+     "supports": "Smithy が射影の出し分けを持つこと",
+     "basis": "<code>projections</code> が57か所、<code>transforms</code> が55か所",
+     "tag": "primary",
+     "source": "smithy.io_2.0_guides_smithy-build-json.html:671 ほか"
+    },
+    {
+     "supports": "Malli が言語に縛られること",
+     "basis": "「Think of [JSON Schema](https://json-schema.org/), but for Clojure/Script.」",
+     "tag": "primary",
+     "source": "metosin/malli README.md:57"
+    },
+    {
+     "supports": "TypeSpec が版の形を持つこと",
+     "basis": "<code>@added</code>（10か所）・ <code>@removed</code>（10か所）・ <code>@renamedFrom</code>（6か所）",
+     "tag": "primary",
+     "source": "typespec.io の versioning/reference/decorators"
+    },
+    {
+     "supports": "語彙を持つ土台を採れないこと",
+     "basis": "基盤は方法論も AI ツールも知らない ── 注入点は2つである",
+     "tag": "rule",
+     "source": "このブレストボードの論点2（決着）"
+    },
+    {
+     "supports": "言語に縛る土台を採れないこと",
+     "basis": "契約はソースの外に置き、道具はソースを読まない",
+     "tag": "rule",
+     "source": "このブレストボードの論点1（決着）"
+    }
+   ],
+   "requirements": [
+    "<b>借りた形は凍る</b> ── 借り元が変わっても追随しない。追随するなら、そのつど照合し直すことになる",
+    "<b>どこから借りたかを、根拠として記録することになる</b> ── 書かないと、独自に決めた形と借りた形の区別が消える"
+   ],
+   "out_of_scope": [
+    {
+     "item": "<b>設定言語（CUE ・ Pkl ・ Dhall ・ Jsonnet）を、宣言の形としては照合していない</b> ── 原文は取得済みだが、6軸へ適用していない",
+     "treatment": "later",
+     "note": "宣言の JSON の形を決めるときに、適用する"
+    },
+    {
+     "item": "<b>Smithy の版の比較（<code>smithy diff</code>）は未取得である</b>",
+     "treatment": "later",
+     "note": "論点8（版と移行）で取得して照合する"
+    },
+    {
+     "item": "<b>借りた形が、原典の意図とずれていても気づかない</b> ── 形だけを取るので、なぜその形なのかは借りていない",
+     "treatment": "out",
+     "note": "借り元を記録し、疑問が出たときに原文へ戻る"
+    }
+   ]
+  },
+  {
+   "no": 8,
+   "name": "版と移行",
+   "status": "waiting",
+   "question": "宣言が変わったとき、何が起きるか",
+   "answer": "（案を出していない）── 土台が決まってから立てる",
+   "intro": "<b>引き算は3系統とも「現在の状態」しか確認しない</b> ── 時間軸が1つも無い。<br>宣言を改名・削除したとき、シナリオの ID ・ 対応表 ・ 成果物 ・ テストがどうなるかを決めていない。"
+  },
+  {
+   "no": 9,
+   "name": "文脈どうしの関係",
+   "status": "waiting",
+   "question": "文脈をまたぐ業務を、どこに書くか",
+   "answer": "（案を出していない）── 土台が決まってから立てる",
+   "intro": "<b>論点6 は文脈の中身と多重度を決めたが、文脈どうしの関係は決めていない</b> ── ユースケースが文脈を1つだけ指すと決めた以上、<b>文脈をまたぐ業務は「関係」としてしか書けない</b>。その置き場所が無い。"
   }
  ]
 }
