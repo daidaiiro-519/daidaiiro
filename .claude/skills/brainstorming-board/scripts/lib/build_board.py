@@ -249,9 +249,10 @@ details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--p
 details+details{margin-top:.5rem}
 summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
 details>div{padding:0 .9rem .9rem}
-/* 完成イメージ ── 開いたまま置くので、答えの続きとして見えるようにする */
-details.image{border-color:var(--key);background:var(--card)}
-details.image>summary{color:var(--key)}
+/* 完成イメージ ── 開いたまま置くので、答えの続きとして見えるようにする。
+   **塗り分けは開いているときだけに限る** ── 閉じると色分けの根拠（畳まない節である）が
+   消えるので、色だけが残って裏づけの列の中で浮く */
+details.image[open]{border-color:var(--key);background:var(--card)}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
 background:var(--card);border-radius:.3rem;overflow:hidden}
