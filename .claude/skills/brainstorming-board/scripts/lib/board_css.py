@@ -58,15 +58,10 @@ ol.path .q-in::after{content:"」"}
       図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
       **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
       design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
-/* 図の台は、テンプレートと同じ面（card）にする ── 面の背景と同じ色だと段差が消える。
-   **箱は一段下げる** ── 図は fill="var(--card)" で描かれているので、
-   台と同じ色になって潰れる。design-svg は生成後の CSS での上書きを認めている */
-.ex figure .svg-box rect,.figs figure .svg-box rect,
-figure.fig-top .svg-box rect{fill:var(--sunk)}
-.ex figure,.figs figure,figure.fig-top{background:var(--fig-bg);
-border:var(--bw-hair) solid var(--rule);border-radius:var(--rd-lg);
-padding:var(--sp-6) var(--sp-6);margin:var(--sp-4) 0}
-.ex pre,.figs pre,details pre{background:var(--code-bg);
+/* 組み上がりを、周りから1段浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
 border:var(--bw-hair) solid var(--rule)}
 
 /* ── 実例も折り畳みにしたので、器の枠が二重になる ── 器の装飾を外す ── */

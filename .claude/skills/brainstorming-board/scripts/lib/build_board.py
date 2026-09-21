@@ -235,7 +235,7 @@ border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5re
 .note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
 padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
 .note b{color:var(--ink)}
-figure{margin:0;background:var(--fig-bg);border:1px solid var(--rule-soft);border-radius:.45rem;
+figure{margin:0;background:var(--sunk);border:1px solid var(--rule-soft);border-radius:.45rem;
 padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
 figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
 figcaption{font-size:.82rem;color:var(--muted)}
