@@ -18,11 +18,16 @@ from . import (  # noqa: F401,E501
 from .canvas import render_canvas
 from .radial import layout_radial
 from .tree import layout_tree
+# **目録に載る配置は、全部ここから取れるようにする** ── 載っているのに
+# import できない配置が在ると、呼ぶ側は「描けない」と判定する
+from .grid import layout_grid
+from .nesting import layout_nested
 from .compose import render_chart, render_figure
 from .catalog import catalog, props_of, EXAMPLES
 from .registry import known_kinds
 from .tokens import DEFAULT_THEME
 
 __all__ = ["render_figure", "render_chart", "render_canvas", "known_kinds",
-           "DEFAULT_THEME", "layout_radial", "layout_tree",
+           "DEFAULT_THEME", "layout_radial", "layout_tree", "layout_grid",
+           "layout_nested",
            "catalog", "props_of", "EXAMPLES"]
