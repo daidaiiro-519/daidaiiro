@@ -298,7 +298,7 @@
     },
     {
      "supports": "出典が引用文字列を持つこと",
-     "basis": "Words in names that are initialisms or acronyms (e.g. \"URL\" or \"NATO\") have a consistent case",
+     "basis": "Words in names that are initialisms or acronyms (e.g. &ldquo;URL&rdquo; or &ldquo;NATO&rdquo;) have a consistent case.",
      "tag": "primary",
      "source": "go.dev/wiki/CodeReviewComments（取得日 2026-09-15）"
     },
@@ -812,9 +812,9 @@
     },
     {
      "supports": "言語の具体が原典にあること",
-     "basis": "\"URL\" should appear as \"URL\" or \"url\" (as in \"urlPony\", or \"URLPony\"), never as \"Url\"",
+     "basis": "&ldquo;URL&rdquo; should appear as &ldquo;URL&rdquo; or &ldquo;url&rdquo;",
      "tag": "primary",
-     "source": "go.dev/wiki/CodeReviewComments（取得日 2026-09-15）"
+     "source": "go.dev/wiki/CodeReviewComments:647（2026-09-22 に取り直して sha256 一致）"
     },
     {
      "supports": "接点の原典が状態コードを規定すること",
@@ -2082,48 +2082,145 @@
     {
      "kind": "heading",
      "level": 4,
-     "text": "① 出典が外を指す規則（<code>rules/architecture/inward-only.json</code>）"
+     "text": "軸ごとの規則の形"
     },
     {
-     "kind": "html",
-     "text": "{\n  \"規則\": \"内側は外側を参照しない\",\n  \"出典\": {\n    \"meta\": \"clean-architecture-martin\",\n    \"引用\": \"Nothing in an inner circle can know anything at all about something in an outer circle.\"\n  },\n  \"採用範囲\": \"依存の向きのみ。層の名前と並びは採用しない（原典に無い）\",\n  \"検証方法\": {\n    \"道具\": [\"go\", \"list\", \"-deps\", \"./...\"],\n    \"対象\": \"層の並び（②が持つ）から組んだ許可辺\"\n  },\n  \"向き\": \"内向き\"\n}"
+     "kind": "para",
+     "text": "<b>3要素の外に置く欄は1つだけで、名前が軸ごとに違う。</b>何を欄にするかは、原典が規定する粒度が決める ── 原典が値を列挙する軸は値の表を持ち、道具が主張そのものを実行する軸は欄を持たない。"
     },
     {
-     "kind": "heading",
-     "level": 4,
-     "text": "② 出典が内を指す規則（<code>rules/architecture/layers.json</code>）"
+     "kind": "table",
+     "cols": [
+      "外を指す規則の欄",
+      "検証方法の道具",
+      "内を指す規則の欄"
+     ],
+     "rows": [
+      [
+       "言語（<code>go</code>）",
+       [
+        "<b>無い</b>（整形） ／ <code>語形</code>（頭字語の表）",
+        "<code>gofmt -l</code> ・ <b>語形は道具が無い ── 未検証</b>",
+        "有効にする lint の集合 ・ モジュール名"
+       ]
+      ],
+      [
+       "ライブラリ（<code>react</code> ・ <code>nextjs</code>）",
+       [
+        "<code>規則名</code>（採用した名前の集合）",
+        "<code>eslint --rule</code>",
+        "採用する機能の範囲 ・ ディレクトリ（原典が意見を持たないと明記）"
+       ]
+      ],
+      [
+       "アーキテクチャ（<code>hexagonal</code>）",
+       [
+        "<code>向き</code>（内向き）のみ",
+        "<code>go list -deps</code>",
+        "<code>並び</code> ・ <code>層</code>（層→パス）"
+       ]
+      ],
+      [
+       "接点（<code>cli</code> ・ <code>http</code>）",
+       [
+        "<code>値の対応</code>（コード→意味）",
+        "<code>$?</code> ・ 応答の照合",
+        "アプリケーションが返す値の割り当て ・ 誤りの本文の形"
+       ]
+      ]
+     ]
     },
     {
-     "kind": "html",
-     "text": "{\n  \"規則\": \"層の並びと、それぞれのパス\",\n  \"出典\": { \"record\": \"hexagonal-and-internal-layout\" },\n  \"採用範囲\": \"この成果物に限る\",\n  \"検証方法\": {\n    \"道具\": [\"test\", \"-d\"],\n    \"対象\": \"層の値それぞれ\"\n  },\n  \"並び\": [\"domain\", \"usecase\", \"adapter\"],\n  \"層\": {\n    \"domain\":  \"internal/domain\",\n    \"usecase\": \"internal/usecase\",\n    \"adapter\": \"internal/adapter\"\n  }\n}"
+     "kind": "note",
+     "text": "<b>検証方法の「対象」は、その欄を指す。</b>欄が無い規則では、検証方法が主張そのものを実行する ── 道具も無い規則は、合格でも不合格でもない「未検証」になる。"
     },
     {
      "kind": "fold",
-     "heading": "この2件が、なぜこの形なのか（7件）",
+     "heading": "軸ごとの規則1件 ── 5件（アーキテクチャは外と内の2件）",
      "body": [
       {
-       "kind": "list",
-       "items": [
+       "kind": "heading",
+       "level": 4,
+       "text": "言語 ①　整形（欄を持たない）"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"整形を gofmt の出力に一致させる\",\n  \"出典\": {\n    \"meta\": \"go-code-review-comments\",\n    \"引用\": \"on your code to automatically fix the majority of mechanical style issues.\"\n  },\n  \"採用範囲\": \"機械的な整形のみ\",\n  \"検証方法\": {\n    \"道具\": [\"gofmt\", \"-l\", \".\"],\n    \"対象\": \"出力が空であること\"\n  }\n}"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "言語 ②　語形（道具が無いので未検証）"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"頭字語の大文字小文字を一貫させる\",\n  \"出典\": {\n    \"meta\": \"go-code-review-comments\",\n    \"引用\": \"Words in names that are initialisms or acronyms (e.g. &ldquo;URL&rdquo; or &ldquo;NATO&rdquo;) have a consistent case.\"\n  },\n  \"採用範囲\": \"識別子の語形のみ\",\n  \"検証方法\": null,\n  \"語形\": { \"頭字語\": [\"全大文字\", \"全小文字\"] }\n}"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "ライブラリ　呼び出しの位置"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"Hook は関数の最上位で呼ぶ\",\n  \"出典\": {\n    \"meta\": \"react-rules-of-hooks\",\n    \"引用\": \"Instead, always use Hooks at the top level of your React function, before any early returns.\"\n  },\n  \"採用範囲\": \"呼び出しの位置のみ\",\n  \"検証方法\": {\n    \"道具\": [\"eslint\", \"--rule\", \"react-hooks/rules-of-hooks: error\"],\n    \"対象\": \"採用した規則名それぞれ\"\n  },\n  \"規則名\": [\"react-hooks/rules-of-hooks\"]\n}"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "アーキテクチャ ①　出典が外を指す（<code>rules/architecture/inward-only.json</code>）"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"内側は外側を参照しない\",\n  \"出典\": {\n    \"meta\": \"clean-architecture-martin\",\n    \"引用\": \"Nothing in an inner circle can know anything at all about something in an outer circle.\"\n  },\n  \"採用範囲\": \"依存の向きのみ。層の名前と並びは採用しない（原典に無い）\",\n  \"検証方法\": {\n    \"道具\": [\"go\", \"list\", \"-deps\", \"./...\"],\n    \"対象\": \"層の並び（②が持つ）から組んだ許可辺\"\n  },\n  \"向き\": \"内向き\"\n}"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "アーキテクチャ ②　出典が内を指す（<code>rules/architecture/layers.json</code>）"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"層の並びと、それぞれのパス\",\n  \"出典\": { \"record\": \"hexagonal-and-internal-layout\" },\n  \"採用範囲\": \"この成果物に限る\",\n  \"検証方法\": {\n    \"道具\": [\"test\", \"-d\"],\n    \"対象\": \"層の値それぞれ\"\n  },\n  \"並び\": [\"domain\", \"usecase\", \"adapter\"],\n  \"層\": {\n    \"domain\":  \"internal/domain\",\n    \"usecase\": \"internal/usecase\",\n    \"adapter\": \"internal/adapter\"\n  }\n}"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "接点　終了コードの値と意味"
+      },
+      {
+       "kind": "html",
+       "text": "{\n  \"規則\": \"終了コードの値と意味\",\n  \"出典\": {\n    \"meta\": \"posix-shell-2.8.2\",\n    \"引用\": \"If the command is not found, the exit status shall be 127.\"\n  },\n  \"採用範囲\": \"原典が規定した値のみ。アプリケーションが返す値は含まない\",\n  \"検証方法\": {\n    \"道具\": [\"sh\", \"-c\", \"<起動>; echo $?\"],\n    \"対象\": \"値の対応それぞれ\"\n  },\n  \"値の対応\": {\n    \"126\": \"見つかったが、実行できる実体ではなかった\",\n    \"127\": \"見つからなかった\"\n  }\n}"
+      },
+      {
+       "kind": "fold",
+       "heading": "アーキテクチャの2件が、なぜこの形なのか（7件）",
+       "body": [
         {
-         "text": "<b>①が持つのは向きだけである</b> ── 原典に層の名前が無い。<code>domain</code> と <code>usecase</code> は2つの原典に照合できなかった"
-        },
-        {
-         "text": "<b>道具を配列で保持する</b> ── シェルの引用符を経由しないためである。文字列1本で保持すると、<code>./...</code> の展開が実行する殻に依存する"
-        },
-        {
-         "text": "<b>層の名前と並びは②が持つ</b> ── 原典の語は <code>Entities</code> ・ <code>Use Cases</code> ・ <code>Interface Adapters</code> であり、こちら側の3語はその言い換えである"
-        },
-        {
-         "text": "<b>その決めた理由を保持するのが ADR である</b> ── それが②の出典になる"
-        },
-        {
-         "text": "<b>出典欄は空欄にできない</b> ── 空欄とすると、論点1（3要素）と論点2（出典に無いことは書かない）が成立しなくなる"
-        },
-        {
-         "text": "<b>ADR は改訂してよいかを判定するために要る</b> ── 監査のためではない"
-        },
-        {
-         "text": "<b>②の出典は識別子だけを保持する</b> ── 記録をどこへ置くか、どの道具で書くかは使う側の配線であり、規則の形式は関与しない"
+         "kind": "list",
+         "items": [
+          {
+           "text": "<b>①が持つのは向きだけである</b> ── 原典に層の名前が無い。<code>domain</code> と <code>usecase</code> は2つの原典に照合できなかった"
+          },
+          {
+           "text": "<b>道具を配列で保持する</b> ── シェルの引用符を経由しないためである。文字列1本で保持すると、<code>./...</code> の展開が実行する殻に依存する"
+          },
+          {
+           "text": "<b>層の名前と並びは②が持つ</b> ── 原典の語は <code>Entities</code> ・ <code>Use Cases</code> ・ <code>Interface Adapters</code> であり、こちら側の3語はその言い換えである"
+          },
+          {
+           "text": "<b>その決めた理由を保持するのが ADR である</b> ── それが②の出典になる"
+          },
+          {
+           "text": "<b>出典欄は空欄にできない</b> ── 空欄とすると、論点1（3要素）と論点2（出典に無いことは書かない）が成立しなくなる"
+          },
+          {
+           "text": "<b>ADR は改訂してよいかを判定するために要る</b> ── 監査のためではない"
+          },
+          {
+           "text": "<b>②の出典は識別子だけを保持する</b> ── 記録をどこへ置くか、どの道具で書くかは使う側の配線であり、規則の形式は関与しない"
+          }
+         ]
         }
        ]
       }
@@ -2515,6 +2612,48 @@
      "basis": "isolation from its eventual run-time devices and databases.",
      "tag": "primary",
      "source": "alistair.cockburn.us/hexagonal-architecture:1361（2026-09-22 取得）"
+    },
+    {
+     "supports": "言語の軸が、整形の規則を持てること",
+     "basis": "on your code to automatically fix the majority of mechanical style issues.",
+     "tag": "primary",
+     "source": "go.dev/wiki/CodeReviewComments:454（2026-09-22 に取り直して sha256 一致）"
+    },
+    {
+     "supports": "言語の軸に、道具が無い規則があること",
+     "basis": "Words in names that are initialisms or acronyms (e.g. &ldquo;URL&rdquo; or &ldquo;NATO&rdquo;) have a consistent case.",
+     "tag": "primary",
+     "source": "go.dev/wiki/CodeReviewComments:647（同上）"
+    },
+    {
+     "supports": "ライブラリの軸が、規則名の集合を持つこと",
+     "basis": "Instead, always use Hooks at the top level of your React function, before any early returns.",
+     "tag": "primary",
+     "source": "react.dev/reference/rules/rules-of-hooks:17（同上）"
+    },
+    {
+     "supports": "ライブラリの原典が、ディレクトリに意見を持たないこと",
+     "basis": "React doesn’t have opinions on how you put files into folders.",
+     "tag": "primary",
+     "source": "legacy.reactjs.org/docs/faq-structure.html:161（同上）"
+    },
+    {
+     "supports": "接点の軸が、値の対応を持つこと",
+     "basis": "If the command is not found, the exit status shall be 127.",
+     "tag": "primary",
+     "source": "POSIX Shell Command Language 2.8.2（V3_chap02.html:1702。同上）"
+    },
+    {
+     "supports": "接点の軸の値が、原典で規定されていること",
+     "basis": "The 404 (Not Found) status code indicates that the origin server did",
+     "tag": "primary",
+     "source": "RFC 9110 15.5.5（rfc9110.txt:7589。同上）"
+    },
+    {
+     "supports": "接点の軸の値が、1件ずつ原典に対応すること",
+     "basis": "Otherwise, if the command name is found, but it is not an executable utility, the exit status shall be 126.",
+     "tag": "primary",
+     "source": "POSIX Shell Command Language 2.8.2（V3_chap02.html:1703。2026-09-22 に取り直して sha256 一致）"
     }
    ],
    "requirements": [
@@ -2526,7 +2665,9 @@
     "参照が解決できない規則の扱いが要る ── 合格でも不合格でもない第3の状態である",
     "成果物が増えるたびに、内を指す規則が1組増える ── 保持者を成果物に置いたためである",
     "決定のたびに記録を書く ── 書かなければ、論点7 の逆流の検出が働かない",
-    "記録の正しさは問えない ── 出典が内側にあるので、照合する相手が存在しない"
+    "記録の正しさは問えない ── 出典が内側にあるので、照合する相手が存在しない",
+    "規則のスキーマが、軸ごとの欄の分岐を持つ ── 軸を足すと欄の名前が1つ増える",
+    "検証方法を持たない規則を書けるようにする ── 語形の規則は道具が無いので、状態が「未検証」になる"
    ],
    "out_of_scope": [
     {
@@ -2598,6 +2739,11 @@
      "item": "ADR が古くなったときの扱いを決めていない。出典を保持しないので、失効の形態も定義できない",
      "treatment": "out",
      "note": "失効の3形態は出典を持つ規則のものである。ADR は承認の状態（proposed ／ accepted ／ superseded）で置き換わる"
+    },
+    {
+     "item": "欄の中身の型を決めていない ── 値の対応は文字列の対か、構造を持つか",
+     "treatment": "later",
+     "note": "外の作業である。軸の値1つで規則を1件書いて、書けない欄が出るかを確認する"
     }
    ],
    "figures": [
