@@ -69,11 +69,50 @@ def validate(t: dict, *, with_schema: bool = True) -> list[str]:
         for k, ref in table.items():
             if ref not in base:
                 err.append(f"意味 {side} の --{k} が、基礎に無い鍵「{ref}」を参照している")
+    err += _contrast_errors(t, base)
     for k, ref in t["component"].items():
         if ref.startswith("calc(") or ref[0].isdigit() or ref[0] == ".":
             continue
         if ref not in base and ref not in light:
             err.append(f"部品 --{k} が、意味にも基礎に無い鍵「{ref}」を参照している")
+    return err
+
+
+# 文字と地の組み合わせ。**読める比を、機械が確かめる** ──
+# 目で見て薄いと気づくのは、出したあとである（実際にそうなった）。
+CONTRAST = [("ink", 4.5), ("sub", 4.5), ("muted", 4.5), ("dim", 4.5)]
+SURFACES = ("paper", "card", "panel")
+
+
+def _luminance(hex_color: str) -> float:
+    """相対輝度（WCAG 2.1 の定義）。"""
+    h = hex_color.lstrip("#")
+    def channel(c: float) -> float:
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def contrast(a: str, b: str) -> float:
+    """2色の比。1（同じ）から 21（黒と白）まで。"""
+    la, lb = _luminance(a), _luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _contrast_errors(t: dict, base: dict[str, str]) -> list[str]:
+    err = []
+    for side in ("light", "dark"):
+        table = t["semantic"][side]
+        for fg, need in CONTRAST:
+            if fg not in table:
+                continue
+            for bg in SURFACES:
+                if bg not in table:
+                    continue
+                r = contrast(base[table[fg]], base[table[bg]])
+                if r < need:
+                    err.append(f"{side}: --{fg} が --{bg} の上で {r:.2f}（要 {need}）"
+                               f" ── {base[table[fg]]} / {base[table[bg]]}")
     return err
 
 
