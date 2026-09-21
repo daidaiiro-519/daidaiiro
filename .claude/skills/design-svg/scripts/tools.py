@@ -71,14 +71,39 @@ def _human_catalog(res: dict) -> str:
             f"配置戦略 {len(d['strategies'])} ・ トークン {d['tokens']}")
 
 
+def _theme(d: dict) -> dict:
+    """宣言の中の `theme` を、テーマの上書きとして受ける。
+
+    **入口がテーマを通さないと、呼ぶ側は Python を書くことになる** ── そして
+    その台本は呼ぶ側の作業場に残るだけで、成果物の隣には何も残らない
+    （実測で、28枚の図が入力を保持しない状態で残った）。
+
+    渡すのは差分だけでよい。既定のテーマへ重ねる。
+    """
+    over = d.get("theme")
+    if not over:
+        return {}
+    if not isinstance(over, dict):
+        raise ValueError("theme は名前と値の対でなければならない")
+    未知 = sorted(k for k in over if k not in _engine.DEFAULT_THEME)
+    if 未知:
+        raise ValueError("知らないトークン: " + " ・ ".join(未知)
+                         + " ── 目録（catalog）に在る名前だけを使う")
+    return {"theme": dict(_engine.DEFAULT_THEME, **over)}
+
+
 def figure(declaration: str, out: str = "", layout: str = "graph",
            direction: str = "TB") -> dict:
     """宣言（節点・辺・囲み）から図を組む。"""
+    d = _read(declaration)
+    # **宣言に書いたものを、入口が読む** ── 引数でしか渡せないと、
+    # 宣言だけでは同じ図が組み直せない（実測で、direction が無視された）
+    layout = d.get("layout", layout)
+    direction = d.get("direction", direction)
     if layout not in _LAYOUTS:
         return result(ok=False, findings=[f"知らない配置戦略: {layout}。"
                                           f"使えるのは {'／'.join(_LAYOUTS)} である"])
-    d = _read(declaration)
-    kw = {"direction": direction}
+    kw = {"direction": direction, **_theme(d)}
     if _LAYOUTS[layout]:
         kw["layout"] = _LAYOUTS[layout]
     svg = _engine.render_figure(d.get("nodes", []), d.get("edges", []),
@@ -88,7 +113,8 @@ def figure(declaration: str, out: str = "", layout: str = "graph",
 
 def chart(kind: str, data: str, out: str = "") -> dict:
     """量を描く部品を1つ選んで描く。"""
-    svg = _engine.render_chart(kind, _read(data))
+    d = _read(data)
+    svg = _engine.render_chart(kind, d, **_theme(d))
     return result(ok=True, findings=_checked(svg), kind=kind, **_write(svg, out))
 
 
