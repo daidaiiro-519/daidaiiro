@@ -12,8 +12,9 @@ import tempfile
 import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from lib import deck as _deck  # noqa: E402
+from lib import render_deck as _render  # noqa: E402
 from lib import themes as _themes  # noqa: E402
+from lib import validate_input as _vi  # noqa: E402
 
 
 class Testテーマ:
@@ -43,33 +44,104 @@ class Testテーマ:
             assert _themes.as_roles(name)[role] == raw[css_key]
 
 
-class Test骨組み:
-    def test_テーマを貼って起こせる(self):
-        with tempfile.TemporaryDirectory() as d:
-            out = pathlib.Path(d) / "deck.html"
-            _deck.create(out, "warm-paper", "ためし")
-            body = out.read_text(encoding="utf-8")
-            assert "<title>ためし</title>" in body
-            assert _deck.OPEN in body and _deck.CLOSE in body
-            assert _themes.tokens(_themes.theme_path("warm-paper"))["--ground"] in body
+class Test組み立て:
+    """**3つで組む** ── 型が形を、入力が中身を、テーマが配色を持つ。"""
 
-    def test_起こした骨組みは検査を通る(self):
+    def _deck(self, theme="warm-paper", title="ためし"):
+        import json
+        d = json.loads((pathlib.Path(__file__).resolve().parents[2]
+                        / "references" / "deck-example.json").read_text(encoding="utf-8"))
+        d["title"], d["theme"] = title, theme
+        return d
+
+    def test_テーマを貼って組める(self):
+        body = _render.build(self._deck())
+        assert "<title>ためし</title>" in body
+        assert "▼ テーマ" in body and "▲ テーマここまで" in body
+        assert _themes.tokens(_themes.theme_path("warm-paper"))["--ground"] in body
+
+    def test_組んだ1枚は検査を通る(self):
         """**区切りが無いと、テーマの外の直書きを判定できない。**"""
         with tempfile.TemporaryDirectory() as d:
             out = pathlib.Path(d) / "deck.html"
-            _deck.create(out, "deep-navy", "ためし")
+            out.write_text(_render.build(self._deck("deep-navy")), encoding="utf-8")
             assert _themes.findings([str(out)]) == []
 
-    def test_同じ名前では起こさない(self):
-        with tempfile.TemporaryDirectory() as d:
-            out = pathlib.Path(d) / "deck.html"
-            _deck.create(out, "warm-paper", "ためし")
-            with pytest.raises(FileExistsError):
-                _deck.create(out, "warm-paper", "ためし")
+    def test_同じ入力からは同じ1枚が出る(self):
+        """**冪等である** ── 日付も乱数も読まない。"""
+        assert _render.build(self._deck()) == _render.build(self._deck())
 
     @pytest.mark.parametrize("name", _themes.theme_names())
-    def test_どのテーマでも起こせる(self, name):
+    def test_どのテーマでも組める(self, name):
         with tempfile.TemporaryDirectory() as d:
             out = pathlib.Path(d) / "deck.html"
-            _deck.create(out, name, "ためし")
+            out.write_text(_render.build(self._deck(name)), encoding="utf-8")
             assert _themes.findings([str(out)]) == []
+
+    def test_枚の数がそのまま出る(self):
+        body = _render.build(self._deck())
+        assert body.count('<section class="slide') == 2
+        assert '<span id="total">2</span>' in body
+
+    def test_札が枚と同じ並びで出る(self):
+        """**0から数える** ── 先頭に空を足すと、全部の枚が1つ前の札を出す。"""
+        d = self._deck()
+        body = _render.build(d)
+        assert ('const LABELS = ["' + d["slides"][0]["label"] + '"') in body
+
+
+class Test入力の検査:
+    """**形では書けない規則を、機械に見させる** ── 散文の規定は破れる。"""
+
+    def _deck(self, **slide):
+        base = {"label": "ためし", "layout": "single", "heading": "断定形の主張",
+                "blocks": [{"kind": "text", "body": "本文"}]}
+        base.update(slide)
+        return {"title": "題", "theme": "warm-paper", "slides": [base]}
+
+    def test_例は検査を通る(self):
+        import json
+        d = json.loads((pathlib.Path(__file__).resolve().parents[2]
+                        / "references" / "deck-example.json").read_text(encoding="utf-8"))
+        assert _vi.check(d) == []
+
+    def test_大きい要素が4つで止まる(self):
+        big = [{"kind": "stat", "value": str(i), "caption": "条件"} for i in range(4)]
+        bad = _vi.check(self._deck(blocks=big))
+        assert any("大きい要素" in e for e in bad)
+
+    def test_強調が2か所で止まる(self):
+        flow = {"kind": "flow", "rows": [{"title": "甲", "mark": True},
+                                         {"title": "乙", "mark": True}]}
+        assert any("強調" in e for e in _vi.check(self._deck(blocks=[flow])))
+
+    def test_問いの見出しで止まる(self):
+        assert any("問いの形" in e for e in _vi.check(self._deck(heading="移行は終わったか")))
+
+    def test_見出しの無い枚で止まる(self):
+        d = self._deck()
+        del d["slides"][0]["heading"]
+        assert any("見出しが無い" in e for e in _vi.check(d))
+
+    def test_出典が本文に在ると止まる(self):
+        blocks = [{"kind": "text", "body": "出典　arXiv 0000.00000"}]
+        assert any("出典" in e for e in _vi.check(self._deck(blocks=blocks)))
+
+    def test_列の役割が枚で食い違うと止まる(self):
+        col = lambda r: {"role": r, "blocks": [{"kind": "text", "body": "本文"}]}
+        d = self._deck()
+        d["slides"] = [
+            {"label": "甲", "layout": "cols", "heading": "主張",
+             "columns": [col("いま"), col("提案")]},
+            {"label": "乙", "layout": "cols", "heading": "主張",
+             "columns": [col("提案"), col("いま")]}]
+        assert any("対応づけを崩さない" in e for e in _vi.check(d))
+
+    def test_無い要素は形で止まる(self):
+        bad = _vi.check(self._deck(blocks=[{"kind": "無い要素"}]))
+        assert bad and all(e.startswith("形:") for e in bad)
+
+    def test_無いテーマで止まる(self):
+        d = self._deck()
+        d["theme"] = "無いテーマ"
+        assert any("themes/ に無い" in e for e in _vi.check(d))

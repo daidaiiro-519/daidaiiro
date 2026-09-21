@@ -106,18 +106,30 @@ version: 1.2.0
 
 出力先が分からないときは聞く。こちらからは会場も配布の形も見えない。
 
-### Step 4: 骨組みから書く
+### Step 4: 入力を書き、組ませる
+
+**3つで組む。** 中身は入力（JSON）が、形は型が、配色はテーマが持つ。
 
 ```
-python3 scripts/cli.py new <出力.html> --theme <テーマの名前> --title <題>
+形      references/slide-deck.template.html   出来上がりの形。部品と差し込む場所
+中身    <デッキ>.json                          枚と要素。形は slide-deck.schema.json が決める
+配色    references/themes/<名前>.css           色の正本
 ```
 
-骨組みを複製し、「▼ テーマ」から「▲ テーマここまで」の間へ、選んだテーマの中身を貼る。
+```
+python3 scripts/cli.py new <デッキ>.json --theme <テーマの名前> --title <題>
+python3 scripts/cli.py render <デッキ>.json <出力.html>
+```
 
-- 固定ステージと拡大縮小のしくみが入っている。この部分は書き換えない
-- `.chrome` と `.progress` は `.stage` の中に置く
-- 画面幅を参照するメディアクエリを足さない
+**同じ入力からは、同じ1枚が出る** ── 日付も乱数も読まない。`--check` を渡すと、
+組み直さずに差が在るかだけを検査する。
+
+- **HTML を手で書かない。** 枚を直すのは入力であり、形を直すのは型である
+- 要素は14種類である。`text` ・ `lede` ・ `card` ・ `flow` ・ `stat` ・ `boxes` ・
+  `pair` ・ `recap` ・ `punch` ・ `caveat` ・ `figure` ・ `table` ・ `list` ・ `who`
+- **種類を足すときは、型と schema の両方へ足す** ── 片方だけに足すと、入力が通って出力が空になる
 - **色を1つずつ直さない。** 直すならテーマの側を直す
+- 固定ステージと拡大縮小のしくみは型が持つ。枚の側で書き換えない
 
 ### Step 5: 図を組ませる
 
@@ -181,7 +193,11 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - テーマを貼り替えただけで、色の直書きが残っていないか
 - 図のどれかが、文字を枠で囲んだだけになっていないか
 
-`python3 references/themes/check.py <作ったHTML>` を実行する。鍵の欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
+`python3 scripts/cli.py check <作ったHTML>` を実行する。鍵の欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
+
+**入力の検査は、組む前に走る。** 設計規則のうち数えれば判定できるもの ──
+大きい要素が3つまで ・ 強調が1か所 ・ 見出しが断定形で2行まで ・ 出典が要素の直下 ・
+列の役割が枚をまたいで同じ ── を機械が見る。1件でも出れば、HTML は1バイトも出ない。
 
 ---
 
@@ -218,13 +234,17 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - `references/knowledge/visual-design-for-slide-decks.md`: 設計規則が立っている8つの概念。出所は Anthropic の `pptx`
 - `references/design-rules.md`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は保持しない**
 - `references/render-check.md`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
-- `references/deck-template.html`: 固定ステージと部品クラスを備えた骨組み。配色は保持せず、テーマを貼る場所だけを持つ
+- `references/slide-deck.template.html`: **出来上がりの形の正本。** 固定ステージ ・ 部品 ・ めくる仕掛けを持ち、配色はテーマを貼る場所だけを持つ
+- `references/slide-deck.schema.json`: **入力の形の正本。** 枚と、14種類の要素が持てる鍵を決める
+- `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
 - `references/themes.md`: テーマの選び方、22の鍵と満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
 - `scripts/lib/themes.py`: 鍵の欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
 - `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどの鍵から出るか。**この Skill は図を描かない**
-- `scripts/cli.py`: **唯一の入口。** `new` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `scripts/cli.py`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
 - `scripts/mcp.py` ・ `mcp.json`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**
-- `scripts/lib/deck.py`: 骨組みにテーマを貼って、1枚の HTML を起こす
-- `scripts/tests/`: テーマと骨組みの検証（15件）
+- `scripts/lib/render_deck.py`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
+- `scripts/lib/template.py`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で例外にする**
+- `scripts/lib/validate_input.py`: 形では書けない規則を検査する。**組み立てより前に止まる**
+- `scripts/tests/`: テーマ ・ 組み立て ・ 入力の検査の検証（26件）

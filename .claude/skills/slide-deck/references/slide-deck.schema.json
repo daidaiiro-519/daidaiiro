@@ -1,0 +1,840 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "slide-deck.schema.json",
+ "title": "デッキ1本の入力",
+ "description": "枚の中身の正本である。**形は references/slide-deck.template.html が持ち、配色は references/themes/ が持つ** ── ここが持つのは中身だけである。",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "title",
+  "theme",
+  "slides"
+ ],
+ "properties": {
+  "title": {
+   "type": "string",
+   "description": "デッキの題。タブに出る"
+  },
+  "theme": {
+   "type": "string",
+   "description": "references/themes/<名前>.css の名前"
+  },
+  "slides": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "label",
+     "layout"
+    ],
+    "properties": {
+     "label": {
+      "type": "string",
+      "description": "下の帯に出る、この枚の名前"
+     },
+     "layout": {
+      "enum": [
+       "cover",
+       "single",
+       "center",
+       "cols",
+       "cols-3"
+      ],
+      "description": "cover 表紙 ／ single 1列 ／ center 中央寄せ ／ cols 2列 ／ cols-3 3列"
+     },
+     "kicker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "text"
+      ],
+      "properties": {
+       "text": {
+        "type": "string"
+       },
+       "tone": {
+        "enum": [
+         "accent",
+         "warm"
+        ]
+       }
+      }
+     },
+     "heading": {
+      "type": "string",
+      "description": "この枚で言い切る主張。断定形で1〜2行"
+     },
+     "lede": {
+      "type": "string",
+      "description": "表紙の副題"
+     },
+     "byline": {
+      "type": "string"
+     },
+     "submitted": {
+      "type": "string"
+     },
+     "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+       "oneOf": [
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "body"
+         ],
+         "properties": {
+          "kind": {
+           "const": "text",
+           "description": "本文。1つの段落"
+          },
+          "body": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "body"
+         ],
+         "properties": {
+          "kind": {
+           "const": "lede",
+           "description": "枚の頭に置く、太い1行"
+          },
+          "body": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "claim"
+         ],
+         "properties": {
+          "kind": {
+           "const": "card",
+           "description": "主張と、その直下の根拠。出典は rows の note に置く"
+          },
+          "label": {
+           "type": "string"
+          },
+          "claim": {
+           "type": "string"
+          },
+          "rows": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "text"
+            ],
+            "properties": {
+             "text": {
+              "type": "string"
+             },
+             "note": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "rows"
+         ],
+         "properties": {
+          "kind": {
+           "const": "flow",
+           "description": "段を追う並び。mark を立てた行だけが強調になる"
+          },
+          "rows": {
+           "type": "array",
+           "minItems": 1,
+           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "title"
+            ],
+            "properties": {
+             "title": {
+              "type": "string"
+             },
+             "note": {
+              "type": "string"
+             },
+             "mark": {
+              "type": "boolean"
+             }
+            }
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "value",
+          "caption"
+         ],
+         "properties": {
+          "kind": {
+           "const": "stat",
+           "description": "大きい数値1つ。条件 → 出典の順を崩さない"
+          },
+          "value": {
+           "type": "string"
+          },
+          "unit": {
+           "type": "string"
+          },
+          "caption": {
+           "type": "string"
+          },
+          "source": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "items"
+         ],
+         "properties": {
+          "kind": {
+           "const": "boxes",
+           "description": "種類を分けて並べる"
+          },
+          "items": {
+           "type": "array",
+           "minItems": 1,
+           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "title"
+            ],
+            "properties": {
+             "title": {
+              "type": "string"
+             },
+             "note": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "left",
+          "right"
+         ],
+         "properties": {
+          "kind": {
+           "const": "pair",
+           "description": "2つを突き合わせる。3つ目を足さない"
+          },
+          "left": {
+           "type": "string"
+          },
+          "right": {
+           "type": "string"
+          },
+          "left_note": {
+           "type": "string"
+          },
+          "right_note": {
+           "type": "string"
+          },
+          "link": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "items"
+         ],
+         "properties": {
+          "kind": {
+           "const": "recap",
+           "description": "通ってきた論点を、番号で振り返る"
+          },
+          "items": {
+           "type": "array",
+           "minItems": 1,
+           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "no",
+             "text"
+            ],
+            "properties": {
+             "no": {
+              "type": "string"
+             },
+             "text": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "body"
+         ],
+         "properties": {
+          "kind": {
+           "const": "punch",
+           "description": "枚に1つだけの、言い切り"
+          },
+          "body": {
+           "type": "string"
+          },
+          "sub": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "body"
+         ],
+         "properties": {
+          "kind": {
+           "const": "caveat",
+           "description": "但し書き。要素の直下に置く"
+          },
+          "body": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "svg"
+         ],
+         "properties": {
+          "kind": {
+           "const": "figure",
+           "description": "図。SVG の文字列を受け取るだけで、この Skill は描かない"
+          },
+          "svg": {
+           "type": "string"
+          },
+          "caption": {
+           "type": "string"
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "rows"
+         ],
+         "properties": {
+          "kind": {
+           "const": "table",
+           "description": "表"
+          },
+          "head": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "rows": {
+           "type": "array",
+           "items": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "items"
+         ],
+         "properties": {
+          "kind": {
+           "const": "list",
+           "description": "箇条書き"
+          },
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          }
+         }
+        },
+        {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "kind",
+          "items"
+         ],
+         "properties": {
+          "kind": {
+           "const": "who",
+           "description": "誰に向けた枚かの札"
+          },
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       ]
+      }
+     },
+     "columns": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "blocks"
+       ],
+       "properties": {
+        "role": {
+         "type": "string",
+         "description": "列に与えた役割。**与えたら全枚で固定する**"
+        },
+        "blocks": {
+         "type": "array",
+         "minItems": 1,
+         "items": {
+          "oneOf": [
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "body"
+            ],
+            "properties": {
+             "kind": {
+              "const": "text",
+              "description": "本文。1つの段落"
+             },
+             "body": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "body"
+            ],
+            "properties": {
+             "kind": {
+              "const": "lede",
+              "description": "枚の頭に置く、太い1行"
+             },
+             "body": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "claim"
+            ],
+            "properties": {
+             "kind": {
+              "const": "card",
+              "description": "主張と、その直下の根拠。出典は rows の note に置く"
+             },
+             "label": {
+              "type": "string"
+             },
+             "claim": {
+              "type": "string"
+             },
+             "rows": {
+              "type": "array",
+              "items": {
+               "type": "object",
+               "additionalProperties": false,
+               "required": [
+                "text"
+               ],
+               "properties": {
+                "text": {
+                 "type": "string"
+                },
+                "note": {
+                 "type": "string"
+                }
+               }
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "rows"
+            ],
+            "properties": {
+             "kind": {
+              "const": "flow",
+              "description": "段を追う並び。mark を立てた行だけが強調になる"
+             },
+             "rows": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+               "type": "object",
+               "additionalProperties": false,
+               "required": [
+                "title"
+               ],
+               "properties": {
+                "title": {
+                 "type": "string"
+                },
+                "note": {
+                 "type": "string"
+                },
+                "mark": {
+                 "type": "boolean"
+                }
+               }
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "value",
+             "caption"
+            ],
+            "properties": {
+             "kind": {
+              "const": "stat",
+              "description": "大きい数値1つ。条件 → 出典の順を崩さない"
+             },
+             "value": {
+              "type": "string"
+             },
+             "unit": {
+              "type": "string"
+             },
+             "caption": {
+              "type": "string"
+             },
+             "source": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "items"
+            ],
+            "properties": {
+             "kind": {
+              "const": "boxes",
+              "description": "種類を分けて並べる"
+             },
+             "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+               "type": "object",
+               "additionalProperties": false,
+               "required": [
+                "title"
+               ],
+               "properties": {
+                "title": {
+                 "type": "string"
+                },
+                "note": {
+                 "type": "string"
+                }
+               }
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "left",
+             "right"
+            ],
+            "properties": {
+             "kind": {
+              "const": "pair",
+              "description": "2つを突き合わせる。3つ目を足さない"
+             },
+             "left": {
+              "type": "string"
+             },
+             "right": {
+              "type": "string"
+             },
+             "left_note": {
+              "type": "string"
+             },
+             "right_note": {
+              "type": "string"
+             },
+             "link": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "items"
+            ],
+            "properties": {
+             "kind": {
+              "const": "recap",
+              "description": "通ってきた論点を、番号で振り返る"
+             },
+             "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+               "type": "object",
+               "additionalProperties": false,
+               "required": [
+                "no",
+                "text"
+               ],
+               "properties": {
+                "no": {
+                 "type": "string"
+                },
+                "text": {
+                 "type": "string"
+                }
+               }
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "body"
+            ],
+            "properties": {
+             "kind": {
+              "const": "punch",
+              "description": "枚に1つだけの、言い切り"
+             },
+             "body": {
+              "type": "string"
+             },
+             "sub": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "body"
+            ],
+            "properties": {
+             "kind": {
+              "const": "caveat",
+              "description": "但し書き。要素の直下に置く"
+             },
+             "body": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "svg"
+            ],
+            "properties": {
+             "kind": {
+              "const": "figure",
+              "description": "図。SVG の文字列を受け取るだけで、この Skill は描かない"
+             },
+             "svg": {
+              "type": "string"
+             },
+             "caption": {
+              "type": "string"
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "rows"
+            ],
+            "properties": {
+             "kind": {
+              "const": "table",
+              "description": "表"
+             },
+             "head": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "rows": {
+              "type": "array",
+              "items": {
+               "type": "array",
+               "items": {
+                "type": "string"
+               }
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "items"
+            ],
+            "properties": {
+             "kind": {
+              "const": "list",
+              "description": "箇条書き"
+             },
+             "items": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             }
+            }
+           },
+           {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "items"
+            ],
+            "properties": {
+             "kind": {
+              "const": "who",
+              "description": "誰に向けた枚かの札"
+             },
+             "items": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          ]
+         }
+        },
+        "close": {
+         "type": "string",
+         "description": "列の締め。1〜2行"
+        }
+       }
+      }
+     },
+     "note": {
+      "type": "string",
+      "description": "枚の下に置く、小さい補足"
+     }
+    }
+   }
+  }
+ }
+}
