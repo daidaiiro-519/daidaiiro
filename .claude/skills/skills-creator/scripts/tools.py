@@ -22,7 +22,8 @@ def scaffold(skill: str, path: str = ".claude/skills") -> dict:
              ("tools.py", (_TMPL / "tools.py.tmpl").read_text(encoding="utf-8")),
              ("cli.py", (_TMPL / "cli.py.tmpl").read_text(encoding="utf-8")),
              ("mcp.py", (_TMPL / "mcp.py.tmpl").read_text(encoding="utf-8")),
-             ("lib/__init__.py", (_TMPL / "lib__init__.py.tmpl").read_text(encoding="utf-8"))]
+             ("lib/__init__.py", (_TMPL / "lib__init__.py.tmpl").read_text(encoding="utf-8")),
+             ("lib/template.py", (_TMPL / "template.py.tmpl").read_text(encoding="utf-8"))]
     for name, body in pairs:
         dst = scripts / name
         if dst.exists():
@@ -30,6 +31,14 @@ def scaffold(skill: str, path: str = ".claude/skills") -> dict:
             continue
         dst.write_text(body.replace("{{Skill名}}", skill), encoding="utf-8")
         written.append(str(dst))
+    # 型の雛形 ── 生成物を持つ Skill だけが使う。**形はここが持つ**
+    tpl = root / "references" / f"{skill}.template.html"
+    if not tpl.exists():
+        tpl.parent.mkdir(parents=True, exist_ok=True)
+        tpl.write_text((_TMPL / "template.html.tmpl").read_text(encoding="utf-8")
+                       .replace("{{Skill名}}", skill), encoding="utf-8")
+        written.append(str(tpl))
+
     frag = (_TMPL / "mcp.json.tmpl").read_text(encoding="utf-8")
     frag = frag.replace("{{Skill名}}", skill).replace("{{Skillの絶対パス}}", str(root.resolve()))
     (root / "mcp.json").write_text(frag, encoding="utf-8")
