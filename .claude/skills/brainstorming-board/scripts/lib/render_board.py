@@ -25,6 +25,7 @@ import sys
 import tempfile
 
 _HERE = pathlib.Path(__file__).resolve().parent
+from .template import part as _t
 from . import tokens as _tok                                       # noqa: E402
 from .board_css import CSS as _CSS, drop_numbering                 # noqa: E402
 from .build_board import Option, Table, Topic, cell, deck, write   # noqa: E402
@@ -61,11 +62,12 @@ def _events(row: list[tuple[str, str]]) -> str:
         n = j - i
         count = f"<small>{n}件</small>" if n > 1 else ""
         for m in range(n):
-            head = (f'<th rowspan="{n}"><span class="kind {_EVENT_KIND[k]}">'
-                    f'{_EVENT_LABEL[k]}</span>{count}</th>' if m == 0 else "")
+            head = (_t("event-head", span=n, kind=_EVENT_KIND[k],
+                       label=_EVENT_LABEL[k], count=count) if m == 0 else "")
             num = f'<span class="ev-n">{m + 1}</span>' if n > 1 else ""
             end = " g-end" if m == n - 1 and j < len(row) else ""
-            body.append(f'<tr class="g-{k}{end}">{head}<td>{num}{row[i + m][1]}</td></tr>')
+            body.append(_t("event-row", tag=k, end=end, head=head, num=num,
+                           body=row[i + m][1]))
         i = j
     return f'<table class="ev"><tbody>{"".join(body)}</tbody></table>'
 
@@ -110,7 +112,7 @@ def build(blocks, figure_src: pathlib.Path) -> str:
             out.append(f'<details class="why-in"><summary>{b["heading"]}</summary>'
                        f'<div>{build(b["body"], figure_src)}</div></details>')
         elif k == "card":
-            mark = f'<span class="ver">{b["letter"]}</span>' if b.get("letter") else ""
+            mark = _t("card-mark", letter=b["letter"]) if b.get("letter") else ""
             row = [(e["tag"], f'<span class="q-in">{e["text"]}</span>'
                    if e["tag"] == "returned" else
                    (cell(e["text"]) if e["tag"] == "finding" else e["text"]))
@@ -301,7 +303,7 @@ def render(dir: pathlib.Path, *, verify: bool = True) -> str:
         baseline = json.loads(before.read_text(encoding="utf-8")).get("snap")
 
     body = deck(theme=d["title"], topics=topics,
-                intro=style + build(d.get("intro", []), figure_src),
+                intro=build(d.get("intro", []), figure_src), style=style,
                 extras=[(e["heading"], build(e["body"], figure_src))
                         for e in d.get("panels", [])],
                 board=d["board"], round_no=round_no, prev=baseline,

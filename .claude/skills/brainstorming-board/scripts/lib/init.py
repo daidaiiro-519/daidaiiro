@@ -23,13 +23,162 @@ BOARD = """{
  "title": "{title}",
  "board": "{name}",
  "round": 1,
+ "intro": [
+  {
+   "kind": "para",
+   "text": "この板が何を決めるかを1文で書く。無ければこの欄ごと消す"
+  }
+ ],
+ "panels": [
+  {
+   "heading": "いま見る論点",
+   "body": [
+    {
+     "kind": "para",
+     "text": "なぜこの論点をいま開いたかを書く"
+    }
+   ]
+  }
+ ],
+ "queue": [
+  {
+   "no": 1,
+   "why": "前提が片付いたので開いた ── 何が確定したかを書く"
+  }
+ ],
  "topics": [
   {
    "no": 1,
    "name": "論点の短い名前",
    "status": "open",
    "question": "何を決めるか",
-   "answer": "反証を通過して残った答え"
+   "answer": "反証を通過して残った答え",
+   "intro": "この論点が何を縛るかを書く。**読み手が最初に読む1行である**",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "para",
+      "text": "決めたことを書く。**手段ではなく、何を採るかである**"
+     },
+     {
+      "kind": "list",
+      "ordered": true,
+      "items": [
+       {
+        "text": "決めたことの1つ目"
+       },
+       {
+        "text": "決めたことの2つ目"
+       }
+      ]
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "決めた語を導入したら、その実例をここに置く"
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "example",
+     "caption": "この図が何を示すかを1文で書く。**答えの直下に、開いたまま置く**"
+    }
+   ],
+   "passed": [
+    {
+     "name": "残った案の名前",
+     "body": "何をする案か",
+     "cost": "採ると何を負担するか"
+    },
+    {
+     "name": "もう1つの案",
+     "body": "何をする案か",
+     "cost": "採ると何を負担するか"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結を並べる表",
+     "cols": [
+      "どうなるか"
+     ],
+     "rows": [
+      [
+       "残った案の名前",
+       [
+        "この案を採ったときに起きること"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "除外した案",
+     "reason": "何が壊れるか"
+    }
+   ],
+   "path": [
+    {
+     "kind": "card",
+     "letter": "A",
+     "heading": "前の答え。差し戻されたら、ここへ積む",
+     "events": [
+      {
+       "tag": "returned",
+       "text": "利用者の言葉を、そのまま置く"
+      },
+      {
+       "tag": "obsolete",
+       "text": "その差し戻しで、何が失効したか"
+      },
+      {
+       "tag": "finding",
+       "text": "そこで何が判明したか"
+      }
+     ]
+    },
+    {
+     "kind": "para",
+     "text": "差し戻しを伴わない手は、文として置く"
+    }
+   ],
+   "findings": [
+    "反証で判明したこと。**1行に1つだけ置く**"
+   ],
+   "grounds": [
+    {
+     "supports": "答えのどこを支えるか",
+     "basis": "もとにしたこと",
+     "tag": "primary",
+     "source": "その出どころ"
+    }
+   ],
+   "requirements": [
+    "この答えを採ると、何を用意することになるか"
+   ],
+   "out_of_scope": [
+    {
+     "item": "この答えが扱わない事項",
+     "treatment": "later",
+     "note": "いつ、どこで決めるか"
+    }
+   ],
+   "panels": [
+    {
+     "heading": "補足",
+     "body": [
+      {
+       "kind": "para",
+       "text": "論点ごとの補足を置く。無ければこの欄ごと消す"
+      }
+     ]
+    }
+   ]
   }
  ]
 }
@@ -61,6 +210,14 @@ pdftotext -layout <名前>.pdf <名前>.txt
 """
 
 
+# 雛形の図。**組むのはこの道具ではない** ── 置き換えるまでの場所取りである。
+FIGURE = ('<svg viewBox="0 0 320 96" role="img">'
+          '<rect x="1" y="1" width="318" height="94" rx="8" fill="var(--card)" '
+          'stroke="var(--rule)"/>'
+          '<text x="160" y="52" text-anchor="middle" font-size="13" fill="var(--dim)">'
+          '図は design-svg に組ませ、この場所へ置く</text></svg>\n')
+
+
 def create(name: str, dir: str = ".brainstorming-board", title: str = "") -> list[str]:
     """置き場所・雛形・索引の行を作り、報告の行を返す。**印字はしない。**
 
@@ -75,6 +232,8 @@ def create(name: str, dir: str = ".brainstorming-board", title: str = "") -> lis
 
     title = title or name
     (board / "figures").mkdir(parents=True)
+    # 完成イメージの置き場所を、見本ごと作る ── 図は design-svg に組ませ、ここへ置く
+    (board / "figures" / "example.svg").write_text(FIGURE, encoding="utf-8")
     (board / "rounds").mkdir()
     (board / "sources").mkdir()
     (board / "answers").mkdir()

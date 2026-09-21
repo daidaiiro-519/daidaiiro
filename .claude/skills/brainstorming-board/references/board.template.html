@@ -1,0 +1,66 @@
+<!-- ブレストボードの型。**形はここが持つ** ── 組み立てのコードは、値を差し込むだけである。
+     差し込む場所は {{名前}} で、過不足は `lib/template.py` がその場で例外にする。
+     1つの部品の中で、同じ名前を何度使ってもよい。 -->
+
+<template data-part="page"><title>{{title}}</title>{{head}}<style>{{style}}</style>{{body}}</template>
+
+<template data-part="head"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"></template>
+
+<!-- 節 ── 裏づけは、どれもこの形で畳む。見出しは組み立てが作る -->
+<template data-part="fold"><details><summary>{{summary}}</summary><div>{{body}}</div></details></template>
+
+<!-- 表 ── 見出しが全部空なら、見出しの行を出さない -->
+<template data-part="table"><div class="scroll"><table>{{head}}{{rows}}</table></div></template>
+<template data-part="table-head"><tr>{{cells}}</tr></template>
+<template data-part="table-th"><th>{{cell}}</th></template>
+<template data-part="table-row"><tr>{{cells}}</tr></template>
+<template data-part="table-td"><td>{{cell}}</td></template>
+
+<!-- 論点1つぶん -->
+<template data-part="topic-head"><div class="qh"><span class="qid">{{qid}}</span><h2>{{question}}</h2></div></template>
+<template data-part="note"><div class="note">{{body}}</div></template>
+<template data-part="answer"><div class="ans"><span class="big">{{letter}}</span>{{body}}</div></template>
+<template data-part="figures"><div class="figs">{{figures}}</div></template>
+<template data-part="figure"><figure>{{svg}}<figcaption>{{caption}}</figcaption></figure></template>
+<template data-part="example"><div class="ex">{{body}}</div></template>
+
+<!-- 経過のカードと、その中の出来事 -->
+<template data-part="card"><div class="card"><div class="card-h">{{mark}}{{heading}}</div>{{events}}</div></template>
+<template data-part="card-mark"><span class="ver">{{letter}}</span></template>
+<template data-part="events"><table class="ev"><tbody>{{rows}}</tbody></table></template>
+<template data-part="event-row"><tr class="g-{{tag}}{{end}}">{{head}}<td>{{num}}{{body}}</td></tr></template>
+<template data-part="event-head"><th rowspan="{{span}}"><span class="kind {{kind}}">{{label}}</span>{{count}}</th></template>
+
+<!-- 現在地 -->
+<template data-part="front"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div>{{style}}{{intro}}{{lead}}{{list}}{{changes}}{{panels}}</section></template>
+<template data-part="queue"><div class="front"><h3>いま見るのは {{count}} 件だけである</h3><ol>{{items}}</ol>{{tail}}</div></template>
+<template data-part="queue-item"><li><button class="jump" data-go="p{{at}}">Q{{no}}　{{label}}</button><br><span class="why">{{why}}</span></li></template>
+
+<!-- タブと面 -->
+<template data-part="tab"><button data-t="p{{at}}" aria-selected="false"{{cls}}><span class="tn">Q{{no}}</span>{{label}}{{chip}}</button></template>
+<template data-part="tab-front"><button data-t="p0" aria-selected="true">現在地</button></template>
+<template data-part="pane"><div id="p{{at}}" hidden>{{body}}</div></template>
+<template data-part="pane-front"><div id="p0">{{body}}</div></template>
+
+<!-- 論点の面と、送る -->
+<template data-part="topic"><section class="q">{{body}}</section></template>
+<template data-part="send"><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / {{open}}</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section></template>
+
+<!-- 回答欄 ── 決着した論点は持たない -->
+<template data-part="form"><div class="form" data-q="{{qid}}" data-title="{{title}}"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons">{{reasons}}</div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></template>
+<template data-part="reason-button"><button class="rb" data-r="{{text}}">{{text}}</button></template>
+<template data-part="folds"><div>{{body}}</div></template>
+
+<!-- この回の変更を、どの画面からでも開く引き出し -->
+<template data-part="drawer-toggle"><button id="dtoggle" aria-expanded="false" aria-controls="drawer">この回の変更<span class="dn">{{count}}</span></button></template>
+<template data-part="drawer"><aside id="drawer" hidden aria-label="この回で変わったところ"><div class="dhead"><b>この回で変わったところ</b><button id="dclose" aria-label="閉じる">閉じる</button></div><div class="dbody"><p class="note-s">押すと、その箇所まで運ぶ。<b>印をもう一度押すと、前の回の中身が開く。</b></p><ol class="dlist">{{items}}</ol></div></aside></template>
+<template data-part="drawer-topic"><li class="dq">Q{{no}}　{{label}}<span class="dn">{{count}}</span></li></template>
+<template data-part="drawer-item"><li><button class="dgo" data-go="p{{at}}" data-cid="{{cid}}"><span class="dw">{{where}}</span>{{excerpt}}</button></li></template>
+
+<!-- 1枚の外枠 -->
+<template data-part="board"><div id="root" data-board="{{board}}" data-round="{{round}}" data-theme-name="{{theme}}"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　{{theme_text}}　/　Round {{round}}</p><h1>{{theme_text}}</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist">{{tabs}}</div>{{panes}}{{send}}{{drawer}}<footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div>{{script}}</template>
+
+<!-- 経過の並びと、跳ぶボタン -->
+<template data-part="path"><ol class="path">{{items}}</ol></template>
+<template data-part="path-item"><li>{{body}}</li></template>
+<template data-part="jump"><button class="jump" data-go="p{{at}}">Q{{no}}　{{label}}</button></template>

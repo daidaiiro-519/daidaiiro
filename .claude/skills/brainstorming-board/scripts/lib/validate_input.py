@@ -126,6 +126,32 @@ def level_mix(place: str, s: str) -> list[str]:
     return [f"{place}: 段の要素「{m.group(0)}」が欄の中に在る ── 宣言へ割る"] if m else []
 
 
+# 節の見出しは道具が作る。**手で書くと、板ごとに違う形になる。**
+SECTION_HEAD = re.compile(r"この答え(の|が)")
+
+
+def authored_sections(d: dict) -> list[str]:
+    """節の見出しを手で書いた折り畳みを探す。"""
+    bad = []
+
+    def walk(o, where):
+        if isinstance(o, dict):
+            if o.get("kind") == "fold" and SECTION_HEAD.search(o.get("heading", "")):
+                bad.append(f"{where}: 節の見出しを手で書いている「{o['heading'][:28]}」 ── "
+                           "見出しは道具が作る。中身だけを置く")
+            for v in o.values():
+                walk(v, where)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v, where)
+
+    for t in d.get("topics", []):
+        walk(t.get("example"), f"topics[{t.get('no')}]/example")
+        walk(t.get("panels"), f"topics[{t.get('no')}]/panels")
+    walk(d.get("panels"), "panels")
+    return bad
+
+
 def ref(dir: pathlib.Path, d: dict) -> list[str]:
     """図の参照先が実在するかを見る。"""
     bad, seen = [], set()
@@ -156,7 +182,7 @@ def shape(d: dict) -> list[str]:
 
 def check(dir: pathlib.Path) -> list[str]:
     d = json.loads((dir / "board.json").read_text(encoding="utf-8"))
-    bad = shape(d) + ref(dir, d)
+    bad = shape(d) + ref(dir, d) + authored_sections(d)
     for place, s in _cells(d):
         bad += prose(place, s) + level_mix(place, s)
     return bad

@@ -83,6 +83,10 @@ def validate(t: dict, *, with_schema: bool = True) -> list[str]:
 CONTRAST = [("ink", 4.5), ("sub", 4.5), ("muted", 4.5), ("dim", 4.5)]
 SURFACES = ("paper", "card", "panel")
 
+# 重ねる面どうし。**同じ濃さだと、載っているものが地の一部に見える** ──
+# 実際に、表が地と同じ色で「どこからが表か」が読めなくなった。
+LAYERED = [("card", "sunk", 1.15), ("card", "panel", 1.10), ("rule", "card", 1.5)]
+
 
 def _luminance(hex_color: str) -> float:
     """相対輝度（WCAG 2.1 の定義）。"""
@@ -113,6 +117,12 @@ def _contrast_errors(t: dict, base: dict[str, str]) -> list[str]:
                 if r < need:
                     err.append(f"{side}: --{fg} が --{bg} の上で {r:.2f}（要 {need}）"
                                f" ── {base[table[fg]]} / {base[table[bg]]}")
+        for top, under, need in LAYERED:
+            if top in table and under in table:
+                r = contrast(base[table[top]], base[table[under]])
+                if r < need:
+                    err.append(f"{side}: --{top} と --{under} の差が {r:.3f}（要 {need}）"
+                               f" ── 重ねても分かれて見えない")
     return err
 
 

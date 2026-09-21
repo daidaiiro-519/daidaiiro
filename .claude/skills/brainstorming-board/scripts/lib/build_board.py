@@ -34,6 +34,8 @@ import re
 import sys as _sys
 from dataclasses import dataclass, field
 
+from .template import part as _t
+
 LETTERS = "ABCDEFGH"
 
 # ブレストボードの色。図を描く側は、これを自分のエンジンのトークンへ複製する。
@@ -177,11 +179,7 @@ class Topic:
 # （実際になった）。決着は同じ1枚に蓄積し、後の論点はそれを前提にする。
 # ──────────────────────────────────────────────────────────────
 
-HEAD = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
-        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        'family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700'
-        '&family=JetBrains+Mono:wght@400;700&display=swap">')
+HEAD = _t("head")
 
 CSS = """
 *{box-sizing:border-box}
@@ -237,7 +235,7 @@ border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5re
 .note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
 padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
 .note b{color:var(--ink)}
-figure{margin:0;background:var(--sunk);border:1px solid var(--rule-soft);border-radius:.45rem;
+figure{margin:0;background:var(--fig-bg);border:1px solid var(--rule-soft);border-radius:.45rem;
 padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
 figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
 figcaption{font-size:.82rem;color:var(--muted)}
@@ -252,9 +250,10 @@ details+details{margin-top:.5rem}
 summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
 details>div{padding:0 .9rem .9rem}
 .scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
 th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
-th{background:var(--sunk);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
 code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
 padding:.06rem .3rem;border-radius:.2rem}
 ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
@@ -645,8 +644,12 @@ class Diff:
         return self.mark(field, 0, 0, text)
 
 
+# よく使う差し戻しの理由。**値そのものは限定しない** ── 差し込みの見本である
+REASONS = ("もっと単純に", "前提が違う", "別の道も見たい")
+
+
 def _fold(summary, body):
-    return f"<details><summary>{summary}</summary><div>{body}</div></details>"
+    return _t("fold", summary=summary, body=body)
 
 
 def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
@@ -657,31 +660,36 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     """
     qid = f"Q{t.no}"
     d = diff if diff is not None else Diff(t, prev)
-    out = [f'<div class="qh"><span class="qid">{qid}</span>'
-           f'<h2>{_h.escape(t.question)}</h2></div>']
+    out = [_t("topic-head", qid=qid, question=_h.escape(t.question))]
     if t.note:
-        out.append(f'<div class="note">{d.one("note", t.note)}</div>')
+        out.append(_t("note", body=d.one("note", t.note)))
 
     if t.pick:
         letter, concl = t.pick
-        out.append('<div class="ans">'
-                   f'<span class="big">{_h.escape(letter)}</span>'
-                   f'{d.one("pick", concl)}</div>')
+        out.append(_t("answer", letter=_h.escape(letter), body=d.one("pick", concl)))
     elif t.decision:
         out.append(_tbl(["", ""], [[f'<span class="st done">{_h.escape(k)}</span>', v]
                                    for k, v in t.decision]))
 
-    if t.example:
-        out.append(f'<div class="ex">{t.example}</div>')
-
+    folds = []
+    # 完成イメージ ── **見出しは道具が作る。** 手で書かせると板ごとに違う形になる。
+    # 中に何が在るかを見出しが示すので、開くかどうかを読み手が決められる。
+    image = ""
     if t.figures:
         # 図は縦方向へ並べる。横に並べると、縦横比の違う図が幅に合わせて縮み、
         # 文字が読めなくなる（742×100 の図が 380px で潰れた）
-        out.append('<div class="figs">' + "".join(
-            f"<figure>{svg}<figcaption>{cap}</figcaption></figure>"
-            for svg, cap in t.figures) + "</div>")
+        image += _t("figures", figures="".join(
+            _t("figure", svg=svg, caption=cap) for svg, cap in t.figures))
+    if t.example:
+        image += _t("example", body=t.example)
+    if image:
+        what = []
+        if t.figures:
+            what.append(f"図{len(t.figures)}枚" if len(t.figures) > 1 else "図")
+        if t.example:
+            what.append("実例")
+        folds.append(_fold("この答えの完成イメージ ── " + "と、".join(what), image))
 
-    folds = []
     for part, claim, kind, src in t.grounds:
         if kind not in KINDS:
             raise ValueError(f"論点{t.no}: 出どころの種類が「{kind}」。"
@@ -767,9 +775,9 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     hist = ""
     if t.path:
         hist += (f'<p class="note-s">そう判断するまで（道筋 {len(t.path)}手）</p>'
-                 + '<ol class="path">'
-                 + "".join(f'<li>{d.mark("path", i, 0, x)}</li>' for i, x in enumerate(t.path))
-                 + "</ol>")
+                 + _t("path", items="".join(
+                     _t("path-item", body=d.mark("path", i, 0, x))
+                     for i, x in enumerate(t.path))))
     if t.found:
         hist += (f'<p class="note-s">反証で分かったこと（{len(t.found)}件）</p>'
                  + _pairs([d.mark("found", i, 0, x) for i, x in enumerate(t.found)],
@@ -784,28 +792,14 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
         folds.append(_fold("経過 ── 道筋と、そこで分かったこと", hist))
 
     if folds:
-        out.append("<div>" + "".join(folds) + "</div>")
+        out.append(_t("folds", body="".join(folds)))
 
     # 決着した論点は回答欄を持たない。決まったことを、もう一度聞かない
     if ask and t.status != "settled" and (t.pick or t.decision):
-        out.append(
-            f'<div class="form" data-q="{qid}" data-title="{_h.escape(t.question, quote=True)}">'
-            '<div class="verdicts">'
-            '<button class="vb" data-v="approved" aria-pressed="false">承認する</button>'
-            '<button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button>'
-            '<button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button>'
-            '</div>'
-            '<div><label>差し戻す理由（自由に書けます）</label>'
-            '<div class="reasons">'
-            '<button class="rb" data-r="もっと単純に">もっと単純に</button>'
-            '<button class="rb" data-r="前提が違う">前提が違う</button>'
-            '<button class="rb" data-r="別の道も見たい">別の道も見たい</button></div>'
-            '<textarea class="reason" placeholder="ボタンは差し込み。'
-            '当てはまらない理由は、そのまま書く"></textarea></div>'
-            '<div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label>'
-            '<textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度">'
-            '</textarea></div></div>')
-    return '<section class="q">' + "".join(out) + "</section>"
+        out.append(_t(
+            "form", qid=qid, title=_h.escape(t.question, quote=True),
+            reasons="".join(_t("reason-button", text=r) for r in REASONS)))
+    return _t("topic", body="".join(out))
 
 
 def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
@@ -818,6 +812,7 @@ def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
       3 宣言されていない依存が無いか  —— 答えの本文だけが他の論点を前提にし、根拠の欄に出てこなかった
       4 試す相手が在るか            —— 下流にも外の作業にも使われない答えを、承認へ出そうとした
       5 扱わない範囲に扱いが在るか  —— 制約を並べたまま承認を求め、覆すか否かを示さなかった
+      6 答えに完成イメージが在るか  —— 図も実例も無いまま承認を求めた。人は文章だけで決定を受け取れない
 
     **見えないもの**が4つある —— 答えの中身が正しいか、反証が十分か、図が主張を運べているか、
     そして**「論点N」と書かずに他の論点を前提にしている依存**である。3つ目の検査が拾うのは、
@@ -834,6 +829,11 @@ def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
     if len(topics) >= 4 and "いま見る論点" not in titles:
         out.append("現在地に「いま見る論点」が無い。依存を自分で持つだけでは足りない ── "
                    "示さなければ、順番の管理が承認する側の仕事になる")
+
+    for t in topics:
+        if t.answer and not (t.figures or t.example):
+            out.append(f"論点{t.no}: 答えを持つのに、完成イメージ（図か実例）が無い ── "
+                       "文章だけでは、読み手が頭の中で像を作り、そこで解釈がぶれる")
 
     ref = re.compile(r"論点(\d+)")
     dep: dict[int, tuple[set[int], set[int]]] = {}
@@ -873,7 +873,7 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
          extras: list[tuple[str, str]] | None = None,
          board: str = "board", round_no: int = 1,
          queue: list[tuple[int, str]] | None = None,
-         prev: dict | None = None) -> str:
+         prev: dict | None = None, style: str = "") -> str:
     """論点をタブ1枚にまとめ、開いている論点に回答欄を付ける。
 
     先頭のタブは「現在地」── どれが決着し、どれが開いているかの一覧である。
@@ -913,15 +913,13 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
     lead = ""
     if front:
         items = "".join(
-            f'<li><button class="jump" data-go="p{order[n]}">'
-            f'Q{n}　{_h.escape(next(t.label for t in topics if t.no == n))}</button>'
-            f'<br><span class="why">{why}</span></li>'
+            _t("queue-item", at=order[n], no=n,
+               label=_h.escape(next(t.label for t in topics if t.no == n)), why=why)
             for n, why in (queue or []) if n in order)
         waiting = [t for t in topics if t.status != "settled" and t.no not in front]
         tail = (f'<p class="waiting">残り {len(waiting)} 件は、上流が決まるまで動く。'
                 '回答欄は持たない。</p>' if waiting else "")
-        lead = (f'<div class="front"><h3>いま見るのは {len(front)} 件だけである</h3>'
-                f'<ol>{items}</ol>{tail}</div>')
+        lead = _t("queue", count=len(front), items=items, tail=tail)
 
     diffs = [(t, dmap[t.no]) for t in topics] if prev is not None else []
     n_chg = sum(d.n for _, d in diffs)
@@ -933,42 +931,32 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
                 '<p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── '
                 "押すと前の回の中身が開く。</p>"
                 + _tbl(["論点", "変わった欄"],
-                       [[f'<button class="jump" data-go="p{order[t.no]}">'
-                         f'Q{t.no}　{_h.escape(t.label)}</button>', f"{d.n} か所"]
+                       [[_t("jump", at=order[t.no], no=t.no, label=_h.escape(t.label)),
+                         f"{d.n} か所"]
                         for t, d in diffs if d.n]))
         else:
             chg_fold = _fold("この回で変わったところ（0 か所）",
                              '<p class="note-s">前の回から、中身は1つも変わっていない。</p>')
 
-    now = ('<section class="q">'
-           '<div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div>'
-           + (f'<div class="note">{intro}</div>' if intro else "")
-           + lead
-           + _tbl(["#", "論点", "状態", "いまの答え"], rows)
-           + chg_fold
-           + "".join(_fold(ti, bo) for ti, bo in (extras or []))
-           + "</section>")
+    now = _t("front", style=style,
+             intro=_t("note", body=intro) if intro else "",
+             lead=lead,
+             list=_tbl(["#", "論点", "状態", "いまの答え"], rows),
+             changes=chg_fold,
+             panels="".join(_fold(ti, bo) for ti, bo in (extras or [])))
 
-    tabs = ['<button data-t="p0" aria-selected="true">現在地</button>']
-    panels = [f'<div id="p0">{now}</div>']
+    tabs = [_t("tab-front")]
+    panels = [_t("pane-front", body=now)]
     for i, t in enumerate(topics, start=1):
         cls = "" if queue is None or t.status == "settled" else (
             " class=\"now\"" if t.no in front else " class=\"wait\"")
-        tabs.append(f'<button data-t="p{i}" aria-selected="false"{cls}>'
-                    f'<span class="tn">Q{t.no}</span>{_h.escape(t.label)}{chip(t)}</button>')
-        panels.append(f'<div id="p{i}" hidden>'
-                      f'{_panel(t, theme, ask=queue is None or t.no in front, prev=prev, diff=dmap[t.no])}</div>')
+        tabs.append(_t("tab", at=i, no=t.no, cls=cls, label=_h.escape(t.label), chip=chip(t)))
+        panels.append(_t("pane", at=i, body=_panel(
+            t, theme, ask=queue is None or t.no in front, prev=prev, diff=dmap[t.no])))
 
     n_open = sum(1 for t in topics if t.status != "settled" and (t.pick or t.decision)
                  and (queue is None or t.no in front))
-    send = ('<section class="send"><h2>送る</h2>'
-            f'<p class="note-s">入っているのは <b><span id="cnt">0</span> / {n_open}</b> 件。'
-            '論点に対して決定は1つなので、論点ごとに1件だけ入る。</p>'
-            '<button class="sb" id="go" disabled>まとめて送る</button>'
-            '<p class="note-s"><b>送信では、こちらのターンは始まらない。</b>'
-            '送ったあと、チャットで一言もらう必要がある。'
-            'ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p>'
-            '<div class="out" id="out" hidden></div></section>')
+    send = _t("send", open=n_open)
 
     # この回の変更を、**どの画面からでも開ける引き出し**にする。
     # 現在地の節だけに置くと、他の論点を見ているあいだは何も見えない（実際にそうだった）。
@@ -979,36 +967,18 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
             d = dmap[t.no]
             if not d.items:
                 continue
-            lis += (f'<li class="dq">Q{t.no}　{_h.escape(t.label)}'
-                    f'<span class="dn">{d.n}</span></li>')
+            lis += _t("drawer-topic", no=t.no, label=_h.escape(t.label), count=d.n)
             for cid, where, excerpt in d.items:
-                lis += (f'<li><button class="dgo" data-go="p{order[t.no]}" data-cid="{cid}">'
-                        f'<span class="dw">{where}</span>{excerpt}</button></li>')
-        drawer = ('<button id="dtoggle" aria-expanded="false" aria-controls="drawer">'
-                  f'この回の変更<span class="dn">{n_chg}</span></button>'
-                  '<aside id="drawer" hidden aria-label="この回で変わったところ">'
-                  '<div class="dhead"><b>この回で変わったところ</b>'
-                  '<button id="dclose" aria-label="閉じる">閉じる</button></div>'
-                  '<div class="dbody">'
-                  '<p class="note-s">押すと、その箇所まで運ぶ。'
-                  '<b>印をもう一度押すと、前の回の中身が開く。</b></p>'
-                  f'<ol class="dlist">{lis}</ol></div></aside>')
+                lis += _t("drawer-item", at=order[t.no], cid=cid,
+                          where=where, excerpt=excerpt)
+        drawer = (_t("drawer-toggle", count=n_chg)
+                  + _t("drawer", items=lis))
 
     # <body> は公開時の器が用意する。ここで書くと入れ子になるので、器は div で持つ
-    return (f'<div id="root" data-board="{_h.escape(board, quote=True)}" '
-            f'data-round="{round_no}" data-theme-name="{_h.escape(theme, quote=True)}">'
-            '<div class="wrap"><header>'
-            f'<p class="eyebrow">Brainstorm　/　{_h.escape(theme)}　/　Round {round_no}</p>'
-            f'<h1>{_h.escape(theme)}</h1>'
-            '<p class="thesis">論点ごとにタブが1枚ある。'
-            '<b>答えられる問いだけが回答欄を持つ</b> ── '
-            'まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p>'
-            '</header>'
-            f'<div id="tabs" role="tablist">{"".join(tabs)}</div>'
-            f'{"".join(panels)}{send}{drawer}'
-            '<footer>© 2026 daidaiiro　'
-            '<a href="https://opensource.org/licenses/MIT">MIT License</a></footer>'
-            '</div></div>' + SCRIPT)
+    return _t("board", board=_h.escape(board, quote=True), round=round_no,
+              theme=_h.escape(theme, quote=True), theme_text=_h.escape(theme),
+              tabs="".join(tabs), panes="".join(panels), send=send,
+              drawer=drawer, script=SCRIPT)
 
 
 def _css() -> str:
@@ -1024,6 +994,6 @@ def _css() -> str:
 def write(body: str, path: str, title: str) -> str:
     """1枚を、そのまま公開できるHTMLとして書き出す。"""
     import pathlib
-    page = f"<title>{_h.escape(title)}</title>{HEAD}<style>{_css()}</style>{body}"
+    page = _t("page", title=_h.escape(title), head=HEAD, style=_css(), body=body)
     pathlib.Path(path).write_text(page, encoding="utf-8")
     return page
