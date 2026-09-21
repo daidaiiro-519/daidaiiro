@@ -2522,66 +2522,55 @@
    },
    "example": [
     {
+     "kind": "para",
+     "text": "<b>在るのは規則だけである。</b>規則1件が1ファイルで、3要素（出典 ・ 採用範囲 ・ 検証方法）は変化しない。違うのは<b>出典が何を指すか</b>の1点だけで、原典が書いている範囲は<b>外</b>（原典の meta と引用文字列）を指し、原典が降りてこない範囲は<b>内</b>（<code>.acdr/</code> の記録＝ADR）を指す。"
+    },
+    {
+     "kind": "note",
+     "text": "②が指す ADR はまだ存在しない ── この形になる、という完成イメージである。"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "① 出典が外を指す規則（<code>rules/architecture/inward-only.json</code>）"
+    },
+    {
+     "kind": "html",
+     "text": "{\n  \"規則\": \"内側は外側を参照しない\",\n  \"出典\": {\n    \"meta\": \"hexagonal-cockburn\",\n    \"引用\": \"The application is ... insulated from ... devices\"\n  },\n  \"採用範囲\": \"許可辺のみ。層の数と名前は採用しない\",\n  \"検証方法\": {\n    \"道具\": [\"go\", \"list\", \"-deps\", \"./...\"],\n    \"対象\": \"許可辺\"\n  },\n  \"許可辺\": [ [\"adapter\", \"usecase\"], [\"usecase\", \"domain\"] ]\n}"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "② 出典が内を指す規則（<code>rules/architecture/layer-paths.json</code>）"
+    },
+    {
+     "kind": "html",
+     "text": "{\n  \"規則\": \"層は次のパスに置く\",\n  \"出典\": { \"adr\": \".acdr/NNNN-hexagonal-and-internal-layout\" },\n  \"採用範囲\": \"この成果物に限る\",\n  \"検証方法\": {\n    \"道具\": [\"test\", \"-d\"],\n    \"対象\": \"層の値それぞれ\"\n  },\n  \"層\": {\n    \"domain\":  \"internal/domain\",\n    \"usecase\": \"internal/usecase\",\n    \"adapter\": \"internal/adapter\"\n  }\n}"
+    },
+    {
      "kind": "fold",
-     "heading": "この答えの完成イメージ ── 図と、この軸の値で立つ規則2件",
+     "heading": "この2件が、なぜこの形なのか（6件）",
      "body": [
       {
-       "kind": "figure",
-       "name": "where",
-       "caption": "入れ物は規則1種である。違うのは出典の向きだけである。"
-      },
-      {
-       "kind": "para",
-       "text": "<b>在るのは規則だけである。</b>規則1件が1ファイルで、3要素（出典 ・ 採用範囲 ・ 検証方法）は変化しない。違うのは<b>出典が何を指すか</b>の1点だけで、原典が書いている範囲は<b>外</b>（原典の meta と引用文字列）を指し、原典が降りてこない範囲は<b>内</b>（<code>.acdr/</code> の記録＝ADR）を指す。"
-      },
-      {
-       "kind": "note",
-       "text": "②が指す ADR はまだ存在しない ── この形になる、という完成イメージである。"
-      },
-      {
-       "kind": "heading",
-       "level": 4,
-       "text": "① 出典が外を指す規則（<code>rules/architecture/inward-only.json</code>）"
-      },
-      {
-       "kind": "html",
-       "text": "{\n  \"規則\": \"内側は外側を参照しない\",\n  \"出典\": {\n    \"meta\": \"hexagonal-cockburn\",\n    \"引用\": \"The application is ... insulated from ... devices\"\n  },\n  \"採用範囲\": \"許可辺のみ。層の数と名前は採用しない\",\n  \"検証方法\": {\n    \"道具\": [\"go\", \"list\", \"-deps\", \"./...\"],\n    \"対象\": \"許可辺\"\n  },\n  \"許可辺\": [ [\"adapter\", \"usecase\"], [\"usecase\", \"domain\"] ]\n}"
-      },
-      {
-       "kind": "heading",
-       "level": 4,
-       "text": "② 出典が内を指す規則（<code>rules/architecture/layer-paths.json</code>）"
-      },
-      {
-       "kind": "html",
-       "text": "{\n  \"規則\": \"層は次のパスに置く\",\n  \"出典\": { \"adr\": \".acdr/NNNN-hexagonal-and-internal-layout\" },\n  \"採用範囲\": \"この成果物に限る\",\n  \"検証方法\": {\n    \"道具\": [\"test\", \"-d\"],\n    \"対象\": \"層の値それぞれ\"\n  },\n  \"層\": {\n    \"domain\":  \"internal/domain\",\n    \"usecase\": \"internal/usecase\",\n    \"adapter\": \"internal/adapter\"\n  }\n}"
-      },
-      {
-       "kind": "fold",
-       "heading": "この2件が、なぜこの形なのか（6件）",
-       "body": [
+       "kind": "list",
+       "items": [
         {
-         "kind": "list",
-         "items": [
-          {
-           "text": "<b>①にディレクトリ名が1つも出てこない</b> ── 出てくるのは原典の語（<code>domain</code> ・ <code>usecase</code> ・ <code>adapter</code>）だけである。パスを書いた時点で、この規則は他の成果物で使えなくなる"
-          },
-          {
-           "text": "<b>道具を配列で保持する</b> ── シェルの引用符を経由しないためである。文字列1本で保持すると、<code>./...</code> の展開が実行する殻に依存する"
-          },
-          {
-           "text": "<b>②の鍵（層名）は原典の語に限る</b> ── 値（パス）は原典に無いので、こちら側が決める"
-          },
-          {
-           "text": "<b>その決めた理由を保持するのが ADR である</b> ── それが②の出典になる"
-          },
-          {
-           "text": "<b>出典欄は空欄にできない</b> ── 空欄とすると、論点1（3要素）と論点2（出典に無いことは書かない）が成立しなくなる"
-          },
-          {
-           "text": "<b>ADR は改訂してよいかを判定するために要る</b> ── 監査のためではない"
-          }
-         ]
+         "text": "<b>①にディレクトリ名が1つも出てこない</b> ── 出てくるのは原典の語（<code>domain</code> ・ <code>usecase</code> ・ <code>adapter</code>）だけである。パスを書いた時点で、この規則は他の成果物で使えなくなる"
+        },
+        {
+         "text": "<b>道具を配列で保持する</b> ── シェルの引用符を経由しないためである。文字列1本で保持すると、<code>./...</code> の展開が実行する殻に依存する"
+        },
+        {
+         "text": "<b>②の鍵（層名）は原典の語に限る</b> ── 値（パス）は原典に無いので、こちら側が決める"
+        },
+        {
+         "text": "<b>その決めた理由を保持するのが ADR である</b> ── それが②の出典になる"
+        },
+        {
+         "text": "<b>出典欄は空欄にできない</b> ── 空欄とすると、論点1（3要素）と論点2（出典に無いことは書かない）が成立しなくなる"
+        },
+        {
+         "text": "<b>ADR は改訂してよいかを判定するために要る</b> ── 監査のためではない"
         }
        ]
       }
@@ -2901,6 +2890,13 @@
      "item": "<b>規則の側から meta と ADR をどう指すかを決めていない。</b>形式は JSON と決めたが、指す鍵（ファイル名か、別に振る id か）は未定である",
      "treatment": "later",
      "note": "この答えを試すのは<b>外の作業</b>である。軸の値1つ（<code>go</code>）で規則を1件書き、meta と ADR を指して照合を動かす。指せなければ、この答えは直る"
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "where",
+     "caption": "入れ物は規則1種である。違うのは出典の向きだけである。"
     }
    ]
   },
