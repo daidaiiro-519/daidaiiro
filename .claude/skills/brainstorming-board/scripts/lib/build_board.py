@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import difflib as _dl
 import html as _h
+import hashlib as _hashlib
 import re
 import sys as _sys
 from dataclasses import dataclass, field
@@ -383,7 +384,10 @@ def _tbl(head, rows):
 # **毎回どこを直したかを、書き手が文章で言うのは仕組みではない。**
 # 前の回の生成物を記録しておき、**ブレストボードが自分で印を付ける。**
 
-_FIELDS = ("note", "pick", "path", "found", "costs", "weaknesses", "tables", "grounds")
+# **印を付ける欄と、数える欄は一致させる。** 片方にしか無い欄は、
+# 変わっても画面に出ない（実際に、完成イメージと案の変更が1つも出なかった）
+_FIELDS = ("note", "pick", "answer", "figures", "example", "kept", "dropped",
+           "path", "found", "costs", "weaknesses", "tables", "grounds")
 
 ADDED = "（この回で足した）"
 
@@ -398,6 +402,13 @@ def snapshot(topics: list["Topic"]) -> dict:
         out[str(t.no)] = {
             "note": [[t.note or ""]],
             "pick": [[t.pick[1] if t.pick else ""]],
+            "answer": [[t.answer or ""]],
+            # 図は中身が長いので、要約（sha1 の頭）で比べる ── 描き直しも変更である
+            "figures": [[cap, _hashlib.sha1(svg.encode()).hexdigest()[:12]]
+                        for svg, cap in t.figures],
+            "example": [[t.example or ""]],
+            "kept": [[o.name, o.gist, o.cost] for o in t.kept],
+            "dropped": [[a, b] for a, b in t.dropped],
             "path": [[x] for x in t.path],
             "found": [[x] for x in t.found],
             "costs": [[x] for x in t.costs],
@@ -531,9 +542,10 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
         # 図は縦方向へ並べる。横に並べると、縦横比の違う図が幅に合わせて縮み、
         # 文字が読めなくなる（742×100 の図が 380px で潰れた）
         image += _t("figures", figures="".join(
-            _t("figure", svg=svg, caption=cap) for svg, cap in t.figures))
+            _t("figure", svg=svg, caption=d.mark("figures", i, 0, cap))
+            for i, (svg, cap) in enumerate(t.figures)))
     if t.example:
-        image += _t("example", body=t.example)
+        image += _t("example", body=d.one("example", t.example))
     if image:
         what = []
         if t.figures:
@@ -560,11 +572,13 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     if t.kept:
         rows = []
         for i, o in enumerate(t.kept):
-            name = _t("lead", text=o.name)
-            if o.before and o.why:
-                name = _mark(name, o.before, o.why)
-            rows.append([_key(LETTERS[i]), name, cell(o.gist),
-                         _t("cost", body=cell(o.cost))])  # 案は印を持つ
+            # **印を二重にしない** ── 書き手が付けた印が在る欄は、そちらを残す
+            name = (_mark(_t("lead", text=o.name), o.before, o.why)
+                    if (o.before and o.why)
+                    else _t("lead", text=d.mark("kept", i, 0, o.name)))
+            rows.append([_key(LETTERS[i]), name,
+                         cell(d.mark("kept", i, 1, o.gist)),
+                         _t("cost", body=cell(d.mark("kept", i, 2, o.cost)))])
         argue += (_t("note-s", body=f"反証を通過した案 {len(t.kept)}件。"
                      "このうち1つを残し、他は代償が重いか、前提を壊す。")
                   + _tbl(["", "案", "中身", "代償"], rows))
@@ -572,14 +586,16 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
         argue += (_t("note-s", body=f"除外した案 {len(t.dropped)}件 ── 何が壊れるか。")
                   + _tbl(["", "除外した案", "何が壊れるか"],
                          [[_key("×", "out"),
-                           _mark(_t("lead", text=d), "この案は残っていた", w,
-                                 deleted=True), cell(w)]
-                          for d, w in t.dropped]))
+                           _mark(_t("lead", text=d.mark("dropped", di, 0, x)),
+                                 "この案は残っていた", w, deleted=True),
+                           cell(d.mark("dropped", di, 1, w))]
+                          for di, (x, w) in enumerate(t.dropped)]))
     ti = 0
     for tb in t.tables:
         body = []
         for k, v in tb.rows.items():
-            body.append([(_t("lead", text=k) if tb.plain else _key(k))]
+            body.append([(_t("lead", text=d.mark("tables", ti, 1, k))
+                          if tb.plain else _key(k))]
                         + [cell(d.mark("tables", ti, 2 + j, str(x))) for j, x in enumerate(v)])
             ti += 1
         argue += ((_t("note-s", body=tb.lead) if tb.lead else "")
@@ -782,7 +798,8 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
         return _t("status", cls="wait", label="待ち")
 
     rows = [[_key(str(t.no)), _h.escape(t.question), chip(t),
-             t.answer or _t("dim")] for t in topics]
+             dmap[t.no].one("answer", t.answer) if t.answer else _t("dim")]
+            for t in topics]
 
     lead = ""
     if front:

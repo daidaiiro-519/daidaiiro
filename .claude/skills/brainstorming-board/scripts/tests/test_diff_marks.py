@@ -102,4 +102,15 @@ with _tmp.TemporaryDirectory() as _d:
     assert sum(m.Diff(t, _base).n for t in _now) == 0, "動かしていないのに、変わったと出る"
 print("  ok 保存した基準と、組み立てが見るものが一致する")
 
-print("\n24 件すべて通った")
+
+# ── 数える欄と、印を付ける欄が一致する ────────────────────
+# **片方にしか無い欄は、変わっても画面に出ない**
+# （実際に、完成イメージと案の変更が1つも出なかった）
+_src = (pathlib.Path(__file__).resolve().parents[1] / "lib" / "build_board.py").read_text(
+    encoding="utf-8")
+for _f in m._FIELDS:
+    assert (f'.mark("{_f}"' in _src) or (f'.one("{_f}"' in _src), \
+        f"欄 {_f} を数えているのに、印を付けていない"
+print(f"  ok 数える欄 {len(m._FIELDS)} 件すべてに、印を付けている")
+
+print("\n25 件すべて通った")
