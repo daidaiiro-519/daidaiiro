@@ -27,7 +27,7 @@ import tempfile
 _HERE = pathlib.Path(__file__).resolve().parent
 from .template import part as _t
 from . import tokens as _tok                                       # noqa: E402
-from .board_css import CSS as _CSS, drop_numbering                 # noqa: E402
+from .board_css import drop_numbering                              # noqa: E402
 from .build_board import Option, Table, Topic, cell, deck, write   # noqa: E402
 
 _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -304,7 +304,9 @@ def render(dir: pathlib.Path, *, verify: bool = True) -> str:
     err = _tok.validate(_tok.load())
     if err:
         raise SystemExit("トークンの検査が通っていない:\n  " + "\n  ".join(err))
-    style = "<style>" + _CSS + drop_numbering(origin) + "</style>"
+    # 見た目は write() が正本から置く。ここで置くのは、
+    # 入力の中身から計算した値だけである
+    style = "<style>" + drop_numbering(origin) + "</style>"
 
     baseline = None
     round_no = d["round"]

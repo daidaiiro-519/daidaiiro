@@ -181,169 +181,6 @@ class Topic:
 
 HEAD = _t("head")
 
-CSS = """
-*{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);
-font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
-font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
-.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
-h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
-h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
-h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
-p{margin:0}
-.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
-text-transform:uppercase;color:var(--muted)}
-.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
-.thesis b{color:var(--ink);font-weight:700}
-header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
-
-/* ── タブ ── */
-#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
-padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
-#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
-border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
-cursor:pointer;display:flex;gap:.4rem;align-items:center}
-#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
-color:var(--paper);font-weight:700}
-#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
-.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
-padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
-.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
-.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
-#tabs button.wait{opacity:.5}
-#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
-.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
-  padding:.9rem 1rem;margin:1rem 0}
-.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
-.front ol{margin:0;padding-left:1.2rem}
-.front li{margin:.35rem 0}
-.front .jump{background:none;border:none;color:var(--key);font-weight:700;
-  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
-.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
-.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
-#tabs button[aria-selected="true"] .st{color:var(--paper)}
-
-/* ── 論点 ── */
-.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
-padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
-.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
-.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
-background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
-.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
-.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
-border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
-.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
-padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
-.note b{color:var(--ink)}
-figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
-padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
-figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
-figcaption{font-size:.82rem;color:var(--muted)}
-.figs{display:grid;gap:1rem;grid-template-columns:1fr}
-.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
-.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
-.ex h3:first-child{margin-top:0}
-.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
-.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
-details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
-details+details{margin-top:.5rem}
-summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
-details>div{padding:0 .9rem .9rem}
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
-background:var(--card);border-radius:.3rem;overflow:hidden}
-th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
-th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
-code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
-padding:.06rem .3rem;border-radius:.2rem}
-ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
-ol.path li{margin:.3rem 0}
-ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
-ul.plain li{margin:.3rem 0}
-.lead-s{display:block}
-.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
-.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
-background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
-.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
-padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
-.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
-.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
-.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
-.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
-border-radius:2px;padding:0 .4em;display:inline-block}
-.n.out{color:var(--dim);border-color:var(--dim)}
-.cost{color:var(--muted)}
-
-/* ── 回答 ── */
-.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
-.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
-.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
-border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
-.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
-.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
-.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
-.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
-border:1px dashed var(--rule);background:transparent;color:var(--muted)}
-.rb:hover{color:var(--ink);border-color:var(--key)}
-label{font-size:.82rem;color:var(--muted);font-weight:700}
-textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
-border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
-.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
-border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
-.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
-cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
-.sb:disabled{opacity:.45;cursor:not-allowed}
-.note-s{font-size:.82rem;color:var(--muted)}
-.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
-background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
-max-height:16rem;overflow:auto}
-footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
-footer a{color:inherit}
-
-/* ── この回の変更の引き出し ── */
-#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
-writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
-border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
-box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
-#dtoggle .dn{writing-mode:horizontal-tb}
-.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
-font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
-margin-left:.35em}
-/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
-   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
-#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
-display:flex;flex-direction:column;overflow:hidden;padding:0;
-background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
-#drawer[hidden]{display:none}
-.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
-background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
-.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
-#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
-border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
-.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
-.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
-border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
-.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
-border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
-padding:.35rem .4rem;line-height:1.6}
-.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
-.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
-border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
-mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
-
-/* ── 変更の印 ── */
-mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
-box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
-mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
-mark.chg[aria-expanded="true"]::after{content:"▾"}
-mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
-mark.chg.del b{text-decoration:line-through}
-.pop[hidden]{display:none}
-.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
-border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
-.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
-[hidden]{display:none!important}
-"""
 
 SCRIPT = r"""<script>
 (function(){
@@ -985,13 +822,17 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
 
 
 def _css() -> str:
-    """トークンを先に置いた CSS を返す。**定義は1か所からしか出ない。**"""
-    from . import tokens
+    """トークンと、見た目の正本を連結して返す。
+
+    **見た目の文字列をここに保持しない** ── 正本は `references/board.css` である。
+    この側は値（トークン）を組んで前へ置くだけで、セレクタも規則も持たない。
+    """
+    from . import REFERENCES, tokens
     t = tokens.load()
     err = tokens.validate(t)
     if err:
         raise ValueError("トークンの検査が通っていない:\n  " + "\n  ".join(err))
-    return tokens.css(t) + CSS
+    return tokens.css(t) + (REFERENCES / "board.css").read_text(encoding="utf-8")
 
 
 def write(body: str, path: str, title: str) -> str:
