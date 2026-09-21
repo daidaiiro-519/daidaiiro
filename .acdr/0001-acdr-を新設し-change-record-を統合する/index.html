@@ -1,0 +1,446 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACDR を新設し、change-record を統合する</title>
+<style>
+:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;
+--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;
+--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b}}
+:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;
+--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:92rem;margin:0 auto;padding:2rem 1.2rem 5rem}
+h1{font-size:1.5rem;margin:0 0 .3rem;letter-spacing:.02em}
+.lede{font-size:1.06rem;border-left:4px solid var(--move);padding:.55rem 0 .55rem .9rem;
+margin:1rem 0 2rem;background:var(--panel);max-width:68rem}
+h2{font-size:1.12rem;margin:2.4rem 0 .8rem;padding-bottom:.3rem;border-bottom:1px solid var(--line)}
+h3{font-size:1rem;margin:1.6rem 0 .5rem;color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:.9rem 0;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:.42rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:.08rem .3rem;border-radius:.2rem;font-size:.88em}
+pre{background:var(--chipbg);padding:.7rem .9rem;border-radius:.3rem;overflow-x:auto;font-size:.84rem}
+.scroll{overflow-x:auto}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:2px solid var(--move);
+padding:.5rem .9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;font-size:.9rem;
+margin:0 -1.2rem 1rem}
+#bar button{font:inherit;padding:.2rem .7rem;border-radius:.25rem;border:1px solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin:1rem 0 0;border-bottom:2px solid var(--line)}
+.tab{font:inherit;font-size:.93rem;padding:.45rem .95rem;border:1px solid var(--line);
+border-bottom:0;border-radius:.3rem .3rem 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 2px 0 0 var(--paper)}
+.tab .n{font-size:.78rem;color:var(--move);margin-left:.35rem;font-weight:700}
+.pane{border:1px solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:1.2rem 1.8rem}
+.pane.md h1{font-size:1.25rem;margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:.8rem;color:var(--muted);padding:.35rem .9rem;border-bottom:1px dashed var(--line);
+background:var(--panel);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:1px solid var(--line);background:var(--panel);padding:0 .9rem .5rem}
+.idx summary{cursor:pointer;font-size:.88rem;padding:.45rem 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 .3rem;padding-left:1.4rem;font-size:.88rem}
+.idx li{margin:.35rem 0}
+.idx button.go{font:inherit;font-size:.82rem;padding:.05rem .5rem;margin-left:.4rem;
+border:1px solid var(--move);border-radius:.2rem;background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:.84rem}
+
+.acdr{border:1px solid var(--line);background:var(--panel);border-radius:.35rem;
+padding:1.1rem 1.3rem 1.2rem;margin:0 0 1.8rem;max-width:68rem}
+.acdr .hd{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;
+border-bottom:1px solid var(--line);padding-bottom:.55rem;margin-bottom:1rem}
+.acdr .no{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move)}
+.acdr h1.t{font-size:1.35rem;margin:0;letter-spacing:.02em;border:0;padding:0}
+.acdr .when{margin-left:auto;font-size:.82rem;color:var(--muted)}
+.acdr .st{font-size:.76rem;font-weight:700;padding:.08rem .55rem;border-radius:999px;
+border:1px solid currentColor}
+.acdr .st.proposed{color:var(--move)}
+.acdr .st.accepted{color:var(--key)}
+.acdr .st.superseded{color:var(--muted)}
+.acdr .stnote{font-size:.82rem;color:var(--muted)}
+.acdr .ask{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move);
+margin:0 0 .35rem}
+.acdr .decide{font-size:1.12rem;background:var(--paper);border-left:4px solid var(--move);
+padding:.65rem .95rem;margin:0 0 1.1rem}
+.acdr .sec{margin:1.1rem 0 0}
+.acdr .sec h4{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move);
+margin:0 0 .3rem;text-transform:none}
+.acdr .sec p{margin:0}
+.acdr .sec ul{margin:.1rem 0;padding-left:1.2rem}
+.acdr .sec table{margin:.35rem 0 0}
+.acdr .none{color:var(--muted)}
+.acdr .lead{font-size:.86rem;color:var(--muted);margin:0 0 .3rem}
+.acdr table.shift td:nth-child(3){font-weight:700}
+.acdr .fig{margin:.4rem 0 0;padding:.6rem;background:var(--paper);border:1px solid var(--line);border-radius:.3rem;overflow-x:auto}
+.acdr .fig svg{display:block;max-width:100%;height:auto}
+.acdr .fig figcaption{font-size:.84rem;color:var(--muted);margin-top:.4rem}
+.lede{display:none}
+.bridge{max-width:68rem;font-size:.9rem;color:var(--muted);margin:0 0 .6rem}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:2px dashed #9a5b2c;
+cursor:pointer;padding:0 .1rem}
+mark.chg::after{content:"変";font-size:.62rem;vertical-align:super;color:#9a5b2c;
+font-weight:700;margin-left:.12rem}
+mark.chg:focus-visible{outline:2px solid #9a5b2c;outline-offset:2px}
+.pop{display:block;margin:.6rem 0 .9rem;padding:.7rem .9rem;border:1px solid #9a5b2c;
+border-radius:.3rem;background:rgba(154,91,44,.07);font-size:.9rem;line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:#9a5b2c;display:block;margin:.5rem 0 .15rem}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:.82rem;margin:0;
+color:inherit;opacity:.8;background:rgba(128,128,128,.12);padding:.5rem .6rem;border-radius:.2rem}
+</style>
+<script type="text/plain" id="markcss">
+mark.chg{background:transparent;color:inherit;border-bottom:2px dashed #9a5b2c;
+cursor:pointer;padding:0 .1rem}
+mark.chg::after{content:"変";font-size:.62rem;vertical-align:super;color:#9a5b2c;
+font-weight:700;margin-left:.12rem}
+mark.chg:focus-visible{outline:2px solid #9a5b2c;outline-offset:2px}
+.pop{display:block;margin:.6rem 0 .9rem;padding:.7rem .9rem;border:1px solid #9a5b2c;
+border-radius:.3rem;background:rgba(154,91,44,.07);font-size:.9rem;line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:#9a5b2c;display:block;margin:.5rem 0 .15rem}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:.82rem;margin:0;
+color:inherit;opacity:.8;background:rgba(128,128,128,.12);padding:.5rem .6rem;border-radius:.2rem}
+</script>
+
+<div class="wrap">
+<div class="acdr"><div class="hd"><span class="no">ACDR 0001</span><h1 class="t">ACDR を新設し、change-record を統合する</h1><span class="st accepted">承認</span><span class="stnote">承認を得た。適用してよい</span><span class="when">2026-09-21</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide"><b>意思決定の証跡を、承認の前に提示した1枚のまま、リポジトリへ保存する形式に移行する。</b>承認の前後で器を分離せず、状態のみが変化する。</div><div class="sec"><h4>なぜ、いま決めるのか</h4><p><b>承認が成立した時点で「なぜ」が消失していた。</b><code>change-record</code> の1枚は Artifact に保存されるがリポジトリには保存されず、コミットメッセージには要約のみが記録される。証跡が存在しないと、その決定を<b>改訂してよいかを判定できない</b> ── 判定できなければ改訂を回避するようになり、更新が停止する。<b>人は変更前と変更後を視認できると判定が迅速化する</b>ので、差分を保持する器のまま保存する形式を採用した。</p></div><div class="sec"><h4>形の変化</h4><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody><tr><td>証跡の所在</td><td>Artifact のみ。リポジトリに存在しない</td><td>リポジトリに存在する。PR の差分に掲載される</td></tr><tr><td>承認の前後</td><td>提示の器と、残す器が分離している</td><td>同一の器。状態のみが変化する（提案 → 承認）</td></tr><tr><td>「なぜ」の寿命</td><td>承認の時点で消失する</td><td>決定と同一の1枚に永続する</td></tr><tr><td>適用の範囲</td><td>文書の変更の提示に限定される</td><td>分野を限定しない。新規の決定も同一の器で処理する</td></tr><tr><td>記録の再現</td><td>spec の置き場所と出力先が任意。実行場所で結果が変化する</td><td>フォルダ1つが単位。<b>同じ入力から同じ出力が出る</b>（試験8件で検証済み）</td></tr><tr><td>和語の検出</td><td>語彙表での照合のみ。表に存在しない和語は通過する</td><td><b>句の末尾を全部拾う2周目を実施する</b>。確定したものを語彙表へ追加する</td></tr></tbody></table></div><div class="sec"><h4>図で確認する</h4><figure class="fig"><svg class="wf-fig" viewBox="0 0 591 388" width="591" height="388" role="img"><g transform="translate(6.0,6.0)"><g class="wf-node" transform="translate(0.0,0.0)"><rect x="0.0" y="16.0" width="327.6" height="360.0" rx="8.0" fill="none" stroke="#9a5b2c" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M133.9,32.6 L133.9,95.4" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="133.9,95.4 131.4,88.6 136.4,88.6" fill="#c9c2b4"/><path d="M133.9,128.6 L133.9,191.4" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="133.9,191.4 131.4,184.6 136.4,184.6" fill="#c9c2b4"/><path d="M133.9,224.6 L56.0,287.2" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="56.0,287.2 59.7,281.0 62.8,284.9" fill="#c9c2b4"/><path d="M133.9,224.6 L212.3,287.4" fill="none" stroke="#c9c2b4" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="212.3,287.4 205.5,285.1 208.6,281.2" fill="#c9c2b4"/><g class="wf-node" transform="translate(103.9,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">決定</text></g></g><g class="wf-node" transform="translate(48.8,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="170.2" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="85.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">提示の1枚（Artifact）</text></g></g><g class="wf-node" transform="translate(103.9,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">承認</text></g></g><g class="wf-node" transform="translate(0.0,288.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="112.0" height="32.0" rx="5.0" fill="#efe2d4" stroke="#9a5b2c" stroke-width="1.6"/><text x="56.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#9a5b2c">正本だけが残存</text></g></g><g class="wf-node" transform="translate(136.0,288.0)"><g class="svg-box" role="消失"><rect x="0" y="0" width="151.6" height="32.0" rx="5.0" fill="#f3e3e3" stroke="#8a3a3a" stroke-width="1.2"/><text x="75.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#8a3a3a">なぜ ・ 変更前は消失</text></g></g></g></g><rect x="8.0" y="7.0" width="48.0" height="15.0" fill="#fbfaf7"/><text x="32.0" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#9a5b2c">いまの形</text></g><g class="wf-node" transform="translate(351.6,0.0)"><rect x="0.0" y="16.0" width="227.6" height="360.0" rx="8.0" fill="none" stroke="#9a5b2c" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M93.8,32.6 L93.3,95.4" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="93.3,95.4 90.9,88.6 95.8,88.7" fill="#c9c2b4"/><path d="M94.3,128.6 L93.8,191.4" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="93.8,191.4 91.4,184.6 96.3,184.7" fill="#c9c2b4"/><path d="M93.8,224.6 L93.3,287.2" fill="none" stroke="#c9c2b4" stroke-width="1.2"/><polygon points="93.3,287.2 90.9,280.4 95.8,280.5" fill="#c9c2b4"/><rect x="34.5" y="245.9" width="118.0" height="16.0" fill="#fbfaf7"/><text x="93.5" y="259.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#8a857c">器は同一。状態のみ変化</text><g class="wf-node" transform="translate(63.8,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">決定</text></g></g><g class="wf-node" transform="translate(33.9,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="119.8" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="59.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">記録1枚（提案）</text></g></g><g class="wf-node" transform="translate(63.8,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#fbfaf7" stroke="#d8d3c7" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#1c1a17">承認</text></g></g><g class="wf-node" transform="translate(0.0,288.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="187.6" height="32.0" rx="5.0" fill="#efe2d4" stroke="#9a5b2c" stroke-width="1.6"/><text x="93.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#9a5b2c">記録1枚（承認済み）＋ 正本</text></g></g></g></g><rect x="8.0" y="7.0" width="68.0" height="15.0" fill="#fbfaf7"/><text x="42.0" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#9a5b2c">これからの形</text></g></g></svg><figcaption>承認の位置は同一で、その後が相違する。いまの形では「なぜ」と変更前が消失し、正本のみが残存する。</figcaption></figure></div><div class="sec"><h4>実現の形</h4><p><b>ACDR（Any Change Decision Record）</b>という Skill を新設する。節（決定 ・ なぜ ・ 形の変化 ・ 実現の形 ・ 適用先 ・ 比較した案 ・ 承認の状態 ・ 承認後に実施すること）を保持する HTML 1枚で、中身は対象の文書を描画したものである。<code>change-record</code> の描画と印の機構をそこへ移設し、<code>change-record</code> は Skill として廃止する。</p></div><div class="sec"><h4>適用先</h4><p><code>.claude/skills/</code> の構成（新設1件 ・ 廃止1件）、<code>skill-wiring.json</code> の配線4行、<code>CLAUDE.md</code> の運用ルールと委譲パターン</p></div><div class="sec"><h4>比較した案</h4><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td><code>change-record</code> を存置し、ACDR を別に新設する（提示と保存で分離する）</td><td>同一の3つ組が2つの Skill に存在する。どちらが正本かを毎回確認することになる</td></tr><tr><td>Nygard の ADR の5節（Title ・ Context ・ Decision ・ Status ・ Consequences）に準拠する</td><td>原典に<b>変更前と変更後が存在しない</b>。差分を追加するなら別物であり、ADR の語では呼称できない</td></tr><tr><td><code>change-record</code> の Step 8 に「承認後に記録を出力する」を追加するのみとする</td><td>書き出す先の器を定義しないと、保存の形式が毎回変化する。状態（提案 ・ 承認）も保持できない</td></tr><tr><td>記録の実体を MD 1枚で構成する</td><td>対象が HTML の場合に、そのままの見た目で差分を提示できない。この案は「機械が id で参照する」前提から派生したが、その前提が誤りであった</td></tr></tbody></table></div><div class="sec"><h4>承認後に実施すること</h4><ul><li><code>change-record</code> を参照する配線4行と、<code>CLAUDE.md</code> の記述を改訂する</li><li>以降、正本へ適用する前の提示を ACDR で実施する ── 記録がリポジトリに蓄積する</li><li><code>.acdr/</code> の索引を保守する</li><li>生成物に charset を宣言する ── <code>change-record</code> の出力には存在せず、HTTP 経由で文字化けした</li><li>記録を1件追加するたびに <code>--check</code> を実行する ── 差が在れば組み直しの漏れである</li><li>語彙表を広げた結果、他の Skill で22件が検出された（brainstorming-board 5 ・ source-fidelity 4 ・ skill-router 4 ・ doc-writing-skills 4 ・ design-svg 3 ・ 他2）── 別の正本なので、別の記録で処理する</li></ul></div></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 11 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="skill">acdr/SKILL.md（新設）<span class="n">10</span></button><button class="tab" role="tab" data-t="doc">doc-writing-skills/SKILL.md（和語の洗い出し）<span class="n">1</span></button></div>
+<section class="pane md" data-k="skill" hidden><details class="idx" open><summary>この面の変更 10 件</summary><ol><li><b>ACDR は Any Change Decision Record である</b><button class="go" data-i="0">その場所へ</button><div class="b">Nygard の ADR（Architecture Decision Record）とは別物である ── 分野を限定せず、変更前と変更後の差分を保持する。展開を記述しないと、ADR の別名として読解される</div></li><li><b>決定と、その差分と、なぜそう決めたかを1枚へ保存する</b><button class="go" data-i="1">その場所へ</button><div class="b">提示のみの道具から、保存する道具へ役割を拡張した。承認が成立した時点で「なぜ」が消失する欠落を解消するためである</div></li><li><b>分野を問わない ── この Skill は、対象が何の仕事に属するかを認知しない</b><button class="go" data-i="2">その場所へ</button><div class="b">汎用の Skill である。CodingSkills の規則 ・ 軸 ・ 出典欄を認知させない ── 具体のシステムを汎用 Skill が参照するのは依存の方向違反である</div></li><li><b>新規のときだけ差分が空になる</b><button class="go" data-i="3">その場所へ</button><div class="b">成熟した環境では決定の大半が既存への変更に該当するので、差分を既定に設定した。新規を例外として区別せず、同一の器の中で空欄とする</div></li><li><b>へ変わるだけで、器は変化しない</b><button class="go" data-i="4">その場所へ</button><div class="b">承認の前後で同一の1枚を使用する。器を分離すると、どちらが最新かを読む側が判定することになる</div></li><li><b>変更後の全文は対象の文書が保持している</b><button class="go" data-i="5">その場所へ</button><div class="b">ラッパーであるという形式に一致させた。複製を保持すると、対象の文書を改訂した時点で2か所が乖離する</div></li><li><b>外部のCDNやスクリプトを参照しない</b><button class="go" data-i="6">その場所へ</button><div class="b">実際に発生した3件を、ガードレールへ昇格した ── 色の直接記述（緑が浮遊した）、題の二重表示、charset の欠落（HTTP 経由で文字化けした）</div></li><li><b>節の語を負の側へ偏向させない</b><button class="go" data-i="7">その場所へ</button><div class="b">負の語が残存すると、未解決の懸念が存在すると読解され、承認の判定が遅延する ── 「比較した案」「承認後に実施すること」へ改称した</div></li><li><b>抽象の側の変更前と変更後を記述する</b><button class="go" data-i="8">その場所へ</button><div class="b">面が保持するのは具体の差分である。抽象の対比が欠けると、下に並ぶ差分が何のためかを読み手が復元することになる</div></li><li><b>冪等である</b><button class="go" data-i="9">その場所へ</button><div class="b">どこから実行したかで結果が変化すると、承認の前後で組み直した時点で差が発生する ── パスをリポジトリの根から解決する形式へ変更した</div></li></ol></details><div class="doc"><h1>意思決定を、変更前と変更後の差分ごと記録するSkill：acdr</h1>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し。略称を展開していなかった）" data-w="Nygard の ADR（Architecture Decision Record）とは別物である ── 分野を限定せず、変更前と変更後の差分を保持する。展開を記述しないと、ADR の別名として読解される">ACDR は Any Change Decision Record である</mark>。</strong> 分野を限定しない ── 何を決めたときでも、変更前と変更後の差分ごと残す。</p>
+<h2>目的</h2>
+<p>何かを決めたとき、<strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（新設。change-record の目的は「変更を、結果と理由の両方が見える形で提示する」であった）" data-w="提示のみの道具から、保存する道具へ役割を拡張した。承認が成立した時点で「なぜ」が消失する欠落を解消するためである">決定と、その差分と、なぜそう決めたかを1枚へ保存する</mark></strong>ために使用する。文書・コード・設計・方針のいずれでもよい。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し）" data-w="汎用の Skill である。CodingSkills の規則 ・ 軸 ・ 出典欄を認知させない ── 具体のシステムを汎用 Skill が参照するのは依存の方向違反である">分野を問わない ── この Skill は、対象が何の仕事に属するかを認知しない</mark>。</p>
+<p><strong>人は、変更前と変更後が見えていると判定が速い。</strong> 差分が無いまま承認を求めると、「この決定は何を土台にして決まったのか」を読む側が毎回復元することになる。成熟した環境では、決定の大半が既存のものへの変更である。だから差分を既定にし、<strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し）" data-w="成熟した環境では決定の大半が既存への変更に該当するので、差分を既定に設定した。新規を例外として区別せず、同一の器の中で空欄とする">新規のときだけ差分が空になる</mark></strong>。</p>
+<p><strong>残すのは、承認の前と後で同じ1枚である。</strong> 状態が <code>proposed</code> から <code>accepted</code> <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（change-record は状態を保持せず、適用した時点で役目が終了していた）" data-w="承認の前後で同一の1枚を使用する。器を分離すると、どちらが最新かを読む側が判定することになる">へ変わるだけで、器は変化しない</mark>。リポジトリに置くので、差分に載り、変更の理由がPRに出力される。</p>
+<hr>
+<h2>役割</h2>
+<p>- 決定を、節（決定 ・ なぜ ・ 形の変化 ・ 実現の形 ・ 適用先 ・ 比較した案 ・ 承認の状態 ・ 承認後に実施すること）にする<br>- 変更を1件ずつ、<strong>どこ・何から何に・なぜ</strong>の3つ組にする<br>- 対象の文書を描画し、変更箇所を押すと変更前と理由が開く形にする<br>- <strong>理由が欠けている変更を、記録に包含しない</strong><br>- 正本へ適用する前に見せ、承認を得てから適用する<br>- 承認が下りたら状態を <code>accepted</code> にして、リポジトリへ保存する</p>
+<hr>
+<h2>処理対象と成果物</h2>
+<h3>処理対象</h3>
+<p>これから決めようとしていること。多くは既存の文書・コード・設計への変更で、新規のこともある。</p>
+<h3>成果物</h3>
+<p><strong>HTML 1枚である。</strong> 節を持つラッパーで、中身は対象の文書そのものである。<code>.acdr/&lt;番号&gt;-&lt;短い名詞句&gt;/index.html</code> に置き、リポジトリへ入れる。</p>
+<p><strong>中身を複製しない。</strong> <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（change-record は「変更後の全文を配置する」と記述していた）" data-w="ラッパーであるという形式に一致させた。複製を保持すると、対象の文書を改訂した時点で2か所が乖離する">変更後の全文は対象の文書が保持している</mark>。記録が保持するのは、節と、対象のパスと、3つ組だけである。</p>
+<hr>
+<h2>入力の想定</h2>
+<div class="wrap"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>決めようとしていること</td><td>明示されなければ、直前の会話から決定を書き起こす。推測で補完しない</td></tr><tr><td>対象の文書</td><td>明示されなければ、変更しようとしている文書すべてを対象とする。無ければ新規として扱う</td></tr><tr><td>変更前の内容</td><td><strong>正本の現在の中身をそのまま取る</strong>。適用済みなら、gitの作業ツリーとHEADの差から取る</td></tr><tr><td>なぜ</td><td>明示されなければ、そのとき何と食い違っていて何に一致させたかを書き起こす</td></tr><tr><td>除外した案</td><td>明示されなければ、検討した案と、それぞれ何が成立しないかを記述する</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: 何を出す文書かを、外から取る</h3>
+<p>その文書が何を出すべきかは、その文書の中には無い。中から取ると、旧路線の記述が旧路線を残す根拠になる。成果物を決めている親文書・定義票・仕様の記述から取り、<strong>見出しの並びだけ</strong>で出すものが出るかを判定する。出していなければ、本文の校正に入らず骨格の案を先に出す。</p>
+<h3>Step 2: 対象の全文を読む</h3>
+<p>頭から終わりまで確認する。検索で見当を付けて周辺のみを確認する方法を採用しない ── 置換のすり抜け、説明なしで残った旧い値、見出しと中身の食い違いは、どれも検索では検出されない。</p>
+<h3>Step 3: 節を記入する</h3>
+<div class="wrap"><table><tr><th>節</th><th>中身</th></tr><tr><td>決定</td><td><strong>決めてほしいこと1件</strong>。能動態の完全な文で、<strong>手段を記述しない</strong></td></tr><tr><td>形の変化</td><td><strong>抽象の側の変更前と変更後</strong>。何が ・ いまの形 ・ これからの形の3列</td></tr><tr><td>図で確認する</td><td>形の変化を図にしたもの。<strong>この Skill は描画しない</strong> ── 受け取るのは SVG の文字列のみである</td></tr><tr><td>実現の形</td><td>その決定をどう実現するか。手段はここへ配置する</td></tr><tr><td>適用先</td><td>どの正本が変わるか</td></tr><tr><td>なぜ、いま決めるのか</td><td>何と食い違っていて、何に一致させたか</td></tr><tr><td>比較した案</td><td>案と、<strong>採らなかった理由</strong>。反証を通過しなかった案であり、未解決の懸念ではない</td></tr><tr><td>承認の状態</td><td><code>proposed</code> ／ <code>accepted</code> ／ <code>superseded</code></td></tr><tr><td>承認後に実施すること</td><td>承認が成立したあとに実施する作業</td></tr><tr><td>負担すること</td><td>承認すると何を負担するか</td></tr></table></div>
+<p><strong>決定 ・ 対象 ・ なぜ の3つは、欠けたら道具が停止する。</strong> 欠けた記録は、あとから誰も補完できない。</p>
+<h3>Step 4: 変更を3つ組にする</h3>
+<p>1件ずつ、<strong>どこ</strong>（読み手がその場所を開ける粒度）・<strong>何から何に</strong>（変更前の原文をそのまま。要約しない）・<strong>なぜ</strong>を完備させる。書けない変更は記録に含めない ── 書けないのは、変更の意図が自分でも掴めていないということである。削除も1件として扱い、消えた場所に印を配置する。</p>
+<p><strong>「変更前」と「なぜ」は平文である。</strong> タグを書いても文字として出る ── 「変更前」は原文をそのまま出す欄なので、タグを解釈してはならない。節（決定 ・ 対象 ・ なぜ）のほうは HTML を受ける。</p>
+<p><strong>「どこ」は、描画したあとの本文に現れる文字列で指定する。</strong> マークダウンの記法を含めると一致しない ── 描画後は <code>&lt;b&gt;</code> や <code>&lt;code&gt;</code> になっている。</p>
+<h3>Step 5: 作業コピーへ適用して、1枚を組む</h3>
+<p>正本は触らない。作業コピーへ適用してから組成する。<strong>操作は3つだけである。</strong></p>
+<pre class="code">python3 scripts/build_acdr.py new .acdr/0007-&lt;短い名詞句&gt; &quot;題&quot;   起こす（雛形から）
+python3 scripts/build_acdr.py .acdr/0007-&lt;短い名詞句&gt;            組む
+python3 scripts/build_acdr.py .acdr/0007-&lt;短い名詞句&gt; --check    差が無いかを検査する</pre>
+<p><code>acdr.json</code> の形は <code>references/acdr.schema.json</code> が決め、雛形は <code>references/spec-template.json</code> が保持する。<strong>欠けた欄が在れば止まる</strong> ── 必須の欄、状態の値、変更の3つ組の完備を検査する。</p>
+<p><strong>MD は描画した見た目に、HTML はそのままの見た目</strong>になる（CSS を隔てるので <code>iframe</code> へ流し込み、届かなければ Shadow DOM へ切り替える）。<code>docs</code> が空なら、節だけの1枚になる。</p>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し。docs のパスが実行場所に依存していた）" data-w="どこから実行したかで結果が変化すると、承認の前後で組み直した時点で差が発生する ── パスをリポジトリの根から解決する形式へ変更した">冪等である</mark>。</strong> <code>docs</code> のパスはリポジトリの根から解決するので、どこから実行しても同一のものが出力される。<code>--check</code> は組み直した結果と <code>index.html</code> を比較し、差が在れば 1 を返す。</p>
+<h3>Step 6: 開いて閉じることを確認する</h3>
+<p>描画して、実際に押す。1度押すと変更前と理由が出て、2度押すと閉じる。「すべて開く／閉じる」も両方向とも動作する。<strong>印が内側のタブに隠れることがある</strong> ── 面の頭の一覧から、押してその印まで運べることを確認する。</p>
+<h3>Step 7: 理由の欠けを確認する</h3>
+<p>「なぜ」が「一致させるため」だけになっていないか（何と何を一致させたかを書く）。変更内容の言い換えになっていないか。変更前が要約になっていないか。</p>
+<h3>Step 8: 見せて、承認を得てから適用する</h3>
+<p>1枚を渡し、返事を待つ。<strong>「適用しました。確認してください」と記述しない</strong> ── それは承認ではなく追認を求めている。</p>
+<p>承認が下りたら、状態を <code>accepted</code> にして組み直し、正本へ適用し、<code>.acdr/</code> の1枚と索引をコミットする。差し戻されたら3つ組を直して Step 3 から再実行する。止められた場合は適用しない。</p>
+<p>後の決定が、この決定を置き換えたときは、古いほうの状態を <code>superseded</code> にし、置き換えた記録を指す ── <strong>消さない</strong>。</p>
+<hr>
+<h2>出力形式</h2>
+<p><strong>1枚のHTMLである。</strong> 先頭に節、その下に対象の文書が並ぶ。チャットには次のみを記述する。</p>
+<div class="wrap"><table><tr><th>書くこと</th><th>書き方</th></tr><tr><td>何件直したか</td><td>数と、いちばん影響の大きい1件</td></tr><tr><td>いちばん影響の大きい1件</td><td>どこで、何が食い違っていて、何に一致させたか</td></tr><tr><td>直していない箇所</td><td>理由が書けなくて保留にしたものが在れば、そう書く</td></tr><tr><td>何と照らしたか</td><td>Step 1 で外から取った先。照らしていないなら、そう書く</td></tr><tr><td>全文を読んだか</td><td>読んだと書く。読んでいないなら、読んでいないと書く</td></tr><tr><td>正本の状態</td><td><strong>まだ適用していないこと</strong>と、適用してよいかを聞く</td></tr></table></div>
+<p><strong>変更の一覧をチャットに並べない。</strong> それは1枚の役目である。</p>
+<hr>
+<h2>ガードレール</h2>
+<p>- <strong>中身を複製しない。</strong> 変更後の全文は対象の文書が保持する。記録が保持するのは節と3つ組だけである<br>- <strong>対象が何の仕事に属するかを、この Skill が認知しない。</strong> 特定の分野の語彙・規則・スキーマを持ち込まない ── 使う側がこの Skill を呼ぶのであって、この Skill が使う側を知ることはない<br>- <strong>何を出す文書かを、外から取得してから改訂する。</strong> 文書の中の記述を、その文書を直す根拠にしない<br>- <strong>骨格が合っていなければ、本文を直さない。</strong> 先に骨格の合意を取る<br>- <strong>対象の全文を読んでから直す。</strong> 検索で見当を付けて周辺のみを確認する方法を採用しない<br>- <strong>正本へ適用する前に見せる。</strong> 適用してから提示しない<br>- <strong>理由が欠けている変更を包含しない。</strong> 推測で理由を補完しない<br>- <strong>変更前を要約しない。</strong> 原文をそのまま保持させる<br>- <strong>比較した案を削除しない。</strong> 案と、採らなかった理由を保存する<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し。節を「除外した案」「負担すること」と命名していた）" data-w="負の語が残存すると、未解決の懸念が存在すると読解され、承認の判定が遅延する ── 「比較した案」「承認後に実施すること」へ改称した">節の語を負の側へ偏向させない</mark>。</strong> 「除外」「負担」ではなく「比較した案」「承認後に実施すること」と記述する ── 負の語が残ると、未解決の懸念が存在すると読解され、承認の判定が遅延する<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し。上部が手段のみを記述し、抽象の対比が欠落していた）" data-w="面が保持するのは具体の差分である。抽象の対比が欠けると、下に並ぶ差分が何のためかを読み手が復元することになる">抽象の側の変更前と変更後を記述する</mark>。</strong> 面が保持するのは具体の差分である ── 抽象の対比が欠けると、下に並ぶ差分が何のためかを読み手が復元することになる<br>- <strong>図を省略しない。</strong> 形の変化を図で確認できる形式にする。描画はこの Skill が実施せず、SVG の文字列を受け取るのみである<br>- <strong>状態を自由文にしない。</strong> <code>proposed</code> ／ <code>accepted</code> ／ <code>superseded</code> の3つ以外を書かない ── 自由文にすると、承認されているかを読む側が判定することになる<br>- <strong>置き換えられた記録を削除しない。</strong> <code>superseded</code> にして、置き換えた記録を指す<br>- <strong>新規を例外として区別しない。</strong> 差分が存在しない決定も同一の器で、<code>docs</code> を空欄とする<br>- <strong>描画して押すまで出さない。</strong> 開閉が動作することを目視で確認する<br>- <strong>色・寸法を直書きしない。</strong> 見た目は <code>tabs.py</code> が保持するトークン（<code>--paper</code> ・ <code>--ink</code> ・ <code>--panel</code> ・ <code>--move</code> ・ <code>--key</code> ・ <code>--line</code>）から引く ── 直書きすると、暗い配色へ切り替えたときにそこだけ取り残される<br>- <strong>決定の文に手段を混在させない。</strong> 決定は「何を採るか」で、手段は実現の形が保持する ── 手段だけを上に置くと、下の差分が何のためかを読み手が復元することになる<br>- <strong>差し色を1つに限定する。</strong> 状態の札（承認済み）以外に別の色を使わない ── 1本だけ違う色の線が在ると、意味が在るものとして読解される<br>- <strong>題を二重に出さない。</strong> 題は節が持ち、面の見出しには出さない<br>- <strong>生成物に文字コードを宣言する。</strong> <code>&lt;meta charset=&quot;utf-8&quot;&gt;</code> を先頭に置く ── 無いとHTTPで配ったときに推測になり、化ける<br>- <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（change-record にも同一の行が存在したが、charset と題の重複についての行は存在しなかった）" data-w="実際に発生した3件を、ガードレールへ昇格した ── 色の直接記述（緑が浮遊した）、題の二重表示、charset の欠落（HTTP 経由で文字化けした）">外部のCDNやスクリプトを参照しない</mark>。<strong>1枚で完結させる</strong></p>
+<hr>
+<h2>参照</h2>
+<p>- <code>scripts/build_acdr.py</code>: 節と差分を1枚へ組む。節が欠けていれば止まり、状態が3つ以外なら停止する<br>- <code>scripts/tabs.py</code>: 対象の文書を描画し、変更箇所に印を付け、複数なら1枚へまとめる。HTML はそのままの見た目で配置する<br>- <code>scripts/render.py</code>: マークダウンを描画し、変更箇所に印を付ける。<strong>位置は差し込む前に全部決める</strong>（差し込みながら探すと、印が前の印の属性の中へ入る）<br>- <code>scripts/test_render.py</code>: 印の付き方を事例で検証する。<code>python3 test_render.py</code> で実行する<br>- <code>references/acdr.schema.json</code>: <code>acdr.json</code> の形を検査するJSON Schema<br>- <code>references/spec-template.json</code>: <code>acdr.json</code> の雛形。<code>new</code> が複製する<br>- <code>scripts/test_acdr.py</code>: 雛形から起こせるか ・ 欠けた欄で止まるか ・ <strong>同じ入力から同じ出力が出るか</strong> ・ 実行場所に依存しないかを検証する。<code>python3 test_acdr.py</code> で実行する</p></div></section><section class="pane md" data-k="doc" hidden><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>語彙表を使わずに</b><button class="go" data-i="0">その場所へ</button><div class="b">語彙表で照合すると、表に存在しない和語が通過する ── 句の末尾を機械的に全部拾う2周目を追加した。実際に、この方法で35件を検出し、確定した19語を語彙表へ追加した。照合の形も緩めた ── 「を当てる」の形のみを見ていたので、「当たる先」という節名が通過していた（前に を／に が存在しないためである）。裸の「当たる」「当てる」も照合対象へ追加し、節名を「適用先」へ改称した</div></li></ol></details><div class="doc"><hr>
+<p>name: doc-writing-skills<br>description: 日本語のテクニカルライティング文書を書く・直すときに必ず使うスキル。設計文書・仕様・報告・README・学術文書など、人が読む文書を書き起こす前と、書いたあとに使う。「文書」「まとめて」「書いて」「ドキュメント」と言われたとき、および既存のmdやHTMLの本文を直すときに必ず使う。<br>version: 1.0.0</p>
+<hr>
+<h2>1. 目的</h2>
+<p><strong>技術文書としても学術文書としても違和感のない日本語を書く。</strong></p>
+<div class="wrap"><table><tr><th>満たすこと</th><th></th></tr><tr><td><strong>論</strong></td><td>意味が通り、論が成立している</td></tr><tr><td><strong>構造</strong></td><td>情報が、その型に合った形で置かれている</td></tr><tr><td><strong>文調</strong></td><td>人が読んで、一度で意味が取れる</td></tr><tr><td><strong>語彙</strong></td><td>同じ文脈では、同じものが同じ語で呼ばれている</td></tr></table></div>
+<p><strong>判断の材料は10の概念である。</strong><br><strong>どれも公開された規格・指針から導いており、出どころを最後の節に置く。</strong></p>
+<p><strong>出すには、2つのゲートを実行する。</strong></p>
+<div class="wrap"><table><tr><th>ゲート</th><th>何を検査するか</th><th>誰が決めるか</th></tr><tr><td><strong>1</strong></td><td>0件にできるものが、0件であること</td><td><strong>機械</strong></td></tr><tr><td><strong>2</strong></td><td>10の判定すべてに、結果が1行ずつあること</td><td><strong>書き手</strong></td></tr></table></div>
+<p><strong>ゲート2が保証するのは、判定を適用したことだけである。</strong><br>何を直すかは、書き手の判断に残る。</p>
+<h2>2. 役割</h2>
+<p>- 書いたものに、10の概念から導いた判定を適用する<br>- 判定を、<strong>読む人がその場でできる1つの操作</strong>に降ろす<br>- <strong>原典から導けない決めは、そう書く</strong><br>- 適用しなかった判定を、報告に書く</p>
+<h2>3. 処理対象と成果物</h2>
+<h3>3.1 処理対象</h3>
+<p><strong>これから書く日本語の文書、または既に書いてある日本語の文書である。</strong></p>
+<h3>3.2 成果物</h3>
+<p><strong>10の判定を適用し、直したか残したかを明示する文書である。</strong></p>
+<h2>4. 入力の想定</h2>
+<div class="wrap"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>読み手</td><td>明示されなければ、その文書を初めて開く人とする</td></tr><tr><td>用語の定め</td><td>対象フォルダに用語を定めた文書があれば、それに従う</td></tr><tr><td>文脈の境界</td><td>明示されなければ、文書1本を1つの文脈とする</td></tr></table></div>
+<hr>
+<h2>5. 実行手順</h2>
+<h3>5.1 Step 1: 読み手と用語を決める</h3>
+<p><strong>書き始める前に、読み手を1つに決める。</strong><br>読み手が決まらないと、選ぶ語も構成も決まらない（概念8）。<br>対象フォルダに用語の定めがあれば、先に読む。</p>
+<h3>5.2 Step 2: 10の判定を適用する</h3>
+<p><strong>上から順に適用する。</strong><br>前の概念が成立していなければ、後の判定は意味を持たない。</p>
+<div class="wrap"><table><tr><th>#</th><th>概念</th><th>規則</th><th>判定</th></tr><tr><td>1</td><td>読み手が組み立て直す作業を、書き手が負担する</td><td>1文の中で、読み手に計算をさせない。<strong>名詞句には、指し先を文書の中に置く</strong></td><td><strong>名詞句を1つずつ抜き出し、「何の」「どこの」「どっちの」「誰が」を問う。文書の中の文字列で答えられない名詞句が1つでもあれば、その文は書けていない</strong>。<strong>「読み返して不自然か」で判定しない</strong>——書き手は指し先を知っているので、不自然に見えない</td></tr><tr><td>2</td><td>情報の型が、置く形を決める</td><td>対比・条件・手順・分岐を、散文に置かない</td><td><strong>その段落を、表か図に置き直せるかを試す</strong></td></tr><tr><td>3</td><td>数が増えたら、形を変える</td><td>並べるものが3つ以上なら、箇条書きか表にする</td><td><strong>数える</strong></td></tr><tr><td>4</td><td>見出しは、本文を読まずに全体を掴ませる</td><td>見出しの階層を飛ばさない。<strong>見出しを追えば全体の内容がつかめるようにし、見出しを目立たせる</strong>。<strong>番号は付けても付けなくてもよい</strong> ── 統一されているかだけを確認する</td><td><strong>見出しだけを抜き出して、順に読む。そのうえで、どの本文がどの見出しに属すかが見た目で分かるかを確認する</strong></td></tr><tr><td>5</td><td>結論を先に置き、根拠を後ろに置く</td><td>節の最初の一文を結論にする</td><td><strong>各節の先頭文だけを並べて読む</strong></td></tr><tr><td>6</td><td>読み手は、形の違いを意味の違いとして読む</td><td>同じ立場のものは同じ形で書く。文体は文書の中で1つにする</td><td><strong>並んでいるものの語尾を見比べる</strong></td></tr><tr><td>7</td><td>語の意味は、文脈の中で定まる</td><td>同じ文脈では、1つの意味に1つの語だけを対応づける。文脈が変わるなら、変わることを書く</td><td><strong>用語を書き出し、同じ意味の別の語が無いかを確認する</strong></td></tr><tr><td>8</td><td>読み手が誰かで、選ぶ語と構成が変わる</td><td>読み手を先に決める。<strong>語は、読み手の世界にすでにある語から選ぶ</strong>。<strong>分野で定着した専門用語はそのまま使い</strong>、自分が作った語・訳した語は使わない。使うなら、新しい語だと書いて定義する。<strong>名前のあるものを、描写で呼ばない</strong></td><td><strong>語の出どころを提示できるかを確認する</strong>。「この文書のために作った」「英語から訳した」なら、言い換えるか定義する。<strong>そのうえで、書いた操作や物に、分野で通っている名前があるかを1つずつ問う</strong>。あるなら、描写ではなくその名前を書く——「均す」ではなく<strong>正規化する</strong>、「流す」ではなく<strong>実行する</strong>、「鵜呑みにしない」ではなく<strong>そのまま信じない</strong>。<strong>ふつうの日本語の語も、この判定に掛ける</strong>。作った語でも訳した語でもないので、出どころだけを確認すると通り抜ける。<strong>読み手が分野の外の人でも、描写に置き換えてはならない</strong>。言い換えてよいのは、<strong>日常語で意味が表せるものだけ</strong>である（頻回→頻繁に）。日常語で表せないものは、<strong>その名前のまま使い、説明を添える</strong></td></tr><tr><td>9</td><td>読み手が一度に扱える量には限りがある</td><td>1文は短くする。段落は3行から7行にする。文書の限度を決める</td><td><strong>数える</strong></td></tr><tr><td>10</td><td>比喩と定型句は、読み手によって解けない</td><td>比喩は、例として明示するときだけ使う</td><td><strong>その比喩を字義どおりに読んで、意味が通るかを試す</strong></td></tr></table></div>
+<p><strong>名詞句で終わることは、それ自体では欠陥ではない。</strong><br>見出し・箇条書きの項目・表のセルは、名詞句で置いてよい（Google と JTF が認めている）。<br><strong>判定1が見るのは、文の中で読み手が戻るかどうかである。</strong></p>
+<h3>5.3 Step 3: 直したか、残したかを明示する</h3>
+<p><strong>判定に該当した箇所を、直すか、理由を付けて残すかのどちらかにする。</strong><br><strong>理由が書けないなら、それは直す対象である。</strong></p>
+<h3>5.4 Step 4: 2つのゲートを実行する</h3>
+<p><strong>ゲート1は機械が決める。</strong></p>
+<pre class="code">python3 &lt;skill&gt;/scripts/gate.py &lt;ファイル...&gt;
+python3 &lt;skill&gt;/scripts/gate.py --synonyms 用語.tsv &lt;ファイル...&gt;</pre>
+<div class="wrap"><table><tr><th>検査</th><th>拠って立つもの</th></tr><tr><td>見出しの階層が飛んでいる</td><td>概念4</td></tr><tr><td>文体が混ざっている</td><td>概念6</td></tr><tr><td>並んだ項目の語尾が統一されていない</td><td>概念6</td></tr><tr><td>文字で図や表を描いている</td><td>概念2</td></tr><tr><td>同じ意味の語が2つある（対を渡したとき）</td><td>概念7</td></tr><tr><td>強調が描画されない</td><td><strong>媒体の決め</strong></td></tr></table></div>
+<p><strong>最後の1つだけ、概念から導けない。</strong><br>マークダウンの記法に拠るもので、5つの原典はどれも描画について書いていない。<br><strong>別枠であることを、<code>--list</code> と名簿に書いてある。</strong></p>
+<p><strong>概念3と概念9は、ゲートに入らない。</strong><br>数は数えられるが、<strong>いくつで形を変えるかは文脈で変わる</strong>ので、0件にできない。<br>判定として、書き手が適用する。</p>
+<p><strong>ゲート2は書き手が判定する。</strong><br>報告に、10の判定すべての結果を1行ずつ書く。<strong>1つでも欠けていれば、通っていない。</strong></p>
+<hr>
+<h2>6. 出力形式</h2>
+<div class="wrap"><table><tr><th>報告する内容</th><th>書き方</th></tr><tr><td>直した箇所</td><td>概念の番号ごとに、どこを何から何へ直したかを表で出す</td></tr><tr><td>残した箇所</td><td>場所と、残す理由を書く</td></tr><tr><td><strong>ゲート1の結果</strong></td><td>通ったか、通っていないか。件数を書く</td></tr><tr><td><strong>適用しなかった判定</strong></td><td><strong>番号で書く</strong>。全部適用したなら、そう書く。<strong>1つでも欠ければゲート2は通っていない</strong></td></tr><tr><td>確認していないこと</td><td><strong>確認していないことを、確認したと書かない</strong></td></tr></table></div>
+<hr>
+<h2>7. ガードレール</h2>
+<p>- <strong>運用の覚書の書き方を、どの文書にも使わない</strong>。ゲート1の「述部が和語である」が検出する語は、書いた本人が読み返すための書き方であって、読み手のための書き方ではない。<strong><code>CLAUDE.md</code> と Skill も例外にしない</strong> ── 例外にすると、そこで書いた語がそのまま本文へ流れる。どの文書でも、操作の名前で書く<br>- <strong>名前のあるものを、描写で呼ばない</strong>。その操作に分野の名前があるなら、自分の言葉で言い換えない<br>- <strong>文語寄りの語を使わない</strong>。「営み」「所以」「〜ねばならない」のように、書き言葉のためだけに選んだ語は、ふだん話す語へ替える。<strong>判定は、同じことを口で説明するときにその語を使うか</strong> ── 使わないなら、読み手にとっては飾りであって、意味を1つも足していない<br>- <strong>廃語を使用しない</strong>。一度破棄した語の一覧は<strong>このSkillの外</strong>にある ── いつ何を破棄したかはプロジェクトごとに相違するので、ここへ書くと書いたプロジェクトでしか使えない検査になる。既定では <code>.doc-writing/retired-words.json</code> を、対象のファイルから上へたどって探す。<strong>無ければこの検査は走らない</strong>（失敗にしない）<br>- <strong>和語へ言い換えない</strong>。<strong>名前も、述部もである</strong>。原典が和語を勧めるのは広報・解説であって、事務的・専門的な文書ではない。名前を和語にすると<strong>必ず新語になり</strong>（メタデータ→「頭」、出典→「指す先」）、述部を和語にすると<strong>意味の範囲が広がる</strong>（適用される ・ 有効である ・ 作用する が、1語にまとまってしまう）。<strong>判定は2つ ── その語を検索して同じ意味が出てくるか。意味を特定できる漢語が在るか</strong></p>
+<p>  <strong>言い換え先は、<code>scripts/gate.py</code> の <code>WAGO</code> が定義する。</strong><br>  ゲート1の「述部が和語である」はその定義で検出し、<strong>検出した1件ごとに言い換え先を出力する</strong>。<br>  <strong>この文書は定義を複製しない</strong> ── 複製は本体とずれ、どちらが正しいかを毎回確認することになる。<br>- <strong>指し先の無い名詞句を書かない</strong>。「ずれ」「外を指す名前」のように、それが何を指すかを文書の中に書いていない語を使わない。<strong>見出しに置く語は、見出しだけで指し先が分かる形にする</strong>（「ずれた34件」ではなく「仕様と実装のずれ34件」）<br>- <strong>散文で書けることを、散文で書かない</strong>。対比・条件・一覧・手順は表、分岐・流れ・包含は図にする<br>- <strong>桁を空白で整列させて、表に見せない</strong>。表はマークダウンの表で書く<br>- <strong>ASCII で図を描かない</strong>。図は mermaid か SVG で書く<br>- <strong>同じ文脈で、同じ意味に2つの語を対応づけない</strong>。文脈が変わるなら、変わることを書く<br>- <strong>訂正の記録を本文に残さない</strong>。文書には現行の正しい内容だけを書く。履歴は git が持つ<br>- <strong>数値は原典の文字列で確認してから書く</strong>。要約を経由して引かない<br>- <strong>確認していない内容を、確認したように書かない</strong>。推測は推測と分かる形で書く<br>- <strong>原典から導けない決めを、原典の記述として書かない</strong>。こちらの決めだと書く<br>- <strong>ゲートを実行していないものを、出さない</strong>。実行していないなら、そう書く</p>
+<hr>
+<h2>8. 出典</h2>
+<p><strong>10の概念は、公開された規格・指針から導いた。</strong><br><strong>規則そのものではなく、規則が立っている考え方を取っている。</strong></p>
+<div class="wrap"><table><tr><th>概念</th><th>導いた原典</th></tr><tr><td>1 ・ 3 ・ 9</td><td>公用文作成の考え方 ／ Microsoft Writing Style Guide</td></tr><tr><td>2 ・ 4</td><td>Google developer documentation style guide ／ 公用文作成の考え方</td></tr><tr><td>5</td><td>公用文作成の考え方 ／ Microsoft Writing Style Guide</td></tr><tr><td>6</td><td>公用文作成の考え方 ／ JTF日本語標準スタイルガイド ／ Microsoft ／ Google</td></tr><tr><td>7</td><td>Domain-Driven Design Reference ／ 公用文作成の考え方</td></tr><tr><td>8</td><td>公用文作成の考え方 ／ Google developer documentation style guide</td></tr><tr><td>10</td><td>Google developer documentation style guide ／ 公用文作成の考え方</td></tr></table></div>
+<div class="wrap"><table><tr><th>原典</th><th>URL</th><th>取得した日</th></tr><tr><td>公用文作成の考え方（文化審議会建議）</td><td><code>bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/93651301_01.pdf</code></td><td>2026-09-12</td></tr><tr><td>JTF日本語標準スタイルガイド</td><td><code>jtf.jp/pdf/jtf_style_guide.pdf</code></td><td>2026-09-12</td></tr><tr><td>Domain-Driven Design Reference（Eric Evans）</td><td><code>domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf</code></td><td>2026-09-12</td></tr><tr><td>Google developer documentation style guide</td><td><code>developers.google.com/style/</code>（highlights ・ headings ・ translation）</td><td>2026-09-12</td></tr><tr><td>Microsoft Writing Style Guide</td><td><code>learn.microsoft.com/en-us/style-guide/</code>（top 10 tips ・ scannable content）</td><td>2026-09-12</td></tr></table></div>
+<p><strong>原文は <code>sources/</code> に取得してある。git には入れていない</strong>（PDF 3本で 8.8MB）。<br><strong>入れてあるのは <code>sources/MANIFEST.json</code> だけで、URL ・ sha256 ・ 取得した日を持つ。</strong></p>
+<pre class="code">python3 scripts/fetch_sources.py            # 取得する。MANIFEST.json を書く
+python3 scripts/fetch_sources.py --check    # 手元のものが MANIFEST と一致するかを検査する</pre>
+<p><strong>この Skill は、外の Skill にも、Linux にも依存しない。</strong><br><strong>使うのは Python の標準ライブラリだけである。</strong><br>PDF のテキスト化だけは <code>pdftotext</code> が在れば行い、無ければ PDF をそのまま残す。</p>
+<p><strong>規約の文言を参照するときは、<code>sources/</code> の原文を開いて文字列で照合する。記憶で書かない。</strong></p>
+<p><strong>概念8の「名前のあるものを、描写で呼ばない」は、DDD Reference の次の行から取っている。</strong></p>
+<blockquote>Translation blunts communication and makes knowledge crunching anemic.</blockquote>
+<blockquote>Within a bounded context, use the same language in diagrams, writing, and especially speech.</blockquote>
+<p><strong>見出しの番号は、規則にしない。</strong></p>
+<blockquote>Don&#x27;t use numbers in headings to indicate a sequence of sections.<br>── Google developer documentation style guide, headings</blockquote>
+<p><strong>公用文は番号に触れず、見え方だけを求めている</strong>（Ⅲ－２ 標題・見出しの付け方）。</p>
+<blockquote>エ　見出しを追えば全体の内容がつかめるようにする。<br>カ　見出しを目立たせるよう工夫する。</blockquote>
+<p><strong>したがって、番号の有無は検査しない</strong>。見出しだけで内容がつかめるか、<br>どの本文がどの見出しに属すかが見た目で分かるか ── 見るのはそちらである。</p>
+<p><strong>漢語と和語は、正確さと親しみやすさで選び分ける。</strong></p>
+<blockquote>ウ　重厚さや正確さを高めるには、述部に漢語を用いる<br>語の意味を<strong>より正確に表現したいとき</strong>に、漢語を用いることが有効である場合がある。<br>例）性質が変わる → 性質が変化する　　プログラムが変わる → プログラムが変更される<br><br>エ　分かりやすさや親しみやすさを高めるには、述部に訓読みの動詞を用いる<br>── 公用文作成の考え方 Ⅲ－４</blockquote>
+<p><strong>エには但し書きが付いている。</strong></p>
+<blockquote>ただし、<strong>訓読みの動詞は意味の範囲が広いため、厳密に意味を特定しなければならないときには<br>不向き</strong>なこともあることに留意する。<br>例）作業が進捗する → 作業がはかどる、作業が順調に進む、作業が予定どおりに運ぶ</blockquote>
+<p><strong>「進捗する」1語が、和語では3通りに散る。</strong></p>
+<p><strong>技術文書が要るのは正確さなので、適用するのは「ウ」である。</strong><br>名前も述部も、意味を特定できる語を選ぶ。和語へ言い換えるのは、広報・解説のときだけである。</p>
+<p><strong>専門用語への対応は3つあり、言い換えはそのうち1つである。</strong></p>
+<blockquote>ア　言い換える。　例）頻回 → 頻繁に、何回も　　埋蔵文化財包蔵地 → 遺跡<br>イ　説明を付けて使う。<br>ウ　普及を図るべき用語は、工夫してそのまま用いる。<br>── 公用文作成の考え方 Ⅱ－２</blockquote>
+<blockquote>日常語では言い換えることができない専門用語も多く、その中には専門的な知識を持たない人々に<br>とって重要な意味を持つものもある。そうした場合は、<strong>専門用語を使った上で、分かりやすい説明を<br>添える工夫が望まれる</strong>。</blockquote>
+<p><strong>アが適用されるのは「その用語でなくても意味が表せるもの」だけである。</strong></p>
+<blockquote>専門家同士で使っている用語で、<strong>その用語でなくても意味が表せるもの</strong>は、一般的な言葉に<br>言い換えることが求められる</blockquote>
+<p><strong>日常語で表せないものを描写に置き換えると、誰にとっても新しい語になる。</strong><br>専門家は名前と結び付け直す手間を負い、分野の外の人は何を指すのか分からない。<br>どちらにも得が無い ── だから、読み手が誰であっても描写にはしない。</p>
+<p><strong>公用文は、同じ問いに逆の答えを置いている</strong>（Ⅱ－２ 専門用語の扱い ア）。</p>
+<blockquote>専門家同士で使っている用語で、その用語でなくても意味が表せるものは、一般的な言葉に言い換えることが求められる</blockquote>
+<p><strong>2つは矛盾していない。読み手が違う。</strong><br><strong>公用文が想定するのは分野の外の読み手、DDD が想定するのは分野の中の読み手である。</strong><br><strong>だから概念8は、読み手を決めてからでないと適用できない。</strong></p>
+<p><strong>原典は変わる。</strong><br>HTML の頁は書き換えられ、PDF は版が上がる。<br><strong>取得した日を残しているので、照合し直すときはそこから確認する。</strong></p>
+<hr>
+<h2>9. 参照</h2>
+<p>- <code>scripts/gate.py</code>: ゲート1の検査。<strong>拠って立つものは <code>--list</code> で見られる</strong><br>- <code>scripts/tails.py</code>: <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無し。和語の検査は語彙表での照合のみであった）" data-w="語彙表で照合すると、表に存在しない和語が通過する ── 句の末尾を機械的に全部拾う2周目を追加した。実際に、この方法で35件を検出し、確定した19語を語彙表へ追加した。照合の形も緩めた ── 「を当てる」の形のみを見ていたので、「当たる先」という節名が通過していた（前に を／に が存在しないためである）。裸の「当たる」「当てる」も照合対象へ追加し、節名を「適用先」へ改称した">語彙表を使わずに</mark></strong>句の末尾を全部拾って並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを <code>gate.py</code> の WAGO へ追加する<br>- <code>scripts/test_gate.py</code>: この検査の振る舞いを事例で検証する。<code>python3 test_gate.py</code> で走る<br>- <code>scripts/fetch_sources.py</code>: <strong>出典8本の原文を取得し、<code>sources/MANIFEST.json</code> に URL と sha256 を残す</strong>。<code>--check</code> で手元のものと突き合わせる</p></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      var host = m.closest("td") || m.closest("li") || m.parentNode;
+      if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+      else host.parentNode.appendChild(p);
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md").forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>

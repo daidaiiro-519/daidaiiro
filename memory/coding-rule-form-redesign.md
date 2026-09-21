@@ -1,22 +1,22 @@
 ---
 name: coding-rule-form-redesign
-description: CodingSkills の規則形式を、ブレストボードとは別系統で再導出している。到達内容は .brainstorm/coding-rule-form/rule-form.md にある
+description: CodingSkills のブレストボードは .brainstorming-board/coding-skills/ の1枚だけである。11論点のうち、いま開いているのは10と11
 metadata:
   node_type: memory
   type: project
 ---
 
-CodingSkills の規則形式について、`.brainstorm/coding-essence/` のブレストボードとは
-別系統の検討を 2026-09-19 から 09-20 にかけて実施した。到達内容と未決の論点は
-`.brainstorm/coding-rule-form/rule-form.md` にある。
+CodingSkills のブレストボードは `.brainstorming-board/coding-skills/` の1枚だけである。
+2026-09-21 に、規則1件の形を扱っていた `coding-rule-form/` を統合した。
+以前の `.brainstorm/coding-essence/` は破棄した。
 
-ブレストボードは本セッションでは前提に置かず、保留している。両者の結論は接続していない。
+- 論点1〜8 ── 規則1件の形（保持する3つ ・ 出典に無いことを書かない ・ 腐敗の機構 ・
+  原典の降下 ・ 配置の宣言 ・ 軸は4本 ・ 軸の順序 ・ 出典を持てないものの置き場所）
+- 論点9 ── 決着。軸と値の対を受け取り、規則の集合を返す。コードは検査しない
+- 論点10・11 ── 承認待ち（実体で持つもの ／ 検証方法をいつ実行するか）
 
 **次にすること**
 
-- アーキテクチャの軸で規則を1件記述し、配置と対で成立するかを確認する
-- 言語の軸の試作 `.brainstorm/coding-essence/trial/language-go.md` を3要素の形式へ書き直す
-
-**Why:** 既存の仕組みが複雑であるとの判定を受け、ブレストボードの結論を前提に置かずに
-文書の腐敗の機構から再導出した。ボードの29ラウンドとは導出の経路が異なるため、
-どちらの結論を採用するかは未決である。
+- 軸の値1つ（`go`）で規則を1件書き、meta と宣言を指して照合を動かす ── 論点10・11 の試験になる
+- ヘキサゴナルの原典を取得して照合する ── 論点4 がそこに乗っている
+- テストの配置が論点8 の3分割に収まらない件を、論点8 へ差し戻す

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "意思決定の記録（ACDR）の spec",
+  "description": "build_acdr.py が読む入力。節と、対象の文書ごとの3つ組を持つ。変更後の中身は持たない ── それは対象の文書が持つ。",
+  "type": "object",
+  "required": [
+    "題",
+    "決定",
+    "対象",
+    "なぜ",
+    "状態"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "番号": {
+      "type": "string",
+      "description": "連番。例 ACDR 0001"
+    },
+    "題": {
+      "type": "string",
+      "minLength": 1,
+      "description": "短い名詞句"
+    },
+    "日付": {
+      "type": "string",
+      "description": "決めた日。YYYY-MM-DD"
+    },
+    "状態": {
+      "enum": [
+        "proposed",
+        "accepted",
+        "superseded"
+      ],
+      "description": "proposed は未承認で適用してはならない。accepted は承認済み。superseded は後の記録が置き換えた"
+    },
+    "決定": {
+      "type": "string",
+      "minLength": 1,
+      "description": "**決めてほしいこと1件**。手段ではなく、何を採るかを1文で書く"
+    },
+    "対象": {
+      "type": "string",
+      "minLength": 1,
+      "description": "適用先 ── どの正本が変わるか"
+    },
+    "なぜ": {
+      "type": "string",
+      "minLength": 1,
+      "description": "なぜ、いま決めるのか。何と食い違っていて、何に一致させたか"
+    },
+    "除外した案": {
+      "type": "array",
+      "description": "検討して採らなかった案。消さずに残す",
+      "items": {
+        "type": "object",
+        "required": [
+          "案",
+          "何が壊れるか"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "案": {
+            "type": "string"
+          },
+          "何が壊れるか": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "負担すること": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "置き換えた記録": {
+      "type": "string",
+      "description": "この決定が置き換えた記録の番号"
+    },
+    "lede": {
+      "type": "string"
+    },
+    "intro": {
+      "type": "string"
+    },
+    "docs": {
+      "type": "array",
+      "description": "対象の文書。空なら新規の決定で、差分は出ない",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "tab",
+          "file"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "面を識別する短い鍵"
+          },
+          "tab": {
+            "type": "string",
+            "description": "タブに出す名前"
+          },
+          "file": {
+            "type": "string",
+            "description": "対象の文書のパス（.md は描画、それ以外はそのままの見た目）"
+          },
+          "marks": {
+            "type": "array",
+            "description": "変更1件ぶんの3つ組",
+            "items": {
+              "type": "object",
+              "required": [
+                "find",
+                "before",
+                "why"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "find": {
+                  "type": "string",
+                  "description": "どこ ── 描画したあとの本文に現れる文字列。これを印で囲む。マークダウンの記法（** やバッククォート）を含めない ── 描画後はタグになっていて一致しない"
+                },
+                "before": {
+                  "type": "string",
+                  "description": "変更前の原文。要約しない。**平文である** ── タグを書いても文字として出る"
+                },
+                "why": {
+                  "type": "string",
+                  "description": "なぜ ── 何と食い違っていて、何に一致させたか。**平文である**"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "実現の形": {
+      "type": "string",
+      "description": "その決定をどう実現するか（手段）。決定の文に混ぜない"
+    }
+  }
+}

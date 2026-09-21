@@ -270,5 +270,6 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 ## 9. 参照
 
 - `scripts/gate.py`: ゲート1の検査。**拠って立つものは `--list` で見られる**
+- `scripts/tails.py`: **語彙表を使わずに**句の末尾を全部拾って並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `gate.py` の WAGO へ追加する
 - `scripts/test_gate.py`: この検査の振る舞いを事例で検証する。`python3 test_gate.py` で走る
 - `scripts/fetch_sources.py`: **出典8本の原文を取得し、`sources/MANIFEST.json` に URL と sha256 を残す**。`--check` で手元のものと突き合わせる
