@@ -275,11 +275,12 @@ def render(dir: pathlib.Path, *, 検査する: bool = True) -> str:
             (c for c in _英字[max((_英字.index(c) for c in 使用済 if c in _英字),
                                  default=-1) + 1:] if c not in 使用済), "A"))
 
-    tk = _tok.load()
-    err = _tok.validate(tk)
+    # **トークンはここで置かない** ── 定義は write() が1回だけ置く。
+    # 2か所から出すと、どちらが勝つかを document の順序に委ねることになる。
+    err = _tok.validate(_tok.load())
     if err:
         raise SystemExit("トークンの検査が通っていない:\n  " + "\n  ".join(err))
-    style = ("<style>" + _tok.css(tk) + _CSS + 除外の採番(起点) + "</style>")
+    style = "<style>" + _CSS + 除外の採番(起点) + "</style>"
 
     基準 = None
     回 = d["回"]

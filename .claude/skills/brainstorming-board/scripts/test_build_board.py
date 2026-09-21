@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 """升の整形を、事例で検証する ── **冪等であること**と、**引用を変えないこと**。\n\npython3 test_build_board.py で走る。"""
 import importlib.util, pathlib, sys
 spec = importlib.util.spec_from_file_location("bb", str(pathlib.Path(__file__).with_name("build_board.py")))
@@ -30,3 +31,12 @@ p = m.prev("B′", "前の答えである", "理由である ── くわしく
 check("閉じた答えが3行の表になる", p.count("<tr>") == 3)
 check("利用者の言葉は割らない", "「利用者の言葉 ── そのまま」" in p)
 print(f"\n{ok} 件すべて通った")
+
+# ── 印を付けたあとでも、属性の中では割らない ──────────────
+marked = m.cell(m._mark("主張である ── 説明である", "前の中身 ── その続き", "この回で変わった"))
+assert "data-w=" not in re.sub(r"<[^>]*>", "", marked), "属性が本文へ漏れた"
+print("  ok 印の属性が、本文へ漏れない")
+rows2 = m._pairs([m._mark("甲 ── 乙", "丙 ── 丁", "この回で変わった")], "左", "右")
+assert "data-b=" not in re.sub(r"<[^>]*>", "", rows2), "属性が升へ漏れた"
+print("  ok 表の升にも漏れない")
+print("\n14 件すべて通った")

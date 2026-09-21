@@ -37,22 +37,14 @@ from dataclasses import dataclass, field
 LETTERS = "ABCDEFGH"
 
 # ブレストボードの色。図を描く側は、これを自分のエンジンのトークンへ複製する。
-#
-# **ここが色の正本である。**ブレストボードの CSS を持っているのはこのファイルなので、
-# 描く側が自分で色を決めると、色を決める場所が2つになる。
+# **色の正本はここではない。**`references/tokens.json` が単独で保持し、
+# `tokens.py` が CSS のカスタムプロパティへ組む ──
+# ここに辞書を置いていた頃は、CSS の :root と名前も値も違うものが並び、
+# しかも辞書の側は参照0件の死んだ定義だった。
 #
 # **この Skill は図を描かない。**描き方も、描く道具も持たない ──
-# board() は図を SVG の文字列として受け取るだけで、どう描いたかを知らない。
-# 描くのはブレストごとのフォルダ（具体の側）であり、
-# どのエンジンを使うかもそちらが決める。
-TOKENS = {
-    "paper": "#eef1ef", "card": "#f8faf9",
-    "ink": "#111d1a", "ink-soft": "#5b6b66",
-    "line": "#9fb0ab", "rule": "#ccd8d4", "sunk": "#e7ecea",
-    "accent": "#0d5c55", "accent-bg": "#d5e6e3",
-    "warn": "#8f5410", "warn-bg": "#f0e2cd",
-    "dim": "#7d8a86",
-}
+# deck() は図を SVG の文字列として受け取るだけで、どう描いたかを認知しない。
+# 描くのは design-svg であり、成果物は具体の側の figures/ に在る。
 
 # 出どころの種類。読み手が札だけで意味を取れる言葉にする
 KINDS = {"実測": "k-fact", "原典": "k-src", "決まり": "k-rule",
@@ -90,11 +82,28 @@ class Table:
     plain: bool = False  # 行の見出しが案の記号でないとき（層の名前など）は True
 
 
-def _mark(text: str, before: str, why: str, deleted: bool = False) -> str:
-    """変わった箇所の印。押すと、変更前と理由が開く。"""
+def _plain(x: str, n: int = 46) -> str:
+    """印の抜き書き。**引き出しの一覧に出すので、短くする。**"""
+    t = re.sub(r"<[^>]+>", "", str(x)).strip()
+    return _h.escape(t[:n] + ("…" if len(t) > n else ""))
+
+
+def _mark(text: str, before: str, why: str, deleted: bool = False,
+          cid: str | None = None) -> str:
+    """変わった箇所の印。押すと、変更前と理由が開く。
+
+    cid を持つ印は、**引き出しから直に跳べる**。
+    """
     return (f'<mark class="chg{" del" if deleted else ""}" tabindex="0" role="button" '
+            f'{f'id="{cid}" ' if cid else ""}'
             f'aria-expanded="false" data-b="{_h.escape(before, quote=True)}" '
             f'data-w="{_h.escape(why, quote=True)}">{text}</mark>')
+
+
+# 印がどの節に在るかを、読み手の言葉で持つ
+_WHERE = {"note": "前書き", "pick": "答え", "path": "道筋", "found": "分かったこと",
+          "costs": "要求事項", "weaknesses": "扱わない範囲", "tables": "表",
+          "grounds": "根拠"}
 
 
 def _sec(no: int, title: str, body: str) -> str:
@@ -143,8 +152,13 @@ class Topic:
     # **畳まない** —— 答えの直下に開いたまま置く。図と同じ扱いである。
     # 畳むと、実例を探しながら結論を読むことになる（実際に、経過の底へ埋めた）
     example: str = ""
-    # 「弱いところ」か、(弱いところ, どう扱うか) の対。**承認を求める論点は、対で書く**
+    # 「事項」か、(事項, 扱い) の対。**承認を求める論点は、対で書く**
+    #
+    # **欠陥の一覧ではない。**いずれもこの答えを覆さない ──
+    # 覆しうるものは反証で除外済みである。扱いは 対象外 ／ 後続で決定 ／ 解消済 の3種。
     weaknesses: list = field(default_factory=list)
+    # 未修正の誤り。(誤り, 現状) の対。**適用範囲外と分離する** ── 混在すると、制約が誤りに見える
+    defects: list[tuple[str, str]] = field(default_factory=list)
     decision: list[tuple[str, str]] = field(default_factory=list)
     extras: list[tuple[str, str]] = field(default_factory=list)
 
@@ -163,17 +177,6 @@ HEAD = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
         '&family=JetBrains+Mono:wght@400;700&display=swap">')
 
 CSS = """
-:root{--paper:#eef1ef;--card:#f8faf9;--ink:#111d1a;--muted:#5b6b66;--rule:#ccd8d4;
---rule-soft:#dfe7e4;--sunk:#e7ecea;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;
---warn-soft:#f0e2cd;--dim:#7d8a86;--src-o:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;
---shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;
---ink:#e6eeeb;--muted:#93a29d;--rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;
---key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985;--src-o:#d094c2;
---pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000}}
-:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--ink:#e6eeeb;--muted:#93a29d;
---rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;--key-soft:#173330;
---warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985;--src-o:#d094c2;--pop:#241d14;--popline:#6e5738}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);
 font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
@@ -291,6 +294,37 @@ max-height:16rem;overflow:auto}
 footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
 footer a{color:inherit}
 
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
 /* ── 変更の印 ── */
 mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
 box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
@@ -350,6 +384,31 @@ SCRIPT = r"""<script>
     });
   });
 
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
   /* 回答 ── 論点ごとに1件だけ入る */
   var state={};
   document.querySelectorAll(".form").forEach(function(f){
@@ -398,6 +457,25 @@ SCRIPT = r"""<script>
 </script>"""
 
 
+def _cut(x: str, sep: str = " ── ") -> tuple[str, str, str]:
+    """区切りで割る。**タグの内側では割らない。**
+
+    印を付けたあとの文字列には、属性の中にも区切りが入る ──
+    そこで割ると、属性が本文へ漏れる（実際に漏れた）。
+    """
+    depth, i = 0, 0
+    while i < len(x):
+        c = x[i]
+        if c == "<":
+            depth += 1
+        elif c == ">":
+            depth = max(0, depth - 1)
+        elif depth == 0 and x.startswith(sep, i):
+            return x[:i], sep, x[i + len(sep):]
+        i += 1
+    return x, "", ""
+
+
 def cell(x: str) -> str:
     """1つの升に2つのことが入っているものを、**主張と説明の2段**にする。
 
@@ -410,7 +488,7 @@ def cell(x: str) -> str:
     """
     if not isinstance(x, str) or x.lstrip().startswith("「") or 'class="lead-s"' in x:
         return x
-    head, sep, tail = x.partition(" ── ")
+    head, sep, tail = _cut(x)
     if not sep:
         return x
     if head.startswith("<b>") and head.endswith("</b>"):
@@ -422,7 +500,7 @@ def _pairs(items: list[str], left: str, right: str) -> str:
     """『主張 ── 説明』の並びを、2列の表にする。区切りが無い行は、右を空にする。"""
     rows = []
     for x in items:
-        a, sep, b = x.partition(" ── ")
+        a, sep, b = _cut(x)
         rows.append([f"<b>{a}</b>", b if sep else ""])
     return _tbl([left, right], rows)
 
@@ -496,9 +574,15 @@ class Diff:
         self.was = (prev or {}).get(str(t.no), {}) if self.on else {}
         self.n = 0
         self.pair: dict[tuple[str, int], list | None] = {}
+        self.items: list[tuple[str, str, str]] = []   # (印の番号, どの節か, 抜き書き)
+        self.rows: dict[tuple[str, int], str] = {}    # 行ごとに1件だけ一覧へ出す
+        self.seen: list[str] = []
+        self.now: dict | None = None
+        self.no = t.no
         if not self.on:
             return
         now = snapshot([t])[str(t.no)]
+        self.now = now
         for f in _FIELDS:
             old, new = self.was.get(f) or [], now.get(f) or []
             # **並びを突き合わせてから、升を比べる。**
@@ -520,13 +604,34 @@ class Diff:
                         self.n += 1
 
     def mark(self, field: str, i: int, j: int, text: str) -> str:
-        """変わっていれば印にする。**変わっていなければ、何も足さない。**"""
+        """変わっていれば印にする。**変わっていなければ、何も足さない。**
+
+        印には番号を振る ── **引き出しから、その印まで直に跳ぶため**である。
+        """
         if not self.on or not isinstance(text, str) or not text:
             return text
         row = self.pair.get((field, i))
-        if row is None or j >= len(row):
-            return _mark(text, ADDED, "この回で足した")
-        return text if row[j] == text else _mark(text, row[j], "この回で変わった")
+        added = row is None or j >= len(row)
+        if not added and row[j] == text:
+            return text
+        cid = f"c{self.no}-{len(self.seen)}"
+        self.seen.append(cid)
+        # **一覧は行ごとに1件にする。**升ごとに出すと、「持つ」だけの行が並ぶ（実際に並んだ）。
+        if (field, i) not in self.rows:
+            self.rows[(field, i)] = cid
+            self.items.append((cid, _WHERE.get(field, field), _plain(self.label(field, i, text))))
+        return _mark(text, ADDED if added else row[j],
+                     "この回で足した" if added else "この回で変わった", cid=cid)
+
+    def label(self, field: str, i: int, fallback: str) -> str:
+        """一覧に出す、その行の見出し。**行を見分けられる升を選ぶ。**"""
+        rows = (self.now or {}).get(field) or []
+        if i >= len(rows):
+            return fallback
+        r = rows[i]
+        if field == "tables" and len(r) >= 2:
+            return f"{r[0]}／{r[1]}"
+        return r[0] if r else fallback
 
     def one(self, field: str, text: str) -> str:
         """1つしか無い欄（前書き・答え）に当てる。"""
@@ -537,13 +642,14 @@ def _fold(summary, body):
     return f"<details><summary>{summary}</summary><div>{body}</div></details>"
 
 
-def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None) -> str:
+def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
+           diff: "Diff | None" = None) -> str:
     """論点1つぶん。開いているものは答えと裏づけと回答欄、まだのものは問いだけ。
 
     prev を渡すと、**この回で変わった升に印が付く** ── 押すと前の回の中身が開く。
     """
     qid = f"Q{t.no}"
-    d = Diff(t, prev)
+    d = diff if diff is not None else Diff(t, prev)
     out = [f'<div class="qh"><span class="qid">{qid}</span>'
            f'<h2>{_h.escape(t.question)}</h2></div>']
     if t.note:
@@ -630,18 +736,26 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None) -> 
             else:
                 naked += 1
                 rows.append([cell(d.mark("weaknesses", wi, 0, w)),
-                             '<span class="cost">行き先が決まっていない</span>'])
-        lead = ('<p class="note-s">ここに在るのは、<b>反証を通過したあとに残ったもの</b>である ── '
-                "どれもこの答えを反証しない。"
-                "<b>反証しうるものは、ここへ置かない</b> ── 反証が済んでいない印なので、"
-                "済ませてから出す。済ませられないなら、その論点はまだ出さない。</p>"
-                '<p class="note-s">行き先は1件ずつ持つ ── <b>解消済み</b>（この答えの中で片付く）／ '
-                "<b>負担する</b>（承認するとこれを負担する）／ "
-                "<b>次にすること</b>（いつ何で解消するか）。</p>")
+                             '<span class="cost">扱いが未記載である</span>'])
+        lead = ('<p class="note-s"><b>いずれも、この答えを覆さない。</b>'
+                "覆しうるものは反証で除外済みであり、ここには残存しない ── "
+                "<b>承認を保留する理由にはならない。</b></p>"
+                '<p class="note-s">扱いは3種である ── '
+                "<b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ "
+                "<b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ "
+                "<b>解消済</b>（既に解決した）。</p>")
         if naked:
-            lead += f'<p class="note-s"><b>{naked}件に行き先が無い。</b></p>'
-        folds.append(_fold(f"まだ弱いところ（{len(t.weaknesses)}件）",
-                           lead + _tbl(["まだ弱いところ", "どう扱うか"], rows)))
+            lead += f'<p class="note-s"><b>{naked}件に扱いが無い。</b></p>'
+        folds.append(_fold(f"この答えが扱わない範囲（{len(t.weaknesses)}件）",
+                           lead + _tbl(["事項", "扱い"], rows)))
+
+    # **欠陥は、適用範囲外と分離する。**同じ節に混ぜると、制約が欠陥に見える。
+    if t.defects:
+        folds.append(_fold(
+            f"未修正の誤り（{len(t.defects)}件）",
+            '<p class="note-s"><b>この答えの中で、まだ修正していない誤りである。</b>'
+            "適用範囲外とは別に記載する ── 混在させると、制約が誤りに見える。</p>"
+            + _tbl(["誤り", "現状"], [[cell(a), cell(b)] for a, b in t.defects])))
 
     hist = ""
     if t.path:
@@ -654,9 +768,9 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None) -> 
                  + _pairs([d.mark("found", i, 0, x) for i, x in enumerate(t.found)],
                           "何が分かったか", "だから何が決まったか"))
     if t.costs:
-        hist += (f'<p class="note-s">負担すること（{len(t.costs)}件）</p>'
+        hist += (f'<p class="note-s">この答えが要求する事項（{len(t.costs)}件）</p>'
                  + _pairs([d.mark("costs", i, 0, x) for i, x in enumerate(t.costs)],
-                          "何を負担するか", "なぜ"))
+                          "要求する事項", "理由"))
     for title, body in t.extras:
         hist += f'<p class="note-s">{_h.escape(title)}</p>' + body
     if hist:
@@ -696,7 +810,7 @@ def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
       2 いま見る論点を示しているか    —— 8件を同時に出し、順番の管理を承認する側へ渡した
       3 宣言されていない依存が無いか  —— 答えの本文だけが他の論点を前提にし、根拠の欄に出てこなかった
       4 試す相手が在るか            —— 下流にも外の作業にも使われない答えを、承認へ出そうとした
-      5 弱いところに行き先が在るか  —— 弱点を並べたまま承認を求め、黙って負担させようとした
+      5 扱わない範囲に扱いが在るか  —— 制約を並べたまま承認を求め、覆すか否かを示さなかった
 
     **見えないもの**が4つある —— 答えの中身が正しいか、反証が十分か、図が主張を運べているか、
     そして**「論点N」と書かずに他の論点を前提にしている依存**である。3つ目の検査が拾うのは、
@@ -736,8 +850,8 @@ def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
             naked = [w for w in t.weaknesses
                      if not (isinstance(w, (tuple, list)) and len(w) >= 2)]
             if naked:
-                out.append(f"論点{t.no}: いま見る論点だが、弱いところ{len(naked)}件に行き先が無い ── "
-                           "承認すると、それを黙って負担することになる")
+                out.append(f"論点{t.no}: いま見る論点だが、扱わない範囲{len(naked)}件に扱いが無い ── "
+                           "承認者は、それが答えを覆すかを判定できない")
         if t.status != "決着" and (t.pick or t.decision) and not used.get(t.no):
             # 末端の論点には下流が無い。そこでは、外の作業（試作・実装）が試す相手になる。
             # 「外の作業」は SKILL.md が使う語である。語形に頼らず、この語だけを見る
@@ -774,6 +888,7 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
 
     front = {n: why for n, why in (queue or [])}
     order = {t.no: i for i, t in enumerate(topics, start=1)}
+    dmap = {t.no: Diff(t, prev) for t in topics}
 
     def chip(t):
         if t.status == "決着":
@@ -801,7 +916,7 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
         lead = (f'<div class="front"><h3>いま見るのは {len(front)} 件だけである</h3>'
                 f'<ol>{items}</ol>{tail}</div>')
 
-    diffs = [(t, Diff(t, prev)) for t in topics] if prev is not None else []
+    diffs = [(t, dmap[t.no]) for t in topics] if prev is not None else []
     n_chg = sum(d.n for _, d in diffs)
     chg_fold = ""
     if prev is not None:
@@ -835,7 +950,7 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
         tabs.append(f'<button data-t="p{i}" aria-selected="false"{cls}>'
                     f'<span class="tn">Q{t.no}</span>{_h.escape(t.label)}{chip(t)}</button>')
         panels.append(f'<div id="p{i}" hidden>'
-                      f'{_panel(t, theme, ask=queue is None or t.no in front, prev=prev)}</div>')
+                      f'{_panel(t, theme, ask=queue is None or t.no in front, prev=prev, diff=dmap[t.no])}</div>')
 
     n_open = sum(1 for t in topics if t.status != "決着" and (t.pick or t.decision)
                  and (queue is None or t.no in front))
@@ -848,6 +963,30 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
             'ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p>'
             '<div class="out" id="out" hidden></div></section>')
 
+    # この回の変更を、**どの画面からでも開ける引き出し**にする。
+    # 現在地の節だけに置くと、他の論点を見ているあいだは何も見えない（実際にそうだった）。
+    drawer = ""
+    if prev is not None and n_chg:
+        lis = ""
+        for t in topics:
+            d = dmap[t.no]
+            if not d.items:
+                continue
+            lis += (f'<li class="dq">Q{t.no}　{_h.escape(t.label)}'
+                    f'<span class="dn">{d.n}</span></li>')
+            for cid, where, excerpt in d.items:
+                lis += (f'<li><button class="dgo" data-go="p{order[t.no]}" data-cid="{cid}">'
+                        f'<span class="dw">{where}</span>{excerpt}</button></li>')
+        drawer = ('<button id="dtoggle" aria-expanded="false" aria-controls="drawer">'
+                  f'この回の変更<span class="dn">{n_chg}</span></button>'
+                  '<aside id="drawer" hidden aria-label="この回で変わったところ">'
+                  '<div class="dhead"><b>この回で変わったところ</b>'
+                  '<button id="dclose" aria-label="閉じる">閉じる</button></div>'
+                  '<div class="dbody">'
+                  '<p class="note-s">押すと、その箇所まで運ぶ。'
+                  '<b>印をもう一度押すと、前の回の中身が開く。</b></p>'
+                  f'<ol class="dlist">{lis}</ol></div></aside>')
+
     # <body> は公開時の器が用意する。ここで書くと入れ子になるので、器は div で持つ
     return (f'<div id="root" data-board="{_h.escape(board, quote=True)}" '
             f'data-round="{round_no}" data-theme-name="{_h.escape(theme, quote=True)}">'
@@ -859,15 +998,25 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
             'まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p>'
             '</header>'
             f'<div id="tabs" role="tablist">{"".join(tabs)}</div>'
-            f'{"".join(panels)}{send}'
+            f'{"".join(panels)}{send}{drawer}'
             '<footer>© 2026 daidaiiro　'
             '<a href="https://opensource.org/licenses/MIT">MIT License</a></footer>'
             '</div></div>' + SCRIPT)
 
 
+def _css() -> str:
+    """トークンを先に置いた CSS を返す。**定義は1か所からしか出ない。**"""
+    import tokens
+    t = tokens.load()
+    err = tokens.validate(t)
+    if err:
+        raise ValueError("トークンの検査が通っていない:\n  " + "\n  ".join(err))
+    return tokens.css(t) + CSS
+
+
 def write(body: str, path: str, title: str) -> str:
     """1枚を、そのまま公開できるHTMLとして書き出す。"""
     import pathlib
-    page = f"<title>{_h.escape(title)}</title>{HEAD}<style>{CSS}</style>{body}"
+    page = f"<title>{_h.escape(title)}</title>{HEAD}<style>{_css()}</style>{body}"
     pathlib.Path(path).write_text(page, encoding="utf-8")
     return page

@@ -60,3 +60,18 @@ print("  ok 挿し込みの後ろの行は、素のまま")
 assert "この回で足した" in d3.mark("found", 0, 0, "新しい行 ── 足した")
 print("  ok 挿し込んだ行だけ「足した」と出る")
 print("\n18 件すべて通った")
+
+# ── どの画面からでも開ける引き出し ──────────────────────────
+html2 = m.deck("試し", [b], prev=snap2, board="t", round_no=2)
+assert 'id="dtoggle"' in html2, "つまみが出ない"
+print("  ok どの画面からでも開くつまみが出る")
+assert 'id="drawer"' in html2 and 'class="dgo"' in html2, "引き出しの中身が無い"
+print("  ok 引き出しに、跳ぶ行が並ぶ")
+assert html2.count('class="dgo"') <= m.Diff(b, snap2).n, "一覧が升ごとに出ている"
+print("  ok 一覧は行ごと（升ごとではない）")
+none2 = m.deck("試し", [b], board="t", round_no=2)
+assert 'id="dtoggle"' not in none2, "前の回が無いのに、つまみが出た"
+print("  ok 変更が無ければ、つまみごと出ない")
+assert m.deck("試し", [b], prev=snap2, board="t", round_no=2) == html2
+print("  ok 2回組んでも同じ（冪等）")
+print("\n23 件すべて通った")
