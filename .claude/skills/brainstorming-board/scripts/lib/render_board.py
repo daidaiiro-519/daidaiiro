@@ -268,6 +268,18 @@ def _grounds_order(gs):
 
 # ── 組み立て ────────────────────────────────────────
 
+def prepare(d: dict, figure_src: pathlib.Path) -> list:
+    """入力から論点を起こし、**並べ替えまで済ませる。**
+
+    **組み立てと基準の保存が、同じものを見るようにする** ── 片方だけが
+    根拠を並べ替えていたので、根拠の欄が毎回「変わった」と出ていた（実測 140 か所）。
+    """
+    topics = [to_topic(t, figure_src) for t in d["topics"]]
+    for t in topics:
+        t.grounds = _grounds_order(t.grounds)
+    return topics
+
+
 def render(dir: pathlib.Path, *, verify: bool = True) -> str:
     if verify:
         from . import validate_input
@@ -277,9 +289,7 @@ def render(dir: pathlib.Path, *, verify: bool = True) -> str:
                              + "\n  ".join("× " + e for e in bad))
     d = json.loads((dir / "board.json").read_text(encoding="utf-8"))
     figure_src = dir / "figures"
-    topics = [to_topic(t, figure_src) for t in d["topics"]]
-    for t, src in zip(topics, d["topics"]):
-        t.grounds = _grounds_order(t.grounds)
+    topics = prepare(d, figure_src)
 
     # 除外した案の記号は、通過した案の次から振る
     origin = {}
@@ -318,6 +328,25 @@ def render(dir: pathlib.Path, *, verify: bool = True) -> str:
     return body
 
 
+# ブレストボードの置き場所の親。**init と同じ既定である**
+BOARDS = ".brainstorming-board"
+
+
+def board_dir(board: str) -> pathlib.Path:
+    """名前でも道でも、同じ1つのフォルダへ解決する。
+
+    **解決を1か所に置く** ── 道具ごとに違う解決をしていたので、名前で渡すと
+    組み立てだけが黙って何もしないことがあった（実際にそうなった）。
+    """
+    p = pathlib.Path(board)
+    if (p / "board.json").exists():
+        return p.resolve()
+    alt = pathlib.Path(BOARDS) / board
+    if (alt / "board.json").exists():
+        return alt.resolve()
+    raise SystemExit(f"board.json が無い: {board} ── {p} にも {alt} にも見つからない")
+
+
 def freeze(dir: pathlib.Path) -> int:
     """いまの入力を、次の回の基準として保存する。
 
@@ -326,8 +355,7 @@ def freeze(dir: pathlib.Path) -> int:
     """
     from .build_board import snapshot
     d = json.loads((dir / "board.json").read_text(encoding="utf-8"))
-    figure_src = dir / "figures"
-    topics = [to_topic(t, figure_src) for t in d["topics"]]
+    topics = prepare(d, dir / "figures")
     out = dir / "rounds" / f'{d["round"]}.json'
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps({"round": d["round"], "snap": snapshot(topics)},

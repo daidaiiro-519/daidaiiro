@@ -39,7 +39,7 @@ def _capture(fn, *a, **kw) -> tuple[int, str, str]:
 
 def validate(board: str) -> dict:
     """入力（board.json）を検査する。**生成物ではなく、入力を検査する。**"""
-    bad = _validate.check(pathlib.Path(board).resolve())
+    bad = _validate.check(_render.board_dir(board))
     return result(ok=True, findings=list(bad), board=board)
 
 
@@ -51,7 +51,7 @@ def _human_validate(res: dict) -> str:
 
 def render(board: str, check: str = "") -> dict:
     """JSON からブレストボードを組む。`check` を渡すと、冪等だけを検査する。"""
-    dir = pathlib.Path(board).resolve()
+    dir = _render.board_dir(board)
     body = _render.render(dir)
     if check:
         code, out, err = _capture(_render._check_idempotent, dir, body)
@@ -74,7 +74,7 @@ def _human_render(res: dict) -> str:
 
 def freeze(board: str) -> dict:
     """いまの姿を、前の回の基準として保存する。**組み直しでは前進させない。**"""
-    code, out, err = _capture(_render.freeze, pathlib.Path(board).resolve())
+    code, out, err = _capture(_render.freeze, _render.board_dir(board))
     return result(ok=code == 0, findings=[], board=board,
                   message=(out + err).strip())
 

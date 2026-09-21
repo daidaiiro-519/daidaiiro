@@ -74,4 +74,32 @@ assert 'id="dtoggle"' not in none2, "前の回が無いのに、つまみが出�
 print("  ok 変更が無ければ、つまみごと出ない")
 assert m.deck("試し", [b], prev=snap2, board="t", round_no=2) == html2
 print("  ok 2回組んでも同じ（冪等）")
-print("\n23 件すべて通った")
+
+# ── 基準と組み立てが、同じものを見る ────────────────────────
+# **片方だけが並べ替えていると、動かしていない欄が毎回「変わった」と出る**
+# （実測で、根拠の欄が 140 か所出た）
+import json as _json
+import tempfile as _tmp
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import render_board as _rb  # noqa: E402
+from lib.build_board import snapshot as _snap  # noqa: E402
+
+_src = {"topics": [{
+    "no": 1, "name": "試し", "question": "問い", "status": "settled",
+    "answer": "答え", "decision": {"letter": "A", "text": [{"kind": "para", "text": "決定"}]},
+    "grounds": [
+        {"supports": "甲", "basis": "も", "tag": "前提", "source": "出"},
+        {"supports": "乙", "basis": "と", "tag": "実測", "source": "所"},
+        {"supports": "丙", "basis": "に", "tag": "原典", "source": "先"}]}]}
+with _tmp.TemporaryDirectory() as _d:
+    _dir = pathlib.Path(_d)
+    _src["round"] = 1
+    (_dir / "board.json").write_text(_json.dumps(_src, ensure_ascii=False), encoding="utf-8")
+    _rb.freeze(_dir)          # 保存する側
+    _base = _json.loads((_dir / "rounds" / "1.json").read_text(encoding="utf-8"))["snap"]
+    _now = _rb.prepare(_src, _dir / "figures")      # 組み立てる側
+    assert sum(m.Diff(t, _base).n for t in _now) == 0, "動かしていないのに、変わったと出る"
+print("  ok 保存した基準と、組み立てが見るものが一致する")
+
+print("\n24 件すべて通った")
