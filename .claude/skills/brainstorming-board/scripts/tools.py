@@ -38,7 +38,7 @@ def _capture(fn, *a, **kw) -> tuple[int, str, str]:
 
 
 def validate(board: str) -> dict:
-    """入力（board.json）を検査する。**組み上がりではなく、入力を検査する。**"""
+    """入力（board.json）を検査する。**生成物ではなく、入力を検査する。**"""
     bad = _validate.check(pathlib.Path(board).resolve())
     return result(ok=True, findings=list(bad), board=board)
 

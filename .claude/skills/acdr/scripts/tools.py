@@ -52,7 +52,7 @@ def _human_new(res: dict) -> str:
 
 
 def validate(record: str) -> dict:
-    """入力（acdr.json）を検査する。**組み上がりではなく、入力を検査する。**"""
+    """入力（acdr.json）を検査する。**生成物ではなく、入力を検査する。**"""
     folder = pathlib.Path(record).resolve()
     bad = _validate.check(folder, _render.repo_root(folder))
     return result(ok=True, findings=list(bad), record=record)

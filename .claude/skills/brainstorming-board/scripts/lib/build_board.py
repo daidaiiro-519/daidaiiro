@@ -484,9 +484,9 @@ def _cut(x: str, sep: str = " ── ") -> tuple[str, str, str]:
 
 
 def cell(x: str) -> str:
-    """1つの升に2つのことが入っているものを、**主張と説明の2段**にする。
+    """1つの欄に2つのことが入っているものを、**主張と説明の2段**にする。
 
-    「主張 ── 説明」と書いたものは、**1つの升に2つのことが入っている**。
+    「主張 ── 説明」と書いたものは、**1つの欄に2つのことが入っている**。
     区切りで割ると、読む側が文を解きほぐさずに済む。
 
     次の3つは割らない ── 文字列でないもの／引用（「で始まるもの）／既に割ってあるもの。
@@ -540,7 +540,7 @@ def _tbl(head, rows):
 # ── この回で何が変わったか ────────────────────────────────────
 #
 # **毎回どこを直したかを、書き手が文章で言うのは仕組みではない。**
-# 前の回の組み上がりを写し取っておき、**ブレストボードが自分で印を付ける。**
+# 前の回の生成物を記録しておき、**ブレストボードが自分で印を付ける。**
 
 _FIELDS = ("note", "pick", "path", "found", "costs", "weaknesses", "tables", "grounds")
 
@@ -548,9 +548,9 @@ ADDED = "（この回で足した）"
 
 
 def snapshot(topics: list["Topic"]) -> dict:
-    """組み上がりを写し取る。**次の回で、この写しと比べる。**
+    """生成物を記録する。**次の回で、この記録と比べる。**
 
-    1行を升の並びとして持つ ── 行の中の**どの升が変わったか**まで見るためである。
+    1行を欄の並びとして持つ ── 行の中の**どの欄が変わったか**まで見るためである。
     """
     out = {}
     for t in topics:
@@ -570,7 +570,7 @@ def snapshot(topics: list["Topic"]) -> dict:
 
 
 class Diff:
-    """前の回との違い。**升ごとに比べる。**
+    """前の回との違い。**欄ごとに比べる。**
 
     並びの同じ位置どうしを比べる ── 入れ替えは「変わった」として出る。
     **黙って動くより、出たほうがよい。**
@@ -592,7 +592,7 @@ class Diff:
         self.now = now
         for f in _FIELDS:
             old, new = self.was.get(f) or [], now.get(f) or []
-            # **並びを突き合わせてから、升を比べる。**
+            # **並びを突き合わせてから、欄を比べる。**
             # 位置だけで比べると、1行足しただけで以降が全部「変わった」と出る（実際に出た）。
             key = lambda r: "\u241f".join(map(str, r))
             sm = _dl.SequenceMatcher(None, [key(r) for r in old], [key(r) for r in new],
@@ -623,7 +623,7 @@ class Diff:
             return text
         cid = f"c{self.no}-{len(self.seen)}"
         self.seen.append(cid)
-        # **一覧は行ごとに1件にする。**升ごとに出すと、「持つ」だけの行が並ぶ（実際に並んだ）。
+        # **一覧は行ごとに1件にする。**欄ごとに出すと、「持つ」だけの行が並ぶ（実際に並んだ）。
         if (field, i) not in self.rows:
             self.rows[(field, i)] = cid
             self.items.append((cid, _WHERE.get(field, field), _plain(self.label(field, i, text))))
@@ -631,7 +631,7 @@ class Diff:
                      "この回で足した" if added else "この回で変わった", cid=cid)
 
     def label(self, field: str, i: int, fallback: str) -> str:
-        """一覧に出す、その行の見出し。**行を見分けられる升を選ぶ。**"""
+        """一覧に出す、その行の見出し。**行を見分けられる欄を選ぶ。**"""
         rows = (self.now or {}).get(field) or []
         if i >= len(rows):
             return fallback
@@ -653,7 +653,7 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
            diff: "Diff | None" = None) -> str:
     """論点1つぶん。開いているものは答えと裏づけと回答欄、まだのものは問いだけ。
 
-    prev を渡すと、**この回で変わった升に印が付く** ── 押すと前の回の中身が開く。
+    prev を渡すと、**この回で変わった欄に印が付く** ── 押すと前の回の中身が開く。
     """
     qid = f"Q{t.no}"
     d = diff if diff is not None else Diff(t, prev)
@@ -930,9 +930,9 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
         if n_chg:
             chg_fold = _fold(
                 f"この回で変わったところ（{n_chg} か所）",
-                '<p class="note-s">本文の中で、<b>色の付いた升が今回の変更である</b> ── '
+                '<p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── '
                 "押すと前の回の中身が開く。</p>"
-                + _tbl(["論点", "変わった升"],
+                + _tbl(["論点", "変わった欄"],
                        [[f'<button class="jump" data-go="p{order[t.no]}">'
                          f'Q{t.no}　{_h.escape(t.label)}</button>', f"{d.n} か所"]
                         for t, d in diffs if d.n]))

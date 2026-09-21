@@ -511,8 +511,15 @@ def main(argv: list[str]) -> int:
     return 1 if n else 0
 
 
-def gate_lines(paths: list[str]) -> tuple[list[str], int]:
-    """報告の行と、指摘の件数。**印字する側と、機械へ返す側が、同じ文字列を使う。**"""
+def gate_lines(paths: list[str], retired: str | None = None) -> tuple[list[str], int]:
+    """報告の行と、指摘の件数。**印字する側と、機械へ返す側が、同じ文字列を使う。**
+
+    **廃語の一覧は、ここで読む** ── 入口ごとに読む形にすると、片方の入口から
+    呼んだときだけ検査が走らない（実際に、そうなっていた）。
+    """
+    global RETIRED
+    path = Path(retired) if retired else (_find_retired(Path(paths[0])) if paths else None)
+    RETIRED = _load_retired(path) if path and path.exists() else []
     out, n = [], 0
     for a in paths:
         for f in inspect(a):

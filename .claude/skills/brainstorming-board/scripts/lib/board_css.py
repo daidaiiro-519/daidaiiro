@@ -54,8 +54,8 @@ ol.path .q-in{color:var(--ink)}
 ol.path .q-in::before{content:"「"}
 ol.path .q-in::after{content:"」"}
 
-/* ── 図と組み上がりが、周りの背景に沈む ── 段差と枠を付ける。
-      図の中の箱は薄い色なので台を濃くし、文字を読む組み上がりは淡くする。
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
       **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
       design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
 .ex figure,.figs figure,figure.fig-top{background:var(--fig-bg);

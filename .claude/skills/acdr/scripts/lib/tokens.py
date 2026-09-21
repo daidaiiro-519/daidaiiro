@@ -102,7 +102,7 @@ def css(t: dict, *, host: bool = False) -> str:
 
 
 def refs_and_defs(built: str) -> tuple[set[str], set[str]]:
-    """組み上がりから、参照した鍵と定義した鍵を抜く。**差を0件にするために参照する。**"""
+    """生成物から、参照した鍵と定義した鍵を抜く。**差を0件にするために参照する。**"""
     import re
     # 代替値を持つ参照（var(--x,#fff)）は、定義が無くても崩壊しない ── 別に数える
     ref = {m.group(1) for m in re.finditer(r"var\(\s*(--[a-z0-9-]+)\s*([,)])", built)

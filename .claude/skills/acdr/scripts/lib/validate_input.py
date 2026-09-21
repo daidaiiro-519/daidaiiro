@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""入力（acdr.json）を検査する。**組み上がりではなく、入力を検査する。**
+"""入力（acdr.json）を検査する。**生成物ではなく、入力を検査する。**
 
     python3 cli.py validate <記録のフォルダ>
 
@@ -67,14 +67,14 @@ def fields(spec: dict) -> list[str]:
 
 sep = "──"
 longest = 120          # 1文の字数の上限
-cohabit = 1            # 1つの升に置ける主張の数
+cohabit = 1            # 1つの欄に置ける主張の数
 quote = re.compile(r"「[^」]*」|<code>.*?</code>", re.S)
 level_items = re.compile(r"</?(p|h[1-6]|ul|ol|li|pre|div|table|tr|td|th|details|summary|"
                          r"figure|blockquote)\b", re.I)
 
 
 def _cells(spec: dict):
-    """検査する升を、場所の名前つきで全部列挙する。**取りこぼしを作らない。**
+    """検査する欄を、場所の名前つきで全部列挙する。**取りこぼしを作らない。**
 
     **原文は列挙しない** ── 変更前（`before`）は原典であり、形を変えない。
     照合する文字列（`find`）も、散文ではない。
@@ -97,14 +97,14 @@ def _cells(spec: dict):
 
 
 def prose(place: str, s: str) -> list[str]:
-    """1つの升に2つのことが入っていないか、1文が長すぎないかを見る。
+    """1つの欄に2つのことが入っていないか、1文が長すぎないかを見る。
 
     **引用は除外する** ── 原文の形を変えないと決めているためである。
     """
     bad = []
     raw = quote.sub("", re.sub(r"<[^>]+>", "", s))
     if raw.count(sep) > cohabit:
-        bad.append(f"{place}: 1つの升に区切り「{sep}」が {raw.count(sep)} 個ある")
+        bad.append(f"{place}: 1つの欄に区切り「{sep}」が {raw.count(sep)} 個ある")
     for sentence in re.split(r"(?<=。)", raw):
         sentence = sentence.strip()
         if len(sentence) > longest:
@@ -115,7 +115,7 @@ def prose(place: str, s: str) -> list[str]:
 def level_mix(place: str, s: str) -> list[str]:
     """**入力は宣言だけを保持する。** 段の要素が入っていれば、宣言の外に構造がある。"""
     m = level_items.search(s)
-    return [f"{place}: 段の要素「{m.group(0)}」が升の中に在る ── 宣言へ割る"] if m else []
+    return [f"{place}: 段の要素「{m.group(0)}」が欄の中に在る ── 宣言へ割る"] if m else []
 
 
 def refs(folder: pathlib.Path, spec: dict, root: pathlib.Path | None = None) -> list[str]:

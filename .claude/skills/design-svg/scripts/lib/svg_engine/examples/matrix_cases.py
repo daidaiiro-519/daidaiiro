@@ -85,6 +85,6 @@ def build_all() -> list[tuple[str, str, str]]:
     """全ての図を実際に組み立てる。手で走らせる入口が使う。
 
     Returns:
-        (倍率の名前, 図の名前, 組み上がったSVG) の並び。
+        (倍率の名前, 図の名前, 生成したSVG) の並び。
     """
     return [(s, n, f()) for s, n, f in cases()]

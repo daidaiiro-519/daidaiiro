@@ -27,7 +27,7 @@ def layout_grid(node_sizes: dict[str, tuple[float, float]],
     """節点を、与えられた座標の格子へ置く。
 
     列の幅も行の高さも、そこに実際に居る節点の大きさから決める。決め打ちの
-    升目を持たない ── 中身が図のときは大きさがまちまちになるため。
+    欄を持たない ── 中身が図のときは大きさがまちまちになるため。
 
     Args:
         node_sizes: 節点idごとの (width, height)。
@@ -81,7 +81,7 @@ def layout_grid(node_sizes: dict[str, tuple[float, float]],
     for i in ids:
         c, r = cols.index(at[i][0]), rows.index(at[i][1])
         w, h = node_sizes[i]
-        # 升目の中で中央へ寄せる。左上へ寄せると、大きさの違う中身が
+        # 欄の中で中央へ寄せる。左上へ寄せると、大きさの違う中身が
         # ばらばらに見えて、縦横の対応が読み取りにくくなる
         x = col_x[c] + (col_w[c] - w) / 2
         y = row_y[r] + (row_h[r] - h) / 2

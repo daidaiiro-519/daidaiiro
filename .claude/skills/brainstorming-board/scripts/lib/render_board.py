@@ -163,9 +163,9 @@ def _take_container(s: str, head: str) -> tuple[int, int, int] | None:
 
 
 def _split_section(s: str, label: dict[str, str]) -> str:
-    """道具が1つの器へ入れた3つ（道筋 ・ 要求する事項 ・ 前の答え）を、器3つへ割る。
+    """道具が1つにまとめた3つ（道筋 ・ 要求する事項 ・ 前の答え）を、3つへ割る。
 
-    **1つの器に1つのことだけを入れる。** 3つは別のことなので、名前も別になる。
+    **1つの欄に1つのことだけを入れる。** 3つは別のことなので、名前も別になる。
     """
     head = '<details><summary>経過 ── 道筋と、そこで分かったこと</summary>'
     while True:
@@ -346,14 +346,14 @@ def _check_idempotent(dir: pathlib.Path, first: str) -> int:
          for p in sorted(dir.rglob("*")) if p.is_file() and p.name != "board.html"}
     bad = []
     if first != second:
-        bad.append(f"2回の組み上がりが相違する（{len(first)} と {len(second)} バイト）")
+        bad.append(f"2回の生成物が相違する（{len(first)} と {len(second)} バイト）")
     for p in sorted(set(before) | set(after)):
         if before.get(p) != after.get(p):
             bad.append(f"入力が書き換わった: {p.relative_to(dir)}")
     with tempfile.TemporaryDirectory() as td:
         many = pathlib.Path(td) / dir.name
         shutil.copytree(dir, many)
-        # 組み上がりは入力ではない ── 消してから、入力だけを読み取り専用にする
+        # 生成物は入力ではない ── 消してから、入力だけを読み取り専用にする
         (many / "board.html").unlink(missing_ok=True)
         for p in many.rglob("*"):
             if p.is_file():

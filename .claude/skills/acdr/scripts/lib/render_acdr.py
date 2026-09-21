@@ -179,7 +179,7 @@ def validate(spec: dict, *, folder: pathlib.Path | None = None,
     """入力を検査する。**1件でも検出したら、HTML を1バイトも出さない。**
 
     検査そのものは `validate_input` が保持する ── 組み立てと検査を同じ場所に置くと、
-    不合格の判明が組み上がりのあとになる。
+    不合格の判明が生成物のあとになる。
     """
     bad = _vi.fields(spec) + _vi.shape(spec)
     for place, cell in _vi._cells(spec):

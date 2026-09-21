@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
-"""升の整形を、事例で検証する ── **冪等であること**と、**引用を変えないこと**。\n\npython3 tests/test_build_board.py で走る。"""
+"""欄の整形を、事例で検証する ── **冪等であること**と、**引用を変えないこと**。\n\npython3 tests/test_build_board.py で走る。"""
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from lib import build_board as m  # noqa: E402
@@ -37,6 +37,6 @@ marked = m.cell(m._mark("主張である ── 説明である", "前の中身 
 assert "data-w=" not in re.sub(r"<[^>]*>", "", marked), "属性が本文へ漏れた"
 print("  ok 印の属性が、本文へ漏れない")
 rows2 = m._pairs([m._mark("甲 ── 乙", "丙 ── 丁", "この回で変わった")], "左", "右")
-assert "data-b=" not in re.sub(r"<[^>]*>", "", rows2), "属性が升へ漏れた"
-print("  ok 表の升にも漏れない")
+assert "data-b=" not in re.sub(r"<[^>]*>", "", rows2), "属性が欄へ漏れた"
+print("  ok 表の欄にも漏れない")
 print("\n14 件すべて通った")

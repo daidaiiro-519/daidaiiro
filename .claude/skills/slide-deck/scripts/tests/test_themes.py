@@ -36,7 +36,7 @@ class Testテーマ:
             _themes.as_roles("無いテーマ")
 
     def test_複製した色は正本と同じである(self):
-        """**写しであって、別の値ではない。**"""
+        """**複製であって、別の値ではない。**"""
         name = _themes.theme_names()[0]
         raw = _themes.tokens(_themes.theme_path(name))
         for role, css_key in _themes.FIGURE_ROLES.items():

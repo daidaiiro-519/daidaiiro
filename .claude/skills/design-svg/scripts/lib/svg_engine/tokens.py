@@ -179,7 +179,7 @@ DEFAULT_THEME: dict[str, TokenValue] = {
     # 個別に名前を付けると「直書きの数」が「トークンという名の直書きの数」に
     # 変わるだけで、テーマを差し替えても全体の調子が一致しない。段階にしておけば、
     # 3つ動かすだけで図全体の角の丸みや線の重さが一斉に変わる。
-    "size.radius-small": 3,     # 小さい要素（棒・升目）
+    "size.radius-small": 3,     # 小さい要素（棒・欄）
     "size.radius": 5,           # 既定（箱）
     "size.radius-large": 8,     # 大きい容器（囲み）
     "size.stroke-width-thin": 1.1,   # 補助の線（囲みの破線）

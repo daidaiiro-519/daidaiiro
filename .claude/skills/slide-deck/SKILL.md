@@ -124,7 +124,7 @@ python3 scripts/cli.py new <出力.html> --theme <テーマの名前> --title <�
 **この Skill は図を描かない。描き方も、描く道具も保持しない。** 渡すのは配色と、何を描くかである ── **組ませる相手は配線表が決める。**
 
 ```
-python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を写して渡す
+python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を複製して渡す
 ```
 
 - **配色を図の側へ書かない。** 正本は `references/themes/<名前>.css` の1か所である

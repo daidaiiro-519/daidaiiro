@@ -40,7 +40,7 @@ def _read(path: str) -> dict | list:
 
 
 def _write(svg: str, out: str) -> dict:
-    """組み上がりを置く。**置き場所を渡されなければ、そのまま返す。**"""
+    """生成物を置く。**置き場所を渡されなければ、そのまま返す。**"""
     if out:
         pathlib.Path(out).write_text(svg, encoding="utf-8")
     return {"path": out, "svg": "" if out else svg, "bytes": len(svg)}
@@ -122,7 +122,7 @@ def _human_svg(res: dict) -> str:
 
 
 def verify(svg: str) -> dict:
-    """組み上がりの幾何を検査する。**文字の重なり・はみ出し・貫通・端点。**
+    """生成物の幾何を検査する。**文字の重なり・はみ出し・貫通・端点。**
 
     **この検査が見ないもの**が3つある ── 極端な縦横比、配置戦略の選び違い、
     詰まり・読みにくさ・配色の良し悪し。目視の代わりにはならない。
@@ -173,7 +173,7 @@ TOOLS = [
                Arg("width", "画布の幅", required=False),
                Arg("height", "画布の高さ", required=False)],
          run=canvas, human=_human_svg),
-    Tool(name="verify", summary="組み上がりの幾何を検査する",
+    Tool(name="verify", summary="生成物の幾何を検査する",
          args=[Arg("svg", "検査する SVG")], run=verify, human=_human_verify),
     Tool(name="lint", summary="生の数値を探す",
          args=[Arg("path", "探す場所。省くとエンジン全体", required=False)],

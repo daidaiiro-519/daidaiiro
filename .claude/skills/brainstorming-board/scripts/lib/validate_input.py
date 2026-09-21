@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
-"""入力（board.json）を検査する。**組み上がりではなく、入力を検査する。**
+"""入力（board.json）を検査する。**生成物ではなく、入力を検査する。**
 
     python3 scripts/cli.py validate <ボードのディレクトリ>
 
-生成物を検査する形では、写しが正しく生成されたことしか判明しない。
+生成物を検査する形では、記録が正しく生成されたことしか判明しない。
 しかも不合格の時点で HTML は既に出ている ── それはゲートではなく注記である。
 **不合格なら HTML を1バイトも出さない。**
 
@@ -21,14 +21,14 @@ SCHEMA = _REF / "board.schema.json"
 
 sep = "──"
 longest = 120          # 1文の字数の上限
-cohabit = 1            # 1つの升に置ける主張の数
+cohabit = 1            # 1つの欄に置ける主張の数
 quote = re.compile(r"「[^」]*」|<code>.*?</code>", re.S)
 level_items = re.compile(r"</?(p|h[1-6]|ul|ol|li|pre|div|table|tr|td|th|details|summary|"
                     r"figure|blockquote)\b", re.I)
 
 
 def _cells(d: dict):
-    """検査する升を、場所の名前つきで全部列挙する。**取りこぼしを作らない。**"""
+    """検査する欄を、場所の名前つきで全部列挙する。**取りこぼしを作らない。**"""
     def declare(bs, place):
         for i, b in enumerate(bs or []):
             k, p = b.get("kind"), f"{place}[{i}]{b.get('kind','')}"
@@ -99,14 +99,14 @@ def _cells(d: dict):
 
 
 def prose(place: str, s: str) -> list[str]:
-    """1つの升に2つのことが入っていないか、1文が長すぎないかを見る。
+    """1つの欄に2つのことが入っていないか、1文が長すぎないかを見る。
 
     **引用は除外する** ── 原文の形を変えないと決めているためである。
-    **箇条書きごと除外してはならない** ── 以前の検査は箇条書きを含む升を
-    丸ごと素通しにしていた。列挙はこの道具が升へ割ってから渡す。
+    **箇条書きごと除外してはならない** ── 以前の検査は箇条書きを含む欄を
+    丸ごと素通しにしていた。列挙はこの道具が欄へ割ってから渡す。
     """
     bad = []
-    # **改行は升の中の行を分ける** ── 行ごとに1つの主張を数える。
+    # **改行は欄の中の行を分ける** ── 行ごとに1つの主張を数える。
     # 行を分けずに詰めたものだけが、この検査の対象である。
     for line in re.split(r"<br\s*/?>", s):
         raw = quote.sub("", re.sub(r"<[^>]+>", "", line))
@@ -123,7 +123,7 @@ def prose(place: str, s: str) -> list[str]:
 def level_mix(place: str, s: str) -> list[str]:
     """**入力は宣言だけを保持する。** 段の要素が入っていれば、宣言の外に構造がある。"""
     m = level_items.search(s)
-    return [f"{place}: 段の要素「{m.group(0)}」が升の中に在る ── 宣言へ割る"] if m else []
+    return [f"{place}: 段の要素「{m.group(0)}」が欄の中に在る ── 宣言へ割る"] if m else []
 
 
 def ref(dir: pathlib.Path, d: dict) -> list[str]:

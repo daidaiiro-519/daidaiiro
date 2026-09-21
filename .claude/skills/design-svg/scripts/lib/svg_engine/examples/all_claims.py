@@ -241,7 +241,7 @@ CLAIMS: list[dict] = [
 # import されるので、ここで描いてしまうと、部品1つの例外が import ごと
 # 巻き込み、テストが1件も走らないまま収集で失敗する（実際にそうなった）。
 def write_all(out_dir: pathlib.Path = OUT) -> list[dict]:
-    """言い分ごとの宣言と組み上がりを書き出す。**入口は持たない。**"""
+    """言い分ごとの宣言と生成物を書き出す。**入口は持たない。**"""
     results: list[dict] = [{"declaration": d, "svg": convert(d)} for d in CLAIMS]
     (out_dir / "all_claims.json").write_text(
         json.dumps(results, ensure_ascii=False), encoding="utf-8")
