@@ -198,7 +198,7 @@ python3 scripts/cli.py init <ブレストボードの名前> [--title <題>]
 | `references/board.schema.json` | **入力の契約**。何を書けるか |
 | `references/board.template.html` | **出力の型**。どう並ぶか。差し込む場所（`{{名前}}`）を持つ |
 | `references/board.css` | **見た目の正本**。どう見えるか |
-| `scripts/lib/` | **値を差し込むだけ**。構造を作る文字列も、見た目の文字列も保持しない |
+| `scripts/lib/` | **値を差し込むだけ**。構造を作る文字列も、見た目の文字列も保持しない ── 手で組んでいた105件を型の部品へ寄せ、`build_board.py` は0件になった |
 
 - `references/board.template.html`: **出力の型。** 28の部品（頁 ・ 節 ・ 表 ・ カード ・ 出来事 ・ 現在地 ・ タブ ・ 面 …）を1枚で持つ。**差し込む場所の過不足は、その場で例外になる** ── 埋め忘れも余分な値も、出てから気づく形にしない
 - `scripts/lib/template.py`: 型を読み、部品を組む。**形の正本は1枚である**

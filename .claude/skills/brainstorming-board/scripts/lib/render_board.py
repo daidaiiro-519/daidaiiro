@@ -60,16 +60,16 @@ def _events(row: list[tuple[str, str]]) -> str:
         while j < len(row) and row[j][0] == k:
             j += 1
         n = j - i
-        count = f"<small>{n}件</small>" if n > 1 else ""
+        count = _t("event-count", count=n) if n > 1 else ""
         for m in range(n):
             head = (_t("event-head", span=n, kind=_EVENT_KIND[k],
                        label=_EVENT_LABEL[k], count=count) if m == 0 else "")
-            num = f'<span class="ev-n">{m + 1}</span>' if n > 1 else ""
+            num = _t("event-num", n=m + 1) if n > 1 else ""
             end = " g-end" if m == n - 1 and j < len(row) else ""
             body.append(_t("event-row", tag=k, end=end, head=head, num=num,
                            body=row[i + m][1]))
         i = j
-    return f'<table class="ev"><tbody>{"".join(body)}</tbody></table>'
+    return _t("events", rows="".join(body))
 
 
 def _figure(b: dict, figure_src: pathlib.Path) -> str:
@@ -83,8 +83,8 @@ def _figure(b: dict, figure_src: pathlib.Path) -> str:
     if m:
         svg = svg.replace(m.group(0), "", 1)
         svg = svg.replace("<svg ", f'<svg style="max-width:{m.group(1)}px" ', 1)
-    note = f"<figcaption>{b['caption']}</figcaption>" if b.get("caption") else ""
-    return f'<figure class="fig-top">{svg}{note}</figure>'
+    note = _t("figcaption", text=b["caption"]) if b.get("caption") else ""
+    return _t("figure-top", svg=svg, caption=note)
 
 
 def build(blocks, figure_src: pathlib.Path) -> str:
@@ -96,49 +96,57 @@ def build(blocks, figure_src: pathlib.Path) -> str:
         k = b["kind"]
         if k == "para":
             body_text = b["text"] + build(b.get("nested", []), figure_src)
-            out.append(body_text if body_text.startswith("<b>") else f"<p>{body_text}</p>")
+            out.append(body_text if body_text.startswith("<b>")
+                       else _t("para", body=body_text))
         elif k == "note":
-            out.append(f'<p class="note-s">{b["text"]}</p>')
+            out.append(_t("note-s", body=b["text"]))
         elif k == "heading":
-            out.append(f'<h{b["level"]}>{b["text"]}</h{b["level"]}>')
+            out.append(_t("heading", level=b["level"], text=b["text"]))
         elif k == "html":
-            out.append(f"<pre><code>{b['text']}</code></pre>")
+            out.append(_t("code", text=b["text"]))
         elif k == "list":
             t = "ol" if b.get("ordered") else "ul"
-            item = "".join(f'<li>{cell(x["text"])}{build(x.get("nested", []), figure_src)}</li>'
-                        for x in b["items"])
-            out.append(f"<{t}>{item}</{t}>")
+            item = "".join(
+                _t("list-item",
+                   body=cell(x["text"]) + build(x.get("nested", []), figure_src))
+                for x in b["items"])
+            out.append(_t("list", tag=t, items=item))
         elif k == "fold":
-            out.append(f'<details class="why-in"><summary>{b["heading"]}</summary>'
-                       f'<div>{build(b["body"], figure_src)}</div></details>')
+            out.append(_t("fold-why", summary=b["heading"],
+                          body=build(b["body"], figure_src)))
         elif k == "card":
             mark = _t("card-mark", letter=b["letter"]) if b.get("letter") else ""
-            row = [(e["tag"], f'<span class="q-in">{e["text"]}</span>'
+            row = [(e["tag"], _t("quote", text=e["text"])
                    if e["tag"] == "returned" else
                    (cell(e["text"]) if e["tag"] == "finding" else e["text"]))
                   for e in b.get("events", [])]
-            out.append(f'<div class="card"><div class="card-h">{mark}{b["heading"]}</div>'
-                       f"{_events(row)}</div>")
+            out.append(_t("card", mark=mark, heading=b["heading"],
+                          events=_events(row)))
         elif k == "table":
-            row = "".join(f"<tr><th>{a}</th>"
-                        + "".join(f"<td>{cell(str(v))}</td>" for v in vs) + "</tr>"
-                        for a, vs in b["rows"])
-            head = "".join(f"<th>{c}</th>" for c in [""] + list(b["cols"]))
-            out.append(f'<div class="scroll"><table class="fact"><thead><tr>{head}</tr>'
-                       f"</thead><tbody>{row}</tbody></table></div>")
+            row = "".join(
+                _t("table-row-head", head=a,
+                   cells="".join(_t("table-td", cell=cell(str(v))) for v in vs))
+                for a, vs in b["rows"])
+            head = "".join(_t("table-th", cell=c) for c in [""] + list(b["cols"]))
+            out.append(_t("table-cls", cls="fact",
+                          head=_t("table-thead", row=_t("table-head", cells=head)),
+                          rows=_t("table-tbody", rows=row)))
         elif k == "grid":
-            head = "".join(f"<th>{c}</th>" for c in b["cols"])
-            body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>"
-                        for r in b["rows"])
-            out.append(f'<div class="scroll"><table><thead><tr>{head}</tr></thead>'
-                       f"<tbody>{body}</tbody></table></div>")
+            head = "".join(_t("table-th", cell=c) for c in b["cols"])
+            body = "".join(
+                _t("table-row", cells="".join(_t("table-td", cell=c) for c in r))
+                for r in b["rows"])
+            out.append(_t("table", 
+                          head=_t("table-thead", row=_t("table-head", cells=head)),
+                          rows=_t("table-tbody", rows=body)))
         elif k == "previous":
-            row = [("前の答え", f'<b>{b["letter"]}</b>　{b["body"]}'),
+            row = [("前の答え", _t("lead", text=b["letter"]) + "　" + b["body"]),
                  ("なぜ組み直したか", cell(b["why"]))]
             if b.get("user_words"):
                 row.append(("利用者の言葉（そのまま）", b["user_words"]))
-            body = "".join(f"<tr><th>{a}</th><td>{c}</td></tr>" for a, c in row)
-            out.append(f'<div class="scroll"><table>{body}</table></div>')
+            body = "".join(_t("table-row-head", head=a,
+                              cells=_t("table-td", cell=c)) for a, c in row)
+            out.append(_t("table", head="", rows=body))
         elif k == "figure":
             out.append(_figure(b, figure_src))
         else:
@@ -201,8 +209,8 @@ def _split_section(s: str, label: dict[str, str]) -> str:
             if mm:
                 name = (label["history"].format(n=mm.group(1)) if returned
                       else label["progress"].format(n=mm.group(1)))
-                note = '<p class="note-s">古い順</p>'
-            group.append(f"<details><summary>{name}</summary><div>{note}{body}</div></details>")
+                note = _t("note-s", body="古い順")
+            group.append(_t("fold", summary=name, body=note + body))
         s = s[:i] + "".join(group) + s[j:]
 
 
@@ -255,7 +263,7 @@ def _tagged(w: dict) -> str:
     """
     tag = w["treatment"]
     note = w.get("note", "")
-    return (f"<span class='kind {_TREATMENT[tag]}'>{_TREATMENT_LABEL[tag]}</span>"
+    return (_t("kind", cls=_TREATMENT[tag], label=_TREATMENT_LABEL[tag])
             + (f" ── {note}" if note else ""))
 
 

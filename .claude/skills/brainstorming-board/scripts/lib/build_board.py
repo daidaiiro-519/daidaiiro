@@ -103,10 +103,10 @@ def _mark(text: str, before: str, why: str, deleted: bool = False,
 
     cid を持つ印は、**引き出しから直に跳べる**。
     """
-    return (f'<mark class="chg{" del" if deleted else ""}" tabindex="0" role="button" '
-            f'{f'id="{cid}" ' if cid else ""}'
-            f'aria-expanded="false" data-b="{_h.escape(before, quote=True)}" '
-            f'data-w="{_h.escape(why, quote=True)}">{text}</mark>')
+    return _t("mark", **{"del": " del" if deleted else "",
+                         "id": f'id="{cid}" ' if cid else "",
+                         "before": _h.escape(before, quote=True),
+                         "why": _h.escape(why, quote=True), "body": text})
 
 
 # 印がどの節に在るかを、読み手の言葉で持つ
@@ -116,17 +116,19 @@ _WHERE = {"note": "前書き", "pick": "答え", "path": "道筋", "found": "分
 
 
 def _sec(no: int, title: str, body: str) -> str:
-    return f'<h2><span class="sn">{no}</span>{_h.escape(title)}</h2>{body}'
+    return _t("section", no=no, title=_h.escape(title), body=body)
 
 
 def _table(head: list[str], rows: list[list[str]], cls: str = "") -> str:
-    h = "".join(f"<th>{c}</th>" for c in head)
-    b = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
-    return f'<div class="scroll"><table class="{cls}"><tr>{h}</tr>{b}</table></div>'
+    h = _t("table-head", cells="".join(_t("table-th", cell=c) for c in head))
+    b = "".join(_t("table-row", cells="".join(_t("table-td", cell=c) for c in r))
+                for r in rows)
+    return _t("table-cls", cls=cls, head=h, rows=b)
 
 
 def _key(letter: str, tone: str = "") -> str:
-    return f'<span class="n {tone}">{letter}</span>'
+    """案の記号。**空の調子で余分な空白を作らない** ── 部品の側で吸収する。"""
+    return _t("key", tone=f" {tone}" if tone else "", letter=letter)
 
 
 @dataclass
@@ -336,7 +338,7 @@ def cell(x: str) -> str:
         return x
     if head.startswith("<b>") and head.endswith("</b>"):
         head = head[3:-4]
-    return f'<b class="lead-s">{head}</b><div class="sub-s">{tail}</div>'
+    return _t("cell", head=head, tail=tail)
 
 
 def _pairs(items: list[str], left: str, right: str) -> str:
@@ -344,7 +346,7 @@ def _pairs(items: list[str], left: str, right: str) -> str:
     rows = []
     for x in items:
         a, sep, b = _cut(x)
-        rows.append([f"<b>{a}</b>", b if sep else ""])
+        rows.append([_t("lead", text=a), b if sep else ""])
     return _tbl([left, right], rows)
 
 
@@ -353,11 +355,13 @@ def prev(mark: str, before: str, why: str, words: str = "") -> str:
 
     **利用者の言葉は、そのまま置く** ── 差し戻された理由は、言い換えると別のものになる。
     """
-    rows = [("前の答え", f"<b>{mark}</b>　{before}"), ("なぜ組み直したか", cell(why))]
+    rows = [("前の答え", _t("lead", text=mark) + "　" + before),
+            ("なぜ組み直したか", cell(why))]
     if words:
         rows.append(("利用者の言葉（そのまま）", words))
-    body = "".join(f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in rows)
-    return f'<div class="scroll"><table>{body}</table></div>'
+    body = "".join(_t("table-row-head", head=k, cells=_t("table-td", cell=v))
+                   for k, v in rows)
+    return _t("table", head="", rows=body)
 
 
 def _tbl(head, rows):
@@ -366,11 +370,12 @@ def _tbl(head, rows):
     空の `<th>` を並べると、中身の無い帯が表の上に1本出る。
     決まりの表のように、行の名前だけで読める表では見出しが要らない。
     """
-    b = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
+    b = "".join(_t("table-row", cells="".join(_t("table-td", cell=c) for c in r))
+                for r in rows)
     if not any(str(c).strip() for c in head):
-        return f'<div class="scroll"><table>{b}</table></div>'
-    h = "".join(f"<th>{c}</th>" for c in head)
-    return f'<div class="scroll"><table><tr>{h}</tr>{b}</table></div>'
+        return _t("table", head="", rows=b)
+    h = _t("table-head", cells="".join(_t("table-th", cell=c) for c in head))
+    return _t("table", head=h, rows=b)
 
 
 # ── この回で何が変わったか ────────────────────────────────────
@@ -505,7 +510,7 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
         letter, concl = t.pick
         out.append(_t("answer", letter=_h.escape(letter), body=d.one("pick", concl)))
     elif t.decision:
-        out.append(_tbl(["", ""], [[f'<span class="st done">{_h.escape(k)}</span>', v]
+        out.append(_tbl(["", ""], [[_t("status", cls="done", label=_h.escape(k)), v]
                                    for k, v in t.decision]))
 
     folds = []
@@ -546,29 +551,30 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     if t.kept:
         rows = []
         for i, o in enumerate(t.kept):
-            name = f"<b>{o.name}</b>"
+            name = _t("lead", text=o.name)
             if o.before and o.why:
                 name = _mark(name, o.before, o.why)
-            rows.append([f'<span class="n">{LETTERS[i]}</span>', name, cell(o.gist),
-                         f'<span class="cost">{cell(o.cost)}</span>'])  # 案は印を持つ
-        argue += (f'<p class="note-s">反証を通過した案 {len(t.kept)}件。'
-                  "このうち1つを残し、他は代償が重いか、前提を壊す。</p>"
+            rows.append([_key(LETTERS[i]), name, cell(o.gist),
+                         _t("cost", body=cell(o.cost))])  # 案は印を持つ
+        argue += (_t("note-s", body=f"反証を通過した案 {len(t.kept)}件。"
+                     "このうち1つを残し、他は代償が重いか、前提を壊す。")
                   + _tbl(["", "案", "中身", "代償"], rows))
     if t.dropped:
-        argue += (f'<p class="note-s">除外した案 {len(t.dropped)}件 ── 何が壊れるか。</p>'
+        argue += (_t("note-s", body=f"除外した案 {len(t.dropped)}件 ── 何が壊れるか。")
                   + _tbl(["", "除外した案", "何が壊れるか"],
-                         [['<span class="n out">×</span>',
-                           _mark(f"<b>{d}</b>", "この案は残っていた", w, deleted=True), cell(w)]
+                         [[_key("×", "out"),
+                           _mark(_t("lead", text=d), "この案は残っていた", w,
+                                 deleted=True), cell(w)]
                           for d, w in t.dropped]))
     ti = 0
     for tb in t.tables:
         body = []
         for k, v in tb.rows.items():
-            body.append([(f"<b>{k}</b>" if tb.plain else f'<span class="n">{k}</span>')]
+            body.append([(_t("lead", text=k) if tb.plain else _key(k))]
                         + [cell(d.mark("tables", ti, 2 + j, str(x))) for j, x in enumerate(v)])
             ti += 1
-        argue += ((f'<p class="note-s">{tb.lead}</p>' if tb.lead else "")
-                  + f"<p class=\"note-s\"><b>{_h.escape(tb.caption)}</b></p>"
+        argue += ((_t("note-s", body=tb.lead) if tb.lead else "")
+                  + _t("note-s", body=_t("lead", text=_h.escape(tb.caption)))
                   + _tbl([""] + tb.columns, body))
     if argue:
         folds.append(_fold("この答えが残った理由 ── 反証を通過した案と、除外した案", argue))
@@ -576,10 +582,10 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     if t.grounds:
         folds.append(_fold(f"前提 ── この論証が乗っているもの（{len(t.grounds)}件）",
                            _tbl(["結論のどこを支えるか", "もとにしたこと", "その出どころ"],
-                                [[f'<span class="part">{d.mark("grounds", gi, 0, p)}</span>',
+                                [[_t("part", body=d.mark("grounds", gi, 0, p)),
                                   d.mark("grounds", gi, 1, c),
-                                  f'<span class="kind {KINDS[k]}">{LABELS[k]}</span>'
-                                  f'<small>{d.mark("grounds", gi, 3, src)}</small>']
+                                  _t("kind", cls=KINDS[k], label=LABELS[k])
+                                  + _t("small", body=d.mark("grounds", gi, 3, src))]
                                  for gi, (p, c, k, src) in enumerate(t.grounds)])))
 
     if t.weaknesses:
@@ -591,16 +597,20 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
             else:
                 naked += 1
                 rows.append([cell(d.mark("weaknesses", wi, 0, w)),
-                             '<span class="cost">扱いが未記載である</span>'])
-        lead = ('<p class="note-s"><b>いずれも、この答えを覆さない。</b>'
-                "覆しうるものは反証で除外済みであり、ここには残存しない ── "
-                "<b>承認を保留する理由にはならない。</b></p>"
-                '<p class="note-s">扱いは3種である ── '
-                "<b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ "
-                "<b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ "
-                "<b>解消済</b>（既に解決した）。</p>")
+                             _t("cost", body="扱いが未記載である")])
+        lead = (_t("note-s",
+                   body=_t("lead", text="いずれも、この答えを覆さない。")
+                   + "覆しうるものは反証で除外済みであり、ここには残存しない ── "
+                   + _t("lead", text="承認を保留する理由にはならない。"))
+                + _t("note-s",
+                     body="扱いは3種である ── "
+                     + _t("lead", text="対象外")
+                     + "（この答えでは解決しない。解決する手段が別に要る）／ "
+                     + _t("lead", text="後続で決定")
+                     + "（この答えの内側で、どこで決めるかが定まっている）／ "
+                     + _t("lead", text="解消済") + "（既に解決した）。"))
         if naked:
-            lead += f'<p class="note-s"><b>{naked}件に扱いが無い。</b></p>'
+            lead += _t("note-s", body=_t("lead", text=f"{naked}件に扱いが無い。"))
         folds.append(_fold(f"この答えが扱わない範囲（{len(t.weaknesses)}件）",
                            lead + _tbl(["事項", "扱い"], rows)))
 
@@ -608,26 +618,27 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
     if t.defects:
         folds.append(_fold(
             f"未修正の誤り（{len(t.defects)}件）",
-            '<p class="note-s"><b>この答えの中で、まだ修正していない誤りである。</b>'
-            "適用範囲外とは別に記載する ── 混在させると、制約が誤りに見える。</p>"
+            _t("note-s",
+               body=_t("lead", text="この答えの中で、まだ修正していない誤りである。")
+               + "適用範囲外とは別に記載する ── 混在させると、制約が誤りに見える。")
             + _tbl(["誤り", "現状"], [[cell(a), cell(b)] for a, b in t.defects])))
 
     hist = ""
     if t.path:
-        hist += (f'<p class="note-s">そう判断するまで（道筋 {len(t.path)}手）</p>'
+        hist += (_t("note-s", body=f"そう判断するまで（道筋 {len(t.path)}手）")
                  + _t("path", items="".join(
                      _t("path-item", body=d.mark("path", i, 0, x))
                      for i, x in enumerate(t.path))))
     if t.found:
-        hist += (f'<p class="note-s">反証で分かったこと（{len(t.found)}件）</p>'
+        hist += (_t("note-s", body=f"反証で分かったこと（{len(t.found)}件）")
                  + _pairs([d.mark("found", i, 0, x) for i, x in enumerate(t.found)],
                           "何が分かったか", "だから何が決まったか"))
     if t.costs:
-        hist += (f'<p class="note-s">この答えが要求する事項（{len(t.costs)}件）</p>'
+        hist += (_t("note-s", body=f"この答えが要求する事項（{len(t.costs)}件）")
                  + _pairs([d.mark("costs", i, 0, x) for i, x in enumerate(t.costs)],
                           "要求する事項", "理由"))
     for title, body in t.extras:
-        hist += f'<p class="note-s">{_h.escape(title)}</p>' + body
+        hist += _t("note-s", body=_h.escape(title)) + body
     if hist:
         folds.append(_fold("経過 ── 道筋と、そこで分かったこと", hist))
 
@@ -739,16 +750,16 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
 
     def chip(t):
         if t.status == "settled":
-            return '<span class="st done">決着</span>'
+            return _t("status", cls="done", label="決着")
         if queue is None:
             cls = {"open": "open"}.get(t.status, "wait")
-            return f'<span class="st {cls}">{STATUS_LABELS[t.status]}</span>'
+            return _t("status", cls=cls, label=STATUS_LABELS[t.status])
         if t.no in front:
-            return '<span class="st now">いま見る</span>'
-        return '<span class="st wait">待ち</span>'
+            return _t("status", cls="now", label="いま見る")
+        return _t("status", cls="wait", label="待ち")
 
-    rows = [[f'<span class="n">{t.no}</span>', _h.escape(t.question), chip(t),
-             t.answer or "<span style='color:var(--dim)'>──</span>"] for t in topics]
+    rows = [[_key(str(t.no)), _h.escape(t.question), chip(t),
+             t.answer or _t("dim")] for t in topics]
 
     lead = ""
     if front:
@@ -757,8 +768,8 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
                label=_h.escape(next(t.label for t in topics if t.no == n)), why=why)
             for n, why in (queue or []) if n in order)
         waiting = [t for t in topics if t.status != "settled" and t.no not in front]
-        tail = (f'<p class="waiting">残り {len(waiting)} 件は、上流が決まるまで動く。'
-                '回答欄は持たない。</p>' if waiting else "")
+        tail = (_t("waiting", body=f"残り {len(waiting)} 件は、上流が決まるまで動く。"
+                    "回答欄は持たない。") if waiting else "")
         lead = _t("queue", count=len(front), items=items, tail=tail)
 
     diffs = [(t, dmap[t.no]) for t in topics] if prev is not None else []
@@ -768,15 +779,16 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
         if n_chg:
             chg_fold = _fold(
                 f"この回で変わったところ（{n_chg} か所）",
-                '<p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── '
-                "押すと前の回の中身が開く。</p>"
+                _t("note-s", body="本文の中で、"
+                   + _t("lead", text="色の付いた欄が今回の変更である")
+                   + " ── 押すと前の回の中身が開く。")
                 + _tbl(["論点", "変わった欄"],
                        [[_t("jump", at=order[t.no], no=t.no, label=_h.escape(t.label)),
                          f"{d.n} か所"]
                         for t, d in diffs if d.n]))
         else:
             chg_fold = _fold("この回で変わったところ（0 か所）",
-                             '<p class="note-s">前の回から、中身は1つも変わっていない。</p>')
+                             _t("note-s", body="前の回から、中身は1つも変わっていない。"))
 
     now = _t("front", style=style,
              intro=_t("note", body=intro) if intro else "",
