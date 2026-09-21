@@ -4,7 +4,8 @@
 
 | ファイル | 用途 |
 |---|---|
-| [director-deck.html](director-deck.html) | 表紙1枚＋本編14枚＋付録16枚のスライド。ブラウザで開き、矢印キー・画面下のボタン・スワイプで操作 |
+| [director-deck.html](director-deck.html) | 表紙1枚＋本編23枚＋付録13枚のスライド。ブラウザで開き、矢印キー・画面下のボタン・スワイプで操作 |
+| [director-deck-all.html](director-deck-all.html) | 全37枚を縦に並べた1ページ版。通し読みと、変更記録の面に使う |
 | [director-deck.pdf](director-deck.pdf) | 共有・配布用のPDF |
 | [speaker-notes.md](speaker-notes.md) | 各スライドに対応する部長向け発表原稿 |
 | [workshop-plan.md](workshop-plan.md) | テーマ、概念教材、半年間の進行、支援、評価、工数の運営案 |
@@ -26,7 +27,7 @@ cd ai-workshop # ZIPの展開先。リポジトリでは docs/workshops/ai-works
 python3 build_deck.py
 ```
 
-HTMLは外部ファイルの読み込みなしで表示できる。フォントは端末にある日本語フォントを使い、端末によって字形が変わる。PDFは作成時の表示を保持する。HTMLを変更した場合、PDFとプレビューは別途再出力する。
+`build_deck.py` は、めくる版と1ページ版の両方を出力する。HTMLは外部ファイルの読み込みなしで表示できる。フォントは端末にある日本語フォントを使い、端末によって字形が変わる。PDFは作成時の表示を保持する。HTMLを変更した場合、PDFとプレビューは別途再出力する。
 
 ## 同梱Skill
 
