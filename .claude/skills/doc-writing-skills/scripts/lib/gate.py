@@ -357,7 +357,8 @@ WAGO: list[tuple[str, str]] = [
     (r"崩[すし](?!れ)|崩れ",                            "反証する／成立しなくなる"),
     (r"[をで]通[すし](?!番)",                           "実行する"),
     (r"引き直[すしせ]",                                 "定義し直す"),
-    (r"[をで]引[くき](?!受|返|ず|継)",                   "参照する"),
+    # 「引き算」は名詞である ── 述部の「を引く」とは別の語なので、除く
+    (r"[をで]引[くき](?!受|返|ず|継|算)",                 "参照する"),
     (r"(?<!見)落と[すし](?!穴)|(?<!着)落ち[るたてな]",    "変換する／取得する／除外する"),
     (r"(?<!割り)[をに]当て[るたよ]|判定を当",            "適用する"),
     # 2026-09-21 tails.py で洗い出した分。**語彙表に無いものは通過していた**
@@ -393,9 +394,12 @@ def _wago_predicate(u: Unit) -> list[str]:
     技術文書は厳密に意味を特定しなければならない文書なので、ウ を必須として適用する。
     **原典は禁止していない** ── 強度を上げたのは、このリポジトリの決定である。
     """
+    # **引用は検査しない** ── 原文の形を変えないと決めている。
+    # 原典の語を言い換えた時点で、それは引用ではなくなる。
+    text = re.sub(r"「[^」]*」", lambda m: "＿" * len(m.group(0)), u.text)
     hits = []
     for rx, to in _WAGO:
-        m = rx.search(u.text)
+        m = rx.search(text)
         if m:
             i = m.start()
             hits.append(f"…{u.text[max(0, i - 12):i]}<{m.group(0)}>"
@@ -430,8 +434,29 @@ def all_checks() -> list[Check]:
     return CHECKS
 
 
+def _prose_of_json(raw: str) -> str:
+    """JSON は、値の文字列だけを見る。
+
+    **構文を本文として読まない** ── 鍵も括弧も書き手の文ではない。
+    生のまま検査すると、引用が `"欄": "「…」"` の形になって引用と判定されず、
+    文体の検査が誤って検出する（実際に検出した）。
+    """
+    import json as _json
+    def walk(o):
+        if isinstance(o, str):
+            return [o]
+        if isinstance(o, list):
+            return [x for v in o for x in walk(v)]
+        if isinstance(o, dict):
+            return [x for k, v in o.items() if not str(k).startswith("$") for x in walk(v)]
+        return []
+    return "\n\n".join(walk(_json.loads(raw)))
+
+
 def inspect(path: str | Path) -> list[Finding]:
     raw = Path(path).read_text(encoding="utf-8")
+    if str(path).endswith(".json"):
+        raw = _prose_of_json(raw)
     if EXEMPT_MARK in raw[:400]:
         return []
     units = split_units(raw)
