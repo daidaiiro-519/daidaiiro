@@ -712,8 +712,10 @@ def audit(topics: list["Topic"], extras=None, queue=None) -> list[str]:
                    "足すのは、既存の答えを直しても収まらないと確認し、利用者へ確認してからである")
 
     titles = " ".join(t for t, _ in (extras or []))
-    # **開いている論点が1件も無い回は、示すものが無い** ── まとめの回である
-    if len(topics) >= 4 and open_now and "いま見る論点" not in titles:
+    # **開いている論点が1件も無い回は、示すものが無い** ── まとめの回である。
+    # **queue を渡した回は、道具が箱を組む** ── 面にも同じ表を置くと、
+    # どちらが正しいかを読み手が突き合わせることになる
+    if len(topics) >= 4 and open_now and not queue and "いま見る論点" not in titles:
         out.append("現在地に「いま見る論点」が無い。依存を自分で持つだけでは足りない ── "
                    "示さなければ、順番の管理が承認する側の仕事になる")
 
