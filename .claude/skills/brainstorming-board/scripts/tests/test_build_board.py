@@ -39,4 +39,25 @@ print("  ok 印の属性が、本文へ漏れない")
 rows2 = m._pairs([m._mark("甲 ── 乙", "丙 ── 丁", "この回で変わった")], "左", "右")
 assert "data-b=" not in re.sub(r"<[^>]*>", "", rows2), "属性が欄へ漏れた"
 print("  ok 表の欄にも漏れない")
-print("\n14 件すべて通った")
+
+# ── 完成イメージは畳まない ────────────────────────────────
+# **畳むと、答えは文章だけで届く**（実際に「図と完成イメージから全く
+# イメージがわかない」と差し戻された）
+img = m.Topic(no=9, label="試し", question="問い", status="open",
+              pick=("A", "答え"), example="<b>できあがるもの</b>",
+              figures=[("<svg></svg>", "図の説明")],
+              grounds=[("甲", "根拠", "assumption", "出どころ")])
+html = m.deck("試し", [img], board="t", round_no=1)
+
+
+def _opened(mark):
+    i = html.index(mark)
+    return "open" in html[html.rfind("<details", 0, i):i]
+
+
+assert _opened("この答えの完成イメージ"), "完成イメージが畳まれている"
+print("  ok 完成イメージは開いたまま出る")
+assert not _opened("前提 ── この論証が乗っているもの"), "裏づけまで開いている"
+print("  ok 裏づけは畳んだまま出る")
+
+print("\n16 件すべて通った")

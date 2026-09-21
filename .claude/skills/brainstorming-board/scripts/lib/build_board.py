@@ -249,6 +249,9 @@ details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--p
 details+details{margin-top:.5rem}
 summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
 details>div{padding:0 .9rem .9rem}
+/* 完成イメージ ── 開いたまま置くので、答えの続きとして見えるようにする */
+details.image{border-color:var(--key);background:var(--card)}
+details.image>summary{color:var(--key)}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
 background:var(--card);border-radius:.3rem;overflow:hidden}
@@ -673,7 +676,8 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
 
     folds = []
     # 完成イメージ ── **見出しは道具が作る。** 手で書かせると板ごとに違う形になる。
-    # 中に何が在るかを見出しが示すので、開くかどうかを読み手が決められる。
+    # **畳まない。** 畳むと、読み手は答えを文章だけで受け取ることになる
+    # （実際に「図と完成イメージから全くイメージがわかない」と差し戻された）。
     image = ""
     if t.figures:
         # 図は縦方向へ並べる。横に並べると、縦横比の違う図が幅に合わせて縮み、
@@ -688,7 +692,9 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
             what.append(f"図{len(t.figures)}枚" if len(t.figures) > 1 else "図")
         if t.example:
             what.append("実例")
-        folds.append(_fold("この答えの完成イメージ ── " + "と、".join(what), image))
+        folds.append(_t("fold-open",
+                        summary="この答えの完成イメージ ── " + "と、".join(what),
+                        body=image))
 
     for part, claim, kind, src in t.grounds:
         if kind not in KINDS:
