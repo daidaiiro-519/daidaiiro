@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ブレストボードのデザイントークン",
+  "description": "3段の階層を形として固定する。基礎は原始値だけを持ち、意味は基礎の鍵だけを参照し、部品は意味か基礎の鍵、または calc() だけを参照する。段を跨いだ直値を形の段で弾く ── 散文の規定では破れる。",
+  "type": "object",
+  "required": ["基礎", "意味", "部品"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "なぜ3段か": { "type": "array", "items": { "type": "string" } },
+    "取り消す予定": { "type": "object" },
+    "基礎": {
+      "description": "原始値だけを持つ段。ここだけが生の値を書いてよい。",
+      "type": "object",
+      "required": ["色", "影", "寸法", "字寸", "字送り", "角丸", "枠"],
+      "additionalProperties": false,
+      "properties": {
+        "色": { "$ref": "#/$defs/色の表" },
+        "影": { "$ref": "#/$defs/値の表" },
+        "寸法": { "$ref": "#/$defs/寸法の表" },
+        "字寸": { "$ref": "#/$defs/寸法の表" },
+        "字送り": { "$ref": "#/$defs/字送りの表" },
+        "角丸": { "$ref": "#/$defs/寸法の表" },
+        "枠": { "$ref": "#/$defs/寸法の表" }
+      }
+    },
+    "意味": {
+      "description": "役割の名前に、基礎の鍵を割り当てる段。明と暗は同じ鍵集合を持つ ── 片方にしか在る鍵を弾く。",
+      "type": "object",
+      "required": ["明", "暗"],
+      "additionalProperties": false,
+      "properties": {
+        "明": { "$ref": "#/$defs/参照の表" },
+        "暗": { "$ref": "#/$defs/参照の表" }
+      }
+    },
+    "部品": {
+      "description": "部品ごとの値。意味か基礎の鍵、または calc() だけを参照する。",
+      "$ref": "#/$defs/部品の表"
+    }
+  },
+  "$defs": {
+    "鍵": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "description": "CSS のカスタムプロパティの名前になる。先頭の -- は書かない。"
+    },
+    "色の表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(#[0-9a-f]{3}|#[0-9a-f]{6}|#[0-9a-f]{8})$",
+        "description": "16進の色だけを許す。小文字に限る ── 大文字と混在すると、同じ色が2つの文字列になる。"
+      }
+    },
+    "値の表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "寸法の表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+      }
+    },
+    "字送りの表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": { "type": "string", "pattern": "^-?(0|\\.?\\d+(\\.\\d+)?)em$" }
+    },
+    "参照の表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": {
+        "$ref": "#/$defs/鍵",
+        "description": "基礎のどれかの鍵。直値は書けない ── 段を跨ぐためである。"
+      }
+    },
+    "部品の表": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/鍵" },
+      "additionalProperties": {
+        "type": "string",
+        "anyOf": [
+          { "$ref": "#/$defs/鍵" },
+          { "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$" },
+          { "pattern": "^calc\\(.+\\)$" }
+        ]
+      }
+    }
+  }
+}
