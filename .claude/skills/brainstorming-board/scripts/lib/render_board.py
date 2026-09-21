@@ -228,7 +228,7 @@ def to_topic(d: dict, figure_src: pathlib.Path) -> Topic:
                   .replace("</figure>", "")
                   .replace(f'<figcaption>{f.get("caption","")}</figcaption>', ""),
                   f.get("caption", "")) for f in d.get("figures", [])],
-        kept=[Option(o["letter"], o["body"], o["cost"]) for o in d.get("passed", [])],
+        kept=[Option(o["name"], o["body"], o["cost"]) for o in d.get("passed", [])],
         dropped=[(x["body"], x["reason"]) for x in d.get("dropped", [])],
         path=[build([b], figure_src) for b in d.get("path", [])],
         found=[cell(x) for x in d.get("findings", [])],
@@ -238,6 +238,10 @@ def to_topic(d: dict, figure_src: pathlib.Path) -> Topic:
         weaknesses=[(w["item"], _tagged(w)) if w.get("treatment") else w["item"]
                     for w in d.get("out_of_scope", [])],
         extras=[(e["heading"], build(e["body"], figure_src)) for e in d.get("panels", [])],
+        tables=[Table(caption=tb["caption"], columns=list(tb["cols"]),
+                      rows={r[0]: list(r[1]) for r in tb["rows"]},
+                      lead=tb.get("lead"), plain=tb.get("plain", False))
+                for tb in d.get("tables", [])],
     )
 
 

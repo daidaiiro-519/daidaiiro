@@ -1,0 +1,128 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>schema 駆動の一日</title>
+<style>
+:root{--bg:#F7F7F5;--card:#FFF;--ink:#14201C;--dim:#5C6B65;--line:#DDE3E0;
+--accent:#0F5B4B;--accent-bg:#E6F0EC;--warn:#A5471F;--term:#12201C;--term-ink:#D8E6E0;
+--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+--sans:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#101512;--card:#171E1A;--ink:#E7EDEA;--dim:#9AA8A2;--line:#27302B;
+--accent:#6FC3A8;--accent-bg:#17302A;--warn:#E0865C;--term:#0B120F;--term-ink:#CFE3DB;}}
+:root[data-theme="dark"]{--bg:#101512;--card:#171E1A;--ink:#E7EDEA;--dim:#9AA8A2;--line:#27302B;
+--accent:#6FC3A8;--accent-bg:#17302A;--warn:#E0865C;--term:#0B120F;--term-ink:#CFE3DB;}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.8;
+margin:0;padding-block:2.2rem 4rem;padding-left:16px;padding-right:16px;}
+main{max-width:52rem;margin:0 auto;}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--dim);
+text-transform:uppercase;margin:0 0 .4rem;}
+h1{font-size:1.72rem;line-height:1.35;margin:0 0 .6rem;text-wrap:balance;}
+.lead{color:var(--dim);margin:0 0 2rem;}
+.lead b{color:var(--ink);}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:1.1rem 1.1rem 1.3rem;margin-bottom:1rem;}
+h2{font-size:1.02rem;margin:0 0 .7rem;display:flex;gap:.6rem;align-items:baseline;}
+.no{font-family:var(--mono);font-size:.74rem;color:var(--accent);background:var(--accent-bg);
+border-radius:6px;padding:.1rem .45rem;flex:none;}
+.note{margin:.2rem 0 .7rem;color:var(--dim);font-size:.93rem;}
+.term{border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:.6rem 0 .9rem;}
+.cmd{background:var(--accent-bg);color:var(--accent);font-family:var(--mono);
+font-size:.8rem;padding:.5rem .7rem;border-bottom:1px solid var(--line);
+word-break:break-all;}
+pre.out{background:var(--term);color:var(--term-ink);font-family:var(--mono);
+font-size:.78rem;line-height:1.65;margin:0;padding:.7rem;overflow-x:auto;}
+.paper{border:1px solid var(--line);border-radius:9px;padding:.2rem 1rem 1rem;margin:.6rem 0 .9rem;background:var(--bg);}
+.paper h1{font-size:1.1rem;margin:.9rem 0 .5rem;}
+.paper h2{font-size:.9rem;color:var(--dim);margin:.9rem 0 .3rem;display:block;}
+.paper ul{margin:.2rem 0;padding-left:1.1rem;font-size:.92rem;}
+.paper li{margin:.15rem 0;}
+.paper code{font-family:var(--mono);font-size:.82rem;background:var(--accent-bg);
+border-radius:4px;padding:0 .25rem;}
+.tag{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin:.7rem 0 0;}
+footer{color:var(--dim);font-size:.83rem;margin-top:1.6rem;}
+footer b{color:var(--ink);}
+</style><main>
+<p class="eyebrow">usecase &amp; schema / simulation</p>
+<h1>schema 駆動の一日</h1>
+<p class="lead">仕様を書いてから、壊れて、直るまでを<b>実際に動かした記録</b>である ──
+画面の枠の中身は、<b>試作が出力した文字列そのもの</b>で、1文字も書き換えていない。
+コマンド名（<code>schema</code>）だけは、まだ無い道具の呼び名として置いた。</p>
+<section><h2><span class="no">1</span>人が仕様を書く ── 正本はこれ1つである</h2><p class="note">形式は構造化データ（JSON）。人はこれを直に読まない。</p><p class="note">事業領域で切ったフォルダの根に、事業領域の宣言を必ず置く ── これは契約である。</p><div class="term"><div class="cmd">$ ls spec/宅配のサービス/</div><pre class="out">business-domain.json   ← 根（全体のコンセプト）
+subdomains/all.json
+contexts/all.json
+usecases/all.json</pre></div><div class="term"><div class="cmd">$ cat spec/宅配のサービス/business-domain.json</div><pre class="out">[
+  {
+    &quot;kind&quot;: &quot;business-domain&quot;,
+    &quot;id&quot;: &quot;BD-01J8D0P&quot;,
+    &quot;name&quot;: &quot;宅配のサービス&quot;,
+    &quot;render&quot;: &quot;render.business-domain&quot;,
+    &quot;rules&quot;: [],
+    &quot;ops&quot;: [],
+    &quot;nodes&quot;: [],
+    &quot;body&quot;: {
+      &quot;scope&quot;: &quot;顧客に届ける宅配のサービスの大枠&quot;,
+      &quot;why&quot;: &quot;荷物を預かって届けることで対価を得る&quot;,
+      &quot;appliedTo&quot;: {
+        &quot;kind&quot;: &quot;リポジトリ&quot;,
+        &quot;name&quot;: &quot;shipping-platform&quot;
+      }</pre></div></section><section><h2><span class="no">2</span>道具が射影を出す ── 同じ宣言から、形式の違うものが出る</h2><p class="note">出す先は 宣言 × 変換機 で決まる。ここでは宣言2件 × 出す先4件 ＝ 8件である。</p><div class="term"><div class="cmd">$ schema emit</div><pre class="out">.claude/settings.AGG-01J7Q4K.json
+.claude/skills/AGG-01J7Q4K/SKILL.md
+.claude/skills/UC-01J7Q8Q/SKILL.md
+.codex/agents/AGG-01J7Q4K.toml
+.codex/agents/UC-01J7Q8Q.toml
+.kiro/agents/AGG-01J7Q4K.json
+.kiro/agents/UC-01J7Q8Q.json
+.schema/business-domain/BD-01J8D0P.html
+.schema/context/BC-01J8B7C.html
+.schema/subdomain/SD-01J8C1A.html
+.schema/subdomain/SD-01J8C2B.html</pre></div><div class="term"><div class="cmd">$ schema render --as 承認   # 人が読むのは、これだけ</div><pre class="out">&lt;h1&gt;出荷指示（集約）&lt;/h1&gt;
+&lt;h2&gt;不変条件&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;明細の合計は、引当済の数量を超えない　&lt;code&gt;sum(lines.qty) &lt;= allocatedQty&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;操作&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;作成する&lt;/b&gt; ── 事前 [] ／ 事後 [&quot;status == 準備中&quot;] ／ 書き換える [&quot;出荷指示&quot;]&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;明細を足す&lt;/b&gt; ── 事前 [&quot;status == 準備中&quot;] ／ 事後 [&quot;lines が1増える&quot;] ／ 書き換える [&quot;出荷指示&quot;, &quot;出荷明細&quot;]&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;確定する&lt;/b&gt; ── 事前 [&quot;status == 準備中&quot;, &quot;lines.length &gt; 0&quot;] ／ 事後 [&quot;status == 確定済&quot;] ／ 書き換える [&quot;出荷指示&quot;, &quot;出荷明細&quot;]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;シナリオ&lt;/h2&gt;</pre></div><div class="term"><div class="cmd">$ cat .codex/agents/AGG-01J7Q4K.toml   # 実行系が読む形（TOML）</div><pre class="out">name = &quot;AGG-01J7Q4K&quot;
+description = &quot;出荷指示&quot;
+sandbox_mode = &quot;read-only&quot;
+developer_instructions = &quot;&quot;&quot;
+明細の合計は、引当済の数量を超えない を保つこと。
+作成する は、事前条件 [] を満たすときだけ実行する。
+明細を足す は、事前条件 [&quot;status == 準備中&quot;] を満たすときだけ実行する。
+確定する は、事前条件 [&quot;status == 準備中&quot;, &quot;lines.length &gt; 0&quot;] を満たすときだけ実行する。
+&quot;&quot;&quot;</pre></div></section><section><h2><span class="no">3</span>人が承認する ── 読むのは HTML だけである</h2><div class="paper"><p class="tag">人が実際に見る画面（射影をそのまま描画した）</p><h1>出荷指示（集約）</h1>
+<h2>不変条件</h2>
+<ul>
+<li>明細の合計は、引当済の数量を超えない　<code>sum(lines.qty) <= allocatedQty</code></li>
+</ul>
+<h2>操作</h2>
+<ul>
+<li><b>作成する</b> ── 事前 [] ／ 事後 ["status == 準備中"] ／ 書き換える ["出荷指示"]</li>
+<li><b>明細を足す</b> ── 事前 ["status == 準備中"] ／ 事後 ["lines が1増える"] ／ 書き換える ["出荷指示", "出荷明細"]</li>
+<li><b>確定する</b> ── 事前 ["status == 準備中", "lines.length > 0"] ／ 事後 ["status == 確定済"] ／ 書き換える ["出荷指示", "出荷明細"]</li>
+</ul>
+<h2>シナリオ</h2>
+<ul>
+<li><code>SC-01J7Q4M</code>　明細が0件のとき、確定できない</li>
+<li><code>SC-01J7Q4N</code>　明細が1件あれば、確定できる</li>
+</ul></div><p class="note">承認したのは、シナリオ SC-01J7Q4M と SC-01J7Q4N の2本である。</p></section><section><h2><span class="no">4</span>AI が実装し、テストを書き、結んだと申告する</h2><p class="note">申告は MCP の1操作で行う。道具はソースを1行も読まない。</p><div class="term"><div class="cmd">&gt; bind(node=&quot;SC-01J7Q4M&quot;, external=&quot;usecase::tests::明細が0件のとき確定できない&quot;)<br>&gt; bind(node=&quot;SC-01J7Q4N&quot;, external=&quot;usecase::tests::明細が1件あれば確定できる&quot;)</div><pre class="out">対応表へ2行入った
+対応表は、道具が持つ1つのファイルである。形式はまだ決めていない ── ここでは JSON で書き出した。</pre></div><div class="term"><div class="cmd">$ cat .schema/bindings.json</div><pre class="out">{
+  &quot;bindings&quot;: {
+    &quot;SC-01J7Q4M&quot;: [&quot;usecase::tests::明細が0件のとき確定できない&quot;],
+    &quot;SC-01J7Q4N&quot;: [&quot;usecase::tests::明細が1件あれば確定できる&quot;]
+  }
+}</pre></div></section><section><h2><span class="no">5</span>引き算する ── これが CI で走る</h2><div class="term"><div class="cmd">$ schema check</div><pre class="out">見つかったこと 0 件 ── 仕様の外に、何も存在しない</pre></div></section><section><h2><span class="no">6</span>壊してみる ── 4通りの壊れ方が、それぞれ別の行で出る</h2><p class="note">① シナリオを1本足したが、テストをまだ書いていない</p><div class="term"><div class="cmd">$ schema check</div><pre class="out">対応の無い節： SC-01J7Q4N  ／ 承認の境目でゼロ
+結ばれていない識別子： usecase::tests::明細が1件あれば確定できる  ／ 常時ゼロ（落とす）
+見つかったこと 2 件
+② 誰も宣言していないテストが在る</pre></div><div class="term"><div class="cmd">$ schema check</div><pre class="out">結ばれていない識別子： usecase::tests::こっそり足した  ／ 常時ゼロ（落とす）
+見つかったこと 1 件
+③ テストの名前を変えた ── 対応が切れる</pre></div><div class="term"><div class="cmd">$ schema check</div><pre class="out">結ばれていない識別子： usecase::tests::明細が1件あれば確定できること  ／ 常時ゼロ（落とす）
+切れた対応： usecase::tests::明細が1件あれば確定できる ── 外に無い  ／ 承認の境目でゼロ
+見つかったこと 2 件
+④ 宣言していない Skill を、手で置いた</pre></div><div class="term"><div class="cmd">$ schema check</div><pre class="out">結ばれていない識別子： .claude/skills/手で置いた/SKILL.md  ／ 常時ゼロ（落とす）
+見つかったこと 1 件</pre></div></section><section><h2><span class="no">7</span>直す ── 仕様を直すか、成果物を消すかのどちらかである</h2><p class="note">どの行も「仕様の外に在るもの」を指している。消すか、仕様へ入れるかしかない。</p><div class="term"><div class="cmd">$ schema check</div><pre class="out">見つかったこと 0 件 ── 仕様の外に、何も存在しない</pre></div></section>
+<footer>出典 ── <b>trial/spike</b>（Rust 931行 ・ 検査25件）を <b>2026-09-21</b> に実行した。
+宣言2件 × 出す先4件 ＝ 成果物8件。<b>基盤は方法論も AI ツールも知らない</b>。</footer>
+</main>

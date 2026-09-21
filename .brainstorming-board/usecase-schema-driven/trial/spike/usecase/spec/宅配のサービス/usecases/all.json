@@ -1,0 +1,168 @@
+[
+  {
+    "kind": "aggregate",
+    "id": "AGG-01J7Q4K",
+    "name": "出荷指示",
+    "render": "render.aggregate",
+    "rules": [
+      {
+        "name": "明細の合計は、引当済の数量を超えない",
+        "predicate": "sum(lines.qty) <= allocatedQty",
+        "check": "check.sumWithin"
+      }
+    ],
+    "ops": [
+      {
+        "name": "作成する",
+        "pre": [],
+        "post": [
+          "status == 準備中"
+        ],
+        "writes": [
+          "出荷指示"
+        ]
+      },
+      {
+        "name": "明細を足す",
+        "pre": [
+          "status == 準備中"
+        ],
+        "post": [
+          "lines が1増える"
+        ],
+        "writes": [
+          "出荷指示",
+          "出荷明細"
+        ]
+      },
+      {
+        "name": "確定する",
+        "pre": [
+          "status == 準備中",
+          "lines.length > 0"
+        ],
+        "post": [
+          "status == 確定済"
+        ],
+        "writes": [
+          "出荷指示",
+          "出荷明細"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J7Q4M",
+        "name": "明細が0件のとき、確定できない",
+        "body": {
+          "given": [
+            {
+              "op": "作成する"
+            }
+          ],
+          "when": {
+            "op": "確定する"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      },
+      {
+        "id": "SC-01J7Q4N",
+        "name": "明細が1件あれば、確定できる",
+        "body": {
+          "given": [
+            {
+              "op": "作成する"
+            },
+            {
+              "op": "明細を足す"
+            }
+          ],
+          "when": {
+            "op": "確定する"
+          },
+          "then": {
+            "fails": false,
+            "check": "check.statusIs"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C"
+    }
+  },
+  {
+    "kind": "use-case",
+    "id": "UC-01J7Q8Q",
+    "name": "出荷を確定する",
+    "render": "render.usecase",
+    "rules": [],
+    "ops": [
+      {
+        "name": "実行する",
+        "pre": [
+          "引当が済んでいる"
+        ],
+        "post": [
+          "出荷指示.status == 確定済"
+        ],
+        "writes": [
+          "出荷指示"
+        ]
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C"
+    }
+  },
+  {
+    "kind": "domain-service",
+    "id": "SV-01J8E4K",
+    "name": "配達予定日を計算する",
+    "render": "render.service",
+    "rules": [],
+    "ops": [
+      {
+        "name": "計算する",
+        "pre": [
+          "出荷指示が確定済である"
+        ],
+        "post": [
+          "予定日が返る"
+        ],
+        "writes": []
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J8E5M",
+        "name": "確定していなければ、計算できない",
+        "body": {
+          "given": [
+            {
+              "op": "作成する"
+            }
+          ],
+          "when": {
+            "op": "計算する"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C",
+      "why": "出荷指示と配送区分の2つの集約にまたがるので、集約には置けない"
+    }
+  }
+]

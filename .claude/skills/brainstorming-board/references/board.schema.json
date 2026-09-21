@@ -453,7 +453,8 @@
     },
     "letter": {
       "type": "string",
-      "pattern": "^[A-Z]$"
+      "pattern": "^[A-Z][′″‴⁗⁵⁶⁷⁸⁹]*$",
+      "description": "案の記号。大文字1つに、版を重ねた印が0個以上付く"
     },
     "event": {
       "description": "札は4値に限る。利用者の言葉は「内容」ではなく「差し戻し」である。",
@@ -545,14 +546,14 @@
           "items": {
             "type": "object",
             "required": [
-              "letter",
+              "name",
               "body",
               "cost"
             ],
             "additionalProperties": false,
             "properties": {
-              "letter": {
-                "$ref": "#/$defs/letter"
+              "name": {
+                "$ref": "#/$defs/cell"
               },
               "body": {
                 "$ref": "#/$defs/cell"
@@ -661,6 +662,56 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/panel"
+          }
+        },
+        "tables": {
+          "description": "案ごとの帰結を並べる表。行の見出しは案の名前（plain なら層の名前など）。",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "caption",
+              "cols",
+              "rows"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "caption": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lead": {
+                "$ref": "#/$defs/cell"
+              },
+              "plain": {
+                "type": "boolean",
+                "description": "行の見出しが案の記号でないとき（層の名前など）"
+              },
+              "cols": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array"
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }

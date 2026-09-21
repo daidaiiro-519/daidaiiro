@@ -1,0 +1,192 @@
+<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>skills-creator の変更（道具の契約）</title>
+<style>
+:root{--paper:#eef1ef;--card:#f8faf9;--ink:#111d1a;--muted:#5b6b66;--rule:#ccd8d4;
+--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--pop:#f8f3e8;--popline:#d9b77e;
+--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;
+--ink:#e6eeeb;--muted:#93a29d;--rule:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;
+--warn-soft:#33281a;--pop:#241d14;--popline:#6e5738}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN",
+system-ui,sans-serif;line-height:1.8;padding-block:1.6rem 4rem;padding-left:16px;padding-right:16px}
+main{max-width:64rem;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 .4rem}
+.lead{color:var(--muted);font-size:.92rem;margin:0 0 1rem}
+.bar{display:flex;gap:.5rem;align-items:center;margin:0 0 1rem;flex-wrap:wrap}
+button{font:inherit;font-size:.85rem;padding:.35rem .9rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--key);background:var(--card);color:var(--key)}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:.5rem;padding:1rem;
+overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.7;white-space:pre}
+mark.chg{background:var(--warn-soft);color:var(--ink);border-bottom:2px solid var(--warn);
+cursor:pointer;display:inline-block}
+mark.chg::after{content:" ▸";color:var(--warn);font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:" ▾"}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);
+border-left:3px solid var(--warn);border-radius:.3rem;padding:.7rem .9rem;margin:.5rem 0;
+font-family:"Hiragino Kaku Gothic ProN",system-ui,sans-serif;font-size:.85rem;white-space:normal}
+.pop b{display:block;font-size:.68rem;letter-spacing:.14em;color:var(--warn);margin:.4rem 0 .2rem}
+.pop pre{margin:.2rem 0;padding:.5rem;font-size:.74rem}
+</style>
+<main>
+<h1>skills-creator の変更 ── 正本へはまだ当てていない</h1>
+<p class="lead">変更後の全文である。<b>色の付いた箇所を押すと、変更前と理由が開く</b>。
+変更は 3 か所。検査は 12 件とも通っている（冪等・引用を割らない・同じ入力から同じもの）。</p>
+<div class="bar"><button id="all">すべて開く</button><button id="none">すべて閉じる</button>
+<span class="lead">変更 3 か所</span></div>
+<pre>---
+name: &quot;skills-creator&quot;
+description: &quot;新しいSkillsを作成したいとき、Skillのテンプレートが欲しいとき、「スキルを作って」「Skills作成」「新しいスキル」と言われたとき、またはベストプラクティスに従ったSkillフォルダ構成を生成したいときに使う。&quot;
+---
+
+# 新規Skillのテンプレート生成を行うSkill：skills-creator
+
+## 目的
+
+新しいSkillsを作成したいとき、Skillのテンプレートが欲しいとき、「スキルを作って」「Skills作成」「新しいスキル」と言われたとき、またはベストプラクティスに従ったSkillフォルダ構成を生成したいときに使う。
+
+---
+
+## 役割
+
+- スキル設計のコンサルタントとして要件をヒアリングする
+- ベストプラクティスのフォルダ構成を遵守した実装者として動く
+- SKILL.mdの各セクション（目的・役割・実行手順・ガードレール）を適切に記入するファシリテーターとして振る舞う
+- 作成後はスキルの動作確認方法をユーザーに伝える
+
+---
+
+## 処理対象と成果物
+
+### 処理対象
+
+新規Skillの要件（スキル名・トリガー条件・スコープ・テンプレートの要否・追加フォルダの要否）。
+
+### 成果物
+
+ベストプラクティスに従ったフォルダ構成とSKILL.mdを備えた新しいSkill（プレースフォルダー付きスケルトンから量産）。
+
+---
+
+## 入力の想定
+
+| 受け取る情報 | 解釈・既定値 |
+|---|---|
+| 新規Skillの要件（スキル名・トリガー条件・スコープ・テンプレートの要否・追加フォルダの要否） | 要件が明確でない場合は作成を開始せず、先にヒアリングを完了させる。 |
+
+---
+
+## 実行手順
+
+### Step 1: 要件のヒアリング
+
+スキル名・トリガー条件・スコープ（プロジェクト専用/グローバル）・テンプレートの要否・追加フォルダの要否を確認する。不明な項目はユーザーに質問する。
+
+### Step 2: フォルダ構成を決定する
+
+folder-structure.mdを参照し、ヒアリング内容に応じてミニマム構成かフル構成かを選ぶ。
+
+### Step 3: フォルダ構成を作成する
+
+決定した構成に従い、SKILL.mdと必要ならreferences/等のフォルダを作成する。
+
+### Step 4: SKILL.mdを生成する
+
+references/skill-template.mdを読み込む。各{{...}}プレースホルダーは、そこに書かれた指示を読めばそのまま記入できる自己完結の形式になっているため、別途定義票を参照する必要はない。ヒアリング内容に従って全プレースホルダーを記入し、{{スコープ}}/skills/{{スキル名}}/SKILL.mdとして保存する。
+
+### Step 5: テンプレートファイルを生成する（必要な場合のみ）
+
+出力ドキュメントを生成するスキルの場合、プレースホルダー付きのスケルトンテンプレートを{{スコープ}}/skills/{{スキル名}}/references/template.mdとして作成する。
+
+### Step 6: 完成確認
+
+作成したファイル一覧を表示し、スキルの呼び出し方をユーザーに伝える。
+
+---
+
+## 出力形式
+
+作成したファイル一覧を表示し、スキルの呼び出し方をユーザーに伝える。
+
+---
+
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この箇所は無かった）" data-w="&lt;b&gt;入口の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる。&lt;/b&gt;契約は呼び方を1つに固定し、&lt;b&gt;能力を1度だけ宣言させて、CLI と MCP をその宣言から組ませる&lt;/b&gt;。&lt;br&gt;実測 ── 既存12本の入口は4通りで、機械が読む出力は0本だった。">## 道具を伴う Skill
+
+**スクリプトを持つ Skill は、道具の契約に従わせる。**
+契約は `references/tool-contract.md` が規定する ── 呼び方を1つに固定し、
+**能力を1度だけ宣言させて、CLI と MCP をその宣言から組ませる**。
+
+```
+python3 scripts/cli.py scaffold &lt;Skill の名前&gt;   # 契約一式を置く
+python3 scripts/cli.py check &lt;Skill のフォルダ&gt;  # 契約を満たすかを検査する
+```
+
+置くのは4つの部品と、登録の断片である。
+
+| 置くもの | 役割 |
+|---|---|
+| `scripts/tools.py` | **能力の正本**。名前 ・ 引数 ・ 説明 ・ 実体 |
+| `scripts/cli.py` | 唯一の入口 |
+| `scripts/mcp.py` | MCP の面。**同じ宣言から組む** |
+| `scripts/contract.py` | 入口の実装（引数の解釈 ・ 印字 ・ 終了コード） |
+| `mcp.json` | 登録の断片。**ホストごとの差は、ここだけが吸収する** |
+
+**MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動く** ──
+差し出し方が欠けても、能力は欠けない。
+
+---
+</mark>
+## ガードレール
+
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この箇所は無かった）" data-w="規定が無い箇所では、書き手の癖がそのまま通る ── &lt;b&gt;抽象度と同様に、入口の形も規定が無ければ揃わない&lt;/b&gt;。&lt;br&gt;4件とも&lt;b&gt;性質&lt;/b&gt;で書いた（特定の道具名・特定の形を規則にしない）。">- **スクリプトを持つ Skill には、道具の契約を適用させる**（`references/tool-contract.md`）── 入口の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
+- **能力を2か所へ記述させない**。CLI と MCP は、宣言から組ませる ── 同じ能力を2度書くと、片方だけが古くなる
+- **部品に入口を付けさせない**。`import` される部品は宣言に載せない ── 載せると、同じ能力に呼び方が2つできる
+- **道具に印字させない**。戻り値は `{ok, findings, data}` とし、印字と終了コードは入口が持つ ── 道具が印字すると、MCP から呼んだときに戻り値が空になる</mark>
+- **ガードレールと手順を、不変条件で記述させる**。1回の出来事・特定の語・特定の形を規則にしない ── **規則が事例の形を取ると、その形だけが規制され、他の形は通過する**。規則が禁じるのは性質であって、その性質が現れた1つの形ではない
+- **例を規則本体へ混ぜさせない**。例を添えるなら「例」と明示し、規則の文とは分離する ── 混ざると、読み手は例の範囲を規則の範囲として解釈する
+- SKILL.md は必ずスキルフォルダのルートに置く。サブフォルダには置かない
+- テンプレートファイルは assets/ ではなく references/ に置く
+- 不要なフォルダは作らない。使うものだけ作る
+- プレースフォルダーを記入する前に必ずreferences/placeholder-definitions.mdを参照する。定義票なしで記入しない
+- スキル名は英小文字・ハイフン区切りに統一する（スペース・アンダースコア不可）
+- ユーザーが要件を明確にしていない場合は作成を開始しない。必ずヒアリングを先に完了させる
+- 新しいSkillに、特定の外部ツール・システム（Waffle、特定のCLI/MCP等）の存在を自ら判定して振る舞いを変えるロジックを持たせない。汎用のSkillが具体的な実装の有無を参照するのは依存性の方向違反であり、正しい向きは「具体的なシステムの側が汎用Skillを自分の中に注入・統合する」（composition-rootの原則）。特定システムとの統合が必要な場合は、そのSkill自体は単一の環境非依存な実装のままにし、統合はSkillの外側（呼び出し側・Orchestrator側）に置く設計を選ぶ
+
+---
+
+## 参照
+
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この箇所は無かった）" data-w="契約の本体と雛形、そして&lt;b&gt;この Skill 自身の入口&lt;/b&gt;を指す ── &lt;b&gt;自分が作らせる形に、自分も従う&lt;/b&gt;。従わない道具を作る Skill は、契約を守らせられない。">- `references/tool-contract.md`: 道具の契約。入口 ・ 戻り値 ・ 終了コード ・ 道具と部品の区別を規定する
+- `references/tool-contract/`: 契約一式の雛形（`tools.py` ・ `cli.py` ・ `mcp.py` ・ `mcp.json`）
+- `scripts/cli.py`: この Skill 自身の入口。`scaffold` と `check` を持つ ── **この Skill も、同じ契約に従う**
+</mark>
+- `references/skill-template.md`: SKILL.md自体の雛形（プレースホルダー付き、各プレースホルダーが自己完結した執筆ガイダンスを持つ）。
+- `references/folder-structure.md`: Skillフォルダのミニマム構成・フル構成の基準。</pre>
+</main>
+<script>
+function panel(m){
+  var nx=m.nextElementSibling;
+  if(!nx||!nx.classList.contains("pop")){
+    nx=document.createElement("div"); nx.className="pop";
+    nx.innerHTML="<b>変更前</b><pre>"+m.dataset.b+"</pre><b>なぜ変えたか</b>"+m.dataset.w;
+    m.parentNode.insertBefore(nx,m.nextSibling);
+  }
+  return nx;
+}
+document.querySelectorAll("mark.chg").forEach(function(m){
+  m.addEventListener("click",function(){
+    var open=m.getAttribute("aria-expanded")==="true";
+    panel(m).hidden=open; m.setAttribute("aria-expanded",open?"false":"true");
+  });
+  m.addEventListener("keydown",function(e){
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+  });
+});
+document.getElementById("all").addEventListener("click",function(){
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    panel(m).hidden=false; m.setAttribute("aria-expanded","true");});});
+document.getElementById("none").addEventListener("click",function(){
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    panel(m).hidden=true; m.setAttribute("aria-expanded","false");});});
+</script>

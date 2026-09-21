@@ -1,0 +1,245 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>実装できる高さ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{--paper:#eef1ef;--card:#f8faf9;--ink:#111d1a;--muted:#5b6b66;--rule:#ccd8d4;
+--rule-soft:#dfe7e4;--sunk:#e7ecea;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;
+--warn-soft:#f0e2cd;--dim:#7d8a86;
+--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;
+--ink:#e6eeeb;--muted:#93a29d;--rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;
+--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985;
+--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000}}
+:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--ink:#e6eeeb;--muted:#93a29d;
+--rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;--key-soft:#173330;
+--warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.85;
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",system-ui,sans-serif}
+.wrap{max-width:66rem;margin:0 auto;padding:1.8rem 1.15rem 5rem;display:flex;flex-direction:column;gap:1.3rem}
+h1{font-family:"Shippori Mincho",serif;font-weight:600;font-size:1.65rem;margin:0}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:.68rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+p{margin:0}
+header{border-bottom:1px solid var(--rule);padding-bottom:1.1rem;display:flex;flex-direction:column;gap:.55rem}
+.lede{color:var(--muted);font-size:.93rem}
+.lede b{color:var(--ink)}
+.step{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;
+box-shadow:var(--shadow);padding:1.1rem 1.15rem;display:flex;flex-direction:column;gap:.7rem}
+.sh{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.sn{font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:700;color:var(--paper);
+background:var(--key);border-radius:.25rem;padding:.1rem .5rem;flex:none}
+.sh h2{font-family:"Shippori Mincho",serif;font-weight:600;font-size:1.05rem;margin:0}
+.sh .do{font-size:.78rem;color:var(--warn);font-weight:700}
+.say{font-size:.86rem;color:var(--muted)}
+.say b{color:var(--ink)}
+.tabs{display:flex;gap:.3rem;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:.8rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.pane{background:var(--sunk);border-radius:.45rem;padding:.75rem .8rem;min-width:0}
+.pane h3{margin:0 0 .4rem;font-size:.74rem;letter-spacing:.06em;color:var(--muted);font-weight:700}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.76rem;line-height:1.7;
+white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.md h4{font-family:"Shippori Mincho",serif;font-size:1rem;margin:.2rem 0 .3rem}
+.md h5{font-size:.82rem;margin:.7rem 0 .2rem;color:var(--muted)}
+.md ul{margin:.1rem 0;padding-left:1.1rem;font-size:.85rem}
+.md li{margin:.12rem 0}
+.md table{border-collapse:collapse;width:100%;font-size:.8rem;margin:.2rem 0}
+.md th,.md td{border:1px solid var(--rule);padding:.25rem .45rem;text-align:left;vertical-align:top}
+.md th{background:var(--card);color:var(--muted);font-size:.72rem}
+ol.tests{margin:.2rem 0;padding-left:1.4rem;font-size:.85rem}
+ol.tests li{margin:.2rem 0}
+ol.tests .src{color:var(--muted);font-size:.78rem}
+.sig{border:1px solid var(--rule-soft);border-radius:.4rem;padding:.5rem .7rem;background:var(--paper)}
+.sig+.sig{margin-top:.4rem}
+.sig.on{border-color:var(--warn);background:var(--warn-soft)}
+.sig .t{font-size:.85rem;font-weight:700;display:flex;gap:.45rem;align-items:center}
+.sig .d{font-size:.78rem;color:var(--muted)}
+.dotm{width:.5rem;height:.5rem;border-radius:50%;background:var(--dim);flex:none}
+.sig.on .dotm{background:var(--warn)}
+.bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+button.big{font:inherit;font-size:.83rem;padding:.3rem .9rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink);font-weight:700}
+button.big[aria-pressed="true"]{background:var(--warn);border-color:var(--warn);color:var(--paper)}
+.count{font-family:"JetBrains Mono",monospace;font-size:.74rem;color:var(--muted)}
+footer{border-top:1px solid var(--rule);padding-top:1rem;color:var(--muted);font-size:.84rem;
+display:flex;flex-direction:column;gap:.35rem}
+footer b{color:var(--ink)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.04rem .28rem;border-radius:.2rem}
+</style></head><body><div class="wrap">
+<header>
+ <p class="eyebrow">試作 ／ usecase-schema-driven</p>
+ <h1>実装できる高さ</h1>
+ <p class="lede">DDD の5要素を<b>インターフェースの高さ</b>（操作 ・ 事前条件 ・ 事後条件 ・ 不変条件）で
+ JSON に落とすと、どう見えるか。<b>同じ宣言から、人が読む形と、導出されるテストが両方出る。</b>
+ <br>左のタブで要素を切り替える。題材は「出荷遅延をゼロにする」の文脈である。</p>
+</header>
+
+<section class="step">
+ <div class="sh"><span class="sn">手順1</span><h2>宣言と、その射影</h2>
+  <span class="do">← 左は AI が読む形、右は人が読む形</span></div>
+ <div class="tabs" id="tabs"></div>
+ <p class="say"><b>同じ1件から、2つの形が出る。</b>左を人が読むことはなく、右を AI が読むこともない。
+ 承認は右だけを通る ── これが論点2 の④「人間可読への射影を、全ての型が負う契約にする」である。</p>
+ <div class="two">
+  <div class="pane"><h3>構造化データ（JSON）── AI が読む</h3><pre id="json"></pre></div>
+  <div class="pane"><h3>射影（MD 相当）── 人が読む</h3><div class="md" id="md"></div></div>
+ </div>
+</section>
+
+<section class="step">
+ <div class="sh"><span class="sn">手順2</span><h2>導出されるテスト</h2>
+  <span class="do">← 機械が数える</span></div>
+ <p class="say"><b>「テストを考えられるか」が、高さが足りているかの判定である。</b>
+ 事前条件・事後条件・不変条件・制約から、機械的に並べる ── 人は1件も書いていない。
+ <span class="count" id="tcount"></span></p>
+ <ol class="tests" id="tests"></ol>
+</section>
+
+<section class="step">
+ <div class="sh"><span class="sn">手順3</span><h2>検出信号</h2>
+  <span class="do">← 機械が当て続ける</span></div>
+ <div class="bar">
+  <button class="big" id="cat" aria-pressed="false">この領域を「補完」に変える</button>
+  <span class="say" id="catnote">いまは<b>中核</b>である。押すと、語彙の問題が現れる。</span>
+ </div>
+ <div id="sigs"></div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+<script>
+const DATA = {"decls": [{"kind": "aggregate", "id": "AGG-01J7Q4K", "name": "出荷指示", "category": "core", "identity": {"field": "shippingOrderId", "type": "ShippingOrderId"}, "contains": ["ENT-01J7Q5M", "VO-01J7Q6N"], "invariants": [{"name": "明細の合計は、引当済の数量を超えない", "predicate": "sum(lines.qty) <= allocatedQty", "check": "check.sumWithin"}, {"name": "確定済の出荷指示は、明細を持たないことがない", "predicate": "status == 確定済 implies lines.length > 0", "check": "check.implies"}], "operations": [{"name": "確定する", "pre": ["status == 準備中", "lines.length > 0"], "post": ["status == 確定済", "confirmedAt != null"], "writes": ["出荷指示", "出荷明細"]}, {"name": "明細を足す", "pre": ["status == 準備中"], "post": ["lines.length が1増える"], "writes": ["出荷指示", "出荷明細"]}]}, {"kind": "entity", "id": "ENT-01J7Q5M", "name": "出荷明細", "category": "core", "identity": {"field": "lineNo", "type": "LineNo"}, "contains": ["VO-01J7Q6N"], "invariants": [{"name": "数量は1以上である", "predicate": "qty.value >= 1", "check": "check.min"}], "operations": [{"name": "数量を変える", "pre": ["親の status == 準備中"], "post": ["qty == 指定した値"], "writes": ["出荷明細"]}]}, {"kind": "value-object", "id": "VO-01J7Q6N", "name": "数量", "category": "core", "constraints": [{"name": "1以上である", "predicate": "value >= 1", "check": "check.min"}, {"name": "整数である", "predicate": "value is integer", "check": "check.type"}], "equality": ["value", "unit"], "operations": [{"name": "足す", "pre": ["unit が同じ"], "post": ["value が和になる"], "writes": []}]}, {"kind": "domain-service", "id": "SVC-01J7Q7P", "name": "引当", "category": "core", "invariants": [], "operations": [{"name": "引き当てる", "pre": ["在庫.available >= 要求数量"], "post": ["在庫.allocated が増える", "出荷指示.allocatedQty が増える"], "writes": ["在庫", "出荷指示"]}], "note": "2つの集約に書き込む ── だから集約の中には置けない"}, {"kind": "use-case", "id": "UC-01J7Q8Q", "name": "出荷を確定する", "category": "core", "actor": "倉庫", "value": "出荷遅延をゼロにする", "operations": [{"name": "実行する", "pre": ["出荷指示が存在する", "引当が済んでいる"], "post": ["出荷指示.status == 確定済", "出荷イベントが発生する"], "writes": ["出荷指示"]}]}], "aggregates": ["出荷指示", "在庫"]};
+const S = {sel: 0, supporting: false};
+const KIND = {"aggregate":"集約","entity":"エンティティ","value-object":"値オブジェクト",
+              "domain-service":"業務サービス","use-case":"ユースケース"};
+const CAT = {"core":"中核","supporting":"補完","generic":"一般"};
+
+const cur = () => {
+  const d = JSON.parse(JSON.stringify(DATA.decls[S.sel]));
+  if(S.supporting) d.category = "supporting";
+  return d;
+};
+
+/* ── テストの導出 ── 宣言から機械的に並べる。人は書かない ── */
+function tests(d){
+  const out = [];
+  for(const op of d.operations || []){
+    for(const p of op.pre || [])
+      out.push({t:`「${op.name}」── <code>${p}</code> を満たさないとき、失敗すること`, s:"事前条件"});
+    for(const p of op.post || [])
+      out.push({t:`「${op.name}」── 成功したあと <code>${p}</code> が成り立つこと`, s:"事後条件"});
+    for(const inv of d.invariants || [])
+      out.push({t:`「${op.name}」── そのあとも「${inv.name}」が保たれること`, s:"不変条件"});
+  }
+  for(const c of d.constraints || [])
+    out.push({t:`<code>${c.predicate}</code> を満たさない値を、作れないこと`, s:"制約"});
+  if(d.equality)
+    out.push({t:`${d.equality.map(x=>`<code>${x}</code>`).join(" と ")} が同じなら、等しいと判定されること`, s:"等価性"});
+  if(d.identity)
+    out.push({t:`<code>${d.identity.field}</code> が同じなら、中身が変わっても同一と判定されること`, s:"同一性"});
+  return out;
+}
+
+/* ── 検出信号 ── */
+function signals(d){
+  const sig = [];
+  const outside = [];
+  for(const op of d.operations || [])
+    for(const w of op.writes || [])
+      if(DATA.aggregates.includes(w) && w !== d.name && d.kind === "aggregate") outside.push(`${op.name} → ${w}`);
+  sig.push({on: outside.length > 0, t: "不変条件が、集約をまたいでいる",
+    d: outside.length ? outside.join(" ／ ") + " ── 集約の境界が違うという合図"
+                      : "書き込みは、自分の集約の中に収まっている"});
+
+  const heavy = ["aggregate","entity","value-object","domain-service"].includes(d.kind);
+  const bad = heavy && d.category !== "core";
+  sig.push({on: bad, t: "カテゴリーと、実装方法が食い違っている",
+    d: bad ? `<b>${CAT[d.category]}</b>の領域に<b>${KIND[d.kind]}</b>が立っている ── `
+             + "原典は「補完の業務領域をドメインモデルで実装するのは過剰である」と述べる。"
+             + "<b>この語彙しか無いので、書く人はこう書くしかない</b>"
+           : "中核なので、この語彙で整合している"});
+
+  const noCheck = [...(d.invariants||[]), ...(d.constraints||[])].filter(x => !x.check);
+  sig.push({on: noCheck.length > 0, t: "述語に、確かめることの名前が無い",
+    d: noCheck.length ? noCheck.map(x=>x.name).join(" ／ ")
+                      : "すべての述語が、検査の名前を持っている"});
+
+  const noRender = false;
+  sig.push({on: noRender, t: "人間可読への射影を持たない",
+    d: "射影が在るので、承認を通れる"});
+  return sig;
+}
+
+/* ── 射影（人が読む形）── 宣言から組む。手で書いた文は1つも無い ── */
+function md(d){
+  const h = [];
+  h.push(`<h4>${d.name}　<span class="say">（${KIND[d.kind]} ・ ${CAT[d.category]}）</span></h4>`);
+  if(d.actor) h.push(`<p class="say">アクター： ${d.actor} ／ 提供価値： ${d.value}</p>`);
+  if(d.identity) h.push(`<h5>同一性</h5><ul><li><code>${d.identity.field}</code>（${d.identity.type}）</li></ul>`);
+  if(d.equality) h.push(`<h5>等価性</h5><ul><li>${d.equality.join(" ・ ")} が同じなら、等しい</li></ul>`);
+  if((d.constraints||[]).length){
+    h.push(`<h5>制約</h5><ul>` + d.constraints.map(c=>`<li>${c.name}　<code>${c.predicate}</code></li>`).join("") + `</ul>`);
+  }
+  if((d.invariants||[]).length){
+    h.push(`<h5>不変条件</h5><ul>` + d.invariants.map(c=>`<li>${c.name}　<code>${c.predicate}</code></li>`).join("") + `</ul>`);
+  }
+  if((d.operations||[]).length){
+    h.push(`<h5>操作</h5><table><tr><th>操作</th><th>事前</th><th>事後</th><th>書き換える</th></tr>` +
+      d.operations.map(op=>`<tr><td>${op.name}</td><td>${(op.pre||[]).join("<br>")||"──"}</td>`+
+        `<td>${(op.post||[]).join("<br>")||"──"}</td><td>${(op.writes||[]).join(" ・ ")||"──"}</td></tr>`).join("") +
+      `</table>`);
+  }
+  if(d.contains) h.push(`<h5>含むもの</h5><ul>` + d.contains.map(x=>`<li><code>${x}</code></li>`).join("") + `</ul>`);
+  if(d.note) h.push(`<p class="say">${d.note}</p>`);
+  return h.join("");
+}
+
+function render(){
+  const d = cur();
+  document.getElementById("tabs").innerHTML = DATA.decls.map((x,i)=>
+    `<button data-i="${i}" aria-pressed="${i===S.sel}">${KIND[x.kind]}　${x.name}</button>`).join("");
+  document.getElementById("json").textContent = JSON.stringify(d, null, 2);
+  document.getElementById("md").innerHTML = md(d);
+  const ts = tests(d);
+  document.getElementById("tests").innerHTML = ts.map(t=>
+    `<li>${t.t}　<span class="src">（${t.s}から）</span></li>`).join("");
+  document.getElementById("tcount").textContent = `この1件から ${ts.length} 件`;
+  const sg = signals(d);
+  document.getElementById("sigs").innerHTML = sg.map(s=>
+    `<div class="sig${s.on?" on":""}"><div class="t"><span class="dotm"></span>${s.t}</div>
+     <div class="d">${s.d}</div></div>`).join("");
+  const cb = document.getElementById("cat");
+  cb.setAttribute("aria-pressed", S.supporting);
+  cb.textContent = S.supporting ? "「中核」に戻す" : "この領域を「補完」に変える";
+  document.getElementById("catnote").innerHTML = S.supporting
+    ? "いまは<b>補完</b>にしてある。2つ目の信号を見てほしい。"
+    : "いまは<b>中核</b>である。押すと、語彙の問題が現れる。";
+  const total = DATA.decls.reduce((n,x)=>n+tests(x).length, 0);
+  document.getElementById("foot").innerHTML =
+    `<div>5件の宣言から、合計 <b>${total} 件</b>のテストが導出された。<b>人は1件も書いていない。</b></div>
+     <div>導出できたということは、<b>この高さで足りている</b>ということである
+     ── それが「実装できる高さ」の判定になる。</div>
+     <div><b>ただし、テストが導出できることと、そのテストが十分であることは別である。</b>
+     宣言に書かれていない振る舞いは、1件も出てこない。</div>`;
+}
+
+document.addEventListener("click", e=>{
+  const b = e.target.closest("button[data-i]");
+  if(b){ S.sel = +b.dataset.i; render(); return; }
+  if(e.target.id === "cat"){
+    S.supporting = !S.supporting;
+    e.target.setAttribute("aria-pressed", S.supporting);
+    e.target.textContent = S.supporting ? "「中核」に戻す" : "この領域を「補完」に変える";
+    render();
+  }
+});
+render();
+</script></body></html>

@@ -72,8 +72,9 @@ def _cells(d: dict):
         yield from declare(t.get("example"), f"{n}/example")
         yield from declare(t.get("path"), f"{n}/path")
         for i, o in enumerate(t.get("passed", [])):
-            yield f"{n}/passed[{o['letter']}]", o["body"]
-            yield f"{n}/passed[{o['letter']}]/cost", o["cost"]
+            yield f"{n}/passed[{i}]/name", o["name"]
+            yield f"{n}/passed[{i}]/body", o["body"]
+            yield f"{n}/passed[{i}]/cost", o["cost"]
         for i, o in enumerate(t.get("dropped", [])):
             yield f"{n}/dropped[{i}]", o["body"]
             yield f"{n}/dropped[{i}]/reason", o["reason"]
@@ -85,8 +86,14 @@ def _cells(d: dict):
             yield f"{n}/findings[{i}]", x
         for i, w in enumerate(t.get("out_of_scope", [])):
             yield f"{n}/out_of_scope[{i}]", w["item"]
-            if w.get("treatment"):
-                yield f"{n}/out_of_scope[{i}]/treatment", w["treatment"]
+            if w.get("note"):
+                yield f"{n}/out_of_scope[{i}]/note", w["note"]
+        for i, tb in enumerate(t.get("tables", [])):
+            if tb.get("lead"):
+                yield f"{n}/tables[{i}]/lead", tb["lead"]
+            for r in tb["rows"]:
+                for v in r[1]:
+                    yield f"{n}/tables[{i}]/{r[0]}", str(v)
         for e in t.get("panels", []):
             yield from declare(e["body"], f"{n}/panels/{e['heading']}")
 
@@ -99,10 +106,14 @@ def prose(place: str, s: str) -> list[str]:
     丸ごと素通しにしていた。列挙はこの道具が升へ割ってから渡す。
     """
     bad = []
-    raw = quote.sub("", re.sub(r"<[^>]+>", "", s))
-    if raw.count(sep) > cohabit:
-        bad.append(f"{place}: 1つの升に区切り「{sep}」が {raw.count(sep)} 個ある")
-    for sentence in re.split(r"(?<=。)", raw):
+    # **改行は升の中の行を分ける** ── 行ごとに1つの主張を数える。
+    # 行を分けずに詰めたものだけが、この検査の対象である。
+    for line in re.split(r"<br\s*/?>", s):
+        raw = quote.sub("", re.sub(r"<[^>]+>", "", line))
+        if raw.count(sep) > cohabit:
+            bad.append(f"{place}: 1つの行に区切り「{sep}」が {raw.count(sep)} 個ある")
+    whole = quote.sub("", re.sub(r"<[^>]+>", "", s))
+    for sentence in re.split(r"(?<=。)", whole):
         sentence = sentence.strip()
         if len(sentence) > longest:
             bad.append(f"{place}: 1文が {len(sentence)} 字ある（上限 {longest}）── {sentence[:34]}…")

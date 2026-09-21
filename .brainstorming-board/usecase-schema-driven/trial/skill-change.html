@@ -1,0 +1,819 @@
+<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>build_board の変更</title>
+<style>
+:root{--paper:#eef1ef;--card:#f8faf9;--ink:#111d1a;--muted:#5b6b66;--rule:#ccd8d4;
+--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--pop:#f8f3e8;--popline:#d9b77e;
+--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;
+--ink:#e6eeeb;--muted:#93a29d;--rule:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;
+--warn-soft:#33281a;--pop:#241d14;--popline:#6e5738}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN",
+system-ui,sans-serif;line-height:1.8;padding-block:1.6rem 4rem;padding-left:16px;padding-right:16px}
+main{max-width:64rem;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 .4rem}
+.lead{color:var(--muted);font-size:.92rem;margin:0 0 1rem}
+.bar{display:flex;gap:.5rem;align-items:center;margin:0 0 1rem;flex-wrap:wrap}
+button{font:inherit;font-size:.85rem;padding:.35rem .9rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--key);background:var(--card);color:var(--key)}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:.5rem;padding:1rem;
+overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.7;white-space:pre}
+mark.chg{background:var(--warn-soft);color:var(--ink);border-bottom:2px solid var(--warn);
+cursor:pointer;display:inline-block}
+mark.chg::after{content:" ▸";color:var(--warn);font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:" ▾"}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);
+border-left:3px solid var(--warn);border-radius:.3rem;padding:.7rem .9rem;margin:.5rem 0;
+font-family:"Hiragino Kaku Gothic ProN",system-ui,sans-serif;font-size:.85rem;white-space:normal}
+.pop b{display:block;font-size:.68rem;letter-spacing:.14em;color:var(--warn);margin:.4rem 0 .2rem}
+.pop pre{margin:.2rem 0;padding:.5rem;font-size:.74rem}
+</style>
+<main>
+<h1>build_board の変更 ── 正本へはまだ当てていない</h1>
+<p class="lead">変更後の全文である。<b>色の付いた箇所を押すと、変更前と理由が開く</b>。
+変更は 9 か所。検査は 12 件とも通っている（冪等・引用を割らない・同じ入力から同じもの）。</p>
+<div class="bar"><button id="all">すべて開く</button><button id="none">すべて閉じる</button>
+<span class="lead">変更 9 か所</span></div>
+<pre># SPDX-License-Identifier: MIT
+# Copyright (c) 2026 daidaiiro
+&quot;&quot;&quot;論点を、見て選べる1枚へ組む。
+
+文字だけで案を説明すると、読み手が頭の中で像を作ることになり、そこで解釈がぶれる。
+だから案は成果物として組む ── 読み手は像を補完せず、見えているものだけで決められる。
+
+散文で並べない。**案は表で、帰結は表で、理由は連鎖で、図は図で置く。**
+情報の型が、表現の形を決める。
+
+使い方:
+    from build_board import board, Option, Table, write
+    html = board(
+        theme=&quot;ADR の構造&quot;, no=1, total=3,
+        question=&quot;ADR の節の並びを、どういう順にするか&quot;,
+        note=&quot;論点5つのうち3つが決着し、1つ新しく出た。&quot;,
+        figures=[(SVG, &quot;図の読み方&quot;)],
+        kept=[Option(&quot;決定を先頭のまま、反証の節を足す&quot;,
+                     &quot;決定 → 反証 → 実測 → 残る弱点&quot;,
+                     &quot;書き手が自分の決定を攻めることになる&quot;)],
+        tables=[Table(&quot;この選択が置くもの&quot;, [&quot;段1&quot;, &quot;段2&quot;],
+                      {&quot;A&quot;: [&quot;契約が3つ増える&quot;, &quot;増えない&quot;]})],
+        dropped=[(&quot;判断の経路をたどる形&quot;, &quot;承認の場で読み飛ばされる&quot;)],
+        found=[&quot;3案が2案になった&quot;, &quot;軸が変わった&quot;],
+        pick=(&quot;A&quot;, [(&quot;測った&quot;, &quot;押し返されなければ承認されていた誤りが4件あった&quot;),
+                    (&quot;結論&quot;, &quot;A ── 決定を先頭のまま、反証の節を足す&quot;)]))
+    write(html, &quot;/path/to/board.html&quot;, &quot;節の同一性&quot;)
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import html as _h
+import re
+import sys as _sys
+from dataclasses import dataclass, field
+
+LETTERS = &quot;ABCDEFGH&quot;
+
+# ブレストボードの色。図を描く側は、これを自分のエンジンのトークンへ複製する。
+#
+# **ここが色の正本である。**ブレストボードの CSS を持っているのはこのファイルなので、
+# 描く側が自分で色を決めると、色を決める場所が2つになる。
+#
+# **この Skill は図を描かない。**描き方も、描く道具も持たない ──
+# board() は図を SVG の文字列として受け取るだけで、どう描いたかを知らない。
+# 描くのはブレストごとのフォルダ（具体の側）であり、
+# どのエンジンを使うかもそちらが決める。
+TOKENS = {
+    &quot;paper&quot;: &quot;#eef1ef&quot;, &quot;card&quot;: &quot;#f8faf9&quot;,
+    &quot;ink&quot;: &quot;#111d1a&quot;, &quot;ink-soft&quot;: &quot;#5b6b66&quot;,
+    &quot;line&quot;: &quot;#9fb0ab&quot;, &quot;rule&quot;: &quot;#ccd8d4&quot;, &quot;sunk&quot;: &quot;#e7ecea&quot;,
+    &quot;accent&quot;: &quot;#0d5c55&quot;, &quot;accent-bg&quot;: &quot;#d5e6e3&quot;,
+    &quot;warn&quot;: &quot;#8f5410&quot;, &quot;warn-bg&quot;: &quot;#f0e2cd&quot;,
+    &quot;dim&quot;: &quot;#7d8a86&quot;,
+}
+
+# 出どころの種類。読み手が札だけで意味を取れる言葉にする
+KINDS = {&quot;実測&quot;: &quot;k-fact&quot;, &quot;原典&quot;: &quot;k-src&quot;, &quot;決まり&quot;: &quot;k-rule&quot;,
+         &quot;前提&quot;: &quot;k-given&quot;, &quot;未確認&quot;: &quot;k-open&quot;}
+
+
+@dataclass
+class Option:
+    &quot;&quot;&quot;反証を通過した案。代償を必ず添える ── 代償が無いと選べない。
+
+    name / gist / cost は、表の1行に収まる長さで書く。
+    説明が1行に収まらないなら、それは図か、別の表になるものである。
+
+    対話の途中で案が変わったら、before と why を添える。そうすると案の名前が
+    印になり、押すと「変更前」と「なぜ変えたか」が開く ── 履歴を別の場所へ
+    追い出すと、いまのブレストボードと突き合わせながら読むことになる。
+    &quot;&quot;&quot;
+    name: str
+    gist: str
+    cost: str
+    before: str | None = None
+    why: str | None = None
+
+
+@dataclass
+class Table:
+    &quot;&quot;&quot;案ごとの帰結を並べる表。列は呼び出し側が決める。
+
+    rows は {案の記号: [その案の各列の値]}。案の記号は kept の並び順（A・B・C…）。
+    &quot;&quot;&quot;
+    caption: str
+    columns: list[str]
+    rows: dict[str, list[str]]
+    lead: str | None = None
+    plain: bool = False  # 行の見出しが案の記号でないとき（層の名前など）は True
+
+
+def _mark(text: str, before: str, why: str, deleted: bool = False) -&gt; str:
+    &quot;&quot;&quot;変わった箇所の印。押すと、変更前と理由が開く。&quot;&quot;&quot;
+    return (f&#x27;&lt;mark class=&quot;chg{&quot; del&quot; if deleted else &quot;&quot;}&quot; tabindex=&quot;0&quot; role=&quot;button&quot; &#x27;
+            f&#x27;aria-expanded=&quot;false&quot; data-b=&quot;{_h.escape(before, quote=True)}&quot; &#x27;
+            f&#x27;data-w=&quot;{_h.escape(why, quote=True)}&quot;&gt;{text}&lt;/mark&gt;&#x27;)
+
+
+def _sec(no: int, title: str, body: str) -&gt; str:
+    return f&#x27;&lt;h2&gt;&lt;span class=&quot;sn&quot;&gt;{no}&lt;/span&gt;{_h.escape(title)}&lt;/h2&gt;{body}&#x27;
+
+
+def _table(head: list[str], rows: list[list[str]], cls: str = &quot;&quot;) -&gt; str:
+    h = &quot;&quot;.join(f&quot;&lt;th&gt;{c}&lt;/th&gt;&quot; for c in head)
+    b = &quot;&quot;.join(&quot;&lt;tr&gt;&quot; + &quot;&quot;.join(f&quot;&lt;td&gt;{c}&lt;/td&gt;&quot; for c in r) + &quot;&lt;/tr&gt;&quot; for r in rows)
+    return f&#x27;&lt;div class=&quot;scroll&quot;&gt;&lt;table class=&quot;{cls}&quot;&gt;&lt;tr&gt;{h}&lt;/tr&gt;{b}&lt;/table&gt;&lt;/div&gt;&#x27;
+
+
+def _key(letter: str, tone: str = &quot;&quot;) -&gt; str:
+    return f&#x27;&lt;span class=&quot;n {tone}&quot;&gt;{letter}&lt;/span&gt;&#x27;
+
+
+@dataclass
+class Topic:
+    &quot;&quot;&quot;1つの論点。deck() に並べると、タブ1枚になる。
+
+    ブレストは複数の論点が絡むので、決着した論点も同じ1枚に置く ── 別々の
+    ページに散らすと、後の論点が前の決着を前提にしていることが見えなくなる。
+
+    status は「未」「新規」「決着」のいずれか。決着した論点は kept を持たず、
+    decision（決定・理由・次にすること）と、必要なら extras（節の見出しと中身）だけを持つ。
+
+    path は、その結論に至った道筋。何を問うて何が除外されたかを順に並べる ──
+    結論と根拠だけでは「なぜ他が残らなかったか」が見えない。
+    &quot;&quot;&quot;
+    no: int
+    label: str
+    question: str
+    status: str = &quot;未&quot;
+    answer: str = &quot;&quot;
+    note: str | None = None
+    figures: list[tuple[str, str]] = field(default_factory=list)
+    kept: list[Option] = field(default_factory=list)
+    tables: list[Table] = field(default_factory=list)
+    dropped: list[tuple[str, str]] = field(default_factory=list)
+    found: list[str] = field(default_factory=list)
+    pick: tuple[str, str] | None = None
+    path: list[str] = field(default_factory=list)
+    grounds: list[tuple[str, str, str, str]] = field(default_factory=list)
+    costs: list[str] = field(default_factory=list)
+    # 完成イメージのうち、図で表せないもの（宣言・設定・コード・木構造の実例）。
+    # **畳まない** —— 答えの直下に開いたまま置く。図と同じ扱いである。
+    # 畳むと、実例を探しながら結論を読むことになる（実際に、経過の底へ埋めた）
+    example: str = &quot;&quot;
+    # 「弱いところ」か、(弱いところ, どう扱うか) の対。**承認を求める論点は、対で書く**
+    weaknesses: list = field(default_factory=list)
+    decision: list[tuple[str, str]] = field(default_factory=list)
+    extras: list[tuple[str, str]] = field(default_factory=list)
+
+
+
+# ──────────────────────────────────────────────────────────────
+# 見た目 ── 承認の画面を正とし、論点が増えたらタブで切り替える。
+# ブレストボードと承認の画面を別ページにすると、開いている論点の中身が二重になる
+# （実際になった）。決着は同じ1枚に蓄積し、後の論点はそれを前提にする。
+# ──────────────────────────────────────────────────────────────
+
+HEAD = (&#x27;&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;&#x27;
+        &#x27;&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;&#x27;
+        &#x27;&lt;link rel=&quot;stylesheet&quot; href=&quot;https://fonts.googleapis.com/css2?&#x27;
+        &#x27;family=Shippori+Mincho:wght@600&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&#x27;
+        &#x27;&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap&quot;&gt;&#x27;)
+
+CSS = &quot;&quot;&quot;
+:root{--paper:#eef1ef;--card:#f8faf9;--ink:#111d1a;--muted:#5b6b66;--rule:#ccd8d4;
+--rule-soft:#dfe7e4;--sunk:#e7ecea;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;
+--warn-soft:#f0e2cd;--dim:#7d8a86;--src-o:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;
+--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=&quot;light&quot;]){--paper:#0e1614;--card:#16211e;
+--ink:#e6eeeb;--muted:#93a29d;--rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;
+--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985;--src-o:#d094c2;
+--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000}}
+:root[data-theme=&quot;dark&quot;]{--paper:#0e1614;--card:#16211e;--ink:#e6eeeb;--muted:#93a29d;
+--rule:#2a3936;--rule-soft:#22302d;--sunk:#111a18;--key:#6cc9b8;--key-soft:#173330;
+--warn:#d9a35f;--warn-soft:#33281a;--dim:#7b8985;--src-o:#d094c2;--pop:#241d14;--popline:#6e5738}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:&quot;Zen Kaku Gothic New&quot;,&quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:&quot;Shippori Mincho&quot;,&quot;Yu Mincho&quot;,serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:&quot;JetBrains Mono&quot;,ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected=&quot;true&quot;]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected=&quot;true&quot;] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:&quot;JetBrains Mono&quot;,monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--sunk);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details&gt;div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--sunk);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この箇所は無かった）" data-w="升を2段にすると、&lt;b&gt;上が主張・下が説明&lt;/b&gt;と読む順が揃う。色は既にある &lt;code&gt;--muted&lt;/code&gt; を使う ── 色を決める場所を増やさない。">.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--muted)}</mark>
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed=&quot;true&quot;]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed=&quot;true&quot;]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:&quot;JetBrains Mono&quot;,monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:&quot;▸&quot;;font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded=&quot;true&quot;]::after{content:&quot;▾&quot;}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+&quot;&quot;&quot;
+
+SCRIPT = r&quot;&quot;&quot;&lt;script&gt;
+(function(){
+  var ROOT=document.getElementById(&quot;root&quot;);
+  var tabs=document.querySelectorAll(&quot;#tabs button&quot;);
+  tabs.forEach(function(b){
+    b.addEventListener(&quot;click&quot;,function(){
+      tabs.forEach(function(o){
+        o.setAttribute(&quot;aria-selected&quot;,&quot;false&quot;);
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute(&quot;aria-selected&quot;,&quot;true&quot;);
+      document.getElementById(b.dataset.t).hidden=false;
+      window.scrollTo({top:0,behavior:&quot;smooth&quot;});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(&quot;.front .jump&quot;).forEach(function(j){
+    j.addEventListener(&quot;click&quot;,function(){
+      var t=document.querySelector(&#x27;#tabs button[data-t=&quot;&#x27;+j.dataset.go+&#x27;&quot;]&#x27;);
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll(&quot;mark.chg&quot;).forEach(function(m){
+    m.addEventListener(&quot;click&quot;,function(){
+      var open=m.getAttribute(&quot;aria-expanded&quot;)===&quot;true&quot;;
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&amp;&amp;nx.classList.contains(&quot;pop&quot;)) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains(&quot;pop&quot;)){
+          nx=document.createElement(&quot;span&quot;); nx.className=&quot;pop&quot;;
+          nx.innerHTML=&quot;&lt;b&gt;変更前&lt;/b&gt;&quot;+m.dataset.b+&quot;&lt;b style=&#x27;margin-top:.5rem&#x27;&gt;なぜ変えたか&lt;/b&gt;&quot;+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute(&quot;aria-expanded&quot;,open?&quot;false&quot;:&quot;true&quot;);
+    });
+    m.addEventListener(&quot;keydown&quot;,function(e){
+      if(e.key===&quot;Enter&quot;||e.key===&quot; &quot;){e.preventDefault();m.click();}
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(&quot;.form&quot;).forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(&quot;.vb&quot;).forEach(function(b){
+      b.addEventListener(&quot;click&quot;,function(){
+        f.querySelectorAll(&quot;.vb&quot;).forEach(function(o){o.setAttribute(&quot;aria-pressed&quot;,&quot;false&quot;)});
+        b.setAttribute(&quot;aria-pressed&quot;,&quot;true&quot;);
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(&quot;.rb&quot;).forEach(function(b){
+      b.addEventListener(&quot;click&quot;,function(){
+        var t=f.querySelector(&quot;.reason&quot;);
+        t.value=(t.value?t.value.replace(/\s*$/,&quot;&quot;)+&quot;／&quot;:&quot;&quot;)+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById(&quot;cnt&quot;).textContent=n;
+    document.getElementById(&quot;go&quot;).disabled=(n===0);
+  }
+  document.getElementById(&quot;go&quot;).addEventListener(&quot;click&quot;,function(){
+    var answers=[];
+    document.querySelectorAll(&quot;.form&quot;).forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(&quot;.reason&quot;).value.trim();
+      var nt=f.querySelector(&quot;.note-in&quot;).value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]===&quot;returned&quot;&amp;&amp;r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById(&quot;out&quot;); out.hidden=false; out.textContent=txt;
+    fetch(&quot;/answer&quot;,{method:&quot;POST&quot;,headers:{&quot;Content-Type&quot;:&quot;application/json&quot;},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?&quot;送りました。&quot;+(j.next||&quot;&quot;)+&quot;\n\n&quot;:&quot;受け取られませんでした。貼ってください。\n\n&quot;)+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:&quot;nearest&quot;,behavior:&quot;smooth&quot;});
+  });
+})();
+&lt;/script&gt;&quot;&quot;&quot;
+
+
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この箇所は無かった）" data-w="升を2段にすると、&lt;b&gt;上が主張・下が説明&lt;/b&gt;と読む順が揃う。色は既にある &lt;code&gt;--muted&lt;/code&gt; を使う ── 色を決める場所を増やさない。">def cell(x: str) -&gt; str:
+    &quot;&quot;&quot;1つの升に2つのことが入っているものを、**主張と説明の2段**にする。
+
+    「主張 ── 説明」と書いたものは、**1つの升に2つのことが入っている**。
+    区切りで割ると、読む側が文を解きほぐさずに済む。
+
+    次の3つは割らない ── 文字列でないもの／引用（「で始まるもの）／既に割ってあるもの。
+    **引用を割らないのは、原文の形を変えないためである。**
+    **既に割ってあるものを割らないので、何度当てても同じものが出る（冪等）。**
+    &quot;&quot;&quot;
+    if not isinstance(x, str) or x.lstrip().startswith(&quot;「&quot;) or &#x27;class=&quot;lead-s&quot;&#x27; in x:
+        return x
+    head, sep, tail = x.partition(&quot; ── &quot;)
+    if not sep:
+        return x
+    if head.startswith(&quot;&lt;b&gt;&quot;) and head.endswith(&quot;&lt;/b&gt;&quot;):
+        head = head[3:-4]
+    return f&#x27;&lt;b class=&quot;lead-s&quot;&gt;{head}&lt;/b&gt;&lt;div class=&quot;sub-s&quot;&gt;{tail}&lt;/div&gt;&#x27;
+
+
+def _pairs(items: list[str], left: str, right: str) -&gt; str:
+    &quot;&quot;&quot;『主張 ── 説明』の並びを、2列の表にする。区切りが無い行は、右を空にする。&quot;&quot;&quot;
+    rows = []
+    for x in items:
+        a, sep, b = x.partition(&quot; ── &quot;)
+        rows.append([f&quot;&lt;b&gt;{a}&lt;/b&gt;&quot;, b if sep else &quot;&quot;])
+    return _tbl([left, right], rows)
+
+
+def prev(mark: str, before: str, why: str, words: str = &quot;&quot;) -&gt; str:
+    &quot;&quot;&quot;閉じた前の答えを、3行の表にする。extras の中身として渡す。
+
+    **利用者の言葉は、そのまま置く** ── 差し戻された理由は、言い換えると別のものになる。
+    &quot;&quot;&quot;
+    rows = [(&quot;前の答え&quot;, f&quot;&lt;b&gt;{mark}&lt;/b&gt;　{before}&quot;), (&quot;なぜ組み直したか&quot;, cell(why))]
+    if words:
+        rows.append((&quot;利用者の言葉（そのまま）&quot;, words))
+    body = &quot;&quot;.join(f&quot;&lt;tr&gt;&lt;th&gt;{k}&lt;/th&gt;&lt;td&gt;{v}&lt;/td&gt;&lt;/tr&gt;&quot; for k, v in rows)
+    return f&#x27;&lt;div class=&quot;scroll&quot;&gt;&lt;table&gt;{body}&lt;/table&gt;&lt;/div&gt;&#x27;
+
+</mark>
+def _tbl(head, rows):
+    &quot;&quot;&quot;表を組む。**見出しが全部空なら、見出しの行を出さない。**
+
+    空の `&lt;th&gt;` を並べると、中身の無い帯が表の上に1本出る。
+    決まりの表のように、行の名前だけで読める表では見出しが要らない。
+    &quot;&quot;&quot;
+    b = &quot;&quot;.join(&quot;&lt;tr&gt;&quot; + &quot;&quot;.join(f&quot;&lt;td&gt;{c}&lt;/td&gt;&quot; for c in r) + &quot;&lt;/tr&gt;&quot; for r in rows)
+    if not any(str(c).strip() for c in head):
+        return f&#x27;&lt;div class=&quot;scroll&quot;&gt;&lt;table&gt;{b}&lt;/table&gt;&lt;/div&gt;&#x27;
+    h = &quot;&quot;.join(f&quot;&lt;th&gt;{c}&lt;/th&gt;&quot; for c in head)
+    return f&#x27;&lt;div class=&quot;scroll&quot;&gt;&lt;table&gt;&lt;tr&gt;{h}&lt;/tr&gt;{b}&lt;/table&gt;&lt;/div&gt;&#x27;
+
+
+def _fold(summary, body):
+    return f&quot;&lt;details&gt;&lt;summary&gt;{summary}&lt;/summary&gt;&lt;div&gt;{body}&lt;/div&gt;&lt;/details&gt;&quot;
+
+
+def _panel(t: Topic, theme: str, ask: bool = True) -&gt; str:
+    &quot;&quot;&quot;論点1つぶん。開いているものは答えと裏づけと回答欄、まだのものは問いだけ。&quot;&quot;&quot;
+    qid = f&quot;Q{t.no}&quot;
+    out = [f&#x27;&lt;div class=&quot;qh&quot;&gt;&lt;span class=&quot;qid&quot;&gt;{qid}&lt;/span&gt;&#x27;
+           f&#x27;&lt;h2&gt;{_h.escape(t.question)}&lt;/h2&gt;&lt;/div&gt;&#x27;]
+    if t.note:
+        out.append(f&#x27;&lt;div class=&quot;note&quot;&gt;{t.note}&lt;/div&gt;&#x27;)
+
+    if t.pick:
+        letter, concl = t.pick
+        out.append(f&#x27;&lt;div class=&quot;ans&quot;&gt;&lt;span class=&quot;big&quot;&gt;{_h.escape(letter)}&lt;/span&gt;{concl}&lt;/div&gt;&#x27;)
+    elif t.decision:
+        out.append(_tbl([&quot;&quot;, &quot;&quot;], [[f&#x27;&lt;span class=&quot;st done&quot;&gt;{_h.escape(k)}&lt;/span&gt;&#x27;, v]
+                                   for k, v in t.decision]))
+
+    if t.example:
+        out.append(f&#x27;&lt;div class=&quot;ex&quot;&gt;{t.example}&lt;/div&gt;&#x27;)
+
+    if t.figures:
+        # 図は縦方向へ並べる。横に並べると、縦横比の違う図が幅に合わせて縮み、
+        # 文字が読めなくなる（742×100 の図が 380px で潰れた）
+        out.append(&#x27;&lt;div class=&quot;figs&quot;&gt;&#x27; + &quot;&quot;.join(
+            f&quot;&lt;figure&gt;{svg}&lt;figcaption&gt;{cap}&lt;/figcaption&gt;&lt;/figure&gt;&quot;
+            for svg, cap in t.figures) + &quot;&lt;/div&gt;&quot;)
+
+    folds = []
+    for part, claim, kind, src in t.grounds:
+        if kind not in KINDS:
+            raise ValueError(f&quot;論点{t.no}: 出どころの種類が「{kind}」。&quot;
+                             f&quot;使えるのは {&#x27;／&#x27;.join(KINDS)} である&quot;)
+        if not src.strip() or not part.strip():
+            raise ValueError(f&quot;論点{t.no}: 根拠に、支える先か出どころが無い ── 「{claim[:20]}…」&quot;)
+    # 節は4つだけにする。**同じことを3か所に書かない** ──
+    # 論証（残った理由）・前提・残る危険・経過。この順は、読み手が判定に使う順である。
+    #   論証  ── 反証を通過した案と、除外した案。**結論はここだけから出る**
+    #   前提  ── 根拠。論証が乗っているもの
+    #   危険  ── まだ弱いところ。承認の判断に要る
+    #   経過  ── 道筋・反証で分かったこと・負担すること・前の答え。読みたい人だけが開く
+    argue = &quot;&quot;
+    if t.kept:
+        rows = []
+        for i, o in enumerate(t.kept):
+            name = f&quot;&lt;b&gt;{o.name}&lt;/b&gt;&quot;
+            if o.before and o.why:
+                name = _mark(name, o.before, o.why)
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="            rows.append([f&#x27;&lt;span class=&quot;n&quot;&gt;{LETTERS[i]}&lt;/span&gt;&#x27;, name, o.gist,
+                         f&#x27;&lt;span class=&quot;cost&quot;&gt;{o.cost}&lt;/span&gt;&#x27;])" data-w="SKILL.md は「情報の型が、表現の形を決める」と書いているのに、&lt;b&gt;道具がそれを守らせていなかった&lt;/b&gt; ── 前提の表は3列に組めるのに、案・表・弱いところの升には「主張 ── 説明」を詰めたままだった。&lt;br&gt;&lt;b&gt;描くときだけ当てる&lt;/b&gt;ので、呼ぶ側の書き方は変わらない（入力は変わらない）。">            rows.append([f&#x27;&lt;span class=&quot;n&quot;&gt;{LETTERS[i]}&lt;/span&gt;&#x27;, name, cell(o.gist),
+                         f&#x27;&lt;span class=&quot;cost&quot;&gt;{cell(o.cost)}&lt;/span&gt;&#x27;])</mark>
+        argue += (f&#x27;&lt;p class=&quot;note-s&quot;&gt;反証を通過した案 {len(t.kept)}件。&#x27;
+                  &quot;このうち1つを残し、他は代償が重いか、前提を壊す。&lt;/p&gt;&quot;
+                  + _tbl([&quot;&quot;, &quot;案&quot;, &quot;中身&quot;, &quot;代償&quot;], rows))
+    if t.dropped:
+        argue += (f&#x27;&lt;p class=&quot;note-s&quot;&gt;除外した案 {len(t.dropped)}件 ── 何が壊れるか。&lt;/p&gt;&#x27;
+                  + _tbl([&quot;&quot;, &quot;除外した案&quot;, &quot;何が壊れるか&quot;],
+                         [[&#x27;&lt;span class=&quot;n out&quot;&gt;×&lt;/span&gt;&#x27;,
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                           _mark(f&quot;&lt;b&gt;{d}&lt;/b&gt;&quot;, &quot;この案は残っていた&quot;, w, deleted=True), w]" data-w="SKILL.md は「情報の型が、表現の形を決める」と書いているのに、&lt;b&gt;道具がそれを守らせていなかった&lt;/b&gt; ── 前提の表は3列に組めるのに、案・表・弱いところの升には「主張 ── 説明」を詰めたままだった。&lt;br&gt;&lt;b&gt;描くときだけ当てる&lt;/b&gt;ので、呼ぶ側の書き方は変わらない（入力は変わらない）。">                           _mark(f&quot;&lt;b&gt;{d}&lt;/b&gt;&quot;, &quot;この案は残っていた&quot;, w, deleted=True), cell(w)]</mark>
+                          for d, w in t.dropped]))
+    for tb in t.tables:
+        argue += ((f&#x27;&lt;p class=&quot;note-s&quot;&gt;{tb.lead}&lt;/p&gt;&#x27; if tb.lead else &quot;&quot;)
+                  + f&quot;&lt;p class=\&quot;note-s\&quot;&gt;&lt;b&gt;{_h.escape(tb.caption)}&lt;/b&gt;&lt;/p&gt;&quot;
+                  + _tbl([&quot;&quot;] + tb.columns,
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                         [[(f&quot;&lt;b&gt;{k}&lt;/b&gt;&quot; if tb.plain else f&#x27;&lt;span class=&quot;n&quot;&gt;{k}&lt;/span&gt;&#x27;)] + list(v)
+                          for k, v in tb.rows.items()]))" data-w="SKILL.md は「情報の型が、表現の形を決める」と書いているのに、&lt;b&gt;道具がそれを守らせていなかった&lt;/b&gt; ── 前提の表は3列に組めるのに、案・表・弱いところの升には「主張 ── 説明」を詰めたままだった。&lt;br&gt;&lt;b&gt;描くときだけ当てる&lt;/b&gt;ので、呼ぶ側の書き方は変わらない（入力は変わらない）。">                         [[(f&quot;&lt;b&gt;{k}&lt;/b&gt;&quot; if tb.plain else f&#x27;&lt;span class=&quot;n&quot;&gt;{k}&lt;/span&gt;&#x27;)]
+                          + [cell(x) for x in v] for k, v in tb.rows.items()]))</mark>
+    if argue:
+        folds.append(_fold(&quot;この答えが残った理由 ── 反証を通過した案と、除外した案&quot;, argue))
+
+    if t.grounds:
+        folds.append(_fold(f&quot;前提 ── この論証が乗っているもの（{len(t.grounds)}件）&quot;,
+                           _tbl([&quot;結論のどこを支えるか&quot;, &quot;もとにしたこと&quot;, &quot;その出どころ&quot;],
+                                [[f&#x27;&lt;span class=&quot;part&quot;&gt;{p}&lt;/span&gt;&#x27;, c,
+                                  f&#x27;&lt;span class=&quot;kind {KINDS[k]}&quot;&gt;{_h.escape(k)}&lt;/span&gt;&lt;small&gt;{s}&lt;/small&gt;&#x27;]
+                                 for p, c, k, s in t.grounds])))
+
+    if t.weaknesses:
+        rows, naked = [], 0
+        for w in t.weaknesses:
+            if isinstance(w, (tuple, list)) and len(w) &gt;= 2:
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                rows.append([w[0], w[-1]])" data-w="SKILL.md は「情報の型が、表現の形を決める」と書いているのに、&lt;b&gt;道具がそれを守らせていなかった&lt;/b&gt; ── 前提の表は3列に組めるのに、案・表・弱いところの升には「主張 ── 説明」を詰めたままだった。&lt;br&gt;&lt;b&gt;描くときだけ当てる&lt;/b&gt;ので、呼ぶ側の書き方は変わらない（入力は変わらない）。">                rows.append([cell(w[0]), cell(w[-1])])</mark>
+            else:
+                naked += 1
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                rows.append([w, &#x27;&lt;span class=&quot;cost&quot;&gt;行き先が決まっていない&lt;/span&gt;&#x27;])" data-w="SKILL.md は「情報の型が、表現の形を決める」と書いているのに、&lt;b&gt;道具がそれを守らせていなかった&lt;/b&gt; ── 前提の表は3列に組めるのに、案・表・弱いところの升には「主張 ── 説明」を詰めたままだった。&lt;br&gt;&lt;b&gt;描くときだけ当てる&lt;/b&gt;ので、呼ぶ側の書き方は変わらない（入力は変わらない）。">                rows.append([cell(w), &#x27;&lt;span class=&quot;cost&quot;&gt;行き先が決まっていない&lt;/span&gt;&#x27;])</mark>
+        lead = (&#x27;&lt;p class=&quot;note-s&quot;&gt;ここに在るのは、&lt;b&gt;反証を通過したあとに残ったもの&lt;/b&gt;である ── &#x27;
+                &quot;どれもこの答えを反証しない。&quot;
+                &quot;&lt;b&gt;反証しうるものは、ここへ置かない&lt;/b&gt; ── 反証が済んでいない印なので、&quot;
+                &quot;済ませてから出す。済ませられないなら、その論点はまだ出さない。&lt;/p&gt;&quot;
+                &#x27;&lt;p class=&quot;note-s&quot;&gt;行き先は1件ずつ持つ ── &lt;b&gt;解消済み&lt;/b&gt;（この答えの中で片付く）／ &#x27;
+                &quot;&lt;b&gt;負担する&lt;/b&gt;（承認するとこれを負担する）／ &quot;
+                &quot;&lt;b&gt;次にすること&lt;/b&gt;（いつ何で解消するか）。&lt;/p&gt;&quot;)
+        if naked:
+            lead += f&#x27;&lt;p class=&quot;note-s&quot;&gt;&lt;b&gt;{naked}件に行き先が無い。&lt;/b&gt;&lt;/p&gt;&#x27;
+        folds.append(_fold(f&quot;まだ弱いところ（{len(t.weaknesses)}件）&quot;,
+                           lead + _tbl([&quot;まだ弱いところ&quot;, &quot;どう扱うか&quot;], rows)))
+
+    hist = &quot;&quot;
+    if t.path:
+        hist += (f&#x27;&lt;p class=&quot;note-s&quot;&gt;そう判断するまで（道筋 {len(t.path)}手）&lt;/p&gt;&#x27;
+                 &#x27;&lt;ol class=&quot;path&quot;&gt;&#x27; + &quot;&quot;.join(f&quot;&lt;li&gt;{x}&lt;/li&gt;&quot; for x in t.path) + &quot;&lt;/ol&gt;&quot;)
+    if t.found:
+        hist += (f&#x27;&lt;p class=&quot;note-s&quot;&gt;反証で分かったこと（{len(t.found)}件）&lt;/p&gt;&#x27;
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                 &#x27;&lt;ul class=&quot;plain&quot;&gt;&#x27; + &quot;&quot;.join(f&quot;&lt;li&gt;{x}&lt;/li&gt;&quot; for x in t.found) + &quot;&lt;/ul&gt;&quot;)" data-w="箇条書きの1行に&lt;b&gt;2つのこと&lt;/b&gt;（何が分かったか／だから何が決まったか）が入っていた。&lt;b&gt;2列の表にすると、読む側が文を解きほぐさずに済む。&lt;/b&gt;">                 + _pairs(t.found, &quot;何が分かったか&quot;, &quot;だから何が決まったか&quot;))</mark>
+    if t.costs:
+        hist += (f&#x27;&lt;p class=&quot;note-s&quot;&gt;負担すること（{len(t.costs)}件）&lt;/p&gt;&#x27;
+<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                 &#x27;&lt;ul class=&quot;plain&quot;&gt;&#x27; + &quot;&quot;.join(f&quot;&lt;li&gt;{c}&lt;/li&gt;&quot; for c in t.costs) + &quot;&lt;/ul&gt;&quot;)" data-w="箇条書きの1行に&lt;b&gt;2つのこと&lt;/b&gt;（何が分かったか／だから何が決まったか）が入っていた。&lt;b&gt;2列の表にすると、読む側が文を解きほぐさずに済む。&lt;/b&gt;">                 + _pairs(t.costs, &quot;何を負担するか&quot;, &quot;なぜ&quot;))</mark>
+    for title, body in t.extras:
+        hist += f&#x27;&lt;p class=&quot;note-s&quot;&gt;{_h.escape(title)}&lt;/p&gt;&#x27; + body
+    if hist:
+        folds.append(_fold(&quot;経過 ── 道筋と、そこで分かったこと&quot;, hist))
+
+    if folds:
+        out.append(&quot;&lt;div&gt;&quot; + &quot;&quot;.join(folds) + &quot;&lt;/div&gt;&quot;)
+
+    # 決着した論点は回答欄を持たない。決まったことを、もう一度聞かない
+    if ask and t.status != &quot;決着&quot; and (t.pick or t.decision):
+        out.append(
+            f&#x27;&lt;div class=&quot;form&quot; data-q=&quot;{qid}&quot; data-title=&quot;{_h.escape(t.question, quote=True)}&quot;&gt;&#x27;
+            &#x27;&lt;div class=&quot;verdicts&quot;&gt;&#x27;
+            &#x27;&lt;button class=&quot;vb&quot; data-v=&quot;approved&quot; aria-pressed=&quot;false&quot;&gt;承認する&lt;/button&gt;&#x27;
+            &#x27;&lt;button class=&quot;vb ret&quot; data-v=&quot;returned&quot; aria-pressed=&quot;false&quot;&gt;差し戻す&lt;/button&gt;&#x27;
+            &#x27;&lt;button class=&quot;vb&quot; data-v=&quot;unanswered&quot; aria-pressed=&quot;false&quot;&gt;まだ答えない&lt;/button&gt;&#x27;
+            &#x27;&lt;/div&gt;&#x27;
+            &#x27;&lt;div&gt;&lt;label&gt;差し戻す理由（自由に書けます）&lt;/label&gt;&#x27;
+            &#x27;&lt;div class=&quot;reasons&quot;&gt;&#x27;
+            &#x27;&lt;button class=&quot;rb&quot; data-r=&quot;もっと単純に&quot;&gt;もっと単純に&lt;/button&gt;&#x27;
+            &#x27;&lt;button class=&quot;rb&quot; data-r=&quot;前提が違う&quot;&gt;前提が違う&lt;/button&gt;&#x27;
+            &#x27;&lt;button class=&quot;rb&quot; data-r=&quot;別の道も見たい&quot;&gt;別の道も見たい&lt;/button&gt;&lt;/div&gt;&#x27;
+            &#x27;&lt;textarea class=&quot;reason&quot; placeholder=&quot;ボタンは差し込み。&#x27;
+            &#x27;当てはまらない理由は、そのまま書く&quot;&gt;&lt;/textarea&gt;&lt;/div&gt;&#x27;
+            &#x27;&lt;div&gt;&lt;label&gt;書き足し（承認でも差し戻しでも、書かなくても進みます）&lt;/label&gt;&#x27;
+            &#x27;&lt;textarea class=&quot;note-in&quot; placeholder=&quot;気づいたこと、引っかかったこと、別の角度&quot;&gt;&#x27;
+            &#x27;&lt;/textarea&gt;&lt;/div&gt;&lt;/div&gt;&#x27;)
+    return &#x27;&lt;section class=&quot;q&quot;&gt;&#x27; + &quot;&quot;.join(out) + &quot;&lt;/section&gt;&quot;
+
+
+def audit(topics: list[&quot;Topic&quot;], extras=None, queue=None) -&gt; list[str]:
+    &quot;&quot;&quot;出す前に、機械で見られるものだけを検査する。**見つけるが、直さない。**
+
+    見るのは4つ。どれも、実際にやらかしたものである。
+      1 一度に開く論点が多すぎないか  —— 8件を同時に出し、どれを確認すればよいか判定できなくなった。
+                                      数えるのは**いま開いている論点**であって、決着した論点を含む総数ではない
+      2 いま見る論点を示しているか    —— 8件を同時に出し、順番の管理を承認する側へ渡した
+      3 宣言されていない依存が無いか  —— 答えの本文だけが他の論点を前提にし、根拠の欄に出てこなかった
+      4 試す相手が在るか            —— 下流にも外の作業にも使われない答えを、承認へ出そうとした
+      5 弱いところに行き先が在るか  —— 弱点を並べたまま承認を求め、黙って負担させようとした
+
+    **見えないもの**が4つある —— 答えの中身が正しいか、反証が十分か、図が主張を運べているか、
+    そして**「論点N」と書かずに他の論点を前提にしている依存**である。3つ目の検査が拾うのは、
+    文字列として「論点N」が現れる場合だけで、語だけを借りた依存は見えない。
+    &quot;&quot;&quot;
+    out: list[str] = []
+    front = {n for n, _ in (queue or [])}
+    open_now = front or {t.no for t in topics if t.status != &quot;決着&quot;}
+    if len(open_now) &gt; 5:
+        out.append(f&quot;一度に開いている論点が{len(open_now)}件ある。3〜5件に絞る ── &quot;
+                   &quot;足すのは、既存の答えを直しても収まらないと確認し、利用者へ確認してからである&quot;)
+
+    titles = &quot; &quot;.join(t for t, _ in (extras or []))
+    if len(topics) &gt;= 4 and &quot;いま見る論点&quot; not in titles:
+        out.append(&quot;現在地に「いま見る論点」が無い。依存を自分で持つだけでは足りない ── &quot;
+                   &quot;示さなければ、順番の管理が承認する側の仕事になる&quot;)
+
+    ref = re.compile(r&quot;論点(\d+)&quot;)
+    dep: dict[int, tuple[set[int], set[int]]] = {}
+    for t in topics:
+        src = &quot; &quot;.join(s for _, _, _, s in t.grounds)
+        body = (t.answer or &quot;&quot;) + &quot; &quot; + (t.pick[1] if t.pick else &quot;&quot;)
+        dep[t.no] = ({int(m) for m in ref.findall(src)} - {t.no},
+                     {int(m) for m in ref.findall(body)} - {t.no})
+    used: dict[int, set[int]] = {t.no: set() for t in topics}
+    for n, (g, b) in dep.items():
+        for x in g | b:
+            used.setdefault(x, set()).add(n)
+
+    for t in topics:
+        g, b = dep[t.no]
+        hidden = b - g
+        if hidden:
+            out.append(f&quot;論点{t.no}: 答えの本文が論点{&#x27;・&#x27;.join(map(str, sorted(hidden)))}を&quot;
+                       &quot;前提にしているが、根拠の欄に出てこない ── 宣言されていない依存である&quot;)
+        if t.no in front and t.weaknesses:
+            naked = [w for w in t.weaknesses
+                     if not (isinstance(w, (tuple, list)) and len(w) &gt;= 2)]
+            if naked:
+                out.append(f&quot;論点{t.no}: いま見る論点だが、弱いところ{len(naked)}件に行き先が無い ── &quot;
+                           &quot;承認すると、それを黙って負担することになる&quot;)
+        if t.status != &quot;決着&quot; and (t.pick or t.decision) and not used.get(t.no):
+            # 末端の論点には下流が無い。そこでは、外の作業（試作・実装）が試す相手になる。
+            # 「外の作業」は SKILL.md が使う語である。語形に頼らず、この語だけを見る
+            outer = any(&quot;外の作業&quot; in str(w) for w in t.weaknesses)
+            if not outer:
+                out.append(f&quot;論点{t.no}: 答えを持つが、下流のどの論点にも使われておらず、&quot;
+                           &quot;外の作業で試す行き先も書かれていない ── 試す相手が無い&quot;)
+    return out
+
+
+def deck(theme: str, topics: list[Topic], intro: str | None = None,
+         extras: list[tuple[str, str]] | None = None,
+         board: str = &quot;board&quot;, round_no: int = 1,
+         queue: list[tuple[int, str]] | None = None) -&gt; str:
+    &quot;&quot;&quot;論点をタブ1枚にまとめ、開いている論点に回答欄を付ける。
+
+    先頭のタブは「現在地」── どれが決着し、どれが開いているかの一覧である。
+    決着した論点も同じ1枚に残す ── 後の論点は、前の決着を前提にしている。
+
+    **queue を渡すと、いま見る論点だけが回答欄を持つ。** 渡すのは (論点の番号, なぜ今か)
+    の並びで、現在地の先頭へ畳まずに出し、タブにも印を付ける。待ちの論点は薄くなり、
+    回答欄を持たない ── **どれに答えるかを利用者に判定させない。**
+    渡さなければ、開いている論点すべてが回答欄を持つ（従来の振る舞い）。
+    &quot;&quot;&quot;
+    for t in topics:
+        if len(t.kept) == 1:
+            raise ValueError(f&quot;論点{t.no}: 反証を通過した案が1つしかない。論点の立て方を再確認する &quot;
+                             &quot;── 1つしか残らないなら、それは選択ではない。&quot;
+                             &quot;まだ案を出していない論点は、案を空にして置く&quot;)
+
+    for line in audit(topics, extras, queue):
+        print(&quot;  △ &quot; + line, file=_sys.stderr)
+
+    front = {n: why for n, why in (queue or [])}
+    order = {t.no: i for i, t in enumerate(topics, start=1)}
+
+    def chip(t):
+        if t.status == &quot;決着&quot;:
+            return &#x27;&lt;span class=&quot;st done&quot;&gt;決着&lt;/span&gt;&#x27;
+        if queue is None:
+            cls = {&quot;新規&quot;: &quot;open&quot;}.get(t.status, &quot;wait&quot;)
+            return f&#x27;&lt;span class=&quot;st {cls}&quot;&gt;{_h.escape(t.status)}&lt;/span&gt;&#x27;
+        if t.no in front:
+            return &#x27;&lt;span class=&quot;st now&quot;&gt;いま見る&lt;/span&gt;&#x27;
+        return &#x27;&lt;span class=&quot;st wait&quot;&gt;待ち&lt;/span&gt;&#x27;
+
+    rows = [[f&#x27;&lt;span class=&quot;n&quot;&gt;{t.no}&lt;/span&gt;&#x27;, _h.escape(t.question), chip(t),
+             t.answer or &quot;&lt;span style=&#x27;color:var(--dim)&#x27;&gt;──&lt;/span&gt;&quot;] for t in topics]
+
+    lead = &quot;&quot;
+    if front:
+        items = &quot;&quot;.join(
+            f&#x27;&lt;li&gt;&lt;button class=&quot;jump&quot; data-go=&quot;p{order[n]}&quot;&gt;&#x27;
+            f&#x27;Q{n}　{_h.escape(next(t.label for t in topics if t.no == n))}&lt;/button&gt;&#x27;
+            f&#x27;&lt;br&gt;&lt;span class=&quot;why&quot;&gt;{why}&lt;/span&gt;&lt;/li&gt;&#x27;
+            for n, why in (queue or []) if n in order)
+        waiting = [t for t in topics if t.status != &quot;決着&quot; and t.no not in front]
+        tail = (f&#x27;&lt;p class=&quot;waiting&quot;&gt;残り {len(waiting)} 件は、上流が決まるまで動く。&#x27;
+                &#x27;回答欄は持たない。&lt;/p&gt;&#x27; if waiting else &quot;&quot;)
+        lead = (f&#x27;&lt;div class=&quot;front&quot;&gt;&lt;h3&gt;いま見るのは {len(front)} 件だけである&lt;/h3&gt;&#x27;
+                f&#x27;&lt;ol&gt;{items}&lt;/ol&gt;{tail}&lt;/div&gt;&#x27;)
+
+    now = (&#x27;&lt;section class=&quot;q&quot;&gt;&#x27;
+           &#x27;&lt;div class=&quot;qh&quot;&gt;&lt;span class=&quot;qid&quot;&gt;現在地&lt;/span&gt;&lt;h2&gt;論点の一覧&lt;/h2&gt;&lt;/div&gt;&#x27;
+           + (f&#x27;&lt;div class=&quot;note&quot;&gt;{intro}&lt;/div&gt;&#x27; if intro else &quot;&quot;)
+           + lead
+           + _tbl([&quot;#&quot;, &quot;論点&quot;, &quot;状態&quot;, &quot;いまの答え&quot;], rows)
+           + &quot;&quot;.join(_fold(ti, bo) for ti, bo in (extras or []))
+           + &quot;&lt;/section&gt;&quot;)
+
+    tabs = [&#x27;&lt;button data-t=&quot;p0&quot; aria-selected=&quot;true&quot;&gt;現在地&lt;/button&gt;&#x27;]
+    panels = [f&#x27;&lt;div id=&quot;p0&quot;&gt;{now}&lt;/div&gt;&#x27;]
+    for i, t in enumerate(topics, start=1):
+        cls = &quot;&quot; if queue is None or t.status == &quot;決着&quot; else (
+            &quot; class=\&quot;now\&quot;&quot; if t.no in front else &quot; class=\&quot;wait\&quot;&quot;)
+        tabs.append(f&#x27;&lt;button data-t=&quot;p{i}&quot; aria-selected=&quot;false&quot;{cls}&gt;&#x27;
+                    f&#x27;&lt;span class=&quot;tn&quot;&gt;Q{t.no}&lt;/span&gt;{_h.escape(t.label)}{chip(t)}&lt;/button&gt;&#x27;)
+        panels.append(f&#x27;&lt;div id=&quot;p{i}&quot; hidden&gt;{_panel(t, theme, ask=queue is None or t.no in front)}&lt;/div&gt;&#x27;)
+
+    n_open = sum(1 for t in topics if t.status != &quot;決着&quot; and (t.pick or t.decision)
+                 and (queue is None or t.no in front))
+    send = (&#x27;&lt;section class=&quot;send&quot;&gt;&lt;h2&gt;送る&lt;/h2&gt;&#x27;
+            f&#x27;&lt;p class=&quot;note-s&quot;&gt;入っているのは &lt;b&gt;&lt;span id=&quot;cnt&quot;&gt;0&lt;/span&gt; / {n_open}&lt;/b&gt; 件。&#x27;
+            &#x27;論点に対して決定は1つなので、論点ごとに1件だけ入る。&lt;/p&gt;&#x27;
+            &#x27;&lt;button class=&quot;sb&quot; id=&quot;go&quot; disabled&gt;まとめて送る&lt;/button&gt;&#x27;
+            &#x27;&lt;p class=&quot;note-s&quot;&gt;&lt;b&gt;送信では、こちらのターンは始まらない。&lt;/b&gt;&#x27;
+            &#x27;送ったあと、チャットで一言もらう必要がある。&#x27;
+            &#x27;ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。&lt;/p&gt;&#x27;
+            &#x27;&lt;div class=&quot;out&quot; id=&quot;out&quot; hidden&gt;&lt;/div&gt;&lt;/section&gt;&#x27;)
+
+    # &lt;body&gt; は公開時の器が用意する。ここで書くと入れ子になるので、器は div で持つ
+    return (f&#x27;&lt;div id=&quot;root&quot; data-board=&quot;{_h.escape(board, quote=True)}&quot; &#x27;
+            f&#x27;data-round=&quot;{round_no}&quot; data-theme-name=&quot;{_h.escape(theme, quote=True)}&quot;&gt;&#x27;
+            &#x27;&lt;div class=&quot;wrap&quot;&gt;&lt;header&gt;&#x27;
+            f&#x27;&lt;p class=&quot;eyebrow&quot;&gt;Brainstorm　/　{_h.escape(theme)}　/　Round {round_no}&lt;/p&gt;&#x27;
+            f&#x27;&lt;h1&gt;{_h.escape(theme)}&lt;/h1&gt;&#x27;
+            &#x27;&lt;p class=&quot;thesis&quot;&gt;論点ごとにタブが1枚ある。&#x27;
+            &#x27;&lt;b&gt;答えられる問いだけが回答欄を持つ&lt;/b&gt; ── &#x27;
+            &#x27;まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。&lt;/p&gt;&#x27;
+            &#x27;&lt;/header&gt;&#x27;
+            f&#x27;&lt;div id=&quot;tabs&quot; role=&quot;tablist&quot;&gt;{&quot;&quot;.join(tabs)}&lt;/div&gt;&#x27;
+            f&#x27;{&quot;&quot;.join(panels)}{send}&#x27;
+            &#x27;&lt;footer&gt;© 2026 daidaiiro　&#x27;
+            &#x27;&lt;a href=&quot;https://opensource.org/licenses/MIT&quot;&gt;MIT License&lt;/a&gt;&lt;/footer&gt;&#x27;
+            &#x27;&lt;/div&gt;&lt;/div&gt;&#x27; + SCRIPT)
+
+
+def write(body: str, path: str, title: str) -&gt; str:
+    &quot;&quot;&quot;1枚を、そのまま公開できるHTMLとして書き出す。&quot;&quot;&quot;
+    import pathlib
+    page = f&quot;&lt;title&gt;{_h.escape(title)}&lt;/title&gt;{HEAD}&lt;style&gt;{CSS}&lt;/style&gt;{body}&quot;
+    pathlib.Path(path).write_text(page, encoding=&quot;utf-8&quot;)
+    return page</pre>
+</main>
+<script>
+function panel(m){
+  var nx=m.nextElementSibling;
+  if(!nx||!nx.classList.contains("pop")){
+    nx=document.createElement("div"); nx.className="pop";
+    nx.innerHTML="<b>変更前</b><pre>"+m.dataset.b+"</pre><b>なぜ変えたか</b>"+m.dataset.w;
+    m.parentNode.insertBefore(nx,m.nextSibling);
+  }
+  return nx;
+}
+document.querySelectorAll("mark.chg").forEach(function(m){
+  m.addEventListener("click",function(){
+    var open=m.getAttribute("aria-expanded")==="true";
+    panel(m).hidden=open; m.setAttribute("aria-expanded",open?"false":"true");
+  });
+  m.addEventListener("keydown",function(e){
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+  });
+});
+document.getElementById("all").addEventListener("click",function(){
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    panel(m).hidden=false; m.setAttribute("aria-expanded","true");});});
+document.getElementById("none").addEventListener("click",function(){
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    panel(m).hidden=true; m.setAttribute("aria-expanded","false");});});
+</script>

@@ -1,0 +1,52 @@
+[
+  {
+    "kind": "domain-event",
+    "id": "EV-01J8A1X",
+    "name": "出荷が指示された",
+    "render": "render.event",
+    "rules": [
+      {
+        "name": "起きた出来事は取り消せない",
+        "predicate": "immutable(payload)",
+        "check": "check.immutable"
+      }
+    ],
+    "ops": [
+      {
+        "name": "発行する",
+        "pre": ["引当が済んでいる"],
+        "post": ["購読者へ配られる"],
+        "writes": ["出荷指示イベント"]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "AC-01J8A2P",
+        "name": "引当が済んでいなければ、発行されない",
+        "body": {"trigger": "発行する", "outcome": "拒否される"}
+      }
+    ]
+  },
+  {
+    "kind": "policy",
+    "id": "PO-01J8A3R",
+    "name": "出荷が指示されたら、在庫を引き落とす",
+    "render": "render.policy",
+    "rules": [],
+    "ops": [
+      {
+        "name": "反応する",
+        "pre": ["出荷が指示された"],
+        "post": ["在庫が減る"],
+        "writes": ["在庫"]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "AC-01J8A4T",
+        "name": "同じ出来事を二度受けても、在庫は一度しか減らない",
+        "body": {"trigger": "反応する", "outcome": "冪等である"}
+      }
+    ]
+  }
+]
