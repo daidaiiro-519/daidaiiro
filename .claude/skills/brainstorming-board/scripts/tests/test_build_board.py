@@ -57,7 +57,23 @@ def _opened(mark):
 
 assert _opened("この答えの完成イメージ"), "完成イメージが畳まれている"
 print("  ok 完成イメージは開いたまま出る")
-assert not _opened("前提 ── この論証が乗っているもの"), "裏づけまで開いている"
+assert not _opened("この答えの前提"), "裏づけまで開いている"
 print("  ok 裏づけは畳んだまま出る")
 
-print("\n16 件すべて通った")
+
+# ── 図は、入れ物からはみ出さない ────────────────────────────
+# **上限は2つ同時に当てる** ── 元の幅と、入れ物の幅である。片方だけを
+# 行内の style へ書くと、それが板の CSS に勝ち、狭い入れ物からはみ出す
+import tempfile as _tmp2
+from lib import render_board as _rb2  # noqa: E402
+
+with _tmp2.TemporaryDirectory() as _d:
+    _f = pathlib.Path(_d)
+    (_f / "w.svg").write_text('<svg viewBox="0 0 968 340" width="968" height="340"></svg>',
+                              encoding="utf-8")
+    out = _rb2._figure({"name": "w", "caption": "図"}, _f)
+    assert "min(100%,968px)" in out, f"上限が1つしか当たっていない: {out[:120]}"
+    assert ' width="968"' not in out, "固定幅が残っている"
+print("  ok 図の上限は、元の幅と入れ物の幅の両方である")
+
+print("\n17 件すべて通った")

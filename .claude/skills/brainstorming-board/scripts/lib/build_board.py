@@ -494,8 +494,17 @@ def _fold(summary, body):
     return _t("fold", summary=summary, body=body)
 
 
+# 道筋の節の名前。**差し戻しが在るものと無いものを、同じ名前で呼ばない** ──
+# 論証の連鎖に「履歴」と付けると、在りもしない差し戻しを探させることになる
+LABELS_SECTION = {
+    "history": "この答えの履歴（{n}件） ── 差し戻しで何が失効し、何へ変更したか",
+    "progress": "この答えに至る経過（{n}手） ── 何を問い、そこで何が判明したか",
+}
+
+
 def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
-           diff: "Diff | None" = None) -> str:
+           diff: "Diff | None" = None,
+           labels: dict[str, str] | None = None) -> str:
     """論点1つぶん。開いているものは答えと裏づけと回答欄、まだのものは問いだけ。
 
     prev を渡すと、**この回で変わった欄に印が付く** ── 押すと前の回の中身が開く。
@@ -577,10 +586,11 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
                   + _t("note-s", body=_t("lead", text=_h.escape(tb.caption)))
                   + _tbl([""] + tb.columns, body))
     if argue:
-        folds.append(_fold("この答えが残った理由 ── 反証を通過した案と、除外した案", argue))
+        folds.append(_fold(f"この答えが残った理由 ── 通過 {len(t.kept)}件 ／ "
+                           f"除外 {len(t.dropped)}件", argue))
 
     if t.grounds:
-        folds.append(_fold(f"前提 ── この論証が乗っているもの（{len(t.grounds)}件）",
+        folds.append(_fold(f"この答えの前提（{len(t.grounds)}件） ── 何に依拠しているか",
                            _tbl(["結論のどこを支えるか", "もとにしたこと", "その出どころ"],
                                 [[_t("part", body=d.mark("grounds", gi, 0, p)),
                                   d.mark("grounds", gi, 1, c),
@@ -623,24 +633,31 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
                + "適用範囲外とは別に記載する ── 混在させると、制約が誤りに見える。")
             + _tbl(["誤り", "現状"], [[cell(a), cell(b)] for a, b in t.defects])))
 
-    hist = ""
+    # **1つの器に1つのことだけを入れる。** 道筋 ・ 分かったこと ・ 要求する事項 ・
+    # 面は別のことなので、器も名前も別になる。
+    # **名前はここで確定させる** ── 組み上がりの文言を後から照合して書き換えると、
+    # 文言を1字直した瞬間に、書き換えが無言で不成立になる
+    labels = labels or LABELS_SECTION
     if t.path:
-        hist += (_t("note-s", body=f"そう判断するまで（道筋 {len(t.path)}手）")
-                 + _t("path", items="".join(
-                     _t("path-item", body=d.mark("path", i, 0, x))
-                     for i, x in enumerate(t.path))))
+        body = "".join(_t("path-item", body=d.mark("path", i, 0, x))
+                       for i, x in enumerate(t.path))
+        returned = "g-returned" in body
+        name = (labels["history"] if returned else labels["progress"]).format(
+            n=len(t.path))
+        folds.append(_fold(name, _t("note-s", body="古い順")
+                           + _t("path", items=body)))
     if t.found:
-        hist += (_t("note-s", body=f"反証で分かったこと（{len(t.found)}件）")
-                 + _pairs([d.mark("found", i, 0, x) for i, x in enumerate(t.found)],
-                          "何が分かったか", "だから何が決まったか"))
+        folds.append(_fold(f"反証で分かったこと（{len(t.found)}件）",
+                           _pairs([d.mark("found", i, 0, x)
+                                   for i, x in enumerate(t.found)],
+                                  "何が分かったか", "だから何が決まったか")))
     if t.costs:
-        hist += (_t("note-s", body=f"この答えが要求する事項（{len(t.costs)}件）")
-                 + _pairs([d.mark("costs", i, 0, x) for i, x in enumerate(t.costs)],
-                          "要求する事項", "理由"))
+        folds.append(_fold(f"この答えが要求する事項（{len(t.costs)}件）",
+                           _pairs([d.mark("costs", i, 0, x)
+                                   for i, x in enumerate(t.costs)],
+                                  "要求する事項", "理由")))
     for title, body in t.extras:
-        hist += _t("note-s", body=_h.escape(title)) + body
-    if hist:
-        folds.append(_fold("経過 ── 道筋と、そこで分かったこと", hist))
+        folds.append(_fold(_h.escape(title), body))
 
     if folds:
         out.append(_t("folds", body="".join(folds)))
@@ -724,7 +741,8 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
          extras: list[tuple[str, str]] | None = None,
          board: str = "board", round_no: int = 1,
          queue: list[tuple[int, str]] | None = None,
-         prev: dict | None = None, style: str = "") -> str:
+         prev: dict | None = None, style: str = "",
+         labels: dict[str, str] | None = None) -> str:
     """論点をタブ1枚にまとめ、開いている論点に回答欄を付ける。
 
     先頭のタブは「現在地」── どれが決着し、どれが開いているかの一覧である。
@@ -804,7 +822,8 @@ def deck(theme: str, topics: list[Topic], intro: str | None = None,
             " class=\"now\"" if t.no in front else " class=\"wait\"")
         tabs.append(_t("tab", at=i, no=t.no, cls=cls, label=_h.escape(t.label), chip=chip(t)))
         panels.append(_t("pane", at=i, body=_panel(
-            t, theme, ask=queue is None or t.no in front, prev=prev, diff=dmap[t.no])))
+            t, theme, ask=queue is None or t.no in front, prev=prev,
+            diff=dmap[t.no], labels=labels)))
 
     n_open = sum(1 for t in topics if t.status != "settled" and (t.pick or t.decision)
                  and (queue is None or t.no in front))

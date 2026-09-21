@@ -77,12 +77,17 @@ def _figure(b: dict, figure_src: pathlib.Path) -> str:
 
     **正規化した SVG を JSON へ格納しない** ── 固定幅を外す処理は
     自身の出力へ再適用すると `max-width` が消失し、冪等でなくなる。
+
+    **上限は2つを同時に当てる** ── 元の幅（引き伸ばさない）と、
+    入れ物の幅（はみ出さない）である。片方だけを行内の style へ書くと、
+    それが板の CSS に勝ち、狭い入れ物から図がはみ出す（実際にはみ出した）。
     """
     svg = (figure_src / f"{b['name']}.svg").read_text(encoding="utf-8")
     m = re.search(r'\swidth="([\d.]+)"', svg)
     if m:
         svg = svg.replace(m.group(0), "", 1)
-        svg = svg.replace("<svg ", f'<svg style="max-width:{m.group(1)}px" ', 1)
+        svg = svg.replace(
+            "<svg ", f'<svg style="max-width:min(100%,{m.group(1)}px)" ', 1)
     note = _t("figcaption", text=b["caption"]) if b.get("caption") else ""
     return _t("figure-top", svg=svg, caption=note)
 
@@ -152,76 +157,6 @@ def build(blocks, figure_src: pathlib.Path) -> str:
         else:
             raise ValueError(f"知らない宣言の種類: {k}")
     return "".join(out)
-
-
-# ── 節の構造を、生成の時点で確定させる ──────────────────
-
-def _take_container(s: str, head: str) -> tuple[int, int, int] | None:
-    """入れ子を数えて `<details>` の範囲を取る。"""
-    i = s.find(head)
-    if i < 0:
-        return None
-    j, depth = i, 0
-    while True:
-        m = re.compile(r"<details\b|</details>").search(s, j)
-        if not m:
-            raise ValueError("details が閉じていない")
-        depth += 1 if m.group(0) == "<details" else -1
-        j = m.end()
-        if depth == 0:
-            return i, s.index(">", s.index("</summary>", i)) + 1, j
-
-
-def _split_section(s: str, label: dict[str, str]) -> str:
-    """道具が1つにまとめた3つ（道筋 ・ 要求する事項 ・ 前の答え）を、3つへ割る。
-
-    **1つの欄に1つのことだけを入れる。** 3つは別のことなので、名前も別になる。
-    """
-    head = '<details><summary>経過 ── 道筋と、そこで分かったこと</summary>'
-    while True:
-        r = _take_container(s, head)
-        if not r:
-            return s
-        i, body_head, j = r
-        mid = s[body_head:j - len("</details>")]
-        mid = mid[:mid.rindex("</div>")]
-        returned = 'class="g-returned' in mid
-        section, pos, table_depth = [], 0, 0
-        for m in re.finditer(r'<p class="note-s">(.*?)</p>|<table\b|</table>', mid, re.S):
-            if m.group(0) == "<table":
-                table_depth += 1
-                continue
-            if m.group(0) == "</table>":
-                table_depth -= 1
-                continue
-            if table_depth:
-                continue
-            if section:
-                section[-1][1] = mid[pos:m.start()]
-            section.append([m.group(1), ""])
-            pos = m.end()
-        if section:
-            section[-1][1] = mid[pos:]
-        group = []
-        for name, body in section:
-            note = ""
-            mm = re.fullmatch(r"そう判断するまで（道筋 (\d+)手）", name)
-            if mm:
-                name = (label["history"].format(n=mm.group(1)) if returned
-                      else label["progress"].format(n=mm.group(1)))
-                note = _t("note-s", body="古い順")
-            group.append(_t("fold", summary=name, body=note + body))
-        s = s[:i] + "".join(group) + s[j:]
-
-
-def _normalize_name(s: str, passed: int, dropped: int) -> str:
-    """節の名前の主語を「この答え」で揃え、件数を名前へ出す。"""
-    s = s.replace(
-        "<summary>この答えが残った理由 ── 反証を通過した案と、除外した案</summary>",
-        f"<summary>この答えが残った理由 ── 通過 {passed}件 ／ 除外 {dropped}件</summary>", 1)
-    return re.sub(r"<summary>前提 ── この論証が乗っているもの（(\d+)件）</summary>",
-                  lambda m: f"<summary>この答えの前提（{m.group(1)}件） ── "
-                            "何に依拠しているか</summary>", s)
 
 
 # ── 入力から Topic を組む ────────────────────────────
@@ -327,14 +262,8 @@ def render(dir: pathlib.Path, *, verify: bool = True) -> str:
                 extras=[(e["heading"], build(e["body"], figure_src))
                         for e in d.get("panels", [])],
                 board=d["board"], round_no=round_no, prev=baseline,
-                queue=[(q["no"], q["why"]) for q in d.get("queue", [])])
-
-    passed = sum(len(t.kept) for t in topics)
-    body = _split_section(body, d.get("section_names", {
-        "history": "この答えの履歴（{n}件） ── 差し戻しで何が失効し、何へ変更したか",
-        "progress": "この答えに至る経過（{n}手） ── 何を問い、そこで何が判明したか"}))
-    for t in topics:
-        body = _normalize_name(body, len(t.kept), len(t.dropped))
+                queue=[(q["no"], q["why"]) for q in d.get("queue", [])],
+                labels=d.get("section_names") or None)
     return body
 
 
