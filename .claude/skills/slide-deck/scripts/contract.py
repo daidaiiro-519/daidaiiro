@@ -104,8 +104,16 @@ def main(tools: list[Tool], argv: list[str] | None = None) -> int:
             if "=" in body:
                 k, _, v = body.partition("=")
             else:
-                k, v = body, (rest[i + 1] if i + 1 < len(rest) else "")
-                i += 1
+                k = body
+                nxt = rest[i + 1] if i + 1 < len(rest) else None
+                # **値を伴わない旗は、立っている。** 空にすると、`--check` が
+                # 黙って逆の意味になり、検査のつもりで正本を書き換える。
+                # 次が別の旗なら、それは値ではない ── 後ろの引数も呑み込まない
+                if nxt is None or nxt.startswith("--"):
+                    v = "1"
+                else:
+                    v = nxt
+                    i += 1
             spec = byname.get(k) or byname.get(k.replace("-", "_"))
             kw[spec.key if spec else k.replace("-", "_")] = v
         else:
