@@ -262,7 +262,7 @@ ol.path li{margin:.3rem 0}
 ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
 ul.plain li{margin:.3rem 0}
 .lead-s{display:block}
-.sub-s{margin-top:.25rem;font-size:.92em;color:var(--muted)}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
 .part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
 background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
 .kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
