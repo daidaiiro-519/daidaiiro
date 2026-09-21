@@ -84,6 +84,9 @@ def _lines(table: dict[str, str], base: dict[str, str]) -> str:
     return "".join(f"--{k}:{base[v]};" for k, v in table.items())
 
 
+_SCALES = ("space", "font_size", "tracking", "radius", "border", "width")
+
+
 def css(t: dict, *, host: bool = False) -> str:
     """3つの選択子と、部品の段を組む。**明暗で変わらない段は、明の側に1回だけ出す。**
 
@@ -94,7 +97,11 @@ def css(t: dict, *, host: bool = False) -> str:
     base = _raw(t)
     parts = "".join(f"--{k}:{base[v] if v in base else f'var(--{v})'};"
                     for k, v in t["component"].items())
-    light = _lines(t["semantic"]["light"], base) + parts
+    # 寸法の系は、名前のまま出す ── 色は意味の段を経由するが、
+    # 寸法・字寸・字送り・角丸・枠・幅は、段そのものが意味である
+    scale = "".join(f"--{k}:{v};" for group in _SCALES if group in t["base"]
+                    for k, v in t["base"][group].items())
+    light = _lines(t["semantic"]["light"], base) + scale + parts
     dark = _lines(t["semantic"]["dark"], base)
     return (f"{light_sel}{{{light}}}"
             f"{dark_sel[0]}{{{dark}}}}}"

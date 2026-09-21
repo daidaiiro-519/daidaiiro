@@ -1,96 +1,174 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "意思決定の記録のデザイントークン",
-  "description": "3段の階層を形として固定する。基礎は原始値だけを持ち、意味は基礎の鍵だけを参照し、部品は意味か基礎の鍵だけを参照する。段を跨いだ直値を、形の段で弾く ── 散文の規定では破れる。",
-  "type": "object",
-  "required": [
-    "base",
-    "semantic",
-    "component"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "$schema": {
-      "type": "string"
-    },
-    "why_three_tiers": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "base": {
-      "description": "原始値だけを持つ段。ここだけが生の値を書いてよい。",
-      "type": "object",
-      "required": [
-        "color",
-        "alpha"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "color": {
-          "$ref": "#/$defs/color_table"
-        },
-        "alpha": {
-          "$ref": "#/$defs/alpha_table"
-        }
-      }
-    },
-    "semantic": {
-      "description": "役割の名前へ、基礎の鍵を割り当てる段。明と暗は同じ鍵集合を持つ ── 片方にしか無い鍵を弾く。",
-      "type": "object",
-      "required": [
-        "light",
-        "dark"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "light": {
-          "$ref": "#/$defs/ref_table"
-        },
-        "dark": {
-          "$ref": "#/$defs/ref_table"
-        }
-      }
-    },
-    "component": {
-      "description": "部品ごとの値。意味か基礎の鍵だけを参照する。",
-      "$ref": "#/$defs/ref_table"
-    }
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "意思決定の記録のデザイントークン",
+ "description": "3段の階層を形として固定する。基礎は原始値だけを持ち、意味は基礎の鍵だけを参照し、部品は意味か基礎の鍵だけを参照する。段を跨いだ直値を、形の段で弾く ── 散文の規定では破れる。",
+ "type": "object",
+ "required": [
+  "base",
+  "semantic",
+  "component"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "type": "string"
   },
-  "$defs": {
-    "color_table": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^#[0-9a-f]{3,8}$"
-      },
-      "propertyNames": {
-        "pattern": "^[a-z0-9-]+$"
-      }
+  "why_three_tiers": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "base": {
+   "description": "原始値だけを持つ段。ここだけが生の値を書いてよい。",
+   "type": "object",
+   "required": [
+    "color",
+    "alpha",
+    "space",
+    "font_size",
+    "tracking",
+    "radius",
+    "border",
+    "width"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "color": {
+     "$ref": "#/$defs/color_table"
     },
-    "alpha_table": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^rgba?\\("
-      },
-      "propertyNames": {
-        "pattern": "^[a-z0-9-]+$"
-      }
+    "alpha": {
+     "$ref": "#/$defs/alpha_table"
     },
-    "ref_table": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^[a-z0-9-]+$"
-      },
-      "propertyNames": {
-        "pattern": "^[a-z0-9-]+$"
-      }
+    "space": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "space の段。原始値だけを持つ"
+    },
+    "font_size": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "font_size の段。原始値だけを持つ"
+    },
+    "tracking": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "tracking の段。原始値だけを持つ"
+    },
+    "radius": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "radius の段。原始値だけを持つ"
+    },
+    "border": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "border の段。原始値だけを持つ"
+    },
+    "width": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^(0|\\.?\\d+(\\.\\d+)?)(rem|em|px|%)$"
+     },
+     "description": "width の段。原始値だけを持つ"
     }
+   }
+  },
+  "semantic": {
+   "description": "役割の名前へ、基礎の鍵を割り当てる段。明と暗は同じ鍵集合を持つ ── 片方にしか無い鍵を弾く。",
+   "type": "object",
+   "required": [
+    "light",
+    "dark"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "light": {
+     "$ref": "#/$defs/ref_table"
+    },
+    "dark": {
+     "$ref": "#/$defs/ref_table"
+    }
+   }
+  },
+  "component": {
+   "description": "部品ごとの値。意味か基礎の鍵だけを参照する。",
+   "$ref": "#/$defs/ref_table"
   }
+ },
+ "$defs": {
+  "color_table": {
+   "type": "object",
+   "minProperties": 1,
+   "additionalProperties": {
+    "type": "string",
+    "pattern": "^#[0-9a-f]{3,8}$"
+   },
+   "propertyNames": {
+    "pattern": "^[a-z0-9-]+$"
+   }
+  },
+  "alpha_table": {
+   "type": "object",
+   "minProperties": 1,
+   "additionalProperties": {
+    "type": "string",
+    "pattern": "^rgba?\\("
+   },
+   "propertyNames": {
+    "pattern": "^[a-z0-9-]+$"
+   }
+  },
+  "ref_table": {
+   "type": "object",
+   "minProperties": 1,
+   "additionalProperties": {
+    "type": "string",
+    "pattern": "^[a-z0-9-]+$"
+   },
+   "propertyNames": {
+    "pattern": "^[a-z0-9-]+$"
+   }
+  }
+ }
 }
