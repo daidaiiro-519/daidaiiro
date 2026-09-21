@@ -140,11 +140,13 @@ def canvas(layers: str, out: str = "", width: str = "", height: str = "") -> dic
 def _human_svg(res: dict) -> str:
     d = res["data"]
     head = [f"  × {x}" for x in res["findings"]]
-    tail = (f"書き出し: {d['path']}　／　{d['bytes']} 字" if d["path"]
-            else d["svg"])
+    # **宣言が通らなかったときも、検出を読める形で出す** ──
+    # 書き出しの欄が無い結果で例外にすると、原因が KeyError にすり替わる
+    path = d.get("path")
+    tail = (f"書き出し: {path}　／　{d['bytes']} 字" if path else d.get("svg", ""))
     note = ("幾何の検査　通った" if not res["findings"]
             else f"幾何の検査　通っていない（{len(res['findings'])} 件）")
-    return "\n".join(head + ([note] if d["path"] else []) + [tail])
+    return "\n".join(head + ([note] if path else []) + ([tail] if tail else []))
 
 
 def verify(svg: str) -> dict:
