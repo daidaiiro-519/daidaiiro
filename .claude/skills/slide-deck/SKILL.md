@@ -194,7 +194,7 @@ version: 1.2.0
 - **定義していない抽象語を使わない**。その語が何を指すかを読み手が復元できること
 - **同じものを指す語を増やさない**。一度決めた語を使い続ける
 - **色をテーマの外に書かない**。枚のCSSにも、図のコードにも直書きしない ── 正本は `references/themes/` の1本である
-- **テーマを混ぜない**。1つのデッキへ適用するテーマは1本だけ
+- **テーマを混在させない**。1つのデッキへ適用するテーマは1本だけ
 - **テーマを増やす前に、既にある4本のどれでも足りない理由を言う**
 - **文字だけの図を置かない**。枠と文字しか無いものは、図ではなく表である
 - **原典で確認していない数値を載せない**
@@ -205,11 +205,11 @@ version: 1.2.0
 ## 参照
 
 - `references/knowledge/visual-design-for-slide-decks.md`: 設計規則が立っている8つの概念。出所は Anthropic の `pptx`
-- `references/design-rules.md`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は持たない**
+- `references/design-rules.md`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は保持しない**
 - `references/render-check.md`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
-- `references/deck-template.html`: 固定ステージと部品クラスを備えた骨組み。配色は持たず、テーマを貼る場所だけを持つ
+- `references/deck-template.html`: 固定ステージと部品クラスを備えた骨組み。配色は保持せず、テーマを貼る場所だけを持つ
 - `references/themes.md`: テーマの選び方、22の鍵と満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
 - `references/themes/check.py`: 鍵の欠け・適合条件・色の直書きを検査する道具
 - `references/figures.md`: 図の語彙の使い方。色の取り方、部品、絵の種類、幅の約束
-- `references/figures/figures.py`: 図を組む部品。色を持たず、テーマから読む
+- `references/figures/figures.py`: 図を組む部品。色を保持せず、テーマから読む

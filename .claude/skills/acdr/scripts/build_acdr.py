@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html as _h
 import datetime as _dt
+import hashlib
 import json
 import pathlib
 import sys
@@ -249,6 +250,15 @@ def new(folder: pathlib.Path, title: str) -> None:
     print(f"  組む: python3 {pathlib.Path(__file__).name} {folder}")
 
 
+def seal(folder: pathlib.Path, spec: dict) -> dict[str, str]:
+    """対象の文書の sha256 を取る。**承認済みの記録は、承認時点の姿を保持する。**"""
+    out = {}
+    for d in spec.get("docs", []):
+        raw = pathlib.Path(d["file"]).read_bytes()
+        out[d["key"]] = hashlib.sha256(raw).hexdigest()
+    return out
+
+
 def main(argv: list[str]) -> int:
     if len(argv) >= 3 and argv[1] == "new":
         new(pathlib.Path(argv[2]), argv[3] if len(argv) > 3 else "題を記入する")
@@ -262,11 +272,33 @@ def main(argv: list[str]) -> int:
         print(("  OK  " if good else "  NG  ") + name, file=sys.stderr)
 
     dest = folder / "index.html"
+    raw = json.loads((folder / "acdr.json").read_text(encoding="utf-8"))
+    sealed = raw.get("封印")
+    now = seal(folder, spec)
+    moved = [k for k, v in (sealed or {}).items() if now.get(k) != v]
+
     if check_only:
+        if moved:
+            print("  承認時点の姿である  対象の文書が後に変化した: "
+                  + " ・ ".join(moved), file=sys.stderr)
+            return 0
         same = dest.exists() and dest.read_text(encoding="utf-8") == out
         print(("  同一  " if same else "  差が在る  ") + str(dest), file=sys.stderr)
         return 0 if same else 1
+
+    if moved and "--force" not in argv:
+        print("  組み直しを拒否する  承認済みの記録で、対象の文書が後に変化している: "
+              + " ・ ".join(moved), file=sys.stderr)
+        print("  組み直すと承認時点の姿が失われる。意図する場合は --force を渡す",
+              file=sys.stderr)
+        return 2
+
     dest.write_text(out, encoding="utf-8")
+    if raw.get("状態") == "accepted" and not sealed:
+        raw["封印"] = now
+        (folder / "acdr.json").write_text(
+            json.dumps(raw, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        print("  封印した  対象の文書の sha256 を記録へ保存した", file=sys.stderr)
     print(f"  印 {total} 件 / {len(spec.get('docs', []))} 面 / {len(out)} 字", file=sys.stderr)
     return 0
 

@@ -134,5 +134,39 @@ class Idempotent(unittest.TestCase):
             self.assertEqual(run(str(f), "--check").returncode, 1)
 
 
+class Seal(unittest.TestCase):
+    def test_承認済みは封印される(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d)
+            doc = f / "対象.md"
+            doc.write_text("# 題\n\n本文である。\n", encoding="utf-8")
+            minimal(f, doc)
+            spec = json.loads((f / "acdr.json").read_text(encoding="utf-8"))
+            spec["状態"] = "accepted"
+            (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(run(str(f)).returncode, 0)
+            sealed = json.loads((f / "acdr.json").read_text(encoding="utf-8")).get("封印")
+            self.assertTrue(sealed)
+
+    def test_対象が変化したら組み直しを拒否する(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d)
+            doc = f / "対象.md"
+            doc.write_text("# 題\n\n本文である。\n", encoding="utf-8")
+            minimal(f, doc)
+            spec = json.loads((f / "acdr.json").read_text(encoding="utf-8"))
+            spec["状態"] = "accepted"
+            (f / "acdr.json").write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+            run(str(f))
+            before = (f / "index.html").read_text(encoding="utf-8")
+            doc.write_text("# 題\n\n本文を改訂した。\n", encoding="utf-8")
+            got = run(str(f))
+            self.assertEqual(got.returncode, 2)
+            self.assertEqual(before, (f / "index.html").read_text(encoding="utf-8"))
+            self.assertEqual(run(str(f), "--check").returncode, 0)
+            self.assertEqual(run(str(f), "--force").returncode, 0)
+            self.assertNotEqual(before, (f / "index.html").read_text(encoding="utf-8"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

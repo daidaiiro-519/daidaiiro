@@ -1,0 +1,225 @@
+{
+ "番号": "ACDR 0002",
+ "題": "和語の述部を全Skillから除去し、旧 brainstorm を破棄する",
+ "日付": "2026-09-21",
+ "状態": "accepted",
+ "決定": "<b>全ての Skill の SKILL.md を、ゲート1 が0件になる状態にする。</b>そして <code>brainstorming-board</code> が置換した旧 <code>brainstorm</code> を破棄する。",
+ "なぜ": "ACDR 0001 で語彙表を21語に広げた結果、<b>他の Skill で32件が検出された</b> ── 語彙表に無い和語が通過していたためである。規則を広げた時点で既存の文書が違反するのは当然であり、違反したまま放置すると<b>規則の側が信用されなくなる</b>。旧 <code>brainstorm</code> は <code>brainstorming-board</code> が置換済みであるが、フォルダが残存していた ── 同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。",
+ "形の変化": [
+  {
+   "何が": "ゲート1 の結果（15の Skill）",
+   "いまの形": "32件が検出される",
+   "これからの形": "<b>0件</b>（CLAUDE.md も0件）"
+  },
+  {
+   "何が": "同じ役割の Skill",
+   "いまの形": "<code>brainstorm</code> と <code>brainstorming-board</code> が併存する",
+   "これからの形": "<code>brainstorming-board</code> の1つだけ。Skill は16から<b>15</b>になる"
+  },
+  {
+   "何が": "語彙表に無い和語",
+   "いまの形": "検出手段が存在しない",
+   "これからの形": "<code>tails.py</code> で収集し、人が判定して語彙表へ追加する"
+  },
+  {
+   "何が": "承認済みの記録",
+   "いまの形": "組み直すと、後の状態で上書きされる（0001 で実際に発生した）",
+   "これからの形": "<b>封印する</b> ── 対象の文書の sha256 を記録へ保存し、変化した状態での組み直しを拒否する"
+  }
+ ],
+ "図ファイル": "flow.svg",
+ "図の説明": "1周目は語彙表で照合するので、表に無い和語が通過する。2周目が句の末尾を全部収集し、確定したものを語彙表へ追加する ── 次からは1周目が検出する。",
+ "実現の形": "9つの SKILL.md で32件を置換する（絞る→限定する ・ 当たらない→該当しない ・ 知らない→認知しない ・ で走る→で実行する ・ 持たない→保持しない ・ 扱う→処理する ・ 終わった→終了した ・ 混ぜない→混在させない ほか）。旧 <code>brainstorm</code> は <code>git rm</code> で破棄し、<code>LICENSE</code> だけ <code>brainstorming-board</code> へ移す ── 他の Skill には存在しないファイルであり、破棄すると失われる。　あわせて、承認済みの記録を<b>封印</b>する機構を追加する ── 承認後の最初の組成で対象の文書の sha256 を記録へ保存し、以降、対象の文書が変化した状態での組み直しを拒否する（<code>--force</code> で強制できる）。",
+ "適用先": "<code>.claude/skills/*/SKILL.md</code> 9件、<code>.claude/skills/brainstorm/</code>（破棄）、<code>.claude/skills/brainstorming-board/LICENSE</code>（移設）、<code>.claude/skills/acdr/scripts/build_acdr.py</code>（封印の機構）",
+ "比較した案": [
+  {
+   "案": "語彙表を広げた分を元に戻し、既存の文書を変更しない",
+   "採らなかった理由": "「当たる先」という節名が通過した事例が実在する ── 語彙表を戻すと、同じ誤りを次も検出できない"
+  },
+  {
+   "案": "新しく書く文書にのみ適用し、既存の文書は据え置く",
+   "採らなかった理由": "ゲート1 が常に非0を返す状態になる。非0が通常になると、新しい違反が既存の違反に埋没する"
+  },
+  {
+   "案": "<code>tails.py</code> が収集した基本動詞（使う ・ 読む ・ 示す ・ 伝える ・ 決める）も全て置換する",
+   "採らなかった理由": "公用文 Ⅲ-4 ウ が対象とするのは意味の範囲が広い和語であり、基本動詞の全廃ではない。そして Skill の説明文は呼び出しの合致に使用されるので、「使う」の置換は合致の挙動を変化させる"
+  },
+  {
+   "案": "旧 <code>brainstorm</code> をそのまま残す",
+   "採らなかった理由": "同じ役割の Skill が2つ在ると、どちらを呼ぶかを毎回判定することになる。旧い側は10件の違反を保持している"
+  }
+ ],
+ "承認後に実施すること": [
+  "基本動詞（使う ・ 読む ・ 示す ・ 伝える ・ 決める）の扱いは未決のまま持ち越す ── <code>tails.py</code> で確認できる状態にはなっている",
+  "新しい Skill を追加するたびにゲート1 を実行する ── 0件が通常の状態である"
+ ],
+ "docs": [
+  {
+   "key": "bb",
+   "tab": "brainstorming-board",
+   "file": ".claude/skills/brainstorming-board/SKILL.md",
+   "marks": [
+    {
+     "find": "提示の前に反証して1つに限定する",
+     "before": "提示の前に反証して1つに絞る",
+     "why": "「絞る」は和語である。対象を減らす操作か、範囲を定める操作かが特定できない"
+    },
+    {
+     "find": "何度適用しても同一のものが出力される",
+     "before": "何度当てても同じものが出る",
+     "why": "「当てる」と「出る」を置換した。ゲート1 の語彙表を広げた分である"
+    }
+   ]
+  },
+  {
+   "key": "sf",
+   "tab": "source-fidelity",
+   "file": ".claude/skills/source-fidelity/SKILL.md",
+   "marks": [
+    {
+     "find": "Step 2: 識別子を列挙する",
+     "before": "Step 2: 識別子を書き出す",
+     "why": "「書き出す」は、記述する操作か出力する操作かが特定できない"
+    },
+    {
+     "find": "同じ URL でも中身が変化する",
+     "before": "同じ URL でも中身が変わる**前提で扱う",
+     "why": "「扱う」は操作を特定しない"
+    }
+   ]
+  },
+  {
+   "key": "ds",
+   "tab": "design-svg",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "marks": [
+    {
+     "find": "外部依存を保持しない",
+     "before": "外部依存を持たない",
+     "why": "「持つ」は所有・保持・内包のいずれかが特定できない"
+    },
+    {
+     "find": "配置が終了したあとに付与される外接矩形である",
+     "before": "配置が終わったあとに付く外接矩形である",
+     "why": "「終わる」と「付く」を置換した"
+    }
+   ]
+  },
+  {
+   "key": "sr",
+   "tab": "skill-router",
+   "file": ".claude/skills/skill-router/SKILL.md",
+   "marks": [
+    {
+     "find": "配線そのものは保持しない",
+     "before": "配線そのものは持たない",
+     "why": "4件とも「持たない」であった"
+    },
+    {
+     "find": "中で何をしているかを認知しない",
+     "before": "中で何をしているかを知らない",
+     "why": "「知らない」は、認知しないのか参照しないのかが特定できない"
+    }
+   ]
+  },
+  {
+   "key": "dw",
+   "tab": "doc-writing-skills",
+   "file": ".claude/skills/doc-writing-skills/SKILL.md",
+   "marks": [
+    {
+     "find": "句の末尾を全部収集して並べる",
+     "before": "句の末尾を全部拾って並べる",
+     "why": "この道具の説明文自身が和語であった"
+    },
+    {
+     "find": "用語を列挙し、",
+     "before": "用語を書き出し、",
+     "why": "「書き出す」を置換した"
+    }
+   ]
+  },
+  {
+   "key": "sd",
+   "tab": "slide-deck",
+   "file": ".claude/skills/slide-deck/SKILL.md",
+   "marks": [
+    {
+     "find": "テーマを混在させない",
+     "before": "テーマを混ぜない",
+     "why": "「混ぜる」を置換した"
+    },
+    {
+     "find": "配色は保持せず、",
+     "before": "配色は持たず、",
+     "why": "「持つ」を置換した"
+    }
+   ]
+  },
+  {
+   "key": "mc",
+   "tab": "memory-cultivator",
+   "file": ".claude/skills/memory-cultivator/SKILL.md",
+   "marks": [
+    {
+     "find": "作業が終了した項目は削除する",
+     "before": "作業が終わった項目は消す",
+     "why": "「終わる」と「消す」を置換した"
+    }
+   ]
+  },
+  {
+   "key": "sc",
+   "tab": "skills-creator",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "marks": [
+    {
+     "find": "具体的な実装の有無を参照するのは",
+     "before": "具体的な実装の有無を知りに行くのは",
+     "why": "「知りに行く」は操作を特定しない"
+    }
+   ]
+  },
+  {
+   "key": "ac",
+   "tab": "advisor-creator",
+   "file": ".claude/skills/advisor-creator/SKILL.md",
+   "marks": [
+    {
+     "find": "判定する処理は保持しない",
+     "before": "判定する処理は持たない",
+     "why": "「持つ」を置換した"
+    }
+   ]
+  },
+  {
+   "key": "acdr",
+   "tab": "acdr/SKILL.md（封印）",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "marks": [
+    {
+     "find": "記録1件は、フォルダ1つである",
+     "before": "**HTML 1枚である。** 節を持つラッパーで、中身は対象の文書そのものである。",
+     "why": "ACDR 0001 で決定したフォルダの構成が、成果物の節へ反映されていなかった ── 置換が別の箇所に適用されていた"
+    },
+    {
+     "find": "承認済みの記録は封印される",
+     "before": "（無し。承認済みの記録を組み直すと、後の状態で上書きされていた）",
+     "why": "0001 の組み直しで実際に発生した ── 0002 が対象の文書を変更したためである。承認時点の sha256 を保存し、変化した状態での組み直しを拒否する"
+    }
+   ]
+  }
+ ],
+ "封印": {
+  "bb": "0a3ab739b0243263c97149e0f14cbb7f1a5d3b0a6e93a0fcadd747fb8d7e7761",
+  "sf": "841bb7d115796744b159bcaad07de10481d70978dc324059b434f0f6fc59c2ae",
+  "ds": "d158da6daca70bb9fcd1835d3dbe6537a1ff68dc8d1ae9f6d6f8ae5da5f9a034",
+  "sr": "f53f3e39e4c13028bae6144dff499fbce8c2d7ad42e2c73a489065996b5a0a67",
+  "dw": "39d81c01c6066e82f52d4d6ecd102836f627467260bddf7f69d14d0c2211f9d3",
+  "sd": "effd7b7f0741527449686d3b6ae0aa9cc267323d654a15daa8143cb3dbaa9de1",
+  "mc": "5955178733d7afbfe328325159c7876a869a99e190d4a7014ff0303643fec13b",
+  "sc": "f51aefa20ef6fc5a487ae757e54a33c4f4bd4a6e90a7903cd4b9719a65d0da06",
+  "ac": "627cca9f82e55fcf4284746cfb83b8f498b9f48c95b35681d15acb4ab9565bc1",
+  "acdr": "9b77b7ba5ed749f31da962c9fd6a5ff15039ce2f344da08a8b045f5895469879"
+ }
+}

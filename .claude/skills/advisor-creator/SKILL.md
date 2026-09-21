@@ -1,13 +1,13 @@
 ---
 name: "advisor-creator"
-description: "新しいadvisor Skill（確立された原則・判断基準に基づいて専門的な判断力を提供するSkill）を作成したいとき、「アドバイザーを作って」「advisorを追加したい」と言われたときに使う。判断力の器（role/inputExpectation/responseTypes/knowledgeRefs/steps/guardrails）とbackbone knowledge文書の雛形を、対話ヒアリングを通じて生成する。単体で完結して動作し、特定の外部ツール・システムの有無を判定する処理は持たない。"
+description: "新しいadvisor Skill（確立された原則・判断基準に基づいて専門的な判断力を提供するSkill）を作成したいとき、「アドバイザーを作って」「advisorを追加したい」と言われたときに使う。判断力の器（role/inputExpectation/responseTypes/knowledgeRefs/steps/guardrails）とbackbone knowledge文書の雛形を、対話ヒアリングを通じて生成する。単体で完結して動作し、特定の外部ツール・システムの有無を判定する処理は保持しない。"
 ---
 
 # 新規advisor Skillのテンプレート生成を行うSkill：advisor-creator
 
 ## 目的
 
-新しいadvisor Skill（確立された原則・判断基準に基づいて専門的な判断力を提供するSkill）を作成したいとき、「アドバイザーを作って」「advisorを追加したい」と言われたときに使う。判断力の器（role/inputExpectation/responseTypes/knowledgeRefs/steps/guardrails）とbackbone knowledge文書の雛形を、対話ヒアリングを通じて生成する。単体で完結して動作し、特定の外部ツール・システムの有無を判定する処理は持たない。
+新しいadvisor Skill（確立された原則・判断基準に基づいて専門的な判断力を提供するSkill）を作成したいとき、「アドバイザーを作って」「advisorを追加したい」と言われたときに使う。判断力の器（role/inputExpectation/responseTypes/knowledgeRefs/steps/guardrails）とbackbone knowledge文書の雛形を、対話ヒアリングを通じて生成する。単体で完結して動作し、特定の外部ツール・システムの有無を判定する処理は保持しない。
 
 ---
 
