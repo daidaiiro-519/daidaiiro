@@ -1,0 +1,418 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>資料全体の呼称と記録の整合</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:92rem;margin:0 auto;padding:2rem 1.2rem 5rem}
+h1{font-size:1.5rem;margin:0 0 .3rem;letter-spacing:.02em}
+.lede{font-size:1.06rem;border-left:4px solid var(--move);padding:.55rem 0 .55rem .9rem;
+margin:1rem 0 2rem;background:var(--panel);max-width:68rem}
+h2{font-size:1.12rem;margin:2.4rem 0 .8rem;padding-bottom:.3rem;border-bottom:1px solid var(--line)}
+h3{font-size:1rem;margin:1.6rem 0 .5rem;color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:.9rem 0;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:.42rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:.08rem .3rem;border-radius:.2rem;font-size:.88em}
+pre{background:var(--chipbg);padding:.7rem .9rem;border-radius:.3rem;overflow-x:auto;font-size:.84rem}
+.scroll{overflow-x:auto}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:2px solid var(--move);
+padding:.5rem .9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;font-size:.9rem;
+margin:0 -1.2rem 1rem}
+#bar button{font:inherit;padding:.2rem .7rem;border-radius:.25rem;border:1px solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin:1rem 0 0;border-bottom:2px solid var(--line)}
+.tab{font:inherit;font-size:.93rem;padding:.45rem .95rem;border:1px solid var(--line);
+border-bottom:0;border-radius:.3rem .3rem 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 2px 0 0 var(--paper)}
+.tab .n{font-size:.78rem;color:var(--move);margin-left:.35rem;font-weight:700}
+.pane{border:1px solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:1.2rem 1.8rem}
+.pane.md h1{font-size:1.25rem;margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:.8rem;color:var(--muted);padding:.35rem .9rem;border-bottom:1px dashed var(--line);
+background:var(--panel);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:1px solid var(--line);background:var(--panel);padding:0 .9rem .5rem}
+.idx summary{cursor:pointer;font-size:.88rem;padding:.45rem 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 .3rem;padding-left:1.4rem;font-size:.88rem}
+.idx li{margin:.35rem 0}
+.idx button.go{font:inherit;font-size:.82rem;padding:.05rem .5rem;margin-left:.4rem;
+border:1px solid var(--move);border-radius:.2rem;background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:.84rem}
+
+.code{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:.3rem;
+font-size:.82rem;line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:3.2rem;min-width:3.2rem;text-align:right;padding:0 .7rem 0 .5rem;
+color:var(--muted);background:var(--panel);user-select:none;border-right:1px solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 .8rem}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:.2rem .8rem .5rem 3.9rem}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:62rem}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:1.4rem;min-width:1.4rem;text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:.78rem;
+padding:.25rem .8rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:5.6rem}
+
+.acdr{border:1px solid var(--line);background:var(--panel);border-radius:.35rem;
+padding:1.1rem 1.3rem 1.2rem;margin:0 0 1.8rem;max-width:68rem}
+.acdr .hd{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;
+border-bottom:1px solid var(--line);padding-bottom:.55rem;margin-bottom:1rem}
+.acdr .no{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move)}
+.acdr h1.t{font-size:1.35rem;margin:0;letter-spacing:.02em;border:0;padding:0}
+.acdr .when{margin-left:auto;font-size:.82rem;color:var(--muted)}
+.acdr .st{font-size:.76rem;font-weight:700;padding:.08rem .55rem;border-radius:999px;
+border:1px solid currentColor}
+.acdr .st.proposed{color:var(--move)}
+.acdr .st.accepted{color:var(--key)}
+.acdr .st.superseded{color:var(--muted)}
+.acdr .stnote{font-size:.82rem;color:var(--muted)}
+.acdr .ask{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move);
+margin:0 0 .35rem}
+.acdr .decide{font-size:1.12rem;background:var(--paper);border-left:4px solid var(--move);
+padding:.65rem .95rem;margin:0 0 1.1rem}
+.acdr .sec{margin:1.1rem 0 0}
+.acdr .sec h4{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--move);
+margin:0 0 .3rem;text-transform:none}
+.acdr .sec p{margin:0}
+.acdr .sec ul{margin:.1rem 0;padding-left:1.2rem}
+.acdr .sec table{margin:.35rem 0 0}
+.acdr .none{color:var(--muted)}
+.acdr .lead{font-size:.86rem;color:var(--muted);margin:0 0 .3rem}
+.acdr table.shift td:nth-child(3){font-weight:700}
+.acdr .fig{margin:.4rem 0 0;padding:.6rem;background:var(--paper);border:1px solid var(--line);border-radius:.3rem;overflow-x:auto}
+.acdr .fig svg{display:block;max-width:100%;height:auto}
+.acdr .fig figcaption{font-size:.84rem;color:var(--muted);margin-top:.4rem}
+.lede{display:none}
+.bridge{max-width:68rem;font-size:.9rem;color:var(--muted);margin:0 0 .6rem}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:2px dashed var(--move);
+cursor:pointer;padding:0 .1rem}
+mark.chg::after{content:"変";font-size:.62rem;vertical-align:super;color:var(--move);
+font-weight:700;margin-left:.12rem}
+mark.chg:focus-visible{outline:2px solid var(--move);outline-offset:2px}
+.pop{display:block;margin:.6rem 0 .9rem;padding:.7rem .9rem;border:1px solid var(--move);
+border-radius:.3rem;background:var(--pop-bg);font-size:.9rem;line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:.5rem 0 .15rem}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:.82rem;margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:.5rem .6rem;border-radius:.2rem}
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg{background:transparent;color:inherit;border-bottom:2px dashed var(--move);
+cursor:pointer;padding:0 .1rem}
+mark.chg::after{content:"変";font-size:.62rem;vertical-align:super;color:var(--move);
+font-weight:700;margin-left:.12rem}
+mark.chg:focus-visible{outline:2px solid var(--move);outline-offset:2px}
+.pop{display:block;margin:.6rem 0 .9rem;padding:.7rem .9rem;border:1px solid var(--move);
+border-radius:.3rem;background:var(--pop-bg);font-size:.9rem;line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:.5rem 0 .15rem}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:.82rem;margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:.5rem .6rem;border-radius:.2rem}
+</script>
+
+<div class="wrap">
+<div class="acdr"><div class="hd"><span class="no">ACDR 0006</span><h1 class="t">資料全体の呼称と記録の整合</h1><span class="st accepted">承認</span><span class="stnote">承認を得た。適用してよい</span><span class="when">2026-09-21</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide">資料一式の呼称を「運営」へ統一し、枚数と会の名称と確認記録を現行の版へそろえる。</div><div class="sec"><h4>なぜ、いま決めるのか</h4><p>ACDR 0005 でデッキとアンケート設計案を改訂した結果、周辺の文書が取り残された。READMEは27枚のままで、最新の確認記録として27枚より前の版を指していた。運営設計案は「主催者」と「運営」を同じ相手に対して混用し、会の名称も中間発表・中間共有・最終共有会が並立していた。確認記録は15枚時点の内容を保持したまま、日付の無いファイル名で最新に見える位置にあった。読み手は、どれが現行かを毎回判定することになる。</p></div><div class="sec"><h4>形の変化</h4><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody><tr><td>呼称</td><td>主催者と運営を、同じ相手に対して混用する</td><td>運営へ統一する。与件の行は「決定済み」と書く</td></tr><tr><td>会の名称</td><td>中間発表・中間共有・最終共有会・交流会が並立する</td><td>中間共有（12月）と最終共有会（3月）の2つに固定する</td></tr><tr><td>相談会の名称</td><td>よろず相談会</td><td>定例相談会</td></tr><tr><td>READMEの枚数</td><td>表紙1枚＋本編14枚＋付録12枚</td><td>表紙1枚＋本編14枚＋付録16枚</td></tr><tr><td>確認記録</td><td>quality-check.md が15枚時点の内容を保持する</td><td>最新（31枚）の記録を保持し、過去は日付を付けたファイルが保持する</td></tr><tr><td>提出物</td><td>動く仕組み・使い方・試した記録の3点</td><td>成果物の登録を加えた4点。1人が複数作ってよいと明記する</td></tr><tr><td>previewsの画像</td><td>27枚の版の画像に、旧い landscape・portrait・review が混在する</td><td>31枚ぶんの slide-01〜31 と overview だけを保持する</td></tr></tbody></table></div><div class="sec"><h4>図で確認する</h4><figure class="fig"><svg class="wf-fig" viewBox="0 0 659 268" width="659" height="268" role="img"><g transform="translate(6.0,6.0)"><path d="M296.4,128.0 L359.0,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.0,16.0 357.8,23.1 353.5,20.7" fill="#C3CAD2"/><path d="M296.4,128.0 L359.0,72.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.0,72.0 355.6,78.3 352.3,74.7" fill="#C3CAD2"/><path d="M296.4,128.0 L359.0,128.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.0,128.0 352.2,130.5 352.2,125.5" fill="#C3CAD2"/><path d="M296.4,128.0 L359.0,184.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.0,184.0 352.3,181.3 355.6,177.7" fill="#C3CAD2"/><path d="M296.4,128.0 L359.0,240.0" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="359.0,240.0 353.5,235.3 357.8,232.9" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,112.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="295.6" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="147.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">そろえる語：運営・中間共有・最終共有会・31枚</text></g></g><g class="wf-node" transform="translate(359.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="98.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="49.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">README.md</text></g></g><g class="wf-node" transform="translate(359.6,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="152.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="76.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">workshop-plan.md</text></g></g><g class="wf-node" transform="translate(359.6,112.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="152.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="76.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">quality-check.md</text></g></g><g class="wf-node" transform="translate(359.6,168.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="168.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="84.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">director-deck.html</text></g></g><g class="wf-node" transform="translate(359.6,224.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="287.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="143.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">survey-and-evaluation.md（適用済み）</text></g></g></g></svg><figcaption>そろえる語を1つに決め、4つの文書がそれを参照する形にする。アンケート設計案は ACDR 0005 で適用済みである。</figcaption></figure></div><div class="sec"><h4>実現の形</h4><p>README・運営設計案・確認記録の本文を改め、デッキの生成側に残っていた呼称を外して描画し直す。previews の旧い画像は削除する。</p></div><div class="sec"><h4>適用先</h4><p>docs/workshops/ai-workshop の README.md ・ workshop-plan.md ・ quality-check.md ・ build_deck.py と、previews の旧い画像。</p></div><div class="sec"><h4>比較した案</h4><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>主催者と運営を別の相手として定義し、使い分けを固定する</td><td>運営設計案では、条件を指定した側と支援する側が同じ相手である。分けると、存在しない役割の区別を読み手が探すことになる。</td></tr><tr><td>すべて「主催者」へ戻す</td><td>デッキとアンケート設計案は ACDR 0005 で「運営」へ適用済みである。戻すと2件の記録が逆向きになる。</td></tr><tr><td>quality-check.md を日付付きのファイル名へ改名して残す</td><td>日付の無い名前が空くと、次の記録が同じ位置へ入る。最新を保持する場所として固定するほうが、参照先が変化しない。</td></tr><tr><td>previews の旧い画像を残す</td><td>どの版の画像かを判定できない。過去の版は git の履歴が保持する。</td></tr></tbody></table></div><div class="sec"><h4>承認後に実施すること</h4><ul><li>README ・ 運営設計案 ・ 確認記録 ・ 生成物 ・ previews を main へコミットする</li><li>図の型の集約（07・09枚目）を ACDR 0007 として起こす</li></ul></div></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 17 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="readme">README.md<span class="n">4</span></button><button class="tab" role="tab" data-t="plan">workshop-plan.md<span class="n">6</span></button><button class="tab" role="tab" data-t="qc">quality-check.md<span class="n">3</span></button><button class="tab" role="tab" data-t="deck">build_deck.py<span class="n">4</span></button></div>
+<section class="pane md" data-k="readme" hidden><details class="idx" open><summary>この面の変更 4 件</summary><ol><li><b>表紙1枚＋本編14枚＋付録16枚のスライド</b><button class="go" data-i="0">その場所へ</button><div class="b">付録に4枚（設問例2枚の移動、成果物の登録、フォームの構成、索引）が増えた結果、31枚になった。</div></li><li><b>最新の描画・文章の確認記録。過去の記録は日付を付けたファイルが保持する</b><button class="go" data-i="1">その場所へ</button><div class="b">日付を付けたファイルを「最新」と書くと、次の確認のたびに参照先が変化する。最新は日付の無いファイルが保持し、過去は日付付きが保持する形へ替える。</div></li><li><b>設問・尺度・KPI・試用記録と、Microsoft Formsでの実装</b><button class="go" data-i="2">その場所へ</button><div class="b">Formsでの実装を同書が保持するようになったため、一覧の説明も合わせる。並び順も、運営設計案の次へ移した。</div></li><li><b>開催前から決まっている条件と今回の提案は</b><button class="go" data-i="3">その場所へ</button><div class="b">呼称を運営へ統一したため、与件の説明から相手の名前を外し、状態で書く。</div></li></ol></details><div class="doc"><h1>社内AI人材育成ワークショップ</h1>
+<p>部長向けの説明資料と、開催条件を詰めるための運営案。</p>
+<div class="wrap"><table><tr><th>ファイル</th><th>用途</th></tr><tr><td>[director-deck.html](director-deck.html)</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="表紙1枚＋本編14枚＋付録12枚のスライド" data-w="付録に4枚（設問例2枚の移動、成果物の登録、フォームの構成、索引）が増えた結果、31枚になった。">表紙1枚＋本編14枚＋付録16枚のスライド</mark>。ブラウザで開き、矢印キー・画面下のボタン・スワイプで操作</td></tr><tr><td>[director-deck.pdf](director-deck.pdf)</td><td>共有・配布用のPDF</td></tr><tr><td>[speaker-notes.md](speaker-notes.md)</td><td>各スライドに対応する部長向け発表原稿</td></tr><tr><td>[workshop-plan.md](workshop-plan.md)</td><td>テーマ、概念教材、半年間の進行、支援、評価、工数の運営案</td></tr><tr><td>[survey-and-evaluation.md](survey-and-evaluation.md)</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="共通・PM／PL・開発者向けの設問、段階評価、試用・投票、成果報告の設計" data-w="Formsでの実装を同書が保持するようになったため、一覧の説明も合わせる。並び順も、運営設計案の次へ移した。">設問・尺度・KPI・試用記録と、Microsoft Formsでの実装</mark></td></tr><tr><td>[survey-and-evaluation.md](survey-and-evaluation.md)</td><td>設問・尺度・KPI・試用記録と、Microsoft Formsでの実装</td></tr><tr><td>[survey-and-evaluation.md](survey-and-evaluation.md)</td><td>設問・尺度・KPI・試用記録と、Microsoft Formsでの実装</td></tr><tr><td>[survey-and-evaluation.md](survey-and-evaluation.md)</td><td>設問・尺度・KPI・試用記録と、Microsoft Formsでの実装</td></tr><tr><td>[previews/overview.png](previews/overview.png)</td><td>全スライドの一覧画像</td></tr><tr><td>[quality-check.md](quality-check.md)</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="| quality-check-2026-09-13.md | 最新版の描画・文章・独立レビューの確認記録 |" data-w="日付を付けたファイルを「最新」と書くと、次の確認のたびに参照先が変化する。最新は日付の無いファイルが保持し、過去は日付付きが保持する形へ替える。">最新の描画・文章の確認記録。過去の記録は日付を付けたファイルが保持する</mark></td></tr></table></div>
+<p><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="主催者指定の条件と今回の提案は" data-w="呼称を運営へ統一したため、与件の説明から相手の名前を外し、状態で書く。">開催前から決まっている条件と今回の提案は</mark>、運営設計案の最初の表で区別している。受講者向けの音声動画は、構成案までを含み、動画そのものはまだ制作していない。</p>
+<h2>再生成</h2>
+<p><code>build_deck.py</code> がスライド本文と発表原稿を保持する。同梱の <code>skills/ai-workshop-slide-deck/assets/deck-template.html</code> を基に、HTMLと発表原稿を生成する。Python 3の標準ライブラリだけで実行できる。</p>
+<pre class="code">cd ai-workshop # ZIPの展開先。リポジトリでは docs/workshops/ai-workshop
+python3 build_deck.py</pre>
+<p>HTMLは外部ファイルの読み込みなしで表示できる。フォントは端末にある日本語フォントを使い、端末によって字形が変わる。PDFは作成時の表示を保持する。HTMLを変更した場合、PDFとプレビューは別途再出力する。</p>
+<h2>同梱Skill</h2>
+<p>[ai-workshop-slide-deck](skills/ai-workshop-slide-deck/SKILL.md) に作成・編集・描画確認の手順とテンプレートを同梱している。<br>[デザイントークン](skills/ai-workshop-slide-deck/references/design-tokens.md) は現在のスライドの配色・書体・寸法を基にしている。<br>変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。<br>変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。<br>変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。<br>変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。</p>
+<p>AIへの依頼例：</p>
+<blockquote>skills/ai-workshop-slide-deck/SKILL.md を読み、この資料の配色とレイアウトを保ってスライドを編集してください。変更内容：……</blockquote>
+<p>Skillを別の環境へ登録する場合は <code>ai-workshop-slide-deck</code> フォルダをその環境のSkill配置先へコピーし、資料の展開先も伝える。再生成に必要なので、資料側の同梱Skillフォルダも保持する。</p></div></section><section class="pane md" data-k="plan" hidden><details class="idx" open><summary>この面の変更 6 件</summary><ol><li><b>決まっている条件と、今回の提案</b><button class="go" data-i="0">その場所へ</button><div class="b">条件を指定した側と支援する側が同じ相手であるため、区別は呼称ではなく状態（決定済みか提案か）で示す。</div></li><li><b>知見を持つ運営が学習コンテンツとTeamsで支援する</b><button class="go" data-i="1">その場所へ</button><div class="b">呼称を運営へ統一する。本文の19か所も同様に置き換えた。</div></li><li><b>会の名称は、12月を中間共有、3月を最終共有会とする。デッキ・発表原稿・設問別紙</b><button class="go" data-i="2">その場所へ</button><div class="b">中間発表・中間共有・最終共有会・交流会が文書ごとに違っていた。正式名称を2つに固定し、どの文書も同じ語を使う根拠をここに置く。</div></li><li><b>成果物の登録</b><button class="go" data-i="3">その場所へ</button><div class="b">1人が複数作る前提にしたため、成果物の情報を1件ずつ登録する提出物を加える。</div></li><li><b>1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない</b><button class="go" data-i="4">その場所へ</button><div class="b">複数作ることを認める一方で、件数の多さが評価に見えないようにする。</div></li><li><b>同書は、回答をMicrosoft Formsの5本のフォームで集める前提で記述し</b><button class="go" data-i="5">その場所へ</button><div class="b">設問の正本がFormsでの実装を保持するようになったため、参照する側からも実装先が分かるようにする。</div></li></ol></details><div class="doc"><h1>社内AI人材育成ワークショップ：運営設計案</h1>
+<p>課題の本質を抽象的に捉え、それを具体化して解決する力を育てる。抽象では、目的に照らして個別の出来事から重要な構造や関係を取り出す。具体化では、使う場面や制約に合わせてAIで仕組みを作り、役に立つかを確認する。その結果から課題の捉え方も再確認する、抽象と具体の往復を共通の土台とする。</p>
+<p>参加者は身近な業務課題を自分で選び、エージェントやSkillsを使って仕組みを作る。課題の選択と解法の判断を参加者に委ね、概念教材と継続的な相談で支える。</p>
+<p>部長向けの説明は [スライド](director-deck.html)（31枚）、話す内容は [発表原稿](speaker-notes.md) を参照する。本書は開催条件を詰めるための案であり、以下の提案事項は確定していない。</p>
+<h2><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="主催者の条件と今回の提案" data-w="条件を指定した側と支援する側が同じ相手であるため、区別は呼称ではなく状態（決定済みか提案か）で示す。">決まっている条件と、今回の提案</mark></h2>
+<div class="wrap"><table><tr><th>区分</th><th>内容</th></tr><tr><td>決定済み：目的</td><td>0から1を作る能力と考え方の育成。将来の課題探索や価値創出の土台を作る</td></tr><tr><td>決定済み：教育方針</td><td>身近な課題を対象とする。概念を中心に教え、具体的な解法を与えすぎない。用途のヒントは紹介できる</td></tr><tr><td>決定済み：対象</td><td>開発者、PM・PLなど約15名。10月開始、下期を通じて実施</td></tr><tr><td>決定済み：進め方</td><td>日常の学習は各自で進め、中間発表はTeamsのWeb会議で行う。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="知見を持つ主催者が学習コンテンツとTeamsで支援する" data-w="呼称を運営へ統一する。本文の19か所も同様に置き換えた。">知見を持つ運営が学習コンテンツとTeamsで支援する</mark></td></tr><tr><td>決定済み：ツール</td><td>Kiroが主。Claudeは一部利用可能</td></tr><tr><td>決定済み：教材の構想</td><td>エージェントの利用・作成・可能性を説明する概念スライドと、音声付き動画</td></tr><tr><td>提案：期間</td><td>2026年10月〜2027年3月。終了年は会話時点の暦と「下期」から設定した計画上の解釈</td></tr><tr><td>提案：参加形態</td><td>個人の課題と試作を基本にする。参加者は他の人の成果物の利用者となり、専門的な支援は運営が担当する</td></tr><tr><td>決定済み：参加条件</td><td>参加者は期間中に各自で時間を見つけて進める。開始時に課題・作る仕組み・利用者・達成条件を決める</td></tr><tr><td>提案：発表</td><td>12月にTeams会議で中間共有、3月に軽食を囲む最終共有会（オフライン交流会）を行う。試用・人気投票の詳細は提案</td></tr><tr><td>決定済み：効果測定の方針</td><td>事前・中間・終了時のアンケートによる定量評価と、できるようになったことの定性評価を報告の主軸にする</td></tr><tr><td>提案：相談会</td><td>月1回、Teamsで定例相談会を行う。時間帯は未定。定時後の場合は任意参加とする</td></tr></table></div>
+<h2>到達目標と評価</h2>
+<p>自分のスキルを言語化し、AIで動く仕組みにすることで、他の人もその知識やノウハウを仕事に使えるようにする。開始時に各自が課題・作る仕組み・利用者・達成条件を記入する。主KPIは「他の人に役立つ仕組みを作れた参加者数／開始時の参加者数」を提案し、業務別のAI活用と個人目標の達成を補助指標にする。</p>
+<p>個人のAI活用の変化と、他の人が実務で使える成果物を報告する。設問・尺度・試用記録・投票方法の正本は [アンケート・効果測定案](survey-and-evaluation.md) とする。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この記述は存在しなかった）" data-w="設問の正本がFormsでの実装を保持するようになったため、参照する側からも実装先が分かるようにする。">同書は、回答をMicrosoft Formsの5本のフォームで集める前提で記述している。</mark>同書は、回答をMicrosoft Formsの5本のフォームで集める前提で記述している。同書は、回答をMicrosoft Formsの5本のフォームで集める前提で記述している。</p>
+<div class="wrap"><table><tr><th>視点</th><th>実施すること</th><th>残す成果</th></tr><tr><td>参加者</td><td>最終共有会で発表し、他の人の成果物を試して投票する</td><td>使える仕組み、利用者の反応、人気作品の表彰</td></tr><tr><td>運営</td><td>事前・中間・終了時の同じ項目を比較する</td><td>活用頻度・自力でできる範囲・職種別活用の変化</td></tr><tr><td>運営</td><td>具体的にできたことと他の人の試用記録を確認する</td><td>定量の変化を説明する実例と、残る課題</td></tr></table></div>
+<p>アンケートは共通項目と職種別項目を組み合わせる。PM・PL向けには情報収集・集計、報告・予実、課題・担当・期限、品質・障害・リスク、改善提案、過去事例の再利用を含める。開発者は要求・仕様、設計、実装、レビュー、テスト、運用・保守を聞く。悩みは事前回答で確認し、運営が教材や支援を調整する。</p>
+<p>人気投票は表彰に使い、学習成果の判定には個人の変化と実例を使う。自己申告と他の人による確認を区別し、同じ人の比較と回答人数を示す。個々の成果物について時間削減などを測れた場合は、条件と確認・修正の手間を添えて補足する。</p>
+<h2>テーマの選び方</h2>
+<p>参加者には幅のある領域を渡す。最初に本人の経験を言葉にしてもらい、下表のヒントは必要になった人へ示す。解決策の完成例や推奨構成は指定しない。</p>
+<div class="wrap"><table><tr><th>対象</th><th>領域</th><th>課題を見つけるためのヒント</th></tr><tr><td>開発者</td><td>開発プロセスの効率化</td><td>毎回の確認や引き継ぎで、同じ手間が生まれる場面</td></tr><tr><td>開発者</td><td>Webアプリ作成の始めやすさ</td><td>アイデアがあっても、試し始めるまでに時間がかかる場面</td></tr><tr><td>開発者</td><td>オンボーディング</td><td>新しく参加した人が、情報や判断の根拠を探し回る場面</td></tr><tr><td>PM・PL</td><td>提案準備</td><td>資料を作る前に、必要な情報の収集や比較で止まる場面</td></tr><tr><td>PM・PL</td><td>関係者調整</td><td>決定・保留・依頼の認識が、人によって異なる場面</td></tr><tr><td>PM・PL</td><td>状況把握</td><td>進捗を集めても、支援の必要性や依存関係が分からない場面</td></tr><tr><td>PM・PL</td><td>チームの相談</td><td>困りごとを言い出す相手やタイミングが分からない場面</td></tr><tr><td>共通</td><td>知識共有と引き継ぎ</td><td>記録はあるが、次の人が仕事に使えない場面</td></tr></table></div>
+<p>「コミュニケーションを活性化する」は広いため、相談・判断・引き継ぎなどの場面へ限定する。発言数や自動生成した投稿数だけを成果にしない。「メンバー管理」も、個人の自動採点より、仕事の状況と支援の必要性を本人と共有する方向を勧める。</p>
+<div class="wrap"><table><tr><th>課題を絞る問い</th><th>記録する内容</th></tr><tr><td>誰が、いつ困るか</td><td>実際に観察した一つの場面</td></tr><tr><td>何が変われば役に立つか</td><td>対象者が確認できる変化</td></tr><tr><td>最初に何を試せるか</td><td>小さな入力と一つの動作</td></tr><tr><td>何をまだ知らないか</td><td>未確認事項と、確認する相手</td></tr></table></div>
+<p>テーマ変更は認める。試した結果と変更理由を残し、規模を小さくすることも前進として扱う。既存のSkillや設定の改良も認め、本人が見つけた課題と変更判断を説明できることを求める。</p>
+<h2>概念教材と操作教材</h2>
+<p>概念教材は短い音声付きスライド動画に分ける。下表は制作する教材の構成案であり、動画そのものはまだ制作していない。</p>
+<div class="wrap"><table><tr><th>回</th><th>概念教材の中心</th><th>図で示す関係</th><th>視聴後に本人が考えること</th></tr><tr><td>1</td><td>エージェントで仕事を進める</td><td>目的→計画→道具の使用→結果→再確認</td><td>自分の仕事のどこに試行と確認があるか</td></tr><tr><td>2</td><td>人とAIの分担を決める</td><td>任せる範囲と、人が判断する境界</td><td>何を任せ、何を自分で確認するか</td></tr><tr><td>3</td><td>必要な情報を渡す</td><td>目的・材料・制約・完了条件と実行結果</td><td>AIに渡っていない情報は何か</td></tr><tr><td>4</td><td>役割に合うエージェントを作る</td><td>役割と、道具・参照情報・権限の関係</td><td>分ける理由がある仕事は何か</td></tr><tr><td>5</td><td>Skillsで仕事の進め方を共有する</td><td>手順・判断基準・参考資料と利用場面</td><td>繰り返す判断のうち、何を残せるか</td></tr><tr><td>6</td><td>作った仕組みを検証する</td><td>入力→実行→観察→修正→別条件での試行</td><td>どんな結果なら、考えを変えるか</td></tr></table></div>
+<p>各動画は8分を目安に制作する案とする。視聴だけで終えず、本人の仕事について一つ考えてメモする。長くなる内容は分割する。</p>
+<p>操作教材は、Kiroでファイルや設定を用意し、読み込ませ、実行し、結果を確認するまでの最小構成にする。形式を学ぶための意味の薄い短文などを入力にし、業務改善の完成例を再現する課題にはしない。Agent Skillsとエージェント設定の基本的な書き方は示す。</p>
+<p>用途の紹介は、参加者が困る場面を一度書いた後に行う。資料作成・データ分析・可視化・Web画面などの可能性を短く示し、完成テンプレートの配布を必須にしない。試作が始まってから他の人の発想に触れる機会を増やす。</p>
+<h2>月ごとの進行案</h2>
+<div class="wrap"><table><tr><th>月</th><th>主な活動</th><th>残すもの</th><th>運営の関わり</th></tr><tr><td>開始前</td><td>利用環境の確認、教材の用意</td><td>開始案内、共通の操作確認、利用ルール</td><td>Kiroの社内版で手順を実行し、運営工数と利用費用を確認</td></tr><tr><td>10月</td><td>事前アンケート、概念学習、操作、課題の観察</td><td>開始時の回答、課題候補、最小操作の結果</td><td>悩みと学びたいことを把握し、未着手者を支援</td></tr><tr><td>11月</td><td>課題の絞り込み、小さな試作</td><td>動く一部分と初回の試行記録</td><td>作る範囲を絞る相談、操作の障害への対応</td></tr><tr><td>12月</td><td>Teamsで中間共有、中間アンケート</td><td>デモ、迷っている点、次に試すこと</td><td>会話で反応を返し、回答から支援を調整</td></tr><tr><td>1月</td><td>方向の修正、Skillsの整理</td><td>変更理由、使い方の下書き</td><td>手順を固定しすぎていないか確認</td></tr><tr><td>2月</td><td>他の人による利用、改善</td><td>別の人の使用結果、修正内容</td><td>他の人が使い、課題改善に役立つか確認</td></tr><tr><td>3月</td><td>最終共有会、試用・投票、終了時アンケート</td><td>成果物、使用結果、変化の実例</td><td>個人の変化と成果物を報告し、継続・共有・終了を判断</td></tr></table></div>
+<p><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この記述は存在しなかった）" data-w="中間発表・中間共有・最終共有会・交流会が文書ごとに違っていた。正式名称を2つに固定し、どの文書も同じ語を使う根拠をここに置く。">会の名称は、12月を中間共有、3月を最終共有会とする。デッキ・発表原稿・設問別紙も同じ名称を用いる。</mark></p>
+<p>会の名称は、12月を中間共有、3月を最終共有会とする。デッキ・発表原稿・設問別紙も同じ名称を用いる。</p>
+<p>会の名称は、12月を中間共有、3月を最終共有会とする。デッキ・発表原稿・設問別紙も同じ名称を用いる。</p>
+<h2>非同期運営とサポート</h2>
+<div class="wrap"><table><tr><th>項目</th><th>運営案</th></tr><tr><td>個人の活動</td><td>各自で時間を見つけ、個人目標に沿って教材・制作・相談・発表準備を進める</td></tr><tr><td>支援の担当</td><td>知見を持つ運営が支援する。参加者は各自で課題と試行を持つ</td></tr><tr><td>進捗投稿</td><td>隔週。試したこと、分かったこと、次に試すことを短く投稿</td></tr><tr><td>Teams相談</td><td>目的、試したこと、詰まっている箇所、必要な助けを書く。書けない場合も相談可</td></tr><tr><td>運営の確認</td><td>週2回を目安にTeamsを確認。回答が難しいものは次に確認する時点を返す</td></tr><tr><td>個別支援</td><td>操作の障害は直接支援。課題や解法の相談には、問いや比較する観点を返す</td></tr><tr><td>ブログ</td><td>よくある疑問を記事化し、概念教材・操作教材・補助記事を索引で探せるようにする</td></tr><tr><td>定例相談会</td><td>月1回のTeams会議を検討する。準備資料なしで、今の課題や相談を話せる場にする</td></tr><tr><td>相談会への参加</td><td>時間帯は未定。定時後の場合は任意参加とし、不参加による評価差を設けない</td></tr><tr><td>相談会の共有</td><td>一般化できる要点をTeamsへ保存する。参加できない人も投稿で相談できる</td></tr><tr><td>停滞時</td><td>投稿がない場合は運営から声をかけ、時間不足・操作・課題の迷いを区別する</td></tr><tr><td>繁忙時</td><td>試す範囲を縮小する。期限調整や再開予定を本人と決め、未参加のまま放置しない</td></tr></table></div>
+<p>共同制作を選ぶ場合も、全員が設定の実行と自分の判断を説明できることを求める。運営への相談が集中した場合は、共通の質問を教材にまとめ、個別に必要な支援へ時間を配分する。</p>
+<h2>中間・最終の成果物発表</h2>
+<div class="wrap"><table><tr><th>項目</th><th>中間共有（12月）</th><th>最終共有会（3月）</th></tr><tr><td>時期</td><td>12月</td><td>3月</td></tr><tr><td>形式</td><td>TeamsのWeb会議で、画面共有によるデモと会話</td><td>軽食を囲むオフライン交流会で短いデモと会話。後日の試用につなげる</td></tr><tr><td>日程</td><td>開催日を調整する。全員が集まれない場合は発表枠を分ける</td><td>発表日と試用期間を別に設ける</td></tr><tr><td>時間の試算</td><td>1人発表5分＋会話3分なら、15名で120分。導入等は別枠</td><td>自由な交流とデモの時間を見積もり直す</td></tr><tr><td>返す内容</td><td>役立ちそうな場面、疑問、次に確認してほしいこと</td><td>説明に沿って使えた点、困った点、投票理由</td></tr><tr><td>運営の対応</td><td>会を進行し、中間アンケートから支援を調整する</td><td>試用の割当・集計・表彰・終了時アンケートの分析を行う</td></tr></table></div>
+<p>発表用の動画制作は求めない。最終共有会後の試用・投票の詳細は [アンケート・効果測定案](survey-and-evaluation.md) に記載する。定例相談会は自由な相談、中間・最終共有会は成果物の共有という目的で区別する。</p>
+<h2>最低限の提出物</h2>
+<div class="wrap"><table><tr><th>提出物</th><th>必要な内容</th></tr><tr><td>動く仕組み</td><td>自分の知識・手順・判断の目安を組み込み、他の人も業務効率化や課題改善に使えるもの</td></tr><tr><td>使い方</td><td>初めて使う人が理解できる利用条件、実行方法、期待する結果、限界</td></tr><tr><td>試した記録</td><td>他の人が使って役立った結果、受けた支援、改善内容</td></tr><tr><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（提出物は、動く仕組み・使い方・試した記録の3点であった）" data-w="1人が複数作る前提にしたため、成果物の情報を1件ずつ登録する提出物を加える。">成果物の登録</mark></td><td>作った仕組みを1件ずつ登録する。名称・対象の課題・組み込んだ知識・利用条件を記入する</td></tr><tr><td>成果物の登録</td><td>作った仕組みを1件ずつ登録する。名称・対象の課題・組み込んだ知識・利用条件を記入する</td></tr><tr><td>成果物の登録</td><td>作った仕組みを1件ずつ登録する。名称・対象の課題・組み込んだ知識・利用条件を記入する</td></tr></table></div>
+<p><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（この記述は存在しなかった）" data-w="複数作ることを認める一方で、件数の多さが評価に見えないようにする。">1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない。</mark>1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない。1人が複数作ってもよい。主KPIは人単位で数えるため、件数の多寡を評価に用いない。出力はアプリに限らず、分析・文書生成・業務支援などから選べる。エージェントやSkillsは既存の利用・改良も認め、選んだ構成の役割を説明する。両方の新規作成を必須条件にはしない。使うエージェントの数や、生成したファイル数を評価基準にしない。社内で確認されたデータの扱いとツール権限を遵守し、初回操作には架空データを使う。</p>
+<h2>必要時間と承認前の確認</h2>
+<p>今回の部長向け説明では、運営者の工数とAI利用環境の費用について了承を得る。運営担当・利用環境・日程を具体化し、必要な予算の承認はその条件が確定した時点で受ける構成を提案する。</p>
+<p>以下は従来の運営案による暫定試算で、オフライン交流会への変更を踏まえ再見積もりする。会場・軽食費も別途見積もる。予算検討のための仮定であり、効果の実測値ではない。実働20週は半年間から休暇・繁忙期の余裕を見込んだ試算条件である。</p>
+<div class="wrap"><table><tr><th>対象</th><th>仮定</th><th>試算</th></tr><tr><td>運営の事前準備</td><td>概念動画6本を各4時間で構成・収録・確認</td><td>24時間。動画制作の経験により再見積もり</td></tr><tr><td>運営の継続支援</td><td>週3時間 × 実働20週</td><td>60時間。Teams、進捗確認、短いブログ記事を含む</td></tr><tr><td>運営の発表・成果確認</td><td>中間・最終それぞれ、1人20分 × 15名</td><td>10時間。会議と前後の成果確認を含む</td></tr><tr><td>定例相談会</td><td>月1回60分＋準備・要点整理30分を6か月</td><td>9時間。開催する場合の仮定</td></tr><tr><td>効果測定・投票</td><td>フォーム準備、3回の集計、試用割当・投票、報告</td><td>未見積もり。実施内容を確定して別途積算</td></tr><tr><td>見積もり済み部分の小計</td><td>24＋60＋10＋9</td><td>103時間。効果測定・投票、環境整備、日程調整、追加支援は含まない</td></tr><tr><td>利用料金</td><td>Kiroの契約・利用枠、Claudeの補助利用</td><td>未算定。既存契約と追加枠の要否を確認する</td></tr></table></div>
+<p>参加者と運営担当を同一人物が兼ねる場合、重複する活動時間を除いて見積もり直す。</p>
+<div class="wrap"><table><tr><th>部長と確認すること</th><th>決める必要がある内容</th></tr><tr><td>育成方針</td><td>自分で課題を選び、試すことを重視する評価方針</td></tr><tr><td>参加者の目標</td><td>課題・作る仕組み・利用者・達成条件の設定</td></tr><tr><td>運営体制</td><td>主担当、補助担当、教材制作と支援の工数</td></tr><tr><td>利用環境</td><td>Kiroの版・利用枠・権限、社内データの扱い</td></tr><tr><td>日程</td><td>実施年、共有期間、繁忙期との調整</td></tr></table></div>
+<h2>Kiroの確認根拠と教材更新</h2>
+<p>Kiro公式の [Agent Skills](https://kiro.dev/docs/skills/) と [Creating custom agents](https://kiro.dev/docs/cli/custom-agents/creating/) を2026-09-05に確認した。Skillsの利用と、エージェントに道具や参照情報などを設定する構成を、企画の技術的な前提にしている。</p>
+<p>社内のKiro環境はまだ確認していない。開始前に、参加者と同じIDE／CLIの版・権限・契約枠で、作成→読込→実行→結果確認までを完了させる。全員の必須課題をKiroで完了できるようにし、Claudeは任意の補助利用にとどめる。</p>
+<p>概念教材と操作教材を分けることで、操作が変わった場合は該当する短い教材を更新する。公開資料の機能説明だけをもって、社内環境でも動くと扱わない。</p></div></section><section class="pane md" data-k="qc" hidden><details class="idx" open><summary>この面の変更 3 件</summary><ol><li><b>2026-09-21の資料確認</b><button class="go" data-i="0">その場所へ</button><div class="b">15枚時点の記録が、日付の無いファイル名のまま残っていた。最新の確認内容へ置き換える。</div></li><li><b>31枚とも620px以内。最大607px（3・9・20枚目）</b><button class="go" data-i="1">その場所へ</button><div class="b">31枚での実測値へ更新する。</div></li><li><b>過去の記録</b><button class="go" data-i="2">その場所へ</button><div class="b">どの版の記録がどこにあるかを、最新の記録が保持する。</div></li></ol></details><div class="doc"><h1><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="スライドと文書の確認記録（2026-09-05に、HTMLの描画と文書の理解を確認した。スライド数・表示番号は15枚）" data-w="15枚時点の記録が、日付の無いファイル名のまま残っていた。最新の確認内容へ置き換える。">2026-09-21の資料確認</mark></h1>
+<p>ACDR 0005 の変更を適用したあとの確認記録である。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（過去の記録への索引は存在しなかった）" data-w="どの版の記録がどこにあるかを、最新の記録が保持する。">過去の記録</mark>は、日付を付けたファイルが保持する。</p>
+<h2>描画と操作</h2>
+<div class="wrap"><table><tr><th>項目</th><th>結果</th></tr><tr><td>枚数</td><td>31枚（表紙1・本編14・付録16）</td></tr><tr><td>下端</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="固定ステージ換算で最大602.22px。目安620px以内（15枚時点）" data-w="31枚での実測値へ更新する。">31枚とも620px以内。最大607px（3・9・20枚目）</mark></td></tr><tr><td>測り方</td><td>固定ステージ1280×720で、葉の要素の下端をステージ上端からの距離で測定した</td></tr><tr><td>はみ出し・自動縮小</td><td>0件</td></tr><tr><td>配布物</td><td>HTMLからPDF（31ページ）と全31枚のPNG、一覧画像を再出力した</td></tr><tr><td>操作</td><td>矢印キー・前後ボタンで表示番号を確認した</td></tr></table></div>
+<h2>文章の検査</h2>
+<p><code>doc-writing-skills</code> のゲート1を、運営設計案・アンケート設計案・発表原稿・描画した本文へ適用し、いずれも0件である。</p>
+<p>発表原稿では、付録の導入文が常体で混在していた。生成側で敬体へ変換する処理を入れ、文体を敬体へそろえた。</p>
+<h2>外部の情報源</h2>
+<p>Microsoft Formsの質問の種類・設定・分岐・集計の4ページを2026-09-20に取得し、原文の文字列で照合した。照合した識別子は22個で、原文に在ったものは19個である。<code>Upload file</code> ・ <code>Export to Excel</code> ・ <code>Multiple answers</code> の3つは原文に無いため、資料では使用していない。</p>
+<h2>未確認の事項</h2>
+<p>社内Kiro環境での実行、参加者の開始時点の経験、利用料金、運営担当の確保は未確認である。これらは14枚目（前提条件と未確定事項）が一覧で保持する。受講者向けの音声動画は構成案までで、収録していない。</p>
+<h2>過去の記録</h2>
+<div class="wrap"><table><tr><th>ファイル</th><th>時点</th></tr><tr><td>[quality-check-2026-09-13.md](quality-check-2026-09-13.md)</td><td>27枚の版</td></tr><tr><td>[quality-check-2026-09-06.md](quality-check-2026-09-06.md)</td><td>17枚の版</td></tr></table></div></div></section><section class="pane code-pane" data-k="deck" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 4 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 4 件</summary><ol><li><b>&#x27;開催前から決まっている条件と、今回の提案で未確定の事項を区別する。&#x27;</b><button class="go" data-i="0">その場所へ</button><div class="b">呼称を運営へ統一した結果、条件を指定した相手を指す語が宙に浮く。与件は状態で書く。相談会の名称も定例相談会へそろえた。</div></li><li><b>毎週同じ時間に集合することは前提にしません。</b><button class="go" data-i="1">その場所へ</button><div class="b">8枚目の脚注から呼称を外し、決定済みの条件として書く。発表原稿の和語の述部（集まる）も漢語へそろえる。</div></li><li><b>これらは運営が用意した題材の候補で、</b><button class="go" data-i="2">その場所へ</button><div class="b">16枚目の原稿の呼称をそろえる。「主催者向け」は、誰のための候補かが読み取れない表現でもある。</div></li><li><b>決定済みの条件と</b><button class="go" data-i="3">その場所へ</button><div class="b">発表原稿の冒頭でも、与件を状態で書く。</div></li></ol></details><div class="code diff" data-lang="python"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 79 ／ 新 79 @@</td></tr><tr class="r"><td class="ln">79</td><td class="ln">79</td><td class="mk"> </td><td class="cd">      notes=&<span class="t-c">#x27;主教材は概念中心の動画にし、操作の説明は独立した短い補助教材にします。操作の形式が不明なために着手できない状態は回避します。一方、業務課題の完成例を見せすぎると解法を固定するため、主教材には目的や分担の図を置き、用途のヒントは別途少量だけ公開します。教材はこれから制作する計画で、この提案デッキが受講者向け動画ではありません。&#x27;),</span></td></tr><tr class="r"><td class="ln">80</td><td class="ln">80</td><td class="mk"> </td><td class="cd"> dict(label=&<span class="t-c">#x27;下期の進め方&#x27;, title=&#x27;半年間で、作成から他の人の利用へ進める。&#x27;,</span></td></tr><tr class="r"><td class="ln">81</td><td class="ln">81</td><td class="mk"> </td><td class="cd">      intro=&<span class="t-c">#x27;2026年10月〜2027年3月の実施案。月ごとの区切りで、非同期に進める。&#x27;,</span></td></tr><tr class="rd"><td class="ln">82</td><td class="ln"></td><td class="mk">-</td><td class="cd">      body=&<span class="t-c">#x27;&lt;div class=&quot;ws-phases&quot;&gt;&lt;svg class=&quot;ws-phase-path&quot; viewBox=&quot;0 0 1112 240&quot; role=&quot;img&quot; aria-label=&quot;10・11月の試作から、12・1月の再確認を経て、2・3月の他の人利用へ進む&quot;&gt;&lt;path d=&quot;M 355 107 h 21 m -6 -6 l 6 6 -6 6 M 736 107 h 21 m -6 -6 l 6 6 -6 6&quot; fill=&quot;none&quot; stroke=&quot;#747c6e&quot; stroke-width=&quot;2&quot;/&gt;&lt;/svg&gt;&lt;div&gt;&lt;p class=&quot;ws-date&quot;&gt;10・11月&lt;/p&gt;&lt;h3&gt;学習と作成&lt;/h3&gt;&lt;p&gt;概念教材を視聴する&lt;br&gt;課題を選択し、小さく作成する&lt;/p&gt;&lt;/div&gt;&lt;div&gt;&lt;p class=&quot;ws-date&quot;&gt;12・1月&lt;/p&gt;&lt;h3&gt;共有と修正&lt;/h3&gt;&lt;p&gt;12月に中間成果を共有する&lt;br&gt;他の人の反応で方向を再確認する&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;ws-phase-hot&quot;&gt;&lt;p class=&quot;ws-date&quot;&gt;2・3月&lt;/p&gt;&lt;h3&gt;他の人の利用&lt;/h3&gt;&lt;p&gt;他の人が試用し、改善する&lt;br&gt;3月に成果と学びを共有する&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&#x27;+note(&#x27;日程は提案。開始前の9月中に、社内Kiro環境での動作確認を完了する。主催者指定の「10月開始・下期」を、上記の期間として計画している。&#x27;),</span></td></tr><tr class="rd"><td class="ln">83</td><td class="ln"></td><td class="mk">-</td><td class="cd">      notes=&<span class="t-c">#x27;毎週同じ時間に集まることは前提にしません。10月から翌3月までを提案期間とし、12月に中間共有、3月に最終共有を置きます。初期から試作に触れ、中間発表まで完成を待たないようにします。途中のテーマ変更も、試した結果に理由があれば認めます。休暇や繁忙期を踏まえ、実働20週を工数試算の仮定にしています。&#x27;),</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">82</td><td class="mk">+</td><td class="cd">      body=&<span class="t-c">#x27;&lt;div class=&quot;ws-phases&quot;&gt;&lt;svg class=&quot;ws-phase-path&quot; viewBox=&quot;0 0 1112 240&quot; role=&quot;img&quot; aria-label=&quot;10・11月の試作から、12・1月の再確認を経て、2・3月の他の人利用へ進む&quot;&gt;&lt;path d=&quot;M 355 107 h 21 m -6 -6 l 6 6 -6 6 M 736 107 h 21 m -6 -6 l 6 6 -6 6&quot; fill=&quot;none&quot; stroke=&quot;#747c6e&quot; stroke-width=&quot;2&quot;/&gt;&lt;/svg&gt;&lt;div&gt;&lt;p class=&quot;ws-date&quot;&gt;10・11月&lt;/p&gt;&lt;h3&gt;学習と作成&lt;/h3&gt;&lt;p&gt;概念教材を視聴する&lt;br&gt;課題を選択し、小さく作成する&lt;/p&gt;&lt;/div&gt;&lt;div&gt;&lt;p class=&quot;ws-date&quot;&gt;12・1月&lt;/p&gt;&lt;h3&gt;共有と修正&lt;/h3&gt;&lt;p&gt;12月に中間成果を共有する&lt;br&gt;他の人の反応で方向を再確認する&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;ws-phase-hot&quot;&gt;&lt;p class=&quot;ws-date&quot;&gt;2・3月&lt;/p&gt;&lt;h3&gt;他の人の利用&lt;/h3&gt;&lt;p&gt;他の人が試用し、改善する&lt;br&gt;3月に成果と学びを共有する&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&#x27;+note(&#x27;日程は提案。開始前の9月中に、社内Kiro環境での動作確認を完了する。「10月開始・下期」という決定済みの条件を、上記の期間として計画している。&#x27;),</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">83</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="毎週同じ時間に集まることは前提にしません。（8枚目の脚注は「主催者指定の「10月開始・下期」」であった）" data-w="8枚目の脚注から呼称を外し、決定済みの条件として書く。発表原稿の和語の述部（集まる）も漢語へそろえる。">      notes=&<span class="t-c">#x27;毎週同じ時間に集合することは前提にしません。10月から翌3月までを提案期間とし、12月に中間共有、3月に最終共有を置きます。初期から試作に触れ、中間発表まで完成を待たないようにします。途中のテーマ変更も、試した結果に理由があれば認めます。休暇や繁忙期を踏まえ、実働20週を工数試算の仮定にしています。&#x27;),</span></mark></td></tr><tr class="r"><td class="ln">84</td><td class="ln">84</td><td class="mk"> </td><td class="cd"> dict(label=&<span class="t-c">#x27;サポート体制&#x27;, title=&#x27;学習コンテンツと、運営への相談で支援する。&#x27;, cls=&#x27;ws-diagram&#x27;,</span></td></tr><tr class="r"><td class="ln">85</td><td class="ln">85</td><td class="mk"> </td><td class="cd">      intro=&<span class="t-c">#x27;運営に知識が集まっている前提で、参加者へ必要な支援を提供する。&#x27;,</span></td></tr><tr class="r"><td class="ln">86</td><td class="ln">86</td><td class="mk"> </td><td class="cd">      body=visuals.support()+note(&<span class="t-c">#x27;定例相談会の時間帯は未定。定時後に開催する場合は任意参加とし、Teams投稿でも相談を受け付ける。&#x27;),</span></td></tr><tr class="rd"><td class="ln">87</td><td class="ln"></td><td class="mk">-</td><td class="cd">      notes=&<span class="t-c">#x27;参加者同士で専門的なサポートを分担する前提は置きません。ブログや動画で学び、Teamsで主催者に相談できる体制にします。月1回のよろず相談会は開催案です。資料発表の準備を求めず、今の課題や相談したいことをざっくばらんに話す場にします。時間帯はまだ決まっていません。定時後になる場合は任意参加とし、相談内容の要点をTeamsに残します。参加できない人も投稿で同じ支援を受けられるようにします。&#x27;),</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">87</td><td class="mk">+</td><td class="cd">      notes=&<span class="t-c">#x27;参加者同士で専門的なサポートを分担する前提は置きません。ブログや動画で学び、Teamsで運営に相談できる体制にします。月1回の定例相談会は開催案です。資料発表の準備を求めず、今の課題や相談したいことをざっくばらんに話す場にします。時間帯はまだ決まっていません。定時後になる場合は任意参加とし、相談内容の要点をTeamsに残します。参加できない人も投稿で同じ支援を受けられるようにします。&#x27;),</span></td></tr><tr class="r"><td class="ln">88</td><td class="ln">88</td><td class="mk"> </td><td class="cd"> dict(label=&<span class="t-c">#x27;中間成果物発表&#x27;, title=&#x27;中間発表で、次に試すことを見つける。&#x27;, cls=&#x27;ws-sharing ws-diagram&#x27;,</span></td></tr><tr class="r"><td class="ln">89</td><td class="ln">89</td><td class="mk"> </td><td class="cd">      intro=&<span class="t-c">#x27;12月は、途中の成果と判断に迷っている点を共有する。&#x27;,</span></td></tr><tr class="r"><td class="ln">90</td><td class="ln">90</td><td class="mk"> </td><td class="cd">      body=visuals.meeting()+note(&<span class="t-c">#x27;発表用の動画制作は不要。開催日は調整し、必要に応じて会を分ける。&#x27;),</span></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 103 ／ 新 103 @@</td></tr><tr class="r"><td class="ln">103</td><td class="ln">103</td><td class="mk"> </td><td class="cd">          [&<span class="t-c">#x27;判断の準備&#x27;,&#x27;提案のたびに、必要な材料を探し直す&#x27;,&#x27;何が揃えば判断を始められるか&#x27;],</span></td></tr><tr class="r"><td class="ln">104</td><td class="ln">104</td><td class="mk"> </td><td class="cd">          [&<span class="t-c">#x27;関係者の調整&#x27;,&#x27;決まったことと保留事項が混ざってしまう&#x27;,&#x27;どこで認識がずれているか&#x27;],</span></td></tr><tr class="r"><td class="ln">105</td><td class="ln">105</td><td class="mk"> </td><td class="cd">          [&<span class="t-c">#x27;チームの相談&#x27;,&#x27;困りごとが、問題になってから分かる&#x27;,&#x27;どの場面なら相談しやすいか&#x27;]])+note(&#x27;メンバー個人を自動採点する題材より、仕事の状況と支援の必要性を共有する題材を推奨する。&#x27;),</span></td></tr><tr class="rd"><td class="ln">106</td><td class="ln"></td><td class="mk">-</td><td class="cd">      notes=&<span class="t-c">#x27;PM・PLの仕事を、文書作成だけに狭めないための補足です。進捗把握には情報収集、解釈、支援判断が含まれます。コミュニケーション活性化も、発言数を増やすことに固定せず、必要な相手に相談しやすくなったかを確認します。これらは主催者向けの題材候補で、受講者には課題選択後に必要なヒントだけを渡します。&#x27;),</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">106</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="これらは主催者向けの題材候補で、" data-w="16枚目の原稿の呼称をそろえる。「主催者向け」は、誰のための候補かが読み取れない表現でもある。">      notes=&<span class="t-c">#x27;PM・PLの仕事を、文書作成だけに狭めないための補足です。進捗把握には情報収集、解釈、支援判断が含まれます。コミュニケーション活性化も、発言数を増やすことに固定せず、必要な相手に相談しやすくなったかを確認します。これらは運営が用意した題材の候補で、受講者には課題選択後に必要なヒントだけを渡します。&#x27;),</span></mark></td></tr><tr class="r"><td class="ln">107</td><td class="ln">107</td><td class="mk"> </td><td class="cd"> dict(label=&<span class="t-c">#x27;付録｜利用環境&#x27;, title=&#x27;Kiroを共通の実行環境にし、Claudeは補助に使う。&#x27;,</span></td></tr><tr class="r"><td class="ln">108</td><td class="ln">108</td><td class="mk"> </td><td class="cd">      intro=&<span class="t-c">#x27;Claudeを使えない参加者も、必須課題を完了できる構成にする。&#x27;,</span></td></tr><tr class="r"><td class="ln">109</td><td class="ln">109</td><td class="mk"> </td><td class="cd">      body=table([&<span class="t-c">#x27;主環境：Kiro&#x27;,&#x27;補助環境：Claude&#x27;],[</span></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 194 ／ 新 194 @@</td></tr><tr class="r"><td class="ln">194</td><td class="ln">194</td><td class="mk"> </td><td class="cd">  notes=&<span class="t-c">#x27;共有の機会は12月と3月の2回です。12月はTeamsのWeb会議で、画面共有により途中の成果物を動かし、判断に迷っている点を話します。発表用動画の制作は求めません。1人5分と会話3分で、15名の場合は約120分を見込みます。3月はオフラインの交流会兼成果物発表会です。軽食を囲んで短いデモを紹介し、希望者へ仕組みを共有します。その場で試せないものは、後日1週間の試用期間へつなげます。人気投票と表彰は、交流を楽しむ企画として検討します。&#x27;)</span></td></tr><tr class="r"><td class="ln">195</td><td class="ln">195</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="r"><td class="ln">196</td><td class="ln">196</td><td class="mk"> </td><td class="cd">PREMISE = dict(label=&<span class="t-c">#x27;前提条件と未確定事項&#x27;, title=&#x27;開催条件は与件、それ以外は本日の了承後に確定する。&#x27;, cls=&#x27;ws-form&#x27;,</span></td></tr><tr class="rd"><td class="ln">197</td><td class="ln"></td><td class="mk">-</td><td class="cd">  intro=&<span class="t-c">#x27;主催者が指定した条件と、今回の提案で未確定の事項を区別する。&#x27;,</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">197</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="&#x27;主催者が指定した条件と、今回の提案で未確定の事項を区別する。&#x27;（14枚目の表と脚注、8枚目の脚注、発表原稿にも「主催者」が残っていた）" data-w="呼称を運営へ統一した結果、条件を指定した相手を指す語が宙に浮く。与件は状態で書く。相談会の名称も定例相談会へそろえた。">  intro=&<span class="t-c">#x27;開催前から決まっている条件と、今回の提案で未確定の事項を区別する。&#x27;,</span></mark></td></tr><tr class="r"><td class="ln">198</td><td class="ln">198</td><td class="mk"> </td><td class="cd">  body=table([&<span class="t-c">#x27;項目&#x27;,&#x27;状態&#x27;,&#x27;確定の時期&#x27;],[</span></td></tr><tr class="rd"><td class="ln">199</td><td class="ln"></td><td class="mk">-</td><td class="cd">    [&<span class="t-c">#x27;開催条件（10月開始・下期・Kiro主・約15名・Teams）&#x27;,&#x27;主催者指定の与件&#x27;,&#x27;確定済み&#x27;],</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">199</td><td class="mk">+</td><td class="cd">    [&<span class="t-c">#x27;開催条件（10月開始・下期・Kiro主・約15名・Teams）&#x27;,&#x27;決定済みの条件&#x27;,&#x27;確定済み&#x27;],</span></td></tr><tr class="r"><td class="ln">200</td><td class="ln">200</td><td class="mk"> </td><td class="cd">    [&<span class="t-c">#x27;社内Kiro環境の動作&#x27;,&#x27;未検証&#x27;,&#x27;9月中に確認する&#x27;],</span></td></tr><tr class="r"><td class="ln">201</td><td class="ln">201</td><td class="mk"> </td><td class="cd">    [&<span class="t-c">#x27;概念教材6本&#x27;,&#x27;構成案のみ、未制作&#x27;,&#x27;10月中に1本目を用意する&#x27;],</span></td></tr><tr class="r"><td class="ln">202</td><td class="ln">202</td><td class="mk"> </td><td class="cd">    [&<span class="t-c">#x27;運営担当と工数&#x27;,&#x27;未確保&#x27;,&#x27;本日の了承後に確定する&#x27;],</span></td></tr><tr class="r"><td class="ln">203</td><td class="ln">203</td><td class="mk"> </td><td class="cd">    [&<span class="t-c">#x27;利用環境と交流会の費用&#x27;,&#x27;未算定&#x27;,&#x27;9月・1月に見積もる&#x27;],</span></td></tr><tr class="r"><td class="ln">204</td><td class="ln">204</td><td class="mk"> </td><td class="cd">    [&<span class="t-c">#x27;主KPIの目標値&#x27;,&#x27;未設定&#x27;,&#x27;事前調査の後に設定する&#x27;]])</span></td></tr><tr class="rd"><td class="ln">205</td><td class="ln"></td><td class="mk">-</td><td class="cd">   +note(&<span class="t-c">#x27;ヘッダに「企画案」と記載した枚は、今回の提案である。上表の与件は、主催者が指定した条件である。&#x27;),</span></td></tr><tr class="rd"><td class="ln">206</td><td class="ln"></td><td class="mk">-</td><td class="cd">  notes=&<span class="t-c">#x27;本日の説明で、決まっている条件と、まだ決まっていない事項を区別します。開催条件は主催者から指定された与件です。社内Kiro環境の動作確認は9月中に実施します。概念教材は構成案までで、1本目は10月中に用意します。運営担当と工数、利用環境と交流会の費用、主KPIの目標値は、本日の了承のあとに確定します。&#x27;)</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">205</td><td class="mk">+</td><td class="cd">   +note(&<span class="t-c">#x27;ヘッダに「企画案」と記載した枚は、今回の提案である。上表の条件は、開催前から決まっているものである。&#x27;),</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">206</td><td class="mk">+</td><td class="cd">  notes=&<span class="t-c">#x27;本日の説明で、決まっている条件と、まだ決まっていない事項を区別します。開催条件は、開催前から決まっているものです。社内Kiro環境の動作確認は9月中に実施します。概念教材は構成案までで、1本目は10月中に用意します。運営担当と工数、利用環境と交流会の費用、主KPIの目標値は、本日の了承のあとに確定します。&#x27;)</span></td></tr><tr class="r"><td class="ln">207</td><td class="ln">207</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="r"><td class="ln">208</td><td class="ln">208</td><td class="mk"> </td><td class="cd">APPENDIX_INDEX = dict(label=&<span class="t-c">#x27;付録｜案内&#x27;, title=&#x27;付録は、題材・環境・設問の区分で構成する。&#x27;, cls=&#x27;ws-form&#x27;,</span></td></tr><tr class="r"><td class="ln">209</td><td class="ln">209</td><td class="mk"> </td><td class="cd">  intro=&<span class="t-c">#x27;必要な箇所から参照する。&#x27;,</span></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 326 ／ 新 326 @@</td></tr><tr class="r"><td class="ln">326</td><td class="ln">326</td><td class="mk"> </td><td class="cd">    suffix=suffix.replace(&quot;const prev = ()=&gt; show(i-<span class="t-n">1</span>);&quot;, &quot;const prev = ()=&gt; show(i-<span class="t-n">1</span>);\n  document.getElementById(&<span class="t-c">#x27;ws-prev&#x27;).addEventListener(&#x27;click&#x27;, prev);\n  document.getElementById(&#x27;ws-next&#x27;).addEventListener(&#x27;click&#x27;, next);\n  addEventListener(&#x27;hashchange&#x27;,()=&gt;{const n=parseInt(location.hash.slice(1),10)-1;if(Number.isFinite(n)&amp;&amp;n!==i)show(n);});&quot;)</span></td></tr><tr class="r"><td class="ln">327</td><td class="ln">327</td><td class="mk"> </td><td class="cd">    suffix += &<span class="t-c">#x27;\n&lt;/body&gt;&lt;/html&gt;\n&#x27;</span></td></tr><tr class="r"><td class="ln">328</td><td class="ln">328</td><td class="mk"> </td><td class="cd">    (OUT/&<span class="t-c">#x27;director-deck.html&#x27;).write_text(prefix+&#x27;\n&#x27;.join(slides)+suffix)</span></td></tr><tr class="rd"><td class="ln">329</td><td class="ln"></td><td class="mk">-</td><td class="cd">    notes=[f&<span class="t-c">#x27;# 部長向け発表原稿\n\n全{len(SLIDES)}枚。表紙1枚、本編14枚、付録{len(SLIDES)-15}枚。主催者の条件と、今回の運営提案を分けて説明します。\n&#x27;]</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">329</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="主催者の条件と、今回の運営提案を分けて説明します。" data-w="発表原稿の冒頭でも、与件を状態で書く。">    notes=[f&<span class="t-c">#x27;# 部長向け発表原稿\n\n全{len(SLIDES)}枚。表紙1枚、本編14枚、付録{len(SLIDES)-15}枚。決定済みの条件と、今回の運営提案を分けて説明します。\n&#x27;]</span></mark></td></tr><tr class="r"><td class="ln">330</td><td class="ln">330</td><td class="mk"> </td><td class="cd">    <span class="t-k">for</span> i,s <span class="t-k">in</span> enumerate(SLIDES,<span class="t-n">1</span>):</td></tr><tr class="r"><td class="ln">331</td><td class="ln">331</td><td class="mk"> </td><td class="cd">        notes.append(f&<span class="t-c">#x27;## {i:02d}　{re.sub(&quot;&lt;[^&gt;]*&gt;&quot;, &quot;&quot;, s[&quot;title&quot;])}\n\n{s[&quot;notes&quot;]}\n&#x27;)</span></td></tr><tr class="r"><td class="ln">332</td><td class="ln">332</td><td class="mk"> </td><td class="cd">    (OUT/&<span class="t-c">#x27;speaker-notes.md&#x27;).write_text(&#x27;\n&#x27;.join(notes))</span></td></tr></tbody></table></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
