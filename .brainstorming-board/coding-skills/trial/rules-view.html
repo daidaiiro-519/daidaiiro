@@ -19,8 +19,7 @@ padding-bottom:var(--sp-2);margin:0 0 var(--sp-5)}
 .rule{border:var(--bw-hair) solid var(--rule);border-left:var(--bw-accent) solid var(--key);
 border-radius:var(--rd-lg);background:var(--card);padding:var(--sp-5) var(--sp-7);
 margin:0 0 var(--sp-5)}
-.claim{display:flex;gap:var(--sp-4);align-items:baseline;flex-wrap:wrap;
-margin:0 0 var(--sp-4)}
+.claim{display:flex;gap:var(--sp-4);align-items:baseline;flex-wrap:wrap;margin:0 0 var(--sp-4)}
 .claim h3{font-size:1.06rem;margin:0;flex:1 1 20rem}
 .dir{font-size:var(--fs-3xs);font-weight:700;letter-spacing:var(--tr-wide);
 border:var(--bw-hair) solid currentColor;border-radius:var(--rd-sm);
@@ -35,11 +34,20 @@ font-size:var(--fs-sm)}
 dt{color:var(--muted);font-size:var(--fs-3xs);font-weight:700;letter-spacing:var(--tr-wide);
 padding-top:.25rem}
 dd{margin:0}
+/* **規則の中身を、いちばん上に置く** ── コードを書くのに要るのはこれである。
+   3要素（出典 ・ 採用範囲 ・ 検証方法）は、その値がなぜ正しいかを示すものである */
+dd.payload{background:var(--sunk);border-radius:var(--rd-sm);
+padding:var(--sp-2) var(--sp-5);font-weight:700}
 .kind{font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
 border:var(--bw-hair) solid currentColor;border-radius:var(--rd-xs);padding:0 var(--sp-2)}
 .k-src{color:var(--src-o)} .k-rule{color:var(--muted)}
 code{font-family:"JetBrains Mono",monospace;font-size:var(--fs-xs);
 background:var(--sunk);border-radius:var(--rd-xs);padding:0 var(--sp-2)}
+.gap{border:var(--bw-hair) dashed var(--warn);border-radius:var(--rd-lg);
+background:var(--warn-soft);padding:var(--sp-5) var(--sp-7);margin:0 0 var(--sp-9)}
+.gap h2{font-size:var(--fs-sm);color:var(--warn);margin:0 0 var(--sp-2);
+letter-spacing:var(--tr-wide)}
+.gap ul{margin:0;padding-left:var(--sp-8);font-size:var(--fs-sm);color:var(--muted)}
 footer{color:var(--dim);font-size:var(--fs-xs);border-top:var(--bw-hair) solid var(--rule);
 padding-top:var(--sp-5);margin-top:var(--sp-9)}
 </style>
@@ -48,13 +56,15 @@ padding-top:var(--sp-5);margin-top:var(--sp-9)}
 <div class="wrap">
 <h1>適用される規則　5件</h1>
 <p class="lede">この頁は規則から組んだ<b>生成物</b>である ── 一覧を別に保持しない（論点1）。
-主張は原典が持ち、ここに写しは無い。</p>
+主張は原典が持ち、ここに写しは無い。<b>いちばん上の欄が規則の中身である</b> ──
+コードを書くのに要るのはそれで、出典と採用範囲は、その値がなぜ正しいかを示す。</p>
 <div class="vals"><span class="val">アーキテクチャ=hexagonal</span><span class="val">言語=go</span><span class="val">接点=cli</span></div>
 <section class="axis"><h2>アーキテクチャ=hexagonal <small>2件</small></h2><article class="rule">
   <div class="claim"><span class="dir dir-out">出典 外</span>
     <h3>内側は外側を参照しない</h3>
     <span class="st st-ok">合格</span></div>
   <dl>
+    <dt>許可辺</dt><dd class="payload">adapter → usecase　／　usecase → domain</dd>
     <dt>出典</dt><dd><span class="kind k-src">原典</span> hexagonal-cockburn　／　引用「The application is … insulated from … devices」</dd>
     <dt>採用範囲</dt><dd>許可辺のみ。層の数と名前は採用しない</dd>
     <dt>検証方法</dt><dd><code>go list -deps ./…　（対象：許可辺）</code></dd>
@@ -64,6 +74,7 @@ padding-top:var(--sp-5);margin-top:var(--sp-9)}
     <h3>層は次のパスに置く</h3>
     <span class="st st-none">未検証</span></div>
   <dl>
+    <dt>層</dt><dd class="payload">domain → <code>internal/domain</code>　／　usecase → <code>internal/usecase</code>　／　adapter → <code>internal/adapter</code></dd>
     <dt>出典</dt><dd><span class="kind k-rule">ADR</span> .acdr/NNNN-hexagonal-and-internal-layout　（まだ存在しない）</dd>
     <dt>採用範囲</dt><dd>この成果物に限る</dd>
     <dt>検証方法</dt><dd><code>test -d　（対象：層の値それぞれ）</code></dd>
@@ -73,6 +84,7 @@ padding-top:var(--sp-5);margin-top:var(--sp-9)}
     <h3>識別子の頭字語は、大文字か小文字でそろえる</h3>
     <span class="st st-ok">合格</span></div>
   <dl>
+    <dt>例</dt><dd class="payload"><code>URL</code> ・ <code>url</code> は可　／　<code>Url</code> は不可</dd>
     <dt>出典</dt><dd><span class="kind k-src">原典</span> go.dev/wiki/CodeReviewComments（取得日 2026-09-15）　／　引用「Words in names that are initialisms or acronyms … have a consistent case」</dd>
     <dt>採用範囲</dt><dd>識別子の綴りのみ</dd>
     <dt>検証方法</dt><dd><code>gofmt -l .　（対象：0件であること）</code></dd>
@@ -82,6 +94,7 @@ padding-top:var(--sp-5);margin-top:var(--sp-9)}
     <h3>有効にする lint の集合</h3>
     <span class="st st-none">未検証</span></div>
   <dl>
+    <dt>集合</dt><dd class="payload"><code>go vet</code> ・ <code>staticcheck</code></dd>
     <dt>出典</dt><dd><span class="kind k-rule">ADR</span> .acdr/NNNN-which-linters　（まだ存在しない）</dd>
     <dt>採用範囲</dt><dd>この成果物に限る　／　go vet ・ golint は原典に無い</dd>
     <dt>検証方法</dt><dd><code>工程が無い</code></dd>
@@ -91,11 +104,14 @@ padding-top:var(--sp-5);margin-top:var(--sp-9)}
     <h3>コマンドが見つからないときの終了コードは 127 である</h3>
     <span class="st st-none">未検証</span></div>
   <dl>
+    <dt>値</dt><dd class="payload"><code>126</code> 実行できない　／　<code>127</code> 見つからない　／　<code>128+n</code> signal n で終了</dd>
     <dt>出典</dt><dd><span class="kind k-src">原典</span> POSIX Shell Command Language 2.8.2（取得日 2026-09-20）　／　引用「If the command is not found, the exit status shall be 127.」</dd>
     <dt>採用範囲</dt><dd>シェルが割り当てる値のみ。アプリケーションが返す値は含まない</dd>
     <dt>検証方法</dt><dd><code>工程が無い</code></dd>
   </dl>
 </article></section>
+<section class="gap"><h2>まだ規則が無い項目　7件（アーキテクチャの軸だけで）</h2>
+<ul><li>永続化の実装位置</li><li>依存注入の位置（合成の場所）</li><li>マイグレーションの位置</li><li>エラー型の配置</li><li>出力ポートの有無</li><li>最外層の名称</li><li>テストの配置</li></ul></section>
 <footer>状態は3つである ── 合格 ／ 不合格 ／ <b>未検証</b>（検証の工程が無い規則）。
 判定は CI が出し、この頁は判定を読むだけである（論点11）。</footer>
 </div>
