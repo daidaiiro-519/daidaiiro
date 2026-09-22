@@ -11,3 +11,4 @@
 `coding-skills/` が、いま進めているブレストボードである。11の論点を持つ ── 論点1〜8 が規則1件の形、論点9〜11 がそれを使う仕組みである。
 
 `coding-rule-form/` は 2026-09-21 に `coding-skills/` へ統合した。**CodingSkills のブレストボードは1枚だけである** ── 前提が別のボードに在ると、どちらが正しいかを毎回確認することになる。統合前の Artifact `https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` は、まだ消していない。
+| `narration-skill/` | 学習教材の音声を作るSkill | （未発行） | （未複製） |

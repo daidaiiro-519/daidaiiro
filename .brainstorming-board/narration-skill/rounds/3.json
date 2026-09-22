@@ -1,0 +1,488 @@
+{
+ "round": 3,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この答えが、残る4件の問いの形を決定する。範囲が動画の組み立てまで及ぶと、実行の場所も入出力も別の問いになる。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>このSkillの責務は、音声の生成と再現性に限定する。</p><ol><li>入力は、枚ごとに区切られた原稿である</li><li>出力は、枚ごとの音声ファイルと、尺の記録（各文と各語の開始時刻）である</li><li>動画への結合、スライドの画像化、再生の制御は受け持たない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "原稿から、枚ごとの音声と尺の記録までを受け持つ。動画への結合は、スライドを保持する側が受け持つ。"
+    ]
+   ],
+   "figures": [
+    [
+     "原稿から音声と尺までがこのSkillの受け持ちで、結合はスライドを保持する側が行う",
+     "185fe4a29ee3"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 原稿1枚を音声にし、同じ原稿から尺を取る。どちらも Polly の同じ操作で得られる。</p><pre><code><pre><code>aws polly synthesize-speech \\\n  --text-type ssml --text \"&lt;speak&gt;下期AI活用ワークショップの企画をご説明します。&lt;/speak&gt;\" \\\n  --voice-id Takumi --engine neural --output-format mp3 slide-01.mp3\n\naws polly synthesize-speech \\\n  --output-format json \\\n  --speech-mark-types='[\"word\", \"sentence\"]' \\\n  --text-type ssml --text \"&lt;speak&gt;…&lt;/speak&gt;\" \\\n  --voice-id Takumi --engine neural slide-01.marks.json</code></pre></code></pre><p class=\"note-s\">尺の記録が在ると、結合する側は枚の表示時間を自分で測る必要がない。音声側が知っている事実を、そのまま渡す形である。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "音声と尺まで",
+     "原稿を受け取り、枚ごとの音声と、各文と各語の開始時刻を返す",
+     "動画にするには、結合する側の手順が別に要る"
+    ],
+    [
+     "音声だけ",
+     "原稿を受け取り、枚ごとの音声だけを返す",
+     "枚の表示時間を、結合する側が音声の長さから測ることになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "音声付き動画まで受け持つ",
+     "合成と映像の結合という2つの仕事が1つのSkillへ入る。枚と尺の対応はスライド側の知識なので、音声側がスライドの並びを知ることになり、slide-deck Skill と同じ知識を2か所が保持する"
+    ],
+    [
+     "HTMLのスライドへ音声を埋め込むまで受け持つ",
+     "配る形が動画ではなくブラウザの頁になる。企画デッキが約束した「音声付きの短い動画」と一致しない。再生位置の制御も自前で持つことになる"
+    ],
+    [
+     "原稿の作成から受け持つ",
+     "原稿は教材の設計そのもので、音声の都合とは別の判断で決まる。合成の都合が原稿の内容へ流入する"
+    ],
+    [
+     "音声だけを返し、尺を返さない",
+     "尺は合成と同じ操作から取得できる事実である。返さないと、結合する側が音声を解析して測り直すことになり、測り方が相手ごとに相違する"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "<b class=\"lead-s\">同期の合成は、入力が3000課金文字（総6000文字）までである</b><div class=\"sub-s\">1枚のナレーションはこの範囲に収まる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">S3が必須になるのは非同期の合成のほうである</b><div class=\"sub-s\">同期の合成は音声をその場で返す</div>"
+    ],
+    [
+     "<b class=\"lead-s\">尺は、音声と同じ操作から別の出力形式として取得できる</b><div class=\"sub-s\">音声を解析する処理は不要である</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "枚ごとに区切られた原稿の形を決定する（次の論点で扱う）"
+    ],
+    [
+     "音声と尺の出力先の命名規則を決定する（次の論点で扱う）"
+    ],
+    [
+     "結合する側へ、尺の記録の読み方を渡す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "動画への結合の手順",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で、継ぎ目の形として決定する"
+    ],
+    [
+     "日本語の声の選択と読み間違いの補正",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決定する"
+    ],
+    [
+     "教材の原稿そのものの作成",
+     "<span class=\"kind k-rule\">対象外</span> ── 教材の設計の作業であり、この板の対象ではない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "音声と尺まで",
+     "Skillが保持する知識は、声・読み方・合成の条件だけになる",
+     "結合する側は、尺の記録を読めば枚の表示時間を決定できる",
+     "ffmpeg などの映像の道具に依存しない"
+    ],
+    [
+     "案ごとの帰結",
+     "音声だけ",
+     "出力は1種類で済む",
+     "尺は音声から測ることになり、測り方が結合する側ごとに相違する",
+     "語の単位での同期（字幕・強調）は実現できない"
+    ]
+   ],
+   "grounds": [
+    [
+     "1枚ぶんの原稿を、その場で音声にできること",
+     "The size of the input text can be up to 3000 billed characters (6000 total characters).",
+     "primary",
+     "Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）"
+    ],
+    [
+     "S3を必須にしない判断",
+     "directly to your (required) Amazon Simple Storage Service (Amazon S3) bucket",
+     "primary",
+     "Amazon Polly Developer Guide / Long audio files（2026-09-22 取得。非同期の合成の記述である）"
+    ],
+    [
+     "尺の記録を出力に含める判断",
+     "--speech-mark-types='[\"viseme\", \"word\", \"sentence\"]'",
+     "primary",
+     "Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）"
+    ],
+    [
+     "教材の形を動画とすること",
+     "承認済みの企画デッキが「音声付きの短い動画」と規定する",
+     "rule",
+     "docs/workshops/ai-workshop/director-deck.html 8枚目・ACDR 0011"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "合成をどこで動かすかで、用意する物と、続ける費用が変わる。受け持ちが音声と尺だけなので、映像の道具は要らない。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>教材の最終の形は、音声付きのスライド動画である。その道筋を、手元だけで閉じる。</p><ol><li>このSkillは、同期の synthesize-speech を手元で呼び、音声と尺を受け取る</li><li><b class=\"lead-s\">スライドとの結合も手元で行う</b><div class=\"sub-s\">受け持つのはスライドを保持する側である</div></li><li>CodeBuild ・ Lambda ・ S3 は、どちらの段でも用意しない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "合成も結合も手元で完結し、最後に音声付きスライド動画ができる。ジョブの基盤もS3も用意しない。"
+    ]
+   ],
+   "figures": [
+    [
+     "合成から結合までが手元で閉じ、最後に音声付きスライド動画ができる ── 枠の中がこのSkillの受け持ちである",
+     "34188c4bd0ca"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 1枚ぶんを合成し、スライドの画像と結合するまで。どちらも手元のコマンドで完結する。</p><pre><code><pre><code>$ aws polly synthesize-speech --voice-id Takumi --engine neural \\\n    --output-format mp3 --text-type ssml --text \"&lt;speak&gt;…&lt;/speak&gt;\" audio/slide-01.mp3\n$ aws polly synthesize-speech --voice-id Takumi --engine neural \\\n    --output-format json --speech-mark-types='[\"word\", \"sentence\"]' \\\n    --text-type ssml --text \"&lt;speak&gt;…&lt;/speak&gt;\" audio/slide-01.marks.json\n\n# ここから先は、スライドを保持する側の手順である\n$ ffmpeg -loop 1 -i previews/slide-01.png -i audio/slide-01.mp3 \\\n    -shortest -pix_fmt yuv420p movie/slide-01.mp4</code></pre></code></pre><p class=\"note-s\">スライドの画像は、既に枚ごとのPNGとして出力している。37枚の教材でも、合成の呼び出しは74回で済む。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "手元のCLI",
+     "教材を作る人の端末で `aws polly synthesize-speech` を実行する",
+     "端末にAWSの認証情報と、リージョンの設定が要る"
+    ],
+    [
+     "AWS上のジョブ",
+     "CodeBuild などで合成を実行し、成果物を取り出す",
+     "実行基盤・権限・成果物の取り出しの3つを、教材のために保守する"
+    ]
+   ],
+   "dropped": [
+    [
+     "CodeBuild で合成を実行する",
+     "継続的に走らせる要求が無い。教材の制作は運営が随時行う作業であり、実行基盤を用意しても、保守する対象が増えるだけである"
+    ],
+    [
+     "Lambda と S3 で非同期に合成する",
+     "非同期の合成はS3を必須とする。1枚ぶんは同期の上限に収まるため、置き場を用意する理由が無い"
+    ],
+    [
+     "ブラウザから合成する",
+     "認証情報を画面側へ置くことになる。手元のCLIで足りる用途で、資格情報の置き場所を増やす"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>手元でAWS CLIを実行する。ジョブの基盤もS3も用意しない。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これって音声ありのスライドデッキ動画の認識であってるよね？</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">答えが合成の実行場所だけを述べ、最後に何ができるかを述べていなかった</b><div class=\"sub-s\">読み手は、動画になるところまでを確認できない</div></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>実行の場所そのもの（手元のCLI）は変更していない。除外した案も同一である</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "1枚ぶんの原稿は、同期の合成の上限（3000課金文字）に収まる"
+    ],
+    [
+     "尺は音声と同じ操作から取得できるので、実行の場所を分ける理由が無い"
+    ],
+    [
+     "教材の制作に、継続的な自動実行の要求は無い"
+    ],
+    [
+     "<b class=\"lead-s\">最後にできるものは、音声付きのスライド動画である</b><div class=\"sub-s\">合成はその1段目である</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "合成に使うAWSのプロファイルと、リージョンを決定する"
+    ],
+    [
+     "音声と尺の置き場所（リポジトリ内のディレクトリ）を決定する"
+    ],
+    [
+     "課金文字の見積もりを、教材の総文字数から算出する"
+    ],
+    [
+     "結合に使う道具（ffmpeg など）を、スライドを保持する側で決定する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "結合の手順そのもの（画像と音声の合わせ方）",
+     "<span class=\"kind k-given\">後続で決定</span> ── スライドを保持する側の作業である。継ぎ目の形が決着した後に決定する"
+    ],
+    [
+     "教材が数百本へ増えた場合の一括合成",
+     "<span class=\"kind k-given\">後続で決定</span> ── 本数が増えた時点で、実行の場所を問い直す"
+    ],
+    [
+     "音声の配信（社内での公開先）",
+     "<span class=\"kind k-rule\">対象外</span> ── 教材の配り方の作業であり、この板の対象ではない"
+    ],
+    [
+     "この答えを試す外の作業 ── 1枚ぶんを手元で合成し、動画にするまでを通す試作",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3の決着後に、2つのJSONの形ごと試す"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "手元のCLI",
+     "用意するのは認証情報だけである",
+     "合成のたびに結果をその場で聞いて確認できる",
+     "端末が変わると、認証情報の用意をやり直す"
+    ],
+    [
+     "案ごとの帰結",
+     "AWS上のジョブ",
+     "合成の実行を自動化できる",
+     "教材1本のために、保守する対象が3つ増える",
+     "結果を聞くまでに、取り出しの手順が挟まる"
+    ]
+   ],
+   "grounds": [
+    [
+     "同期の合成で足りるという判断",
+     "The size of the input text can be up to 3000 billed characters (6000 total characters).",
+     "primary",
+     "Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）"
+    ],
+    [
+     "S3を用意しない判断",
+     "directly to your (required) Amazon Simple Storage Service (Amazon S3) bucket",
+     "primary",
+     "Amazon Polly Developer Guide / Long audio files（2026-09-22 取得。非同期の合成の記述である）"
+    ],
+    [
+     "受け持ちが音声と尺に限定されること",
+     "論点1で、動画への結合を受け持たないと決着した",
+     "rule",
+     "この板の論点1"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "境界を越える値は、原稿と、音声・尺である。その受け渡しの形が、slide-deck Skill との結び付きの強さを決定する。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>継ぎ目は、2つのJSONだけにする。</p><ol><li><b class=\"lead-s\">入力は `narration.json`</b><div class=\"sub-s\">枚のidと、読み上げる文を持つ</div></li><li><b class=\"lead-s\">出力は `narration.out.json`</b><div class=\"sub-s\">枚のidごとに、音声・尺・長さの場所を持つ</div></li><li>発表原稿の見出しの規則も、slide-deck の内部構造も参照しない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "枚ごとの原稿を持つ1つのJSONを受け取り、音声・尺・長さを書いたJSONを返す。相手の内部形式を参照しない。"
+    ]
+   ],
+   "figures": [
+    [
+     "境界を越えるのは2つのJSONだけで、呼ぶ側と結合する側はSkillの中を参照しない",
+     "23f158c364e4"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 呼ぶ側が入力を作り、Skillが出力を返す。idだけが両者の共通の語である。</p><pre><code><pre><code>// narration.json（呼ぶ側が作る）\n{\n  \"voice\": \"Takumi\", \"engine\": \"neural\",\n  \"items\": [\n    { \"id\": \"slide-01\", \"text\": \"下期AI活用ワークショップの企画をご説明します。\" }\n  ]\n}\n\n// narration.out.json（このSkillが返す）\n{\n  \"items\": [\n    { \"id\": \"slide-01\",\n      \"audio\": \"audio/slide-01.mp3\",\n      \"marks\": \"audio/slide-01.marks.json\",\n      \"durationMs\": 12480 }\n  ]\n}</code></pre></code></pre><p class=\"note-s\">結合する側は `durationMs` を読めば、枚の表示時間を決定できる。音声を解析する処理は要らない。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "2つのJSON",
+     "枚のidと文を持つ入力と、音声・尺・長さを持つ出力で受け渡す",
+     "呼ぶ側が、原稿から入力のJSONを組む手順を持つ"
+    ],
+    [
+     "発表原稿を直接読む",
+     "slide-deck が出力する発表原稿の見出しを解析して枚に分ける",
+     "見出しの規則が変わるたびに、音声側が追従する"
+    ]
+   ],
+   "dropped": [
+    [
+     "発表原稿（speaker-notes.md）を直接読む",
+     "見出しの規則に音声側が依存する。この企画デッキでは、見出しの形を実際に一度変更した（ACDR 0010）。同じことが起きると、音声側が無言で枚を取り違える"
+    ],
+    [
+     "slide-deck Skill の内部のデータ構造を共有する",
+     "両者が同じ構造を知ることになり、片方の変更がもう片方へ波及する。Skill同士が互いの内部形式を事前に知らなくてよくするという、この配線の原則に反する"
+    ],
+    [
+     "音声ファイルだけを返し、長さを返さない",
+     "結合する側が音声を解析して長さを測ることになる。測り方が相手ごとに相違し、同じ入力から違う動画が出る"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "両者の共通の語は、枚のidだけで足りる"
+    ],
+    [
+     "長さを出力に含めると、結合する側は音声を解析しなくてよい"
+    ],
+    [
+     "<b class=\"lead-s\">見出しの規則は変わる</b><div class=\"sub-s\">実際に、この企画デッキで変更した</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "枚のidの命名規則を決定する（slide-deck の枚の番号と一致させるか）"
+    ],
+    [
+     "読み上げる文を、原稿のどの部分から取るかを呼ぶ側で決定する"
+    ],
+    [
+     "入力のJSONの形を、JSON Schema として保存する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "SSMLの記述（間・読み・速度）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 声と読み方の論点で、どちらが書くかを決定する"
+    ],
+    [
+     "原稿から入力のJSONを組む手順",
+     "<span class=\"kind k-given\">後続で決定</span> ── 呼ぶ側の作業である。継ぎ目の形が決着した後に、slide-deck 側で決定する"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "2つのJSON",
+     "両者が知るのは枚のidだけになる",
+     "呼ぶ側が原稿以外（章の見出しなど）を読ませる余地を持たない",
+     "入力を組む手順が、呼ぶ側に1つ増える"
+    ],
+    [
+     "案ごとの帰結",
+     "発表原稿を直接読む",
+     "呼ぶ側の手順は増えない",
+     "見出しの規則の変更が、音声側の不具合として現れる",
+     "原稿の書式が、合成の都合で制約される"
+    ]
+   ],
+   "grounds": [
+    [
+     "尺を出力に含める判断",
+     "--speech-mark-types='[\"viseme\", \"word\", \"sentence\"]'",
+     "primary",
+     "Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）"
+    ],
+    [
+     "見出しへの依存を避ける判断",
+     "見出しを主題と要点の名詞句へ変更した（全枚）",
+     "rule",
+     "ACDR 0010（承認済み）"
+    ],
+    [
+     "内部形式を渡さない判断",
+     "Skillの内部形式に合わせて整形せず、テキストのまま渡す",
+     "rule",
+     "CLAUDE.md 委譲パターン"
+    ],
+    [
+     "受け持ちが音声と尺であること",
+     "論点1で、出力を音声と尺の記録に限定した",
+     "rule",
+     "この板の論点1"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "合成は課金文字で課金される。全枚の作り直しを既定にするかどうかを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "継ぎ目の形（論点3）が決着してから開く。変更の検出の単位が、その形で決定するためである。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を開く時期",
+     "論点3で、入力のJSONが枚のidと文を持つ形に決まる",
+     "rule",
+     "この板の論点3"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     "教材の聞きやすさを決める。補正の持ち方は、継ぎ目の形に依存する。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "継ぎ目の形（論点3）が決着してから開く。SSMLを誰が書くかが、その形に依存するためである。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を開く時期",
+     "論点3で、SSMLの記述を「声と読み方」で決めると整理した",
+     "rule",
+     "この板の論点3"
+    ]
+   ]
+  }
+ }
+}

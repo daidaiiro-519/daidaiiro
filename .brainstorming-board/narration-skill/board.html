@@ -1,0 +1,423 @@
+<title>学習教材の音声を作るSkill</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 組み上がりを、周りから1段浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+</style><div id="root" data-board="narration-skill" data-round="8" data-theme-name="学習教材の音声を作るSkill"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　学習教材の音声を作るSkill　/　Round 8</p><h1>学習教材の音声を作るSkill</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>受け持ち範囲<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>実行の場所<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q3</span>継ぎ目の形<span class="st done">決着</span></button><button data-t="p4" aria-selected="false"><span class="tn">Q4</span>作り直しの単位<span class="st done">決着</span></button><button data-t="p5" aria-selected="false"><span class="tn">Q5</span>声と読み方<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}#p5 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>ワークショップの概念教材は、音声付きの短いスライド動画である。その音声を Amazon Polly で作るSkillを、どこまで受け持たせ、どこで実行し、何を入出力にするかを決める。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>このSkillは、原稿からどこまでを受け持つか</td><td><span class="st done">決着</span></td><td>原稿から、枚ごとの音声と尺の記録までを受け持つ。動画への結合は、スライドを保持する側が受け持つ。</td></tr><tr><td><span class="n">2</span></td><td>Pollyの合成を、どこで実行するか（手元のCLI ／ AWS上のジョブ）</td><td><span class="st done">決着</span></td><td>端末には何も入れない。イメージの作成も教材の作成もCodeBuildで実行し、成果物はS3へ出す。</td></tr><tr><td><span class="n">3</span></td><td>原稿をどの形で受け取り、音声と尺をどの形で返すか（slide-deck Skill との継ぎ目）</td><td><span class="st done">決着</span></td><td>2つのJSONで受け渡す。枚のidはスライド側が出したものをそのまま使い、音声側は採番しない。</td></tr><tr><td><span class="n">4</span></td><td>原稿が変わった枚だけを合成し直す判定を、どう持つか。成果物をどこへ置くか</td><td><span class="st done">決着</span></td><td>読み上げる文・声・エンジンから鍵をつくり、その鍵を音声の名前にしてS3へ置く。鍵が在れば取り出し、無ければ合成する。</td></tr><tr><td><span class="n">5</span></td><td>日本語の声をどう選び、読み間違いをどう補正するか</td><td><span class="st done">決着</span></td><td>日本語のニューラルの声を1つに固定し、読みの補正は辞書へ集約する。原稿にも入力にも読み仮名を書かない。</td></tr></table></div><details><summary>この回で変わったところ（0 か所）</summary><div><p class="note-s">前の回から、中身は1つも変わっていない。</p></div></details><details><summary>決まったこと</summary><div><div class="scroll"><table class="fact"><thead><tr><th></th><th>決まったこと</th></tr></thead><tbody><tr><th>受け持ち範囲</th><td>原稿から、枚ごとの音声と尺の記録まで。動画への結合はスライドを保持する側が受け持つ</td></tr><tr><th>実行の場所</th><td>端末には何も入れない。イメージの作成も教材の作成もCodeBuildで実行し、成果物はS3へ出す</td></tr><tr><th>継ぎ目の形</th><td>2つのJSONで受け渡す。枚のidはスライド側が出したものを使い、音声側は採番しない</td></tr><tr><th>作り直しの単位</th><td>文・声・エンジンから鍵をつくり、その鍵を音声の名前にする。鍵が在れば取り出す</td></tr><tr><th>声と読み方</th><td>日本語のニューラルの声を1つに固定し、読みの補正は辞書へ集約する</td></tr></tbody></table></div></div></details><details><summary>次にすること</summary><div><ol><li><b class="lead-s">試作する</b><div class="sub-s">1枚ぶんを、合成から動画まで通す。3つの声で聞き比べ、辞書の適用前後も確認する</div></li><li><b class="lead-s">Skillの器を作る</b><div class="sub-s">skills-creator で組み、doc-writing-skills の判定を適用する</div></li><li><b class="lead-s">決定を記録へ移す</b><div class="sub-s">この板の5件を、acdr で1件の記録にして正本へ適用する</div></li></ol></div></details><details><summary>保留</summary><div><div class="scroll"><table class="fact"><thead><tr><th></th><th>どうするか</th></tr></thead><tbody><tr><th>社内でECRとCodeBuildを作成できるか</th><td>未確認である。作成できない場合は、実行の場所の論点を開き直す</td></tr><tr><th>どの声にするか</th><td>3つの声で同じ1枚を合成し、聞いて決める。聞かずには決まらない</td></tr><tr><th>課金文字の費用</th><td>教材の総文字数が確定した時点で算出する</td></tr></tbody></table></div></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>このSkillは、原稿からどこまでを受け持つか</h2></div><div class="note">この答えが、残る4件の問いの形を決定する。範囲が動画の組み立てまで及ぶと、実行の場所も入出力も別の問いになる。</div><div class="ans"><span class="big">A</span><p>このSkillの責務は、音声の生成と再現性に限定する。</p><ol><li>入力は、枚ごとに区切られた原稿である</li><li>出力は、枚ごとの音声ファイルと、尺の記録（各文と各語の開始時刻）である</li><li>動画への結合、スライドの画像化、再生の制御は受け持たない</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,735px)" class="wf-fig" viewBox="0 0 735 156" height="156" role="img"><g transform="translate(6.0,6.0)"><path d="M100.6,72.0 L171.5,70.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="171.5,70.9 164.7,73.4 164.6,68.5" fill="#C3CAD2"/><rect x="122.0" y="61.4" width="28.0" height="16.0" fill="#F5F7F9"/><text x="136.0" y="75.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">原稿</text><path d="M515.5,70.9 L586.2,72.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="586.2,72.0 579.4,74.4 579.5,69.4" fill="#C3CAD2"/><rect x="526.9" y="61.4" width="48.0" height="16.0" fill="#F5F7F9"/><text x="550.9" y="75.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">音声と尺</text><g class="wf-node" transform="translate(0.0,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">枚ごとの原稿</text></g></g><g class="wf-node" transform="translate(172.0,0.0)"><rect x="0.0" y="16.0" width="343.0" height="128.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M139.6,44.0 L202.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="202.4,16.0 197.2,21.0 195.2,16.5" fill="#C3CAD2"/><path d="M139.6,44.0 L202.4,72.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="202.4,72.0 195.2,71.5 197.2,67.0" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="139.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="69.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Pollyで音声にする</text></g></g><g class="wf-node" transform="translate(203.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">枚ごとの音声</text></g></g><g class="wf-node" transform="translate(203.0,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">尺の記録</text></g></g></g></g><rect x="8.0" y="7.0" width="110.5" height="15.0" fill="#F5F7F9"/><text x="63.2" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">このSkillの受け持ち</text></g><g class="wf-node" transform="translate(587.0,56.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">スライドと結合する</text></g></g></g></svg><figcaption>原稿から音声と尺までがこのSkillの受け持ちで、結合はスライドを保持する側が行う</figcaption></figure></div><div class="ex"><p>実例 ── 原稿1枚を音声にし、同じ原稿から尺を取る。どちらも Polly の同じ操作で得られる。</p><pre><code><pre><code>aws polly synthesize-speech \
+  --text-type ssml --text "&lt;speak&gt;下期AI活用ワークショップの企画をご説明します。&lt;/speak&gt;" \
+  --voice-id Takumi --engine neural --output-format mp3 slide-01.mp3
+
+aws polly synthesize-speech \
+  --output-format json \
+  --speech-mark-types='["word", "sentence"]' \
+  --text-type ssml --text "&lt;speak&gt;…&lt;/speak&gt;" \
+  --voice-id Takumi --engine neural slide-01.marks.json</code></pre></code></pre><p class="note-s">尺の記録が在ると、結合する側は枚の表示時間を自分で測る必要がない。音声側が知っている事実を、そのまま渡す形である。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>音声と尺まで</b></td><td>原稿を受け取り、枚ごとの音声と、各文と各語の開始時刻を返す</td><td><span class="cost">動画にするには、結合する側の手順が別に要る</span></td></tr><tr><td><span class="n">B</span></td><td><b>音声だけ</b></td><td>原稿を受け取り、枚ごとの音声だけを返す</td><td><span class="cost">枚の表示時間を、結合する側が音声の長さから測ることになる</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="合成と映像の結合という2つの仕事が1つのSkillへ入る。枚と尺の対応はスライド側の知識なので、音声側がスライドの並びを知ることになり、slide-deck Skill と同じ知識を2か所が保持する"><b>音声付き動画まで受け持つ</b></mark></td><td>合成と映像の結合という2つの仕事が1つのSkillへ入る。枚と尺の対応はスライド側の知識なので、音声側がスライドの並びを知ることになり、slide-deck Skill と同じ知識を2か所が保持する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="配る形が動画ではなくブラウザの頁になる。企画デッキが約束した「音声付きの短い動画」と一致しない。再生位置の制御も自前で持つことになる"><b>HTMLのスライドへ音声を埋め込むまで受け持つ</b></mark></td><td>配る形が動画ではなくブラウザの頁になる。企画デッキが約束した「音声付きの短い動画」と一致しない。再生位置の制御も自前で持つことになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="原稿は教材の設計そのもので、音声の都合とは別の判断で決まる。合成の都合が原稿の内容へ流入する"><b>原稿の作成から受け持つ</b></mark></td><td>原稿は教材の設計そのもので、音声の都合とは別の判断で決まる。合成の都合が原稿の内容へ流入する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="尺は合成と同じ操作から取得できる事実である。返さないと、結合する側が音声を解析して測り直すことになり、測り方が相手ごとに相違する"><b>音声だけを返し、尺を返さない</b></mark></td><td>尺は合成と同じ操作から取得できる事実である。返さないと、結合する側が音声を解析して測り直すことになり、測り方が相手ごとに相違する</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>どうなるか</th></tr><tr><td><span class="n">音声と尺まで</span></td><td>Skillが保持する知識は、声・読み方・合成の条件だけになる</td><td>結合する側は、尺の記録を読めば枚の表示時間を決定できる</td><td>ffmpeg などの映像の道具に依存しない</td></tr><tr><td><span class="n">音声だけ</span></td><td>出力は1種類で済む</td><td>尺は音声から測ることになり、測り方が結合する側ごとに相違する</td><td>語の単位での同期（字幕・強調）は実現できない</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">1枚ぶんの原稿を、その場で音声にできること</span></td><td>The size of the input text can be up to 3000 billed characters (6000 total characters).</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）</small></td></tr><tr><td><span class="part">S3を必須にしない判断</span></td><td>directly to your (required) Amazon Simple Storage Service (Amazon S3) bucket</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Long audio files（2026-09-22 取得。非同期の合成の記述である）</small></td></tr><tr><td><span class="part">尺の記録を出力に含める判断</span></td><td>--speech-mark-types='["viseme", "word", "sentence"]'</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）</small></td></tr><tr><td><span class="part">教材の形を動画とすること</span></td><td>承認済みの企画デッキが「音声付きの短い動画」と規定する</td><td><span class="kind k-rule">決まり</span><small>docs/workshops/ai-workshop/director-deck.html 8枚目・ACDR 0011</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>動画への結合の手順</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で、継ぎ目の形として決定する</div></td></tr><tr><td>日本語の声の選択と読み間違いの補正</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点5で決定する</div></td></tr><tr><td>教材の原稿そのものの作成</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">教材の設計の作業であり、この板の対象ではない</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">同期の合成は、入力が3000課金文字（総6000文字）までである</b><div class="sub-s">1枚のナレーションはこの範囲に収まる</div></b></td><td></td></tr><tr><td><b><b class="lead-s">S3が必須になるのは非同期の合成のほうである</b><div class="sub-s">同期の合成は音声をその場で返す</div></b></td><td></td></tr><tr><td><b><b class="lead-s">尺は、音声と同じ操作から別の出力形式として取得できる</b><div class="sub-s">音声を解析する処理は不要である</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>枚ごとに区切られた原稿の形を決定する（次の論点で扱う）</b></td><td></td></tr><tr><td><b>音声と尺の出力先の命名規則を決定する（次の論点で扱う）</b></td><td></td></tr><tr><td><b>結合する側へ、尺の記録の読み方を渡す</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>Pollyの合成を、どこで実行するか（手元のCLI ／ AWS上のジョブ）</h2></div><div class="note">合成をどこで動かすかで、用意する物と、続ける費用が変わる。受け持ちが音声と尺だけなので、映像の道具は要らない。</div><div class="ans"><span class="big">D</span><p>このSkillを使う条件は、AWSの権限だけにする。</p><ol><li><b class="lead-s">環境の定義（Dockerfile）はリポジトリへ置き、イメージの作成もCodeBuildが行ってECRへ置く</b><div class="sub-s">端末にDockerは要らない</div></li><li>教材の作成は、そのイメージを環境に指定したCodeBuildで実行する</li><li>動画はビルドの成果物としてS3へ出す。手元での実行は任意であり、使用の条件にしない</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,1499px)" class="wf-fig" viewBox="0 0 1499 100" height="100" role="img"><g transform="translate(6.0,6.0)"><path d="M142.6,44.0 L263.4,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="263.4,44.0 256.6,46.5 256.6,41.5" fill="#C3CAD2"/><path d="M458.8,44.0 L579.6,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="579.6,44.0 572.8,46.5 572.8,41.5" fill="#C3CAD2"/><path d="M692.2,44.0 L813.1,43.7" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="813.1,43.7 806.3,46.2 806.3,41.2" fill="#C3CAD2"/><rect x="703.6" y="33.8" width="98.0" height="16.0" fill="#F5F7F9"/><text x="752.6" y="47.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">環境として指定する</text><path d="M1142.1,43.7 L1262.8,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="1262.8,44.0 1256.0,46.4 1256.0,41.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="142.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="71.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">原稿とDockerfile</text></g></g><g class="wf-node" transform="translate(264.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="194.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="97.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">CodeBuildでイメージを作る</text></g></g><g class="wf-node" transform="translate(580.2,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="111.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="55.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ECRのイメージ</text></g></g><g class="wf-node" transform="translate(813.6,0.0)"><rect x="0.0" y="16.0" width="328.0" height="72.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M88.6,16.0 L151.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="151.4,16.0 144.6,18.5 144.6,13.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">音声にする</text></g></g><g class="wf-node" transform="translate(152.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">スライドと結合する</text></g></g></g></g><rect x="8.0" y="7.0" width="126.5" height="15.0" fill="#F5F7F9"/><text x="71.2" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">CodeBuildで教材を作る</text></g><g class="wf-node" transform="translate(1263.6,28.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="223.6" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="111.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">S3の成果物：音声付きスライド動画</text></g></g></g></svg><figcaption>イメージの作成も教材の作成もAWS側で行い、端末にはAWSの権限だけが要る</figcaption></figure></div><div class="ex"><p>実例 ── 作る人が打つのは1つの命令である。端末に入っているのはAWS CLIだけでよい。</p><pre><code><pre><code>$ aws codebuild start-build --project-name narration-materials
+
+# CodeBuild の中（buildspec.yml）
+phases:
+  build:
+    commands:
+      - aws polly synthesize-speech … audio/slide-01.mp3
+      - aws polly synthesize-speech --output-format json … audio/slide-01.marks.json
+      - ffmpeg -loop 1 -i previews/slide-01.png -i audio/slide-01.mp3 … movie/slide-01.mp4
+artifacts:
+  files:
+    - movie/**/*</code></pre></code></pre><p class="note-s">イメージには ffmpeg と日本語フォントを入れ、版を固定する。そのイメージを作るのもCodeBuildなので、端末にDockerを入れる必要が無い。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>AWS側で完結する</b></td><td>イメージの作成と教材の作成をCodeBuildで実行し、成果物をS3へ出す</td><td><span class="cost">ECR・CodeBuild・S3を用意し、1枚の試作にもビルドの待ち時間が入る</span></td></tr><tr><td><span class="n">B</span></td><td><b>イメージを配り、手元で動かす</b></td><td>同じイメージを各自の端末で動かす</td><td><span class="cost"><b class="lead-s">端末にコンテナの実行環境を要求する</b><div class="sub-s">使用の条件が1つ増える</div></span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="端末に実行環境を要求する。使う条件が増え、入っていない人はSkillを使えない"><b>手元でのコンテナの実行を既定にする</b></mark></td><td>端末に実行環境を要求する。使う条件が増え、入っていない人はSkillを使えない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="実測で、この端末に ffmpeg は無い。導入を各自に任せると、フォントの差でスライドの画像が変化し、同じ原稿から違う動画が出る"><b>各自で ffmpeg と フォントを導入する</b></mark></td><td>実測で、この端末に ffmpeg は無い。導入を各自に任せると、フォントの差でスライドの画像が変化し、同じ原稿から違う動画が出る</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="標準のイメージに ffmpeg と日本語フォントが在るかは未確認である。ビルドのたびに外部の配布物を取得すると、取得先の変化が動画の変化になる"><b>CodeBuildの標準のイメージへ、ビルドのたびに道具を導入する</b></mark></td><td>標準のイメージに ffmpeg と日本語フォントが在るかは未確認である。ビルドのたびに外部の配布物を取得すると、取得先の変化が動画の変化になる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="非同期の合成はS3を必須とする。1枚ぶんは同期の上限に収まるため、合成のために置き場を用意する理由が無い"><b>Lambda と S3 で非同期に合成する</b></mark></td><td>非同期の合成はS3を必須とする。1枚ぶんは同期の上限に収まるため、合成のために置き場を用意する理由が無い</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>どうなるか</th></tr><tr><td><span class="n">AWS側で完結する</span></td><td>使う条件はAWSの権限だけになる</td><td>誰が実行しても同じ動画が出る</td><td>1枚の試作にも、ビルドの待ち時間が入る</td></tr><tr><td><span class="n">イメージを配り、手元で動かす</span></td><td>試作が速い</td><td>端末にコンテナの実行環境が要る</td><td>入っていない人は、この Skill を使えない</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">端末にDockerを要求しないこと</span></td><td>pushes the Docker image to an Amazon Elastic Container Registry (Amazon ECR) image repository</td><td><span class="kind k-src">原典</span><small>AWS CodeBuild User Guide / Publish Docker image to an Amazon ECR image repository sample（2026-09-22 取得）</small></td></tr><tr><td><span class="part">作ったイメージを環境として使えること</span></td><td>Docker in custom image sample for CodeBuild</td><td><span class="kind k-src">原典</span><small>AWS CodeBuild User Guide / Docker in custom image sample（2026-09-22 取得）</small></td></tr><tr><td><span class="part">動画を成果物として受け取ること</span></td><td>artifacts:\n  files:</td><td><span class="kind k-src">原典</span><small>AWS CodeBuild User Guide / Build specification reference（2026-09-22 取得）</small></td></tr><tr><td><span class="part">合成に置き場が要らないこと</span></td><td>The size of the input text can be up to 3000 billed characters (6000 total characters).</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）</small></td></tr><tr><td><span class="part">手元に道具が揃っていないという前提</span></td><td>docker 29.6.0 は在り、ffmpeg は command -v で見つからない</td><td><span class="kind k-fact">実測</span><small>この端末で実行（2026-09-22）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（4件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>イメージの中身（Dockerfileの記述）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">このSkillを作る作業で決定する。板では、どこで作るかだけを決める</div></td></tr><tr><td>ビルドの起動の仕方（手動・コミット連動）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">運用の設計で決定する。どちらでも答えは変化しない</div></td></tr><tr><td>音声の配信（社内での公開先）</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">教材の配り方の作業であり、この板の対象ではない</div></td></tr><tr><td><b class="lead-s">この答えを試す外の作業</b><div class="sub-s">1枚ぶんを、CodeBuildで合成から動画まで通す試作</div></td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3の決着後に、2つのJSONの形ごと試す</div></td></tr></table></div></div></details><details><summary>この答えの履歴（3件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><div class="card"><div class="card-h"><span class="ver">A</span>手元でAWS CLIを実行する。ジョブの基盤もS3も用意しない。</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">これって音声ありのスライドデッキ動画の認識であってるよね？</span></td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>答えが合成の実行場所だけを述べ、最後に何ができるかを述べていなかった</td></tr></tbody></table></div></li><li><div class="card"><div class="card-h"><span class="ver">B</span>合成も結合も手元で完結し、最後に音声付きスライド動画ができる。</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">スライドを保持するツールっていってるけど、これ環境依存在りそうなんだけど。。
+私がCodeBuildいるんじゃないですか？って聞いたのはこれなんだよね。。</span></td></tr><tr class="g-finding g-end"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td><b class="lead-s">環境差が出るのは合成ではなく結合の側である</b><div class="sub-s">実測で、この端末に docker は在り、ffmpeg は無い</div></td></tr><tr class="g-obsolete"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>「手元で完結する」という答えが失効した ── 手元に何が入っているかを前提にできない</td></tr></tbody></table></div></li><li><div class="card"><div class="card-h"><span class="ver">C</span>環境はコンテナイメージ1つで固定する。既定は手元で動かす。</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">このSkillsを使用するにはDocker環境が必須ってこと？
+AWSが使用できるんだから、AWSを使用すれば環境レスでは？</span></td></tr><tr class="g-finding g-end"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td><b class="lead-s">イメージで固定しても、既定を手元にすると端末にDockerを要求する</b><div class="sub-s">利用の条件が増える</div></td></tr><tr class="g-obsolete"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>「既定は手元で動かす」が失効した。固定する対象（イメージ）は維持する</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">環境差が出るのは合成ではなく結合の側である</b><div class="sub-s">合成はAWSのAPIの呼び出しである</div></b></td><td></td></tr><tr><td><b>実測で、この端末に docker は在り、ffmpeg は無い</b></td><td></td></tr><tr><td><b><b class="lead-s">イメージの作成もCodeBuildで実行できる</b><div class="sub-s">端末にDockerを要求しないで済む</div></b></td><td></td></tr><tr><td><b><b class="lead-s">成果物はS3へ出る</b><div class="sub-s">合成のためではなく、ビルドの受け取りのために使う</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（4件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>ECRのリポジトリと、CodeBuildのプロジェクト2つ（イメージ用・教材用）を用意する</b></td><td></td></tr><tr><td><b>成果物を置くS3のバケットを決定する</b></td><td></td></tr><tr><td><b>CodeBuildの実行に付与する権限（Polly・ECR・S3）を決定する</b></td><td></td></tr><tr><td><b><b class="lead-s">社内でECRとCodeBuildを作成できるかを確認する</b><div class="sub-s">未確認である</div></b></td><td></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>原稿をどの形で受け取り、音声と尺をどの形で返すか（slide-deck Skill との継ぎ目）</h2></div><div class="note">境界を越える値は、原稿と、音声・尺である。その受け渡しの形が、slide-deck Skill との結び付きの強さを決定する。</div><div class="ans"><span class="big">B</span><p>継ぎ目は2つのJSONにし、突き合わせの鍵と持ち物の分担を決める。</p><ol><li><b class="lead-s">枚のidは、スライドを保持する側が出したものをそのまま使う</b><div class="sub-s">音声側は採番しない</div></li><li>音声側が持つのは、音声・尺・長さだけである。画像・解像度・順序はスライド側が持つ</li><li>入力に無い枚は、音声の無い枚として結合する側が扱う</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,635px)" class="wf-fig" viewBox="0 0 635 100" height="100" role="img"><g transform="translate(6.0,6.0)"><path d="M208.0,16.0 L270.6,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="270.6,44.0 263.4,43.5 265.4,39.0" fill="#C3CAD2"/><path d="M183.4,72.0 L270.6,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="270.6,44.0 264.9,48.4 263.4,43.7" fill="#C3CAD2"/><path d="M423.8,44.0 L486.4,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="486.4,44.0 479.6,46.5 479.6,41.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="207.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="103.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">スライド側が出す
+枚のidと画像</text></g></g><g class="wf-node" transform="translate(0.0,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="182.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="91.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">音声Skillが返す
+音声と尺</text></g></g><g class="wf-node" transform="translate(271.4,28.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="151.6" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="75.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">枚のidで突き合わせる</text></g></g><g class="wf-node" transform="translate(487.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">結合して動画にする</text></g></g></g></svg><figcaption>スライド側の枚のidと画像、音声側の音声と尺を、idで突き合わせて結合する</figcaption></figure></div><div class="ex"><p>実例 ── 既存のスライドの出力は `previews/slide-01.png` である。この `slide-01` をそのまま鍵にする。</p><pre><code><pre><code>// narration.json（呼ぶ側が作る）
+{ "voice": "Takumi", "engine": "neural",
+  "items": [ { "id": "slide-01", "text": "下期AI活用ワークショップの企画をご説明します。" } ] }
+
+// narration.out.json（このSkillが返す）
+{ "items": [ { "id": "slide-01",
+               "audio": "audio/slide-01.mp3",
+               "marks": "audio/slide-01.marks.json",
+               "format": "mp3",
+               "durationMs": 12480 } ] }
+
+// 結合する側は、idで突き合わせる
+//   previews/slide-01.png  ×  audio/slide-01.mp3  ×  durationMs 12480</code></pre></code></pre><p class="note-s">音声側は `previews/` の存在を知らない。鍵だけが共通で、置き場所はそれぞれが持つ。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>idはスライド側が出す</b></td><td>スライドを保持する側の枚の識別子を鍵にし、音声側はそれを受け取って返す</td><td><span class="cost">呼ぶ側が、スライドの枚と原稿を対応させる手順を持つ</span></td></tr><tr><td><span class="n">B</span></td><td><b>idは音声側が採番する</b></td><td>音声側が連番を振り、結合する側がその順序に合わせる</td><td><span class="cost">枚の増減のたびに、両者の連番がずれる危険を確認することになる</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="見出しの規則に音声側が依存する。この企画デッキでは、見出しの形を実際に一度変更した（ACDR 0010）"><b>発表原稿（speaker-notes.md）を直接読む</b></mark></td><td>見出しの規則に音声側が依存する。この企画デッキでは、見出しの形を実際に一度変更した（ACDR 0010）</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="両者が同じ構造を知ることになり、片方の変更がもう片方へ波及する"><b>slide-deck Skill の内部のデータ構造を共有する</b></mark></td><td>両者が同じ構造を知ることになり、片方の変更がもう片方へ波及する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="枚の増減で連番がずれ、違う枚に音声が付く。しかも機械では検出できず、動画を見るまで判明しない"><b>音声側が連番を採番する</b></mark></td><td>枚の増減で連番がずれ、違う枚に音声が付く。しかも機械では検出できず、動画を見るまで判明しない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="音声側がスライドの置き場所を知ることになる。鍵だけを共通にすれば足りる"><b>出力に画像の場所も書く</b></mark></td><td>音声側がスライドの置き場所を知ることになる。鍵だけを共通にすれば足りる</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>どうなるか</th></tr><tr><td><span class="n">idはスライド側が出す</span></td><td>鍵の出どころが1つに定まる</td><td>枚が増減しても、スライド側の識別子に追従する</td><td>呼ぶ側に、対応させる手順が1つ増える</td></tr><tr><td><span class="n">idは音声側が採番する</span></td><td>呼ぶ側の手順は増えない</td><td>枚の増減で連番がずれ、違う枚に音声が付く</td><td><b class="lead-s">ずれても機械では検出できない</b><div class="sub-s">動画を見るまで判明しない</div></td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">尺を出力に含める判断</span></td><td>--speech-mark-types='["viseme", "word", "sentence"]'</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）</small></td></tr><tr><td><span class="part">見出しへの依存を避ける判断</span></td><td>見出しを主題と要点の名詞句へ変更した（全枚）</td><td><span class="kind k-rule">決まり</span><small>ACDR 0010（承認済み）</small></td></tr><tr><td><span class="part">内部形式を渡さない判断</span></td><td>Skillの内部形式に合わせて整形せず、テキストのまま渡す</td><td><span class="kind k-rule">決まり</span><small>CLAUDE.md 委譲パターン</small></td></tr><tr><td><span class="part">鍵をスライド側の識別子にする判断</span></td><td>既存のスライドの出力は previews/slide-01.png 〜 slide-37.png である</td><td><span class="kind k-fact">実測</span><small>docs/workshops/ai-workshop/previews/（2026-09-22 確認）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>SSMLの記述（間・読み・速度）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">声と読み方の論点で、どちらが書くかを決定する</div></td></tr><tr><td>動画の解像度とフレーム数</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">スライドを保持する側が持つ。音声側は参照しない</div></td></tr><tr><td>原稿から入力のJSONを組む手順</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">呼ぶ側の作業である</div></td></tr></table></div></div></details><details><summary>この答えの履歴（1件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><div class="card"><div class="card-h"><span class="ver">A</span>枚ごとの原稿を持つ1つのJSONを受け取り、音声・尺・長さを書いたJSONを返す。</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">これは別にこのインタフェースでできるならいいけど、結合する先のインターフェースは考慮しなくていいわけ？</span></td></tr><tr class="g-finding g-end"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td><b class="lead-s">入力と出力の形だけを決め、結合する側が何を要求するかを見ていなかった</b><div class="sub-s">突き合わせの鍵が決まっていない</div></td></tr><tr class="g-content"><th rowspan="1"><span class="kind k-rule">内容</span></th><td>2つのJSONで受け渡すという形は維持した。足したのは、鍵の出どころと、どちらが何を持つかである</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">結合する側が要るのは、画像・音声・表示時間の3つである</b><div class="sub-s">そのうち音声側が持つのは2つである</div></b></td><td></td></tr><tr><td><b><b class="lead-s">鍵はスライド側が出す識別子で足りる</b><div class="sub-s">既存の出力は `previews/slide-01.png` である</div></b></td><td></td></tr><tr><td><b>音声の無い枚は、入力に含めないことで表現できる</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>スライド側の枚の識別子の規則を、slide-deck Skill 側で明文化する</b></td><td></td></tr><tr><td><b>読み上げる文を、原稿のどの部分から取るかを呼ぶ側で決定する</b></td><td></td></tr><tr><td><b>入力と出力のJSONの形を、JSON Schema として保存する</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>原稿が変わった枚だけを合成し直す判定を、どう持つか。成果物をどこへ置くか</h2></div><div class="note">合成は課金文字で課金される。原稿を1文字直すたびに全枚を合成し直すかどうかが、この論点である。</div><div class="ans"><span class="big">A</span><p>変更の検出を、比較ではなく名前で行う。</p><ol><li><b class="lead-s">鍵は、読み上げる文・声・エンジンの3つから作る</b><div class="sub-s">この3つが同じなら、音声は同じものになる</div></li><li>音声と尺を、その鍵の名前でS3へ置く。ビルドは、鍵が在るかだけを確認する</li><li>`narration.out.json` は、枚のidと鍵の対応を持つ</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,892px)" class="wf-fig" viewBox="0 0 892 100" height="100" role="img"><g transform="translate(6.0,6.0)"><path d="M184.6,44.0 L247.4,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="247.4,44.0 240.6,46.5 240.6,41.5" fill="#C3CAD2"/><path d="M336.6,44.0 L399.2,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="399.2,44.0 392.4,46.5 392.4,41.5" fill="#C3CAD2"/><path d="M540.4,44.0 L603.0,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="603.0,16.0 597.8,21.0 595.8,16.5" fill="#C3CAD2"/><rect x="557.7" y="20.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="571.7" y="33.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">在る</text><path d="M540.4,44.0 L603.0,72.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="603.0,72.0 595.8,71.5 597.8,67.0" fill="#C3CAD2"/><rect x="557.7" y="48.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="571.7" y="61.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">無い</text><path d="M680.2,16.0 L767.0,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="767.0,44.0 759.8,44.3 761.3,39.6" fill="#C3CAD2"/><path d="M704.2,72.0 L767.0,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="767.0,44.0 761.8,49.0 759.8,44.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">読み上げる文・声・エンジン</text></g></g><g class="wf-node" transform="translate(248.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">鍵をつくる</text></g></g><g class="wf-node" transform="translate(400.0,28.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="139.6" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="69.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">その鍵がS3に在るか</text></g></g><g class="wf-node" transform="translate(603.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">取り出す</text></g></g><g class="wf-node" transform="translate(603.6,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">合成して置く</text></g></g><g class="wf-node" transform="translate(767.6,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="112.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="56.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">枚に割り当てる</text></g></g></g></svg><figcaption>鍵をそのまま名前にすると、変更の検出は存在の確認だけで済む</figcaption></figure></div><div class="ex"><p>実例 ── 18枚目の文だけを直した場合。合成し直すのは1枚である。</p><pre><code><pre><code>s3://…/cache/9f2c…a1.mp3        ← 鍵がそのまま名前である
+s3://…/cache/9f2c…a1.marks.json
+
+# narration.out.json
+{ "items": [ { "id": "slide-18", "key": "9f2c…a1", "durationMs": 14020 } ] }
+
+# ビルドの中
+37枚 → 鍵が在るもの 36件（取り出す） ／ 無いもの 1件（合成して置く）</code></pre></code></pre><p class="note-s">声やエンジンを変更すると鍵が全部変化するので、その時は全枚を合成し直す。意図した作り直しだけが起きる。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>鍵を名前にする</b></td><td>文・声・エンジンから鍵を作り、その名前でS3へ置く。在るかどうかだけを確認する</td><td><span class="cost">S3に音声を保存し続けることになる</span></td></tr><tr><td><span class="n">B</span></td><td><b>毎回すべて合成する</b></td><td>ビルドのたびに、全枚を合成し直す</td><td><span class="cost">1文字の修正でも、全枚ぶんの課金文字と待ち時間が発生する</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="ビルドはリポジトリから取り直すため、更新時刻は取得した時刻になる。全部が新しいものとして扱われる"><b>ファイルの更新時刻で判定する</b></mark></td><td>ビルドはリポジトリから取り直すため、更新時刻は取得した時刻になる。全部が新しいものとして扱われる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="比較の基準を別に保存することになる。その保存が失われると、全枚の合成へ戻る"><b>前回の出力と突き合わせて差分を取る</b></mark></td><td>比較の基準を別に保存することになる。その保存が失われると、全枚の合成へ戻る</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="枚の番号は、枚の増減で他の枚へ移る。中身が変わっていないのに合成し直し、変わったのに古い音声を使う"><b>枚の番号を音声の名前にする</b></mark></td><td>枚の番号は、枚の増減で他の枚へ移る。中身が変わっていないのに合成し直し、変わったのに古い音声を使う</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>どうなるか</th></tr><tr><td><span class="n">鍵を名前にする</span></td><td>直した枚だけが合成される</td><td>比較の基準を別に保存しなくてよい</td><td>使わなくなった音声がS3へ残る</td></tr><tr><td><span class="n">毎回すべて合成する</span></td><td>仕組みが最も単純である</td><td>費用と待ち時間が枚数に比例する</td><td>同じ音声を何度も作り直す</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">成果物の置き場</span></td><td>artifacts:\n  files:</td><td><span class="kind k-src">原典</span><small>AWS CodeBuild User Guide / Build specification reference（2026-09-22 取得）</small></td></tr><tr><td><span class="part">枚のidを名前にしない判断</span></td><td>論点3で、枚のidはスライド側が出すものと決着した</td><td><span class="kind k-rule">決まり</span><small>この板の論点3</small></td></tr><tr><td><span class="part">鍵に含めるもの</span></td><td>合成の入力は、文と声とエンジンで決まる</td><td><span class="kind k-given">前提</span><small>Amazon Polly の合成の指定（voice-id ・ engine ・ text）</small></td></tr><tr><td><span class="part">更新時刻を使わない判断</span></td><td>ビルドはリポジトリからソースを取り直す</td><td><span class="kind k-given">前提</span><small>CodeBuildでの実行（この板の論点2）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>S3の保存期間の設定</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">置き場を決めた後に、運用の設定として決定する</div></td></tr><tr><td>課金文字の実際の費用</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">教材の総文字数が確定した時点で算出する</div></td></tr><tr><td><b class="lead-s">この答えを試す外の作業</b><div class="sub-s">1枚だけ文を変更し、その枚だけが合成されることを確認する試作</div></td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点5の決着後に、通しで試す</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">同じ文・声・エンジンからは、同じ音声が出る</b><div class="sub-s">鍵にできるのはこの3つである</div></b></td><td></td></tr><tr><td><b>鍵を名前にすると、比較の基準を別に持たなくてよい</b></td><td></td></tr><tr><td><b>声やエンジンの変更は、鍵の変更として現れる</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>鍵の作り方（どの文字列から、どのハッシュで作るか）を決定する</b></td><td></td></tr><tr><td><b>S3の置き場（成果物とは別の接頭辞）を決定する</b></td><td></td></tr><tr><td><b>使わなくなった音声の整理の仕方を決定する</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q5</span><h2>日本語の声をどう選び、読み間違いをどう補正するか</h2></div><div class="note">教材は繰り返し視聴されるので、聞き取りにくさと読み間違いがそのまま残る。声の選び方と、補正の置き場所を決める。</div><div class="ans"><span class="big">A</span><p>聞こえ方を決めるものを、1か所へ集める。</p><ol><li>声は日本語のニューラルの声から1つを選び、教材全体で固定する</li><li>用語の読みは辞書（PLS準拠の発音辞書）に登録し、合成のときに適用する</li><li><b class="lead-s">入力のJSONが持つのは読み上げる文だけである</b><div class="sub-s">読み仮名は持たせない</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,612px)" class="wf-fig" viewBox="0 0 612 100" height="100" role="img"><g transform="translate(6.0,6.0)"><path d="M100.6,16.0 L245.4,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="245.4,44.0 238.3,45.1 239.2,40.3" fill="#C3CAD2"/><path d="M124.8,72.0 L245.4,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="245.4,44.0 239.4,47.9 238.3,43.1" fill="#C3CAD2"/><rect x="136.1" y="48.0" width="98.0" height="16.0" fill="#F5F7F9"/><text x="185.1" y="61.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">合成の前に適用する</text><path d="M378.4,44.0 L499.2,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="499.2,44.0 492.4,46.5 492.4,41.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">読み上げる文</text></g></g><g class="wf-node" transform="translate(0.0,56.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="124.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="62.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">辞書：用語の読み</text></g></g><g class="wf-node" transform="translate(246.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="131.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="65.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">1つの声で合成する</text></g></g><g class="wf-node" transform="translate(499.8,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">枚ごとの音声</text></g></g></g></svg><figcaption>読みの補正は辞書が持ち、原稿は書き換えない ── 合成の前に適用される</figcaption></figure></div><div class="ex"><p>実例 ── 社内の用語を辞書に1度だけ登録し、以後は原稿をそのまま読ませる。</p><pre><code><pre><code>&lt;!-- lexicon.pls（W3CのPLS） --&gt;
+&lt;lexeme&gt;
+  &lt;grapheme&gt;Kiro&lt;/grapheme&gt;
+  &lt;alias&gt;キロ&lt;/alias&gt;
+&lt;/lexeme&gt;
+
+$ aws polly put-lexicon --name workshop --content file://lexicon.pls
+$ aws polly synthesize-speech --lexicon-names workshop \
+    --voice-id Takumi --engine neural … audio/slide-01.mp3</code></pre></code></pre><p class="note-s">原典で確認した日本語の声は Mizuki ・ Takumi ・ Kazuha ・ Tomoko の4つで、ニューラルに対応するのは Takumi ・ Kazuha ・ Tomoko である。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>辞書へ集約する</b></td><td>用語の読みを辞書に登録し、合成のときに適用する</td><td><span class="cost">辞書を登録し、用語が増えたら更新することになる</span></td></tr><tr><td><span class="n">B</span></td><td><b>入力の文に読み仮名を書く</b></td><td>読ませたい語を、入力の文の中でかな書きにする</td><td><span class="cost">同じ語が出るたびに書き、直すときは全部を探すことになる</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="発表原稿は人も読む文書である。音声の都合で書き換えると、読み手にとっての文書ではなくなる"><b>発表原稿に読み仮名を書く</b></mark></td><td>発表原稿は人も読む文書である。音声の都合で書き換えると、読み手にとっての文書ではなくなる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="同じ語が出るたびに書くことになり、読みを変えるときは全枚を探すことになる"><b>SSMLの発音の指定を枚ごとに書く</b></mark></td><td>同じ語が出るたびに書くことになり、読みを変えるときは全枚を探すことになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="聞き手は、声の変化を話者の交代として解釈する。教材では、話者は1人である"><b>枚ごとに声を変える</b></mark></td><td>聞き手は、声の変化を話者の交代として解釈する。教材では、話者は1人である</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="ニューラルの声が日本語で使用できる。繰り返し視聴する教材で、聞き取りにくさを残す理由が無い"><b>標準の声を使う</b></mark></td><td>ニューラルの声が日本語で使用できる。繰り返し視聴する教材で、聞き取りにくさを残す理由が無い</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>どうなるか</th></tr><tr><td><span class="n">辞書へ集約する</span></td><td>1か所を直すと、全枚の読みが変わる</td><td>原稿は人が読む形のまま残る</td><td>辞書の登録が、合成の前提として1つ増える</td></tr><tr><td><span class="n">入力の文に読み仮名を書く</span></td><td>登録の手順が要らない</td><td>同じ語の修正が、枚の数だけ発生する</td><td>原稿と入力が食い違い、どちらが正しいかを確認することになる</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">日本語のニューラルの声の選択</span></td><td>Japanese | ja-JP | Mizuki Takumi Kazuha Tomoko</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Available voices（2026-09-22 取得。Neural voice の列が Takumi ・ Kazuha ・ Tomoko で Yes である）</small></td></tr><tr><td><span class="part">読みの補正を辞書へ置く判断</span></td><td>This applies the specified lexicon to the input text before the synthesis begins.</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Managing lexicons（2026-09-22 取得）</small></td></tr><tr><td><span class="part">辞書の形式</span></td><td>These lexicons must conform with the Pronunciation Lexicon Specification (PLS) W3C recommendation.</td><td><span class="kind k-src">原典</span><small>Amazon Polly Developer Guide / Managing lexicons（2026-09-22 取得）</small></td></tr><tr><td><span class="part">入力に読み仮名を持たせない判断</span></td><td>論点3で、入力は枚のidと読み上げる文だけを持つと決着した</td><td><span class="kind k-rule">決まり</span><small>この板の論点3</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>間の取り方と読み上げの速度</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">試聴のあとに、SSMLで枚ごとに調整する</div></td></tr><tr><td>声の好みの確認</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">3つの声で同じ1枚を合成し、聞き比べて決定する</div></td></tr><tr><td><b class="lead-s">この答えを試す外の作業</b><div class="sub-s">3つの声で1枚を合成し、辞書の適用前後を聞き比べる試作</div></td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4の決着後に、通しで試す</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>日本語の声は4つで、ニューラルに対応するのは Takumi ・ Kazuha ・ Tomoko である</b></td><td></td></tr><tr><td><b><b class="lead-s">辞書は合成の前に入力へ適用される</b><div class="sub-s">原稿を書き換えずに読みを変えられる</div></b></td><td></td></tr><tr><td><b>辞書はリージョンごとに保存される</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>声を1つ選ぶ（Takumi ・ Kazuha ・ Tomoko のいずれか）</b></td><td></td></tr><tr><td><b>辞書に登録する用語の一覧を作る（Kiro ・ Skills ・ PM・PL など）</b></td><td></td></tr><tr><td><b>辞書を保存するリージョンを、合成のリージョンと一致させる</b></td><td></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

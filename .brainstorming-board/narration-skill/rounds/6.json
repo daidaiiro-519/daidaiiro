@@ -1,0 +1,522 @@
+{
+ "round": 6,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この答えが、残る4件の問いの形を決定する。範囲が動画の組み立てまで及ぶと、実行の場所も入出力も別の問いになる。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>このSkillの責務は、音声の生成と再現性に限定する。</p><ol><li>入力は、枚ごとに区切られた原稿である</li><li>出力は、枚ごとの音声ファイルと、尺の記録（各文と各語の開始時刻）である</li><li>動画への結合、スライドの画像化、再生の制御は受け持たない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "原稿から、枚ごとの音声と尺の記録までを受け持つ。動画への結合は、スライドを保持する側が受け持つ。"
+    ]
+   ],
+   "figures": [
+    [
+     "原稿から音声と尺までがこのSkillの受け持ちで、結合はスライドを保持する側が行う",
+     "185fe4a29ee3"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 原稿1枚を音声にし、同じ原稿から尺を取る。どちらも Polly の同じ操作で得られる。</p><pre><code><pre><code>aws polly synthesize-speech \\\n  --text-type ssml --text \"&lt;speak&gt;下期AI活用ワークショップの企画をご説明します。&lt;/speak&gt;\" \\\n  --voice-id Takumi --engine neural --output-format mp3 slide-01.mp3\n\naws polly synthesize-speech \\\n  --output-format json \\\n  --speech-mark-types='[\"word\", \"sentence\"]' \\\n  --text-type ssml --text \"&lt;speak&gt;…&lt;/speak&gt;\" \\\n  --voice-id Takumi --engine neural slide-01.marks.json</code></pre></code></pre><p class=\"note-s\">尺の記録が在ると、結合する側は枚の表示時間を自分で測る必要がない。音声側が知っている事実を、そのまま渡す形である。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "音声と尺まで",
+     "原稿を受け取り、枚ごとの音声と、各文と各語の開始時刻を返す",
+     "動画にするには、結合する側の手順が別に要る"
+    ],
+    [
+     "音声だけ",
+     "原稿を受け取り、枚ごとの音声だけを返す",
+     "枚の表示時間を、結合する側が音声の長さから測ることになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "音声付き動画まで受け持つ",
+     "合成と映像の結合という2つの仕事が1つのSkillへ入る。枚と尺の対応はスライド側の知識なので、音声側がスライドの並びを知ることになり、slide-deck Skill と同じ知識を2か所が保持する"
+    ],
+    [
+     "HTMLのスライドへ音声を埋め込むまで受け持つ",
+     "配る形が動画ではなくブラウザの頁になる。企画デッキが約束した「音声付きの短い動画」と一致しない。再生位置の制御も自前で持つことになる"
+    ],
+    [
+     "原稿の作成から受け持つ",
+     "原稿は教材の設計そのもので、音声の都合とは別の判断で決まる。合成の都合が原稿の内容へ流入する"
+    ],
+    [
+     "音声だけを返し、尺を返さない",
+     "尺は合成と同じ操作から取得できる事実である。返さないと、結合する側が音声を解析して測り直すことになり、測り方が相手ごとに相違する"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "<b class=\"lead-s\">同期の合成は、入力が3000課金文字（総6000文字）までである</b><div class=\"sub-s\">1枚のナレーションはこの範囲に収まる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">S3が必須になるのは非同期の合成のほうである</b><div class=\"sub-s\">同期の合成は音声をその場で返す</div>"
+    ],
+    [
+     "<b class=\"lead-s\">尺は、音声と同じ操作から別の出力形式として取得できる</b><div class=\"sub-s\">音声を解析する処理は不要である</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "枚ごとに区切られた原稿の形を決定する（次の論点で扱う）"
+    ],
+    [
+     "音声と尺の出力先の命名規則を決定する（次の論点で扱う）"
+    ],
+    [
+     "結合する側へ、尺の記録の読み方を渡す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "動画への結合の手順",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で、継ぎ目の形として決定する"
+    ],
+    [
+     "日本語の声の選択と読み間違いの補正",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決定する"
+    ],
+    [
+     "教材の原稿そのものの作成",
+     "<span class=\"kind k-rule\">対象外</span> ── 教材の設計の作業であり、この板の対象ではない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "音声と尺まで",
+     "Skillが保持する知識は、声・読み方・合成の条件だけになる",
+     "結合する側は、尺の記録を読めば枚の表示時間を決定できる",
+     "ffmpeg などの映像の道具に依存しない"
+    ],
+    [
+     "案ごとの帰結",
+     "音声だけ",
+     "出力は1種類で済む",
+     "尺は音声から測ることになり、測り方が結合する側ごとに相違する",
+     "語の単位での同期（字幕・強調）は実現できない"
+    ]
+   ],
+   "grounds": [
+    [
+     "1枚ぶんの原稿を、その場で音声にできること",
+     "The size of the input text can be up to 3000 billed characters (6000 total characters).",
+     "primary",
+     "Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）"
+    ],
+    [
+     "S3を必須にしない判断",
+     "directly to your (required) Amazon Simple Storage Service (Amazon S3) bucket",
+     "primary",
+     "Amazon Polly Developer Guide / Long audio files（2026-09-22 取得。非同期の合成の記述である）"
+    ],
+    [
+     "尺の記録を出力に含める判断",
+     "--speech-mark-types='[\"viseme\", \"word\", \"sentence\"]'",
+     "primary",
+     "Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）"
+    ],
+    [
+     "教材の形を動画とすること",
+     "承認済みの企画デッキが「音声付きの短い動画」と規定する",
+     "rule",
+     "docs/workshops/ai-workshop/director-deck.html 8枚目・ACDR 0011"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "合成をどこで動かすかで、用意する物と、続ける費用が変わる。受け持ちが音声と尺だけなので、映像の道具は要らない。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>このSkillを使う条件は、AWSの権限だけにする。</p><ol><li><b class=\"lead-s\">環境の定義（Dockerfile）はリポジトリへ置き、イメージの作成もCodeBuildが行ってECRへ置く</b><div class=\"sub-s\">端末にDockerは要らない</div></li><li>教材の作成は、そのイメージを環境に指定したCodeBuildで実行する</li><li>動画はビルドの成果物としてS3へ出す。手元での実行は任意であり、使用の条件にしない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "端末には何も入れない。イメージの作成も教材の作成もCodeBuildで実行し、成果物はS3へ出す。"
+    ]
+   ],
+   "figures": [
+    [
+     "イメージの作成も教材の作成もAWS側で行い、端末にはAWSの権限だけが要る",
+     "665c3b3a5f3f"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 作る人が打つのは1つの命令である。端末に入っているのはAWS CLIだけでよい。</p><pre><code><pre><code>$ aws codebuild start-build --project-name narration-materials\n\n# CodeBuild の中（buildspec.yml）\nphases:\n  build:\n    commands:\n      - aws polly synthesize-speech … audio/slide-01.mp3\n      - aws polly synthesize-speech --output-format json … audio/slide-01.marks.json\n      - ffmpeg -loop 1 -i previews/slide-01.png -i audio/slide-01.mp3 … movie/slide-01.mp4\nartifacts:\n  files:\n    - movie/**/*</code></pre></code></pre><p class=\"note-s\">イメージには ffmpeg と日本語フォントを入れ、版を固定する。そのイメージを作るのもCodeBuildなので、端末にDockerを入れる必要が無い。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "AWS側で完結する",
+     "イメージの作成と教材の作成をCodeBuildで実行し、成果物をS3へ出す",
+     "ECR・CodeBuild・S3を用意し、1枚の試作にもビルドの待ち時間が入る"
+    ],
+    [
+     "イメージを配り、手元で動かす",
+     "同じイメージを各自の端末で動かす",
+     "端末にコンテナの実行環境を要求する ── 使用の条件が1つ増える"
+    ]
+   ],
+   "dropped": [
+    [
+     "手元でのコンテナの実行を既定にする",
+     "端末に実行環境を要求する。使う条件が増え、入っていない人はSkillを使えない"
+    ],
+    [
+     "各自で ffmpeg と フォントを導入する",
+     "実測で、この端末に ffmpeg は無い。導入を各自に任せると、フォントの差でスライドの画像が変化し、同じ原稿から違う動画が出る"
+    ],
+    [
+     "CodeBuildの標準のイメージへ、ビルドのたびに道具を導入する",
+     "標準のイメージに ffmpeg と日本語フォントが在るかは未確認である。ビルドのたびに外部の配布物を取得すると、取得先の変化が動画の変化になる"
+    ],
+    [
+     "Lambda と S3 で非同期に合成する",
+     "非同期の合成はS3を必須とする。1枚ぶんは同期の上限に収まるため、合成のために置き場を用意する理由が無い"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>手元でAWS CLIを実行する。ジョブの基盤もS3も用意しない。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これって音声ありのスライドデッキ動画の認識であってるよね？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>答えが合成の実行場所だけを述べ、最後に何ができるかを述べていなかった</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">B</span>合成も結合も手元で完結し、最後に音声付きスライド動画ができる。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">スライドを保持するツールっていってるけど、これ環境依存在りそうなんだけど。。\n私がCodeBuildいるんじゃないですか？って聞いたのはこれなんだよね。。</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">環境差が出るのは合成ではなく結合の側である</b><div class=\"sub-s\">実測で、この端末に docker は在り、ffmpeg は無い</div></td></tr><tr class=\"g-obsolete\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>「手元で完結する」という答えが失効した ── 手元に何が入っているかを前提にできない</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">C</span>環境はコンテナイメージ1つで固定する。既定は手元で動かす。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">このSkillsを使用するにはDocker環境が必須ってこと？\nAWSが使用できるんだから、AWSを使用すれば環境レスでは？</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">イメージで固定しても、既定を手元にすると端末にDockerを要求する</b><div class=\"sub-s\">利用の条件が増える</div></td></tr><tr class=\"g-obsolete\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>「既定は手元で動かす」が失効した。固定する対象（イメージ）は維持する</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">環境差が出るのは合成ではなく結合の側である</b><div class=\"sub-s\">合成はAWSのAPIの呼び出しである</div>"
+    ],
+    [
+     "実測で、この端末に docker は在り、ffmpeg は無い"
+    ],
+    [
+     "<b class=\"lead-s\">イメージの作成もCodeBuildで実行できる</b><div class=\"sub-s\">端末にDockerを要求しないで済む</div>"
+    ],
+    [
+     "<b class=\"lead-s\">成果物はS3へ出る</b><div class=\"sub-s\">合成のためではなく、ビルドの受け取りのために使う</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "ECRのリポジトリと、CodeBuildのプロジェクト2つ（イメージ用・教材用）を用意する"
+    ],
+    [
+     "成果物を置くS3のバケットを決定する"
+    ],
+    [
+     "CodeBuildの実行に付与する権限（Polly・ECR・S3）を決定する"
+    ],
+    [
+     "<b class=\"lead-s\">社内でECRとCodeBuildを作成できるかを確認する</b><div class=\"sub-s\">未確認である</div>"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "イメージの中身（Dockerfileの記述）",
+     "<span class=\"kind k-given\">後続で決定</span> ── このSkillを作る作業で決定する。板では、どこで作るかだけを決める"
+    ],
+    [
+     "ビルドの起動の仕方（手動・コミット連動）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 運用の設計で決定する。どちらでも答えは変化しない"
+    ],
+    [
+     "音声の配信（社内での公開先）",
+     "<span class=\"kind k-rule\">対象外</span> ── 教材の配り方の作業であり、この板の対象ではない"
+    ],
+    [
+     "この答えを試す外の作業 ── 1枚ぶんを、CodeBuildで合成から動画まで通す試作",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3の決着後に、2つのJSONの形ごと試す"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "AWS側で完結する",
+     "使う条件はAWSの権限だけになる",
+     "誰が実行しても同じ動画が出る",
+     "1枚の試作にも、ビルドの待ち時間が入る"
+    ],
+    [
+     "案ごとの帰結",
+     "イメージを配り、手元で動かす",
+     "試作が速い",
+     "端末にコンテナの実行環境が要る",
+     "入っていない人は、この Skill を使えない"
+    ]
+   ],
+   "grounds": [
+    [
+     "端末にDockerを要求しないこと",
+     "pushes the Docker image to an Amazon Elastic Container Registry (Amazon ECR) image repository",
+     "primary",
+     "AWS CodeBuild User Guide / Publish Docker image to an Amazon ECR image repository sample（2026-09-22 取得）"
+    ],
+    [
+     "作ったイメージを環境として使えること",
+     "Docker in custom image sample for CodeBuild",
+     "primary",
+     "AWS CodeBuild User Guide / Docker in custom image sample（2026-09-22 取得）"
+    ],
+    [
+     "動画を成果物として受け取ること",
+     "artifacts:\\n  files:",
+     "primary",
+     "AWS CodeBuild User Guide / Build specification reference（2026-09-22 取得）"
+    ],
+    [
+     "合成に置き場が要らないこと",
+     "The size of the input text can be up to 3000 billed characters (6000 total characters).",
+     "primary",
+     "Amazon Polly Developer Guide / Quotas in Amazon Polly（2026-09-22 取得）"
+    ],
+    [
+     "手元に道具が揃っていないという前提",
+     "docker 29.6.0 は在り、ffmpeg は command -v で見つからない",
+     "measured",
+     "この端末で実行（2026-09-22）"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "境界を越える値は、原稿と、音声・尺である。その受け渡しの形が、slide-deck Skill との結び付きの強さを決定する。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>継ぎ目は2つのJSONにし、突き合わせの鍵と持ち物の分担を決める。</p><ol><li><b class=\"lead-s\">枚のidは、スライドを保持する側が出したものをそのまま使う</b><div class=\"sub-s\">音声側は採番しない</div></li><li>音声側が持つのは、音声・尺・長さだけである。画像・解像度・順序はスライド側が持つ</li><li>入力に無い枚は、音声の無い枚として結合する側が扱う</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "2つのJSONで受け渡す。枚のidはスライド側が出したものをそのまま使い、音声側は採番しない。"
+    ]
+   ],
+   "figures": [
+    [
+     "スライド側の枚のidと画像、音声側の音声と尺を、idで突き合わせて結合する",
+     "2e5099b134ca"
+    ]
+   ],
+   "example": [
+    [
+     "<p>実例 ── 既存のスライドの出力は `previews/slide-01.png` である。この `slide-01` をそのまま鍵にする。</p><pre><code><pre><code>// narration.json（呼ぶ側が作る）\n{ \"voice\": \"Takumi\", \"engine\": \"neural\",\n  \"items\": [ { \"id\": \"slide-01\", \"text\": \"下期AI活用ワークショップの企画をご説明します。\" } ] }\n\n// narration.out.json（このSkillが返す）\n{ \"items\": [ { \"id\": \"slide-01\",\n               \"audio\": \"audio/slide-01.mp3\",\n               \"marks\": \"audio/slide-01.marks.json\",\n               \"format\": \"mp3\",\n               \"durationMs\": 12480 } ] }\n\n// 結合する側は、idで突き合わせる\n//   previews/slide-01.png  ×  audio/slide-01.mp3  ×  durationMs 12480</code></pre></code></pre><p class=\"note-s\">音声側は `previews/` の存在を知らない。鍵だけが共通で、置き場所はそれぞれが持つ。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "idはスライド側が出す",
+     "スライドを保持する側の枚の識別子を鍵にし、音声側はそれを受け取って返す",
+     "呼ぶ側が、スライドの枚と原稿を対応させる手順を持つ"
+    ],
+    [
+     "idは音声側が採番する",
+     "音声側が連番を振り、結合する側がその順序に合わせる",
+     "枚の増減のたびに、両者の連番がずれる危険を確認することになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "発表原稿（speaker-notes.md）を直接読む",
+     "見出しの規則に音声側が依存する。この企画デッキでは、見出しの形を実際に一度変更した（ACDR 0010）"
+    ],
+    [
+     "slide-deck Skill の内部のデータ構造を共有する",
+     "両者が同じ構造を知ることになり、片方の変更がもう片方へ波及する"
+    ],
+    [
+     "音声側が連番を採番する",
+     "枚の増減で連番がずれ、違う枚に音声が付く。しかも機械では検出できず、動画を見るまで判明しない"
+    ],
+    [
+     "出力に画像の場所も書く",
+     "音声側がスライドの置き場所を知ることになる。鍵だけを共通にすれば足りる"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>枚ごとの原稿を持つ1つのJSONを受け取り、音声・尺・長さを書いたJSONを返す。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これは別にこのインタフェースでできるならいいけど、結合する先のインターフェースは考慮しなくていいわけ？</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">入力と出力の形だけを決め、結合する側が何を要求するかを見ていなかった</b><div class=\"sub-s\">突き合わせの鍵が決まっていない</div></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>2つのJSONで受け渡すという形は維持した。足したのは、鍵の出どころと、どちらが何を持つかである</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">結合する側が要るのは、画像・音声・表示時間の3つである</b><div class=\"sub-s\">そのうち音声側が持つのは2つである</div>"
+    ],
+    [
+     "<b class=\"lead-s\">鍵はスライド側が出す識別子で足りる</b><div class=\"sub-s\">既存の出力は `previews/slide-01.png` である</div>"
+    ],
+    [
+     "音声の無い枚は、入力に含めないことで表現できる"
+    ]
+   ],
+   "costs": [
+    [
+     "スライド側の枚の識別子の規則を、slide-deck Skill 側で明文化する"
+    ],
+    [
+     "読み上げる文を、原稿のどの部分から取るかを呼ぶ側で決定する"
+    ],
+    [
+     "入力と出力のJSONの形を、JSON Schema として保存する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "SSMLの記述（間・読み・速度）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 声と読み方の論点で、どちらが書くかを決定する"
+    ],
+    [
+     "動画の解像度とフレーム数",
+     "<span class=\"kind k-rule\">対象外</span> ── スライドを保持する側が持つ。音声側は参照しない"
+    ],
+    [
+     "原稿から入力のJSONを組む手順",
+     "<span class=\"kind k-given\">後続で決定</span> ── 呼ぶ側の作業である"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "idはスライド側が出す",
+     "鍵の出どころが1つに定まる",
+     "枚が増減しても、スライド側の識別子に追従する",
+     "呼ぶ側に、対応させる手順が1つ増える"
+    ],
+    [
+     "案ごとの帰結",
+     "idは音声側が採番する",
+     "呼ぶ側の手順は増えない",
+     "枚の増減で連番がずれ、違う枚に音声が付く",
+     "ずれても機械では検出できない ── 動画を見るまで判明しない"
+    ]
+   ],
+   "grounds": [
+    [
+     "尺を出力に含める判断",
+     "--speech-mark-types='[\"viseme\", \"word\", \"sentence\"]'",
+     "primary",
+     "Amazon Polly Developer Guide / Speech marks without SSML example（2026-09-22 取得）"
+    ],
+    [
+     "見出しへの依存を避ける判断",
+     "見出しを主題と要点の名詞句へ変更した（全枚）",
+     "rule",
+     "ACDR 0010（承認済み）"
+    ],
+    [
+     "内部形式を渡さない判断",
+     "Skillの内部形式に合わせて整形せず、テキストのまま渡す",
+     "rule",
+     "CLAUDE.md 委譲パターン"
+    ],
+    [
+     "鍵をスライド側の識別子にする判断",
+     "既存のスライドの出力は previews/slide-01.png 〜 slide-37.png である",
+     "measured",
+     "docs/workshops/ai-workshop/previews/（2026-09-22 確認）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "合成は課金文字で課金される。全枚の作り直しを既定にするかどうかを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "継ぎ目の形（論点3）が決着してから開く。変更の検出の単位が、その形で決定するためである。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を開く時期",
+     "論点3で、入力のJSONが枚のidと文を持つ形に決まる",
+     "rule",
+     "この板の論点3"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     "教材の聞きやすさを決める。補正の持ち方は、継ぎ目の形に依存する。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "継ぎ目の形（論点3）が決着してから開く。SSMLを誰が書くかが、その形に依存するためである。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を開く時期",
+     "論点3で、SSMLの記述を「声と読み方」で決めると整理した",
+     "rule",
+     "この板の論点3"
+    ]
+   ]
+  }
+ }
+}
