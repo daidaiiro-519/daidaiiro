@@ -13,7 +13,7 @@ import subprocess
 
 from .mp3 import duration_ms
 
-MARKS = '["word", "sentence"]'
+MARKS = '["word", "sentence"]'   # 1つの引数として渡す（次の引数を飲み込ませない）
 
 
 def key_of(text: str, voice: str, engine: str) -> str:
@@ -26,6 +26,11 @@ def load(directory: str | pathlib.Path) -> dict:
     return json.loads((pathlib.Path(directory) / 'narration.json').read_text())
 
 
+def _marks(dest: pathlib.Path) -> pathlib.Path:
+    """時刻の置き場。音声と同じ鍵の名前に、別の拡張子を付ける。"""
+    return dest.with_name(dest.name + '.marks.json')
+
+
 def _aws(args: list[str], out: pathlib.Path) -> None:
     subprocess.run(['aws', 'polly', 'synthesize-speech', *args, str(out)],
                    check=True, capture_output=True)
@@ -33,13 +38,17 @@ def _aws(args: list[str], out: pathlib.Path) -> None:
 
 def synthesize(text: str, voice: str, engine: str, dest: pathlib.Path,
                lexicons: list[str] | None = None) -> None:
-    """音声と、語と文の時刻を作る。どちらも同じ操作から得られる。"""
-    common = ['--voice-id', voice, '--engine', engine, '--text', text]
+    """音声と、語と文の時刻を作る。どちらも同じ操作から得られる。
+
+    **値を複数取る引数は `=` で1つにまとめる** ── 分けて渡すと、後ろに続く
+    出力先の指定まで飲み込み、出力先が無いという誤りになる。
+    """
+    head = ['--voice-id', voice, '--engine', engine]
     if lexicons:
-        common += ['--lexicon-names', *lexicons]
-    _aws([*common, '--output-format', 'mp3'], dest.with_suffix('.mp3'))
-    _aws([*common, '--output-format', 'json', '--speech-mark-types', MARKS],
-         dest.with_suffix('.marks.json'))
+        head.append('--lexicon-names=' + ' '.join(lexicons))
+    _aws([*head, '--output-format', 'mp3', '--text', text], dest.with_suffix('.mp3'))
+    _aws([*head, '--output-format', 'json', '--speech-mark-types=' + MARKS,
+          '--text', text], _marks(dest))
 
 
 def plan(directory: str | pathlib.Path, voice: str | None = None) -> list[dict]:

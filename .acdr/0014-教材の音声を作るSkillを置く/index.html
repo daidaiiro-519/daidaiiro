@@ -1,0 +1,396 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教材の音声を作るSkillを置く</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 -1.2rem var(--sp-21)}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);
+background:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:var(--bw-1) solid var(--line);background:var(--panel);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);margin-left:var(--sp-10);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:var(--fs-6)}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+.acdr{border:var(--bw-1) solid var(--line);background:var(--panel);border-radius:var(--rd-4);
+padding:var(--sp-22) var(--sp-24) var(--sp-23);margin:0 0 var(--sp-27);max-width:var(--w-2)}
+.acdr .hd{display:flex;gap:var(--sp-17);align-items:baseline;flex-wrap:wrap;
+border-bottom:var(--bw-1) solid var(--line);padding-bottom:var(--sp-14);margin-bottom:var(--sp-21)}
+.acdr .no{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move)}
+.acdr h1.t{font-size:var(--fs-16);margin:0;letter-spacing:var(--tr-1);border:0;padding:0}
+.acdr .when{margin-left:auto;font-size:var(--fs-5);color:var(--muted)}
+.acdr .st{font-size:var(--fs-2);font-weight:700;padding:var(--sp-2) var(--sp-14);border-radius:var(--rd-5);
+border:var(--bw-1) solid currentColor}
+.acdr .st.proposed{color:var(--move)}
+.acdr .st.accepted{color:var(--key)}
+.acdr .st.superseded{color:var(--muted)}
+.acdr .stnote{font-size:var(--fs-5);color:var(--muted)}
+.acdr .ask{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-9)}
+.acdr .decide{font-size:var(--fs-14);background:var(--paper);border-left:var(--bw-3) solid var(--move);
+padding:var(--sp-16) var(--sp-20);margin:0 0 var(--sp-22)}
+.acdr .sec{margin:var(--sp-22) 0 0}
+.acdr .sec h4{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-8);text-transform:none}
+.acdr .sec p{margin:0}
+.acdr .sec ul{margin:var(--sp-3) 0;padding-left:var(--sp-23)}
+.acdr .sec table{margin:var(--sp-9) 0 0}
+.acdr .none{color:var(--muted)}
+.acdr .lead{font-size:var(--fs-7);color:var(--muted);margin:0 0 var(--sp-8)}
+.acdr table.shift td:nth-child(3){font-weight:700}
+.acdr .fig{margin:var(--sp-10) 0 0;padding:var(--sp-15);background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);overflow-x:auto}
+.acdr .fig svg{display:block;max-width:100%;height:auto}
+.acdr .fig figcaption{font-size:var(--fs-6);color:var(--muted);margin-top:var(--sp-10)}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<div class="acdr"><div class="hd"><span class="no">ACDR 0014</span><h1 class="t">教材の音声を作るSkillを置く</h1><span class="st accepted">承認</span><span class="stnote">承認を得た。適用してよい</span><span class="when">2026-09-23</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide">スライドの原稿から枚ごとの音声と尺を作るSkillを、.claude/skills/narration として置く。</div><div class="sec"><h4>なぜ、いま決めるのか</h4><p>概念教材は音声付きのスライド動画であり、音声を毎回手で作ると、声・読み方・尺の扱いが制作のたびに相違する。ブレストで5件を決着させ、試作で通したので、器へ落として繰り返し使える形にする。試作では、尺の定義と結合の手順に誤りが在ることも判明した。その訂正を、Skillのガードレールとして保存する。</p></div><div class="sec"><h4>形の変化</h4><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody><tr><td>音声の作り方</td><td>記録が無い。作るたびに手順を組み立てる</td><td>Skillの手順5段。plan で内訳を確認し、synth で作る</td></tr><tr><td>尺の定義</td><td>語と文の時刻の最後の印を使用していた</td><td>音声ファイルから測った長さ。外部の道具に依存せず、フレームの並びから測る</td></tr><tr><td>作り直しの判定</td><td>決めていない</td><td>文・声・エンジンから作った鍵を、音声の名前にする</td></tr><tr><td>読みの補正</td><td>決めていない</td><td>PLS準拠の辞書へ集約する。原稿と入力には書かない</td></tr><tr><td>実行の場所</td><td>決めていない</td><td>既定は手元。AWS側の構成はCloudFormationテンプレートとして同梱する</td></tr><tr><td>声</td><td>決めていない</td><td>Takumi（日本語・ニューラル）に固定する</td></tr></tbody></table></div><div class="sec"><h4>図で確認する</h4><figure class="fig"><svg class="wf-fig" viewBox="0 0 1410 100" width="1410" height="100" role="img"><g transform="translate(6.0,6.0)"><path d="M137.8,44.0 L271.7,43.7" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="271.7,43.7 264.9,46.2 264.9,41.2" fill="#C3CAD2"/><path d="M540.7,43.7 L674.6,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="674.6,44.0 667.8,46.4 667.8,41.5" fill="#C3CAD2"/><path d="M844.2,44.0 L978.0,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="978.0,44.0 971.2,46.5 971.2,41.5" fill="#C3CAD2"/><rect x="855.6" y="34.0" width="111.0" height="16.0" fill="#F5F7F9"/><text x="911.1" y="47.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">枚のidで突き合わせる</text><path d="M1115.2,44.0 L1248.8,44.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="1248.8,44.0 1242.0,46.5 1242.0,41.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="137.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">narration.json</text></g></g><g class="wf-node" transform="translate(272.2,0.0)"><rect x="0.0" y="16.0" width="268.0" height="72.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M88.6,16.0 L151.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="151.4,16.0 144.6,18.5 144.6,13.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">音声にする</text></g></g><g class="wf-node" transform="translate(152.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">尺を測る</text></g></g></g></g><rect x="8.0" y="7.0" width="139.0" height="15.0" fill="#F5F7F9"/><text x="77.5" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">narration（このSkill）</text></g><g class="wf-node" transform="translate(675.2,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="168.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="84.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">narration.out.json</text></g></g><g class="wf-node" transform="translate(978.6,28.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">スライドと結合する</text></g></g><g class="wf-node" transform="translate(1249.6,28.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="148.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="74.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">音声付きスライド動画</text></g></g></g></svg><figcaption>入力のJSONから音声と尺を作り、枚のidで突き合わせて動画になる</figcaption></figure></div><div class="sec"><h4>実現の形</h4><p>skills-creator で器を起こし、道具の契約（入口1つ・能力の正本・部品と検証の分離）に従わせる。継ぎ目の契約をJSON Schemaで保存し、辞書の例とテンプレートを同梱する。長さの測定は実物の音声で検証する。</p></div><div class="sec"><h4>適用先</h4><p>.claude/skills/narration（新規）。呼ぶ側は docs/workshops/ai-workshop の教材制作である。</p></div><div class="sec"><h4>比較した案</h4><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>合成の手順を、教材のフォルダへ置いたスクリプトで持つ</td><td>他の教材や他の資料へ転用できない。呼ぶ側ごとに同じ手順が複製される</td></tr><tr><td>動画への結合までを、このSkillが受け持つ</td><td>スライドの並びと画像の場所という、スライド側の知識を保持することになる</td></tr><tr><td>尺の測定に ffprobe を使う</td><td>合成だけのために映像の道具を前提にすることになる。フレームの並びから測れば、外部の道具は要らない</td></tr></tbody></table></div><div class="sec"><h4>承認後に実施すること</h4><ul><li>main へコミットする</li><li>教材の原稿から、全枚の音声と動画を作る</li></ul></div></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 4 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="skill">SKILL.md<span class="n">4</span></button></div>
+<section class="pane md" data-k="skill" hidden><details class="idx" open><summary>この面の変更 4 件</summary><ol><li><b>このSkillが保持する知識は、声・読み方・合成の条件だけである。</b><button class="go" data-i="0">その場所へ</button><div class="b">受け持ちの境界を先頭に置く。スライドの並びや画像の場所を保持すると、スライド側と同じ知識が2か所に存在する。</div></li><li><b>尺として、語と文の時刻の最後の印を使ってはならない。</b><button class="go" data-i="1">その場所へ</button><div class="b">実測で3枚とも0.53〜0.58秒不足し、動画が1.821秒ずれた。誤りの再発を、ガードレールとして保存する。</div></li><li><b>枚の識別子を、このSkillが採番してはならない。</b><button class="go" data-i="2">その場所へ</button><div class="b">採番すると、枚の増減で識別子が他の枚へ移る。しかも機械では検出できず、動画を再生するまで判明しない。</div></li><li><b>環境を先に作ってはならない。同時に、環境の作り方を保持しない状態にしてもならない</b><button class="go" data-i="3">その場所へ</button><div class="b">先に作ると使っていない設備を保守することになり、作り方が無いと端末の状態に依存し続ける。両方を1つの規則で禁じる。</div></li></ol></details><div class="doc"><hr>
+<p>name: &quot;narration&quot;<br>description: &quot;スライドの原稿から、枚ごとの音声と尺を作るときに使う。「ナレーション」「音声を付けて」「読み上げ」「教材の動画」と言われたとき、および原稿を音声化して動画へ渡すときに使う。動画への結合は受け持たず、音声と尺だけを返す。&quot;<br>disable-model-invocation: &quot;false&quot;</p>
+<hr>
+<h1>原稿から枚ごとの音声と尺を作るのを担当するSkill：narration</h1>
+<h2>目的</h2>
+<p>スライドの原稿を、枚ごとの音声と尺にするときに使う。音声付きのスライド動画を作る場面で、<br>音声の側だけを受け持つ。動画への結合は、スライドを保持する側が受け持つ。</p>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="新規である。これまで、音声の作り方はどこにも記録していなかった。" data-w="受け持ちの境界を先頭に置く。スライドの並びや画像の場所を保持すると、スライド側と同じ知識が2か所に存在する。">このSkillが保持する知識は、声・読み方・合成の条件だけである。</mark></strong> スライドの並び方、<br>画像の置き場、動画の解像度は保持しない ── 保持すると、同じ知識が2か所に存在する。</p>
+<hr>
+<h2>役割</h2>
+<p>- 枚ごとの読み上げる文から、音声と、語と文の時刻を作る<br>- 音声の長さを測り、結合する側が画面を切るための尺として返す<br>- 文・声・エンジンから鍵を作り、鍵が在る枚を再合成せずに取り出す<br>- 読みの補正を辞書へ集約し、原稿と入力を書き換えない<br>- 手元での実行と、AWS側での実行の両方を、同じ命令で成立させる</p>
+<hr>
+<h2>処理対象と成果物</h2>
+<h3>処理対象</h3>
+<p>枚の識別子と、読み上げる文を持つ入力（<code>narration.json</code>）。識別子は、スライドを保持する側が<br>出したものをそのまま使う ── <strong>このSkillは採番しない。</strong></p>
+<h3>成果物</h3>
+<p>枚ごとの音声（mp3）と、語と文の時刻（marks）、および両者の場所と長さを持つ出力<br>（<code>narration.out.json</code>）。音声は鍵の名前で置くので、名前そのものが再合成の判定になる。</p>
+<hr>
+<h2>入力の想定</h2>
+<div class="wrap"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td><code>narration.json</code> を置いたフォルダ</td><td>明示されなければ、いま作業しているフォルダを対象とする</td></tr><tr><td>声</td><td>明示されなければ <code>narration.json</code> の指定を使う。指定が無ければ Takumi（日本語・ニューラル）</td></tr><tr><td>読みの辞書</td><td>明示されなければ適用しない。<code>narration.json</code> の <code>lexicons</code> が名前を持つ</td></tr><tr><td>音声の置き場</td><td>明示されなければ、入力のフォルダの下の <code>cache</code> とする</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: 入力を確認する</h3>
+<p>枚の識別子が、スライドを保持する側の識別子と一致するかを確認する。読み上げる文に読み仮名が<br>書かれていないかを確認する ── 読みの補正は辞書が持つ。</p>
+<pre class="code">python3 scripts/cli.py plan &lt;フォルダ&gt;</pre>
+<p>合成せずに、どの枚が合成になり、どの枚が取り出しになるかが出る。</p>
+<h3>Step 2: 合成する</h3>
+<pre class="code">python3 scripts/cli.py synth &lt;フォルダ&gt; [声]</pre>
+<p>鍵が在る枚は取り出し、無い枚だけを合成する。出力に、音声・時刻・長さを書く。</p>
+<h3>Step 3: 尺を確認する</h3>
+<p>出力の <code>durationMs</code> が、音声の長さと一致することを確認する。</p>
+<pre class="code">python3 scripts/cli.py measure &lt;音声のファイル&gt;</pre>
+<p><strong><code>durationMs</code> は音声の長さである。</strong> 語と文の時刻の最後の印は、最後の語が始まる時刻であって、<br>音声の終わりではない ── 最後の印を長さとして扱うと、枚ごとに早く切り替わる。</p>
+<h3>Step 4: 読みを直す</h3>
+<p>読み間違いが在れば、辞書へ登録する。原稿と入力は書き換えない。</p>
+<pre class="code">python3 scripts/cli.py lexicon &lt;辞書のファイル&gt; &lt;辞書の名前&gt;</pre>
+<p>登録した名前を <code>narration.json</code> の <code>lexicons</code> へ書くと、合成の前に適用される。</p>
+<h3>Step 5: 結合する側へ渡す</h3>
+<p>出力の枚の識別子で、スライドの画像と突き合わせる。映像の長さは <code>durationMs</code> で固定し、<br>通しは再符号化して繋ぐ ── 無変換で繋ぐと、時刻の差が累積する。</p>
+<hr>
+<h2>出力形式</h2>
+<div class="wrap"><table><tr><th>出すもの</th><th>形</th></tr><tr><td>合成の結果</td><td>枚数・合成した枚数・取り出した枚数・合計の長さ</td></tr><tr><td>継ぎ目の出力</td><td><code>narration.out.json</code>（枚の識別子・鍵・音声・時刻・形式・長さ）</td></tr><tr><td>機械が読む形</td><td>どの命令も <code>--json</code> を付けると出る。終了コードは 0 正常 ／ 1 検出あり ／ 2 誤用</td></tr></table></div>
+<hr>
+<h2>ガードレール</h2>
+<p>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="新規である。" data-w="採番すると、枚の増減で識別子が他の枚へ移る。しかも機械では検出できず、動画を再生するまで判明しない。">枚の識別子を、このSkillが採番してはならない。</mark></strong> 採番すると、枚の増減で識別子が他の枚へ移り、違う枚に音声が付く。しかもその誤りは機械では検出できず、動画を再生するまで判明しない<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="新規である。試作では、最後の印を尺として使用していた。" data-w="実測で3枚とも0.53〜0.58秒不足し、動画が1.821秒ずれた。誤りの再発を、ガードレールとして保存する。">尺として、語と文の時刻の最後の印を使ってはならない。</mark></strong> 最後の印は最後の語が始まる時刻であり、音声の終わりではない。音声そのものから測る<br>- <strong>読みの補正を、原稿と入力へ書いてはならない。</strong> 原稿は人も読む文書であり、入力は音声専用の受け渡しである。どちらへ読み仮名を書いても、同じ語の修正が枚の数だけ発生する<br>- <strong>再合成の判定を、ファイルの更新時刻で行ってはならない。</strong> 取得のたびに時刻が変わる環境では、全部が新しいものとして扱われる。判定は、文・声・エンジンから作った鍵で行う<br>- <strong>スライドの並び・画像の場所・動画の条件を、このSkillが保持してはならない。</strong> 保持すると、スライドを保持する側と同じ知識が2か所に存在し、片方の変更がもう片方へ波及する<br>- <strong>声を枚ごとに変えてはならない。</strong> 聞き手は、声の変化を話者の交代として解釈する。教材の話者は1人である<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="新規である。板では、CodeBuildを既定にする答えを一度採り、差し戻された。" data-w="先に作ると使っていない設備を保守することになり、作り方が無いと端末の状態に依存し続ける。両方を1つの規則で禁じる。">環境を先に作ってはならない。同時に、環境の作り方を保持しない状態にしてもならない。</mark></strong> 既定は手元で実行し、AWS側で実行するための構成はテンプレートとして同梱する ── 先に作ると使っていない設備を保守することになり、作り方が無いと端末の状態に依存し続ける<br>- <strong>結合の道具を、端末へ直接導入してはならない。</strong> 版の差が動画の差になる。版を固定した公開のイメージを使う<br>- <strong>道具に印字させてはならない。</strong> 戻り値は <code>{ok, findings, data}</code> とし、印字と終了コードは入口が持つ ── 道具が印字すると、MCP から呼んだときに戻り値が空になる</p>
+<hr>
+<h2>参照</h2>
+<p>- <code>scripts/cli.py</code>: 唯一の入口。<code>plan</code> ・ <code>synth</code> ・ <code>lexicon</code> ・ <code>measure</code> を持つ<br>- <code>scripts/tools.py</code>: 道具の宣言。<strong>能力の正本</strong>であり、CLI と MCP はここから組む<br>- <code>scripts/lib/polly.py</code>: 合成の実行と、鍵による作り直しの判定<br>- <code>scripts/lib/mp3.py</code>: 音声の長さを、フレームの並びから測る。外部の道具に依存しない<br>- <code>scripts/tests/test_mp3.py</code>: 長さの測定を、実物の音声で検証する<br>- <code>references/narration.schema.json</code>: 入力の契約<br>- <code>references/narration.out.schema.json</code>: 出力の契約。<code>durationMs</code> の定義を含む<br>- <code>references/lexicon.example.pls</code>: 読みの辞書の例（W3CのPLS準拠）<br>- <code>infra/narration.yml</code>: AWS側で実行するための構成。<code>aws cloudformation deploy</code> で作る<br>- <code>.brainstorming-board/narration-skill/</code>: この設計を決めた5件の論点と、試作の記録</p></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
