@@ -119,7 +119,7 @@ svg = render_canvas(400, 200, layers=[
 
 | 戦略 | 何を根拠に置くか |
 |---|---|
-| 既定（層状） | 辺の向きから段を決める。つながり・階層に使う |
+| 既定（層状） | 辺の向きから層を決める。つながり・階層に使う |
 | `layout_radial` | 輪の上に置く。並びが閉じていることを見せる |
 | `layout_tree` | 中心から枝分かれさせる |
 | `layout_grid` | 宣言が持つ座標のとおりに置く。縦横の交点が意味を持つとき |
@@ -143,7 +143,7 @@ svg = render_figure(nodes, edges, layout=layout_radial)
 
 知らないトークンの名前は、その場で例外になる ── 目録に在る名前だけを使う。
 
-**色・寸法・書体を直接書かない**。必ずトークンから引く。3段で解決される
+**色・寸法・書体を直接書かない**。必ずトークンから引く。3層で解決される
 ── テーマの既定値 → 役割による上書き → その場の上書き。
 
 ```python
@@ -232,7 +232,7 @@ def bookmark(props, style):
 
 - `README.md`: エンジンの入口（使い方・目録・配置・開発）
 - `references/knowledge/svg-engine-discipline.md`: エンジンが遵守する規律と、外へ公開する面
-- `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各段が保証すること
+- `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各層が保証すること
 - `scripts/cli.py`: **唯一の入口。** `catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `scripts/lib/svg_engine/` は読み込まれるものであり、入口を保持しない
 - `scripts/mcp.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**

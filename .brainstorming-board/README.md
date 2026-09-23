@@ -5,10 +5,15 @@
 
 | ブレストボード | 題 | Artifact | 複製した時点 |
 |---|---|---|---|
-| `coding-skills/` | CodingSkills ── 規則と、それを使う仕組みをどう作るか | `https://claude.ai/artifact/FwpeSmBHDD1UmRCkx5UdL6` | Round 7（2026-09-21） |
-| `usecase-schema-driven/` | ユースケース駆動と、それを支える schema 駆動 | （未発行） | （未複製） |
+| `coding-skills/` | CodingSkills ── アーキテクチャを、決め・保ち・測る | `https://claude.ai/artifact/FwpeSmBHDD1UmRCkx5UdL6` | Round 10（2026-09-24） |
+| `usecase-schema-driven/` | ユースケース駆動と、それを支える schema 駆動 | （未発行） | Round 42 |
+| `material-abstraction/` | 教材の題材：抽象と具体を、どう理解させるか | （未発行） | Round 24 |
+| `narration-skill/` | 学習教材の音声を作るSkill | （未発行） | Round 12 |
 
-`coding-skills/` が、いま進めているブレストボードである。11の論点を持つ ── 論点1〜8 が規則1件の形、論点9〜11 がそれを使う仕組みである。
+`coding-skills/` は 2026-09-23 に立て直した。**論点は3つで、どれもアーキテクチャの面である** ──
+モデル（構造を決める）・ 依存の向き（構造を保つ）・ テスト（構造を測る）。
+立て直す前の姿（Round 24、論点12件）は `coding-skills/rounds/gen1-board.html` に残してある。
 
-`coding-rule-form/` は 2026-09-21 に `coding-skills/` へ統合した。**CodingSkills のブレストボードは1枚だけである** ── 前提が別のボードに在ると、どちらが正しいかを毎回確認することになる。統合前の Artifact `https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` は、まだ消していない。
-| `narration-skill/` | 学習教材の音声を作るSkill | （未発行） | （未複製） |
+`coding-rule-form/` は 2026-09-21 に `coding-skills/` へ統合した。**CodingSkills のブレストボードは1枚だけである**
+── 前提が別のボードに在ると、どちらが正しいかを毎回確認することになる。統合前の Artifact
+`https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` は、まだ消していない。

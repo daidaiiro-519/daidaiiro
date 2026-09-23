@@ -8,8 +8,8 @@
 `references/tokens.json` だけで、色も寸法もここから出る。
 2か所に書くと、どちらが正しいかを毎回確認することになる。
 
-**段を跨いだ参照を、形の段で弾く。** 意味の段は基礎の鍵だけを参照し、
-部品の段は意味か基礎の鍵だけを参照する。散文の規定では破れる。
+**層を跨いだ参照を、形の層で弾く。** 意味の層は基礎の鍵だけを参照し、
+部品の層は意味か基礎の鍵だけを参照する。散文の規定では破れる。
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def load(path: pathlib.Path | None = None) -> dict:
 
 
 def _raw(t: dict) -> dict[str, str]:
-    """基礎の段を、1つの辞書へ畳む。鍵の重複はそこで判明する。"""
+    """基礎の層を、1つの辞書へ畳む。鍵の重複はそこで判明する。"""
     out: dict[str, str] = {}
     for kind, table in t["base"].items():
         for k, v in table.items():
@@ -44,7 +44,7 @@ def _raw(t: dict) -> dict[str, str]:
 
 
 def validate(t: dict, *, with_schema: bool = True) -> list[str]:
-    """形と、段を跨ぐ参照を検査する。**0件になるものだけを検査する。**"""
+    """形と、層を跨ぐ参照を検査する。**0件になるものだけを検査する。**"""
     err: list[str] = []
     if with_schema:
         try:
@@ -130,13 +130,13 @@ def _lines(table: dict[str, str], base: dict[str, str]) -> str:
     return "".join(f"--{k}:{base[v]};" for k, v in table.items())
 
 
-# 寸法の系は、名前のまま CSS 変数へ出す ── 色は意味の段を経由するが、
-# 寸法・字寸・字送り・角丸・枠は役割ではなく段そのものが意味である
+# 寸法の系は、名前のまま CSS 変数へ出す ── 色は意味の層を経由するが、
+# 寸法・字寸・字送り・角丸・枠は役割ではなく層そのものが意味である
 _SIZE_SCALE = ("space", "font_size", "tracking", "radius", "border")
 
 
 def css(t: dict) -> str:
-    """3つの選択子と、寸法の系と、部品の段を組む。"""
+    """3つの選択子と、寸法の系と、部品の層を組む。"""
     base = _raw(t)
     size = "".join(f"--{k}:{v};" for kind in _SIZE_SCALE for k, v in t["base"][kind].items())
     parts = []

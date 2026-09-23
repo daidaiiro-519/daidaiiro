@@ -113,9 +113,9 @@ def prose(place: str, s: str) -> list[str]:
 
 
 def level_mix(place: str, s: str) -> list[str]:
-    """**入力は宣言だけを保持する。** 段の要素が入っていれば、宣言の外に構造がある。"""
+    """**入力は宣言だけを保持する。** 見出しや表が入っていれば、宣言の外に構造がある。"""
     m = level_items.search(s)
-    return [f"{place}: 段の要素「{m.group(0)}」が欄の中に在る ── 宣言へ割る"] if m else []
+    return [f"{place}: 見出しや表「{m.group(0)}」が欄の中に在る ── 宣言へ割る"] if m else []
 
 
 def refs(folder: pathlib.Path, spec: dict, root: pathlib.Path | None = None) -> list[str]:

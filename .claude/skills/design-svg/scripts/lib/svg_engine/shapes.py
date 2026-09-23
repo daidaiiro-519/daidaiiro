@@ -143,7 +143,7 @@ def dot(props: dict, style: Style) -> OwnOrigin:
 def _smooth_path(points: list[tuple[float, float]]) -> str:
     """点列を、角を丸めたパスへ変換する。2点なら直線のまま。
 
-    3点以上（複数段をまたぐ辺が仮節点を経由した場合）は、各中間点を
+    3点以上（複数層をまたぐ辺が仮節点を経由した場合）は、各中間点を
     二次ベジェで滑らかにつなぐ。折れ線のまま出すより、辺だと分かりやすい。
     """
     if len(points) < 3:

@@ -1,4 +1,4 @@
-"""やり取り専用の部品 ── 参加者ごとの縦のライフラインと、段ごとに行き来する
+"""やり取り専用の部品 ── 参加者ごとの縦のライフラインと、層ごとに行き来する
 横向きのメッセージ。Mermaidのsequence diagramに相当する。
 
 「順序」（`box`をrank/orderで並べるだけ）や「つながり」の汎用グラフでは、
@@ -6,7 +6,7 @@
 専用の部品として起こす。
 
 分かれ(cases)を持つ囲みは、ケースの見出しぶんの高さを行として確保してから
-段を並べる。見出しをメッセージの行へ後から重ね書きすると、実際に描いて
+層を並べる。見出しをメッセージの行へ後から重ね書きすると、実際に描いて
 文字と線が衝突する不具合が出た（このファイルの最初の実装で発生）。
 
 寸法はすべて style（tokens.py のトークン）から引く。直書きしていたときは、
@@ -26,13 +26,13 @@ from .text import column_width, text_width
 
 @component("exchange")
 def exchange(props: dict, style: Style) -> OwnOrigin:
-    """参加者の縦のライフラインと、段ごとのメッセージ。
+    """参加者の縦のライフラインと、層ごとのメッセージ。
 
     props:
         participants: [str, ...] ── 左から並べる順。
         steps: [{"from": str, "to": str, "label": str(任意),
-                 "kind": "call"(既定)|"return"}, ...] ── 上から順に描く段。
-        groups: [{"label": str, "span": [開始段, 終了段]}, ...]（任意）
+                 "kind": "call"(既定)|"return"}, ...] ── 上から順に描く層。
+        groups: [{"label": str, "span": [開始層, 終了層]}, ...]（任意）
                 または cases を持つ分かれ:
                 [{"label": str, "cases": [{"name": str, "span": [s, e]}, ...]}]
     """
@@ -53,7 +53,7 @@ def exchange(props: dict, style: Style) -> OwnOrigin:
     box_w = column_width(who, fs, style.num("chart.gap") * 2)
     w = pad * 2 + colw * len(who)
 
-    # ── 段ごとの縦位置を、分かれの見出し行ぶんも織り込んで先に確定させる ──
+    # ── 層ごとの縦位置を、分かれの見出し行ぶんも織り込んで先に確定させる ──
     case_header_at: dict[int, list[str]] = {}
     for g in groups:
         for c in g.get("cases", []):

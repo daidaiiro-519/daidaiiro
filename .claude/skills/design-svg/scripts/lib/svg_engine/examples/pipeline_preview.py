@@ -1,4 +1,4 @@
-"""完成イメージ ── 図の宣言が、実際に絵になるまでの3段を一続きに作る。
+"""完成イメージ ── 図の宣言が、実際に絵になるまでの3層を一続きに作る。
 
 ここで作る変換（ホストの語彙 → 一般名詞）は、ADRが「アダプタの内側だけで起きる」
 と決めたもの。まだWaffleへ組み込んでいないので、この場で試作して実物を確認する。
@@ -16,7 +16,7 @@ from svg_engine import render_figure  # noqa: E402
 OUT = pathlib.Path(__file__).resolve().parent / "out"
 OUT.mkdir(exist_ok=True)
 
-# ── 1段目: 図の宣言（ホストの語彙）。ドメイン層が持つ値の組 ──────────────
+# ── 1層目: 図の宣言（ホストの語彙）。ドメイン層が持つ値の組 ──────────────
 DECLARATION = {
     "asserts": "つながり",
     "reading": "受け口はユースケースを呼び、ユースケースが業務サービスを介してモデルへ届く。",
@@ -36,7 +36,7 @@ DECLARATION = {
 }
 
 
-# ── 2段目: 変換（アダプタの内側）。ホストの語彙 → 一般名詞 ────────────────
+# ── 2層目: 変換（アダプタの内側）。ホストの語彙 → 一般名詞 ────────────────
 def to_engine_input(declaration: dict) -> dict:
     """図の宣言を、描画エンジンが受け取る一般名詞の形へ変換する。
 
@@ -52,7 +52,7 @@ def to_engine_input(declaration: dict) -> dict:
 
 ENGINE_INPUT = to_engine_input(DECLARATION)
 
-# ── 3段目: 描く ────────────────────────────────────────────────
+# ── 3層目: 描く ────────────────────────────────────────────────
 SVG = render_figure(ENGINE_INPUT["nodes"], ENGINE_INPUT["edges"], direction="TB")
 
 (OUT / "pipeline_declaration.json").write_text(

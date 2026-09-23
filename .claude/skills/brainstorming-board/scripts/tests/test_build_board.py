@@ -14,7 +14,7 @@ def check(name, cond):
 
 x = "<b>主張である</b> ── これは説明である"
 once = m.cell(x)
-check("2段に割れる", 'class="lead-s"' in once and 'class="sub-s"' in once)
+check("2行に割れる", 'class="lead-s"' in once and 'class="sub-s"' in once)
 check("冪等である（2回当てても同じ）", m.cell(once) == once)
 check("3回当てても同じ", m.cell(m.cell(once)) == once)
 check("引用は割らない", m.cell("「原文のことば ── これも原文」") == "「原文のことば ── これも原文」")

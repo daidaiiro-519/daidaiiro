@@ -49,7 +49,7 @@ COMBOS: dict[str, dict[str, list]] = {
                        edges=[{"from": "a", "to": "b"}, {"from": "b", "to": "c"},
                               {"from": "c", "to": "a", "label": "戻る"}],
                        groups=[{"label": "輪の一部", "members": ["b", "c"]}]),
-    "多段またぎ＋群": dict(
+    "多層またぎ＋群": dict(
                        nodes=[{"id": c, "label": c.upper()} for c in "abcde"],
                        edges=[{"from": "a", "to": "b"}, {"from": "b", "to": "c"},
                               {"from": "c", "to": "d"}, {"from": "d", "to": "e"},

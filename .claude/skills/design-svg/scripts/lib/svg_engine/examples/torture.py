@@ -1,4 +1,4 @@
-"""耐久試験 ── サイクル・複数段をまたぐ辺・交差する辺を、わざと1枚に混ぜる。
+"""耐久試験 ── サイクル・複数層をまたぐ辺・交差する辺を、わざと1枚に混ぜる。
 
 破綻せずに描けるか（クラッシュしない、辺が節点を突っ切らない）を目視で確認する。
 """
@@ -25,7 +25,7 @@ edges: list[dict] = [
     {"from": "C", "to": "F", "label": "斜め"},
     {"from": "D", "to": "G"},
     {"from": "H", "to": "G"},
-    {"from": "A", "to": "G", "label": "3段またぎ"},  # A(0段)→G(3段) を直結。仮節点を経由するはず
+    {"from": "A", "to": "G", "label": "3層またぎ"},  # A(0層)→G(3層) を直結。仮節点を経由するはず
     {"from": "G", "to": "A", "label": "循環", "dashed": True},  # 意図的なサイクル
 ]
 
@@ -33,7 +33,7 @@ svg = render_figure(nodes, edges, direction="TB")
 html = f"""<title>svg_engine 耐久試験</title>
 <style>body{{font-family:sans-serif;padding:2rem;background:#fff}}
 svg{{max-width:100%;height:auto;border:1px solid #eee}}</style>
-<h2>サイクル・3段またぎ・交差する辺を混ぜた図</h2>
+<h2>サイクル・3層またぎ・交差する辺を混ぜた図</h2>
 {svg}
 """
 out_path = OUT / "torture.html"

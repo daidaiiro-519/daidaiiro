@@ -7,8 +7,8 @@
 **トークンの正本は1つである。** この道具が読むのは `references/tokens.json` だけで、
 色はここから出る。2か所に書くと、どちらが正しいかを毎回確認することになる。
 
-**段を跨いだ参照を、形の段で弾く。** 意味の段は基礎の鍵だけを参照し、
-部品の段は意味か基礎の鍵だけを参照する。散文の規定では破れる。
+**層を跨いだ参照を、形の層で弾く。** 意味の層は基礎の鍵だけを参照し、
+部品の層は意味か基礎の鍵だけを参照する。散文の規定では破れる。
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def load(path: pathlib.Path | None = None) -> dict:
 
 
 def _raw(t: dict) -> dict[str, str]:
-    """基礎の段を、1つの辞書へ畳む。鍵の重複はそこで判明する。"""
+    """基礎の層を、1つの辞書へ畳む。鍵の重複はそこで判明する。"""
     out: dict[str, str] = {}
     for kind, table in t["base"].items():
         for k, v in table.items():
@@ -49,7 +49,7 @@ def _raw(t: dict) -> dict[str, str]:
 
 
 def validate(t: dict, *, with_schema: bool = True) -> list[str]:
-    """形と、段を跨ぐ参照を検査する。**0件になるものだけを検査する。**"""
+    """形と、層を跨ぐ参照を検査する。**0件になるものだけを検査する。**"""
     err: list[str] = []
     if with_schema:
         try:
@@ -88,7 +88,7 @@ _SCALES = ("space", "font_size", "tracking", "radius", "border", "width")
 
 
 def css(t: dict, *, host: bool = False) -> str:
-    """3つの選択子と、部品の段を組む。**明暗で変わらない段は、明の側に1回だけ出す。**
+    """3つの選択子と、部品の層を組む。**明暗で変わらない層は、明の側に1回だけ出す。**
 
     `host` を渡すと、Shadow の中でも解決する選択子で組む。
     """
@@ -97,8 +97,8 @@ def css(t: dict, *, host: bool = False) -> str:
     base = _raw(t)
     parts = "".join(f"--{k}:{base[v] if v in base else f'var(--{v})'};"
                     for k, v in t["component"].items())
-    # 寸法の系は、名前のまま出す ── 色は意味の段を経由するが、
-    # 寸法・字寸・字送り・角丸・枠・幅は、段そのものが意味である
+    # 寸法の系は、名前のまま出す ── 色は意味の層を経由するが、
+    # 寸法・字寸・字送り・角丸・枠・幅は、層そのものが意味である
     scale = "".join(f"--{k}:{v};" for group in _SCALES if group in t["base"]
                     for k, v in t["base"][group].items())
     light = _lines(t["semantic"]["light"], base) + scale + parts

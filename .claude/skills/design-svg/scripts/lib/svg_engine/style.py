@@ -1,6 +1,6 @@
 """スタイルの解決 ── CSSのカスケードに相当する。
 
-出どころは3段。テーマの既定値 → role によるクラス的な上書き → その場限りの
+出どころは3層。テーマの既定値 → role によるクラス的な上書き → その場限りの
 インライン上書き。後のものが前のものに勝つ。role の中身もテーマが持つので
 （`role.focus.color.box-fill` のような平らな名前）、テーマを差し替えれば
 「どんな役割があるか」ごと入れ替わる。トークンの値がさらに別のトークン名を
@@ -49,7 +49,7 @@ class UnknownRoleError(ValueError):
 
 
 def _deref(value, theme):
-    """値がトークン名を指していたら、指し先の値へたどる（1段だけ。循環はしない前提）。"""
+    """値がトークン名を指していたら、指し先の値へたどる（1層だけ。循環はしない前提）。"""
     if isinstance(value, str) and value in theme:
         return theme[value]
     return value

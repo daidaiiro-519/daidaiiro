@@ -263,7 +263,7 @@ def declaration() -> dict[str, dict]:
 
 def strategies() -> dict[str, str]:
     """選べる配置戦略と、それが何を根拠に位置を決めるか。"""
-    return {"layout_graph": "辺の向きから段を決める（層状）",
+    return {"layout_graph": "辺の向きから層を決める（層状）",
             "layout_radial": "順が巡って戻る（環状）",
             "layout_tree": "中心から枝分かれする（放射の木）",
             "layout_grid": "宣言が持つ座標のとおりに置く（格子）"}

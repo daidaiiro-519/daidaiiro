@@ -33,29 +33,29 @@ def _no_overlap(boxes: dict[str, tuple[float, float]],
 
 
 class TestRank:
-    def test_辺の向きに沿って段が下る(self):
+    def test_辺の向きに沿って層が下る(self):
         r = layout_graph(_sizes("a", "b", "c"), [("a", "b"), ("b", "c")], 40, 30)
         ys = [r.positions[k][1] for k in ("a", "b", "c")]
         assert ys[0] < ys[1] < ys[2]
 
-    def test_横向きにすると段は横へ下る(self):
+    def test_横向きにすると層は横へ下る(self):
         r = layout_graph(_sizes("a", "b"), [("a", "b")], 40, 30, direction="LR")
         assert r.positions["a"][0] < r.positions["b"][0]
         assert r.positions["a"][1] == pytest.approx(r.positions["b"][1])
 
 
-    def test_段は辺の長さの総和が最小になるように決まる(self):
-        # 長さの違う3本の道が1点へ合流する。段が構造から一意に決まらないので、
+    def test_層は辺の長さの総和が最小になるように決まる(self):
+        # 長さの違う3本の道が1点へ合流する。層が構造から一意に決まらないので、
         # どこへ置くかに自由がある。短い道を上端へ寄せると辺が伸びる。
         edges = [("長1", "長2"), ("長2", "長3"), ("長3", "長4"), ("長4", "合"),
                  ("短1", "短2"), ("短2", "合"),
                  ("中1", "中2"), ("中2", "中3"), ("中3", "合")]
         rank = _assign_ranks(["長1", "長2", "長3", "長4", "短1", "短2",
                               "中1", "中2", "中3", "合"], edges)
-        # どの辺も1段以上またぐので、総和は辺の本数を下回れない。等号＝最適。
+        # どの辺も1層以上またぐので、総和は辺の本数を下回れない。等号＝最適。
         assert sum(rank[b] - rank[a] for a, b in edges) == len(edges)
 
-    def test_繋がっていない塊はそれぞれ独立に段が決まる(self):
+    def test_繋がっていない塊はそれぞれ独立に層が決まる(self):
         rank = _assign_ranks(["a", "b", "x", "y"], [("a", "b"), ("x", "y")])
         assert rank["a"] == rank["x"] == 0
         assert rank["b"] == rank["y"] == 1
@@ -74,7 +74,7 @@ class TestCycle:
 
 
 class TestMultiRankEdge:
-    def test_段を飛ぶ辺は途中に折れ点を持つ(self):
+    def test_層を飛ぶ辺は途中に折れ点を持つ(self):
         """仮節点を経由するから、2点の直線ではなくなる。"""
         r = layout_graph(_sizes("a", "b", "c"),
                          [("a", "b"), ("b", "c"), ("a", "c")], 40, 30)
@@ -249,7 +249,7 @@ class TestTree:
 
 
 class Test札の逃げ場:
-    """段の間隔は、その間を通る辺の札が収まるだけ空ける。
+    """層の間隔は、その間を通る辺の札が収まるだけ空ける。
 
     「札どうしが重ならない」だけを性質にしていたため、逃げ場が足りるかを
     誰も見ていなかった。実測：3節点の鎖に長い札を付けると、札が節点の名前へ
@@ -270,8 +270,8 @@ class Test札の逃げ場:
     def test_短い札は重ならない(self):
         assert self._faults("保証", "LR") == []
 
-    def test_段の間隔より長い札でも重ならない(self):
-        """既定の段の間隔（48）より明らかに長い札。"""
+    def test_層の間隔より長い札でも重ならない(self):
+        """既定の層の間隔（48）より明らかに長い札。"""
         assert self._faults("何が成り立てばその概念かを言う", "LR") == []
 
     def test_縦向きでも重ならない(self):
@@ -319,7 +319,7 @@ class Test図の中に図:
         assert "子1" in svg and "子2" in svg
 
     def test_深さに上限がある(self):
-        """段1 が「入れ子は深さに上限を置く」と定めている。"""
+        """層1 が「入れ子は深さに上限を置く」と定めている。"""
         import pytest
         from svg_engine.compose import render_figure
         from svg_engine.tokens import DEFAULT_THEME, num

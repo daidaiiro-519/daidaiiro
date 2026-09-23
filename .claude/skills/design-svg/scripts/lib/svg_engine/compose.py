@@ -19,7 +19,7 @@
    なので、節点と同じ間隔で並ぶのが筋。（線幅ぶんだけでは迂回に見えない）
 5. **動かせるものが譲り、動かせないものは動かない。** 札（辺の札・囲みの札）が
    譲る側。譲れないときは不透明な帯で線を断って上に載る。
-6. **札には逃げ場がある。** 段の間隔は、その間を通る辺の札が収まるだけ空ける。
+6. **札には逃げ場がある。** 層の間隔は、その間を通る辺の札が収まるだけ空ける。
    逃げ場が足りないと、動かせるはずの札が節点の名前へ重なる。
 7. **画布は、描いたものを全部含む。** 節点だけでなく、外へはみ出す囲み・
    迂回経路の辺・その上に乗る札まで含めて取る。余白は四辺へ均等に。
@@ -29,7 +29,7 @@
 **描く順序**は 囲み → 辺 → 札 → 節点。札を辺より後に描くのは、避けられな
 かったときでも帯が線を断って読めるようにするため（性質5）。
 
-座標の解決は sugiyama.py（層状グラフ描画。サイクル・複数段またぎ・
+座標の解決は sugiyama.py（層状グラフ描画。サイクル・複数層またぎ・
 交差する辺のいずれにも耐える本格版）に委ねる。環状・放射の木へ差し替える
 ときは、同じ契約（LayoutResult を返す）の関数を layout 引数で渡す。
 """
@@ -169,12 +169,12 @@ def _cardinal(pos, size, ink, toward, flow=None):
     dx, dy = toward[0] - cx, toward[1] - cy
     if dx == 0 and dy == 0:
         return (cx, cy)
-    # 段が進む向きで離れているなら、その向きの辺から出す。
+    # 層が進む向きで離れているなら、その向きの辺から出す。
     #
     # 箱の形だけで決めると、横長の箱では斜めが浅くなり、真下にある相手まで
     # 「横にある」と判定される。すると辺が箱の列の中へ入り、間の箱を避けて
     # 長い迂回になる（実測：枝10本の木で、根から両端の枝への辺が列の上を
-    # 横切って引かれた）。段の進む向きは、その図で構造が伸びている向きなので、
+    # 横切って引かれた）。層の進む向きは、その図で構造が伸びている向きなので、
     # そちら側から出入りするほうが読み手の期待と合う。
     #
     # 「離れている」は閾値ではなく、この箱自身の半分で測る ── 相手が箱の
@@ -229,7 +229,7 @@ def _detour_aim(pos, size, routed, direction: str):
 def _nested(decl: dict, theme: dict, depth: int, label: str | None = None) -> OwnOrigin:
     """節点の中身として置く子図を組み立てる。
 
-    深さに上限を置くのは、段1 が入れ子の文法にそう定めているため。上限が
+    深さに上限を置くのは、層1 が入れ子の文法にそう定めているため。上限が
     無いと、自分を指す宣言で終わらなくなる。
 
     Args:
@@ -292,7 +292,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     Args:
         nodes: [{"id": str, "label": str, "role": str(任意), "style": dict(任意)}, ...]
         edges: [{"from": str, "to": str, "label": str(任意), "dashed": bool(任意),
-                 "arrow": str(任意)}, ...]。サイクル・複数段をまたぐ辺・
+                 "arrow": str(任意)}, ...]。サイクル・複数層をまたぐ辺・
                 交差する辺のいずれを含んでもよい。
         groups: [{"label": str, "members": [id, ...]}, ...]（任意）
         direction: "TB" または "LR"。
@@ -312,7 +312,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     groups = groups or []
     theme = theme or DEFAULT_THEME
     depth = _depth
-    # 段が進む向き。層状のときだけ辺の出入りに効かせるので、既定値で補完する前に確認する
+    # 層が進む向き。層状のときだけ辺の出入りに効かせるので、既定値で補完する前に確認する
     # ── 補完した後だと、戦略を選ばなかったことが分からなくなる。
     flow = (1 if direction == "TB" else 0) if layout is None else None
     layout = layout or layout_graph
@@ -346,8 +346,8 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     frame_pad = frame_style.num("font.size-small") * frame_style.num("size.frame-pad-ratio")
     label_h = frame_style.num("font.size-small") * frame_style.num("size.label-line-h")
 
-    # 段の間隔は、その間を通る辺の札が収まるだけ空ける。札は動かせるが、
-    # 逃げ場が段の間隔しかないので、札がその間隔より長いと逃げ切れず、
+    # 層の間隔は、その間を通る辺の札が収まるだけ空ける。札は動かせるが、
+    # 逃げ場が層の間隔しかないので、札がその間隔より長いと逃げ切れず、
     # 節点の名前に重なる（実測：3節点の鎖で4件。札を短くすると0件）。
     # 「札どうしが重ならない」だけを性質にしていたので、逃げ場が足りるかを
     # 誰も見ていなかった。ここで逃げ場の側を保証する。
@@ -360,12 +360,12 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         if direction == "LR":
             gap_rank = max(gap_rank, need + num(theme, "size.gap-order"))
         else:
-            # 縦に進む辺では、札は帯の高さぶんしか段を占めない
+            # 縦に進む辺では、札は帯の高さぶんしか層を占めない
             gap_rank = max(gap_rank, num(theme, "size.label-band-h") + num(theme, "size.gap-order"))
 
     if groups:
         # 群があるときは、群を先に解いて1つの大きさへ集約し、親はそれを1個として置く。
-        # こうしないと、段をまたぐ群の外接矩形が間の非メンバーを飲み込む。
+        # こうしないと、層をまたぐ群の外接矩形が間の非メンバーを飲み込む。
         node_boxes, group_boxes, nested_paths, total_w, total_h = nested_layout(
             sizes, edge_pairs, groups, gap_rank,
             num(theme, "size.gap-order"), direction, frame_pad, label_h,
@@ -426,8 +426,8 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         if len(routed) > 1:
             # まっすぐな辺は相手の方を向く。迂回経路の辺（中継点を持つ）は、
             # 回る側の辺から出入りする ── すぐ隣の中継点だけを参照すると、
-            # 1段下の中継点に引かれて底辺から出てしまい、同じ「迂回」なのに
-            # 図によって出る辺が変わる（実測：循環は左辺、多段またぎは底辺）。
+            # 1層下の中継点に引かれて底辺から出てしまい、同じ「迂回」なのに
+            # 図によって出る辺が変わる（実測：循環は左辺、多層またぎは底辺）。
             aim_a = _detour_aim(coords[a], sizes[a], routed, direction)
             aim_b = _detour_aim(coords[b], sizes[b], routed, direction)
             routed[0] = _cardinal(coords[a], sizes[a], ia, aim_a or routed[1], flow)
@@ -437,7 +437,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
             # 辺と直交しない（実測：右辺から出て矢じりが下を向いた）。
             axis = 0 if direction == "TB" else 1
             # 迂回用の車線は、両端の節点からも離す。配置が置いた仮節点の列は
-            # 隣の段の節点との間隔しか見ていないので、端の節点をかすめること
+            # 隣の層の節点との間隔しか見ていないので、端の節点をかすめること
             # がある（実測：4.3px しか離れず、迂回に見えなかった）。離す量は
             # 節点どうしを離す量と同じにする ── 車線は仮の節点の列なので、
             # 節点と同じ間隔で並ぶのが筋。線幅ぶんだけでは、端の節点の縁を
@@ -614,7 +614,7 @@ def render_chart(kind: str, props: dict, role: str = "plain",
                   style_overrides: dict | None = None, theme: dict | None = None) -> str:
     """自動配置を要らない部品(pie/bars/ranking/lanes/scatter/flow/spatial)を、
     それ単独で1枚のSVGへ描く。値から座標が一意に決まる部品はグラフの
-    レイアウト解決を経由しない、という段1の整理をそのまま反映している。
+    レイアウト解決を経由しない、という層1の整理をそのまま反映している。
 
     Args:
         kind: 台帳に登録された部品名（例: "pie", "bars"）。

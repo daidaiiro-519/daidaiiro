@@ -157,7 +157,7 @@ CLAIMS: list[dict] = [
           {"key": "t", "name": "文字4"}, {"key": "f", "name": "図8"}]},
       {"key": "c", "name": "共通の欄"}]}]},
 
- {"asserts": "包含", "reading": "段1は実装に属し、段2・段3は文書に属する。",
+ {"asserts": "包含", "reading": "層1は実装に属し、層2・層3は文書に属する。",
   "items": [{"key": "impl", "name": "実装", "children": [{"key": "s", "name": "Schema"}]},
             {"key": "doc", "name": "文書", "children": [{"key": "ty", "name": "型"},
                                                         {"key": "en", "name": "実体"}]}]},
@@ -232,7 +232,7 @@ CLAIMS: list[dict] = [
             {"key": "h", "name": "HTML"}],
   "links": [{"from": "s", "to": "m", "weight": 7}, {"from": "s", "to": "h", "weight": 3}]},
 
- {"asserts": "空間", "reading": "段は外側から内側へ並ぶ。位置が深さを表す。",
+ {"asserts": "空間", "reading": "層は外側から内側へ並ぶ。位置が深さを表す。",
   "items": [{"key": "a", "name": "受け口"}, {"key": "b", "name": "ユースケース"},
             {"key": "c", "name": "業務サービス", "role": "focus"}, {"key": "d", "name": "モデル"}]},
 ]

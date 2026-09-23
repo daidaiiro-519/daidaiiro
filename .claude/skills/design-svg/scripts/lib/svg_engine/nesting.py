@@ -1,6 +1,6 @@
 """群を含む配置 ── 群を再帰的に解き、親は群を1個の節点として扱う。
 
-段ごとに要素を隣り合わせるだけでは足りない。群が段をまたぐと、斜めに離れた
+層ごとに要素を隣り合わせるだけでは足りない。群が層をまたぐと、斜めに離れた
 要素の外接矩形が間の非メンバーまで飲み込む（実測で確認）。囲みが意味を成すには
 「群の要素だけが、群の矩形の内側に居る」ことが要る。それを構造として保証するには、
 群を先に配置して1つの大きさへ集約し、親はそれを1個として置くしかない。
@@ -108,11 +108,11 @@ def layout_nested(node_sizes: dict[str, tuple[float, float]],
         node_sizes: 実節点idごとの (width, height)。
         edges: (from, to) の並び。
         groups: [{"label": str, "members": [id, ...]}, ...]。入れ子でもよい。
-        gap_rank / gap_order: 段の間隔・段内の間隔。
+        gap_rank / gap_order: 層の間隔・層内の間隔。
         direction: "TB" または "LR"。
         frame_pad: 群の枠が中身の外側へ取る余白。
         label_h: 群のラベルが枠の上に要る高さ。
-        layout: 各段で座標を解く戦略。省略時は層状配置。
+        layout: 各層で座標を解く戦略。省略時は層状配置。
             受け取って使うのは、呼び出し側が戦略を選んだのに群があるという
             だけで黙って層状に描かれる、ということが起きないようにするため
             （以前はこの引数が無く、群を渡した経路では選ばれた戦略が例外も
@@ -168,7 +168,7 @@ def layout_nested(node_sizes: dict[str, tuple[float, float]],
             for nid in _descendant_nodes(ch):
                 owner[nid] = ch.key
         pairs: list = []
-        local_of: dict[int, int] = {}   # 元の辺の番号 → この段での辺の番号
+        local_of: dict[int, int] = {}   # 元の辺の番号 → この層での辺の番号
         for idx, (a, b) in enumerate(edges):
             ra, rb = owner.get(a), owner.get(b)
             if ra is None or rb is None or ra == rb:
@@ -181,8 +181,8 @@ def layout_nested(node_sizes: dict[str, tuple[float, float]],
             return (0.0, 0.0)
         res = (layout or layout_graph)(sizes, pairs, gap_rank, gap_order, direction)
         solved[c.key] = (res.width, res.height, dict(res.positions))
-        # 経路は、その段の layout_graph が仮節点を経由して解いたものを使う。
-        # 始点と終点だけの直線に置き換えると、多段をまたぐ辺が間の箱を突き抜ける。
+        # 経路は、その層の layout_graph が仮節点を経由して解いたものを使う。
+        # 始点と終点だけの直線に置き換えると、多層をまたぐ辺が間の箱を突き抜ける。
         paths_local[c.key] = (local_of, dict(res.edge_paths))
         return (res.width, res.height)
 

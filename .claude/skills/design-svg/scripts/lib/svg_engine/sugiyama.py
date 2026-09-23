@@ -2,8 +2,8 @@
 
 `layout.py`の簡易版に欠けていた4点を補完する:
 
-1. サイクルの分断 ── DFSで逆流する辺を見つけ、段の計算時だけ向きを仮に反転する
-2. 複数段をまたぐ辺の経路 ── またぐ段の分だけ「仮の節点」を挟み、隣接段だけを結ぶ
+1. サイクルの分断 ── DFSで逆流する辺を見つけ、層の計算時だけ向きを仮に反転する
+2. 複数層をまたぐ辺の経路 ── またぐ層の分だけ「仮の節点」を挟み、隣接層だけを結ぶ
    単位辺の鎖にする。これが無いと、長い辺が中間の節点を突っ切って描かれる
 3. 交差の最小化 ── 中央値法と転置法を、上り下り交互に何度も反復し、
    交差の数が一番少なかった並びを採用する
@@ -12,11 +12,11 @@
    並びを保ったまま望んだ位置との差の総和を最小にする配置を等調回帰で解く。
    最後に、辺で繋がっていない塊どうしを詰める（目的から決まらない自由度は、
    詰める方に倒す）
-5. 段の配分 ── 本家と同じ網状単体法で、辺の長さの総和を最小にする
+5. 層の配分 ── 本家と同じ網状単体法で、辺の長さの総和を最小にする
 
 本家 Graphviz `dot` と同じ図で突き合わせた結果（tests/bench_layout.py）:
-交差・辺の長さ・面積・縦横比のいずれもほぼ互角で、交差の多い図と段が決まらない
-図は完全に一致する。多段をまたぐ図は自前のほうが短い。残る差は、交差の数が
+交差・辺の長さ・面積・縦横比のいずれもほぼ互角で、交差の多い図と層が決まらない
+図は完全に一致する。多層をまたぐ図は自前のほうが短い。残る差は、交差の数が
 2案件で1本多いこと。
 
 比べるときは、本家が節点の縁から縁へ、自前が中心から中心へ辺を返すことに注意
@@ -24,7 +24,7 @@
 木の36辺で1440px、これだけで縦の差のほぼ全部を説明してしまう）。物差しの側で
 両端を中心へ統一してある。
 
-どの段も、宣言（nodes/edges）を型として持つだけで、呼ぶ側の語彙は知らない。
+どの層も、宣言（nodes/edges）を型として持つだけで、呼ぶ側の語彙は知らない。
 """
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ _SWAP_LIMIT_BASE = 16
 def _break_cycles(nodes: list[str], edges: list[tuple[str, str]]) -> list[tuple[str, str, bool]]:
     """DFSで逆流する辺(後退辺)を見つけ、(from, to, reversed)の並びを返す。
 
-    reversed=True の辺は、段の計算では (to, from) として扱う。実際の矢印の
+    reversed=True の辺は、層の計算では (to, from) として扱う。実際の矢印の
     向きは元のまま (from→to) で描くので、呼び出し側はここのreversedを見て
     経路の点列を反転させ直す。
     """
@@ -76,7 +76,7 @@ def _break_cycles(nodes: list[str], edges: list[tuple[str, str]]) -> list[tuple[
                     advanced = True
                     break
                 elif state[v] == GRAY:
-                    out.append((v, u, True))  # 後退辺。段の計算では逆向きに使う
+                    out.append((v, u, True))  # 後退辺。層の計算では逆向きに使う
                 else:
                     out.append((u, v, False))
             if not advanced:
@@ -99,10 +99,10 @@ def _break_cycles(nodes: list[str], edges: list[tuple[str, str]]) -> list[tuple[
     return result
 
 
-# ── 2. 段の配分 ── 辺の長さの総和を最小にする（網状単体法） ────────
+# ── 2. 層の配分 ── 辺の長さの総和を最小にする（網状単体法） ────────
 
 def _longest_path_ranks(nodes: list[str], edges: list[tuple[str, str]]) -> dict[str, int]:
-    """どの辺も1段以上またぐ、いちばん素朴な配分。単体法の出発点にする。"""
+    """どの辺も1層以上またぐ、いちばん素朴な配分。単体法の出発点にする。"""
     rank = {n: 0 for n in nodes}
     for _ in range(len(nodes) + 1):
         changed = False
@@ -116,7 +116,7 @@ def _longest_path_ranks(nodes: list[str], edges: list[tuple[str, str]]) -> dict[
 
 
 def _tight_tree(nodes, edges, rank, root):
-    """ちょうど1段だけまたぐ辺（たるみ0）だけを辿って広がれるだけ広げる。
+    """ちょうど1層だけまたぐ辺（たるみ0）だけを辿って広がれるだけ広げる。
 
     Returns: (届いた節点の集合, 使った辺の添字の集合)
     """
@@ -136,7 +136,7 @@ def _tight_tree(nodes, edges, rank, root):
 
 
 def _ranks_from_tree(comp_nodes, edges, tree, root):
-    """木の辺がすべてちょうど1段になるように、段を振り直す。"""
+    """木の辺がすべてちょうど1層になるように、層を振り直す。"""
     adj: dict[str, list[tuple[str, int]]] = {n: [] for n in comp_nodes}
     for i in tree:
         a, b = edges[i]
@@ -175,19 +175,19 @@ def _tail_side(comp_nodes, edges, tree, leaving):
 
 def _network_simplex(comp_nodes: list[str],
                      edges: list[tuple[str, str]]) -> dict[str, int]:
-    """辺の長さの総和が最小になる段の配分を解く。
+    """辺の長さの総和が最小になる層の配分を解く。
 
-    最長経路法は「どの辺も1段以上またぐ」を満たすだけで、長さは気にしない。
+    最長経路法は「どの辺も1層以上またぐ」を満たすだけで、長さは気にしない。
     その結果、下げても誰も困らない節点が下がったままになり、辺が伸びる。
-    以前はここに「出て行く辺を持たない節点を子の1つ上の段へ移動する」という
+    以前はここに「出て行く辺を持たない節点を子の1つ上の層へ移動する」という
     後始末を足していたが、それは1手先しか見ないので、間に節点が挟まると効果が無い。
 
-    最小化そのものを解く。制約（どの辺も1段以上）を張った線形計画の双対は、
+    最小化そのものを解く。制約（どの辺も1層以上）を張った線形計画の双対は、
     たるみ0の辺だけで作った全域木の上を渡り歩く問題になる。木の辺を1本抜くと
     グラフが2つに割れ、その切り口を跨ぐ辺の重みの差（切り値）が負なら、その辺を
     別の辺と入れ替えると総延長が減る。負が無くなったら最適。
 
-    段数（縦の長さ）は増えない ── 制約は最長経路法と同じで、その中で最短を選ぶだけ。
+    層数（縦の長さ）は増えない ── 制約は最長経路法と同じで、その中で最短を選ぶだけ。
     """
     if not comp_nodes:
         return {}
@@ -250,10 +250,10 @@ def _network_simplex(comp_nodes: list[str],
 
 
 def _assign_ranks(nodes: list[str], dag_edges: list[tuple[str, str]]) -> dict[str, int]:
-    """段を配分する。繋がっていない塊は、それぞれ独立に解く。
+    """層を配分する。繋がっていない塊は、それぞれ独立に解く。
 
     網状単体法は全域木を張るので、繋がっていない塊が混ざったままだと木を張れない。
-    塊は互いの段を制約しないので、分けて解いて構わない。
+    塊は互いの層を制約しないので、分けて解いて構わない。
     """
     adj: dict[str, list[str]] = {n: [] for n in nodes}
     for a, b in dag_edges:
@@ -280,7 +280,7 @@ def _assign_ranks(nodes: list[str], dag_edges: list[tuple[str, str]]) -> dict[st
     return rank
 
 
-# ── 3. 複数段をまたぐ辺へ仮の節点を挟む ────────────────────────
+# ── 3. 複数層をまたぐ辺へ仮の節点を挟む ────────────────────────
 
 @dataclass
 class ExpandedGraph:
@@ -325,7 +325,7 @@ def _expand(nodes: list[str], edges_with_rev: list[tuple[str, str, bool]],
                           unit_edges=unit_edges, chains=chains, reversed_flags=reversed_flags)
 
 
-# ── 4. 段内の並び順 ── 中央値法＋転置法を反復し、交差が最少の結果を採る ──
+# ── 4. 層内の並び順 ── 中央値法＋転置法を反復し、交差が最少の結果を採る ──
 
 def _block_of(node: str, groups: list[list[str]]) -> int:
     """その節点が属する群の番号。属さないなら -1。
@@ -341,7 +341,7 @@ def _block_of(node: str, groups: list[list[str]]) -> int:
 
 def _order_within_ranks(expanded: ExpandedGraph,
                          groups: list[list[str]] | None = None) -> dict[str, int]:
-    """段内の並びを解く。
+    """層内の並びを解く。
 
     群があるときは階層的に解く ── まず同じ群の要素をひとつの塊として扱い、
     塊どうしの並びを交差が減るよう決め、次に塊の中の並びを同じやり方で決める。
@@ -481,7 +481,7 @@ def _order_within_ranks(expanded: ExpandedGraph,
 
 
 def _local_crossings(n1, n2, order, incoming, outgoing) -> int:
-    """n1がn2の左（順序が小さい）に居るとして、隣接段との間で何本交差するか。"""
+    """n1がn2の左（順序が小さい）に居るとして、隣接層との間で何本交差するか。"""
     c = 0
     for neigh in (incoming, outgoing):
         for p1 in neigh.get(n1, []):
@@ -530,8 +530,8 @@ def _pack_components(expanded: "ExpandedGraph", by_rank: dict[int, list[str]],
     決まらないなら詰める、と決める。塊の中の配置は一切動かさないので、
     反復が解いた結果は保たれる。
 
-    どの段でも塊が途切れず、かつ塊どうしの前後関係が段をまたいで一致している
-    ときだけ詰める。そうでない段があるなら、詰めると段の並びが壊れる。
+    どの層でも塊が途切れず、かつ塊どうしの前後関係が層をまたいで一致している
+    ときだけ詰める。そうでない層があるなら、詰めると層の並びが壊れる。
     """
     seen: set[str] = set()
     comp: dict[str, int] = {}
@@ -562,14 +562,14 @@ def _pack_components(expanded: "ExpandedGraph", by_rank: dict[int, list[str]],
         for n in row[1:]:
             if comp[n] != seq[-1]:
                 if comp[n] in seq:
-                    return  # 塊が段の中で途切れている
+                    return  # 塊が層の中で途切れている
                 seq.append(comp[n])
         sequences.append(seq)
     order_seen: dict[int, int] = {}
     for seq in sequences:
         for i, c in enumerate(seq):
             if c in order_seen and order_seen[c] != i and len(seq) == len(sequences[0]):
-                return  # 塊どうしの前後関係が段によって違う
+                return  # 塊どうしの前後関係が層によって違う
         for i, c in enumerate(seq):
             order_seen.setdefault(c, i)
 
@@ -623,7 +623,7 @@ def _assign_coordinates(expanded: ExpandedGraph, order: dict[str, int],
             return gap_order + group_margin
         return gap_order
 
-    # 初期位置 ── 段内をそのまま均等配置
+    # 初期位置 ── 層内をそのまま均等配置
     cross = {}
     for r in sorted(by_rank):
         row = by_rank[r]
@@ -642,12 +642,12 @@ def _assign_coordinates(expanded: ExpandedGraph, order: dict[str, int],
         incoming[b].append(a)
 
     def resolve_overlaps(row):
-        """段の並びを保ったまま、望んだ位置に最も近い座標へ詰める。
+        """層の並びを保ったまま、望んだ位置に最も近い座標へ詰める。
 
         望んだ位置（上下の隣の中央値）は隣との最小間隔を知らないので、
         そのままでは重なる。ここで直すのだが、右へ押すだけでは足りない
         ── 押す力しか無いと、一度開いた隙間が二度と閉じない（実測：
-        交差の多い図に節点を1つ足しただけで、段の中に1380pxの空白が残り、
+        交差の多い図に節点を1つ足しただけで、層の中に1380pxの空白が残り、
         幅が570から1974へ膨らんだ）。
 
         開くのと閉じるのを、1つの規則で同時に扱う。並び順を保ったまま
@@ -696,10 +696,10 @@ def _assign_coordinates(expanded: ExpandedGraph, order: dict[str, int],
                 ns = neigh.get(n, [])
                 if ns:
                     cross[n] = sum(cross[p] for p in ns) / len(ns)
-            # 位置で並べ替え直すと、順序の段で解いた群の隣接が壊れる。
+            # 位置で並べ替え直すと、順序の層で解いた群の隣接が壊れる。
             # 群があるときは塊ごと動かし、塊の中だけを並べ替える。
             #
-            # 並べ替えを丸ごとやめて順序の段の並びを固定する案を測ったが、
+            # 並べ替えを丸ごとやめて順序の層の並びを固定する案を測ったが、
             # 交差は減らず（28のまま）、サイクルを含む図で1→2に増え、
             # 枝の多い木の継ぎ足しの揺れが30→120pxへ悪化した。
             # 交差の差の出所はここではない。
@@ -751,20 +751,20 @@ def layout_graph(node_sizes: dict[str, tuple[float, float]],
                   group_margin: float = 0.0) -> LayoutResult:
     """点と辺から、実座標つきの完全なレイアウトを解く。
 
-    サイクル・複数段をまたぐ辺・交差する辺のいずれにも耐える
+    サイクル・複数層をまたぐ辺・交差する辺のいずれにも耐える
     （耐える、とは＝クラッシュしない、かつ辺が節点を突っ切らないことを指す。
     Graphviz本家と全く同じ美しさになる保証はしない）。
 
     Args:
         node_sizes: 実節点idごとの (width, height)。
         edges: (from, to) の並び。
-        gap_rank: 段と段の間隔。
-        gap_order: 段内の要素どうしの間隔。
+        gap_rank: 層と層の間隔。
+        gap_order: 層内の要素どうしの間隔。
         direction: "TB" または "LR"。
         tolerance: 座標の整列を止める動きの大きさ。描いても見えない大きさ
             （線の太さ）を渡す。回数ではなく、この量で打ち切る。
         groups: 隣り合わせる識別子の集合の並び（囲みの要素）。与えると、
-            各段でその要素が必ず隣り合うよう階層的に順序を解く。箱で囲む以上
+            各層でその要素が必ず隣り合うよう階層的に順序を解く。箱で囲む以上
             隣接は要件であり、離れて置くと非メンバーまで囲んでしまう。
         group_margin: 群の境目にだけ余分に空ける量（枠の線と余白が入る幅）。
 
@@ -791,7 +791,7 @@ def layout_graph(node_sizes: dict[str, tuple[float, float]],
     positions = _assign_coordinates(expanded, order, sizes, gap_rank, gap_order,
                                      direction, tolerance, groups, group_margin)
 
-    # 段ごとに重心へ戻すと、左（または上）へはみ出すことがある。原点を左上へ
+    # 層ごとに重心へ戻すと、左（または上）へはみ出すことがある。原点を左上へ
     # 取り直す ── 呼び出し側は座標が0から始まる前提で画布を決めるため。
     positions, _ = shift_to_origin(positions)
 
@@ -800,9 +800,9 @@ def layout_graph(node_sizes: dict[str, tuple[float, float]],
         w, h = sizes[n]
         return (x + w / 2, y + h / 2)
 
-    # 仮節点は点（1×1）なので、その段が背の高いもの（集約した群など）を含むと、
-    # 段の上端だけを経由して斜めに降り、間の箱を切ってしまう。仮節点では
-    # 段の入口と出口の2点を出し、辺がその段の高さぶん並走するようにする。
+    # 仮節点は点（1×1）なので、その層が背の高いもの（集約した群など）を含むと、
+    # 層の上端だけを経由して斜めに降り、間の箱を切ってしまう。仮節点では
+    # 層の入口と出口の2点を出し、辺がその層の高さぶん並走するようにする。
     axis = 1 if direction == "TB" else 0
     rank_lo: dict[int, float] = {}
     rank_hi: dict[int, float] = {}
