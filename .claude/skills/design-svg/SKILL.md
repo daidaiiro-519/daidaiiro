@@ -235,6 +235,6 @@ def bookmark(props, style):
 - `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各段が保証すること
 - `scripts/cli.py`: **唯一の入口。** `catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `scripts/lib/svg_engine/` は読み込まれるものであり、入口を保持しない
-- `scripts/mcp.py` ・ `mcp.json`: MCP の面。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp.py` ・ `mcp.json`: MCP の入口。**実装が無い環境では立たず、CLI だけが動く**
 - 目録は `cli.py catalog` が出す（部品・トークン・役割・配置戦略。実装から導かれる）
 - `scripts/tests/`: 規約・契約・幾何の検査。何が守られているかが読める
