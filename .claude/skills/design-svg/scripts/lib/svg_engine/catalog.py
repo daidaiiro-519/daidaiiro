@@ -51,7 +51,7 @@ EXAMPLES: dict[str, dict] = {
                  "steps": [{"from": "甲", "to": "乙", "label": "渡す"}]},
     "title": {"text": "見出し"}, "divider": {"width": 120},
     "frame": {"x": 0, "y": 0, "width": 80, "height": 40},
-    "frame_label": {"x": 0, "y": 20, "label": "札"},
+    "frame_label": {"x": 0, "y": 20, "label": "ラベル"},
     "edge": {"points": [(0, 0), (60, 40)]},
 }
 """部品ごとの、最小の動く入力。

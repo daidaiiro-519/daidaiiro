@@ -111,7 +111,7 @@ def place_edge_labels(edges: list[dict], style: Style,
                ラベルを持つ辺だけを渡すこと。
         style: font.size-small を持つ、解決済みのスタイル辞書。
         occupied: 既に他のものが占めている領域。ラベルはここを避ける
-            （囲みの枠線・囲みの札など。渡さなければ他のラベルとだけ突き合わせる）。
+            （囲みの枠線・囲みのラベルなど。渡さなければ他のラベルとだけ突き合わせる）。
 
     Returns:
         辺のindex → 置き場所(x, y)（ラベルの中心）。

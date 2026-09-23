@@ -1,4 +1,4 @@
-"""外側 ── 蓄積の口を実装する。ファイルに1行ずつ書く。"""
+"""外側 ── 蓄積ポートを実装する。ファイルに1行ずつ書く。"""
 from __future__ import annotations
 
 import json

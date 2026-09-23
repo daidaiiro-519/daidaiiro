@@ -56,7 +56,7 @@ KINDS = {"measured": "k-fact", "primary": "k-src", "rule": "k-rule",
 LABELS = {"measured": "実測", "primary": "原典", "rule": "決まり",
           "assumption": "前提", "unverified": "未確認"}
 
-# 論点の状態。**値は ASCII、札の語は STATUS_LABELS が保持する**
+# 論点の状態。**値は ASCII、表示の語は STATUS_LABELS が保持する**
 STATUS = ("waiting", "open", "settled")
 STATUS_LABELS = {"waiting": "未", "open": "新規", "settled": "決着"}
 
@@ -197,7 +197,7 @@ SCRIPT = r"""<script>
       });
       b.setAttribute("aria-selected","true");
       document.getElementById(b.dataset.t).hidden=false;
-      /* **選んだタブを帯の中へ送る** ── 携帯では帯が横1行なので、
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
          跳んだ先のタブが画面の外に残る */
       b.scrollIntoView({inline:"center",block:"nearest"});
       window.scrollTo({top:0,behavior:"smooth"});
@@ -652,7 +652,7 @@ def _panel(t: Topic, theme: str, ask: bool = True, prev: dict | None = None,
                + "適用範囲外とは別に記載する ── 混在させると、制約が誤りに見える。")
             + _tbl(["誤り", "現状"], [[cell(a), cell(b)] for a, b in t.defects])))
 
-    # **1つの器に1つのことだけを入れる。** 道筋 ・ 分かったこと ・ 要求する事項 ・
+    # **1つの欄に1つのことだけを入れる。** 道筋 ・ 分かったこと ・ 要求する事項 ・
     # 面は別のことなので、器も名前も別になる。
     # **名前はここで確定させる** ── 組み上がりの文言を後から照合して書き換えると、
     # 文言を1字直した瞬間に、書き換えが無言で不成立になる

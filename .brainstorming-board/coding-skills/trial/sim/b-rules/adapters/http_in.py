@@ -1,4 +1,4 @@
-"""外側 ── 受け取り口。HTTP の言葉を、内側の言葉へ直すだけである。"""
+"""外側 ── 受け取りアダプタ。HTTP の言葉を、内側の言葉へ直すだけである。"""
 from __future__ import annotations
 
 import json
@@ -8,7 +8,7 @@ from domain import 回答, 送信
 from usecase import 回答を受け取る
 
 
-def 組む(口):
+def 組む(ポート):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             n = int(self.headers.get("content-length", 0))
@@ -19,7 +19,7 @@ def 組む(口):
             except ValueError as e:
                 self.send_error(400, str(e))
                 return
-            件数 = 回答を受け取る(口, s)
+            件数 = 回答を受け取る(ポート, s)
             out = json.dumps({"saved": 件数}).encode()
             self.send_response(200)
             self.send_header("content-type", "application/json")

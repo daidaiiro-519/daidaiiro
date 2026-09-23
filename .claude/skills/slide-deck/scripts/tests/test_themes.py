@@ -83,8 +83,8 @@ class Test組み立て:
         assert body.count('<section class="slide') == 2
         assert '<span id="total">2</span>' in body
 
-    def test_札が枚と同じ並びで出る(self):
-        """**0から数える** ── 先頭に空を足すと、全部の枚が1つ前の札を出す。"""
+    def test_ラベルが枚と同じ並びで出る(self):
+        """**0から数える** ── 先頭に空を足すと、全部の枚が1つ前のラベルを出す。"""
         d = self._deck()
         body = _render.build(d)
         assert ('const LABELS = ["' + d["slides"][0]["label"] + '"') in body

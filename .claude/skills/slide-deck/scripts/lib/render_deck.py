@@ -27,7 +27,7 @@ def _esc(v: object) -> str:
     """文字列を、HTML の中へそのまま置ける形にする。
 
     **太字と強調だけは通す** ── `<b>` ・ `<i>` ・ `<em>` ・ `<mark>` ・ `<br>` は、
-    枚の中で主従を付けるために要る。それ以外の札は文字として出る。
+    枚の中で主従を付けるために要る。それ以外のラベルは文字として出る。
     """
     s = str(v).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     for tag in ("b", "i", "em", "strong", "mark", "small"):
@@ -176,8 +176,8 @@ def build(deck: dict) -> str:
                          + "\n  ".join("× " + e for e in bad))
     theme = pathlib.Path(_themes.theme_path(deck["theme"])).read_text(encoding="utf-8")
     slides = deck["slides"]
-    # **札は0から数える** ── めくる仕掛けが見るのは `LABELS[i]` で、i は0から始まる。
-    # 先頭に空を足すと、全部の枚が1つ前の札を出す
+    # **ラベルは0から数える** ── めくる仕掛けが見るのは `LABELS[i]` で、i は0から始まる。
+    # 先頭に空を足すと、全部の枚が1つ前のラベルを出す
     labels = json.dumps([s["label"] for s in slides], ensure_ascii=False)
     return _t("page", title=_esc(deck["title"]), theme_name=_esc(deck["theme"]),
               theme=theme.rstrip(), total=len(slides), labels=labels,

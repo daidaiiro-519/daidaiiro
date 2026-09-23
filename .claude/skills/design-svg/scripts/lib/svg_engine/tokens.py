@@ -66,7 +66,7 @@ DEFAULT_THEME: dict[str, TokenValue] = {
     # 半角の字幅が全角の何倍か。環境で実測できないので近似として持つ。
     "font.baseline-ratio": 0.36,
     # 字面の高さ（ベースラインから上へ、大文字・漢字が占める割合）。
-    # 文字を帯の中で縦位置を統一するとき、行の高さではなくこの高さを使う。
+    # 文字の縦位置を箱の中で統一するとき、行の高さではなくこの高さを使う。
     "font.cap-ratio": 0.72,
     # 下ばね（ベースラインから下へ、かな・記号が出る割合）。
     "font.descender-ratio": 0.22,
@@ -80,10 +80,10 @@ DEFAULT_THEME: dict[str, TokenValue] = {
     "parts.edge": "edge",
     "parts.group": "frame",
 
-    # 囲みのラベルを、枠の上へ乗せる札の形。
-    "size.frame-label-rise": 0.9,     # 枠の線から、札の上端までを文字の何倍上げるか
-    "size.frame-label-h": 1.5,        # 札の高さを文字の何倍にするか
-    "size.frame-label-baseline": 1.1,  # 札の上端から、文字のベースラインまで
+    # 囲みのラベルを、枠の上へ乗せるラベルの形。
+    "size.frame-label-rise": 0.9,     # 枠の線から、ラベルの上端までを文字の何倍上げるか
+    "size.frame-label-h": 1.5,        # ラベルの高さを文字の何倍にするか
+    "size.frame-label-baseline": 1.1,  # ラベルの上端から、文字のベースラインまで
 
     # 書体
     "font.family": "Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif",
@@ -96,7 +96,7 @@ DEFAULT_THEME: dict[str, TokenValue] = {
     # 図の入れ子の深さの上限。層1 が「入れ子は深さに上限を置く」と定めている。
     "size.figure-depth-limit": 3,
     "size.dot-radius": 5,
-    "size.label-band-h": 16,          # 辺の札の帯の高さ
+    "size.label-band-h": 16,          # 辺のラベルの帯の高さ
     "size.decor-title-w": 640,        # 装飾の見出しの既定の幅
     "size.decor-icon": 24,
     "size.person": 48,                # 人の姿の既定の一辺。絵と同じ枠で描く

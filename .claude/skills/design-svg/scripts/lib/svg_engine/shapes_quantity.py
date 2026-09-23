@@ -187,10 +187,10 @@ def bars(props: dict, style: Style) -> OwnOrigin:
     label_band = plot_top - pad
     gap = style.num("chart.gap")
     w = pad * 2 + left_margin + len(items) * slot
-    # 負に伸びる棒は、値の札を作図領域の下へ出す。名前の行は全部の棒で同じ高さに
-    # あって動かせないので、札の帯を先に確保してから名前を置く（上の軸ラベルで
+    # 負に伸びる棒は、値のラベルを作図領域の下へ出す。名前の行は全部の棒で同じ高さに
+    # あって動かせないので、ラベルの帯を先に確保してから名前を置く（上の軸ラベルで
     # 使っている考え方の裏返し）。確保しないと、下まで伸びた棒の値が名前へ重なる
-    # ── 基準からのずれを描いたときだけ、値の札の置き場所が無くなって破綻した。
+    # ── 基準からのずれを描いたときだけ、値のラベルの置き場所が無くなって破綻した。
     value_band = (gap / 2 + fs_small * (style.num("font.cap-ratio") + style.num("font.descender-ratio"))
                   if min(values) < 0 else 0.0)
     item_axis_band = (fs_small * style.num("size.label-line-h")

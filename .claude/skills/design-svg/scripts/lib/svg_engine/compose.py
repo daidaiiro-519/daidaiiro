@@ -13,20 +13,20 @@
 2. **同じ節点へ集まる辺は、同じ点へ収束する。** 相手の方向へそのまま引かず、
    どの辺から出すかだけを相手の位置で決め、その辺の中央を狙う。
    （方向へ直接引くと、角のすぐ脇に着いて不自然に見える）
-3. **線は迂回させない。迂回させるのは節点を避けるときだけ。** 札は動かせるので
-   障害物に数えない ── 札を避けるために迂回させると、まっすぐでよい関係まで大回りする。
+3. **線は迂回させない。迂回させるのは節点を避けるときだけ。** ラベルは動かせるので
+   障害物に数えない ── ラベルを避けるために迂回させると、まっすぐでよい関係まで大回りする。
 4. **迂回用の車線は、節点どうしと同じ間隔だけ離れる。** 車線は仮の節点の列
    なので、節点と同じ間隔で並ぶのが筋。（線幅ぶんだけでは迂回に見えない）
-5. **動かせるものが譲り、動かせないものは動かない。** 札（辺の札・囲みの札）が
+5. **動かせるものが譲り、動かせないものは動かない。** ラベル（辺のラベル・囲みのラベル）が
    譲る側。譲れないときは不透明な帯で線を断って上に載る。
-6. **札には逃げ場がある。** 層の間隔は、その間を通る辺の札が収まるだけ空ける。
-   逃げ場が足りないと、動かせるはずの札が節点の名前へ重なる。
+6. **ラベルには逃げ場がある。** 層の間隔は、その間を通る辺のラベルが収まるだけ空ける。
+   逃げ場が足りないと、動かせるはずのラベルが節点の名前へ重なる。
 7. **画布は、描いたものを全部含む。** 節点だけでなく、外へはみ出す囲み・
-   迂回経路の辺・その上に乗る札まで含めて取る。余白は四辺へ均等に。
+   迂回経路の辺・その上に乗るラベルまで含めて取る。余白は四辺へ均等に。
 8. **群の要素だけが、群の矩形の内側に居る。** これは nesting.py が保証する
    （群を先に集約し、親は1個として置く）。ここはその結果を使うだけ。
 
-**描く順序**は 囲み → 辺 → 札 → 節点。札を辺より後に描くのは、避けられな
+**描く順序**は 囲み → 辺 → ラベル → 節点。ラベルを辺より後に描くのは、避けられな
 かったときでも帯が線を断って読めるようにするため（性質5）。
 
 座標の解決は sugiyama.py（層状グラフ描画。サイクル・複数層またぎ・
@@ -282,10 +282,10 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     """節点・辺・囲みの宣言から、**部品として置ける断片**を組み立てる。
 
     ルートタグを被せない。返すのは中身と、それを囲む大きさ ── つまり部品と
-    同じ契約である。だから図を他の図の中へ置ける。器を被せた1枚が欲しいときは
+    同じ契約である。だから図を他の図の中へ置ける。外枠を付けた1枚が欲しいときは
     render_figure() を呼ぶ。
 
-    大きさは、囲みのはみ出し・迂回経路の辺・その上に乗る札まで含めて外形を出し、
+    大きさは、囲みのはみ出し・迂回経路の辺・その上に乗るラベルまで含めて外形を出し、
     原点を左上へ寄せてから決める。実測：15通りの図すべてで、インクがこの
     大きさから出た量は 0.0 だった。
 
@@ -346,10 +346,10 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     frame_pad = frame_style.num("font.size-small") * frame_style.num("size.frame-pad-ratio")
     label_h = frame_style.num("font.size-small") * frame_style.num("size.label-line-h")
 
-    # 層の間隔は、その間を通る辺の札が収まるだけ空ける。札は動かせるが、
-    # 逃げ場が層の間隔しかないので、札がその間隔より長いと逃げ切れず、
-    # 節点の名前に重なる（実測：3節点の鎖で4件。札を短くすると0件）。
-    # 「札どうしが重ならない」だけを性質にしていたので、逃げ場が足りるかを
+    # 層の間隔は、その間を通る辺のラベルが収まるだけ空ける。ラベルは動かせるが、
+    # 逃げ場が層の間隔しかないので、ラベルがその間隔より長いと逃げ切れず、
+    # 節点の名前に重なる（実測：3節点の鎖で4件。ラベルを短くすると0件）。
+    # 「ラベルどうしが重ならない」だけを性質にしていたので、逃げ場が足りるかを
     # 誰も見ていなかった。ここで逃げ場の側を保証する。
     gap_rank = num(theme, "size.gap-rank")
     if edges:
@@ -360,7 +360,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         if direction == "LR":
             gap_rank = max(gap_rank, need + num(theme, "size.gap-order"))
         else:
-            # 縦に進む辺では、札は帯の高さぶんしか層を占めない
+            # 縦に進む辺では、ラベルは帯の高さぶんしか層を占めない
             gap_rank = max(gap_rank, num(theme, "size.label-band-h") + num(theme, "size.gap-order"))
 
     if groups:
@@ -414,8 +414,8 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         pts[0] = _cardinal(coords[a], sizes[a], ia, nxt, flow)
         pts[-1] = _cardinal(coords[b], sizes[b], ib, prv, flow)
         # 端の2つ以外が占めている領域のうち、動かせないもの（節点）だけが
-        # 障害物。札は動かせるので、線を曲げさせず札のほうを後で避けさせる
-        # （札を避けるために線を迂回させると、まっすぐでよい関係まで大回りする）。
+        # 障害物。ラベルは動かせるので、線を曲げさせずラベルのほうを後で避けさせる
+        # （ラベルを避けるために線を迂回させると、まっすぐでよい関係まで大回りする）。
         obstacles = [(coords[n][0], coords[n][1],
                       coords[n][0] + sizes[n][0], coords[n][1] + sizes[n][1])
                      for n in coords if n not in (a, b)]
@@ -468,8 +468,8 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
                 routed.insert(len(routed) - 1, tuple(corner))
         edge_points[idx] = routed
 
-    # 囲みの札を、線を避けた位置へ置く。札は枠の上辺のどこへ置いてもよいので、
-    # 動かせない線のほうを優先し、札が譲る。左端から順に試して、どの線とも
+    # 囲みのラベルを、線を避けた位置へ置く。ラベルは枠の上辺のどこへ置いてもよいので、
+    # 動かせない線のほうを優先し、ラベルが譲る。左端から順に試して、どの線とも
     # 重ならない最初の位置を採る（どこも空いていなければ左端に戻す）。
     frame_svgs: list[str] = []
     top_labels: list[str] = []
@@ -485,7 +485,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         if has_label:
             lw = (_text_width(g["label"], frame_style.num("font.size-small"),
                               frame_style.num("font.latin-width-ratio")) + pad_x)
-            # 札の縦位置は、部品が実際に描く位置と同じ式から出す。ここを
+            # ラベルの縦位置は、部品が実際に描く位置と同じ式から出す。ここを
             # ずらすと、当たり判定が実物と別の場所を参照することになる。
             fs = frame_style.num("font.size-small")
             top = b.y + label_h - fs * frame_style.num("size.frame-label-rise")
@@ -506,7 +506,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
         }, frame_style)
         frame_svgs.append(r.svg)
         if has_label:
-            # 札は辺より後に描く。避けられなかったときでも、帯が線を断って読める。
+            # ラベルは辺より後に描く。避けられなかったときでも、帯が線を断って読める。
             top_labels.append(render_component("frame_label", {
                 "x": label_x, "y": b.y + label_h, "label": g["label"],
             }, frame_style).svg)
@@ -516,13 +516,13 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     # ラベルと衝突しうるため）。まとめて渡し、重ならない置き場所を決める。
     labelled = [{"index": i, "points": edge_points[i], "label": e["label"]}
                 for i, e in enumerate(edges) if e.get("label")]
-    # 節点そのものも、札が避けるべき相手。節点は動かせないので札が譲る。
-    # ここへ渡していなかったときは、札は他の札と囲みの枠しか見ておらず、
+    # 節点そのものも、ラベルが避けるべき相手。節点は動かせないのでラベルが譲る。
+    # ここへ渡していなかったときは、ラベルは他のラベルと囲みの枠しか見ておらず、
     # 節点の名前の上に重なった（実測：3節点の鎖で4件）。
     node_areas = [(coords[n][0], coords[n][1],
                    coords[n][0] + sizes[n][0], coords[n][1] + sizes[n][1])
                   for n in coords]
-    # 囲みの枠線が占める領域（線の太さぶんの細い帯4本）。札は枠線を隠してはいけない。
+    # 囲みの枠線が占める領域（線の太さぶんの細い帯4本）。ラベルは枠線を隠してはいけない。
     sw = frame_style.num("size.stroke-width") * 2
     frame_line_areas: list[tuple[float, float, float, float]] = []
     for x0, y0, x1, y1 in frame_bounds:
@@ -555,7 +555,7 @@ def figure_fragment(nodes: list[dict], edges: list[dict] | None = None,
     # 画布は、節点だけでなく囲みのはみ出しも含めて取る。左と上へはみ出す場合は
     # 原点をずらし、全体を右下へ寄せてから枠を決める。
     pad = frame_style.num("size.canvas-pad")
-    # 辺は迂回で節点の外側へ回るし、ラベルの札はその上に乗る。節点と囲みだけを
+    # 辺は迂回で節点の外側へ回るし、ラベルのラベルはその上に乗る。節点と囲みだけを
     # 見て画布を決めると、それらが切れる（実測で見つかった不具合）。
     fs_small = edge_style.num("font.size-small")
     lab_h = fs_small * edge_style.num("size.label-line-h")

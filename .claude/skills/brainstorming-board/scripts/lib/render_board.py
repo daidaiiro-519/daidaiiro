@@ -32,14 +32,14 @@ from .build_board import Option, Table, Topic, cell, deck, write   # noqa: E402
 
 _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-# 出来事の種別。**札の色は、前提の表（KINDS）と同じ意味で割り当てる。**
+# 出来事の種別。**種別の色は、前提の表（KINDS）と同じ意味で割り当てる。**
 # **機械が分岐する値は ASCII で、画面へ出す語はこの表が保持する** ──
 # 1つの語が識別子と表示を兼ねると、表示を直した瞬間に分岐が壊れる。
 _EVENT_KIND = {"returned": "k-given", "obsolete": "k-open",
                "finding": "k-fact", "content": "k-rule"}
 _EVENT_LABEL = {"returned": "差し戻し", "obsolete": "失効した点",
                 "finding": "判明事項", "content": "内容"}
-# 扱いの3値。出どころの5値とは別の系列だが、札の形は共有する。
+# 扱いの3値。出どころの5値とは別の系列だが、種別の形は共有する。
 _TREATMENT = {"out": "k-rule", "later": "k-given", "resolved": "k-fact"}
 _TREATMENT_LABEL = {"out": "対象外", "later": "後続で決定", "resolved": "解消済"}
 

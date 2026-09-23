@@ -1,4 +1,4 @@
-"""外側 ── 蓄積の口を実装する。SQLite に1行ずつ書く。"""
+"""外側 ── 蓄積ポートを実装する。SQLite に1行ずつ書く。"""
 from __future__ import annotations
 
 import json

@@ -97,7 +97,7 @@ def css(t: dict, *, host: bool = False) -> str:
     base = _raw(t)
     parts = "".join(f"--{k}:{base[v] if v in base else f'var(--{v})'};"
                     for k, v in t["component"].items())
-    # 寸法の系は、名前のまま出す ── 色は意味の層を経由するが、
+    # 寸法の種類は、名前のまま出す ── 色は意味の層を経由するが、
     # 寸法・字寸・字送り・角丸・枠・幅は、層そのものが意味である
     scale = "".join(f"--{k}:{v};" for group in _SCALES if group in t["base"]
                     for k, v in t["base"][group].items())

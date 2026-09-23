@@ -130,13 +130,13 @@ def _lines(table: dict[str, str], base: dict[str, str]) -> str:
     return "".join(f"--{k}:{base[v]};" for k, v in table.items())
 
 
-# 寸法の系は、名前のまま CSS 変数へ出す ── 色は意味の層を経由するが、
+# 寸法の種類は、名前のまま CSS 変数へ出す ── 色は意味の層を経由するが、
 # 寸法・字寸・字送り・角丸・枠は役割ではなく層そのものが意味である
 _SIZE_SCALE = ("space", "font_size", "tracking", "radius", "border")
 
 
 def css(t: dict) -> str:
-    """3つの選択子と、寸法の系と、部品の層を組む。"""
+    """3つの選択子と、寸法の種類と、部品の層を組む。"""
     base = _raw(t)
     size = "".join(f"--{k}:{v};" for kind in _SIZE_SCALE for k, v in t["base"][kind].items())
     parts = []

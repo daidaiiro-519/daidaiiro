@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 10,
+ "round": 11,
  "intro": [
   {
    "kind": "para",
@@ -25,7 +25,7 @@
   },
   {
    "kind": "note",
-   "text": "テストは2本目の柱ではない。<b>構造を測る道具である</b> ── 書きにくいときは、設計が悪いという報告である。"
+   "text": "テストは2つ目の原則ではない。<b>構造を測る道具である</b> ── 書きにくいときは、設計が悪いという報告である。"
   }
  ],
  "queue": [
@@ -45,7 +45,7 @@
     },
     {
      "kind": "note",
-     "text": "前の世代は規則の形を12論点で扱い、その前は3つを別々の柱として並べていた。どちらも本体を取り違えている。"
+     "text": "前の世代は規則の形を12論点で扱い、その前は3つを別々の原則として並べていた。どちらも本体を取り違えている。"
     }
    ]
   },
@@ -348,7 +348,7 @@
        "回答の項目が増える（例：確信度）",
        [
         "<code>回答</code> だけ",
-        "受け取り口も蓄積先も動かない"
+        "受け取りアダプタも蓄積先も動かない"
        ]
       ],
       [
@@ -361,7 +361,7 @@
       [
        "受け取り方を変える（HTTP からファイル監視へ）",
        [
-        "<code>受け取り口</code> だけ",
+        "<code>受け取りアダプタ</code> だけ",
         "内側は動かない"
        ]
       ],
@@ -407,11 +407,11 @@
        [
         "内",
         "手順が変わるとき",
-        "回答 ・ 重複の判定 ・ 蓄積の口"
+        "回答 ・ 重複の判定 ・ 蓄積ポート"
        ]
       ],
       [
-       "蓄積の口（ポート）",
+       "蓄積ポート（ポート）",
        [
         "<b>内</b>",
         "保存に何を渡すかが変わるとき",
@@ -419,7 +419,7 @@
        ]
       ],
       [
-       "受け取り口（アダプタ）",
+       "受け取りアダプタ",
        [
         "外",
         "受け取り方が変わるとき",
@@ -431,14 +431,14 @@
        [
         "外",
         "保存先が変わるとき",
-        "<b>蓄積の口を実装する</b>"
+        "<b>蓄積ポートを実装する</b>"
        ]
       ]
      ]
     },
     {
      "kind": "note",
-     "text": "<b>蓄積の口が内側に在るので、保存先を変えても内側は1行も動かない。</b>外側から内側への一方向になっている ── 層はその結果である。"
+     "text": "<b>蓄積ポートが内側に在るので、保存先を変えても内側は1行も動かない。</b>外側から内側への一方向になっている ── 層はその結果である。"
     },
     {
      "kind": "note",
@@ -446,7 +446,7 @@
     },
     {
      "kind": "note",
-     "text": "<b>この例でポートは1つだけである。</b>蓄積の口は、テストで差し替えるので作る。受け取り口は外側のアダプタで、内側が呼ばないのでポートを作らない。"
+     "text": "<b>この例でポートは1つだけである。</b>蓄積ポートは、テストで差し替えるので作る。受け取りアダプタは外側のアダプタで、内側が呼ばないのでポートを作らない。"
     },
     {
      "kind": "fold",
@@ -463,7 +463,7 @@
       },
       {
        "kind": "html",
-       "text": "# domain.py ── 外部の技術を1つも参照しない\n\n@dataclass(frozen=True)\nclass 回答:\n    論点: int\n    諾否: str          # approve / return / skip\n    理由: str = \"\"\n\n@dataclass(frozen=True)\nclass 送信:\n    回答群: tuple[回答, ...]\n    def __post_init__(self):\n        番号 = [a.論点 for a in self.回答群]\n        if len(番号) != len(set(番号)):\n            raise ValueError(\"論点1件につき回答は1つである\")\n\ndef 重複か(前: 送信 | None, いま: 送信) -> bool:\n    return 前 is not None and 前.回答群 == いま.回答群\n\nclass 蓄積の口(Protocol):          # ポート ── 内側が定義する\n    def 直前(self) -> 送信 | None: ...\n    def 足す(self, s: 送信) -> None: ..."
+       "text": "# domain.py ── 外部の技術を1つも参照しない\n\n@dataclass(frozen=True)\nclass 回答:\n    論点: int\n    諾否: str          # approve / return / skip\n    理由: str = \"\"\n\n@dataclass(frozen=True)\nclass 送信:\n    回答群: tuple[回答, ...]\n    def __post_init__(self):\n        番号 = [a.論点 for a in self.回答群]\n        if len(番号) != len(set(番号)):\n            raise ValueError(\"論点1件につき回答は1つである\")\n\ndef 重複か(前: 送信 | None, いま: 送信) -> bool:\n    return 前 is not None and 前.回答群 == いま.回答群\n\nclass 蓄積ポート(Protocol):        # 内側が定義する\n    def 直前(self) -> 送信 | None: ...\n    def 足す(self, s: 送信) -> None: ..."
       },
       {
        "kind": "heading",
@@ -472,7 +472,7 @@
       },
       {
        "kind": "html",
-       "text": "# usecase.py ── 外側の道具は、口を通してしか触らない\n\ndef 回答を受け取る(口: 蓄積の口, s: 送信) -> int:\n    if 重複か(口.直前(), s):\n        return 0\n    口.足す(s)\n    return len(s.回答群)"
+       "text": "# usecase.py ── 外側の道具は、ポートを通してしか触らない\n\ndef 回答を受け取る(ポート: 蓄積ポート, s: 送信) -> int:\n    if 重複か(ポート.直前(), s):\n        return 0\n    ポート.足す(s)\n    return len(s.回答群)"
       },
       {
        "kind": "heading",
@@ -481,7 +481,7 @@
       },
       {
        "kind": "html",
-       "text": "# adapters/sqlite_store.py ── 蓄積の口を実装する\n\nclass SQLiteの蓄積先:\n    def 直前(self) -> 送信 | None:\n        row = self.c.execute(\"select body from submissions \"\n                             \"order by id desc limit 1\").fetchone()\n        if row is None:\n            return None\n        d = json.loads(row[0])\n        return 送信(tuple(回答(**a) for a in d[\"回答群\"]))\n\n    def 足す(self, s: 送信) -> None:\n        d = {\"回答群\": [vars(a) for a in s.回答群]}\n        self.c.execute(\"insert into submissions (body) values (?)\",\n                       (json.dumps(d, ensure_ascii=False),))\n        self.c.commit()"
+       "text": "# adapters/sqlite_store.py ── 蓄積ポートを実装する\n\nclass SQLiteの蓄積先:\n    def 直前(self) -> 送信 | None:\n        row = self.c.execute(\"select body from submissions \"\n                             \"order by id desc limit 1\").fetchone()\n        if row is None:\n            return None\n        d = json.loads(row[0])\n        return 送信(tuple(回答(**a) for a in d[\"回答群\"]))\n\n    def 足す(self, s: 送信) -> None:\n        d = {\"回答群\": [vars(a) for a in s.回答群]}\n        self.c.execute(\"insert into submissions (body) values (?)\",\n                       (json.dumps(d, ensure_ascii=False),))\n        self.c.commit()"
       },
       {
        "kind": "heading",
@@ -490,16 +490,16 @@
       },
       {
        "kind": "html",
-       "text": "# main.py ── ここだけが、内側と外側の両方を知る\n\n口 = SQLiteの蓄積先(\"answers.db\")          # ← 保存先を変えたのは、この1行\nHTTPServer((\"127.0.0.1\", 8802), 組む(口)).serve_forever()"
+       "text": "# main.py ── ここだけが、内側と外側の両方を知る\n\nポート = SQLiteの蓄積先(\"answers.db\")          # ← 保存先を変えたのは、この1行\nHTTPServer((\"127.0.0.1\", 8802), 組む(ポート)).serve_forever()"
       },
       {
        "kind": "heading",
        "level": 4,
-       "text": "内側の試験 ── 偽物の口を渡す"
+       "text": "内側の試験 ── 偽物のポートを渡す"
       },
       {
        "kind": "html",
-       "text": "# tests/test_domain.py ── HTTP もファイルも立てない\n\nclass 覚えておく蓄積先:                    # ポートを作った理由がこれである\n    def __init__(self): self.保存 = []\n    def 直前(self): return self.保存[-1] if self.保存 else None\n    def 足す(self, s): self.保存.append(s)\n\n口 = 覚えておく蓄積先()\nassert 回答を受け取る(口, 一) == 1\nassert 回答を受け取る(口, 一) == 0          # 直前と同じなら保存しない\nassert 回答を受け取る(口, 二) == 1"
+       "text": "# tests/test_domain.py ── HTTP もファイルも立てない\n\nclass 覚えておく蓄積先:                    # ポートを作った理由がこれである\n    def __init__(self): self.保存 = []\n    def 直前(self): return self.保存[-1] if self.保存 else None\n    def 足す(self, s): self.保存.append(s)\n\nポート = 覚えておく蓄積先()\nassert 回答を受け取る(ポート, 一) == 1\nassert 回答を受け取る(ポート, 一) == 0          # 直前と同じなら保存しない\nassert 回答を受け取る(ポート, 二) == 1"
       },
       {
        "kind": "heading",
@@ -521,7 +521,7 @@
     {
      "name": "A",
      "body": "機能で分ける（画面ごと ・ API ごと）",
-     "cost": "1つの変更で複数の場所が動く。回答の項目が増えると、受け取り口も蓄積先も触る"
+     "cost": "1つの変更で複数の場所が動く。回答の項目が増えると、受け取りアダプタも蓄積先も触る"
     },
     {
      "name": "B",
@@ -546,7 +546,7 @@
     },
     {
      "body": "設計論の層名を先に置いて、そこへ概念を割り当てる",
-     "reason": "層の数に合わせて概念を切ることになる。器に合わせてモデルが歪む"
+     "reason": "層の数に合わせて概念を切ることになる。入れ物の形に合わせてモデルが歪む"
     },
     {
      "body": "仕様の言葉をそのまま単位にする",
@@ -1448,7 +1448,7 @@
       },
       {
        "tag": "finding",
-       "text": "<b>テストは2本目の柱ではない</b> ── アーキテクチャを測る道具である。書きにくさは設計の報告なので、先に書けば最初に分かる"
+       "text": "<b>テストは2つ目の原則ではない</b> ── アーキテクチャを測る道具である。書きにくさは設計の報告なので、先に書けば最初に分かる"
       }
      ]
     },

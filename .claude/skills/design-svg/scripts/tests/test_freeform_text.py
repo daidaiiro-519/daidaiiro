@@ -57,7 +57,7 @@ class Testパスの文法:
 
 
 class Test文字と絵記号:
-    """箱にも札にも属さない文字と、絵記号。"""
+    """箱にもラベルにも属さない文字と、絵記号。"""
 
     def test_行の並びを受ける(self):
         svg = render_canvas(300, 120, [{"kind": "text", "x": 10, "y": 10,
