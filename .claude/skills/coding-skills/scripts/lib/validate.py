@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""記録の形を検査する。**実行の前に、記録が契約を満たすかを見る。**
+"""規則ファイルの形を検査する。**実行の前に、規則ファイルが契約を満たすかを確認する。**
 
 規則を立てる条件は2つで、両方を満たすものだけを書く ──
 無ければ外すか、コマンドで検査できるか。この側が見られるのは後者だけである。
@@ -12,10 +12,10 @@ import pathlib
 from . import REFERENCES
 
 
-def 検査する(記録: pathlib.Path) -> list[str]:
+def 検査する(規則ファイル: pathlib.Path) -> list[str]:
     検出: list[str] = []
     try:
-        d = json.loads(記録.read_text(encoding="utf-8"))
+        d = json.loads(規則ファイル.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         return [f"JSON として読めない ── {e}"]
     try:
@@ -23,7 +23,7 @@ def 検査する(記録: pathlib.Path) -> list[str]:
     except ModuleNotFoundError:
         検出.append("jsonschema が無いので、形の検査を実行していない")
     else:
-        形 = json.loads((REFERENCES / "record.schema.json").read_text(encoding="utf-8"))
+        形 = json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
         v = jsonschema.Draft202012Validator(形)
         for e in sorted(v.iter_errors(d), key=lambda x: list(x.path)):
             検出.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
@@ -41,9 +41,9 @@ def 検査する(記録: pathlib.Path) -> list[str]:
     return 検出
 
 
-def 層を検査する(記録: pathlib.Path, 根: pathlib.Path) -> list[str]:
-    """層の場所の記録が、実物と一致するかを見る。**存在だけを見る。**"""
-    d = json.loads(記録.read_text(encoding="utf-8"))
+def 層を検査する(規則ファイル: pathlib.Path, 根: pathlib.Path) -> list[str]:
+    """層の場所の規則が、実物と一致するかを見る。**存在だけを見る。**"""
+    d = json.loads(規則ファイル.read_text(encoding="utf-8"))
     層 = d.get("層")
     if not isinstance(層, dict):
         return []
