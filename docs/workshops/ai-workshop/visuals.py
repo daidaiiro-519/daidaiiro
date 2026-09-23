@@ -386,3 +386,54 @@ def next_period():
         a += text(x + 24, 272, detail, 16, DIM, gap=22)
     a += text(556, 328, '次の3枚で、それぞれの中身を示す', 17, DIM, 400, 'middle')
     return svg('3月の結果から、広げる・発想を鍛える・支援を補うの3つに分かれる', a, 336)
+
+
+def background():
+    """いまはAIの活用が個人に閉じている、という現状。"""
+    items = [('AIを使う人が限られる', '使う人と使わない人に分かれる'),
+             ('使い方が共有されない', '工夫が本人の手元に留まる'),
+             ('結果が案件に残らない', '次の人が同じところから始める')]
+    a = text(0, 24, 'いまの案件で起きていること', 18, DIM)
+    for i, (head, sub) in enumerate(items):
+        x = i * 388
+        a += rect(x, 40, 336, 150, PAPER, 12, LINE)
+        a += person(x + 44, 92, .85, DIM)
+        a += text(x + 84, 92, head, 21, INK, 700)
+        a += text(x + 28, 158, sub, 17, DIM)
+    a += rect(0, 216, 1112, 62, PANEL, 12)
+    a += text(556, 255, '足りないのは、AIを使う人ではない。課題をAIで解決する仕組みを作れる人である。', 22, ACCENT, 700, 'middle')
+    return svg('AIを使う人が限られ、使い方が共有されず、結果が案件に残らない', a, 290)
+
+
+def leverage():
+    """同じ列で、いまと、この企画のあとを比較する。作る人と使う人は同じ線上に並ぶ。"""
+    A, P1, B, U, C = 0, 316, 398, (668, 760, 852), 956
+
+    def row(y, task, sub, actor, mid, mid_fill, mid_ink):
+        m = y + 32
+        s = rect(A, y, 236, 64, PAPER, 10, LINE)
+        s += text(A + 118, y + 30, task, 20, INK, 700, 'middle')
+        s += text(A + 118, y + 52, sub, 15, DIM, anchor='middle')
+        s += arrow(246, m, 290, m)
+        s += person(P1, m + 10, .7, INK) + text(P1, m + 44, actor, 16, DIM, anchor='middle')
+        s += arrow(342, m, 386, m)
+        s += rect(B, y, 176, 64, mid_fill, 10, ACCENT if mid_fill is ACCENT else LINE)
+        s += text(B + 88, y + 38, mid, 21, mid_ink, 700, 'middle')
+        return s
+
+    a = text(0, 22, 'いま', 18, DIM)
+    a += row(36, '業務の手間', '例：引き継ぎのたびの確認', '本人が解決する', '解決', PANEL, INK)
+    a += text(612, 62, 'ここで終わる。同じ手間を持つ人は、', 18, DIM)
+    a += text(612, 88, 'また最初から始める。', 18, DIM)
+    a += path('M0 148 H1112', LINE, 1)
+    a += text(0, 186, 'この企画のあと', 18, ACCENT, 700)
+    a += row(200, '同じ業務の手間', '例：引き継ぎのたびの確認', 'AIで仕組みにする', '仕組み', ACCENT, PAPER)
+    a += arrow(584, 232, 628, 232, ACCENT)
+    for x, label in zip(U, ['同僚', '他部署', '顧客先']):
+        a += person(x, 242, .7, ACCENT) + text(x, 276, label, 16, DIM, anchor='middle')
+    a += text(760, 208, '使う人は、作った本人ではない', 17, ACCENT, 700, 'middle')
+    a += arrow(900, 232, 944, 232, ACCENT)
+    a += rect(C, 200, 156, 64, PAPER, 10, ACCENT)
+    a += text(C + 78, 230, '解決', 21, INK, 700, 'middle')
+    a += text(C + 78, 252, '自分の現場で', 15, DIM, anchor='middle')
+    return svg('いまは本人が解決して終わる。これからは、本人が作った仕組みを同僚・他部署・顧客先が使い、自分の現場で解決する', a, 296)

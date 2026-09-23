@@ -4,8 +4,12 @@
 
 | ファイル | 用途 |
 |---|---|
-| [director-deck.html](director-deck.html) | 表紙1枚＋本編23枚＋付録13枚のスライド。ブラウザで開き、矢印キー・画面下のボタン・スワイプで操作 |
-| [director-deck-all.html](director-deck-all.html) | 全37枚を縦に並べた1ページ版。通し読みと、変更記録の面に使う |
+| [director-deck.html](director-deck.html) | **詳細版**。表紙1枚＋本編24枚＋付録14枚のスライド。ブラウザで開き、矢印キー・画面下のボタン・スワイプで操作 |
+| [director-deck-brief.html](director-deck-brief.html) | **部長向けの要点版**。表紙1枚＋本編10枚＋付録28枚。要点だけを10枚で説明し、詳細は付録から開く |
+| [director-deck-brief-all.html](director-deck-brief-all.html) | 要点版を縦に並べた1ページ版 |
+| [director-deck-brief.pdf](director-deck-brief.pdf) | 要点版のPDF（39ページ） |
+| [speaker-notes-brief.md](speaker-notes-brief.md) | 要点版の発表原稿 |
+| [director-deck-all.html](director-deck-all.html) | 全39枚を縦に並べた1ページ版。通し読みと、変更記録の面に使う |
 | [director-deck.pdf](director-deck.pdf) | 共有・配布用のPDF |
 | [speaker-notes.md](speaker-notes.md) | 各スライドに対応する部長向け発表原稿 |
 | [workshop-plan.md](workshop-plan.md) | テーマ、概念教材、半年間の進行、支援、評価、工数の運営案 |

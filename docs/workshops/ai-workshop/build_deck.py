@@ -231,11 +231,11 @@ DEV_THEME = dict(label='付録｜開発者のテーマ', title='開発者の題�
 
 
 # 期待する効果と、終了時の判断
-IMPACT = dict(label='期待する効果', title='期待する効果：各案件でAIの活用が進む', cls='ws-diagram',
-  intro='参加者が自分の案件でAIを使い、同僚がその仕組みを使う。案件の進め方が変わる。',
-  body=visuals.promotion()
-   +note('15名が、それぞれの案件で使える仕組みを1つ以上持つ。使った記録は、次の案件の材料になる。'),
-  notes='この企画で期待しているのは、それぞれの案件でAIの活用が進むことです。いまは、AIを使う人が案件の中で限られ、使い方も個人の中に閉じています。試した結果が案件に残らないため、次の人が同じところからやり直します。この企画のあとは、案件ごとにAIで作った仕組みが動き、同僚がその仕組みを使えます。使った記録も残るため、次の案件へ渡せます。15名がそれぞれの案件で、使える仕組みを1つ以上持つ状態を目指します。')
+IMPACT = dict(label='期待する効果', title='期待する効果：作った人以外も、同じ業務の手間を解決できる', cls='ws-diagram',
+  intro='いま、業務の手間を解決できるのは、その手間を知っている本人だけである。作った仕組みは、同じ業務を担当する人が使う。',
+  body=visuals.leverage()
+   +note('効果は3つ。解決できる人が増える。作った人がいなくても解決できる。次の案件でも同じ仕組みを使える。'),
+  notes='期待する効果です。本質的に変わるのは、誰が解決できるかです。いまは、業務の手間を解決できるのは、その手間を知っている本人だけです。たとえば引き継ぎのたびの確認という手間は、その業務を担当している本人が、自分の時間を使って処理します。解決は本人の中で終わるので、同じ手間を持つ人は、また最初から始めます。この企画のあとは、本人がその手間をAIで仕組みにします。使うのは、作った本人ではありません。同じ業務を担当する人です。同僚、他部署、そして顧客の案件です。その人たちが、自分の現場で同じ手間を解決します。効果は3つです。解決できる人が増えること。作った人がいなくても解決できること。次の案件でも同じ仕組みを使えることです。確認は、他の人に使われたかどうかを主KPIで、実務で使う場面が増えたかどうかを業務別の活用で見ます。')
 
 NEXT_STEP = dict(label='次の期の扱い', title='次の期の扱い：3月の結果で決まる3つ', cls='ws-diagram',
   intro='3月の結果を見て、次の期の扱いを決める。3つのどれになるかで、次にすることが変わる。',
@@ -261,32 +261,79 @@ STOP = dict(label='支援を補う', title='支援を補う：つまずいた場
    +note('切り分けには、困りごとの設問（どの支援が要るか）と、中間の回答を使う。改善の見込みが無い場合に限り停止し、その理由も記録に残す。'),
   notes='3つ目、作るところまで到達しなかった場合です。ここで決めるのは、まず改善の方法です。どこで止まったかを3つで切り分けます。教材が届かなかったのか、時間が取れなかったのか、相談が届かなかったのかです。切り分けには、困りごとの設問と中間アンケートの回答を使います。改善できる場合は、条件を変えて次の期に再実施します。たとえば教材の順序を変える、時間の確保を上長と調整する、相談の場を業務時間内に置くといった変更です。改善できる見込みが無い場合は、次の期で止めます。その場合も、止めた理由は記録に残します。次に全社でAIの活用を進めるときの材料になるためです。')
 
+AGENDA = dict(label='本日の内容', title='本日の内容：5つ', cls='ws-form',
+  intro='決めていただくのは最後の1件である。そこへ至るまでを、4つに分けて説明する。',
+  body=table(['内容','何を示すか'],[
+    ['1　背景と目的（{{枚:背景}}〜{{枚:この企画の本質}}枚目）','いま何が起きていて、誰の、どんな力を育てるか'],
+    ['2　進め方（{{枚:テーマの設計}}〜{{枚:共有の2回}}枚目）','課題の選び方・手段・教材・半年の流れ・支援・共有'],
+    ['3　期待する効果と測り方（{{枚:期待する効果}}〜{{枚:アンケートの取り方}}枚目）','目的が達成されると何が変わり、それをどう確認するか'],
+    ['4　次の期の扱い（{{枚:次の期の扱い}}〜{{枚:支援を補う}}枚目）','3月の結果ごとに、次にすること'],
+    ['5　本日の依頼（{{枚:部長への依頼}}枚目）','趣旨と進め方への合意、Kiroの費用の許可']]),
+  notes='本日の内容です。5つに分けてご説明します。1つ目は背景と目的で、いま何が起きていて、誰のどんな力を育てるかです。2つ目は進め方で、課題の選び方から半年の流れ、支援と共有までです。3つ目は期待する効果と測り方で、目的が達成されると何が変わり、それをどう確認するかです。4つ目は次の期の扱いで、3月の結果ごとに次にすることです。5つ目が本日の依頼で、決めていただくのはここだけです。')
+
+BACKGROUND = dict(label='背景', title='背景：AIの活用が、個人に閉じている', cls='ws-diagram',
+  intro='AIを使う人は増えた。しかし案件の進め方は変わっていない。',
+  body=visuals.background()
+   +note('道具を配るだけでは、この状態は変わらない。自分の課題を仕組みにできる人が要る。'),
+  notes='まず背景についてご説明します。AIを使う人は増加しています。しかし案件の進め方は変わっていません。いまの案件で起きていることは3つです。1つ目は、AIを使う人が案件の中で限られることです。使う人と使わない人に分かれます。2つ目は、使い方が共有されないことです。工夫が本人の手元に留まります。3つ目は、試した結果が案件に残らないことです。次の人が、同じところから始めます。足りないのは、AIを使う人ではありません。課題をAIで解決する仕組みを作れる人です。道具を配るだけでは、この状態は変わりません。')
+
 ESSENCE = dict(label='この企画の本質', title='本質：顧客先でも価値を生み続けられる人材を増やす', cls='ws-diagram',
   intro='案件が終わると、作った仕組みはその案件に残る。持ち運べるのは、課題をAIで解決する力である。',
   body=visuals.same_loop()
    +note('価値は、作った仕組みの数ではない。どの案件でも課題を解決できる人が増えることである。'),
   notes='ここがこの企画の本質です。案件でAIの仕組みを作ると、その仕組みは案件の中に残ります。しかし案件が終われば、そこまでです。持ち運べるのは、課題の本質を捉えてAIで解決する力のほうです。この力は人に残るため、自社の次の案件でも、顧客の案件でも同じように使えます。だからこの企画が増やそうとしているのは、成果物の数ではなく、その力を持つ人です。下期の15名が、その最初の一歩です。')
 
-ORDER = [0, 1, 4, 2, ESSENCE, 3, 5, 6, 7, 8, SHARING, IMPACT, 11, 17, KPI_SUB, 12, 26, NEXT_STEP, HORIZON, REBUILD, STOP, PREMISE, 14,
+ORDER = [0, AGENDA, BACKGROUND, 1, 2, 4, ESSENCE, 3, 5, 6, 7, 8, SHARING, IMPACT, 11, 17, KPI_SUB, 12, 26, NEXT_STEP, HORIZON, REBUILD, STOP, PREMISE, 14,
          APPENDIX_INDEX, 15, DEV_THEME, 16, QUESTIONS, 13,
          18, 19, 20, 21, 22, 23, 24, 25]
-SLIDES = [SLIDES[i] if isinstance(i, int) else i for i in ORDER]
+AGENDA_BRIEF = dict(label='本日の内容', title='本日の内容：4つと、ご依頼1件', cls='ws-form',
+  intro='要点だけを10枚で説明する。詳細は付録に置いており、ご質問に応じて提示する。',
+  body=table(['内容','何を示すか'],[
+    ['1　背景と目的（{{枚:背景}}〜{{枚:この企画の本質}}枚目）','いま何が起きていて、何を育てるか。何が残るか'],
+    ['2　進め方（{{枚:下期の進め方}}枚目）','半年の流れ。10月開始、12月と3月に共有'],
+    ['3　期待する効果と測り方（{{枚:期待する効果}}〜{{枚:主KPI}}枚目）','誰が解決できるようになり、それをどう確認するか'],
+    ['4　次の期の扱い（{{枚:次の期の扱い}}枚目）','3月の結果ごとに、次にすること'],
+    ['5　本日の依頼（{{枚:部長への依頼}}枚目）','趣旨と進め方への合意、Kiroの費用の許可']])
+   +note('付録（{{枚:付録｜案内}}枚目以降）に、育てたい力・教材・支援・設問・回答フォームを置いている。'),
+  notes='本日の内容です。要点だけを10枚でご説明します。詳しい内容は付録に置いていますので、ご質問をいただいた箇所をその場でお出しします。1つ目は背景と目的、2つ目は進め方、3つ目は期待する効果と測り方、4つ目は次の期の扱いです。最後に、決めていただきたい2件をご説明します。')
 
-def _resolve(text):
-    """{{枚:ラベル}} を、そのラベルの枚番号へ置き換える。並べ替えても壊れない。"""
-    import re as _re
+APPENDIX_BRIEF = dict(label='付録｜案内', title='付録の構成', cls='ws-form',
+  intro='要点版で外した詳細を、6つに分けて置いている。ご質問の箇所を、この一覧から開く。',
+  body=table(['付録','内容'],[
+    ['{{枚:育てたい力}}〜{{枚:共有の2回}}','育てたい力・目指す成果・テーマ・手段・教材・支援・共有'],
+    ['{{枚:効果測定の方法}}〜{{枚:アンケートの取り方}}','効果測定の方法・補助の指標・設問・アンケートの取り方'],
+    ['{{枚:広げる}}〜{{枚:支援を補う}}','3月の結果ごとの中身（広げる・発想を鍛える・支援を補う）'],
+    ['{{枚:前提条件と未確定事項}}','決定済みの条件と、未確定の事項'],
+    ['{{枚:付録｜PM・PLのテーマ}}〜{{枚:付録｜利用環境}}','職種ごとの題材の候補と、利用環境'],
+    ['{{枚:付録｜設問の構成}}〜{{枚:付録｜終了時・作者}}','設問の区分・職種別の設問・回答フォームのイメージ']]),
+  notes='ここから付録です。要点版で外した詳細を6つに分けて置いています。ご質問をいただいた箇所を、この一覧から開きます。')
+
+ORDER_BRIEF = [0, AGENDA_BRIEF, BACKGROUND, 1, ESSENCE, 7, IMPACT, 17, NEXT_STEP, 14,
+               APPENDIX_BRIEF,
+               2, 4, 3, 5, 6, 8, SHARING,
+               11, KPI_SUB, 12, 26,
+               HORIZON, REBUILD, STOP, PREMISE,
+               15, DEV_THEME, 16, QUESTIONS, 13,
+               18, 19, 20, 21, 22, 23, 24, 25]
+
+RAW = SLIDES
+
+def _deck(order):
+    """並びを適用し、{{枚:ラベル}} をその並びでの枚番号へ置換した一式を返す。"""
+    deck = [dict(RAW[i]) if isinstance(i, int) else dict(i) for i in order]
+    index = {s['label']: n for n, s in enumerate(deck, 1)}
+
     def sub(m):
         label = m.group(1)
-        for i, s in enumerate(SLIDES, 1):
-            if s['label'] == label:
-                return str(i)
-        raise KeyError('枚が無い: ' + label)
-    return _re.sub(r'\{\{枚:([^}]+)\}\}', sub, text)
+        if label not in index:
+            raise KeyError('枚が無い: ' + label)
+        return str(index[label])
 
-for _s in SLIDES:
-    for _k in ('title', 'intro', 'body', 'notes'):
-        if _k in _s:
-            _s[_k] = _resolve(_s[_k])
+    for s in deck:
+        for k in ('title', 'intro', 'body', 'notes'):
+            if k in s:
+                s[k] = re.sub(r'\{\{枚:([^}]+)\}\}', sub, s[k])
+    return deck
 
 CSS = '''
 :root{--ground:#f4f1e8;--surface:#e9e5da;--surface-2:#e1dfd3;--paper:#fffaf2;--ink:#252b29;--dim:#59605a;--faint:#686f65;--line:#d5d6c9;--accent:#b64326;--accent-dim:#873f2b;--serif:'Noto Sans JP','Yu Gothic',sans-serif;--sans:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--mono:var(--sans)}
@@ -376,17 +423,21 @@ html,body{height:auto;overflow:visible;background:#deded3}
 .chrome,.progress,.navzone{display:none}
 </style>'''
 
-def build():
+def build(order, stem='director-deck', notes_name='speaker-notes.md',
+          title='下期AI活用ワークショップ', apx_from=None):
+    """1つの並びから、めくる版・1ページ版・発表原稿を組む。"""
+    SLIDES = _deck(order)
     template = TEMPLATE.read_text()
     prefix = template.split('<!-- 01 -->')[0]
     prefix = re.sub(r'<link[^>]+>\s*', '', prefix)
-    prefix = prefix.replace('<title>デッキの題名</title>', '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>下期AI活用ワークショップ</title>')
+    prefix = prefix.replace('<title>デッキの題名</title>', '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+title+'</title>')
     prefix = prefix.replace('<div class="navzone prev"', '<style>'+CSS+'</style></head><body>\n<div class="navzone prev"', 1)
     slides=[]
     for i, s in enumerate(SLIDES,1):
         heading='h1' if i==1 else 'h2'
+        kind = '付録' if (s['label'].startswith('付録｜') or (apx_from and i >= apx_from)) else '企画案'
         slides.append(f'<section class="slide {s.get("cls", "")}" aria-label="{i}: {esc(re.sub("<[^>]*>", "", s["title"]))}">\n'
-            f'<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">{esc(s["label"])}　／　企画案</span></div>\n'
+            f'<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">{esc(s["label"])}　／　{kind}</span></div>\n'
             f'<{heading}>{s["title"]}</{heading}>\n<p class="ws-intro">{esc(s["intro"])}</p>\n<div class="body">{s["body"]}</div>\n</section>')
     suffix=template[template.index('<div class="chrome">'):]
     labels=json.dumps([s['label'] for s in SLIDES],ensure_ascii=False)
@@ -394,19 +445,21 @@ def build():
     suffix=suffix.replace('<span class="hint">← → でめくる</span>','<span class="hint"><button class="ws-nav" id="ws-prev" aria-label="前のスライド">←</button>矢印キーでめくる<button class="ws-nav" id="ws-next" aria-label="次のスライド">→</button></span>')
     suffix=suffix.replace("const prev = ()=> show(i-1);", "const prev = ()=> show(i-1);\n  document.getElementById('ws-prev').addEventListener('click', prev);\n  document.getElementById('ws-next').addEventListener('click', next);\n  addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1),10)-1;if(Number.isFinite(n)&&n!==i)show(n);});")
     suffix += '\n</body></html>\n'
-    (OUT/'director-deck.html').write_text(prefix+'\n'.join(slides)+suffix)
-    _apx = sum(1 for s in SLIDES if s['label'].startswith('付録｜'))
+    (OUT/f'{stem}.html').write_text(prefix+'\n'.join(slides)+suffix)
+    _apx = sum(1 for i, s in enumerate(SLIDES, 1) if s['label'].startswith('付録｜') or (apx_from and i >= apx_from))
     notes=[f'# 部長向け発表原稿\n\n全{len(SLIDES)}枚。表紙1枚、本編{len(SLIDES)-1-_apx}枚、付録{_apx}枚。決定済みの条件と、今回の運営提案を分けて説明します。\n']
     for i,s in enumerate(SLIDES,1):
         notes.append(f'## {i:02d}　{re.sub("<[^>]*>", "", s["title"])}\n\n{s["notes"]}\n')
-    (OUT/'speaker-notes.md').write_text('\n'.join(notes))
+    (OUT/notes_name).write_text('\n'.join(notes))
     # 閲覧用：全枚を縦に並べた1ページ版。めくる操作を外し、見出しと重複する説明を外す
     flat = re.sub(r'<script\b.*?</script>', '', prefix+'\n'.join(slides)+suffix, flags=re.S)
     flat = re.sub(r'(<section class="slide[^"]*") aria-label="[^"]*"', r'\1 aria-label="スライド"', flat)
     flat = re.sub(r'(<svg class="ws-[^"]*"[^>]*?) aria-label="[^"]*"', r'\1', flat)
     flat = flat.replace('</head>', FLAT_CSS + '</head>')
-    (OUT/'director-deck-all.html').write_text(flat)
-    print(f'Built {len(SLIDES)} slides: {OUT / "director-deck.html"} / {OUT / "director-deck-all.html"}')
+    (OUT/f'{stem}-all.html').write_text(flat)
+    print(f'Built {len(SLIDES)} slides（本編{len(SLIDES)-1-_apx}・付録{_apx}）: {stem}.html')
 
 if __name__=='__main__':
-    build()
+    build(ORDER)
+    build(ORDER_BRIEF, stem='director-deck-brief', notes_name='speaker-notes-brief.md',
+          title='下期AI活用ワークショップ（要点版）', apx_from=12)
