@@ -1,0 +1,29 @@
+"""外側 ── 受け取り口。HTTP の言葉を、内側の言葉へ直すだけである。"""
+from __future__ import annotations
+
+import json
+from http.server import BaseHTTPRequestHandler
+
+from domain import 回答, 送信
+from usecase import 回答を受け取る
+
+
+def 組む(口):
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("content-length", 0))
+            body = json.loads(self.rfile.read(n) or b"{}")
+            try:
+                s = 送信(tuple(回答(a["no"], a["verdict"], a.get("reason", ""))
+                              for a in body.get("answers") or []))
+            except ValueError as e:
+                self.send_error(400, str(e))
+                return
+            件数 = 回答を受け取る(口, s)
+            out = json.dumps({"saved": 件数}).encode()
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+    return Handler
