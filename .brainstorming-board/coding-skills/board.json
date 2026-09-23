@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 5,
+ "round": 6,
  "intro": [
   {
    "kind": "para",
@@ -771,22 +771,57 @@
    "name": "依存の向き ── 構造を保つ",
    "status": "open",
    "question": "依存の向きを、何で検査するのか",
-   "answer": "<b>層の場所の記録を1件持ち、既存の道具で検査する。</b>言語によっては、その記録を既存のファイルが兼ねる。",
+   "answer": "<b>Skill は道具を1つも持たない。</b>記録に書いたコマンドを実行し、終了コードだけを読む ── 出力の解釈は読み手が実施する。",
    "decision": {
     "letter": "A",
     "text": [
      {
       "kind": "para",
-      "text": "<b>層とパスの記録を1件持ち、既存の道具で検査する。</b>"
+      "text": "<b>Skill は道具を持たない。記録のコマンドを実行し、終了コードだけを読む。</b>"
      },
      {
       "kind": "fold",
-      "heading": "この答えを導いたもの（5件）",
+      "heading": "この答えを導いたもの（8件）",
       "body": [
        {
         "kind": "list",
         "ordered": false,
         "items": [
+         {
+          "text": "<b>道具はプロジェクトが持つ</b> ── Skill が持つのは記録の形と判定の形だけである。道具の版が変わっても、Skill は動かない"
+         },
+         {
+          "text": "<b>道具の仕事は検出までである</b> ── 出力の解析を実施しない。不合格のときは出力をそのまま渡し、意味の解釈は読み手が実施する"
+         },
+         {
+          "text": "<b>自作の検査は採用しない</b> ── 試作して測った結果、Python の相対 import を取りこぼした。見逃した違反は合格として出る",
+          "nested": [
+           {
+            "kind": "fold",
+            "heading": "試作の測定（trial/dep、96行 ・ 依存0件）",
+            "body": [
+             {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+               {
+                "text": "5言語で動いた（Python ・ TypeScript ・ Go ・ Rust ・ Java）。Python では import-linter と同じ行を出した"
+               },
+               {
+                "text": "<b>取りこぼし</b> ── <code>from ..adapters import x</code>（相対の書き方）と、動的な読み込み"
+               },
+               {
+                "text": "<b>誤検出</b> ── 塊のコメントの中の import"
+               },
+               {
+                "text": "取りこぼしを直すには名前の解決が要る。解決の規則は言語ごとに違うので、そこへ入ると言語に依存する"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
          {
           "text": "<b>層の名前は原典に無い</b> ── <code>domain</code> も <code>usecase</code> も、2つの原典のどちらにも無い。こちら側が決める"
          },
@@ -874,6 +909,19 @@
     {
      "kind": "note",
      "text": "<b>記録が要るかは、その言語で依存の単位がどう決まるかで変わる。</b>抽象（層の場所を1か所で決め、既存の道具で向きを検査する）は変わらない。"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "Skill が読むもの"
+    },
+    {
+     "kind": "html",
+     "text": "$ 記録のコマンドを実行する\n\n層の向き      lint-imports            終了コード 0   → 合格\n整形          gofmt -l .              終了コード 0   → 合格\n静的解析      go vet ./...            終了コード 1   → 不合格\n\n不合格の規則は、道具の出力をそのまま渡す:\n  domain is not allowed to import adapters:\n  - domain -> adapters.file_store (l.11)"
+    },
+    {
+     "kind": "note",
+     "text": "<b>件数の集計も、違反の並べ替えも実施しない。</b>それを実施すると、道具ごとに違う出力を解析することになり、依存が戻る。"
     }
    ],
    "passed": [
@@ -953,6 +1001,28 @@
        "text": "<b>1つのクレートの中では、可視性の宣言しか無い</b> ── 方向の制限であって、許可辺の宣言ではない"
       }
      ]
+    },
+    {
+     "kind": "card",
+     "heading": "道具をどこまで担わせるかが決まった",
+     "events": [
+      {
+       "tag": "returned",
+       "text": "私的には他の依存でこのSkillが影響を受けるのはつらい"
+      },
+      {
+       "tag": "returned",
+       "text": "結果として検出するところまでが機械的な道具の仕事です。その結果を受けて意味的な整合や解釈を行うのはAIの仕事だと思ってる"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>出力を解析しないので、依存が0件になる</b> ── 終了コードだけが契約である"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>独自の道具の提案は、測って取り下げた</b> ── 相対の書き方を取りこぼし、見逃した違反が合格として出た"
+      }
+     ]
     }
    ],
    "grounds": [
@@ -997,12 +1067,31 @@
      "basis": "makes an item visible to the parent module. This is equivalent to",
      "tag": "primary",
      "source": "doc.rust-lang.org/reference/visibility-and-privacy:472（2026-09-23 取得）"
+    },
+    {
+     "supports": "終了コードだけで判定できること",
+     "basis": "import-linter は合格で0、違反あり で1 を返した",
+     "tag": "measured",
+     "source": "2026-09-23 に実行（trial/sim/b-rules）"
+    },
+    {
+     "supports": "自作の検査が取りこぼすこと",
+     "basis": "from ..adapters import file_store（相対の書き方）を検出しなかった",
+     "tag": "measured",
+     "source": "2026-09-23 の試作（trial/dep）"
+    },
+    {
+     "supports": "解釈を読み手が実施すること",
+     "basis": "結果として検出するところまでが機械的な道具の仕事です",
+     "tag": "assumption",
+     "source": "利用者の発言 2026-09-23"
     }
    ],
    "requirements": [
     "言語ごとに道具が違う ── 道具が無い言語では、この検査が動かない",
     "層を移したら、記録も直す ── 1件で済むが、直さなければ検査が嘘になる",
-    "言語ごとに、記録をどこが持つかの判定が要る ── こちらの記録1件か、既存のファイルが兼ねるか"
+    "言語ごとに、記録をどこが持つかの判定が要る ── こちらの記録1件か、既存のファイルが兼ねるか",
+    "記録に書いたコマンドが、本当に検査しているかを確認できない ── <code>true</code> と書いても合格になる"
    ],
    "out_of_scope": [
     {
@@ -1019,6 +1108,11 @@
      "item": "この答えを、実際に動かしていない",
      "treatment": "later",
      "note": "試すのは<b>外の作業</b>である ── <code>go list -deps</code> を1回動かし、記録の層名で許可辺を組めるかを確認する"
+    },
+    {
+     "item": "件数の集計と、違反の並べ替えを実施しない",
+     "treatment": "out",
+     "note": "実施すると道具ごとの出力を解析することになり、依存が戻る。不合格が1件でも止まるので、件数は判断を変えない"
     }
    ]
   },
