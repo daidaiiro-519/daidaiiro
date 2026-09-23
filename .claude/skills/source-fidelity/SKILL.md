@@ -293,5 +293,5 @@ Step 3 は「こちらが書いたものが原文に在るか」を検査する�
 - `scripts/cli.py`: 唯一の入口。`fetch` ・ `list` ・ `verify` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
 - `scripts/lib/source.py`: 取得と照合の実体。**互換の入口を保持する** ── 宣言の `LEGACY` に載せてあるので、契約の検査は通る
-- `scripts/mcp.py`: MCP の入口。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
 - `scripts/tests/test_source.py`: この道具の振る舞いを事例で検証する。`python3 scripts/tests/test_source.py` で実行する

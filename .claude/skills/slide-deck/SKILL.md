@@ -243,7 +243,7 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどの鍵から出るか。**この Skill は図を描かない**
 - `scripts/cli.py`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `scripts/mcp.py` ・ `mcp.json`: MCP の入口。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
 - `scripts/lib/render_deck.py`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
 - `scripts/lib/template.py`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で例外にする**
 - `scripts/lib/validate_input.py`: 形では書けない規則を検査する。**組み立てより前に止まる**
