@@ -43,3 +43,30 @@
 | 規則が効くところ | **既存の実装を書き換える量**（10行 → 2行）と、**試験の隔離が保たれること** |
 | 規則の費用 | 最初に書く量が2.5倍。ファイルが1つから5つへ増える |
 | 効かないところ | 行数の合計は増える。小さいまま終わる対象では、費用だけが残る |
+
+## 論点2 の規則を、この実装へ当てた（2026-09-23）
+
+記録を1件置き（`b-rules/records/layers.json`）、既存の道具（`import-linter`）で検査した。
+**検査そのものは書いていない。** `引く.py` が持つのは、記録を道具の設定へ直す変換だけである。
+
+```
+$ python3 引く.py b-rules/records/layers.json b-rules/.importlinter
+$ lint-imports --config .importlinter
+Analyzed 6 files, 5 dependencies.
+内側は外側を参照しない KEPT
+Contracts: 1 kept, 0 broken.          終了コード 0
+```
+
+わざと違反を入れた（`domain` から `adapters` を参照する1行）。
+
+```
+内側は外側を参照しない
+domain is not allowed to import adapters:
+- domain -> adapters.file_store (l.11)
+Contracts: 0 kept, 1 broken.          終了コード 1
+```
+
+**行番号まで出る。** 終了コードが1になるので、CI の工程として置ける。
+
+この検査を通すために、層をディレクトリへ変えた（`domain.py` → `domain/__init__.py`）──
+道具が要求する単位がパッケージだからである。記録の「層 → 場所」と、実物の対応が一致した。
