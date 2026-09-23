@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: MIT
+# 手元と同じ手順を、AWS側で実行するための環境。使うときだけ作る。
+#   aws cloudformation deploy --template-file infra/narration.yml \
+#     --stack-name narration --capabilities CAPABILITY_IAM
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 教材の音声と動画を作る環境（ECR・CodeBuild・S3・実行の権限）
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: narration
+    Description: 作る資源に付ける名前
+
+Resources:
+  Image:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref ProjectName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+
+  Artifact:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: codebuild.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: narration
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [polly:SynthesizeSpeech, polly:GetLexicon, polly:ListLexicons]
+                Resource: '*'
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:ListBucket]
+                Resource:
+                  - !GetAtt Artifact.Arn
+                  - !Sub '${Artifact.Arn}/*'
+              - Effect: Allow
+                Action: [ecr:GetAuthorizationToken, ecr:BatchGetImage,
+                         ecr:GetDownloadUrlForLayer, ecr:BatchCheckLayerAvailability]
+                Resource: '*'
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: '*'
+
+  Build:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref ProjectName
+      ServiceRole: !GetAtt Role.Arn
+      Artifacts: { Type: S3, Location: !Ref Artifact, Packaging: ZIP }
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        PrivilegedMode: true
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            build:
+              commands:
+                - python3 .claude/skills/narration/scripts/cli.py synth docs/workshops/ai-workshop
+          artifacts:
+            files:
+              - 'movie/**/*'
+
+Outputs:
+  ImageRepository:
+    Value: !GetAtt Image.RepositoryUri
+  ArtifactBucket:
+    Value: !Ref Artifact
+  BuildProject:
+    Value: !Ref Build
