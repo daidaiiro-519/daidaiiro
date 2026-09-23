@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "規則の記録",
+  "description": "成果物が持つ記録。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持つ。層の場所を持つ記録は、並びと層も持つ。",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "規則": {
+      "description": "規則の一覧。1件だけのときは、この鍵を持たずに規則そのものを書いてよい。",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/規則" }
+    },
+    "並び": {
+      "description": "層の並び。内から外の順である。",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "層": {
+      "description": "層の名前と、その場所の対応。**名前は原典に無いので、こちら側が決める。**",
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "規則": {
+      "type": "object",
+      "required": ["規則", "出典", "採用範囲", "検証方法"],
+      "additionalProperties": true,
+      "properties": {
+        "規則": { "type": "string", "minLength": 1, "description": "何を守るかを1文で" },
+        "出典": {
+          "description": "外（原典）か内（こちら側の記録）かを書く。**どちらかを必ず持つ。**",
+          "type": "object",
+          "properties": {
+            "meta": { "type": "string", "description": "原典の識別子" },
+            "引用": { "type": "string", "description": "原文の文字列。要約しない" },
+            "record": { "type": "string", "description": "内側の記録の識別子。解決先は使う側が配線する" }
+          },
+          "anyOf": [{ "required": ["meta"] }, { "required": ["record"] }]
+        },
+        "採用範囲": { "type": "string", "minLength": 1, "description": "原典のどこを採ったか" },
+        "検証方法": {
+          "type": "object",
+          "required": ["道具"],
+          "properties": {
+            "道具": {
+              "description": "実行するコマンド。**配列で書く** ── 殻を経由しない。**判定を終了コードで返す呼び方を選ぶ**（gofmt -l は0を返す）。",
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" }
+            },
+            "対象": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
