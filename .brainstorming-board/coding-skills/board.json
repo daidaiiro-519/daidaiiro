@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 2,
+ "round": 3,
  "intro": [
   {
    "kind": "para",
@@ -54,6 +54,52 @@
     {
      "kind": "note",
      "text": "前の世代は規則の形を12論点で扱い、その前は3つを別々の柱として並べていた。どちらも本体を取り違えている。"
+    }
+   ]
+  },
+  {
+   "heading": "規則の有無で測った差 ── 実測 2026-09-23",
+   "body": [
+    {
+     "kind": "para",
+     "text": "同じ仕様から2つ書き、同じ仕様変更（保存先をファイルから SQLite へ）を両方に当てた。"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "規則なし",
+      "規則あり"
+     ],
+     "rows": [
+      [
+       "最初に書く量",
+       "47行 ・ 1ファイル",
+       "118行 ・ 5ファイル（<b>2.5倍</b>）"
+      ],
+      [
+       "仕様変更で<b>消した行</b>",
+       "<b>10行</b>（重複の判定が動いた）",
+       "<b>2行</b>（組み立てだけ）"
+      ],
+      [
+       "仕様変更で足した行",
+       "17行",
+       "30行（新しい実装1件）"
+      ],
+      [
+       "試験",
+       "<b>通ったが隔離が壊れた</b>",
+       "9件とも無傷"
+      ]
+     ]
+    },
+    {
+     "kind": "note",
+     "text": "<b>規則なし版の試験は「3件すべて通った」と出しながら、リポジトリの中にデータベースを作っていた。</b>差し替えていた変数（保存先のパス）が、変更後は使われなくなったためである。"
+    },
+    {
+     "kind": "note",
+     "text": "効いたのは行数の削減ではない（合計は増える）。効いたのは<b>既存の実装を書き換える量</b>と、<b>試験が嘘をつかないこと</b>である。実物は <code>trial/sim/</code> にある。"
     }
    ]
   },
@@ -403,6 +449,74 @@
     {
      "kind": "note",
      "text": "<b>この例でポートは1つだけである。</b>蓄積の口は、テストで差し替えるので作る。受け取り口は外側のアダプタで、内側が呼ばないのでポートを作らない。"
+    },
+    {
+     "kind": "fold",
+     "heading": "実装したときのコード ── 5ファイル（実物は trial/sim/ にある）",
+     "body": [
+      {
+       "kind": "note",
+       "text": "仕様を1つ渡して実際に書き、同じ仕様変更（保存先をファイルから SQLite へ）を当てたものである。"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "内側　①概念と、②ポート"
+      },
+      {
+       "kind": "html",
+       "text": "# domain.py ── 外部の技術を1つも参照しない\n\n@dataclass(frozen=True)\nclass 回答:\n    論点: int\n    諾否: str          # approve / return / skip\n    理由: str = \"\"\n\n@dataclass(frozen=True)\nclass 送信:\n    回答群: tuple[回答, ...]\n    def __post_init__(self):\n        番号 = [a.論点 for a in self.回答群]\n        if len(番号) != len(set(番号)):\n            raise ValueError(\"論点1件につき回答は1つである\")\n\ndef 重複か(前: 送信 | None, いま: 送信) -> bool:\n    return 前 is not None and 前.回答群 == いま.回答群\n\nclass 蓄積の口(Protocol):          # ポート ── 内側が定義する\n    def 直前(self) -> 送信 | None: ...\n    def 足す(self, s: 送信) -> None: ..."
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "内側　③手順"
+      },
+      {
+       "kind": "html",
+       "text": "# usecase.py ── 外側の道具は、口を通してしか触らない\n\ndef 回答を受け取る(口: 蓄積の口, s: 送信) -> int:\n    if 重複か(口.直前(), s):\n        return 0\n    口.足す(s)\n    return len(s.回答群)"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "外側　④ポートの実装（保存先を変えたのはここを足しただけ）"
+      },
+      {
+       "kind": "html",
+       "text": "# adapters/sqlite_store.py ── 蓄積の口を実装する\n\nclass SQLiteの蓄積先:\n    def 直前(self) -> 送信 | None:\n        row = self.c.execute(\"select body from submissions \"\n                             \"order by id desc limit 1\").fetchone()\n        if row is None:\n            return None\n        d = json.loads(row[0])\n        return 送信(tuple(回答(**a) for a in d[\"回答群\"]))\n\n    def 足す(self, s: 送信) -> None:\n        d = {\"回答群\": [vars(a) for a in s.回答群]}\n        self.c.execute(\"insert into submissions (body) values (?)\",\n                       (json.dumps(d, ensure_ascii=False),))\n        self.c.commit()"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "⑤組み立て"
+      },
+      {
+       "kind": "html",
+       "text": "# main.py ── ここだけが、内側と外側の両方を知る\n\n口 = SQLiteの蓄積先(\"answers.db\")          # ← 保存先を変えたのは、この1行\nHTTPServer((\"127.0.0.1\", 8802), 組む(口)).serve_forever()"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "内側の試験 ── 偽物の口を渡す"
+      },
+      {
+       "kind": "html",
+       "text": "# tests/test_domain.py ── HTTP もファイルも立てない\n\nclass 覚えておく蓄積先:                    # ポートを作った理由がこれである\n    def __init__(self): self.保存 = []\n    def 直前(self): return self.保存[-1] if self.保存 else None\n    def 足す(self, s): self.保存.append(s)\n\n口 = 覚えておく蓄積先()\nassert 回答を受け取る(口, 一) == 1\nassert 回答を受け取る(口, 一) == 0          # 直前と同じなら保存しない\nassert 回答を受け取る(口, 二) == 1"
+      },
+      {
+       "kind": "heading",
+       "level": 4,
+       "text": "比べる相手　規則なしで書いた場合"
+      },
+      {
+       "kind": "html",
+       "text": "# serve.py ── 1つの関数に、受け取り ・ 判定 ・ 保存が同居する\n\nclass Handler(BaseHTTPRequestHandler):\n    def do_POST(self):\n        body = json.loads(self.rfile.read(n) or b\"{}\")\n        answers = body.get(\"answers\") or []\n        seen = set()\n        for a in answers:                       # 論点1件につき1つ\n            if a[\"no\"] in seen:\n                self.send_error(400, \"duplicate topic\"); return\n            seen.add(a[\"no\"])\n        c = 接続()                               # ← 保存先を変えると\n        row = c.execute(\"select body from submissions \"\n                        \"order by id desc limit 1\").fetchone()\n        last = json.loads(row[0]) if row else None\n        if last is not None and last.get(\"answers\") == answers:\n            c.close(); self.respond(0); return   # ← 重複の判定も書き換わる\n        c.execute(\"insert into submissions (body) values (?)\", ...)"
+      },
+      {
+       "kind": "note",
+       "text": "<b>保存先を変えると、重複の判定のコードが動く。</b>判定の規則は1文字も変わっていない。"
+      }
+     ]
     }
    ],
    "passed": [
