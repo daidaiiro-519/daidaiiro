@@ -7,6 +7,11 @@
 **このファイルを `mcp.py` と名付けない。** 実行すると自分の在る場所が探索の先頭に
 入るので、`import mcp` がこのファイル自身を指し、**実装が在っても「無い」と報告する**
 （実測 2026-09-24）。
+
+**道具は標準出力へ1バイトも書かない。** 原典が禁じている ── `The server MUST NOT
+write anything to its stdout that is not a valid MCP message.`
+（modelcontextprotocol.io/specification/2025-06-18/basic/transports:33、2026-09-24 取得）。
+ログは標準エラーへ書く（同 31行が許す）。
 """ 
 import pathlib
 import sys
