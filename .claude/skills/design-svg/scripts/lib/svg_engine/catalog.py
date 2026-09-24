@@ -64,7 +64,7 @@ EXAMPLES = {k: {"label": "名前", **v} for k, v in EXAMPLES.items()}
 
 
 def _keys_read(fn, param: str) -> dict[str, dict]:
-    """関数が、その引数からどの鍵を読んでいるかを構文木から抽出する。
+    """関数が、その引数からどのキーを読んでいるかを構文木から抽出する。
 
     `x["k"]` は必須、`x.get("k")` は任意として扱う ── 既定値を書けるのは
     無くてもよいときだけなので、書き方がそのまま要否を表している。
@@ -74,8 +74,8 @@ def _keys_read(fn, param: str) -> dict[str, dict]:
         param: 読み取り元の引数名（部品なら "props"）。
 
     Returns:
-        鍵の名前 → {"required": bool, "default": 既定値の文字列 or None}。
-        同じ鍵を両方の書き方で読んでいたら、任意として扱う（1箇所でも
+        キーの名前 → {"required": bool, "default": 既定値の文字列 or None}。
+        同じキーを両方の書き方で読んでいたら、任意として扱う（1箇所でも
         既定値を持てるなら、無くても動く）。
 
     Raises:
@@ -85,7 +85,7 @@ def _keys_read(fn, param: str) -> dict[str, dict]:
 
 
 def _keys_read_tree(tree, param: str) -> dict[str, dict]:
-    """構文木から、その名前の変数が読んでいる鍵を抽出する（`_keys_read` の本体）。"""
+    """構文木から、その名前の変数が読んでいるキーを抽出する（`_keys_read` の本体）。"""
     found: dict[str, dict] = {}
 
     def note(key: str, required: bool, default=None) -> None:
@@ -118,11 +118,11 @@ def _keys_read_tree(tree, param: str) -> dict[str, dict]:
 
 
 def _keys_read_module(module, param: str) -> dict[str, dict]:
-    """モジュール全体から、その名前の変数が読んでいる鍵を抽出する。
+    """モジュール全体から、その名前の変数が読んでいるキーを抽出する。
 
     関数を1つずつ指定すると、読む場所が増えたときに黙って取りこぼす
     （実際、囲みの `members` は群を集約する関数の中の内包表記で読まれていて、
-    入口の関数だけを見ても出てこなかった）。取りこぼしは利用側が必須の鍵を
+    入口の関数だけを見ても出てこなかった）。取りこぼしは利用側が必須のキーを
     知れないことを意味するので、広く取って取りこぼさないほうを選ぶ。
     """
     tree = ast.parse(inspect.getsource(module))
@@ -139,7 +139,7 @@ def props_of(kind: str) -> dict[str, dict]:
         kind: 部品の名前（`known_kinds()` が返すもの）。
 
     Returns:
-        鍵の名前 → {"required": bool, "default": ...}。
+        キーの名前 → {"required": bool, "default": ...}。
 
     Raises:
         KeyError: 台帳に無い名前のとき。
@@ -153,12 +153,12 @@ def forwards_of(kind: str) -> str | None:
     """その部品が、受け取った値をそのまま別の部品へ渡すなら、その渡し先。
 
     渡す部品がある ── `pie` は輪そのものを `donut` に描かせ、`titled` は
-    `of` で指された部品を包む。どちらも自分では読まない鍵を受け取れるので、
-    渡し先を書かないと利用側は「渡せる鍵」を知れない（実際、`pie` の説明は
+    `of` で指された部品を包む。どちらも自分では読まないキーを受け取れるので、
+    渡し先を書かないと利用側は「渡せるキー」を知れない（実際、`pie` の説明は
     `centre` を受けると書いていたが、読んでいたのは渡した先だった）。
 
     Returns:
-        渡し先の部品名。渡し先が値で決まるなら `"props:<鍵>"`。渡さないなら None。
+        渡し先の部品名。渡し先が値で決まるなら `"props:<キー>"`。渡さないなら None。
     """
     tree = ast.parse(textwrap.dedent(inspect.getsource(_REGISTRY[kind])))
     for node in ast.walk(tree):
@@ -234,7 +234,7 @@ def roles() -> dict[str, dict]:
 
 
 def _merge(*parts: dict[str, dict]) -> dict[str, dict]:
-    """同じ鍵を複数の場所で読んでいたら、1つにまとめる。任意が優先。"""
+    """同じキーを複数の場所で読んでいたら、1つにまとめる。任意が優先。"""
     out: dict[str, dict] = {}
     for part in parts:
         for key, info in part.items():
@@ -248,7 +248,7 @@ def _merge(*parts: dict[str, dict]) -> dict[str, dict]:
 
 
 def declaration() -> dict[str, dict]:
-    """図の宣言そのものが受け取る鍵。読んでいる実物すべてから抽出する。
+    """図の宣言そのものが受け取るキー。読んでいる実物すべてから抽出する。
 
     1つの関数だけを走査しても足りない ── 囲みの `members` は合成では読まれず、
     群を集約する側の内包表記の中で読まれている。だから群についてはモジュール全体を

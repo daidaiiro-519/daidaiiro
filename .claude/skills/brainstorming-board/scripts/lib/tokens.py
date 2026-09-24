@@ -8,8 +8,8 @@
 `references/tokens.json` だけで、色も寸法もここから出る。
 2か所に書くと、どちらが正しいかを毎回確認することになる。
 
-**層を跨いだ参照を、形の層で弾く。** 意味の層は基礎の鍵だけを参照し、
-部品の層は意味か基礎の鍵だけを参照する。散文の規定では破れる。
+**層を跨いだ参照を、形の層で弾く。** 意味の層は基礎のキーだけを参照し、
+部品の層は意味か基礎のキーだけを参照する。散文の規定では破れる。
 """
 from __future__ import annotations
 
@@ -33,12 +33,12 @@ def load(path: pathlib.Path | None = None) -> dict:
 
 
 def _raw(t: dict) -> dict[str, str]:
-    """基礎の層を、1つの辞書へ畳む。鍵の重複はそこで判明する。"""
+    """基礎の層を、1つの辞書へ畳む。キーの重複はそこで判明する。"""
     out: dict[str, str] = {}
     for kind, table in t["base"].items():
         for k, v in table.items():
             if k in out:
-                raise ValueError(f"基礎の鍵が重複している: {k}（{kind}）")
+                raise ValueError(f"基礎のキーが重複している: {k}（{kind}）")
             out[k] = v
     return out
 
@@ -64,17 +64,17 @@ def validate(t: dict, *, with_schema: bool = True) -> list[str]:
     light, dark = t["semantic"]["light"], t["semantic"]["dark"]
     for k in sorted(set(light) ^ set(dark)):
         side = "light" if k in light else "dark"
-        err.append(f"意味の鍵 --{k} が {side} にしか無い ── 明暗で同じ鍵集合にする")
+        err.append(f"意味のキー --{k} が {side} にしか無い ── 明暗で同じキー集合にする")
     for side, table in (("light", light), ("dark", dark)):
         for k, ref in table.items():
             if ref not in base:
-                err.append(f"意味 {side} の --{k} が、基礎に無い鍵「{ref}」を参照している")
+                err.append(f"意味 {side} の --{k} が、基礎に無いキー「{ref}」を参照している")
     err += _contrast_errors(t, base)
     for k, ref in t["component"].items():
         if ref.startswith("calc(") or ref[0].isdigit() or ref[0] == ".":
             continue
         if ref not in base and ref not in light:
-            err.append(f"部品 --{k} が、意味にも基礎に無い鍵「{ref}」を参照している")
+            err.append(f"部品 --{k} が、意味にも基礎に無いキー「{ref}」を参照している")
     return err
 
 
@@ -152,7 +152,7 @@ def css(t: dict) -> str:
 
 
 def refs_and_defs(built: str) -> tuple[set[str], set[str]]:
-    """生成物から、参照した鍵と定義した鍵を抜く。差を0件にするために使う。"""
+    """生成物から、参照したキーと定義したキーを抜く。差を0件にするために使う。"""
     import re
     # 代替値を持つ参照（var(--x,#fff)）は、定義が無くても崩壊しない ── 別に数える
     ref = {m.group(1) for m in re.finditer(r"var\(\s*(--[a-z0-9-]+)\s*([,)])",

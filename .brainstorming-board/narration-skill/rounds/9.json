@@ -162,7 +162,7 @@
    ],
    "example": [
     [
-     "<p>実例 ── 試作で実際に通した経路である。用意したのは、AWSのプロファイルと公開のイメージの2つだけである。</p><pre><code><pre><code>$ aws polly synthesize-speech … audio/&lt;鍵&gt;.mp3        # 合成\n$ aws polly synthesize-speech --output-format json … # 尺\n$ docker run --rm -v \"$PWD:/w\" -w /w \\\n    jrottenberg/ffmpeg:7.1-alpine -loop 1 -i slide-01.png -i audio/&lt;鍵&gt;.mp3 \\\n    -c:v libx264 -c:a aac -shortest movie/slide-01.mp4\n\n実測（2026-09-22）  3枚を合成 → 結合 → 80秒の動画。ECR ・ CodeBuild ・ S3 の使用は0である</code></pre></code></pre><p class=\"note-s\">CodeBuildへ移す条件は3つ。作る人が複数になる。端末にコンテナを置けない人が出る。またはビルドを自動で再現する必要が生じる。どれも、いまは満たしていない。</p>"
+     "<p>実例 ── 試作で実際に通した経路である。用意したのは、AWSのプロファイルと公開のイメージの2つだけである。</p><pre><code><pre><code>$ aws polly synthesize-speech … audio/&lt;キー&gt;.mp3        # 合成\n$ aws polly synthesize-speech --output-format json … # 尺\n$ docker run --rm -v \"$PWD:/w\" -w /w \\\n    jrottenberg/ffmpeg:7.1-alpine -loop 1 -i slide-01.png -i audio/&lt;キー&gt;.mp3 \\\n    -c:v libx264 -c:a aac -shortest movie/slide-01.mp4\n\n実測（2026-09-22）  3枚を合成 → 結合 → 80秒の動画。ECR ・ CodeBuild ・ S3 の使用は0である</code></pre></code></pre><p class=\"note-s\">CodeBuildへ移す条件は3つ。作る人が複数になる。端末にコンテナを置けない人が出る。またはビルドを自動で再現する必要が生じる。どれも、いまは満たしていない。</p>"
     ]
    ],
    "kept": [
@@ -300,7 +300,7 @@
    ],
    "pick": [
     [
-     "<p>継ぎ目は2つのJSONにし、突き合わせの鍵と持ち物の分担を決める。</p><ol><li><b class=\"lead-s\">枚のidは、スライドを保持する側が出したものをそのまま使う</b><div class=\"sub-s\">音声側は採番しない</div></li><li>音声側が持つのは、音声・尺・長さだけである。画像・解像度・順序はスライド側が持つ</li><li>入力に無い枚は、音声の無い枚として結合する側が扱う</li></ol>"
+     "<p>継ぎ目は2つのJSONにし、突き合わせのキーと持ち物の分担を決める。</p><ol><li><b class=\"lead-s\">枚のidは、スライドを保持する側が出したものをそのまま使う</b><div class=\"sub-s\">音声側は採番しない</div></li><li>音声側が持つのは、音声・尺・長さだけである。画像・解像度・順序はスライド側が持つ</li><li>入力に無い枚は、音声の無い枚として結合する側が扱う</li></ol>"
     ]
    ],
    "answer": [
@@ -316,13 +316,13 @@
    ],
    "example": [
     [
-     "<p>実例 ── 既存のスライドの出力は `previews/slide-01.png` である。この `slide-01` をそのまま鍵にする。</p><pre><code><pre><code>// narration.json（呼ぶ側が作る）\n{ \"voice\": \"Takumi\", \"engine\": \"neural\",\n  \"items\": [ { \"id\": \"slide-01\", \"text\": \"下期AI活用ワークショップの企画をご説明します。\" } ] }\n\n// narration.out.json（このSkillが返す）\n{ \"items\": [ { \"id\": \"slide-01\",\n               \"audio\": \"audio/slide-01.mp3\",\n               \"marks\": \"audio/slide-01.marks.json\",\n               \"format\": \"mp3\",\n               \"durationMs\": 12480 } ] }\n\n// 結合する側は、idで突き合わせる\n//   previews/slide-01.png  ×  audio/slide-01.mp3  ×  durationMs 12480</code></pre></code></pre><p class=\"note-s\">音声側は `previews/` の存在を知らない。鍵だけが共通で、置き場所はそれぞれが持つ。</p>"
+     "<p>実例 ── 既存のスライドの出力は `previews/slide-01.png` である。この `slide-01` をそのままキーにする。</p><pre><code><pre><code>// narration.json（呼ぶ側が作る）\n{ \"voice\": \"Takumi\", \"engine\": \"neural\",\n  \"items\": [ { \"id\": \"slide-01\", \"text\": \"下期AI活用ワークショップの企画をご説明します。\" } ] }\n\n// narration.out.json（このSkillが返す）\n{ \"items\": [ { \"id\": \"slide-01\",\n               \"audio\": \"audio/slide-01.mp3\",\n               \"marks\": \"audio/slide-01.marks.json\",\n               \"format\": \"mp3\",\n               \"durationMs\": 12480 } ] }\n\n// 結合する側は、idで突き合わせる\n//   previews/slide-01.png  ×  audio/slide-01.mp3  ×  durationMs 12480</code></pre></code></pre><p class=\"note-s\">音声側は `previews/` の存在を知らない。キーだけが共通で、置き場所はそれぞれが持つ。</p>"
     ]
    ],
    "kept": [
     [
      "idはスライド側が出す",
-     "スライドを保持する側の枚の識別子を鍵にし、音声側はそれを受け取って返す",
+     "スライドを保持する側の枚の識別子をキーにし、音声側はそれを受け取って返す",
      "呼ぶ側が、スライドの枚と原稿を対応させる手順を持つ"
     ],
     [
@@ -346,12 +346,12 @@
     ],
     [
      "出力に画像の場所も書く",
-     "音声側がスライドの置き場所を知ることになる。鍵だけを共通にすれば足りる"
+     "音声側がスライドの置き場所を知ることになる。キーだけを共通にすれば足りる"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>枚ごとの原稿を持つ1つのJSONを受け取り、音声・尺・長さを書いたJSONを返す。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これは別にこのインタフェースでできるならいいけど、結合する先のインターフェースは考慮しなくていいわけ？</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">入力と出力の形だけを決め、結合する側が何を要求するかを見ていなかった</b><div class=\"sub-s\">突き合わせの鍵が決まっていない</div></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>2つのJSONで受け渡すという形は維持した。足したのは、鍵の出どころと、どちらが何を持つかである</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>枚ごとの原稿を持つ1つのJSONを受け取り、音声・尺・長さを書いたJSONを返す。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これは別にこのインタフェースでできるならいいけど、結合する先のインターフェースは考慮しなくていいわけ？</span></td></tr><tr class=\"g-finding g-end\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">入力と出力の形だけを決め、結合する側が何を要求するかを見ていなかった</b><div class=\"sub-s\">突き合わせのキーが決まっていない</div></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>2つのJSONで受け渡すという形は維持した。足したのは、キーの出どころと、どちらが何を持つかである</td></tr></tbody></table></div>"
     ]
    ],
    "found": [
@@ -359,7 +359,7 @@
      "<b class=\"lead-s\">結合する側が要るのは、画像・音声・表示時間の3つである</b><div class=\"sub-s\">そのうち音声側が持つのは2つである</div>"
     ],
     [
-     "<b class=\"lead-s\">鍵はスライド側が出す識別子で足りる</b><div class=\"sub-s\">既存の出力は `previews/slide-01.png` である</div>"
+     "<b class=\"lead-s\">キーはスライド側が出す識別子で足りる</b><div class=\"sub-s\">既存の出力は `previews/slide-01.png` である</div>"
     ],
     [
      "音声の無い枚は、入力に含めないことで表現できる"
@@ -394,7 +394,7 @@
     [
      "案ごとの帰結",
      "idはスライド側が出す",
-     "鍵の出どころが1つに定まる",
+     "キーの出どころが1つに定まる",
      "枚が増減しても、スライド側の識別子に追従する",
      "呼ぶ側に、対応させる手順が1つ増える"
     ],
@@ -426,7 +426,7 @@
      "CLAUDE.md 委譲パターン"
     ],
     [
-     "鍵をスライド側の識別子にする判断",
+     "キーをスライド側の識別子にする判断",
      "既存のスライドの出力は previews/slide-01.png 〜 slide-37.png である",
      "measured",
      "docs/workshops/ai-workshop/previews/（2026-09-22 確認）"
@@ -441,29 +441,29 @@
    ],
    "pick": [
     [
-     "<p>変更の検出を、比較ではなく名前で行う。</p><ol><li><b class=\"lead-s\">鍵は、読み上げる文・声・エンジンの3つから作る</b><div class=\"sub-s\">この3つが同じなら、音声は同じものになる</div></li><li>音声と尺を、その鍵の名前でS3へ置く。ビルドは、鍵が在るかだけを確認する</li><li>`narration.out.json` は、枚のidと鍵の対応を持つ</li></ol>"
+     "<p>変更の検出を、比較ではなく名前で行う。</p><ol><li><b class=\"lead-s\">キーは、読み上げる文・声・エンジンの3つから作る</b><div class=\"sub-s\">この3つが同じなら、音声は同じものになる</div></li><li>音声と尺を、そのキーの名前でS3へ置く。ビルドは、キーが在るかだけを確認する</li><li>`narration.out.json` は、枚のidとキーの対応を持つ</li></ol>"
     ]
    ],
    "answer": [
     [
-     "読み上げる文・声・エンジンから鍵をつくり、その鍵を音声の名前にしてS3へ置く。鍵が在れば取り出し、無ければ合成する。"
+     "読み上げる文・声・エンジンからキーをつくり、そのキーを音声の名前にしてS3へ置く。キーが在れば取り出し、無ければ合成する。"
     ]
    ],
    "figures": [
     [
-     "鍵をそのまま名前にすると、変更の検出は存在の確認だけで済む",
+     "キーをそのまま名前にすると、変更の検出は存在の確認だけで済む",
      "5207758a64e6"
     ]
    ],
    "example": [
     [
-     "<p>実例 ── 18枚目の文だけを直した場合。合成し直すのは1枚である。</p><pre><code><pre><code>s3://…/cache/9f2c…a1.mp3        ← 鍵がそのまま名前である\ns3://…/cache/9f2c…a1.marks.json\n\n# narration.out.json\n{ \"items\": [ { \"id\": \"slide-18\", \"key\": \"9f2c…a1\", \"durationMs\": 14020 } ] }\n\n# ビルドの中\n37枚 → 鍵が在るもの 36件（取り出す） ／ 無いもの 1件（合成して置く）</code></pre></code></pre><p class=\"note-s\">声やエンジンを変更すると鍵が全部変化するので、その時は全枚を合成し直す。意図した作り直しだけが起きる。</p>"
+     "<p>実例 ── 18枚目の文だけを直した場合。合成し直すのは1枚である。</p><pre><code><pre><code>s3://…/cache/9f2c…a1.mp3        ← キーがそのまま名前である\ns3://…/cache/9f2c…a1.marks.json\n\n# narration.out.json\n{ \"items\": [ { \"id\": \"slide-18\", \"key\": \"9f2c…a1\", \"durationMs\": 14020 } ] }\n\n# ビルドの中\n37枚 → キーが在るもの 36件（取り出す） ／ 無いもの 1件（合成して置く）</code></pre></code></pre><p class=\"note-s\">声やエンジンを変更するとキーが全部変化するので、その時は全枚を合成し直す。意図した作り直しだけが起きる。</p>"
     ]
    ],
    "kept": [
     [
-     "鍵を名前にする",
-     "文・声・エンジンから鍵を作り、その名前でS3へ置く。在るかどうかだけを確認する",
+     "キーを名前にする",
+     "文・声・エンジンからキーを作り、その名前でS3へ置く。在るかどうかだけを確認する",
      "S3に音声を保存し続けることになる"
     ],
     [
@@ -489,18 +489,18 @@
    "path": [],
    "found": [
     [
-     "<b class=\"lead-s\">同じ文・声・エンジンからは、同じ音声が出る</b><div class=\"sub-s\">鍵にできるのはこの3つである</div>"
+     "<b class=\"lead-s\">同じ文・声・エンジンからは、同じ音声が出る</b><div class=\"sub-s\">キーにできるのはこの3つである</div>"
     ],
     [
-     "鍵を名前にすると、比較の基準を別に持たなくてよい"
+     "キーを名前にすると、比較の基準を別に持たなくてよい"
     ],
     [
-     "声やエンジンの変更は、鍵の変更として現れる"
+     "声やエンジンの変更は、キーの変更として現れる"
     ]
    ],
    "costs": [
     [
-     "鍵の作り方（どの文字列から、どのハッシュで作るか）を決定する"
+     "キーの作り方（どの文字列から、どのハッシュで作るか）を決定する"
     ],
     [
      "S3の置き場（成果物とは別の接頭辞）を決定する"
@@ -526,7 +526,7 @@
    "tables": [
     [
      "案ごとの帰結",
-     "鍵を名前にする",
+     "キーを名前にする",
      "直した枚だけが合成される",
      "比較の基準を別に保存しなくてよい",
      "使わなくなった音声がS3へ残る"
@@ -553,7 +553,7 @@
      "この板の論点3"
     ],
     [
-     "鍵に含めるもの",
+     "キーに含めるもの",
      "合成の入力は、文と声とエンジンで決まる",
      "assumption",
      "Amazon Polly の合成の指定（voice-id ・ engine ・ text）"

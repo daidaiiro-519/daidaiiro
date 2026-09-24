@@ -3,11 +3,11 @@
     python3 scripts/cli.py check [デッキのHTML...]
     python3 scripts/cli.py theme <テーマの名前>
 
-検査で見るのは3つ ── 鍵がすべてのテーマで一致しているか、適合条件を満たすか、
+検査で見るのは3つ ── キーがすべてのテーマで一致しているか、適合条件を満たすか、
 テーマの外に16進の直書きが残っていないか。**見た目は見ない。**
 
 **この Skill は図を描かない。** 渡すのは配色だけである ── `as_roles()` が、
-テーマの鍵を**図の中の役割の名前**へ複製する。誰に組ませるかは配線表が決める。
+テーマのキーを**図の中の役割の名前**へ複製する。誰に組ませるかは配線表が決める。
 """
 import glob, os, re
 
@@ -72,13 +72,13 @@ def theme_names() -> list[str]:
     return [os.path.splitext(os.path.basename(f))[0] for f in theme_files()]
 
 
-# 図の中の役割と、テーマのどの鍵から取るか。**この表はこちら側の語彙である** ──
+# 図の中の役割と、テーマのどのキーから取るか。**この表はこちら側の語彙である** ──
 # 組ませる相手の名前も、相手のトークン名も、ここは保持しない。
 FIGURE_ROLES = {
     'ink': '--ink',                  # 図の中の見出し・強い文字
     'dim': '--dim',                  # 図の中の補足
     'faint': '--faint',              # いちばん薄い文字
-    'line': '--diagram-line',        # 図の線。**本文の文字色とは別の鍵から取る**
+    'line': '--diagram-line',        # 図の線。**本文の文字色とは別のキーから取る**
     'paper': '--paper',              # 明るい面
     'surface': '--surface',          # 面
     'accent': '--accent',            # 強調
@@ -95,7 +95,7 @@ def as_roles(name: str) -> dict[str, str]:
     t = tokens(theme_path(name))
     missing = sorted({k for k in FIGURE_ROLES.values() if k not in t})
     if missing:
-        raise ValueError(f'{name}: 図へ渡す鍵が欠けている: {"、".join(missing)}')
+        raise ValueError(f'{name}: 図へ渡すキーが欠けている: {"、".join(missing)}')
     return {k: t[v] for k, v in FIGURE_ROLES.items()}
 
 

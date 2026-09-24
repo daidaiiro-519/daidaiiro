@@ -5,7 +5,7 @@
 CLI も MCP もここから組む ── 能力を2回記述すると、片方だけが古くなる。
 
 **この Skill は図を描かない。** 渡すのは配色だけである ── `theme` が、
-テーマの鍵を**図の中の役割の名前**へ複製して出す。誰に組ませるかは配線表が決める。
+テーマのキーを**図の中の役割の名前**へ複製して出す。誰に組ませるかは配線表が決める。
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from lib import themes as _themes  # noqa: E402
 def check(deck: list | str = "") -> dict:
     """テーマの形を検査する。**見た目は見ない。**
 
-    鍵がすべてのテーマで一致しているか ・ 適合条件（文字と地の比）を満たすか ・
+    キーがすべてのテーマで一致しているか ・ 適合条件（文字と地の比）を満たすか ・
     テーマの外に色の直書きが残っていないかの3つである。
     """
     decks = [deck] if isinstance(deck, str) and deck else list(deck or [])

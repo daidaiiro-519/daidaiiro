@@ -193,7 +193,7 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - テーマを貼り替えただけで、色の直書きが残っていないか
 - 図のどれかが、文字を枠で囲んだだけになっていないか
 
-`python3 scripts/cli.py check <作ったHTML>` を実行する。鍵の欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
+`python3 scripts/cli.py check <作ったHTML>` を実行する。キーの欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
 
 **入力の検査は、組む前に走る。** 設計規則のうち数えれば判定できるもの ──
 大きい要素が3つまで ・ 強調が1か所 ・ 見出しが断定形で2行まで ・ 出典が要素の直下 ・
@@ -235,12 +235,12 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - `references/design-rules.md`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は保持しない**
 - `references/render-check.md`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
 - `references/slide-deck.template.html`: **出来上がりの形の正本。** 固定ステージ ・ 部品 ・ めくる仕掛けを持ち、配色はテーマを貼る場所だけを持つ
-- `references/slide-deck.schema.json`: **入力の形の正本。** 枚と、14種類の要素が持てる鍵を決める
+- `references/slide-deck.schema.json`: **入力の形の正本。** 枚と、14種類の要素が持てるキーを決める
 - `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
-- `references/themes.md`: テーマの選び方、22の鍵と満たすこと、検査の通し方
+- `references/themes.md`: テーマの選び方、22のキーと満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
-- `scripts/lib/themes.py`: 鍵の欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
-- `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどの鍵から出るか。**この Skill は図を描かない**
+- `scripts/lib/themes.py`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
+- `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどのキーから出るか。**この Skill は図を描かない**
 - `scripts/cli.py`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
 - `scripts/mcp_server.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**

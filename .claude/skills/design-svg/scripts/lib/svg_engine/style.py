@@ -32,10 +32,10 @@ class UnknownTokenError(ValueError):
 
 
 class IncompleteThemeError(ValueError):
-    """テーマが、既定のテーマにある鍵を欠いているときに送出する。
+    """テーマが、既定のテーマにあるキーを欠いているときに送出する。
 
     テーマは差し替えであって作り直しではない。欠けたまま描き始めると、
-    その鍵を参照する部品に当たった時点で組みかけのSVGを破棄することになる。
+    そのキーを参照する部品に当たった時点で組みかけのSVGを破棄することになる。
     """
 
 
@@ -78,20 +78,20 @@ def resolve_style(role: str = "plain", overrides: dict | None = None,
         theme: 差し替えるテーマ。省略時は DEFAULT_THEME。
 
     Returns:
-        Style。鍵ごとに型が決まっているので、取り出すときに型を選ぶ
+        Style。キーごとに型が決まっているので、取り出すときに型を選ぶ
         （num / text / opt_text / tones）。
 
     Raises:
         TokenRangeError: 範囲を持つトークンに、範囲外の値が渡されたとき。
         UnknownRoleError: テーマが知らない役割を渡されたとき。
         UnknownTokenError: その場の上書きが、テーマに無い名前を指したとき。
-        IncompleteThemeError: テーマが既定のテーマの鍵を欠いているとき。
+        IncompleteThemeError: テーマが既定のテーマのキーを欠いているとき。
     """
     theme = theme or DEFAULT_THEME
     missing = set(DEFAULT_THEME) - set(theme)
     if missing:
         raise IncompleteThemeError(
-            f"テーマに足りない鍵がある: {sorted(missing)[:5]}"
+            f"テーマに足りないキーがある: {sorted(missing)[:5]}"
             f"{'…' if len(missing) > 5 else ''}（全{len(missing)}件）。"
             f"テーマは差し替えであって作り直しではないので、既定のテーマを土台にする")
     prefix = f"{ROLE_PREFIX}{role}."

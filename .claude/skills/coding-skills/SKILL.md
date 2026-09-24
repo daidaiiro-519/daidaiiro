@@ -114,7 +114,7 @@ python3 scripts/cli.py init <成果物の場所> --layer core=internal/core --la
 案内を持つ ── `description`（概要）・ `x-prompt.read`（読み取り）・
 `x-prompt.write`（値を充填するとき）。**項目の一覧を、この文書に複製しない。**
 
-**鍵は ASCII である**（`rules` ・ `order` ・ `layers` ・ `rule` ・ `source` ・ `scope` ・
+**キーは ASCII である**（`rules` ・ `order` ・ `layers` ・ `rule` ・ `source` ・ `scope` ・
 `check` ・ `tool`）。機械が分岐する値も同様で（`pass` ・ `fail` ・ `skip`）、
 **画面へ出す語は、読む側の対応表が持つ** ── 1つの語が識別子と表示を兼ねると、
 表示を直した瞬間に分岐が壊れる。**実装の識別子も、引数の名前も同じである** ──

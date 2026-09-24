@@ -20,7 +20,7 @@ from lib import validate_input as _vi  # noqa: E402
 class TestThemes:
     """テーマ。"""
     def test_all_four_share_the_same_keys(self):
-        """4本とも同じ鍵を持つ。"""
+        """4本とも同じキーを持つ。"""
         sets = [set(_themes.tokens(f)) for f in _themes.theme_files()]
         assert sets and all(s == sets[0] for s in sets)
 

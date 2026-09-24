@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from .tokens import DEFAULT_THEME
 
-# テーマから引いた既定値。鍵が数を返すことは呼ぶ側が知っている。
+# テーマから引いた既定値。キーが数を返すことは呼ぶ側が知っている。
 _LATIN_RATIO = float(DEFAULT_THEME["font.latin-width-ratio"])  # type: ignore[arg-type]
 
 # CJKの文字が始まる符号位置（Unicodeが決めている境目。選んだ値ではない）。

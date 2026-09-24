@@ -35,7 +35,7 @@ def text(props: dict, style: Style) -> OwnOrigin:
     """任意の位置へ置く文字。1行でも、行の並びでもよい。
 
     props: text（文字、または行の並び）／size（既定は font.size）／
-           weight（"normal"|"medium"|"bold"）／tone（_TONE の鍵）／
+           weight（"normal"|"medium"|"bold"）／tone（_TONE のキー）／
            align（"start"|"middle"|"end"。**行どうしの揃え方である**）
 
     **インクは申告した大きさの中に収める。** 揃え方を変えても外接矩形は動かない

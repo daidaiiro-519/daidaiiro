@@ -38,8 +38,8 @@ def 雛形を出す(スキーマ: dict, 層: dict[str, str]) -> dict:
     形 = スキーマ["$defs"]["rule"]["properties"]
     def 規則(名: str) -> dict:
         出 = {}
-        for 鍵 in 形:
-            出[鍵] = 名 if 鍵 == "rule" else ("" if 形[鍵]["type"] == "string" else {})
+        for キー in 形:
+            出[キー] = 名 if キー == "rule" else ("" if 形[キー]["type"] == "string" else {})
         出["check"] = {"tool": []}
         return 出
     return {"order": list(層), "layers": dict(層),

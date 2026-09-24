@@ -57,9 +57,9 @@ class TestIdentifierMatching(unittest.TestCase):
         self.assertTrue(self.hits("compact_summary", "the hook returns compact_summary."))
 
     def test_dotted_key_hits_when_whole(self):
-        """ドット区切りの鍵は丸ごとなら当たる。"""
+        """ドット区切りのキーは丸ごとなら当たる。"""
         self.assertTrue(self.hits("github.copilot.chat.otel.enabled",
-                                      "鍵は github.copilot.chat.otel.enabled である"))
+                                      "キーは github.copilot.chat.otel.enabled である"))
 
     def test_dotted_fragment_does_not_hit(self):
         """ドット区切りの切れ端は当たらない。"""

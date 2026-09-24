@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """合成の実行と、作り直しの判定。
 
-鍵は「読み上げる文・声・エンジン」から作る ── この3つが同じなら、音声は同じものになる。
-鍵をそのまま音声の名前にするので、判定は存在の確認だけで済む。
+キーは「読み上げる文・声・エンジン」から作る ── この3つが同じなら、音声は同じものになる。
+キーをそのまま音声の名前にするので、判定は存在の確認だけで済む。
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ MARKS = '["word", "sentence"]'   # 1つの引数として渡す（次の引数�
 
 
 def key_of(text: str, voice: str, engine: str) -> str:
-    """鍵を作る。文・声・エンジンのどれかが変われば、鍵も変わる。"""
+    """キーを作る。文・声・エンジンのどれかが変われば、キーも変わる。"""
     return hashlib.sha256(f'{text}|{voice}|{engine}'.encode()).hexdigest()[:16]
 
 
@@ -27,7 +27,7 @@ def load(directory: str | pathlib.Path) -> dict:
 
 
 def _marks(dest: pathlib.Path) -> pathlib.Path:
-    """時刻の置き場。音声と同じ鍵の名前に、別の拡張子を付ける。"""
+    """時刻の置き場。音声と同じキーの名前に、別の拡張子を付ける。"""
     return dest.with_name(dest.name + '.marks.json')
 
 
@@ -53,7 +53,7 @@ def synthesize(text: str, voice: str, engine: str, dest: pathlib.Path,
 
 
 def plan(directory: str | pathlib.Path, voice: str | None = None) -> list[dict]:
-    """枚ごとに、鍵と、合成が要るかどうかを出す。"""
+    """枚ごとに、キーと、合成が要るかどうかを出す。"""
     d = pathlib.Path(directory)
     doc = load(d)
     voice = voice or doc.get('voice', 'Takumi')
@@ -70,7 +70,7 @@ def plan(directory: str | pathlib.Path, voice: str | None = None) -> list[dict]:
 
 
 def run(directory: str | pathlib.Path, voice: str | None = None) -> dict:
-    """鍵が在る枚は取り出し、無い枚だけを合成して、継ぎ目の出力を書く。"""
+    """キーが在る枚は取り出し、無い枚だけを合成して、継ぎ目の出力を書く。"""
     d = pathlib.Path(directory)
     doc = load(d)
     voice = voice or doc.get('voice', 'Takumi')

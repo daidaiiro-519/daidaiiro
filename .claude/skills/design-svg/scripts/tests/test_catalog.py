@@ -41,19 +41,19 @@ class TestExamplesStayWithinCatalog:
 
     @pytest.mark.parametrize("kind", known_kinds())
     def test_examples_pass_no_key_outside_catalog(self, kind, cat):
-        """見本が目録に無い鍵を渡していない。"""
+        """見本が目録に無いキーを渡していない。"""
         entry = cat["parts"][kind]
         declared = set(entry["props"])
         if str(entry.get("forwards_to", "")).startswith("props:"):
-            # 渡し先が値で決まる部品は、先が定まらないので鍵も定まらない
+            # 渡し先が値で決まる部品は、先が定まらないのでキーも定まらない
             pytest.skip(f"{kind} は渡し先が値で決まる")
-        # label はどの部品にも渡せる共通の鍵で、読まない部品もある
+        # label はどの部品にも渡せる共通のキーで、読まない部品もある
         given = set(EXAMPLES[kind]) - {"label"}
-        assert given <= declared, f"{kind}: 目録に無い鍵 {sorted(given - declared)}"
+        assert given <= declared, f"{kind}: 目録に無いキー {sorted(given - declared)}"
 
     @pytest.mark.parametrize("kind", known_kinds())
     def test_examples_carry_every_required_key(self, kind, cat):
-        """必須の鍵が見本にそろっている。"""
+        """必須のキーが見本にそろっている。"""
         need = {k for k, v in cat["parts"][kind]["props"].items() if v["required"]}
         assert need <= set(EXAMPLES[kind]), f"{kind}: 見本に足りない {sorted(need - set(EXAMPLES[kind]))}"
 
@@ -66,17 +66,17 @@ class TestCatalogIsUsable:
         json.loads(json.dumps(cat, ensure_ascii=False, default=str))
 
     def test_declaration_required_keys_are_listed(self, cat):
-        """宣言の必須の鍵が載っている。"""
+        """宣言の必須のキーが載っている。"""
         d = cat["declaration"]
         assert d["nodes"]["id"]["required"]
         assert d["edges"]["from"]["required"] and d["edges"]["to"]["required"]
         # 囲みの members は合成では読まれず、群を集約する側で読まれる。
-        # 入口の関数だけを走査すると欠落する鍵なので、名指しで縛る
+        # 入口の関数だけを走査すると欠落するキーなので、名指しで縛る
         assert d["groups"]["members"]["required"]
 
     def test_pass_through_component_declares_its_target(self, cat):
         """素通しする部品は渡し先を公開している。"""
-        # 自分では読まない鍵を受け取れる部品は、渡し先を書かないと使えない
+        # 自分では読まないキーを受け取れる部品は、渡し先を書かないと使えない
         assert cat["parts"]["pie"]["forwards_to"] == "donut"
         assert cat["parts"]["titled"]["forwards_to"] == "props:of"
         assert "centre" in cat["parts"]["pie"]["props"]

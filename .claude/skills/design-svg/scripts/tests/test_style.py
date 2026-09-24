@@ -80,8 +80,8 @@ class TestMisspellingFailsBeforeDrawing:
         assert resolve_style(overrides={"size.box-h": 40}).num("size.box-h") == 40
 
     def test_theme_missing_a_key_fails_before_drawing(self):
-        """鍵の欠けたテーマは描く前に失敗する。"""
-        # 欠けたまま描き始めると、その鍵を参照する部品に当たった時点で
+        """キーの欠けたテーマは描く前に失敗する。"""
+        # 欠けたまま描き始めると、そのキーを参照する部品に当たった時点で
         # 組みかけのSVGを破棄することになる
         with pytest.raises(IncompleteThemeError):
             resolve_style(theme={"font.size": 12})

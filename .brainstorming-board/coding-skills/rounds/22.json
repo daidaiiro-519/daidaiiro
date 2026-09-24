@@ -995,7 +995,7 @@
    ],
    "pick": [
     [
-     "<b>案内は <code>x-prompt</code> に置く。欠落は、スキーマ自身を実体として検証して検出する。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\"><code>description</code> をオブジェクトにすると、スキーマが無効になる</b><div class=\"sub-s\"><code>check_schema</code> が失敗する。実体の検証は通るので、<b>壊れ方が静かである</b></div></li><li><b class=\"lead-s\">JSON 文字列を入れる形は、検査が成立しない</b><div class=\"sub-s\">中身の欠落を構造で強制できず、壊れた JSON を検出0件で通した</div></li><li><b class=\"lead-s\"><code>x-prompt</code> は標準の検証を素通りする</b><div class=\"sub-s\">未知の鍵なので無視される。だから安全に置ける</div></li><li><b class=\"lead-s\">欠落は、スキーマ自身を実体として検証すると出る</b><div class=\"sub-s\">メタスキーマ1枚で <code>read</code> と <code>write</code> を必須にする</div></li><li><b class=\"lead-s\">3つの導線に分かれる</b><div class=\"sub-s\"><code>description</code> が概要、<code>x-prompt.read</code> が読み取り、<code>x-prompt.write</code> が値を埋めるときの案内である</div></li><li><b class=\"lead-s\">モデルに新しいスキーマを作らない</b><div class=\"sub-s\">機械が検査できるのは層の部分だけで、それは <code>rules.schema.json</code> が既に持つ。概念と持ち物には、検査する道具が無い</div></li></ul></div></details>"
+     "<b>案内は <code>x-prompt</code> に置く。欠落は、スキーマ自身を実体として検証して検出する。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\"><code>description</code> をオブジェクトにすると、スキーマが無効になる</b><div class=\"sub-s\"><code>check_schema</code> が失敗する。実体の検証は通るので、<b>壊れ方が静かである</b></div></li><li><b class=\"lead-s\">JSON 文字列を入れる形は、検査が成立しない</b><div class=\"sub-s\">中身の欠落を構造で強制できず、壊れた JSON を検出0件で通した</div></li><li><b class=\"lead-s\"><code>x-prompt</code> は標準の検証を素通りする</b><div class=\"sub-s\">未知のキーなので無視される。だから安全に置ける</div></li><li><b class=\"lead-s\">欠落は、スキーマ自身を実体として検証すると出る</b><div class=\"sub-s\">メタスキーマ1枚で <code>read</code> と <code>write</code> を必須にする</div></li><li><b class=\"lead-s\">3つの導線に分かれる</b><div class=\"sub-s\"><code>description</code> が概要、<code>x-prompt.read</code> が読み取り、<code>x-prompt.write</code> が値を埋めるときの案内である</div></li><li><b class=\"lead-s\">モデルに新しいスキーマを作らない</b><div class=\"sub-s\">機械が検査できるのは層の部分だけで、それは <code>rules.schema.json</code> が既に持つ。概念と持ち物には、検査する道具が無い</div></li></ul></div></details>"
     ]
    ],
    "answer": [
@@ -1006,7 +1006,7 @@
    "figures": [],
    "example": [
     [
-     "<h4>案内を持つ定義1件</h4><pre><code>\"層\": {\n  \"type\": \"object\",\n  \"description\": \"層の名前と、その言語での識別子の対応\",\n  \"x-prompt\": {\n    \"read\":  \"並びの内から外の順で読む。値は識別子であって、パスとは限らない\",\n    \"write\": \"モデルの層の名前を鍵にし、値にその言語での識別子を書く\"\n  }\n}</code></pre><h4>3つの導線</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>いつ</th><th>読む鍵</th><th>何が書いてあるか</th></tr></thead><tbody><tr><th>概要を知る</th><td><code>description</code></td><td>その項目が何であるかの1行</td></tr><tr><th>読み取る</th><td><code>x-prompt.read</code></td><td>どの順で読むか ・ 値が何を指すか</td></tr><tr><th>値を埋める</th><td><code>x-prompt.write</code></td><td>何を根拠に、どの形で書くか</td></tr></tbody></table></div><h4>欠落の検出 ── スキーマ自身を実体として検証する</h4><pre><code>$ python3 scripts/cli.py validate references/rules.schema.json\nスキーマの検査　通っていない（1 件）\n  properties/層 ── 'x-prompt' is a required property</code></pre><p class=\"note-s\"><b>検証する対象が2段になる。</b>実体（<code>.coding/rules.json</code>）を見るのは <code>rules.schema.json</code> で、そのスキーマ自身を見るのがメタスキーマ1枚である。</p><h4>3つの候補の帰結 ── 実測 2026-09-24</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>置き場所</th><th>check_schema</th><th>欠落と壊れた値の検出</th></tr></thead><tbody><tr><th><code>description</code> をオブジェクトにする</th><td><b>失敗</b></td><td>is not of type 'string'</td><td>──</td></tr><tr><th><code>description</code> に JSON 文字列を入れる</th><td>通った</td><td>正規表現で語を探す形になる</td><td><b>壊れた JSON を検出0件で通した</b></td></tr><tr><th><b><code>x-prompt</code> を足す</b></th><td>通った</td><td>──</td><td><b>required で強制できる</b></td></tr></tbody></table></div><h4>生成の直後 ── 不合格の一覧が、埋める欄の一覧になる</h4><pre><code>$ python3 try.py\n── ⑤ 生成した実体を、契約で検証する\n  規則/0/出典 ── {} is not valid under any of the given schemas\n  規則/0/採用範囲 ── '' is too short\n  規則/0/検証方法/道具 ── [] is too short\n  規則/1/出典 ── {} is not valid under any of the given schemas\n  規則/1/採用範囲 ── '' is too short\n  規則/1/検証方法/道具 ── [] is too short</code></pre><p class=\"note-s\"><b>雛形は、契約に対して不合格で出る。</b>その6件が埋める欄そのものであり、欄ごとに <code>x-prompt.write</code> が何を根拠に書くかを持つ ── <b>埋める欄の一覧を、どこにも書かずに得られる</b>。</p>"
+     "<h4>案内を持つ定義1件</h4><pre><code>\"層\": {\n  \"type\": \"object\",\n  \"description\": \"層の名前と、その言語での識別子の対応\",\n  \"x-prompt\": {\n    \"read\":  \"並びの内から外の順で読む。値は識別子であって、パスとは限らない\",\n    \"write\": \"モデルの層の名前をキーにし、値にその言語での識別子を書く\"\n  }\n}</code></pre><h4>3つの導線</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>いつ</th><th>読むキー</th><th>何が書いてあるか</th></tr></thead><tbody><tr><th>概要を知る</th><td><code>description</code></td><td>その項目が何であるかの1行</td></tr><tr><th>読み取る</th><td><code>x-prompt.read</code></td><td>どの順で読むか ・ 値が何を指すか</td></tr><tr><th>値を埋める</th><td><code>x-prompt.write</code></td><td>何を根拠に、どの形で書くか</td></tr></tbody></table></div><h4>欠落の検出 ── スキーマ自身を実体として検証する</h4><pre><code>$ python3 scripts/cli.py validate references/rules.schema.json\nスキーマの検査　通っていない（1 件）\n  properties/層 ── 'x-prompt' is a required property</code></pre><p class=\"note-s\"><b>検証する対象が2段になる。</b>実体（<code>.coding/rules.json</code>）を見るのは <code>rules.schema.json</code> で、そのスキーマ自身を見るのがメタスキーマ1枚である。</p><h4>3つの候補の帰結 ── 実測 2026-09-24</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>置き場所</th><th>check_schema</th><th>欠落と壊れた値の検出</th></tr></thead><tbody><tr><th><code>description</code> をオブジェクトにする</th><td><b>失敗</b></td><td>is not of type 'string'</td><td>──</td></tr><tr><th><code>description</code> に JSON 文字列を入れる</th><td>通った</td><td>正規表現で語を探す形になる</td><td><b>壊れた JSON を検出0件で通した</b></td></tr><tr><th><b><code>x-prompt</code> を足す</b></th><td>通った</td><td>──</td><td><b>required で強制できる</b></td></tr></tbody></table></div><h4>生成の直後 ── 不合格の一覧が、埋める欄の一覧になる</h4><pre><code>$ python3 try.py\n── ⑤ 生成した実体を、契約で検証する\n  規則/0/出典 ── {} is not valid under any of the given schemas\n  規則/0/採用範囲 ── '' is too short\n  規則/0/検証方法/道具 ── [] is too short\n  規則/1/出典 ── {} is not valid under any of the given schemas\n  規則/1/採用範囲 ── '' is too short\n  規則/1/検証方法/道具 ── [] is too short</code></pre><p class=\"note-s\"><b>雛形は、契約に対して不合格で出る。</b>その6件が埋める欄そのものであり、欄ごとに <code>x-prompt.write</code> が何を根拠に書くかを持つ ── <b>埋める欄の一覧を、どこにも書かずに得られる</b>。</p>"
     ]
    ],
    "kept": [
@@ -1018,12 +1018,12 @@
     [
      "B",
      "<code>description</code> に JSON 文字列を入れる",
-     "中身の欠落を構造で強制できず、<b>壊れた JSON を合格にする</b> ── 利点は、標準の鍵だけで済むことである"
+     "中身の欠落を構造で強制できず、<b>壊れた JSON を合格にする</b> ── 利点は、標準のキーだけで済むことである"
     ],
     [
      "C",
      "<code>x-prompt</code> を足し、メタスキーマで欠落を検出する",
-     "標準外の鍵が増える ── <code>x-prompt</code> を知らない他の道具には、案内が届かない"
+     "標準外のキーが増える ── <code>x-prompt</code> を知らない他の道具には、案内が届かない"
     ]
    ],
    "dropped": [
@@ -1045,7 +1045,7 @@
      "<div class=\"card\"><div class=\"card-h\">3つの置き場所を、実測で比べた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>jsonschema（2020-12）で、3つの形について <code>check_schema</code> と欠落の検出を実行した</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">オブジェクトは無効である</b><div class=\"sub-s\"><code>check_schema</code> が失敗する。ただし実体の検証は通る</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">JSON 文字列は、壊れていても通る</b><div class=\"sub-s\"><code>{\"read\": 壊れ</code> を検出0件で通した</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">自前のメタスキーマは、欠落を正しく指した</b><div class=\"sub-s\"><code>properties/層</code> に <code>'x-prompt' is a required property</code> と出た</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">試作で、端から端まで動かした</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td><code>trial/schema/</code> に、案内つきのスキーマ ・ メタスキーマ ・ 試す実装を置いた</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">案内の検査は0件で通り、落とすと2件を指した</b><div class=\"sub-s\">欠落1件と、空文字にした1件（<code>'' is too short</code>）</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">雛形を出す実装は、項目の一覧を保持しない</b><div class=\"sub-s\"><code>$defs</code> の形から鍵を取るので、契約が変わると出力も変わる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">案内は、値を書く単位ごとに持つ</b><div class=\"sub-s\">入れ子の奥の葉まで要求すると、案内が肥大する。葉は親の案内が覆う</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">試作で、端から端まで動かした</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td><code>trial/schema/</code> に、案内つきのスキーマ ・ メタスキーマ ・ 試す実装を置いた</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">案内の検査は0件で通り、落とすと2件を指した</b><div class=\"sub-s\">欠落1件と、空文字にした1件（<code>'' is too short</code>）</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">雛形を出す実装は、項目の一覧を保持しない</b><div class=\"sub-s\"><code>$defs</code> の形からキーを取るので、契約が変わると出力も変わる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">案内は、値を書く単位ごとに持つ</b><div class=\"sub-s\">入れ子の奥の葉まで要求すると、案内が肥大する。葉は親の案内が覆う</div></td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
@@ -1066,7 +1066,7 @@
    "weaknesses": [
     [
      "<code>x-prompt</code> を知らない他の道具には、案内が届かない",
-     "<span class=\"kind k-rule\">対象外</span> ── 費用として受け入れる ── 届かせるには標準の鍵へ入れることになり、検査が成立しなくなる"
+     "<span class=\"kind k-rule\">対象外</span> ── 費用として受け入れる ── 届かせるには標準のキーへ入れることになり、検査が成立しなくなる"
     ],
     [
      "案内の内容が適切かを検査すること",
@@ -1099,7 +1099,7 @@
     ],
     [
      "x-prompt が安全に置けること",
-     "未知の鍵は検証器が無視し、check_schema も通る",
+     "未知のキーは検証器が無視し、check_schema も通る",
      "measured",
      "2026-09-24 に jsonschema で実行"
     ],
