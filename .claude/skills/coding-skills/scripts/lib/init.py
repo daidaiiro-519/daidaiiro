@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 """規則ファイルの雛形を出す。**中身は呼ぶ側が書く。**
 
-置き場所は成果物の `.coding/rules.json` である ── **この Skill の中に規則を置かない**。
-層の名前と識別子は成果物ごとに違うので、ここへ置くと2つ目の成果物で衝突する。
+置き場所は**リポジトリの `.coding/`** である ── 成果物ごとにフォルダを作ると、実装が
+増えるたびに各所へ生える。成果物ごとに**ファイル**を分け、`check.target` でどこを
+検査するかを書く。
 
 **道具の名前を1つも持たない。** 雛形は契約（`rules.schema.json`）の形から組み、
 何を入れるかは各項目の `x-prompt.write` が案内する。
@@ -14,14 +15,18 @@ import pathlib
 
 from . import REFERENCES
 
-RULES_PATH = ".coding/rules.json"
+RULES_DIR = ".coding"
 INNER_RULES = ("層の場所が、宣言した対応と一致する",
                "依存の向きが、内から外へ出ていない")
 """内を指す規則2件。**出典はモデルであり、原典を要さない**（論点4）。"""
 
 
-def skeleton(layers: dict[str, str]) -> dict:
-    """契約の形から雛形を組む。**項目の一覧を、この側に書かない。**"""
+def skeleton(layers: dict[str, str], target: str = "") -> dict:
+    """契約の形から雛形を組む。**項目の一覧を、この側に書かない。**
+
+    `target` は成果物の場所である ── 層の識別子はリポジトリからの経路になり、
+    道具を実行する場所は `check.target` が指す。
+    """
     schema = json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
     shape = schema["$defs"]["rule"]["properties"]
 
@@ -32,25 +37,35 @@ def skeleton(layers: dict[str, str]) -> dict:
                 out[key] = name
             elif key == "check":
                 out[key] = {"tool": []}
+                if target:
+                    out[key]["target"] = target
             else:
                 out[key] = "" if shape[key].get("type") == "string" else {}
         return out
 
+    場所 = pathlib.PurePosixPath(target) if target else None
     return {"$schema": "…/coding-skills/references/rules.schema.json",
-            "order": list(layers), "layers": dict(layers),
+            "order": list(layers),
+            "layers": {k: str(場所 / v) if 場所 else v for k, v in layers.items()},
             "rules": [rule(x) for x in INNER_RULES]}
 
 
-def create(root: pathlib.Path, layers: dict[str, str]) -> pathlib.Path:
-    """`.coding/rules.json` を置く。**既に在れば作り直さない** ── 書いた規則が消える。"""
+def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.Path:
+    """リポジトリの `.coding/` へ、成果物のファイルを置く。
+
+    **既に在れば作り直さない** ── 書いた規則が消える。
+    成果物がリポジトリ自身（`.`）なら、横断する規則の `rules.json` になる。
+    """
     if not layers:
         raise ValueError("層を1つ以上渡す ── 層の無い規則ファイルは、何も検査できない")
-    path = root / RULES_PATH
+    横断 = target in ("", ".")
+    名前 = "rules" if 横断 else pathlib.PurePosixPath(target).name
+    path = root / RULES_DIR / f"{名前}.json"
     if path.exists():
         raise FileExistsError(f"既に在る: {path} ── 作り直さない")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(skeleton(layers), ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8")
+    path.write_text(json.dumps(skeleton(layers, "" if 横断 else target),
+                               ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 
 

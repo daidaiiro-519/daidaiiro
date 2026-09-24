@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from contract import Arg, Tool, result  # noqa: E402
+from lib import sections as _sections  # noqa: E402
 
 _TMPL = pathlib.Path(__file__).resolve().parents[1] / "references" / "tool-contract"
 
@@ -99,19 +100,44 @@ def _unparsable(scripts: pathlib.Path) -> list[str]:
     return out
 
 
+_一般の雛形 = pathlib.Path(__file__).resolve().parents[1] / "references" / "skill-template.md"
+_助言の雛形 = (pathlib.Path(__file__).resolve().parents[2] / "advisor-creator"
+              / "references" / "skill-template-advisor.md")
+
+
+def _節の検出(root: pathlib.Path) -> list[str]:
+    """節の構成が、対応する雛形を満たすかを見る。**文書が無ければ、何も言わない。**"""
+    文書 = root / "SKILL.md"
+    if not 文書.exists():
+        return [f"文書が無い: {文書.name}"]
+    助言か = "相談種別と回答テンプレート" in _sections.headings(文書)
+    雛形 = _助言の雛形 if 助言か else _一般の雛形
+    if not 雛形.exists():
+        return []
+    return [f"節が無い: {x} ── {雛形.name} が要求する"
+            for x in _sections.missing(文書, 雛形)]
+
+
 def check(path: str) -> dict:
     """契約を満たしているかを検査する。**見つけるが、直さない。**
 
-    検査するのは2つである ── 入口が1つであることと、**置き場所が役割と一致すること**。
-    役割ごとに階層が分かれていないと、どれが入口でどれが部品かを、
-    中身を開かないと判定できない。
+    検査するのは3つである ── 入口が1つであること、**置き場所が役割と一致すること**、
+    **節の構成が対応する雛形を満たすこと**。役割ごとに階層が分かれていないと、
+    どれが入口でどれが部品かを、中身を開かないと判定できない。
+
+    **雛形は2つある** ── 助言の Skill は `advisor-creator` の雛形を、それ以外は
+    こちらの雛形を満たす。どちらを適用するかは、`## 相談種別と回答テンプレート` の
+    有無で決まる ── 名前で分岐すると、Skill が増えるたびにここを直すことになる。
     """
     root = pathlib.Path(path)
     scripts = root / "scripts"
     findings = []
-    for need in ENTRY:
-        if not (scripts / need).exists():
-            findings.append(f"入口の部品が無い: scripts/{need}")
+    # **道具を持たない Skill に、入口を要求しない。** 助言と手順だけの Skill が在る ──
+    # 契約が適用されるのは、スクリプトを持つ Skill である
+    if scripts.is_dir():
+        for need in ENTRY:
+            if not (scripts / need).exists():
+                findings.append(f"入口の部品が無い: scripts/{need}")
     legacy = _legacy(scripts / "tools.py")
     findings += _unparsable(scripts)
 
@@ -121,6 +147,8 @@ def check(path: str) -> dict:
         kind = "検証" if f.name.startswith("test_") else "部品"
         place = TESTS if kind == "検証" else LIB
         findings.append(f"{kind}が入口の側に在る: scripts/{f.name} ── scripts/{place}/ へ移す")
+
+    findings += _節の検出(root)
 
     lib = scripts / LIB
     if lib.is_dir():

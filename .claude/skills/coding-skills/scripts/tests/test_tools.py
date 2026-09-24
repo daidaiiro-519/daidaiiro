@@ -36,25 +36,40 @@ def tool(cmd: list, name: str = "試し", target: str = "") -> dict:
 
 
 def init_places_the_skeleton() -> None:
-    """雛形を .coding/rules.json へ置く。"""
+    """リポジトリの .coding/ へ、成果物ごとのファイルを置く。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        path = _init.create(root, {"core": "internal/core", "app": "app.core"})
-        expect("置き場所は .coding/rules.json である", path == root / ".coding" / "rules.json")
+        (root / "server").mkdir()
+        path = _init.create(root, "server", {"core": "internal/core", "app": "app.core"})
+        expect("リポジトリの .coding/ へ置く", path == root / ".coding" / "server.json")
+        expect("成果物の中にフォルダを作らない", not (root / "server/.coding").exists())
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("並びが層と一致する", d["order"] == ["core", "app"])
-        expect("識別子の形を問わない", d["layers"]["app"] == "app.core")
+        expect("層はリポジトリからの経路である", d["layers"]["core"] == "server/internal/core")
+        expect("識別子の形を問わない", d["layers"]["app"] == "server/app.core")
         expect("内を指す規則を2件置く", len(d["rules"]) == 2)
         expect("道具は空である", d["rules"][0]["check"]["tool"] == [])
+        expect("実行する場所は成果物である", d["rules"][0]["check"]["target"] == "server")
+
+
+def init_takes_the_repository_itself() -> None:
+    """成果物がリポジトリ自身なら、横断する規則のファイルになる。"""
+    with tempfile.TemporaryDirectory() as t:
+        root = pathlib.Path(t)
+        path = _init.create(root, ".", {"skills": ".claude/skills"})
+        expect("名前を持たないファイルになる", path == root / ".coding" / "rules.json")
+        d = json.loads(path.read_text(encoding="utf-8"))
+        expect("層はそのままである", d["layers"]["skills"] == ".claude/skills")
+        expect("実行する場所を書かない", "target" not in d["rules"][0]["check"])
 
 
 def init_refuses_to_overwrite() -> None:
     """既に在れば作り直さない。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        _init.create(root, {"core": "x"})
+        _init.create(root, "server", {"core": "x"})
         try:
-            _init.create(root, {"core": "y"})
+            _init.create(root, "server", {"core": "y"})
             expect("既に在れば断る", False)
         except FileExistsError:
             expect("既に在れば断る", True)
@@ -64,7 +79,7 @@ def init_needs_layers() -> None:
     """層が無ければ断る。"""
     with tempfile.TemporaryDirectory() as t:
         try:
-            _init.create(pathlib.Path(t), {})
+            _init.create(pathlib.Path(t), "server", {})
             expect("層が無ければ断る", False)
         except ValueError:
             expect("層が無ければ断る", True)
@@ -141,7 +156,8 @@ def stale_run_is_refused() -> None:
 
 
 if __name__ == "__main__":
-    for f in (init_places_the_skeleton, init_refuses_to_overwrite, init_needs_layers,
+    for f in (init_places_the_skeleton, init_takes_the_repository_itself,
+              init_refuses_to_overwrite, init_needs_layers,
               plan_runs_nothing, target_outside_root_is_refused,
               output_is_readable_in_slices, stale_run_is_refused):
         f()

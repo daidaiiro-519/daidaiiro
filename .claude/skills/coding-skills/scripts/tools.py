@@ -103,11 +103,11 @@ KIND_LABEL = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
 """**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
 
 
-def init(root: str, layer: list | str) -> dict:
-    """規則ファイルの雛形を `.coding/rules.json` へ置く。**中身は呼ぶ側が書く。**"""
+def init(root: str, target: str, layer: list | str) -> dict:
+    """リポジトリの `.coding/` へ、成果物の規則ファイルを置く。**中身は呼ぶ側が書く。**"""
     try:
         layers = _init.parse_layers(layer)
-        path = _init.create(pathlib.Path(root), layers)
+        path = _init.create(pathlib.Path(root), target, layers)
     except (OSError, ValueError) as e:
         return result(ok=False, findings=[str(e)], root=root)
     return result(ok=True, path=str(path), layers=layers,
@@ -176,8 +176,9 @@ TOOLS = [
          [Arg("root", "成果物の場所"), Arg("rules", "規則ファイルのパス"),
           Arg("timeout", "1件あたりの制限時間（秒）", required=False)],
          run=check, human=_human_check),
-    Tool("init", "規則ファイルの雛形を .coding/rules.json へ置く",
-         [Arg("root", "成果物の場所"),
+    Tool("init", "リポジトリの .coding/ へ、成果物の規則ファイルを置く",
+         [Arg("root", "リポジトリの場所"),
+          Arg("target", "成果物の場所（リポジトリ自身なら .）"),
           Arg("layer", "層を 名前=識別子 で渡す（複数可）", many=True)],
          run=init, human=_human_init),
     Tool("plan", "何を、どこで実行するかを返す（実行はしない）",
