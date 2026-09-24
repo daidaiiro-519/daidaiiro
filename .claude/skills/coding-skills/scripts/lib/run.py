@@ -15,12 +15,15 @@ import subprocess
 
 制限の既定 = 120
 
+判定の語 = {"pass": "合格", "fail": "不合格", "skip": "実行しない"}
+"""**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
+
 
 def 読む(規則ファイル: pathlib.Path) -> list[dict]:
     """規則ファイルから規則の一覧を取り出す。規則が1件だけの形も受け取る。"""
     d = json.loads(規則ファイル.read_text(encoding="utf-8"))
-    if isinstance(d.get("規則"), list):
-        return d["規則"]
+    if isinstance(d.get("rules"), list):
+        return d["rules"]
     return [d]
 
 
@@ -29,21 +32,21 @@ def 実行する(規則: dict, 根: pathlib.Path, 制限: int = 制限の既定)
 
     文字列1本で渡すと、`./...` の展開が実行する殻に依存する。
     """
-    道具 = (規則.get("検証方法") or {}).get("道具")
-    名前 = 規則.get("規則") or 規則.get("名前") or "（名前が無い）"
-    素 = {"名前": 名前, "道具": 道具, "終了コード": None, "出力": ""}
+    道具 = (規則.get("check") or {}).get("tool")
+    名前 = 規則.get("rule") or "（名前が無い）"
+    素 = {"name": 名前, "tool": 道具, "exit": None, "output": ""}
     if not 道具:
-        return {**素, "判定": "実行しない", "理由": "検証方法に道具が無い"}
+        return {**素, "verdict": "skip", "reason": "検証方法に道具が無い"}
     if not isinstance(道具, list):
-        return {**素, "判定": "実行しない", "理由": "道具が配列ではない"}
+        return {**素, "verdict": "skip", "reason": "道具が配列ではない"}
     try:
         p = subprocess.run(道具, cwd=根, capture_output=True, text=True, timeout=制限)
     except FileNotFoundError:
-        return {**素, "判定": "実行しない", "理由": "道具が見つからない"}
+        return {**素, "verdict": "skip", "reason": "道具が見つからない"}
     except subprocess.TimeoutExpired:
-        return {**素, "判定": "実行しない", "理由": f"{制限}秒で終わらない"}
-    return {**素, "終了コード": p.returncode, "出力": (p.stdout + p.stderr).strip(),
-            "判定": "合格" if p.returncode == 0 else "不合格"}
+        return {**素, "verdict": "skip", "reason": f"{制限}秒で終わらない"}
+    return {**素, "exit": p.returncode, "output": (p.stdout + p.stderr).strip(),
+            "verdict": "pass" if p.returncode == 0 else "fail"}
 
 
 def 検査する(根: pathlib.Path, 規則ファイル: pathlib.Path, 制限: int = 制限の既定) -> dict:
@@ -51,7 +54,8 @@ def 検査する(根: pathlib.Path, 規則ファイル: pathlib.Path, 制限: in
     途中で止めると、実行しなかった規則が合格と区別できない。
     """
     結果 = [実行する(r, 根, 制限) for r in 読む(規則ファイル)]
-    数 = {k: sum(1 for x in 結果 if x["判定"] == k) for k in ("合格", "不合格", "実行しない")}
-    検出 = [f'{x["名前"]} ── {x["判定"]}' + (f'（{x["理由"]}）' if x.get("理由") else "")
-            for x in 結果 if x["判定"] != "合格"]
-    return {"規則": 結果, **数, "規則ファイル": str(規則ファイル), "根": str(根), "検出": 検出}
+    数 = {k: sum(1 for x in 結果 if x["verdict"] == k) for k in ("pass", "fail", "skip")}
+    検出 = [f'{x["name"]} ── {判定の語[x["verdict"]]}' + (f'（{x["reason"]}）' if x.get("reason") else "")
+            for x in 結果 if x["verdict"] != "pass"]
+    return {"rules": 結果, **数, "rules_file": str(規則ファイル), "root": str(根),
+            "findings": 検出}

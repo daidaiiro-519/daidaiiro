@@ -47,33 +47,33 @@ def 生成しないスキーマは要求されない() -> None:
 
 def 案内の欠落を検出する() -> None:
     d = 正本を読む()
-    d["properties"]["層"].pop("x-prompt")
+    d["properties"]["layers"].pop("x-prompt")
     検出 = validate.スキーマを検査する(書く(d))
-    検査("最上位の欠落を検出する", any("properties/層" in x for x in 検出))
+    検査("最上位の欠落を検出する", any("properties/layers" in x for x in 検出))
 
     d = 正本を読む()
-    d["$defs"]["規則"]["properties"]["出典"].pop("x-prompt")
+    d["$defs"]["rule"]["properties"]["source"].pop("x-prompt")
     検出 = validate.スキーマを検査する(書く(d))
-    検査("$defs の欠落を検出する", any("$defs/規則/properties/出典" in x for x in 検出))
+    検査("$defs の欠落を検出する", any("$defs/rule/properties/source" in x for x in 検出))
 
 
 def 空の案内を検出する() -> None:
     d = 正本を読む()
-    d["properties"]["層"]["x-prompt"]["write"] = ""
+    d["properties"]["layers"]["x-prompt"]["write"] = ""
     検出 = validate.スキーマを検査する(書く(d))
     検査("空文字を検出する", any("too short" in x for x in 検出))
 
 
 def 片方だけの案内を検出する() -> None:
     d = 正本を読む()
-    d["properties"]["層"]["x-prompt"] = {"read": "読む"}
+    d["properties"]["layers"]["x-prompt"] = {"read": "読む"}
     検出 = validate.スキーマを検査する(書く(d))
     検査("write の欠落を検出する", any("write" in x for x in 検出))
 
 
 def 無効なスキーマを検出する() -> None:
     d = 正本を読む()
-    d["properties"]["層"]["description"] = {"read": "オブジェクトにした"}
+    d["properties"]["layers"]["description"] = {"read": "オブジェクトにした"}
     検出 = validate.スキーマを検査する(書く(d))
     検査("スキーマとして無効なことを検出する", any("無効" in x for x in 検出))
 
@@ -81,7 +81,7 @@ def 無効なスキーマを検出する() -> None:
 def 生成しない宣言なら通る() -> None:
     d = copy.deepcopy(正本を読む())
     d.pop("x-generates")
-    d["properties"]["層"].pop("x-prompt")
+    d["properties"]["layers"].pop("x-prompt")
     検査("x-generates が無ければ、案内を要求しない",
         not validate.スキーマを検査する(書く(d)))
 

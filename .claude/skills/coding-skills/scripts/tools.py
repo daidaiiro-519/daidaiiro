@@ -21,19 +21,19 @@ def check(根: str, 規則: str, 制限: str = "") -> dict:
     """
     d = _run.検査する(pathlib.Path(根), pathlib.Path(規則),
                      int(制限) if 制限 else _run.制限の既定)
-    検出 = d.pop("検出")
+    検出 = d.pop("findings")
     return result(ok=True, findings=検出, **d)
 
 
 def _human_check(res: dict) -> str:
     d = res["data"]
-    印 = {"合格": "合格　", "不合格": "不合格", "実行しない": "実行せず"}
-    行 = [f'  {印[x["判定"]]}　{x["名前"]}' + (f'　（{x["理由"]}）' if x.get("理由") else "")
-          for x in d["規則"]]
-    for x in d["規則"]:
-        if x["判定"] == "不合格" and x["出力"]:
-            行 += ["", f'── {x["名前"]} の出力（道具のまま）', x["出力"]]
-    行.append(f'\n合格 {d["合格"]} ／ 不合格 {d["不合格"]} ／ 実行せず {d["実行しない"]}')
+    印 = {"pass": "合格　", "fail": "不合格", "skip": "実行せず"}
+    行 = [f'  {印[x["verdict"]]}　{x["name"]}' + (f'　（{x["reason"]}）' if x.get("reason") else "")
+          for x in d["rules"]]
+    for x in d["rules"]:
+        if x["verdict"] == "fail" and x["output"]:
+            行 += ["", f'── {x["name"]} の出力（道具のまま）', x["output"]]
+    行.append(f'\n合格 {d["pass"]} ／ 不合格 {d["fail"]} ／ 実行せず {d["skip"]}')
     return "\n".join(行)
 
 
@@ -47,14 +47,14 @@ def validate(規則: str, 根: str = "") -> dict:
     p = pathlib.Path(規則)
     if _スキーマのファイルか(p):
         return result(ok=True, findings=_validate.スキーマを検査する(p),
-                      ファイル=規則, 種類="スキーマ")
+                      file=規則, kind="schema")
     if _概念のファイルか(p):
         return result(ok=True, findings=_validate.概念を検査する(p),
-                      ファイル=規則, 種類="概念")
+                      file=規則, kind="concepts")
     検出 = _validate.検査する(p)
     if 根:
         検出 += _validate.層を検査する(p, pathlib.Path(根))
-    return result(ok=True, findings=検出, ファイル=規則, 種類="規則", 規則ファイル=規則)
+    return result(ok=True, findings=検出, file=規則, kind="rules")
 
 
 def _スキーマのファイルか(p: pathlib.Path) -> bool:
@@ -63,7 +63,7 @@ def _スキーマのファイルか(p: pathlib.Path) -> bool:
         d = json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return False
-    return isinstance(d, dict) and "properties" in d and "規則" not in d and "概念" not in d
+    return isinstance(d, dict) and "properties" in d and "rules" not in d and "concepts" not in d
 
 
 def _概念のファイルか(p: pathlib.Path) -> bool:
@@ -72,11 +72,15 @@ def _概念のファイルか(p: pathlib.Path) -> bool:
         d = json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return False
-    return isinstance(d, dict) and "概念" in d and "規則" not in d
+    return isinstance(d, dict) and "concepts" in d and "rules" not in d
+
+
+種類の語 = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
+"""**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
 
 
 def _human_validate(res: dict) -> str:
-    名 = res["data"]["種類"] + "ファイル"
+    名 = 種類の語[res["data"]["kind"]] + "ファイル"
     return (f"{名}の検査　通った" if not res["findings"]
             else f'{名}の検査　通っていない（{len(res["findings"])} 件）')
 

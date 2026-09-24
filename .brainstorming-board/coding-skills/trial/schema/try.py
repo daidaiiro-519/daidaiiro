@@ -35,15 +35,15 @@ def 案内を引く(スキーマ: dict, 道: list[str]) -> dict:
 
 def 骨を出す(スキーマ: dict, 層: dict[str, str]) -> dict:
     """スキーマから実体の骨を組む。**項目の一覧を、この側に書かない。**"""
-    形 = スキーマ["$defs"]["規則"]["properties"]
+    形 = スキーマ["$defs"]["rule"]["properties"]
     def 規則(名: str) -> dict:
         出 = {}
         for 鍵 in 形:
-            出[鍵] = 名 if 鍵 == "規則" else ("" if 形[鍵]["type"] == "string" else {})
-        出["検証方法"] = {"道具": []}
+            出[鍵] = 名 if 鍵 == "rule" else ("" if 形[鍵]["type"] == "string" else {})
+        出["check"] = {"tool": []}
         return 出
-    return {"並び": list(層), "層": dict(層),
-            "規則": [規則("層の場所が、宣言した対応と一致する"),
+    return {"order": list(層), "layers": dict(層),
+            "rules": [規則("層の場所が、宣言した対応と一致する"),
                     規則("依存の向きが、内から外へ出ていない")]}
 
 
@@ -56,13 +56,13 @@ if __name__ == "__main__":
 
     print("\n── ② 1件だけ案内を落として、検出されるかを見る")
     壊す = copy.deepcopy(スキーマ)
-    壊す["properties"]["層"].pop("x-prompt")
-    壊す["$defs"]["規則"]["properties"]["出典"]["x-prompt"]["write"] = ""
+    壊す["properties"]["layers"].pop("x-prompt")
+    壊す["$defs"]["rule"]["properties"]["source"]["x-prompt"]["write"] = ""
     for x in 案内を検査する(壊す, メタ):
         print("  " + x)
 
     print("\n── ③ AI が読む導線（層の項目）")
-    for k, v in 案内を引く(スキーマ, ["properties", "層"]).items():
+    for k, v in 案内を引く(スキーマ, ["properties", "layers"]).items():
         print(f"  {k}　{v}")
 
     print("\n── ④ 生成した実体 .coding/rules.json")

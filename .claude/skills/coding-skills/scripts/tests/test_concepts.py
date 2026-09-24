@@ -29,13 +29,13 @@ def 書く(場所: pathlib.Path, 中身: dict) -> pathlib.Path:
 
 
 一件 = {
-    "概念": "試しの概念",
-    "適用": "試験でのみ使う",
-    "出典": {
+    "concept": "試しの概念",
+    "applies": "試験でのみ使う",
+    "source": {
         "meta": "試験",
-        "引用": "Gather together the things that change for the same reasons.",
-        "取得": {"url": "https://example.invalid/", "日": "2026-09-22",
-                 "sha256": "0" * 64, "行": 1},
+        "quote": "Gather together the things that change for the same reasons.",
+        "fetched": {"url": "https://example.invalid/", "date": "2026-09-22",
+                    "sha256": "0" * 64, "line": 1},
     },
 }
 
@@ -47,7 +47,7 @@ def 正本は契約を満たす() -> None:
 
 def 三件そろっている() -> None:
     d = json.loads((REFERENCES / "concepts.json").read_text(encoding="utf-8"))
-    名 = [c["概念"] for c in d["概念"]]
+    名 = [c["concept"] for c in d["concepts"]]
     for x in ("変更理由で分ける", "依存の向き", "ポートとアダプタ"):
         検査(f"{x} が正本に在る", x in 名)
 
@@ -55,17 +55,17 @@ def 三件そろっている() -> None:
 def 引用が無ければ検出する() -> None:
     with tempfile.TemporaryDirectory() as t:
         c = json.loads(json.dumps(一件))
-        c["出典"].pop("引用")
-        検出 = validate.概念を検査する(書く(pathlib.Path(t), {"概念": [c]}))
+        c["source"].pop("quote")
+        検出 = validate.概念を検査する(書く(pathlib.Path(t), {"concepts": [c]}))
         検査("引用の欠落を検出する", any("引用が無い" in x or "引用" in x for x in 検出))
 
 
 def 取得の欄が欠けていれば検出する() -> None:
-    for 欄 in ("url", "日", "sha256", "行"):
+    for 欄 in ("url", "date", "sha256", "line"):
         with tempfile.TemporaryDirectory() as t:
             c = json.loads(json.dumps(一件))
-            c["出典"]["取得"].pop(欄)
-            検出 = validate.概念を検査する(書く(pathlib.Path(t), {"概念": [c]}))
+            c["source"]["fetched"].pop(欄)
+            検出 = validate.概念を検査する(書く(pathlib.Path(t), {"concepts": [c]}))
             検査(f"取得の {欄} の欠落を検出する", bool(検出))
 
 

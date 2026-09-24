@@ -2,11 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "x-generates": ".coding/rules.json",
   "title": "規則ファイル",
-  "description": "成果物が持つ規則ファイル。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持つ。層の場所を持つ規則ファイルは、並びと層も持つ。",
+  "description": "成果物が持つ規則ファイル。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持つ。層を持つ規則ファイルは、並びと層も持つ。**鍵は ASCII である** ── 画面へ出す語は、読む側の対応表が持つ。",
   "type": "object",
   "properties": {
-    "$schema": { "type": "string" },
-    "規則": {
+    "$schema": {
+      "type": "string"
+    },
+    "rules": {
       "description": "規則の一覧。1件だけのときは、この鍵を持たずに規則そのものを書いてよい。",
       "x-prompt": {
         "read": "1件ずつ独立に読む。件数の多寡に意味は無い",
@@ -14,34 +16,47 @@
       },
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/規則" }
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
     },
-    "並び": {
+    "order": {
       "description": "層の並び。内から外の順である。",
       "x-prompt": {
         "read": "先頭が最も内側である。依存は外から内へ向かってよく、内から外へは向かわない",
         "write": "モデルから導出する。層名を先に決めて、そこへ概念を配置しない ── 言語に依存しない名前にする"
       },
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
-    "層": {
+    "layers": {
       "description": "層の名前と、その言語での識別子の対応。**名前は原典に無いので、こちら側が決める。**",
       "x-prompt": {
-        "read": "鍵は並びの層名、値はその言語で層を識別する文字列である ── パスとは限らない",
-        "write": "鍵に並びの層名を書き、値にその言語での識別子を書く ── Go はディレクトリ、Java はパッケージ、Python は dotted path、Rust は crate"
+        "read": "鍵は order の層名、値はその言語で層を識別する文字列である ── パスとは限らない",
+        "write": "鍵に order の層名を書き、値にその言語での識別子を書く ── Go はモジュールパス、Java はパッケージ、Python は dotted path、Rust は crate 名"
       },
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "$defs": {
-    "規則": {
+    "rule": {
       "type": "object",
-      "required": ["規則", "出典", "採用範囲", "検証方法"],
+      "required": [
+        "rule",
+        "source",
+        "scope",
+        "check"
+      ],
       "additionalProperties": true,
       "properties": {
-        "規則": {
+        "rule": {
           "type": "string",
           "minLength": 1,
           "description": "何を守るかを1文で",
@@ -50,7 +65,7 @@
             "write": "守る状態を1文で書く。道具の名前を入れない ── 道具が替わっても、この文は変わらない"
           }
         },
-        "出典": {
+        "source": {
           "description": "外（原典）か内（こちら側の記録）かを書く。**どちらかを必ず持つ。**",
           "x-prompt": {
             "read": "meta があれば外を指す規則、record があれば内を指す規則である",
@@ -58,13 +73,33 @@
           },
           "type": "object",
           "properties": {
-            "meta": { "type": "string", "description": "原典の識別子" },
-            "引用": { "type": "string", "description": "原文の文字列。要約しない" },
-            "record": { "type": "string", "description": "内側の記録の識別子。解決先は使う側が配線する" }
+            "meta": {
+              "type": "string",
+              "description": "原典の識別子"
+            },
+            "quote": {
+              "type": "string",
+              "description": "原文の文字列。要約しない"
+            },
+            "record": {
+              "type": "string",
+              "description": "内側の記録の識別子。解決先は使う側が配線する"
+            }
           },
-          "anyOf": [{ "required": ["meta"] }, { "required": ["record"] }]
+          "anyOf": [
+            {
+              "required": [
+                "meta"
+              ]
+            },
+            {
+              "required": [
+                "record"
+              ]
+            }
+          ]
         },
-        "採用範囲": {
+        "scope": {
           "type": "string",
           "minLength": 1,
           "description": "原典のどこを採ったか",
@@ -73,16 +108,18 @@
             "write": "原典のどの記述を採ったかを書く。内を指す規則なら、適用する成果物の範囲を書く"
           }
         },
-        "検証方法": {
+        "check": {
           "description": "判定する手段。**判定は終了コードで返る。**",
           "x-prompt": {
             "read": "実行するコマンドと、実行する場所である",
             "write": "判定を終了コードで返す呼び方を選ぶ ── gofmt -l は、整形されていないファイルを並べながら終了コード0を返す"
           },
           "type": "object",
-          "required": ["道具"],
+          "required": [
+            "tool"
+          ],
           "properties": {
-            "道具": {
+            "tool": {
               "description": "実行するコマンド。**配列で書く** ── 殻を経由しない。**判定を終了コードで返す呼び方を選ぶ**（gofmt -l は0を返す）。",
               "x-prompt": {
                 "read": "配列の先頭が実行するもので、以降が引数である",
@@ -90,9 +127,11 @@
               },
               "type": "array",
               "minItems": 1,
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
-            "対象": {
+            "target": {
               "type": "string",
               "description": "実行する場所。成果物の根からの相対である",
               "x-prompt": {

@@ -3,40 +3,87 @@
   "title": "概念の出典",
   "description": "この Skill が手順の中で依拠する概念と、その原典。**原文は同梱しない** ── 持つのは引用と、取り直すための4つの値だけである。",
   "type": "object",
-  "required": ["概念"],
+  "required": [
+    "concepts"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
-    "概念": {
+    "$schema": {
+      "type": "string"
+    },
+    "concepts": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/概念" }
+      "items": {
+        "$ref": "#/$defs/concept"
+      }
     }
   },
   "$defs": {
-    "概念": {
+    "concept": {
       "type": "object",
-      "required": ["概念", "適用", "出典"],
+      "required": [
+        "concept",
+        "applies",
+        "source"
+      ],
       "additionalProperties": false,
       "properties": {
-        "概念": { "type": "string", "minLength": 1, "description": "手順の中で使う呼び名" },
-        "適用": { "type": "string", "minLength": 1, "description": "この Skill の手順のどこで、どう使うか" },
-        "出典": {
+        "concept": {
+          "type": "string",
+          "minLength": 1,
+          "description": "手順の中で使う呼び名"
+        },
+        "applies": {
+          "type": "string",
+          "minLength": 1,
+          "description": "この Skill の手順のどこで、どう使うか"
+        },
+        "source": {
           "type": "object",
-          "required": ["meta", "引用", "取得"],
+          "required": [
+            "meta",
+            "quote",
+            "fetched"
+          ],
           "additionalProperties": false,
           "properties": {
-            "meta": { "type": "string", "minLength": 1, "description": "原典の識別子" },
-            "引用": { "type": "string", "minLength": 1, "description": "原文の文字列。**要約しない**" },
-            "取得": {
+            "meta": {
+              "type": "string",
+              "minLength": 1,
+              "description": "原典の識別子"
+            },
+            "quote": {
+              "type": "string",
+              "minLength": 1,
+              "description": "原文の文字列。**要約しない**"
+            },
+            "fetched": {
               "description": "あとから取り直して、同じ版かを判定するための4つの値。",
               "type": "object",
-              "required": ["url", "日", "sha256", "行"],
+              "required": [
+                "url",
+                "date",
+                "sha256",
+                "line"
+              ],
               "additionalProperties": false,
               "properties": {
-                "url": { "type": "string", "minLength": 1 },
-                "日": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
-                "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-                "行": { "type": "integer", "minimum": 1 }
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "date": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             }
           }
