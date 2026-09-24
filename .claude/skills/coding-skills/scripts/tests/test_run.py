@@ -11,10 +11,10 @@ from lib import run, validate  # noqa: E402
 count = 0
 
 
-def expect(name: str, 条件: bool) -> None:
+def expect(name: str, ok: bool) -> None:
     global count
     count += 1
-    if not 条件:
+    if not ok:
         raise AssertionError(name)
 
 
@@ -24,9 +24,9 @@ def write_rules(cwd: pathlib.Path, rules: list) -> pathlib.Path:
     return p
 
 
-def tool(コマンド: list, name: str = "試し") -> dict:
+def tool(cmd: list, name: str = "試し") -> dict:
     return {"rule": name, "source": {"meta": "試験"}, "scope": "試験",
-            "check": {"tool": コマンド}}
+            "check": {"tool": cmd}}
 
 
 with tempfile.TemporaryDirectory() as d:

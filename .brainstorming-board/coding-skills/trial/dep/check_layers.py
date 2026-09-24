@@ -6,7 +6,7 @@
 
 処理は3工程である。
   ①各ファイルの層を、置き場所から決める
-  ②参照の行を拾い、参照先の文字列から相手の層を決める
+  ②参照の行を拾い、参照先の文字列から相手のdecide_layer
   ③並びに違反した辺を出す
 
 **解析器は書かない。** 参照の行を拾うだけで、名前の解決は実施しない ──
@@ -19,7 +19,7 @@ import pathlib
 import re
 import sys
 
-形 = {
+shape = {
     ".py":  [r"^\s*from\s+([A-Za-z_][\w\.]*)", r"^\s*import\s+([A-Za-z_][\w\.]*)"],
     ".ts":  [r"""from\s+['"]([^'"]+)['"]""", r"""require\(\s*['"]([^'"]+)['"]"""],
     ".tsx": [r"""from\s+['"]([^'"]+)['"]""", r"""require\(\s*['"]([^'"]+)['"]"""],
@@ -30,65 +30,65 @@ import sys
 }
 
 
-def 層を決める(道: str, 層: dict[str, str]) -> str | None:
+def decide_layer(path: str, layer: dict[str, str]) -> str | None:
     """置き場所の前方一致で決める。**長い方を先に見る** ── 入れ子の層が在るため。"""
-    道 = 道.replace("\\", "/")
-    for 名, 場所 in sorted(層.items(), key=lambda kv: -len(kv[1])):
-        場所 = 場所.strip("/")
-        if 道 == 場所 or 道.startswith(場所 + "/"):
-            return 名
+    path = path.replace("\\", "/")
+    for name, place in sorted(layers.items(), key=lambda kv: -len(kv[1])):
+        place = place.strip("/")
+        if path == place or path.startswith(place + "/"):
+            return name
     return None
 
 
-def 参照先の層(参照: str, 層: dict[str, str]) -> str | None:
+def layer_of(ref: str, layers: dict[str, str]) -> str | None:
     """参照の文字列に、層の置き場所の末尾の名前が現れるかで決める。"""
-    語 = re.split(r"[\./:\\]+", 参照)
-    語 = [x for x in 語 if x]
-    for 名, 場所 in 層.items():
-        末尾 = 場所.strip("/").split("/")[-1]
-        if 名 in 語 or 末尾 in 語:
-            return 名
+    word = re.split(r"[\./:\\]+", ref)
+    word = [x for x in word if x]
+    for name, place in layers.items():
+        tail = place.strip("/").split("/")[-1]
+        if name in word or tail in word:
+            return name
     return None
 
 
-def 検査する(根: pathlib.Path, 記録: dict) -> list[tuple[str, int, str, str, str]]:
-    層 = 記録["層"]
-    並び = 記録["並び"]                      # 内から外
-    位置 = {名: i for i, 名 in enumerate(並び)}
-    違反 = []
-    for p in sorted(根.rglob("*")):
-        if not p.is_file() or p.suffix not in 形:
+def check(root: pathlib.Path, record: dict) -> list[tuple[str, int, str, str, str]]:
+    layers = record["層"]
+    order = record["並び"]                      # 内から外
+    pos = {name: i for i, name in enumerate(order)}
+    violations = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or p.suffix not in shapes:
             continue
-        道 = str(p.relative_to(根))
-        自分 = 層を決める(道, 層)
-        if 自分 is None:
+        path = str(p.relative_to(root))
+        mine = decide_layer(path, layers)
+        if mine is None:
             continue
-        for n, 行 in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if 行.lstrip().startswith(("#", "//")):
+        for n, lines in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if lines.lstrip().startswith(("#", "//")):
                 continue
-            for 式 in 形[p.suffix]:
-                m = re.search(式, 行)
+            for pattern in shapes[p.suffix]:
+                m = re.search(pattern, lines)
                 if not m:
                     continue
-                相手 = 参照先の層(m.group(1), 層)
-                if 相手 is None or 相手 == 自分:
+                peer = layer_of(m.group(1), layers)
+                if peer is None or peer == mine:
                     continue
                 # **内側が外側を参照したら違反である** ── 並びは内から外である
-                if 位置[相手] > 位置[自分]:
-                    違反.append((道, n, 自分, 相手, 行.strip()))
-    return 違反
+                if pos[peer] > pos[mine]:
+                    violations.append((path, n, mine, peer, lines.strip()))
+    return violations
 
 
 def main() -> int:
-    根 = pathlib.Path(sys.argv[1])
-    記録 = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
-    違反 = 検査する(根, 記録)
-    if not 違反:
+    root = pathlib.Path(sys.argv[1])
+    record = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+    violations = check(root, record)
+    if not violations:
         print("内側は外側を参照しない　合格")
         return 0
     print(f"内側は外側を参照しない　不合格　{len(違反)}件")
-    for 道, n, 自分, 相手, 行 in 違反:
-        print(f"  {道}:{n}　{自分} → {相手}　{行}")
+    for path, n, mine, peer, lines in violations:
+        print(f"  {道}:{n}　{mine} → {相手}　{行}")
     return 1
 
 

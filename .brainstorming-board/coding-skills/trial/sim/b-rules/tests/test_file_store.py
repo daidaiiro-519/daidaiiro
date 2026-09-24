@@ -4,21 +4,21 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from adapters.file_store import ファイルの蓄積先   # noqa: E402
-from domain import 回答, 送信                      # noqa: E402
+from adapters.file_store import FileStore   # noqa: E402
+from domain import answer, submit                      # noqa: E402
 
 
-def 試す():
+def try_it():
     tmp = pathlib.Path("/tmp/sim-b"); tmp.mkdir(exist_ok=True)
     p = tmp / "answers.jsonl"
     p.unlink(missing_ok=True)
-    ポート = ファイルの蓄積先(p)
-    assert ポート.直前() is None
-    s = 送信((回答(1, "approve", "よい"),))
-    ポート.足す(s)
-    assert ポート.直前() == s, "書いたものが読めない"
+    port = FileStore(p)
+    assert port.latest() is None
+    s = submit((answer(1, "approve", "よい"),))
+    port.add(s)
+    assert port.latest() == s, "書いたものが読めない"
     print("規則あり版　外側　2件すべて通った")
 
 
 if __name__ == "__main__":
-    試す()
+    try_it()

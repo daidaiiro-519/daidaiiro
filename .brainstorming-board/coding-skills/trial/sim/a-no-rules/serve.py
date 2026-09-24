@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 DB = "answers.db"
 
 
-def 接続():
+def handler():
     c = sqlite3.connect(DB)
     c.execute("create table if not exists submissions (id integer primary key, body text)")
     return c
@@ -27,7 +27,7 @@ class Handler(BaseHTTPRequestHandler):
             seen.add(a["no"])
 
         # 直前と同じなら保存しない
-        c = 接続()
+        c = handler()
         row = c.execute("select body from submissions order by id desc limit 1").fetchone()
         last = json.loads(row[0]) if row else None
         if last is not None and last.get("answers") == answers:

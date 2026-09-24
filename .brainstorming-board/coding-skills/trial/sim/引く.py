@@ -6,11 +6,11 @@ import json
 import pathlib
 import sys
 
-記録 = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-層 = [記録["層"][名] for 名 in reversed(記録["並び"])]   # 外側から内側の順で並べる
-出 = ["[importlinter]", "root_packages =", *[f"    {p}" for p in 層], "",
+record = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+layer = [record["層"][name] for name in reversed(record["並び"])]   # 外側から内側の順で並べる
+out = ["[importlinter]", "root_packages =", *[f"    {p}" for p in layer], "",
       "[importlinter:contract:1]", "name = 内側は外側を参照しない",
       "type = layers", "layers ="]
-出 += [f"    {p}" for p in 層]
-pathlib.Path(sys.argv[2]).write_text("\n".join(出) + "\n", encoding="utf-8")
-print("\n".join(出))
+out += [f"    {p}" for p in layer]
+pathlib.Path(sys.argv[2]).write_text("\n".join(out) + "\n", encoding="utf-8")
+print("\n".join(out))

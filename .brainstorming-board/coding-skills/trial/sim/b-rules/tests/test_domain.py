@@ -4,33 +4,33 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from domain import 回答, 送信, 重複か          # noqa: E402
-from usecase import 回答を受け取る              # noqa: E402
+from domain import answer, submit, is_duplicate          # noqa: E402
+from usecase import receive_answer              # noqa: E402
 
 
-class 覚えておく蓄積先:
+class MemoryStore:
     """テストで差し替える実装 ── ポートを作った理由がこれである。"""
 
     def __init__(self): self.保存 = []
-    def 直前(self): return self.保存[-1] if self.保存 else None
-    def 足す(self, s): self.保存.append(s)
+    def latest(self): return self.保存[-1] if self.保存 else None
+    def add(self, s): self.保存.append(s)
 
 
-def 試す():
-    一 = 送信((回答(1, "approve"),))
-    二 = 送信((回答(1, "return", "理由"),))
+def try_it():
+    first = submit((answer(1, "approve"),))
+    second = submit((answer(1, "return", "理由"),))
 
-    assert 重複か(None, 一) is False
-    assert 重複か(一, 一) is True
-    assert 重複か(一, 二) is False
+    assert is_duplicate(None, first) is False
+    assert is_duplicate(first, first) is True
+    assert is_duplicate(first, second) is False
 
-    ポート = 覚えておく蓄積先()
-    assert 回答を受け取る(ポート, 一) == 1, "1件目が保存されない"
-    assert 回答を受け取る(ポート, 一) == 0, "直前と同じなのに保存した"
-    assert 回答を受け取る(ポート, 二) == 1, "内容が違うのに保存しない"
+    port = MemoryStore()
+    assert receive_answer(port, first) == 1, "1件目が保存されない"
+    assert receive_answer(port, first) == 0, "直前と同じなのに保存した"
+    assert receive_answer(port, second) == 1, "内容が違うのに保存しない"
 
     try:
-        送信((回答(1, "approve"), 回答(1, "return")))
+        submit((answer(1, "approve"), answer(1, "return")))
     except ValueError:
         pass
     else:
@@ -40,4 +40,4 @@ def 試す():
 
 
 if __name__ == "__main__":
-    試す()
+    try_it()

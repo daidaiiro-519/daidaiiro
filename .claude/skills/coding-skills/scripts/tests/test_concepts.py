@@ -15,16 +15,16 @@ from lib import REFERENCES, validate  # noqa: E402
 count = 0
 
 
-def expect(name: str, 条件: bool) -> None:
+def expect(name: str, ok: bool) -> None:
     global count
     count += 1
-    if not 条件:
+    if not ok:
         raise AssertionError(name)
 
 
-def write_file(cwd: pathlib.Path, 中身: dict) -> pathlib.Path:
+def write_file(cwd: pathlib.Path, body: dict) -> pathlib.Path:
     p = cwd / "concepts.json"
-    p.write_text(json.dumps(中身, ensure_ascii=False), encoding="utf-8")
+    p.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
     return p
 
 

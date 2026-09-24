@@ -2,9 +2,9 @@
 import pathlib
 from http.server import HTTPServer
 
-from adapters.sqlite_store import SQLiteの蓄積先
-from adapters.http_in import 組む
+from adapters.sqlite_store import SqliteStore
+from adapters.http_in import compose
 
 if __name__ == "__main__":
-    ポート = SQLiteの蓄積先("answers.db")
-    HTTPServer(("127.0.0.1", 8802), 組む(ポート)).serve_forever()
+    port = SqliteStore("answers.db")
+    HTTPServer(("127.0.0.1", 8802), compose(port)).serve_forever()
