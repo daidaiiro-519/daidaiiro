@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""coding-skills の唯一の入口。
+"""no-more-spaghetti の唯一の入口。
 
     python3 scripts/cli.py <動詞> [対象…] [--json]
 

@@ -44,7 +44,7 @@ def skeleton(layers: dict[str, str], target: str = "") -> dict:
         return out
 
     place = pathlib.PurePosixPath(target) if target else None
-    return {"$schema": "…/coding-skills/references/rules.schema.json",
+    return {"$schema": "…/no-more-spaghetti/references/rules.schema.json",
             "order": list(layers),
             "layers": {k: str(place / v) if place else v for k, v in layers.items()},
             "rules": [rule(x) for x in INNER_RULES]}

@@ -1,12 +1,12 @@
 ---
 name: coding-rule-form-redesign
-description: CodingSkills のブレストボードは .brainstorming-board/coding-skills/ の1枚だけである。11論点のうち、いま開いているのは10と11
+description: CodingSkills のブレストボードは .brainstorming-board/no-more-spaghetti/ の1枚だけである。11論点のうち、いま開いているのは10と11
 metadata:
   node_type: memory
   type: project
 ---
 
-CodingSkills のブレストボードは `.brainstorming-board/coding-skills/` の1枚だけである。
+CodingSkills のブレストボードは `.brainstorming-board/no-more-spaghetti/` の1枚だけである。
 2026-09-21 に、規則1件の形を対象にしていた `coding-rule-form/` を統合した。
 以前の `.brainstorm/coding-essence/` は破棄した。
 

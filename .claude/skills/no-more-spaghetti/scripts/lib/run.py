@@ -37,7 +37,7 @@ VERDICT_LABEL = {"pass": "合格", "fail": "不合格", "skip": "実行しない
 def runs_dir(root: pathlib.Path) -> pathlib.Path:
     """この成果物の保存先。**成果物ごとに分ける** ── 別の成果物の実行を消さないためである。"""
     key = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
-    return pathlib.Path(tempfile.gettempdir()) / "coding-skills-runs" / key
+    return pathlib.Path(tempfile.gettempdir()) / "no-more-spaghetti-runs" / key
 
 
 def load_rules(rules_file: pathlib.Path) -> list[dict]:
@@ -76,7 +76,7 @@ def run_one(rules: dict, root: pathlib.Path, timeout: int = DEFAULT_TIMEOUT,
     # **出力をファイルへ流し、上限までしか読まない。**
     # まとめて受け取ると、道具が出した量がそのままこの側の記憶に載る
     # （実測 2026-09-24、100MB を出す道具で最大常駐 306MB）。
-    sink = tempfile.NamedTemporaryFile(prefix="coding-skills-", suffix=".log",
+    sink = tempfile.NamedTemporaryFile(prefix="no-more-spaghetti-", suffix=".log",
                                        delete=False)
     keep = ""
     try:

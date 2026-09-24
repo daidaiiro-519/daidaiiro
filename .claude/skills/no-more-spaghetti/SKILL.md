@@ -1,4 +1,4 @@
-# アーキテクチャを決め・保ち・測りながらコーディングするSkill：coding-skills
+# アーキテクチャを決め・保ち・測りながらコーディングするSkill：no-more-spaghetti
 
 ## 目的
 
