@@ -2,18 +2,23 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 24,
+ "round": 25,
  "intro": [
   {
    "kind": "para",
-   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形まで、<b>8件とも決着した。</b>"
+   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形まで8件が決着した。<b>MCP から呼べるようにしたところで9件目が出た</b> ── 人が拒める形である。"
   },
   {
    "kind": "note",
    "text": "不変の抽象概念は Skill が初めから持つ ── <code>references/concepts.json</code> の3件である。成果物ごとに変わるものは <code>.coding/</code> が持つ。"
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 9,
+   "why": "MCP から呼ぶ形になったので、実行の前に人が拒める形を決める ── いまは無条件に実行する"
+  }
+ ],
  "panels": [
   {
    "heading": "アーキテクチャの3つの面",
@@ -191,26 +196,6 @@
       },
       {
        "text": "品質 ・ ライセンス ・ セキュリティを、どこで見るか（道具に任せる範囲）"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "次にすること ── 3件",
-   "body": [
-    {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "<code>init</code> を実装する ── 論点5 が決めた骨を <code>.coding/rules.json</code> へ出す。引数は <code>--層 名前=識別子</code> である"
-      },
-      {
-       "text": "実際のリポジトリへ導入する ── 試作ではない成果物で、層を1件書いて <code>check</code> を実行する"
-      },
-      {
-       "text": "MCP の接続が道具を公開するかを確認する ── 未確認である"
       }
      ]
     }
@@ -2853,6 +2838,232 @@
      "item": "正本の <code>rules.schema.json</code> には、まだ案内を足していない",
      "treatment": "later",
      "note": "試作（<code>trial/schema/</code>）では端から端まで動いた ── 残るのは、正本への適用とメタスキーマの設置である"
+    }
+   ]
+  },
+  {
+   "no": 9,
+   "name": "人が拒める形",
+   "status": "open",
+   "question": "規則に書いたコマンドを、どこまで無条件に実行してよいか",
+   "answer": "<b>範囲と宣言はこちらが持ち、承認はホストが持つ。</b>実行の前に<b>何を実行するかを返す道具</b>（<code>plan</code>）を足す ── 承認の仕組みそのものは実装しない。",
+   "intro": "<b>いまの <code>check</code> は、規則に書いてあるコマンドを無条件に実行する。</b>規則ファイルを書き換えられる者は、AI 経由で任意のコマンドを実行できる。原典は、拒める人が居ることを求めている。",
+   "decision": {
+    "letter": "C",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>実行する内容を、実行の前に提示できるようにする。承認はホストの仕事である。</b>"
+     },
+     {
+      "kind": "fold",
+      "heading": "この答えを導いたもの（6件）",
+      "body": [
+       {
+        "kind": "list",
+        "ordered": false,
+        "items": [
+         {
+          "text": "<b>原典は、拒める人が居ることを求めている</b>（server/tools:26）",
+          "nested": [
+           {
+            "kind": "note",
+            "text": "there SHOULD always be a human in the loop with the ability to deny tool invocations"
+           }
+          ]
+         },
+         {
+          "text": "<b>ただし、それを課されているのはアプリケーションである</b> ── 原典の <code>Applications SHOULD</code> の並びであり、サーバーの義務としては書かれていない"
+         },
+         {
+          "text": "<b>こちらが持てるのは、判断の材料である</b> ── 何を実行するかを返す道具と、道具の説明と注記"
+         },
+         {
+          "text": "<b>範囲は根で限定する</b> ── 原典の roots は <code>the boundaries of where servers can operate within the filesystem</code> である（client/roots:9）。<code>check</code> は根を必ず受け取るので、この形に乗る"
+         },
+         {
+          "text": "<b>承認の対話を、この Skill が実装しない</b> ── 原典の elicitation はクライアントの能力に依存し、CLI では成立しない。**呼び方が違うと振る舞いが違う**状態になる"
+         },
+         {
+          "text": "<b>規則ファイル自体が信用の境界である</b> ── 書き換えられる者は任意のコマンドを実行できる。これは隠さずに、道具の説明へ書く"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "plan ── 何を実行するかを返す（実行はしない）"
+    },
+    {
+     "kind": "html",
+     "text": "$ python3 scripts/cli.py plan . .coding/rules.json\n  整形されている              gofmt -d .            （server）\n  静的解析を通る              go vet ./...          （server）\n  依存の向きが外へ出ていない  import-linter         （根）\n\n3件を実行する。実行はしていない。"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "道具の説明と注記 ── ホストの判断材料になる"
+    },
+    {
+     "kind": "html",
+     "text": "{\n  \"name\": \"check\",\n  \"description\": \"規則ファイルに書いてあるコマンドを実行する。**実行する内容は\n                  規則ファイルが決める** ── この道具は道具の名前を持たない。\n                  何を実行するかは plan で確認できる。\",\n  \"annotations\": { \"readOnlyHint\": false, \"openWorldHint\": true }\n}"
+    },
+    {
+     "kind": "note",
+     "text": "<b>注記は信用されない前提で置く。</b>原典が規定している（server/tools:193）。"
+    },
+    {
+     "kind": "note",
+     "text": "clients MUST consider tool annotations to be untrusted unless they come from trusted servers"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "誰が何を持つか"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "持ち主",
+      "持つもの"
+     ],
+     "rows": [
+      [
+       "この Skill",
+       [
+        "<code>plan</code> ── 実行する内容の提示",
+        "根による範囲の限定",
+        "道具の説明と注記"
+       ]
+      ],
+      [
+       "ホスト（AI の側）",
+       [
+        "<b>承認と拒否</b>",
+        "原典が <code>Applications SHOULD</code> として課している"
+       ]
+      ],
+      [
+       "規則ファイルを書く人",
+       [
+        "<b>実行される内容そのもの</b>",
+        "ここが信用の境界である"
+       ]
+      ]
+     ]
+    }
+   ],
+   "passed": [
+    {
+     "name": "A",
+     "body": "何もしない（規則のコマンドを無条件に実行し続ける）",
+     "cost": "ホストが承認を持たない環境では、任意のコマンドが黙って実行される"
+    },
+    {
+     "name": "B",
+     "body": "承認の対話を、この Skill が実装する（elicitation）",
+     "cost": "クライアントの能力に依存し、CLI では成立しない ── <b>呼び方が違うと振る舞いが違う</b>"
+    },
+    {
+     "name": "C",
+     "body": "判断の材料を返し、承認はホストへ委ねる",
+     "cost": "ホストが材料を使わなければ、何も止まらない ── <b>この Skill は保証を与えない</b>"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "実行してよいコマンドを、この Skill が一覧で持つ",
+     "reason": "道具の名前を持たない決定（論点2）に違反する。言語が増えるたびに Skill を直すことになる"
+    },
+    {
+     "body": "危険なコマンドを、文字列で検出して拒む",
+     "reason": "<code>rm</code> を含むかを見る形になり、<b>書き方を変えれば通る</b>。検出できたことにならない"
+    },
+    {
+     "body": "規則ファイルに署名を要求する",
+     "reason": "鍵の配布と失効を、この Skill が持つことになる ── 成果物ごとに違う運用へ踏み込む"
+    }
+   ],
+   "path": [
+    {
+     "kind": "card",
+     "heading": "原典を取得して、誰の義務かを確認した",
+     "events": [
+      {
+       "tag": "content",
+       "text": "server/tools ・ client/roots ・ client/elicitation の3つを取得した（2026-09-24）"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>拒否の義務はアプリケーションに在る</b> ── 原典の <code>Applications SHOULD</code> の並びに置かれている（server/tools:30）"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>elicitation は三値で返る</b> ── <code>accept</code> ・ <code>decline</code> ・ <code>cancel</code>（client/elicitation:281）。ただしクライアントの能力である"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>roots は範囲の宣言である</b> ── <code>Roots define the boundaries of where servers can operate within the filesystem</code>（client/roots:9）"
+      }
+     ]
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "拒める人が居ることを求めていること",
+     "basis": "there SHOULD always be a human in the loop with the ability to deny tool invocations",
+     "tag": "primary",
+     "source": "specification/2025-06-18/server/tools:26（2026-09-24 取得）"
+    },
+    {
+     "supports": "注記が信用されない前提であること",
+     "basis": "clients MUST consider tool annotations to be untrusted unless they come from trusted servers",
+     "tag": "primary",
+     "source": "同 server/tools:193"
+    },
+    {
+     "supports": "範囲の宣言が原典に在ること",
+     "basis": "Roots define the boundaries of where servers can operate within the filesystem",
+     "tag": "primary",
+     "source": "同 client/roots:9"
+    },
+    {
+     "supports": "承認の対話を実装しないこと",
+     "basis": "Elicitation in MCP allows servers to implement interactive workflows by enabling user input requests",
+     "tag": "primary",
+     "source": "同 client/elicitation:21"
+    },
+    {
+     "supports": "道具の名前を持たないこと",
+     "basis": "Skill は道具を1つも持たない ── 実行するのは規則に書いてあるコマンドである",
+     "tag": "rule",
+     "source": "論点2（決着 2026-09-23）"
+    }
+   ],
+   "requirements": [
+    "<code>plan</code> を実装する必要がある ── 規則を読み、実行する内容を返す。実行はしない",
+    "道具の説明へ、実行の内容が規則ファイルで決まることを書く必要がある",
+    "<code>annotations</code> を宣言に持たせるかを決める必要がある ── 契約（<code>Tool</code>）に欄が無い"
+   ],
+   "out_of_scope": [
+    {
+     "item": "ホストが材料を使わない場合",
+     "treatment": "out",
+     "note": "原典が <code>Applications SHOULD</code> として課している範囲である ── この Skill は保証を与えない"
+    },
+    {
+     "item": "規則ファイルを書き換えられる者への対策",
+     "treatment": "out",
+     "note": "<b>そこが信用の境界である</b> ── 書ける者は、その成果物で任意のコマンドを実行できる立場に在る"
+    },
+    {
+     "item": "この形を、まだ実装していない",
+     "treatment": "later",
+     "note": "試すのは<b>外の作業</b>である ── <code>plan</code> を実装し、MCP 越しに実行の前後で確認する"
     }
    ]
   }
