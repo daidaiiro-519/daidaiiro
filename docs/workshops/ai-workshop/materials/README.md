@@ -36,7 +36,7 @@
 | `decks/lesson-0N-*-script.md` | 読み上げ原稿。音声のSkillへ渡す入力のもと |
 | `previews/` | 全枚の描画結果 |
 | `examples/` | 本編で使用する議事録と、直す前・直したあとの返り |
-| `promotion-table.md` | 昇格表。この教材の言い方と、DDD編で与える名前の対応 |
+| `promotion-table.md` | 昇格表。この教材の言い方と、ドメイン駆動設計編で与える名前の対応 |
 
 ## 組み直す
 
