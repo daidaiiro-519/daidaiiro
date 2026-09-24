@@ -18,23 +18,43 @@ def check(根: str, 規則: str, 制限: str = "") -> dict:
     """規則を全件実行し、終了コードで判定する。
 
     **出力は道具のまま渡す。** 件数の集計も、違反の並べ替えも実施しない。
+    **読めないファイルは誤用である** ── 検出（違反が在る）と同じ番号で返さない。
     """
-    d = _run.検査する(pathlib.Path(根), pathlib.Path(規則),
-                     int(制限) if 制限 else _run.制限の既定)
+    try:
+        d = _run.検査する(pathlib.Path(根), pathlib.Path(規則),
+                         int(制限) if 制限 else _run.制限の既定)
+    except (OSError, ValueError) as e:
+        return result(ok=False, findings=[f"規則ファイルを読めない ── {e}"],
+                      file=規則, kind="rules")
     検出 = d.pop("findings")
     return result(ok=True, findings=検出, **d)
 
 
 def _human_check(res: dict) -> str:
     d = res["data"]
+    if "rules" not in d:
+        return "\n".join(res["findings"])
     印 = {"pass": "合格　", "fail": "不合格", "skip": "実行せず"}
     行 = [f'  {印[x["verdict"]]}　{x["name"]}' + (f'　（{x["reason"]}）' if x.get("reason") else "")
           for x in d["rules"]]
     for x in d["rules"]:
         if x["verdict"] == "fail" and x["output"]:
             行 += ["", f'── {x["name"]} の出力（道具のまま）', x["output"]]
+    if not d["rules"]:
+        行.append("  規則が0件である ── 1件も検査していない")
     行.append(f'\n合格 {d["pass"]} ／ 不合格 {d["fail"]} ／ 実行せず {d["skip"]}')
     return "\n".join(行)
+
+
+def _読めるか(p: pathlib.Path) -> str:
+    import json
+    try:
+        json.loads(p.read_text(encoding="utf-8"))
+    except OSError as e:
+        return f"ファイルを読めない ── {e}"
+    except json.JSONDecodeError as e:
+        return f"JSON として読めない ── {e}"
+    return ""
 
 
 def validate(規則: str, 根: str = "") -> dict:
@@ -45,6 +65,9 @@ def validate(規則: str, 根: str = "") -> dict:
     入口を増やすと、呼ぶ側が形を推測することになる。
     """
     p = pathlib.Path(規則)
+    誤り = _読めるか(p)
+    if 誤り:
+        return result(ok=False, findings=[誤り], file=規則, kind="rules")
     if _スキーマのファイルか(p):
         return result(ok=True, findings=_validate.スキーマを検査する(p),
                       file=規則, kind="schema")

@@ -14,6 +14,11 @@ import pathlib
 import subprocess
 
 制限の既定 = 120
+出力の上限 = 200_000
+"""道具の出力を保持する上限（文字）。**超えた分は切り落とし、切ったことを書く。**
+
+解析ではない ── 読む先を限るだけである。上限が無いと、道具が出した量がそのまま
+この側の記憶に載る（実測 2026-09-24、100MB を出す道具で最大常駐 406MB）。"""
 
 判定の語 = {"pass": "合格", "fail": "不合格", "skip": "実行しない"}
 """**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
@@ -45,12 +50,16 @@ def 実行する(規則: dict, 根: pathlib.Path, 制限: int = 制限の既定)
     if not 場所.is_dir():
         return {**素, "verdict": "skip", "reason": f"対象が実在しない ── {場所}"}
     try:
-        p = subprocess.run(道具, cwd=場所, capture_output=True, text=True, timeout=制限)
+        p = subprocess.run(道具, cwd=場所, stdin=subprocess.DEVNULL,
+                           capture_output=True, text=True, timeout=制限)
     except FileNotFoundError:
         return {**素, "verdict": "skip", "reason": "道具が見つからない"}
     except subprocess.TimeoutExpired:
         return {**素, "verdict": "skip", "reason": f"{制限}秒で終わらない"}
-    return {**素, "exit": p.returncode, "output": (p.stdout + p.stderr).strip(),
+    出 = (p.stdout + p.stderr).strip()
+    if len(出) > 出力の上限:
+        出 = 出[:出力の上限] + f"\n── ここで切った（{len(出)} 文字のうち {出力の上限} 文字）"
+    return {**素, "exit": p.returncode, "output": 出,
             "verdict": "pass" if p.returncode == 0 else "fail"}
 
 
@@ -58,9 +67,14 @@ def 検査する(根: pathlib.Path, 規則ファイル: pathlib.Path, 制限: in
     """規則を全件実行する。**早期終了しない** ──
     途中で止めると、実行しなかった規則が合格と区別できない。
     """
-    結果 = [実行する(r, 根, 制限) for r in 読む(規則ファイル)]
+    規則 = 読む(規則ファイル)
+    結果 = [実行する(r, 根, 制限) for r in 規則]
     数 = {k: sum(1 for x in 結果 if x["verdict"] == k) for k in ("pass", "fail", "skip")}
     検出 = [f'{x["name"]} ── {判定の語[x["verdict"]]}' + (f'（{x["reason"]}）' if x.get("reason") else "")
             for x in 結果 if x["verdict"] != "pass"]
+    if not 規則:
+        # **1件も検査していない状態を、合格と同じ姿で返さない。**
+        # 呼ぶ側が終了コードだけを読むと、検査した結果として受け取る。
+        検出.append("規則が0件である ── 1件も検査していない")
     return {"rules": 結果, **数, "rules_file": str(規則ファイル), "root": str(根),
             "findings": 検出}

@@ -84,4 +84,20 @@ with tempfile.TemporaryDirectory() as d:
     r = run.実行する({"rule": "無い範囲", "check": {"tool": ["pwd"], "target": "無い"}}, 根)
     検査("実在しない対象を、合格に寄せない", r["verdict"] == "skip")
 
+    # ── 1件も検査していない状態
+    p = 根 / "空.json"
+    p.write_text('{"rules": []}', encoding="utf-8")
+    r = run.検査する(根, p)
+    検査("規則が0件なら、検出として出す", any("0件" in x for x in r["findings"]))
+
+    # ── 標準入力を待つ道具
+    r = run.実行する({"rule": "入力を待つ", "check": {"tool": ["cat"]}}, 根, 5)
+    検査("標準入力を待つ道具が、制限時間まで止まらない", r["verdict"] == "pass")
+
+    # ── 出力の上限
+    長い = ["python3", "-c", f"print('x' * {run.出力の上限 * 2})"]
+    r = run.実行する({"rule": "長い出力", "check": {"tool": 長い}}, 根)
+    検査("出力を上限で切る", len(r["output"]) < run.出力の上限 * 2)
+    検査("切ったことを書く", "ここで切った" in r["output"])
+
 print(f"\n{件} 件すべて通った")
