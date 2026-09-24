@@ -89,3 +89,30 @@ def 概念を検査する(概念ファイル: pathlib.Path) -> list[str]:
             if not (出典.get("取得") or {}).get(欄):
                 検出.append(f"{名}: 取得に {欄} が無い ── 同じ版かを、あとから判定できない")
     return 検出
+
+
+def スキーマを検査する(スキーマ: pathlib.Path) -> list[str]:
+    """スキーマ自身を実体として検証する。**案内の欠落を検出する。**
+
+    案内は3つである ── `description`（概要）・ `x-prompt.read`（読み取り）・
+    `x-prompt.write`（値を埋めるとき）。**持たせる深さは、最上位と `$defs` の各形の
+    項目までである** ── 入れ子の奥の葉まで要求すると案内が肥大し、葉は親の案内が覆う。
+    """
+    検出: list[str] = []
+    try:
+        d = json.loads(スキーマ.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return [f"JSON として読めない ── {e}"]
+    try:
+        import jsonschema
+    except ModuleNotFoundError:
+        return ["jsonschema が無いので、案内の検査を実行していない"]
+    v = jsonschema.Draft202012Validator
+    try:
+        v.check_schema(d)
+    except jsonschema.SchemaError as e:
+        検出.append("スキーマとして無効 ── " + str(e).splitlines()[0])
+    メタ = json.loads((REFERENCES / "schema-meta.schema.json").read_text(encoding="utf-8"))
+    for e in sorted(v(メタ).iter_errors(d), key=lambda x: list(x.path)):
+        検出.append("案内: " + "/".join(map(str, e.path)) + " ── " + e.message)
+    return 検出

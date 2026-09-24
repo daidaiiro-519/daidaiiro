@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "案内の契約",
+  "description": "スキーマ自身を実体として検証する。**案内を要求するのは、実体を生成するスキーマだけである** ── 最上位に `x-generates` を持つものが対象になる。案内は、値を書く単位ごとに持つ（最上位の項目と、$defs の各形の項目）。入れ子の奥の葉は、親の案内が覆う。",
+  "type": "object",
+  "properties": {
+    "x-generates": {
+      "type": "string",
+      "minLength": 1,
+      "description": "このスキーマが生成する実体の置き場所"
+    }
+  },
+  "if": { "required": ["x-generates"] },
+  "then": {
+    "properties": {
+      "properties": { "$ref": "#/$defs/項目の集合" },
+      "$defs": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": { "properties": { "$ref": "#/$defs/項目の集合" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "項目の集合": {
+      "type": "object",
+      "properties": { "$schema": true },
+      "additionalProperties": { "$ref": "#/$defs/項目" }
+    },
+    "項目": {
+      "type": "object",
+      "required": ["description", "x-prompt"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "x-prompt": {
+          "type": "object",
+          "required": ["read", "write"],
+          "additionalProperties": false,
+          "properties": {
+            "read": { "type": "string", "minLength": 1 },
+            "write": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}
