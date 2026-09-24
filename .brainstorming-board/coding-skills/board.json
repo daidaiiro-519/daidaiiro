@@ -2,23 +2,18 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 27,
+ "round": 28,
  "intro": [
   {
    "kind": "para",
-   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形まで8件が決着した。<b>MCP から呼べるようにしたところで9件目が出た</b> ── 人が拒める形である。"
+   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形 ・ 人が拒める形まで、<b>9件とも決着した。</b>"
   },
   {
    "kind": "note",
    "text": "不変の抽象概念は Skill が初めから持つ ── <code>references/concepts.json</code> の3件である。成果物ごとに変わるものは <code>.coding/</code> が持つ。"
   }
  ],
- "queue": [
-  {
-   "no": 9,
-   "why": "MCP から呼ぶ形になったので、実行の前に人が拒める形を決める ── いまは無条件に実行する"
-  }
- ],
+ "queue": [],
  "panels": [
   {
    "heading": "アーキテクチャの3つの面",
@@ -196,6 +191,26 @@
       },
       {
        "text": "品質 ・ ライセンス ・ セキュリティを、どこで見るか（道具に任せる範囲）"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "次にすること ── 3件",
+   "body": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "<code>init</code> ・ <code>plan</code> ・ <code>output</code> ・ 経路の検証を実装する ── 論点5 と論点9 の要求事項である"
+      },
+      {
+       "text": "普遍の規定3件を <code>skills-creator</code> の契約へ移す ── 経路の検証 ・ 出力の上限と続き ・ 保持の照合"
+      },
+      {
+       "text": "実際のリポジトリへ導入する ── 試作ではない成果物で、層を1件書いて <code>check</code> を実行する"
       }
      ]
     }
@@ -2844,7 +2859,7 @@
   {
    "no": 9,
    "name": "人が拒める形",
-   "status": "open",
+   "status": "settled",
    "question": "規則に書いたコマンドを、どこまで無条件に実行してよいか",
    "answer": "<b>範囲 ・ 提示 ・ 続きの3つを持ち、承認はホストが持つ。</b>公式の参照実装が採っている形を採る ── <b>範囲は明示して外へ出さない</b>（Filesystem ・ Git）、<b>実行の前に内容を返す</b>、<b>続きは同じ道具から読める</b>（Fetch）。",
    "intro": "<b>いまの <code>check</code> は、規則に書いてあるコマンドを無条件に実行する。</b>規則ファイルを書き換えられる者は、AI 経由で任意のコマンドを実行できる。原典は、拒める人が居ることを求めている。",
@@ -3175,7 +3190,7 @@
     {
      "item": "この形を、まだ実装していない",
      "treatment": "later",
-     "note": "試すのは<b>外の作業</b>である ── <code>plan</code> を実装し、MCP 越しに実行の前後で確認する"
+     "note": "試すのは<b>外の作業</b>である ── <code>plan</code> ・ <code>output</code> ・ 経路の検証を実装し、MCP 越しに確認する"
     }
    ]
   }
