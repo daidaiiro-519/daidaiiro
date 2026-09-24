@@ -12,97 +12,97 @@ import pathlib
 from . import REFERENCES
 
 
-def 検査する(規則ファイル: pathlib.Path) -> list[str]:
-    検出: list[str] = []
+def check_rules(rules_file: pathlib.Path) -> list[str]:
+    findings: list[str] = []
     try:
-        d = json.loads(規則ファイル.read_text(encoding="utf-8"))
+        d = json.loads(rules_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         return [f"JSON として読めない ── {e}"]
     try:
         import jsonschema
     except ModuleNotFoundError:
-        検出.append("jsonschema が無いので、形の検査を実行していない")
+        findings.append("jsonschema が無いので、形の検査を実行していない")
     else:
-        形 = json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
-        v = jsonschema.Draft202012Validator(形)
+        schema = json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
+        v = jsonschema.Draft202012Validator(schema)
         for e in sorted(v.iter_errors(d), key=lambda x: list(x.path)):
-            検出.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
+            findings.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
 
-    規則 = d["rules"] if isinstance(d.get("rules"), list) else [d]
-    for i, r in enumerate(規則):
-        名 = r.get("rule") or f"{i}件目"
-        道具 = (r.get("check") or {}).get("tool")
-        if not 道具:
-            検出.append(f"{名}: 検証方法に道具が無い ── コマンドで検査できない規則は立てない")
-        elif not isinstance(道具, list):
-            検出.append(f"{名}: 道具が配列ではない ── 殻を経由すると、展開が実行する殻に依存する")
+    rules = d["rules"] if isinstance(d.get("rules"), list) else [d]
+    for i, r in enumerate(rules):
+        name = r.get("rule") or f"{i}件目"
+        tool = (r.get("check") or {}).get("tool")
+        if not tool:
+            findings.append(f"{name}: 検証方法に道具が無い ── コマンドで検査できない規則は立てない")
+        elif not isinstance(tool, list):
+            findings.append(f"{name}: 道具が配列ではない ── 殻を経由すると、展開が実行する殻に依存する")
         if not r.get("source"):
-            検出.append(f"{名}: 出典が無い ── 外（原典）か内（記録）かを書く")
-    return 検出
+            findings.append(f"{name}: 出典が無い ── 外（原典）か内（記録）かを書く")
+    return findings
 
 
-def 層を検査する(規則ファイル: pathlib.Path, 根: pathlib.Path) -> list[str]:
+def check_layers(rules_file: pathlib.Path, root: pathlib.Path) -> list[str]:
     """層の宣言が、構造として成立するかを見る。
 
     **値をファイルの場所として検査しない** ── 層を識別する文字列は言語ごとに形が違う
     （モジュールパス ・ パッケージ ・ dotted path ・ crate 名）。値が正しいかは、
     **依存の向きの道具が実行できるかで判明する**。
     """
-    d = json.loads(規則ファイル.read_text(encoding="utf-8"))
-    層 = d.get("layers")
-    if not isinstance(層, dict):
+    d = json.loads(rules_file.read_text(encoding="utf-8"))
+    layers = d.get("layers")
+    if not isinstance(layers, dict):
         return []
-    検出 = []
-    並び = d.get("order") or []
-    足りない = [x for x in 並び if x not in 層]
-    for x in 足りない:
-        検出.append(f"並びの {x} が、層に無い")
-    return 検出
+    findings = []
+    order = d.get("order") or []
+    missing = [x for x in order if x not in layers]
+    for x in missing:
+        findings.append(f"並びの {x} が、層に無い")
+    return findings
 
 
-def 概念を検査する(概念ファイル: pathlib.Path) -> list[str]:
+def check_concepts(concepts_file: pathlib.Path) -> list[str]:
     """概念の出典が契約を満たすかを見る。
 
     **原文は同梱しない。** したがってこの側が見られるのは、
     引用と、取り直すための4つの値（url ・ 日 ・ sha256 ・ 行）が揃っているかまでである。
     **引用が原文と一致するかは、取り直して照合する側が判定する。**
     """
-    検出: list[str] = []
+    findings: list[str] = []
     try:
-        d = json.loads(概念ファイル.read_text(encoding="utf-8"))
+        d = json.loads(concepts_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         return [f"JSON として読めない ── {e}"]
     try:
         import jsonschema
     except ModuleNotFoundError:
-        検出.append("jsonschema が無いので、形の検査を実行していない")
+        findings.append("jsonschema が無いので、形の検査を実行していない")
     else:
-        形 = json.loads((REFERENCES / "concepts.schema.json").read_text(encoding="utf-8"))
-        v = jsonschema.Draft202012Validator(形)
+        schema = json.loads((REFERENCES / "concepts.schema.json").read_text(encoding="utf-8"))
+        v = jsonschema.Draft202012Validator(schema)
         for e in sorted(v.iter_errors(d), key=lambda x: list(x.path)):
-            検出.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
+            findings.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
 
     for i, c in enumerate(d.get("concepts") or []):
-        名 = c.get("concept") or f"{i}件目"
-        出典 = c.get("source") or {}
-        if not 出典.get("quote"):
-            検出.append(f"{名}: 引用が無い ── 原文を提示できない概念を、手順の根拠にしない")
-        for 欄 in ("url", "date", "sha256", "line"):
-            if not (出典.get("fetched") or {}).get(欄):
-                検出.append(f"{名}: 取得に {欄} が無い ── 同じ版かを、あとから判定できない")
-    return 検出
+        name = c.get("concept") or f"{i}件目"
+        source = c.get("source") or {}
+        if not source.get("quote"):
+            findings.append(f"{name}: 引用が無い ── 原文を提示できない概念を、手順の根拠にしない")
+        for field in ("url", "date", "sha256", "line"):
+            if not (source.get("fetched") or {}).get(field):
+                findings.append(f"{name}: 取得に {field} が無い ── 同じ版かを、あとから判定できない")
+    return findings
 
 
-def スキーマを検査する(スキーマ: pathlib.Path) -> list[str]:
+def check_schema(schema_path: pathlib.Path) -> list[str]:
     """スキーマ自身を実体として検証する。**案内の欠落を検出する。**
 
     案内は3つである ── `description`（概要）・ `x-prompt.read`（読み取り）・
     `x-prompt.write`（値を埋めるとき）。**持たせる深さは、最上位と `$defs` の各形の
     項目までである** ── 入れ子の奥の葉まで要求すると案内が肥大し、葉は親の案内が覆う。
     """
-    検出: list[str] = []
+    findings: list[str] = []
     try:
-        d = json.loads(スキーマ.read_text(encoding="utf-8"))
+        d = json.loads(schema_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         return [f"JSON として読めない ── {e}"]
     try:
@@ -113,8 +113,8 @@ def スキーマを検査する(スキーマ: pathlib.Path) -> list[str]:
     try:
         v.check_schema(d)
     except jsonschema.SchemaError as e:
-        検出.append("スキーマとして無効 ── " + str(e).splitlines()[0])
-    メタ = json.loads((REFERENCES / "schema-meta.schema.json").read_text(encoding="utf-8"))
-    for e in sorted(v(メタ).iter_errors(d), key=lambda x: list(x.path)):
-        検出.append("案内: " + "/".join(map(str, e.path)) + " ── " + e.message)
-    return 検出
+        findings.append("スキーマとして無効 ── " + str(e).splitlines()[0])
+    meta = json.loads((REFERENCES / "schema-meta.schema.json").read_text(encoding="utf-8"))
+    for e in sorted(v(meta).iter_errors(d), key=lambda x: list(x.path)):
+        findings.append("案内: " + "/".join(map(str, e.path)) + " ── " + e.message)
+    return findings

@@ -13,82 +13,82 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from lib import REFERENCES, validate  # noqa: E402
 
-件 = 0
+count = 0
 
 
-def 検査(名: str, 条件: bool) -> None:
-    global 件
-    件 += 1
+def expect(name: str, 条件: bool) -> None:
+    global count
+    count += 1
     if not 条件:
-        raise AssertionError(名)
+        raise AssertionError(name)
 
 
-def 書く(中身: dict) -> pathlib.Path:
+def write_file(中身: dict) -> pathlib.Path:
     t = tempfile.mkdtemp()
     p = pathlib.Path(t) / "x.schema.json"
     p.write_text(json.dumps(中身, ensure_ascii=False), encoding="utf-8")
     return p
 
 
-def 正本を読む() -> dict:
+def load_canonical() -> dict:
     return json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
 
 
-def 正本は案内を備える() -> None:
-    検出 = validate.スキーマを検査する(REFERENCES / "rules.schema.json")
-    検査("正本が案内を備える ── " + " ／ ".join(検出), not 検出)
+def canonical_has_prompts() -> None:
+    findings = validate.check_schema(REFERENCES / "rules.schema.json")
+    expect("正本が案内を備える ── " + " ／ ".join(findings), not findings)
 
 
-def 生成しないスキーマは要求されない() -> None:
-    for 名 in ("concepts.schema.json", "schema-meta.schema.json"):
-        検出 = validate.スキーマを検査する(REFERENCES / 名)
-        検査(f"{名} は案内を要求されない ── " + " ／ ".join(検出), not 検出)
+def non_generating_exempt() -> None:
+    for name in ("concepts.schema.json", "schema-meta.schema.json"):
+        findings = validate.check_schema(REFERENCES / name)
+        expect(f"{name} は案内を要求されない ── " + " ／ ".join(findings), not findings)
 
 
-def 案内の欠落を検出する() -> None:
-    d = 正本を読む()
+def detects_missing_prompt() -> None:
+    d = load_canonical()
     d["properties"]["layers"].pop("x-prompt")
-    検出 = validate.スキーマを検査する(書く(d))
-    検査("最上位の欠落を検出する", any("properties/layers" in x for x in 検出))
+    findings = validate.check_schema(write_file(d))
+    expect("最上位の欠落を検出する", any("properties/layers" in x for x in findings))
 
-    d = 正本を読む()
+    d = load_canonical()
     d["$defs"]["rule"]["properties"]["source"].pop("x-prompt")
-    検出 = validate.スキーマを検査する(書く(d))
-    検査("$defs の欠落を検出する", any("$defs/rule/properties/source" in x for x in 検出))
+    findings = validate.check_schema(write_file(d))
+    expect("$defs の欠落を検出する", any("$defs/rule/properties/source" in x for x in findings))
 
 
-def 空の案内を検出する() -> None:
-    d = 正本を読む()
+def detects_empty_prompt() -> None:
+    d = load_canonical()
     d["properties"]["layers"]["x-prompt"]["write"] = ""
-    検出 = validate.スキーマを検査する(書く(d))
-    検査("空文字を検出する", any("too short" in x for x in 検出))
+    findings = validate.check_schema(write_file(d))
+    expect("空文字を検出する", any("too short" in x for x in findings))
 
 
-def 片方だけの案内を検出する() -> None:
-    d = 正本を読む()
+def detects_half_prompt() -> None:
+    d = load_canonical()
     d["properties"]["layers"]["x-prompt"] = {"read": "読む"}
-    検出 = validate.スキーマを検査する(書く(d))
-    検査("write の欠落を検出する", any("write" in x for x in 検出))
+    findings = validate.check_schema(write_file(d))
+    expect("write の欠落を検出する", any("write" in x for x in findings))
 
 
-def 無効なスキーマを検出する() -> None:
-    d = 正本を読む()
+def detects_invalid_schema() -> None:
+    d = load_canonical()
     d["properties"]["layers"]["description"] = {"read": "オブジェクトにした"}
-    検出 = validate.スキーマを検査する(書く(d))
-    検査("スキーマとして無効なことを検出する", any("無効" in x for x in 検出))
+    findings = validate.check_schema(write_file(d))
+    expect("スキーマとして無効なことを検出する", any("無効" in x for x in findings))
 
 
-def 生成しない宣言なら通る() -> None:
-    d = copy.deepcopy(正本を読む())
+def passes_without_x_generates() -> None:
+    d = copy.deepcopy(load_canonical())
     d.pop("x-generates")
     d["properties"]["layers"].pop("x-prompt")
-    検査("x-generates が無ければ、案内を要求しない",
-        not validate.スキーマを検査する(書く(d)))
+    expect("x-generates が無ければ、案内を要求しない",
+        not validate.check_schema(write_file(d)))
 
 
 if __name__ == "__main__":
-    for f in (正本は案内を備える, 生成しないスキーマは要求されない, 案内の欠落を検出する,
-              空の案内を検出する, 片方だけの案内を検出する, 無効なスキーマを検出する,
-              生成しない宣言なら通る):
+    for f in (canonical_has_prompts, non_generating_exempt, detects_missing_prompt,
+              detects_empty_prompt, detects_half_prompt, detects_invalid_schema,
+              passes_without_x_generates):
         f()
-    print(f"案内の検査　{件} 件　通った")
+    print(f"案内の検査　{count} 件　通った")

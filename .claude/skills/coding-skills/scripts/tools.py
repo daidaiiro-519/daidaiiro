@@ -14,39 +14,39 @@ from lib import run as _run  # noqa: E402
 from lib import validate as _validate  # noqa: E402
 
 
-def check(根: str, 規則: str, 制限: str = "") -> dict:
+def check(root: str, rules: str, timeout: str = "") -> dict:
     """規則を全件実行し、終了コードで判定する。
 
     **出力は道具のまま渡す。** 件数の集計も、違反の並べ替えも実施しない。
     **読めないファイルは誤用である** ── 検出（違反が在る）と同じ番号で返さない。
     """
     try:
-        d = _run.検査する(pathlib.Path(根), pathlib.Path(規則),
-                         int(制限) if 制限 else _run.制限の既定)
+        d = _run.check_rules(pathlib.Path(root), pathlib.Path(rules),
+                         int(timeout) if timeout else _run.DEFAULT_TIMEOUT)
     except (OSError, ValueError) as e:
         return result(ok=False, findings=[f"規則ファイルを読めない ── {e}"],
-                      file=規則, kind="rules")
-    検出 = d.pop("findings")
-    return result(ok=True, findings=検出, **d)
+                      file=rules, kind="rules")
+    findings = d.pop("findings")
+    return result(ok=True, findings=findings, **d)
 
 
 def _human_check(res: dict) -> str:
     d = res["data"]
     if "rules" not in d:
         return "\n".join(res["findings"])
-    印 = {"pass": "合格　", "fail": "不合格", "skip": "実行せず"}
-    行 = [f'  {印[x["verdict"]]}　{x["name"]}' + (f'　（{x["reason"]}）' if x.get("reason") else "")
+    mark = {"pass": "合格　", "fail": "不合格", "skip": "実行せず"}
+    lines = [f'  {mark[x["verdict"]]}　{x["name"]}' + (f'　（{x["reason"]}）' if x.get("reason") else "")
           for x in d["rules"]]
     for x in d["rules"]:
         if x["verdict"] == "fail" and x["output"]:
-            行 += ["", f'── {x["name"]} の出力（道具のまま）', x["output"]]
+            lines += ["", f'── {x["name"]} の出力（道具のまま）', x["output"]]
     if not d["rules"]:
-        行.append("  規則が0件である ── 1件も検査していない")
-    行.append(f'\n合格 {d["pass"]} ／ 不合格 {d["fail"]} ／ 実行せず {d["skip"]}')
-    return "\n".join(行)
+        lines.append("  規則が0件である ── 1件も検査していない")
+    lines.append(f'\n合格 {d["pass"]} ／ 不合格 {d["fail"]} ／ 実行せず {d["skip"]}')
+    return "\n".join(lines)
 
 
-def _読めるか(p: pathlib.Path) -> str:
+def _unreadable(p: pathlib.Path) -> str:
     import json
     try:
         json.loads(p.read_text(encoding="utf-8"))
@@ -57,30 +57,30 @@ def _読めるか(p: pathlib.Path) -> str:
     return ""
 
 
-def validate(規則: str, 根: str = "") -> dict:
+def validate(rules: str, root: str = "") -> dict:
     """規則ファイルの形を検査する。**実行の前に見る。**
 
     根を渡すと、層の場所が実在するかも見る。
     **渡されたファイルの種類で、当てる契約が変わる** ── 規則 ・ 概念 ・ スキーマの3つ。
     入口を増やすと、呼ぶ側が形を推測することになる。
     """
-    p = pathlib.Path(規則)
-    誤り = _読めるか(p)
-    if 誤り:
-        return result(ok=False, findings=[誤り], file=規則, kind="rules")
-    if _スキーマのファイルか(p):
-        return result(ok=True, findings=_validate.スキーマを検査する(p),
-                      file=規則, kind="schema")
-    if _概念のファイルか(p):
-        return result(ok=True, findings=_validate.概念を検査する(p),
-                      file=規則, kind="concepts")
-    検出 = _validate.検査する(p)
-    if 根:
-        検出 += _validate.層を検査する(p, pathlib.Path(根))
-    return result(ok=True, findings=検出, file=規則, kind="rules")
+    p = pathlib.Path(rules)
+    problem = _unreadable(p)
+    if problem:
+        return result(ok=False, findings=[problem], file=rules, kind="rules")
+    if _is_schema_file(p):
+        return result(ok=True, findings=_validate.check_schema(p),
+                      file=rules, kind="schema")
+    if _is_concepts_file(p):
+        return result(ok=True, findings=_validate.check_concepts(p),
+                      file=rules, kind="concepts")
+    findings = _validate.check_rules(p)
+    if root:
+        findings += _validate.check_layers(p, pathlib.Path(root))
+    return result(ok=True, findings=findings, file=rules, kind="rules")
 
 
-def _スキーマのファイルか(p: pathlib.Path) -> bool:
+def _is_schema_file(p: pathlib.Path) -> bool:
     try:
         import json
         d = json.loads(p.read_text(encoding="utf-8"))
@@ -89,7 +89,7 @@ def _スキーマのファイルか(p: pathlib.Path) -> bool:
     return isinstance(d, dict) and "properties" in d and "rules" not in d and "concepts" not in d
 
 
-def _概念のファイルか(p: pathlib.Path) -> bool:
+def _is_concepts_file(p: pathlib.Path) -> bool:
     try:
         import json
         d = json.loads(p.read_text(encoding="utf-8"))
@@ -98,22 +98,22 @@ def _概念のファイルか(p: pathlib.Path) -> bool:
     return isinstance(d, dict) and "concepts" in d and "rules" not in d
 
 
-種類の語 = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
+KIND_LABEL = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
 """**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
 
 
 def _human_validate(res: dict) -> str:
-    名 = 種類の語[res["data"]["kind"]] + "ファイル"
-    return (f"{名}の検査　通った" if not res["findings"]
-            else f'{名}の検査　通っていない（{len(res["findings"])} 件）')
+    name = KIND_LABEL[res["data"]["kind"]] + "ファイル"
+    return (f"{name}の検査　通った" if not res["findings"]
+            else f'{name}の検査　通っていない（{len(res["findings"])} 件）')
 
 
 TOOLS = [
     Tool("check", "規則を全件実行し、終了コードで判定する",
-         [Arg("根", "成果物の場所"), Arg("規則", "規則ファイルのパス"),
-          Arg("制限", "1件あたりの制限時間（秒）", required=False)],
+         [Arg("root", "成果物の場所"), Arg("rules", "規則ファイルのパス"),
+          Arg("timeout", "1件あたりの制限時間（秒）", required=False)],
          run=check, human=_human_check),
     Tool("validate", "規則ファイルの形を検査する",
-         [Arg("規則", "規則ファイルのパス"), Arg("根", "成果物の場所（層の実在も見る）", required=False)],
+         [Arg("rules", "規則ファイルのパス"), Arg("root", "成果物の場所（層の宣言も見る）", required=False)],
          run=validate, human=_human_validate),
 ]
