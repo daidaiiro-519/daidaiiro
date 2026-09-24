@@ -18,25 +18,30 @@ def cat():
     return catalog()
 
 
-class Test目録は台帳と一致する:
-    def test_台帳の部品が全部載っている(self, cat):
+class TestCatalogMatchesRegistry:
+    """目録は台帳と一致する。"""
+    def test_every_registered_component_is_listed(self, cat):
+        """台帳の部品が全部載っている。"""
         assert sorted(cat["parts"]) == known_kinds()
 
-    def test_台帳の全部品に見本がある(self):
+    def test_every_component_has_an_example(self):
+        """台帳の全部品に見本がある。"""
         # 足りないと、その部品は一度も描かれないまま公開される
         assert sorted(EXAMPLES) == known_kinds()
 
-    def test_台帳に無い部品を引いたら名前を挙げて断る(self):
+    def test_unknown_component_is_refused_by_name(self):
+        """台帳に無い部品を引いたら名前を挙げて断る。"""
         with pytest.raises(KeyError) as e:
             props_of("知らない部品")
         assert "box" in str(e.value)
 
 
-class Test見本は目録の範囲に収まる:
+class TestExamplesStayWithinCatalog:
     """見本だけは手で書くので、ここがずれの入口になる。"""
 
     @pytest.mark.parametrize("kind", known_kinds())
-    def test_見本が目録に無い鍵を渡していない(self, kind, cat):
+    def test_examples_pass_no_key_outside_catalog(self, kind, cat):
+        """見本が目録に無い鍵を渡していない。"""
         entry = cat["parts"][kind]
         declared = set(entry["props"])
         if str(entry.get("forwards_to", "")).startswith("props:"):
@@ -47,17 +52,21 @@ class Test見本は目録の範囲に収まる:
         assert given <= declared, f"{kind}: 目録に無い鍵 {sorted(given - declared)}"
 
     @pytest.mark.parametrize("kind", known_kinds())
-    def test_必須の鍵が見本にそろっている(self, kind, cat):
+    def test_examples_carry_every_required_key(self, kind, cat):
+        """必須の鍵が見本にそろっている。"""
         need = {k for k, v in cat["parts"][kind]["props"].items() if v["required"]}
         assert need <= set(EXAMPLES[kind]), f"{kind}: 見本に足りない {sorted(need - set(EXAMPLES[kind]))}"
 
 
-class Test目録は使える形で出る:
-    def test_JSONにできる(self, cat):
+class TestCatalogIsUsable:
+    """目録は使える形で出る。"""
+    def test_serializes_to_json(self, cat):
+        """JSONにできる。"""
         # 利用側は言語を問わないので、文字列へ落とせなければ公開できていない
         json.loads(json.dumps(cat, ensure_ascii=False, default=str))
 
-    def test_宣言の必須の鍵が載っている(self, cat):
+    def test_declaration_required_keys_are_listed(self, cat):
+        """宣言の必須の鍵が載っている。"""
         d = cat["declaration"]
         assert d["nodes"]["id"]["required"]
         assert d["edges"]["from"]["required"] and d["edges"]["to"]["required"]
@@ -65,28 +74,33 @@ class Test目録は使える形で出る:
         # 入口の関数だけを走査すると欠落する鍵なので、名指しで縛る
         assert d["groups"]["members"]["required"]
 
-    def test_素通しする部品は渡し先を公開している(self, cat):
+    def test_pass_through_component_declares_its_target(self, cat):
+        """素通しする部品は渡し先を公開している。"""
         # 自分では読まない鍵を受け取れる部品は、渡し先を書かないと使えない
         assert cat["parts"]["pie"]["forwards_to"] == "donut"
         assert cat["parts"]["titled"]["forwards_to"] == "props:of"
         assert "centre" in cat["parts"]["pie"]["props"]
         assert "centre" not in cat["parts"]["pie"]["reads_itself"]
 
-    def test_置き方は2系統しかない(self, cat):
+    def test_only_two_placement_kinds_exist(self, cat):
+        """置き方は2系統しかない。"""
         kinds = {p["placement"] for p in cat["parts"].values()}
         assert kinds <= {"own-origin", "absolute"}
 
-    def test_範囲を持つトークンには範囲が載っている(self, cat):
+    def test_bounded_token_publishes_its_bounds(self, cat):
+        """範囲を持つトークンには範囲が載っている。"""
         assert cat["tokens"]["font.size"]["range"] == [8.0, 40.0]
 
-    def test_役割の一覧が引ける(self, cat):
+    def test_roles_can_be_listed(self, cat):
+        """役割の一覧が引ける。"""
         assert cat["roles"]["focus"]["color.box-stroke"] == "color.accent"
 
 
-class Test目録は主張の語彙を持たない:
+class TestCatalogHasNoClaimVocabulary:
     """「何を表せるか」は利用側の持ち物。目録が答えるのは「何を受け取れるか」だけ。"""
 
-    def test_主張の語彙が混ざっていない(self, cat):
+    def test_no_claim_vocabulary_leaks_in(self, cat):
+        """主張の語彙が混ざっていない。"""
         text = json.dumps(cat, ensure_ascii=False, default=str)
         for word in ("主張", "asserts", "Document", "Schema", "読み方"):
             assert word not in text, f"目録に利用側の語彙が混ざっている: {word}"

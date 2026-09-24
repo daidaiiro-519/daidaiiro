@@ -24,73 +24,83 @@ def _box(x, y, w=80, h=40):
 
 
 class TestTextChecks:
-    def test_重なった文字で鳴る(self):
+    def test_overlapping_text_is_reported(self):
+        """重なった文字で鳴る。"""
         assert any("重なる" in f for f in check(_svg(_text(10, 50, "あいうえお")
                                                      + _text(12, 52, "かきくけこ"))))
 
-    def test_離れた文字では鳴らない(self):
+    def test_separated_text_is_not_reported(self):
+        """離れた文字では鳴らない。"""
         assert check(_svg(_text(10, 50, "あいうえお") + _text(10, 120, "かきくけこ"))) == []
 
-    def test_画布の外へ出た文字で鳴る(self):
+    def test_text_outside_canvas_is_reported(self):
+        """画布の外へ出た文字で鳴る。"""
         assert any("画布の外" in f for f in check(_svg(_text(360, 50, "はみ出す文字列"))))
 
-    def test_変換で運ばれた先も見る(self):
+    def test_transformed_position_is_inspected(self):
         """祖先の translate を積まないと、この2つは離れて見えてしまう。"""
         inner = (f'<g transform="translate(0,0)">{_text(10, 50, "あいうえお")}</g>'
                  f'<g transform="translate(2,2)">{_text(10, 50, "かきくけこ")}</g>')
         assert any("重なる" in f for f in check(_svg(inner)))
 
-    def test_変換で離された文字では鳴らない(self):
+    def test_text_separated_by_transform_is_not_reported(self):
         """逆に、変換を積まないと偽の重なりを出す形。"""
         inner = (f'<g transform="translate(0,0)">{_text(10, 50, "あいうえお")}</g>'
                  f'<g transform="translate(0,100)">{_text(10, 50, "かきくけこ")}</g>')
         assert check(_svg(inner)) == []
 
-    def test_viewBoxが無ければそれ自体を破綻とする(self):
+    def test_missing_viewbox_is_itself_a_defect(self):
+        """viewBoxが無ければそれ自体を破綻とする。"""
         assert check('<svg xmlns="http://www.w3.org/2000/svg"></svg>') == ["viewBoxが無い"]
 
 
 class TestShapeChecks:
-    def test_重なった箱で鳴る(self):
+    def test_overlapping_boxes_are_reported(self):
+        """重なった箱で鳴る。"""
         assert "箱どうしが重なる" in check_shapes(_svg(_box(10, 10) + _box(50, 20)))
 
-    def test_離れた箱では鳴らない(self):
+    def test_separated_boxes_are_not_reported(self):
+        """離れた箱では鳴らない。"""
         assert check_shapes(_svg(_box(10, 10) + _box(200, 10))) == []
 
-    def test_箱を突っ切る線で鳴る(self):
+    def test_line_crossing_a_box_is_reported(self):
         """両端は箱の外にある。端点だけを標本にする検査はこれを見逃した。"""
         inner = _box(150, 80) + ('<path d="M20,100 L380,100" fill="none" '
                                  'stroke="#000" stroke-width="2"/>')
         assert "辺が箱を突っ切る" in check_shapes(_svg(inner))
 
-    def test_箱をよけた線では鳴らない(self):
+    def test_line_avoiding_boxes_is_not_reported(self):
+        """箱をよけた線では鳴らない。"""
         inner = _box(150, 80) + ('<path d="M20,20 L380,20" fill="none" '
                                  'stroke="#000" stroke-width="2"/>')
         assert check_shapes(_svg(inner)) == []
 
-    def test_箱につながる線は突っ切りとしない(self):
+    def test_line_attached_to_a_box_is_not_a_crossing(self):
         """始点が触れている箱は、その辺の相手なので除く。"""
         inner = _box(150, 80) + ('<path d="M170,100 L380,100" fill="none" '
                                  'stroke="#000" stroke-width="2"/>')
         assert check_shapes(_svg(inner)) == []
 
-    def test_中途半端に交差する囲みで鳴る(self):
+    def test_partially_intersecting_group_is_reported(self):
+        """中途半端に交差する囲みで鳴る。"""
         f1 = '<rect x="10" y="10" width="120" height="80" fill="none" stroke-dasharray="4"/>'
         f2 = '<rect x="80" y="40" width="120" height="80" fill="none" stroke-dasharray="4"/>'
         assert "囲みが中途半端に交差する" in check_shapes(_svg(f1 + f2))
 
-    def test_入れ子の囲みでは鳴らない(self):
+    def test_nested_groups_are_not_reported(self):
+        """入れ子の囲みでは鳴らない。"""
         f1 = '<rect x="10" y="10" width="200" height="150" fill="none" stroke-dasharray="4"/>'
         f2 = '<rect x="30" y="30" width="100" height="80" fill="none" stroke-dasharray="4"/>'
         assert check_shapes(_svg(f1 + f2)) == []
 
-    def test_囲みの線が中身に食い込むと鳴る(self):
+    def test_group_border_biting_into_content_is_reported(self):
         """余白が0だと、囲みの縁が中の箱の縁に乗る。囲めていない。"""
         frame = ('<rect x="20" y="20" width="80" height="40" fill="none" '
                  'stroke-dasharray="4" stroke-width="2"/>')
         assert "囲みの線が中身に重なる" in check_shapes(_svg(frame + _box(20, 20)))
 
-    def test_余白のある囲みでは鳴らない(self):
+    def test_group_with_padding_is_not_reported(self):
+        """余白のある囲みでは鳴らない。"""
         frame = ('<rect x="8" y="8" width="104" height="64" fill="none" '
                  'stroke-dasharray="4" stroke-width="2"/>')
         assert check_shapes(_svg(frame + _box(20, 20))) == []
@@ -115,27 +125,28 @@ class TestAttachmentChecks:
                     f'<path d="{edge_d}" fill="none" stroke="#000" stroke-width="{sw}"/>'
                     f'<g class="wf-node" transform="translate(100,100)">{node_svg}</g>')
 
-    def test_インクへ着いていれば鳴らない(self):
+    def test_endpoint_on_ink_is_not_reported(self):
+        """インクへ着いていれば鳴らない。"""
         node = '<rect x="0" y="0" width="60" height="30" fill="#eee"/>'
         assert check_attachment(self._fig(node, "M30,20 L100,100")) == []
 
-    def test_空白を指していれば鳴る(self):
+    def test_endpoint_on_blank_is_reported(self):
         """節点の外接矩形の中だが、インクは左半分にしか無い。"""
         node = '<rect x="0" y="0" width="20" height="30" fill="#eee"/>'
         faults = check_attachment(self._fig(node, "M30,20 L160,100"))
         assert any("着いていない" in f for f in faults)
 
-    def test_太い線の内側は着いているとみなす(self):
+    def test_inside_a_thick_stroke_counts_as_attached(self):
         """線の中心までは遠いが、線幅の半分ぶんで届いている。"""
         node = '<path d="M0,0 L60,0" fill="none" stroke="#000" stroke-width="24"/>'
         assert check_attachment(self._fig(node, "M30,20 L130,88")) == []
 
-    def test_標本の粗さで誤って鳴らない(self):
+    def test_sampling_coarseness_causes_no_false_report(self):
         """線分どうしで測らず点で測ると、標本の隙間に入った終端で誤検知する。"""
         node = '<path d="M0,0 L200,0" fill="none" stroke="#000" stroke-width="1"/>'
         assert check_attachment(self._fig(node, "M30,20 L143.7,100")) == []
 
-    def test_節点の印が無ければ何も言わない(self):
+    def test_says_nothing_without_node_markers(self):
         """節点が1つも無い図（装飾だけ）に対して、偽の指摘を出さない。"""
         assert check_attachment(_svg('<path d="M0,0 L10,10" fill="none" stroke="#000"/>')) == []
 
@@ -158,13 +169,14 @@ class TestComponentContract:
         return (min(x for x, _ in pts), min(y for _, y in pts),
                 max(x for x, _ in pts), max(y for _, y in pts))
 
-    def test_台帳の全部品に入力が用意されている(self, sample_props):
+    def test_every_registered_component_has_an_input(self, sample_props):
         """入力が無い部品は契約の試験を素通りする。素通りを試験で検出する。"""
         from svg_engine.registry import OwnOrigin, known_kinds
         missing = [k for k in known_kinds() if k not in sample_props]
         assert missing == [], f"conftest の sample_props に足りない: {missing}"
 
-    def test_インクが申告した大きさの中に収まる(self, sample_props, style):
+    def test_ink_fits_within_the_declared_size(self, sample_props, style):
+        """インクが申告した大きさの中に収まる。"""
         from svg_engine.registry import OwnOrigin, render_component
         out = []
         for kind, props in sample_props.items():
@@ -182,7 +194,7 @@ class TestComponentContract:
                            f"インク {x0:.1f},{y0:.1f}〜{x1:.1f},{y1:.1f}")
         assert out == [], "申告した大きさの外へインクが出ている: " + " / ".join(out)
 
-    def test_わざと外へ出せば鳴る(self, style):
+    def test_deliberate_overflow_is_reported(self, style):
         """この検査自身が機能していることを検証する。"""
         from svg_engine.registry import OwnOrigin
         r = OwnOrigin(svg='<rect x="-9" y="0" width="20" height="10"/>',

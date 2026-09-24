@@ -33,18 +33,21 @@ def _no_overlap(boxes: dict[str, tuple[float, float]],
 
 
 class TestRank:
-    def test_辺の向きに沿って層が下る(self):
+    def test_layers_descend_along_edge_direction(self):
+        """辺の向きに沿って層が下る。"""
         r = layout_graph(_sizes("a", "b", "c"), [("a", "b"), ("b", "c")], 40, 30)
         ys = [r.positions[k][1] for k in ("a", "b", "c")]
         assert ys[0] < ys[1] < ys[2]
 
-    def test_横向きにすると層は横へ下る(self):
+    def test_horizontal_mode_descends_sideways(self):
+        """横向きにすると層は横へ下る。"""
         r = layout_graph(_sizes("a", "b"), [("a", "b")], 40, 30, direction="LR")
         assert r.positions["a"][0] < r.positions["b"][0]
         assert r.positions["a"][1] == pytest.approx(r.positions["b"][1])
 
 
-    def test_層は辺の長さの総和が最小になるように決まる(self):
+    def test_layers_minimize_total_edge_length(self):
+        """層は辺の長さの総和が最小になるように決まる。"""
         # 長さの違う3本の道が1点へ合流する。層が構造から一意に決まらないので、
         # どこへ置くかに自由がある。短い道を上端へ寄せると辺が伸びる。
         edges = [("長1", "長2"), ("長2", "長3"), ("長3", "長4"), ("長4", "合"),
@@ -55,26 +58,29 @@ class TestRank:
         # どの辺も1層以上またぐので、総和は辺の本数を下回れない。等号＝最適。
         assert sum(rank[b] - rank[a] for a, b in edges) == len(edges)
 
-    def test_繋がっていない塊はそれぞれ独立に層が決まる(self):
+    def test_disconnected_components_get_their_own_layers(self):
+        """繋がっていない塊はそれぞれ独立に層が決まる。"""
         rank = _assign_ranks(["a", "b", "x", "y"], [("a", "b"), ("x", "y")])
         assert rank["a"] == rank["x"] == 0
         assert rank["b"] == rank["y"] == 1
 
 
 class TestCycle:
-    def test_輪になっていても解けて節点が重ならない(self):
+    def test_cycles_resolve_without_overlapping_nodes(self):
+        """輪になっていても解けて節点が重ならない。"""
         sizes = _sizes("a", "b", "c")
         r = layout_graph(sizes, [("a", "b"), ("b", "c"), ("c", "a")], 40, 30)
         assert len(r.positions) == 3
         assert _no_overlap(r.positions, sizes)
 
-    def test_自分へ戻る辺があっても解ける(self):
+    def test_self_edge_still_resolves(self):
+        """自分へ戻る辺があっても解ける。"""
         r = layout_graph(_sizes("a"), [("a", "a")], 40, 30)
         assert "a" in r.positions
 
 
 class TestMultiRankEdge:
-    def test_層を飛ぶ辺は途中に折れ点を持つ(self):
+    def test_layer_skipping_edge_gets_a_bend(self):
         """仮節点を経由するから、2点の直線ではなくなる。"""
         r = layout_graph(_sizes("a", "b", "c"),
                          [("a", "b"), ("b", "c"), ("a", "c")], 40, 30)
@@ -83,7 +89,8 @@ class TestMultiRankEdge:
 
 
 class TestNested:
-    def test_入れ子の群は外側が内側を完全に含む(self):
+    def test_nested_group_fully_contains_the_inner_one(self):
+        """入れ子の群は外側が内側を完全に含む。"""
         sizes = _sizes("a", "b", "c", "d")
         _, groups, _, _, _ = layout_nested(
             sizes, [("a", "b"), ("c", "d")],
@@ -96,7 +103,7 @@ class TestNested:
         assert outer.x + outer.width >= inner.x + inner.width
         assert outer.y + outer.height >= inner.y + inner.height
 
-    def test_入れ子でない重なりは黙って崩さず断る(self):
+    def test_non_nested_overlap_is_refused(self):
         """1つの節点が2つの群に半端に属す形は、この戦略では解けない。"""
         with pytest.raises(UnsupportedByStrategy):
             layout_nested(_sizes("a", "b", "c"), [],
@@ -107,7 +114,8 @@ class TestNested:
 
 
 class TestRadial:
-    def test_節点は同じ輪の上に等間隔で並ぶ(self):
+    def test_nodes_are_evenly_spaced_on_one_circle(self):
+        """節点は同じ輪の上に等間隔で並ぶ。"""
         sizes = _sizes("a", "b", "c", "d")
         r = layout_radial(sizes, [("a", "b"), ("b", "c"), ("c", "d"), ("d", "a")], 40, 30)
         cx = [r.positions[k][0] + SIZE[0] / 2 for k in sizes]
@@ -116,19 +124,20 @@ class TestRadial:
         radii = [((x - ox) ** 2 + (y - oy) ** 2) ** 0.5 for x, y in zip(cx, cy)]
         assert max(radii) - min(radii) < 1.0
 
-    def test_節点が大きいほど輪も大きい(self):
+    def test_bigger_nodes_give_a_bigger_circle(self):
         """半径を決め打ちしていないことを、大きさを変えて検証する。"""
         small = layout_radial({k: (40.0, 20.0) for k in "abcd"}, [], 40, 30)
         big = layout_radial({k: (200.0, 100.0) for k in "abcd"}, [], 40, 30)
         assert big.width > small.width
 
-    def test_どの大きさでも節点は重ならない(self):
+    def test_nodes_never_overlap_at_any_size(self):
+        """どの大きさでも節点は重ならない。"""
         for w, h in [(40.0, 20.0), (200.0, 100.0), (300.0, 30.0)]:
             sizes = {k: (w, h) for k in "abcde"}
             r = layout_radial(sizes, [], 40, 30)
             assert _no_overlap(r.positions, sizes)
 
-    def test_層状配置と同じ戻り値の形をしている(self):
+    def test_same_return_shape_as_layered(self):
         """戦略を差し替えられる、という主張の根拠。"""
         sizes = _sizes("a", "b")
         a = layout_graph(sizes, [("a", "b")], 40, 30)
@@ -136,7 +145,7 @@ class TestRadial:
         assert type(a) is type(b)
         assert set(a.positions) == set(b.positions)
 
-    def test_輪の並び順は宣言順でなく辺から決まる(self):
+    def test_circle_order_comes_from_edges_not_declaration(self):
         """宣言順に従うと、隣り合うべき節点が輪の反対側へ行き、
         絵はもつれた星になる。幾何的な破綻は出ないので検査は通ってしまう。"""
         keys = [f"n{i}" for i in range(8)]
@@ -157,7 +166,7 @@ class TestRadial:
             d = min(d, 2 * math.pi - d)
             assert d == pytest.approx(step, abs=step * 0.1)
 
-    def test_輪に並べきれない形は黙って歪めず断る(self):
+    def test_shape_that_cannot_fit_the_circle_is_refused(self):
         """1つの節点から3方向以上へ分かれる木は、輪の上に並べきれない。"""
         sizes = {"root": SIZE}
         edges = []
@@ -186,7 +195,8 @@ def _mindmap(branches: int, leaves: int = 3):
 
 
 class TestTree:
-    def test_根が中心に来る(self):
+    def test_root_is_at_the_center(self):
+        """根が中心に来る。"""
         sizes, edges = _mindmap(4)
         r = layout_tree(sizes, edges, 40, 30)
         cx = [r.positions[k][0] + SIZE[0] / 2 for k in sizes]
@@ -196,7 +206,7 @@ class TestTree:
         assert abs(rx - sum(cx) / len(cx)) < SIZE[0]
         assert abs(ry - sum(cy) / len(cy)) < SIZE[1]
 
-    def test_深いほど中心から遠い(self):
+    def test_deeper_nodes_are_farther_from_center(self):
         """深さを輪で表す、ということの座標での言い方。"""
         sizes, edges = _mindmap(4)
         r = layout_tree(sizes, edges, 40, 30)
@@ -210,13 +220,14 @@ class TestTree:
         assert max(dist(f"a{i}") for i in range(4)) < min(
             dist(f"b{i}{j}") for i in range(4) for j in range(3))
 
-    def test_節点は重ならない(self):
+    def test_nodes_do_not_overlap(self):
+        """節点は重ならない。"""
         for br in (2, 4, 10):
             sizes, edges = _mindmap(br)
             r = layout_tree(sizes, edges, 40, 30)
             assert _no_overlap(r.positions, sizes)
 
-    def test_枝を増やしても帯にならない(self):
+    def test_more_branches_do_not_form_a_band(self):
         """層状配置はここで細長い帯になる。放射木は正方形に近いまま。
 
         比べるのは形（縦横比）と大きさの向きだけで、何倍という数は置かない
@@ -231,24 +242,26 @@ class TestTree:
         assert graph_ratio > tree_ratio * 2      # 層状は明らかに細長い
         assert max(t.width, t.height) < max(g.width, g.height)
 
-    def test_輪になっていても解ける(self):
+    def test_cycles_still_resolve(self):
         """木に入らない辺があっても失敗しない。"""
         sizes = _sizes("a", "b", "c")
         r = layout_tree(sizes, [("a", "b"), ("b", "c"), ("c", "a")], 40, 30)
         assert len(r.positions) == 3
 
-    def test_根から届かない節点も置かれる(self):
+    def test_unreachable_nodes_are_placed_too(self):
+        """根から届かない節点も置かれる。"""
         sizes = _sizes("a", "b", "x")
         r = layout_tree(sizes, [("a", "b")], 40, 30)
         assert set(r.positions) == {"a", "b", "x"}
 
-    def test_層状配置と同じ戻り値の形をしている(self):
+    def test_same_return_shape_as_layered(self):
+        """層状配置と同じ戻り値の形をしている。"""
         sizes = _sizes("a", "b")
         assert type(layout_tree(sizes, [("a", "b")], 40, 30)) is type(
             layout_graph(sizes, [("a", "b")], 40, 30))
 
 
-class Testラベルの逃げ場:
+class TestLabelClearance:
     """層の間隔は、その間を通る辺のラベルが収まるだけ空ける。
 
     「ラベルどうしが重ならない」だけを性質にしていたため、逃げ場が足りるかを
@@ -267,18 +280,20 @@ class Testラベルの逃げ場:
             direction=direction)
         return check(svg) + check_shapes(svg) + check_attachment(svg)
 
-    def test_短いラベルは重ならない(self):
+    def test_short_labels_do_not_overlap(self):
+        """短いラベルは重ならない。"""
         assert self._faults("保証", "LR") == []
 
-    def test_層の間隔より長いラベルでも重ならない(self):
+    def test_labels_longer_than_layer_gap_do_not_overlap(self):
         """既定の層の間隔（48）より明らかに長いラベル。"""
         assert self._faults("何が成り立てばその概念かを言う", "LR") == []
 
-    def test_縦向きでも重ならない(self):
+    def test_vertical_mode_does_not_overlap(self):
+        """縦向きでも重ならない。"""
         assert self._faults("何が成り立てばその概念かを言う", "TB") == []
 
 
-class Test図の中に図:
+class TestNestedFigures:
     """図を部品として置く ── 決定「図を、部品として置けるようにする」の裏づけ。
 
     子図の中で守られている性質が入れ子にしても壊れないこと、親が子図の実際の
@@ -292,14 +307,14 @@ class Test図の中に図:
         from svg_engine.verify import check, check_attachment, check_shapes
         return check(svg) + check_shapes(svg) + check_attachment(svg)
 
-    def test_組み立ては器を被せない(self):
+    def test_assembly_adds_no_wrapper(self):
         """図が部品として使えるのは、器づけと分かれているから。"""
         from svg_engine.compose import figure_fragment
         r = figure_fragment([{"id": "a", "label": "A"}])
         assert "<svg" not in r.svg
         assert r.width > 0 and r.height > 0
 
-    def test_申告した大きさがインクを含む(self):
+    def test_declared_size_contains_the_ink(self):
         """部品に課している契約を、図も満たす。"""
         from svg_engine.compose import figure_fragment
         from svg_engine.geometry import sample_ink
@@ -311,14 +326,15 @@ class Test図の中に図:
         assert max(x for x, _ in pts) <= r.width + 1
         assert max(y for _, y in pts) <= r.height + 1
 
-    def test_子図を節点として置ける(self):
+    def test_child_figure_can_be_placed_as_a_node(self):
+        """子図を節点として置ける。"""
         from svg_engine.compose import render_figure
         svg = render_figure([{"id": "a", "label": "親"}, {"id": "b", "figure": self.CHILD}],
                             [{"from": "a", "to": "b"}])
         assert self._faults(svg) == []
         assert "子1" in svg and "子2" in svg
 
-    def test_深さに上限がある(self):
+    def test_nesting_depth_is_bounded(self):
         """層1 が「入れ子は深さに上限を置く」と定めている。"""
         import pytest
         from svg_engine.compose import render_figure
@@ -330,10 +346,11 @@ class Test図の中に図:
             render_figure([{"id": "a", "figure": deep}])
 
 
-class Test格子配置:
+class TestGridLayout:
     """座標のとおりに置く4つ目の戦略。"""
 
-    def test_座標のとおりに並ぶ(self):
+    def test_nodes_follow_the_given_coordinates(self):
+        """座標のとおりに並ぶ。"""
         from functools import partial
         from svg_engine.compose import render_figure
         from svg_engine.grid import layout_grid
@@ -343,7 +360,7 @@ class Test格子配置:
         svg = render_figure(nodes, [], layout=partial(layout_grid, at=at))
         assert check(svg) + check_shapes(svg) + check_attachment(svg) == []
 
-    def test_並びを渡せる(self):
+    def test_order_can_be_supplied(self):
         """見出しを端へ置くために、列と行の並びを外から決められる。"""
         from functools import partial
         from svg_engine.grid import layout_grid
@@ -354,13 +371,14 @@ class Test格子配置:
         assert left.positions["h"][0] < left.positions["a"][0]
         assert right.positions["h"][0] > right.positions["a"][0]
 
-    def test_座標の無い節点は拒む(self):
+    def test_node_without_coordinates_is_refused(self):
+        """座標の無い節点は拒む。"""
         import pytest
         from svg_engine.grid import layout_grid
         with pytest.raises(KeyError):
             layout_grid({"a": (10.0, 10.0)}, [], 10, 10, at={})
 
-    def test_鍵線は角を1つ挟む(self):
+    def test_elbow_edge_has_one_corner(self):
         """角の置き方で、辺がどの辺から出入りするかが変わる。"""
         from svg_engine.grid import layout_grid
         at = {"a": (0, 0), "b": (1, 1)}
@@ -375,7 +393,7 @@ class Test格子配置:
         # 横へ出てから降りる ── 角は出る側の横の位置を保つ
         assert across.edge_paths[0][1][1] == across.edge_paths[0][0][1]
 
-    def test_角が端と重なるなら挟まない(self):
+    def test_no_corner_when_it_coincides_with_an_end(self):
         """同じ点が2つ並ぶと向きが決まらず、辺の着き先が定まらない。"""
         from svg_engine.grid import layout_grid
         at = {"a": (0, 0), "b": (0, 1)}
@@ -384,7 +402,8 @@ class Test格子配置:
                         elbow={("a", "b"): "vertical"})
         assert len(r.edge_paths[0]) == 2
 
-    def test_辺に無いものを鍵線にできない(self):
+    def test_elbow_requires_an_existing_edge(self):
+        """辺に無いものを鍵線にできない。"""
         import pytest
         from svg_engine.grid import layout_grid
         at = {"a": (0, 0), "b": (1, 1)}
@@ -393,7 +412,8 @@ class Test格子配置:
             layout_grid(sizes, [("a", "b")], 10, 10, at=at,
                         elbow={("a", "c"): "vertical"})
 
-    def test_角の置き方は2つだけ(self):
+    def test_only_two_corner_orientations(self):
+        """角の置き方は2つだけ。"""
         import pytest
         from svg_engine.grid import layout_grid
         at = {"a": (0, 0), "b": (1, 1)}

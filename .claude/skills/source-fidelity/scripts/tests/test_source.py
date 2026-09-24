@@ -28,134 +28,162 @@ def doc(text):
     return d
 
 
-class 識別子として照合する(unittest.TestCase):
+class TestIdentifierMatching(unittest.TestCase):
     """語の文字 ＝ 英数と _ ＋ 照合する語自身が含む区切り文字。"""
 
-    def 当たるか(self, needle, text):
+    def hits(self, needle, text):
+        """hits。"""
         s = source.scan(doc(text), [needle], how="identifier")
         return bool(s.results[0].hits)
 
-    def test_同じ名前は当たる(self):
-        self.assertTrue(self.当たるか("tool_use_id", "field: tool_use_id"))
+    def test_same_name_hits(self):
+        """同じ名前は当たる。"""
+        self.assertTrue(self.hits("tool_use_id", "field: tool_use_id"))
 
-    def test_切り詰めた名前は当たらない(self):
-        self.assertFalse(self.当たるか("tool_use", "field: tool_use_id"))
+    def test_truncated_name_does_not_hit(self):
+        """切り詰めた名前は当たらない。"""
+        self.assertFalse(self.hits("tool_use", "field: tool_use_id"))
 
-    def test_接頭辞の付いた名前は当たらない(self):
-        self.assertFalse(self.当たるか("PostToolUse", "pre_PostToolUse"))
+    def test_prefixed_name_does_not_hit(self):
+        """接頭辞の付いた名前は当たらない。"""
+        self.assertFalse(self.hits("PostToolUse", "pre_PostToolUse"))
 
-    def test_日本語の文の中でも当たる(self):
-        self.assertTrue(self.当たるか("compact_summary", "項目名 compact_summary は圧縮の要約である"))
+    def test_hits_inside_japanese_sentence(self):
+        """日本語の文の中でも当たる。"""
+        self.assertTrue(self.hits("compact_summary", "項目名 compact_summary は圧縮の要約である"))
 
-    def test_英文の文末でも当たる(self):
-        self.assertTrue(self.当たるか("compact_summary", "the hook returns compact_summary."))
+    def test_hits_at_end_of_english_sentence(self):
+        """英文の文末でも当たる。"""
+        self.assertTrue(self.hits("compact_summary", "the hook returns compact_summary."))
 
-    def test_ドット区切りの鍵は丸ごとなら当たる(self):
-        self.assertTrue(self.当たるか("github.copilot.chat.otel.enabled",
+    def test_dotted_key_hits_when_whole(self):
+        """ドット区切りの鍵は丸ごとなら当たる。"""
+        self.assertTrue(self.hits("github.copilot.chat.otel.enabled",
                                       "鍵は github.copilot.chat.otel.enabled である"))
 
-    def test_ドット区切りの切れ端は当たらない(self):
-        self.assertFalse(self.当たるか("otel.enabled", "github.copilot.chat.otel.enabled"))
+    def test_dotted_fragment_does_not_hit(self):
+        """ドット区切りの切れ端は当たらない。"""
+        self.assertFalse(self.hits("otel.enabled", "github.copilot.chat.otel.enabled"))
 
-    def test_ハイフンの名前は当たる(self):
-        self.assertTrue(self.当たるか("user-agent", "the user-agent header"))
+    def test_hyphenated_name_hits(self):
+        """ハイフンの名前は当たる。"""
+        self.assertTrue(self.hits("user-agent", "the user-agent header"))
 
-    def test_ハイフンの名前の切れ端は当たらない(self):
-        self.assertFalse(self.当たるか("agent", "the user-agent header"))
+    def test_hyphenated_fragment_does_not_hit(self):
+        """ハイフンの名前の切れ端は当たらない。"""
+        self.assertFalse(self.hits("agent", "the user-agent header"))
 
-    def test_大文字小文字が違えば当たらない(self):
-        self.assertFalse(self.当たるか("compact_Summary", "項目名 compact_summary"))
+    def test_different_case_does_not_hit(self):
+        """大文字小文字が違えば当たらない。"""
+        self.assertFalse(self.hits("compact_Summary", "項目名 compact_summary"))
 
-    def test_記号に囲まれていても当たる(self):
-        self.assertTrue(self.当たるか("compact_summary", "`compact_summary` を参照する"))
+    def test_hits_when_surrounded_by_symbols(self):
+        """記号に囲まれていても当たる。"""
+        self.assertTrue(self.hits("compact_summary", "`compact_summary` を参照する"))
 
 
-class 引用として照合する(unittest.TestCase):
+class TestQuoteMatching(unittest.TestCase):
     """原文と1文字も違わず、続けて在ることを検査する。空白と改行だけ統一する。"""
 
-    def 当たるか(self, needle, text):
+    def hits(self, needle, text):
+        """hits。"""
         s = source.scan(doc(text), [needle], how="quote")
         return bool(s.results[0].hits)
 
-    def test_原文どおりの引用は当たる(self):
-        self.assertTrue(self.当たるか("圧縮の起こし方", "| trigger | 圧縮の起こし方 |"))
+    def test_verbatim_quote_hits(self):
+        """原文どおりの引用は当たる。"""
+        self.assertTrue(self.hits("圧縮の起こし方", "| trigger | 圧縮の起こし方 |"))
 
-    def test_語を除いた引用は当たらない(self):
-        self.assertFalse(self.当たるか("その場合に出る", "その場合にのみ出る"))
+    def test_quote_with_a_word_removed_does_not_hit(self):
+        """語を除いた引用は当たらない。"""
+        self.assertFalse(self.hits("その場合に出る", "その場合にのみ出る"))
 
-    def test_語を足した引用は当たらない(self):
-        self.assertFalse(self.当たるか("その場合にのみ出る", "その場合に出る"))
+    def test_quote_with_a_word_added_does_not_hit(self):
+        """語を足した引用は当たらない。"""
+        self.assertFalse(self.hits("その場合にのみ出る", "その場合に出る"))
 
-    def test_空白の数が違うだけなら当たる(self):
-        self.assertTrue(self.当たるか("trigger は manual", "trigger　は    manual である"))
+    def test_differing_space_count_still_hits(self):
+        """空白の数が違うだけなら当たる。"""
+        self.assertTrue(self.hits("trigger は manual", "trigger　は    manual である"))
 
-    def test_日本語が行で折り返されていても当たる(self):
+    def test_japanese_wrapped_across_lines_hits(self):
         """**日本語は、行の折り返しに空白を持たない。**圧縮した先に空白を作らない。"""
-        self.assertTrue(self.当たるか("圧縮の起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
+        self.assertTrue(self.hits("圧縮の起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
 
-    def test_圧縮規則は原文と引用の両方に同じものが適用される(self):
+    def test_same_space_rule_applies_to_source_and_quote(self):
         """引用側に空白が在っても無くても、同じに圧縮されるので一致する。"""
-        self.assertTrue(self.当たるか("圧縮の 起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
+        self.assertTrue(self.hits("圧縮の 起こし方", "見出し\n圧縮の\n起こし方\n次の行"))
 
-    def test_英語が行で折り返されていれば空白1つになる(self):
-        self.assertTrue(self.当たるか("the compact summary", "see\nthe compact\nsummary here"))
+    def test_wrapped_english_becomes_one_space(self):
+        """英語が行で折り返されていれば空白1つになる。"""
+        self.assertTrue(self.hits("the compact summary", "see\nthe compact\nsummary here"))
 
-    def test_日本語の間の空白は無いものとして扱う(self):
+    def test_space_between_japanese_is_ignored(self):
         """原文に空白が在っても、日本語どうしの間なら圧縮して無にする。"""
-        self.assertTrue(self.当たるか("圧縮の起こし方", "…圧縮の 起こし方…"))
+        self.assertTrue(self.hits("圧縮の起こし方", "…圧縮の 起こし方…"))
 
-    def test_英語の語の間の空白は消さない(self):
+    def test_space_between_english_words_is_kept(self):
         """圧縮するのは空白の連なりであって、空白そのものではない。"""
-        self.assertFalse(self.当たるか("compact summary", "the compactsummary here"))
+        self.assertFalse(self.hits("compact summary", "the compactsummary here"))
 
-    def test_日本語と英数字の間の空白は残る(self):
-        self.assertTrue(self.当たるか("圧縮の trigger", "…圧縮の\ntrigger…"))
+    def test_space_between_japanese_and_ascii_is_kept(self):
+        """日本語と英数字の間の空白は残る。"""
+        self.assertTrue(self.hits("圧縮の trigger", "…圧縮の\ntrigger…"))
 
-    def test_切れ端でも_続けて在れば当たる(self):
-        self.assertTrue(self.当たるか("起こし方", "圧縮の起こし方である"))
+    def test_fragment_hits_when_contiguous(self):
+        """切れ端でも、続けて在れば当たる。"""
+        self.assertTrue(self.hits("起こし方", "圧縮の起こし方である"))
 
 
-class 部分一致として照合する(unittest.TestCase):
+class TestTextMatching(unittest.TestCase):
     """探索のための種類。名前を付けて、明示して選ぶ。"""
 
-    def test_切り詰めた名前でも当たる(self):
+    def test_truncated_name_hits(self):
+        """切り詰めた名前でも当たる。"""
         s = source.scan(doc("field: tool_use_id"), ["tool_use"], how="text")
         self.assertTrue(s.results[0].hits)
 
-    def test_どの種類で照合したかが結果に残る(self):
+    def test_match_kind_is_recorded(self):
+        """どの種類で照合したかが結果に残る。"""
         s = source.scan(doc("field: tool_use_id"), ["tool_use"], how="text")
         self.assertEqual(s.results[0].how, "text")
 
 
-class 種類を渡さなければ止まる(unittest.TestCase):
-    def test_種類が無ければ例外(self):
+class TestKindIsRequired(unittest.TestCase):
+    """TestKindIsRequired。"""
+    def test_missing_kind_raises(self):
+        """種類が無ければ例外。"""
         with self.assertRaises(ValueError):
             source.scan(doc("x"), ["x"], how="")
 
-    def test_知らない種類なら例外(self):
+    def test_unknown_kind_raises(self):
+        """知らない種類なら例外。"""
         with self.assertRaises(ValueError):
             source.scan(doc("x"), ["x"], how="fuzzy")
 
 
-class 位置を保つ(unittest.TestCase):
+class TestPositions(unittest.TestCase):
     """連結しない。どのファイルの何行目かを提示できるようにする。"""
 
-    def test_ファイルと行番号が出る(self):
+    def test_file_and_line_are_reported(self):
+        """ファイルと行番号が出る。"""
         d = doc("1行目\n2行目\ncompact_summary\n4行目")
         s = source.scan(d, ["compact_summary"], how="identifier")
         hit = s.results[0].hits[0]
         self.assertEqual(hit.doc, "a.md")
         self.assertEqual(hit.line, 3)
 
-    def test_同じ行に2回あれば2件出る(self):
+    def test_twice_on_one_line_gives_two_hits(self):
+        """同じ行に2回あれば2件出る。"""
         s = source.scan(doc("a_b と a_b"), ["a_b"], how="identifier")
         self.assertEqual(len(s.results[0].hits), 2)
 
 
-class アンカーとの近さ(unittest.TestCase):
+class TestAnchorProximity(unittest.TestCase):
     """名前が在ることと、その名前がそこで使われることは別である。"""
 
-    def 二つのファイル(self):
+    def two_files(self):
+        """two_files。"""
         d = tempfile.mkdtemp()
         with open(os.path.join(d, "a.md"), "w", encoding="utf-8") as f:
             f.write("PostCompact input\n")
@@ -163,26 +191,30 @@ class アンカーとの近さ(unittest.TestCase):
             f.write("x\n" * 5 + "trigger\n")
         return d
 
-    def test_同じファイルで近ければ当たる(self):
+    def test_near_in_same_file_hits(self):
+        """同じファイルで近ければ当たる。"""
         d = doc("PostCompact input\ntrigger\n")
         s = source.scan(d, ["trigger"], how="identifier", near="PostCompact input", within=25)
         self.assertTrue(s.results[0].hits)
 
-    def test_別のファイルのアンカーには近いと言わない(self):
-        s = source.scan(self.二つのファイル(), ["trigger"], how="identifier",
+    def test_anchor_in_another_file_is_not_near(self):
+        """別のファイルのアンカーには近いと言わない。"""
+        s = source.scan(self.two_files(), ["trigger"], how="identifier",
                         near="PostCompact input", within=25)
         self.assertFalse(s.results[0].hits)
 
-    def test_同じファイルでも離れていれば当たらない(self):
+    def test_far_in_same_file_does_not_hit(self):
+        """同じファイルでも離れていれば当たらない。"""
         d = doc("PostCompact input\n" + "x\n" * 50 + "trigger\n")
         s = source.scan(d, ["trigger"], how="identifier", near="PostCompact input", within=10)
         self.assertFalse(s.results[0].hits)
 
 
-class 読めなかったものを黙って除外しない(unittest.TestCase):
+class TestUnreadableIsReported(unittest.TestCase):
     """0件は「無い」ではなく「読めた範囲には無い」である。"""
 
-    def test_読めないファイルは読めなかったとして出る(self):
+    def test_unreadable_file_is_reported_as_unread(self):
+        """読めないファイルは読めなかったとして出る。"""
         d = tempfile.mkdtemp()
         p = os.path.join(d, "c.md")
         with open(p, "w", encoding="utf-8") as f:
@@ -199,11 +231,13 @@ class 読めなかったものを黙って除外しない(unittest.TestCase):
             os.chmod(p, 0o644)
             shutil.rmtree(d, ignore_errors=True)
 
-    def test_全部読めたときだけ_無いと結論できる(self):
+    def test_absence_concluded_only_when_all_read(self):
+        """全部読めたときだけ、無いと結論できる。"""
         s = source.scan(doc("ほかの内容"), ["compact_summary"], how="identifier")
         self.assertTrue(s.can_conclude_absent)
 
-    def test_大きすぎるファイルも読めなかったとして出る(self):
+    def test_oversized_file_is_reported_as_unread(self):
+        """大きすぎるファイルも読めなかったとして出る。"""
         d = tempfile.mkdtemp()
         with open(os.path.join(d, "big.md"), "w", encoding="utf-8") as f:
             f.write("x" * 200)
@@ -212,19 +246,23 @@ class 読めなかったものを黙って除外しない(unittest.TestCase):
         self.assertFalse(s.can_conclude_absent)
 
 
-class 取得するときの判定(unittest.TestCase):
+class TestFetchVerdict(unittest.TestCase):
     """HTML しか返らない頁も、原文として残す。"""
 
-    def test_マークダウンは受け取る(self):
+    def test_markdown_is_accepted(self):
+        """マークダウンは受け取る。"""
         self.assertTrue(source.acceptable("200", "text/markdown", 120))
 
-    def test_HTMLも受け取る(self):
+    def test_html_is_accepted(self):
+        """HTMLも受け取る。"""
         self.assertTrue(source.acceptable("200", "text/html; charset=utf-8", 120))
 
-    def test_404は受け取らない(self):
+    def test_404_is_rejected(self):
+        """404は受け取らない。"""
         self.assertFalse(source.acceptable("404", "text/html", 120))
 
-    def test_中身が空なら受け取らない(self):
+    def test_empty_body_is_rejected(self):
+        """中身が空なら受け取らない。"""
         self.assertFalse(source.acceptable("200", "text/markdown", 0))
 
 

@@ -37,29 +37,35 @@ def attrs(h):
     return re.findall(r'<mark class="chg"[^>]*data-b="([^"]*)"[^>]*data-w="([^"]*)"', h)
 
 
-class 印を付ける(unittest.TestCase):
-    def test_見つけた語に付く(self):
+class TestMarking(unittest.TestCase):
+    """TestMarking。"""
+    def test_marks_the_found_word(self):
+        """見つけた語に付く。"""
         out = mark("<p>あいうえお</p>", [{"find": "いう", "before": "旧", "why": "理由"}])
         self.assertIn('data-b="旧"', out)
         self.assertIn(">いう</mark>", out)
 
-    def test_本文は変わらない(self):
+    def test_body_text_is_unchanged(self):
+        """本文は変わらない。"""
         out = mark("<p>あいうえお</p>", [{"find": "いう", "before": "旧", "why": "理由"}])
         self.assertEqual(re.sub(r"<[^>]+>", "", out), "あいうえお")
 
-    def test_一致しない語は報告する(self):
+    def test_reports_unmatched_words(self):
+        """一致しない語は報告する。"""
         self.assertIn("一致せず", log("<p>あ</p>", [{"find": "無い語", "before": "x", "why": "y"}]))
 
-    def test_コードの中にしかない語には付かない(self):
+    def test_word_only_inside_code_is_not_marked(self):
+        """コードの中にしかない語には付かない。"""
         h = "<pre>いう</pre><p>あお</p>"
         out = mark(h, [{"find": "いう", "before": "旧", "why": "理由"}])
         self.assertNotIn("<mark", out)
 
 
-class 印が_別の印の中へ入らない(unittest.TestCase):
+class TestMarksDoNotNest(unittest.TestCase):
     """**今日、実際に壊れた形である。**"""
 
-    def test_理由文に次の語が含まれていても_属性の中に入らない(self):
+    def test_reason_containing_next_word_stays_out_of_attributes(self):
+        """理由文に次の語が含まれていても、属性の中に入らない。"""
         h = "<p>先の箇所と、後の箇所がある。</p>"
         ms = [
             {"find": "先の箇所", "before": "旧1", "why": "ここに 後の箇所 という語が入っている"},
@@ -72,7 +78,8 @@ class 印が_別の印の中へ入らない(unittest.TestCase):
             self.assertNotIn("<mark", b)
             self.assertNotIn("<mark", w)
 
-    def test_変更前の文に次の語が含まれていても_属性の中に入らない(self):
+    def test_before_text_containing_next_word_stays_out_of_attributes(self):
+        """変更前の文に次の語が含まれていても、属性の中に入らない。"""
         h = "<p>甲と乙がある。</p>"
         ms = [
             {"find": "甲", "before": "むかしは 乙 と書いていた", "why": "理由1"},
@@ -82,7 +89,8 @@ class 印が_別の印の中へ入らない(unittest.TestCase):
         self.assertEqual(len(attrs(out)), 2)
         self.assertNotIn('<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="むかしは <mark', out)
 
-    def test_付いた数が報告と合う(self):
+    def test_mark_count_matches_report(self):
+        """付いた数が報告と合う。"""
         h = "<p>甲と乙がある。</p>"
         ms = [
             {"find": "甲", "before": "乙", "why": "理由1"},
@@ -93,8 +101,10 @@ class 印が_別の印の中へ入らない(unittest.TestCase):
         self.assertEqual(out.count('<mark class="chg"'), 2)
 
 
-class 位置が重なる印(unittest.TestCase):
-    def test_同じ語を2度指したら_報告して除外する(self):
+class TestOverlappingMarks(unittest.TestCase):
+    """TestOverlappingMarks。"""
+    def test_same_word_twice_is_reported_and_dropped(self):
+        """同じ語を2度指したら、報告して除外する。"""
         h = "<p>あいうえお</p>"
         ms = [
             {"find": "いう", "before": "旧1", "why": "理由1"},
@@ -104,7 +114,8 @@ class 位置が重なる印(unittest.TestCase):
         self.assertEqual(out.count('<mark class="chg"'), 1)
         self.assertIn("重なる", log(h, ms))
 
-    def test_一方が他方を含んでいたら_報告して除外する(self):
+    def test_containing_mark_is_reported_and_dropped(self):
+        """一方が他方を含んでいたら、報告して除外する。"""
         h = "<p>あいうえお</p>"
         ms = [
             {"find": "あいうえ", "before": "旧1", "why": "理由1"},
@@ -115,8 +126,10 @@ class 位置が重なる印(unittest.TestCase):
         self.assertIn("重なる", log(h, ms))
 
 
-class 順序に依らない(unittest.TestCase):
-    def test_渡す順を変えても同じ結果になる(self):
+class TestOrderIndependence(unittest.TestCase):
+    """TestOrderIndependence。"""
+    def test_input_order_does_not_change_result(self):
+        """渡す順を変えても同じ結果になる。"""
         h = "<p>甲と乙がある。</p>"
         a = {"find": "甲", "before": "旧1", "why": "理由1"}
         b = {"find": "乙", "before": "旧2", "why": "理由2"}

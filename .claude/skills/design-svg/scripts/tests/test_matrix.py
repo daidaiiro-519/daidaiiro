@@ -16,13 +16,14 @@ CASES = cases()
 
 @pytest.mark.parametrize("scale,name,build",
                          CASES, ids=[f"{s}-{n}" for s, n, _ in CASES])
-def test_破綻していない(scale, name, build):
+def test_geometry_is_sound(scale, name, build):
+    """破綻していない。"""
     svg = build()
     faults = check(svg) + check_shapes(svg) + check_attachment(svg)
     assert faults == [], f"[{scale}] {name}: " + " / ".join(dict.fromkeys(faults))
 
 
-def test_宣言した語が絵に出る():
+def test_declared_words_appear_in_the_drawing():
     """仕様が必須と定めた欄が、変換で欠落していないこと。
 
     幾何の検査では見つからない ── 欄が欠落しても、重なりもはみ出しも起きない。

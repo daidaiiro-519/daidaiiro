@@ -60,15 +60,17 @@ def _imports(tree: ast.Module) -> set[str]:
     return out
 
 
-class Test規約1_層:
+class TestRule1Layers:
     """下から上を呼ばない。層を飛ばさない。"""
 
-    def test_全てのモジュールが層に配分されている(self):
+    def test_every_module_is_assigned_to_a_layer(self):
+        """全てのモジュールが層に配分されている。"""
         # 配分の漏れがあると、そのモジュールだけ検査の外に出る
         known = set(LAYER) | ORTHOGONAL | {"__main__"}
         assert set(_modules()) <= known, f"層の配分が無い: {sorted(set(_modules()) - known)}"
 
-    def test_下から上を呼ばない(self):
+    def test_lower_layers_do_not_call_upper_ones(self):
+        """下から上を呼ばない。"""
         bad = []
         for name, tree in _modules().items():
             if name not in LAYER:
@@ -78,7 +80,8 @@ class Test規約1_層:
                     bad.append(f"{name}(層{LAYER[name]}) → {dep}(層{LAYER[dep]})")
         assert not bad, "下から上への呼び出し: " + " / ".join(bad)
 
-    def test_土台は誰も呼ばない(self):
+    def test_the_base_calls_nobody(self):
+        """土台は誰も呼ばない。"""
         # 層0が層1以上を呼ぶと、土台が方針を知ることになる
         for name, tree in _modules().items():
             if LAYER.get(name) != 0:
@@ -86,7 +89,8 @@ class Test規約1_層:
             up = {d for d in _imports(tree) if LAYER.get(d, 0) > 0}
             assert not up, f"{name}(層0) が上を呼んでいる: {sorted(up)}"
 
-    def test_依存に循環が無い(self):
+    def test_no_dependency_cycles(self):
+        """依存に循環が無い。"""
         trees = _modules()
         dep = {n: {d for d in _imports(t) if d in trees} for n, t in trees.items()}
         settled: set[str] = set()
@@ -95,10 +99,11 @@ class Test規約1_層:
         assert settled == set(dep), f"循環に含まれる: {sorted(set(dep) - settled)}"
 
 
-class Test規約3_契約の所有者:
+class TestRule3ContractOwnership:
     """契約は中立が所有し、実装が所有しない。"""
 
-    def test_配置戦略が共有する契約を実装が持たない(self):
+    def test_implementations_do_not_own_the_shared_layout_contract(self):
+        """配置戦略が共有する契約を実装が持たない。"""
         # 以前は層状配置が戻り値の型を持ち、他の3戦略と合成が借りていた。
         # 実装の1つが所有すると、その実装を差し替える判断が借り手を巻き込む。
         owners = {n for n, t in _modules().items()
@@ -107,14 +112,15 @@ class Test規約3_契約の所有者:
                   and node.name in ("LayoutResult", "UnsupportedByStrategy")}
         assert owners == {"layout_contract"}, f"契約を持っているのは {sorted(owners)}"
 
-    def test_戦略は互いを知らない(self):
+    def test_strategies_do_not_know_each_other(self):
+        """戦略は互いを知らない。"""
         strategies = {"sugiyama", "radial", "tree", "grid"}
         for name in strategies:
             others = _imports(_modules()[name]) & (strategies - {name})
             assert not others, f"{name} が他の戦略を呼んでいる: {sorted(others)}"
 
 
-class Test規約_語彙:
+class TestRuleVocabulary:
     """このエンジンの契約は「構造化データを受け取る」ことだけ。
 
     受け取ったデータが何を意味するか・何を言いたいかは呼ぶ側が決める。だから
@@ -133,7 +139,8 @@ class Test規約_語彙:
     # ── 誤検出する検査は無いより悪い。
     FORBIDDEN = ("Waffle", "waffle", "主張", "asserts", "ユビキタス")
 
-    def test_配る側は呼ぶ側の語彙を持たない(self):
+    def test_the_engine_holds_no_caller_vocabulary(self):
+        """配る側は呼ぶ側の語彙を持たない。"""
         bad = []
         for p in sorted(_ENGINE.glob("*.py")):
             body = p.read_text(encoding="utf-8")
@@ -143,7 +150,7 @@ class Test規約_語彙:
         assert not bad, "呼ぶ側の語彙が残っている: " + " / ".join(bad)
 
 
-class Test規約2_層は飛ばせない:
+class TestRule2LayersCannotBeSkipped:
     """選んだ戦略が、途中の経路で黙って捨てられないこと。
 
     かつては捨てられていた ── 群を渡すと、呼び出し側が選んだ配置戦略が例外も
@@ -154,7 +161,8 @@ class Test規約2_層は飛ばせない:
     自体は正しく、届いていないことが問題だった。だから届くことを縛る。
     """
 
-    def test_群があっても選んだ戦略が使われる(self):
+    def test_chosen_strategy_is_used_even_with_groups(self):
+        """群があっても選んだ戦略が使われる。"""
         from svg_engine.compose import figure_fragment
         from svg_engine.sugiyama import layout_graph
 
@@ -171,7 +179,8 @@ class Test規約2_層は飛ばせない:
             layout=spy)
         assert called, "群を渡すと、選んだ戦略が使われずに捨てられている"
 
-    def test_群が無いときも同じ戦略が使われる(self):
+    def test_same_strategy_is_used_without_groups(self):
+        """群が無いときも同じ戦略が使われる。"""
         from svg_engine.compose import figure_fragment
         from svg_engine.sugiyama import layout_graph
 
@@ -185,7 +194,7 @@ class Test規約2_層は飛ばせない:
         assert called
 
 
-class Test規約_値の出どころ:
+class TestRuleValueOrigin:
     """コードに現れる数値は、設計上の選択かデータから決まる量のどちらかである。
 
     3種目 ── 勘で置いた閾値 ── は存在してはいけない。残すと、図ごとにその数字を
@@ -195,14 +204,15 @@ class Test規約_値の出どころ:
     書いてあるだけの規約は守られない、という今日いちばん高くついた教訓の実物である。
     """
 
-    def test_勘で置いた数値が残っていない(self):
+    def test_no_guessed_numbers_remain(self):
+        """勘で置いた数値が残っていない。"""
         from svg_engine.lint_values import findings
         found = findings()
         assert not found, "値の出どころが不明な数値: " + " / ".join(
             f"{f[0]}:{f[1]} {f[3][:40]}" for f in found[:8])
 
 
-class Test規約2_置き方は型:
+class TestRule2PlacementKinds:
     """描く時点が「置く前」か「置いた後」かを、フラグではなく型で持つ。
 
     かつては placement という文字列の申告だった。文字列だと3つ目の値を書けて
@@ -210,11 +220,13 @@ class Test規約2_置き方は型:
     2つの型に分ければ、取り違えが構造として起きない。
     """
 
-    def test_置き方は2つの型しかない(self):
+    def test_only_two_placement_kinds(self):
+        """置き方は2つの型しかない。"""
         from svg_engine.registry import Absolute, Fragment, OwnOrigin
         assert {c.__name__ for c in Fragment.__subclasses__()} == {"OwnOrigin", "Absolute"}
 
-    def test_絶対座標の部品は節点として置けない(self):
+    def test_absolute_component_cannot_be_a_node(self):
+        """絶対座標の部品は節点として置けない。"""
         from svg_engine.registry import render_node
         from svg_engine.style import resolve_style
         from svg_engine.catalog import EXAMPLES
@@ -222,13 +234,15 @@ class Test規約2_置き方は型:
             render_node("edge", EXAMPLES["edge"], resolve_style())
         assert "edge" in str(e.value)
 
-    def test_自分の原点で描く部品は節点として置ける(self):
+    def test_own_origin_component_can_be_a_node(self):
+        """自分の原点で描く部品は節点として置ける。"""
         from svg_engine.registry import OwnOrigin, render_node
         from svg_engine.style import resolve_style
         from svg_engine.catalog import EXAMPLES
         assert isinstance(render_node("box", EXAMPLES["box"], resolve_style()), OwnOrigin)
 
-    def test_申告した大きさにインクが収まるのは自分の原点の側だけ(self):
+    def test_only_own_origin_components_fit_their_declared_size(self):
+        """申告した大きさにインクが収まるのは自分の原点の側だけ。"""
         # 絶対座標の断片は、大きさが器ではなく広がりの記録でしかないので、
         # この性質を課しても意味が無い。型が「どちらに課すか」を持つ。
         from svg_engine.registry import Absolute, OwnOrigin
@@ -236,8 +250,10 @@ class Test規約2_置き方は型:
         assert "課さない" in (Absolute.__doc__ or "")
 
 
-class Test部品の契約:
-    def test_部品はSVGのルートを返さない(self):
+class TestComponentContract:
+    """部品の契約。"""
+    def test_component_returns_no_svg_root(self):
+        """部品はSVGのルートを返さない。"""
         # ルートを持つと、他の部品と合成したとき二重の svg / viewBox が生まれる
         style = resolve_style()
         for kind in known_kinds():
@@ -245,7 +261,8 @@ class Test部品の契約:
             assert "<svg" not in r.svg, f"{kind} がルートタグを返している"
 
     @pytest.mark.parametrize("kind", known_kinds())
-    def test_部品は決定的(self, kind):
+    def test_component_is_deterministic(self, kind):
+        """部品は決定的。"""
         # 同じ入力から常に同じ出力。乱数も時刻も使わない
         style = resolve_style()
         first = render_component(kind, EXAMPLES[kind], style)

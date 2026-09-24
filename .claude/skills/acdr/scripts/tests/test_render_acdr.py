@@ -49,7 +49,8 @@ def minimal(folder: pathlib.Path, doc: pathlib.Path) -> None:
 
 
 class Template(unittest.TestCase):
-    def test_雛形から起こせる(self):
+    def test_creates_from_template(self):
+        """雛形から起こせる。"""
         with tempfile.TemporaryDirectory() as d:
             got = run("new", os.path.join(d, "0007-ためし"), "ためしの決定")
             self.assertEqual(got.returncode, 0, got.stderr)
@@ -59,7 +60,8 @@ class Template(unittest.TestCase):
             self.assertEqual(spec["no"], "ACDR 0007")
             self.assertEqual(spec["status"], "proposed")
 
-    def test_同じ名前では起こさない(self):
+    def test_refuses_existing_name(self):
+        """同じ名前では起こさない。"""
         with tempfile.TemporaryDirectory() as d:
             run("new", os.path.join(d, "0007-ためし"), "甲")
             got = run("new", os.path.join(d, "0007-ためし"), "乙")
@@ -67,7 +69,8 @@ class Template(unittest.TestCase):
 
 
 class Validate(unittest.TestCase):
-    def test_欠けた欄で止まる(self):
+    def test_missing_field_stops_it(self):
+        """欠けた欄で止まる。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -80,7 +83,8 @@ class Validate(unittest.TestCase):
             self.assertNotEqual(got.returncode, 0)
             self.assertIn("why", got.stderr)
 
-    def test_三つ組が欠けた変更で止まる(self):
+    def test_change_without_the_triple_stops_it(self):
+        """三つ組が欠けた変更で止まる。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -93,7 +97,8 @@ class Validate(unittest.TestCase):
             self.assertNotEqual(got.returncode, 0)
             self.assertIn("3つ組", got.stderr)
 
-    def test_状態は三つだけ(self):
+    def test_only_three_states(self):
+        """状態は三つだけ。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -106,7 +111,8 @@ class Validate(unittest.TestCase):
 
 
 class Idempotent(unittest.TestCase):
-    def test_二度組んで同じものが出る(self):
+    def test_building_twice_gives_the_same_output(self):
+        """二度組んで同じものが出る。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -118,7 +124,8 @@ class Idempotent(unittest.TestCase):
             self.assertEqual(first, (f / "index.html").read_text(encoding="utf-8"))
             self.assertEqual(build(f, "--check", "1").returncode, 0)
 
-    def test_実行場所に依存しない(self):
+    def test_independent_of_working_directory(self):
+        """実行場所に依存しない。"""
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as other:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -129,7 +136,8 @@ class Idempotent(unittest.TestCase):
             build(f, cwd=other)
             self.assertEqual(first, (f / "index.html").read_text(encoding="utf-8"))
 
-    def test_中身が変われば差が出る(self):
+    def test_changed_content_changes_output(self):
+        """中身が変われば差が出る。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -143,7 +151,8 @@ class Idempotent(unittest.TestCase):
 
 
 class Code(unittest.TestCase):
-    def test_コードは行の単位で印が付く(self):
+    def test_code_is_marked_per_line(self):
+        """コードは行の単位で印が付く。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.py"
@@ -162,7 +171,8 @@ class Code(unittest.TestCase):
             self.assertIn('<td class="ln">5</td>', out)
             self.assertEqual(out.count('<mark class="chg"'), 1)
 
-    def test_言語ごとに印が変わる(self):
+    def test_marks_differ_per_language(self):
+        """言語ごとに印が変わる。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.json"
@@ -175,7 +185,8 @@ class Code(unittest.TestCase):
             out = (f / "index.html").read_text(encoding="utf-8")
             self.assertIn('data-lang="json"', out)
 
-    def test_コードの面も押せるように配線される(self):
+    def test_code_view_is_wired_to_be_clickable(self):
+        """コードの面も押せるように配線される。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.py"
@@ -191,7 +202,8 @@ class Code(unittest.TestCase):
             self.assertIn('tr.className = "poprow"', out)
             self.assertIn("td.colSpan = row.children.length", out)
 
-    def test_コード以外の拡張子はコードとして扱わない(self):
+    def test_non_code_extension_is_not_treated_as_code(self):
+        """コード以外の拡張子はコードとして扱わない。"""
         from lib.code_diff import is_code
         self.assertTrue(is_code(".py"))
         self.assertTrue(is_code(".GO"))
@@ -200,7 +212,8 @@ class Code(unittest.TestCase):
 
 
 class Diff(unittest.TestCase):
-    def test_まとまりを組む(self):
+    def test_groups_adjacent_changes(self):
+        """まとまりを組む。"""
         from lib.code_diff import hunks
         old = list("abcdefghi")
         new = list("abcDefghi")
@@ -208,7 +221,8 @@ class Diff(unittest.TestCase):
         self.assertEqual(len(hs), 1)
         self.assertEqual([m for _, _, m, _ in hs[0]], [" ", " ", " ", "-", "+", " ", " ", " "])
 
-    def test_離れた変更は別のまとまりになる(self):
+    def test_distant_changes_form_separate_groups(self):
+        """離れた変更は別のまとまりになる。"""
         from lib.code_diff import hunks
         old = [str(i) for i in range(40)]
         new = list(old)
@@ -216,7 +230,8 @@ class Diff(unittest.TestCase):
         new[30] = "乙"
         self.assertEqual(len(hunks(old, new)), 2)
 
-    def test_理由の欠けを数える(self):
+    def test_counts_missing_reasons(self):
+        """理由の欠けを数える。"""
         from lib.code_diff import render_diff
         old = "a\nb\nc\n"
         new = "a\n甲\nc\n"
@@ -231,7 +246,8 @@ class Diff(unittest.TestCase):
 
 
 class Seal(unittest.TestCase):
-    def test_承認済みは封印される(self):
+    def test_accepted_record_is_sealed(self):
+        """承認済みは封印される。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
@@ -244,7 +260,8 @@ class Seal(unittest.TestCase):
             sealed = json.loads((f / "acdr.json").read_text(encoding="utf-8")).get("seal")
             self.assertTrue(sealed)
 
-    def test_対象が変化したら組み直しを拒否する(self):
+    def test_refuses_rebuild_when_target_changed(self):
+        """対象が変化したら組み直しを拒否する。"""
         with tempfile.TemporaryDirectory() as d:
             f = pathlib.Path(d)
             doc = f / "対象.md"
