@@ -4,1268 +4,852 @@
   "1": {
    "note": [
     [
-     ""
+     "<b>承認された（2026-09-23）。</b>下流の論点2 と 論点3 が、この答えを前提にしている。"
     ]
    ],
    "pick": [
     [
-     "<b>規則が保持するのは3つだけである。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li><b class=\"lead-s\">出典</b><div class=\"sub-s\">原典の所在 ・ 版 ・ 引用文字列</div></li><li><b class=\"lead-s\">採用範囲</b><div class=\"sub-s\">原典のどの記述を採用したか</div></li><li><b class=\"lead-s\">検証方法</b><div class=\"sub-s\">違反を判定する手段</div></li><li><b class=\"lead-s\">主張そのものは保持しない</b><div class=\"sub-s\">主張は原典が持つ。こちら側が足す唯一の要素が検証方法であり、それは主張ではなく観測手段である</div></li></ul></div></details>"
+     "<b>手法はポートとアダプタを採る。内側は、変更理由が同じものをまとめ、違うものを分ける。</b><details class=\"why-in\"><summary>この答えを導いたもの（11件）</summary><div><ul><li><b class=\"lead-s\">手法はポートとアダプタである</b><div class=\"sub-s\">内側と外側に分け、境界の定義は内側が持つ。要素が2つなので、検査も依存の向き1本で済む</div></li><li><b class=\"lead-s\">ポートとアダプタが防ぐのは1種類だけ</b><div class=\"sub-s\">外部の技術が内側へ染み出すこと。内側の腐敗は防がない</div><details class=\"why-in\"><summary>防がないもの（3件）</summary><div><ul><li><b class=\"lead-s\">内側に3000行の1関数があっても成立する</b><div class=\"sub-s\">分け方は基準の側が決める</div></li><li><b class=\"lead-s\">実装が1つしかないインターフェースが増える</b><div class=\"sub-s\">作る条件を決めないと量産する</div></li><li><b class=\"lead-s\">1つの関数の中で責務を混ぜる ・ 分けずにフラグ引数を足す</b><div class=\"sub-s\">境界の外で起きる</div></li></ul></div></details></li><li><b class=\"lead-s\">ポートを作る条件は2つで、どちらかを満たすときだけ作る</b><div class=\"sub-s\">実装が2つ以上あり得るか、テストで差し替えるか</div></li><li><b class=\"lead-s\">クリーン ・ オニオン ・ レイヤードは選ばない</b><div class=\"sub-s\">同じ目的の別表現だと原典が書いている。流派を選ぶ議論をしない</div></li><li><b class=\"lead-s\">DDD の語彙は、業務に状態と規則があるときだけ足す</b><div class=\"sub-s\">エンティティ ・ 値 ・ 集約。無い対象には足さない</div></li><li><b class=\"lead-s\">分ける単位は、変更理由である</b><div class=\"sub-s\">原典がそう書いている</div></li><li><b class=\"lead-s\">名前は、その単位に付ける</b><div class=\"sub-s\">単位が決まってから名前が決まる。逆ではない</div></li><li><b class=\"lead-s\">層は、依存してよい先で決まる</b><div class=\"sub-s\">層名を先に決めて、そこへ概念を割り当てない</div></li><li><b class=\"lead-s\">仕様は決めない</b><div class=\"sub-s\">何を作るか ・ どう振る舞うかは利用者が持つ。こちらが決めるのは分け方だけである</div></li><li><b class=\"lead-s\">書くのは、分け方に迷うときだけ</b><div class=\"sub-s\">1行足すだけなら書かない</div></li><li><b class=\"lead-s\">採用したら、採用したと書く</b><div class=\"sub-s\">暗黙の前提にしない</div></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b>ポートとアダプタを採り、内側は変更理由で分ける。</b>名前はその単位に付け、層は依存してよい先で決まる。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     "<h4>例　仕様「ブレストの回答を受け取って、1件ずつ保存する。論点1件につき1つ。直前と同じ内容は保存しない」</h4><b>仕様のどこが変わると、どこが動くか。</b>これが同じものを1つにする。<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>この仕様が変わると</th><th>動く単位</th></tr></thead><tbody><tr><th>回答の項目が増える（例：確信度）</th><td><code>回答</code> だけ</td><td>受け取りアダプタも蓄積先も動かない</td></tr><tr><th>重複の判定を変える（直前ではなく全件と比べる）</th><td><code>重複の判定</code> だけ</td><td>保存の仕方は動かない</td></tr><tr><th>受け取り方を変える（HTTP からファイル監視へ）</th><td><code>受け取りアダプタ</code> だけ</td><td>内側は動かない</td></tr><tr><th>保存先を変える（ファイルからデータベースへ）</th><td><code>蓄積先</code> だけ</td><td>内側は動かない</td></tr></tbody></table></div><b>内側と外側に分け、境界（ポート）は内側が定義する。</b><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>内か外か</th><th>変更理由</th><th>依存してよい先</th></tr></thead><tbody><tr><th>回答</th><td>内</td><td>回答の項目が変わるとき</td><td>無し</td></tr><tr><th>重複の判定</th><td>内</td><td>判定の規則が変わるとき</td><td>回答</td></tr><tr><th>回答を受け取る</th><td>内</td><td>手順が変わるとき</td><td>回答 ・ 重複の判定 ・ 蓄積ポート</td></tr><tr><th>蓄積ポート（ポート）</th><td><b>内</b></td><td>保存に何を渡すかが変わるとき</td><td>回答</td></tr><tr><th>受け取りアダプタ</th><td>外</td><td>受け取り方が変わるとき</td><td>回答を受け取る</td></tr><tr><th>蓄積先（アダプタ）</th><td>外</td><td>保存先が変わるとき</td><td><b>蓄積ポートを実装する</b></td></tr></tbody></table></div><p class=\"note-s\"><b>蓄積ポートが内側に在るので、保存先を変えても内側は1行も動かない。</b>外側から内側への一方向になっている ── 層はその結果である。</p><p class=\"note-s\"><b>仕様が決めたのは「論点1件につき1つ」と「直前と同じ内容は保存しない」である。</b>こちらが決めたのは、それをどう分けたかだけである。</p><p class=\"note-s\"><b>この例でポートは1つだけである。</b>蓄積ポートは、テストで差し替えるので作る。受け取りアダプタは外側のアダプタで、内側が呼ばないのでポートを作らない。</p><details class=\"why-in\"><summary>実装したときのコード ── 5ファイル（実物は trial/sim/ にある）</summary><div><p class=\"note-s\">仕様を1つ渡して実際に書き、同じ仕様変更（保存先をファイルから SQLite へ）を当てたものである。</p><h4>内側　①概念と、②ポート</h4><pre><code># domain.py ── 外部の技術を1つも参照しない\n\n@dataclass(frozen=True)\nclass 回答:\n    論点: int\n    諾否: str          # approve / return / skip\n    理由: str = \"\"\n\n@dataclass(frozen=True)\nclass 送信:\n    回答群: tuple[回答, ...]\n    def __post_init__(self):\n        番号 = [a.論点 for a in self.回答群]\n        if len(番号) != len(set(番号)):\n            raise ValueError(\"論点1件につき回答は1つである\")\n\ndef 重複か(前: 送信 | None, いま: 送信) -> bool:\n    return 前 is not None and 前.回答群 == いま.回答群\n\nclass 蓄積ポート(Protocol):        # 内側が定義する\n    def 直前(self) -> 送信 | None: ...\n    def 足す(self, s: 送信) -> None: ...</code></pre><h4>内側　③手順</h4><pre><code># usecase.py ── 外側の道具は、ポートを通してしか触らない\n\ndef 回答を受け取る(ポート: 蓄積ポート, s: 送信) -> int:\n    if 重複か(ポート.直前(), s):\n        return 0\n    ポート.足す(s)\n    return len(s.回答群)</code></pre><h4>外側　④ポートの実装（保存先を変えたのはここを足しただけ）</h4><pre><code># adapters/sqlite_store.py ── 蓄積ポートを実装する\n\nclass SQLiteの蓄積先:\n    def 直前(self) -> 送信 | None:\n        row = self.c.execute(\"select body from submissions \"\n                             \"order by id desc limit 1\").fetchone()\n        if row is None:\n            return None\n        d = json.loads(row[0])\n        return 送信(tuple(回答(**a) for a in d[\"回答群\"]))\n\n    def 足す(self, s: 送信) -> None:\n        d = {\"回答群\": [vars(a) for a in s.回答群]}\n        self.c.execute(\"insert into submissions (body) values (?)\",\n                       (json.dumps(d, ensure_ascii=False),))\n        self.c.commit()</code></pre><h4>⑤組み立て</h4><pre><code># main.py ── ここだけが、内側と外側の両方を知る\n\nポート = SQLiteの蓄積先(\"answers.db\")          # ← 保存先を変えたのは、この1行\nHTTPServer((\"127.0.0.1\", 8802), 組む(ポート)).serve_forever()</code></pre><h4>内側の試験 ── 偽物のポートを渡す</h4><pre><code># tests/test_domain.py ── HTTP もファイルも立てない\n\nclass 覚えておく蓄積先:                    # ポートを作った理由がこれである\n    def __init__(self): self.保存 = []\n    def 直前(self): return self.保存[-1] if self.保存 else None\n    def 足す(self, s): self.保存.append(s)\n\nポート = 覚えておく蓄積先()\nassert 回答を受け取る(ポート, 一) == 1\nassert 回答を受け取る(ポート, 一) == 0          # 直前と同じなら保存しない\nassert 回答を受け取る(ポート, 二) == 1</code></pre><h4>比べる相手　規則なしで書いた場合</h4><pre><code># serve.py ── 1つの関数に、受け取り ・ 判定 ・ 保存が同居する\n\nclass Handler(BaseHTTPRequestHandler):\n    def do_POST(self):\n        body = json.loads(self.rfile.read(n) or b\"{}\")\n        answers = body.get(\"answers\") or []\n        seen = set()\n        for a in answers:                       # 論点1件につき1つ\n            if a[\"no\"] in seen:\n                self.send_error(400, \"duplicate topic\"); return\n            seen.add(a[\"no\"])\n        c = 接続()                               # ← 保存先を変えると\n        row = c.execute(\"select body from submissions \"\n                        \"order by id desc limit 1\").fetchone()\n        last = json.loads(row[0]) if row else None\n        if last is not None and last.get(\"answers\") == answers:\n            c.close(); self.respond(0); return   # ← 重複の判定も書き換わる\n        c.execute(\"insert into submissions (body) values (?)\", ...)</code></pre><p class=\"note-s\"><b>保存先を変えると、重複の判定のコードが動く。</b>判定の規則は1文字も変わっていない。</p></div></details>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "機能で分ける（画面ごと ・ API ごと）",
+     "1つの変更で複数の場所が動く。回答の項目が増えると、受け取りアダプタも蓄積先も触る"
+    ],
+    [
+     "B",
+     "技術で分ける（HTTP ・ ファイル ・ 計算）",
+     "1つの業務の変更が、全部の層に散る"
+    ],
+    [
+     "C",
+     "変更理由で分ける",
+     "変更理由を見極める必要がある。最初は見誤るので、動かしてから分け直すことになる"
+    ],
+    [
+     "D",
+     "手法を選ばず、変更理由で分けるだけにする",
+     "境界の呼び方が対象ごとに変わる。外側との接点を、毎回どう呼ぶかから決めることになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "既存のディレクトリの分け方に合わせる",
+     "既存が壊れていれば、壊れたまま広がる。合わせた結果が正しいかを判定していない"
+    ],
+    [
+     "設計論の層名を先に置いて、そこへ概念を割り当てる",
+     "層の数に合わせて概念を切ることになる。入れ物の形に合わせてモデルが歪む"
+    ],
+    [
+     "仕様の言葉をそのまま単位にする",
+     "仕様の言葉は、変更理由で分かれていない。1つの語に2つの変更理由が入る"
+    ],
+    [
+     "クリーンかオニオンかレイヤードを選ぶ",
+     "同じ目的の別表現である。選んでも決まるのは語彙だけで、構造は変わらない"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">従来の規約文書は、原典を複製していた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>言語やアーキテクチャの原典が述べる主張を、こちら側の文書へ複製していた</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">既存のコードに合わせる、を原則に置こうとした</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">スパゲティならスパゲティに合わせちゃうのがあなたの特徴</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b>合わせた結果が正しいかを、こちら側で判定していなかった</b></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">複製は必ず本体と乖離する</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>直す権限がこちら側に無く、改訂の通知も届かない</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">原因は、合わせたことではなかった</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">正しく抽象から具体で実装できてればね、どうしようもないスパゲティにはならないはずなんだよ</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">抽象を飛ばして具体から書いた結果である</b><div class=\"sub-s\">順番が逆なだけである</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">正本を保持せず、正本を指すしかない</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>では持ってよいのは何かを、決め直した</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">規則は主張を保持しない</b><div class=\"sub-s\">指す先と、観測手段だけを持つ</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">段取りを答えてしまい、差し戻された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">論点1だけズレてませんか？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">この論点が問うのは、構造を何で決めるかである</b><div class=\"sub-s\">誰が仕様を持つか ・ いつ見せるかは段取りである</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">指す先（出典）と、そのうち何を採ったか（採用範囲）が残った</div></div>"
+     "<div class=\"card\"><div class=\"card-h\">基準は原典が書いていた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>同じ理由で変わるものをまとめ、違う理由で変わるものを分ける</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">層はその結果である</b><div class=\"sub-s\">依存してよい先を書くと、外から内への一方向になっている</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">3つ目に検証方法が残った</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>これだけが原典に書かれていない ── 主張ではなく観測手段だからである</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">持ち物が3つなら、失効形態も3つに閉じる</b><div class=\"sub-s\">出典の失効 ・ 採用の撤回 ・ 検証方法の失効</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">3つのどれも規則1件の内部で完結する</b><div class=\"sub-s\">だから単独で修正できる</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">手法を空けたままだったことを指摘された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">アーキテクチャの抽象はそれなのかもしれないけど、それを実現する手法はベースとしてあるんじゃないの？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">ポートとアダプタを採る</b><div class=\"sub-s\">要素が2つで、言語に依存せず、検査が依存の向き1本で済む</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">DDD は内側の語彙である</b><div class=\"sub-s\">手法と排他ではない。業務に状態と規則があるときだけ足す</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">手法の限界を書いていないと指摘された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">あなたはポートとアダプターはコーディングするときにスパゲティにならないようにする方法だと思ってる？私に流されてはない？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">防ぐのは外部技術の染み出しだけである</b><div class=\"sub-s\">内側の腐敗を防ぐのは、変更理由で分ける基準のほうである</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">作る条件が無いと、実装1つのインターフェースを量産する</b><div class=\"sub-s\">条件を2つ書いた</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">承認された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">1はいいぞ！承認だ！</span></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>試した相手は2つある ── 下流の論点2（層とパスの規則）と 論点3（工程の順序）、および外の作業（trial/sim で実装し、仕様変更を当てた）</td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">検証方法を CLI の呼び出しへ書き直す</b><div class=\"sub-s\">そのとき、CLI が無いものは規則から除外される</div>"
+     "<b class=\"lead-s\">変更理由を見極める必要がある</b><div class=\"sub-s\">最初は見誤るので、動かしてから分け直すことになる</div>"
     ],
     [
-     "<b class=\"lead-s\">アーキテクチャと接点の軸に CLI が無い</b><div class=\"sub-s\">この Skill は道具を用意しないので、書けない軸が出る</div>"
+     "<b class=\"lead-s\">分け方に迷わない変更では、書く価値が無い</b><div class=\"sub-s\">書くかどうかの判定が毎回要る</div>"
     ],
     [
-     "<b class=\"lead-s\">規則1件ごとに出典を書くことになる</b><div class=\"sub-s\">出典は3要素の1つなので、欠けた時点でその規則は成立しない</div>"
+     "<b class=\"lead-s\">仕様に無いことが出たら、問うか仮定を明示する</b><div class=\"sub-s\">その分だけ往復が増える</div>"
     ],
     [
-     "<b class=\"lead-s\">出典を持てないものの置き場所を、別に決める</b><div class=\"sub-s\">論点10 がその答えである（出典が内側にある規則として、<code>.acdr/</code> を指す）</div>"
+     "<b class=\"lead-s\">ポートを内側に置く手間が増える</b><div class=\"sub-s\">外側の道具を直接呼ばず、境界を1つ挟む</div>"
+    ],
+    [
+     "<b class=\"lead-s\">ポートを作るかの判定が、外部に触るたびに要る</b><div class=\"sub-s\">条件を満たさなければ作らない</div>"
     ]
    ],
    "weaknesses": [
     [
-     "確認したのは言語の軸だけである。接点の軸は1件も書いていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点4 が接点の原典を照合した。規則を書けるかは外の作業で確認する"
+     "表し方（表 ・ 型 ・ 状態遷移）は決めない",
+     "<span class=\"kind k-rule\">対象外</span> ── 対象で変わる。変換なら入力と出力の型、画面なら状態と遷移になる"
     ],
     [
-     "1つの規則が出典を2つ以上持つ場合の書き方を決めていない",
-     "<span class=\"kind k-rule\">対象外</span> ── この答えは持ち物を3つに決めるところまでである。出典の多重度は形式（論点10）が決める"
+     "DDD の戦略（境界づけられた文脈）は採るかを決めていない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 戦術の語彙（エンティティ ・ 値 ・ 集約）だけを、要るときに足す"
+    ],
+    [
+     "事実の誤り ・ 見た目 ・ 道具の使い方の誤りは、これでは防げない",
+     "<span class=\"kind k-rule\">対象外</span> ── 照合と実測と目視で見つける。衛生管理であって、構造の話ではない"
+    ],
+    [
+     "分け方が正しいかを、機械で判定できない",
+     "<span class=\"kind k-rule\">対象外</span> ── 判定するのは人である。機械が見るのは依存の向きだけである（論点2）"
+    ],
+    [
+     "内側の腐敗（長い関数 ・ 混ざった責務 ・ フラグ引数）は、手法では防げない",
+     "<span class=\"kind k-rule\">対象外</span> ── 防ぐのは変更理由で分ける基準のほうである。手法は外部技術との境界だけを扱う"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "出典が引用文字列を持つこと",
-     "Words in names that are initialisms or acronyms (e.g. \"URL\" or \"NATO\") have a consistent case",
+     "分ける単位が変更理由であること",
+     "Gather together the things that change for the same reasons.  Separate those things that change for different reasons.",
      "primary",
-     "go.dev/wiki/CodeReviewComments（取得日 2026-09-15）"
+     "blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html:940（2026-09-22 取得）"
     ],
     [
-     "主張を保持しないこと",
-     "公式を書き写さない。私たちの選択だけを持ち、出典に引用した文字列と取得日を書く",
-     "rule",
-     "coding-skills のガードレール"
+     "層の名前が原典に無いこと",
+     "identifier として照合し、domain ・ usecase はどちらの原文にも無い",
+     "primary",
+     "the-clean-architecture.html ・ cockburn/hexagonal-architecture（2026-09-22）"
     ],
     [
-     "一覧を保持しないこと",
-     "一覧と詳細で食い違いが出る。複製を作らず、導出する",
-     "rule",
-     "CLAUDE.md の運用ルール"
+     "境界の定義を内側が持つこと",
+     "have the presenter in the outer circle implement it",
+     "primary",
+     "blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html:945（2026-09-22 取得）"
     ],
     [
-     "検証方法が原典に無いこと",
-     "規定も水準も原典から読めるが、確認方法はどこにも書かれていない",
+     "流派が同じ目的の別表現であること",
+     "They all have the same objective, which is the separation of concerns.",
+     "primary",
+     "blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html:885（2026-09-22 取得）"
+    ],
+    [
+     "アダプタが外側で変換すること",
+     "converts the API definition to the signals needed by that device and vice versa.",
+     "primary",
+     "alistair.cockburn.us/hexagonal-architecture:1469（2026-09-22 取得）"
+    ],
+    [
+     "分け方の誤りが実在すること",
+     "このセッションで出た欠陥10件のうち5件が、置き場所と概念の切り方の誤りだった",
      "measured",
-     "trial/language-go.md"
+     "2026-09-22 のセッション"
+    ],
+    [
+     "既存に寄せる失敗が実在すること",
+     "スパゲティならスパゲティに合わせちゃうのがあなたの特徴",
+     "assumption",
+     "利用者の発言 2026-09-22"
+    ],
+    [
+     "仕様を決めないこと",
+     "私は仕様などの抽象を、実装に落とすときにモデリングしてもらえることを期待していたんだが",
+     "assumption",
+     "利用者の発言 2026-09-22"
     ]
    ]
   },
   "2": {
    "note": [
     [
-     ""
+     "<b>承認された（2026-09-24）。</b>決着のあとに実測で欠陥が1件出たので開き直し、道具の呼び方の条件を足したうえで、再び承認された。"
     ]
    ],
    "pick": [
     [
-     "<b>出典に無い主張は書かない。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li><b class=\"lead-s\">検証方法のみが例外である</b><div class=\"sub-s\">主張ではなく観測手段であり、何が正しいかを述べない</div></li><li><b class=\"lead-s\">強度もこちら側では決定せず、原典の語から導出する</b><div class=\"sub-s\"><code>never</code> なら必須、<code>should</code> や <code>generally</code> なら推奨</div></li><li>原典より強くしない</li><li>採用範囲に残る決定は「採るか採らないか」の一点だけになる</li></ul></div></details>"
+     "<b>Skill は道具を持たない。規則のコマンドを実行し、終了コードだけを読む。</b><details class=\"why-in\"><summary>この答えを導いたもの（10件）</summary><div><ul><li><b class=\"lead-s\">道具はプロジェクトが持つ</b><div class=\"sub-s\">Skill が持つのは規則の形と判定の形だけである。道具の版が変わっても、Skill は動かない</div></li><li><b class=\"lead-s\">道具の仕事は検出までである</b><div class=\"sub-s\">出力の解析を実施しない。不合格のときは出力をそのまま渡し、意味の解釈は読み手が実施する</div></li><li><b class=\"lead-s\">自作の検査は採用しない</b><div class=\"sub-s\">試作して測った結果、Python の相対 import を取りこぼした。見逃した違反は合格として出る</div><details class=\"why-in\"><summary>試作の測定（trial/dep、96行 ・ 依存0件）</summary><div><ul><li>5言語で動いた（Python ・ TypeScript ・ Go ・ Rust ・ Java）。Python では import-linter と同じ行を出した</li><li><b class=\"lead-s\">取りこぼし</b><div class=\"sub-s\"><code>from ..adapters import x</code>（相対の書き方）と、動的な読み込み</div></li><li><b class=\"lead-s\">誤検出</b><div class=\"sub-s\">塊のコメントの中の import</div></li><li>取りこぼしを直すには名前の解決が要る。解決の規則は言語ごとに違うので、そこへ入ると言語に依存する</li></ul></div></details></li><li><b class=\"lead-s\">層の名前は原典に無い</b><div class=\"sub-s\"><code>domain</code> も <code>usecase</code> も、2つの原典のどちらにも無い。こちら側が決める</div></li><li><b class=\"lead-s\">だから規則が1件要る</b><div class=\"sub-s\">層の名前と、その置き場所の対応を1件持つ</div></li><li><b class=\"lead-s\">検査は既存の道具が行う</b><div class=\"sub-s\"><code>go list -deps</code> ・ <code>eslint</code> の import 規則。自作すると言語ごとに書くことになる</div></li><li><b class=\"lead-s\">向きは原典が決める</b><div class=\"sub-s\">内側は外側を参照しない</div></li><li><b class=\"lead-s\">規則を別に作らない言語がある</b><div class=\"sub-s\">Rust は層をクレートに分けると、<code>Cargo.toml</code> が許可辺の宣言になる。別に規則を作ると、正本が2つになる</div></li><li><b class=\"lead-s\">CLI と MCP に内包する</b><div class=\"sub-s\">規則を読み、道具を配列のまま実行し、終了コードで判定する。判定は3つで、道具が無い場合は「実行しない」にする</div></li><li><b class=\"lead-s\">道具は、判定を終了コードで返す呼び方で書く</b><div class=\"sub-s\">出力を見ないと判定できない呼び方は、規則にしない</div><details class=\"why-in\"><summary>実測（2026-09-24、go1.27.1）</summary><div><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>終了コード</th><th>判定になるか</th></tr></thead><tbody><tr><th><code>gofmt -l .</code></th><td><b>0</b>（ファイル名は出力する）</td><td><b>ならない</b></td></tr><tr><th><code>gofmt -d .</code></th><td>1</td><td>なる</td></tr><tr><th><code>go vet ./...</code></th><td>1</td><td>なる</td></tr></tbody></table></div><p class=\"note-s\">同じ道具に、判定を返す呼び方と返さない呼び方がある。選び間違えると、<b>検査が黙って通る</b>。</p></div></details></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\"><b>Skill は道具を1つも持たない。</b>規則に書いたコマンドを実行し、終了コードだけを読む</b><div class=\"sub-s\">出力の解釈は読み手が実施する。</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "層とパスの規則を、既存の道具が層名で引いて検査する。合格か不合格かの2つが出る。",
+     "c83a181b9d08"
+    ]
+   ],
+   "example": [
+    [
+     "<h4>規則1件（<code>rules/layers.json</code>）</h4><pre><code>{\n  \"並び\": [\"domain\", \"usecase\", \"adapter\"],\n  \"層\": {\n    \"domain\":  \"internal/domain\",\n    \"usecase\": \"internal/usecase\",\n    \"adapter\": \"internal/adapter\"\n  },\n  \"検証方法\": { \"道具\": [\"go\", \"list\", \"-deps\", \"./...\"] }\n}</code></pre><p class=\"note-s\"><b>持つのはこの1件だけである。</b>向き（内向き）は原典が決めているので書かない。</p><h4>言語ごとの当てはめ</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>規則をどこが持つか</th><th>何が検査するか</th></tr></thead><tbody><tr><th>Go ・ TypeScript ・ Python ・ Java</th><td>こちらの規則1件（層 → パス）</td><td>既存の道具（<code>go list -deps</code> ほか）</td></tr><tr><th>Rust（層をクレートに分ける）</th><td><b><code>Cargo.toml</code> が兼ねる</b></td><td><b class=\"lead-s\">コンパイラ</b><div class=\"sub-s\">宣言していない依存は通らない</div></td></tr><tr><th>Rust（1つのクレートの中）</th><td><code>Cargo.toml</code> は持たない</td><td><b class=\"lead-s\">可視性の宣言のみ</b><div class=\"sub-s\"><b>許可辺の検査にはならない</b></div></td></tr><tr><th>配置を枠組みが固定する場合（Rails ・ Next.js）</th><td>枠組みが持つ</td><td><b class=\"lead-s\">枠組みの規約</b><div class=\"sub-s\">こちらの規則はほぼ空になる</div></td></tr></tbody></table></div><p class=\"note-s\"><b>規則が要るかは、その言語で依存の単位がどう決まるかで変わる。</b>抽象（層の場所を1か所で決め、既存の道具で向きを検査する）は変わらない。</p><h4>Skill が読むもの</h4><pre><code>$ 規則のコマンドを実行する\n\n層の向き      lint-imports            終了コード 0   → 合格\n整形          gofmt -d .              終了コード 0   → 合格\n静的解析      go vet ./...            終了コード 1   → 不合格\n\n不合格の規則は、道具の出力をそのまま渡す:\n  domain is not allowed to import adapters:\n  - domain -> adapters.file_store (l.11)</code></pre><p class=\"note-s\"><b>件数の集計も、違反の並べ替えも実施しない。</b>それを実施すると、道具ごとに違う出力を解析することになり、依存が戻る。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "層とパスの規則を持ち、既存の道具で検査する",
+     "言語ごとに道具が違う。道具が無い言語では検査できない"
+    ],
+    [
+     "B",
+     "方針だけを書き、検査しない",
+     "破っても気づかない。あとから直せない唯一のものが、そのまま壊れる"
+    ],
+    [
+     "C",
+     "自作の検査を書く",
+     "言語ごとに書くことになる。既存の道具と結果が食い違ったときに、どちらが正しいかを判定できない"
+    ]
+   ],
+   "dropped": [
+    [
+     "層の名前を原典の語に限る",
+     "原典に層の名前が無い。限ると、書ける規則が1件も無くなる"
+    ],
+    [
+     "パスを規則の中へ直接書く",
+     "規則1件ごとにパスが複写される。1回の移動で全件が失効する"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">原典が条件付きで記述する箇所がある</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td><code>generally belong</code> ── 断定していない</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">原典を取得して、層の名前を照合した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>ヘキサゴナルとクリーンの原文を取得し、identifier として照合した</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\"><code>domain</code> と <code>usecase</code> は、どちらの原典にも無い</b><div class=\"sub-s\">原典の語は Entities ・ Use Cases ・ Interface Adapters である</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">必須と推奨のどちらで採るかを、こちら側が決める案を出した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>採用範囲が「位置」と「強度」の2つを持つ形である</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">だから、こちら側の規則が1件要ることになった</div><table class=\"ev\"><tbody><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">原典が決めるのは向きだけである</b><div class=\"sub-s\">層の名前と置き場所は、こちら側の決定として規則に書く</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">差し戻された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">出典にないことは書かない方がいい</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">強度を上げる行為は、出典に無い主張の記述に等しい</b><div class=\"sub-s\">原典が <code>generally</code> と記述した箇所を、必須へ引き上げる余地が生じる</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">Rust で当てはめを確認した</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">これは全ての言語において同じような抽象概念のもと当てはめる事ができるか？ rustは？</span></td></tr><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>原文3件を取得して照合した ── The Rust Programming Language ・ The Rust Reference ・ The Cargo Book</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">モジュールの木が、そのままディレクトリの名前になる</b><div class=\"sub-s\">層の場所の対応は成立する</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">層をクレートに分けると、規則は <code>Cargo.toml</code> が兼ねる</b><div class=\"sub-s\">宣言していない依存はコンパイルが通らないので、道具を足す必要が無い</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">1つのクレートの中では、可視性の宣言しか無い</b><div class=\"sub-s\">方向の制限であって、許可辺の宣言ではない</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">決定を取り消した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>採用範囲に残るのは位置だけになり、決定は「採るか採らないか」の一点になった</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">「出典に無いことを書かない」は主張に対する制約である</b><div class=\"sub-s\">観測手段には適用されない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">検証方法の記述形式が、強度を表現している</b><div class=\"sub-s\">必須なら0件を確認し、推奨なら列挙して人が判定する</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b>原文以外の日本語として残るのは、見出しと検証方法だけになる</b></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">道具をどこまで担わせるかが決まった</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"2\"><span class=\"kind k-given\">差し戻し</span><small>2件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">私的には他の依存でこのSkillが影響を受けるのはつらい</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">結果として検出するところまでが機械的な道具の仕事です。その結果を受けて意味的な整合や解釈を行うのはAIの仕事だと思ってる</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">出力を解析しないので、依存が0件になる</b><div class=\"sub-s\">終了コードだけが契約である</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">独自の道具の提案は、測って取り下げた</b><div class=\"sub-s\">相対の書き方を取りこぼし、見逃した違反が合格として出た</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">承認された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">おｋ</span></td></tr><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>試した相手は外の作業である ── trial/check で cli.py を作り、trial/sim/b-rules へ規則3件を当てた</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">違反1行で、2つの規則が落ちた</b><div class=\"sub-s\">層の向きの検査と、内側の試験（循環 import）である</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">決着のあとに、実測で欠陥が出た</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>go1.27.1 をこの環境へ入れ、<code>gofmt</code> を実行した</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\"><code>gofmt -l</code> は終了コード0を返す</b><div class=\"sub-s\">整形されていないファイルを並べながら0なので、合格として通る</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">規則の条件が1つ増えた</b><div class=\"sub-s\">道具は、判定を終了コードで返す呼び方で書く</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">条件を足して、再び承認された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">おｋ</span></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>規則の3件（層の向き ・ 内側の試験 ・ 整形）が、この環境で全部実行できる状態になった</td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">こちら側が必要と考える規則が書けなくなる</b><div class=\"sub-s\">原典が述べていなければ、出典が空になる</div>"
+     "<b class=\"lead-s\">言語ごとに道具が違う</b><div class=\"sub-s\">道具が無い言語では、この検査が動かない</div>"
     ],
     [
-     "<b class=\"lead-s\">試作の1件を削除する</b><div class=\"sub-s\">「模擬のために実装側へ interface を置いてはならない」は、引用文字列に <code>mock</code> の記述が無い</div>"
+     "<b class=\"lead-s\">層を移したら、規則も直す</b><div class=\"sub-s\">1件で済むが、直さなければ検査が嘘になる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">言語ごとに、規則をどこが持つかの判定が要る</b><div class=\"sub-s\">こちらの規則1件か、既存のファイルが兼ねるか</div>"
+    ],
+    [
+     "<b class=\"lead-s\">規則に書いたコマンドが、本当に検査しているかを確認できない</b><div class=\"sub-s\"><code>true</code> と書いても合格になる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">呼び方を選ぶ手間が増える</b><div class=\"sub-s\">同じ道具でも、判定を返す呼び方と返さない呼び方がある</div>"
     ]
    ],
    "weaknesses": [
     [
-     "原典が誤っている場合を処理できない。公式に従うと決めた以上、公式の誤りは規則の誤りとして通る",
-     "<span class=\"kind k-rule\">対象外</span> ── 原典の正しさはこちら側で判定しない。誤りは原典の改訂を待つ"
+     "Go ・ TypeScript ・ Python ・ Java ・ Rust 以外の言語を照合していない",
+     "<span class=\"kind k-given\">後続で決定</span> ── その言語で実際に書くときに、原典を取得して照合する"
     ],
     [
-     "「確立された設計論」の境界を誰が定めるかは決めていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点6 が、軸の値として何を認めるかを決める"
+     "層の中の構造（パッケージの切り方）は決めない",
+     "<span class=\"kind k-rule\">対象外</span> ── モデルから落ちてくる（論点1）"
+    ],
+    [
+     "件数の集計と、違反の並べ替えを実施しない",
+     "<span class=\"kind k-rule\">対象外</span> ── 実施すると道具ごとの出力を解析することになり、依存が戻る。不合格が1件でも止まるので、件数は判断を変えない"
+    ],
+    [
+     "道具が無い場合を「実行しない」にした ── 合格にも不合格にもしない",
+     "<span class=\"kind k-fact\">解消済</span> ── 合格にすると、道具が消えた瞬間に全部が通る。2026-09-23 の実行で、gofmt が無い状態が実際に出た"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "原典が断定しない箇所があること",
-     "Go interfaces generally belong in the package that uses values of the interface type",
+     "依存が内向きであること",
+     "Nothing in an inner circle can know anything at all about something in an outer circle.",
      "primary",
-     "go.dev/wiki/CodeReviewComments（取得日 2026-09-15）"
+     "blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html:903（2026-09-22 取得）"
     ],
     [
-     "強度を原典から導出すること",
-     "原文が should なら推奨、do not や never なら必須である。原文より強くしない",
-     "rule",
-     "trial/language-go.md の冒頭"
+     "層の名前が原典に無いこと",
+     "identifier として照合し、domain ・ usecase はどちらの原文にも無い（adapter ・ port は在る）",
+     "primary",
+     "the-clean-architecture.html ・ cockburn/hexagonal-architecture（2026-09-22）"
     ],
     [
-     "出典を保持しない禁止が実在したこと",
-     "試作の 3-1 に「模擬のために、実装側へ interface を置いてはならない」が入っていたが、引用文字列に mock の記述は無い",
+     "検査の道具が既に在ること",
+     "go vet ・ go test ・ go build ・ go fmt を identifier として照合した",
+     "primary",
+     "go.dev/ref/mod:1740 ・ 1248 ・ 2613（2026-09-22 取得）"
+    ],
+    [
+     "モジュールの位置が、ディレクトリの名前と対応すること",
+     "named for its ancestors in the module tree, in this case",
+     "primary",
+     "doc.rust-lang.org/book/ch07-05:231（2026-09-23 取得）"
+    ],
+    [
+     "ワークスペースが依存を宣言で持つこと",
+     "— Packages to include in the workspace.",
+     "primary",
+     "doc.rust-lang.org/cargo/reference/workspaces:208（2026-09-23 取得）"
+    ],
+    [
+     "1つのクレートの中には、可視性の宣言しか無いこと",
+     "makes an item visible to the parent module. This is equivalent to",
+     "primary",
+     "doc.rust-lang.org/reference/visibility-and-privacy:472（2026-09-23 取得）"
+    ],
+    [
+     "パスを複写すると全件が失効すること",
+     "一方の依存方向検査を他方の構成へ適用すると、全件が不一致になる",
      "measured",
-     "trial/language-go.md"
+     "2026-09-20 の2プロセス実験"
     ],
     [
-     "利用者の判定",
-     "出典にないことは書かない方がいい",
+     "終了コードだけで判定できること",
+     "import-linter は合格で0、違反あり で1 を返した",
+     "measured",
+     "2026-09-23 に実行（trial/sim/b-rules）"
+    ],
+    [
+     "自作の検査が取りこぼすこと",
+     "from ..adapters import file_store（相対の書き方）を検出しなかった",
+     "measured",
+     "2026-09-23 の試作（trial/dep）"
+    ],
+    [
+     "終了コードが判定にならない呼び方が存在すること",
+     "gofmt -l . は bad.go を出力しながら終了コード0、gofmt -d . は1を返した",
+     "measured",
+     "2026-09-24 に実行（go1.27.1 linux/amd64）"
+    ],
+    [
+     "解釈を読み手が実施すること",
+     "結果として検出するところまでが機械的な道具の仕事です",
      "assumption",
-     "利用者の発言 2026-09-20"
+     "利用者の発言 2026-09-23"
     ]
    ]
   },
   "3": {
    "note": [
     [
-     ""
+     "<b>承認された（2026-09-24）。</b>3つとも決着したので、このボードは終わりである。"
     ]
    ],
    "pick": [
     [
-     "<b>主因は更新の停止であり、停止の理由は修復コストである。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li>認識の単位は1件だが、修復の単位が1冊になっている</li><li>修復コストが再作成コストを超過した時点で、放置が合理的な判断になる</li><li><b class=\"lead-s\">腐敗は連続量ではない</b><div class=\"sub-s\">閾値を越えた時点で一括して無効になる</div></li><li><b class=\"lead-s\">回避条件は1つに集約される</b><div class=\"sub-s\">失効した規則1件だけを修正すれば完了すること</div></li></ul></div></details>"
+     "<b>手順に4つの工程として書く。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">テストは構造を測る道具である</b><div class=\"sub-s\">模擬だらけになる ・ 準備が長い ・ 1つ直すと大量に落ちる。どれも境界の置き方の報告である</div></li><li><b class=\"lead-s\">だから先に書く</b><div class=\"sub-s\">構造が悪いことを、実装を積み上げる前に知るためである</div></li><li><b class=\"lead-s\">工程は4つ</b><div class=\"sub-s\">失敗するテストを書く ・ 実装する ・ 通す ・ 書いた後の検査</div></li><li><b class=\"lead-s\">工程のあいだには順序がある</b><div class=\"sub-s\">書く前に静的解析は実行できない。対象が無い</div></li><li><b class=\"lead-s\">工程の中には順序が無い</b><div class=\"sub-s\">書いた後の検査は、どの順でも判定が同じである</div></li><li><b class=\"lead-s\">規則にはしない</b><div class=\"sub-s\">いつ書くかは原典に無く（3件の原文で照合した）、コマンドでも検査できない。規則を立てる条件を満たさない</div></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\"><b>手順に4つの工程として書く。</b>テストは構造を測る道具である</b><div class=\"sub-s\">書きにくいときは、設計が悪いという報告である。</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "工程のあいだには順序がある。最初は失敗するテストを書くことで、書いた後の検査は実装が存在してからでないと実行できない。",
+     "766291f33c00"
+    ]
+   ],
+   "example": [
+    [
+     "<h4>工程の順序 ── 4工程</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>その工程で何をするか</th><th>なぜその位置なのか</th></tr></thead><tbody><tr><th>1　テストを書く</th><td>失敗することを確認する</td><td>実装が無い状態で失敗しなければ、そのテストは何も検査していない</td></tr><tr><th>2　実装する</th><td>テストが通る最小の実装を書く</td><td>通す対象が先に存在する</td></tr><tr><th>3　通す</th><td>テストが通ることを確認する</td><td>通っていない状態で次へ進むと、後の検査が壊れた対象を見る</td></tr><tr><th>4　書いた後の検査</th><td>整形 ・ 静的解析 ・ ビルド</td><td>対象が存在してからでないと実行できない</td></tr></tbody></table></div><p class=\"note-s\"><b>工程の名前に道具が現れない</b> ── だから言語やアーキテクチャに関わらず動く。</p><h4>規則ファイルの形 ── <code>SKILL.md</code> の実行手順として書く</h4><pre><code>## 実行手順\n\n### Step 1: 失敗するテストを書く\n実装が無い状態で実行し、**失敗することを確認する**。\n失敗しなければ、そのテストは何も検査していない。\n\n### Step 2: 実装する\nテストが通る最小の実装を書く。\n\n### Step 3: 通す\nテストが通ることを確認する。通っていない状態で次の工程へ進まない\n── 後の検査が、壊れた対象を見ることになる。\n\n### Step 4: 書いた後の検査\n記録の規則を全件実行する（`cli.py check`）。**工程の中は順序が任意である。**\n\n---\n\n## ガードレール\n- **工程を飛ばさない。** 実装から書き始めない\n- **テストが書きにくいときは、構造を疑う** ── 書きにくさは設計の報告である\n- **検査は道具が実施する。** 出力の解釈だけをこちら側が実施する</code></pre><p class=\"note-s\"><b>規則にはしない。</b>出典もコマンドも無いので、規則を立てる条件を満たさない。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>置き場所</th><th>単位</th></tr></thead><tbody><tr><th>手順（この4工程）</th><td><code>SKILL.md</code></td><td><b>Skill に1つ</b></td></tr><tr><th>モデル</th><td>成果物の中</td><td>成果物ごと</td></tr><tr><th>層の場所の規則</th><td>成果物の中</td><td>成果物ごと</td></tr></tbody></table></div><p class=\"note-s\"><b>手順だけは、成果物ごとに増えない。</b>言語にもアーキテクチャにも依存しないためである。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "手順に工程として書く",
+     "守るのは自分なので、守らなかったときに外から止まらない"
+    ],
+    [
+     "B",
+     "規則として書く",
+     "出典が空になる。コマンドでも検査できないので、規則を立てる条件を満たさない"
+    ],
+    [
+     "C",
+     "何も書かない",
+     "実装から書き始める。テストは、実装が動いたことを確認するだけのものになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "テストを書いた順序を、履歴から検査する",
+     "コードを検査する道具を実装することになる。しかも順序を入れ替えた履歴と区別できない"
+    ],
+    [
+     "アーキテクチャの値ごとにテストの書き方を決める",
+     "値に依存しない要求なので、値の数だけ複製される"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">腐敗の説明を、観測の不在に置いた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>文書は実行されないので、嘘をついても何も起きない ── と説明した</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">テストファーストを、どこに置くかを問うた</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">どんな言語やアーキテクチャでも必ずテストファーストなテスト駆動である事です</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">軸に置くと、値の数だけ複製される</b><div class=\"sub-s\">手順の層が正しい</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">差し戻された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">気づいてももう直しきれないから</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">主因は更新の停止である</b><div class=\"sub-s\">観測の不在ではない</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">原典を照合した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>test-driven ・ test first ・ before writing ・ TDD を3件の原文で照合した</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">読めた範囲に1件も無い</b><div class=\"sub-s\">いつ書くかは原典が規定していない</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">では何が直しきれないのか</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>1件の乖離に気づいても、修復は1冊の単位になる ── 他の規則へ波及し、文書全体の再承認を要求し、既存コードが一斉に違反へ転じる</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">「いま着手できない」が毎回の正しい判断になる</b><div class=\"sub-s\">修復コストが再作成コストを超過した時点で、放置が合理的になる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">腐敗は連続量ではない</b><div class=\"sub-s\">閾値を越えた時点で一括して無効になる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">死んだあとも文書は消されずに残る</b><div class=\"sub-s\">外からは生きているように見える</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">遵守の検査は、問いとして消えた</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">コーディングする時はその順序でやってね？ってことです</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">手順は自分の実行手順である</b><div class=\"sub-s\">履歴から判定する必要が無い</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">軸ごとに文書を割ると、波及が消える</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>変更理由が単一になり、規則が他の軸を参照しなくなる</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">回避条件は1つに集約される</b><div class=\"sub-s\">失効した規則1件だけを修正すれば完了すること</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">テストの位置づけが変わった</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">アーキテクチャが全てだと思ってるんだけどね</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">テストは2つ目の原則ではない</b><div class=\"sub-s\">アーキテクチャを測る道具である。書きにくさは設計の報告なので、先に書けば最初に分かる</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">規則ファイルの形を問われた</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">上記はどのような記録としてまとめるつもりなんですかね？？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\"><code>SKILL.md</code> の実行手順として書く</b><div class=\"sub-s\">成果物ごとには増えない。言語にもアーキテクチャにも依存しないためである</div></td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\">承認された</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">おｋ</span></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>試す相手は外の作業である ── 失敗するテストを書くところから1件回し、テストが書きにくい箇所が出るかを見る</td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">規則1件が独立して修正できる形を、設計の要件として背負う</b><div class=\"sub-s\">回避条件がそれ1つに集約されたためである</div>"
+     "<b class=\"lead-s\">守るのは自分である</b><div class=\"sub-s\">守らなかったときに、外から止まる仕組みが無い</div>"
     ],
     [
-     "<b class=\"lead-s\">承認の単位を文書から下げられない場合、この条件は満たせない</b><div class=\"sub-s\">1冊単位の承認が残ると、修復の単位も1冊のままになる</div>"
+     "工程を増やす要求が出たら、手順を直すことになる"
     ]
    ],
    "weaknesses": [
     [
-     "閾値がどこにあるかを測る手を保持しない。越えたことは事後にしか分からない",
-     "<span class=\"kind k-rule\">対象外</span> ── この答えは閾値が在ることを述べるもので、位置の測定は含まない"
+     "テストの書き方（粒度 ・ 名前 ・ どこまで模擬するか）は決めない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 言語の道具と、モデル（論点1）から落ちてくる"
     ],
     [
-     "原典が改訂されたとき、既存コードが一斉に違反へ転じる点は、軸で割っても解けない",
-     "<span class=\"kind k-rule\">対象外</span> ── 改訂への追随はこちら側の権限の外にある。軸で割ると波及は消えるが、原典側の変更は消えない"
+     "守らなかったときに外から止める仕組みが無い",
+     "<span class=\"kind k-rule\">対象外</span> ── 手順は自分の実行手順である。外から検査する対象ではない"
+    ],
+    [
+     "この4工程を、実際に1件も回していない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 試すのは<b>外の作業</b>である ── 失敗するテストを書くところから1件やって、テストが書きにくい箇所が出るかを見る（出れば、構造の報告である）"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "放置が劣化の向きを持つこと",
-     "時間がたつと文書が更新されなくなり、初期の担当者が去り、その場しのぎで機能が追加される",
-     "rule",
-     ".claude/skills/ddd-advisor/references/knowledge/evolving-design.md"
+     "いつ書くかが原典に無いこと",
+     "test-driven ・ test first ・ before writing ・ TDD を3件の原文で照合し、読めた範囲に1件も無かった",
+     "primary",
+     "pkg.go.dev/testing ・ go.dev/wiki/CodeReviewComments ・ go.dev/ref/mod（2026-09-22）"
     ],
     [
-     "変更理由を分離する必要があること",
-     "同じ理由で変更されるコードを同じ層にまとめる",
+     "規則にしないこと",
+     "<b class=\"lead-s\">規則を立てる条件は2つ</b><div class=\"sub-s\">無ければ外すか、コマンドで検査できるか</div>",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-layer-boundary.md"
+     "前の世代の論点1（決着 2026-09-22）"
     ],
     [
-     "利用者の判定",
-     "気づいてももう直しきれないから",
+     "テストファーストを必ず適用すること",
+     "どんな言語やアーキテクチャでも必ずテストファーストなテスト駆動である事です",
      "assumption",
-     "利用者の発言 2026-09-19"
+     "利用者の発言 2026-09-22"
+    ],
+    [
+     "テストが構造を測る道具であること",
+     "アーキテクチャが全てだと思ってるんだけどね",
+     "assumption",
+     "利用者の発言 2026-09-22"
     ]
    ]
   },
   "4": {
    "note": [
     [
-     "アーキテクチャの軸だけ段が1つ多い。概念（層があり依存は内向き）→ 流派（ヘキサゴナル等）→ 具体（ディレクトリ構成）の3段で、最下段が空いている。"
+     "<b>Skill を書き起こしたら、機能の漏れが出た。</b>規則が在る前提で作ってあり、その規則がどこから来るかを決めていない。"
     ]
    ],
    "pick": [
     [
-     "<b>アーキテクチャだけ、原典が具体まで降下しない。構造的な不記載である。</b><details class=\"why-in\"><summary>この答えを導いたもの（3件）</summary><div><ul><li><b class=\"lead-s\">言語と接点は、原典が具体まで規定する</b><div class=\"sub-s\">識別子の書き方 ・ 状態コード ・ シェルが設定する終了コード</div></li><li><b class=\"lead-s\">アーキテクチャの原典は、具体を決める入力（変更理由の分布 ・ 事業側の判断）を管轄しない</b><div class=\"sub-s\">降下すると、知りえないものを先に確定させることになる</div></li><li><b class=\"lead-s\">充填される見込みは無い</b><div class=\"sub-s\">だから降下させるのは、こちら側の責務になる</div></li></ul></div></details>"
+     "<b>内を指す規則はモデルから書き出す。外を指す規則は、原文を照合してから書く。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">内を指す規則は、原典を要さない</b><div class=\"sub-s\">層の場所 ・ 合成の位置 ・ テストの置き場所は、こちら側の決定である。モデルを起こした時点で決まる</div></li><li><b class=\"lead-s\">だからモデルの直後に書き出す</b><div class=\"sub-s\">層が決まっているので、材料が揃っている</div></li><li><b class=\"lead-s\">外を指す規則は、3つの条件を満たしてから書く</b><div class=\"sub-s\">①原文を取得する ②引用を原文の文字列で照合する ③取得した日と版を残す</div><details class=\"why-in\"><summary>条件を満たさないと何が起きるか（実測 2026-09-22 ・ 24）</summary><div><ul><li><b class=\"lead-s\">引用が原文と相違した</b><div class=\"sub-s\">原文は <code>&ldquo;URL&rdquo;</code> の実体参照で、こちらは素の引用符へ置き換えていた。2件</div></li><li><b class=\"lead-s\">存在しない引用を書いた</b><div class=\"sub-s\">「The application is ... insulated from ... devices」は原文に無い</div></li><li><b class=\"lead-s\">照合の範囲が狭く、誤って断定した</b><div class=\"sub-s\"><code>go vet</code> を「原典に無い」と書いたが、go.dev/ref/mod が列挙している</div></li></ul></div></details></li><li><b class=\"lead-s\">照合する実装は持たない</b><div class=\"sub-s\">どの道具で取得するかは問わない。この Skill が持つのは<b>条件</b>であって、実装ではない</div></li><li><b class=\"lead-s\">照合できない引用は書かない</b><div class=\"sub-s\">「原典にこう書いてある」と書けるのは、原文のどこかを提示できるときだけである</div></li><li><b class=\"lead-s\">コマンドを伴わない心得は、規則にしない</b><div class=\"sub-s\">読みやすく書く ・ 適切に命名するは、検査する道具を保持しない。整形 ・ 試験 ・ ビルドは、実行するコマンドを規則から取得するので書く</div></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">出典の向きで作り方が変わる。</b>内を指す規則はモデルから書き出し、外を指す規則は<b>原文を照合してから書く</b><div class=\"sub-s\">照合する実装は持たず、条件だけを持つ。</div>"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     "<h4>出典の向きで、作り方が変わる</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>例</th><th>作り方</th><th>いつ</th></tr></thead><tbody><tr><th>内を指す規則</th><td>層の場所 ・ 合成の位置 ・ テストの置き場所</td><td><b class=\"lead-s\">モデルから書き出す</b><div class=\"sub-s\">原典を要さない</div></td><td>モデルを起こした直後</td></tr><tr><th>外を指す規則</th><td>Hook は関数の最上位で呼ぶ ・ 終了コードの値</td><td><b>原文を取得し、引用を照合し、取得した日と版を残してから書く</b></td><td>その言語で最初に書くとき</td></tr><tr><th>作らないもの</th><td>整形する ・ テストを書く ・ ビルドを通す</td><td>作らない</td><td>──</td></tr></tbody></table></div><h4>外を指す規則1件の形</h4><pre><code>{\n  \"規則\": \"Hook は関数の最上位で呼ぶ\",\n  \"出典\": {\n    \"meta\": \"react-rules-of-hooks\",\n    \"引用\": \"Instead, always use Hooks at the top level of your React function, before any early returns.\",\n    \"取得\": { \"url\": \"https://react.dev/reference/rules/rules-of-hooks\",\n              \"日\": \"2026-09-22\", \"sha256\": \"af26ae15…\", \"行\": 17 }\n  },\n  \"採用範囲\": \"呼び出しの位置のみ\",\n  \"検証方法\": { \"道具\": [\"eslint\", \"--rule\", \"react-hooks/rules-of-hooks: error\"] },\n  \"規則名\": [\"react-hooks/rules-of-hooks\"]\n}</code></pre><p class=\"note-s\"><b><code>取得</code> の欄が、照合した証しである。</b>url と日と版を持つので、あとから同じものを取り直して確認できる。</p><p class=\"note-s\"><b>この Skill は、照合そのものを実装しない。</b>取得の道具を規定せず、満たすべき条件だけを規定する ── 実装を持つと、取得の方法が変わるたびにこの Skill が動く。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "規則は利用者が用意する（この Skill は作らない）",
+     "形も出典の書き方も知らない相手に、書かせることになる。最初の1件が書けない"
+    ],
+    [
+     "B",
+     "原文の取得と照合を、この Skill が実装する",
+     "取得の方法が変わるたびに、この Skill が動く。外部の情報源への依存が生じる"
+    ],
+    [
+     "C",
+     "条件だけを持ち、実装を持たない",
+     "条件を満たしたかを、この Skill は検査できない ── 取得の欄に嘘を書いても通る"
+    ]
+   ],
+   "dropped": [
+    [
+     "原典から規則を自動で起こす",
+     "採用範囲を決めるのは判断である。原典のどの記述を採るかは、機械に閉じられない"
+    ],
+    [
+     "規則を作らず、手順のガードレールだけで守る",
+     "層の場所は成果物ごとに違う。手順に書くと、成果物の数だけ手順が増える"
+    ],
+    [
+     "照合を担う別の Skill を、この Skill から名指しで呼ぶ",
+     "<b>Skill が別の Skill に依存する</b>。その Skill が無い環境では、この Skill が動かない"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">軸は外部の正本と一対一で対応する、と決めた</div></div>"
+     "<div class=\"card\"><div class=\"card-h\">Skill を書き起こしたら、規則の出どころが無かった</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">このSkillsはCodingする際の規則は自分で作らないといけないんだよね？これブレストに戻った方がいい。このSKILLの機能要件漏れです</span></td></tr><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>cli.py は check と validate だけを持つ ── 原典の取得も、引用の照合も、規則の作成も持たない</td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">ならば具体も原典が持つはずだと考えた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>言語と接点では実際に持っていた ── 識別子の書き方 ・ 状態コード ・ シェルが設定する終了コード</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">どの規則が原典を要するかを数えた</div><table class=\"ev\"><tbody><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">層の場所は原典を要さない</b><div class=\"sub-s\">こちら側の決定なので、モデルを起こした時点で書ける</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">原典を要するのは、知らないと破る規則だけである</b><div class=\"sub-s\">呼び出しの位置 ・ 値の対応。件数は少ない</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">アーキテクチャでは持っていない</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>ディレクトリ名を規定した原典が見つからない</td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">別の Skill を前提にしていた</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">SourceFidelityを使用する前提にしてはいけないです。Skillsは外部のSkillsに依存してはいけない</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">持つのは条件であって、実装ではない</b><div class=\"sub-s\">原文を取得し、引用を照合し、取得した日と版を残す。どの道具で取得するかは問わない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">そういう Skill が在る環境では、配線が繋ぐ</b><div class=\"sub-s\">繋ぐのは Orchestrator であって、この Skill ではない</div></td></tr></tbody></table></div>"
     ],
     [
-     "<div class=\"card\"><div class=\"card-h\">原典の性質を確認した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>具体を決める入力（変更理由の分布 ・ 事業側の判断）が、原典の管轄外の事実に置かれている</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b>原典が具体まで降りると、原典が知りえない入力を原典が先に確定させることになる</b></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b>したがって不記載は必然であり、充填される見込みは無い</b></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">軸の値そのものが、すでに1段降りている</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>「ヘキサゴナル」と書いた時点で、流派を1つ選んでいる</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">言語の軸で <code>go</code> と書くのとは性質が違う</b><div class=\"sub-s\"><code>go</code> も選択だが、選んだ先の具体は Go 側が持つ</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">外の作業で試した ── 概念の出典を、この条件で作った</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>Skill が散文で保持していた概念3件（変更理由で分ける ・ 依存の向き ・ ポートとアダプタ）を、<code>references/concepts.json</code> へ移した</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">3つの条件は、そのまま実行できた</b><div class=\"sub-s\">原文は取得済みで、引用は原文の行から取り、取得日と sha256 と行番号を残した</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">条件を満たしたかは、機械で検査できる</b><div class=\"sub-s\">引用の有無と、取得の4欄の有無を <code>test_concepts.py</code> の10件が検出する</div></td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">アーキテクチャの具体を、こちら側が降下させる</b><div class=\"sub-s\">原典が降りてこないので、他に充填する者が存在しない</div>"
+     "<b class=\"lead-s\">外を指す規則を書くたびに、原文の取得と照合が要る</b><div class=\"sub-s\">件数のぶんだけ手間が増える</div>"
     ],
     [
-     "<b class=\"lead-s\">降下の停止条件を決める</b><div class=\"sub-s\">決めなければ、原典の不記載をこちら側の裁量で無限に充填することになる</div>"
+     "<b class=\"lead-s\"><code>init</code> を作る必要がある</b><div class=\"sub-s\">いまは雛形が無く、最初の1件を手で書くことになる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">採用範囲を決めるのは判断である</b><div class=\"sub-s\">原典のどの記述を採るかは、こちら側が決める</div>"
     ]
    ],
    "weaknesses": [
     [
-     "3本の軸立てそのものの妥当性は保留である。tech-lead-advisor が knowledge の範囲外と判定した",
-     "<span class=\"kind k-fact\">解消済</span> ── 論点6 が軸の本数を決め直し、ライブラリを足して4本にした"
+     "条件を満たしたかを、この Skill は検査できない ── 取得の欄に嘘を書いても通る",
+     "<span class=\"kind k-rule\">対象外</span> ── 検査するには原文を取りに行くことになり、外部の情報源への依存が生じる"
     ],
     [
-     "読んだのは POSIX のシェルの章1ページだけである。<code>sysexits</code> が無いという判定は「読めた範囲には無い」までである",
-     "<span class=\"kind k-rule\">対象外</span> ── 0件を「無い」と結論しないという source-fidelity の規定どおりである。この答えは <code>sysexits</code> の不在には依存しない"
+     "採用範囲の書き方（原典のどこまでを採るか）を決めていない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 外を指す規則を最初に1件書くときに決める"
     ],
     [
-     "接点の軸で規則を1件も書いていない。原典が具体まで降下することは照合したが、そこから規則を書けるかは確認していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 外の作業である。軸の値1つで規則を書き、照合を走らせる"
-    ],
-    [
-     "層名が原典の語である確証を取っていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── ヘキサゴナルの原典を取得して照合する。論点5 の前提条件でもある"
+     "層の場所の規則を、実際のリポジトリでまだ1件も作っていない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 概念3件には 2026-09-24 に3条件を適用した。<b>外の作業</b>として残るのは、層の場所の規則1件と <code>check</code> の実行である"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "言語の具体が原典に在ること",
-     "\"URL\" should appear as \"URL\" or \"url\" (as in \"urlPony\", or \"URLPony\"), never as \"Url\"",
+     "層の名前が原典に無いこと",
+     "identifier として照合し、domain ・ usecase はどちらの原文にも無い",
      "primary",
-     "go.dev/wiki/CodeReviewComments（取得日 2026-09-15）"
+     "the-clean-architecture.html ・ cockburn/hexagonal-architecture（2026-09-22）"
     ],
     [
-     "接点の原典が状態コードを規定すること",
-     "The 404 (Not Found) status code indicates that the origin server did",
-     "primary",
-     "RFC 9110 15.5.5（rfc9110.txt:7589。取得日 2026-09-20）"
-    ],
-    [
-     "接点の原典が終了コードの値を規定すること",
-     "If the command is not found, the exit status shall be 127.",
-     "primary",
-     "POSIX Shell Command Language 2.8.2（V3_chap02.html:1702。取得日 2026-09-20）"
-    ],
-    [
-     "具体を決める入力が原典の外にあること",
-     "層の数自体に唯一の正解はなく、「同じ理由で変更されるコードを同じ層にまとめる」という基準で決める",
+     "出典の向きで分かれること",
+     "あるのは規則だけで、出典が外（原典）を指すか内（決定の記録）を指すかだけが違う",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-layer-boundary.md"
+     "前の世代の論点10（決着 2026-09-22）"
     ],
     [
-     "流派が同一思想の別表現であること",
-     "3つの著名な表現形式はいずれも同一思想の別表現である",
+     "コマンドを伴わない心得を、規則にしないこと",
+     "<b class=\"lead-s\">規則を立てる条件は2つ</b><div class=\"sub-s\">無ければ外すか、コマンドで検査できるか</div>",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-dependency-direction.md"
+     "前の世代の論点1（決着 2026-09-22）"
     ],
     [
-     "アプリケーションが返す値は規定されていないこと",
-     "sysexits ・ EX_USAGE は、POSIX のシェルの章を読めた範囲には現れない",
+     "照合しないと引用が原文と相違すること",
+     "原文は &ldquo;URL&rdquo; の実体参照で、こちらは素の引用符へ置き換えていた（2件）",
      "measured",
-     "同ページを原文の文字列で照合（2026-09-20）"
+     "2026-09-22 の照合（go.dev/wiki/CodeReviewComments:647）"
     ],
     [
-     "アーキテクチャの原典の語を照合していないこと",
-     "層名（domain・usecase・adapter）が原典の語かどうかを、原文の文字列で確認していない",
-     "unverified",
-     "hexagonal の原典（未取得）"
+     "照合しないと存在しない引用を書くこと",
+     "「The application is ... insulated from ... devices」は、原文に存在しなかった",
+     "measured",
+     "2026-09-22 の照合（cockburn/hexagonal-architecture）"
+    ],
+    [
+     "照合の範囲が狭いと誤って断定すること",
+     "go vet を「原典に無い」と書いたが、go.dev/ref/mod:1740 が列挙している",
+     "measured",
+     "2026-09-22 の照合"
     ]
    ]
   },
   "5": {
    "note": [
     [
-     ""
+     "<b>論点4 が要求した機能である。</b>いまは雛形が無く、最初の1件を手で書くことになる。ただし、雛形に道具の名前を書くと、論点2の決着に違反する。"
     ]
    ],
    "pick": [
     [
-     "<b>配置の宣言は、出典を保持しない行だけを持つ。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li>中身は層名とパスの対応である</li><li><b class=\"lead-s\">層名は原典の語に限る</b><div class=\"sub-s\">こちら側では作らない</div></li><li>層名を保持しない設計論は、アーキテクチャの値として使えない</li><li><b class=\"lead-s\">枠組みが規定する配置は、ライブラリの軸の規則として持つ</b><div class=\"sub-s\">出典 ・ 採用範囲 ・ 検証方法が揃うためである</div></li><li>許可辺は層名で書き、規則の検証方法は層名だけを参照してパスを書かない</li><li>宣言が正本で、実物のツリーは照合される側になる</li></ul></div></details>"
+     "<b>骨と検査だけを出す。道具の名前は、1つも同梱しない。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">出すのは 並び ・ 層 ・ 規則の枠である</b><div class=\"sub-s\">内を指す2件（層の場所 ・ 依存の向き）の名前と採用範囲まで書き、道具は空欄で出す</div></li><li><b class=\"lead-s\">道具の名前を Skill に置かない</b><div class=\"sub-s\">言語が増えるたびに Skill を直すことになり、道具の版が上がると Skill の中の記述が古くなる</div></li><li><b class=\"lead-s\">書き込むのは呼ぶ側である</b><div class=\"sub-s\">規則ファイルは成果物の中に在り、Skill の外である</div></li><li><b class=\"lead-s\">雛形は、未完成の状態で出る</b><div class=\"sub-s\">直後の <code>validate</code> は不合格を返すのが正しい。道具が空であることが、次にすることの一覧になる</div></li><li><b class=\"lead-s\">既に在る規則ファイルを作り直さない</b><div class=\"sub-s\">上書きすると、書いた規則が消える</div></li><li><b class=\"lead-s\">層のディレクトリは作らない</b><div class=\"sub-s\">実在するかを検査するのは <code>validate</code> の役割で、作るのは実装の工程である</div></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\"><b>骨と検査だけを出し、中身は呼ぶ側が書く。</b>層の名前と場所はモデルから、道具の名前は呼ぶ側の判断から来る</b><div class=\"sub-s\">どちらも Skill は保持しない。</div>"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     "<h4>呼び方 ── 層の名前と場所を渡す</h4><pre><code>$ python3 scripts/cli.py init . \\\n    --層 core=internal/core --層 app=internal/app --層 adapter=internal/adapter</code></pre><h4>出力 ── rules.json（道具は空欄である）</h4><pre><code>{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"internal/core\",\n    \"app\":     \"internal/app\",\n    \"adapter\": \"internal/adapter\"\n  },\n  \"規則\": [\n    {\n      \"規則\": \"層の場所が、宣言した対応と一致する\",\n      \"出典\": { \"record\": \"\" },\n      \"採用範囲\": \"この成果物に限る\",\n      \"検証方法\": { \"道具\": [] }\n    },\n    {\n      \"規則\": \"依存の向きが、内から外へ出ていない\",\n      \"出典\": { \"record\": \"\" },\n      \"採用範囲\": \"この成果物に限る\",\n      \"検証方法\": { \"道具\": [] }\n    }\n  ]\n}</code></pre><h4>直後の検査 ── 不合格が、次にすることの一覧になる</h4><pre><code>$ python3 scripts/cli.py validate rules.json\n規則ファイルの検査　通っていない（4 件）\n  層の場所が、宣言した対応と一致する: 検証方法に道具が無い\n  層の場所が、宣言した対応と一致する: 出典が無い\n  依存の向きが、内から外へ出ていない: 検証方法に道具が無い\n  依存の向きが、内から外へ出ていない: 出典が無い</code></pre><p class=\"note-s\"><b>道具の名前は、この出力に1つも現れない。</b>何を入れるかは、言語と成果物を見た呼ぶ側が決める。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "言語ごとの雛形を同梱する（Go ・ TypeScript ・ Python ・ Rust）",
+     "道具の名前が Skill に入る。論点2の決着に違反し、言語が増えるたびに Skill を直すことになる"
+    ],
+    [
+     "B",
+     "空の JSON を出す",
+     "契約を満たさず、何を書けばよいかが出力に現れない。雛形として機能しない"
+    ],
+    [
+     "C",
+     "骨と検査だけを出す",
+     "<code>init</code> 単体では、まだ1件も検査できない規則ファイルが出る"
+    ]
+   ],
+   "dropped": [
+    [
+     "対話で道具の名前を聞き取って埋める",
+     "非対話の実行（CI ・ 他の道具からの呼び出し）で止まる"
+    ],
+    [
+     "言語を検出して道具を選ぶ（<code>go.mod</code> が在れば Go の道具を書く）",
+     "検出は、Skill が言語と道具を認知することである。<b>論点2の決着に違反する</b>"
+    ],
+    [
+     "<code>init</code> を作らず、雛形の JSON を <code>SKILL.md</code> へ貼る",
+     "正本が2か所になる。契約（schema）が変わったとき、文書の側だけが古くなる"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">tech-lead-advisor は宣言を正本に置いた（案 P）</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>文言との照合で裁定できることが条件である</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">別途走らせた brainstorm は、実物のツリーを正本に置いた（案 Q）</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>実測の内訳から、規則が要るのは層名だけだと出した</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">P を攻めた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>フォルダ名を宣言へ書くと、実測で分岐した側（パス）を承認の単位へ入れることになる</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">Q を攻めた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>自己申告だと、目録とツリーのずれが3つの失効形態のどれにも該当しない。層名を軸の値へ入れると、出典を保持しない要素が軸へ入る</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">Q の「ツリーが正本」は不正確だった</b><div class=\"sub-s\">文言を持つのは目録なので、正本は目録である。ならば自己申告にする理由が無い</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">引き返した手 ── 「配置の正本は実物のツリーである」と一度書いた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>文言を保持しないので、照合で裁定できない</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">対立点は、保持者ではなかった</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>P も Q も「成果物に1つ」である。違ったのは規則が配置を参照する範囲の広さで、P はパスまで、Q は層名までを参照していた</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">実測の内訳が決め手になった</b><div class=\"sub-s\">分岐したのはパス、一致したのは層名である</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">2つの正しい部分を取った</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>宣言が正本（P）で、規則が見るのは層名だけ（Q）</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">向きが定まるので、ずれは違反として出る</b><div class=\"sub-s\">4つ目の失効形態は発生しない</div></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">雛形が検査を通るかを、先に測った</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>層だけを持つファイルと、規則を0件持つファイルの2通りを <code>validate</code> に渡した</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">どちらも不合格である</b><div class=\"sub-s\">層だけのファイルは <code>0件目: 検証方法に道具が無い</code> と報告される。文書全体を1件の規則として読むためである</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">規則を0件にすると、契約が拒む</b><div class=\"sub-s\"><code>形: 規則 [] is too short</code></div></td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">宣言とツリーの照合を実行する手が要る</b><div class=\"sub-s\">照合が無ければ、宣言は守られない</div>"
+     "<b class=\"lead-s\"><code>validate</code> の扱いを決める必要がある</b><div class=\"sub-s\">いまは規則を持たないファイルを1件の規則として読み、<code>0件目</code> と報告する</div>"
     ],
     [
-     "<b class=\"lead-s\">層名を保持しない設計論が、アーキテクチャの値として使えなくなる</b><div class=\"sub-s\">層名を原典の語に限ったためである。MVC が該当しうる（論点6 の照合）</div>"
+     "規則が0件の状態を、不合格として返すか、雛形として返すかを決める必要がある"
     ],
     [
-     "<b class=\"lead-s\">宣言と規則のどちらに書くかの判定が毎回要る</b><div class=\"sub-s\">枠組みが規定する配置は出典を持つので、宣言の条件（出典を保持しない行だけ）に該当しない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">参照が解決できない規則の扱いを、先に決める</b><div class=\"sub-s\">合格でも不合格でもない第3の状態が要る</div>"
-    ],
-    [
-     "<b class=\"lead-s\">成果物が増えるたびに宣言が1枚増える</b><div class=\"sub-s\">保持者を成果物に置いたためである</div>"
+     "<b class=\"lead-s\">層の名前と場所の渡し方を決める必要がある</b><div class=\"sub-s\">引数で渡すか、モデルのファイルから読むか</div>"
     ]
    ],
    "weaknesses": [
     [
-     "<b>ヘキサゴナルの原典を照合していない。</b>層名が原典の語でなければ、hexagonal を値として使えない",
-     "<span class=\"kind k-given\">後続で決定</span> ── これは弱点ではなく前提条件である。原典を取得して照合する（論点4 と同じ1件）"
+     "言語ごとの道具の推奨一覧を持つこと",
+     "<span class=\"kind k-rule\">対象外</span> ── 論点2の決着で除外済みである ── Skill は道具を認知しない"
     ],
     [
-     "成果物が1つの間は、P・Q・F のどれでも観測結果が同じになる",
-     "<span class=\"kind k-rule\">対象外</span> ── 下流が使うことでしか試されない。成果物が2つ目になった時点で分かれる"
+     "外を指す規則の枠（原典の url と引用の欄）まで出すか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 外を指す規則を最初に1件書くときに決める"
     ],
     [
-     "層名だけでは書けない検証方法が残りうる。実測で分岐した「マイグレーションの位置」は層名を保持しない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点6 が枠組みの配置をライブラリの軸の規則へ移した。移して足りるかは外の作業で確認する"
+     "層のディレクトリを作成すること",
+     "<span class=\"kind k-rule\">対象外</span> ── 作るのは実装の工程である。<code>init</code> が作ると、空のディレクトリだけが残る"
     ],
     [
-     "宣言の形式（何の記法で書くか）を決めていない",
-     "<span class=\"kind k-fact\">解消済</span> ── 論点10 が JSON と決め、JSON Schema で形を検査する"
+     "この雛形を、まだ1件も出していない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 試すのは<b>外の作業</b>である ── <code>init</code> を実装し、このリポジトリで1件出して <code>validate</code> を実行する"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "保持者が成果物であること",
-     "内容の形が既存の値と同一になる場合、それは種別ではなく直交する軸であるという徴候である",
+     "層の名前を呼ぶ側から受け取ること",
+     "identifier として照合し、domain ・ usecase はどちらの原文にも無い",
+     "primary",
+     "the-clean-architecture.html ・ cockburn/hexagonal-architecture（2026-09-22）"
+    ],
+    [
+     "道具の名前を同梱しないこと",
+     "<b class=\"lead-s\">Skill は道具を1つも持たない</b><div class=\"sub-s\">実行するのは規則に書いてあるコマンドである</div>",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-evidence-based-scope.md"
+     "論点2（決着 2026-09-23）"
     ],
     [
-     "軸の値に付随させてはならないこと",
-     "分類を検査の分岐条件へ転用すると、分類を1語書き換えるだけで検査が静かに無効化される",
+     "既に在るものを作り直さないこと",
+     "<b class=\"lead-s\">既に在る名前は作り直さない</b><div class=\"sub-s\">上書きすると、書いた論点が消える</div>",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/knowledge-cand-aggregate-declaration-is-not-class-existence.md"
+     "brainstorming-board の init（正本）"
     ],
     [
-     "文言との照合で裁定すること",
-     "「宣言に違反している」は適合の主張であり、宣言の文言との照合だけで真偽が決まる",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/knowledge-cand-declaration-text-arbitrates-violation-claims.md"
-    ],
-    [
-     "規則が要るのは層名だけであること",
-     "一致したのは層名・実行開始点・internal の使用・依存方向。分岐したのはパス（永続化の実装位置・依存注入の位置・マイグレーションの位置ほか）",
+     "雛形が検査を通らないこと",
+     "層だけのファイルは「0件目: 検証方法に道具が無い」、規則0件は「[] is too short」で不合格になる",
      "measured",
-     "2026-09-20 の2プロセス実験"
-    ],
-    [
-     "参照する範囲を狭めないと全件失効すること",
-     "一方の依存方向検査を他方の構成へ適用すると、全件が不一致になる",
-     "measured",
-     "同上"
-    ],
-    [
-     "決めずに進めると裁量が発生すること",
-     "裁量の自己申告は10件と13件。共通して裁量と認識したのは8件程度で、認識の粒度も一致しない",
-     "measured",
-     "同上"
+     "2026-09-24 に validate を実行"
     ]
    ]
   },
   "6": {
    "note": [
     [
-     ""
+     "<b>いまの契約は、層の値をファイルの場所として検査する。</b>Java のパッケージ名を書くと必ず不合格になる（実測）。ポートとアダプタは概念だが、依存の向きを検査する段では、その言語での構成を決めることになる。"
     ]
    ],
    "pick": [
     [
-     "<b>軸は4本。区分の基準は「原典が設計論か、製品か」である。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li><b class=\"lead-s\">ライブラリの軸は製品</b><div class=\"sub-s\"><code>react</code> ・ <code>vue</code> ・ <code>rails</code> ・ <code>nextjs</code></div></li><li><b class=\"lead-s\">アーキテクチャの軸は確立された設計論だけ</b><div class=\"sub-s\"><code>hexagonal</code> ・ <code>layered</code> ・ <code>mvc</code></div></li><li><b class=\"lead-s\">枠組みを選んでも、アーキテクチャの値は付いてこない</b><div class=\"sub-s\">Rails を選んだ結果として <code>mvc</code> と、こちら側が明示して書く</div></li><li>理由を問われたら、設計論の原典を指せる</li></ul></div></details>"
+     "<b>概念の層と、その言語での同定子を分ける。規則は概念の層だけを参照する。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">概念の層は言語に依存しない</b><div class=\"sub-s\">ポートとアダプタは概念であり、ディレクトリ構成はその言語での表現にすぎない</div></li><li><b class=\"lead-s\">同定子は言語ごとに形が違う</b><div class=\"sub-s\">ディレクトリ ・ パッケージ ・ crate ・ モジュールの dotted path。<b>パスとして実在を検査しない</b></div></li><li><b class=\"lead-s\">同定子が正しいかは、道具が判定する</b><div class=\"sub-s\">依存の向きの道具は同定子の形で規則を書くので、誤っていれば実行の時点で出る</div></li><li><b class=\"lead-s\">だから作る順番が決まる</b><div class=\"sub-s\">同定子が決まらないと、依存の向きの規則を書けない</div></li><li><b class=\"lead-s\">言語が強制する範囲は、規則にしない</b><div class=\"sub-s\">規則を立てる条件①（無ければ外れるか）を満たさない</div></li><li><b class=\"lead-s\">適用する場所は、規則1件が持つ</b><div class=\"sub-s\">多言語の成果物は、1つの規則ファイルに複数の言語の規則が並ぶ</div></li></ul></div></details>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\"><b>層は2段で持つ。</b>概念の層はモデルが決め、同定子は言語が決める</b><div class=\"sub-s\">規則が参照するのは概念の層の名前だけである。</div>"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     "<h4>規則を作る順番 ── 5工程</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>工程</th><th>決めるもの</th><th>言語に依存するか</th></tr></thead><tbody><tr><th>1 モデル</th><td>概念 ・ 持ち物 ・ 依存してよい先</td><td>変更理由で分ける</td><td>しない</td></tr><tr><th>2 概念の層</th><td>層の名前と、内から外への並び</td><td>モデルから導出する</td><td>しない</td></tr><tr><th>3 言語と同定子</th><td>その言語で層を同定する文字列</td><td>ディレクトリ ・ パッケージ ・ crate</td><td><b>する</b></td></tr><tr><th>4 内を指す規則</th><td>層の場所 ・ 依存の向き</td><td>同定子の形で道具を選ぶ</td><td><b>する</b></td></tr><tr><th>5 外を指す規則</th><td>整形 ・ 静的解析 ・ 脆弱性 ・ 試験</td><td>原文を照合してから書く</td><td><b>する</b></td></tr></tbody></table></div><p class=\"note-s\"><b>3 を飛ばして 4 は書けない。</b>道具は同定子の形で規則を書く ── ArchUnit はパッケージ、import-linter は dotted path である。</p><h4>同じモデルを、2つの言語で書く ── 変わるのは同定子だけである</h4><pre><code>── Go\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"internal/core\",\n    \"app\":     \"internal/app\",\n    \"adapter\": \"internal/adapter\"\n  }\n}</code></pre><pre><code>── Java\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"com.example.core\",\n    \"app\":     \"com.example.app\",\n    \"adapter\": \"com.example.adapter\"\n  }\n}</code></pre><p class=\"note-s\"><b><code>並び</code> は1文字も変わらない。</b>変わるのは <code>層</code> の値だけで、そこが言語との境界である。</p><h4>言語ごとの同定子と、検査する相手</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>言語</th><th>同定子</th><th>検査する相手</th></tr></thead><tbody><tr><th>Go</th><td>ディレクトリ</td><td>既存の道具</td></tr><tr><th>Java</th><td>パッケージ</td><td><b class=\"lead-s\">ArchUnit</b><div class=\"sub-s\">パッケージ単位で規則を書く</div></td></tr><tr><th>Python</th><td>モジュールの dotted path</td><td>import-linter</td></tr><tr><th>TypeScript</th><td>パス、またはワークスペースのパッケージ</td><td>ESLint ・ dependency-cruiser</td></tr><tr><th>Rust</th><td>crate と <code>mod</code> の可視性</td><td><b class=\"lead-s\">規則を立てない</b><div class=\"sub-s\">言語が強制する</div></td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "A",
+     "層の値を、ファイルの場所に固定する",
+     "Java ・ Rust で必ず不合格になる ── 実測で確認済みである"
+    ],
+    [
+     "B",
+     "言語ごとに層の契約を分ける",
+     "契約が言語の数だけ増え、どれを読むかの判断が言語の検出になる"
+    ],
+    [
+     "C",
+     "概念の層と同定子の2段にする",
+     "同定子が正しいかを、この Skill は検査できない ── 道具が実行できるかで判明する"
+    ]
+   ],
+   "dropped": [
+    [
+     "層の実在を、パスとして検査し続ける",
+     "<b>実測で破綻している</b> ── Java のパッケージ名は2件とも「場所が実在しない」と報告される"
+    ],
+    [
+     "言語ごとのディレクトリ構成を、この Skill が決める",
+     "言語ごとに分岐し、原典に無い名前を Skill が保持することになる"
+    ],
+    [
+     "言語ごとに規則ファイルを分ける",
+     "どれを読むかの判断が、言語の検出に帰着する（論点5で除外済み）"
     ]
    ],
    "path": [
     [
-     "<div class=\"card\"><div class=\"card-h\">接点の軸を照合したところ、原典が実在した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>RFC 9110（状態コード）・ POSIX（シェルの終了コード）</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">同じ問いを広げると、枠組みと RDBMS にも原典が在った</div></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">引き返した手（1度目） ── 内容の形で集約し、「3本に保つ」を結論にした</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>見ていたのは Next.js と Rails だけだった</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し（1度目）</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">フロントエンドを Coding するときは必ず UIフレームワークを選ぶ必要があるよね？React や Vue、Svelte など決めるよね？それはどこに入るんですか？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">React はアーキテクチャの内容の形に一致しない</b><div class=\"sub-s\">層も依存方向も配置も規定せず、規定するのは識別子と構文の水準である</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">言語の軸へ入れると正本が2つになる</b><div class=\"sub-s\">TypeScript の版と React の版で、変更契機が1つの文書に2つ同居する</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">引き返した手（2度目） ── 4本目を立て、区分の基準を「配置を規定するか」に置いた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>アーキテクチャの値に <code>rails</code> と <code>nextjs</code> を入れた</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し（2度目）</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">アーキテクチャを強制するフレームワークはきもいな。</span></td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">気持ち悪さには構造の中身がある</b><div class=\"sub-s\">値を廃れるものが持つ ・ 選択の記録が消える ・ 配置がベンダーの版に従う</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">「配置の空白が充填される」は、裏返すと依存である</b><div class=\"sub-s\">充填したのが自分ではないので、充填した側が版を上げるとこちらの配置が一斉に動く</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">3つとも、正本の性質が混ざったことから出ていた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>基準を原典の性質へ再定義すると、3つとも消えた</td></tr><tr class=\"g-finding\"><th rowspan=\"4\"><span class=\"kind k-fact\">判明事項</span><small>4件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">正しい区分の基準は「原典が設計論か、製品か」である</b><div class=\"sub-s\">正本の性質が違えば、変更契機の質も違う</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">論点4 の結論が無傷で残る</b><div class=\"sub-s\">アーキテクチャの値が設計論だけになったので、「具体まで降下しない」の例外が消えた</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">軸を足す費用は、値を持つ軸の数で決まる</b><div class=\"sub-s\">値が無ければ文書も生まれないので、使っていない成果物の保守は増えない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">4</span><b>テスト規則と RDBMS の判定は、2度の組み直しを通過して変わっていない</b></td></tr></tbody></table></div>"
+     "<div class=\"card\"><div class=\"card-h\">パス前提であることを、実測で確認した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>層に Java のパッケージ名（<code>com.example.domain</code>）を書いて <code>validate</code> を実行した</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">2件とも不合格である</b><div class=\"sub-s\">「層 domain の場所が実在しない」。原因は <code>validate.py:52</code> の <code>(根 / 場所).exists()</code> である</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">Go の <code>internal/</code> は、取得済みの原文に記述が無い</b><div class=\"sub-s\">したがって「言語が強制する」を原典の記述として書けない</div></td></tr></tbody></table></div>"
     ]
    ],
    "found": [],
    "costs": [
     [
-     "<b class=\"lead-s\">軸が4本になる</b><div class=\"sub-s\">値を持つ成果物では、文書が1本増える</div>"
+     "<b class=\"lead-s\"><code>validate</code> の層の検査を直す必要がある</b><div class=\"sub-s\">いまはパスとして実在を見る</div>"
     ],
     [
-     "<b class=\"lead-s\">枠組みを選ぶたびに、アーキテクチャの値をこちら側で書き足す</b><div class=\"sub-s\">書かなければ値が空のまま残り、依存方向の規則が1件も立たない</div>"
+     "<b class=\"lead-s\"><code>init</code> が同定子を受け取る必要がある</b><div class=\"sub-s\">概念の層だけでは、規則を書けない</div>"
     ],
     [
-     "<b class=\"lead-s\">配置の宣言の中に、軸をまたいで出典を持つ行が生じる</b><div class=\"sub-s\">枠組みが規定する配置は、ライブラリの軸の出典を指すためである</div>"
-    ],
-    [
-     "<b class=\"lead-s\">接点の値ごとに文書を1つにするので、文書の数は増える</b><div class=\"sub-s\">ただし軸の数は増えない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">テスト規則を3本へ分散させる</b><div class=\"sub-s\">人が観点で探せなくなる</div>"
+     "<b class=\"lead-s\"><code>検証方法.対象</code> を実装する必要がある</b><div class=\"sub-s\">契約に在るが、<code>run.py</code> は常に根で実行する</div>"
     ]
    ],
    "weaknesses": [
     [
-     "4本で閉じている根拠を保持しない。ライブラリは差し戻されて初めて出た ── 候補を網羅的に挙げる手を持っていない",
-     "<span class=\"kind k-rule\">対象外</span> ── 網羅の証明はできない。5本目が出たら、同じ基準で再定義する"
+     "同定子が、その言語で正しいかを検査すること",
+     "<span class=\"kind k-rule\">対象外</span> ── 検査するには言語ごとの構文を認知することになる ── 誤っていれば、道具の実行で出る"
     ],
     [
-     "<b>MVC を値にしても、依存方向の規則の出典が取れない。</b>原典は役割を述べるが、層も依存方向も規定していない（4語とも読めた範囲に無い）",
-     "<span class=\"kind k-rule\">対象外</span> ── <code>mvc</code> は値として使えるが、そこから立つ規則は <code>hexagonal</code> ・ <code>layered</code> より少ない"
+     "言語ごとの推奨する構成を持つこと",
+     "<span class=\"kind k-rule\">対象外</span> ── 論点5で除外済みである ── Skill は言語を認知しない"
     ],
     [
-     "MVC の原典は、1979年12月の覚書だけを読んだ。1979年5月の前身（THING-MODEL-VIEW-EDITOR）は取得しただけで照合していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 照合は外の作業である。前身に層の記述が在れば、上の1件が解消する"
-    ],
-    [
-     "Next.js の照合は project-structure の1頁だけである。<code>middleware.js</code> は同頁に無く、別頁に在ると推定している",
-     "<span class=\"kind k-rule\">対象外</span> ── この答えは枠組みが配置を規定することに依存し、特定の1名が在ることには依存しない"
-    ],
-    [
-     "React が配置を規定しないことの根拠は、旧版の公式（legacy.reactjs.org）である。現行の react.dev に同じ記述が在るかは確認していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 照合は外の作業である。現行に無ければ、React の判定の根拠が旧版だけになる"
-    ],
-    [
-     "「こちら側が明示して書く」は運用に依存している。書かない自由がある",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点7 が順序を決め、論点8 が ADR で記録させる。書かせる仕組みはそこに在る"
-    ],
-    [
-     "テスト規則を3本へ分解した例は4件だけである",
-     "<span class=\"kind k-given\">後続で決定</span> ── 外の作業で件数を増やす。分解できない規則が出たら、テストを軸にしない判定が成立しなくなる"
+     "この2段を、まだ1つも書いていない",
+     "<span class=\"kind k-given\">後続で決定</span> ── 試すのは<b>外の作業</b>である ── Go と Java の2つで層を書き、同じ <code>並び</code> で規則が書けるかを確認する"
     ]
    ],
    "tables": [],
    "grounds": [
     [
-     "MVC が設計論として原典を持つこと",
-     "A view is a (visual) representation of its model. It would ordinarily highlight certain attributes",
+     "Java がパッケージで層を同定すること",
+     "ArchUnit can check dependencies between packages and classes, layers and slices",
      "primary",
-     "Reenskaug「MODELS - VIEWS - CONTROLLERS」1979-12-10（1979-12-MVC.txt:22。取得日 2026-09-20）"
+     "archunit.org/userguide:557（2026-09-22 取得）"
     ],
     [
-     "UIライブラリの規則が構文の水準で判定できること",
-     "Instead, always use Hooks at the top level of your React function, before any early returns.",
+     "Rust が言語で強制すること",
+     "pub(crate) makes an item visible within the current crate.",
      "primary",
-     "react.dev/reference/rules/rules-of-hooks（:17。取得日 2026-09-20）"
+     "doc.rust-lang.org/reference/visibility-and-privacy:466（2026-09-22 取得）"
     ],
     [
-     "React が配置を規定しないこと",
-     "React doesn’t have opinions on how you put files into folders.",
-     "primary",
-     "legacy.reactjs.org/docs/faq-structure.html（:161。取得日 2026-09-20）"
-    ],
-    [
-     "枠組みが配置を規定すること",
-     "The components defined in special files are rendered in a specific hierarchy:",
-     "primary",
-     "nextjs.org/docs/app/getting-started/project-structure（:151。版 16.3.5。取得日 2026-09-20）"
-    ],
-    [
-     "正本の質が違うものを同じ軸に入れないこと",
-     "軸は外部の正本と一対一で対応する。この対応により、文書ごとに変更理由が単一になる",
+     "言語が強制する範囲を規則にしないこと",
+     "<b class=\"lead-s\">規則を立てる条件は2つ</b><div class=\"sub-s\">無ければ外すか、コマンドで検査できるか</div>",
      "rule",
-     "このブレストボードの論点3・論点4"
+     "前の世代の論点1（決着 2026-09-22）"
     ],
     [
-     "内容の形が違うなら別の種別であること",
-     "内容の形が既存の値と同一になる場合、それは種別ではなく直交する軸であるという徴候である",
+     "概念の層が言語に依存しないこと",
+     "層はモデルから導出され、層名を先に決めてそこへ概念を配置しない",
      "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-evidence-based-scope.md"
+     "論点1（決着 2026-09-22）"
     ],
     [
-     "設計論の3流派が同一思想の別表現であること",
-     "3つの著名な表現形式はいずれも同一思想の別表現である",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-dependency-direction.md"
-    ],
-    [
-     "MVC の原典が配置を規定しないこと",
-     "directory ・ folder ・ file structure の3語は、読めた範囲に1件も無い",
+     "パスとして検査できないこと",
+     "Java のパッケージ名を層に書くと、2件とも「場所が実在しない」で不合格になる",
      "measured",
-     "同覚書を原文の文字列で照合（2026-09-20）"
-    ],
-    [
-     "MVC の原典が層も依存方向も規定しないこと",
-     "layer ・ dependency ・ depend ・ inward の4語も、読めた範囲に1件も無い",
-     "measured",
-     "同覚書を原文の文字列で照合（2026-09-20）"
-    ],
-    [
-     "枠組みが規定する名前が実在すること",
-     "app ・ page.js ・ layout.js ・ route.js の4件を identifier として照合した（middleware.js は同頁に無い）",
-     "measured",
-     "同頁を原文の文字列で照合（2026-09-20）"
-    ],
-    [
-     "接点が外と接する口であること",
-     "UI ・ CLI ・ TUI ・ API は、名前そのものが Interface である",
-     "assumption",
-     "このボードの前提（面の下に集約してある）"
-    ],
-    [
-     "利用者の差し戻し（1度目）",
-     "フロントエンドを Coding するときは必ず UIフレームワークを選ぶ必要があるよね？React や Vue、Svelte など決めるよね？それはどこに入るんですか？",
-     "assumption",
-     "利用者の発言 2026-09-20"
-    ],
-    [
-     "利用者の差し戻し（2度目）",
-     "アーキテクチャを強制するフレームワークはきもいな。",
-     "assumption",
-     "利用者の発言 2026-09-20"
-    ],
-    [
-     "利用者の制約",
-     "軸は少なくできるに越したことはない。手を入れないといけない箇所をあまり増やしたくない",
-     "assumption",
-     "利用者の発言 2026-09-20"
-    ]
-   ]
-  },
-  "7": {
-   "note": [
-    [
-     ""
-    ]
-   ],
-   "pick": [
-    [
-     "<b>順序は一方向。ライブラリだけが派生する軸である。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li>言語 ・ アーキテクチャ ・ 接点は独立に決まり、ライブラリはその3つに適合するものとして選ばれる</li><li><b class=\"lead-s\">逆流は禁じる</b><div class=\"sub-s\">ライブラリの都合でアーキテクチャの値を決めてはならない</div></li><li><b class=\"lead-s\">根拠は依存方向と同型である</b><div class=\"sub-s\">廃れない設計論が、廃れる製品を参照する形になるためである</div></li><li><b class=\"lead-s\">違反は機械で検出する</b><div class=\"sub-s\">ライブラリの選定の記録が参照するアーキテクチャの値が存在しなければ、順序を破っている</div></li></ul></div></details>"
-    ]
-   ],
-   "path": [
-    [
-     "<div class=\"card\"><div class=\"card-h\">論点6 で軸を4本にし、区分の基準を「原典が設計論か、製品か」に置いた</div></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">そのとき「軸のあいだに順序を持たせない」も同時に結論した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>枠組みがアーキテクチャを決める形を、向きが固定できない反例として処理した</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">私はアーキテクチャを考えた時にどのライブラリが合うかで選定してほしんだよね。なんかNextを使いたいからアーキテクチャをこれにしないといけないみたいな決め方は絶対しなくないんだよね。</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">反例だと思っていたものが、禁じるべき形だった</b><div class=\"sub-s\">順序は観察の結果ではなく決めごとである。この区別が付いていなかった</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">根拠を探すと、既に手元にあった</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>ポートはコア側が定義し、アダプターは外側が持つ ── 設計論は廃れず製品は廃れるので、廃れるものが廃れないものを決めるのは逆流である</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">軸のあいだの依存方向も、コードの依存方向と同じ原則で決まる</b><div class=\"sub-s\">アーキテクチャがポート側、ライブラリがアダプター側である</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">論点6 の区分の基準が、この順序の根拠をそのまま与えている</b><div class=\"sub-s\">廃れるものと廃れないものの区別が、そのまま内と外の区別になる</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">派生するのはどれかを確認した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>言語も接点も独立に決まる</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">派生するのはライブラリ1本だけである</b><div class=\"sub-s\">順序は「3つ → 1つ」の1段しかない</div></td></tr></tbody></table></div>"
-    ]
-   ],
-   "found": [],
-   "costs": [
-    [
-     "<b class=\"lead-s\">枠組みを選ぶ前に、アーキテクチャの値を書く</b><div class=\"sub-s\">枠組みから入る道を閉じることになる</div>"
-    ],
-    [
-     "<b class=\"lead-s\">順序を守らせる仕組みが別に要る</b><div class=\"sub-s\">決めごとなので、破っても機械では止まらない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">選定の記録に「どのアーキテクチャの値に対して選んだか」を残す</b><div class=\"sub-s\">参照が無ければ、逆流を検出できない</div>"
-    ]
-   ],
-   "weaknesses": [
-    [
-     "検出できるのは「参照先が無い」場合だけである。アーキテクチャの値を後付けで書き足して辻褄を合わせた場合は、機械では判定できない",
-     "<span class=\"kind k-rule\">対象外</span> ── 記録の内容の正しさは問えない（論点8 と同じ限界である）"
-    ],
-    [
-     "適合するライブラリが1つも無い場合の扱いを決めていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── アーキテクチャの値を変えるのか、適合しないまま選ぶのかを、実例が出た時点で決める"
-    ],
-    [
-     "「適合する」の判定基準が無い。ヘキサゴナルに Next.js が適合するかを、何をもって判定するのかは決めていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点8 が ADR に何を書かせるかを決める。そこに現れる"
-    ],
-    [
-     "3つが独立であることは、それぞれの原典が互いを参照しないことから言っているだけである。原文の文字列では照合していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 照合は外の作業である。参照が在れば、独立に決まるという前提が成立しなくなる"
-    ]
-   ],
-   "tables": [],
-   "grounds": [
-    [
-     "腐敗の主因が修復コストであること",
-     "認識の単位は1件だが、修復の単位が1冊になる。閾値を越えると放置が合理になる",
-     "rule",
-     "論点3"
-    ],
-    [
-     "所有の向きが内から外であること",
-     "いずれの場合も、ポート（インターフェース）はコア側が定義し、アダプター（実装）は外側が持つ",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-port-adapter.md"
-    ],
-    [
-     "依存が内向きであること",
-     "3つの著名な表現形式はいずれも同一思想の別表現である",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-dependency-direction.md"
-    ],
-    [
-     "設計論が言語に非依存であること",
-     "層の数自体に唯一の正解はなく、同じ理由で変更されるコードを同じ層にまとめるという基準で決める",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/architecture-layer-boundary.md"
-    ],
-    [
-     "正本の性質が内と外を分けること",
-     "ライブラリの軸の値は製品で版を上げて廃れる。アーキテクチャの軸の値は確立された設計論で廃れない",
-     "rule",
-     "このブレストボードの論点6"
-    ],
-    [
-     "利用者の差し戻し",
-     "私はアーキテクチャを考えた時にどのライブラリが合うかで選定してほしんだよね。なんかNextを使いたいからアーキテクチャをこれにしないといけないみたいな決め方は絶対しなくないんだよね。",
-     "assumption",
-     "利用者の発言 2026-09-20"
-    ]
-   ]
-  },
-  "8": {
-   "note": [
-    [
-     ""
-    ]
-   ],
-   "pick": [
-    [
-     "<b>出典を持てないものは ADR として持つ。</b><details class=\"why-in\"><summary>この答えを導いたもの（4件）</summary><div><ul><li>記録が持つのは、選んだもの ・ 除外した候補 ・ <b>どの軸の値に対して選んだか</b></li><li><b class=\"lead-s\">正しさは問わない</b><div class=\"sub-s\">出典を保持しないので、判定する相手が存在しない</div></li><li><b class=\"lead-s\">置き場所が3つに分かれ、重ならない</b><div class=\"sub-s\">出典を持つものは規則、持たないもののうち層名とパスの対応は配置の宣言、それ以外は ADR</div></li><li><b class=\"lead-s\">論点7 の機械検出は、この参照に乗る</b><div class=\"sub-s\">ADR が参照するアーキテクチャの値が無ければ、逆流である</div></li></ul></div></details>"
-    ]
-   ],
-   "path": [
-    [
-     "<div class=\"card\"><div class=\"card-h\">論点2 で「出典を保持しないものは規則にしない」と決め、置き場所は保留にした</div></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">論点5 で配置の宣言を立てたが、持つのは層名とパスの対応だけに限った</div></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">論点7 で「ライブラリは3つの軸に適合するものとして選ぶ」と決めた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>適合の判定は、2つ以上の軸の値を参照しないと記述できない</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">適合の判定は規則にならない</b><div class=\"sub-s\">論点1（規則は軸の値だけで書ける）に違反する</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">だが ADR の記述としては書ける</b><div class=\"sub-s\">正しさを問わないので、2つ以上の軸の値を参照してよい</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">保留にしていた項目が、ここで先送りできなくなった</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>規則でも宣言でもない置き場所が要る</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">判定の順序を決めた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>まず出典を持つか、次に層名とパスの対応か</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">置き場所は3つで足りる</b><div class=\"sub-s\">判定は2段で済み、重ならない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">既に前例がある</b><div class=\"sub-s\">このリポジトリには <code>.acdr/</code> が在り、acdr Skill が記録の形を持つ</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">逆流の検出も、この記録の参照に乗せた</div><table class=\"ev\"><tbody><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">ADR を置かないと、論点7 が意志に依存する形へ戻る</b><div class=\"sub-s\">検出は参照の存在に乗っているためである</div></td></tr></tbody></table></div>"
-    ]
-   ],
-   "found": [],
-   "costs": [
-    [
-     "<b class=\"lead-s\">承認の単位が1つ増える</b><div class=\"sub-s\">規則文書 ・ 配置の宣言 ・ ADR の3つになる</div>"
-    ],
-    [
-     "<b class=\"lead-s\">選定のたびに記録を書く</b><div class=\"sub-s\">書かなければ、逆流の検出が働かない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">ADR の正しさは問えない</b><div class=\"sub-s\">出典を保持しないので、判定する相手が存在しない</div>"
-    ]
-   ],
-   "weaknesses": [
-    [
-     "ADR を書かせる仕組みが無い。書かない自由があるので、逆流の検出は「書いてある場合に限り」働く",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点11 が実行の時点を決める。ADR の不在を検査できるかは、そこに乗る"
-    ],
-    [
-     "「適合する」の判定基準そのものは、まだ決めていない。ADR に何を書けばよいかが定まらない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 外の作業である。1件書いてみて、書けない欄が出るかを確認する"
-    ],
-    [
-     "ADR が古くなったときの扱いを決めていない。出典を保持しないので、失効の形態も定義できない",
-     "<span class=\"kind k-rule\">対象外</span> ── 失効の3形態は出典を持つ規則のものである。ADR は承認の状態（proposed ／ accepted ／ superseded）で置き換わる"
-    ]
-   ],
-   "tables": [],
-   "grounds": [
-    [
-     "出典を保持しないものは規則にしないこと",
-     "出典に存在しない主張は記述しない。検証方法のみが例外である",
-     "rule",
-     "このブレストボードの論点2"
-    ],
-    [
-     "宣言が層名とパスの対応だけを持つこと",
-     "<b class=\"lead-s\">配置の宣言が持つのは出典を保持しない行だけ</b><div class=\"sub-s\">層名とパスの対応である</div>",
-     "rule",
-     "このブレストボードの論点5"
-    ],
-    [
-     "規則が軸の値だけで書けること",
-     "規則は抽象の形状を参照できない。軸の値だけで記述できる",
-     "rule",
-     "このブレストボードの論点1"
-    ],
-    [
-     "逆流の検出が参照に乗ること",
-     "ライブラリの選定の記録が参照するアーキテクチャの値が存在しなければ、逆流である",
-     "rule",
-     "このブレストボードの論点7"
-    ],
-    [
-     "記録の形が既に在ること",
-     "決定 ・ なぜ ・ 形の変化 ・ 実現の形 ・ 適用先 ・ 比較した案 ・ 承認の状態の節を持つ",
-     "rule",
-     ".claude/skills/acdr/SKILL.md"
-    ],
-    [
-     "前例が4件在ること",
-     ".acdr/0001〜0004 が承認済みで、承認時点の対象文書の sha256 で封印されている",
-     "measured",
-     "リポジトリの .acdr/（2026-09-21）"
-    ]
-   ]
-  },
-  "9": {
-   "note": [
-    [
-     ""
-    ]
-   ],
-   "pick": [
-    [
-     "<b>軸と値の対を受け取り、適用される規則の集合を返す。</b><details class=\"why-in\"><summary>この答えを導いたもの（5件）</summary><div><ul><li><b class=\"lead-s\">入力は <code>{言語: go, ライブラリ: react, アーキテクチャ: hexagonal, 接点: [cli, http]}</code> の形</b><div class=\"sub-s\"><b>値だけでは足りない</b></div></li><li>検証方法は自作せず、既に在る CLI の呼び出しとして書く</li><li><b class=\"lead-s\">コードは検査しない</b><div class=\"sub-s\">それは言語やライブラリの CI が既に走らせている</div></li><li>この Skill が検査するのは<b>規則文書と配置の宣言</b>であり、形を遵守しているか ・ 出典が原典と一致するか ・ 宣言が実物と一致するかを判定する</li><li><b>変換も行わない</b></li></ul></div></details>"
-    ]
-   ],
-   "path": [
-    [
-     "<div class=\"card\"><div class=\"card-h\">Coding の能力は3つと決まっている</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>つくる ・ 沿う ・ 差し戻す。3つとも Skill に入れる案を検討した</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">変換と差し戻しを除外した</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>変換は抽象の形を読む必要が生じ、規則は形を参照できないので矛盾する。差し戻しは受け皿の有無に依存し、Skill の外の事情で動かなくなる</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">Skill が持てるのは、機械で閉じる部分だけである</b><div class=\"sub-s\">集めることと、判定すること。Coding の能力3つと Skill の責務は一致しない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">つくる作業は対話の側に残る</b><div class=\"sub-s\">負担だが、判断を含むので機械に閉じられない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">入力を軸の値に限ると、抽象を受け取らない</b><div class=\"sub-s\">だから入口の形を規定する必要が消える</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し（1度目）</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">軸の値だけではないでしょ？軸のそのものはいらないのか？確かに値が軸をまたがらないならそれでもいいけど、その辺はどうなの？</span></td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">軸は値に含まれていない</b><div class=\"sub-s\"><code>rails</code> をライブラリの値としたのは、その原典が設計論ではなく製品だという判定の結果であって、文字列の中には入っていない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">決定を運ぶ場所が無いと、推定するしかなくなる</b><div class=\"sub-s\">推定は妥当かどうかを確認できない</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">対で受け取ると、論点7 の順序も検査できる</b><div class=\"sub-s\">ライブラリの値がどれかを参照しなければ、逆流を検出できない</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">引き返した手 ── 「衝突が実在しなければ念のためになる」と弱点に書いた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>誤りだった。衝突が1件も無くても、決定を破棄していることに変わりはない</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">値だけにする利点は無かった</b><div class=\"sub-s\">得るのは鍵を4つ書かずに済むことだけである</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">入力を、軸と値の対に変えた</div></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">「検証方法を実行する」を具体へ分解した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>機械が走らせるものと、人が判定するものに分かれた。散文の検証方法は実行できない ── 翻訳が毎回入ると、同じ規則から違うコマンドが出る</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し（2度目）</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">基本的にコーディングにおける検証方法は言語のCIでしょうね。あとはCLIが提供されているものとこですね。</span></td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">検証方法は、既に在る CLI の呼び出しである</b><div class=\"sub-s\">自作すると、道具の正しさを判定する相手が無くなる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">「人が判定する」は、検証方法の種類ではなかった</b><div class=\"sub-s\">CLI が在れば結果は件数であり、無ければ未検証である</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">軸によって CLI の有無が割れる</b><div class=\"sub-s\">言語とライブラリは公式が提供するが、アーキテクチャと接点は提供しない。論点4 で確認した形と同じである</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">差し戻し（3度目）</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">このSkillsが作るCIは、このSkillsが作成する成果物に対してCIするだけですね。だって言語はその言語のCIがあるのでね。</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">規則が指す CLI を重ねて実行すると、実行の責任が2か所になる</b><div class=\"sub-s\">食い違ったときに、どちらが正しいかを判定できない</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">実行する対象を、自分の成果物だけへ狭めた</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>規則文書と配置の宣言である</td></tr><tr class=\"g-finding\"><th rowspan=\"3\"><span class=\"kind k-fact\">判明事項</span><small>3件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">この Skill が検査するのはコードではない</b><div class=\"sub-s\">コードの検査は言語やライブラリの CI が既に走らせている</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">「道具を自分で用意する」も同時に消えた</b><div class=\"sub-s\">用意しない。CLI が無い規則は書けない、で閉じる</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">3</span><b class=\"lead-s\">返すのは2つ</b><div class=\"sub-s\">規則の集合（使う側が読む）と、判定（機械が出す）。性質が違うので、同じ形では返さない</div></td></tr></tbody></table></div>"
-    ]
-   ],
-   "found": [],
-   "costs": [
-    [
-     "<b class=\"lead-s\">規則をつくる作業が Skill の外に残る</b><div class=\"sub-s\">原典の採用範囲を決めるのは判断であり、機械に閉じられない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">入力が対になるので、書く手間が増える</b><div class=\"sub-s\">軸の鍵を4つ書くことになる</div>"
-    ],
-    [
-     "<b class=\"lead-s\">返すものが2種類になる</b><div class=\"sub-s\">読むための集合と機械の判定は性質が違うので、形を別に決める</div>"
-    ]
-   ],
-   "weaknesses": [
-    [
-     "<b>この答えは、試作で確認していない。</b>確認できるのは論点10 が決着してからである",
-     "<span class=\"kind k-given\">後続で決定</span> ── 規則の置き場所が決まらなければ、対だけで引けるかを試せない。試していないのではなく、まだ試せない"
-    ],
-    [
-     "<b>接点の軸の値が、基準と合っていない。</b><code>postgresql</code> は製品が原典なので、論点6 の区分の基準（原典が設計論か製品か）に従うとライブラリの値である",
-     "<span class=\"kind k-given\">後続で決定</span> ── この答えが決めたのは「対を受け取る」であって、どの値がどの軸かではない。むしろ<b>帰属の判定を誤る実例が実在した</b>ことになり、対にした判断を補強する。論点6 へ差し戻す"
-    ],
-    [
-     "接点の軸だけが値の集合を持つ（<code>cli</code> かつ <code>http</code>）。他の3軸は単数である。対の右辺が単数か配列かを決めていない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 対を受け取ることは変化しない。右辺の形は論点2（規則文書の置き場所）で決まる"
-    ],
-    [
-     "軸と値の対を、誰が保持するのかを決めていない。成果物ごとの宣言として持つのか、呼ぶたびに渡すのか",
-     "<span class=\"kind k-given\">後続で決定</span> ── 保持者はこの答えの外である。論点2 で決まる"
-    ],
-    [
-     "「適用される規則を集める」の実装を決めていない。軸の値からファイルを参照するだけなのか、条件の突合が要るのか",
-     "<span class=\"kind k-given\">後続で決定</span> ── 実装がどちらでも、受け取るものと返すものは変化しない。論点2 の決着で自動的に決まる"
-    ],
-    [
-     "この Skill が検査する対象（規則文書と配置の宣言）の、検査の中身を決めていない。形を遵守しているか・出典が原典と一致するか・宣言が実物と一致するか、の3つを挙げただけである",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点10（原典をどう整え、どう参照させるか）が決まると、検査できる対象が確定する。そこで中身を決める"
-    ],
-    [
-     "どの CLI が実在するかを照合していない（<code>go vet</code> ・ React の lint 規則など）。原文の文字列で確認していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 実際に書き直すときに、1件ずつ原典を取得して照合する"
-    ]
-   ],
-   "tables": [],
-   "grounds": [
-    [
-     "規則が抽象の形を参照できないこと",
-     "規則は抽象の形状を参照できない。軸の値だけで記述できる",
-     "rule",
-     "論点1"
-    ],
-    [
-     "規則が検証方法を持つこと",
-     "規則が保持するのは出典・採用範囲・検証方法の3つである",
-     "rule",
-     "論点1"
-    ],
-    [
-     "軸が4本であること",
-     "<b class=\"lead-s\">軸は4本</b><div class=\"sub-s\">言語 ・ ライブラリ ・ アーキテクチャ ・ 接点</div>",
-     "rule",
-     "論点6"
-    ],
-    [
-     "どの軸の値かがこちら側の決定であること",
-     "<b class=\"lead-s\">区分の基準は「原典が設計論か、製品か」である。枠組みを選んでもアーキテクチャの値は付いてこない</b><div class=\"sub-s\">こちら側が明示して書く</div>",
-     "rule",
-     "論点6"
-    ],
-    [
-     "順序の検査が軸を要ること",
-     "ライブラリの選定の記録が参照するアーキテクチャの値が存在しなければ、逆流である",
-     "rule",
-     "論点7"
-    ],
-    [
-     "この Skill が検査するのは自分の成果物だけであること",
-     "このSkillsが作るCIは、このSkillsが作成する成果物に対してCIするだけですね。だって言語はその言語のCIがあるのでね。",
-     "assumption",
-     "利用者の回答 2026-09-20（Q1）"
-    ],
-    [
-     "検証方法が既に在る CLI であること",
-     "基本的にコーディングにおける検証方法は言語のCIでしょうね。あとはCLIが提供されているものとこですね。",
-     "assumption",
-     "利用者の回答 2026-09-20（Q1）"
-    ],
-    [
-     "利用者の差し戻し",
-     "軸の値だけではないでしょ？軸のそのものはいらないのか？確かに値が軸をまたがらないならそれでもいいけど、その辺はどうなの？",
-     "assumption",
-     "利用者の回答 2026-09-20（Q1）"
-    ],
-    [
-     "差し戻しの受け皿が外にあること",
-     "差し戻しが実際に受け取られるかは、このブレストボードの外である",
-     "assumption",
-     "このボードの前提（面の下に集約してある）"
-    ],
-    [
-     "利用者の要望",
-     "新しいSkillsでcodingSkillsという名称でブレインストーミングを作成してほしい",
-     "assumption",
-     "利用者の発言 2026-09-20"
-    ]
-   ]
-  },
-  "10": {
-   "note": [
-    [
-     ""
-    ]
-   ],
-   "pick": [
-    [
-     "<b>規則1種に統一する。違うのは、出典が外（原典）を指すか内（ADR）を指すかだけである。</b><details class=\"why-in\"><summary>この答えを導いたもの（8件）</summary><div><ul><li><b class=\"lead-s\">分類の誤りを1件直した</b><div class=\"sub-s\">「出典を保持しないから規則ではない」と読んでいたが、持たないのではなく内側にある</div></li><li><b class=\"lead-s\">ADR は論点8 が既に決めた置き場所である</b><div class=\"sub-s\">新しい概念は足していない</div></li><li><b class=\"lead-s\">入れ物を1枚にまとめない</b><div class=\"sub-s\">まとめると、テストの配置を直すために配置の規則を開くことになる（論点3 の条件が中で成立しない）</div><details class=\"why-in\"><summary>テストの規則の分解（4件）</summary><div><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>どこから来るか</th><th>原典に在るか</th><th>どこが保持するか</th></tr></thead><tbody><tr><th><code>_test.go</code> ・ <code>TestXxx</code></th><td>言語</td><td>在る</td><td><b>外を指す規則</b>（言語の軸）</td></tr><tr><th>テスト用の道具の呼び出し方</th><td>ライブラリ</td><td>在る</td><td><b>外を指す規則</b>（ライブラリの軸）</td></tr><tr><th>どの層を単独で試すか</th><td>アーキテクチャ</td><td><b>無い</b>（層名までしか降下しない）</td><td><b>内を指す規則</b></td></tr><tr><th>テストをどのディレクトリへ置くか</th><td>アーキテクチャ ・ 言語 ・ ライブラリの交差</td><td><b>無い</b></td><td><b>内を指す規則</b></td></tr></tbody></table></div></div></details></li><li><b class=\"lead-s\">出典の粒度は ADR 1件が規則を複数支える</b><div class=\"sub-s\">規則1件ごとに ADR は要らない</div></li><li><b class=\"lead-s\">これは全部の軸に在る</b><div class=\"sub-s\">接点の原典は終了コードの値を規定するが、アプリケーションが返す値は規定しない（論点4）</div><details class=\"why-in\"><summary>軸ごとの内訳（6軸）</summary><div><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>外を指す規則 ── 原典が決める</th><th>内を指す規則 ── ADR が出典</th><th>裏づけ</th></tr></thead><tbody><tr><th>言語（go）</th><td>識別子の書き方 ・ <code>gofmt</code> の実行 ・ <code>_test.go</code> と <code>TestXxx</code></td><td>有効にする lint の集合（<code>go vet</code> ・ <code>golint</code> は原典に無い）・ モジュール名</td><td><b>照合済み</b> 2026-09-21</td></tr><tr><th>ライブラリ（react ・ nextjs）</th><td>hooks の規則 ・ Next.js の <code>project-structure</code></td><td>採用する機能の範囲</td><td><b>照合済み</b> 2026-09-21</td></tr><tr><th>版（go ・ react とも）</th><td><b>機構は規定する</b>（<code>go</code> ディレクティブ）</td><td><b>値は規定しない</b>。ただし <code>go.mod</code> ・ <code>package.json</code> が既に正本を保持する</td><td><b>照合済み</b> 2026-09-21</td></tr><tr><th>アーキテクチャ（hexagonal）</th><td>依存の向き ・ 層名</td><td>層名→パス ・ 合成の位置 ・ エラー型の配置 ・ テストの配置</td><td>実測（2プロセス実験）</td></tr><tr><th>接点（cli ・ http）</th><td>終了コード 126・127・128超 ・ HTTP の状態コード</td><td><b>アプリケーションが返す終了コードの規定</b> ・ エラー本文の形</td><td>決まり（論点4 が明記している）</td></tr><tr><th>軸そのもの</th><td>──</td><td><b>この成果物の軸と値の記録</b>（<code>axes.json</code>）</td><td>決まり（論点7 の逆流検出が、これを読む）</td></tr></tbody></table></div></div></details></li><li><b class=\"lead-s\">軸と値そのものも同じ形で持つ（<code>axes.json</code>）</b><div class=\"sub-s\">論点7 の逆流検出が読む相手であり、論点9 が受け取る対の出どころである</div></li><li><b class=\"lead-s\">種類は推測しない</b><div class=\"sub-s\">2プロセス実験で分岐した項目が、そのまま一覧になる</div><details class=\"why-in\"><summary>分岐した10項目（2プロセス実験）</summary><div><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>原典が決めるか</th><th>内を指す規則が持つか</th></tr></thead><tbody><tr><th>層名（domain ・ usecase ・ adapter）</th><td><b>決める</b></td><td>外を指す規則が鍵として保持する</td></tr><tr><th>依存の向き</th><td><b>決める</b></td><td>外を指す規則が許可辺として保持する</td></tr><tr><th>層名→パスの対応</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>永続化の実装位置</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>依存注入の位置（合成の場所）</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>マイグレーションの位置</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>エラー型の配置</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>出力ポートの有無</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>最外層の名称</th><td>決めない</td><td><b>保持する</b></td></tr><tr><th>テストの配置</th><td>決めない</td><td><b>保持する</b>（この論点で足す）</td></tr></tbody></table></div></div></details></li><li><b class=\"lead-s\">原典の側は meta だけで足りる</b><div class=\"sub-s\">ただし取り直せない原典は実体も保存する</div></li></ul></div></details>"
-    ]
-   ],
-   "path": [
-    [
-     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">C</span>実体は置かない</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">実体を置かないといけない規則もあったよね？？これは規則の中でも抽象の高さが違えば変わるのでは？？</span></td></tr><tr class=\"g-obsolete\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>手元の7件のうち3件が取り直せない（<code>legacy</code> と 1979年の PDF 2件）</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">D</span>実体を置くかは原典が決める</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">「私が言っていたのはアーキテクチャのディレクトリ構成などのことを言ってます。あとはアーキテクチャと言語、ライブラリからくるテストの規則とかもですね。」</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>主題が違った。実体が要るのは原典ではなく、原典が降りてこない範囲である</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">実体が要るのは、原典ではなく原典が降りてこない範囲である</b><div class=\"sub-s\">原典は取り直せるが、書いていないものは取り直しても出てこない</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">E</span>宣言は規則ではなく、検証の前提である</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">宣言は他にどんな種類を想定している？私が思うに宣言は規則ですよね？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>分類の根拠が誤っていた。「出典を保持しない」ではなく「出典が内側にある」</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">宣言は規則である</b><div class=\"sub-s\">3要素はそのまま成立し、分類が1つ減る</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">内を指す規則は、全部の軸に在る</b><div class=\"sub-s\">接点の原典は終了コードの値を規定するが、アプリケーションが返す値は規定しない（論点4）</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">F</span>規則1種に統一し、出典の向きだけの違いにする（採用）</div><table class=\"ev\"><tbody><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">値を既に別の正本が持っているなら、規則はそれを指すだけにする</b><div class=\"sub-s\">版は <code>go.mod</code> ・ <code>package.json</code> が持つ</div></td></tr></tbody></table></div>"
-    ]
-   ],
-   "found": [],
-   "costs": [
-    [
-     "<b class=\"lead-s\">層名とパスの対応の一意性を検査する工程を書く</b><div class=\"sub-s\">1枚にまとめる形を廃止したためである</div>"
-    ],
-    [
-     "<b class=\"lead-s\">原典を取得する時点で「取り直せるか」を1件ずつ判定する</b><div class=\"sub-s\">機械で決まる基準が無い</div>"
-    ],
-    [
-     "<b class=\"lead-s\">取り直せないと判定した原典の実体を保存する</b><div class=\"sub-s\">いまの7件では3件が該当する</div>"
-    ]
-   ],
-   "weaknesses": [
-    [
-     "<b>論点5 と 論点8 の決着が、この答えと食い違う。</b>論点5 は「宣言は出典を保持しない行だけを持つ」、論点8 は「出典を持つものは規則、持たないものは宣言か ADR」と書いている。この答えは、内を指す規則の出典は ADR であるとしている ── <b>ADR の役割が「出典を保持しないものの置き場所」から「内側の出典」へ変わっている</b>",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点5 と 論点8 へ差し戻す。<b>この答えは、あの2つが直るまで決着にしない</b>"
-    ],
-    [
-     "<b>値の正本が2か所になりうる。</b>版は <code>go.mod</code> が持つが、同じ形のものが他にもあるかを調べていない（依存の一覧 ・ 実行時の設定など）",
-     "<span class=\"kind k-given\">後続で決定</span> ── 軸の値1つで規則を書くときに、既に正本を持つものを洗い出す。持つものは指すだけにする"
-    ],
-    [
-     "<b>軸の値の粒度を決めていない。</b><code>go</code> なのか <code>go1.24</code> なのかで、版の固定が軸の値になるか内を指す規則になるかが変わる",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点6（軸は何本あるか）へ差し戻す。あちらは値の例を挙げているが、粒度を定めていない"
-    ],
-    [
-     "<b>ADR の粒度と、規則からの指し方を決めていない。</b>書く仕組みは実在するようになったが（<code>acdr</code>）、1つの ACDR が規則を何件まで支えるか、規則が ACDR のどの欄を指すかは未定である",
-     "<span class=\"kind k-given\">後続で決定</span> ── <b>外の作業</b>で決める。軸の値1つ（<code>go</code>）で規則を1件書き、ACDR を指して照合を動かす。指せなければ、この答えは直る"
-    ],
-    [
-     "<b>テストの配置が、論点8 の3分割に収まらない。</b>層名とパスの対応ではないので配置の宣言に入らず、ADR へ帰属すると検証されない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点8 へ差し戻す。宣言が持てるものを「層名とパスの対応」から「原典が降りてこない範囲の、こちら側の決定」へ広げられるかを確認する"
-    ],
-    [
-     "<b>内を指す規則が何を持てるかの上限を決めていない。</b>広げすぎると、ADR を保持しない決定がそこへ無制限に流入する",
-     "<span class=\"kind k-given\">後続で決定</span> ── 同じ差し戻しの中で決める。「規則の検証方法が参照する語」に限る案を持っていく"
-    ],
-    [
-     "<b>規則の側から meta と ADR をどう指すかを決めていない。</b>形式は JSON と決めたが、指す鍵（ファイル名か、別に振る id か）は未定である",
-     "<span class=\"kind k-given\">後続で決定</span> ── この答えを試すのは<b>外の作業</b>である。軸の値1つ（<code>go</code>）で規則を1件書き、meta と ADR を指して照合を動かす。指せなければ、この答えは直る"
-    ]
-   ],
-   "tables": [],
-   "grounds": [
-    [
-     "版の機構は原典が規定し、値は規定しないこと",
-     "The <code>go</code> directive sets the minimum version of Go required to use this module.",
-     "primary",
-     "go.dev/ref/mod（go.dev_ref_mod.md:911。取得日 2026-09-21）"
-    ],
-    [
-     "<code>gofmt</code> の実行が原典の規定であること",
-     "Run gofmt on your code to automatically fix the majority of mechanical style issues.",
-     "primary",
-     "go.dev/wiki/CodeReviewComments（:454。取得日 2026-09-21）"
-    ],
-    [
-     "テストの走らせ方が原典に在ること",
-     "give that file a name ending in \"_test.go\"。<code>_test.go</code> と <code>TestXxx</code> を識別子として照合した",
-     "primary",
-     "pkg.go.dev/testing（:1816・:1821・:1822。取得日 2026-09-21）"
-    ],
-    [
-     "採用する版を原典が規定しないこと",
-     "The React docs at react.dev provide documentation for the latest version of React. 版の一覧と方針は在るが、どれを採用するかの規定は無い",
-     "primary",
-     "react.dev/versions（:7・:15。取得日 2026-09-21）"
-    ],
-    [
-     "逆流を機械で検出すること",
-     "ライブラリの選定の記録が参照するアーキテクチャの値が存在しなければ、逆流である",
-     "rule",
-     "論点7"
-    ],
-    [
-     "接点の原典が途中までしか降下しないこと",
-     "接点の原典が規定するのはそこまでで、アプリケーションが返す値は規定しない",
-     "rule",
-     "論点4"
-    ],
-    [
-     "この Skill が軸と値の対を受け取ること",
-     "<b class=\"lead-s\">値だけでは足りない</b><div class=\"sub-s\">どの軸の値かは、こちら側の決定であって値自身からは決まらない</div>",
-     "rule",
-     "論点9（決着 2026-09-20）"
-    ],
-    [
-     "修復の単位が1件であること",
-     "認識の単位は1件だが、修復の単位が1冊になると更新が停止する。腐敗は閾値を持つ",
-     "rule",
-     "論点3"
-    ],
-    [
-     "出典を保持しないものの置き場所が ADR であること",
-     "出典を持つものは規則、持たないもののうち層名とパスの対応は配置の宣言、それ以外は ADR",
-     "rule",
-     "論点8"
-    ],
-    [
-     "アーキテクチャだけ原典が降下しないこと",
-     "設計論は言語にもプロジェクトにも非依存であることを前提とするため、ディレクトリ名を規定した時点で適用範囲が縮小する",
-     "rule",
-     "論点4"
-    ],
-    [
-     "配置が宣言であること",
-     "層名は原典の語に限る。許可辺は層名で書き、規則の検証方法は層名だけを参照してパスを書かない",
-     "rule",
-     "論点5"
-    ],
-    [
-     "テストを軸にしないこと",
-     "RDBMS は接点の軸の値、テスト規則は軸にしない",
-     "rule",
-     "論点6"
-    ],
-    [
-     "置き場所が3つに分かれること",
-     "出典を持つものは規則、持たないもののうち層名とパスの対応は配置の宣言、それ以外は ADR",
-     "rule",
-     "論点8"
-    ],
-    [
-     "出典に無いことを書かないこと",
-     "検証方法のみが例外である。強度も原典の語から導出する",
-     "rule",
-     "論点2"
-    ],
-    [
-     "<code>go vet</code> と <code>golint</code> が原典に無いこと",
-     "識別子として照合し、読めた範囲に無かった（<code>gofmt</code> は5か所に在る）",
-     "measured",
-     "go.dev/wiki/CodeReviewComments の照合（2026-09-21）"
-    ],
-    [
-     "内を指す規則が持つ項目",
-     "分岐したのは 層名→パス ・ 永続化の実装位置 ・ 依存注入の位置 ・ マイグレーションの位置 ・ エラー型の配置 ・ 出力ポートの有無 ・ 最外層の名称",
-     "measured",
-     "2026-09-20 の2プロセス実験"
-    ],
-    [
-     "内側の出典を書く仕組みが実在すること",
-     "節（決定 ・ なぜ ・ 形の変化 ・ 実現の形 ・ 適用先 ・ 比較した案 ・ 承認の状態 ・ 承認後に実施すること）を保持する HTML 1枚。記録4件が承認済みで、試験17件が通過している",
-     "measured",
-     ".acdr/（2026-09-21）"
-    ],
-    [
-     "JSON Schema で形を検査した前例が在ること",
-     "配線表と廃語の一覧は、どちらも JSON で持ち、対のスキーマが形を検査している",
-     "measured",
-     "skill-wiring.schema.json ・ retired-words.schema.json"
-    ],
-    [
-     "meta が取り直しに足りること",
-     "url ・ requested ・ fetched_at ・ sha256 ・ bytes ・ lines ・ content_type の7項目を持つ",
-     "measured",
-     "source.py が書く *.meta.json（2026-09-20）"
-    ],
-    [
-     "取り直せない原典が現に在ること",
-     "手元の7件のうち3件が、<code>legacy</code> か大学の個人領域の <code>http</code> の PDF である",
-     "measured",
-     "sources/（2026-09-21）"
-    ],
-    [
-     "散文の規則だけでは構成が分岐すること",
-     "同一の散文規則5件を2つの独立したプロセスへ渡すと、層名は一致し、永続化の位置 ・ 依存注入の位置 ・ 出力ポートの有無が分岐した",
-     "measured",
-     "2026-09-19 の比較"
-    ],
-    [
-     "利用者の指摘（4度目）",
-     "他の宣言はないの？言語やライブラリへの宣言はなくていいのか？軸に対する規則はなくてもいいのか？",
-     "assumption",
-     "利用者の発言 2026-09-21"
-    ],
-    [
-     "利用者の指摘（3度目）",
-     "placement.json という名称も配置に引っ張られてませんか？",
-     "assumption",
-     "利用者の発言 2026-09-21"
-    ],
-    [
-     "利用者の指摘（2度目）",
-     "宣言は他にどんな種類を想定している？私が思うに宣言は規則ですよね？",
-     "assumption",
-     "利用者の発言 2026-09-21"
-    ],
-    [
-     "利用者の指摘",
-     "宣言のインターフェースは Json の方がいいんじゃないか？？",
-     "assumption",
-     "利用者の発言 2026-09-21"
-    ],
-    [
-     "利用者の差し戻し",
-     "「私が言っていたのはアーキテクチャのディレクトリ構成などのことを言ってます。あとはアーキテクチャと言語、ライブラリからくるテストの規則とかもですね。」",
-     "assumption",
-     "利用者の発言 2026-09-21"
-    ]
-   ]
-  },
-  "11": {
-   "note": [
-    [
-     ""
-    ]
-   ],
-   "pick": [
-    [
-     "<b>規則が指す CLI はプロジェクトの CI が走らせ、この Skill 自身の検査は同じ CI に1工程として足す。</b><details class=\"why-in\"><summary>この答えを導いたもの（3件）</summary><div><ul><li><b class=\"lead-s\">この Skill は規則の CLI を実行しない</b><div class=\"sub-s\">論点9 の決着である</div></li><li><b class=\"lead-s\">書くときの1度きりでは後の変更を見ず、コードを書くたびでは忘れる</b><div class=\"sub-s\">どちらも意志に依存する</div></li><li><b class=\"lead-s\">工程が無い規則は「未検証」として第3の状態に分類する</b><div class=\"sub-s\">合格にすると検査の穴に従う状態になり、不合格にすると判定できないものを違反として扱う</div></li></ul></div></details>"
-    ]
-   ],
-   "path": [
-    [
-     "<div class=\"card\"><div class=\"card-h\">論点9 で「検証方法を実行して判定を返す」と決めた</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>実行の時点を決める必要が生じた</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">実行の時点を3つ出した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>書くとき ・ コードを書くたび ・ CI</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">書くときと、コードを書くたびを除外した</div><table class=\"ev\"><tbody><tr class=\"g-content\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>書くときは1度きりで、後の変更を参照しない。コードを書くたびは意志に依存する ── 腐敗の主因を意志ではないと決めた決めに反する</td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">CI が残ったが、工程を保持しないプロジェクトで全部が動かなくなる</div><table class=\"ev\"><tbody><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td><b class=\"lead-s\">3つの状態が要る</b><div class=\"sub-s\">合格 ・ 不合格 ・ 未検証。2つでは足りない</div></td></tr></tbody></table></div>"
-    ],
-    [
-     "<div class=\"card\"><div class=\"card-h\">第3の状態を足した ── 未検証</div><table class=\"ev\"><tbody><tr class=\"g-content g-end\"><th rowspan=\"1\"><span class=\"kind k-rule\">内容</span></th><td>動かないことを、故障ではなく状態として表す</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span><b class=\"lead-s\">「未検証」を先に決めておく必要がある</b><div class=\"sub-s\">最初の検査を実行してからでは、その場しのぎの判定が入る</div></td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span><b class=\"lead-s\">CI を保持しないプロジェクトでは、すべての規則が未検証になる</b><div class=\"sub-s\">正しい表示であって、故障ではない</div></td></tr></tbody></table></div>"
-    ]
-   ],
-   "found": [],
-   "costs": [
-    [
-     "<b class=\"lead-s\">未検証の列が伸びることを負担する</b><div class=\"sub-s\">減らす手順は決めていない</div>"
-    ],
-    [
-     "<b class=\"lead-s\">この Skill が足す工程の費用を負担する</b><div class=\"sub-s\">規則の CLI はプロジェクトの CI に任せる</div>"
-    ],
-    [
-     "CI を保持しないプロジェクトでは、すべての規則が未検証になる"
-    ],
-    [
-     "実行に時間がかかる規則を、どこまで載せるかの判断が要る"
-    ],
-    [
-     "「未検証」を表示する形を決める必要がある"
-    ]
-   ],
-   "weaknesses": [
-    [
-     "CI が実在するかを確認していない。無ければ、この答えは動かない",
-     "<span class=\"kind k-given\">後続で決定</span> ── 現在地の「次にすること」の1件目である。無ければ、すべての規則が未検証になる（正しい表示であって、故障ではない）"
-    ],
-    [
-     "この Skill の検査を、CI のどの段で走らせるかを決めていない。規則文書が変わったときだけか、毎回か",
-     "<span class=\"kind k-given\">後続で決定</span> ── 論点10（原典をどう整え、どう参照させるか）が決まると、何が変わったかを判定できるようになる"
-    ],
-    [
-     "<b>実際に CI へ工程を足して動かしていない。</b>未検証という状態が、実際に表示できるかを確認していない",
-     "<span class=\"kind k-given\">後続で決定</span> ── この答えを試すのは下流の論点ではなく<b>外の作業</b>である。CI に工程を1つ足し、規則1件で 合格／不合格／未検証 が出ることを確認する"
-    ]
-   ],
-   "tables": [],
-   "grounds": [
-    [
-     "この Skill がコードを検査しないこと",
-     "実行するのは自分の成果物に対する検査だけで、コードは言語やライブラリの CI が検査する",
-     "rule",
-     "論点9（決着 2026-09-20）"
-    ],
-    [
-     "腐敗が意志の問題ではないこと",
-     "腐敗の主因は更新の停止であり、停止の理由は修復コストである",
-     "rule",
-     "論点3"
-    ],
-    [
-     "検査の穴に従ってはならないこと",
-     "検査が捕まえる範囲に合わせて規約の適用範囲を決めない。それは規約ではなく検査の穴に従っている状態である",
-     "rule",
-     ".claude/skills/tech-lead-advisor/references/knowledge/knowledge-cand-avoidable-friction-is-not-detection.md"
-    ],
-    [
-     "第3の状態を先に決めること",
-     "決めてから足すのではなく、足してから決める",
-     "rule",
-     "同上"
-    ],
-    [
-     "規則が検証方法を持つこと",
-     "規則が保持するのは出典・採用範囲・検証方法の3つである",
-     "rule",
-     "論点1"
-    ],
-    [
-     "CI が実在するかどうか",
-     "このリポジトリにも、waffle にも、CI の設定を確認していない",
-     "unverified",
-     "各リポジトリの CI 設定（未取得）"
+     "2026-09-24 に validate を実行"
     ]
    ]
   }
