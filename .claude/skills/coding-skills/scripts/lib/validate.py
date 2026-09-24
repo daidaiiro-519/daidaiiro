@@ -35,7 +35,7 @@ def check_rules(rules_file: pathlib.Path) -> list[str]:
         if not tool:
             findings.append(f"{name}: 検証方法に道具が無い ── コマンドで検査できない規則は立てない")
         elif not isinstance(tool, list):
-            findings.append(f"{name}: 道具が配列ではない ── 殻を経由すると、展開が実行する殻に依存する")
+            findings.append(f"{name}: 道具が配列ではない ── シェルを経由すると、展開が実行するシェルに依存する")
         if not r.get("source"):
             findings.append(f"{name}: 出典が無い ── 外（原典）か内（記録）かを書く")
     return findings

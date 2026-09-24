@@ -61,7 +61,7 @@ def _unreadable(p: pathlib.Path) -> str:
 def validate(rules: str, root: str = "") -> dict:
     """規則ファイルの形を検査する。**実行の前に見る。**
 
-    根を渡すと、層の場所が実在するかも見る。
+    成果物の場所を渡すと、層の場所が実在するかも見る。
     **渡されたファイルの種類で、当てる契約が変わる** ── 規則 ・ 概念 ・ スキーマの3つ。
     入口を増やすと、呼ぶ側が形を推測することになる。
     """
@@ -137,9 +137,9 @@ def _human_plan(res: dict) -> str:
     if not res["ok"]:
         return " ／ ".join(res["findings"])
     d = res["data"]
-    lines = [f'  根       {d["root"]}']
+    lines = [f'  場所     {d["root"]}']
     for x in d["plan"]:
-        場所 = f'（{x["target"]}）' if x["target"] else "（根）"
+        場所 = f'（{x["target"]}）' if x["target"] else "（成果物の場所）"
         lines.append(f'  {x["name"]}\n      {" ".join(x["tool"])}　{場所}')
     lines.append(f'\n{d["count"]} 件を実行する。実行はしていない。')
     return "\n".join(lines)

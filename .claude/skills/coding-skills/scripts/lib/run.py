@@ -35,7 +35,7 @@ VERDICT_LABEL = {"pass": "合格", "fail": "不合格", "skip": "実行しない
 
 
 def runs_dir(root: pathlib.Path) -> pathlib.Path:
-    """この根の保存先。**根ごとに分ける** ── 別の成果物の実行を消さないためである。"""
+    """この成果物の保存先。**成果物ごとに分ける** ── 別の成果物の実行を消さないためである。"""
     key = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
     return pathlib.Path(tempfile.gettempdir()) / "coding-skills-runs" / key
 
@@ -50,9 +50,9 @@ def load_rules(rules_file: pathlib.Path) -> list[dict]:
 
 def run_one(rules: dict, root: pathlib.Path, timeout: int = DEFAULT_TIMEOUT,
             save_to: pathlib.Path | None = None, index: int = 0) -> dict:
-    """1件を実行する。**殻を経由しない** ── 配列のまま渡す。
+    """1件を実行する。**シェルを経由しない** ── 配列のまま渡す。
 
-    文字列1本で渡すと、`./...` の展開が実行する殻に依存する。
+    文字列1本で渡すと、`./...` の展開が実行するシェルに依存する。
     **`check.target` が在れば、そこで実行する** ── 範囲を狭めるのは、規則を緩めるのでは
     なく、見ている範囲を書くことである。実在しなければ「実行しない」で、合格に寄せない。
     """
@@ -65,12 +65,12 @@ def run_one(rules: dict, root: pathlib.Path, timeout: int = DEFAULT_TIMEOUT,
         return {**base, "verdict": "skip", "reason": "道具が配列ではない"}
     target = (rules.get("check") or {}).get("target") or ""
     cwd = (root / target).resolve()
-    # **根の外を指す対象を実行しない。** 解決してから、根の中かを確認する ──
+    # **成果物の場所の外を指す対象を実行しない。** 解決してから、成果物の場所の中かを確認する ──
     # `../` や絶対のパスで、成果物の外を検査したことになるのを防ぐ。
     try:
         cwd.relative_to(root.resolve())
     except ValueError:
-        return {**base, "verdict": "skip", "reason": f"対象が根の外を指す ── {target}"}
+        return {**base, "verdict": "skip", "reason": f"対象が成果物の場所の外を指す ── {target}"}
     if not cwd.is_dir():
         return {**base, "verdict": "skip", "reason": f"対象が実在しない ── {cwd}"}
     # **出力をファイルへ流し、上限までしか読まない。**

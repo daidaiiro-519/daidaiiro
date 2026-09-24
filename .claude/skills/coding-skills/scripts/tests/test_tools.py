@@ -89,12 +89,12 @@ def plan_runs_nothing() -> None:
 
 
 def target_outside_root_is_refused() -> None:
-    """根の外を指す対象は実行しない。"""
+    """成果物の場所の外を指す対象は実行しない。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         r = run.run_one(tool(["true"], target="../"), root)
-        expect("根の外は実行しない", r["verdict"] == "skip")
-        expect("理由を添える", "根の外" in r["reason"])
+        expect("成果物の場所の外は実行しない", r["verdict"] == "skip")
+        expect("理由を添える", "成果物の場所の外" in r["reason"])
 
 
 def output_is_readable_in_slices() -> None:

@@ -127,7 +127,7 @@ python3 scripts/cli.py check <Skill のフォルダ>  # 契約を満たすかを
 ## 参照
 
 - `references/tool-contract.md`: 道具の契約。入口 ・ 戻り値 ・ 終了コード ・ 道具と部品の区別 ・
-  **MCP の面の規約**（標準出力 ・ 面のファイル名 ・ 誤りの返し方 ・ 引数の型 ・ 子プロセスの規律）を
+  **MCP サーバーの規約**（標準出力 ・ サーバーのファイル名 ・ 誤りの返し方 ・ 引数の型 ・ 子プロセスの規律）を
   規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/tool-contract/`: 契約一式の雛形（`tools.py` ・ `cli.py` ・ `mcp_server.py` ・ `mcp.json`）
 - `scripts/cli.py`: この Skill 自身の入口。`scaffold` と `check` を持つ ── **この Skill も、同じ契約に従う**
