@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory() as d:
     r = run.run_one({"rule": "入力を待つ", "check": {"tool": ["cat"]}}, root, 5)
     expect("標準入力を待つ道具が、制限時間まで止まらない", r["verdict"] == "pass")
 
-    # ── 出力の上限。**頭と尻の両方を残す** ── 読む側は、この出力で次の手を決める
+    # ── 出力の上限。**先頭と末尾の両方を残す** ── 読む側は、この出力で次の手を決める
     n = run.OUTPUT_HEAD + run.OUTPUT_TAIL
     long_tool = ["python3", "-c",
                  f"print('先頭の手がかり'); print('x' * {n * 2}); print('末尾の手がかり')"]
