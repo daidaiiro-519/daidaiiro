@@ -10,7 +10,7 @@
   },
   {
    "kind": "note",
-   "text": "不変の抽象概念は Skill が初めから持つ ── <code>references/concepts.json</code> の3件である。成果物ごとに変わるものは <code>.coding/</code> が持つ。"
+   "text": "不変の抽象概念は Skill が初めから持つ ── <code>references/concepts.json</code> の3件である。成果物ごとに変わるものは <code>.coding-rules/</code> が持つ。"
   }
  ],
  "queue": [],
@@ -1827,14 +1827,14 @@
    "name": "init ── 何を出力するのか",
    "status": "settled",
    "question": "<code>init</code> は何を出力するのか ── 道具の名前を保持せずに、規則ファイルの雛形を出せるか",
-   "answer": "<b>リポジトリの <code>.coding/</code> へ、雛形と検査だけを出す。</b>中身は呼ぶ側が書く ── 層の名前と場所はモデルから、道具の名前は呼ぶ側の判断から来る。",
+   "answer": "<b>リポジトリの <code>.coding-rules/</code> へ、雛形と検査だけを出す。</b>中身は呼ぶ側が書く ── 層の名前と場所はモデルから、道具の名前は呼ぶ側の判断から来る。",
    "intro": "<b>論点4 が要求した機能である。</b>いまは雛形が無く、最初の1件を手で書くことになる。ただし、雛形に道具の名前を書くと、論点2の決着に違反する。",
    "decision": {
     "letter": "C",
     "text": [
      {
       "kind": "para",
-      "text": "<b>リポジトリの <code>.coding/</code> へ、雛形と検査だけを出す。道具の名前は、1つも同梱しない。</b>"
+      "text": "<b>リポジトリの <code>.coding-rules/</code> へ、雛形と検査だけを出す。道具の名前は、1つも同梱しない。</b>"
      },
      {
       "kind": "fold",
@@ -1845,10 +1845,10 @@
         "ordered": false,
         "items": [
          {
-          "text": "<b>置き場所はリポジトリの <code>.coding/</code> である</b> ── Skill の中に規則を置かない。規則は成果物ごとに違うので、Skill へ置くと2つ目の成果物で衝突する"
+          "text": "<b>置き場所はリポジトリの <code>.coding-rules/</code> である</b> ── Skill の中に規則を置かない。規則は成果物ごとに違うので、Skill へ置くと2つ目の成果物で衝突する"
          },
          {
-          "text": "<b>内を指す規則も、外を指す規則も、同じ <code>.coding/rules.json</code> に並ぶ</b> ── 内と外は<b>出典の向き</b>であって、置き場所の区別ではない"
+          "text": "<b>内を指す規則も、外を指す規則も、同じ <code>.coding-rules/rules.json</code> に並ぶ</b> ── 内と外は<b>出典の向き</b>であって、置き場所の区別ではない"
          },
          {
           "text": "<b>出すのは 並び ・ 層 ・ 規則の枠である</b> ── 内を指す2件（層の場所 ・ 依存の向き）の名前と採用範囲まで書き、道具は空欄で出す"
@@ -1897,7 +1897,7 @@
        ]
       ],
       [
-       "<code>.coding/rules.json</code>",
+       "<code>.coding-rules/rules.json</code>",
        [
         "規則 ── 内を指すものも、外を指すものも",
         "層の名前 ・ 識別子 ・ 道具を持つ",
@@ -1909,11 +1909,11 @@
     {
      "kind": "heading",
      "level": 4,
-     "text": "出力 ── .coding/rules.json（道具は空欄である）"
+     "text": "出力 ── .coding-rules/rules.json（道具は空欄である）"
     },
     {
      "kind": "html",
-     "text": "$ python3 scripts/cli.py init . \\\n    --層 core=internal/core --層 app=internal/app --層 adapter=internal/adapter\n書き出し: .coding/rules.json"
+     "text": "$ python3 scripts/cli.py init . \\\n    --層 core=internal/core --層 app=internal/app --層 adapter=internal/adapter\n書き出し: .coding-rules/rules.json"
     },
     {
      "kind": "heading",
@@ -2034,7 +2034,7 @@
     "<code>validate</code> の扱いを決める必要がある ── いまは規則を持たないファイルを1件の規則として読み、<code>0件目</code> と報告する",
     "規則が0件の状態を、不合格として返すか、雛形として返すかを決める必要がある",
     "層の名前と場所の渡し方を決める必要がある ── 引数で渡すか、モデルのファイルから読むか",
-    "<code>.coding/</code> が無いときに作る必要がある ── 既に在るときは作り直さない"
+    "<code>.coding-rules/</code> が無いときに作る必要がある ── 既に在るときは作り直さない"
    ],
    "out_of_scope": [
     {
@@ -2417,7 +2417,7 @@
     },
     {
      "kind": "html",
-     "text": "$ python3 scripts/cli.py check . .coding/rules.json\n  不合格　層の場所が、宣言した対応と一致する\n  不合格　依存の向きが、内から外へ出ていない\n  合格　　整形されている\n  合格　　試験が通る\n\n合格 2 ／ 不合格 2 ／ 実行せず 0\n\n── 依存の向きが、内から外へ出ていない の出力（道具のまま）\ninternal/core/order.go:7:2: core は adapter を指している\ninternal/core/stock.go:5:2: core は adapter を指している"
+     "text": "$ python3 scripts/cli.py check . .coding-rules/rules.json\n  不合格　層の場所が、宣言した対応と一致する\n  不合格　依存の向きが、内から外へ出ていない\n  合格　　整形されている\n  合格　　試験が通る\n\n合格 2 ／ 不合格 2 ／ 実行せず 0\n\n── 依存の向きが、内から外へ出ていない の出力（道具のまま）\ninternal/core/order.go:7:2: core は adapter を指している\ninternal/core/stock.go:5:2: core は adapter を指している"
     },
     {
      "kind": "note",
@@ -2603,7 +2603,7 @@
    "name": "スキーマが生成を導く",
    "status": "settled",
    "question": "スキーマから実体を生成させるとき、案内をどこへ置き、何を機械で検査するのか",
-   "answer": "<b><code>x-prompt</code> を足し、メタスキーマ1枚で欠落を検出する。</b>生成の対象は <code>.coding/rules.json</code> だけで、<b>モデルに新しいスキーマを作らない</b>。",
+   "answer": "<b><code>x-prompt</code> を足し、メタスキーマ1枚で欠落を検出する。</b>生成の対象は <code>.coding-rules/rules.json</code> だけで、<b>モデルに新しいスキーマを作らない</b>。",
    "intro": "<b>案内を3種類に分ける</b> ── 概要を知るとき ・ 読み取るとき ・ 値を埋めるときで、読む先を変える。置き場所の候補は3つあり、実測で1つに絞れた。",
    "decision": {
     "letter": "C",
@@ -2701,7 +2701,7 @@
     },
     {
      "kind": "note",
-     "text": "<b>検証する対象が2段になる。</b>実体（<code>.coding/rules.json</code>）を見るのは <code>rules.schema.json</code> で、そのスキーマ自身を見るのがメタスキーマ1枚である。"
+     "text": "<b>検証する対象が2段になる。</b>実体（<code>.coding-rules/rules.json</code>）を見るのは <code>rules.schema.json</code> で、そのスキーマ自身を見るのがメタスキーマ1枚である。"
     },
     {
      "kind": "heading",
@@ -2980,7 +2980,7 @@
     },
     {
      "kind": "html",
-     "text": "$ python3 scripts/cli.py plan . .coding/rules.json\n  根       /home/me/app\n  整形されている              gofmt -d .            （server）\n  静的解析を通る              go vet ./...          （server）\n  依存の向きが外へ出ていない  import-linter         （根）\n\n3件を実行する。実行はしていない。"
+     "text": "$ python3 scripts/cli.py plan . .coding-rules/rules.json\n  根       /home/me/app\n  整形されている              gofmt -d .            （server）\n  静的解析を通る              go vet ./...          （server）\n  依存の向きが外へ出ていない  import-linter         （根）\n\n3件を実行する。実行はしていない。"
     },
     {
      "kind": "heading",

@@ -11,7 +11,7 @@
 
 各ディレクトリに、違反を入れる前後の2つの形を置いてある（`*.ok` と `*.violation`）。
 
-    cd <言語> && python3 <skill>/scripts/cli.py check . .coding/rules.json
+    cd <言語> && python3 <skill>/scripts/cli.py check . .coding-rules/rules.json
 
 **Go の例だけ、`check.target` の実装が要る**（論点7 の要求事項）── 規則は `other/` で
 `go build` を実行する形なので、根で走らせると `go.mod` が見つからずに停止する。

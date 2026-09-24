@@ -65,7 +65,7 @@ if __name__ == "__main__":
     for k, v in read_prompt(schema, ["properties", "layers"]).items():
         print(f"  {k}　{v}")
 
-    print("\n── ④ 生成した実体 .coding/rules.json")
+    print("\n── ④ 生成した実体 .coding-rules/rules.json")
     template = make_template(schema, {"core": "internal/core", "app": "internal/app",
                           "adapter": "internal/adapter"})
     print(json.dumps(template, ensure_ascii=False, indent=2))

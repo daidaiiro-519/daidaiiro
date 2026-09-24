@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """規則ファイルの雛形を出す。**中身は呼ぶ側が書く。**
 
-置き場所は**リポジトリの `.coding/`** である ── 成果物ごとにフォルダを作ると、実装が
+置き場所は**リポジトリの `.coding-rules/`** である ── 成果物ごとにフォルダを作ると、実装が
 増えるたびに各所へ生える。成果物ごとに**ファイル**を分け、`check.target` でどこを
 検査するかを書く。
 
@@ -15,7 +15,7 @@ import pathlib
 
 from . import REFERENCES
 
-RULES_DIR = ".coding"
+RULES_DIR = ".coding-rules"
 INNER_RULES = ("層の場所が、宣言した対応と一致する",
                "依存の向きが、内から外へ出ていない")
 """内を指す規則2件。**出典はモデルであり、原典を要さない**（論点4）。"""
@@ -51,7 +51,7 @@ def skeleton(layers: dict[str, str], target: str = "") -> dict:
 
 
 def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.Path:
-    """リポジトリの `.coding/` へ、成果物のファイルを置く。
+    """リポジトリの `.coding-rules/` へ、成果物のファイルを置く。
 
     **既に在れば作り直さない** ── 書いた規則が消える。
     成果物がリポジトリ自身（`.`）なら、横断する規則の `rules.json` になる。

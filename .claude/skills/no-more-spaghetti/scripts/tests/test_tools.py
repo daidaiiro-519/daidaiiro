@@ -36,13 +36,13 @@ def tool(cmd: list, name: str = "試し", target: str = "") -> dict:
 
 
 def init_places_the_skeleton() -> None:
-    """リポジトリの .coding/ へ、成果物ごとのファイルを置く。"""
+    """リポジトリの .coding-rules/ へ、成果物ごとのファイルを置く。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         (root / "server").mkdir()
         path = _init.create(root, "server", {"core": "internal/core", "app": "app.core"})
-        expect("リポジトリの .coding/ へ置く", path == root / ".coding" / "server.json")
-        expect("成果物の中にフォルダを作らない", not (root / "server/.coding").exists())
+        expect("リポジトリの .coding-rules/ へ置く", path == root / ".coding-rules" / "server.json")
+        expect("成果物の中にフォルダを作らない", not (root / "server/.coding-rules").exists())
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("並びが層と一致する", d["order"] == ["core", "app"])
         expect("層はリポジトリからの経路である", d["layers"]["core"] == "server/internal/core")
@@ -57,7 +57,7 @@ def init_takes_the_repository_itself() -> None:
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         path = _init.create(root, ".", {"skills": ".claude/skills"})
-        expect("名前を持たないファイルになる", path == root / ".coding" / "rules.json")
+        expect("名前を持たないファイルになる", path == root / ".coding-rules" / "rules.json")
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("層はそのままである", d["layers"]["skills"] == ".claude/skills")
         expect("実行する場所を書かない", "target" not in d["rules"][0]["check"])
