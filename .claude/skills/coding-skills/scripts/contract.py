@@ -115,13 +115,22 @@ def main(tools: list[Tool], argv: list[str] | None = None) -> int:
                     v = nxt
                     i += 1
             spec = byname.get(k) or byname.get(k.replace("-", "_"))
-            kw[spec.key if spec else k.replace("-", "_")] = v
+            key = spec.key if spec else k.replace("-", "_")
+            if spec is not None and spec.many:
+                # **まとめて受ける引数は、繰り返すと足りていく。**
+                # 上書きにすると、2つ目以降を黙って捨てることになる
+                kw.setdefault(key, []).append(v)
+            else:
+                kw[key] = v
         else:
             pos.append(a)
         i += 1
 
     need = [a for a in t.args if a.required]
-    if len(pos) < len(need) and not all(a.key in kw for a in need):
+    # **位置と旗を混ぜて渡せる。** 旗で渡したぶんを数えずに位置だけで判定すると、
+    # `init . --layer a=b` のような呼び方が「引数が足りない」になる
+    満たした = sum(1 for a in need if a.key in kw) + len(pos)
+    if 満たした < len(need):
         print(f"引数が足りない: {t.name} は {' '.join(a.name for a in need)} を要する",
               file=sys.stderr)
         return 2
