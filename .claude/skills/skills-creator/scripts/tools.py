@@ -21,7 +21,7 @@ def scaffold(skill: str, path: str = ".claude/skills") -> dict:
     pairs = [("contract.py", pathlib.Path(__file__).with_name("contract.py").read_text(encoding="utf-8")),
              ("tools.py", (_TMPL / "tools.py.tmpl").read_text(encoding="utf-8")),
              ("cli.py", (_TMPL / "cli.py.tmpl").read_text(encoding="utf-8")),
-             ("mcp.py", (_TMPL / "mcp.py.tmpl").read_text(encoding="utf-8")),
+             ("mcp_server.py", (_TMPL / "mcp_server.py.tmpl").read_text(encoding="utf-8")),
              ("lib/__init__.py", (_TMPL / "lib__init__.py.tmpl").read_text(encoding="utf-8")),
              ("lib/template.py", (_TMPL / "template.py.tmpl").read_text(encoding="utf-8"))]
     for name, body in pairs:
@@ -55,7 +55,13 @@ def _legacy(tools_py: pathlib.Path) -> set[str]:
     if not tools_py.exists():
         return set()
     import ast
-    for node in ast.parse(tools_py.read_text(encoding="utf-8")).body:
+    try:
+        tree = ast.parse(tools_py.read_text(encoding="utf-8"))
+    except SyntaxError:
+        # **雛形のままの Skill でも、検査は落ちない。** 記入前は差し込む場所が
+        # 残っているので、Python として解析できない
+        return set()
+    for node in tree.body:
         if isinstance(node, ast.Assign) and any(
                 getattr(t, "id", "") == "LEGACY" for t in node.targets):
             try:
@@ -74,8 +80,23 @@ def _human_scaffold(res: dict) -> str:
 
 
 # 入口の側に置いてよいもの。**これ以外は、部品か検証である**
-ENTRY = ("contract.py", "tools.py", "cli.py", "mcp.py")
+ENTRY = ("contract.py", "tools.py", "cli.py", "mcp_server.py")
 LIB, TESTS = "lib", "tests"
+
+
+def _unparsable(scripts: pathlib.Path) -> list[str]:
+    """Python として解析できない入口を並べる。**雛形のままなら、それも検出である。**"""
+    import ast
+    out = []
+    for name in ENTRY:
+        f = scripts / name
+        if not f.exists():
+            continue
+        try:
+            ast.parse(f.read_text(encoding="utf-8"))
+        except SyntaxError:
+            out.append(f"Python として解析できない: scripts/{name} ── 差し込む場所が残っている")
+    return out
 
 
 def check(path: str) -> dict:
@@ -92,6 +113,7 @@ def check(path: str) -> dict:
         if not (scripts / need).exists():
             findings.append(f"入口の部品が無い: scripts/{need}")
     legacy = _legacy(scripts / "tools.py")
+    findings += _unparsable(scripts)
 
     for f in sorted(scripts.glob("*.py")) if scripts.exists() else []:
         if f.name in ENTRY or f.name in legacy:
