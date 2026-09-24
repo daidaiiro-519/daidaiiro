@@ -94,10 +94,20 @@ with tempfile.TemporaryDirectory() as d:
     r = run.run_one({"rule": "入力を待つ", "check": {"tool": ["cat"]}}, root, 5)
     expect("標準入力を待つ道具が、制限時間まで止まらない", r["verdict"] == "pass")
 
-    # ── 出力の上限
-    長い = ["python3", "-c", f"print('x' * {run.OUTPUT_LIMIT * 2})"]
-    r = run.run_one({"rule": "長い出力", "check": {"tool": 長い}}, root)
-    expect("出力を上限で切る", len(r["output"]) < run.OUTPUT_LIMIT * 2)
-    expect("切ったことを書く", "ここで切った" in r["output"])
+    # ── 出力の上限。**頭と尻の両方を残す** ── 読む側は、この出力で次の手を決める
+    n = run.OUTPUT_HEAD + run.OUTPUT_TAIL
+    long_tool = ["python3", "-c",
+                 f"print('先頭の手がかり'); print('x' * {n * 2}); print('末尾の手がかり')"]
+    r = run.run_one({"rule": "長い出力", "check": {"tool": long_tool}}, root)
+    expect("出力を上限で切る", len(r["output"]) < n * 2)
+    expect("先頭を残す", "先頭の手がかり" in r["output"])
+    expect("末尾を残す", "末尾の手がかり" in r["output"])
+    expect("中略したと書く", "中略" in r["output"])
+    expect("全文の場所を返す", bool(r["output_file"]))
+    expect("全文が読める", pathlib.Path(r["output_file"]).stat().st_size > n * 2)
+    pathlib.Path(r["output_file"]).unlink(missing_ok=True)
+
+    r = run.run_one({"rule": "短い出力", "check": {"tool": ["python3", "-c", "print(1)"]}}, root)
+    expect("切っていなければ、全文の場所を返さない", r["output_file"] == "")
 
 print(f"\n{count} 件すべて通った")

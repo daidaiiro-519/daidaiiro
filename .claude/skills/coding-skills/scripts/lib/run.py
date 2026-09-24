@@ -15,8 +15,14 @@ import subprocess
 import tempfile
 
 DEFAULT_TIMEOUT = 120
-OUTPUT_LIMIT = 200_000
-"""道具の出力を読む上限（バイト）。**超えた分は切り落とし、切ったことを書く。**
+OUTPUT_HEAD = 8_000
+OUTPUT_TAIL = 8_000
+"""道具の出力から読む量（バイト）。**頭と尻の両方を読む。**
+
+読み手は人だけではない ── MCP から呼ぶ側は、**この出力を見て次の手を決める**。
+だから落としてよいのは真ん中だけである ── 翻訳器は先頭に、試験の実行器は末尾に
+要るものを置く。**全文はファイルへ残し、その場所を返す** ── 足りなければ、
+読む側が自分で開く。
 
 解析ではない ── 読む量を限るだけである。**出力はファイルへ流す** ── まとめて
 受け取ると、上限で切っても最大常駐は減らない（実測 2026-09-24、100MB で 306MB）。"""
@@ -53,7 +59,10 @@ def run_one(rules: dict, root: pathlib.Path, timeout: int = DEFAULT_TIMEOUT) -> 
     # **出力をファイルへ流し、上限までしか読まない。**
     # まとめて受け取ると、道具が出した量がそのままこの側の記憶に載る
     # （実測 2026-09-24、100MB を出す道具で最大常駐 306MB）。
-    with tempfile.TemporaryFile() as sink:
+    sink = tempfile.NamedTemporaryFile(prefix="coding-skills-", suffix=".log",
+                                       delete=False)
+    keep = ""
+    try:
         try:
             p = subprocess.run(tool, cwd=cwd, stdin=subprocess.DEVNULL,
                                stdout=sink, stderr=sink, timeout=timeout)
@@ -63,10 +72,21 @@ def run_one(rules: dict, root: pathlib.Path, timeout: int = DEFAULT_TIMEOUT) -> 
             return {**base, "verdict": "skip", "reason": f"{timeout}秒で終わらない"}
         size = sink.tell()
         sink.seek(0)
-        out = sink.read(OUTPUT_LIMIT).decode("utf-8", "replace").strip()
-    if size > OUTPUT_LIMIT:
-        out += f"\n── ここで切った（{size} バイトのうち {OUTPUT_LIMIT} バイト）"
-    return {**base, "exit": p.returncode, "output": out,
+        if size <= OUTPUT_HEAD + OUTPUT_TAIL:
+            out = sink.read(size).decode("utf-8", "replace").strip()
+        else:
+            head = sink.read(OUTPUT_HEAD).decode("utf-8", "replace")
+            sink.seek(size - OUTPUT_TAIL)
+            tail = sink.read(OUTPUT_TAIL).decode("utf-8", "replace")
+            out = (head.rstrip() + f"\n\n── 中略（全 {size} バイトのうち "
+                   f"{OUTPUT_HEAD + OUTPUT_TAIL} バイトを表示）\n"
+                   f"── 全文: {sink.name}\n\n" + tail.lstrip())
+            keep = sink.name
+    finally:
+        sink.close()
+        if not keep:
+            pathlib.Path(sink.name).unlink(missing_ok=True)
+    return {**base, "exit": p.returncode, "output": out, "output_file": keep,
             "verdict": "pass" if p.returncode == 0 else "fail"}
 
 
