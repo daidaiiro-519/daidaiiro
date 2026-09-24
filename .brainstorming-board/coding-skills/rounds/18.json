@@ -743,18 +743,18 @@
    ],
    "pick": [
     [
-     "<b>概念の層と、その言語での同定子を分ける。規則は概念の層だけを参照する。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">概念の層は言語に依存しない</b><div class=\"sub-s\">ポートとアダプタは概念であり、ディレクトリ構成はその言語での表現にすぎない</div></li><li><b class=\"lead-s\">同定子は言語ごとに形が違う</b><div class=\"sub-s\">ディレクトリ ・ パッケージ ・ crate ・ モジュールの dotted path。<b>パスとして実在を検査しない</b></div></li><li><b class=\"lead-s\">同定子が正しいかは、道具が判定する</b><div class=\"sub-s\">依存の向きの道具は同定子の形で規則を書くので、誤っていれば実行の時点で出る</div></li><li><b class=\"lead-s\">だから作る順番が決まる</b><div class=\"sub-s\">同定子が決まらないと、依存の向きの規則を書けない</div></li><li><b class=\"lead-s\">言語が強制する範囲は、規則にしない</b><div class=\"sub-s\">規則を立てる条件①（無ければ外れるか）を満たさない</div></li><li><b class=\"lead-s\">適用する場所は、規則1件が持つ</b><div class=\"sub-s\">多言語の成果物は、1つの規則ファイルに複数の言語の規則が並ぶ</div></li></ul></div></details>"
+     "<b>概念の層と、その言語での識別子を分ける。規則は概念の層だけを参照する。</b><details class=\"why-in\"><summary>この答えを導いたもの（6件）</summary><div><ul><li><b class=\"lead-s\">概念の層は言語に依存しない</b><div class=\"sub-s\">ポートとアダプタは概念であり、ディレクトリ構成はその言語での表現にすぎない</div></li><li><b class=\"lead-s\">識別子は言語ごとに形が違う</b><div class=\"sub-s\">ディレクトリ ・ パッケージ ・ crate ・ モジュールの dotted path。<b>パスとして実在を検査しない</b></div></li><li><b class=\"lead-s\">識別子が正しいかは、道具が判定する</b><div class=\"sub-s\">依存の向きの道具は識別子の形で規則を書くので、誤っていれば実行の時点で出る</div></li><li><b class=\"lead-s\">だから作る順番が決まる</b><div class=\"sub-s\">識別子が決まらないと、依存の向きの規則を書けない</div></li><li><b class=\"lead-s\">言語が強制する範囲は、規則にしない</b><div class=\"sub-s\">規則を立てる条件①（無ければ外れるか）を満たさない</div></li><li><b class=\"lead-s\">適用する場所は、規則1件が持つ</b><div class=\"sub-s\">多言語の成果物は、1つの規則ファイルに複数の言語の規則が並ぶ</div></li></ul></div></details>"
     ]
    ],
    "answer": [
     [
-     "<b class=\"lead-s\"><b>層は2段で持つ。</b>概念の層はモデルが決め、同定子は言語が決める</b><div class=\"sub-s\">規則が参照するのは概念の層の名前だけである。</div>"
+     "<b class=\"lead-s\"><b>層は2段で持つ。</b>概念の層はモデルが決め、識別子は言語が決める</b><div class=\"sub-s\">規則が参照するのは概念の層の名前だけである。</div>"
     ]
    ],
    "figures": [],
    "example": [
     [
-     "<h4>規則を作る順番 ── 5工程</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>工程</th><th>決めるもの</th><th>言語に依存するか</th></tr></thead><tbody><tr><th>1 モデル</th><td>概念 ・ 持ち物 ・ 依存してよい先</td><td>変更理由で分ける</td><td>しない</td></tr><tr><th>2 概念の層</th><td>層の名前と、内から外への並び</td><td>モデルから導出する</td><td>しない</td></tr><tr><th>3 言語と同定子</th><td>その言語で層を同定する文字列</td><td>ディレクトリ ・ パッケージ ・ crate</td><td><b>する</b></td></tr><tr><th>4 内を指す規則</th><td>層の場所 ・ 依存の向き</td><td>同定子の形で道具を選ぶ</td><td><b>する</b></td></tr><tr><th>5 外を指す規則</th><td>整形 ・ 静的解析 ・ 脆弱性 ・ 試験</td><td>原文を照合してから書く</td><td><b>する</b></td></tr></tbody></table></div><p class=\"note-s\"><b>3 を飛ばして 4 は書けない。</b>道具は同定子の形で規則を書く ── ArchUnit はパッケージ、import-linter は dotted path である。</p><h4>同じモデルを、2つの言語で書く ── 変わるのは同定子だけである</h4><pre><code>── Go\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"internal/core\",\n    \"app\":     \"internal/app\",\n    \"adapter\": \"internal/adapter\"\n  }\n}</code></pre><pre><code>── Java\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"com.example.core\",\n    \"app\":     \"com.example.app\",\n    \"adapter\": \"com.example.adapter\"\n  }\n}</code></pre><p class=\"note-s\"><b><code>並び</code> は1文字も変わらない。</b>変わるのは <code>層</code> の値だけで、そこが言語との境界である。</p><h4>言語ごとの同定子と、検査する相手</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>言語</th><th>同定子</th><th>検査する相手</th></tr></thead><tbody><tr><th>Go</th><td>ディレクトリ</td><td>既存の道具</td></tr><tr><th>Java</th><td>パッケージ</td><td><b class=\"lead-s\">ArchUnit</b><div class=\"sub-s\">パッケージ単位で規則を書く</div></td></tr><tr><th>Python</th><td>モジュールの dotted path</td><td>import-linter</td></tr><tr><th>TypeScript</th><td>パス、またはワークスペースのパッケージ</td><td>ESLint ・ dependency-cruiser</td></tr><tr><th>Rust</th><td>crate と <code>mod</code> の可視性</td><td><b class=\"lead-s\">規則を立てない</b><div class=\"sub-s\">言語が強制する</div></td></tr></tbody></table></div>"
+     "<h4>規則を作る順番 ── 5工程</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>工程</th><th>決めるもの</th><th>言語に依存するか</th></tr></thead><tbody><tr><th>1 モデル</th><td>概念 ・ 持ち物 ・ 依存してよい先</td><td>変更理由で分ける</td><td>しない</td></tr><tr><th>2 概念の層</th><td>層の名前と、内から外への並び</td><td>モデルから導出する</td><td>しない</td></tr><tr><th>3 言語と識別子</th><td>その言語で層を識別する文字列</td><td>ディレクトリ ・ パッケージ ・ crate</td><td><b>する</b></td></tr><tr><th>4 内を指す規則</th><td>層の場所 ・ 依存の向き</td><td>識別子の形で道具を選ぶ</td><td><b>する</b></td></tr><tr><th>5 外を指す規則</th><td>整形 ・ 静的解析 ・ 脆弱性 ・ 試験</td><td>原文を照合してから書く</td><td><b>する</b></td></tr></tbody></table></div><p class=\"note-s\"><b>3 を飛ばして 4 は書けない。</b>道具は識別子の形で規則を書く ── ArchUnit はパッケージ、import-linter は dotted path である。</p><h4>同じモデルを、2つの言語で書く ── 変わるのは識別子だけである</h4><pre><code>── Go\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"internal/core\",\n    \"app\":     \"internal/app\",\n    \"adapter\": \"internal/adapter\"\n  }\n}</code></pre><pre><code>── Java\n{\n  \"並び\": [\"core\", \"app\", \"adapter\"],\n  \"層\": {\n    \"core\":    \"com.example.core\",\n    \"app\":     \"com.example.app\",\n    \"adapter\": \"com.example.adapter\"\n  }\n}</code></pre><p class=\"note-s\"><b><code>並び</code> は1文字も変わらない。</b>変わるのは <code>層</code> の値だけで、そこが言語との境界である。</p><h4>言語ごとの識別子と、検査する相手</h4><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>言語</th><th>識別子</th><th>検査する相手</th></tr></thead><tbody><tr><th>Go</th><td>ディレクトリ</td><td>既存の道具</td></tr><tr><th>Java</th><td>パッケージ</td><td><b class=\"lead-s\">ArchUnit</b><div class=\"sub-s\">パッケージ単位で規則を書く</div></td></tr><tr><th>Python</th><td>モジュールの dotted path</td><td>import-linter</td></tr><tr><th>TypeScript</th><td>パス、またはワークスペースのパッケージ</td><td>ESLint ・ dependency-cruiser</td></tr><tr><th>Rust</th><td>crate と <code>mod</code> の可視性</td><td><b class=\"lead-s\">規則を立てない</b><div class=\"sub-s\">言語が強制する</div></td></tr></tbody></table></div>"
     ]
    ],
    "kept": [
@@ -770,8 +770,8 @@
     ],
     [
      "C",
-     "概念の層と同定子の2段にする",
-     "同定子が正しいかを、この Skill は検査できない ── 道具が実行できるかで判明する"
+     "概念の層と識別子の2段にする",
+     "識別子が正しいかを、この Skill は検査できない ── 道具が実行できるかで判明する"
     ]
    ],
    "dropped": [
@@ -799,7 +799,7 @@
      "<b class=\"lead-s\"><code>validate</code> の層の検査を直す必要がある</b><div class=\"sub-s\">いまはパスとして実在を見る</div>"
     ],
     [
-     "<b class=\"lead-s\"><code>init</code> が同定子を受け取る必要がある</b><div class=\"sub-s\">概念の層だけでは、規則を書けない</div>"
+     "<b class=\"lead-s\"><code>init</code> が識別子を受け取る必要がある</b><div class=\"sub-s\">概念の層だけでは、規則を書けない</div>"
     ],
     [
      "<b class=\"lead-s\"><code>検証方法.対象</code> を実装する必要がある</b><div class=\"sub-s\">契約に在るが、<code>run.py</code> は常に根で実行する</div>"
@@ -807,7 +807,7 @@
    ],
    "weaknesses": [
     [
-     "同定子が、その言語で正しいかを検査すること",
+     "識別子が、その言語で正しいかを検査すること",
      "<span class=\"kind k-rule\">対象外</span> ── 検査するには言語ごとの構文を認知することになる ── 誤っていれば、道具の実行で出る"
     ],
     [
