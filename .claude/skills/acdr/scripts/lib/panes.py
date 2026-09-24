@@ -345,7 +345,7 @@ def before_of(d):
     rel = os.path.relpath(path, root)
     try:
         r = subprocess.run(["git", "-C", root, "show", f"{rev}:{rel}"],
-                           capture_output=True, timeout=20)
+                           capture_output=True, stdin=subprocess.DEVNULL, timeout=20)
         return r.stdout.decode("utf-8") if r.returncode == 0 else None
     except Exception:
         return None

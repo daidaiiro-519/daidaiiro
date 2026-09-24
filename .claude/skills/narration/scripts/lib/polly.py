@@ -33,7 +33,8 @@ def _marks(dest: pathlib.Path) -> pathlib.Path:
 
 def _aws(args: list[str], out: pathlib.Path) -> None:
     subprocess.run(['aws', 'polly', 'synthesize-speech', *args, str(out)],
-                   check=True, capture_output=True)
+                   check=True, capture_output=True,
+                   stdin=subprocess.DEVNULL, timeout=300)
 
 
 def synthesize(text: str, voice: str, engine: str, dest: pathlib.Path,

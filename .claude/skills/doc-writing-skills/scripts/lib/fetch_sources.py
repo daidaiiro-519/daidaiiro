@@ -61,7 +61,8 @@ def to_text(pdf: str) -> None:
     """`pdftotext` が在れば、同名の .txt を作る。無ければ何もしない。"""
     if not shutil.which("pdftotext"):
         return
-    subprocess.run(["pdftotext", "-layout", pdf, pdf[:-4] + ".txt"], check=False)
+    subprocess.run(["pdftotext", "-layout", pdf, pdf[:-4] + ".txt"], check=False,
+                   stdin=subprocess.DEVNULL, timeout=120)
 
 
 def fetch() -> int:

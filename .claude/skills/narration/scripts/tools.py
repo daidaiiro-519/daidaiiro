@@ -51,7 +51,8 @@ def lexicon(path: str, name: str) -> dict:
     """読みの辞書を登録する。合成の前に、入力へ適用される。"""
     try:
         subprocess.run(['aws', 'polly', 'put-lexicon', '--name', name,
-                        '--content', f'file://{path}'], check=True, capture_output=True)
+                        '--content', f'file://{path}'], check=True, capture_output=True,
+                       stdin=subprocess.DEVNULL, timeout=60)
     except subprocess.CalledProcessError as e:
         return result(ok=False, findings=[e.stderr.decode('utf-8', 'replace').strip()[:300]])
     return result(ok=True, findings=[], name=name, path=path)

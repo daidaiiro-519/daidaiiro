@@ -262,7 +262,7 @@ def fetch(url: str, outdir: str) -> str | None:
         r = subprocess.run(
             ["curl", "-sSL", "-m", "60", "-A", UA, cand, "-o", path,
              "-w", "%{http_code} %{content_type}"],
-            capture_output=True, text=True)
+            capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
         code = (r.stdout or "").split(" ")[0]
         ctype = (r.stdout or " ").split(" ", 1)[-1].strip()
         size = os.path.getsize(path) if os.path.exists(path) else 0

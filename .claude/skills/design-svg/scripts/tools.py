@@ -169,6 +169,9 @@ def _human_verify(res: dict) -> str:
 def lint(path: str = "") -> dict:
     """生の数値を探す。**設計上の選択はトークンから、量はデータから出す。**"""
     root = pathlib.Path(path) if path else _HERE / "lib" / "svg_engine"
+    if not root.exists():
+        # **無い場所を検査して「0 箇所」と返さない。** 呼ぶ側は合格と受け取る。
+        raise FileNotFoundError(f"検査する場所が無い: {root}")
     hits = _lint.findings(root)
     return result(ok=True, root=str(root),
                   findings=[f"{name}:{line} {func} ── {text.strip()}"

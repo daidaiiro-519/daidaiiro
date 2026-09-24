@@ -144,4 +144,9 @@ def main(tools: list[Tool], argv: list[str] | None = None) -> int:
     except TypeError as e:
         print(f"引数が合わない: {e}", file=sys.stderr)
         return 2
+    except (OSError, json.JSONDecodeError) as e:
+        # **読めないものを渡すのは誤用である。** 検出（1）と同じ番号で返すと、
+        # 呼ぶ側は「違反が在った」と解釈する。
+        print(f"読めない: {e}", file=sys.stderr)
+        return 2
     return emit(res, as_json, t.human)

@@ -283,7 +283,8 @@ def board_dir(board: str) -> pathlib.Path:
     alt = pathlib.Path(BOARDS) / board
     if (alt / "board.json").exists():
         return alt.resolve()
-    raise SystemExit(f"board.json が無い: {board} ── {p} にも {alt} にも見つからない")
+    # **読めないものを渡すのは誤用である。** 入口が 2 で返す（SystemExit は 1 になる）。
+    raise FileNotFoundError(f"board.json が無い: {board} ── {p} にも {alt} にも見つからない")
 
 
 def freeze(dir: pathlib.Path) -> int:
@@ -330,7 +331,8 @@ def _check_idempotent(dir: pathlib.Path, first: str) -> int:
         # **唯一の入口から呼ぶ** ── 部品を直接起動する形は、契約の外である
         cli = pathlib.Path(__file__).resolve().parents[1] / "cli.py"
         r = subprocess.run([sys.executable, str(cli), "render", str(many)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=300)
         if r.returncode:
             bad.append("読み取り専用の複製で異常終了した: "
                       + (r.stderr.strip().splitlines() or ["(出力無し)"])[-1])
