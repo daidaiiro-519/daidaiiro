@@ -1,0 +1,107 @@
+{
+  "$schema": "../../.claude/skills/coding-skills/references/rules.schema.json",
+  "order": [
+    "lib",
+    "declaration",
+    "entry"
+  ],
+  "layers": {
+    "lib": ".claude/skills/brainstorming-board/scripts/lib",
+    "declaration": ".claude/skills/brainstorming-board/scripts/tools.py",
+    "entry": ".claude/skills/brainstorming-board/scripts/cli.py"
+  },
+  "rules": [
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "試験が通る",
+      "source": {
+        "meta": "docs.python.org/3/library/unittest.html",
+        "quote": "The unittest unit testing framework"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_build_board.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "この回の印の付き方が、事例と一致する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_diff_marks.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "出力の型が、部品の過不足を検出する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_template.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "デザイントークンの参照と定義が一致する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "トークンの検査のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/cli.py",
+          "tokens",
+          "--check",
+          "1"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    }
+  ]
+}

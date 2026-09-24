@@ -1,0 +1,65 @@
+{
+  "$schema": "../.claude/skills/coding-skills/references/rules.schema.json",
+  "order": [
+    "skills",
+    "board",
+    "docs"
+  ],
+  "layers": {
+    "skills": ".claude/skills",
+    "board": ".brainstorming-board",
+    "docs": "docs"
+  },
+  "rules": [
+    {
+      "rule": "配線表が、形の契約を満たす",
+      "source": {
+        "meta": "python-jsonschema",
+        "quote": "jsonschema"
+      },
+      "scope": "配線表が、この Skill のスキーマへ適合すること",
+      "check": {
+        "tool": [
+          "python3",
+          "-m",
+          "jsonschema",
+          "-i",
+          "skill-wiring.json",
+          ".claude/skills/skill-router/references/skill-wiring.schema.json"
+        ]
+      }
+    },
+    {
+      "rule": "ブレストボードの入力が、契約を満たす",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "coding-skills のブレストボードに限る",
+      "check": {
+        "tool": [
+          "python3",
+          ".claude/skills/brainstorming-board/scripts/cli.py",
+          "validate",
+          ".brainstorming-board/coding-skills"
+        ]
+      }
+    },
+    {
+      "rule": "ブレストボードの生成が冪等である",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "coding-skills のブレストボードに限る",
+      "check": {
+        "tool": [
+          "python3",
+          ".claude/skills/brainstorming-board/scripts/cli.py",
+          "render",
+          ".brainstorming-board/coding-skills",
+          "--check",
+          "1"
+        ]
+      }
+    }
+  ]
+}
