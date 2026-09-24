@@ -49,6 +49,21 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 
 **だから、道具の中で `print()` を使うと MCP の面が壊れる** ── 子プロセスの標準出力も同じである（`capture_output` か `stdout=` で受ける）。
 
+### 誤りの返し方 ── 原典
+
+原典は2つを分けている（`specification/2025-06-18/server/tools:389`、2026-09-24 取得）。
+
+| 種類 | 原文 | この契約での対応 |
+|---|---|---|
+| Protocol Errors | `Standard JSON-RPC errors for issues like: Unknown tools, Invalid arguments` | 引数の不足 ・ 知らない動詞。SDK が返す |
+| Tool Execution Errors | `Reported in tool results with isError: true` | **`ok` が偽のとき**（読めない ・ 誤用） |
+
+**`findings` は誤りではない。** 検出が在っても `isError` は偽のままにする ── 違反の検出は、道具が正しく動作した結果である。
+
+**予期した失敗は `ToolError` で投げる。** SDK の原典が述べている ── その型なら `is_error=True` とこちらの文言が届き、それ以外の例外は `Error executing tool <名前>` しか届かない（`mcp/server/mcpserver/exceptions.py`、mcp 2.2.0）。
+
+**型は緩く受ける。** 呼ぶ側は JSON の値を渡すので、数を文字列で包むことを強制しない（実測: `timeout` に 30 を渡すと、検証が不合格になっていた）。まとめて受ける引数は配列も受ける。
+
 Python の SDK は 2.x で `FastMCP` が `MCPServer` へ改称された。原典（`python-sdk` の README、2026-09-24 取得 ・ 134行）の55行が `from mcp.server import MCPServer` を示す。**1.x も動く形にする** ── `ImportError` のときは `mcp.server.fastmcp.FastMCP` を採用する。
 
 ## 規定しないもの

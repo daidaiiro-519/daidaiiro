@@ -17,9 +17,9 @@ from tools import TOOLS  # noqa: E402
 
 def build():
     """宣言から、MCP の道具を組む。"""
-    try:                                     # mcp 2.x
-        from mcp.server.mcpserver import MCPServer as Server
-    except ModuleNotFoundError:              # mcp 1.x
+    try:                                     # mcp 2.x ── 原典の README がこの経路を示す
+        from mcp.server import MCPServer as Server
+    except ImportError:                      # mcp 1.x
         from mcp.server.fastmcp import FastMCP as Server
 
     server = Server("{{Skill名}}")
@@ -34,18 +34,48 @@ def _callable(tool):
     `**kw` で受けると、公開される入力の形が `kw` 1個になり、**呼ぶ側が
     どの引数を渡せばよいかを認知できない**（実測 2026-09-24、`check` が
     `['kw']` として公開されていた）。
+
+    **型は緩く受ける** ── 呼ぶ側は JSON の値を渡すので、数を文字列で包むことを
+    強制しない（実測 2026-09-24、`timeout` に 30 を渡すと検証で落ちていた）。
+
+    **`ok` が偽なら、例外にする** ── 原典は2つを分けている。
+    `Tool Execution Errors: Reported in tool results with isError: true`
+    （specification/2025-06-18/server/tools:389、2026-09-24 取得）。
+    **検出（findings）は誤りではない**ので、そちらは通常の結果のまま返す。
     """
     params, passes = [], []
     for a in tool.args:
-        params.append(f"{a.key}: str" if a.required else f"{a.key}: str = ''")
+        t = "list[str] | str" if a.many else "str | int | float | bool"
+        params.append(f"{a.key}: {t}" if a.required else f"{a.key}: {t} = ''")
         passes.append(f"{a.key}={a.key}")
-    src = f"def call({', '.join(params)}):\n    return _run({', '.join(passes)})\n"
-    ns: dict = {"_run": tool.run}
+    src = (f"def call({', '.join(params)}):\n"
+           f"    return _guard(_run({', '.join(passes)}))\n")
+    ns: dict = {"_run": tool.run, "_guard": _guard}
     exec(src, ns)                            # noqa: S102 ── 宣言から組む
     fn = ns["call"]
     fn.__name__ = tool.name
     fn.__doc__ = tool.summary
     return fn
+
+
+def _guard(res: dict) -> dict:
+    """`ok` が偽なら例外にする ── MCP は、それを `isError: true` として返す。
+
+    **`ToolError` で投げる。** SDK の原典が述べている ── 予期した失敗はその型で
+    投げると `is_error=True` と**こちらの文言**が呼ぶ側へ届き、それ以外の例外は
+    `Error executing tool <name>` しか届かない（`mcp/server/mcpserver/exceptions.py`
+    の `ToolError` の説明、mcp 2.2.0、2026-09-24 に確認）。
+    """
+    if res.get("ok", True):
+        return res
+    message = " ／ ".join(res.get("findings") or ["失敗した"])
+    for path in ("mcp.server.mcpserver.exceptions", "mcp.server.fastmcp.exceptions"):
+        try:
+            module = __import__(path, fromlist=["ToolError"])
+        except ImportError:
+            continue
+        raise module.ToolError(message)
+    raise ValueError(message)
 
 
 if __name__ == "__main__":
