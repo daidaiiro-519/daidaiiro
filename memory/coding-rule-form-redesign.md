@@ -7,7 +7,7 @@ metadata:
 ---
 
 CodingSkills のブレストボードは `.brainstorming-board/coding-skills/` の1枚だけである。
-2026-09-21 に、規則1件の形を扱っていた `coding-rule-form/` を統合した。
+2026-09-21 に、規則1件の形を対象にしていた `coding-rule-form/` を統合した。
 以前の `.brainstorm/coding-essence/` は破棄した。
 
 - 論点1〜8 ── 規則1件の形（保持する3つ ・ 出典に無いことを書かない ・ 腐敗の機構 ・
