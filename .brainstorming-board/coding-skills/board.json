@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 25,
+ "round": 26,
  "intro": [
   {
    "kind": "para",
@@ -2846,18 +2846,18 @@
    "name": "人が拒める形",
    "status": "open",
    "question": "規則に書いたコマンドを、どこまで無条件に実行してよいか",
-   "answer": "<b>範囲と宣言はこちらが持ち、承認はホストが持つ。</b>実行の前に<b>何を実行するかを返す道具</b>（<code>plan</code>）を足す ── 承認の仕組みそのものは実装しない。",
+   "answer": "<b>範囲 ・ 提示 ・ 続きの3つを持ち、承認はホストが持つ。</b>公式の参照実装が採っている形を採る ── <b>範囲は明示して外へ出さない</b>（Filesystem ・ Git）、<b>実行の前に内容を返す</b>、<b>続きは同じ道具から読める</b>（Fetch）。",
    "intro": "<b>いまの <code>check</code> は、規則に書いてあるコマンドを無条件に実行する。</b>規則ファイルを書き換えられる者は、AI 経由で任意のコマンドを実行できる。原典は、拒める人が居ることを求めている。",
    "decision": {
-    "letter": "C",
+    "letter": "C′",
     "text": [
      {
       "kind": "para",
-      "text": "<b>実行する内容を、実行の前に提示できるようにする。承認はホストの仕事である。</b>"
+      "text": "<b>範囲を明示し、実行の前に内容を返し、続きを同じ道具から読めるようにする。</b>"
      },
      {
       "kind": "fold",
-      "heading": "この答えを導いたもの（6件）",
+      "heading": "この答えを導いたもの（7件）",
       "body": [
        {
         "kind": "list",
@@ -2873,23 +2873,51 @@
           ]
          },
          {
-          "text": "<b>ただし、それを課されているのはアプリケーションである</b> ── 原典の <code>Applications SHOULD</code> の並びであり、サーバーの義務としては書かれていない"
+          "text": "<b>ただし、それを課されているのはアプリケーションである</b> ── 原典の <code>Applications SHOULD</code> の並びに置かれている（server/tools:30）"
          },
          {
-          "text": "<b>こちらが持てるのは、判断の材料である</b> ── 何を実行するかを返す道具と、道具の説明と注記"
+          "text": "<b>範囲は明示し、空なら動作しない</b> ── Filesystem が採っている形である（README:31）",
+          "nested": [
+           {
+            "kind": "html",
+            "text": "If server starts without command-line arguments AND client doesn't\nsupport roots protocol (or provides empty roots), the server will throw\nan error during initialization."
+           }
+          ]
          },
          {
-          "text": "<b>範囲は根で限定する</b> ── 原典の roots は <code>the boundaries of where servers can operate within the filesystem</code> である（client/roots:9）。<code>check</code> は根を必ず受け取るので、この形に乗る"
+          "text": "<b>範囲の外を指す値を拒む</b> ── Git が経路を解決して根の中かを確認している（server.py:136）",
+          "nested": [
+           {
+            "kind": "note",
+            "text": "Defense in depth: validate each path resolves within the repository working tree to prevent path traversal"
+           }
+          ]
          },
          {
-          "text": "<b>承認の対話を、この Skill が実装しない</b> ── 原典の elicitation はクライアントの能力に依存し、CLI では成立しない。**呼び方が違うと振る舞いが違う**状態になる"
+          "text": "<b>続きは、同じ道具から読めるようにする</b> ── Fetch が採っている形である（server.py:254）",
+          "nested": [
+           {
+            "kind": "note",
+            "text": "Content truncated. Call the fetch tool with a start_index of {next_start} to get more content."
+           }
+          ]
          },
          {
-          "text": "<b>規則ファイル自体が信用の境界である</b> ── 書き換えられる者は任意のコマンドを実行できる。これは隠さずに、道具の説明へ書く"
+          "text": "<b>実行の前に、内容を返す</b> ── <code>plan</code> は規則を読むだけで、1件も実行しない"
+         },
+         {
+          "text": "<b>承認の対話を、この Skill が実装しない</b> ── 原典の elicitation はクライアントの能力に依存し、CLI では成立しない"
          }
         ]
        }
       ]
+     },
+     {
+      "kind": "previous",
+      "letter": "C",
+      "body": "<b>範囲と宣言はこちらが持ち、承認はホストが持つ。</b>実行の前に<b>何を実行するかを返す道具</b>（<code>plan</code>）を足す ── 承認の仕組みそのものは実装しない。",
+      "why": "公式の参照実装3つを読み、<b>採るべき形が3つ在った</b> ── 範囲の与え方（Filesystem）・ 経路の検証（Git）・ 続きの取り方（Fetch）。前の答えは提示と宣言だけで、範囲と続きを持っていなかった",
+      "user_words": "私が言ってたのは、以下のMCPで参考になりそうなのあるって？"
      }
     ]
    },
@@ -2901,24 +2929,56 @@
     },
     {
      "kind": "html",
-     "text": "$ python3 scripts/cli.py plan . .coding/rules.json\n  整形されている              gofmt -d .            （server）\n  静的解析を通る              go vet ./...          （server）\n  依存の向きが外へ出ていない  import-linter         （根）\n\n3件を実行する。実行はしていない。"
+     "text": "$ python3 scripts/cli.py plan . .coding/rules.json\n  根       /home/me/app\n  整形されている              gofmt -d .            （server）\n  静的解析を通る              go vet ./...          （server）\n  依存の向きが外へ出ていない  import-linter         （根）\n\n3件を実行する。実行はしていない。"
     },
     {
      "kind": "heading",
      "level": 4,
-     "text": "道具の説明と注記 ── ホストの判断材料になる"
+     "text": "続き ── 同じ道具から読める（Fetch に倣う）"
     },
     {
      "kind": "html",
-     "text": "{\n  \"name\": \"check\",\n  \"description\": \"規則ファイルに書いてあるコマンドを実行する。**実行する内容は\n                  規則ファイルが決める** ── この道具は道具の名前を持たない。\n                  何を実行するかは plan で確認できる。\",\n  \"annotations\": { \"readOnlyHint\": false, \"openWorldHint\": true }\n}"
+     "text": "{\n  \"name\": \"依存の向きが、内から外へ出ていない\",\n  \"verdict\": \"fail\",\n  \"output\": \"… 8000 バイト …\\n\\n── 中略（全 100000062 バイトのうち 16000 バイトを表示）\\n── 続きは offset=8000 で同じ道具を呼ぶ\\n\\n… 8000 バイト …\",\n  \"output_size\": 100000062\n}"
     },
     {
      "kind": "note",
-     "text": "<b>注記は信用されない前提で置く。</b>原典が規定している（server/tools:193）。"
+     "text": "<b>別のファイルを開かせない。</b>MCP だけが繋がっている環境では、道具の外の能力を要求すると続きを読めない。"
     },
     {
-     "kind": "note",
-     "text": "clients MUST consider tool annotations to be untrusted unless they come from trusted servers"
+     "kind": "heading",
+     "level": 4,
+     "text": "公式の参照実装から採った3つ"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "出どころ",
+      "原文が示す形",
+      "この Skill での対応"
+     ],
+     "rows": [
+      [
+       "Filesystem",
+       [
+        "範囲は引数か roots で与え、<b>空なら起動しない</b>",
+        "<code>check</code> は根を必ず受け取る ── 根の無い実行をしない"
+       ]
+      ],
+      [
+       "Git",
+       [
+        "経路を解決し、<b>根の外なら拒む</b>",
+        "<code>check.target</code> が根の外を指したら実行しない"
+       ]
+      ],
+      [
+       "Fetch",
+       [
+        "切ったら、<b>続きの取り方を出力に書く</b>",
+        "<code>offset</code> で同じ道具を呼び直せる"
+       ]
+      ]
+     ]
     },
     {
      "kind": "heading",
@@ -2935,9 +2995,8 @@
       [
        "この Skill",
        [
-        "<code>plan</code> ── 実行する内容の提示",
-        "根による範囲の限定",
-        "道具の説明と注記"
+        "<code>plan</code> ・ 範囲の限定 ・ 経路の検証 ・ 続きの読み方",
+        "判断の材料と、範囲の保証"
        ]
       ],
       [
@@ -2969,9 +3028,9 @@
      "cost": "クライアントの能力に依存し、CLI では成立しない ── <b>呼び方が違うと振る舞いが違う</b>"
     },
     {
-     "name": "C",
-     "body": "判断の材料を返し、承認はホストへ委ねる",
-     "cost": "ホストが材料を使わなければ、何も止まらない ── <b>この Skill は保証を与えない</b>"
+     "name": "C′",
+     "body": "範囲 ・ 提示 ・ 続きを持ち、承認はホストへ委ねる",
+     "cost": "ホストが材料を使わなければ、何も止まらない ── <b>この Skill は承認の保証を与えない</b>"
     }
    ],
    "dropped": [
@@ -2986,6 +3045,10 @@
     {
      "body": "規則ファイルに署名を要求する",
      "reason": "鍵の配布と失効を、この Skill が持つことになる ── 成果物ごとに違う運用へ踏み込む"
+    },
+    {
+     "body": "切った出力の続きを、ファイルの場所だけで返す",
+     "reason": "MCP だけが繋がっている環境では、<b>道具の外の能力（ファイルの読み取り）を要求する</b>ことになる"
     }
    ],
    "path": [
@@ -3008,6 +3071,28 @@
       {
        "tag": "finding",
        "text": "<b>roots は範囲の宣言である</b> ── <code>Roots define the boundaries of where servers can operate within the filesystem</code>（client/roots:9）"
+      }
+     ]
+    },
+    {
+     "kind": "card",
+     "heading": "公式の参照実装を3つ読んだ",
+     "events": [
+      {
+       "tag": "content",
+       "text": "Fetch ・ Filesystem ・ Git の原文を取得した（2026-09-24）"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>Fetch は、切った続きを同じ道具で取らせる</b> ── <code>max_length</code> と <code>start_index</code> を引数に持ち、続きの呼び方を出力へ書く"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>Filesystem は、範囲を全部差し替える</b> ── roots が来たら足し算にせず置き換え、範囲が空なら起動しない"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>Git は、経路が根の中かを確認し、<code>--</code> で旗の解釈も止める</b>"
       }
      ]
     }
@@ -3042,12 +3127,31 @@
      "basis": "Skill は道具を1つも持たない ── 実行するのは規則に書いてあるコマンドである",
      "tag": "rule",
      "source": "論点2（決着 2026-09-23）"
+    },
+    {
+     "supports": "続きを同じ道具から読めるようにすること",
+     "basis": "Content truncated. Call the fetch tool with a start_index of {next_start} to get more content.",
+     "tag": "primary",
+     "source": "servers/main/src/fetch/…/server.py:254（2026-09-24 取得 ・ 289行）"
+    },
+    {
+     "supports": "範囲が空なら動作しないこと",
+     "basis": "the server will throw an error during initialization",
+     "tag": "primary",
+     "source": "servers/main/src/filesystem/README.md:31（同 ・ 366行）"
+    },
+    {
+     "supports": "範囲の外を指す値を拒むこと",
+     "basis": "Defense in depth: validate each path resolves within the repository working tree to prevent path traversal",
+     "tag": "primary",
+     "source": "servers/main/src/git/…/server.py:136（同 ・ 586行）"
     }
    ],
    "requirements": [
-    "<code>plan</code> を実装する必要がある ── 規則を読み、実行する内容を返す。実行はしない",
-    "道具の説明へ、実行の内容が規則ファイルで決まることを書く必要がある",
-    "<code>annotations</code> を宣言に持たせるかを決める必要がある ── 契約（<code>Tool</code>）に欄が無い"
+    "<code>plan</code> を実装する必要がある ── 規則を読み、実行する内容と根を返す。実行はしない",
+    "<code>check.target</code> の検証が要る ── 解決した経路が根の中かを確認する",
+    "出力の続きを <code>offset</code> で読める形にする必要がある ── いまは場所だけを返す",
+    "道具の説明へ、実行の内容が規則ファイルで決まることを書く必要がある"
    ],
    "out_of_scope": [
     {
