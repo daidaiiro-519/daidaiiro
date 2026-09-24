@@ -41,17 +41,32 @@ def validate(規則: str, 根: str = "") -> dict:
     """規則ファイルの形を検査する。**実行の前に見る。**
 
     根を渡すと、層の場所が実在するかも見る。
+    **概念の出典を書いたファイルを渡すと、そちらの契約で検査する** ──
+    入口を増やすと、呼ぶ側が形を推測することになる。
     """
     p = pathlib.Path(規則)
+    if _概念のファイルか(p):
+        return result(ok=True, findings=_validate.概念を検査する(p),
+                      ファイル=規則, 種類="概念")
     検出 = _validate.検査する(p)
     if 根:
         検出 += _validate.層を検査する(p, pathlib.Path(根))
-    return result(ok=True, findings=検出, 規則ファイル=規則)
+    return result(ok=True, findings=検出, ファイル=規則, 種類="規則", 規則ファイル=規則)
+
+
+def _概念のファイルか(p: pathlib.Path) -> bool:
+    try:
+        import json
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return isinstance(d, dict) and "概念" in d and "規則" not in d
 
 
 def _human_validate(res: dict) -> str:
-    return ("規則ファイルの検査　通った" if not res["findings"]
-            else f'規則ファイルの検査　通っていない（{len(res["findings"])} 件）')
+    名 = res["data"]["種類"] + "ファイル"
+    return (f"{名}の検査　通った" if not res["findings"]
+            else f'{名}の検査　通っていない（{len(res["findings"])} 件）')
 
 
 TOOLS = [

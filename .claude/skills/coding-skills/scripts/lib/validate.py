@@ -56,3 +56,36 @@ def 層を検査する(規則ファイル: pathlib.Path, 根: pathlib.Path) -> l
     for x in 足りない:
         検出.append(f"並びの {x} が、層に無い")
     return 検出
+
+
+def 概念を検査する(概念ファイル: pathlib.Path) -> list[str]:
+    """概念の出典が契約を満たすかを見る。
+
+    **原文は同梱しない。** したがってこの側が見られるのは、
+    引用と、取り直すための4つの値（url ・ 日 ・ sha256 ・ 行）が揃っているかまでである。
+    **引用が原文と一致するかは、取り直して照合する側が判定する。**
+    """
+    検出: list[str] = []
+    try:
+        d = json.loads(概念ファイル.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return [f"JSON として読めない ── {e}"]
+    try:
+        import jsonschema
+    except ModuleNotFoundError:
+        検出.append("jsonschema が無いので、形の検査を実行していない")
+    else:
+        形 = json.loads((REFERENCES / "concepts.schema.json").read_text(encoding="utf-8"))
+        v = jsonschema.Draft202012Validator(形)
+        for e in sorted(v.iter_errors(d), key=lambda x: list(x.path)):
+            検出.append("形: " + "/".join(map(str, e.path)) + " ── " + e.message)
+
+    for i, c in enumerate(d.get("概念") or []):
+        名 = c.get("概念") or f"{i}件目"
+        出典 = c.get("出典") or {}
+        if not 出典.get("引用"):
+            検出.append(f"{名}: 引用が無い ── 原文を提示できない概念を、手順の根拠にしない")
+        for 欄 in ("url", "日", "sha256", "行"):
+            if not (出典.get("取得") or {}).get(欄):
+                検出.append(f"{名}: 取得に {欄} が無い ── 同じ版かを、あとから判定できない")
+    return 検出
