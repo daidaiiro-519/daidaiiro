@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "coding-skills",
- "round": 21,
+ "round": 22,
  "intro": [
   {
    "kind": "para",
@@ -20,7 +20,11 @@
   },
   {
    "no": 7,
-   "why": "既存のリポジトリへ入れるときに、層の値が出てこない ── 論点5の実装より前に決まる"
+   "why": "既存のリポジトリへ入れるときに、層の値が出てこない"
+  },
+  {
+   "no": 8,
+   "why": "案内の置き場所が決まると、init が読む先が確定する ── 実測は3案とも揃っている"
   }
  ],
  "panels": [
@@ -2507,6 +2511,261 @@
      "item": "この形を、既存のリポジトリでまだ試していない",
      "treatment": "later",
      "note": "試すのは<b>外の作業</b>である ── <code>対象</code> を実装し、このリポジトリで範囲を狭めた規則を1件動かす"
+    }
+   ]
+  },
+  {
+   "no": 8,
+   "name": "スキーマが生成を導く",
+   "status": "open",
+   "question": "スキーマから実体を生成させるとき、案内をどこへ置き、何を機械で検査するのか",
+   "answer": "<b><code>x-prompt</code> を足し、メタスキーマ1枚で欠落を検出する。</b>生成の対象は <code>.coding/rules.json</code> だけで、<b>モデルに新しいスキーマを作らない</b>。",
+   "intro": "<b>案内を3種類に分ける</b> ── 概要を知るとき ・ 読み取るとき ・ 値を埋めるときで、読む先を変える。置き場所の候補は3つあり、実測で1つに絞れた。",
+   "decision": {
+    "letter": "C",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>案内は <code>x-prompt</code> に置く。欠落は、スキーマ自身を実体として検証して検出する。</b>"
+     },
+     {
+      "kind": "fold",
+      "heading": "この答えを導いたもの（6件）",
+      "body": [
+       {
+        "kind": "list",
+        "ordered": false,
+        "items": [
+         {
+          "text": "<b><code>description</code> をオブジェクトにすると、スキーマが無効になる</b> ── <code>check_schema</code> が失敗する。実体の検証は通るので、<b>壊れ方が静かである</b>"
+         },
+         {
+          "text": "<b>JSON 文字列を入れる形は、検査が成立しない</b> ── 中身の欠落を構造で強制できず、壊れた JSON を検出0件で通した"
+         },
+         {
+          "text": "<b><code>x-prompt</code> は標準の検証を素通りする</b> ── 未知の鍵なので無視される。だから安全に置ける"
+         },
+         {
+          "text": "<b>欠落は、スキーマ自身を実体として検証すると出る</b> ── メタスキーマ1枚で <code>read</code> と <code>write</code> を必須にする"
+         },
+         {
+          "text": "<b>3つの導線に分かれる</b> ── <code>description</code> が概要、<code>x-prompt.read</code> が読み取り、<code>x-prompt.write</code> が値を埋めるときの案内である"
+         },
+         {
+          "text": "<b>モデルに新しいスキーマを作らない</b> ── 機械が検査できるのは層の部分だけで、それは <code>rules.schema.json</code> が既に持つ。概念と持ち物には、検査する道具が無い"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "案内を持つ定義1件"
+    },
+    {
+     "kind": "html",
+     "text": "\"層\": {\n  \"type\": \"object\",\n  \"description\": \"層の名前と、その言語での同定子の対応\",\n  \"x-prompt\": {\n    \"read\":  \"並びの内から外の順で読む。値は同定子であって、パスとは限らない\",\n    \"write\": \"モデルの層の名前を鍵にし、値にその言語での同定子を書く\"\n  }\n}"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "3つの導線"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "いつ",
+      "読む鍵",
+      "何が書いてあるか"
+     ],
+     "rows": [
+      [
+       "概要を知る",
+       [
+        "<code>description</code>",
+        "その項目が何であるかの1行"
+       ]
+      ],
+      [
+       "読み取る",
+       [
+        "<code>x-prompt.read</code>",
+        "どの順で読むか ・ 値が何を指すか"
+       ]
+      ],
+      [
+       "値を埋める",
+       [
+        "<code>x-prompt.write</code>",
+        "何を根拠に、どの形で書くか"
+       ]
+      ]
+     ]
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "欠落の検出 ── スキーマ自身を実体として検証する"
+    },
+    {
+     "kind": "html",
+     "text": "$ python3 scripts/cli.py validate references/rules.schema.json\nスキーマの検査　通っていない（1 件）\n  properties/層 ── 'x-prompt' is a required property"
+    },
+    {
+     "kind": "note",
+     "text": "<b>検証する対象が2段になる。</b>実体（<code>.coding/rules.json</code>）を見るのは <code>rules.schema.json</code> で、そのスキーマ自身を見るのがメタスキーマ1枚である。"
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "3つの候補の帰結 ── 実測 2026-09-24"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "置き場所",
+      "check_schema",
+      "欠落と壊れた値の検出"
+     ],
+     "rows": [
+      [
+       "<code>description</code> をオブジェクトにする",
+       [
+        "<b>失敗</b>",
+        "is not of type 'string'",
+        "──"
+       ]
+      ],
+      [
+       "<code>description</code> に JSON 文字列を入れる",
+       [
+        "通った",
+        "正規表現で語を探す形になる",
+        "<b>壊れた JSON を検出0件で通した</b>"
+       ]
+      ],
+      [
+       "<b><code>x-prompt</code> を足す</b>",
+       [
+        "通った",
+        "──",
+        "<b>required で強制できる</b>"
+       ]
+      ]
+     ]
+    }
+   ],
+   "passed": [
+    {
+     "name": "A",
+     "body": "<code>description</code> をオブジェクトにする",
+     "cost": "スキーマが無効になる ── <code>check_schema</code> が失敗し、メタ検証する道具が拒む"
+    },
+    {
+     "name": "B",
+     "body": "<code>description</code> に JSON 文字列を入れる",
+     "cost": "中身の欠落を構造で強制できず、<b>壊れた JSON を合格にする</b> ── 利点は、標準の鍵だけで済むことである"
+    },
+    {
+     "name": "C",
+     "body": "<code>x-prompt</code> を足し、メタスキーマで欠落を検出する",
+     "cost": "標準外の鍵が増える ── <code>x-prompt</code> を知らない他の道具には、案内が届かない"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "モデル全体を JSON にし、スキーマを持たせる",
+     "reason": "概念と持ち物を検査する道具が無い ── <b>誰も検証しない項目が増える</b>。規則を立てる条件②を満たさない"
+    },
+    {
+     "body": "案内を <code>description</code> と <code>x-prompt</code> の両方に持つ",
+     "reason": "正本が2か所になり、片方だけが古くなる"
+    },
+    {
+     "body": "生成の対象に、概念ファイルを含める",
+     "reason": "概念は Skill の正本である ── 成果物ごとに生成するものではない"
+    }
+   ],
+   "path": [
+    {
+     "kind": "card",
+     "heading": "3つの置き場所を、実測で比べた",
+     "events": [
+      {
+       "tag": "content",
+       "text": "jsonschema（2020-12）で、3つの形について <code>check_schema</code> と欠落の検出を実行した"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>オブジェクトは無効である</b> ── <code>check_schema</code> が失敗する。ただし実体の検証は通る"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>JSON 文字列は、壊れていても通る</b> ── <code>{\"read\": 壊れ</code> を検出0件で通した"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>自前のメタスキーマは、欠落を正しく指した</b> ── <code>properties/層</code> に <code>'x-prompt' is a required property</code> と出た"
+      }
+     ]
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "オブジェクトを採らないこと",
+     "basis": "check_schema が失敗する ── {'description': …} is not of type 'string'",
+     "tag": "measured",
+     "source": "2026-09-24 に jsonschema で実行"
+    },
+    {
+     "supports": "JSON 文字列を採らないこと",
+     "basis": "壊れた JSON（{\"read\": 壊れ）を検出0件で通した",
+     "tag": "measured",
+     "source": "2026-09-24 に jsonschema で実行"
+    },
+    {
+     "supports": "x-prompt が安全に置けること",
+     "basis": "未知の鍵は検証器が無視し、check_schema も通る",
+     "tag": "measured",
+     "source": "2026-09-24 に jsonschema で実行"
+    },
+    {
+     "supports": "欠落を検出できること",
+     "basis": "メタスキーマで required を書くと、x-prompt が無い項目を名指しで検出する",
+     "tag": "measured",
+     "source": "2026-09-24 に jsonschema で実行"
+    },
+    {
+     "supports": "モデルに新しいスキーマを作らないこと",
+     "basis": "規則を立てる条件は2つ ── 無ければ外すか、コマンドで検査できるか",
+     "tag": "rule",
+     "source": "前の世代の論点1（決着 2026-09-22）"
+    }
+   ],
+   "requirements": [
+    "メタスキーマ1枚が必要である ── <code>references/schema-meta.schema.json</code>",
+    "<code>self-rules.json</code> に1件足す必要がある ── 案内の欠落を検査する規則（3件が4件になる）",
+    "<code>init</code> が <code>x-prompt.write</code> を読む必要がある ── 項目の一覧は保持せず、スキーマから取る"
+   ],
+   "out_of_scope": [
+    {
+     "item": "<code>x-prompt</code> を知らない他の道具には、案内が届かない",
+     "treatment": "out",
+     "note": "費用として受け入れる ── 届かせるには標準の鍵へ入れることになり、検査が成立しなくなる"
+    },
+    {
+     "item": "案内の内容が適切かを検査すること",
+     "treatment": "out",
+     "note": "在ることは検査できるが、内容の良否は機械で判定できない"
+    },
+    {
+     "item": "この形を、まだ1つも書いていない",
+     "treatment": "later",
+     "note": "試すのは<b>外の作業</b>である ── <code>rules.schema.json</code> の全項目へ案内を足し、メタスキーマで0件になることを確認する"
     }
    ]
   }
