@@ -62,7 +62,7 @@ def to_text(pdf: str) -> None:
     if not shutil.which("pdftotext"):
         return
     subprocess.run(["pdftotext", "-layout", pdf, pdf[:-4] + ".txt"], check=False,
-                   stdin=subprocess.DEVNULL, timeout=120)
+                   stdin=subprocess.DEVNULL, capture_output=True, timeout=120)
 
 
 def fetch() -> int:
@@ -80,7 +80,7 @@ def fetch() -> int:
             print(f"取得できない {url}\n  {e}", file=sys.stderr)
             continue
         size = os.path.getsize(path)
-        print(f"取得した {name}  {size:,} バイト")
+        print(f"取得した {name}  {size:,} バイト", file=sys.stderr)
         if name.endswith(".pdf"):
             to_text(path)
         entries.append({"url": url, "fetched": src, "file": name,
@@ -90,7 +90,7 @@ def fetch() -> int:
         json.dump({"fetched_at": datetime.now(timezone.utc).astimezone().isoformat(),
                    "sources": entries}, f, ensure_ascii=False, indent=1)
         f.write("\n")
-    print(f"書いた {os.path.relpath(MANIFEST, SKILL)}（{len(entries)} 本）")
+    print(f"書いた {os.path.relpath(MANIFEST, SKILL)}（{len(entries)} 本）", file=sys.stderr)
     if not shutil.which("pdftotext"):
         print("**`pdftotext` が無いので、PDF はテキストにしていない**", file=sys.stderr)
     return 0 if len(entries) == len(URLS) else 1
@@ -106,10 +106,10 @@ def check() -> int:
     for e in entries:
         path = os.path.join(DIR, e["file"])
         if not os.path.exists(path):
-            print(f"無い     {e['file']}"); bad += 1; continue
+            print(f"無い     {e['file']}", file=sys.stderr); bad += 1; continue
         if sha256_of(path) == e["sha256"]:
-            print(f"一致     {e['file']}")
+            print(f"一致     {e['file']}", file=sys.stderr)
         else:
-            print(f"食い違う {e['file']}"); bad += 1
-    print(f"── 一致 {len(entries) - bad} ／ 一致しない {bad}")
+            print(f"食い違う {e['file']}", file=sys.stderr); bad += 1
+    print(f"── 一致 {len(entries) - bad} ／ 一致しない {bad}", file=sys.stderr)
     return 1 if bad else 0

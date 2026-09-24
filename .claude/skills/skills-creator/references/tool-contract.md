@@ -34,6 +34,22 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 | 戻り値 | `{"ok": 真偽, "findings": [検出], "data": {本体}}` |
 | 終了コード | `0` 正常 ／ `1` 検出あり ／ `2` 誤用 |
 | 印字 | **道具は印字しない** ── 印字と終了コードは入口が持つ |
+| **標準出力** | **MCP の面では、道具が標準出力へ1バイトも書かない** ── 原典が禁じている（下の表）。書くなら標準エラーである |
+| **面のファイル名** | **`mcp.py` と名付けない** ── 実行すると自分の在る場所が探索の先頭に入り、`import mcp` がこのファイル自身を指す。実装が在っても「無い」と報告する |
+
+### 標準入出力の規約 ── 原典
+
+`modelcontextprotocol.io/specification/2025-06-18/basic/transports`（2026-09-24 取得 ・ 297行）から引用する。
+
+| 行 | 原文 |
+|---|---|
+| 27 | `The server reads JSON-RPC messages from its standard input (stdin) and sends messages to its standard output (stdout).` |
+| 31 | `The server **MAY** write UTF-8 strings to its standard error (stderr) for logging purposes.` |
+| 33 | `The server **MUST NOT** write anything to its stdout that is not a valid MCP message.` |
+
+**だから、道具の中で `print()` を使うと MCP の面が壊れる** ── 子プロセスの標準出力も同じである（`capture_output` か `stdout=` で受ける）。
+
+Python の SDK は 2.x で `FastMCP` が `MCPServer` へ改称された。原典（`python-sdk` の README、2026-09-24 取得 ・ 134行）の55行が `from mcp.server import MCPServer` を示す。**1.x も動く形にする** ── `ImportError` のときは `mcp.server.fastmcp.FastMCP` を採用する。
 
 ## 規定しないもの
 

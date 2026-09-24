@@ -13,9 +13,9 @@ from tools import TOOLS  # noqa: E402
 
 def build():
     """宣言から、MCP の道具を組む。"""
-    try:                                     # mcp 2.x
-        from mcp.server.mcpserver import MCPServer as Server
-    except ModuleNotFoundError:              # mcp 1.x
+    try:                                     # mcp 2.x ── 原典の README がこの経路を示す
+        from mcp.server import MCPServer as Server
+    except ImportError:                      # mcp 1.x
         from mcp.server.fastmcp import FastMCP as Server
 
     server = Server("brainstorming-board")
