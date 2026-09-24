@@ -85,9 +85,9 @@ def _theme(d: dict) -> dict:
         return {}
     if not isinstance(over, dict):
         raise ValueError("theme は名前と値の対でなければならない")
-    未知 = sorted(k for k in over if k not in _engine.DEFAULT_THEME)
-    if 未知:
-        raise ValueError("知らないトークン: " + " ・ ".join(未知)
+    unknown = sorted(k for k in over if k not in _engine.DEFAULT_THEME)
+    if unknown:
+        raise ValueError("知らないトークン: " + " ・ ".join(unknown)
                          + " ── 目録（catalog）に在る名前だけを使う")
     return {"theme": dict(_engine.DEFAULT_THEME, **over)}
 
