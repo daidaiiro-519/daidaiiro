@@ -68,6 +68,22 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 
 **型は緩く受ける。** 呼ぶ側は JSON の値を渡すので、数を文字列で包むことを強制しない（実測: `timeout` に 30 を渡すと、検証が不合格になっていた）。まとめて受ける引数は配列も受ける。
 
+### 戻り値は、構造としても乗せる
+
+原典が両方を求めている（`server/tools:296・298`、2026-09-24 取得）。
+
+> **Structured** content is returned as a JSON object in the `structuredContent` field of a result.
+
+> For backwards compatibility, a tool that returns structured content SHOULD also return the serialized JSON in a TextContent block.
+
+`{ok, findings, data}` は JSON なので、**そのまま `structuredContent` に乗る**。ただし SDK の自動判定では、素の `dict` は非構造として扱われる ── 戻り値を `dict[str, Any]` と注釈し、`structured_output=True` を渡す（実測 2026-09-24、mcp 2.2.0）。
+
+| 注釈と指定 | 結果 |
+|---|---|
+| 注釈が無い | `structuredContent` 無し ・ `outputSchema` 無し |
+| `-> dict` ＋ `structured_output=True` | **起動しない** ── `return type <class 'dict'> is not serializable for structured output` |
+| `-> dict[str, Any]` ＋ `structured_output=True` | `structuredContent` 有り ・ `outputSchema` 有り |
+
 ### 子プロセスを起こすときの規律
 
 道具が外のコマンドを実行するなら、3つを必ず指定する。**どれも実測で欠陥が出た項目である**（2026-09-24、9つの Skill で6か所）。

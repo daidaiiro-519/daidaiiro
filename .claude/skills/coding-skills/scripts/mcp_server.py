@@ -15,6 +15,7 @@ write anything to its stdout that is not a valid MCP message.`
 """ 
 import pathlib
 import sys
+import typing
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from tools import TOOLS  # noqa: E402
@@ -29,7 +30,13 @@ def build():
 
     server = Server("coding-skills")
     for t in TOOLS:
-        server.add_tool(_callable(t), name=t.name, description=t.summary)
+        # **JSON を構造としても乗せる。** 原典が両方を求めている ──
+        # `a tool that returns structured content SHOULD also return the
+        # serialized JSON in a TextContent block`
+        # （specification/2025-06-18/server/tools:298、2026-09-24 取得）。
+        # 素の `dict` は自動判定では非構造になるので、明示して渡す。
+        server.add_tool(_callable(t), name=t.name, description=t.summary,
+                        structured_output=True)
     return server
 
 
@@ -53,9 +60,9 @@ def _callable(tool):
         t = "list[str] | str" if a.many else "str | int | float | bool"
         params.append(f"{a.key}: {t}" if a.required else f"{a.key}: {t} = ''")
         passes.append(f"{a.key}={a.key}")
-    src = (f"def call({', '.join(params)}):\n"
+    src = (f"def call({', '.join(params)}) -> dict[str, _Any]:\n"
            f"    return _guard(_run({', '.join(passes)}))\n")
-    ns: dict = {"_run": tool.run, "_guard": _guard}
+    ns: dict = {"_run": tool.run, "_guard": _guard, "_Any": typing.Any}
     exec(src, ns)                            # noqa: S102 ── 宣言から組む
     fn = ns["call"]
     fn.__name__ = tool.name
