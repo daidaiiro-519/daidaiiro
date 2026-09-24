@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "規則ファイル",
+  "description": "成果物が持つ規則ファイル。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持つ。",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "規則": {
+      "type": "array",
+      "minItems": 1,
+      "description": "規則の一覧",
+      "x-prompt": {
+        "read": "1件ずつ独立に読む。件数の多寡に意味は無い",
+        "write": "2つの条件を両方満たすものだけを書く ── 無ければ外れるか、コマンドで検査できるか。コマンドを伴わない心得は書かない"
+      },
+      "items": { "$ref": "#/$defs/規則" }
+    },
+    "並び": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "層の並び。内から外の順である",
+      "x-prompt": {
+        "read": "先頭が最も内側である。依存は後ろから前へ向かってよく、前から後ろへは向かわない",
+        "write": "モデルから導出する。層名を先に決めて、そこへ概念を配置しない。言語に依存しない名前にする"
+      }
+    },
+    "層": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 },
+      "description": "層の名前と、その言語での同定子の対応",
+      "x-prompt": {
+        "read": "鍵は並びの層名、値はその言語で層を同定する文字列である。パスとは限らない",
+        "write": "鍵に並びの層名を書き、値にその言語での同定子を書く ── Go はディレクトリ、Java はパッケージ、Python は dotted path、Rust は crate"
+      }
+    }
+  },
+  "$defs": {
+    "規則": {
+      "type": "object",
+      "required": ["規則", "出典", "採用範囲", "検証方法"],
+      "properties": {
+        "規則": {
+          "type": "string",
+          "minLength": 1,
+          "description": "何を守るかの1文",
+          "x-prompt": {
+            "read": "守る対象だけを読む。検査の手段はここに書かれていない",
+            "write": "守る状態を1文で書く。道具の名前を入れない ── 道具が替わっても、この文は変わらない"
+          }
+        },
+        "出典": {
+          "type": "object",
+          "description": "外（原典）か内（こちら側の決定）かを書く",
+          "anyOf": [{ "required": ["meta"] }, { "required": ["record"] }],
+          "x-prompt": {
+            "read": "meta があれば外を指す規則、record があれば内を指す規則である",
+            "write": "外を指すなら3つの条件を満たしてから書く ── 原文を取得し、引用を原文の文字列で照合し、取得した日と版を残す。内を指すならモデルの識別子を record に書く"
+          },
+          "properties": {
+            "meta": { "type": "string", "description": "原典の識別子" },
+            "引用": { "type": "string", "description": "原文の文字列。要約しない" },
+            "record": { "type": "string", "description": "内側の決定の識別子" }
+          }
+        },
+        "採用範囲": {
+          "type": "string",
+          "minLength": 1,
+          "description": "原典のどこを採ったか",
+          "x-prompt": {
+            "read": "原典の全体ではなく、ここに書かれた範囲だけが規則である",
+            "write": "原典のどの記述を採ったかを書く。内を指す規則なら、適用する成果物の範囲を書く"
+          }
+        },
+        "検証方法": {
+          "type": "object",
+          "required": ["道具"],
+          "description": "判定する手段",
+          "x-prompt": {
+            "read": "実行するコマンドと、実行する場所である。判定は終了コードで返る",
+            "write": "判定を終了コードで返す呼び方を選ぶ ── gofmt -l は不整形を並べながら0を返す"
+          },
+          "properties": {
+            "道具": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" },
+              "description": "実行するコマンド",
+              "x-prompt": {
+                "read": "配列の先頭が実行するもので、以降が引数である",
+                "write": "配列で書く ── 殻を経由すると ./... の展開が実行する殻に依存する"
+              }
+            },
+            "対象": {
+              "type": "string",
+              "description": "実行する場所。成果物の根からの相対である",
+              "x-prompt": {
+                "read": "書かれていなければ、成果物の根で実行する",
+                "write": "範囲を狭めるときに書く。規則を緩めるのではなく、見ている範囲を書く"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

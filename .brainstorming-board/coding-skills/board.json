@@ -2657,6 +2657,19 @@
        ]
       ]
      ]
+    },
+    {
+     "kind": "heading",
+     "level": 4,
+     "text": "生成の直後 ── 不合格の一覧が、埋める欄の一覧になる"
+    },
+    {
+     "kind": "html",
+     "text": "$ python3 try.py\n── ⑤ 生成した実体を、契約で検証する\n  規則/0/出典 ── {} is not valid under any of the given schemas\n  規則/0/採用範囲 ── '' is too short\n  規則/0/検証方法/道具 ── [] is too short\n  規則/1/出典 ── {} is not valid under any of the given schemas\n  規則/1/採用範囲 ── '' is too short\n  規則/1/検証方法/道具 ── [] is too short"
+    },
+    {
+     "kind": "note",
+     "text": "<b>骨は、契約に対して不合格で出る。</b>その6件が埋める欄そのものであり、欄ごとに <code>x-prompt.write</code> が何を根拠に書くかを持つ ── <b>埋める欄の一覧を、どこにも書かずに得られる</b>。"
     }
    ],
    "passed": [
@@ -2712,6 +2725,28 @@
        "text": "<b>自前のメタスキーマは、欠落を正しく指した</b> ── <code>properties/層</code> に <code>'x-prompt' is a required property</code> と出た"
       }
      ]
+    },
+    {
+     "kind": "card",
+     "heading": "試作で、端から端まで動かした",
+     "events": [
+      {
+       "tag": "content",
+       "text": "<code>trial/schema/</code> に、案内つきのスキーマ ・ メタスキーマ ・ 試す実装を置いた"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>案内の検査は0件で通り、落とすと2件を指した</b> ── 欠落1件と、空文字にした1件（<code>'' is too short</code>）"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>骨を出す実装は、項目の一覧を保持しない</b> ── <code>$defs</code> の形から鍵を取るので、契約が変わると出力も変わる"
+      },
+      {
+       "tag": "finding",
+       "text": "<b>案内は、値を書く単位ごとに持つ</b> ── 入れ子の奥の葉まで要求すると、案内が肥大する。葉は親の案内が覆う"
+      }
+     ]
     }
    ],
    "grounds": [
@@ -2749,7 +2784,8 @@
    "requirements": [
     "メタスキーマ1枚が必要である ── <code>references/schema-meta.schema.json</code>",
     "<code>self-rules.json</code> に1件足す必要がある ── 案内の欠落を検査する規則（3件が4件になる）",
-    "<code>init</code> が <code>x-prompt.write</code> を読む必要がある ── 項目の一覧は保持せず、スキーマから取る"
+    "<code>init</code> が <code>x-prompt.write</code> を読む必要がある ── 項目の一覧は保持せず、スキーマから取る",
+    "案内を持たせる深さを決める必要がある ── 試作では、最上位と <code>$defs</code> の各形の項目までとした"
    ],
    "out_of_scope": [
     {
