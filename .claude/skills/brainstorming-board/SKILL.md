@@ -215,7 +215,7 @@ python3 scripts/cli.py init <ブレストボードの名前> [--title <題>]
 
 - `scripts/cli.py`: 唯一の入口。`init` ・ `validate` ・ `render` ・ `tokens` ・ `freeze` ・ `figures` ・ `serve` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `build_board.py` ・ `board_css.py` は読み込まれるものであり、入口を保持しない
-- `scripts/mcp.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp_server.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
 - `scripts/lib/build_board.py`: 論点をタブ1枚の HTML へ組む。`render_board.py` がこれを内部で呼ぶ。`Topic` に論点・状態・答え・完成イメージ・案・除外した案・道筋・根拠・要求事項・扱わない範囲・未修正の誤り・図を渡し、`deck()` でまとめる。`queue` を渡すと、いま見る論点だけが回答欄を持つ。**検査を6件持つ** ── 一度に開いている論点が5件を超えていないか ／ 現在地に「いま見る論点」が在るか ／ 宣言されていない依存が無いか ／ 試されていない答えが無いか ／ いま見る論点の扱わない範囲に扱いが在るか ／ **答えに完成イメージが在るか**。**欄の整形は道具が持つ**（`cell()` が「主張 ── 説明」を2行に割る）。**この回で変わったところは `snapshot()` と `deck(prev=…)` が示す**
 - `scripts/tests/test_build_board.py`: 欄の整形を事例で検証する（14件）
 - `scripts/tests/test_diff_marks.py`: この回の印の付き方を事例で検証する（23件）

@@ -29,7 +29,7 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 | **置き場所** | **役割ごとに階層を分ける**（下の表）── 中身を開かずに、どれが入口かを判定できる形にする |
 | 宣言 | `scripts/tools.py` の `TOOLS`。名前 ・ 引数 ・ 説明 ・ 実体 ・ 人が読む形 |
 | 入口 | `scripts/cli.py` が唯一。`python3 scripts/cli.py <動詞> [対象…] [--json]` |
-| MCP の面 | `scripts/mcp.py`。**同じ宣言から組む** |
+| MCP の面 | `scripts/mcp_server.py`。**同じ宣言から組む** |
 | 登録 | `mcp.json` の断片。**ホストごとの差は、ここだけが吸収する** |
 | 戻り値 | `{"ok": 真偽, "findings": [検出], "data": {本体}}` |
 | 終了コード | `0` 正常 ／ `1` 検出あり ／ `2` 誤用 |
@@ -50,7 +50,7 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 ```
 scripts/
   cli.py        唯一の入口
-  mcp.py        MCP の面
+  mcp_server.py MCP の面
   tools.py      能力の宣言（正本）
   contract.py   契約の実体
   lib/          部品 ── 読み込まれるもの。__init__.py を持つ

@@ -301,4 +301,4 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 - `scripts/lib/tails.py`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `gate.py` の WAGO へ追加する
 - `scripts/tests/test_gate.py`: この検査の振る舞いを事例で検証する。`python3 scripts/tests/test_gate.py` で実行する
 - `scripts/lib/fetch_sources.py`: **出典8本の原文を取得し、`sources/MANIFEST.json` に URL と sha256 を残す**。取得と検査は `cli.py sources` から呼ぶ
-- `scripts/mcp.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp_server.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**

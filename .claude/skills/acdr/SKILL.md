@@ -211,7 +211,7 @@ python3 scripts/cli.py render .acdr/0007-<短い名詞句> --check 1   差が無
 
 - `scripts/cli.py`: **唯一の入口。** `new` ・ `validate` ・ `render` ・ `tokens` を持つ ── どれも `--json` で機械が読む形が出る
 - `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `tabs.py` ・ `code.py` ・ `render.py` は読み込まれるものであり、入口を保持しない
-- `scripts/mcp.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
+- `scripts/mcp_server.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
 
 ### 正本と組み立て
 

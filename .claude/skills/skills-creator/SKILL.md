@@ -91,7 +91,7 @@ python3 scripts/cli.py check <Skill のフォルダ>  # 契約を満たすかを
 |---|---|
 | `scripts/tools.py` | **能力の正本**。名前 ・ 引数 ・ 説明 ・ 実体 |
 | `scripts/cli.py` | 唯一の入口 |
-| `scripts/mcp.py` | MCP サーバー。**同じ宣言から組む** |
+| `scripts/mcp_server.py` | MCP サーバー。**同じ宣言から組む** |
 | `scripts/contract.py` | 入口の実装（引数の解釈 ・ 印字 ・ 終了コード） |
 | `scripts/lib/` | **部品**。読み込まれるものであり、入口を保持しない |
 | `scripts/tests/` | **検証** |
@@ -127,7 +127,7 @@ python3 scripts/cli.py check <Skill のフォルダ>  # 契約を満たすかを
 ## 参照
 
 - `references/tool-contract.md`: 道具の契約。入口 ・ 戻り値 ・ 終了コード ・ 道具と部品の区別を規定する
-- `references/tool-contract/`: 契約一式の雛形（`tools.py` ・ `cli.py` ・ `mcp.py` ・ `mcp.json`）
+- `references/tool-contract/`: 契約一式の雛形（`tools.py` ・ `cli.py` ・ `mcp_server.py` ・ `mcp.json`）
 - `scripts/cli.py`: この Skill 自身の入口。`scaffold` と `check` を持つ ── **この Skill も、同じ契約に従う**
 
 - `references/skill-template.md`: SKILL.md自体の雛形（プレースホルダー付き、各プレースホルダーが自己完結した執筆ガイダンスを持つ）。
