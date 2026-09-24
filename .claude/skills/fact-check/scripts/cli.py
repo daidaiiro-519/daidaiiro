@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""source-fidelity の唯一の入口。
+"""fact-check の唯一の入口。
 
     python3 scripts/cli.py <動詞> [対象…] [--json]
 

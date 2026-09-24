@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""source-fidelity の MCP サーバー。**同じ宣言から組む** ── 能力は1行も複製しない。
+"""fact-check の MCP サーバー。**同じ宣言から組む** ── 能力は1行も複製しない。
 
 `mcp` の実装が無い環境では、このサーバーは立たない ── **CLI は動く**。
 呼び出し方が欠けても、能力は欠けない。
@@ -28,7 +28,7 @@ def build():
     except ImportError:                      # mcp 1.x
         from mcp.server.fastmcp import FastMCP as Server
 
-    server = Server("source-fidelity")
+    server = Server("fact-check")
     for t in TOOLS:
         # **JSON を構造としても乗せる。** 原典が両方を求めている ──
         # `a tool that returns structured content SHOULD also return the

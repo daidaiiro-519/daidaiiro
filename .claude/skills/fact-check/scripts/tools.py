@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""source-fidelity の道具の宣言。**能力の正本はここである。**
+"""fact-check の道具の宣言。**能力の正本はここである。**
 
 計算は `source.py` が持ち、この宣言は**呼び方だけ**を固定する ──
 能力を2か所に書くと、片方だけが古くなる。

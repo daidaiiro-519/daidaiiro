@@ -1,0 +1,432 @@
+<title>抽象と具体の教材の、次の2本立て</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="material-next" data-round="2" data-theme-name="抽象と具体の教材の、次の2本立て"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　抽象と具体の教材の、次の2本立て　/　Round 2</p><h1>抽象と具体の教材の、次の2本立て</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>2本の並び<span class="st done">決着</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>DDD編の業務の例<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q3</span>道具編の粒度<span class="st now">いま見る</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>教材1（抽象と具体・6本・38枚）の次に置く2本を決める。並び ・ DDD編の業務の例 ・ 道具編の粒度の3つである。</p></div><div class="front"><h3>いま見るのは 2 件だけである</h3><ol><li><button class="jump" data-go="p2">Q2　DDD編の業務の例</button><br><span class="why">論点1でDDD編を先に置くと決着したので開いた ── 先に設計する側の入口を決める</span></li><li><button class="jump" data-go="p3">Q3　道具編の粒度</button><br><span class="why">論点1で道具編を後ろに置くと決着したので開いた ── 固定する対象が確定したので、粒度を決められる</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>教材1の次に、DDD編と道具編のどちらを置くか</td><td><span class="st done">決着</span></td><td>DDD編を先に置き、道具編をそのあとに置く</td></tr><tr><td><span class="n">2</span></td><td>DDD編の入口に使用する業務の例を、何にするか</td><td><span class="st now">いま見る</span></td><td><mark class="chg" tabindex="0" role="button" id="c2-0" aria-expanded="false" data-b="論点1の決着を待つ" data-w="この回で変わった">教材1と同じ案件を使用し、材料を議事録の外の業務へ広げる</mark></td></tr><tr><td><span class="n">3</span></td><td>道具編を、何本に分けるか</td><td><span class="st now">いま見る</span></td><td><mark class="chg" tabindex="0" role="button" id="c3-0" aria-expanded="false" data-b="論点1の決着を待つ" data-w="この回で変わった"><b class="lead-s">5本に分ける</b><div class="sub-s">イントロ1本と、教材1で決めた4つに対応する4本</div></mark></td></tr></table></div><details><summary>この回で変わったところ（101 か所）</summary><div><p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── 押すと前の回の中身が開く。</p><div class="scroll"><table><tr><th>論点</th><th>変わった欄</th></tr><tr><td><button class="jump" data-go="p1">Q1　2本の並び</button></td><td>1 か所</td></tr><tr><td><button class="jump" data-go="p2">Q2　DDD編の業務の例</button></td><td>50 か所</td></tr><tr><td><button class="jump" data-go="p3">Q3　道具編の粒度</button></td><td>50 か所</td></tr></table></div></div></details><details><summary>教材1の到達点</summary><div><p>依頼1つに、意味 ・ 範囲 ・ 条件の3文を足す手順を扱う。締めは「高さを見極めると、AIの出力に再現性が出る」である。</p><p>昇格表 docs/workshops/ai-workshop/materials/promotion-table.md が、教材1の語とDDDの用語の対応を保持する。</p></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>教材1の次に、DDD編と道具編のどちらを置くか</h2></div><div class="note">この論点は、残る2つの論点を設計する順序を縛る。</div><div class="ans"><span class="big">A</span><p>教材1 → DDD編 → 道具編 の順に置く。</p><ol><li>DDD編は、教材1の意味 ・ 範囲 ・ 条件を、依頼1つから業務の側へ上げる</li><li>道具編は、業務の側で決めたことを Skill ・ MCP ・ Hook へ固定する</li><li>教材1の締め（再現性）は変更しない。道具編の予告を教材1へ足さない</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図2枚と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,1394px)" class="wf-fig" aria-label="教材1で依頼の高さを決め、DDD編で業務の側の意味・範囲・条件を決め、道具編でそれを仕組みへ固定する" viewBox="0 0 1394 44" height="44" role="img"><g transform="translate(6.0,6.0)"><path d="M268.0,16.0 L405.1,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="405.1,16.0 398.3,18.5 398.3,13.5" fill="#C3CAD2"/><rect x="279.3" y="6.0" width="114.5" height="16.0" fill="#F5F7F9"/><text x="336.5" y="19.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">同じ3つを業務へ上げる</text><path d="M681.9,16.0 L819.0,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="819.0,16.0 812.2,18.5 812.2,13.5" fill="#C3CAD2"/><rect x="696.4" y="6.0" width="108.0" height="16.0" fill="#F5F7F9"/><text x="750.4" y="19.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">固定する中身が決まる</text><path d="M1060.0,16.0 L1197.3,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="1197.3,16.0 1190.5,18.5 1190.5,13.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="267.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="133.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">教材1　抽象と具体
+依頼1つの高さを決める</text></g></g><g class="wf-node" transform="translate(405.9,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="275.2" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="137.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">DDD編
+業務の側で意味・範囲・条件を決める</text></g></g><g class="wf-node" transform="translate(819.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="239.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="119.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">道具編
+決めたことを仕組みへ固定する</text></g></g><g class="wf-node" transform="translate(1197.9,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作った人以外も使える仕組み</text></g></g></g></svg><figcaption>3本が扱う層 ── 依頼1つ ・ 業務の側 ・ 仕組み。上げてから固定する並びである</figcaption></figure><figure><svg style="max-width:min(100%,659px)" class="wf-fig" aria-label="業務の語彙を決めないまま個人の依頼をSkillへ固定すると、本人以外が使ったときに外れる" viewBox="0 0 659 236" height="236" role="img"><g transform="translate(6.0,6.0)"><path d="M312.2,32.6 L312.2,95.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="312.2,95.2 309.8,88.4 314.7,88.4" fill="#C3CAD2"/><path d="M312.2,128.8 L83.4,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="83.4,191.4 89.3,187.2 90.6,192.0" fill="#C3CAD2"/><path d="M312.2,128.8 L306.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="306.2,191.4 304.4,184.4 309.3,184.9" fill="#C3CAD2"/><path d="M312.2,128.8 L546.0,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="546.0,191.4 538.8,192.0 540.1,187.3" fill="#C3CAD2"/><g class="wf-node" transform="translate(209.8,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="203.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">個人の依頼
+自分の語彙で書いた</text></g></g><g class="wf-node" transform="translate(248.2,96.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="127.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="63.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">Skillへ固定する</text></g></g><g class="wf-node" transform="translate(0.0,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作った本人
+そのまま動く</text></g></g><g class="wf-node" transform="translate(191.8,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="227.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="113.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">他部署の人
+語の意味が違い、外れる</text></g></g><g class="wf-node" transform="translate(443.6,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="203.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">次の案件
+範囲が合わず、外れる</text></g></g></g></svg><figcaption>道具編を先に置いた場合に発生すること ── 個人の語彙のまま固定され、本人以外が使用すると外れる</figcaption></figure></div><div class="ex"><p>教材1の「課題とは、まだ決まっていないことです」は、1つの依頼の中の取り決めである。</p><p>DDD編では、これを案件の取り決めへ上げる ── 「この案件で課題と呼ぶのは、まだ決まっていないことである」を、議事録 ・ 課題管理表 ・ 報告のどれでも同じ意味で使用する。</p><p>道具編では、その取り決めを Skill の定義として1か所に置き、呼ぶたびに同じ意味で動作させる。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>DDD編が先</b></td><td>業務の側で意味 ・ 範囲 ・ 条件を決めてから、道具で固定する</td><td><span class="cost">受講者の手が動くまでの時間が延長する（教材1の30分に、DDD編の30分が加算される）</span></td></tr><tr><td><span class="n">B</span></td><td><b>道具編の考え方だけを先に置く</b></td><td>「決めたことを仕組みへ固定する」という考え方の1本だけを先に置き、道具ごとの中身はDDD編のあとに置く</td><td><span class="cost">道具編が2か所に分割される。受講者が、固定する対象を持たないまま固定の話を視聴する</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="固定する中身が個人の勘のままになる。企画書が掲げる「作った人以外も、同じ業務の手間を解決できる」が成立しない ── 本人しか使用できない仕組みが残る"><b>道具編が先</b></mark></td><td><b class="lead-s">固定する中身が個人の勘のままになる。企画書が掲げる「作った人以外も、同じ業務の手間を解決できる」が成立しない</b><div class="sub-s">本人しか使用できない仕組みが残る</div></td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="1本が60分を超過する。教材1が1本5分で構成されているので、粒度が相違する"><b>2本を1本へ統合</b></mark></td><td>1本が60分を超過する。教材1が1本5分で構成されているので、粒度が相違する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="教材1の締めが再現性であり、そこへ道具の話を挿入すると主張が2つになる"><b>道具編を1枚だけ教材1へ挿入して予告</b></mark></td><td>教材1の締めが再現性であり、そこへ道具の話を挿入すると主張が2つになる</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>受講者が最初に作るもの</th><th>その仕組みを他の人が使用した場合</th></tr><tr><td><span class="n">DDD編が先</span></td><td>案件の語彙を決めた依頼</td><td>同じ意味で動作する</td></tr><tr><td><span class="n">道具編が先</span></td><td>自分の語彙で書いたSkill</td><td>語の意味が相違し、外れる</td></tr><tr><td><span class="n">道具編の考え方だけを先に置く</span></td><td>固定する対象を持たない状態の理解</td><td>対象が無いので、まだ作れない</td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">道具編を先に置かない判定</span></td><td>企画の目的は、作った人以外も同じ業務の手間を解決できることである</td><td><span class="kind k-rule">決まり</span><small>docs/workshops/ai-workshop/director-deck.html（期待する効果の枚）</small></td></tr><tr><td><span class="part">DDD編が教材1の続きとして成立すること</span></td><td>教材1の語とDDDの用語の対応が既に確定している</td><td><span class="kind k-rule">決まり</span><small>docs/workshops/ai-workshop/materials/promotion-table.md</small></td></tr><tr><td><span class="part">1本の長さの基準</span></td><td>教材1は1本4.2〜6.5分、合計31.6分である</td><td><span class="kind k-fact">実測</span><small>docs/workshops/ai-workshop/materials/previews/index.html（本ごとの字数と尺）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>DDD編と道具編の本数と尺</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点2と論点3で決定する</div></td></tr><tr><td>教材1の改訂</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">この並びは教材1の中身を変更しない</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><mark class="chg" tabindex="0" role="button" id="c1-0" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><p>第1回で承認された。DDD編を先に置く並びが、論点2と論点3の前提になる。</p></mark></li></ol></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>道具編を先に置く案は、受講者の着手の早さでは優位であるが、企画の目的（個人にナレッジを閉じさせない）と衝突する</b></td><td></td></tr><tr><td><b>教材1の3語（通知の方式 ・ 締めの日 ・ 権限の区分）は、そのまま業務の語彙であり、DDD編の材料として再使用できる</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>DDD編の台本と図を、教材1と同じ器（build_lessons.py ・ lesson_visuals.py）で組む</b></td><td></td></tr><tr><td><b>昇格表の右の列（DDDの用語）を、DDD編の作成時に原典と照合する</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>DDD編の入口に使用する業務の例を、何にするか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c2-1" aria-expanded="false" data-b="論点1で並びが決定したあとに開く。" data-w="この回で変わった">この論点は、DDD編の全本で使用する材料を縛る。</mark></div><div class="ans"><span class="big">A</span><mark class="chg" tabindex="0" role="button" id="c2-2" aria-expanded="false" data-b="" data-w="この回で変わった"><p>教材1で使用した案件（システム開発の案件）をそのまま使用し、材料を議事録から業務の側へ広げる。</p><ol><li>教材1で出現した3語（通知 ・ 締め ・ 権限）を、業務の語彙として扱う</li><li><b class="lead-s">部署をまたぐ場面を材料にする</b><div class="sub-s">業務部門 ・ 開発 ・ 運用が、同じ語で別のものを指す</div></li><li>議事録は材料の1つに降格し、課題管理表 ・ 仕様書 ・ 運用手順も材料に加える</li></ol></mark></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,563px)" class="wf-fig" aria-label="同じ案件の中で「通知」が3つの別のものを指す。どの範囲で使うかを決めないと、依頼も設計も揺らぐ" viewBox="0 0 563 236" height="236" role="img"><g transform="translate(6.0,6.0)"><path d="M295.7,32.8 L95.4,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="95.4,95.4 101.1,91.0 102.6,95.7" fill="#C3CAD2"/><path d="M295.7,32.8 L305.2,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="305.2,95.4 301.7,89.1 306.6,88.3" fill="#C3CAD2"/><path d="M295.7,32.8 L485.0,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="485.0,95.4 477.8,95.6 479.3,90.9" fill="#C3CAD2"/><path d="M96.4,128.6 L305.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="305.2,191.4 298.0,191.8 299.4,187.1" fill="#C3CAD2"/><path d="M306.2,128.6 L305.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="305.2,191.4 302.8,184.6 307.8,184.7" fill="#C3CAD2"/><path d="M485.0,128.6 L305.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="305.2,191.4 310.8,186.8 312.4,191.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(257.7,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">「通知」</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="191.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="95.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">業務部門
+顧客へ届くお知らせ</text></g></g><g class="wf-node" transform="translate(215.8,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="179.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="89.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">開発
+画面に出すメッセージ</text></g></g><g class="wf-node" transform="translate(419.6,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="131.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="65.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">運用
+障害時の連絡</text></g></g><g class="wf-node" transform="translate(155.8,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="299.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="149.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">同じ案件の中で、3つとも「通知」と呼ばれている</text></g></g></g></svg><figcaption><mark class="chg" tabindex="0" role="button" id="c2-3" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">同じ案件の中で「通知」が3つの別のものを指す状態 ── DDD編の入口に使用する材料</mark></figcaption></figure></div><div class="ex"><mark class="chg" tabindex="0" role="button" id="c2-4" aria-expanded="false" data-b="" data-w="この回で変わった"><p>教材1では「通知の方式が決まっていない」という1行の項目であった。</p><p>DDD編では、この語が部署ごとに別のものを指す状態を扱う ── 業務部門の「通知」は顧客へ届くお知らせ、開発の「通知」は画面に出すメッセージ、運用の「通知」は障害時の連絡である。</p><p>3つを1つの語で扱うと、依頼も設計も揺らぐ。どの範囲で「通知」をどの意味にするかを決めることが、区切られた文脈である。</p></mark></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b><mark class="chg" tabindex="0" role="button" id="c2-5" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1の案件を、業務の側へ広げる</mark></b></td><td><mark class="chg" tabindex="0" role="button" id="c2-6" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">同じ案件のまま、材料を議事録の外へ広げる</mark></td><td><span class="cost"><mark class="chg" tabindex="0" role="button" id="c2-7" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">案件の業務の中身（通知 ・ 締め ・ 権限が実際にどう動くか）を、教材の側で新たに用意する</mark></span></td></tr><tr><td><span class="n">B</span></td><td><b><mark class="chg" tabindex="0" role="button" id="c2-8" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">別の業務を持ってくる</mark></b></td><td><mark class="chg" tabindex="0" role="button" id="c2-9" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">受発注や請求など、境界が明瞭な業務を題材にする</mark></td><td><span class="cost"><mark class="chg" tabindex="0" role="button" id="c2-10" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">受講者15名の担当業務と一致しない。解像度の話が、自分の仕事から切り離される</mark></span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="議事録は会議の記録であって、業務そのものではない。部署ごとに語の意味が相違する場面を作れない ── 合同会議の例は教材1で使用済みである"><b><mark class="chg" tabindex="0" role="button" id="c2-11" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">議事録のまま扱う</mark></b></mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-12" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">議事録は会議の記録であって、業務そのものではない。部署ごとに語の意味が相違する場面を作れない</b><div class="sub-s">合同会議の例は教材1で使用済みである</mark></div></td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="動画の教材では材料を固定できない。撮影の時点で全員分の案件を用意できない ── これはワークショップの演習の側で扱う"><b><mark class="chg" tabindex="0" role="button" id="c2-13" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">参加者自身の案件を使用する</mark></b></mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-14" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">動画の教材では材料を固定できない。撮影の時点で全員分の案件を用意できない</b><div class="sub-s">これはワークショップの演習の側で扱う</mark></div></td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>教材1からの引き継ぎ</th><th>受講者の業務との距離</th></tr><tr><td><span class="n">教材1の案件を、業務の側へ広げる</span></td><td><mark class="chg" tabindex="0" role="button" id="c2-15" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">3語がそのまま業務の語彙になる</mark></td><td><mark class="chg" tabindex="0" role="button" id="c2-16" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">自分の案件に重なる</mark></td></tr><tr><td><span class="n">別の業務を持ってくる</span></td><td><mark class="chg" tabindex="0" role="button" id="c2-17" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">語彙を最初から作り直す</mark></td><td><mark class="chg" tabindex="0" role="button" id="c2-18" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">自分の仕事と切り離される</mark></td></tr><tr><td><span class="n">議事録のまま扱う</span></td><td><mark class="chg" tabindex="0" role="button" id="c2-19" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">引き継ぎは容易である</mark></td><td><mark class="chg" tabindex="0" role="button" id="c2-20" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">部署をまたぐ場面を作れない</mark></td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c2-21" aria-expanded="false" data-b="この論点を開く時期" data-w="この回で変わった">受講者の業務と重なることの必要性</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c2-22" aria-expanded="false" data-b="論点1で並びが決着すると、先に設計する側が決まる" data-w="この回で変わった">参加者は自分が経験した場面へ絞り込む</mark></td><td><span class="kind k-rule">決まり</span><small><mark class="chg" tabindex="0" role="button" id="c2-23" aria-expanded="false" data-b="この板の論点1" data-w="この回で変わった">docs/workshops/ai-workshop/director-deck.html（テーマの設計の枚）</mark></small></td></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c2-24" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">区切られた文脈をDDD編で扱う対応</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c2-25" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">範囲 → 区切られた文脈（境界づけられたコンテキスト）</mark></td><td><span class="kind k-rule">決まり</span><small><mark class="chg" tabindex="0" role="button" id="c2-26" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">docs/workshops/ai-workshop/materials/promotion-table.md</mark></small></td></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c2-27" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1の3語が業務の語彙であること</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c2-28" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">通知の方式 ・ 締めを流す日 ・ 権限の区分が、教材1の全本で出現する</mark></td><td><span class="kind k-fact">実測</span><small><mark class="chg" tabindex="0" role="button" id="c2-29" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">docs/workshops/ai-workshop/materials/lesson-0*.json</mark></small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td><mark class="chg" tabindex="0" role="button" id="c2-30" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">参加者自身の案件での演習</mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-31" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-given">後続で決定</span></b><div class="sub-s">ワークショップの当日の演習で扱う</mark></div></td></tr><tr><td><mark class="chg" tabindex="0" role="button" id="c2-32" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">DDD編の本数と尺</mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-33" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-given">後続で決定</span></b><div class="sub-s">台本の設計の時点で決定する</mark></div></td></tr><tr><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-34" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">この答えを試す外の作業</b><div class="sub-s">DDD編の1本目の台本を、この材料で書き起こす</mark></div></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c2-35" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-given">後続で決定</span></b><div class="sub-s">材料が足りなければ、この論点へ戻して材料を足す</mark></div></td></tr></table></div></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c2-36" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">教材1の3語は、議事録の項目名であると同時に業務の語彙である</b><div class="sub-s">材料を広げるだけで、同じ語を業務の側で扱える</div></mark></b></td><td></td></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c2-37" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">参加者自身の案件は、動画では扱えないが演習では扱える</b><div class="sub-s">教材と演習で担当を分離する</div></mark></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c2-38" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">案件の業務の中身を用意する</b><div class="sub-s">通知 ・ 締め ・ 権限が、業務部門 ・ 開発 ・ 運用でどう動くかの1枚</div></mark></b></td><td></td></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c2-39" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1の例（examples/）と同じ形式で、DDD編の材料を保管する</mark></b></td><td></td></tr></table></div></div></details><details><summary>教材1から引き継ぐ語</summary><div><p>通知の方式 ・ 締めを流す日 ・ 権限の区分 ・ 試験環境の開始。教材1の全本で出現する4語である。</p></div></details></div><div class="form" data-q="Q2" data-title="DDD編の入口に使用する業務の例を、何にするか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>道具編を、何本に分けるか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c3-1" aria-expanded="false" data-b="論点1で並びが決定したあとに開く。" data-w="この回で変わった">この論点は、道具編の本数と、教材1との対応の見え方を縛る。</mark></div><div class="ans"><span class="big">A</span><mark class="chg" tabindex="0" role="button" id="c3-2" aria-expanded="false" data-b="" data-w="この回で変わった"><p>教材1と同じ型（イントロ1本＋本編）で、道具1つに1本を割り当てる。</p><ol><li><b class="lead-s">1本目　固定するとは何か</b><div class="sub-s">毎回書くことをやめ、決めたことを置いておく</div></li><li><b class="lead-s">2本目　意味を固定する</b><div class="sub-s">Skill</div></li><li><b class="lead-s">3本目　範囲を仕組みで縛る</b><div class="sub-s">MCP</div></li><li><b class="lead-s">4本目　条件を機械で検査する</b><div class="sub-s">Hook</div></li><li><b class="lead-s">5本目　目的ごとに分ける</b><div class="sub-s">Agent</div></li></ol></mark></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,519px)" class="wf-fig" aria-label="教材1で決めた4つが、道具のどれに固定されるかの対応" viewBox="0 0 519 256" height="256" role="img"><g transform="translate(6.0,6.0)"><rect x="0.0" y="16.0" width="227.6" height="228.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><rect x="291.6" y="16.0" width="215.0" height="228.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><path d="M182.4,46.0 L305.0,46.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="305.0,46.0 298.2,48.5 298.2,43.5" fill="#C3CAD2"/><path d="M158.4,102.0 L305.0,102.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="305.0,102.0 298.2,104.5 298.2,99.5" fill="#C3CAD2"/><path d="M158.4,158.0 L305.0,158.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="305.0,158.0 298.2,160.5 298.2,155.5" fill="#C3CAD2"/><path d="M214.2,214.0 L304.8,214.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="304.8,214.0 298.0,216.5 298.0,211.5" fill="#C3CAD2"/><rect x="8.0" y="7.0" width="94.5" height="15.0" fill="#F5F7F9"/><text x="55.2" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">教材1で決めたこと</text><rect x="299.6" y="7.0" width="98.0" height="15.0" fill="#F5F7F9"/><text x="348.6" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">道具編で固定する先</text><g class="wf-node" transform="translate(14.0,30.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">意味
+その語が何を指すか</text></g></g><g class="wf-node" transform="translate(305.6,30.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="178.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="89.3" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Skill
+定義を1か所に置く</text></g></g><g class="wf-node" transform="translate(14.0,86.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="143.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="71.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">範囲
+どこから拾うか</text></g></g><g class="wf-node" transform="translate(305.6,86.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">MCP
+触れてよい材料の口</text></g></g><g class="wf-node" transform="translate(14.0,142.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="143.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="71.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">条件
+必ず入れるもの</text></g></g><g class="wf-node" transform="translate(305.6,142.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="187.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="93.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Hook
+満たすかを機械で検査</text></g></g><g class="wf-node" transform="translate(14.0,198.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="199.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="99.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">目的の分割
+依頼を2つに分ける</text></g></g><g class="wf-node" transform="translate(305.6,198.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="162.4" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="81.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">Agent
+1つの目的に1つ</text></g></g></g></svg><figcaption><mark class="chg" tabindex="0" role="button" id="c3-3" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1で決めた4つと、道具編で固定する先の対応 ── 本の番号がこの順に並ぶ</mark></figcaption></figure></div><div class="ex"><mark class="chg" tabindex="0" role="button" id="c3-4" aria-expanded="false" data-b="" data-w="この回で変わった"><p>教材1の2本目で足した1文「課題とは、まだ決まっていないことです」は、依頼のたびに書く必要がある。</p><p>道具編の2本目では、この1文をSkillの定義として1か所に置く ── 呼ぶたびに同じ意味で動作し、書き写す作業が消える。</p><p>道具ごとに1本にすると、教材1の「意味 ・ 範囲 ・ 条件 ・ 目的の分割」と、本の番号が1対1で対応する。</p></mark></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b><mark class="chg" tabindex="0" role="button" id="c3-5" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">5本（イントロ＋道具4つ）</mark></b></td><td><mark class="chg" tabindex="0" role="button" id="c3-6" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1と同じ型で、道具1つに1本を割り当てる</mark></td><td><span class="cost"><mark class="chg" tabindex="0" role="button" id="c3-7" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">道具編だけで25分になる。教材1と合わせて55分を超過する</mark></span></td></tr><tr><td><span class="n">B</span></td><td><b><mark class="chg" tabindex="0" role="button" id="c3-8" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">4本（イントロ＋Skill ・ MCP ・ Hook）</mark></b></td><td><mark class="chg" tabindex="0" role="button" id="c3-9" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">Agentをイントロの中で扱い、道具は3本にする</mark></td><td><span class="cost"><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-10" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">目的の分割を、動かす形で扱えない</b><div class="sub-s">教材1の6本目4枚目（目的が2つなら依頼も2つに分ける）の続きが欠ける</mark></div></span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="MCPとHookの区別が付かない ── 範囲を仕組みで縛ることと、条件を機械で検査することは、別の操作である"><b><mark class="chg" tabindex="0" role="button" id="c3-11" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">1本へ統合する</mark></b></mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-12" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">MCPとHookの区別が付かない</b><div class="sub-s">範囲を仕組みで縛ることと、条件を機械で検査することは、別の操作である</mark></div></td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="道具の使用方法の講座になり、教材1で決めた4つとの対応が消滅する ── 固定する対象を持たないまま道具を扱うことになる"><b><mark class="chg" tabindex="0" role="button" id="c3-13" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">道具ごとの機能紹介にする</mark></b></mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-14" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">道具の使用方法の講座になり、教材1で決めた4つとの対応が消滅する</b><div class="sub-s">固定する対象を持たないまま道具を扱うことになる</mark></div></td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>教材1との対応</th><th>1本あたりの中身</th></tr><tr><td><span class="n">5本（イントロ＋道具4つ）</span></td><td><mark class="chg" tabindex="0" role="button" id="c3-15" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">4つが本の番号と1対1で対応する</mark></td><td><mark class="chg" tabindex="0" role="button" id="c3-16" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">道具1つを、決めたことの置き場所として扱う</mark></td></tr><tr><td><span class="n">4本（イントロ＋道具3つ）</span></td><td><mark class="chg" tabindex="0" role="button" id="c3-17" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">3つは対応し、目的の分割だけ対応先が無い</mark></td><td><mark class="chg" tabindex="0" role="button" id="c3-18" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">Agentがイントロの補足になる</mark></td></tr><tr><td><span class="n">1本（固定するという1本）</span></td><td><mark class="chg" tabindex="0" role="button" id="c3-19" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">対応が見えない</mark></td><td><mark class="chg" tabindex="0" role="button" id="c3-20" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">MCPとHookの区別が付かない</mark></td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c3-21" aria-expanded="false" data-b="この論点を開く時期" data-w="この回で変わった">目的の分割を道具編で扱う対応</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c3-22" aria-expanded="false" data-b="論点1で並びが決着すると、先に設計する側が決まる" data-w="この回で変わった">教材1の6本目が、目的が2つなら依頼も2つに分けると規定する</mark></td><td><span class="kind k-rule">決まり</span><small><mark class="chg" tabindex="0" role="button" id="c3-23" aria-expanded="false" data-b="この板の論点1" data-w="この回で変わった">docs/workshops/ai-workshop/materials/lesson-06-fix.json（L6-S4）</mark></small></td></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c3-24" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1と同じ型で組むこと</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c3-25" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">イントロ1本＋本編5本、1枚1主張、図は1枚に1つ</mark></td><td><span class="kind k-rule">決まり</span><small><mark class="chg" tabindex="0" role="button" id="c3-26" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">docs/workshops/ai-workshop/materials/README.md</mark></small></td></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c3-27" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">1本あたりの尺の基準</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c3-28" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1は1本4.2〜6.5分である</mark></td><td><span class="kind k-fact">実測</span><small><mark class="chg" tabindex="0" role="button" id="c3-29" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">docs/workshops/ai-workshop/materials/previews/index.html</mark></small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td><mark class="chg" tabindex="0" role="button" id="c3-30" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">道具の導入手順（インストールと設定）</mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-31" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-rule">対象外</span></b><div class="sub-s">教材は固定の考え方を扱い、手順書は別に用意する</mark></div></td></tr><tr><td><mark class="chg" tabindex="0" role="button" id="c3-32" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">社内で使用できる道具の可否</mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-33" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-given">後続で決定</span></b><div class="sub-s">台本の作成の前に確認する</mark></div></td></tr><tr><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-34" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">この答えを試す外の作業</b><div class="sub-s">道具編の2本目（Skill）を1本作り、教材1の依頼を固定する</mark></div></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c3-35" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><span class="kind k-given">後続で決定</span></b><div class="sub-s">1本作って5分に収まらなければ、この論点へ戻して粒度を変える</mark></div></td></tr></table></div></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c3-36" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">Agentは他の3つと粒度が相違する</b><div class="sub-s">Skill ・ MCP ・ Hook が置き場所であるのに対し、Agentは実行の単位である</div></mark></b></td><td></td></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c3-37" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">教材1の4つ（意味 ・ 範囲 ・ 条件 ・ 目的の分割）に本を対応させると、道具の紹介ではなく固定の話として並ぶ</mark></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c3-38" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">道具の実物を用意する</b><div class="sub-s">Skill 1本 ・ MCPの設定1つ ・ Hookの検査1つ ・ Agentの分割の例1つ</div></mark></b></td><td></td></tr><tr><td><b><mark class="chg" tabindex="0" role="button" id="c3-39" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><b class="lead-s">社内で使用できる道具の範囲を確認する</b><div class="sub-s">使用できないものは、考え方だけを扱う</div></mark></b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q3" data-title="道具編を、何本に分けるか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 2</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><button id="dtoggle" aria-expanded="false" aria-controls="drawer">この回の変更<span class="dn">101</span></button><aside id="drawer" hidden aria-label="この回で変わったところ"><div class="dhead"><b>この回で変わったところ</b><button id="dclose" aria-label="閉じる">閉じる</button></div><div class="dbody"><p class="note-s">押すと、その箇所まで運ぶ。<b>印をもう一度押すと、前の回の中身が開く。</b></p><ol class="dlist"><li class="dq">Q1　2本の並び<span class="dn">1</span></li><li><button class="dgo" data-go="p1" data-cid="c1-0"><span class="dw">道筋</span>第1回で承認された。DDD編を先に置く並びが、論点2と論点3の前提になる。</button></li><li class="dq">Q2　DDD編の業務の例<span class="dn">50</span></li><li><button class="dgo" data-go="p2" data-cid="c2-0"><span class="dw">answer</span>教材1と同じ案件を使用し、材料を議事録の外の業務へ広げる</button></li><li><button class="dgo" data-go="p2" data-cid="c2-1"><span class="dw">前書き</span>この論点は、DDD編の全本で使用する材料を縛る。</button></li><li><button class="dgo" data-go="p2" data-cid="c2-2"><span class="dw">答え</span>教材1で使用した案件（システム開発の案件）をそのまま使用し、材料を議事録から業務の側へ広げる…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-3"><span class="dw">figures</span>同じ案件の中で「通知」が3つの別のものを指す状態 ── DDD編の入口に使用する材料</button></li><li><button class="dgo" data-go="p2" data-cid="c2-4"><span class="dw">example</span>教材1では「通知の方式が決まっていない」という1行の項目であった。DDD編では、この語が部署…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-5"><span class="dw">kept</span>教材1の案件を、業務の側へ広げる</button></li><li><button class="dgo" data-go="p2" data-cid="c2-8"><span class="dw">kept</span>別の業務を持ってくる</button></li><li><button class="dgo" data-go="p2" data-cid="c2-11"><span class="dw">dropped</span>議事録のまま扱う</button></li><li><button class="dgo" data-go="p2" data-cid="c2-13"><span class="dw">dropped</span>参加者自身の案件を使用する</button></li><li><button class="dgo" data-go="p2" data-cid="c2-15"><span class="dw">表</span>案ごとの帰結／教材1の案件を、業務の側へ広げる</button></li><li><button class="dgo" data-go="p2" data-cid="c2-17"><span class="dw">表</span>案ごとの帰結／別の業務を持ってくる</button></li><li><button class="dgo" data-go="p2" data-cid="c2-19"><span class="dw">表</span>案ごとの帰結／議事録のまま扱う</button></li><li><button class="dgo" data-go="p2" data-cid="c2-21"><span class="dw">根拠</span>受講者の業務と重なることの必要性</button></li><li><button class="dgo" data-go="p2" data-cid="c2-24"><span class="dw">根拠</span>区切られた文脈をDDD編で扱う対応</button></li><li><button class="dgo" data-go="p2" data-cid="c2-27"><span class="dw">根拠</span>教材1の3語が業務の語彙であること</button></li><li><button class="dgo" data-go="p2" data-cid="c2-30"><span class="dw">扱わない範囲</span>参加者自身の案件での演習</button></li><li><button class="dgo" data-go="p2" data-cid="c2-32"><span class="dw">扱わない範囲</span>DDD編の本数と尺</button></li><li><button class="dgo" data-go="p2" data-cid="c2-34"><span class="dw">扱わない範囲</span>この答えを試す外の作業 ── DDD編の1本目の台本を、この材料で書き起こす</button></li><li><button class="dgo" data-go="p2" data-cid="c2-36"><span class="dw">分かったこと</span>教材1の3語は、議事録の項目名であると同時に業務の語彙である材料を広げるだけで、同じ語を業務…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-37"><span class="dw">分かったこと</span>参加者自身の案件は、動画では扱えないが演習では扱える教材と演習で担当を分離する</button></li><li><button class="dgo" data-go="p2" data-cid="c2-38"><span class="dw">要求事項</span>案件の業務の中身を用意する通知 ・ 締め ・ 権限が、業務部門 ・ 開発 ・ 運用でどう動く…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-39"><span class="dw">要求事項</span>教材1の例（examples/）と同じ形式で、DDD編の材料を保管する</button></li><li class="dq">Q3　道具編の粒度<span class="dn">50</span></li><li><button class="dgo" data-go="p3" data-cid="c3-0"><span class="dw">answer</span>5本に分けるイントロ1本と、教材1で決めた4つに対応する4本</button></li><li><button class="dgo" data-go="p3" data-cid="c3-1"><span class="dw">前書き</span>この論点は、道具編の本数と、教材1との対応の見え方を縛る。</button></li><li><button class="dgo" data-go="p3" data-cid="c3-2"><span class="dw">答え</span>教材1と同じ型（イントロ1本＋本編）で、道具1つに1本を割り当てる。1本目　固定するとは何か…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-3"><span class="dw">figures</span>教材1で決めた4つと、道具編で固定する先の対応 ── 本の番号がこの順に並ぶ</button></li><li><button class="dgo" data-go="p3" data-cid="c3-4"><span class="dw">example</span>教材1の2本目で足した1文「課題とは、まだ決まっていないことです」は、依頼のたびに書く必要が…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-5"><span class="dw">kept</span>5本（イントロ＋道具4つ）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-8"><span class="dw">kept</span>4本（イントロ＋Skill ・ MCP ・ Hook）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-11"><span class="dw">dropped</span>1本へ統合する</button></li><li><button class="dgo" data-go="p3" data-cid="c3-13"><span class="dw">dropped</span>道具ごとの機能紹介にする</button></li><li><button class="dgo" data-go="p3" data-cid="c3-15"><span class="dw">表</span>案ごとの帰結／5本（イントロ＋道具4つ）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-17"><span class="dw">表</span>案ごとの帰結／4本（イントロ＋道具3つ）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-19"><span class="dw">表</span>案ごとの帰結／1本（固定するという1本）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-21"><span class="dw">根拠</span>目的の分割を道具編で扱う対応</button></li><li><button class="dgo" data-go="p3" data-cid="c3-24"><span class="dw">根拠</span>教材1と同じ型で組むこと</button></li><li><button class="dgo" data-go="p3" data-cid="c3-27"><span class="dw">根拠</span>1本あたりの尺の基準</button></li><li><button class="dgo" data-go="p3" data-cid="c3-30"><span class="dw">扱わない範囲</span>道具の導入手順（インストールと設定）</button></li><li><button class="dgo" data-go="p3" data-cid="c3-32"><span class="dw">扱わない範囲</span>社内で使用できる道具の可否</button></li><li><button class="dgo" data-go="p3" data-cid="c3-34"><span class="dw">扱わない範囲</span>この答えを試す外の作業 ── 道具編の2本目（Skill）を1本作り、教材1の依頼を固定する</button></li><li><button class="dgo" data-go="p3" data-cid="c3-36"><span class="dw">分かったこと</span>Agentは他の3つと粒度が相違するSkill ・ MCP ・ Hook が置き場所であるの…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-37"><span class="dw">分かったこと</span>教材1の4つ（意味 ・ 範囲 ・ 条件 ・ 目的の分割）に本を対応させると、道具の紹介ではな…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-38"><span class="dw">要求事項</span>道具の実物を用意するSkill 1本 ・ MCPの設定1つ ・ Hookの検査1つ ・ Ag…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-39"><span class="dw">要求事項</span>社内で使用できる道具の範囲を確認する使用できないものは、考え方だけを扱う</button></li></ol></div></aside><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

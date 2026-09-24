@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""source-fidelity の部品。**入口を保持しない** ── 外から起動するのは `cli.py` だけである。
+"""fact-check の部品。**入口を保持しない** ── 外から起動するのは `cli.py` だけである。
 
 ここに置くのは、読み込まれて使われるものである。能力の宣言は `tools.py` が、
 入口は `cli.py` が保持する。
