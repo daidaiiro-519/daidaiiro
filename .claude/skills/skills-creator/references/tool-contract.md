@@ -84,6 +84,18 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 | `-> dict` ＋ `structured_output=True` | **起動しない** ── `return type <class 'dict'> is not serializable for structured output` |
 | `-> dict[str, Any]` ＋ `structured_output=True` | `structuredContent` 有り ・ `outputSchema` 有り |
 
+### 経路 ・ 大きい出力 ・ 保持
+
+道具が外のものに触れるなら、3つを遵守する。**どれも公式の参照実装が採っている形である**（2026-09-24 に原文を取得）。
+
+| 規定 | 原典 |
+|---|---|
+| **経路は、解決してから根の中かを確認する** ── `../` や絶対のパスで外へ出るのを止める | Git の `server.py:136` ── `Defense in depth: validate each path resolves within the repository working tree to prevent path traversal` |
+| **大きい出力は上限で切り、続きの取り方を出力に書く** ── 読む側は MCP しか持たないことがある | Fetch の `server.py:254` ── `Content truncated. Call the fetch tool with a start_index of {next_start} to get more content.` |
+| **範囲は明示し、空なら動作しない** | Filesystem の `README.md:31` ── `the server will throw an error during initialization` |
+
+**保持したものは、識別子で照合してから返す。** 合わなければ明示して断る ── 別の実行の中身を返すと、読む側はそれを今回の結果として受け取る。**古いものを黙って返さないのは、「検査していないのに合格と出る」と同じ型の欠陥である。**
+
 ### 子プロセスを起こすときの規律
 
 道具が外のコマンドを実行するなら、3つを必ず指定する。**どれも実測で欠陥が出た項目である**（2026-09-24、9つの Skill で6か所）。

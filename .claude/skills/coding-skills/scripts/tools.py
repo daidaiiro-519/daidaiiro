@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from contract import Arg, Tool, result  # noqa: E402
 from lib import run as _run  # noqa: E402
+from lib import init as _init  # noqa: E402
 from lib import validate as _validate  # noqa: E402
 
 
@@ -102,6 +103,68 @@ KIND_LABEL = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
 """**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
 
 
+def init(root: str, layer: list | str) -> dict:
+    """規則ファイルの骨を `.coding/rules.json` へ置く。**中身は呼ぶ側が書く。**"""
+    try:
+        layers = _init.parse_layers(layer)
+        path = _init.create(pathlib.Path(root), layers)
+    except (OSError, ValueError) as e:
+        return result(ok=False, findings=[str(e)], root=root)
+    return result(ok=True, path=str(path), layers=layers,
+                  findings=["道具が空である ── 検証方法を書く（x-prompt.write が案内する）",
+                            "出典が空である ── 内を指す規則なので、モデルの識別子を record に書く"])
+
+
+def _human_init(res: dict) -> str:
+    if not res["ok"]:
+        return " ／ ".join(res["findings"])
+    d = res["data"]
+    return (f'置いた: {d["path"]}\n  層 ' + " ・ ".join(f"{k}={v}" for k, v in d["layers"].items())
+            + "\n\n次に書くもの\n  " + "\n  ".join(res["findings"]))
+
+
+def plan(root: str, rules: str) -> dict:
+    """何を、どこで実行するかを返す。**1件も実行しない。**"""
+    try:
+        d = _run.plan_rules(pathlib.Path(root), pathlib.Path(rules))
+    except (OSError, ValueError) as e:
+        return result(ok=False, findings=[f"規則ファイルを読めない ── {e}"],
+                      file=rules, kind="rules")
+    return result(ok=True, **d)
+
+
+def _human_plan(res: dict) -> str:
+    if not res["ok"]:
+        return " ／ ".join(res["findings"])
+    d = res["data"]
+    lines = [f'  根       {d["root"]}']
+    for x in d["plan"]:
+        場所 = f'（{x["target"]}）' if x["target"] else "（根）"
+        lines.append(f'  {x["name"]}\n      {" ".join(x["tool"])}　{場所}')
+    lines.append(f'\n{d["count"]} 件を実行する。実行はしていない。')
+    return "\n".join(lines)
+
+
+def read_output(root: str, run: str, name: str, offset: str = "0",
+                length: str = "") -> dict:
+    """保持した出力の続きを読む。**道具は実行しない。**"""
+    try:
+        d = _run.read_output(pathlib.Path(root), run, name, int(offset or 0),
+                             int(length or _run.OUTPUT_HEAD + _run.OUTPUT_TAIL))
+    except (OSError, ValueError) as e:
+        return result(ok=False, findings=[str(e)], run=run, name=name)
+    return result(ok=True, **d)
+
+
+def _human_read_output(res: dict) -> str:
+    d = res["data"]
+    if not res["ok"]:
+        return " ／ ".join(res["findings"])
+    尾 = (f'続きは offset={d["next_offset"]}' if d["next_offset"] is not None
+          else "ここで終わりである")
+    return f'{d["output"]}\n\n── {d["offset"]} から {len(d["output"])} 文字。{尾}'
+
+
 def _human_validate(res: dict) -> str:
     name = KIND_LABEL[res["data"]["kind"]] + "ファイル"
     return (f"{name}の検査　通った" if not res["findings"]
@@ -113,6 +176,19 @@ TOOLS = [
          [Arg("root", "成果物の場所"), Arg("rules", "規則ファイルのパス"),
           Arg("timeout", "1件あたりの制限時間（秒）", required=False)],
          run=check, human=_human_check),
+    Tool("init", "規則ファイルの骨を .coding/rules.json へ置く",
+         [Arg("root", "成果物の場所"),
+          Arg("layer", "層を 名前=識別子 で渡す（複数可）", many=True)],
+         run=init, human=_human_init),
+    Tool("plan", "何を、どこで実行するかを返す（実行はしない）",
+         [Arg("root", "成果物の場所"), Arg("rules", "規則ファイルのパス")],
+         run=plan, human=_human_plan),
+    Tool("output", "保持した出力の続きを読む（実行はしない）",
+         [Arg("root", "成果物の場所"), Arg("run", "実行の識別子"),
+          Arg("name", "規則の名前"),
+          Arg("offset", "読み始める位置（バイト）", required=False),
+          Arg("length", "読む量（バイト）", required=False)],
+         run=read_output, human=_human_read_output),
     Tool("validate", "規則ファイルの形を検査する",
          [Arg("rules", "規則ファイルのパス"), Arg("root", "成果物の場所（層の宣言も見る）", required=False)],
          run=validate, human=_human_validate),

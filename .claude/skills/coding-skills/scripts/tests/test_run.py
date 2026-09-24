@@ -103,11 +103,10 @@ with tempfile.TemporaryDirectory() as d:
     expect("先頭を残す", "先頭の手がかり" in r["output"])
     expect("末尾を残す", "末尾の手がかり" in r["output"])
     expect("中略したと書く", "中略" in r["output"])
-    expect("全文の場所を返す", bool(r["output_file"]))
-    expect("全文が読める", pathlib.Path(r["output_file"]).stat().st_size > n * 2)
-    pathlib.Path(r["output_file"]).unlink(missing_ok=True)
+    expect("続きの読み方を書く", "read_output" in r["output"])
+    expect("全体の大きさを返す", r["output_size"] > n * 2)
 
     r = run.run_one({"rule": "短い出力", "check": {"tool": ["python3", "-c", "print(1)"]}}, root)
-    expect("切っていなければ、全文の場所を返さない", r["output_file"] == "")
+    expect("切っていなければ、保持しない", not r["saved"])
 
 print(f"\n{count} 件すべて通った")
