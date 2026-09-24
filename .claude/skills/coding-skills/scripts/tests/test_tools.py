@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""骨の生成 ・ 提示 ・ 続きの読み取りを、事例で検証する。
+"""雛形の生成 ・ 提示 ・ 続きの読み取りを、事例で検証する。
 
     python3 scripts/tests/test_tools.py
 """
@@ -36,7 +36,7 @@ def tool(cmd: list, name: str = "試し", target: str = "") -> dict:
 
 
 def init_places_the_skeleton() -> None:
-    """骨を .coding/rules.json へ置く。"""
+    """雛形を .coding/rules.json へ置く。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         path = _init.create(root, {"core": "internal/core", "app": "app.core"})

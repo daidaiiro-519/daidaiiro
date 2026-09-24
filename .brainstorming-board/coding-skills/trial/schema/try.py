@@ -33,8 +33,8 @@ def 案内を引く(スキーマ: dict, 道: list[str]) -> dict:
     return {"概要": 節.get("description"), "読む": p.get("read"), "埋める": p.get("write")}
 
 
-def 骨を出す(スキーマ: dict, 層: dict[str, str]) -> dict:
-    """スキーマから実体の骨を組む。**項目の一覧を、この側に書かない。**"""
+def 雛形を出す(スキーマ: dict, 層: dict[str, str]) -> dict:
+    """スキーマから実体の雛形を組む。**項目の一覧を、この側に書かない。**"""
     形 = スキーマ["$defs"]["rule"]["properties"]
     def 規則(名: str) -> dict:
         出 = {}
@@ -66,11 +66,11 @@ if __name__ == "__main__":
         print(f"  {k}　{v}")
 
     print("\n── ④ 生成した実体 .coding/rules.json")
-    骨 = 骨を出す(スキーマ, {"core": "internal/core", "app": "internal/app",
+    雛形 = 雛形を出す(スキーマ, {"core": "internal/core", "app": "internal/app",
                           "adapter": "internal/adapter"})
-    print(json.dumps(骨, ensure_ascii=False, indent=2))
+    print(json.dumps(雛形, ensure_ascii=False, indent=2))
 
     print("\n── ⑤ 生成した実体を、契約で検証する")
     出 = ["/".join(map(str, e.path)) + " ── " + e.message
-          for e in sorted(V(スキーマ).iter_errors(骨), key=lambda x: list(x.path))]
+          for e in sorted(V(スキーマ).iter_errors(雛形), key=lambda x: list(x.path))]
     print("  " + ("\n  ".join(出) if 出 else "検出0件"))

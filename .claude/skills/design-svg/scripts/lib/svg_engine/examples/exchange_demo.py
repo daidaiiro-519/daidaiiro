@@ -14,7 +14,7 @@ OUT.mkdir(exist_ok=True)
 plain = render_chart("exchange", {
     "participants": ["Orchestrator", "Waffle", "advisor"],
     "steps": [
-        {"from": "Orchestrator", "to": "Waffle", "label": "骨格を作る"},
+        {"from": "Orchestrator", "to": "Waffle", "label": "構造を作る"},
         {"from": "Waffle", "to": "Orchestrator", "label": "書き方の指針", "kind": "return"},
         {"from": "Orchestrator", "to": "advisor", "label": "敵対的に検証する"},
         {"from": "advisor", "to": "Orchestrator", "label": "反証、または支持", "kind": "return"},

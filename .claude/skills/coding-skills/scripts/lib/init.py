@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
-"""規則ファイルの骨を出す。**中身は呼ぶ側が書く。**
+"""規則ファイルの雛形を出す。**中身は呼ぶ側が書く。**
 
 置き場所は成果物の `.coding/rules.json` である ── **この Skill の中に規則を置かない**。
 層の名前と識別子は成果物ごとに違うので、ここへ置くと2つ目の成果物で衝突する。
 
-**道具の名前を1つも持たない。** 骨は契約（`rules.schema.json`）の形から組み、
+**道具の名前を1つも持たない。** 雛形は契約（`rules.schema.json`）の形から組み、
 何を入れるかは各項目の `x-prompt.write` が案内する。
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ INNER_RULES = ("層の場所が、宣言した対応と一致する",
 
 
 def skeleton(layers: dict[str, str]) -> dict:
-    """契約の形から骨を組む。**項目の一覧を、この側に書かない。**"""
+    """契約の形から雛形を組む。**項目の一覧を、この側に書かない。**"""
     schema = json.loads((REFERENCES / "rules.schema.json").read_text(encoding="utf-8"))
     shape = schema["$defs"]["rule"]["properties"]
 

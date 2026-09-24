@@ -80,13 +80,13 @@
 
 ### Step 0.5: 規則を作る（規則ファイルが無いときだけ）
 
-**骨は `init` が出す。** 層の名前と識別子を渡すと、`.coding/rules.json` を置く。
+**雛形は `init` が出す。** 層の名前と識別子を渡すと、`.coding/rules.json` を置く。
 
 ```
 python3 scripts/cli.py init <成果物の場所> --layer core=internal/core --layer app=internal/app
 ```
 
-**骨は、契約に対して不合格で出る** ── 道具と出典が空だからである。その不合格の一覧が、
+**雛形は、契約に対して不合格で出る** ── 道具と出典が空だからである。その不合格の一覧が、
 そのまま充填する欄の一覧になる。
 
 **出典の向きで作り方が変わる。**
@@ -245,8 +245,8 @@ python3 scripts/cli.py output <成果物の場所> <実行の識別子> <規則�
 - `references/rules.schema.json`: **規則ファイルの契約。** 規則1件が3要素（出典 ・ 採用範囲 ・
   検証方法）を持つ。層の場所を持つ規則ファイルは、並びと層も持つ。**層の名前は原典に無い** ──
   `domain` も `usecase` も、ヘキサゴナルとクリーンのどちらの原文にも無い（2026-09-22 に照合）
-- `scripts/lib/init.py`: 規則ファイルの骨を組む。**道具の名前を1つも持たない** ──
-  骨は契約の形から組み、何を充填するかは `x-prompt.write` が案内する
+- `scripts/lib/init.py`: 規則ファイルの雛形を組む。**道具の名前を1つも持たない** ──
+  雛形は契約の形から組み、何を充填するかは `x-prompt.write` が案内する
 - `scripts/cli.py`: **唯一の入口。** `check` ・ `init` ・ `plan` ・ `output` ・ `validate` を持つ ── どちらも `--json` で
   機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。
   **`validate` は、渡されたファイルの種類（規則 ・ 概念 ・ スキーマ）で適用する契約を替える**
@@ -258,6 +258,6 @@ python3 scripts/cli.py output <成果物の場所> <実行の識別子> <規則�
   **道具の名前を保持しない** ── 実行するものは規則から来るので、この Skill の依存は0件である
 - `scripts/lib/validate.py`: 規則ファイルの形と、層の宣言の構造と、概念の出典と、案内を検査する
 - `scripts/tests/test_run.py`: 実行と判定を事例で検証する（24件）
-- `scripts/tests/test_tools.py`: 骨の生成 ・ 提示 ・ 続きの読み取りを事例で検証する（26件）
+- `scripts/tests/test_tools.py`: 雛形の生成 ・ 提示 ・ 続きの読み取りを事例で検証する（26件）
 - `scripts/tests/test_concepts.py`: 概念の出典を事例で検証する（10件）
 - `scripts/tests/test_schema.py`: 案内の検査を事例で検証する（9件）

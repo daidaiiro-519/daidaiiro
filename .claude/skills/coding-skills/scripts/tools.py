@@ -104,7 +104,7 @@ KIND_LABEL = {"rules": "規則", "concepts": "概念", "schema": "スキーマ"}
 
 
 def init(root: str, layer: list | str) -> dict:
-    """規則ファイルの骨を `.coding/rules.json` へ置く。**中身は呼ぶ側が書く。**"""
+    """規則ファイルの雛形を `.coding/rules.json` へ置く。**中身は呼ぶ側が書く。**"""
     try:
         layers = _init.parse_layers(layer)
         path = _init.create(pathlib.Path(root), layers)
@@ -176,7 +176,7 @@ TOOLS = [
          [Arg("root", "成果物の場所"), Arg("rules", "規則ファイルのパス"),
           Arg("timeout", "1件あたりの制限時間（秒）", required=False)],
          run=check, human=_human_check),
-    Tool("init", "規則ファイルの骨を .coding/rules.json へ置く",
+    Tool("init", "規則ファイルの雛形を .coding/rules.json へ置く",
          [Arg("root", "成果物の場所"),
           Arg("layer", "層を 名前=識別子 で渡す（複数可）", many=True)],
          run=init, human=_human_init),
