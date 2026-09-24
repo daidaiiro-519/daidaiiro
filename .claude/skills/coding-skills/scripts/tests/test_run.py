@@ -69,11 +69,19 @@ with tempfile.TemporaryDirectory() as d:
     # ── 層の場所
     (根 / "internal").mkdir(exist_ok=True)
     p = 根 / "layers.json"
-    p.write_text(json.dumps({"order": ["domain", "adapter"],
-                            "layers": {"domain": "internal", "adapter": "無い場所"}},
+    p.write_text(json.dumps({"order": ["domain", "adapter", "足りない層"],
+                            "layers": {"domain": "internal",
+                                       "adapter": "com.example.adapter"}},
                            ensure_ascii=False), encoding="utf-8")
     検出 = validate.層を検査する(p, 根)
-    検査("実在しない層を検出する", any("実在しない" in x for x in 検出))
-    検査("実在する層は検出しない", not any("domain" in x for x in 検出))
+    検査("パッケージ名を、場所として検査しない", not any("com.example" in x for x in 検出))
+    検査("並びに在って層に無いものを検出する", any("足りない層" in x for x in 検出))
+
+    # ── 対象
+    (根 / "sub").mkdir(exist_ok=True)
+    r = run.実行する({"rule": "狭めた範囲", "check": {"tool": ["pwd"], "target": "sub"}}, 根)
+    検査("対象の場所で実行する", r["output"].endswith("sub"))
+    r = run.実行する({"rule": "無い範囲", "check": {"tool": ["pwd"], "target": "無い"}}, 根)
+    検査("実在しない対象を、合格に寄せない", r["verdict"] == "skip")
 
 print(f"\n{件} 件すべて通った")

@@ -42,15 +42,17 @@ def 検査する(規則ファイル: pathlib.Path) -> list[str]:
 
 
 def 層を検査する(規則ファイル: pathlib.Path, 根: pathlib.Path) -> list[str]:
-    """層の場所の規則が、実物と一致するかを見る。**存在だけを見る。**"""
+    """層の宣言が、構造として成立するかを見る。
+
+    **値をファイルの場所として検査しない** ── 層を識別する文字列は言語ごとに形が違う
+    （モジュールパス ・ パッケージ ・ dotted path ・ crate 名）。値が正しいかは、
+    **依存の向きの道具が実行できるかで判明する**。
+    """
     d = json.loads(規則ファイル.read_text(encoding="utf-8"))
     層 = d.get("layers")
     if not isinstance(層, dict):
         return []
     検出 = []
-    for 名, 場所 in 層.items():
-        if not (根 / 場所).exists():
-            検出.append(f"層 {名} の場所が実在しない ── {場所}")
     並び = d.get("order") or []
     足りない = [x for x in 並び if x not in 層]
     for x in 足りない:

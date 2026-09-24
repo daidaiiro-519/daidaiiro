@@ -31,6 +31,8 @@ def 実行する(規則: dict, 根: pathlib.Path, 制限: int = 制限の既定)
     """1件を実行する。**殻を経由しない** ── 配列のまま渡す。
 
     文字列1本で渡すと、`./...` の展開が実行する殻に依存する。
+    **`check.target` が在れば、そこで実行する** ── 範囲を狭めるのは、規則を緩めるのでは
+    なく、見ている範囲を書くことである。実在しなければ「実行しない」で、合格に寄せない。
     """
     道具 = (規則.get("check") or {}).get("tool")
     名前 = 規則.get("rule") or "（名前が無い）"
@@ -39,8 +41,11 @@ def 実行する(規則: dict, 根: pathlib.Path, 制限: int = 制限の既定)
         return {**素, "verdict": "skip", "reason": "検証方法に道具が無い"}
     if not isinstance(道具, list):
         return {**素, "verdict": "skip", "reason": "道具が配列ではない"}
+    場所 = 根 / ((規則.get("check") or {}).get("target") or "")
+    if not 場所.is_dir():
+        return {**素, "verdict": "skip", "reason": f"対象が実在しない ── {場所}"}
     try:
-        p = subprocess.run(道具, cwd=根, capture_output=True, text=True, timeout=制限)
+        p = subprocess.run(道具, cwd=場所, capture_output=True, text=True, timeout=制限)
     except FileNotFoundError:
         return {**素, "verdict": "skip", "reason": "道具が見つからない"}
     except subprocess.TimeoutExpired:
