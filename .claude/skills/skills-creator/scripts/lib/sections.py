@@ -12,14 +12,14 @@ from __future__ import annotations
 import pathlib
 import re
 
-見出し = re.compile(r"^##\s+(.+?)\s*$")
-差し込む場所 = re.compile(r"\{\{.*?\}\}")
+HEADING = re.compile(r"^##\s+(.+?)\s*$")
+PLACEHOLDER = re.compile(r"\{\{.*?\}\}")
 
 
 def headings(path: pathlib.Path) -> list[str]:
     """`## ` の節の名前を、並びのまま返す。"""
     return [m.group(1) for line in path.read_text(encoding="utf-8").split("\n")
-            if (m := 見出し.match(line))]
+            if (m := HEADING.match(line))]
 
 
 def missing(document: pathlib.Path, template: pathlib.Path) -> list[str]:
@@ -27,6 +27,6 @@ def missing(document: pathlib.Path, template: pathlib.Path) -> list[str]:
 
     **差し込む場所を持つ節は要求しない** ── 雛形の `{{…}}` は名前ではない。
     """
-    要る = [x for x in headings(template) if not 差し込む場所.search(x)]
-    在る = set(headings(document))
-    return [x for x in 要る if x not in 在る]
+    required = [x for x in headings(template) if not PLACEHOLDER.search(x)]
+    present = set(headings(document))
+    return [x for x in required if x not in present]

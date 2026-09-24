@@ -43,10 +43,10 @@ def skeleton(layers: dict[str, str], target: str = "") -> dict:
                 out[key] = "" if shape[key].get("type") == "string" else {}
         return out
 
-    場所 = pathlib.PurePosixPath(target) if target else None
+    place = pathlib.PurePosixPath(target) if target else None
     return {"$schema": "…/coding-skills/references/rules.schema.json",
             "order": list(layers),
-            "layers": {k: str(場所 / v) if 場所 else v for k, v in layers.items()},
+            "layers": {k: str(place / v) if place else v for k, v in layers.items()},
             "rules": [rule(x) for x in INNER_RULES]}
 
 
@@ -58,13 +58,13 @@ def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.P
     """
     if not layers:
         raise ValueError("層を1つ以上渡す ── 層の無い規則ファイルは、何も検査できない")
-    横断 = target in ("", ".")
-    名前 = "rules" if 横断 else pathlib.PurePosixPath(target).name
-    path = root / RULES_DIR / f"{名前}.json"
+    repo_wide = target in ("", ".")
+    name = "rules" if repo_wide else pathlib.PurePosixPath(target).name
+    path = root / RULES_DIR / f"{name}.json"
     if path.exists():
         raise FileExistsError(f"既に在る: {path} ── 作り直さない")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(skeleton(layers, "" if 横断 else target),
+    path.write_text(json.dumps(skeleton(layers, "" if repo_wide else target),
                                ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 

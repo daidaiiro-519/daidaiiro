@@ -27,9 +27,9 @@ TOKENS = _tokens.css(_tokens.load())
 TOKENS_EMBED = _tokens.css(_tokens.load(), host=True)
 
 _CSS = (_REF / "acdr.css").read_text(encoding="utf-8")
-_塊 = {m.group(1): m.group(2) for m in
+_BLOCKS = {m.group(1): m.group(2) for m in
       _re.finditer(r"/\* == (\w+) == \*/(.*?)(?=/\* == |\Z)", _CSS, _re.S)}
-if set(_塊) != {"BASE", "CODE", "MARK", "SECTION"}:
+if set(_BLOCKS) != {"BASE", "CODE", "MARK", "SECTION"}:
     raise ValueError(f"acdr.css の塊が4つでない: {sorted(_塊)}")
 
-BASE, CODE, MARK, SECTION = (_塊["BASE"], _塊["CODE"], _塊["MARK"], _塊["SECTION"])
+BASE, CODE, MARK, SECTION = (_BLOCKS["BASE"], _BLOCKS["CODE"], _BLOCKS["MARK"], _BLOCKS["SECTION"])

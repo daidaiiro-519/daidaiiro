@@ -100,22 +100,22 @@ def _unparsable(scripts: pathlib.Path) -> list[str]:
     return out
 
 
-_一般の雛形 = pathlib.Path(__file__).resolve().parents[1] / "references" / "skill-template.md"
-_助言の雛形 = (pathlib.Path(__file__).resolve().parents[2] / "advisor-creator"
+_GENERAL_TEMPLATE = pathlib.Path(__file__).resolve().parents[1] / "references" / "skill-template.md"
+_ADVISOR_TEMPLATE = (pathlib.Path(__file__).resolve().parents[2] / "advisor-creator"
               / "references" / "skill-template-advisor.md")
 
 
-def _節の検出(root: pathlib.Path) -> list[str]:
+def _missing_sections(root: pathlib.Path) -> list[str]:
     """節の構成が、対応する雛形を満たすかを見る。**文書が無ければ、何も言わない。**"""
-    文書 = root / "SKILL.md"
-    if not 文書.exists():
+    document = root / "SKILL.md"
+    if not document.exists():
         return [f"文書が無い: {文書.name}"]
-    助言か = "相談種別と回答テンプレート" in _sections.headings(文書)
-    雛形 = _助言の雛形 if 助言か else _一般の雛形
-    if not 雛形.exists():
+    is_advisor = "相談種別と回答テンプレート" in _sections.headings(document)
+    template = _ADVISOR_TEMPLATE if is_advisor else _GENERAL_TEMPLATE
+    if not template.exists():
         return []
     return [f"節が無い: {x} ── {雛形.name} が要求する"
-            for x in _sections.missing(文書, 雛形)]
+            for x in _sections.missing(document, template)]
 
 
 def check(path: str) -> dict:
@@ -148,7 +148,7 @@ def check(path: str) -> dict:
         place = TESTS if kind == "検証" else LIB
         findings.append(f"{kind}が入口の側に在る: scripts/{f.name} ── scripts/{place}/ へ移す")
 
-    findings += _節の検出(root)
+    findings += _missing_sections(root)
 
     lib = scripts / LIB
     if lib.is_dir():

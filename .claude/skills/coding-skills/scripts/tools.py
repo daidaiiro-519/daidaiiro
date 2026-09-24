@@ -139,8 +139,8 @@ def _human_plan(res: dict) -> str:
     d = res["data"]
     lines = [f'  場所     {d["root"]}']
     for x in d["plan"]:
-        場所 = f'（{x["target"]}）' if x["target"] else "（成果物の場所）"
-        lines.append(f'  {x["name"]}\n      {" ".join(x["tool"])}　{場所}')
+        place = f'（{x["target"]}）' if x["target"] else "（成果物の場所）"
+        lines.append(f'  {x["name"]}\n      {" ".join(x["tool"])}　{place}')
     lines.append(f'\n{d["count"]} 件を実行する。実行はしていない。')
     return "\n".join(lines)
 
@@ -160,9 +160,9 @@ def _human_read_output(res: dict) -> str:
     d = res["data"]
     if not res["ok"]:
         return " ／ ".join(res["findings"])
-    尾 = (f'続きは offset={d["next_offset"]}' if d["next_offset"] is not None
+    tail_note = (f'続きは offset={d["next_offset"]}' if d["next_offset"] is not None
           else "ここで終わりである")
-    return f'{d["output"]}\n\n── {d["offset"]} から {len(d["output"])} 文字。{尾}'
+    return f'{d["output"]}\n\n── {d["offset"]} から {len(d["output"])} 文字。{tail_note}'
 
 
 def _human_validate(res: dict) -> str:

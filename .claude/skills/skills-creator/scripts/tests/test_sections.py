@@ -20,10 +20,10 @@ def expect(name: str, ok: bool) -> None:
         raise AssertionError(name)
 
 
-def write(dirpath: pathlib.Path, name: str, 節: list[str]) -> pathlib.Path:
+def write(dirpath: pathlib.Path, name: str, names: list[str]) -> pathlib.Path:
     p = dirpath / name
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text("\n\n".join(f"## {x}\n\n本文" for x in 節) + "\n", encoding="utf-8")
+    p.write_text("\n\n".join(f"## {x}\n\n本文" for x in names) + "\n", encoding="utf-8")
     return p
 
 
@@ -38,39 +38,39 @@ def missing_sections_are_reported() -> None:
     """雛形に在って文書に無い節を、名前で返す。"""
     with tempfile.TemporaryDirectory() as t:
         d = pathlib.Path(t)
-        型 = write(d, "template.md", ["目的", "役割", "出力形式"])
-        文書 = write(d, "SKILL.md", ["目的", "役割"])
-        欠 = sections.missing(文書, 型)
-        expect("欠けた節を返す", 欠 == ["出力形式"])
-        expect("満たしていれば0件", sections.missing(型, 型) == [])
+        template = write(d, "template.md", ["目的", "役割", "出力形式"])
+        document = write(d, "SKILL.md", ["目的", "役割"])
+        missing = sections.missing(document, template)
+        expect("欠けた節を返す", missing == ["出力形式"])
+        expect("満たしていれば0件", sections.missing(template, template) == [])
 
 
 def placeholders_in_the_template_are_ignored() -> None:
     """雛形の差し込む場所は、節として数えない。"""
     with tempfile.TemporaryDirectory() as t:
         d = pathlib.Path(t)
-        型 = d / "template.md"
-        型.write_text("## 目的\n\n本文\n\n## {{節の名前}}\n\n本文\n", encoding="utf-8")
-        文書 = write(d, "SKILL.md", ["目的"])
-        expect("差し込む場所を要求しない", sections.missing(文書, 型) == [])
+        template = d / "template.md"
+        template.write_text("## 目的\n\n本文\n\n## {{節の名前}}\n\n本文\n", encoding="utf-8")
+        document = write(d, "SKILL.md", ["目的"])
+        expect("差し込む場所を要求しない", sections.missing(document, template) == [])
 
 
 def the_order_is_not_required() -> None:
     """節の並び順は問わない ── 有無だけを見る。"""
     with tempfile.TemporaryDirectory() as t:
         d = pathlib.Path(t)
-        型 = write(d, "template.md", ["目的", "役割"])
-        文書 = write(d, "SKILL.md", ["役割", "目的"])
-        expect("並びが違っても0件", sections.missing(文書, 型) == [])
+        template = write(d, "template.md", ["目的", "役割"])
+        document = write(d, "SKILL.md", ["役割", "目的"])
+        expect("並びが違っても0件", sections.missing(document, template) == [])
 
 
 def an_unreadable_file_raises() -> None:
     """読めないものは、誤用として投げる。"""
     with tempfile.TemporaryDirectory() as t:
         d = pathlib.Path(t)
-        型 = write(d, "template.md", ["目的"])
+        template = write(d, "template.md", ["目的"])
         try:
-            sections.missing(d / "無い.md", 型)
+            sections.missing(d / "無い.md", template)
             expect("読めなければ投げる", False)
         except OSError:
             expect("読めなければ投げる", True)

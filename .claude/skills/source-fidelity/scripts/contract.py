@@ -129,8 +129,8 @@ def main(tools: list[Tool], argv: list[str] | None = None) -> int:
     need = [a for a in t.args if a.required]
     # **位置と旗を混ぜて渡せる。** 旗で渡したぶんを数えずに位置だけで判定すると、
     # `init . --layer a=b` のような呼び方が「引数が足りない」になる
-    満たした = sum(1 for a in need if a.key in kw) + len(pos)
-    if 満たした < len(need):
+    satisfied = sum(1 for a in need if a.key in kw) + len(pos)
+    if satisfied < len(need):
         print(f"引数が足りない: {t.name} は {' '.join(a.name for a in need)} を要する",
               file=sys.stderr)
         return 2
