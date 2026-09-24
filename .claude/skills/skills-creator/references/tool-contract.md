@@ -60,7 +60,11 @@ MCP の実装が無い環境では、MCP の面は立たず、CLI だけが動�
 
 **`findings` は誤りではない。** 検出が在っても `isError` は偽のままにする ── 違反の検出は、道具が正しく動作した結果である。
 
-**予期した失敗は `ToolError` で投げる。** SDK の原典が述べている ── その型なら `is_error=True` とこちらの文言が届き、それ以外の例外は `Error executing tool <名前>` しか届かない（`mcp/server/mcpserver/exceptions.py`、mcp 2.2.0）。
+**予期した失敗は `ToolError` で投げる。** SDK の原典が述べている ── その型なら `is_error=True` とこちらの文言が届き、それ以外の例外は `Error executing tool <名前>` しか届かない。
+
+> the call returns `is_error=True` with your message in `content` for the model to read … Any other exception bar `MCPError` (a protocol error) is treated as a crash: the model sees only `Error executing tool <name>`
+
+出典 ── python-sdk v2.2.0 の `src/mcp/server/mcpserver/exceptions.py:47`（2026-09-24 取得 ・ 77行 ・ sha256 `14564c0dedfe79db…`）。導入した版と原文が一致することを確認した。
 
 **型は緩く受ける。** 呼ぶ側は JSON の値を渡すので、数を文字列で包むことを強制しない（実測: `timeout` に 30 を渡すと、検証が不合格になっていた）。まとめて受ける引数は配列も受ける。
 

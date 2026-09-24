@@ -68,8 +68,16 @@ def _guard(res: dict) -> dict:
 
     **`ToolError` で投げる。** SDK の原典が述べている ── 予期した失敗はその型で
     投げると `is_error=True` と**こちらの文言**が呼ぶ側へ届き、それ以外の例外は
-    `Error executing tool <name>` しか届かない（`mcp/server/mcpserver/exceptions.py`
-    の `ToolError` の説明、mcp 2.2.0、2026-09-24 に確認）。
+    `Error executing tool <name>` しか届かない。
+
+        the call returns `is_error=True` with your message in `content` for the
+        model to read … Any other exception bar `MCPError` (a protocol error) is
+        treated as a crash: the model sees only `Error executing tool <name>`
+
+    出典 ── python-sdk v2.2.0 の `src/mcp/server/mcpserver/exceptions.py:47`
+    （https://raw.githubusercontent.com/modelcontextprotocol/python-sdk/v2.2.0/src/mcp/server/mcpserver/exceptions.py
+    ・ 2026-09-24 取得 ・ 77行 ・ sha256 14564c0dedfe79db…）。
+    **導入した版と原文が一致することを確認した。**
     """
     if res.get("ok", True):
         return res
