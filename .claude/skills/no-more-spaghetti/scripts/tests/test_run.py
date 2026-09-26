@@ -66,11 +66,20 @@ with tempfile.TemporaryDirectory() as d:
              "scope": "x", "check": {"tool": ["true"]}}
     expect("取得の記録が無ければ検出する",
            any("fetched" in x for x in validate.check_rules(write_rules(root, [outer]))))
-    outer2 = dict(outer, source=dict(outer["source"], fetched={
-        "url": "https://example.invalid/", "date": "2026-09-25",
-        "sha256": "0" * 64, "line": 1}))
-    expect("取得の記録が在れば検出しない",
-           not validate.check_rules(write_rules(root, [outer2])))
+    fetched = {"url": "https://example.invalid/", "date": "2026-09-25",
+               "sha256": "0" * 64, "line": 1}
+    outer2 = dict(outer, source=dict(outer["source"], fetched=fetched))
+    # ── 原典の立場も、外を指す規則では必須である（④）
+    expect("原典の立場が無ければ検出する",
+           any("authority" in x for x in validate.check_rules(write_rules(root, [outer2]))))
+    outer3 = dict(outer, source=dict(outer["source"], fetched=fetched, authority="spec"))
+    expect("取得の記録と原典の立場が在れば検出しない",
+           not validate.check_rules(write_rules(root, [outer3])))
+    outer4 = dict(outer, source=dict(outer["source"], fetched=fetched, authority="公式"))
+    expect("決められた値の外は検出する",
+           any("authority" in x for x in validate.check_rules(write_rules(root, [outer4]))))
+    expect("画面へ出す語は対応表が持つ",
+           set(run.AUTHORITY_LABEL) == {"spec", "recommendation", "third-party"})
     inner = {"rule": "内を指す", "source": {"record": "model"},
              "scope": "x", "check": {"tool": ["true"]}}
     expect("内を指す規則には要求しない", not validate.check_rules(write_rules(root, [inner])))

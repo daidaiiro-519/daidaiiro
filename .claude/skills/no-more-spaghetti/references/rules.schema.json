@@ -66,16 +66,29 @@
           }
         },
         "source": {
-          "description": "外（原典）か内（こちら側の決定）かを書く。**どちらかを必ず持つ。** **外を指すなら、引用と取得の記録も持つ** ── 取り直して同じ版かを判定できないと、その引用は根拠にならない。",
+          "description": "外（原典）か内（こちら側の決定）かを書く。**どちらかを必ず持つ。** **外を指すなら、引用 ・ 取得の記録 ・ 原典の立場も持つ** ── 取り直して同じ版かを判定できないと、その引用は根拠にならない。",
           "x-prompt": {
             "read": "meta があれば外を指す規則、record があれば内を指す規則である",
-            "write": "外を指すなら3つの条件を満たしてから書く ── 原文を取得し、引用を原文の文字列で照合し、取得した日と版を残す（url ・ date ・ sha256 ・ line）。内を指すなら、こちら側の決定の識別子を record に書く"
+            "write": "外を指すなら3つの条件を満たしてから書く ── 原文を取得し、引用を原文の文字列で照合し、取得した日と版を残し（url ・ date ・ sha256 ・ line）、原典の立場を authority に書く。内を指すなら、こちら側の決定の識別子を record に書く"
           },
           "type": "object",
           "properties": {
             "meta": {
               "type": "string",
               "description": "原典の識別子"
+            },
+            "authority": {
+              "type": "string",
+              "enum": [
+                "spec",
+                "recommendation",
+                "third-party"
+              ],
+              "description": "原典の立場。**外を指す規則では必須である。** spec=提供元が出す振る舞いの定義 ／ recommendation=提供元が出す勧め ／ third-party=提供元の外",
+              "x-prompt": {
+                "read": "spec は外すと事実と食い違う。recommendation は外してよいが、理由を記録する。third-party は、版と維持の主体がこちら側の管理外である",
+                "write": "原典の立場で決める。提供元が振る舞いを定義していれば spec、そうすべきと勧めていれば recommendation、提供元の外なら third-party ── 規則の内容の強さで決めない"
+              }
             },
             "quote": {
               "type": "string",
@@ -137,6 +150,7 @@
                 "required": [
                   "meta",
                   "quote",
+                  "authority",
                   "fetched"
                 ]
               }

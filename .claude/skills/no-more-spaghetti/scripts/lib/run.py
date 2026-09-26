@@ -33,6 +33,9 @@ MCP しか持たない環境でも、続きを取れるようにするためで�
 VERDICT_LABEL = {"pass": "合格", "fail": "不合格", "skip": "実行しない"}
 """**機械が分岐する値は ASCII である。** 画面へ出す語は、この対応表が持つ。"""
 
+AUTHORITY_LABEL = {"spec": "仕様", "recommendation": "推奨", "third-party": "第三者"}
+"""原典の立場。**外を指す規則だけが持つ** ── 内を指す規則には原典が無い。"""
+
 
 def runs_dir(root: pathlib.Path) -> pathlib.Path:
     """この成果物の保存先。**成果物ごとに分ける** ── 別の成果物の実行を消さないためである。"""
@@ -151,7 +154,8 @@ def plan_rules(root: pathlib.Path, rules_file: pathlib.Path) -> dict:
         check = r.get("check") or {}
         out.append({"name": r.get("rule") or "（名前が無い）",
                     "tool": check.get("tool") or [],
-                    "target": check.get("target") or ""})
+                    "target": check.get("target") or "",
+                    "authority": (r.get("source") or {}).get("authority") or ""})
     return {"root": str(root.resolve()), "rules_file": str(rules_file),
             "plan": out, "count": len(out)}
 

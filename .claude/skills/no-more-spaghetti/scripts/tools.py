@@ -164,7 +164,9 @@ def _human_plan(res: dict) -> str:
     lines = [f'  場所     {d["root"]}']
     for x in d["plan"]:
         place = f'（{x["target"]}）' if x["target"] else "（成果物の場所）"
-        lines.append(f'  {x["name"]}\n      {" ".join(x["tool"])}　{place}')
+        # **原典の立場を、実行の前に見せる** ── 推奨と第三者は、外してよいかの判断が要る
+        mark = f'［{_run.AUTHORITY_LABEL[x["authority"]]}］' if x.get("authority") else ""
+        lines.append(f'  {x["name"]}{mark}\n      {" ".join(x["tool"])}　{place}')
     lines.append(f'\n{d["count"]} 件を実行する。実行はしていない。')
     return "\n".join(lines)
 
