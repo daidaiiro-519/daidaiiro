@@ -892,6 +892,192 @@
         ],
         "target": "rust"
       }
+    },
+    {
+      "rule": "crate のメタデータを完備させる",
+      "source": {
+        "meta": "Rust API Guidelines, C-METADATA",
+        "quote": "The <code>[package]</code> section of <code>Cargo.toml</code> should include the following",
+        "fetched": {
+          "url": "https://rust-lang.github.io/api-guidelines/documentation.html",
+          "date": "2026-09-26",
+          "sha256": "da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455",
+          "line": 292
+        }
+      },
+      "scope": "crate ごとの Cargo.toml の [package] のみ ── 検査が要求する欄の集合は道具が持つ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::cargo_common_metadata"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "新しい型に、共通のトレイトを実装する",
+      "source": {
+        "meta": "Rust API Guidelines, C-COMMON-TRAITS",
+        "quote": "Consequently, crates that define new types should eagerly implement all",
+        "fetched": {
+          "url": "https://rust-lang.github.io/api-guidelines/interoperability.html",
+          "date": "2026-09-26",
+          "sha256": "5cf108916e92a1ea3eb9930ba309e48aff930e7864bb75d687887edfc2cba836",
+          "line": 171
+        }
+      },
+      "scope": "Debug と Copy のみ ── 他のトレイトは、検査できる道具が無い",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dmissing_debug_implementations",
+          "-Dmissing_copy_implementations"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "想定される失敗を、panic ではなく Result で返す",
+      "source": {
+        "meta": "The Rust Programming Language, 9.3",
+        "quote": "However, when failure is expected, it’s more appropriate to return a <code>Result</code>",
+        "fetched": {
+          "url": "https://doc.rust-lang.org/book/ch09-03-to-panic-or-not-to-panic.html",
+          "date": "2026-09-26",
+          "sha256": "e936c60fc1acae2e3839758ea8a10861c9a850353e79b8d73608fb573659c34f",
+          "line": 269
+        }
+      },
+      "scope": "panic の呼び出しと、Result を返す関数の中の panic のみ ── 回復できない状態は対象外",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::panic",
+          "-Dclippy::panic_in_result_fn",
+          "-Dclippy::unwrap_in_result"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "Result の誤りの型を、空にしない",
+      "source": {
+        "meta": "Clippy lints, result_unit_err",
+        "quote": "Checks for public functions that return a <code>Result</code>",
+        "fetched": {
+          "url": "https://rust-lang.github.io/rust-clippy/master/index.html",
+          "date": "2026-09-26",
+          "sha256": "25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b",
+          "line": 13840
+        }
+      },
+      "scope": "公開する関数の Result のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::result_unit_err"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "誤りの条件を、文書の Errors の節に書く",
+      "source": {
+        "meta": "Rust API Guidelines, C-FAILURE",
+        "quote": "Error conditions should be documented in an &quot;Errors&quot; section. This applies to",
+        "fetched": {
+          "url": "https://rust-lang.github.io/api-guidelines/documentation.html",
+          "date": "2026-09-26",
+          "sha256": "da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455",
+          "line": 211
+        }
+      },
+      "scope": "公開する関数のうち Result を返すもののみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::missing_errors_doc"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "panic の条件を、文書の Panics の節に書く",
+      "source": {
+        "meta": "Rust API Guidelines, C-FAILURE",
+        "quote": "Panic conditions should be documented in a &quot;Panics&quot; section. This applies to",
+        "fetched": {
+          "url": "https://rust-lang.github.io/api-guidelines/documentation.html",
+          "date": "2026-09-26",
+          "sha256": "da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455",
+          "line": 227
+        }
+      },
+      "scope": "公開する関数のうち panic しうるもののみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::missing_panics_doc"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "公開する構造と列挙を、あとから欄を足せる形にする",
+      "source": {
+        "meta": "Clippy lints, exhaustive_structs",
+        "quote": "Warns on any exported <code>struct</code>s that are not tagged <code>#[non_exhaustive]</code>",
+        "fetched": {
+          "url": "https://rust-lang.github.io/rust-clippy/master/index.html",
+          "date": "2026-09-26",
+          "sha256": "25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b",
+          "line": 3780
+        }
+      },
+      "scope": "公開する struct と enum のみ ── 欄が固定であることを約束する型は、この規則を外して理由を記録する",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::exhaustive_structs",
+          "-Dclippy::exhaustive_enums"
+        ],
+        "target": "rust"
+      }
     }
   ]
 }
