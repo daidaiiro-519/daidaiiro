@@ -1,6 +1,6 @@
 # Rust の規則ファイル ── 別のリポジトリへ渡す形
 
-`rust.json` を、対象のリポジトリの `.coding-rules/rules.json` として置く。
+この `rules.json` を、対象のリポジトリの `.coding-rules/rules/<成果物>.json` として置き、索引へ1行足す。
 
 ## 置いたあとに直す2か所
 

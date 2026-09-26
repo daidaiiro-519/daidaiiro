@@ -53,12 +53,15 @@
 分け、`check.target` でどこを検査するかを書く。
 
 ```
-.coding-rules/index.json          **唯一の索引**（名前 → 規則ファイル）
-.coding-rules/rules/repo.json     リポジトリを横断する規則
-.coding-rules/rules/<成果物>.json  その成果物の層と規則（target でその場所を指す）
-.coding-rules/presets/            言語ごとの雛形（他のリポジトリへ渡す）
-.coding-rules/sources/            外を指す規則の原文（取り直して照合するため）
+.coding-rules/index.json              **唯一の索引**（名前 → 規則ファイル）
+.coding-rules/rules/repo.json         リポジトリを横断する規則
+.coding-rules/rules/<区分>/<成果物>.json その成果物の層と規則（target でその場所を指す）
+.coding-rules/presets/<言語>/          言語ごとの雛形（rules.json と README.md）
+.coding-rules/sources/<領域>/          外を指す規則の原文（取り直して照合するため）
 ```
+
+**階層が、規則の意味の境界を表す。** 平らに並べると、成果物 ・ 言語 ・ 領域が
+増えたときに、名前の中へ区分を押し込むことになる（`rust.json` ・ `rust.README.md`）。
 
 **規則ファイルを平らに並べない。** 成果物と言語が増えるたびに一覧が読めなくなる ──
 **名前から経路へ解決する層を1つ挟み**、呼ぶ側は名前だけを知る。
