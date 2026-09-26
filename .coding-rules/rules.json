@@ -1121,6 +1121,191 @@
         ],
         "target": "rust"
       }
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "meta": "cmd/gofmt, -d",
+        "authority": "spec",
+        "quote": "If a file&#39;s formatting is different than gofmt&#39;s, print diffs",
+        "fetched": {
+          "url": "https://pkg.go.dev/cmd/gofmt",
+          "date": "2026-09-26",
+          "sha256": "28fce07f4fbe4cf1f69c91c4bfe1452dd662a4e03cbf0b36e597f6b657b0ce40",
+          "line": 910
+        }
+      },
+      "scope": "整形のみ ── **-l は違反があっても終了コード0を返す**（実測）。差分を出す呼び方を選ぶ",
+      "check": {
+        "tool": [
+          "gofmt",
+          "-d",
+          "."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "すべての実装が、組める",
+      "source": {
+        "meta": "The Go command, build",
+        "authority": "spec",
+        "quote": "Build compiles the packages named by the import paths,",
+        "fetched": {
+          "url": "https://pkg.go.dev/cmd/go",
+          "date": "2026-09-26",
+          "sha256": "a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4",
+          "line": 997
+        }
+      },
+      "scope": "組み立てのみ ── 試験の対象は含まない",
+      "check": {
+        "tool": [
+          "go",
+          "build",
+          "./..."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "meta": "cmd/vet",
+        "authority": "spec",
+        "quote": "Vet&#39;s exit code is non-zero for erroneous invocation of the tool or if a",
+        "fetched": {
+          "url": "https://pkg.go.dev/cmd/vet",
+          "date": "2026-09-26",
+          "sha256": "155143f739f367380a7a4fbd041cd2d699578adb56f94c236cdf9bc3a9005a54",
+          "line": 869
+        }
+      },
+      "scope": "vet が持つ検査のみ ── 原典が guidance only と書いている範囲である",
+      "check": {
+        "tool": [
+          "go",
+          "vet",
+          "./..."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "試験が通る",
+      "source": {
+        "meta": "The Go command, test",
+        "authority": "spec",
+        "quote": "After the package test finishes, go test prints a summary line",
+        "fetched": {
+          "url": "https://pkg.go.dev/cmd/go",
+          "date": "2026-09-26",
+          "sha256": "a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4",
+          "line": 2222
+        }
+      },
+      "scope": "試験の成否のみ ── 網羅率は見ない",
+      "check": {
+        "tool": [
+          "go",
+          "test",
+          "./..."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "依存の宣言が、実装と一致する",
+      "source": {
+        "meta": "The Go command, mod tidy -diff",
+        "authority": "spec",
+        "quote": "instead print the necessary changes as a unified diff. It exits",
+        "fetched": {
+          "url": "https://pkg.go.dev/cmd/go",
+          "date": "2026-09-26",
+          "sha256": "a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4",
+          "line": 2057
+        }
+      },
+      "scope": "go.mod と go.sum のみ ── 版の選び方は見ない",
+      "check": {
+        "tool": [
+          "go",
+          "mod",
+          "tidy",
+          "-diff"
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "既知の脆弱性が無い",
+      "source": {
+        "meta": "govulncheck",
+        "authority": "spec",
+        "quote": "Govulncheck reports known vulnerabilities that affect Go code. It uses static",
+        "fetched": {
+          "url": "https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck",
+          "date": "2026-09-26",
+          "sha256": "9e2bbfd91e774abbf7635b02155c6869a0584364351e6060dcdf7792bee2d437",
+          "line": 890
+        }
+      },
+      "scope": "vuln.go.dev が持つものだけ ── **道具は同梱ではない**（go install で入れる）。違反のとき終了コードは3である（実測）",
+      "check": {
+        "tool": [
+          "govulncheck",
+          "./..."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "命名が、MixedCaps の規約に従う",
+      "source": {
+        "meta": "Effective Go, MixedCaps",
+        "authority": "recommendation",
+        "quote": "Finally, the convention in Go is to use <code>MixedCaps</code>",
+        "fetched": {
+          "url": "https://go.dev/doc/effective_go.md",
+          "date": "2026-09-26",
+          "sha256": "31b3beeb4fea135b85070f0362a1373b5e67981b8d6adc4afbb7291e06cdac5f",
+          "line": 756
+        }
+      },
+      "scope": "多語の名前の区切りのみ ── **検査は第三者の道具が実行する**（staticcheck ST1003）。vet は命名を見ない（実測）",
+      "check": {
+        "tool": [
+          "staticcheck",
+          "-checks",
+          "all",
+          "./..."
+        ],
+        "target": "go"
+      }
+    },
+    {
+      "rule": "誤りを捨てない",
+      "source": {
+        "meta": "Go Code Review Comments, Handle Errors",
+        "authority": "recommendation",
+        "quote": "Do not discard errors using <code>_</code> variables.",
+        "fetched": {
+          "url": "https://go.dev/wiki/CodeReviewComments.md",
+          "date": "2026-09-26",
+          "sha256": "6fc11c7dea267b3f56b18d4f51a63a5a487e1d0ac16c3c7fa57950e4ab7a3d8b",
+          "line": 547
+        }
+      },
+      "scope": "空白の識別子への代入のみ ── **検査は第三者の道具が実行する**（errcheck）。vet も staticcheck も検出しない（実測）",
+      "check": {
+        "tool": [
+          "errcheck",
+          "-blank",
+          "./..."
+        ],
+        "target": "go"
+      }
     }
   ]
 }
