@@ -1,0 +1,704 @@
+{
+  "$schema": "../.claude/skills/no-more-spaghetti/references/rules.schema.json",
+  "order": [
+    "skills",
+    "board",
+    "docs",
+    "lib",
+    "declaration",
+    "entry",
+    "brainstorming-board:lib",
+    "brainstorming-board:declaration",
+    "brainstorming-board:entry",
+    "design-svg:lib",
+    "design-svg:declaration",
+    "design-svg:entry",
+    "doc-writing-skills:lib",
+    "doc-writing-skills:declaration",
+    "doc-writing-skills:entry",
+    "fact-check:lib",
+    "fact-check:declaration",
+    "fact-check:entry",
+    "narration:lib",
+    "narration:declaration",
+    "narration:entry",
+    "no-more-spaghetti:lib",
+    "no-more-spaghetti:declaration",
+    "no-more-spaghetti:entry",
+    "skills-creator:lib",
+    "skills-creator:declaration",
+    "skills-creator:entry",
+    "slide-deck:lib",
+    "slide-deck:declaration",
+    "slide-deck:entry"
+  ],
+  "layers": {
+    "skills": ".claude/skills",
+    "board": ".brainstorming-board",
+    "docs": "docs",
+    "lib": ".claude/skills/acdr/scripts/lib",
+    "declaration": ".claude/skills/acdr/scripts/tools.py",
+    "entry": ".claude/skills/acdr/scripts/cli.py",
+    "brainstorming-board:lib": ".claude/skills/brainstorming-board/scripts/lib",
+    "brainstorming-board:declaration": ".claude/skills/brainstorming-board/scripts/tools.py",
+    "brainstorming-board:entry": ".claude/skills/brainstorming-board/scripts/cli.py",
+    "design-svg:lib": ".claude/skills/design-svg/scripts/lib",
+    "design-svg:declaration": ".claude/skills/design-svg/scripts/tools.py",
+    "design-svg:entry": ".claude/skills/design-svg/scripts/cli.py",
+    "doc-writing-skills:lib": ".claude/skills/doc-writing-skills/scripts/lib",
+    "doc-writing-skills:declaration": ".claude/skills/doc-writing-skills/scripts/tools.py",
+    "doc-writing-skills:entry": ".claude/skills/doc-writing-skills/scripts/cli.py",
+    "fact-check:lib": ".claude/skills/fact-check/scripts/lib",
+    "fact-check:declaration": ".claude/skills/fact-check/scripts/tools.py",
+    "fact-check:entry": ".claude/skills/fact-check/scripts/cli.py",
+    "narration:lib": ".claude/skills/narration/scripts/lib",
+    "narration:declaration": ".claude/skills/narration/scripts/tools.py",
+    "narration:entry": ".claude/skills/narration/scripts/cli.py",
+    "no-more-spaghetti:lib": ".claude/skills/no-more-spaghetti/scripts/lib",
+    "no-more-spaghetti:declaration": ".claude/skills/no-more-spaghetti/scripts/tools.py",
+    "no-more-spaghetti:entry": ".claude/skills/no-more-spaghetti/scripts/cli.py",
+    "skills-creator:lib": ".claude/skills/skills-creator/scripts/lib",
+    "skills-creator:declaration": ".claude/skills/skills-creator/scripts/tools.py",
+    "skills-creator:entry": ".claude/skills/skills-creator/scripts/cli.py",
+    "slide-deck:lib": ".claude/skills/slide-deck/scripts/lib",
+    "slide-deck:declaration": ".claude/skills/slide-deck/scripts/tools.py",
+    "slide-deck:entry": ".claude/skills/slide-deck/scripts/cli.py"
+  },
+  "rules": [
+    {
+      "rule": "配線表が、形の契約を満たす",
+      "source": {
+        "record": "skill-router/references/skill-wiring.schema.json"
+      },
+      "scope": "この配線表が、そのスキーマへ適合すること",
+      "check": {
+        "tool": [
+          "python3",
+          "-m",
+          "jsonschema",
+          "-i",
+          "skill-wiring.json",
+          ".claude/skills/skill-router/references/skill-wiring.schema.json"
+        ]
+      }
+    },
+    {
+      "rule": "ブレストボードの入力が、契約を満たす",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "no-more-spaghetti のブレストボードに限る",
+      "check": {
+        "tool": [
+          "python3",
+          ".claude/skills/brainstorming-board/scripts/cli.py",
+          "validate",
+          ".brainstorming-board/no-more-spaghetti"
+        ]
+      }
+    },
+    {
+      "rule": "ブレストボードの生成が冪等である",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "no-more-spaghetti のブレストボードに限る",
+      "check": {
+        "tool": [
+          "python3",
+          ".claude/skills/brainstorming-board/scripts/cli.py",
+          "render",
+          ".brainstorming-board/no-more-spaghetti",
+          "--check",
+          "1"
+        ]
+      }
+    },
+    {
+      "rule": "規則ファイルが、形の契約を満たす",
+      "source": {
+        "record": "no-more-spaghetti/references/rules.schema.json"
+      },
+      "scope": "形 ・ 道具の書き方 ・ 出典の有無 ・ $schema の解決",
+      "check": {
+        "tool": [
+          "python3",
+          ".claude/skills/no-more-spaghetti/scripts/cli.py",
+          "validate",
+          ".coding-rules/rules.json",
+          "."
+        ]
+      }
+    },
+    {
+      "rule": "すべての実装が、構文として妥当である",
+      "source": {
+        "meta": "Python 3.14 documentation, compileall",
+        "quote": "Return a true value if all the files compiled successfully, and a false value otherwise.",
+        "fetched": {
+          "url": "https://docs.python.org/3/library/compileall.html",
+          "date": "2026-09-24",
+          "sha256": "4d63a78c7de74a90fb96ec2555eb9f049a1614cceb5ef6e7e081c0a8eee35f62",
+          "line": 398
+        }
+      },
+      "scope": "構文の検査のみ ── 実行時の誤りは対象にしない",
+      "check": {
+        "tool": [
+          "python3",
+          "-m",
+          "compileall",
+          "-q",
+          "-x",
+          "(__pycache__|/trial/)",
+          ".claude/skills"
+        ]
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/acdr"
+      }
+    },
+    {
+      "rule": "test_markdown の事例が通る",
+      "source": {
+        "record": "acdr/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_markdown.py"
+        ],
+        "target": ".claude/skills/acdr"
+      }
+    },
+    {
+      "rule": "test_render_acdr の事例が通る",
+      "source": {
+        "record": "acdr/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_render_acdr.py"
+        ],
+        "target": ".claude/skills/acdr"
+      }
+    },
+    {
+      "rule": "test_template の事例が通る",
+      "source": {
+        "record": "acdr/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_template.py"
+        ],
+        "target": ".claude/skills/acdr"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/acdr"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "試験が通る",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_build_board.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "この回の印の付き方が、事例と一致する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_diff_marks.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "出力の型が、部品の過不足を検出する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_template.py"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "デザイントークンの参照と定義が一致する",
+      "source": {
+        "record": "brainstorming-board/SKILL.md"
+      },
+      "scope": "トークンの検査のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/cli.py",
+          "tokens",
+          "--check",
+          "1"
+        ],
+        "target": ".claude/skills/brainstorming-board"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/design-svg"
+      }
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "design-svg/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ ── まとめて実行する（各ファイルは単体で実行できない）",
+      "check": {
+        "tool": [
+          "pytest",
+          "-q",
+          "scripts/tests"
+        ],
+        "target": ".claude/skills/design-svg"
+      }
+    },
+    {
+      "rule": "生の数値が残っていない",
+      "source": {
+        "record": "design-svg/SKILL.md"
+      },
+      "scope": "設計上の選択はトークンから、量はデータから出すこと",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/cli.py",
+          "lint"
+        ],
+        "target": ".claude/skills/design-svg"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/design-svg"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/doc-writing-skills"
+      }
+    },
+    {
+      "rule": "test_gate の事例が通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_gate.py"
+        ],
+        "target": ".claude/skills/doc-writing-skills"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/doc-writing-skills"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/fact-check"
+      }
+    },
+    {
+      "rule": "test_source の事例が通る",
+      "source": {
+        "record": "fact-check/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_source.py"
+        ],
+        "target": ".claude/skills/fact-check"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/fact-check"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/narration"
+      }
+    },
+    {
+      "rule": "test_mp3 の事例が通る",
+      "source": {
+        "record": "narration/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_mp3.py"
+        ],
+        "target": ".claude/skills/narration"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/narration"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "test_concepts の事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_concepts.py"
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "test_run の事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_run.py"
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "test_schema の事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_schema.py"
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "test_tools の事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_tools.py"
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/no-more-spaghetti"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/skills-creator"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/skills-creator"
+      }
+    },
+    {
+      "rule": "節の検査が、雛形との差を検出する",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_sections.py"
+        ],
+        "target": ".claude/skills/skills-creator"
+      }
+    },
+    {
+      "rule": "層の場所と依存の向きが、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "python3",
+          "../skills-creator/scripts/cli.py",
+          "check",
+          "."
+        ],
+        "target": ".claude/skills/slide-deck"
+      }
+    },
+    {
+      "rule": "test_themes の事例が通る",
+      "source": {
+        "record": "slide-deck/SKILL.md"
+      },
+      "scope": "この成果物の試験のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "scripts/tests/test_themes.py"
+        ],
+        "target": ".claude/skills/slide-deck"
+      }
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "python3",
+          "../doc-writing-skills/scripts/cli.py",
+          "check",
+          "SKILL.md"
+        ],
+        "target": ".claude/skills/slide-deck"
+      }
+    }
+  ]
+}
