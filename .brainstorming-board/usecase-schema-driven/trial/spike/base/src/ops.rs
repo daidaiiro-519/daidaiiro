@@ -1,0 +1,73 @@
+//! 仕様を取る操作と、受ける操作 ── **能力の契約の一部である。**
+//!
+//! **方法論の語を1つも持たない** ── 参照は「既知の ID と一致する文字列」として見つける。
+//! 欄の名前（`context` ・ `upstream` など）を知る必要が無い。
+use crate::{Decl, Registry};
+use serde_json::Value;
+use std::collections::BTreeSet;
+
+/// 索引 ── ID ・ 名前 ・ 種類だけを並べる。`kind` を渡すと絞り込む。
+pub fn list(decls: &[Decl], kind: Option<&str>) -> String {
+    decls
+        .iter()
+        .filter(|d| kind.is_none_or(|k| d.kind == k))
+        .map(|d| format!("{} {} <{}>", d.id, d.name, d.kind))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn 文字列を集める(v: &Value, out: &mut Vec<String>) {
+    match v {
+        Value::String(s) => out.push(s.clone()),
+        Value::Array(a) => a.iter().for_each(|x| 文字列を集める(x, out)),
+        Value::Object(o) => o.values().for_each(|x| 文字列を集める(x, out)),
+        _ => {}
+    }
+}
+
+/// 参照 ── その宣言が指している ID と、その宣言を指している ID。
+pub fn refs(decls: &[Decl], id: &str) -> Result<(Vec<String>, Vec<String>), String> {
+    let 既知: BTreeSet<&str> = decls.iter().map(|d| d.id.as_str()).collect();
+    if !既知.contains(id) {
+        return Err(format!("その ID の宣言が無い: {id}"));
+    }
+    let 指す = |d: &Decl| -> BTreeSet<String> {
+        let mut xs = vec![];
+        文字列を集める(&serde_json::to_value(d).unwrap(), &mut xs);
+        xs.into_iter()
+            .filter(|s| s != &d.id && 既知.contains(s.as_str()))
+            .collect()
+    };
+    let me = decls.iter().find(|d| d.id == id).unwrap();
+    let 先: Vec<String> = 指す(me).into_iter().collect();
+    let 元: Vec<String> = decls
+        .iter()
+        .filter(|d| d.id != id && 指す(d).contains(id))
+        .map(|d| d.id.clone())
+        .collect();
+    Ok((先, 元))
+}
+
+/// 宣言1件を取る。`as_` に射影の名前を渡すと、その形で返る。
+pub fn get(decls: &[Decl], id: &str, as_: Option<&str>, reg: &Registry) -> Result<String, String> {
+    let d = decls
+        .iter()
+        .find(|d| d.id == id)
+        .ok_or(format!("その ID の宣言が無い: {id}"))?;
+    match as_ {
+        None => serde_json::to_string(d).map_err(|e| e.to_string()),
+        Some(name) => crate::render_as(d, reg, name).ok_or(format!("その射影が無い: {name}")),
+    }
+}
+
+/// 書いた仕様の形を受ける ── 種類ごとの schema で検査する。
+pub fn validate(decls: &[Decl], kinds: &Value) -> Vec<String> {
+    let mut out = vec![];
+    for d in decls {
+        let v = serde_json::to_value(d).unwrap();
+        if let Some(s) = kinds.get(&d.kind) {
+            crate::schema::validate(s, &v, &d.id, &mut out);
+        }
+    }
+    out
+}

@@ -15,7 +15,10 @@
 //! **出すのは、宣言の射影と、つなぎ目と、対応表だけである。**
 //! 外の成果物は出さない ── 禁じた語は `forbidden.txt` が持つ。
 
-use serde::Deserialize;
+pub mod ops;
+pub mod proj;
+pub mod schema;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 // ── ① 宣言の読み方 ────────────────────────────────────────────
@@ -27,7 +30,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// 述語1件。人が読む文（`predicate`）と、機械が呼ぶ名前（`check`）を両方持つ。
 ///
 /// **この2つが食い違っても、機械には分からない。**いまのところ未解決の穴である。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Rule {
     pub name: String,
@@ -36,7 +39,7 @@ pub struct Rule {
 }
 
 /// 操作1件。事前・事後・書き換える先を持つ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Op {
     pub name: String,
@@ -52,7 +55,7 @@ pub struct Op {
 ///
 /// `kind` は文字列のまま持つ ── **基盤が種類を列挙してはならない。**
 /// 列挙した瞬間、方法論の語彙が基盤へ入る。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Decl {
     pub kind: String,
@@ -398,7 +401,7 @@ pub fn root_findings(files: &[SpecFile], root_kind: &str) -> Vec<Finding> {
 // その節を何と呼び、識別子が何を指すかは、注入する側が決める。
 
 /// ID を持つ節。基盤は `id` と `name` しか読まない。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Node {
     pub id: String,

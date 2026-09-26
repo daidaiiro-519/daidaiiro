@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ユースケース駆動の宣言",
+  "x-prompt": {
+    "read": "宣言の種類ごとに、中身の形を定める",
+    "write": "種類を足すときは、ここへ1件足す。射影も1件要る"
+  },
+  "kinds": {
+    "aggregate": {
+      "type": "object",
+      "properties": {
+        "ops": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "pre", "post", "writes"],
+            "properties": { "writes": { "type": "array", "minItems": 1 } }
+          }
+        },
+        "rules": { "type": "array", "items": {
+          "type": "object", "required": ["name", "predicate"] } }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "ops": { "type": "array", "items": {
+          "type": "object", "required": ["name", "pre", "post"] } }
+      }
+    },
+    "bounded-context": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "required": ["owner", "language"],
+          "properties": {
+            "owner": { "type": "string" },
+            "language": { "type": "array", "minItems": 1, "items": {
+              "type": "object", "required": ["term", "means"],
+              "properties": { "term": { "type": "string" },
+                              "means": { "type": "string" } },
+              "additionalProperties": false } }
+          }
+        }
+      }
+    },
+    "subdomain": {
+      "type": "object",
+      "properties": {
+        "body": { "type": "object", "required": ["category", "asOf", "why"],
+          "properties": { "category": { "enum": ["中核", "一般", "補完"] } } }
+      }
+    }
+  }
+}
