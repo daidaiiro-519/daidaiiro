@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory() as d:
     expect("道具が配列でなければ検出する",
          any("配列ではない" in x for x in validate.check_rules(
              write_rules(root, [{"rule": "文字列", "source": {"meta": "x"}, "scope": "x",
-                             "check": {"tool": "gofmt -l ."}}]))))
+                             "check": {"tool": "fmt --check ."}}]))))
     # ── 外を指す規則は、取得の記録を持つ（論点4 の3条件の③）
     outer = {"rule": "外を指す", "source": {"meta": "x", "quote": "y"},
              "scope": "x", "check": {"tool": ["true"]}}

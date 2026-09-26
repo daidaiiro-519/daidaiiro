@@ -44,9 +44,8 @@ def check_rules(rules_file: pathlib.Path) -> list[str]:
 def check_layers(rules_file: pathlib.Path, root: pathlib.Path) -> list[str]:
     """層の宣言が、構造として成立するかを見る。
 
-    **値をファイルの場所として検査しない** ── 層を識別する文字列は言語ごとに形が違う
-    （モジュールパス ・ パッケージ ・ dotted path ・ crate 名）。値が正しいかは、
-    **依存の向きの道具が実行できるかで判明する**。
+    **値をファイルの場所として検査しない** ── 層を識別する文字列は言語ごとに形が違い、
+    経路とは限らない。値が正しいかは、**依存の向きの道具が実行できるかで判明する**。
     """
     d = json.loads(rules_file.read_text(encoding="utf-8"))
     layers = d.get("layers")
