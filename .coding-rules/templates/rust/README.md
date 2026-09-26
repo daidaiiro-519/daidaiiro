@@ -1,6 +1,8 @@
 # Rust の規則ファイル ── 別のリポジトリへ渡す形
 
-この `rules.json` を、対象のリポジトリの `.coding-rules/rules/<成果物>.json` として置き、索引へ1行足す。
+この `rules.json` を、対象のリポジトリの `.coding-rules/applied/<成果物>.json` として置き、索引へ1行足す。
+
+**この場所（`templates/`）では実行しない** ── 索引にも載せない。
 
 ## 置いたあとに直す2か所
 
@@ -14,8 +16,8 @@
 ## 実行
 
 ```
-python3 <no-more-spaghetti>/scripts/cli.py plan  <リポジトリ> .coding-rules/rules.json
-python3 <no-more-spaghetti>/scripts/cli.py check <リポジトリ> .coding-rules/rules.json
+python3 <no-more-spaghetti>/scripts/cli.py plan  <リポジトリ> <成果物の名前>
+python3 <no-more-spaghetti>/scripts/cli.py check <リポジトリ> <成果物の名前>
 ```
 
 ## 規則4件と、実測した終了コード

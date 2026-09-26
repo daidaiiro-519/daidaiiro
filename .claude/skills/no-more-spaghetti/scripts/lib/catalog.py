@@ -6,8 +6,8 @@
 索引の中で閉じる。
 
     .coding-rules/index.json        唯一の索引
-    .coding-rules/rules/…           成果物ごとの規則
-    .coding-rules/presets/…         言語ごとの雛形（他のリポジトリへ渡す）
+    .coding-rules/applied/…         このリポジトリで実行する規則（成果物ごと）
+    .coding-rules/templates/…       他のリポジトリへ渡す雛形（ここでは実行しない）
     .coding-rules/sources/…         外を指す規則の原文
 """
 from __future__ import annotations
@@ -16,7 +16,14 @@ import json
 import pathlib
 
 RULES_DIR = ".coding-rules"
+APPLIED_DIR = "applied"
+TEMPLATES_DIR = "templates"
 INDEX_PATH = f"{RULES_DIR}/index.json"
+"""区分は2つである。
+
+    applied/     **索引に載り、このリポジトリで実行する**
+    templates/   **索引に載せない** ── 他のリポジトリへ渡す雛形で、ここでは実行しない
+"""
 
 
 def load(root: pathlib.Path) -> dict:

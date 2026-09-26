@@ -18,6 +18,7 @@ from . import REFERENCES
 from . import catalog
 
 RULES_DIR = catalog.RULES_DIR
+APPLIED_DIR = catalog.APPLIED_DIR
 INNER_RULES = ("層の場所が、宣言した対応と一致する",
                "依存の向きが、内から外へ出ていない")
 """内を指す規則2件。**出典はモデルであり、原典を要さない**（論点4）。"""
@@ -56,13 +57,13 @@ def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.P
     """リポジトリの `.coding-rules/` へ、成果物のファイルを置く。
 
     **既に在れば作り直さない** ── 書いた規則が消える。
-    成果物がリポジトリ自身（`.`）なら、`rules/repo.json` になる。
+    成果物がリポジトリ自身（`.`）なら、`applied/repo.json` になる。
     """
     if not layers:
         raise ValueError("層を1つ以上渡す ── 層の無い規則ファイルは、何も検査できない")
     repo_wide = target in ("", ".")
     name = "repo" if repo_wide else pathlib.PurePosixPath(target).name
-    path = root / RULES_DIR / "rules" / f"{name}.json"
+    path = root / RULES_DIR / APPLIED_DIR / f"{name}.json"
     if path.exists():
         raise FileExistsError(f"既に在る: {path} ── 作り直さない")
     path.parent.mkdir(parents=True, exist_ok=True)

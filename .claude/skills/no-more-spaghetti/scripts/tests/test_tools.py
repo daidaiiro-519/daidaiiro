@@ -42,7 +42,7 @@ def init_places_the_skeleton() -> None:
         (root / "server").mkdir()
         path = _init.create(root, "server", {"core": "internal/core", "app": "app.core"})
         expect("リポジトリの .coding-rules/rules/ へ置く",
-               path == root / ".coding-rules" / "rules" / "server.json")
+               path == root / ".coding-rules" / "applied" / "server.json")
         expect("成果物の中にフォルダを作らない", not (root / "server/.coding-rules").exists())
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("並びが層と一致する", d["order"] == ["core", "app"])
@@ -52,16 +52,16 @@ def init_places_the_skeleton() -> None:
         expect("道具は空である", d["rules"][0]["check"]["tool"] == [])
         expect("実行する場所は成果物である", d["rules"][0]["check"]["target"] == "server")
         index = json.loads((root / ".coding-rules/index.json").read_text(encoding="utf-8"))
-        expect("索引へ1行足す", index["entries"] == [{"name": "server", "rules": "rules/server.json"}])
+        expect("索引へ1行足す", index["entries"] == [{"name": "server", "rules": "applied/server.json"}])
 
 
 def init_takes_the_repository_itself() -> None:
-    """成果物がリポジトリ自身なら、rules/repo.json になる。"""
+    """成果物がリポジトリ自身なら、applied/repo.json になる。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         path = _init.create(root, ".", {"skills": ".claude/skills"})
         expect("成果物がリポジトリ自身なら repo.json になる",
-               path == root / ".coding-rules" / "rules" / "repo.json")
+               path == root / ".coding-rules" / "applied" / "repo.json")
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("層はそのままである", d["layers"]["skills"] == ".claude/skills")
         expect("実行する場所を書かない", "target" not in d["rules"][0]["check"])

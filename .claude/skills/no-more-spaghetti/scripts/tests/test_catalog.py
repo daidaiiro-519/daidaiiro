@@ -35,11 +35,11 @@ def a_name_resolves_to_a_file() -> None:
     """索引に在る名前から、規則ファイルの経路を得る。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        make(root, [{"name": "repo", "rules": "rules/repo.json"},
-                    {"name": "acdr", "rules": "rules/skills/acdr.json"}],
-             ["rules/repo.json", "rules/skills/acdr.json"])
+        make(root, [{"name": "repo", "rules": "applied/repo.json"},
+                    {"name": "acdr", "rules": "applied/skills/acdr.json"}],
+             ["applied/repo.json", "applied/skills/acdr.json"])
         expect("名前から解決する",
-               catalog.resolve(root, "acdr") == root / ".coding-rules/rules/skills/acdr.json")
+               catalog.resolve(root, "acdr") == root / ".coding-rules/applied/skills/acdr.json")
         expect("名前の一覧を返す", catalog.names(root) == ["repo", "acdr"])
 
 
@@ -47,8 +47,8 @@ def a_path_is_taken_as_is() -> None:
     """経路をそのまま渡した場合は、索引を引かない。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        make(root, [{"name": "repo", "rules": "rules/repo.json"}], ["rules/repo.json"])
-        p = root / ".coding-rules/rules/repo.json"
+        make(root, [{"name": "repo", "rules": "applied/repo.json"}], ["applied/repo.json"])
+        p = root / ".coding-rules/applied/repo.json"
         expect("経路はそのまま", catalog.resolve(root, str(p)) == p)
 
 
@@ -56,7 +56,7 @@ def an_unknown_name_is_refused() -> None:
     """索引に無い名前は、名前を挙げて断る。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        make(root, [{"name": "repo", "rules": "rules/repo.json"}], ["rules/repo.json"])
+        make(root, [{"name": "repo", "rules": "applied/repo.json"}], ["applied/repo.json"])
         try:
             catalog.resolve(root, "無い名前")
             expect("知らない名前は断る", False)
@@ -78,10 +78,10 @@ def the_index_is_checked() -> None:
     """索引そのものを検査する ── 名前の重複と、実在しない経路。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
-        make(root, [{"name": "a", "rules": "rules/a.json"},
-                    {"name": "a", "rules": "rules/b.json"},
-                    {"name": "c", "rules": "rules/無い.json"}],
-             ["rules/a.json", "rules/b.json"])
+        make(root, [{"name": "a", "rules": "applied/a.json"},
+                    {"name": "a", "rules": "applied/b.json"},
+                    {"name": "c", "rules": "applied/無い.json"}],
+             ["applied/a.json", "applied/b.json"])
         findings = catalog.check_index(root)
         expect("名前の重複を検出する", any("重複" in x for x in findings))
         expect("実在しない経路を検出する", any("実在しない" in x for x in findings))
