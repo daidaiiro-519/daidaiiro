@@ -63,8 +63,16 @@ fn human_check(out: &Outcome) -> String {
 fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     let tmpl = here.join("references/tool-contract");
     let read = |name: &str| std::fs::read_to_string(tmpl.join(name));
-    // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う
-    let prefix: String = skill.split('-').filter_map(|w| w.chars().next()).collect();
+    // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う。
+    // 語が1つなら頭の3文字を採る ── 1文字では、他の crate と見分けがつかない
+    let words: Vec<&str> = skill.split('-').filter(|w| !w.is_empty()).collect();
+    let prefix: String = if words.len() >= 2 {
+        words.iter().filter_map(|w| w.chars().next()).collect()
+    } else {
+        words
+            .first()
+            .map_or_else(String::new, |w| w.chars().take(3).collect())
+    };
     let root = here
         .parent()
         .map_or_else(|| skill.to_owned(), |p| p.join(skill).display().to_string());
