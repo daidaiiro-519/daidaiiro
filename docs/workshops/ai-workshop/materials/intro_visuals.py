@@ -10,13 +10,14 @@ def i0_case():
     a += text(556, 82, '経費精算システムを入れ替える', 21, PAPER, 700, 'middle')
     a += text(556, 110, '本番の切り替えは3か月後', 15, PAPER, anchor='middle')
     roles = [('経費の精算業務', '経理が、日々の精算と支払を回している'),
-             ('システムの開発', '開発が、画面と連携を作っている'),
-             ('案件の進行管理', 'PMが、切り替えまで案件を止めずに進める')]
+             ('案件の進行管理', 'PMが、切り替えまで案件を止めずに進める'),
+             ('システムの開発', '開発が、画面と連携を作っている')]
     for i, (name, what) in enumerate(roles):
         x = i * 384
         a += path(f'M556 128 V152 H{x + 172} V176', LINE)
         a += path(f'M{x + 172 - 6} 170 l6 8 6 -8', LINE, 2)
-        a += rect(x, 182, 344, 96, PAPER, 12, ACCENT if i == 2 else LINE)
+        # 教材1が扱う業務を際立たせる。並び順ではなく名前で決める
+        a += rect(x, 182, 344, 96, PAPER, 12, ACCENT if name == '案件の進行管理' else LINE)
         a += person(x + 44, 222, .62, DIM)
         a += text(x + 80, 226, name, 19, INK, 700)
         a += text(x + 24, 260, what, 15, DIM)

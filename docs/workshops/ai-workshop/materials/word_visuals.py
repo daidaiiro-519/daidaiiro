@@ -82,19 +82,20 @@ def t2_ambiguous():
 def t2_pick():
     """1つの整理の仕方を選び、目的とともに書く。"""
     a = ''
-    rows = [('経理', '日々の運用が回るように', False),
-            ('PM', '案件の進行が止まらないように', True),
-            ('開発', '実装が進むように', False)]
+    rows = [('経費の精算業務', '日々の精算が回るように', False),
+            ('案件の進行管理', '案件の進行が止まらないように', True),
+            ('システムの開発', '実装が進むように', False)]
     for i, (name, why, on) in enumerate(rows):
         y = 30 + i * 78
         a += rect(0, y, 560, 64, ACCENT if on else PAPER, 10, ACCENT if on else LINE)
         a += text(24, y + 40, name, 19, PAPER if on else INK, 700)
-        a += text(160, y + 40, why, 15, PAPER if on else DIM)
+        a += text(232, y + 40, why, 15, PAPER if on else DIM)
         a += check(524, y + 32, PAPER, .8) if on else cross(524, y + 32, DIM, .7)
     a += rect(632, 30, 480, 220, PANEL, 12)
     a += text(656, 62, '依頼に足す1文', 16, DIM)
     a += text(656, 104, ['課題とは、次の打ち合わせで決定しない', 'と、案件の進行が止まるものです。',
-                         '経理の中で解決できるものと、開発', 'の中で解決できるものは含めません。'], 17, INK, gap=26)
+                         '経費の精算業務の中で解決できるものと、',
+                         'システムの開発の中で解決できるものは含めません。'], 17, INK, gap=26)
     a += text(656, 222, '目的　次回の議題を組成すること', 15, ACCENT, 700)
     a += band(282, '含めないものも並べて、どちらとも取れるものをAIに任せない')
     return svg('3つの整理の仕方のうち1つを選び、目的の言葉で書き直す', a, 350)
