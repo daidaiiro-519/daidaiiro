@@ -5,7 +5,7 @@ from lesson_visuals import (text, rect, path, arrow, circle, person, icon, svg,
 
 def i0_case():
     """1つの案件に、3つの業務が関わっている。"""
-    a = text(0, 24, 'この教材が通して使う案件', 18, DIM)
+    a = text(0, 24, '3本の教材が通して使う案件', 18, DIM)
     a += rect(356, 44, 400, 84, ACCENT, 12, ACCENT)
     a += text(556, 82, '経費精算システムを入れ替える', 21, PAPER, 700, 'middle')
     a += text(556, 110, '本番の切り替えは3か月後', 15, PAPER, anchor='middle')
@@ -126,7 +126,7 @@ def i0_base():
 
 
 def i0_why():
-    """いま起きていることと、この教材の先。"""
+    """いま起きていることと、このワークショップの先。"""
     a = text(0, 24, 'いま起きていること', 18, DIM)
     a += rect(0, 44, 520, 190, PAPER, 12, LINE)
     for i, s in enumerate(['AIを使う人と、使わない人に分かれる',
@@ -135,7 +135,7 @@ def i0_why():
         a += cross(32, 88 + i * 52, DIM, .6)
         a += text(62, 94 + i * 52, s, 17, INK)
     a += arrow(536, 139, 580, 139, ACCENT)
-    a += text(596, 24, 'この教材のあと', 18, ACCENT, 700)
+    a += text(596, 24, 'このワークショップのあと', 18, ACCENT, 700)
     a += rect(596, 44, 516, 190, PAPER, 12, ACCENT)
     for i, s in enumerate(['自分の業務の課題を、自分で見極める',
                            'AIで動く仕組みにする',
@@ -146,7 +146,7 @@ def i0_why():
     a += rect(0, 258, 5, 88, ACCENT, 2, ACCENT)
     a += text(32, 294, '案件が終わると、作った仕組みはその案件に残る', 18, INK)
     a += text(32, 322, '自分に残るのは、課題をAIで解決する力である', 19, ACCENT, 700)
-    return svg('いま起きていることと、この教材のあとに変わること', a, 356)
+    return svg('いま起きていることと、このワークショップのあとに変わること', a, 356)
 
 
 def i0_loop():
@@ -165,7 +165,7 @@ def i0_loop():
         if i < 3:
             a += arrow(x + 258, 132, x + 282, 132, LINE if i == 0 else ACCENT)
     a += path('M286 232 V248 H1112 V232', ACCENT, 1)
-    a += text(699, 276, 'ここまでが、この教材で練習することである', 19, ACCENT, 700, 'middle')
+    a += text(699, 276, 'ここまでが、このワークショップで練習することである', 19, ACCENT, 700, 'middle')
     return svg('出来事から、課題の本質と、それを解決するものを取り出す', a, 300)
 
 
