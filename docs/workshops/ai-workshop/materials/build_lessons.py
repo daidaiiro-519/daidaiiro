@@ -52,7 +52,7 @@ FIG = {
  'L6-S1': DV.t5_grown, 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
  'L6-S4': DV.t5_three_and_height2, 'L6-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
  # 終わりに
- 'E-S1': EV.e_recap, 'E-S2': EV.e_gained, 'E-S3': EV.e_next,
+ 'E-S1': EV.e_recap, 'E-S3': EV.e_next,
 }
 
 # 本の題。表紙の大見出しは受講前でも読んで分かる1文にし、通し番号は出さない
@@ -195,6 +195,9 @@ def check_ids():
     missing = [i for i, _ in ids if i not in keys]
     if missing:
         raise SystemExit(f'図の対応表に無い枚がある: {missing}')
+    orphan = sorted(set(keys) - {i for i, _ in ids})
+    if orphan:
+        raise SystemExit(f'枚が無いのに、図の対応表に残っている: {orphan}')
     nolede = [i for i, _ in ids if i not in LEDE]
     if nolede:
         raise SystemExit(f'リード文が無い枚がある: {nolede}')

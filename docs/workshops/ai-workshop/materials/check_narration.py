@@ -49,6 +49,28 @@ def main(argv):
         if v and max(v) >= 4:
             print(f'  {sid:8} 最大 {max(v)} 項目　{h[:34]}')
 
+    print('\n■ 正本の3つの文が、どこにどう出ているか')
+    # 読み上げだけを直して、画面の文字が旧いまま残る事故が実際に起きた。
+    # 3つの文は 読み上げ ・ 見出し ・ リード ・ 図 の4か所に散るので、全部並べて目で見る
+    import build_lessons as B
+    KEY = {'意味': '進行が止まるもの', '範囲': '切り替えまでに決める', '条件': 'いつまでか'}
+    led = json.loads((HERE / 'ledes.json').read_text())
+    for name, k in KEY.items():
+        print(f'  ── {name}（{k}）')
+        seen = set()
+        for no, sid, h, t2 in rows():
+            for src, s in (('読み上げ', t2), ('見出し', h), ('リード', led.get(sid, ''))):
+                for x in re.findall(rf'[^。]*{re.escape(k)}[^。]*', s):
+                    x = x.strip()
+                    if x and x not in seen:
+                        seen.add(x); print(f'     {src}  {sid:8} {x[:56]}')
+        for sid, fn in sorted(B.FIG.items()):
+            try: svg = fn()
+            except Exception: continue
+            for x in re.findall(r'>([^<>]+)</text>', svg):
+                if k in x and x not in seen:
+                    seen.add(x); print(f'     図　　  {sid:8} {x[:56]}')
+
     print('\n■ 助数詞の使われ方')
     for k in ('本目', '回目', 'つめ', '件', '回分', '段目'):
         n = sum(len(re.findall(rf'\d+{k}', t)) for *_, t in rows())
