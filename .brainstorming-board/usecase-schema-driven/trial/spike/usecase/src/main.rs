@@ -21,5 +21,10 @@ fn main() {
     for f in &found {
         eprintln!("{}", f.line());
     }
-    eprintln!("見つかったこと {} 件", found.len());
+    // 関係の系統 ── **宣言していない文脈を、上流に挙げていないか**（論点9）
+    let up = usecase::upstream_drift();
+    for x in &up.unbound_externals {
+        eprintln!("宣言していない文脈を上流に挙げた： {x}");
+    }
+    eprintln!("見つかったこと {} 件", found.len() + up.unbound_externals.len());
 }

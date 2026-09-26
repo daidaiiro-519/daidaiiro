@@ -402,5 +402,105 @@
       "subdomain": "SD-01J9A2T",
       "context": "BC-01J9A1S"
     }
+  },
+  {
+    "kind": "aggregate",
+    "id": "AGG-01J9E1F",
+    "name": "確定の進行",
+    "render": "render.aggregate",
+    "rules": [
+      {
+        "name": "引当と与信の両方が済むまで、確定しない",
+        "predicate": "allocated && credited",
+        "check": "check.precondition"
+      }
+    ],
+    "ops": [
+      {
+        "name": "開始する",
+        "pre": [],
+        "post": [
+          "status == 受付"
+        ],
+        "writes": [
+          "確定の進行"
+        ]
+      },
+      {
+        "name": "引当の結果を受ける",
+        "pre": [
+          "status == 受付"
+        ],
+        "post": [
+          "status == 引当済"
+        ],
+        "writes": [
+          "確定の進行"
+        ]
+      },
+      {
+        "name": "与信の結果を受ける",
+        "pre": [
+          "status == 引当済"
+        ],
+        "post": [
+          "status == 与信済"
+        ],
+        "writes": [
+          "確定の進行"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J9E2G",
+        "name": "与信が通らなければ、引当を戻して確定しない",
+        "body": {
+          "given": [
+            {
+              "op": "開始する"
+            },
+            {
+              "op": "引当の結果を受ける"
+            }
+          ],
+          "when": {
+            "op": "与信の結果を受ける"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C"
+    }
+  },
+  {
+    "kind": "use-case",
+    "id": "UC-01J9Z7X",
+    "name": "与信を確認する",
+    "render": "render.usecase",
+    "rules": [],
+    "ops": [
+      {
+        "name": "実行する",
+        "pre": [],
+        "post": [
+          "与信済"
+        ],
+        "writes": [
+          "与信"
+        ]
+      }
+    ],
+    "nodes": [],
+    "body": {
+      "subdomain": "SD-01J9Z8Y",
+      "context": "BC-01J9Z9Z"
+    }
   }
 ]

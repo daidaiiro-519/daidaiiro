@@ -74,6 +74,10 @@ pub fn wire() -> Registry {
     r.op("在庫::引当する");
     r.op("在庫::戻す");
     r.op("在庫を引き当てる::実行する");
+    r.op("確定の進行::開始する");
+    r.op("確定の進行::引当の結果を受ける");
+    r.op("確定の進行::与信の結果を受ける");
+    r.op("与信を確認する::実行する");
 
     // 人が読む形は HTML である（決まり）。**射影を持たない型は、承認を通れない。**
     r.render("render.aggregate", |d| {
@@ -369,6 +373,64 @@ pub fn relation_drift(r: &Ref) -> base::Drift {
         .filter(|d| d.kind == r.to)
         .map(|d| d.id.clone())
         .collect();
+    let mut b = base::Bindings::new();
+    for id in &declared {
+        b.bind(id, id);
+    }
+    base::drift(&declared, &b, &pointed)
+}
+
+// ── 文脈どうしの関係 ──────────────────────────────────────────
+//
+// **各文脈が、自分の上流を宣言する**（論点9）。原典の「各チームは自分が他の文脈と
+// どう連係しているかを地図に反映する責任を持つ」に合わせた形である。
+// **地図は宣言しない ── ここから導出する。**
+
+/// 宣言された上流の関係。1件が (下流の文脈, 上流の文脈, 連係方法) である。
+pub fn context_upstream() -> Vec<(String, String, String)> {
+    let mut out = Vec::new();
+    for d in decls() {
+        if d.kind != "bounded-context" {
+            continue;
+        }
+        let Some(list) = d.body.get("upstream").and_then(|x| x.as_array()) else {
+            continue;
+        };
+        for u in list {
+            let (Some(ctx), Some(how)) = (
+                u.get("ctx").and_then(|x| x.as_str()),
+                u.get("how").and_then(|x| x.as_str()),
+            ) else {
+                continue;
+            };
+            out.push((d.id.clone(), ctx.to_string(), how.to_string()));
+        }
+    }
+    out
+}
+
+/// 導出した文脈の地図 ── **宣言ではない**。上流の宣言を集めただけである。
+pub fn context_map() -> Vec<String> {
+    let mut out: Vec<String> = context_upstream()
+        .into_iter()
+        .map(|(from, to, how)| format!("{from} ──（{how}）──＞ {to}"))
+        .collect();
+    out.sort();
+    out
+}
+
+/// 関係の引き算 ── **宣言していない文脈を、上流に挙げていないか**。
+///
+/// **同じ `drift()` を使う。**基盤は文脈も連係方法も知らない。
+pub fn upstream_drift() -> base::Drift {
+    let ds = decls();
+    let declared: BTreeSet<String> = ds
+        .iter()
+        .filter(|d| d.kind == "bounded-context")
+        .map(|d| d.id.clone())
+        .collect();
+    let pointed: BTreeSet<String> =
+        context_upstream().into_iter().map(|(_, to, _)| to).collect();
     let mut b = base::Bindings::new();
     for id in &declared {
         b.bind(id, id);

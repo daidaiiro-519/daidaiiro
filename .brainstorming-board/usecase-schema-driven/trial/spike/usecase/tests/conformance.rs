@@ -78,10 +78,10 @@ fn 対応表の引き算は_常時ゼロの二系統がゼロである() {
         "結ばれていない識別子: {:?} ／ 切れた対応: {:?}",
         d.unbound_externals, d.dangling
     );
-    // いま結んでいない節は1件だけである ── 在庫の引当は、まだテストを書いていない
+    // いま結んでいない節は2件である ── 在庫の引当と、またがる業務は、まだテストを書いていない
     assert_eq!(
         d.unbound_nodes.into_iter().collect::<Vec<_>>(),
-        vec!["SC-01J9C4D".to_string()],
+        vec!["SC-01J9C4D".to_string(), "SC-01J9E2G".to_string()],
         "結んでいない節が、想定と違う"
     );
 }
@@ -96,7 +96,8 @@ fn 仕様にあって実装にないシナリオが出る() {
     assert_eq!(d.unbound_nodes.into_iter().collect::<Vec<_>>(),
                vec!["SC-01J7Q4N".to_string(), "SC-01J8E5M".to_string(),
                     "SC-01J9C1A".to_string(), "SC-01J9C2B".to_string(),
-                    "SC-01J9C3C".to_string(), "SC-01J9C4D".to_string()]);
+                    "SC-01J9C3C".to_string(), "SC-01J9C4D".to_string(),
+                    "SC-01J9E2G".to_string()]);
 }
 
 #[test]
@@ -261,9 +262,9 @@ fn 文脈の宣言は節を持たないので振る舞いの引き算に出な�
     // **節が無いので、文脈を1件足しても引き算は1件も増えない。**
     let d = base::drift(&base::node_ids(&decls), &usecase::bindings(), &usecase::test_list());
     let ctxs = decls.iter().filter(|d| d.kind == "bounded-context").count();
-    assert_eq!(ctxs, 2, "文脈が2件ある前提の検査である");
+    assert_eq!(ctxs, 3, "文脈が3件ある前提の検査である");
     assert_eq!(
-        d.unbound_nodes.len(), 1,
+        d.unbound_nodes.len(), 2,
         "文脈を足したのに、振る舞いの引き算が増えた ── {:?}", d.unbound_nodes
     );
 }
@@ -491,7 +492,7 @@ fn 操作を持つのに節が無い宣言が挙がる() {
     // いまの仕様では、2つのユースケースが操作を持ちながら節を持っていない。
     assert_eq!(
         usecase::ops_without_nodes().into_iter().collect::<Vec<_>>(),
-        vec!["UC-01J7Q8Q".to_string(), "UC-01J9B4D".to_string()],
+        vec!["UC-01J7Q8Q".to_string(), "UC-01J9B4D".to_string(), "UC-01J9Z7X".to_string()],
         "振る舞いを宣言していない宣言が挙がらない"
     );
 }
@@ -522,4 +523,63 @@ fn 業務サービスは状態を書き換えない() {
                     "{} が書き換えている ── 業務サービスは自分自身の状態を持たない", d.id);
         }
     }
+}
+
+// ── 文脈どうしの関係（論点9） ──────────────────────────────
+
+#[test]
+fn 地図は宣言ではなく_上流の宣言から導出される() {
+    // 宣言の種類は6つのままである ── 地図の宣言（7種類目）は無い。
+    let kinds: std::collections::BTreeSet<String> =
+        usecase::decls().iter().map(|d| d.kind.clone()).collect();
+    assert!(!kinds.contains("context-map"), "地図を宣言にしている");
+    let map = usecase::context_map();
+    assert_eq!(map.len(), 2, "導出した地図の行数が違う： {:?}", map);
+    assert!(map.iter().any(|x| x.contains("モデル変換装置")), "{:?}", map);
+}
+
+#[test]
+fn 宣言していない文脈を上流に挙げると出る() {
+    // いまの仕様では、上流に挙げた文脈は2件とも宣言に在る。
+    let d = usecase::upstream_drift();
+    assert!(d.unbound_externals.is_empty(), "{:?}", d.unbound_externals);
+
+    // 宣言に無い文脈を1件足すと、関係の引き算に出る。
+    let mut ds = usecase::decls();
+    if let Some(c) = ds.iter_mut().find(|d| d.id == "BC-01J8B7C") {
+        let list = c.body.get_mut("upstream").and_then(|x| x.as_array_mut()).expect("上流が無い");
+        list.push(serde_json::json!({"ctx": "BC-9999", "how": "従属する"}));
+    }
+    let declared: std::collections::BTreeSet<String> = ds
+        .iter().filter(|d| d.kind == "bounded-context").map(|d| d.id.clone()).collect();
+    let mut pointed = std::collections::BTreeSet::new();
+    for d in &ds {
+        if let Some(l) = d.body.get("upstream").and_then(|x| x.as_array()) {
+            for u in l {
+                pointed.insert(u["ctx"].as_str().unwrap().to_string());
+            }
+        }
+    }
+    let mut b = base::Bindings::new();
+    for id in &declared {
+        b.bind(id, id);
+    }
+    let drift = base::drift(&declared, &b, &pointed);
+    assert!(drift.unbound_externals.contains("BC-9999"), "{:?}", drift);
+}
+
+#[test]
+fn またがる業務を_どちらの文脈に置いても引き算は変わらない() {
+    // **道具は、属させ先を判定しない**（実測）。原典にも明示が無い。
+    let count = |ds: &[base::Decl]| -> usize {
+        base::audit_bindings(&base::node_ids(ds), &usecase::bindings(), &usecase::test_list()).len()
+    };
+    let before = count(&usecase::decls());
+
+    // 置き場所だけを変えた宣言で、同じ引き算を当てる
+    let mut moved = usecase::decls();
+    let d = moved.iter_mut().find(|d| d.id == "AGG-01J9E1F").expect("またがる業務が無い");
+    d.body.as_object_mut().unwrap()
+        .insert("context".into(), serde_json::json!("BC-01J9A1S"));
+    assert_eq!(before, count(&moved), "置き場所で出方が変わった ── 判定できている");
 }
