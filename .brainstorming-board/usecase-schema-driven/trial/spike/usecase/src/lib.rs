@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 
 /// 仕様の根 ── **走査する場所は、ここ1つだけである**（契約）。
 ///
-/// 渡されなければ、このクレートの隣の見本を使う。
+/// 渡されなければ、この crate の隣の見本を使う。
 /// **仕様はバイナリの外に在る** ── 直しても、組み直さずに反映される。
 pub fn spec_root() -> std::path::PathBuf {
     if let Ok(x) = std::env::var("SCHEMA_SPEC_ROOT") {
