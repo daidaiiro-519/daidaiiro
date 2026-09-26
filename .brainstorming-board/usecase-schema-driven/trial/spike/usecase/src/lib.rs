@@ -46,11 +46,36 @@ pub const ROOT_KIND: &str = "business-domain";
 /// 検査の実体・関門・射影を、名前で登録する。
 ///
 /// **この関数が、配線を行う唯一の場所である**（合成の根）。
+/// 期待を、人が読む1行にする。**射影に出さなければ、承認の材料にならない。**
+fn 期待の行(n: &base::Node) -> String {
+    let Some(t) = n.body.get("then") else {
+        return String::new();
+    };
+    let 成否 = if t.get("fails").and_then(|x| x.as_bool()).unwrap_or(false) {
+        "失敗する"
+    } else {
+        "成功する"
+    };
+    let cs: Vec<String> = t
+        .get("checks")
+        .and_then(|x| x.as_array())
+        .map(|xs| {
+            xs.iter()
+                .filter_map(|c| c.as_str())
+                .map(|c| format!("<code>{c}</code>"))
+                .collect()
+        })
+        .unwrap_or_default();
+    format!("　── {}（{}）", 成否, cs.join(" ・ "))
+}
+
 pub fn wire() -> Registry {
     let mut r = Registry::new();
 
     r.check("check.precondition", |_| Ok(()));
     r.check("check.statusIs", |_| Ok(()));
+    r.check("check.allocationReturned", |_| Ok(()));
+    r.check("check.allocatedUnchanged", |_| Ok(()));
     r.check("check.sumWithin", |d| {
         // 本物なら実体の値を見る。ここでは宣言の形だけを見る試験である。
         if d.ops.iter().any(|o| o.writes.is_empty()) {
@@ -94,7 +119,7 @@ pub fn wire() -> Registry {
         }
         s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
         for x in &d.nodes {
-            s.push_str(&format!("<li><code>{}</code>　{}</li>\n", x.id, x.name));
+            s.push_str(&format!("<li><code>{}</code>　{}{}</li>\n", x.id, x.name, 期待の行(x)));
         }
         s.push_str("</ul>\n");
         s
@@ -187,7 +212,7 @@ pub fn wire() -> Registry {
         }
         s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
         for x in &d.nodes {
-            s.push_str(&format!("<li><code>{}</code>　{}</li>\n", x.id, x.name));
+            s.push_str(&format!("<li><code>{}</code>　{}{}</li>\n", x.id, x.name, 期待の行(x)));
         }
         s.push_str("</ul>\n");
         s
@@ -436,6 +461,50 @@ pub fn upstream_drift() -> base::Drift {
         b.bind(id, id);
     }
     base::drift(&declared, &b, &pointed)
+}
+
+// ── 期待の形（論点4 から来た） ─────────────────────────────
+//
+// **期待は「1つの成否 ＋ 確認する点の列」である。**
+// 1つのシナリオが2つのことを言うことが在る（確定しない ／ 引当を戻す）ので、
+// 確認する点は列にする。**成否は1つ**である ── 成功しながら失敗はしない。
+
+/// 期待の形の誤り。**実体の無い検査も、ここで出る。**
+pub fn expectation_errors_in(ds: &[Decl], reg: &Registry) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    for d in ds {
+        for n in &d.nodes {
+            let Some(t) = n.body.get("then") else {
+                out.insert(format!("{}： 期待が無い", n.id));
+                continue;
+            };
+            if t.get("fails").and_then(|x| x.as_bool()).is_none() {
+                out.insert(format!("{}： 成否を書いていない", n.id));
+            }
+            let checks = t.get("checks").and_then(|x| x.as_array());
+            match checks {
+                None => {
+                    out.insert(format!("{}： 確認する点を書いていない", n.id));
+                }
+                Some(xs) if xs.is_empty() => {
+                    out.insert(format!("{}： 確認する点が空である", n.id));
+                }
+                Some(xs) => {
+                    for c in xs {
+                        let name = c.as_str().unwrap_or("");
+                        if !reg.has_check(name) {
+                            out.insert(format!("{}： 実体の無い検査 {}", n.id, name));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+pub fn expectation_errors() -> BTreeSet<String> {
+    expectation_errors_in(&decls(), &wire())
 }
 
 /// 「ユースケースの集合が業務領域である」が成立しているか ── **空の業務領域を挙げる**。

@@ -583,3 +583,45 @@ fn またがる業務を_どちらの文脈に置いても引き算は変わら�
         .insert("context".into(), serde_json::json!("BC-01J9A1S"));
     assert_eq!(before, count(&moved), "置き場所で出方が変わった ── 判定できている");
 }
+
+// ── 期待の形（論点4 から来た） ─────────────────────────────
+
+#[test]
+fn 期待の形は_いまの仕様で0件である() {
+    let bad = usecase::expectation_errors();
+    assert!(bad.is_empty(), "{:?}", bad);
+}
+
+#[test]
+fn 期待を落とすと出る_実体の無い検査も出る() {
+    let reg = usecase::wire();
+    let mut ds = usecase::decls();
+    // ① 期待を丸ごと落とす
+    if let Some(d) = ds.iter_mut().find(|d| d.id == "AGG-01J9B3C") {
+        d.nodes[0].body.as_object_mut().unwrap().remove("then");
+    }
+    // ② 実体の無い検査を書く
+    if let Some(d) = ds.iter_mut().find(|d| d.id == "AGG-01J9E1F") {
+        d.nodes[0].body["then"]["checks"] = serde_json::json!(["check.無い検査"]);
+    }
+    let bad = usecase::expectation_errors_in(&ds, &reg);
+    assert!(bad.iter().any(|x| x.contains("期待が無い")), "{:?}", bad);
+    assert!(bad.iter().any(|x| x.contains("実体の無い検査")), "{:?}", bad);
+}
+
+#[test]
+fn 確認する点は列である_2つ書ける() {
+    let d = usecase::decls();
+    let n = d.iter().flat_map(|d| &d.nodes).find(|n| n.id == "SC-01J9E2G").expect("節が無い");
+    let cs = n.body["then"]["checks"].as_array().expect("列ではない");
+    assert_eq!(cs.len(), 2, "またがる業務の期待は2つである（確定しない ・ 引当を戻す）");
+}
+
+#[test]
+fn 期待は射影に出る() {
+    let d = usecase::decls();
+    let agg = d.iter().find(|d| d.id == "AGG-01J9E1F").expect("宣言が無い");
+    let html = base::render(agg, &usecase::wire()).expect("射影が無い");
+    assert!(html.contains("失敗する"), "成否が射影に出ていない");
+    assert!(html.contains("check.allocationReturned"), "確認する点が射影に出ていない");
+}
