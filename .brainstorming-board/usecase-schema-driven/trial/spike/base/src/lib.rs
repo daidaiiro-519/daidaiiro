@@ -197,7 +197,7 @@ impl Tx {
         let d: BTreeSet<String> = declared.iter().cloned().collect();
         (
             self.touched.difference(&d).cloned().collect(), // 宣言に無い書き込み
-            d.difference(&self.touched).cloned().collect(),  // 宣言したのに書いていない
+            d.difference(&self.touched).cloned().collect(), // 宣言したのに書いていない
         )
     }
 }
@@ -297,8 +297,16 @@ pub fn audit(decls: &[Decl], reg: &Registry) -> Vec<Finding> {
     let h = operation_holes(decls, reg);
     out.extend(h.declared_only.into_iter().map(Finding::DeclaredOnly));
     out.extend(h.registered_only.into_iter().map(Finding::RegisteredOnly));
-    out.extend(missing_checks(decls, reg).into_iter().map(Finding::MissingCheck));
-    out.extend(without_render(decls, reg).into_iter().map(Finding::NoRender));
+    out.extend(
+        missing_checks(decls, reg)
+            .into_iter()
+            .map(Finding::MissingCheck),
+    );
+    out.extend(
+        without_render(decls, reg)
+            .into_iter()
+            .map(Finding::NoRender),
+    );
     out
 }
 
@@ -320,10 +328,12 @@ pub fn read_spec_tree(root: &std::path::Path) -> Result<Vec<SpecFile>, String> {
     let mut out = Vec::new();
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        let entries = std::fs::read_dir(&dir)
-            .map_err(|e| format!("読めない： {} ── {e}", dir.display()))?;
+        let entries =
+            std::fs::read_dir(&dir).map_err(|e| format!("読めない： {} ── {e}", dir.display()))?;
         for e in entries {
-            let p = e.map_err(|e| format!("読めない： {} ── {e}", dir.display()))?.path();
+            let p = e
+                .map_err(|e| format!("読めない： {} ── {e}", dir.display()))?
+                .path();
             if p.is_dir() {
                 stack.push(p);
                 continue;
@@ -495,7 +505,11 @@ pub fn audit_bindings(
     let d = drift(nodes, b, externals);
     let mut out = Vec::new();
     out.extend(d.unbound_nodes.into_iter().map(Finding::UnboundNode));
-    out.extend(d.unbound_externals.into_iter().map(Finding::UnboundExternal));
+    out.extend(
+        d.unbound_externals
+            .into_iter()
+            .map(Finding::UnboundExternal),
+    );
     out.extend(d.dangling.into_iter().map(Finding::Dangling));
     out
 }

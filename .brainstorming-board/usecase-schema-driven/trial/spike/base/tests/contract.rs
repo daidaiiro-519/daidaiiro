@@ -5,8 +5,14 @@ fn テストの一覧は_1行1識別子である() {
     let text = "\n# これは注記である\n  order::tests::甲  \n\norder::tests::乙\n";
     let got = base::read_test_list(text);
     assert_eq!(got.len(), 2, "{:?}", got);
-    assert!(got.contains("order::tests::甲"), "前後の空白を落としていない");
-    assert!(!got.iter().any(|x| x.starts_with('#')), "注記を識別子にしている");
+    assert!(
+        got.contains("order::tests::甲"),
+        "前後の空白を落としていない"
+    );
+    assert!(
+        !got.iter().any(|x| x.starts_with('#')),
+        "注記を識別子にしている"
+    );
 }
 
 #[test]
@@ -15,9 +21,14 @@ fn 実行系の生の出力は_そのままでは使えない() {
     let raw = "明細が0件のとき確定できない: test\n2 tests, 0 benchmarks\n";
     let got = base::read_test_list(raw);
     // 「: test」も「2 tests, 0 benchmarks」も、そのまま識別子になってしまう
-    assert!(got.contains("明細が0件のとき確定できない: test"),
-            "生の行をそのまま識別子にしている ── 変換は渡す側の仕事である");
-    assert!(got.contains("2 tests, 0 benchmarks"), "件数の行まで識別子になる");
+    assert!(
+        got.contains("明細が0件のとき確定できない: test"),
+        "生の行をそのまま識別子にしている ── 変換は渡す側の仕事である"
+    );
+    assert!(
+        got.contains("2 tests, 0 benchmarks"),
+        "件数の行まで識別子になる"
+    );
 }
 
 // ── 仕様の木を読む（走査する場所は1つだけである） ──────────────
@@ -39,15 +50,21 @@ const 事業領域: &str = r#"[{"kind":"business-domain","id":"BD-1","name":"甲
 
 #[test]
 fn 仕様の木は_根からの相対の道で読む() {
-    let root = 仮の木("木", &[
-        ("business-domain.json", 事業領域),
-        ("usecases/all.json", "[]"),
-        ("読まない.txt", "これは JSON ではない"),
-    ]);
+    let root = 仮の木(
+        "木",
+        &[
+            ("business-domain.json", 事業領域),
+            ("usecases/all.json", "[]"),
+            ("読まない.txt", "これは JSON ではない"),
+        ],
+    );
     let files = base::read_spec_tree(&root).expect("読めない");
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
-    assert_eq!(paths, vec!["business-domain.json", "usecases/all.json"],
-               "JSON 以外を読んでいるか、並びが道から決まっていない");
+    assert_eq!(
+        paths,
+        vec!["business-domain.json", "usecases/all.json"],
+        "JSON 以外を読んでいるか、並びが道から決まっていない"
+    );
     assert!(files[0].at_root(), "根に在ると判定できていない");
     assert!(!files[1].at_root(), "根の外を根と判定している");
     let _ = std::fs::remove_dir_all(&root);
@@ -56,14 +73,23 @@ fn 仕様の木は_根からの相対の道で読む() {
 #[test]
 fn 根が無ければ_読めないと言う() {
     let e = base::read_spec_tree(std::path::Path::new("/在りもしない/根"))
-        .err().expect("在りもしない根を読めてしまった");
+        .err()
+        .expect("在りもしない根を読めてしまった");
     assert!(e.contains("仕様の根が無い"), "{e}");
 }
 
 #[test]
 fn 形の違う仕様は_どのファイルかを言う() {
-    let root = 仮の木("形", &[("business-domain.json", "{ これは JSON ではない }")]);
-    let e = base::read_spec_tree(&root).err().expect("形の違う仕様を読めてしまった");
-    assert!(e.contains("形が違う") && e.contains("business-domain.json"), "{e}");
+    let root = 仮の木(
+        "形",
+        &[("business-domain.json", "{ これは JSON ではない }")],
+    );
+    let e = base::read_spec_tree(&root)
+        .err()
+        .expect("形の違う仕様を読めてしまった");
+    assert!(
+        e.contains("形が違う") && e.contains("business-domain.json"),
+        "{e}"
+    );
     let _ = std::fs::remove_dir_all(&root);
 }

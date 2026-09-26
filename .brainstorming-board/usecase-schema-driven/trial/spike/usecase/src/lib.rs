@@ -56,9 +56,23 @@ fn 期待の行(n: &base::Node) -> String {
     format!("　── {}（{}）", 成否, cs.join(" ・ "))
 }
 
+/// 検査の実体・関門・射影を、名前で登録する。
+///
+/// **この関数が、配線を行う唯一の場所である**（合成の根）。
+/// 束ねる先は5つで、**分け方は宣言の側の区別と一致させる** ──
+/// 振る舞いを持つ宣言（集約 ・ 業務サービス ・ ユースケース）と、枠組みの宣言を分ける。
 pub fn wire() -> Registry {
     let mut r = Registry::new();
+    検査を配線する(&mut r);
+    呼び出し口を配線する(&mut r);
+    振る舞いを持つ宣言の射影を配線する(&mut r);
+    枠組みの宣言の射影を配線する(&mut r);
+    外の実行系の射影を配線する(&mut r);
+    r
+}
 
+/// 不変条件を判定する実体 ── 名前は宣言の側が指す。
+fn 検査を配線する(r: &mut Registry) {
     r.check("check.precondition", |_| Ok(()));
     r.check("check.statusIs", |_| Ok(()));
     r.check("check.allocationReturned", |_| Ok(()));
@@ -71,7 +85,10 @@ pub fn wire() -> Registry {
             Ok(())
         }
     });
+}
 
+/// 呼び出し口の関門 ── ここに無い操作は、宣言に書いてあっても呼べない。
+fn 呼び出し口を配線する(r: &mut Registry) {
     // 呼び出し口の関門 ── 登録された操作だけが呼べる。
     r.op("出荷指示::作成する");
     r.op("出荷指示::明細を足す");
@@ -90,12 +107,20 @@ pub fn wire() -> Registry {
     r.op("確定の進行::引当の結果を受ける");
     r.op("確定の進行::与信の結果を受ける");
     r.op("与信を確認する::実行する");
+}
 
+/// 振る舞いを持つ宣言の射影 ── 集約 ・ 業務サービス ・ ユースケース。
+///
+/// **この3つだけが操作とシナリオを持つ**ので、射影も期待の行を出す。
+fn 振る舞いを持つ宣言の射影を配線する(r: &mut Registry) {
     // 人が読む形は HTML である（決まり）。**射影を持たない型は、承認を通れない。**
     r.render("render.aggregate", |d| {
         let mut s = format!("<h1>{}（集約）</h1>\n<h2>不変条件</h2>\n<ul>\n", d.name);
         for x in &d.rules {
-            s.push_str(&format!("<li>{}　<code>{}</code></li>\n", x.name, x.predicate));
+            s.push_str(&format!(
+                "<li>{}　<code>{}</code></li>\n",
+                x.name, x.predicate
+            ));
         }
         s.push_str("</ul>\n<h2>操作</h2>\n<ul>\n");
         for o in &d.ops {
@@ -106,65 +131,54 @@ pub fn wire() -> Registry {
         }
         s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
         for x in &d.nodes {
-            s.push_str(&format!("<li><code>{}</code>　{}{}</li>\n", x.id, x.name, 期待の行(x)));
+            s.push_str(&format!(
+                "<li><code>{}</code>　{}{}</li>\n",
+                x.id,
+                x.name,
+                期待の行(x)
+            ));
         }
         s.push_str("</ul>\n");
         s
     });
-    // 外の実行系が読む形は MD である（別の契約）。**人が承認する HTML とは、用途が違う。**
-    // 雛形は、その実行系の決まりに合わせて**注入する側**が持つ ── 基盤は名前で呼ぶだけである。
-    r.render("render.skill.md", |d| {
-        let mut s = String::from("---\n");
-        s.push_str(&format!("name: {}\n", d.id));
-        s.push_str(&format!("description: {}（宣言から導出。手で書かない）\n", d.name));
-        s.push_str("---\n\n");
-        s.push_str(&format!("# {}\n\n## 守ること\n", d.name));
-        for x in &d.rules {
-            s.push_str(&format!("- {}\n", x.name));
+    // 業務サービスの射影 ── **状態を持たず、業務ロジックだけを持つ。**
+    r.render("render.service", |d| {
+        let mut s = format!("<h1>{}（業務サービス）</h1>\n", d.name);
+        if let Some(w) = d.body.get("why").and_then(|x| x.as_str()) {
+            s.push_str(&format!("<p>{w}</p>\n"));
         }
-        s.push_str("\n## できること\n");
+        s.push_str("<h2>計算</h2>\n<ul>\n");
         for o in &d.ops {
-            s.push_str(&format!("- `{}` ── 事前 {:?}\n", o.name, o.pre));
+            s.push_str(&format!(
+                "<li><b>{}</b> ── 事前 {:?}／事後 {:?}（書き換えない）</li>\n",
+                o.name, o.pre, o.post
+            ));
         }
+        s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
+        for x in &d.nodes {
+            s.push_str(&format!(
+                "<li><code>{}</code>　{}{}</li>\n",
+                x.id,
+                x.name,
+                期待の行(x)
+            ));
+        }
+        s.push_str("</ul>\n");
         s
     });
-    // 変換機その2 ── **JSON を出す**（Kiro の形）。形式が違っても、口は同じ `render` である。
-    r.render("render.kiro.agent.json", |d| {
-        let tools: Vec<String> = d.ops.iter().map(|o| format!("{:?}", o.name)).collect();
+    r.render("render.usecase", |d| {
         format!(
-            "{{\n  \"name\": {:?},\n  \"description\": {:?},\n  \"tools\": [{}]\n}}\n",
-            d.id, d.name, tools.join(", ")
+            "<h1>{}（ユースケース）</h1>\n<p>操作 {} 件</p>\n",
+            d.name,
+            d.ops.len()
         )
     });
-    // 変換機その3 ── **JSON を出す**（Claude Code の settings.json の形）。
-    r.render("render.claude.settings.json", |d| {
-        let ms: Vec<String> = d
-            .ops
-            .iter()
-            .map(|o| format!("{{\"matcher\": {:?}, \"hooks\": []}}", o.name))
-            .collect();
-        format!("{{\n  \"hooks\": {{\n    \"PreToolUse\": [{}]\n  }}\n}}\n", ms.join(", "))
-    });
-    // 変換機その4 ── **TOML を出す**（Codex の Agent の形）。
-    // 鍵名は原文で照合したものだけを使う ── `name` ・ `description` ・ `sandbox_mode` ・
-    // `developer_instructions`（developers.openai.com/codex/agent-configuration/subagents:421-426）。
-    r.render("render.codex.agent.toml", |d| {
-        let mut s = format!("name = {:?}\ndescription = {:?}\n", d.id, d.name);
-        // **宣言のどこにも無い値は、既定値の表から入れる**（論点2 ・ 論点3 の保留）。
-        // 宣言へ足さない ── 足すと、方法論の語彙へ AI ツールの語が入る。
-        for f in defaults().iter().filter(|f| f.render == "render.codex.agent.toml") {
-            s.push_str(&format!("{} = {:?}\n", f.key, f.value));
-        }
-        s.push_str("developer_instructions = \"\"\"\n");
-        for x in &d.rules {
-            s.push_str(&format!("{} を保つこと。\n", x.name));
-        }
-        for o in &d.ops {
-            s.push_str(&format!("{} は、事前条件 {:?} を満たすときだけ実行する。\n", o.name, o.pre));
-        }
-        s.push_str("\"\"\"\n");
-        s
-    });
+}
+
+/// 枠組みの宣言の射影 ── 事業領域 ・ 業務領域 ・ 区切られた文脈。
+///
+/// 振る舞いを持たないので、出すのは範囲 ・ 分類 ・ 語である。
+fn 枠組みの宣言の射影を配線する(r: &mut Registry) {
     // 事業領域の射影 ── **概念（大枠）が先、当てはめ（リポジトリなど）は後に置く。**
     // 当てはめを先に書くと、抽象の高さが下がって読まれる。
     r.render("render.business-domain", |d| {
@@ -184,29 +198,20 @@ pub fn wire() -> Registry {
     });
     // 業務領域の射影 ── 分類は<b>外から取り込む前提</b>なので、決めた日と理由を並べて出す。
     r.render("render.subdomain", |d| {
-        let g = |k: &str| d.body.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
+        let g = |k: &str| {
+            d.body
+                .get(k)
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .to_string()
+        };
         format!(
             "<h1>{}（業務領域）</h1>\n<p>分類は <b>{}</b> である（{} 時点）</p>\n<p>{}</p>\n",
-            d.name, g("category"), g("asOf"), g("why")
+            d.name,
+            g("category"),
+            g("asOf"),
+            g("why")
         )
-    });
-    // 業務サービスの射影 ── **状態を持たず、業務ロジックだけを持つ。**
-    r.render("render.service", |d| {
-        let mut s = format!("<h1>{}（業務サービス）</h1>\n", d.name);
-        if let Some(w) = d.body.get("why").and_then(|x| x.as_str()) {
-            s.push_str(&format!("<p>{w}</p>\n"));
-        }
-        s.push_str("<h2>計算</h2>\n<ul>\n");
-        for o in &d.ops {
-            s.push_str(&format!("<li><b>{}</b> ── 事前 {:?}／事後 {:?}（書き換えない）</li>\n",
-                                o.name, o.pre, o.post));
-        }
-        s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
-        for x in &d.nodes {
-            s.push_str(&format!("<li><code>{}</code>　{}{}</li>\n", x.id, x.name, 期待の行(x)));
-        }
-        s.push_str("</ul>\n");
-        s
     });
     // 区切られた文脈の射影 ── **語の一覧は、ここにだけ出る**（文脈の内側でしか通用しない）。
     r.render("render.context", |d| {
@@ -227,10 +232,78 @@ pub fn wire() -> Registry {
         s.push_str("</ul>\n");
         s
     });
-    r.render("render.usecase", |d| {
-        format!("<h1>{}（ユースケース）</h1>\n<p>操作 {} 件</p>\n", d.name, d.ops.len())
+}
+
+/// 外の実行系が読む射影 ── **人が承認する HTML とは、用途が違う。**
+fn 外の実行系の射影を配線する(r: &mut Registry) {
+    // 外の実行系が読む形は MD である（別の契約）。**人が承認する HTML とは、用途が違う。**
+    // 雛形は、その実行系の決まりに合わせて**注入する側**が持つ ── 基盤は名前で呼ぶだけである。
+    r.render("render.skill.md", |d| {
+        let mut s = String::from("---\n");
+        s.push_str(&format!("name: {}\n", d.id));
+        s.push_str(&format!(
+            "description: {}（宣言から導出。手で書かない）\n",
+            d.name
+        ));
+        s.push_str("---\n\n");
+        s.push_str(&format!("# {}\n\n## 守ること\n", d.name));
+        for x in &d.rules {
+            s.push_str(&format!("- {}\n", x.name));
+        }
+        s.push_str("\n## できること\n");
+        for o in &d.ops {
+            s.push_str(&format!("- `{}` ── 事前 {:?}\n", o.name, o.pre));
+        }
+        s
     });
-    r
+    // 変換機その2 ── **JSON を出す**（Kiro の形）。形式が違っても、口は同じ `render` である。
+    r.render("render.kiro.agent.json", |d| {
+        let tools: Vec<String> = d.ops.iter().map(|o| format!("{:?}", o.name)).collect();
+        format!(
+            "{{\n  \"name\": {:?},\n  \"description\": {:?},\n  \"tools\": [{}]\n}}\n",
+            d.id,
+            d.name,
+            tools.join(", ")
+        )
+    });
+    // 変換機その3 ── **JSON を出す**（Claude Code の settings.json の形）。
+    r.render("render.claude.settings.json", |d| {
+        let ms: Vec<String> = d
+            .ops
+            .iter()
+            .map(|o| format!("{{\"matcher\": {:?}, \"hooks\": []}}", o.name))
+            .collect();
+        format!(
+            "{{\n  \"hooks\": {{\n    \"PreToolUse\": [{}]\n  }}\n}}\n",
+            ms.join(", ")
+        )
+    });
+    // 変換機その4 ── **TOML を出す**（Codex の Agent の形）。
+    // 鍵名は原文で照合したものだけを使う ── `name` ・ `description` ・ `sandbox_mode` ・
+    // `developer_instructions`（developers.openai.com/codex/agent-configuration/subagents:421-426）。
+    r.render("render.codex.agent.toml", |d| {
+        let mut s = format!("name = {:?}\ndescription = {:?}\n", d.id, d.name);
+        // **宣言のどこにも無い値は、既定値の表から入れる**（論点2 ・ 論点3 の保留）。
+        // 宣言へ足さない ── 足すと、方法論の語彙へ AI ツールの語が入る。
+        for f in defaults()
+            .iter()
+            .filter(|f| f.render == "render.codex.agent.toml")
+        {
+            s.push_str(&format!("{} = {:?}\n", f.key, f.value));
+        }
+        s.push_str("developer_instructions = \"\"\"\n");
+        for x in &d.rules {
+            s.push_str(&format!("{} を保つこと。\n", x.name));
+        }
+        for o in &d.ops {
+            s.push_str(&format!(
+                "{} は、事前条件 {:?} を満たすときだけ実行する。\n",
+                o.name, o.pre
+            ));
+        }
+        s.push_str("\"\"\"\n");
+        s
+    });
 }
 
 /// 対応表 ── AI が MCP で申告した内容が、ここへ入る。
@@ -240,7 +313,10 @@ pub fn bindings() -> Bindings {
     let mut b = Bindings::new();
     b.bind("SC-01J7Q4M", "usecase::tests::明細が0件のとき確定できない");
     b.bind("SC-01J7Q4N", "usecase::tests::明細が1件あれば確定できる");
-    b.bind("SC-01J8E5M", "usecase::tests::確定していなければ計算できない");
+    b.bind(
+        "SC-01J8E5M",
+        "usecase::tests::確定していなければ計算できない",
+    );
     b.bind("SC-01J9C1A", "order::tests::明細が0件なら確定できない");
     b.bind("SC-01J9C2B", "order::tests::明細が1件あれば確定できる");
     b.bind("SC-01J9C3C", "usecase::tests::在庫不足なら確定できない");
@@ -268,7 +344,6 @@ order::tests::明細が0件なら確定できない
 order::tests::明細が1件あれば確定できる
 ";
 
-
 /// 「確定する」の実装。**書き込みは必ず関門を通す。**
 pub fn confirm(tx: &mut base::Tx) {
     tx.write("出荷指示");
@@ -295,29 +370,43 @@ pub struct Target {
 /// 出す先の一覧。**宣言 × ここ＝出る成果物の集合**である。
 pub fn targets() -> Vec<Target> {
     vec![
-        Target { render: "render.skill.md",
-                 path: |id| format!(".claude/skills/{id}/SKILL.md"),
-                 kinds: &["aggregate", "use-case", "domain-service"] },
-        Target { render: "render.kiro.agent.json",
-                 path: |id| format!(".kiro/agents/{id}.json"),
-                 kinds: &["aggregate", "use-case", "domain-service"] },
-        Target { render: "render.claude.settings.json",
-                 path: |id| format!(".claude/settings.{id}.json"),
-                 kinds: &["aggregate"] },
-        Target { render: "render.codex.agent.toml",
-                 path: |id| format!(".codex/agents/{id}.toml"),
-                 kinds: &["aggregate", "use-case", "domain-service"] },
+        Target {
+            render: "render.skill.md",
+            path: |id| format!(".claude/skills/{id}/SKILL.md"),
+            kinds: &["aggregate", "use-case", "domain-service"],
+        },
+        Target {
+            render: "render.kiro.agent.json",
+            path: |id| format!(".kiro/agents/{id}.json"),
+            kinds: &["aggregate", "use-case", "domain-service"],
+        },
+        Target {
+            render: "render.claude.settings.json",
+            path: |id| format!(".claude/settings.{id}.json"),
+            kinds: &["aggregate"],
+        },
+        Target {
+            render: "render.codex.agent.toml",
+            path: |id| format!(".codex/agents/{id}.toml"),
+            kinds: &["aggregate", "use-case", "domain-service"],
+        },
         // 文脈は、語の一覧を出す先が1つだけである。
-        Target { render: "render.context",
-                 path: |id| format!(".schema/context/{id}.html"),
-                 kinds: &["bounded-context"] },
+        Target {
+            render: "render.context",
+            path: |id| format!(".schema/context/{id}.html"),
+            kinds: &["bounded-context"],
+        },
         // 業務領域は、人が読む1枚だけを出す（実行系は読まない）。
-        Target { render: "render.business-domain",
-                 path: |id| format!(".schema/business-domain/{id}.html"),
-                 kinds: &["business-domain"] },
-        Target { render: "render.subdomain",
-                 path: |id| format!(".schema/subdomain/{id}.html"),
-                 kinds: &["subdomain"] },
+        Target {
+            render: "render.business-domain",
+            path: |id| format!(".schema/business-domain/{id}.html"),
+            kinds: &["business-domain"],
+        },
+        Target {
+            render: "render.subdomain",
+            path: |id| format!(".schema/subdomain/{id}.html"),
+            kinds: &["subdomain"],
+        },
     ]
 }
 
@@ -345,7 +434,12 @@ pub fn placed_files() -> BTreeSet<String> {
 pub fn subdomain_refs() -> BTreeSet<String> {
     decls()
         .iter()
-        .filter_map(|d| d.body.get("subdomain").and_then(|x| x.as_str()).map(String::from))
+        .filter_map(|d| {
+            d.body
+                .get("subdomain")
+                .and_then(|x| x.as_str())
+                .map(String::from)
+        })
         .collect()
 }
 
@@ -386,18 +480,27 @@ pub struct Filled {
 /// 既定値の表 ── **ここに無い鍵を、変換機が直に書いてはならない。**
 pub fn defaults() -> Vec<Filled> {
     vec![
-        Filled { render: "render.codex.agent.toml", key: "model",
-                 value: "gpt-5.6-luna",
-                 why: "宣言のどこにも無い ── 使う模型は、業務の仕様ではなく実行の環境が決める" },
-        Filled { render: "render.codex.agent.toml", key: "sandbox_mode",
-                 value: "read-only",
-                 why: "宣言のどこにも無い ── 生成物を書き換えさせないための、注入する側の決め事" },
+        Filled {
+            render: "render.codex.agent.toml",
+            key: "model",
+            value: "gpt-5.6-luna",
+            why: "宣言のどこにも無い ── 使う模型は、業務の仕様ではなく実行の環境が決める",
+        },
+        Filled {
+            render: "render.codex.agent.toml",
+            key: "sandbox_mode",
+            value: "read-only",
+            why: "宣言のどこにも無い ── 生成物を書き換えさせないための、注入する側の決め事",
+        },
     ]
 }
 
 /// 既定値で埋めた鍵の一覧（`射影名::鍵`）。**報告に出すためである。**
 pub fn defaulted_keys() -> BTreeSet<String> {
-    defaults().iter().map(|f| format!("{}::{}", f.render, f.key)).collect()
+    defaults()
+        .iter()
+        .map(|f| format!("{}::{}", f.render, f.key))
+        .collect()
 }
 
 /// 変換機が出した鍵のうち、**宣言由来でも既定値の表でもないもの**。
@@ -411,8 +514,10 @@ pub fn unexplained_keys() -> BTreeSet<String> {
         .map(|f| f.key.to_string())
         .collect();
     // 宣言から出る鍵 ── 変換機が宣言の値を写している先である
-    let 宣言由来: BTreeSet<String> =
-        ["name", "description", "developer_instructions"].iter().map(|x| x.to_string()).collect();
+    let 宣言由来: BTreeSet<String> = ["name", "description", "developer_instructions"]
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
     let mut out = BTreeSet::new();
     for d in decls() {
         let Some(toml) = base::render_as(&d, &reg, "render.codex.agent.toml") else {
@@ -434,13 +539,41 @@ pub fn unexplained_keys() -> BTreeSet<String> {
 /// この方法論が持つ、宣言どうしの関係。
 pub fn refs() -> Vec<Ref> {
     vec![
-        Ref { from: "subdomain", field: "businessDomain", to: "business-domain" },
-        Ref { from: "use-case", field: "subdomain", to: "subdomain" },
-        Ref { from: "aggregate", field: "subdomain", to: "subdomain" },
-        Ref { from: "use-case", field: "context", to: "bounded-context" },
-        Ref { from: "aggregate", field: "context", to: "bounded-context" },
-        Ref { from: "domain-service", field: "subdomain", to: "subdomain" },
-        Ref { from: "domain-service", field: "context", to: "bounded-context" },
+        Ref {
+            from: "subdomain",
+            field: "businessDomain",
+            to: "business-domain",
+        },
+        Ref {
+            from: "use-case",
+            field: "subdomain",
+            to: "subdomain",
+        },
+        Ref {
+            from: "aggregate",
+            field: "subdomain",
+            to: "subdomain",
+        },
+        Ref {
+            from: "use-case",
+            field: "context",
+            to: "bounded-context",
+        },
+        Ref {
+            from: "aggregate",
+            field: "context",
+            to: "bounded-context",
+        },
+        Ref {
+            from: "domain-service",
+            field: "subdomain",
+            to: "subdomain",
+        },
+        Ref {
+            from: "domain-service",
+            field: "context",
+            to: "bounded-context",
+        },
     ]
 }
 
@@ -452,7 +585,12 @@ pub fn relation_drift(r: &Ref) -> base::Drift {
     let pointed: BTreeSet<String> = ds
         .iter()
         .filter(|d| d.kind == r.from)
-        .filter_map(|d| d.body.get(r.field).and_then(|x| x.as_str()).map(String::from))
+        .filter_map(|d| {
+            d.body
+                .get(r.field)
+                .and_then(|x| x.as_str())
+                .map(String::from)
+        })
         .collect();
     let declared: BTreeSet<String> = ds
         .iter()
@@ -515,8 +653,10 @@ pub fn upstream_drift() -> base::Drift {
         .filter(|d| d.kind == "bounded-context")
         .map(|d| d.id.clone())
         .collect();
-    let pointed: BTreeSet<String> =
-        context_upstream().into_iter().map(|(_, to, _)| to).collect();
+    let pointed: BTreeSet<String> = context_upstream()
+        .into_iter()
+        .map(|(_, to, _)| to)
+        .collect();
     let mut b = base::Bindings::new();
     for id in &declared {
         b.bind(id, id);
@@ -574,7 +714,12 @@ pub fn empty_subdomains() -> BTreeSet<String> {
     let used: BTreeSet<String> = ds
         .iter()
         .filter(|d| d.kind == "use-case")
-        .filter_map(|d| d.body.get("subdomain").and_then(|x| x.as_str()).map(String::from))
+        .filter_map(|d| {
+            d.body
+                .get("subdomain")
+                .and_then(|x| x.as_str())
+                .map(String::from)
+        })
         .collect();
     ds.iter()
         .filter(|d| d.kind == "subdomain" && !used.contains(&d.id))
@@ -632,11 +777,18 @@ pub fn subdomains_spanning_contexts_in(ds: &[Decl]) -> BTreeSet<String> {
             m.entry(sd.to_string()).or_default().insert(cx.to_string());
         }
     }
-    m.into_iter().filter(|(_, cs)| cs.len() > 1).map(|(sd, _)| sd).collect()
+    m.into_iter()
+        .filter(|(_, cs)| cs.len() > 1)
+        .map(|(sd, _)| sd)
+        .collect()
 }
 
-pub fn ref_shape_errors() -> BTreeSet<String> { ref_shape_errors_in(&decls()) }
-pub fn name_clashes() -> BTreeSet<String> { name_clashes_in(&decls()) }
+pub fn ref_shape_errors() -> BTreeSet<String> {
+    ref_shape_errors_in(&decls())
+}
+pub fn name_clashes() -> BTreeSet<String> {
+    name_clashes_in(&decls())
+}
 pub fn subdomains_spanning_contexts() -> BTreeSet<String> {
     subdomains_spanning_contexts_in(&decls())
 }

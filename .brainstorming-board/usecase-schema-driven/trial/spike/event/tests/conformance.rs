@@ -26,13 +26,19 @@ fn 人が読む形はHTMLである() {
     let decls = event::decls();
     let reg = event::wire();
     for d in &decls {
-        assert!(base::render(d, &reg).expect("射影が無い").starts_with("<h1>"));
+        assert!(base::render(d, &reg)
+            .expect("射影が無い")
+            .starts_with("<h1>"));
     }
 }
 
 #[test]
 fn 対応表で三つの引き算が全部ゼロになる() {
     let decls = event::decls();
-    let d = base::drift(&base::node_ids(&decls), &event::bindings(), &event::test_list());
+    let d = base::drift(
+        &base::node_ids(&decls),
+        &event::bindings(),
+        &event::test_list(),
+    );
     assert!(d.is_empty(), "{:?}", d);
 }

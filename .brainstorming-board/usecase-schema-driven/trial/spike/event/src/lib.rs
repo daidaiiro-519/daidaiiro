@@ -7,8 +7,16 @@
 use base::{Bindings, Decl, Registry};
 use std::collections::BTreeSet;
 
+/// 仕様の根 ── **バイナリの外に在る**。読むのは実行のときである。
+pub fn spec_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("spec")
+}
+
 pub fn decls() -> Vec<Decl> {
-    base::read(include_str!("../spec/order-placed.json")).expect("宣言が読めない")
+    let p = spec_root().join("order-placed.json");
+    let text =
+        std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("{} を読めない ── {e}", p.display()));
+    base::read(&text).expect("宣言が読めない")
 }
 
 /// 配線の根。**ユースケース駆動の側と、同じ5つの口しか使っていない。**
@@ -20,7 +28,10 @@ pub fn wire() -> Registry {
     r.op("出荷が指示されたら、在庫を引き落とす::反応する");
 
     r.render("render.event", |d| {
-        let mut s = format!("<h1>{}（業務イベント）</h1>\n<h2>受入条件</h2>\n<ul>\n", d.name);
+        let mut s = format!(
+            "<h1>{}（業務イベント）</h1>\n<h2>受入条件</h2>\n<ul>\n",
+            d.name
+        );
         for x in &d.nodes {
             s.push_str(&format!("<li><code>{}</code>　{}</li>\n", x.id, x.name));
         }
@@ -41,16 +52,24 @@ pub fn wire() -> Registry {
 /// 対応表 ── 受入条件の ID と、テストの識別子を結ぶ。
 pub fn bindings() -> Bindings {
     let mut b = Bindings::new();
-    b.bind("AC-01J8A2P", "event::tests::引当が済んでいなければ発行されない");
-    b.bind("AC-01J8A4T", "event::tests::二度受けても在庫は一度しか減らない");
+    b.bind(
+        "AC-01J8A2P",
+        "event::tests::引当が済んでいなければ発行されない",
+    );
+    b.bind(
+        "AC-01J8A4T",
+        "event::tests::二度受けても在庫は一度しか減らない",
+    );
     b
 }
 
 /// テストの一覧 ── その言語のテスト実行系が列挙したもの。
 pub fn test_list() -> BTreeSet<String> {
-    ["event::tests::引当が済んでいなければ発行されない",
-     "event::tests::二度受けても在庫は一度しか減らない"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    [
+        "event::tests::引当が済んでいなければ発行されない",
+        "event::tests::二度受けても在庫は一度しか減らない",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
