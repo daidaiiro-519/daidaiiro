@@ -794,6 +794,104 @@
         ],
         "target": "rust"
       }
+    },
+    {
+      "rule": "命名が、RFC 430 の規約に従う",
+      "source": {
+        "meta": "Rust API Guidelines, Naming (C-CASE)",
+        "quote": "In general, Rust tends to use <code>UpperCamelCase</code> for &quot;type-level&quot; constructs (types and",
+        "fetched": {
+          "url": "https://rust-lang.github.io/api-guidelines/naming.html",
+          "date": "2026-09-26",
+          "sha256": "5e1c03f7a473ca7654d55b5baac4f4bdac620dc7763e5b872350f8c46f59fc13",
+          "line": 170
+        }
+      },
+      "scope": "大文字小文字の規約のみ ── 語の選び方は対象にしない",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--",
+          "-Dnon_camel_case_types",
+          "-Dnon_snake_case",
+          "-Dnon_upper_case_globals"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "取り出しの失敗を、unwrap で潰さない",
+      "source": {
+        "meta": "Clippy lints, unwrap_used",
+        "quote": "It is better to handle the <code>None</code> or <code>Err</code> case,",
+        "fetched": {
+          "url": "https://rust-lang.github.io/rust-clippy/master/index.html",
+          "date": "2026-09-26",
+          "sha256": "25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b",
+          "line": 17900
+        }
+      },
+      "scope": "unwrap と expect のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--",
+          "-Dclippy::unwrap_used"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "unsafe を使わない",
+      "source": {
+        "meta": "rustc lints, unsafe_code",
+        "quote": "The <code>unsafe_code</code> lint catches usage of <code>unsafe</code> code and other",
+        "fetched": {
+          "url": "https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html",
+          "date": "2026-09-26",
+          "sha256": "ed5ccd9ef74615b7fca887ee7c162098db680a02116cf7978ee1e3f482d54d76",
+          "line": 2387
+        }
+      },
+      "scope": "unsafe の使用のみ ── 必要になったら、この規則を外して理由を記録する",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--",
+          "-Dunsafe_code"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "公開する項目に文書を書く",
+      "source": {
+        "meta": "rustc lints, missing_docs",
+        "quote": "The <code>missing_docs</code> lint detects missing documentation for public items.",
+        "fetched": {
+          "url": "https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html",
+          "date": "2026-09-26",
+          "sha256": "ed5ccd9ef74615b7fca887ee7c162098db680a02116cf7978ee1e3f482d54d76",
+          "line": 1261
+        }
+      },
+      "scope": "公開する項目のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--",
+          "-Dmissing_docs"
+        ],
+        "target": "rust"
+      }
     }
   ]
 }
