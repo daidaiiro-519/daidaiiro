@@ -4,7 +4,7 @@ package adapter
 import (
 	"fmt"
 
-	"example.com/layered/internal/core"
+	"example.com/core"
 )
 
 // LabelOf は内側の層を組んで、その名前を返す。
