@@ -22,19 +22,21 @@
     "narration:lib",
     "narration:declaration",
     "narration:entry",
-    "no-more-spaghetti:lib",
-    "no-more-spaghetti:declaration",
-    "no-more-spaghetti:entry",
-    "skills-creator:lib",
-    "skills-creator:declaration",
-    "skills-creator:entry",
     "slide-deck:lib",
     "slide-deck:declaration",
     "slide-deck:entry",
     "rust:core",
     "rust:adapter",
     "go:core",
-    "go:adapter"
+    "go:adapter",
+    "no-more-spaghetti:parts",
+    "no-more-spaghetti:declare",
+    "no-more-spaghetti:cli",
+    "no-more-spaghetti:mcp",
+    "skills-creator:parts",
+    "skills-creator:declare",
+    "skills-creator:cli",
+    "skills-creator:mcp"
   ],
   "layers": {
     "skills": ".claude/skills",
@@ -58,19 +60,21 @@
     "narration:lib": ".claude/skills/narration/scripts/lib",
     "narration:declaration": ".claude/skills/narration/scripts/tools.py",
     "narration:entry": ".claude/skills/narration/scripts/cli.py",
-    "no-more-spaghetti:lib": ".claude/skills/no-more-spaghetti/scripts/lib",
-    "no-more-spaghetti:declaration": ".claude/skills/no-more-spaghetti/scripts/tools.py",
-    "no-more-spaghetti:entry": ".claude/skills/no-more-spaghetti/scripts/cli.py",
-    "skills-creator:lib": ".claude/skills/skills-creator/scripts/lib",
-    "skills-creator:declaration": ".claude/skills/skills-creator/scripts/tools.py",
-    "skills-creator:entry": ".claude/skills/skills-creator/scripts/cli.py",
     "slide-deck:lib": ".claude/skills/slide-deck/scripts/lib",
     "slide-deck:declaration": ".claude/skills/slide-deck/scripts/tools.py",
     "slide-deck:entry": ".claude/skills/slide-deck/scripts/cli.py",
     "rust:core": "rust/core",
     "rust:adapter": "rust/adapter",
     "go:core": "go/core",
-    "go:adapter": "go/adapter"
+    "go:adapter": "go/adapter",
+    "no-more-spaghetti:parts": ".claude/skills/no-more-spaghetti/rs/parts",
+    "no-more-spaghetti:declare": ".claude/skills/no-more-spaghetti/rs/declare",
+    "no-more-spaghetti:cli": ".claude/skills/no-more-spaghetti/rs/cli",
+    "no-more-spaghetti:mcp": ".claude/skills/no-more-spaghetti/rs/mcp",
+    "skills-creator:parts": ".claude/skills/skills-creator/rs/parts",
+    "skills-creator:declare": ".claude/skills/skills-creator/rs/declare",
+    "skills-creator:cli": ".claude/skills/skills-creator/rs/cli",
+    "skills-creator:mcp": ".claude/skills/skills-creator/rs/mcp"
   },
   "rules": [
     {
@@ -130,11 +134,14 @@
       "scope": "形 ・ 道具の書き方 ・ 出典の有無 ・ $schema の解決",
       "check": {
         "tool": [
-          "python3",
-          ".claude/skills/no-more-spaghetti/scripts/cli.py",
+          ".claude/skills/no-more-spaghetti/rs/target/release/no-more-spaghetti",
           "validate",
+          "--rules",
           ".coding-rules/rules.json",
-          "."
+          "--root",
+          ".",
+          "--skill_root",
+          ".claude/skills/no-more-spaghetti"
         ]
       }
     },
@@ -172,10 +179,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/acdr"
       }
@@ -246,10 +254,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/brainstorming-board"
       }
@@ -337,10 +346,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/design-svg"
       }
@@ -399,10 +409,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/doc-writing-skills"
       }
@@ -445,10 +456,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/fact-check"
       }
@@ -491,10 +503,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/narration"
       }
@@ -537,66 +550,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
-        ],
-        "target": ".claude/skills/no-more-spaghetti"
-      }
-    },
-    {
-      "rule": "test_concepts の事例が通る",
-      "source": {
-        "record": "no-more-spaghetti/SKILL.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_concepts.py"
-        ],
-        "target": ".claude/skills/no-more-spaghetti"
-      }
-    },
-    {
-      "rule": "test_run の事例が通る",
-      "source": {
-        "record": "no-more-spaghetti/SKILL.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_run.py"
-        ],
-        "target": ".claude/skills/no-more-spaghetti"
-      }
-    },
-    {
-      "rule": "test_schema の事例が通る",
-      "source": {
-        "record": "no-more-spaghetti/SKILL.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_schema.py"
-        ],
-        "target": ".claude/skills/no-more-spaghetti"
-      }
-    },
-    {
-      "rule": "test_tools の事例が通る",
-      "source": {
-        "record": "no-more-spaghetti/SKILL.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_tools.py"
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/no-more-spaghetti"
       }
@@ -625,10 +583,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/skills-creator"
       }
@@ -650,20 +609,6 @@
       }
     },
     {
-      "rule": "節の検査が、雛形との差を検出する",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_sections.py"
-        ],
-        "target": ".claude/skills/skills-creator"
-      }
-    },
-    {
       "rule": "入口と部品の置き場所が、契約を満たす",
       "source": {
         "record": "skills-creator/references/tool-contract.md"
@@ -671,10 +616,11 @@
       "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
       "check": {
         "tool": [
-          "python3",
-          "../skills-creator/scripts/cli.py",
+          "../skills-creator/rs/target/release/skills-creator",
           "check",
-          "."
+          ".",
+          "--skill_root",
+          "../skills-creator"
         ],
         "target": ".claude/skills/slide-deck"
       }
@@ -1134,13 +1080,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/acdr"
       }
@@ -1153,13 +1098,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/brainstorming-board"
       }
@@ -1172,13 +1116,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/design-svg"
       }
@@ -1191,13 +1134,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/doc-writing-skills"
       }
@@ -1210,13 +1152,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/fact-check"
       }
@@ -1229,13 +1170,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/narration"
       }
@@ -1248,51 +1188,12 @@
       "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
       "check": {
         "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
-        ],
-        "target": ".claude/skills/no-more-spaghetti"
-      }
-    },
-    {
-      "rule": "依存の向きが、内向きである",
-      "source": {
-        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
-      },
-      "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
-      "check": {
-        "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
-        ],
-        "target": ".claude/skills/skills-creator"
-      }
-    },
-    {
-      "rule": "依存の向きが、内向きである",
-      "source": {
-        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
-      },
-      "scope": "部品から入口と宣言への参照と、部品が文字列でモジュールを読み込む箇所のみ ── 許可する辺は、禁じる名前を引数で渡して宣言する。**検査はこのリポジトリが持つ**（.coding-rules/tools/inward.py）",
-      "check": {
-        "tool": [
-          "python3",
-          "../../../.coding-rules/tools/inward.py",
-          "scripts/lib",
-          "contract",
-          "tools",
-          "cli",
-          "mcp_server"
+          "../../../.coding-rules/tools/inward/target/release/inward",
+          "python",
+          "scripts",
+          "lib=lib",
+          "declaration=tools|contract",
+          "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/slide-deck"
       }
@@ -1664,6 +1565,136 @@
           "./..."
         ],
         "target": "go/adapter"
+      }
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ],
+        "target": ".claude/skills/no-more-spaghetti/rs"
+      }
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "target": ".claude/skills/no-more-spaghetti/rs"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ],
+        "target": ".claude/skills/no-more-spaghetti/rs"
+      }
+    },
+    {
+      "rule": "依存の向きが、宣言と一致する",
+      "source": {
+        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
+      },
+      "scope": "crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い crate は解決しない",
+      "check": {
+        "tool": [
+          "cargo",
+          "build",
+          "--all-targets"
+        ],
+        "target": ".claude/skills/no-more-spaghetti/rs"
+      }
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ],
+        "target": ".claude/skills/skills-creator/rs"
+      }
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "target": ".claude/skills/skills-creator/rs"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "no-more-spaghetti/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ],
+        "target": ".claude/skills/skills-creator/rs"
+      }
+    },
+    {
+      "rule": "依存の向きが、宣言と一致する",
+      "source": {
+        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
+      },
+      "scope": "crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い crate は解決しない",
+      "check": {
+        "tool": [
+          "cargo",
+          "build",
+          "--all-targets"
+        ],
+        "target": ".claude/skills/skills-creator/rs"
       }
     }
   ]

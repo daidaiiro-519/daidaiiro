@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: MIT
+//! skills-creator の唯一の入口。
+//!
+//!     skills-creator <動詞> [対象…] [--json]
+//!
+//! **道具ごとに入口を作らない** ── 入口が増えると、呼ぶ側が形を推測することになる。
+//! 許可辺は `Cargo.toml` が宣言する ── この crate は宣言だけを参照する。
+
+use std::process::ExitCode;
+
+use sc_declare::{tools, Given, Outcome, Tool};
+
+/// 旗と位置引数を読み、渡された引数を組む。
+///
+/// **旗は `--名前=値` と `--名前 値` の両方を受ける** ── 書き方を1つに強制すると、
+/// 既存の手順が壊れる。**値を伴わない旗は、立っている** ── 空にすると、`--check` が
+/// 黙って逆の意味になる。**次が別の旗なら、それは値ではない。**
+fn read_args(tool: &Tool, rest: &[String]) -> Given {
+    let mut given = Given::default();
+    let mut positional: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < rest.len() {
+        let a = &rest[i];
+        if let Some(body) = a.strip_prefix("--") {
+            let (key, value) = match body.split_once('=') {
+                Some((k, v)) => (k.to_owned(), v.to_owned()),
+                None => {
+                    let next = rest.get(i + 1);
+                    match next {
+                        Some(v) if !v.starts_with("--") => {
+                            i += 1;
+                            (body.to_owned(), v.clone())
+                        }
+                        _ => (body.to_owned(), "1".to_owned()),
+                    }
+                }
+            };
+            given.push(&key.replace('-', "_"), value);
+        } else {
+            positional.push(a.clone());
+        }
+        i += 1;
+    }
+    // **位置と旗を混ぜて渡せる。** 旗で渡したぶんを数えずに位置だけで判定すると、
+    // 旗を使った呼び方が「引数が足りない」になる
+    let mut free = positional.into_iter();
+    for arg in &tool.args {
+        if given.has(arg.name) {
+            continue;
+        }
+        if let Some(v) = free.next() {
+            given.push(arg.name, v);
+        } else if let Some(d) = arg.default {
+            given.push(arg.name, d.to_owned());
+        }
+    }
+    given
+}
+
+fn usage(all: &[Tool]) {
+    println!("道具の一覧");
+    for t in all {
+        let need: Vec<String> = t
+            .args
+            .iter()
+            .map(|a| {
+                if a.required {
+                    format!("<{}>", a.name)
+                } else {
+                    format!("[{}]", a.name)
+                }
+            })
+            .collect();
+        println!("  {} {}\n      {}", t.name, need.join(" "), t.summary);
+    }
+    println!("\n  どれも --json を付けると、機械が読む形で出る");
+}
+
+fn emit(out: &Outcome, as_json: bool, human: fn(&Outcome) -> String) -> ExitCode {
+    if as_json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&out.to_json()).unwrap_or_default()
+        );
+    } else {
+        println!("{}", human(out));
+    }
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    ExitCode::from(out.exit_code() as u8)
+}
+
+fn main() -> ExitCode {
+    let all = tools();
+    let argv: Vec<String> = std::env::args().skip(1).collect();
+    let as_json = argv.iter().any(|a| a == "--json");
+    let argv: Vec<String> = argv.into_iter().filter(|a| a != "--json").collect();
+
+    let Some(verb) = argv.first() else {
+        usage(&all);
+        return ExitCode::from(2);
+    };
+    if matches!(verb.as_str(), "-h" | "--help" | "help") {
+        usage(&all);
+        return ExitCode::SUCCESS;
+    }
+    let Some(tool) = all.iter().find(|t| t.name == verb) else {
+        eprintln!("その動詞は無い: {verb} ── 一覧は help である");
+        return ExitCode::from(2);
+    };
+    let given = read_args(tool, &argv[1..]);
+    let need: Vec<&str> = tool
+        .args
+        .iter()
+        .filter(|a| a.required)
+        .map(|a| a.name)
+        .collect();
+    if let Some(missing) = need.iter().find(|n| !given.has(n)) {
+        eprintln!("引数が足りない: {} は {missing} を要する", tool.name);
+        return ExitCode::from(2);
+    }
+    let out = (tool.run)(&given);
+    emit(&out, as_json, tool.human)
+}
