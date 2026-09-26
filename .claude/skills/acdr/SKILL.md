@@ -106,10 +106,10 @@
 正本は触らない。作業コピーへ適用してから組成する。**操作は3つだけである。**
 
 ```
-python3 scripts/cli.py new .acdr/0007-<短い名詞句> "題"    起こす（雛形から）
-python3 scripts/cli.py validate .acdr/0007-<短い名詞句>    入力を検査する
-python3 scripts/cli.py render .acdr/0007-<短い名詞句>      組む
-python3 scripts/cli.py render .acdr/0007-<短い名詞句> --check 1   差が無いかを検査する
+acdr new .acdr/0007-<短い名詞句> "題"    起こす（雛形から）
+acdr validate .acdr/0007-<短い名詞句>    入力を検査する
+acdr render .acdr/0007-<短い名詞句>      組む
+acdr render .acdr/0007-<短い名詞句> --check 1   差が無いかを検査する
 ```
 
 **入口は1つである。** どの操作も `--json` を付けると機械が読む形で出て、終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用である。
@@ -209,27 +209,26 @@ python3 scripts/cli.py render .acdr/0007-<短い名詞句> --check 1   差が無
 
 ### 入口と契約
 
-- `scripts/cli.py`: **唯一の入口。** `new` ・ `validate` ・ `render` ・ `tokens` を持つ ── どれも `--json` で機械が読む形が出る
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `tabs.py` ・ `code.py` ・ `render.py` は読み込まれるものであり、入口を保持しない
-- `scripts/mcp_server.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
+- `rs/cli/`: **唯一の入口。** `new` ・ `validate` ・ `render` ・ `tokens` を持つ ── どれも `--json` で機械が読む形が出る。**宣言に無い旗は断る**
+- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `rs/parts/` に在るものは読み込まれるものであり、入口を保持しない
+- `rs/mcp/` ・ `mcp.json`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
 
 ### 正本と組み立て
 
 - `references/acdr.template.html`: **出来上がりの形の正本。** 節 ・ タブと枠 ・ 印 ・ 差分の部品を持ち、組み立ては値を差し込むだけである ── **形をコードの中の文字列に散らさない**
-- `scripts/lib/template.py`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で例外にする** ── 埋め忘れも、余分な値も、出てから気づく形にしない
+- `rs/parts/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする** ── 埋め忘れも、余分な値も、出てから気づく形にしない
 - `references/acdr.schema.json`: **入力の契約。** `acdr.json` の形を決める。**キーは ASCII である**（`decision` ・ `why` ・ `applies_to` ・ `shift` ・ `alternatives` ・ `after_approval` …）── 日本語のまま残るのは、人が読む本文だけである
 - `references/tokens.json`: **デザイントークンの単一の正本。3層である** ── 基礎（原始値）→ 意味（役割）→ 部品。意味の層は基礎のキーだけを参照し、部品の層は意味か基礎のキーだけを参照する。**明暗は1つの表から3つの選択子を生成する** ── 手で3か所へ記述すると、1つのキーが片側から脱落しても誰も検出しない
 - `references/tokens.schema.json`: トークンの形の契約。層を跨いだ直値と、明暗のキー集合の不一致を弾く
-- `scripts/lib/tokens.py`: トークンを読み、CSS のカスタムプロパティへ組む。**iframe と Shadow の中へ流し込む側は、`:host` でも解決する形で組む** ── Shadow の中に `:root` は無く、寄せないと印が色を失う
-- `scripts/lib/validate_input.py`: **入力を検査する。** 形（スキーマ）・欄の完備（節と3つ組）・散文・参照の解決（図と対象の文書）の4系統である。**原文（`before`）と照合する文字列（`find`）は、散文として検査しない** ── 原典の形を変えないためである
-- `references/acdr.css`: **見た目の正本。** セレクタと規則だけを保持し、**直値を1つも書かない** ── 色も寸法も字寸も `tokens.json` の層を参照する。以前は `scripts/lib/` の中の Python 文字列に141行在った ── そこに置くと、型とトークンを直すべき変更が、Python の中の文字列を直す作業になる。塊の境目は `/* == 名前 == */` が示す（BASE ・ CODE ・ MARK ・ SECTION）
-- `scripts/lib/acdr_css.py`: 正本を読み、塊へ割る（36行）。**境目をこの側で決めない** ── 決めると、正本を割り直したときに気づけない
-- `scripts/lib/render_acdr.py`: 節と差分を1枚へ組む。入力の検査で1件でも検出したら、HTML を1バイトも出さない
-- `scripts/lib/panes.py`: 対象の文書を描画し、変更箇所に印を付け、複数なら1枚へまとめる。拡張子で置き方を決める
-- `scripts/lib/code_diff.py`: コードを Git の統合差分へ組む。まとまりごとに理由を添え、**理由が付いた数を返す**ので、欠けを検査へ出せる。対応する拡張子は `LANGS` が保持する ── **ここに無い拡張子は、コードとして扱わない**
-- `scripts/lib/markdown.py`: マークダウンを描画し、変更箇所に印を付ける。**位置は差し込む前に全部決める**（差し込みながら探すと、印が前の印の属性の中へ入る）
-- `scripts/tests/test_markdown.py`: 印の付き方を事例で検証する。`python3 scripts/tests/test_markdown.py` で実行する
+- `rs/parts/src/tokens.rs`: トークンを読み、CSS のカスタムプロパティへ組む。**iframe と Shadow の中へ流し込む側は、`:host` でも解決する形で組む** ── Shadow の中に `:root` は無く、寄せないと印が色を失う
+- `rs/parts/src/validate.rs`: **入力を検査する。** 形（スキーマ）・欄の完備（節と3つ組）・散文・参照の解決（図と対象の文書）の4系統である。**原文（`before`）と照合する文字列（`find`）は、散文として検査しない** ── 原典の形を変えないためである
+- `references/acdr.css`: **見た目の正本。** セレクタと規則だけを保持し、**直値を1つも書かない** ── 色も寸法も字寸も `tokens.json` の層を参照する。以前は組み立ての中の文字列に141行在った ── そこに置くと、型とトークンを直すべき変更が、実装の中の文字列を直す作業になる。塊の境目は `/* == 名前 == */` が示す（BASE ・ CODE ・ MARK ・ SECTION）
+- `references/acdr.js`: **動きの正本。** 印を押せるようにし、面を iframe か Shadow DOM へ立て、一覧から印まで運ぶ。**これも組み立ての外に置く** ── 置かないと、200行の script が実装の中の文字列になる
+- `rs/parts/src/style.rs`: 見た目と動きの正本を読み、塊へ割る。**境目をこの側で決めない** ── 決めると、正本を割り直したときに気づけない
+- `rs/parts/src/record.rs`: 節と差分を1枚へ組む。入力の検査で1件でも検出したら、HTML を1バイトも出さない
+- `rs/parts/src/panes.rs`: 対象の文書を描画し、変更箇所に印を付け、複数なら1枚へまとめる。拡張子で置き方を決める
+- `rs/parts/src/code.rs`: コードを Git の統合差分へ組む。まとまりごとに理由を添え、**理由が付いた数を返す**ので、欠けを検査へ出せる。対応する拡張子は `LANGS` が保持する ── **ここに無い拡張子は、コードとして扱わない**
+- `rs/parts/src/markdown.rs`: マークダウンを描画し、変更箇所に印を付ける。**位置は差し込む前に全部決める**（差し込みながら探すと、印が前の印の属性の中へ入る）
 - `references/acdr.schema.json`: `acdr.json` の形を検査するJSON Schema
 - `references/spec-template.json`: `acdr.json` の雛形。`new` が複製する
-- `scripts/tests/test_render_acdr.py`: 雛形から起こせるか ・ 欠けた欄で止まるか ・ **同じ入力から同じ出力が出るか** ・ 実行場所に依存しないか ・ 承認済みの記録が封印されるか ・ コードが Git の差分になるか ・ 理由の欠けを検出するかを検証する。`python3 scripts/tests/test_render_acdr.py` で実行する（17件）
-- `scripts/tests/test_template.py`: 型が満たすことを検証する ── 部品を組めるか ・ 差し込みの過不足で例外になるか ・ 組み立ての側に構造を作る文字列が残っていないか（19件）
+- `rs/parts/tests/`: 事例（77件）。型（差し込みの過不足 ・ 入れ子の `<template>` ・ 組み立ての側に構造を作る文字列が残っていないこと）・ 印の付き方（属性の中へ入らないこと ・ 重なりの除外 ・ 渡す順に依存しないこと）・ 差分（まとまりの切れ目 ・ 理由の欠け）・ 入力の検査（欠けた欄 ・ 1つの欄の主張の数 ・ 参照の解決）・ 記録（同じ入力から同じ出力 ・ 承認済みの記録の封印 ・ 対象が変化したときの拒否）を固定してある
