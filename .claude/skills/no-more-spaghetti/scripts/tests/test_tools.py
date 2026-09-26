@@ -41,7 +41,8 @@ def init_places_the_skeleton() -> None:
         root = pathlib.Path(t)
         (root / "server").mkdir()
         path = _init.create(root, "server", {"core": "internal/core", "app": "app.core"})
-        expect("リポジトリの .coding-rules/ へ置く", path == root / ".coding-rules" / "server.json")
+        expect("リポジトリの .coding-rules/rules/ へ置く",
+               path == root / ".coding-rules" / "rules" / "server.json")
         expect("成果物の中にフォルダを作らない", not (root / "server/.coding-rules").exists())
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("並びが層と一致する", d["order"] == ["core", "app"])
@@ -50,6 +51,8 @@ def init_places_the_skeleton() -> None:
         expect("内を指す規則を2件置く", len(d["rules"]) == 2)
         expect("道具は空である", d["rules"][0]["check"]["tool"] == [])
         expect("実行する場所は成果物である", d["rules"][0]["check"]["target"] == "server")
+        index = json.loads((root / ".coding-rules/index.json").read_text(encoding="utf-8"))
+        expect("索引へ1行足す", index["entries"] == [{"name": "server", "rules": "rules/server.json"}])
 
 
 def init_takes_the_repository_itself() -> None:
@@ -57,7 +60,8 @@ def init_takes_the_repository_itself() -> None:
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         path = _init.create(root, ".", {"skills": ".claude/skills"})
-        expect("名前を持たないファイルになる", path == root / ".coding-rules" / "rules.json")
+        expect("横断する規則は repo.json になる",
+               path == root / ".coding-rules" / "rules" / "repo.json")
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("層はそのままである", d["layers"]["skills"] == ".claude/skills")
         expect("実行する場所を書かない", "target" not in d["rules"][0]["check"])

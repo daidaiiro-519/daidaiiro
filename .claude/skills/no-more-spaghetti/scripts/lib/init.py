@@ -15,7 +15,9 @@ import pathlib
 
 from . import REFERENCES
 
-RULES_DIR = ".coding-rules"
+from . import catalog
+
+RULES_DIR = catalog.RULES_DIR
 INNER_RULES = ("層の場所が、宣言した対応と一致する",
                "依存の向きが、内から外へ出ていない")
 """内を指す規則2件。**出典はモデルであり、原典を要さない**（論点4）。"""
@@ -59,14 +61,27 @@ def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.P
     if not layers:
         raise ValueError("層を1つ以上渡す ── 層の無い規則ファイルは、何も検査できない")
     repo_wide = target in ("", ".")
-    name = "rules" if repo_wide else pathlib.PurePosixPath(target).name
-    path = root / RULES_DIR / f"{name}.json"
+    name = "repo" if repo_wide else pathlib.PurePosixPath(target).name
+    path = root / RULES_DIR / "rules" / f"{name}.json"
     if path.exists():
         raise FileExistsError(f"既に在る: {path} ── 作り直さない")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(skeleton(layers, "" if repo_wide else target),
                                ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _add_to_index(root, name, path)
     return path
+
+
+def _add_to_index(root: pathlib.Path, name: str, path: pathlib.Path) -> None:
+    """索引へ1行足す。**索引は1か所である** ── 置き場所の変更は、ここで閉じる。"""
+    index = root / catalog.INDEX_PATH
+    doc = json.loads(index.read_text(encoding="utf-8")) if index.exists() else {"entries": []}
+    rel = str(path.relative_to(root / RULES_DIR))
+    if any(e["name"] == name for e in doc["entries"]):
+        return
+    doc["entries"].append({"name": name, "rules": rel})
+    index.parent.mkdir(parents=True, exist_ok=True)
+    index.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def parse_layers(pairs: list[str] | str) -> dict[str, str]:

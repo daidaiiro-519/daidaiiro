@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from contract import Arg, Tool, result  # noqa: E402
 from lib import run as _run  # noqa: E402
+from lib import catalog as _catalog  # noqa: E402
 from lib import init as _init  # noqa: E402
 from lib import validate as _validate  # noqa: E402
 
@@ -22,8 +23,9 @@ def check(root: str, rules: str, timeout: str = "") -> dict:
     **読めないファイルは誤用である** ── 検出（違反が在る）と同じ番号で返さない。
     """
     try:
-        d = _run.check_rules(pathlib.Path(root), pathlib.Path(rules),
-                         int(timeout) if timeout else _run.DEFAULT_TIMEOUT)
+        d = _run.check_rules(pathlib.Path(root),
+                             _catalog.resolve(pathlib.Path(root), str(rules)),
+                             int(timeout) if timeout else _run.DEFAULT_TIMEOUT)
     except (OSError, ValueError) as e:
         return result(ok=False, findings=[f"規則ファイルを読めない ── {e}"],
                       file=rules, kind="rules")
@@ -65,7 +67,10 @@ def validate(rules: str, root: str = "") -> dict:
     **渡されたファイルの種類で、当てる契約が変わる** ── 規則 ・ 概念 ・ スキーマの3つ。
     入口を増やすと、呼ぶ側が形を推測することになる。
     """
-    p = pathlib.Path(rules)
+    try:
+        p = _catalog.resolve(pathlib.Path(root or "."), str(rules))
+    except OSError:
+        p = pathlib.Path(rules)
     problem = _unreadable(p)
     if problem:
         return result(ok=False, findings=[problem], file=rules, kind="rules")
@@ -126,7 +131,8 @@ def _human_init(res: dict) -> str:
 def plan(root: str, rules: str) -> dict:
     """何を、どこで実行するかを返す。**1件も実行しない。**"""
     try:
-        d = _run.plan_rules(pathlib.Path(root), pathlib.Path(rules))
+        d = _run.plan_rules(pathlib.Path(root),
+                            _catalog.resolve(pathlib.Path(root), str(rules)))
     except (OSError, ValueError) as e:
         return result(ok=False, findings=[f"規則ファイルを読めない ── {e}"],
                       file=rules, kind="rules")
@@ -165,6 +171,28 @@ def _human_read_output(res: dict) -> str:
     return f'{d["output"]}\n\n── {d["offset"]} から {len(d["output"])} 文字。{tail_note}'
 
 
+def targets(root: str = ".") -> dict:
+    """索引に在る名前を並べ、索引そのものを検査する。"""
+    base = pathlib.Path(root)
+    try:
+        names = _catalog.names(base)
+        findings = _catalog.check_index(base)
+    except (OSError, ValueError) as e:
+        return result(ok=False, findings=[str(e)], root=root)
+    return result(ok=True, findings=findings, names=names, count=len(names))
+
+
+def _human_targets(res: dict) -> str:
+    if not res["ok"]:
+        return " ／ ".join(res["findings"])
+    d = res["data"]
+    lines = [f'  {x}' for x in d["names"]]
+    lines.append(f'\n{d["count"]} 件が索引に在る。')
+    if res["findings"]:
+        lines += ["", "── 索引の検出"] + [f'  {x}' for x in res["findings"]]
+    return "\n".join(lines)
+
+
 def _human_validate(res: dict) -> str:
     name = KIND_LABEL[res["data"]["kind"]] + "ファイル"
     return (f"{name}の検査　通った" if not res["findings"]
@@ -190,6 +218,9 @@ TOOLS = [
           Arg("offset", "読み始める位置（バイト）", required=False),
           Arg("length", "読む量（バイト）", required=False)],
          run=read_output, human=_human_read_output),
+    Tool("targets", "索引に在る名前を並べ、索引そのものを検査する",
+         [Arg("root", "リポジトリの場所", required=False)],
+         run=targets, human=_human_targets),
     Tool("validate", "規則ファイルの形を検査する",
          [Arg("rules", "規則ファイルのパス"), Arg("root", "成果物の場所（層の宣言も見る）", required=False)],
          run=validate, human=_human_validate),

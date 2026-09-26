@@ -53,9 +53,19 @@
 分け、`check.target` でどこを検査するかを書く。
 
 ```
-.coding-rules/rules.json          リポジトリを横断する規則
-.coding-rules/<成果物>.json        その成果物の層と規則（target でその場所を指す）
+.coding-rules/index.json          **唯一の索引**（名前 → 規則ファイル）
+.coding-rules/rules/repo.json     リポジトリを横断する規則
+.coding-rules/rules/<成果物>.json  その成果物の層と規則（target でその場所を指す）
+.coding-rules/presets/            言語ごとの雛形（他のリポジトリへ渡す）
 .coding-rules/sources/            外を指す規則の原文（取り直して照合するため）
+```
+
+**規則ファイルを平らに並べない。** 成果物と言語が増えるたびに一覧が読めなくなる ──
+**名前から経路へ解決する層を1つ挟み**、呼ぶ側は名前だけを知る。
+
+```
+python3 scripts/cli.py targets .          # 索引に在る名前と、索引そのものの検査
+python3 scripts/cli.py check . <名前>      # 名前でも、経路でも受ける
 ```
 
 **原文の置き場所も、規則と同じ側である** ── 別の場所（調査の記録など）へ置くと、

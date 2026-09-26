@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-generates": ".coding-rules/index.json",
+  "title": "規則の索引",
+  "description": "名前から規則ファイルの経路へ解決する、唯一の索引。**規則ファイルの置き場所を知るのは、この1か所だけである** ── 平らに並べると、成果物と言語が増えるたびに一覧が読めなくなる。",
+  "type": "object",
+  "required": ["entries"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "entries": {
+      "description": "索引の行。名前と、規則ファイルの経路",
+      "x-prompt": {
+        "read": "名前から経路を引く。経路は .coding-rules/ からの相対である",
+        "write": "成果物1つにつき1行を足す。名前は成果物の名前にし、重複させない"
+      },
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "rules"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "成果物の名前。重複させない" },
+          "rules": { "type": "string", "minLength": 1, "description": ".coding-rules/ からの相対の経路" }
+        }
+      }
+    }
+  }
+}
