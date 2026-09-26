@@ -53,6 +53,7 @@ pub fn kind_label(key: &str) -> &'static str {
     match key {
         "concepts" => "概念",
         "schema" => "スキーマ",
+        "generated" => "生成物",
         _ => "規則",
     }
 }

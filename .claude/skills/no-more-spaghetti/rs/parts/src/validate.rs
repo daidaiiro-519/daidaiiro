@@ -224,6 +224,9 @@ pub fn check_schema(path: &Path, contracts: &Contracts) -> io::Result<Vec<String
 }
 
 /// 渡されたファイルの種類。**入口を増やすと、呼ぶ側が形を推測することになる。**
+///
+/// **種類は中身で決める。** 引数で受け取ると、呼ぶ側が毎回それを決めることになる ──
+/// 決め損ねると、別の契約で検査して、在るはずの欄が無いと報告する（実測）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Kind {
@@ -233,6 +236,8 @@ pub enum Kind {
     Concepts,
     /// スキーマそのもの。
     Schema,
+    /// 生成物を持つスキーマが指す先。**そのスキーマ自身で検査する。**
+    Generated,
 }
 
 impl Kind {
@@ -243,6 +248,7 @@ impl Kind {
             Self::Rules => "rules",
             Self::Concepts => "concepts",
             Self::Schema => "schema",
+            Self::Generated => "generated",
         }
     }
 }
@@ -262,7 +268,35 @@ pub fn kind_of(path: &Path) -> io::Result<Kind> {
     if instance.get("properties").is_some() && instance.get("rules").is_none() {
         return Ok(Kind::Schema);
     }
+    // **生成物を持つスキーマが指す先は、そのスキーマで検査する** ── 規則の契約を
+    // 当てると、在るはずの無い欄を要求することになる
+    if instance.get("rules").is_none() && instance.get("$schema").is_some() {
+        return Ok(Kind::Generated);
+    }
     Ok(Kind::Rules)
+}
+
+/// 生成物を持つスキーマが指す先を、そのスキーマで検査する。
+///
+/// # Errors
+///
+/// 契約を読めないときに返す。
+pub fn check_generated(path: &Path) -> io::Result<Vec<String>> {
+    let instance = match read_json(path) {
+        Ok(value) => value,
+        Err(why) => return Ok(vec![why]),
+    };
+    let Some(reference) = instance.get("$schema").and_then(Value::as_str) else {
+        return Ok(vec![
+            "$schema が無い ── どの契約で検査するかが決まらない".to_owned()
+        ]);
+    };
+    let base = path.parent().unwrap_or(Path::new("."));
+    let schema_path = base.join(reference);
+    match read_json(&schema_path) {
+        Ok(schema) => Ok(against(&schema, &instance, "形")),
+        Err(why) => Ok(vec![format!("契約を読めない ── {why}")]),
+    }
 }
 
 /// 読めないファイルかを見る。**誤用と検出を、同じ番号で返さないためである。**

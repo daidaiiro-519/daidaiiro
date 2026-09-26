@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-generates": "references/predicates.json",
+  "title": "和語の述部の一覧",
+  "description": "検出する和語の述部と、その言い換え先。**この一覧は Skill が持つ** ── 概念8 から来る判定であり、プロジェクトごとに相違しない。**キーは ASCII である。**",
+  "type": "object",
+  "required": [
+    "concept",
+    "source",
+    "predicates"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "concept": {
+      "type": "string",
+      "description": "どの概念から来た判定か",
+      "x-prompt": {
+        "read": "この一覧が拠って立つ概念の番号である",
+        "write": "概念の番号を書く ── 拠って立つものが無い判定は置かない"
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "原典。**引用と取得の記録を持つ** ── 取り直して同じ版かを判定できないと、その引用は根拠にならない。",
+      "required": [
+        "meta",
+        "authority",
+        "quote",
+        "fetched"
+      ],
+      "x-prompt": {
+        "read": "authority が立場である ── recommendation なら、原典は必須にしていない",
+        "write": "原文を取得し、引用を原文の文字列で照合してから書く。強度を上げたならdecision へ理由を書く"
+      },
+      "properties": {
+        "meta": {
+          "type": "string"
+        },
+        "authority": {
+          "type": "string",
+          "enum": [
+            "spec",
+            "recommendation",
+            "third-party"
+          ]
+        },
+        "quote": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "fetched": {
+          "type": "object",
+          "required": [
+            "url",
+            "date",
+            "sha256",
+            "line"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "minLength": 1
+            },
+            "date": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "sha256": {
+              "type": "string",
+              "minLength": 8
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "description": "この一覧の作り方。**対象にしない語の決め方を書く**",
+      "x-prompt": {
+        "read": "一覧に無い語が通過する理由が、ここに書いてある",
+        "write": "対象にしない語の決め方を書く ── 「ふつうの日本語だから」を理由にしない"
+      }
+    },
+    "predicates": {
+      "type": "array",
+      "minItems": 1,
+      "description": "検出する形と、言い換える先",
+      "x-prompt": {
+        "read": "pattern は正規表現である ── 後読みと先読みを使う行が在る",
+        "write": "言い換える先を持たない語は書かない。**「ふつうの日本語だから」は、対象から外す理由にしない**"
+      },
+      "items": {
+        "type": "object",
+        "required": [
+          "pattern",
+          "use_instead"
+        ],
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "use_instead": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -236,6 +236,7 @@ fn run_validate(given: &Given) -> Outcome {
     let got = match kind {
         validate::Kind::Schema => validate::check_schema(&file, &contracts),
         validate::Kind::Concepts => validate::check_concepts(&file, &contracts),
+        validate::Kind::Generated => validate::check_generated(&file),
         _ => validate::check_rules(&file, &contracts).and_then(|mut found| {
             if given.has("root") {
                 found.extend(validate::check_layers(&file)?);
