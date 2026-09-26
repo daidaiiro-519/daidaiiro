@@ -71,6 +71,15 @@ def main(argv):
                 if k in x and x not in seen:
                     seen.add(x); print(f'     図　　  {sid:8} {x[:56]}')
 
+    print('\n■ 件数が、読み上げと図でどう出ているか')
+    # 3周目に「数は図が持ち、音声は要点だけ」と決めた。だから図だけに在るのは誤りではない。
+    # ただし、数の設計をやり直したとき図が旧いまま残った事故が実際に起きたので、並べて目で見る
+    for no, sid, h, t2 in rows():
+        fig = re.findall(r'>(\d+件)</text>', B.FIG[sid]()) if sid in B.FIG else []
+        nar = re.findall(r'\d+件', t2)
+        if fig or nar:
+            print(f'  {sid:8} 図 {" ".join(fig) or "―":22} 読み上げ {" ".join(nar) or "―"}')
+
     print('\n■ 助数詞の使われ方')
     for k in ('本目', '回目', 'つめ', '件', '回分', '段目'):
         n = sum(len(re.findall(rf'\d+{k}', t)) for *_, t in rows())

@@ -43,7 +43,7 @@ def s4_after():
         a += text(x + 24, 68, no, 14, DIM)
         a += text(x + 80, 68, s, 15, DIM)
     a += text(0, 122, '足したあと　条件の1文を足した ── どの項目にも同じ2つが在り、決まったものは無い', 17, ACCENT, 700)
-    counts = ['3件', '5件', '4件']
+    counts = ['5件', '6件', '5件']
     for i, n in enumerate(counts):
         x = i * 384
         a += rect(x, 138, 344, 152, PAPER, 12, ACCENT)

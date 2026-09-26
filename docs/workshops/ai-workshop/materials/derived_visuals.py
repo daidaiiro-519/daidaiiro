@@ -17,8 +17,8 @@ def t1_fit():
     a += text(407, 148, '同じ依頼', 21, INK, 700, 'middle')
     a += arrow(524, 142, 606, 142)
     a += circle(730, 142, 112, PAPER, ACCENT)
-    a += text(730, 14, '目的　次の打ち合わせで決めることを並べる', 17, ACCENT, 700, 'middle')
-    for cx, cy, label in [(686, 120, '6件'), (742, 172, '4件'), (778, 112, '9件')]:
+    a += text(730, 14, '目的　次の打ち合わせで決めることを洗い出して並べる', 17, ACCENT, 700, 'middle')
+    for cx, cy, label in [(686, 120, '5件'), (742, 172, '6件'), (778, 112, '9件')]:
         a += circle(cx, cy, 30, ACCENT, ACCENT)
         a += text(cx, cy + 7, label, 18, PAPER, 700, 'middle')
     a += text(730, 288, '中身も件数も違う。どれも目的の中にある', 17, DIM, anchor='middle')
@@ -342,9 +342,9 @@ def t5_swap():
     a += text(134, 136, 'いまの依頼', 20, PAPER, 700, 'middle')
     a += text(134, 162, '3つを足したもの', 15, PAPER, anchor='middle')
     a += text(310, 24, '替えたのは渡すもの', 18, DIM)
-    for i, (mat, n, body) in enumerate([('今週の定例', '6件', '通知の方式ほか'),
-                                        ('来週の定例', '4件', '移行の範囲ほか'),
-                                        ('別の案件の定例', '9件', '帳票の様式ほか')]):
+    for i, (mat, n, body) in enumerate([('今週までの5週分', '5件', '承認の経路ほか'),
+                                        ('来週までの5週分', '6件', '移行の範囲ほか'),
+                                        ('別の案件の5週分', '9件', '連携の方式ほか')]):
         y = 40 + i * 84
         a += path(f'M268 142 H296 V{y + 30} H328', LINE, 2 if i == 1 else 2)
         a += path(f'M319 {y + 24} l9 6 -9 6', LINE, 2)
@@ -457,7 +457,7 @@ def t6_two_goals():
     a += path('M280 152 l6 6 6 -6', ACCENT, 2)
     a += path('M642 92 V126 H826 V158', ACCENT)
     a += path('M820 152 l6 6 6 -6', ACCENT, 2)
-    for x, name, sub in [(0, '決めることを並べる', '漏れなく並べる'), (572, '案を出す', '絞って深く考える')]:
+    for x, name, sub in [(0, '決めることを洗い出す', '漏れなく並べる'), (572, '案を出す', '絞って深く考える')]:
         a += rect(x, 164, 540, 92, PAPER, 12, LINE)
         a += text(x + 270, 204, name, 21, INK, 700, 'middle')
         a += text(x + 270, 234, sub, 17, DIM, anchor='middle')

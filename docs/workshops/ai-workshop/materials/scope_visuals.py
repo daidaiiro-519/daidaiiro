@@ -2,7 +2,7 @@
 from lesson_visuals import (text, rect, path, arrow, circle, person, icon, svg,
                             INK, DIM, LINE, PANEL, PAPER, ACCENT, W, cross, check, band)
 
-MIX = [('今回の案件で、切り替えまでに決めること', '承認の経路／申請の申請の締め日／旧システムの停止日'),
+MIX = [('今回の案件で、切り替えまでに決めること', '承認の経路／申請の締め日／旧システムの停止日'),
        ('次のフェーズで決めること', '交通費の自動取得／海外出張の通貨の換算'),
        ('定例で出た別案件の相談', '別案件の要員の手配'),
        ('全社の連絡事項', '研修の案内／勤怠の締め')]
@@ -21,7 +21,7 @@ def s3_mixed():
     a += rect(632, 106, 180, 68, PANEL, 10)
     a += text(722, 138, '同じ依頼', 19, INK, 700, 'middle')
     a += text(722, 160, '意味は書いてある', 14, DIM, anchor='middle')
-    for i, (no, n, w) in enumerate([('1回目', '4件', 36), ('2回目', '9件', 82), ('3回目', '14件', 128)]):
+    for i, (no, n, w) in enumerate([('1回目', '5件', 42), ('2回目', '9件', 82), ('3回目', '14件', 128)]):
         y = 44 + i * 68
         a += path(f'M812 140 H836 V{y + 24} H860', LINE)
         a += path(f'M851 {y + 18} l9 6 -9 6', LINE, 2)
@@ -38,7 +38,7 @@ def s3_ranges():
     cols = ['切り替えまで', '次のフェーズ', '別案件', '全社の連絡']
     for i, name in enumerate(cols):
         a += text(300 + i * 196 + 88, 62, name, 15, INK, 700, 'middle')
-    for r, (no, upto, n, extra) in enumerate([('1回目', 1, '4件', 'なし'),
+    for r, (no, upto, n, extra) in enumerate([('1回目', 1, '5件', 'なし'),
                                               ('2回目', 2, '9件', '交通費の自動取得、通貨の換算'),
                                               ('3回目', 4, '14件', '別案件の要員、研修の案内')]):
         y = 82 + r * 66
@@ -96,7 +96,7 @@ def s3_draw_line():
 def s3_after():
     """範囲を足す前と、足したあとを並べる。"""
     a = text(0, 22, '足す前　意味だけを書いた依頼 ── 対象にした話が3通り', 17, DIM)
-    for i, (no, n, where) in enumerate([('1回目', '4件', '切り替えまでの話だけ'),
+    for i, (no, n, where) in enumerate([('1回目', '5件', '切り替えまでの話だけ'),
                                         ('2回目', '9件', '次のフェーズの話も'),
                                         ('3回目', '14件', '別案件と全社の連絡も')]):
         x = i * 384
@@ -105,7 +105,7 @@ def s3_after():
         a += text(x + 80, 68, where, 16, DIM)
         a += text(x + 320, 69, n, 18, DIM, 700, 'end')
     a += text(0, 122, '足したあと　範囲の1文を足した ── 対象にした話は3回とも同じ', 17, ACCENT, 700)
-    for i, (no, n) in enumerate([('1回目', '4件'), ('2回目', '5件'), ('3回目', '4件')]):
+    for i, (no, n) in enumerate([('1回目', '5件'), ('2回目', '6件'), ('3回目', '5件')]):
         x = i * 384
         a += rect(x, 138, 344, 152, PAPER, 12, ACCENT)
         a += text(x + 24, 172, no, 15, DIM)
