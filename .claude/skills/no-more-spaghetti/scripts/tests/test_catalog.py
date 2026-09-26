@@ -87,8 +87,25 @@ def the_index_is_checked() -> None:
         expect("実在しない経路を検出する", any("実在しない" in x for x in findings))
 
 
+def a_broken_schema_path_is_reported() -> None:
+    """$schema が解決しない規則ファイルを検出する。"""
+    with tempfile.TemporaryDirectory() as t:
+        root = pathlib.Path(t)
+        make(root, [{"name": "a", "rules": "applied/a.json"}], ["applied/a.json"])
+        p = root / ".coding-rules/applied/a.json"
+        p.write_text('{"$schema": "../無い.json", "rules": []}', encoding="utf-8")
+        findings = catalog.check_index(root)
+        expect("解決しない $schema を検出する", any("$schema" in x for x in findings))
+
+        p.write_text('{"$schema": "../index.json", "rules": []}', encoding="utf-8")
+        (root / ".coding-rules/index.json").touch()
+        expect("解決する $schema は検出しない",
+               not any("$schema" in x for x in catalog.check_index(root)))
+
+
 if __name__ == "__main__":
     for f in (a_name_resolves_to_a_file, a_path_is_taken_as_is, an_unknown_name_is_refused,
-              a_missing_index_is_refused, the_index_is_checked):
+              a_missing_index_is_refused, the_index_is_checked,
+              a_broken_schema_path_is_reported):
         f()
     print(f"索引の検査　{count} 件　通った")

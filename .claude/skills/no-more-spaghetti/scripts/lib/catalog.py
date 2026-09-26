@@ -58,7 +58,12 @@ def resolve(root: pathlib.Path, name_or_path: str) -> pathlib.Path:
 
 
 def check_index(root: pathlib.Path) -> list[str]:
-    """索引そのものを検査する。**名前の重複と、実在しない経路を見る。**"""
+    """索引そのものを検査する。
+
+    **名前の重複 ・ 実在しない経路 ・ 解決しない `$schema` を見る** ── 置き場所を
+    変えたとき、規則ファイルの中の相対の経路は一緒に動かない（実測 2026-09-26、
+    applied/ へ移した11件が全部壊れた）。
+    """
     findings: list[str] = []
     seen: set[str] = set()
     for e in load(root).get("entries", []):
@@ -66,6 +71,22 @@ def check_index(root: pathlib.Path) -> list[str]:
         if name in seen:
             findings.append(f"名前が重複している: {name}")
         seen.add(name)
-        if not (root / RULES_DIR / e.get("rules", "")).is_file():
+        path = root / RULES_DIR / e.get("rules", "")
+        if not path.is_file():
             findings.append(f"規則ファイルが実在しない: {e.get('rules')} ── {name}")
+            continue
+        findings += check_schema_path(path)
     return findings
+
+
+def check_schema_path(path: pathlib.Path) -> list[str]:
+    """`$schema` の相対の経路が解決するかを見る。**外を指すものは対象にしない。**"""
+    try:
+        ref = json.loads(path.read_text(encoding="utf-8")).get("$schema", "")
+    except (OSError, ValueError) as e:
+        return [f"読めない: {path} ── {e}"]
+    if not ref or ref.startswith("http"):
+        return []
+    if (path.parent / ref).exists():
+        return []
+    return [f"$schema が解決しない: {ref} ── {path}"]
