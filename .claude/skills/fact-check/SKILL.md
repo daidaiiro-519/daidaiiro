@@ -77,10 +77,8 @@ version: 2.0.0
 ### Step 1: 原文を取得する
 
 ```
-python3 <skill>/scripts/cli.py fetch <URL>
+fact-check fetch <URL> [--dir <置き場所>]
 ```
-
-`<skill>` は、このスキルを置いた場所である。
 
 **まず `<URL>.md` を試し、無ければ本体を取る。**
 主要な文書サイトは `.md` で原文を返す（実測：Anthropic ・ Cursor ・ OpenAI ・ GitHub の4社とも返した）。
@@ -114,8 +112,8 @@ python3 <skill>/scripts/cli.py fetch <URL>
 ### Step 3: 原文と照合する
 
 ```
-python3 <skill>/scripts/cli.py verify <原文> <識別子>... --as identifier
-python3 <skill>/scripts/cli.py verify <原文> --as identifier --from names.txt
+fact-check verify <原文> <識別子>... --as identifier
+fact-check verify <原文> --as identifier --from names.txt
 ```
 
 **照合の種類を渡さなければ止まる。**
@@ -144,8 +142,8 @@ python3 <skill>/scripts/cli.py verify <原文> --as identifier --from names.txt
 **アンカーを渡すと、文脈まで検査する。**
 
 ```
-python3 <skill>/scripts/cli.py verify <原文> compact_summary --as identifier \
-        --near "PostCompact input" --within 25
+fact-check verify <原文> compact_summary --as identifier \
+           --near "PostCompact input" --within 25
 ```
 
 **名前が在ることと、その名前がそこで使われることは別である。**
@@ -212,7 +210,7 @@ python3 <skill>/scripts/cli.py verify <原文> compact_summary --as identifier \
 **引用が原文と1文字ずつ同じかは、`verify` で検証できる。**
 
 ```
-python3 <skill>/scripts/cli.py verify <原文> --as quote --from quotes.txt
+fact-check verify <原文> --as quote --from quotes.txt
 ```
 
 **引用は1行ずつ渡す。**
@@ -292,8 +290,12 @@ Step 3 は「こちらが書いたものが原文に在るか」を検査する�
 
 ## 参照
 
-- `scripts/cli.py`: 唯一の入口。`fetch` ・ `list` ・ `verify` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `scripts/lib/source.py`: 取得と照合の実体。**互換の入口を保持する** ── 宣言の `LEGACY` に載せてあるので、契約の検査は通る
-- `scripts/mcp_server.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
-- `scripts/tests/test_source.py`: この道具の振る舞いを事例で検証する。`python3 scripts/tests/test_source.py` で実行する
+- `rs/parts/src/find.rs`: 照合の3つの種類。**位置は文字で数える** ── バイトで数えると、
+  日本語を含む原文で読み手の見る位置と食い違う
+- `rs/parts/src/source.rs`: 原文の読み取りと取得。**原文を連結しない**（どこで一致したかを
+  報告するため）／ **読めなかったものを黙って除外しない** ／ **行の区切りを LF へ統一する**
+- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `rs/cli/`: 唯一の入口。`fetch` ・ `list` ・ `verify` を持つ ── **どれも `--json` で機械が読む形が出る**。
+  終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**宣言に無い旗は断る**
+- `rs/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `rs/parts/tests/`: 事例（22件）。照合の3つの種類と、読めなかった範囲の扱いを固定してある

@@ -59,7 +59,7 @@ disable-model-invocation: "false"
 書かれていないかを確認する ── 読みの補正は辞書が持つ。
 
 ```
-python3 scripts/cli.py plan <フォルダ>
+narration plan <フォルダ>
 ```
 
 合成せずに、どの枚が合成になり、どの枚が取り出しになるかが出る。
@@ -67,7 +67,7 @@ python3 scripts/cli.py plan <フォルダ>
 ### Step 2: 合成する
 
 ```
-python3 scripts/cli.py synth <フォルダ> [声]
+narration synth <フォルダ> [声]
 ```
 
 キーが在る枚は取り出し、無い枚だけを合成する。出力に、音声・時刻・長さを書く。
@@ -77,7 +77,7 @@ python3 scripts/cli.py synth <フォルダ> [声]
 出力の `durationMs` が、音声の長さと一致することを確認する。
 
 ```
-python3 scripts/cli.py measure <音声のファイル>
+narration measure <音声のファイル>
 ```
 
 **`durationMs` は音声の長さである。** 語と文の時刻の最後の印は、最後の語が始まる時刻であって、
@@ -88,7 +88,7 @@ python3 scripts/cli.py measure <音声のファイル>
 読み間違いが在れば、辞書へ登録する。原稿と入力は書き換えない。
 
 ```
-python3 scripts/cli.py lexicon <辞書のファイル> <辞書の名前>
+narration lexicon <辞書のファイル> <辞書の名前>
 ```
 
 登録した名前を `narration.json` の `lexicons` へ書くと、合成の前に適用される。
@@ -126,11 +126,12 @@ python3 scripts/cli.py lexicon <辞書のファイル> <辞書の名前>
 
 ## 参照
 
-- `scripts/cli.py`: 唯一の入口。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `scripts/lib/polly.py`: 合成の実行と、キーによる作り直しの判定
-- `scripts/lib/mp3.py`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
-- `scripts/tests/test_mp3.py`: 長さの測定を、実物の音声で検証する
+- `rs/cli/`: 唯一の入口。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **宣言に無い旗は断る**
+- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `rs/parts/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
+- `rs/parts/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
+- `rs/parts/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
+- `rs/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
 - `references/narration.schema.json`: 入力の契約
 - `references/narration.out.schema.json`: 出力の契約。`durationMs` の定義を含む
 - `references/lexicon.example.pls`: 読みの辞書の例（W3CのPLS準拠）

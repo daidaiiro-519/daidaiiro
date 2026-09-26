@@ -18,7 +18,7 @@ use dws_declare::{tools, Given, Outcome, Tool};
 ///
 /// **まとめて受ける引数は、繰り返すと足りていく。** 上書きにすると、2つ目以降を黙って
 /// 捨てることになる（実測で `--layer` が1件しか残らなかった）。
-fn read_args(tool: &Tool, rest: &[String]) -> Given {
+fn read_args(tool: &Tool, rest: &[String]) -> Result<Given, String> {
     let mut given = Given::default();
     let mut positional: Vec<String> = Vec::new();
     let mut i = 0;
@@ -35,7 +35,17 @@ fn read_args(tool: &Tool, rest: &[String]) -> Given {
                     _ => (body.to_owned(), "1".to_owned()),
                 },
             };
-            given.push(&key.replace('-', "_"), value);
+            let key = key.replace('-', "_");
+            // **宣言に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない
+            if !tool.args.iter().any(|a| a.name == key) {
+                let known: Vec<&str> = tool.args.iter().map(|a| a.name).collect();
+                return Err(format!(
+                    "その旗は無い: --{key}（{} は {} を受ける）",
+                    tool.name,
+                    known.join(" ・ ")
+                ));
+            }
+            given.push(&key, value);
         } else {
             positional.push(a.clone());
         }
@@ -61,7 +71,7 @@ fn read_args(tool: &Tool, rest: &[String]) -> Given {
             given.push(arg.name, d.to_owned());
         }
     }
-    given
+    Ok(given)
 }
 
 fn usage(all: &[Tool]) {
@@ -116,7 +126,13 @@ fn main() -> ExitCode {
         eprintln!("その動詞は無い: {verb} ── 一覧は help である");
         return ExitCode::from(2);
     };
-    let given = read_args(tool, &argv[1..]);
+    let given = match read_args(tool, &argv[1..]) {
+        Ok(given) => given,
+        Err(why) => {
+            eprintln!("{why}");
+            return ExitCode::from(2);
+        }
+    };
     let need: Vec<&str> = tool
         .args
         .iter()

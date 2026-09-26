@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! narration の MCP の面。**同じ宣言から組む** ── 能力は1行も複製しない。
+//! fact-check の MCP の面。**同じ宣言から組む** ── 能力は1行も複製しない。
 //!
 //! **`#[tool]` マクロを使わない。** マクロは道具をその場で宣言するので、能力の正本が
 //! 2か所になる。代わりに `ServerHandler` を手で実装し、`list_tools` と `call_tool` を
@@ -17,7 +17,7 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use nar_declare::{tools, Given};
+use fc_declare::{tools, Given};
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,
@@ -30,7 +30,7 @@ use serde_json::{json, Map, Value};
 
 /// 宣言から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
 /// 呼ぶ側がどの引数を渡せばよいかを認知できない。
-fn input_schema(tool: &nar_declare::Tool) -> Arc<Map<String, Value>> {
+fn input_schema(tool: &fc_declare::Tool) -> Arc<Map<String, Value>> {
     let mut properties = Map::new();
     let mut required = Vec::new();
     for a in &tool.args {
@@ -62,13 +62,13 @@ impl ServerHandler for Handler {
             protocol_version: ProtocolVersion::default(),
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation {
-                name: "narration".to_owned(),
+                name: "fact-check".to_owned(),
                 version: env!("CARGO_PKG_VERSION").to_owned(),
                 title: None,
                 icons: None,
                 website_url: None,
             },
-            instructions: Some("原稿を音声へ組み、尺を測る".to_owned()),
+            instructions: Some("原文を取得し、文字列で照合する".to_owned()),
         }
     }
 

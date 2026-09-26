@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-//! {{Skill名}} の唯一の入口。
+//! fact-check の唯一の入口。
 //!
-//!     {{Skill名}} <動詞> [対象…] [--json]
+//!     fact-check <動詞> [対象…] [--json]
 //!
 //! **道具ごとに入口を作らない** ── 入口が増えると、呼ぶ側が形を推測することになる。
 //! 許可辺は `Cargo.toml` が宣言する ── この crate は宣言だけを参照する。
 
 use std::process::ExitCode;
 
-use {{接頭辞}}_declare::{tools, Given, Outcome, Tool};
+use fc_declare::{tools, Given, Outcome, Tool};
 
 /// 旗と位置引数を読み、渡された引数を組む。
 ///

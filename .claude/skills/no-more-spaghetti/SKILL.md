@@ -121,7 +121,7 @@
 **雛形は `init` が出す。** 層の名前と識別子を渡すと、`.coding-rules/rules.json` を置く。
 
 ```
-python3 scripts/cli.py init <成果物の場所> --layer core=internal/core --layer app=internal/app
+no-more-spaghetti init <成果物の場所> --layer core=internal/core --layer app=internal/app
 ```
 
 **雛形は、契約に対して不合格で出る** ── 道具と出典が空だからである。その不合格の一覧が、
@@ -222,14 +222,14 @@ python3 scripts/cli.py init <成果物の場所> --layer core=internal/core --la
 **何を実行するかを先に見せ、それから実行する。**
 
 ```
-python3 scripts/cli.py plan  <成果物の場所> <規則ファイルのパス>   # 実行しない
-python3 scripts/cli.py check <成果物の場所> <規則ファイルのパス> [--json]
+no-more-spaghetti plan  <成果物の場所> <規則ファイルのパス>   # 実行しない
+no-more-spaghetti check <成果物の場所> <規則ファイルのパス> [--json]
 ```
 
 出力が長いときは、続きを同じ入口から読む ── **道具は実行し直さない**。
 
 ```
-python3 scripts/cli.py output <成果物の場所> <実行の識別子> <規則の名前> [位置] [量]
+no-more-spaghetti output <成果物の場所> <実行の識別子> <規則の名前> [位置] [量]
 ```
 
 **工程の中は順序が任意である** ── 整形 ・ 静的解析 ・ ビルド ・ 依存の向きは、
@@ -331,19 +331,21 @@ python3 scripts/cli.py output <成果物の場所> <実行の識別子> <規則�
 - `references/rules.schema.json`: **規則ファイルの契約。** 規則1件が3要素（出典 ・ 採用範囲 ・
   検証方法）を持つ。層の場所を持つ規則ファイルは、並びと層も持つ。**層の名前は原典に無い** ──
   `domain` も `usecase` も、ヘキサゴナルとクリーンのどちらの原文にも無い（2026-09-22 に照合）
-- `scripts/lib/init.py`: 規則ファイルの雛形を組む。**道具の名前を1つも持たない** ──
+- `rs/parts/src/init.rs`: 規則ファイルの雛形を組む。**道具の名前を1つも持たない** ──
   雛形は契約の形から組み、何を充填するかは `x-prompt.write` が案内する
-- `scripts/cli.py`: **唯一の入口。** `check` ・ `init` ・ `plan` ・ `output` ・ `validate` を持つ ── どちらも `--json` で
-  機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。
-  **`validate` は、渡されたファイルの種類（規則 ・ 概念 ・ スキーマ）で適用する契約を替える**
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `scripts/mcp_server.py`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
-- `scripts/lib/run.py`: 規則のコマンドを実行し、終了コードで判定する。
+- `rs/parts/src/run.rs`: 規則のコマンドを実行し、終了コードで判定する。
   **標準入力を閉じて実行する** ── 入力を待つ道具が、制限時間まで止まる。
   **出力は上限で切る** ── 道具が出した量が、そのままこの側の記憶に載る。
   **道具の名前を保持しない** ── 実行するものは規則から来るので、この Skill の依存は0件である
-- `scripts/lib/validate.py`: 規則ファイルの形と、層の宣言の構造と、概念の出典と、案内を検査する
-- `scripts/tests/test_run.py`: 実行と判定を事例で検証する（24件）
-- `scripts/tests/test_tools.py`: 雛形の生成 ・ 提示 ・ 続きの読み取りを事例で検証する（26件）
-- `scripts/tests/test_concepts.py`: 概念の出典を事例で検証する（10件）
-- `scripts/tests/test_schema.py`: 案内の検査を事例で検証する（9件）
+- `rs/parts/src/validate.rs`: 規則ファイルの形と、層の宣言の構造と、概念の出典と、案内を検査する
+- `rs/parts/src/inward/`: **依存の向きを、原文の構文木で測る。** `syntax.rs` が言語ごとの
+  読み込みの形と識別子の解決の仕方を持ち、`judge.rs` が層の並びから許可辺を導いて突き合わせる。
+  **測り方の限界は、検出と分けて返す** ── 混ぜると、解決しなかった参照が違反として出る
+- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `rs/cli/`: **唯一の入口。** `check` ・ `init` ・ `plan` ・ `output` ・ `validate` ・ `inward` を持つ ──
+  どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。
+  **`validate` は、渡されたファイルの種類（規則 ・ 概念 ・ スキーマ）で適用する契約を替える**。
+  **宣言に無い旗は断る**
+- `rs/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `rs/parts/tests/`: 事例（48件）。実行と判定 ・ 契約の検査 ・ 雛形 ・ 禁じた辺 ・
+  10言語の読み込みの抽出を固定してある

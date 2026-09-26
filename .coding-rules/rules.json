@@ -13,9 +13,6 @@
     "design-svg:lib",
     "design-svg:declaration",
     "design-svg:entry",
-    "fact-check:lib",
-    "fact-check:declaration",
-    "fact-check:entry",
     "slide-deck:lib",
     "slide-deck:declaration",
     "slide-deck:entry",
@@ -35,6 +32,10 @@
     "doc-writing-skills:declare",
     "doc-writing-skills:cli",
     "doc-writing-skills:mcp",
+    "fact-check:parts",
+    "fact-check:declare",
+    "fact-check:cli",
+    "fact-check:mcp",
     "narration:parts",
     "narration:declare",
     "narration:cli",
@@ -53,9 +54,6 @@
     "design-svg:lib": ".claude/skills/design-svg/scripts/lib",
     "design-svg:declaration": ".claude/skills/design-svg/scripts/tools.py",
     "design-svg:entry": ".claude/skills/design-svg/scripts/cli.py",
-    "fact-check:lib": ".claude/skills/fact-check/scripts/lib",
-    "fact-check:declaration": ".claude/skills/fact-check/scripts/tools.py",
-    "fact-check:entry": ".claude/skills/fact-check/scripts/cli.py",
     "slide-deck:lib": ".claude/skills/slide-deck/scripts/lib",
     "slide-deck:declaration": ".claude/skills/slide-deck/scripts/tools.py",
     "slide-deck:entry": ".claude/skills/slide-deck/scripts/cli.py",
@@ -75,6 +73,10 @@
     "doc-writing-skills:declare": ".claude/skills/doc-writing-skills/rs/declare",
     "doc-writing-skills:cli": ".claude/skills/doc-writing-skills/rs/cli",
     "doc-writing-skills:mcp": ".claude/skills/doc-writing-skills/rs/mcp",
+    "fact-check:parts": ".claude/skills/fact-check/rs/parts",
+    "fact-check:declare": ".claude/skills/fact-check/rs/declare",
+    "fact-check:cli": ".claude/skills/fact-check/rs/cli",
+    "fact-check:mcp": ".claude/skills/fact-check/rs/mcp",
     "narration:parts": ".claude/skills/narration/rs/parts",
     "narration:declare": ".claude/skills/narration/rs/declare",
     "narration:cli": ".claude/skills/narration/rs/cli",
@@ -460,20 +462,6 @@
       }
     },
     {
-      "rule": "test_source の事例が通る",
-      "source": {
-        "record": "fact-check/SKILL.md"
-      },
-      "scope": "この成果物の試験のみ",
-      "check": {
-        "tool": [
-          "python3",
-          "scripts/tests/test_source.py"
-        ],
-        "target": ".claude/skills/fact-check"
-      }
-    },
-    {
       "rule": "人が読む文書が、10の判定を通る",
       "source": {
         "record": "doc-writing-skills/SKILL.md"
@@ -488,6 +476,71 @@
           "../doc-writing-skills"
         ],
         "target": ".claude/skills/fact-check"
+      }
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "fact-check/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ],
+        "target": ".claude/skills/fact-check/rs"
+      }
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "fact-check/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "target": ".claude/skills/fact-check/rs"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "fact-check/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ],
+        "target": ".claude/skills/fact-check/rs"
+      }
+    },
+    {
+      "rule": "依存の向きが、宣言と一致する",
+      "source": {
+        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
+      },
+      "scope": "crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い crate は解決しない",
+      "check": {
+        "tool": [
+          "cargo",
+          "build",
+          "--all-targets"
+        ],
+        "target": ".claude/skills/fact-check/rs"
       }
     },
     {
@@ -1112,25 +1165,6 @@
           "entry=cli|mcp_server:composes"
         ],
         "target": ".claude/skills/design-svg"
-      }
-    },
-    {
-      "rule": "依存の向きが、内向きである",
-      "source": {
-        "record": "no-more-spaghetti/references/concepts.json#依存の向き"
-      },
-      "scope": "部品から入口と宣言への参照と、図に現れない読み込みのみ ── **許可する辺は層の並びが宣言する**。原文の構文木で測るので、経路の別名と探索路の指定は解決しない",
-      "check": {
-        "tool": [
-          "../no-more-spaghetti/rs/target/release/no-more-spaghetti",
-          "inward",
-          "python",
-          "scripts",
-          "lib=lib",
-          "declaration=tools|contract",
-          "entry=cli|mcp_server:composes"
-        ],
-        "target": ".claude/skills/fact-check"
       }
     },
     {
