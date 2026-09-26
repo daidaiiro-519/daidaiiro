@@ -117,8 +117,8 @@ version: 1.2.0
 ```
 
 ```
-python3 scripts/cli.py new <デッキ>.json --theme <テーマの名前> --title <題>
-python3 scripts/cli.py render <デッキ>.json <出力.html>
+slide-deck new <デッキ>.json --theme <テーマの名前> --title <題>
+slide-deck render <デッキ>.json <出力.html>
 ```
 
 **同じ入力からは、同じ1枚が出る** ── 日付も乱数も読まない。`--check` を渡すと、
@@ -136,7 +136,7 @@ python3 scripts/cli.py render <デッキ>.json <出力.html>
 **この Skill は図を描かない。描き方も、描く道具も保持しない。** 渡すのは配色と、何を描くかである ── **組ませる相手は配線表が決める。**
 
 ```
-python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を複製して渡す
+slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して渡す
 ```
 
 - **配色を図の側へ書かない。** 正本は `references/themes/<名前>.css` の1か所である
@@ -193,7 +193,7 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - テーマを貼り替えただけで、色の直書きが残っていないか
 - 図のどれかが、文字を枠で囲んだだけになっていないか
 
-`python3 scripts/cli.py check <作ったHTML>` を実行する。キーの欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
+`slide-deck check <作ったHTML>` を実行する。キーの欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。
 
 **入力の検査は、組む前に走る。** 設計規則のうち数えれば判定できるもの ──
 大きい要素が3つまで ・ 強調が1か所 ・ 見出しが断定形で2行まで ・ 出典が要素の直下 ・
@@ -239,12 +239,12 @@ python3 scripts/cli.py theme <テーマの名前> --out theme.json   # 配色を
 - `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
 - `references/themes.md`: テーマの選び方、22のキーと満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
-- `scripts/lib/themes.py`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
+- `rs/parts/src/theme.rs`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
 - `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどのキーから出るか。**この Skill は図を描かない**
-- `scripts/cli.py`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `scripts/mcp_server.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
-- `scripts/lib/render_deck.py`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
-- `scripts/lib/template.py`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で例外にする**
-- `scripts/lib/validate_input.py`: 形では書けない規則を検査する。**組み立てより前に止まる**
-- `scripts/tests/`: テーマ ・ 組み立て ・ 入力の検査の検証（26件）
+- `rs/cli/`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**宣言に無い旗は断る**
+- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `rs/mcp/` ・ `mcp.json`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `rs/parts/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
+- `rs/parts/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする**
+- `rs/parts/src/validate.rs`: 形では書けない規則を検査する。**組み立てより前に止まる**
+- `rs/parts/tests/`: 事例（51件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立てを固定してある

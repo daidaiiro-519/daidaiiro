@@ -65,6 +65,19 @@ impl Arg {
             default: None,
         }
     }
+
+    /// **省略できて、まとめて受ける引数を宣言する。** 0件で呼ぶことに意味がある
+    /// ものは、これで宣言する ── `many` を使うと、0件の呼び方が誤用になる。
+    #[must_use]
+    pub const fn some(name: &'static str, summary: &'static str) -> Self {
+        Self {
+            name,
+            summary,
+            required: false,
+            many: true,
+            default: None,
+        }
+    }
 }
 
 /// 渡された引数。**入口が組み、道具が読む。**
