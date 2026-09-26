@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! 10言語すべてで、辺が取れて向きが判定できることを事例で検証する。
 //!
-//!     cargo test -p inward_extract
+//!     cargo test -p nms_parts
 //!
 //! **外の道具を1つも呼ばない。** 文法は binary へ焼き込まれているので、検査する側に
 //! その言語の道具が入っていなくても測れる ── この事例がそれを固定する。
@@ -11,9 +11,9 @@
 
 use std::path::PathBuf;
 
-use inward_core::{judge, Layer, Order};
-use inward_extract::syntax::Tree;
-use inward_extract::Extractor as _;
+use nms_parts::inward::judge::{judge, Layer, Order};
+use nms_parts::inward::syntax::Tree;
+use nms_parts::inward::Extractor as _;
 
 /// 言語ごとの、層の識別子。**識別子の空間は言語が決める** ── 経路か、点の名前か、
 /// 名前空間かは、その言語の参照の書き方で決まる。

@@ -8,6 +8,9 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
+use nms_parts::inward::judge::{judge, Layer as Edge_, Order};
+use nms_parts::inward::syntax::Tree;
+use nms_parts::inward::Extractor as _;
 use nms_parts::label::{authority_label, kind_label, Verdict};
 use nms_parts::{init, run, validate};
 use serde_json::json;
@@ -376,6 +379,130 @@ fn human_output(out: &Outcome) -> String {
     )
 }
 
+/// 層1つを読む。**印は識別子のあとに `:` で足す** ── `independent` ／ `closed` ／
+/// `composes` の3つで、それ以外は誤用である。**識別子は `|` で複数を並べられる。**
+fn parse_layer(raw: &str) -> Result<Edge_, String> {
+    let Some((name, tail)) = raw.split_once('=') else {
+        return Err(format!("層の形が違う ── {raw}（名前=識別子 で渡す）"));
+    };
+    let mut parts = tail.split(':');
+    let ids: Vec<String> = parts
+        .next()
+        .unwrap_or_default()
+        .split('|')
+        .filter(|x| !x.is_empty())
+        .map(str::to_owned)
+        .collect();
+    if name.is_empty() || ids.is_empty() {
+        return Err(format!("層の形が違う ── {raw}（名前と識別子の両方が要る）"));
+    }
+    let mut layer = Edge_::of(name.to_owned(), ids);
+    for mark in parts {
+        layer = match mark {
+            "independent" => layer.independent(),
+            "closed" => layer.closed(),
+            "composes" => layer.composes(),
+            other => {
+                return Err(format!(
+                    "その印は無い ── {other}（independent ／ closed ／ composes）"
+                ))
+            }
+        };
+    }
+    Ok(layer)
+}
+
+fn run_inward(given: &Given) -> Outcome {
+    let language = given.one("language", "");
+    let root = PathBuf::from(given.one("root", "."));
+    let listed = given.all("layer");
+    if listed.is_empty() {
+        return Outcome::misuse("層を1つも渡していない".to_owned());
+    }
+    let mut layers = Vec::new();
+    for raw in listed {
+        match parse_layer(raw) {
+            Ok(layer) => layers.push(layer),
+            Err(why) => return Outcome::misuse(why),
+        }
+    }
+    let Some(tree) = Tree::of(language) else {
+        return Outcome::misuse(format!(
+            "その言語の抽出器が無い ── {language}（在るのは {}）",
+            Tree::languages().join(" ・ ")
+        ));
+    };
+    if !root.is_dir() {
+        return Outcome::misuse(format!("根が無い ── {}", root.display()));
+    }
+    let got = match tree.extract(&root) {
+        Ok(got) => got,
+        Err(e) => return Outcome::misuse(format!("抽出できない ── {e}")),
+    };
+    let order = Order::inner_to_outer(layers);
+    let bad = judge(&order, &got.edges);
+    let mut findings: Vec<String> = bad
+        .iter()
+        .map(|v| format!("{} ── {} → {}（{}）", v.at, v.from, v.to, v.because.label()))
+        .collect();
+    // **合成する層の抜け道は、食い違いにしない** ── 向きの規則が唯一成立しない場所を、
+    // 最も外側の1か所へ集約してある
+    findings.extend(
+        got.escapes
+            .iter()
+            .filter(|e| {
+                !nms_parts::inward::judge::layer_for(&order, &e.in_point)
+                    .is_some_and(|l| l.composes)
+            })
+            .map(|e| format!("{} ── {}", e.at, e.how)),
+    );
+    findings.extend(
+        got.undecided
+            .iter()
+            .map(|u| format!("判定できていない ── {u}")),
+    );
+    Outcome::found(
+        findings,
+        json!({
+            "language": tree.language(),
+            "root": root.display().to_string(),
+            "edges": got.edges.len(),
+            "limits": got.limits,
+        }),
+    )
+}
+
+fn human_inward(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    let edges = out
+        .data
+        .get("edges")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0);
+    let mut lines = if out.findings.is_empty() {
+        vec![format!("向きは内向きである ── 辺 {edges} 件を見た")]
+    } else {
+        let mut v = vec![format!(
+            "食い違い　{} 件 ／ 見た辺 {edges} 件",
+            out.findings.len()
+        )];
+        v.extend(out.findings.iter().map(|x| format!("  ・{x}")));
+        v
+    };
+    // **測り方の限界は毎回出す。** 黙らせると、取りこぼしの範囲が読めない
+    if let Some(limits) = out.data.get("limits").and_then(|x| x.as_array()) {
+        lines.extend(
+            limits
+                .iter()
+                .filter_map(|x| x.as_str())
+                .map(|x| format!("  （測り方）{x}")),
+        );
+    }
+    lines.join("\n")
+}
+
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
@@ -430,6 +557,17 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_output,
             human: human_output,
+        },
+        Tool {
+            name: "inward",
+            summary: "依存の向きが内向きかを、原文の構文木から検査する",
+            args: vec![
+                Arg::need("language", "言語の名前"),
+                Arg::need("root", "見る場所"),
+                Arg::many("layer", "層を 名前=識別子[:印] で渡す（複数可。印は independent ／ closed ／ composes）"),
+            ],
+            run: run_inward,
+            human: human_inward,
         },
         Tool {
             name: "validate",

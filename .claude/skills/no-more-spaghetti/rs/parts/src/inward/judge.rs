@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
-//! 依存の向きの核。**言語を1つも認知しない。**
+//! 依存の向きの判定。**言語を1つも認知しない。**
 //!
-//! 受け取るのは層の宣言と、抽出した辺だけである ── どの言語から、どの道具で辺を
-//! 取ったかを認知しない。**依存を1件も持たない**ので、外側の層を参照した時点で
-//! コンパイルが通らない。
+//! 受け取るのは層の宣言と、抽出した辺だけである ── どの言語から辺を取ったかを
+//! 認知しない。**辺の取り方を参照しない**ので、言語が増えてもこの側は変わらない。
 //!
 //! 禁じる辺の導出は3つの規則で尽きる。出典は Robert C. Martin の
 //! `Nothing in an inner circle can know anything at all about something in an
 //! outer circle.` である。
-
-#![forbid(unsafe_code)]
 
 use std::collections::{BTreeMap, BTreeSet};
 

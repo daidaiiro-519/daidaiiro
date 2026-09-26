@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 //! 層の並びから禁じる辺を導く3つの規則を、事例で検証する。
 //!
-//!     cargo test -p inward_core
+//!     cargo test -p nms_parts
 
-use inward_core::{forbidden, judge, Because, Edge, Layer, Order};
+use nms_parts::inward::judge::{forbidden, judge, Because, Edge, Layer, Order};
 
 fn order(names: &[&str]) -> Order {
     Order::inner_to_outer(

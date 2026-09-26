@@ -13,10 +13,10 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use inward_core::Edge;
+use super::judge::Edge;
 use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator as _};
 
-use crate::{Escape, Extracted, Extractor};
+use super::{Escape, Extracted, Extractor};
 
 /// 参照の文字列を、層の識別子へ直す規則。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

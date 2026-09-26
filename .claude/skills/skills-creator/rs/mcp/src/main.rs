@@ -34,10 +34,14 @@ fn input_schema(tool: &sc_declare::Tool) -> Arc<Map<String, Value>> {
     let mut properties = Map::new();
     let mut required = Vec::new();
     for a in &tool.args {
-        properties.insert(
-            a.name.to_owned(),
-            json!({ "type": "string", "description": a.summary }),
-        );
+        // **まとめて受ける引数は、並びとして公開する** ── 文字列1本にすると、呼ぶ側が
+        // 区切りを推測することになる（実測 ── 配列がそのまま1つの値になった）
+        let shape = if a.many {
+            json!({ "type": "array", "items": { "type": "string" }, "description": a.summary })
+        } else {
+            json!({ "type": "string", "description": a.summary })
+        };
+        properties.insert(a.name.to_owned(), shape);
         if a.required {
             required.push(Value::String(a.name.to_owned()));
         }
@@ -108,11 +112,19 @@ impl ServerHandler for Handler {
         for (key, value) in request.arguments.unwrap_or_default() {
             // **型は緩く受ける** ── 呼ぶ側は JSON の値を渡すので、数を文字列で
             // 包むことを強制しない
-            let text = match value {
-                Value::String(s) => s,
-                other => other.to_string(),
-            };
-            given.push(&key, text);
+            match value {
+                Value::Array(items) => {
+                    for item in items {
+                        let text = match item {
+                            Value::String(s) => s,
+                            other => other.to_string(),
+                        };
+                        given.push(&key, text);
+                    }
+                }
+                Value::String(s) => given.push(&key, s),
+                other => given.push(&key, other.to_string()),
+            }
         }
         for a in &tool.args {
             if !given.has(a.name) {
