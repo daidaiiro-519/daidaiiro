@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "ユースケース駆動と、それを支える schema 駆動",
  "board": "usecase-schema-driven",
- "round": 49,
+ "round": 50,
  "panels": [
   {
    "heading": "この仕組みは何か",
@@ -3937,17 +3937,17 @@
   },
   {
    "no": 11,
-   "name": "仕様の取り方と書き方",
+   "name": "仕様の取り方と、テストの結び方",
    "status": "open",
-   "question": "仕様をどう取り、どう受けるかを、契約に入れるか",
-   "answer": "C ── <b>操作を5つ、契約に入れる</b>。取る3つ（<code>list</code> ・ <code>refs</code> ・ <code>get</code>）と、受ける2つ（<code>validate</code> ・ <code>bind</code>）。<b>返す形は射影に委ねる</b>ので、操作と射影は直交する",
-   "intro": "<b>仕様を全部読ませる前提で考えていた</b>が、実際には要る部分だけを取る。<br><b>いまの能力の契約は5つ</b>（宣言 ・ 検査 ・ 射影 ・ 対応表 ・ テストの一覧）で、<b>「どう取れるか」が入っていない</b>。入れないと、渡し方を利用者が自分で実装することになり、AI ツールごとに分岐する ── 論点2 が避けたかった形である。<br><b>対応表への書き込み（<code>bind</code>）は既に在る</b>ので、読む側だけを契約に入れると、片側だけが契約に在る状態になる。",
+   "question": "仕様をどう取り、シナリオとテストをどう結ぶか",
+   "answer": "C′ ── <b>操作は4つ</b>（<code>list</code> ・ <code>refs</code> ・ <code>get</code> ・ <code>validate</code>）で、<b>シナリオとテストは、テストの名前の末尾に置いた ID で結ぶ</b>。申告（<code>bind</code>）も対応表も要らない",
+   "intro": "<b>仕様を全部読ませる前提で考えていた</b>が、実際には要る部分だけを取る。<br><b>いまの能力の契約は5つ</b>（宣言 ・ 検査 ・ 射影 ・ 対応表 ・ テストの一覧）で、<b>「どう取れるか」が入っていない</b>。入れないと、渡し方を利用者が自分で実装することになり、AI ツールごとに分岐する ── 論点2 が避けたかった形である。<br>そしてもう1つ、<b>対応表は AI の申告で埋まる</b> ── 道具はそれを確かめていない。「AI が申告しないまま実装したと主張できる」は、論点1 の保留に記録済みである。",
    "decision": {
-    "letter": "C",
+    "letter": "C′",
     "text": [
      {
       "kind": "para",
-      "text": "<b>操作は5つである。</b>どれも道具が持ち、MCP ・ CLI ・ フックのどれからでも呼べる。"
+      "text": "<b>取る操作3つと、受ける操作1つである。</b>どれも道具が持ち、MCP ・ CLI ・ フックのどれからでも呼べる。"
      },
      {
       "kind": "list",
@@ -3957,22 +3957,37 @@
         "text": "<code>list</code> ── <b>索引</b>（ID ・ 名前 ・ 種類）。絞り込みの条件を渡せる"
        },
        {
-        "text": "<code>refs &lt;id&gt;</code> ── その宣言が<b>参照している ID</b>と、<b>参照している側の ID</b>。索引から参照をたどって、要る宣言に達する"
+        "text": "<code>refs &lt;id&gt;</code> ── その宣言が<b>参照している ID</b>と、<b>参照している側の ID</b>"
        },
        {
         "text": "<code>get &lt;id&gt; [--as 射影]</code> ── 宣言1件。<b>射影の名前を渡せば、同じ宣言が HTML でも詰めた構造化データでも出る</b>"
        },
        {
         "text": "<code>validate</code> ── 書いた仕様の形を受ける。concrete の JSON Schema で検査する（論点10）"
-       },
-       {
-        "text": "<code>bind</code> ── 対応表へ1行。既に在るものを、契約の欄として書く"
        }
       ]
      },
      {
       "kind": "para",
-      "text": "<b>仕様を書くのは AI で、人は承認する</b>（論点1）。<b>書き込みはふつうのファイル書き込みで、道具は <code>validate</code> で受ける</b> ── 道具に仕様を書き換える操作を持たせない。書き換えられると、<b>承認を経ない変更の経路ができる</b>。"
+      "text": "<b>シナリオとテストは、名前で結ぶ。</b>テストの名前の<b>末尾</b>にシナリオID を置き、道具は<b>実行器が出した一覧の文字列</b>だけを見る ── ソースも読まず、申告も受けない。"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "照合は「<b>末尾である</b>」。<code>_</code> を <code>-</code> に直してから見る（Go の識別子は <code>-</code> を使えないため）"
+       },
+       {
+        "text": "<b>1つのシナリオに、テストは何本でもよい</b> ── 境界値ごとに分けるのは普通である。0本だけを不合格にする"
+       },
+       {
+        "text": "<b>対応表も <code>bind</code> も要らなくなる</b> ── 「申告に依存する」という保留が、そのまま消える"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>仕様を書くのは AI で、人は承認する</b>（論点1）。書き込みはふつうのファイル書き込みで、道具は <code>validate</code> で受ける ── 道具に仕様を書き換える操作を持たせない。書き換えられると、<b>承認を経ない変更の経路ができる</b>。"
      }
     ]
    },
@@ -3980,88 +3995,97 @@
     {
      "kind": "figure",
      "name": "ports5",
-     "caption": "<b>取る操作3つと、受ける操作2つである。</b>AI は索引を取り、参照をたどり、要る宣言だけを取る ── <b>全部を読まない</b>。書く側は、仕様はファイルへ書いて <code>validate</code> で受け、対応表だけ <code>bind</code> で入る。"
+     "caption": "<b>取る操作が3つ、受ける操作が1つである。</b>AI は索引を取り、参照をたどり、要る宣言だけを取る ── <b>全部を読まない</b>。<b>テストの一覧は、実行器が列挙したものを受け取るだけ</b>で、シナリオとは<b>名前の末尾の ID</b>で結ぶ ── 申告も対応表も要らない。"
     }
    ],
    "example": [
     {
      "kind": "para",
-     "text": "<b>AI が集約1件を実装するとき、実際に流れるのはこれである。</b>括弧の数はトークンで、実測である。"
+     "text": "<b>3つの言語で実際に流した。</b>道具の側は同じコードで、言語を1つも知らない。"
     },
     {
      "kind": "note",
-     "text": "① 索引を取る（299）── 全部で17件しか無いことが分かる"
+     "text": "① 実装の側 ── テストの名前の末尾に ID を置く"
     },
     {
      "kind": "html",
-     "text": "&gt; list\nBD-01J8D0P 宅配のサービス &lt;business-domain&gt;\nBC-01J8B7C 受注の文脈 &lt;bounded-context&gt;\nAGG-01J7Q4K 出荷指示 &lt;aggregate&gt;\n…（17行）"
+     "text": "Go         func TestConfirmFailsWhenNoLines_SC_01J7Q4M(t *testing.T)\nPython     def test_確定できない_明細が0件_SC_01J7Q4M()\nTypeScript test(&quot;明細が0件のとき、確定できない SC-01J7Q4M&quot;, () =&gt; {…})"
     },
     {
      "kind": "note",
-     "text": "② 参照をたどる（38）── この集約を指している宣言は、実は1件も無い"
+     "text": "② 実行器が列挙する ── これが道具への入力の全部である"
     },
     {
      "kind": "html",
-     "text": "&gt; refs AGG-01J7Q4K\n指している　 BC-01J8B7C　SD-01J8C1A\n指されている （無し）"
+     "text": "example.com/shop/order.TestConfirmFailsWhenNoLines_SC_01J7Q4M\nexample.com/shop/order.TestConfirmSucceedsWithOneLine_SC_01J7Q4N\nexample.com/shop/order.TestConfirmBoundaries_SC_01J7Q4N"
     },
     {
      "kind": "note",
-     "text": "③ 要る宣言だけを取る（360。中央値は108）── 事前条件も期待も、ここに在る"
+     "text": "③ 道具の判定 ── 1つのシナリオに2本付いていてもよい"
     },
     {
      "kind": "html",
-     "text": "&gt; get AGG-01J7Q4K\n{ &quot;kind&quot;:&quot;aggregate&quot;, &quot;id&quot;:&quot;AGG-01J7Q4K&quot;, &quot;name&quot;:&quot;出荷指示&quot;,\n  &quot;rules&quot;:[{&quot;name&quot;:&quot;明細の合計は、引当済の数量を超えない&quot;,\n             &quot;predicate&quot;:&quot;sum(lines.qty) &lt;= allocatedQty&quot;}],\n  &quot;ops&quot;:[{&quot;name&quot;:&quot;確定する&quot;,&quot;pre&quot;:[&quot;status == 準備中&quot;,&quot;lines.length &gt; 0&quot;],\n          &quot;post&quot;:[&quot;status == 確定済&quot;],&quot;writes&quot;:[&quot;出荷指示&quot;,&quot;出荷明細&quot;]}],\n  &quot;nodes&quot;:[{&quot;id&quot;:&quot;SC-01J7Q4M&quot;, … }] }"
+     "text": "○ SC-01J7Q4M　1 本　TestConfirmFailsWhenNoLines_SC_01J7Q4M\n○ SC-01J7Q4N　2 本　TestConfirmBoundaries_SC_01J7Q4N ・ TestConfirmSucceedsWithOneLine_SC_01J7Q4N"
     },
     {
      "kind": "note",
-     "text": "④ 人が読む形が要るなら、射影の名前を渡す（同じ宣言）"
+     "text": "④ 壊すと出る ── テストを消した ／ 名前から ID を落とした"
     },
     {
      "kind": "html",
-     "text": "&gt; get AGG-01J7Q4K --as 承認\n&lt;h1&gt;出荷指示（集約）&lt;/h1&gt;\n&lt;h2&gt;不変条件&lt;/h2&gt; …"
+     "text": "× SC-01J7Q4N　テストが無い\n△ シナリオに結ばれていない　example.com/shop/order.TestConfirmOK_…"
     },
     {
      "kind": "note",
-     "text": "⑤ 実装して、結んだと申告する"
-    },
-    {
-     "kind": "html",
-     "text": "&gt; bind(node=&quot;SC-01J7Q4M&quot;, external=&quot;usecase::tests::明細が0件のとき確定できない&quot;)\n対応表へ1行入った"
-    },
-    {
-     "kind": "note",
-     "text": "合計 ── 索引299 ＋ 参照38 ＋ 宣言360 ＝ <b>697</b>（全部渡すと 2,674。その26%）"
+     "text": "⑤ 仕様を取るほうは、索引299 ＋ 参照38 ＋ 宣言360 ＝ 697（全部渡すと 2,674）"
     }
    ],
    "passed": [
     {
-     "name": "C ── 取る操作と受ける操作を、両方とも契約に入れる",
-     "body": "<code>list</code> ・ <code>refs</code> ・ <code>get</code> ・ <code>validate</code> ・ <code>bind</code> の5つ",
-     "cost": "<b>契約の欄が5つ増える</b> ── 操作を増やすたびに、注入した concrete 全部がその操作に応える必要が出る"
+     "name": "C′ ── 操作は4つ、テストは名前の末尾の ID で結ぶ",
+     "body": "<code>list</code> ・ <code>refs</code> ・ <code>get</code> ・ <code>validate</code>。対応表を持たない",
+     "cost": "<b>テストの名前に規約が入る</b> ── 名前を変えると結びが切れる（ただし検出される）。ID を持たないテストの扱いを決める必要が残る"
+    },
+    {
+     "name": "C ── 操作は5つ（<code>bind</code> で申告する）",
+     "body": "AI が MCP でシナリオID とテストの識別子を結ぶ",
+     "cost": "<b>道具が申告を確かめられない</b> ── 取り違えて結んでも、両端が実在すれば検出は同じ件数だった（実測）"
     },
     {
      "name": "B ── 読む操作だけを契約に入れる",
-     "body": "取る3つだけを契約にし、書く側は道具の外に置く",
-     "cost": "<b>対応表への書き込みが契約の外に出る</b> ── <code>bind</code> は既に在るので、片側だけが契約に在る不整合になる"
+     "body": "取る3つだけを契約にし、結ぶ側は道具の外に置く",
+     "cost": "<b>結び方が利用者ごとに変わる</b> ── 引き算の形が成果物ごとに違うことになる"
     },
     {
      "name": "A ── 操作を契約に入れない（射影だけ持つ）",
      "body": "渡し方は、使う側が決める",
-     "cost": "<b>全部渡すしか残らない</b>。しかも渡し方を利用者が実装するので、AI ツールごとに分岐する ── 論点2 が避けた形である"
+     "cost": "<b>全部渡すしか残らない</b>。しかも渡し方を利用者が実装するので、AI ツールごとに分岐する"
     }
    ],
    "dropped": [
     {
+     "body": "ソースを tree-sitter で読み、テストを直に見つける",
+     "reason": "<b>2度差し戻された道である</b>（論点1 の B′ ・ B″）── 道具が言語を知ることになる。しかも<b>拾えても結べない</b>（規約が言語ごとに要る）うえ、中身が空かは構文解析でも判定できない"
+    },
+    {
+     "body": "ソースの中に印を置く（<code>@scenario SC-…</code>）",
+     "reason": "<b>註釈の形式が言語ごとに違う</b>（論点1 の B″ の差し戻し）── 名前なら、実行器が出す一覧にそのまま載る"
+    },
+    {
+     "body": "ID を名前の先頭に置く",
+     "reason": "<b>「含む」でしか照合できない</b> ── 末尾なら <code>…_SC-01J7Q4M_old</code> のような紛れ込みを弾ける。絞り込みも一覧の並びも、振る舞いの名前で効かなくなる"
+    },
+    {
      "body": "仕様を書き換える操作（<code>put</code> ・ <code>draft</code>）を道具に持たせる",
-     "reason": "<b>書くのは AI だが、通すのは人である</b>（論点1 ・ 論点5）。道具に書き換える操作を持たせると、<b>承認を経ない変更の経路ができる</b>。書き込みはファイルで足り、形の担保は <code>validate</code> が持つ"
+     "reason": "<b>承認を経ない変更の経路ができる</b>。書き込みはファイルで足り、形の担保は <code>validate</code> が持つ"
     },
     {
      "body": "問い合わせの言語（絞り込みの式）を持つ",
-     "reason": "<b>小さな言語に育つ</b> ── 射影の記法と同じ失敗をたどる。索引と参照で要る宣言に達するので、いまは要らない"
+     "reason": "<b>小さな言語に育つ</b> ── 索引と参照で要る宣言に達するので、いまは要らない"
     },
     {
      "body": "概略の射影（語と操作まで出すもの）を、渡す形の既定にする",
-     "reason": "<b>索引（295）とクエリの間に挟まる中途半端なものである</b> ── 語も操作も、要るときに取ればよい"
+     "reason": "<b>索引（299）とクエリの間に挟まる中途半端なものである</b>"
     }
    ],
    "tables": [
@@ -4145,6 +4169,36 @@
        ]
       ]
      ]
+    },
+    {
+     "caption": "入れ子と分割を、どう揃えるか（実測 ・ 3言語）",
+     "cols": [
+      "入れ子 ・ 分割を列挙に出すか",
+      "渡す側の変換"
+     ],
+     "rows": [
+      [
+       "Go <code>go test -list</code>",
+       [
+        "<b>出さない</b> ── 小分け（<code>t.Run</code>）は実行時だけ",
+        "要らない"
+       ]
+      ],
+      [
+       "Python <code>pytest --collect-only</code>",
+       [
+        "出す ── <code>…_SC_01J7Q4N[lines0]</code>",
+        "<code>[…]</code> を削る"
+       ]
+      ],
+      [
+       "TypeScript <code>node --test</code>",
+       [
+        "出す ── 字下げで親子が分かる",
+        "字下げのある行を取らない"
+       ]
+      ]
+     ]
     }
    ],
    "path": [
@@ -4178,18 +4232,33 @@
     "<b>1往復（list → refs → get）は 697 で、全部渡すの26%だった</b> ── 1回の上乗せを80と置いても 937（35%）である",
     "<b>釣り合う点は、取る宣言の大きさで変わる</b> ── 中央値の宣言なら12.6件、いちばん大きい宣言なら5.6件で並ぶ（上乗せ80のとき）",
     "<b>参照は、方法論の語を知らずに見つかる</b> ── 「既知の ID と一致する文字列」を探すだけで済んだ。基盤は <code>context</code> も <code>upstream</code> も知らない",
-    "<b>宣言どうしは ID で参照し合う</b>（論点6）ので、索引から参照をたどって、要る宣言に達する"
+    "<b>宣言どうしは ID で参照し合う</b>（論点6）ので、索引から参照をたどって、要る宣言に達する",
+    "<b>テストの名前の末尾に ID を置くと、申告が要らなくなる</b> ── Go ・ Python ・ TypeScript の3言語で、道具は同じコードのまま結べた（実測）",
+    "<b>末尾を要求すると、紛れ込みを弾ける</b> ── <code>TestSomething_SC-01J7Q4M_old</code> は「含む」では通り、「末尾」では弾かれた",
+    "<b>1つのシナリオに2本付く形は、実際に出た</b> ── 境界値ごとに分けると <code>SC-01J7Q4N</code> に2本付いた。0本だけを不合格にする",
+    "<b>入れ子と分割は、渡す側の変換1行で揃う</b> ── Go は列挙に出さず、Python は <code>[…]</code> を削り、node は字下げのある行を取らない",
+    "<b>取り違えた申告は、いまの形では検出できなかった</b> ── シナリオ2本の結びを入れ替えても、検出件数は同じだった（実測）"
    ],
    "requirements": [
-    "<b>注入した concrete が、5つの操作すべてに応える</b>必要が出る ── 操作を足すたびに、その負担が増える",
-    "<b>1回の呼び出しの上乗せを、実際に測る</b> ── いまは0〜120と置いて幅で出している",
-    "<b>索引に何を出すかを決める</b> ── ID ・ 名前 ・ 種類までとし、語や操作は出さない"
+    "<b>テストの名前に規約が入る</b> ── 末尾にシナリオID を置く。名前を変えると結びが切れる（ただし「テストが無い」として検出される）",
+    "<b>注入した concrete が、4つの操作すべてに応える</b>必要が出る",
+    "<b>1回の呼び出しの上乗せを、実際に測る</b> ── いまは0〜120と置いて幅で出している"
    ],
    "out_of_scope": [
     {
-     "item": "<b>試す相手は外の作業である</b> ── 5つの操作は試作へ足して測り終えた。残るのは、AI に実際の実装をさせて往復の回数を数えることである",
+     "item": "<b>この答えを試す相手は、外の作業である</b> ── 3言語で結べることは測り終えた。残るのは、AI に実際の実装をさせて、名前の規約が守られるかを見ることである",
      "treatment": "later",
-     "note": "釣り合いは、取る宣言の大きさで5.6件から12.6件まで動く ── 何件取るかは、実物の作業で決まる"
+     "note": "守られなければ「テストが無い」として出る ── 静かには壊れない"
+    },
+    {
+     "item": "<b>ID を持たないテストを、どう扱うかを決めていない</b> ── 内部の単体テストにはシナリオが無い",
+     "treatment": "later",
+     "note": "すべてのテストにシナリオを要求すると書けなくなり、要求しないと書き忘れが見えない"
+    },
+    {
+     "item": "<b>中身が空のテストは、この形でも通る</b> ── 名前しか見ていない",
+     "treatment": "out",
+     "note": "<b>道具の責務の外である</b> ── テストが失敗しうるかは規則（CodingSkills）と CI が担保する"
     },
     {
      "item": "<b>1回の呼び出しの上乗せを測っていない</b>",
@@ -4250,6 +4319,30 @@
      "basis": "論点1 の決着 ── MCP ・ CLI ・ フックの3つで呼べる",
      "tag": "rule",
      "source": "このブレストボードの論点1"
+    },
+    {
+     "supports": "名前だけで、3言語とも結べる",
+     "basis": "Go 1.27 ・ pytest 9.0.2 ・ Node 24 で、同じシナリオ2本を実装し、実行器の一覧だけで結んだ",
+     "tag": "measured",
+     "source": "<code>scratchpad/shop</code> ・ <code>shop-py</code> ・ <code>shop-ts</code>（2026-09-27）"
+    },
+    {
+     "supports": "ソースの中に印を置く案は、既に差し戻されている",
+     "basis": "「正直言語ごとにコメントの形式の代償を払うのであれば、DocString に書いてしまっては？……大事なのは AI がこの道具の MCP を使用して正しいシナリオIDからシナリオを正しく読み込んでテスト駆動で実装するという契約を遵守できるのであればそっちの方がいいです」",
+     "tag": "rule",
+     "source": "論点1 の道筋（B″ の差し戻し）"
+    },
+    {
+     "supports": "道具は言語に依存してはならない",
+     "basis": "「これは言語に依存しません。言語に依存すると破綻します」",
+     "tag": "rule",
+     "source": "論点1 の道筋（B′ の差し戻し）"
+    },
+    {
+     "supports": "申告は、道具が確かめられない",
+     "basis": "シナリオ2本の結びを入れ替えて申告しても、検出件数は同じだった",
+     "tag": "measured",
+     "source": "試作 <code>trial/spike</code> での実測（2026-09-26）"
     }
    ]
   }
