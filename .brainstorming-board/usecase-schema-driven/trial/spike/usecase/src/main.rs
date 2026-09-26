@@ -2,7 +2,10 @@
 //!
 //! 人が読む形も、つなぎ目も、**同じ1つの動詞で出る** ── 射影である。
 //! **テストは出さない**（論点1 の決着）。
+//!
+//! 仕様の根は `SCHEMA_SPEC_ROOT` で渡す ── **走査する場所は、この1つだけである**。
 fn main() {
+    eprintln!("仕様の根： {}", usecase::spec_root().display());
     let decls = usecase::decls();
     let reg = usecase::wire();
     let which = std::env::args().nth(1);
@@ -21,12 +24,20 @@ fn main() {
     for f in &found {
         eprintln!("{}", f.line());
     }
+    // 置き場所 ── **根に事業領域がちょうど1件あるか**（常時ゼロ）
+    let root = base::root_findings(&usecase::spec_files(), usecase::ROOT_KIND);
+    for f in &root {
+        eprintln!("{}", f.line());
+    }
     // 関係の系統 ── **宣言していない文脈を、上流に挙げていないか**（論点9）
     let up = usecase::upstream_drift();
     for x in &up.unbound_externals {
         eprintln!("宣言していない文脈を上流に挙げた： {x}");
     }
-    eprintln!("見つかったこと {} 件", found.len() + up.unbound_externals.len());
+    eprintln!(
+        "見つかったこと {} 件",
+        found.len() + root.len() + up.unbound_externals.len()
+    );
     // **既定値で埋めた鍵を、必ず申告する** ── 仕様から出ていない値だからである
     for f in usecase::defaults() {
         eprintln!("既定値で埋めた： {}::{} = {:?}  ／ {}", f.render, f.key, f.value, f.why);

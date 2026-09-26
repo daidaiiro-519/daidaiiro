@@ -307,6 +307,45 @@ pub fn audit(decls: &[Decl], reg: &Registry) -> Vec<Finding> {
 // **基盤が規定するのは「ある種類の宣言が、ちょうど1件、根に在ること」だけである。**
 // どの種類かは呼ぶ側が渡す ── 基盤は種類の名前を1つも持たない。
 
+/// 仕様の木を読む ── **走査する場所は、この根1つだけである**（契約）。
+///
+/// **読むのは仕様だけである。** ソースも成果物も走査しない ──
+/// 成果物の一覧は外から受け取る。
+///
+/// 並びは道から決める ── **同じ木からは、同じ並びが出る**（冪等である）。
+pub fn read_spec_tree(root: &std::path::Path) -> Result<Vec<SpecFile>, String> {
+    if !root.is_dir() {
+        return Err(format!("仕様の根が無い： {}", root.display()));
+    }
+    let mut out = Vec::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let entries = std::fs::read_dir(&dir)
+            .map_err(|e| format!("読めない： {} ── {e}", dir.display()))?;
+        for e in entries {
+            let p = e.map_err(|e| format!("読めない： {} ── {e}", dir.display()))?.path();
+            if p.is_dir() {
+                stack.push(p);
+                continue;
+            }
+            if p.extension().and_then(|x| x.to_str()) != Some("json") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&p)
+                .map_err(|e| format!("読めない： {} ── {e}", p.display()))?;
+            let decls = read(&text).map_err(|e| format!("形が違う： {} ── {e}", p.display()))?;
+            let rel = p
+                .strip_prefix(root)
+                .map_err(|_| format!("根の外に在る： {}", p.display()))?
+                .to_string_lossy()
+                .replace('\\', "/");
+            out.push(SpecFile { path: rel, decls });
+        }
+    }
+    out.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(out)
+}
+
 /// 仕様のファイル1つ。`path` は**根から見た相対の位置**である。
 pub struct SpecFile {
     pub path: String,

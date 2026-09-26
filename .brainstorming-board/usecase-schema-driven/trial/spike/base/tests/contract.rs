@@ -19,3 +19,51 @@ fn 実行系の生の出力は_そのままでは使えない() {
             "生の行をそのまま識別子にしている ── 変換は渡す側の仕事である");
     assert!(got.contains("2 tests, 0 benchmarks"), "件数の行まで識別子になる");
 }
+
+// ── 仕様の木を読む（走査する場所は1つだけである） ──────────────
+
+// **検査どうしで木を共有しない** ── 同じ場所を使うと、並行して走ったときに壊し合う
+fn 仮の木(名前: &str, files: &[(&str, &str)]) -> std::path::PathBuf {
+    let root = std::env::temp_dir().join(format!("spec-{}-{}", std::process::id(), 名前));
+    let _ = std::fs::remove_dir_all(&root);
+    for (rel, body) in files {
+        let p = root.join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(&p, body).unwrap();
+    }
+    root
+}
+
+const 事業領域: &str = r#"[{"kind":"business-domain","id":"BD-1","name":"甲",
+  "render":"r","rules":[],"ops":[],"nodes":[],"body":{}}]"#;
+
+#[test]
+fn 仕様の木は_根からの相対の道で読む() {
+    let root = 仮の木("木", &[
+        ("business-domain.json", 事業領域),
+        ("usecases/all.json", "[]"),
+        ("読まない.txt", "これは JSON ではない"),
+    ]);
+    let files = base::read_spec_tree(&root).expect("読めない");
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(paths, vec!["business-domain.json", "usecases/all.json"],
+               "JSON 以外を読んでいるか、並びが道から決まっていない");
+    assert!(files[0].at_root(), "根に在ると判定できていない");
+    assert!(!files[1].at_root(), "根の外を根と判定している");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn 根が無ければ_読めないと言う() {
+    let e = base::read_spec_tree(std::path::Path::new("/在りもしない/根"))
+        .err().expect("在りもしない根を読めてしまった");
+    assert!(e.contains("仕様の根が無い"), "{e}");
+}
+
+#[test]
+fn 形の違う仕様は_どのファイルかを言う() {
+    let root = 仮の木("形", &[("business-domain.json", "{ これは JSON ではない }")]);
+    let e = base::read_spec_tree(&root).err().expect("形の違う仕様を読めてしまった");
+    assert!(e.contains("形が違う") && e.contains("business-domain.json"), "{e}");
+    let _ = std::fs::remove_dir_all(&root);
+}

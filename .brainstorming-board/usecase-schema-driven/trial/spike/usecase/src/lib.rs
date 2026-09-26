@@ -6,33 +6,20 @@
 use base::{Bindings, Decl, Registry};
 use std::collections::BTreeSet;
 
-/// 仕様のファイル ── **事業領域で切ったフォルダの、根から見た位置**を持つ。
+/// 仕様の根 ── **走査する場所は、ここ1つだけである**（契約）。
 ///
-/// 道具はフォルダを走査しない（論点1）。一覧は、この側が渡す。
+/// 渡されなければ、このクレートの隣の見本を使う。
+/// **仕様はバイナリの外に在る** ── 直しても、組み直さずに反映される。
+pub fn spec_root() -> std::path::PathBuf {
+    if let Ok(x) = std::env::var("SCHEMA_SPEC_ROOT") {
+        return std::path::PathBuf::from(x);
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("spec/宅配のサービス")
+}
+
+/// 仕様のファイル ── **根から実際に読む**。並びは道から決まる。
 pub fn spec_files() -> Vec<base::SpecFile> {
-    vec![
-        // 根に置く ── **全体のコンセプトだからである**（契約）。
-        base::SpecFile {
-            path: "business-domain.json".into(),
-            decls: base::read(include_str!("../spec/宅配のサービス/business-domain.json"))
-                .expect("読めない"),
-        },
-        base::SpecFile {
-            path: "subdomains/all.json".into(),
-            decls: base::read(include_str!("../spec/宅配のサービス/subdomains/all.json"))
-                .expect("読めない"),
-        },
-        base::SpecFile {
-            path: "contexts/all.json".into(),
-            decls: base::read(include_str!("../spec/宅配のサービス/contexts/all.json"))
-                .expect("読めない"),
-        },
-        base::SpecFile {
-            path: "usecases/all.json".into(),
-            decls: base::read(include_str!("../spec/宅配のサービス/usecases/all.json"))
-                .expect("読めない"),
-        },
-    ]
+    base::read_spec_tree(&spec_root()).unwrap_or_else(|e| panic!("{e}"))
 }
 
 /// 宣言（文書エンティティ）を読む。

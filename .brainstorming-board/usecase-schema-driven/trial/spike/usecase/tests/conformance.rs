@@ -655,3 +655,23 @@ fn 宣言の側には_AIツールの語が1つも無い() {
         assert!(!s.contains(語), "宣言に {} が入っている", 語);
     }
 }
+
+// ── 仕様は、バイナリの外に在る ─────────────────────────────
+
+#[test]
+fn 仕様は_本物のフォルダから読む() {
+    let root = usecase::spec_root();
+    assert!(root.is_dir(), "仕様の根が無い： {}", root.display());
+    let files = usecase::spec_files();
+    for f in &files {
+        assert!(root.join(&f.path).is_file(), "実在しない道を持っている： {}", f.path);
+    }
+    assert!(files.iter().any(|f| f.path == "business-domain.json"), "根の宣言が読めていない");
+}
+
+#[test]
+fn 根に事業領域がちょうど1件ある_本物のフォルダで() {
+    // これまでは手で打った文字列に対して確かめていた。**いまは実在の木で確かめる。**
+    let found = base::root_findings(&usecase::spec_files(), usecase::ROOT_KIND);
+    assert!(found.is_empty(), "{:?}", found.iter().map(|f| f.line()).collect::<Vec<_>>());
+}
