@@ -915,7 +915,7 @@
           "line": 292
         }
       },
-      "scope": "crate ごとの Cargo.toml の [package] のみ ── 検査が要求する欄の集合は道具が持つ",
+      "scope": "crate ごとの Cargo.toml の [package] のみ ── 検査が要求する欄の集合は道具が持つ。**publish = false の crate では発火しない**（実測）ので、公開する crate だけが対象になる",
       "check": {
         "tool": [
           "cargo",
@@ -1080,7 +1080,7 @@
           "line": 3780
         }
       },
-      "scope": "公開する struct と enum のみ ── 欄が固定であることを約束する型は、この規則を外して理由を記録する",
+      "scope": "公開する struct と enum のみ ── **publish = false でも発火する**（実測）ので、適用の範囲はこちらで決める。欄の追加が他所の crate を壊しうる crate、つまり公開する crate に適用する。同じ単位で配布する crate どうしの間の型と、欄が固定であることを約束する型は、理由を書いた allow で外す（`#[allow(clippy::exhaustive_structs, reason = \"…\")]`）",
       "check": {
         "tool": [
           "cargo",
@@ -1091,6 +1091,33 @@
           "-Dwarnings",
           "-Dclippy::exhaustive_structs",
           "-Dclippy::exhaustive_enums"
+        ],
+        "target": "rust"
+      }
+    },
+    {
+      "rule": "1つの関数を、読み切れる長さに収める",
+      "source": {
+        "meta": "Clippy lints, too_many_lines",
+        "authority": "spec",
+        "quote": "Functions with a lot of lines are harder to understand",
+        "fetched": {
+          "url": "https://rust-lang.github.io/rust-clippy/master/index.html",
+          "date": "2026-09-26",
+          "sha256": "25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b",
+          "line": 15824
+        }
+      },
+      "scope": "関数の本体の行数のみ ── 上限の値は道具が持つ（既定は100行）。空行と註釈は数えない",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings",
+          "-Dclippy::too_many_lines"
         ],
         "target": "rust"
       }
