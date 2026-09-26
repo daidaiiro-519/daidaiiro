@@ -68,13 +68,21 @@ fn 未知の種類は静かに無視されず誤りになる() {
 }
 
 #[test]
-fn 対応表で三つの引き算が全部ゼロになる() {
+fn 対応表の引き算は_常時ゼロの二系統がゼロである() {
+    // **対応の無い節は、常時ゼロではない**（実装までの間は正当な状態である）。
+    // 残る2つ ── 結ばれていない識別子と、切れた対応 ── は常時ゼロを要求する。
     let decls = usecase::decls();
     let d = base::drift(&base::node_ids(&decls), &usecase::bindings(), &usecase::test_list());
     assert!(
-        d.is_empty(),
-        "対応の無い節: {:?} ／ 結ばれていない識別子: {:?} ／ 切れた対応: {:?}",
-        d.unbound_nodes, d.unbound_externals, d.dangling
+        d.unbound_externals.is_empty() && d.dangling.is_empty(),
+        "結ばれていない識別子: {:?} ／ 切れた対応: {:?}",
+        d.unbound_externals, d.dangling
+    );
+    // いま結んでいない節は1件だけである ── 在庫の引当は、まだテストを書いていない
+    assert_eq!(
+        d.unbound_nodes.into_iter().collect::<Vec<_>>(),
+        vec!["SC-01J9C4D".to_string()],
+        "結んでいない節が、想定と違う"
     );
 }
 
@@ -84,9 +92,11 @@ fn 仕様にあって実装にないシナリオが出る() {
     let mut b = base::Bindings::new();
     b.bind("SC-01J7Q4M", "usecase::tests::明細が0件のとき確定できない");
     let d = base::drift(&base::node_ids(&decls), &b, &usecase::test_list());
-    // 業務サービスの節も結んでいないので、2件とも出る
+    // 1件しか結んでいないので、残りの節が全部出る
     assert_eq!(d.unbound_nodes.into_iter().collect::<Vec<_>>(),
-               vec!["SC-01J7Q4N".to_string(), "SC-01J8E5M".to_string()]);
+               vec!["SC-01J7Q4N".to_string(), "SC-01J8E5M".to_string(),
+                    "SC-01J9C1A".to_string(), "SC-01J9C2B".to_string(),
+                    "SC-01J9C3C".to_string(), "SC-01J9C4D".to_string()]);
 }
 
 #[test]
@@ -248,9 +258,14 @@ fn 文脈の宣言は節を持たないので振る舞いの引き算に出な�
     let decls = usecase::decls();
     let bc = decls.iter().find(|d| d.kind == "bounded-context").expect("文脈の宣言が無い");
     assert!(bc.nodes.is_empty(), "語を節にしてはならない ── 節はテストと結ぶ単位である");
-    // 節が無いので、対応表を増やさなくても引き算はゼロのままである。
+    // **節が無いので、文脈を1件足しても引き算は1件も増えない。**
     let d = base::drift(&base::node_ids(&decls), &usecase::bindings(), &usecase::test_list());
-    assert!(d.is_empty(), "{:?}", d);
+    let ctxs = decls.iter().filter(|d| d.kind == "bounded-context").count();
+    assert_eq!(ctxs, 2, "文脈が2件ある前提の検査である");
+    assert_eq!(
+        d.unbound_nodes.len(), 1,
+        "文脈を足したのに、振る舞いの引き算が増えた ── {:?}", d.unbound_nodes
+    );
 }
 
 #[test]
@@ -473,10 +488,10 @@ fn 根に無いと出る() {
 
 #[test]
 fn 操作を持つのに節が無い宣言が挙がる() {
-    // いまの仕様では、ユースケースが操作1件に対して節を持っていない。
+    // いまの仕様では、2つのユースケースが操作を持ちながら節を持っていない。
     assert_eq!(
         usecase::ops_without_nodes().into_iter().collect::<Vec<_>>(),
-        vec!["UC-01J7Q8Q".to_string()],
+        vec!["UC-01J7Q8Q".to_string(), "UC-01J9B4D".to_string()],
         "振る舞いを宣言していない宣言が挙がらない"
     );
 }

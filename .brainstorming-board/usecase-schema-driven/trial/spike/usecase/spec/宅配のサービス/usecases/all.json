@@ -164,5 +164,243 @@
       "context": "BC-01J8B7C",
       "why": "出荷指示と配送区分の2つの集約にまたがるので、集約には置けない"
     }
+  },
+  {
+    "kind": "aggregate",
+    "id": "AGG-01J9B1A",
+    "name": "受注",
+    "render": "render.aggregate",
+    "rules": [
+      {
+        "name": "明細が0件の受注は、確定できない",
+        "predicate": "lines.length > 0",
+        "check": "check.precondition"
+      }
+    ],
+    "ops": [
+      {
+        "name": "作成する",
+        "pre": [],
+        "post": [
+          "status == 準備中"
+        ],
+        "writes": [
+          "受注"
+        ]
+      },
+      {
+        "name": "明細を追加する",
+        "pre": [
+          "status == 準備中"
+        ],
+        "post": [
+          "lines が1増える"
+        ],
+        "writes": [
+          "受注",
+          "受注明細"
+        ]
+      },
+      {
+        "name": "確定する",
+        "pre": [
+          "status == 準備中",
+          "lines.length > 0"
+        ],
+        "post": [
+          "status == 確定"
+        ],
+        "writes": [
+          "受注"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J9C1A",
+        "name": "明細が0件のとき、確定できない",
+        "body": {
+          "given": [
+            {
+              "op": "作成する"
+            }
+          ],
+          "when": {
+            "op": "確定する"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      },
+      {
+        "id": "SC-01J9C2B",
+        "name": "明細が1件あれば、確定できる",
+        "body": {
+          "given": [
+            {
+              "op": "作成する"
+            },
+            {
+              "op": "明細を追加する"
+            }
+          ],
+          "when": {
+            "op": "確定する"
+          },
+          "then": {
+            "fails": false,
+            "check": "check.statusIs"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C"
+    }
+  },
+  {
+    "kind": "use-case",
+    "id": "UC-01J9B2B",
+    "name": "受注を確定する",
+    "render": "render.usecase",
+    "rules": [],
+    "ops": [
+      {
+        "name": "受け付ける",
+        "pre": [],
+        "post": [
+          "受付済"
+        ],
+        "writes": [
+          "受注"
+        ]
+      },
+      {
+        "name": "実行する",
+        "pre": [
+          "受付済"
+        ],
+        "post": [
+          "status == 確定"
+        ],
+        "writes": [
+          "受注"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J9C3C",
+        "name": "在庫が足りなければ、確定できない",
+        "body": {
+          "given": [
+            {
+              "op": "受け付ける"
+            }
+          ],
+          "when": {
+            "op": "実行する"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J8C1A",
+      "context": "BC-01J8B7C"
+    }
+  },
+  {
+    "kind": "aggregate",
+    "id": "AGG-01J9B3C",
+    "name": "在庫",
+    "render": "render.aggregate",
+    "rules": [
+      {
+        "name": "引当済の数量は、在庫の数量を超えない",
+        "predicate": "allocated <= onHand",
+        "check": "check.sumWithin"
+      }
+    ],
+    "ops": [
+      {
+        "name": "引当する",
+        "pre": [
+          "在庫切れでない"
+        ],
+        "post": [
+          "引当済の数量が増える"
+        ],
+        "writes": [
+          "在庫"
+        ]
+      },
+      {
+        "name": "戻す",
+        "pre": [
+          "引当済"
+        ],
+        "post": [
+          "引当済の数量が減る"
+        ],
+        "writes": [
+          "在庫"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "SC-01J9C4D",
+        "name": "同じ在庫を2件の受注が奪い合っても、二重に引当しない",
+        "body": {
+          "given": [
+            {
+              "op": "引当する"
+            }
+          ],
+          "when": {
+            "op": "引当する"
+          },
+          "then": {
+            "fails": true,
+            "check": "check.precondition"
+          }
+        }
+      }
+    ],
+    "body": {
+      "subdomain": "SD-01J9A2T",
+      "context": "BC-01J9A1S"
+    }
+  },
+  {
+    "kind": "use-case",
+    "id": "UC-01J9B4D",
+    "name": "在庫を引き当てる",
+    "render": "render.usecase",
+    "rules": [],
+    "ops": [
+      {
+        "name": "実行する",
+        "pre": [],
+        "post": [
+          "引当済"
+        ],
+        "writes": [
+          "在庫"
+        ]
+      }
+    ],
+    "nodes": [],
+    "body": {
+      "subdomain": "SD-01J9A2T",
+      "context": "BC-01J9A1S"
+    }
   }
 ]

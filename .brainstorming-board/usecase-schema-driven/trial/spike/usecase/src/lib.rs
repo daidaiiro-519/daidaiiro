@@ -66,6 +66,14 @@ pub fn wire() -> Registry {
     r.op("出荷指示::確定する");
     r.op("出荷を確定する::実行する");
     r.op("配達予定日を計算する::計算する");
+    r.op("受注::作成する");
+    r.op("受注::明細を追加する");
+    r.op("受注::確定する");
+    r.op("受注を確定する::受け付ける");
+    r.op("受注を確定する::実行する");
+    r.op("在庫::引当する");
+    r.op("在庫::戻す");
+    r.op("在庫を引き当てる::実行する");
 
     // 人が読む形は HTML である（決まり）。**射影を持たない型は、承認を通れない。**
     r.render("render.aggregate", |d| {
@@ -213,6 +221,9 @@ pub fn bindings() -> Bindings {
     b.bind("SC-01J7Q4M", "usecase::tests::明細が0件のとき確定できない");
     b.bind("SC-01J7Q4N", "usecase::tests::明細が1件あれば確定できる");
     b.bind("SC-01J8E5M", "usecase::tests::確定していなければ計算できない");
+    b.bind("SC-01J9C1A", "order::tests::明細が0件なら確定できない");
+    b.bind("SC-01J9C2B", "order::tests::明細が1件あれば確定できる");
+    b.bind("SC-01J9C3C", "usecase::tests::在庫不足なら確定できない");
     b
 }
 
@@ -222,7 +233,10 @@ pub fn bindings() -> Bindings {
 pub fn test_list() -> BTreeSet<String> {
     ["usecase::tests::明細が0件のとき確定できない",
      "usecase::tests::明細が1件あれば確定できる",
-     "usecase::tests::確定していなければ計算できない"]
+     "usecase::tests::確定していなければ計算できない",
+     "order::tests::明細が0件なら確定できない",
+     "order::tests::明細が1件あれば確定できる",
+     "usecase::tests::在庫不足なら確定できない"]
         .iter()
         .map(|s| s.to_string())
         .collect()
