@@ -359,6 +359,19 @@ pub struct Node {
     pub body: serde_json::Value,
 }
 
+/// テストの一覧を読む ── **契約は、1行1識別子のテキストである。**
+///
+/// 空行と `#` で始まる行は無視する。**それ以外は、1文字も解釈しない。**
+/// 実行系の生の出力をそのまま渡してはならない ── 一意な識別子を作るのは渡す側である
+/// （Rust の `--list` は関数名だけを出し、crate の道を出さない。実測）。
+pub fn read_test_list(text: &str) -> BTreeSet<String> {
+    text.lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(|l| l.to_string())
+        .collect()
+}
+
 /// 対応表 ── 節の ID と、外の識別子を結ぶ。
 ///
 /// **結ぶのは、外から申告された文字列である。**基盤は外を走査しない。

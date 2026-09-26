@@ -260,16 +260,23 @@ pub fn bindings() -> Bindings {
 ///
 /// **道具は、これを外から受け取るだけである**（ここでは受け取ったことにする）。
 pub fn test_list() -> BTreeSet<String> {
-    ["usecase::tests::明細が0件のとき確定できない",
-     "usecase::tests::明細が1件あれば確定できる",
-     "usecase::tests::確定していなければ計算できない",
-     "order::tests::明細が0件なら確定できない",
-     "order::tests::明細が1件あれば確定できる",
-     "usecase::tests::在庫不足なら確定できない"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    // **実行系が列挙したものを、1行1識別子のテキストで受け取る**（契約）。
+    // 実行系の生の出力ではない ── 一意な識別子にするのは、渡す側の仕事である。
+    base::read_test_list(TEST_LIST)
 }
+
+/// 実行系から渡された一覧。**道具はソースを走査しない**ので、外から来る。
+const TEST_LIST: &str = "\
+# usecase crate
+usecase::tests::明細が0件のとき確定できない
+usecase::tests::明細が1件あれば確定できる
+usecase::tests::確定していなければ計算できない
+usecase::tests::在庫不足なら確定できない
+# order crate
+order::tests::明細が0件なら確定できない
+order::tests::明細が1件あれば確定できる
+";
+
 
 /// 「確定する」の実装。**書き込みは必ず関門を通す。**
 pub fn confirm(tx: &mut base::Tx) {
