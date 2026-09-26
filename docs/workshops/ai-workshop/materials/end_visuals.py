@@ -8,20 +8,20 @@ ADDED = [('意味', '決めないと案件の進行が止まるもの。精算�
 
 
 def e_recap():
-    """もとの依頼と、3文を足した依頼。"""
+    """もとの依頼と、3つを書き足した依頼。"""
     a = text(0, 22, 'もとの依頼', 17, DIM)
     a += rect(0, 34, W, 60, PANEL, 12)
     a += text(556, 71, '「課題を整理して」', 21, INK, 700, 'middle')
     a += path('M556 94 V118 M550 112 l6 6 6 -6', ACCENT, 2)
-    a += text(584, 112, '3文を足した', 15, ACCENT, 700)
+    a += text(584, 112, '3つを書き足した', 15, ACCENT, 700)
     for i, (name, body) in enumerate(ADDED):
         y = 126 + i * 74
         a += rect(0, y, W, 62, PAPER, 12, ACCENT)
         a += rect(20, y + 14, 74, 34, ACCENT, 8, ACCENT)
         a += text(57, y + 37, name, 17, PAPER, 700, 'middle')
         a += text(114, y + 38, body, 17, INK)
-    a += band(370, '足したのは3文だけ。見出しも、返ってくる形も指定していない')
-    return svg('もとの依頼に、意味・範囲・条件の3文を足した', a, 438)
+    a += band(370, '足したのは3つだけ。見出しも、返ってくる形も指定していない')
+    return svg('もとの依頼に、意味・範囲・条件の3つを書き足した', a, 438)
 
 
 def e_gained():

@@ -46,11 +46,11 @@ FIG = {
  'L4-S1': DV.t4_missing, 'L4-S2': DV.t4_unwritten, 'L4-S3': DV.t4_layers,
  'L4-S4': RV.s4_effect, 'L4-S5': RV.s4_after,
  # 5本目　揺らぎを直す
- 'L6-S1': DV.t6_symptoms, 'L6-S2': FV.f5_order, 'L6-S3': DV.t6_one_at_a_time,
- 'L6-S4': DV.t6_two_goals, 'L6-S5': V.l6_whole,
+ 'L5-S1': DV.t6_symptoms, 'L5-S2': FV.f5_order, 'L5-S3': DV.t6_one_at_a_time,
+ 'L5-S4': DV.t6_two_goals, 'L5-S5': V.l6_whole,
  # 6本目　高さを合わせる
- 'L5-S1': DV.t5_grown, 'L5-S2': DV.t5_swap, 'L5-S3': HV.h5_axis,
- 'L5-S4': DV.t5_three_and_height2, 'L5-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
+ 'L6-S1': DV.t5_grown, 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
+ 'L6-S4': DV.t5_three_and_height2, 'L6-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
  # 終わりに
  'E-S1': EV.e_recap, 'E-S2': EV.e_gained, 'E-S3': EV.e_next,
 }
@@ -167,7 +167,41 @@ def retitle(no, stem):
         m.write_text(m.read_text().replace(f'{no}本目　', ENDS[no] + '　'))
 
 
+def check_ids():
+    """枚の識別子と、図の対応表と、リード文が1対1かを確かめる。
+
+    鍵が重複しても Python の辞書は後の値で上書きするだけで、組み立ては成功する。
+    実際に、5本目の図が6本目の図へ差し替わったまま組み上がったことがある。
+    """
+    import ast
+    src = (HERE / 'build_lessons.py').read_text()
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], 'id', '') == 'FIG':
+            keys = [k.value for k in node.value.keys]
+    dup = sorted(k for k in set(keys) if keys.count(k) > 1)
+    if dup:
+        raise SystemExit(f'図の対応表に鍵の重複がある: {dup}')
+    ids = []
+    for p in sorted(HERE.glob('lesson-0*.json')):
+        d = json.loads(p.read_text())
+        for s in d['slides']:
+            ids.append((s['id'], p.name))
+    seen = {}
+    for i, f in ids:
+        seen.setdefault(i, []).append(f)
+    dup = {i: f for i, f in seen.items() if len(f) > 1}
+    if dup:
+        raise SystemExit(f'枚の識別子が重複している: {dup}')
+    missing = [i for i, _ in ids if i not in keys]
+    if missing:
+        raise SystemExit(f'図の対応表に無い枚がある: {missing}')
+    nolede = [i for i, _ in ids if i not in LEDE]
+    if nolede:
+        raise SystemExit(f'リード文が無い枚がある: {nolede}')
+
+
 if __name__ == '__main__':
+    check_ids()
     targets = sys.argv[1:] or sorted(str(p) for p in HERE.glob('lesson-0*.json'))
     built = []
     for t in targets:
