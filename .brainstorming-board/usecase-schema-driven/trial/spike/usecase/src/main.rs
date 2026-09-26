@@ -27,4 +27,8 @@ fn main() {
         eprintln!("宣言していない文脈を上流に挙げた： {x}");
     }
     eprintln!("見つかったこと {} 件", found.len() + up.unbound_externals.len());
+    // **既定値で埋めた鍵を、必ず申告する** ── 仕様から出ていない値だからである
+    for f in usecase::defaults() {
+        eprintln!("既定値で埋めた： {}::{} = {:?}  ／ {}", f.render, f.key, f.value, f.why);
+    }
 }

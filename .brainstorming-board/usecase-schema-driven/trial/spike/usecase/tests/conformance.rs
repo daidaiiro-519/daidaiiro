@@ -625,3 +625,33 @@ fn 期待は射影に出る() {
     assert!(html.contains("失敗する"), "成否が射影に出ていない");
     assert!(html.contains("check.allocationReturned"), "確認する点が射影に出ていない");
 }
+
+// ── 埋められない鍵（論点2 ・ 論点3 から来た） ─────────────────
+
+#[test]
+fn 宣言のどこにも無い鍵は_既定値の表から入る() {
+    let 表: std::collections::BTreeSet<&str> =
+        usecase::defaults().iter().map(|f| f.key).collect();
+    assert!(表.contains("model"), "Codex の model が表に無い");
+    assert!(表.contains("sandbox_mode"), "sandbox_mode が表に無い");
+    for f in usecase::defaults() {
+        assert!(!f.why.is_empty(), "{} に、なぜ埋めるかが書いていない", f.key);
+    }
+}
+
+#[test]
+fn 変換機が出す鍵は_宣言由来か既定値の表に在る() {
+    // **表に無い値を直に書いていないか**。0件でなければならない。
+    let bad = usecase::unexplained_keys();
+    assert!(bad.is_empty(), "出どころの分からない鍵： {:?}", bad);
+}
+
+#[test]
+fn 宣言の側には_AIツールの語が1つも無い() {
+    // **宣言へ足さない**（論点2）── 足すと、方法論の語彙へツールの語が入る。
+    let s = serde_json::to_string(&usecase::decls().iter()
+        .map(|d| d.body.clone()).collect::<Vec<_>>()).expect("読めない");
+    for 語 in ["model", "sandbox_mode", "codex", "claude", "kiro"] {
+        assert!(!s.contains(語), "宣言に {} が入っている", 語);
+    }
+}

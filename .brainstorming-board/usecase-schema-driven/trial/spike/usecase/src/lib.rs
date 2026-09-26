@@ -163,7 +163,11 @@ pub fn wire() -> Registry {
     // `developer_instructions`（developers.openai.com/codex/agent-configuration/subagents:421-426）。
     r.render("render.codex.agent.toml", |d| {
         let mut s = format!("name = {:?}\ndescription = {:?}\n", d.id, d.name);
-        s.push_str("sandbox_mode = \"read-only\"\n");
+        // **宣言のどこにも無い値は、既定値の表から入れる**（論点2 ・ 論点3 の保留）。
+        // 宣言へ足さない ── 足すと、方法論の語彙へ AI ツールの語が入る。
+        for f in defaults().iter().filter(|f| f.render == "render.codex.agent.toml") {
+            s.push_str(&format!("{} = {:?}\n", f.key, f.value));
+        }
         s.push_str("developer_instructions = \"\"\"\n");
         for x in &d.rules {
             s.push_str(&format!("{} を保つこと。\n", x.name));
@@ -375,6 +379,69 @@ pub struct Ref {
     pub field: &'static str,
     /// 指す先の種類
     pub to: &'static str,
+}
+
+// ── 埋められない鍵（論点2 ・ 論点3 から来た） ─────────────────
+//
+// **宣言のどこにも無い値を要求する鍵が在る**（Codex の `model` など。原文で照合した）。
+// 宣言へ足すと、方法論の語彙へ AI ツールの語が入る（論点2 に違反する）。
+// だから**既定値は、注入する側が表で持つ**。そして**何を埋めたかを一覧で出す** ──
+// 出さないと、仕様から出ていない値が、出どころの分からないまま成果物に入る。
+
+/// 既定値で埋める鍵。**1件ごとに、なぜ埋めるかを持つ。**
+pub struct Filled {
+    pub render: &'static str,
+    pub key: &'static str,
+    pub value: &'static str,
+    pub why: &'static str,
+}
+
+/// 既定値の表 ── **ここに無い鍵を、変換機が直に書いてはならない。**
+pub fn defaults() -> Vec<Filled> {
+    vec![
+        Filled { render: "render.codex.agent.toml", key: "model",
+                 value: "gpt-5.6-luna",
+                 why: "宣言のどこにも無い ── 使う模型は、業務の仕様ではなく実行の環境が決める" },
+        Filled { render: "render.codex.agent.toml", key: "sandbox_mode",
+                 value: "read-only",
+                 why: "宣言のどこにも無い ── 生成物を書き換えさせないための、注入する側の決め事" },
+    ]
+}
+
+/// 既定値で埋めた鍵の一覧（`射影名::鍵`）。**報告に出すためである。**
+pub fn defaulted_keys() -> BTreeSet<String> {
+    defaults().iter().map(|f| format!("{}::{}", f.render, f.key)).collect()
+}
+
+/// 変換機が出した鍵のうち、**宣言由来でも既定値の表でもないもの**。
+///
+/// **0件でなければならない** ── 表に無い値が成果物へ入っている。
+pub fn unexplained_keys() -> BTreeSet<String> {
+    let reg = wire();
+    let 既定: BTreeSet<String> = defaults()
+        .iter()
+        .filter(|f| f.render == "render.codex.agent.toml")
+        .map(|f| f.key.to_string())
+        .collect();
+    // 宣言から出る鍵 ── 変換機が宣言の値を写している先である
+    let 宣言由来: BTreeSet<String> =
+        ["name", "description", "developer_instructions"].iter().map(|x| x.to_string()).collect();
+    let mut out = BTreeSet::new();
+    for d in decls() {
+        let Some(toml) = base::render_as(&d, &reg, "render.codex.agent.toml") else {
+            continue;
+        };
+        for line in toml.lines() {
+            let Some((k, _)) = line.split_once(" = ") else {
+                continue;
+            };
+            let k = k.trim().to_string();
+            if !既定.contains(&k) && !宣言由来.contains(&k) {
+                out.insert(k);
+            }
+        }
+    }
+    out
 }
 
 /// この方法論が持つ、宣言どうしの関係。
