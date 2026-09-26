@@ -1,0 +1,60 @@
+"""読み上げ原稿を、耳で追えるかの観点で数える。
+
+判定はしない。数えて並べるだけである ── どこを直すかは人が決める。
+文章を読む目では出ないもの（位置だけの説明・数の密度・列挙の項目数）を対象にする。
+"""
+import json
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+# 画面を見ないと決まらない語。図を指す語と、位置だけの語
+POS = ['図では', '上に置', '下に置', 'いちばん上', 'いちばん下', '真ん中',
+       '上から見', '上が決ま', '下を直', '左', '右', 'あいだは空', 'ほうの端']
+# 列挙の頭に付く語
+ENUM = re.compile(r'(\d)(?:つめ|つ目|回目|本目|段目)')
+
+
+def rows():
+    for f in sorted(HERE.glob('lesson-0*.json')):
+        d = json.loads(f.read_text())
+        for s in d['slides']:
+            yield d['no'], s['id'], s['heading'], s['narration']
+
+
+def main(argv):
+    hit = 0
+    print('■ 位置だけで説明している箇所')
+    for no, sid, _, t in rows():
+        for w in POS:
+            for m in re.finditer(re.escape(w), t):
+                a = max(0, m.start() - 18)
+                print(f'  {sid:8} …{t[a:m.end() + 18]}…')
+                hit += 1
+    if not hit:
+        print('  なし')
+
+    print('\n■ 1枚に出る数の個数（多い順・5個以上）')
+    for no, sid, h, t in sorted(rows(), key=lambda r: -len(re.findall(r'\d+[件本回つ枚分]', r[3]))):
+        v = re.findall(r'\d+[件本回つ枚分]', t)
+        if len(v) < 5:
+            break
+        print(f'  {sid:8} {len(v):2}個  {" ".join(v)}')
+
+    print('\n■ 1枚で並べている項目の数（4つ以上）')
+    for no, sid, h, t in rows():
+        v = [int(x) for x in ENUM.findall(t)]
+        if v and max(v) >= 4:
+            print(f'  {sid:8} 最大 {max(v)} 項目　{h[:34]}')
+
+    print('\n■ 助数詞の使われ方')
+    for k in ('本目', '回目', 'つめ', '件', '回分', '段目'):
+        n = sum(len(re.findall(rf'\d+{k}', t)) for *_, t in rows())
+        print(f'  {k:4} {n:3}回')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
