@@ -1,7 +1,10 @@
-"""教材の動画6本ぶんのスライドを、企画デッキと同じ型で組む。
+"""教材の動画8本ぶんのスライドを、企画デッキと同じ型で組む。
 
 中身（見出し・リード・読み上げ）は lesson-0N-*.json が持ち、
-図は lesson_visuals.py が持つ。ここは並べるだけである。
+図は本ごとの *_visuals.py が持つ。ここは並べるだけである。
+
+組んだあとに、本の題を差し替え、語の検査を通す。
+1件でも検出したら、組み立てを失敗にする。
 """
 import html
 import json
@@ -13,21 +16,53 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 import build_deck as BD          # 型・CSS・表の部品を借りる
 import lesson_visuals as V
+import derived_visuals as DV     # 現行の図から派生させたもの
+import intro_visuals as IV       # はじめに、および1本目の頭2枚
+import word_visuals as WV        # 2本目
+import scope_visuals as SV       # 3本目
+import rule_visuals as RV        # 4本目
+import fix_visuals as FV         # 5本目
+import height_visuals as HV      # 1本目と6本目で共有する、高さの並び
+import end_visuals as EV         # 終わりに
+
+V.cover = DV.t_cover
 
 FIG = {
- 'L1-S1': V.l1_symptoms, 'L1-S2': V.l1_height, 'L1-S3': V.l1_fit,
- 'L1-S2B': V.l1_ladder, 'L1-S4': V.l1_three, 'L1-S5': V.l1_order,
- 'L2-S1': V.l2_three_returns, 'L2-S2': V.l2_sorting, 'L2-S3': V.l2_ambiguous,
- 'L2-S4': V.l2_pick, 'L2-S5': V.l2_after,
- 'L3-S1': V.l3_folder, 'L3-S2': V.l3_read_range, 'L3-S3': V.l3_two_roles,
- 'L3-S4': V.l3_draw_line, 'L3-S5': V.l3_after,
- 'L4-S1': V.l4_missing, 'L4-S2': V.l4_unwritten, 'L4-S3': V.l4_layers,
- 'L4-S4': V.l4_scope_rule, 'L4-S5': V.l4_after,
- 'L5-S1': V.l5_grown, 'L5-S2': V.l5_swap, 'L5-S3': V.l5_axis,
- 'L5-S4': V.l5_three_and_height, 'L5-S5': V.l5_fit,
- 'L6-S1': V.l6_symptoms, 'L6-S2': V.l6_where, 'L6-S3': V.l6_one_at_a_time,
- 'L6-S4': V.l6_two_goals, 'L6-S5': V.l6_whole, 'L6-S6': V.l6_reproducible,
+ # はじめに
+ 'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_loop, 'I0-S1': IV.i0_case,
+ 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base,
+ # 1本目　原因を知る
+ 'L1-S00': IV.i1_goal, 'L1-S0': IV.i1_bridge, 'L1-S1': DV.t1_symptoms, 'L1-S2': DV.t1_height,
+ 'L1-S2B': HV.h1_axis, 'L1-S3': DV.t1_fit, 'L1-S4': V.l1_three, 'L1-S5': DV.t1_order,
+ # 2本目　意味を決める
+ 'T2-S1': WV.t2_three_returns, 'T2-S2': WV.t2_sorting, 'T2-S3': WV.t2_ambiguous,
+ 'T2-S4': WV.t2_pick, 'T2-S5': WV.t2_after,
+ # 3本目　範囲を決める
+ 'L3-S1': SV.s3_mixed, 'L3-S2': SV.s3_ranges, 'L3-S3': SV.s3_two_roles,
+ 'L3-S4': SV.s3_draw_line, 'L3-S5': SV.s3_after,
+ # 4本目　条件を決める
+ 'L4-S1': DV.t4_missing, 'L4-S2': DV.t4_unwritten, 'L4-S3': DV.t4_layers,
+ 'L4-S4': RV.s4_effect, 'L4-S5': RV.s4_after,
+ # 5本目　揺らぎを直す
+ 'L6-S1': DV.t6_symptoms, 'L6-S2': FV.f5_order, 'L6-S3': DV.t6_one_at_a_time,
+ 'L6-S4': DV.t6_two_goals, 'L6-S5': V.l6_whole,
+ # 6本目　高さを合わせる
+ 'L5-S1': DV.t5_grown, 'L5-S2': DV.t5_swap, 'L5-S3': HV.h5_axis,
+ 'L5-S4': DV.t5_three_and_height2, 'L5-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
+ # 終わりに
+ 'E-S1': EV.e_recap, 'E-S2': EV.e_gained, 'E-S3': EV.e_next,
 }
+
+# 本の題。表紙の大見出しは受講前でも読んで分かる1文にし、通し番号は出さない
+TITLES = {
+ 1: ('原因を知る', '同じ依頼でも、返ってくるものが変わる原因を知る'),
+ 2: ('意味を決める', 'AIに、何を並べてほしいかを決める'),
+ 3: ('範囲を決める', 'AIに、どこまでを見てほしいかを決める'),
+ 4: ('条件を決める', 'どの項目にも必ず入れてほしいものを決める'),
+ 5: ('揺らぎを直す', 'それでも揃わないときに、どこを見るか'),
+ 6: ('高さを合わせる', '3つを書くことが、抽象の高さを合わせることでした'),
+}
+ENDS = {0: 'はじめに', 7: '終わりに'}
 
 # リード文（枚の頭に置く1〜2文）。読み上げの要点を、読んで分かる形にする
 LEDE = json.loads((HERE / 'ledes.json').read_text()) if (HERE / 'ledes.json').exists() else {}
@@ -104,9 +139,39 @@ def build(lesson_path):
         notes.append(f'## {i:02d}　{s["title"]}\n\n{s["notes"]}\n')
     (HERE / 'decks' / f'{stem}-script.md').write_text('\n'.join(notes))
     print(f'{stem}.html　{len(slides)}枚')
+    return no, stem
+
+
+def retitle(no, stem):
+    """表紙の大見出しと見出し帯から、制作側の通し番号を外す。"""
+    f = HERE / 'decks' / f'{stem}.html'
+    s = f.read_text()
+    if no in ENDS:
+        # 表紙の大見出しは、題だけを出す。見出し帯には はじめに ／ 終わりに を残す
+        s = s.replace(f'<h1>{no}本目　', '<h1>')
+        s = s.replace(f'{no}本目　', ENDS[no] + '　')
+        s = s.replace(f'aria-label="6本のうち、{no}本目"', 'aria-label="6本の一覧"')
+    else:
+        short, full = TITLES[no]
+        s = s.replace(f'<h1>{no}本目　{short}</h1>', f'<h1>{full}</h1>')
+        s = s.replace(f'{no}本目　{short}　／　', f'{short}　／　')
+        s = s.replace(f'aria-label="6本のうち、{no}本目"', 'aria-label="6本の中での位置"')
+        s = s.replace(f'aria-label="1: {no}本目　{short}"', f'aria-label="1: {full}"')
+    f.write_text(s)
+    m = HERE / 'decks' / f'{stem}-script.md'
+    if no in ENDS:
+        m.write_text(m.read_text().replace(f'{no}本目　', ENDS[no] + '　'))
 
 
 if __name__ == '__main__':
     targets = sys.argv[1:] or sorted(str(p) for p in HERE.glob('lesson-0*.json'))
+    built = []
     for t in targets:
-        build(t)
+        built.append(build(t))
+    for no, stem in built:
+        retitle(no, stem)
+
+    import check_words
+    files = sorted((HERE / 'decks').glob('lesson-*.html')) + sorted((HERE / 'decks').glob('lesson-*-script.md'))
+    if check_words.main(['check_words'] + [str(x) for x in files]):
+        raise SystemExit('語の検査が通っていない')
