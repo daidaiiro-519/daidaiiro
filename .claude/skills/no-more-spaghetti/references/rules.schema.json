@@ -66,10 +66,10 @@
           }
         },
         "source": {
-          "description": "外（原典）か内（こちら側の記録）かを書く。**どちらかを必ず持つ。**",
+          "description": "外（原典）か内（こちら側の決定）かを書く。**どちらかを必ず持つ。** **外を指すなら、引用と取得の記録も持つ** ── 取り直して同じ版かを判定できないと、その引用は根拠にならない。",
           "x-prompt": {
             "read": "meta があれば外を指す規則、record があれば内を指す規則である",
-            "write": "外を指すなら3つの条件を満たしてから書く ── 原文を取得し、引用を原文の文字列で照合し、取得した日と版を残す。内を指すなら、こちら側の決定の識別子を record に書く"
+            "write": "外を指すなら3つの条件を満たしてから書く ── 原文を取得し、引用を原文の文字列で照合し、取得した日と版を残す（url ・ date ・ sha256 ・ line）。内を指すなら、こちら側の決定の識別子を record に書く"
           },
           "type": "object",
           "properties": {
@@ -84,6 +84,34 @@
             "record": {
               "type": "string",
               "description": "内側の記録の識別子。解決先は使う側が配線する"
+            },
+            "fetched": {
+              "description": "取り直して同じ版かを判定するための4つの値。**外を指す規則では必須である。**",
+              "type": "object",
+              "required": [
+                "url",
+                "date",
+                "sha256",
+                "line"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "date": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
             }
           },
           "anyOf": [
@@ -96,6 +124,22 @@
               "required": [
                 "record"
               ]
+            }
+          ],
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "meta"
+                ]
+              },
+              "then": {
+                "required": [
+                  "meta",
+                  "quote",
+                  "fetched"
+                ]
+              }
             }
           ]
         },

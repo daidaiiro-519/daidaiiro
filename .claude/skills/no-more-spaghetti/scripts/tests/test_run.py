@@ -61,6 +61,20 @@ with tempfile.TemporaryDirectory() as d:
          any("配列ではない" in x for x in validate.check_rules(
              write_rules(root, [{"rule": "文字列", "source": {"meta": "x"}, "scope": "x",
                              "check": {"tool": "gofmt -l ."}}]))))
+    # ── 外を指す規則は、取得の記録を持つ（論点4 の3条件の③）
+    outer = {"rule": "外を指す", "source": {"meta": "x", "quote": "y"},
+             "scope": "x", "check": {"tool": ["true"]}}
+    expect("取得の記録が無ければ検出する",
+           any("fetched" in x for x in validate.check_rules(write_rules(root, [outer]))))
+    outer2 = dict(outer, source=dict(outer["source"], fetched={
+        "url": "https://example.invalid/", "date": "2026-09-25",
+        "sha256": "0" * 64, "line": 1}))
+    expect("取得の記録が在れば検出しない",
+           not validate.check_rules(write_rules(root, [outer2])))
+    inner = {"rule": "内を指す", "source": {"record": "model"},
+             "scope": "x", "check": {"tool": ["true"]}}
+    expect("内を指す規則には要求しない", not validate.check_rules(write_rules(root, [inner])))
+
     expect("出典が無ければ検出する",
          any("出典が無い" in x for x in validate.check_rules(
              write_rules(root, [{"rule": "出典なし", "scope": "x",
