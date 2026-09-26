@@ -8,7 +8,7 @@
 //! 参照が既に完全修飾なので、解決が要らない。
 //!
 //! **取りこぼす範囲を申告する。** 字面を見るので、経路の別名（設定で付け替えるもの）と
-//! 探索路の指定は解決しない ── 道具に出させる抽出器のほうが、そこは正確である。
+//! 探索路の指定は解決しない ── 毎回そう申告する（`limits`）。
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -85,8 +85,9 @@ pub fn table() -> Vec<Syntax> {
         Syntax {
             language: "java",
             extensions: &["java"],
-            imports: "(import_declaration (scoped_identifier) @to)",
-            here: "(package_declaration (scoped_identifier) @here)",
+            imports: "(import_declaration [(scoped_identifier) (identifier)] @to)",
+            // **単一の識別子の宣言も受ける** ── `package core;` は点で繋がない
+            here: "(package_declaration [(scoped_identifier) (identifier)] @here)",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_java::LANGUAGE.into(),
         },
@@ -162,15 +163,24 @@ fn fold(root: &Path, here: &Path, spec: &str) -> String {
         }
     }
     let cleaned: PathBuf = parts.iter().collect();
-    cleaned.strip_prefix(root).unwrap_or(&cleaned).display().to_string()
+    cleaned
+        .strip_prefix(root)
+        .unwrap_or(&cleaned)
+        .display()
+        .to_string()
 }
 
 /// 点の名前を、経路から組む。
 fn dotted(root: &Path, file: &Path) -> String {
     let rel = file.strip_prefix(root).unwrap_or(file).with_extension("");
-    let mut parts: Vec<String> =
-        rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-    if parts.last().is_some_and(|x| x == "__init__" || x == "mod" || x == "lib") {
+    let mut parts: Vec<String> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    if parts
+        .last()
+        .is_some_and(|x| x == "__init__" || x == "mod" || x == "lib")
+    {
         parts.pop();
     }
     parts.join(".")
@@ -183,7 +193,11 @@ fn relative_dotted(here: &str, spec: &str) -> String {
     if dots == 0 {
         return spec.to_owned();
     }
-    let mut parts: Vec<&str> = if here.is_empty() { Vec::new() } else { here.split('.').collect() };
+    let mut parts: Vec<&str> = if here.is_empty() {
+        Vec::new()
+    } else {
+        here.split('.').collect()
+    };
     // **点の段数は、書かれた点の包みから遡る。** 1つ目は包み自身である
     for _ in 0..dots.saturating_sub(1) {
         parts.pop();
@@ -201,13 +215,21 @@ fn in_crate(here: &str, spec: &str) -> String {
         return tail.to_owned();
     }
     if let Some(tail) = body.strip_prefix("self.") {
-        return if here.is_empty() { tail.to_owned() } else { format!("{here}.{tail}") };
+        return if here.is_empty() {
+            tail.to_owned()
+        } else {
+            format!("{here}.{tail}")
+        };
     }
     if let Some(tail) = body.strip_prefix("super.") {
         let mut parts: Vec<&str> = here.split('.').filter(|x| !x.is_empty()).collect();
         parts.pop();
         let head = parts.join(".");
-        return if head.is_empty() { tail.to_owned() } else { format!("{head}.{tail}") };
+        return if head.is_empty() {
+            tail.to_owned()
+        } else {
+            format!("{head}.{tail}")
+        };
     }
     body
 }
@@ -223,7 +245,10 @@ impl Tree {
     /// 言語の名前から組む。**知らない言語なら返さない。**
     #[must_use]
     pub fn of(language: &str) -> Option<Self> {
-        table().into_iter().find(|s| s.language == language).map(|syntax| Self { syntax })
+        table()
+            .into_iter()
+            .find(|s| s.language == language)
+            .map(|syntax| Self { syntax })
     }
 
     /// 扱える言語を並べる。
@@ -234,19 +259,35 @@ impl Tree {
 }
 
 /// 見ない包み。
-const SKIP: [&str; 6] = ["node_modules", "target", "build", "dist", "__pycache__", "vendor"];
+const SKIP: [&str; 6] = [
+    "node_modules",
+    "target",
+    "build",
+    "dist",
+    "__pycache__",
+    "vendor",
+];
 
 fn sources(dir: &Path, want: &[&str], out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
     paths.sort();
     for p in paths {
-        let name = p.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        let name = p
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
         if p.is_dir() {
             if !SKIP.contains(&name.as_str()) && !name.starts_with('.') {
                 sources(&p, want, out);
             }
-        } else if p.extension().is_some_and(|x| want.contains(&&*x.to_string_lossy())) {
+        } else if p
+            .extension()
+            .is_some_and(|x| want.contains(&&*x.to_string_lossy()))
+        {
             out.push(p);
         }
     }
@@ -258,10 +299,6 @@ const RUBY_LOADERS: [&str; 4] = ["require", "require_relative", "load", "autoloa
 impl Extractor for Tree {
     fn language(&self) -> &'static str {
         self.syntax.language
-    }
-
-    fn available(&self) -> bool {
-        true // **文法は焼き込まれている** ── 外の道具を要しない
     }
 
     fn extract(&self, root: &Path) -> io::Result<Extracted> {
@@ -311,7 +348,11 @@ impl Extractor for Tree {
                 continue;
             };
             let bytes = body.as_bytes();
-            let rel = file.strip_prefix(root).unwrap_or(file).display().to_string();
+            let rel = file
+                .strip_prefix(root)
+                .unwrap_or(file)
+                .display()
+                .to_string();
             // 参照する側の名前を決める
             let here = match (&here_query, s.resolve) {
                 (Some(q), _) => {
@@ -393,6 +434,11 @@ impl Extractor for Tree {
                 }
             }
         }
-        Ok(Extracted { edges, escapes, undecided, limits })
+        Ok(Extracted {
+            edges,
+            escapes,
+            undecided,
+            limits,
+        })
     }
 }

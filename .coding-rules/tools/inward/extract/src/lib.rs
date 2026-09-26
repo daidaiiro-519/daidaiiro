@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 //! 辺の抽出。**言語ごとに1つで、その言語自身の道具に出させる。**
 //!
-//! **解析器を自作しない。** 言語ごとに文法を追う保守は成立しない ── 実測では、
-//! 5言語ぶんを1つの走査で試作したところ、相対の参照と文字列による読み込みを
-//! 取りこぼした。読んだ OSS（grimp）も、1言語だけで走査に1ファイルを使っている。
+//! **解析器を自作しない。** 文法は tree-sitter が持つ ── 言語ごとに文法を追う保守は
+//! 成立しない（実測 ── 5言語ぶんを1つの走査で試作したところ、相対の参照と文字列に
+//! よる読み込みを取りこぼした）。
+//!
+//! **外の道具を呼ばない。** 文法は binary へ焼き込むので、検査する側にその言語の
+//! 道具が入っていなくても測れる。
 //!
 //! **抽出器は3つを返す** ── 辺 ／ 抜け道 ／ 判定できなかった範囲。
 //! **判定できなかったことを、合格に寄せない。**
@@ -14,13 +17,7 @@ use std::path::Path;
 
 use inward_core::Edge;
 
-pub mod cpp;
-pub mod jvm;
-pub mod manifest;
-pub mod probe;
-pub mod scripted;
 pub mod syntax;
-pub mod tool;
 
 /// 図に現れない依存の経路。**そこを通れば検査を素通りできる。**
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,9 +65,6 @@ pub struct Extracted {
 pub trait Extractor {
     /// この抽出器が扱う言語の名前。**機械が分岐する値なので ASCII である。**
     fn language(&self) -> &'static str;
-
-    /// その言語の道具が使えるかを返す。
-    fn available(&self) -> bool;
 
     /// 辺を取る。
     ///

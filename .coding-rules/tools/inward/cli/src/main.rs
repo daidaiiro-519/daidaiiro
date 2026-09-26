@@ -11,68 +11,21 @@
 
 #![forbid(unsafe_code)]
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use inward_core::{judge, layer_for, Layer, Order};
-use inward_extract::manifest::{Kind, Manifest};
 use inward_extract::syntax::Tree;
-use inward_extract::{cpp::Cpp, jvm::Jvm, scripted::Scripted, Extracted, Extractor};
-
-/// 探査の脚本の置き場所。**実行ファイルの位置から辿らない** ── build の置き場所に
-/// 依存する。引数で受け取り、渡されなければこの道具のフォルダを使う。
-fn probes(given: Option<&str>) -> PathBuf {
-    given.map_or_else(
-        || PathBuf::from(".coding-rules/tools/inward/extract/probes"),
-        PathBuf::from,
-    )
-}
-
-/// 辺の取り方。**既定は原文の構文木である** ── 外の道具を1つも要しない。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Via {
-    /// 原文の構文木から取る（tree-sitter）。
-    Syntax,
-    /// その言語の道具に出させる。**経路の別名と探索路まで解決する。**
-    Tool,
-}
-
-/// 道具に出させる言語のうち、脚本が要るもの。**その言語の実行時からしか解析器へ
-/// 触れない場合だけである。**
-const SCRIPTED: [(&str, &str, &str, &[&str]); 4] = [
-    ("python", "python3", "python.py", &["py"]),
-    ("typescript", "node", "typescript.js", &[]),
-    ("ruby", "ruby", "ruby.rb", &[]),
-    ("php", "php", "php.php", &[]),
-];
+use inward_extract::{Extracted, Extractor};
 
 /// この道具が扱える言語を並べる。
 fn languages() -> Vec<&'static str> {
     Tree::languages()
 }
 
-fn by_tool(language: &str, probes: &Path) -> Option<Box<dyn Extractor>> {
-    if let Some((name, program, script, extensions)) =
-        SCRIPTED.iter().find(|(name, _, _, _)| *name == language)
-    {
-        return Some(Box::new(Scripted::new(name, program, probes.join(script), extensions)));
-    }
-    match language {
-        "java" => Some(Box::new(Jvm::new("java"))),
-        "kotlin" => Some(Box::new(Jvm::new("kotlin"))),
-        "cpp" => Some(Box::new(Cpp::new())),
-        "rust" => Some(Box::new(Manifest::new(Kind::Rust))),
-        "go" => Some(Box::new(Manifest::new(Kind::Go))),
-        "csharp" => Some(Box::new(Manifest::new(Kind::CSharp))),
-        _ => None,
-    }
-}
-
-fn extractor(language: &str, probes: &Path, via: Via) -> Option<Box<dyn Extractor>> {
-    match via {
-        Via::Syntax => Tree::of(language).map(|t| -> Box<dyn Extractor> { Box::new(t) }),
-        Via::Tool => by_tool(language, probes),
-    }
+/// 言語から抽出器を決める。**取り方は1つである** ── 原文の構文木だけを見る。
+fn extractor(language: &str) -> Option<Box<dyn Extractor>> {
+    Tree::of(language).map(|t| -> Box<dyn Extractor> { Box::new(t) })
 }
 
 fn parse_layer(x: &str) -> Result<Layer, String> {
@@ -142,42 +95,20 @@ fn report(order: &Order, got: &Extracted) -> (Vec<String>, usize) {
 fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let as_json = argv.iter().any(|a| a == "--json");
-    let mut probes_dir = None;
-    let mut via = Via::Syntax;
     let mut positional: Vec<String> = Vec::new();
     let mut i = 0;
     while i < argv.len() {
         match argv[i].as_str() {
             "--json" => {}
-            "--probes" => {
-                i += 1;
-                probes_dir = argv.get(i).cloned();
-            }
-            "--via" => {
-                i += 1;
-                match argv.get(i).map(String::as_str) {
-                    Some("syntax") => via = Via::Syntax,
-                    Some("tool") => via = Via::Tool,
-                    other => {
-                        eprintln!(
-                            "その取り方は無い ── {}（syntax ／ tool）",
-                            other.unwrap_or("（無し）")
-                        );
-                        return ExitCode::from(2);
-                    }
-                }
-            }
             other => positional.push(other.to_owned()),
         }
         i += 1;
     }
     if positional.len() < 3 {
         eprintln!(
-            "使い方: inward <言語> <根> <層の名前=識別子[:印]>… \
-             [--via syntax|tool] [--probes <場所>] [--json]\n\
+            "使い方: inward <言語> <根> <層の名前=識別子[:印]>… [--json]\n\
              識別子は | で複数を並べられる。印は independent ／ closed ／ composes の3つである\n\
-             --via syntax（既定）は原文の構文木で測り、外の道具を要しない。\
-             tool はその言語の道具に出させる"
+             原文の構文木で測る ── 外の道具を1つも要しない"
         );
         return ExitCode::from(2);
     }
@@ -189,8 +120,7 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let dir = probes(probes_dir.as_deref());
-    let Some(extractor) = extractor(language, &dir, via) else {
+    let Some(extractor) = extractor(language) else {
         eprintln!(
             "その言語の抽出器が無い ── {language}（在るのは {}）",
             languages().join(" ・ ")
@@ -212,7 +142,6 @@ fn main() -> ExitCode {
     if as_json {
         let body = serde_json::json!({
             "language": extractor.language(),
-            "via": if via == Via::Syntax { "syntax" } else { "tool" },
             "root": root.display().to_string(),
             "edges": edges,
             "findings": lines,
