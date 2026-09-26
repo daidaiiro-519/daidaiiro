@@ -56,11 +56,11 @@ def init_places_the_skeleton() -> None:
 
 
 def init_takes_the_repository_itself() -> None:
-    """成果物がリポジトリ自身なら、横断する規則のファイルになる。"""
+    """成果物がリポジトリ自身なら、rules/repo.json になる。"""
     with tempfile.TemporaryDirectory() as t:
         root = pathlib.Path(t)
         path = _init.create(root, ".", {"skills": ".claude/skills"})
-        expect("横断する規則は repo.json になる",
+        expect("成果物がリポジトリ自身なら repo.json になる",
                path == root / ".coding-rules" / "rules" / "repo.json")
         d = json.loads(path.read_text(encoding="utf-8"))
         expect("層はそのままである", d["layers"]["skills"] == ".claude/skills")

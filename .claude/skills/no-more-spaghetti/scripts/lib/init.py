@@ -56,7 +56,7 @@ def create(root: pathlib.Path, target: str, layers: dict[str, str]) -> pathlib.P
     """リポジトリの `.coding-rules/` へ、成果物のファイルを置く。
 
     **既に在れば作り直さない** ── 書いた規則が消える。
-    成果物がリポジトリ自身（`.`）なら、横断する規則の `rules.json` になる。
+    成果物がリポジトリ自身（`.`）なら、`rules/repo.json` になる。
     """
     if not layers:
         raise ValueError("層を1つ以上渡す ── 層の無い規則ファイルは、何も検査できない")
