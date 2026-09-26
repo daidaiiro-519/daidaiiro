@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: MIT
+//! {{Skill名}} の道具の宣言。**能力の正本はここである。**
+//!
+//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。
+//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。
+
+pub mod contract;
+
+use serde_json::json;
+
+pub use contract::{Arg, Given, Outcome, Tool};
+
+/// {{道具の名前}} を実行する。
+fn run_{{道具の名前}}(given: &Given) -> Outcome {
+    let _ = given;
+    // **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである
+    Outcome::found(Vec::new(), json!({}))
+}
+
+/// 人向けの文を組む。**印字はしない** ── 印字と終了コードは入口が持つ。
+fn human_{{道具の名前}}(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    out.findings.join("\n")
+}
+
+/// この Skill が持つ道具の一覧。**能力の正本である。**
+#[must_use]
+pub fn tools() -> Vec<Tool> {
+    vec![Tool {
+        name: "{{道具の名前}}",
+        summary: "{{その道具が何をするか}}",
+        args: vec![Arg::need("{{引数の名前}}", "{{何を渡すか}}")],
+        run: run_{{道具の名前}},
+        human: human_{{道具の名前}},
+    }]
+}

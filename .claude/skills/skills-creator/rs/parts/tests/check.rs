@@ -204,3 +204,36 @@ fn an_absent_document_is_reported() {
     let found = check::check(&root, &templates()).expect("検査できる");
     assert!(found.iter().any(|x| x.contains("文書が無い")), "{found:?}");
 }
+
+#[test]
+fn what_scaffold_places_satisfies_check() {
+    // **生んだものが、そのまま契約を満たす。** 満たさないと、新しい Skill は必ず
+    // 不合格の状態で生まれる（実測 ── 契約を Rust の形へ変えたとき、雛形が Python の
+    // ままだったのでそうなった）
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let tmpl = here.join("references/tool-contract");
+    let root = scratch("scaffolded");
+    for (from, to) in [
+        ("workspace.Cargo.toml.tmpl", "rs/Cargo.toml"),
+        ("parts.Cargo.toml.tmpl", "rs/parts/Cargo.toml"),
+        ("parts.lib.rs.tmpl", "rs/parts/src/lib.rs"),
+        ("parts.tests.rs.tmpl", "rs/parts/tests/example.rs"),
+        ("declare.Cargo.toml.tmpl", "rs/declare/Cargo.toml"),
+        ("cli.Cargo.toml.tmpl", "rs/cli/Cargo.toml"),
+        ("mcp.Cargo.toml.tmpl", "rs/mcp/Cargo.toml"),
+    ] {
+        let body = std::fs::read_to_string(tmpl.join(from))
+            .unwrap_or_else(|e| panic!("{from} を読めない ── {e}"))
+            .replace("{{Skill名}}", "sample")
+            .replace("{{接頭辞}}", "sample");
+        let dst = root.join(to);
+        std::fs::create_dir_all(dst.parent().expect("親が在る")).expect("作れる");
+        std::fs::write(&dst, body).expect("書ける");
+    }
+    write_document(&root);
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found.is_empty(),
+        "生んだものが契約を満たしていない ── {found:?}"
+    );
+}

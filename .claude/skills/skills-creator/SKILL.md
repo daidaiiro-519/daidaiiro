@@ -76,26 +76,30 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 
 ## 道具を伴う Skill
 
-**スクリプトを持つ Skill は、道具の契約に従わせる。**
+**道具を持つ Skill は、道具の契約に従わせる。**
 契約は `references/tool-contract.md` が規定する ── 呼び方を1つに固定し、
 **能力を1度だけ宣言させて、CLI と MCP をその宣言から組ませる**。
 
 ```
-python3 scripts/cli.py scaffold <Skill の名前>   # 契約一式を置く
-python3 scripts/cli.py check <Skill のフォルダ>  # 契約と節の構成を検査する
+skills-creator scaffold <Skill の名前>   # 契約一式を置く
+skills-creator check <Skill のフォルダ>  # 契約と節の構成を検査する
 ```
 
-置くのは4つの部品と、登録の断片と、**役割ごとの置き場所**である。
+**層を crate に分けて置く。** 1つの crate の中の module では、内側が外側を参照しても
+コンパイラが通す ── 層の境界を crate の境界に置いて初めて、**宣言に無い依存が解決
+しなくなる**。許可辺は各 `Cargo.toml` が宣言する。
 
-| 置くもの | 役割 |
-|---|---|
-| `scripts/tools.py` | **能力の正本**。名前 ・ 引数 ・ 説明 ・ 実体 |
-| `scripts/cli.py` | 唯一の入口 |
-| `scripts/mcp_server.py` | MCP サーバー。**同じ宣言から組む** |
-| `scripts/contract.py` | 入口の実装（引数の解釈 ・ 印字 ・ 終了コード） |
-| `scripts/lib/` | **部品**。読み込まれるものであり、入口を保持しない |
-| `scripts/tests/` | **検証** |
-| `mcp.json` | 登録の断片。**ホストごとの差は、ここだけが吸収する** |
+| 置くもの | 役割 | 参照してよい先 |
+|---|---|---|
+| `rs/parts/` | **部品**。実体はここに在る | **無し**（依存を1件も宣言しない） |
+| `rs/declare/` | **能力の正本**。名前 ・ 引数 ・ 説明 ・ 実体の対応 | 部品 |
+| `rs/cli/` | 唯一の入口 | 宣言 |
+| `rs/mcp/` | MCP の面。**同じ宣言から組む** | 宣言 |
+| `rs/parts/tests/` | **事例** | 部品 |
+| `mcp.json` | 登録。**ホストごとの差は、ここだけが吸収する** | ── |
+
+**生んだものが、そのまま契約を満たす。** 満たさないと、新しい Skill は必ず不合格の
+状態で生まれる ── 実測で、契約だけを変えて雛形を差し替えなかったとき、そうなった。
 
 **入口 ・ 部品 ・ 検証を、同じ階層へ並べない。** 並べると、
 **どれを起動してよいかが、中身を開くまで判定できない** ── 検査はこの置き場所も見る。
@@ -110,7 +114,7 @@ python3 scripts/cli.py check <Skill のフォルダ>  # 契約と節の構成を
 - **節の構成を、対応する雛形と一致させる**。助言の Skill は advisor-creator の雛形、それ以外は
   こちらの雛形を満たす ── **どちらを適用するかは節の有無で決まる**（名前で分岐すると、Skill が
   増えるたびに検査を直すことになる）
-- **スクリプトを持つ Skill には、道具の契約を適用させる**（`references/tool-contract.md`）── 入口の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
+- **道具を持つ Skill には、道具の契約を適用させる**（`references/tool-contract.md`）── 入口の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
 - **同じ概念の仕組みは、同じ実装の形にさせる**。入力の契約（スキーマ）・トークンの正本・入力の検査・置き場所を、Skill ごとに違う形で実装させない ── 概念が同じで形が違うと、**1つを読んで得た理解が、次の Skill で通用しない**
 - **能力を2か所へ記述させない**。CLI と MCP は、宣言から組ませる ── 同じ能力を2度書くと、片方だけが古くなる
 - **部品に入口を付けさせない**。`import` される部品は宣言に載せない ── 載せると、同じ能力に呼び方が2つできる
@@ -129,14 +133,19 @@ python3 scripts/cli.py check <Skill のフォルダ>  # 契約と節の構成を
 
 ## 参照
 
-- `scripts/lib/sections.py`: 節の構成を、対応する雛形と照合する。**節の名前は雛形が持つ** ──
+- `rs/parts/src/sections.rs`: 節の構成を、対応する雛形と照合する。**節の名前は雛形が持つ** ──
   こちらに一覧を書くと、雛形を直した瞬間に食い違う。**並び順は問わない**
-- `scripts/tests/test_sections.py`: 節の照合を事例で検証する（6件）
+- `rs/parts/src/check.rs`: 契約を検査する。**層が crate に分かれていること**と、
+  **許可辺が各 `Cargo.toml` の宣言どおりであること**を確認する
+- `rs/parts/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは宣言が決める**
+- `rs/parts/tests/`: 事例（21件）。**生んだものが契約を満たすこと**も固定してある
 - `references/tool-contract.md`: 道具の契約。入口 ・ 戻り値 ・ 終了コード ・ 道具と部品の区別 ・
   **MCP サーバーの規約**（標準出力 ・ サーバーのファイル名 ・ 誤りの返し方 ・ 引数の型 ・ 子プロセスの規律）を
   規定する ── MCP の規約は**原典の引用と行番号つき**である
-- `references/tool-contract/`: 契約一式の雛形（`tools.py` ・ `cli.py` ・ `mcp_server.py` ・ `mcp.json`）
-- `scripts/cli.py`: この Skill 自身の入口。`scaffold` と `check` を持つ ── **この Skill も、同じ契約に従う**
+- `references/tool-contract/`: 契約一式の雛形（12件）。workspace と4つの crate の
+  `Cargo.toml` ・ 入口 ・ 宣言 ・ 部品 ・ 事例 ・ 登録。**`contract.rs` ・ `cli` ・ `mcp` は
+  Skill をまたいで同一である**ので、正本をここに置く
+- `rs/cli/`: この Skill 自身の入口。`scaffold` と `check` を持つ ── **この Skill も、同じ契約に従う**
 
 - `references/skill-template.md`: SKILL.md自体の雛形（プレースホルダー付き、各プレースホルダーが自己完結した執筆ガイダンスを持つ）。
 - `references/folder-structure.md`: Skillフォルダのミニマム構成・フル構成の基準。

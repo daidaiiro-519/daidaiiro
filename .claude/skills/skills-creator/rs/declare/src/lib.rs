@@ -56,33 +56,40 @@ fn human_check(out: &Outcome) -> String {
 }
 
 /// 置く一式を組む。**何を置くかはここが決める** ── 部品は並びを認知しない。
+///
+/// **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
+/// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、宣言に無い依存が
+/// 解決しなくなる。
 fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     let tmpl = here.join("references/tool-contract");
     let read = |name: &str| std::fs::read_to_string(tmpl.join(name));
-    let fill = |body: String| body.replace("{{Skill名}}", skill);
-    let mut out = vec![
-        scaffold::Item::keep(
-            PathBuf::from("scripts/contract.py"),
-            read("contract.py.tmpl")
-                .or_else(|_| std::fs::read_to_string(here.join("scripts/contract.py")))?,
-        ),
-        scaffold::Item::keep(
-            PathBuf::from("scripts/lib/__init__.py"),
-            fill(read("lib__init__.py.tmpl")?),
-        ),
-    ];
-    for (name, to) in [
-        ("tools.py.tmpl", "scripts/tools.py"),
-        ("cli.py.tmpl", "scripts/cli.py"),
-        ("mcp_server.py.tmpl", "scripts/mcp_server.py"),
-        ("template.py.tmpl", "scripts/lib/template.py"),
+    // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う
+    let prefix: String = skill.split('-').filter_map(|w| w.chars().next()).collect();
+    let root = here
+        .parent()
+        .map_or_else(|| skill.to_owned(), |p| p.join(skill).display().to_string());
+    let fill = |body: String| {
+        body.replace("{{Skill名}}", skill)
+            .replace("{{接頭辞}}", &prefix)
+            .replace("{{Skillの絶対パス}}", &root)
+    };
+    let mut out = Vec::new();
+    for (from, to) in [
+        ("workspace.Cargo.toml.tmpl", "rs/Cargo.toml"),
+        ("parts.Cargo.toml.tmpl", "rs/parts/Cargo.toml"),
+        ("parts.lib.rs.tmpl", "rs/parts/src/lib.rs"),
+        ("parts.tests.rs.tmpl", "rs/parts/tests/example.rs"),
+        ("declare.Cargo.toml.tmpl", "rs/declare/Cargo.toml"),
+        ("declare.lib.rs.tmpl", "rs/declare/src/lib.rs"),
+        ("contract.rs.tmpl", "rs/declare/src/contract.rs"),
+        ("cli.Cargo.toml.tmpl", "rs/cli/Cargo.toml"),
+        ("cli.main.rs.tmpl", "rs/cli/src/main.rs"),
+        ("mcp.Cargo.toml.tmpl", "rs/mcp/Cargo.toml"),
+        ("mcp.main.rs.tmpl", "rs/mcp/src/main.rs"),
+        ("mcp.json.tmpl", "mcp.json"),
     ] {
-        out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(name)?)));
+        out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));
     }
-    out.push(scaffold::Item::keep(
-        PathBuf::from(format!("references/{skill}.template.html")),
-        fill(read("template.html.tmpl")?),
-    ));
     Ok(out)
 }
 
@@ -129,7 +136,10 @@ fn human_scaffold(out: &Outcome) -> String {
         .collect();
     lines.extend(out.findings.iter().cloned());
     lines.push(
-        "登録は mcp.json の断片を、ホストの設定へ差し込む ── 実装が無い環境では、CLI だけが動く"
+        "次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を rs/parts/src/ へ置く".to_owned(),
+    );
+    lines.push(
+        "組む ── cd rs && cargo build --release。登録は mcp.json をホストの設定へ差し込む"
             .to_owned(),
     );
     lines.join("\n")
