@@ -9,7 +9,6 @@
 
 見るのは5つ。文字の重なり ・ 枠からのはみ出し ・ 線が箱を貫くこと ・ 空白で字下げ ・ 箱が文字を覆うこと。
 """
-import importlib
 import re
 import sys
 
@@ -83,11 +82,14 @@ def check(name, fig):
     return len(bad) + len(over) + len(pierced) + len(indented) + len(covered)
 
 
-def count(modules) -> int:
-    """渡された各モジュールの図を検査し、食い違いの数を返す。"""
+def count(loaded) -> int:
+    """渡された各モジュールの図を検査し、食い違いの数を返す。
+
+    **読み込みは実行しない。** 名前と、読み込んだものの対を受け取る ── 部品が名前で
+    モジュールを読み込むと、依存の辺が構文木に現れず、向きの検査を素通りできる。
+    """
     bad = 0
-    for mod in modules:
-        m = importlib.import_module(mod)
+    for mod, m in loaded:
         for attr in dir(m):
             v = getattr(m, attr)
             if attr.isupper() and isinstance(v, tuple) and v and isinstance(v[0], str) and "<svg" in v[0]:

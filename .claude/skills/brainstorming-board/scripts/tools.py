@@ -86,7 +86,10 @@ def _human_freeze(res: dict) -> str:
 def figures(module: list | str) -> dict:
     """図の中の重なり・はみ出し・貫通を検査する。**絶対座標の図だけが対象である。**"""
     mods = [module] if isinstance(module, str) else list(module)
-    code, out, err = _capture(_figcheck.count, mods)
+    # **読み込みは入口が実行する。** 部品へ名前を渡すと、依存の辺が構文木に現れない
+    import importlib
+    loaded = [(m, importlib.import_module(m)) for m in mods]
+    code, out, err = _capture(_figcheck.count, loaded)
     return result(ok=True, findings=[x for x in (out + err).splitlines() if x.strip()],
                   modules=mods, count=code)
 
