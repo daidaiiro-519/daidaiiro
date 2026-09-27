@@ -1,0 +1,208 @@
+{
+ "no": "ACDR 0021",
+ "title": "語の単位で判定できない不自然さの審査",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "語彙表では判定できない日本語の不自然さ（造語 ・ 比喩 ・ 主述の不整合 ・ 含意の不一致 ・ 幼い語り口 ・ 回りくどさ）を、文書を出す前に、判定基準に基づいてモデルに審査させる。",
+ "why": "層1（語彙表の照合）は語の単位でしか判定できない。利用者が指摘してきた不自然さの多くは、登録済みの語を含まない。例は「3言語は覆った」「締めを流す日」「実行の担い手が走る」である。指摘は過去の会話で約80件あり、同じ型の指摘が繰り返されている。判定基準は、その指摘から型を抽出して作成した。",
+ "shift": [
+  {
+   "what": "検出できる不自然さ",
+   "from": "語彙表に登録した語（和語の述部 ・ 廃語）だけ",
+   "to": "語彙表の語に加えて、判定基準8件の型に当てはまる表現（文書を審査したとき）"
+  },
+  {
+   "what": "判定基準と手順の置き場所",
+   "from": "無い",
+   "to": "Skill の references（review-criteria.json ・ review-instruction.md）。事例はプロジェクトの .doc-writing/review-examples.json"
+  },
+  {
+   "what": "適用する時点",
+   "from": "─",
+   "to": "文書を出す前に、必要なときだけ。会話の応答には応答のたびに適用しない（トークンを消費しない層1だけを適用する）"
+  },
+  {
+   "what": "CLI と MCP",
+   "from": "─",
+   "to": "review が、同じ正本から判定の依頼文を組む。判定はモデルが実施する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "会話の応答には毎回層1だけを適用し、層3は文書を出す前に必要なときだけ適用する構成である。",
+ "how": "判定基準8件を JSON で定義し、文脈を要する基準（指し先の欠落）には needs_context を付ける。手順を Markdown で定義する。宣言に review を追加し、既定の範囲を文書とする。層1には「揃う」と、利用者が以前に指摘した語を追加し、「言い回し」の誤検出を解消する。",
+ "applies_to": "doc-writing-skills の references に判定基準と手順を追加し、宣言（rs/declare/src/lib.rs）と SKILL.md を変更する。和語の一覧（predicates.json）と廃語の一覧（.doc-writing/retired-words.json）に語を追加する。事例（.doc-writing/review-examples.json）を追加する。",
+ "alternatives": [
+  {
+   "option": "agent 型の Stop フックで、会話の応答を毎回審査する",
+   "why_not": "応答のたびに別のエージェントを起動し、3ファイルを読ませるので、トークンを毎回消費する。得られる判定は確率的で、誤検出でも応答の全文を出し直すことになる"
+  },
+  {
+   "option": "prompt 型のフックに判定基準を書く",
+   "why_not": "prompt 型はファイルを読めない。判定基準を設定へ複製することになり、Skill の正本とずれる"
+  },
+  {
+   "option": "command 型のフックから claude -p を実行する",
+   "why_not": "入れ子のセッションが同じ Stop フックを起動する。道具が claude の CLI に依存する"
+  },
+  {
+   "option": "Sonnet で判定する",
+   "why_not": "実測で、事例なしの Sonnet は検出12件 ・ 誤検出3件だった。事例付きの Haiku（検出12件 ・ 誤検出2件）より良くない"
+  },
+  {
+   "option": "指し先の欠落も会話の応答に適用する",
+   "why_not": "実測で、指摘の無い文15件のうち11件を違反と判定した。応答は前後の文脈を保持しない"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、変更と記録をコミットする",
+  "文書を出す前に review を適用し、誤検出と見逃しを事例（.doc-writing/review-examples.json）へ追加する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "criteria",
+   "tab": "判定基準",
+   "file": ".claude/skills/doc-writing-skills/references/review-criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"coined\",",
+     "before": "（無い ── 新しいファイル）",
+     "why": "利用者の指摘約80件から、繰り返し現れる型を8件に抽出した。事例ではなく型で定義する ── 事例で書くと、事例に無い表現が通過する"
+    },
+    {
+     "find": "\"needs_context\": true",
+     "before": "（無い）",
+     "why": "実測で、指し先の欠落を会話の応答に適用すると、指摘の無い文15件のうち11件を違反と判定した"
+    }
+   ]
+  },
+  {
+   "key": "instruction",
+   "tab": "手順",
+   "file": ".claude/skills/doc-writing-skills/references/review-instruction.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "主題の「は」で始まり、動作の主体を省いた文",
+     "before": "（無い ── 新しいファイル）",
+     "why": "実測で、この型の正しい文を predicate-fit の違反と判定した。判定を誤りやすい点として明示する"
+    }
+   ]
+  },
+  {
+   "key": "declare",
+   "tab": "宣言",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn run_review(given: &Given) -> Outcome {",
+     "before": "（無い）",
+     "why": "CLI と MCP から、フックと同じ正本で判定の依頼文を得られるようにする。判定そのものはモデルが実施する"
+    },
+    {
+     "find": "            name: \"review\",",
+     "before": "（無い）",
+     "why": "能力を宣言に置くので、CLI と MCP の両方から呼べる"
+    },
+    {
+     "find": "                    Some(\"document\"),",
+     "before": "（無い）",
+     "why": "既定の範囲を文書にする。会話の応答には review を毎回適用しないため"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "検査",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/tests/reply.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_review_prompt_holds_the_text_and_the_criteria() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "依頼文が本文と判定基準を含むことを固定する"
+    },
+    {
+     "find": "fn a_reply_review_omits_the_criteria_that_need_context() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "会話の応答では、文脈を要する基準を外すことを固定する"
+    }
+   ]
+  },
+  {
+   "key": "pred",
+   "tab": "和語の一覧",
+   "file": ".claude/skills/doc-writing-skills/references/predicates.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"pattern\": \"揃う|揃え[るたてよま]|揃っ[てた]|揃わ|(?<!の)揃い(?!方)\",",
+     "before": "\"pattern\": \"揃え[るたてよま]|揃っ[てた]|揃わ|(?<!の)揃い(?!方)\",",
+     "why": "終止形の「揃う」が通過していた。層3の実測で見逃した文（「返ってくるものが揃う」）を、層1で確実に検出する"
+    },
+    {
+     "find": "\"pattern\": \"(?<!後)(?<!迂)(?<!言い)回[すし](?![算能])|(?<!出)(?<!上)(?<!下)回っ[てた]|(?<![先遠出上下])回りま\",",
+     "before": "\"pattern\": \"(?<!後)(?<!迂)回[すし](?![算能])|(?<!出)(?<!上)(?<!下)回っ[てた]|(?<![先遠出上下])回りま\",",
+     "why": "名詞の「言い回し」を和語の述部として誤検出していた"
+    }
+   ]
+  },
+  {
+   "key": "retired",
+   "tab": "廃語の一覧",
+   "file": ".doc-writing/retired-words.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"word\": \"代償\",",
+     "before": "（無い）",
+     "why": "中立の事実に負の含意の語を使用した、という利用者の指摘による。層3の実測で見逃したので、層1で確実に検出する"
+    }
+   ]
+  },
+  {
+   "key": "examples",
+   "tab": "事例",
+   "file": ".doc-writing/review-examples.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"note\":",
+     "before": "（無い ── 新しいファイル）",
+     "why": "利用者の指摘から作成した。試験の文とは重複させていない。事例を追加した Haiku は、検出が9件から12件へ増えた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/doc-writing-skills/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "造語 ・ 比喩 ・ 主述の不整合 ・ 含意の不一致 ・ 幼い語り口 ・ 回りくどさは、語彙表では検出できない。",
+     "before": "（無い）",
+     "why": "審査の能力と、その精度（確率的であること）を記述する"
+    },
+    {
+     "find": "適用するのは、文書を出す前だけである。会話の応答には、応答のたびに適用しない",
+     "before": "（無い）",
+     "why": "審査のたびにモデルのトークンを消費する。会話の応答には、トークンを消費しない reply だけを適用する"
+    }
+   ]
+  }
+ ],
+ "lede": "語彙表では検出できない日本語の不自然さを、文書を出す前に、判定基準に基づいてモデルに審査させる提案である。",
+ "seal": {
+  "criteria": "06d837b72b963d9d9381c63d302566497169ff48552c8974c25897d3f2bd87c1",
+  "instruction": "bb61fd24ea011f71f5d15aeb72bc7c12e8ae152469de0fe4a0f1157f17821411",
+  "declare": "273df2f715f37da44d5cec319c0eb05b2f17b2cc4778052f259d85847cbc4c89",
+  "tests": "cb48c94a63e25fc856168b31c5537a95a11f7a58423e5efcb4dc05e2ea68a70c",
+  "pred": "e18bc159b8dc9f4fd216bd0e6a61ca18c13b63d84dabb9d90e7b93873c9cfbd4",
+  "retired": "992f38550aadf4a9afc2cd0799e182781c9914aa734b416f1afdb544902855dd",
+  "examples": "aa83003dce8d0dbfd6dd4a5895779cc2456e91d5b414c711151cd12f4241761b",
+  "skill": "ff7f9f5111db4867402cb3b7c1ab8043503b1fce531af897eaa08dfe01f2cf50"
+ }
+}

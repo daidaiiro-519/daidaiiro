@@ -37,3 +37,30 @@ fn the_layout_checks_are_not_applied_to_a_reply() {
     let out = reply("# 一\n\n### 三\n\nこれは本文である。\n\nこれは本文です。\n");
     assert!(out.findings.is_empty(), "{:?}", out.findings);
 }
+
+fn review(message: &str, scope: &str) -> Outcome {
+    let tool = tools().into_iter().find(|t| t.name == "review").expect("在る");
+    let mut given = Given::default();
+    given.push("message", message.to_owned());
+    given.push("scope", scope.to_owned());
+    (tool.run)(&given)
+}
+
+#[test]
+fn a_review_prompt_holds_the_text_and_the_criteria() {
+    let out = review("3言語は覆った。", "reply");
+    assert!(out.ok, "{:?}", out.findings);
+    let prompt = out.data["prompt"].as_str().unwrap_or_default();
+    assert!(prompt.contains("3言語は覆った。"));
+    assert!(prompt.contains("predicate-fit"));
+}
+
+#[test]
+fn a_reply_review_omits_the_criteria_that_need_context() {
+    // 会話の応答は前後の文脈を持たない ── 指し先の基準を適用すると、正しい文を違反と判定する
+    let reply = review("本文。", "reply");
+    let document = review("本文。", "document");
+    assert!(!reply.data["prompt"].as_str().unwrap_or_default().contains("missing-referent"));
+    assert!(document.data["prompt"].as_str().unwrap_or_default().contains("missing-referent"));
+    assert!(reply.data["criteria"].as_u64() < document.data["criteria"].as_u64());
+}

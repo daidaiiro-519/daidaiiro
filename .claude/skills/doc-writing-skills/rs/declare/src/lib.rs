@@ -243,6 +243,63 @@ fn human_reply(out: &Outcome) -> String {
     serde_json::to_string(&out.data).unwrap_or_default()
 }
 
+/// 日本語の審査の依頼文を組む。**判定はしない** ── 判定するのはモデルであり、この道具は
+/// 判定基準・手順・事例を1つの依頼文へ組むだけである。
+///
+/// 正本は3つである ── 手順（`references/review-instruction.md`）と判定基準
+/// （`references/review-criteria.json`）はこの Skill が持ち、事例
+/// （`.doc-writing/review-examples.json`）はプロジェクトが持つ。
+fn run_review(given: &Given) -> Outcome {
+    let (message, base) = match reply_source(given) {
+        Ok(x) => x,
+        Err(e) => return Outcome::misuse(e),
+    };
+    let root = skill_root(given);
+    let read = |p: PathBuf| {
+        std::fs::read_to_string(&p).map_err(|e| format!("読めない ── {} ── {e}", p.display()))
+    };
+    let instruction = match read(root.join("references/review-instruction.md")) {
+        Ok(x) => x,
+        Err(e) => return Outcome::misuse(e),
+    };
+    let criteria: serde_json::Value = match read(root.join("references/review-criteria.json"))
+        .and_then(|b| serde_json::from_str(&b).map_err(|e| format!("判定基準が JSON ではない ── {e}")))
+    {
+        Ok(x) => x,
+        Err(e) => return Outcome::misuse(e),
+    };
+    let whole = given.one("scope", "document") == "document";
+    let applied: Vec<&serde_json::Value> = criteria["criteria"]
+        .as_array()
+        .map(|xs| {
+            xs.iter()
+                .filter(|c| whole || !c["needs_context"].as_bool().unwrap_or(false))
+                .collect()
+        })
+        .unwrap_or_default();
+    // 事例はプロジェクトが持つ ── 廃語の一覧と同じく、上へたどって探す。無ければ無しで組む
+    let here = base.canonicalize().unwrap_or(base);
+    let examples = std::iter::successors(Some(here.as_path()), |p| p.parent())
+        .map(|d| d.join(".doc-writing").join("review-examples.json"))
+        .find(|c| c.exists())
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .unwrap_or_default();
+    let prompt = format!(
+        "{instruction}\n## 判定基準（適用するもの {} 件）\n\n{}\n\n## 事例\n\n{}\n\n## 本文\n\n{message}\n",
+        applied.len(),
+        serde_json::to_string_pretty(&applied).unwrap_or_default(),
+        if examples.is_empty() { "（無い）" } else { examples.trim() },
+    );
+    Outcome::found(Vec::new(), json!({ "prompt": prompt, "criteria": applied.len() }))
+}
+
+fn human_review(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    out.data["prompt"].as_str().unwrap_or_default().to_owned()
+}
+
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
@@ -280,6 +337,30 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_reply,
             human: human_reply,
+        },
+        Tool {
+            name: "review",
+            summary: "日本語の審査の依頼文を組む（判定はモデルが実施する）",
+            args: vec![
+                Arg::opt("message", "審査する本文。渡さなければ hook を読む", None),
+                Arg::opt(
+                    "hook",
+                    "Stop フックの入力（JSON）のファイル。- なら標準入力",
+                    Some("-"),
+                ),
+                Arg::opt(
+                    "scope",
+                    "document（文書。全部の基準を適用する）か reply（文脈を要する基準を外す）",
+                    Some("document"),
+                ),
+                Arg::opt(
+                    "skill_root",
+                    "この Skill の場所（判定基準を読む先）",
+                    Some(SKILL_ROOT),
+                ),
+            ],
+            run: run_review,
+            human: human_review,
         },
         Tool {
             name: "tails",
