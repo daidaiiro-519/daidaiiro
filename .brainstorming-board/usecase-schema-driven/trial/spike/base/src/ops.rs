@@ -71,3 +71,22 @@ pub fn validate(decls: &[Decl], kinds: &Value) -> Vec<String> {
     }
     out
 }
+
+/// 覆われたシナリオを突き合わせた結果。
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Coverage {
+    /// 仕様が要るのに、テストの側が覆っていないシナリオ
+    pub uncovered: Vec<String>,
+    /// テストの側が名乗ったのに、仕様に無いシナリオ（書き間違い）
+    pub unknown: Vec<String>,
+}
+
+/// **道具が知るのは2つの集合だけである** ── 仕様が要るシナリオと、テストの側が覆ったシナリオ。
+///
+/// 覆った集合をどう作ったか（走ったときに書き出したか、探したか）を、道具は知らない。
+pub fn coverage(required: &BTreeSet<String>, covered: &BTreeSet<String>) -> Coverage {
+    Coverage {
+        uncovered: required.difference(covered).cloned().collect(),
+        unknown: covered.difference(required).cloned().collect(),
+    }
+}

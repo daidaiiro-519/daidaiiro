@@ -16,6 +16,7 @@
 //! 外の成果物は出さない ── 禁じた語は `forbidden.txt` が持つ。
 
 pub mod ops;
+pub use ops::{coverage, Coverage};
 pub mod proj;
 pub mod schema;
 use serde::{Deserialize, Serialize};

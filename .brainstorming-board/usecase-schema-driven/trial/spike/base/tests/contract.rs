@@ -93,3 +93,33 @@ fn 形の違う仕様は_どのファイルかを言う() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// ── 覆われたシナリオ ── 道具が知るのは2つの集合だけである ──────────
+fn 集合(xs: &[&str]) -> std::collections::BTreeSet<String> {
+    xs.iter().map(|s| s.to_string()).collect()
+}
+
+#[test]
+fn 覆われていないシナリオが出る() {
+    let 要る = 集合(&["SC-A", "SC-B", "SC-C"]);
+    let 覆った = 集合(&["SC-A", "SC-C"]);
+    let c = base::coverage(&要る, &覆った);
+    assert_eq!(c.uncovered, vec!["SC-B".to_string()]);
+    assert!(c.unknown.is_empty());
+}
+
+#[test]
+fn 仕様に無いシナリオを名乗ると出る() {
+    let 要る = 集合(&["SC-A"]);
+    let 覆った = 集合(&["SC-A", "SC-TYPO"]);
+    let c = base::coverage(&要る, &覆った);
+    assert!(c.uncovered.is_empty());
+    assert_eq!(c.unknown, vec!["SC-TYPO".to_string()]);
+}
+
+#[test]
+fn そろっていれば何も出ない() {
+    let 要る = 集合(&["SC-A", "SC-B"]);
+    let c = base::coverage(&要る, &要る);
+    assert!(c.uncovered.is_empty() && c.unknown.is_empty());
+}
