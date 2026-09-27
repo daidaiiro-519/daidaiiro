@@ -1,0 +1,192 @@
+{
+ "no": "ACDR 0018",
+ "title": "ゲート1の検出漏れ4件の修正",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "ゲート1が検査を実施できなかったときと、敬体で書いた本文とを、検出漏れなく判定できる状態にする。",
+ "why": "直近40件の応答へゲート1を適用したところ、3件の不具合が判明した。修正の途中で4件目が判明した。1件目は、リポジトリの直下から実行すると和語の一覧を読めず、和語の検査を実施しないまま0件と報告していたことである。2件目は、敬体の活用（「止まります」「揃えます」）の一部が通過していたことである。3件目は、「〜ました。」を非敬体に分類し、敬体だけの本文を文体の混在として報告していたことである。4件目は、鉤括弧の中の句点で文を切り、引用の文末を書き手の文末として数えていたことである。1件目は、検出が無いことと検査しなかったことを読み手が区別できない状態である。2件目から4件目は、利用者への応答（敬体）へゲートを適用する前提と食い違う。",
+ "shift": [
+  {
+   "what": "和語の一覧を読めないとき",
+   "from": "空の一覧で続行し、和語の検出を0件と報告する",
+   "to": "誤用として停止する（終了コード2）。読めなかったパスと、--skill-root を渡す指示を出力する"
+  },
+  {
+   "what": "敬体の活用の検出",
+   "from": "一覧の各行が常体の活用だけを列挙しており、敬体の一部が通過する",
+   "to": "各行が常体と敬体の事例を持ち、検査が事例を1件ずつ照合する。通過する事例が1件でも在れば検査が失敗する"
+  },
+  {
+   "what": "「〜ました。」の分類",
+   "from": "非敬体",
+   "to": "敬体"
+  },
+  {
+   "what": "鉤括弧の中の句点",
+   "from": "文の区切りとして扱い、引用の文末（「〜です。」）を書き手の文末として数える",
+   "to": "文の区切りとして扱わない。文末の型は、鉤括弧の外の文末だけで判定する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "4件の不具合それぞれについて、変更前と変更後のゲート1の振る舞いを対応づけた図である。",
+ "how": "文末の型を判定する正規表現へ「ました」を追加する。和語の一覧の読み込みの失敗を、空の一覧で続行する処理から誤用の返却へ変更する。和語の一覧の各行へ examples（常体と敬体の事例）を追加し、スキーマで必須とする。事例を1件ずつ照合する検査と、一覧を読めないときに停止する検査を追加する。文を切る処理は、鉤括弧の深さを追い、中の句点では切らない形へ変更する。",
+ "applies_to": "doc-writing-skills の5か所が変わる。文末の型の判定（rs/parts/src/ending.rs）、文を切る処理（rs/parts/src/checks.rs）、道具の宣言（rs/declare/src/lib.rs）である。和語の一覧とそのスキーマ（references/predicates.json ・ predicates.schema.json）も変わる。検査は4件を追加する（rs/parts/tests/checks.rs ・ rs/declare/tests/words.rs）。",
+ "alternatives": [
+  {
+   "option": "和語の一覧を、実行ファイルの位置から探索する",
+   "why_not": "宣言の注記が、build の置き場所に依存するとして既に退けている。置き場所を変えると、同じ不具合が再発する"
+  },
+  {
+   "option": "和語の一覧を実行ファイルへ埋め込む",
+   "why_not": "一覧を1行直すたびに再ビルドが必要になる。一覧を直したのに検査に反映されない状態が生じる"
+  },
+  {
+   "option": "敬体の活用を、コードの側で常体の形から自動で生成する",
+   "why_not": "五段と一段の区別には品詞の判定が必要で、この道具は品詞を判定しない。事例を一覧に持たせれば、生成しなくても漏れを検査で検出できる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、変更と記録をコミットする",
+  "CLAUDE.md が参照する実行方法（scripts/cli.py）が現存しないので、Rust の実行ファイルと --skill-root の指定へ直す提案を別に出す",
+  "Stop フックで、会話の応答へ層1（語彙表の照合）を適用する作業へ進む"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "ending",
+   "tab": "文末の型",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/src/ending.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Regex::new(r\"(です|ます|ました|ません|でした|ましょう|でしょう|ください)。?$\").expect(\"組める\")",
+     "why": "「ました」が無く、「適用しました。」を非敬体に分類していた。敬体だけの本文が文体の混在として報告された",
+     "before": "Regex::new(r\"(です|ます|ません|でした|ましょう|でしょう|ください)。?$\").expect(\"組める\")"
+    }
+   ]
+  },
+  {
+   "key": "split",
+   "tab": "文を切る処理",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/src/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 文へ切る。**鉤括弧の中の句点では切らない** ── 切ると、引用の文末（「〜ました。」）が",
+     "before": "fn sentences(text: &str) -> Vec<String> {\n    ...\n        if c == '。' {\n            out.push(std::mem::take(&mut buf));\n        }",
+     "why": "「判定漏れは「〜です。」の分類である。」を2文に切り、前半の「〜です。」を書き手の敬体の文として数えていた。リポジトリの読み上げ原稿9本のうち2本は、この誤りだけで文体の混在と報告されていた"
+    }
+   ]
+  },
+  {
+   "key": "declare",
+   "tab": "道具の宣言",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const SKILL_ROOT: &str = concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\");",
+     "before": "（無い）",
+     "why": "ACDR 0019 の変更である（既定の置き場所を build 時の位置にする）。同じファイルを HEAD と比べるので、ここにも現れる"
+    },
+    {
+     "find": "/// **和語の一覧を読めなければ、誤用として止める。** 空の一覧で続行すると、和語の検査を",
+     "before": "fn words(given: &Given, target: &Path) -> Words {\n    let predicates = gate::load_predicates(&skill_root(given).join(\"references/predicates.json\"))\n        .unwrap_or_default();",
+     "why": "読み込みの失敗を空の一覧で続行していた。リポジトリの直下から実行すると和語の一覧を読めず、和語の検査を実施しないまま0件と報告していた"
+    },
+    {
+     "find": "    Ok(Words::new(predicates, synonyms, retired))",
+     "before": "    Words::new(predicates, synonyms, retired)",
+     "why": "戻り値を Result に変えたので、成功の側を Ok で包む"
+    },
+    {
+     "find": "    let words = match words(given, &first) {",
+     "before": "    let words = words(given, &first);",
+     "why": "一覧を読めなかったときに、検査を始める前に誤用として返すため"
+    },
+    {
+     "find": "                    Some(SKILL_ROOT),",
+     "before": "                    Some(\".\"),",
+     "why": "ACDR 0019 の変更である（既定の置き場所を build 時の位置にする）。同じファイルを HEAD と比べるので、ここにも現れる"
+    }
+   ]
+  },
+  {
+   "key": "predicates",
+   "tab": "和語の一覧",
+   "file": ".claude/skills/doc-writing-skills/references/predicates.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"pattern\": \"揃え[るたてよま]|揃っ[てた]|揃わ|(?<!の)揃い(?!方)\",",
+     "before": "\"pattern\": \"揃え[るたてよ]|揃っ[てた]|揃わ\",",
+     "why": "全59行へ examples（常体と敬体の事例）を追加し、検査が1件ずつ照合する形にした。そのうち32行は、敬体の活用（〜ます ・ 〜ません）が通過していたので、形を変更した。「終わる」の行は、辞書形も一致していなかった。事例を照合する検査がこれを検出した。「揃い」「回り」「扱い」の行は、名詞（箱の揃い ・ 先回り ・ 扱いやすい）を検出しないよう、前後を限定した。変更後の一覧をリポジトリの Markdown 全件に適用し、新たな検出47件がすべて和語の述部であることを確認した。"
+    }
+   ]
+  },
+  {
+   "key": "schema",
+   "tab": "一覧のスキーマ",
+   "file": ".claude/skills/doc-writing-skills/references/predicates.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"use_instead\",",
+     "before": "\"use_instead\"",
+     "why": "examples を必須の欄に加えた。事例が無い行は、どの活用が通過するかを検査できない"
+    },
+    {
+     "find": "\"examples\": {",
+     "before": "（無い）",
+     "why": "事例の形を定義した。常体と敬体を少なくとも1件ずつ置くので、2件以上とする"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "検査（部品）",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/tests/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn every_example_of_a_predicate_is_found() {",
+     "why": "一覧の全行の事例を当て、通過する活用を検出する。この検査が、元から辞書形を検出していなかった1行（終わる）も検出した",
+     "before": "（無い ── 新しい検査）"
+    },
+    {
+     "find": "fn a_polite_past_is_counted_as_polite() {",
+     "why": "「〜ました。」を敬体に分類することを固定する",
+     "before": "（無い ── 新しい検査）"
+    },
+    {
+     "find": "fn a_full_stop_inside_brackets_does_not_end_the_sentence() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "鉤括弧の中の句点で文を切らないことを固定する"
+    }
+   ]
+  },
+  {
+   "key": "words",
+   "tab": "検査（宣言）",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/tests/words.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_unreadable_predicate_list_is_a_misuse() {",
+     "why": "一覧を読めないときに、0件ではなく誤用として停止することを固定する",
+     "before": "（無い ── 新しい検査）"
+    }
+   ]
+  }
+ ],
+ "lede": "ゲート1が和語の検査を実施しないまま0件と報告する経路を解消し、敬体の判定漏れ3件を修正する提案である。",
+ "seal": {
+  "ending": "8e88f4f89a24d519f95fd9e028e0e0f13d6e71510a69f194ccb9086a270d6bff",
+  "split": "6790d95ecde8f9d21f90f946eef3fc89e8b9f2f4645101724908422a938f3c0c",
+  "declare": "49a3a9804d88e72a4f7491cbb0055a5fe2cc5e2b63d6a4ca26789ad4a3984fa1",
+  "predicates": "6a57599af761778021382869add1a4a4c0fda8068f21412108cb7a8dd70abc5a",
+  "schema": "a3af024f6b02f0490927b6cb20f2373c737290fb95c6b322167ca892b34760ec",
+  "tests": "e919dd4596e5f7674d0787d896187cd0c5fecd6b9699c3fb9652c46a3eb219a8",
+  "words": "c2d4aa87975a3060f0067c8f6aee00903d0e700e95f3fea99e9c8842e256c8d0"
+ }
+}

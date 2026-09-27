@@ -16,10 +16,17 @@ pub use contract::{Arg, Given, Outcome, Tool};
 /// 題を書いていないことが、出来上がりから分かる文字列。
 const DEFAULT_TITLE: &str = "題を記入する";
 
-/// この Skill の置き場所。**呼ぶ側が決める** ── どこから呼ばれるかを、この側で
-/// 推測しない。
+/// この Skill の置き場所の既定値。**build のときの、この Skill のソースの位置である。**
+///
+/// 既定値を「.」にすると、実行した場所で結果が変わる ── リポジトリの直下から実行すると
+/// 契約を読めずに停止していた。どこから呼ばれるかを推測せず、実行ファイルの位置も
+/// 参照しない。build した時点で確定している位置を使う。呼ぶ側は `--skill-root` で
+/// 上書きできる。
+const SKILL_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+
+/// この Skill の置き場所。**呼ぶ側が渡したものを優先する。**
 fn references(given: &Given) -> PathBuf {
-    PathBuf::from(given.one("skill_root", ".")).join("references")
+    PathBuf::from(given.one("skill_root", SKILL_ROOT)).join("references")
 }
 
 /// 検出を、人が読む行へ組む。
@@ -228,7 +235,7 @@ fn human_tokens(out: &Outcome) -> String {
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    let root = Arg::opt("skill_root", "この Skill の置き場所", Some("."));
+    let root = Arg::opt("skill_root", "この Skill の置き場所", Some(SKILL_ROOT));
     vec![
         Tool {
             name: "new",

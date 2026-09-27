@@ -14,16 +14,32 @@ use serde_json::json;
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// この Skill の場所。**実行ファイルの位置から辿らない** ── build の置き場所に依存する。
+/// この Skill の場所の既定値。**build のときの、この Skill のソースの位置である。**
+///
+/// **実行ファイルの位置から辿らない** ── build の置き場所に依存する。既定値を「.」にすると、
+/// 実行した場所で結果が変わる ── リポジトリの直下から実行すると和語の一覧を読めなかった。
+/// build した時点で確定している位置を使い、呼ぶ側は `--skill-root` で上書きできる。
+const SKILL_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+
+/// この Skill の場所。**呼ぶ側が渡したものを優先する。**
 fn skill_root(given: &Given) -> PathBuf {
-    PathBuf::from(given.one("skill_root", "."))
+    PathBuf::from(given.one("skill_root", SKILL_ROOT))
 }
 
 /// 語の一覧を組む。**この Skill が持つのは和語だけ** ── 同義語と廃語は
 /// プロジェクトごとに相違するので、外から受け取る。
-fn words(given: &Given, target: &Path) -> Words {
-    let predicates = gate::load_predicates(&skill_root(given).join("references/predicates.json"))
-        .unwrap_or_default();
+///
+/// **和語の一覧を読めなければ、誤用として止める。** 空の一覧で続行すると、和語の検査を
+/// 実施しないまま「0件」と報告する ── 検査しなかったことと、検出が無かったことを
+/// 読み手が区別できない。廃語の一覧と違い、和語の一覧はこの Skill が必ず持つものである。
+fn words(given: &Given, target: &Path) -> Result<Words, String> {
+    let at = skill_root(given).join("references/predicates.json");
+    let predicates = gate::load_predicates(&at).map_err(|e| {
+        format!(
+            "和語の一覧を読めない ── {} ── {e}。--skill-root にこの Skill の場所を渡す",
+            at.display()
+        )
+    })?;
     let retired = gate::find_retired(target)
         .and_then(|p| gate::load_retired(&p).ok())
         .unwrap_or_default();
@@ -38,7 +54,7 @@ fn words(given: &Given, target: &Path) -> Words {
                 .collect()
         })
         .unwrap_or_default();
-    Words::new(predicates, synonyms, retired)
+    Ok(Words::new(predicates, synonyms, retired))
 }
 
 fn run_check(given: &Given) -> Outcome {
@@ -47,7 +63,10 @@ fn run_check(given: &Given) -> Outcome {
         return Outcome::misuse("対象のファイルを渡していない".to_owned());
     }
     let first = PathBuf::from(&paths[0]);
-    let words = words(given, &first);
+    let words = match words(given, &first) {
+        Ok(w) => w,
+        Err(e) => return Outcome::misuse(e),
+    };
     let mut findings = Vec::new();
     let mut looked = 0_usize;
     for raw in paths {
@@ -163,7 +182,7 @@ pub fn tools() -> Vec<Tool> {
                 Arg::opt(
                     "skill_root",
                     "この Skill の場所（語の一覧を読む先）",
-                    Some("."),
+                    Some(SKILL_ROOT),
                 ),
             ],
             run: run_check,

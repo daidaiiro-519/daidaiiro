@@ -251,3 +251,43 @@ fn the_declared_checks_are_the_ones_that_run() {
         );
     }
 }
+
+#[test]
+fn every_example_of_a_predicate_is_found() {
+    // **常体と敬体の両方を、一覧の事例で当てる。** 事例は predicates.json が持つ ──
+    // この側に語を書かない。1件でも通過すれば、その行は活用を取りこぼしている
+    let body = std::fs::read_to_string(references().join("predicates.json")).expect("読める");
+    let parsed: serde_json::Value = serde_json::from_str(&body).expect("JSON である");
+    let mut missed = Vec::new();
+    for (i, item) in parsed["predicates"]
+        .as_array()
+        .expect("配列である")
+        .iter()
+        .enumerate()
+    {
+        for ex in item["examples"].as_array().expect("事例を持つ") {
+            let text = ex.as_str().expect("文字列である");
+            if !hit(&format!("ex{i}.md"), &format!("{text}。\n"), "述部が和語である") {
+                missed.push(format!("{i}: {text}"));
+            }
+        }
+    }
+    assert!(missed.is_empty(), "検出しなかった事例: {missed:?}");
+}
+
+#[test]
+fn a_polite_past_is_counted_as_polite() {
+    // 「〜ました。」は敬体である ── 常体に数えると、敬体だけの文書が文体の混在になる
+    assert!(!hit(
+        "past.md",
+        "検査を適用しました。\n結果は2件です。\n",
+        "文体が混ざっている"
+    ));
+}
+
+#[test]
+fn a_full_stop_inside_brackets_does_not_end_the_sentence() {
+    // 鉤括弧の中の句点で文を切ると、引用の文末（〜ました。）を書き手の文末として数える
+    let body = "判定漏れは「〜ました。」の分類である。\n\n規則は1つである。\n";
+    assert!(!hit("inner.md", body, "文体が混ざっている"));
+}

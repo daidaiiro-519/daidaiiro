@@ -119,13 +119,19 @@ pub fn heading_skip(units: &[Unit]) -> Vec<Finding> {
 
 // ── 概念6 ──────────────────────────────────────────────────
 
+/// 文へ切る。**鉤括弧の中の句点では切らない** ── 切ると、引用の文末（「〜ました。」）が
+/// 書き手の文末として数えられる。
 fn sentences(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut buf = String::new();
+    let mut depth = 0_i32;
     for c in text.chars() {
         buf.push(c);
-        if c == '。' {
-            out.push(std::mem::take(&mut buf));
+        match c {
+            '「' => depth += 1,
+            '」' => depth = (depth - 1).max(0),
+            '。' if depth == 0 => out.push(std::mem::take(&mut buf)),
+            _ => {}
         }
     }
     if !buf.is_empty() {

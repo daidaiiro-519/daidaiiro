@@ -1,0 +1,143 @@
+{
+ "no": "ACDR 0019",
+ "title": "道具の既定の置き場所の確定",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "acdr と doc-writing-skills の道具を、実行した場所に依存せず動作する状態にする。",
+ "why": "acdr の道具は、リポジトリの直下から実行すると「契約を読めない」で停止していた。doc-writing-skills の道具も同じ既定値を持ち、ACDR 0018 の修正の前は和語の検査を実施しないまま0件と報告していた。どちらも、Skill の置き場所の既定値が「.」、つまり実行した場所だったためである。加えて、CLAUDE.md が案内するゲート1の実行方法（scripts/cli.py）は、Rust へ移したときに削除されており、現存しなかった。",
+ "shift": [
+  {
+   "what": "Skill の置き場所の既定値",
+   "from": "「.」＝実行した場所",
+   "to": "build した時点の、この Skill のソースの位置（CARGO_MANIFEST_DIR から2階層上）"
+  },
+  {
+   "what": "--skill-root を渡したとき",
+   "from": "渡した場所を使う",
+   "to": "変更なし。渡した場所を優先する"
+  },
+  {
+   "what": "CLAUDE.md が案内するゲート1の実行方法",
+   "from": "python3 で scripts/cli.py を実行する（現存しない）",
+   "to": "Rust の実行ファイル（rs/target/release/doc-writing-skills）で check を実行する。どこから実行してもよい"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "実行した場所ごとに、変更前と変更後の道具の振る舞いを対応づけた図である。",
+ "how": "両方の道具の宣言（rs/declare/src/lib.rs）に、build 時の位置を持つ定数を置き、既定値をその定数へ変更する。CLAUDE.md と雛形（templates/CLAUDE.template.md）の実行方法を、Rust の実行ファイルへ書き換える。",
+ "applies_to": "acdr と doc-writing-skills の道具の宣言（各 rs/declare/src/lib.rs）が変わる。CLAUDE.md と templates/CLAUDE.template.md の、ゲート1の実行方法の行も変わる。",
+ "alternatives": [
+  {
+   "option": "実行ファイルの位置から Skill の場所を探索する",
+   "why_not": "実行ファイルの置き場所は build の設定で変わる。doc-writing-skills の宣言の注記が、この方式を既に退けている"
+  },
+  {
+   "option": "実行した場所から上へたどり、.claude/skills/<名前> を探す",
+   "why_not": "Skill の置き場所が .claude/skills であることを道具が前提にする。acdr の宣言の注記は、どこから呼ばれるかを道具の側で推測しないと規定している"
+  },
+  {
+   "option": "既定値は「.」のまま、呼ぶ側が必ず --skill-root を渡す",
+   "why_not": "渡し忘れた呼び出しが停止する。CLAUDE.md の手順も、毎回その指定を書くことになる"
+  },
+  {
+   "option": "references を実行ファイルへ埋め込む",
+   "why_not": "契約や一覧を1行直すたびに再ビルドが必要になり、直したのに反映されない状態が生じる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、ACDR 0018 と一緒に変更と記録をコミットする",
+  "Skill のフォルダを移動したときは、再ビルドが必要になることを留意する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "acdr",
+   "tab": "acdr の宣言",
+   "file": ".claude/skills/acdr/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const SKILL_ROOT: &str = concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\");",
+     "before": "（無い）",
+     "why": "既定値の「.」は実行した場所を指すので、リポジトリの直下から実行すると references を読めなかった。build した時点で確定しているこの Skill のソースの位置を既定値にし、呼ぶ側が渡した値を優先する"
+    },
+    {
+     "find": "    PathBuf::from(given.one(\"skill_root\", SKILL_ROOT)).join(\"references\")",
+     "before": "    PathBuf::from(given.one(\"skill_root\", \".\")).join(\"references\")",
+     "why": "既定値を build 時の位置へ変更する"
+    },
+    {
+     "find": "let root = Arg::opt(\"skill_root\", \"この Skill の置き場所\", Some(SKILL_ROOT));",
+     "before": "let root = Arg::opt(\"skill_root\", \"この Skill の置き場所\", Some(\".\"));",
+     "why": "宣言に出す既定値を、実際の既定値と一致させる"
+    }
+   ]
+  },
+  {
+   "key": "dws",
+   "tab": "doc-writing-skills の宣言",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const SKILL_ROOT: &str = concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\");",
+     "before": "（無い）",
+     "why": "既定値の「.」は実行した場所を指すので、リポジトリの直下から実行すると references を読めなかった。build した時点で確定しているこの Skill のソースの位置を既定値にし、呼ぶ側が渡した値を優先する"
+    },
+    {
+     "find": "    Ok(Words::new(predicates, synonyms, retired))",
+     "before": "    Words::new(predicates, synonyms, retired)",
+     "why": "ACDR 0018 の変更である（和語の一覧を読めなければ誤用として停止する）。この記録は HEAD と比べるので、未コミットの 0018 の差分もここに現れる"
+    },
+    {
+     "find": "    let words = match words(given, &first) {",
+     "before": "    let words = words(given, &first);",
+     "why": "ACDR 0018 の変更である（和語の一覧を読めなければ誤用として停止する）。この記録は HEAD と比べるので、未コミットの 0018 の差分もここに現れる"
+    },
+    {
+     "find": "                    Some(SKILL_ROOT),",
+     "before": "                    Some(\".\"),",
+     "why": "宣言に出す既定値を、実際の既定値と一致させる"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "でゲート1を実行し、10の判定の結果を1行ずつ報告に書く。どこから実行してもよい",
+     "before": "`python3 .claude/skills/doc-writing-skills/scripts/cli.py check <ファイル>` でゲート1を実行し、10の判定の結果を1行ずつ報告に書く",
+     "why": "scripts/cli.py は Rust へ移したときに削除され、現存しない。案内どおりに実行すると失敗していた"
+    },
+    {
+     "find": "続きから始めるために必要な事実",
+     "before": "続きから始めるために要る事実",
+     "why": "ゲート1が廃語として検出した。この文書を変更する機会に修正した"
+    }
+   ]
+  },
+  {
+   "key": "tpl",
+   "tab": "CLAUDE の雛形",
+   "file": "templates/CLAUDE.template.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "でゲート1を実行し、10の判定の結果を1行ずつ報告に書く。どこから実行してもよい",
+     "before": "`python3 .claude/skills/doc-writing-skills/scripts/gate.py <ファイル>` でゲート1を実行し、10の判定の結果を1行ずつ報告に書く",
+     "why": "scripts/gate.py も現存しない。雛形から作った CLAUDE.md が、同じ失敗を引き継ぐ"
+    }
+   ]
+  }
+ ],
+ "lede": "acdr と doc-writing-skills の道具が、実行した場所によって停止する状態を解消し、CLAUDE.md の実行方法を現存する道具へ修正する提案である。",
+ "seal": {
+  "acdr": "79b02327555cc0cc725a37af51577bdbc36439bc009e323c615fb14c38b19808",
+  "dws": "49a3a9804d88e72a4f7491cbb0055a5fe2cc5e2b63d6a4ca26789ad4a3984fa1",
+  "claude": "6f6350e8e5da2a65f1c8e313c48941dce344f15cab45243d65d89c75bf49530f",
+  "tpl": "68b149d397df1d67f055870bf3e4d3d07c05f3db948ed7d59864658550b11176"
+ }
+}
