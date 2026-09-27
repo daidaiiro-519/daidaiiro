@@ -50,6 +50,10 @@ pub struct Op {
     pub post: Vec<String>,
     #[serde(default)]
     pub writes: Vec<String>,
+    /// ID を持つ節。**節は、それを実行する操作の下に置く** ── 節がどの操作を実行するかを、
+    /// 値ではなく置き場所で表す。基盤は、節が何を表すかを知らない。
+    #[serde(default)]
+    pub nodes: Vec<Node>,
 }
 
 /// 宣言1件。
@@ -73,11 +77,13 @@ pub struct Decl {
     /// 節にしないもの（語の一覧など）は、ここへ入る ── 節は、外の識別子と結ぶ単位だからである。
     #[serde(default)]
     pub body: serde_json::Value,
-    /// ID を持つ節。**中身は宣言が持ち、ID を発行する。**
-    ///
-    /// 基盤は、節が何を表すかを知らない ── そう呼ぶのは注入する側である。
-    #[serde(default)]
-    pub nodes: Vec<Node>,
+}
+
+impl Decl {
+    /// 宣言が持つ節の全件。**操作の順、操作の中の順**で並ぶ。
+    pub fn nodes(&self) -> Vec<&Node> {
+        self.ops.iter().flat_map(|o| o.nodes.iter()).collect()
+    }
 }
 
 /// 宣言の集合を読む。未知の欄・未知の形は、ここで誤りになる。
@@ -466,7 +472,7 @@ impl Bindings {
 pub fn node_ids(decls: &[Decl]) -> BTreeSet<String> {
     decls
         .iter()
-        .flat_map(|d| d.nodes.iter().map(|x| x.id.clone()))
+        .flat_map(|d| d.nodes().into_iter().map(|x| x.id.clone()))
         .collect()
 }
 

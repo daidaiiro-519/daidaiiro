@@ -318,7 +318,7 @@ fn 文脈の宣言は節を持たないので振る舞いの引き算に出な�
         .find(|d| d.kind == "bounded-context")
         .expect("文脈の宣言が無い");
     assert!(
-        bc.nodes.is_empty(),
+        bc.nodes().is_empty(),
         "語を節にしてはならない ── 節はテストと結ぶ単位である"
     );
     // **節が無いので、文脈を1件足しても引き算は1件も増えない。**
@@ -409,7 +409,7 @@ fn 分類は射影に出るが節にはならない() {
     let decls = usecase::decls();
     let reg = usecase::wire();
     let sd = decls.iter().find(|d| d.id == "SD-01J8C1A").unwrap();
-    assert!(sd.nodes.is_empty(), "分類を節にしてはならない");
+    assert!(sd.nodes().is_empty(), "分類を節にしてはならない");
     let html = base::render(sd, &reg).expect("射影が無い");
     assert!(
         html.contains("分類は <b>中核</b> である（2026-09-21 時点）"),
@@ -627,7 +627,7 @@ fn 振る舞いを持つ宣言は三種類だけである() {
             .into_iter()
             .collect();
     for d in &decls {
-        if !d.ops.is_empty() || !d.nodes.is_empty() {
+        if !d.ops.is_empty() || !d.nodes().is_empty() {
             assert!(
                 振る舞いを持てる.contains(d.kind.as_str()),
                 "{} が振る舞いを持っている ── 事業領域 ・ 業務領域 ・ 文脈は持たない",
@@ -749,11 +749,11 @@ fn 期待を落とすと出る_実体の無い検査も出る() {
     let mut ds = usecase::decls();
     // ① 期待を丸ごと落とす
     if let Some(d) = ds.iter_mut().find(|d| d.id == "AGG-01J9B3C") {
-        d.nodes[0].body.as_object_mut().unwrap().remove("then");
+        d.ops.iter_mut().flat_map(|o| o.nodes.iter_mut()).next().unwrap().body.as_object_mut().unwrap().remove("then");
     }
     // ② 実体の無い検査を書く
     if let Some(d) = ds.iter_mut().find(|d| d.id == "AGG-01J9E1F") {
-        d.nodes[0].body["then"]["checks"] = serde_json::json!(["check.無い検査"]);
+        d.ops.iter_mut().flat_map(|o| o.nodes.iter_mut()).next().unwrap().body["then"]["checks"] = serde_json::json!(["check.無い検査"]);
     }
     let bad = usecase::expectation_errors_in(&ds, &reg);
     assert!(bad.iter().any(|x| x.contains("期待が無い")), "{:?}", bad);
@@ -769,7 +769,7 @@ fn 確認する点は列である_2つ書ける() {
     let d = usecase::decls();
     let n = d
         .iter()
-        .flat_map(|d| &d.nodes)
+        .flat_map(|d| d.nodes())
         .find(|n| n.id == "SC-01J9E2G")
         .expect("節が無い");
     let cs = n.body["then"]["checks"].as_array().expect("列ではない");

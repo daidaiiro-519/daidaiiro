@@ -46,7 +46,7 @@ fn 仮の木(名前: &str, files: &[(&str, &str)]) -> std::path::PathBuf {
 }
 
 const 事業領域: &str = r#"[{"kind":"business-domain","id":"BD-1","name":"甲",
-  "render":"r","rules":[],"ops":[],"nodes":[],"body":{}}]"#;
+  "render":"r","rules":[],"ops":[],"body":{}}]"#;
 
 #[test]
 fn 仕様の木は_根からの相対の道で読む() {
@@ -128,7 +128,7 @@ fn そろっていれば何も出ない() {
 #[test]
 fn シナリオを持つ宣言の_get_に契約が付く() {
     let decls = base::read(r#"[
-      {"kind":"k","id":"A-1","name":"甲","render":"r","nodes":[{"id":"SC-X","name":"x"},{"id":"SC-Y","name":"y"}]},
+      {"kind":"k","id":"A-1","name":"甲","render":"r","ops":[{"name":"o","nodes":[{"id":"SC-X","name":"x"},{"id":"SC-Y","name":"y"}]}]},
       {"kind":"k","id":"B-1","name":"乙","render":"r"}
     ]"#).unwrap();
     let reg = base::Registry::new();

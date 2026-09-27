@@ -130,7 +130,7 @@ fn 振る舞いを持つ宣言の射影を配線する(r: &mut Registry) {
             ));
         }
         s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
-        for x in &d.nodes {
+        for x in d.nodes() {
             s.push_str(&format!(
                 "<li><code>{}</code>　{}{}</li>\n",
                 x.id,
@@ -155,7 +155,7 @@ fn 振る舞いを持つ宣言の射影を配線する(r: &mut Registry) {
             ));
         }
         s.push_str("</ul>\n<h2>シナリオ</h2>\n<ul>\n");
-        for x in &d.nodes {
+        for x in d.nodes() {
             s.push_str(&format!(
                 "<li><code>{}</code>　{}{}</li>\n",
                 x.id,
@@ -166,12 +166,25 @@ fn 振る舞いを持つ宣言の射影を配線する(r: &mut Registry) {
         s.push_str("</ul>\n");
         s
     });
+    // **承認で読むのはシナリオである**（論点5）── 操作ごとに、それを実行するシナリオを並べる
     r.render("render.usecase", |d| {
-        format!(
-            "<h1>{}（ユースケース）</h1>\n<p>操作 {} 件</p>\n",
-            d.name,
-            d.ops.len()
-        )
+        let mut s = format!("<h1>{}（ユースケース）</h1>\n<h2>操作とシナリオ</h2>\n", d.name);
+        for o in &d.ops {
+            s.push_str(&format!(
+                "<h3>{}</h3>\n<p>事前 {:?} ／ 事後 {:?}</p>\n<ul>\n",
+                o.name, o.pre, o.post
+            ));
+            for x in &o.nodes {
+                s.push_str(&format!(
+                    "<li><code>{}</code>　{}{}</li>\n",
+                    x.id,
+                    x.name,
+                    期待の行(x)
+                ));
+            }
+            s.push_str("</ul>\n");
+        }
+        s
     });
 }
 
@@ -674,7 +687,7 @@ pub fn upstream_drift() -> base::Drift {
 pub fn expectation_errors_in(ds: &[Decl], reg: &Registry) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     for d in ds {
-        for n in &d.nodes {
+        for n in d.nodes() {
             let Some(t) = n.body.get("then") else {
                 out.insert(format!("{}： 期待が無い", n.id));
                 continue;
@@ -800,7 +813,7 @@ pub fn subdomains_spanning_contexts() -> BTreeSet<String> {
 pub fn ops_without_nodes() -> BTreeSet<String> {
     decls()
         .iter()
-        .filter(|d| !d.ops.is_empty() && d.nodes.is_empty())
+        .filter(|d| !d.ops.is_empty() && d.nodes().is_empty())
         .map(|d| d.id.clone())
         .collect()
 }

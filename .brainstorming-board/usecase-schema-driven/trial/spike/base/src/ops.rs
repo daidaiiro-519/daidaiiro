@@ -57,8 +57,8 @@ pub fn get(decls: &[Decl], id: &str, as_: Option<&str>, reg: &Registry) -> Resul
     match as_ {
         None => {
             let mut v = serde_json::json!({ "decl": d });
-            if !d.nodes.is_empty() {
-                let ids: Vec<String> = d.nodes.iter().map(|n| n.id.clone()).collect();
+            if !d.nodes().is_empty() {
+                let ids: Vec<String> = d.nodes().into_iter().map(|n| n.id.clone()).collect();
                 v["test_contract"] = serde_json::Value::String(test_contract(&ids, &d.id));
             }
             serde_json::to_string(&v).map_err(|e| e.to_string())

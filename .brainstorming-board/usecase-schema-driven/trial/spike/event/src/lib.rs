@@ -32,7 +32,7 @@ pub fn wire() -> Registry {
             "<h1>{}（業務イベント）</h1>\n<h2>受入条件</h2>\n<ul>\n",
             d.name
         );
-        for x in &d.nodes {
+        for x in d.nodes() {
             s.push_str(&format!("<li><code>{}</code>　{}</li>\n", x.id, x.name));
         }
         s.push_str("</ul>\n");

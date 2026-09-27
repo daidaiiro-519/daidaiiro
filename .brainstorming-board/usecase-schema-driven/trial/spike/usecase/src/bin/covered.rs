@@ -27,7 +27,7 @@ fn main() {
     let 必要である: BTreeSet<String> = decls
         .iter()
         .filter(|d| a.get(1).is_none_or(|id| &d.id == id))
-        .flat_map(|d| d.nodes.iter().map(|n| n.id.clone()))
+        .flat_map(|d| d.nodes().into_iter().map(|n| n.id.clone()))
         .collect();
     let 網羅 = base::read_test_list(&text);
     let c = base::coverage(&必要である, &網羅);
@@ -35,7 +35,7 @@ fn main() {
     for id in &必要である {
         let name = decls
             .iter()
-            .flat_map(|d| &d.nodes)
+            .flat_map(|d| d.nodes())
             .find(|n| &n.id == id)
             .map(|n| n.name.as_str())
             .unwrap_or("");
