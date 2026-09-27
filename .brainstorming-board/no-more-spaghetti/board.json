@@ -2,18 +2,23 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "no-more-spaghetti",
- "round": 31,
+ "round": 33,
  "intro": [
   {
    "kind": "para",
-   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形 ・ 人が拒める形まで、<b>9件とも決着した。</b>"
+   "text": "<b>アーキテクチャが本体である。</b>論点はその3つの面から始まり、規則の作り方 ・ 雛形 ・ 層の識別 ・ 既存への導入 ・ スキーマが生成を導く形 ・ 人が拒める形まで、<b>10件が決着した。依存の向きの検査を見直すため、論点11 〜 13 を新しく立てた。</b>"
   },
   {
    "kind": "note",
    "text": "不変の抽象概念は Skill が初めから持つ ── <code>references/concepts.json</code> の3件である。成果物ごとに変わるものは <code>.coding-rules/</code> が持つ。"
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 12,
+   "why": "<b>論点11 で、依存の向きを inward で測ると決まった</b> ── inward に渡す層の並びと識別子を、規則ファイルでどう書くかが次に決まる"
+  }
+ ],
  "panels": [
   {
    "heading": "アーキテクチャの3つの面",
@@ -766,13 +771,13 @@
    "name": "依存の向き ── 構造を保つ",
    "status": "settled",
    "question": "依存の向きを、何で検査するのか",
-   "answer": "<b>Skill は、検査する言語の道具を持たない。</b>規則に書いたコマンドを実行し、終了コードだけを読む ── 出力の解釈は読み手が実施する。",
+   "answer": "<b>Skill は、検査する言語の外の道具を持たない。</b>依存の向きだけは、Skill 自身の能力 <code>inward</code>（構文木で測る）で検査する（論点11）。他の規則は、規則に書いたコマンドを実行し、終了コードだけを読む ── 出力の解釈は読み手が実施する。",
    "decision": {
     "letter": "A",
     "text": [
      {
       "kind": "para",
-      "text": "<b>Skill は、検査する言語の道具を持たない。規則のコマンドを実行し、終了コードだけを読む。</b>"
+      "text": "<b>Skill は、検査する言語の外の道具を持たない。依存の向きは Skill 自身の <code>inward</code> で測り（論点11）、他の規則は、規則のコマンドを実行して終了コードだけを読む。</b>"
      },
      {
       "kind": "fold",
@@ -3416,6 +3421,444 @@
      "item": "Rust の規則を、いま <code>rules.json</code> へ載せること",
      "treatment": "later",
      "note": "試すのは<b>外の作業</b>である ── Rust のコードを作った時点で4件を足し、合格へ変わることを確認する"
+    }
+   ]
+  },
+  {
+   "no": 11,
+   "name": "依存の向きの検査 ── 誰の道具で測るか",
+   "status": "settled",
+   "question": "依存の向きを、どの道具で検査するか",
+   "answer": "B ── <b>no-more-spaghetti の <code>inward</code> を既定の検査にする</b>。言語の道具（<code>cargo build</code> ・ <code>go build</code>）は、その言語で依存の宣言がコンパイルで強制される場合だけ、<b>追加の保証</b>として別の規則に置く",
+   "intro": "<b>承認された（2026-09-28）。</b><b>論点2 は「Skill は、検査する言語の道具を持たない」と決めた。</b>その後、依存の向きを構文木で測る <code>inward</code> が Skill の中に作られた（tree-sitter の文法10言語を実行ファイルへ焼き込み）。<br>ところが規則ファイルの依存の向きの規則12件は、すべて <code>cargo build</code> か <code>go build</code> を呼び、<b><code>inward</code> を1件も呼んでいない</b>。依存の宣言をコンパイルで強制する道具が無い言語（Python ・ TypeScript など）では、依存の向きの規則を書けない。",
+   "decision": {
+    "letter": "B",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>依存の向きの規則は、<code>inward</code> を呼ぶ。</b>言語を問わず、構文木から依存の辺を抽出し、層の並び（内から外）と照合する。その言語の道具が入っていない環境でも測れる。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>言語の道具の規則は、追加の保証として残す。</b><code>cargo build</code> は、Cargo.toml に宣言の無い crate をコンパイルで拒む ── 構文木の照合とは別の仕組みで、同じ違反を拒む。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>論点2 の答えは、道具の持ち主を改める必要がある。</b>Skill が持たないのは「その言語の外の道具」であって、依存の向きを測る能力は Skill 自身が持つ（<code>inward</code>）。"
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "inward-owner",
+     "caption": "<b>inward が測るのは、層のあいだの参照の向きである。</b>外側から内側への参照は許し、内側から外側への参照は、ファイルと行を添えて食い違いとして出す。言語の道具が無い言語でも、同じ測り方になる。"
+    }
+   ],
+   "example": [
+    {
+     "kind": "note",
+     "text": "既存の成果物へ inward を適用した実物（2026-09-28）"
+    },
+    {
+     "kind": "html",
+     "text": "$ no-more-spaghetti inward rust .claude/skills/acdr/rs 'parts=parts|acd_parts' 'declare=declare|acd_declare' 'cli=cli|acd_cli' 'mcp=mcp|acd_mcp'\n向きは内向きである ── 辺 72 件を見た\n\n（並びを逆にすると）\n食い違い　3 件 ／ 見た辺 72 件\n  ・cli/src/main.rs:11 ── cli → declare（内側が外側を参照している）\n  ・declare/src/lib.rs:11 ── declare → parts（内側が外側を参照している）\n  ・mcp/src/main.rs:20 ── mcp → declare（内側が外側を参照している）"
+    }
+   ],
+   "passed": [
+    {
+     "name": "B ── inward を既定にし、言語の道具を追加の保証にする",
+     "body": "すべての言語で同じ検査を実施し、強制できる言語では二重に拒む",
+     "cost": "<b>規則が成果物ごとに2件になる言語がある</b>（Rust ・ Go）"
+    },
+    {
+     "name": "A ── 言語の道具だけで検査する（いまの形）",
+     "body": "cargo build ・ go build を呼ぶ",
+     "cost": "<b>道具が無い言語では書けない</b>。Skill の inward が使われないまま在る"
+    },
+    {
+     "name": "C ── inward だけにし、言語の道具の規則を除く",
+     "body": "検査を1つにする",
+     "cost": "<b>コンパイルで拒む保証が失われる</b>。inward は字面で測るので、経路の別名を解決していない"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "言語ごとに外の依存検査の道具（dependency-cruiser ・ import-linter など）を規則に書く",
+     "reason": "<b>言語ごとに道具と設定の書き方が分かれる</b>。inward は同じ層の宣言で10言語を測れる"
+    }
+   ],
+   "path": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "規則ファイルの order と layers が、どの規則からも読まれていないことに気づいた"
+      },
+      {
+       "text": "依存の向きは cargo build が担保している、と説明した ── <b>誤りだった</b>（利用者の指摘）"
+      },
+      {
+       "text": "Skill に inward が在ることを確認した。規則ファイルでの使用は0件だった"
+      },
+      {
+       "text": "既存の11のまとまりへ適用し、正しい並びで合格、逆の並びで検出することを確認した"
+      }
+     ]
+    }
+   ],
+   "findings": [
+    "<b>inward は既存の成果物を測れた</b> ── 11のまとまりすべてで、正しい並びは合格し、逆の並びは食い違い1〜7件を検出した",
+    "<b>論点2 の答えが、実装と食い違っている</b> ── 答えは「Skill は言語の道具を持たない」のまま、inward を記載していない"
+   ],
+   "requirements": [
+    "<b>依存の向きの規則を、inward を呼ぶ形に書き換える</b>（12件）"
+   ],
+   "out_of_scope": [
+    {
+     "item": "<b>inward は字面で測っている</b> ── 経路の別名と探索路の指定を解決していない",
+     "treatment": "later",
+     "note": "論点13 で、参照される名前の解決を検討する"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "依存の向きの能力は Skill に在る",
+     "basis": "「依存の向きを検査する。**この Skill の道具である** ── 根幹3つのうち1つの実装で、他に使い手が居ない」",
+     "tag": "primary",
+     "source": "<code>.claude/skills/no-more-spaghetti/rs/parts/src/inward/mod.rs:2</code>"
+    },
+    {
+     "supports": "規則は inward を呼んでいない",
+     "basis": "依存の向きの規則12件はすべて cargo build か go build を呼び、inward の呼び出しは0件",
+     "tag": "measured",
+     "source": "<code>.coding-rules/rules.json</code> を数えた（2026-09-28）"
+    },
+    {
+     "supports": "inward で既存の成果物を測れる",
+     "basis": "11のまとまりで、正しい並びは合格、逆の並びは検出（食い違い1〜7件）",
+     "tag": "measured",
+     "source": "<code>no-more-spaghetti inward</code> を実行（2026-09-28）"
+    },
+    {
+     "supports": "依存の向きは Skill の能力として測れるべきである",
+     "basis": "「依存の向き自体はこのno-more-spaghettiで持っている能力があるので、そちらで測れるようになってないとダメかも」",
+     "tag": "rule",
+     "source": "利用者の言明（2026-09-28）"
+    },
+    {
+     "supports": "論点2 の答えを改める",
+     "basis": "論点2 の答えは「Skill は、検査する言語の道具を持たない」",
+     "tag": "rule",
+     "source": "論点2"
+    }
+   ]
+  },
+  {
+   "no": 12,
+   "name": "層の並びの書き方 ── 成果物ごとにまとめる",
+   "status": "open",
+   "question": "規則ファイルで、層の並びと識別子をどう書くか",
+   "answer": "B ── <b>成果物（<code>units</code>）ごとに、根 ・ 言語 ・ 層の並びを1か所に書く</b>。並びの順序がそのまま内から外になる。規則は、適用する成果物の名前を保持する。<b>規則ファイルは1つのまま</b>である（論点10）",
+   "intro": "<b>いまの規則ファイルは、全成果物の層を1列の <code>order</code> に並べている。</b>依存の向きが意味を持つのは1つの成果物の中だけで、「acdr の mcp は Rust の見本の core より外側」という順序には意味が無い。<br>層の値は置き場所の文字列1つで、言語を書く欄も、層の性質（closed など）を書く欄も無い。規則95件のうち79件は適用先が層の置き場所と一致せず、同じ規則が成果物ごとに重複している（各12件）。",
+   "decision": {
+    "letter": "B",
+    "text": [
+     {
+      "kind": "html",
+      "text": "{\n  \"units\": {\n    \"acdr\": {\n      \"root\": \".claude/skills/acdr/rs\",\n      \"language\": \"rust\",\n      \"layers\": [\n        { \"name\": \"parts\",   \"where\": [\"parts\"] },\n        { \"name\": \"declare\", \"where\": [\"declare\"] },\n        { \"name\": \"cli\",     \"where\": [\"cli\"] },\n        { \"name\": \"mcp\",     \"where\": [\"mcp\"] }\n      ]\n    },\n    \"docs\": { \"root\": \"docs\" }\n  },\n  \"rules\": [\n    { \"rule\": \"依存の向きが、宣言と一致する\", \"check\": { \"inward\": true }, \"units\": [\"*\"] },\n    { \"rule\": \"静的解析を通る\", \"check\": { \"tool\": [\"cargo\", \"clippy\"] }, \"units\": [\"acdr\", \"design-svg\"] }\n  ]\n}"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>order と layers を、成果物ごとの layers の並びに統合する</b> ── 2つの整合を検査する必要が無くなる"
+       },
+       {
+        "text": "<b>層を記述しない成果物も書ける</b> ── docs ・ board ・ skills のように、文書の規則だけを適用する場所"
+       },
+       {
+        "text": "<b>層の性質は marks の欄で書く</b> ── 文字列に埋め込まない"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>論点6 の2段（概念の層の名前と、その言語での識別子）は保つ。</b>name が概念の層、where が識別子である。"
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "units",
+     "caption": "<b>変更前は、無関係な成果物の層が1列に並んでいる。</b>変更後は、並びを成果物ごとに持ち、並びは成果物の中でだけ意味を持つ。層を記述しない成果物（docs など）も書ける。"
+    }
+   ],
+   "example": [
+    {
+     "kind": "note",
+     "text": "いまの規則ファイルの上位の構造（実物）"
+    },
+    {
+     "kind": "html",
+     "text": "order:  [\"skills\", \"board\", \"docs\", \"design-svg:parts\", … , \"rust:core\", \"go:core\", … ]  ← 全成果物が1列\nlayers: { \"acdr:parts\": \".claude/skills/acdr/rs/parts\", … }                         ← 値は1つ\nrules:  95件（適用先が層と一致しないもの79件）"
+    }
+   ],
+   "passed": [
+    {
+     "name": "B ── 成果物ごとにまとめる",
+     "body": "units に根 ・ 言語 ・ 層の並びを書き、規則は units の名前で指す",
+     "cost": "<b>規則95件を書き換える</b>。スキーマと validate も変わる"
+    },
+    {
+     "name": "A ── いまの形（order と layers を全体で1つ）",
+     "body": "変更しない",
+     "cost": "<b>並びに意味の無い順序が混ざり、言語を書けない</b>。inward へ渡すには規則ごとに引数を複製することになる"
+    },
+    {
+     "name": "C ── 依存の向きの規則の引数に、層を直接書く",
+     "body": "規則ファイルの形は変えず、check.tool に層を並べる",
+     "cost": "<b>宣言と検査が2か所になる</b> ── validate.rs の注記に、引数で別に渡したら2つの層が宣言から欠落したまま検査されていた実測がある"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "成果物ごとに規則ファイルを分ける",
+     "reason": "<b>論点10 で退けた</b> ── $schema の相対の経路が11件壊れ、分ける利点は実測で消えた"
+    }
+   ],
+   "path": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "inward へ置き場所だけを渡すと、並びを逆にしても合格した"
+      },
+      {
+       "text": "規則ファイルには言語も、1つの層に2つの識別子を書く欄も無かった"
+      },
+      {
+       "text": "order が全成果物を1列に並べていて、並びとして意味を持つのは成果物の中だけだと気づいた"
+      },
+      {
+       "text": "論点10 が退けた仕組み（索引 ・ 区分 ・ 名前の解決 ・ 索引の検査）と照合した ── <b>索引は増えず、残りの3つは、いまの order と layers が既に持っている</b>。units はそれを置き直すだけで、索引の検査は不要になる"
+      }
+     ]
+    }
+   ],
+   "findings": [
+    "<b>規則95件のうち79件は、適用先が層の置き場所と一致しない</b> ── 成果物の根を直接指している",
+    "<b>同じ規則が成果物ごとに重複している</b> ── 「整形されている」「静的解析を通る」「依存の向きが、宣言と一致する」が各12件"
+   ],
+   "requirements": [
+    "<b>no-more-spaghetti のスキーマ ・ validate ・ init を変える</b>"
+   ],
+   "out_of_scope": [
+    {
+     "item": "<b>この答えを試す相手は、外の作業である</b> ── 規則95件を新しい形へ移し、全件が同じ結果になるかを測る",
+     "treatment": "later",
+     "note": "移行は機械的に行えるはずだが、まだ測っていない"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "並びは成果物の中でだけ意味を持つ",
+     "basis": "order は design-svg ・ acdr ・ rust の見本 ・ go の見本などの層を1列に並べている",
+     "tag": "measured",
+     "source": "<code>.coding-rules/rules.json</code>（2026-09-28）"
+    },
+    {
+     "supports": "規則ファイルは1つのまま",
+     "basis": "論点10 の決着 ── 規則ファイルはリポジトリに1つにする",
+     "tag": "rule",
+     "source": "論点10"
+    },
+    {
+     "supports": "概念の層と識別子の2段を保つ",
+     "basis": "論点6 の決着 ── 概念の層はモデルが決め、識別子は言語が決める",
+     "tag": "rule",
+     "source": "論点6"
+    },
+    {
+     "supports": "検査は inward で行う",
+     "basis": "論点11 の答え",
+     "tag": "rule",
+     "source": "論点11"
+    },
+    {
+     "supports": "論点10 の欠陥を生まない",
+     "basis": "論点10 の欠陥は、ファイルを分けたことから出た（$schema の相対の経路が11件壊れた）。この答えはファイルを分けない",
+     "tag": "rule",
+     "source": "論点10"
+    },
+    {
+     "supports": "区分と名前の解決は、いまも在る",
+     "basis": "layers の名前は「acdr:parts」のように成果物を前置きし、値で置き場所を解決している。validate は order と layers の一致を検査している",
+     "tag": "measured",
+     "source": "<code>.coding-rules/rules.json</code> と <code>no-more-spaghetti/rs/parts/src/validate.rs</code> の check_layers（2026-09-28）"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "論点10 が退けた4つの仕組みと、この答えの関係",
+     "cols": [
+      "論点10 で起きたこと",
+      "この答えでは"
+     ],
+     "rows": [
+      [
+       "索引",
+       [
+        "規則ファイルを分け、どのファイルに何が在るかを索引で参照した",
+        "<b>増えない</b> ── ファイルは1つのまま"
+       ]
+      ],
+      [
+       "区分",
+       [
+        "ファイルを成果物や言語で分けた",
+        "<b>いまも在る</b> ── layers の名前が「acdr:parts」のように成果物を前置きしている。units は、その前置きを構造に置き直すだけである"
+       ]
+      ],
+      [
+       "名前の解決",
+       [
+        "索引の名前からファイルの経路を解決した",
+        "<b>いまも在る</b> ── layers は名前から置き場所を解決している。units も同じ解決で、1つのファイルの中で閉じる"
+       ]
+      ],
+      [
+       "索引の検査",
+       [
+        "索引と実体の一致を検査した",
+        "<b>いまも在る</b> ── validate が order と layers の一致を検査している。units にすると、並びと層が1か所になり、この検査が不要になる"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "no": 13,
+   "name": "層を指す名前の解決 ── 未解決を合格にしない",
+   "status": "open",
+   "question": "他の層から参照されるときの名前（crate 名 ・ module 名など）を、どう解決するか",
+   "answer": "B ── <b>言語の抽出器が manifest から解決する</b>。規則ファイルには置き場所（<code>where</code>）だけを書き、名前の明示（<code>named</code>）は上書き用に任意で残す。<b>作業領域の中を指すのに、どの層にも一致しない参照は「判定できなかった範囲」として報告し、合格にしない</b>",
+   "intro": "<b>inward に置き場所だけを渡すと、並びを逆にしても合格した。</b>Rust では、ファイルの在る場所（<code>parts</code>）と、他から参照される名前（<code>acd_parts</code>）が異なる。crate をまたぐ参照がどの層にも一致せず、判定されないまま「向きは内向きである」と報告された。<br>no-more-spaghetti のガードレール「判定できなかったことを、合格に寄せない」に違反している。",
+   "decision": {
+    "letter": "B",
+    "text": [
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>名前は manifest から解決する</b> ── Rust は Cargo.toml の name、Go は go.mod の module、TypeScript は package.json の name と paths。言語による表現の違いを、規則ファイルではなく抽出器が吸収する"
+       },
+       {
+        "text": "<b>明示は任意の上書きにする</b> ── manifest で解決できない構成のときだけ named を書く"
+       },
+       {
+        "text": "<b>解決できなかった参照を合格にしない</b> ── 作業領域の中の名前（manifest に在る名前）を指すのに、どの層にも一致しない参照は、判定できなかった範囲として報告する"
+       }
+      ]
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "resolve",
+     "caption": "<b>いまは、crate 名で書かれた参照がどの層にも一致せず、判定されないまま合格する。</b>変更後は、manifest から crate 名を層へ対応させ、その参照を判定する。"
+    }
+   ],
+   "example": [
+    {
+     "kind": "note",
+     "text": "置き場所だけを渡したときの実物（並びを逆にしている）"
+    },
+    {
+     "kind": "html",
+     "text": "$ no-more-spaghetti inward rust .claude/skills/acdr/rs mcp=mcp cli=cli declare=declare parts=parts\n向きは内向きである ── 辺 72 件を見た      ← 逆の並びなのに合格する"
+    },
+    {
+     "kind": "note",
+     "text": "名前も渡したときの実物"
+    },
+    {
+     "kind": "html",
+     "text": "$ no-more-spaghetti inward rust .claude/skills/acdr/rs 'mcp=mcp|acd_mcp' 'cli=cli|acd_cli' 'declare=declare|acd_declare' 'parts=parts|acd_parts'\n食い違い　3 件 ／ 見た辺 72 件"
+    }
+   ],
+   "passed": [
+    {
+     "name": "B ── manifest から自動で解決し、明示は上書き用",
+     "body": "規則ファイルには置き場所だけを書く",
+     "cost": "<b>言語ごとに manifest を読む実装が必要である</b>（10言語）"
+    },
+    {
+     "name": "A ── 規則ファイルに名前を明示する",
+     "body": "層ごとに where と named を書く",
+     "cost": "<b>書き忘れを検出できない</b> ── 作業領域の中の名前を知る手段が無いので、どの参照が未解決かを判定できない"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "置き場所だけで照合する（いまの形）",
+     "reason": "<b>並びを逆にしても合格した</b>（実測）"
+    }
+   ],
+   "path": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "規則ファイルの置き場所だけを inward へ渡したら、11のまとまりすべてで逆の並びも合格した"
+      },
+      {
+       "text": "crate 名も渡したら、逆の並びを検出した"
+      },
+      {
+       "text": "未解決の参照を検出するには、作業領域の中の名前を知る必要がある ── それは manifest に在る"
+      }
+     ]
+    }
+   ],
+   "findings": [
+    "<b>置き場所だけでは、crate をまたぐ参照を判定できなかった</b> ── 逆の並びでも合格した",
+    "<b>判定できなかった参照が、合格として報告された</b> ── ガードレールに違反している"
+   ],
+   "requirements": [
+    "<b>言語の抽出器が manifest を読む</b> ── いまの抽出器が申告している限界「経路の別名は解決していない」を解消する作業にあたる"
+   ],
+   "out_of_scope": [
+    {
+     "item": "<b>この答えを試す相手は、外の作業である</b> ── manifest からの解決を実装し、既存の11のまとまりで、置き場所だけの宣言から逆の並びを検出できるかを測る",
+     "treatment": "later",
+     "note": "まだ実装していない"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "置き場所だけでは判定できない",
+     "basis": "置き場所だけを渡すと、11のまとまりすべてで逆の並びも合格した。crate 名も渡すと検出した",
+     "tag": "measured",
+     "source": "<code>no-more-spaghetti inward</code> を実行（2026-09-28）"
+    },
+    {
+     "supports": "判定できなかったことを合格にしない",
+     "basis": "「判定できなかったことを、合格に寄せない。」",
+     "tag": "primary",
+     "source": "<code>.claude/skills/no-more-spaghetti/rs/parts/src/inward/mod.rs:14</code>"
+    },
+    {
+     "supports": "層は where で書く",
+     "basis": "論点12 の答え",
+     "tag": "rule",
+     "source": "論点12"
     }
    ]
   }
