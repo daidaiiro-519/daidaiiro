@@ -2,7 +2,7 @@
 
 ## 目的
 
-Skill が道具（スクリプト）を伴うとき、**呼ぶ側に形を推測させない**ために使用する。
+Skill が道具（実行ファイル）を伴うとき、**呼ぶ側に形を推測させない**ために使用する。
 
 道具ごとに入口の形が違うと、呼ぶ側は呼ぶたびに本文を読み直す。
 **契約は、呼び方を1つに固定する。**
@@ -27,15 +27,14 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 |---|---|
 | **生成物の型** | **成果物を出す Skill は、HTML の形を型のファイルへ置く**（下の表）── 形をコードの中の文字列に散らすと、成果物ごとに違う形が出る |
 | **置き場所** | **役割ごとに階層を分ける**（下の表）── 中身を開かずに、どれが入口かを判定できる形にする |
-| 宣言 | `scripts/tools.py` の `TOOLS`。名前 ・ 引数 ・ 説明 ・ 実体 ・ 人が読む形 |
-| 入口 | `scripts/cli.py` が唯一。`python3 scripts/cli.py <動詞> [対象…] [--json]` |
-| MCP サーバー | `scripts/mcp_server.py`。**同じ宣言から組む** |
+| 宣言 | `rs/declare/` の `tools()`。名前 ・ 引数 ・ 説明 ・ 実体 ・ 人が読む形 |
+| 入口 | `rs/cli/` が唯一。`<Skill の名前> <動詞> [対象…] [--json]` |
+| MCP サーバー | `rs/mcp/`。**同じ宣言から組む** ── `#[tool]` マクロで道具をその場で宣言しない |
 | 登録 | `mcp.json` の断片。**ホストごとの差は、ここだけが吸収する** |
 | 戻り値 | `{"ok": 真偽, "findings": [検出], "data": {本体}}` |
 | 終了コード | `0` 正常 ／ `1` 検出あり ／ `2` 誤用 |
 | 印字 | **道具は印字しない** ── 印字と終了コードは入口が持つ |
 | **標準出力** | **MCP サーバーでは、道具が標準出力へ1バイトも書かない** ── 原典が禁じている（下の表）。書くなら標準エラーである |
-| **サーバーのファイル名** | **`mcp.py` と名付けない** ── 実行すると自分の在る場所が探索の先頭に入り、`import mcp` がこのファイル自身を指す。実装が在っても「無い」と報告する |
 
 ### 標準入出力の規約 ── 原典
 
@@ -47,7 +46,7 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 | 31 | `The server **MAY** write UTF-8 strings to its standard error (stderr) for logging purposes.` |
 | 33 | `The server **MUST NOT** write anything to its stdout that is not a valid MCP message.` |
 
-**だから、道具の中で `print()` を使うと MCP サーバーが壊れる** ── 子プロセスの標準出力も同じである（`capture_output` か `stdout=` で受ける）。
+**だから、道具の中で `println!` を使うと MCP サーバーが壊れる** ── 子プロセスの標準出力も同じである（`Stdio::piped()` かファイルで受ける）。
 
 ### 誤りの返し方 ── 原典
 
@@ -60,11 +59,7 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 
 **`findings` は誤りではない。** 検出が在っても `isError` は偽のままにする ── 違反の検出は、道具が正しく動作した結果である。
 
-**予期した失敗は `ToolError` で投げる。** SDK の原典が述べている ── その型なら `is_error=True` とこちらの文言が届き、それ以外の例外は `Error executing tool <名前>` しか届かない。
-
-> the call returns `is_error=True` with your message in `content` for the model to read … Any other exception bar `MCPError` (a protocol error) is treated as a crash: the model sees only `Error executing tool <name>`
-
-出典 ── python-sdk v2.2.0 の `src/mcp/server/mcpserver/exceptions.py:47`（2026-09-24 取得 ・ 77行 ・ sha256 `14564c0dedfe79db…`）。導入した版と原文が一致することを確認した。
+**予期した失敗は、道具の結果として返す。** `ok` が偽なら `CallToolResult` の `is_error` を立て、こちらの文言を `content` に載せる ── 異常終了（panic）させると、呼ぶ側には理由が届かない。雛形の `mcp.main.rs.tmpl` がこの形を持つ。
 
 **型は緩く受ける。** 呼ぶ側は JSON の値を渡すので、数を文字列で包むことを強制しない（実測: `timeout` に 30 を渡すと、検証が不合格になっていた）。まとめて受ける引数は配列も受ける。
 
@@ -76,13 +71,7 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 
 > For backwards compatibility, a tool that returns structured content SHOULD also return the serialized JSON in a TextContent block.
 
-`{ok, findings, data}` は JSON なので、**そのまま `structuredContent` に乗る**。ただし SDK の自動判定では、素の `dict` は非構造として扱われる ── 戻り値を `dict[str, Any]` と注釈し、`structured_output=True` を渡す（実測 2026-09-24、mcp 2.2.0）。
-
-| 注釈と指定 | 結果 |
-|---|---|
-| 注釈が無い | `structuredContent` 無し ・ `outputSchema` 無し |
-| `-> dict` ＋ `structured_output=True` | **起動しない** ── `return type <class 'dict'> is not serializable for structured output` |
-| `-> dict[str, Any]` ＋ `structured_output=True` | `structuredContent` 有り ・ `outputSchema` 有り |
+`{ok, findings, data}` は JSON なので、**そのまま `structuredContent` に乗る**。雛形の MCP の面は、同じ値を `structured_content` と、文字列にした `content` の両方へ載せる。
 
 ### 経路 ・ 大きい出力 ・ 保持
 
@@ -102,13 +91,11 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 
 | 指定 | 欠けると何が起きるか |
 |---|---|
-| `stdin=subprocess.DEVNULL` | 入力を待つ道具が、制限時間まで停止する（実測 5秒の設定で5.1秒） |
-| `timeout=` | 停止した子プロセスを、永久に待つ |
-| `capture_output=True` か `stdout=` | **子プロセスの出力が、こちらの標準出力へ流れる** ── MCP サーバーでは JSON-RPC の流れへ混入する |
+| `.stdin(Stdio::null())` | 入力を待つ道具が、制限時間まで停止する（実測 5秒の設定で5.1秒） |
+| 制限時間（`try_wait` で待ち、過ぎたら `kill`） | 停止した子プロセスを、永久に待つ |
+| `.stdout(…)` ・ `.stderr(…)` の指定 | **子プロセスの出力が、こちらの標準出力へ流れる** ── MCP サーバーでは JSON-RPC の流れへ混入する |
 
 **出力をまとめて受け取らない。** ファイルへ流し、上限までしか読む ── 受け取ると、道具が出した量がそのままこちらの記憶に載る（実測: 100MB の出力で最大常駐が 306MB、ファイルへ流すと 24KB）。
-
-Python の SDK は 2.x で `FastMCP` が `MCPServer` へ改称された。原典（`python-sdk` の README、2026-09-24 取得 ・ 134行）の55行が `from mcp.server import MCPServer` を示す。**1.x も動く形にする** ── `ImportError` のときは `mcp.server.fastmcp.FastMCP` を採用する。
 
 ## 規定しないもの
 
@@ -123,26 +110,27 @@ Python の SDK は 2.x で `FastMCP` が `MCPServer` へ改称された。原典
 ## 置き場所
 
 ```
-scripts/
-  cli.py        唯一の入口
-  mcp_server.py MCP サーバー
-  tools.py      能力の宣言（正本）
-  contract.py   契約の実体
-  lib/          部品 ── 読み込まれるもの。__init__.py を持つ
-  tests/        検証
+rs/
+  Cargo.toml    workspace ── 4つの crate を並べる
+  parts/        部品 ── 実体。読み込まれるもの
+    tests/      事例
+  declare/      能力の宣言（正本）と契約の実体（contract.rs）
+  cli/          唯一の入口
+  mcp/          MCP の面
+mcp.json        登録
 ```
 
-| 階層 | 置くもの | 入口を保持するか |
-|---|---|---|
-| `scripts/` 直下 | 上の4つ**だけ** | `cli.py` のみ |
-| `scripts/lib/` | 組み立て ・ 描画 ・ トークン ・ 検査など | **保持しない** |
-| `scripts/tests/` | `test_*.py` | ── |
+| crate | 置くもの | 参照してよい先 | 入口を保持するか |
+|---|---|---|---|
+| `parts` | 組み立て ・ 描画 ・ トークン ・ 検査など | **無し** | **保持しない** |
+| `declare` | 名前 ・ 引数 ・ 説明 ・ 実体の対応 | `parts` | 保持しない |
+| `cli` ・ `mcp` | 入口 | `declare` | `cli` は唯一の入口 |
 
-**平らに並べない。** 入口 ・ 部品 ・ 検証が同じ階層に同居すると、
-**どれを起動してよいかが、中身を開くまで判定できない。**
+**層の境界を crate の境界に置く。** 1つの crate の中の module では、内側が外側を参照してもコンパイラが通す
+── crate に分けて初めて、**宣言に無い依存が解決しなくなる**。許可辺は各 `Cargo.toml` が宣言する。
 
-**部品は、置き場所を階層の数で数えない。** `parent.parent` のような数え方は、
-部品を動かすたびに狂う ── 上へ辿って目印（`references/`）を探す。
+**部品は、置き場所を階層の数で数えない。** 実行ファイルからの相対で数えると、置き場所を動かすたびに狂う
+── Skill の置き場所は `--skill_root` で受け取る。
 
 ---
 
@@ -155,14 +143,14 @@ scripts/
 |---|---|---|
 | **入力の契約** | 何を書けるか。JSON Schema | `references/<名前>.schema.json` |
 | **出力の型** | どう並ぶか。差し込む場所（`{{名前}}`）を持つ | `references/<名前>.template.html` |
-| **組み立て** | 値を差し込むだけ。**構造を作る文字列を保持しない** | `scripts/lib/` |
+| **組み立て** | 値を差し込むだけ。**構造を作る文字列を保持しない** | `rs/parts/` |
 
 ```
 JSON Schema  →  実体の JSON（値を埋める）  →  型（HTML）へ差し込む  →  生成物
 ```
 
 **差し込む場所の過不足は、その場で例外にする** ── 埋め忘れも、余分な値も、出てから気づく形にしない。
-`scripts/lib/template.py` が読み、`part("<部品>", <差し込む場所>=…)` で組む。
+型を読んで部品を組むのは `rs/parts/` の組み立てである。
 
 **検証で、組み立て側に構造を作る文字列が残っていないことを検査する** ── 規定だけでは戻る。
 
@@ -172,8 +160,8 @@ JSON Schema  →  実体の JSON（値を埋める）  →  型（HTML）へ差�
 
 | | 入口を持つか | どう呼ぶか | どこに置くか |
 |---|---|---|---|
-| **道具** | 持つ（宣言に載る） | `cli.py <動詞>` ／ MCP | `scripts/tools.py` が宣言する |
-| **部品** | **持たない** | 他のコードから `import` する | `scripts/lib/` |
+| **道具** | 持つ（宣言に載る） | `<Skill の名前> <動詞>` ／ MCP | `rs/declare/` が宣言する |
+| **部品** | **持たない** | 他の crate から `use` する | `rs/parts/` |
 
 **部品に入口を付けない。** 付けると、同じ能力に呼び方が2つできる。
 
@@ -182,17 +170,19 @@ JSON Schema  →  実体の JSON（値を埋める）  →  型（HTML）へ差�
 ## 検査
 
 ```
-python3 scripts/cli.py check <Skill のフォルダ>
+skills-creator check <Skill のフォルダ>
 ```
 
-見るのは2つ ── **入口が1つであること**と、**置き場所が役割と一致すること**である。
+見るのは2つ ── **層が crate に分かれていること**と、**許可辺が各 `Cargo.toml` の宣言どおりであること**である。
+依存が宣言どおりに守られているかは、コンパイラが判定する。
 
 | 検出 | 何が起きているか |
 |---|---|
-| 入口の部品が無い | 契約の一式が完備していない |
-| 部品が入口の側に在る | `scripts/` 直下に部品が置かれている ── `lib/` へ移す |
-| 検証が入口の側に在る | `tests/` へ移す |
-| 部品が入口を保持している | `lib/` の中に `__main__` か `sys.argv` が在る ── 呼び方が2つになる |
-| 検証が `tests/` の外に在る | 検証の置き場所が散る |
+| 層が crate に分かれていない | `rs/Cargo.toml` が無い |
+| 層の crate が無い ／ 入口の crate が無い | 契約の一式が完備していない |
+| どの層か決まらない | crate の名前が層の名前で終わっていない |
+| 許可していない辺を宣言している | 内側の crate が外側を依存に宣言している |
+| 事例が無い | `rs/parts/tests/` が無い |
+| Python が残っている | `scripts/` が在る ── 道具は `rs/` が持つ |
 
 **見つけるが、直さない。**

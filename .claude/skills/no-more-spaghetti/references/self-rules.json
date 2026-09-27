@@ -9,9 +9,11 @@
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/tests/test_run.py"
-        ]
+          "cargo",
+          "test",
+          "-q"
+        ],
+        "target": "rs"
       }
     },
     {
@@ -22,65 +24,105 @@
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/cli.py",
+          "rs/target/release/no-more-spaghetti",
           "validate",
-          "references/self-rules.json"
+          "references/self-rules.json",
+          ".",
+          "--skill_root",
+          "."
         ]
       }
     },
     {
-      "rule": "概念の出典が契約を満たす",
+      "rule": "概念の出典と、生成するスキーマの案内が契約を満たす",
       "source": {
         "record": "no-more-spaghetti-self"
       },
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/tests/test_concepts.py"
-        ]
+          "cargo",
+          "test",
+          "-q",
+          "-p",
+          "nms_parts",
+          "--test",
+          "validate"
+        ],
+        "target": "rs"
       }
     },
     {
-      "rule": "生成するスキーマが、3つの案内を持つ",
+      "rule": "雛形の生成が成立する",
       "source": {
         "record": "no-more-spaghetti-self"
       },
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/cli.py",
-          "validate",
-          "references/rules.schema.json"
-        ]
+          "cargo",
+          "test",
+          "-q",
+          "-p",
+          "nms_parts",
+          "--test",
+          "init"
+        ],
+        "target": "rs"
       }
     },
     {
-      "rule": "案内の検査が、欠落と空欄を検出する",
+      "rule": "規則の実行と、出力の続きが成立する",
       "source": {
         "record": "no-more-spaghetti-self"
       },
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/tests/test_schema.py"
-        ]
+          "cargo",
+          "test",
+          "-q",
+          "-p",
+          "nms_parts",
+          "--test",
+          "run"
+        ],
+        "target": "rs"
       }
     },
     {
-      "rule": "雛形の生成と、出力の続きが成立する",
+      "rule": "整形されている",
       "source": {
         "record": "no-more-spaghetti-self"
       },
       "scope": "この成果物に限る",
       "check": {
         "tool": [
-          "python3",
-          "scripts/tests/test_tools.py"
-        ]
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "target": "rs"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "no-more-spaghetti-self"
+      },
+      "scope": "この成果物に限る",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ],
+        "target": "rs"
       }
     }
   ]
