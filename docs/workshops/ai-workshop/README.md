@@ -14,6 +14,7 @@
 | [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
 | [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
 | [アンケート・効果測定案](proposal/out/survey-and-evaluation.md) | 設問 ・ 尺度 ・ KPI ・ 試用記録と、Microsoft Forms での実装 |
+| [Forms の Copilot に渡すプロンプト](proposal/out/forms-copilot-prompts.md) | 事前 ・ 中間 ・ 終了時の3本のアンケートを生成するプロンプトと、生成後に手で設定する分岐 ・ 設定 |
 | [全枚の一覧画像](proposal/out/overview.png) | 詳細版の全枚を1枚に並べた画像 |
 
 ### 教材1（オリエンテーション＋課題の把握）
