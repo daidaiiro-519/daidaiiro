@@ -5,8 +5,10 @@ import json
 import re
 import visuals
 
-OUT = Path(__file__).resolve().parent
-TEMPLATE = OUT / 'skills/ai-workshop-slide-deck/assets/deck-template.html'
+SRC = Path(__file__).resolve().parent
+# 出来上がりは out/ へ置く ── 作るための材料（src/）と、見るもの（out/）を分ける
+OUT = SRC.parent / 'out'
+TEMPLATE = SRC / 'skills/ai-workshop-slide-deck/assets/deck-template.html'
 
 def esc(s):
     return html.escape(s)

@@ -1,6 +1,7 @@
 """教材スライドの図。企画デッキと同じ部品・同じ配色を使う。"""
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+# 企画デッキと同じ部品を使う ── 部品は proposal/src/visuals.py が持つ
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / 'proposal' / 'src'))
 from visuals import (text, rect, path, arrow, circle, person, icon, svg,
                      INK, DIM, LINE, PANEL, PAPER, ACCENT)
 
@@ -159,7 +160,7 @@ def l1_order():
 
 def l2_three_returns():
     """1本の議事録と1つの指示から、3通りの形が返る。"""
-    a = text(0, 24, '渡した材料は1本だけ', 18, DIM)
+    a = text(0, 24, '渡したのは議事録1回分だけ', 18, DIM)
     a += rect(0, 44, 276, 154, PAPER, 12, LINE)
     a += icon(24, 62, 'doc', DIM, .7)
     a += text(78, 90, '定例の議事録', 19, INK, 700)
@@ -354,7 +355,7 @@ def l3_after():
         a += text(x + 320, 84, n, 22, ACCENT, 700, 'end')
         a += path(f'M{x + 24} 98 H{x + 320}', LINE, 1)
         a += text(x + 24, 128, '拾った場所', 15, DIM)
-        a += text(x + 24, 156, '定例2本の中だけ', 18, INK, 700)
+        a += text(x + 24, 156, '定例2回分の中だけ', 18, INK, 700)
         a += text(x + 24, 180, '合同会議・前の案件は0件', 15, DIM)
     a += band(216, '18件になる回は、もう起きない。次は、1件ずつの中身を揃える')
     return svg('範囲を決めたあとは、どの回も線の内側だけから拾う', a, 284)

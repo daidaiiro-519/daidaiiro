@@ -58,17 +58,25 @@ def check(name, svg):
                 bad.append(f'円の縁に掛かる [{s}]')
     # 同じ段に並ぶ箱は、幅・高さ・間隔を揃える ── 揃っていないと、揺らぎとして見える
     # 役割（塗り）が同じ箱どうしで見る ── 役割が違う箱は、幅が違ってよい
+    # 別の枠に入った箱は、同じ高さでも別の段である。いちばん内側の囲む枠ごとに分ける
+    all_r = rects(svg, fill=True)
+    def parent(r):
+        outs = [o for o in all_r if o is not r and o[0] <= r[0] and o[2] >= r[2] and o[1] <= r[1] and o[3] >= r[3]
+                and (o[2] - o[0]) * (o[3] - o[1]) > (r[2] - r[0]) * (r[3] - r[1])]
+        m = min(outs, key=lambda o: (o[2] - o[0]) * (o[3] - o[1]), default=None)
+        return None if m is None else tuple(round(v) for v in m[:4])
     rows = {}
-    for rx0, ry0, rx1, ry1, fill in rects(svg, fill=True):
-        rows.setdefault((round(ry0), round(ry1), fill), []).append((rx0, rx1))
-    for (ry0, ry1, fill), xs in rows.items():
+    for r in all_r:
+        rx0, ry0, rx1, ry1, fill = r
+        rows.setdefault((round(ry0), round(ry1), fill, parent(r)), []).append((rx0, rx1))
+    for (ry0, ry1, fill, par), xs in rows.items():
         if len(xs) < 3:
             continue
         xs.sort()
         ws = {round(b - a) for a, b in xs}
         if len(ws) > 1:
             bad.append(f'同じ段の箱の幅が揃っていない y{ry0} 幅 {sorted(ws)}')
-        band = sum(len(v) for (y0, y1, _), v in rows.items() if (y0, y1) == (ry0, ry1))
+        band = sum(len(v) for (y0, y1, _, pp), v in rows.items() if (y0, y1, pp) == (ry0, ry1, par))
         gaps = {round(xs[i + 1][0] - xs[i][1]) for i in range(len(xs) - 1)}
         if band == len(xs) and len(gaps) > 1:
             bad.append(f'同じ段の箱の間隔が揃っていない y{ry0} 間隔 {sorted(gaps)}')

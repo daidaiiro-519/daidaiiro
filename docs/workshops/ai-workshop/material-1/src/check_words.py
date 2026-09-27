@@ -55,7 +55,7 @@ def check(paths, words=None):
 def main(argv):
     targets = [Path(a) for a in argv[1:]]
     if not targets:
-        targets = sorted((HERE / 'decks').glob('lesson-*-trial.html'))
+        targets = sorted((HERE.parent / 'out' / 'slides').glob('lesson-*-trial.html'))
     hits = check(targets)
     seen = set()
     for name, line, ng, why in hits:

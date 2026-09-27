@@ -389,7 +389,7 @@ def t5_three_and_height():
 
 def t5_three_and_height2():
     """3つを決める作業が、抽象の高さを合わせる作業だった。"""
-    a = text(0, 24, 'ここまでの3本で、やってきたこと', 18, DIM)
+    a = text(0, 24, 'ここまでの3本の動画で、やってきたこと', 18, DIM)
     for i, (name, did, effect) in enumerate([
             ('意味', '何を並べるか', '並ぶものの種類が揃う'),
             ('範囲', 'どこから拾うか', '拾ってくる量が揃う'),
@@ -503,25 +503,25 @@ def _robot(x, y, color):
 def t_cover(no):
     """表紙の印。前置きと締めは3つの教材の道筋を、本編は6本の中での位置を示す。"""
     if no in (0, 8):
-        steps = [('教材1', '課題の把握', 'PMの頭の中にある基準を、指示に書く', 'search', 49),
-                 ('教材2', '業務の整理', '業務の言葉を、業務ごとに揃える', 'book', 54),
-                 ('教材3', '仕組みの構築', '揃えた言葉のまま、仕組みにする', 'robot', 60)]
+        steps = [('教材1', '課題の把握', '課題の本質を捉える', 'search', 49),
+                 ('教材2', '業務の整理', '業務ごとに言葉を揃える', 'book', 54),
+                 ('教材3', '仕組みの構築', '揃えた言葉で仕組みにする', 'robot', 60)]
         a = ''
         for i, (label, verb, sub, kind, iw) in enumerate(steps):
             x = i * 386
             on = (no == 8 and i == 0)
-            a += rect(x, 0, 340, 164, PAPER, 12, ACCENT if on else LINE)
-            a += text(x + 20, 28, label, 12, ACCENT if on else DIM, 700)
+            a += rect(x, 0, 340, 180, PAPER, 12, ACCENT if on else LINE)
+            a += text(x + 20, 28, label, 14, ACCENT if on else DIM, 700)
             if kind == 'robot':
                 # ロボットは腕が左右へ出るので、描いた幅の中心を箱の中心へ合わせる
                 a += _robot(x + 146, 43, ACCENT)
             else:
                 a += icon(x + (340 - iw * 1.2) / 2, 40, kind, ACCENT, 1.2)
-            a += text(x + 170, 130, verb, 22, INK, 700, 'middle')
-            a += text(x + 170, 154, sub, 12, DIM, anchor='middle')
+            a += text(x + 170, 128, verb, 22, INK, 700, 'middle')
+            a += text(x + 170, 160, sub, 15, DIM, anchor='middle')
             if i < 2:
-                a += arrow(x + 348, 82, x + 378, 82)
-        return svg('3つの教材の道筋', a, 174)
+                a += arrow(x + 348, 90, x + 378, 90)
+        return svg('3つの教材の道筋', a, 190)
     a = ''
     for i in range(6):
         # 本編は該当する1本を、教材1のはじめには どれも光らせない

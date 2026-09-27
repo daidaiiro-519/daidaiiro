@@ -12,7 +12,10 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-OUT = HERE / 'videos'
+# 完成した動画は out/videos/ へ、枚ごとの区間は work/ へ置く ── 区間は途中の生成物であり、追跡しない
+ROOT = HERE.parent
+OUT = ROOT / 'out' / 'videos'
+WORK = HERE / 'work' / 'videos'
 NARR = HERE / 'narration'
 IMAGE = 'jrottenberg/ffmpeg:7.1-alpine'   # 版を固定した公開のイメージを使う
 SIZE = '1280x720'
@@ -38,7 +41,7 @@ def decks():
 
 def build(stem, no, ids, dur):
     """枚ごとに画像と音声を1つの区間にし、通しで繋ぐ。"""
-    work = OUT / stem
+    work = WORK / stem
     work.mkdir(parents=True, exist_ok=True)
     parts = []
     for i, sid in enumerate(ids, 1):
@@ -50,21 +53,21 @@ def build(stem, no, ids, dur):
         mp3 = NARR / dur[sid]['audio']
         part = work / f'{i:02d}.mp4'
         # 映像の長さは音声に合わせる。-shortest ではなく音声の長さで切る
-        ffmpeg(['-y', '-loop', '1', '-i', str(png.relative_to(HERE)),
-                '-i', str(mp3.relative_to(HERE)),
+        ffmpeg(['-y', '-loop', '1', '-i', str(png.relative_to(ROOT)),
+                '-i', str(mp3.relative_to(ROOT)),
                 '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
                 '-pix_fmt', 'yuv420p', '-r', str(FPS), '-s', SIZE,
                 '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2',
                 '-t', f'{dur[sid]["durationMs"] / 1000:.3f}',
-                str(part.relative_to(HERE))], HERE)
+                str(part.relative_to(ROOT))], ROOT)
         parts.append(part)
     lst = work / 'parts.txt'
     lst.write_text(''.join(f"file '{p.name}'\n" for p in parts))
     # 通しは再符号化して繋ぐ ── 無変換で繋ぐと、時刻の差が累積する
-    ffmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', str(lst.relative_to(HERE)),
+    ffmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', str(lst.relative_to(ROOT)),
             '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
             '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2',
-            str((OUT / f'{stem}.mp4').relative_to(HERE))], HERE)
+            str((OUT / f'{stem}.mp4').relative_to(ROOT))], ROOT)
     total = sum(dur[s]['durationMs'] for s in ids) / 1000
     print(f'{stem}.mp4　{len(ids)}枚　{int(total // 60)}分{int(total % 60):02d}秒')
     return total
@@ -75,7 +78,7 @@ if __name__ == '__main__':
     if not out.exists():
         raise SystemExit('narration.out.json が無い ── narration Skill を先に実行する')
     dur = {x['id']: x for x in json.loads(out.read_text())['items']}
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     want = sys.argv[1:]
     total = 0
     for stem, no, ids in decks():

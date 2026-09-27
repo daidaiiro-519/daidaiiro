@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent))
+# 型と部品は、企画デッキの組み立て（proposal/src/）から借りる
+sys.path.insert(0, str(HERE.parents[1] / 'proposal' / 'src'))
 import build_deck as BD          # 型・CSS・表の部品を借りる
 import lesson_visuals as V
 import derived_visuals as DV     # 現行の図から派生させたもの
@@ -30,7 +31,7 @@ V.cover = DV.t_cover
 FIG = {
  # はじめに
  'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_scene, 'I0-S0C': IV.i0_dig, 'I0-S1': IV.i0_case,
- 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base,
+ 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S3B': IV.i0_next2, 'I0-S3C': IV.i0_next3, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base,
  # 教材1のはじめに
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
  'L1-S0': IV.i1_bridge, # 1本目　原因を知る
@@ -55,20 +56,24 @@ FIG = {
  'E-S1': EV.e_recap, 'E-S3': EV.e_next,
 }
 
-# 本の題。表紙の大見出しは受講前でも読んで分かる1文にし、通し番号は出さない
+# 本の題。表紙の大見出しは短い名前だけにし、扱う問いは副題（各 JSON の title の ── の後）に1行で書く。
+# 説明文を大見出しにしない ── 表紙に載せる情報の粒度は、教材の表紙「課題の把握」と揃える
 # 本編6本の題。鍵は再生の順の番号で、本番号は これ - 1 である
 TITLES = {
- 2: ('原因を知る', '同じ指示でも、返ってくるものが変わる原因を知る'),
- 3: ('意味を決める', 'AIに、何を並べてほしいかを決める'),
- 4: ('範囲を決める', 'AIに、どこまでを見てほしいかを決める'),
- 5: ('条件を決める', '入れるもの・落とすもの・並べる順を決める'),
- 6: ('揺らぎを直す', 'それでも揃わないときに、どこを見るか'),
- 7: ('抽象の高さを合わせる', '3つを書くことが、抽象の高さを合わせることでした'),
+ 2: ('原因を知る', '原因を知る'),
+ 3: ('意味を決める', '意味を決める'),
+ 4: ('範囲を決める', '範囲を決める'),
+ 5: ('条件を決める', '条件を決める'),
+ 6: ('揺らぎを直す', '揺らぎを直す'),
+ 7: ('抽象の高さを合わせる', '抽象の高さを合わせる'),
 }
 # 本編ではない3本。0は3つの教材に共通する前置きで、1と8が教材1の前後である
 ENDS = {0: 'オリエンテーション', 1: 'はじめに', 8: '終わりに'}
 
 # リード文（枚の頭に置く1〜2文）。読み上げの要点を、読んで分かる形にする
+# 出来上がりは out/ へ置く ── スライドは slides/、原稿は scripts/
+SLIDES = HERE.parent / 'out' / 'slides'
+SCRIPTS = HERE.parent / 'out' / 'scripts'
 LEDE = json.loads((HERE / 'ledes.json').read_text()) if (HERE / 'ledes.json').exists() else {}
 
 
@@ -104,7 +109,7 @@ def build(lesson_path):
             raise SystemExit(f'図が無い: {s["id"]}')
         body = fig()
         _no_echo(s['id'], s['heading'], LEDE.get(s['id'], ''), body)
-        slides.append(dict(label=s['heading'][:22], title=s['heading'], cls='ws-diagram',
+        slides.append(dict(label=s['heading'], title=s['heading'], cls='ws-diagram',
                            intro=LEDE.get(s['id'], ''), body=body, notes=s['narration']))
 
     template = BD.TEMPLATE.read_text()
@@ -134,21 +139,21 @@ def build(lesson_path):
         "if(Number.isFinite(n)&&n!==i)show(n);});")
     suffix += '\n</body></html>\n'
     stem = f'lesson-{no:02d}-{d["key"]}'
-    (HERE / 'decks' / f'{stem}.html').write_text(prefix + '\n'.join(out) + suffix)
+    (SLIDES / f'{stem}.html').write_text(prefix + '\n'.join(out) + suffix)
 
     # 読み上げ原稿（narration Skill へ渡す入力のもと）
     notes = [f'# {no}本目　{title}\n', f'枚数 {len(slides)}（表紙1・本編{len(slides)-1}）　'
              f'読み上げ {sum(len(x["notes"]) for x in slides[1:])}字\n']
     for i, s in enumerate(slides[1:], 1):
         notes.append(f'## {i:02d}　{s["title"]}\n\n{s["notes"]}\n')
-    (HERE / 'decks' / f'{stem}-script.md').write_text('\n'.join(notes))
+    (SCRIPTS / f'{stem}-script.md').write_text('\n'.join(notes))
     print(f'{stem}.html　{len(slides)}枚')
     return no, stem
 
 
 def retitle(no, stem):
     """表紙の大見出しと見出し帯から、制作側の通し番号を外す。"""
-    f = HERE / 'decks' / f'{stem}.html'
+    f = SLIDES / f'{stem}.html'
     s = f.read_text()
     if no in ENDS:
         # 表紙の大見出しは、題だけを出す。見出し帯には はじめに ／ 終わりに を残す
@@ -162,7 +167,7 @@ def retitle(no, stem):
         s = s.replace(f'aria-label="6本のうち、{no}本目"', 'aria-label="6本の中での位置"')
         s = s.replace(f'aria-label="1: {no}本目　{short}"', f'aria-label="1: {full}"')
     f.write_text(s)
-    m = HERE / 'decks' / f'{stem}-script.md'
+    m = SCRIPTS / f'{stem}-script.md'
     if no in ENDS:
         m.write_text(m.read_text().replace(f'{no}本目　', ENDS[no] + '　'))
 
@@ -213,6 +218,6 @@ if __name__ == '__main__':
         retitle(no, stem)
 
     import check_words
-    files = sorted((HERE / 'decks').glob('lesson-*.html')) + sorted((HERE / 'decks').glob('lesson-*-script.md'))
+    files = sorted(SLIDES.glob('lesson-*.html')) + sorted(SCRIPTS.glob('lesson-*-script.md'))
     if check_words.main(['check_words'] + [str(x) for x in files]):
         raise SystemExit('語の検査が通っていない')
