@@ -6,7 +6,10 @@
 use dws_declare::{tools, Given, Outcome};
 
 fn reply(message: &str) -> Outcome {
-    let tool = tools().into_iter().find(|t| t.name == "reply").expect("在る");
+    let tool = tools()
+        .into_iter()
+        .find(|t| t.name == "reply")
+        .expect("在る");
     let mut given = Given::default();
     given.push("message", message.to_owned());
     (tool.run)(&given)
@@ -14,12 +17,18 @@ fn reply(message: &str) -> Outcome {
 
 #[test]
 fn a_wago_predicate_in_a_reply_is_blocked() {
-    // 検出があれば、Stop フックが読む decision と reason を持つ
+    // 検出があれば、Stop フックが読む additionalContext を持つ ── **decision: block は使わない**
+    // （原典は block を hook error として表示し、additionalContext を hook feedback として表示する）
     let out = reply("結果を揃えます。");
     assert!(out.ok);
     assert_eq!(out.findings.len(), 1, "{:?}", out.findings);
-    assert_eq!(out.data["decision"], "block");
-    assert!(out.data["reason"].as_str().unwrap_or_default().contains("揃えま"));
+    let hook = &out.data["hookSpecificOutput"];
+    assert_eq!(hook["hookEventName"], "Stop");
+    assert!(hook["additionalContext"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("揃えま"));
+    assert!(out.data.get("decision").is_none());
 }
 
 #[test]
@@ -29,6 +38,7 @@ fn a_clean_reply_passes_without_output() {
     assert!(out.ok);
     assert!(out.findings.is_empty());
     assert!(out.data.get("decision").is_none());
+    assert!(out.data.get("hookSpecificOutput").is_none());
 }
 
 #[test]
@@ -39,7 +49,10 @@ fn the_layout_checks_are_not_applied_to_a_reply() {
 }
 
 fn review(message: &str, scope: &str) -> Outcome {
-    let tool = tools().into_iter().find(|t| t.name == "review").expect("在る");
+    let tool = tools()
+        .into_iter()
+        .find(|t| t.name == "review")
+        .expect("在る");
     let mut given = Given::default();
     given.push("message", message.to_owned());
     given.push("scope", scope.to_owned());
@@ -60,7 +73,13 @@ fn a_reply_review_omits_the_criteria_that_need_context() {
     // 会話の応答は前後の文脈を持たない ── 指し先の基準を適用すると、正しい文を違反と判定する
     let reply = review("本文。", "reply");
     let document = review("本文。", "document");
-    assert!(!reply.data["prompt"].as_str().unwrap_or_default().contains("missing-referent"));
-    assert!(document.data["prompt"].as_str().unwrap_or_default().contains("missing-referent"));
+    assert!(!reply.data["prompt"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("missing-referent"));
+    assert!(document.data["prompt"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("missing-referent"));
     assert!(reply.data["criteria"].as_u64() < document.data["criteria"].as_u64());
 }

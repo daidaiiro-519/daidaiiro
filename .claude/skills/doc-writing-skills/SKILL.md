@@ -125,7 +125,9 @@ doc-writing-skills reply --message <本文>   # 本文を直接渡す（MCP も�
 doc-writing-skills reply                    # Claude Code の Stop フックの入力を標準入力から読む
 ```
 
-検出があれば、Stop フックが読む `{"decision":"block","reason":…}` を出力する。
+検出があれば、Stop フックが読む `{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":…}}` を出力する。
+**`decision: "block"` を使わない** ── Claude Code はそれを hook error として表示する。`additionalContext` なら会話は同じく続き、
+表示は `Stop hook feedback` になる（code.claude.com/docs/en/hooks :2620・2631、2026-09-27 取得）。
 **Stop フックは応答を表示したあとに走る** ── 表示を止めることはできず、修正した全文を続けて出させる。
 
 **語の単位で判定できない不自然さは、`review` でモデルに審査させる。**

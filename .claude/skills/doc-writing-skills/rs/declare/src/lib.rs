@@ -232,10 +232,16 @@ fn run_reply(given: &Given) -> Outcome {
          修正した全文を出し直す。謝罪と経緯の説明は書かない。\n{}",
         findings.join("\n")
     );
-    Outcome::found(findings, json!({ "decision": "block", "reason": reason }))
+    // **`decision: "block"` を使わない** ── 原典は、それを記録上 hook error として表示する。
+    // `additionalContext` なら同じく会話を続けさせ、表示は `Stop hook feedback` になる
+    // （code.claude.com/docs/en/hooks :2620・2631、2026-09-27 取得）
+    Outcome::found(
+        findings,
+        json!({ "hookSpecificOutput": { "hookEventName": "Stop", "additionalContext": reason } }),
+    )
 }
 
-/// **Stop フックが読む形で出す。** 検出があれば `decision` と `reason` の JSON、
+/// **Stop フックが読む形で出す。** 検出があれば `hookSpecificOutput.additionalContext` の JSON、
 /// 無ければ何も出さない ── Claude Code は、終了コードに関係なく JSON の中身で判定する。
 fn human_reply(out: &Outcome) -> String {
     if !out.ok {
@@ -267,8 +273,9 @@ fn run_review(given: &Given) -> Outcome {
         Err(e) => return Outcome::misuse(e),
     };
     let criteria: serde_json::Value = match read(root.join("references/review-criteria.json"))
-        .and_then(|b| serde_json::from_str(&b).map_err(|e| format!("判定基準が JSON ではない ── {e}")))
-    {
+        .and_then(|b| {
+            serde_json::from_str(&b).map_err(|e| format!("判定基準が JSON ではない ── {e}"))
+        }) {
         Ok(x) => x,
         Err(e) => return Outcome::misuse(e),
     };
@@ -294,7 +301,10 @@ fn run_review(given: &Given) -> Outcome {
         serde_json::to_string_pretty(&applied).unwrap_or_default(),
         if examples.is_empty() { "（無い）" } else { examples.trim() },
     );
-    Outcome::found(Vec::new(), json!({ "prompt": prompt, "criteria": applied.len() }))
+    Outcome::found(
+        Vec::new(),
+        json!({ "prompt": prompt, "criteria": applied.len() }),
+    )
 }
 
 fn human_review(out: &Outcome) -> String {
