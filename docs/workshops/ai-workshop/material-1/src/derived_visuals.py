@@ -501,15 +501,16 @@ def _robot(x, y, color):
 
 
 def t_cover(no):
-    """表紙の印。前置きと締めは3つの教材の道筋を、本編は6本の中での位置を示す。"""
-    if no in (0, 8):
+    """表紙の印。前置き ・ 教材1のはじめに ・ 締めは3つの教材の道筋を、本編は6本の中での位置を示す。"""
+    if no in (0, 1, 8):
         steps = [('教材1', '課題の把握', '課題の本質を捉える', 'search', 49),
                  ('教材2', '業務の整理', '業務ごとに言葉を揃える', 'book', 54),
                  ('教材3', '仕組みの構築', '揃えた言葉で仕組みにする', 'robot', 60)]
         a = ''
         for i, (label, verb, sub, kind, iw) in enumerate(steps):
             x = i * 386
-            on = (no == 8 and i == 0)
+            # 教材1の始まりと締めでは、教材1を際立たせる
+            on = (no in (1, 8) and i == 0)
             a += rect(x, 0, 340, 180, PAPER, 12, ACCENT if on else LINE)
             a += text(x + 20, 28, label, 14, ACCENT if on else DIM, 700)
             if kind == 'robot':
@@ -524,7 +525,7 @@ def t_cover(no):
         return svg('3つの教材の道筋', a, 190)
     a = ''
     for i in range(6):
-        # 本編は該当する1本を、教材1のはじめには どれも光らせない
+        # 本編は該当する1本を光らせる
         a += rect(i * 100, 0, 88, 10, ACCENT if (i + 2) == no else LINE, 5)
     return svg('6本の中での位置', a, 24)
 
