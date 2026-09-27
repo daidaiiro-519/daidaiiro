@@ -367,7 +367,9 @@ pub fn retired_word(u: &Unit, words: &Words) -> Vec<String> {
                 .ok()
                 .flatten()
                 .map(|m| (m.start(), m.as_str().chars().count())),
-            None => masked.find(&pair.word).map(|b| (b, pair.word.chars().count())),
+            None => masked
+                .find(&pair.word)
+                .map(|b| (b, pair.word.chars().count())),
         };
         if let Some((byte, len)) = found {
             let at = masked[..byte].chars().count();

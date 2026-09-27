@@ -267,7 +267,11 @@ fn every_example_of_a_predicate_is_found() {
     {
         for ex in item["examples"].as_array().expect("事例を持つ") {
             let text = ex.as_str().expect("文字列である");
-            if !hit(&format!("ex{i}.md"), &format!("{text}。\n"), "述部が和語である") {
+            if !hit(
+                &format!("ex{i}.md"),
+                &format!("{text}。\n"),
+                "述部が和語である",
+            ) {
                 missed.push(format!("{i}: {text}"));
             }
         }
@@ -295,7 +299,11 @@ fn a_full_stop_inside_brackets_does_not_end_the_sentence() {
 #[test]
 fn a_retired_word_inside_brackets_is_not_found() {
     // 廃語を引用して説明する文は、廃語を使用していない
-    assert!(!hit("quoted.md", "「盤面」は破棄した。\n", "廃語を使用している"));
+    assert!(!hit(
+        "quoted.md",
+        "「盤面」は破棄した。\n",
+        "廃語を使用している"
+    ));
 }
 
 #[test]

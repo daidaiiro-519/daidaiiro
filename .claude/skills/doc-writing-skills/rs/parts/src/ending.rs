@@ -32,7 +32,8 @@ impl Ending {
 fn polite() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| {
-        Regex::new(r"(です|ます|ました|ません|でした|ましょう|でしょう|ください)。?$").expect("組める")
+        Regex::new(r"(です|ます|ました|ません|でした|ましょう|でしょう|ください)。?$")
+            .expect("組める")
     })
 }
 

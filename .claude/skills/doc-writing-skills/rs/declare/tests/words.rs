@@ -12,7 +12,10 @@ fn an_unreadable_predicate_list_is_a_misuse() {
     std::fs::create_dir_all(&dir).expect("作れる");
     let target = dir.join("a.md");
     std::fs::write(&target, "形を揃える。\n").expect("書ける");
-    let check = tools().into_iter().find(|t| t.name == "check").expect("在る");
+    let check = tools()
+        .into_iter()
+        .find(|t| t.name == "check")
+        .expect("在る");
     let mut given = Given::default();
     given.push("path", target.display().to_string());
     given.push("skill_root", dir.display().to_string());
