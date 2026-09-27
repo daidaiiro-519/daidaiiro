@@ -9,10 +9,19 @@ fn main() {
         eprintln!("使い方: covered <記録> [宣言ID]");
         std::process::exit(2);
     };
-    let text = std::fs::read_to_string(path).unwrap_or_else(|e| {
-        eprintln!("記録を読めない: {path} ── {e}");
-        std::process::exit(2);
-    });
+    // 記録のファイルが無いのは、どのテストも記録しなかったときの自然な結果である。
+    // 誤用として止めず、記録0件として「テストが無い」の側に帰着させる。
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            println!("記録のファイルが無い ── どのテストもシナリオID を記録していない: {path}");
+            String::new()
+        }
+        Err(e) => {
+            eprintln!("記録を読めない: {path} ── {e}");
+            std::process::exit(2);
+        }
+    };
     let decls = usecase::decls();
     // 宣言ID を渡せば、その宣言のシナリオだけを要る集合にする（実装の PR の範囲）
     let 要る: BTreeSet<String> = decls

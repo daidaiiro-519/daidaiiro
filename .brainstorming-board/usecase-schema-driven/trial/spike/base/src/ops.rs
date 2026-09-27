@@ -55,7 +55,14 @@ pub fn get(decls: &[Decl], id: &str, as_: Option<&str>, reg: &Registry) -> Resul
         .find(|d| d.id == id)
         .ok_or(format!("その ID の宣言が無い: {id}"))?;
     match as_ {
-        None => serde_json::to_string(d).map_err(|e| e.to_string()),
+        None => {
+            let mut v = serde_json::json!({ "decl": d });
+            if !d.nodes.is_empty() {
+                let ids: Vec<String> = d.nodes.iter().map(|n| n.id.clone()).collect();
+                v["test_contract"] = serde_json::Value::String(test_contract(&ids, &d.id));
+            }
+            serde_json::to_string(&v).map_err(|e| e.to_string())
+        }
         Some(name) => crate::render_as(d, reg, name).ok_or(format!("その射影が無い: {name}")),
     }
 }
@@ -89,4 +96,23 @@ pub fn coverage(required: &BTreeSet<String>, covered: &BTreeSet<String>) -> Cove
         uncovered: required.difference(covered).cloned().collect(),
         unknown: covered.difference(required).cloned().collect(),
     }
+}
+
+/// テストの側の契約 ── **道具の本体が持つ**。方法論が替わっても、この文面は変わらない。
+///
+/// 言語のコードは渡さない ── 渡すと、道具が言語ごとの雛形を持つことになる。
+/// 渡すのは契約の文面だけで、補助の関数は AI がテストの言語で書く。
+pub fn test_contract(ids: &[String], decl_id: &str) -> String {
+    format!(
+        "このシナリオを検査するテストは、次の契約を遵守すること。\n\
+         1. テストの先頭で、環境変数 SCENARIO_TRACE を確認する。\n\
+         2. 設定されていれば、そのファイルへ、そのテストが検査するシナリオID を1行追記する（改行で終える）。\n\
+         3. 追記する処理は、テストの言語の標準ライブラリだけで補助の関数として1つ作り、テストの間で共有する。既に在れば、それを使用する。\n\
+         4. そのテストが検査しないシナリオの ID を書き出さない。\n\
+         5. テストを skip するときは、書き出す前に skip する。\n\
+         対象のシナリオID: {}\n\
+         照合: schema covered <記録のファイル> {}",
+        ids.join(", "),
+        decl_id
+    )
 }

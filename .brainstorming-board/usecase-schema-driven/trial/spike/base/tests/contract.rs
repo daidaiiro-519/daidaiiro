@@ -123,3 +123,19 @@ fn そろっていれば何も出ない() {
     let c = base::coverage(&要る, &要る);
     assert!(c.uncovered.is_empty() && c.unknown.is_empty());
 }
+
+// ── テストの側の契約は、本体が持つ ── シナリオを持つ宣言の get にだけ付く ──
+#[test]
+fn シナリオを持つ宣言の_get_に契約が付く() {
+    let decls = base::read(r#"[
+      {"kind":"k","id":"A-1","name":"甲","render":"r","nodes":[{"id":"SC-X","name":"x"},{"id":"SC-Y","name":"y"}]},
+      {"kind":"k","id":"B-1","name":"乙","render":"r"}
+    ]"#).unwrap();
+    let reg = base::Registry::new();
+    let a: serde_json::Value = serde_json::from_str(&base::ops::get(&decls, "A-1", None, &reg).unwrap()).unwrap();
+    let c = a["test_contract"].as_str().expect("契約が付いていない");
+    assert!(c.contains("SCENARIO_TRACE") && c.contains("SC-X") && c.contains("SC-Y"));
+    assert_eq!(a["decl"]["id"], "A-1");
+    let b: serde_json::Value = serde_json::from_str(&base::ops::get(&decls, "B-1", None, &reg).unwrap()).unwrap();
+    assert!(b.get("test_contract").is_none(), "シナリオの無い宣言に契約が付いた");
+}
