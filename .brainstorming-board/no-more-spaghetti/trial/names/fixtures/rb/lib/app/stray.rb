@@ -1,0 +1,1 @@
+module Stray; end

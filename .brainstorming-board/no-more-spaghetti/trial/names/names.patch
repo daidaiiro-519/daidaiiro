@@ -1,0 +1,430 @@
+--- a/rs/parts/src/inward/syntax.rs	2026-09-26 19:09:52.200469008 +0900
++++ a/rs/parts/src/inward/syntax.rs	2026-09-28 07:59:25.977450093 +0900
+@@ -234,6 +234,83 @@
+     body
+ }
+ 
++/// 参照の文字列を、置き場所の名前空間の識別子へ直す。
++///
++/// **別名と探索路で2つの名前空間をつなぐ**（`names`）。つなげない参照は、書かれたまま返す
++/// ── 作業領域の外（標準の部品 ・ 外の部品）を指すものである。
++fn resolve(
++    s: &Syntax,
++    bridge: &super::names::Bridge,
++    root: &Path,
++    file: &Path,
++    here: &str,
++    spec: &str,
++    how: &str,
++) -> String {
++    let rel_file = file.strip_prefix(root).unwrap_or(file);
++    match s.resolve {
++        Resolve::Qualified => bridge.alias(spec, "/").unwrap_or_else(|| spec.to_owned()),
++        Resolve::Crate => {
++            let body = in_crate(here, spec);
++            // `crate::` は、その crate の根から数える ── 作業領域に crate が複数在る
++            if spec.starts_with("crate::") {
++                if let Some(head) = bridge
++                    .aliases
++                    .iter()
++                    .map(|a| a.to.as_str())
++                    .filter(|t| here == *t || here.starts_with(&format!("{t}.")))
++                    .max_by_key(|t| t.len())
++                {
++                    return format!("{head}.{body}");
++                }
++            }
++            bridge.alias(&body, ".").unwrap_or(body)
++        }
++        Resolve::Dotted => {
++            if spec.starts_with('.') {
++                return relative_dotted(here, spec);
++            }
++            let first = spec.split('.').next().unwrap_or(spec);
++            for sr in &bridge.search {
++                let base = root.join(sr);
++                if base.join(first).is_dir() || base.join(format!("{first}.py")).is_file() {
++                    return format!("{}.{spec}", sr.replace('/', "."));
++                }
++            }
++            spec.to_owned()
++        }
++        Resolve::Path => {
++            let relative = spec.starts_with("./") || spec.starts_with("../");
++            match s.language {
++                "typescript" if !relative => bridge.alias(spec, "/").unwrap_or_else(|| spec.to_owned()),
++                "ruby" if how != "require_relative" && !relative => {
++                    for lp in &bridge.search {
++                        let base = root.join(lp);
++                        if base.join(format!("{spec}.rb")).is_file() || base.join(spec).is_dir() {
++                            return format!("{lp}/{spec}");
++                        }
++                    }
++                    spec.to_owned()
++                }
++                "cpp" => {
++                    let folded = fold(root, rel_file, spec);
++                    if root.join(&folded).exists() {
++                        return folded;
++                    }
++                    for inc in &bridge.search {
++                        let cand = if inc.is_empty() { spec.to_owned() } else { format!("{inc}/{spec}") };
++                        if root.join(&cand).exists() {
++                            return cand;
++                        }
++                    }
++                    spec.to_owned()
++                }
++                _ => fold(root, rel_file, spec),
++            }
++        }
++    }
++}
++
+ /// 原文から辺を取る抽出器。
+ #[derive(Clone)]
+ #[non_exhaustive]
+@@ -336,8 +413,18 @@
+         let mut undecided = Vec::new();
+         // **測り方の限界は、申告であって検出ではない。** 検出に混ぜると、取りこぼしの
+         // 申告そのものが不合格の原因になる（実測 ── 向きの規則が常に不合格になった）
+-        let limits =
+-            vec!["字面で測っている ── 経路の別名と探索路の指定は解決していない".to_owned()];
++        let bridge = super::names::bridge(s.language, root);
++        let limits = if matches!(s.language, "java" | "kotlin" | "csharp" | "php") {
++            vec!["字面で測っている ── 名前は、ソースが宣言する package ・ namespace から取っている".to_owned()]
++        } else if bridge.sources.is_empty() {
++            vec!["字面で測っている ── 別名と探索路の設定が見つからなかった。置き場所の名前だけで照合している".to_owned()]
++        } else {
++            vec![format!(
++                "字面で測っている ── 別名と探索路は、次から解決した：{}",
++                bridge.sources.join(" ・ ")
++            )]
++        };
++        let mut points = Vec::new();
+         for file in &files {
+             let Ok(body) = std::fs::read_to_string(file) else {
+                 undecided.push(format!("{} ── 読めない", file.display()));
+@@ -373,6 +460,7 @@
+                 (None, Resolve::Dotted | Resolve::Crate) => dotted(root, file),
+                 (None, _) => rel.clone(),
+             };
++            points.push(here.clone());
+             let mut cursor = QueryCursor::new();
+             let mut hits = cursor.matches(&imports, tree.root_node(), bytes);
+             while let Some(m) = hits.next() {
+@@ -394,12 +482,7 @@
+                     continue;
+                 }
+                 let spec = unquote(raw);
+-                let to = match s.resolve {
+-                    Resolve::Qualified => spec.to_owned(),
+-                    Resolve::Path => fold(root, file.strip_prefix(root).unwrap_or(file), spec),
+-                    Resolve::Dotted => relative_dotted(&here, spec),
+-                    Resolve::Crate => in_crate(&here, spec),
+-                };
++                let to = resolve(s, &bridge, root, file, &here, spec, &how);
+                 edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
+             }
+             // 読み込みが文字列でない箇所は、行き先が静的に決まらない
+@@ -438,6 +521,7 @@
+             edges,
+             escapes,
+             undecided,
++            points,
+             limits,
+         })
+     }
+--- a/rs/parts/src/inward/mod.rs	2026-09-26 19:09:52.200344087 +0900
++++ a/rs/parts/src/inward/mod.rs	2026-09-28 07:59:25.977008205 +0900
+@@ -18,6 +18,7 @@
+ use self::judge::Edge;
+ 
+ pub mod judge;
++pub mod names;
+ pub mod syntax;
+ 
+ /// 図に現れない依存の経路。**そこを通れば検査を素通りできる。**
+@@ -50,6 +51,9 @@
+     pub escapes: Vec<Escape>,
+     /// 判定できなかった範囲。**0件でなければ、0件を結論にしない。**
+     pub undecided: Vec<String>,
++    /// 作業領域の中の点（ファイルごとの、参照する側の名前）。**参照が作業領域の中を
++    /// 指すかを判定するために使う。**
++    pub points: Vec<String>,
+     /// 測り方の限界。**申告であって、判定できなかった事実ではない** ── 採用範囲へ
+     /// 書くものなので、検出には数えない。
+     pub limits: Vec<String>,
+--- a/rs/declare/src/lib.rs	2026-09-27 00:59:32.538451528 +0900
++++ a/rs/declare/src/lib.rs	2026-09-28 08:00:59.061280435 +0900
+@@ -462,6 +462,29 @@
+             .iter()
+             .map(|u| format!("判定できていない ── {u}")),
+     );
++    // **作業領域の中を指すのに、どの層にも一致しない参照を、合格にしない。**
++    // 層の宣言から漏れた点か、名前をつなげなかった参照である ── どちらも黙って通すと、
++    // 並びを逆にしても合格する（実測）
++    let inside = |to: &str| {
++        got.points.iter().any(|p| {
++            let p = p.rsplit_once('.').filter(|(_, ext)| ext.len() <= 4 && !ext.is_empty() && p.contains('/')).map_or(p.as_str(), |(h, _)| h);
++            // 区切りは言語で違う ── 経路の / と \、点の .、Rust の ::
++            p == to
++                || ["/", ".", "\\", "::"].iter().any(|sep| {
++                    p.starts_with(&format!("{to}{sep}")) || to.starts_with(&format!("{p}{sep}"))
++                })
++        })
++    };
++    findings.extend(
++        got.edges
++            .iter()
++            .filter(|e| {
++                nms_parts::inward::judge::layer_for(&order, &e.from).is_some()
++                    && nms_parts::inward::judge::layer_for(&order, &e.to).is_none()
++                    && inside(&e.to)
++            })
++            .map(|e| format!("判定できていない ── {} ── {} はどの層にも属さない", e.at, e.to)),
++    );
+     Outcome::found(
+         findings,
+         json!({
+--- /dev/null	2026-09-26 17:54:10.843989507 +0900
++++ b/rs/parts/src/inward/names.rs	2026-09-28 07:58:57.792798782 +0900
+@@ -0,0 +1,238 @@
++// SPDX-License-Identifier: MIT
++//! 参照の名前空間と、置き場所の名前空間をつなぐ。
++//!
++//! 読み込みの文に書かれる名前（参照の名前空間）と、ファイルの在る場所（置き場所の
++//! 名前空間）は、言語によって食い違う。**食い違いを生むものは2種類である。**
++//!
++//! | 種類 | 何か | 例 |
++//! |---|---|---|
++//! | 別名 | 置き場所に付けた別の名前 | crate 名 ・ module 名 ・ package 名 ・ tsconfig の paths |
++//! | 探索路 | 読み込みの名前を探し始める場所 | Python の source root ・ Ruby の load path ・ C++ の include ディレクトリ |
++//!
++//! **ソースが自分の名前を宣言する言語（Java ・ Kotlin ・ C# ・ PHP）は食い違わない** ──
++//! 参照する側も参照される側も、宣言の名前空間で書かれる。
++//!
++//! **その言語の道具は実行しない。** 設定のファイルを文字列として読むだけである。
++
++use std::path::{Path, PathBuf};
++
++/// 別名1件。**参照の名前の頭を、置き場所の名前の頭へ置き換える。**
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct Alias {
++    /// 参照の名前空間での頭（crate 名 ・ module のパス ・ paths の型など）。
++    pub from: String,
++    /// 置き場所の名前空間での頭。
++    pub to: String,
++}
++
++/// 2つの名前空間をつなぐ対応表。
++#[derive(Debug, Clone, Default)]
++pub struct Bridge {
++    /// 別名。**長いものから試す** ── 入れ子の別名で、短いほうへ吸われない。
++    pub aliases: Vec<Alias>,
++    /// 探索路（根からの相対）。
++    pub search: Vec<String>,
++    /// どこから組んだか。**申告として出す。**
++    pub sources: Vec<String>,
++}
++
++/// 見ない包み。
++const SKIP: [&str; 6] = ["node_modules", "target", "build", "dist", "__pycache__", "vendor"];
++
++/// 名前のファイルを、根の下から集める。
++fn find(dir: &Path, name: &str, out: &mut Vec<PathBuf>) {
++    let Ok(entries) = std::fs::read_dir(dir) else {
++        return;
++    };
++    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
++    paths.sort();
++    for p in paths {
++        let file = p.file_name().unwrap_or_default().to_string_lossy().into_owned();
++        if p.is_dir() {
++            if !SKIP.contains(&file.as_str()) && !file.starts_with('.') {
++                find(&p, name, out);
++            }
++        } else if file == name {
++            out.push(p);
++        }
++    }
++}
++
++fn rel(root: &Path, p: &Path) -> String {
++    p.strip_prefix(root).unwrap_or(p).display().to_string()
++}
++
++/// `key = "値"` の値を取る。**TOML を解析しない** ── 1行の文字列だけを読む。
++fn toml_string(body: &str, section: &str, key: &str) -> Option<String> {
++    let mut inside = false;
++    for line in body.lines() {
++        let t = line.trim();
++        if t.starts_with('[') {
++            inside = t == format!("[{section}]");
++            continue;
++        }
++        if inside {
++            if let Some(rest) = t.strip_prefix(key) {
++                let rest = rest.trim_start();
++                if let Some(v) = rest.strip_prefix('=') {
++                    return Some(v.trim().trim_matches('"').to_owned());
++                }
++            }
++        }
++    }
++    None
++}
++
++/// 点の名前へ直す。
++fn dotted(path: &str) -> String {
++    path.replace(['/', '\\'], ".")
++}
++
++/// 言語ごとに対応表を組む。
++#[must_use]
++pub fn bridge(language: &str, root: &Path) -> Bridge {
++    let mut b = Bridge::default();
++    match language {
++        "rust" => {
++            let mut found = Vec::new();
++            find(root, "Cargo.toml", &mut found);
++            for f in found {
++                let Ok(body) = std::fs::read_to_string(&f) else { continue };
++                let Some(name) = toml_string(&body, "package", "name") else { continue };
++                let dir = f.parent().unwrap_or(root);
++                let head = dotted(&rel(root, &dir.join("src")));
++                b.aliases.push(Alias { from: name.replace('-', "_"), to: head });
++                b.sources.push(rel(root, &f));
++            }
++        }
++        "go" => {
++            let mut found = Vec::new();
++            find(root, "go.mod", &mut found);
++            for f in found {
++                let Ok(body) = std::fs::read_to_string(&f) else { continue };
++                let Some(module) = body
++                    .lines()
++                    .find_map(|l| l.trim().strip_prefix("module ").map(|m| m.trim().to_owned()))
++                else {
++                    continue;
++                };
++                let dir = rel(root, f.parent().unwrap_or(root));
++                b.aliases.push(Alias { from: module, to: dir });
++                b.sources.push(rel(root, &f));
++            }
++        }
++        "typescript" => {
++            let mut found = Vec::new();
++            find(root, "package.json", &mut found);
++            for f in found {
++                let Ok(body) = std::fs::read_to_string(&f) else { continue };
++                let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) else { continue };
++                if let Some(name) = v.get("name").and_then(|x| x.as_str()) {
++                    let dir = rel(root, f.parent().unwrap_or(root));
++                    b.aliases.push(Alias { from: name.to_owned(), to: dir });
++                    b.sources.push(rel(root, &f));
++                }
++            }
++            let mut ts = Vec::new();
++            find(root, "tsconfig.json", &mut ts);
++            for f in ts {
++                let Ok(body) = std::fs::read_to_string(&f) else { continue };
++                let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) else { continue };
++                let opts = &v["compilerOptions"];
++                let base_dir = f.parent().unwrap_or(root).join(opts["baseUrl"].as_str().unwrap_or("."));
++                if let Some(paths) = opts["paths"].as_object() {
++                    for (pat, targets) in paths {
++                        let Some(target) = targets.as_array().and_then(|a| a.first()).and_then(|x| x.as_str()) else { continue };
++                        let from = pat.trim_end_matches('*').trim_end_matches('/').to_owned();
++                        let to_path = base_dir.join(target.trim_end_matches('*').trim_end_matches('/'));
++                        b.aliases.push(Alias { from, to: normalize(&rel(root, &to_path)) });
++                    }
++                    b.sources.push(rel(root, &f));
++                }
++            }
++        }
++        "python" => {
++            let mut found = Vec::new();
++            find(root, "pyproject.toml", &mut found);
++            for f in &found {
++                let Ok(body) = std::fs::read_to_string(f) else { continue };
++                for line in body.lines() {
++                    let t = line.trim();
++                    if let Some(rest) = t.strip_prefix("where") {
++                        let dirs: Vec<String> = rest
++                            .split('"')
++                            .skip(1)
++                            .step_by(2)
++                            .map(str::to_owned)
++                            .collect();
++                        for d in dirs {
++                            let p = rel(root, &f.parent().unwrap_or(root).join(d));
++                            b.search.push(p);
++                        }
++                        b.sources.push(rel(root, f));
++                    }
++                }
++            }
++            if b.search.is_empty() && root.join("src").is_dir() {
++                b.search.push("src".to_owned());
++                b.sources.push("src（既定の source root）".to_owned());
++            }
++        }
++        "ruby" => {
++            let mut found = Vec::new();
++            find(root, "Gemfile", &mut found);
++            if root.join("lib").is_dir() {
++                b.search.push("lib".to_owned());
++                b.sources.push("lib（既定の load path）".to_owned());
++            }
++        }
++        "cpp" => {
++            let mut found = Vec::new();
++            find(root, "CMakeLists.txt", &mut found);
++            for f in found {
++                let Ok(body) = std::fs::read_to_string(&f) else { continue };
++                let dir = f.parent().unwrap_or(root);
++                for call in ["include_directories(", "target_include_directories("] {
++                    for chunk in body.split(call).skip(1) {
++                        let args = chunk.split(')').next().unwrap_or("");
++                        for a in args.split_whitespace() {
++                            if matches!(a, "PUBLIC" | "PRIVATE" | "INTERFACE" | "SYSTEM" | "BEFORE" | "AFTER")
++                                || (call.starts_with("target") && a == args.split_whitespace().next().unwrap_or(""))
++                            {
++                                continue;
++                            }
++                            let a = a.replace("${CMAKE_CURRENT_SOURCE_DIR}/", "");
++                            b.search.push(normalize(&rel(root, &dir.join(a))));
++                        }
++                    }
++                }
++                b.sources.push(rel(root, &f));
++            }
++        }
++        _ => {}
++    }
++    b.aliases.sort_by_key(|a| std::cmp::Reverse(a.from.len()));
++    b
++}
++
++/// `a/./b` と末尾の `/.` を畳む。
++fn normalize(p: &str) -> String {
++    let parts: Vec<&str> = p.split('/').filter(|x| !x.is_empty() && *x != ".").collect();
++    parts.join("/")
++}
++
++impl Bridge {
++    /// 別名を当てる。**頭が一致したものだけを置き換える。**
++    #[must_use]
++    pub fn alias(&self, name: &str, sep: &str) -> Option<String> {
++        for a in &self.aliases {
++            if name == a.from {
++                return Some(a.to.clone());
++            }
++            if let Some(tail) = name.strip_prefix(&format!("{}{sep}", a.from)) {
++                return Some(if a.to.is_empty() { tail.to_owned() } else { format!("{}{sep}{tail}", a.to) });
++            }
++        }
++        None
++    }
++}

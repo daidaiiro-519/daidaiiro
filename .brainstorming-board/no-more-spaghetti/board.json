@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "CodingSkills ── アーキテクチャを、決め・保ち・測る",
  "board": "no-more-spaghetti",
- "round": 34,
+ "round": 35,
  "intro": [
   {
    "kind": "para",
@@ -3745,25 +3745,51 @@
    "no": 13,
    "name": "層を指す名前の解決 ── 未解決を合格にしない",
    "status": "open",
-   "question": "他の層から参照されるときの名前（crate 名 ・ module 名など）を、どう解決するか",
-   "answer": "B ── <b>言語の抽出器が manifest から解決する</b>。規則ファイルには置き場所（<code>where</code>）だけを書き、名前の明示（<code>named</code>）は上書き用に任意で残す。<b>作業領域の中を指すのに、どの層にも一致しない参照は「判定できなかった範囲」として報告し、合格にしない</b>",
-   "intro": "<b>inward に置き場所だけを渡すと、並びを逆にしても合格した。</b>Rust では、ファイルの在る場所（<code>parts</code>）と、他から参照される名前（<code>acd_parts</code>）が異なる。crate をまたぐ参照がどの層にも一致せず、判定されないまま「向きは内向きである」と報告された。<br>no-more-spaghetti のガードレール「判定できなかったことを、合格に寄せない」に違反している。",
+   "question": "読み込みの文に書かれる名前と、ファイルの置き場所が食い違う言語で、層をどう照合するか",
+   "panels": [
+    {
+     "heading": "この答えの履歴 ── 1件",
+     "body": [
+      {
+       "kind": "previous",
+       "letter": "B",
+       "body": "言語の抽出器が manifest（Cargo.toml ・ go.mod ・ package.json）から解決する。名前の明示は上書き用に任意で残す",
+       "why": "<b>Rust ・ Go ・ TypeScript の場合だけを書いていた</b> ── ソースが名前を宣言する4言語は食い違わないこと、Python ・ Ruby ・ C++ は manifest ではなく探索路の問題であることが抜けていた",
+       "user_words": "まず、これcreteやmoduleというようにrustと Goによったことを書いてますが、他の言語に対しても同じ抽象概念の元整理してる認識でいい？"
+      }
+     ]
+    }
+   ],
+   "answer": "B′ ── <b>層は、ファイルの置き場所で宣言する</b>。読み込みの名前が置き場所と食い違う言語では、抽出器が<b>別名と探索路の対応表</b>で2つの名前空間をつなぐ。<b>どの層にも一致しない作業領域内の参照は、判定できなかった範囲として報告する</b>",
+   "intro": "<b>inward に置き場所だけを渡すと、並びを逆にしても合格する言語があった。</b>依存の辺は「参照する側」と「参照される側」の2点で決まり、inward はどちらも層の識別子と照合する。<b>2点が別々の名前空間で書かれている言語で、照合が成立しない</b>。<br>抽出器は、この限界を既に申告していた ── 「経路の別名と探索路の指定は解決していない」。",
    "decision": {
-    "letter": "B",
+    "letter": "B′",
     "text": [
+     {
+      "kind": "para",
+      "text": "<b>2つの名前空間を分けて考える。</b>読み込みの文に書かれる名前（参照の名前空間）と、ファイルの在る場所（置き場所の名前空間）である。層は置き場所で宣言し、参照の名前は置き場所へ直してから照合する。"
+     },
      {
       "kind": "list",
       "items": [
        {
-        "text": "<b>名前は manifest から解決する</b> ── Rust は Cargo.toml の name、Go は go.mod の module、TypeScript は package.json の name と paths。言語による表現の違いを、規則ファイルではなく抽出器が吸収する"
+        "text": "<b>別名</b> ── 置き場所に付けた別の名前。crate 名 ・ module のパス ・ package 名 ・ tsconfig の paths"
        },
        {
-        "text": "<b>明示は任意の上書きにする</b> ── manifest で解決できない構成のときだけ named を書く"
+        "text": "<b>探索路</b> ── 読み込みの名前を探し始める場所。Python の source root ・ Ruby の load path ・ C++ の include ディレクトリ"
        },
        {
-        "text": "<b>解決できなかった参照を合格にしない</b> ── 作業領域の中の名前（manifest に在る名前）を指すのに、どの層にも一致しない参照は、判定できなかった範囲として報告する"
+        "text": "<b>ソースが自分の名前を宣言する言語は、対応表が不要である</b> ── Java ・ Kotlin ・ C# ・ PHP は、参照する側も参照される側も、宣言の名前空間で書かれる"
        }
       ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>対応表の出どころは、言語の抽出器が持つ。</b>設定のファイルを文字列として読むだけで、その言語の道具は実行しない（論点2）。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>作業領域の中を指すのに、どの層にも一致しない参照は、判定できなかった範囲として報告する。</b>層の宣言から漏れた点か、名前をつなげなかった参照である。"
      }
     ]
    },
@@ -3771,43 +3797,153 @@
     {
      "kind": "figure",
      "name": "resolve",
-     "caption": "<b>いまは、crate 名で書かれた参照がどの層にも一致せず、判定されないまま合格する。</b>変更後は、manifest から crate 名を層へ対応させ、その参照を判定する。"
+     "caption": "<b>読み込みの名前は、別名と探索路の対応表で、ファイルの置き場所へ直してから照合する。</b>宣言の名前で書く言語は、対応表を使用しない。どの層にも一致しない作業領域内の参照は、合格ではなく「判定できなかった範囲」になる。"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "10言語の整理",
+     "cols": [
+      "参照される側の書き方",
+      "食い違うか",
+      "対応表の出どころ"
+     ],
+     "rows": [
+      [
+       "Java ・ Kotlin ・ C# ・ PHP",
+       [
+        "宣言の完全修飾名",
+        "食い違わない",
+        "不要"
+       ]
+      ],
+      [
+       "Rust",
+       [
+        "crate の外は crate 名",
+        "crate をまたぐと食い違う",
+        "別名：Cargo.toml の name"
+       ]
+      ],
+      [
+       "Go",
+       [
+        "module のパス",
+        "食い違う",
+        "別名：go.mod の module"
+       ]
+      ],
+      [
+       "TypeScript",
+       [
+        "相対パス、または package 名 ・ paths の別名",
+        "別名で食い違う",
+        "別名：package.json の name ・ tsconfig の paths"
+       ]
+      ],
+      [
+       "Python",
+       [
+        "絶対の点の名前",
+        "source root が根と異なると食い違う",
+        "探索路：pyproject の where、src"
+       ]
+      ],
+      [
+       "Ruby",
+       [
+        "require_relative は相対、require は load path から",
+        "require で食い違う",
+        "探索路：lib"
+       ]
+      ],
+      [
+       "C++",
+       [
+        "include の文字列",
+        "include ディレクトリ経由で食い違う",
+        "探索路：CMakeLists.txt の include_directories"
+       ]
+      ]
+     ]
+    },
+    {
+     "caption": "9言語の見本で測った（2026-09-28）",
+     "cols": [
+      "いま：逆の並び",
+      "いま：層を宣言しないモジュール",
+      "試作：逆の並び",
+      "試作：層を宣言しないモジュール"
+     ],
+     "rows": [
+      [
+       "TypeScript ・ Python ・ Ruby ・ C++ ・ Go",
+       [
+        "<b>合格（検出しない）</b>",
+        "<b>合格（検出しない）</b>",
+        "違反を検出",
+        "未解決を報告"
+       ]
+      ],
+      [
+       "Java ・ Kotlin ・ C# ・ PHP",
+       [
+        "違反を検出",
+        "<b>合格（検出しない）</b>",
+        "違反を検出",
+        "未解決を報告"
+       ]
+      ],
+      [
+       "既存の11のまとまり（置き場所だけで宣言）",
+       [
+        "<b>合格（検出しない）</b>",
+        "─",
+        "違反を検出（1〜7件）",
+        "─"
+       ]
+      ]
+     ]
     }
    ],
    "example": [
     {
      "kind": "note",
-     "text": "置き場所だけを渡したときの実物（並びを逆にしている）"
+     "text": "試作で、acdr の parts を層の宣言から漏らしたとき"
     },
     {
      "kind": "html",
-     "text": "$ no-more-spaghetti inward rust .claude/skills/acdr/rs mcp=mcp cli=cli declare=declare parts=parts\n向きは内向きである ── 辺 72 件を見た      ← 逆の並びなのに合格する"
+     "text": "食い違い　1 件 ／ 見た辺 72 件\n  ・判定できていない ── declare/src/lib.rs:11 ── parts.src.{record, tokens, validate} はどの層にも属さない\n  （測り方）字面で測っている ── 別名と探索路は、次から解決した：cli/Cargo.toml ・ declare/Cargo.toml ・ mcp/Cargo.toml ・ parts/Cargo.toml"
     },
     {
      "kind": "note",
-     "text": "名前も渡したときの実物"
+     "text": "試作で、PHP の見本に層を宣言しない名前空間を参照させたとき"
     },
     {
      "kind": "html",
-     "text": "$ no-more-spaghetti inward rust .claude/skills/acdr/rs 'mcp=mcp|acd_mcp' 'cli=cli|acd_cli' 'declare=declare|acd_declare' 'parts=parts|acd_parts'\n食い違い　3 件 ／ 見た辺 72 件"
+     "text": "食い違い　1 件 ／ 見た辺 2 件\n  ・判定できていない ── src/Adapter/Label.php:4 ── App\\Stray\\X はどの層にも属さない\n  （測り方）字面で測っている ── 名前は、ソースが宣言する package ・ namespace から取っている"
     }
    ],
    "passed": [
     {
-     "name": "B ── manifest から自動で解決し、明示は上書き用",
-     "body": "規則ファイルには置き場所だけを書く",
-     "cost": "<b>言語ごとに manifest を読む実装が必要である</b>（10言語）"
+     "name": "B′ ── 置き場所で宣言し、別名と探索路でつなぐ",
+     "body": "言語ごとの対応表の出どころは抽出器が持つ",
+     "cost": "<b>言語ごとに設定のファイルを読む実装が増える</b>（試作は約200行）"
     },
     {
-     "name": "A ── 規則ファイルに名前を明示する",
-     "body": "層ごとに where と named を書く",
+     "name": "A ── 規則ファイルに、読み込みの名前を層ごとに明示する",
+     "body": "層ごとに置き場所と読み込みの名前を両方書く",
      "cost": "<b>書き忘れを検出できない</b> ── 作業領域の中の名前を知る手段が無いので、どの参照が未解決かを判定できない"
     }
    ],
    "dropped": [
     {
      "body": "置き場所だけで照合する（いまの形）",
-     "reason": "<b>並びを逆にしても合格した</b>（実測）"
+     "reason": "<b>5言語で、並びを逆にしても合格した</b>（実測）"
+    },
+    {
+     "body": "その言語の道具（cargo metadata ・ go list など）に名前を出させる",
+     "reason": "<b>論点2 に反する</b> ── Skill は言語の外の道具を保持しない。道具が無い環境で測れなくなる"
     }
    ],
    "path": [
@@ -3816,37 +3952,54 @@
      "ordered": true,
      "items": [
       {
-       "text": "規則ファイルの置き場所だけを inward へ渡したら、11のまとまりすべてで逆の並びも合格した"
+       "text": "置き場所だけを渡したら、Rust の11のまとまりで逆の並びも合格した"
       },
       {
-       "text": "crate 名も渡したら、逆の並びを検出した"
+       "text": "manifest から解決する案を出した ── <b>Rust ・ Go ・ TypeScript に寄った書き方だった</b>（利用者の指摘）"
       },
       {
-       "text": "未解決の参照を検出するには、作業領域の中の名前を知る必要がある ── それは manifest に在る"
+       "text": "抽出器の実装を読み、10言語を「参照の名前空間」と「置き場所の名前空間」の2つで整理し直した"
+      },
+      {
+       "text": "試作を組み、9言語の見本と既存の11のまとまりで測った"
       }
      ]
     }
    ],
    "findings": [
-    "<b>置き場所だけでは、crate をまたぐ参照を判定できなかった</b> ── 逆の並びでも合格した",
-    "<b>判定できなかった参照が、合格として報告された</b> ── ガードレールに違反している"
+    "<b>いまの inward は、5言語で逆の並びを検出しない</b> ── TypeScript ・ Python ・ Ruby ・ C++ ・ Go。宣言の名前で書く4言語だけが検出した",
+    "<b>いまの inward は、層を宣言しない作業領域内の参照を、9言語すべてで黙って通す</b>",
+    "<b>試作は、9言語すべてで逆の並びを検出し、層を宣言しない参照を報告した</b> ── 既存の11のまとまりも、置き場所だけの宣言で逆の並びを検出した",
+    "<b>既存の試験48件は成功し、clippy の警告は0件だった</b>"
    ],
    "requirements": [
-    "<b>言語の抽出器が manifest を読む</b> ── いまの抽出器が申告している限界「経路の別名は解決していない」を解消する作業にあたる"
+    "<b>言語ごとに、設定のファイルを読む実装が増える</b> ── 試作では約200行（<code>names.rs</code>）",
+    "<b>規則ファイルの層は、置き場所だけを書く</b>（論点12）"
    ],
    "out_of_scope": [
     {
-     "item": "<b>この答えを試す相手は、外の作業である</b> ── manifest からの解決を実装し、既存の11のまとまりで、置き場所だけの宣言から逆の並びを検出できるかを測る",
+     "item": "<b>試作は、設定のファイルを文字列として読むだけである</b> ── TOML の1行 ・ CMake の include_directories ・ コメントの無い tsconfig.json",
      "treatment": "later",
-     "note": "まだ実装していない"
+     "note": "正本へ起こすときに、読める形の範囲を決める。読めない形は判定できなかった範囲として報告する"
+    },
+    {
+     "item": "<b>この答えを試す相手は、外の作業である</b> ── 実際の他のリポジトリ（monorepo ・ 複数の source root）で測る",
+     "treatment": "later",
+     "note": "試作は、このリポジトリと9言語の見本で測った"
     }
    ],
    "grounds": [
     {
-     "supports": "置き場所だけでは判定できない",
-     "basis": "置き場所だけを渡すと、11のまとまりすべてで逆の並びも合格した。crate 名も渡すと検出した",
+     "supports": "5言語で逆の並びを検出しない",
+     "basis": "いまの inward に、TypeScript ・ Python ・ Ruby ・ C++ ・ Go の見本を逆の並びで渡すと、すべて合格した",
      "tag": "measured",
-     "source": "<code>no-more-spaghetti inward</code> を実行（2026-09-28）"
+     "source": "<code>trial/names/fixtures</code> へ <code>inward</code> を実行（2026-09-28）"
+    },
+    {
+     "supports": "試作で9言語とも検出する",
+     "basis": "試作に9言語の見本を渡すと、逆の並びは違反、層を宣言しない参照は未解決として報告した。既存の11のまとまりも置き場所だけで検出した",
+     "tag": "measured",
+     "source": "<code>trial/names/names.patch</code> を適用した試作（2026-09-28）"
     },
     {
      "supports": "判定できなかったことを合格にしない",
@@ -3855,14 +4008,14 @@
      "source": "<code>.claude/skills/no-more-spaghetti/rs/parts/src/inward/mod.rs:14</code>"
     },
     {
-     "supports": "層は where で書く",
+     "supports": "層は置き場所で宣言する",
      "basis": "論点12 の答え",
      "tag": "rule",
      "source": "論点12"
     },
     {
-     "supports": "manifest を読むことは、外の道具を呼ぶことではない",
-     "basis": "論点2 の答え ── Skill は言語の外の道具を持たない。manifest はファイルとして読むだけで、その言語の道具を実行しない",
+     "supports": "その言語の道具は実行しない",
+     "basis": "論点2 の答え ── Skill は言語の外の道具を保持しない",
      "tag": "rule",
      "source": "論点2"
     },
