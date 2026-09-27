@@ -9,8 +9,224 @@
  tree-sitter-c-sharp = "0.23"
  tree-sitter-cpp = "0.23"
 --- a/rs/parts/src/inward/syntax.rs	2026-09-26 19:09:52.200469008 +0900
-+++ rs/parts/src/inward/syntax.rs	2026-09-28 08:21:47.721196145 +0900
-@@ -234,6 +234,114 @@
++++ rs/parts/src/inward/syntax.rs	2026-09-28 08:44:08.620845465 +0900
+@@ -48,6 +48,42 @@
+     pub resolve: Resolve,
+     /// 文法。
+     pub grammar: fn() -> Language,
++    /// **契約の欄** ── 名前空間をつなぐ情報の出どころ。`None` は、ソースが自分の名前を
++    /// 宣言する言語である（参照する側も参照される側も、宣言の名前空間で書かれる）。
++    pub bridge: Option<fn(&Path, &mut super::names::Bridge)>,
++    /// **契約の欄** ── 名前を実行時に決める読み込み。無い言語は `Absent` に理由を書く。
++    pub dynamic: Dynamic,
++    /// **契約の欄** ── 条件で分かれる読み込み。すべての分岐を辺にする。無い言語は `Absent`。
++    pub branches: Branches,
++}
++
++/// 名前を実行時に決める読み込み。
++///
++/// **文字列で書かれていれば辺、そうでなければ抜け道である** ── どの言語にも同じ規則を課す。
++#[derive(Debug, Clone, Copy)]
++pub enum Dynamic {
++    /// 読み込みの呼び出しを指す問い。捕まえる名前は `how`（呼ぶ名前。無くてもよい）と `arg`（最初の引数）。
++    Calls {
++        /// 問い。
++        query: &'static str,
++        /// 読み込みを起こす名前（末尾で一致させる）。空なら、問いに一致したものすべて。
++        names: &'static [&'static str],
++        /// 文字列として扱う節の種類。**埋め込みを含めば、文字列として扱わない。**
++        literal: &'static [&'static str],
++        /// 文字列で書かれた読み込みを、辺にするか ── 読み込みの問いが既に捕まえていれば辺にしない。
++        edges: bool,
++    },
++    /// その言語には無い。**理由を書く。**
++    Absent(&'static str),
++}
++
++/// 条件で分かれる読み込み。
++#[derive(Debug, Clone, Copy)]
++pub enum Branches {
++    /// 分岐の中の読み込みも、構文木に現れる ── すべての分岐を辺にしている。書き方を添える。
++    AllBranches(&'static str),
++    /// その言語には無い。**理由を書く。**
++    Absent(&'static str),
+ }
+ 
+ /// 扱う言語の一覧。**言語を足すときに触るのはここ1か所である。**
+@@ -64,6 +100,14 @@
+             here: "",
+             resolve: Resolve::Dotted,
+             grammar: || tree_sitter_python::LANGUAGE.into(),
++            bridge: Some(super::names::python),
++            dynamic: Dynamic::Calls {
++                query: "(call function: (_) @how arguments: (argument_list . (_) @arg))",
++                names: &["__import__", "import_module"],
++                literal: &["string"],
++                edges: true,
++            },
++            branches: Branches::AllBranches("try ・ if の中の import"),
+         },
+         Syntax {
+             language: "rust",
+@@ -72,6 +116,14 @@
+             here: "",
+             resolve: Resolve::Crate,
+             grammar: || tree_sitter_rust::LANGUAGE.into(),
++            bridge: Some(super::names::rust),
++            dynamic: Dynamic::Calls {
++                query: "(macro_invocation macro: (identifier) @how (token_tree . (_) @arg))",
++                names: &["include"],
++                literal: &[],
++                edges: false,
++            },
++            branches: Branches::AllBranches("#[cfg] の付いた use"),
+         },
+         Syntax {
+             language: "typescript",
+@@ -81,6 +133,15 @@
+             here: "",
+             resolve: Resolve::Path,
+             grammar: || tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
++            bridge: Some(super::names::typescript),
++            dynamic: Dynamic::Calls {
++                query: "[(call_expression function: (import) @how arguments: (arguments . (_) @arg))
++                         (call_expression function: (identifier) @how arguments: (arguments . (_) @arg))]",
++                names: &["import", "require"],
++                literal: &["string"],
++                edges: true,
++            },
++            branches: Branches::AllBranches("if の中の import() ・ require()"),
+         },
+         Syntax {
+             language: "java",
+@@ -90,6 +151,14 @@
+             here: "(package_declaration [(scoped_identifier) (identifier)] @here)",
+             resolve: Resolve::Qualified,
+             grammar: || tree_sitter_java::LANGUAGE.into(),
++            bridge: None,
++            dynamic: Dynamic::Calls {
++                query: "(method_invocation name: (identifier) @how arguments: (argument_list . (_) @arg))",
++                names: &["forName", "loadClass"],
++                literal: &["string_literal"],
++                edges: true,
++            },
++            branches: Branches::Absent("import に条件を付ける書き方が無い"),
+         },
+         Syntax {
+             language: "kotlin",
+@@ -98,6 +167,14 @@
+             here: "(package_header (qualified_identifier) @here)",
+             resolve: Resolve::Qualified,
+             grammar: || tree_sitter_kotlin_ng::LANGUAGE.into(),
++            bridge: None,
++            dynamic: Dynamic::Calls {
++                query: "(call_expression (navigation_expression (_) (identifier) @how) (value_arguments . (value_argument (_) @arg)))",
++                names: &["forName", "loadClass"],
++                literal: &["string_literal"],
++                edges: true,
++            },
++            branches: Branches::Absent("import に条件を付ける書き方が無い"),
+         },
+         Syntax {
+             language: "csharp",
+@@ -107,6 +184,14 @@
+                     (namespace_declaration name: (_) @here)]",
+             resolve: Resolve::Qualified,
+             grammar: || tree_sitter_c_sharp::LANGUAGE.into(),
++            bridge: None,
++            dynamic: Dynamic::Calls {
++                query: "(invocation_expression function: (member_access_expression name: (identifier) @how) arguments: (argument_list . (argument (_) @arg)))",
++                names: &["GetType", "Load", "LoadFrom", "CreateInstance"],
++                literal: &["string_literal"],
++                edges: true,
++            },
++            branches: Branches::AllBranches("#if の中の using"),
+         },
+         Syntax {
+             language: "php",
+@@ -115,6 +200,15 @@
+             here: "(namespace_definition name: (namespace_name) @here)",
+             resolve: Resolve::Qualified,
+             grammar: || tree_sitter_php::LANGUAGE_PHP.into(),
++            bridge: None,
++            dynamic: Dynamic::Calls {
++                query: "[(include_expression (_) @arg) (include_once_expression (_) @arg)
++                         (require_expression (_) @arg) (require_once_expression (_) @arg)]",
++                names: &[],
++                literal: &[],
++                edges: false,
++            },
++            branches: Branches::Absent("use に条件を付ける書き方が無い"),
+         },
+         Syntax {
+             language: "go",
+@@ -123,6 +217,14 @@
+             here: "",
+             resolve: Resolve::Qualified,
+             grammar: || tree_sitter_go::LANGUAGE.into(),
++            bridge: Some(super::names::go),
++            dynamic: Dynamic::Calls {
++                query: "(call_expression function: (selector_expression) @how arguments: (argument_list . (_) @arg))",
++                names: &["plugin.Open"],
++                literal: &[],
++                edges: false,
++            },
++            branches: Branches::AllBranches("//go:build の付いたファイル"),
+         },
+         Syntax {
+             language: "ruby",
+@@ -131,6 +233,19 @@
+             here: "",
+             resolve: Resolve::Path,
+             grammar: || tree_sitter_ruby::LANGUAGE.into(),
++            bridge: Some(super::names::ruby),
++            dynamic: Dynamic::Calls {
++                // 受け手の無い呼び出しだけ ── `FeatureLoader.load(...)` は Kernel の load ではない（実測 ── rubocop）
++                // autoload は2つ目が経路である ── 1つ目の記号を見ると、静的な autoload を抜け道と誤る（実測 ── rubocop）
++                query: "(call !receiver method: (identifier) @how arguments: (argument_list . (_) @arg)
++                          (#match? @how \"^(require|require_relative|load)$\"))
++                        (call !receiver method: (identifier) @how arguments: (argument_list (_) . (_) @arg)
++                          (#eq? @how \"autoload\"))",
++                names: &["require", "require_relative", "load", "autoload"],
++                literal: &["string"],
++                edges: false,
++            },
++            branches: Branches::AllBranches("if の中の require"),
+         },
+         Syntax {
+             language: "cpp",
+@@ -139,10 +254,30 @@
+             here: "",
+             resolve: Resolve::Path,
+             grammar: || tree_sitter_cpp::LANGUAGE.into(),
++            bridge: Some(super::names::cpp),
++            dynamic: Dynamic::Calls {
++                query: "[(preproc_include path: [(identifier) (call_expression)] @arg)
++                         (call_expression function: (identifier) @how arguments: (argument_list . (_) @arg))]",
++                names: &["dlopen", "LoadLibraryA", "LoadLibraryW"],
++                literal: &[],
++                edges: false,
++            },
++            branches: Branches::AllBranches("#if の中の #include"),
+         },
+     ]
+ }
+ 
++/// Ruby の `"#{__dir__}/経路"` を、そのファイルからの相対経路へ直す。**`__dir__` は、
++/// そのファイルの包みである** ── 埋め込みはそれ1つだけのときに限る（実測 ── rubocop）。
++fn ruby_dir_relative(raw: &str) -> Option<String> {
++    let body = raw.trim_matches('"');
++    let rest = body.strip_prefix("#{__dir__}/")?;
++    if rest.contains("#{") {
++        return None;
++    }
++    Some(format!("./{rest}"))
++}
++
+ /// 引用符を外す。**文字列の節点は引用符を含む。**
+ fn unquote(raw: &str) -> &str {
+     raw.trim_matches(|c| c == '"' || c == '\'' || c == '`')
+@@ -234,6 +369,129 @@
      body
  }
  
@@ -101,6 +317,13 @@
 +                            return format!("{lp}/{spec}");
 +                        }
 +                    }
++                    // 行き先が無くても、頭の包みが探索路の下に在れば、そこを指している（生成物か、名前の誤り）
++                    let first = spec.split('/').next().unwrap_or(spec);
++                    for lp in &bridge.search {
++                        if root.join(lp).join(first).exists() || root.join(lp).join(format!("{first}.rb")).is_file() {
++                            return format!("{lp}/{spec}");
++                        }
++                    }
 +                    spec.to_owned()
 +                }
 +                "cpp" => {
@@ -114,6 +337,14 @@
 +                            return cand;
 +                        }
 +                    }
++                    // 行き先が無くても、頭の包みが探索路の下に在れば、そこを指している
++                    let first = spec.split('/').next().unwrap_or(spec);
++                    for inc in &bridge.search {
++                        let base = if inc.is_empty() { root.to_path_buf() } else { root.join(inc) };
++                        if spec.contains('/') && base.join(first).is_dir() {
++                            return if inc.is_empty() { spec.to_owned() } else { format!("{inc}/{spec}") };
++                        }
++                    }
 +                    spec.to_owned()
 +                }
 +                _ => fold(root, rel_file, spec),
@@ -125,13 +356,27 @@
  /// 原文から辺を取る抽出器。
  #[derive(Clone)]
  #[non_exhaustive]
-@@ -336,8 +444,25 @@
+@@ -251,6 +509,13 @@
+             .map(|syntax| Self { syntax })
+     }
+ 
++    /// その言語のソースの拡張子。**名前の末尾を外すとき、これだけを拡張子として扱う**
++    /// ── 版の番号（`v1.43.0`）や名前の一部（`types.gen`）を、拡張子として外さない（実測）。
++    #[must_use]
++    pub fn extensions(&self) -> &'static [&'static str] {
++        self.syntax.extensions
++    }
++
+     /// 扱える言語を並べる。
+     #[must_use]
+     pub fn languages() -> Vec<&'static str> {
+@@ -336,8 +601,27 @@
          let mut undecided = Vec::new();
          // **測り方の限界は、申告であって検出ではない。** 検出に混ぜると、取りこぼしの
          // 申告そのものが不合格の原因になる（実測 ── 向きの規則が常に不合格になった）
 -        let limits =
 -            vec!["字面で測っている ── 経路の別名と探索路の指定は解決していない".to_owned()];
-+        let bridge = super::names::bridge(s.language, root);
++        let bridge = super::names::from(s.bridge, root);
 +        let limits = if matches!(s.language, "java" | "kotlin" | "csharp" | "php") {
 +            vec!["字面で測っている ── 名前は、ソースが宣言する package ・ namespace から取っている".to_owned()]
 +        } else if bridge.sources.is_empty() {
@@ -148,12 +393,14 @@
 +                count.iter().map(|(k, v)| format!("{k} {v}件")).collect::<Vec<_>>().join(" ・ ")
 +            )]
 +        };
++        let mut limits = limits;
++        limits.push(format!("走査しない包み ── {}", SKIP.join(" ・ ")));
 +        let mut points = Vec::new();
 +
          for file in &files {
              let Ok(body) = std::fs::read_to_string(file) else {
                  undecided.push(format!("{} ── 読めない", file.display()));
-@@ -373,6 +498,7 @@
+@@ -373,6 +657,7 @@
                  (None, Resolve::Dotted | Resolve::Crate) => dotted(root, file),
                  (None, _) => rel.clone(),
              };
@@ -161,39 +408,111 @@
              let mut cursor = QueryCursor::new();
              let mut hits = cursor.matches(&imports, tree.root_node(), bytes);
              while let Some(m) = hits.next() {
-@@ -393,13 +519,11 @@
+@@ -393,42 +678,81 @@
                  if s.language == "ruby" && !RUBY_LOADERS.contains(&how.as_str()) {
                      continue;
                  }
-+                if s.language == "ruby" && raw.contains("#{") {
-+                    continue; // 抜け道として別に出す
-+                }
-                 let spec = unquote(raw);
+-                let spec = unquote(raw);
 -                let to = match s.resolve {
 -                    Resolve::Qualified => spec.to_owned(),
 -                    Resolve::Path => fold(root, file.strip_prefix(root).unwrap_or(file), spec),
 -                    Resolve::Dotted => relative_dotted(&here, spec),
 -                    Resolve::Crate => in_crate(&here, spec),
--                };
-+                let to = resolve(s, &bridge, root, file, &here, spec, &how);
++                let owned;
++                let (spec, how) = if s.language == "ruby" && raw.contains("#{") {
++                    match ruby_dir_relative(raw) {
++                        Some(r) => {
++                            owned = r;
++                            (owned.as_str(), "require_relative".to_owned())
++                        }
++                        None => continue, // 抜け道として別に出す
++                    }
++                } else {
++                    (unquote(raw), how)
++                };
++                // Rust の入れ子の mod ── `mod tests { use super::x; }` の super は、その mod から数える（実測 ── ripgrep）
++                let inner_here = if s.language == "rust" {
++                    let mut names = Vec::new();
++                    let mut node = m.captures.first().map(|c| c.node);
++                    while let Some(n) = node {
++                        if n.kind() == "mod_item" {
++                            if let Some(name) = n.child_by_field_name("name") {
++                                names.push(name.utf8_text(bytes).unwrap_or("").to_owned());
++                            }
++                        }
++                        node = n.parent();
++                    }
++                    names.reverse();
++                    if names.is_empty() { here.clone() } else { format!("{here}.{}", names.join(".")) }
++                } else {
++                    here.clone()
+                 };
++                let to = resolve(s, &bridge, root, file, &inner_here, spec, &how);
                  edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
              }
-             // 読み込みが文字列でない箇所は、行き先が静的に決まらない
-@@ -424,7 +548,12 @@
-                             line = cap.node.start_position().row + 1;
+-            // 読み込みが文字列でない箇所は、行き先が静的に決まらない
+-            if s.language == "ruby" {
+-                let dyn_query = Query::new(
+-                    &lang,
+-                    "(call method: (identifier) @how arguments: (argument_list . (_) @arg))",
+-                )
+-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;
++            // **名前を実行時に決める読み込み** ── 文字列で書かれていれば辺、そうでなければ抜け道
++            if let Dynamic::Calls { query, names, literal, edges: make_edges } = s.dynamic {
++                let dyn_query = Query::new(&lang, query)
++                    .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;
+                 let mut c2 = QueryCursor::new();
+                 let mut got = c2.matches(&dyn_query, tree.root_node(), bytes);
+                 while let Some(m) = got.next() {
+-                    let mut method = "";
+-                    let mut kind = "";
+-                    let mut line = 1;
++                    let mut how = String::new();
++                    let mut arg = None;
+                     for cap in m.captures {
+                         let name = &dyn_query.capture_names()[cap.index as usize];
+                         if *name == "how" {
+-                            method = cap.node.utf8_text(bytes).unwrap_or("");
+-                        } else {
+-                            kind = cap.node.kind();
+-                            line = cap.node.start_position().row + 1;
++                            how = cap.node.utf8_text(bytes).unwrap_or("").to_owned();
++                        } else if *name == "arg" {
++                            arg = Some(cap.node);
                          }
                      }
 -                    if RUBY_LOADERS.contains(&method) && kind != "string" {
-+                    // 埋め込みを含む文字列も、行き先が静的に決まらない（実測 ── "rubocop/#{feature}/version"）
-+                    let interpolated = kind == "string" && m.captures.iter().any(|c| {
-+                        let n = c.node;
-+                        (0..n.child_count()).any(|k| n.child(k).is_some_and(|ch| ch.kind() == "interpolation"))
-+                    });
-+                    if RUBY_LOADERS.contains(&method) && (kind != "string" || interpolated) {
++                    let Some(arg) = arg else { continue };
++                    let named = how.is_empty()
++                        || names.is_empty()
++                        || names.iter().any(|n| {
++                            how == *n || how.ends_with(&format!(".{n}")) || how.ends_with(&format!("::{n}"))
++                        });
++                    if !named {
++                        continue;
++                    }
++                    let line = arg.start_position().row + 1;
++                    let embedded = (0..arg.child_count()).any(|k| {
++                        arg.child(k).is_some_and(|c| matches!(c.kind(), "interpolation" | "template_substitution"))
++                    }) && !(s.language == "ruby"
++                        && ruby_dir_relative(arg.utf8_text(bytes).unwrap_or("")).is_some());
++                    if literal.contains(&arg.kind()) && !embedded {
++                        if make_edges {
++                            let spec = unquote(arg.utf8_text(bytes).unwrap_or(""));
++                            let to = resolve(s, &bridge, root, file, &here, spec, &how);
++                            edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
++                        }
++                    } else {
++                        let what = if how.is_empty() { arg.kind().to_owned() } else { how.clone() };
                          escapes.push(Escape::new(
                              here.clone(),
                              format!("{rel}:{line}"),
-@@ -438,6 +567,8 @@
+-                            format!("図に現れない読み込み ── {method} に文字列以外を渡している"),
++                            format!("図に現れない読み込み ── {what} の行き先が、実行時に決まる"),
+                         ));
+                     }
+                 }
+@@ -438,6 +762,8 @@
              edges,
              escapes,
              undecided,
@@ -226,8 +545,8 @@
      /// 書くものなので、検出には数えない。
      pub limits: Vec<String>,
 --- a/rs/declare/src/lib.rs	2026-09-27 00:59:32.538451528 +0900
-+++ rs/declare/src/lib.rs	2026-09-28 08:18:32.325631162 +0900
-@@ -462,13 +462,75 @@
++++ rs/declare/src/lib.rs	2026-09-28 08:41:03.586279047 +0900
+@@ -462,13 +462,113 @@
              .iter()
              .map(|u| format!("判定できていない ── {u}")),
      );
@@ -258,12 +577,27 @@
 +        &[".", "::"]
 +    };
 +    // 経路の言語では、拡張子を外して比べる ── 読み込みの文は拡張子を書くことも書かないこともある（実測）
++    let exts = tree.extensions();
 +    let stem = |x: &str| -> String {
 +        if path_like {
-+            x.rsplit_once('.').filter(|(h, e)| !e.contains('/') && !h.is_empty() && e.len() <= 4).map_or(x, |(h, _)| h).to_owned()
++            x.rsplit_once('.')
++                .filter(|(h, e)| !h.is_empty() && exts.contains(e))
++                .map_or(x, |(h, _)| h)
++                .to_owned()
 +        } else {
 +            x.to_owned()
 +        }
++    };
++    // 2つの名前が、同じ点か、一方が他方の中に在るか
++    let related = |p: &str, to: &str| {
++        // Rust の use の木（`a::{b, c}`）は、`{` の手前までを名前とする
++        let to = to.split('{').next().unwrap_or(to).trim_end_matches(['.', ':']);
++        let (p, to) = (stem(p), stem(to));
++        let (p, to) = (p.as_str(), to.as_str());
++        p == to
++            || seps.iter().any(|sep| {
++                p.starts_with(&format!("{to}{sep}")) || to.starts_with(&format!("{p}{sep}"))
++            })
 +    };
 +    let inside = |to: &str| {
 +        let to = stem(to);
@@ -287,6 +621,29 @@
 +            })
 +            .map(|e| format!("判定できていない ── {} ── {} はどの層にも属さない", e.at, e.to)),
 +    );
++    // **層を指すのに、その層に点が1つも無い参照を、合格にしない** ── 生成されるファイルが
++    // まだ無いか、名前の書き間違いである。名前が記号まで含む言語では、確かめられるのは点
++    // （ファイル ・ package ・ module）の単位までである
++    findings.extend(
++        got.edges
++            .iter()
++            .filter(|e| {
++                nms_parts::inward::judge::layer_for(&order, &e.from).is_some()
++                    // 経路で書く言語は、ファイルが在れば実在する ── 走査しない包み（vendor など）の中でも（実測 ── trpc）
++                    && !(path_like
++                        && exts.iter().chain(std::iter::once(&"")).any(|x| {
++                            let f = if x.is_empty() { root.join(&e.to) } else { root.join(format!("{}.{x}", e.to)) };
++                            f.exists() || root.join(&e.to).join(format!("index.{x}")).exists()
++                        }))
++                    && nms_parts::inward::judge::layer_for(&order, &e.to).is_some_and(|l| {
++                        !got.points.iter().any(|p| {
++                            nms_parts::inward::judge::layer_for(&order, p).is_some_and(|pl| pl.name == l.name)
++                                && related(p, &e.to)
++                        })
++                    })
++            })
++            .map(|e| format!("判定できていない ── {} ── {} の参照先が実在しない（生成物か、名前の誤り）", e.at, e.to)),
++    );
      Outcome::found(
          findings,
          json!({
@@ -304,8 +661,8 @@
      )
  }
 --- /dev/null	2026-09-26 17:54:10.843989507 +0900
-+++ b/rs/parts/src/inward/names.rs	2026-09-28 08:21:47.721098845 +0900
-@@ -0,0 +1,579 @@
++++ b/rs/parts/src/inward/names.rs	2026-09-28 08:35:27.732892477 +0900
+@@ -0,0 +1,573 @@
 +// SPDX-License-Identifier: MIT
 +//! 参照の名前空間と、置き場所の名前空間をつなぐ。
 +//!
@@ -476,22 +833,16 @@
 +    body.parse::<toml::Value>().map_err(|e| e.to_string())
 +}
 +
-+/// 言語ごとに対応表を組む。
++/// 言語の表の契約の欄（`bridge`）から、対応表を組む。
 +#[must_use]
-+pub fn bridge(language: &str, root: &Path) -> Bridge {
++pub fn from(read: Option<fn(&Path, &mut Bridge)>, root: &Path) -> Bridge {
 +    let mut b = Bridge::default();
 +    // 測定のためだけの切り替え ── 対応表を使わないときの結果と比べる
 +    if std::env::var_os("NMS_NO_BRIDGE").is_some() {
 +        return b;
 +    }
-+    match language {
-+        "rust" => rust(root, &mut b),
-+        "go" => go(root, &mut b),
-+        "typescript" => typescript(root, &mut b),
-+        "python" => python(root, &mut b),
-+        "ruby" => ruby(root, &mut b),
-+        "cpp" => cpp(root, &mut b),
-+        _ => {}
++    if let Some(read) = read {
++        read(root, &mut b);
 +    }
 +    b.aliases.sort_by_key(|a| std::cmp::Reverse(a.from.len()));
 +    b.search.sort();
@@ -500,7 +851,7 @@
 +}
 +
 +/// Rust ── crate 名（Cargo.toml の `[package] name`）を、crate の根へ。
-+fn rust(root: &Path, b: &mut Bridge) {
++pub fn rust(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "Cargo.toml", &mut found);
 +    for f in found {
@@ -534,7 +885,7 @@
 +}
 +
 +/// Go ── module のパス（go.mod の `module`）を、その包みへ。
-+fn go(root: &Path, b: &mut Bridge) {
++pub fn go(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "go.mod", &mut found);
 +    for f in found {
@@ -598,7 +949,7 @@
 +}
 +
 +/// TypeScript ── package 名（package.json の `name`）と、tsconfig の `paths`。
-+fn typescript(root: &Path, b: &mut Bridge) {
++pub fn typescript(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "package.json", &mut found);
 +    for f in found {
@@ -653,7 +1004,7 @@
 +}
 +
 +/// Python ── source root（pyproject.toml の各道具の書き方、無ければ `src`）。
-+fn python(root: &Path, b: &mut Bridge) {
++pub fn python(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "pyproject.toml", &mut found);
 +    for f in &found {
@@ -719,7 +1070,7 @@
 +}
 +
 +/// Ruby ── load path（gemspec の `require_paths`、無ければ `lib`）。
-+fn ruby(root: &Path, b: &mut Bridge) {
++pub fn ruby(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f.ends_with(".gemspec"), &mut found);
 +    for f in &found {
@@ -784,7 +1135,7 @@
 +}
 +
 +/// C++ ── include ディレクトリ（CMakeLists.txt、compile_commands.json）。
-+fn cpp(root: &Path, b: &mut Bridge) {
++pub fn cpp(root: &Path, b: &mut Bridge) {
 +    const WORDS: [&str; 7] = ["PUBLIC", "PRIVATE", "INTERFACE", "SYSTEM", "BEFORE", "AFTER", ""];
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "CMakeLists.txt", &mut found);
@@ -884,4 +1235,156 @@
 +        }
 +        best.map(|(_, g)| g)
 +    }
++}
+--- /dev/null	2026-09-26 17:54:10.843989507 +0900
++++ b/rs/declare/tests/contract.rs	2026-09-28 08:37:46.322792175 +0900
+@@ -0,0 +1,149 @@
++// SPDX-License-Identifier: MIT
++//! 依存の向きの契約を、**すべての言語へ同じ形で**課す。
++//!
++//! どの義務を課すかは、言語の表の契約の欄（`bridge` ・ `dynamic` ・ `branches`）が決める。
++//! **表に言語を1つ足すと、この試験がその言語にも課される** ── 見本が無ければ失敗する。
++//!
++//!     cargo test -p nms_declare --test contract
++
++use std::path::{Path, PathBuf};
++
++use nms_declare::{tools, Given, Outcome};
++use nms_parts::inward::syntax::{table, Branches, Dynamic};
++
++/// 見本1つ。層は内から外の並びで、core（内）・ gen（中身の無い層）・ adapter（外）である。
++struct Case {
++    language: &'static str,
++    core: &'static str,
++    gen: &'static str,
++    adapter: &'static str,
++    /// 条件で分かれる読み込みの、2つの行き先。
++    fast: &'static str,
++    slow: &'static str,
++    /// 読めない設定を作る ── （ファイル, 中身）。
++    broken: (&'static str, &'static str),
++}
++
++const CASES: [Case; 10] = [
++    Case { language: "python", core: "src.app.core", gen: "src.app.gen", adapter: "src.app.adapter", fast: "src.app.core.fast", slow: "src.app.core.slow", broken: ("pyproject.toml", "[tool") },
++    Case { language: "rust", core: "core", gen: "gen", adapter: "adapter", fast: "core.src.fast", slow: "core.src.slow", broken: ("core/Cargo.toml", "[package") },
++    Case { language: "typescript", core: "src/core", gen: "src/gen", adapter: "src/adapter", fast: "src/core/fast", slow: "src/core/slow", broken: ("tsconfig.json", "{ \"compilerOptions\": ") },
++    Case { language: "java", core: "com.acme.core", gen: "com.acme.gen", adapter: "com.acme.adapter", fast: "", slow: "", broken: ("", "") },
++    Case { language: "kotlin", core: "com.acme.core", gen: "com.acme.gen", adapter: "com.acme.adapter", fast: "", slow: "", broken: ("", "") },
++    Case { language: "csharp", core: "Acme.Core", gen: "Acme.Gen", adapter: "Acme.Adapter", fast: "Acme.Core.Fast", slow: "Acme.Core.Slow", broken: ("", "") },
++    Case { language: "php", core: "App\\Core", gen: "App\\Gen", adapter: "App\\Adapter", fast: "", slow: "", broken: ("", "") },
++    Case { language: "go", core: "core", gen: "gen", adapter: "adapter", fast: "core/fast", slow: "core/slow", broken: ("go.mod", "go 1.22\n") },
++    Case { language: "ruby", core: "lib/app/core", gen: "lib/app/gen", adapter: "lib/app/adapter", fast: "lib/app/core/fast", slow: "lib/app/core/slow", broken: ("app.gemspec", "") },
++    Case { language: "cpp", core: "include/app/core", gen: "include/app/gen", adapter: "src/adapter", fast: "include/app/core/fast", slow: "include/app/core/slow", broken: ("CMakeLists.txt", "include_directories(${UNKNOWN_DIR}/inc)\n") },
++];
++
++fn fixture(language: &str) -> PathBuf {
++    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
++        .join("tests/fixtures/contract")
++        .join(language)
++}
++
++fn inward(language: &str, root: &Path, layers: &[(&str, &str)]) -> Outcome {
++    let tool = tools().into_iter().find(|t| t.name == "inward").expect("在る");
++    let mut given = Given::default();
++    given.push("language", language.to_owned());
++    given.push("root", root.display().to_string());
++    for (name, id) in layers {
++        given.push("layer", format!("{name}={id}"));
++    }
++    (tool.run)(&given)
++}
++
++fn has(out: &Outcome, needle: &str) -> bool {
++    out.findings.iter().any(|f| f.contains(needle))
++}
++
++fn copy(from: &Path, to: &Path) {
++    std::fs::create_dir_all(to).expect("作れる");
++    for e in std::fs::read_dir(from).expect("読める").flatten() {
++        let p = e.path();
++        let q = to.join(e.file_name());
++        if p.is_dir() {
++            copy(&p, &q);
++        } else {
++            std::fs::copy(&p, &q).expect("写せる");
++        }
++    }
++}
++
++#[test]
++fn every_language_in_the_table_has_a_case() {
++    // **表に言語を足したら、見本も足す** ── 足さなければ、契約を課されないまま通る
++    for s in table() {
++        assert!(
++            CASES.iter().any(|c| c.language == s.language),
++            "{} に契約の見本が無い",
++            s.language
++        );
++    }
++}
++
++#[test]
++fn every_language_meets_the_contract() {
++    let mut broken_all = Vec::new();
++    for s in table() {
++        let c = CASES.iter().find(|c| c.language == s.language).expect("見本が在る");
++        let root = fixture(c.language);
++        let lang = c.language;
++        let order = [("core", c.core), ("gen", c.gen), ("adapter", c.adapter)];
++        let out = inward(lang, &root, &order);
++        let mut broken = Vec::new();
++        // 義務1：正しい並びでは、向きの違反が無い
++        if has(&out, "内側が外側") {
++            broken.push("正しい並びで違反が出た".to_owned());
++        }
++        // 義務2：作業領域の中を指すのに、どの層にも属さない参照を報告する
++        if !has(&out, "どの層にも属さない") {
++            broken.push("層に属さない参照（stray）を報告しない".to_owned());
++        }
++        // 義務3：層を指すのに、その層に点が無い参照を報告する
++        if !has(&out, "参照先が実在しない") {
++            broken.push("実在しない参照先（gen）を報告しない".to_owned());
++        }
++        // 義務4：名前を実行時に決める読み込みを、抜け道として報告する
++        if matches!(s.dynamic, Dynamic::Calls { .. }) && !has(&out, "実行時に決まる") {
++            broken.push("名前を実行時に決める読み込みを報告しない".to_owned());
++        }
++        // 義務5：条件で分かれる読み込みは、すべての分岐を辺にする
++        if matches!(s.branches, Branches::AllBranches(_)) {
++            let edges = out.data["edge_list"].as_array().cloned().unwrap_or_default();
++            for want in [c.fast, c.slow] {
++                if !edges.iter().any(|e| e[1].as_str().is_some_and(|t| t.starts_with(want))) {
++                    broken.push(format!("条件の分岐の行き先 {want} を辺にしていない"));
++                }
++            }
++        }
++        // 義務6：逆の並びでは、向きの違反を出す
++        let reversed = [("adapter", c.adapter), ("gen", c.gen), ("core", c.core)];
++        if !has(&inward(lang, &root, &reversed), "内側が外側") {
++            broken.push("逆の並びで違反が出ない".to_owned());
++        }
++        // 義務7：名前空間をつなぐ設定を読めなければ、報告する
++        if s.bridge.is_some() {
++            let tmp = std::env::temp_dir().join(format!("nms-contract-{lang}"));
++            let _ = std::fs::remove_dir_all(&tmp);
++            copy(&root, &tmp);
++            let (file, body) = c.broken;
++            let target = tmp.join(file);
++            if body.is_empty() {
++                // 中身で壊せない設定（文字列として読むもの）は、読む権限を外す
++                use std::os::unix::fs::PermissionsExt;
++                std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o000)).expect("変えられる");
++            } else {
++                std::fs::write(&target, body).expect("書ける");
++            }
++            if !has(&inward(lang, &tmp, &order), "設定を読めない") {
++                broken.push(format!("読めない設定（{file}）を報告しない"));
++            }
++        }
++        if !broken.is_empty() {
++            broken_all.push(format!("{lang}: {}", broken.join(" ／ ")));
++        }
++    }
++    assert!(broken_all.is_empty(), "契約を満たさない言語がある:\n{}", broken_all.join("\n"));
 +}
