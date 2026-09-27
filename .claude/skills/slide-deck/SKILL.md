@@ -233,7 +233,7 @@ slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して
 
 ```
 slide-deck review <照合の入力>.json <比較ページ.html>     # 比較ページを組む
-slide-deck export <照合の入力>.json <出力のフォルダ>     # 台本 ・ 確認記録 ・ 観点ごとの結果をHTMLとPDFで出す
+slide-deck export <照合の入力>.json <出力のフォルダ> --browser <ブラウザの場所>   # 台本 ・ 確認記録 ・ 観点ごとの結果をHTMLとPDFで出す
 ```
 
 **全枚が済んだら、3つを出力する。** PDFはHTMLを描画してから書き出す ── 別に組むと、HTMLと中身が食い違う。
@@ -292,6 +292,7 @@ slide-deck export <照合の入力>.json <出力のフォルダ>     # 台本 �
 - `references/render-check.md`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
 - `references/review.md`: **原稿を持つデッキの照合。** 7つの段の工程 ・ 7つの群の観点 ・ 最後に出す3つ ・ 比較ページの形。設計規則は複製しない
 - `references/review.schema.json`: **照合の入力の形の正本。** 変更前と変更後の各枚と、枚ごと ・ 観点の群ごとの結果を持つ
+- `references/review.template.html`: **照合の出力の形の正本。** 比較ページ ・ 確認記録 ・ 台本 ・ 観点ごとの結果の部品を1枚で持つ
 - `references/slide-deck.template.html`: **出来上がりの形の正本。** 固定ステージ ・ 部品 ・ めくる仕掛けを持ち、配色はテーマを貼る場所だけを持つ
 - `references/slide-deck.schema.json`: **入力の形の正本。** 枚と、14種類の要素が持てるキーを決める
 - `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
@@ -305,4 +306,5 @@ slide-deck export <照合の入力>.json <出力のフォルダ>     # 台本 �
 - `rs/parts/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
 - `rs/parts/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする**
 - `rs/parts/src/validate.rs`: 形では書けない規則を検査する。**組み立てより前に止まる**
-- `rs/parts/tests/`: 事例（51件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立てを固定してある
+- `rs/parts/src/review.rs`: 照合の入力から、比較ページと3つの成果物を組む。原稿の差分は文の単位で取る。**PDF は、渡されたブラウザで HTML を描画して出力する** ── ブラウザの場所を推測しない
+- `rs/parts/tests/`: 事例（57件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立て ・ 照合の出力を固定してある

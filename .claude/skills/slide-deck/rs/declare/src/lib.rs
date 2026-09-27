@@ -11,7 +11,7 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use sd_parts::{deck as build, theme as colors};
+use sd_parts::{deck as build, review, theme as colors};
 use serde_json::{json, Map, Value};
 
 pub use contract::{Arg, Given, Outcome, Tool};
@@ -264,6 +264,92 @@ fn human_render(out: &Outcome) -> String {
     lines.join("\n")
 }
 
+fn run_review(given: &Given) -> Outcome {
+    let input = given.one("input", "");
+    let out = given.one("out", "");
+    if input.is_empty() || out.is_empty() {
+        return Outcome::misuse("照合の入力と、比較ページの書き出し先を渡していない".to_owned());
+    }
+    match review::build_compare(&references(given), Path::new(input), Path::new(out)) {
+        Ok(n) => Outcome::found(Vec::new(), json!({ "out": out, "slides": n })),
+        Err(why) => Outcome::found(split_why(&why), json!({ "input": input })),
+    }
+}
+
+fn human_review(out: &Outcome) -> String {
+    if !out.findings.is_empty() {
+        return format!(
+            "{}\n組めていない（{} 件）",
+            crosses(&out.findings),
+            out.findings.len()
+        );
+    }
+    format!(
+        "組んだ: {}　／　{} 枚",
+        out.data
+            .get("out")
+            .and_then(Value::as_str)
+            .unwrap_or_default(),
+        out.data.get("slides").and_then(Value::as_u64).unwrap_or(0)
+    )
+}
+
+fn run_export(given: &Given) -> Outcome {
+    let input = given.one("input", "");
+    let out = given.one("out", "");
+    if input.is_empty() || out.is_empty() {
+        return Outcome::misuse("照合の入力と、書き出し先のフォルダを渡していない".to_owned());
+    }
+    let dir = Path::new(out);
+    let htmls = match review::build_exports(&references(given), Path::new(input), dir) {
+        Ok(list) => list,
+        Err(why) => return Outcome::found(split_why(&why), json!({ "input": input })),
+    };
+    let browser = given.one("browser", "");
+    let mut findings = Vec::new();
+    let mut pdfs = Vec::new();
+    if browser.is_empty() {
+        // **PDF を出さなかったことを、黙らない** ── 出したと読めてしまう
+        findings.push(
+            "PDF は出していない ── browser にブラウザの場所を渡すと、HTML を描画して PDF を出す"
+                .to_owned(),
+        );
+    } else {
+        for html in &htmls {
+            let pdf = html.with_extension("pdf");
+            match review::print_pdf(Path::new(browser), html, &pdf) {
+                Ok(()) => pdfs.push(pdf.display().to_string()),
+                Err(why) => findings.push(why),
+            }
+        }
+    }
+    let htmls: Vec<String> = htmls.iter().map(|p| p.display().to_string()).collect();
+    Outcome::found(findings, json!({ "html": htmls, "pdf": pdfs }))
+}
+
+fn human_export(out: &Outcome) -> String {
+    let list = |key: &str| -> Vec<String> {
+        out.data
+            .get(key)
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let mut lines: Vec<String> = list("html")
+        .into_iter()
+        .chain(list("pdf"))
+        .map(|p| format!("書き出し: {p}"))
+        .collect();
+    if !out.findings.is_empty() {
+        lines.push(crosses(&out.findings));
+    }
+    lines.join("\n")
+}
+
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
@@ -292,6 +378,33 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_render,
             human: human_render,
+        },
+        Tool {
+            name: "review",
+            summary: "照合の入力から、変更前と変更後を並べた比較ページを組む",
+            args: vec![
+                Arg::need("input", "照合の入力（review.schema.json の形の JSON）"),
+                Arg::need("out", "比較ページの書き出し先。画像は隣の img/ へ写す"),
+                root.clone(),
+            ],
+            run: run_review,
+            human: human_review,
+        },
+        Tool {
+            name: "export",
+            summary: "照合の入力から、台本 ・ 確認記録 ・ 観点ごとの結果を HTML と PDF で出す",
+            args: vec![
+                Arg::need("input", "照合の入力（review.schema.json の形の JSON）"),
+                Arg::need("out", "書き出し先のフォルダ"),
+                Arg::opt(
+                    "browser",
+                    "PDF を出すときのブラウザの場所。省くと HTML だけを出す",
+                    None,
+                ),
+                root.clone(),
+            ],
+            run: run_export,
+            human: human_export,
         },
         Tool {
             name: "check",

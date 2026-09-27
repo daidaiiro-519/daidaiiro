@@ -7,6 +7,7 @@
 //! **3つで組む。** 入力の形は契約が、出来上がりの形は型が、配色はテーマが持つ。
 
 pub mod deck;
+pub mod review;
 pub mod template;
 pub mod theme;
 pub mod validate;

@@ -1,0 +1,90 @@
+<!-- 照合の出力の型。比較ページ ・ 確認記録 ・ 台本 ・ 観点ごとの結果の形を、この1枚が持つ。
+     差し込む場所は {{名前}}。部品は template 要素の data-part で区切る。
+     色は :root の変数だけが持つ。部品の中に直に書かない。 -->
+<template data-part="page"><!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<style>
+:root{--ink:#252b29;--dim:#59605a;--line:#cfd3c8;--panel:#efece4;--paper:#fffdf8;--ground:#f6f4ee;--accent:#b64326;--del-bg:#f7e3de;--del-ink:#8a2f1a;--ins-bg:#e2efe3;--ins-ink:#24593a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.75 "Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif}
+main{max-width:1320px;margin:0 auto;padding-block:32px 64px;padding-inline:16px}
+h1{font-size:26px;line-height:1.4;margin:0 0 8px;text-wrap:balance}
+.kind{color:var(--dim);font-size:13px;letter-spacing:.08em;margin:0}
+.summary{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:18px 0}
+.summary p{margin:4px 0}
+.counts{color:var(--dim);font-size:13px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 28px}
+nav a{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--ink);text-decoration:none;font-size:13px}
+nav a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.sec{margin-top:36px}
+section.sec>h2{font-size:20px;border-bottom:2px solid var(--line);padding-bottom:6px}
+.pair{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;break-inside:avoid-page}
+.ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:10px}
+.ph h3{font-size:16px;margin:0}
+.num{font-weight:700;color:var(--dim);font-size:13px}
+.bd{font-size:12px;border-radius:999px;padding:1px 10px;border:1px solid var(--line);color:var(--dim)}
+.bd.changed,.bd.added{border-color:var(--accent);color:var(--accent)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.col img,.solo img,.slide img{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;display:block}
+.tag{display:inline-block;font-size:12px;font-weight:700;margin-bottom:6px;color:var(--dim)}
+.tag.new{color:var(--accent)}
+.narr{margin-top:10px;font-size:14px}
+.narr p{margin:2px 0;padding:1px 6px;border-radius:4px}
+.narr .del{background:var(--del-bg);color:var(--del-ink);text-decoration:line-through}
+.narr .ins{background:var(--ins-bg);color:var(--ins-ink)}
+.lbl{font-size:12px;color:var(--dim);font-weight:700}
+.none{color:var(--dim)}
+.hd{font-size:13px;margin:6px 0 0;padding:1px 6px;border-radius:4px}
+.hd.del{background:var(--del-bg);color:var(--del-ink);text-decoration:line-through}
+.hd.ins{background:var(--ins-bg);color:var(--ins-ink)}
+details.same summary{cursor:pointer;color:var(--dim)}
+.log{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{background:var(--panel)}
+.st{white-space:nowrap;font-weight:700}
+.st.fixed{color:var(--accent)}
+.st.pending{color:var(--del-ink)}
+.tablewrap{overflow-x:auto}
+.script .slide{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.script .slide{grid-template-columns:1fr}}
+@media print{body{background:#fff}main{max-width:none;padding:0}nav{display:none}details.same{display:block}details.same>summary{display:none}.pair{border-color:#ccc}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<p class="kind">{{kind}}</p>
+<h1>{{title}}</h1>
+{{summary}}
+{{nav}}
+{{body}}
+</main>
+</body>
+</html>
+</template>
+<template data-part="summary"><div class="summary">{{lines}}<p class="counts">{{counts}}</p></div></template>
+<template data-part="line"><p>{{text}}</p></template>
+<template data-part="nav"><nav>{{links}}</nav></template>
+<template data-part="nav-link"><a href="#{{anchor}}">{{name}}　<span class="counts">{{count}}</span></a></template>
+<template data-part="section"><section class="sec" id="{{anchor}}"><h2>{{name}}</h2>{{items}}</section></template>
+<template data-part="badge"><span class="bd {{kind}}">{{text}}</span></template>
+<template data-part="pair"><section class="pair" id="{{anchor}}"><div class="ph"><span class="num">{{number}}</span>{{badges}}<h3>{{heading}}</h3></div><div class="cols"><div class="col"><span class="tag">変更前</span>{{before}}</div><div class="col"><span class="tag new">変更後</span>{{after}}</div></div>{{log}}</section></template>
+<template data-part="pair-same"><section class="pair" id="{{anchor}}"><div class="ph"><span class="num">{{number}}</span>{{badges}}<h3>{{heading}}</h3></div><details class="same"{{open}}><summary>変更なし ── 開いて見る</summary><div class="solo">{{after}}</div></details>{{log}}</section></template>
+<template data-part="image"><img loading="lazy" src="{{src}}" alt="{{alt}}"></template>
+<template data-part="no-before"><p class="narr none">{{text}}</p></template>
+<template data-part="heading-diff"><p class="hd {{kind}}">{{label}}　{{text}}</p></template>
+<template data-part="narration"><div class="narr"><div class="lbl">{{label}}</div>{{sentences}}</div></template>
+<template data-part="sentence"><p class="{{kind}}">{{text}}</p></template>
+<template data-part="log"><div class="log"><div class="lbl">観点ごとの確認</div><div class="tablewrap"><table><thead><tr><th>観点の群</th><th>結果</th><th>見つけたこと</th><th>直したこと</th></tr></thead><tbody>{{rows}}</tbody></table></div></div></template>
+<template data-part="log-row"><tr><td>{{group}}</td><td class="st {{status}}">{{status_name}}</td><td>{{found}}</td><td>{{fixed}}</td></tr></template>
+<template data-part="script-slide"><section class="pair script" id="{{anchor}}"><div class="ph"><span class="num">{{number}}</span><h3>{{heading}}</h3></div><div class="slide"><div>{{image}}</div>{{narration}}</div></section></template>
+<template data-part="results-table"><div class="tablewrap"><table><thead><tr><th>枚</th>{{heads}}</tr></thead><tbody>{{rows}}</tbody></table></div></template>
+<template data-part="results-head"><th>{{name}}</th></template>
+<template data-part="results-row"><tr><td><b>{{number}}</b>　{{heading}}</td>{{cells}}</tr></template>
+<template data-part="results-cell"><td class="st {{status}}">{{status_name}}</td></template>
