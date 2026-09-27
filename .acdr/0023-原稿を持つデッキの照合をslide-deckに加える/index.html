@@ -1,0 +1,477 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原稿を持つデッキの照合を slide-deck に加える</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 -1.2rem var(--sp-21)}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);
+background:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:var(--bw-1) solid var(--line);background:var(--panel);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);margin-left:var(--sp-10);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:var(--fs-6)}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+.acdr{border:var(--bw-1) solid var(--line);background:var(--panel);border-radius:var(--rd-4);
+padding:var(--sp-22) var(--sp-24) var(--sp-23);margin:0 0 var(--sp-27);max-width:var(--w-2)}
+.acdr .hd{display:flex;gap:var(--sp-17);align-items:baseline;flex-wrap:wrap;
+border-bottom:var(--bw-1) solid var(--line);padding-bottom:var(--sp-14);margin-bottom:var(--sp-21)}
+.acdr .no{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move)}
+.acdr h1.t{font-size:var(--fs-16);margin:0;letter-spacing:var(--tr-1);border:0;padding:0}
+.acdr .when{margin-left:auto;font-size:var(--fs-5);color:var(--muted)}
+.acdr .st{font-size:var(--fs-2);font-weight:700;padding:var(--sp-2) var(--sp-14);border-radius:var(--rd-5);
+border:var(--bw-1) solid currentColor}
+.acdr .st.proposed{color:var(--move)}
+.acdr .st.accepted{color:var(--key)}
+.acdr .st.superseded{color:var(--muted)}
+.acdr .stnote{font-size:var(--fs-5);color:var(--muted)}
+.acdr .ask{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-9)}
+.acdr .decide{font-size:var(--fs-14);background:var(--paper);border-left:var(--bw-3) solid var(--move);
+padding:var(--sp-16) var(--sp-20);margin:0 0 var(--sp-22)}
+.acdr .sec{margin:var(--sp-22) 0 0}
+.acdr .sec h4{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-8);text-transform:none}
+.acdr .sec p{margin:0}
+.acdr .sec ul{margin:var(--sp-3) 0;padding-left:var(--sp-23)}
+.acdr .sec table{margin:var(--sp-9) 0 0}
+.acdr .none{color:var(--muted)}
+.acdr .lead{font-size:var(--fs-7);color:var(--muted);margin:0 0 var(--sp-8)}
+.acdr table.shift td:nth-child(3){font-weight:700}
+.acdr .fig{margin:var(--sp-10) 0 0;padding:var(--sp-15);background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);overflow-x:auto}
+.acdr .fig svg{display:block;max-width:100%;height:auto}
+.acdr .fig figcaption{font-size:var(--fs-6);color:var(--muted);margin-top:var(--sp-10)}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<div class="acdr"><div class="hd"><span class="no">ACDR 0023</span><h1 class="t">原稿を持つデッキの照合を slide-deck に加える</h1><span class="st accepted">承認</span><span class="stnote">承認を得た。適用してよい</span><span class="when">2026-09-27</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide">原稿を持つデッキを、スライドと原稿を1枚ずつ照合して直す工程と、そのときに適用する観点の一覧と、変更前後の比較ページと、最後に出す3つの成果物を、slide-deck に加える。</div><div class="sec"><h4>なぜ、いま決めるのか</h4><p>オリエンテーションと教材1のスライドと原稿を1枚ずつ照合したところ、スライドだけを見る確認では検出できない食い違いが多数判明した。図にある日付が原稿に無い、原稿で説明していない語を次の枚で使う、同じ例を3枚で繰り返す、といった食い違いである。図の形が主張を示さない枚（文字の箱を矢印でつないだだけの枚）も、余白の調整では解消せず、形の選び直しで解消した。slide-deck は既存の枚を直すことを範囲に含むが、原稿を持たず、この工程と観点を保持していない。別のSkillにすると、観点の半分以上を占める設計規則を複製するか、Skillどうしで参照し合うことになる。そこで、照合を slide-deck の工程として加え、設計規則は指すだけにする。</p></div><div class="sec"><h4>形の変化</h4><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody><tr><td>原稿</td><td>slide-deck の範囲の外</td><td>枚の一部として、スライドと同じ枚の中で照合する</td></tr><tr><td>直す単位</td><td>指示された枚を直し、締めの前に確認する</td><td>1枚ずつ7つの段を実施し、承認を得てから次の枚へ移る</td></tr><tr><td>図の判定</td><td>文字だけの図を置かない、という規則だけを持つ</td><td>図の形が主張の関係を示すかを、微調整より先に判定する。形の候補を関係ごとに持つ</td></tr><tr><td>確認の見せ方</td><td>変更した枚の画像と箇条書き</td><td>変更前と変更後の画像 ・ 見出し ・ 原稿を並べた比較ページ</td></tr><tr><td>成果物</td><td>HTMLのデッキ1本</td><td>加えて、台本 ・ 確認記録 ・ 観点ごとの結果をHTMLとPDFで出す</td></tr></tbody></table></div><div class="sec"><h4>図で確認する</h4><figure class="fig"><svg class="wf-fig" viewBox="0 0 904 332" width="904" height="332" role="img"><g transform="translate(6.0,6.0)"><path d="M318.5,16.0 L391.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="391.4,16.0 384.6,18.5 384.6,13.5" fill="#C3CAD2"/><path d="M504.6,16.0 L611.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="611.4,16.0 604.6,18.5 604.6,13.5" fill="#C3CAD2"/><path d="M700.6,16.0 L783.4,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="783.4,16.0 776.6,18.5 776.6,13.5" fill="#C3CAD2"/><path d="M320.6,112.0 L379.4,112.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="379.4,112.0 372.6,114.5 372.6,109.5" fill="#C3CAD2"/><path d="M516.6,112.0 L581.2,112.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="581.2,112.0 574.4,114.5 574.4,109.5" fill="#C3CAD2"/><path d="M730.8,112.0 L759.4,112.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="759.4,112.0 752.6,114.5 752.6,109.5" fill="#C3CAD2"/><path d="M825.4,128.6 L825.9,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="825.9,191.4 823.4,184.7 828.3,184.6" fill="#C3CAD2"/><path d="M769.3,208.0 L736.6,208.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="736.6,208.0 743.4,205.5 743.4,210.5" fill="#C3CAD2"/><path d="M575.4,208.0 L546.6,208.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="546.6,208.0 553.4,205.5 553.4,210.5" fill="#C3CAD2"/><path d="M448.0,224.6 L448.0,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="448.0,287.4 445.5,280.6 450.5,280.6" fill="#C3CAD2"/><rect x="409.0" y="246.0" width="78.0" height="16.0" fill="#F5F7F9"/><text x="448.0" y="259.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">全枚が済んだら</text><path d="M448.0,191.4 L448.0,128.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="448.0,128.6 450.5,135.4 445.5,135.4" fill="#C3CAD2"/><rect x="375.8" y="150.0" width="144.5" height="16.0" fill="#F5F7F9"/><text x="448.0" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">次の枚へ（1枚ずつ繰り返す）</text><g class="wf-node" transform="translate(12.0,0.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="148.0" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="74.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">変更前　スライドだけ</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="172.0" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="86.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">変更後　原稿を持つデッキ</text></g></g><g class="wf-node" transform="translate(198.1,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="119.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="59.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">主張を1文にする</text></g></g><g class="wf-node" transform="translate(392.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="112.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="56.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">組んで描画する</text></g></g><g class="wf-node" transform="translate(612.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">締めの確認</text></g></g><g class="wf-node" transform="translate(784.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="83.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="41.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">デッキ1本</text></g></g><g class="wf-node" transform="translate(196.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="124.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="62.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">変更前を固定する</text></g></g><g class="wf-node" transform="translate(380.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">画像と原稿を並べる</text></g></g><g class="wf-node" transform="translate(582.0,96.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="148.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="74.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">表現の選択を判定する</text></g></g><g class="wf-node" transform="translate(760.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="131.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="65.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">7つの群を適用する</text></g></g><g class="wf-node" transform="translate(769.9,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="112.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="56.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">直して描画する</text></g></g><g class="wf-node" transform="translate(576.0,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="160.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="80.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">前後の枚の論を確認する</text></g></g><g class="wf-node" transform="translate(350.0,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">比較ページへ反映し承認を得る</text></g></g><g class="wf-node" transform="translate(344.0,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="208.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">台本・確認記録・観点ごとの結果</text></g></g></g></svg><figcaption>スライドだけを作る・直す流れ（上）と、原稿を持つデッキを1枚ずつ照合する流れ（下）を並べた図である。下の流れは、比較ページへ反映して承認を得たら次の枚へ戻り、全枚が済んだら3つを出力する。</figcaption></figure></div><div class="sec"><h4>実現の形</h4><p>工程と観点は、新しい文書 references/review.md に置く。工程は7つの段、観点は7つの群である。設計規則に属する観点は design-rules.md の節を指すだけにし、複製しない。入力の形は references/review.schema.json に置く。変更前と変更後の各枚（識別子 ・ 見出し ・ 導入文 ・ 原稿 ・ 画像）と、枚ごと ・ 観点の群ごとの結果を持つ汎用の契約であり、slide-deck で組んでいないデッキも変換すれば照合できる。SKILL.md には、目的 ・ 役割 ・ 処理対象と成果物 ・ 入力の想定 ・ Step 10 ・ 出力形式 ・ ガードレール ・ 参照を足す。比較ページと3つの成果物を組む道具（review と export）は、承認後に rs へ実装する。PDFは、組んだHTMLを描画してから書き出す。</p></div><div class="sec"><h4>適用先</h4><p>いま変わるのは、.claude/skills/slide-deck/SKILL.md と、新しい references/review.md ・ references/review.schema.json の3つである。承認後に、道具の宣言（rs/declare）と部品（rs/parts）と検査（rs/parts/tests）と、比較ページの型が変わる。</p></div><div class="sec"><h4>比較した案</h4><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>照合を別のSkillにする</td><td>観点の半分以上が slide-deck の設計規則であり、複製するか、Skillどうしで参照し合うことになる。既存の枚を直す作業に、入口が2つできる</td></tr><tr><td>この教材の入力の形（lesson-0N-*.json）を直接読む</td><td>ほかのデッキに適用できない。Skill が特定のリポジトリの形を知ることになる</td></tr><tr><td>比較ページだけを足し、観点の一覧は持たない</td><td>報告に書いた観点だけが検査され、ほかは素通りする。今回も、利用者の指摘で観点が4度足された</td></tr><tr><td>PDFをHTMLと別に組む</td><td>同じ入力から2つの形を組むと、HTMLとPDFの中身が食い違う</td></tr></tbody></table></div><div class="sec"><h4>承認後に実施すること</h4><ul><li>状態を accepted にして組み直し、3つの文書と記録をコミットする</li><li>rs に review（比較ページを組む）と export（台本 ・ 確認記録 ・ 観点ごとの結果をHTMLとPDFで出す）を実装し、宣言から CLI と MCP を組む</li><li>比較ページの型を references に置き、検査を rs/parts/tests に足す</li><li>この教材の入力を review.schema.json の形へ変換する処理を、教材の側に置く（Skill の側には置かない）</li><li>いま一時的な作業場所で組んでいる比較ページを、実装した review で組み直し、同じ中身になることを確認する</li></ul></div></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 23 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="skill">SKILL.md<span class="n">21</span></button><button class="tab" role="tab" data-t="review">review.md<span class="n">1</span></button><button class="tab" role="tab" data-t="schema">review.schema.json<span class="n">1</span></button></div>
+<section class="pane md" data-k="skill" hidden><details class="idx" open><summary>この面の変更 21 件</summary><ol><li><b>原稿を持つデッキは、スライドと原稿を1枚ずつ照合して直す。</b><button class="go" data-i="0">その場所へ</button><div class="b">目的に、原稿を持つデッキの照合が無かった。照合を slide-deck の工程として加えたので、目的に書いた</div></li><li><b>原稿を持つデッキでは、原稿を枚の一部として扱う。スライドと原稿を同じ枚の中で照合</b><button class="go" data-i="1">その場所へ</button><div class="b">スライドだけを直す確認では、図の日付が原稿に無いなどの食い違いを検出できなかった</div></li><li><b>微調整の前に、図の形が主張を示しているかを判定する</b><button class="go" data-i="2">その場所へ</button><div class="b">文字の箱を並べた図は、余白の調整では解消せず、形の選び直しで解消した</div></li><li><b>1枚を直したら、前後の枚との論とストーリーを確認する</b><button class="go" data-i="3">その場所へ</button><div class="b">1枚の中では正しい直しが、前後の枚の論を切る案（説明した枚を別の動画へ移す案）が出た</div></li><li><b>1枚ごとに比較ページへ反映し、承認を得てから次の枚へ移る</b><button class="go" data-i="4">その場所へ</button><div class="b">利用者が変更前と変更後を並べて確認できないと、何が直ったかを文章からしか判定できない</div></li><li><b>原稿を持つデッキを照合するときは、変更前と変更後の各枚（識別子 ・ 見出し ・ </b><button class="go" data-i="5">その場所へ</button><div class="b">照合の処理対象を規定した。入力の形は汎用の契約にし、slide-deck で組んでいないデッキも受け取れるようにした</div></li><li><b>原稿を持つデッキを照合したときは、加えて次の4つを渡す。</b><button class="go" data-i="6">その場所へ</button><div class="b">比較ページと、利用者が求めた3つの成果物（台本 ・ 確認記録 ・ 観点ごとの結果）を成果物に加えた</div></li><li><b>枚ごとの原稿が在るかを確認する。在れば、照合の工程</b><button class="go" data-i="7">その場所へ</button><div class="b">原稿の有無で工程が分かれるので、入力の想定に加えた</div></li><li><b>照合するとき、明示されなければ、最後に承認された版（git の HEAD など）</b><button class="go" data-i="8">その場所へ</button><div class="b">変更前の基準を決めないと、比較ページの変更前の列が定まらない</div></li><li><b>§7 に照らして、枚に置いた文をすべて読み直す。</b><button class="go" data-i="9">その場所へ</button><div class="b">design-rules.md に §7.5 は存在しない。文の書き方は §7 が保持している</div></li><li><b>Step 10: 原稿を持つデッキは、1枚ずつ照合する</b><button class="go" data-i="10">その場所へ</button><div class="b">照合の工程の入口を手順に加えた。中身は review.md が保持し、ここには要点と道具の呼び方だけを書いた</div></li><li><b>照合したときは、1枚ごとに次の形で報告する。</b><button class="go" data-i="11">その場所へ</button><div class="b">番号だけの報告では、表紙を含む数え方と含まない数え方の違いで、枚を特定できなかった</div></li><li><b>原稿を持つデッキを、スライドだけ ・ 原稿だけで直さない</b><button class="go" data-i="12">その場所へ</button><div class="b">食い違いは、片方だけを読む限り検出できない</div></li><li><b>抜き出した文字の一覧だけで照合しない</b><button class="go" data-i="13">その場所へ</button><div class="b">抜き出した文字の一覧だけで照合し、図の中の食い違いを見落とした</div></li><li><b>図の形を判定する前に、余白や文字の大きさの調整へ入らない</b><button class="go" data-i="14">その場所へ</button><div class="b">形が誤っていれば、調整は無駄になる</div></li><li><b>図に置いた具体を、原稿から外さない</b><button class="go" data-i="15">その場所へ</button><div class="b">図に置いた日付 ・ 例が原稿に無い枚が複数あった</div></li><li><b>枚を移す ・ 消す前に、その枚が定義する語と、その枚を参照する原稿を洗い出す</b><button class="go" data-i="16">その場所へ</button><div class="b">説明した枚を移すと、後の枚で説明の無い語が出てくる</div></li><li><b>比較ページへ反映せずに、次の枚へ移らない</b><button class="go" data-i="17">その場所へ</button><div class="b">1枚ごとに承認を得る工程を、ガードレールでも固定した</div></li><li><b>検査が通ったことを、表示の不良が無いことの根拠にしない</b><button class="go" data-i="18">その場所へ</button><div class="b">箱の中心から外れないはみ出しを、図の検査が検出しなかった。画像を見て検出した</div></li><li><b>7つの段の工程 ・ 7つの群の観点 ・ 最後に出す3つ ・ 比較ページの形</b><button class="go" data-i="19">その場所へ</button><div class="b">新しい文書を参照に加えた</div></li><li><b>唯一の入口。</b><button class="go" data-i="20">その場所へ</button><div class="b">承認後に実装する2つの道具を、入口の一覧に加えた</div></li></ol></details><div class="doc"><hr>
+<p>name: slide-deck<br>description: 発表資料・スライドデッキを新しく作る、または既存の枚を直すときに使うスキル。「スライド」「デッキ」「発表資料」「プレゼン」「登壇資料」「LT」と言われたとき、HTMLで1枚ずつめくる資料を扱うとき、および原稿（読み上げの台本）を持つデッキ・教材動画のスライドを1枚ずつ照合して直すときに必ず使う。<br>version: 1.3.0</p>
+<hr>
+<h2>目的</h2>
+<p><strong>HTMLのスライドデッキを、1枚1主張・量の上限・描画確認の3つを遵守して作る。</strong><br><strong>配色は選ぶ ── <code>references/themes/</code> の1本を適用する。図は組ませて、返った SVG をそのまま置く。</strong><br><strong>規則が立っている考え方は <code>references/knowledge/visual-design-for-slide-decks.md</code> にある。</strong><br>新しくデッキを起こすとき、既存の枚を直すとき、短い版に集約するときに使う。</p>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="目的に、原稿を持つデッキの照合が無かった。照合を slide-deck の工程として加えたので、目的に書いた">原稿を持つデッキは、スライドと原稿を1枚ずつ照合して直す。</mark></strong><br>変更前と変更後を並べた比較ページで1枚ずつ確認し、全枚が済んだら、台本 ・ 確認記録 ・ 観点ごとの結果の3つをHTMLとPDFで出す。<br>工程と観点は <code>references/review.md</code> が保持する。</p>
+<h2>役割</h2>
+<p>- 枚ごとに「言い切る1文」を先に決め、それが立つ構成を選ぶ<br>- <strong>どの配色で組むかを先に決める。色を1つずつ選ばない</strong><br>- <strong>図は部品を並べて組む。文字を枠で囲んだだけのものを図と呼ばない</strong><br>- 通った枚から取り出した3つの型（列挙と図解／数値2つの対／種類を分ける）のどれかを適用する<br>- 大きい要素の数と、根拠の置き方を、枚をまたいで統一する<br>- 描画して目視で確認してから出す。測ってはみ出しを確認する<br>- 数値を原典の文字列で確認してから載せる<br>- <strong>図・表・数値の対のいずれかを、必ず1つ置く。文字だけの枚を作らない</strong><br>- <strong>色と大きさを均等に配らない。支配する色を1つ決め、際立たせる色を1つだけ置く</strong><br>- <strong>繰り返すのは目印と列の役割で、変えるのは枚の組み方である</strong><br>- <strong>既定値のままにしない。見出しの下の線・色の帯・縁の縞を置かない</strong><br>- <strong>枚の追加・削除・並べ替えを先に済ませ、中身は後で書く</strong><br>- <strong>描画した画像を、作った本人とは別の目で確認する。確認の順序を決めておく</strong><br>- <strong>描画されたテキストを抜き出して、入れ忘れと置き忘れを探す</strong><br>- <strong>直す前に1度検査して件数を控え、増えたぶんだけを自分の壊れとして扱う</strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="スライドだけを直す確認では、図の日付が原稿に無いなどの食い違いを検出できなかった">原稿を持つデッキでは、原稿を枚の一部として扱う。スライドと原稿を同じ枚の中で照合する</mark></strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="文字の箱を並べた図は、余白の調整では解消せず、形の選び直しで解消した">微調整の前に、図の形が主張を示しているかを判定する</mark></strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="1枚の中では正しい直しが、前後の枚の論を切る案（説明した枚を別の動画へ移す案）が出た">1枚を直したら、前後の枚との論とストーリーを確認する</mark></strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="利用者が変更前と変更後を並べて確認できないと、何が直ったかを文章からしか判定できない">1枚ごとに比較ページへ反映し、承認を得てから次の枚へ移る</mark></strong></p>
+<h2>処理対象と成果物</h2>
+<h3>処理対象</h3>
+<p><strong>作りたいデッキの題材と、元になる文書。</strong><br>新規なら章立てと出典、修正なら対象のHTMLと直したい枚の番号を受け取る。<br><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="照合の処理対象を規定した。入力の形は汎用の契約にし、slide-deck で組んでいないデッキも受け取れるようにした">原稿を持つデッキを照合するときは、変更前と変更後の各枚（識別子 ・ 見出し ・ 導入文 ・ 原稿 ・ 描画した画像）を受け取る。</mark></strong><br>形は <code>references/review.schema.json</code> が規定する。この Skill で組んでいないデッキも、この形へ変換すれば照合できる。</p>
+<h3>成果物</h3>
+<p><strong>1枚ずつめくれるHTMLファイル1本。</strong><br>固定ステージ 1280×720 を画面サイズに合わせて拡大縮小する形で、<br>枚数・ラベル・通し番号が一致し、どの枚も枠からはみ出さない状態で渡す。</p>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="比較ページと、利用者が求めた3つの成果物（台本 ・ 確認記録 ・ 観点ごとの結果）を成果物に加えた">原稿を持つデッキを照合したときは、加えて次の4つを渡す。</mark></strong></p>
+<div class="wrap"><table><tr><th>成果物</th><th>中身</th></tr><tr><td>比較ページ</td><td>変更前と変更後の画像 ・ 見出し ・ 原稿を枚ごとに並べる。照合の途中で1枚ごとに更新する</td></tr><tr><td>台本</td><td>変更後の画像と原稿の全文。HTMLとPDF</td></tr><tr><td>確認記録</td><td>変更前と変更後の差分と、直した理由。HTMLとPDF</td></tr><tr><td>観点ごとの結果</td><td>枚ごと ・ 観点の群ごとの結果（修正 ・ 問題なし ・ 保留）。HTMLとPDF</td></tr></table></div>
+<hr>
+<h2>入力の想定</h2>
+<div class="wrap"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>対象のデッキ</td><td>明示されなければ、直前に扱っていたHTMLを対象とする</td></tr><tr><td>直す枚の番号</td><td>明示されなければ、どの枚を直すかを先に確認する。勝手に複数枚へ広げない</td></tr><tr><td>どこまで細かく作るか</td><td>明示されなければ確認する。1論点1枚で並べるのか、章あたり数枚に集約するのかで枚数が変わる</td></tr><tr><td>配色</td><td>明示されなければ、<code>references/themes/</code> の一覧を見せて選んでもらう。勝手に決めない</td></tr><tr><td>出典</td><td>原典のファイルが手元にあるかを確認する。無ければ、数値を載せずに構成だけ組む</td></tr><tr><td>原稿</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="原稿の有無で工程が分かれるので、入力の想定に加えた">枚ごとの原稿が在るかを確認する。在れば、照合の工程</mark>（<code>references/review.md</code>）で直す</td></tr><tr><td>変更前の基準</td><td><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="変更前の基準を決めないと、比較ページの変更前の列が定まらない">照合するとき、明示されなければ、最後に承認された版（git の HEAD など）を基準にする</mark></td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: この枚で言い切ることを1文にする</h3>
+<p><strong>枚を書き始める前に、主張を1文で書く</strong>。1文にならないなら、その枚は2枚に割れている。</p>
+<p>- 見出しは、その1文を断定形で書いたものにする<br>- 問いの形にしない。体言止めで逃げない</p>
+<h3>Step 2: 設計規則を読み込む</h3>
+<p><code>references/design-rules.md</code> を読み、量の上限と3つの型を把握してから構成を選ぶ。</p>
+<p>- 大きい要素は2つか3つ。4つ以上あると、どれが主張か消える<br>- 各要素の下は 条件1行 → 但し書き1〜2行 → 出典1行 の順を崩さない<br>- 強調は枚に1か所だけ</p>
+<h4>型を選ぶ</h4>
+<p>中身に合う型を選ぶ。<strong>形から入らない。</strong></p>
+<p>- 左で数を宣言でき、右をその図にできる → 型A 列挙と図解<br>- 2つの実測を突き合わせる → 型B 数値2つの対<br>- 情報量が多く、左右で種類を分けられる → 型C 種類を分ける</p>
+<h4>列に役割を対応づける</h4>
+<p><strong>同じ系統の枚では、列の役割を固定する。</strong><br>例えば「左＝いま起きていること、右＝提案」と決めたら、全枚で固定する。</p>
+<p>- 幅いっぱいの帯で横断させない。どちらの話か分からなくなる<br>- 対比を語る枚は、左右で同じ部品・同じ個数にし、色だけを変える<br>- <strong>同形式にすると決めたら、見出しの行数・根拠の数・補足の行数まで統一する</strong></p>
+<h3>Step 3: 配色を選ぶ</h3>
+<p><strong><code>references/themes.md</code> を読み、<code>references/themes/</code> の1本を選ぶ。</strong></p>
+<div class="wrap"><table><tr><th>テーマ</th><th>地</th><th>強調</th><th>いつ選ぶか</th></tr><tr><td><code>warm-paper</code></td><td>生成り</td><td>赤茶</td><td>線画を多く置くとき。明るい地なので細い線が持ちこたえる</td></tr><tr><td><code>deep-navy</code></td><td>濃紺</td><td>青緑</td><td>暗い会場で投影するとき。細い線は沈むので、面で見せる</td></tr><tr><td><code>cool-paper</code></td><td>明るい灰青</td><td>藍</td><td>赤茶が題材と合わない技術寄りの回。強調が叫ばない</td></tr><tr><td><code>print-mono</code></td><td>白</td><td>深い赤</td><td>PDFにして刷る・配るとき。階層は2つまで</td></tr></table></div>
+<p><strong>選ぶのは人ではなく、出力先である。</strong><br>投影なら会場の明るさが、配布なら紙が決める。題材の雰囲気で選ばない。</p>
+<p>出力先が分からないときは聞く。こちらからは会場も配布の形も見えない。</p>
+<h3>Step 4: 入力を書き、組ませる</h3>
+<p><strong>3つで組む。</strong> 中身は入力（JSON）が、形は型が、配色はテーマが持つ。</p>
+<pre class="code">形      references/slide-deck.template.html   出来上がりの形。部品と差し込む場所
+中身    &lt;デッキ&gt;.json                          枚と要素。形は slide-deck.schema.json が決める
+配色    references/themes/&lt;名前&gt;.css           色の正本</pre>
+<pre class="code">slide-deck new &lt;デッキ&gt;.json --theme &lt;テーマの名前&gt; --title &lt;題&gt;
+slide-deck render &lt;デッキ&gt;.json &lt;出力.html&gt;</pre>
+<p><strong>同じ入力からは、同じ1枚が出る</strong> ── 日付も乱数も読まない。<code>--check</code> を渡すと、<br>組み直さずに差が在るかだけを検査する。</p>
+<p>- <strong>HTML を手で書かない。</strong> 枚を直すのは入力であり、形を直すのは型である<br>- 要素は14種類である。<code>text</code> ・ <code>lede</code> ・ <code>card</code> ・ <code>flow</code> ・ <code>stat</code> ・ <code>boxes</code> ・<br>  <code>pair</code> ・ <code>recap</code> ・ <code>punch</code> ・ <code>caveat</code> ・ <code>figure</code> ・ <code>table</code> ・ <code>list</code> ・ <code>who</code><br>- <strong>種類を足すときは、型と schema の両方へ足す</strong> ── 片方だけに足すと、入力が通って出力が空になる<br>- <strong>色を1つずつ直さない。</strong> 直すならテーマの側を直す<br>- 固定ステージと拡大縮小のしくみは型が持つ。枚の側で書き換えない</p>
+<h3>Step 5: 図を組ませる</h3>
+<p><strong>この Skill は図を描かない。描き方も、描く道具も保持しない。</strong> 渡すのは配色と、何を描くかである ── <strong>組ませる相手は配線表が決める。</strong></p>
+<pre class="code">slide-deck theme &lt;テーマの名前&gt; --out theme.json   # 配色を複製して渡す</pre>
+<p>- <strong>配色を図の側へ書かない。</strong> 正本は <code>references/themes/&lt;名前&gt;.css</code> の1か所である<br>- 幅は 1112px に統一する。枚ごとに変えない<br>- 何を示す図かを1文で書く。書けないなら、その図はまだ決まっていない<br>- 新しい分類色を足す前に、位置・ラベル・線の違いで区別できるかを判定する<br>- <strong>描く側の幾何の検査を実行し、そのうえで描画して目視する</strong></p>
+<p>渡し方と色の対応は <code>references/figures.md</code> が持つ。</p>
+<h3>Step 6: 数値を原典で確認する</h3>
+<p><strong>要約経由で引かない</strong>。原典の文字列を開いて確認する。</p>
+<p>- 自分で計算した値を、原典の値のように書かない<br>- 範囲で書かない。条件付きの1つの値を、条件とともに書く<br>- 割合には母集団を添える</p>
+<h3>Step 7: 描画して目視で確認する</h3>
+<p><code>references/render-check.md</code> の手順で画像にし、実際に目視で確認する。</p>
+<p>- 変更した枚を必ず描画する<br>- 全枚の下端を測り、620を超える枚を把握する<br>- 縦長と横長の両方で、はみ出しが無いことを確認する</p>
+<h4>高さが一致しないときの直し方</h4>
+<p><strong>余白で押し広げない</strong>。中身を減らすか、置き方を変える。</p>
+<p>- 縦に長い要素を、横に広い帯へ置き直す<br>- 要素の数を減らす<br>- 別の枚に分ける</p>
+<h3>Step 8: 日本語を声に出して読む</h3>
+<p><code>references/design-rules.md</code> <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="`references/design-rules.md` §7.5 に照らして、枚に置いた文をすべて読み直す。" data-w="design-rules.md に §7.5 は存在しない。文の書き方は §7 が保持している">§7 に照らして、枚に置いた文をすべて読み直す。</mark></p>
+<p>- 語尾や助詞を、鉤括弧で括って名詞のように使っていないか<br>- 見出しと導入文を、主語・目的語・述語の3つに分解できるか<br>- 曖昧語を使っていないか</p>
+<h3>Step 9: 締めの前に確認する</h3>
+<p>- 主張を1文で表現できるか<br>- 大きい要素は2〜3個か<br>- 出典は要素の直下にあるか<br>- 強調は1か所か<br>- 列の役割は他の枚と同じか<br>- 同じ意味の語を、別の語で書いていないか<br>- 見出しと直下の1文が、同じことを2回言っていないか<br>- 英語の識別子・術語が、日本語より大きい文字になっていないか<br>- 枚数・ラベル数・通し番号の3つが一致しているか<br>- テーマを貼り替えただけで、色の直書きが残っていないか<br>- 図のどれかが、文字を枠で囲んだだけになっていないか</p>
+<p><code>slide-deck check &lt;作ったHTML&gt;</code> を実行する。キーの欠け・適合条件・色の直書きの3つを検査する（検査するのは形だけで、見え方は Step 7 が確認する）。</p>
+<p><strong>入力の検査は、組む前に走る。</strong> 設計規則のうち数えれば判定できるもの ──<br>大きい要素が3つまで ・ 強調が1か所 ・ 見出しが断定形で2行まで ・ 出典が要素の直下 ・<br>列の役割が枚をまたいで同じ ── を機械が見る。1件でも出れば、HTML は1バイトも出ない。</p>
+<h3><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="照合の工程の入口を手順に加えた。中身は review.md が保持し、ここには要点と道具の呼び方だけを書いた">Step 10: 原稿を持つデッキは、1枚ずつ照合する</mark></h3>
+<p><strong><code>references/review.md</code> を読み、§1 の7つの段を1枚ずつ実施する。</strong></p>
+<p>- 変更前を先に固定し、比較ページの変更前の列に置く<br>- 1枚ごとに、描画した画像と原稿の全文を並べて読む。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="抜き出した文字の一覧だけで照合し、図の中の食い違いを見落とした">抜き出した文字の一覧だけで照合しない</mark><br>- 表現の選択（図の形が主張を示しているか）を、余白や文字の大きさの調整より先に判定する<br>- §2 の7つの群を全部適用し、問題が無かった群も報告する<br>- 直した枚が定義する語と、直した枚を参照する原稿を、前後の枚で確認する<br>- 比較ページへ反映し、承認を得てから次の枚へ移る</p>
+<pre class="code">slide-deck review &lt;照合の入力&gt;.json &lt;比較ページ.html&gt;     # 比較ページを組む
+slide-deck export &lt;照合の入力&gt;.json &lt;出力のフォルダ&gt;     # 台本 ・ 確認記録 ・ 観点ごとの結果をHTMLとPDFで出す</pre>
+<p><strong>全枚が済んだら、3つを出力する。</strong> PDFはHTMLを描画してから書き出す ── 別に組むと、HTMLと中身が食い違う。</p>
+<hr>
+<h2>出力形式</h2>
+<p><strong>変更した枚を描画した画像を見せ、直した点を箇条書きで報告する。</strong><br>数値を触ったときは、原典のどこで確認したかを添える。</p>
+<p><strong>まだ確認していないことは、確認したと書かない。</strong></p>
+<p><strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="番号だけの報告では、表紙を含む数え方と含まない数え方の違いで、枚を特定できなかった">照合したときは、1枚ごとに次の形で報告する。</mark></strong></p>
+<div class="wrap"><table><tr><th>書くこと</th><th>書き方</th></tr><tr><td>対象の枚</td><td>番号と見出しを併記する。番号だけでは、数え方の違いで枚を特定できない</td></tr><tr><td>見つけたことと直したこと</td><td>観点の群ごとに表で並べる</td></tr><tr><td>問題が無かった点</td><td>適用して問題が無かった群を書く</td></tr><tr><td>検査と目視</td><td>実行した検査の結果と、描画した画像を目視したかを書く</td></tr><tr><td>比較ページ</td><td>反映した比較ページの場所</td></tr></table></div>
+<hr>
+<h2>ガードレール</h2>
+<p>- <strong>描画していない枚を出さない</strong>。HTMLを書いただけで公開しない<br>- <strong>1枚ずつ直す</strong>。指示された枚だけを直し、他の枚へ勝手に広げない<br>- <strong>1枚で承認された形を、他の枚へ一括で当てない</strong>。その枚で成立していた理由が、他の枚にあるとは限らない<br>- <strong><code>.body</code> を測ってはみ出しを判定しない</strong>。器であって中身ではない<br>- <strong>枚に足すクラス名が、共通CSSに既にないかを確認する</strong>。一般名詞は衝突する<br>- <strong><code>margin-top:auto</code> で高さを揃えない</strong>。不自然な余白が空く<br>- <strong>定義していない抽象語を使わない</strong>。その語が何を指すかを読み手が復元できること<br>- <strong>同じものを指す語を増やさない</strong>。一度決めた語を使い続ける<br>- <strong>色をテーマの外に書かない</strong>。枚のCSSにも、図のコードにも直書きしない ── 正本は <code>references/themes/</code> の1本である<br>- <strong>テーマを混在させない</strong>。1つのデッキへ適用するテーマは1本だけ<br>- <strong>テーマを増やす前に、既にある4本のどれでも足りない理由を言う</strong><br>- <strong>文字だけの図を置かない</strong>。枠と文字しか無いものは、図ではなく表である<br>- <strong>原典で確認していない数値を載せない</strong><br>- <strong>語尾や助詞を、鉤括弧で括って名詞のように使わない</strong>。声に出して読んで意味が通る文だけを置く<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="食い違いは、片方だけを読む限り検出できない">原稿を持つデッキを、スライドだけ ・ 原稿だけで直さない</mark></strong>。食い違いは、片方だけを読む限り検出できない<br>- <strong>抜き出した文字の一覧だけで照合しない</strong>。描画した画像と原稿の全文を並べて読む<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="形が誤っていれば、調整は無駄になる">図の形を判定する前に、余白や文字の大きさの調整へ入らない</mark></strong>。形が誤っていれば、調整は無駄になる<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="図に置いた日付 ・ 例が原稿に無い枚が複数あった">図に置いた具体を、原稿から外さない</mark></strong>。原稿で説明した要素を、図から外さない<br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="説明した枚を移すと、後の枚で説明の無い語が出てくる">枚を移す ・ 消す前に、その枚が定義する語と、その枚を参照する原稿を洗い出す</mark></strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="1枚ごとに承認を得る工程を、ガードレールでも固定した">比較ページへ反映せずに、次の枚へ移らない</mark></strong><br>- <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="箱の中心から外れないはみ出しを、図の検査が検出しなかった。画像を見て検出した">検査が通ったことを、表示の不良が無いことの根拠にしない</mark></strong>。検査が見ない不良を、画像で確認する</p>
+<hr>
+<h2>参照</h2>
+<p>- <code>references/knowledge/visual-design-for-slide-decks.md</code>: 設計規則が立っている8つの概念。出所は Anthropic の <code>pptx</code><br>- <code>references/design-rules.md</code>: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。<strong>文の書き方は保持しない</strong><br>- <code>references/render-check.md</code>: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険<br>- <code>references/review.md</code>: <strong>原稿を持つデッキの照合。</strong> <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="新しい文書を参照に加えた">7つの段の工程 ・ 7つの群の観点 ・ 最後に出す3つ ・ 比較ページの形</mark>。設計規則は複製しない<br>- <code>references/review.schema.json</code>: <strong>照合の入力の形の正本。</strong> 変更前と変更後の各枚と、枚ごと ・ 観点の群ごとの結果を持つ<br>- <code>references/slide-deck.template.html</code>: <strong>出来上がりの形の正本。</strong> 固定ステージ ・ 部品 ・ めくる仕掛けを持ち、配色はテーマを貼る場所だけを持つ<br>- <code>references/slide-deck.schema.json</code>: <strong>入力の形の正本。</strong> 枚と、14種類の要素が持てるキーを決める<br>- <code>references/deck-example.json</code>: 入力の雛形。<code>new</code> がこれを複製して起こす<br>- <code>references/themes.md</code>: テーマの選び方、22のキーと満たすこと、検査の通し方<br>- <code>references/themes/</code>: 配色の正本。1ファイル1テーマで、<code>:root</code> の中身をそのまま貼る<br>- <code>rs/parts/src/theme.rs</code>: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する<br>- <code>references/figures.md</code>: <strong>図の依頼の仕方。</strong> 何を渡し、図の中の役割がテーマのどのキーから出るか。<strong>この Skill は図を描かない</strong><br>- <code>rs/cli/</code>: <strong><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="new ・ render ・ check ・ theme を持つ" data-w="承認後に実装する2つの道具を、入口の一覧に加えた">唯一の入口。</mark></strong> <code>new</code> ・ <code>render</code> ・ <code>check</code> ・ <code>theme</code> ・ <code>review</code> ・ <code>export</code> を持つ ── どれも <code>--json</code> で機械が読む形が出る。終了コードは <code>0</code> 正常 ／ <code>1</code> 検出あり ／ <code>2</code> 誤用。<strong>宣言に無い旗は断る</strong><br>- <code>rs/declare/src/lib.rs</code>: 道具の宣言。<strong>能力の正本</strong>であり、CLI と MCP はここから組む<br>- <code>rs/mcp/</code> ・ <code>mcp.json</code>: MCP の面。<strong>同じ宣言から組む</strong> ── 能力を1行も複製しない<br>- <code>rs/parts/src/deck.rs</code>: 入力の値を、型の部品へ差し込む。<strong>HTML の形をここへ書かない</strong><br>- <code>rs/parts/src/template.rs</code>: 型を読み、部品を組む。<strong>差し込む場所の過不足を、その場で誤りにする</strong><br>- <code>rs/parts/src/validate.rs</code>: 形では書けない規則を検査する。<strong>組み立てより前に止まる</strong><br>- <code>rs/parts/tests/</code>: 事例（51件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立てを固定してある</p></div></section><section class="pane md" data-k="review" hidden><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>原稿を持つデッキの照合</b><button class="go" data-i="0">その場所へ</button><div class="b">照合の工程 ・ 観点の一覧 ・ 最後に出す3つ ・ 比較ページの形を、1つの文書に置いた。設計規則は複製せず、節を指す</div></li></ol></details><div class="doc"><h1><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い ── 新しい文書）" data-w="照合の工程 ・ 観点の一覧 ・ 最後に出す3つ ・ 比較ページの形を、1つの文書に置いた。設計規則は複製せず、節を指す">原稿を持つデッキの照合</mark></h1>
+<p><strong>原稿（読み上げの台本）を持つデッキは、スライドと原稿を1枚ずつ照合して直す。</strong><br>スライドだけ、または原稿だけを直すと、両者の食い違いが残る。<br><strong>食い違いは、片方だけを読む限り検出できない。</strong></p>
+<p>この文書は、照合の工程と、1枚ごとに適用する観点の一覧と、最後に出す3つの成果物を規定する。<br><strong>設計規則そのものは <code>design-rules.md</code> が保持する。この文書は複製しない。</strong><br>観点の一覧の中で設計規則に属するものは、その節を指すだけにする。</p>
+<hr>
+<h2>1. 照合の工程</h2>
+<p><strong>1枚ずつ進める。1枚に全部の観点を適用し、直し、描画して目視し、比較ページへ反映してから次の枚へ移る。</strong><br>複数枚をまとめて直すと、前の枚の直しが次の枚の前提を変えたことを検出できない。</p>
+<div class="wrap"><table><tr><th>段</th><th>すること</th><th>省略すると起きること</th></tr><tr><td>1. 変更前を固定する</td><td>基準の版で全枚を描画し、比較ページの変更前の列に置く</td><td>何を直したかを、読み手が自分で復元することになる</td></tr><tr><td>2. 画像と原稿の全文を並べる</td><td>その枚の描画した画像と、原稿の全文を並べて読む</td><td>文字の一覧だけの照合では、図の中の食い違いと表示の不良を検出できない</td></tr><tr><td>3. 表現の選択を判定する</td><td>主張を1文にし、図の形がその主張を形で示しているかを先に判定する</td><td>形が誤ったまま、余白や文字の大きさの調整を重ねる</td></tr><tr><td>4. 観点を全部適用する</td><td>§2 の7つの群を、この枚に1つずつ適用する</td><td>報告した観点だけが検査され、ほかは素通りする</td></tr><tr><td>5. 直して描画する</td><td>入力を直し、検査を実行し、描画した画像を目視する</td><td>検査が見ない表示の不良が残存する</td></tr><tr><td>6. 前後の枚との論を確認する</td><td>直した枚が定義する語と、直した枚を参照する原稿を、前後の枚で確認する</td><td>1枚の中では正しい直しが、前後の枚の論を切る</td></tr><tr><td>7. 比較ページへ反映して見せる</td><td>変更後の画像と原稿を比較ページへ入れ、観点ごとに報告し、承認を得る</td><td>利用者は、何が直ったかを文章からしか判定できない</td></tr></table></div>
+<p><strong>全枚が済んだら、§3 の3つを出力する。</strong></p>
+<h3>表現の選択は、微調整より先に判定する</h3>
+<p><strong>利用者が「このデザインでよいか」と問うとき、その問いは多くの場合、形の選択を指している。</strong><br>余白・文字の大きさ・行の間隔の調整は、形が正しいときにだけ意味を持つ。</p>
+<p><strong>判定は1つの問いで進む ── この図は、文字を読まなくても主張の関係が分かるか。</strong><br>分からないなら、形を選び直す。形の候補は §2.5 が保持する。</p>
+<hr>
+<h2>2. 観点の一覧</h2>
+<p><strong>1枚ごとに、7つの群を全部適用する。</strong> 問題が無かった群も「問題が無かった点」として報告する ──<br>報告に無い群は、適用したかどうかを読み手が判定できない。</p>
+<p>各観点は、満たすべき状態で書く。<strong>例は、状態の1つの現れであって、観点の範囲ではない。</strong></p>
+<h3>2.1 スライドと原稿の整合</h3>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>具体の一致</td><td>図と導入文に置いた具体（数 ・ 日付 ・ 名前 ・ 例）が、原稿にも在る。原稿で説明した要素が、図にも在る</td></tr><tr><td>見出しの語</td><td>見出しで言い切った語を、原稿でも言い切っている</td></tr><tr><td>語の一致</td><td>同じものを、図と原稿で同じ語で呼んでいる。語の正本が在れば、それと照合する</td></tr><tr><td>順序の一致</td><td>原稿で読み上げる順と、図の並び（左から右 ・ 上から下）が一致している</td></tr></table></div>
+<p>例：図に「9/16」の日付を置いたのに、原稿がその日付に触れていない。</p>
+<h3>2.2 論とストーリー（枚をまたぐ）</h3>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>問いと答え</td><td>原稿で問いを立てたら、次の文がその問いに答えている</td></tr><tr><td>定義の順序</td><td>語は、前の枚か同じ枚で説明してから使っている</td></tr><tr><td>参照の範囲</td><td>「さきほど」「前の」が指す先が、同じ動画の中に在る</td></tr><tr><td>重複の排除</td><td>各枚が、その枚にしかない主張を1つ持つ。同じ例 ・ 同じ図を複数の枚で繰り返していない</td></tr><tr><td>言い方の統一</td><td>同じ対象（例：3つの教材の中身）を、表紙 ・ 目標 ・ 一覧で同じ言い方にしている</td></tr><tr><td>抽象の高さ</td><td>目的と身につくものを、手段（道具の名前 ・ 指示に書くこと）ではなく本質で書いている。同じ列に並べる項目の抽象の高さが一致している</td></tr><tr><td>移設の影響</td><td>枚を移す ・ 消す前に、その枚が定義している語と、その枚を参照している原稿を洗い出している</td></tr></table></div>
+<p>例：8枚目の原稿が「課題管理表」を使い、それを説明している7枚目を別の動画へ移す案が出る。移すと、8枚目で説明の無い語が出てくる。</p>
+<h3>2.3 日本語</h3>
+<p><strong>日本語の規約が、この場に別に在るなら、それを適用する</strong>（<code>design-rules.md</code> §7）。<br>そのうえで、読み上げの文に固有の観点を適用する。</p>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>規約の適用</td><td>和語の述部 ・ 比喩 ・ 造語を、この場の規約で検査している</td></tr><tr><td>根拠の無い強調</td><td>「確実に」「必ず」などの強調に、根拠が在る</td></tr><tr><td>語句の名詞化</td><td>語句を鉤括弧で括らずに名詞として使っていない（<code>SKILL.md</code> のガードレール）</td></tr><tr><td>改行の位置</td><td>図の中の文を、句の途中で改行していない</td></tr><tr><td>聞き取り</td><td>同じ助詞が続く箇所（「〜の〜の〜」）を、読点で区切っている</td></tr></table></div>
+<h3>2.4 見出しと導入文</h3>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>見出しの主張</td><td>見出しが、その枚の結論を言い切っている。何が決まるかを言わない形（「〜が決まります」）で終えていない</td></tr><tr><td>導入文の役割</td><td>導入文が、見出しを繰り返さず、図の文とも重複せず、見出しを支える事実か次の主張を1文で示している</td></tr><tr><td>帯の向き</td><td>下の帯が、見出しと逆の向き（否定形）になっていない</td></tr></table></div>
+<h3>2.5 図の表現</h3>
+<p><strong>主張の関係を、形で示す。</strong> 文字を入れた箱を列に並べ、矢印でつなぐ図を既定にしない ──<br>その形は関係を示さず、読み手に全部の文字を読ませる。</p>
+<div class="wrap"><table><tr><th>主張の関係</th><th>示す形</th></tr><tr><td>包含（AがBを含む）</td><td>入れ子の枠</td></tr><tr><td>範囲の広がり</td><td>内側から外側へ広がる入れ子</td></tr><tr><td>期限 ・ 時間 ・ 優先順位</td><td>線表（時間の軸と、期限の印と、順番の番号）</td></tr><tr><td>前と後 ・ いまと解決後</td><td>同じ部品を左右に置いた対比</td></tr><tr><td>受け渡し</td><td>作業のあいだに、渡すものを置く</td></tr><tr><td>発言 ・ 会話</td><td>吹き出し（地の文と見た目で分ける）</td></tr><tr><td>選択</td><td>並びを見せ、選んだ1つだけを塗る</td></tr><tr><td>段階的な上昇</td><td>階段</td></tr></table></div>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>記号の意味</td><td>記号の意味が、置いた対象と一致している。チェック印は済み ・ 正しいを示し、問いの列挙には番号を使う</td></tr><tr><td>同じ概念の見た目</td><td>同じ概念（例：作業）を、図の中で同じ見た目（塗りの向き ・ 枠）で描いている</td></tr><tr><td>強調の対象</td><td>強調は、その枚の主張の1か所と帯だけである（<code>design-rules.md</code> §2）</td></tr></table></div>
+<h3>2.6 表示の不良と読みやすさ</h3>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>文字の大きさ</td><td>図の中の文字が14px以上である。補足だけを灰色にし、本文は本文の色にする</td></tr><tr><td>余白</td><td>箱の中の最後の行と箱の下端のあいだに余白が在る。見出しと箱が接していない</td></tr><tr><td>重心</td><td>箱の中の要素が上に寄らず、左右の箱と高さの使い方が一致している</td></tr><tr><td>線</td><td>矢印が途中で折れていない。合流点が、合流先の中心と一致している</td></tr><tr><td>付属の表示</td><td>頁の表題 ・ 通し番号が途中で切れていない</td></tr><tr><td>検査の外</td><td>検査が検出しない表示の不良（箱の中心から外れないはみ出しなど）を、画像で確認している</td></tr></table></div>
+<h3>2.7 動画の文体と構成</h3>
+<div class="wrap"><table><tr><th>観点</th><th>満たすべき状態</th></tr><tr><td>位置の説明</td><td>原稿が、位置だけで対象を指していない（「図の右側で」）。音声だけでは位置が伝わらない</td></tr><tr><td>つなぎ</td><td>冒頭で前の枚とつなぎ、末尾で次の枚へつないでいる</td></tr><tr><td>数の密度</td><td>1枚の原稿に出る数が、耳で追える量である</td></tr><tr><td>文体</td><td>1本の中で敬体と常体が混ざっていない</td></tr></table></div>
+<hr>
+<h2>3. 最後に出す3つ</h2>
+<p><strong>全枚の照合が済んだら、3つをHTMLとPDFで出す。</strong> どれも同じ入力（<code>review.schema.json</code>）から組む。</p>
+<div class="wrap"><table><tr><th>成果物</th><th>中身</th><th>読み手</th></tr><tr><td>台本</td><td>枚ごとに、変更後の画像と原稿の全文を並べる</td><td>収録する人 ・ 受講者</td></tr><tr><td>確認記録</td><td>枚ごとに、変更前と変更後の画像 ・ 見出し ・ 原稿の差分（消した文と足した文）と、直した理由を並べる</td><td>承認する人</td></tr><tr><td>観点ごとの結果</td><td>枚ごとに、7つの群の結果（修正 ・ 問題なし ・ 保留）と、見つけたことと直したことを並べる</td><td>次に直す人</td></tr></table></div>
+<p><strong>PDFは、HTMLを描画してから書き出す。</strong> PDFを別に組むと、HTMLと中身が食い違う。</p>
+<hr>
+<h2>4. 比較ページ</h2>
+<p><strong>照合の途中で、変更前と変更後を並べた比較ページを1枚持ち、1枚直すたびに更新する。</strong></p>
+<div class="wrap"><table><tr><th>置くもの</th><th>形</th></tr><tr><td>頭</td><td>何を直したかの要約と、枚ごとの変更の件数</td></tr><tr><td>枚ごとの対</td><td>左に変更前、右に変更後。どちらも画像 ・ 見出し ・ 原稿を持つ</td></tr><tr><td>原稿の差分</td><td>文の単位で比べ、消した文と足した文を色で分ける</td></tr><tr><td>変更の無い枚</td><td>折りたたむ</td></tr><tr><td>追加した枚</td><td>変更前の列に、追加した枚であることを書く</td></tr><tr><td>並べ替えた枚</td><td>前の位置を書く</td></tr></table></div>
+<p><strong>利用者へ見せる枚の番号には、見出しを併記する。</strong> 数え方が2通り（表紙を含む ・ 含まない）在ると、番号だけでは枚を特定できない。</p></div></section><section class="pane code-pane" data-k="schema" hidden><div class="lane code-lane"><b>コードとして置く</b><span class="how">変更前を取得できないので、全文を置く</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>&quot;title&quot;: &quot;原稿を持つデッキの照合の入力&quot;,</b><button class="go" data-i="0">その場所へ</button><div class="b">照合の入力の形を汎用の契約として規定した。比較ページと3つの成果物を、この1つの入力から組む</div></li></ol></details><div class="code" data-lang="json"><table><tbody><tr id="L1"><td class="ln">1</td><td class="cd">{</td></tr><tr id="L2"><td class="ln">2</td><td class="cd">  &quot;$schema&quot;: &quot;https://json-schema.org/draft/<span class="t-n">2020</span>-<span class="t-n">12</span>/schema&quot;,</td></tr><tr id="L3"><td class="ln">3</td><td class="cd">  &quot;$id&quot;: &quot;slide-deck/review.schema.json&quot;,</td></tr><tr id="L4"><td class="ln">4</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い ── 新しいファイル）" data-w="照合の入力の形を汎用の契約として規定した。比較ページと3つの成果物を、この1つの入力から組む">  &quot;title&quot;: &quot;原稿を持つデッキの照合の入力&quot;,</mark></td></tr><tr id="L5"><td class="ln">5</td><td class="cd">  &quot;description&quot;: &quot;変更前と変更後のデッキと、枚ごとの確認の結果を持つ。比較ページ ・ 台本 ・ 確認記録 ・ 観点ごとの結果は、どれもこの1つの入力から組む。slide-deck で組んでいないデッキも、この形へ変換すれば照合できる。&quot;,</td></tr><tr id="L6"><td class="ln">6</td><td class="cd">  &quot;type&quot;: &quot;object&quot;,</td></tr><tr id="L7"><td class="ln">7</td><td class="cd">  &quot;required&quot;: [&quot;title&quot;, &quot;before&quot;, &quot;after&quot;],</td></tr><tr id="L8"><td class="ln">8</td><td class="cd">  &quot;additionalProperties&quot;: <span class="t-k">false</span>,</td></tr><tr id="L9"><td class="ln">9</td><td class="cd">  &quot;properties&quot;: {</td></tr><tr id="L10"><td class="ln">10</td><td class="cd">    &quot;title&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: <span class="t-n">1</span>, &quot;description&quot;: &quot;照合の題。比較ページと3つの成果物の題になる&quot; },</td></tr><tr id="L11"><td class="ln">11</td><td class="cd">    &quot;summary&quot;: { &quot;type&quot;: &quot;array&quot;, &quot;items&quot;: { &quot;type&quot;: &quot;string&quot; }, &quot;description&quot;: &quot;頭に置く要約。1項目が1行になる&quot; },</td></tr><tr id="L12"><td class="ln">12</td><td class="cd">    &quot;before&quot;: { &quot;$ref&quot;: &quot;#/$defs/snapshot&quot;, &quot;description&quot;: &quot;基準の版のデッキ&quot; },</td></tr><tr id="L13"><td class="ln">13</td><td class="cd">    &quot;after&quot;: { &quot;$ref&quot;: &quot;#/$defs/snapshot&quot;, &quot;description&quot;: &quot;直したあとのデッキ&quot; },</td></tr><tr id="L14"><td class="ln">14</td><td class="cd">    &quot;log&quot;: {</td></tr><tr id="L15"><td class="ln">15</td><td class="cd">      &quot;type&quot;: &quot;array&quot;,</td></tr><tr id="L16"><td class="ln">16</td><td class="cd">      &quot;description&quot;: &quot;枚ごと ・ 観点の群ごとの確認の結果&quot;,</td></tr><tr id="L17"><td class="ln">17</td><td class="cd">      &quot;items&quot;: { &quot;$ref&quot;: &quot;#/$defs/finding&quot; }</td></tr><tr id="L18"><td class="ln">18</td><td class="cd">    }</td></tr><tr id="L19"><td class="ln">19</td><td class="cd">  },</td></tr><tr id="L20"><td class="ln">20</td><td class="cd">  &quot;$defs&quot;: {</td></tr><tr id="L21"><td class="ln">21</td><td class="cd">    &quot;snapshot&quot;: {</td></tr><tr id="L22"><td class="ln">22</td><td class="cd">      &quot;type&quot;: &quot;object&quot;,</td></tr><tr id="L23"><td class="ln">23</td><td class="cd">      &quot;required&quot;: [&quot;sections&quot;],</td></tr><tr id="L24"><td class="ln">24</td><td class="cd">      &quot;additionalProperties&quot;: <span class="t-k">false</span>,</td></tr><tr id="L25"><td class="ln">25</td><td class="cd">      &quot;properties&quot;: {</td></tr><tr id="L26"><td class="ln">26</td><td class="cd">        &quot;rev&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;版の識別子（git の版など）。変更前にだけ書けばよい&quot; },</td></tr><tr id="L27"><td class="ln">27</td><td class="cd">        &quot;sections&quot;: {</td></tr><tr id="L28"><td class="ln">28</td><td class="cd">          &quot;type&quot;: &quot;array&quot;,</td></tr><tr id="L29"><td class="ln">29</td><td class="cd">          &quot;minItems&quot;: <span class="t-n">1</span>,</td></tr><tr id="L30"><td class="ln">30</td><td class="cd">          &quot;description&quot;: &quot;デッキの区切り。動画1本、または章1つが1区切りになる&quot;,</td></tr><tr id="L31"><td class="ln">31</td><td class="cd">          &quot;items&quot;: {</td></tr><tr id="L32"><td class="ln">32</td><td class="cd">            &quot;type&quot;: &quot;object&quot;,</td></tr><tr id="L33"><td class="ln">33</td><td class="cd">            &quot;required&quot;: [&quot;key&quot;, &quot;name&quot;, &quot;slides&quot;],</td></tr><tr id="L34"><td class="ln">34</td><td class="cd">            &quot;additionalProperties&quot;: <span class="t-k">false</span>,</td></tr><tr id="L35"><td class="ln">35</td><td class="cd">            &quot;properties&quot;: {</td></tr><tr id="L36"><td class="ln">36</td><td class="cd">              &quot;key&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;^[A-Za-z0-<span class="t-n">9_</span>-]+$&quot;, &quot;description&quot;: &quot;区切りの識別子。変更前と変更後で同じ区切りは同じ値にする&quot; },</td></tr><tr id="L37"><td class="ln">37</td><td class="cd">              &quot;name&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: <span class="t-n">1</span> },</td></tr><tr id="L38"><td class="ln">38</td><td class="cd">              &quot;slides&quot;: { &quot;type&quot;: &quot;array&quot;, &quot;items&quot;: { &quot;$ref&quot;: &quot;#/$defs/slide&quot; } }</td></tr><tr id="L39"><td class="ln">39</td><td class="cd">            }</td></tr><tr id="L40"><td class="ln">40</td><td class="cd">          }</td></tr><tr id="L41"><td class="ln">41</td><td class="cd">        }</td></tr><tr id="L42"><td class="ln">42</td><td class="cd">      }</td></tr><tr id="L43"><td class="ln">43</td><td class="cd">    },</td></tr><tr id="L44"><td class="ln">44</td><td class="cd">    &quot;slide&quot;: {</td></tr><tr id="L45"><td class="ln">45</td><td class="cd">      &quot;type&quot;: &quot;object&quot;,</td></tr><tr id="L46"><td class="ln">46</td><td class="cd">      &quot;required&quot;: [&quot;id&quot;, &quot;heading&quot;, &quot;image&quot;],</td></tr><tr id="L47"><td class="ln">47</td><td class="cd">      &quot;additionalProperties&quot;: <span class="t-k">false</span>,</td></tr><tr id="L48"><td class="ln">48</td><td class="cd">      &quot;properties&quot;: {</td></tr><tr id="L49"><td class="ln">49</td><td class="cd">        &quot;id&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;^[A-Za-z0-<span class="t-n">9_</span>-]+$&quot;, &quot;description&quot;: &quot;枚の識別子。変更前と変更後で同じ枚は同じ値にする。並べ替えと追加は、この値で判定する&quot; },</td></tr><tr id="L50"><td class="ln">50</td><td class="cd">        &quot;heading&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;見出し。表紙は題&quot; },</td></tr><tr id="L51"><td class="ln">51</td><td class="cd">        &quot;lede&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;導入文&quot; },</td></tr><tr id="L52"><td class="ln">52</td><td class="cd">        &quot;narration&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;原稿の全文。表紙など原稿の無い枚は省く&quot; },</td></tr><tr id="L53"><td class="ln">53</td><td class="cd">        &quot;image&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: <span class="t-n">1</span>, &quot;description&quot;: &quot;描画した画像のパス（入力のファイルからの相対）&quot; }</td></tr><tr id="L54"><td class="ln">54</td><td class="cd">      }</td></tr><tr id="L55"><td class="ln">55</td><td class="cd">    },</td></tr><tr id="L56"><td class="ln">56</td><td class="cd">    &quot;finding&quot;: {</td></tr><tr id="L57"><td class="ln">57</td><td class="cd">      &quot;type&quot;: &quot;object&quot;,</td></tr><tr id="L58"><td class="ln">58</td><td class="cd">      &quot;required&quot;: [&quot;section&quot;, &quot;slide&quot;, &quot;group&quot;, &quot;status&quot;],</td></tr><tr id="L59"><td class="ln">59</td><td class="cd">      &quot;additionalProperties&quot;: <span class="t-k">false</span>,</td></tr><tr id="L60"><td class="ln">60</td><td class="cd">      &quot;properties&quot;: {</td></tr><tr id="L61"><td class="ln">61</td><td class="cd">        &quot;section&quot;: { &quot;type&quot;: &quot;string&quot; },</td></tr><tr id="L62"><td class="ln">62</td><td class="cd">        &quot;slide&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;枚の識別子&quot; },</td></tr><tr id="L63"><td class="ln">63</td><td class="cd">        &quot;group&quot;: {</td></tr><tr id="L64"><td class="ln">64</td><td class="cd">          &quot;enum&quot;: [&quot;consistency&quot;, &quot;story&quot;, &quot;japanese&quot;, &quot;heading&quot;, &quot;figure&quot;, &quot;layout&quot;, &quot;video&quot;],</td></tr><tr id="L65"><td class="ln">65</td><td class="cd">          &quot;description&quot;: &quot;review.md §<span class="t-n">2</span> の7つの群。consistency＝スライドと原稿の整合 ／ story＝論とストーリー ／ japanese＝日本語 ／ heading＝見出しと導入文 ／ figure＝図の表現 ／ layout＝表示の不良と読みやすさ ／ video＝動画の文体と構成&quot;</td></tr><tr id="L66"><td class="ln">66</td><td class="cd">        },</td></tr><tr id="L67"><td class="ln">67</td><td class="cd">        &quot;status&quot;: { &quot;enum&quot;: [&quot;fixed&quot;, &quot;ok&quot;, &quot;pending&quot;], &quot;description&quot;: &quot;fixed＝修正した ／ ok＝問題が無かった ／ pending＝保留した&quot; },</td></tr><tr id="L68"><td class="ln">68</td><td class="cd">        &quot;found&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;見つけたこと。status が ok のときは、問題が無いと判定した根拠&quot; },</td></tr><tr id="L69"><td class="ln">69</td><td class="cd">        &quot;fixed&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;直したこと。status が pending のときは、保留した理由&quot; }</td></tr><tr id="L70"><td class="ln">70</td><td class="cd">      }</td></tr><tr id="L71"><td class="ln">71</td><td class="cd">    }</td></tr><tr id="L72"><td class="ln">72</td><td class="cd">  }</td></tr><tr id="L73"><td class="ln">73</td><td class="cd">}</td></tr><tr id="L74"><td class="ln">74</td><td class="cd">&nbsp;</td></tr></tbody></table></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>

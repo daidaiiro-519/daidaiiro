@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "slide-deck/review.schema.json",
+  "title": "原稿を持つデッキの照合の入力",
+  "description": "変更前と変更後のデッキと、枚ごとの確認の結果を持つ。比較ページ ・ 台本 ・ 確認記録 ・ 観点ごとの結果は、どれもこの1つの入力から組む。slide-deck で組んでいないデッキも、この形へ変換すれば照合できる。",
+  "type": "object",
+  "required": ["title", "before", "after"],
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string", "minLength": 1, "description": "照合の題。比較ページと3つの成果物の題になる" },
+    "summary": { "type": "array", "items": { "type": "string" }, "description": "頭に置く要約。1項目が1行になる" },
+    "before": { "$ref": "#/$defs/snapshot", "description": "基準の版のデッキ" },
+    "after": { "$ref": "#/$defs/snapshot", "description": "直したあとのデッキ" },
+    "log": {
+      "type": "array",
+      "description": "枚ごと ・ 観点の群ごとの確認の結果",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object",
+      "required": ["sections"],
+      "additionalProperties": false,
+      "properties": {
+        "rev": { "type": "string", "description": "版の識別子（git の版など）。変更前にだけ書けばよい" },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "description": "デッキの区切り。動画1本、または章1つが1区切りになる",
+          "items": {
+            "type": "object",
+            "required": ["key", "name", "slides"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "description": "区切りの識別子。変更前と変更後で同じ区切りは同じ値にする" },
+              "name": { "type": "string", "minLength": 1 },
+              "slides": { "type": "array", "items": { "$ref": "#/$defs/slide" } }
+            }
+          }
+        }
+      }
+    },
+    "slide": {
+      "type": "object",
+      "required": ["id", "heading", "image"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "description": "枚の識別子。変更前と変更後で同じ枚は同じ値にする。並べ替えと追加は、この値で判定する" },
+        "heading": { "type": "string", "description": "見出し。表紙は題" },
+        "lede": { "type": "string", "description": "導入文" },
+        "narration": { "type": "string", "description": "原稿の全文。表紙など原稿の無い枚は省く" },
+        "image": { "type": "string", "minLength": 1, "description": "描画した画像のパス（入力のファイルからの相対）" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["section", "slide", "group", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "section": { "type": "string" },
+        "slide": { "type": "string", "description": "枚の識別子" },
+        "group": {
+          "enum": ["consistency", "story", "japanese", "heading", "figure", "layout", "video"],
+          "description": "review.md §2 の7つの群。consistency＝スライドと原稿の整合 ／ story＝論とストーリー ／ japanese＝日本語 ／ heading＝見出しと導入文 ／ figure＝図の表現 ／ layout＝表示の不良と読みやすさ ／ video＝動画の文体と構成"
+        },
+        "status": { "enum": ["fixed", "ok", "pending"], "description": "fixed＝修正した ／ ok＝問題が無かった ／ pending＝保留した" },
+        "found": { "type": "string", "description": "見つけたこと。status が ok のときは、問題が無いと判定した根拠" },
+        "fixed": { "type": "string", "description": "直したこと。status が pending のときは、保留した理由" }
+      }
+    }
+  }
+}
