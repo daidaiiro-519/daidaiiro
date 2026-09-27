@@ -1,0 +1,236 @@
+{
+ "no": "ACDR 0024",
+ "title": "ワークショップのフォルダを成果物と材料に分ける",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "docs/workshops/ai-workshop を、企画書 ・ 教材1 ・ 教材2の試作の3つのフォルダに分け、それぞれの中を見るもの（out/）と作るための材料（src/）に分ける。途中の生成物と、参照されていない古い記録は追跡から外す。",
+ "why": "利用者から、動画 ・ HTML ・ PDF がどこに在るか分からず、不要なものが多いと指摘された。直下に企画書の成果物と組み立ての道具が並び、materials/ には教材1の原稿の正本 ・ 図 ・ 道具 ・ スライド ・ 画像 ・ 音声 ・ 動画 ・ 動画の途中の区間ファイルが同じ階層に在った。入口の README は同じ行が4回ずつ重複し、教材と動画を載せていなかった。materials/README.md は6本だった頃の題のままだった。スライドの画像を作る処理は一時的な作業場所にしか無く、リポジトリだけでは画像を作り直せなかった。",
+ "shift": [
+  {
+   "what": "企画書",
+   "from": "直下に、スライド ・ PDF ・ 発表原稿 ・ 運営案と、build_deck.py ・ visuals.py ・ 同梱Skill が混在する",
+   "to": "proposal/out/（見るもの）と proposal/src/（材料）に分ける"
+  },
+  {
+   "what": "教材1",
+   "from": "materials/ に、原稿の正本 ・ 図 ・ 道具と、スライド（decks/）・ 動画（videos/）が混在する",
+   "to": "material-1/out/（videos ・ slides ・ scripts）と material-1/src/ に分ける"
+  },
+  {
+   "what": "動画の区間ファイル",
+   "from": "videos/<本>/01.mp4〜 と parts.txt を追跡する（28MB、完成した動画と中身が重複）",
+   "to": "material-1/src/work/ に置き、追跡しない"
+  },
+  {
+   "what": "教材2の試作",
+   "from": "materials-ddd/（未追跡）",
+   "to": "material-2/（未追跡のまま）"
+  },
+  {
+   "what": "参照されない古い記録と途中の出力",
+   "from": "古い確認記録2本 ・ render-check.json ・ rendered-text.md ・ 企画書の確認用の画像（previews/）を追跡する",
+   "to": "削除する。内容は git の履歴に在る"
+  },
+  {
+   "what": "入口",
+   "from": "行が重複し、教材と動画を載せていない README",
+   "to": "見るものへの直リンクの表と、作り直す場所を持つ README"
+  },
+  {
+   "what": "スライドの画像を作る処理",
+   "from": "一時的な作業場所にだけ在る",
+   "to": "material-1/src/render_previews.py として追跡する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前の4つの置き場所（左）が、変更後のどこへ移るか（右）を対応づけた図である。見るものは out/ に、材料は src/ に分かれる。",
+ "how": "git mv でファイルを移し、履歴をたどれる形にする。組み立ての道具のパスを新しい置き場所に合わせる。build_deck.py は出来上がりを proposal/out/ へ出す。build_lessons.py はスライドを out/slides/ へ、原稿を out/scripts/ へ出す。build_videos.py は動画を out/videos/ へ、区間を src/work/ へ出す。lesson_visuals.py と build_lessons.py は、部品を proposal/src/ から借りる。.gitignore に material-1/src/work/ を足す。移したあと、企画書は移す前と1バイトも違わない HTML が組めること、教材1は図と語の検査が通り、動画が同じ大きさで組めることを確認した。スライドと原稿の直し（教材1）は、この決定とは別に承認を待っている。この決定のコミットには移動だけを含め、直しの中身は含めない。",
+ "applies_to": "docs/workshops/ai-workshop の全体と、リポジトリの .gitignore が変わる。.acdr と .brainstorming-board の過去の記録は旧パスを指すが、当時の記録なので書き換えない。",
+ "alternatives": [
+  {
+   "option": "成果物だけを1か所（dist/ など）に集める",
+   "why_not": "企画書と教材で読み手が違う。1か所に集めると、どれが誰のためのものかを、名前で判別することになる"
+  },
+  {
+   "option": "教材2の試作を削除する",
+   "why_not": "未追跡で、git の履歴に無い。削除すると復元できない"
+  },
+  {
+   "option": "動画の区間ファイルも追跡する",
+   "why_not": "完成した動画と中身が重複し、作り直すたびに28MB単位で差分が増える"
+  },
+  {
+   "option": "過去の記録の旧パスも書き換える",
+   "why_not": "記録は当時の姿を保持するものである。書き換えると、承認時点の記録ではなくなる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、記録をコミットする。移動 ・ 削除 ・ パスの変更は、別の作業のコミット（2ec850b ・ c26c4f4）に、承認前に含まれていた",
+  "次のセッションのためのメモリの記述を、新しいパスへ更新する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "readme",
+   "tab": "README.md",
+   "file": "docs/workshops/ai-workshop/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "見るものは各フォルダの",
+     "before": "部長向けの説明資料と、開催条件を詰めるための運営案。",
+     "why": "どこに何が在るかを、入口の1文で示す"
+    },
+    {
+     "find": "教材1（オリエンテーション＋課題の把握）",
+     "before": "（無い）",
+     "why": "教材と動画が入口に載っていなかった"
+    },
+    {
+     "find": "教材2（試作）",
+     "before": "（無い）",
+     "why": "試作の置き場所を示す"
+    },
+    {
+     "find": "作り直す",
+     "before": "再生成",
+     "why": "企画書と教材1の作り直す場所を1つの表にまとめた。旧 README は同じ行が4回ずつ重複していた"
+    }
+   ]
+  },
+  {
+   "key": "m1",
+   "tab": "material-1/README.md",
+   "file": "docs/workshops/ai-workshop/material-1/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "教材1 ── オリエンテーションと課題の把握",
+     "before": "抽象と具体の教材 ── 台本・図・スライド（materials/README.md、6本だった頃の題）",
+     "why": "9本の現行の構成と、out/ と src/ の中身、作り直す6つの段を書いた"
+    }
+   ]
+  },
+  {
+   "key": "lessons",
+   "tab": "build_lessons.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/build_lessons.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "SLIDES = HERE.parent / 'out' / 'slides'",
+     "before": "(HERE / 'decks' / f'{stem}.html') と (HERE / 'decks' / f'{stem}-script.md')",
+     "why": "スライドを out/slides/ へ、原稿を out/scripts/ へ出す"
+    },
+    {
+     "find": "sys.path.insert(0, str(HERE.parents[1] / 'proposal' / 'src'))",
+     "before": "sys.path.insert(0, str(HERE.parent))",
+     "why": "build_deck.py が proposal/src/ へ移った"
+    }
+   ]
+  },
+  {
+   "key": "videos",
+   "tab": "build_videos.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/build_videos.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "OUT = ROOT / 'out' / 'videos'",
+     "before": "OUT = HERE / 'videos'",
+     "why": "完成した動画を out/videos/ へ、区間ファイルを追跡しない work/ へ出す"
+    }
+   ]
+  },
+  {
+   "key": "visuals",
+   "tab": "lesson_visuals.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/lesson_visuals.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / 'proposal' / 'src'))",
+     "before": "sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))",
+     "why": "visuals.py が proposal/src/ へ移った"
+    }
+   ]
+  },
+  {
+   "key": "words",
+   "tab": "check_words.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/check_words.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "targets = sorted((HERE.parent / 'out' / 'slides').glob('lesson-*-trial.html'))",
+     "before": "targets = sorted((HERE / 'decks').glob('lesson-*-trial.html'))",
+     "why": "スライドの置き場所が out/slides/ へ移った"
+    }
+   ]
+  },
+  {
+   "key": "previews",
+   "tab": "render_previews.py",
+   "file": "docs/workshops/ai-workshop/material-1/src/render_previews.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "SLIDES = HERE.parent / 'out' / 'slides'",
+     "before": "（無い ── 一時的な作業場所の shoot.py にだけ在った）",
+     "why": "リポジトリだけでスライドの画像を作り直せるようにした。ブラウザの場所は引数で受け取る"
+    }
+   ]
+  },
+  {
+   "key": "deck",
+   "tab": "build_deck.py",
+   "file": "docs/workshops/ai-workshop/proposal/src/build_deck.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "OUT = SRC.parent / 'out'",
+     "before": "OUT = Path(__file__).resolve().parent",
+     "why": "企画書の出来上がりを proposal/out/ へ出す"
+    }
+   ]
+  },
+  {
+   "key": "qc",
+   "tab": "quality-check.md",
+   "file": "docs/workshops/ai-workshop/proposal/src/quality-check.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "過去の記録は、git の履歴が保持する。",
+     "before": "過去の記録は、日付を付けたファイルが保持する。",
+     "why": "日付を付けたファイルを削除したので、所在を git の履歴へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "survey",
+   "tab": "survey-and-evaluation.md",
+   "file": "docs/workshops/ai-workshop/proposal/out/survey-and-evaluation.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "IMG_0588.jpeg",
+     "before": "提供された管理・リーダー業務の例（IMG_0588.jpeg）",
+     "why": "参照画像が proposal/src/ へ移ったので、相対パスのリンクにした"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "readme": "1f9e90e296e8153f3242db3155f55e0cfcd9cba332bd36cc9825120225ac47ef",
+  "m1": "5ca6518367d67a541bf961bf154ad2d5563978885d80608d64ec66ab55edc39d",
+  "lessons": "943a32b8ad578cf71642d5058c0289fa94af4977c0439b482581f95e9920b6b4",
+  "videos": "9d89b0335071f7472bfd941718ba1e8482c6f8addac43bc2c7f7b1362b091e06",
+  "visuals": "2bd57e6d1e6ad3e3b0f44b7b99430e6790230dbdca934be81310862119cdf075",
+  "words": "113809f11db539a21efa6263fe982da62455e45bc280dfdaa1e3f55776f37e7e",
+  "previews": "a96e4c05574314279986bfda68bd8343772c535f1bdf29be9708e690619b211e",
+  "deck": "399ffb526c5e491b76a5eeb984a17305fe9fddd2cdabc3e7de48520b1de68f3f",
+  "qc": "dbf1e9995af882bb01b98ffc8294fc7224075a52e8b01edf43beb2ff1a8b776a",
+  "survey": "8efd40d06c16c23c33f1209f9804d8c00d1bb7d3dcbba6bb7841d3e1f846f8f1"
+ }
+}
