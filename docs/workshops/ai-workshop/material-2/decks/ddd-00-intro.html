@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>はじめに</title>
+<style>
+  :root{
+    --ground:#0E1823;
+    --surface:#152534;
+    --surface-2:#1B2F41;
+    --paper:#F3EFE7;
+    --ink:#EAF0F5;
+    --dim:#8CA3B8;
+    --faint:#5E7488;
+    --line:#26394C;
+    --accent:#63D2BC;
+    --accent-dim:#2E7A6D;
+    --alert:#EE8A63;
+    --gold:#DFB86A;
+    --serif:'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',YuMincho,serif;
+    --sans:'Noto Sans JP','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+    --mono:'JetBrains Mono','Noto Sans JP',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-feature-settings:"palt" 1;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent-dim); color:var(--ink);}
+
+  .deck{ position:absolute; inset:0; overflow:hidden; }
+  .stage{ position:absolute; left:50%; top:50%; width:1280px; height:720px; transform-origin:center center; }
+  .slide{
+    position:absolute; inset:0;
+    display:none; flex-direction:column; justify-content:flex-start;
+    padding:96px 86.4px 78px;
+  }
+  .slide.on{ display:flex; animation:in .3s cubic-bezier(.2,.7,.3,1); }
+  @keyframes in{ from{opacity:0; transform:translateY(9px);} to{opacity:1; transform:none;} }
+  @media (prefers-reduced-motion:reduce){ .slide.on{animation:none;} }
+
+  .kicker{
+    font-family:var(--mono); font-size:11.5px;
+    letter-spacing:.2em; color:var(--accent); text-transform:uppercase;
+    margin-bottom:14px; display:flex; align-items:center; gap:.9rem;
+  }
+  .kicker::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .kicker.warm{ color:var(--alert); }
+  h1{ font-family:var(--serif); font-weight:600; font-size:69.1px; line-height:1.26; text-wrap:balance; }
+  h2{ font-family:var(--serif); font-weight:600; font-size:36px; line-height:1.36; text-wrap:balance; margin-bottom:16px; }
+  h3{ font-size:18.4px; font-weight:700; line-height:1.5; margin-bottom:.45rem; }
+  p{ font-size:16.7px; line-height:1.85; color:var(--dim); max-width:56ch; }
+  p + p{ margin-top:.9em; }
+  strong{ color:var(--ink); font-weight:700; }
+  .lede{ color:var(--ink); font-size:20.7px; max-width:46ch; }
+  em{ font-style:normal; color:var(--accent); }
+  .mono{ font-family:var(--mono); }
+  .alert{ color:var(--alert); }
+  .gold{ color:var(--gold); }
+  .ac{ color:var(--accent); }
+
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:40.3px; align-items:start; }
+  .cols.w{ grid-template-columns:1fr 1.1fr; align-items:stretch; }
+  .cols.w > div{ display:flex; flex-direction:column; }
+  .cols-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:23.0px; }
+  .stack{ display:flex; flex-direction:column; gap:17.3px; }
+  .body{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .slide.center{ justify-content:center; align-items:center; text-align:center; }
+  .center{ align-items:center; text-align:center; }
+  .center p{ max-width:48ch; }
+
+  .cav{ font-size:13px; line-height:1.75; color:var(--faint); margin-top:12px;
+        border-top:1px solid var(--line); padding-top:10px; }
+  .cav b{ color:var(--alert); font-weight:400; }
+  .fmrow{ display:grid; grid-template-columns:auto 1fr; gap:0 18px; align-items:baseline;
+          border-left:2px solid var(--line); padding-left:16px; }
+  .fmrow.top{ border-left-color:var(--accent); }
+  .fmrow .lss{ font-family:var(--serif); font-size:26px; line-height:1.2; color:var(--ink);
+               font-variant-numeric:tabular-nums; grid-row:span 2; }
+  .fmrow.top .lss{ color:var(--accent); }
+  .fmrow .nm2{ font-size:15px; font-weight:700; color:var(--ink); }
+  .fmrow .de{ font-family:var(--mono); font-size:11px; line-height:1.65; color:var(--faint); }
+  .fmlist{ display:flex; flex-direction:column; gap:15px; }
+
+  .recap{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; width:100%; max-width:1000px; }
+  .rc{ border-top:1px solid var(--line); padding-top:12px; text-align:left; }
+  .rc .rcn{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--accent); margin-bottom:6px; }
+  .rc .rct{ display:block; font-size:14px; line-height:1.7; color:var(--dim); }
+  .turnline{ font-family:var(--mono); font-size:13px; color:var(--alert); letter-spacing:.1em; }
+  .branch{ display:flex; flex-direction:column; gap:12px; }
+  .bnode{ border:1px solid var(--line); border-radius:2px; padding:12px 14px; background:var(--surface); }
+  .bnode .bt{ display:block; font-size:15px; line-height:1.6; color:var(--ink); }
+  .bnode .bs{ display:block; font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:5px; }
+  .bsplit{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .bx{ font-family:var(--mono); font-size:12px; color:var(--alert); text-align:center; }
+  .pairfig{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; }
+  .pbox{ border:1px solid var(--line); border-radius:2px; padding:12px 14px; background:var(--surface);
+         font-size:14px; line-height:1.6; color:var(--ink); text-align:center; }
+  .pbox small{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:4px; }
+  .plink{ font-family:var(--mono); font-size:11px; color:var(--faint); text-align:center; white-space:nowrap; }
+  .plink.q{ color:var(--alert); font-size:20px; }
+  .pcard{ border-left:2px solid var(--accent-dim); padding:0 0 0 18px; }
+  .pcard .ph{ display:block; font-size:14.5px; font-weight:700; color:var(--ink); margin-bottom:2px; }
+  .pcard .pm{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-bottom:9px; }
+  .pcard .prow{ display:block; font-size:13.5px; line-height:1.5; color:var(--dim); padding:7px 0;
+                border-top:1px solid var(--line); }
+  .pcard .prow b{ color:var(--ink); font-weight:700; }
+  .pcard .prow i{ font-style:normal; font-family:var(--mono); font-size:10.5px; color:var(--faint); display:block; }
+  .mir{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
+  .mc{ display:flex; flex-direction:column; gap:20px; }
+  .mlab{ font-size:15px; color:var(--dim); max-width:none; }
+  .mlab b{ color:var(--ink); font-weight:700; }
+  .mir .pairfig{ grid-template-columns:1fr 54px 1fr; gap:0; }
+  .mir .pbox{ min-height:80px; display:flex; flex-direction:column; justify-content:center; font-size:15px; }
+  .mir .plink{ min-width:54px; }
+  .mtrio{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .mtrio .pbox{ min-height:80px; }
+  .mclaim{ font-family:var(--serif); font-size:22px; line-height:1.5; color:var(--ink);
+           border-left:2px solid var(--accent-dim); padding-left:18px; }
+  .mc.hot .mclaim{ border-left-color:var(--alert); color:var(--alert); }
+  .mrows{ display:flex; flex-direction:column; gap:16px; }
+  .mrow{ border-left:2px solid var(--line); padding-left:18px; }
+  .mrow .mt{ display:block; font-size:15px; line-height:1.6; color:var(--ink); }
+  .mrow .ms{ display:block; font-family:var(--mono); font-size:10.5px; line-height:1.7;
+             color:var(--faint); margin-top:5px; }
+  .mc.hot .mrow .ms{ font-family:var(--sans); font-size:12.5px; color:var(--dim); }
+  .axis{ display:flex; flex-direction:column; gap:26px; }
+  .ax{ border-left:2px solid var(--accent-dim); padding-left:18px; }
+  .mc.hot .ax{ border-left-color:var(--alert); }
+  .ax .axl{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:.18em;
+            color:var(--faint); margin-bottom:7px; }
+  .ax .axt{ display:block; font-family:var(--serif); font-size:22px; line-height:1.45; color:var(--ink); }
+  .mc.hot .ax .axt{ color:var(--alert); }
+  .ax .axs{ display:block; font-size:13.5px; line-height:1.75; color:var(--dim); margin-top:9px; }
+  .ax .axc{ display:block; font-family:var(--mono); font-size:10.5px; line-height:1.7;
+            color:var(--faint); margin-top:6px; }
+  .qlist{ display:flex; flex-direction:column; gap:26px; }
+  .qrow{ display:grid; grid-template-columns:auto 1fr; gap:0 20px; align-items:baseline;
+         border-left:2px solid var(--accent-dim); padding-left:20px; }
+  .qrow.hot{ border-left-color:var(--alert); }
+  .qn{ font-family:var(--mono); font-size:15px; letter-spacing:.1em; color:var(--accent); }
+  .qrow.hot .qn{ color:var(--alert); }
+  .qt{ display:block; font-family:var(--serif); font-size:23px; line-height:1.55; color:var(--ink); }
+  .qs{ display:block; font-size:13.5px; line-height:1.7; color:var(--faint); margin-top:7px; }
+  .qs b{ font-family:var(--mono); font-size:11.5px; color:var(--accent); font-weight:400; letter-spacing:.06em; }
+  .qrow.hot .qs b{ color:var(--alert); }
+  .dots{ display:flex; gap:5px; margin-top:14px; }
+  .dots span{ width:16px; height:16px; border-radius:2px; border:1px solid var(--line); display:block; }
+  .dots span.on{ background:var(--accent); border-color:var(--accent); }
+  .dots.dim span.on{ background:var(--dim); border-color:var(--dim); }
+  .dotcap{ font-size:13px; line-height:1.75; color:var(--dim); margin-top:10px; max-width:none; }
+  .cvt2{ font-size:15px; color:var(--ink); margin-bottom:12px; max-width:none; }
+  .cvcap2{ font-size:13px; line-height:1.8; color:var(--faint); margin-top:12px; max-width:none; }
+  .cvcap2 b{ color:var(--ink); font-weight:700; }
+  .cvcap2 span{ display:block; font-family:var(--mono); font-size:10px; margin-top:6px; }
+  .runs2{ display:flex; flex-direction:column; gap:12px; }
+  .rbox{ background:#0A1119; border:1px solid var(--line); border-radius:2px; padding:12px 14px; }
+  .rbox .rl{ display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.16em;
+             color:var(--faint); margin-bottom:7px; }
+  .rbox pre{ font-family:var(--mono); font-size:11px; line-height:1.75; color:var(--dim);
+             white-space:pre; overflow-x:auto; }
+  .rbox pre i{ font-style:normal; color:var(--accent); }
+  .rbox pre b{ font-weight:400; color:var(--alert); }
+  .conv{ display:flex; flex-direction:column; gap:22px; }
+  .cvblk .cvh{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .cvblk .cvv{ font-family:var(--mono); font-size:12px; color:var(--faint); letter-spacing:.08em; }
+  .cvblk .cvt{ font-size:14px; color:var(--ink); }
+  .cvruns{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .cvrun{ display:flex; flex-direction:column; gap:4px; }
+  .cvrun span{ height:5px; border-radius:1px; background:var(--accent-dim); display:block; }
+  .cvrun.x span{ background:#6E5A55; }
+  .cvcap{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+          font-family:var(--mono); font-size:10px; color:var(--faint); margin-top:8px; max-width:none; }
+  .fmt{ display:flex; flex-direction:column; gap:14px; }
+  .fm{ border-left:2px solid var(--line); padding-left:16px; }
+  .fm .fmn{ display:block; font-size:15px; color:var(--ink); font-weight:700; }
+  .fm .fmd{ display:block; font-family:var(--mono); font-size:11.5px; line-height:1.7; color:var(--faint); margin-top:4px; }
+  .fm .fmd i{ font-style:normal; color:var(--accent); }
+  .src1{ font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:22px; max-width:none; }
+  .close{ font-size:16px; line-height:1.85; color:var(--dim); margin-top:34px; max-width:none; }
+  .close .s2{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:8px; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start; }
+  .fig2{ display:flex; flex-direction:column; border-left:2px solid var(--accent-dim); padding-left:22px; }
+  .fig2 .fv{ font-family:var(--serif); font-size:76px; line-height:1; font-weight:600; color:var(--ink); }
+  .fig2 .fv i{ font-style:normal; font-size:.38em; color:var(--accent); margin-left:.12em; }
+  .fig2 .fl{ font-size:15px; line-height:1.8; color:var(--dim); margin-top:16px; }
+  .fig2 .fs{ font-family:var(--mono); font-size:10.5px; line-height:1.7; color:var(--faint); margin-top:14px; }
+  .flowv{ display:flex; flex-direction:column; gap:10px; }
+  .fr{ display:grid; grid-template-columns:1fr; gap:2px; border-left:2px solid var(--line); padding-left:18px; }
+  .fr .ft{ font-size:17px; line-height:1.6; color:var(--ink); }
+  .fr .fn{ font-family:var(--mono); font-size:10.5px; color:var(--faint); }
+  .farr{ font-family:var(--mono); font-size:14px; color:var(--faint); padding-left:6px; }
+  .fq{ border-left:2px solid var(--alert); padding-left:18px; }
+  .fq .ft{ font-family:var(--serif); font-size:24px; line-height:1.5; color:var(--alert); }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:19.6px 21.9px; }
+  .card.lit{ border-left:3px solid var(--accent); }
+  .card.hot{ border-left:3px solid var(--alert); }
+  .card p{ font-size:13.8px; line-height:1.75; }
+  .src{ font-family:var(--mono); font-size:10.2px; color:var(--faint); margin-top:.6rem; }
+
+  .stat{ font-family:var(--serif); font-size:92.2px; line-height:1; font-weight:600; }
+  .stat.sm{ font-size:48.0px; }
+  .stat-cap{ font-size:13.2px; color:var(--dim); margin-top:.5rem; line-height:1.65; }
+
+  .paper{
+    background:var(--paper); color:#1A1F26; border-radius:2px;
+    padding:18.4px 21.9px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.72;
+    box-shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  }
+  .paper .tag{ display:block; font-size:.74em; color:#6C7480; letter-spacing:.08em; margin-bottom:.35rem; }
+  .paper strong{ color:#1A1F26; }
+  .paper mark{ background:#F4D8A8; color:#1A1F26; padding:0 .18em; }
+
+  .code{
+    background:#0A1119; border:1px solid var(--line); border-radius:2px;
+    padding:18.4px 21.9px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.8; color:var(--dim);
+    white-space:pre-wrap;
+  }
+  .code .c{ color:var(--faint); } .code .k{ color:var(--accent); } .code .w{ color:var(--alert); }
+
+  ul.plain{ list-style:none; display:flex; flex-direction:column; gap:.7rem; }
+  ul.plain li{ font-size:15.4px; line-height:1.75; color:var(--dim); padding-left:1.5rem; position:relative; }
+  ul.plain li::before{ content:""; position:absolute; left:0; top:.72em; width:.5rem; height:1px; background:var(--accent); }
+  ul.plain li.x::before{ background:var(--alert); }
+  ul.num{ list-style:none; display:flex; flex-direction:column; gap:.65rem; counter-reset:n; }
+  ul.num li{ font-size:15.0px; line-height:1.7; color:var(--dim); padding-left:2rem; position:relative; counter-increment:n; }
+  ul.num li::before{ content:"H" counter(n); position:absolute; left:0; top:.05em; font-family:var(--mono); font-size:.82em; color:var(--gold); }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.7px; }
+  th{ text-align:left; font-family:var(--mono); font-size:9.9px; letter-spacing:.09em; color:var(--faint); text-transform:uppercase; font-weight:400; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  td{ padding:.5rem .6rem; border-bottom:1px solid var(--line); color:var(--dim); vertical-align:top; }
+  td.num{ font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--ink); text-align:right; }
+  td.nm{ color:var(--ink); font-weight:700; white-space:nowrap; }
+  tr.hi td{ color:var(--ink); } tr.hi td:first-child{ color:var(--accent); }
+  table.tight td, table.tight th{ padding:.38rem .55rem; }
+
+  .flow{ display:grid; grid-template-columns:repeat(4,1fr); gap:.65rem; }
+  .step{ background:var(--surface); border:1px solid var(--line); border-top:2px solid var(--accent-dim); border-radius:2px; padding:16.1px; }
+  .step .n{ font-family:var(--mono); font-size:10.2px; color:var(--accent); letter-spacing:.1em; }
+  .step .t{ font-size:13.6px; font-weight:700; margin:.3rem 0 .35rem; line-height:1.45; }
+  .step .d{ font-size:11.3px; color:var(--faint); line-height:1.6; }
+
+  .matrix{ display:grid; grid-template-columns:auto 1fr 1fr; gap:.5rem; align-items:stretch; }
+  .mh{ font-family:var(--mono); font-size:10.6px; color:var(--faint); display:flex; align-items:center; justify-content:center; text-align:center; padding:.4rem; line-height:1.5; }
+  .mh.side{ writing-mode:vertical-rl; }
+  .cell{ background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:15.0px; }
+  .cell .cl{ font-family:var(--mono); font-size:10.4px; color:var(--faint); letter-spacing:.08em; }
+  .cell .ct{ font-size:13.8px; font-weight:700; margin:.25rem 0 .3rem; }
+  .cell .cd{ font-size:11.5px; color:var(--faint); line-height:1.55; }
+  .cell.full{ border-color:var(--accent-dim); border-width:1px 1px 1px 3px; border-left-color:var(--accent); }
+
+  .vs{ display:grid; grid-template-columns:1fr auto 1fr; gap:16.1px; align-items:stretch; }
+  .vs .arrow{ display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:23.0px; color:var(--alert); }
+  .vs-lbl{ font-family:var(--mono); font-size:9.9px; letter-spacing:.12em; margin-bottom:.3rem; }
+  .vs-spec .vs-lbl{ color:var(--faint); }
+  .vs-impl .vs-lbl{ color:var(--alert); }
+  .vs-box{ background:var(--paper); color:#1A1F26; border-radius:2px; padding:15.0px 17.3px; font-family:var(--mono); font-size:11.7px; line-height:1.68; height:100%; }
+  .vs-box.dark{ background:#0A1119; color:var(--dim); border:1px solid var(--line); }
+  .vs-box mark{ background:#F4D8A8; color:#1A1F26; padding:0 .18em; }
+  .vs-box .w{ color:var(--alert); }
+  .vs-row{ margin-bottom:16.1px; }
+  .vs-row:last-child{ margin-bottom:0; }
+  .vs-cap{ font-size:12.1px; color:var(--faint); margin-bottom:.35rem; }
+  .chrome{ position:absolute; left:0; right:0; bottom:0; height:41.5px; display:flex; align-items:center; justify-content:space-between; padding:0 40.3px; font-family:var(--mono); font-size:9.9px; color:var(--faint); letter-spacing:.1em; pointer-events:none; z-index:5; }
+  .progress{ position:absolute; top:0; left:0; height:2px; background:var(--accent); z-index:6; transition:width .3s cubic-bezier(.2,.7,.3,1); }
+  .hint{ opacity:.45; }
+  .navzone{ position:absolute; top:0; bottom:0; width:20%; z-index:4; cursor:pointer; }
+  .navzone.prev{ left:0; } .navzone.next{ right:0; }
+
+
+</style><style>
+  .cite{ font-family:var(--mono); font-size:9.9px; color:var(--faint);
+         letter-spacing:.04em; margin-top:.7rem; line-height:1.7; border-top:1px solid var(--line);
+         padding-top:.5rem; }
+  .cite b{ color:var(--dim); font-weight:400; }
+  .gap{ display:flex; align-items:baseline; gap:.9rem; margin-bottom:.55rem; }
+  .gap .gn{ font-family:var(--mono); font-size:18.4px; color:var(--alert); flex:none; }
+  .big{ display:flex; flex-direction:column; gap:.25rem; }
+  .big .v{ font-family:var(--serif); font-size:57.6px; line-height:1; font-weight:600; }
+  .big .l{ font-size:12.1px; color:var(--faint); line-height:1.6; }
+  .big.warn .v{ color:var(--alert); }
+  .big.good .v{ color:var(--accent); }
+  .obs{ display:flex; flex-direction:column; gap:23.0px; }
+  .ob{ display:grid; grid-template-columns:46.1px 1fr; align-items:baseline; gap:23.0px;
+       border-left:2px solid var(--line); padding-left:23.0px; }
+  .obn{ font-family:var(--mono); font-size:19.6px; color:var(--accent); }
+  .obt{ font-family:var(--serif); font-size:26px; line-height:1.45; color:var(--ink); display:block; }
+  .obs2{ display:block; font-family:var(--sans); font-size:13.5px;
+         color:var(--faint); line-height:1.75; margin-top:.5rem; max-width:48ch; }
+  .byline{ font-family:var(--mono); font-size:12.1px;
+           letter-spacing:.16em; color:var(--faint); margin-top:51.8px; }
+  .submit{ font-family:var(--mono); font-size:10.4px;
+           letter-spacing:.1em; color:var(--faint); opacity:.7; margin-top:.7rem;
+           font-variant-numeric:tabular-nums; white-space:nowrap; max-width:none; }
+</style>
+
+
+<style>
+  .obs{ display:flex; flex-direction:column; gap:23.0px; }
+  .ob{ display:grid; grid-template-columns:46.1px 1fr; align-items:baseline; gap:23.0px;
+       border-left:2px solid var(--line); padding-left:23.0px; }
+  .obn{ font-family:var(--mono); font-size:19.6px; color:var(--accent); }
+  .obt{ font-family:var(--serif); font-size:26px; line-height:1.45; color:var(--ink); display:block; }
+  .obs2{ display:block; font-family:var(--sans); font-size:13.5px;
+         color:var(--faint); line-height:1.75; margin-top:.5rem; max-width:34ch; }
+
+  .take{ margin-top:20.7px; border-left:2px solid var(--accent-dim);
+          padding-left:23.0px; }
+  .verdict{ font-family:var(--serif); font-size:19px; line-height:1.6; color:var(--ink);
+            border-top:1px solid var(--line); padding-top:11px; }
+  .tlbl{ font-family:var(--mono); font-size:10.4px; letter-spacing:.18em;
+         color:var(--faint); margin-bottom:.6rem; }
+  .take p{ font-size:15px; line-height:1.75; max-width:42ch; }
+  .take p + p{ margin-top:.35em; }
+  .take .turn{ font-family:var(--serif); font-size:19px;
+               color:var(--ink); margin-top:.6em; }
+  .conseq{ display:flex; flex-direction:column; gap:13px;
+           border-left:1px solid var(--line); padding-left:34.6px; }
+  .conseq .lbl{ font-family:var(--mono); font-size:10.4px;
+                letter-spacing:.18em; color:var(--faint); }
+  .loop{ width:100%; max-width:360px; height:auto; }
+  .punch{ font-family:var(--serif); font-size:22px; line-height:1.6;
+          color:var(--ink); max-width:30ch; }
+  .punch b{ color:var(--alert); font-weight:600; }
+  .punch .sub{ display:block; margin-top:.55em; font-size:.75em; color:var(--dim); }
+  .who{ display:flex; gap:.5rem; }
+  .who span{ font-family:var(--mono); font-size:10.9px; color:var(--alert);
+             border:1px solid var(--alert); border-radius:2px; padding:.2em .7em; }
+  .aside{ font-family:var(--mono); font-size:10.6px; line-height:1.8;
+          color:var(--faint); border-top:1px solid var(--line); padding-top:.8rem; }
+</style>
+<style>
+:root{--ground:#f4f1e8;--surface:#e9e5da;--surface-2:#e1dfd3;--paper:#fffaf2;--ink:#252b29;--dim:#59605a;--faint:#686f65;--line:#d5d6c9;--accent:#b64326;--accent-dim:#873f2b;--serif:'Noto Sans JP','Yu Gothic',sans-serif;--sans:'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;--mono:var(--sans)}
+body{font-feature-settings:normal;background:#deded3}
+.stage{background:var(--ground)}
+.slide{padding:84px 84px 78px}
+.kicker{font-family:var(--sans);font-size:14px;letter-spacing:.06em;color:var(--dim);margin-bottom:20px;gap:12px}
+.kicker::after{display:none}
+.ws-mark{display:inline-block;width:12px;height:12px;border:2px solid #6d766a;border-radius:50%;position:relative}
+.ws-mark::after{content:'';position:absolute;left:16px;top:3px;width:13px;height:2px;background:#b7bcae}
+.ws-kicker-label{padding-left:17px}
+h1,h2{font-family:var(--sans);font-weight:700;text-wrap:initial;letter-spacing:-.03em}
+h1{font-size:51px;line-height:1.43} h2{font-size:36px;line-height:1.46;margin-bottom:16px}
+.ws-intro{font-size:20px;line-height:1.7;max-width:none;color:var(--dim)}
+.body{justify-content:flex-start;padding-top:35px;gap:16px;min-height:0}
+.ws-cover .body{padding-top:29px}
+.ws-cover .ws-intro{font-size:19px;margin-top:14px}
+.ws-cover h2{font-size:47px;line-height:1.43}
+.ws-titlepage{padding-top:215px}
+.ws-titlepage .kicker{display:none}
+.ws-titlepage h1{font-size:61px;line-height:1.4}
+.ws-titlepage .ws-intro{font-size:21px;margin-top:19px}
+.ws-titlepage .body{padding-top:48px}
+.ws-title-art{width:100%;height:130px;display:block;flex:none}
+.ws-abstraction .body{padding-top:20px}
+.ws-abstraction-fig{width:100%;height:auto;display:block;flex:none;font-family:var(--sans)}
+.ws-flow{width:100%;height:auto;max-height:184px;display:block;flex:none;font-family:var(--sans)}
+.ws-note{font-size:16px;line-height:1.8;max-width:none;color:var(--dim);margin-top:8px}
+.ws-table{font-family:var(--sans);width:100%;font-size:20px;border-collapse:collapse;table-layout:fixed}
+.ws-table th{font-family:var(--sans);font-size:15px;color:var(--dim);font-weight:500;letter-spacing:0;text-transform:none;padding:0 16px 15px;border-bottom:1px solid #b8bdb0;line-height:1.5}
+.ws-table td{padding:19px 16px;color:var(--ink);border-bottom:1px solid var(--line);font-size:19px;line-height:1.65}
+.ws-table td:first-child{font-weight:500}.ws-table b{color:var(--accent)}
+.ws-split{display:grid;grid-template-columns:1.06fr 1fr;gap:54px;align-items:start}
+.ws-split .ws-flow{height:165px;max-height:none;margin-top:24px}
+.ws-split .ws-table td{font-size:18px;padding:16px 10px}.ws-split .ws-table th{padding-left:10px;padding-right:10px}
+.ws-skill-link{display:flex;justify-content:center;align-items:center;gap:20px;font-size:20px;padding:8px 0}
+.ws-pill{display:inline-block;padding:10px 24px;border:1px solid #939d8b;border-radius:30px;font-size:17px;color:var(--dim)}
+.ws-eyebrow{font-size:16px;margin-bottom:18px;color:var(--dim)}
+.ws-copy{font-size:22px;line-height:1.8;max-width:none;color:var(--ink);margin-top:14px}
+.ws-phases{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;position:relative;padding-top:16px}
+.ws-phases>div{position:relative;padding:29px 25px;background:#e9e5da;border-radius:8px}
+.ws-phase-path{position:absolute;left:0;top:16px;width:100%;height:240px;pointer-events:none}
+.ws-phases>.ws-phase-hot{background:var(--accent);color:#fffaf2}
+.ws-date{font-size:18px;color:var(--dim);margin-bottom:21px}
+.ws-phases h3{font-size:23px;margin-bottom:16px}.ws-phases p:not(.ws-date){font-size:18px;line-height:1.9;max-width:none}
+.ws-phase-hot p{color:#fff2e7}.ws-phase-hot h3{color:#fffaf2}
+.ws-groups{width:100%;height:258px;display:block}
+.ws-plain-stack{display:flex;flex-direction:column;gap:37px;padding-top:19px}
+.ws-plain-stack h3{font-size:25px;margin-bottom:10px}.ws-plain-stack p{font-size:20px;line-height:1.85}
+.ws-hours{display:flex;align-items:baseline;gap:18px;padding-top:3px}.ws-hours span{font-size:76px;line-height:1.3;color:var(--accent);font-weight:700;letter-spacing:-.05em}.ws-hours small{font-size:22px}
+.ws-source{font-size:14px;line-height:1.8;color:var(--dim);max-width:none;margin-top:16px}
+.ws-source a{color:inherit;text-decoration:underline;text-underline-offset:3px;position:relative;z-index:6}
+.ws-form .body{padding-top:18px;gap:10px}.ws-form .ws-table td{font-size:17px;padding:10px 12px;line-height:1.55}.ws-form .ws-table th{padding-bottom:10px}.ws-form .ws-note{font-size:14px;line-height:1.6}.ws-form .ws-table th:first-child{width:48%}
+.ws-q4 .ws-table th:first-child{width:26%}
+.ws-tight .ws-table td{font-size:16px;padding:8px 12px;line-height:1.5}.ws-q4 .ws-table td{font-size:16px;padding:9px 10px}
+.ws-eval .ws-table td{padding-top:13px;padding-bottom:13px}
+.ws-eval .ws-table th:first-child{width:25%}
+.ws-survey-core .ws-table th:first-child,.ws-survey-pm .ws-table th:first-child{width:18%}
+.ws-survey-core .ws-table td{font-size:18px;padding:12px;line-height:1.65}
+.ws-survey-pm .body{padding-top:20px;gap:10px}
+.ws-survey-pm .ws-table td{font-size:18px;padding:6px 12px;line-height:1.6}
+.ws-survey-core .ws-note,.ws-survey-pm .ws-note{font-size:15px;line-height:1.8}
+.ws-sharing .ws-table th:first-child{width:30%}
+.ws-visual{width:100%;height:auto;display:block;flex:none;font-family:var(--sans)}
+.ws-diagram .body{padding-top:18px;gap:8px}
+.ws-diagram .ws-note{font-size:15px;line-height:1.6;margin-top:0}
+.chrome{font-family:var(--sans);font-size:12px;letter-spacing:0;height:48px;padding:0 42px;color:#6c7468}
+.hint{opacity:1}.progress{height:2px;background:#adb4a3}
+.ws-nav{background:none;border:0;color:inherit;font:inherit;cursor:pointer;pointer-events:auto;padding:7px 15px}
+.navzone{width:6%;opacity:0}
+@media print{
+ @page{size:1280px 720px;margin:0}
+ html,body{height:auto;overflow:visible;background:var(--ground)}
+ .deck{position:static;overflow:visible}.stage{position:static;width:1280px;height:auto;transform:none!important}
+ .slide{position:relative;display:flex!important;height:720px;break-after:page;animation:none!important}
+ .chrome,.progress,.navzone{display:none}
+}
+</style></head><body>
+<div class="navzone prev" id="zprev"></div>
+<div class="navzone next" id="znext"></div>
+
+<div class="deck" id="deck"><div class="stage" id="stage">
+<div class="progress" id="progress"></div>
+
+<section class="slide ws-titlepage" aria-label="1: 前置き　はじめに">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　0／5</span></div>
+<h1>前置き　はじめに</h1>
+<p class="ws-intro">依頼1つから、業務の側へ</p>
+<div class="body"></div>
+</section>
+<section class="slide ws-diagram" aria-label="2: 教材1でやったのは、依頼1つの中の話でした">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　1／5</span></div>
+<h2>教材1でやったのは、依頼1つの中の話でした</h2>
+<p class="ws-intro">まず、教材1の到達点を確認する。3文とも、含めるものと含めないものを両方書いている。</p>
+<div class="body"><svg class="ws-visual" viewBox="0 0 1112 424" role="img" aria-label="教材1で足した3文は、含めるものと含めないものを両方書いている"><text x="0" y="24.0" font-size="18" fill="#59605a" font-weight="400" text-anchor="start">教材1で足した3文　──　どれも、含めるものと含めないものを両方書いている</text><rect x="0" y="48" width="268" height="58" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="134" y="84.0" font-size="20" fill="#252b29" font-weight="700" text-anchor="middle">「課題を整理して」</text><rect x="0" y="124" width="86" height="62" rx="8" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="43" y="162.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">意味</text><rect x="98" y="124" width="466" height="62" rx="8" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="118" y="150.0" font-size="16" fill="#252b29" font-weight="700" text-anchor="start">課題とは、次の打ち合わせで決める必要があるもの</text><path d="M123.5 165.5 L132.5 174.5 M132.5 165.5 L123.5 174.5" stroke="#59605a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="144" y="175.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="start">すでに決まったものと、起きるかどうか分からないものは含めない</text><rect x="0" y="198" width="86" height="62" rx="8" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="43" y="236.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">範囲</text><rect x="98" y="198" width="466" height="62" rx="8" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="118" y="224.0" font-size="16" fill="#252b29" font-weight="700" text-anchor="start">見るのは、今回の案件の定例、直近5回だけ</text><path d="M123.5 239.5 L132.5 248.5 M132.5 239.5 L123.5 248.5" stroke="#59605a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="144" y="249.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="start">合同会議と、前の案件の議事録は含めない</text><rect x="0" y="272" width="86" height="62" rx="8" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="43" y="310.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">条件</text><rect x="98" y="272" width="466" height="62" rx="8" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="118" y="298.0" font-size="16" fill="#252b29" font-weight="700" text-anchor="start">どの項目にも、誰が決めるかと、いつまでかを必ず入れる</text><path d="M123.5 313.5 L132.5 322.5 M132.5 313.5 L123.5 322.5" stroke="#59605a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="144" y="323.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="start">すでに決まったものは入れない</text><path d="M580 229.0 H620 M612 222.0 l8 7 -8 7" stroke="#b64326" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="634" y="124" width="478" height="210" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="873" y="203.0" font-size="19" fill="#252b29" font-weight="700" text-anchor="middle">別の議事録を渡しても、目的から外れない</text><text x="873" y="239.0" font-size="19" fill="#b64326" font-weight="700" text-anchor="middle">＝　再現性</text><text x="873" y="267.0" font-size="15" fill="#59605a" font-weight="400" text-anchor="middle">教材1の締めである</text><rect x="0" y="356" width="1112" height="56" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="556.0" y="392.0" font-size="21" fill="#b64326" font-weight="700" text-anchor="middle">ただし、ここまでは依頼1つの中の話である ── 決めたのは、出した人の頭の中だけ</text></svg></div>
+</section>
+<section class="slide ws-diagram" aria-label="3: 流れの中では通じます。外に出ると通じません">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　2／5</span></div>
+<h2>流れの中では通じます。外に出ると通じません</h2>
+<p class="ws-intro">教材1の依頼を、業務の中に置いてみる。この流れの中では、言葉は実際に通じている。</p>
+<div class="body"><svg class="ws-visual" viewBox="0 0 1112 356" role="img" aria-label="同じ流れの中では課題は通じるが、流れの外にいる相手には通じない"><text x="0" y="22.0" font-size="18" fill="#59605a" font-weight="400" text-anchor="start">案件の進行管理　──　同じ会話の中にいる人たち</text><rect x="0.0" y="44" width="134.0" height="88" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="67.0" y="72" font-size="14" fill="#252b29" font-weight="700" text-anchor="middle">定例で話す</text><text x="67.0" y="114.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="middle">業務部門と開発</text><path d="M138.0 88 H158.0 M150.0 81 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="162.0" y="44" width="134.0" height="88" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="229.0" y="72" font-size="14" fill="#252b29" font-weight="700" text-anchor="middle">議事録に書く</text><text x="229.0" y="114.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="middle">PM</text><path d="M300.0 88 H320.0 M312.0 81 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="324.0" y="44" width="134.0" height="88" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="391.0" y="64" font-size="14" fill="#fffaf2" font-weight="700" text-anchor="middle">決めることを</text><text x="391.0" y="84" font-size="14" fill="#fffaf2" font-weight="700" text-anchor="middle">一覧にする</text><text x="391.0" y="114.0" font-size="13" fill="#fffaf2" font-weight="400" text-anchor="middle">PM</text><path d="M462.0 88 H482.0 M474.0 81 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="486.0" y="44" width="134.0" height="88" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="553.0" y="72" font-size="14" fill="#252b29" font-weight="700" text-anchor="middle">打ち合わせで決める</text><text x="553.0" y="114.0" font-size="13" fill="#59605a" font-weight="400" text-anchor="middle">関係者</text><rect x="0" y="148" width="620" height="44" rx="8" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="310" y="176.0" font-size="16" fill="#252b29" font-weight="400" text-anchor="middle">「課題」は、ここでは通じる ── 前後の事情を全員が知っているから</text><text x="0" y="222.0" font-size="16" fill="#b64326" font-weight="700" text-anchor="start">教材1でやったのは、3つめの作業である</text><path d="M660 20 V240" stroke="#a8b09f" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="700" y="22.0" font-size="18" fill="#b64326" font-weight="700" text-anchor="start">流れの外にいる相手</text><rect x="700" y="48" width="412" height="52" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="724" y="80.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="start">別の業務の人</text><text x="856" y="80.0" font-size="14" fill="#59605a" font-weight="400" text-anchor="start">受注や請求では、課題の指すものが違う</text><rect x="700" y="112" width="412" height="52" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="724" y="144.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="start">新しく入った人</text><text x="856" y="144.0" font-size="14" fill="#59605a" font-weight="400" text-anchor="start">その場の事情を知らない</text><rect x="700" y="176" width="412" height="52" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="724" y="208.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="start">AI</text><text x="856" y="208.0" font-size="14" fill="#59605a" font-weight="400" text-anchor="start">渡した言葉の中にあるものだけで決める</text><rect x="700" y="240" width="412" height="0" rx="0" fill="#fffaf2" stroke="none" stroke-width="2"/><text x="700" y="256.0" font-size="16" fill="#59605a" font-weight="400" text-anchor="start">頭の中で共有していたことが、ここでは伝わらない</text><rect x="0" y="288" width="1112" height="56" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="556.0" y="324.0" font-size="21" fill="#b64326" font-weight="700" text-anchor="middle">業務の側で言葉を決めるのは、流れの外の相手にも通じるようにするためである</text></svg></div>
+</section>
+<section class="slide ws-diagram" aria-label="4: 量が増えると、語の揺れも増えます">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　3／5</span></div>
+<h2>量が増えると、語の揺れも増えます</h2>
+<p class="ws-intro">ここで1つ、考察を述べる。原則ではない。量が増えると、語の揺れは気づかれないまま通過する。</p>
+<div class="body"><svg class="ws-visual" viewBox="0 0 1112 338" role="img" aria-label="量が少ないうちは揺れに気づけるが、増えると気づけない"><text x="0" y="24.0" font-size="18" fill="#59605a" font-weight="400" text-anchor="start">1つの語に2つの意味が入ったまま出力される</text><rect x="0" y="48" width="528" height="196" rx="12" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="28" y="88.0" font-size="20" fill="#252b29" font-weight="700" text-anchor="start">人が書く量</text><text x="150" y="88.0" font-size="24" fill="#252b29" font-weight="700" text-anchor="start">10件</text><rect x="28" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="76" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="124" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="172" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="220" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="268" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="316" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="364" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="412" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="460" y="112" width="36" height="24" rx="4" fill="#e9e5da" stroke="none" stroke-width="2"/><path d="M26 186 L33 194 L47 177" stroke="#b64326" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="64" y="193.0" font-size="17" fill="#252b29" font-weight="400" text-anchor="start">読み返すと、揺れに気づける</text><rect x="584" y="48" width="528" height="196" rx="12" fill="#fffaf2" stroke="#b64326" stroke-width="2"/><text x="612" y="88.0" font-size="20" fill="#252b29" font-weight="700" text-anchor="start">AIが書く量</text><text x="742" y="88.0" font-size="24" fill="#b64326" font-weight="700" text-anchor="start">200件</text><rect x="612" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="660" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="708" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="756" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="804" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="852" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="900" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="948" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="996" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="1044" y="112" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="612" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="660" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="708" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="756" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="804" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="852" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="900" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="948" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="996" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="1044" y="126" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="612" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="660" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="708" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="756" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="804" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="852" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="900" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="948" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="996" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="1044" y="140" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="612" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="660" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="708" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="756" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="804" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="852" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="900" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="948" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="996" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><rect x="1044" y="154" width="36" height="10" rx="3" fill="#e9e5da" stroke="none" stroke-width="2"/><path d="M612.8 178.8 L627.2 193.2 M627.2 178.8 L612.8 193.2" stroke="#59605a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="648" y="193.0" font-size="17" fill="#252b29" font-weight="400" text-anchor="start">読み返せない。気づかないまま先へ進む</text><rect x="0" y="270" width="1112" height="56" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="556.0" y="306.0" font-size="21" fill="#b64326" font-weight="700" text-anchor="middle">先に語を決めておくほうが安く済む ── ただし、これは原則ではなく、この教材の考察である</text></svg></div>
+</section>
+<section class="slide ws-diagram" aria-label="5: この教材で出てくる語は、3つです">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　4／5</span></div>
+<h2>この教材で出てくる語は、3つです</h2>
+<p class="ws-intro">本題に入る前に、語を3つだけ決める。後ろの2語は、前の語が決まっていないと定義できない。</p>
+<div class="body"><svg class="ws-visual" viewBox="0 0 1112 384" role="img" aria-label="ユースケース ・ 業務領域 ・ 業務エキスパートを、定義できる順に並べる"><text x="0" y="24.0" font-size="18" fill="#59605a" font-weight="400" text-anchor="start">本題の前に、3つだけ決めておく</text><rect x="0" y="48" width="300" height="68" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="150" y="80.0" font-size="20" fill="#fffaf2" font-weight="700" text-anchor="middle">ユースケース</text><text x="150" y="104.0" font-size="15" fill="#fffaf2" font-weight="400" text-anchor="middle">作業1つ</text><path d="M310 82 H346 M338 75 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="358" y="48" width="754" height="68" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="384" y="89.0" font-size="18" fill="#252b29" font-weight="400" text-anchor="start">誰が ・ 何を使って ・ 何のために</text><path d="M150 116 V134" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M144 128 l6 6 6 -6" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="0" y="134" width="300" height="68" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="150" y="166.0" font-size="20" fill="#fffaf2" font-weight="700" text-anchor="middle">業務領域</text><text x="150" y="190.0" font-size="15" fill="#fffaf2" font-weight="400" text-anchor="middle">ユースケースの集まり</text><path d="M310 168 H346 M338 161 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="358" y="134" width="754" height="68" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="384" y="175.0" font-size="18" fill="#252b29" font-weight="400" text-anchor="start">同じ人が、同じデータを扱う作業の集まり</text><path d="M150 202 V220" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M144 214 l6 6 6 -6" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="0" y="220" width="300" height="68" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="150" y="252.0" font-size="20" fill="#fffaf2" font-weight="700" text-anchor="middle">業務エキスパート</text><text x="150" y="276.0" font-size="15" fill="#fffaf2" font-weight="400" text-anchor="middle">その領域に詳しい人</text><path d="M310 254 H346 M338 247 l8 7 -8 7" stroke="#a8b09f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="358" y="220" width="754" height="68" rx="10" fill="#fffaf2" stroke="#a8b09f" stroke-width="2"/><text x="384" y="261.0" font-size="18" fill="#252b29" font-weight="400" text-anchor="start">使う言葉は、この人たちから採る</text><rect x="0" y="316" width="1112" height="56" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="556.0" y="352.0" font-size="21" fill="#b64326" font-weight="700" text-anchor="middle">作業が決まらないと集まりを言えず、集まりが決まらないと、誰が詳しい人かも決まらない</text></svg></div>
+</section>
+<section class="slide ws-diagram" aria-label="6: この順で学びます">
+<div class="kicker"><span class="ws-mark" aria-hidden="true"></span><span class="ws-kicker-label">前置き　はじめに　／　5／5</span></div>
+<h2>この順で学びます</h2>
+<p class="ws-intro">この教材は4本である。各本の最初に、教材1のどの語から来たのかを1枚置く。</p>
+<div class="body"><svg class="ws-visual" viewBox="0 0 1112 408" role="img" aria-label="教材1の4語と、ドメイン駆動設計編で与える用語の対応"><text x="0" y="24.0" font-size="18" fill="#59605a" font-weight="400" text-anchor="start">教材1の語から、名前を与える</text><rect x="0" y="48" width="190" height="56" rx="10" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="95" y="82.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="middle">教材1「意味」</text><path d="M200 76 H236 M228 69 l8 7 -8 7" stroke="#b64326" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="248" y="48" width="340" height="56" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="418" y="74.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">ユビキタス言語</text><text x="418" y="95.0" font-size="14" fill="#fffaf2" font-weight="400" text-anchor="middle">同じ言葉</text><text x="614" y="82.0" font-size="17" fill="#59605a" font-weight="400" text-anchor="start">業務全体で、語の意味を1つに決める</text><text x="1112" y="82.0" font-size="15" fill="#59605a" font-weight="400" text-anchor="end">1本目</text><rect x="0" y="118" width="190" height="56" rx="10" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="95" y="152.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="middle">教材1「範囲」</text><path d="M200 146 H236 M228 139 l8 7 -8 7" stroke="#b64326" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="248" y="118" width="340" height="56" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="418" y="144.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">境界づけられたコンテキスト</text><text x="418" y="165.0" font-size="14" fill="#fffaf2" font-weight="400" text-anchor="middle">区切られた文脈</text><text x="614" y="152.0" font-size="17" fill="#59605a" font-weight="400" text-anchor="start">その意味が通用する範囲を決める</text><text x="1112" y="152.0" font-size="15" fill="#59605a" font-weight="400" text-anchor="end">2本目</text><rect x="0" y="188" width="190" height="56" rx="10" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="95" y="222.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="middle">教材1「抽象の高さ」</text><path d="M200 216 H236 M228 209 l8 7 -8 7" stroke="#b64326" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="248" y="188" width="340" height="56" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="418" y="214.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">モデル</text><text x="418" y="235.0" font-size="14" fill="#fffaf2" font-weight="400" text-anchor="middle">目的のための模型</text><text x="614" y="222.0" font-size="17" fill="#59605a" font-weight="400" text-anchor="start">目的ごとに、別の模型を持つ</text><text x="1112" y="222.0" font-size="15" fill="#59605a" font-weight="400" text-anchor="end">3本目</text><rect x="0" y="258" width="190" height="56" rx="10" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="95" y="292.0" font-size="17" fill="#252b29" font-weight="700" text-anchor="middle">教材1「条件」</text><path d="M200 286 H236 M228 279 l8 7 -8 7" stroke="#b64326" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="248" y="258" width="340" height="56" rx="10" fill="#b64326" stroke="#b64326" stroke-width="2"/><text x="418" y="284.0" font-size="18" fill="#fffaf2" font-weight="700" text-anchor="middle">集約と不変条件</text><text x="418" y="305.0" font-size="14" fill="#fffaf2" font-weight="400" text-anchor="middle">ドメインモデルの部品</text><text x="614" y="292.0" font-size="17" fill="#59605a" font-weight="400" text-anchor="start">常に成り立つ約束を決める</text><text x="1112" y="292.0" font-size="15" fill="#59605a" font-weight="400" text-anchor="end">4本目</text><rect x="0" y="340" width="1112" height="56" rx="12" fill="#e9e5da" stroke="none" stroke-width="2"/><text x="556.0" y="376.0" font-size="21" fill="#b64326" font-weight="700" text-anchor="middle">名前が変わるだけで、決めることは教材1と同じである</text></svg></div>
+</section><div class="chrome">
+  <span id="label"></span>
+  <span class="hint">← → でめくる</span>
+  <span><span id="cur">1</span> / <span id="total">2</span></span>
+</div>
+</div></div>
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  const elCur = document.getElementById('cur');
+  const elTotal = document.getElementById('total');
+  const elBar = document.getElementById('progress');
+  const elLabel = document.getElementById('label');
+  const LABELS = ["表紙", "教材1でやったのは、依頼1つの中の話でした", "流れの中では通じます。外に出ると通じません", "量が増えると、語の揺れも増えます", "この教材で出てくる語は、3つです", "この順で学びます"];
+  let i = 0;
+  elTotal.textContent = total;
+  function show(n){
+    i = Math.max(0, Math.min(total-1, n));
+    slides.forEach((s,k)=> s.classList.toggle('on', k===i));
+    elCur.textContent = i+1;
+    elBar.style.width = ((i+1)/total*100) + '%';
+    elLabel.textContent = LABELS[i] || '';
+    shrink(slides[i]);
+    try{ location.hash = String(i+1); }catch(e){}
+  }
+  const next = ()=> show(i+1);
+  const prev = ()=> show(i-1);
+  addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1),10)-1;if(Number.isFinite(n)&&n!==i)show(n);});
+  document.addEventListener('keydown', e=>{
+    if(['ArrowRight','ArrowDown',' ','PageDown','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Home'){ e.preventDefault(); show(0); }
+    else if(e.key==='End'){ e.preventDefault(); show(total-1); }
+  });
+  document.getElementById('znext').addEventListener('click', next);
+  document.getElementById('zprev').addEventListener('click', prev);
+  let tx=null;
+  document.addEventListener('touchstart', e=>{ tx = e.changedTouches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(tx===null) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if(Math.abs(dx) > 45){ dx < 0 ? next() : prev(); }
+    tx = null;
+  }, {passive:true});
+  const stage=document.getElementById('stage');
+  const deck=document.getElementById('deck');
+  const shrink=(sl)=>{
+    if(!sl) return;
+    const b=sl.querySelector('.body'); if(!b) return;
+    b.style.transform=''; b.style.width='';
+    const avail=b.clientHeight, need=b.scrollHeight;
+    if(need>avail+1){
+      const k=Math.max(.72, avail/need);
+      b.style.transformOrigin='top left';
+      b.style.transform='scale('+k+')';
+      b.style.width=(100/k)+'%';
+    }
+  };
+  const fit=()=>{
+    const w=deck.clientWidth||innerWidth, h=deck.clientHeight||innerHeight;
+    stage.style.transform='translate(-50%,-50%) scale('+Math.min(w/1280,h/720)+')';
+    shrink(document.querySelector('.slide.on'));
+  };
+  addEventListener('resize',fit);
+  addEventListener('orientationchange',fit);
+  if(window.visualViewport) visualViewport.addEventListener('resize',fit);
+  if(window.ResizeObserver) new ResizeObserver(fit).observe(deck);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  fit();
+  const start = parseInt((location.hash||'').replace('#',''),10);
+  show(Number.isFinite(start) && start>0 ? start-1 : 0);
+})();
+</script>
+
+</body></html>
