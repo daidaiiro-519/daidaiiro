@@ -22,14 +22,14 @@ import word_visuals as WV        # 2本目
 import scope_visuals as SV       # 3本目
 import rule_visuals as RV        # 4本目
 import fix_visuals as FV         # 5本目
-import height_visuals as HV      # 1本目と6本目で共有する、高さの並び
+import height_visuals as HV      # 1本目と6本目で共有する、抽象の高さの並び
 import end_visuals as EV         # 終わりに
 
 V.cover = DV.t_cover
 
 FIG = {
  # はじめに
- 'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_loop, 'I0-S1': IV.i0_case,
+ 'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_scene, 'I0-S0C': IV.i0_dig, 'I0-S1': IV.i0_case,
  'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base,
  # 教材1のはじめに
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
@@ -48,7 +48,7 @@ FIG = {
  # 5本目　揺らぎを直す
  'L5-S1': DV.t6_symptoms, 'L5-S2': FV.f5_order, 'L5-S3': DV.t6_one_at_a_time,
  'L5-S4': DV.t6_two_goals, 'L5-S5': V.l6_whole,
- # 6本目　高さを合わせる
+ # 6本目　抽象の高さを合わせる
  'L6-S1': DV.t5_grown, 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
  'L6-S4': DV.t5_three_and_height2, 'L6-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
  # 終わりに
@@ -58,12 +58,12 @@ FIG = {
 # 本の題。表紙の大見出しは受講前でも読んで分かる1文にし、通し番号は出さない
 # 本編6本の題。鍵は再生の順の番号で、本番号は これ - 1 である
 TITLES = {
- 2: ('原因を知る', '同じ依頼でも、返ってくるものが変わる原因を知る'),
+ 2: ('原因を知る', '同じ指示でも、返ってくるものが変わる原因を知る'),
  3: ('意味を決める', 'AIに、何を並べてほしいかを決める'),
  4: ('範囲を決める', 'AIに、どこまでを見てほしいかを決める'),
- 5: ('条件を決める', 'どの項目にも必ず入れてほしいものを決める'),
+ 5: ('条件を決める', '入れるもの・落とすもの・並べる順を決める'),
  6: ('揺らぎを直す', 'それでも揃わないときに、どこを見るか'),
- 7: ('高さを合わせる', '3つを書くことが、抽象の高さを合わせることでした'),
+ 7: ('抽象の高さを合わせる', '3つを書くことが、抽象の高さを合わせることでした'),
 }
 # 本編ではない3本。0は3つの教材に共通する前置きで、1と8が教材1の前後である
 ENDS = {0: 'オリエンテーション', 1: 'はじめに', 8: '終わりに'}

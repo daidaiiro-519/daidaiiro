@@ -76,7 +76,8 @@ def check(name, svg):
     return len(bad)
 
 if __name__ == '__main__':
-    names = [n for n in dir(V) if n.startswith(('l1_', 'l2_', 'l3_', 'l4_', 'l5_', 'l6_'))]
-    n = sum(check(x, getattr(V, x)()) for x in names)
-    print(f'図の検査　{"通った" if not n else f"通っていない（{n} 件）"}　／　図 {len(names)} 枚')
+    # 教材で実際に使っている図は、組み立ての対応表（FIG）が持つ。そこから全部を見る
+    import build_lessons as B
+    n = sum(check(f'{k}({fn.__name__})', fn()) for k, fn in B.FIG.items())
+    print(f'図の検査　{"通った" if not n else f"通っていない（{n} 件）"}　／　図 {len(B.FIG)} 枚')
     sys.exit(1 if n else 0)

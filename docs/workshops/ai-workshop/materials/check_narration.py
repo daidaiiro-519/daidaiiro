@@ -71,6 +71,29 @@ def main(argv):
                 if k in x and x not in seen:
                     seen.add(x); print(f'     図　　  {sid:8} {x[:56]}')
 
+    print('\n■ 短い文が同じ語尾で続く箇所（4つ以上）')
+    # 声に出すと、接続のないまま独立した文が積まれていると単調に聞こえる。
+    # ただし 1つめ ・ 2つめ のような列挙は意図した並びなので、判定はせず並べるだけにする
+    def _end(x):
+        for e in ('ません。', 'ます。', 'です。', 'ください。'):
+            if x.endswith(e):
+                return e
+        return None
+    for no, sid, h, t2 in rows():
+        v = [x.strip() + '。' for x in t2.split('。') if x.strip()]
+        run = best = 0
+        prev = None
+        for x in v:
+            e = _end(x)
+            if e and e == prev and len(x) <= 30:
+                run += 1
+                best = max(best, run)
+            else:
+                run = 1 if e else 0
+            prev = e
+        if best >= 3:
+            print(f'  {sid:8} {best + 1}連　{h[:34]}')
+
     print('\n■ 件数が、読み上げと図でどう出ているか')
     # 3周目に「数は図が持ち、音声は要点だけ」と決めた。だから図だけに在るのは誤りではない。
     # ただし、数の設計をやり直したとき図が旧いまま残った事故が実際に起きたので、並べて目で見る
