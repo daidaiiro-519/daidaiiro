@@ -26,6 +26,8 @@ pub struct Pair {
     pub use_instead: String,
     /// いつ、なぜ決めたか。
     pub whence: String,
+    /// 活用形まで探す形。**無ければ `word` の文字列で探す。**
+    pub pattern: Option<Regex>,
 }
 
 impl Pair {
@@ -36,8 +38,32 @@ impl Pair {
             word,
             use_instead,
             whence,
+            pattern: None,
         }
     }
+
+    /// 活用形まで探す形を持たせる。**動詞は終止形の文字列だけでは、〜ます の形が通過する。**
+    #[must_use]
+    pub fn with_pattern(mut self, pattern: Regex) -> Self {
+        self.pattern = Some(pattern);
+        self
+    }
+}
+
+/// 鉤括弧の中を伏せる。**位置は変えない** ── 伏せたあとの位置で、原文から抜き出す。
+fn mask_quotes(text: &str) -> String {
+    let mut out = String::new();
+    let mut depth = 0_i32;
+    for c in text.chars() {
+        if c == '「' {
+            depth += 1;
+        }
+        out.push(if depth > 0 { '＿' } else { c });
+        if c == '」' {
+            depth = (depth - 1).max(0);
+        }
+    }
+    out
 }
 
 /// 判定に渡す語の一覧。**この crate は一覧を持たない。**
@@ -331,19 +357,25 @@ pub fn synonym(units: &[Unit], words: &Words) -> Vec<Finding> {
 /// 相違する ── 一覧が渡されなければ、何も出ない。
 #[must_use]
 pub fn retired_word(u: &Unit, words: &Words) -> Vec<String> {
+    // **鉤括弧の中は検査しない** ── 廃語を引用して説明する文は、廃語を使用していない
+    let masked = mask_quotes(&u.text);
     let mut out = Vec::new();
     for pair in &words.retired {
-        if let Some(byte) = u.text.find(&pair.word) {
-            let at = u.text[..byte].chars().count();
-            let after: String = u
-                .text
-                .chars()
-                .skip(at + pair.word.chars().count())
-                .take(8)
-                .collect();
+        let found = match &pair.pattern {
+            Some(rx) => rx
+                .find(&masked)
+                .ok()
+                .flatten()
+                .map(|m| (m.start(), m.as_str().chars().count())),
+            None => masked.find(&pair.word).map(|b| (b, pair.word.chars().count())),
+        };
+        if let Some((byte, len)) = found {
+            let at = masked[..byte].chars().count();
+            let hit: String = u.text.chars().skip(at).take(len).collect();
+            let after: String = u.text.chars().skip(at + len).take(8).collect();
             out.push(format!(
                 "{} → {}（{}）",
-                excerpt_around(&u.text, at, &pair.word, &after, 10),
+                excerpt_around(&u.text, at, &hit, &after, 10),
                 pair.use_instead,
                 pair.whence
             ));
@@ -372,21 +404,8 @@ pub fn wago_predicate(u: &Unit, words: &Words) -> Vec<String> {
             .filter_map(|(p, to)| Regex::new(p).ok().map(|r| (r, to.clone())))
             .collect()
     });
-    // 鉤括弧の中を伏せる ── 位置は変えない
-    let masked: String = {
-        let mut out = String::new();
-        let mut depth = 0_i32;
-        for c in u.text.chars() {
-            if c == '「' {
-                depth += 1;
-            }
-            out.push(if depth > 0 { '＿' } else { c });
-            if c == '」' {
-                depth = (depth - 1).max(0);
-            }
-        }
-        out
-    };
+    // 鉤括弧の中を伏せる ── 廃語の照合と同じ処理を使う
+    let masked = mask_quotes(&u.text);
     let mut hits = Vec::new();
     for (rx, to) in patterns {
         if let Ok(Some(m)) = rx.find(&masked) {

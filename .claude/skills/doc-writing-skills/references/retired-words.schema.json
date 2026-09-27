@@ -3,20 +3,46 @@
   "title": "廃語の一覧",
   "description": "一度破棄した語と、その言い換え先。この一覧は doc-writing-skills の外にあり、プロジェクトが持つ。既定の置き場所は、プロジェクト直下の .doc-writing/retired-words.json である。",
   "type": "object",
-  "required": ["retired"],
+  "required": [
+    "retired"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "retired": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["word", "use_instead"],
+        "required": [
+          "word",
+          "use_instead"
+        ],
         "additionalProperties": false,
         "properties": {
-          "word": { "type": "string", "minLength": 1, "description": "廃語。これが本文に現れたら検出する" },
-          "use_instead": { "type": "string", "minLength": 1, "description": "代わりに使う語" },
-          "retired_on": { "type": "string", "description": "YYYY-MM-DD" },
-          "source": { "type": "string", "description": "どこで捨てたか。コミット・論点・決まりなど" }
+          "word": {
+            "type": "string",
+            "minLength": 1,
+            "description": "廃語。これが本文に現れたら検出する"
+          },
+          "use_instead": {
+            "type": "string",
+            "minLength": 1,
+            "description": "代わりに使う語"
+          },
+          "retired_on": {
+            "type": "string",
+            "description": "YYYY-MM-DD"
+          },
+          "source": {
+            "type": "string",
+            "description": "どこで捨てたか。コミット・論点・決まりなど"
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "活用形まで探す正規表現。在れば word の文字列の代わりにこれで探す。動詞は終止形の文字列だけでは「〜ます」の形が通過するので、活用語尾まで含めて書く。組めない形は、検査を止めて報告する"
+          }
         }
       }
     }

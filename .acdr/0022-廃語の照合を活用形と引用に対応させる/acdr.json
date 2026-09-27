@@ -1,0 +1,181 @@
+{
+ "no": "ACDR 0022",
+ "title": "廃語の照合の活用形と引用への対応",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "廃語の照合を、動詞の活用形まで検出し、鉤括弧で引用した廃語は検出しない状態にする。",
+ "why": "会話の応答へ層1を適用したところ、2件の不具合が判明した。1件目は、終止形で登録した動詞（「要る」）が「〜ます」の形で通過していたことである。2件目は、廃語を鉤括弧で引用して説明するだけで差し戻しが起きていたことである。和語の述部の照合は鉤括弧の中を既に外しており、廃語の照合だけがそれと食い違っていた。修正の途中で、廃語の一覧を読めないときに空の一覧で続行する経路も判明した。",
+ "shift": [
+  {
+   "what": "動詞の廃語",
+   "from": "終止形の文字列だけを照合し、「〜ます」の形が通過する",
+   "to": "一覧の各行が pattern（正規表現）を持てば、活用形まで照合する"
+  },
+  {
+   "what": "鉤括弧の中の廃語",
+   "from": "検出する",
+   "to": "検出しない（和語の述部の照合と同じ扱い）"
+  },
+  {
+   "what": "廃語の一覧を読めないとき",
+   "from": "空の一覧で続行し、廃語を0件と報告する",
+   "to": "誤用として停止する。pattern を組めないときも停止する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "3件の不具合それぞれについて、変更前と変更後の廃語の照合の振る舞いを対応づけた図である。",
+ "how": "廃語の対（Pair）に、任意の pattern を持たせる。照合の前に鉤括弧の中を伏せる処理を、和語の述部の照合と共有する。廃語の一覧の読み込みは、pattern を組めなければ誤りを返し、宣言はその誤りを誤用として報告する。動詞の廃語3件（「要る」「覆う」「流した」）に pattern を追加する。",
+ "applies_to": "doc-writing-skills の判定（rs/parts/src/checks.rs）と一覧の読み込み（rs/parts/src/gate.rs）が変わる。宣言（rs/declare/src/lib.rs）と廃語の一覧のスキーマ（references/retired-words.schema.json）も変わる。検査を3件追加し、プロジェクトの廃語の一覧（.doc-writing/retired-words.json）に pattern を追加する。",
+ "alternatives": [
+  {
+   "option": "動詞の廃語は、語幹だけを登録する",
+   "why_not": "語幹は他の語の一部になる。「流」は合流 ・ 漂流の一部なので、正しい語を検出する"
+  },
+  {
+   "option": "コードの側で、終止形から活用形を自動で生成する",
+   "why_not": "五段と一段の区別には品詞の判定が必要で、この道具は品詞を判定しない"
+  },
+  {
+   "option": "組めない pattern は、語の文字列で照合する側へ戻す",
+   "why_not": "活用形を検出しないまま通過し、検査しなかったことを読み手が区別できない"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、変更と記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "checks",
+   "tab": "判定",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/src/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    pub pattern: Option<Regex>,",
+     "before": "（無い）",
+     "why": "動詞の廃語は、終止形の文字列だけでは「〜ます」の形が通過する。活用形まで照合する形を持てるようにした"
+    },
+    {
+     "find": "    pub fn with_pattern(mut self, pattern: Regex) -> Self {",
+     "before": "（無い）",
+     "why": "pattern は廃語の一覧で任意の欄なので、対を組んだあとに持たせる"
+    },
+    {
+     "find": "fn mask_quotes(text: &str) -> String {",
+     "before": "（無い ── 和語の述部の照合の中に在った）",
+     "why": "鉤括弧の中を伏せる処理を関数にし、和語の述部と廃語の照合で共有する"
+    },
+    {
+     "find": "        let found = match &pair.pattern {",
+     "before": "        if let Some(byte) = u.text.find(&pair.word) {",
+     "why": "鉤括弧の中を伏せてから照合する。pattern が在ればそれで、無ければ語の文字列で照合する"
+    },
+    {
+     "find": "            let hit: String = u.text.chars().skip(at).take(len).collect();",
+     "before": "（無い）",
+     "why": "pattern が一致した文字列は語と長さが異なるので、一致した範囲を原文から抜き出して表示する"
+    },
+    {
+     "find": "    // 鉤括弧の中を伏せる ── 廃語の照合と同じ処理を使う",
+     "before": "    // 鉤括弧の中を伏せる ── 位置は変えない\n    let masked: String = { … };",
+     "why": "関数にした処理を呼ぶ形へ変更した"
+    }
+   ]
+  },
+  {
+   "key": "gate",
+   "tab": "一覧の読み込み",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/src/gate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "        // **組めない形は、黙って語の文字列へ戻さない** ── 戻すと、活用形を検出しないまま通過する",
+     "before": "（無い）",
+     "why": "pattern を読み、組めなければ誤りを返す"
+    }
+   ]
+  },
+  {
+   "key": "declare",
+   "tab": "宣言",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    // 一覧が無いことは失敗にしない。**在るのに読めないことは、失敗にする** ── 空の一覧として続行すると、",
+     "before": "    let retired = gate::find_retired(target)\n        .and_then(|p| gate::load_retired(&p).ok())\n        .unwrap_or_default();",
+     "why": "読めない一覧を空の一覧として扱い、廃語の検査を実施しないまま0件と報告していた"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "検査",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/tests/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_retired_word_inside_brackets_is_not_found() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "鉤括弧の中の廃語を検出しないことを固定する"
+    },
+    {
+     "find": "fn a_pattern_finds_the_conjugated_forms_of_a_retired_verb() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "pattern で活用形まで検出することを固定する"
+    },
+    {
+     "find": "fn a_pattern_that_cannot_compile_is_an_error() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "組めない pattern で停止することを固定する"
+    }
+   ]
+  },
+  {
+   "key": "schema",
+   "tab": "一覧のスキーマ",
+   "file": ".claude/skills/doc-writing-skills/references/retired-words.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"pattern\": {",
+     "before": "（無い）",
+     "why": "pattern を任意の欄として定義した"
+    }
+   ]
+  },
+  {
+   "key": "list",
+   "tab": "廃語の一覧",
+   "file": ".doc-writing/retired-words.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"pattern\": \"要[るりらっれ]\"",
+     "before": "（無い）",
+     "why": "「要ります」「要らない」が通過していた"
+    },
+    {
+     "find": "\"pattern\": \"覆[うわいっえ]\"",
+     "before": "（無い）",
+     "why": "「覆います」「覆わない」が通過していた"
+    },
+    {
+     "find": "\"pattern\": \"(?<![漂逆合還放源交電急直濁本上下支主潮])流(?:す|し(?:た|て|ま))\"",
+     "before": "（無い）",
+     "why": "「流す」「流します」が通過していた。合流 ・ 漂流などの漢語を検出しないよう、前の字を限定した"
+    }
+   ]
+  }
+ ],
+ "lede": "廃語の照合が、動詞の活用形を通過させ、鉤括弧の中の引用を検出していた状態を修正する提案である。",
+ "seal": {
+  "checks": "689ed0948eddbdbd86e01933a67c12dbcacea3dd3629a1a884153978ba6f7587",
+  "gate": "f06026d956861a314e6a3fcdea75158fcabcfe41f90f05cd4eaee01c71eb4bac",
+  "declare": "941e3dc35188565a1ec8bb5c0f0fcb3c88ff8e1f6901843b146909185b61a178",
+  "tests": "cf563be68fac9db1db3e5f138b3bef6df0b1fdbd95ad00b119bf53d26c0a7a58",
+  "schema": "c29ade25429dbcc6aa83ac3e122ec53802f9cb52076a14258bf7938ba1c90bfe",
+  "list": "fa1d9444af1fa1fc135115da10358e46c45ed94aff5e4efa2a4824a228b72af6"
+ }
+}

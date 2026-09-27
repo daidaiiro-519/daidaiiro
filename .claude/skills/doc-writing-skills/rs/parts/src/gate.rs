@@ -264,17 +264,32 @@ pub fn load_retired(path: &Path) -> io::Result<Vec<Pair>> {
         .get("retired")
         .and_then(Value::as_array)
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "retired が無い"))?;
-    Ok(items
-        .iter()
-        .filter_map(|x| {
-            Some(Pair::new(
-                x.get("word")?.as_str()?.to_owned(),
-                x.get("use_instead")?.as_str()?.to_owned(),
-                x.get("source")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_owned(),
-            ))
-        })
-        .collect())
+    let mut out = Vec::new();
+    for x in items {
+        let (Some(word), Some(use_instead)) = (
+            x.get("word").and_then(Value::as_str),
+            x.get("use_instead").and_then(Value::as_str),
+        ) else {
+            continue;
+        };
+        let pair = Pair::new(
+            word.to_owned(),
+            use_instead.to_owned(),
+            x.get("source")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+        );
+        // **組めない形は、黙って語の文字列へ戻さない** ── 戻すと、活用形を検出しないまま通過する
+        out.push(match x.get("pattern").and_then(Value::as_str) {
+            Some(p) => pair.with_pattern(fancy_regex::Regex::new(p).map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("{word} の pattern を組めない ── {e}"),
+                )
+            })?),
+            None => pair,
+        });
+    }
+    Ok(out)
 }

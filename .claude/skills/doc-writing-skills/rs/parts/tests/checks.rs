@@ -291,3 +291,52 @@ fn a_full_stop_inside_brackets_does_not_end_the_sentence() {
     let body = "判定漏れは「〜ました。」の分類である。\n\n規則は1つである。\n";
     assert!(!hit("inner.md", body, "文体が混ざっている"));
 }
+
+#[test]
+fn a_retired_word_inside_brackets_is_not_found() {
+    // 廃語を引用して説明する文は、廃語を使用していない
+    assert!(!hit("quoted.md", "「盤面」は破棄した。\n", "廃語を使用している"));
+}
+
+#[test]
+fn a_pattern_finds_the_conjugated_forms_of_a_retired_verb() {
+    // 終止形の文字列だけでは、〜ます の形が通過する
+    let dir = std::env::temp_dir().join("dws-retired");
+    std::fs::create_dir_all(&dir).expect("作れる");
+    let list = dir.join("retired-words.json");
+    std::fs::write(
+        &list,
+        r#"{"retired":[{"word":"要る","use_instead":"必要とする","pattern":"要[るりらっれ]"}]}"#,
+    )
+    .expect("書ける");
+    let words = Words::new(
+        gate::load_predicates(&references().join("predicates.json")).expect("読める"),
+        Vec::new(),
+        gate::load_retired(&list).expect("読める"),
+    );
+    let found = |body: &str| {
+        let path = dir.join("a.md");
+        std::fs::write(&path, body).expect("書ける");
+        gate::inspect(&path, &words)
+            .expect("検査できる")
+            .iter()
+            .any(|f| f.check == "廃語を使用している")
+    };
+    assert!(found("道具が要ります。\n"));
+    assert!(found("道具は要らない。\n"));
+    assert!(!found("道具が必要です。\n"));
+}
+
+#[test]
+fn a_pattern_that_cannot_compile_is_an_error() {
+    // 黙って語の文字列へ戻すと、活用形を検出しないまま通過する
+    let dir = std::env::temp_dir().join("dws-retired-bad");
+    std::fs::create_dir_all(&dir).expect("作れる");
+    let list = dir.join("retired-words.json");
+    std::fs::write(
+        &list,
+        r#"{"retired":[{"word":"要る","use_instead":"必要とする","pattern":"要["}]}"#,
+    )
+    .expect("書ける");
+    assert!(gate::load_retired(&list).is_err());
+}

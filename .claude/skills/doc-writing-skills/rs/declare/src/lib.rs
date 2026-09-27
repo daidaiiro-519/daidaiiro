@@ -40,9 +40,13 @@ fn words(given: &Given, target: &Path) -> Result<Words, String> {
             at.display()
         )
     })?;
-    let retired = gate::find_retired(target)
-        .and_then(|p| gate::load_retired(&p).ok())
-        .unwrap_or_default();
+    // 一覧が無いことは失敗にしない。**在るのに読めないことは、失敗にする** ── 空の一覧として続行すると、
+    // 廃語の検査を実施しないまま0件と報告する
+    let retired = match gate::find_retired(target) {
+        Some(p) => gate::load_retired(&p)
+            .map_err(|e| format!("廃語の一覧を読めない ── {} ── {e}", p.display()))?,
+        None => Vec::new(),
+    };
     let synonyms = given
         .all("synonyms")
         .first()
