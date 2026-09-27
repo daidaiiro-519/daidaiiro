@@ -350,7 +350,7 @@ pub fn tools() -> Vec<Tool> {
             summary: "原文の文字列で照合する",
             args: vec![
                 Arg::need("path", "原文"),
-                Arg::many("needle", "照合するもの（複数可）"),
+                Arg::some("needle", "照合するもの（複数可）。--from で渡すなら省ける"),
                 Arg::opt("as", "照合の種類（identifier ／ quote ／ text）", None),
                 Arg::opt("near", "この語の近くだけを検査する", None),
                 Arg::opt("within", "アンカーから何行の内側か", Some("40")),
