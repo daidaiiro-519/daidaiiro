@@ -169,6 +169,80 @@ fn human_tails(out: &Outcome) -> String {
     out.findings.join("\n")
 }
 
+/// 利用者への応答に当てる判定。**語彙表で決まる2つだけである** ── 見出しや表の判定は、
+/// 会話の応答の形には当てない。
+const REPLY_CHECKS: [&str; 2] = ["述部が和語である", "廃語を使用している"];
+
+/// 応答の本文と、廃語の一覧を探し始める場所を取る。
+///
+/// `hook` を渡すと、Claude Code の Stop フックの入力（JSON）を読む ── 本文は
+/// `last_assistant_message`、探し始める場所は `cwd` である。`-` なら標準入力から読む。
+/// 項目名は <https://code.claude.com/docs/en/hooks> の「Stop input」の原文で照合した。
+fn reply_source(given: &Given) -> Result<(String, PathBuf), String> {
+    let here = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if given.has("message") {
+        return Ok((given.one("message", "").to_owned(), here));
+    }
+    let from = given.one("hook", "-");
+    let body = if from == "-" {
+        let mut buf = String::new();
+        std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)
+            .map_err(|e| format!("標準入力を読めない ── {e}"))?;
+        buf
+    } else {
+        std::fs::read_to_string(from).map_err(|e| format!("読めない ── {from} ── {e}"))?
+    };
+    let input: serde_json::Value =
+        serde_json::from_str(&body).map_err(|e| format!("フックの入力が JSON ではない ── {e}"))?;
+    let message = input
+        .get("last_assistant_message")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    let base = input
+        .get("cwd")
+        .and_then(serde_json::Value::as_str)
+        .map_or(here, PathBuf::from);
+    Ok((message, base))
+}
+
+fn run_reply(given: &Given) -> Outcome {
+    let (message, base) = match reply_source(given) {
+        Ok(x) => x,
+        Err(e) => return Outcome::misuse(e),
+    };
+    let words = match words(given, &base) {
+        Ok(w) => w,
+        Err(e) => return Outcome::misuse(e),
+    };
+    let findings: Vec<String> = gate::inspect_text(&message, &words)
+        .into_iter()
+        .filter(|f| REPLY_CHECKS.contains(&f.check.as_str()))
+        .map(|f| format!("{}行 {}：{}", f.line, f.check, f.excerpt))
+        .collect();
+    if findings.is_empty() {
+        return Outcome::found(Vec::new(), json!({}));
+    }
+    let reason = format!(
+        "直前の応答に、語彙表が検出した語が在る。表示済みの応答の該当箇所を言い換え先へ修正し、\
+         修正した全文を出し直す。謝罪と経緯の説明は書かない。\n{}",
+        findings.join("\n")
+    );
+    Outcome::found(findings, json!({ "decision": "block", "reason": reason }))
+}
+
+/// **Stop フックが読む形で出す。** 検出があれば `decision` と `reason` の JSON、
+/// 無ければ何も出さない ── Claude Code は、終了コードに関係なく JSON の中身で判定する。
+fn human_reply(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    if out.findings.is_empty() {
+        return String::new();
+    }
+    serde_json::to_string(&out.data).unwrap_or_default()
+}
+
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
@@ -187,6 +261,25 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_check,
             human: human_check,
+        },
+        Tool {
+            name: "reply",
+            summary: "利用者への応答に語彙表の照合を当てる（Stop フックの入出力）",
+            args: vec![
+                Arg::opt("message", "応答の本文。渡さなければ hook を読む", None),
+                Arg::opt(
+                    "hook",
+                    "Stop フックの入力（JSON）のファイル。- なら標準入力",
+                    Some("-"),
+                ),
+                Arg::opt(
+                    "skill_root",
+                    "この Skill の場所（語の一覧を読む先）",
+                    Some(SKILL_ROOT),
+                ),
+            ],
+            run: run_reply,
+            human: human_reply,
         },
         Tool {
             name: "tails",

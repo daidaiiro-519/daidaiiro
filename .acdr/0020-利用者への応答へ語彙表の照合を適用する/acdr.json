@@ -1,0 +1,130 @@
+{
+ "no": "ACDR 0020",
+ "title": "利用者への応答への語彙表の照合",
+ "date": "2026-09-27",
+ "status": "accepted",
+ "decision": "利用者への応答に、文書と同じ語彙表の照合（和語の述部と廃語）を適用する能力を、doc-writing-skills の道具として持たせる。",
+ "why": "直近40件の応答を実測したところ、和語の述部が104件、廃語が28件在った。上位の語はいずれも語彙表に登録済みで、語彙表は機能していた。欠けていたのは、会話の応答へ照合を適用する経路である。応答で使用した語は、そのまま文書へ流入する。能力は Skill の道具が持ち、CLI と MCP の両方から呼べる形にする。Stop フックはその呼び出し元の1つである。",
+ "shift": [
+  {
+   "what": "照合の対象",
+   "from": "ファイルに書いた文書だけ",
+   "to": "文書と、利用者への応答の両方"
+  },
+  {
+   "what": "応答の照合の実行",
+   "from": "無い（書き手の注意に依存する）",
+   "to": "応答が完了するたびに Stop フックが reply を実行し、検出があれば修正した全文を出し直させる"
+  },
+  {
+   "what": "能力の置き場所",
+   "from": "─",
+   "to": "doc-writing-skills の宣言。CLI（reply）と MCP（reply）の両方から呼べる"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "応答を表示してから、Stop フックが reply を実行し、検出があれば出し直させるまでの流れである。",
+ "how": "ゲートに、ファイルを経由せず文字列へ判定を適用する入口（inspect_text）を追加する。宣言に reply を追加する。reply は本文を message で受けるか、Stop フックの入力（JSON）を標準入力から読む。検出があれば decision と reason の JSON を出力し、無ければ何も出力しない。フックの登録（.claude/settings.json）は、利用者が配置する。",
+ "applies_to": "doc-writing-skills のゲート（rs/parts/src/gate.rs）と宣言（rs/declare/src/lib.rs）が変わる。検査（rs/declare/tests/reply.rs）と SKILL.md の記述も変わる。フックの登録先は .claude/settings.json である。",
+ "alternatives": [
+  {
+   "option": "フックのスクリプトを Python で .claude/hooks/ に置く",
+   "why_not": "能力が Skill の外に出て、CLI と MCP から呼べない。このリポジトリの道具は Rust へ移しており、言語も分岐する"
+  },
+  {
+   "option": "応答にも、文書と同じ8つの判定をすべて適用する",
+   "why_not": "見出しの階層や表の判定は、会話の応答の形には適合しない。語彙表で決まる2つだけが、応答から文書へ流入する語を捕捉する"
+  },
+  {
+   "option": "応答を表示する前に差し止める",
+   "why_not": "Stop フックは応答が完了したあとに実行される（公式文書 hooks の Stop の節）。表示前に差し止める経路は無い"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、変更と記録をコミットする",
+  "利用者が .claude/settings.json に Stop フックを登録する。登録する command は「.claude/skills/doc-writing-skills/rs/target/release/doc-writing-skills reply」である",
+  "登録後、応答で実際に差し戻しが起きることを確認する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "gate",
+   "tab": "ゲート",
+   "file": ".claude/skills/doc-writing-skills/rs/parts/src/gate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    Ok(inspect_text(&raw, words))",
+     "before": "（本体がこの関数の中に在った）",
+     "why": "ファイルの読み込みと判定を分けた。応答はファイルを経由しない文字列なので、判定だけを呼ぶ入口が必要になる"
+    },
+    {
+     "find": "        return Vec::new();",
+     "before": "        return Ok(Vec::new());",
+     "why": "判定は読み込みに失敗しないので、Result を返さない形にした"
+    },
+    {
+     "find": "    out",
+     "before": "    Ok(out)",
+     "why": "判定は読み込みに失敗しないので、Result を返さない形にした"
+    }
+   ]
+  },
+  {
+   "key": "declare",
+   "tab": "宣言",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const REPLY_CHECKS: [&str; 2] = [\"述部が和語である\", \"廃語を使用している\"];",
+     "before": "（無い）",
+     "why": "応答に適用する判定を、語彙表で決まる2つに限定する。見出しや表の判定は、会話の応答の形に適合しない"
+    },
+    {
+     "find": "            name: \"reply\",",
+     "before": "（無い）",
+     "why": "能力を宣言に置くので、CLI と MCP の両方から同じ reply を呼べる"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "検査",
+   "file": ".claude/skills/doc-writing-skills/rs/declare/tests/reply.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_wago_predicate_in_a_reply_is_blocked() {",
+     "before": "（無い ── 新しい検査）",
+     "why": "検出があれば decision と reason を持つことを固定する"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/doc-writing-skills/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "応答で使用した語は、そのまま文書へ流入するので、文書と同じ語彙表で照合する。",
+     "before": "（無い）",
+     "why": "応答への照合を、この Skill の手順として記述する"
+    },
+    {
+     "find": "技術文書に必要なのは正確さなので",
+     "before": "技術文書が要るのは正確さなので",
+     "why": "ゲート1が廃語として検出した。この文書を変更する機会に修正した"
+    }
+   ]
+  }
+ ],
+ "lede": "利用者への応答に、文書と同じ語彙表の照合を適用する能力を doc-writing-skills に追加し、Stop フックから呼ぶ提案である。",
+ "seal": {
+  "gate": "905c4c9a87edb21d3a8787bec9de0746ec3f97719ab21acd0bd7a79be1d9efc1",
+  "declare": "bdbed492832e4567de856163278e9005d139eaa9161d982fa96bc7df50e6f7b6",
+  "tests": "52371cfe903448d4b67e6bf0de31509863c3f64d1c3f1f6307a9f104742b6d01",
+  "skill": "80d551e92957d284ae89bdd38533f3d0b6e8a48f2427f1540db2cfe79650bd37"
+ }
+}

@@ -179,6 +179,12 @@ pub fn inspect(path: &Path, words: &Words) -> io::Result<Vec<Finding>> {
     if path.extension().is_some_and(|x| x == "json") {
         raw = prose_of_json(&raw);
     }
+    Ok(inspect_text(&raw, words))
+}
+
+/// 文字列へ全部の判定を当てる。**ファイルを経由しない本文**（利用者への応答）のための入口である。
+#[must_use]
+pub fn inspect_text(raw: &str, words: &Words) -> Vec<Finding> {
     // **外す印は、文書の頭に在るときだけ効く** ── 途中に書いて全体を外せないようにする
     if raw
         .chars()
@@ -186,9 +192,9 @@ pub fn inspect(path: &Path, words: &Words) -> io::Result<Vec<Finding>> {
         .collect::<String>()
         .contains(EXEMPT_MARK)
     {
-        return Ok(Vec::new());
+        return Vec::new();
     }
-    let units = unit::split(&raw);
+    let units = unit::split(raw);
     let mut out = Vec::new();
     for check in all() {
         if check.scope == Scope::Whole {
@@ -206,7 +212,7 @@ pub fn inspect(path: &Path, words: &Words) -> io::Result<Vec<Finding>> {
     // **同じ検出を2回出さない** ── 読み手が同じ場所を2回開くことになる
     let mut seen = std::collections::BTreeSet::new();
     out.retain(|f| seen.insert((f.check.clone(), f.line, f.excerpt.clone())));
-    Ok(out)
+    out
 }
 
 /// 和語の一覧を、契約から読む。**この側に語を書かない。**
