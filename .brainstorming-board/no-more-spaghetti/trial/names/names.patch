@@ -1,6 +1,16 @@
+--- a/rs/parts/Cargo.toml	2026-09-26 19:09:52.201495373 +0900
++++ rs/parts/Cargo.toml	2026-09-28 08:12:32.517088551 +0900
+@@ -8,6 +8,7 @@
+ [dependencies]
+ jsonschema = { version = "0.34", default-features = false }
+ serde_json = "1"
++toml = "0.8"
+ tree-sitter = "0.25"
+ tree-sitter-c-sharp = "0.23"
+ tree-sitter-cpp = "0.23"
 --- a/rs/parts/src/inward/syntax.rs	2026-09-26 19:09:52.200469008 +0900
-+++ a/rs/parts/src/inward/syntax.rs	2026-09-28 07:59:25.977450093 +0900
-@@ -234,6 +234,83 @@
++++ rs/parts/src/inward/syntax.rs	2026-09-28 08:21:47.721196145 +0900
+@@ -234,6 +234,114 @@
      body
  }
  
@@ -19,7 +29,7 @@
 +) -> String {
 +    let rel_file = file.strip_prefix(root).unwrap_or(file);
 +    match s.resolve {
-+        Resolve::Qualified => bridge.alias(spec, "/").unwrap_or_else(|| spec.to_owned()),
++        Resolve::Qualified => bridge.alias(spec, "/", &rel_file.display().to_string()).unwrap_or_else(|| spec.to_owned()),
 +        Resolve::Crate => {
 +            let body = in_crate(here, spec);
 +            // `crate::` は、その crate の根から数える ── 作業領域に crate が複数在る
@@ -34,17 +44,23 @@
 +                    return format!("{head}.{body}");
 +                }
 +            }
-+            bridge.alias(&body, ".").unwrap_or(body)
++            bridge.alias(&body, ".", &rel_file.display().to_string()).unwrap_or(body)
 +        }
 +        Resolve::Dotted => {
 +            if spec.starts_with('.') {
 +                return relative_dotted(here, spec);
 +            }
 +            let first = spec.split('.').next().unwrap_or(spec);
-+            for sr in &bridge.search {
++            // 根は最後に試す ── source root の下に同じ名前が在れば、そちらが先に見つかる
++            let order = bridge.search.iter().filter(|x| !x.is_empty()).chain(bridge.search.iter().filter(|x| x.is_empty()));
++            for sr in order {
 +                let base = root.join(sr);
 +                if base.join(first).is_dir() || base.join(format!("{first}.py")).is_file() {
-+                    return format!("{}.{spec}", sr.replace('/', "."));
++                    return if sr.is_empty() {
++                        spec.to_owned()
++                    } else {
++                        format!("{}.{spec}", sr.replace('/', "."))
++                    };
 +                }
 +            }
 +            spec.to_owned()
@@ -52,7 +68,32 @@
 +        Resolve::Path => {
 +            let relative = spec.starts_with("./") || spec.starts_with("../");
 +            match s.language {
-+                "typescript" if !relative => bridge.alias(spec, "/").unwrap_or_else(|| spec.to_owned()),
++                "typescript" if !relative => {
++                    let Some(to) = bridge.alias(spec, "/", &rel_file.display().to_string()) else {
++                        return spec.to_owned();
++                    };
++                    // package の subpath は、組み立ての出力（dist）を指すことが多い ── 置き場所に無ければ、
++                    // その package の source root（tsconfig の rootDir、無ければ src）の下を探す（実測 ── trpc）
++                    let exists = |x: &str| {
++                        ["", ".ts", ".tsx", "/index.ts", "/index.tsx"].iter().any(|e| root.join(format!("{x}{e}")).exists())
++                    };
++                    if exists(&to) {
++                        return to;
++                    }
++                    for a in &bridge.aliases {
++                        if let Some(tail) = to.strip_prefix(&format!("{}/", a.to)) {
++                            for src in &bridge.search {
++                                if let Some(inner) = src.strip_prefix(&format!("{}/", a.to)) {
++                                    let cand = format!("{}/{inner}/{tail}", a.to);
++                                    if exists(&cand) {
++                                        return cand;
++                                    }
++                                }
++                            }
++                        }
++                    }
++                    to
++                }
 +                "ruby" if how != "require_relative" && !relative => {
 +                    for lp in &bridge.search {
 +                        let base = root.join(lp);
@@ -84,7 +125,7 @@
  /// 原文から辺を取る抽出器。
  #[derive(Clone)]
  #[non_exhaustive]
-@@ -336,8 +413,18 @@
+@@ -336,8 +444,25 @@
          let mut undecided = Vec::new();
          // **測り方の限界は、申告であって検出ではない。** 検出に混ぜると、取りこぼしの
          // 申告そのものが不合格の原因になる（実測 ── 向きの規則が常に不合格になった）
@@ -96,16 +137,23 @@
 +        } else if bridge.sources.is_empty() {
 +            vec!["字面で測っている ── 別名と探索路の設定が見つからなかった。置き場所の名前だけで照合している".to_owned()]
 +        } else {
++            // 設定の名前ごとに数える ── 全件を並べると、1行が読めない長さになる（実測 ── 100件）
++            let mut count: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
++            for src in &bridge.sources {
++                let name = src.rsplit('/').next().unwrap_or(src).to_owned();
++                *count.entry(name).or_default() += 1;
++            }
 +            vec![format!(
-+                "字面で測っている ── 別名と探索路は、次から解決した：{}",
-+                bridge.sources.join(" ・ ")
++                "字面で測っている ── 別名と探索路は、次の設定から解決した：{}",
++                count.iter().map(|(k, v)| format!("{k} {v}件")).collect::<Vec<_>>().join(" ・ ")
 +            )]
 +        };
 +        let mut points = Vec::new();
++
          for file in &files {
              let Ok(body) = std::fs::read_to_string(file) else {
                  undecided.push(format!("{} ── 読めない", file.display()));
-@@ -373,6 +460,7 @@
+@@ -373,6 +498,7 @@
                  (None, Resolve::Dotted | Resolve::Crate) => dotted(root, file),
                  (None, _) => rel.clone(),
              };
@@ -113,9 +161,13 @@
              let mut cursor = QueryCursor::new();
              let mut hits = cursor.matches(&imports, tree.root_node(), bytes);
              while let Some(m) = hits.next() {
-@@ -394,12 +482,7 @@
+@@ -393,13 +519,11 @@
+                 if s.language == "ruby" && !RUBY_LOADERS.contains(&how.as_str()) {
                      continue;
                  }
++                if s.language == "ruby" && raw.contains("#{") {
++                    continue; // 抜け道として別に出す
++                }
                  let spec = unquote(raw);
 -                let to = match s.resolve {
 -                    Resolve::Qualified => spec.to_owned(),
@@ -127,16 +179,31 @@
                  edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
              }
              // 読み込みが文字列でない箇所は、行き先が静的に決まらない
-@@ -438,6 +521,7 @@
+@@ -424,7 +548,12 @@
+                             line = cap.node.start_position().row + 1;
+                         }
+                     }
+-                    if RUBY_LOADERS.contains(&method) && kind != "string" {
++                    // 埋め込みを含む文字列も、行き先が静的に決まらない（実測 ── "rubocop/#{feature}/version"）
++                    let interpolated = kind == "string" && m.captures.iter().any(|c| {
++                        let n = c.node;
++                        (0..n.child_count()).any(|k| n.child(k).is_some_and(|ch| ch.kind() == "interpolation"))
++                    });
++                    if RUBY_LOADERS.contains(&method) && (kind != "string" || interpolated) {
+                         escapes.push(Escape::new(
+                             here.clone(),
+                             format!("{rel}:{line}"),
+@@ -438,6 +567,8 @@
              edges,
              escapes,
              undecided,
 +            points,
++            unreadable: bridge.unreadable.clone(),
              limits,
          })
      }
 --- a/rs/parts/src/inward/mod.rs	2026-09-26 19:09:52.200344087 +0900
-+++ a/rs/parts/src/inward/mod.rs	2026-09-28 07:59:25.977008205 +0900
++++ rs/parts/src/inward/mod.rs	2026-09-28 08:15:59.421480855 +0900
 @@ -18,6 +18,7 @@
  use self::judge::Edge;
  
@@ -145,31 +212,67 @@
  pub mod syntax;
  
  /// 図に現れない依存の経路。**そこを通れば検査を素通りできる。**
-@@ -50,6 +51,9 @@
+@@ -50,6 +51,12 @@
      pub escapes: Vec<Escape>,
      /// 判定できなかった範囲。**0件でなければ、0件を結論にしない。**
      pub undecided: Vec<String>,
 +    /// 作業領域の中の点（ファイルごとの、参照する側の名前）。**参照が作業領域の中を
 +    /// 指すかを判定するために使う。**
 +    pub points: Vec<String>,
++    /// 読めなかった設定。**（その設定が効く包み, 文面）** ── 層に属す点がその下に在るときだけ、
++    /// 判定できなかった範囲になる。
++    pub unreadable: Vec<(String, String)>,
      /// 測り方の限界。**申告であって、判定できなかった事実ではない** ── 採用範囲へ
      /// 書くものなので、検出には数えない。
      pub limits: Vec<String>,
 --- a/rs/declare/src/lib.rs	2026-09-27 00:59:32.538451528 +0900
-+++ a/rs/declare/src/lib.rs	2026-09-28 08:00:59.061280435 +0900
-@@ -462,6 +462,29 @@
++++ rs/declare/src/lib.rs	2026-09-28 08:18:32.325631162 +0900
+@@ -462,13 +462,75 @@
              .iter()
              .map(|u| format!("判定できていない ── {u}")),
      );
++    // **読めなかった設定は、層に属す点がその下に在るときだけ出す** ── 層の外の設定は、
++    // 照合に使われない（実測 ── 例の包みの生成物を指す tsconfig）
++    findings.extend(
++        got.unreadable
++            .iter()
++            .filter(|(dir, _)| {
++                got.points.iter().any(|p| {
++                    (dir.is_empty() || p.starts_with(&format!("{dir}/")) || p.starts_with(&format!("{}.", dir.replace('/', "."))))
++                        && nms_parts::inward::judge::layer_for(&order, p).is_some()
++                })
++            })
++            .map(|(_, u)| format!("判定できていない ── 設定を読めない ── {u}")),
++    );
 +    // **作業領域の中を指すのに、どの層にも一致しない参照を、合格にしない。**
 +    // 層の宣言から漏れた点か、名前をつなげなかった参照である ── どちらも黙って通すと、
 +    // 並びを逆にしても合格する（実測）
++    // 区切りは言語で決まる ── 経路で書く言語は / だけ、名前空間は \\、点の名前は . と ::
++    // 経路の言語に . を認めると、外の部品名（vitest）が根のファイル（vitest.config.ts）に一致する（実測）
++    let path_like = matches!(tree.language(), "typescript" | "ruby" | "cpp" | "go");
++    let seps: &[&str] = if path_like {
++        &["/"]
++    } else if tree.language() == "php" {
++        &["\\"]
++    } else {
++        &[".", "::"]
++    };
++    // 経路の言語では、拡張子を外して比べる ── 読み込みの文は拡張子を書くことも書かないこともある（実測）
++    let stem = |x: &str| -> String {
++        if path_like {
++            x.rsplit_once('.').filter(|(h, e)| !e.contains('/') && !h.is_empty() && e.len() <= 4).map_or(x, |(h, _)| h).to_owned()
++        } else {
++            x.to_owned()
++        }
++    };
 +    let inside = |to: &str| {
++        let to = stem(to);
++        let to = to.as_str();
 +        got.points.iter().any(|p| {
-+            let p = p.rsplit_once('.').filter(|(_, ext)| ext.len() <= 4 && !ext.is_empty() && p.contains('/')).map_or(p.as_str(), |(h, _)| h);
-+            // 区切りは言語で違う ── 経路の / と \、点の .、Rust の ::
++            let p = stem(p);
++            let p = p.as_str();
 +            p == to
-+                || ["/", ".", "\\", "::"].iter().any(|sep| {
++                || seps.iter().any(|sep| {
 +                    p.starts_with(&format!("{to}{sep}")) || to.starts_with(&format!("{p}{sep}"))
 +                })
 +        })
@@ -187,9 +290,22 @@
      Outcome::found(
          findings,
          json!({
+             "language": tree.language(),
+             "root": root.display().to_string(),
+             "edges": got.edges.len(),
++            "layered_edges": got.edges.iter().filter(|e| {
++                nms_parts::inward::judge::layer_for(&order, &e.from).is_some()
++                    && nms_parts::inward::judge::layer_for(&order, &e.to).is_some()
++            }).count(),
+             "limits": got.limits,
++            "edge_list": got.edges.iter().map(|e| json!([e.from, e.to, e.at])).collect::<Vec<_>>(),
++            "points": got.points,
+         }),
+     )
+ }
 --- /dev/null	2026-09-26 17:54:10.843989507 +0900
-+++ b/rs/parts/src/inward/names.rs	2026-09-28 07:58:57.792798782 +0900
-@@ -0,0 +1,238 @@
++++ b/rs/parts/src/inward/names.rs	2026-09-28 08:21:47.721098845 +0900
+@@ -0,0 +1,579 @@
 +// SPDX-License-Identifier: MIT
 +//! 参照の名前空間と、置き場所の名前空間をつなぐ。
 +//!
@@ -198,14 +314,17 @@
 +//!
 +//! | 種類 | 何か | 例 |
 +//! |---|---|---|
-+//! | 別名 | 置き場所に付けた別の名前 | crate 名 ・ module 名 ・ package 名 ・ tsconfig の paths |
++//! | 別名 | 置き場所に付けた別の名前 | crate 名 ・ module のパス ・ package 名 ・ tsconfig の paths |
 +//! | 探索路 | 読み込みの名前を探し始める場所 | Python の source root ・ Ruby の load path ・ C++ の include ディレクトリ |
 +//!
 +//! **ソースが自分の名前を宣言する言語（Java ・ Kotlin ・ C# ・ PHP）は食い違わない** ──
 +//! 参照する側も参照される側も、宣言の名前空間で書かれる。
 +//!
-+//! **その言語の道具は実行しない。** 設定のファイルを文字列として読むだけである。
++//! **その言語の道具は実行しない。** 設定のファイルを読むだけである。
++//! **読めなかった設定は、`unreadable` へ入れる** ── 黙って飛ばすと、つなげなかった参照が
++//! 作業領域の外として扱われ、検査を素通りする。
 +
++use std::collections::BTreeMap;
 +use std::path::{Path, PathBuf};
 +
 +/// 別名1件。**参照の名前の頭を、置き場所の名前の頭へ置き換える。**
@@ -215,6 +334,9 @@
 +    pub from: String,
 +    /// 置き場所の名前空間での頭。
 +    pub to: String,
++    /// 効く範囲（根からの相対の包み）。**空なら作業領域の全体である** ── tsconfig の paths は、
++    /// その tsconfig の下のファイルにだけ効く（実測 ── 例ごとに同じ `~` を別の包みへ向けていた）。
++    pub scope: String,
 +}
 +
 +/// 2つの名前空間をつなぐ対応表。
@@ -226,13 +348,23 @@
 +    pub search: Vec<String>,
 +    /// どこから組んだか。**申告として出す。**
 +    pub sources: Vec<String>,
++    /// 読めなかった設定。**（その設定が効く包み, 文面）**
++    pub unreadable: Vec<(String, String)>,
 +}
 +
 +/// 見ない包み。
-+const SKIP: [&str; 6] = ["node_modules", "target", "build", "dist", "__pycache__", "vendor"];
++const SKIP: [&str; 7] = [
++    "node_modules",
++    "target",
++    "build",
++    "dist",
++    "__pycache__",
++    "vendor",
++    "testdata",
++];
 +
-+/// 名前のファイルを、根の下から集める。
-+fn find(dir: &Path, name: &str, out: &mut Vec<PathBuf>) {
++/// 名前が条件に合うファイルを、根の下から集める。
++fn find(dir: &Path, want: &dyn Fn(&str) -> bool, out: &mut Vec<PathBuf>) {
 +    let Ok(entries) = std::fs::read_dir(dir) else {
 +        return;
 +    };
@@ -242,37 +374,31 @@
 +        let file = p.file_name().unwrap_or_default().to_string_lossy().into_owned();
 +        if p.is_dir() {
 +            if !SKIP.contains(&file.as_str()) && !file.starts_with('.') {
-+                find(&p, name, out);
++                find(&p, want, out);
 +            }
-+        } else if file == name {
++        } else if want(&file) {
 +            out.push(p);
 +        }
 +    }
 +}
 +
 +fn rel(root: &Path, p: &Path) -> String {
-+    p.strip_prefix(root).unwrap_or(p).display().to_string()
++    normalize(&p.strip_prefix(root).unwrap_or(p).display().to_string())
 +}
 +
-+/// `key = "値"` の値を取る。**TOML を解析しない** ── 1行の文字列だけを読む。
-+fn toml_string(body: &str, section: &str, key: &str) -> Option<String> {
-+    let mut inside = false;
-+    for line in body.lines() {
-+        let t = line.trim();
-+        if t.starts_with('[') {
-+            inside = t == format!("[{section}]");
-+            continue;
-+        }
-+        if inside {
-+            if let Some(rest) = t.strip_prefix(key) {
-+                let rest = rest.trim_start();
-+                if let Some(v) = rest.strip_prefix('=') {
-+                    return Some(v.trim().trim_matches('"').to_owned());
-+                }
++/// `a/./b` ・ `a/../b` ・ 末尾の `/` を畳む。
++fn normalize(p: &str) -> String {
++    let mut parts: Vec<&str> = Vec::new();
++    for x in p.split('/') {
++        match x {
++            "" | "." => {}
++            ".." => {
++                parts.pop();
 +            }
++            other => parts.push(other),
 +        }
 +    }
-+    None
++    parts.join("/")
 +}
 +
 +/// 点の名前へ直す。
@@ -280,151 +406,482 @@
 +    path.replace(['/', '\\'], ".")
 +}
 +
++/// JSON にコメントと末尾のカンマを許した形（tsconfig）を、JSON へ直す。
++/// **文字列の中は触らない。**
++fn jsonc(body: &str) -> String {
++    let b: Vec<char> = body.chars().collect();
++    let mut out = String::with_capacity(body.len());
++    let mut i = 0;
++    let mut in_str = false;
++    while i < b.len() {
++        let c = b[i];
++        if in_str {
++            out.push(c);
++            if c == '\\' && i + 1 < b.len() {
++                out.push(b[i + 1]);
++                i += 2;
++                continue;
++            }
++            if c == '"' {
++                in_str = false;
++            }
++            i += 1;
++            continue;
++        }
++        if c == '"' {
++            in_str = true;
++            out.push(c);
++            i += 1;
++        } else if c == '/' && b.get(i + 1) == Some(&'/') {
++            while i < b.len() && b[i] != '\n' {
++                i += 1;
++            }
++        } else if c == '/' && b.get(i + 1) == Some(&'*') {
++            i += 2;
++            while i + 1 < b.len() && !(b[i] == '*' && b[i + 1] == '/') {
++                i += 1;
++            }
++            i += 2;
++        } else {
++            out.push(c);
++            i += 1;
++        }
++    }
++    // 末尾のカンマ ── `,` の直後に空白を挟んで `]` か `}` が来るもの
++    let mut cleaned = String::with_capacity(out.len());
++    let chars: Vec<char> = out.chars().collect();
++    let mut in_str = false;
++    for (k, &c) in chars.iter().enumerate() {
++        if c == '"' && (k == 0 || chars[k - 1] != '\\') {
++            in_str = !in_str;
++        }
++        if !in_str && c == ',' {
++            let next = chars[k + 1..].iter().find(|x| !x.is_whitespace());
++            if matches!(next, Some(']' | '}')) {
++                continue;
++            }
++        }
++        cleaned.push(c);
++    }
++    cleaned
++}
++
++fn read_jsonc(p: &Path) -> Result<serde_json::Value, String> {
++    let body = std::fs::read_to_string(p).map_err(|e| e.to_string())?;
++    serde_json::from_str(&jsonc(&body)).map_err(|e| e.to_string())
++}
++
++fn read_toml(p: &Path) -> Result<toml::Value, String> {
++    let body = std::fs::read_to_string(p).map_err(|e| e.to_string())?;
++    body.parse::<toml::Value>().map_err(|e| e.to_string())
++}
++
 +/// 言語ごとに対応表を組む。
 +#[must_use]
 +pub fn bridge(language: &str, root: &Path) -> Bridge {
 +    let mut b = Bridge::default();
++    // 測定のためだけの切り替え ── 対応表を使わないときの結果と比べる
++    if std::env::var_os("NMS_NO_BRIDGE").is_some() {
++        return b;
++    }
 +    match language {
-+        "rust" => {
-+            let mut found = Vec::new();
-+            find(root, "Cargo.toml", &mut found);
-+            for f in found {
-+                let Ok(body) = std::fs::read_to_string(&f) else { continue };
-+                let Some(name) = toml_string(&body, "package", "name") else { continue };
-+                let dir = f.parent().unwrap_or(root);
-+                let head = dotted(&rel(root, &dir.join("src")));
-+                b.aliases.push(Alias { from: name.replace('-', "_"), to: head });
-+                b.sources.push(rel(root, &f));
-+            }
-+        }
-+        "go" => {
-+            let mut found = Vec::new();
-+            find(root, "go.mod", &mut found);
-+            for f in found {
-+                let Ok(body) = std::fs::read_to_string(&f) else { continue };
-+                let Some(module) = body
-+                    .lines()
-+                    .find_map(|l| l.trim().strip_prefix("module ").map(|m| m.trim().to_owned()))
-+                else {
-+                    continue;
-+                };
-+                let dir = rel(root, f.parent().unwrap_or(root));
-+                b.aliases.push(Alias { from: module, to: dir });
-+                b.sources.push(rel(root, &f));
-+            }
-+        }
-+        "typescript" => {
-+            let mut found = Vec::new();
-+            find(root, "package.json", &mut found);
-+            for f in found {
-+                let Ok(body) = std::fs::read_to_string(&f) else { continue };
-+                let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) else { continue };
-+                if let Some(name) = v.get("name").and_then(|x| x.as_str()) {
-+                    let dir = rel(root, f.parent().unwrap_or(root));
-+                    b.aliases.push(Alias { from: name.to_owned(), to: dir });
-+                    b.sources.push(rel(root, &f));
-+                }
-+            }
-+            let mut ts = Vec::new();
-+            find(root, "tsconfig.json", &mut ts);
-+            for f in ts {
-+                let Ok(body) = std::fs::read_to_string(&f) else { continue };
-+                let Ok(v) = serde_json::from_str::<serde_json::Value>(&body) else { continue };
-+                let opts = &v["compilerOptions"];
-+                let base_dir = f.parent().unwrap_or(root).join(opts["baseUrl"].as_str().unwrap_or("."));
-+                if let Some(paths) = opts["paths"].as_object() {
-+                    for (pat, targets) in paths {
-+                        let Some(target) = targets.as_array().and_then(|a| a.first()).and_then(|x| x.as_str()) else { continue };
-+                        let from = pat.trim_end_matches('*').trim_end_matches('/').to_owned();
-+                        let to_path = base_dir.join(target.trim_end_matches('*').trim_end_matches('/'));
-+                        b.aliases.push(Alias { from, to: normalize(&rel(root, &to_path)) });
-+                    }
-+                    b.sources.push(rel(root, &f));
-+                }
-+            }
-+        }
-+        "python" => {
-+            let mut found = Vec::new();
-+            find(root, "pyproject.toml", &mut found);
-+            for f in &found {
-+                let Ok(body) = std::fs::read_to_string(f) else { continue };
-+                for line in body.lines() {
-+                    let t = line.trim();
-+                    if let Some(rest) = t.strip_prefix("where") {
-+                        let dirs: Vec<String> = rest
-+                            .split('"')
-+                            .skip(1)
-+                            .step_by(2)
-+                            .map(str::to_owned)
-+                            .collect();
-+                        for d in dirs {
-+                            let p = rel(root, &f.parent().unwrap_or(root).join(d));
-+                            b.search.push(p);
-+                        }
-+                        b.sources.push(rel(root, f));
-+                    }
-+                }
-+            }
-+            if b.search.is_empty() && root.join("src").is_dir() {
-+                b.search.push("src".to_owned());
-+                b.sources.push("src（既定の source root）".to_owned());
-+            }
-+        }
-+        "ruby" => {
-+            let mut found = Vec::new();
-+            find(root, "Gemfile", &mut found);
-+            if root.join("lib").is_dir() {
-+                b.search.push("lib".to_owned());
-+                b.sources.push("lib（既定の load path）".to_owned());
-+            }
-+        }
-+        "cpp" => {
-+            let mut found = Vec::new();
-+            find(root, "CMakeLists.txt", &mut found);
-+            for f in found {
-+                let Ok(body) = std::fs::read_to_string(&f) else { continue };
-+                let dir = f.parent().unwrap_or(root);
-+                for call in ["include_directories(", "target_include_directories("] {
-+                    for chunk in body.split(call).skip(1) {
-+                        let args = chunk.split(')').next().unwrap_or("");
-+                        for a in args.split_whitespace() {
-+                            if matches!(a, "PUBLIC" | "PRIVATE" | "INTERFACE" | "SYSTEM" | "BEFORE" | "AFTER")
-+                                || (call.starts_with("target") && a == args.split_whitespace().next().unwrap_or(""))
-+                            {
-+                                continue;
-+                            }
-+                            let a = a.replace("${CMAKE_CURRENT_SOURCE_DIR}/", "");
-+                            b.search.push(normalize(&rel(root, &dir.join(a))));
-+                        }
-+                    }
-+                }
-+                b.sources.push(rel(root, &f));
-+            }
-+        }
++        "rust" => rust(root, &mut b),
++        "go" => go(root, &mut b),
++        "typescript" => typescript(root, &mut b),
++        "python" => python(root, &mut b),
++        "ruby" => ruby(root, &mut b),
++        "cpp" => cpp(root, &mut b),
 +        _ => {}
 +    }
 +    b.aliases.sort_by_key(|a| std::cmp::Reverse(a.from.len()));
++    b.search.sort();
++    b.search.dedup();
 +    b
 +}
 +
-+/// `a/./b` と末尾の `/.` を畳む。
-+fn normalize(p: &str) -> String {
-+    let parts: Vec<&str> = p.split('/').filter(|x| !x.is_empty() && *x != ".").collect();
-+    parts.join("/")
++/// Rust ── crate 名（Cargo.toml の `[package] name`）を、crate の根へ。
++fn rust(root: &Path, b: &mut Bridge) {
++    let mut found = Vec::new();
++    find(root, &|f| f == "Cargo.toml", &mut found);
++    for f in found {
++        let v = match read_toml(&f) {
++            Ok(v) => v,
++            Err(e) => {
++                b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── {e}", rel(root, &f))));
++                continue;
++            }
++        };
++        let Some(pkg) = v.get("package") else { continue }; // 作業領域の根
++        let Some(name) = pkg.get("name").and_then(|x| x.as_str()) else {
++            b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── [package] に name が無い", rel(root, &f))));
++            continue;
++        };
++        let dir = f.parent().unwrap_or(root);
++        // `[lib] path` が在れば、その包みが crate の根である
++        let lib = v
++            .get("lib")
++            .and_then(|l| l.get("path"))
++            .and_then(|p| p.as_str())
++            .map_or_else(|| dir.join("src"), |p| dir.join(p).parent().unwrap_or(dir).to_path_buf());
++        let lib_name = v
++            .get("lib")
++            .and_then(|l| l.get("name"))
++            .and_then(|x| x.as_str())
++            .unwrap_or(name);
++        b.aliases.push(Alias { from: lib_name.replace('-', "_"), to: dotted(&rel(root, &lib)), scope: String::new() });
++        b.sources.push(rel(root, &f));
++    }
++}
++
++/// Go ── module のパス（go.mod の `module`）を、その包みへ。
++fn go(root: &Path, b: &mut Bridge) {
++    let mut found = Vec::new();
++    find(root, &|f| f == "go.mod", &mut found);
++    for f in found {
++        let Ok(body) = std::fs::read_to_string(&f) else {
++            b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── 読めない", rel(root, &f))));
++            continue;
++        };
++        let module = body.lines().find_map(|l| {
++            let l = l.split("//").next().unwrap_or("").trim();
++            l.strip_prefix("module").map(|m| m.trim().trim_matches('"').to_owned())
++        });
++        match module {
++            Some(m) if !m.is_empty() => {
++                let dir = rel(root, f.parent().unwrap_or(root));
++                b.aliases.push(Alias { from: m, to: dir, scope: String::new() });
++                b.sources.push(rel(root, &f));
++            }
++            _ => b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── module を宣言していない", rel(root, &f)))),
++        }
++    }
++}
++
++/// tsconfig の `extends` をたどり、`paths` と `baseUrl` を集める。**近いほうが勝つ。**
++fn ts_paths(root: &Path, f: &Path, depth: usize, b: &mut Bridge) -> (Option<PathBuf>, BTreeMap<String, Vec<String>>) {
++    if depth > 8 {
++        return (None, BTreeMap::new());
++    }
++    let v = match read_jsonc(f) {
++        Ok(v) => v,
++        Err(e) => {
++            b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── {e}", rel(root, f))));
++            return (None, BTreeMap::new());
++        }
++    };
++    let dir = f.parent().unwrap_or(root);
++    let (mut base, mut paths) = match v.get("extends").and_then(|x| x.as_str()) {
++        Some(e) if e.starts_with('.') => {
++            let mut p = dir.join(e);
++            if p.extension().is_none() {
++                p.set_extension("json");
++            }
++            ts_paths(root, &p, depth + 1, b)
++        }
++        _ => (None, BTreeMap::new()),
++    };
++    let opts = &v["compilerOptions"];
++    if let Some(u) = opts["baseUrl"].as_str() {
++        base = Some(dir.join(u));
++    }
++    if let Some(ps) = opts["paths"].as_object() {
++        let at = base.clone().unwrap_or_else(|| dir.to_path_buf());
++        for (k, targets) in ps {
++            let list: Vec<String> = targets
++                .as_array()
++                .map(|a| a.iter().filter_map(|x| x.as_str()).map(|t| rel(root, &at.join(t))).collect())
++                .unwrap_or_default();
++            paths.insert(k.clone(), list);
++        }
++    }
++    (base, paths)
++}
++
++/// TypeScript ── package 名（package.json の `name`）と、tsconfig の `paths`。
++fn typescript(root: &Path, b: &mut Bridge) {
++    let mut found = Vec::new();
++    find(root, &|f| f == "package.json", &mut found);
++    for f in found {
++        match read_jsonc(&f) {
++            Ok(v) => {
++                if let Some(name) = v.get("name").and_then(|x| x.as_str()) {
++                    let dir = rel(root, f.parent().unwrap_or(root));
++                    b.aliases.push(Alias { from: name.to_owned(), to: dir, scope: String::new() });
++                    b.sources.push(rel(root, &f));
++                }
++            }
++            Err(e) => b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── {e}", rel(root, &f)))),
++        }
++    }
++    // package の source root ── tsconfig の rootDir、無ければ src
++    let dirs: Vec<String> = b.aliases.iter().map(|a| a.to.clone()).collect();
++    for d in dirs {
++        let pkg = root.join(&d);
++        let mut src = None;
++        for name in ["tsconfig.build.json", "tsconfig.json"] {
++            if let Ok(v) = read_jsonc(&pkg.join(name)) {
++                if let Some(r) = v["compilerOptions"]["rootDir"].as_str() {
++                    src = Some(rel(root, &pkg.join(r)));
++                    break;
++                }
++            }
++        }
++        if src.is_none() && pkg.join("src").is_dir() {
++            src = Some(rel(root, &pkg.join("src")));
++        }
++        if let Some(s) = src {
++            if s != d {
++                b.search.push(s);
++            }
++        }
++    }
++    let mut ts = Vec::new();
++    find(root, &|f| f.starts_with("tsconfig") && f.ends_with(".json"), &mut ts);
++    for f in ts {
++        let (_, paths) = ts_paths(root, &f, 0, b);
++        for (pat, targets) in paths {
++            let Some(target) = targets.first() else { continue };
++            let from = pat.trim_end_matches('*').trim_end_matches('/').to_owned();
++            let to = target.trim_end_matches('*').trim_end_matches('/').to_owned();
++            let scope = rel(root, f.parent().unwrap_or(root));
++            if !b.aliases.iter().any(|a| a.from == from && a.scope == scope) {
++                b.aliases.push(Alias { from, to: normalize(&to), scope });
++            }
++        }
++        b.sources.push(rel(root, &f));
++    }
++}
++
++/// Python ── source root（pyproject.toml の各道具の書き方、無ければ `src`）。
++fn python(root: &Path, b: &mut Bridge) {
++    let mut found = Vec::new();
++    find(root, &|f| f == "pyproject.toml", &mut found);
++    for f in &found {
++        let v = match read_toml(f) {
++            Ok(v) => v,
++            Err(e) => {
++                b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── {e}", rel(root, f))));
++                continue;
++            }
++        };
++        let dir = f.parent().unwrap_or(root);
++        let mut roots: Vec<String> = Vec::new();
++        let tool = v.get("tool");
++        let strs = |x: Option<&toml::Value>| -> Vec<String> {
++            x.and_then(|a| a.as_array())
++                .map(|a| a.iter().filter_map(|s| s.as_str().map(str::to_owned)).collect())
++                .unwrap_or_default()
++        };
++        // setuptools
++        if let Some(st) = tool.and_then(|t| t.get("setuptools")) {
++            roots.extend(strs(st.get("packages").and_then(|p| p.get("find")).and_then(|f| f.get("where"))));
++            if let Some(pd) = st.get("package-dir").and_then(|x| x.get("")).and_then(|x| x.as_str()) {
++                roots.push(pd.to_owned());
++            }
++        }
++        // hatch
++        if let Some(w) = tool
++            .and_then(|t| t.get("hatch"))
++            .and_then(|h| h.get("build"))
++            .and_then(|x| x.get("targets"))
++            .and_then(|x| x.get("wheel"))
++        {
++            roots.extend(strs(w.get("sources")));
++            for p in strs(w.get("packages")) {
++                if let Some((parent, _)) = p.trim_end_matches('/').rsplit_once('/') {
++                    roots.push(parent.to_owned());
++                }
++            }
++        }
++        // poetry
++        if let Some(ps) = tool
++            .and_then(|t| t.get("poetry"))
++            .and_then(|p| p.get("packages"))
++            .and_then(|x| x.as_array())
++        {
++            for p in ps {
++                if let Some(from) = p.get("from").and_then(|x| x.as_str()) {
++                    roots.push(from.to_owned());
++                }
++            }
++        }
++        for r in roots {
++            b.search.push(rel(root, &dir.join(r)));
++        }
++        b.sources.push(rel(root, f));
++    }
++    if b.search.is_empty() && root.join("src").is_dir() {
++        b.search.push("src".to_owned());
++        b.sources.push("src（既定の source root）".to_owned());
++    }
++    // 根も探索路である ── 根から始まる点の名前がそのまま通る
++    b.search.push(String::new());
++}
++
++/// Ruby ── load path（gemspec の `require_paths`、無ければ `lib`）。
++fn ruby(root: &Path, b: &mut Bridge) {
++    let mut found = Vec::new();
++    find(root, &|f| f.ends_with(".gemspec"), &mut found);
++    for f in &found {
++        let Ok(body) = std::fs::read_to_string(f) else {
++            b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── 読めない", rel(root, f))));
++            continue;
++        };
++        let dir = f.parent().unwrap_or(root);
++        let mut got = false;
++        for line in body.lines().filter(|l| l.contains("require_paths")) {
++            for piece in line.split(['"', '\'']).skip(1).step_by(2) {
++                b.search.push(rel(root, &dir.join(piece)));
++                got = true;
++            }
++        }
++        if !got && dir.join("lib").is_dir() {
++            b.search.push(rel(root, &dir.join("lib")));
++        }
++        b.sources.push(rel(root, f));
++    }
++    if found.is_empty() && root.join("lib").is_dir() {
++        b.search.push("lib".to_owned());
++        b.sources.push("lib（既定の load path）".to_owned());
++    }
++}
++
++/// CMake の引数を、変数と生成式を解いて並べる。解けない変数を含む経路は `None`。
++fn cmake_args(args: &str, vars: &BTreeMap<String, String>) -> Vec<Option<String>> {
++    let mut out = Vec::new();
++    for raw in args.split_whitespace() {
++        let mut a = raw.trim_matches('"').to_owned();
++        // 生成式 ── 組み立てのときの経路だけを採る
++        if let Some(x) = a.strip_prefix("$<BUILD_INTERFACE:") {
++            a = x.trim_end_matches('>').to_owned();
++        } else if a.starts_with("$<") {
++            continue;
++        }
++        // 変数を展開する
++        let mut unknown = false;
++        while let Some(s) = a.find("${") {
++            let Some(e) = a[s..].find('}') else { break };
++            let name = &a[s + 2..s + e];
++            match vars.get(name) {
++                Some(v) => a = format!("{}{}{}", &a[..s], v, &a[s + e + 1..]),
++                None => {
++                    unknown = true;
++                    break;
++                }
++            }
++        }
++        if unknown {
++            // 変数だけの語は、目標の名前か修飾語である ── 経路として扱わない
++            if raw.starts_with("${") && raw.ends_with('}') && raw.matches("${").count() == 1 {
++                continue;
++            }
++            out.push(None);
++            continue;
++        }
++        out.push(Some(a));
++    }
++    out
++}
++
++/// C++ ── include ディレクトリ（CMakeLists.txt、compile_commands.json）。
++fn cpp(root: &Path, b: &mut Bridge) {
++    const WORDS: [&str; 7] = ["PUBLIC", "PRIVATE", "INTERFACE", "SYSTEM", "BEFORE", "AFTER", ""];
++    let mut found = Vec::new();
++    find(root, &|f| f == "CMakeLists.txt", &mut found);
++    for f in &found {
++        let Ok(body) = std::fs::read_to_string(f) else {
++            b.unreadable.push((rel(root, f.parent().unwrap_or(root)), format!("{} ── 読めない", rel(root, f))));
++            continue;
++        };
++        let dir = f.parent().unwrap_or(root);
++        let mut vars = BTreeMap::new();
++        vars.insert("CMAKE_CURRENT_SOURCE_DIR".to_owned(), dir.display().to_string());
++        vars.insert("CMAKE_CURRENT_LIST_DIR".to_owned(), dir.display().to_string());
++        vars.insert("PROJECT_SOURCE_DIR".to_owned(), root.display().to_string());
++        vars.insert("CMAKE_SOURCE_DIR".to_owned(), root.display().to_string());
++        // 同じファイルの set(名前 値) ── 値が1語のものだけ
++        for chunk in body.split("set(").skip(1) {
++            let args = chunk.split(')').next().unwrap_or("");
++            let mut it = args.split_whitespace();
++            if let (Some(k), Some(v), None) = (it.next(), it.next(), it.next()) {
++                vars.entry(k.to_owned()).or_insert_with(|| v.trim_matches('"').to_owned());
++            }
++        }
++        for call in ["target_include_directories(", "include_directories("] {
++            let mut rest = body.as_str();
++            while let Some(pos) = rest.find(call) {
++                // target_include_directories の中の include_directories( を二重に数えない
++                let before = &rest[..pos];
++                rest = &rest[pos + call.len()..];
++                if call == "include_directories(" && before.ends_with("target_") {
++                    continue;
++                }
++                let args = rest.split(')').next().unwrap_or("");
++                let mut list = cmake_args(args, &vars);
++                if call.starts_with("target") && !list.is_empty() {
++                    list.remove(0); // 目標の名前
++                }
++                for a in list {
++                    match a {
++                        Some(a) if WORDS.contains(&a.as_str()) => {}
++                        Some(a) => {
++                            let p = Path::new(&a);
++                            let full = if p.is_absolute() { p.to_path_buf() } else { dir.join(p) };
++                            b.search.push(rel(root, &full));
++                        }
++                        None => b.unreadable.push((
++                            rel(root, dir),
++                            format!("{} ── include の経路に、展開できない変数が在る", rel(root, f)),
++                        )),
++                    }
++                }
++            }
++        }
++        b.sources.push(rel(root, f));
++    }
++    let cc = root.join("compile_commands.json");
++    if cc.is_file() {
++        if let Ok(v) = read_jsonc(&cc) {
++            for e in v.as_array().into_iter().flatten() {
++                let cmd = e["command"].as_str().unwrap_or("");
++                for tok in cmd.split_whitespace() {
++                    if let Some(p) = tok.strip_prefix("-I") {
++                        b.search.push(rel(root, Path::new(p)));
++                    }
++                }
++            }
++            b.sources.push("compile_commands.json".to_owned());
++        }
++    }
 +}
 +
 +impl Bridge {
-+    /// 別名を当てる。**頭が一致したものだけを置き換える。**
++    /// 別名を当てる。**頭が一致したものだけを置き換える。** 効く範囲の中で、
++    /// いちばん近い範囲 ・ いちばん長い頭のものを採る。
 +    #[must_use]
-+    pub fn alias(&self, name: &str, sep: &str) -> Option<String> {
++    pub fn alias(&self, name: &str, sep: &str, file: &str) -> Option<String> {
++        let mut best: Option<(&Alias, String)> = None;
 +        for a in &self.aliases {
-+            if name == a.from {
-+                return Some(a.to.clone());
++            let covers = a.scope.is_empty() || file == a.scope || file.starts_with(&format!("{}/", a.scope));
++            if !covers {
++                continue;
 +            }
-+            if let Some(tail) = name.strip_prefix(&format!("{}{sep}", a.from)) {
-+                return Some(if a.to.is_empty() { tail.to_owned() } else { format!("{}{sep}{tail}", a.to) });
++            let got = if name == a.from {
++                Some(a.to.clone())
++            } else {
++                name.strip_prefix(&format!("{}{sep}", a.from)).map(|tail| {
++                    if a.to.is_empty() { tail.to_owned() } else { format!("{}{sep}{tail}", a.to) }
++                })
++            };
++            if let Some(g) = got {
++                let better = best.as_ref().is_none_or(|(b, _)| {
++                    (a.scope.len(), a.from.len()) > (b.scope.len(), b.from.len())
++                });
++                if better {
++                    best = Some((a, g));
++                }
 +            }
 +        }
-+        None
++        best.map(|(_, g)| g)
 +    }
 +}
