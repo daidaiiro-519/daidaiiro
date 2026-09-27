@@ -4,9 +4,10 @@
     "skills",
     "board",
     "docs",
-    "design-svg:lib",
-    "design-svg:declaration",
-    "design-svg:entry",
+    "design-svg:parts",
+    "design-svg:declare",
+    "design-svg:cli",
+    "design-svg:mcp",
     "brainstorming-board:parts",
     "brainstorming-board:declare",
     "brainstorming-board:cli",
@@ -56,9 +57,10 @@
     "acdr:declare": ".claude/skills/acdr/rs/declare",
     "acdr:cli": ".claude/skills/acdr/rs/cli",
     "acdr:mcp": ".claude/skills/acdr/rs/mcp",
-    "design-svg:lib": ".claude/skills/design-svg/scripts/lib",
-    "design-svg:declaration": ".claude/skills/design-svg/scripts/tools.py",
-    "design-svg:entry": ".claude/skills/design-svg/scripts/cli.py",
+    "design-svg:parts": ".claude/skills/design-svg/rs/parts",
+    "design-svg:declare": ".claude/skills/design-svg/rs/declare",
+    "design-svg:cli": ".claude/skills/design-svg/rs/cli",
+    "design-svg:mcp": ".claude/skills/design-svg/rs/mcp",
     "rust:core": "rust/core",
     "rust:adapter": "rust/adapter",
     "go:core": "go/core",
@@ -423,14 +425,49 @@
       "source": {
         "record": "design-svg/SKILL.md"
       },
-      "scope": "この成果物の試験のみ ── まとめて実行する（各ファイルは単体で実行できない）",
+      "scope": "この成果物の事例のみ ── 移す前の出力を固定した事例を含む",
       "check": {
         "tool": [
-          "pytest",
-          "-q",
-          "scripts/tests"
+          "cargo",
+          "test",
+          "-q"
         ],
-        "target": ".claude/skills/design-svg"
+        "target": ".claude/skills/design-svg/rs"
+      }
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "design-svg/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "target": ".claude/skills/design-svg/rs"
+      }
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "design-svg/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ],
+        "target": ".claude/skills/design-svg/rs"
       }
     },
     {
@@ -441,9 +478,10 @@
       "scope": "設計上の選択はトークンから、量はデータから出すこと",
       "check": {
         "tool": [
-          "python3",
-          "scripts/cli.py",
-          "lint"
+          "rs/target/release/design-svg",
+          "lint",
+          "--skill_root",
+          "."
         ],
         "target": ".claude/skills/design-svg"
       }
@@ -1217,22 +1255,18 @@
       }
     },
     {
-      "rule": "依存の向きが、内向きである",
+      "rule": "依存の向きが、宣言と一致する",
       "source": {
         "record": "no-more-spaghetti/references/concepts.json#依存の向き"
       },
-      "scope": "部品から入口と宣言への参照と、図に現れない読み込みのみ ── **許可する辺は層の並びが宣言する**。原文の構文木で測るので、経路の別名と探索路の指定は解決しない",
+      "scope": "crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い crate は解決しない",
       "check": {
         "tool": [
-          "../no-more-spaghetti/rs/target/release/no-more-spaghetti",
-          "inward",
-          "python",
-          "scripts",
-          "lib=lib",
-          "declaration=tools|contract",
-          "entry=cli|mcp_server:composes"
+          "cargo",
+          "build",
+          "--all-targets"
         ],
-        "target": ".claude/skills/design-svg"
+        "target": ".claude/skills/design-svg/rs"
       }
     },
     {

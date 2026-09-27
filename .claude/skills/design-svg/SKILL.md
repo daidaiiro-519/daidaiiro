@@ -6,8 +6,14 @@
 宣言し、見た目はトークンで決め、座標は配置戦略に解かせる。紹介ページの主画像・概念の説明図・
 仕組みの内訳図・量を示す図のいずれも、単体で完結するインラインSVGとして得られる。
 
-この Skill が持つ描画エンジン（`scripts/lib/svg_engine/`）が実体で、**外部依存を保持しない**（標準ライブラリのみ、
-Python 3.10 以上）。インストール操作なしに、このディレクトリのまま動く。
+この Skill が持つ描画エンジン（`rs/parts/`）が実体である。入口は1つの実行ファイル `design-svg` で、
+**宣言を JSON のファイルで受け取る** ── 呼ぶ側は台本を書かず、宣言だけで同じ図を組み直せる。
+
+```
+cd rs && cargo build --release      # rs/target/release/design-svg ができる
+```
+
+以下の `design-svg` は、この実行ファイルを指す。
 
 ---
 
@@ -47,7 +53,8 @@ Python 3.10 以上）。インストール操作なしに、このディレク�
 ### Step 1: 何を受け取れるかを目録で確認する
 
 ```
-python3 scripts/cli.py catalog   # 目録をJSONで出す
+design-svg catalog               # 目録をJSONで出す
+design-svg catalog catalog.json  # ファイルへ書き出す
 ```
 
 目録は、**どの部品があり、それぞれがどんな値を読み、どんなトークンで見た目が決まり、
@@ -56,19 +63,21 @@ python3 scripts/cli.py catalog   # 目録をJSONで出す
 
 ### Step 2: 構造を宣言へ変換する
 
-つながり・階層・包含は、節点と辺と囲みで書く。
+つながり・階層・包含は、節点と辺と囲みで書く。宣言は JSON のファイルに置く。
 
-```python
-from svg_engine import render_figure
-
-svg = render_figure(
-    nodes=[{"id": "a", "label": "受付"},
+```json
+{"nodes": [{"id": "a", "label": "受付"},
            {"id": "b", "label": "検証", "role": "focus"}],
-    edges=[{"from": "a", "to": "b", "label": "渡す"}],
-    groups=[{"label": "束ね", "members": ["a", "b"]}],   # 任意
-    direction="TB",                                       # または "LR"
-)
+ "edges": [{"from": "a", "to": "b", "label": "渡す"}],
+ "groups": [{"label": "束ね", "members": ["a", "b"]}],
+ "direction": "TB"}
 ```
+
+```
+design-svg figure 宣言.json --out 図.svg
+```
+
+`groups` は省ける。`direction` は `TB` か `LR` である。
 
 - `nodes` は `id` が必須。`label` / `role` / `style` / `figure` は任意
 - `edges` は `from` と `to` が必須。`label` / `dashed` / `arrow` は任意
@@ -77,40 +86,37 @@ svg = render_figure(
 
 量を描くもの（内訳・大小・並び順・区間・分布・2軸上の点・流量・位置）は、部品を1つ選んで描く。
 
-```python
-from svg_engine import render_chart
-svg = render_chart("bars", {"bars": [{"name": "文書", "value": 13}]})
 ```
+design-svg chart bars データ.json --out 図.svg
+```
+
+`データ.json` は `{"bars": [{"name": "文書", "value": 13}]}` のように、その部品が読む値を持つ。
 
 意匠そのものを組むとき（面 ・ 文字 ・ 人 ・ 絵 ・ 任意の曲線）は、画布へ直に置く。
 
-```python
-from svg_engine import render_canvas
-svg = render_canvas(600, 200, layers=[
-    {"kind": "panel", "x": 20, "y": 20, "props": {"width": 240, "height": 120}},
-    {"kind": "text", "x": 40, "y": 44,
-     "props": {"text": ["見出し", "説明の行"], "size": 18, "weight": "bold"}},
-    {"kind": "icon", "x": 320, "y": 40, "props": {"name": "person", "size": 64}},
-    {"kind": "icon", "x": 420, "y": 48, "props": {"name": "doc", "size": 32}},
-    {"kind": "path", "x": 460, "y": 40,
-     "props": {"d": "M0,0 a30 30 0 0 1 60,0", "filled": False}},
-])
+```json
+{"width": 600, "height": 200, "layers": [
+  {"kind": "panel", "x": 20, "y": 20, "props": {"width": 240, "height": 120}},
+  {"kind": "text", "x": 40, "y": 44,
+   "props": {"text": ["見出し", "説明の行"], "size": 18, "weight": "bold"}},
+  {"kind": "icon", "x": 320, "y": 40, "props": {"name": "person", "size": 64}},
+  {"kind": "icon", "x": 420, "y": 48, "props": {"name": "doc", "size": 32}},
+  {"kind": "path", "x": 460, "y": 40,
+   "props": {"d": "M0,0 a30 30 0 0 1 60,0", "filled": false}}]}
 ```
 
-- **`text`** ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。**中央へ置くのは呼ぶ側の仕事である**（部品は自分の原点を基準に描く。幅は `svg_engine.text.text_width` で測れる）
+```
+design-svg canvas 層.json --out 図.svg
+```
+
+- **`text`** ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。**中央へ置くのは呼ぶ側の仕事である**（部品は自分の原点を基準に描く。幅の測り方は `rs/parts/src/text.rs` が持つ）
 - **`panel`** ── 塗りと枠だけの面。**囲み（`frame`）とは別である** ── 囲みは「ここは領域の内側」を示す破線の注記で、面は意匠そのものである
 - **`icon`** ── 絵記号（人も含む）。**どれも 0..24 の同じ枠で描く**ので、並べたときに揃う。**拡大しても線は太らない** ── 枠ごと拡大すると、大きい絵だけ重くなる
 - **`path`** ── **SVG のパスの文法をそのまま受ける**（`M/L/H/V/C/S/Q/T/A/Z` を絶対でも相対でも）。**座標は書き換えない** ── 外接矩形ぶんの平行移動で置く
 - 色は濃さの呼び名で渡す（`ink` ・ `soft` ・ `faint` ・ `accent` ・ `accent-bg` ・ `on-accent` ・ `fill` ・ `line`）。**直値を渡さない**
 
-好きな位置へ重ねたいときは画布を使う。
-
-```python
-from svg_engine import render_canvas
-svg = render_canvas(400, 200, layers=[
-    {"kind": "box", "x": 20, "y": 20, "props": {"label": "甲"}},
-])
-```
+好きな位置へ重ねたいときも画布を使う。層の並びだけを渡すなら、大きさは引数で渡す ──
+`design-svg canvas 層.json --width 400 --height 200`。
 
 ### Step 3: 配置戦略を選ぶ
 
@@ -119,56 +125,70 @@ svg = render_canvas(400, 200, layers=[
 
 | 戦略 | 何を根拠に置くか |
 |---|---|
-| 既定（層状） | 辺の向きから層を決める。つながり・階層に使う |
-| `layout_radial` | 輪の上に置く。並びが閉じていることを見せる |
-| `layout_tree` | 中心から枝分かれさせる |
-| `layout_grid` | 宣言が持つ座標のとおりに置く。縦横の交点が意味を持つとき |
+| `graph`（既定。層状） | 辺の向きから層を決める。つながり・階層に使う |
+| `radial` | 輪の上に置く。並びが閉じていることを見せる |
+| `tree` | 中心から枝分かれさせる |
+| `grid` | 宣言が持つ座標のとおりに置く。縦横の交点が意味を持つとき |
 
-```python
-from svg_engine import layout_radial
-svg = render_figure(nodes, edges, layout=layout_radial)
+宣言の `layout` に名前を書く（`--layout` でも渡せるが、宣言が勝つ）。
+
+```json
+{"layout": "radial", "nodes": [...], "edges": [...]}
 ```
 
-格子は座標を要るので、束ねて渡す ── `functools.partial(layout_grid, at={...})`。
-辺を鍵線にしたいときは、同じところで `elbow={("a","b"): "vertical"}` を渡す ── `"vertical"` は真下（真上）へ降りてから横へ折れ、`"horizontal"` はその逆である。
+格子は座標を要るので、宣言の `grid` に置く。`cols` と `rows` は並びを外から決めるときだけ書く。
+
+```json
+{"layout": "grid", "nodes": [...], "edges": [...],
+ "grid": {"at": {"a": ["左", "上"], "b": ["右", "下"]},
+          "cols": ["左", "右"], "rows": ["上", "下"],
+          "elbow": [["a", "b", "vertical"]]}}
+```
+
+辺を鍵線にしたいときは `elbow` に `[始点, 終点, 置き方]` を書く ── `"vertical"` は真下（真上）へ降りてから横へ折れ、`"horizontal"` はその逆である。**格子は最上位の図だけに適用する** ── 入れ子の図は層状で解く。
 
 ### Step 4: 見た目を決める
 
-**入口（`cli.py`）へは、宣言の中で渡す。** `theme` に差分だけを書けばよく、既定のテーマへ重なる。`layout` と `direction` も宣言が持てる ── **引数でしか渡せないものを作らない**。宣言だけで同じ図が組み直せなければ、呼ぶ側は Python の台本を書くことになり、その台本は成果物の隣に残らない。
+**見た目の上書きは、宣言の中で渡す。** `theme` に差分だけを書けばよく、既定のテーマへ重なる。`layout` と `direction` も宣言が持てる ── **引数でしか渡せないものを作らない**。宣言だけで同じ図が組み直せなければ、呼ぶ側は台本を書くことになり、その台本は成果物の隣に残らない。
 
 ```json
 {"nodes": [...], "edges": [...], "direction": "LR",
  "theme": {"color.box-fill": "var(--card)", "color.ink": "var(--ink)"}}
 ```
 
-知らないトークンの名前は、その場で例外になる ── 目録に在る名前だけを使う。
+知らないトークンの名前は、その場で誤用（終了コード `2`）として返る ── 目録に在る名前だけを使う。
 
 **色・寸法・書体を直接書かない**。必ずトークンから引く。3層で解決される
 ── テーマの既定値 → 役割による上書き → その場の上書き。
 
-```python
-from svg_engine import DEFAULT_THEME
-夜 = dict(DEFAULT_THEME, **{"color.box-fill": "#1C222C", "color.ink": "#E7ECF3"})
-svg = render_figure(nodes, edges, theme=夜)
+```json
+{"nodes": [...], "edges": [...],
+ "theme": {"color.box-fill": "#1C222C", "color.ink": "#E7ECF3"}}
 ```
+
+既定のテーマの正本は `references/theme.json` である ── トークン ・ 値の範囲 ・ 色の濃さの呼び名を持つ。
 
 役割（強調・控えめ等）もテーマが持つので、**新しい役割はテーマへ行を足すだけ**で増える。
 
-```python
-危険 = dict(DEFAULT_THEME, **{"role.危険.color.box-stroke": "color.warn",
-                              "role.危険.color.text": "color.warn"})
-# 節点に "role": "危険" と書けば使える
+```json
+{"nodes": [{"id": "a", "label": "停止", "role": "危険"}],
+ "theme": {"role.危険.color.box-stroke": "color.warn",
+           "role.危険.color.text": "color.warn"}}
 ```
+
+**役割の行も名前を検査する** ── `role.<役割>.<名前>` の `<名前>` は、既定のトークンか、既存の役割が使っている名前
+（`color.text` など。目録の `roles` に在る）でなければ断る。綴りの誤りを、その場で止めるためである。
 
 焼き上がったSVGは、**生成後の外部CSSでも上書きできる**（`.svg-box rect { fill: ... }`）。
 明暗の切り替えは、テーマを2組焼き分けるか、CSSで適用するかのどちらでもよい。
 
 ### Step 5: 破綻していないかを機械で検査する
 
-```python
-from svg_engine import verify
-for check in (verify.check, verify.check_shapes, verify.check_attachment):
-    assert not check(svg), check(svg)
+`figure` ・ `chart` ・ `canvas` は、描いた直後に3種の検査を自動で適用し、検出を返す（終了コード `1`）。
+書き出した SVG を単独で検査するときは `verify` を使う。
+
+```
+design-svg verify 図.svg
 ```
 
 見るのは、文字どうしの重なり・画布からのはみ出し・箱どうしの重なり・辺が箱を突っ切ること・
@@ -185,20 +205,20 @@ for check in (verify.check, verify.check_shapes, verify.check_attachment):
 
 ### Step 7: 部品が足りなければ足す
 
-台帳へ1行足すだけで増える。核は変化しない。
+部品は、`rs/parts/src/shapes*.rs` の関数1つと、そのファイルの `register()` への1行で増える。核は変化しない。
 
-```python
-from svg_engine.registry import OwnOrigin, component
-
-@component("しおり")
-def bookmark(props, style):
-    w, h = style.num("size.box-min-w"), style.num("size.box-h")
-    return OwnOrigin(svg=f'<path d="..." fill="{style.text("color.accent-bg")}"/>',
-                     width=w, height=h)
+```rust
+fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
+    let (w, h) = (style.num("size.box-min-w")?, style.num("size.box-h")?);
+    let fill = style.text("color.accent-bg")?;
+    Ok(Fragment::own(format!("<path d=\"...\" fill=\"{fill}\"/>"), w, h))
+}
+// register() の並びへ ("しおり", bookmark) を足す
 ```
 
 足すときの規約は `references/knowledge/svg-engine-discipline.md` にある。**新しいファイルは
-`__init__.py` の import 一覧へ足す**こと ── 足さないとデコレータが発火せず、台帳に載らない。
+`rs/parts/src/lib.rs` の `components()` へ足す**こと ── 足さないと台帳に載らない。
+**目録の表（`catalog.rs` の `PARTS`）にも1行足す** ── 部品が読むキーと表が食い違えば、事例が失敗する。
 
 ---
 
@@ -209,7 +229,7 @@ def bookmark(props, style):
 | 返すもの | 形 |
 |---|---|
 | 図 | `<svg>` から始まる単体の文字列。外部ホストにも実行時のライブラリにも依存しない |
-| 目録 | JSON（`python -m svg_engine`）── 部品 ・ トークン ・ 役割 ・ 配置戦略 |
+| 目録 | JSON（`design-svg catalog`）── 部品 ・ トークン ・ 役割 ・ 配置戦略 |
 | 検査の結果 | 破綻の一覧。0件なら空である |
 
 **描いた画像を目視で確認してから渡す** ── 幾何の検査が通ることと、絵として成立していることは別である。
@@ -247,8 +267,10 @@ def bookmark(props, style):
 - `README.md`: エンジンの入口（使い方・目録・配置・開発）
 - `references/knowledge/svg-engine-discipline.md`: エンジンが遵守する規律と、外へ公開する面
 - `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各層が保証すること
-- `scripts/cli.py`: **唯一の入口。** `catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
-- `scripts/tools.py`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `scripts/lib/svg_engine/` は読み込まれるものであり、入口を保持しない
-- `scripts/mcp_server.py` ・ `mcp.json`: MCP サーバー。**実装が無い環境では立たず、CLI だけが動く**
-- 目録は `cli.py catalog` が出す（部品・トークン・役割・配置戦略。実装から導かれる）
-- `scripts/tests/`: 規約・契約・幾何の検査。何が守られているかが読める
+- `rs/cli/`: **唯一の入口** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `rs/declare/`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `rs/parts/` は読み込まれるものであり、入口を保持しない
+- `rs/mcp/` ・ `mcp.json`: MCP サーバー `design-svg-mcp`。宣言から道具を組む
+- `rs/parts/`: 描画エンジン。依存の許可辺は各 `Cargo.toml` が宣言する
+- `references/theme.json`: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名
+- `rs/parts/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd rs && cargo test`
+- `rs/parts/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd rs && cargo run -q -p ds_parts --example bench_layout`
