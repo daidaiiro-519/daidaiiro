@@ -1,0 +1,127 @@
+{
+ "no": "ACDR 0031",
+ "title": "配布物の形式を OS ごとに分ける",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "道具の契約に従う Skill の配布物の形式を、Linux ・ macOS 向けは tar.gz、Windows 向けは zip にする。",
+ "why": "ACDR 0029 は配布物を「配布用の zip」とした。ACDR 0029 に従って Linux の1環境で試作したところ、その環境には zip コマンドが無かった。Linux（WSL の最小構成を含む）では zip と unzip が標準で入っていないことがあり、導入スクリプトが unzip に頼ると、その環境で導入できない。tar は Linux と macOS に標準で入っており、tar.gz は実行ファイルの実行権限も保持する。",
+ "shift": [
+  {
+   "what": "Linux ・ macOS 向けの配布物",
+   "from": "zip。展開に unzip が必要である",
+   "to": "tar.gz。展開には標準の tar を使う"
+  },
+  {
+   "what": "Windows 向けの配布物",
+   "from": "zip",
+   "to": "zip（変更しない）。展開には PowerShell の Expand-Archive を使う"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "配布物の形式の変更前と変更後を、OS ごとに並べた図である。",
+ "how": "ブレストボード（.brainstorming-board/skill-binaries/）の論点2の答えを改め、前の答えを履歴に保存した。他の論点と図の「配布用の zip」は、形式を含まない「配布物」へ統一した。試作の結果は trial/README.md にある。",
+ "applies_to": "変更する正本は、ブレストボード .brainstorming-board/skill-binaries/ の board.json と図（flow ・ unit ・ matrix）である。ACDR 0029 の論点2の「配布用の zip」も、この記録で改める。",
+ "alternatives": [
+  {
+   "option": "全 OS を zip のまま維持し、導入スクリプトが unzip の有無を確認する",
+   "why_not": "unzip が無い環境では、利用者に unzip の導入を求めることになる。利用者の要件（1行で導入する）に違反する"
+  },
+  {
+   "option": "全 OS を tar.gz にする",
+   "why_not": "Windows の PowerShell が標準で展開できるのは zip である（Expand-Archive）。tar.exe の有無は、Windows の版で異なる（推測。未照合）"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして記録の HTML を再生成し、ボードと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "board",
+   "tab": "board.json",
+   "file": ".brainstorming-board/skill-binaries/board.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"round\": 10,",
+     "before": "\"round\": 9,",
+     "why": "回を10へ進めた。前の回の姿は rounds/9.json に保存してある"
+    },
+    {
+     "find": "\"text\": \"<b>配布の単位</b> ── 配布物は Skill ごと × 環境ごと（Linux ・ macOS は tar.gz、Windows は zip）。導入スクリプトと CI の定義は配布元に1つずつ置き、テンプレートは skills-creator が持つ\"",
+     "before": "\"text\": \"<b>配布の単位</b> ── 配布用の zip は Skill ごと × 環境ごと。導入スクリプトと CI の定義は配布元に1つずつ置き、テンプレートは skills-creator が持つ\"",
+     "why": "決まりの一覧の配布の単位に、OS ごとの形式を書いた"
+    },
+    {
+     "find": "\"text\": \"済 ── 決めた5件を ACDR 0029 に記録した。Linux の1環境で試作し、成立を確認した（trial/README.md）\"",
+     "before": "\"text\": \"決めた5件を ACDR へ記録する（道具の契約 ・ ACDR 0019 の改訂を含む）\"\n},\n{\n\"text\": \"試作 ── Linux の1環境だけで、tool/ への改名 ・ bin/ への出力 ・ 実行ファイルの位置からの探索 ・ 配布用の zip の作成が成立するかを確認する\"",
+     "why": "次にすることのうち、ACDR 0029 と試作の2件を済にした"
+    },
+    {
+     "find": "\"text\": \"導入スクリプトは、OS と CPU を判別し、Release から合う環境の配布物を取得して、リポジトリの .claude/skills/ に展開する\"",
+     "before": "\"text\": \"導入スクリプトは、OS と CPU を判別し、Release から合う環境の zipを取得して、リポジトリの .claude/skills/ に展開する\"\n\"text\": \"取得した zipは、SHA-256 を照合してから展開する\"\n\"text\": \"Release には環境ごとの配布用の zipを置く ── 利用者はこれを直接選ばない\"",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"caption\": \"利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合う配布物だけを展開する\"",
+     "before": "\"caption\": \"利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合う zipだけを展開する\"",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"body\": \"全環境の実行ファイルを1つの配布物に入れ、実行時に選ぶ\",",
+     "before": "\"body\": \"全環境の実行ファイルを1つの zip に入れ、実行時に選ぶ\",",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"question\": \"何を1つの配布物にし、導入スクリプトと組み立ての定義を誰が持つか\",",
+     "before": "\"question\": \"何を1つの zipにし、導入スクリプトと組み立ての定義を誰が持つか\",\n\"answer\": \"配布用の zip は Skill ごと × 環境ごとに作る。導入スクリプトと組み立ての定義は、配布元のリポジトリに1つずつ置き、skills-creator がそのテンプレートを持つ。利用者は Skill の名前を並べて導入し、省略すると全部を導入する\",",
+     "why": "論点2の答えの配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改めた。試作の環境に zip コマンドが無かったためである"
+    },
+    {
+     "find": "\"text\": \"<b>配布物</b> ── Skill ごと × 環境ごと。Linux ・ macOS は tar.gz、Windows は zip（例：acdr-x86_64-unknown-linux-musl.tar.gz）。道具を保持しない Skill は、環境に依存しない tar.gz と zip を1つずつ作る\"",
+     "before": "\"text\": \"<b>配布用の zip</b> ── Skill ごと × 環境ごと（例：acdr-x86_64-unknown-linux-musl.zip）。道具を保持しない Skill は、環境に依存しない配布用の zipを1つ作る\"",
+     "why": "論点2の答えの配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改めた。試作の環境に zip コマンドが無かったためである"
+    },
+    {
+     "find": "\"caption\": \"1つの Release に Skill × 環境の配布物が並び、導入スクリプトが指定の Skill と利用者の環境に合うものだけを取得する\"",
+     "before": "\"caption\": \"1つの Release に Skill × 環境の配布用の zipが並び、導入スクリプトが指定の Skill と利用者の環境に合うものだけを取得する\"\n\"name\": \"A ── Skill ごとの配布用の zip ＋ リポジトリに1つの導入スクリプト\",\n\"cost\": \"配布用の zip の数が Skill × 環境になる（このリポジトリでは 9 × 3 ＋ 8）\"\n\"name\": \"B ── 複数の Skill を1つの zipにまとめる（いまの skills.zip）\",\n\"body\": \"配布用の zipが環境ごとに1つで済む\",",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"道具を保持しない Skill（advisor など）も、同じ導入スクリプトで導入できる ── 環境に依存しない配布物を1つ作れば足りる\",",
+     "before": "\"道具を保持しない Skill（advisor など）も、同じ導入スクリプトで導入できる ── 環境に依存しない配布用の zipを1つ作れば足りる\"",
+     "why": "論点2の答えの配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改めた。試作の環境に zip コマンドが無かったためである"
+    },
+    {
+     "find": "\"supports\": \"利用者が配布物を選ばないという条件\",",
+     "before": "\"supports\": \"利用者が配布用の zipを選ばないという条件\",\n\"basis\": \"導入スクリプトが OS と CPU を判別し、合う zipを取得する\",",
+     "why": "論点2の答えの配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改めた。試作の環境に zip コマンドが無かったためである"
+    },
+    {
+     "find": "\"intro\": \"<b>承認された（2026-09-28）。</b>配布物の形式は、試作の結果を受けて2026-09-29に改めた（ACDR 0031）。\",",
+     "before": "\"intro\": \"<b>承認された（2026-09-28）。</b>\"",
+     "why": "論点2の答えの配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改めた。試作の環境に zip コマンドが無かったためである"
+    },
+    {
+     "find": "\"text\": \"<b>開発時</b> ── 組み立てた実行ファイルを bin/ へ置く手順に統一する。SKILL.md ・ CLAUDE.md ・ 規則ファイル ・ .mcp.json の <code>rs/target/release/</code> の記述は、<code>bin/</code> へ一律に置き換える。開発時の bin/ は .gitignore に入れ、git で追跡しない。実行ファイルは Release の配布物だけが持つ\"",
+     "before": "\"text\": \"<b>開発時</b> ── 組み立てた実行ファイルを bin/ へ置く手順に統一する。SKILL.md ・ CLAUDE.md ・ 規則ファイル ・ .mcp.json の <code>rs/target/release/</code> の記述は、<code>bin/</code> へ一律に置き換える。開発時の bin/ は .gitignore に入れ、git で追跡しない。実行ファイルは Release の zip だけが持つ\"",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"basis\": \"配布物は Skill ごと × 環境ごとなので、bin/ には1つの環境の実行ファイルだけが入る\",",
+     "before": "\"basis\": \"配布用の zip は Skill ごと × 環境ごとなので、bin/ には1つの環境の実行ファイルだけが入る\",",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    },
+    {
+     "find": "\"basis\": \"ブラウザで取得した配布物の中身に隔離の属性が付き、未公証の実行ファイルの起動が拒否される\",",
+     "before": "\"basis\": \"ブラウザで取得した zip の中身に隔離の属性が付き、未公証の実行ファイルの起動が拒否される\",\n\"basis\": \"配布用の zip は Skill ごと × 環境ごとで、workflow は配布元のリポジトリに1つである\",",
+     "why": "「配布用の zip」を、形式を含まない「配布物」へ統一した。形式が OS ごとに分かれるため、zip と書くと Linux ・ macOS 向けと食い違う"
+    }
+   ]
+  }
+ ],
+ "lede": "試作の結果を受けて、配布物の形式を OS ごとに分ける提案である。",
+ "seal": {
+  "board": "a2945b166fce89d3d852b807ca489f0c66f7d7b6927a0c8d8ecf46325ec2e9da"
+ }
+}
