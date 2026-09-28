@@ -9,7 +9,16 @@
  tree-sitter-c-sharp = "0.23"
  tree-sitter-cpp = "0.23"
 --- a/rs/parts/src/inward/syntax.rs	2026-09-26 19:09:52.200469008 +0900
-+++ rs/parts/src/inward/syntax.rs	2026-09-28 08:44:08.620845465 +0900
++++ rs/parts/src/inward/syntax.rs	2026-09-28 09:14:40.697127163 +0900
+@@ -26,7 +26,7 @@
+     Qualified,
+     /// 経路の相対である ── 書かれたファイルの場所から畳む。
+     Path,
+-    /// 点の段数である ── 書かれた点の包みから遡る。
++    /// 点の段数である ── 書かれた点のディレクトリから遡る。
+     Dotted,
+     /// crate の中の点である ── `crate::` は根、`super::` は1つ上、`self::` はここ。
+     Crate,
 @@ -48,6 +48,42 @@
      pub resolve: Resolve,
      /// 文法。
@@ -213,7 +222,7 @@
  }
  
 +/// Ruby の `"#{__dir__}/経路"` を、そのファイルからの相対経路へ直す。**`__dir__` は、
-+/// そのファイルの包みである** ── 埋め込みはそれ1つだけのときに限る（実測 ── rubocop）。
++/// そのファイルのディレクトリである** ── 埋め込みはそれ1つだけのときに限る（実測 ── rubocop）。
 +fn ruby_dir_relative(raw: &str) -> Option<String> {
 +    let body = raw.trim_matches('"');
 +    let rest = body.strip_prefix("#{__dir__}/")?;
@@ -226,6 +235,15 @@
  /// 引用符を外す。**文字列の節点は引用符を含む。**
  fn unquote(raw: &str) -> &str {
      raw.trim_matches(|c| c == '"' || c == '\'' || c == '`')
+@@ -198,7 +333,7 @@
+     } else {
+         here.split('.').collect()
+     };
+-    // **点の段数は、書かれた点の包みから遡る。** 1つ目は包み自身である
++    // **点の段数は、書かれた点のディレクトリから遡る。** 1つ目はディレクトリ自身である
+     for _ in 0..dots.saturating_sub(1) {
+         parts.pop();
+     }
 @@ -234,6 +369,129 @@
      body
  }
@@ -317,7 +335,7 @@
 +                            return format!("{lp}/{spec}");
 +                        }
 +                    }
-+                    // 行き先が無くても、頭の包みが探索路の下に在れば、そこを指している（生成物か、名前の誤り）
++                    // 行き先が無くても、頭のディレクトリが探索路の下に在れば、そこを指している（生成物か、名前の誤り）
 +                    let first = spec.split('/').next().unwrap_or(spec);
 +                    for lp in &bridge.search {
 +                        if root.join(lp).join(first).exists() || root.join(lp).join(format!("{first}.rb")).is_file() {
@@ -337,7 +355,7 @@
 +                            return cand;
 +                        }
 +                    }
-+                    // 行き先が無くても、頭の包みが探索路の下に在れば、そこを指している
++                    // 行き先が無くても、頭のディレクトリが探索路の下に在れば、そこを指している
 +                    let first = spec.split('/').next().unwrap_or(spec);
 +                    for inc in &bridge.search {
 +                        let base = if inc.is_empty() { root.to_path_buf() } else { root.join(inc) };
@@ -370,6 +388,15 @@
      /// 扱える言語を並べる。
      #[must_use]
      pub fn languages() -> Vec<&'static str> {
+@@ -258,7 +523,7 @@
+     }
+ }
+ 
+-/// 見ない包み。
++/// 見ないディレクトリ。
+ const SKIP: [&str; 6] = [
+     "node_modules",
+     "target",
 @@ -336,8 +601,27 @@
          let mut undecided = Vec::new();
          // **測り方の限界は、申告であって検出ではない。** 検出に混ぜると、取りこぼしの
@@ -380,7 +407,7 @@
 +        let limits = if matches!(s.language, "java" | "kotlin" | "csharp" | "php") {
 +            vec!["字面で測っている ── 名前は、ソースが宣言する package ・ namespace から取っている".to_owned()]
 +        } else if bridge.sources.is_empty() {
-+            vec!["字面で測っている ── 別名と探索路の設定が見つからなかった。置き場所の名前だけで照合している".to_owned()]
++            vec!["字面で測っている ── 別名と検索パスの設定が見つからなかった。置き場所の名前だけで照合している".to_owned()]
 +        } else {
 +            // 設定の名前ごとに数える ── 全件を並べると、1行が読めない長さになる（実測 ── 100件）
 +            let mut count: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
@@ -389,12 +416,12 @@
 +                *count.entry(name).or_default() += 1;
 +            }
 +            vec![format!(
-+                "字面で測っている ── 別名と探索路は、次の設定から解決した：{}",
++                "字面で測っている ── 別名と検索パスは、次の設定から解決した：{}",
 +                count.iter().map(|(k, v)| format!("{k} {v}件")).collect::<Vec<_>>().join(" ・ ")
 +            )]
 +        };
 +        let mut limits = limits;
-+        limits.push(format!("走査しない包み ── {}", SKIP.join(" ・ ")));
++        limits.push(format!("走査しないディレクトリ ── {}", SKIP.join(" ・ ")));
 +        let mut points = Vec::new();
 +
          for file in &files {
@@ -429,7 +456,7 @@
 +                    }
 +                } else {
 +                    (unquote(raw), how)
-+                };
+                 };
 +                // Rust の入れ子の mod ── `mod tests { use super::x; }` の super は、その mod から数える（実測 ── ripgrep）
 +                let inner_here = if s.language == "rust" {
 +                    let mut names = Vec::new();
@@ -446,7 +473,7 @@
 +                    if names.is_empty() { here.clone() } else { format!("{here}.{}", names.join(".")) }
 +                } else {
 +                    here.clone()
-                 };
++                };
 +                let to = resolve(s, &bridge, root, file, &inner_here, spec, &how);
                  edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
              }
@@ -508,7 +535,7 @@
                              here.clone(),
                              format!("{rel}:{line}"),
 -                            format!("図に現れない読み込み ── {method} に文字列以外を渡している"),
-+                            format!("図に現れない読み込み ── {what} の行き先が、実行時に決まる"),
++                            format!("静的に追跡できない読み込み ── {what} の行き先が、実行時に決まる"),
                          ));
                      }
                  }
@@ -522,7 +549,7 @@
          })
      }
 --- a/rs/parts/src/inward/mod.rs	2026-09-26 19:09:52.200344087 +0900
-+++ rs/parts/src/inward/mod.rs	2026-09-28 08:15:59.421480855 +0900
++++ rs/parts/src/inward/mod.rs	2026-09-28 09:14:40.697248835 +0900
 @@ -18,6 +18,7 @@
  use self::judge::Edge;
  
@@ -538,20 +565,20 @@
 +    /// 作業領域の中の点（ファイルごとの、参照する側の名前）。**参照が作業領域の中を
 +    /// 指すかを判定するために使う。**
 +    pub points: Vec<String>,
-+    /// 読めなかった設定。**（その設定が効く包み, 文面）** ── 層に属す点がその下に在るときだけ、
++    /// 読めなかった設定。**（その設定が効くディレクトリ, 文面）** ── 層に属す点がその下に在るときだけ、
 +    /// 判定できなかった範囲になる。
 +    pub unreadable: Vec<(String, String)>,
      /// 測り方の限界。**申告であって、判定できなかった事実ではない** ── 採用範囲へ
      /// 書くものなので、検出には数えない。
      pub limits: Vec<String>,
 --- a/rs/declare/src/lib.rs	2026-09-27 00:59:32.538451528 +0900
-+++ rs/declare/src/lib.rs	2026-09-28 08:41:03.586279047 +0900
++++ rs/declare/src/lib.rs	2026-09-28 09:14:40.697025755 +0900
 @@ -462,13 +462,113 @@
              .iter()
              .map(|u| format!("判定できていない ── {u}")),
      );
 +    // **読めなかった設定は、層に属す点がその下に在るときだけ出す** ── 層の外の設定は、
-+    // 照合に使われない（実測 ── 例の包みの生成物を指す tsconfig）
++    // 照合に使われない（実測 ── 例のディレクトリの生成物を指す tsconfig）
 +    findings.extend(
 +        got.unreadable
 +            .iter()
@@ -629,7 +656,7 @@
 +            .iter()
 +            .filter(|e| {
 +                nms_parts::inward::judge::layer_for(&order, &e.from).is_some()
-+                    // 経路で書く言語は、ファイルが在れば実在する ── 走査しない包み（vendor など）の中でも（実測 ── trpc）
++                    // 経路で書く言語は、ファイルが在れば実在する ── 走査しないディレクトリ（vendor など）の中でも（実測 ── trpc）
 +                    && !(path_like
 +                        && exts.iter().chain(std::iter::once(&"")).any(|x| {
 +                            let f = if x.is_empty() { root.join(&e.to) } else { root.join(format!("{}.{x}", e.to)) };
@@ -660,8 +687,21 @@
          }),
      )
  }
+@@ -483,10 +583,10 @@
+         .and_then(serde_json::Value::as_u64)
+         .unwrap_or(0);
+     let mut lines = if out.findings.is_empty() {
+-        vec![format!("向きは内向きである ── 辺 {edges} 件を見た")]
++        vec![format!("向きは内向きである ── 依存 {edges} 件を確認した")]
+     } else {
+         let mut v = vec![format!(
+-            "食い違い　{} 件 ／ 見た辺 {edges} 件",
++            "食い違い　{} 件 ／ 確認した依存 {edges} 件",
+             out.findings.len()
+         )];
+         v.extend(out.findings.iter().map(|x| format!("  ・{x}")));
 --- /dev/null	2026-09-26 17:54:10.843989507 +0900
-+++ b/rs/parts/src/inward/names.rs	2026-09-28 08:35:27.732892477 +0900
++++ b/rs/parts/src/inward/names.rs	2026-09-28 09:14:40.697199033 +0900
 @@ -0,0 +1,573 @@
 +// SPDX-License-Identifier: MIT
 +//! 参照の名前空間と、置き場所の名前空間をつなぐ。
@@ -691,8 +731,8 @@
 +    pub from: String,
 +    /// 置き場所の名前空間での頭。
 +    pub to: String,
-+    /// 効く範囲（根からの相対の包み）。**空なら作業領域の全体である** ── tsconfig の paths は、
-+    /// その tsconfig の下のファイルにだけ効く（実測 ── 例ごとに同じ `~` を別の包みへ向けていた）。
++    /// 効く範囲（根からの相対のディレクトリ）。**空なら作業領域の全体である** ── tsconfig の paths は、
++    /// その tsconfig の下のファイルにだけ効く（実測 ── 例ごとに同じ `~` を別のディレクトリへ向けていた）。
 +    pub scope: String,
 +}
 +
@@ -705,11 +745,11 @@
 +    pub search: Vec<String>,
 +    /// どこから組んだか。**申告として出す。**
 +    pub sources: Vec<String>,
-+    /// 読めなかった設定。**（その設定が効く包み, 文面）**
++    /// 読めなかった設定。**（その設定が効くディレクトリ, 文面）**
 +    pub unreadable: Vec<(String, String)>,
 +}
 +
-+/// 見ない包み。
++/// 見ないディレクトリ。
 +const SKIP: [&str; 7] = [
 +    "node_modules",
 +    "target",
@@ -868,7 +908,7 @@
 +            continue;
 +        };
 +        let dir = f.parent().unwrap_or(root);
-+        // `[lib] path` が在れば、その包みが crate の根である
++        // `[lib] path` が在れば、そのディレクトリが crate の根である
 +        let lib = v
 +            .get("lib")
 +            .and_then(|l| l.get("path"))
@@ -884,7 +924,7 @@
 +    }
 +}
 +
-+/// Go ── module のパス（go.mod の `module`）を、その包みへ。
++/// Go ── module のパス（go.mod の `module`）を、そのディレクトリへ。
 +pub fn go(root: &Path, b: &mut Bridge) {
 +    let mut found = Vec::new();
 +    find(root, &|f| f == "go.mod", &mut found);
