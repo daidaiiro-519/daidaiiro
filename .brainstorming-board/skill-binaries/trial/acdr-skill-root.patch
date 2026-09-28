@@ -1,0 +1,102 @@
+--- a/declare/src/lib.rs	2026-09-27 20:37:44.893968999 +0900
++++ b/declare/src/lib.rs	2026-09-29 07:48:37.983936545 +0900
+@@ -16,17 +16,26 @@
+ /// 題を書いていないことが、出来上がりから分かる文字列。
+ const DEFAULT_TITLE: &str = "題を記入する";
+ 
+-/// この Skill の置き場所の既定値。**build のときの、この Skill のソースの位置である。**
+-///
+-/// 既定値を「.」にすると、実行した場所で結果が変わる ── リポジトリの直下から実行すると
+-/// 契約を読めずに停止していた。どこから呼ばれるかを推測せず、実行ファイルの位置も
+-/// 参照しない。build した時点で確定している位置を使う。呼ぶ側は `--skill-root` で
+-/// 上書きできる。
+-const SKILL_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+-
+-/// この Skill の置き場所。**呼ぶ側が渡したものを優先する。**
+-fn references(given: &Given) -> PathBuf {
+-    PathBuf::from(given.one("skill_root", SKILL_ROOT)).join("references")
++/// この Skill の置き場所。**呼ぶ側が渡したものを優先する。** 渡されなければ、実行ファイルの
++/// 1つ上（bin/ の親）を Skill のフォルダとする ── 置き場所は道具の契約が bin/ に固定するので、
++/// 配布しても変わらない。どちらにも references/ が無ければ、試した経路を示して停止する。
++fn references(given: &Given) -> Result<PathBuf, String> {
++    if given.has("skill_root") {
++        return Ok(PathBuf::from(given.one("skill_root", ".")).join("references"));
++    }
++    let exe = std::env::current_exe().map_err(|e| format!("実行ファイルの位置を取れない ── {e}"))?;
++    let tried = exe
++        .parent()
++        .and_then(std::path::Path::parent)
++        .map(|root| root.join("references"));
++    match tried {
++        Some(refs) if refs.is_dir() => Ok(refs),
++        Some(refs) => Err(format!(
++            "契約を読めない ── {} に references/ が無い。--skill_root で Skill の置き場所を渡す",
++            refs.display()
++        )),
++        None => Err("契約を読めない ── 実行ファイルの1つ上が無い。--skill_root で渡す".to_owned()),
++    }
+ }
+ 
+ /// 検出を、人が読む行へ組む。
+@@ -56,9 +65,13 @@
+     if record.is_empty() {
+         return Outcome::misuse("記録のフォルダを渡していない".to_owned());
+     }
++    let refs = match references(given) {
++        Ok(refs) => refs,
++        Err(why) => return Outcome::misuse(why),
++    };
+     let folder = PathBuf::from(record);
+     match record::new(
+-        &references(given),
++        &refs,
+         &folder,
+         given.one("title", DEFAULT_TITLE),
+     ) {
+@@ -93,7 +106,11 @@
+         Err(e) => return Outcome::misuse(format!("{record}: 開けない ── {e}")),
+     };
+     let root = record::repo_root(&folder);
+-    match validate::check(&references(given), &folder, Some(&root)) {
++    let refs = match references(given) {
++        Ok(refs) => refs,
++        Err(why) => return Outcome::misuse(why),
++    };
++    match validate::check(&refs, &folder, Some(&root)) {
+         Ok(bad) => Outcome::found(bad, json!({ "record": record })),
+         Err(why) => Outcome::misuse(why),
+     }
+@@ -120,7 +137,11 @@
+     let folder = PathBuf::from(record);
+     let check_only = !given.one("check", "").is_empty();
+     let force = !given.one("force", "").is_empty();
+-    let report = match record::build_record(&references(given), &folder, check_only, force) {
++    let refs = match references(given) {
++        Ok(refs) => refs,
++        Err(why) => return Outcome::misuse(why),
++    };
++    let report = match record::build_record(&refs, &folder, check_only, force) {
+         Ok(report) => report,
+         Err(why) => {
+             // **入力の検査は、検出であって誤用ではない** ── 呼び方は正しい。
+@@ -165,7 +186,10 @@
+ }
+ 
+ fn run_tokens(given: &Given) -> Outcome {
+-    let refs = references(given);
++    let refs = match references(given) {
++        Ok(refs) => refs,
++        Err(why) => return Outcome::misuse(why),
++    };
+     let value = match tokens::load(&tokens::path(&refs)) {
+         Ok(value) => value,
+         Err(why) => return Outcome::misuse(why),
+@@ -235,7 +259,7 @@
+ /// この Skill が持つ道具の一覧。**能力の正本である。**
+ #[must_use]
+ pub fn tools() -> Vec<Tool> {
+-    let root = Arg::opt("skill_root", "この Skill の置き場所", Some(SKILL_ROOT));
++    let root = Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None);
+     vec![
+         Tool {
+             name: "new",
