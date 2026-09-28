@@ -1,0 +1,532 @@
+{
+ "round": 3,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点が、残りの4つの論点の前提になる。"
+    ]
+   ],
+   "pick": [
+    [
+     "<b>導入スクリプトが環境を判別する</b>。Claude Code 自身の導入と同じ形で、利用者はシェルに合った1行だけを実行する。<pre><code>macOS ・ Linux ・ WSL:  curl -fsSL https://…/install.sh | bash\nWindows PowerShell:    irm https://…/install.ps1 | iex</code></pre><ul><li>導入スクリプトは、OS と CPU を判別し、Release から合う環境のアーカイブを取得して、リポジトリの .claude/skills/ に展開する</li><li>取得したアーカイブは、SHA-256 を照合してから展開する</li><li>更新も同じ1行を実行し直す</li><li><b class=\"lead-s\">Release には環境ごとのアーカイブを置く</b><div class=\"sub-s\">利用者はこれを直接選ばない</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "利用者はシェルに合った1行のコマンドを実行するだけにする。導入スクリプトが OS と CPU を判別し、Release から合う実行ファイルを取得して .claude/skills/ に置く。利用者はどのバイナリかを選ばない"
+    ]
+   ],
+   "figures": [
+    [
+     "利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合うアーカイブだけを展開する",
+     "e14d22b73615"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "B ── 導入スクリプトが環境を判別する",
+     "利用者は1行を実行する。どの実行ファイルかを意識しない",
+     "導入スクリプトを2つ（sh と PowerShell）保守する"
+    ],
+    [
+     "A ── 環境ごとの zip を利用者が選ぶ（前の答え）",
+     "Release に3つの zip を置き、利用者が自分の環境の zip を展開する",
+     "<b>利用者が自分の環境を知り、正しい zip を選ぶ必要がある</b>"
+    ],
+    [
+     "C ── Claude Code のプラグイン",
+     "GitHub のリポジトリをマーケットプレイスにし、プラグインとして導入する。bin/ が PATH に載る",
+     "<b>Skill の呼び名が /プラグイン名:skill名 に変わる</b>。bin/ は1つのフォルダなので、環境の選択は別に必要になる"
+    ]
+   ],
+   "dropped": [
+    [
+     "ソースの zip を渡し、利用者が cargo build する（いまの形）",
+     "利用者の環境に Rust があるとは限らないという条件に違反する"
+    ],
+    [
+     "全環境の実行ファイルを1つの zip に入れ、実行時に選ぶ",
+     "実行時に選ぶ仕組みが、Windows の PowerShell と bash の両方で動く必要がある。MCP の設定は1つの経路しか書けないので、実行時の選択では対応できない"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "いまの配布物（skills.zip ・ qa-advisor.zip）は、ソースを git archive で固めたもので、実行ファイルを1つも含まない"
+    ],
+    [
+     "<b class=\"lead-s\">各 Skill の mcp.json は、開発機の絶対パス（/home/daidaiiro/…）を保持している</b><div class=\"sub-s\">そのまま配ると、配布先で起動に失敗する</div>"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "プラグインでの配布",
+     "<span class=\"kind k-given\">後続で決定</span> ── Skill の呼び名の変更を受け入れるかは、別の論点で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "プラグインでは Skill の呼び名が変わるという判定",
+     "plugin skills are namespaced as `/plugin-name:skill-name`",
+     "primary",
+     "code.claude.com/docs/en/skills（170行目、2026-09-28 取得）"
+    ],
+    [
+     "プラグインの bin/ が PATH に載るという事実",
+     "Files in `bin/` at the plugin root are on the `PATH` of the Bash tool's shell while the plugin is enabled",
+     "primary",
+     "code.claude.com/docs/en/plugins/components（876行目、2026-09-28 取得）"
+    ],
+    [
+     "プラグインは一部の面で導入されないという事実",
+     "claude.ai and Cowork don't install a plugin that has a top-level `bin/` directory",
+     "primary",
+     "code.claude.com/docs/en/plugins/components（887行目、2026-09-28 取得）"
+    ],
+    [
+     "1行のコマンドで導入する形",
+     "curl -fsSL https://claude.ai/install.sh | bash",
+     "primary",
+     "code.claude.com/docs/en/setup（42行目、2026-09-28 取得）"
+    ],
+    [
+     "Windows でも1行で導入できる形",
+     "irm https://claude.ai/install.ps1 | iex",
+     "primary",
+     "code.claude.com/docs/en/setup（48行目、2026-09-28 取得）"
+    ],
+    [
+     "いまの配布物に実行ファイルが無いという事実",
+     "skills.zip と qa-advisor.zip は git archive で HEAD のソースを固めたもので、rs/target/ は .gitignore で除外されている",
+     "measured",
+     "コミット 585385c ・ .gitignore の21行目"
+    ],
+    [
+     "利用者がバイナリを選ばないという条件",
+     "どのバイナリで使用するかは、利用者が意識しなくても使える方がよい",
+     "assumption",
+     "利用者の発言（2026-09-28）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     "<ul><li><b class=\"lead-s\">アーカイブ</b><div class=\"sub-s\">Skill ごと × 環境ごと（例：acdr-x86_64-unknown-linux-musl.tar.gz）。道具を保持しない Skill は、環境に依存しないアーカイブを1つ作る</div></li><li><b class=\"lead-s\">導入スクリプト</b><div class=\"sub-s\">配布元のリポジトリに1つ（install.sh と install.ps1）。Skill の名前を引数に並べ、省略すると Release にある全部を導入する</div></li><li><b class=\"lead-s\">組み立ての定義</b><div class=\"sub-s\">配布元のリポジトリに1つ（GitHub Actions の workflow）。.claude/skills/*/rs/ を持つ Skill を探して、すべて組み立てる</div></li><li><b class=\"lead-s\">持ち主</b><div class=\"sub-s\">導入スクリプトと workflow のテンプレートは skills-creator が保持し、配布元のリポジトリへ置く操作を持つ</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "アーカイブは Skill ごと × 環境ごとに作る。導入スクリプトと組み立ての定義は、配布元のリポジトリに1つずつ置き、skills-creator がそのテンプレートを持つ。利用者は Skill の名前を並べて導入し、省略すると全部を導入する"
+    ]
+   ],
+   "figures": [
+    [
+     "1つの Release に Skill × 環境のアーカイブが並び、導入スクリプトが指定の Skill と利用者の環境に合うものだけを取得する",
+     "689107542165"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── Skill ごとのアーカイブ ＋ リポジトリに1つの導入スクリプト",
+     "Skill を1つでも、まとめてでも導入できる",
+     "アーカイブの数が Skill × 環境になる（このリポジトリでは 9 × 3 ＋ 8）"
+    ],
+    [
+     "B ── 複数の Skill を1つのアーカイブにまとめる（いまの skills.zip）",
+     "アーカイブが環境ごとに1つで済む",
+     "<b>一部の Skill だけを導入できない</b>。1つの Skill を直しても、全部を取得し直す"
+    ],
+    [
+     "C ── scaffold が Skill ごとに導入スクリプトと workflow を生成する",
+     "Skill ごとに独立したリポジトリで配れる",
+     "<b>同じスクリプトが Skill の数だけ複製される</b>。導入スクリプトを1か所直しても、既存の Skill には反映されない"
+    ]
+   ],
+   "dropped": [
+    [
+     "導入スクリプトを skills-creator 自身の Release から配る",
+     "配布元のリポジトリの Release の場所を、skills-creator が知ることになる。配布元ごとに違う場所を指せない"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "いまの配布には、複数の Skill をまとめた形（skills.zip）と、1つだけの形（qa-advisor.zip）の両方が実在する"
+    ],
+    [
+     "<b class=\"lead-s\">道具を保持しない Skill（advisor など）も、同じ導入スクリプトで導入できる</b><div class=\"sub-s\">環境に依存しないアーカイブを1つ作れば足りる</div>"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "配布元のリポジトリが複数あるときに、1つの導入スクリプトで複数の配布元から導入するか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 配布元が2つ以上になった時点で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "利用者がアーカイブを選ばないという条件",
+     "導入スクリプトが OS と CPU を判別し、合うアーカイブを取得する",
+     "rule",
+     "論点1"
+    ],
+    [
+     "まとめた形と1つだけの形の両方が実在するという事実",
+     "リポジトリの直下に skills.zip と qa-advisor.zip がある",
+     "measured",
+     "コミット f1d0647 ・ 585385c"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">置き場所</b><div class=\"sub-s\"><code>.claude/skills/&lt;名前&gt;/bin/&lt;名前&gt;</code> と <code>bin/&lt;名前&gt;-mcp</code>。Windows だけ <code>.exe</code> が付く</div></li><li><b class=\"lead-s\">Skill のフォルダの求め方</b><div class=\"sub-s\">引数 <code>--skill_root</code> があればそれを使う。無ければ、実行ファイルの1つ上に references/ があるかを確認して使う。どちらも無ければ、試した経路を示して停止する</div></li><li><b class=\"lead-s\">開発時</b><div class=\"sub-s\">組み立てた実行ファイルを bin/ へ置く手順に統一する。SKILL.md ・ CLAUDE.md ・ 規則ファイル ・ .mcp.json の <code>rs/target/release/</code> の記述は、<code>bin/</code> へ一律に置き換える</div></li><li><b class=\"lead-s\">道具の契約を改訂する</b><div class=\"sub-s\">tool-contract.md の「実行ファイルからの相対で数えない」を、「bin/ の1つ上を Skill のフォルダとする」へ変更する。mcp.json.tmpl の絶対パスをやめる。ACDR 0019 も改訂する</div></li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "実行ファイルは Skill のフォルダの bin/ に置き（CLI は 名前、MCP は 名前-mcp）、Skill のフォルダは実行ファイルの位置から求める（bin/ の1つ上）。道具の契約の規定（--skill_root で受け取る）と mcp.json.tmpl を改訂する"
+    ]
+   ],
+   "figures": [
+    [
+     "SKILL.md は bin/ の実行ファイルを呼び、実行ファイルは自分の1つ上を Skill のフォルダとして references/ を読む",
+     "38e69651da4c"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── bin/ に置き、実行ファイルの位置から求める",
+     "開発時と配布後で、経路の記述が1種類になる",
+     "35か所以上の記述を bin/ へ書き換える。ACDR 0019 を改訂する"
+    ],
+    [
+     "B ── rs/target/release/ を維持する",
+     "記述を書き換えない",
+     "<b>ソースを含まない配布物に、rs/target/release/ という開発の経路だけが残る</b>。環境を指定して組み立てると出力は target/&lt;環境&gt;/release/ になり、結局は梱包で置き直す"
+    ]
+   ],
+   "dropped": [
+    [
+     "build 時に絶対パスを埋め込む（いまの acdr ・ doc-writing-skills）",
+     "CI の組み立て機のパスが残り、配布先では存在しない場所を指す"
+    ],
+    [
+     "references/ を実行ファイルへ埋め込む",
+     "ACDR 0019 が退けた理由がそのまま成り立つ ── 契約を1行直すたびに再ビルドが必要になる"
+    ],
+    [
+     "環境ごとのサブフォルダ（bin/&lt;環境&gt;/）に置く",
+     "呼ぶ側の経路に環境の分岐が入る"
+    ],
+    [
+     "道具の契約の規定のまま、--skill_root を必ず渡す",
+     "導入スクリプトが書く MCP の設定と hook の設定のすべてに、Skill のフォルダの経路を書くことになる。渡し忘れた呼び出しは停止する"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "Skill のフォルダの場所の決め方が、Skill ごとに2通りに分かれている。acdr と doc-writing-skills は build 時の絶対パスを使う。brainstorming-board ・ design-svg ・ slide-deck ・ skills-creator ・ no-more-spaghetti は、実行した場所（\".\"）を使う"
+    ],
+    [
+     "ACDR 0019 が退けた理由「実行ファイルの置き場所は build の設定で変わる」は、配布物で bin/ を固定すると成り立たない"
+    ],
+    [
+     "<b class=\"lead-s\">道具の契約が退けた理由（置き場所を変更するたびに、実行ファイルからの相対の経路が合わなくなる）は、bin/ を契約で固定すると成り立たない</b><div class=\"sub-s\">置き場所は契約が決め、変更されない</div>"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "Windows で、拡張子の無い経路から .exe を起動できるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で、windows のランナーで確認する"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "ACDR 0019 の退けた理由が成り立たないという判定",
+     "ACDR 0019 は「実行ファイルの置き場所は build の設定で変わる」を理由に、実行ファイルの位置からの探索を退けた",
+     "primary",
+     ".acdr/0019-道具の既定の置き場所をbuild時に確定する/acdr.json"
+    ],
+    [
+     "道具の契約の規定と食い違うという事実",
+     "部品は、置き場所を階層の数で数えない。実行ファイルからの相対で数えると、置き場所を動かすたびに狂う",
+     "primary",
+     ".claude/skills/skills-creator/references/tool-contract.md（132行目）"
+    ],
+    [
+     "位置の確定を起動処理の1か所へ集約するという判定",
+     "配線はシステムで最も外側の1か所に集約する",
+     "rule",
+     "tech-lead-advisor の knowledge（architecture-composition-root）"
+    ],
+    [
+     "bin/ に1つの経路で置けるという判定",
+     "アーカイブは Skill ごと × 環境ごとなので、bin/ には1つの環境の実行ファイルだけが入る",
+     "rule",
+     "論点2"
+    ],
+    [
+     "位置の決め方が2通りに分かれているという事実",
+     "acdr と doc-writing-skills の declare/src/lib.rs が SKILL_ROOT に concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\") を持つ",
+     "measured",
+     "grep（2026-09-28）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     "<ul><li><b class=\"lead-s\">組み立てる場所</b><div class=\"sub-s\">GitHub Actions の ubuntu ・ windows ・ macOS（arm64）のランナー。tag を push したときだけ実行する。workflow は skills-creator のテンプレートから置く</div></li><li><b class=\"lead-s\">Linux</b><div class=\"sub-s\">x86_64-unknown-linux-musl。静的に組み、利用者の glibc の版に依存しない（WSL の distro は利用者ごとに異なる）</div></li><li><b class=\"lead-s\">macOS</b><div class=\"sub-s\">Apple Silicon と Intel の2つを1本にまとめる（universal2）</div></li><li><b class=\"lead-s\">macOS の Gatekeeper</b><div class=\"sub-s\">署名 ・ 公証はしない。導入スクリプトが端末で取得して展開するので、ブラウザを経由しない。ブラウザで取得した利用者向けには、SHA-256 を照合してから隔離の属性を外す手順を書く</div></li><li><b class=\"lead-s\">試験</b><div class=\"sub-s\">18本すべてで、CLI の使い方の表示と、MCP の initialize への応答を検証する。組み立てた場所と、展開した先の2か所で実行する</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "GitHub Actions の各 OS のランナーで組み立てる。対象は Linux（x86_64 ・ musl）・ Windows（x86_64）・ macOS（universal2）の3つ。組み立てた場所と、展開した先の2か所で起動を試験してから Release に置く。workflow のテンプレートは skills-creator が保持する"
+    ]
+   ],
+   "figures": [
+    [
+     "3つのランナーがそれぞれの環境向けに組み立て、2回の試験を通ったものだけを公開する",
+     "2512b7f58366"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 各 OS のランナーで組み立てる",
+     "それぞれの OS の標準の C コンパイラで組み立て、その場で起動を試験できる",
+     "macOS のランナーの実行時間が長い（tag のときだけに限定する）"
+    ],
+    [
+     "B ── 開発機から他の OS 向けに組み立てる（cross ・ zig）",
+     "CI を使わない",
+     "<b>macOS 向けには macOS の SDK が必要</b>で、Linux 上での運用は負担が大きい。対象の OS で起動を確認できない"
+    ]
+   ],
+   "dropped": [
+    [
+     "Linux を gnu で組む",
+     "開発機より古い glibc の distro で起動に失敗する"
+    ],
+    [
+     "ARM の Linux と Windows をいまから含める",
+     "必要とする利用者が確認されていない。現れたときに行列へ追加する"
+    ],
+    [
+     "macOS の署名 ・ 公証をいまから導入する",
+     "Apple の開発者登録と認証情報の管理が必要になる。端末から導入する開発者が相手なら、隔離の属性を外す手順で足りる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "いまの Skill では、no-more-spaghetti だけが C のコード（tree-sitter の文法）を含む。契約に従う Skill が C のコードを含んでも、各 OS のランナーならその OS の C コンパイラで組み立てられる"
+    ],
+    [
+     "開発機の Rust は Linux x86_64 向けだけで、他の OS 向けの道具は無い"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "Gatekeeper と隔離の属性の挙動の原文での照合",
+     "<span class=\"kind k-given\">後続で決定</span> ── 手順書に書く前に照合する"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "組み立てを外部の実行環境へ任せるという判定",
+     "差別化に繋がらない運用作業は、管理された実行環境へ任せる",
+     "rule",
+     "platform-advisor の knowledge（cost-optimization ・ performance-efficiency）"
+    ],
+    [
+     "3つの環境向けに組み立てるという判定",
+     "アーカイブは Skill ごと × 環境ごとで、workflow は配布元のリポジトリに1つである",
+     "rule",
+     "論点2"
+    ],
+    [
+     "C のコードを含むのが no-more-spaghetti だけという事実",
+     "他の8つの Cargo.lock の cc は、Haiku OS 向けだけの依存（iana-time-zone-haiku）から来ている",
+     "measured",
+     "platform-advisor の調査（各 Cargo.lock、2026-09-28）"
+    ],
+    [
+     "Gatekeeper の挙動",
+     "ブラウザで取得した zip の中身に隔離の属性が付き、未公証の実行ファイルの起動が拒否される",
+     "unverified",
+     "platform-advisor の推測。Apple の原文で未照合"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     "<ul><li><b class=\"lead-s\">契約の規則</b><div class=\"sub-s\">OS によって無い外部コマンドを呼ばない。日付の計算と時間の制限は Rust の中で実行する</div></li><li><b class=\"lead-s\">宣言</b><div class=\"sub-s\">呼んでよい外部の道具（curl ・ git ・ aws ・ ヘッドレスのブラウザなど）は、Skill の宣言に列挙する。SKILL.md の前提条件は、その宣言から書く</div></li><li><b class=\"lead-s\">検査</b><div class=\"sub-s\">skills-creator の check が、部品の中の Command::new に書かれた道具の名前と、宣言の一覧を照合する</div></li><li><b class=\"lead-s\">既存の置き換え</b><div class=\"sub-s\">date（acdr ・ fact-check ・ brainstorming-board）と timeout（narration）</div></li><li><b class=\"lead-s\">Windows ネイティブ</b><div class=\"sub-s\">初回から対応する。MCP の設定と hook の設定は、導入スクリプトが環境に合わせて書き、Windows 版は経路に .exe を書く</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "OS によって無い外部コマンド（date ・ timeout）は呼ばない規則を道具の契約に加え、既存の4か所は Rust の処理へ置き換える。呼んでよい外部の道具は、Skill の宣言に列挙させ、skills-creator の check が宣言と実装の一致を検査する。Windows ネイティブにも初回から対応する"
+    ]
+   ],
+   "figures": [
+    [
+     "環境によって無い外部コマンドは Rust の中へ移し、どこにでもある道具は前提条件として書く",
+     "39de9e91baf1"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 契約の規則にし、宣言と検査で守らせる",
+     "次に生成する Skill も、同じ規則で検査される",
+     "skills-creator の宣言の形と check を変更し、既存の4か所を書き換える"
+    ],
+    [
+     "C ── 既存の4か所だけを置き換える",
+     "契約を変更しない",
+     "<b>次に生成する Skill が、また date を呼んでも検出されない</b>"
+    ],
+    [
+     "B ── Windows ネイティブは当面未対応にし、WSL を案内する（platform-advisor の判定）",
+     "コードを変更しない",
+     "<b>利用者が指定した Windows を外すことになる</b>。timeout は macOS にも無いので、narration の問題は残る"
+    ]
+   ],
+   "dropped": [
+    [
+     "外部コマンドをすべて Rust へ置き換える（curl ・ git ・ aws を含む）",
+     "git と aws は、その Skill の目的そのものが外部の道具を使うことである。置き換えると、道具を自作することになる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "部品が呼ぶ外部の道具は6種類ある。date（3つの Skill）・ timeout（narration）・ curl（fact-check）・ git（acdr）・ ブラウザ（slide-deck）・ 規則に書かれた道具（no-more-spaghetti）である"
+    ],
+    [
+     "Windows ネイティブでは、Git for Windows が無ければ Bash の道具が使えず、PowerShell で実行される"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "Windows で拡張子の無い経路から .exe を起動できるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── windows のランナーで起動の試験を実行して確認する"
+    ],
+    [
+     "4つの論点の答えを、外の作業で試す",
+     "<span class=\"kind k-given\">後続で決定</span> ── 外の作業 ── Linux の1環境だけで、bin/ への出力 ・ 実行ファイルの位置からの探索 ・ zip の作成を試作し、成立を確認してから CI の行列へ広げる"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "Windows ネイティブでは bash が無い場合があるという事実",
+     "If Git for Windows is not installed, Claude Code uses PowerShell as the shell tool instead.",
+     "primary",
+     "code.claude.com/docs/en/setup（64行目、2026-09-28 取得）"
+    ],
+    [
+     "Windows 版の経路に .exe を書くという判定",
+     "実行ファイルは bin/<名前> に置き、Windows だけ .exe が付く",
+     "rule",
+     "論点3"
+    ],
+    [
+     "Windows ネイティブの動作を確認する場所",
+     "windows のランナーで、組み立てた場所と展開した先の2回、起動を試験する",
+     "rule",
+     "論点4"
+    ],
+    [
+     "設定を導入スクリプトが書くという判定",
+     "導入スクリプトが OS と CPU を判別して展開する",
+     "rule",
+     "論点1"
+    ],
+    [
+     "外部コマンドへの依存の一覧",
+     "date を呼ぶのは acdr の record.rs:506 ・ fact-check の source.rs:314 ・ brainstorming-board の serve.rs:215 である。timeout を呼ぶのは narration の voice.rs:147 である",
+     "measured",
+     "platform-advisor の調査（2026-09-28）"
+    ],
+    [
+     "外部の道具の一覧",
+     "<b class=\"lead-s\">部品の Command::new を数えた</b><div class=\"sub-s\">date 3件 ・ timeout 2件 ・ curl 1件 ・ git 1件 ・ ブラウザ 1件 ・ 規則の道具 1件</div>",
+     "measured",
+     "grep（.claude/skills/*/rs/parts/src、2026-09-28）"
+    ],
+    [
+     "Windows を対象に含めるという判定",
+     "対象の環境は Windows ・ WSL ・ macOS である",
+     "assumption",
+     "利用者の発言（2026-09-28）"
+    ],
+    [
+     "Windows に curl があるか",
+     "Windows 10 以降は curl.exe を標準で含む",
+     "unverified",
+     "未照合"
+    ]
+   ]
+  }
+ }
+}
