@@ -1,0 +1,82 @@
+{
+ "no": "ACDR 0029",
+ "title": "道具の契約に従う Skill をバイナリで配布する形",
+ "date": "2026-09-28",
+ "status": "accepted",
+ "decision": "skills-creator の道具の契約に従うすべての Skill を、利用者の環境に Rust が無くても動く実行ファイルとして配布し、その形を skills-creator の契約 ・ テンプレート ・ 検査に実装する。",
+ "why": "いまの配布物（skills.zip ・ qa-advisor.zip）は、ソースをまとめた zip で、実行ファイルを1つも含まない。受け取った人は Rust で組み立てる必要があり、各 Skill の mcp.json は開発機の絶対パスを指している。利用者の要件は、組み立て済みの実行ファイルを渡し、Windows ・ WSL ・ macOS で、どのバイナリかを意識せずに使えることである。配布の形は、このリポジトリの道具を持つ9つの Skill に限らず、契約に従うすべての Skill に共通する。ブレストボード（.brainstorming-board/skill-binaries/）で検討し、2026-09-28 に5つの論点とも決定した。",
+ "shift": [
+  {
+   "what": "利用者の操作（論点1）",
+   "from": "zip を展開し、Rust で組み立て、mcp.json の経路を書き換える",
+   "to": "シェルに合った1行を実行する。導入スクリプトが OS と CPU を判別し、合う配布用の zip を取得して展開する"
+  },
+  {
+   "what": "配布の単位（論点2）",
+   "from": "複数の Skill のソースを1つの zip にまとめる",
+   "to": "Skill ごと × 環境ごとの配布用の zip。導入スクリプトと CI の定義は配布元のリポジトリに1つずつ配置し、テンプレートは skills-creator が保持する"
+  },
+  {
+   "what": "Skill のフォルダの構成（論点3）",
+   "from": "rs/ に道具のソースがあり、実行ファイルの置き場所は契約に無い。Skill のフォルダは --skill_root か build 時の絶対パスで決める",
+   "to": "tool/ に道具のソース、bin/ に実行ファイルを配置する。Skill のフォルダは bin/ の1つ上として求める"
+  },
+  {
+   "what": "組み立て（論点4）",
+   "from": "利用者の環境で組み立てる",
+   "to": "GitHub Actions の ubuntu ・ windows ・ macOS のランナーで組み立て、組み立てた場所と展開した先の2か所で起動を試験してから公開する"
+  },
+  {
+   "what": "外部コマンド（論点5）",
+   "from": "date ・ timeout を OS を問わず呼ぶ。呼ぶ道具の一覧が無い",
+   "to": "OS によって無いコマンドを呼ばない。呼んでよい道具は Skill の宣言に列挙し、skills-creator の check が照合する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前と変更後を、ブレストボードの5つの論点で対比した図である。",
+ "how": "ブレストボード（.brainstorming-board/skill-binaries/）で5つの論点を立て、tech-lead-advisor と platform-advisor に並列で判定を依頼した。外部の仕様は、Claude Code の公式文書（mcp ・ plugins ・ plugins/components ・ plugins-reference ・ skills ・ setup）を取得し、引用を原文の文字列で照合した。正本への適用は、この記録の承認後に、Linux の1環境で試作してから、差分を伴う記録で提示する。",
+ "applies_to": "変更する正本は、<code>.claude/skills/skills-creator/</code> の道具の契約（references/tool-contract.md ・ folder-structure.md）・ テンプレート ・ check である。9つの Skill の rs/ ・ mcp.json ・ SKILL.md と、このリポジトリの CLAUDE.md ・ .coding-rules/rules.json ・ .mcp.json も変更する。",
+ "alternatives": [
+  {
+   "option": "環境ごとの zip を利用者が選ぶ",
+   "why_not": "利用者が自分の環境を知り、正しい zip を選ぶ必要がある。利用者の指定（どのバイナリかを意識しない）に違反する"
+  },
+  {
+   "option": "Claude Code のプラグインとして配布する",
+   "why_not": "プラグインの Skill は /プラグイン名:skill名 という名前になり、配線表と CLAUDE.md の Skill 名をすべて書き換えることになる"
+  },
+  {
+   "option": "rs/ の名前を維持する、または src/ にする",
+   "why_not": "rs/ は言語の名前で、中身の役割を示さない。src/ は中の crate の src/ と2回続く"
+  },
+  {
+   "option": "Windows ネイティブを当面未対応にし、WSL を案内する",
+   "why_not": "利用者が指定した対象の環境から Windows を外すことになる"
+  },
+  {
+   "option": "既存の date ・ timeout の4か所だけを置き換える",
+   "why_not": "次に生成する Skill がまた date を呼んでも、検出されない"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして記録の HTML を再生成し、記録をコミットする",
+  "ACDR 0019 の状態を superseded にし、この記録を指す",
+  "Linux の1環境で試作する（tool/ への改名 ・ bin/ への出力 ・ 実行ファイルの位置からの探索 ・ 配布用の zip の作成）",
+  "skills-creator の契約 ・ テンプレート ・ check の改訂を、差分を伴う記録で提示する",
+  "未確認の2点を原文で照合する ── macOS の Gatekeeper の挙動、Windows で拡張子の無い経路から .exe を起動できるか"
+ ],
+ "supersedes": "ACDR 0019",
+ "docs": [
+  {
+   "key": "example",
+   "tab": "具体の形で比べる",
+   "file": ".acdr/0029-Skillをバイナリで配布する形を契約にする/example.md",
+   "rev": "HEAD",
+   "marks": []
+  }
+ ],
+ "lede": "道具の契約に従うすべての Skill を実行ファイルで配布し、その形を skills-creator に実装する提案である。",
+ "seal": {
+  "example": "c5ace8cd4b137c646e151775ed230070eb2686b9d1da54c5af3e044a64488175"
+ }
+}
