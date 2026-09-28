@@ -1,0 +1,347 @@
+{
+ "no": "ACDR 0025",
+ "title": "依存の向きの契約を、no-more-spaghetti の正本へ適用する",
+ "date": "2026-09-28",
+ "status": "accepted",
+ "decision": "ACDR 0024 で承認した依存の向きの契約（4段と7つの義務）を、no-more-spaghetti の正本の inward へ適用する。",
+ "why": "ACDR 0024 の契約は、試作（<code>.brainstorming-board/no-more-spaghetti/trial/names/</code>）だけに在り、Skill の inward は字面のまま層と照合していた。この状態では、規則ファイルの依存の向きの規則を inward へ移せない。適用の途中で、試作では現れなかった食い違いが2件判明した。この記録は、その2件の修正の承認も求める。1件目は、違反を意図して含む試験データを層の中へ置くと、Skill 自身の検査がそれを検出することである。2件目は、静的に追跡できない読み込みだけが、層の外のファイルからも報告されていたことである。",
+ "shift": [
+  {
+   "what": "契約の置き場所",
+   "from": "試作だけに在る",
+   "to": "Skill の inward に在り、契約の試験が言語の表の10言語すべてへ7つの義務を課す"
+  },
+  {
+   "what": "名前の解決",
+   "from": "読み込みの名前を、字面のまま層の識別子と照合する",
+   "to": "設定ファイル（Cargo.toml ・ go.mod ・ package.json ・ tsconfig ・ pyproject ・ gemspec ・ CMake）から別名と検索パスを読み、置き場所の識別子へ直してから照合する"
+  },
+  {
+   "what": "静的に追跡できない読み込みの報告",
+   "from": "作業領域のすべてのファイルから出す",
+   "to": "参照元が層に属すファイルからだけ出す。層に属さない参照 ・ 実在しない参照先と同じ条件である"
+  },
+  {
+   "what": "違反を意図して含む試験データ",
+   "from": "置き場所の規定が無い",
+   "to": "どの層にも属さない <code>rs/fixtures/</code> に置く"
+  },
+  {
+   "what": "使用を止めた語（コードの注記と、inward が出力する文）",
+   "from": "「点」「辺」「包み」「抜け道」「探索路」「見本」",
+   "to": "モジュール ・ 依存 ・ ディレクトリ ・ 静的に追跡できない読み込み ・ 検索パス ・ 試験データ"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前と変更後を、4つの観点で対比した図である。左が現在の Skill、右がこの記録を適用した姿である。",
+ "how": "no-more-spaghetti の手順（モデル → 決定の読み直し → 失敗する試験 → 実装 → 通す → 書いた後の検査）で実施した。試験は57件すべて成功し、clippy の警告は0件である。書いた後の検査（<code>no-more-spaghetti check</code>）は、この Skill の規則をすべて合格した。不合格の2件は design-svg と brainstorming-board の SKILL.md の廃語で、この変更の対象外である。実在の7リポジトリでは、試作と同じ結果を得た。rubocop だけが2件減り、2件とも層の外（<code>spec/</code>）の静的に追跡できない読み込みである。既存の11のまとまりは、11件とも正しい並びで合格し、逆の並びで違反を検出した。",
+ "applies_to": "<code>.claude/skills/no-more-spaghetti/rs/</code> の inward（<code>parts/src/inward/</code> ・ <code>declare/src/lib.rs</code>）と依存（<code>parts/Cargo.toml</code>）。試験（<code>parts/tests/obligations.rs</code> ・ <code>declare/tests/contract.rs</code> ・ <code>fixtures/contract/</code>）。<code>.claude/skills/no-more-spaghetti/SKILL.md</code> の参照の節。",
+ "alternatives": [
+  {
+   "option": "試験データを declare の層の中（declare/tests/fixtures/）に置いたまま、層の宣言から除外する",
+   "why_not": "不合格を0件にするために層の宣言を書き換えることになる。Skill のガードレールが禁じている"
+  },
+  {
+   "option": "走査しないディレクトリに fixtures を足す",
+   "why_not": "fixtures はこのリポジトリの慣習名で、言語の規約ではない。他のリポジトリで、同じ名前の製品コードを読まなくなる"
+  },
+  {
+   "option": "静的に追跡できない読み込みを、これまでどおり作業領域のすべてのファイルから出す",
+   "why_not": "向きの規則を課されないファイルの報告が、層に属すファイルの報告と区別できない。層に属さない参照と実在しない参照先は、参照元が層に属すときだけ出すので、条件も食い違う"
+  },
+  {
+   "option": "試作の names.patch をそのまま適用する",
+   "why_not": "patch には、廃語の注記と、試作だけの切り替え（NMS_NO_BRIDGE）が残っていた"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、正本と記録をコミットする",
+  "試作の README に、正本へ適用したことと、適用中に判明した2件を書き足す",
+  "スキーマを units の形へ変え、規則95件を移す提案を、差分を伴う記録で出す",
+  "生成の手順を units に書く欄を足し、check が inward の前に実行する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "syntax",
+   "tab": "syntax.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/inward/syntax.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "先頭の . の数である",
+     "why": "変更前の注記は「点」「包み」を使っていた。この2語は、このリポジトリで使用を止めた語で、指し先が定まらない。変更後の注記は、Python の相対読み込みの先頭の . の数と、読み込みを書いたファイルのディレクトリを指す",
+     "before": "/// 点の段数である ── 書かれた点の包みから遡る。"
+    },
+    {
+     "find": "pub bridge: Option<fn(&Path, &mut super::names::Bridge)>,",
+     "why": "ACDR 0024 で、言語に依存するのは言語の表の契約の欄だけにすると決めた。欄を型にしたので、表に言語を足すとき、欄を埋めなければコンパイルが通らない",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::python),",
+     "why": "Python は、pyproject の source root を検索パスとして読む。__import__ と import_module の引数が文字列でなければ、静的に追跡できない読み込みとして報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::rust),",
+     "why": "Rust は、Cargo.toml の crate 名を別名として読む。include! の引数が文字列でなければ報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::typescript),",
+     "why": "TypeScript は、package.json の name と tsconfig の paths を別名として読む。import() と require() の引数が文字列でなければ報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "(method_invocation name: (identifier) @how",
+     "why": "Java はソースが package を宣言するので、名前空間をつなぐ設定を保持しない（bridge は None）。Class.forName と loadClass を報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "(call_expression (navigation_expression (_) (identifier) @how)",
+     "why": "Kotlin は Java と同じく、ソースが package を宣言する。forName と loadClass を報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "\"GetType\", \"Load\", \"LoadFrom\", \"CreateInstance\"",
+     "why": "C# はソースが namespace を宣言する。Type.GetType と Assembly.Load 系を報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "(include_expression (_) @arg)",
+     "why": "PHP はソースが namespace を宣言する。include と require の引数が文字列でなければ報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::go),",
+     "why": "Go は、go.mod の module を別名として読む。plugin.Open を報告する",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::ruby),",
+     "why": "Ruby は、gemspec の require_paths（無ければ lib）を検索パスとして読む。受け手の無い呼び出しだけを対象にする。受け手の在る FeatureLoader.load は Kernel の load ではない（実測、rubocop）",
+     "before": "（無い）"
+    },
+    {
+     "find": "bridge: Some(super::names::cpp),",
+     "why": "C++ は、CMake の include ディレクトリと compile_commands.json を検索パスとして読む。マクロで書いた #include と dlopen を報告する。Ruby の \"#{__dir__}/経路\" を相対経路として読む関数も、このまとまりに在る",
+     "before": "（無い）"
+    },
+    {
+     "find": "先頭の . の数は",
+     "why": "1件目と同じ理由で、「点」「包み」をやめた",
+     "before": "// **点の段数は、書かれた点の包みから遡る。** 1つ目は包み自身である"
+    },
+    {
+     "find": "別名と検索パスで2つの名前空間をつなぐ",
+     "why": "4段のうちモジュール解決の段である。読み込みの名前を、別名と検索パスで置き場所の識別子へ直す。直せない名前は、作業領域の外を指すものとして書かれたまま返す",
+     "before": "（無い）"
+    },
+    {
+     "find": "pub fn extensions(&self)",
+     "why": "判定へ渡す区切り方と拡張子である。版の番号（v1.43.0）を拡張子として外さないために、その言語の拡張子だけを外す（実測、opentelemetry-go）",
+     "before": "（無い）"
+    },
+    {
+     "find": "/// 見ないディレクトリ。",
+     "why": "「包み」をやめた",
+     "before": "/// 見ない包み。"
+    },
+    {
+     "find": "let bridge = super::names::from(s.bridge, root);",
+     "why": "測り方の限界に、どの設定から別名と検索パスを解決したかと、走査しないディレクトリを書く。変更前は「解決していない」と書いていた",
+     "before": "let limits =\nvec![\"字面で測っている ── 経路の別名と探索路の指定は解決していない\".to_owned()];"
+    },
+    {
+     "find": "points.push(here.clone());",
+     "why": "作業領域の中のモジュールを集める。義務2（層に属さない参照）と義務3（実在しない参照先）の判定に使う",
+     "before": "（無い）"
+    },
+    {
+     "find": "静的に追跡できない読み込み ── {what} の行き先が、実行時に決まる",
+     "why": "義務4の実装である。どの言語にも同じ規則を課す。引数が文字列なら依存にし、それ以外なら静的に追跡できない読み込みとして報告する。Rust の入れ子の mod の super と、vendor の中の実在するファイルも、このまとまりで処理する",
+     "before": "let spec = unquote(raw);\nlet to = match s.resolve {\nResolve::Qualified => spec.to_owned(),\nResolve::Path => fold(root, file.strip_prefix(root).unwrap_or(file), spec),\nResolve::Dotted => relative_dotted(&here, spec),\nResolve::Crate => in_crate(&here, spec),\n// 読み込みが文字列でない箇所は、行き先が静的に決まらない\nif s.language == \"ruby\" {\nlet dyn_query = Query::new(\n&lang,\n\"(call method: (identifier) @how arguments: (argument_list . (_) @arg))\",\n)\n.map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;\nlet mut method = \"\";\nlet mut kind = \"\";\nlet mut line = 1;\nmethod = cap.node.utf8_text(bytes).unwrap_or(\"\");\n} else {\nkind = cap.node.kind();\nline = cap.node.start_position().row + 1;\nif RUBY_LOADERS.contains(&method) && kind != \"string\" {\nformat!(\"図に現れない読み込み ── {method} に文字列以外を渡している\"),"
+    },
+    {
+     "find": "unreadable: bridge.unreadable.clone(),",
+     "why": "義務7（読めない設定の報告）のために、読めなかった設定を返す",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "lib",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use nms_parts::inward::judge::{judge, layer_for, unresolved",
+     "why": "向きの判定の段から、義務2と義務3の判定（unresolved）を使う",
+     "before": "use nms_parts::inward::judge::{judge, Layer as Edge_, Order};"
+    },
+    {
+     "find": ".filter(|e| layer_for(&order, &e.in_point).is_some_and(|l| !l.composes))",
+     "why": "適用中に判明した食い違いである。静的に追跡できない読み込みだけが、層の外のファイルからも報告されていた。層に属さない参照 ・ 実在しない参照先と同じく、参照元が層に属すときだけ報告する",
+     "before": "// **合成する層の抜け道は、食い違いにしない** ── 向きの規則が唯一成立しない場所を、\n.filter(|e| {\n!nms_parts::inward::judge::layer_for(&order, &e.in_point)\n.is_some_and(|l| l.composes)\n})"
+    },
+    {
+     "find": "読めなかった設定は、層に属すモジュールがその下に在るときだけ出す",
+     "why": "義務2・3・7の報告である。層の外の設定は照合に使われないので、層に属すモジュールがその下に在るときだけ出す（実測、trpc の例のディレクトリの tsconfig）",
+     "before": "（無い）"
+    },
+    {
+     "find": "\"layered_edges\": got.edges.iter()",
+     "before": "（無い）",
+     "why": "JSON の出力に、層をまたぐ依存の数と依存の一覧を足した。実在のリポジトリの測定と、契約の試験の義務5が、この一覧を読む"
+    },
+    {
+     "find": "向きは内向きである ── 依存 {edges} 件を確認した",
+     "why": "出力の「辺」は、このリポジトリで使用を止めた語である。依存へ直した",
+     "before": "vec![format!(\"向きは内向きである ── 辺 {edges} 件を見た\")]\n\"食い違い　{} 件 ／ 見た辺 {edges} 件\","
+    }
+   ]
+  },
+  {
+   "key": "mod",
+   "tab": "inward/mod.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/inward/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "── 依存 ／ 静的に追跡できない読み込み ／",
+     "before": "//! **抽出器は3つを返す** ── 辺 ／ 抜け道 ／ 判定できなかった範囲。",
+     "why": "「点」「辺」「抜け道」は、このリポジトリで使用を止めた語である。モジュール ・ 依存 ・ 静的に追跡できない読み込みへ直した"
+    },
+    {
+     "find": "pub mod names;",
+     "before": "（無い）",
+     "why": "別名と検索パスを読む names を、inward の部品として公開する"
+    },
+    {
+     "find": "どのモジュールに在るか（層を決めるために使う）",
+     "before": "/// どの点に在るか（層を決めるために要る）。",
+     "why": "「点」「要る」は、このリポジトリで使用を止めた語である。モジュール ・ 使うへ直した"
+    },
+    {
+     "find": "/// 静的に追跡できない読み込みを組む。",
+     "before": "/// 抜け道を組む。",
+     "why": "「点」「辺」「抜け道」は、このリポジトリで使用を止めた語である。モジュール ・ 依存 ・ 静的に追跡できない読み込みへ直した"
+    },
+    {
+     "find": "pub points: Vec<String>,",
+     "before": "/// 取れた辺。\n/// その言語で辺を取る手。**1言語につき1つ。**",
+     "why": "抽出の結果に、作業領域の中のモジュールと、読めなかった設定を足す。義務2・3・7の判定に使う"
+    },
+    {
+     "find": "/// 依存を取る。",
+     "before": "/// 辺を取る。",
+     "why": "「点」「辺」「抜け道」は、このリポジトリで使用を止めた語である。モジュール ・ 依存 ・ 静的に追跡できない読み込みへ直した"
+    }
+   ]
+  },
+  {
+   "key": "judge",
+   "tab": "judge.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/inward/judge.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn unresolved(",
+     "why": "義務2と義務3の判定である。言語の名前を受け取らず、層の並び ・ 依存 ・ モジュールの一覧 ・ 区切り方だけで判定する",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "names",
+   "tab": "names.rs（新規）",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/inward/names.rs",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "contract",
+   "tab": "contract.rs（新規）",
+   "file": ".claude/skills/no-more-spaghetti/rs/declare/tests/contract.rs",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "oblig",
+   "tab": "obligations.rs（新規）",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/tests/obligations.rs",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "cargo",
+   "tab": "Cargo.toml",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "toml = \"0.8\"",
+     "why": "Cargo.toml と pyproject.toml を読むために、TOML の解析器を足す",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/no-more-spaghetti/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "仕組みが必要になる",
+     "before": "仕組みが要る",
+     "why": "「要る」はこのリポジトリで使用を止めた語で、書いた後の検査が不合格にした"
+    },
+    {
+     "find": "仕様に無いことが必要なときは",
+     "before": "仕様に無いことが要るときは",
+     "why": "同上"
+    },
+    {
+     "find": "必要なものを置く",
+     "before": "要るものを置く",
+     "why": "同上"
+    },
+    {
+     "find": "検査は4段",
+     "before": "`syntax.rs` が言語ごとの読み込みの形と識別子の解決の仕方を持ち、`judge.rs` が層の並びから許可辺を導いて突き合わせる。",
+     "why": "参照の節を、4段と契約の欄と names.rs を持つ実装に一致させた"
+    },
+    {
+     "find": "事例（54件）",
+     "before": "事例（48件）",
+     "why": "試験の件数を実数に一致させた"
+    },
+    {
+     "find": "依存の向きの契約を、言語の表のすべての言語へ課す",
+     "before": "（無い）",
+     "why": "契約の試験の置き場所を書いた"
+    },
+    {
+     "find": "契約の試験データ（10言語）",
+     "before": "（無い）",
+     "why": "試験データを層の外に置く理由を書いた"
+    }
+   ]
+  }
+ ],
+ "lede": "ACDR 0024 で承認した依存の向きの契約を、no-more-spaghetti の正本へ適用する提案である。",
+ "seal": {
+  "syntax": "e135242d5f86efbb68f7f1a90eb94001977aa7c98f2b6f0e95aabd335cf71a44",
+  "lib": "da47b3d94ec99980da81402475478b9f46a3ce472557a9f98246b8e98e895dc3",
+  "mod": "5a8548fd7d358eb37cd1147d13e39a844b868d339761d63b24c2fc97b5cb9309",
+  "judge": "c7c731aab4b4aa643594f02225aa68b4edcf82fc769cc3740253b019bcf814bb",
+  "names": "7367ee23edd3891df60019f1ede8b2f7bb2fa5ba889edf53e74dd0c29c3e999a",
+  "contract": "ba147e3df662ea86cd2e7d86a4e2f5a9a4bd4eff773be80df7871c2f887e0d74",
+  "oblig": "e4f24e7ee6f882593a5363383b3c93c217a70477760e036d3aa4f2092e27819f",
+  "cargo": "49c1dae514b0e91d2c46bfba326dd8627318f87fabddc071aad469f25948a82d",
+  "skill": "2f1248bdef0b81cc862b0170a917d6f7a5c0aaa933f527ba0733adf53c3f9518"
+ }
+}

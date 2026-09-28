@@ -267,3 +267,128 @@ pub fn judge(order: &Order, edges: &[Edge]) -> Vec<Violation> {
     out.sort();
     out
 }
+
+/// 名前の区切り方。**言語から来るが、判定は言語の名前を認知しない** ── 受け取るのは区切りの
+/// 文字と、外してよい拡張子だけである。
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct Names {
+    /// 名前の区切り。
+    pub seps: Vec<&'static str>,
+    /// 外してよい拡張子。**その言語のソースの拡張子だけ** ── 版の番号（`v1.43.0`）や
+    /// 名前の一部（`types.gen`）を、拡張子として外さない（実測）。空なら外さない。
+    pub extensions: Vec<&'static str>,
+}
+
+impl Names {
+    /// 経路で書く言語。**区切りは `/` だけ** ── `.` を認めると、外の部品名（`vitest`）が
+    /// 根のファイル（`vitest.config.ts`）に一致する（実測）。
+    #[must_use]
+    pub fn paths(extensions: &[&'static str]) -> Self {
+        Self {
+            seps: vec!["/"],
+            extensions: extensions.to_vec(),
+        }
+    }
+
+    /// . 区切りの名前で書く言語（`.` と `::`）。
+    #[must_use]
+    pub fn dotted() -> Self {
+        Self {
+            seps: vec![".", "::"],
+            extensions: Vec::new(),
+        }
+    }
+
+    /// 名前空間を `\` で区切る言語。
+    #[must_use]
+    pub fn backslash() -> Self {
+        Self {
+            seps: vec!["\\"],
+            extensions: Vec::new(),
+        }
+    }
+
+    /// 拡張子を外す。
+    fn stem<'a>(&self, x: &'a str) -> &'a str {
+        x.rsplit_once('.')
+            .filter(|(h, e)| !h.is_empty() && self.extensions.contains(e))
+            .map_or(x, |(h, _)| h)
+    }
+
+    /// 2つの名前が、同じモジュールか、一方が他方の中に在るか。
+    /// **Rust の use の木（`a::{b, c}`）は、`{` の手前までを名前とする。**
+    fn related(&self, point: &str, to: &str) -> bool {
+        let to = to
+            .split('{')
+            .next()
+            .unwrap_or(to)
+            .trim_end_matches(['.', ':']);
+        let (p, t) = (self.stem(point), self.stem(to));
+        p == t
+            || self.seps.iter().any(|sep| {
+                p.starts_with(&format!("{t}{sep}")) || t.starts_with(&format!("{p}{sep}"))
+            })
+    }
+}
+
+/// 判定できなかった参照。**合格にしない。**
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Unresolved {
+    /// 作業領域の中を指すのに、どの層にも属さない ── 層の宣言から漏れたモジュールである。
+    Unlayered {
+        /// どこに書かれているか。
+        at: String,
+        /// 参照される側。
+        to: String,
+    },
+    /// 層を指すのに、その層にモジュールが1つも一致しない ── 生成されるファイルがまだ無いか、
+    /// 名前の誤りである。**名前が記号まで含む言語では、確認できるのはモジュールの単位までである。**
+    Missing {
+        /// どこに書かれているか。
+        at: String,
+        /// 参照される側。
+        to: String,
+    },
+}
+
+/// 判定できなかった参照を集める。**参照する側が層に属す依存だけを見る** ── 層の外から
+/// 出る依存は、この宣言の範囲に無い。
+#[must_use]
+pub fn unresolved(
+    order: &Order,
+    edges: &[Edge],
+    points: &[String],
+    names: &Names,
+) -> Vec<Unresolved> {
+    let mut out = Vec::new();
+    for e in edges {
+        if layer_of(order, &e.from).is_none() {
+            continue;
+        }
+        match layer_of(order, &e.to) {
+            None => {
+                if points.iter().any(|p| names.related(p, &e.to)) {
+                    out.push(Unresolved::Unlayered {
+                        at: e.at.clone(),
+                        to: e.to.clone(),
+                    });
+                }
+            }
+            Some(layer) => {
+                let present = points.iter().any(|p| {
+                    layer_of(order, p).is_some_and(|l| l.name == layer.name)
+                        && names.related(p, &e.to)
+                });
+                if !present {
+                    out.push(Unresolved::Missing {
+                        at: e.at.clone(),
+                        to: e.to.clone(),
+                    });
+                }
+            }
+        }
+    }
+    out
+}

@@ -8,7 +8,7 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use nms_parts::inward::judge::{judge, Layer as Edge_, Order};
+use nms_parts::inward::judge::{judge, layer_for, unresolved, Layer as Edge_, Order, Unresolved};
 use nms_parts::inward::syntax::Tree;
 use nms_parts::inward::Extractor as _;
 use nms_parts::label::{authority_label, kind_label, Verdict};
@@ -446,15 +446,14 @@ fn run_inward(given: &Given) -> Outcome {
         .iter()
         .map(|v| format!("{} ── {} → {}（{}）", v.at, v.from, v.to, v.because.label()))
         .collect();
-    // **合成する層の抜け道は、食い違いにしない** ── 向きの規則が唯一成立しない場所を、
+    // **静的に追跡できない読み込みは、参照元が層に属すときだけ出す** ── 層の外のファイルは
+    // 向きの規則を課されない（実測 ── 違反を意図して含む試験データを検出した）。
+    // **合成する層のものも、食い違いにしない** ── 向きの規則が唯一成立しない場所を、
     // 最も外側の1か所へ集約してある
     findings.extend(
         got.escapes
             .iter()
-            .filter(|e| {
-                !nms_parts::inward::judge::layer_for(&order, &e.in_point)
-                    .is_some_and(|l| l.composes)
-            })
+            .filter(|e| layer_for(&order, &e.in_point).is_some_and(|l| !l.composes))
             .map(|e| format!("{} ── {}", e.at, e.how)),
     );
     findings.extend(
@@ -462,13 +461,47 @@ fn run_inward(given: &Given) -> Outcome {
             .iter()
             .map(|u| format!("判定できていない ── {u}")),
     );
+    // **読めなかった設定は、層に属すモジュールがその下に在るときだけ出す** ── 層の外の設定は、
+    // 照合に使われない（実測 ── 例のディレクトリの生成物を指す tsconfig）
+    findings.extend(
+        got.unreadable
+            .iter()
+            .filter(|(dir, _)| {
+                got.points.iter().any(|p| {
+                    (dir.is_empty()
+                        || p.starts_with(&format!("{dir}/"))
+                        || p.starts_with(&format!("{}.", dir.replace('/', "."))))
+                        && layer_for(&order, p).is_some()
+                })
+            })
+            .map(|(_, u)| format!("判定できていない ── 設定を読めない ── {u}")),
+    );
+    // **判定できなかった参照を、合格にしない**（向きの判定が決める）
+    findings.extend(
+        unresolved(&order, &got.edges, &got.points, &tree.names())
+            .into_iter()
+            .map(|u| match u {
+                Unresolved::Unlayered { at, to } => {
+                    format!("判定できていない ── {at} ── {to} はどの層にも属さない")
+                }
+                Unresolved::Missing { at, to } => format!(
+                    "判定できていない ── {at} ── {to} の参照先が実在しない（生成物か、名前の誤り）"
+                ),
+                _ => String::new(),
+            })
+            .filter(|x| !x.is_empty()),
+    );
     Outcome::found(
         findings,
         json!({
             "language": tree.language(),
             "root": root.display().to_string(),
             "edges": got.edges.len(),
+            "layered_edges": got.edges.iter().filter(|e| {
+                layer_for(&order, &e.from).is_some() && layer_for(&order, &e.to).is_some()
+            }).count(),
             "limits": got.limits,
+            "edge_list": got.edges.iter().map(|e| json!([e.from, e.to, e.at])).collect::<Vec<_>>(),
         }),
     )
 }
@@ -483,10 +516,10 @@ fn human_inward(out: &Outcome) -> String {
         .and_then(serde_json::Value::as_u64)
         .unwrap_or(0);
     let mut lines = if out.findings.is_empty() {
-        vec![format!("向きは内向きである ── 辺 {edges} 件を見た")]
+        vec![format!("向きは内向きである ── 依存 {edges} 件を確認した")]
     } else {
         let mut v = vec![format!(
-            "食い違い　{} 件 ／ 見た辺 {edges} 件",
+            "食い違い　{} 件 ／ 確認した依存 {edges} 件",
             out.findings.len()
         )];
         v.extend(out.findings.iter().map(|x| format!("  ・{x}")));

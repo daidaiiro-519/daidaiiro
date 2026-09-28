@@ -26,7 +26,7 @@ pub enum Resolve {
     Qualified,
     /// 経路の相対である ── 書かれたファイルの場所から畳む。
     Path,
-    /// 点の段数である ── 書かれた点の包みから遡る。
+    /// 先頭の . の数である ── 書かれたファイルのディレクトリから遡る。
     Dotted,
     /// crate の中の点である ── `crate::` は根、`super::` は1つ上、`self::` はここ。
     Crate,
@@ -48,6 +48,55 @@ pub struct Syntax {
     pub resolve: Resolve,
     /// 文法。
     pub grammar: fn() -> Language,
+    /// **契約の欄** ── 名前空間をつなぐ情報の出どころ。`None` は、ソースが自分の名前を
+    /// 宣言する言語である（参照する側も参照される側も、宣言の名前空間で書かれる）。
+    pub bridge: Option<fn(&Path, &mut super::names::Bridge)>,
+    /// **契約の欄** ── 名前を実行時に決める読み込み。無い言語は `Absent` に理由を書く。
+    pub dynamic: Dynamic,
+    /// **契約の欄** ── 条件で分かれる読み込み。すべての分岐を依存として数える。無い言語は `Absent`。
+    pub branches: Branches,
+    /// 名前の区切り方。向きの判定へ渡す。
+    pub naming: Naming,
+}
+
+/// 名前の区切り方。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Naming {
+    /// ファイルの経路で書く（`/`）。
+    Paths,
+    /// . 区切りの名前で書く（`.` ・ `::`）。
+    Dotted,
+    /// 名前空間を `\` で区切る。
+    Backslash,
+}
+
+/// 名前を実行時に決める読み込み。
+///
+/// **文字列で書かれていれば依存、そうでなければ静的に追跡できない読み込みである** ── どの言語にも同じ規則を課す。
+#[derive(Debug, Clone, Copy)]
+pub enum Dynamic {
+    /// 読み込みの呼び出しを指す問い。捕まえる名前は `how`（呼ぶ名前。無くてもよい）と `arg`（最初の引数）。
+    Calls {
+        /// 問い。
+        query: &'static str,
+        /// 読み込みを起こす名前（末尾で一致させる）。空なら、問いに一致したものすべて。
+        names: &'static [&'static str],
+        /// 文字列として扱う節の種類。**埋め込みを含めば、文字列として扱わない。**
+        literal: &'static [&'static str],
+        /// 文字列で書かれた読み込みを、依存にするか ── 読み込みの問いが既に捕まえていれば依存にしない。
+        edges: bool,
+    },
+    /// その言語には無い。**理由を書く。**
+    Absent(&'static str),
+}
+
+/// 条件で分かれる読み込み。
+#[derive(Debug, Clone, Copy)]
+pub enum Branches {
+    /// 分岐の中の読み込みも、構文木に現れる ── すべての分岐を依存にしている。書き方を添える。
+    AllBranches(&'static str),
+    /// その言語には無い。**理由を書く。**
+    Absent(&'static str),
 }
 
 /// 扱う言語の一覧。**言語を足すときに触るのはここ1か所である。**
@@ -64,6 +113,15 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Dotted,
             grammar: || tree_sitter_python::LANGUAGE.into(),
+            bridge: Some(super::names::python),
+            dynamic: Dynamic::Calls {
+                query: "(call function: (_) @how arguments: (argument_list . (_) @arg))",
+                names: &["__import__", "import_module"],
+                literal: &["string"],
+                edges: true,
+            },
+            branches: Branches::AllBranches("try ・ if の中の import"),
+            naming: Naming::Dotted,
         },
         Syntax {
             language: "rust",
@@ -72,6 +130,15 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Crate,
             grammar: || tree_sitter_rust::LANGUAGE.into(),
+            bridge: Some(super::names::rust),
+            dynamic: Dynamic::Calls {
+                query: "(macro_invocation macro: (identifier) @how (token_tree . (_) @arg))",
+                names: &["include"],
+                literal: &[],
+                edges: false,
+            },
+            branches: Branches::AllBranches("#[cfg] の付いた use"),
+            naming: Naming::Dotted,
         },
         Syntax {
             language: "typescript",
@@ -81,6 +148,16 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Path,
             grammar: || tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            bridge: Some(super::names::typescript),
+            dynamic: Dynamic::Calls {
+                query: "[(call_expression function: (import) @how arguments: (arguments . (_) @arg))
+                         (call_expression function: (identifier) @how arguments: (arguments . (_) @arg))]",
+                names: &["import", "require"],
+                literal: &["string"],
+                edges: true,
+            },
+            branches: Branches::AllBranches("if の中の import() ・ require()"),
+            naming: Naming::Paths,
         },
         Syntax {
             language: "java",
@@ -90,6 +167,15 @@ pub fn table() -> Vec<Syntax> {
             here: "(package_declaration [(scoped_identifier) (identifier)] @here)",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_java::LANGUAGE.into(),
+            bridge: None,
+            dynamic: Dynamic::Calls {
+                query: "(method_invocation name: (identifier) @how arguments: (argument_list . (_) @arg))",
+                names: &["forName", "loadClass"],
+                literal: &["string_literal"],
+                edges: true,
+            },
+            branches: Branches::Absent("import に条件を付ける書き方が無い"),
+            naming: Naming::Dotted,
         },
         Syntax {
             language: "kotlin",
@@ -98,6 +184,15 @@ pub fn table() -> Vec<Syntax> {
             here: "(package_header (qualified_identifier) @here)",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_kotlin_ng::LANGUAGE.into(),
+            bridge: None,
+            dynamic: Dynamic::Calls {
+                query: "(call_expression (navigation_expression (_) (identifier) @how) (value_arguments . (value_argument (_) @arg)))",
+                names: &["forName", "loadClass"],
+                literal: &["string_literal"],
+                edges: true,
+            },
+            branches: Branches::Absent("import に条件を付ける書き方が無い"),
+            naming: Naming::Dotted,
         },
         Syntax {
             language: "csharp",
@@ -107,6 +202,15 @@ pub fn table() -> Vec<Syntax> {
                     (namespace_declaration name: (_) @here)]",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_c_sharp::LANGUAGE.into(),
+            bridge: None,
+            dynamic: Dynamic::Calls {
+                query: "(invocation_expression function: (member_access_expression name: (identifier) @how) arguments: (argument_list . (argument (_) @arg)))",
+                names: &["GetType", "Load", "LoadFrom", "CreateInstance"],
+                literal: &["string_literal"],
+                edges: true,
+            },
+            branches: Branches::AllBranches("#if の中の using"),
+            naming: Naming::Dotted,
         },
         Syntax {
             language: "php",
@@ -115,6 +219,16 @@ pub fn table() -> Vec<Syntax> {
             here: "(namespace_definition name: (namespace_name) @here)",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_php::LANGUAGE_PHP.into(),
+            bridge: None,
+            dynamic: Dynamic::Calls {
+                query: "[(include_expression (_) @arg) (include_once_expression (_) @arg)
+                         (require_expression (_) @arg) (require_once_expression (_) @arg)]",
+                names: &[],
+                literal: &[],
+                edges: false,
+            },
+            branches: Branches::Absent("use に条件を付ける書き方が無い"),
+            naming: Naming::Backslash,
         },
         Syntax {
             language: "go",
@@ -123,6 +237,15 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Qualified,
             grammar: || tree_sitter_go::LANGUAGE.into(),
+            bridge: Some(super::names::go),
+            dynamic: Dynamic::Calls {
+                query: "(call_expression function: (selector_expression) @how arguments: (argument_list . (_) @arg))",
+                names: &["plugin.Open"],
+                literal: &[],
+                edges: false,
+            },
+            branches: Branches::AllBranches("//go:build の付いたファイル"),
+            naming: Naming::Paths,
         },
         Syntax {
             language: "ruby",
@@ -131,6 +254,20 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Path,
             grammar: || tree_sitter_ruby::LANGUAGE.into(),
+            bridge: Some(super::names::ruby),
+            dynamic: Dynamic::Calls {
+                // 受け手の無い呼び出しだけ ── `FeatureLoader.load(...)` は Kernel の load ではない（実測 ── rubocop）
+                // autoload は2つ目が経路である ── 1つ目の記号を見ると、静的な autoload を、静的に追跡できない読み込みと誤る（実測 ── rubocop）
+                query: "(call !receiver method: (identifier) @how arguments: (argument_list . (_) @arg)
+                          (#match? @how \"^(require|require_relative|load)$\"))
+                        (call !receiver method: (identifier) @how arguments: (argument_list (_) . (_) @arg)
+                          (#eq? @how \"autoload\"))",
+                names: &["require", "require_relative", "load", "autoload"],
+                literal: &["string"],
+                edges: false,
+            },
+            branches: Branches::AllBranches("if の中の require"),
+            naming: Naming::Paths,
         },
         Syntax {
             language: "cpp",
@@ -139,8 +276,29 @@ pub fn table() -> Vec<Syntax> {
             here: "",
             resolve: Resolve::Path,
             grammar: || tree_sitter_cpp::LANGUAGE.into(),
+            bridge: Some(super::names::cpp),
+            dynamic: Dynamic::Calls {
+                query: "[(preproc_include path: [(identifier) (call_expression)] @arg)
+                         (call_expression function: (identifier) @how arguments: (argument_list . (_) @arg))]",
+                names: &["dlopen", "LoadLibraryA", "LoadLibraryW"],
+                literal: &[],
+                edges: false,
+            },
+            branches: Branches::AllBranches("#if の中の #include"),
+            naming: Naming::Paths,
         },
     ]
+}
+
+/// Ruby の `"#{__dir__}/経路"` を、そのファイルからの相対経路へ直す。**`__dir__` は、
+/// そのファイルのディレクトリである** ── 埋め込みはそれ1つだけのときに限る（実測 ── rubocop）。
+fn ruby_dir_relative(raw: &str) -> Option<String> {
+    let body = raw.trim_matches('"');
+    let rest = body.strip_prefix("#{__dir__}/")?;
+    if rest.contains("#{") {
+        return None;
+    }
+    Some(format!("./{rest}"))
 }
 
 /// 引用符を外す。**文字列の節点は引用符を含む。**
@@ -198,7 +356,7 @@ fn relative_dotted(here: &str, spec: &str) -> String {
     } else {
         here.split('.').collect()
     };
-    // **点の段数は、書かれた点の包みから遡る。** 1つ目は包み自身である
+    // **先頭の . の数は、書かれたファイルのディレクトリから遡る。** 1つ目はディレクトリ自身である
     for _ in 0..dots.saturating_sub(1) {
         parts.pop();
     }
@@ -234,6 +392,153 @@ fn in_crate(here: &str, spec: &str) -> String {
     body
 }
 
+/// 参照の文字列を、置き場所の名前空間の識別子へ直す。
+///
+/// **別名と検索パスで2つの名前空間をつなぐ**（`names`）。つなげない参照は、書かれたまま返す
+/// ── 作業領域の外（標準の部品 ・ 外の部品）を指すものである。
+fn resolve(
+    s: &Syntax,
+    bridge: &super::names::Bridge,
+    root: &Path,
+    file: &Path,
+    here: &str,
+    spec: &str,
+    how: &str,
+) -> String {
+    let rel_file = file.strip_prefix(root).unwrap_or(file);
+    match s.resolve {
+        Resolve::Qualified => bridge
+            .alias(spec, "/", &rel_file.display().to_string())
+            .unwrap_or_else(|| spec.to_owned()),
+        Resolve::Crate => {
+            let body = in_crate(here, spec);
+            // `crate::` は、その crate の根から数える ── 作業領域に crate が複数在る
+            if spec.starts_with("crate::") {
+                if let Some(head) = bridge
+                    .aliases
+                    .iter()
+                    .map(|a| a.to.as_str())
+                    .filter(|t| here == *t || here.starts_with(&format!("{t}.")))
+                    .max_by_key(|t| t.len())
+                {
+                    return format!("{head}.{body}");
+                }
+            }
+            bridge
+                .alias(&body, ".", &rel_file.display().to_string())
+                .unwrap_or(body)
+        }
+        Resolve::Dotted => {
+            if spec.starts_with('.') {
+                return relative_dotted(here, spec);
+            }
+            let first = spec.split('.').next().unwrap_or(spec);
+            // 根は最後に試す ── source root の下に同じ名前が在れば、そちらが先に見つかる
+            let order = bridge
+                .search
+                .iter()
+                .filter(|x| !x.is_empty())
+                .chain(bridge.search.iter().filter(|x| x.is_empty()));
+            for sr in order {
+                let base = root.join(sr);
+                if base.join(first).is_dir() || base.join(format!("{first}.py")).is_file() {
+                    return if sr.is_empty() {
+                        spec.to_owned()
+                    } else {
+                        format!("{}.{spec}", sr.replace('/', "."))
+                    };
+                }
+            }
+            spec.to_owned()
+        }
+        Resolve::Path => {
+            let relative = spec.starts_with("./") || spec.starts_with("../");
+            match s.language {
+                "typescript" if !relative => {
+                    let Some(to) = bridge.alias(spec, "/", &rel_file.display().to_string()) else {
+                        return spec.to_owned();
+                    };
+                    // package の subpath は、組み立ての出力（dist）を指すことが多い ── 置き場所に無ければ、
+                    // その package の source root（tsconfig の rootDir、無ければ src）の下を探す（実測 ── trpc）
+                    let exists = |x: &str| {
+                        ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]
+                            .iter()
+                            .any(|e| root.join(format!("{x}{e}")).exists())
+                    };
+                    if exists(&to) {
+                        return to;
+                    }
+                    for a in &bridge.aliases {
+                        if let Some(tail) = to.strip_prefix(&format!("{}/", a.to)) {
+                            for src in &bridge.search {
+                                if let Some(inner) = src.strip_prefix(&format!("{}/", a.to)) {
+                                    let cand = format!("{}/{inner}/{tail}", a.to);
+                                    if exists(&cand) {
+                                        return cand;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    to
+                }
+                "ruby" if how != "require_relative" && !relative => {
+                    for lp in &bridge.search {
+                        let base = root.join(lp);
+                        if base.join(format!("{spec}.rb")).is_file() || base.join(spec).is_dir() {
+                            return format!("{lp}/{spec}");
+                        }
+                    }
+                    // 行き先が無くても、頭のディレクトリが検索パスの下に在れば、そこを指している（生成物か、名前の誤り）
+                    let first = spec.split('/').next().unwrap_or(spec);
+                    for lp in &bridge.search {
+                        if root.join(lp).join(first).exists()
+                            || root.join(lp).join(format!("{first}.rb")).is_file()
+                        {
+                            return format!("{lp}/{spec}");
+                        }
+                    }
+                    spec.to_owned()
+                }
+                "cpp" => {
+                    let folded = fold(root, rel_file, spec);
+                    if root.join(&folded).exists() {
+                        return folded;
+                    }
+                    for inc in &bridge.search {
+                        let cand = if inc.is_empty() {
+                            spec.to_owned()
+                        } else {
+                            format!("{inc}/{spec}")
+                        };
+                        if root.join(&cand).exists() {
+                            return cand;
+                        }
+                    }
+                    // 行き先が無くても、頭のディレクトリが検索パスの下に在れば、そこを指している
+                    let first = spec.split('/').next().unwrap_or(spec);
+                    for inc in &bridge.search {
+                        let base = if inc.is_empty() {
+                            root.to_path_buf()
+                        } else {
+                            root.join(inc)
+                        };
+                        if spec.contains('/') && base.join(first).is_dir() {
+                            return if inc.is_empty() {
+                                spec.to_owned()
+                            } else {
+                                format!("{inc}/{spec}")
+                            };
+                        }
+                    }
+                    spec.to_owned()
+                }
+                _ => fold(root, rel_file, spec),
+            }
+        }
+    }
+}
+
 /// 原文から辺を取る抽出器。
 #[derive(Clone)]
 #[non_exhaustive]
@@ -251,6 +556,23 @@ impl Tree {
             .map(|syntax| Self { syntax })
     }
 
+    /// その言語のソースの拡張子。**名前の末尾を外すとき、これだけを拡張子として扱う**
+    /// ── 版の番号（`v1.43.0`）や名前の一部（`types.gen`）を、拡張子として外さない（実測）。
+    #[must_use]
+    pub fn extensions(&self) -> &'static [&'static str] {
+        self.syntax.extensions
+    }
+
+    /// 名前の区切り方を、向きの判定が読む形で返す。
+    #[must_use]
+    pub fn names(&self) -> super::judge::Names {
+        match self.syntax.naming {
+            Naming::Paths => super::judge::Names::paths(self.syntax.extensions),
+            Naming::Dotted => super::judge::Names::dotted(),
+            Naming::Backslash => super::judge::Names::backslash(),
+        }
+    }
+
     /// 扱える言語を並べる。
     #[must_use]
     pub fn languages() -> Vec<&'static str> {
@@ -258,7 +580,7 @@ impl Tree {
     }
 }
 
-/// 見ない包み。
+/// 見ないディレクトリ。
 const SKIP: [&str; 6] = [
     "node_modules",
     "target",
@@ -336,8 +658,35 @@ impl Extractor for Tree {
         let mut undecided = Vec::new();
         // **測り方の限界は、申告であって検出ではない。** 検出に混ぜると、取りこぼしの
         // 申告そのものが不合格の原因になる（実測 ── 向きの規則が常に不合格になった）
-        let limits =
-            vec!["字面で測っている ── 経路の別名と探索路の指定は解決していない".to_owned()];
+        let bridge = super::names::from(s.bridge, root);
+        let limits = if matches!(s.language, "java" | "kotlin" | "csharp" | "php") {
+            vec![
+                "字面で測っている ── 名前は、ソースが宣言する package ・ namespace から取っている"
+                    .to_owned(),
+            ]
+        } else if bridge.sources.is_empty() {
+            vec!["字面で測っている ── 別名と検索パスの設定が見つからなかった。置き場所の名前だけで照合している".to_owned()]
+        } else {
+            // 設定の名前ごとに数える ── 全件を並べると、1行が読めない長さになる（実測 ── 100件）
+            let mut count: std::collections::BTreeMap<String, usize> =
+                std::collections::BTreeMap::new();
+            for src in &bridge.sources {
+                let name = src.rsplit('/').next().unwrap_or(src).to_owned();
+                *count.entry(name).or_default() += 1;
+            }
+            vec![format!(
+                "字面で測っている ── 別名と検索パスは、次の設定から解決した：{}",
+                count
+                    .iter()
+                    .map(|(k, v)| format!("{k} {v}件"))
+                    .collect::<Vec<_>>()
+                    .join(" ・ ")
+            )]
+        };
+        let mut limits = limits;
+        limits.push(format!("走査しないディレクトリ ── {}", SKIP.join(" ・ ")));
+        let mut points = Vec::new();
+
         for file in &files {
             let Ok(body) = std::fs::read_to_string(file) else {
                 undecided.push(format!("{} ── 読めない", file.display()));
@@ -373,6 +722,7 @@ impl Extractor for Tree {
                 (None, Resolve::Dotted | Resolve::Crate) => dotted(root, file),
                 (None, _) => rel.clone(),
             };
+            points.push(here.clone());
             let mut cursor = QueryCursor::new();
             let mut hits = cursor.matches(&imports, tree.root_node(), bytes);
             while let Some(m) = hits.next() {
@@ -393,42 +743,115 @@ impl Extractor for Tree {
                 if s.language == "ruby" && !RUBY_LOADERS.contains(&how.as_str()) {
                     continue;
                 }
-                let spec = unquote(raw);
-                let to = match s.resolve {
-                    Resolve::Qualified => spec.to_owned(),
-                    Resolve::Path => fold(root, file.strip_prefix(root).unwrap_or(file), spec),
-                    Resolve::Dotted => relative_dotted(&here, spec),
-                    Resolve::Crate => in_crate(&here, spec),
+                let owned;
+                let (spec, how) = if s.language == "ruby" && raw.contains("#{") {
+                    match ruby_dir_relative(raw) {
+                        Some(r) => {
+                            owned = r;
+                            (owned.as_str(), "require_relative".to_owned())
+                        }
+                        None => continue, // 静的に追跡できない読み込みとして別に出す
+                    }
+                } else {
+                    (unquote(raw), how)
                 };
+                // Rust の入れ子の mod ── `mod tests { use super::x; }` の super は、その mod から数える（実測 ── ripgrep）
+                let inner_here = if s.language == "rust" {
+                    let mut names = Vec::new();
+                    let mut node = m.captures.first().map(|c| c.node);
+                    while let Some(n) = node {
+                        if n.kind() == "mod_item" {
+                            if let Some(name) = n.child_by_field_name("name") {
+                                names.push(name.utf8_text(bytes).unwrap_or("").to_owned());
+                            }
+                        }
+                        node = n.parent();
+                    }
+                    names.reverse();
+                    if names.is_empty() {
+                        here.clone()
+                    } else {
+                        format!("{here}.{}", names.join("."))
+                    }
+                } else {
+                    here.clone()
+                };
+                let to = resolve(s, &bridge, root, file, &inner_here, spec, &how);
+                // 経路で書く言語は、走査しないディレクトリ（vendor など）の中でも、ファイルが在れば
+                // 作業領域の中のモジュールである（実測 ── trpc）
+                if s.naming == Naming::Paths
+                    && s.extensions.iter().chain(std::iter::once(&"")).any(|x| {
+                        let f = if x.is_empty() {
+                            root.join(&to)
+                        } else {
+                            root.join(format!("{to}.{x}"))
+                        };
+                        f.is_file() || root.join(&to).join(format!("index.{x}")).is_file()
+                    })
+                {
+                    points.push(to.clone());
+                }
                 edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
             }
-            // 読み込みが文字列でない箇所は、行き先が静的に決まらない
-            if s.language == "ruby" {
-                let dyn_query = Query::new(
-                    &lang,
-                    "(call method: (identifier) @how arguments: (argument_list . (_) @arg))",
-                )
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;
+            // **名前を実行時に決める読み込み** ── 文字列で書かれていれば依存、そうでなければ静的に追跡できない読み込み
+            if let Dynamic::Calls {
+                query,
+                names,
+                literal,
+                edges: make_edges,
+            } = s.dynamic
+            {
+                let dyn_query = Query::new(&lang, query)
+                    .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))?;
                 let mut c2 = QueryCursor::new();
                 let mut got = c2.matches(&dyn_query, tree.root_node(), bytes);
                 while let Some(m) = got.next() {
-                    let mut method = "";
-                    let mut kind = "";
-                    let mut line = 1;
+                    let mut how = String::new();
+                    let mut arg = None;
                     for cap in m.captures {
                         let name = &dyn_query.capture_names()[cap.index as usize];
                         if *name == "how" {
-                            method = cap.node.utf8_text(bytes).unwrap_or("");
-                        } else {
-                            kind = cap.node.kind();
-                            line = cap.node.start_position().row + 1;
+                            how = cap.node.utf8_text(bytes).unwrap_or("").to_owned();
+                        } else if *name == "arg" {
+                            arg = Some(cap.node);
                         }
                     }
-                    if RUBY_LOADERS.contains(&method) && kind != "string" {
+                    let Some(arg) = arg else { continue };
+                    let named = how.is_empty()
+                        || names.is_empty()
+                        || names.iter().any(|n| {
+                            how == *n
+                                || how.ends_with(&format!(".{n}"))
+                                || how.ends_with(&format!("::{n}"))
+                        });
+                    if !named {
+                        continue;
+                    }
+                    let line = arg.start_position().row + 1;
+                    let embedded = (0..arg.child_count()).any(|k| {
+                        arg.child(k).is_some_and(|c| {
+                            matches!(c.kind(), "interpolation" | "template_substitution")
+                        })
+                    }) && !(s.language == "ruby"
+                        && ruby_dir_relative(arg.utf8_text(bytes).unwrap_or("")).is_some());
+                    if literal.contains(&arg.kind()) && !embedded {
+                        if make_edges {
+                            let spec = unquote(arg.utf8_text(bytes).unwrap_or(""));
+                            let to = resolve(s, &bridge, root, file, &here, spec, &how);
+                            edges.push(Edge::new(here.clone(), to, format!("{rel}:{line}")));
+                        }
+                    } else {
+                        let what = if how.is_empty() {
+                            arg.kind().to_owned()
+                        } else {
+                            how.clone()
+                        };
                         escapes.push(Escape::new(
                             here.clone(),
                             format!("{rel}:{line}"),
-                            format!("図に現れない読み込み ── {method} に文字列以外を渡している"),
+                            format!(
+                                "静的に追跡できない読み込み ── {what} の行き先が、実行時に決まる"
+                            ),
                         ));
                     }
                 }
@@ -438,6 +861,8 @@ impl Extractor for Tree {
             edges,
             escapes,
             undecided,
+            points,
+            unreadable: bridge.unreadable.clone(),
             limits,
         })
     }

@@ -10,7 +10,7 @@
 //! **外の道具を呼ばない。** 文法は binary へ焼き込むので、検査する側にその言語の
 //! 道具が入っていなくても測れる。
 //!
-//! **抽出器は3つを返す** ── 辺 ／ 抜け道 ／ 判定できなかった範囲。
+//! **抽出器は3つを返す** ── 依存 ／ 静的に追跡できない読み込み ／ 判定できなかった範囲。
 //! **判定できなかったことを、合格に寄せない。**
 
 use std::path::Path;
@@ -18,13 +18,14 @@ use std::path::Path;
 use self::judge::Edge;
 
 pub mod judge;
+pub mod names;
 pub mod syntax;
 
 /// 図に現れない依存の経路。**そこを通れば検査を素通りできる。**
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Escape {
-    /// どの点に在るか（層を決めるために要る）。
+    /// どのモジュールに在るか（層を決めるために使う）。
     pub in_point: String,
     /// どこに書かれているか。
     pub at: String,
@@ -33,7 +34,7 @@ pub struct Escape {
 }
 
 impl Escape {
-    /// 抜け道を組む。
+    /// 静的に追跡できない読み込みを組む。
     #[must_use]
     pub const fn new(in_point: String, at: String, how: String) -> Self {
         Self { in_point, at, how }
@@ -44,18 +45,24 @@ impl Escape {
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct Extracted {
-    /// 取れた辺。
+    /// 取れた依存。
     pub edges: Vec<Edge>,
     /// 図に現れない経路。
     pub escapes: Vec<Escape>,
     /// 判定できなかった範囲。**0件でなければ、0件を結論にしない。**
     pub undecided: Vec<String>,
+    /// 作業領域の中のモジュール（ファイルごとの、参照する側の名前）。**参照が作業領域の中を
+    /// 指すかを判定するために使う。**
+    pub points: Vec<String>,
+    /// 読めなかった設定。**（その設定が効くディレクトリ, 文面）** ── 層に属すモジュールがその下に在るときだけ、
+    /// 判定できなかった範囲になる。
+    pub unreadable: Vec<(String, String)>,
     /// 測り方の限界。**申告であって、判定できなかった事実ではない** ── 採用範囲へ
     /// 書くものなので、検出には数えない。
     pub limits: Vec<String>,
 }
 
-/// その言語で辺を取る手。**1言語につき1つ。**
+/// その言語で依存を取る抽出器。**1言語につき1つ。**
 ///
 /// 実装は次の3つを守る。
 ///
@@ -67,7 +74,7 @@ pub trait Extractor {
     /// この抽出器が扱う言語の名前。**機械が分岐する値なので ASCII である。**
     fn language(&self) -> &'static str;
 
-    /// 辺を取る。
+    /// 依存を取る。
     ///
     /// # Errors
     ///
