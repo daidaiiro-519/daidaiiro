@@ -15,7 +15,8 @@
 
 use std::path::Path;
 
-use self::judge::Edge;
+use self::judge::{judge, layer_for, unresolved, Edge, Order, Unresolved};
+use self::syntax::Tree;
 
 pub mod judge;
 pub mod names;
@@ -80,4 +81,105 @@ pub trait Extractor {
     ///
     /// 道具の起動が「見つからない」以外の理由で失敗したときに返す。
     fn extract(&self, root: &Path) -> std::io::Result<Extracted>;
+}
+
+/// 測った結果。**検出と、測り方の限界を分けて持つ** ── 混ぜると、解決しなかった参照が
+/// 違反として読まれる。
+#[derive(Debug, Clone, Default)]
+#[non_exhaustive]
+pub struct Measured {
+    /// 言語の名前。
+    pub language: &'static str,
+    /// 食い違い。**0件のときだけ合格である。**
+    pub findings: Vec<String>,
+    /// 取れた依存。
+    pub edges: Vec<Edge>,
+    /// 参照する側と参照される側の両方が層に属す依存の数。
+    pub layered_edges: usize,
+    /// 測り方の限界。
+    pub limits: Vec<String>,
+}
+
+/// 1つの成果物の依存の向きを測る。**CLI と、規則の実行の両方がここを呼ぶ** ──
+/// 2か所で組むと、報告する条件が片方だけ変わる。
+///
+/// # Errors
+///
+/// その言語の抽出器が無いとき、根が無いとき、層が空のとき、抽出できないときに返す。
+pub fn measure(language: &str, root: &Path, layers: Vec<judge::Layer>) -> Result<Measured, String> {
+    if layers.is_empty() {
+        return Err("層を1つも渡していない".to_owned());
+    }
+    let Some(tree) = Tree::of(language) else {
+        return Err(format!(
+            "その言語の抽出器が無い ── {language}（在るのは {}）",
+            Tree::languages().join(" ・ ")
+        ));
+    };
+    if !root.is_dir() {
+        return Err(format!("根が無い ── {}", root.display()));
+    }
+    let got = tree
+        .extract(root)
+        .map_err(|e| format!("抽出できない ── {e}"))?;
+    let order = Order::inner_to_outer(layers);
+    let mut findings: Vec<String> = judge(&order, &got.edges)
+        .iter()
+        .map(|v| format!("{} ── {} → {}（{}）", v.at, v.from, v.to, v.because.label()))
+        .collect();
+    // **静的に追跡できない読み込みは、参照元が層に属すときだけ出す** ── 層の外のファイルは
+    // 向きの規則を課されない（実測 ── 違反を意図して含む試験データを検出した）。
+    // **合成する層のものも、食い違いにしない** ── 向きの規則が唯一成立しない場所を、
+    // 最も外側の1か所へ集約してある
+    findings.extend(
+        got.escapes
+            .iter()
+            .filter(|e| layer_for(&order, &e.in_point).is_some_and(|l| !l.composes))
+            .map(|e| format!("{} ── {}", e.at, e.how)),
+    );
+    findings.extend(
+        got.undecided
+            .iter()
+            .map(|u| format!("判定できていない ── {u}")),
+    );
+    // **読めなかった設定は、層に属すモジュールがその下に在るときだけ出す** ── 層の外の設定は、
+    // 照合に使われない（実測 ── 例のディレクトリの生成物を指す tsconfig）
+    findings.extend(
+        got.unreadable
+            .iter()
+            .filter(|(dir, _)| {
+                got.points.iter().any(|p| {
+                    (dir.is_empty()
+                        || p.starts_with(&format!("{dir}/"))
+                        || p.starts_with(&format!("{}.", dir.replace('/', "."))))
+                        && layer_for(&order, p).is_some()
+                })
+            })
+            .map(|(_, u)| format!("判定できていない ── 設定を読めない ── {u}")),
+    );
+    // **判定できなかった参照を、合格にしない**（向きの判定が決める）
+    findings.extend(
+        unresolved(&order, &got.edges, &got.points, &tree.names())
+            .into_iter()
+            .map(|u| match u {
+                Unresolved::Unlayered { at, to } => {
+                    format!("判定できていない ── {at} ── {to} はどの層にも属さない")
+                }
+                Unresolved::Missing { at, to } => format!(
+                    "判定できていない ── {at} ── {to} の参照先が実在しない（生成物か、名前の誤り）"
+                ),
+            }),
+    );
+    let layered_edges = got
+        .edges
+        .iter()
+        .filter(|e| layer_for(&order, &e.from).is_some() && layer_for(&order, &e.to).is_some())
+        .count();
+    Ok(Measured {
+        language: tree.language(),
+        findings,
+        edges: got.edges,
+        layered_edges,
+        limits: got.limits,
+    })
 }

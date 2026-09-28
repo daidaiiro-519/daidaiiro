@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "x-generates": ".coding-rules/rules.json",
   "title": "規則ファイル",
-  "description": "成果物が持つ規則ファイル。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持つ。層を持つ規則ファイルは、並びと層も持つ。**キーは ASCII である** ── 画面へ出す語は、読む側の対応表が持つ。",
+  "description": "規則ファイル。規則1件が3要素（出典 ・ 採用範囲 ・ 検証方法）を持ち、適用する成果物（units）の名前を持つ。成果物は根 ・ 言語 ・ 層の並びを持つ。**キーは ASCII である** ── 画面へ出す語は、読む側の対応表が持つ。",
   "type": "object",
   "properties": {
     "$schema": {
@@ -20,28 +20,15 @@
         "$ref": "#/$defs/rule"
       }
     },
-    "order": {
-      "description": "層の並び。内から外の順である。",
+    "units": {
+      "description": "成果物の一覧。キーが成果物の名前、値が根 ・ 言語 ・ 層の並びである。**層の並びは成果物の中でだけ意味を持つ** ── 無関係な成果物の層を1列に並べない。",
       "x-prompt": {
-        "read": "先頭が最も内側である。依存は外から内へ向かってよく、内から外へは向かわない",
-        "write": "モデルから導出する。層名を先に決めて、そこへ概念を配置しない ── 言語に依存しない名前にする"
-      },
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "layers": {
-      "description": "層の名前と、その言語での識別子の対応。**名前は原典に無いので、こちら側が決める。**",
-      "x-prompt": {
-        "read": "キーは order の層名、値はその言語で層を識別する文字列である ── パスとは限らない",
-        "write": "キーに order の層名を書き、値にその言語で層を識別する文字列を書く ── 経路とは限らない。どの形になるかは言語が決めるので、ここでは問わない"
+        "read": "規則の units が、ここの名前を指す。層の並びは内から外の順である",
+        "write": "成果物ごとに1件書く。層を持たない成果物（文書だけの場所など）は root だけを書く"
       },
       "type": "object",
       "additionalProperties": {
-        "type": "string",
-        "minLength": 1
+        "$ref": "#/$defs/unit"
       }
     }
   },
@@ -167,15 +154,12 @@
           }
         },
         "check": {
-          "description": "判定する手段。**判定は終了コードで返る。**",
+          "description": "判定する手段。**tool か inward のどちらか1つを持つ。** 判定は終了コードで返る。",
           "x-prompt": {
             "read": "実行するコマンドと、実行する場所である",
             "write": "判定を終了コードで返す呼び方を選ぶ ── **同じ道具に、判定を返す呼び方と返さない呼び方がある**。違反を並べながら0を返す呼び方が実在するので、呼び方ごとに終了コードを実測してから書く"
           },
           "type": "object",
-          "required": [
-            "tool"
-          ],
           "properties": {
             "tool": {
               "description": "実行するコマンド。**配列で書く** ── シェルを経由しない。**判定を終了コードで返す呼び方を選ぶ**（違反を並べながら0を返す呼び方が在る）。",
@@ -191,15 +175,159 @@
             },
             "target": {
               "type": "string",
-              "description": "実行する場所。成果物の場所からの相対である",
+              "description": "実行する場所。**成果物の根からの相対である**",
               "x-prompt": {
-                "read": "書かれていなければ、成果物の場所で実行する",
+                "read": "書かれていなければ、成果物の根で実行する",
                 "write": "範囲を狭めるときに書く ── 規則を緩めるのではなく、見ている範囲を書く"
               }
+            },
+            "inward": {
+              "const": true,
+              "description": "依存の向きを、この Skill の inward で測る。**言語と層の並びは、成果物から来る。**",
+              "x-prompt": {
+                "read": "その成果物の言語と層の並びで inward を実行する。食い違いが0件なら合格である",
+                "write": "依存の向きの規則に書く。層の並びを、この規則の引数へ複製しない"
+              }
             }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "tool"
+              ],
+              "not": {
+                "required": [
+                  "inward"
+                ]
+              }
+            },
+            {
+              "required": [
+                "inward"
+              ],
+              "not": {
+                "required": [
+                  "tool"
+                ]
+              }
+            }
+          ]
+        },
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "適用する成果物の名前。**`*` はすべての成果物で、依存の向きの規則では層を持つ成果物だけを指す。** 成果物ごとに実行1件へ展開する。",
+          "x-prompt": {
+            "read": "ここに並ぶ成果物ごとに、1回ずつ実行する",
+            "write": "units に書いた成果物の名前を並べる。規則を成果物ごとに複製しない"
+          }
+        }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "成果物の根。規則ファイルを実行する場所からの相対である",
+          "x-prompt": {
+            "read": "規則の check.target は、この根からの相対である",
+            "write": "成果物の根を書く。リポジトリ自身なら . を書く"
+          }
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "依存の向きを測る言語。**層を持つ成果物で、依存の向きの規則が指すなら必須である。**",
+          "x-prompt": {
+            "read": "inward の抽出器を選ぶ名前である",
+            "write": "inward が扱う言語の名前を書く（rust ・ go ・ typescript ・ python ・ ruby ・ cpp ・ java ・ kotlin ・ csharp ・ php）"
+          }
+        },
+        "layers": {
+          "description": "層の並び。**内から外の順である。** 名前は概念の層、where はその言語での識別子である。**名前は原典に無いので、こちら側が決める。**",
+          "x-prompt": {
+            "read": "先頭が最も内側である。依存は外から内へ向かってよく、内から外へは向かわない",
+            "write": "モデルから導出する。層名を先に決めて、そこへ概念を配置しない ── where にはその言語で層を識別する文字列を書く。経路とは限らない"
+          },
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": [
+        "name",
+        "where"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "概念の層の名前",
+          "x-prompt": {
+            "read": "概念の層の名前である。言語に依存しない",
+            "write": "モデルが決めた概念の層の名前を書く"
+          }
+        },
+        "where": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "その言語で層を識別する文字列。**1つの層が複数を持てる**",
+          "x-prompt": {
+            "read": "その言語で層を識別する文字列である。経路とは限らない",
+            "write": "その言語で層を識別する文字列を書く。どの形になるかは言語が決める"
+          }
+        },
+        "marks": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "independent",
+              "closed",
+              "composes"
+            ]
+          },
+          "description": "層の性質。independent=同じ層の兄弟どうしを禁じる ／ closed=この層を越えて下の層へ到達することを禁じる ／ composes=合成する層（静的に追跡できない読み込みを持ってよい）",
+          "x-prompt": {
+            "read": "書かれていなければ、兄弟どうしも、層を越えることも禁じない",
+            "write": "その層の性質が決定に在るときだけ書く"
           }
         }
       }
     }
+  },
+  "not": {
+    "description": "並びと層を全体で1つに持つ形は使わない ── 層の並びは成果物ごとに units へ書く",
+    "anyOf": [
+      {
+        "required": [
+          "order"
+        ]
+      },
+      {
+        "required": [
+          "layers"
+        ]
+      }
+    ]
   }
 }

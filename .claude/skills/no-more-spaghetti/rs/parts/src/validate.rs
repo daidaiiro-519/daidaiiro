@@ -85,7 +85,14 @@ pub fn check_rules(rules_file: &Path, contracts: &Contracts) -> io::Result<Vec<S
             .get("rule")
             .and_then(Value::as_str)
             .map_or_else(|| format!("{i}件目"), str::to_owned);
+        let inward = raw
+            .get("check")
+            .and_then(|c| c.get("inward"))
+            .and_then(Value::as_bool)
+            == Some(true);
         match raw.get("check").and_then(|c| c.get("tool")) {
+            // **依存の向きの規則は、道具を持たない** ── この Skill の inward が測る
+            None if inward => {}
             None | Some(Value::Null) => findings.push(format!(
                 "{name}: 検証方法に道具が無い ── コマンドで検査できない規則は立てない"
             )),
@@ -106,7 +113,7 @@ pub fn check_rules(rules_file: &Path, contracts: &Contracts) -> io::Result<Vec<S
     Ok(findings)
 }
 
-/// 層の宣言が、構造として成立するかを見る。
+/// 成果物の宣言と、規則が指す成果物が、構造として成立するかを見る。
 ///
 /// **値をファイルの場所として検査しない** ── 層を識別する文字列は言語ごとに形が違い、
 /// 経路とは限らない。値が正しいかは、**依存の向きの道具が実行できるかで判明する**。
@@ -114,34 +121,97 @@ pub fn check_rules(rules_file: &Path, contracts: &Contracts) -> io::Result<Vec<S
 /// # Errors
 ///
 /// 規則ファイルを読めないときに返す。
-pub fn check_layers(rules_file: &Path) -> io::Result<Vec<String>> {
+pub fn check_units(rules_file: &Path) -> io::Result<Vec<String>> {
     let instance = match read_json(rules_file) {
         Ok(value) => value,
         Err(why) => return Ok(vec![why]),
     };
-    let Some(layers) = instance.get("layers").and_then(Value::as_object) else {
-        return Ok(Vec::new());
-    };
-    let order = instance
-        .get("order")
+    let mut findings = Vec::new();
+    // **並びと層を全体で1つに持つ形は、成果物ごとの形へ移った** ── 無関係な成果物の層が
+    // 1列に並び、並びが成果物の中でだけ意味を持つことを表せなかった
+    for key in ["order", "layers"] {
+        if instance.get(key).is_some() {
+            findings.push(format!(
+                "{key} は使わない ── 層の並びは、成果物ごとに units へ書く"
+            ));
+        }
+    }
+    let all = crate::rules::units(&instance);
+    for unit in &all {
+        let mut seen: Vec<&str> = Vec::new();
+        for layer in &unit.layers {
+            if seen.contains(&layer.name.as_str()) {
+                findings.push(format!(
+                    "成果物 {}: 層の名前 {} が2つある",
+                    unit.name, layer.name
+                ));
+            }
+            seen.push(&layer.name);
+            if layer.ids.is_empty() {
+                findings.push(format!(
+                    "成果物 {}: 層 {} に識別子（where）が無い",
+                    unit.name, layer.name
+                ));
+            }
+            for mark in &layer.marks {
+                let probe = crate::inward::judge::Layer::of(layer.name.clone(), Vec::new());
+                if let Err(why) = probe.marked(mark) {
+                    findings.push(format!("成果物 {}: 層 {} ── {why}", unit.name, layer.name));
+                }
+            }
+        }
+    }
+    if all.is_empty() {
+        return Ok(findings);
+    }
+    let items = instance
+        .get("rules")
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let mut findings: Vec<String> = order
-        .iter()
-        .filter_map(Value::as_str)
-        .filter(|name| !layers.contains_key(*name))
-        .map(|name| format!("並びの {name} が、層に無い"))
-        .collect();
-    // **宣言していない層を検出する。** 引数で別に渡すと、宣言と検査がずれても
-    // 誰も気づかない（実測 ── 2つの層が宣言から落ちたまま検査されていた）
-    let named: Vec<&str> = order.iter().filter_map(Value::as_str).collect();
-    findings.extend(
-        layers
-            .keys()
-            .filter(|name| !named.contains(&name.as_str()))
-            .map(|name| format!("層の {name} が、並びに無い")),
-    );
+    for (i, raw) in items.iter().enumerate() {
+        let name = raw
+            .get("rule")
+            .and_then(Value::as_str)
+            .map_or_else(|| format!("{i}件目"), str::to_owned);
+        let inward = raw
+            .get("check")
+            .and_then(|c| c.get("inward"))
+            .and_then(Value::as_bool)
+            == Some(true);
+        let Some(names) = raw.get("units").and_then(Value::as_array) else {
+            findings.push(format!(
+                "{name}: 成果物を指していない ── 適用する成果物の名前を units に書く"
+            ));
+            continue;
+        };
+        let mut targets = Vec::new();
+        for got in names.iter().filter_map(Value::as_str) {
+            if got == crate::rules::EVERY_UNIT {
+                targets.extend(all.iter().filter(|u| !inward || !u.layers.is_empty()));
+            } else if let Some(unit) = all.iter().find(|u| u.name == got) {
+                targets.push(unit);
+            } else {
+                findings.push(format!("{name}: 成果物 {got} が無い"));
+            }
+        }
+        if !inward {
+            continue;
+        }
+        for unit in targets {
+            if unit.layers.is_empty() {
+                findings.push(format!(
+                    "{name}: 成果物 {} は層を持たないので、依存の向きを測れない",
+                    unit.name
+                ));
+            } else if unit.language.is_empty() {
+                findings.push(format!(
+                    "{name}: 成果物 {} に言語が無い ── 依存の向きは、言語ごとの読み込みの形で測る",
+                    unit.name
+                ));
+            }
+        }
+    }
     Ok(findings)
 }
 

@@ -14,8 +14,9 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::inward::judge::Layer;
 use crate::label::Verdict;
-use crate::rules::Rule;
+use crate::rules::{Inward, Rule};
 
 /// 1件あたりの制限時間（秒）。
 pub const DEFAULT_TIMEOUT: u64 = 120;
@@ -166,11 +167,19 @@ pub fn run_one(
     save_to: Option<&Path>,
     index: usize,
 ) -> io::Result<Outcome> {
-    if rule.tool_is_not_a_list {
-        return Ok(Outcome::skipped(rule, "道具が配列ではない".to_owned()));
+    if !rule.missing_unit.is_empty() {
+        return Ok(Outcome::skipped(
+            rule,
+            format!("成果物が無い ── {}", rule.missing_unit),
+        ));
     }
-    if rule.tool.is_empty() {
-        return Ok(Outcome::skipped(rule, "検証方法に道具が無い".to_owned()));
+    if rule.inward.is_none() {
+        if rule.tool_is_not_a_list {
+            return Ok(Outcome::skipped(rule, "道具が配列ではない".to_owned()));
+        }
+        if rule.tool.is_empty() {
+            return Ok(Outcome::skipped(rule, "検証方法に道具が無い".to_owned()));
+        }
     }
     let base = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
     let Ok(cwd) = base.join(&rule.target).canonicalize() else {
@@ -190,6 +199,10 @@ pub fn run_one(
             rule,
             format!("対象が実在しない ── {}", cwd.display()),
         ));
+    }
+
+    if let Some(inward) = &rule.inward {
+        return Ok(run_inward(rule, inward, &cwd));
     }
 
     let sink_path = sink_path(index);
@@ -247,6 +260,58 @@ pub fn run_one(
         output_size: size,
         saved,
     })
+}
+
+/// 依存の向きを、この Skill の中で測る。**別の process を立てない** ── 立てると、
+/// MCP から呼んだときに、実行する binary が CLI ではない。
+///
+/// 判定は他の規則と同じで、食い違いが0件なら合格である。**測れなかったときは
+/// 「実行しない」にし、合格に寄せない。**
+fn run_inward(rule: &Rule, inward: &Inward, cwd: &Path) -> Outcome {
+    let mut layers = Vec::new();
+    for l in &inward.layers {
+        let mut layer = Layer::of(l.name.clone(), l.ids.clone());
+        for mark in &l.marks {
+            match layer.marked(mark) {
+                Ok(next) => layer = next,
+                Err(why) => return Outcome::skipped(rule, why),
+            }
+        }
+        layers.push(layer);
+    }
+    let got = match crate::inward::measure(&inward.language, cwd, layers) {
+        Ok(got) => got,
+        Err(why) => return Outcome::skipped(rule, why),
+    };
+    let mut lines = if got.findings.is_empty() {
+        vec![format!(
+            "向きは内向きである ── 依存 {} 件を確認した",
+            got.edges.len()
+        )]
+    } else {
+        let mut v = vec![format!(
+            "食い違い　{} 件 ／ 確認した依存 {} 件",
+            got.findings.len(),
+            got.edges.len()
+        )];
+        v.extend(got.findings.iter().map(|x| format!("  ・{x}")));
+        v
+    };
+    // **測り方の限界は毎回出す。** 黙らせると、取りこぼしの範囲が読めない
+    lines.extend(got.limits.iter().map(|x| format!("  （測り方）{x}")));
+    let output = lines.join("\n");
+    let pass = got.findings.is_empty();
+    Outcome {
+        name: rule.name.clone(),
+        tool: rule.tool.clone(),
+        target: rule.target.clone(),
+        code: Some(i32::from(!pass)),
+        verdict: if pass { Verdict::Pass } else { Verdict::Fail },
+        reason: String::new(),
+        output_size: output.len() as u64,
+        output,
+        saved: false,
+    }
 }
 
 /// 全件の結果。

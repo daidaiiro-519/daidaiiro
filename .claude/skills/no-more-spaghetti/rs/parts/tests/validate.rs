@@ -112,26 +112,6 @@ fn a_rule_without_a_source_is_refused() {
 }
 
 #[test]
-fn the_declaration_of_layers_must_agree_in_both_directions() {
-    let body = r#"{"order":["a","b"],"layers":{"a":"x"},"rules":[]}"#;
-    let path = temp("layers-gap", body);
-    let found = validate::check_layers(&path).expect("検査できる");
-    assert!(
-        found.iter().any(|x| x.contains("並びの b が、層に無い")),
-        "{found:?}"
-    );
-
-    let body = r#"{"order":["a"],"layers":{"a":"x","c":"y"},"rules":[]}"#;
-    let path = temp("layers-extra", body);
-    let found = validate::check_layers(&path).expect("検査できる");
-    // **宣言していない層を検出する** ── これが無いと、検査だけが認知する層が残る
-    assert!(
-        found.iter().any(|x| x.contains("層の c が、並びに無い")),
-        "{found:?}"
-    );
-}
-
-#[test]
 fn the_kind_is_decided_by_the_contents() {
     let rules = temp("kind-rules", r#"{"rules":[]}"#);
     assert_eq!(validate::kind_of(&rules).expect("読める"), Kind::Rules);

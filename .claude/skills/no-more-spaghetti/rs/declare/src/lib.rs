@@ -8,9 +8,7 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use nms_parts::inward::judge::{judge, layer_for, unresolved, Layer as Edge_, Order, Unresolved};
-use nms_parts::inward::syntax::Tree;
-use nms_parts::inward::Extractor as _;
+use nms_parts::inward::judge::Layer as Edge_;
 use nms_parts::label::{authority_label, kind_label, Verdict};
 use nms_parts::{init, run, validate};
 use serde_json::json;
@@ -239,7 +237,7 @@ fn run_validate(given: &Given) -> Outcome {
         validate::Kind::Generated => validate::check_generated(&file),
         _ => validate::check_rules(&file, &contracts).and_then(|mut found| {
             if given.has("root") {
-                found.extend(validate::check_layers(&file)?);
+                found.extend(validate::check_units(&file)?);
             }
             Ok(found)
         }),
@@ -278,7 +276,8 @@ fn run_init(given: &Given) -> Outcome {
         Err(why) => return Outcome::misuse(why),
     };
     let contract = skill_root(given).join("references/rules.schema.json");
-    match init::create(&root, &target, &layers, &contract) {
+    let language = given.one("language", "").to_owned();
+    match init::create(&root, &target, &language, &layers, &contract) {
         Ok(path) => Outcome::found(
             vec![
                 "道具が空である ── 検証方法を書く（x-prompt.write が案内する）".to_owned(),
@@ -399,16 +398,7 @@ fn parse_layer(raw: &str) -> Result<Edge_, String> {
     }
     let mut layer = Edge_::of(name.to_owned(), ids);
     for mark in parts {
-        layer = match mark {
-            "independent" => layer.independent(),
-            "closed" => layer.closed(),
-            "composes" => layer.composes(),
-            other => {
-                return Err(format!(
-                    "その印は無い ── {other}（independent ／ closed ／ composes）"
-                ))
-            }
-        };
+        layer = layer.marked(mark)?;
     }
     Ok(layer)
 }
@@ -416,94 +406,27 @@ fn parse_layer(raw: &str) -> Result<Edge_, String> {
 fn run_inward(given: &Given) -> Outcome {
     let language = given.one("language", "");
     let root = PathBuf::from(given.one("root", "."));
-    let listed = given.all("layer");
-    if listed.is_empty() {
-        return Outcome::misuse("層を1つも渡していない".to_owned());
-    }
     let mut layers = Vec::new();
-    for raw in listed {
+    for raw in given.all("layer") {
         match parse_layer(raw) {
             Ok(layer) => layers.push(layer),
             Err(why) => return Outcome::misuse(why),
         }
     }
-    let Some(tree) = Tree::of(language) else {
-        return Outcome::misuse(format!(
-            "その言語の抽出器が無い ── {language}（在るのは {}）",
-            Tree::languages().join(" ・ ")
-        ));
-    };
-    if !root.is_dir() {
-        return Outcome::misuse(format!("根が無い ── {}", root.display()));
+    match nms_parts::inward::measure(language, &root, layers) {
+        Ok(got) => Outcome::found(
+            got.findings,
+            json!({
+                "language": got.language,
+                "root": root.display().to_string(),
+                "edges": got.edges.len(),
+                "layered_edges": got.layered_edges,
+                "limits": got.limits,
+                "edge_list": got.edges.iter().map(|e| json!([e.from, e.to, e.at])).collect::<Vec<_>>(),
+            }),
+        ),
+        Err(why) => Outcome::misuse(why),
     }
-    let got = match tree.extract(&root) {
-        Ok(got) => got,
-        Err(e) => return Outcome::misuse(format!("抽出できない ── {e}")),
-    };
-    let order = Order::inner_to_outer(layers);
-    let bad = judge(&order, &got.edges);
-    let mut findings: Vec<String> = bad
-        .iter()
-        .map(|v| format!("{} ── {} → {}（{}）", v.at, v.from, v.to, v.because.label()))
-        .collect();
-    // **静的に追跡できない読み込みは、参照元が層に属すときだけ出す** ── 層の外のファイルは
-    // 向きの規則を課されない（実測 ── 違反を意図して含む試験データを検出した）。
-    // **合成する層のものも、食い違いにしない** ── 向きの規則が唯一成立しない場所を、
-    // 最も外側の1か所へ集約してある
-    findings.extend(
-        got.escapes
-            .iter()
-            .filter(|e| layer_for(&order, &e.in_point).is_some_and(|l| !l.composes))
-            .map(|e| format!("{} ── {}", e.at, e.how)),
-    );
-    findings.extend(
-        got.undecided
-            .iter()
-            .map(|u| format!("判定できていない ── {u}")),
-    );
-    // **読めなかった設定は、層に属すモジュールがその下に在るときだけ出す** ── 層の外の設定は、
-    // 照合に使われない（実測 ── 例のディレクトリの生成物を指す tsconfig）
-    findings.extend(
-        got.unreadable
-            .iter()
-            .filter(|(dir, _)| {
-                got.points.iter().any(|p| {
-                    (dir.is_empty()
-                        || p.starts_with(&format!("{dir}/"))
-                        || p.starts_with(&format!("{}.", dir.replace('/', "."))))
-                        && layer_for(&order, p).is_some()
-                })
-            })
-            .map(|(_, u)| format!("判定できていない ── 設定を読めない ── {u}")),
-    );
-    // **判定できなかった参照を、合格にしない**（向きの判定が決める）
-    findings.extend(
-        unresolved(&order, &got.edges, &got.points, &tree.names())
-            .into_iter()
-            .map(|u| match u {
-                Unresolved::Unlayered { at, to } => {
-                    format!("判定できていない ── {at} ── {to} はどの層にも属さない")
-                }
-                Unresolved::Missing { at, to } => format!(
-                    "判定できていない ── {at} ── {to} の参照先が実在しない（生成物か、名前の誤り）"
-                ),
-                _ => String::new(),
-            })
-            .filter(|x| !x.is_empty()),
-    );
-    Outcome::found(
-        findings,
-        json!({
-            "language": tree.language(),
-            "root": root.display().to_string(),
-            "edges": got.edges.len(),
-            "layered_edges": got.edges.iter().filter(|e| {
-                layer_for(&order, &e.from).is_some() && layer_for(&order, &e.to).is_some()
-            }).count(),
-            "limits": got.limits,
-            "edge_list": got.edges.iter().map(|e| json!([e.from, e.to, e.at])).collect::<Vec<_>>(),
-        }),
-    )
 }
 
 fn human_inward(out: &Outcome) -> String {
@@ -564,6 +487,7 @@ pub fn tools() -> Vec<Tool> {
                 Arg::need("root", "リポジトリの場所"),
                 Arg::need("target", "成果物の場所（リポジトリ自身なら .）"),
                 Arg::many("layer", "層を 名前=識別子 で渡す（複数可）"),
+                Arg::opt("language", "依存の向きを測る言語（inward が扱う名前）", None),
                 skill_root.clone(),
             ],
             run: run_init,

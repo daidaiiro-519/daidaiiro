@@ -67,6 +67,22 @@ impl Layer {
         self.composes = true;
         self
     }
+
+    /// 印を名前で付ける。**印は3つだけである** ── `independent` ／ `closed` ／ `composes`。
+    ///
+    /// # Errors
+    ///
+    /// 3つ以外の印を渡したときに返す。
+    pub fn marked(self, mark: &str) -> Result<Self, String> {
+        match mark {
+            "independent" => Ok(self.independent()),
+            "closed" => Ok(self.closed()),
+            "composes" => Ok(self.composes()),
+            other => Err(format!(
+                "その印は無い ── {other}（independent ／ closed ／ composes）"
+            )),
+        }
+    }
 }
 
 /// 層の宣言。**並びは内から外である** ── 先頭が最も内側である。
