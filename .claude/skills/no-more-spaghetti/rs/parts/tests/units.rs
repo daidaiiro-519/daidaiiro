@@ -186,3 +186,116 @@ fn a_rule_with_both_a_tool_and_inward_is_refused() {
     let found = validate::check_rules(&file, &contracts()).expect("検査できる");
     assert!(!found.is_empty(), "{found:?}");
 }
+
+/// 生成物（src/gen/made.ts）を参照する成果物。**生成の手順が、inward の前にそれを置く。**
+fn generated(generate: &str) -> String {
+    format!(
+        r#"{{
+  "units": {{
+    "app": {{ "root": "app", "language": "typescript", "generate": {generate},
+             "layers": [ {{ "name": "core", "where": ["src/core"] }},
+                         {{ "name": "gen", "where": ["src/gen"] }},
+                         {{ "name": "adapter", "where": ["src/adapter"] }} ] }}
+  }},
+  "rules": [
+    {{ "rule": "依存の向きが、層の並びと一致する", "source": {{ "record": "x" }}, "scope": "全体",
+      "check": {{ "inward": true }}, "units": ["app"] }},
+    {{ "rule": "依存の向きが、層の並びと一致する（2件目）", "source": {{ "record": "x" }}, "scope": "全体",
+      "check": {{ "inward": true }}, "units": ["app"] }}
+  ]
+}}"#
+    )
+}
+
+fn app_with_generated_reference(root: &Path) {
+    write(root, "app/src/core/name.ts", "export const n = 1;\n");
+    write(
+        root,
+        "app/src/adapter/use.ts",
+        "import { m } from '../gen/made';\nexport const k = m;\n",
+    );
+    write(root, "app/made.ts.in", "export const m = 1;\n");
+    std::fs::create_dir_all(root.join("app/src/gen")).expect("作れる");
+}
+
+fn verdicts(report: &run::Report) -> Vec<(String, Verdict, String)> {
+    report
+        .rules
+        .iter()
+        .map(|r| (r.name.clone(), r.verdict, r.reason.clone()))
+        .collect()
+}
+
+#[test]
+fn without_the_generation_the_generated_module_is_missing() {
+    // 生成の手順が無ければ、生成物への参照は「参照先が実在しない」になる
+    let (root, file) = scratch("gen-none", &generated("[]"));
+    app_with_generated_reference(&root);
+    let report = run::check(&root, &file, 10).expect("実行できる");
+    let got = &report.rules[0];
+    assert_eq!(got.verdict, Verdict::Fail, "{:?}", verdicts(&report));
+    assert!(got.output.contains("実在しない"), "{}", got.output);
+}
+
+#[test]
+fn the_generation_runs_once_before_inward() {
+    let body = generated(r#"[["cp", "made.ts.in", "src/gen/made.ts"]]"#);
+    let (root, file) = scratch("gen-ok", &body);
+    app_with_generated_reference(&root);
+    let report = run::check(&root, &file, 10).expect("実行できる");
+    let all = verdicts(&report);
+    // 生成の手順は1回だけで、inward の2件より前に並ぶ
+    let steps: Vec<_> = all
+        .iter()
+        .filter(|(n, _, _)| n.starts_with("生成の手順"))
+        .collect();
+    assert_eq!(steps.len(), 1, "{all:?}");
+    assert!(all[0].0.starts_with("生成の手順"), "{all:?}");
+    assert_eq!(all[0].1, Verdict::Pass, "{all:?}");
+    assert!(
+        all[1..].iter().all(|(_, v, _)| *v == Verdict::Pass),
+        "{all:?}"
+    );
+}
+
+#[test]
+fn a_failed_generation_leaves_inward_unrun() {
+    let (root, file) = scratch("gen-fail", &generated(r#"[["false"]]"#));
+    app_with_generated_reference(&root);
+    let report = run::check(&root, &file, 10).expect("実行できる");
+    let all = verdicts(&report);
+    assert_eq!(all[0].1, Verdict::Fail, "生成の手順は不合格: {all:?}");
+    for (_, verdict, reason) in &all[1..] {
+        // 生成物が無いまま測ると、本当の違反と区別できない ── 合格にも不合格にもしない
+        assert_eq!(*verdict, Verdict::Skip, "{all:?}");
+        assert!(reason.contains("生成の手順"), "{all:?}");
+    }
+}
+
+#[test]
+fn the_generation_appears_in_the_plan() {
+    let body = generated(r#"[["cp", "made.ts.in", "src/gen/made.ts"]]"#);
+    let (_, file) = scratch("gen-plan", &body);
+    let got = rules::load(&file).expect("読める");
+    assert_eq!(
+        got[0].tool,
+        vec!["cp", "made.ts.in", "src/gen/made.ts"],
+        "{got:?}"
+    );
+    assert_eq!(got[0].target, "app");
+    assert_eq!(got[0].generates, "app");
+}
+
+#[test]
+fn the_generation_is_a_list_of_commands_in_the_contract() {
+    let ok = generated(r#"[["cp", "made.ts.in", "src/gen/made.ts"]]"#);
+    let (_, file) = scratch("gen-contract-ok", &ok);
+    let found = validate::check_rules(&file, &contracts()).expect("検査できる");
+    assert!(found.is_empty(), "{found:?}");
+    // **コマンドは配列で書く** ── 空の配列と文字列は、シェルを経由しない形にならない
+    for bad in [r#"[[]]"#, r#"["cp made.ts.in src/gen/made.ts"]"#] {
+        let (_, file) = scratch("gen-contract-bad", &generated(bad));
+        let found = validate::check_rules(&file, &contracts()).expect("検査できる");
+        assert!(!found.is_empty(), "{bad} を受け付けた");
+    }
+}

@@ -253,6 +253,23 @@
             "write": "inward が扱う言語の名前を書く（rust ・ go ・ typescript ・ python ・ ruby ・ cpp ・ java ・ kotlin ・ csharp ・ php）"
           }
         },
+        "generate": {
+          "description": "生成の手順。**依存の向きを測る直前に、成果物の根で1回だけ実行する。** 失敗すると、その成果物の依存の向きは実行しない ── 生成物が無いまま測ると、実在しない参照先が実際の違反と区別できない。",
+          "x-prompt": {
+            "read": "並びの順に実行するコマンドである。各コマンドは配列で、先頭が実行するもの、以降が引数である",
+            "write": "生成物を持つ成果物にだけ書く。コマンドは配列で書く ── シェルを経由すると、引数の展開が実行するシェルに依存する"
+          },
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
         "layers": {
           "description": "層の並び。**内から外の順である。** 名前は概念の層、where はその言語での識別子である。**名前は原典に無いので、こちら側が決める。**",
           "x-prompt": {

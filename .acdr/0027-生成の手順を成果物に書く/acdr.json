@@ -1,0 +1,151 @@
+{
+ "no": "ACDR 0027",
+ "title": "生成の手順を成果物に書き、依存の向きを測る直前に実行する",
+ "date": "2026-09-28",
+ "status": "accepted",
+ "decision": "no-more-spaghetti の規則ファイルで、生成物を持つ成果物に生成の手順を書けるようにし、check がその成果物の依存の向きを測る直前に実行する。",
+ "why": "no-more-spaghetti のブレストボード（.brainstorming-board/no-more-spaghetti/）の論点13 の要求事項に「生成の手順は、規則ファイルの成果物（units）に書く ── check が inward の前に実行する」とある。ACDR 0026（.acdr/0026-規則ファイルを成果物ごとの形へ移す/）で units の形へ変更したが、生成の手順を書く欄はまだ無い。生成物を持つ成果物では、生成物を指す参照が「参照先が実在しない」と報告され、実際の違反と区別できない。",
+ "shift": [
+  {
+   "what": "生成の手順の置き場所",
+   "from": "書く欄が無い",
+   "to": "成果物の generate に、コマンドの配列の並びで書く。コマンドはシェルを経由しない"
+  },
+  {
+   "what": "生成物を指す参照",
+   "from": "参照先が実在しないと報告する",
+   "to": "依存の向きを測る直前に、成果物の根で生成するので、実在するモジュールとして判定する"
+  },
+  {
+   "what": "生成が失敗したとき",
+   "from": "該当なし（生成を実行しない）",
+   "to": "生成の手順を不合格として報告し、その成果物の依存の向きは実行しないとする"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前と変更後を、3つの観点で対比した図である。左が現在の Skill、右がこの記録を適用した姿である。",
+ "how": "no-more-spaghetti の手順で実施した。モデルと3つの仮定（失敗したら依存の向きを実行しない ・ 成果物ごとに1回だけ実行する ・ 依存の向きの直前だけに実行する）は、実装の前に提示して承認を得た。失敗する試験を5件書いてから実装し、試験は69件すべて成功した。clippy の警告は0件である。書いた後の検査は104件が合格し、不合格の2件は design-svg と brainstorming-board の SKILL.md の廃語で、この変更の対象外である。.coding-rules/rules.json の15の成果物は生成物を保持しないので、書き換えは発生しない。",
+ "applies_to": "<code>.claude/skills/no-more-spaghetti/references/rules.schema.json</code>（成果物の generate）。<code>.claude/skills/no-more-spaghetti/rs/parts/src/</code> の rules.rs ・ run.rs と試験 <code>parts/tests/units.rs</code>。<code>.claude/skills/no-more-spaghetti/SKILL.md</code>。",
+ "alternatives": [
+  {
+   "option": "生成が失敗しても、依存の向きを測る",
+   "why_not": "生成物が無いまま測ると、実在しない参照先が大量に報告され、実際の違反と区別できない"
+  },
+  {
+   "option": "生成の手順を、すべての規則の前に実行する",
+   "why_not": "論点13 の要求事項は「inward の前に」である。整形や静的解析の道具は、それぞれ自身で生成を処理する（cargo の build.rs など）"
+  },
+  {
+   "option": "生成の手順を、規則の1件として書く",
+   "why_not": "規則は並びの順に実行されるので、依存の向きより前に並べる責任が書く側に移る。成果物に書けば、どの規則の前に実行するかを Skill が決める"
+  },
+  {
+   "option": "生成の道具を Skill が保持する",
+   "why_not": "同じボードの論点2 で、Skill は検査する言語の外の道具を保持しないと決めた"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、正本と記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "schema",
+   "tab": "rules.schema.json",
+   "file": ".claude/skills/no-more-spaghetti/references/rules.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"generate\": {",
+     "before": "（無い）",
+     "why": "成果物に generate を追加した。コマンドは配列で書き、空の配列と文字列を拒否する"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": "rules.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 生成の手順。**inward の直前に、成果物の根で実行する** ── 生成物を指す参照を、",
+     "before": "（無い）",
+     "why": "成果物が生成の手順を保持する"
+    },
+    {
+     "find": "/// 生成の手順なら、その成果物の名前。**失敗すると、その成果物の inward を実行しない。**",
+     "before": "（無い）",
+     "why": "実行1件が生成の手順かどうかを保持する。失敗したときに、どの成果物の依存の向きを実行しないかを決めるためである"
+    },
+    {
+     "find": "generate: raw",
+     "before": "（無い）",
+     "why": "規則ファイルから generate を読む"
+    },
+    {
+     "find": "let expanded: Vec<Rule> = items.iter().flat_map(|raw| expand(raw, &all)).collect();",
+     "before": "Ok(items.iter().flat_map(|raw| expand(raw, &all)).collect())",
+     "why": "成果物ごとに、最初の依存の向きの実行の直前へ、生成の手順を挿入する。同じ成果物に依存の向きの規則が2件あっても、生成は1回だけ実行する"
+    }
+   ]
+  },
+  {
+   "key": "run",
+   "tab": "run.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/src/run.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let mut out: Vec<Outcome> = Vec::new();",
+     "before": "let mut out = Vec::new();\nout.push(run_one(rule, root, timeout, Some(&save_to), i)?);",
+     "why": "生成の手順が失敗した成果物は、残りの手順と依存の向きを実行しないとする。理由には、失敗した手順の名前を書く"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "tests/units.rs",
+   "file": ".claude/skills/no-more-spaghetti/rs/parts/tests/units.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 生成物（src/gen/made.ts）を参照する成果物。**生成の手順が、inward の前にそれを置く。**",
+     "before": "（無い）",
+     "why": "生成の手順の試験を5件追加した。生成しなければ参照先が実在しないこと ・ 依存の向きの前に1回だけ実行すること ・ 失敗したら依存の向きを実行しないこと ・ 実行の一覧に現れること ・ 契約が配列の形を要求すること"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/no-more-spaghetti/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "生成物を持つ成果物は、生成の手順を",
+     "before": "（無い）",
+     "why": "生成の手順の書き方と、失敗したときの扱いを書いた"
+    },
+    {
+     "find": "最初の依存の向きの実行の直前へ挿入する",
+     "before": "（無い）",
+     "why": "rules.rs の役割に、生成の手順の挿み方を足した"
+    },
+    {
+     "find": "生成の手順を固定してある",
+     "before": "成果物ごとの展開を固定してある",
+     "why": "試験の件数と対象を実数に一致させた"
+    }
+   ]
+  }
+ ],
+ "lede": "生成物を持つ成果物に生成の手順を書き、依存の向きを測る直前に実行する提案である。",
+ "seal": {
+  "schema": "f9dae5f5fc50a1a8c9a6218033433aa5ba6d3418fd63fb01d38e5dcd0b3c6eb6",
+  "rules": "32f2b8a80dcc2b460aa3bed5e62c93826a0441778c85add850b9a80739db09c5",
+  "run": "ddc7bf146032aac3b499e65270c58658e2049dda0ac73568f981ef57f1e59dd9",
+  "tests": "26439279be952d4f680fe6914939b190ae9ad5750ebae249d756b26d59dfca51",
+  "skill": "1ea8e5b891d710a710bcf0984127be456db7fd11e5497726f6bd7ba6f9a2bb09"
+ }
+}

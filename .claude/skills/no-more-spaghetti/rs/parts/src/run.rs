@@ -347,9 +347,25 @@ pub fn check(root: &Path, rules_file: &Path, timeout: u64) -> io::Result<Report>
     let dir = runs_dir(root);
     let _ = std::fs::remove_dir_all(&dir);
     let save_to = dir.join(&run);
-    let mut out = Vec::new();
+    let mut out: Vec<Outcome> = Vec::new();
+    // **生成の手順が失敗した成果物は、inward を実行しない** ── 生成物が無いまま測ると、
+    // 「参照先が実在しない」が実際の違反と区別できない
+    let mut failed: Vec<(String, String)> = Vec::new();
     for (i, rule) in rules.iter().enumerate() {
-        out.push(run_one(rule, root, timeout, Some(&save_to), i)?);
+        if let Some((_, step)) = failed.iter().find(|(unit, _)| *unit == rule.unit) {
+            if rule.inward.is_some() || !rule.generates.is_empty() {
+                out.push(Outcome::skipped(
+                    rule,
+                    format!("生成の手順が失敗した ── {step}"),
+                ));
+                continue;
+            }
+        }
+        let got = run_one(rule, root, timeout, Some(&save_to), i)?;
+        if !rule.generates.is_empty() && got.verdict != Verdict::Pass {
+            failed.push((rule.generates.clone(), rule.name.clone()));
+        }
+        out.push(got);
     }
     let mut findings: Vec<String> = out
         .iter()

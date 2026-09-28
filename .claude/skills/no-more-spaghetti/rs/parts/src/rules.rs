@@ -40,6 +40,9 @@ pub struct Unit {
     pub language: String,
     /// 層の並び。**内から外の順である。**
     pub layers: Vec<UnitLayer>,
+    /// 生成の手順。**inward の直前に、成果物の根で実行する** ── 生成物を指す参照を、
+    /// 実在しない参照先として報告しないためである。
+    pub generate: Vec<Vec<String>>,
 }
 
 /// 依存の向きを測る規則の中身。**言語と層は、成果物から来る。**
@@ -74,6 +77,8 @@ pub struct Rule {
     pub inward: Option<Inward>,
     /// 規則が指したのに実在しない成果物の名前。**空でなければ実行しない。**
     pub missing_unit: String,
+    /// 生成の手順なら、その成果物の名前。**失敗すると、その成果物の inward を実行しない。**
+    pub generates: String,
 }
 
 /// 規則ファイルから成果物の一覧を取り出す。**`units` が無ければ空である。**
@@ -91,6 +96,22 @@ pub fn units(parsed: &Value) -> Vec<Unit> {
                 .get("layers")
                 .and_then(Value::as_array)
                 .map(|list| list.iter().map(layer).collect())
+                .unwrap_or_default(),
+            generate: raw
+                .get("generate")
+                .and_then(Value::as_array)
+                .map(|steps| {
+                    steps
+                        .iter()
+                        .filter_map(Value::as_array)
+                        .map(|step| {
+                            step.iter()
+                                .filter_map(Value::as_str)
+                                .map(str::to_owned)
+                                .collect()
+                        })
+                        .collect()
+                })
                 .unwrap_or_default(),
         })
         .collect()
@@ -133,7 +154,41 @@ pub fn load(path: &Path) -> io::Result<Vec<Rule>> {
         None => vec![parsed.clone()],
     };
     let all = units(&parsed);
-    Ok(items.iter().flat_map(|raw| expand(raw, &all)).collect())
+    let expanded: Vec<Rule> = items.iter().flat_map(|raw| expand(raw, &all)).collect();
+    Ok(with_generation(expanded, &all))
+}
+
+/// 成果物ごとに、最初の inward の実行の直前へ、生成の手順を挿入する。**1回の実行で、
+/// 成果物ごとに1回だけである** ── 同じ成果物に inward の規則が2件あっても、生成は1回で足りる。
+fn with_generation(rules: Vec<Rule>, all: &[Unit]) -> Vec<Rule> {
+    let mut done: Vec<String> = Vec::new();
+    let mut out = Vec::with_capacity(rules.len());
+    for rule in rules {
+        if rule.inward.is_some() && !done.contains(&rule.unit) {
+            done.push(rule.unit.clone());
+            if let Some(unit) = all.iter().find(|u| u.name == rule.unit) {
+                let count = unit.generate.len();
+                for (i, step) in unit.generate.iter().enumerate() {
+                    let name = if count > 1 {
+                        format!("生成の手順（{}）{}/{count}", unit.name, i + 1)
+                    } else {
+                        format!("生成の手順（{}）", unit.name)
+                    };
+                    out.push(Rule {
+                        name,
+                        tool: step.clone(),
+                        target: rule.target.clone(),
+                        unit: unit.name.clone(),
+                        generates: unit.name.clone(),
+                        has_source: true,
+                        ..Rule::default()
+                    });
+                }
+            }
+        }
+        out.push(rule);
+    }
+    out
 }
 
 fn text(value: Option<&Value>) -> String {
