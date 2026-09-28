@@ -107,14 +107,7 @@ pub fn render(parts: &Parts, md: &str) -> Result<String, String> {
         if line.starts_with('|') {
             let mut cells: Vec<Vec<String>> = Vec::new();
             while i < lines.len() && lines[i].starts_with('|') {
-                cells.push(
-                    lines[i]
-                        .trim()
-                        .trim_matches('|')
-                        .split('|')
-                        .map(|c| c.trim().to_owned())
-                        .collect(),
-                );
+                cells.push(split_cells(lines[i]));
                 i += 1;
             }
             let mut body: Vec<Vec<String>> =
@@ -289,4 +282,26 @@ pub fn mark(parts: &Parts, body: &str, marks: &[Value]) -> Result<Marked, String
 /// 先頭の何文字かを取る。**文字で数える** ── バイトで切ると日本語が割れる。
 fn head(body: &str, count: usize) -> String {
     body.chars().take(count).collect()
+}
+
+/// 表の1行をセルへ割る。**`\\|` はセルの区切りではなく、縦線の文字である**（GitHub の表の
+/// 書き方）── 区切りとして扱うと、セルが途中で切れ、その先の文字が消える。
+fn split_cells(line: &str) -> Vec<String> {
+    let mut cells = Vec::new();
+    let mut cell = String::new();
+    let mut chars = line.trim().trim_start_matches('|').chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' if chars.peek() == Some(&'|') => {
+                cell.push('|');
+                chars.next();
+            }
+            '|' => cells.push(std::mem::take(&mut cell).trim().to_owned()),
+            _ => cell.push(c),
+        }
+    }
+    if !cell.trim().is_empty() {
+        cells.push(cell.trim().to_owned());
+    }
+    cells
 }

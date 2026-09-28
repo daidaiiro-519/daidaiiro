@@ -1,0 +1,123 @@
+{
+ "no": "ACDR 0030",
+ "title": "acdr の表の表示の不具合の修正",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "acdr が描画する表（マークダウンの表と、形の変化 ・ 比較した案の表）を、狭い画面でもページの幅に合わせ、セルの中の縦線の文字を区切りとして解釈しない形にする。",
+ "why": "ACDR 0029 をスマートフォンの幅（390ピクセル）で表示すると、例の文書の表がページごと横にはみ出した（表の幅は774ピクセル）。加えて、セルの中の `\\|`（縦線を文字として書く書き方）がセルの区切りとして扱われ、「curl … install.sh | bash」のセルが途中で切れ、bash 以降が表示されていなかった。後者は表示の不具合にとどまらず、記録の中身が欠ける不具合である。利用者の報告（2026-09-29）で判明した。 修正の途中で、この記録自身も390ピクセルの幅でページが422ピクセルに広がった。形の変化の表と比較した案の表も、横スクロールの枠で囲んでいなかったためである。",
+ "shift": [
+  {
+   "what": "表の枠",
+   "from": "マークダウンの表は、ページ全体の外枠と同じ class=\"wrap\" で囲む。形の変化と比較した案の表は、枠で囲まない",
+   "to": "3種類の表をすべて class=\"scroll\" の枠で囲み、溢れた分は表の枠の中で横にスクロールする（acdr.template.html の md-table ・ shift ・ dropped）"
+  },
+  {
+   "what": "セルの中の \\|",
+   "from": "セルの区切りとして扱い、その先の文字を別のセルにする",
+   "to": "縦線の文字として、同じセルに保持する"
+  },
+  {
+   "what": "表の中の長い経路",
+   "from": "折り返さず、列の幅を拡大させる",
+   "to": "表の中のコードの部分だけ、どこでも折り返す。普通の語は途中で折り返さない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "3件の変更前と変更後を並べた図である。",
+ "how": "失敗する試験を3件書いてから直した（縦線の文字がセルの中に残ること ・ マークダウンの表と節の表が scroll の枠で囲まれること）。acdr の試験は80件すべて成功し、clippy の警告は0件である。ACDR 0029 とこの記録を組み直し、390ピクセルの幅で、ページが画面の幅に収まることを確認した。セル全体に折り返しを掛けると「Linu x」のように短い語まで分割されたので、折り返しはコードの部分だけにした。",
+ "applies_to": "変更する正本は、<code>.claude/skills/acdr/rs/parts/src/markdown.rs</code> と、<code>references/</code> の acdr.template.html ・ acdr.css である。試験と SKILL.md の試験の件数も変更する。",
+ "alternatives": [
+  {
+   "option": "表のセル全体を、どこでも折り返す",
+   "why_not": "狭い列で、Linux や Windows のような短い語まで途中で分割される"
+  },
+  {
+   "option": "ACDR 0029 の例の文書から、表の中の縦線を削除する",
+   "why_not": "文書の側で避けても、acdr が \\| を区切りとして扱う不具合は残り、次の記録で再び中身が欠ける"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして記録の HTML を再生成し、acdr の変更と記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "md",
+   "tab": "markdown.rs",
+   "file": ".claude/skills/acdr/rs/parts/src/markdown.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "cells.push(split_cells(lines[i]));",
+     "before": "cells.push(\nlines[i]\n.trim()\n.trim_matches('|')\n.split('|')\n.map(|c| c.trim().to_owned())\n.collect(),\n);",
+     "why": "表の行を割る処理を、新しい関数 split_cells へ移した"
+    },
+    {
+     "find": "/// 表の1行をセルへ割る。**`\\\\|` はセルの区切りではなく、縦線の文字である**（GitHub の表の",
+     "before": "（無い）",
+     "why": "\\| を縦線の文字として同じセルに保持する。区切りとして扱うと、セルが途中で切れ、その先の文字が消えていた"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "acdr.css",
+   "file": ".claude/skills/acdr/references/acdr.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".scroll td code,.scroll th code{overflow-wrap:anywhere}",
+     "before": "（無い）",
+     "why": "表の中のコードの部分だけ、どこでも折り返す。長い経路が列の幅を拡大させていた。セル全体に掛けると短い語まで切れるので、コードに限った"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "tests/markdown.rs",
+   "file": ".claude/skills/acdr/rs/parts/tests/markdown.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "試験を2件追加した。縦線の文字がセルの中に残ること、表が scroll の枠で囲まれること"
+    }
+   ]
+  },
+  {
+   "key": "trec",
+   "tab": "tests/record.rs",
+   "file": ".claude/skills/acdr/rs/parts/tests/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_section_tables_scroll_inside_their_own_frame() {",
+     "before": "（無い）",
+     "why": "試験を1件追加した。形の変化の表と比較した案の表が、scroll の枠で囲まれること"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（80件）",
+     "before": "事例（77件）",
+     "why": "試験の件数を実数に一致させ、表の試験が固定する内容を書き足した"
+    }
+   ]
+  }
+ ],
+ "lede": "acdr が描画するマークダウンの表の表示の不具合を直す提案である。",
+ "seal": {
+  "md": "8308b2207ec32e64b1fdc12afcd3d464e5fce53b4086c00a21f8965252adcd0b",
+  "css": "28304a201ee8b6b9e156fb8decac04a7f3e14e8b10412996b9b113b6e0029ad8",
+  "tests": "8c51c198464c5f8223d78ec7d32e270ba669a427af83dab201b96974da250c89",
+  "trec": "017ce0aedf384432d9c984641613011fc625a8f1d0cf5e06bf0f21ddb43ab237",
+  "skill": "ccddf7b6d0f5e13e8883813e0f8672d47425230c627de061abe9833b4f2c3708"
+ }
+}

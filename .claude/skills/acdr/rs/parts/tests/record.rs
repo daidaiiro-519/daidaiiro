@@ -89,6 +89,24 @@ fn the_sections_the_record_holds_are_in_the_page() {
 }
 
 #[test]
+fn the_section_tables_scroll_inside_their_own_frame() {
+    // **節の表も、横に溢れたら表の枠の中で横に送る** ── 枠が無いと、長い語を含む表が
+    // 狭い画面でページごと横にはみ出す（実測 ── 390ピクセルの幅で、ページが422ピクセルになった）
+    let mut spec = sound();
+    spec["shift"] = json!([{"what": "置き場所", "from": "旧", "to": "新"}]);
+    spec["alternatives"] = json!([{"option": "案甲", "why_not": "これが壊れる。"}]);
+    let got = made(&spec, "");
+    assert!(
+        got.page.contains("<div class=\"scroll\"><table class=\"shift\">"),
+        "形の変化の表に枠が無い"
+    );
+    assert!(
+        got.page.contains("<div class=\"scroll\"><table><thead><tr><th>案</th>"),
+        "比較した案の表に枠が無い"
+    );
+}
+
+#[test]
 fn an_absent_section_is_named_not_omitted() {
     // **比較した案が無いことと、書き忘れは、読み手には同じに見える**
     let got = made(&sound(), "");

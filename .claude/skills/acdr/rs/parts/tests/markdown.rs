@@ -233,6 +233,27 @@ fn a_table_with_a_head_keeps_it() {
 }
 
 #[test]
+fn an_escaped_bar_stays_inside_its_cell() {
+    // **`\|` は、セルの区切りではなく縦線の文字である**（GitHub の表の書き方）
+    // ── 区切りとして扱うと、セルが途中で切れ、その先の文字が消える
+    let got = markdown::render(
+        &parts(),
+        "| 環境 | 実行する1行 |\n|---|---|\n| Linux | `curl -fsSL https://x/install.sh \\| bash` |\n",
+    )
+    .expect("描ける");
+    assert!(got.contains("install.sh | bash"), "{got}");
+    assert_eq!(got.matches("<td").count(), 2, "{got}");
+}
+
+#[test]
+fn a_table_scrolls_inside_its_own_frame() {
+    // **表は、横に溢れたら表の枠の中で横に送る** ── ページ全体の外枠（wrap）で囲むと、
+    // 狭い画面でページごと横にはみ出す
+    let got = markdown::render(&parts(), "| 名 | 値 |\n|---|---|\n| 甲 | 乙 |\n").expect("描ける");
+    assert!(got.contains("<div class=\"scroll\"><table"), "{got}");
+}
+
+#[test]
 fn a_fence_keeps_its_content_as_text() {
     let got = markdown::render(&parts(), "```\n<b>甲</b>\n```\n").expect("描ける");
     assert!(got.contains("&lt;b&gt;甲&lt;/b&gt;"), "{got}");
