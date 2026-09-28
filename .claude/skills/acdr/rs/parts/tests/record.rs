@@ -97,11 +97,13 @@ fn the_section_tables_scroll_inside_their_own_frame() {
     spec["alternatives"] = json!([{"option": "案甲", "why_not": "これが壊れる。"}]);
     let got = made(&spec, "");
     assert!(
-        got.page.contains("<div class=\"scroll\"><table class=\"shift\">"),
+        got.page
+            .contains("<div class=\"scroll\"><table class=\"shift\">"),
         "形の変化の表に枠が無い"
     );
     assert!(
-        got.page.contains("<div class=\"scroll\"><table><thead><tr><th>案</th>"),
+        got.page
+            .contains("<div class=\"scroll\"><table><thead><tr><th>案</th>"),
         "比較した案の表に枠が無い"
     );
 }

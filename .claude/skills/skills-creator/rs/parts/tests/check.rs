@@ -33,9 +33,11 @@ fn write_document(root: &Path) {
     std::fs::write(root.join("SKILL.md"), body).expect("書ける");
 }
 
-/// 層を crate に分けた、契約を満たす形を置く。
+/// 層を crate に分けた、契約を満たす形を置く。**道具のソースは tool/ に、実行ファイルは
+/// bin/ に置き、bin/ は git で追跡しない。**
 fn write_layers(root: &Path, edges: &[(&str, &[&str])]) {
-    let rs = root.join("rs");
+    std::fs::write(root.join(".gitignore"), "bin/\ntool/target/\n").expect("書ける");
+    let rs = root.join(check::TOOL);
     let members: Vec<String> = edges
         .iter()
         .map(|(name, _)| format!("\"{name}\""))
@@ -183,7 +185,7 @@ fn absent_examples_are_reported() {
     let root = scratch("notests");
     write_document(&root);
     write_layers(&root, &GOOD);
-    std::fs::remove_dir_all(root.join("rs").join(check::TESTS)).expect("消せる");
+    std::fs::remove_dir_all(root.join(check::TOOL).join(check::TESTS)).expect("消せる");
     let found = check::check(&root, &templates()).expect("検査できる");
     assert!(found.iter().any(|x| x.contains("事例が無い")), "{found:?}");
 }
@@ -205,6 +207,124 @@ fn an_absent_document_is_reported() {
     assert!(found.iter().any(|x| x.contains("文書が無い")), "{found:?}");
 }
 
+/// 部品に1つのファイルを置く。
+fn write_part(root: &Path, body: &str) {
+    let dir = root.join(check::TOOL).join("parts/src");
+    std::fs::create_dir_all(&dir).expect("作れる");
+    std::fs::write(dir.join("run.rs"), body).expect("書ける");
+}
+
+/// 宣言に、呼んでよい外部の道具を書く。
+fn write_requires(root: &Path, names: &[&str]) {
+    let dir = root.join(check::TOOL).join("declare/src");
+    std::fs::create_dir_all(&dir).expect("作れる");
+    let listed: Vec<String> = names.iter().map(|n| format!("\"{n}\"")).collect();
+    std::fs::write(
+        dir.join("lib.rs"),
+        format!("pub const REQUIRES: &[&str] = &[{}];\n", listed.join(", ")),
+    )
+    .expect("書ける");
+}
+
+#[test]
+fn a_remaining_rs_folder_is_reported() {
+    // **道具のソースは tool/ に置く** ── rs/ は言語の名前で、中身の役割を示さない
+    let root = scratch("rs-left");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    std::fs::create_dir_all(root.join("rs")).expect("作れる");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found.iter().any(|x| x.contains("rs/ が残っている")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn bin_that_git_would_track_is_reported() {
+    // **実行ファイルは配布物だけが持つ** ── git で追跡すると、OS ごとの実行ファイルが混ざる
+    let root = scratch("bin-tracked");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    std::fs::write(root.join(".gitignore"), "tool/target/\n").expect("書ける");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(found.iter().any(|x| x.contains("bin/")), "{found:?}");
+}
+
+#[test]
+fn an_absolute_path_in_the_registration_is_reported() {
+    // **登録に開発機の絶対パスを書かない** ── 配布先では存在しない場所を指す
+    let root = scratch("abs");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    std::fs::write(
+        root.join("mcp.json"),
+        r#"{"mcpServers":{"x":{"command":"/home/me/x/bin/x-mcp","args":[]}}}"#,
+    )
+    .expect("書ける");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(found.iter().any(|x| x.contains("絶対パス")), "{found:?}");
+}
+
+#[test]
+fn a_command_missing_on_some_os_is_reported() {
+    // **OS によって無いコマンドを呼ばない** ── date は Windows に実行ファイルとして無く、
+    // timeout は macOS の標準に無い
+    let root = scratch("date");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_requires(&root, &["date"]);
+    write_part(
+        &root,
+        "fn today() { std::process::Command::new(\"date\"); }\n",
+    );
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("OS によって無い") && x.contains("date")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn a_tool_outside_the_declaration_is_reported() {
+    let root = scratch("undeclared");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_requires(&root, &[]);
+    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("宣言に無い外部の道具") && x.contains("git")),
+        "{found:?}"
+    );
+    // 宣言すれば通る
+    write_requires(&root, &["git"]);
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn a_tool_named_at_run_time_needs_its_own_declaration() {
+    // **名前が変数で渡される道具は、名前を照合できない** ── 宣言に「利用者が指定する道具」と書く
+    let root = scratch("dynamic");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_requires(&root, &[]);
+    write_part(&root, "fn f(b: &str) { std::process::Command::new(b); }\n");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found.iter().any(|x| x.contains("利用者が指定する道具")),
+        "{found:?}"
+    );
+    write_requires(&root, &[check::USER_CHOSEN]);
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(found.is_empty(), "{found:?}");
+}
+
 #[test]
 fn what_scaffold_places_satisfies_check() {
     // **生んだものが、そのまま契約を満たす。** 満たさないと、新しい Skill は必ず
@@ -214,13 +334,17 @@ fn what_scaffold_places_satisfies_check() {
     let tmpl = here.join("references/tool-contract");
     let root = scratch("scaffolded");
     for (from, to) in [
-        ("workspace.Cargo.toml.tmpl", "rs/Cargo.toml"),
-        ("parts.Cargo.toml.tmpl", "rs/parts/Cargo.toml"),
-        ("parts.lib.rs.tmpl", "rs/parts/src/lib.rs"),
-        ("parts.tests.rs.tmpl", "rs/parts/tests/example.rs"),
-        ("declare.Cargo.toml.tmpl", "rs/declare/Cargo.toml"),
-        ("cli.Cargo.toml.tmpl", "rs/cli/Cargo.toml"),
-        ("mcp.Cargo.toml.tmpl", "rs/mcp/Cargo.toml"),
+        ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
+        ("parts.Cargo.toml.tmpl", "tool/parts/Cargo.toml"),
+        ("parts.lib.rs.tmpl", "tool/parts/src/lib.rs"),
+        ("parts.tests.rs.tmpl", "tool/parts/tests/example.rs"),
+        ("declare.Cargo.toml.tmpl", "tool/declare/Cargo.toml"),
+        ("declare.lib.rs.tmpl", "tool/declare/src/lib.rs"),
+        ("contract.rs.tmpl", "tool/declare/src/contract.rs"),
+        ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
+        ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
+        ("mcp.json.tmpl", "mcp.json"),
+        ("gitignore.tmpl", ".gitignore"),
     ] {
         let body = std::fs::read_to_string(tmpl.join(from))
             .unwrap_or_else(|e| panic!("{from} を読めない ── {e}"))

@@ -73,28 +73,26 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
             .first()
             .map_or_else(String::new, |w| w.chars().take(3).collect())
     };
-    let root = here
-        .parent()
-        .map_or_else(|| skill.to_owned(), |p| p.join(skill).display().to_string());
     let fill = |body: String| {
         body.replace("{{Skill名}}", skill)
             .replace("{{接頭辞}}", &prefix)
-            .replace("{{Skillの絶対パス}}", &root)
     };
     let mut out = Vec::new();
+    // **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない
     for (from, to) in [
-        ("workspace.Cargo.toml.tmpl", "rs/Cargo.toml"),
-        ("parts.Cargo.toml.tmpl", "rs/parts/Cargo.toml"),
-        ("parts.lib.rs.tmpl", "rs/parts/src/lib.rs"),
-        ("parts.tests.rs.tmpl", "rs/parts/tests/example.rs"),
-        ("declare.Cargo.toml.tmpl", "rs/declare/Cargo.toml"),
-        ("declare.lib.rs.tmpl", "rs/declare/src/lib.rs"),
-        ("contract.rs.tmpl", "rs/declare/src/contract.rs"),
-        ("cli.Cargo.toml.tmpl", "rs/cli/Cargo.toml"),
-        ("cli.main.rs.tmpl", "rs/cli/src/main.rs"),
-        ("mcp.Cargo.toml.tmpl", "rs/mcp/Cargo.toml"),
-        ("mcp.main.rs.tmpl", "rs/mcp/src/main.rs"),
+        ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
+        ("parts.Cargo.toml.tmpl", "tool/parts/Cargo.toml"),
+        ("parts.lib.rs.tmpl", "tool/parts/src/lib.rs"),
+        ("parts.tests.rs.tmpl", "tool/parts/tests/example.rs"),
+        ("declare.Cargo.toml.tmpl", "tool/declare/Cargo.toml"),
+        ("declare.lib.rs.tmpl", "tool/declare/src/lib.rs"),
+        ("contract.rs.tmpl", "tool/declare/src/contract.rs"),
+        ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
+        ("cli.main.rs.tmpl", "tool/cli/src/main.rs"),
+        ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
+        ("mcp.main.rs.tmpl", "tool/mcp/src/main.rs"),
         ("mcp.json.tmpl", "mcp.json"),
+        ("gitignore.tmpl", ".gitignore"),
     ] {
         out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));
     }
@@ -144,11 +142,74 @@ fn human_scaffold(out: &Outcome) -> String {
         .collect();
     lines.extend(out.findings.iter().cloned());
     lines.push(
-        "次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を rs/parts/src/ へ置く".to_owned(),
+        "次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を tool/parts/src/ へ置く".to_owned(),
     );
     lines.push(
-        "組む ── cd rs && cargo build --release。登録は mcp.json をホストの設定へ差し込む"
+        "組む ── Skill のフォルダで cargo install --path tool/cli --root . --target-dir tool/target（mcp も同じ）。bin/ に置かれる"
             .to_owned(),
+    );
+    lines.join("\n")
+}
+
+/// 配布元のリポジトリに置く一式。**導入スクリプトと組み立ての定義は、配布元に1つずつ置く**
+/// ── Skill ごとに複製すると、直しても既存の Skill に反映されない（ACDR 0029）。
+fn dist_items(repo: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
+    let tmpl = here.join("references/tool-contract");
+    let mut out = Vec::new();
+    for (from, to) in [
+        ("install.sh.tmpl", "install.sh"),
+        ("install.ps1.tmpl", "install.ps1"),
+        ("release.yml.tmpl", ".github/workflows/release.yml"),
+    ] {
+        let body = std::fs::read_to_string(tmpl.join(from))?.replace("{{配布元}}", repo);
+        out.push(scaffold::Item::keep(PathBuf::from(to), body));
+    }
+    Ok(out)
+}
+
+fn run_dist(given: &Given) -> Outcome {
+    let repo = given.one("repo", "");
+    if repo.split('/').filter(|x| !x.is_empty()).count() != 2 {
+        return Outcome::misuse(format!("配布元を 所有者/リポジトリ の形で渡す ── {repo}"));
+    }
+    let here = skill_root(given);
+    let root = PathBuf::from(given.one("path", "."));
+    let items = match dist_items(repo, &here) {
+        Ok(items) => items,
+        Err(e) => return Outcome::misuse(format!("雛形を読めない ── {e}")),
+    };
+    let placed = match scaffold::place(&root, &items) {
+        Ok(placed) => placed,
+        Err(e) => return Outcome::misuse(format!("置けない ── {e}")),
+    };
+    let findings = placed
+        .kept
+        .iter()
+        .map(|k| format!("既に在るので残した: {k}"))
+        .collect();
+    Outcome::found(
+        findings,
+        json!({ "written": placed.written, "root": root.display().to_string() }),
+    )
+}
+
+fn human_dist(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    let mut lines: Vec<String> = out
+        .data
+        .get("written")
+        .and_then(|x| x.as_array())
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|x| x.as_str())
+        .map(|p| format!("置いた: {p}"))
+        .collect();
+    lines.extend(out.findings.iter().cloned());
+    lines.push(
+        "公開 ── v で始まる tag を push すると、組み立て ・ 試験 ・ 公開を実行する".to_owned(),
     );
     lines.join("\n")
 }
@@ -177,6 +238,17 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_check,
             human: human_check,
+        },
+        Tool {
+            name: "dist",
+            summary: "配布元のリポジトリに、導入スクリプトと組み立ての定義を置く",
+            args: vec![
+                Arg::need("repo", "配布元（所有者/リポジトリ）"),
+                Arg::opt("path", "配布元のリポジトリの場所", Some(".")),
+                Arg::opt("skill_root", "この Skill の場所（雛形を読む先）", Some(".")),
+            ],
+            run: run_dist,
+            human: human_dist,
         },
     ]
 }

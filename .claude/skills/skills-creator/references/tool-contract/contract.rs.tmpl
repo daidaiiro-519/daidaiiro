@@ -113,6 +113,34 @@ impl Given {
     pub fn all(&self, name: &str) -> &[String] {
         self.values.get(name).map_or(&[], Vec::as_slice)
     }
+
+    /// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**
+    /// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が
+    /// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、
+    /// 試した経路を示して止める。
+    ///
+    /// # Errors
+    ///
+    /// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。
+    pub fn skill_root(&self) -> Result<std::path::PathBuf, String> {
+        if self.has("skill_root") {
+            return Ok(std::path::PathBuf::from(self.one("skill_root", ".")));
+        }
+        let exe = std::env::current_exe()
+            .map_err(|e| format!("実行ファイルの位置を取れない ── {e}"))?;
+        let root = exe
+            .parent()
+            .and_then(std::path::Path::parent)
+            .ok_or_else(|| "実行ファイルの1つ上が無い ── --skill_root で渡す".to_owned())?;
+        if root.join("references").is_dir() {
+            Ok(root.to_path_buf())
+        } else {
+            Err(format!(
+                "Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す",
+                root.display()
+            ))
+        }
+    }
 }
 
 /// 道具の戻り値。**印字はしない** ── 印字と終了コードは入口が持つ。

@@ -1,0 +1,450 @@
+{
+ "no": "ACDR 0032",
+ "title": "skills-creator の道具の契約を、バイナリ配布の形へ改訂する",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "skills-creator の道具の契約 ・ 雛形 ・ 検査を、ACDR 0029 と 0031 で決めたバイナリ配布の形へ改訂する。",
+ "why": "ACDR 0029 と 0031 で、道具の契約に従うすべての Skill を実行ファイルとして配布し、その形を skills-creator に実装すると決めた。いまの契約は、道具のソースの置き場所を rs/ とし、実行ファイルの置き場所を規定していない。雛形の mcp.json は開発機の絶対パスを埋め込み、各 Skill の mcp.json の絶対パスはここから来ている。外部コマンドを呼ぶ規則も無く、date と timeout を呼ぶ Skill が生まれていた。Linux の1環境の試作で、この形が成立することを確認してある（.brainstorming-board/skill-binaries/trial/）。",
+ "shift": [
+  {
+   "what": "道具のソース",
+   "from": "rs/",
+   "to": "tool/。配布しない。名前は中身の役割で付ける"
+  },
+  {
+   "what": "実行ファイル",
+   "from": "置き場所の規定が無い（rs/target/release/ にできる）",
+   "to": "bin/ に置く。配布物だけが持ち、git で追跡しない（雛形の .gitignore）"
+  },
+  {
+   "what": "Skill のフォルダの求め方",
+   "from": "--skill_root で受け取る。実行ファイルからの相対では数えない",
+   "to": "--skill_root が無ければ、実行ファイルの1つ上とする。求める処理は contract.rs の Given::skill_root が持つ"
+  },
+  {
+   "what": "登録（mcp.json の雛形）",
+   "from": "開発機の絶対パス（{{Skillの絶対パス}}/rs/target/release/…）",
+   "to": "${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>-mcp"
+  },
+  {
+   "what": "外部の道具",
+   "from": "規定が無い",
+   "to": "declare の REQUIRES に列挙する。OS によって無いコマンド（date ・ timeout）は呼ばない。check が部品の Command::new と照合する"
+  },
+  {
+   "what": "配布",
+   "from": "規定が無い",
+   "to": "dist が、配布元のリポジトリに install.sh ・ install.ps1 ・ release.yml を雛形から置く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "skills-creator の契約の変更前と変更後を、5つの観点で対比した図である。",
+ "how": "no-more-spaghetti の手順で実施した。失敗する試験を9件書いてから実装し、skills-creator の試験は29件すべて成功した。雛形から置いた install.sh を試作の配布物で実行し、導入 ・ MCP の登録 ・ 存在しない Skill での停止まで動作した。改訂した check を既存の9つの Skill に適用すると、どれも同じ4件で不合格になる（tool/ が無い ・ rs/ が残る ・ .gitignore に bin/ が無い ・ 登録に絶対パスがある）。9つの Skill の移行は、次の記録で提示する。雛形の差分をコードの差分として示すために、acdr が .tmpl を前の拡張子で読むようにし、.ps1 を言語の一覧に加えた（acdr の試験は81件すべて成功）。",
+ "applies_to": "変更する正本は、<code>.claude/skills/skills-creator/</code> の契約（references/）・ 雛形 ・ check と dist ・ SKILL.md である。記録の道具 <code>.claude/skills/acdr/</code> の code.rs ・ panes.rs も変更する。",
+ "alternatives": [
+  {
+   "option": "9つの Skill を個別に直し、契約と雛形は変えない",
+   "why_not": "次に生成する Skill が、また rs/ と絶対パスと date を持つ形で生成される"
+  },
+  {
+   "option": "install.ps1 と release.yml を、Windows と macOS で確認してから契約に入れる",
+   "why_not": "この環境（Linux）では確認できない。配布元のリポジトリで CI を初めて実行したときに確認する。dist は既に在るものを上書きしないので、配布元が直せる"
+  },
+  {
+   "option": "雛形の差分を、記録の中に別の文書として複製して示す",
+   "why_not": "記録が中身を複製することになる。acdr が .tmpl を前の拡張子で読めば、雛形の差分をそのまま示せる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして記録の HTML を再生成し、skills-creator と acdr の変更と記録をコミットする",
+  "9つの Skill の移行を、差分を伴う記録で提示する（この記録をコミットしてから移行を終えるまで、書いた後の検査で9つの Skill の契約の規則が不合格になる）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tc",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "外部の道具",
+     "before": "（無い）",
+     "why": "部品が呼ぶ外部の道具の規定を、規定の表に加えた（論点5）"
+    },
+    {
+     "find": "道具のソース（配布しない）",
+     "before": "rs/ に4つの crate と mcp.json を置く図",
+     "why": "置き場所を tool/ と bin/ に改め、.gitignore を加えた（論点3）"
+    },
+    {
+     "find": "Skill の置き場所は、実行ファイルの1つ上",
+     "before": "部品は、置き場所を階層の数で数えない。実行ファイルからの相対で数えると、置き場所を動かすたびに狂う ── Skill の置き場所は --skill_root で受け取る。",
+     "why": "bin/ を契約で固定したので、実行ファイルからの相対で求めても置き場所は変化しない。build 時の絶対パスは配布先で存在しない場所を指す（ACDR 0029 が 0019 を置き換えた）"
+    },
+    {
+     "find": "利用者の環境に Rust が無くても動く形で配る。",
+     "before": "（無い）",
+     "why": "配布の節を新設した（論点1 ・ 2 ・ 4、ACDR 0031）"
+    },
+    {
+     "find": "見るのは4つ",
+     "before": "見るのは2つ ── 層が crate に分かれていること と、許可辺が各 Cargo.toml の宣言どおりであること である。",
+     "why": "check に、配布の形と外部の道具の検査を加えた"
+    },
+    {
+     "find": "rs/ が残っている",
+     "before": "（無い）",
+     "why": "check が新たに出す検出を、検出の表に加えた"
+    },
+    {
+     "find": "ファイルへ書き出し、上限までしか読まない",
+     "before": "ファイルへ流し、上限までしか読む",
+     "why": "廃語の「流す」を置き換え、「読む」を「読まない」に直した（原文の意味は、上限までしか読まないである）"
+    }
+   ]
+  },
+  {
+   "key": "fs",
+   "tab": "folder-structure.md",
+   "file": ".claude/skills/skills-creator/references/folder-structure.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "道具のソース（Rust の workspace。道具の契約に従う。配布しない）",
+     "before": "道具（Rust の workspace。道具の契約に従う）",
+     "why": "rs/ を tool/ に改め、bin/ を加えた"
+    },
+    {
+     "find": "組み立てた実行ファイル。配布物だけが持ち、git で追跡しない",
+     "before": "（無い）",
+     "why": "bin/ の用途を表に加えた"
+    },
+    {
+     "find": "道具のソースは tool/ にまとめ、実行ファイルは bin/ に置く",
+     "before": "道具は rs/ にまとめ、SKILL.md から入口の名前で参照する。",
+     "why": "置き場所の規定を tool/ と bin/ に改めた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "配布元に、導入スクリプトと組み立ての定義を置く",
+     "before": "（無い）",
+     "why": "新しい操作 dist を、呼び方の例に加えた"
+    },
+    {
+     "find": "利用者の環境に Rust が無くても動く形で配る。",
+     "before": "（無い）",
+     "why": "配布の原則と、規定の置き場所を書いた"
+    },
+    {
+     "find": "組み立てた実行ファイル",
+     "before": "（無い）",
+     "why": "置き場所の表に bin/ を加え、tool/ に改めた"
+    },
+    {
+     "find": "事例（29件）",
+     "before": "事例（21件）。生んだものが契約を満たすことも固定してある",
+     "why": "試験の件数と対象を実数に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "tctr",
+   "tab": "contract.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/tool-contract/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**",
+     "before": "（無い）",
+     "why": "Skill のフォルダを求める処理を、すべての Skill が共有する契約の実体に置いた。--skill_root が無ければ実行ファイルの1つ上を使い、references/ が無ければ試した経路を示して止める（試作で成立を確認した方式）"
+    }
+   ]
+  },
+  {
+   "key": "tdecl",
+   "tab": "declare.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/tool-contract/declare.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を",
+     "before": "（無い）",
+     "why": "呼んでよい外部の道具の宣言（REQUIRES）を雛形に置いた。宣言の置き場所は、能力の正本である declare とした（利用者の承認）"
+    }
+   ]
+  },
+  {
+   "key": "tmcp",
+   "tab": "mcp.json.tmpl",
+   "file": ".claude/skills/skills-creator/references/tool-contract/mcp.json.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/{{Skill名}}/bin/{{Skill名}}-mcp\",",
+     "before": "\"command\": \"{{Skillの絶対パス}}/rs/target/release/{{Skill名}}-mcp\",",
+     "why": "開発機の絶対パスをやめ、${CLAUDE_PROJECT_DIR:-.} から bin/ を指す形にした。各 Skill の mcp.json の絶対パスは、この雛形から来ていた"
+    }
+   ]
+  },
+  {
+   "key": "tsh",
+   "tab": "install.sh.tmpl（新規）",
+   "file": ".claude/skills/skills-creator/references/tool-contract/install.sh.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "set -eu",
+     "before": "（無い）",
+     "why": "macOS ・ Linux ・ WSL 向けの導入スクリプトの雛形を新設した。雛形は試作を一般化したもので、Linux は musl 版、macOS は universal2 版を選ぶ"
+    }
+   ]
+  },
+  {
+   "key": "tps",
+   "tab": "install.ps1.tmpl（新規）",
+   "file": ".claude/skills/skills-creator/references/tool-contract/install.ps1.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "$ErrorActionPreference = 'Stop'",
+     "before": "（無い）",
+     "why": "Windows 向けの導入スクリプトの雛形を新設した。この雛形の動作は、この環境では確認できていない"
+    }
+   ]
+  },
+  {
+   "key": "tyml",
+   "tab": "release.yml.tmpl（新規）",
+   "file": ".claude/skills/skills-creator/references/tool-contract/release.yml.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "name: release",
+     "before": "（無い）",
+     "why": "GitHub Actions の定義の雛形を新設した。この定義は、3つの OS で組み立て、2か所で起動を試験してから公開する。この雛形の動作は、この環境では確認できていない"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/rs/parts/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──",
+     "before": "/// Skill の道具を置く場所。\npub const RS: &str = \"rs\";",
+     "why": "道具のソースの置き場所を tool/ にし、bin/ ・ 利用者が指定する道具の印 ・ OS によって無いコマンドの定数を加えた"
+    },
+    {
+     "find": "/// 事例を置く場所（`tool/` からの相対）。",
+     "before": "/// 事例を置く場所（`rs/` からの相対）。",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "root.join(TOOL).join(\"Cargo.toml\").is_file()",
+     "before": "root.join(RS).join(\"Cargo.toml\").is_file() || root.join(\"scripts\").is_dir()",
+     "why": "rs/ が残っている Skill も、道具を持つ Skill として検査する"
+    },
+    {
+     "find": "let rs = root.join(TOOL);",
+     "before": "let rs = root.join(RS);\n\"層が crate に分かれていない: {RS}/Cargo.toml が無い ── \\\nfindings.push(format!(\"層の crate が無い: {RS}/{need}\"));\n\"入口の crate が無い: {RS}/ に {} のどれかを置く\",",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "findings.push(format!(\"宣言が無い: {TOOL}/{member}/Cargo.toml\"));",
+     "before": "findings.push(format!(\"宣言が無い: {RS}/{member}/Cargo.toml\"));\n\"どの層か決まらない: {RS}/{member} ── 名前を {} か {} で終える\",",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "\"許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \\",
+     "before": "\"許可していない辺を宣言している: {RS}/{member}/Cargo.toml ── \\\nfindings.push(format!(\"事例が無い: {RS}/{TESTS}/\"));\nfindings.push(\"Python が残っている: scripts/ ── 道具は rs/ が持つ\".to_owned());",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "findings.push(format!(\"層の crate が無い: {TOOL}/{need}\"));",
+     "before": "findings.push(format!(\"層の crate が無い: {RS}/{need}\"));",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "findings.push(format!(\"事例が無い: {TOOL}/{TESTS}/\"));",
+     "before": "findings.push(\"Python が残っている: scripts/ ── 道具は rs/ が持つ\".to_owned());",
+     "why": "rs/ が残っていることを検出し、配布の形と外部の道具の検査を呼ぶ。scripts/ の案内も tool/ に改めた"
+    },
+    {
+     "find": "fn distribution(root: &Path) -> Vec<String> {",
+     "before": "（無い）",
+     "why": "配布の形（.gitignore の bin/ ・ 登録の絶対パス）と、部品が呼ぶ外部の道具（OS によって無いコマンド ・ 宣言に無い道具 ・ 名前を実行時に決める道具）を検査する処理を加えた。注記の行は、呼び出しとして数えない"
+    }
+   ]
+  },
+  {
+   "key": "tcheck",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/rs/parts/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 層を crate に分けた、契約を満たす形を置く。**道具のソースは tool/ に、実行ファイルは",
+     "before": "/// 層を crate に分けた、契約を満たす形を置く。\nlet rs = root.join(\"rs\");",
+     "why": "試験の Skill を tool/ に置き、.gitignore に bin/ を書くようにした"
+    },
+    {
+     "find": "std::fs::remove_dir_all(root.join(check::TOOL).join(check::TESTS)).expect(\"消せる\");",
+     "before": "std::fs::remove_dir_all(root.join(\"rs\").join(check::TESTS)).expect(\"消せる\");",
+     "why": "rs/ を tool/ へ改名したので、経路の定数と文言を置き換えた"
+    },
+    {
+     "find": "/// 部品に1つのファイルを置く。",
+     "before": "（無い）",
+     "why": "試験を6件追加した。rs/ が残る ・ bin/ を追跡する ・ 登録に絶対パス ・ date を呼ぶ ・ 宣言に無い道具 ・ 名前を実行時に決める道具"
+    },
+    {
+     "find": "(\"workspace.Cargo.toml.tmpl\", \"tool/Cargo.toml\"),",
+     "before": "(\"workspace.Cargo.toml.tmpl\", \"rs/Cargo.toml\"),\n(\"parts.Cargo.toml.tmpl\", \"rs/parts/Cargo.toml\"),\n(\"parts.lib.rs.tmpl\", \"rs/parts/src/lib.rs\"),\n(\"parts.tests.rs.tmpl\", \"rs/parts/tests/example.rs\"),\n(\"declare.Cargo.toml.tmpl\", \"rs/declare/Cargo.toml\"),\n(\"cli.Cargo.toml.tmpl\", \"rs/cli/Cargo.toml\"),\n(\"mcp.Cargo.toml.tmpl\", \"rs/mcp/Cargo.toml\"),",
+     "why": "雛形から置いたものが契約を満たすことを、tool/ と、declare ・ contract ・ mcp.json ・ .gitignore の雛形を含めて確認する"
+    }
+   ]
+  },
+  {
+   "key": "decl",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/skills-creator/rs/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない",
+     "before": "let root = here\n.parent()\n.map_or_else(|| skill.to_owned(), |p| p.join(skill).display().to_string());\n.replace(\"{{Skillの絶対パス}}\", &root)\n(\"workspace.Cargo.toml.tmpl\", \"rs/Cargo.toml\"),\n(\"parts.Cargo.toml.tmpl\", \"rs/parts/Cargo.toml\"),\n(\"parts.lib.rs.tmpl\", \"rs/parts/src/lib.rs\"),\n(\"parts.tests.rs.tmpl\", \"rs/parts/tests/example.rs\"),\n(\"declare.Cargo.toml.tmpl\", \"rs/declare/Cargo.toml\"),\n(\"declare.lib.rs.tmpl\", \"rs/declare/src/lib.rs\"),\n(\"contract.rs.tmpl\", \"rs/declare/src/contract.rs\"),\n(\"cli.Cargo.toml.tmpl\", \"rs/cli/Cargo.toml\"),\n(\"cli.main.rs.tmpl\", \"rs/cli/src/main.rs\"),\n(\"mcp.Cargo.toml.tmpl\", \"rs/mcp/Cargo.toml\"),\n(\"mcp.main.rs.tmpl\", \"rs/mcp/src/main.rs\"),",
+     "why": "scaffold が置く先を tool/ にし、.gitignore を加えた。{{Skillの絶対パス}} を充填する処理を削除した"
+    },
+    {
+     "find": "\"次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を tool/parts/src/ へ置く\".to_owned(),",
+     "before": "\"次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を rs/parts/src/ へ置く\".to_owned(),\n\"組む ── cd rs && cargo build --release。登録は mcp.json をホストの設定へ差し込む\"",
+     "why": "scaffold の案内を tool/ と bin/ に改め、dist の実体を加えた"
+    },
+    {
+     "find": "name: \"dist\",",
+     "before": "（無い）",
+     "why": "dist を道具の一覧に加えた"
+    }
+   ]
+  },
+  {
+   "key": "tdist",
+   "tab": "tests/distribution.rs（新規）",
+   "file": ".claude/skills/skills-creator/rs/declare/tests/distribution.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn scaffold_places_the_tool_under_tool_and_ignores_bin() {",
+     "before": "（無い）",
+     "why": "scaffold が tool/ と .gitignore と絶対パスの無い登録を置くこと、dist が3つの雛形を1回だけ置き、既に在るものを上書きしないことを固定した"
+    }
+   ]
+  },
+  {
+   "key": "acode",
+   "tab": "acdr code.rs",
+   "file": ".claude/skills/acdr/rs/parts/src/code.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const LANGS: [(&str, &str); 23] = [",
+     "before": "const LANGS: [(&str, &str); 22] = [",
+     "why": "言語の一覧に .ps1 を加えたので、件数を改めた"
+    },
+    {
+     "find": "(\".ps1\", \"shell\"),",
+     "before": "（無い）",
+     "why": "PowerShell の雛形（install.ps1.tmpl）を差分として示すために、.ps1 を shell として色付けする"
+    },
+    {
+     "find": "/// 経路から、言語を決める拡張子を取る。**雛形（`.tmpl`）は、その前の拡張子で決める** ──",
+     "before": "（無い）",
+     "why": "雛形（.tmpl）は、その前の拡張子で言語を決める。install.sh.tmpl は shell である"
+    }
+   ]
+  },
+  {
+   "key": "apanes",
+   "tab": "acdr panes.rs",
+   "file": ".claude/skills/acdr/rs/parts/src/panes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let ext = code::ext_of(path);",
+     "before": "let ext = path\n.extension()\n.map(|x| format!(\".{}\", x.to_string_lossy().to_lowercase()))\n.unwrap_or_default();",
+     "why": "面の種類を決める拡張子を、ext_of で取るようにした"
+    }
+   ]
+  },
+  {
+   "key": "atcode",
+   "tab": "acdr tests/code.rs",
+   "file": ".claude/skills/acdr/rs/parts/tests/code.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "試験を1件追加した。雛形を前の拡張子で読むこと、前の拡張子が無い雛形はコードとして扱わないこと"
+    }
+   ]
+  },
+  {
+   "key": "atrec",
+   "tab": "acdr tests/record.rs",
+   "file": ".claude/skills/acdr/rs/parts/tests/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "got.page",
+     "before": "got.page.contains(\"<div class=\\\"scroll\\\"><table class=\\\"shift\\\">\"),\ngot.page.contains(\"<div class=\\\"scroll\\\"><table><thead><tr><th>案</th>\"),",
+     "why": "cargo fmt が整形した。ACDR 0030 で追加した試験の、行の折り返しである"
+    }
+   ]
+  },
+  {
+   "key": "askill",
+   "tab": "acdr SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（81件）",
+     "before": "事例（80件）",
+     "why": "試験の件数を実数に一致させた"
+    }
+   ]
+  }
+ ],
+ "lede": "skills-creator の道具の契約を、バイナリ配布の形へ改訂する提案である。",
+ "seal": {
+  "tc": "ba7d085403c088e4d3dbe8bf3f7d4604f581c87b0bdf6cb90a63dac7641a8af8",
+  "fs": "537f90df4eca457fcfe241eab981e5ce7bcc13d218a09cac9bb90f8acf7a406c",
+  "skill": "1a7501389d78a97e33286189beec0e677ae150f3acc8361a863f839ee0f14342",
+  "tctr": "4d15120c13291dc07deeaa71feb1719dd0768738a83411473002e58e1dc1de7a",
+  "tdecl": "6b67967cc94f1c89b051b951137be67c14f41ac0b35effad5301733310c1eb1b",
+  "tmcp": "50d7d727da57e3678abf931e007cfd54729225b6818c90b01df97017caa2cc2c",
+  "tsh": "a197fd17a711f02a68b324035bfbd8a53ae20b77918a6cf38f0048f5fc303291",
+  "tps": "4f15eef4547262fa33a27c30348cc27d279db0187968d2d836aaf9f8b523d542",
+  "tyml": "d7e1a1321dfb7ee7a93774614bfae186e67959190e09a01fdf31c422aa51e6d1",
+  "check": "c07373e27455f03456a505aa881e615f9265ff3cbdbec4e5980879fee98539d1",
+  "tcheck": "86ecffa2f391fbc8d38e834c13786395faf654b19abb8597f9e199ebcc6f0500",
+  "decl": "63e37de24e65308883d2220d4ee7c8dc5dd3ecef2278493bf28b7ec2d57a7ae9",
+  "tdist": "20db47b7ba796cf1c2d97e88ff187e08ac35c3d02eb29b425ebcca33d36f464f",
+  "acode": "8fc1d4969e0d58d3719ce0f1243b59abfb455d138b0f27326009d5cc32185bf8",
+  "apanes": "371e9f7e09246d070665eb95ee3b088250eebcd69fcab3699050d1f435d651c7",
+  "atcode": "f19314c2cc075a2be9d1488ad0e8aeab75a3f3bf16c17a1563482b5e15dc9564",
+  "atrec": "7f72bb90b8e6d3d0759ee0ac186669481495e66620779cf5ecfa4841b69ae525",
+  "askill": "1346928b815d2f4129102cccef621c35a27819a9439c0dc6ce0960879e1a00e3"
+ }
+}

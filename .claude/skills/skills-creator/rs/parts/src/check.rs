@@ -17,8 +17,19 @@ use std::path::{Path, PathBuf};
 
 use crate::sections;
 
-/// Skill の道具を置く場所。
-pub const RS: &str = "rs";
+/// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──
+/// 以前の rs/ は言語の名前で、役割を示さなかった。
+pub const TOOL: &str = "tool";
+
+/// 組み立てた実行ファイルを置く場所。**配布物だけが持ち、git で追跡しない。**
+pub const BIN: &str = "bin";
+
+/// 名前を実行時に決める外部の道具を、宣言で表す印。
+pub const USER_CHOSEN: &str = "*";
+
+/// OS によって無いコマンド。**呼ばない** ── date は Windows に実行ファイルとして無く、
+/// timeout は macOS の標準に無い（ACDR 0029）。日付の計算と時間の制限は Rust の中で行う。
+pub const NON_PORTABLE: [&str; 2] = ["date", "timeout"];
 
 /// 層の並び。**内から外である** ── 先頭が最も内側である。
 pub const ORDER: [&str; 3] = ["parts", "declare", "entry"];
@@ -26,7 +37,7 @@ pub const ORDER: [&str; 3] = ["parts", "declare", "entry"];
 /// 入口の層に属する crate。**合成する側なので複数在ってよい。**
 pub const ENTRIES: [&str; 2] = ["cli", "mcp"];
 
-/// 事例を置く場所（`rs/` からの相対）。
+/// 事例を置く場所（`tool/` からの相対）。
 pub const TESTS: &str = "parts/tests";
 
 /// 助言の Skill を見分ける節の名前。**名前で分岐しない** ── Skill が増えるたびに直す。
@@ -145,7 +156,9 @@ fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
 /// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**
 #[must_use]
 pub fn has_tools(root: &Path) -> bool {
-    root.join(RS).join("Cargo.toml").is_file() || root.join("scripts").is_dir()
+    root.join(TOOL).join("Cargo.toml").is_file()
+        || root.join("rs").is_dir()
+        || root.join("scripts").is_dir()
 }
 
 /// 契約を満たしているかを検査し、食い違いを並べる。
@@ -155,25 +168,25 @@ pub fn has_tools(root: &Path) -> bool {
 /// いまは返さない。呼ぶ側の形を変えずに、あとから検査を足せるようにしてある。
 pub fn check(root: &Path, templates: &Templates) -> io::Result<Vec<String>> {
     let mut findings = Vec::new();
-    let rs = root.join(RS);
+    let rs = root.join(TOOL);
 
     // **道具を持たない Skill に、層を要求しない。** 助言と手順だけの Skill が在る
     if has_tools(root) {
         if !rs.join("Cargo.toml").is_file() {
             findings.push(format!(
-                "層が crate に分かれていない: {RS}/Cargo.toml が無い ── \
+                "層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \
                  1つの単位の中の module では、内側が外側を参照してもコンパイラが通す"
             ));
         } else {
             let listed = members(&rs.join("Cargo.toml"));
             for need in ORDER.iter().copied().filter(|x| *x != "entry") {
                 if !listed.iter().any(|x| x == need) {
-                    findings.push(format!("層の crate が無い: {RS}/{need}"));
+                    findings.push(format!("層の crate が無い: {TOOL}/{need}"));
                 }
             }
             if !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {
                 findings.push(format!(
-                    "入口の crate が無い: {RS}/ に {} のどれかを置く",
+                    "入口の crate が無い: {TOOL}/ に {} のどれかを置く",
                     ENTRIES.join(" か ")
                 ));
             }
@@ -181,12 +194,12 @@ pub fn check(root: &Path, templates: &Templates) -> io::Result<Vec<String>> {
             for member in &listed {
                 let manifest = rs.join(member).join("Cargo.toml");
                 if !manifest.is_file() {
-                    findings.push(format!("宣言が無い: {RS}/{member}/Cargo.toml"));
+                    findings.push(format!("宣言が無い: {TOOL}/{member}/Cargo.toml"));
                     continue;
                 }
                 let Some(here) = layer_of(member) else {
                     findings.push(format!(
-                        "どの層か決まらない: {RS}/{member} ── 名前を {} か {} で終える",
+                        "どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える",
                         ORDER.join(" ・ "),
                         ENTRIES.join(" ・ ")
                     ));
@@ -197,22 +210,177 @@ pub fn check(root: &Path, templates: &Templates) -> io::Result<Vec<String>> {
                     let Some(to) = layer_of(&dep) else { continue };
                     if !may.contains(&to) {
                         findings.push(format!(
-                            "許可していない辺を宣言している: {RS}/{member}/Cargo.toml ── \
+                            "許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \
                              {here} → {to}"
                         ));
                     }
                 }
             }
             if !rs.join(TESTS).is_dir() {
-                findings.push(format!("事例が無い: {RS}/{TESTS}/"));
+                findings.push(format!("事例が無い: {TOOL}/{TESTS}/"));
             }
         }
         // **Python を残さない。** 移行が済んでいない箇所を、黙って通さない
         if root.join("scripts").is_dir() {
-            findings.push("Python が残っている: scripts/ ── 道具は rs/ が持つ".to_owned());
+            findings.push(format!(
+                "Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"
+            ));
         }
+        if root.join("rs").is_dir() {
+            findings.push(format!(
+                "rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）"
+            ));
+        }
+        findings.extend(distribution(root));
     }
 
     findings.extend(missing_sections(root, templates));
     Ok(findings)
+}
+
+/// 配布の形を見る。**実行ファイルは配布物だけが持ち、登録は置き場所に依存しない。**
+fn distribution(root: &Path) -> Vec<String> {
+    let mut findings = Vec::new();
+    let ignored = fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
+    if !ignored
+        .lines()
+        .map(str::trim)
+        .any(|l| l == "bin/" || l == "/bin/" || l == "bin")
+    {
+        findings.push(format!(
+            "{BIN}/ を git の追跡から外していない: .gitignore に {BIN}/ を書く ── \
+             実行ファイルは配布物だけが持つ"
+        ));
+    }
+    if let Ok(body) = fs::read_to_string(root.join("mcp.json")) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&body) {
+            let servers = value
+                .get("mcpServers")
+                .and_then(serde_json::Value::as_object)
+                .cloned()
+                .unwrap_or_default();
+            for (name, server) in servers {
+                let command = server
+                    .get("command")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default();
+                if is_absolute(command) {
+                    findings.push(format!(
+                        "登録に絶対パスがある: mcp.json の {name} ── {command}（配布先では存在しない場所を指す）"
+                    ));
+                }
+            }
+        }
+    }
+    findings.extend(external_tools(root));
+    findings
+}
+
+/// 絶対パスか。**Windows の書き方も含める** ── `C:\\…` ・ `C:/…`
+fn is_absolute(command: &str) -> bool {
+    let bytes = command.as_bytes();
+    command.starts_with('/')
+        || command.starts_with('~')
+        || (bytes.len() > 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
+}
+
+/// 部品が呼ぶ外部の道具を、宣言と照合する。
+fn external_tools(root: &Path) -> Vec<String> {
+    let tool = root.join(TOOL);
+    let declared = requires(&tool.join("declare/src/lib.rs"));
+    let mut findings = Vec::new();
+    let mut files = Vec::new();
+    rust_files(&tool, &mut files);
+    for file in files {
+        let Ok(body) = fs::read_to_string(&file) else {
+            continue;
+        };
+        let at = file
+            .strip_prefix(root)
+            .unwrap_or(&file)
+            .display()
+            .to_string();
+        for called in spawned(&body) {
+            match called {
+                Some(name) => {
+                    if NON_PORTABLE.contains(&name.as_str()) {
+                        findings.push(format!(
+                            "OS によって無いコマンドを呼んでいる: {at} ── {name}（Rust の中で行う）"
+                        ));
+                    } else if !declared.contains(&name) {
+                        findings.push(format!(
+                            "宣言に無い外部の道具を呼んでいる: {at} ── {name}（declare の REQUIRES に書く）"
+                        ));
+                    }
+                }
+                None => {
+                    if !declared.iter().any(|d| d == USER_CHOSEN) {
+                        findings.push(format!(
+                            "名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\"{USER_CHOSEN}\"）を REQUIRES に書く"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    findings
+}
+
+/// 宣言（declare の `REQUIRES`）に並ぶ名前。**無ければ空である。**
+fn requires(lib: &Path) -> Vec<String> {
+    let body = fs::read_to_string(lib).unwrap_or_default();
+    let Some(at) = body.find("REQUIRES") else {
+        return Vec::new();
+    };
+    let rest = &body[at..];
+    // **型の `&[&str]` ではなく、値の並び（`= &[`）から読む**
+    let Some(open) = rest.find("= &[").map(|at| at + 2) else {
+        return Vec::new();
+    };
+    let Some(close) = rest[open..].find("];") else {
+        return Vec::new();
+    };
+    rest[open + 2..open + close]
+        .split(',')
+        .map(|x| x.trim().trim_matches('"').to_owned())
+        .filter(|x| !x.is_empty())
+        .collect()
+}
+
+/// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**
+/// 注記の行（`//` で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。
+fn spawned(body: &str) -> Vec<Option<String>> {
+    const CALL: &str = "Command::new(";
+    let mut out = Vec::new();
+    for line in body.lines().filter(|l| !l.trim_start().starts_with("//")) {
+        let mut rest = line;
+        while let Some(at) = rest.find(CALL) {
+            let after = rest[at + CALL.len()..].trim_start();
+            if let Some(stripped) = after.strip_prefix('"') {
+                out.push(Some(stripped.chars().take_while(|c| *c != '"').collect()));
+            } else {
+                out.push(None);
+            }
+            rest = &rest[at + CALL.len()..];
+        }
+    }
+    out
+}
+
+/// Rust のファイルを集める。**組み立ての出力（target/）と事例（tests/）は見ない。**
+fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if path.is_dir() {
+            if name != "target" && name != "tests" {
+                rust_files(&path, out);
+            }
+        } else if name.ends_with(".rs") {
+            out.push(path);
+        }
+    }
 }

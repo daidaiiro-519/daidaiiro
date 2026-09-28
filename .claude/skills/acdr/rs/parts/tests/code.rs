@@ -32,6 +32,20 @@ fn only_a_declared_extension_is_code() {
 }
 
 #[test]
+fn a_template_is_read_by_the_extension_before_tmpl() {
+    // **雛形（.tmpl）は、その前の拡張子で言語を決める** ── 雛形の差分をコードの差分として示す
+    use std::path::Path;
+    assert_eq!(code::ext_of(Path::new("a/install.sh.tmpl")), ".sh");
+    assert_eq!(code::ext_of(Path::new("release.yml.tmpl")), ".yml");
+    assert!(code::is_code(&code::ext_of(Path::new("install.ps1.tmpl"))));
+    assert_eq!(code::ext_of(Path::new("contract.RS.tmpl")), ".rs");
+    assert_eq!(code::ext_of(Path::new("x/lib.rs")), ".rs");
+    // 前の拡張子が無い雛形は、.tmpl のままで、コードとして扱わない
+    assert_eq!(code::ext_of(Path::new("gitignore.tmpl")), ".tmpl");
+    assert!(!code::is_code(&code::ext_of(Path::new("gitignore.tmpl"))));
+}
+
+#[test]
 fn the_lines_are_numbered_from_one() {
     let got = code::render_code(&parts(), "a\nb\n", ".py", &[]).expect("組める");
     assert!(

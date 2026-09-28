@@ -199,10 +199,7 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
     let path = Path::new(&file);
     let src = std::fs::read_to_string(path).map_err(|e| format!("{file}: 読めない ── {e}"))?;
     let marks = array_of(doc, "marks");
-    let ext = path
-        .extension()
-        .map(|x| format!(".{}", x.to_string_lossy().to_lowercase()))
-        .unwrap_or_default();
+    let ext = code::ext_of(path);
     let key = text_of(doc, "key");
     let built = if code::is_code(&ext) {
         let (body, lane) = match before_of(doc) {

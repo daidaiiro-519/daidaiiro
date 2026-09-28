@@ -18,7 +18,7 @@ use crate::markdown::esc;
 use crate::template::Parts;
 
 /// 拡張子と言語の対応。**ここに無い拡張子は、コードとして扱わない。**
-const LANGS: [(&str, &str); 22] = [
+const LANGS: [(&str, &str); 23] = [
     (".py", "python"),
     (".pyi", "python"),
     (".js", "js"),
@@ -34,6 +34,7 @@ const LANGS: [(&str, &str); 22] = [
     (".sh", "shell"),
     (".bash", "shell"),
     (".zsh", "shell"),
+    (".ps1", "shell"),
     (".sql", "sql"),
     (".yaml", "yaml"),
     (".yml", "yaml"),
@@ -155,6 +156,27 @@ const NUMBER: &str = r"\b\d[\d_]*(?:\.\d+)?\b";
 pub fn is_code(ext: &str) -> bool {
     let lower = ext.to_lowercase();
     LANGS.iter().any(|(k, _)| *k == lower)
+}
+
+/// 経路から、言語を決める拡張子を取る。**雛形（`.tmpl`）は、その前の拡張子で決める** ──
+/// `install.sh.tmpl` は shell である。前の拡張子が無い雛形は `.tmpl` のまま返す。
+#[must_use]
+pub fn ext_of(path: &std::path::Path) -> String {
+    let dot = |p: &std::path::Path| {
+        p.extension()
+            .map(|x| format!(".{}", x.to_string_lossy().to_lowercase()))
+            .unwrap_or_default()
+    };
+    let ext = dot(path);
+    if ext == ".tmpl" {
+        if let Some(stem) = path.file_stem() {
+            let inner = dot(std::path::Path::new(stem));
+            if !inner.is_empty() {
+                return inner;
+            }
+        }
+    }
+    ext
 }
 
 /// 拡張子から言語を引く。
