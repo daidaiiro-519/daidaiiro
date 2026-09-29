@@ -1,0 +1,440 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>design-svg で、同じ節点へ戻る辺を2本以上描けるようにする</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 -1.2rem var(--sp-21)}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);
+background:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:var(--bw-1) solid var(--line);background:var(--panel);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);margin-left:var(--sp-10);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:var(--fs-6)}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い面、節の枠は白い面。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0049 ・ 2026-09-29 ・ <span class="tag">承認</span></p><h1>design-svg で、同じ節点へ戻る辺を2本以上描けるようにする</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">design-svg で、同じ節点へ戻る辺が2本以上あっても、輪と注記が重ならずに描けるようにする。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>usecase-advisor の判断基準の図7.1（ヤコブソンの4つの部品）は、システムが自分自身へ向かう辺を2本持つ。design-svg は自分へ戻る辺を描けるが、輪をいつも節点の右の辺に作り、注記を輪の中点に中央寄せで置いていた。そのため2本の輪が同じ経路に重なり、注記どうしと、注記と節点の文字が重なって、幾何の検査を通らなかった。輪を出す辺を何本目かで変え、注記を輪の外側に置くことで、図の宣言を変えずに原文の図を描けるようにする。</p></section><section class="block"><h2>どう変わるか</h2><figure><svg class="wf-fig" viewBox="0 0 558 332" width="558" height="332" role="img"><g transform="translate(6.0,6.0)"><path d="M246.5,32.6 L109.5,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="109.5,95.4 114.6,90.3 116.7,94.8" fill="#C3CAD2"/><rect x="159.0" y="54.0" width="38.0" height="16.0" fill="#F5F7F9"/><text x="178.0" y="67.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">変更前</text><path d="M110.5,128.6 L110.0,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="110.0,191.4 107.6,184.6 112.5,184.7" fill="#C3CAD2"/><path d="M110.0,224.6 L110.0,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="110.0,287.4 107.5,280.6 112.5,280.6" fill="#C3CAD2"/><path d="M246.5,32.6 L381.9,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.9,95.4 374.7,94.8 376.8,90.3" fill="#C3CAD2"/><rect x="295.2" y="54.0" width="38.0" height="16.0" fill="#F5F7F9"/><text x="314.2" y="67.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">変更後</text><path d="M381.9,128.6 L381.9,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.9,191.4 379.4,184.6 384.4,184.6" fill="#C3CAD2"/><path d="M381.9,224.6 L381.9,287.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.9,287.2 379.4,280.4 384.4,280.4" fill="#C3CAD2"/><g class="wf-node" transform="translate(168.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="155.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="77.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">同じ節点へ戻る辺が2本</text></g></g><g class="wf-node" transform="translate(26.1,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">2本とも右の辺に輪を作る</text></g></g><g class="wf-node" transform="translate(6.0,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="208.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">注記を輪の中点に中央寄せで置く</text></g></g><g class="wf-node" transform="translate(0.0,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">輪と注記が重なり、検査を通らない</text></g></g><g class="wf-node" transform="translate(217.9,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="328.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="164.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">何本目かで輪を出す辺を変える（上流の側の辺は最後）</text></g></g><g class="wf-node" transform="translate(283.9,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">注記を輪の頂点の外側から試す</text></g></g><g class="wf-node" transform="translate(283.9,288.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="196.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">輪と注記が分かれ、検査を通る</text></g></g></g></svg><figcaption>同じ節点へ戻る辺が2本あるとき、変更前は輪と注記が重なり、変更後は分かれる</figcaption></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>同じ節点の2本目以降の輪</td><td>すべて右の辺に作る（経路が重なる）</td><td>何本目かで別の辺に作る。流れの上流の側の辺（LR では左、TB では上）は、入ってくる辺が集まるので最後に使う</td></tr><tr><td>輪の注記の置き場所</td><td>輪の経路上の点を中心に置く（節点の文字にかかる）</td><td>輪の頂点から外向きに、注記の大きさの半分だけずらした位置を先に試す。重なるときは、これまでの候補へ移る</td></tr><tr><td>既存の図</td><td>自分へ戻る辺を持つ図は、リポジトリの宣言に0件</td><td>見た目が変わる既存の図は無い</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>図7.1 の宣言を書き換え、自分へ戻る辺を「確認」「変更」の節点へ置き換える</td><td>原典の図が持つ構造（システムが自分の中で行う2つの部品）が、別の節点へ移ったように読める。判断基準の図は、ノートの図を変えずに写す決まりである</td></tr><tr><td>注記を持つ自己ループを、宣言の段階で誤りとして断る</td><td>図が描けないままになり、図を省く決まり（図を省略しない）に反する</td></tr><tr><td>輪の大きさを本数に応じて広げ、同じ辺に入れ子の輪を作る</td><td>輪が節点の脇で太く膨らみ、注記を置く場所が輪の内側に閉じ込められる。注記と輪の重なりは解けない</td></tr></tbody></table></div></section></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 8 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="after">完成イメージ：変更後の図7.1<span class="n">0</span></button><button class="tab" role="tab" data-t="before">変更前の図7.1<span class="n">0</span></button><button class="tab" role="tab" data-t="compose">parts/src/compose.rs<span class="n">4</span></button><button class="tab" role="tab" data-t="labels">parts/src/labels.rs<span class="n">2</span></button><button class="tab" role="tab" data-t="tests">declare/tests/tools.rs<span class="n">1</span></button><button class="tab" role="tab" data-t="skill">design-svg の SKILL.md<span class="n">1</span></button></div>
+<section class="pane html" data-k="after" data-tab="完成イメージ：変更後の図7.1" hidden><div class="lane"><b>そのままの見た目で置く</b><span class="how">経路を確認している…</span></div><template data-shadowcss=":host{font-family:sans-serif;margin:16px;background:#fff;color:#1f2328} .fig{border:1px solid #d0d7de;border-radius:8px;padding:12px;max-width:100%;overflow-x:auto} svg{max-width:100%;height:auto}"><style>body{font-family:sans-serif;margin:16px;background:#fff;color:#1f2328} .fig{border:1px solid #d0d7de;border-radius:8px;padding:12px;max-width:100%;overflow-x:auto} svg{max-width:100%;height:auto}</style><h1 style="font-size:18px">変更後：図7.1（ヤコブソンの4つの部品）</h1><p>同じ宣言を、変更後の design-svg で組んだもの。2本目の輪は下の辺へ出て、注記は輪の外側に置かれる。幾何の検査を通る。</p><div class="fig"><svg class="wf-fig" viewBox="0 0 375 291" width="375" height="291" role="img"><g transform="translate(6.0,6.0)"><path d="M88.6,16.0 Q150.0,16.0 150.0,16.0 Q150.0,16.0 150.0,104.5 L150.0,192.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="150.0,192.9 147.5,186.1 152.5,186.1" fill="#C3CAD2"/><rect x="91.2" y="63.8" width="117.5" height="16.0" fill="#F5F7F9"/><text x="150.0" y="77.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">1. 要求とデータを送る</text><path d="M188.0,203.1 Q216.0,191.9 218.8,200.7 Q221.6,209.5 218.8,218.3 Q216.0,227.1 202.0,221.5 L188.0,215.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="188.0,215.9 195.2,216.1 193.4,220.7" fill="#C3CAD2"/><rect x="225.6" y="199.5" width="137.5" height="16.0" fill="#F5F7F9"/><text x="294.4" y="213.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">2. 要求とデータを確認する</text><path d="M134.8,225.5 Q123.6,253.5 136.8,256.3 Q150.0,259.1 163.2,256.3 Q176.4,253.5 170.8,239.5 L165.2,225.5" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="165.2,225.5 170.0,230.9 165.4,232.7" fill="#C3CAD2"/><rect x="91.2" y="261.1" width="117.5" height="16.0" fill="#F5F7F9"/><text x="150.0" y="274.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">3. 内部状態を変更する</text><path d="M111.4,209.5 Q44.0,209.5 44.0,209.5 Q44.0,209.5 44.0,121.0 L44.0,32.6" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="44.0,32.6 46.5,39.4 41.5,39.4" fill="#C3CAD2"/><rect x="5.2" y="144.8" width="77.5" height="16.0" fill="#F5F7F9"/><text x="44.0" y="158.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">4. 結果を返す</text><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">主アクター</text></g></g><g class="wf-node" transform="translate(112.0,193.5)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">システム</text></g></g></g></svg></div></template></section><section class="pane html" data-k="before" data-tab="変更前の図7.1" hidden><div class="lane"><b>そのままの見た目で置く</b><span class="how">経路を確認している…</span></div><template data-shadowcss=":host{font-family:sans-serif;margin:16px;background:#fff;color:#1f2328} .fig{border:1px solid #d0d7de;border-radius:8px;padding:12px;max-width:100%;overflow-x:auto} svg{max-width:100%;height:auto}"><style>body{font-family:sans-serif;margin:16px;background:#fff;color:#1f2328} .fig{border:1px solid #d0d7de;border-radius:8px;padding:12px;max-width:100%;overflow-x:auto} svg{max-width:100%;height:auto}</style><h1 style="font-size:18px">変更前：図7.1（ヤコブソンの4つの部品）</h1><p>同じ宣言を、変更前の design-svg で組んだもの。システムの2本の輪が右の辺に重なり、注記が重なる。幾何の検査は通らない。</p><div class="fig"><svg class="wf-fig" viewBox="0 0 302 239" width="302" height="239" role="img"><g transform="translate(6.0,6.0)"><path d="M88.6,16.0 Q150.0,16.0 150.0,16.0 Q150.0,16.0 150.0,104.5 L150.0,192.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="150.0,192.9 147.5,186.1 152.5,186.1" fill="#C3CAD2"/><rect x="91.2" y="63.8" width="117.5" height="16.0" fill="#F5F7F9"/><text x="150.0" y="77.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">1. 要求とデータを送る</text><path d="M188.0,203.1 Q216.0,191.9 218.8,200.7 Q221.6,209.5 218.8,218.3 Q216.0,227.1 202.0,221.5 L188.0,215.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="188.0,215.9 195.2,216.1 193.4,220.7" fill="#C3CAD2"/><rect x="152.8" y="199.5" width="137.5" height="16.0" fill="#F5F7F9"/><text x="221.6" y="213.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">2. 要求とデータを確認する</text><path d="M188.0,203.1 Q216.0,191.9 218.8,200.7 Q221.6,209.5 218.8,218.3 Q216.0,227.1 202.0,221.5 L188.0,215.9" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="188.0,215.9 195.2,216.1 193.4,220.7" fill="#C3CAD2"/><rect x="162.8" y="199.5" width="117.5" height="16.0" fill="#F5F7F9"/><text x="221.6" y="213.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">3. 内部状態を変更する</text><path d="M111.4,209.5 Q44.0,209.5 44.0,209.5 Q44.0,209.5 44.0,121.0 L44.0,32.6" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="44.0,32.6 46.5,39.4 41.5,39.4" fill="#C3CAD2"/><rect x="5.2" y="144.8" width="77.5" height="16.0" fill="#F5F7F9"/><text x="44.0" y="158.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">4. 結果を返す</text><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="88.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="44.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">主アクター</text></g></g><g class="wf-node" transform="translate(112.0,193.5)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">システム</text></g></g></g></svg></div></template></section><section class="pane code-pane" data-k="compose" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 4 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 5 件</summary><ol><li><b>enum Side {</b><button class="go" data-i="0">その場所へ</button><div class="b">輪を出す辺を列挙型で表した。design-svg の検査は、コードに直接書いた数値を拒否するので、辺を番号で表さない</div></li><li><b>fn nth(direction: &amp;str, nth: usize) -&gt; S</b><button class="go" data-i="1">その場所へ</button><div class="b">何本目の輪をどの辺に出すかを1か所で決める。流れの上流の側の辺は、入ってくる辺が集まるので最後に使う</div></li><li><b>let (m, half) = match side {</b><button class="go" data-i="2">その場所へ</button><div class="b">右の辺にしか作れなかった輪を、辺の中点 ・ 外向きの向き ・ 辺に沿う向きから組む形にして、4つの辺のどれにも作れるようにした。右の辺の輪は変更前と同じ点になる</div></li><li><b>let mut loop_apex: HashMap</b><button class="go" data-i="3">その場所へ</button><div class="b">輪の頂点と外向きの向きを記録し、注記を置くときに渡す。あわせて、同じ節点へ戻る辺のうち、この辺が何本目かを数え、輪を出す辺を決める</div></li><li><b>place_edge_labels(&amp;labelled, &amp;edge_style</b><button class="go" data-i="4">その場所へ</button><div class="b">注記を置く処理へ、輪の頂点を渡す</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 124 ／ 新 124 @@</td></tr><tr class="r"><td class="ln">124</td><td class="ln">124</td><td class="mk"> </td><td class="cd">    out</td></tr><tr class="r"><td class="ln">125</td><td class="ln">125</td><td class="mk"> </td><td class="cd">}</td></tr><tr class="r"><td class="ln">126</td><td class="ln">126</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">127</td><td class="mk">+</td><td class="cd"><span class="t-c">/// 輪を出す節点の辺。</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">128</td><td class="mk">+</td><td class="cd">#[derive(Clone, Copy)]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">129</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="輪を出す辺を列挙型で表した。design-svg の検査は、コードに直接書いた数値を拒否するので、辺を番号で表さない"><span class="t-k">enum</span> Side {</mark></td></tr><tr class="ra"><td class="ln"></td><td class="ln">130</td><td class="mk">+</td><td class="cd">    Right,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">131</td><td class="mk">+</td><td class="cd">    Bottom,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">132</td><td class="mk">+</td><td class="cd">    Left,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">133</td><td class="mk">+</td><td class="cd">    Top,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">134</td><td class="mk">+</td><td class="cd">}</td></tr><tr class="ra"><td class="ln"></td><td class="ln">135</td><td class="mk">+</td><td class="cd">&nbsp;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">136</td><td class="mk">+</td><td class="cd"><span class="t-k">impl</span> Side {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">137</td><td class="mk">+</td><td class="cd">    <span class="t-c">/// 外向きの向き</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">138</td><td class="mk">+</td><td class="cd">    <span class="t-k">const</span> <span class="t-k">fn</span> normal(<span class="t-k">self</span>) -&gt; (f64, f64) {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">139</td><td class="mk">+</td><td class="cd">        <span class="t-k">match</span> <span class="t-k">self</span> {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">140</td><td class="mk">+</td><td class="cd">            Self::Right =&gt; (<span class="t-n">1.0</span>, <span class="t-n">0.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">141</td><td class="mk">+</td><td class="cd">            Self::Bottom =&gt; (<span class="t-n">0.0</span>, <span class="t-n">1.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">142</td><td class="mk">+</td><td class="cd">            Self::Left =&gt; (-<span class="t-n">1.0</span>, <span class="t-n">0.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">143</td><td class="mk">+</td><td class="cd">            Self::Top =&gt; (<span class="t-n">0.0</span>, -<span class="t-n">1.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">144</td><td class="mk">+</td><td class="cd">        }</td></tr><tr class="ra"><td class="ln"></td><td class="ln">145</td><td class="mk">+</td><td class="cd">    }</td></tr><tr class="ra"><td class="ln"></td><td class="ln">146</td><td class="mk">+</td><td class="cd">&nbsp;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">147</td><td class="mk">+</td><td class="cd">    <span class="t-c">/// 同じ節点の何本目かで、輪を出す辺を決める。**流れの上流の側の辺は、入ってくる辺が集まるので最後に使う**</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">148</td><td class="mk">+</td><td class="cd">    <span class="t-k">fn</span> nth(direction: &amp;str, nth: usize) -&gt; Self {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">149</td><td class="mk">+</td><td class="cd">        <span class="t-k">let</span> order = <span class="t-k">if</span> direction == &quot;LR&quot; {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">150</td><td class="mk">+</td><td class="cd">            [Self::Right, Self::Bottom, Self::Top, Self::Left]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">151</td><td class="mk">+</td><td class="cd">        } <span class="t-k">else</span> {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">152</td><td class="mk">+</td><td class="cd">            [Self::Right, Self::Left, Self::Bottom, Self::Top]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">153</td><td class="mk">+</td><td class="cd">        };</td></tr><tr class="ra"><td class="ln"></td><td class="ln">154</td><td class="mk">+</td><td class="cd">        order[nth % order.len()]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">155</td><td class="mk">+</td><td class="cd">    }</td></tr><tr class="ra"><td class="ln"></td><td class="ln">156</td><td class="mk">+</td><td class="cd">}</td></tr><tr class="ra"><td class="ln"></td><td class="ln">157</td><td class="mk">+</td><td class="cd">&nbsp;</td></tr><tr class="r"><td class="ln">127</td><td class="ln">158</td><td class="mk"> </td><td class="cd"><span class="t-c">/// 自分から自分へ戻る辺の経路。**節点の脇へ小さな輪を作る。**</span></td></tr><tr class="rd"><td class="ln">128</td><td class="ln"></td><td class="mk">-</td><td class="cd"><span class="t-k">fn</span> self_loop(pos: Point, size: (f64, f64), gap: f64, style: &amp;Style) -&gt; Result&lt;Vec&lt;Point&gt;, String&gt; {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">159</td><td class="mk">+</td><td class="cd"><span class="t-c">/// 同じ節点の2本目以降は別の辺へ出す（実測 ── 同じ辺に2本置くと、経路も注記も重なった）。</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">160</td><td class="mk">+</td><td class="cd"><span class="t-k">fn</span> self_loop(</td></tr><tr class="ra"><td class="ln"></td><td class="ln">161</td><td class="mk">+</td><td class="cd">    pos: Point,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">162</td><td class="mk">+</td><td class="cd">    size: (f64, f64),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">163</td><td class="mk">+</td><td class="cd">    gap: f64,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">164</td><td class="mk">+</td><td class="cd">    style: &amp;Style,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">165</td><td class="mk">+</td><td class="cd">    side: Side,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">166</td><td class="mk">+</td><td class="cd">) -&gt; Result&lt;Vec&lt;Point&gt;, String&gt; {</td></tr><tr class="r"><td class="ln">129</td><td class="ln">167</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> (x, y) = pos;</td></tr><tr class="r"><td class="ln">130</td><td class="ln">168</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> (w, h) = size;</td></tr><tr class="r"><td class="ln">131</td><td class="ln">169</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> attach = style.num(&quot;size.<span class="t-k">self</span>-<span class="t-k">loop</span>-attach&quot;)?;</td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 132 ／ 新 170 @@</td></tr><tr class="r"><td class="ln">132</td><td class="ln">170</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> bulge = style.num(&quot;size.<span class="t-k">self</span>-<span class="t-k">loop</span>-bulge&quot;)?;</td></tr><tr class="r"><td class="ln">133</td><td class="ln">171</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> lift = style.num(&quot;size.<span class="t-k">self</span>-<span class="t-k">loop</span>-lift&quot;)?;</td></tr><tr class="r"><td class="ln">134</td><td class="ln">172</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> r = w.min(h) / <span class="t-n">2.0</span> + gap;</td></tr><tr class="rd"><td class="ln">135</td><td class="ln"></td><td class="mk">-</td><td class="cd">    <span class="t-k">let</span> (cx, cy) = (x + w, y + h / <span class="t-n">2.0</span>);</td></tr><tr class="rd"><td class="ln">136</td><td class="ln"></td><td class="mk">-</td><td class="cd">    <span class="t-k">let</span> (top, bottom) = (y + h * attach, y + h * (<span class="t-n">1.0</span> - attach));</td></tr><tr class="ra"><td class="ln"></td><td class="ln">173</td><td class="mk">+</td><td class="cd">    <span class="t-c">// 辺の中点と、辺の半分の長さ。辺に沿う向きは、外向きの向きを回したもの</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">174</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="let (cx, cy) = (x + w, y + h / 2.0); let (top, bottom) = (y + h * attach, y + h * (1.0 - attach));" data-w="右の辺にしか作れなかった輪を、辺の中点 ・ 外向きの向き ・ 辺に沿う向きから組む形にして、4つの辺のどれにも作れるようにした。右の辺の輪は変更前と同じ点になる">    <span class="t-k">let</span> (m, half) = <span class="t-k">match</span> side {</mark></td></tr><tr class="ra"><td class="ln"></td><td class="ln">175</td><td class="mk">+</td><td class="cd">        Side::Right =&gt; ((x + w, y + h / <span class="t-n">2.0</span>), h / <span class="t-n">2.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">176</td><td class="mk">+</td><td class="cd">        Side::Bottom =&gt; ((x + w / <span class="t-n">2.0</span>, y + h), w / <span class="t-n">2.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">177</td><td class="mk">+</td><td class="cd">        Side::Left =&gt; ((x, y + h / <span class="t-n">2.0</span>), h / <span class="t-n">2.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">178</td><td class="mk">+</td><td class="cd">        Side::Top =&gt; ((x + w / <span class="t-n">2.0</span>, y), w / <span class="t-n">2.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">179</td><td class="mk">+</td><td class="cd">    };</td></tr><tr class="ra"><td class="ln"></td><td class="ln">180</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> n = side.normal();</td></tr><tr class="ra"><td class="ln"></td><td class="ln">181</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> t = (n.<span class="t-n">1</span>.abs(), n.<span class="t-n">0</span>.abs());</td></tr><tr class="ra"><td class="ln"></td><td class="ln">182</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> a = half * (<span class="t-n">1.0</span> - <span class="t-n">2.0</span> * attach);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">183</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> at = |out: f64, along: f64| (m.<span class="t-n">0</span> + n.<span class="t-n">0</span> * out + t.<span class="t-n">0</span> * along, m.<span class="t-n">1</span> + n.<span class="t-n">1</span> * out + t.<span class="t-n">1</span> * along);</td></tr><tr class="r"><td class="ln">137</td><td class="ln">184</td><td class="mk"> </td><td class="cd">    Ok(vec![</td></tr><tr class="rd"><td class="ln">138</td><td class="ln"></td><td class="mk">-</td><td class="cd">        (x + w, top),</td></tr><tr class="rd"><td class="ln">139</td><td class="ln"></td><td class="mk">-</td><td class="cd">        (cx + r, top - r * lift),</td></tr><tr class="rd"><td class="ln">140</td><td class="ln"></td><td class="mk">-</td><td class="cd">        (cx + r * bulge, cy),</td></tr><tr class="rd"><td class="ln">141</td><td class="ln"></td><td class="mk">-</td><td class="cd">        (cx + r, bottom + r * lift),</td></tr><tr class="rd"><td class="ln">142</td><td class="ln"></td><td class="mk">-</td><td class="cd">        (x + w, bottom),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">185</td><td class="mk">+</td><td class="cd">        at(<span class="t-n">0.0</span>, -a),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">186</td><td class="mk">+</td><td class="cd">        at(r, -a - r * lift),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">187</td><td class="mk">+</td><td class="cd">        at(r * bulge, <span class="t-n">0.0</span>),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">188</td><td class="mk">+</td><td class="cd">        at(r, a + r * lift),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">189</td><td class="mk">+</td><td class="cd">        at(<span class="t-n">0.0</span>, a),</td></tr><tr class="r"><td class="ln">143</td><td class="ln">190</td><td class="mk"> </td><td class="cd">    ])</td></tr><tr class="r"><td class="ln">144</td><td class="ln">191</td><td class="mk"> </td><td class="cd">}</td></tr><tr class="r"><td class="ln">145</td><td class="ln">192</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 428 ／ 新 475 @@</td></tr><tr class="r"><td class="ln">428</td><td class="ln">475</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> edge_style = style::resolve(&quot;plain&quot;, None, Some(theme_))?;</td></tr><tr class="r"><td class="ln">429</td><td class="ln">476</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="r"><td class="ln">430</td><td class="ln">477</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> <span class="t-k">mut</span> edge_points: Vec&lt;Vec&lt;Point&gt;&gt; = Vec::new();</td></tr><tr class="ra"><td class="ln"></td><td class="ln">478</td><td class="mk">+</td><td class="cd">    <span class="t-c">// 自分へ戻る輪の頂点と、外向きの向き（注記を輪の外側へ置くため）</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">479</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="edge_points.push(self_loop(coord(a)?, size(a)?, …, &amp;edge_style)?);" data-w="輪の頂点と外向きの向きを記録し、注記を置くときに渡す。あわせて、同じ節点へ戻る辺のうち、この辺が何本目かを数え、輪を出す辺を決める">    <span class="t-k">let</span> <span class="t-k">mut</span> loop_apex: HashMap&lt;usize, (Point, (f64, f64))&gt; = HashMap::new();</mark></td></tr><tr class="r"><td class="ln">431</td><td class="ln">480</td><td class="mk"> </td><td class="cd">    <span class="t-k">for</span> (idx, (a, b)) <span class="t-k">in</span> edge_pairs.iter().enumerate() {</td></tr><tr class="r"><td class="ln">432</td><td class="ln">481</td><td class="mk"> </td><td class="cd">        <span class="t-k">if</span> a == b {</td></tr><tr class="r"><td class="ln">433</td><td class="ln">482</td><td class="mk"> </td><td class="cd">            <span class="t-c">// 自分へ戻る辺は、配置の解いた経路（同じ点が2つ）では表せない</span></td></tr><tr class="rd"><td class="ln">434</td><td class="ln"></td><td class="mk">-</td><td class="cd">            edge_points.push(self_loop(</td></tr><tr class="ra"><td class="ln"></td><td class="ln">483</td><td class="mk">+</td><td class="cd">            <span class="t-k">let</span> nth = edge_pairs[..idx]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">484</td><td class="mk">+</td><td class="cd">                .iter()</td></tr><tr class="ra"><td class="ln"></td><td class="ln">485</td><td class="mk">+</td><td class="cd">                .filter(|(p, q)| p == a &amp;&amp; q == a)</td></tr><tr class="ra"><td class="ln"></td><td class="ln">486</td><td class="mk">+</td><td class="cd">                .count();</td></tr><tr class="ra"><td class="ln"></td><td class="ln">487</td><td class="mk">+</td><td class="cd">            <span class="t-k">let</span> side = Side::nth(direction, nth);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">488</td><td class="mk">+</td><td class="cd">            <span class="t-k">let</span> lp = self_loop(</td></tr><tr class="r"><td class="ln">435</td><td class="ln">489</td><td class="mk"> </td><td class="cd">                coord(a)?,</td></tr><tr class="r"><td class="ln">436</td><td class="ln">490</td><td class="mk"> </td><td class="cd">                size(a)?,</td></tr><tr class="r"><td class="ln">437</td><td class="ln">491</td><td class="mk"> </td><td class="cd">                edge_style.num(&quot;size.gap-order&quot;)? / <span class="t-n">2.0</span>,</td></tr><tr class="r"><td class="ln">438</td><td class="ln">492</td><td class="mk"> </td><td class="cd">                &amp;edge_style,</td></tr><tr class="rd"><td class="ln">439</td><td class="ln"></td><td class="mk">-</td><td class="cd">            )?);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">493</td><td class="mk">+</td><td class="cd">                side,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">494</td><td class="mk">+</td><td class="cd">            )?;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">495</td><td class="mk">+</td><td class="cd">            <span class="t-k">let</span> normal = side.normal();</td></tr><tr class="ra"><td class="ln"></td><td class="ln">496</td><td class="mk">+</td><td class="cd">            loop_apex.insert(idx, (lp[<span class="t-n">2</span>], normal));</td></tr><tr class="ra"><td class="ln"></td><td class="ln">497</td><td class="mk">+</td><td class="cd">            edge_points.push(lp);</td></tr><tr class="r"><td class="ln">440</td><td class="ln">498</td><td class="mk"> </td><td class="cd">            <span class="t-k">continue</span>;</td></tr><tr class="r"><td class="ln">441</td><td class="ln">499</td><td class="mk"> </td><td class="cd">        }</td></tr><tr class="r"><td class="ln">442</td><td class="ln">500</td><td class="mk"> </td><td class="cd">        <span class="t-k">let</span> <span class="t-k">mut</span> pts = edge_paths</td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 617 ／ 新 675 @@</td></tr><tr class="r"><td class="ln">617</td><td class="ln">675</td><td class="mk"> </td><td class="cd">        <span class="t-k">let</span> <span class="t-k">mut</span> occupied = frame_label_areas.clone();</td></tr><tr class="r"><td class="ln">618</td><td class="ln">676</td><td class="mk"> </td><td class="cd">        occupied.extend(frame_line_areas);</td></tr><tr class="r"><td class="ln">619</td><td class="ln">677</td><td class="mk"> </td><td class="cd">        occupied.extend(node_areas);</td></tr><tr class="rd"><td class="ln">620</td><td class="ln"></td><td class="mk">-</td><td class="cd">        place_edge_labels(&amp;labelled, &amp;edge_style, &amp;occupied)?</td></tr><tr class="ra"><td class="ln"></td><td class="ln">678</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="place_edge_labels(&amp;labelled, &amp;edge_style, &amp;occupied)?" data-w="注記を置く処理へ、輪の頂点を渡す">        place_edge_labels(&amp;labelled, &amp;edge_style, &amp;occupied, &amp;loop_apex)?</mark></td></tr><tr class="r"><td class="ln">621</td><td class="ln">679</td><td class="mk"> </td><td class="cd">            .into_iter()</td></tr><tr class="r"><td class="ln">622</td><td class="ln">680</td><td class="mk"> </td><td class="cd">            .collect()</td></tr><tr class="r"><td class="ln">623</td><td class="ln">681</td><td class="mk"> </td><td class="cd">    };</td></tr></tbody></table></div></section><section class="pane code-pane" data-k="labels" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 2 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 2 件</summary><ol><li><b>outward: &amp;std::collections::HashMap&lt;usiz</b><button class="go" data-i="0">その場所へ</button><div class="b">輪の頂点と外向きの向きを受け取る。辺の番号で輪の頂点を引くために、これまで捨てていた辺の番号も受け取る</div></li><li><b>if let Some(((ax, ay), (nx, ny))) = outw</b><button class="go" data-i="1">その場所へ</button><div class="b">輪は節点に接しているので、経路上の点を中心に置くと注記が節点にかかる。頂点の外側を最初の候補にし、重なるときは経路上の候補へ移る</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 119 ／ 新 119 @@</td></tr><tr class="r"><td class="ln">119</td><td class="ln">119</td><td class="mk"> </td><td class="cd">    edges: &amp;[(usize, Vec&lt;Point&gt;, String)],</td></tr><tr class="r"><td class="ln">120</td><td class="ln">120</td><td class="mk"> </td><td class="cd">    style: &amp;Style,</td></tr><tr class="r"><td class="ln">121</td><td class="ln">121</td><td class="mk"> </td><td class="cd">    occupied: &amp;[Rect],</td></tr><tr class="ra"><td class="ln"></td><td class="ln">122</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="for (_, pts, label) in edges {" data-w="輪の頂点と外向きの向きを受け取る。辺の番号で輪の頂点を引くために、これまで捨てていた辺の番号も受け取る">    outward: &amp;std::collections::HashMap&lt;usize, (Point, (f64, f64))&gt;,</mark></td></tr><tr class="r"><td class="ln">122</td><td class="ln">123</td><td class="mk"> </td><td class="cd">) -&gt; Result&lt;Vec&lt;(usize, Point)&gt;, String&gt; {</td></tr><tr class="r"><td class="ln">123</td><td class="ln">124</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> fs = style.num(&quot;font.size-small&quot;)?;</td></tr><tr class="r"><td class="ln">124</td><td class="ln">125</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> <span class="t-k">mut</span> items = Vec::new();</td></tr><tr class="rd"><td class="ln">125</td><td class="ln"></td><td class="mk">-</td><td class="cd">    <span class="t-k">for</span> (_, pts, label) <span class="t-k">in</span> edges {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">126</td><td class="mk">+</td><td class="cd">    <span class="t-k">for</span> (i, pts, label) <span class="t-k">in</span> edges {</td></tr><tr class="r"><td class="ln">126</td><td class="ln">127</td><td class="mk"> </td><td class="cd">        <span class="t-k">let</span> w = text::width(label, fs) + style.num(&quot;size.label-pad-x&quot;)?;</td></tr><tr class="r"><td class="ln">127</td><td class="ln">128</td><td class="mk"> </td><td class="cd">        <span class="t-k">let</span> h = fs * style.num(&quot;size.label-line-h&quot;)?;</td></tr><tr class="r"><td class="ln">128</td><td class="ln">129</td><td class="mk"> </td><td class="cd">        <span class="t-k">let</span> seg = <span class="t-k">crate</span>::py::sum(</td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 130 ／ 新 131 @@</td></tr><tr class="r"><td class="ln">130</td><td class="ln">131</td><td class="mk"> </td><td class="cd">                .map(|p| ((p[<span class="t-n">1</span>].<span class="t-n">0</span> - p[<span class="t-n">0</span>].<span class="t-n">0</span>).powf(<span class="t-n">2.0</span>) + (p[<span class="t-n">1</span>].<span class="t-n">1</span> - p[<span class="t-n">0</span>].<span class="t-n">1</span>).powf(<span class="t-n">2.0</span>)).powf(<span class="t-n">0.5</span>)),</td></tr><tr class="r"><td class="ln">131</td><td class="ln">132</td><td class="mk"> </td><td class="cd">        );</td></tr><tr class="r"><td class="ln">132</td><td class="ln">133</td><td class="mk"> </td><td class="cd">        <span class="t-c">// 辺のラベルの候補は「経路上の点」。**真ん中から外へ交互に**</span></td></tr><tr class="rd"><td class="ln">133</td><td class="ln"></td><td class="mk">-</td><td class="cd">        items.push((</td></tr><tr class="rd"><td class="ln">134</td><td class="ln"></td><td class="mk">-</td><td class="cd">            (w, h),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">134</td><td class="mk">+</td><td class="cd">        <span class="t-k">let</span> <span class="t-k">mut</span> cands: Vec&lt;Point&gt; = Vec::new();</td></tr><tr class="ra"><td class="ln"></td><td class="ln">135</td><td class="mk">+</td><td class="cd">        <span class="t-c">// **自分へ戻る輪は、頂点の外側を先に試す** ── 輪は節点に接しているので、経路上の点を中心に置くと節点にかかる</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">136</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="candidates(seg, w).iter().map(|f| point_at_fraction(pts, *f)).collect()" data-w="輪は節点に接しているので、経路上の点を中心に置くと注記が節点にかかる。頂点の外側を最初の候補にし、重なるときは経路上の候補へ移る">        <span class="t-k">if</span> <span class="t-k">let</span> Some(((ax, ay), (nx, ny))) = outward.get(i) {</mark></td></tr><tr class="ra"><td class="ln"></td><td class="ln">137</td><td class="mk">+</td><td class="cd">            <span class="t-k">let</span> gap = style.num(&quot;size.label-pad-x&quot;)? / <span class="t-n">2.0</span>;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">138</td><td class="mk">+</td><td class="cd">            cands.push((ax + nx * (w / <span class="t-n">2.0</span> + gap), ay + ny * (h / <span class="t-n">2.0</span> + gap)));</td></tr><tr class="ra"><td class="ln"></td><td class="ln">139</td><td class="mk">+</td><td class="cd">        }</td></tr><tr class="ra"><td class="ln"></td><td class="ln">140</td><td class="mk">+</td><td class="cd">        cands.extend(</td></tr><tr class="r"><td class="ln">135</td><td class="ln">141</td><td class="mk"> </td><td class="cd">            candidates(seg, w)</td></tr><tr class="r"><td class="ln">136</td><td class="ln">142</td><td class="mk"> </td><td class="cd">                .iter()</td></tr><tr class="rd"><td class="ln">137</td><td class="ln"></td><td class="mk">-</td><td class="cd">                .map(|f| point_at_fraction(pts, *f))</td></tr><tr class="rd"><td class="ln">138</td><td class="ln"></td><td class="mk">-</td><td class="cd">                .collect(),</td></tr><tr class="rd"><td class="ln">139</td><td class="ln"></td><td class="mk">-</td><td class="cd">        ));</td></tr><tr class="ra"><td class="ln"></td><td class="ln">143</td><td class="mk">+</td><td class="cd">                .map(|f| point_at_fraction(pts, *f)),</td></tr><tr class="ra"><td class="ln"></td><td class="ln">144</td><td class="mk">+</td><td class="cd">        );</td></tr><tr class="ra"><td class="ln"></td><td class="ln">145</td><td class="mk">+</td><td class="cd">        items.push(((w, h), cands));</td></tr><tr class="r"><td class="ln">140</td><td class="ln">146</td><td class="mk"> </td><td class="cd">    }</td></tr><tr class="r"><td class="ln">141</td><td class="ln">147</td><td class="mk"> </td><td class="cd">    <span class="t-k">let</span> chosen = place_avoiding(&amp;items, occupied);</td></tr><tr class="r"><td class="ln">142</td><td class="ln">148</td><td class="mk"> </td><td class="cd">    Ok(edges</td></tr></tbody></table></div></section><section class="pane code-pane" data-k="tests" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 2 件</summary><ol><li><b>fn two_self_loops_on_one_node_are_separa</b><button class="go" data-i="0">その場所へ</button><div class="b">同じ節点へ戻る辺が2本あっても、検査を通る図が組めることを固定した。変更前の実装では「確認する」と「変更する」の注記が重なって失敗した</div></li><li><b>fn a_self_loop_label_stays_off_its_node(</b><button class="go" data-i="1">その場所へ</button><div class="b">輪の注記が節点の文字にかからないことを固定した。変更前の実装では、注記と「システム」が重なって失敗した</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 241 ／ 新 241 @@</td></tr><tr class="r"><td class="ln">241</td><td class="ln">241</td><td class="mk"> </td><td class="cd">    );</td></tr><tr class="r"><td class="ln">242</td><td class="ln">242</td><td class="mk"> </td><td class="cd">}</td></tr><tr class="r"><td class="ln">243</td><td class="ln">243</td><td class="mk"> </td><td class="cd">&nbsp;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">244</td><td class="mk">+</td><td class="cd">#[test]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">245</td><td class="mk">+</td><td class="cd"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="同じ節点へ戻る辺が2本あっても、検査を通る図が組めることを固定した。変更前の実装では「確認する」と「変更する」の注記が重なって失敗した"><span class="t-k">fn</span> two_self_loops_on_one_node_are_separated() {</mark></td></tr><tr class="ra"><td class="ln"></td><td class="ln">246</td><td class="mk">+</td><td class="cd">    <span class="t-c">// **同じ節点の2本目の輪は、別の辺へ出す** ── 同じ辺に置くと、経路も注記も重なる</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">247</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> p = file(</td></tr><tr class="ra"><td class="ln"></td><td class="ln">248</td><td class="mk">+</td><td class="cd">        &quot;self_two.json&quot;,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">249</td><td class="mk">+</td><td class="cd">        r#&quot;{&quot;nodes&quot;: [{&quot;id&quot;: &quot;a&quot;, &quot;label&quot;: &quot;主アクター&quot;}, {&quot;id&quot;: &quot;s&quot;, &quot;label&quot;: &quot;システム&quot;}],</td></tr><tr class="ra"><td class="ln"></td><td class="ln">250</td><td class="mk">+</td><td class="cd">            &quot;edges&quot;: [{&quot;from&quot;: &quot;a&quot;, &quot;to&quot;: &quot;s&quot;}, {&quot;from&quot;: &quot;s&quot;, &quot;to&quot;: &quot;s&quot;, &quot;label&quot;: &quot;確認する&quot;}, {&quot;from&quot;: &quot;s&quot;, &quot;to&quot;: &quot;s&quot;, &quot;label&quot;: &quot;変更する&quot;}],</td></tr><tr class="ra"><td class="ln"></td><td class="ln">251</td><td class="mk">+</td><td class="cd">            &quot;direction&quot;: &quot;LR&quot;}&quot;#,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">252</td><td class="mk">+</td><td class="cd">    );</td></tr><tr class="ra"><td class="ln"></td><td class="ln">253</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> out = call(&quot;figure&quot;, &amp;[(&quot;declaration&quot;, &amp;p)]);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">254</td><td class="mk">+</td><td class="cd">    assert!(out.ok &amp;&amp; out.findings.is_empty(), &quot;{:?}&quot;, out.findings);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">255</td><td class="mk">+</td><td class="cd">}</td></tr><tr class="ra"><td class="ln"></td><td class="ln">256</td><td class="mk">+</td><td class="cd">&nbsp;</td></tr><tr class="ra"><td class="ln"></td><td class="ln">257</td><td class="mk">+</td><td class="cd">#[test]</td></tr><tr class="ra"><td class="ln"></td><td class="ln">258</td><td class="mk">+</td><td class="cd"><span class="t-k">fn</span> a_self_loop_label_stays_off_its_node() {</td></tr><tr class="ra"><td class="ln"></td><td class="ln">259</td><td class="mk">+</td><td class="cd">    <span class="t-c">// **輪の注記は輪の外側に置く** ── 輪は節点に接しているので、経路上の点を中心に置くと節点にかかる</span></td></tr><tr class="ra"><td class="ln"></td><td class="ln">260</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> p = file(</td></tr><tr class="ra"><td class="ln"></td><td class="ln">261</td><td class="mk">+</td><td class="cd">        &quot;self_label.json&quot;,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">262</td><td class="mk">+</td><td class="cd">        r#&quot;{&quot;nodes&quot;: [{&quot;id&quot;: &quot;s&quot;, &quot;label&quot;: &quot;システム&quot;}],</td></tr><tr class="ra"><td class="ln"></td><td class="ln">263</td><td class="mk">+</td><td class="cd">            &quot;edges&quot;: [{&quot;from&quot;: &quot;s&quot;, &quot;to&quot;: &quot;s&quot;, &quot;label&quot;: &quot;要求とデータを確認する&quot;}]}&quot;#,</td></tr><tr class="ra"><td class="ln"></td><td class="ln">264</td><td class="mk">+</td><td class="cd">    );</td></tr><tr class="ra"><td class="ln"></td><td class="ln">265</td><td class="mk">+</td><td class="cd">    <span class="t-k">let</span> out = call(&quot;figure&quot;, &amp;[(&quot;declaration&quot;, &amp;p)]);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">266</td><td class="mk">+</td><td class="cd">    assert!(out.ok &amp;&amp; out.findings.is_empty(), &quot;{:?}&quot;, out.findings);</td></tr><tr class="ra"><td class="ln"></td><td class="ln">267</td><td class="mk">+</td><td class="cd">}</td></tr><tr class="ra"><td class="ln"></td><td class="ln">268</td><td class="mk">+</td><td class="cd">&nbsp;</td></tr></tbody></table></div></section><section class="pane md" data-k="skill" hidden><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>は、節点の脇に輪を作る。</b><button class="go" data-i="0">その場所へ</button><div class="b">自分へ戻る辺の描き方が、どこにも記載されていなかった。2本目以降の輪の辺と、注記の置き場所を記載した</div></li></ol></details><div class="doc"><h1>構造化データからSVGを組むのを担当するSkill：design-svg</h1>
+<h2>目的</h2>
+<p>図を、手で座標を置くのではなく<strong>構造化データの宣言から組む</strong>ときに使う。何をどう並べるかを<br>宣言し、見た目はトークンで決め、座標は配置戦略に解かせる。紹介ページの主画像・概念の説明図・<br>仕組みの内訳図・量を示す図のいずれも、単体で完結するインラインSVGとして得られる。</p>
+<p>この Skill が持つ描画エンジン（<code>tool/parts/</code>）が実体である。入口は1つの実行ファイル <code>design-svg</code> で、<br><strong>宣言を JSON のファイルで受け取る</strong> ── 呼ぶ側は台本を書かず、宣言だけで同じ図を組み直せる。</p>
+<pre class="code">cd rs &amp;&amp; cargo build --release      # bin/design-svg ができる</pre>
+<p>以下の <code>design-svg</code> は、この実行ファイルを指す。</p>
+<hr>
+<h2>役割</h2>
+<p>- 描きたいものを、節点・辺・囲みの宣言へ変換する<br>- どの部品で描くか・どの配置戦略で解くかを選ぶ<br>- 見た目をテーマ（トークン）と役割で決める。色や寸法を直接書かない<br>- <strong>描いた画像を必ず見る</strong>。幾何の検査が通ることと、絵として成立していることは別である</p>
+<hr>
+<h2>処理対象と成果物</h2>
+<h3>処理対象</h3>
+<p>図にしたい構造（つながり・階層・包含・並び順・量・対応など）。</p>
+<h3>成果物</h3>
+<p>単体で完結するインラインSVG文字列。外部ホストにも実行時のライブラリにも依存しない。</p>
+<hr>
+<h2>入力の想定</h2>
+<div class="scroll"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>何を描きたいか（構造そのもの、または描きたい内容の説明）</td><td>説明で渡された場合は、まず節点・辺・囲みの宣言へ変換する。変換できない場合は「量を描く部品」側で表せないかを確認する</td></tr><tr><td>見た目の指定（明暗・配色・大きさ）</td><td>明示されなければ既定のテーマを使う。指定があればテーマを差し替えるか、役割を足す</td></tr><tr><td>置き場所（ファイルへ書くか、埋め込むか）</td><td>明示されなければ文字列として返し、書き出しは呼び出し側に委ねる</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: 何を受け取れるかを目録で確認する</h3>
+<pre class="code">design-svg catalog               # 目録をJSONで出す
+design-svg catalog catalog.json  # ファイルへ書き出す</pre>
+<p>目録は、<strong>どの部品があり、それぞれがどんな値を読み、どんなトークンで見た目が決まり、<br>どの配置戦略が選べるか</strong>を持つ。手で書かれたものではなく、部品の実装から導かれているので、<br>実物とずれない。各部品には最小の動く入力（見本）も載っている。</p>
+<h3>Step 2: 構造を宣言へ変換する</h3>
+<p>つながり・階層・包含は、節点と辺と囲みで書く。宣言は JSON のファイルに置く。</p>
+<pre class="code">{&quot;nodes&quot;: [{&quot;id&quot;: &quot;a&quot;, &quot;label&quot;: &quot;受付&quot;},
+           {&quot;id&quot;: &quot;b&quot;, &quot;label&quot;: &quot;検証&quot;, &quot;role&quot;: &quot;focus&quot;}],
+ &quot;edges&quot;: [{&quot;from&quot;: &quot;a&quot;, &quot;to&quot;: &quot;b&quot;, &quot;label&quot;: &quot;渡す&quot;}],
+ &quot;groups&quot;: [{&quot;label&quot;: &quot;束ね&quot;, &quot;members&quot;: [&quot;a&quot;, &quot;b&quot;]}],
+ &quot;direction&quot;: &quot;TB&quot;}</pre>
+<pre class="code">design-svg figure 宣言.json --out 図.svg</pre>
+<p><code>groups</code> は省ける。<code>direction</code> は <code>TB</code> か <code>LR</code> である。</p>
+<p>- <code>nodes</code> は <code>id</code> が必須。<code>label</code> / <code>role</code> / <code>style</code> / <code>figure</code> は任意<br>- <code>edges</code> は <code>from</code> と <code>to</code> が必須。<code>label</code> / <code>dashed</code> / <code>arrow</code> は任意<br>- <code>groups</code> は <code>members</code> が必須。<code>label</code> は任意<br>- 節点に <code>figure</code> を持たせると、<strong>その節点の中身が別の図になる</strong>（入れ子。深さの上限はトークン）</p>
+<p>量を描くもの（内訳・大小・並び順・区間・分布・2軸上の点・流量・位置）は、部品を1つ選んで描く。</p>
+<pre class="code">design-svg chart bars データ.json --out 図.svg</pre>
+<p><code>データ.json</code> は <code>{&quot;bars&quot;: [{&quot;name&quot;: &quot;文書&quot;, &quot;value&quot;: 13}]}</code> のように、その部品が読む値を持つ。</p>
+<p>意匠そのものを組むとき（面 ・ 文字 ・ 人 ・ 絵 ・ 任意の曲線）は、画布へ直に置く。</p>
+<pre class="code">{&quot;width&quot;: 600, &quot;height&quot;: 200, &quot;layers&quot;: [
+  {&quot;kind&quot;: &quot;panel&quot;, &quot;x&quot;: 20, &quot;y&quot;: 20, &quot;props&quot;: {&quot;width&quot;: 240, &quot;height&quot;: 120}},
+  {&quot;kind&quot;: &quot;text&quot;, &quot;x&quot;: 40, &quot;y&quot;: 44,
+   &quot;props&quot;: {&quot;text&quot;: [&quot;見出し&quot;, &quot;説明の行&quot;], &quot;size&quot;: 18, &quot;weight&quot;: &quot;bold&quot;}},
+  {&quot;kind&quot;: &quot;icon&quot;, &quot;x&quot;: 320, &quot;y&quot;: 40, &quot;props&quot;: {&quot;name&quot;: &quot;person&quot;, &quot;size&quot;: 64}},
+  {&quot;kind&quot;: &quot;icon&quot;, &quot;x&quot;: 420, &quot;y&quot;: 48, &quot;props&quot;: {&quot;name&quot;: &quot;doc&quot;, &quot;size&quot;: 32}},
+  {&quot;kind&quot;: &quot;path&quot;, &quot;x&quot;: 460, &quot;y&quot;: 40,
+   &quot;props&quot;: {&quot;d&quot;: &quot;M0,0 a30 30 0 0 1 60,0&quot;, &quot;filled&quot;: false}}]}</pre>
+<pre class="code">design-svg canvas 層.json --out 図.svg</pre>
+<p>- <strong><code>text</code></strong> ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。<strong>中央へ置くのは呼ぶ側の仕事である</strong>（部品は自分の原点を基準に描く。幅の測り方は <code>tool/parts/src/text.rs</code> が持つ）<br>- <strong><code>panel</code></strong> ── 塗りと枠だけの面。<strong>囲み（<code>frame</code>）とは別である</strong> ── 囲みは「ここは領域の内側」を示す破線の注記で、面は意匠そのものである<br>- <strong><code>icon</code></strong> ── 絵記号（人も含む）。<strong>どれも 0..24 の同じ枠で描く</strong>ので、並べたときに大きさが一致する。<strong>拡大しても線は太らない</strong> ── 枠ごと拡大すると、大きい絵だけ重くなる<br>- <strong><code>path</code></strong> ── <strong>SVG のパスの文法をそのまま受ける</strong>（<code>M/L/H/V/C/S/Q/T/A/Z</code> を絶対でも相対でも）。<strong>座標は書き換えない</strong> ── 外接矩形ぶんの平行移動で置く<br>- 色は濃さの呼び名で渡す（<code>ink</code> ・ <code>soft</code> ・ <code>faint</code> ・ <code>accent</code> ・ <code>accent-bg</code> ・ <code>on-accent</code> ・ <code>fill</code> ・ <code>line</code>）。<strong>直値を渡さない</strong></p>
+<p>好きな位置へ重ねたいときも画布を使う。層の並びだけを渡すなら、大きさは引数で渡す ──<br><code>design-svg canvas 層.json --width 400 --height 200</code>。</p>
+<h3>Step 3: 配置戦略を選ぶ</h3>
+<p>座標の解き方は差し替えられる。<strong>主張が違えば配置も違う</strong> ── 閉じていることを見せたい図を<br>縦一列に並べて最後から最初へ長い辺を戻すと、閉じていることが図から読めない。</p>
+<div class="scroll"><table><tr><th>戦略</th><th>何を根拠に置くか</th></tr><tr><td><code>graph</code>（既定。層状）</td><td>辺の向きから層を決める。つながり・階層に使う</td></tr><tr><td><code>radial</code></td><td>輪の上に置く。並びが閉じていることを見せる</td></tr><tr><td><code>tree</code></td><td>中心から枝分かれさせる</td></tr><tr><td><code>grid</code></td><td>宣言が持つ座標のとおりに置く。縦横の交点が意味を持つとき</td></tr></table></div>
+<p>宣言の <code>layout</code> に名前を書く（<code>--layout</code> でも渡せるが、宣言が勝つ）。</p>
+<pre class="code">{&quot;layout&quot;: &quot;radial&quot;, &quot;nodes&quot;: [...], &quot;edges&quot;: [...]}</pre>
+<p>格子は座標を必要とするので、宣言の <code>grid</code> に置く。<code>cols</code> と <code>rows</code> は並びを外から決めるときだけ書く。</p>
+<pre class="code">{&quot;layout&quot;: &quot;grid&quot;, &quot;nodes&quot;: [...], &quot;edges&quot;: [...],
+ &quot;grid&quot;: {&quot;at&quot;: {&quot;a&quot;: [&quot;左&quot;, &quot;上&quot;], &quot;b&quot;: [&quot;右&quot;, &quot;下&quot;]},
+          &quot;cols&quot;: [&quot;左&quot;, &quot;右&quot;], &quot;rows&quot;: [&quot;上&quot;, &quot;下&quot;],
+          &quot;elbow&quot;: [[&quot;a&quot;, &quot;b&quot;, &quot;vertical&quot;]]}}</pre>
+<p>辺を鍵線にしたいときは <code>elbow</code> に <code>[始点, 終点, 置き方]</code> を書く ── <code>&quot;vertical&quot;</code> は真下（真上）へ降りてから横へ折れ、<code>&quot;horizontal&quot;</code> はその逆である。<strong>格子は最上位の図だけに適用する</strong> ── 入れ子の図は層状で解く。</p>
+<p><strong>同じ2点を往復する2本の辺は、どちらにも同じ置き方を書くと、別の角を通る</strong>（往路は始点の列 ・ 終点の行で、復路はその逆で折れる）。書かないと2本が同じ直線に重なり、注記も重なる。</p>
+<p><strong>自分へ戻る辺（<code>from</code> と <code>to</code> が同じ）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="自分へ戻る辺の描き方が、どこにも記載されていなかった。2本目以降の輪の辺と、注記の置き場所を記載した">は、節点の脇に輪を作る。</mark></strong> 同じ節点に2本以上あれば、2本目以降は別の辺へ出す ── 流れの上流の側の辺（<code>LR</code> では左、<code>TB</code> では上）は、入ってくる辺が集まるので最後に使用する。輪の注記は、輪の頂点の外側へ置く。</p>
+<p><strong>囲み（<code>groups</code>）を持つ図は、囲みごとに段を分けて配置する。</strong> 囲みは <code>__g&lt;番号&gt;</code>（<code>groups</code> の並び順、0から）を名前として <code>at</code> に座標を持ち、囲みの内側の節点の座標は、その囲みの中の格子として解く。鍵線は、その辺が在る段で適用する ── 宣言に無い辺を指す鍵線は、図全体で照合して断る。</p>
+<h3>Step 4: 見た目を決める</h3>
+<p><strong>見た目の上書きは、宣言の中で渡す。</strong> <code>theme</code> に差分だけを書けばよく、既定のテーマへ重なる。<code>layout</code> と <code>direction</code> も宣言が持てる ── <strong>引数でしか渡せないものを作らない</strong>。宣言だけで同じ図が組み直せなければ、呼ぶ側は台本を書くことになり、その台本は成果物の隣に残らない。</p>
+<pre class="code">{&quot;nodes&quot;: [...], &quot;edges&quot;: [...], &quot;direction&quot;: &quot;LR&quot;,
+ &quot;theme&quot;: {&quot;color.box-fill&quot;: &quot;var(--card)&quot;, &quot;color.ink&quot;: &quot;var(--ink)&quot;}}</pre>
+<p>知らないトークンの名前は、その場で誤用（終了コード <code>2</code>）として返る ── 目録に在る名前だけを使う。</p>
+<p><strong>色・寸法・書体を直接書かない</strong>。必ずトークンから引く。3層で解決される<br>── テーマの既定値 → 役割による上書き → その場の上書き。</p>
+<pre class="code">{&quot;nodes&quot;: [...], &quot;edges&quot;: [...],
+ &quot;theme&quot;: {&quot;color.box-fill&quot;: &quot;#1C222C&quot;, &quot;color.ink&quot;: &quot;#E7ECF3&quot;}}</pre>
+<p>既定のテーマの正本は <code>references/theme.json</code> である ── トークン ・ 値の範囲 ・ 色の濃さの呼び名を持つ。</p>
+<p>役割（強調・控えめ等）もテーマが持つので、<strong>新しい役割はテーマへ行を足すだけ</strong>で増える。</p>
+<pre class="code">{&quot;nodes&quot;: [{&quot;id&quot;: &quot;a&quot;, &quot;label&quot;: &quot;停止&quot;, &quot;role&quot;: &quot;危険&quot;}],
+ &quot;theme&quot;: {&quot;role.危険.color.box-stroke&quot;: &quot;color.warn&quot;,
+           &quot;role.危険.color.text&quot;: &quot;color.warn&quot;}}</pre>
+<p><strong>役割の行も名前を検査する</strong> ── <code>role.&lt;役割&gt;.&lt;名前&gt;</code> の <code>&lt;名前&gt;</code> は、既定のトークンか、既存の役割が使っている名前<br>（<code>color.text</code> など。目録の <code>roles</code> に在る）でなければ断る。綴りの誤りを、その場で止めるためである。</p>
+<p>焼き上がったSVGは、<strong>生成後の外部CSSでも上書きできる</strong>（<code>.svg-box rect { fill: ... }</code>）。<br>明暗の切り替えは、テーマを2組焼き分けるか、CSSで適用するかのどちらでもよい。</p>
+<h3>Step 5: 破綻していないかを機械で検査する</h3>
+<p><code>figure</code> ・ <code>chart</code> ・ <code>canvas</code> は、描いた直後に3種の検査を自動で適用し、検出を返す（終了コード <code>1</code>）。<br>書き出した SVG を単独で検査するときは <code>verify</code> を使う。</p>
+<pre class="code">design-svg verify 図.svg</pre>
+<p>見るのは、文字どうしの重なり・画布からのはみ出し・箱どうしの重なり・辺が箱を突っ切ること・<br>辺の端点がインクに乗っていること。<strong>この検査が見ないもの</strong>が3つある ── 極端な縦横比、<br>配置戦略の選び違い（幾何は無傷でも主張が読めない）、詰まり・読みにくさ・配色の良し悪し。</p>
+<p><strong>この検査は、見つけるが直さない</strong>。辺が箱を突っ切ることは検出できるが、<br>それを避けて経路を描く戦略は無い。出たときに消す手は、宣言の手直しではなく配置の選び直しである。</p>
+<h3>Step 6: 描いた画像を目視で確認する</h3>
+<p><strong>座標が正しいことと、絵として成立していることは別である</strong>。検査が全部通っていても、<br>余白の偏り・意図しない強調・読めない重なりは目視でしか分からない。出す前に必ず画像を目視で確認する。</p>
+<h3>Step 7: 部品が足りなければ足す</h3>
+<p>部品は、<code>tool/parts/src/shapes*.rs</code> の関数1つと、そのファイルの <code>register()</code> への1行で増える。核は変化しない。</p>
+<pre class="code">fn bookmark(p: &amp;Props, style: &amp;Style) -&gt; Result&lt;Fragment, String&gt; {
+    let (w, h) = (style.num(&quot;size.box-min-w&quot;)?, style.num(&quot;size.box-h&quot;)?);
+    let fill = style.text(&quot;color.accent-bg&quot;)?;
+    Ok(Fragment::own(format!(&quot;&lt;path d=\&quot;...\&quot; fill=\&quot;{fill}\&quot;/&gt;&quot;), w, h))
+}
+// register() の並びへ (&quot;しおり&quot;, bookmark) を足す</pre>
+<p>足すときの規約は <code>references/knowledge/svg-engine-discipline.md</code> にある。<strong>新しいファイルは<br><code>tool/parts/src/lib.rs</code> の <code>components()</code> へ足す</strong>こと ── 足さないと台帳に載らない。<br><strong>目録の表（<code>catalog.rs</code> の <code>PARTS</code>）にも1行足す</strong> ── 部品が読むキーと表が食い違えば、事例が失敗する。</p>
+<hr>
+<h2>出力形式</h2>
+<p><strong>インラインSVGの文字列を返す。</strong> ファイルへの書き出しは、呼ぶ側が決める。</p>
+<div class="scroll"><table><tr><th>返すもの</th><th>形</th></tr><tr><td>図</td><td><code>&lt;svg&gt;</code> から始まる単体の文字列。外部ホストにも実行時のライブラリにも依存しない</td></tr><tr><td>目録</td><td>JSON（<code>design-svg catalog</code>）── 部品 ・ トークン ・ 役割 ・ 配置戦略</td></tr><tr><td>検査の結果</td><td>破綻の一覧。0件なら空である</td></tr></table></div>
+<p><strong>描いた画像を目視で確認してから渡す</strong> ── 幾何の検査が通ることと、絵として成立していることは別である。</p>
+<hr>
+<h2>ガードレール</h2>
+<p>- <strong>描いた画像を目視で確認する前に提示してはならない</strong>。最優先。例外なし<br>- <strong>描けないという判断を、既定の配置だけで下さない</strong>。位置を決めるものは戦略ごとに違う<br>  （辺・宣言の座標・順序・階層・呼ぶ側）。<strong>既定は選べるうちの1つであって、能力の上限ではない。</strong><br>  目録は部品の実装から導かれているので、そこに無いことを確認してから言う<br>- <strong>図の破綻を、宣言の書き直しで直さない</strong>。辺が箱を貫く・線が長い斜めになる・経路が外を回り込む<br>  ── どれも<strong>描きたい主張と、位置を決めるものが食い違っている印</strong>である。<br>  直す先は節点や辺ではなく、<strong>どの配置に解かせるか</strong>である<br>- <strong>囲みは、配置が終了したあとに付与される外接矩形である</strong>。外から引く辺は中の節点の中心を狙うので、<br>  囲みは辺の相手にならない。<strong>囲みの中の1つへつなぎたいときは、囲みではなく入れ子の図にする</strong><br>- <strong>辺をどこから出すかは、宣言では決まらない。次の点へ向かう向きで決まる</strong>。だから<br>  <strong>鍵線は、配置が曲がり角を1つ挟むことで出る</strong>（格子なら <code>elbow=</code>）。斜めの1本になったのを<br>  見て「この向きには引けない」と決めない ── 決めているのは辺ではなく配置である<br>- 色・寸法・書体を直接書かない。必ずトークンから引く（テーマを差し替えても取り残されるため）<br>- 勘で置いた数値を残さない。コードに現れる数は、設計上の選択（トークンから注入）か<br>  データから決まる量（毎回計算）のどちらかである。3種目は存在してはいけない<br>- 1枚に2つ以上の訴求を載せない<br>- 部品はSVGの断片だけを返す。<code>&lt;svg&gt;</code> ルートを組むのは最上位の合成だけ<br>- 部品は決定的であること。乱数・現在時刻を使わない<br>- <strong>利用側の語彙をエンジンへ持ち込まない</strong>。このSkillが知ってよいのは節点・辺・囲みという<br>  一般名詞と、部品・トークン・配置戦略だけである。固有の記法を持つ側から使うときは、<br>  その語彙からこの宣言へ直す変換を<strong>呼ぶ側に置く</strong></p>
+<hr>
+<h2>参照</h2>
+<p>- <code>README.md</code>: エンジンの入口（使い方・目録・配置・開発）<br>- <code>references/knowledge/svg-engine-discipline.md</code>: エンジンが遵守する規律と、外へ公開する面<br>- <code>references/knowledge/svg-engine-layout-algorithms.md</code>: 配置アルゴリズムの中身と、各層が保証すること<br>- <code>tool/cli/</code>: <strong>唯一の入口</strong> <code>design-svg</code>。<code>catalog</code> ・ <code>figure</code> ・ <code>chart</code> ・ <code>canvas</code> ・ <code>verify</code> ・ <code>lint</code> を持つ ── どれも <code>--json</code> で機械が読む形が出る。終了コードは <code>0</code> 正常 ／ <code>1</code> 検出あり ／ <code>2</code> 誤用<br>- <code>tool/declare/</code>: 道具の宣言。<strong>能力の正本</strong>であり、CLI と MCP はここから組む。<strong>部品は載せない</strong> ── <code>tool/parts/</code> は読み込まれるものであり、入口を保持しない<br>- <code>tool/mcp/</code> ・ <code>mcp.json</code>: MCP サーバー <code>design-svg-mcp</code>。宣言から道具を組む<br>- <code>tool/parts/</code>: 描画エンジン。依存の許可辺は各 <code>Cargo.toml</code> が宣言する<br>- <code>references/theme.json</code>: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名<br>- <code>tool/parts/tests/</code>: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（<code>golden/</code>）。何が守られているかが読める。<code>cd rs &amp;&amp; cargo test</code><br>- <code>tool/parts/examples/bench_layout.rs</code>: 層状配置を Graphviz の <code>dot</code> と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。<code>cd rs &amp;&amp; cargo run -q -p ds_parts --example bench_layout</code></p></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>

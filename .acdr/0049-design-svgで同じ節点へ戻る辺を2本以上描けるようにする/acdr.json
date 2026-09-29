@@ -1,0 +1,153 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0049",
+ "title": "design-svg で、同じ節点へ戻る辺を2本以上描けるようにする",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "design-svg で、同じ節点へ戻る辺が2本以上あっても、輪と注記が重ならずに描けるようにする。",
+ "why": "usecase-advisor の判断基準の図7.1（ヤコブソンの4つの部品）は、システムが自分自身へ向かう辺を2本持つ。design-svg は自分へ戻る辺を描けるが、輪をいつも節点の右の辺に作り、注記を輪の中点に中央寄せで置いていた。そのため2本の輪が同じ経路に重なり、注記どうしと、注記と節点の文字が重なって、幾何の検査を通らなかった。輪を出す辺を何本目かで変え、注記を輪の外側に置くことで、図の宣言を変えずに原文の図を描けるようにする。",
+ "shift": [
+  {
+   "what": "同じ節点の2本目以降の輪",
+   "from": "すべて右の辺に作る（経路が重なる）",
+   "to": "何本目かで別の辺に作る。流れの上流の側の辺（LR では左、TB では上）は、入ってくる辺が集まるので最後に使う"
+  },
+  {
+   "what": "輪の注記の置き場所",
+   "from": "輪の経路上の点を中心に置く（節点の文字にかかる）",
+   "to": "輪の頂点から外向きに、注記の大きさの半分だけずらした位置を先に試す。重なるときは、これまでの候補へ移る"
+  },
+  {
+   "what": "既存の図",
+   "from": "自分へ戻る辺を持つ図は、リポジトリの宣言に0件",
+   "to": "見た目が変わる既存の図は無い"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "同じ節点へ戻る辺が2本あるとき、変更前は輪と注記が重なり、変更後は分かれる",
+ "alternatives": [
+  {
+   "option": "図7.1 の宣言を書き換え、自分へ戻る辺を「確認」「変更」の節点へ置き換える",
+   "why_not": "原典の図が持つ構造（システムが自分の中で行う2つの部品）が、別の節点へ移ったように読める。判断基準の図は、ノートの図を変えずに写す決まりである"
+  },
+  {
+   "option": "注記を持つ自己ループを、宣言の段階で誤りとして断る",
+   "why_not": "図が描けないままになり、図を省く決まり（図を省略しない）に反する"
+  },
+  {
+   "option": "輪の大きさを本数に応じて広げ、同じ辺に入れ子の輪を作る",
+   "why_not": "輪が節点の脇で太く膨らみ、注記を置く場所が輪の内側に閉じ込められる。注記と輪の重なりは解けない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "after",
+   "tab": "完成イメージ：変更後の図7.1",
+   "file": ".acdr/0049-design-svgで同じ節点へ戻る辺を2本以上描けるようにする/preview/after.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "before",
+   "tab": "変更前の図7.1",
+   "file": ".acdr/0049-design-svgで同じ節点へ戻る辺を2本以上描けるようにする/preview/before.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "compose",
+   "tab": "parts/src/compose.rs",
+   "file": ".claude/skills/design-svg/tool/parts/src/compose.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "enum Side {",
+     "why": "輪を出す辺を列挙型で表した。design-svg の検査は、コードに直接書いた数値を拒否するので、辺を番号で表さない",
+     "before": "（無い）"
+    },
+    {
+     "find": "fn nth(direction: &str, nth: usize) -> Self {",
+     "why": "何本目の輪をどの辺に出すかを1か所で決める。流れの上流の側の辺は、入ってくる辺が集まるので最後に使う",
+     "before": "（無い）"
+    },
+    {
+     "find": "let (m, half) = match side {",
+     "why": "右の辺にしか作れなかった輪を、辺の中点 ・ 外向きの向き ・ 辺に沿う向きから組む形にして、4つの辺のどれにも作れるようにした。右の辺の輪は変更前と同じ点になる",
+     "before": "let (cx, cy) = (x + w, y + h / 2.0); let (top, bottom) = (y + h * attach, y + h * (1.0 - attach));"
+    },
+    {
+     "find": "let mut loop_apex: HashMap",
+     "why": "輪の頂点と外向きの向きを記録し、注記を置くときに渡す。あわせて、同じ節点へ戻る辺のうち、この辺が何本目かを数え、輪を出す辺を決める",
+     "before": "edge_points.push(self_loop(coord(a)?, size(a)?, …, &edge_style)?);"
+    },
+    {
+     "find": "place_edge_labels(&labelled, &edge_style, &occupied, &loop_apex)?",
+     "why": "注記を置く処理へ、輪の頂点を渡す",
+     "before": "place_edge_labels(&labelled, &edge_style, &occupied)?"
+    }
+   ]
+  },
+  {
+   "key": "labels",
+   "tab": "parts/src/labels.rs",
+   "file": ".claude/skills/design-svg/tool/parts/src/labels.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "outward: &std::collections::HashMap<usize, (Point, (f64, f64))>,",
+     "why": "輪の頂点と外向きの向きを受け取る。辺の番号で輪の頂点を引くために、これまで捨てていた辺の番号も受け取る",
+     "before": "for (_, pts, label) in edges {"
+    },
+    {
+     "find": "if let Some(((ax, ay), (nx, ny))) = outward.get(i) {",
+     "why": "輪は節点に接しているので、経路上の点を中心に置くと注記が節点にかかる。頂点の外側を最初の候補にし、重なるときは経路上の候補へ移る",
+     "before": "candidates(seg, w).iter().map(|f| point_at_fraction(pts, *f)).collect()"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "declare/tests/tools.rs",
+   "file": ".claude/skills/design-svg/tool/declare/tests/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn two_self_loops_on_one_node_are_separated() {",
+     "why": "同じ節点へ戻る辺が2本あっても、検査を通る図が組めることを固定した。変更前の実装では「確認する」と「変更する」の注記が重なって失敗した",
+     "before": "（無い）"
+    },
+    {
+     "find": "fn a_self_loop_label_stays_off_its_node() {",
+     "why": "輪の注記が節点の文字にかからないことを固定した。変更前の実装では、注記と「システム」が重なって失敗した",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "design-svg の SKILL.md",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "は、節点の脇に輪を作る。",
+     "why": "自分へ戻る辺の描き方が、どこにも記載されていなかった。2本目以降の輪の辺と、注記の置き場所を記載した",
+     "before": "（無い）"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "design-svg の実行ファイルを組み直す（bin/ は git の管理外）",
+  "usecase-advisor の図7.1（scenarios-steps-1.svg）を、組み直した design-svg で組んだものとして ACDR 0050 に含める"
+ ],
+ "seal": {
+  "after": "2dbdedbfdbb752b2e399189f177a4b044602abd90ba21d7b5abbee0529fff5a1",
+  "before": "deadfba6901b11c7f8e876c4ab27f532619a30a3f354de9c4fa35ce42c213fde",
+  "compose": "6e4eff2f6a789ce404d7bbd04e09ca4e3a3b1225b53aa1d36c0bc0af7b2cba22",
+  "labels": "6ed76c16ee9157785760a8cf73d01b1fa30dcff52cf45fb25c573f535f467b0e",
+  "tests": "80ec9557ddcca50d6f970462a699284857e1358571954b354f6ca20abc7b67fb",
+  "skill": "80c6bb2b257839d15916d08d8ff3d3f335861eb4d738bac5644a1421e4b8031c"
+ }
+}

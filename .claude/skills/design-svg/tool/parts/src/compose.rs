@@ -124,22 +124,69 @@ fn avoid(
     out
 }
 
+/// 輪を出す節点の辺。
+#[derive(Clone, Copy)]
+enum Side {
+    Right,
+    Bottom,
+    Left,
+    Top,
+}
+
+impl Side {
+    /// 外向きの向き
+    const fn normal(self) -> (f64, f64) {
+        match self {
+            Self::Right => (1.0, 0.0),
+            Self::Bottom => (0.0, 1.0),
+            Self::Left => (-1.0, 0.0),
+            Self::Top => (0.0, -1.0),
+        }
+    }
+
+    /// 同じ節点の何本目かで、輪を出す辺を決める。**流れの上流の側の辺は、入ってくる辺が集まるので最後に使う**
+    fn nth(direction: &str, nth: usize) -> Self {
+        let order = if direction == "LR" {
+            [Self::Right, Self::Bottom, Self::Top, Self::Left]
+        } else {
+            [Self::Right, Self::Left, Self::Bottom, Self::Top]
+        };
+        order[nth % order.len()]
+    }
+}
+
 /// 自分から自分へ戻る辺の経路。**節点の脇へ小さな輪を作る。**
-fn self_loop(pos: Point, size: (f64, f64), gap: f64, style: &Style) -> Result<Vec<Point>, String> {
+/// 同じ節点の2本目以降は別の辺へ出す（実測 ── 同じ辺に2本置くと、経路も注記も重なった）。
+fn self_loop(
+    pos: Point,
+    size: (f64, f64),
+    gap: f64,
+    style: &Style,
+    side: Side,
+) -> Result<Vec<Point>, String> {
     let (x, y) = pos;
     let (w, h) = size;
     let attach = style.num("size.self-loop-attach")?;
     let bulge = style.num("size.self-loop-bulge")?;
     let lift = style.num("size.self-loop-lift")?;
     let r = w.min(h) / 2.0 + gap;
-    let (cx, cy) = (x + w, y + h / 2.0);
-    let (top, bottom) = (y + h * attach, y + h * (1.0 - attach));
+    // 辺の中点と、辺の半分の長さ。辺に沿う向きは、外向きの向きを回したもの
+    let (m, half) = match side {
+        Side::Right => ((x + w, y + h / 2.0), h / 2.0),
+        Side::Bottom => ((x + w / 2.0, y + h), w / 2.0),
+        Side::Left => ((x, y + h / 2.0), h / 2.0),
+        Side::Top => ((x + w / 2.0, y), w / 2.0),
+    };
+    let n = side.normal();
+    let t = (n.1.abs(), n.0.abs());
+    let a = half * (1.0 - 2.0 * attach);
+    let at = |out: f64, along: f64| (m.0 + n.0 * out + t.0 * along, m.1 + n.1 * out + t.1 * along);
     Ok(vec![
-        (x + w, top),
-        (cx + r, top - r * lift),
-        (cx + r * bulge, cy),
-        (cx + r, bottom + r * lift),
-        (x + w, bottom),
+        at(0.0, -a),
+        at(r, -a - r * lift),
+        at(r * bulge, 0.0),
+        at(r, a + r * lift),
+        at(0.0, a),
     ])
 }
 
@@ -428,15 +475,26 @@ pub fn figure_fragment(
     let edge_style = style::resolve("plain", None, Some(theme_))?;
 
     let mut edge_points: Vec<Vec<Point>> = Vec::new();
+    // 自分へ戻る輪の頂点と、外向きの向き（注記を輪の外側へ置くため）
+    let mut loop_apex: HashMap<usize, (Point, (f64, f64))> = HashMap::new();
     for (idx, (a, b)) in edge_pairs.iter().enumerate() {
         if a == b {
             // 自分へ戻る辺は、配置の解いた経路（同じ点が2つ）では表せない
-            edge_points.push(self_loop(
+            let nth = edge_pairs[..idx]
+                .iter()
+                .filter(|(p, q)| p == a && q == a)
+                .count();
+            let side = Side::nth(direction, nth);
+            let lp = self_loop(
                 coord(a)?,
                 size(a)?,
                 edge_style.num("size.gap-order")? / 2.0,
                 &edge_style,
-            )?);
+                side,
+            )?;
+            let normal = side.normal();
+            loop_apex.insert(idx, (lp[2], normal));
+            edge_points.push(lp);
             continue;
         }
         let mut pts = edge_paths
@@ -617,7 +675,7 @@ pub fn figure_fragment(
         let mut occupied = frame_label_areas.clone();
         occupied.extend(frame_line_areas);
         occupied.extend(node_areas);
-        place_edge_labels(&labelled, &edge_style, &occupied)?
+        place_edge_labels(&labelled, &edge_style, &occupied, &loop_apex)?
             .into_iter()
             .collect()
     };

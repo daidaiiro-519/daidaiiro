@@ -119,10 +119,11 @@ pub fn place_edge_labels(
     edges: &[(usize, Vec<Point>, String)],
     style: &Style,
     occupied: &[Rect],
+    outward: &std::collections::HashMap<usize, (Point, (f64, f64))>,
 ) -> Result<Vec<(usize, Point)>, String> {
     let fs = style.num("font.size-small")?;
     let mut items = Vec::new();
-    for (_, pts, label) in edges {
+    for (i, pts, label) in edges {
         let w = text::width(label, fs) + style.num("size.label-pad-x")?;
         let h = fs * style.num("size.label-line-h")?;
         let seg = crate::py::sum(
@@ -130,13 +131,18 @@ pub fn place_edge_labels(
                 .map(|p| ((p[1].0 - p[0].0).powf(2.0) + (p[1].1 - p[0].1).powf(2.0)).powf(0.5)),
         );
         // 辺のラベルの候補は「経路上の点」。**真ん中から外へ交互に**
-        items.push((
-            (w, h),
+        let mut cands: Vec<Point> = Vec::new();
+        // **自分へ戻る輪は、頂点の外側を先に試す** ── 輪は節点に接しているので、経路上の点を中心に置くと節点にかかる
+        if let Some(((ax, ay), (nx, ny))) = outward.get(i) {
+            let gap = style.num("size.label-pad-x")? / 2.0;
+            cands.push((ax + nx * (w / 2.0 + gap), ay + ny * (h / 2.0 + gap)));
+        }
+        cands.extend(
             candidates(seg, w)
                 .iter()
-                .map(|f| point_at_fraction(pts, *f))
-                .collect(),
-        ));
+                .map(|f| point_at_fraction(pts, *f)),
+        );
+        items.push(((w, h), cands));
     }
     let chosen = place_avoiding(&items, occupied);
     Ok(edges

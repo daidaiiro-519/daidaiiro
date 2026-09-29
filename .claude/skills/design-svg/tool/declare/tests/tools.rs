@@ -240,3 +240,28 @@ fn an_elbow_on_an_undeclared_edge_is_misuse() {
         out.findings
     );
 }
+
+#[test]
+fn two_self_loops_on_one_node_are_separated() {
+    // **同じ節点の2本目の輪は、別の辺へ出す** ── 同じ辺に置くと、経路も注記も重なる
+    let p = file(
+        "self_two.json",
+        r#"{"nodes": [{"id": "a", "label": "主アクター"}, {"id": "s", "label": "システム"}],
+            "edges": [{"from": "a", "to": "s"}, {"from": "s", "to": "s", "label": "確認する"}, {"from": "s", "to": "s", "label": "変更する"}],
+            "direction": "LR"}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
+}
+
+#[test]
+fn a_self_loop_label_stays_off_its_node() {
+    // **輪の注記は輪の外側に置く** ── 輪は節点に接しているので、経路上の点を中心に置くと節点にかかる
+    let p = file(
+        "self_label.json",
+        r#"{"nodes": [{"id": "s", "label": "システム"}],
+            "edges": [{"from": "s", "to": "s", "label": "要求とデータを確認する"}]}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
+}
