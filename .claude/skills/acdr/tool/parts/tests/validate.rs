@@ -17,7 +17,8 @@ fn sound() -> Value {
     json!({
         "no": "ACDR 0001", "title": "題", "date": "2026-09-27", "status": "proposed",
         "decision": "こうする。", "why": "こういう理由である。",
-        "applies_to": "ここへ適用する。"
+        "applies_to": "ここへ適用する。",
+        "alternatives": [{"option": "案甲", "why_not": "これが壊れる。"}]
     })
 }
 

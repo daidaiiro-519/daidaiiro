@@ -30,7 +30,8 @@ fn sound() -> Value {
     json!({
         "no": "ACDR 0001", "title": "題", "date": "2026-09-27", "status": "proposed",
         "decision": "こうする。", "why": "こういう理由である。",
-        "applies_to": "ここへ適用する。"
+        "applies_to": "ここへ適用する。",
+        "alternatives": [{"option": "案甲", "why_not": "これが壊れる。"}]
     })
 }
 
@@ -38,10 +39,15 @@ fn made(spec: &Value, figure: &str) -> panes::Made {
     let refs = references();
     let parts = Parts::load(&refs.join("acdr.template.html")).expect("読める");
     let style = Style::load(&refs).expect("読める");
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(refs.join("acdr.schema.json")).expect("読める"),
+    )
+    .expect("JSON");
     let shop = Shop {
         parts: &parts,
         style: &style,
         git: "git",
+        schema: &schema,
     };
     record::build(&shop, spec, figure).expect("組める")
 }
@@ -58,8 +64,8 @@ fn write(folder: &Path, spec: &Value) {
 fn a_decision_without_targets_is_one_page_of_sections() {
     // **対象が無い決定（新規）は、例外にせず、同じ器で空にする**
     let got = made(&sound(), "");
-    assert!(got.page.contains("<div class=\"acdr\">"), "節が無い");
-    assert!(got.page.contains("class=\"st "), "状態が付いていない");
+    assert!(got.page.contains("<div class=\"rv\">"), "節が無い");
+    assert!(got.page.contains("class=\"tag"), "状態が付いていない");
     assert_eq!(got.total, 0);
     assert!(
         !got.page.contains("<button class=\"tab\""),
@@ -68,24 +74,24 @@ fn a_decision_without_targets_is_one_page_of_sections() {
 }
 
 #[test]
-fn the_sections_the_record_holds_are_in_the_page() {
+fn only_the_four_sections_are_drawn() {
+    // **上部の節は4つだけ** ── 決めたこと ・ なぜ ・ どう変わるか ・ 比較した案。
+    // 過去の記録の欄（実現の形 ・ 適用先 ・ 承認後に実施すること）は、残っていても描かない
     let mut spec = sound();
     spec["how"] = json!("こう実現する。");
     spec["shift"] = json!([{"what": "置き場所", "from": "旧", "to": "新"}]);
-    spec["alternatives"] = json!([{"option": "案甲", "why_not": "これが壊れる。"}]);
     spec["after_approval"] = json!(["正本へ当てる"]);
-    spec["supersedes"] = json!("ACDR 0000 を置き換える。");
     let got = made(&spec, "");
     for heading in [
-        "なぜ、いま決めるのか",
-        "形の変化",
-        "実現の形",
-        "適用先",
-        "比較した案",
-        "承認後に実施すること",
-        "supersedes",
+        "決めたこと",
+        "なぜ決める必要があるか",
+        "変更前と変更後",
+        "比較した案と、採らなかった理由",
     ] {
         assert!(got.page.contains(heading), "{heading} が出ていない");
+    }
+    for gone in ["こう実現する。", "正本へ当てる", "ここへ適用する。"] {
+        assert!(!got.page.contains(gone), "{gone} を描いている");
     }
 }
 
@@ -95,26 +101,35 @@ fn the_section_tables_scroll_inside_their_own_frame() {
     // 狭い画面でページごと横にはみ出す（実測 ── 390ピクセルの幅で、ページが422ピクセルになった）
     let mut spec = sound();
     spec["shift"] = json!([{"what": "置き場所", "from": "旧", "to": "新"}]);
-    spec["alternatives"] = json!([{"option": "案甲", "why_not": "これが壊れる。"}]);
     let got = made(&spec, "");
     assert!(
-        got.page
-            .contains("<div class=\"scroll\"><table class=\"shift\">"),
-        "形の変化の表に枠が無い"
-    );
-    assert!(
-        got.page
-            .contains("<div class=\"scroll\"><table><thead><tr><th>案</th>"),
-        "比較した案の表に枠が無い"
+        got.page.matches("<div class=\"scroll\"><table>").count() >= 2,
+        "表に枠が無い"
     );
 }
 
 #[test]
-fn an_absent_section_is_named_not_omitted() {
-    // **比較した案が無いことと、書き忘れは、読み手には同じに見える**
-    let got = made(&sound(), "");
-    assert!(got.page.contains("比較した案は無い"), "{}", got.page.len());
-    assert!(got.page.contains("無し"), "承認後に実施することが空である");
+fn an_absent_comparison_refuses_the_build() {
+    // **比較した案が無いことと、書き忘れは、読み手には同じに見える** ── 無い記録を組まない
+    let refs = references();
+    let parts = Parts::load(&refs.join("acdr.template.html")).expect("読める");
+    let style = Style::load(&refs).expect("読める");
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(refs.join("acdr.schema.json")).expect("読める"),
+    )
+    .expect("JSON");
+    let shop = Shop {
+        parts: &parts,
+        style: &style,
+        git: "git",
+        schema: &schema,
+    };
+    let mut spec = sound();
+    spec.as_object_mut()
+        .expect("表である")
+        .remove("alternatives");
+    let why = record::build(&shop, &spec, "").expect_err("断る");
+    assert!(why.contains("比較した案"), "{why}");
 }
 
 #[test]
@@ -123,7 +138,7 @@ fn a_figure_is_placed_as_it_came() {
     let svg = "<svg><circle r=\"1\"/></svg>";
     let got = made(&sound(), svg);
     assert!(got.page.contains(svg), "SVG が書き換わっている");
-    assert!(got.page.contains("図で確認する"), "節が出ていない");
+    assert!(got.page.contains("どう変わるか"), "節が出ていない");
 }
 
 #[test]
@@ -131,10 +146,15 @@ fn a_missing_section_refuses_the_build() {
     let refs = references();
     let parts = Parts::load(&refs.join("acdr.template.html")).expect("読める");
     let style = Style::load(&refs).expect("読める");
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(refs.join("acdr.schema.json")).expect("読める"),
+    )
+    .expect("JSON");
     let shop = Shop {
         parts: &parts,
         style: &style,
         git: "git",
+        schema: &schema,
     };
     let mut spec = sound();
     spec.as_object_mut().expect("表である").remove("why");
@@ -147,10 +167,15 @@ fn a_status_outside_the_three_refuses_the_build() {
     let refs = references();
     let parts = Parts::load(&refs.join("acdr.template.html")).expect("読める");
     let style = Style::load(&refs).expect("読める");
+    let schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(refs.join("acdr.schema.json")).expect("読める"),
+    )
+    .expect("JSON");
     let shop = Shop {
         parts: &parts,
         style: &style,
         git: "git",
+        schema: &schema,
     };
     let mut spec = sound();
     spec["status"] = json!("たぶん承認");

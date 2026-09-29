@@ -17,7 +17,7 @@ use serde_json::Value;
 pub const STATUS: [&str; 3] = ["proposed", "accepted", "superseded"];
 
 /// 節。**欠けたら止まる** ── 欠けた記録は、あとから誰も補完できない。
-pub const SECTIONS: [&str; 3] = ["decision", "why", "applies_to"];
+pub const SECTIONS: [&str; 2] = ["decision", "why"];
 
 /// 1つの欄に置ける主張の数。
 const COHABIT: usize = 1;

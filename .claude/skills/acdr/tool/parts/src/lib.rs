@@ -8,6 +8,7 @@ pub mod code;
 pub mod markdown;
 pub mod panes;
 pub mod record;
+pub mod refs;
 pub mod shape;
 pub mod style;
 pub mod template;

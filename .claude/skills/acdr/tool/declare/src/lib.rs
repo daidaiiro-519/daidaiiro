@@ -5,6 +5,7 @@
 //! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::PathBuf;
 
@@ -251,7 +252,7 @@ pub fn tools() -> Vec<Tool> {
         "この Skill の置き場所（既定は、実行ファイルの1つ上）",
         None,
     );
-    vec![
+    let mut all = vec![
         Tool {
             name: "new",
             summary: "雛形から記録のフォルダを起こす",
@@ -264,7 +265,7 @@ pub fn tools() -> Vec<Tool> {
             human: human_new,
         },
         Tool {
-            name: "validate",
+            name: "inspect",
             summary: "入力（acdr.json）を検査する",
             args: vec![Arg::need("record", "記録のフォルダ"), root.clone()],
             run: run_validate,
@@ -289,5 +290,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_tokens,
             human: human_tokens,
         },
-    ]
+    ];
+    // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
+    all.extend(refs::tools());
+    all
 }

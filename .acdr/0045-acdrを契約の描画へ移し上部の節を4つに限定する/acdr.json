@@ -1,0 +1,374 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0045",
+ "title": "acdr を契約の描画へ移し、上部の節を4つに限定する",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "acdr の記録の上部を、契約の共通の描画で組み、節を「決めたこと ・ なぜ決める必要があるか ・ どう変わるか ・ 比較した案と、採らなかった理由」の4つに限定する。",
+ "why": "利用者は、ACDR の上部は散文が多く読みにくく、回答の完成イメージのように構造化した見た目が良いと指摘した。内容も、決めたこと ・ なぜ ・ 変化の図 ・ 何と比べて選んだかで足りるとした。差分の面（変更箇所と理由）は分かりやすいので残す。これからの段はすべて ACDR で提示するので、段5を待たずに前倒しした（ACDR 0043 の承認のときに合意）。",
+ "shift": [
+  {
+   "what": "上部の節",
+   "from": "8つ（決定 ・ なぜ ・ 形の変化 ・ 図 ・ 実現の形 ・ 適用先 ・ 比較した案 ・ 承認後）",
+   "to": "4つ（決めたこと ・ なぜ ・ どう変わるか ・ 比較した案）"
+  },
+  {
+   "what": "描画",
+   "from": "acdr が独自の型とコードで組む",
+   "to": "契約の共通の描画が、スキーマの title と x-view で組む。色は acdr のトークン"
+  },
+  {
+   "what": "契約の版",
+   "from": "版1",
+   "to": "版2（get ・ validate ・ view ・ import を持つ。記録の検査は inspect に改名）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "上部は4つの節を、カード ・ 図 ・ 表で組む。下の差分の面は変えない",
+ "alternatives": [
+  {
+   "option": "acdr の独自の型のまま、節を減らすだけにする",
+   "why_not": "描画が Skill ごとに分かれたまま残り、論点2（描画は契約が1つだけ持つ）に反する"
+  },
+  {
+   "option": "段5まで待つ",
+   "why_not": "段2〜4の記録を、読みにくい形で読むことになる"
+  },
+  {
+   "option": "差分の面も共通の描画で組み直す",
+   "why_not": "差分の面は分かりやすいので残す、という利用者の判断に反する。コードの差分と印は、共通の描画の範囲を超える"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "acdr SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "上部の節は4つだけである",
+     "before": "節 | キー | 中身（9行：決定 ・ 形の変化 ・ 図 ・ 実現の形 ・ 適用先 ・ なぜ ・ 比較した案 ・ 状態 ・ 承認後）",
+     "why": "利用者の要望（決めたこと ・ なぜ ・ どう変わるか ・ 何と比べたか）に合わせ、節を4つに限定した"
+    },
+    {
+     "find": "契約の版2 の",
+     "before": "acdr validate",
+     "why": "契約の版2 の validate（references の検査）と名前が重なるので、記録の検査を inspect に改名した"
+    }
+   ]
+  },
+  {
+   "key": "schema",
+   "tab": "acdr.schema.json",
+   "file": ".claude/skills/acdr/references/acdr.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"承認時点の対象の文書の sha256。**承認済みの記録は、承認時点の姿を保持する**\",",
+     "before": "（差分が示す）",
+     "why": "封印の欄も描画しない（x-view の hidden）"
+    },
+    {
+     "find": "\"title\": \"意思決定の記録\",",
+     "before": "\"title\": \"意思決定の記録（ACDR）の入力\",\n\"description\": \"acdr.json の形。**節と、対象の文書ごとの3つ組だけを保持する** ── 変更後の中身は対象の文書が保持する。\",\n\"applies_to\",\n\"status\"\n\"type\": \"string\"\n\"description\": \"連番。例 ACDR 0001\"\n},\n\"title\": {\n\"type\": \"string\",\n\"minLength\": 1,\n\"description\": \"短い名詞句\"\n\"description\": \"決めた日。YYYY-MM-DD\"\n\"enum\": [\n\"proposed\",\n\"accepted\",\n\"superseded\"\n\"description\": \"proposed は未承認で適用してはならない。accepted は承認済み。superseded は後の記録が置き換えた\"\n\"decision\": {\n\"description\": \"**決めてほしいこと1件**。手段ではなく、何を採るかを1文で記述する\"\n\"applies_to\": {\n\"description\": \"どの正本が変化するか\"\n\"description\": \"なぜ、いま決めるのか。何と食い違っていて、何に一致させたか\"\n\"description\": \"**抽象の側の変更前と変更後**。具体の差分は面が保持する\",",
+     "why": "節の見出しと見せ方（x-view）をスキーマに置いた。状態は oneOf の title で表示名を持つ。過去の欄は hidden で残す。比較した案を必須にした"
+    },
+    {
+     "find": "\"type\": \"string\",",
+     "before": "\"type\": \"string\"\n\"type\": \"string\"\n\"type\": \"string\"\n}\n},\n\"figure\": {\n\"type\": \"string\",\n\"description\": \"隣に置いた SVG のファイル名。**この Skill は描画しない** ── 描くのは design-svg である\"\n},\n\"figure_caption\": {\n\"type\": \"string\",\n\"description\": \"図が示すものを1文で記述する\"\n},\n\"how\": {\n\"type\": \"string\",\n\"description\": \"その決定をどう実現するか（手段）。決定の文に混在させない\"\n\"description\": \"**どれも反証を通過しなかった案である** ── 未解決の懸念ではない\",",
+     "why": "節の見出しと見せ方（x-view）をスキーマに置いた。状態は oneOf の title で表示名を持つ。過去の欄は hidden で残す。比較した案を必須にした"
+    },
+    {
+     "find": "\"type\": \"string\",",
+     "before": "\"type\": \"string\"\n\"type\": \"string\"\n}\n}\n},\n\"supersedes\": {\n\"type\": \"string\",\n\"description\": \"この決定が置き換えた記録の番号\"\n\"type\": \"string\"\n\"type\": \"string\"",
+     "why": "節の見出しと見せ方（x-view）をスキーマに置いた。状態は oneOf の title で表示名を持つ。過去の欄は hidden で残す。比較した案を必須にした"
+    },
+    {
+     "find": "\"x-view\": \"hidden\"",
+     "before": "}\n\"description\": \"承認時点の対象の文書の sha256。**承認済みの記録は、承認時点の姿を保持する**\"\n\"description\": \"封印についての補足\"\n}",
+     "why": "節の見出しと見せ方（x-view）をスキーマに置いた。状態は oneOf の title で表示名を持つ。過去の欄は hidden で残す。比較した案を必須にした"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "spec-template.json",
+   "file": ".claude/skills/acdr/references/spec-template.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"acdr.schema.json\",",
+     "before": "（無い）",
+     "why": "新しい記録の雛形から、描かない欄（実現の形 ・ 適用先 ・ 承認後）を外し、$schema で記録の形を指す"
+    },
+    {
+     "find": "\"how\": \"その決定をどう実現するか。手段はここへ配置する\",",
+     "before": "\"how\": \"その決定をどう実現するか。手段はここへ配置する\",\n\"applies_to\": \"どの正本が変化するか\",\n\"after_approval\": [\n\"承認が成立したあとに実施する作業\"\n],",
+     "why": "新しい記録の雛形から、描かない欄（実現の形 ・ 適用先 ・ 承認後）を外し、$schema で記録の形を指す"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "acdr.css",
+   "file": ".claude/skills/acdr/references/acdr.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */",
+     "before": ".acdr{border:var(--bw-1) solid var(--line);background:var(--panel);border-radius:var(--rd-4);\npadding:var(--sp-22) var(--sp-24) var(--sp-23);margin:0 0 var(--sp-27);max-width:var(--w-2)}\n.acdr .hd{display:flex;gap:var(--sp-17);align-items:baseline;flex-wrap:wrap;\nborder-bottom:var(--bw-1) solid var(--line);padding-bottom:var(--sp-14);margin-bottom:var(--sp-21)}\n.acdr .no{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move)}\n.acdr h1.t{font-size:var(--fs-16);margin:0;letter-spacing:var(--tr-1);border:0;padding:0}\n.acdr .when{margin-left:auto;font-size:var(--fs-5);color:var(--muted)}\n.acdr .st{font-size:var(--fs-2);font-weight:700;padding:var(--sp-2) var(--sp-14);border-radius:var(--rd-5);\nborder:var(--bw-1) solid currentColor}\n.acdr .st.proposed{color:var(--move)}\n.acdr .st.accepted{color:var(--key)}\n.acdr .st.superseded{color:var(--muted)}\n.acdr .stnote{font-size:var(--fs-5);color:var(--muted)}\n.acdr .ask{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);\nmargin:0 0 var(--sp-9)}\n.acdr .decide{font-size:var(--fs-14);background:var(--paper);border-left:var(--bw-3) solid var(--move);\npadding:var(--sp-16) var(--sp-20);margin:0 0 var(--sp-22)}\n.acdr .sec{margin:var(--sp-22) 0 0}\n.acdr .sec h4{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);\nmargin:0 0 var(--sp-8);text-transform:none}\n.acdr .sec p{margin:0}\n.acdr .sec ul{margin:var(--sp-3) 0;padding-left:var(--sp-23)}\n.acdr .sec table{margin:var(--sp-9) 0 0}\n.acdr .none{color:var(--muted)}\n.acdr .lead{font-size:var(--fs-7);color:var(--muted);margin:0 0 var(--sp-8)}\n.acdr table.shift td:nth-child(3){font-weight:700}\n.acdr .fig{margin:var(--sp-10) 0 0;padding:var(--sp-15);background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);overflow-x:auto}\n.acdr .fig svg{display:block;max-width:100%;height:auto}\n.acdr .fig figcaption{font-size:var(--fs-6);color:var(--muted);margin-top:var(--sp-10)}",
+     "why": "独自の節の見た目を削除し、共通の描画の変数を acdr のトークンへ対応づけた。Markdown の面で長い語を折り返す（390px で9px はみ出していた）"
+    }
+   ]
+  },
+  {
+   "key": "record",
+   "tab": "record.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const STATUS: [&str; 3] = [\"proposed\", \"accepted\", \"superseded\"];",
+     "before": "（差分が示す）",
+     "why": "状態の表示名と補足はスキーマの oneOf の title が持つので、ここでは許す値だけを持つ"
+    },
+    {
+     "find": "if !STATUS.contains(&want.as_str()) {",
+     "before": "（差分が示す）",
+     "why": "状態が許す値かを、値だけで確認する"
+    },
+    {
+     "find": "use crate::refs;",
+     "before": "const STATUS: [(&str, &str, &str); 3] = [\n(\n\"proposed\",\n\"提案\",\n\"まだ承認を得ていない。適用してはならない\",\n),\n(\"accepted\", \"承認\", \"承認を得た。適用してよい\"),\n(\n\"superseded\",\n\"差し替え済み\",\n\"後の記録が、この決定を置き換えた\",\n),\n];",
+     "why": "状態の表示名はスキーマの oneOf の title が持つので、ここでは許す値だけを持つ"
+    },
+    {
+     "find": "/// 上部の節を組む。**欠けている節が在れば止まる。**",
+     "before": "fn list(parts: &Parts, items: &[Value]) -> Result<String, String> {\nif items.is_empty() {\nreturn parts.part(\"none\", &[(\"text\", \"無し\".to_owned())]);\n}\nlet mut inner = String::new();\nfor item in items {\nlet body = item\n.as_str()\n.map_or_else(|| item.to_string(), std::borrow::ToOwned::to_owned);\ninner.push_str(&parts.part(\"list-item\", &[(\"item\", body)])?);\n}\nparts.part(\"list\", &[(\"items\", inner)])\n}\n/// 比較した案。**どれも反証を通過しなかったものである** ── 未解決の懸念ではない。\nfn dropped(parts: &Parts, rows: &[Value]) -> Result<String, String> {\nif rows.is_empty() {\nreturn parts.part(\"none\", &[(\"text\", \"比較した案は無い\".to_owned())]);\n}\nlet mut inner = String::new();\nfor row in rows {\ninner.push_str(&parts.part(\n\"dropped-row\",\n&[\n(\"option\", text_of(row, \"option\")),\n(\"why_not\", text_of(row, \"why_not\")),\n],\n)?);\n}\nparts.part(\"dropped\", &[(\"rows\", inner)])\n}\n/// 変更前と変更後を、抽象の側で並べる。\n/// **具体の差分は面が持つ。** ここが持つのは、何がどう変わるかの形である ── 抽象の対比が\n/// 無いと、下に並ぶ具体の差分が何のためかを読み手が復元することになる。\nfn shift(parts: &Parts, rows: &[Value]) -> Result<String, String> {\nlet mut inner = String::new();\nfor row in rows {\ninner.push_str(&parts.part(\n\"shift-row\",\n&[\n(\"what\", text_of(row, \"what\")),\n(\"before\", text_of(row, \"from\")),\n(\"after\", text_of(row, \"to\")),\n],\n)?);\n}\nparts.part(\"shift\", &[(\"rows\", inner)])\n}\n/// 節を組む。**欠けている節が在れば止まる。**\n///\n/// 題はここが持つ ── 面の見出しと二重に出さない。\npub fn header(parts: &Parts, spec: &Value, figure: &str) -> Result<String, String> {",
+     "why": "上部の節を、契約の共通の描画（refs）で組む。図は読み込み済みの SVG を渡す。節は4つで、過去の欄（実現の形 ・ 適用先 ・ 承認後）は描かない"
+    },
+    {
+     "find": "if array_of(spec, \"alternatives\").is_empty() {",
+     "before": "let Some((_, label, note)) = STATUS.iter().find(|(k, _, _)| *k == want) else {\nSTATUS\n.iter()\n.map(|(k, _, _)| *k)\n.collect::<Vec<_>>()\n.join(\"／\")\n));\n};\nlet mut secs: Vec<(String, String)> = vec![(\n\"なぜ、いま決めるのか\".to_owned(),\nparts.part(\"para\", &[(\"body\", text_of(spec, \"why\"))])?,\n)];\nif !array_of(spec, \"shift\").is_empty() {\nsecs.push((\n\"形の変化\".to_owned(),\nshift(parts, array_of(spec, \"shift\"))?,\nif !figure.is_empty() {\nsecs.push((\n\"図で確認する\".to_owned(),\nparts.part(\n\"figure\",\n&[\n(\"svg\", figure.to_owned()),\n(\"caption\", text_of(spec, \"figure_caption\")),\n],\n)?,\n));\n}\nif !text_of(spec, \"how\").is_empty() {\nsecs.push((\n\"実現の形\".to_owned(),\nparts.part(\"para\", &[(\"body\", text_of(spec, \"how\"))])?,\n));\n}\nsecs.push((\n\"適用先\".to_owned(),\nparts.part(\"para\", &[(\"body\", text_of(spec, \"applies_to\"))])?,\n));\nsecs.push((\n\"比較した案\".to_owned(),\ndropped(parts, array_of(spec, \"alternatives\"))?,\n));\nsecs.push((\n\"承認後に実施すること\".to_owned(),\nlist(parts, array_of(spec, \"after_approval\"))?,\n));\nif !text_of(spec, \"supersedes\").is_empty() {\nsecs.push((\n\"supersedes\".to_owned(),\nparts.part(\"para\", &[(\"body\", text_of(spec, \"supersedes\"))])?,\n));\n}\nlet mut body = String::new();\nfor (heading, inner) in &secs {\nbody.push_str(&parts.part(\n\"sec\",\n&[(\"heading\", heading.clone()), (\"body\", inner.clone())],\n)?);\n}\nlet no = esc(&value_text(spec, \"no\"));\nparts.part(\n\"acdr\",\n&[\n(\n\"chip\",\nif no.is_empty() {\nString::new()\n} else {\nparts.part(\"chip\", &[(\"no\", no)])?\n},\n),\n(\"title\", esc(&text_of(spec, \"title\"))),\n(\"status\", want),\n(\"label\", (*label).to_owned()),\n(\"note\", (*note).to_owned()),\n(\"when\", esc(&value_text(spec, \"date\"))),\n(\"decision\", text_of(spec, \"decision\")),\n(\"body\", body),\n],\n)\n}\n/// 文字でない値も、そのまま文字として出す。\nfn value_text(value: &Value, key: &str) -> String {\nmatch value.get(key) {\nNone | Some(Value::Null) => String::new(),\nSome(Value::String(s)) => s.clone(),\nSome(other) => other.to_string(),",
+     "why": "上部の節を、契約の共通の描画（refs）で組む。図は読み込み済みの SVG を渡す。節は4つで、過去の欄（実現の形 ・ 適用先 ・ 承認後）は描かない"
+    },
+    {
+     "find": "let head = header(shop.schema, spec, figure)?;",
+     "before": "let head = header(shop.parts, spec, figure)?;",
+     "why": "上部の節を、契約の共通の描画で組む形に改めた"
+    },
+    {
+     "find": "(\"節が在る\".to_owned(), out.contains(\"<div class=\\\"rv\\\">\")),",
+     "before": "(\"節が在る\".to_owned(), out.contains(\"<div class=\\\"acdr\\\">\")),\n(\"状態が付いている\".to_owned(), out.contains(\"class=\\\"st \")),",
+     "why": "組んだ1枚の検査の印を、共通の描画の形（.rv と札）に合わせた"
+    },
+    {
+     "find": "let schema: Value = serde_json::from_str(",
+     "before": "（無い）",
+     "why": "記録のスキーマを読み、組み立てに渡す"
+    }
+   ]
+  },
+  {
+   "key": "panes",
+   "tab": "panes.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/panes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 記録のスキーマ。**上部の節の見出しと見せ方は、ここから取る。**",
+     "before": "（無い）",
+     "why": "組み立てに渡す一式に、記録のスキーマを持たせた"
+    }
+   ]
+  },
+  {
+   "key": "valid",
+   "tab": "validate.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/validate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub const SECTIONS: [&str; 2] = [\"decision\", \"why\"];",
+     "before": "pub const SECTIONS: [&str; 3] = [\"decision\", \"why\", \"applies_to\"];",
+     "why": "欠けたら止める欄から適用先を外した（描かない欄になった）。比較した案はスキーマの必須で止める"
+    }
+   ]
+  },
+  {
+   "key": "decl",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/acdr/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "mod refs;",
+     "before": "（無い）",
+     "why": "記録の検査を inspect に改名し、契約の版2 の4つの道具を足した"
+    },
+    {
+     "find": "let mut all = vec![",
+     "before": "vec![",
+     "why": "記録の検査を inspect に改名し、契約の版2 の4つの道具を足した"
+    },
+    {
+     "find": "name: \"inspect\",",
+     "before": "name: \"validate\",",
+     "why": "記録の検査を inspect に改名し、契約の版2 の4つの道具を足した"
+    },
+    {
+     "find": "// **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）",
+     "before": "]",
+     "why": "記録の検査を inspect に改名し、契約の版2 の4つの道具を足した"
+    }
+   ]
+  },
+  {
+   "key": "plib",
+   "tab": "parts/lib.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod refs;",
+     "before": "（無い）",
+     "why": "契約の版2 の共通の部品を公開した"
+    }
+   ]
+  },
+  {
+   "key": "tjson",
+   "tab": "tool.json",
+   "file": ".claude/skills/acdr/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"contract\": 2,",
+     "before": "（無い）",
+     "why": "acdr を契約の版2 へ移した"
+    }
+   ]
+  },
+  {
+   "key": "trec",
+   "tab": "tests/record.rs",
+   "file": ".claude/skills/acdr/tool/parts/tests/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"applies_to\": \"ここへ適用する。\",",
+     "before": "\"applies_to\": \"ここへ適用する。\"",
+     "why": "欠けの無い入力に、比較した案を加えた（必須になった）"
+    },
+    {
+     "find": "let schema: serde_json::Value = serde_json::from_str(",
+     "before": "（無い）",
+     "why": "組み立てに記録のスキーマを渡す"
+    },
+    {
+     "find": "assert!(got.page.contains(\"<div class=\\\"rv\\\">\"), \"節が無い\");",
+     "before": "assert!(got.page.contains(\"<div class=\\\"acdr\\\">\"), \"節が無い\");\nassert!(got.page.contains(\"class=\\\"st \"), \"状態が付いていない\");",
+     "why": "組んだ1枚の印を、共通の描画の形に合わせた"
+    },
+    {
+     "find": "fn only_the_four_sections_are_drawn() {",
+     "before": "fn the_sections_the_record_holds_are_in_the_page() {\nspec[\"alternatives\"] = json!([{\"option\": \"案甲\", \"why_not\": \"これが壊れる。\"}]);\nspec[\"supersedes\"] = json!(\"ACDR 0000 を置き換える。\");\n\"なぜ、いま決めるのか\",\n\"形の変化\",\n\"実現の形\",\n\"適用先\",\n\"比較した案\",\n\"承認後に実施すること\",\n\"supersedes\",",
+     "why": "上部の節が4つだけで、過去の欄を描かないことを固定した"
+    },
+    {
+     "find": "got.page.matches(\"<div class=\\\"scroll\\\"><table>\").count() >= 2,",
+     "before": "spec[\"alternatives\"] = json!([{\"option\": \"案甲\", \"why_not\": \"これが壊れる。\"}]);\ngot.page\n.contains(\"<div class=\\\"scroll\\\"><table class=\\\"shift\\\">\"),\n\"形の変化の表に枠が無い\"\n);\nassert!(\ngot.page\n.contains(\"<div class=\\\"scroll\\\"><table><thead><tr><th>案</th>\"),\n\"比較した案の表に枠が無い\"\nfn an_absent_section_is_named_not_omitted() {\n// **比較した案が無いことと、書き忘れは、読み手には同じに見える**\nlet got = made(&sound(), \"\");\nassert!(got.page.contains(\"比較した案は無い\"), \"{}\", got.page.len());\nassert!(got.page.contains(\"無し\"), \"承認後に実施することが空である\");",
+     "why": "比較した案が無い記録を組まないことを固定した"
+    },
+    {
+     "find": "assert!(got.page.contains(\"どう変わるか\"), \"節が出ていない\");",
+     "before": "assert!(got.page.contains(\"図で確認する\"), \"節が出ていない\");",
+     "why": "図の節の名前を「どう変わるか」に合わせた"
+    },
+    {
+     "find": "let schema: serde_json::Value = serde_json::from_str(",
+     "before": "（無い）",
+     "why": "組み立てに記録のスキーマを渡す"
+    },
+    {
+     "find": "let schema: serde_json::Value = serde_json::from_str(",
+     "before": "（無い）",
+     "why": "組み立てに記録のスキーマを渡す"
+    }
+   ]
+  },
+  {
+   "key": "tval",
+   "tab": "tests/validate.rs",
+   "file": ".claude/skills/acdr/tool/parts/tests/validate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"applies_to\": \"ここへ適用する。\",",
+     "before": "\"applies_to\": \"ここへ適用する。\"",
+     "why": "欠けの無い入力に、比較した案を加えた（必須になった）"
+    }
+   ]
+  },
+  {
+   "key": "refs",
+   "tab": "refs.rs.tmpl（skills-creator）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<style>{{style}}</style></head><body><main class=\\\"rv\\\">{{body}}</main></body></html>\";",
+     "before": "<style>{{style}}</style></head><body><main>{{body}}</main></body></html>\";\n/// 型の規則。**値は直書きせず、トークンの変数だけを参照する。**\nconst STYLE: &str = \"*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);\\\nfont:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}\\\nheader{margin:0 0 var(--gap)}.eyebrow{color:var(--muted);font-size:12px;margin:0}\\\nh1{font-size:21px;line-height:1.5;margin:4px 0 0}h2{font-size:14px;color:var(--accent);margin:0 0 2px}\\\nh3,h4,h5,h6{font-size:14px;margin:8px 0 2px}.desc{color:var(--muted);font-size:12px;margin:0 0 8px}\\\n.block,.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);\\\npadding:14px var(--gap);margin:0 0 12px}.card{border:2px solid var(--accent)}\\\n.cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}\\\n.lead{font-size:18px;font-weight:700;margin:6px 0 2px}.tag{display:inline-block;\\\nfont-weight:600;white-space:nowrap}.tag.neg{background:var(--warn-soft);color:var(--warn)}\\\n.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}\\\nth,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}\\\nth{color:var(--muted);font-weight:600;font-size:12px}ol.steps{list-style:none;counter-reset:s;margin:0;\\\npadding:0}ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}\\\nol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;\\\nborder-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;\\\nalign-items:center;justify-content:center}ol.steps .lead{font-size:15px;margin:0}\\\n.sub{margin:0}.item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}\\\n.nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}\\\nul{margin:0;padding-left:1.2em}p{margin:0;overflow-wrap:anywhere}pre{white-space:pre-wrap;\\\noverflow-wrap:anywhere;margin:0}pre.code{background:var(--band);padding:8px 10px;border-radius:6px;\\\nfont-size:13px}.nest p,.nest ul,.nest ol,.nest .scroll{margin:4px 0}figure{margin:0}figure svg{max-width:100%;height:auto}\\\nfigcaption{color:var(--muted);font-size:12px}@media (max-width:480px){main{padding:16px 12px}\\\nh1{font-size:18px}.lead{font-size:16px}}\";",
+     "why": "見た目の規則を .rv の囲みの中だけに適用されるようにした。acdr の差分の面と同じ頁に置いても、見た目が混ざらない"
+    },
+    {
+     "find": "// **$schema が指すスキーマで検査する** ── 雛形のように、種類の名前と違うスキーマを指してよい",
+     "before": "let want = format!(\"{}{SCHEMA_TAIL}\", file.trim_end_matches(\".json\"));\nmatch data.get(\"$schema\").and_then(Value::as_str) {\nNone => found.push(format!(\"{file}: $schema が無い ── {want} を指す\")),\nSome(s) if s != want => {\nfound.push(format!(\"{file}: $schema が {s} を指す ── {want} を指す\"));\nSome(_) => {}\n}",
+     "why": "$schema が、種類の名前と違うスキーマ（雛形が指す記録の形など）を指すことを許した"
+    },
+    {
+     "find": "\"card\" if value.is_string() => {",
+     "before": "（無い）",
+     "why": "文字列の欄もカードで表せるようにした（決めたこと）"
+    },
+    {
+     "find": "// **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む",
+     "before": ".and_then(|p| std::fs::read_to_string(ctx.base.join(p)).ok())",
+     "why": "図の SVG を、ファイル名だけでなく読み込み済みの SVG でも受けるようにした"
+    },
+    {
+     "find": "let t = text_of(v);",
+     "before": "（無い）",
+     "why": "見出しの上に小さく並べる欄（番号 ・ 日付）を、x-view の meta で表せるようにした"
+    },
+    {
+     "find": "/// `.rv` の囲みの中だけに適用される規則。**他の型の頁に埋め込むときに使う** ── トークンの変数",
+     "before": "（無い）",
+     "why": "他の型の頁に埋め込むために、本文だけを組む関数と、囲みの中だけに適用される規則を公開した"
+    },
+    {
+     "find": "format!(\":root{{{decl}}}{PAGE_STYLE}{STYLE}\")",
+     "before": "format!(\":root{{{decl}}}{STYLE}\")",
+     "why": "見た目の規則を .rv の囲みの中だけに適用されるようにした。acdr の差分の面と同じ頁に置いても、見た目が混ざらない"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "49df5c8332e43fbf93e002d80b48a89c8ee693e68633653cf4b685e6276bf860",
+  "schema": "5d68b3dc1c722cdc4b862b18b386a95ca9cdd9da911c6a05581c7f394eee43e1",
+  "tmpl": "975e5b7d2025cb5b7b364e01608f866e56444f35892d463eea2f7a488fd19907",
+  "css": "58aa5031a35a7293920650daa976fd66d3eda181c766c3d3b50d9f666239526f",
+  "record": "d08c0132d093e65139d5eb1864c9a8dffceb6d22e3b41b7ac440631beb91237a",
+  "panes": "28afb6e0f2c32660a25a119bd0678b207a051a430e55f9e936b69b88c1db1562",
+  "valid": "7a310241c2e7de6293a26cfb16adbe362f464f03746a31decbff947162417ad6",
+  "decl": "1a717f514f6aec0a108003af02534fbc148c8326cd1c38bc2ccf1fb605a500cb",
+  "plib": "38345c76d3ddfe0b51df3d621680faff20e9294417813e39d3f0e3af1685ac5d",
+  "tjson": "dc186119b06255ee8371d623dec8dbd5a2172388085e21c3b2915edd688afbc9",
+  "trec": "31d6d6e5214bc4d990dbeb384d9d77787b748c4ae247bc175636f5529a960bef",
+  "tval": "bc344a3b620382e32f35aab45dc19ee4bcd07a0a82dbcc9bd302c6f1fe7325a5",
+  "refs": "8c7b30b9984f2529ea270b71c4399bc2439759cbd7d10de631d95c8b2e71aa60"
+ }
+}

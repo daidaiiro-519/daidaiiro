@@ -35,34 +35,35 @@ const DEFAULT_TOKENS: &[(&str, &str)] = &[
 /// Skill は `references/view.template.html` で差し替えてよい。
 const DEFAULT_TEMPLATE: &str = "<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\">\
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{{title}}</title>\
-<style>{{style}}</style></head><body><main>{{body}}</main></body></html>";
+<style>{{style}}</style></head><body><main class=\"rv\">{{body}}</main></body></html>";
 
-/// 型の規則。**値は直書きせず、トークンの変数だけを参照する。**
-const STYLE: &str = "*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);\
-font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}\
-header{margin:0 0 var(--gap)}.eyebrow{color:var(--muted);font-size:12px;margin:0}\
-h1{font-size:21px;line-height:1.5;margin:4px 0 0}h2{font-size:14px;color:var(--accent);margin:0 0 2px}\
-h3,h4,h5,h6{font-size:14px;margin:8px 0 2px}.desc{color:var(--muted);font-size:12px;margin:0 0 8px}\
-.block,.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);\
-padding:14px var(--gap);margin:0 0 12px}.card{border:2px solid var(--accent)}\
-.cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}\
-.lead{font-size:18px;font-weight:700;margin:6px 0 2px}.tag{display:inline-block;\
+/// 頁の規則（body と main）。**単独の頁のときだけ使う。**
+const PAGE_STYLE: &str = "*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}\
+main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}\
+}";
+
+/// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** `.rv` の囲みの中だけに効く ──
+/// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。
+const STYLE: &str = ".rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;\
+line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;\
+margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);\
+border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}\
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;\
+flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;\
 background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;\
-font-weight:600;white-space:nowrap}.tag.neg{background:var(--warn-soft);color:var(--warn)}\
-.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}\
-th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}\
-th{color:var(--muted);font-weight:600;font-size:12px}ol.steps{list-style:none;counter-reset:s;margin:0;\
-padding:0}ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}\
-ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;\
-border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;\
-align-items:center;justify-content:center}ol.steps .lead{font-size:15px;margin:0}\
-.sub{margin:0}.item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}\
-.nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}\
-ul{margin:0;padding-left:1.2em}p{margin:0;overflow-wrap:anywhere}pre{white-space:pre-wrap;\
-overflow-wrap:anywhere;margin:0}pre.code{background:var(--band);padding:8px 10px;border-radius:6px;\
-font-size:13px}.nest p,.nest ul,.nest ol,.nest .scroll{margin:4px 0}figure{margin:0}figure svg{max-width:100%;height:auto}\
-figcaption{color:var(--muted);font-size:12px}@media (max-width:480px){main{padding:16px 12px}\
-h1{font-size:18px}.lead{font-size:16px}}";
+font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}\
+.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);\
+padding:8px 10px;text-align:left;vertical-align:top}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
+.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;\
+position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;\
+left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);\
+font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;\
+margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}\
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;\
+padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;\
+margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}\
+.rv figure{margin:0}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);\
+font-size:12px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}";
 
 /// 種類1つ。
 #[derive(Debug, Clone)]
@@ -162,14 +163,15 @@ pub fn validate(refs: &Path) -> Result<Vec<String>, String> {
                 continue;
             }
         };
-        let want = format!("{}{SCHEMA_TAIL}", file.trim_end_matches(".json"));
-        match data.get("$schema").and_then(Value::as_str) {
-            None => found.push(format!("{file}: $schema が無い ── {want} を指す")),
-            Some(s) if s != want => {
-                found.push(format!("{file}: $schema が {s} を指す ── {want} を指す"));
+        // **$schema が指すスキーマで検査する** ── 雛形のように、種類の名前と違うスキーマを指してよい
+        let own = format!("{}{SCHEMA_TAIL}", file.trim_end_matches(".json"));
+        let want = match data.get("$schema").and_then(Value::as_str) {
+            Some(s) => s.to_owned(),
+            None => {
+                found.push(format!("{file}: $schema が無い ── {own} を指す"));
+                own
             }
-            Some(_) => {}
-        }
+        };
         match read_json(&refs.join(&want)) {
             Ok(schema) => found.extend(against(&schema, &data, file)),
             Err(_) => found.push(format!("{file}: スキーマ {want} が無い")),
@@ -761,6 +763,13 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
             "<section class=\"block\">{head}{}</section>",
             blocks_html(value)
         ),
+        "card" if value.is_string() => {
+            let title = esc(str_of(schema, "title").unwrap_or(key));
+            format!(
+                "<section class=\"card\"><div class=\"cardhead\"><h2>{title}</h2></div><p class=\"lead\">{}</p></section>",
+                esc(&text_of(value))
+            )
+        }
         "card" => {
             let props = schema.get("properties").and_then(Value::as_object);
             let mut tags = String::new();
@@ -787,8 +796,15 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
             format!("<section class=\"card\"><div class=\"cardhead\"><h2>{title}</h2>{tags}</div>{body}</section>")
         }
         "figure" => {
+            // **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
             let svg = str_of(value, "svg")
-                .and_then(|p| std::fs::read_to_string(ctx.base.join(p)).ok())
+                .map(|p| {
+                    if p.trim_start().starts_with("<svg") {
+                        p.to_owned()
+                    } else {
+                        std::fs::read_to_string(ctx.base.join(p)).unwrap_or_default()
+                    }
+                })
                 .unwrap_or_default();
             let cap = esc(str_of(value, "caption").unwrap_or(""));
             format!("<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>")
@@ -839,6 +855,12 @@ fn page_body(schema: &Value, value: &Value, ctx: &Ctx) -> String {
         let Some(v) = value.get(k) else { continue };
         match view_of(p) {
             "tag" => eyebrow.push(tag(p, v)),
+            "meta" => {
+                let t = text_of(v);
+                if !t.is_empty() {
+                    eyebrow.push(esc(&t));
+                }
+            }
             "heading" => h1 = esc(&text_of(v)),
             _ => body.push_str(&block(k, p, v, ctx)),
         }
@@ -852,6 +874,21 @@ fn page_body(schema: &Value, value: &Value, ctx: &Ctx) -> String {
         "<header><p class=\"eyebrow\">{}</p><h1>{lead}</h1></header>{body}",
         eyebrow.join(" ・ ")
     )
+}
+
+/// `.rv` の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う** ── トークンの変数
+/// （ink ・ muted ・ line ・ paper ・ band ・ accent ・ accent-soft ・ warn ・ warn-soft ・ radius ・ gap）は、
+/// 埋め込む側が定義する。
+#[must_use]
+pub const fn scoped_style() -> &'static str {
+    STYLE
+}
+
+/// 1件の本文を組む（`.rv` の囲みを含む）。**他の型の頁に埋め込むときに使う。**
+#[must_use]
+pub fn render_body(schema: &Value, value: &Value, base: &Path) -> String {
+    let ctx = Ctx { root: schema, base };
+    format!("<div class=\"rv\">{}</div>", page_body(schema, value, &ctx))
 }
 
 /// 見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**
@@ -870,7 +907,7 @@ fn tokens(refs: &Path) -> String {
         }
     }
     let decl: String = vars.iter().map(|(k, v)| format!("--{k}:{v};")).collect();
-    format!(":root{{{decl}}}{STYLE}")
+    format!(":root{{{decl}}}{PAGE_STYLE}{STYLE}")
 }
 
 /// 種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。

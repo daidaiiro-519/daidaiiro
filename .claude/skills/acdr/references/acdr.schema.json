@@ -1,60 +1,78 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "意思決定の記録（ACDR）の入力",
-  "description": "acdr.json の形。**節と、対象の文書ごとの3つ組だけを保持する** ── 変更後の中身は対象の文書が保持する。",
+  "title": "意思決定の記録",
+  "description": "意思決定の記録。上部は4つの節（決めたこと ・ なぜ ・ どう変わるか ・ 比較した案）だけを描画し、具体の差分は面が持つ。",
   "type": "object",
   "required": [
     "title",
     "decision",
     "why",
-    "applies_to",
-    "status"
+    "status",
+    "alternatives"
   ],
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "type": "string"
+      "type": "string",
+      "x-view": "hidden"
     },
     "no": {
       "type": "string",
-      "description": "連番。例 ACDR 0001"
-    },
-    "title": {
-      "type": "string",
-      "minLength": 1,
-      "description": "短い名詞句"
+      "description": "連番。例 ACDR 0001",
+      "x-view": "meta"
     },
     "date": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$|^YYYY-MM-DD$",
-      "description": "決めた日。YYYY-MM-DD"
+      "description": "決めた日。YYYY-MM-DD",
+      "x-view": "meta"
     },
     "status": {
-      "enum": [
-        "proposed",
-        "accepted",
-        "superseded"
+      "title": "状態",
+      "x-view": "tag",
+      "oneOf": [
+        {
+          "const": "proposed",
+          "title": "提案 ── 承認前。適用してはならない"
+        },
+        {
+          "const": "accepted",
+          "title": "承認"
+        },
+        {
+          "const": "superseded",
+          "title": "差し替え済み"
+        }
       ],
-      "description": "proposed は未承認で適用してはならない。accepted は承認済み。superseded は後の記録が置き換えた"
+      "$comment": "proposed は未承認で適用してはならない。accepted は承認済み。superseded は後の記録が置き換えた"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "短い名詞句",
+      "x-view": "heading"
     },
     "decision": {
       "type": "string",
       "minLength": 1,
-      "description": "**決めてほしいこと1件**。手段ではなく、何を採るかを1文で記述する"
-    },
-    "applies_to": {
-      "type": "string",
-      "minLength": 1,
-      "description": "どの正本が変化するか"
+      "title": "決めたこと",
+      "x-view": "card",
+      "$comment": "**決めてほしいこと1件**。手段ではなく、何を採るかを1文で記述する"
     },
     "why": {
       "type": "string",
       "minLength": 1,
-      "description": "なぜ、いま決めるのか。何と食い違っていて、何に一致させたか"
+      "title": "なぜ決める必要があるか",
+      "$comment": "なぜ、いま決めるのか。何と食い違っていて、何に一致させたか"
+    },
+    "figure": {
+      "type": "string",
+      "title": "どう変わるか",
+      "x-view": "figure",
+      "$comment": "隣に置いた SVG のファイル名。**この Skill は描画しない** ── 描くのは design-svg である"
     },
     "shift": {
       "type": "array",
-      "description": "**抽象の側の変更前と変更後**。具体の差分は面が保持する",
       "items": {
         "type": "object",
         "required": [
@@ -65,32 +83,25 @@
         "additionalProperties": false,
         "properties": {
           "what": {
-            "type": "string"
+            "type": "string",
+            "title": "何が"
           },
           "from": {
-            "type": "string"
+            "type": "string",
+            "title": "変更前"
           },
           "to": {
-            "type": "string"
+            "type": "string",
+            "title": "変更後"
           }
         }
-      }
-    },
-    "figure": {
-      "type": "string",
-      "description": "隣に置いた SVG のファイル名。**この Skill は描画しない** ── 描くのは design-svg である"
-    },
-    "figure_caption": {
-      "type": "string",
-      "description": "図が示すものを1文で記述する"
-    },
-    "how": {
-      "type": "string",
-      "description": "その決定をどう実現するか（手段）。決定の文に混在させない"
+      },
+      "title": "変更前と変更後",
+      "x-view": "table",
+      "$comment": "**抽象の側の変更前と変更後**。具体の差分は面が保持する"
     },
     "alternatives": {
       "type": "array",
-      "description": "**どれも反証を通過しなかった案である** ── 未解決の懸念ではない",
       "items": {
         "type": "object",
         "required": [
@@ -99,29 +110,55 @@
         "additionalProperties": false,
         "properties": {
           "option": {
-            "type": "string"
+            "type": "string",
+            "title": "案"
           },
           "why_not": {
-            "type": "string"
+            "type": "string",
+            "title": "採らなかった理由"
           }
         }
-      }
+      },
+      "title": "比較した案と、採らなかった理由",
+      "x-view": "table",
+      "$comment": "**どれも反証を通過しなかった案である** ── 未解決の懸念ではない",
+      "minItems": 1
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "この決定が置き換えた記録の番号",
+      "x-view": "hidden"
+    },
+    "figure_caption": {
+      "type": "string",
+      "description": "図が示すものを1文で記述する",
+      "x-view": "hidden"
+    },
+    "how": {
+      "type": "string",
+      "description": "その決定をどう実現するか（手段）。決定の文に混在させない",
+      "x-view": "hidden"
+    },
+    "applies_to": {
+      "type": "string",
+      "minLength": 1,
+      "description": "どの正本が変化するか",
+      "x-view": "hidden"
     },
     "after_approval": {
       "type": "array",
       "items": {
         "type": "string"
-      }
-    },
-    "supersedes": {
-      "type": "string",
-      "description": "この決定が置き換えた記録の番号"
+      },
+      "x-view": "hidden"
     },
     "lede": {
-      "type": "string"
+      "type": "string",
+      "x-view": "hidden"
     },
     "intro": {
-      "type": "string"
+      "type": "string",
+      "x-view": "hidden"
     },
     "docs": {
       "type": "array",
@@ -182,18 +219,22 @@
             }
           }
         }
-      }
+      },
+      "x-view": "hidden"
     },
     "seal": {
       "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "description": "承認時点の対象の文書の sha256。**承認済みの記録は、承認時点の姿を保持する**"
+      "description": "承認時点の対象の文書の sha256。**承認済みの記録は、承認時点の姿を保持する**",
+      "x-view": "hidden"
     },
     "seal_note": {
       "type": "string",
-      "description": "封印についての補足"
+      "description": "封印についての補足",
+      "x-view": "hidden"
     }
-  }
+  },
+  "$comment": "acdr.json の形。節と、対象の文書ごとの3つ組だけを保持する ── 変更後の中身は対象の文書が保持する。x-view は描画の見せ方の指定である。how ・ applies_to ・ after_approval ・ lede ・ intro は過去の記録のために残し、描画しない"
 }

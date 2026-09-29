@@ -13,25 +13,14 @@ use serde_json::Value;
 
 use crate::markdown::esc;
 use crate::panes::{self, Shop};
+use crate::refs;
 use crate::style::Style;
 use crate::template::Parts;
 use crate::validate;
 
 /// 承認の状態。**これ以外を書かせない** ── 状態が自由文になると、「承認されているか」を
 /// 読む側が判定することになる。
-const STATUS: [(&str, &str, &str); 3] = [
-    (
-        "proposed",
-        "提案",
-        "まだ承認を得ていない。適用してはならない",
-    ),
-    ("accepted", "承認", "承認を得た。適用してよい"),
-    (
-        "superseded",
-        "差し替え済み",
-        "後の記録が、この決定を置き換えた",
-    ),
-];
+const STATUS: [&str; 3] = ["proposed", "accepted", "superseded"];
 
 /// リポジトリの根の印。
 const ROOT_MARK: &str = ".git";
@@ -64,65 +53,16 @@ pub fn repo_root(start: &Path) -> PathBuf {
         .to_path_buf()
 }
 
-fn list(parts: &Parts, items: &[Value]) -> Result<String, String> {
-    if items.is_empty() {
-        return parts.part("none", &[("text", "無し".to_owned())]);
-    }
-    let mut inner = String::new();
-    for item in items {
-        let body = item
-            .as_str()
-            .map_or_else(|| item.to_string(), std::borrow::ToOwned::to_owned);
-        inner.push_str(&parts.part("list-item", &[("item", body)])?);
-    }
-    parts.part("list", &[("items", inner)])
-}
-
-/// 比較した案。**どれも反証を通過しなかったものである** ── 未解決の懸念ではない。
-fn dropped(parts: &Parts, rows: &[Value]) -> Result<String, String> {
-    if rows.is_empty() {
-        return parts.part("none", &[("text", "比較した案は無い".to_owned())]);
-    }
-    let mut inner = String::new();
-    for row in rows {
-        inner.push_str(&parts.part(
-            "dropped-row",
-            &[
-                ("option", text_of(row, "option")),
-                ("why_not", text_of(row, "why_not")),
-            ],
-        )?);
-    }
-    parts.part("dropped", &[("rows", inner)])
-}
-
-/// 変更前と変更後を、抽象の側で並べる。
+/// 上部の節を組む。**欠けている節が在れば止まる。**
 ///
-/// **具体の差分は面が持つ。** ここが持つのは、何がどう変わるかの形である ── 抽象の対比が
-/// 無いと、下に並ぶ具体の差分が何のためかを読み手が復元することになる。
-fn shift(parts: &Parts, rows: &[Value]) -> Result<String, String> {
-    let mut inner = String::new();
-    for row in rows {
-        inner.push_str(&parts.part(
-            "shift-row",
-            &[
-                ("what", text_of(row, "what")),
-                ("before", text_of(row, "from")),
-                ("after", text_of(row, "to")),
-            ],
-        )?);
-    }
-    parts.part("shift", &[("rows", inner)])
-}
-
-/// 節を組む。**欠けている節が在れば止まる。**
-///
-/// 題はここが持つ ── 面の見出しと二重に出さない。
+/// 描画は契約の共通の部品（`refs`）が持つ ── 見出しはスキーマの title、見せ方は x-view である。
+/// 上部に置くのは4つの節（決めたこと ・ なぜ ・ どう変わるか ・ 比較した案）だけで、具体の
+/// 差分は面が持つ。題はここが持つ ── 面の見出しと二重に出さない。
 ///
 /// # Errors
 ///
 /// 節が欠けているときと、状態が決められた値でないときに返す。
-pub fn header(parts: &Parts, spec: &Value, figure: &str) -> Result<String, String> {
+pub fn header(schema: &Value, spec: &Value, figure: &str) -> Result<String, String> {
     let missing: Vec<&str> = validate::SECTIONS
         .iter()
         .copied()
@@ -134,105 +74,42 @@ pub fn header(parts: &Parts, spec: &Value, figure: &str) -> Result<String, Strin
             missing.join("・")
         ));
     }
+    if array_of(spec, "alternatives").is_empty() {
+        return Err(
+            "比較した案が無い ── 無いことと書き忘れは、読み手には同じに見える。何と比べて選んだかを書く"
+                .to_owned(),
+        );
+    }
+    let mut view = spec.clone();
     let want = text_of(spec, "status");
     let want = if want.is_empty() {
         "proposed".to_owned()
     } else {
         want
     };
-    let Some((_, label, note)) = STATUS.iter().find(|(k, _, _)| *k == want) else {
+    if !STATUS.contains(&want.as_str()) {
         return Err(format!(
             "状態が「{want}」。使えるのは {} である",
-            STATUS
-                .iter()
-                .map(|(k, _, _)| *k)
-                .collect::<Vec<_>>()
-                .join("／")
-        ));
-    };
-    let mut secs: Vec<(String, String)> = vec![(
-        "なぜ、いま決めるのか".to_owned(),
-        parts.part("para", &[("body", text_of(spec, "why"))])?,
-    )];
-    if !array_of(spec, "shift").is_empty() {
-        secs.push((
-            "形の変化".to_owned(),
-            shift(parts, array_of(spec, "shift"))?,
+            STATUS.join("／")
         ));
     }
-    if !figure.is_empty() {
-        secs.push((
-            "図で確認する".to_owned(),
-            parts.part(
-                "figure",
-                &[
-                    ("svg", figure.to_owned()),
-                    ("caption", text_of(spec, "figure_caption")),
-                ],
-            )?,
-        ));
+    if let Some(map) = view.as_object_mut() {
+        map.insert("status".to_owned(), Value::String(want));
+        // **図は読み込み済みの SVG を渡す** ── 共通の部品は、svg の欄の SVG をそのまま埋め込む
+        if figure.is_empty() {
+            map.remove("figure");
+        } else {
+            map.insert(
+                "figure".to_owned(),
+                serde_json::json!({ "svg": figure, "caption": text_of(spec, "figure_caption") }),
+            );
+        }
     }
-    if !text_of(spec, "how").is_empty() {
-        secs.push((
-            "実現の形".to_owned(),
-            parts.part("para", &[("body", text_of(spec, "how"))])?,
-        ));
-    }
-    secs.push((
-        "適用先".to_owned(),
-        parts.part("para", &[("body", text_of(spec, "applies_to"))])?,
-    ));
-    secs.push((
-        "比較した案".to_owned(),
-        dropped(parts, array_of(spec, "alternatives"))?,
-    ));
-    secs.push((
-        "承認後に実施すること".to_owned(),
-        list(parts, array_of(spec, "after_approval"))?,
-    ));
-    if !text_of(spec, "supersedes").is_empty() {
-        secs.push((
-            "supersedes".to_owned(),
-            parts.part("para", &[("body", text_of(spec, "supersedes"))])?,
-        ));
-    }
-    let mut body = String::new();
-    for (heading, inner) in &secs {
-        body.push_str(&parts.part(
-            "sec",
-            &[("heading", heading.clone()), ("body", inner.clone())],
-        )?);
-    }
-    let no = esc(&value_text(spec, "no"));
-    parts.part(
-        "acdr",
-        &[
-            (
-                "chip",
-                if no.is_empty() {
-                    String::new()
-                } else {
-                    parts.part("chip", &[("no", no)])?
-                },
-            ),
-            ("title", esc(&text_of(spec, "title"))),
-            ("status", want),
-            ("label", (*label).to_owned()),
-            ("note", (*note).to_owned()),
-            ("when", esc(&value_text(spec, "date"))),
-            ("decision", text_of(spec, "decision")),
-            ("body", body),
-        ],
-    )
-}
-
-/// 文字でない値も、そのまま文字として出す。
-fn value_text(value: &Value, key: &str) -> String {
-    match value.get(key) {
-        None | Some(Value::Null) => String::new(),
-        Some(Value::String(s)) => s.clone(),
-        Some(other) => other.to_string(),
-    }
+    Ok(format!(
+        "<style>{}</style>{}",
+        refs::scoped_style(),
+        refs::render_body(schema, &view, Path::new("."))
+    ))
 }
 
 /// 記録1本を組む。
@@ -241,7 +118,7 @@ fn value_text(value: &Value, key: &str) -> String {
 ///
 /// 節が欠けているときと、型と噛み合わないときに返す。
 pub fn build(shop: &Shop, spec: &Value, figure: &str) -> Result<panes::Made, String> {
-    let head = header(shop.parts, spec, figure)?;
+    let head = header(shop.schema, spec, figure)?;
     if array_of(spec, "docs").is_empty() {
         // 新規の決定。差分が無いので、節だけの1枚になる
         let style = &shop.style;
@@ -270,8 +147,8 @@ pub fn build(shop: &Shop, spec: &Value, figure: &str) -> Result<panes::Made, Str
 #[must_use]
 pub fn check(out: &str, spec: &Value, made: &panes::Made) -> Vec<(String, bool)> {
     let mut ok = vec![
-        ("節が在る".to_owned(), out.contains("<div class=\"acdr\">")),
-        ("状態が付いている".to_owned(), out.contains("class=\"st ")),
+        ("節が在る".to_owned(), out.contains("<div class=\"rv\">")),
+        ("状態が付いている".to_owned(), out.contains("class=\"tag")),
     ];
     if !array_of(spec, "docs").is_empty() {
         ok.extend(panes::check(out, spec, made));
@@ -440,10 +317,16 @@ pub fn build_record(
     let (spec, figure) = load(references, folder)?;
     let parts = Parts::load(&references.join("acdr.template.html"))?;
     let style = Style::load(references)?;
+    let schema: Value = serde_json::from_str(
+        &std::fs::read_to_string(references.join("acdr.schema.json"))
+            .map_err(|e| format!("acdr.schema.json を読めない ── {e}"))?,
+    )
+    .map_err(|e| format!("acdr.schema.json が JSON でない ── {e}"))?;
     let shop = Shop {
         parts: &parts,
         style: &style,
         git,
+        schema: &schema,
     };
     let made = build(&shop, &spec, &figure)?;
     let mut lines = made.notes.clone();
