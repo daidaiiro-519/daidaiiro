@@ -19,11 +19,11 @@ fn the_references_match_their_schemas() {
 
 #[test]
 fn a_criterion_is_taken_by_its_id() {
-    let one = refs::get(&references(), "criteria", Some("design-system-tokens")).expect("在る");
+    let one = refs::get(&references(), "criteria", Some("ui-copywriting")).expect("在る");
     assert!(one["title"]
         .as_str()
         .unwrap_or_default()
-        .contains("デザイントークン"));
+        .contains("コピーライティング"));
     assert!(
         one["answers"].as_array().is_some_and(|a| !a.is_empty()),
         "答える判断が在る"

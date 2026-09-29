@@ -1,0 +1,345 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0054",
+ "title": "原典に基づかない判断基準と、tech-lead-advisor を消す",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "原典の文ではなく、AI の総合やこのリポジトリの事例から作った判断基準を消し、その大半を持つ tech-lead-advisor を Skill ごと消す。",
+ "why": "利用者の決まりは、advisor の原典を公式情報 ・ 書籍 ・ 確立された方法論に限り、リポジトリ独自の内容を採用しないことである。出典の欄に残っていた「has-udd 独自にまとめた」「AI が総合した」などの記述は、本文そのものが原典の文でないことを示していた。記述だけを消すと、原典に基づかない本文が原典に基づくものに見えるので、判断基準ごと消す。tech-lead-advisor は14件すべてがこの性質で、利用者も不要と判断した。",
+ "shift": [
+  {
+   "what": "判断基準",
+   "from": "AI の総合16件 ・ リポジトリの事例7件を含む",
+   "to": "消す（tech-lead 14 ・ ddd 3 ・ ux 4 ・ platform 2）。残るのは ddd 19 ・ platform 6 ・ qa 9 ・ ux 3 ・ usecase 24"
+  },
+  {
+   "what": "tech-lead-advisor",
+   "from": "Skill として置き、配線表の5行 ・ MCP ・ 規則6件が参照する",
+   "to": "Skill ごと消す。配線表の4行を消し、1行は ddd-advisor だけを呼ぶ形にする。git の履歴には残る"
+  },
+  {
+   "what": "残る判断基準の古い記述",
+   "from": "PlatformSpec を含む関連1件、Waffle を含む問い1件",
+   "to": "消す"
+  },
+  {
+   "what": "platform-advisor の手順",
+   "from": "Step 2 で sre-investment-threshold を最初に読む",
+   "to": "その手順を外し、番号を繰り上げる"
+  },
+  {
+   "what": "CLAUDE.md の数",
+   "from": "Skill 18 ・ 配線26行",
+   "to": "Skill 17 ・ 配線22行"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "判断基準を出典の性質で分け、原典に基づかないものを消す",
+ "alternatives": [
+  {
+   "option": "出典の欄の古い記述（has-udd など）だけを消す",
+   "why_not": "本文が AI の総合であることを示す記述が消え、原典に基づかない本文が原典に基づくものに見える"
+  },
+  {
+   "option": "tech-lead-advisor を残し、原典（クリーンアーキテクチャなど）から判断基準を作り直す",
+   "why_not": "どの範囲を受け持たせるかが未決で、advisor-creator のボードの論点6で決めることになっている。作り直すなら、その決定のあとに新しい advisor として作る"
+  },
+  {
+   "option": "tech-lead を呼んでいた配線の行を、ddd-advisor へ付け替える",
+   "why_not": "レイヤー配置 ・ 依存方向は ddd-advisor の原典の範囲外で、根拠の無い回答を返すことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "list",
+   "tab": "消す判断基準23件",
+   "file": ".acdr/0054-原典に基づかない判断基準とtech-lead-advisorを消す/preview/index.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "c-ddd",
+   "tab": "ddd-advisor の criteria.json",
+   "file": ".claude/skills/ddd-advisor/references/criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"criteria.schema.json\",",
+     "before": "{ / \"id\": \"architecture-evidence-based-scope\", / \"title\": \"先回りして確定的な構造を作ることのコストを対象とする概念：architecture-evidence-based-scope\", / \"tags\": [ / \"advisor:cross-cutting\", / \"domain:architecture\" / ], / \"summary\": \"まだ形の分からない仮説的なニーズのために、確定的な構造・汎用機構を先",
+     "why": "原典に基づかない判断基準3件（AI の総合1件、リポジトリの事例2件）を消した"
+    },
+    {
+     "find": "\"id\": \"microservices\",",
+     "before": "{ / \"id\": \"knowledge-cand-aggregate-declaration-is-not-class-existence\", / \"title\": \"集約の宣言と、実装に現れる形：knowledge-cand-aggregate-declaration-is-not-class-existence\", / \"tags\": [ / \"framework:ddd\", / \"topic:aggregate\", / \"topic:drift-detection\" ",
+     "why": "原典に基づかない判断基準3件（AI の総合1件、リポジトリの事例2件）を消した"
+    }
+   ]
+  },
+  {
+   "key": "c-ux",
+   "tab": "ux-advisor の criteria.json",
+   "file": ".claude/skills/ux-advisor/references/criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"ui-copywriting\",",
+     "before": "{ / \"id\": \"architecture-evidence-based-scope\", / \"title\": \"先回りして確定的な構造を作ることのコストを対象とする概念：architecture-evidence-based-scope\", / \"tags\": [ / \"advisor:cross-cutting\", / \"domain:architecture\" / ], / \"summary\": \"まだ形の分からない仮説的なニーズのために、確定的な構造・汎用機構を先",
+     "why": "原典に基づかない判断基準4件（AI の総合3件、リポジトリの事例1件）と、それを指す関連を消した"
+    },
+    {
+     "find": "\"origin\": \"Anthropic公式/frontend-designskillのWriting in Designセクション\",",
+     "before": "\"related\": [ / { / \"criterion\": \"design-system-tokens\", / \"relation\": \"文言もトークンと同様、design.md等に記録し画面をまたいだ一貫性を保つ運用に組み込める\" / } / ],",
+     "why": "原典に基づかない判断基準4件（AI の総合3件、リポジトリの事例1件）と、それを指す関連を消した"
+    },
+    {
+     "find": "\"origin\": \"Anthropic公式/frontend-designskillのDesign Principles（Hero as Thesis／Typography／Structure as Information／Motion／Complexity Matching）\",",
+     "before": "\"related\": [ / { / \"criterion\": \"design-system-tokens\", / \"relation\": \"この5原則で決めた判断を実際に記録・再利用する仕組みがdesign-system-tokens\" / }, / { / \"criterion\": \"frontend-design-principles\", / \"relation\": \"本概念の核（作り込み度と方向性を一致させる）は『作り込みを一貫させる』としてdesign-shareの",
+     "why": "原典に基づかない判断基準4件（AI の総合3件、リポジトリの事例1件）と、それを指す関連を消した"
+    }
+   ]
+  },
+  {
+   "key": "c-platform",
+   "tab": "platform-advisor の criteria.json",
+   "file": ".claude/skills/platform-advisor/references/criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"criteria.schema.json\",",
+     "before": "{ / \"id\": \"architecture-evidence-based-scope\", / \"title\": \"先回りして確定的な構造を作ることのコストを対象とする概念：architecture-evidence-based-scope\", / \"tags\": [ / \"advisor:cross-cutting\", / \"domain:architecture\" / ], / \"summary\": \"まだ形の分からない仮説的なニーズのために、確定的な構造・汎用機構を先",
+     "why": "原典に基づかない判断基準2件（AI の総合）と、PlatformSpec を含む関連1件を消した"
+    },
+    {
+     "find": "\"origin\": \"AWS Well-Architected FrameworkのSecurity Pillar\",",
+     "before": "\"related\": [ / { / \"criterion\": \"reliability-targets-and-error-budgets\", / \"relation\": \"どちらもPlatformSpecが扱う非機能要件の判断基準という点で並列の関係\" / } / ],",
+     "why": "原典に基づかない判断基準2件（AI の総合）と、PlatformSpec を含む関連1件を消した"
+    },
+    {
+     "find": "\"id\": \"sustainability\",",
+     "before": "{ / \"id\": \"sre-investment-threshold\", / \"title\": \"SLI/SLO等SRE投資判断の閾値を対象とする概念：sre-investment-threshold\", / \"summary\": \"SRE/クラウドアーキテクチャの原則（SLI/SLO・最小権限・可観測性等）は、複数の利用者に対して継続的に稼働するサービスであることを暗黙の前提にしている。この前提が成立しない対象にまで機械的に適用すべきではない、という投資判断の閾値を対象と",
+     "why": "原典に基づかない判断基準2件（AI の総合）と、PlatformSpec を含む関連1件を消した"
+    }
+   ]
+  },
+  {
+   "key": "c-qa",
+   "tab": "qa-advisor の criteria.json",
+   "file": ".claude/skills/qa-advisor/references/criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"summary\": \"David Heinemeier Hansson(DHH)が2014年に提起した、テスト駆動(特にmock多用によるisolation-driven testing)が過剰な間接化(indirection)を生み設計を損なうという主張、およびそれを巡ってKent Beck・Martin Fowlerと交わされた論争の総称。単一の確立原則ではなく、対立する2つの立場を含む論争として扱う。\",",
+     "before": "\"この主張の論拠は何で、どのような反論があるか？\", / \"Waffle自身の設計判断でこの主張をどう扱うべきか？\"",
+     "why": "以前の作業の名前（Waffle）を含む問い1件を消した"
+    }
+   ]
+  },
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"request\": \"業務領域のモデルを原典に照らして見てもらう\",",
+     "before": "\"request\": \"業務領域のモデルと、その置き場所・依存方向を見てもらう\", / \"ddd-advisor\", / \"tech-lead-advisor\" / ], / \"reliance\": \"required\" / }, / { / \"request\": \"コードの配置・レイヤー境界・依存方向を見てもらう\", / \"when\": \"設計判断（技術の選び方・構造の切り方を決めるもの）\", / \"skills\": [ / \"tech-lead-advisor\"",
+     "why": "tech-lead-advisor を呼ぶ行を消し、ddd-advisor と並べて呼んでいた行は ddd-advisor だけにした。決め事の advisor の並びからも外し、usecase-advisor を加えた"
+    },
+    {
+     "find": "\"request\": \"業務領域の分類（中核 ・ 一般 ・ 補完）を判定してもらう\",",
+     "before": "{ / \"request\": \"レイヤー配置・依存方向が、テスト容易性の低さの原因かを判定してもらう\", / \"when\": \"qa-advisor（Hard to Test Code の原因が配置に在る疑いのとき）\", / \"skills\": [ / \"tech-lead-advisor\" / ], / \"reliance\": \"advisory\" / }, / { / \"request\": \"プレゼンテーション層の依存方向の適合を判定してもらう\", / \"when\": \"",
+     "why": "tech-lead-advisor を呼ぶ行を消し、ddd-advisor と並べて呼んでいた行は ddd-advisor だけにした。決め事の advisor の並びからも外し、usecase-advisor を加えた"
+    },
+    {
+     "find": "\"project_rules\": \"呼んでよいのは .claude/skills/ に置いてあるSkillだけである。「見てもらう」頼みごとの相手には、助言専門のSkill（ddd-advisor・platform-advisor・qa-advisor・ux-advisor・usecase-advisor）だけを充てる。それ以外を呼びたくなったときは、作業の切り方が細かすぎないかを先に疑う。\"",
+     "before": "\"project_rules\": \"呼んでよいのは .claude/skills/ に置いてあるSkillだけである。「見てもらう」頼みごとの相手には、助言専門のSkill（ddd-advisor・tech-lead-advisor・platform-advisor・qa-advisor・ux-advisor）だけを充てる。それ以外を呼びたくなったときは、作業の切り方が細かすぎないかを先に疑う。\"",
+     "why": "tech-lead-advisor を呼ぶ行を消し、ddd-advisor と並べて呼んでいた行は ddd-advisor だけにした。決め事の advisor の並びからも外し、usecase-advisor を加えた"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/ddd-advisor/bin/ddd-advisor-mcp\",",
+     "before": "\"tech-lead-advisor\": { / \"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/tech-lead-advisor/bin/tech-lead-advisor-mcp\", / \"args\": [] / },",
+     "why": "tech-lead-advisor の MCP の登録を消した"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"root\": \".claude/skills/ddd-advisor/tool\",",
+     "before": "\"tech-lead-advisor\": { / \"root\": \".claude/skills/tech-lead-advisor/tool\", / \"language\": \"rust\", / \"layers\": [ / { / \"name\": \"parts\", / \"where\": [ / \"parts\" / ] / }, / { / \"name\": \"declare\", / \"where\": [ / \"declare\" / ] / }, / { / \"name\": \"c",
+     "why": "tech-lead-advisor の成果物の宣言を消した"
+    },
+    {
+     "find": "\"qa-advisor\",",
+     "before": "\"tech-lead-advisor\",",
+     "why": "tech-lead-advisor の対象の一覧を消した"
+    },
+    {
+     "find": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",",
+     "before": "{ / \"rule\": \"入口と部品の置き場所が、契約を満たす\", / \"source\": { / \"record\": \"skills-creator/references/tool-contract.md\" / }, / \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\", / \"check\": { / \"tool\": [ / \"../skills-creator/bin/skills-creator\", / \"check\", / \".\",",
+     "why": "tech-lead-advisor の規則6件を消した"
+    },
+    {
+     "find": "\"rule\": \"人が読む文書が、10の判定を通る\",",
+     "before": "{ / \"rule\": \"人が読む文書が、10の判定を通る\", / \"source\": { / \"record\": \"doc-writing-skills/SKILL.md\" / }, / \"scope\": \"この成果物の SKILL.md のみ\", / \"check\": { / \"tool\": [ / \"../doc-writing-skills/bin/doc-writing-skills\", / \"check\", / \"SKILL.md\", / \"--skill_roo",
+     "why": "tech-lead-advisor の規則6件を消した"
+    },
+    {
+     "find": "\"rule\": \"事例が通る\",",
+     "before": "{ / \"rule\": \"事例が通る\", / \"source\": { / \"record\": \"tech-lead-advisor/SKILL.md\" / }, / \"scope\": \"この成果物の事例のみ\", / \"check\": { / \"tool\": [ / \"cargo\", / \"test\", / \"-q\" / ] / }, / \"units\": [ / \"tech-lead-advisor\" / ] / },",
+     "why": "tech-lead-advisor の規則6件を消した"
+    },
+    {
+     "find": "\"rule\": \"整形されている\",",
+     "before": "{ / \"rule\": \"整形されている\", / \"source\": { / \"record\": \"tech-lead-advisor/SKILL.md\" / }, / \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\", / \"check\": { / \"tool\": [ / \"cargo\", / \"fmt\", / \"--all\", / \"--\", / \"--check\" / ] / }, / \"units\": [ / \"tech-lead-ad",
+     "why": "tech-lead-advisor の規則6件を消した"
+    },
+    {
+     "find": "\"rule\": \"静的解析を通る\",",
+     "before": "{ / \"rule\": \"静的解析を通る\", / \"source\": { / \"record\": \"tech-lead-advisor/SKILL.md\" / }, / \"scope\": \"clippy が持つ検査のみ\", / \"check\": { / \"tool\": [ / \"cargo\", / \"clippy\", / \"--all-targets\", / \"--all-features\", / \"--\", / \"-Dwarnings\" / ] / }, / \"units\"",
+     "why": "tech-lead-advisor の規則6件を消した"
+    }
+   ]
+  },
+  {
+   "key": "uxt",
+   "tab": "ux-advisor の試験",
+   "file": ".claude/skills/ux-advisor/tool/parts/tests/references.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_criterion_is_taken_by_its_id() {",
+     "before": "let one = refs::get(&references(), \"criteria\", Some(\"design-system-tokens\")).expect(\"在る\"); / .contains(\"デザイントークン\"));",
+     "why": "消した design-system-tokens の代わりに、残る ui-copywriting を取り出す"
+    }
+   ]
+  },
+  {
+   "key": "uxf",
+   "tab": "ux-advisor の事例",
+   "file": ".claude/skills/ux-advisor/tool/parts/tests/fixtures/answer.judgment.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"grounds\": [",
+     "before": "\"criterion\": \"design-system-tokens\",",
+     "why": "根拠が消した design-system-tokens を指していたので、残る ui-copywriting へ替えた"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "17のSkillを組み合わせて",
+     "before": "18のSkillを組み合わせて",
+     "why": "tech-lead-advisor を消したので、Skill の数を実数に合わせた"
+    },
+    {
+     "find": "ddd-advisor ・ platform-advisor ・ qa-advisor ・ ux-advisor ・ usecase-advisor",
+     "before": "ddd-advisor ・ tech-lead-advisor ・ platform-advisor …",
+     "why": "助言専門の Skill の一覧から外した"
+    },
+    {
+     "find": "22行と",
+     "before": "26行と",
+     "why": "配線表の行数を実数に合わせた"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "templates/CLAUDE.template.md",
+   "file": "templates/CLAUDE.template.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "ddd-advisor ・ usecase-advisor",
+     "before": "ddd-advisor ・ tech-lead-advisor",
+     "why": "雛形の例が、消した Skill を指していた"
+    }
+   ]
+  },
+  {
+   "key": "s-ddd",
+   "tab": "ddd-advisor の SKILL.md",
+   "file": ".claude/skills/ddd-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "DDD の判断基準（19件）",
+     "before": "DDD の判断基準（22件）。一覧に architecture-evidence-based-scope と knowledge-cand-… 2件",
+     "why": "消した3件を一覧から外し、件数と図の枚数（80枚）を合わせた"
+    }
+   ]
+  },
+  {
+   "key": "s-ux",
+   "tab": "ux-advisor の SKILL.md",
+   "file": ".claude/skills/ux-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "判断基準（3件）",
+     "before": "判断基準（7件）。手順の案内に design-system-tokens と progressive-disclosure",
+     "why": "消した4件を、一覧と手順の案内から外した"
+    }
+   ]
+  },
+  {
+   "key": "s-pf",
+   "tab": "platform-advisor の SKILL.md",
+   "file": ".claude/skills/platform-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "判断基準（6件）",
+     "before": "判断基準（8件）",
+     "why": "消した2件を一覧から外した"
+    },
+    {
+     "find": "Step 2: 対応する判断基準を特定して必ず読む",
+     "before": "### Step 2: SRE投資の前提を満たすか確認する（sre-investment-threshold を最初に読む）",
+     "why": "消した判断基準を最初に読む手順を外し、後ろの番号を繰り上げた"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "変更をコミットしてプッシュする",
+  "公式の原典を AI が要約した判断基準（platform 6 ・ ux 3 ・ qa 1）の扱いを、利用者と決める"
+ ],
+ "seal": {
+  "list": "9bc224d8e1d049f79230ee1eacf0d3d5613454d515000d4adbd5005e8c12ba2a",
+  "c-ddd": "a05466bbab69bc8ba9217b3f9b862cfc81aa40158e45c13f30b8ebd8c1785f27",
+  "c-ux": "7aaf72858285d15f5c7bb203a2c06b3492ee00f822ae3e2a9af2da75326c3b47",
+  "c-platform": "f012eda04b2d974d7e1b69558beacd296dbb595352d96e5ce1c83340bb783284",
+  "c-qa": "c12a776b62210fb08f283e096bacef9f6b2bc462a08eee41b4efcca1e32edab1",
+  "wiring": "cf68dc30a8411d9cb54c636d975513520abcebc4e7918982ec106130cbf7a597",
+  "mcp": "8b937a00dc885faed239b88d97073e16840e9b673257c0e8befdcc77a3ab74a3",
+  "rules": "090c0a195d8b33eb4f54c229f6e4ab8a28bed72f0aa63d556407e6750b882ddb",
+  "uxt": "e75f9267adf2e21979740b5b14c40c359b7f008e3f72291bc7e85c2dd14a028e",
+  "uxf": "a7c429d9aebb4ad3b40fd8490b2587fccaf394da1843b0be7a5c992c399d6937",
+  "claude": "d4b4a2bc7a26d7a5314da4a8c0915168a8f90d556c679afbce8ce6e14537cf29",
+  "tmpl": "ee9348e179dee1daa4728ba945e241b1c21e1b98145592286272e499101beb96",
+  "s-ddd": "15bd8d3fe6e7cdcda965c8d99eec8bb07a4869a6eee2cfa33b4c8ed9ebe279d8",
+  "s-ux": "e655ffd2aeacb353d7c0f5eb1500e1a0bdc1e22ca0c037f75a1587ab7c7b20bb",
+  "s-pf": "6e1bd9188558883524e77f6d05556a2b625c2b44e8ab2b2502b2ee6239d5b187"
+ }
+}

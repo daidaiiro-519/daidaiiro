@@ -64,8 +64,6 @@ ux-advisor get criteria <id>        判断基準を1件取り出す（JSON）
 ux-advisor view criteria --id <id>  人が読む形で描画する
 ```
 
-- デザイントークン・配色・タイポグラフィの一貫性の相談 → `design-system-tokens`
-- 情報量の多い画面・グラフ可視化・何を最初に見せるかの相談 → `progressive-disclosure`
 - Hero・構造表現・モーション・紋切り型を避ける相談 → `visual-hierarchy-and-restraint`
 - ボタン・メッセージ・エラー文等の文言の相談 → `ui-copywriting`
 - レスポンシブ・フォーカス状態・reduced-motion等の品質下限の相談 → `accessibility-baseline`（常に確認する）
@@ -138,7 +136,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（7件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（3件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 | `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |
@@ -148,9 +146,5 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 | id | 題 |
 |---|---|
 | `accessibility-baseline` | 「アクセシビリティの最低基準を定める概念」 |
-| `architecture-evidence-based-scope` | 「先回りして確定的な構造を作ることのコストを対象とする概念」 |
-| `design-system-tokens` | 「デザイントークンの設計原則を対象とする概念」 |
-| `knowledge-cand-comparison-principle-needs-retrieval-path` | 「比較・参照を伴う原則には取得経路が要ることを対象とする概念」 |
-| `progressive-disclosure` | 「情報を段階的に開示するUI設計原則を対象とする概念」 |
 | `ui-copywriting` | 「UIコピーライティングの原則を対象とする概念」 |
 | `visual-hierarchy-and-restraint` | 「視覚的階層と抑制の原則を対象とする概念」 |

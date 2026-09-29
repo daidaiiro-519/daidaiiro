@@ -108,8 +108,8 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | DDD の判断基準（22件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
-| `references/figures/*.svg` | 判断基準の図（81枚）。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が持つ |
+| `references/criteria.schema.json` ・ `criteria.json` | DDD の判断基準（19件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/figures/*.svg` | 判断基準の図（80枚）。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が持つ |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 
@@ -117,7 +117,6 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | id | 題 |
 |---|---|
-| `architecture-evidence-based-scope` | 先回りして確定的な構造を作ることのコストを対象とする概念 |
 | `architecture-patterns` | 技術方式を対象とする概念 |
 | `bounded-context` | 境界づけられたコンテキストの概念そのものを対象とする |
 | `business-domain` | 事業領域を対象とする概念 |
@@ -133,8 +132,6 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 | `event-sourced-domain-model` | イベント履歴式ドメインモデルを対象とする概念 |
 | `event-storming` | イベントストーミングを対象とする概念 |
 | `evolving-design` | 設計を継続的に進化させる原則を対象とする概念 |
-| `knowledge-cand-aggregate-declaration-is-not-class-existence` | 集約の宣言と、実装に現れる形 |
-| `knowledge-cand-declaration-text-arbitrates-violation-claims` | 適合の主張と、宣言そのものへの異議を識別する |
 | `microservices` | マイクロサービスの境界を対象とする概念 |
 | `real-world-ddd` | 現場への導入を対象とする概念 |
 | `subdomain` | サブドメインの概念そのものを対象とする |

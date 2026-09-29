@@ -48,14 +48,7 @@ description: "可用性・スケーラビリティ・セキュリティ境界・
 - アプリケーション内部の層配置・依存方向の話であれば、その判定は範囲外であることを伝える
 - 可用性・スケーラビリティ・セキュリティ境界・インフラ構成の話であれば、この先の手順に進む
 
-### Step 2: SRE投資の前提を満たすか確認する
-
-`sre-investment-threshold`を最初に読み、対象が「継続的に稼働し複数のアクターが利用する」という前提を満たすか判定する。満たさない場合は各論の検討に進まず、ここで保留と結論づける。
-
-- 使い捨てプロセス・単一利用者ツールの場合は、SLI/SLO・アクセス制御・可観測性基盤の整備は不要と判定し、理由を示して終える
-- 前提を満たす場合のみStep3以降に進む
-
-### Step 3: 対応する判断基準を特定して必ず読む
+### Step 2: 対応する判断基準を特定して必ず読む
 
 相談内容に関連するSRE/セキュリティ/クラウドアーキテクチャの概念を特定し、下の参照の一覧から判断基準の id を特定し、**道具で1件ずつ取り出して読む**。この手順を完了する前に回答を始めてはならない。
 
@@ -72,7 +65,7 @@ platform-advisor view criteria --id <id>  人が読む形で描画する
 - 環境負荷・リソース使用率の相談 → `sustainability`
 - 複数の概念が関連する場合は全て読み込む
 
-### Step 4: 判断基準に沿って判定し、根拠を示す
+### Step 3: 判断基準に沿って判定し、根拠を示す
 
 判断基準（決定木）を辿り、判定結果と理由を示す。
 
@@ -83,7 +76,7 @@ platform-advisor view criteria --id <id>  人が読む形で描画する
 
 ---
 
-### Step 5: 回答を JSON で組み、検査してから描画する
+### Step 4: 回答を JSON で組み、検査してから描画する
 
 回答を `answer.schema.json` の形の JSON で組み、検査してから描画する。
 
@@ -132,7 +125,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（8件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（6件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 | `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |
@@ -141,11 +134,9 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | id | 題 |
 |---|---|
-| `architecture-evidence-based-scope` | 「先回りして確定的な構造を作ることのコストを対象とする概念」 |
 | `cost-optimization` | 「インフラ・システムのコスト管理の判断を対象とする概念」 |
 | `observability-design` | 「可観測性（ログ・メトリクス・トレース）の設計原則を対象とする概念」 |
 | `performance-efficiency` | 「パフォーマンス効率の設計判断を対象とする概念」 |
 | `reliability-targets-and-error-budgets` | 「信頼性目標とエラーバジェットの設定を対象とする概念」 |
 | `security-boundary-and-least-privilege` | 「セキュリティ境界と最小権限の原則を対象とする概念」 |
-| `sre-investment-threshold` | 「SLI/SLO等SRE投資判断の閾値を対象とする概念」 |
 | `sustainability` | 「インフラ・システムの環境負荷（サステナビリティ）を対象とする概念」 |

@@ -10,7 +10,7 @@
 | `{{管轄ディレクトリ}}` | この指示書を適用する範囲 | `リポジトリ全体` |
 | `{{Skillの数}}` | `.claude/skills/` に置いたSkillの数 | `15` |
 | `{{配線の行数}}` | 配線表が持つ行の数 | `16` |
-| `{{助言専門のSkillの名前}}` | 見てもらう相手のSkill名を中黒で並べる | `ddd-advisor ・ tech-lead-advisor` |
+| `{{助言専門のSkillの名前}}` | 見てもらう相手のSkill名を中黒で並べる | `ddd-advisor ・ usecase-advisor` |
 | `{{作る側のSkillの名前}}` | 何かを作るSkill名を中黒で並べる | `brainstorm ・ design-svg` |
 | `{{コミットの決め}}` | ブランチを切るか、mainへ直接コミットするか | `mainで直接コミットする` |
 
