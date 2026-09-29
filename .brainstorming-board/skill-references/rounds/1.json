@@ -1,0 +1,311 @@
+{
+ "round": 1,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "残りの論点の前提になる。knowledge ・ テンプレート ・ 定義票を、別の区分にせず references の1つの区分で持つ。"
+    ]
+   ],
+   "pick": [
+    [
+     "<ul><li><b class=\"lead-s\">種類ごとに、スキーマ1つと JSON 1つ</b><div class=\"sub-s\">例：knowledge.schema.json と knowledge.json（22件の配列）。1つの種類の項目は同じ形なので、1つのスキーマで検査できる</div></li><li><b class=\"lead-s\">Markdown は SKILL.md だけ</b><div class=\"sub-s\">Claude Code が Skill を見つけるために必要なのは SKILL.md だけである</div></li><li><b class=\"lead-s\">knowledge を別の区分にしない</b><div class=\"sub-s\">references の中の1つの種類である</div></li><li><b class=\"lead-s\">スキーマは Skill の中に置く</b><div class=\"sub-s\">Skill を単独で配布しても、検査に必要なものがそろう</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "references には、種類ごとに JSON Schema を1つと、それに従う JSON を1つ置く（<種類>.schema.json と <種類>.json。JSON は同じ種類の項目の配列）。Markdown は SKILL.md だけにする。knowledge は references の中の1つの種類であり、別の区分にしない。スキーマは Skill の中に置き、JSON は $schema でそれを指す"
+    ]
+   ],
+   "figures": [
+    [
+     "ddd-advisor の references を、種類ごとのスキーマと JSON に移す",
+     "6380d1666ce1"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 種類ごとにスキーマ1つと JSON 1つ（配列）",
+     "1つの種類の全項目を1つのファイルに置き、1つのスキーマで検査する",
+     "1つのファイルが大きくなる（ddd-advisor の knowledge は22件）。差分は項目の単位で読むことになる"
+    ],
+    [
+     "B ── 項目ごとに JSON 1つ（knowledge/<id>.json）",
+     "1項目1ファイルで、差分が小さい",
+     "ファイルが多い（アドバイザー系で約90）。一覧を得るには全ファイルを読む"
+    ]
+   ],
+   "dropped": [
+    [
+     "Markdown と frontmatter のまま、frontmatter だけにスキーマを付ける",
+     "本文の構造（見出しと、その下の中身の範囲）が散文のままで、読み手が構造を解釈することになる。利用者の方針に反する"
+    ],
+    [
+     "全部の Skill で共通の knowledge のスキーマを1つ、skills-creator に置く",
+     "Skill を単独で配布したときに、スキーマが手元に無い。形を Skill の外に依存させることになる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "アドバイザー系の knowledge 62件は、frontmatter で KnowledgeSchema/v5（39件）か v6（23件）を記録しているが、どちらのスキーマの実体もリポジトリに無い"
+    ],
+    [
+     "acdr ・ brainstorming-board ・ slide-deck ・ no-more-spaghetti は、すでに JSON Schema と JSON を正本にし、HTML を導出している"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "knowledge の欄の中身（v5 と v6 のどちらを基にするか）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5の試行（1つの Skill での移行）で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "Markdown が必須なのは SKILL.md だけであること",
+     "Every skill needs a `SKILL.md` file with two parts",
+     "primary",
+     "sources/docs.claude.com_en_docs_claude-code_skills.md:71（2026-09-21 取得）"
+    ],
+    [
+     "補足のファイルは、必要なときだけ読まれること",
+     "letting Claude access detailed reference material only when needed",
+     "primary",
+     "sources/docs.claude.com_en_docs_claude-code_skills.md の Add supporting files の節（2026-09-21 取得）。例のファイルは .md だが、形式を規定する記述は無い"
+    ],
+    [
+     "JSON を正本にする方針",
+     "SKILL.md以外をmd形式で持つメリットは正直ないと思ってます。もし見たいのであればJsonSchemaで構造化されたものから生成される実体Json構造データをHTMLに描画するような契約でいいと思ってる。",
+     "rule",
+     "利用者の言葉（2026-09-29）"
+    ],
+    [
+     "スキーマの実体が無いこと",
+     "schemaRef: \"KnowledgeSchema/v5\" が39件、v6 が23件。定義の実体はリポジトリに無い",
+     "measured",
+     "2026-09-29 に検索した"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "（論点4の決着後に開く）契約の雛形に、スキーマの title と description を見出しにする汎用の描画を置く。acdr やブレストボードのように独自の見た目が必要な Skill は、それを上書きしてよい"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "雛形が view を持つこと",
+     "3つの動詞は契約の雛形が持つ",
+     "assumption",
+     "論点4（未決）"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "（論点1の決着後に開く）回答の見出しの構造も、回答の JSON Schema にする。回答をその形の JSON で組めば、テンプレートを踏襲しているかを機械で検査でき、描画も同じ仕組みで行える"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "テンプレートも references の1つの種類であること",
+     "種類ごとにスキーマ1つと JSON 1つ",
+     "assumption",
+     "論点1（未決）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "道具を保持しない8つの Skill（5つの advisor ・ advisor-creator ・ skill-router ・ memory-cultivator）に、道具を持たせるかがここで決まる。"
+    ]
+   ],
+   "pick": [
+    [
+     "<ul><li><b class=\"lead-s\">get</b><div class=\"sub-s\">種類と項目の id を指定し、その1件の JSON だけを返す。モデルはファイル全体を読まない</div></li><li><b class=\"lead-s\">validate</b><div class=\"sub-s\">references の JSON を、指しているスキーマで検査する</div></li><li><b class=\"lead-s\">view</b><div class=\"sub-s\">references の JSON を HTML に描画する（論点2で置き場所を決める）</div></li><li><b class=\"lead-s\">3つの動詞は契約の雛形が持つ</b><div class=\"sub-s\">references しか持たない Skill（アドバイザー系など）は、固有のコードを書かずに道具を持てる</div></li></ul>"
+    ]
+   ],
+   "answer": [
+    [
+     "references を持つ Skill は、すべて道具を持つ。道具は references の種類と項目を指定して、必要な部分だけの JSON を返す（get）。スキーマで検査し（validate）、HTML に描画する（view）。この3つの動詞は Skill ごとに書かず、契約の雛形が持つ"
+    ]
+   ],
+   "figures": [
+    [
+     "モデルは道具を呼び、必要な1件の JSON だけを受け取る",
+     "cb6759d64663"
+    ]
+   ],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [
+    [
+     "A ── すべての Skill が道具を持ち、get ・ validate ・ view を雛形が持つ",
+     "モデルは必要な部分だけを読み、検査と描画も同じ入口から行う",
+     "道具を保持しない8つの Skill に、道具（Rust の組なら組み立て）が加わる。配布物も OS ごとになる"
+    ],
+    [
+     "B ── モデルは JSON のファイルを直接読み、検査と描画だけを道具にする",
+     "道具を保持しない Skill はそのままにできる",
+     "モデルは種類のファイル全体を読む。JSON は Markdown より記号が多いので、読む量が増える"
+    ]
+   ],
+   "dropped": [
+    [
+     "references を読む道具を1つだけ作り、全部の Skill がそれを呼ぶ",
+     "Skill が他の Skill（または共通の道具）に依存し、単独で配布できなくなる"
+    ],
+    [
+     "道具を持たせず、SKILL.md の手順で読み方を指示するだけにする",
+     "検査も描画もできない。スキーマを置いても、誰も照合しない（いまの narration と doc-writing-skills と同じ状態になる）"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "道具を保持しないのは、5つの advisor ・ advisor-creator ・ skill-router ・ memory-cultivator の8つである。このうち advisor-creator は生成する側である"
+    ],
+    [
+     "narration と doc-writing-skills は、スキーマを置いているが、道具が検査に使っていない"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "各 Skill 固有の道具（acdr の render など）",
+     "<span class=\"kind k-rule\">対象外</span> ── get ・ validate ・ view に加えて、Skill ごとに持ってよい"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "JSON を正本にする方針",
+     "私が作成するSkillsは基本そのような構造で作成します。",
+     "rule",
+     "利用者の言葉（2026-09-29）"
+    ],
+    [
+     "言語の組が雛形を持つこと",
+     "組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである",
+     "rule",
+     "ACDR 0036"
+    ],
+    [
+     "スキーマを置いても照合されない実例",
+     "narration ・ doc-writing-skills の道具のソースに、スキーマで検査する処理が無い",
+     "measured",
+     "2026-09-29 に検索した"
+    ],
+    [
+     "view の描画の置き場所",
+     "描画を、どこが持つかは論点2で決める",
+     "assumption",
+     "論点2（未決）"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "（論点1〜4の決着後に開く）ddd-advisor で試し、knowledge の欄の中身を決めてから、残りの advisor ・ skill-router ・ memory-cultivator ・ 道具を持つ Skill の順に広げる"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "形が決まってから移すこと",
+     "種類ごとにスキーマ1つと JSON 1つ",
+     "assumption",
+     "論点1（未決）"
+    ],
+    [
+     "道具を持たせること",
+     "すべての Skill が道具を持つ",
+     "assumption",
+     "論点4（未決）"
+    ]
+   ]
+  }
+ }
+}

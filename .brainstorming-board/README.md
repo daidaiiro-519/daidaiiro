@@ -12,6 +12,7 @@
 | `workshop-purpose/` | ワークショップの軸を「課題」から「目的」へ移す | （未発行） | （未複製） |
 | `skill-binaries/` | Skill をバイナリで配布する | `https://claude.ai/artifact/Ba8QmbDySFkSehgnY466pc` | Round 10（2026-09-29） |
 | `skills-creator-language/` | skills-creator の道具の契約を、言語に依存しない形にする | `https://claude.ai/artifact/ATLdWNxbyQAzAz6xyW8syo` | Round 7（2026-09-29） |
+| `skill-references/` | Skill の references を、JSON Schema と JSON を正本にする形へ移す | （未発行。ローカルの 8745 で配った） | Round 7（2026-09-29） |
 
 `no-more-spaghetti/` は 2026-09-23 に立て直した。**論点は3つで、どれもアーキテクチャの面である** ──
 モデル（構造を決める）・ 依存の向き（構造を保つ）・ テスト（構造を測る）。
@@ -20,3 +21,4 @@
 `coding-rule-form/` は 2026-09-21 に `no-more-spaghetti/` へ統合した。**CodingSkills のブレストボードは1枚だけである**
 ── 前提が別のボードに在ると、どちらが正しいかを毎回確認することになる。統合前の Artifact
 `https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` は、まだ消していない。
+| `skill-references/` | skill-references | （未発行） | （未複製） |
