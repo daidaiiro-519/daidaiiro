@@ -46,3 +46,26 @@ pub fn column(texts: &[String], size: f64, pad: f64) -> f64 {
     let widest = texts.iter().map(|t| width(t, size)).fold(0.0_f64, f64::max);
     widest + pad
 }
+
+/// 行頭に置かない文字（行頭の禁則）。閉じ括弧 ・ 句読点 ・ 長音
+const NO_LINE_START: &str = "、。，．・：；？！）」』】〕〉》ー’”)]},.:;!?";
+
+/// 幅の上限までで折り返した行の並び。**行頭の禁則の文字は、前の行の末尾へ送る**
+/// （上限をわずかに超えることを許す ── 行頭に句読点が来るよりも読みやすい）。
+#[must_use]
+pub fn wrap(s: &str, size: f64, latin: f64, max: f64) -> Vec<String> {
+    let mut lines: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for c in s.chars() {
+        let mut next = cur.clone();
+        next.push(c);
+        if !cur.is_empty() && width_with(&next, size, latin) > max && !NO_LINE_START.contains(c) {
+            lines.push(std::mem::take(&mut cur));
+        }
+        cur.push(c);
+    }
+    if !cur.is_empty() || lines.is_empty() {
+        lines.push(cur);
+    }
+    lines
+}

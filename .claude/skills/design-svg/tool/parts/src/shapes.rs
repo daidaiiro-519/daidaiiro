@@ -80,10 +80,22 @@ fn box_(p: &Props, style: &Style) -> Result<Fragment, String> {
     let label = props::text_or(p, "label", "");
     let font_size = style.num("font.size")?;
     let pad_x = style.num("size.box-pad-x")?;
-    let w = style.num("size.box-min-w")?.max(
-        text::width_with(&label, font_size, style.num("font.latin-width-ratio")?) + pad_x * 2.0,
+    let latin = style.num("font.latin-width-ratio")?;
+    // **上限を超えるラベルは折り返す** ── 行ごとに1つの text にするので、検査は各行をそのまま測れる
+    let lines = text::wrap(
+        &label,
+        font_size,
+        latin,
+        style.num("size.box-max-w")? - pad_x * 2.0,
     );
-    let h = style.num("size.box-h")?;
+    let widest = lines
+        .iter()
+        .map(|l| text::width_with(l, font_size, latin))
+        .fold(0.0_f64, f64::max);
+    let w = style.num("size.box-min-w")?.max(widest + pad_x * 2.0);
+    let line_h = font_size * style.num("size.box-line-h")?;
+    let extra = line_h * (lines.len().saturating_sub(1)) as f64;
+    let h = style.num("size.box-h")? + extra;
     let radius = style.num("size.box-radius")?;
     let fill = style.text("color.box-fill")?;
     let stroke = style.text("color.box-stroke")?;
@@ -95,15 +107,26 @@ fn box_(p: &Props, style: &Style) -> Result<Fragment, String> {
     let text_color = style.text_or("color.text", &style.text("color.ink")?)?;
     let weight = style.text_or("font.weight", "400")?;
     let role = esc(&props::text_or(p, "role", "plain"));
+    let first_y = h / 2.0 - extra / 2.0 + font_size * style.num("font.baseline-ratio")?;
+    let family = style.text("font.family")?;
+    let texts: String = lines
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            format!(
+                "<text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{text_color}\">{}</text>",
+                w / 2.0,
+                first_y + line_h * i as f64,
+                family,
+                f(font_size),
+                esc(l)
+            )
+        })
+        .collect();
     let svg = format!(
-        "<g class=\"svg-box\" role=\"{role}\"><rect x=\"0\" y=\"0\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"{dash}/><text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{text_color}\">{}</text></g>",
+        "<g class=\"svg-box\" role=\"{role}\"><rect x=\"0\" y=\"0\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"{dash}/>{texts}</g>",
         f(radius),
         f(sw),
-        w / 2.0,
-        h / 2.0 + font_size * style.num("font.baseline-ratio")?,
-        style.text("font.family")?,
-        f(font_size),
-        esc(&label)
     );
     Ok(Fragment::own(svg, w, h).labelled())
 }

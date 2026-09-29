@@ -1,0 +1,151 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0053",
+ "title": "design-svg で、長いラベルを箱の中で折り返す",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "design-svg で、箱の幅の上限を超えるラベルを、箱の中で複数行に折り返す。",
+ "why": "ACDR 0052 の洗い出しで、横に長い図11枚（tech-lead 7 ・ platform 3 ・ ddd 1）が判断基準の頁の枠に合わせて縮小され、文字が6.8〜9.0px になっていた。向きと配置を変えても1枚しか改善せず、9px に届かなかった。原因は、1つの箱の文字が長い（60字前後）のに、design-svg が箱の中で折り返せず、箱を1行の幅まで広げていたことである。",
+ "shift": [
+  {
+   "what": "箱のラベル",
+   "from": "常に1行。箱の幅はラベルの幅まで広がる",
+   "to": "箱の幅の上限（size.box-max-w、260px）までで折り返し、行ごとに1つの text にする。箱の高さは行数に応じて増える"
+  },
+  {
+   "what": "行頭の文字",
+   "from": "─（折り返さない）",
+   "to": "閉じ括弧 ・ 句読点 ・ 長音を行頭に置かず、前の行の末尾へ送る"
+  },
+  {
+   "what": "1行に収まるラベル",
+   "from": "─",
+   "to": "出力は変更前と1バイトも変わらない（既存の出力を1バイトずつ照合する試験が合格）"
+  },
+  {
+   "what": "縮小される図",
+   "from": "11枚で文字が6.8〜9.0px",
+   "to": "9.6〜12px。判断基準の宣言は変えず、SVG だけを組み直した"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "長いラベルを1行のまま広げる形から、箱の中で折り返す形へ移す",
+ "alternatives": [
+  {
+   "option": "判断基準の頁で、横に長い図を縮小せず、横にスクロールさせる",
+   "why_not": "図の全体が一度に見えない。図は判断の構造を一目で見せるためのもので、スクロールで分けると分岐の対応が追えない"
+  },
+  {
+   "option": "宣言のラベルに改行を書き込む",
+   "why_not": "原典の文字列を書き換えることになる。折り返す位置は箱の幅で決まるので、描画の側で決める"
+  },
+  {
+   "option": "長いラベルを短く言い換える",
+   "why_not": "判断基準は原文に無い文字列を持たない決まりである"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "after",
+   "tab": "完成イメージ：変更後の図11枚",
+   "file": ".acdr/0053-design-svgで長いラベルを箱の中で折り返す/preview/after.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "before",
+   "tab": "変更前の図11枚",
+   "file": ".acdr/0053-design-svgで長いラベルを箱の中で折り返す/preview/before.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "shapes",
+   "tab": "parts/src/shapes.rs",
+   "file": ".claude/skills/design-svg/tool/parts/src/shapes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let lines = text::wrap(",
+     "before": "let w = style.num(\"size.box-min-w\")?.max(text::width_with(&label, …) + pad_x * 2.0); let h = style.num(\"size.box-h\")?;",
+     "why": "ラベルを箱の幅の上限までで折り返し、最も長い行で箱の幅を、行数で箱の高さを決める"
+    },
+    {
+     "find": "let texts: String = lines",
+     "before": "<text …>{label}</text>（1つ）",
+     "why": "行ごとに1つの text にする。tspan にしないのは、幾何の検査が text 要素ごとに文字の位置を測るため。1行のときの y は変更前と同じ式になる"
+    }
+   ]
+  },
+  {
+   "key": "text",
+   "tab": "parts/src/text.rs",
+   "file": ".claude/skills/design-svg/tool/parts/src/text.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const NO_LINE_START",
+     "before": "（無い）",
+     "why": "文字幅の見積もりで上限を超える位置で行を分ける。閉じ括弧 ・ 句読点 ・ 長音は行頭に置かず、前の行の末尾へ送る（上限をわずかに超えることを許す）"
+    }
+   ]
+  },
+  {
+   "key": "theme",
+   "tab": "references/theme.json",
+   "file": ".claude/skills/design-svg/references/theme.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"size.box-max-w\": 260,",
+     "before": "（無い）",
+     "why": "箱の幅の上限と、折り返した行の間隔をトークンにした。コードに数値を直接書かない決まりである"
+    },
+    {
+     "find": "\"size.box-max-w\": [",
+     "before": "（無い）",
+     "why": "上限を設けた理由を、トークンの注記に残した"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "declare/tests/tools.rs",
+   "file": ".claude/skills/design-svg/tool/declare/tests/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_long_label_wraps_inside_its_box() {",
+     "before": "（無い）",
+     "why": "60字のラベルが複数行に分かれ、図の幅が1行の幅まで広がらないことを固定した。変更前の実装では失敗した。あわせて、行頭に閉じ括弧 ・ 句読点が来ないことを固定した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "design-svg の SKILL.md",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "までで、超えるラベルは箱の中で折り返す。",
+     "before": "（無い）",
+     "why": "折り返しの規則と、宣言の側で改行を入れない理由を記載した"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "design-svg の変更と、組み直した図11枚をコミットする（実行ファイルは組み直し済み）"
+ ],
+ "seal": {
+  "after": "12821d52ec3b7763f9f8072fbb5d839cc2d51f9df1ec0095604ef449f9d0f831",
+  "before": "f1192af9e86abe7e27b30e8f459420ed7fca359349f351ff55935f51ca193916",
+  "shapes": "b6c15c73a932aea3e79d12f242abda28db1c46ba537ef0f64f1dec9b5be34e27",
+  "text": "e02582cb4244f8bd72180097c70bf8f8e6a4cb9487c017e4ecb07be57018acb8",
+  "theme": "ef849da913f5aa52b26a7f62ff0db9c556e2de8610df42d0a790260ec8b4a224",
+  "tests": "3d0c8e585f80ba4e5fa89c4ee99c204a5322e17d624c2f9bde7a7943291ab79d",
+  "skill": "d13cb6e6a2247c30ceb8777107b556b53ad9b4fad70ced268927570a282f7ede"
+ }
+}

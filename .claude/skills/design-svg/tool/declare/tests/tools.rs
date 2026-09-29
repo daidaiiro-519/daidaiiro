@@ -265,3 +265,39 @@ fn a_self_loop_label_stays_off_its_node() {
     let out = call("figure", &[("declaration", &p)]);
     assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
 }
+
+#[test]
+fn a_long_label_wraps_inside_its_box() {
+    // **長いラベルは箱の中で折り返す** ── 1行のまま箱を広げると、横に並んだ図が縮小されて読めなくなる
+    let p = file(
+        "long.json",
+        r#"{"nodes": [{"id": "a", "label": "ドメイン・アプリケーション層が「何をすべきか」を決め、実行手段はポート経由でアダプターに委譲する"}, {"id": "b", "label": "短い"}],
+            "edges": [{"from": "a", "to": "b"}]}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
+    let svg = out.data["svg"].as_str().expect("そのまま返る");
+    let lines = svg.matches("委譲する</text>").count() + svg.matches("ドメイン・").count();
+    assert_eq!(lines, 2, "1行目と最終行が別の text に在る");
+    let width: f64 = svg
+        .split("viewBox=\"0 0 ")
+        .nth(1)
+        .and_then(|s| s.split(' ').next())
+        .and_then(|s| s.parse().ok())
+        .expect("幅が在る");
+    assert!(width < 400.0, "箱が1行の幅まで広がっていない: {width}");
+}
+
+#[test]
+fn no_line_starts_with_closing_punctuation() {
+    // **行頭に閉じ括弧 ・ 句読点を置かない**（行頭の禁則）
+    let p = file(
+        "kinsoku.json",
+        r#"{"nodes": [{"id": "a", "label": "あいうえおかきくけこさしすせそたちつてとなにぬねの、はひふへほまみむめもやゆよらりるれろわをん」。"}]}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    let svg = out.data["svg"].as_str().expect("そのまま返る");
+    for close in ["、", "。", "」", "）"] {
+        assert!(!svg.contains(&format!(">{close}")), "行頭に {close}");
+    }
+}
