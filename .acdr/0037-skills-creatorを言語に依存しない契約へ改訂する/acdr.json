@@ -1,0 +1,519 @@
+{
+ "no": "ACDR 0037",
+ "title": "skills-creator を、言語に依存しない道具の契約へ改訂する",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "skills-creator の契約の文書 ・ 雛形 ・ check を、ACDR 0036 の4件の決定どおりに改訂し、skills-creator 自身にも適用する。",
+ "why": "ACDR 0036 で、道具の契約は呼ぶ側から観察できるものだけを規定すると決めた。いまの skills-creator は、Rust の crate の構成 ・ bin/ ・ 配布の形まで契約に含めている。check も Rust のソースの文字列だけを読み、Rust 以外の Skill を検査できない。決定を正本に反映しなければ、利用者は Rust でしか道具を作れないままである。残りの8つの Skill への適用は、次の記録に分ける。",
+ "shift": [
+  {
+   "what": "文書",
+   "from": "tool-contract.md の1本に、契約 ・ Rust の置き場所 ・ 配布が含まれている",
+   "to": "契約（tool-contract.md）・ Rust の組（profiles/rust.md）・ 配布（distribution.md）の3本"
+  },
+  {
+   "what": "雛形",
+   "from": "references/tool-contract/ に16件",
+   "to": "Rust の組の14件（profiles/rust/。tool.json を加えた）と、配布の3件（distribution/）"
+  },
+  {
+   "what": "check",
+   "from": "Rust のソースの文字列を読む1段。結果は検出の一覧だけ",
+   "to": "入口を起動する1段目と、言語の組が持つ2段目。1件ずつ合格 ・ 不合格 ・ 実行しないを出す"
+  },
+  {
+   "what": "外部の道具",
+   "from": "Rust の定数 EXTERNAL と、宣言に無い呼び出しの照合",
+   "to": "tool.json の external と given.external による注入。名前の直書きを検出する"
+  },
+  {
+   "what": "CLI",
+   "from": "動詞なしでは人が読む一覧を出し、終了コード2",
+   "to": "動詞なしで --json を付けると、宣言（道具 ・ 引数 ・ skill_root）を JSON で返す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "check は、入口を起動する1段目をどの言語にも適用し、ソースを読む2段目は言語の組が在るときだけ実行する。",
+ "how": "1段目は behavior.rs が持つ。tool.json と mcp.json の書き方を確認したあと、入口を別の作業場所から起動する。確認するのは、宣言の JSON ・ Skill のフォルダ ・ 宣言に無い旗の拒否 ・ MCP の initialize から tools/list までの一致である。2段目は、tool/Cargo.toml が在る Skill に Rust の組の検査を適用し、それ以外は「実行しない」と出す。試験は35件すべて成功し、clippy の誤りは0件である。試験には、シェルで書いた入口を持つ Skill が1段目に合格し、2段目が「実行しない」になる事例を含めた。skills-creator 自身は、実際の MCP サーバーと通信して1段目の5件に合格した。雛形の12件は、中身を変えずに置き場所だけを移した。配布の組み立ての定義（release.yml）は、いまも cargo の手順を直書きしている。組が Rust だけなので、この記録では変更しない。",
+ "applies_to": "変更する正本は、skills-creator の SKILL.md ・ references/ ・ tool/ ・ tool.json である。references/ には、profiles/ と distribution/ を新しく置く。",
+ "alternatives": [
+  {
+   "option": "skills-creator と8つの Skill を1つの記録でまとめて改訂する",
+   "why_not": "差分が大きくなり、契約の改訂の是非と、各 Skill の移行の正しさを同時に判定することになる。ACDR 0032 と 0033 と同じく2つに分ける"
+  },
+  {
+   "option": "1段目の検査で、MCP の通信を省き、CLI だけを起動する",
+   "why_not": "能力を CLI と MCP の2か所に書いた実装を検出できない。1つの宣言から両方を組むという契約を、検査で確認できない"
+  },
+  {
+   "option": "配布の組み立ての定義も、言語の組から組み立てのコマンドを借りる形にいま改める",
+   "why_not": "組が Rust だけの時点では、借りる相手が1つしか無く、試験できない。2つ目の組を加えるときに改める"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "残りの8つの Skill への適用（tool.json ・ 宣言の JSON ・ 外部の道具の注入）を、次の記録として提示する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "contract",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "契約は、呼ぶ側から観察できるものだけを規定する",
+     "before": "（無い）",
+     "why": "契約の範囲を、呼ぶ側から観察できるものだけに限った。言語の組と配布を別の文書へ分けた（ACDR 0036 の論点1）"
+    },
+    {
+     "find": "を付けると、宣言を JSON で返す",
+     "before": "入口 | tool/cli/ が唯一。<Skill の名前> <動詞> [対象…] [--json]",
+     "why": "1段目の検査が言語に依存せずに宣言を読めるよう、CLI の規約に加えた（論点2）"
+    },
+    {
+     "find": "部品は名前を直書きしない",
+     "before": "外部の道具 | 外部コマンドは例外である。呼んでよいのは Skill の目的に不可欠な道具だけで、tool/declare/ の EXTERNAL に名前と理由を書く。それ以外は Rust の中で行う。",
+     "why": "外部の道具を tool.json に宣言し、宣言の層から注入する形にした（論点3）"
+    },
+    {
+     "find": "公式の MCP の SDK が在る言語なら、どれでもよい",
+     "before": "（無い）",
+     "why": "道具を書く言語 ・ 入口の置き場所 ・ 配布を、規定しないものとして明記した（論点1・4）"
+    },
+    {
+     "find": "層は3つである",
+     "before": "（無い）",
+     "why": "層と許可辺を、crate に依存しない形で契約に置いた。どう守らせるかは言語の組が決める"
+    },
+    {
+     "find": "2段で検査する。",
+     "before": "見るのは4つ ── 層が crate に分かれていること、許可辺が各 Cargo.toml の宣言どおりであること、配布の形（bin/ ・ 登録の経路）、部品が呼ぶ外部の道具が宣言どおりであることである。",
+     "why": "検査を2段にし、契約の側には1段目の検出だけを置いた。2段目の検出は Rust の組の文書へ移した（論点2）"
+    }
+   ]
+  },
+  {
+   "key": "rust",
+   "tab": "profiles/rust.md",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 言語の組：Rust",
+     "before": "（無い）",
+     "why": "置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を、言語の組の文書として新しく置いた。契約の文書から移した内容である（論点1）"
+    }
+   ]
+  },
+  {
+   "key": "dist",
+   "tab": "distribution.md",
+   "file": ".claude/skills/skills-creator/references/distribution.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "作った Skill を、**他の人の環境へ配るときだけ**使う。**配布は契約の外の任意の機能である**（ACDR 0036）",
+     "before": "（無い）",
+     "why": "配布を、契約の外の任意の機能として新しい文書に置いた。契約の文書の「配布」の節から移した内容である（論点1）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "契約が規定するのは、呼ぶ側から観察できるものだけである",
+     "before": "利用者の環境に Rust が無くても動く形で配る。",
+     "why": "契約 ・ 言語の組 ・ 配布の分け方と、それぞれの文書を示した"
+    },
+    {
+     "find": "check は2段で検査する。",
+     "before": "（無い）",
+     "why": "2段の検査と、「実行しない」を合格と扱わないことを明記した"
+    },
+    {
+     "find": "外部の道具は、外から注入する。",
+     "before": "（無い）",
+     "why": "外部の道具の注入の形を、手順の側にも明記した"
+    }
+   ]
+  },
+  {
+   "key": "fs",
+   "tab": "folder-structure.md",
+   "file": ".claude/skills/skills-creator/references/folder-structure.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "CLI の起動のコマンドと、外部の道具（",
+     "before": "（無い）",
+     "why": "tool.json を Skill のフォルダの構成に加え、bin/ と tool/ は Rust の組の置き場所であると明記した"
+    }
+   ]
+  },
+  {
+   "key": "beh",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "1段目の検査を新しく置いた。tool.json と mcp.json の書き方を確認し、入口を別の作業場所から起動して、宣言の JSON ・ Skill のフォルダ ・ 旗の拒否 ・ MCP の tools/list との一致を確認する。ソースは読まないので、どの言語で書いた Skill にも同じに適用できる"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**",
+     "before": "（差分が示す）",
+     "why": "bin/ を Rust の組の置き場所と明記した。Rust の定数 EXTERNAL を前提にした印（利用者が指定する道具 ・ OS によって無いコマンドの一覧）を削除した。外部の道具は tool.json に宣言し、直書きそのものを検出する"
+    },
+    {
+     "find": "//! **2段で検査する**（ACDR 0036）。1段目は入口を起動して振る舞いを確認する ── どの言語でも",
+     "before": "//! 検査するのは3つである ── 層が crate に分かれていること、**許可辺が宣言どおりで\n//! あること**、**節の構成が対応する雛形を満たすこと**。",
+     "why": "検査の構成を、全言語で共通の1段目と、言語の組が持つ2段目へ改めた（ACDR 0036 の論点2）"
+    },
+    {
+     "find": "use crate::behavior::{self, Verdict};",
+     "before": "use std::io;\n/// 組み立てた実行ファイルを置く場所。**配布物だけが持ち、git で追跡しない。**\n/// 名前を実行時に決める外部の道具を、宣言（EXTERNAL）で表す印。\npub const USER_CHOSEN: &str = \"*\";\n/// OS によって無いコマンド。**呼ばない** ── date は Windows に実行ファイルとして無く、\n/// timeout は macOS の標準に無い（ACDR 0029）。日付の計算と時間の制限は Rust の中で行う。\npub const NON_PORTABLE: [&str; 2] = [\"date\", \"timeout\"];",
+     "why": "1段目の検査（behavior）を読み込む。Rust の定数 EXTERNAL を前提にした印（利用者が指定する道具 ・ OS によって無いコマンドの一覧）を削除した。外部の道具は tool.json に宣言し、直書きそのものを検出する"
+    },
+    {
+     "find": "root.join(\"tool.json\").is_file()",
+     "before": "root.join(TOOL).join(\"Cargo.toml\").is_file()\n/// 契約を満たしているかを検査し、食い違いを並べる。\n///\n/// # Errors\n///\n/// いまは返さない。呼ぶ側の形を変えずに、あとから検査を足せるようにしてある。\npub fn check(root: &Path, templates: &Templates) -> io::Result<Vec<String>> {\nlet mut findings = Vec::new();\nlet rs = root.join(TOOL);\n// **道具を持たない Skill に、層を要求しない。** 助言と手順だけの Skill が在る\nif !rs.join(\"Cargo.toml\").is_file() {\n\"層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \\\n1つの単位の中の module では、内側が外側を参照してもコンパイラが通す\"\n} else {\nlet listed = members(&rs.join(\"Cargo.toml\"));\nfor need in ORDER.iter().copied().filter(|x| *x != \"entry\") {\nif !listed.iter().any(|x| x == need) {\nfindings.push(format!(\"層の crate が無い: {TOOL}/{need}\"));\n}\nif !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {\n\"入口の crate が無い: {TOOL}/ に {} のどれかを置く\",\nENTRIES.join(\" か \")\n}\n// **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する\nfor member in &listed {\nlet manifest = rs.join(member).join(\"Cargo.toml\");\nif !manifest.is_file() {\nfindings.push(format!(\"宣言が無い: {TOOL}/{member}/Cargo.toml\"));\ncontinue;\n}\nlet Some(here) = layer_of(member) else {\n\"どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える\",\nORDER.join(\" ・ \"),\nENTRIES.join(\" ・ \")\ncontinue;\n};\nlet may = allowed(here);\nfor dep in declared(&manifest) {\nlet Some(to) = layer_of(&dep) else { continue };\nif !may.contains(&to) {\nfindings.push(format!(\n\"許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \\\n{here} → {to}\"\n));\n}\nif !rs.join(TESTS).is_dir() {\nfindings.push(format!(\"事例が無い: {TOOL}/{TESTS}/\"));\n}\n}\n// **Python を残さない。** 移行が済んでいない箇所を、黙って通さない\nif root.join(\"scripts\").is_dir() {\nfindings.push(format!(\n\"Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ\"\n));\nif root.join(\"rs\").is_dir() {\nfindings.push(format!(\n\"rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）\"\n));\nfindings.extend(distribution(root));\nfindings.extend(missing_sections(root, templates));\nOk(findings)\n}\n/// 配布の形を見る。**実行ファイルは配布物だけが持ち、登録は置き場所に依存しない。**\nfn distribution(root: &Path) -> Vec<String> {\nlet mut findings = Vec::new();",
+     "why": "検査の構成を、全言語で共通の1段目と、言語の組が持つ2段目へ改めた（ACDR 0036 の論点2）"
+    },
+    {
+     "find": "組み立てた実行ファイルは追跡しない\"",
+     "before": "実行ファイルは配布物だけが持つ\"\nif let Ok(body) = fs::read_to_string(root.join(\"mcp.json\")) {\nif let Ok(value) = serde_json::from_str::<serde_json::Value>(&body) {\nlet servers = value\n.get(\"mcpServers\")\n.and_then(serde_json::Value::as_object)\n.cloned()\n.unwrap_or_default();\nfor (name, server) in servers {\nlet command = server\n.get(\"command\")\n.and_then(serde_json::Value::as_str)\n.unwrap_or_default();\nif is_absolute(command) {\nfindings.push(format!(\n\"登録に絶対パスがある: mcp.json の {name} ── {command}（配布先では存在しない場所を指す）\"\n));\n}\n}\n}\n}\nfindings.extend(external_tools(root));\n/// 絶対パスか。**Windows の書き方も含める** ── `C:\\\\…` ・ `C:/…`\nfn is_absolute(command: &str) -> bool {\nlet bytes = command.as_bytes();\ncommand.starts_with('/')\n|| command.starts_with('~')\n|| (bytes.len() > 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')\n}\n/// 部品が呼ぶ外部の道具を、宣言と照合する。**外部コマンドは例外である** ── 呼んでよいのは、\n/// Skill の目的に不可欠な道具だけで、declare の `EXTERNAL` に名前と理由を書く（ACDR 0034）。\nfn external_tools(root: &Path) -> Vec<String> {\nlet tool = root.join(TOOL);\nlet declared = requires(&tool.join(\"declare/src/lib.rs\"));\nlet mut findings: Vec<String> = declared\n.iter()\n.filter(|(_, why)| why.trim().is_empty())\n.map(|(name, _)| {\nformat!(\"外部の道具に理由が無い: {name} ── 目的に不可欠である理由を EXTERNAL に書く\")\n})\n.collect();\nlet named = |n: &str| declared.iter().any(|(d, _)| d == n);\nrust_files(&tool, &mut files);",
+     "why": "登録の絶対パスの検査を1段目（tool.json と mcp.json の書き方）へ移した。代わりに、部品が外部の道具の名前を直書きしていないかの検査を加えた"
+    },
+    {
+     "find": "for name in spawned(&body).into_iter().flatten() {",
+     "before": "for called in spawned(&body) {\nmatch called {\nSome(name) => {\nif NON_PORTABLE.contains(&name.as_str()) {\nfindings.push(format!(\n\"OS によって無いコマンドを呼んでいる: {at} ── {name}（Rust の中で行う）\"\n));\n} else if !named(&name) {\nfindings.push(format!(\n\"宣言に無い外部の道具を呼んでいる: {at} ── {name}（外部コマンドは例外である。目的に不可欠なら EXTERNAL に名前と理由を書き、そうでなければ Rust の中で行う）\"\n));\n}\n}\nNone => {\nif !named(USER_CHOSEN) {\nfindings.push(format!(\n\"名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\\\"{USER_CHOSEN}\\\"）を、理由と一緒に EXTERNAL に書く\"\n));\n}\n}\n}\n/// 宣言（declare の `EXTERNAL`）に並ぶ、名前と理由の組。**無ければ空である。**\nfn requires(lib: &Path) -> Vec<(String, String)> {\nlet body = fs::read_to_string(lib).unwrap_or_default();\nlet Some(at) = body.find(\"EXTERNAL\") else {\nreturn Vec::new();\n};\nlet rest = &body[at..];\n// **型の `&[(&str, &str)]` ではなく、値の並び（`= &[`）から読む**\nlet Some(open) = rest.find(\"= &[\").map(|at| at + 4) else {\nreturn Vec::new();\n};\nlet Some(close) = rest[open..].find(\"];\") else {\nreturn Vec::new();\n};\n// 引用符で囲まれた文字列を順に拾い、2つずつ組にする\nlet quoted: Vec<String> = rest[open..open + close]\n.split('\"')\n.skip(1)\n.step_by(2)\n.map(str::to_owned)\n.collect();\nquoted\n.chunks(2)\n.map(|pair| {\n(\npair.first().cloned().unwrap_or_default(),\npair.get(1).cloned().unwrap_or_default(),\n)\n})\n.collect()\n}",
+     "why": "1段目の検査（behavior）を読み込む。Rust の定数 EXTERNAL を前提にした印（利用者が指定する道具 ・ OS によって無いコマンドの一覧）を削除した。外部の道具は tool.json に宣言し、直書きそのものを検出する"
+    }
+   ]
+  },
+  {
+   "key": "plib",
+   "tab": "parts/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod behavior;",
+     "before": "（無い）",
+     "why": "1段目の検査の部品（behavior）を公開した"
+    }
+   ]
+  },
+  {
+   "key": "dlib",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];",
+     "why": "Rust の定数 EXTERNAL を削除した。外部の道具は tool.json に宣言する。宣言を返す catalog を公開する"
+    },
+    {
+     "find": "let report = check::check(&root, &templates(&or_misuse!(skill_root(given))));",
+     "before": "match check::check(&root, &templates(&or_misuse!(skill_root(given)))) {\nOk(findings) => Outcome::found(findings, json!({ \"root\": root.display().to_string() })),\nErr(e) => Outcome::misuse(format!(\"検査できない ── {e}\")),\n}\nif out.findings.is_empty() {\nreturn \"契約を満たしている ── 入口は1つ、道具は宣言の中に在る\".to_owned();\nlet head = format!(\"契約に合わない箇所　{} 件\", out.findings.len());\nlet body: Vec<String> = out.findings.iter().map(|x| format!(\"  ・{x}\")).collect();\nstd::iter::once(head)\n.chain(body)\n.collect::<Vec<_>>()\n.join(\"\\n\")",
+     "why": "検査の結果を、段と状態つきの行として返し、人が読む形では段ごとに1件1行で並べる。「実行しない」は合格の印で出さない"
+    },
+    {
+     "find": "let tmpl = here.join(\"references/profiles/rust\");",
+     "before": "let tmpl = here.join(\"references/tool-contract\");",
+     "why": "雛形の置き場所を、Rust の組（references/profiles/rust/）へ移した"
+    },
+    {
+     "find": "(\"tool.json.tmpl\", \"tool.json\"),",
+     "before": "（無い）",
+     "why": "scaffold が tool.json も置く。生んだ Skill がそのまま1段目の書き方の検査を満たす"
+    },
+    {
+     "find": "let tmpl = here.join(\"references/distribution\");",
+     "before": "let tmpl = here.join(\"references/tool-contract\");",
+     "why": "配布の雛形の置き場所を、references/distribution/ へ移した。配布は契約の外の任意の機能である"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "cli/main.rs",
+   "file": ".claude/skills/skills-creator/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use sc_declare::{catalog, tools, Given, Outcome, Tool};",
+     "before": "use sc_declare::{tools, Given, Outcome, Tool};",
+     "why": "宣言を返す catalog を読み込む"
+    },
+    {
+     "find": "// **動詞なしで `--json` を付けたら、宣言を返す。** 検査は入口を起動するだけで、",
+     "before": "（無い）",
+     "why": "動詞なしで --json を付けたら、宣言を JSON で返す。検査は入口を起動するだけで、言語に依存せずに道具の一覧を読める"
+    }
+   ]
+  },
+  {
+   "key": "contr",
+   "tab": "declare/contract.rs",
+   "file": ".claude/skills/skills-creator/tool/declare/src/contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、",
+     "before": "/// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が\n/// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、\n/// 試した経路を示して止める。",
+     "why": "Skill のフォルダの求め方の説明を、契約（入口自身の位置から求める）と Rust の組（bin/ の1つ上）に分けて書いた"
+    },
+    {
+     "find": "/// 外部の道具の、起動するコマンド。**部品は名前を直書きせず、これで受け取る。**",
+     "before": "（無い）",
+     "why": "外部の道具のコマンドを tool.json から読む external と、宣言を返す catalog を加えた。部品は名前を直書きせず、宣言の層がこれで受け取って渡す"
+    }
+   ]
+  },
+  {
+   "key": "tjson",
+   "tab": "tool.json",
+   "file": ".claude/skills/skills-creator/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "skills-creator 自身の CLI の起動のコマンドを置いた。外部の道具は呼ばないので external は空である"
+    }
+   ]
+  },
+  {
+   "key": "ttool",
+   "tab": "tool.json.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/tool.json.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/{{Skill名}}/bin/{{Skill名}}\",",
+     "before": "（無い）",
+     "why": "scaffold が置く tool.json の雛形を加えた"
+    }
+   ]
+  },
+  {
+   "key": "tcontr",
+   "tab": "contract.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、",
+     "before": "/// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が\n/// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、\n/// 試した経路を示して止める。",
+     "why": "Skill のフォルダの求め方の説明を、契約（入口自身の位置から求める）と Rust の組（bin/ の1つ上）に分けて書いた"
+    },
+    {
+     "find": "/// 外部の道具の、起動するコマンド。**部品は名前を直書きせず、これで受け取る。**",
+     "before": "（無い）",
+     "why": "外部の道具のコマンドを tool.json から読む external と、宣言を返す catalog を加えた。部品は名前を直書きせず、宣言の層がこれで受け取って渡す"
+    }
+   ],
+   "before": "// SPDX-License-Identifier: MIT\n//! 道具の契約 ── **能力は1つ、呼び出し方は複数。**\n//!\n//! 戻り値は3つの欄を持つ ── `ok`（正常に終わったか）・ `findings`（検出したもの。\n//! **誤りではない。** 0件でも正常である）・ `data`（機械が読む本体）。\n\nuse std::collections::BTreeMap;\n\nuse serde_json::{json, Value};\n\n/// 引数1つ。**位置引数と旗を区別しない** ── 呼ぶ側の形は入口が決める。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Arg {\n    /// 呼ぶ側が使う名前。\n    pub name: &'static str,\n    /// 何を渡すか。\n    pub summary: &'static str,\n    /// 省略できないか。\n    pub required: bool,\n    /// 繰り返して渡せるか。\n    pub many: bool,\n    /// 省略したときの値。\n    pub default: Option<&'static str>,\n}\n\nimpl Arg {\n    /// 省略できない引数を宣言する。\n    #[must_use]\n    pub const fn need(name: &'static str, summary: &'static str) -> Self {\n        Self {\n            name,\n            summary,\n            required: true,\n            many: false,\n            default: None,\n        }\n    }\n\n    /// 省略できる引数を宣言する。\n    #[must_use]\n    pub const fn opt(\n        name: &'static str,\n        summary: &'static str,\n        default: Option<&'static str>,\n    ) -> Self {\n        Self {\n            name,\n            summary,\n            required: false,\n            many: false,\n            default,\n        }\n    }\n\n    /// **まとめて受ける引数を宣言する。** 繰り返すと足りていく ── 上書きにすると、\n    /// 2つ目以降を黙って捨てることになる。\n    #[must_use]\n    pub const fn many(name: &'static str, summary: &'static str) -> Self {\n        Self {\n            name,\n            summary,\n            required: true,\n            many: true,\n            default: None,\n        }\n    }\n\n    /// **省略できて、まとめて受ける引数を宣言する。** 0件で呼ぶことに意味がある\n    /// ものは、これで宣言する ── `many` を使うと、0件の呼び方が誤用になる。\n    #[must_use]\n    pub const fn some(name: &'static str, summary: &'static str) -> Self {\n        Self {\n            name,\n            summary,\n            required: false,\n            many: true,\n            default: None,\n        }\n    }\n}\n\n/// 渡された引数。**入口が組み、道具が読む。**\n#[derive(Debug, Clone, Default)]\n#[non_exhaustive]\npub struct Given {\n    values: BTreeMap<String, Vec<String>>,\n}\n\nimpl Given {\n    /// 1つの値を足す。\n    pub fn push(&mut self, name: &str, value: String) {\n        self.values.entry(name.to_owned()).or_default().push(value);\n    }\n\n    /// 名前に対する最初の値を返す。**無ければ既定を返す。**\n    #[must_use]\n    pub fn one<'a>(&'a self, name: &str, default: &'a str) -> &'a str {\n        self.values\n            .get(name)\n            .and_then(|v| v.first())\n            .map_or(default, String::as_str)\n    }\n\n    /// 名前に対する値が在るかを返す。\n    #[must_use]\n    pub fn has(&self, name: &str) -> bool {\n        self.values.contains_key(name)\n    }\n\n    /// 名前に対する値を全部返す。**まとめて受ける引数のためである。**\n    #[must_use]\n    pub fn all(&self, name: &str) -> &[String] {\n        self.values.get(name).map_or(&[], Vec::as_slice)\n    }\n\n    /// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**\n    /// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が\n    /// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、\n    /// 試した経路を示して止める。\n    ///\n    /// # Errors\n    ///\n    /// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。\n    pub fn skill_root(&self) -> Result<std::path::PathBuf, String> {\n        if self.has(\"skill_root\") {\n            return Ok(std::path::PathBuf::from(self.one(\"skill_root\", \".\")));\n        }\n        let exe = std::env::current_exe()\n            .map_err(|e| format!(\"実行ファイルの位置を取れない ── {e}\"))?;\n        let root = exe\n            .parent()\n            .and_then(std::path::Path::parent)\n            .ok_or_else(|| \"実行ファイルの1つ上が無い ── --skill_root で渡す\".to_owned())?;\n        if root.join(\"references\").is_dir() {\n            Ok(root.to_path_buf())\n        } else {\n            Err(format!(\n                \"Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す\",\n                root.display()\n            ))\n        }\n    }\n}\n\n/// 道具の戻り値。**印字はしない** ── 印字と終了コードは入口が持つ。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Outcome {\n    /// 正常に終わったか。\n    pub ok: bool,\n    /// 検出したもの。**誤りではない。**\n    pub findings: Vec<String>,\n    /// 機械が読む本体。\n    pub data: Value,\n}\n\nimpl Outcome {\n    /// 検出を伴う正常な結果を組む。\n    #[must_use]\n    pub fn found(findings: Vec<String>, data: Value) -> Self {\n        Self {\n            ok: true,\n            findings,\n            data,\n        }\n    }\n\n    /// 誤用を組む。\n    #[must_use]\n    pub fn misuse(reason: String) -> Self {\n        Self {\n            ok: false,\n            findings: vec![reason],\n            data: json!({}),\n        }\n    }\n\n    /// 機械が読む形へ組む。\n    #[must_use]\n    pub fn to_json(&self) -> Value {\n        json!({ \"ok\": self.ok, \"findings\": self.findings, \"data\": self.data })\n    }\n\n    /// 終了コードを返す ── 0 正常 ／ 1 検出あり ／ 2 誤用。\n    /// **検出を誤用と同じ番号にしない。**\n    #[must_use]\n    pub const fn exit_code(&self) -> i32 {\n        if !self.ok {\n            return 2;\n        }\n        if self.findings.is_empty() {\n            0\n        } else {\n            1\n        }\n    }\n}\n\n/// 道具1つ。`run` は結果を返し、`human` は人向けの文を組む。\n#[derive(Clone)]\n#[non_exhaustive]\npub struct Tool {\n    /// 呼ぶときの名前。\n    pub name: &'static str,\n    /// 何をするか。\n    pub summary: &'static str,\n    /// 受け取る引数。\n    pub args: Vec<Arg>,\n    /// 実体。\n    pub run: fn(&Given) -> Outcome,\n    /// 人向けの文を組む。\n    pub human: fn(&Outcome) -> String,\n}\n"
+  },
+  {
+   "key": "tcli",
+   "tab": "cli.main.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/cli.main.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use {{接頭辞}}_declare::{catalog, tools, Given, Outcome, Tool};",
+     "before": "use {{接頭辞}}_declare::{tools, Given, Outcome, Tool};",
+     "why": "宣言を返す catalog を読み込む"
+    },
+    {
+     "find": "// **動詞なしで `--json` を付けたら、宣言を返す。** 検査は入口を起動するだけで、",
+     "before": "（無い）",
+     "why": "動詞なしで --json を付けたら、宣言を JSON で返す。検査は入口を起動するだけで、言語に依存せずに道具の一覧を読める"
+    }
+   ],
+   "before": "// SPDX-License-Identifier: MIT\n//! {{Skill名}} の唯一の入口。\n//!\n//!     {{Skill名}} <動詞> [対象…] [--json]\n//!\n//! **道具ごとに入口を作らない** ── 入口が増えると、呼ぶ側が形を推測することになる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は宣言だけを参照する。\n\nuse std::process::ExitCode;\n\nuse {{接頭辞}}_declare::{tools, Given, Outcome, Tool};\n\n/// 旗と位置引数を読み、渡された引数を組む。\n///\n/// **旗は `--名前=値` と `--名前 値` の両方を受ける** ── 書き方を1つに強制すると、\n/// 既存の手順が壊れる。**値を伴わない旗は、立っている** ── 空にすると、`--check` が\n/// 黙って逆の意味になる。**次が別の旗なら、それは値ではない。**\n///\n/// **まとめて受ける引数は、繰り返すと足りていく。** 上書きにすると、2つ目以降を黙って\n/// 捨てることになる（実測で `--layer` が1件しか残らなかった）。\nfn read_args(tool: &Tool, rest: &[String]) -> Result<Given, String> {\n    let mut given = Given::default();\n    let mut positional: Vec<String> = Vec::new();\n    let mut i = 0;\n    while i < rest.len() {\n        let a = &rest[i];\n        if let Some(body) = a.strip_prefix(\"--\") {\n            let (key, value) = match body.split_once('=') {\n                Some((k, v)) => (k.to_owned(), v.to_owned()),\n                None => match rest.get(i + 1) {\n                    Some(v) if !v.starts_with(\"--\") => {\n                        i += 1;\n                        (body.to_owned(), v.clone())\n                    }\n                    _ => (body.to_owned(), \"1\".to_owned()),\n                },\n            };\n            let key = key.replace('-', \"_\");\n            // **宣言に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない\n            if !tool.args.iter().any(|a| a.name == key) {\n                let known: Vec<&str> = tool.args.iter().map(|a| a.name).collect();\n                return Err(format!(\n                    \"その旗は無い: --{key}（{} は {} を受ける）\",\n                    tool.name,\n                    known.join(\" ・ \")\n                ));\n            }\n            given.push(&key, value);\n        } else {\n            positional.push(a.clone());\n        }\n        i += 1;\n    }\n    // **位置と旗を混ぜて渡せる。** 旗で渡したぶんを数えずに位置だけで判定すると、\n    // 旗を使った呼び方が「引数が足りない」になる\n    let mut free = positional.into_iter().peekable();\n    for arg in &tool.args {\n        if given.has(arg.name) {\n            continue;\n        }\n        if arg.many {\n            // **まとめて受ける引数は、残りの位置引数を全部取る**\n            for v in free.by_ref() {\n                given.push(arg.name, v);\n            }\n            continue;\n        }\n        if let Some(v) = free.next() {\n            given.push(arg.name, v);\n        } else if let Some(d) = arg.default {\n            given.push(arg.name, d.to_owned());\n        }\n    }\n    Ok(given)\n}\n\nfn usage(all: &[Tool]) {\n    println!(\"道具の一覧\");\n    for t in all {\n        let need: Vec<String> = t\n            .args\n            .iter()\n            .map(|a| {\n                if a.many {\n                    format!(\"<{}…>\", a.name)\n                } else if a.required {\n                    format!(\"<{}>\", a.name)\n                } else {\n                    format!(\"[{}]\", a.name)\n                }\n            })\n            .collect();\n        println!(\"  {} {}\\n      {}\", t.name, need.join(\" \"), t.summary);\n    }\n    println!(\"\\n  どれも --json を付けると、機械が読む形で出る\");\n}\n\nfn emit(out: &Outcome, as_json: bool, human: fn(&Outcome) -> String) -> ExitCode {\n    if as_json {\n        println!(\n            \"{}\",\n            serde_json::to_string_pretty(&out.to_json()).unwrap_or_default()\n        );\n    } else {\n        println!(\"{}\", human(out));\n    }\n    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]\n    ExitCode::from(out.exit_code() as u8)\n}\n\nfn main() -> ExitCode {\n    let all = tools();\n    let argv: Vec<String> = std::env::args().skip(1).collect();\n    let as_json = argv.iter().any(|a| a == \"--json\");\n    let argv: Vec<String> = argv.into_iter().filter(|a| a != \"--json\").collect();\n\n    let Some(verb) = argv.first() else {\n        usage(&all);\n        return ExitCode::from(2);\n    };\n    if matches!(verb.as_str(), \"-h\" | \"--help\" | \"help\") {\n        usage(&all);\n        return ExitCode::SUCCESS;\n    }\n    let Some(tool) = all.iter().find(|t| t.name == verb) else {\n        eprintln!(\"その動詞は無い: {verb} ── 一覧は help である\");\n        return ExitCode::from(2);\n    };\n    let given = match read_args(tool, &argv[1..]) {\n        Ok(given) => given,\n        Err(why) => {\n            eprintln!(\"{why}\");\n            return ExitCode::from(2);\n        }\n    };\n    let need: Vec<&str> = tool\n        .args\n        .iter()\n        .filter(|a| a.required)\n        .map(|a| a.name)\n        .collect();\n    if let Some(missing) = need.iter().find(|n| !given.has(n)) {\n        eprintln!(\"引数が足りない: {} は {missing} を要する\", tool.name);\n        return ExitCode::from(2);\n    }\n    let out = (tool.run)(&given);\n    emit(&out, as_json, tool.human)\n}\n"
+  },
+  {
+   "key": "tdecl",
+   "tab": "declare.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/declare.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];\n// **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである",
+     "why": "Rust の定数 EXTERNAL を雛形から削除し、外部の道具を given.external で受け取って部品へ渡す書き方を注記した"
+    }
+   ],
+   "before": "// SPDX-License-Identifier: MIT\n//! {{Skill名}} の道具の宣言。**能力の正本はここである。**\n//!\n//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。\n\npub mod contract;\n\nuse serde_json::json;\n\npub use contract::{Arg, Given, Outcome, Tool};\n\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];\n\n/// {{道具の名前}} を実行する。\nfn run_{{道具の名前}}(given: &Given) -> Outcome {\n    let _ = given;\n    // **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである\n    Outcome::found(Vec::new(), json!({}))\n}\n\n/// 人向けの文を組む。**印字はしない** ── 印字と終了コードは入口が持つ。\nfn human_{{道具の名前}}(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    out.findings.join(\"\\n\")\n}\n\n/// この Skill が持つ道具の一覧。**能力の正本である。**\n#[must_use]\npub fn tools() -> Vec<Tool> {\n    vec![Tool {\n        name: \"{{道具の名前}}\",\n        summary: \"{{その道具が何をするか}}\",\n        args: vec![Arg::need(\"{{引数の名前}}\", \"{{何を渡すか}}\")],\n        run: run_{{道具の名前}},\n        human: human_{{道具の名前}},\n    }]\n}\n"
+  },
+  {
+   "key": "tests",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_hardcoded_tool_name_is_reported() {",
+     "before": "（無い）",
+     "why": "新しい契約の事例を足した。部品の直書きの検出 ・ 注入されたコマンドの許可 ・ tool.json の欄の欠け ・ 登録の絶対パス ・ 組んでいない入口 ・ シェルで書いた入口の2段の結果 ・ CLI と MCP の食い違い ・ 旗を断らない入口である"
+    },
+    {
+     "find": "fn write_requires(root: &Path, names: &[&str]) {",
+     "before": "（差分が示す）",
+     "why": "Rust の定数 EXTERNAL を前提にした事例を削除した。外部の道具は tool.json に宣言して注入する形になり、宣言に無い呼び出しではなく直書きそのものを検出する"
+    },
+    {
+     "find": "write_requires(&root, &[]);",
+     "before": "（差分が示す）",
+     "why": "Rust の定数 EXTERNAL を前提にした事例を削除した。外部の道具は tool.json に宣言して注入する形になり、宣言に無い呼び出しではなく直書きそのものを検出する"
+    },
+    {
+     "find": "write_requires(&root, &[]);",
+     "before": "（差分が示す）",
+     "why": "Rust の定数 EXTERNAL を前提にした事例を削除した。外部の道具は tool.json に宣言して注入する形になり、宣言に無い呼び出しではなく直書きそのものを検出する"
+    },
+    {
+     "find": "write_requires(&root, &[]);",
+     "before": "（差分が示す）",
+     "why": "Rust の定数 EXTERNAL を前提にした事例を削除した。外部の道具は tool.json に宣言して注入する形になり、宣言に無い呼び出しではなく直書きそのものを検出する"
+    },
+    {
+     "find": "use sc_parts::behavior::{self, Verdict};",
+     "before": "use sc_parts::check::{self, Templates};",
+     "why": "1段目の検査（behavior）と状態（State）を読み込む"
+    },
+    {
+     "find": "/// 2段目（Rust の組）と文書の検出。**入口を起動しない** ── 層と許可辺の事例は、",
+     "before": "（無い）",
+     "why": "層と許可辺の事例を、入口を組まずに確認する補助を足した。2段目（Rust の組）と文書の検出だけを返す"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_all(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "入口の有無に関わる事例を、2段すべての検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_all(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "入口の有無に関わる事例を、2段すべての検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");\n#[test]\nfn an_absolute_path_in_the_registration_is_reported() {\n// **登録に開発機の絶対パスを書かない** ── 配布先では存在しない場所を指す\nlet root = scratch(\"abs\");\nwrite_document(&root);\nwrite_layers(&root, &GOOD);\nstd::fs::write(\nroot.join(\"mcp.json\"),\nr#\"{\"mcpServers\":{\"x\":{\"command\":\"/home/me/x/bin/x-mcp\",\"args\":[]}}}\"#,\n)\n.expect(\"書ける\");\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(found.iter().any(|x| x.contains(\"絶対パス\")), \"{found:?}\");\n}\n#[test]\nfn a_command_missing_on_some_os_is_reported() {\n// **OS によって無いコマンドを呼ばない** ── date は Windows に実行ファイルとして無く、\n// timeout は macOS の標準に無い\nlet root = scratch(\"date\");\nwrite_document(&root);\nwrite_layers(&root, &GOOD);\nwrite_requires(&root, &[\"date\"]);\nwrite_part(\n&root,\n\"fn today() { std::process::Command::new(\\\"date\\\"); }\\n\",\n);\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(\nfound\n.iter()\n.any(|x| x.contains(\"OS によって無い\") && x.contains(\"date\")),\n\"{found:?}\"\n);\n}\n#[test]\nfn a_tool_outside_the_declaration_is_reported() {\nlet root = scratch(\"undeclared\");\nwrite_document(&root);\nwrite_layers(&root, &GOOD);\nwrite_requires(&root, &[]);\nwrite_part(&root, \"fn f() { std::process::Command::new(\\\"git\\\"); }\\n\");\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(\nfound\n.iter()\n.any(|x| x.contains(\"宣言に無い外部の道具\") && x.contains(\"git\")),\n\"{found:?}\"\n);\n// 宣言すれば通る\nwrite_requires(&root, &[\"git\"]);\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(found.is_empty(), \"{found:?}\");\n}\n#[test]\nfn a_tool_named_at_run_time_needs_its_own_declaration() {\n// **名前が変数で渡される道具は、名前を照合できない** ── 宣言に「利用者が指定する道具」と書く\nlet root = scratch(\"dynamic\");\nwrite_document(&root);\nwrite_layers(&root, &GOOD);\nwrite_requires(&root, &[]);\nwrite_part(&root, \"fn f(b: &str) { std::process::Command::new(b); }\\n\");\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(\nfound.iter().any(|x| x.contains(\"利用者が指定する道具\")),\n\"{found:?}\"\n);\nwrite_requires(&root, &[check::USER_CHOSEN]);\nlet found = check::check(&root, &templates()).expect(\"検査できる\");\nassert!(found.is_empty(), \"{found:?}\");\n}\nwrite_requires(&root, &[]);\nlet found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "Rust の定数 EXTERNAL を前提にした事例を削除した。外部の道具は tool.json に宣言して注入する形になり、宣言に無い呼び出しではなく直書きそのものを検出する"
+    },
+    {
+     "find": "let found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "層と許可辺の事例を、2段目（Rust の組）と文書の検出で確認する形に改めた"
+    },
+    {
+     "find": "let tmpl = here.join(\"references/profiles/rust\");",
+     "before": "let tmpl = here.join(\"references/tool-contract\");",
+     "why": "雛形の置き場所を references/profiles/rust/ へ移した。tool.json の雛形も置き、1段目の書き方の検査まで満たすことを確認する"
+    },
+    {
+     "find": "(\"tool.json.tmpl\", \"tool.json\"),",
+     "before": "（無い）",
+     "why": "雛形の一式に tool.json を加えた。生んだものが1段目の書き方の検査まで満たすことを確認する"
+    },
+    {
+     "find": "let mut found = found_in_source(&root);",
+     "before": "let found = check::check(&root, &templates()).expect(\"検査できる\");",
+     "why": "入口の有無に関わる事例を、2段すべての検出で確認する形に改めた"
+    }
+   ]
+  }
+ ],
+ "lede": "skills-creator を、ACDR 0036 で決めた言語に依存しない道具の契約へ改訂する提案である。",
+ "seal": {
+  "contract": "15d9f40080570a7e9dfe08d7135e284c7d5297b86221c4c5d34862e003e2357d",
+  "rust": "ff421ecf06427f85c70efb03adf56a1977c2aa9af2b2ef55eb3725b9eeb506f4",
+  "dist": "12ba096dcd7e91622b23cb78e5c7c9d5cad56ee6706abe99f0149193c5a79b70",
+  "skill": "66c8619b7bbaf0db4ff74121132c54523b0265fc98039685692f08f80480d71a",
+  "fs": "0132bdf561bb11bf7604fe274efa1503ce15e83b62c97a6974e6b53fc0140f6c",
+  "beh": "86a895f18d0d665757a70d0e11e13426123d8062c0d6c98f4845a0af962aa463",
+  "check": "8212f4adf1e9fbd59b3945ceac55ed9507cf8cf1a3f7d688d3601456c71f9096",
+  "plib": "3b2a4277873b346993bee31f7e3c3beb3fee8372330193c8a4374c9cc849e161",
+  "dlib": "534369ad680f81c7922ea9fb49c6f3e9ca4618600307086e95d35e9aeac8eb8e",
+  "cli": "4a9727c5e836381ed3ce5bdb4ec260b1815c6be91098e75632aba1a099fd9374",
+  "contr": "9222b32f37b955e2427bdcd659cfd5441c12c0a6b9fd177e6e2f6b2012bc06ba",
+  "tjson": "325cc3c45ce4b7d910a85cafaa6382a7c99d34f4424955909466954c08064393",
+  "ttool": "d7174605e99cca08b3353c809bff31ff1fea3ae86438178139c0cef346c7c841",
+  "tcontr": "30fa608ec41638a8e2d78cff0e8037dbf11087b7c9cb530a93d6f7f75522a299",
+  "tcli": "e556fe119472d1fcbfff19ff830e1c3d051b61bed231662c17ce75e8c6c64716",
+  "tdecl": "0ca1dd37b1cfe60fedda75d5539a5f244ecea84e7faa9c40c12a1eeba35138ad",
+  "tests": "852c399afb80954471728f60693e955a1ae2ab08f47aa9de140a95bb7e700cd3"
+ }
+}

@@ -11,13 +11,7 @@ use std::path::{Path, PathBuf};
 use sc_parts::{check, scaffold};
 use serde_json::json;
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// Skill の置き場所が見つからなければ、誤用として返す。**黙って「.」へ寄せない** ──
 /// 実行した場所で結果が変わり、契約を読めずに止まる（ACDR 0019 ・ 0029）。
@@ -51,25 +45,73 @@ fn run_check(given: &Given) -> Outcome {
     if root.as_os_str().is_empty() {
         return Outcome::misuse("Skill のフォルダを渡していない".to_owned());
     }
-    match check::check(&root, &templates(&or_misuse!(skill_root(given)))) {
-        Ok(findings) => Outcome::found(findings, json!({ "root": root.display().to_string() })),
-        Err(e) => Outcome::misuse(format!("検査できない ── {e}")),
-    }
+    let report = check::check(&root, &templates(&or_misuse!(skill_root(given))));
+    let lines: Vec<serde_json::Value> = report
+        .lines
+        .iter()
+        .map(|l| {
+            json!({
+                "stage": match l.stage {
+                    check::Stage::Behavior => "behavior",
+                    check::Stage::Source => "source",
+                    _ => "document",
+                },
+                "state": match l.state {
+                    check::State::Pass => "pass",
+                    check::State::Fail => "fail",
+                    _ => "skip",
+                },
+                "text": l.text,
+            })
+        })
+        .collect();
+    Outcome::found(
+        report.findings(),
+        json!({ "root": root.display().to_string(), "lines": lines }),
+    )
 }
 
+/// 段ごとに、1件1行で並べる。**「実行しない」を合格の印で出さない。**
 fn human_check(out: &Outcome) -> String {
     if !out.ok {
         return out.findings.join(" ／ ");
     }
-    if out.findings.is_empty() {
-        return "契約を満たしている ── 入口は1つ、道具は宣言の中に在る".to_owned();
+    let lines = out
+        .data
+        .get("lines")
+        .and_then(|x| x.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let field = |l: &serde_json::Value, k: &str| {
+        l.get(k)
+            .and_then(|x| x.as_str())
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let mut text = Vec::new();
+    for (stage, head) in [
+        ("behavior", "1段目（振る舞い）"),
+        ("source", "2段目（ソース）"),
+        ("document", "文書"),
+    ] {
+        let here: Vec<&serde_json::Value> = lines
+            .iter()
+            .filter(|l| field(l, "stage") == stage)
+            .collect();
+        if here.is_empty() {
+            continue;
+        }
+        text.push(head.to_owned());
+        for l in here {
+            let mark = match field(l, "state").as_str() {
+                "pass" => "OK",
+                "fail" => "×",
+                _ => "－",
+            };
+            text.push(format!("  {mark}  {}", field(l, "text")));
+        }
     }
-    let head = format!("契約に合わない箇所　{} 件", out.findings.len());
-    let body: Vec<String> = out.findings.iter().map(|x| format!("  ・{x}")).collect();
-    std::iter::once(head)
-        .chain(body)
-        .collect::<Vec<_>>()
-        .join("\n")
+    text.join("\n")
 }
 
 /// 置く一式を組む。**何を置くかはここが決める** ── 部品は並びを認知しない。
@@ -78,7 +120,7 @@ fn human_check(out: &Outcome) -> String {
 /// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、宣言に無い依存が
 /// 解決しなくなる。
 fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
-    let tmpl = here.join("references/tool-contract");
+    let tmpl = here.join("references/profiles/rust");
     let read = |name: &str| std::fs::read_to_string(tmpl.join(name));
     // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う。
     // 語が1つなら頭の3文字を採る ── 1文字では、他の crate と見分けがつかない
@@ -109,6 +151,7 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
         ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
         ("mcp.main.rs.tmpl", "tool/mcp/src/main.rs"),
         ("mcp.json.tmpl", "mcp.json"),
+        ("tool.json.tmpl", "tool.json"),
         ("gitignore.tmpl", ".gitignore"),
     ] {
         out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));
@@ -171,7 +214,7 @@ fn human_scaffold(out: &Outcome) -> String {
 /// 配布元のリポジトリに置く一式。**導入スクリプトと組み立ての定義は、配布元に1つずつ置く**
 /// ── Skill ごとに複製すると、直しても既存の Skill に反映されない（ACDR 0029）。
 fn dist_items(repo: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
-    let tmpl = here.join("references/tool-contract");
+    let tmpl = here.join("references/distribution");
     let mut out = Vec::new();
     for (from, to) in [
         ("install.sh.tmpl", "install.sh"),

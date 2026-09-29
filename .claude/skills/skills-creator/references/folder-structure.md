@@ -11,8 +11,9 @@
 │   └── ...
 ├── examples/             # 使用例・サンプル出力
 │   └── ...
-├── tool/                 # 道具のソース（Rust の workspace。道具の契約に従う。配布しない）
-├── bin/                  # 組み立てた実行ファイル（配布する。git で追跡しない）
+├── tool/                 # 道具のソース（言語の組が構成を決める。Rust は workspace）
+├── bin/                  # 組み立てた実行ファイル（Rust の組の置き場所。git で追跡しない）
+├── tool.json             # CLI の起動のコマンドと、外部の道具
 │   └── ...
 ├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）
 ├── agents/               # サブエージェント定義
@@ -27,8 +28,9 @@
 |---|---|---|
 | `references/` | Claudeが実行時に読む文書。スケルトンテンプレート、仕様書、定義票など | ほぼ全てのスキルで使う |
 | `examples/` | サンプル入出力、使用例 | ユーザーへの説明や参考が必要なとき |
-| `tool/` | 道具のソース。`parts` ・ `declare` ・ `cli` ・ `mcp` の4つの crate（`references/tool-contract.md`） | 検査、生成、組み立ての処理が必要なとき |
-| `bin/` | 組み立てた実行ファイル。配布物だけが持ち、git で追跡しない | 道具を持つとき |
+| `tool/` | 道具のソース。Rust の組では `parts` ・ `declare` ・ `cli` ・ `mcp` の4つの crate（`references/profiles/rust.md`） | 検査、生成、組み立ての処理が必要なとき |
+| `bin/` | 組み立てた実行ファイル。git で追跡しない | 道具を持つとき（Rust の組） |
+| `tool.json` | CLI の起動のコマンドと、外部の道具（`references/tool-contract.md`） | 道具を持つとき |
 | `agents/` | Claudeが呼び出すサブエージェントの定義 | 複数の専門エージェントに処理を分担させるとき |
 | `assets/` | HTMLビューアー、画像等の静的ファイル | UIやレポート生成が必要なとき |
 

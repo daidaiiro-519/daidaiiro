@@ -5,7 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
-use sc_parts::check::{self, Templates};
+use sc_parts::behavior::{self, Verdict};
+use sc_parts::check::{self, State, Templates};
 
 fn templates() -> Templates {
     let skills = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
@@ -20,6 +21,19 @@ fn scratch(name: &str) -> PathBuf {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("作れる");
     dir
+}
+
+/// 2段目（Rust の組）と文書の検出。**入口を起動しない** ── 層と許可辺の事例は、
+/// 実行ファイルを組まずに確かめる。
+fn found_in_source(root: &Path) -> Vec<String> {
+    let mut out = check::rust(root);
+    out.extend(check::document(root, &templates()));
+    out
+}
+
+/// 2段すべての検出。
+fn found_all(root: &Path) -> Vec<String> {
+    check::check(root, &templates()).findings()
 }
 
 /// 雛形が要求する節だけを持つ文書を置く。
@@ -75,7 +89,7 @@ fn a_skill_with_layers_as_crates_passes() {
     let root = scratch("ok");
     write_document(&root);
     write_layers(&root, &GOOD);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.is_empty(), "食い違いが出た ── {found:?}");
 }
 
@@ -83,7 +97,7 @@ fn a_skill_with_layers_as_crates_passes() {
 fn a_skill_without_tools_needs_no_layers() {
     let root = scratch("advice");
     write_document(&root);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_all(&root);
     assert!(
         found.is_empty(),
         "助言だけの Skill に層を要求しない ── {found:?}"
@@ -96,7 +110,7 @@ fn python_that_remains_is_reported() {
     write_document(&root);
     write_layers(&root, &GOOD);
     std::fs::create_dir_all(root.join("scripts")).expect("作れる");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_all(&root);
     assert!(
         found.iter().any(|x| x.contains("Python が残っている")),
         "{found:?}"
@@ -108,7 +122,7 @@ fn layers_that_are_not_crates_are_reported() {
     let root = scratch("flat");
     write_document(&root);
     std::fs::create_dir_all(root.join("scripts")).expect("作れる");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(
         found.iter().any(|x| x.contains("crate に分かれていない")),
         "1つの単位の中の module では、内側が外側を参照してもコンパイラが通す ── {found:?}"
@@ -128,7 +142,7 @@ fn an_edge_that_goes_outward_is_reported() {
             ("cli", &["declare"]),
         ],
     );
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(
         found
             .iter()
@@ -150,7 +164,7 @@ fn an_edge_that_skips_inward_is_allowed() {
             ("cli", &["declare", "parts"]),
         ],
     );
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.is_empty(), "外から内は許す ── {found:?}");
 }
 
@@ -159,7 +173,7 @@ fn a_missing_layer_is_reported() {
     let root = scratch("missing");
     write_document(&root);
     write_layers(&root, &[("parts", &[]), ("cli", &["parts"])]);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(
         found
             .iter()
@@ -173,7 +187,7 @@ fn a_missing_entry_is_reported() {
     let root = scratch("noentry");
     write_document(&root);
     write_layers(&root, &[("parts", &[]), ("declare", &["parts"])]);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(
         found.iter().any(|x| x.contains("入口の crate が無い")),
         "{found:?}"
@@ -186,7 +200,7 @@ fn absent_examples_are_reported() {
     write_document(&root);
     write_layers(&root, &GOOD);
     std::fs::remove_dir_all(root.join(check::TOOL).join(check::TESTS)).expect("消せる");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.iter().any(|x| x.contains("事例が無い")), "{found:?}");
 }
 
@@ -195,7 +209,7 @@ fn a_missing_section_is_reported() {
     let root = scratch("section");
     write_layers(&root, &GOOD);
     std::fs::write(root.join("SKILL.md"), "## 目的\n\n本文\n").expect("書ける");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.iter().any(|x| x.contains("節が無い")), "{found:?}");
 }
 
@@ -203,7 +217,7 @@ fn a_missing_section_is_reported() {
 fn an_absent_document_is_reported() {
     let root = scratch("nodoc");
     write_layers(&root, &GOOD);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.iter().any(|x| x.contains("文書が無い")), "{found:?}");
 }
 
@@ -214,43 +228,6 @@ fn write_part(root: &Path, body: &str) {
     std::fs::write(dir.join("run.rs"), body).expect("書ける");
 }
 
-/// 宣言に、目的に不可欠な外部の道具を、理由と一緒に書く。
-fn write_requires(root: &Path, names: &[&str]) {
-    let listed: Vec<String> = names
-        .iter()
-        .map(|n| format!("(\"{n}\", \"この Skill の目的に不可欠である\")"))
-        .collect();
-    write_external(root, &listed.join(", "));
-}
-
-/// 宣言をそのまま書く。
-fn write_external(root: &Path, items: &str) {
-    let dir = root.join(check::TOOL).join("declare/src");
-    std::fs::create_dir_all(&dir).expect("作れる");
-    std::fs::write(
-        dir.join("lib.rs"),
-        format!("pub const EXTERNAL: &[(&str, &str)] = &[{items}];\n"),
-    )
-    .expect("書ける");
-}
-
-#[test]
-fn an_external_tool_without_a_reason_is_reported() {
-    // **外部の道具は例外である** ── 目的に不可欠だという理由を書かない宣言を、通さない
-    let root = scratch("no-reason");
-    write_document(&root);
-    write_layers(&root, &GOOD);
-    write_external(&root, "(\"git\", \"\")");
-    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(
-        found
-            .iter()
-            .any(|x| x.contains("理由") && x.contains("git")),
-        "{found:?}"
-    );
-}
-
 #[test]
 fn a_remaining_rs_folder_is_reported() {
     // **道具のソースは tool/ に置く** ── rs/ は言語の名前で、中身の役割を示さない
@@ -258,7 +235,7 @@ fn a_remaining_rs_folder_is_reported() {
     write_document(&root);
     write_layers(&root, &GOOD);
     std::fs::create_dir_all(root.join("rs")).expect("作れる");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(
         found.iter().any(|x| x.contains("rs/ が残っている")),
         "{found:?}"
@@ -272,82 +249,8 @@ fn bin_that_git_would_track_is_reported() {
     write_document(&root);
     write_layers(&root, &GOOD);
     std::fs::write(root.join(".gitignore"), "tool/target/\n").expect("書ける");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.iter().any(|x| x.contains("bin/")), "{found:?}");
-}
-
-#[test]
-fn an_absolute_path_in_the_registration_is_reported() {
-    // **登録に開発機の絶対パスを書かない** ── 配布先では存在しない場所を指す
-    let root = scratch("abs");
-    write_document(&root);
-    write_layers(&root, &GOOD);
-    std::fs::write(
-        root.join("mcp.json"),
-        r#"{"mcpServers":{"x":{"command":"/home/me/x/bin/x-mcp","args":[]}}}"#,
-    )
-    .expect("書ける");
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(found.iter().any(|x| x.contains("絶対パス")), "{found:?}");
-}
-
-#[test]
-fn a_command_missing_on_some_os_is_reported() {
-    // **OS によって無いコマンドを呼ばない** ── date は Windows に実行ファイルとして無く、
-    // timeout は macOS の標準に無い
-    let root = scratch("date");
-    write_document(&root);
-    write_layers(&root, &GOOD);
-    write_requires(&root, &["date"]);
-    write_part(
-        &root,
-        "fn today() { std::process::Command::new(\"date\"); }\n",
-    );
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(
-        found
-            .iter()
-            .any(|x| x.contains("OS によって無い") && x.contains("date")),
-        "{found:?}"
-    );
-}
-
-#[test]
-fn a_tool_outside_the_declaration_is_reported() {
-    let root = scratch("undeclared");
-    write_document(&root);
-    write_layers(&root, &GOOD);
-    write_requires(&root, &[]);
-    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(
-        found
-            .iter()
-            .any(|x| x.contains("宣言に無い外部の道具") && x.contains("git")),
-        "{found:?}"
-    );
-    // 宣言すれば通る
-    write_requires(&root, &["git"]);
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(found.is_empty(), "{found:?}");
-}
-
-#[test]
-fn a_tool_named_at_run_time_needs_its_own_declaration() {
-    // **名前が変数で渡される道具は、名前を照合できない** ── 宣言に「利用者が指定する道具」と書く
-    let root = scratch("dynamic");
-    write_document(&root);
-    write_layers(&root, &GOOD);
-    write_requires(&root, &[]);
-    write_part(&root, "fn f(b: &str) { std::process::Command::new(b); }\n");
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(
-        found.iter().any(|x| x.contains("利用者が指定する道具")),
-        "{found:?}"
-    );
-    write_requires(&root, &[check::USER_CHOSEN]);
-    let found = check::check(&root, &templates()).expect("検査できる");
-    assert!(found.is_empty(), "{found:?}");
 }
 
 #[test]
@@ -356,9 +259,8 @@ fn a_call_written_inside_a_string_is_not_counted() {
     let root = scratch("in-string");
     write_document(&root);
     write_layers(&root, &GOOD);
-    write_requires(&root, &[]);
     write_part(&root, "const CALL: &str = \"Command::new(\";\n");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.is_empty(), "{found:?}");
 }
 
@@ -368,7 +270,6 @@ fn examples_are_not_shipped_so_their_tools_are_not_counted() {
     let root = scratch("examples");
     write_document(&root);
     write_layers(&root, &GOOD);
-    write_requires(&root, &[]);
     let dir = root.join(check::TOOL).join("parts/examples");
     std::fs::create_dir_all(&dir).expect("作れる");
     std::fs::write(
@@ -376,7 +277,7 @@ fn examples_are_not_shipped_so_their_tools_are_not_counted() {
         "fn f() { std::process::Command::new(\"dot\"); }\n",
     )
     .expect("書ける");
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let found = found_in_source(&root);
     assert!(found.is_empty(), "{found:?}");
 }
 
@@ -386,7 +287,7 @@ fn what_scaffold_places_satisfies_check() {
     // 不合格の状態で生まれる（実測 ── 契約を Rust の形へ変えたとき、雛形が Python の
     // ままだったのでそうなった）
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let tmpl = here.join("references/tool-contract");
+    let tmpl = here.join("references/profiles/rust");
     let root = scratch("scaffolded");
     for (from, to) in [
         ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
@@ -399,6 +300,7 @@ fn what_scaffold_places_satisfies_check() {
         ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
         ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
         ("mcp.json.tmpl", "mcp.json"),
+        ("tool.json.tmpl", "tool.json"),
         ("gitignore.tmpl", ".gitignore"),
     ] {
         let body = std::fs::read_to_string(tmpl.join(from))
@@ -410,9 +312,195 @@ fn what_scaffold_places_satisfies_check() {
         std::fs::write(&dst, body).expect("書ける");
     }
     write_document(&root);
-    let found = check::check(&root, &templates()).expect("検査できる");
+    let mut found = found_in_source(&root);
+    // **1段目のうち、起動せずに見られる書き方も満たす**（入口は組んでいないので起動しない）
+    found.extend(
+        behavior::declaration(&root)
+            .into_iter()
+            .filter_map(|v| match v {
+                Verdict::Fail(t) => Some(t),
+                _ => None,
+            }),
+    );
     assert!(
         found.is_empty(),
         "生んだものが契約を満たしていない ── {found:?}"
+    );
+}
+
+#[test]
+fn a_hardcoded_tool_name_is_reported() {
+    // **部品は外部の道具の名前を直書きしない** ── tool.json に宣言し、宣言の層から注入する
+    let root = scratch("hardcoded");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
+    let found = found_in_source(&root);
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("直書きしている") && x.contains("git")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn a_command_passed_in_is_allowed() {
+    // 注入されたコマンドを起動するのは、直書きではない
+    let root = scratch("injected");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_part(
+        &root,
+        "fn f(git: &str) { std::process::Command::new(git); }\n",
+    );
+    let found = found_in_source(&root);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+/// 入口の宣言（tool.json と mcp.json）を置く。
+fn write_entries(root: &Path, tool: &str, mcp: &str) {
+    std::fs::write(root.join("tool.json"), tool).expect("書ける");
+    std::fs::write(root.join("mcp.json"), mcp).expect("書ける");
+}
+
+const TOOL_JSON: &str =
+    r#"{"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
+const MCP_JSON: &str =
+    r#"{"mcpServers":{"fake":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake-mcp","args":[]}}}"#;
+
+#[test]
+fn an_external_tool_without_a_reason_or_command_is_reported() {
+    let root = scratch("no-reason");
+    write_entries(
+        &root,
+        r#"{"cli":{"command":"bin/x"},"external":[{"name":"git","command":"git","reason":""},{"name":"aws","reason":"音声を合成する"}]}"#,
+        MCP_JSON,
+    );
+    let found: Vec<String> = behavior::declaration(&root)
+        .into_iter()
+        .filter_map(|v| match v {
+            Verdict::Fail(t) => Some(t),
+            Verdict::Pass(_) => None,
+            _ => None,
+        })
+        .collect();
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("理由が無い") && x.contains("git")),
+        "{found:?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("起動するコマンドが無い") && x.contains("aws")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn an_absolute_path_in_the_registration_is_reported() {
+    // **登録に開発機の絶対パスを書かない** ── 別の場所では存在しない場所を指す
+    let root = scratch("abs");
+    write_entries(
+        &root,
+        TOOL_JSON,
+        r#"{"mcpServers":{"x":{"command":"/home/me/x/bin/x-mcp","args":[]}}}"#,
+    );
+    let found: Vec<String> = behavior::declaration(&root)
+        .into_iter()
+        .filter_map(|v| match v {
+            Verdict::Fail(t) => Some(t),
+            _ => None,
+        })
+        .collect();
+    assert!(found.iter().any(|x| x.contains("絶対パス")), "{found:?}");
+}
+
+#[test]
+fn an_entry_that_is_not_built_is_reported() {
+    let root = scratch("not-built");
+    write_document(&root);
+    write_entries(&root, TOOL_JSON, MCP_JSON);
+    let found = found_all(&root);
+    assert!(
+        found.iter().any(|x| x.contains("組み立ててから")),
+        "{found:?}"
+    );
+}
+
+/// シェルで書いた入口を置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。
+#[cfg(unix)]
+fn write_shell_entries(root: &Path, flag_exit: i32, mcp_args: &str) {
+    use std::os::unix::fs::PermissionsExt as _;
+    let bin = root.join("bin");
+    std::fs::create_dir_all(&bin).expect("作れる");
+    let cli = format!(
+        r#"#!/bin/sh
+case "$1" in
+  --json) printf '{{"ok":true,"findings":[],"data":{{"tools":[{{"name":"run","args":[{{"name":"path"}}]}}],"skill_root":"%s"}}}}\n' "$(cd "$(dirname "$0")/.." && pwd)"; exit 0;;
+  *) exit {flag_exit};;
+esac
+"#
+    );
+    let mcp = format!(
+        r#"#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *'"initialize"'*) printf '{{"jsonrpc":"2.0","id":1,"result":{{"protocolVersion":"2025-06-18","capabilities":{{"tools":{{}}}},"serverInfo":{{"name":"fake","version":"1"}}}}}}\n';;
+    *'"tools/list"'*) printf '{{"jsonrpc":"2.0","id":2,"result":{{"tools":[{{"name":"run","inputSchema":{{"type":"object","properties":{{{mcp_args}}}}}}}]}}}}\n';;
+  esac
+done
+"#
+    );
+    for (name, body) in [("fake", cli), ("fake-mcp", mcp)] {
+        let path = bin.join(name);
+        std::fs::write(&path, body).expect("書ける");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+            .expect("変えられる");
+    }
+    write_entries(root, TOOL_JSON, MCP_JSON);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_skill_written_in_shell_passes_the_first_stage_and_the_second_is_not_run() {
+    let root = scratch("shell");
+    write_document(&root);
+    write_shell_entries(&root, 2, r#""path":{"type":"string"}"#);
+    let report = check::check(&root, &templates());
+    assert!(report.findings().is_empty(), "{:?}", report.findings());
+    assert!(
+        report
+            .lines
+            .iter()
+            .any(|l| l.state == State::Skip && l.text.contains("言語の組が無い")),
+        "組が無い言語では、2段目を実行しないと出す ── {:?}",
+        report.lines
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn mcp_tools_that_differ_from_the_cli_are_reported() {
+    // **能力を2か所に書いた実装は、CLI と MCP で食い違う**
+    let root = scratch("differ");
+    write_document(&root);
+    write_shell_entries(&root, 2, r#""target":{"type":"string"}"#);
+    let found = found_all(&root);
+    assert!(found.iter().any(|x| x.contains("食い違う")), "{found:?}");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_cli_that_accepts_an_unknown_flag_is_reported() {
+    let root = scratch("lenient");
+    write_document(&root);
+    write_shell_entries(&root, 0, r#""path":{"type":"string"}"#);
+    let found = found_all(&root);
+    assert!(
+        found.iter().any(|x| x.contains("旗を断らない")),
+        "{found:?}"
     );
 }

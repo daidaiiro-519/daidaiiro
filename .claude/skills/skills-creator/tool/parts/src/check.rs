@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: MIT
 //! Skill が契約を満たしているかを検査する。**見つけるが、直さない。**
 //!
-//! 検査するのは3つである ── 層が crate に分かれていること、**許可辺が宣言どおりで
-//! あること**、**節の構成が対応する雛形を満たすこと**。
+//! **2段で検査する**（ACDR 0036）。1段目は入口を起動して振る舞いを確認する ── どの言語でも
+//! 同じである（`behavior`）。2段目はソースを読む検査で、**言語の組が持つ**。組が在るのは
+//! いま Rust だけで、組が無い言語では「実行しない」と出す ── 合格とは扱わない。
+//! 最後に、節の構成が対応する雛形を満たすかを見る。
+//!
+//! Rust の組の2段目が見るのは、層が crate に分かれていること、**許可辺が宣言どおりで
+//! あること**、部品が外部の道具の名前を直書きしていないことである。
 //!
 //! **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
 //! コンパイラが通す（実測 2026-09-26）── 層の境界を crate の境界に置いて初めて、
@@ -12,24 +17,17 @@
 //! いないかを見る ── 実際に守られているかはコンパイラが判定する。
 
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::behavior::{self, Verdict};
 use crate::sections;
 
 /// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──
 /// 以前の rs/ は言語の名前で、役割を示さなかった。
 pub const TOOL: &str = "tool";
 
-/// 組み立てた実行ファイルを置く場所。**配布物だけが持ち、git で追跡しない。**
+/// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**
 pub const BIN: &str = "bin";
-
-/// 名前を実行時に決める外部の道具を、宣言（EXTERNAL）で表す印。
-pub const USER_CHOSEN: &str = "*";
-
-/// OS によって無いコマンド。**呼ばない** ── date は Windows に実行ファイルとして無く、
-/// timeout は macOS の標準に無い（ACDR 0029）。日付の計算と時間の制限は Rust の中で行う。
-pub const NON_PORTABLE: [&str; 2] = ["date", "timeout"];
 
 /// 層の並び。**内から外である** ── 先頭が最も内側である。
 pub const ORDER: [&str; 3] = ["parts", "declare", "entry"];
@@ -156,91 +154,207 @@ fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
 /// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**
 #[must_use]
 pub fn has_tools(root: &Path) -> bool {
-    root.join(TOOL).join("Cargo.toml").is_file()
+    root.join("tool.json").is_file()
+        || root.join("mcp.json").is_file()
+        || root.join(TOOL).is_dir()
         || root.join("rs").is_dir()
         || root.join("scripts").is_dir()
 }
 
-/// 契約を満たしているかを検査し、食い違いを並べる。
-///
-/// # Errors
-///
-/// いまは返さない。呼ぶ側の形を変えずに、あとから検査を足せるようにしてある。
-pub fn check(root: &Path, templates: &Templates) -> io::Result<Vec<String>> {
-    let mut findings = Vec::new();
-    let rs = root.join(TOOL);
-
-    // **道具を持たない Skill に、層を要求しない。** 助言と手順だけの Skill が在る
-    if has_tools(root) {
-        if !rs.join("Cargo.toml").is_file() {
-            findings.push(format!(
-                "層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \
-                 1つの単位の中の module では、内側が外側を参照してもコンパイラが通す"
-            ));
-        } else {
-            let listed = members(&rs.join("Cargo.toml"));
-            for need in ORDER.iter().copied().filter(|x| *x != "entry") {
-                if !listed.iter().any(|x| x == need) {
-                    findings.push(format!("層の crate が無い: {TOOL}/{need}"));
-                }
-            }
-            if !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {
-                findings.push(format!(
-                    "入口の crate が無い: {TOOL}/ に {} のどれかを置く",
-                    ENTRIES.join(" か ")
-                ));
-            }
-            // **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する
-            for member in &listed {
-                let manifest = rs.join(member).join("Cargo.toml");
-                if !manifest.is_file() {
-                    findings.push(format!("宣言が無い: {TOOL}/{member}/Cargo.toml"));
-                    continue;
-                }
-                let Some(here) = layer_of(member) else {
-                    findings.push(format!(
-                        "どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える",
-                        ORDER.join(" ・ "),
-                        ENTRIES.join(" ・ ")
-                    ));
-                    continue;
-                };
-                let may = allowed(here);
-                for dep in declared(&manifest) {
-                    let Some(to) = layer_of(&dep) else { continue };
-                    if !may.contains(&to) {
-                        findings.push(format!(
-                            "許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \
-                             {here} → {to}"
-                        ));
-                    }
-                }
-            }
-            if !rs.join(TESTS).is_dir() {
-                findings.push(format!("事例が無い: {TOOL}/{TESTS}/"));
-            }
-        }
-        // **Python を残さない。** 移行が済んでいない箇所を、黙って通さない
-        if root.join("scripts").is_dir() {
-            findings.push(format!(
-                "Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"
-            ));
-        }
-        if root.join("rs").is_dir() {
-            findings.push(format!(
-                "rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）"
-            ));
-        }
-        findings.extend(distribution(root));
-    }
-
-    findings.extend(missing_sections(root, templates));
-    Ok(findings)
+/// 検査の段。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Stage {
+    /// 入口を起動する検査。全言語で共通である。
+    Behavior,
+    /// ソースを読む検査。言語の組が持つ。
+    Source,
+    /// 文書の節の構成。
+    Document,
 }
 
-/// 配布の形を見る。**実行ファイルは配布物だけが持ち、登録は置き場所に依存しない。**
-fn distribution(root: &Path) -> Vec<String> {
+/// 検査1件の状態。**「実行しない」を合格と同じにしない。**
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum State {
+    /// 満たしている。
+    Pass,
+    /// 満たしていない。
+    Fail,
+    /// 実行しない（言語の組が無い）。
+    Skip,
+}
+
+/// 検査1件。
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct Line {
+    /// どの段か。
+    pub stage: Stage,
+    /// 状態。
+    pub state: State,
+    /// 人が読む文。
+    pub text: String,
+}
+
+impl Line {
+    fn new(stage: Stage, state: State, text: String) -> Self {
+        Self { stage, state, text }
+    }
+}
+
+/// 検査の結果。
+#[derive(Debug, Clone, Default)]
+#[non_exhaustive]
+pub struct Report {
+    /// 検査1件ずつ。段の順に並ぶ。
+    pub lines: Vec<Line>,
+}
+
+impl Report {
+    /// 満たしていないものの文。
+    #[must_use]
+    pub fn findings(&self) -> Vec<String> {
+        self.lines
+            .iter()
+            .filter(|l| l.state == State::Fail)
+            .map(|l| l.text.clone())
+            .collect()
+    }
+}
+
+/// 契約を満たしているかを、2段で検査する。
+#[must_use]
+pub fn check(root: &Path, templates: &Templates) -> Report {
+    let mut report = Report::default();
+    // **道具を持たない Skill に、入口も層も要求しない。** 助言と手順だけの Skill が在る
+    if has_tools(root) {
+        for v in behavior::run(root) {
+            report.lines.push(match v {
+                Verdict::Pass(t) => Line::new(Stage::Behavior, State::Pass, t),
+                Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),
+            });
+        }
+        report.lines.extend(source(root));
+    }
+    let missing = document(root, templates);
+    if missing.is_empty() {
+        report.lines.push(Line::new(
+            Stage::Document,
+            State::Pass,
+            "節の構成が雛形を満たす".to_owned(),
+        ));
+    }
+    report.lines.extend(
+        missing
+            .into_iter()
+            .map(|t| Line::new(Stage::Document, State::Fail, t)),
+    );
+    report
+}
+
+/// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
+#[must_use]
+pub fn source(root: &Path) -> Vec<Line> {
+    if root.join(TOOL).join("Cargo.toml").is_file() || root.join("rs").is_dir() {
+        let found = rust(root);
+        if found.is_empty() {
+            return vec![Line::new(
+                Stage::Source,
+                State::Pass,
+                "Rust の組 ── 層が crate に分かれ、許可辺が宣言どおりで、部品が外部の道具の名前を直書きしていない"
+                    .to_owned(),
+            )];
+        }
+        return found
+            .into_iter()
+            .map(|t| Line::new(Stage::Source, State::Fail, t))
+            .collect();
+    }
+    if root.join("scripts").is_dir() {
+        return vec![Line::new(
+            Stage::Source,
+            State::Fail,
+            format!("Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"),
+        )];
+    }
+    vec![Line::new(
+        Stage::Source,
+        State::Skip,
+        "実行しない ── この Skill の言語の組が無い（合格とは扱わない）".to_owned(),
+    )]
+}
+
+/// 節の構成が、対応する雛形を満たすかを見る。
+#[must_use]
+pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
+    missing_sections(root, templates)
+}
+
+/// Rust の組の2段目。**層 ・ 許可辺 ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。
+#[must_use]
+pub fn rust(root: &Path) -> Vec<String> {
     let mut findings = Vec::new();
+    let rs = root.join(TOOL);
+    if !rs.join("Cargo.toml").is_file() {
+        findings.push(format!(
+            "層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \
+             1つの単位の中の module では、内側が外側を参照してもコンパイラが通す"
+        ));
+    } else {
+        let listed = members(&rs.join("Cargo.toml"));
+        for need in ORDER.iter().copied().filter(|x| *x != "entry") {
+            if !listed.iter().any(|x| x == need) {
+                findings.push(format!("層の crate が無い: {TOOL}/{need}"));
+            }
+        }
+        if !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {
+            findings.push(format!(
+                "入口の crate が無い: {TOOL}/ に {} のどれかを置く",
+                ENTRIES.join(" か ")
+            ));
+        }
+        // **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する
+        for member in &listed {
+            let manifest = rs.join(member).join("Cargo.toml");
+            if !manifest.is_file() {
+                findings.push(format!("宣言が無い: {TOOL}/{member}/Cargo.toml"));
+                continue;
+            }
+            let Some(here) = layer_of(member) else {
+                findings.push(format!(
+                    "どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える",
+                    ORDER.join(" ・ "),
+                    ENTRIES.join(" ・ ")
+                ));
+                continue;
+            };
+            let may = allowed(here);
+            for dep in declared(&manifest) {
+                let Some(to) = layer_of(&dep) else { continue };
+                if !may.contains(&to) {
+                    findings.push(format!(
+                        "許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \
+                         {here} → {to}"
+                    ));
+                }
+            }
+        }
+        if !rs.join(TESTS).is_dir() {
+            findings.push(format!("事例が無い: {TOOL}/{TESTS}/"));
+        }
+    }
+    // **Python を残さない。** 移行が済んでいない箇所を、黙って通さない
+    if root.join("scripts").is_dir() {
+        findings.push(format!(
+            "Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"
+        ));
+    }
+    if root.join("rs").is_dir() {
+        findings.push(format!(
+            "rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）"
+        ));
+    }
     let ignored = fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
     if !ignored
         .lines()
@@ -249,56 +363,20 @@ fn distribution(root: &Path) -> Vec<String> {
     {
         findings.push(format!(
             "{BIN}/ を git の追跡から外していない: .gitignore に {BIN}/ を書く ── \
-             実行ファイルは配布物だけが持つ"
+             組み立てた実行ファイルは追跡しない"
         ));
     }
-    if let Ok(body) = fs::read_to_string(root.join("mcp.json")) {
-        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&body) {
-            let servers = value
-                .get("mcpServers")
-                .and_then(serde_json::Value::as_object)
-                .cloned()
-                .unwrap_or_default();
-            for (name, server) in servers {
-                let command = server
-                    .get("command")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default();
-                if is_absolute(command) {
-                    findings.push(format!(
-                        "登録に絶対パスがある: mcp.json の {name} ── {command}（配布先では存在しない場所を指す）"
-                    ));
-                }
-            }
-        }
-    }
-    findings.extend(external_tools(root));
+    findings.extend(hardcoded(root));
     findings
 }
 
-/// 絶対パスか。**Windows の書き方も含める** ── `C:\\…` ・ `C:/…`
-fn is_absolute(command: &str) -> bool {
-    let bytes = command.as_bytes();
-    command.starts_with('/')
-        || command.starts_with('~')
-        || (bytes.len() > 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
-}
-
-/// 部品が呼ぶ外部の道具を、宣言と照合する。**外部コマンドは例外である** ── 呼んでよいのは、
-/// Skill の目的に不可欠な道具だけで、declare の `EXTERNAL` に名前と理由を書く（ACDR 0034）。
-fn external_tools(root: &Path) -> Vec<String> {
-    let tool = root.join(TOOL);
-    let declared = requires(&tool.join("declare/src/lib.rs"));
-    let mut findings: Vec<String> = declared
-        .iter()
-        .filter(|(_, why)| why.trim().is_empty())
-        .map(|(name, _)| {
-            format!("外部の道具に理由が無い: {name} ── 目的に不可欠である理由を EXTERNAL に書く")
-        })
-        .collect();
-    let named = |n: &str| declared.iter().any(|(d, _)| d == n);
+/// 部品が外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、
+/// 宣言の層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
+/// 試験で偽物を渡せない。
+fn hardcoded(root: &Path) -> Vec<String> {
     let mut files = Vec::new();
-    rust_files(&tool, &mut files);
+    rust_files(&root.join(TOOL), &mut files);
+    let mut findings = Vec::new();
     for file in files {
         let Ok(body) = fs::read_to_string(&file) else {
             continue;
@@ -308,62 +386,13 @@ fn external_tools(root: &Path) -> Vec<String> {
             .unwrap_or(&file)
             .display()
             .to_string();
-        for called in spawned(&body) {
-            match called {
-                Some(name) => {
-                    if NON_PORTABLE.contains(&name.as_str()) {
-                        findings.push(format!(
-                            "OS によって無いコマンドを呼んでいる: {at} ── {name}（Rust の中で行う）"
-                        ));
-                    } else if !named(&name) {
-                        findings.push(format!(
-                            "宣言に無い外部の道具を呼んでいる: {at} ── {name}（外部コマンドは例外である。目的に不可欠なら EXTERNAL に名前と理由を書き、そうでなければ Rust の中で行う）"
-                        ));
-                    }
-                }
-                None => {
-                    if !named(USER_CHOSEN) {
-                        findings.push(format!(
-                            "名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\"{USER_CHOSEN}\"）を、理由と一緒に EXTERNAL に書く"
-                        ));
-                    }
-                }
-            }
+        for name in spawned(&body).into_iter().flatten() {
+            findings.push(format!(
+                "部品が外部の道具の名前を直書きしている: {at} ── \"{name}\"（tool.json の external に宣言し、given.external で受け取って渡す）"
+            ));
         }
     }
     findings
-}
-
-/// 宣言（declare の `EXTERNAL`）に並ぶ、名前と理由の組。**無ければ空である。**
-fn requires(lib: &Path) -> Vec<(String, String)> {
-    let body = fs::read_to_string(lib).unwrap_or_default();
-    let Some(at) = body.find("EXTERNAL") else {
-        return Vec::new();
-    };
-    let rest = &body[at..];
-    // **型の `&[(&str, &str)]` ではなく、値の並び（`= &[`）から読む**
-    let Some(open) = rest.find("= &[").map(|at| at + 4) else {
-        return Vec::new();
-    };
-    let Some(close) = rest[open..].find("];") else {
-        return Vec::new();
-    };
-    // 引用符で囲まれた文字列を順に拾い、2つずつ組にする
-    let quoted: Vec<String> = rest[open..open + close]
-        .split('"')
-        .skip(1)
-        .step_by(2)
-        .map(str::to_owned)
-        .collect();
-    quoted
-        .chunks(2)
-        .map(|pair| {
-            (
-                pair.first().cloned().unwrap_or_default(),
-                pair.get(1).cloned().unwrap_or_default(),
-            )
-        })
-        .collect()
 }
 
 /// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**

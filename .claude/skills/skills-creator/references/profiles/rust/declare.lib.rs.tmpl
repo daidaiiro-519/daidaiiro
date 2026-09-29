@@ -8,18 +8,14 @@ pub mod contract;
 
 use serde_json::json;
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// {{道具の名前}} を実行する。
 fn run_{{道具の名前}}(given: &Given) -> Outcome {
     let _ = given;
-    // **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである
+    // **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである。
+    // 部品が外部の道具を起動するなら、`given.external("名前")` で tool.json から読み、
+    // 引数として渡す ── 部品は外部の道具の名前を直書きしない
     Outcome::found(Vec::new(), json!({}))
 }
 
