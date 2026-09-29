@@ -468,6 +468,36 @@
           ]
         }
       ]
+    },
+    "usecase-advisor": {
+      "root": ".claude/skills/usecase-advisor/tool",
+      "language": "rust",
+      "layers": [
+        {
+          "name": "parts",
+          "where": [
+            "parts"
+          ]
+        },
+        {
+          "name": "declare",
+          "where": [
+            "declare"
+          ]
+        },
+        {
+          "name": "cli",
+          "where": [
+            "cli"
+          ]
+        },
+        {
+          "name": "mcp",
+          "where": [
+            "mcp"
+          ]
+        }
+      ]
     }
   },
   "rules": [
@@ -705,7 +735,8 @@
         "tech-lead-advisor",
         "platform-advisor",
         "qa-advisor",
-        "ux-advisor"
+        "ux-advisor",
+        "usecase-advisor"
       ]
     },
     {
@@ -2843,6 +2874,102 @@
       },
       "units": [
         "ux-advisor"
+      ]
+    },
+    {
+      "rule": "入口と部品の置き場所が、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "../skills-creator/bin/skills-creator",
+          "check",
+          ".",
+          "--skill_root",
+          "../skills-creator"
+        ],
+        "target": "usecase-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "../doc-writing-skills/bin/doc-writing-skills",
+          "check",
+          "SKILL.md",
+          "--skill_root",
+          "../doc-writing-skills"
+        ],
+        "target": "usecase-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "usecase-advisor/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ]
+      },
+      "units": [
+        "usecase-advisor"
+      ]
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "usecase-advisor/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ]
+      },
+      "units": [
+        "usecase-advisor"
+      ]
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "usecase-advisor/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ]
+      },
+      "units": [
+        "usecase-advisor"
       ]
     }
   ]

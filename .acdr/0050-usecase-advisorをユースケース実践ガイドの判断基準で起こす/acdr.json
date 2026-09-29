@@ -1,0 +1,212 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0050",
+ "title": "usecase-advisor を、『ユースケース実践ガイド』の判断基準で起こす",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "アリスター・コーバーン『ユースケース実践ガイド』を原典とする advisor（usecase-advisor）を、ddd-advisor と同じ形で置く。",
+ "why": "利用者の決まりで、advisor の原典は公式情報 ・ 書籍 ・ 確立された方法論に限る。ユースケース駆動の作業には、その原点となる書籍を原典とする advisor が無かった。ddd-advisor で確立した形（章ごとの書籍のノート、原文に無い文字列0件の照合、論点と9種類の単位、design-svg の図、契約の版2 の道具）をそのまま適用し、この経験を advisor-creator の作り直しへ戻す。",
+ "shift": [
+  {
+   "what": "原典",
+   "from": "ユースケースを扱う advisor が無い",
+   "to": "『ユースケース実践ガイド 復刻版』（翔泳社）。スキャンと章ごとの学習ノート26本は手元だけに置き、git の管理の外にする"
+  },
+  {
+   "what": "判断基準",
+   "from": "無い",
+   "to": "criteria.json 24件（第1〜22章 ・ 付録A ・ 付録C）。1件が1つの章で、ノートに無い文字列は24件とも0件である。付録B（練習の解答）と付録D（参考文献）は含めない"
+  },
+  {
+   "what": "図",
+   "from": "ノートの Mermaid 24枚",
+   "to": "design-svg の宣言と SVG 24枚。自動の配置で描けない5枚は、格子 ・ 入れ子で組み、図7.1 は ACDR 0049 の変更で組む"
+  },
+  {
+   "what": "回答の形",
+   "from": "無い",
+   "to": "answer.schema.json。ddd-advisor の形で、相談種別は概念質問 ・ 判断相談 ・ 記述相談（実装相談に当たる）の3つ"
+  },
+  {
+   "what": "配線",
+   "from": "ユースケースを書く作業に、呼ぶ advisor が無い",
+   "to": "skill-wiring.json に1行（ユースケースを書く ・ 点検するとき、advisory）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "原典から章ごとのノートを作り、ノートに無い文字列を足さずに判断基準と図へ移す",
+ "alternatives": [
+  {
+   "option": "原典を一言一句書き写して archive に置き、そこから判断基準を作る",
+   "why_not": "利用者の決まりは ddd-advisor と同じ粒度の構造化したノートであり、書き写しは求められていない。著作物の全文の複製にもなる"
+  },
+  {
+   "option": "advisor-creator を先に作り直し、その道具で usecase-advisor を作る",
+   "why_not": "advisor-creator の作り直しは、判断基準の形と手順が固まってから行うと決めている。usecase-advisor を先に作り、その経験を作り直しへ戻す"
+  },
+  {
+   "option": "章を分けずに、概念ごと（アクター ・ スコープ ・ 目的レベル …）に判断基準を立て直す",
+   "why_not": "章をまたいで文を集めると、ノートに無いつなぎの文が要る。章の単位ならノートの見出しをそのまま論点にでき、原文に無い文字列を0件に保てる"
+  },
+  {
+   "option": "答える問い（answers）を、ノートに無い問いの形の文で書く",
+   "why_not": "原文に無い文字列を足すことになる。各章の節の見出しを、そのまま答える問いに使う"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "list",
+   "tab": "完成イメージ：24件の一覧",
+   "file": ".acdr/0050-usecase-advisorをユースケース実践ガイドの判断基準で起こす/preview/index.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "img",
+   "tab": "完成イメージ：判断基準（目的レベル）",
+   "file": ".acdr/0050-usecase-advisorをユースケース実践ガイドの判断基準で起こす/preview/criteria.goal-levels.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "ans-img",
+   "tab": "完成イメージ：回答の例",
+   "file": ".acdr/0050-usecase-advisorをユースケース実践ガイドの判断基準で起こす/preview/answer.judgment.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "skill",
+   "tab": "usecase-advisor の SKILL.md",
+   "file": ".claude/skills/usecase-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "記述相談",
+     "before": "（無い）",
+     "why": "ddd-advisor の実装相談に当たる相談種別である。ユースケースの相談では、実装ではなく記述の仕方を問う"
+    },
+    {
+     "find": "判断基準は原典の複製ではない。",
+     "before": "（無い）",
+     "why": "判断基準は書き写しではなく学習ノートから移したので、原典の文そのものを参照していると断言させない"
+    }
+   ]
+  },
+  {
+   "key": "answer",
+   "tab": "answer.schema.json",
+   "file": ".claude/skills/usecase-advisor/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"const\": \"writing\"",
+     "before": "\"const\": \"implementation\"（ddd-advisor の回答の形）",
+     "why": "相談種別の実装相談を記述相談に置き換えた。必須の欄（記述の手順）は ddd-advisor の実装相談と同じ"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"usecase-advisor\": {",
+     "before": "（無い）",
+     "why": "成果物として、層（parts ・ declare ・ cli ・ mcp）を宣言した。ux-advisor と同じ形"
+    },
+    {
+     "find": "\"ux-advisor\",",
+     "before": "… \"qa-advisor\", \"ux-advisor\" ]",
+     "why": "依存の宣言をコンパイルで強制する規則の対象に加えた"
+    },
+    {
+     "find": "\"target\": \"usecase-advisor\"",
+     "before": "（無い）",
+     "why": "ux-advisor と同じ5件（契約 ・ 文書の判定 ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "usecase-advisor-mcp",
+     "before": "（無い）",
+     "why": "MCP の面を登録した。道具の宣言から組む4つの道具が一覧に出る"
+    }
+   ]
+  },
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "ユースケースを書く ・ 点検するとき",
+     "before": "（無い）",
+     "why": "ユースケースを書く作業に呼ぶ advisor が無かった。結果を待たずに進められるので advisory にした"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "18のSkillを組み合わせて",
+     "before": "16のSkillを組み合わせて",
+     "why": "Skill の数が、この変更の前から実数（17）と食い違っていた。usecase-advisor を足した実数の18に合わせた"
+    },
+    {
+     "find": "ux-advisor ・ usecase-advisor",
+     "before": "ddd-advisor ・ tech-lead-advisor ・ platform-advisor ・ qa-advisor ・ ux-advisor",
+     "why": "助言専門の Skill の一覧に加えた"
+    },
+    {
+     "find": "26行と",
+     "before": "16行と",
+     "why": "配線表の行数が、この変更の前から実数（25）と食い違っていた。1行足した実数の26に合わせた"
+    }
+   ]
+  },
+  {
+   "key": "ignore",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "usecase-advisor/references/archive/",
+     "before": "（無い）",
+     "why": "原典のスキャンと学習ノートは、利用者が学ぶために手元に置くもので、著作物の複製を含むので追跡しない"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "usecase-advisor の一式と、規則 ・ MCP ・ 配線表 ・ CLAUDE.md の変更をコミットする",
+  "advisor-creator のブレストボードへ、usecase-advisor で分かったこと（ノートの手順 ・ 変換の照合 ・ 図の組み方）を戻す"
+ ],
+ "seal": {
+  "list": "657d2c4cd1123b76ad8aabcd267eceecd4636c7ed79e15e894da72926ec67328",
+  "img": "ba8e507503034850cba545401d838f0ff8e5ac9395e9fa3dfb57a4c0947af4d3",
+  "ans-img": "ab4114c1c477e8878aa03f4aed6855a7a25a6c82ce48c44f3dbd6a013cdde89e",
+  "skill": "7b15464d26a7d4687d7ff635a5d5316ea068b506988a1e7c1c2df00548b82a7a",
+  "answer": "417c3515f8309f16bfe6cd1b477bd61954a833aa2c947d4e93020eff162c31b6",
+  "rules": "29dbea6640ed025a9015ed5ac6bba8d1dde83307bcd0cd4c71b423f1d45dd8e0",
+  "mcp": "c81b8bcc06a470535af603f87ac84a4029db01df15acd6f1be42c901d64b8aac",
+  "wiring": "3923dcfceb3f2c04073997c7274593217167e8c3b58a081ef6fae44ebafdd0a2",
+  "claude": "725913d2ed9b5c984c8dd5decafc81faa9278c8bc301da49ee8e02529caaf55f",
+  "ignore": "1be06b5fefd4f9fdced713e1aaca188d66cb5037d9b795d019f6da294dd7ec42"
+ }
+}

@@ -3,7 +3,7 @@
 ## 管轄範囲
 
 - **管轄ディレクトリ**: リポジトリ全体
-- **概要**: `.claude/skills/` に置いた16のSkillを組み合わせて、調べる・決める・書く・直すを遂行するリポジトリである。1つのSkillで終わらない作業は、**配線表 `skill-wiring.json`** が「何を、誰に頼むか」を持ち、**skill-router** がそれを読む。
+- **概要**: `.claude/skills/` に置いた18のSkillを組み合わせて、調べる・決める・書く・直すを遂行するリポジトリである。1つのSkillで終わらない作業は、**配線表 `skill-wiring.json`** が「何を、誰に頼むか」を持ち、**skill-router** がそれを読む。
 
 ---
 
@@ -48,7 +48,7 @@ Orchestratorである。作業を受け取ったら、skill-router に配線表�
 | 対象 | タイミング | アクション | 理由 |
 |---|---|---|---|
 | skill-router | 作業の前 | 作業の名前と対象を渡し、配線表に行があるかを確認する。行があれば `request` と `skills` を、続く委譲への入力にする。配線表が見つからないことは失敗として扱わず、配線が1件も無いものとして進む | 呼ぶ相手を決める窓口を1か所に置くため |
-| 助言専門のSkill（ddd-advisor ・ tech-lead-advisor ・ platform-advisor ・ qa-advisor ・ ux-advisor） | 作業の前、作業のあと、または両方 | skill-router が返したSkillごとに、目的・役割・読み込むSkill・タスク・成果物・受け入れ基準を組み立て、1回のメッセージで並列に呼ぶ。全員の結果を受領したら、各回答が指定したテンプレートの見出し構造を実際に踏襲しているかを確認してから統合する。踏まえていない回答は、内容の質も未検証とみなして呼び直す | 要約した指示を渡す代行では、受け手がテンプレートの読み込みまで遂行する保証が無いため |
+| 助言専門のSkill（ddd-advisor ・ tech-lead-advisor ・ platform-advisor ・ qa-advisor ・ ux-advisor ・ usecase-advisor） | 作業の前、作業のあと、または両方 | skill-router が返したSkillごとに、目的・役割・読み込むSkill・タスク・成果物・受け入れ基準を組み立て、1回のメッセージで並列に呼ぶ。全員の結果を受領したら、各回答が指定したテンプレートの見出し構造を実際に踏襲しているかを確認してから統合する。踏まえていない回答は、内容の質も未検証とみなして呼び直す | 要約した指示を渡す代行では、受け手がテンプレートの読み込みまで遂行する保証が無いため |
 | 作る側のSkill（acdr ・ brainstorming-board ・ design-svg ・ doc-writing-skills ・ fact-check ・ skills-creator ・ advisor-creator） | 作業の途中 | skill-router が返した `request` をそのまま渡す。Skillの内部形式に合わせて整形せず、テキストのまま渡す | Skill同士が互いの内部形式を事前に知らなくてよくするため |
 | memory-cultivator | 作業のあと | 次のセッションが続きから始めるために必要な事実（進行中の作業の現在地、次にすること、外部システムへのポインタ）が生じたとき、またはユーザーから覚えておくよう頼まれたときに呼ぶ。**恒久の決まり（次から遵守させる規則）は渡さない** ── それは、それが適用されるSkillのガードレールが持つ | 記憶は一時的なものだけを置く場所である。恒久の決まりをここへ複製すると、遵守させたい場所に無いまま増える |
 
@@ -58,8 +58,8 @@ Orchestratorである。作業を受け取ったら、skill-router に配線表�
 
 | 場所 | 中身 |
 |---|---|
-| `.claude/skills/` | 16のSkillの実体。ここが正本である |
-| `skill-wiring.json` | 配線表。16行と、このプロジェクトの決め事を持つ |
+| `.claude/skills/` | 18のSkillの実体。ここが正本である |
+| `skill-wiring.json` | 配線表。26行と、このプロジェクトの決め事を持つ |
 | `.claude/skills/skill-router/references/skill-wiring.schema.json` | 配線表の形を検査するJSON Schema |
 | `.acdr/` | 意思決定の記録。1件がフォルダ1つで、`acdr.json` が正本である |
 | `.brainstorming-board/` | ブレストボード。1枚がフォルダ1つである |
