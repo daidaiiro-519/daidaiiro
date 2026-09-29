@@ -298,13 +298,13 @@ slide-deck export <照合の入力>.json <出力のフォルダ> --browser <ブ�
 - `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
 - `references/themes.md`: テーマの選び方、22のキーと満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
-- `rs/parts/src/theme.rs`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
+- `tool/parts/src/theme.rs`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
 - `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどのキーから出るか。**この Skill は図を描かない**
-- `rs/cli/`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` ・ `review` ・ `export` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**宣言に無い旗は断る**
-- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `rs/mcp/` ・ `mcp.json`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
-- `rs/parts/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
-- `rs/parts/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする**
-- `rs/parts/src/validate.rs`: 形では書けない規則を検査する。**組み立てより前に止まる**
-- `rs/parts/src/review.rs`: 照合の入力から、比較ページと3つの成果物を組む。原稿の差分は文の単位で取る。**PDF は、渡されたブラウザで HTML を描画して出力する** ── ブラウザの場所を推測しない
-- `rs/parts/tests/`: 事例（57件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立て ・ 照合の出力を固定してある
+- `tool/cli/`: **唯一の入口。** `new` ・ `render` ・ `check` ・ `theme` ・ `review` ・ `export` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**宣言に無い旗は断る**
+- `tool/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/mcp/` ・ `mcp.json`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `tool/parts/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
+- `tool/parts/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする**
+- `tool/parts/src/validate.rs`: 形では書けない規則を検査する。**組み立てより前に止まる**
+- `tool/parts/src/review.rs`: 照合の入力から、比較ページと3つの成果物を組む。原稿の差分は文の単位で取る。**PDF は、渡されたブラウザで HTML を描画して出力する** ── ブラウザの場所を推測しない
+- `tool/parts/tests/`: 事例（57件）。テーマ ・ 型 ・ 入力の検査 ・ 組み立て ・ 照合の出力を固定してある

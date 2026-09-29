@@ -1,6 +1,6 @@
 # 取得した原文の取り直し方
 
-`fact-check` は fact-check Skill の実行ファイル（`<fact-check>/rs/target/release/fact-check`）である。
+`fact-check` は fact-check Skill の実行ファイル（`<fact-check>/bin/fact-check`）である。
 
 **原文の実体は置かない。** 置くのは `*.meta.json` だけで、url ・ 取得日 ・ `sha256` ・
 バイト数 ・ 行数が入っている。取り直して `sha256` が一致すれば、照合した当時と同じ中身である。

@@ -139,19 +139,19 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布元に、導入�
 
 ## 参照
 
-- `rs/parts/src/sections.rs`: 節の構成を、対応する雛形と照合する。**節の名前は雛形が持つ** ──
+- `tool/parts/src/sections.rs`: 節の構成を、対応する雛形と照合する。**節の名前は雛形が持つ** ──
   こちらに一覧を書くと、雛形を直した瞬間に食い違う。**並び順は問わない**
-- `rs/parts/src/check.rs`: 契約を検査する。**層が crate に分かれていること**と、
+- `tool/parts/src/check.rs`: 契約を検査する。**層が crate に分かれていること**と、
   **許可辺が各 `Cargo.toml` の宣言どおりであること**を確認する
-- `rs/parts/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは宣言が決める**
-- `rs/parts/tests/`: 事例（29件）。**生んだものが契約を満たすこと**と、配布の形（bin/ ・ 登録の経路 ・ 外部の道具）も固定してある
+- `tool/parts/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは宣言が決める**
+- `tool/parts/tests/`: 事例（29件）。**生んだものが契約を満たすこと**と、配布の形（bin/ ・ 登録の経路 ・ 外部の道具）も固定してある
 - `references/tool-contract.md`: 道具の契約。入口 ・ 戻り値 ・ 終了コード ・ 道具と部品の区別 ・
   **MCP サーバーの規約**（標準出力 ・ サーバーのファイル名 ・ 誤りの返し方 ・ 引数の型 ・ 子プロセスの規律）を
   規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/tool-contract/`: 契約一式の雛形（12件）。workspace と4つの crate の
   `Cargo.toml` ・ 入口 ・ 宣言 ・ 部品 ・ 事例 ・ 登録。**`contract.rs` ・ `cli` ・ `mcp` は
   Skill をまたいで同一である**ので、正本をここに置く
-- `rs/cli/`: この Skill 自身の入口。`scaffold` ・ `check` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
+- `tool/cli/`: この Skill 自身の入口。`scaffold` ・ `check` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
 
 - `references/skill-template.md`: SKILL.md自体の雛形（プレースホルダー付き、各プレースホルダーが自己完結した執筆ガイダンスを持つ）。
 - `references/folder-structure.md`: Skillフォルダのミニマム構成・フル構成の基準。

@@ -126,12 +126,12 @@ narration lexicon <辞書のファイル> <辞書の名前>
 
 ## 参照
 
-- `rs/cli/`: 唯一の入口。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **宣言に無い旗は断る**
-- `rs/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `rs/parts/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
-- `rs/parts/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
-- `rs/parts/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
-- `rs/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `tool/cli/`: 唯一の入口。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **宣言に無い旗は断る**
+- `tool/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/parts/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
+- `tool/parts/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
+- `tool/parts/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
+- `tool/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
 - `references/narration.schema.json`: 入力の契約
 - `references/narration.out.schema.json`: 出力の契約。`durationMs` の定義を含む
 - `references/lexicon.example.pls`: 読みの辞書の例（W3CのPLS準拠）
