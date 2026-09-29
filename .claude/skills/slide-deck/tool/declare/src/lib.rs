@@ -14,16 +14,7 @@ use std::path::{Path, PathBuf};
 use sd_parts::{deck as build, review, theme as colors};
 use serde_json::{json, Map, Value};
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[(
-    "*",
-    "利用者が指定するヘッドレスのブラウザで、HTML を PDF にする",
-)];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// 既定のテーマ。
 const DEFAULT_THEME: &str = "warm-paper";

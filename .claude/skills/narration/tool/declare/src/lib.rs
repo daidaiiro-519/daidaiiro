@@ -11,15 +11,7 @@ use std::path::PathBuf;
 use nar_parts::{mp3, voice};
 use serde_json::json;
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[
-    ("aws", "Amazon Polly で音声を合成する。AWS の Rust の SDK は、sso-session の形の SSO 設定に対応していない"),
-];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 fn script_of(given: &Given) -> Result<(PathBuf, voice::Script, String), String> {
     let dir = PathBuf::from(given.one("directory", "."));
@@ -79,7 +71,12 @@ fn run_synth(given: &Given) -> Outcome {
         Ok(got) => got,
         Err(why) => return Outcome::misuse(why),
     };
-    match voice::run(&dir, &script, &chosen) {
+    // **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない
+    let aws = match given.external("aws") {
+        Ok(aws) => aws,
+        Err(why) => return Outcome::misuse(why),
+    };
+    match voice::run(&aws, &dir, &script, &chosen) {
         Ok(made) => Outcome::found(
             Vec::new(),
             json!({
@@ -129,7 +126,11 @@ fn run_lexicon(given: &Given) -> Outcome {
     if path.as_os_str().is_empty() || name.is_empty() {
         return Outcome::misuse("辞書の場所と名前の両方を渡す".to_owned());
     }
-    match nar_parts::voice::put_lexicon(&path, name) {
+    let aws = match given.external("aws") {
+        Ok(aws) => aws,
+        Err(why) => return Outcome::misuse(why),
+    };
+    match nar_parts::voice::put_lexicon(&aws, &path, name) {
         Ok(()) => Outcome::found(
             Vec::new(),
             json!({ "name": name, "path": path.display().to_string() }),

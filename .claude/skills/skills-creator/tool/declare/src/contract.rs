@@ -117,11 +117,12 @@ impl Given {
     /// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**
     /// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、
     /// 実行ファイルの1つ上（`bin/` の親）である。配布しても変わらない。どちらにも
-    /// `references/` が無ければ、試した経路を示して止める。
+    /// `SKILL.md` が無ければ、試した経路を示して止める ── `SKILL.md` はどの Skill も持つが、
+    /// `references/` を持たない Skill も在る（実測 ── fact-check）。
     ///
     /// # Errors
     ///
-    /// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。
+    /// 実行ファイルの位置を取れないとき、または `SKILL.md` が見つからないときに返す。
     pub fn skill_root(&self) -> Result<std::path::PathBuf, String> {
         if self.has("skill_root") {
             return Ok(std::path::PathBuf::from(self.one("skill_root", ".")));
@@ -132,11 +133,11 @@ impl Given {
             .parent()
             .and_then(std::path::Path::parent)
             .ok_or_else(|| "実行ファイルの1つ上が無い ── --skill_root で渡す".to_owned())?;
-        if root.join("references").is_dir() {
+        if root.join("SKILL.md").is_file() {
             Ok(root.to_path_buf())
         } else {
             Err(format!(
-                "Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す",
+                "Skill の置き場所が見つからない ── {} に SKILL.md が無い。--skill_root で渡す",
                 root.display()
             ))
         }

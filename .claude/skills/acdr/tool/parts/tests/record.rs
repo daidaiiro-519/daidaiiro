@@ -41,6 +41,7 @@ fn made(spec: &Value, figure: &str) -> panes::Made {
     let shop = Shop {
         parts: &parts,
         style: &style,
+        git: "git",
     };
     record::build(&shop, spec, figure).expect("組める")
 }
@@ -133,6 +134,7 @@ fn a_missing_section_refuses_the_build() {
     let shop = Shop {
         parts: &parts,
         style: &style,
+        git: "git",
     };
     let mut spec = sound();
     spec.as_object_mut().expect("表である").remove("why");
@@ -148,6 +150,7 @@ fn a_status_outside_the_three_refuses_the_build() {
     let shop = Shop {
         parts: &parts,
         style: &style,
+        git: "git",
     };
     let mut spec = sound();
     spec["status"] = json!("たぶん承認");
@@ -167,7 +170,7 @@ fn an_input_that_does_not_pass_writes_nothing() {
     let mut spec = sound();
     spec.as_object_mut().expect("表である").remove("decision");
     write(&folder, &spec);
-    let why = record::build_record(&references(), &folder, false, false).expect_err("断る");
+    let why = record::build_record(&references(), &folder, false, false, "git").expect_err("断る");
     assert!(why.contains("HTML は書き出さない"), "{why}");
     assert!(!folder.join("index.html").exists(), "出力が残っている");
 }
@@ -176,7 +179,7 @@ fn an_input_that_does_not_pass_writes_nothing() {
 fn checking_only_does_not_write() {
     let folder = place("check");
     write(&folder, &sound());
-    let got = record::build_record(&references(), &folder, true, false).expect("検査できる");
+    let got = record::build_record(&references(), &folder, true, false, "git").expect("検査できる");
     assert_eq!(got.code, 1, "{:?}", got.lines);
     assert!(
         got.lines.iter().any(|x| x.contains("差が在る")),
@@ -187,8 +190,8 @@ fn checking_only_does_not_write() {
         !folder.join("index.html").exists(),
         "検査だけのときに書き出している"
     );
-    record::build_record(&references(), &folder, false, false).expect("書ける");
-    let got = record::build_record(&references(), &folder, true, false).expect("検査できる");
+    record::build_record(&references(), &folder, false, false, "git").expect("書ける");
+    let got = record::build_record(&references(), &folder, true, false, "git").expect("検査できる");
     assert_eq!(got.code, 0, "{:?}", got.lines);
     assert!(
         got.lines.iter().any(|x| x.contains("同一")),
@@ -207,7 +210,7 @@ fn an_accepted_record_is_sealed_once() {
     spec["docs"] = json!([{"key": "m", "tab": "面", "file": target.display().to_string(),
                            "marks": []}]);
     write(&folder, &spec);
-    let got = record::build_record(&references(), &folder, false, false).expect("組める");
+    let got = record::build_record(&references(), &folder, false, false, "git").expect("組める");
     assert!(
         got.lines.iter().any(|x| x.contains("封印した")),
         "{:?}",
@@ -233,7 +236,7 @@ fn a_sealed_record_whose_target_moved_refuses_to_rebuild() {
                            "marks": []}]);
     write(&folder, &spec);
     assert_eq!(record::drifted(&folder, &spec), vec!["m".to_owned()]);
-    let got = record::build_record(&references(), &folder, false, false).expect("答える");
+    let got = record::build_record(&references(), &folder, false, false, "git").expect("答える");
     assert_eq!(got.code, 1);
     assert!(
         got.lines.iter().any(|x| x.contains("組み直しを拒否する")),
@@ -245,7 +248,7 @@ fn a_sealed_record_whose_target_moved_refuses_to_rebuild() {
         "拒否したのに書き出している"
     );
     // **検査のときは、拒否ではなく事実として答える**
-    let got = record::build_record(&references(), &folder, true, false).expect("答える");
+    let got = record::build_record(&references(), &folder, true, false, "git").expect("答える");
     assert_eq!(got.code, 0);
     assert!(
         got.lines.iter().any(|x| x.contains("承認時点の姿である")),
@@ -253,7 +256,7 @@ fn a_sealed_record_whose_target_moved_refuses_to_rebuild() {
         got.lines
     );
     // **意図する場合は force を渡す**
-    let got = record::build_record(&references(), &folder, false, true).expect("組める");
+    let got = record::build_record(&references(), &folder, false, true, "git").expect("組める");
     assert_eq!(got.code, 0);
     assert!(folder.join("index.html").exists());
 }
@@ -268,7 +271,7 @@ fn an_empty_seal_is_not_a_seal() {
     spec["seal"] = json!({});
     write(&folder, &spec);
     assert!(record::drifted(&folder, &spec).is_empty());
-    let got = record::build_record(&references(), &folder, false, false).expect("組める");
+    let got = record::build_record(&references(), &folder, false, false, "git").expect("組める");
     assert!(
         got.lines.iter().any(|x| x.contains("封印した")),
         "{:?}",
@@ -285,7 +288,7 @@ fn a_target_is_marked_and_counted() {
     spec["docs"] = json!([{"key": "m", "tab": "面", "file": target.display().to_string(),
                            "marks": [{"find": "本文", "before": "旧", "why": "理由"}]}]);
     write(&folder, &spec);
-    let got = record::build_record(&references(), &folder, false, false).expect("組める");
+    let got = record::build_record(&references(), &folder, false, false, "git").expect("組める");
     assert!(
         got.lines.iter().any(|x| x.contains("印 1 件 / 1 面")),
         "{:?}",
@@ -337,7 +340,7 @@ fn a_new_record_is_not_made_twice() {
 fn the_before_given_in_the_record_is_used() {
     // **欄の名前は契約（スキーマ）どおり before である** ── 日本語の名前で読むと、渡した変更前が使われない
     let doc = json!({"file": "/nowhere/x.rs", "before": "旧い中身"});
-    assert_eq!(panes::before_of(&doc).as_deref(), Some("旧い中身"));
+    assert_eq!(panes::before_of(&doc, "git").as_deref(), Some("旧い中身"));
 }
 
 #[test]
@@ -345,9 +348,18 @@ fn the_before_is_read_from_the_revision_the_record_names() {
     // **rev に書いた版から変更前を読む** ── 欄の名前は契約どおり rev である
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../SKILL.md");
     let doc = json!({"file": here.display().to_string(), "rev": "HEAD"});
-    let got = panes::before_of(&doc).expect("HEAD の版が在る");
+    let got = panes::before_of(&doc, "git").expect("HEAD の版が在る");
     assert!(got.contains("acdr"), "{}", &got[..got.len().min(80)]);
     // 在りもしない版は None を返し、呼ぶ側が全文へ落とす
     let missing = json!({"file": here.display().to_string(), "rev": "no-such-rev-xyz"});
-    assert!(panes::before_of(&missing).is_none());
+    assert!(panes::before_of(&missing, "git").is_none());
+}
+
+#[test]
+fn the_git_command_passed_in_is_the_one_run() {
+    // **git は注入されたコマンドを起動する** ── 名前を直書きしないので、利用者は tool.json で差し替えられる
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../SKILL.md");
+    let doc = json!({"file": here.display().to_string(), "rev": "HEAD"});
+    assert!(panes::before_of(&doc, "git").is_some());
+    assert!(panes::before_of(&doc, "/no/such/git").is_none());
 }

@@ -320,10 +320,13 @@ fn now() -> String {
 
 /// 原文を取得する。**まず `<出どころ>.md` を試し、無ければ本体を取る。**
 ///
+/// 取得は curl で行う ── 利用者の環境のプロキシと証明書の設定をそのまま使うためである。
+/// **コマンドは引数で受け取る**（tool.json の external から、宣言の層が渡す）。
+///
 /// # Errors
 ///
 /// 取得できなかったとき、試した先を添えて返す。
-pub fn fetch(url: &str, outdir: &Path) -> io::Result<Fetched> {
+pub fn fetch(curl: &str, url: &str, outdir: &Path) -> io::Result<Fetched> {
     std::fs::create_dir_all(outdir)?;
     let plain = url.ends_with(".md") || url.ends_with(".txt") || url.ends_with(".json");
     let candidates: Vec<String> = if plain {
@@ -334,7 +337,7 @@ pub fn fetch(url: &str, outdir: &Path) -> io::Result<Fetched> {
     let mut tried = Vec::new();
     for cand in candidates {
         let path = outdir.join(slug(&cand));
-        let done = Command::new("curl")
+        let done = Command::new(curl)
             .args(["-sSL", "-m", "60", "-A", "Mozilla/5.0", &cand, "-o"])
             .arg(&path)
             .args(["-w", "%{http_code} %{content_type}"])

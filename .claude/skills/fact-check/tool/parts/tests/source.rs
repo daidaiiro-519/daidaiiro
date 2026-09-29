@@ -225,3 +225,11 @@ fn the_listing_reads_the_records() {
     assert_eq!(rows[0].1, 12);
     assert_eq!(rows[0].2, "https://example.com/a");
 }
+
+#[test]
+fn the_curl_command_passed_in_is_the_one_run() {
+    // **取得は注入されたコマンドで行う** ── 名前を直書きしないので、利用者は tool.json で差し替えられる
+    let dir = std::env::temp_dir().join("fc-injected-curl");
+    let got = fc_parts::source::fetch("/no/such/curl", "https://example.com/a.md", &dir);
+    assert!(got.is_err(), "渡したコマンドが無ければ、取得できない");
+}

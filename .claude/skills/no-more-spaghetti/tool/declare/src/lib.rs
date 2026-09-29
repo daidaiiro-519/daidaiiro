@@ -13,19 +13,10 @@ use nms_parts::label::{authority_label, kind_label, Verdict};
 use nms_parts::{init, run, validate};
 use serde_json::json;
 
-pub use contract::{Arg, Given, Outcome, Tool};
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// 規則ファイルは、リポジトリに1つである ── **管理する対象を1つにする。**
 pub const RULES_PATH: &str = ".coding-rules/rules.json";
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[(
-    "*",
-    "規則ファイルに書かれた、検査する側のプロジェクトの道具を実行する",
-)];
 
 /// Skill の置き場所が見つからなければ、誤用として返す。**黙って「.」へ寄せない** ──
 /// 実行した場所で結果が変わり、契約を読めずに止まる（ACDR 0019 ・ 0029）。

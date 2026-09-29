@@ -115,13 +115,14 @@ impl Given {
     }
 
     /// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**
-    /// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が
-    /// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、
-    /// 試した経路を示して止める。
+    /// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、
+    /// 実行ファイルの1つ上（`bin/` の親）である。配布しても変わらない。どちらにも
+    /// `SKILL.md` が無ければ、試した経路を示して止める ── `SKILL.md` はどの Skill も持つが、
+    /// `references/` を持たない Skill も在る（実測 ── fact-check）。
     ///
     /// # Errors
     ///
-    /// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。
+    /// 実行ファイルの位置を取れないとき、または `SKILL.md` が見つからないときに返す。
     pub fn skill_root(&self) -> Result<std::path::PathBuf, String> {
         if self.has("skill_root") {
             return Ok(std::path::PathBuf::from(self.one("skill_root", ".")));
@@ -132,15 +133,65 @@ impl Given {
             .parent()
             .and_then(std::path::Path::parent)
             .ok_or_else(|| "実行ファイルの1つ上が無い ── --skill_root で渡す".to_owned())?;
-        if root.join("references").is_dir() {
+        if root.join("SKILL.md").is_file() {
             Ok(root.to_path_buf())
         } else {
             Err(format!(
-                "Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す",
+                "Skill の置き場所が見つからない ── {} に SKILL.md が無い。--skill_root で渡す",
                 root.display()
             ))
         }
     }
+}
+
+impl Given {
+    /// 外部の道具の、起動するコマンド。**部品は名前を直書きせず、これで受け取る。**
+    /// Skill のフォルダの `tool.json` の `external` から、名前で引く ── 利用者は
+    /// `tool.json` を書き換えるだけで、呼ぶコマンドを差し替えられる。
+    ///
+    /// # Errors
+    ///
+    /// Skill のフォルダが見つからないとき、`tool.json` を読めないとき、
+    /// その名前の宣言か、その `command` が無いときに返す。
+    pub fn external(&self, name: &str) -> Result<String, String> {
+        let path = self.skill_root()?.join("tool.json");
+        let text = std::fs::read_to_string(&path)
+            .map_err(|e| format!("{} を読めない ── {e}", path.display()))?;
+        let doc: Value = serde_json::from_str(&text)
+            .map_err(|e| format!("{} が JSON でない ── {e}", path.display()))?;
+        doc.get("external")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .find(|x| x.get("name").and_then(Value::as_str) == Some(name))
+            .and_then(|x| x.get("command").and_then(Value::as_str))
+            .filter(|c| !c.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| format!("{} の external に {name} の command が無い", path.display()))
+    }
+}
+
+/// 宣言を、機械が読む形で返す。**動詞なしで `--json` を付けたときに入口が返す。**
+/// 検査はこれを MCP の `tools/list` と突き合わせ、`skill_root` で Skill のフォルダの
+/// 求め方を確かめる ── 言語に依存せずに、入口を起動するだけで検査できる。
+#[must_use]
+pub fn catalog(all: &[Tool], given: &Given) -> Outcome {
+    let tools: Vec<Value> = all
+        .iter()
+        .map(|t| {
+            let args: Vec<Value> = t
+                .args
+                .iter()
+                .map(|a| json!({ "name": a.name, "required": a.required, "many": a.many }))
+                .collect();
+            json!({ "name": t.name, "summary": t.summary, "args": args })
+        })
+        .collect();
+    let root = given
+        .skill_root()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    Outcome::found(Vec::new(), json!({ "tools": tools, "skill_root": root }))
 }
 
 /// 道具の戻り値。**印字はしない** ── 印字と終了コードは入口が持つ。

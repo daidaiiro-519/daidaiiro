@@ -32,6 +32,9 @@ pub struct Shop<'a> {
     pub parts: &'a Parts,
     /// 見た目と動き。
     pub style: &'a Style,
+    /// 変更前を取得する git のコマンド。**名前を直書きしない** ── 宣言の層が tool.json から
+    /// 読んで渡す。利用者は tool.json を書き換えるだけで、別の git を使える。
+    pub git: &'a str,
 }
 
 /// 組んだ結果。
@@ -167,9 +170,10 @@ fn index(parts: &Parts, marks: &[Value]) -> Result<String, String> {
 /// 記録が `before` を渡していればそれを使う。無ければ `rev`（既定は `HEAD`）の版から取る。
 /// **欄の名前は契約（スキーマ）どおりである** ── 以前は日本語の名前（変更前 ・ 基準）で読んで
 /// いて、渡した変更前が使われなかった。git は、この Skill の目的に不可欠な外部の道具である
-/// （declare の EXTERNAL）。取得できなければ `None` を返し、呼ぶ側が全文へ落とす。
+/// （tool.json の external）。**コマンドは引数で受け取る。** 取得できなければ `None` を返し、
+/// 呼ぶ側が全文を置く。
 #[must_use]
-pub fn before_of(doc: &Value) -> Option<String> {
+pub fn before_of(doc: &Value, git: &str) -> Option<String> {
     if let Some(given) = doc.get("before").and_then(|x| x.as_str()) {
         return Some(given.to_owned()); // 直に渡された場合はそれを使う
     }
@@ -183,7 +187,7 @@ pub fn before_of(doc: &Value) -> Option<String> {
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
         .collect::<Vec<_>>()
         .join("/");
-    let done = Command::new("git")
+    let done = Command::new(git)
         .arg("-C")
         .arg(root)
         .arg("show")
@@ -207,7 +211,7 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
     let ext = code::ext_of(path);
     let key = text_of(doc, "key");
     let built = if code::is_code(&ext) {
-        let (body, lane) = match before_of(doc) {
+        let (body, lane) = match before_of(doc, shop.git) {
             None => (
                 code::render_code(parts, &src, &ext, marks)?,
                 parts.part(

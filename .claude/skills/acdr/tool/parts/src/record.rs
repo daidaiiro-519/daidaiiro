@@ -399,6 +399,7 @@ pub fn build_record(
     folder: &Path,
     check_only: bool,
     force: bool,
+    git: &str,
 ) -> Result<Report, String> {
     let dest = folder.join("index.html");
     let path = folder.join("acdr.json");
@@ -442,6 +443,7 @@ pub fn build_record(
     let shop = Shop {
         parts: &parts,
         style: &style,
+        git,
     };
     let made = build(&shop, &spec, &figure)?;
     let mut lines = made.notes.clone();

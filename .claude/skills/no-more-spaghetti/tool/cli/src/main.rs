@@ -8,7 +8,7 @@
 
 use std::process::ExitCode;
 
-use nms_declare::{tools, Given, Outcome, Tool};
+use nms_declare::{catalog, tools, Given, Outcome, Tool};
 
 /// 旗と位置引数を読み、渡された引数を組む。
 ///
@@ -115,6 +115,11 @@ fn main() -> ExitCode {
     let argv: Vec<String> = argv.into_iter().filter(|a| a != "--json").collect();
 
     let Some(verb) = argv.first() else {
+        // **動詞なしで `--json` を付けたら、宣言を返す。** 検査は入口を起動するだけで、
+        // 言語に依存せずに道具の一覧を読める
+        if as_json {
+            return emit(&catalog(&all, &Given::default()), true, |_| String::new());
+        }
         usage(&all);
         return ExitCode::from(2);
     };

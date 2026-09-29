@@ -20,13 +20,7 @@ use ds_parts::{canvas, catalog, compose, lint, radial, theme, tree, verify};
 use serde::Serialize as _;
 use serde_json::{json, Map, Value};
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// 配置戦略 ── 名前から実体へ。**呼ぶ側に関数を渡させない。**
 /// 既定（層状）は `None` で表す ── 組み立て側が既定を持つ。

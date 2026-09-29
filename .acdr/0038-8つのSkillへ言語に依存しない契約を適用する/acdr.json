@@ -1,0 +1,620 @@
+{
+ "no": "ACDR 0038",
+ "title": "8つの Skill へ、言語に依存しない道具の契約を適用する",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "道具を持つ残りの8つの Skill を、ACDR 0037 で改訂した道具の契約（tool.json ・ 宣言の JSON ・ 外部の道具の注入）に従う形へ移す。",
+ "why": "ACDR 0037 で skills-creator の check を2段にした。残りの8つの Skill は、tool.json が無く、動詞なしの --json で宣言を返さないので、1段目に合格しない。acdr ・ fact-check ・ narration は、外部の道具の名前を部品に直書きしているので、2段目にも合格しない。このリポジトリの書いた後の検査は、この8件で不合格になっている。",
+ "shift": [
+  {
+   "what": "外部の道具の宣言",
+   "from": "各 Skill の宣言の Rust の定数 EXTERNAL",
+   "to": "各 Skill の tool.json の external（名前 ・ 起動するコマンド ・ 理由）"
+  },
+  {
+   "what": "外部の道具の起動",
+   "from": "部品が git ・ curl ・ aws の名前を直書きする（4か所）",
+   "to": "宣言の層が tool.json から読み、部品へ引数で渡す"
+  },
+  {
+   "what": "動詞なしの --json",
+   "from": "人が読む一覧を出し、終了コード2",
+   "to": "宣言（道具 ・ 引数 ・ skill_root）を JSON で返す"
+  },
+  {
+   "what": "Skill のフォルダの判定",
+   "from": "references/ が在る場所",
+   "to": "SKILL.md が在る場所"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "外部の道具は tool.json に1か所だけ宣言し、宣言の層が部品へ注入する。利用者は tool.json だけを書き換える。",
+ "how": "8つの Skill の契約（contract.rs）と入口（cli/main.rs）を、改訂した雛形から置き直した。8つとも雛形と一致することを比較で確認したので、面は acdr の分を代表として置く。宣言から Rust の定数 EXTERNAL を削除し、同じ内容を tool.json の external へ移した。適用の途中で、新しい check の1段目が fact-check の Skill のフォルダを検出できなかった。fact-check は references/ を保持しないからである。判定の基準を SKILL.md に改め、雛形と9つの Skill に反映した。9つの Skill の試験は502件で、失敗は0件である。clippy の誤りも0件である。9つとも新しい check の1段目 ・ 2段目 ・ 文書に合格した。書いた後の検査は合格106件 ・ 不合格0件である。",
+ "applies_to": "変更する正本は、8つの Skill の tool.json ・ 宣言 ・ 契約 ・ 入口と、acdr ・ fact-check ・ narration の部品と試験である。skills-creator の契約の雛形と、skills-creator 自身の契約も変更する。",
+ "alternatives": [
+  {
+   "option": "外部の道具の注入をせず、tool.json と宣言の JSON だけを適用する",
+   "why_not": "acdr ・ fact-check ・ narration が2段目に合格しない。利用者が呼ぶコマンドを差し替えられないままである"
+  },
+  {
+   "option": "fact-check に references/ を置いて、Skill のフォルダの判定を変えない",
+   "why_not": "references/ を保持しない Skill を作るたびに、同じ不合格が起きる。SKILL.md はどの Skill も持つ"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "このリポジトリの配布の準備（dist）を、次の記録として提示する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "j-acdr",
+   "tab": "acdr tool.json",
+   "file": ".claude/skills/acdr/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/acdr/bin/acdr\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。git は差分の記録という目的に属する"
+    }
+   ]
+  },
+  {
+   "key": "d-acdr",
+   "tab": "acdr 宣言",
+   "file": ".claude/skills/acdr/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[(\n\"git\",\n\"git のリポジトリの版から、変更前の中身を取得する。git の差分を記録することが目的である\",\n)];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    },
+    {
+     "find": "// **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない",
+     "before": "let report =\nmatch record::build_record(&or_misuse!(references(given)), &folder, check_only, force) {\nOk(report) => report,\nErr(why) => {\n// **入力の検査は、検出であって誤用ではない** ── 呼び方は正しい。\n// **見出しの行は検出ではない** ── 印字する行には残し、検出からは外す\nlet lines: Vec<String> = why.lines().map(str::to_owned).collect();\nlet findings = if lines.len() > 1 && lines[0].ends_with(':') {\nlines[1..].to_vec()\n} else {\nlines.clone()\n};\nreturn Outcome::found(\nfindings,\njson!({ \"record\": record, \"code\": 1, \"lines\": lines }),\n);\n}\n};",
+     "why": "外部の道具のコマンドを given.external で tool.json から読み、部品へ渡す。部品は名前を直書きしない"
+    }
+   ]
+  },
+  {
+   "key": "j-brainstorming-board",
+   "tab": "brainstorming-board tool.json",
+   "file": ".claude/skills/brainstorming-board/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/brainstorming-board/bin/brainstorming-board\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。この Skill は外部の道具を呼ばないので、external は空である"
+    }
+   ]
+  },
+  {
+   "key": "d-brainstorming-board",
+   "tab": "brainstorming-board 宣言",
+   "file": ".claude/skills/brainstorming-board/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    }
+   ]
+  },
+  {
+   "key": "j-design-svg",
+   "tab": "design-svg tool.json",
+   "file": ".claude/skills/design-svg/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/design-svg/bin/design-svg\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。この Skill は外部の道具を呼ばないので、external は空である"
+    }
+   ]
+  },
+  {
+   "key": "d-design-svg",
+   "tab": "design-svg 宣言",
+   "file": ".claude/skills/design-svg/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    }
+   ]
+  },
+  {
+   "key": "j-doc-writing-skills",
+   "tab": "doc-writing-skills tool.json",
+   "file": ".claude/skills/doc-writing-skills/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/doc-writing-skills/bin/doc-writing-skills\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。この Skill は外部の道具を呼ばないので、external は空である"
+    }
+   ]
+  },
+  {
+   "key": "d-doc-writing-skills",
+   "tab": "doc-writing-skills 宣言",
+   "file": ".claude/skills/doc-writing-skills/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    }
+   ]
+  },
+  {
+   "key": "j-fact-check",
+   "tab": "fact-check tool.json",
+   "file": ".claude/skills/fact-check/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/fact-check/bin/fact-check\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。curl は、利用者の環境のプロキシと証明書の設定を使うために維持する"
+    }
+   ]
+  },
+  {
+   "key": "d-fact-check",
+   "tab": "fact-check 宣言",
+   "file": ".claude/skills/fact-check/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[(\n\"curl\",\n\"利用者の環境のプロキシと証明書の設定をそのまま使い、原典を取得する\",\n)];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    },
+    {
+     "find": "// **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない",
+     "before": "match source::fetch(url, &dir) {",
+     "why": "外部の道具のコマンドを given.external で tool.json から読み、部品へ渡す。部品は名前を直書きしない"
+    }
+   ]
+  },
+  {
+   "key": "j-narration",
+   "tab": "narration tool.json",
+   "file": ".claude/skills/narration/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/narration/bin/narration\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。aws は、Rust の SDK が sso-session の形の SSO 設定に対応していないので維持する"
+    }
+   ]
+  },
+  {
+   "key": "d-narration",
+   "tab": "narration 宣言",
+   "file": ".claude/skills/narration/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[\n(\"aws\", \"Amazon Polly で音声を合成する。AWS の Rust の SDK は、sso-session の形の SSO 設定に対応していない\"),\n];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    },
+    {
+     "find": "// **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない",
+     "before": "match voice::run(&dir, &script, &chosen) {",
+     "why": "外部の道具のコマンドを given.external で tool.json から読み、部品へ渡す。部品は名前を直書きしない"
+    },
+    {
+     "find": "let aws = match given.external(\"aws\") {",
+     "before": "match nar_parts::voice::put_lexicon(&path, name) {",
+     "why": "外部の道具のコマンドを given.external で tool.json から読み、部品へ渡す。部品は名前を直書きしない"
+    }
+   ]
+  },
+  {
+   "key": "j-no-more-spaghetti",
+   "tab": "no-more-spaghetti tool.json",
+   "file": ".claude/skills/no-more-spaghetti/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/no-more-spaghetti/bin/no-more-spaghetti\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。規則ファイルが指定する道具を実行する（\"*\"）"
+    }
+   ]
+  },
+  {
+   "key": "d-no-more-spaghetti",
+   "tab": "no-more-spaghetti 宣言",
+   "file": ".claude/skills/no-more-spaghetti/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[(\n\"*\",\n\"規則ファイルに書かれた、検査する側のプロジェクトの道具を実行する\",\n)];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    }
+   ]
+  },
+  {
+   "key": "j-slide-deck",
+   "tab": "slide-deck tool.json",
+   "file": ".claude/skills/slide-deck/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/slide-deck/bin/slide-deck\",",
+     "before": "（無い）",
+     "why": "tool.json を置いた。HTML を PDF にするブラウザは、利用者が引数で指定する（\"*\"）"
+    }
+   ]
+  },
+  {
+   "key": "d-slide-deck",
+   "tab": "slide-deck 宣言",
+   "file": ".claude/skills/slide-deck/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub use contract::{catalog, Arg, Given, Outcome, Tool};",
+     "before": "pub use contract::{Arg, Given, Outcome, Tool};\n/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この\n/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う\n/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const EXTERNAL: &[(&str, &str)] = &[(\n\"*\",\n\"利用者が指定するヘッドレスのブラウザで、HTML を PDF にする\",\n)];",
+     "why": "Rust の定数 EXTERNAL を削除し、宣言を返す catalog を公開した。外部の道具は tool.json の external へ移した"
+    }
+   ]
+  },
+  {
+   "key": "contr",
+   "tab": "契約（8つ共通）",
+   "file": ".claude/skills/acdr/tool/declare/src/contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、",
+     "before": "/// 渡されなければ、実行ファイルの1つ上（`bin/` の親）とする ── 置き場所は道具の契約が\n/// `bin/` に固定するので、配布しても変わらない。どちらにも `references/` が無ければ、\n/// 試した経路を示して止める。\n/// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。",
+     "why": "Skill のフォルダの判定の基準を、references/ から SKILL.md に改めた。references/ を保持しない fact-check のフォルダを、新しい check の1段目が検出できなかった。SKILL.md はどの Skill も持つ"
+    },
+    {
+     "find": "if root.join(\"SKILL.md\").is_file() {",
+     "before": "if root.join(\"references\").is_dir() {\n\"Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す\",",
+     "why": "外部の道具のコマンドを tool.json から読む external と、宣言を返す catalog を加えた（ACDR 0037 で改訂した雛形）"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "入口（8つ共通）",
+   "file": ".claude/skills/acdr/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use acd_declare::{catalog, tools, Given, Outcome, Tool};",
+     "before": "use acd_declare::{tools, Given, Outcome, Tool};",
+     "why": "宣言を返す catalog を読み込む"
+    },
+    {
+     "find": "// **動詞なしで `--json` を付けたら、宣言を返す。** 検査は入口を起動するだけで、",
+     "before": "（無い）",
+     "why": "動詞なしで --json を付けたら、宣言を JSON で返す。新しい check の1段目が、入口を起動するだけで道具の一覧を読む"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "contract.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// `SKILL.md` が無ければ、試した経路を示して止める ── `SKILL.md` はどの Skill も持つが、",
+     "before": "/// `references/` が無ければ、試した経路を示して止める。\n/// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。",
+     "why": "Skill のフォルダの判定の基準を、references/ から SKILL.md に改めた。references/ を保持しない fact-check のフォルダを、新しい check の1段目が検出できなかった。SKILL.md はどの Skill も持つ"
+    },
+    {
+     "find": "if root.join(\"SKILL.md\").is_file() {",
+     "before": "if root.join(\"references\").is_dir() {\n\"Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す\",",
+     "why": "Skill のフォルダの判定の基準を、references/ から SKILL.md に改めた。references/ を保持しない fact-check のフォルダを、新しい check の1段目が検出できなかった。SKILL.md はどの Skill も持つ"
+    }
+   ]
+  },
+  {
+   "key": "sc-contr",
+   "tab": "skills-creator 契約",
+   "file": ".claude/skills/skills-creator/tool/declare/src/contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// `SKILL.md` が無ければ、試した経路を示して止める ── `SKILL.md` はどの Skill も持つが、",
+     "before": "/// `references/` が無ければ、試した経路を示して止める。\n/// 実行ファイルの位置を取れないとき、または `references/` が見つからないときに返す。",
+     "why": "Skill のフォルダの判定の基準を、references/ から SKILL.md に改めた。references/ を保持しない fact-check のフォルダを、新しい check の1段目が検出できなかった。SKILL.md はどの Skill も持つ"
+    },
+    {
+     "find": "if root.join(\"SKILL.md\").is_file() {",
+     "before": "if root.join(\"references\").is_dir() {\n\"Skill の置き場所が見つからない ── {} に references/ が無い。--skill_root で渡す\",",
+     "why": "Skill のフォルダの判定の基準を、references/ から SKILL.md に改めた。references/ を保持しない fact-check のフォルダを、新しい check の1段目が検出できなかった。SKILL.md はどの Skill も持つ"
+    }
+   ]
+  },
+  {
+   "key": "a-panes",
+   "tab": "acdr panes.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/panes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 変更前を取得する git のコマンド。**名前を直書きしない** ── 宣言の層が tool.json から",
+     "before": "（無い）",
+     "why": "組み立てに渡す一式（Shop）に、git のコマンドを持たせた。利用者は tool.json を書き換えるだけで、別の git を使える"
+    },
+    {
+     "find": "/// （tool.json の external）。**コマンドは引数で受け取る。** 取得できなければ `None` を返し、",
+     "before": "/// （declare の EXTERNAL）。取得できなければ `None` を返し、呼ぶ側が全文へ落とす。\npub fn before_of(doc: &Value) -> Option<String> {",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "let done = Command::new(git)",
+     "before": "let done = Command::new(\"git\")",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "let (body, lane) = match before_of(doc, shop.git) {",
+     "before": "let (body, lane) = match before_of(doc) {",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    }
+   ]
+  },
+  {
+   "key": "a-record",
+   "tab": "acdr record.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "git: &str,",
+     "before": "（無い）",
+     "why": "記録を組む処理が git のコマンドを受け取り、組み立てに渡す一式へ入れる"
+    },
+    {
+     "find": "git,",
+     "before": "（無い）",
+     "why": "記録を組む処理が git のコマンドを受け取り、組み立てに渡す一式へ入れる"
+    }
+   ]
+  },
+  {
+   "key": "a-tests",
+   "tab": "acdr の試験",
+   "file": ".claude/skills/acdr/tool/parts/tests/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "git: \"git\",",
+     "before": "（無い）",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "git: \"git\",",
+     "before": "（無い）",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "git: \"git\",",
+     "before": "（無い）",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let why = record::build_record(&references(), &folder, false, false, \"git\").expect_err(\"断る\");",
+     "before": "let why = record::build_record(&references(), &folder, false, false).expect_err(\"断る\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, true, false, \"git\").expect(\"検査できる\");",
+     "before": "let got = record::build_record(&references(), &folder, true, false).expect(\"検査できる\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "record::build_record(&references(), &folder, false, false, \"git\").expect(\"書ける\");",
+     "before": "record::build_record(&references(), &folder, false, false).expect(\"書ける\");\nlet got = record::build_record(&references(), &folder, true, false).expect(\"検査できる\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, false, false, \"git\").expect(\"組める\");",
+     "before": "let got = record::build_record(&references(), &folder, false, false).expect(\"組める\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, false, false, \"git\").expect(\"答える\");",
+     "before": "let got = record::build_record(&references(), &folder, false, false).expect(\"答える\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, true, false, \"git\").expect(\"答える\");",
+     "before": "let got = record::build_record(&references(), &folder, true, false).expect(\"答える\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, false, true, \"git\").expect(\"組める\");",
+     "before": "let got = record::build_record(&references(), &folder, false, true).expect(\"組める\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, false, false, \"git\").expect(\"組める\");",
+     "before": "let got = record::build_record(&references(), &folder, false, false).expect(\"組める\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = record::build_record(&references(), &folder, false, false, \"git\").expect(\"組める\");",
+     "before": "let got = record::build_record(&references(), &folder, false, false).expect(\"組める\");",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "assert_eq!(panes::before_of(&doc, \"git\").as_deref(), Some(\"旧い中身\"));",
+     "before": "assert_eq!(panes::before_of(&doc).as_deref(), Some(\"旧い中身\"));",
+     "why": "組み立てに渡す一式と、記録を組む処理に、git のコマンドを渡す形へ改めた"
+    },
+    {
+     "find": "let got = panes::before_of(&doc, \"git\").expect(\"HEAD の版が在る\");",
+     "before": "let got = panes::before_of(&doc).expect(\"HEAD の版が在る\");\nassert!(panes::before_of(&missing).is_none());",
+     "why": "注入した git のコマンドが実際に起動されることを固定する試験を足した"
+    }
+   ]
+  },
+  {
+   "key": "f-source",
+   "tab": "fact-check source.rs",
+   "file": ".claude/skills/fact-check/tool/parts/src/source.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 取得は curl で行う ── 利用者の環境のプロキシと証明書の設定をそのまま使うためである。",
+     "before": "pub fn fetch(url: &str, outdir: &Path) -> io::Result<Fetched> {",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "let done = Command::new(curl)",
+     "before": "let done = Command::new(\"curl\")",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    }
+   ]
+  },
+  {
+   "key": "f-tests",
+   "tab": "fact-check の試験",
+   "file": ".claude/skills/fact-check/tool/parts/tests/source.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_curl_command_passed_in_is_the_one_run() {",
+     "before": "（無い）",
+     "why": "注入した curl のコマンドが実際に起動されることを固定する試験を足した"
+    }
+   ]
+  },
+  {
+   "key": "n-voice",
+   "tab": "narration voice.rs",
+   "file": ".claude/skills/narration/tool/parts/src/voice.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// Amazon Polly を呼ぶ。**コマンドは引数で受け取る**（tool.json の external から、宣言の層が渡す）。",
+     "before": "fn aws(args: &[&str], out: &Path) -> io::Result<()> {\nlet mut command = Command::new(\"aws\");",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "aws: &str,",
+     "before": "（無い）",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "polly(aws, &audio, &dest.with_extension(\"mp3\"))?;",
+     "before": "aws(&audio, &dest.with_extension(\"mp3\"))?;",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "&dest.with_file_name(format!(\"{name}.marks.json\")),",
+     "before": "aws(&marks, &dest.with_file_name(format!(\"{name}.marks.json\")))",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {",
+     "before": "pub fn run(dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "&script.lexicons,",
+     "before": "synthesize(&row.text, voice, &script.engine, &dest, &script.lexicons)?;",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    },
+    {
+     "find": "pub fn put_lexicon(aws: &str, path: &Path, name: &str) -> io::Result<()> {",
+     "before": "pub fn put_lexicon(path: &Path, name: &str) -> io::Result<()> {\nlet mut command = Command::new(\"aws\");",
+     "why": "部品が外部の道具の名前を直書きせず、引数で受け取ったコマンドを起動する。宣言の層が tool.json から読んで渡す（ACDR 0036 の論点3）"
+    }
+   ]
+  },
+  {
+   "key": "n-tests",
+   "tab": "narration の試験",
+   "file": ".claude/skills/narration/tool/parts/tests/voice.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "注入した aws のコマンドが実際に起動されることを固定する試験を置いた"
+    }
+   ]
+  },
+  {
+   "key": "a-skill",
+   "tab": "acdr SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（84件）",
+     "before": "事例（83件）",
+     "why": "試験の件数を実数に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "f-skill",
+   "tab": "fact-check SKILL.md",
+   "file": ".claude/skills/fact-check/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（23件）",
+     "before": "事例（22件）",
+     "why": "試験の件数を実数に一致させた。以前から1件多く、今回さらに1件を足した"
+    }
+   ]
+  }
+ ],
+ "lede": "残りの8つの Skill へ、ACDR 0037 で改訂した言語に依存しない道具の契約を適用する提案である。",
+ "seal": {
+  "j-acdr": "a37ee4be7d017a8856f8d6b56c0b3d8793ae7cffc8dd97c6fca8c2282f8216bb",
+  "d-acdr": "485cf4dfc42f4731fafdfe791d3c00d508202ec3c6d72da7a4e39c4ad95da3fd",
+  "j-brainstorming-board": "b202497b26637f64df2a008b353f20b744c0a1d16fed3387e61f82b83b06af51",
+  "d-brainstorming-board": "66ce72132d8c2c210c5a0e357a1f02f4942706916621630f1253a4f5a642de7f",
+  "j-design-svg": "1560c6e8a78f0b030e53006d93fb60cb0bc204ec93ef25572a348779960f9971",
+  "d-design-svg": "9da18cb86d4f72c0c2ebd66a5e26127d75cbd204b37fee35a8d2c970f200c37c",
+  "j-doc-writing-skills": "7b229bfbf1f1c30a41b9c3d4b9cd1f2a41e0398ceb10bed231344fe55e3e07df",
+  "d-doc-writing-skills": "50aceaec3e8b58f3616e04af92ba7a4f998beae88dda5f37e6c7b36f10c11f73",
+  "j-fact-check": "c9ff40dafd64af6685c2fcfa95647da13994578a38f410260265650784af81ed",
+  "d-fact-check": "67e1e54331e0e08373974e85492485ff66550d7df07a74a0cb69c32d7e222963",
+  "j-narration": "08aefd88fbf723bb334edfc04bd5b73a835e28ab60a74c759015c5adba4497ac",
+  "d-narration": "4472c5f3b5691419753f76b63b1b19c19e707a2245a6fc9ee887a8b2ba980639",
+  "j-no-more-spaghetti": "65617cd5d0f56b2e7549b443768b04cf1d56c7f43664c1859d2949342013fa8d",
+  "d-no-more-spaghetti": "2d2d43ad9b366a2b6d0f4268814cf31a027dd87cbfe34b118e5f1bdd2ef0b01b",
+  "j-slide-deck": "19593563700bc0de622e2430a3ee36a4443a850c027148bb812fec9fe8bbd0d6",
+  "d-slide-deck": "fc4b7421d6a7c2b3ba96f9b8496c2e811a944de5a9c493248031ee79ccfaf820",
+  "contr": "1dd195f7106f2749f154a53dfe262d9854bf10713e35d2dff8a9f933b262d080",
+  "cli": "7ace9f60e213a49068c949d0db66a4224193962dcbd8a14a55d9d65624cf3df2",
+  "tmpl": "75fedebb2ec9cd508901351daee10f2491366b3b3fe7aead525c4915e3eb1270",
+  "sc-contr": "1dd195f7106f2749f154a53dfe262d9854bf10713e35d2dff8a9f933b262d080",
+  "a-panes": "2ddf009f146daeb2c37d9013f6f5f6e3f451553f1d0ffcd1c31429e370a88eff",
+  "a-record": "1c9a7b4bec1c1ddb5a4f184a1202e8ccdc142b336a9d244697d2a6e6a19e78a0",
+  "a-tests": "21107af740ff8da860baf451496b710d755adf10658746bd2cf3f975a9d3acb0",
+  "f-source": "9dacfd45ae94546b396037a250182cb8e8532b1d8f468f7299f3677159918dfd",
+  "f-tests": "af4a374d5cafad5484b9d0ea5d858380d209f7aac2cc9a698562d7bcd55674d7",
+  "n-voice": "ec2bb6a4c0d566ce0dcffb687842e802f6bf110309206bfa255fd6a6dc154ca2",
+  "n-tests": "ac397735d57b403afd53b420fefd96ee48e1942e194815b54c4fe17c7d2f01fb",
+  "a-skill": "3db28ce9e48a032680dd0b3a1e0f688c214d589726f81b276915790ffd979821",
+  "f-skill": "6fe05c117930352f912dabde2b9feefae2b823acdeab1ec1221496ed6f3ea3a6"
+ }
+}

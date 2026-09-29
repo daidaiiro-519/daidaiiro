@@ -12,16 +12,7 @@ use fc_parts::find::How;
 use fc_parts::source::{self, Scan};
 use serde_json::json;
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[(
-    "curl",
-    "利用者の環境のプロキシと証明書の設定をそのまま使い、原典を取得する",
-)];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// 数を3桁ごとに区切る。**読み手が桁を数えずに済む。**
 fn grouped(n: u64) -> String {
@@ -49,7 +40,12 @@ fn run_fetch(given: &Given) -> Outcome {
         return Outcome::misuse("出どころを渡していない".to_owned());
     }
     let dir = outdir(given);
-    match source::fetch(url, &dir) {
+    // **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない
+    let curl = match given.external("curl") {
+        Ok(curl) => curl,
+        Err(why) => return Outcome::misuse(why),
+    };
+    match source::fetch(&curl, url, &dir) {
         Ok(got) => match source::write_meta(&got) {
             Ok(meta) => Outcome::found(
                 Vec::new(),

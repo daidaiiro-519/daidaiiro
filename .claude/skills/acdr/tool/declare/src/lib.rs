@@ -11,16 +11,7 @@ use std::path::PathBuf;
 use acd_parts::{record, tokens, validate};
 use serde_json::{json, Value};
 
-pub use contract::{Arg, Given, Outcome, Tool};
-
-/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
-/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
-/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
-/// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const EXTERNAL: &[(&str, &str)] = &[(
-    "git",
-    "git のリポジトリの版から、変更前の中身を取得する。git の差分を記録することが目的である",
-)];
+pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
 /// 題を書いていないことが、出来上がりから分かる文字列。
 const DEFAULT_TITLE: &str = "題を記入する";
@@ -132,24 +123,31 @@ fn run_render(given: &Given) -> Outcome {
     let folder = PathBuf::from(record);
     let check_only = !given.one("check", "").is_empty();
     let force = !given.one("force", "").is_empty();
-    let report =
-        match record::build_record(&or_misuse!(references(given)), &folder, check_only, force) {
-            Ok(report) => report,
-            Err(why) => {
-                // **入力の検査は、検出であって誤用ではない** ── 呼び方は正しい。
-                // **見出しの行は検出ではない** ── 印字する行には残し、検出からは外す
-                let lines: Vec<String> = why.lines().map(str::to_owned).collect();
-                let findings = if lines.len() > 1 && lines[0].ends_with(':') {
-                    lines[1..].to_vec()
-                } else {
-                    lines.clone()
-                };
-                return Outcome::found(
-                    findings,
-                    json!({ "record": record, "code": 1, "lines": lines }),
-                );
-            }
-        };
+    // **外部の道具は tool.json から読んで渡す** ── 部品は名前を直書きしない
+    let git = or_misuse!(given.external("git"));
+    let report = match record::build_record(
+        &or_misuse!(references(given)),
+        &folder,
+        check_only,
+        force,
+        &git,
+    ) {
+        Ok(report) => report,
+        Err(why) => {
+            // **入力の検査は、検出であって誤用ではない** ── 呼び方は正しい。
+            // **見出しの行は検出ではない** ── 印字する行には残し、検出からは外す
+            let lines: Vec<String> = why.lines().map(str::to_owned).collect();
+            let findings = if lines.len() > 1 && lines[0].ends_with(':') {
+                lines[1..].to_vec()
+            } else {
+                lines.clone()
+            };
+            return Outcome::found(
+                findings,
+                json!({ "record": record, "code": 1, "lines": lines }),
+            );
+        }
+    };
     // **通過の行は検出ではない。** 検出は、検査に落ちた行 ・ 差が在る行 ・ 拒否した行である
     let mut bad: Vec<String> = report
         .lines

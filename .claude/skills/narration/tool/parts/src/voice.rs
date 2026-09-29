@@ -143,8 +143,9 @@ pub fn plan(dir: &Path, script: &Script, voice: &str) -> Vec<Planned> {
         .collect()
 }
 
-fn aws(args: &[&str], out: &Path) -> io::Result<()> {
-    let mut command = Command::new("aws");
+/// Amazon Polly を呼ぶ。**コマンドは引数で受け取る**（tool.json の external から、宣言の層が渡す）。
+fn polly(aws: &str, args: &[&str], out: &Path) -> io::Result<()> {
+    let mut command = Command::new(aws);
     command
         .args(["polly", "synthesize-speech"])
         .args(args)
@@ -168,6 +169,7 @@ fn aws(args: &[&str], out: &Path) -> io::Result<()> {
 ///
 /// 合成に失敗したときに返す。
 pub fn synthesize(
+    aws: &str,
     text: &str,
     voice: &str,
     engine: &str,
@@ -182,7 +184,7 @@ pub fn synthesize(
     }
     let mut audio = head.clone();
     audio.extend(["--output-format", "mp3", "--text", text]);
-    aws(&audio, &dest.with_extension("mp3"))?;
+    polly(aws, &audio, &dest.with_extension("mp3"))?;
 
     let mut marks = head;
     marks.extend(["--output-format", "json", MARK_TYPES, "--text", text]);
@@ -191,7 +193,11 @@ pub fn synthesize(
         .unwrap_or_default()
         .to_string_lossy()
         .into_owned();
-    aws(&marks, &dest.with_file_name(format!("{name}.marks.json")))
+    polly(
+        aws,
+        &marks,
+        &dest.with_file_name(format!("{name}.marks.json")),
+    )
 }
 
 /// 作った結果。
@@ -211,7 +217,7 @@ pub struct Made {
 /// # Errors
 ///
 /// 合成に失敗したとき、または書けないときに返す。
-pub fn run(dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {
+pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {
     let cache = dir.join(&script.cache);
     std::fs::create_dir_all(&cache)?;
     let mut out = Made::default();
@@ -221,7 +227,14 @@ pub fn run(dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {
         if dest.with_extension("mp3").exists() {
             out.taken.push(row.id.clone());
         } else {
-            synthesize(&row.text, voice, &script.engine, &dest, &script.lexicons)?;
+            synthesize(
+                aws,
+                &row.text,
+                voice,
+                &script.engine,
+                &dest,
+                &script.lexicons,
+            )?;
             out.made.push(row.id.clone());
         }
         let data = std::fs::read(dest.with_extension("mp3")).unwrap_or_default();
@@ -244,9 +257,9 @@ pub fn run(dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {
 /// # Errors
 ///
 /// 登録に失敗したときに返す。
-pub fn put_lexicon(path: &Path, name: &str) -> io::Result<()> {
+pub fn put_lexicon(aws: &str, path: &Path, name: &str) -> io::Result<()> {
     let content = format!("file://{}", path.display());
-    let mut command = Command::new("aws");
+    let mut command = Command::new(aws);
     command.args([
         "polly",
         "put-lexicon",
