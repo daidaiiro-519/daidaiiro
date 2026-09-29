@@ -1,0 +1,67 @@
+{
+ "no": "ACDR 0040",
+ "title": "組み立ての試験で、MCP の初期化を完了させる",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "配布の CI の組み立ての試験で、MCP サーバーとの初期化の完了通知まで送ってから応答を照合する。",
+ "why": "tag v1.0.0 を push した CI（run 36524094089）が、Linux の組み立ての試験で失敗し、公開まで進まなかった。試験は initialize だけを送って入力を閉じていた。MCP の初期化は、initialize の応答のあとに、呼ぶ側が完了通知を送って終わる。サーバーは完了通知を待ったまま入力が閉じられたので、異常終了した。手元で同じ失敗を再現し、完了通知まで送ると終了コード0で応答が返ることを確認した。",
+ "shift": [
+  {
+   "what": "MCP の起動の試験",
+   "from": "initialize だけを送り、出力を grep で直接照合する",
+   "to": "initialize と初期化の完了通知を送り、応答を変数に受けてから照合する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は完了通知を送らずに入力を閉じていた。変更後は完了通知まで送ってから閉じる。",
+ "how": "release.yml と、その雛形の2か所を同じ内容に修正した。直した手順を CI と同じシェルの設定（-e -o pipefail）で、手元の9つの MCP サーバーに対して実行し、すべて通過した。",
+ "applies_to": "変更する正本は、このリポジトリの .github/workflows/release.yml と、skills-creator の release.yml の雛形である。",
+ "alternatives": [
+  {
+   "option": "pipefail を外す",
+   "why_not": "サーバーの異常終了を検出できなくなる。応答を返したあとに異常終了する入口を、試験が合格と判定することになる"
+  },
+  {
+   "option": "MCP の起動の試験を削除する",
+   "why_not": "組み立てた MCP サーバーが応答するかを、公開の前に確認できなくなる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "利用者の指示で、tag v1.0.0 を直したコミットへ付け直して push し、CI を再実行する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "yml",
+   "tab": "release.yml",
+   "file": ".github/workflows/release.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 初期化の完了通知まで送る ── initialize だけで入力を閉じると、サーバーは完了通知を待ったまま",
+     "before": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"ci\",\"version\":\"0\"}}}' \\\n| \"$bin/$name-mcp$exe\" | grep -q '\"serverInfo\"' || { echo \"$name-mcp が応答しない\"; exit 1; }",
+     "why": "MCP の起動の試験で、initialize のあとに初期化の完了通知も送る。initialize だけで入力を閉じると、サーバーは完了通知を待ったまま異常終了する。CI のシェルは pipefail で動くので、応答が出ていてもその異常終了が手順の失敗になった（v1.0.0 の run 36524094089）。応答は変数に受けてから照合する"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "release.yml.tmpl",
+   "file": ".claude/skills/skills-creator/references/distribution/release.yml.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 初期化の完了通知まで送る ── initialize だけで入力を閉じると、サーバーは完了通知を待ったまま",
+     "before": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"ci\",\"version\":\"0\"}}}' \\\n| \"$bin/$name-mcp$exe\" | grep -q '\"serverInfo\"' || { echo \"$name-mcp が応答しない\"; exit 1; }",
+     "why": "MCP の起動の試験で、initialize のあとに初期化の完了通知も送る。initialize だけで入力を閉じると、サーバーは完了通知を待ったまま異常終了する。CI のシェルは pipefail で動くので、応答が出ていてもその異常終了が手順の失敗になった（v1.0.0 の run 36524094089）。応答は変数に受けてから照合する"
+    }
+   ]
+  }
+ ],
+ "lede": "配布の CI の、MCP サーバーの起動の試験を直す提案である。",
+ "seal": {
+  "yml": "2eb4c6a3c0d8d906f471a3a1910c844aa9e055268f7a17933b0bc46adc157225",
+  "tmpl": "b844fe528aa79346ae0e995eb7d6531e57dcaae651a1401fe877f144eaccc120"
+ }
+}

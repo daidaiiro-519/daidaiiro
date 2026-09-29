@@ -71,8 +71,13 @@ jobs:
             # 引数を渡さなければ、使い方を示して 0 か 2（誤用）で終わる ── それ以外は起動していない
             set +e; "$bin/$name$exe" >/dev/null 2>&1; rc=$?; set -e
             [ "$rc" = 0 ] || [ "$rc" = 2 ] || { echo "$name が起動しない（$rc）"; exit 1; }
-            printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-              | "$bin/$name-mcp$exe" | grep -q '"serverInfo"' || { echo "$name-mcp が応答しない"; exit 1; }
+            # 初期化の完了通知まで送る ── initialize だけで入力を閉じると、サーバーは完了通知を待ったまま
+            # 異常終了する。応答は変数に受けてから照合する（pipefail の下で grep -q が先に閉じても失敗にしない）
+            out="$(printf '%s\n' \
+              '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+              '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+              | "$bin/$name-mcp$exe" 2>/dev/null)" || { echo "$name-mcp が異常終了した"; exit 1; }
+            printf '%s' "$out" | grep -q '"serverInfo"' || { echo "$name-mcp が応答しない"; exit 1; }
           done
       - name: 梱包する ── SKILL.md ・ references/ などと bin/。道具のソース（tool/）は入れない
         run: |
