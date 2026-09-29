@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: MIT
+//! references の道具の宣言。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・ 描画する ・
+//! 取り込む（ACDR 0043）。実体は部品の `refs` が持つ。
+
+use std::path::{Path, PathBuf};
+
+use da_parts::refs;
+use serde_json::json;
+
+use crate::contract::{Arg, Given, Outcome, Tool};
+
+fn refs_dir(given: &Given) -> Result<PathBuf, String> {
+    Ok(given.skill_root()?.join("references"))
+}
+
+macro_rules! or_misuse {
+    ($e:expr) => {
+        match $e {
+            Ok(v) => v,
+            Err(why) => return Outcome::misuse(why),
+        }
+    };
+}
+
+fn opt<'a>(given: &'a Given, name: &str) -> Option<&'a str> {
+    Some(given.one(name, "")).filter(|s| !s.is_empty())
+}
+
+fn run_get(given: &Given) -> Outcome {
+    let dir = or_misuse!(refs_dir(given));
+    let got = or_misuse!(refs::get(&dir, given.one("kind", ""), opt(given, "id")));
+    Outcome::found(Vec::new(), got)
+}
+
+fn run_validate(given: &Given) -> Outcome {
+    let dir = or_misuse!(refs_dir(given));
+    let found = match opt(given, "file") {
+        Some(file) => or_misuse!(refs::validate_file(
+            &dir,
+            given.one("kind", ""),
+            Path::new(file)
+        )),
+        None => or_misuse!(refs::validate(&dir)),
+    };
+    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir))
+        .into_iter()
+        .map(|k| k.name)
+        .collect();
+    Outcome::found(found, json!({ "kinds": kinds }))
+}
+
+fn run_view(given: &Given) -> Outcome {
+    let dir = or_misuse!(refs_dir(given));
+    let html = or_misuse!(refs::view(
+        &dir,
+        given.one("kind", ""),
+        opt(given, "id"),
+        opt(given, "file").map(Path::new)
+    ));
+    match opt(given, "out") {
+        Some(out) => match std::fs::write(out, &html) {
+            Ok(()) => Outcome::found(Vec::new(), json!({ "out": out, "bytes": html.len() })),
+            Err(e) => Outcome::misuse(format!("{out} に書けない ── {e}")),
+        },
+        None => Outcome::found(Vec::new(), json!({ "html": html })),
+    }
+}
+
+fn run_import(given: &Given) -> Outcome {
+    let dir = or_misuse!(refs_dir(given));
+    let file = given.one("file", "");
+    let text =
+        or_misuse!(std::fs::read_to_string(file).map_err(|e| format!("{file} を読めない ── {e}")));
+    let doc = refs::import_markdown(
+        given.one("id", ""),
+        given.one("source", file),
+        given.one("fetched", ""),
+        &text,
+    );
+    let path = or_misuse!(refs::put_document(&dir, doc));
+    let found = or_misuse!(refs::validate(&dir));
+    Outcome::found(found, json!({ "path": path.display().to_string() }))
+}
+
+fn human(out: &Outcome) -> String {
+    if !out.ok || !out.findings.is_empty() {
+        return out
+            .findings
+            .iter()
+            .map(|x| format!("  ×  {x}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+    }
+    if let Some(html) = out.data.get("html").and_then(|x| x.as_str()) {
+        return html.to_owned();
+    }
+    serde_json::to_string_pretty(&out.data).unwrap_or_default()
+}
+
+/// references の4つの道具。**宣言の `tools()` がこれを足す。**
+#[must_use]
+pub fn tools() -> Vec<Tool> {
+    let root = || {
+        Arg::opt(
+            "skill_root",
+            "この Skill の置き場所（既定は、実行ファイルの1つ上）",
+            None,
+        )
+    };
+    vec![
+        Tool {
+            name: "get",
+            summary: "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
+            args: vec![Arg::need("kind", "種類の名前"), Arg::opt("id", "項目の id", None), root()],
+            run: run_get,
+            human,
+        },
+        Tool {
+            name: "validate",
+            summary: "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
+            args: vec![Arg::opt("kind", "種類の名前（file と一緒に渡す）", None), Arg::opt("file", "検査する JSON", None), root()],
+            run: run_validate,
+            human,
+        },
+        Tool {
+            name: "view",
+            summary: "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
+            args: vec![Arg::need("kind", "種類の名前"), Arg::opt("id", "項目の id", None), Arg::opt("file", "描画する JSON（回答など）", None), Arg::opt("out", "HTML の置き場所", None), root()],
+            run: run_view,
+            human,
+        },
+        Tool {
+            name: "import",
+            summary: "Markdown の文書を、見出しを節の入れ子に分けて document へ取り込む",
+            args: vec![Arg::need("file", "取り込む Markdown"), Arg::need("id", "document の id"), Arg::opt("source", "元の場所（既定は file）", None), Arg::opt("fetched", "取り込んだ日", None), root()],
+            run: run_import,
+            human,
+        },
+    ]
+}

@@ -53,7 +53,7 @@ flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .ta
 background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;\
 font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}\
 .rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);\
-padding:8px 10px;text-align:left;vertical-align:top}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
+padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
 .rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;\
 position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;\
 left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);\
@@ -62,8 +62,11 @@ margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-t
 .rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;\
 padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;\
 margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}\
-.rv figure{margin:0}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);\
-font-size:12px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}";
+.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);\
+font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}\
+.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}\
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);\
+border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}";
 
 /// 種類1つ。
 #[derive(Debug, Clone)]
@@ -650,6 +653,21 @@ fn inner(value: &Value, schema: &Value, level: usize, ctx: &Ctx) -> String {
             let props = item.get("properties").and_then(Value::as_object);
             match props {
                 Some(p) if p.values().all(|s| is_scalar(resolve(s, ctx.root))) => {
+                    // **どの行も値を保持しない列は描かない** ── 空の列は、欠けがあるように読める
+                    let p: Vec<(&String, &Value)> = p
+                        .iter()
+                        .filter(|(k, _)| items.iter().any(|v| v.get(k.as_str()).is_some()))
+                        .collect();
+                    // **列が1つなら箇条書きにする** ── 1列の表は、見出しの升が中身を説明しない
+                    if p.len() == 1 {
+                        let (k, s) = p[0];
+                        let lis: String = items
+                            .iter()
+                            .filter_map(|v| v.get(k.as_str()))
+                            .map(|v| format!("<li>{}</li>", cell(s, v, ctx)))
+                            .collect();
+                        return format!("<ul>{lis}</ul>");
+                    }
                     let th: String = p
                         .iter()
                         .map(|(k, s)| format!("<th>{}</th>", esc(str_of(s, "title").unwrap_or(k))))
@@ -703,8 +721,132 @@ fn inner(value: &Value, schema: &Value, level: usize, ctx: &Ctx) -> String {
     }
 }
 
-/// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード。
-fn blocks_html(blocks: &Value) -> String {
+/// SVG を埋め込む。**`svg` はファイル名（references からの経路）か、SVG そのもの。**
+fn svg_of(p: &str, base: &Path) -> String {
+    if p.trim_start().starts_with("<svg") {
+        p.to_owned()
+    } else {
+        std::fs::read_to_string(base.join(p)).unwrap_or_default()
+    }
+}
+
+/// 論点の並びを描く ── **1件を1枚にし、`heading` の欄を題、`lead` の欄を主張にする。**
+/// 残りの欄は `field` が描く。欄の名前は並べない。
+fn sections_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {
+    let item = resolve(schema.get("items").unwrap_or(&Value::Null), ctx.root);
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|v| {
+            format!(
+                "<section class=\"block topic\">{}</section>",
+                fields(item, v, ctx)
+            )
+        })
+        .collect()
+}
+
+/// 欄を順に描く。**`heading` は題、`lead` は主張、`hidden` は描かない。**
+fn fields(schema: &Value, value: &Value, ctx: &Ctx) -> String {
+    let Some(props) = schema.get("properties").and_then(Value::as_object) else {
+        return inner(value, schema, 3, ctx);
+    };
+    props
+        .iter()
+        .filter(|(k, _)| k.as_str() != "kind")
+        .filter_map(|(k, p)| value.get(k).map(|v| field(resolve(p, ctx.root), v, ctx)))
+        .collect()
+}
+
+/// 欄1つを描く。見出しを付けない ── 論点と単位の中では、形そのものが役割を示す。
+fn field(schema: &Value, value: &Value, ctx: &Ctx) -> String {
+    match view_of(schema) {
+        "hidden" => String::new(),
+        "heading" => format!("<h2>{}</h2>", esc(&text_of(value))),
+        "lead" => format!("<p class=\"claim\">{}</p>", esc(&text_of(value))),
+        "subhead" => format!("<h3>{}</h3>", esc(&text_of(value))),
+        // **段落の並びは、段落ごとに描く** ── 1つの文字列へ連結すると、原文の段落の切れ目が消える
+        "paras" => value
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|p| format!("<p>{}</p>", esc(&text_of(p))))
+            .collect(),
+        "svg" => format!(
+            "<figure>{}</figure>",
+            svg_of(value.as_str().unwrap_or(""), ctx.base)
+        ),
+        "code" => format!("<pre class=\"code\">{}</pre>", esc(&text_of(value))),
+        "units" => units_html(schema, value, ctx),
+        "blocks" => blocks_html(value, ctx.base),
+        "steps" => steps_html(schema, value, ctx),
+        "table" => {
+            let mut t = value.clone();
+            t["kind"] = json!("table");
+            blocks_html(&json!([t]), ctx.base)
+        }
+        _ => inner(value, schema, 4, ctx),
+    }
+}
+
+/// 単位の並びを描く。**形は `kind` の値で、`items.oneOf` から選ぶ** ── 形の `title` を札にし、
+/// 欄はその形の見せ方で描く。合う形が無ければ、欄をそのまま描く。
+fn units_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {
+    let forms: Vec<&Value> = schema
+        .get("items")
+        .and_then(|i| resolve(i, ctx.root).get("oneOf"))
+        .and_then(Value::as_array)
+        .map(|a| a.iter().map(|f| resolve(f, ctx.root)).collect())
+        .unwrap_or_default();
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|u| {
+            let form = forms
+                .iter()
+                .find(|f| f.pointer("/properties/kind/const") == u.get("kind"))
+                .copied()
+                .unwrap_or(&Value::Null);
+            let label = str_of(form, "title")
+                .map(|t| format!("<span class=\"ulabel\">{}</span>", esc(t)))
+                .unwrap_or_default();
+            format!("<div class=\"unit\">{label}{}</div>", fields(form, u, ctx))
+        })
+        .collect()
+}
+
+/// 手順を番号付きで描く。**各段の1つ目の欄を太字にし、残りを添える。**
+fn steps_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {
+    let item = resolve(schema.get("items").unwrap_or(&Value::Null), ctx.root);
+    let keys: Vec<&String> = item
+        .get("properties")
+        .and_then(Value::as_object)
+        .map(|p| p.keys().collect())
+        .unwrap_or_default();
+    let lis: String = value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|v| {
+            let mut parts = keys.iter().filter_map(|k| v.get(k.as_str()));
+            let lead = parts
+                .next()
+                .map(|x| format!("<p class=\"lead\">{}</p>", esc(&text_of(x))))
+                .unwrap_or_default();
+            let rest: String = parts
+                .map(|x| format!("<p class=\"sub\">{}</p>", esc(&text_of(x))))
+                .collect();
+            format!("<li>{lead}{rest}</li>")
+        })
+        .collect();
+    format!("<ol class=\"steps\">{lis}</ol>")
+}
+
+/// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む** ──
+/// 描くのは design-svg で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。
+fn blocks_html(blocks: &Value, base: &Path) -> String {
     blocks
         .as_array()
         .into_iter()
@@ -725,6 +867,21 @@ fn blocks_html(blocks: &Value) -> String {
                     .map(|r| format!("<tr>{}</tr>", row(r, "td"))).collect();
                 format!("<div class=\"scroll\"><table><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>")
             }
+            Some("figure") => {
+                let svg = str_of(b, "svg")
+                    .map(|p| {
+                        if p.trim_start().starts_with("<svg") {
+                            p.to_owned()
+                        } else {
+                            std::fs::read_to_string(base.join(p)).unwrap_or_default()
+                        }
+                    })
+                    .unwrap_or_default();
+                let cap = str_of(b, "caption")
+                    .map(|c| format!("<figcaption>{}</figcaption>", esc(c)))
+                    .unwrap_or_default();
+                format!("<figure>{svg}{cap}</figure>")
+            }
             Some("code") => format!("<pre class=\"code\">{}</pre>", esc(str_of(b, "text").unwrap_or(""))),
             _ => format!("<p>{}</p>", esc(str_of(b, "text").unwrap_or(""))),
         })
@@ -732,7 +889,7 @@ fn blocks_html(blocks: &Value) -> String {
 }
 
 /// 節の入れ子を、見出しと本文の字下げで組む。**欄の名前（見出し ・ 本文）は表示しない。**
-fn outline(items: &Value, level: usize) -> String {
+fn outline(items: &Value, level: usize, base: &Path) -> String {
     let h = (level + 1).clamp(3, 6);
     items
         .as_array()
@@ -740,10 +897,13 @@ fn outline(items: &Value, level: usize) -> String {
         .flatten()
         .map(|n| {
             let title = esc(str_of(n, "title").unwrap_or(""));
-            let body = n.get("blocks").map(blocks_html).unwrap_or_default();
+            let body = n
+                .get("blocks")
+                .map(|b| blocks_html(b, base))
+                .unwrap_or_default();
             let kids = n
                 .get("sections")
-                .map(|k| outline(k, level + 1))
+                .map(|k| outline(k, level + 1, base))
                 .unwrap_or_default();
             format!("<div class=\"nest\"><h{h}>{title}</h{h}>{body}{kids}</div>")
         })
@@ -757,11 +917,17 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
         "hidden" => String::new(),
         "outline" => format!(
             "<section class=\"block\">{head}{}</section>",
-            outline(value, 2)
+            outline(value, 2, ctx.base)
         ),
         "blocks" => format!(
             "<section class=\"block\">{head}{}</section>",
-            blocks_html(value)
+            blocks_html(value, ctx.base)
+        ),
+        "sections" => sections_html(schema, value, ctx),
+        // **導入の文と表を1枚にまとめる** ── 分けると、導入の文が別の論点に属すように読める
+        "group" => format!(
+            "<section class=\"block\">{head}{}</section>",
+            fields(schema, value, ctx)
         ),
         "card" if value.is_string() => {
             let title = esc(str_of(schema, "title").unwrap_or(key));
@@ -809,31 +975,10 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
             let cap = esc(str_of(value, "caption").unwrap_or(""));
             format!("<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>")
         }
-        "steps" => {
-            let item = resolve(schema.get("items").unwrap_or(&Value::Null), ctx.root);
-            let keys: Vec<&String> = item
-                .get("properties")
-                .and_then(Value::as_object)
-                .map(|p| p.keys().collect())
-                .unwrap_or_default();
-            let lis: String = value
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|v| {
-                    let mut parts = keys.iter().filter_map(|k| v.get(k.as_str()));
-                    let lead = parts
-                        .next()
-                        .map(|x| format!("<p class=\"lead\">{}</p>", esc(&text_of(x))))
-                        .unwrap_or_default();
-                    let rest: String = parts
-                        .map(|x| format!("<p class=\"sub\">{}</p>", esc(&text_of(x))))
-                        .collect();
-                    format!("<li>{lead}{rest}</li>")
-                })
-                .collect();
-            format!("<section class=\"block\">{head}<ol class=\"steps\">{lis}</ol></section>")
-        }
+        "steps" => format!(
+            "<section class=\"block\">{head}{}</section>",
+            steps_html(schema, value, ctx)
+        ),
         _ => format!(
             "<section class=\"block\">{head}{}</section>",
             inner(value, schema, 3, ctx)

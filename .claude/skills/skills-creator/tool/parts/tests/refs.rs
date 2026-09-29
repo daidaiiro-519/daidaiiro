@@ -4,6 +4,8 @@
 //!
 //!     cargo test -p sc_parts --test refs
 
+#![recursion_limit = "256"]
+
 use std::path::{Path, PathBuf};
 
 use sc_parts::refs;
@@ -305,4 +307,134 @@ fn the_body_is_split_into_blocks() {
     assert_eq!(kinds, vec!["para", "list", "table", "code"]);
     assert_eq!(b[0]["text"], "一文目の続き。");
     assert_eq!(b[2]["rows"][0][0], "1", "強調の記号は外す");
+}
+
+#[test]
+fn a_figure_block_embeds_its_svg() {
+    // **図は design-svg が組んだ SVG を埋め込む** ── 描画は図の記法を解釈しない
+    let dir = scratch("figure");
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../references/profiles/rust/document.schema.json.tmpl");
+    std::fs::copy(here, dir.join("document.schema.json")).expect("写せる");
+    std::fs::create_dir_all(dir.join("figures")).expect("作れる");
+    std::fs::write(dir.join("figures/a.svg"), "<svg id=\"a\"></svg>").expect("書ける");
+    write(
+        &dir,
+        "document.json",
+        &json!({"$schema": "document.schema.json", "items": [{
+            "id": "x", "title": "題", "source": {"location": "a", "sha256": "0".repeat(64), "fetched": "d"},
+            "sections": [{"title": "節", "blocks": [{"kind": "figure", "svg": "figures/a.svg", "caption": "図の説明"}]}]
+        }]}),
+    );
+    assert!(refs::validate(&dir).expect("読める").is_empty());
+    let html = refs::view(&dir, "document", Some("x"), None).expect("描ける");
+    assert!(
+        html.contains("<svg id=\"a\"></svg>") && html.contains("図の説明"),
+        "{html}"
+    );
+}
+
+/// 論点と単位の種類を1つ置く。**単位は kind で形が決まる** ── 形ごとに欄と見せ方が違う。
+fn topics(dir: &Path) {
+    std::fs::create_dir_all(dir.join("figures")).expect("作れる");
+    std::fs::write(dir.join("figures/t.svg"), "<svg id=\"t\"></svg>").expect("書ける");
+    write(
+        dir,
+        "note.schema.json",
+        &json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "覚え書き",
+            "type": "object", "required": ["items"],
+            "properties": {"items": {"type": "array", "items": {
+                "type": "object", "required": ["id", "title", "topics"],
+                "properties": {
+                    "id": {"type": "string", "x-view": "hidden"},
+                    "title": {"type": "string", "x-view": "heading"},
+                    "topics": {"title": "本文", "x-view": "sections", "type": "array", "items": {
+                        "type": "object", "required": ["title", "claim", "units"],
+                        "properties": {
+                            "title": {"title": "題", "type": "string", "x-view": "heading"},
+                            "claim": {"title": "主張", "type": "string", "x-view": "lead"},
+                            "units": {"title": "単位", "x-view": "units", "type": "array", "items": {"oneOf": [
+                                {"title": "規則", "type": "object", "required": ["kind", "rules"],
+                                 "properties": {"kind": {"const": "rules"}, "heading": {"type": "string", "x-view": "subhead"}, "rules": {"type": "array", "items": {
+                                    "type": "object", "properties": {
+                                        "when": {"title": "条件", "type": "string"},
+                                        "then": {"title": "対応", "type": "string"},
+                                        "why": {"title": "理由", "type": "string"}}}}}},
+                                {"title": "図", "type": "object", "required": ["kind", "purpose", "svg"],
+                                 "properties": {"kind": {"const": "figure"},
+                                    "purpose": {"title": "目的", "type": "string", "x-view": "lead"},
+                                    "explanation": {"type": "array", "x-view": "paras", "items": {"type": "string"}},
+                                    "svg": {"type": "string", "x-view": "svg"},
+                                    "declaration": {"type": "object", "x-view": "hidden"}}},
+                                {"title": "対比", "type": "object", "required": ["kind", "table"],
+                                 "properties": {"kind": {"const": "comparison"},
+                                    "table": {"type": "object", "x-view": "table"}}},
+                                {"title": "手順", "type": "object", "required": ["kind", "steps"],
+                                 "properties": {"kind": {"const": "steps"},
+                                    "steps": {"type": "array", "x-view": "steps", "items": {"type": "object",
+                                        "properties": {"do": {"type": "string"}, "why": {"type": "string"}}}}}}
+                            ]}}
+                        }}},
+                    "pitfalls": {"title": "よくある誤り", "x-view": "group", "type": "object", "properties": {
+                        "intro": {"type": "string", "x-view": "lead"},
+                        "items": {"type": "array", "items": {"type": "object", "properties": {
+                            "what": {"title": "誤り", "type": "string"}}}}}}
+                }}}}
+        }),
+    );
+    write(
+        dir,
+        "note.json",
+        &json!({"$schema": "note.schema.json", "items": [{"id": "n", "title": "設計の覚え書き", "topics": [
+            {"title": "論点A", "claim": "Aの主張", "units": [
+                {"kind": "rules", "heading": "最初は広く区切る", "rules": [{"when": "知識が少ない", "then": "広く区切る"}]},
+                {"kind": "rules", "rules": [{"then": "境界を監視する"}, {"then": "集約を小さくする"}]},
+                {"kind": "rules", "rules": [{"when": "知識が増えた", "then": "分ける", "why": "境界が見える"}]},
+                {"kind": "figure", "purpose": "図の目的", "explanation": ["段落1。", "段落2。"], "svg": "figures/t.svg", "declaration": {"nodes": []}},
+                {"kind": "comparison", "table": {"head": ["方法", "欠点"], "rows": [["近似", "戻らない"]]}},
+                {"kind": "steps", "steps": [{"do": "閉じる", "why": "直す箇所が分かる"}]}
+            ]}
+        ], "pitfalls": {"intro": "よく起きる誤り。", "items": [{"what": "細かく切る"}]}}]}),
+    );
+}
+
+#[test]
+fn topics_are_drawn_with_their_title_and_claim() {
+    // **論点は、題 ・ 主張 ・ 単位の順に1枚で描く** ── 欄の名前（題 ・ 主張）を並べない
+    let dir = scratch("topics");
+    topics(&dir);
+    assert!(refs::validate(&dir).expect("読める").is_empty());
+    let html = refs::view(&dir, "note", Some("n"), None).expect("描ける");
+    assert!(html.contains("<h2>論点A</h2>"), "{html}");
+    assert!(html.contains("<p class=\"claim\">Aの主張</p>"), "{html}");
+    assert!(!html.contains(">題<") && !html.contains(">主張<"), "{html}");
+}
+
+#[test]
+fn a_unit_is_drawn_by_the_form_its_kind_selects() {
+    // **単位の形は kind で決まる** ── 規則は表、図は SVG。形の名前を札にする
+    let dir = scratch("units");
+    topics(&dir);
+    let html = refs::view(&dir, "note", Some("n"), None).expect("描ける");
+    assert!(
+        html.contains("<th>条件</th>") && html.contains("<td>広く区切る</td>"),
+        "{html}"
+    );
+    assert!(html.contains("<svg id=\"t\"></svg>"), "{html}");
+    assert!(
+        html.contains(">規則<") && html.contains(">図<"),
+        "形の名前を札にする: {html}"
+    );
+    assert!(!html.contains("nodes"), "hidden の欄は描かない: {html}");
+    assert!(!html.contains(">rules<"), "kind の値を描かない: {html}");
+    assert!(
+        html.contains("<th>欠点</th>") && html.contains("<td>戻らない</td>"),
+        "対比は列を自由に持つ表: {html}"
+    );
+    assert!(
+        html.contains("<ol class=\"steps\"><li><p class=\"lead\">閉じる</p>"),
+        "手順は番号付き: {html}"
+    );
 }

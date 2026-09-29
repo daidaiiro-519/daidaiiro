@@ -36,6 +36,7 @@ ACDR は Any Change Decision Record である。決めたことを、変更前�
 | [0043](0043-Skillのreferencesを構造化データにする/index.html) | Skill の references を、JSON Schema と JSON を正本にする形へ移す | **承認** | 2026-09-29 |
 | [0044](0044-skills-creatorに構造化したreferencesの契約を加える/index.html) | skills-creator に、構造化した references の契約（版2）を加える | **承認** | 2026-09-29 |
 | [0045](0045-acdrを契約の描画へ移し上部の節を4つに限定する/index.html) | acdr を契約の描画へ移し、上部の節を4つに限定する | **承認** | 2026-09-29 |
+| [0046](0046-ddd-advisorを構造化したreferencesへ移す/index.html) | ddd-advisor を、構造化した references（契約の版2）へ移す | **承認** | 2026-09-29 |
 | [0023](0023-原稿を持つデッキの照合をslide-deckに加える/index.html) | 原稿を持つデッキの照合を slide-deck に加える | **承認** | 2026-09-27 |
 | [0024](0024-依存の向きの検査を言語に依存しない契約にする/index.html) | 依存の向きの検査の、言語に依存しない契約 | **承認** | 2026-09-28 |
 | [0024](0024-ワークショップのフォルダを成果物と材料に分ける/index.html) | ワークショップのフォルダを成果物と材料に分ける | **承認** | 2026-09-27 |

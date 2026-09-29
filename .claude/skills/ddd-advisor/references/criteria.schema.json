@@ -1,0 +1,609 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "criteria.schema.json",
+  "title": "DDD の判断基準",
+  "description": "ddd-advisor が相談に回答するときの拠りどころ。1件が1つの概念の判断基準である",
+  "$comment": "Skill 自身の知見であり、Skill が正本である。本文は論点の並びで、論点は主張1文と意味の単位（定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足）を持つ。**原文に無い文字列を持たない** ── どの欄の値も、原典の書き起こしの一部である",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "answers",
+          "topics",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "title": "識別子",
+            "x-view": "hidden",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "title": {
+            "type": "string",
+            "title": "題",
+            "x-view": "heading"
+          },
+          "tags": {
+            "title": "札",
+            "x-view": "hidden",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string",
+            "title": "概要",
+            "x-view": "card"
+          },
+          "answers": {
+            "title": "この基準が答える判断",
+            "x-view": "list",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "topics": {
+            "title": "論点",
+            "x-view": "sections",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/topic"
+            }
+          },
+          "antipatterns": {
+            "title": "アンチパターン",
+            "x-view": "group",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "intro": {
+                "type": "string",
+                "title": "導入",
+                "x-view": "lead"
+              },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "what"
+                  ],
+                  "properties": {
+                    "what": {
+                      "type": "string",
+                      "title": "誤り"
+                    },
+                    "risk": {
+                      "type": "string",
+                      "title": "起きること"
+                    },
+                    "alternative": {
+                      "type": "string",
+                      "title": "代わりにすること"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "related": {
+            "title": "関連する基準",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "criterion",
+                "relation"
+              ],
+              "properties": {
+                "criterion": {
+                  "type": "string",
+                  "title": "判断基準"
+                },
+                "relation": {
+                  "type": "string",
+                  "title": "関係"
+                }
+              }
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "origin",
+              "method"
+            ],
+            "properties": {
+              "origin": {
+                "type": "string",
+                "title": "原典"
+              },
+              "method": {
+                "type": "string",
+                "title": "移し方"
+              },
+              "reservations": {
+                "title": "留保事項",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "title": "出典",
+            "description": "この判断基準が拠る原典と、留保事項"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "units"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "題",
+          "x-view": "heading"
+        },
+        "claim": {
+          "type": "string",
+          "title": "主張",
+          "x-view": "lead"
+        },
+        "units": {
+          "title": "単位",
+          "x-view": "units",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/unit"
+          }
+        }
+      }
+    },
+    "unit": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "term",
+            "meaning"
+          ],
+          "properties": {
+            "kind": {
+              "const": "definition"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "term": {
+              "type": "string",
+              "title": "語",
+              "x-view": "lead"
+            },
+            "meaning": {
+              "type": "string",
+              "title": "意味"
+            }
+          },
+          "title": "定義",
+          "description": "語の意味を1つ決める"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "rules"
+          ],
+          "properties": {
+            "kind": {
+              "const": "rules"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "rules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "then"
+                ],
+                "properties": {
+                  "when": {
+                    "type": "string",
+                    "title": "条件"
+                  },
+                  "then": {
+                    "type": "string",
+                    "title": "対応"
+                  },
+                  "why": {
+                    "type": "string",
+                    "title": "理由"
+                  }
+                }
+              }
+            }
+          },
+          "title": "規則",
+          "description": "条件が成り立つときに、何をするか。理由を添える"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "transitions"
+          ],
+          "properties": {
+            "kind": {
+              "const": "transitions"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "transitions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "title": "移る前"
+                  },
+                  "to": {
+                    "type": "string",
+                    "title": "移った後"
+                  },
+                  "when": {
+                    "type": "string",
+                    "title": "移る条件"
+                  },
+                  "detail": {
+                    "type": "string",
+                    "title": "詳しく"
+                  }
+                }
+              }
+            }
+          },
+          "title": "移行",
+          "description": "ある状態から別の状態へ移る条件"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "table"
+          ],
+          "properties": {
+            "kind": {
+              "const": "comparison"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "purpose": {
+              "type": "string",
+              "title": "何を対比するか",
+              "x-view": "lead"
+            },
+            "explanation": {
+              "type": "array",
+              "title": "読み方",
+              "x-view": "paras",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "table": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "head",
+                "rows"
+              ],
+              "properties": {
+                "head": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "x-view": "table"
+            }
+          },
+          "title": "対比",
+          "description": "複数の対象を、同じ観点で並べる"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "svg",
+            "declaration"
+          ],
+          "properties": {
+            "kind": {
+              "const": "figure"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "purpose": {
+              "type": "string",
+              "title": "何を示すか",
+              "x-view": "lead"
+            },
+            "explanation": {
+              "type": "array",
+              "title": "読み方",
+              "x-view": "paras",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "svg": {
+              "type": "string",
+              "title": "SVG",
+              "x-view": "svg"
+            },
+            "declaration": {
+              "type": "object",
+              "x-view": "hidden"
+            },
+            "caveats": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "where",
+                  "note"
+                ],
+                "properties": {
+                  "where": {
+                    "type": "string",
+                    "title": "どこの話か"
+                  },
+                  "note": {
+                    "type": "string",
+                    "title": "図に載せきれないこと"
+                  }
+                }
+              }
+            }
+          },
+          "title": "図",
+          "description": "構造を図で示す。描画は design-svg が持つ"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "steps"
+          ],
+          "properties": {
+            "kind": {
+              "const": "steps"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "purpose": {
+              "type": "string",
+              "title": "何の手順か",
+              "x-view": "lead"
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "do"
+                ],
+                "properties": {
+                  "do": {
+                    "type": "string",
+                    "title": "何をする"
+                  },
+                  "why": {
+                    "type": "string",
+                    "title": "理由"
+                  }
+                }
+              },
+              "x-view": "steps"
+            }
+          },
+          "title": "手順",
+          "description": "順に実施すること"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "code"
+          ],
+          "properties": {
+            "kind": {
+              "const": "example"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "purpose": {
+              "type": "string",
+              "title": "何の例か",
+              "x-view": "lead"
+            },
+            "explanation": {
+              "type": "array",
+              "title": "読み方",
+              "x-view": "paras",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "code": {
+              "type": "string",
+              "title": "コード",
+              "x-view": "code"
+            }
+          },
+          "title": "例",
+          "description": "コードや記録の具体例"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "caveats"
+          ],
+          "properties": {
+            "kind": {
+              "const": "caveats"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "caveats": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "where",
+                  "note"
+                ],
+                "properties": {
+                  "where": {
+                    "type": "string",
+                    "title": "どこの話か"
+                  },
+                  "note": {
+                    "type": "string",
+                    "title": "注意"
+                  }
+                }
+              }
+            }
+          },
+          "title": "注意",
+          "description": "読み違えやすい点"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "note"
+            },
+            "heading": {
+              "type": "string",
+              "title": "小見出し",
+              "x-view": "subhead"
+            },
+            "text": {
+              "type": "array",
+              "title": "本文",
+              "x-view": "paras",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "title": "補足",
+          "description": "他の形に当てはまらない説明"
+        }
+      ]
+    }
+  }
+}

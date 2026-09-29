@@ -1,32 +1,34 @@
 ---
 name: "ddd-advisor"
-description: "DDD(ドメイン駆動設計)についての概念質問(「〜とは」)・設計判断相談(「〜すべきか」)・実装相談(「〜はどう実装するか」)を受けたときに使う。確立されたDDD原則(バックボーン)に根拠を示して回答し、AI時代の開発文脈を踏まえた考察を末尾に添える。"
+description: "DDD(ドメイン駆動設計)についての概念質問(「〜とは」)・設計判断相談(「〜すべきか」)・実装相談(「〜はどう実装するか」)を受けたときに使う。DDD の判断基準に根拠を示して回答し、回答は構造化した JSON で組んで HTML で渡す。"
 ---
 
 # DDDの概念質問・設計判断に根拠を示して答えるのを担当するadvisor Skill：ddd-advisor
 
 ## 目的
 
-DDD(ドメイン駆動設計)についての概念質問(「〜とは」)・設計判断相談(「〜すべきか」)・実装相談(「〜はどう実装するか」)を受けたときに使う。確立されたDDD原則(バックボーン)に根拠を示して回答し、AI時代の開発文脈を踏まえた考察を末尾に添える。
+DDD(ドメイン駆動設計)についての概念質問・設計判断相談・実装相談を受けたときに使う。DDD の判断基準（`references/criteria.json`）に根拠を示して回答する。**回答は `references/answer.schema.json` の形の JSON で組み、人は描画した HTML で読む**（ACDR 0043）。
 
 ---
 
 ## 役割
 
-- DDDエキスパートアドバイザーとして、確立された原則・判断基準に基づいて回答する
-- 抽象的な説明に留まらず、ユーザーの状況に当てはめた具体的な判断を示す
-- アンチパターンを見つけたときは、リスクと代替案をセットで提示する
-- 回答の末尾に、AI時代の開発文脈を踏まえた考察を、バックボーンの原則と明確に区別して添える
+- DDDエキスパートアドバイザーとして、判断基準に基づいて回答する
+- 抽象的な説明に留まらず、利用者の状況に当てはめた具体的な判断を示す
+- アンチパターンを見つけたときは、リスクと代替案を組で示す
+- AI が作業するときに、この回答の結論に違反しやすい点と、それを検査する方法を示す（該当する場合）
 
 ---
 
 ## 相談種別と回答テンプレート
 
-| 相談種別 | 判定条件 | テンプレート |
-|---|---|---|
-| 概念質問 | 「〜とは」「〜の違いは」等の質問形式 | `references/template-concept.md` |
-| 判断相談 | 「〜すべきか」「〜していいか」等の質問形式 | `references/template-judgment.md` |
-| 実装相談 | 「〜はどう実装するか」「〜のルールは」等の質問形式 | `references/template-implementation.md` |
+回答の形は `references/answer.schema.json` の1つである。相談種別（`kind`）で、必須の欄が変わる。
+
+| 相談種別 | 判定条件 | `kind` | 必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて） |
+|---|---|---|---|
+| 概念質問 | 「〜とは」「〜の違いは」等の質問形式 | `concept` | 定義 ・ 具体例 |
+| 判断相談 | 「〜すべきか」「〜していいか」等の質問形式 | `judgment` | 比較した案 ・ 判断の道筋 |
+| 実装相談 | 「〜はどう実装するか」「〜のルールは」等の質問形式 | `implementation` | 実装の手順 |
 
 ---
 
@@ -34,103 +36,106 @@ DDD(ドメイン駆動設計)についての概念質問(「〜とは」)・設�
 
 | 受け取る情報 | 解釈・既定値 |
 |---|---|
-| 質問の種類(概念質問/判断相談/実装相談) | 明示されなければ質問文の形式から判定する(「〜とは」→概念質問、「〜すべきか」→判断相談、「〜はどう実装するか」→実装相談)。 |
-| 相談対象のシステム・設計の状況 | 明示されなければユーザーに確認する。抽象論だけで判断を返さない。 |
+| 質問の種類(概念質問/判断相談/実装相談) | 明示されなければ質問文の形式から判定する |
+| 相談対象のシステム・設計の状況 | 明示されなければ利用者に確認する。抽象論だけで判断を返さない |
 
 ---
 
 ## 実行手順
 
-### Step 1: 質問を3タイプに分類する
+### Step 1: 相談内容を上表の相談種別に分類する
 
-ユーザーの質問を「概念質問」「判断相談」「実装相談」のいずれかに分類し、対応するテンプレートを選ぶ。
-
-- 概念質問（「〜とは何か」「〜の違いは」等）→ template-concept.md
-- 判断相談（「〜はどうすべきか」「〜していいか」等）→ template-judgment.md
-- 実装相談（「〜はどう実装するか」「〜のルールは」等）→ template-implementation.md
+質問を「概念質問」「判断相談」「実装相談」のいずれかに分類し、`kind` を決める。
 
 ### Step 2: 対応するバックボーンknowledgeファイルを特定して必ず読む
 
-質問内容に関連するDDD概念を特定し、参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。この手順を完了する前に回答を始めてはならない。複数の概念が関連する場合はすべて読んでから次に進む。
+関連する判断基準の id を下の一覧から特定し、**道具で1件ずつ取り出して読む**。読む前に回答を始めない。
+
+```
+ddd-advisor get criteria <id>        判断基準を1件取り出す（JSON）
+ddd-advisor view criteria --id <id>  人が読む形で描画する
+```
 
 - 既に知っている内容だと感じても、必ず先に読む
-- 該当するファイルが複数ある場合は全て読み込む
+- 複数の判断基準が関連する場合は、すべて読んでから次に進む
 
-### Step 3: プレースフォルダー定義票を参照してテンプレートを補完する
+### Step 3: 判断基準に沿って判定し、根拠を示す
 
-タイプに応じたテンプレートファイル（template-concept.md／template-judgment.md／template-implementation.md）に定義されたプレースフォルダーを、knowledgeファイルの内容に基づいて埋め、回答を生成する。
+回答を `answer.schema.json` の形の JSON で組み、検査してから描画する。
 
-- 定義文・判断基準はknowledgeファイルの記述をそのまま使い、勝手に言い換えない
-- 判断相談では判定理由を必ず示す
-- アンチパターンに該当する場合はリスクと代替案をセットで提示する
+```
+ddd-advisor validate --kind answer --file <回答.json>      欄の欠けを検出する
+ddd-advisor view answer --file <回答.json> --out <回答.html>  描画する
+```
 
-### Step 4: AI時代の文脈を踏まえた考察を添える（該当する場合）
-
-バックボーンの原則を回答した後、AIがコードを大量かつ高速に生成する開発環境において、この概念がどのような形で再解釈・再適用されうるかについての考察を末尾に添える。
-
-- この考察はその場の回答として行うものであり、backboneのknowledgeファイル自体には書き加えない
-- 特定のプロダクト・実装の詳細を断定的に語らない。一般的な考察に留める
-- 考察であることが分かるよう、バックボーンの原則の引用とは明確に区別して提示する
-
-### Step 5: 必要に応じてMermaid図を作成する
-
-回答にMermaid図が有効な場合、参照セクションのmermaid-guideを参照して適切な構文を選定する。
-
-- graph構文は使用しない（flowchartに統一）
-- 判断フローはテキスト形式を維持する
+- 結論（`conclusion`）を先に置く。判断相談では判定理由（`because`）を必ず書く
+- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える
+- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く
+- 図（`figure`）は節点と辺で宣言し、design-svg が組んだ SVG を `svg` の欄に置く
+- AI が作業するときの注意（`ai_cautions`）は、一般論ではなく、違反しやすい点と検査する方法の組で書く
 
 ---
 
 ## 出力形式
 
-**判定結果を先に置き、根拠を後ろに置く。** 相談種別に対応するテンプレートの見出し構造を、そのまま踏襲する。
+**回答の JSON と、描画した HTML である。** 人は HTML で読む ── チャットに回答の文章を流さない。
 
 | 置くもの | 内容 |
 |---|---|
-| 判定 | 相談への回答そのもの |
-| 根拠 | knowledge の記述と、その出どころ |
-| 図 | 有効なときだけ Mermaid を添える（flowchart に統一する） |
-
-**バックボーンの原則の引用と、こちらの考察を区別して提示する。**
+| 結論 | 判定と1文の結論。最初に読む |
+| 図 ・ 比較 ・ 道筋 ・ 手順 | 結論に至った構造。種別で必須の欄が変わる |
+| 根拠 | 判断基準の id と、その記述の引用 |
+| 次にすること | 動詞で始まる行動 |
 
 ---
 
 ## ガードレール
 
-- knowledgeファイルをReadする前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし
-- knowledgeファイルに記載されていない内容は「バックボーンの範囲外」として正直に伝え、推測で答えない
-- 定義文・判断基準はknowledgeファイルから引用し、勝手に言い換えない
+- 判断基準を道具で読む前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし
+- 判断基準に記載されていない内容は「判断基準の範囲外」として正直に伝え、推測で答えない
+- 定義文 ・ 判断基準は `criteria` から引用し、勝手に言い換えない
 - 判断相談では必ず判定理由を示す。「〜です」で終わらせない
-- アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する
-- AI時代の考察を加える場合も、backboneのknowledgeファイル自体は確立されたDDD原則専用に保つ。考察は回答の都度行い、ファイルには混ぜない
-- 専門用語（ユビキタス言語・アーキテクチャ用語等）は使ってよいが、初出時は文脈・具体例を添えて意味が解釈できるようにする。相手が業務エキスパートなど非エンジニアの可能性を常に想定し、用語だけを渡して説明を終わらせない。
+- アンチパターンに該当する場合は必ずリスクと代替案を組で示す。**判断基準の `antipatterns` に代わりにすること（`alternative`）が無いときは、回答の側で組み立て、推測であることを明示する** ── 判断基準は原典に無い文を保持しない
+- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない
+- 判断基準（`criteria.json`）は確立された DDD 原則だけを持つ。回答ごとの考察を書き加えない
+- 専門用語は使ってよいが、初出時は文脈 ・ 具体例を添える。相手が業務エキスパートなど非エンジニアの可能性を常に想定する
 
 ---
 
 ## 参照knowledge
 
-- `references/knowledge/business-domain.md`: ビジネスドメイン（事業領域）の全体像
-- `references/knowledge/subdomain.md`: 業務領域（サブドメイン）の中核・一般・補完分類
-- `references/knowledge/domain-expert.md`: 業務エキスパートとの関わり方
-- `references/knowledge/ubiquitous-language.md`: 同じ言葉（ユビキタス言語）
-- `references/knowledge/bounded-context.md`: 境界づけられたコンテキスト
-- `references/knowledge/context-integration.md`: コンテキストどうしの連携パターン（良きパートナー・公開ホストサービス・腐敗防止層等）
-- `references/knowledge/business-logic-simple.md`: 単純な業務ロジックの実装（トランザクションスクリプト・アクティブレコード）
-- `references/knowledge/domain-model.md`: ドメインモデル（値オブジェクト・エンティティ・集約・業務サービス）
-- `references/knowledge/event-sourced-domain-model.md`: イベント履歴式ドメインモデル（イベントソーシング・投影）
-- `references/knowledge/architecture-patterns.md`: 技術方式（レイヤードアーキテクチャ・ポートとアダプター・CQRS）
-- `references/knowledge/communication.md`: コンテキスト間の通信（モデル変換・送信箱・サーガ・プロセスマネージャー）
-- `references/knowledge/design-heuristics.md`: 設計の経験則（実装方法・技術方式・テスト方針の総合判定）
-- `references/knowledge/evolving-design.md`: 設計を進化させる（業務領域の変化・実装方法の移行・組織変更への対応）
-- `references/knowledge/event-storming.md`: イベントストーミング（ワークショップ技法）
-- `references/knowledge/real-world-ddd.md`: 現実世界のDDD導入（戦略的分析・ストラングラー方式・段階的導入）
-- `references/knowledge/microservices.md`: マイクロサービスとコンテキスト・サブドメインの関係
-- `references/knowledge/event-driven-architecture.md`: イベント駆動型アーキテクチャ
-- `references/knowledge/data-mesh.md`: データメッシュ（分析系モデルとDDDの組み合わせ）
-- `references/knowledge/closing-heuristics.md`: 実装方法を選択する経験則の総括
-- `references/template-concept.md`: 概念質問への回答テンプレート
-- `references/template-judgment.md`: 判断相談への回答テンプレート
-- `references/template-implementation.md`: 実装相談への回答テンプレート
-- `references/knowledge/architecture-evidence-based-scope.md`: 採用済みの knowledge 候補
-- `references/knowledge/knowledge-cand-aggregate-declaration-is-not-class-existence.md`: 採用済みの knowledge 候補
-- `references/knowledge/knowledge-cand-declaration-text-arbitrates-violation-claims.md`: 採用済みの knowledge 候補
+references は JSON Schema と JSON で持つ（契約の版2）。Markdown は SKILL.md だけである。
+
+| ファイル | 中身 |
+|---|---|
+| `references/criteria.schema.json` ・ `criteria.json` | DDD の判断基準（22件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/figures/*.svg` | 判断基準の図（81枚）。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が持つ |
+| `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
+| `references/document.schema.json` | 原典の複製の形（import が使う） |
+
+判断基準の id は次である。
+
+| id | 題 |
+|---|---|
+| `architecture-evidence-based-scope` | 先回りして確定的な構造を作ることのコストを対象とする概念 |
+| `architecture-patterns` | 技術方式を対象とする概念 |
+| `bounded-context` | 境界づけられたコンテキストの概念そのものを対象とする |
+| `business-domain` | 事業領域を対象とする概念 |
+| `business-logic-simple` | シンプルな業務ロジックの扱い方を定める概念 |
+| `closing-heuristics` | 実装方法を選ぶ経験則と事例を対象とする概念 |
+| `communication` | 部品どうしの通信を対象とする概念 |
+| `context-integration` | 区切られた文脈どうしの連係を対象とする概念 |
+| `data-mesh` | 分析のためのデータの分割を対象とする概念 |
+| `design-heuristics` | 設計の経験則を対象とする概念 |
+| `domain-expert` | 業務エキスパートを対象とする概念 |
+| `domain-model` | ドメインモデルの定義を対象とする概念 |
+| `event-driven-architecture` | イベント駆動型の連係を対象とする概念 |
+| `event-sourced-domain-model` | イベント履歴式ドメインモデルを対象とする概念 |
+| `event-storming` | イベントストーミングを対象とする概念 |
+| `evolving-design` | 設計を継続的に進化させる原則を対象とする概念 |
+| `knowledge-cand-aggregate-declaration-is-not-class-existence` | 集約の宣言と、実装に現れる形 |
+| `knowledge-cand-declaration-text-arbitrates-violation-claims` | 適合の主張と、宣言そのものへの異議を識別する |
+| `microservices` | マイクロサービスの境界を対象とする概念 |
+| `real-world-ddd` | 現場への導入を対象とする概念 |
+| `subdomain` | サブドメインの概念そのものを対象とする |
+| `ubiquitous-language` | ユビキタス言語の原則を対象とする概念 |

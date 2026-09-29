@@ -1,0 +1,353 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0046",
+ "title": "ddd-advisor を、構造化した references（契約の版2）へ移す",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "ddd-advisor の knowledge とテンプレートを、判断基準（criteria）と回答の形（answer）の JSON Schema と JSON へ移し、契約の版2 の道具を持たせる。",
+ "why": "ACDR 0043 の移行の段2 である。ddd-advisor の knowledge 22件は、実体の無い KnowledgeSchema v5 ・ v6 を記録した Markdown で、存在しない参照（mermaid-guide ・ 定義票）もあった。回答のテンプレートは Markdown で、踏襲したかを手で確認していた。1つの advisor で移して欄を決め、段3で残りの advisor へ広げる。",
+ "shift": [
+  {
+   "what": "判断基準",
+   "from": "knowledge/*.md 22件（v5 と v6 が混在、スキーマの実体は無い）",
+   "to": "criteria.json 22件と criteria.schema.json。本文は論点（主張と、9種類の意味の単位）で持ち、原典に無い文字列は0件である"
+  },
+  {
+   "what": "描画",
+   "from": "見出しと段落を入れ子のまま並べる（段落766個が役割の区別なく並ぶ）",
+   "to": "論点を1枚のカードにし、単位を種類ごとの形（表 ・ 図 ・ 手順 ・ コード ・ 箇条書き）で描く。導入の文と表、続く段落は1つの単位にまとめる"
+  },
+  {
+   "what": "回答の形",
+   "from": "template-*.md 3件（Markdown のテンプレート）",
+   "to": "answer.schema.json 1件。validate で欄の欠けを検出し、view で HTML にする"
+  },
+  {
+   "what": "道具",
+   "from": "無い（モデルがファイルを読む）",
+   "to": "契約の版2 の4つ（get ・ validate ・ view ・ import）。MCP にも登録する"
+  },
+  {
+   "what": "存在しない参照",
+   "from": "mermaid-guide ・ プレースフォルダー定義票",
+   "to": "無い（手順から外した）"
+  },
+  {
+   "what": "図",
+   "from": "Mermaid の記法を、コードの塊に文字列で持つ（HTML では記法のまま出る）",
+   "to": "design-svg の宣言と SVG（figures/ に81枚）。図の塊が SVG を埋め込む。3分類の間の移行は、移る前 ・ 移った後 ・ 条件の表にした"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ddd-advisor の references を、種類ごとのスキーマと JSON に移す",
+ "alternatives": [
+  {
+   "option": "knowledge を document（原典の複製）の形で持つ",
+   "why_not": "knowledge は書籍を構造化し直した Skill 自身の知見であり、正本は Skill である（論点1の使い分け）。答える判断 ・ 関連する基準の欄が必要である"
+  },
+  {
+   "option": "v5 と v6 の両方の形をスキーマで許す",
+   "why_not": "同じ種類に2つの形が残り、描画も検査も分岐する。共通の欄（概要 ・ 答える判断 ・ 出典 ・ 関連概念）で1つにまとまった"
+  },
+  {
+   "option": "手で JSON に書き直す",
+   "why_not": "22件を手で複製すると、中身が欠落する。import で取り込んでから欄に対応づけ、欠落した文字が0件であることを照合して確認した"
+  },
+  {
+   "option": "Mermaid の記法のまま残し、描画のスクリプトを読み込む",
+   "why_not": "1枚で完結させる規則に反して、外部のスクリプトを読み込むことになる。図の語彙も design-svg と別の体系になる"
+  },
+  {
+   "option": "Markdown の見出しと段落を、入れ子のまま JSON に移す",
+   "why_not": "段落766個が役割の区別なく並び、読み手が主張 ・ 条件 ・ 図の説明の区別を復元することになる。スキーマも欠けを検出できない"
+  },
+  {
+   "option": "読みやすさのために、条件 ・ 主張 ・ 代わりにすることを書き足す",
+   "why_not": "原典に無い内容が判断基準に混ざり、回答の根拠として引いたときに原典と区別できなくなる。利用者の指示（原文にないものを追加しない）にも反する"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "img1",
+   "tab": "完成イメージ：判断基準",
+   "file": ".acdr/0046-ddd-advisorを構造化したreferencesへ移す/criteria.domain-model.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "list22",
+   "tab": "完成イメージ：22件の一覧",
+   "file": ".acdr/0046-ddd-advisorを構造化したreferencesへ移す/preview/index.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "img2",
+   "tab": "完成イメージ：回答",
+   "file": ".acdr/0046-ddd-advisorを構造化したreferencesへ移す/answer.judgment.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/ddd-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の形の JSON で組み、人は描画した HTML で読む",
+     "before": "（無い）",
+     "why": "回答を構造化した JSON で組み、人は描画した HTML で読む手順にした（ACDR 0043）"
+    },
+    {
+     "find": "道具で1件ずつ取り出して読む",
+     "before": "参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む",
+     "why": "判断基準を get で1件ずつ取り出す。ファイル全体を読まない"
+    },
+    {
+     "find": "欄の欠けを機械で検出できる形にしたので、手で確認しない",
+     "before": "（無い）",
+     "why": "テンプレートを踏襲したかの確認を、validate による機械の検査に置き換えた"
+    },
+    {
+     "find": "回答の側で組み立て、推測であることを明示する",
+     "before": "アンチパターンに該当する場合は必ずリスクと代替案を組で示す",
+     "why": "判断基準は原典に無い文を保持しないので、代わりにすることを保持しないアンチパターンが在る。回答で代替案を示す規則は保ち、組み立てた文を原典の記述と区別させる"
+    },
+    {
+     "find": "判断基準の図（81枚）",
+     "before": "（無い）",
+     "why": "Mermaid の記法を design-svg の宣言と SVG に移したので、図の置き場所と、宣言を保持する欄を参照に加えた"
+    }
+   ]
+  },
+  {
+   "key": "crs",
+   "tab": "criteria.schema.json",
+   "file": ".claude/skills/ddd-advisor/references/criteria.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"https://json-schema.org/draft/2020-12/schema\",",
+     "before": "（無い）",
+     "why": "判断基準の形を新しく置いた。題 ・ 概要 ・ 答える判断 ・ 本文（節の入れ子と塊）・ 出典 ・ 関連する基準を持つ。実体の無かった KnowledgeSchema v5 ・ v6 を、この1つに置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "ans",
+   "tab": "answer.schema.json",
+   "file": ".claude/skills/ddd-advisor/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"https://json-schema.org/draft/2020-12/schema\",",
+     "before": "（無い）",
+     "why": "回答の形を新しく置いた（論点3の形）。相談種別ごとに必須の欄を切り替え、概念相談の定義 ・ 具体例と、実装相談の手順 ・ コードを加えた"
+    }
+   ]
+  },
+  {
+   "key": "decl",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/ddd-advisor/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "道具の宣言を置いた。advisor は固有の道具を保持せず、契約の版2 の4つだけを持つ"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/references.rs",
+   "file": ".claude/skills/ddd-advisor/tool/parts/tests/references.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "references がスキーマに合うこと、判断基準を id で取り出せること、回答の例が回答の形に合うことを固定した"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"ddd-advisor\": {",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"narration\",",
+     "before": "\"narration\"",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"rule\": \"人が読む文書が、10の判定を通る\",",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"rule\": \"事例が通る\",",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"rule\": \"整形されている\",",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    },
+    {
+     "find": "\"rule\": \"静的解析を通る\",",
+     "before": "（無い）",
+     "why": "書いた後の検査に、ddd-advisor の単位と規則6件（契約 ・ 文書 ・ 組み立て ・ 事例 ・ 整形 ・ 静的解析）を加えた"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"ddd-advisor\": {",
+     "before": "（無い）",
+     "why": "ddd-advisor の MCP サーバーを登録した"
+    }
+   ]
+  },
+  {
+   "key": "ctmpl",
+   "tab": "contract.rs.tmpl（skills-creator）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "std::env::current_exe().map_err(|e| format!(\"実行ファイルの位置を取れない ── {e}\"))?;",
+     "before": "let exe = std::env::current_exe()\n.map_err(|e| format!(\"実行ファイルの位置を取れない ── {e}\"))?;",
+     "why": "雛形を整形済みの形に統一した。雛形から作った Skill が、整形の検査で不合格になっていた（ddd-advisor で判明）"
+    }
+   ]
+  },
+  {
+   "key": "refs",
+   "tab": "refs.rs.tmpl（skills-creator）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む** ──",
+     "why": "図の塊を描く対象に加えた。SVG のファイルは references から読むので、描く関数へ references の場所を渡す",
+     "before": "/// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード。\nfn blocks_html(blocks: &Value) -> String {"
+    },
+    {
+     "find": "Some(\"figure\") => {",
+     "why": "図の塊を figure 要素として埋め込む。描画は design-svg が持ち、ここは SVG を置くだけにした",
+     "before": "（無い）"
+    },
+    {
+     "find": "fn outline(items: &Value, level: usize, base: &Path) -> String {",
+     "why": "節の入れ子の中の図も読めるように、references の場所を下の段へ渡す",
+     "before": "fn outline(items: &Value, level: usize) -> String {"
+    },
+    {
+     "find": ".map(|b| blocks_html(b, base))",
+     "why": "節の中の塊を描くときに、references の場所を渡す",
+     "before": "let body = n.get(\"blocks\").map(blocks_html).unwrap_or_default();"
+    },
+    {
+     "find": "outline(value, 2, ctx.base)",
+     "why": "最上位から描き始めるときに、references の場所を渡す",
+     "before": "outline(value, 2)"
+    },
+    {
+     "find": "vertical-align:top;min-width:4.5em",
+     "before": "padding:8px 10px;text-align:left;vertical-align:top}",
+     "why": "表の列が狭く潰れて、2文字の語（中核 ・ 補完）が1文字ずつ折り返していた。列に最小の幅を与えた"
+    },
+    {
+     "find": ".rv .unit{border-top:1px dashed var(--line)",
+     "before": "（無い）",
+     "why": "論点のカード ・ 主張 ・ 単位の札の見た目を加えた。図には枠線を付け、図と文の境界を識別できるようにした（利用者の指摘：図の部分はボーダーで境界がわかるように）"
+    },
+    {
+     "find": "// **どの行も値を保持しない列は描かない**",
+     "before": "（無い）",
+     "why": "規則の表で、理由を保持しない行だけのときに空の「理由」列が出ていた。空の列は欠けがあるように読める"
+    },
+    {
+     "find": "fn sections_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {",
+     "before": "（無い）",
+     "why": "本文を論点（題 ・ 主張 ・ 単位）で描く表示を加えた。段落を入れ子に並べる形では、段落766個の役割が区別できなかった"
+    },
+    {
+     "find": "\"sections\" => sections_html(schema, value, ctx),",
+     "before": "（無い）",
+     "why": "最上位の欄に x-view の sections を指定したとき、論点の並びとして描く"
+    },
+    {
+     "find": "\"steps\" => format!(",
+     "before": "\"steps\" => { … <ol class=\\\"steps\\\">{lis}</ol> … }（本体をこの場で組んでいた）",
+     "why": "手順を描く本体を steps_html へ移した。論点の中の単位でも同じ手順の見た目を使うため"
+    },
+    {
+     "find": "// **導入の文と表を1枚にまとめる**",
+     "before": "（無い）",
+     "why": "アンチパターンの導入の文（〜でよく起きる誤り。）が、最後の論点の補足に置かれて表と分離していた（利用者の指摘：アンチパターンの部分が分離している）。導入の文と表を1つの欄にまとめて描く"
+    },
+    {
+     "find": "// **列が1つなら箇条書きにする**",
+     "before": "（無い）",
+     "why": "条件も理由も無い規則が38件在り、「対応」の1列だけの表として描かれていた。1列の表は見出しの欄が中身を説明しないので、箇条書きにした"
+    },
+    {
+     "find": "// **段落の並びは、段落ごとに描く**",
+     "before": "（無い）",
+     "why": "補足と読み方の段落を1つの文字列へ連結すると、原文に無い文字列になる（原文の中で連続していないため）。段落の並びとして保持し、段落ごとに描く"
+    }
+   ]
+  },
+  {
+   "key": "dtmpl",
+   "tab": "document.schema.json.tmpl（skills-creator）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/document.schema.json.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"const\": \"figure\"",
+     "why": "塊の種類に図を加えた。svg（ファイル名か SVG）を必須にし、宣言を declaration に保存する。宣言が在れば、図を描き直せる",
+     "before": "（無い）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "img1": "6d47c099774f5ef5ad15bb4eada29a481c997625c49998b1452fa39cf072516d",
+  "list22": "51b782ca8b171cb1ca73ceec558d2a9b4d92e77788db0e550eb98c1d5ccde59e",
+  "img2": "29301d9f03f9a393fee822059d7e5963ffb16e000c63223aa1541e7923be7772",
+  "skill": "210bfb4f5bf8bf04689730eb26e7e66869c7b17f47e35083103d8a65790fcc0c",
+  "crs": "482e02a098d7fad4cd72dd7f17bfbec0cfe983da87ef2e27939a6a7d9ba9a52f",
+  "ans": "2dfb91deb1aa458b06e516a790dcada992381629de9e3dc9ac8e5bd5eecd3227",
+  "decl": "1d9dd52fd20b7ef98679ea0476c3e35b3ec476062b11e4481744db11a3108b80",
+  "test": "503f6a9d1c9f509cf0fa6cd6f4b00cdfb9f6f5d1bf1ad53511572bc3aca30cc8",
+  "rules": "1dbd1d809444304bec17887e91bc7f467d92d24cc6bc2c178db29f6aeb725d46",
+  "mcp": "08aaae6755a04d50864e23417d8b0daa2898a20c0857c41b090d12422943ad68",
+  "ctmpl": "1dd195f7106f2749f154a53dfe262d9854bf10713e35d2dff8a9f933b262d080",
+  "refs": "9db8a92476e6700527f5119543934289e2501627a5c09f40a76ecfdf36eca6c3",
+  "dtmpl": "33485d3771d2b27d9ffb61353f5fbd2954334ad7e2f65accb0eb4329dcf3c1f1"
+ }
+}
