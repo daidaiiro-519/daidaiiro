@@ -214,16 +214,41 @@ fn write_part(root: &Path, body: &str) {
     std::fs::write(dir.join("run.rs"), body).expect("書ける");
 }
 
-/// 宣言に、呼んでよい外部の道具を書く。
+/// 宣言に、目的に不可欠な外部の道具を、理由と一緒に書く。
 fn write_requires(root: &Path, names: &[&str]) {
+    let listed: Vec<String> = names
+        .iter()
+        .map(|n| format!("(\"{n}\", \"この Skill の目的に不可欠である\")"))
+        .collect();
+    write_external(root, &listed.join(", "));
+}
+
+/// 宣言をそのまま書く。
+fn write_external(root: &Path, items: &str) {
     let dir = root.join(check::TOOL).join("declare/src");
     std::fs::create_dir_all(&dir).expect("作れる");
-    let listed: Vec<String> = names.iter().map(|n| format!("\"{n}\"")).collect();
     std::fs::write(
         dir.join("lib.rs"),
-        format!("pub const REQUIRES: &[&str] = &[{}];\n", listed.join(", ")),
+        format!("pub const EXTERNAL: &[(&str, &str)] = &[{items}];\n"),
     )
     .expect("書ける");
+}
+
+#[test]
+fn an_external_tool_without_a_reason_is_reported() {
+    // **外部の道具は例外である** ── 目的に不可欠だという理由を書かない宣言を、通さない
+    let root = scratch("no-reason");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_external(&root, "(\"git\", \"\")");
+    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
+    let found = check::check(&root, &templates()).expect("検査できる");
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("理由") && x.contains("git")),
+        "{found:?}"
+    );
 }
 
 #[test]

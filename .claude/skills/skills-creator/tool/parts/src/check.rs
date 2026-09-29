@@ -24,7 +24,7 @@ pub const TOOL: &str = "tool";
 /// 組み立てた実行ファイルを置く場所。**配布物だけが持ち、git で追跡しない。**
 pub const BIN: &str = "bin";
 
-/// 名前を実行時に決める外部の道具を、宣言で表す印。
+/// 名前を実行時に決める外部の道具を、宣言（EXTERNAL）で表す印。
 pub const USER_CHOSEN: &str = "*";
 
 /// OS によって無いコマンド。**呼ばない** ── date は Windows に実行ファイルとして無く、
@@ -284,11 +284,19 @@ fn is_absolute(command: &str) -> bool {
         || (bytes.len() > 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
 }
 
-/// 部品が呼ぶ外部の道具を、宣言と照合する。
+/// 部品が呼ぶ外部の道具を、宣言と照合する。**外部コマンドは例外である** ── 呼んでよいのは、
+/// Skill の目的に不可欠な道具だけで、declare の `EXTERNAL` に名前と理由を書く（ACDR 0034）。
 fn external_tools(root: &Path) -> Vec<String> {
     let tool = root.join(TOOL);
     let declared = requires(&tool.join("declare/src/lib.rs"));
-    let mut findings = Vec::new();
+    let mut findings: Vec<String> = declared
+        .iter()
+        .filter(|(_, why)| why.trim().is_empty())
+        .map(|(name, _)| {
+            format!("外部の道具に理由が無い: {name} ── 目的に不可欠である理由を EXTERNAL に書く")
+        })
+        .collect();
+    let named = |n: &str| declared.iter().any(|(d, _)| d == n);
     let mut files = Vec::new();
     rust_files(&tool, &mut files);
     for file in files {
@@ -307,16 +315,16 @@ fn external_tools(root: &Path) -> Vec<String> {
                         findings.push(format!(
                             "OS によって無いコマンドを呼んでいる: {at} ── {name}（Rust の中で行う）"
                         ));
-                    } else if !declared.contains(&name) {
+                    } else if !named(&name) {
                         findings.push(format!(
-                            "宣言に無い外部の道具を呼んでいる: {at} ── {name}（declare の REQUIRES に書く）"
+                            "宣言に無い外部の道具を呼んでいる: {at} ── {name}（外部コマンドは例外である。目的に不可欠なら EXTERNAL に名前と理由を書き、そうでなければ Rust の中で行う）"
                         ));
                     }
                 }
                 None => {
-                    if !declared.iter().any(|d| d == USER_CHOSEN) {
+                    if !named(USER_CHOSEN) {
                         findings.push(format!(
-                            "名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\"{USER_CHOSEN}\"）を REQUIRES に書く"
+                            "名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\"{USER_CHOSEN}\"）を、理由と一緒に EXTERNAL に書く"
                         ));
                     }
                 }
@@ -326,24 +334,35 @@ fn external_tools(root: &Path) -> Vec<String> {
     findings
 }
 
-/// 宣言（declare の `REQUIRES`）に並ぶ名前。**無ければ空である。**
-fn requires(lib: &Path) -> Vec<String> {
+/// 宣言（declare の `EXTERNAL`）に並ぶ、名前と理由の組。**無ければ空である。**
+fn requires(lib: &Path) -> Vec<(String, String)> {
     let body = fs::read_to_string(lib).unwrap_or_default();
-    let Some(at) = body.find("REQUIRES") else {
+    let Some(at) = body.find("EXTERNAL") else {
         return Vec::new();
     };
     let rest = &body[at..];
-    // **型の `&[&str]` ではなく、値の並び（`= &[`）から読む**
-    let Some(open) = rest.find("= &[").map(|at| at + 2) else {
+    // **型の `&[(&str, &str)]` ではなく、値の並び（`= &[`）から読む**
+    let Some(open) = rest.find("= &[").map(|at| at + 4) else {
         return Vec::new();
     };
     let Some(close) = rest[open..].find("];") else {
         return Vec::new();
     };
-    rest[open + 2..open + close]
-        .split(',')
-        .map(|x| x.trim().trim_matches('"').to_owned())
-        .filter(|x| !x.is_empty())
+    // 引用符で囲まれた文字列を順に拾い、2つずつ組にする
+    let quoted: Vec<String> = rest[open..open + close]
+        .split('"')
+        .skip(1)
+        .step_by(2)
+        .map(str::to_owned)
+        .collect();
+    quoted
+        .chunks(2)
+        .map(|pair| {
+            (
+                pair.first().cloned().unwrap_or_default(),
+                pair.get(1).cloned().unwrap_or_default(),
+            )
+        })
         .collect()
 }
 

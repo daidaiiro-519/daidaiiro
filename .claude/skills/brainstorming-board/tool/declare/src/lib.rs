@@ -13,12 +13,13 @@ use serde_json::{json, Value};
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// ブレストボードの置き場所の親の既定。
-/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を
-/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は
+/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
+/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
+/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
 /// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-pub const REQUIRES: &[&str] = &[];
+pub const EXTERNAL: &[(&str, &str)] = &[];
 
+/// ブレストボードの置き場所の親の既定。
 const BOARDS: &str = ".brainstorming-board";
 /// 回答の蓄積先の既定。
 const ANSWERS: &str = "answers";

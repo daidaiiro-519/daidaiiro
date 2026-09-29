@@ -1,0 +1,326 @@
+{
+ "no": "ACDR 0035",
+ "title": "外部コマンドを、Skill の目的に不可欠な例外に限る",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "契約に従う Skill は、外部コマンドを、その Skill の目的に不可欠な場合に限って呼ぶ。呼ぶ場合は、名前と理由を宣言する。",
+ "why": "ACDR 0032 は、部品が呼ぶ外部の道具を REQUIRES に列挙する形にした。この形は、宣言さえすればどの道具でも呼べると読める。利用者の方針は「外部依存を残してほしくない」である。一方で、外部の道具が目的そのものに属する Skill が在る。acdr は git の差分を記録する。narration は Amazon Polly で音声を合成し、AWS の Rust の SDK は sso-session の形の SSO 設定に対応していない。fact-check は利用者の環境から原典を取得するので、その環境のプロキシと証明書の設定を使う必要がある。そこで、宣言の形を名前と理由の組に改め、理由を書けない道具を検出できるようにする。併せて、acdr が記録の before と rev を読んでいなかった不具合を直す。この不具合があるため、ACDR 0033 の11の面は差分ではなく全文になっていた。",
+ "shift": [
+  {
+   "what": "外部の道具の宣言",
+   "from": "REQUIRES（名前の一覧）",
+   "to": "EXTERNAL（名前と理由の組）"
+  },
+  {
+   "what": "宣言してよい道具",
+   "from": "部品が使う道具すべて",
+   "to": "その Skill の目的に不可欠な道具だけ"
+  },
+  {
+   "what": "残る外部コマンド",
+   "from": "git ・ aws ・ curl ・ 利用者が指定する道具",
+   "to": "同じ5件。全件に理由が在る"
+  },
+  {
+   "what": "acdr の変更前の取得",
+   "from": "記録の before と rev を無視する",
+   "to": "記録の before と rev を使う"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "外部コマンドの扱いの変更前と変更後を、4つの観点で対比した図である。",
+ "how": "skills-creator の check が、宣言を EXTERNAL の組として読む。理由が空の宣言は「外部の道具に理由が無い」として報告する。宣言に無い道具の呼び出しは、外部コマンドは例外であると添えて報告する。9つの Skill の宣言を EXTERNAL に改めた。中身のある宣言は、acdr の git ・ narration の aws ・ fact-check の curl ・ slide-deck と no-more-spaghetti の利用者が指定する道具の5件である。宣言を差し込んだ位置の前に、別の項目の説明が取り残されていたので、元の項目の前へ移した。削除した項目の説明は削除した。acdr は記録の before と rev を読み、版の中の経路を / で区切る。9つの Skill の試験は合計496件すべて成功し、clippy の誤りは0件である。書いた後の検査は合格106件 ・ 不合格0件であり、9つとも skills-creator の check に合格した。",
+ "applies_to": "変更する正本は、skills-creator の check ・ 契約の文書 ・ 宣言の雛形と、9つの Skill の宣言である。acdr の変更前を取得する部品も変更する。",
+ "alternatives": [
+  {
+   "option": "呼んでよい道具の一覧（REQUIRES）を維持する",
+   "why_not": "宣言さえすればどの道具でも呼べる形であり、外部依存を残さないという方針に反する"
+  },
+  {
+   "option": "外部コマンドを1つも許さない",
+   "why_not": "acdr の目的は git の差分の記録である。narration は、AWS の Rust の SDK が sso-session の形の SSO 設定に対応していないので、aws を呼ぶ以外に音声を合成できない"
+  },
+  {
+   "option": "fact-check の取得を Rust の HTTP の部品（ureq）へ置き換える",
+   "why_not": "試作では、Rust に同梱した証明書の一覧だけを使う形になった。社内のプロキシと証明書の下で取得できない可能性がある。対応すると依存と実装がさらに増える"
+  },
+  {
+   "option": "acdr の git を Rust の実装（gix）へ置き換える",
+   "why_not": "利用者の判断で、git はサブプロセスで呼ぶことにした。置き換えは依存と組み立ての時間を増やし、目的に不可欠な道具を呼ぶことに変わりは無い"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "ACDR 0033 を --force で組み直し、11の面を差分で表示する",
+  "このリポジトリの配布の準備（skills-creator dist）を、次の記録として提示する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "d-acdr",
+   "tab": "acdr の宣言",
+   "file": ".claude/skills/acdr/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\n/// git ── 差分の変更前を git show で取得する\npub const REQUIRES: &[&str] = &[\"git\"];",
+     "why": "宣言を EXTERNAL へ改めた。git は差分の記録という目的に属する。宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "d-brainstorming-board",
+   "tab": "brainstorming-board の宣言",
+   "file": ".claude/skills/brainstorming-board/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const REQUIRES: &[&str] = &[];",
+     "why": "宣言を EXTERNAL へ改めた。この Skill は外部の道具を呼ばないので、宣言は空である。宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "d-design-svg",
+   "tab": "design-svg の宣言",
+   "file": ".claude/skills/design-svg/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\npub const REQUIRES: &[&str] = &[];",
+     "why": "宣言を EXTERNAL へ改めた。この Skill は外部の道具を呼ばないので、宣言は空である。宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "d-doc-writing-skills",
+   "tab": "doc-writing-skills の宣言",
+   "file": ".claude/skills/doc-writing-skills/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の場所の既定値。**build のときの、この Skill のソースの位置である。**\n///\n/// **実行ファイルの位置から辿らない** ── build の置き場所に依存する。既定値を「.」にすると、\n/// 実行した場所で結果が変わる ── リポジトリの直下から実行すると和語の一覧を読めなかった。\n/// build した時点で確定している位置を使い、呼ぶ側は `--skill-root` で上書きできる。\n/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\npub const REQUIRES: &[&str] = &[];",
+     "why": "宣言を EXTERNAL へ改めた。この Skill は外部の道具を呼ばないので、宣言は空である。宣言の前に取り残されていた説明のうち、ACDR 0033 で削除した項目の説明を削除した。その説明は、Skill のフォルダを実行ファイルの位置から求めないと記述しており、現在の求め方と食い違う"
+    }
+   ]
+  },
+  {
+   "key": "d-fact-check",
+   "tab": "fact-check の宣言",
+   "file": ".claude/skills/fact-check/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\n/// curl ── 原文を取得する\npub const REQUIRES: &[&str] = &[\"curl\"];",
+     "why": "宣言を EXTERNAL へ改めた。curl は、利用者の環境のプロキシと証明書の設定を使うために維持する。宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "d-narration",
+   "tab": "narration の宣言",
+   "file": ".claude/skills/narration/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// aws ── Amazon Polly で音声を合成する\npub const REQUIRES: &[&str] = &[\"aws\"];",
+     "why": "宣言を EXTERNAL へ改めた。aws は、Rust の SDK が sso-session の形の SSO 設定に対応していないので維持する"
+    }
+   ]
+  },
+  {
+   "key": "d-no-more-spaghetti",
+   "tab": "no-more-spaghetti の宣言",
+   "file": ".claude/skills/no-more-spaghetti/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の場所。**実行ファイルの位置から辿らない** ── build の置き場所に依存する。\n/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// \"*\" ── 規則ファイルに書かれた道具を実行する\npub const REQUIRES: &[&str] = &[\"*\"];",
+     "why": "宣言を EXTERNAL へ改めた。規則ファイルが指定する道具を実行することが目的である。宣言の前に取り残されていた説明のうち、ACDR 0033 で削除した項目の説明を削除した。その説明は、Skill のフォルダを実行ファイルの位置から求めないと記述しており、現在の求め方と食い違う"
+    }
+   ]
+  },
+  {
+   "key": "d-skills-creator",
+   "tab": "skills-creator の宣言",
+   "file": ".claude/skills/skills-creator/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// 雛形の置き場所。**この crate が Skill の並びを知る唯一の場所である。**\n/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\npub const REQUIRES: &[&str] = &[];",
+     "why": "宣言を EXTERNAL へ改めた。この Skill は外部の道具を呼ばないので、宣言は空である"
+    },
+    {
+     "find": "/// 雛形の置き場所。**この crate が Skill の並びを知る唯一の場所である。**",
+     "before": "（無い）",
+     "why": "宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "d-slide-deck",
+   "tab": "slide-deck の宣言",
+   "file": ".claude/skills/slide-deck/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\n/// `\"*\"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。\n/// \"*\" ── 利用者が指定するヘッドレスのブラウザで PDF を作る\npub const REQUIRES: &[&str] = &[\"*\"];",
+     "why": "宣言を EXTERNAL へ改めた。HTML を PDF にするブラウザは利用者が指定する。宣言を差し込んだ位置の前に取り残されていた別の項目の説明を、元の項目の前へ移した"
+    }
+   ]
+  },
+  {
+   "key": "acdr-p",
+   "tab": "acdr panes.rs",
+   "file": ".claude/skills/acdr/tool/parts/src/panes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 記録が `before` を渡していればそれを使う。無ければ `rev`（既定は `HEAD`）の版から取る。",
+     "before": "/// 基準が無ければ `HEAD` を使う。取得できなければ `None` を返し、呼ぶ側が全文へ落とす。\nif let Some(given) = doc.get(\"変更前\").and_then(|x| x.as_str()) {\nlet rev = doc\n.get(\"基準\")\n.and_then(|x| x.as_str())\n.unwrap_or(\"HEAD\")\n.to_owned();\n.arg(format!(\"{rev}:{}\", rel.display()))",
+     "why": "記録の欄を、契約（スキーマ）どおり before と rev で読む。以前は日本語の名前（変更前 ・ 基準）で読んでいて、渡した変更前と版が使われなかった。版の中の経路は、OS を問わず / で区切る"
+    }
+   ]
+  },
+  {
+   "key": "acdr-t",
+   "tab": "acdr の試験",
+   "file": ".claude/skills/acdr/tool/parts/tests/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "試験を2件追加した。記録の before が使われること、rev に書いた版から変更前を読み、存在しない版では全文を表示すること"
+    }
+   ]
+  },
+  {
+   "key": "sc-c",
+   "tab": "skills-creator check.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 名前を実行時に決める外部の道具を、宣言（EXTERNAL）で表す印。",
+     "before": "/// 名前を実行時に決める外部の道具を、宣言で表す印。",
+     "why": "宣言を EXTERNAL（名前と理由の組）として読み、理由の無い宣言を検出する。検出の文を、外部コマンドは例外であるという規則に合わせた"
+    },
+    {
+     "find": "/// 部品が呼ぶ外部の道具を、宣言と照合する。**外部コマンドは例外である** ── 呼んでよいのは、",
+     "before": "/// 部品が呼ぶ外部の道具を、宣言と照合する。\nlet mut findings = Vec::new();",
+     "why": "宣言を EXTERNAL（名前と理由の組）として読み、理由の無い宣言を検出する。検出の文を、外部コマンドは例外であるという規則に合わせた"
+    },
+    {
+     "find": "} else if !named(&name) {",
+     "before": "} else if !declared.contains(&name) {\n\"宣言に無い外部の道具を呼んでいる: {at} ── {name}（declare の REQUIRES に書く）\"\nif !declared.iter().any(|d| d == USER_CHOSEN) {\n\"名前を実行時に決める道具を呼んでいる: {at} ── 利用者が指定する道具（\\\"{USER_CHOSEN}\\\"）を REQUIRES に書く\"",
+     "why": "宣言を EXTERNAL（名前と理由の組）として読み、理由の無い宣言を検出する。検出の文を、外部コマンドは例外であるという規則に合わせた"
+    },
+    {
+     "find": "/// 宣言（declare の `EXTERNAL`）に並ぶ、名前と理由の組。**無ければ空である。**",
+     "before": "/// 宣言（declare の `REQUIRES`）に並ぶ名前。**無ければ空である。**\nfn requires(lib: &Path) -> Vec<String> {\nlet Some(at) = body.find(\"REQUIRES\") else {\n// **型の `&[&str]` ではなく、値の並び（`= &[`）から読む**\nlet Some(open) = rest.find(\"= &[\").map(|at| at + 2) else {\nrest[open + 2..open + close]\n.split(',')\n.map(|x| x.trim().trim_matches('\"').to_owned())\n.filter(|x| !x.is_empty())",
+     "why": "宣言を EXTERNAL（名前と理由の組）として読み、理由の無い宣言を検出する。検出の文を、外部コマンドは例外であるという規則に合わせた"
+    }
+   ]
+  },
+  {
+   "key": "sc-t",
+   "tab": "skills-creator の試験",
+   "file": ".claude/skills/skills-creator/tool/parts/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 宣言に、目的に不可欠な外部の道具を、理由と一緒に書く。",
+     "before": "/// 宣言に、呼んでよい外部の道具を書く。\nlet listed: Vec<String> = names.iter().map(|n| format!(\"\\\"{n}\\\"\")).collect();\nformat!(\"pub const REQUIRES: &[&str] = &[{}];\\n\", listed.join(\", \")),",
+     "why": "宣言の書き方を EXTERNAL に改め、理由の無い宣言を検出する試験を1件追加した"
+    }
+   ]
+  },
+  {
+   "key": "sc-tm",
+   "tab": "declare.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/tool-contract/declare.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この",
+     "before": "/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を\n/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は\npub const REQUIRES: &[&str] = &[];",
+     "why": "雛形の宣言を EXTERNAL に改め、外部コマンドは例外であることを書いた"
+    }
+   ]
+  },
+  {
+   "key": "tc",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "外部コマンドは例外である。",
+     "before": "部品が呼ぶ外部の道具は、tool/declare/ の REQUIRES に列挙する。",
+     "why": "外部の道具の規定を、目的に不可欠な例外だけを名前と理由つきで宣言する形に改めた（利用者の方針）"
+    },
+    {
+     "find": "外部の道具に理由が無い",
+     "before": "（無い）",
+     "why": "check が新たに出す検出を、検出の表に加えた"
+    }
+   ]
+  },
+  {
+   "key": "askill",
+   "tab": "acdr SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（83件）",
+     "before": "事例（81件）",
+     "why": "試験の件数を実数に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "sskill",
+   "tab": "skills-creator SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "事例（32件）",
+     "before": "事例（31件）",
+     "why": "試験の件数を実数に一致させた"
+    }
+   ]
+  }
+ ],
+ "lede": "外部コマンドを、Skill の目的に不可欠な例外に限る提案である。",
+ "seal": {
+  "d-acdr": "63d2b8b3f4ecfbab0719004d637ad65a48be2d3694ed0e42be403bccc55cba39",
+  "d-brainstorming-board": "381ab1c91171a077484cca1705103a59bab7854f62757ed0754f57521f2b06d7",
+  "d-design-svg": "61901a5e73ca91cd37f7b8c6ac044c6680c71f93f7fd84815e57d834aa10b207",
+  "d-doc-writing-skills": "ef12bff8e0ddb0943b0f4bd9a8c7199350e36498dd48403a06a673053bb7ef6f",
+  "d-fact-check": "2fb3807fa66957fd809206d32117b88342eeb97ad76595c9daeac7833abc4645",
+  "d-narration": "02fbb0c34659b881fc5d21232f2b1e261e133f4cad5568940e27fcab8e069fae",
+  "d-no-more-spaghetti": "4036a31035420031068bd47b64b751d963ad6bb60fcc4e4a1f982d1124fe0251",
+  "d-skills-creator": "2b83ea18c00bfe0c9fa8d834dde175c8c6e007c127a26c16066ad72579221e26",
+  "d-slide-deck": "4932e2ec1b528cc2ce02dd3f1d7c4222d4c29b57b986e95c745bbc3a1a3305b7",
+  "acdr-p": "6863d2679bca85715499797fdc46b2b432780f09f4363c8eac6fae543e1f674e",
+  "acdr-t": "6ce01e370d33d9d373c82f3ff2664f8d4e31c376634e01f51947f02e485df392",
+  "sc-c": "a3aead217042abb06d2d16f544b8fce5aa301e60b3e6a09b547588def83ab8dd",
+  "sc-t": "f131b6e9cb300e810dc19e4c95e8d1717c90211c5076b454322e5d29034d42bf",
+  "sc-tm": "e43603a3f29355ef8e8a27291d00416426c5cdbbbac70afa11f3c1521b688760",
+  "tc": "037a0495fcc3a6d0140b22c99147174cfb1be291029786c3b2714b22b662dc3d",
+  "askill": "eef3ecc89f218f25569523579722df68aed6b978be19b14a28f3efb08f7d9b69",
+  "sskill": "c563220159dc603fbc41d0801e3440f8c9942e2644fbedf65411485aa2378f40"
+ }
+}

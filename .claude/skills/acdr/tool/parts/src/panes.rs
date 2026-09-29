@@ -164,25 +164,30 @@ fn index(parts: &Parts, marks: &[Value]) -> Result<String, String> {
 
 /// 変更前の中身を取得する。**記録へ複製しない** ── git から取る。
 ///
-/// 基準が無ければ `HEAD` を使う。取得できなければ `None` を返し、呼ぶ側が全文へ落とす。
+/// 記録が `before` を渡していればそれを使う。無ければ `rev`（既定は `HEAD`）の版から取る。
+/// **欄の名前は契約（スキーマ）どおりである** ── 以前は日本語の名前（変更前 ・ 基準）で読んで
+/// いて、渡した変更前が使われなかった。git は、この Skill の目的に不可欠な外部の道具である
+/// （declare の EXTERNAL）。取得できなければ `None` を返し、呼ぶ側が全文へ落とす。
 #[must_use]
 pub fn before_of(doc: &Value) -> Option<String> {
-    if let Some(given) = doc.get("変更前").and_then(|x| x.as_str()) {
+    if let Some(given) = doc.get("before").and_then(|x| x.as_str()) {
         return Some(given.to_owned()); // 直に渡された場合はそれを使う
     }
-    let rev = doc
-        .get("基準")
-        .and_then(|x| x.as_str())
-        .unwrap_or("HEAD")
-        .to_owned();
+    let rev = doc.get("rev").and_then(|x| x.as_str()).unwrap_or("HEAD");
     let path = std::fs::canonicalize(text_of(doc, "file")).ok()?;
     let root = path.ancestors().skip(1).find(|d| d.join(".git").exists())?;
     let rel = path.strip_prefix(root).ok()?;
+    // 版の中の経路は、OS を問わず / で区切る
+    let rel = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("/");
     let done = Command::new("git")
         .arg("-C")
         .arg(root)
         .arg("show")
-        .arg(format!("{rev}:{}", rel.display()))
+        .arg(format!("{rev}:{rel}"))
         .stdin(Stdio::null())
         .output()
         .ok()?;

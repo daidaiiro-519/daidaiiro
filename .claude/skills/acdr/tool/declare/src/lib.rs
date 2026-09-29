@@ -13,13 +13,16 @@ use serde_json::{json, Value};
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// 題を書いていないことが、出来上がりから分かる文字列。
-/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を
-/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は
+/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
+/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
+/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
 /// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-/// git ── 差分の変更前を git show で取得する
-pub const REQUIRES: &[&str] = &["git"];
+pub const EXTERNAL: &[(&str, &str)] = &[(
+    "git",
+    "git のリポジトリの版から、変更前の中身を取得する。git の差分を記録することが目的である",
+)];
 
+/// 題を書いていないことが、出来上がりから分かる文字列。
 const DEFAULT_TITLE: &str = "題を記入する";
 
 /// この Skill の references/。**置き場所は Given::skill_root が求める。**

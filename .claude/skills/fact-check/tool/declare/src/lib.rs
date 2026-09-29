@@ -14,13 +14,16 @@ use serde_json::json;
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// 数を3桁ごとに区切る。**読み手が桁を数えずに済む。**
-/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を
-/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は
+/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
+/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
+/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
 /// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-/// curl ── 原文を取得する
-pub const REQUIRES: &[&str] = &["curl"];
+pub const EXTERNAL: &[(&str, &str)] = &[(
+    "curl",
+    "利用者の環境のプロキシと証明書の設定をそのまま使い、原典を取得する",
+)];
 
+/// 数を3桁ごとに区切る。**読み手が桁を数えずに済む。**
 fn grouped(n: u64) -> String {
     let digits = n.to_string();
     let mut out = String::new();

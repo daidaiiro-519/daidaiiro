@@ -16,13 +16,16 @@ use serde_json::{json, Map, Value};
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// 既定のテーマ。
-/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を
-/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は
+/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
+/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
+/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
 /// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-/// "*" ── 利用者が指定するヘッドレスのブラウザで PDF を作る
-pub const REQUIRES: &[&str] = &["*"];
+pub const EXTERNAL: &[(&str, &str)] = &[(
+    "*",
+    "利用者が指定するヘッドレスのブラウザで、HTML を PDF にする",
+)];
 
+/// 既定のテーマ。
 const DEFAULT_THEME: &str = "warm-paper";
 /// 題を書いていないことが、出来上がりから分かる文字列。
 const DEFAULT_TITLE: &str = "題を記入する";

@@ -332,3 +332,22 @@ fn a_new_record_is_not_made_twice() {
     let why = record::new(&references(), &folder, "ためし").expect_err("断る");
     assert!(why.contains("既に在る"), "{why}");
 }
+
+#[test]
+fn the_before_given_in_the_record_is_used() {
+    // **欄の名前は契約（スキーマ）どおり before である** ── 日本語の名前で読むと、渡した変更前が使われない
+    let doc = json!({"file": "/nowhere/x.rs", "before": "旧い中身"});
+    assert_eq!(panes::before_of(&doc).as_deref(), Some("旧い中身"));
+}
+
+#[test]
+fn the_before_is_read_from_the_revision_the_record_names() {
+    // **rev に書いた版から変更前を読む** ── 欄の名前は契約どおり rev である
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../SKILL.md");
+    let doc = json!({"file": here.display().to_string(), "rev": "HEAD"});
+    let got = panes::before_of(&doc).expect("HEAD の版が在る");
+    assert!(got.contains("acdr"), "{}", &got[..got.len().min(80)]);
+    // 在りもしない版は None を返し、呼ぶ側が全文へ落とす
+    let missing = json!({"file": here.display().to_string(), "rev": "no-such-rev-xyz"});
+    assert!(panes::before_of(&missing).is_none());
+}

@@ -13,11 +13,13 @@ use serde_json::json;
 
 pub use contract::{Arg, Given, Outcome, Tool};
 
-/// この Skill の部品が呼ぶ外部の道具。**OS によって無いコマンド（date ・ timeout など）を
-/// 書かない** ── 日付の計算と時間の制限は Rust の中で行う。名前を実行時に決める道具は
+/// この Skill の部品が呼ぶ外部の道具。**外部コマンドは例外である** ── 呼んでよいのは、この
+/// Skill の目的に不可欠な道具だけで、名前と理由を書く。それ以外は Rust の中で行う
+/// （OS によって無い date ・ timeout は、どの場合も呼ばない）。名前を実行時に決める道具は
 /// `"*"`（利用者が指定する道具）と書く。skills-creator の check が、部品の呼び出しと照合する。
-/// aws ── Amazon Polly で音声を合成する
-pub const REQUIRES: &[&str] = &["aws"];
+pub const EXTERNAL: &[(&str, &str)] = &[
+    ("aws", "Amazon Polly で音声を合成する。AWS の Rust の SDK は、sso-session の形の SSO 設定に対応していない"),
+];
 
 fn script_of(given: &Given) -> Result<(PathBuf, voice::Script, String), String> {
     let dir = PathBuf::from(given.one("directory", "."));
