@@ -1,0 +1,80 @@
+{
+ "no": "ACDR 0043",
+ "title": "Skill の references を、JSON Schema と JSON を正本にする形へ移す",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "Skill の references（Skill の目的を達成するために参照する情報）は、JSON Schema と、それに従う JSON を正本にし、人は JSON から描画した HTML で読む。",
+ "why": "16の Skill のうち、アドバイザー系 ・ skill-router ・ memory-cultivator は、道具の契約ができる前の Markdown だけの形である。アドバイザー系の knowledge 62件は KnowledgeSchema v5 ・ v6 を記録しているが、スキーマの実体はどこにも無い。存在しない参照が4件あり、雛形と実物もずれている。道具を持つ Skill にも、スキーマの無い入力や、置いただけで検査に使っていないスキーマがある。利用者は、構造があらかじめ分離されていれば読み手は内容に集中できると述べ、SKILL.md 以外を Markdown で持たない方針を示した。ブレストボード skill-references で5件の論点を決着させたので、ここに記録する。",
+ "shift": [
+  {
+   "what": "references の形",
+   "from": "Markdown と frontmatter（形の定義は無い）",
+   "to": "種類ごとの JSON Schema と JSON。種類は中身で名付ける（criteria ・ answer ・ document）"
+  },
+  {
+   "what": "外部の原典",
+   "from": "要約して knowledge に書く",
+   "to": "document（出典と sha256 を付けた構造化した複製）で持ち、import で取り込む"
+  },
+  {
+   "what": "人が読む形",
+   "from": "Markdown のファイルと、チャットの文章",
+   "to": "契約の描画が JSON から組む HTML。見せ方はスキーマの x-view"
+  },
+  {
+   "what": "advisor の回答",
+   "from": "Markdown のテンプレートに沿った文章",
+   "to": "answer.schema.json の形の JSON。validate で検査し、HTML で渡す"
+  },
+  {
+   "what": "道具",
+   "from": "8つの Skill が道具を保持しない",
+   "to": "すべての Skill が get ・ validate ・ view ・ import を持つ（契約の雛形が持つ）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ddd-advisor の references を、種類ごとのスキーマと JSON に移す",
+ "how": "決定の内容は、ブレストボード skill-references（Round 7、743fc89）が正本として保持する。この記録には決定だけを記載し、適用は5つの段で行う。段1 で skills-creator の契約と雛形に、document のスキーマ ・ import ・ get ・ validate ・ view ・ x-view を読む汎用の描画 ・ 既定の型とトークンを加える。段2 で ddd-advisor を移して criteria と answer の欄を決め、段3〜5 で残りの Skill へ広げる。段ごとに ACDR で提示する。回答の形の完成イメージは、この記録の answer.example.html に置いた（試作の描画で組んだもの）。",
+ "applies_to": "変更する正本は、16の Skill すべてである。段1 では skills-creator の契約の文書と雛形を変更する。",
+ "alternatives": [
+  {
+   "option": "Markdown と frontmatter のまま、frontmatter だけにスキーマを付ける",
+   "why_not": "本文の構造が散文のままで、読み手が構造を解釈することになる"
+  },
+  {
+   "option": "取得のたびに原典を読み、必要な情報だけを契約の形にそろえる",
+   "why_not": "原典は変わり、取得できないこともある。同じ問いに、日によって違う答えが返る"
+  },
+  {
+   "option": "Skill ごとに描画のコードを書く",
+   "why_not": "描画の仕組みが Skill ごとに分かれ、1つを直しても他に反映されない"
+  },
+  {
+   "option": "モデルは JSON のファイルを直接読み、検査と描画だけを道具にする",
+   "why_not": "モデルが種類のファイル全体を読むことになり、JSON は記号が多い分だけ読む量が増える"
+  },
+  {
+   "option": "advisor の回答を Markdown のテンプレートのまま残す",
+   "why_not": "テンプレートを踏襲したかを機械で検査できない。結論が先頭に来ず、図と比較の欄が無い"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "段1（skills-creator の契約と雛形）を実装し、次の記録として提示する",
+  "段1 の直後に acdr を契約の描画へ移し、上部の節を4つ（決めたこと ・ なぜ ・ 変化 ・ 比較と選択の理由）に絞る（利用者の合意で前倒し）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "answer",
+   "tab": "完成イメージ：回答",
+   "file": ".acdr/0043-Skillのreferencesを構造化データにする/answer.example.html",
+   "rev": "HEAD",
+   "marks": []
+  }
+ ],
+ "lede": "Skill の references を、JSON Schema と JSON を正本にし、HTML で読む形へ移す提案である。",
+ "seal": {
+  "answer": "2734a49ddfe8b907ce6c215d8377f2e21df6160960378e732ae260c6bf592f93"
+ }
+}
