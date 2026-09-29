@@ -30,7 +30,7 @@ mcp.json        MCP の起動のコマンド（ホストの形式）
 
 | crate | 層 | 参照してよい先 |
 |---|---|---|
-| `parts` | 部品 | **無し** |
+| `parts` | 部品 | **無し**（外の crate は、references の部品が使う serde_json と jsonschema だけ） |
 | `declare` | 宣言 | `parts` |
 | `cli` ・ `mcp` | 入口 | `declare` |
 
@@ -76,6 +76,9 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 | `cli.Cargo.toml.tmpl` ・ `cli.main.rs.tmpl` | `tool/cli/` |
 | `mcp.Cargo.toml.tmpl` ・ `mcp.main.rs.tmpl` | `tool/mcp/` |
 | `tool.json.tmpl` ・ `mcp.json.tmpl` ・ `gitignore.tmpl` | Skill のフォルダ |
+| `refs.rs.tmpl` | `tool/parts/src/refs.rs` ── references の部品。**どの Skill も同じファイルを複製する**（契約の版2） |
+| `declare.refs.rs.tmpl` | `tool/declare/src/refs.rs` ── get ・ validate ・ view ・ import の宣言 |
+| `document.schema.json.tmpl` | `references/document.schema.json` ── 原典の複製の形 |
 
 ---
 
@@ -94,5 +97,7 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 | rs/ が残っている | 道具のソースを `tool/` へ移していない |
 | bin/ を git の追跡から外していない | `.gitignore` に `bin/` が無い |
 | 部品が外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
+| references の部品が無い（版2） | `tool/parts/src/refs.rs` か `tool/declare/src/refs.rs` が無い |
+| references の部品が雛形と違う（版2） | `tool/parts/src/refs.rs` が `refs.rs.tmpl` と一致しない。雛形から複製し直す |
 
 依存が宣言どおりに守られているかは、コンパイラが判定する。**見つけるが、直さない。**

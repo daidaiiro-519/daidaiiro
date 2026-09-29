@@ -49,13 +49,26 @@ pub struct Templates {
     pub general: PathBuf,
     /// 助言の Skill が満たす雛形。
     pub advisor: PathBuf,
+    /// references の部品の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**
+    pub refs: Option<PathBuf>,
 }
 
 impl Templates {
     /// 雛形の置き場所を組む。**欄を足しても、呼ぶ側は壊れない。**
     #[must_use]
     pub const fn new(general: PathBuf, advisor: PathBuf) -> Self {
-        Self { general, advisor }
+        Self {
+            general,
+            advisor,
+            refs: None,
+        }
+    }
+
+    /// references の部品の雛形を足す。
+    #[must_use]
+    pub fn with_refs(mut self, refs: PathBuf) -> Self {
+        self.refs = Some(refs);
+        self
     }
 }
 
@@ -235,7 +248,7 @@ pub fn check(root: &Path, templates: &Templates) -> Report {
                 Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),
             });
         }
-        report.lines.extend(source(root));
+        report.lines.extend(source(root, templates));
     }
     let missing = document(root, templates);
     if missing.is_empty() {
@@ -255,9 +268,12 @@ pub fn check(root: &Path, templates: &Templates) -> Report {
 
 /// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
 #[must_use]
-pub fn source(root: &Path) -> Vec<Line> {
+pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
     if root.join(TOOL).join("Cargo.toml").is_file() || root.join("rs").is_dir() {
-        let found = rust(root);
+        let mut found = rust(root);
+        if behavior::contract_version(root) >= 2 {
+            found.extend(rust_refs(root, templates));
+        }
         if found.is_empty() {
             return vec![Line::new(
                 Stage::Source,
@@ -283,6 +299,31 @@ pub fn source(root: &Path) -> Vec<Line> {
         State::Skip,
         "実行しない ── この Skill の言語の組が無い（合格とは扱わない）".to_owned(),
     )]
+}
+
+/// Rust の組の、版2 の規則。**references の部品は雛形の複製である** ── Skill ごとに書き換えると、
+/// どの Skill でも同じ get ・ validate ・ view ・ import になるという契約が崩れる。
+#[must_use]
+pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
+    let mut findings = Vec::new();
+    for need in ["parts/src/refs.rs", "declare/src/refs.rs"] {
+        if !root.join(TOOL).join(need).is_file() {
+            findings.push(format!(
+                "references の部品が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く"
+            ));
+        }
+    }
+    if let Some(tmpl) = &templates.refs {
+        let want = fs::read_to_string(tmpl).unwrap_or_default();
+        let have =
+            fs::read_to_string(root.join(TOOL).join("parts/src/refs.rs")).unwrap_or_default();
+        if !have.is_empty() && !want.is_empty() && have != want {
+            findings.push(format!(
+                "references の部品が雛形と違う: {TOOL}/parts/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す"
+            ));
+        }
+    }
+    findings
 }
 
 /// 節の構成が、対応する雛形を満たすかを見る。

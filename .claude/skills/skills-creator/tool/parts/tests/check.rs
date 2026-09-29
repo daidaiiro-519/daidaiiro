@@ -302,6 +302,12 @@ fn what_scaffold_places_satisfies_check() {
         ("mcp.json.tmpl", "mcp.json"),
         ("tool.json.tmpl", "tool.json"),
         ("gitignore.tmpl", ".gitignore"),
+        ("refs.rs.tmpl", "tool/parts/src/refs.rs"),
+        ("declare.refs.rs.tmpl", "tool/declare/src/refs.rs"),
+        (
+            "document.schema.json.tmpl",
+            "references/document.schema.json",
+        ),
     ] {
         let body = std::fs::read_to_string(tmpl.join(from))
             .unwrap_or_else(|e| panic!("{from} を読めない ── {e}"))
@@ -313,6 +319,12 @@ fn what_scaffold_places_satisfies_check() {
     }
     write_document(&root);
     let mut found = found_in_source(&root);
+    // **版2 の規則も満たす** ── references の部品は雛形の複製で、references はスキーマに合う
+    found.extend(check::rust_refs(
+        &root,
+        &templates().with_refs(tmpl.join("refs.rs.tmpl")),
+    ));
+    found.extend(sc_parts::refs::validate(&root.join("references")).expect("読める"));
     // **1段目のうち、起動せずに見られる書き方も満たす**（入口は組んでいないので起動しない）
     found.extend(
         behavior::declaration(&root)
@@ -502,5 +514,39 @@ fn a_cli_that_accepts_an_unknown_flag_is_reported() {
     assert!(
         found.iter().any(|x| x.contains("旗を断らない")),
         "{found:?}"
+    );
+}
+
+#[test]
+fn a_version_two_skill_without_the_references_parts_is_reported() {
+    // **版2 の規則は、版2 の Skill にだけ当てる** ── 移行していない Skill は、これまでの規則のまま
+    let root = scratch("v2-missing");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    assert!(
+        check::rust_refs(&root, &templates()).len() == 2,
+        "部品が2つとも無い"
+    );
+    std::fs::write(
+        root.join("tool.json"),
+        r#"{"contract": 2, "cli": {"command": "bin/x"}, "external": []}"#,
+    )
+    .expect("書ける");
+    let lines = check::source(&root, &templates());
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.state == State::Fail && l.text.contains("references の部品が無い")),
+        "{lines:?}"
+    );
+    std::fs::write(
+        root.join("tool.json"),
+        r#"{"cli": {"command": "bin/x"}, "external": []}"#,
+    )
+    .expect("書ける");
+    let lines = check::source(&root, &templates());
+    assert!(
+        lines.iter().all(|l| l.state != State::Fail),
+        "版1 には当てない ── {lines:?}"
     );
 }

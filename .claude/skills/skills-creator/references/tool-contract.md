@@ -122,6 +122,36 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 
 **出力をまとめて受け取らない。** ファイルへ書き出し、上限までしか読まない ── 受け取ると、道具が出した量がそのままこちらの記憶に載る（実測: 100MB の出力で最大常駐が 306MB、ファイルへ書き出すと 24KB）。
 
+## references（契約の版2）
+
+**references は、Skill の目的を達成するために参照する情報である**（ACDR 0043）。版2 の Skill は、
+`tool.json` に `"contract": 2` を書き、次を満たす。版1 の Skill には、この節の規則を当てない。
+
+| 規定 | 中身 |
+|---|---|
+| 形 | 種類ごとに、JSON Schema（`<種類>.schema.json`）と、それに従う JSON（`<種類>.json`）を置く。JSON は `$schema` でスキーマを指す。項目の並びは `items` に置き、各項目は `id` を持つ |
+| 種類の名前 | 中身で付ける（例：`criteria` ＝判断基準、`answer` ＝回答の形、`document` ＝原典の複製）。knowledge という区分は設けない |
+| Markdown | **SKILL.md だけ**。references に Markdown を置かない |
+| 外部の原典 | 原典が正本である。Skill は `document`（出典 ・ sha256 ・ 取り込んだ日 ・ 節の入れ子 ・ 段落 ・ 一覧 ・ 表 ・ コードの塊）で複製を持つ。取得のたびに原典を読みに行かない |
+| 4つの道具 | どの Skill も持つ ── `get`（1件を取り出す）・ `validate`（スキーマで検査する）・ `view`（HTML に描画する）・ `import`（Markdown を document へ取り込む）。**実体は言語の組の雛形が持ち、Skill ごとに書かない** |
+| 描画 | 契約が1つだけ持つ。見出しはスキーマの `title`、説明は `description`、見せ方は `x-view`。書く側への指示は `$comment` に書き、描画しない。見た目の値はトークン（`view.tokens.json` で差し替える）、型は `view.template.html` で差し替える |
+
+`x-view` の値は次である。
+
+| 値 | 描き方 |
+|---|---|
+| `heading` | 頁の見出し（h1） |
+| `tag` | 札（選択肢は `oneOf` の `title` で表示する） |
+| `card` | 結論のような、最初に読む枠 |
+| `table` ・ `list` ・ `steps` | 表 ・ 一覧 ・ 番号付きの段 |
+| `figure` | 図（SVG は design-svg が組む） |
+| `outline` ・ `blocks` | 節の入れ子 ・ 本文の塊 |
+| `hidden` | 描画しない（識別子など） |
+
+版2 の1段目の検査は、4つの道具が宣言に在ること、`validate` が合格することを加える。
+
+---
+
 ## 規定しないもの
 
 | 規定しない | 理由 |

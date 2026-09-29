@@ -32,6 +32,7 @@ fn templates(here: &Path) -> check::Templates {
         |skills| skills.join("advisor-creator/references/skill-template-advisor.md"),
     );
     check::Templates::new(references.join("skill-template.md"), advisor)
+        .with_refs(references.join("profiles/rust/refs.rs.tmpl"))
 }
 
 /// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の
@@ -152,6 +153,12 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
         ("mcp.main.rs.tmpl", "tool/mcp/src/main.rs"),
         ("mcp.json.tmpl", "mcp.json"),
         ("tool.json.tmpl", "tool.json"),
+        ("refs.rs.tmpl", "tool/parts/src/refs.rs"),
+        ("declare.refs.rs.tmpl", "tool/declare/src/refs.rs"),
+        (
+            "document.schema.json.tmpl",
+            "references/document.schema.json",
+        ),
         ("gitignore.tmpl", ".gitignore"),
     ] {
         out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));

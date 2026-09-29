@@ -98,6 +98,10 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだ�
 **check は2段で検査する。** 1段目は入口を起動して振る舞いを確認する ── どの言語でも同じである。
 2段目はソースを読む検査で、言語の組が持つ。**組が無い言語では「実行しない」と出し、合格とは扱わない。**
 
+**references は JSON Schema と JSON で持つ**（契約の版2、ACDR 0043）。`tool.json` に `"contract": 2` を書いた
+Skill は、雛形の部品で get ・ validate ・ view ・ import を持ち、Markdown は SKILL.md だけにする。
+移行していない Skill（版1）には、この規則を当てない。
+
 **外部の道具は、外から注入する。** `tool.json` の `external` に名前 ・ 起動するコマンド ・ 理由を書き、
 宣言の層が部品へ渡す ── 部品は名前を直書きしない。利用者は `tool.json` を書き換えるだけで差し替えられる。
 
@@ -140,12 +144,12 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだ�
 - `tool/parts/src/check.rs`: 2段の検査をまとめる。Rust の組の2段目（**層が crate に分かれていること** ・
   **許可辺が各 `Cargo.toml` の宣言どおりであること** ・ 外部の道具の直書き）を持つ
 - `tool/parts/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは宣言が決める**
-- `tool/parts/tests/`: 事例（33件）。**生んだものが契約を満たすこと**と、シェルで書いた入口が1段目に合格し2段目が「実行しない」になることも固定してある
+- `tool/parts/tests/`: 事例（51件）。references の部品（取り出し ・ 検査 ・ 描画 ・ 取り込み）と、**生んだものが契約を満たすこと**と、シェルで書いた入口が1段目に合格し2段目が「実行しない」になることも固定してある
 - `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つの入口 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 層と許可辺 ・ 1段目の検査 ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/profiles/rust.md` ・ `references/profiles/rust/`: Rust の組。置き場所 ・ 契約の実装 ・
-  雛形（14件）・ 2段目の検査。**`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く
+  雛形（17件）・ 2段目の検査。**`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く
 - `references/distribution.md` ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形
 - `tool/cli/`: この Skill 自身の入口。`scaffold` ・ `check` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
 

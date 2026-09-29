@@ -6,5 +6,6 @@
 
 pub mod behavior;
 pub mod check;
+pub mod refs;
 pub mod scaffold;
 pub mod sections;

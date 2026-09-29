@@ -19,6 +19,41 @@ pub const PROJECT_DIR: &str = "${CLAUDE_PROJECT_DIR:-.}";
 /// 利用者が実行時に指定する外部の道具を表す名前。**command を持たない。**
 pub const USER_CHOSEN: &str = "*";
 
+/// 契約の版2 で、どの Skill も持つ references の道具。
+pub const REFS_TOOLS: [&str; 4] = ["get", "validate", "view", "import"];
+
+/// 契約の版を読む。**`tool.json` の contract の欄。無ければ 1 である。**
+#[must_use]
+pub fn contract_version(root: &Path) -> u64 {
+    read_json(&root.join("tool.json"))
+        .ok()
+        .and_then(|d| d.get("contract").and_then(Value::as_u64))
+        .unwrap_or(1)
+}
+
+/// `validate` を起動し、references がスキーマに合うかを見る。
+fn references_pass(command: &Path, args: &[String]) -> Verdict {
+    let mut with = args.to_vec();
+    with.extend(["validate".to_owned(), "--json".to_owned()]);
+    match output(command, &with, &std::env::temp_dir()) {
+        Ok((0, _)) => Verdict::Pass("references の JSON がスキーマに合う".to_owned()),
+        Ok((_, text)) => {
+            let found: Vec<String> = serde_json::from_str::<Value>(text.trim())
+                .ok()
+                .and_then(|d| d.get("findings").and_then(Value::as_array).cloned())
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|x| x.as_str().map(str::to_owned))
+                .collect();
+            Verdict::Fail(format!(
+                "references がスキーマに合わない ── {}",
+                found.join(" ／ ")
+            ))
+        }
+        Err(why) => Verdict::Fail(why),
+    }
+}
+
 /// 入口1回の起動に待つ時間。**止まった入口を、永久に待たない。**
 const LIMIT: Duration = Duration::from_secs(30);
 
@@ -140,6 +175,27 @@ pub fn run(root: &Path) -> Vec<Verdict> {
     out.push(skill_root_matches(root, &catalog));
     if let (Ok((command, args)), Some(first)) = (&cli, names.first()) {
         out.push(refuses_unknown_flag(command, args, first));
+    }
+    // **版2 の規則**（ACDR 0043）── references の4つの道具を持ち、references がスキーマに合う
+    if contract_version(root) >= 2 {
+        let missing: Vec<&str> = REFS_TOOLS
+            .iter()
+            .copied()
+            .filter(|t| !names.iter().any(|n| n == t))
+            .collect();
+        if missing.is_empty() {
+            out.push(Verdict::Pass(
+                "references の4つの道具（get ・ validate ・ view ・ import）を持つ".to_owned(),
+            ));
+            if let Ok((command, args)) = &cli {
+                out.push(references_pass(command, args));
+            }
+        } else {
+            out.push(Verdict::Fail(format!(
+                "references の道具が無い: {} ── 契約の版2 は get ・ validate ・ view ・ import を求める",
+                missing.join(" ・ ")
+            )));
+        }
     }
     let servers: Vec<(String, Value)> = mcp
         .get("mcpServers")

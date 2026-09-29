@@ -5,6 +5,7 @@
 //! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use serde_json::json;
 
@@ -27,14 +28,17 @@ fn human_{{道具の名前}}(out: &Outcome) -> String {
     out.findings.join("\n")
 }
 
-/// この Skill が持つ道具の一覧。**能力の正本である。**
+/// この Skill が持つ道具の一覧。**能力の正本である。** references の4つの道具（get ・ validate ・
+/// view ・ import）は、どの Skill も同じものを足す（ACDR 0043）。
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    vec![Tool {
+    let mut all = vec![Tool {
         name: "{{道具の名前}}",
         summary: "{{その道具が何をするか}}",
         args: vec![Arg::need("{{引数の名前}}", "{{何を渡すか}}")],
         run: run_{{道具の名前}},
         human: human_{{道具の名前}},
-    }]
+    }];
+    all.extend(refs::tools());
+    all
 }

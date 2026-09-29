@@ -1,0 +1,292 @@
+{
+ "no": "ACDR 0044",
+ "title": "skills-creator に、構造化した references の契約（版2）を加える",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "skills-creator の契約に、構造化した references の規則を「版2」として加え、雛形から作る Skill がそれを満たすようにする。",
+ "why": "ACDR 0043 で、references を JSON Schema と JSON で持つと決めた。移行は段ごとに行うので、移していない Skill に新しい規則を適用すると、検査が長く赤いままになる。契約に版を付け、移した Skill から新しい規則を適用する。",
+ "shift": [
+  {
+   "what": "references の規則",
+   "from": "無い",
+   "to": "版2 の Skill は、種類ごとのスキーマと JSON で持ち、Markdown は SKILL.md だけ"
+  },
+  {
+   "what": "道具",
+   "from": "Skill ごとに書く",
+   "to": "get ・ validate ・ view ・ import を雛形が持ち、どの Skill も複製する"
+  },
+  {
+   "what": "検査",
+   "from": "版の区別が無い",
+   "to": "tool.json の contract の版で、適用する規則を切り替える"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "既存の文書は import で共通の形に取り込み、必要になったら種類固有の形へ移す",
+ "how": "雛形から作った Skill を組み、check の1段目 ・ 2段目 ・ 文書のすべてに合格した。ddd-advisor の domain-model.md を import で取り込み、view で描画した姿を、この記録の「完成イメージ」の面に置いた。試験は53件すべて成功し、clippy の誤りは0件。書いた後の検査は合格106件で、版1 の Skill に影響は無い。",
+ "applies_to": "変更する正本は、skills-creator の契約の文書 ・ Rust の組の雛形 ・ check である。skills-creator 自身は版1 のまま残す（references の移行は段5）。",
+ "alternatives": [
+  {
+   "option": "版を付けず、段1から全部の Skill に適用する",
+   "why_not": "移していない Skill が段5まで不合格のままになり、本当の不合格に気づけない"
+  },
+  {
+   "option": "移していない Skill は「実行しない」と出す",
+   "why_not": "「実行しないを合格と扱わない」決まりと矛盾する"
+  },
+  {
+   "option": "取り込んだ文書の本文を、Markdown の文字列のまま持つ",
+   "why_not": "読み手が表や箇条書きの構造を記号から解釈することになる。試作で確認し、塊に分ける形に改めた"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、main へコミットする",
+  "acdr を契約の描画へ移し、上部の節を4つに限定する（段1の直後へ前倒し）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "contract",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "references は、Skill の目的を達成するために参照する情報である",
+     "before": "（無い）",
+     "why": "ACDR 0043 の決定を、契約の版2 として規定した。版1 の Skill には当てない"
+    }
+   ]
+  },
+  {
+   "key": "rust",
+   "tab": "profiles/rust.md",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "references の部品。",
+     "before": "（無い）",
+     "why": "版2 の雛形3件と、2段目の検出2件を加えた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "references は JSON Schema と JSON で持つ",
+     "before": "（無い）",
+     "why": "版2 の要点を手順の側にも書いた"
+    }
+   ]
+  },
+  {
+   "key": "refs",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "references の部品を新しく置いた。取り出し ・ 検査 ・ x-view による描画 ・ Markdown の取り込み（見出しを節に、本文を段落 ・ 一覧 ・ 表 ・ コードに分ける）を持つ。描画は種類の中身を参照しない"
+    }
+   ]
+  },
+  {
+   "key": "drefs",
+   "tab": "declare.refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/declare.refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "get ・ validate ・ view ・ import の4つの宣言を置いた。どの Skill も同じものを足す"
+    }
+   ]
+  },
+  {
+   "key": "docschema",
+   "tab": "document.schema.json.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/document.schema.json.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"https://json-schema.org/draft/2020-12/schema\",",
+     "before": "（無い）",
+     "why": "原典の複製（document）の形を置いた。出典 ・ sha256 ・ 取り込んだ日と、節の入れ子と本文の塊を持つ"
+    }
+   ]
+  },
+  {
+   "key": "dlib",
+   "tab": "declare.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/declare.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "mod refs;",
+     "before": "（無い）",
+     "why": "宣言の道具の一覧に、references の4つの道具を足す"
+    },
+    {
+     "find": "/// この Skill が持つ道具の一覧。**能力の正本である。** references の4つの道具（get ・ validate ・",
+     "before": "/// この Skill が持つ道具の一覧。**能力の正本である。**\nvec![Tool {\n}]",
+     "why": "宣言の道具の一覧に、references の4つの道具を足す"
+    }
+   ]
+  },
+  {
+   "key": "pcargo",
+   "tab": "parts.Cargo.toml.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/parts.Cargo.toml.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# **同じ workspace の crate を1件も参照しない。** 外側の層を参照した時点でコンパイルが通らない。",
+     "before": "# **依存を1件も宣言しない。** 外側の層を参照した時点でコンパイルが通らない",
+     "why": "references の部品が使う serde_json と jsonschema を加えた。同じ workspace の crate を参照しない決まりは変えない"
+    }
+   ]
+  },
+  {
+   "key": "plib",
+   "tab": "parts.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/parts.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 許可辺は `Cargo.toml` が宣言する ── この crate は同じ workspace の crate を参照しないので、",
+     "before": "//! 許可辺は `Cargo.toml` が宣言する ── この crate は依存を1件も持たないので、",
+     "why": "references の部品を公開する"
+    }
+   ]
+  },
+  {
+   "key": "tjson",
+   "tab": "tool.json.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/tool.json.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"contract\": 2,",
+     "before": "（無い）",
+     "why": "新しく作る Skill は、契約の版2 で生まれる"
+    }
+   ]
+  },
+  {
+   "key": "beh",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 契約の版2 で、どの Skill も持つ references の道具。",
+     "before": "（無い）",
+     "why": "契約の版を tool.json から読み、版2 の Skill だけに、4つの道具の有無と validate の合格を確認する"
+    },
+    {
+     "find": "// **版2 の規則**（ACDR 0043）── references の4つの道具を持ち、references がスキーマに合う",
+     "before": "（無い）",
+     "why": "契約の版を tool.json から読み、版2 の Skill だけに、4つの道具の有無と validate の合格を確認する"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "refs: None,",
+     "before": "（差分が示す）",
+     "why": "雛形の置き場所に、references の部品の雛形を足した。既定は無しで、呼ぶ側が with_refs で渡す"
+    },
+    {
+     "find": "/// references の部品の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**",
+     "before": "Self { general, advisor }",
+     "why": "references の部品の雛形の置き場所を、検査に渡せるようにした"
+    },
+    {
+     "find": "report.lines.extend(source(root, templates));",
+     "before": "report.lines.extend(source(root));",
+     "why": "版2 の規則を、2段目に加えた"
+    },
+    {
+     "find": "pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {",
+     "before": "pub fn source(root: &Path) -> Vec<Line> {\nlet found = rust(root);",
+     "why": "版2 の Skill だけに、references の部品が在り雛形と一致するかを確認する。版1 の Skill には当てない（移行が済むまで検査を赤くしないため）"
+    },
+    {
+     "find": "/// Rust の組の、版2 の規則。**references の部品は雛形の複製である** ── Skill ごとに書き換えると、",
+     "before": "（無い）",
+     "why": "版2 の Skill だけに、references の部品が在り雛形と一致するかを確認する。版1 の Skill には当てない（移行が済むまで検査を赤くしないため）"
+    }
+   ]
+  },
+  {
+   "key": "decl",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".with_refs(references.join(\"profiles/rust/refs.rs.tmpl\"))",
+     "before": "（無い）",
+     "why": "check に、references の部品の雛形の置き場所を渡す"
+    },
+    {
+     "find": "(\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),",
+     "before": "（無い）",
+     "why": "scaffold が、references の部品 ・ 宣言 ・ document のスキーマも置く"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "tests/refs.rs",
+   "file": ".claude/skills/skills-creator/tool/parts/tests/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "references の部品の事例17件を置いた。雛形とこの Skill の複製が一致することも固定する"
+    }
+   ]
+  },
+  {
+   "key": "img",
+   "tab": "完成イメージ：取り込んだ文書",
+   "file": ".acdr/0044-skills-creatorに構造化したreferencesの契約を加える/document.example.html",
+   "rev": "HEAD",
+   "marks": []
+  }
+ ],
+ "lede": "段1。skills-creator に、構造化した references の契約を版2として加える提案である。",
+ "seal": {
+  "contract": "d2fe65e5cd3d3390587a5fc1960cad5e8874b29c9955a74ae172db71eeeb2def",
+  "rust": "f1e3ae276faa1f0d737513194d6cc122ef94a418a5218ff4ea4c3cd45eb63d7c",
+  "skill": "c46e6ba8f31bf77447d829d999c1dea2d239687649fc2b0e8f584d74fd289bc4",
+  "refs": "b6fe6d042ec2fbed605259d10a45a10b8c5beeabc7ad3c5ea08c2daca862ee18",
+  "drefs": "3b4d8f250aa30f41ad9f5d4051d1caa4146a05b44de53205d8bd48647aa87424",
+  "docschema": "21862631d19e17ee02b63116c150545d4866efa4964cccf91e595e4a2bdf3e3f",
+  "dlib": "fd057c5ae66766f6618c5be9a265d1147917a956d47afcb744b481487c429fc0",
+  "pcargo": "784a2833246da5c8732eea78555705c3f31967900b8c37c4972d3312d92daa93",
+  "plib": "eabc72fca1b212e86afdac784b97002fc911334ef9ce19311e71c8b441768c41",
+  "tjson": "b953ab7aea6eb40f9ca49632363cc1d5d17dcadcb5d602ae65b7540d6492963f",
+  "beh": "21d291a40ba76c6da037528a80c43a31eaf10cc960522c8f6b6965b813e8871f",
+  "check": "1254bec19ba83e26ba8b084101c0d71e7ff0923251e3db1526e37738807c42c8",
+  "decl": "6105d3ffcc73fa0fff93baae41864788f258c31a0c9cc990c3a450cdf18999a3",
+  "tests": "c0d34ea9a4565f839530a089d1acd883c2902c778022b9220278f02ef3836bbb",
+  "img": "cc118d53f5abf354b5e7692d14a263da30abbbcc799229a6bfab4271fbdc8990"
+ }
+}
