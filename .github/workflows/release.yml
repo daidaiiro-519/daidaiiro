@@ -122,8 +122,13 @@ jobs:
       - name: 試験 ── 導入スクリプトで別の場所へ展開し、起動する
         run: |
           (cd release && sha256sum * > SHA256SUMS 2>/dev/null || shasum -a 256 * > SHA256SUMS)
+          # 配布物は HTTP で渡す ── 利用者も https で取得する。file:// は、Windows の PowerShell が
+          # Git Bash の経路（/d/a/…）を読めないので使わない
+          py="$(command -v python3 || command -v python)"
+          (cd release && "$py" -m http.server 8765 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          base="http://127.0.0.1:8765"
+          for i in $(seq 1 30); do curl -fsS "$base/SHA256SUMS" >/dev/null 2>&1 && break; sleep 1; done
           mkdir -p user && cd user && git init -q
-          base="file://$(cd ../release && pwd)"
           if [ "${{ runner.os }}" = Windows ]; then
             SKILLS_BASE="$base" pwsh -NoProfile -File ../source/install.ps1
           else

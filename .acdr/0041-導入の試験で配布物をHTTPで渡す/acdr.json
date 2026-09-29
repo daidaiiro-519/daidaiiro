@@ -1,0 +1,67 @@
+{
+ "no": "ACDR 0041",
+ "title": "導入の試験で、配布物を HTTP で渡す",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "配布の CI の導入の試験で、配布物を試験の中の HTTP サーバーから導入スクリプトへ渡す。",
+ "why": "tag v1.0.0 を付け直した CI（run 36525094562）は、3つの OS で組み立てが完了し、Linux ・ macOS で導入の試験に合格した。Windows の導入の試験だけが失敗し、公開まで進まなかった。試験は配布物の場所を file:///d/a/… の形で渡していた。この経路は Git Bash の書き方であり、Windows の PowerShell の install.ps1 は照合の一覧を取得できなかった。",
+ "shift": [
+  {
+   "what": "導入の試験で配布物を渡す方法",
+   "from": "file:// の経路",
+   "to": "試験の中で立てた HTTP サーバー（http://127.0.0.1:8765）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は file:// の経路を渡し、Windows で取得できなかった。変更後は3つの OS とも HTTP で取得する。",
+ "how": "試験の中で Python の http.server を配布物の置き場所で起動し、応答するまで待ってから導入スクリプトを実行する。release.yml と、その雛形の2か所を同じ内容に修正した。手元の Linux で、直した試験の手順を CI と同じシェルの設定（-e -o pipefail）で実行し、3つの Skill を導入できた。Windows での動作は、CI を再実行するまで確認できない。",
+ "applies_to": "変更する正本は、このリポジトリの .github/workflows/release.yml と、skills-creator の release.yml の雛形である。",
+ "alternatives": [
+  {
+   "option": "Windows だけ、経路を Windows の書き方（D:/a/…）に変換して渡す",
+   "why_not": "OS ごとに試験の手順が分岐する。PowerShell の Invoke-WebRequest が file:// に対応するかも確認できていない"
+  },
+  {
+   "option": "Windows の導入の試験を削除する",
+   "why_not": "install.ps1 が動くかを、公開の前に確認できなくなる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "tag v1.0.0 を直したコミットへ付け直して push し、CI を再実行する（Release はまだ作られていない）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "yml",
+   "tab": "release.yml",
+   "file": ".github/workflows/release.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 配布物は HTTP で渡す ── 利用者も https で取得する。file:// は、Windows の PowerShell が",
+     "before": "base=\"file://$(cd ../release && pwd)\"",
+     "why": "導入の試験で、配布物を試験の中の HTTP サーバーから渡す。file:// の経路は Git Bash の書き方（/d/a/…）になり、Windows の PowerShell が取得できなかった（v1.0.0 の run 36525094562）。利用者も https で取得するので、取得の方法も一致する"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "release.yml.tmpl",
+   "file": ".claude/skills/skills-creator/references/distribution/release.yml.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 配布物は HTTP で渡す ── 利用者も https で取得する。file:// は、Windows の PowerShell が",
+     "before": "base=\"file://$(cd ../release && pwd)\"",
+     "why": "導入の試験で、配布物を試験の中の HTTP サーバーから渡す。file:// の経路は Git Bash の書き方（/d/a/…）になり、Windows の PowerShell が取得できなかった（v1.0.0 の run 36525094562）。利用者も https で取得するので、取得の方法も一致する"
+    }
+   ]
+  }
+ ],
+ "lede": "配布の CI の、導入スクリプトの試験を直す提案である。",
+ "seal": {
+  "yml": "bb0345676ed1d63cb03761d7f74c6ecb249ef84b6c0ecc5dab8aee3d7dcaed51",
+  "tmpl": "d5d32f87effd554e6ce1856ace51640d5870f81335236711586dae9551087973"
+ }
+}
