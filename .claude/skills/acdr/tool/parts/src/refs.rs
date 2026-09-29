@@ -53,7 +53,7 @@ flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .ta
 background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;\
 font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}\
 .rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);\
-padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
+padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
 .rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;\
 position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;\
 left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);\
