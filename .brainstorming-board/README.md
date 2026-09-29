@@ -9,6 +9,9 @@
 | `usecase-schema-driven/` | ユースケース駆動と、それを支える schema 駆動 | （未発行） | Round 42 |
 | `material-abstraction/` | 教材の題材：抽象と具体を、どう理解させるか | （未発行） | Round 24 |
 | `narration-skill/` | 学習教材の音声を作るSkill | （未発行） | Round 12 |
+| `workshop-purpose/` | ワークショップの軸を「課題」から「目的」へ移す | （未発行） | （未複製） |
+| `skill-binaries/` | Skill をバイナリで配布する | `https://claude.ai/artifact/Ba8QmbDySFkSehgnY466pc` | Round 10（2026-09-29） |
+| `skills-creator-language/` | skills-creator の道具の契約を、言語に依存しない形にする | `https://claude.ai/artifact/ATLdWNxbyQAzAz6xyW8syo` | Round 7（2026-09-29） |
 
 `no-more-spaghetti/` は 2026-09-23 に立て直した。**論点は3つで、どれもアーキテクチャの面である** ──
 モデル（構造を決める）・ 依存の向き（構造を保つ）・ テスト（構造を測る）。

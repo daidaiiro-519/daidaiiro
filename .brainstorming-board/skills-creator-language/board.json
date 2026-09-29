@@ -1,0 +1,892 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "title": "skills-creator の道具の契約を、言語に依存しない形にする",
+ "board": "skills-creator-language",
+ "round": 7,
+ "intro": [
+  {
+   "kind": "para",
+   "text": "skills-creator は、利用者が自分で Skill を作るための Skill である。いまの道具の契約は Rust でしか道具を作れない形になっており、抽象の高さが合っていない。このブレストボードは、契約を言語に依存しない形にするために、契約と言語の組の境界 ・ 言語の条件 ・ 検査の形 ・ 外部の道具の宣言の置き場所を決める。このリポジトリの Skill は、引き続き Rust で作り、Rust のバイナリで配布する。"
+  }
+ ],
+ "panels": [
+  {
+   "heading": "決まりの一覧 ── 4件とも決着（2026-09-29）",
+   "body": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "<b>契約と言語の組の境界</b> ── 契約は、呼ぶ側から観察できるものだけを持つ（2つの入口と起動のコマンド ・ CLI の規約 ・ Skill のフォルダの求め方 ・ 外部コマンド ・ 層と許可辺）。入口の置き場所（bin/）・ 雛形 ・ 組み立て ・ ソースの検査は言語の組が持つ。配布は契約の外の任意の機能とする"
+      },
+      {
+       "text": "<b>検査の形</b> ── check を2段にする。1段目は入口を起動して振る舞いを検査し、全言語で共通である。2段目はソースの検査で、言語の組が持ち、組が無ければ「実行しない」と出す。CLI の起動のコマンドは tool.json に書き、MCP の起動のコマンドは mcp.json で維持する"
+      },
+      {
+       "text": "<b>外部の道具</b> ── tool.json の external に、名前 ・ 起動するコマンド ・ 理由を書く。宣言の層が部品へ注入し、部品は名前を直書きしない。Rust の定数 EXTERNAL は廃止する"
+      },
+      {
+       "text": "<b>言語の条件</b> ── 公式の MCP の SDK が在ること。組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。組はいま Rust だけで、他の言語の組は必要になったときに加える"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "次にすること",
+   "body": [
+    {
+     "kind": "list",
+     "ordered": true,
+     "items": [
+      {
+       "text": "決めた4件を ACDR へ記録する。ACDR 0029 の「Rust が無くても動く形で配る」は、Rust の組と配布（任意）の決まりとして適用範囲を明記する"
+      },
+      {
+       "text": "skills-creator を改訂する ── tool-contract.md を契約 ・ Rust の組 ・ 配布の3つへ分け、check を2段にし、雛形に tool.json を加える"
+      },
+      {
+       "text": "9つの Skill へ適用する ── tool.json を置き、動詞なしの --json で宣言を返すようにし、外部の道具を注入の形にする（acdr ・ fact-check ・ narration の4か所）"
+      },
+      {
+       "text": "このリポジトリの配布の準備（dist）は、配布の仕組みを契約の外へ移したあとに行う"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "queue": [],
+ "topics": [
+  {
+   "no": 1,
+   "name": "契約と言語の組の境界",
+   "status": "settled",
+   "question": "道具の契約のうち、どこまでを言語に依存しない契約に置き、どこからを言語の組に置くか",
+   "intro": "<b>承認された（2026-09-29、Round 4）。</b>論点2〜4の前提になる。ここで契約に置いたものだけが、どの言語でも同じ形になる。",
+   "answer": "契約は、呼ぶ側から観察できるもの（CLI と MCP の2つの入口と、その起動のコマンドを書いた登録 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺）だけを持つ。入口の置き場所は契約に置かない。tool/ の中の構成 ・ 入口の置き場所 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く。配布は契約の外の任意の機能とする",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>境界は「呼ぶ側から観察できるか」で判定する。</b>呼ぶ側（Claude Code と利用者）が触れるのは、登録に書いた起動のコマンドと、入口が返す値だけだからである。<mark>入口の置き場所（bin/）は契約に含めない。</mark>起動のコマンドを登録に書けば、置き場所はどこでも呼べる。配布も契約に含めない。"
+     },
+     {
+      "kind": "table",
+      "cols": [
+       "置く先"
+      ],
+      "rows": [
+       [
+        "CLI と MCP の2つの入口が在り、起動のコマンドを登録に書く",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "CLI の規約（動詞 ・ --json ・ {ok, findings, data} ・ 終了コード 0/1/2）",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "1つの宣言から CLI と MCP を組む",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "MCP の標準出力と子プロセスの規律",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "Skill のフォルダは、渡された値か、入口自身の位置から求める",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "外部コマンドは理由つきの例外",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "層（部品 ・ 宣言 ・ 入口）と許可辺",
+        [
+         "契約（必須 ・ 言語に依存しない）"
+        ]
+       ],
+       [
+        "tool/ の中の構成（Cargo の workspace と crate）",
+        [
+         "言語の組（Rust が1つ目）"
+        ]
+       ],
+       [
+        "入口の置き場所（Rust は bin/。Skill のフォルダは bin/ の1つ上）",
+        [
+         "言語の組（Rust が1つ目）"
+        ]
+       ],
+       [
+        "雛形",
+        [
+         "言語の組（Rust が1つ目）"
+        ]
+       ],
+       [
+        "入口を作る組み立てのコマンド",
+        [
+         "言語の組（Rust が1つ目）"
+        ]
+       ],
+       [
+        "ソースを読む検査（Command::new ・ Cargo.toml の依存）",
+        [
+         "言語の組（Rust が1つ目）"
+        ]
+       ],
+       [
+        "入口が bin/ に在ることを前提にする",
+        [
+         "配布（任意。dist を実行した人だけ）"
+        ]
+       ],
+       [
+        "配布物の中身と名前 ・ 導入スクリプト ・ CI の枠は、全言語で1つを共有する",
+        [
+         "配布（任意。dist を実行した人だけ）"
+        ]
+       ],
+       [
+        "言語の組からは、組み立てのコマンドだけを借りる",
+        [
+         "配布（任意。dist を実行した人だけ）"
+        ]
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "層と許可辺は契約に置き、<b>どう守らせるか</b>（Rust では crate の境界）を言語の組に置く。"
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "boundary",
+     "caption": "契約は、登録に書いた起動のコマンドと入口の振る舞いを持つ。言語の組は、入口の置き場所と実装を持つ。配布は契約の外にある"
+    }
+   ],
+   "passed": [
+    {
+     "name": "A ── 呼ぶ側から観察できるかで境界を判定する",
+     "body": "契約は入口の起動のしかたと振る舞い、言語の組は入口の置き場所と tool/ の中と組み立てを持つ。配布は任意の機能として外に置く",
+     "cost": "いまの tool-contract.md を、契約と Rust の組の2つへ分ける"
+    },
+    {
+     "name": "B ── tool/ の中のフォルダの名前まで契約に置く",
+     "body": "parts ・ declare ・ cli ・ mcp というフォルダの名前を、どの言語でも同じにする",
+     "cost": "言語ごとの慣習（Go の cmd/ ・ internal/ など）と矛盾する"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "入口の置き場所（bin/）を契約に置く（Round 3 の答え）",
+     "reason": "起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。bin/ を前提にしていた Skill のフォルダの求め方は「入口自身の位置から求める」へ一般化でき、配布は任意の機能になった"
+    },
+    {
+     "body": "配布の形を言語の組に置く（Round 2 の答え）",
+     "reason": "配布を使わない人にも、組ごとに配布の形の宣言を求めることになる。配布の仕組みの大半（配布物 ・ 導入スクリプト ・ CI の枠）は言語に依存しないので、組ごとに持つ理由も無い"
+    },
+    {
+     "body": "配布物と導入スクリプトまで契約に置く（Round 1 の答え）",
+     "reason": "バイナリで配るのは Rust を選んだ結果である。契約に置くと、Python や TypeScript の組が、実行環境を同梱する手段を必ず持つことになる"
+    },
+    {
+     "body": "Rust だけの契約を維持する",
+     "reason": "利用者が自分の言語で道具を作れない。skills-creator の目的（利用者が自由に Skill を作る）と抽象の高さが合わない"
+    },
+    {
+     "body": "振る舞いだけを契約に置き、層と許可辺を規定しない",
+     "reason": "「1つの宣言から CLI と MCP を組む」は、宣言の層を前提にしている。層を外すと、能力を2か所に書く実装を契約が禁じられない"
+    },
+    {
+     "body": "主要な言語の組を、いま全部 skills-creator に持たせる",
+     "reason": "使わない言語の雛形を、試験できないまま保守することになる。組は、必要になった言語から加える"
+    }
+   ],
+   "findings": [
+    "いまの tool-contract.md の規定のうち、次が Rust に依存する。宣言の置き場所（tool/declare/ の tools()）・ #[tool] マクロ ・ println! ・ Stdio の指定 ・ crate の構成 ・ cargo install ・ 検査の表の大半である",
+    "導入スクリプト（install.sh ・ install.ps1）は配布物を取得して展開するだけで、道具の言語に依存しない。CI の定義は、組み立ての手順だけが言語に依存する",
+    "bin/ を前提にしているのは、Skill のフォルダの求め方（実行ファイルの1つ上）・ 登録の経路 ・ 配布物の中身の3つである。前の2つは一般化でき、配布は任意の機能である",
+    "契約から bin/ を外すと、検査（論点2）が CLI の入口を見つける方法が必要になる。MCP の起動のコマンドは登録に在るが、CLI の起動のコマンドはいまどこにも宣言していない"
+   ],
+   "grounds": [
+    {
+     "supports": "契約を言語に依存しない形にするという方針",
+     "basis": "SkillsCreatorに関してはRustの言語でしか道具を作成できない契約は抽象の高さを間違えてしまっているかもしれません",
+     "tag": "rule",
+     "source": "利用者の言葉（2026-09-29）"
+    },
+    {
+     "supports": "契約に置く規約が言語に依存しないこと",
+     "basis": "The server reads JSON-RPC messages from its standard input (stdin) and sends messages to its standard output (stdout).",
+     "tag": "primary",
+     "source": "modelcontextprotocol.io/specification/2025-06-18/basic/transports:27（2026-09-24 取得。tool-contract.md が引用）"
+    },
+    {
+     "supports": "Rust に依存する規定の範囲",
+     "basis": "tool-contract.md の置き場所 ・ 検査の節（tool/Cargo.toml ・ crate ・ Command::new）",
+     "tag": "measured",
+     "source": ".claude/skills/skills-creator/references/tool-contract.md（2026-09-29 に全文を読んだ）"
+    }
+   ],
+   "out_of_scope": [
+    {
+     "item": "このリポジトリの9つの Skill の言語",
+     "treatment": "out",
+     "note": "引き続き Rust で作る。変更しない"
+    },
+    {
+     "item": "配布の仕組み（dist ・ 導入スクリプト ・ CI）",
+     "treatment": "out",
+     "note": "契約の外の任意の機能とする。全言語で1つを共有し、言語の組からは組み立てのコマンドだけを借りる"
+    }
+   ],
+   "panels": [
+    {
+     "heading": "この答えの履歴 ── 3件",
+     "body": [
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "契約は、呼ぶ側から観察できるもの（入口の名前と置き場所 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 登録の経路）だけを持つ。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く。配布は契約の外の任意の機能とし、使う人だけが dist で配布の仕組みを置く",
+       "why": "<b>入口の置き場所（bin/）を契約に置いていた</b> ── 登録に起動のコマンドを書けば、置き場所を固定する必要は無い",
+       "user_words": "入口の名前と置き場所（bin/）そうなると上記の共通契約は必須ではないよね？？これは必ず守らせたい？なんか都合悪くなっちゃう？"
+      },
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "呼ぶ側から観察できるもの（入口の名前と置き場所 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 登録の経路）を契約に置く。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査 ・ 配布の形と、利用者の環境に必要なものを、言語の組に置く",
+       "why": "<b>配布の形を言語の組に置いていた</b> ── 配布は必須ではなく、使う人だけの任意の機能である",
+       "user_words": "基本的に配布はしないと思うんだよね。私はするよ？OSSのつもりで使用しているからね。ただ、このOSSとしてのSkillsCreatorを使用する人が作成したものを配布することはあまりないんでは？もちろん機能としてはあっていいけど、それが必須ではないよね・"
+      },
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "配布した Skill のフォルダで観察できるもの（bin/ の名前 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 配布物）を契約に置く。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く",
+       "why": "<b>配布の形を契約に置いていた</b> ── バイナリ配布は Rust を選んだ結果であって、契約が必ず要求するものではない",
+       "user_words": "これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "no": 2,
+   "name": "検査の形",
+   "status": "settled",
+   "question": "Skill が契約を満たすかを、言語に依存せずに検査する方法と、CLI の起動のコマンドを宣言する場所",
+   "answer": "check を2段にする。1段目は、宣言のファイルを読み、登録と宣言に書いた起動のコマンドで2つの入口を起動し、振る舞いを検査する。どの言語でも同じである。2段目はソースを読む検査で、言語の組が持つ。組に無い検査は「実行しない」と出し、合格にしない。CLI の起動のコマンドは、Skill のフォルダの tool.json に書く。MCP の起動のコマンドは、いまの登録（mcp.json）で維持する",
+   "grounds": [
+    {
+     "supports": "1段目で検査する対象",
+     "basis": "契約は、呼ぶ側から観察できるものだけを持つ",
+     "tag": "rule",
+     "source": "論点1（Round 4 で承認）"
+    },
+    {
+     "supports": "2段目を言語の組が持つこと",
+     "basis": "組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである",
+     "tag": "rule",
+     "source": "論点4（Round 4 で承認）"
+    },
+    {
+     "supports": "いまの CLI が宣言を JSON で返さないこと",
+     "basis": "acdr --json は、動詞が無いと人が読む道具の一覧を出し、終了コード0を返す",
+     "tag": "measured",
+     "source": "2026-09-29 に実行した"
+    },
+    {
+     "supports": "宣言に無い旗をすでに断っていること",
+     "basis": "その旗は無い: --bogus（render は record ・ check ・ force ・ skill_root を受ける）。終了コード2",
+     "tag": "measured",
+     "source": "2026-09-29 に実行した"
+    },
+    {
+     "supports": "層の検査を他の Skill に任せないこと",
+     "basis": "この Skill は、他の Skill を名指しで呼ばない",
+     "tag": "rule",
+     "source": ".claude/skills/no-more-spaghetti/SKILL.md の参照の節"
+    }
+   ],
+   "intro": "<b>承認された（2026-09-29、Round 6）。</b>論点1の契約を、言語に依存せずに検査する方法を決めた。",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "table",
+      "cols": [
+       "段",
+       "誰が持つか"
+      ],
+      "rows": [
+       [
+        "tool.json と mcp.json が在り、経路が絶対パスでない",
+        [
+         "1段目（振る舞い）",
+         "契約（全言語で共通）"
+        ]
+       ],
+       [
+        "動詞なしで --json を付けると、宣言（道具 ・ 引数）を JSON で返す",
+        [
+         "1段目（振る舞い）",
+         "契約（全言語で共通）"
+        ]
+       ],
+       [
+        "宣言に無い旗を渡すと、終了コード2を返す",
+        [
+         "1段目（振る舞い）",
+         "契約（全言語で共通）"
+        ]
+       ],
+       [
+        "MCP の tools/list の道具と引数が、CLI の宣言と一致する",
+        [
+         "1段目（振る舞い）",
+         "契約（全言語で共通）"
+        ]
+       ],
+       [
+        "別の作業場所から、Skill のフォルダを渡さずに起動できる",
+        [
+         "1段目（振る舞い）",
+         "契約（全言語で共通）"
+        ]
+       ],
+       [
+        "層が分かれ、許可辺が宣言どおりである",
+        [
+         "2段目（ソース）",
+         "言語の組（Rust は crate ・ Cargo.toml ・ Command::new）。組に無ければ「実行しない」"
+        ]
+       ],
+       [
+        "部品が外部の道具の名前を直書きしていない（tool.json から注入されたコマンドだけを起動する）",
+        [
+         "2段目（ソース）",
+         "言語の組（Rust は crate ・ Cargo.toml ・ Command::new）。組に無ければ「実行しない」"
+        ]
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>CLI の起動のコマンドは tool.json に書く。</b>MCP の起動のコマンドは mcp.json で維持する ── mcp.json はホストの形式であり、ホストごとの差を吸収する場所だからである。 論点1の「起動のコマンドを登録に書く」の登録は、この2つのファイルを指す。"
+     },
+     {
+      "kind": "heading",
+      "level": 3,
+      "text": "完成イメージ ── acdr の場合の変更前と変更後"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "① Skill のフォルダ ── 変更前"
+     },
+     {
+      "kind": "html",
+      "text": "acdr/\n  SKILL.md\n  mcp.json     MCP の起動のコマンド\n  bin/         入口（契約が固定する置き場所）\n  tool/        Rust のソース（declare/src/lib.rs に EXTERNAL）"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "① Skill のフォルダ ── 変更後"
+     },
+     {
+      "kind": "html",
+      "text": "acdr/\n  SKILL.md\n  mcp.json     MCP の起動のコマンド（変わらない）\n  tool.json    CLI の起動のコマンドと、外部の道具（新しく置く）\n  bin/         入口（Rust の組が決める置き場所）\n  tool/        Rust のソース（EXTERNAL の定数は無くなる）"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "② acdr --json（動詞なし）── 変更前"
+     },
+     {
+      "kind": "html",
+      "text": "$ acdr --json\n道具の一覧\n  new &lt;record&gt; [title] [skill_root]\n      雛形から記録のフォルダを起こす\n  …\n（人が読む文字。終了コード 0）"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "② acdr --json（動詞なし）── 変更後"
+     },
+     {
+      "kind": "html",
+      "text": "$ acdr --json\n{\"ok\": true, \"findings\": [], \"data\": {\"tools\": [\n  {\"name\": \"new\",      \"args\": [\"record\", \"title\", \"skill_root\"]},\n  {\"name\": \"validate\", \"args\": [\"record\", \"skill_root\"]},\n  {\"name\": \"render\",   \"args\": [\"record\", \"check\", \"force\", \"skill_root\"]},\n  {\"name\": \"tokens\",   \"args\": [\"check\", \"skill_root\"]}\n]}}"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "③ skills-creator check ── 変更前"
+     },
+     {
+      "kind": "html",
+      "text": "$ skills-creator check .claude/skills/acdr\n契約を満たしている ── 入口は1つ、道具は宣言の中に在る\n（ソースの文字列だけを読む。Rust 以外の Skill は検査できない）"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "③ skills-creator check ── 変更後"
+     },
+     {
+      "kind": "html",
+      "text": "$ skills-creator check .claude/skills/acdr\n1段目（振る舞い）\n  OK  tool.json と mcp.json が在り、経路が絶対パスでない\n  OK  宣言を JSON で返す（道具 4件）\n  OK  宣言に無い旗を、終了コード 2 で断る\n  OK  MCP の tools/list が CLI の宣言と一致する（4件）\n  OK  別の作業場所から起動できる\n2段目（ソース ── Rust の組）\n  OK  層が crate に分かれ、許可辺が宣言どおりである\n  OK  部品が外部の道具の名前を直書きしていない"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "③ 言語の組が無い Skill（例：Python で書いた Skill）の場合 ── 変更後"
+     },
+     {
+      "kind": "html",
+      "text": "1段目（振る舞い）\n  OK  …（Rust の Skill と同じ5件）\n2段目（ソース）\n  実行しない  python の言語の組が無い（合格とは扱わない）"
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "check",
+     "caption": "1段目は入口を起動して、どの言語でも同じ検査をする。2段目は言語の組が持ち、組に無ければ実行しない"
+    }
+   ],
+   "passed": [
+    {
+     "name": "A ── 2段の検査と、CLI の起動のコマンドを書く tool.json",
+     "body": "振る舞いは全言語で共通に検査し、ソースの検査だけを言語の組に置く",
+     "cost": "CLI が宣言を JSON で返す動作を契約に足す。いまの9つの Skill の CLI は、動詞なしでは人が読む一覧を返す。tool.json を9つの Skill に置く"
+    },
+    {
+     "name": "B ── CLI の起動のコマンドを mcp.json に書き足す",
+     "body": "mcpServers と並べて cli の欄を置き、ファイルを増やさない",
+     "cost": "mcp.json という名前と、CLI の起動のコマンドという中身が一致しない。ホストの形式のファイルに、ホストが定義していない欄を置く"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "ソースの検査だけを、言語ごとに書く",
+     "reason": "言語ごとに検査を実装することになる。しかも、宣言に無い旗を断るかのような振る舞いは、ソースからは判定できない"
+    },
+    {
+     "body": "振る舞いの検査だけにする",
+     "reason": "層の許可辺と、宣言に無い外部コマンドの呼び出しは、起動しても観察できない"
+    },
+    {
+     "body": "層の検査を no-more-spaghetti に任せる",
+     "reason": "Skill が他の Skill を名指しで呼ぶ形になる。no-more-spaghetti のガードレールも、他の Skill を名指しで呼ばないと定めている"
+    },
+    {
+     "body": "CLI の起動のコマンドを、SKILL.md の frontmatter に書く",
+     "reason": "frontmatter の欄は Claude Code が定める。定義に無い欄を置いてよいかを確認していない。機械が読む宣言を、人が読む手順の文書に混ぜることにもなる"
+    }
+   ],
+   "findings": [
+    "いまの9つの Skill の CLI は、動詞なしで --json を付けても、人が読む道具の一覧を返し、終了コード0で終わる",
+    "宣言に無い旗は、すでに終了コード2で断っている（acdr render --bogus 1 で確認した）"
+   ],
+   "out_of_scope": [
+    {
+     "item": "MCP の Registry の server.json の形式を使うか",
+     "treatment": "later",
+     "note": "MCP の公開のための形式であり、CLI を対象にするかを原典で確認していない"
+    }
+   ]
+  },
+  {
+   "no": 3,
+   "name": "外部の道具の宣言の置き場所",
+   "status": "settled",
+   "question": "外部の道具の名前 ・ 理由と、実際に起動するコマンドを、言語に依存しない形でどこに置き、部品へどう渡すか",
+   "answer": "tool.json の external に、名前 ・ 起動するコマンド ・ 理由の組で書く。部品はコマンドの名前を直書きせず、宣言の層が tool.json から読んだコマンドを、引数として受け取る。利用者は tool.json を書き換えるだけで、呼ぶコマンドを差し替えられる。Rust の定数 EXTERNAL は廃止する",
+   "grounds": [
+    {
+     "supports": "外部コマンドの扱いを契約に置くこと",
+     "basis": "外部コマンドは理由つきの例外",
+     "tag": "rule",
+     "source": "論点1（Round 4 で承認）"
+    },
+    {
+     "supports": "いまの check の読み方",
+     "basis": "requires() が pub const EXTERNAL の組を、ソースの文字列から読む",
+     "tag": "measured",
+     "source": ".claude/skills/skills-creator/tool/parts/src/check.rs"
+    },
+    {
+     "supports": "外部の道具を注入する形にすること",
+     "basis": "基本的に依存性を持つものは外から注入できるような仕組みの方がいいよね。",
+     "tag": "rule",
+     "source": "利用者の言葉（2026-09-29）"
+    },
+    {
+     "supports": "名前を直書きしている部品の数",
+     "basis": "Command::new(\"git\") ・ Command::new(\"curl\") ・ Command::new(\"aws\") ×2",
+     "tag": "measured",
+     "source": "9つの Skill の tool/parts/src を検索した（2026-09-29）"
+    },
+    {
+     "supports": "tool.json を宣言のファイルにすること",
+     "basis": "CLI の起動のコマンドは、Skill のフォルダの tool.json に書く",
+     "tag": "rule",
+     "source": "論点2（Round 6 で承認）"
+    }
+   ],
+   "intro": "<b>承認された（2026-09-29、Round 6）。</b>外部の道具は、tool.json に宣言し、外から注入する。",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>外部の道具は、外から注入する。</b>宣言は tool.json の external に1か所だけ置き、部品はそこから渡されたコマンドだけを起動する。"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>command</b> ── 実際に起動するコマンド。既定値を Skill が書き、利用者が書き換えてよい（例：git の経路、別のブラウザ）"
+       },
+       {
+        "text": "<b>部品は名前を直書きしない</b> ── 宣言の層が tool.json を読み、部品の関数へ引数として渡す。試験では偽物のコマンドを渡せる"
+       },
+       {
+        "text": "理由と起動するコマンドが空の宣言は、1段目が検出する。部品の中の直書きは、2段目（言語の組）が検出する"
+       },
+       {
+        "text": "<code>\"*\"</code>（規則ファイルや引数で利用者が指定する道具）は、いまと同じく、実行時に渡された値を起動する"
+       }
+      ]
+     },
+     {
+      "kind": "heading",
+      "level": 3,
+      "text": "完成イメージ ── acdr の場合の変更前と変更後"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更前 ── 部品が名前を直書きしている（tool/parts/src/panes.rs）"
+     },
+     {
+      "kind": "html",
+      "text": "pub fn before_of(root: &Path, rev: &str, rel: &str) -> Option&lt;String&gt; {\n    let done = Command::new(\"git\")          // 名前を直書き\n        .args([\"-C\", …, \"show\", &format!(\"{rev}:{rel}\")])\n        …\n}"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更前 ── 宣言（tool/declare/src/lib.rs の Rust の定数）"
+     },
+     {
+      "kind": "html",
+      "text": "pub const EXTERNAL: &[(&str, &str)] = &[(\n    \"git\",\n    \"git のリポジトリの版から、変更前の中身を取得する。…\",\n)];"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更後 ── tool.json（言語に依存しない。利用者が書き換えてよい）"
+     },
+     {
+      "kind": "html",
+      "text": "{\n  \"cli\": {\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/acdr/bin/acdr\", \"args\": []},\n  \"external\": [\n    {\"name\": \"git\",\n     \"command\": \"git\",\n     \"reason\": \"git のリポジトリの版から、変更前の中身を取得する。…\"}\n  ]\n}"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更後 ── 部品はコマンドを引数で受け取る"
+     },
+     {
+      "kind": "html",
+      "text": "pub fn before_of(git: &Path, root: &Path, rev: &str, rel: &str) -> Option&lt;String&gt; {\n    let done = Command::new(git)             // 渡されたコマンドを起動する\n        …\n}\n\n// 宣言の層（tool/declare）が tool.json から読んで渡す\nlet git = or_misuse!(given.external(\"git\"));\npanes::before_of(&git, …)"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更後 ── 利用者が別の git を使うとき"
+     },
+     {
+      "kind": "html",
+      "text": "\"command\": \"/opt/homebrew/bin/git\"      ← tool.json のこの1行だけを書き換える"
+     },
+     {
+      "kind": "heading",
+      "level": 4,
+      "text": "変更後 ── check の出力"
+     },
+     {
+      "kind": "html",
+      "text": "1段目（振る舞い）\n  ×  外部の道具に理由が無い: git（tool.json の external）\n2段目（ソース ── Rust の組）\n  ×  部品が外部の道具の名前を直書きしている: \"git\"（tool/parts/src/panes.rs:186）"
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "external",
+     "caption": "外部の道具は tool.json に1か所だけ宣言し、宣言の層が部品へ注入する。利用者は tool.json だけを書き換える"
+    }
+   ],
+   "passed": [
+    {
+     "name": "A ── tool.json に宣言し、宣言の層から部品へ注入する",
+     "body": "宣言は1か所で、部品は渡されたコマンドだけを起動する",
+     "cost": "外部の道具を呼ぶ部品の関数に、コマンドの引数が1つ増える（acdr ・ fact-check ・ narration の3つ。slide-deck と no-more-spaghetti は、すでに実行時に渡している）"
+    },
+    {
+     "name": "B ── tool.json に宣言するが、部品は名前を直書きしたままにする（Round 5 の答え）",
+     "body": "部品のコードは変えず、宣言だけを移す",
+     "cost": "利用者が呼ぶコマンドを差し替えられない。試験で偽物に差し替えられない。2段目は、直書きの名前と宣言の照合を続ける"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "いまの Rust の定数 EXTERNAL のまま置く",
+     "reason": "Rust の組でしか読めない。論点1で、外部コマンドの扱いは言語に依存しない契約に置いた"
+    },
+    {
+     "body": "環境変数でコマンドを差し替える",
+     "reason": "Skill ごとに変数の名前を決めることになり、宣言（名前と理由）と差し替えの場所が2か所に分かれる"
+    },
+    {
+     "body": "SKILL.md に散文で書く",
+     "reason": "機械が照合できない。理由の欠けも検出できない"
+    }
+   ],
+   "findings": [
+    "いまの check は、Rust の定数 EXTERNAL を、ソースの文字列から読み取っている",
+    "名前を直書きしている部品は3か所（acdr の git ・ fact-check の curl ・ narration の aws 2か所）。slide-deck のブラウザと no-more-spaghetti の規則の道具は、すでに実行時に渡された値を起動している"
+   ],
+   "out_of_scope": [
+    {
+     "item": "9つの Skill の EXTERNAL を tool.json へ移し、check の2段目で照合する",
+     "treatment": "later",
+     "note": "外の作業で試す ── 決着後に ACDR へ記録し、9つの Skill へ適用して check の2段目で照合する"
+    }
+   ],
+   "panels": [
+    {
+     "heading": "この答えの履歴 ── 1件",
+     "body": [
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "tool.json の external に、名前と理由の組で書く。いまの Rust の定数 EXTERNAL は廃止する。部品の呼び出しが宣言どおりかは、言語の組の2段目が、tool.json と照合する",
+       "why": "<b>部品がコマンドの名前を直書きしたまま、宣言だけを移していた</b> ── 依存を持つものは、外から注入できる形にする",
+       "user_words": "基本的に依存性を持つものは外から注入できるような仕組みの方がいいよね。"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "no": 4,
+   "name": "言語の条件",
+   "status": "settled",
+   "question": "言語の組を作ってよい言語の条件を何にするか",
+   "intro": "<b>承認された（2026-09-29、Round 4）。</b>MCP の面を持つという契約から導いた。配布は、論点1で契約の外の任意の機能にした。",
+   "answer": "条件は1つとする。公式の MCP の SDK が在ること。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>条件</b> ── 公式の MCP の SDK が在る。MCP の面を、その言語で組めるため"
+       },
+       {
+        "text": "<mark>組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。</mark>配布の形は宣言しない ── 配布は論点1で契約の外に置いた"
+       }
+      ]
+     }
+    ]
+   },
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "conditions",
+     "caption": "公式の MCP の SDK が在る言語は、言語の組を作れる"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "候補の言語（原文で照合したもの）",
+     "cols": [
+      "言語",
+      "公式の SDK ／ 実行環境を同梱する配布の手段（組が選べるもの）"
+     ],
+     "rows": [
+      [
+       "Rust",
+       [
+        "Tier 1",
+        "満たす（いまの組）"
+       ]
+      ],
+      [
+       "Go",
+       [
+        "Tier 1",
+        "満たす（GOOS ・ GOARCH で他の OS 向けに組める）"
+       ]
+      ],
+      [
+       "TypeScript",
+       [
+        "Tier 1",
+        "満たす（deno compile ・ bun build --compile）"
+       ]
+      ],
+      [
+       "C#",
+       [
+        "Tier 1",
+        "満たす（Native AOT は self-contained）"
+       ]
+      ],
+      [
+       "Python",
+       [
+        "Tier 1",
+        "満たす（PyInstaller）。出力は組み立てた OS に固有なので、OS ごとに組む"
+       ]
+      ],
+      [
+       "Java ・ Kotlin ・ Swift ・ Ruby ・ PHP",
+       [
+        "Tier 1〜3",
+        "未確認"
+       ]
+      ]
+     ],
+     "plain": true
+    }
+   ],
+   "passed": [
+    {
+     "name": "A ── 公式の MCP の SDK だけを条件にする",
+     "body": "組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである",
+     "cost": "作った人の環境に、その言語の組み立ての道具が必要になる。配布しない人にとっては、もともと開発に使っている道具である"
+    },
+    {
+     "name": "B ── 条件1を満たさない言語も、CLI だけの組として許す",
+     "body": "契約の原則「呼び出し方が欠けても、能力は欠けない」に従い、MCP の面を保持しない組を認める",
+     "cost": "MCP から使えない Skill が出る。どの Skill が MCP を持つかを、利用者が Skill ごとに確認することになる"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "組が配布の形と利用者の環境に必要なものを宣言する（Round 2 の答え）",
+     "reason": "配布は論点1で契約の外に置いた。配布しない人に、使わない宣言を求めることになる"
+    },
+    {
+     "body": "言語を限定しない",
+     "reason": "MCP の面を組めない言語が入り、契約の「CLI と MCP を同じ宣言から組む」を満たせない"
+    },
+    {
+     "body": "SDK の Tier 1 だけを許す",
+     "reason": "Tier は SDK の機能の完備と保守の約束の区分であり、契約が使うのは道具の公開と標準入出力だけである。Tier で絞る根拠が無い（Tier ごとの機能の差は未確認）"
+    }
+   ],
+   "findings": [
+    "公式の SDK は10の言語に在る（Tier 1 が6つ：TypeScript ・ Python ・ C# ・ Go ・ Rust ・ Ruby）",
+    "PyInstaller の出力は、組み立てた OS と Python の版に固有である。Python の組がバイナリで配ることを選ぶなら、CI で OS ごとに組む"
+   ],
+   "grounds": [
+    {
+     "supports": "公式の SDK の一覧と Tier",
+     "basis": "Official SDKs for building with Model Context Protocol",
+     "tag": "primary",
+     "source": "sources/modelcontextprotocol.io_docs_sdk.md:7。Tier は同じ頁の表（14〜23行）（2026-09-29 取得）"
+    },
+    {
+     "supports": "Bun が単体の実行ファイルを出せること",
+     "basis": "Bun's bundler implements a `--compile` flag for generating a standalone binary from a TypeScript or JavaScript file.",
+     "tag": "primary",
+     "source": "sources/bun.com_docs_bundler_executables.md:5（2026-09-29 取得）"
+    },
+    {
+     "supports": "Deno が他の OS 向けに組めること",
+     "basis": "You can cross-compile binaries for other platforms by using the --target flag.",
+     "tag": "primary",
+     "source": "sources/docs.deno.com_runtime_reference_cli_compile:154（2026-09-29 取得）"
+    },
+    {
+     "supports": "C# の Native AOT が実行環境を必要としないこと",
+     "basis": "Publishing your app as Native AOT produces an app that's self-contained",
+     "tag": "primary",
+     "source": "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot:741（2026-09-29 取得）"
+    },
+    {
+     "supports": "PyInstaller の出力が OS に固有であること",
+     "basis": "The output of  PyInstaller is specific to the active operating system",
+     "tag": "primary",
+     "source": "sources/pyinstaller.org_en_stable_operating-mode.html:143（2026-09-29 取得）"
+    },
+    {
+     "supports": "Go が他の OS 向けに組めること",
+     "basis": "Cross compiled binaries are installed in $GOOS_$GOARCH subdirectories",
+     "tag": "primary",
+     "source": "sources/pkg.go.dev_cmd_go:1545（2026-09-29 取得）"
+    },
+    {
+     "supports": "バイナリ配布を契約から外すこと",
+     "basis": "これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・",
+     "tag": "rule",
+     "source": "利用者の言葉（2026-09-29）"
+    },
+    {
+     "supports": "組が配布の形を宣言しないこと",
+     "basis": "配布は契約の外の任意の機能とする",
+     "tag": "assumption",
+     "source": "論点1（Round 3 の答え。未決）"
+    }
+   ],
+   "out_of_scope": [
+    {
+     "item": "Java ・ Kotlin ・ Swift ・ Ruby ・ PHP が条件2を満たすか",
+     "treatment": "later",
+     "note": "その言語の組が必要になったときに照合する"
+    }
+   ],
+   "panels": [
+    {
+     "heading": "この答えの履歴 ── 2件",
+     "body": [
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "条件は1つとする。公式の MCP の SDK が在ること。配布の形と、利用者の環境に必要なもの（Python の実行環境など）は、言語の組が宣言する。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える",
+       "why": "<b>配布の形の宣言を、組に求めていた</b> ── 配布は必須ではない",
+       "user_words": "基本的に配布はしないと思うんだよね。私はするよ？OSSのつもりで使用しているからね。ただ、このOSSとしてのSkillsCreatorを使用する人が作成したものを配布することはあまりないんでは？もちろん機能としてはあっていいけど、それが必須ではないよね・"
+      },
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "条件は2つとする。公式の MCP の SDK が在ること、3つの OS（Windows ・ Linux ・ macOS）向けに、実行環境を必要としない実行ファイルを出せること。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える",
+       "why": "<b>実行環境を必要としない実行ファイルを、言語の条件にしていた</b> ── Rust の組の配布の形を、契約に含めていた",
+       "user_words": "これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

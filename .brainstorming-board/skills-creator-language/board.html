@@ -1,0 +1,472 @@
+<title>skills-creator の道具の契約を、言語に依存しない形にする</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="skills-creator-language" data-round="7" data-theme-name="skills-creator の道具の契約を、言語に依存しない形にする"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　skills-creator の道具の契約を、言語に依存しない形にする　/　Round 7</p><h1>skills-creator の道具の契約を、言語に依存しない形にする</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>契約と言語の組の境界<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>検査の形<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q3</span>外部の道具の宣言の置き場所<span class="st done">決着</span></button><button data-t="p4" aria-selected="false"><span class="tn">Q4</span>言語の条件<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>skills-creator は、利用者が自分で Skill を作るための Skill である。いまの道具の契約は Rust でしか道具を作れない形になっており、抽象の高さが合っていない。このブレストボードは、契約を言語に依存しない形にするために、契約と言語の組の境界 ・ 言語の条件 ・ 検査の形 ・ 外部の道具の宣言の置き場所を決める。このリポジトリの Skill は、引き続き Rust で作り、Rust のバイナリで配布する。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>道具の契約のうち、どこまでを言語に依存しない契約に置き、どこからを言語の組に置くか</td><td><span class="st done">決着</span></td><td>契約は、呼ぶ側から観察できるもの（CLI と MCP の2つの入口と、その起動のコマンドを書いた登録 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺）だけを持つ。入口の置き場所は契約に置かない。tool/ の中の構成 ・ 入口の置き場所 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く。配布は契約の外の任意の機能とする</td></tr><tr><td><span class="n">2</span></td><td>Skill が契約を満たすかを、言語に依存せずに検査する方法と、CLI の起動のコマンドを宣言する場所</td><td><span class="st done">決着</span></td><td>check を2段にする。1段目は、宣言のファイルを読み、登録と宣言に書いた起動のコマンドで2つの入口を起動し、振る舞いを検査する。どの言語でも同じである。2段目はソースを読む検査で、言語の組が持つ。組に無い検査は「実行しない」と出し、合格にしない。CLI の起動のコマンドは、Skill のフォルダの tool.json に書く。MCP の起動のコマンドは、いまの登録（mcp.json）で維持する</td></tr><tr><td><span class="n">3</span></td><td>外部の道具の名前 ・ 理由と、実際に起動するコマンドを、言語に依存しない形でどこに置き、部品へどう渡すか</td><td><span class="st done">決着</span></td><td>tool.json の external に、名前 ・ 起動するコマンド ・ 理由の組で書く。部品はコマンドの名前を直書きせず、宣言の層が tool.json から読んだコマンドを、引数として受け取る。利用者は tool.json を書き換えるだけで、呼ぶコマンドを差し替えられる。Rust の定数 EXTERNAL は廃止する</td></tr><tr><td><span class="n">4</span></td><td>言語の組を作ってよい言語の条件を何にするか</td><td><span class="st done">決着</span></td><td>条件は1つとする。公式の MCP の SDK が在ること。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える</td></tr></table></div><details><summary>この回で変わったところ（6 か所）</summary><div><p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── 押すと前の回の中身が開く。</p><div class="scroll"><table><tr><th>論点</th><th>変わった欄</th></tr><tr><td><button class="jump" data-go="p2">Q2　検査の形</button></td><td>1 か所</td></tr><tr><td><button class="jump" data-go="p3">Q3　外部の道具の宣言の置き場所</button></td><td>5 か所</td></tr></table></div></div></details><details><summary>決まりの一覧 ── 4件とも決着（2026-09-29）</summary><div><ol><li><b class="lead-s">契約と言語の組の境界</b><div class="sub-s">契約は、呼ぶ側から観察できるものだけを持つ（2つの入口と起動のコマンド ・ CLI の規約 ・ Skill のフォルダの求め方 ・ 外部コマンド ・ 層と許可辺）。入口の置き場所（bin/）・ 雛形 ・ 組み立て ・ ソースの検査は言語の組が持つ。配布は契約の外の任意の機能とする</div></li><li><b class="lead-s">検査の形</b><div class="sub-s">check を2段にする。1段目は入口を起動して振る舞いを検査し、全言語で共通である。2段目はソースの検査で、言語の組が持ち、組が無ければ「実行しない」と出す。CLI の起動のコマンドは tool.json に書き、MCP の起動のコマンドは mcp.json で維持する</div></li><li><b class="lead-s">外部の道具</b><div class="sub-s">tool.json の external に、名前 ・ 起動するコマンド ・ 理由を書く。宣言の層が部品へ注入し、部品は名前を直書きしない。Rust の定数 EXTERNAL は廃止する</div></li><li><b class="lead-s">言語の条件</b><div class="sub-s">公式の MCP の SDK が在ること。組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。組はいま Rust だけで、他の言語の組は必要になったときに加える</div></li></ol></div></details><details><summary>次にすること</summary><div><ol><li>決めた4件を ACDR へ記録する。ACDR 0029 の「Rust が無くても動く形で配る」は、Rust の組と配布（任意）の決まりとして適用範囲を明記する</li><li><b class="lead-s">skills-creator を改訂する</b><div class="sub-s">tool-contract.md を契約 ・ Rust の組 ・ 配布の3つへ分け、check を2段にし、雛形に tool.json を加える</div></li><li><b class="lead-s">9つの Skill へ適用する</b><div class="sub-s">tool.json を置き、動詞なしの --json で宣言を返すようにし、外部の道具を注入の形にする（acdr ・ fact-check ・ narration の4か所）</div></li><li>このリポジトリの配布の準備（dist）は、配布の仕組みを契約の外へ移したあとに行う</li></ol></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>道具の契約のうち、どこまでを言語に依存しない契約に置き、どこからを言語の組に置くか</h2></div><div class="note"><b>承認された（2026-09-29、Round 4）。</b>論点2〜4の前提になる。ここで契約に置いたものだけが、どの言語でも同じ形になる。</div><div class="ans"><span class="big">A</span><b>境界は「呼ぶ側から観察できるか」で判定する。</b>呼ぶ側（Claude Code と利用者）が触れるのは、登録に書いた起動のコマンドと、入口が返す値だけだからである。<mark>入口の置き場所（bin/）は契約に含めない。</mark>起動のコマンドを登録に書けば、置き場所はどこでも呼べる。配布も契約に含めない。<div class="scroll"><table class="fact"><thead><tr><th></th><th>置く先</th></tr></thead><tbody><tr><th>CLI と MCP の2つの入口が在り、起動のコマンドを登録に書く</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>CLI の規約（動詞 ・ --json ・ {ok, findings, data} ・ 終了コード 0/1/2）</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>1つの宣言から CLI と MCP を組む</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>MCP の標準出力と子プロセスの規律</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>Skill のフォルダは、渡された値か、入口自身の位置から求める</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>外部コマンドは理由つきの例外</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>層（部品 ・ 宣言 ・ 入口）と許可辺</th><td>契約（必須 ・ 言語に依存しない）</td></tr><tr><th>tool/ の中の構成（Cargo の workspace と crate）</th><td>言語の組（Rust が1つ目）</td></tr><tr><th>入口の置き場所（Rust は bin/。Skill のフォルダは bin/ の1つ上）</th><td>言語の組（Rust が1つ目）</td></tr><tr><th>雛形</th><td>言語の組（Rust が1つ目）</td></tr><tr><th>入口を作る組み立てのコマンド</th><td>言語の組（Rust が1つ目）</td></tr><tr><th>ソースを読む検査（Command::new ・ Cargo.toml の依存）</th><td>言語の組（Rust が1つ目）</td></tr><tr><th>入口が bin/ に在ることを前提にする</th><td>配布（任意。dist を実行した人だけ）</td></tr><tr><th>配布物の中身と名前 ・ 導入スクリプト ・ CI の枠は、全言語で1つを共有する</th><td>配布（任意。dist を実行した人だけ）</td></tr><tr><th>言語の組からは、組み立てのコマンドだけを借りる</th><td>配布（任意。dist を実行した人だけ）</td></tr></tbody></table></div><p>層と許可辺は契約に置き、<b>どう守らせるか</b>（Rust では crate の境界）を言語の組に置く。</p></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,738px)" class="wf-fig" viewBox="0 0 738 676" height="676" role="img"><g transform="translate(6.0,6.0)"><path d="M336.1,286.7 L359.1,280.5" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.1,280.5 353.2,284.6 351.9,279.9" fill="#C3CAD2"/><path d="M167.8,631.4 L167.8,520.5" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="167.8,520.5 170.3,527.3 165.3,527.3" fill="#C3CAD2"/><rect x="98.8" y="566.0" width="138.0" height="16.0" fill="#F5F7F9"/><text x="167.8" y="579.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">組み立てのコマンドを借りる</text><g class="wf-node" transform="translate(0.0,48.0)"><rect x="0.0" y="16.0" width="335.6" height="456.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M148.3,32.6 L148.3,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="148.3,95.4 145.9,88.6 150.8,88.6" fill="#C3CAD2"/><path d="M147.3,128.6 L147.3,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="147.3,191.4 144.8,184.6 149.7,184.6" fill="#C3CAD2"/><path d="M148.3,224.6 L147.8,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="147.8,287.4 145.4,280.6 150.3,280.7" fill="#C3CAD2"/><path d="M147.8,320.6 L148.3,383.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="148.3,383.4 145.8,376.7 150.7,376.6" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="295.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="147.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">tool/ の中の構成（Cargo の workspace）</text></g></g><g class="wf-node" transform="translate(64.2,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">入口の置き場所（bin/）</text></g></g><g class="wf-node" transform="translate(45.3,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="205.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="102.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">雛形（.rs ・ Cargo.toml）</text></g></g><g class="wf-node" transform="translate(49.8,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">入口を作る組み立てのコマンド</text></g></g><g class="wf-node" transform="translate(13.2,384.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="269.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="134.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ソースの検査（Command::new ・ 依存）</text></g></g></g></g><rect x="8.0" y="7.0" width="236.5" height="15.0" fill="#F5F7F9"/><text x="126.2" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">言語の組 ── Rust（契約を満たす1つ目の実装）</text></g><g class="wf-node" transform="translate(359.6,0.0)"><rect x="0.0" y="16.0" width="366.2" height="552.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><g transform="translate(14.0,30.0)"><g transform="translate(6.0,6.0)"><path d="M163.1,32.6 L163.6,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="163.6,95.4 161.1,88.7 166.0,88.6" fill="#C3CAD2"/><path d="M163.6,128.6 L162.6,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="162.6,191.4 160.2,184.6 165.2,184.7" fill="#C3CAD2"/><path d="M163.6,224.6 L163.1,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="163.1,287.4 160.7,280.6 165.6,280.7" fill="#C3CAD2"/><path d="M163.1,320.6 L163.1,383.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="163.1,383.4 160.6,376.6 165.6,376.6" fill="#C3CAD2"/><path d="M163.1,416.6 L162.6,479.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="162.6,479.4 160.2,472.6 165.1,472.7" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="326.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="163.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">CLI と MCP の入口（起動のコマンドを登録に書く）</text></g></g><g class="wf-node" transform="translate(36.3,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="253.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="126.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">CLI の規約（--json ・ 終了コード）</text></g></g><g class="wf-node" transform="translate(46.2,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="233.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="116.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">1つの宣言から CLI と MCP を組む</text></g></g><g class="wf-node" transform="translate(5.7,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="314.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="157.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Skill のフォルダは、渡された値か入口の位置から</text></g></g><g class="wf-node" transform="translate(65.1,384.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">外部コマンドは理由つきの例外</text></g></g><g class="wf-node" transform="translate(43.5,480.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="239.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="119.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">層（部品 ・ 宣言 ・ 入口）と許可辺</text></g></g></g></g><rect x="8.0" y="7.0" width="134.0" height="15.0" fill="#F5F7F9"/><text x="75.0" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">契約 ── 言語に依存しない</text></g><g class="wf-node" transform="translate(14.6,632.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="306.4" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="153.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">配布（任意）── bin/ を前提にし、全言語で共有</text></g></g></g></svg><figcaption>契約は、登録に書いた起動のコマンドと入口の振る舞いを持つ。言語の組は、入口の置き場所と実装を持つ。配布は契約の外にある</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 6件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 呼ぶ側から観察できるかで境界を判定する</b></td><td>契約は入口の起動のしかたと振る舞い、言語の組は入口の置き場所と tool/ の中と組み立てを持つ。配布は任意の機能として外に置く</td><td><span class="cost">いまの tool-contract.md を、契約と Rust の組の2つへ分ける</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── tool/ の中のフォルダの名前まで契約に置く</b></td><td>parts ・ declare ・ cli ・ mcp というフォルダの名前を、どの言語でも同じにする</td><td><span class="cost">言語ごとの慣習（Go の cmd/ ・ internal/ など）と矛盾する</span></td></tr></table></div><p class="note-s">除外した案 6件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。bin/ を前提にしていた Skill のフォルダの求め方は「入口自身の位置から求める」へ一般化でき、配布は任意の機能になった"><b>入口の置き場所（bin/）を契約に置く（Round 3 の答え）</b></mark></td><td>起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。bin/ を前提にしていた Skill のフォルダの求め方は「入口自身の位置から求める」へ一般化でき、配布は任意の機能になった</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="配布を使わない人にも、組ごとに配布の形の宣言を求めることになる。配布の仕組みの大半（配布物 ・ 導入スクリプト ・ CI の枠）は言語に依存しないので、組ごとに持つ理由も無い"><b>配布の形を言語の組に置く（Round 2 の答え）</b></mark></td><td>配布を使わない人にも、組ごとに配布の形の宣言を求めることになる。配布の仕組みの大半（配布物 ・ 導入スクリプト ・ CI の枠）は言語に依存しないので、組ごとに持つ理由も無い</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="バイナリで配るのは Rust を選んだ結果である。契約に置くと、Python や TypeScript の組が、実行環境を同梱する手段を必ず持つことになる"><b>配布物と導入スクリプトまで契約に置く（Round 1 の答え）</b></mark></td><td>バイナリで配るのは Rust を選んだ結果である。契約に置くと、Python や TypeScript の組が、実行環境を同梱する手段を必ず持つことになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="利用者が自分の言語で道具を作れない。skills-creator の目的（利用者が自由に Skill を作る）と抽象の高さが合わない"><b>Rust だけの契約を維持する</b></mark></td><td>利用者が自分の言語で道具を作れない。skills-creator の目的（利用者が自由に Skill を作る）と抽象の高さが合わない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="「1つの宣言から CLI と MCP を組む」は、宣言の層を前提にしている。層を外すと、能力を2か所に書く実装を契約が禁じられない"><b>振る舞いだけを契約に置き、層と許可辺を規定しない</b></mark></td><td>「1つの宣言から CLI と MCP を組む」は、宣言の層を前提にしている。層を外すと、能力を2か所に書く実装を契約が禁じられない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="使わない言語の雛形を、試験できないまま保守することになる。組は、必要になった言語から加える"><b>主要な言語の組を、いま全部 skills-creator に持たせる</b></mark></td><td>使わない言語の雛形を、試験できないまま保守することになる。組は、必要になった言語から加える</td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">契約に置く規約が言語に依存しないこと</span></td><td>The server reads JSON-RPC messages from its standard input (stdin) and sends messages to its standard output (stdout).</td><td><span class="kind k-src">原典</span><small>modelcontextprotocol.io/specification/2025-06-18/basic/transports:27（2026-09-24 取得。tool-contract.md が引用）</small></td></tr><tr><td><span class="part">契約を言語に依存しない形にするという方針</span></td><td>SkillsCreatorに関してはRustの言語でしか道具を作成できない契約は抽象の高さを間違えてしまっているかもしれません</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-09-29）</small></td></tr><tr><td><span class="part">Rust に依存する規定の範囲</span></td><td>tool-contract.md の置き場所 ・ 検査の節（tool/Cargo.toml ・ crate ・ Command::new）</td><td><span class="kind k-fact">実測</span><small>.claude/skills/skills-creator/references/tool-contract.md（2026-09-29 に全文を読んだ）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>このリポジトリの9つの Skill の言語</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">引き続き Rust で作る。変更しない</div></td></tr><tr><td>配布の仕組み（dist ・ 導入スクリプト ・ CI）</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">契約の外の任意の機能とする。全言語で1つを共有し、言語の組からは組み立てのコマンドだけを借りる</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>いまの tool-contract.md の規定のうち、次が Rust に依存する。宣言の置き場所（tool/declare/ の tools()）・ #[tool] マクロ ・ println! ・ Stdio の指定 ・ crate の構成 ・ cargo install ・ 検査の表の大半である</b></td><td></td></tr><tr><td><b>導入スクリプト（install.sh ・ install.ps1）は配布物を取得して展開するだけで、道具の言語に依存しない。CI の定義は、組み立ての手順だけが言語に依存する</b></td><td></td></tr><tr><td><b>bin/ を前提にしているのは、Skill のフォルダの求め方（実行ファイルの1つ上）・ 登録の経路 ・ 配布物の中身の3つである。前の2つは一般化でき、配布は任意の機能である</b></td><td></td></tr><tr><td><b>契約から bin/ を外すと、検査（論点2）が CLI の入口を見つける方法が必要になる。MCP の起動のコマンドは登録に在るが、CLI の起動のコマンドはいまどこにも宣言していない</b></td><td></td></tr></table></div></div></details><details><summary>この答えの履歴 ── 3件</summary><div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　契約は、呼ぶ側から観察できるもの（入口の名前と置き場所 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 登録の経路）だけを持つ。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く。配布は契約の外の任意の機能とし、使う人だけが dist で配布の仕組みを置く</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">入口の置き場所（bin/）を契約に置いていた</b><div class="sub-s">登録に起動のコマンドを書けば、置き場所を固定する必要は無い</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>入口の名前と置き場所（bin/）そうなると上記の共通契約は必須ではないよね？？これは必ず守らせたい？なんか都合悪くなっちゃう？</td></tr></table></div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　呼ぶ側から観察できるもの（入口の名前と置き場所 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 登録の経路）を契約に置く。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査 ・ 配布の形と、利用者の環境に必要なものを、言語の組に置く</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">配布の形を言語の組に置いていた</b><div class="sub-s">配布は必須ではなく、使う人だけの任意の機能である</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>基本的に配布はしないと思うんだよね。私はするよ？OSSのつもりで使用しているからね。ただ、このOSSとしてのSkillsCreatorを使用する人が作成したものを配布することはあまりないんでは？もちろん機能としてはあっていいけど、それが必須ではないよね・</td></tr></table></div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　配布した Skill のフォルダで観察できるもの（bin/ の名前 ・ CLI の規約 ・ MCP の面 ・ Skill のフォルダの求め方 ・ 外部コマンドの扱い ・ 層と許可辺 ・ 配布物）を契約に置く。tool/ の中の構成 ・ 雛形 ・ 組み立てのコマンド ・ ソースの検査を、言語の組に置く</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">配布の形を契約に置いていた</b><div class="sub-s">バイナリ配布は Rust を選んだ結果であって、契約が必ず要求するものではない</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・</td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>Skill が契約を満たすかを、言語に依存せずに検査する方法と、CLI の起動のコマンドを宣言する場所</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c2-0" aria-expanded="false" data-b="論点1の契約を、言語に依存せずに検査する方法を決める。" data-w="この回で変わった"><b>承認された（2026-09-29、Round 6）。</b>論点1の契約を、言語に依存せずに検査する方法を決めた。</mark></div><div class="ans"><span class="big">A</span><div class="scroll"><table class="fact"><thead><tr><th></th><th>段</th><th>誰が持つか</th></tr></thead><tbody><tr><th>tool.json と mcp.json が在り、経路が絶対パスでない</th><td>1段目（振る舞い）</td><td>契約（全言語で共通）</td></tr><tr><th>動詞なしで --json を付けると、宣言（道具 ・ 引数）を JSON で返す</th><td>1段目（振る舞い）</td><td>契約（全言語で共通）</td></tr><tr><th>宣言に無い旗を渡すと、終了コード2を返す</th><td>1段目（振る舞い）</td><td>契約（全言語で共通）</td></tr><tr><th>MCP の tools/list の道具と引数が、CLI の宣言と一致する</th><td>1段目（振る舞い）</td><td>契約（全言語で共通）</td></tr><tr><th>別の作業場所から、Skill のフォルダを渡さずに起動できる</th><td>1段目（振る舞い）</td><td>契約（全言語で共通）</td></tr><tr><th>層が分かれ、許可辺が宣言どおりである</th><td>2段目（ソース）</td><td>言語の組（Rust は crate ・ Cargo.toml ・ Command::new）。組に無ければ「実行しない」</td></tr><tr><th>部品が外部の道具の名前を直書きしていない（tool.json から注入されたコマンドだけを起動する）</th><td>2段目（ソース）</td><td>言語の組（Rust は crate ・ Cargo.toml ・ Command::new）。組に無ければ「実行しない」</td></tr></tbody></table></div><b>CLI の起動のコマンドは tool.json に書く。</b>MCP の起動のコマンドは mcp.json で維持する ── mcp.json はホストの形式であり、ホストごとの差を吸収する場所だからである。 論点1の「起動のコマンドを登録に書く」の登録は、この2つのファイルを指す。<h3>完成イメージ ── acdr の場合の変更前と変更後</h3><h4>① Skill のフォルダ ── 変更前</h4><pre><code>acdr/
+  SKILL.md
+  mcp.json     MCP の起動のコマンド
+  bin/         入口（契約が固定する置き場所）
+  tool/        Rust のソース（declare/src/lib.rs に EXTERNAL）</code></pre><h4>① Skill のフォルダ ── 変更後</h4><pre><code>acdr/
+  SKILL.md
+  mcp.json     MCP の起動のコマンド（変わらない）
+  tool.json    CLI の起動のコマンドと、外部の道具（新しく置く）
+  bin/         入口（Rust の組が決める置き場所）
+  tool/        Rust のソース（EXTERNAL の定数は無くなる）</code></pre><h4>② acdr --json（動詞なし）── 変更前</h4><pre><code>$ acdr --json
+道具の一覧
+  new &lt;record&gt; [title] [skill_root]
+      雛形から記録のフォルダを起こす
+  …
+（人が読む文字。終了コード 0）</code></pre><h4>② acdr --json（動詞なし）── 変更後</h4><pre><code>$ acdr --json
+{"ok": true, "findings": [], "data": {"tools": [
+  {"name": "new",      "args": ["record", "title", "skill_root"]},
+  {"name": "validate", "args": ["record", "skill_root"]},
+  {"name": "render",   "args": ["record", "check", "force", "skill_root"]},
+  {"name": "tokens",   "args": ["check", "skill_root"]}
+]}}</code></pre><h4>③ skills-creator check ── 変更前</h4><pre><code>$ skills-creator check .claude/skills/acdr
+契約を満たしている ── 入口は1つ、道具は宣言の中に在る
+（ソースの文字列だけを読む。Rust 以外の Skill は検査できない）</code></pre><h4>③ skills-creator check ── 変更後</h4><pre><code>$ skills-creator check .claude/skills/acdr
+1段目（振る舞い）
+  OK  tool.json と mcp.json が在り、経路が絶対パスでない
+  OK  宣言を JSON で返す（道具 4件）
+  OK  宣言に無い旗を、終了コード 2 で断る
+  OK  MCP の tools/list が CLI の宣言と一致する（4件）
+  OK  別の作業場所から起動できる
+2段目（ソース ── Rust の組）
+  OK  層が crate に分かれ、許可辺が宣言どおりである
+  OK  部品が外部の道具の名前を直書きしていない</code></pre><h4>③ 言語の組が無い Skill（例：Python で書いた Skill）の場合 ── 変更後</h4><pre><code>1段目（振る舞い）
+  OK  …（Rust の Skill と同じ5件）
+2段目（ソース）
+  実行しない  python の言語の組が無い（合格とは扱わない）</code></pre></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,812px)" class="wf-fig" viewBox="0 0 812 236" height="236" role="img"><g transform="translate(6.0,6.0)"><path d="M350.8,32.6 L179.4,95.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="179.4,95.2 184.9,90.6 186.6,95.2" fill="#C3CAD2"/><path d="M350.8,32.6 L521.2,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="521.2,95.4 514.0,95.4 515.7,90.7" fill="#C3CAD2"/><path d="M521.2,128.6 L359.5,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="359.5,191.4 364.9,186.7 366.7,191.2" fill="#C3CAD2"/><rect x="416.3" y="150.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="440.3" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">組が在る</text><path d="M521.2,128.6 L683.9,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="683.9,191.4 676.7,191.3 678.5,186.7" fill="#C3CAD2"/><rect x="578.5" y="150.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="602.5" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">組が無い</text><g class="wf-node" transform="translate(258.8,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">skills-creator check</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="359.8" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="179.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">1段目：入口を起動して振る舞いを検査する（全言語で共通）</text></g></g><g class="wf-node" transform="translate(383.8,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="275.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="137.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">2段目：ソースを読む検査（言語の組が持つ）</text></g></g><g class="wf-node" transform="translate(175.1,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="368.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="184.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Rust の組：crate ・ Cargo.toml ・ Command::new</text></g></g><g class="wf-node" transform="translate(567.9,192.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="232.0" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="116.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">組が無い言語：「実行しない」と出す</text></g></g></g></svg><figcaption>1段目は入口を起動して、どの言語でも同じ検査をする。2段目は言語の組が持ち、組に無ければ実行しない</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 2段の検査と、CLI の起動のコマンドを書く tool.json</b></td><td>振る舞いは全言語で共通に検査し、ソースの検査だけを言語の組に置く</td><td><span class="cost">CLI が宣言を JSON で返す動作を契約に足す。いまの9つの Skill の CLI は、動詞なしでは人が読む一覧を返す。tool.json を9つの Skill に置く</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── CLI の起動のコマンドを mcp.json に書き足す</b></td><td>mcpServers と並べて cli の欄を置き、ファイルを増やさない</td><td><span class="cost">mcp.json という名前と、CLI の起動のコマンドという中身が一致しない。ホストの形式のファイルに、ホストが定義していない欄を置く</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="言語ごとに検査を実装することになる。しかも、宣言に無い旗を断るかのような振る舞いは、ソースからは判定できない"><b>ソースの検査だけを、言語ごとに書く</b></mark></td><td>言語ごとに検査を実装することになる。しかも、宣言に無い旗を断るかのような振る舞いは、ソースからは判定できない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="層の許可辺と、宣言に無い外部コマンドの呼び出しは、起動しても観察できない"><b>振る舞いの検査だけにする</b></mark></td><td>層の許可辺と、宣言に無い外部コマンドの呼び出しは、起動しても観察できない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Skill が他の Skill を名指しで呼ぶ形になる。no-more-spaghetti のガードレールも、他の Skill を名指しで呼ばないと定めている"><b>層の検査を no-more-spaghetti に任せる</b></mark></td><td>Skill が他の Skill を名指しで呼ぶ形になる。no-more-spaghetti のガードレールも、他の Skill を名指しで呼ばないと定めている</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="frontmatter の欄は Claude Code が定める。定義に無い欄を置いてよいかを確認していない。機械が読む宣言を、人が読む手順の文書に混ぜることにもなる"><b>CLI の起動のコマンドを、SKILL.md の frontmatter に書く</b></mark></td><td>frontmatter の欄は Claude Code が定める。定義に無い欄を置いてよいかを確認していない。機械が読む宣言を、人が読む手順の文書に混ぜることにもなる</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">1段目で検査する対象</span></td><td>契約は、呼ぶ側から観察できるものだけを持つ</td><td><span class="kind k-rule">決まり</span><small>論点1（Round 4 で承認）</small></td></tr><tr><td><span class="part">2段目を言語の組が持つこと</span></td><td>組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである</td><td><span class="kind k-rule">決まり</span><small>論点4（Round 4 で承認）</small></td></tr><tr><td><span class="part">層の検査を他の Skill に任せないこと</span></td><td>この Skill は、他の Skill を名指しで呼ばない</td><td><span class="kind k-rule">決まり</span><small>.claude/skills/no-more-spaghetti/SKILL.md の参照の節</small></td></tr><tr><td><span class="part">いまの CLI が宣言を JSON で返さないこと</span></td><td>acdr --json は、動詞が無いと人が読む道具の一覧を出し、終了コード0を返す</td><td><span class="kind k-fact">実測</span><small>2026-09-29 に実行した</small></td></tr><tr><td><span class="part">宣言に無い旗をすでに断っていること</span></td><td>その旗は無い: --bogus（render は record ・ check ・ force ・ skill_root を受ける）。終了コード2</td><td><span class="kind k-fact">実測</span><small>2026-09-29 に実行した</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>MCP の Registry の server.json の形式を使うか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">MCP の公開のための形式であり、CLI を対象にするかを原典で確認していない</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>いまの9つの Skill の CLI は、動詞なしで --json を付けても、人が読む道具の一覧を返し、終了コード0で終わる</b></td><td></td></tr><tr><td><b>宣言に無い旗は、すでに終了コード2で断っている（acdr render --bogus 1 で確認した）</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>外部の道具の名前 ・ 理由と、実際に起動するコマンドを、言語に依存しない形でどこに置き、部品へどう渡すか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c3-0" aria-expanded="false" data-b="論点1で、外部コマンドは理由つきの例外として契約に置いた。その宣言の置き場所を決める。" data-w="この回で変わった"><b>承認された（2026-09-29、Round 6）。</b>外部の道具は、tool.json に宣言し、外から注入する。</mark></div><div class="ans"><span class="big">A</span><b>外部の道具は、外から注入する。</b>宣言は tool.json の external に1か所だけ置き、部品はそこから渡されたコマンドだけを起動する。<ul><li><b class="lead-s">command</b><div class="sub-s">実際に起動するコマンド。既定値を Skill が書き、利用者が書き換えてよい（例：git の経路、別のブラウザ）</div></li><li><b class="lead-s">部品は名前を直書きしない</b><div class="sub-s">宣言の層が tool.json を読み、部品の関数へ引数として渡す。試験では偽物のコマンドを渡せる</div></li><li>理由と起動するコマンドが空の宣言は、1段目が検出する。部品の中の直書きは、2段目（言語の組）が検出する</li><li><code>"*"</code>（規則ファイルや引数で利用者が指定する道具）は、いまと同じく、実行時に渡された値を起動する</li></ul><h3>完成イメージ ── acdr の場合の変更前と変更後</h3><h4>変更前 ── 部品が名前を直書きしている（tool/parts/src/panes.rs）</h4><pre><code>pub fn before_of(root: &Path, rev: &str, rel: &str) -> Option&lt;String&gt; {
+    let done = Command::new("git")          // 名前を直書き
+        .args(["-C", …, "show", &format!("{rev}:{rel}")])
+        …
+}</code></pre><h4>変更前 ── 宣言（tool/declare/src/lib.rs の Rust の定数）</h4><pre><code>pub const EXTERNAL: &[(&str, &str)] = &[(
+    "git",
+    "git のリポジトリの版から、変更前の中身を取得する。…",
+)];</code></pre><h4>変更後 ── tool.json（言語に依存しない。利用者が書き換えてよい）</h4><pre><code>{
+  "cli": {"command": "${CLAUDE_PROJECT_DIR:-.}/.claude/skills/acdr/bin/acdr", "args": []},
+  "external": [
+    {"name": "git",
+     "command": "git",
+     "reason": "git のリポジトリの版から、変更前の中身を取得する。…"}
+  ]
+}</code></pre><h4>変更後 ── 部品はコマンドを引数で受け取る</h4><pre><code>pub fn before_of(git: &Path, root: &Path, rev: &str, rel: &str) -> Option&lt;String&gt; {
+    let done = Command::new(git)             // 渡されたコマンドを起動する
+        …
+}
+
+// 宣言の層（tool/declare）が tool.json から読んで渡す
+let git = or_misuse!(given.external("git"));
+panes::before_of(&git, …)</code></pre><h4>変更後 ── 利用者が別の git を使うとき</h4><pre><code>"command": "/opt/homebrew/bin/git"      ← tool.json のこの1行だけを書き換える</code></pre><h4>変更後 ── check の出力</h4><pre><code>1段目（振る舞い）
+  ×  外部の道具に理由が無い: git（tool.json の external）
+2段目（ソース ── Rust の組）
+  ×  部品が外部の道具の名前を直書きしている: "git"（tool/parts/src/panes.rs:186）</code></pre></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,375px)" class="wf-fig" viewBox="0 0 375 428" height="428" role="img"><g transform="translate(6.0,6.0)"><path d="M181.7,32.6 L182.2,95.2" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="182.2,95.2 179.7,88.5 184.6,88.4" fill="#C3CAD2"/><path d="M182.2,128.8 L181.7,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="181.7,191.4 179.3,184.6 184.2,184.7" fill="#C3CAD2"/><path d="M181.7,224.6 L181.7,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="181.7,287.4 179.2,280.6 184.2,280.6" fill="#C3CAD2"/><rect x="152.7" y="246.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="181.7" y="259.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">引数で渡す</text><path d="M181.7,320.6 L182.2,383.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="182.2,383.4 179.7,376.7 184.6,376.6" fill="#C3CAD2"/><rect x="158.0" y="342.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="182.0" y="355.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">起動する</text><g class="wf-node" transform="translate(95.7,0.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="172.0" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="86.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">利用者（書き換えてよい）</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="363.4" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="181.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">tool.json の external（名前 ・ コマンド ・ 理由）</text></g></g><g class="wf-node" transform="translate(44.7,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="274.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="137.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">宣言の層：tool.json からコマンドを読む</text></g></g><g class="wf-node" transform="translate(59.7,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="244.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="122.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">部品：渡されたコマンドだけを起動する</text></g></g><g class="wf-node" transform="translate(98.1,384.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">外部の道具（git など）</text></g></g></g></svg><figcaption>外部の道具は tool.json に1か所だけ宣言し、宣言の層が部品へ注入する。利用者は tool.json だけを書き換える</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── tool.json に宣言し、宣言の層から部品へ注入する</b></td><td>宣言は1か所で、部品は渡されたコマンドだけを起動する</td><td><span class="cost">外部の道具を呼ぶ部品の関数に、コマンドの引数が1つ増える（acdr ・ fact-check ・ narration の3つ。slide-deck と no-more-spaghetti は、すでに実行時に渡している）</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── tool.json に宣言するが、部品は名前を直書きしたままにする（Round 5 の答え）</b></td><td>部品のコードは変えず、宣言だけを移す</td><td><span class="cost">利用者が呼ぶコマンドを差し替えられない。試験で偽物に差し替えられない。2段目は、直書きの名前と宣言の照合を続ける</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Rust の組でしか読めない。論点1で、外部コマンドの扱いは言語に依存しない契約に置いた"><b>いまの Rust の定数 EXTERNAL のまま置く</b></mark></td><td>Rust の組でしか読めない。論点1で、外部コマンドの扱いは言語に依存しない契約に置いた</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Skill ごとに変数の名前を決めることになり、宣言（名前と理由）と差し替えの場所が2か所に分かれる"><b>環境変数でコマンドを差し替える</b></mark></td><td>Skill ごとに変数の名前を決めることになり、宣言（名前と理由）と差し替えの場所が2か所に分かれる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="機械が照合できない。理由の欠けも検出できない"><b>SKILL.md に散文で書く</b></mark></td><td>機械が照合できない。理由の欠けも検出できない</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">外部コマンドの扱いを契約に置くこと</span></td><td>外部コマンドは理由つきの例外</td><td><span class="kind k-rule">決まり</span><small>論点1（Round 4 で承認）</small></td></tr><tr><td><span class="part">外部の道具を注入する形にすること</span></td><td>基本的に依存性を持つものは外から注入できるような仕組みの方がいいよね。</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-09-29）</small></td></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c3-1" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">tool.json を宣言のファイルにすること</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c3-2" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">CLI の起動のコマンドは、Skill のフォルダの tool.json に書く</mark></td><td><span class="kind k-rule">決まり</span><small><mark class="chg" tabindex="0" role="button" id="c3-3" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した">論点2（Round 6 で承認）</mark></small></td></tr><tr><td><span class="part">いまの check の読み方</span></td><td>requires() が pub const EXTERNAL の組を、ソースの文字列から読む</td><td><span class="kind k-fact">実測</span><small>.claude/skills/skills-creator/tool/parts/src/check.rs</small></td></tr><tr><td><span class="part">名前を直書きしている部品の数</span></td><td>Command::new("git") ・ Command::new("curl") ・ Command::new("aws") ×2</td><td><span class="kind k-fact">実測</span><small>9つの Skill の tool/parts/src を検索した（2026-09-29）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>9つの Skill の EXTERNAL を tool.json へ移し、check の2段目で照合する</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">外の作業で試す ── 決着後に ACDR へ記録し、9つの Skill へ適用して check の2段目で照合する</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>いまの check は、Rust の定数 EXTERNAL を、ソースの文字列から読み取っている</b></td><td></td></tr><tr><td><b>名前を直書きしている部品は3か所（acdr の git ・ fact-check の curl ・ narration の aws 2か所）。slide-deck のブラウザと no-more-spaghetti の規則の道具は、すでに実行時に渡された値を起動している</b></td><td></td></tr></table></div></div></details><details><summary>この答えの履歴 ── 1件</summary><div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　tool.json の external に、名前と理由の組で書く。いまの Rust の定数 EXTERNAL は廃止する。部品の呼び出しが宣言どおりかは、言語の組の2段目が、tool.json と照合する</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">部品がコマンドの名前を直書きしたまま、宣言だけを移していた</b><div class="sub-s">依存を持つものは、外から注入できる形にする</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>基本的に依存性を持つものは外から注入できるような仕組みの方がいいよね。</td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>言語の組を作ってよい言語の条件を何にするか</h2></div><div class="note"><b>承認された（2026-09-29、Round 4）。</b>MCP の面を持つという契約から導いた。配布は、論点1で契約の外の任意の機能にした。</div><div class="ans"><span class="big">A</span><ul><li><b class="lead-s">条件</b><div class="sub-s">公式の MCP の SDK が在る。MCP の面を、その言語で組めるため</div></li><li><b class="lead-s"><mark>組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。</mark>配布の形は宣言しない</b><div class="sub-s">配布は論点1で契約の外に置いた</div></li></ul></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,260px)" class="wf-fig" viewBox="0 0 260 236" height="236" role="img"><g transform="translate(6.0,6.0)"><path d="M130.0,32.6 L130.0,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="130.0,95.4 127.5,88.6 132.5,88.6" fill="#C3CAD2"/><path d="M130.0,128.6 L62.0,191.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="62.0,191.2 65.3,184.8 68.6,188.4" fill="#C3CAD2"/><rect x="77.0" y="149.9" width="38.0" height="16.0" fill="#F5F7F9"/><text x="96.0" y="163.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">満たす</text><path d="M130.0,128.6 L198.0,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="198.0,191.4 191.4,188.6 194.7,185.0" fill="#C3CAD2"/><rect x="135.0" y="150.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="164.0" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">満たさない</text><g class="wf-node" transform="translate(74.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="112.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="56.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">道具を書く言語</text></g></g><g class="wf-node" transform="translate(17.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="226.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="113.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">条件：公式の MCP の SDK が在る</text></g></g><g class="wf-node" transform="translate(0.0,192.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="124.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="62.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">言語の組を作れる</text></g></g><g class="wf-node" transform="translate(148.0,192.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">組を作れない</text></g></g></g></svg><figcaption>公式の MCP の SDK が在る言語は、言語の組を作れる</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 公式の MCP の SDK だけを条件にする</b></td><td>組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである</td><td><span class="cost">作った人の環境に、その言語の組み立ての道具が必要になる。配布しない人にとっては、もともと開発に使っている道具である</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── 条件1を満たさない言語も、CLI だけの組として許す</b></td><td>契約の原則「呼び出し方が欠けても、能力は欠けない」に従い、MCP の面を保持しない組を認める</td><td><span class="cost">MCP から使えない Skill が出る。どの Skill が MCP を持つかを、利用者が Skill ごとに確認することになる</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="配布は論点1で契約の外に置いた。配布しない人に、使わない宣言を求めることになる"><b>組が配布の形と利用者の環境に必要なものを宣言する（Round 2 の答え）</b></mark></td><td>配布は論点1で契約の外に置いた。配布しない人に、使わない宣言を求めることになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="MCP の面を組めない言語が入り、契約の「CLI と MCP を同じ宣言から組む」を満たせない"><b>言語を限定しない</b></mark></td><td>MCP の面を組めない言語が入り、契約の「CLI と MCP を同じ宣言から組む」を満たせない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Tier は SDK の機能の完備と保守の約束の区分であり、契約が使うのは道具の公開と標準入出力だけである。Tier で絞る根拠が無い（Tier ごとの機能の差は未確認）"><b>SDK の Tier 1 だけを許す</b></mark></td><td>Tier は SDK の機能の完備と保守の約束の区分であり、契約が使うのは道具の公開と標準入出力だけである。Tier で絞る根拠が無い（Tier ごとの機能の差は未確認）</td></tr></table></div><p class="note-s"><b>候補の言語（原文で照合したもの）</b></p><div class="scroll"><table><tr><th></th><th>言語</th><th>公式の SDK ／ 実行環境を同梱する配布の手段（組が選べるもの）</th></tr><tr><td><b>Rust</b></td><td>Tier 1</td><td>満たす（いまの組）</td></tr><tr><td><b>Go</b></td><td>Tier 1</td><td>満たす（GOOS ・ GOARCH で他の OS 向けに組める）</td></tr><tr><td><b>TypeScript</b></td><td>Tier 1</td><td>満たす（deno compile ・ bun build --compile）</td></tr><tr><td><b>C#</b></td><td>Tier 1</td><td>満たす（Native AOT は self-contained）</td></tr><tr><td><b>Python</b></td><td>Tier 1</td><td>満たす（PyInstaller）。出力は組み立てた OS に固有なので、OS ごとに組む</td></tr><tr><td><b>Java ・ Kotlin ・ Swift ・ Ruby ・ PHP</b></td><td>Tier 1〜3</td><td>未確認</td></tr></table></div></div></details><details><summary>この答えの前提（8件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">公式の SDK の一覧と Tier</span></td><td>Official SDKs for building with Model Context Protocol</td><td><span class="kind k-src">原典</span><small>sources/modelcontextprotocol.io_docs_sdk.md:7。Tier は同じ頁の表（14〜23行）（2026-09-29 取得）</small></td></tr><tr><td><span class="part">Bun が単体の実行ファイルを出せること</span></td><td>Bun's bundler implements a `--compile` flag for generating a standalone binary from a TypeScript or JavaScript file.</td><td><span class="kind k-src">原典</span><small>sources/bun.com_docs_bundler_executables.md:5（2026-09-29 取得）</small></td></tr><tr><td><span class="part">Deno が他の OS 向けに組めること</span></td><td>You can cross-compile binaries for other platforms by using the --target flag.</td><td><span class="kind k-src">原典</span><small>sources/docs.deno.com_runtime_reference_cli_compile:154（2026-09-29 取得）</small></td></tr><tr><td><span class="part">C# の Native AOT が実行環境を必要としないこと</span></td><td>Publishing your app as Native AOT produces an app that's self-contained</td><td><span class="kind k-src">原典</span><small>sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot:741（2026-09-29 取得）</small></td></tr><tr><td><span class="part">PyInstaller の出力が OS に固有であること</span></td><td>The output of  PyInstaller is specific to the active operating system</td><td><span class="kind k-src">原典</span><small>sources/pyinstaller.org_en_stable_operating-mode.html:143（2026-09-29 取得）</small></td></tr><tr><td><span class="part">Go が他の OS 向けに組めること</span></td><td>Cross compiled binaries are installed in $GOOS_$GOARCH subdirectories</td><td><span class="kind k-src">原典</span><small>sources/pkg.go.dev_cmd_go:1545（2026-09-29 取得）</small></td></tr><tr><td><span class="part">バイナリ配布を契約から外すこと</span></td><td>これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-09-29）</small></td></tr><tr><td><span class="part">組が配布の形を宣言しないこと</span></td><td>配布は契約の外の任意の機能とする</td><td><span class="kind k-given">前提</span><small>論点1（Round 3 の答え。未決）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>Java ・ Kotlin ・ Swift ・ Ruby ・ PHP が条件2を満たすか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">その言語の組が必要になったときに照合する</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>公式の SDK は10の言語に在る（Tier 1 が6つ：TypeScript ・ Python ・ C# ・ Go ・ Rust ・ Ruby）</b></td><td></td></tr><tr><td><b>PyInstaller の出力は、組み立てた OS と Python の版に固有である。Python の組がバイナリで配ることを選ぶなら、CI で OS ごとに組む</b></td><td></td></tr></table></div></div></details><details><summary>この答えの履歴 ── 2件</summary><div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　条件は1つとする。公式の MCP の SDK が在ること。配布の形と、利用者の環境に必要なもの（Python の実行環境など）は、言語の組が宣言する。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">配布の形の宣言を、組に求めていた</b><div class="sub-s">配布は必須ではない</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>基本的に配布はしないと思うんだよね。私はするよ？OSSのつもりで使用しているからね。ただ、このOSSとしてのSkillsCreatorを使用する人が作成したものを配布することはあまりないんでは？もちろん機能としてはあっていいけど、それが必須ではないよね・</td></tr></table></div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　条件は2つとする。公式の MCP の SDK が在ること、3つの OS（Windows ・ Linux ・ macOS）向けに、実行環境を必要としない実行ファイルを出せること。skills-creator が持つ組はいま Rust だけで、他の言語の組は必要になったときに加える</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">実行環境を必要としない実行ファイルを、言語の条件にしていた</b><div class="sub-s">Rust の組の配布の形を、契約に含めていた</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>これ、バイナリ提供したいのはRustだったからなんですよね。。契約としては必ずいるものではないんだよね・</td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><button id="dtoggle" aria-expanded="false" aria-controls="drawer">この回の変更<span class="dn">6</span></button><aside id="drawer" hidden aria-label="この回で変わったところ"><div class="dhead"><b>この回で変わったところ</b><button id="dclose" aria-label="閉じる">閉じる</button></div><div class="dbody"><p class="note-s">押すと、その箇所まで運ぶ。<b>印をもう一度押すと、前の回の中身が開く。</b></p><ol class="dlist"><li class="dq">Q2　検査の形<span class="dn">1</span></li><li><button class="dgo" data-go="p2" data-cid="c2-0"><span class="dw">前書き</span>承認された（2026-09-29、Round 6）。論点1の契約を、言語に依存せずに検査する…</button></li><li class="dq">Q3　外部の道具の宣言の置き場所<span class="dn">5</span></li><li><button class="dgo" data-go="p3" data-cid="c3-0"><span class="dw">前書き</span>承認された（2026-09-29、Round 6）。外部の道具は、tool.json に宣言…</button></li><li><button class="dgo" data-go="p3" data-cid="c3-1"><span class="dw">根拠</span>tool.json を宣言のファイルにすること</button></li></ol></div></aside><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
