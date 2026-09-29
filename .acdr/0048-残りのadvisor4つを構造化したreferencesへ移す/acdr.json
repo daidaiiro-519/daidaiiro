@@ -1,0 +1,256 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0048",
+ "title": "残りの advisor 4つを、構造化した references（契約の版2）へ移す",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "残りの advisor 4つの knowledge とテンプレートを、判断基準と回答の形の JSON Schema と JSON へ移し、契約の版2 の道具を持たせる。",
+ "why": "ACDR 0043 の移行の段3 である。4つの advisor は、ddd-advisor と同じ形式（KnowledgeSchema v5）の Markdown 38件と回答テンプレート6件を保持し、Mermaid の図を記法のまま持っていた。0046 で確立した形（論点と意味の単位、原文に無い文字列0件）と照合の手順を、そのまま適用する。",
+ "shift": [
+  {
+   "what": "判断基準",
+   "from": "knowledge/*.md 38件（うち5件は ddd-advisor と同一の複製）",
+   "to": "criteria.json 38件。本文は論点（主張と、9種類の意味の単位）で保持し、原文に無い文字列は0件である。同一の5件は ddd-advisor の変換済みを再使用した"
+  },
+  {
+   "what": "回答の形",
+   "from": "template-*.md 6件（Markdown のテンプレート）",
+   "to": "answer.schema.json 4件。ddd-advisor の回答の形に、前置き ・ 記録案 ・ 差し戻しの3欄を加え、相談種別を advisor ごとに保持する"
+  },
+  {
+   "what": "図",
+   "from": "Mermaid の記法を、コードの塊に文字列で持つ",
+   "to": "design-svg の宣言と SVG（32枚）。図の塊が SVG を埋め込む"
+  },
+  {
+   "what": "道具",
+   "from": "無い（モデルがファイルを読む）",
+   "to": "契約の版2 の4つ（get ・ validate ・ view ・ import）。MCP にも登録する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "advisor 4つの references を、種類ごとのスキーマと JSON に移す",
+ "alternatives": [
+  {
+   "option": "4つの回答の形を1つに統合し、すべての相談種別を保持させる",
+   "why_not": "advisor ごとに扱う相談が異なるので、他の advisor の相談種別を選べる形になる。相談種別ごとの必須の欄の検査も効かなくなる"
+  },
+  {
+   "option": "同一の knowledge を1か所に置き、各 advisor から参照する",
+   "why_not": "Skill は単体で配布するので、他の Skill のファイルを参照すると、導入先で欠ける"
+  },
+  {
+   "option": "回答テンプレートの前置き ・ 記録案を、ddd-advisor の回答の形の既存の欄へ入れる",
+   "why_not": "前置き（サブドメイン分類とその出所など）を置く欄が無く、結論や根拠の欄に混ざる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "list38",
+   "tab": "完成イメージ：38件の一覧",
+   "file": ".acdr/0048-残りのadvisor4つを構造化したreferencesへ移す/preview/index.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "img",
+   "tab": "完成イメージ：判断基準",
+   "file": ".acdr/0048-残りのadvisor4つを構造化したreferencesへ移す/preview/tech-lead-advisor.architecture-port-adapter.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "s-tech",
+   "tab": "tech-lead-advisor の SKILL.md",
+   "file": ".claude/skills/tech-lead-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の1つである。相談種別（",
+     "before": "相談種別と回答テンプレート（テンプレートの Markdown を指す表）",
+     "why": "回答テンプレートの Markdown を、回答の形のスキーマに置き換えた。相談種別ごとの必須の欄は、スキーマが検査する"
+    },
+    {
+     "find": "道具で1件ずつ取り出して読む",
+     "before": "参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。",
+     "why": "knowledge の Markdown を、道具で取り出す判断基準の JSON に置き換えた"
+    },
+    {
+     "find": "回答を JSON で組み、検査してから描画する",
+     "before": "（無い）",
+     "why": "回答を回答の形の JSON で組み、欄の欠けを validate で検出してから描画する手順を加えた"
+    },
+    {
+     "find": "回答の側で組み立て、推測であることを明示する",
+     "before": "アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する",
+     "why": "判断基準は原典に無い文を保持しないので、代わりにすることを保持しないアンチパターンが在る。回答で代替案を示す規則は保ち、組み立てた文を原典の記述と区別させる"
+    },
+    {
+     "find": "判断基準の id は次である。",
+     "before": "references/knowledge/*.md の一覧",
+     "why": "参照の節を、knowledge のファイル一覧から、判断基準の id の一覧に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "s-platform",
+   "tab": "platform-advisor の SKILL.md",
+   "file": ".claude/skills/platform-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の1つである。相談種別（",
+     "before": "相談種別と回答テンプレート（テンプレートの Markdown を指す表）",
+     "why": "回答テンプレートの Markdown を、回答の形のスキーマに置き換えた。相談種別ごとの必須の欄は、スキーマが検査する"
+    },
+    {
+     "find": "道具で1件ずつ取り出して読む",
+     "before": "参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。",
+     "why": "knowledge の Markdown を、道具で取り出す判断基準の JSON に置き換えた"
+    },
+    {
+     "find": "回答を JSON で組み、検査してから描画する",
+     "before": "（無い）",
+     "why": "回答を回答の形の JSON で組み、欄の欠けを validate で検出してから描画する手順を加えた"
+    },
+    {
+     "find": "回答の側で組み立て、推測であることを明示する",
+     "before": "アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する",
+     "why": "判断基準は原典に無い文を保持しないので、代わりにすることを保持しないアンチパターンが在る。回答で代替案を示す規則は保ち、組み立てた文を原典の記述と区別させる"
+    },
+    {
+     "find": "判断基準の id は次である。",
+     "before": "references/knowledge/*.md の一覧",
+     "why": "参照の節を、knowledge のファイル一覧から、判断基準の id の一覧に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "s-qa",
+   "tab": "qa-advisor の SKILL.md",
+   "file": ".claude/skills/qa-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の1つである。相談種別（",
+     "before": "相談種別と回答テンプレート（テンプレートの Markdown を指す表）",
+     "why": "回答テンプレートの Markdown を、回答の形のスキーマに置き換えた。相談種別ごとの必須の欄は、スキーマが検査する"
+    },
+    {
+     "find": "道具で1件ずつ取り出して読む",
+     "before": "参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。",
+     "why": "knowledge の Markdown を、道具で取り出す判断基準の JSON に置き換えた"
+    },
+    {
+     "find": "回答を JSON で組み、検査してから描画する",
+     "before": "（無い）",
+     "why": "回答を回答の形の JSON で組み、欄の欠けを validate で検出してから描画する手順を加えた"
+    },
+    {
+     "find": "回答の側で組み立て、推測であることを明示する",
+     "before": "アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する",
+     "why": "判断基準は原典に無い文を保持しないので、代わりにすることを保持しないアンチパターンが在る。回答で代替案を示す規則は保ち、組み立てた文を原典の記述と区別させる"
+    },
+    {
+     "find": "判断基準の id は次である。",
+     "before": "references/knowledge/*.md の一覧",
+     "why": "参照の節を、knowledge のファイル一覧から、判断基準の id の一覧に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "s-ux",
+   "tab": "ux-advisor の SKILL.md",
+   "file": ".claude/skills/ux-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の1つである。相談種別（",
+     "before": "相談種別と回答テンプレート（テンプレートの Markdown を指す表）",
+     "why": "回答テンプレートの Markdown を、回答の形のスキーマに置き換えた。相談種別ごとの必須の欄は、スキーマが検査する"
+    },
+    {
+     "find": "道具で1件ずつ取り出して読む",
+     "before": "参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。",
+     "why": "knowledge の Markdown を、道具で取り出す判断基準の JSON に置き換えた"
+    },
+    {
+     "find": "回答を JSON で組み、検査してから描画する",
+     "before": "（無い）",
+     "why": "回答を回答の形の JSON で組み、欄の欠けを validate で検出してから描画する手順を加えた"
+    },
+    {
+     "find": "回答の側で組み立て、推測であることを明示する",
+     "before": "アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する",
+     "why": "判断基準は原典に無い文を保持しないので、代わりにすることを保持しないアンチパターンが在る。回答で代替案を示す規則は保ち、組み立てた文を原典の記述と区別させる"
+    },
+    {
+     "find": "判断基準の id は次である。",
+     "before": "references/knowledge/*.md の一覧",
+     "why": "参照の節を、knowledge のファイル一覧から、判断基準の id の一覧に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "ans",
+   "tab": "tech-lead-advisor の answer.schema.json",
+   "file": ".claude/skills/tech-lead-advisor/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"premises\": {",
+     "before": "（無い）",
+     "why": "テンプレートの前置きセクション（サブドメイン分類とその出所、先回りのコスト）を置く欄。4つの advisor に共通の欄として加えた"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"tech-lead-advisor\": {",
+     "before": "（無い）",
+     "why": "4つの advisor の道具を、成果物として規則ファイルに登録した（層の並びは ddd-advisor と同じ）"
+    },
+    {
+     "find": "\"qa-advisor\",",
+     "before": "（無い）",
+     "why": "依存の宣言がコンパイルで強制される規則の対象に、4つの advisor を加えた"
+    },
+    {
+     "find": "\"target\": \"tech-lead-advisor\"",
+     "before": "（無い）",
+     "why": "契約 ・ 文書の判定 ・ 事例 ・ 整形 ・ 静的解析の規則を、4つの advisor にも適用する"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"tech-lead-advisor\": {",
+     "before": "（無い）",
+     "why": "4つの advisor の MCP の面を登録した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "list38": "1570c082be3f003836f04e2205c9a9568e353f46c3c66327abac5bb62425b78c",
+  "img": "9e00cc17d047c38ae2341433a8e0fc84226981a5d837b056473029ed9cd780cf",
+  "s-tech": "2338381ff151a030dae3acad6a7ab0d9082856e90de238308a85540b97b555b9",
+  "s-platform": "e99eea578b2e2739d4b53d4a3385edfd53ea327a653c7fe916e251cc118f0e64",
+  "s-qa": "369251d4055de41231174f44304feefa288d0461c60926bc5f570b1464adb887",
+  "s-ux": "7143399879ea9423b9a3a559116e3259a668dfa756fa13048016c8d914287bc6",
+  "ans": "36d4e1df7a20b52c36dbc83e4ee2cbb226ce4a5cbbddc68e3a9980f530158d78",
+  "rules": "7944cf59ec81493b39e10cdcff461f4f022ed3f3c8177fb299382ef0d9125a3b",
+  "mcp": "36423b54e93fe1add5e645534aa3ccf4771e78f78a8e475490c34432a7596ddb"
+ }
+}

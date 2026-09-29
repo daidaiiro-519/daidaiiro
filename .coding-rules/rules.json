@@ -348,6 +348,126 @@
           ]
         }
       ]
+    },
+    "tech-lead-advisor": {
+      "root": ".claude/skills/tech-lead-advisor/tool",
+      "language": "rust",
+      "layers": [
+        {
+          "name": "parts",
+          "where": [
+            "parts"
+          ]
+        },
+        {
+          "name": "declare",
+          "where": [
+            "declare"
+          ]
+        },
+        {
+          "name": "cli",
+          "where": [
+            "cli"
+          ]
+        },
+        {
+          "name": "mcp",
+          "where": [
+            "mcp"
+          ]
+        }
+      ]
+    },
+    "platform-advisor": {
+      "root": ".claude/skills/platform-advisor/tool",
+      "language": "rust",
+      "layers": [
+        {
+          "name": "parts",
+          "where": [
+            "parts"
+          ]
+        },
+        {
+          "name": "declare",
+          "where": [
+            "declare"
+          ]
+        },
+        {
+          "name": "cli",
+          "where": [
+            "cli"
+          ]
+        },
+        {
+          "name": "mcp",
+          "where": [
+            "mcp"
+          ]
+        }
+      ]
+    },
+    "qa-advisor": {
+      "root": ".claude/skills/qa-advisor/tool",
+      "language": "rust",
+      "layers": [
+        {
+          "name": "parts",
+          "where": [
+            "parts"
+          ]
+        },
+        {
+          "name": "declare",
+          "where": [
+            "declare"
+          ]
+        },
+        {
+          "name": "cli",
+          "where": [
+            "cli"
+          ]
+        },
+        {
+          "name": "mcp",
+          "where": [
+            "mcp"
+          ]
+        }
+      ]
+    },
+    "ux-advisor": {
+      "root": ".claude/skills/ux-advisor/tool",
+      "language": "rust",
+      "layers": [
+        {
+          "name": "parts",
+          "where": [
+            "parts"
+          ]
+        },
+        {
+          "name": "declare",
+          "where": [
+            "declare"
+          ]
+        },
+        {
+          "name": "cli",
+          "where": [
+            "cli"
+          ]
+        },
+        {
+          "name": "mcp",
+          "where": [
+            "mcp"
+          ]
+        }
+      ]
     }
   },
   "rules": [
@@ -581,7 +701,11 @@
         "skills-creator",
         "doc-writing-skills",
         "narration",
-        "ddd-advisor"
+        "ddd-advisor",
+        "tech-lead-advisor",
+        "platform-advisor",
+        "qa-advisor",
+        "ux-advisor"
       ]
     },
     {
@@ -2335,6 +2459,390 @@
       },
       "units": [
         "*"
+      ]
+    },
+    {
+      "rule": "入口と部品の置き場所が、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "../skills-creator/bin/skills-creator",
+          "check",
+          ".",
+          "--skill_root",
+          "../skills-creator"
+        ],
+        "target": "tech-lead-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "入口と部品の置き場所が、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "../skills-creator/bin/skills-creator",
+          "check",
+          ".",
+          "--skill_root",
+          "../skills-creator"
+        ],
+        "target": "platform-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "入口と部品の置き場所が、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "../skills-creator/bin/skills-creator",
+          "check",
+          ".",
+          "--skill_root",
+          "../skills-creator"
+        ],
+        "target": "qa-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "入口と部品の置き場所が、契約を満たす",
+      "source": {
+        "record": "skills-creator/references/tool-contract.md"
+      },
+      "scope": "入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと",
+      "check": {
+        "tool": [
+          "../skills-creator/bin/skills-creator",
+          "check",
+          ".",
+          "--skill_root",
+          "../skills-creator"
+        ],
+        "target": "ux-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "../doc-writing-skills/bin/doc-writing-skills",
+          "check",
+          "SKILL.md",
+          "--skill_root",
+          "../doc-writing-skills"
+        ],
+        "target": "tech-lead-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "../doc-writing-skills/bin/doc-writing-skills",
+          "check",
+          "SKILL.md",
+          "--skill_root",
+          "../doc-writing-skills"
+        ],
+        "target": "platform-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "../doc-writing-skills/bin/doc-writing-skills",
+          "check",
+          "SKILL.md",
+          "--skill_root",
+          "../doc-writing-skills"
+        ],
+        "target": "qa-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "人が読む文書が、10の判定を通る",
+      "source": {
+        "record": "doc-writing-skills/SKILL.md"
+      },
+      "scope": "この成果物の SKILL.md のみ",
+      "check": {
+        "tool": [
+          "../doc-writing-skills/bin/doc-writing-skills",
+          "check",
+          "SKILL.md",
+          "--skill_root",
+          "../doc-writing-skills"
+        ],
+        "target": "ux-advisor"
+      },
+      "units": [
+        "skills"
+      ]
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "tech-lead-advisor/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ]
+      },
+      "units": [
+        "tech-lead-advisor"
+      ]
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "platform-advisor/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ]
+      },
+      "units": [
+        "platform-advisor"
+      ]
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "qa-advisor/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ]
+      },
+      "units": [
+        "qa-advisor"
+      ]
+    },
+    {
+      "rule": "事例が通る",
+      "source": {
+        "record": "ux-advisor/SKILL.md"
+      },
+      "scope": "この成果物の事例のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "test",
+          "-q"
+        ]
+      },
+      "units": [
+        "ux-advisor"
+      ]
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "tech-lead-advisor/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ]
+      },
+      "units": [
+        "tech-lead-advisor"
+      ]
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "platform-advisor/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ]
+      },
+      "units": [
+        "platform-advisor"
+      ]
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "qa-advisor/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ]
+      },
+      "units": [
+        "qa-advisor"
+      ]
+    },
+    {
+      "rule": "整形されている",
+      "source": {
+        "record": "ux-advisor/SKILL.md"
+      },
+      "scope": "整形のみ ── --check は差分が在れば0以外を返す",
+      "check": {
+        "tool": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ]
+      },
+      "units": [
+        "ux-advisor"
+      ]
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "tech-lead-advisor/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ]
+      },
+      "units": [
+        "tech-lead-advisor"
+      ]
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "platform-advisor/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ]
+      },
+      "units": [
+        "platform-advisor"
+      ]
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "qa-advisor/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ]
+      },
+      "units": [
+        "qa-advisor"
+      ]
+    },
+    {
+      "rule": "静的解析を通る",
+      "source": {
+        "record": "ux-advisor/SKILL.md"
+      },
+      "scope": "clippy が持つ検査のみ",
+      "check": {
+        "tool": [
+          "cargo",
+          "clippy",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-Dwarnings"
+        ]
+      },
+      "units": [
+        "ux-advisor"
       ]
     }
   ]

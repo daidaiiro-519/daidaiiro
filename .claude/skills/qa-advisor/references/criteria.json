@@ -1,0 +1,1281 @@
+{
+ "$schema": "criteria.schema.json",
+ "items": [
+  {
+   "id": "boundary-value-analysis-equivalence-partitioning",
+   "title": "境界値分析と同値分割によるテスト設計技法を対象とする概念：boundary-value-analysis-equivalence-partitioning",
+   "summary": "入力値空間を「同じ処理をされるはず」という前提でグループ分けし(同値分割)、その中でも特にエラーが起きやすい境界(エッジ)を狙って検証する(境界値分析)、古典的なテスト設計技法。",
+   "answers": [
+    "無限にありうる入力値の組み合わせを、どう絞り込んでテストすればよいか？",
+    "同じ入力パーティションの中で、どの値を優先してテストすべきか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "同値分割",
+       "meaning": "あるパーティション内の全要素が同じ方法で処理されるという期待に基づいてデータを分割する技法であり、『あるパーティション内の1値で欠陥が検出されれば、同パーティション内の他の値でも同じ欠陥が検出されるはず』という前提に立つ。"
+      },
+      {
+       "kind": "note",
+       "text": [
+        "これにより、無限に近い入力の組み合わせを、代表値をテストするだけで済む程度まで絞り込める。"
+       ]
+      },
+      {
+       "kind": "definition",
+       "term": "境界値分析",
+       "meaning": "パーティションの中間値ではなく境界(エッジ)を狙って検証する技法である——開発者は境界値(例: 範囲の最小値・最大値・その1つ外側)でエラーを起こしやすいという経験則に基づく。"
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "同値分割",
+          "入力空間を『同じ処理をされるはず』という前提でグループ分けし、各グループから代表値を1つ選んでテストする"
+         ],
+         [
+          "境界値分析",
+          "各パーティションの境界(最小値・最大値・その前後)を狙って検証する"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "同値分割と境界値分析は排他的な選択肢ではなく組み合わせて使う技法であり、機械的な分岐判断は存在しない。"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "「1〜100の整数を受け付ける」という仕様があるとき、同値分割では『1〜100(有効)』『0以下(無効)』『101以上(無効)』の3パーティションに分け、各パーティションから代表値(例: 50, -1, 101)を選ぶ。境界値分析ではさらに踏み込み、各パーティションの境界である0, 1, 100, 101を重点的に検証する。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "パーティション内の中間値だけをテストする",
+      "risk": "境界値でのオフバイワンエラー(範囲の端が1つずれる不具合)を見逃しやすい"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "risk-based-testing",
+     "relation": "境界値分析は『どこを狙うか』の技法、リスクベーステストは『どこに力を注ぐか』の戦略。粒度が異なる"
+    }
+   ],
+   "source": {
+    "origin": "Glenford J. Myers『The Art of Software Testing』",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Glenford J. Myers『The Art of Software Testing』に起源を持つ同値分割・境界値分析の概念が、ISTQB(International Software Testing Qualifications Board) Foundation Level Syllabusで標準的なブラックボックステスト技法として整理されている。"
+    ]
+   }
+  },
+  {
+   "id": "definition-of-done",
+   "title": "完了の定義（DoD）の普遍的な品質基準を対象とする概念：definition-of-done",
+   "summary": "全ての作業項目に一律適用される、チーム全体の普遍的な品質基準。個々のストーリー固有の受け入れ基準(Acceptance Criteria)とは別軸で、両方を満たして初めて「完成」となる。",
+   "answers": [
+    "個々のユースケース/ストーリーが「完成」と判定できるのは何を満たしたときか？",
+    "受け入れ基準(Acceptance Criteria)を満たせば、それだけで完成と判定できるのか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "Acceptance Criteria(個々のストーリー固有の受け入れ条件)とDefinition of Done(全ストーリーに一律適用される普遍的品質基準)は別軸であり、1件のストーリーが「完成」と判定できるのは両方を満たしたときのみである。",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "Definition of Done",
+       "meaning": "Scrum Guide(2020年版)の定義: Definition of Doneは、プロダクトに要求される品質基準を満たしたインクリメントの状態を表す、正式な記述である。"
+      },
+      {
+       "kind": "note",
+       "text": [
+        "DoDは2020年版でScrumの3つのCommitment(Product Backlog↔Product Goal、Sprint Backlog↔Sprint Goal、Increment↔Definition of Done)の1つとして正式に構造化された。",
+        "DoDは「Incrementそのもの」と「そのIncrementの一部になる各Product Backlog Item」の両方に適用される、入れ子構造を持つ。"
+       ]
+      },
+      {
+       "kind": "rules",
+       "rules": [
+        {
+         "then": "組織レベルの標準DoDがあれば全Scrum Teamはそれを最低基準として従い、上乗せしてよい。無ければチーム自身が作る。同じプロダクトに複数チームが関わる場合、DoDは1つを共有する。"
+        }
+       ]
+      },
+      {
+       "kind": "caveats",
+       "caveats": [
+        {
+         "where": "AC→DoD",
+         "note": "AC→DoDという順序的な階層関係ではなく、両方が独立して要求される加算的な関係である。"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "Acceptance Criteria(受け入れ基準)",
+          "個々のストーリー/PBI固有。プロダクトオーナーが主に作成し、その特定の作業が完了したと判定できるかを定義する"
+         ],
+         [
+          "Definition of Done",
+          "全PBIに一律適用される、チーム全体で協働して作る普遍的な品質基準(コードレビュー済み・テスト済み・文書化済み等)"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/definition-of-done-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "q1",
+          "label": "このPBI固有のAcceptance Criteriaを満たしているか？"
+         },
+         {
+          "id": "q2",
+          "label": "チーム全体のDefinition of Doneを満たしているか？"
+         },
+         {
+          "id": "done",
+          "label": "完成(Done)"
+         },
+         {
+          "id": "notdone",
+          "label": "未完成"
+         }
+        ],
+        "edges": [
+         {
+          "from": "q1",
+          "to": "q2",
+          "label": "はい"
+         },
+         {
+          "from": "q1",
+          "to": "notdone",
+          "label": "いいえ"
+         },
+         {
+          "from": "q2",
+          "to": "done",
+          "label": "はい"
+         },
+         {
+          "from": "q2",
+          "to": "notdone",
+          "label": "いいえ"
+         }
+        ],
+        "direction": "LR"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "あるPBI「注文確定ボタンを押すと注文が確定する」について、Acceptance Criteria(「在庫が無い場合はエラーになる」等)を全て満たしていても、チームのDoD(単体テストカバレッジ基準・コードレビュー完了・ドキュメント更新)を満たしていなければ、そのPBIはまだ\"Done\"とは言えない。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "fudging the Definition of Done(DoDのごまかし)",
+      "risk": "締め切りのプレッシャーの中で、ほぼ完成した作業を完全に完成したものとして扱ってしまう。DoDが持つ透明性という目的を損なう"
+     },
+     {
+      "what": "Acceptance CriteriaをDefinition of Doneの代わりにする",
+      "risk": "個々のストーリー固有の受け入れ基準を満たすだけで完成とみなし、コードレビュー・テスト規約・文書化等の横断的な品質基準を省略してしまう"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "tdd",
+     "relation": "TDDのRed/Green/Refactorサイクルとは別軸。DoDは個々のテストではなく作業項目全体の完成基準"
+    }
+   ],
+   "source": {
+    "origin": "Scrum Guide(Ken Schwaber・Jeff Sutherland共著、2020年版を中心に2011年版・2013年版の変遷も参照)、およびMike Cohn(Mountain Goat Software)によるDoD/Acceptance Criteria比較記事",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Scrum Guide(Ken Schwaber・Jeff Sutherland共著、2020年版を中心に2011年版・2013年版の変遷も参照)、およびMike Cohn(Mountain Goat Software)によるDoD/Acceptance Criteria比較記事に基づく。",
+     "web調査の最終統合ステップで技術的な不具合が発生したため、検証済みの生データから手動で再構成した。"
+    ]
+   }
+  },
+  {
+   "id": "exploratory-testing",
+   "title": "探索的テストの手法を対象とする概念：exploratory-testing",
+   "summary": "テストの設計・実行・そこから得た学習を同時並行で進める、テスターの裁量と責任を重視するテストのスタイル。事前に手順を固定するスクリプトテストとは対極にあるが、実務では両者は連続体として混ざり合う。",
+   "answers": [
+    "スクリプト化されたテストと探索的テストは何が違うのか？",
+    "仕様に書かれていない不具合を見つけるには、どうテストすればよいか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "Bachは、テストは完全にスクリプト化されたものと完全に探索的なものの間の連続体上に位置し、現実のテストは常にその両者の混合であると位置づける——『全てのテストはある程度探索的である』。",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "探索的テスト",
+       "meaning": "James Bachは探索的テストを『テストを行いながら、そのテストに影響を与える事柄を同時に学習していく、科学的なプロセス』と定義する。"
+      },
+      {
+       "kind": "definition",
+       "term": "Cem Kanerの定義",
+       "meaning": "Cem Kanerの定義では『学習・テスト設計・テスト実行を並行して行う、個々のテスターの個人的な自由と責任を重視するテストのスタイル』とされる。"
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "スクリプトテスト",
+          "事前に書かれた手順通りにテストを実行する。再現性が高く、既知のシナリオの回帰確認に向く"
+         ],
+         [
+          "探索的テスト",
+          "テストしながら学んだことを次のテスト設計に即座に反映する。仕様に書かれていない未知の不具合の発見に向く"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/exploratory-testing-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "q1",
+          "label": "対象領域は仕様が明確で反復確認したいか？"
+         },
+         {
+          "id": "scripted",
+          "label": "スクリプトテストを主軸にする"
+         },
+         {
+          "id": "exploratory",
+          "label": "探索的テストを主軸にする"
+         }
+        ],
+        "edges": [
+         {
+          "from": "q1",
+          "to": "scripted",
+          "label": "はい(既知の仕様を反復確認したい)"
+         },
+         {
+          "from": "q1",
+          "to": "exploratory",
+          "label": "いいえ(未知・新規領域を学習しながら検証したい)"
+         }
+        ],
+        "direction": "LR"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "例えば新しいログイン画面をテストする際、事前に用意したスクリプトだけでなく、「パスワード欄に絵文字を入れたらどうなるか」「二重タブで同時にログインしたらどうなるか」といった、テストしながら思いついた疑問をその場で試し、発見した挙動を次のテスト設計に反映していく。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "探索的テストを『無計画なテスト』と誤解する",
+      "risk": "探索的テストは無計画な作業ではなく、学習・設計・実行を同時に行う訓練されたスキルである。テスターの経験・専門性に強く依存する"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "tdd",
+     "relation": "TDDは実装前のテスト設計、探索的テストは実装後(または並行)の学習型テスト実行。両者は異なるフェーズ・目的を持つ"
+    }
+   ],
+   "source": {
+    "origin": "Kaner, Bach, Pettichord共著『Lessons Learned in Software Testing』(2001年)",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "James Bach・Cem Kanerが提唱し、Kaner, Bach, Pettichord共著『Lessons Learned in Software Testing』(2001年)でContext-Driven Schoolのアプローチとして発展・普及した。",
+     "用語の初出時期(1984年造語説・1988年著書初出説)は今回の調査で確証を得られていない。"
+    ]
+   }
+  },
+  {
+   "id": "mutation-testing",
+   "title": "ミューテーションテストによる検出力測定を対象とする概念：mutation-testing",
+   "summary": "ソースコードに意図的な小さな変更(mutant)を注入し、既存のテストスイートがその変更を検出(kill)できるかどうかでテストの検出力(強度)を測定する技法。カバレッジが「実行されたか」だけを確認するのに対し、mutation testingは「実行された箇所の変化を実際に検出できるか」を見る。",
+   "answers": [
+    "既存のテストスイートが実際にバグを検出できる強度を保持しているか、どう測定するか？",
+    "カバレッジ(実行された行の割合)と、テストの検出力は何が違うか？",
+    "現代の開発でこの技法はどう位置づけられているか？"
+   ],
+   "topics": [
+    {
+     "title": "概要",
+     "claim": "ソースコードに意図的な小さな変更(mutant)を注入し、既存のテストスイートがその変更を検出(kill)できるかどうかでテストの検出力(強度)を測定する技法。",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "カバレッジが「実行されたか」だけを確認するのに対し、mutation testingは「実行された箇所の変化を実際に検出できるか」を判定する。"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "原則",
+     "claim": "カバレッジ駆動で書かれた、アサーションを欠く・弱いテストは、行が実行されるためカバレッジ上は高く見えても、mutantを検出できずsurvivedとなることが多い——カバレッジ指標だけでは見抜けないテストの空洞化を可視化する。",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "mutant",
+       "meaning": "テストツールがソースコードに意図的に加える小さな変更である。テストスイートが強力であれば、その変更を検出してテストが失敗するはずである。"
+      },
+      {
+       "kind": "note",
+       "text": [
+        "テストがmutantを検出して失敗した場合はkilled(検出成功)、mutantが混入したままテストが全て通過してしまった場合はsurvived(検出失敗)と呼ばれる——survivedしたmutantの存在は、その箇所を検証しているはずのテストが実際には何も検証できていない(空疎である)ことのシグナルになる。"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "Killed",
+          "テストスイートがmutantを検出し、少なくとも1つのテストが失敗した状態。テストがその箇所を実際に検証できていることを示す"
+         ],
+         [
+          "Survived",
+          "mutantが混入したままテストが全て通過してしまった状態。その箇所を検証するテストが実質的に機能していないことを示す"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/mutation-testing-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "coverage",
+          "label": "対象コードのカバレッジは高いか？"
+         },
+         {
+          "id": "mutation",
+          "label": "mutation testingを実行し、survivedなmutantの割合を確認する"
+         },
+         {
+          "id": "trust",
+          "label": "カバレッジを信頼してよい(高カバレッジ=高検出力とみなせる)"
+         },
+         {
+          "id": "strengthen",
+          "label": "survivedしたmutant周辺のテストを見直し、アサーションを強化する"
+         }
+        ],
+        "edges": [
+         {
+          "from": "coverage",
+          "to": "mutation",
+          "label": "高カバレッジだが、それが検出力を意味するとは限らないため検証する"
+         },
+         {
+          "from": "mutation",
+          "to": "trust",
+          "label": "survived率が低い(mutantの大半がkillされた)"
+         },
+         {
+          "from": "mutation",
+          "to": "strengthen",
+          "label": "survived率が高い(mutantが多く生き残った)"
+         }
+        ],
+        "grid": {
+         "at": {
+          "coverage": [
+           0,
+           0
+          ],
+          "mutation": [
+           0,
+           1
+          ],
+          "trust": [
+           0,
+           2
+          ],
+          "strengthen": [
+           1,
+           2
+          ]
+         },
+         "elbow": [
+          [
+           "mutation",
+           "strengthen",
+           "horizontal"
+          ]
+         ]
+        },
+        "layout": "grid",
+        "direction": "TB"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "「合計金額が0以上であること」を検証するコードで、テストがassert result is not Noneしか書いていない場合、カバレッジ上はその行を通過するため100%と表示されるが、計算結果を意図的に不正な値に変異(mutant)させてもテストは通過してしまう(survived)。これはテストが実質的に何も検証していないことを示すシグナルであり、カバレッジ指標だけでは検出できない。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "カバレッジ100%を品質の証明として扱う",
+      "risk": "カバレッジは『実行されたか』しか測らず、『検出できるか』は測らない。survivedなmutantが多数残っていても、カバレッジ指標上は高品質に見えてしまう"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "test-smells",
+     "relation": "survivedなmutantの多発は、Obscure TestやAssertion-Freeに近いtest smellの症状として現れることが多い"
+    },
+    {
+     "criterion": "risk-based-testing",
+     "relation": "mutation testingは全コードに一律適用するにはコストが高いため、リスクベーステストで特定した高リスク領域に絞って適用するのが実務的"
+    }
+   ],
+   "source": {
+    "origin": "Richard Hamlet(1977年、IEEE Transactions on Software Engineering誌『Testing Programs with the Aid of a Compiler』)およびDeMillo, Lipton, Sayward(1978年、『Hints on Test Data Selection: Help for the Practicing Programmer』)",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "mutantの基本定義は現代の実装ツール文書(Microsoft Learn、Stryker.NET解説)に基づく。技法の起源はRichard Hamlet(1977年、IEEE Transactions on Software Engineering誌『Testing Programs with the Aid of a Compiler』)およびDeMillo, Lipton, Sayward(1978年、『Hints on Test Data Selection: Help for the Practicing Programmer』)に遡るとされ、ソフトウェアテスト分野で広く引用される起源として知られている。",
+     "Hamlet(1977)・DeMillo et al.(1978)の起源論文は、著者名・タイトル・掲載誌・年としては複数の検索結果で一致して確認できたが、いずれも学術誌の有料壁の内側にあり、今回の調査プロセスでは論文本文への直接アクセス・引用検証(competent programmer仮説・coupling effect仮説等の具体的な主張内容の裏付け)までは完了していない。killed/survived以外の詳細な結果分類(timeout等)についても、特定の情報源に基づく主張は調査時の検証で反証されたため、本文書には含めていない。現代ツール(PIT/Stryker等)における実務的な採用状況(mutation scoreをKPIとしてどう解釈するか等)についても、ツールベンダー以外の独立した実務評価はまだ確認できていない。"
+    ]
+   }
+  },
+  {
+   "id": "risk-based-testing",
+   "title": "リスクベースのテスト工数配分を対象とする概念：risk-based-testing",
+   "summary": "ソフトウェアが持つリスク(未検出のバグがシステム利用者に悪影響を及ぼす確率)を、テスト計画・設計・実装・実行・評価という全フェーズの意思決定を導く指針とするアプローチ。",
+   "answers": [
+    "限られたテスト工数を、どの機能・領域に優先配分すべきか？",
+    "高リスクな箇所とそうでない箇所で、テストの厚みをどう変えるべきか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "リスクが高いと判定された領域には、より厚く・より早い段階でテストリソースを配分する。",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "リスクベーステスト(RBT)",
+       "meaning": "プロジェクトの初期段階からプロダクトリスクの水準を低減し、その状況をステークホルダーに伝えるためのアプローチであり、核となる要素はリスクの識別とリスクレベルの活用である。"
+      },
+      {
+       "kind": "note",
+       "text": [
+        "評価手法には、発生可能性(likelihood)と影響度(impact)の2軸を簡易スケール(高・中・低等)で評価する軽量な手法と、FMEA(故障モード影響解析)・FTA(故障の木解析)・QFD等の重量な技法がある。"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "軽量な手法",
+          "発生可能性(likelihood)と影響度(impact)を高中低等の簡易スケールで評価する"
+         ],
+         [
+          "重量な手法",
+          "FMEA(故障モード影響解析)・FTA(故障の木解析)・QFD等の体系的な技法を用いる"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/risk-based-testing-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "assess",
+          "label": "対象のリスク(影響度・複雑性)は高いか？"
+         },
+         {
+          "id": "heavy",
+          "label": "重量な手法(FMEA/FTA等)を使う"
+         },
+         {
+          "id": "light",
+          "label": "軽量な手法(likelihood×impactの簡易スケール)を使う"
+         }
+        ],
+        "edges": [
+         {
+          "from": "assess",
+          "to": "heavy",
+          "label": "はい(影響度・複雑性が高い)"
+         },
+         {
+          "from": "assess",
+          "to": "light",
+          "label": "いいえ(影響度・複雑性が低い)"
+         }
+        ],
+        "direction": "LR"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "例えば決済機能のリスク評価では、影響度(金銭的損失・信頼失墜)が高いため、FMEAのような重量な手法で網羅的に故障モードを洗い出す。一方、UIの表示不良のような軽微な不具合は、発生可能性×影響度を高中低で簡易評価するだけで十分であり、テストの厚みをそこに合わせて調整する。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "全機能に均等にテスト工数を配分する",
+      "risk": "高リスク領域のテストが薄くなり、低リスク領域に工数を浪費する。限られたテスト工数はリスクに応じて傾斜配分すべき"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "boundary-value-analysis-equivalence-partitioning",
+     "relation": "境界値分析は『どこを狙うか』の技法、リスクベーステストは『どこに力を注ぐか』の戦略。粒度が異なる"
+    }
+   ],
+   "source": {
+    "origin": "Felderer & Schieferdecker(2014年、Software Tools for Technology Transfer誌掲載の査読論文)およびISTQB glossary",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Felderer & Schieferdecker(2014年、Software Tools for Technology Transfer誌掲載の査読論文)およびISTQB glossaryにおける定義に基づく。",
+     "『リスク=発生確率×影響度』という単純な掛け算による定量化については、確立された唯一の合意とまでは言えず、軽量・重量それぞれの評価手法が併存している点に留意。"
+    ]
+   }
+  },
+  {
+   "id": "sociable-solitary-unit-tests",
+   "title": "sociable/solitaryなユニットテストの使い分けを対象とする概念：sociable-solitary-unit-tests",
+   "summary": "ユニットテストを、対象の協調オブジェクト(collaborator)をどう扱うかで2分類する考え方。Jay Fieldsが考案し、Martin Fowlerが自身のbliki記事「UnitTest」(2014年公開)で整理・普及させた。",
+   "answers": [
+    "ユニットテストは協調オブジェクト(collaborator)を本物のまま動かすべきか、置き換えるべきか？",
+    "テストの脆さ(実装への過剰な結合)は何によって生まれるか？",
+    "この区別はテスト戦略の設計にどう影響するか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "units": [
+      {
+       "kind": "definition",
+       "term": "Solitary unit test",
+       "meaning": "テスト対象ユニットの協調オブジェクトをすべてtest double(mock/stub等)に置き換え、対象を孤立させて検証する。"
+      },
+      {
+       "kind": "definition",
+       "term": "Sociable unit test",
+       "meaning": "実際の協調オブジェクトをそのまま動かして検証する。Fowlerは『単一ユニットの振る舞いのテストであり、そのユニット以外はすべて正しく動作していると仮定して書く』と説明する。"
+      },
+      {
+       "kind": "caveats",
+       "caveats": [
+        {
+         "where": "Sociable unit test",
+         "note": "Sociable unit testが実協調オブジェクトとの相互作用を許すことは、テスト対象以外のコンポーネントの不具合によってテストが失敗しうることを意味し、実装への結合による脆さの一因になりうる(ただしFowler自身は「fragile」という語を明示的には使っていない)。"
+        }
+       ]
+      },
+      {
+       "kind": "caveats",
+       "caveats": [
+        {
+         "where": "Jay Fields",
+         "note": "この用語自体はJay Fieldsが考案したものであり、Fowlerはbliki記事でこれを採用・普及させた——Fowler自身の独自発案ではない。"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "Solitary",
+          "collaboratorをtest doubleに置き換えて対象ユニットを孤立させるテスト"
+         ],
+         [
+          "Sociable",
+          "実collaboratorをそのまま動かして対象ユニットの振る舞いを検証するテスト"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/sociable-solitary-unit-tests-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "check",
+          "label": "協調オブジェクトは軽量・高速で、副作用が無いか？"
+         },
+         {
+          "id": "sociable",
+          "label": "Sociable(実協調オブジェクトをそのまま使う)"
+         },
+         {
+          "id": "solitary",
+          "label": "Solitary(test doubleに置き換えて孤立させる)"
+         }
+        ],
+        "edges": [
+         {
+          "from": "check",
+          "to": "sociable",
+          "label": "はい(軽量・高速・副作用なし)"
+         },
+         {
+          "from": "check",
+          "to": "solitary",
+          "label": "いいえ(重い・遅い・副作用あり、または対象の振る舞いだけを厳密に孤立させたい)"
+         }
+        ],
+        "direction": "LR"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "orderオブジェクトのpriceメソッドをテストする際、solitary方式ならcustomerオブジェクトをtest doubleに置き換え、customer側の不具合でorderのテストが失敗する事態を防ぐ。sociable方式なら実customerオブジェクトをそのまま使い、両者の統合された振る舞いを含めて検証する。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "全てのユニットテストを機械的にsolitaryで書く",
+      "risk": "協調オブジェクト間の実際の統合不具合を検出できなくなり、個々のユニットが仕様通りでも組み合わせると壊れるという欠陥を見逃す"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "test-smells",
+     "relation": "solitary化の過剰適用がConditional Test Logic等のtest smellsを誘発することがある"
+    },
+    {
+     "criterion": "test-induced-design-damage",
+     "relation": "solitaryを追求しすぎることが、test-induced design damageが指摘する過剰な間接化(モック駆動設計)の一因になりうる"
+    }
+   ],
+   "source": {
+    "origin": "Jay Fields『Working Effectively with Unit Tests』における語の考案、およびMartin Fowlerのbliki記事「UnitTest」",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Jay Fields『Working Effectively with Unit Tests』における語の考案、およびMartin Fowlerのbliki記事「UnitTest」(martinfowler.com、2014年5月5日公開、2014年10月24日にsolitary/sociable語彙を追加、2017年3月9日にこれらの用語を主要な扱いに格上げ)に基づく。",
+     "「実装への結合による脆さ(fragility)」という表現は、Fowlerの原文(『2021 Test Shapes』記事等)の説明を妥当に敷衍したものであり、Fowler自身が「fragile」という語を明示的に使っているわけではない。"
+    ]
+   }
+  },
+  {
+   "id": "tdd",
+   "title": "テスト駆動開発（TDD）の原則を対象とする概念：tdd",
+   "summary": "新しいコードを書く前に、まず失敗する自動テストを書き、重複を排除しながら小さく前進する開発手法。Kent Beckが提唱した。",
+   "answers": [
+    "新しいコードを書く前に何をすべきか？",
+    "TDDのサイクルはどう反復すべきか？",
+    "動くこと(works)ときれいなこと(clean)、どちらを先に優先すべきか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "TDDの原典的なルールは2つだけ——『失敗する自動テストを書くまで新しいコードを書かない』『重複をすべて除去する』。",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "この2ルールから、Red(失敗するテストを書く)→Green(汚くてもよいのでテストを合格させる)→Refactor(重複を除去する)という実行順序、通称『Red/Green/Refactorマントラ』が導かれる。"
+       ]
+      },
+      {
+       "kind": "rules",
+       "rules": [
+        {
+         "then": "優先順位は明確で、まず動作すること(works)を最優先し、その後に品質(clean)を追求する。"
+        }
+       ]
+      },
+      {
+       "kind": "note",
+       "text": [
+        "テストファーストは自己テスト可能なコードを保証するだけでなく、実装より先にインターフェース(呼び出し側からの見え方)を考えさせるという設計上の効果も持つ。"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "Red",
+          "失敗するテストを書く段階。まだ動く実装が無いことを確認する"
+         ],
+         [
+          "Green",
+          "テストを合格させることだけを目的に、汚くてもよいので最短で実装する段階"
+         ],
+         [
+          "Refactor",
+          "テストが通った状態を保ったまま、重複を除去し設計を整理する段階"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/tdd-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "red",
+          "label": "失敗するテストを書く"
+         },
+         {
+          "id": "green",
+          "label": "最短で通す"
+         },
+         {
+          "id": "refactor",
+          "label": "重複を除去する"
+         }
+        ],
+        "edges": [
+         {
+          "from": "red",
+          "to": "green",
+          "label": "テスト実行→失敗確認"
+         },
+         {
+          "from": "green",
+          "to": "refactor",
+          "label": "テスト実行→成功確認"
+         },
+         {
+          "from": "refactor",
+          "to": "red",
+          "label": "次の要件へ"
+         }
+        ],
+        "direction": "LR"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "steps",
+       "steps": [
+        {
+         "do": "「注文の合計金額を計算する」という要件があるとき、まず「商品2つで合計300円になる」ことを検証する失敗するテストを書く(Red)。"
+        },
+        {
+         "do": "次に、ハードコードでもよいので300を返すだけの実装でテストを合格させる(Green)。"
+        },
+        {
+         "do": "テストが通った状態を保ったまま、実際の計算ロジックへ置き換える(Refactor)。"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "テストを書かずに実装を先に書く",
+      "risk": "インターフェース設計が実装都合に引きずられ、テスト容易性が損なわれる。TDDの『実装より先にインターフェースを考えさせる』という設計上の効果を失う"
+     },
+     {
+      "what": "Green段階できれいなコードを書こうとする",
+      "risk": "『まず動く、その後きれいに』の優先順位が破綻し、動作確認前に設計に時間を使いすぎて手戻りのリスクが増える"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "exploratory-testing",
+     "relation": "TDDは実装前のテスト設計、探索的テストは実装後の学習型テスト実行。両者は異なるフェーズ・目的を持つ"
+    }
+   ],
+   "source": {
+    "origin": "Kent Beck『Test-Driven Development: By Example』",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Kent Beck『Test-Driven Development: By Example』(2002年前後)における原典の記述に基づく。TDD自体は1990年代後半、Kent BeckがExtreme Programmingの一部として考案した。"
+    ]
+   }
+  },
+  {
+   "id": "test-induced-design-damage",
+   "title": "テストが引き起こす設計の歪みを対象とする概念：test-induced-design-damage",
+   "summary": "David Heinemeier Hansson(DHH)が2014年に提起した、テスト駆動(特にmock多用によるisolation-driven testing)が過剰な間接化(indirection)を生み設計を損なうという主張、およびそれを巡ってKent Beck・Martin Fowlerと交わされた論争の総称。単一の確立原則ではなく、対立する2つの立場を含む論争として扱う。",
+   "answers": [
+    "テスト容易性を追求した設計が、逆に設計を悪化させることはあるか？",
+    "この主張の論拠は何で、どのような反論があるか？",
+    "Waffle自身の設計判断でこの主張をどう扱うべきか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "この対立は『TDDというプラクティス自体が悪い設計を強制する』のか『TDDは道具にすぎず、悪い設計は使い手の判断ミスである』のかという未解決の論争であり、本文書はどちらか一方を正しいと断定しない。",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "DHHは2014年のブログ記事群(『TDD is dead. Long live testing.』および別記事『Test-induced design damage』2014年4月29日付)で、厳格なtest-first(TDD)の教条主義的実践を批判し、必須の方法論として拒否した。"
+       ]
+      },
+      {
+       "kind": "definition",
+       "term": "DHHの主張の核心",
+       "meaning": "mock駆動でテスト容易性を追求する設計(hexagonal architecture等の過度な層分離)が、コードの明瞭さを損なう不要な間接化と概念的オーバーヘッドをもたらす。"
+      },
+      {
+       "kind": "note",
+       "text": [
+        "Martin Fowler司会による『Is TDD Dead?』対談シリーズ(martinfowler.com、2014年5月9日〜6月4日、全5話)でこの論争が公開議論された。Episode 2は明示的に『Test-induced Design Damage』と題されている。"
+       ]
+      },
+      {
+       "kind": "definition",
+       "term": "Kent Beckの反論",
+       "meaning": "設計の質は個々の設計判断次第であり、TDDそのものの必然的帰結ではない(『車で悪い場所に行って車のせいにするようなものだ』という比喩)。"
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "DHH側の立場",
+          "mock駆動・isolation-driven testingが過剰な間接化を生み、コードの明瞭さを損なうというテスト容易性追求への懐疑"
+         ],
+         [
+          "Beck/Fowler側の立場",
+          "設計の質は個々の設計判断次第であり、TDDというプラクティス自体が悪い設計を必然的に生むわけではないという擁護"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/test-induced-design-damage-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "check",
+          "label": "テスト容易性のための抽象化(interface抽出・DI・mock境界の追加等)を検討しているか？"
+         },
+         {
+          "id": "justify",
+          "label": "その抽象化は、テスト容易性以外の設計上の理由(実際の可変性・置換可能性の要求)でも正当化できるか？"
+         },
+         {
+          "id": "keep",
+          "label": "採用する——テスト容易性以外の理由でも妥当な設計"
+         },
+         {
+          "id": "reconsider",
+          "label": "再検討する——テストのためだけの間接化になっていないか疑う"
+         }
+        ],
+        "edges": [
+         {
+          "from": "check",
+          "to": "justify",
+          "label": "抽象化を追加しようとしている"
+         },
+         {
+          "from": "justify",
+          "to": "keep",
+          "label": "はい(テスト容易性以外の理由もある)"
+         },
+         {
+          "from": "justify",
+          "to": "reconsider",
+          "label": "いいえ(テストのためだけの抽象化)"
+         }
+        ],
+        "direction": "TB"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "「モックできるように」という理由だけでインターフェースを抽出し、実装が1つしか無いのにDIコンテナ経由で差し替え可能にしている場合、これはtest-induced design damageが指摘する過剰な間接化に該当する可能性が高い。一方、実際に複数の実装を切り替える必要がある(例: 本番用と開発用のストレージ実装)場合は、同じインターフェース抽出でもテスト容易性以外の設計上の理由で正当化できる。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "『テストのために』を唯一の理由として抽象化を正当化する",
+      "risk": "テスト容易性以外の設計上の必然性が無いまま抽象化を重ねると、DHHが指摘する不要な間接化・概念的オーバーヘッドが蓄積し、可読性・保守性が低下する"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "sociable-solitary-unit-tests",
+     "relation": "DHHが批判する『isolation-driven testing』は、solitary unit test(mock多用)を極端に追求した状態とほぼ対応する"
+    },
+    {
+     "criterion": "tdd",
+     "relation": "この論争はTDDというプラクティス自体の是非ではなく、TDDが誘発しうる設計上の副作用の是非を対象とする。TDDの原則そのものとは区別する"
+    },
+    {
+     "criterion": "test-smells",
+     "relation": "過剰な間接化の結果として、Obscure TestやHard to Test Codeのようなtest smellsが表面化することがある"
+    }
+   ],
+   "source": {
+    "origin": "David Heinemeier Hansson『TDD is dead. Long live testing.』(dhh.dk、2014年4月23日)および『Test-induced design damage』(dhh.dk、2014年4月29日)",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "David Heinemeier Hansson『TDD is dead. Long live testing.』(dhh.dk、2014年4月23日)および『Test-induced design damage』(dhh.dk、2014年4月29日)。Martin Fowler『Is TDD Dead?』対談シリーズ(martinfowler.com、2014年5月9日〜6月4日、参加者: Kent Beck・David Heinemeier Hansson・Martin Fowler)。",
+     "『test-induced design damage』という用語は『TDD is dead』記事内でDHHが直接造語したのではなく、同時期の別記事(2014年4月29日付)が初出である点に注意(調査時の検証でこの2記事の混同は明確に反証された)。また対談シリーズにおけるBeckの発言は動画そのものの書き起こしではなく、InfoQ等の要約記事経由での確認にとどまる。"
+    ]
+   }
+  },
+  {
+   "id": "test-smells",
+   "title": "テストコードの臭い（アンチパターン）を対象とする概念：test-smells",
+   "summary": "テストコードそのもの・テストの振る舞い・プロジェクト運用のいずれかの層に現れる、テストの保守性や信頼性を損なう兆候の総称。Gerard Meszarosが体系的にカタログ化した。",
+   "answers": [
+    "テストコード自体に現れる問題をどう分類するか？",
+    "テストの臭いを放置するとなぜ危険か？",
+    "テストの臭いと、それが引き起こす症状はどう区別すべきか？"
+   ],
+   "topics": [
+    {
+     "title": "原則",
+     "claim": "Code SmellsはしばしばBehavior SmellsやProject Smellsの根本原因になる——テストコード自体の書き方の問題が、遅い・脆い・分かりにくいといった振る舞いの問題や、保守コスト増大といったプロジェクトレベルの問題として表面化する。",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "test smellsはCode Smells(テストコード自体に見える問題)・Behavior Smells(テストの振る舞いに見える問題)・Project Smells(プロジェクト管理者から見える問題)の3種に分類される。"
+       ]
+      },
+      {
+       "kind": "rules",
+       "rules": [
+        {
+         "then": "Code Smellsの是正は、症状(Behavior/Project Smell)を直接取り繕うのではなく、根本原因であるテストコード自体の構造を直すことを狙う。"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "title": "分類",
+     "units": [
+      {
+       "kind": "comparison",
+       "table": {
+        "head": [
+         "分類",
+         "特徴"
+        ],
+        "rows": [
+         [
+          "Conditional Test Logic",
+          "テストコード自体にif/loop等の条件分岐・制御構造が含まれる状態。何を検証しているか一見して分かりにくくなり、テスト自体にバグが混入するリスクも生む"
+         ],
+         [
+          "Hard to Test Code",
+          "対象コードの設計上の問題(密結合・隠れた依存等)により、テストを書くこと自体が困難になっている状態"
+         ],
+         [
+          "Obscure Test",
+          "テストの意図・検証内容が読み手に伝わりにくい書き方になっている状態"
+         ],
+         [
+          "Test Code Duplication",
+          "複数のテスト間でセットアップ・アサーション等のコードが重複している状態"
+         ],
+         [
+          "Test Logic in Production",
+          "テストのためだけの分岐・フックが本番コードに混入している状態"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "title": "判断基準",
+     "units": [
+      {
+       "kind": "figure",
+       "svg": "figures/test-smells-1.svg",
+       "declaration": {
+        "nodes": [
+         {
+          "id": "observe",
+          "label": "Behavior/Project Smell(頻繁な修正・遅い・分かりにくい等)に気づいたか？"
+         },
+         {
+          "id": "diagnose",
+          "label": "テストコード自体を読み、該当するCode Smellを特定する"
+         },
+         {
+          "id": "fix",
+          "label": "該当するCode Smellに対応するリファクタリングを適用する"
+         }
+        ],
+        "edges": [
+         {
+          "from": "observe",
+          "to": "diagnose",
+          "label": "症状が観測された"
+         },
+         {
+          "from": "diagnose",
+          "to": "fix",
+          "label": "根本原因のCode Smellを特定できた"
+         }
+        ],
+        "direction": "TB"
+       }
+      }
+     ]
+    },
+    {
+     "title": "実例",
+     "units": [
+      {
+       "kind": "note",
+       "text": [
+        "「認証まわりのコードを触るたびに関係の薄いテストまで不合格になる」という症状(Behavior Smell)を調査したところ、テスト内にif文でモックの挙動を切り替えるConditional Test Logicが埋め込まれており、テストの複雑さ自体が原因だったと判明した。"
+       ]
+      }
+     ]
+    }
+   ],
+   "antipatterns": {
+    "items": [
+     {
+      "what": "カバレッジ数値だけを見てテストの健全性を判断する",
+      "risk": "Project Smellとしての兆候(頻繁な修正・低い信頼性)を見逃し、Code Smellという根本原因を放置し続けることになる"
+     }
+    ]
+   },
+   "related": [
+    {
+     "criterion": "sociable-solitary-unit-tests",
+     "relation": "test smellsは症状の分類、sociable/solitaryはテストの協調オブジェクトの扱い方の分類。異なる軸だが、Conditional Test Logic等はsolitary化の過剰適用から生じることがある"
+    },
+    {
+     "criterion": "test-induced-design-damage",
+     "relation": "test smellsは個々のテストの症状、test-induced design damageはテスト容易性を追求した結果としての設計全体への影響。粒度が異なる"
+    },
+    {
+     "criterion": "tdd",
+     "relation": "TDDのRefactor段階で本来是正されるべきなのがtest smells。Refactorが徹底されないとtest smellsが蓄積する"
+    }
+   ],
+   "source": {
+    "origin": "Gerard Meszaros著『xUnit Test Patterns: Refactoring Test Code』(2007年、Addison-Wesley Signature Series)",
+    "method": "書き起こしを、論点ごとに主張と意味の単位へ振り分けた",
+    "reservations": [
+     "Gerard Meszaros著『xUnit Test Patterns: Refactoring Test Code』(2007年、Addison-Wesley Signature Series)。Part II(第15〜17章)でCode Smells/Behavior Smells/Project Smellsを体系的にカタログ化している。",
+     "本文書の分類名・定義は著者本人のカンファレンス資料(JAOO 2009)および書籍紹介(Agile Alliance)に基づき確認したものであり、書籍本文そのものの直接引用ではない。各Code Smellの詳細な症状描写(例:どのSmellがどの具体的なコードパターンに対応するか)は書籍原典でのさらなる確認が望ましい。「Fragile Test」というBehavior Smellをhard-coded assertion値に直接紐付ける主張は調査時の検証で反証されたため、本文書には含めていない。"
+    ]
+   }
+  }
+ ]
+}

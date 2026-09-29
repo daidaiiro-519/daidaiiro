@@ -22,9 +22,11 @@ description: "可用性・スケーラビリティ・セキュリティ境界・
 
 ## 相談種別と回答テンプレート
 
-| 相談種別 | 判定条件 | テンプレート |
-|---|---|---|
-| インフラ・可用性・セキュリティ境界の判断相談 | 「このサービスの可用性目標をどう決めるべきか」「このデータへのアクセス範囲はこれでよいか」等の可用性・スケーラビリティ・セキュリティ境界・インフラ構成に関する相談 | `references/template-judgment-platform.md` |
+回答の形は `references/answer.schema.json` の1つである。相談種別（`kind`）で、必須の欄が変わる。
+
+| 相談種別 | 判定条件 | `kind` | 必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて） |
+|---|---|---|---|
+| インフラ・可用性・セキュリティ境界の判断相談 | 「このサービスの可用性目標をどう決めるべきか」「このデータへのアクセス範囲はこれでよいか」等の可用性・スケーラビリティ・セキュリティ境界・インフラ構成に関する相談 | `judgment` | 前置き ・ 判断の道筋 |
 
 ---
 
@@ -48,42 +50,62 @@ description: "可用性・スケーラビリティ・セキュリティ境界・
 
 ### Step 2: SRE投資の前提を満たすか確認する
 
-sre-investment-threshold.mdを最初に読み、対象が「継続的に稼働し複数のアクターが利用する」という前提を満たすか判定する。満たさない場合は各論の検討に進まず、ここで保留と結論づける。
+`sre-investment-threshold`を最初に読み、対象が「継続的に稼働し複数のアクターが利用する」という前提を満たすか判定する。満たさない場合は各論の検討に進まず、ここで保留と結論づける。
 
 - 使い捨てプロセス・単一利用者ツールの場合は、SLI/SLO・アクセス制御・可観測性基盤の整備は不要と判定し、理由を示して終える
 - 前提を満たす場合のみStep3以降に進む
 
-### Step 3: 対応するバックボーンknowledgeファイルを特定して必ず読む
+### Step 3: 対応する判断基準を特定して必ず読む
 
-相談内容に関連するSRE/セキュリティ/クラウドアーキテクチャの概念を特定し、参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。この手順を完了する前に回答を始めてはならない。
+相談内容に関連するSRE/セキュリティ/クラウドアーキテクチャの概念を特定し、下の参照の一覧から判断基準の id を特定し、**道具で1件ずつ取り出して読む**。この手順を完了する前に回答を始めてはならない。
 
-- 可用性・スケーラビリティ目標の相談 → reliability-targets-and-error-budgets.md
-- アクセス権・セキュリティ境界の相談 → security-boundary-and-least-privilege.md
-- 監視・可観測性の相談 → observability-design.md
-- 構成選定・性能の相談 → performance-efficiency.md
-- コスト・予算の相談 → cost-optimization.md
-- 環境負荷・リソース使用率の相談 → sustainability.md
+```
+platform-advisor get criteria <id>        判断基準を1件取り出す（JSON）
+platform-advisor view criteria --id <id>  人が読む形で描画する
+```
+
+- 可用性・スケーラビリティ目標の相談 → `reliability-targets-and-error-budgets`
+- アクセス権・セキュリティ境界の相談 → `security-boundary-and-least-privilege`
+- 監視・可観測性の相談 → `observability-design`
+- 構成選定・性能の相談 → `performance-efficiency`
+- コスト・予算の相談 → `cost-optimization`
+- 環境負荷・リソース使用率の相談 → `sustainability`
 - 複数の概念が関連する場合は全て読み込む
 
 ### Step 4: 判断基準に沿って判定し、根拠を示す
 
-knowledgeファイルの判断基準（決定木）を辿り、判定結果と理由を示す。
+判断基準（決定木）を辿り、判定結果と理由を示す。
 
-- 判断基準はknowledgeファイルの記述をそのまま使い、勝手に言い換えない
+- 判断基準は判断基準の記述をそのまま使い、勝手に言い換えない
 - 判定理由を必ず示す
 - 該当する場合はインフラ仕様書への記録案を添える
 - アンチパターンに該当する場合はリスクと代替案をセットで提示する
 
 ---
 
+### Step 5: 回答を JSON で組み、検査してから描画する
+
+回答を `answer.schema.json` の形の JSON で組み、検査してから描画する。
+
+```
+platform-advisor validate --kind answer --file <回答.json>      欄の欠けを検出する
+platform-advisor view answer --file <回答.json> --out <回答.html>  描画する
+```
+
+- 結論（`conclusion`）を先に置き、判定理由（`because`）を必ず書く
+- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える
+- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く
+
+---
+
 ## 出力形式
 
-**判定結果を先に置き、根拠を後ろに置く。** 相談種別に対応するテンプレートの見出し構造を、そのまま踏襲する。
+**判定結果を先に置き、根拠を後ろに置く。** **回答は、回答の形の JSON と、描画した HTML である。** 人は HTML で読む ── チャットに回答の文章を流さない。
 
 | 置くもの | 内容 |
 |---|---|
 | 判定 | 相談への回答そのもの |
-| 根拠 | knowledge の判断基準と、辿った経路 |
+| 根拠 | 判断基準の判断基準と、辿った経路 |
 | 記録案 | 該当するときは、インフラ仕様書への記録案を添える |
 
 **アンチパターンに該当するときは、危険と代替案を対にして提示する。**
@@ -92,11 +114,12 @@ knowledgeファイルの判断基準（決定木）を辿り、判定結果と�
 
 ## ガードレール
 
-- knowledgeファイルをReadする前に回答を始めてはならない。最優先ルールであり例外なし
-- knowledgeファイルに記載されていない内容は「バックボーンの範囲外」として正直に伝え、推測で答えない
-- 判断基準はknowledgeファイルから引用し、勝手に言い換えない
+- 判断基準を道具で読む前に回答を始めてはならない。最優先ルールであり例外なし
+- 判断基準に記載されていない内容は「判断基準の範囲外」として正直に伝え、推測で答えない
+- 判断基準は `criteria` から引用し、勝手に言い換えない
 - 判定には必ず理由を示す
-- アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する
+- アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する。**判断基準の `antipatterns` に代わりにすること（`alternative`）が無いときは、回答の側で組み立て、推測であることを明示する** ── 判断基準は原典に無い文を保持しない
+- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない
 - このバックボーンは、Google SRE等の広く確立された実務知見をAIが総合したものである。単一の権威ある出典として断定的に語らない
 - 専門用語（SLI/SLO/エラーバジェット等）は使ってよいが、初出時は文脈・具体例を添えて意味が解釈できるようにする。相手が業務エキスパートなど非エンジニアの可能性を常に想定し、用語だけを渡して説明を終わらせない
 - アプリケーション内部のレイヤー配置・依存方向の判定は範囲外であり、platform-advisorは代わりに判定しない。**レイヤー配置を担当する側へ渡す**
@@ -105,10 +128,24 @@ knowledgeファイルの判断基準（決定木）を辿り、判定結果と�
 
 ## 参照knowledge
 
-- `references/knowledge/sre-investment-threshold.md`: SLI/SLO・アクセス制御・可観測性といったSRE投資を検討すべき状況かどうかを判定する前提条件（継続稼働・複数アクター利用）
-- `references/knowledge/reliability-targets-and-error-budgets.md`: SLI/SLO/エラーバジェットという可用性目標の定義方法と、エラーバジェット消費に応じたリリース可否の判断基準
-- `references/knowledge/security-boundary-and-least-privilege.md`: 最小権限の原則・多層防御という、アクセス権・セキュリティ対策の設計基準
-- `references/knowledge/observability-design.md`: メトリクス・ログ・トレースという可観測性の3種類と、監視項目を取捨選択する判断基準
-- `references/knowledge/performance-efficiency.md`: データに基づく構成選択・マネージドサービスの活用・定期的な精査という性能効率の判断基準
-- `references/knowledge/cost-optimization.md`: 消費モデル・効率性の測定・差別化されない作業の外部化・コストの帰属というコスト最適化の判断基準
-- `references/knowledge/sustainability.md`: 使用率の最大化・需要平準化・データライフサイクル管理という、環境負荷を最小化する判断基準
+references は JSON Schema と JSON で持つ（契約の版2）。Markdown は SKILL.md だけである。
+
+| ファイル | 中身 |
+|---|---|
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（8件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
+| `references/document.schema.json` | 原典の複製の形（import が使う） |
+| `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |
+
+判断基準の id は次である。
+
+| id | 題 |
+|---|---|
+| `architecture-evidence-based-scope` | 「先回りして確定的な構造を作ることのコストを対象とする概念」 |
+| `cost-optimization` | 「インフラ・システムのコスト管理の判断を対象とする概念」 |
+| `observability-design` | 「可観測性（ログ・メトリクス・トレース）の設計原則を対象とする概念」 |
+| `performance-efficiency` | 「パフォーマンス効率の設計判断を対象とする概念」 |
+| `reliability-targets-and-error-budgets` | 「信頼性目標とエラーバジェットの設定を対象とする概念」 |
+| `security-boundary-and-least-privilege` | 「セキュリティ境界と最小権限の原則を対象とする概念」 |
+| `sre-investment-threshold` | 「SLI/SLO等SRE投資判断の閾値を対象とする概念」 |
+| `sustainability` | 「インフラ・システムの環境負荷（サステナビリティ）を対象とする概念」 |

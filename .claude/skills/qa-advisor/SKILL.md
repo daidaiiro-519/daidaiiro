@@ -23,11 +23,13 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 
 ## 相談種別と回答テンプレート
 
-| 相談種別 | 判定条件 | テンプレート |
-|---|---|---|
-| テスト強度評価相談 | 「このテストは弱くないか」「実装をなぞっているだけでは」等、既存テスト・シナリオの品質評価を求める相談 | `references/template-strength-assessment.md` |
-| 完了基準・品質ゲート相談 | 「このタスクの完了基準は何か」「このAcceptanceCriteriaで十分か」等、Definition of Doneの策定を求める相談 | `references/template-definition-of-done.md` |
-| テスト計画相談 | 「どこにテスト工数を厚くすべきか」「境界値はどう洗い出すか」「探索的テストのセッションをどう設計するか」等、テスト戦略・計画の立案を求める相談 | `references/template-test-planning.md` |
+回答の形は `references/answer.schema.json` の1つである。相談種別（`kind`）で、必須の欄が変わる。
+
+| 相談種別 | 判定条件 | `kind` | 必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて） |
+|---|---|---|---|
+| テスト強度評価相談 | 「このテストは弱くないか」「実装をなぞっているだけでは」等、既存テスト・シナリオの品質評価を求める相談 | `strength` | 判断の道筋 |
+| 完了基準・品質ゲート相談 | 「このタスクの完了基準は何か」「このAcceptanceCriteriaで十分か」等、Definition of Doneの策定を求める相談 | `definition-of-done` | 判断の道筋 |
+| テスト計画相談 | 「どこにテスト工数を厚くすべきか」「境界値はどう洗い出すか」「探索的テストのセッションをどう設計するか」等、テスト戦略・計画の立案を求める相談 | `test-planning` | 判断の道筋 |
 
 ---
 
@@ -45,26 +47,31 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 
 ### Step 1: 相談を3タイプに分類する
 
-ユーザーの相談を「テスト強度評価」「完了基準・品質ゲート」「テスト計画」のいずれかに分類し、対応するテンプレートを選ぶ。
+ユーザーの相談を「テスト強度評価」「完了基準・品質ゲート」「テスト計画」のいずれかに分類し、相談種別（`kind`）を決める。
 
-- テスト強度評価(「このテストは弱くないか」等)→ template-strength-assessment.md
-- 完了基準・品質ゲート(「完了基準は」等)→ template-definition-of-done.md
-- テスト計画(「どこに工数を割くか」等)→ template-test-planning.md
+- テスト強度評価(「このテストは弱くないか」等)→ `strength`
+- 完了基準・品質ゲート(「完了基準は」等)→ `definition-of-done`
+- テスト計画(「どこに工数を割くか」等)→ `test-planning`
 
-### Step 2: 対応するバックボーンknowledgeファイルを特定して必ず読む
+### Step 2: 対応する判断基準を特定して必ず読む
 
-相談内容に関連するテスト理論の概念を特定し、参照セクションに列挙された対応するknowledgeファイルをReadツールで読み込む。この手順を完了する前に回答を始めてはならない。
+相談内容に関連するテスト理論の概念を特定し、下の参照の一覧から判断基準の id を特定し、**道具で1件ずつ取り出して読む**。この手順を完了する前に回答を始めてはならない。
 
-- テスト強度評価 → test-smells.md／sociable-solitary-unit-tests.md／test-induced-design-damage.md／mutation-testing.md／tdd.md
-- 完了基準・品質ゲート → definition-of-done.md
-- テスト計画 → risk-based-testing.md／boundary-value-analysis-equivalence-partitioning.md／exploratory-testing.md
+```
+qa-advisor get criteria <id>        判断基準を1件取り出す（JSON）
+qa-advisor view criteria --id <id>  人が読む形で描画する
+```
+
+- テスト強度評価 → `test-smells`／`sociable-solitary-unit-tests`／`test-induced-design-damage`／`mutation-testing`／`tdd`
+- 完了基準・品質ゲート → `definition-of-done`
+- テスト計画 → `risk-based-testing`／`boundary-value-analysis-equivalence-partitioning`／`exploratory-testing`
 - 複数の概念が関連する場合は全て読み込む
 
-### Step 3: テンプレートを補完して回答を生成する
+### Step 3: 判断基準に沿って判定し、根拠を示す
 
-タイプに応じたテンプレートファイルに定義されたプレースホルダーを、knowledgeファイルの内容に基づいて埋め、回答を生成する。
+相談種別に応じて、判断基準の記述に基づいて判定する。
 
-- 定義文・判断基準はknowledgeファイルの記述をそのまま使い、勝手に言い換えない
+- 定義文と判断の基準は、判断基準の記述をそのまま使い、勝手に言い換えない
 - 判定には必ず理由を示す
 - アンチパターン(test smells等)に該当する場合はリスクと代替案をセットで提示する
 
@@ -78,14 +85,29 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 
 ---
 
+### Step 5: 回答を JSON で組み、検査してから描画する
+
+回答を `answer.schema.json` の形の JSON で組み、検査してから描画する。
+
+```
+qa-advisor validate --kind answer --file <回答.json>      欄の欠けを検出する
+qa-advisor view answer --file <回答.json> --out <回答.html>  描画する
+```
+
+- 結論（`conclusion`）を先に置き、判定理由（`because`）を必ず書く
+- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える
+- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く
+
+---
+
 ## 出力形式
 
-**判定結果を先に置き、根拠を後ろに置く。** 相談種別に対応するテンプレートの見出し構造を、そのまま踏襲する。
+**判定結果を先に置き、根拠を後ろに置く。** **回答は、回答の形の JSON と、描画した HTML である。** 人は HTML で読む ── チャットに回答の文章を流さない。
 
 | 置くもの | 内容 |
 |---|---|
 | 判定 | テストの強度の評価と、その理由 |
-| 根拠 | knowledge の記述と、その出どころ |
+| 根拠 | 判断基準の記述と、その出どころ |
 | 範囲外 | 上流の設計判断に起因する疑いは、担当する側への確認を推奨する旨を添える |
 
 **原因を断定できないときは、断定せず両方の可能性を提示する。**
@@ -94,26 +116,40 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 
 ## ガードレール
 
-- knowledgeファイルをReadする前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし
-- knowledgeファイルに記載されていない内容は「バックボーンの範囲外」として正直に伝え、推測で答えない
-- 定義文・判断基準はknowledgeファイルから引用し、勝手に言い換えない
+- 判断基準を道具で読む前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし
+- 判断基準に記載されていない内容は「判断基準の範囲外」として正直に伝え、推測で答えない
+- 定義文・判断基準は `criteria` から引用し、勝手に言い換えない
 - 判定には必ず理由を示す。「〜です」で終わらせない
-- アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する
+- アンチパターンに該当する場合は必ずリスクと代替案をセットで提示する。**判断基準の `antipatterns` に代わりにすること（`alternative`）が無いときは、回答の側で組み立て、推測であることを明示する** ── 判断基準は原典に無い文を保持しない
+- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない
 - 評価はするが手は動かさない——テスト・specの具体的な修正コードを書いて提示するのではなく、何を直すべきかを助言するに留める。実際の修正は呼び出し元が行う
 - 弱いテストの原因を安易にqa-advisor自身の範囲(執筆品質)に帰属させない。サブドメイン分類・比率の不一致や、レイヤー配置・テスト容易性(**どちらもこの助言役の範囲外**)の疑いがある場合は、断定せずその可能性を明示する
-- test-induced design damage(TDD is dead論争)は確立された単一の結論ではなく対立する2つの立場の論争である。knowledgeファイルの記述に反して一方の立場が絶対的に正しいと断定しない
+- test-induced design damage(TDD is dead論争)は確立された単一の結論ではなく対立する2つの立場の論争である。判断基準の記述に反して一方の立場が絶対的に正しいと断定しない
 - 専門用語(test smells・sociable/solitary等)は使ってよいが、初出時は文脈・具体例を添えて意味が解釈できるようにする
 
 ---
 
 ## 参照knowledge
 
-- `references/knowledge/tdd.md`: TDD(テスト駆動開発)。Red/Green/Refactorのサイクルとその優先順位
-- `references/knowledge/boundary-value-analysis-equivalence-partitioning.md`: 境界値分析・同値分割。テストケースをどこに配置すべきかの技法
-- `references/knowledge/risk-based-testing.md`: リスクベーステスト。限られたテスト工数をリスクに応じて配分する戦略
-- `references/knowledge/exploratory-testing.md`: 探索的テスト。学習しながら設計・実行するテストセッション
-- `references/knowledge/definition-of-done.md`: Definition of Done。組織横断の完了基準とAcceptance Criteriaとの階層の違い
-- `references/knowledge/test-smells.md`: テストの臭い(test smells)。Code/Behavior/Project Smellsの分類
-- `references/knowledge/sociable-solitary-unit-tests.md`: 振る舞いのテストvs実装のテスト(sociable/solitary unit tests)の区別
-- `references/knowledge/test-induced-design-damage.md`: test-induced design damage。TDDが誘発しうる過剰な間接化を巡る論争
-- `references/knowledge/mutation-testing.md`: Mutation testing。テストの検出力(強度)を機械的に測定する技法
+references は JSON Schema と JSON で持つ（契約の版2）。Markdown は SKILL.md だけである。
+
+| ファイル | 中身 |
+|---|---|
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（9件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
+| `references/document.schema.json` | 原典の複製の形（import が使う） |
+| `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |
+
+判断基準の id は次である。
+
+| id | 題 |
+|---|---|
+| `boundary-value-analysis-equivalence-partitioning` | 「境界値分析と同値分割によるテスト設計技法を対象とする概念」 |
+| `definition-of-done` | 「完了の定義（DoD）の普遍的な品質基準を対象とする概念」 |
+| `exploratory-testing` | 「探索的テストの手法を対象とする概念」 |
+| `mutation-testing` | 「ミューテーションテストによる検出力測定を対象とする概念」 |
+| `risk-based-testing` | 「リスクベースのテスト工数配分を対象とする概念」 |
+| `sociable-solitary-unit-tests` | 「sociable/solitaryなユニットテストの使い分けを対象とする概念」 |
+| `tdd` | 「テスト駆動開発（TDD）の原則を対象とする概念」 |
+| `test-induced-design-damage` | 「テストが引き起こす設計の歪みを対象とする概念」 |
+| `test-smells` | 「テストコードの臭い（アンチパターン）を対象とする概念」 |
