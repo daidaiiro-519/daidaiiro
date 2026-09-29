@@ -1,11 +1,11 @@
 #!/bin/sh
 # Skill を導入する（macOS ・ Linux ・ WSL）。利用者の環境（OS と CPU）を判別し、合う配布物だけを取得する。
-#   curl -fsSL https://github.com/{{配布元}}/releases/latest/download/install.sh | sh -s -- [Skill の名前 ...]
+#   curl -fsSL https://github.com/daidaiiro-519/daidaiiro/releases/latest/download/install.sh | sh -s -- [Skill の名前 ...]
 # 名前を省略すると、配布元にある全部を導入する。導入先は、実行した場所のリポジトリの .claude/skills/。
 # 置いたのは skills-creator の dist である。手を入れてよい ── dist は既に在るものを上書きしない。
 set -eu
 
-BASE="${SKILLS_BASE:-https://github.com/{{配布元}}/releases/latest/download}"
+BASE="${SKILLS_BASE:-https://github.com/daidaiiro-519/daidaiiro/releases/latest/download}"
 
 die() { echo "導入できない ── $*" >&2; exit 1; }
 

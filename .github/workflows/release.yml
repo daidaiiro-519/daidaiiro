@@ -1,0 +1,152 @@
+# 道具の契約に従う Skill を、OS ごとの配布物にして Release へ公開する（daidaiiro-519/daidaiiro）。
+# 置いたのは skills-creator の dist である。手を入れてよい ── dist は既に在るものを上書きしない。
+#
+# 流れ：各 OS で組み立てる → 組み立てた場所で起動を試験する → 梱包する
+#       → 別のランナーで導入スクリプトから展開し、起動を試験する → 公開する
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: zip
+          - os: macos-14
+            target: universal2-apple-darwin
+            ext: tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: 組み立ての道具を用意する
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl) sudo apt-get update && sudo apt-get install -y musl-tools
+                                       rustup target add x86_64-unknown-linux-musl ;;
+            universal2-apple-darwin)   rustup target add aarch64-apple-darwin x86_64-apple-darwin ;;
+          esac
+      - name: 組み立てて、bin/ へ置く
+        run: |
+          exe=""; [ "${{ matrix.ext }}" = zip ] && exe=".exe"
+          for skill in .claude/skills/*/; do
+            name="$(basename "$skill")"
+            [ -f "$skill/tool/Cargo.toml" ] || continue
+            mkdir -p "$skill/bin"
+            if [ "${{ matrix.target }}" = universal2-apple-darwin ]; then
+              for t in aarch64-apple-darwin x86_64-apple-darwin; do
+                cargo build --release --locked --target "$t" --manifest-path "$skill/tool/Cargo.toml"
+              done
+              for b in "$name" "$name-mcp"; do
+                lipo -create -output "$skill/bin/$b" \
+                  "$skill/tool/target/aarch64-apple-darwin/release/$b" \
+                  "$skill/tool/target/x86_64-apple-darwin/release/$b"
+              done
+            else
+              cargo build --release --locked --target "${{ matrix.target }}" --manifest-path "$skill/tool/Cargo.toml"
+              for b in "$name" "$name-mcp"; do
+                cp "$skill/tool/target/${{ matrix.target }}/release/$b$exe" "$skill/bin/"
+              done
+            fi
+          done
+      - name: 試験 ── 組み立てた場所で起動する
+        run: |
+          exe=""; [ "${{ matrix.ext }}" = zip ] && exe=".exe"
+          for bin in .claude/skills/*/bin; do
+            name="$(basename "$(dirname "$bin")")"
+            # 引数を渡さなければ、使い方を示して 0 か 2（誤用）で終わる ── それ以外は起動していない
+            set +e; "$bin/$name$exe" >/dev/null 2>&1; rc=$?; set -e
+            [ "$rc" = 0 ] || [ "$rc" = 2 ] || { echo "$name が起動しない（$rc）"; exit 1; }
+            printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+              | "$bin/$name-mcp$exe" | grep -q '"serverInfo"' || { echo "$name-mcp が応答しない"; exit 1; }
+          done
+      - name: 梱包する ── SKILL.md ・ references/ などと bin/。道具のソース（tool/）は入れない
+        run: |
+          mkdir -p dist
+          for skill in .claude/skills/*/; do
+            name="$(basename "$skill")"
+            if [ -d "$skill/bin" ]; then out="$name-${{ matrix.target }}"
+            elif [ "${{ matrix.os }}" = ubuntu-latest ]; then out="$name-any"   # 道具を持たない Skill は1回だけ
+            else continue; fi
+            stage="stage/$name"; mkdir -p "$stage"
+            (cd "$skill" && tar --exclude=./tool --exclude=./mcp.json --exclude='./.crates*' --exclude=./.gitignore -cf - .) | tar -xf - -C "$stage"
+            if [ "${{ matrix.ext }}" = zip ]; then
+              (cd stage && 7z a -tzip "../dist/$out.zip" "$name" >/dev/null)
+            else
+              tar -czf "dist/$out.tar.gz" -C stage "$name"
+              if [ "$out" = "$name-any" ]; then (cd stage && zip -qr "../dist/$out.zip" "$name"); fi
+            fi
+            rm -rf "$stage"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/
+
+  verify:
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: 試験 ── 導入スクリプトで別の場所へ展開し、起動する
+        run: |
+          (cd release && sha256sum * > SHA256SUMS 2>/dev/null || shasum -a 256 * > SHA256SUMS)
+          mkdir -p user && cd user && git init -q
+          base="file://$(cd ../release && pwd)"
+          if [ "${{ runner.os }}" = Windows ]; then
+            SKILLS_BASE="$base" pwsh -NoProfile -File ../source/install.ps1
+          else
+            SKILLS_BASE="$base" sh ../source/install.sh
+          fi
+          exe=""; [ "${{ runner.os }}" = Windows ] && exe=".exe"
+          cd /tmp
+          for bin in "$OLDPWD"/.claude/skills/*/bin; do
+            name="$(basename "$(dirname "$bin")")"
+            set +e; "$bin/$name$exe" >/dev/null 2>&1; rc=$?; set -e
+            [ "$rc" = 0 ] || [ "$rc" = 2 ] || { echo "$name が起動しない（$rc）"; exit 1; }
+          done
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: SHA-256 の一覧を作り、導入スクリプトと一緒に公開する
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp install.sh install.ps1 release/
+          (cd release && sha256sum *.tar.gz *.zip > SHA256SUMS)
+          gh release create "${{ github.ref_name }}" release/* --title "${{ github.ref_name }}" --notes "導入：install.sh（macOS ・ Linux ・ WSL）／ install.ps1（Windows）"

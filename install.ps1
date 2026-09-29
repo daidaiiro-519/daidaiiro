@@ -1,11 +1,11 @@
 # Skill を導入する（Windows）。利用者の環境を判別し、合う配布物だけを取得する。
-#   irm https://github.com/{{配布元}}/releases/latest/download/install.ps1 | iex
+#   irm https://github.com/daidaiiro-519/daidaiiro/releases/latest/download/install.ps1 | iex
 # 導入する Skill を絞るときは、先に $env:SKILLS に名前を空白で並べる（irm | iex には引数を渡せない）。
 # 名前を省略すると、配布元にある全部を導入する。導入先は、実行した場所のリポジトリの .claude\skills\。
 # 置いたのは skills-creator の dist である。手を入れてよい ── dist は既に在るものを上書きしない。
 $ErrorActionPreference = 'Stop'
 
-$Base = if ($env:SKILLS_BASE) { $env:SKILLS_BASE } else { 'https://github.com/{{配布元}}/releases/latest/download' }
+$Base = if ($env:SKILLS_BASE) { $env:SKILLS_BASE } else { 'https://github.com/daidaiiro-519/daidaiiro/releases/latest/download' }
 # Windows は x86_64 版だけを作る。ARM の Windows は x86_64 のエミュレーションで動かす
 $Target = 'x86_64-pc-windows-msvc'
 

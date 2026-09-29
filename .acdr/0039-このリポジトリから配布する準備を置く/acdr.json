@@ -1,0 +1,114 @@
+{
+ "no": "ACDR 0039",
+ "title": "このリポジトリから Skill を配布する準備をする",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "このリポジトリを Skill の配布元にし、tag を push すると OS ごとの配布物が Release に公開される状態にする。",
+ "why": "このリポジトリは OSS として公開している。利用者の環境に Rust が無くても Skill を使えるようにするには、OS ごとの配布物と導入スクリプトが必要になる（ACDR 0029 ・ 0031）。ACDR 0036 で配布は任意の機能になったが、このリポジトリは配布する側である。skills-creator の dist が雛形を保持しているので、それを置く。",
+ "shift": [
+  {
+   "what": "利用者の導入",
+   "from": "リポジトリを複製し、各 Skill を cargo で組み立てる",
+   "to": "シェルに合った1行を実行する。導入スクリプトが環境に合う配布物を取得する"
+  },
+  {
+   "what": "配布物",
+   "from": "無い",
+   "to": "Skill ごと × 環境ごとの tar.gz ・ zip と SHA256SUMS。v で始まる tag の push で CI が公開する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合う配布物だけを展開する。",
+ "how": "skills-creator dist --repo daidaiiro-519/daidaiiro で、install.sh ・ install.ps1 ・ .github/workflows/release.yml を置いた。手元の Linux で、release.yml の梱包の手順を再現した。acdr ・ fact-check ・ skill-router の配布物と SHA256SUMS を作り、install.sh で別のリポジトリへ導入した。3つとも展開され、acdr と fact-check の MCP が .mcp.json に登録された。導入した acdr は、別の作業場所から起動しても宣言を返した。導入した fact-check は、導入先の tool.json の curl で原典を取得できた。道具を持つ9つの Skill の Cargo.lock はすべて git が追跡しており、CI の --locked を満たす。Windows と macOS での組み立てと導入は、tag を push して CI を実行するまで確認できない。",
+ "applies_to": "このリポジトリの根に install.sh と install.ps1 を置き、.github/workflows/release.yml を置く。skills-creator の導入スクリプトの雛形2件も変更する。",
+ "alternatives": [
+  {
+   "option": "手元で3つの OS の配布物を組み立て、手で Release に置く",
+   "why_not": "macOS の universal2 と Windows の msvc を手元の WSL では組み立てられない。手で置くと、SHA256SUMS との食い違いを検出できない"
+  },
+  {
+   "option": "配布をやめ、利用者に cargo で組み立ててもらう",
+   "why_not": "利用者の環境に Rust があるとは限らないという条件に違反する（ACDR 0029）"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、.acdr/README.md へ行を加え、main へコミットする",
+  "利用者の指示で v で始まる tag を push し、CI の結果で Windows と macOS の動作を確認する"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "sh",
+   "tab": "install.sh",
+   "file": "install.sh",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#!/bin/sh",
+     "before": "（無い）",
+     "why": "macOS ・ Linux ・ WSL の導入スクリプトを、skills-creator の dist で雛形から置いた。OS と CPU を判別し、SHA-256 を照合してから .claude/skills/ へ展開し、MCP を登録する"
+    }
+   ]
+  },
+  {
+   "key": "ps1",
+   "tab": "install.ps1",
+   "file": "install.ps1",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# Skill を導入する（Windows）。利用者の環境を判別し、合う配布物だけを取得する。",
+     "before": "（無い）",
+     "why": "Windows の導入スクリプトを、skills-creator の dist で雛形から置いた。install.sh と同じ手順を PowerShell で行う"
+    }
+   ]
+  },
+  {
+   "key": "yml",
+   "tab": "release.yml",
+   "file": ".github/workflows/release.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 道具の契約に従う Skill を、OS ごとの配布物にして Release へ公開する（daidaiiro-519/daidaiiro）。",
+     "before": "（無い）",
+     "why": "v で始まる tag を push したときに、3つの OS のランナーで組み立て、組み立てた場所と導入スクリプトで展開した先の2か所で起動を試験してから、Release へ公開する定義を置いた"
+    }
+   ]
+  },
+  {
+   "key": "tsh",
+   "tab": "install.sh.tmpl",
+   "file": ".claude/skills/skills-creator/references/distribution/install.sh.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "echo \"導入した: $name（$file）\"",
+     "before": "echo \"導入した: $name（$target）\"",
+     "why": "導入の報告に、環境の名前ではなく取得した配布物の名前を表示する。道具を保持しない Skill は環境に依存しない配布物（-any）を取得するのに、環境の名前を表示していた（手元の試験で判明）"
+    }
+   ]
+  },
+  {
+   "key": "tps1",
+   "tab": "install.ps1.tmpl",
+   "file": ".claude/skills/skills-creator/references/distribution/install.ps1.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Write-Output \"導入した: $name（$file）\"",
+     "before": "Write-Output \"導入した: $name（$Target）\"",
+     "why": "install.sh の雛形と同じ修正である"
+    }
+   ]
+  }
+ ],
+ "lede": "このリポジトリから、道具の契約に従う Skill を配布する準備をする提案である。",
+ "seal": {
+  "sh": "eb6daceb796242793eae0a60b3e71373285683855ef00f85eecb9a217fc651f3",
+  "ps1": "481cc89b85de0e556619a34d74ab8d8e6ae8c5c421c13859bd77729b8b12edb9",
+  "yml": "1a16575ac41e6ad15b3ee389e9e9c0063f81659e2a970ccff42f058d493b559c",
+  "tsh": "6d5b4da1f88f3c6f1c9081f06bf2ccc5f7a6b25c751b02ea9ef6c9d719d8fba6",
+  "tps1": "522e5c64c3cdca6981dffa5e0f475b57c582d2c976cf23ac1f2f681d4327b901"
+ }
+}
