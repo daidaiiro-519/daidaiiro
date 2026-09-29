@@ -80,6 +80,43 @@ def check(name, svg):
         gaps = {round(xs[i + 1][0] - xs[i][1]) for i in range(len(xs) - 1)}
         if band == len(xs) and len(gaps) > 1:
             bad.append(f'同じ段の箱の間隔が揃っていない y{ry0} 間隔 {sorted(gaps)}')
+    # 横向きの矢印は、両端が何か（箱 ・ 文字 ・ 図形）の縁に届いている ── 届いていないと、何から何へ渡すのかが読めない
+    targets = [r[:4] for r in rects(svg)] + [b[:4] for b in bs]
+    targets += [(cx - r, cy - r, cx + r, cy + r) for cx, cy, r in circles(svg)]
+    # 閉じた多角形（階段 ・ 文書の形）も、届く相手に含める。M ・ L ・ H ・ V の絶対座標から外接矩形を取る
+    for m in re.finditer(r'd="(M[^"]*?Z)"', svg):
+        xs, ys, cx, cy = [], [], 0.0, 0.0
+        for cmd, args in re.findall(r'([MLHV])\s*([\d.\s-]+)', m[1]):
+            nums = [float(v) for v in args.split()]
+            if cmd in 'ML':
+                for i in range(0, len(nums) - 1, 2):
+                    cx, cy = nums[i], nums[i + 1]; xs.append(cx); ys.append(cy)
+            elif cmd == 'H':
+                cx = nums[-1]; xs.append(cx); ys.append(cy)
+            else:
+                cy = nums[-1]; xs.append(cx); ys.append(cy)
+        if xs:
+            targets.append((min(xs), min(ys), max(xs), max(ys)))
+    # 届いたとみなす隙間。ロボットの図形は腕の外に余白を持つので、20 まで許す
+    reach = 20
+    # 矢印は visuals.arrow が描く形だけを見る ── 横線のあとに矢じり（l8 7 -8 7）が続く。表の罫線やロボットの腕は矢印ではない
+    for m in re.finditer(r'd="M([\d.-]+) ([\d.-]+) H([\d.-]+) M[\d.-]+ [\d.-]+ l-?8 7 -?8 7"', svg):
+        x1, y, x2 = float(m[1]), float(m[2]), float(m[3])
+        right = x2 > x1
+        def near(x, edge):
+            # 端が、縁から外側へ reach 以内にある対象を探す。矢じり側は相手の手前、根元側は元の後ろ
+            for t in targets:
+                if not (t[1] - 2 <= y <= t[3] + 2):
+                    continue
+                e = t[0] if edge == 'left' else t[2]
+                if abs(e - x) <= reach:
+                    return True
+            return False
+        head_ok = near(x2, 'left' if right else 'right')
+        tail_ok = near(x1, 'right' if right else 'left')
+        if not (head_ok and tail_ok):
+            where = '矢じり' if not head_ok else '根元'
+            bad.append(f'矢印の{where}が何にも届いていない x{x1:.0f}→{x2:.0f} y{y:.0f}')
     for b in bad: print(f'  × {name}: {b}')
     return len(bad)
 

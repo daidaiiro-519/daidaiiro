@@ -4,53 +4,67 @@ from lesson_visuals import (text, rect, path, arrow, circle, person, icon, svg,
 
 
 def t1_fit():
-    """材料を替えても、返ってくるものが目的の中に収まる。"""
-    a = text(0, 24, '渡すものを替える', 18, DIM)
-    for i, name in enumerate(['今週の定例', '来週の定例', '別の案件']):
-        y = 44 + i * 74
-        a += rect(0, y, 210, 58, PAPER, 10, LINE)
-        a += icon(22, y + 14, 'doc', DIM, .55)
-        a += text(66, y + 36, name, 19, INK, 700)
-        a += path(f'M210 {y + 29} H260 V142 H300', LINE)
-    a += path('M291 136 l9 6 -9 6', LINE, 2)
-    a += rect(300, 108, 214, 68, PANEL, 10)
-    a += text(407, 148, '同じ指示', 21, INK, 700, 'middle')
-    a += arrow(524, 142, 606, 142)
-    a += circle(730, 142, 112, PAPER, ACCENT)
-    a += text(730, 14, '目的　どの課題から決めるか、優先順位を付ける', 17, ACCENT, 700, 'middle')
-    for cx, cy, label in [(686, 120, '5件'), (742, 172, '6件'), (778, 112, '9件')]:
-        a += circle(cx, cy, 30, ACCENT, ACCENT)
-        a += text(cx, cy + 7, label, 18, PAPER, 700, 'middle')
-    a += text(730, 288, '中身も件数も違う。どれも目的の中にある', 17, DIM, anchor='middle')
-    a += text(876, 116, '毎回おなじ文章が', 17, DIM)
-    a += text(876, 142, '返るわけではない', 17, DIM)
-    return svg('渡すものを替えても、返ってくるものが目的の中に収まる', a, 300)
+    """目的に合った高さの指示なら、渡す議事録を替えても、返ってくるものがどれも目的の中に収まる。"""
+    names = ['今週の議事録', '来週の議事録', '別の案件の議事録']
+    a = text(0, 24, '渡すものを替える', 15, DIM)
+    for i, name in enumerate(names):
+        y = 40 + i * 74
+        a += rect(0, y, 230, 58, PAPER, 10, LINE)
+        a += icon(20, y + 14, 'doc', DIM, .55)
+        a += text(62, y + 36, name, 16, INK, 700)
+        a += path(f'M230 {y + 29} H262 V148 H290', LINE)
+    a += path('M281 142 l9 6 -9 6', LINE, 2)
+    a += rect(292, 108, 240, 80, PANEL, 10)
+    a += text(412, 142, '目的に合った', 16, INK, 700, 'middle')
+    a += text(412, 168, '高さの指示', 16, INK, 700, 'middle')
+    a += arrow(540, 148, 612, 148)
+    # 右：目的の円。3つの議事録から返ってきたものが、どれも円の中に収まる
+    cx, cy, r = 760, 148, 128
+    a += text(cx, 12, '目的　どの課題から決めるか、優先順位を付ける', 15, ACCENT, 700, 'middle')
+    a += circle(cx, cy, r, PAPER, ACCENT)
+    # 3つの結果は、幅も位置も少しずつ違う ── 中身も件数も違うが、どれも円の中に収まる
+    for i, (name, w, dx) in enumerate(zip(['今週の結果', '来週の結果', '別の案件の結果'], [150, 196, 168], [-26, 8, -14])):
+        y = cy - 76 + i * 52
+        a += rect(cx - w / 2 + dx, y, w, 38, PAPER, 8, LINE)
+        a += text(cx + dx, y + 25, name, 14, INK, 700, 'middle')
+    a += text(912, 132, ['中身も件数も違う', 'それでも、どれも', '目的の中に収まる'], 15, INK, gap=24)
+    return svg('目的に合った高さの指示なら、渡す議事録を替えても、返ってくるものがどれも目的の中に収まる', a, 290)
 
 
 def t1_height():
-    """同じ議事録の指示でも、どこまで決めて書いたかで、指示どおりになる一覧の数が違う。"""
-    a = rect(0, 44, 296, 76, PANEL, 10)
-    a += text(24, 74, '決めていない指示', 17, DIM)
-    a += text(24, 104, '「課題を整理して」', 21, INK, 700)
-    a += arrow(306, 82, 342, 82)
-    for i, name in enumerate(['業務の流れの順', '決定の期限の順', '機能ごと', '3つを混ぜたもの']):
-        x = 354 + i * 155
-        a += rect(x, 52, 143, 60, PAPER, 10, LINE)
-        a += text(x + 71, 88, name, 15, INK, anchor='middle')
-    a += text(0, 148, '4つとも指示どおり', 17, ACCENT, 700)
-    a += text(240, 148, 'どれが返ってくるかは決まらない', 17, DIM)
-
-    a += path('M0 176 H1112', LINE, 1)
-
-    a += rect(0, 200, 296, 76, PANEL, 10)
-    a += text(24, 222, '細かく決めた指示', 15, DIM)
-    a += text(24, 244, ['「1行目に承認の経路、', '　2行目に申請の締め日」'], 15, INK, 700, gap=22)
-    a += arrow(306, 238, 342, 238)
-    a += rect(354, 208, 143, 60, PAPER, 10, LINE)
-    a += text(425, 244, '指定どおりの1つ', 15, INK, anchor='middle')
-    a += text(0, 304, '指示どおりは1つだけ', 17, ACCENT, 700)
-    a += text(240, 304, '来週の議事録では、この指定が合わない', 17, DIM)
-    return svg('決めていない指示は4つとも指示どおりになり、細かく決めた指示は1つだけになる', a, 322)
+    """2つの指示は、どこまで決めて書くかの両端にある。困り方は、その両端で1つずつ起きる。"""
+    L, R, CW = 140, 652, 460          # 左の列 ・ 右の列の左端と、列の幅
+    # 上：どこまで決めて書くかの軸。両端に2つの指示が来る
+    a = text(L, 18, '決めていない', 14, DIM, 700)
+    a += text(R + CW, 18, '細かく決める', 14, DIM, 700, 'end')
+    a += text((L + R + CW) / 2, 18, 'どこまで決めて書くか', 14, DIM, anchor='middle')
+    a += path(f'M{L + 100} 12 H{(L + R + CW) / 2 - 90} M{(L + R + CW) / 2 + 90} 12 H{R + CW - 110}', LINE, 1.5)
+    a += path(f'M{L + 108} 6 l-8 6 8 6 M{R + CW - 118} 6 l8 6 -8 6', LINE, 1.5)
+    # 1段目：2つの指示
+    for x, who, what in [(L, '決めていない指示', '「課題を整理して」'),
+                         (R, '細かく決めた指示', '「1行目に承認の経路、2行目に申請の締め日」')]:
+        a += rect(x, 32, CW, 72, PANEL, 10)
+        a += text(x + 20, 58, who, 14, DIM)
+        a += text(x + 20, 88, what, 17 if len(what) > 12 else 20, INK, 700)
+    # 2段目 ・ 3段目：同じ形のマス。困り方のマスだけ、強調色の枠と左上の札を持つ
+    cells = [
+        (0, L, '頼むたびに変わる', '業務の流れの順 ・ 決定の期限の順 ・ 機能ごと、どれも指示どおり', '困り方1'),
+        (0, R, '1つに決まる', '指定どおりのものが返る', None),
+        (1, L, 'どの週の議事録にも使える', 'どの案件の議事録にも使える', None),
+        (1, R, 'この議事録にしか使えない', '来週、承認の話が出ていなければ使えない', '困り方2'),
+    ]
+    for row, name in enumerate(['返ってくるもの', '使える議事録']):
+        a += text(0, 172 + row * 110, name, 15, DIM, 700)
+    for row, x, head, sub, trouble in cells:
+        y = 120 + row * 110
+        a += rect(x, y, CW, 98, PAPER, 10, ACCENT if trouble else LINE)
+        if trouble:
+            a += rect(x + 20, y + 14, 64, 24, ACCENT, 6, ACCENT)
+            a += text(x + 52, y + 31, trouble, 13, PAPER, 700, 'middle')
+        a += text(x + 20, y + 60, head, 18, INK, 700)
+        a += text(x + 20, y + 84, sub, 14, INK)
+    a += band(350, '2つの困り方は、この両端で起きていた')
+    return svg('2つの指示はどこまで決めて書くかの両端にあり、困り方はその両端で1つずつ起きる', a, 414)
 
 
 def t1_order():
@@ -77,45 +91,35 @@ def t1_order():
 
 
 def t1_symptoms():
-    """2つの困り方を、番号を付けて左右に分ける。"""
-    def head(x, no, name):
-        a = rect(x, 0, 32, 26, ACCENT, 6, ACCENT)
-        a += text(x + 16, 19, no, 15, PAPER, 700, 'middle')
-        a += text(x + 44, 19, name, 19, INK, 700)
-        return a
+    """2つの困り方を、左右同じ形で並べる。どちらも、同じ指示を何度か使うと起きる。"""
+    def badge(x, y, t):
+        return rect(x, y, 64, 24, ACCENT, 6, ACCENT) + text(x + 32, y + 17, t, 13, PAPER, 700, 'middle')
 
-    a = head(0, '1', '毎回、違うものが返ってくる')
-    a += text(0, 58, '同じものを渡して、同じ指示を3回', 16, DIM)
-    a += card(0, 74, 208, 76, '「課題を整理して」')
-    for i, (no, name) in enumerate([('1回目', '業務の流れの順に並ぶ'),
-                                    ('2回目', '決定の期限の順に並ぶ'),
-                                    ('3回目', '機能ごとに並ぶ')]):
-        y = 70 + i * 66
-        a += path(f'M208 112 H236 V{y + 25} H262', LINE)
-        a += path(f'M{262 - 9} {y + 25 - 6} l9 6 -9 6', LINE, 2)
-        a += rect(262, y, 300, 50, PAPER, 10, LINE)
-        a += text(282, y + 31, no, 15, DIM)
-        a += text(336, y + 31, name, 18, INK, 700)
-    a += text(0, 294, '並べ方が、毎回違う', 17, ACCENT, 700)
-
-    a += path('M590 0 V308', LINE, 1)
-
-    a += head(616, '2', 'その1回にしか使えない')
-    a += text(616, 58, '行ごとに中身を指定した指示', 16, DIM)
-    a += rect(616, 74, 228, 118, PAPER, 10, LINE)
-    a += text(638, 118, ['1行目に承認の経路', '2行目に申請の締め日'], 18, INK, gap=32)
-    a += arrow(854, 133, 888, 133)
-    a += rect(898, 98, 214, 70, PAPER, 10, LINE)
-    a += check(926, 133)
-    a += text(950, 140, 'そのとおり返る', 18, INK, 700)
-    a += text(616, 232, '次の週の議事録に、同じ指示を出す', 16, DIM)
-    a += rect(616, 248, 228, 60, PAPER, 10, LINE)
-    a += text(730, 285, '承認の話が出ていない', 17, INK, anchor='middle')
-    a += arrow(854, 278, 888, 278)
-    a += rect(898, 248, 214, 60, PAPER, 10, LINE)
-    a += cross(926, 278)
-    a += text(950, 285, 'その指定が合わない', 17, INK, 700)
-    return svg('2つの困り方 ── 毎回違うものが返ることと、その1回にしか使えないこと', a, 320)
+    panels = [
+        (0, '困り方1', '毎回、違うものが返ってくる', '「課題を整理して」', '同じ議事録で3回頼む',
+         [('1回目', '業務の流れの順に並ぶ', False), ('2回目', '決定の期限の順に並ぶ', False),
+          ('3回目', '機能ごとに並ぶ', False)], '並べ方が、毎回違う'),
+        (572, '困り方2', 'その1回にしか使えない', '「1行目に承認の経路、2行目に申請の締め日」', '週を替えて頼む',
+         [('今週の議事録', 'そのとおりに返る', False), ('来週の議事録', '承認の話が無く、指定が合わない', True)],
+         '毎週、指示を書き直すことになる'),
+    ]
+    a = path('M556 0 V340', LINE, 1)
+    for x, tag, title, instr, how, rows, end in panels:
+        a += badge(x, 2, tag)
+        a += text(x + 76, 20, title, 18, INK, 700)
+        a += rect(x, 42, 540, 56, PANEL, 10)
+        a += text(x + 20, 76, instr, 16 if len(instr) > 12 else 18, INK, 700)
+        a += text(x, 128, how, 14, DIM)
+        for i, (label, result, bad) in enumerate(rows):
+            y = 142 + i * 50
+            a += text(x, y + 26, label, 14, DIM)
+            a += rect(x + 110, y, 430, 40, PAPER, 8, LINE)
+            if bad:
+                a += cross(x + 132, y + 20, DIM, .6)
+            a += text(x + (150 if bad else 130), y + 26, result, 15, INK, 700)
+        a += path(f'M{x} 300 H{x + 540}', LINE, 1)
+        a += text(x, 330, end, 18, INK, 700)
+    return svg('2つの困り方 ── 毎回違うものが返ることと、その1回にしか使えないこと', a, 342)
 
 
 def t3_after():
@@ -523,9 +527,15 @@ def t_cover(no):
             if i < 2:
                 a += arrow(x + 348, 90, x + 378, 90)
         return svg('3つの教材の道筋', a, 190)
+    # 本編は、6本の名前を順に並べ、いまの1本だけを塗る。はじめにの「6本の動画で、この順に進みます」と同じ名前と順である
+    names = ['原因を知る', '意味を決める', '範囲を決める', '条件を決める', '揺らぎを直す', '抽象の高さを合わせる']
     a = ''
-    for i in range(6):
-        # 本編は該当する1本を光らせる
-        a += rect(i * 100, 0, 88, 10, ACCENT if (i + 2) == no else LINE, 5)
-    return svg('6本の中での位置', a, 24)
+    for i, name in enumerate(names):
+        x = i * 188
+        on = (i + 2) == no
+        a += rect(x, 0, 172, 44, ACCENT if on else PANEL, 8)
+        a += text(x + 86, 28, name, 14, PAPER if on else DIM, 700 if on else 400, 'middle')
+        if i < 5:
+            a += path(f'M{x + 176} 22 H{x + 184}', LINE, 1.5)
+    return svg('6本の中での位置', a, 48)
 
