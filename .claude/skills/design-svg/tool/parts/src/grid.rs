@@ -85,7 +85,7 @@ fn path(a: Point, b: Point, bend: Option<&str>) -> Vec<Point> {
 ///
 /// # Errors
 ///
-/// 座標の無い節点が在るとき ・ 鍵線が辺に無い辺を指したとき ・ 置き方が決められた値でないときに
+/// 座標の無い節点が在るとき ・ 置き方が決められた値でないときに
 /// 返す。
 pub fn layout_grid(
     sizes: &Sizes,
@@ -105,17 +105,8 @@ pub fn layout_grid(
             "曲がり角の置き方は vertical か horizontal です: {bad:?}"
         )));
     }
-    let absent: Vec<&(String, String)> = grid
-        .elbow
-        .iter()
-        .map(|(k, _)| k)
-        .filter(|k| !edges.contains(k))
-        .collect();
-    if !absent.is_empty() {
-        return Err(Unsupported::Invalid(format!(
-            "辺に無いものが elbow にあります: {absent:?}"
-        )));
-    }
+    // **この段に無い辺の鍵線は、ここでは適用しない** ── 囲みを持つ図は段ごとに配置するので、
+    // 他の段の辺はこの段から見えない。宣言に無い辺を指すかどうかは、図全体を見る宣言の側が照合する
     let ids: Vec<String> = sizes.iter().map(|(k, _)| k.clone()).collect();
     if ids.is_empty() {
         return Ok(LayoutResult::default());

@@ -96,6 +96,11 @@ fn grid_of(d: &Value) -> Result<Grid, String> {
     Ok(out)
 }
 
+/// 欄の文字列。**無ければ空** ── 空の名前は、どの辺とも一致しない。
+fn str_of(v: &Value, key: &str) -> String {
+    v.get(key).and_then(Value::as_str).unwrap_or("").to_owned()
+}
+
 /// 部品の置き場所 ── `lint` が既定で探す場所である。
 const PARTS_SRC: &str = "tool/parts/src";
 
@@ -279,7 +284,23 @@ fn run_figure(given: &Given) -> Outcome {
     };
     if layout == "grid" {
         match grid_of(&d) {
-            Ok(g) => GRID.with(|slot| *slot.borrow_mut() = g),
+            Ok(g) => {
+                // **鍵線が宣言に無い辺を指すなら断る** ── 配置は段ごとなので、図全体を見られるのはここだけ
+                let declared: Vec<(String, String)> = list(&d, "edges")
+                    .iter()
+                    .map(|e| (str_of(e, "from"), str_of(e, "to")))
+                    .collect();
+                let absent: Vec<&(String, String)> = g
+                    .elbow
+                    .iter()
+                    .map(|(k, _)| k)
+                    .filter(|k| !declared.contains(k))
+                    .collect();
+                if !absent.is_empty() {
+                    return Outcome::misuse(format!("辺に無いものが elbow にあります: {absent:?}"));
+                }
+                GRID.with(|slot| *slot.borrow_mut() = g);
+            }
             Err(why) => return Outcome::misuse(why),
         }
     }

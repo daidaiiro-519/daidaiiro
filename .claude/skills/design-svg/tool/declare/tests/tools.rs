@@ -206,3 +206,37 @@ fn the_catalog_lists_every_part() {
     assert!(out.data["parts"].as_array().expect("並び").len() >= 25);
     assert!(out.data["body"].as_str().expect("本文").starts_with('{'));
 }
+
+#[test]
+fn an_elbow_inside_a_group_is_applied() {
+    // **囲みの内側の辺にも鍵線を適用できる** ── 往復する2本の辺を、別の角で分けるために使用する
+    let p = file(
+        "grid_group.json",
+        r#"{"layout": "grid", "nodes": [{"id": "a", "label": "甲"}, {"id": "b", "label": "乙"}, {"id": "c", "label": "丙"}],
+            "edges": [{"from": "a", "to": "b", "label": "行き"}, {"from": "b", "to": "a", "label": "帰り"}],
+            "groups": [{"label": "囲み", "members": ["a", "b"]}],
+            "grid": {"at": {"__g0": [0, 0], "c": [1, 0], "a": [0, 0], "b": [1, 1]},
+                     "elbow": [["a", "b", "vertical"], ["b", "a", "vertical"]]}}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
+}
+
+#[test]
+fn an_elbow_on_an_undeclared_edge_is_misuse() {
+    // **宣言に無い辺の鍵線は、図全体で照合して断る** ── 段ごとの配置では検出できない
+    let p = file(
+        "grid_absent.json",
+        r#"{"layout": "grid", "nodes": [{"id": "a"}, {"id": "b"}], "edges": [{"from": "a", "to": "b"}],
+            "grid": {"at": {"a": [0, 0], "b": [1, 1]}, "elbow": [["a", "c", "vertical"]]}}"#,
+    );
+    let out = call("figure", &[("declaration", &p)]);
+    assert!(!out.ok, "{:?}", out.findings);
+    assert!(
+        out.findings
+            .iter()
+            .any(|f| f.contains("a") && f.contains("c")),
+        "{:?}",
+        out.findings
+    );
+}

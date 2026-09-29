@@ -608,17 +608,19 @@ fn grid_no_corner_when_it_coincides_with_an_end() {
 }
 
 #[test]
-fn grid_elbow_must_name_an_edge_and_a_known_orientation() {
+fn grid_elbow_must_use_a_known_orientation() {
     let s = vec![
         ("a".to_owned(), (10.0, 10.0)),
         ("b".to_owned(), (10.0, 10.0)),
     ];
     let e = edges(&[("a", "b")]);
     let mut g = grid(&[("a", json!(0), json!(0)), ("b", json!(1), json!(1))]);
+    // **この段に無い辺の鍵線は、その辺が在る段が適用する** ── 囲みを持つ図は段ごとに配置するので、
+    // 1つの段から見ると、他の段の辺は無いものとして見える。宣言に無い辺かどうかは、図全体で照合する
     g.elbow = vec![(("a".to_owned(), "c".to_owned()), "vertical".to_owned())];
     assert!(
-        layout_grid(&s, &e, 10.0, 10.0, &g).is_err(),
-        "辺に無いものを鍵線にできない"
+        layout_grid(&s, &e, 10.0, 10.0, &g).is_ok(),
+        "他の段の辺の鍵線で、この段を止めない"
     );
     g.elbow = vec![(("a".to_owned(), "b".to_owned()), "ななめ".to_owned())];
     assert!(

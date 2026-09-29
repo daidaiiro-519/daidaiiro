@@ -1,0 +1,175 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0047",
+ "title": "design-svg の格子で、囲みの内側の辺に鍵線を適用できるようにする",
+ "date": "2026-09-29",
+ "status": "accepted",
+ "decision": "design-svg の格子の配置で、囲みの内側の辺にも鍵線を適用できるようにする。",
+ "why": "ACDR 0046 で残した event-driven-architecture-3 の図は、囲みの内側で同じ2点を往復する辺の注記が重なっていた。往復の辺は、鍵線で別の角を通せば分かれる。しかし design-svg は、鍵線が指す辺を段ごとの辺と照合していた。そのため、囲みの内側の辺の鍵線が、最上位の段で「辺に無いもの」として拒否されていた。照合を図全体の辺へ移し、段ごとの配置はその段に在る辺だけに鍵線を適用する形に一致させる。",
+ "shift": [
+  {
+   "what": "鍵線の照合",
+   "from": "段ごとの配置で、その段の辺と照合する（囲みの内側の辺は最上位の段で拒否される）",
+   "to": "図全体の辺と1回だけ照合する。宣言に無い辺を指す鍵線は、これまでどおり誤用として断る"
+  },
+  {
+   "what": "鍵線の適用",
+   "from": "囲みを持つ図では使えない",
+   "to": "その辺が在る段で適用する"
+  },
+  {
+   "what": "event-driven-architecture-3 の図",
+   "from": "往復する2本の辺が同じ直線に重なり、注記が1件重なる",
+   "to": "往路と復路が別の角を通り、注記が分かれる。幾何の検査を通過する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "鍵線を照合する場所を、段ごとの配置から図全体へ移す",
+ "alternatives": [
+  {
+   "option": "段ごとの配置で、この段に無い辺の鍵線を黙って無視するだけにする",
+   "why_not": "宣言に無い辺を指す鍵線（綴りの誤りなど）も黙って無視され、誤りが検出されなくなる"
+  },
+  {
+   "option": "往復する辺を、描画側で自動的にずらす",
+   "why_not": "辺の経路を探索する機能を design-svg は保持しない（検出だけする規定である）。配置の選び方で直すという design-svg の原則にも反する"
+  },
+  {
+   "option": "図の宣言を、往復の辺を1本にまとめる形へ書き換える",
+   "why_not": "原文の図（Mermaid）が持つ2本の辺と、それぞれの注記が失われる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "after",
+   "tab": "完成イメージ：変更後の図",
+   "file": ".acdr/0047-design-svgの格子で囲みの内側の辺に鍵線を適用できるようにする/after.event-driven-architecture-3.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "before",
+   "tab": "変更前の図",
+   "file": ".acdr/0047-design-svgの格子で囲みの内側の辺に鍵線を適用できるようにする/before.event-driven-architecture-3.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "page",
+   "tab": "完成イメージ：判断基準のページ",
+   "file": ".acdr/0047-design-svgの格子で囲みの内側の辺に鍵線を適用できるようにする/criteria.event-driven-architecture.html",
+   "rev": "HEAD",
+   "marks": []
+  },
+  {
+   "key": "grid",
+   "tab": "grid.rs",
+   "file": ".claude/skills/design-svg/tool/parts/src/grid.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 座標の無い節点が在るとき ・ 置き方が決められた値でないときに",
+     "before": "/// 座標の無い節点が在るとき ・ 鍵線が辺に無い辺を指したとき ・ 置き方が決められた値でないときに",
+     "why": "段ごとの配置は、宣言に無い辺の鍵線を誤りとして返さなくなったので、誤りの条件から外した"
+    },
+    {
+     "find": "// **この段に無い辺の鍵線は、ここでは適用しない**",
+     "why": "囲みを持つ図は段ごとに配置するので、最上位の段から囲みの内側の辺は見えない。その段の辺と照合すると、囲みの内側の辺の鍵線がすべて拒否されていた",
+     "before": "let absent … if !absent.is_empty() { return Err(… \"辺に無いものが elbow にあります\" …) }"
+    }
+   ]
+  },
+  {
+   "key": "decl",
+   "tab": "declare/lib.rs",
+   "file": ".claude/skills/design-svg/tool/declare/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn str_of(v: &Value, key: &str) -> String {",
+     "why": "図全体の辺の一覧を組むために、辺の始点と終点の文字列を読む",
+     "before": "（無い）"
+    },
+    {
+     "find": "// **鍵線が宣言に無い辺を指すなら断る**",
+     "why": "段ごとの配置から外した照合を、図全体の辺を見られる宣言の側へ移した。宣言に無い辺を指す鍵線は、これまでどおり誤用として断る",
+     "before": "Ok(g) => GRID.with(|slot| *slot.borrow_mut() = g),"
+    }
+   ]
+  },
+  {
+   "key": "t1",
+   "tab": "declare/tests/tools.rs",
+   "file": ".claude/skills/design-svg/tool/declare/tests/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_elbow_inside_a_group_is_applied() {",
+     "why": "囲みの内側で往復する2本の辺に鍵線を指定して、図が組めることを固定した",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "t2",
+   "tab": "parts/tests/layout.rs",
+   "file": ".claude/skills/design-svg/tool/parts/tests/layout.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn grid_elbow_must_use_a_known_orientation() {",
+     "why": "段ごとの配置は、この段に無い辺の鍵線で止まらなくなった。置き方の値の検査だけを残し、名前をその内容に合わせた",
+     "before": "fn grid_elbow_must_name_an_edge_and_a_known_orientation() {"
+    },
+    {
+     "find": "// **この段に無い辺の鍵線は、その辺が在る段が適用する**",
+     "before": "g.elbow = vec![((\"a\", \"c\"), \"vertical\")]; assert!(layout_grid(…).is_err(), \"辺に無いものを鍵線にできない\");",
+     "why": "この段に無い辺の鍵線で、段ごとの配置が止まらないことを固定した。宣言に無い辺の検出は、declare の試験が固定する"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "design-svg の SKILL.md",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "同じ2点を往復する2本の辺は、どちらにも同じ置き方を書くと、別の角を通る",
+     "before": "（無い）",
+     "why": "往復の辺を分ける書き方が、どこにも記載されていなかった。0046 の作業で、逆の置き方を書くと同じ角を通ることを実測で確認した"
+    },
+    {
+     "find": "を持つ図は、囲みごとに段を分けて配置する。",
+     "before": "（無い）",
+     "why": "囲みの座標を __g<番号> で書くことが、どこにも記載されていなかった。鍵線がどの段で適用されるかも併記した"
+    }
+   ]
+  },
+  {
+   "key": "crit",
+   "tab": "ddd-advisor の criteria.json",
+   "file": ".claude/skills/ddd-advisor/references/criteria.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"elbow\": [",
+     "why": "event-driven-architecture-3 の図の宣言に、往復する2本の辺（配送の計画（後）と実績の集計（後））の鍵線を加えた",
+     "before": "\"grid\": {\"at\": { … }}（elbow は無い）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "after": "c3ed95abd80f91ef687e47be1e48638b17c4dcf9b22fca657043614a90db4ecf",
+  "before": "563d31731714492cc5ae9b9594643563a60375c780796c6adeb33d5f02eaa444",
+  "page": "d08fd7f2555b45d99ae543908d83649d6354f3e35543fecba74e4ba1565e31e9",
+  "grid": "a1da4e2a864f4c413b35f53b3b859c7647ddc96d4bd65ed37c8e20d475b546bd",
+  "decl": "0549491371593ad5eea0b9062a5d212941dbb1af44f6be2a61f8b15d77458755",
+  "t1": "e6a14a5113cb580c1d811d9b4e6a6c884f929e361f8cd922882ee07ba7d5ef9a",
+  "t2": "203ba4a09629b3d1a42b0d8af601e0d488d9737c4dc93310436fbaeac1b8ccf5",
+  "skill": "e56fd882d271d4887726e642ec35628453f8e1400c67c39ce8ab25d2d3b3b23d",
+  "crit": "8700d5f3ae529807b97cd4377fb96f6895bd5f546b4b3745329f4ab3bfc35a61"
+ }
+}
