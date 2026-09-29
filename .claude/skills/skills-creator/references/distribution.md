@@ -19,8 +19,10 @@
 | 配布物 | Skill ごと × 環境ごと。中身は Skill のフォルダから `tool/` ・ `mcp.json` を除いたもの（SKILL.md ・ references/ ・ bin/ ・ tool.json など） |
 | 形式 | Linux ・ macOS は tar.gz、Windows は zip。道具を保持しない Skill は、環境に依存しない tar.gz と zip を1つずつ |
 | 名前 | `<Skill の名前>-<環境>.tar.gz` ・ `.zip`（環境は x86_64-unknown-linux-musl ・ x86_64-pc-windows-msvc ・ universal2-apple-darwin）。環境に依存しないものは `-any` |
-| 導入 | 配布元のリポジトリの `install.sh`（macOS ・ Linux ・ WSL）と `install.ps1`（Windows）。OS と CPU を判別し、SHA-256 を照合してから展開し、MCP を `claude mcp add --scope project` で登録する |
-| 組み立て | 配布元のリポジトリの `.github/workflows/release.yml`。各 OS のランナーで組み立て、組み立てた場所と展開した先の2か所で起動を試験してから公開する |
+| 導入 | 配布元のリポジトリの `install.sh`（macOS ・ Linux ・ WSL）と `install.ps1`（Windows）。OS と CPU を判別し、公開の一覧から版を決め、SHA-256 を照合してから展開し、MCP を `claude mcp add --scope project` で登録する |
+| **公開の単位** | **Skill ごとである。** tag `<Skill の名前>-v<版>`（例 `acdr-v1.0.0`）を push すると、その Skill だけを公開する。tag `v<版>` は、全部の Skill をまとめて公開する（オプション） |
+| 導入の版 | `install.sh acdr` は、その Skill の最新の版を取得する。`acdr@1.0.0` と書くと版を指定できる。Skill ごとの公開が無ければ、まとめて公開した最新の版から取得する。名前を省略すると、まとめて公開した最新の版から全部を導入する |
+| 組み立て | 配布元のリポジトリの `.github/workflows/release.yml`。tag から対象の Skill を決め、各 OS のランナーで組み立て、組み立てた場所と展開した先の2か所で起動を試験してから公開する |
 
 導入スクリプトと組み立ての定義は、**配布元のリポジトリに1つずつ置く**。雛形は `references/distribution/` に在り、置く操作は次である。
 

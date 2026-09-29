@@ -1,19 +1,46 @@
 # 道具の契約に従う Skill を、OS ごとの配布物にして Release へ公開する（daidaiiro-519/daidaiiro）。
 # 置いたのは skills-creator の dist である。手を入れてよい ── dist は既に在るものを上書きしない。
 #
-# 流れ：各 OS で組み立てる → 組み立てた場所で起動を試験する → 梱包する
+# 公開は Skill ごとである ── tag <Skill の名前>-v<版>（例 acdr-v1.0.0）は、その Skill だけを公開する。
+# tag v<版> は、全部の Skill をまとめて公開する（オプション）。
+#
+# 流れ：tag から対象の Skill を決める → 各 OS で組み立てる → 組み立てた場所で起動を試験する → 梱包する
 #       → 別のランナーで導入スクリプトから展開し、起動を試験する → 公開する
 name: release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "*-v*"]
 
 permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.pick.outputs.skills }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pick
+        name: 対象の Skill を tag から決める ── <Skill の名前>-v<版> ならその1つ、v<版> なら全部
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          case "$tag" in
+            v[0-9]*) skills="$(ls .claude/skills | tr '\n' ' ')" ;;
+            *-v[0-9]*)
+              name="${tag%-v[0-9]*}"
+              [ -f ".claude/skills/$name/SKILL.md" ] || { echo "$name という Skill が無い（tag $tag）"; exit 1; }
+              skills="$name" ;;
+            *) echo "tag の形が違う: $tag ── <Skill の名前>-v<版> か v<版> で付ける"; exit 1 ;;
+          esac
+          echo "対象: $skills"
+          echo "skills=$skills" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: plan
+    env:
+      SKILLS: ${{ needs.plan.outputs.skills }}
     strategy:
       fail-fast: true
       matrix:
@@ -43,8 +70,8 @@ jobs:
       - name: 組み立てて、bin/ へ置く
         run: |
           exe=""; [ "${{ matrix.ext }}" = zip ] && exe=".exe"
-          for skill in .claude/skills/*/; do
-            name="$(basename "$skill")"
+          for name in $SKILLS; do
+            skill=".claude/skills/$name"
             [ -f "$skill/tool/Cargo.toml" ] || continue
             mkdir -p "$skill/bin"
             if [ "${{ matrix.target }}" = universal2-apple-darwin ]; then
@@ -82,8 +109,8 @@ jobs:
       - name: 梱包する ── SKILL.md ・ references/ などと bin/。道具のソース（tool/）は入れない
         run: |
           mkdir -p dist
-          for skill in .claude/skills/*/; do
-            name="$(basename "$skill")"
+          for name in $SKILLS; do
+            skill=".claude/skills/$name"
             if [ -d "$skill/bin" ]; then out="$name-${{ matrix.target }}"
             elif [ "${{ matrix.os }}" = ubuntu-latest ]; then out="$name-any"   # 道具を持たない Skill は1回だけ
             else continue; fi
@@ -103,7 +130,9 @@ jobs:
           path: dist/
 
   verify:
-    needs: build
+    needs: [plan, build]
+    env:
+      SKILLS: ${{ needs.plan.outputs.skills }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-14]
@@ -132,7 +161,7 @@ jobs:
           if [ "${{ runner.os }}" = Windows ]; then
             SKILLS_BASE="$base" pwsh -NoProfile -File ../source/install.ps1
           else
-            SKILLS_BASE="$base" sh ../source/install.sh
+            SKILLS_BASE="$base" sh ../source/install.sh $SKILLS
           fi
           exe=""; [ "${{ runner.os }}" = Windows ] && exe=".exe"
           cd /tmp
@@ -159,4 +188,4 @@ jobs:
         run: |
           cp install.sh install.ps1 release/
           (cd release && sha256sum *.tar.gz *.zip > SHA256SUMS)
-          gh release create "${{ github.ref_name }}" release/* --title "${{ github.ref_name }}" --notes "導入：install.sh（macOS ・ Linux ・ WSL）／ install.ps1（Windows）"
+          gh release create "${{ github.ref_name }}" release/* --title "${{ github.ref_name }}" --notes "導入：install.sh（macOS ・ Linux ・ WSL）／ install.ps1（Windows）。Skill の名前を渡すと、その Skill の最新の版を取得する"

@@ -269,7 +269,7 @@ fn human_dist(out: &Outcome) -> String {
         .collect();
     lines.extend(out.findings.iter().cloned());
     lines.push(
-        "公開 ── v で始まる tag を push すると、組み立て ・ 試験 ・ 公開を実行する".to_owned(),
+        "公開 ── tag <Skill の名前>-v<版> を push すると、その Skill だけを組み立て ・ 試験 ・ 公開する（v<版> は全部をまとめて公開する）".to_owned(),
     );
     lines.join("\n")
 }

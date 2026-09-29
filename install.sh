@@ -1,11 +1,15 @@
 #!/bin/sh
 # Skill を導入する（macOS ・ Linux ・ WSL）。利用者の環境（OS と CPU）を判別し、合う配布物だけを取得する。
-#   curl -fsSL https://github.com/daidaiiro-519/daidaiiro/releases/latest/download/install.sh | sh -s -- [Skill の名前 ...]
-# 名前を省略すると、配布元にある全部を導入する。導入先は、実行した場所のリポジトリの .claude/skills/。
+#   curl -fsSL https://github.com/daidaiiro-519/daidaiiro/releases/latest/download/install.sh | sh -s -- <Skill の名前>[@<版>] ...
+# 公開は Skill ごとである（tag は <Skill の名前>-v<版>）。版を省略すると、その Skill の最新の版を取得する。
+# 名前を1つも渡さなければ、まとめて公開した最新の版（tag は v<版>）から全部を導入する。
+# 導入先は、実行した場所のリポジトリの .claude/skills/。
 # 置いたのは skills-creator の dist である。手を入れてよい ── dist は既に在るものを上書きしない。
 set -eu
 
-BASE="${SKILLS_BASE:-https://github.com/daidaiiro-519/daidaiiro/releases/latest/download}"
+REPO="daidaiiro-519/daidaiiro"
+API="${SKILLS_API:-https://api.github.com/repos/$REPO/releases?per_page=100}"
+DOWNLOAD="${SKILLS_DOWNLOAD:-https://github.com/$REPO/releases/download}"
 
 die() { echo "導入できない ── $*" >&2; exit 1; }
 
@@ -25,24 +29,48 @@ dest="$root/.claude/skills"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-curl -fsSL "$BASE/SHA256SUMS" -o "$work/SHA256SUMS" || die "照合の一覧を取得できない（$BASE/SHA256SUMS）"
+# 公開した tag の一覧（新しい順）。SKILLS_BASE を渡したときは、1つの置き場所から全部を取る（試験のため）
+tags() {
+  [ -f "$work/releases.json" ] || curl -fsSL "$API" -o "$work/releases.json" \
+    || die "公開の一覧を取得できない（$API）"
+  # 改行の有無に依存しない ── 欄ごとに行を分けてから読む
+  tr ',{' '\n\n' < "$work/releases.json" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p'
+}
 
-if [ "$#" -eq 0 ]; then
-  # 名前を省略したら、この環境向けの配布物と、環境に依存しない配布物の全部
-  set -- $(sed -n "s/.*  \(.*\)-$target\.tar\.gz$/\1/p; s/.*  \(.*\)-any\.tar\.gz$/\1/p" "$work/SHA256SUMS" | sort -u)
-fi
+# Skill の名前と版から、配布物の置き場所を決める
+base_of() {
+  if [ -n "${SKILLS_BASE:-}" ]; then echo "$SKILLS_BASE"; return; fi
+  name="$1"; version="$2"
+  if [ -n "$version" ]; then echo "$DOWNLOAD/$name-v$version"; return; fi
+  tag="$(tags | grep -m1 "^$name-v[0-9]" || true)"
+  [ -n "$tag" ] || tag="$(tags | grep -m1 '^v[0-9]' || true)"
+  [ -n "$tag" ] || die "$name を公開した版が無い"
+  echo "$DOWNLOAD/$tag"
+}
 
 sum() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
 
+bulk=""
+if [ "$#" -eq 0 ]; then
+  # 名前を省略したら、まとめて公開した最新の版（v<版>）の、この環境向けと環境に依存しない配布物の全部
+  bulk="$(base_of "" "")"
+  curl -fsSL "$bulk/SHA256SUMS" -o "$work/all.sums" || die "照合の一覧を取得できない（$bulk/SHA256SUMS）"
+  set -- $(sed -n "s/.*  \(.*\)-$target\.tar\.gz$/\1/p; s/.*  \(.*\)-any\.tar\.gz$/\1/p" "$work/all.sums" | sort -u)
+fi
+
 mkdir -p "$dest"
-for name in "$@"; do
+for spec in "$@"; do
+  name="${spec%%@*}"; version=""
+  [ "$name" = "$spec" ] || version="${spec#*@}"
+  if [ -n "$bulk" ]; then base="$bulk"; else base="$(base_of "$name" "$version")"; fi
+  curl -fsSL "$base/SHA256SUMS" -o "$work/$name.sums" || die "照合の一覧を取得できない（$base/SHA256SUMS）"
   file=""
   for cand in "$name-$target.tar.gz" "$name-any.tar.gz"; do
-    if grep -q "  $cand\$" "$work/SHA256SUMS"; then file="$cand"; break; fi
+    if grep -q "  $cand\$" "$work/$name.sums"; then file="$cand"; break; fi
   done
-  [ -n "$file" ] || die "$name の、この環境（$target）向けの配布物が無い"
-  curl -fsSL "$BASE/$file" -o "$work/$file" || die "$file を取得できない"
-  want="$(grep "  $file\$" "$work/SHA256SUMS" | cut -d' ' -f1)"
+  [ -n "$file" ] || die "$name の、この環境（$target）向けの配布物が無い（$base）"
+  curl -fsSL "$base/$file" -o "$work/$file" || die "$file を取得できない"
+  want="$(grep "  $file\$" "$work/$name.sums" | cut -d' ' -f1)"
   [ "$(sum "$work/$file")" = "$want" ] || die "$file の SHA-256 が一覧と一致しない"
   rm -rf "${dest:?}/$name"
   tar -xzf "$work/$file" -C "$dest"
@@ -59,5 +87,5 @@ for name in "$@"; do
       echo "MCP の登録を省いた（claude が見つからない）: $name" >&2
     fi
   fi
-  echo "導入した: $name（$file）"
+  echo "導入した: $name（${base##*/} の $file）"
 done
