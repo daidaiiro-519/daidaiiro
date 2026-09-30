@@ -1,0 +1,279 @@
+{
+ "round": 2,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点が、規則ファイルの単位と範囲を縛る。論点2〜5は、この軸を前提にする。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>no-more-spaghetti の単位を、コーディングを伴う成果物に限る。</p><ol><li>単位：成果物を構成するディレクトリ（モノレポでも、成果物ごとに1単位）。根 ・ 言語 ・ 層の並びを持つ</li><li>規則：その単位のアーキテクチャ（層の置き場所）・ 依存の向き ・ テスト</li><li>テストには、試験と、書いた後の検査（整形 ・ 静的解析 ・ 言語の規約）を含む</li><li>成果物でない単位（repository ・ skills ・ board ・ docs）は持たない</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "単位は、コーディングを伴う成果物のディレクトリだけにする。規則は、その単位のアーキテクチャ ・ 依存の向き ・ テスト（試験と、整形 ・ 静的解析 ・ 言語の規約などの書いた後の検査）だけを持つ。成果物でない4つの単位（repository ・ skills ・ board ・ docs）は、単位の一覧から外す。"
+    ]
+   ],
+   "figures": [
+    [
+     "規則119件が付いている単位。成果物でない単位（skills ・ repository）に45件が付いている",
+     "00d7cde4ad10"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table><thead><tr><th>単位</th><th>根</th><th>言語と層</th><th>扱い</th></tr></thead><tbody><tr><td>design-svg ほか Skill の道具 14件</td><td>.claude/skills/<名前>/tool</td><td>rust ・ 4層（skills-creator は5層）</td><td>残す</td></tr><tr><td>rust ・ go</td><td>rust ・ go</td><td>rust ・ go ・ 2層</td><td>残す</td></tr><tr><td>skills</td><td>.claude/skills</td><td>無し</td><td>外す（規則40件が付いている）</td></tr><tr><td>repository</td><td>.</td><td>無し</td><td>外す（規則5件が付いている）</td></tr><tr><td>board ・ docs</td><td>.brainstorming-board ・ docs</td><td>無し</td><td>外す（規則は0件）</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "成果物だけを単位にする",
+     "単位はコーディングを伴う成果物のディレクトリだけで、規則はアーキテクチャ ・ 依存の向き ・ テストだけを持つ",
+     "成果物でない単位に付いた45件の行き先を決める必要がある（論点2 ・ 論点3）"
+    ],
+    [
+     "成果物に加えて、リポジトリ全体を1単位として残す",
+     "成果物をまたぐ規則の置き場として、repository の単位だけを残す",
+     "いま成果物をまたぐ規則は1件も無い。言語も層の並びも持てないので、依存の向きの検査が働かない単位になる"
+    ]
+   ],
+   "dropped": [
+    [
+     "規則の種類（文書 ・ 契約 ・ データ）で線を引く（Round 1 の答え）",
+     "単位を見ないので、成果物の構造を見る規則（雛形の構成 ・ 生の数値）まで、成果物でない単位に付いたまま残る"
+    ],
+    [
+     "整形と静的解析を範囲の外に置く",
+     "書いたコードに当てる検査で、テストに入る。SKILL.md の役割「書いた後の検査を実行する」に当たる"
+    ],
+    [
+     "Skill の置き場所全体（skills）を1単位として残す",
+     "Skill ごとに言語も層も違い、1つの層の並びで表せない。成果物ごとの単位が既に在る"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>アーキテクチャ（依存の向き ・ 層の構成）と、書いた後のコードの検査（試験 ・ 整形 ・ 静的解析 ・ 言語の規約）だけを残す。範囲外の33件は規則ファイルから外す。</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"2\"><span class=\"kind k-given\">差し戻し</span><small>2件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">「整形（rustfmt ・ gofmt）と静的解析（clippy ・ staticcheck）の規則のようなコーディング規則は当たり前だがありますよね？これはテストに入るのではないのか？検査の一部だよな？」</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>規則の種類で範囲の線を引くという軸が失効した。軸は単位（コーディングを伴う成果物）である</td></tr><tr class=\"g-finding\"><th rowspan=\"2\"><span class=\"kind k-fact\">判明事項</span><small>2件</small></th><td><span class=\"ev-n\">1</span>規則119件のうち45件が、成果物でない単位（skills 40件 ・ repository 5件）に付いている</td></tr><tr class=\"g-finding\"><td><span class=\"ev-n\">2</span>整形 ・ 静的解析 ・ 言語の規約は、テストの一部として範囲に入る</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "規則ファイルの単位は20件で、そのうち4件（repository ・ skills ・ board ・ docs）は根だけを持ち、言語も層の並びも持たない"
+    ],
+    [
+     "成果物でない単位に付いた45件のうち11件は、中身が成果物の構造やコードの規律を見ている（論点2で付け先を直す）"
+    ]
+   ],
+   "costs": [
+    [
+     "規則ファイルの units から repository ・ skills ・ board ・ docs を外す"
+    ],
+    [
+     "外す単位に付いた45件の規則の行き先を決める（論点2 ・ 論点3）"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "成果物でない単位に付いた45件の行き先",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める"
+    ],
+    [
+     "単位に登録されていないコードの成果物（docs/workshops の Python など）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "範囲の定義",
+     "「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」",
+     "rule",
+     "利用者の説明（2026-09-30）"
+    ],
+    [
+     "テストに書いた後の検査を含むこと",
+     "「整形（rustfmt ・ gofmt）と静的解析（clippy ・ staticcheck）の規則のようなコーディング規則は当たり前だがありますよね？これはテストに入るのではないのか？検査の一部だよな？」",
+     "rule",
+     "利用者の説明（2026-09-30）"
+    ],
+    [
+     "単位の仕組み",
+     "成果物が2つ以上あるなら、1つのファイルの units に成果物を並べ、規則は適用する成果物の名前を持つ",
+     "rule",
+     ".claude/skills/no-more-spaghetti/SKILL.md（規則の置き場所の節）"
+    ],
+    [
+     "単位と規則の件数",
+     "単位20件、うち4件は言語と層の並びを持たない。成果物でない単位に規則45件",
+     "measured",
+     ".coding-rules/rules.json（2026-09-30）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "論点1が単位を成果物に限ると、成果物でない単位に付いた45件が宙に浮く。その行き先を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着を待つ。見込み：付け先を成果物へ直す11件 ・ 成果物の検査へ入れる2件 ・ no-more-spaghetti から外す32件に分ける。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "待つ理由",
+     "行き先は、論点1が決める単位と範囲で決まる",
+     "rule",
+     "このボードの論点1"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "no-more-spaghetti から外した検査を、誰も流さなくなることを防ぐ。no-more-spaghetti の範囲ではない。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1 ・ 論点2 の決着を待つ。Round 1 の答え（根の確かめの台本を push の前の hook から呼ぶ）は、この Skill の外の関心ごとなので、外す規則が決まってから答え直す。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>リポジトリの根に確かめの台本を1本置き、git の push の前（pre-push）に自動で動かす。台本は no-more-spaghetti と持ち主の Skill の検査を順に呼び、1つでも不合格なら push を止める。</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」</span></td></tr><tr class=\"g-obsolete\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>窓口を no-more-spaghetti の範囲の論点として立てていた。窓口は、この Skill の外の関心ごとである</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "待つ理由",
+     "窓口が流すのは、論点2で no-more-spaghetti から外すと決める検査である",
+     "rule",
+     "このボードの論点1 ・ 論点2"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "移す対象と移す先が決まってから、切り替えの順序を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1 ・ 論点2 ・ 論点3 の決着を待つ。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "待つ理由",
+     "移す対象は論点1 ・ 論点2、外した検査の窓口は論点3が決める",
+     "rule",
+     "このボードの論点1 ・ 論点2 ・ 論点3"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     "論点1の定義（コーディングを伴う成果物）に照らすと、規則の外に置かれたままのコードが在る。"
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着を待つ。見込み：docs/workshops の教材と企画書を組む台本（Python 22件）は成果物として単位にし、ボードの trial/ の試作は単位にしない。"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "待つ理由",
+     "何を成果物とみなすかは、論点1の定義で決まる",
+     "rule",
+     "このボードの論点1"
+    ],
+    [
+     "登録されていないコード",
+     "git が追跡する Python は、docs/workshops に22件、ボードの trial/ に約40件、no-more-spaghetti の tool/ に10件（試験データ）である",
+     "measured",
+     "git ls-files（2026-09-30）"
+    ]
+   ]
+  }
+ }
+}
