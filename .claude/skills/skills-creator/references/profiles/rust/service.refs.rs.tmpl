@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-//! references の道具の宣言。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・ 描画する ・
-//! 取り込む（ACDR 0043）。実体は部品の `refs` が持つ。
+//! references の道具を、道具の一覧に載せる。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・ 描画する ・
+//! 取り込む（ACDR 0043）。実体は業務ロジック層の `refs` が持つ。
 
 use std::path::{Path, PathBuf};
 
 use serde_json::json;
-use {{接頭辞}}_parts::refs;
+use {{接頭辞}}_business_logic::refs;
 
 use crate::contract::{Arg, Given, Outcome, Tool};
 
@@ -84,7 +84,7 @@ fn human(out: &Outcome) -> String {
     serde_json::to_string_pretty(&out.data).unwrap_or_default()
 }
 
-/// references の4つの道具。**宣言の `tools()` がこれを足す。**
+/// references の4つの道具。**サービス層の `tools()` がこれを足す。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
     let root = || Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None);

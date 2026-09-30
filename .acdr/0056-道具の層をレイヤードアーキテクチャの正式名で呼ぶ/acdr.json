@@ -1,0 +1,535 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0056",
+ "title": "道具の層をレイヤードアーキテクチャの正式名で呼ぶ",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "道具のソースの3層を「サービス層を挟んだレイヤードアーキテクチャ」と定め、文書 ・ フォルダ ・ crate の名前を、その層の正式名（プレゼンテーション層 ・ サービス層 ・ 業務ロジック層）で呼ぶ。",
+ "why": "契約の独自の語（部品 ・ 宣言 ・ 入口 ・ 許可辺）は、利用者から「ものすごくわかりにくい」と指摘された。確立した語へ寄せるため、ddd-advisor に判断基準で照らさせた。この構成は依存の逆転（内側が抽象を定義し、外側が実装する）を持たないので、ヘキサゴナルでもクリーンでもなく、サービス層を挟んだレイヤードアーキテクチャである（判断基準 architecture-patterns）。そこで語をレイヤードの層の正式名に一致させる。フォルダと crate の名前も改める。文書だけ改めると、文書は「業務ロジック層」、コードは parts という2つの語彙を、読み手が対応づけることになる。いま決めるのは、これから6つの言語の組の雛形を起こすからである（ブレストボード skills-creator-profiles）。後で改めると、その6組も直す対象に加わる。あわせて、検査が許していた「層を飛ばす依存」（入口から部品）を禁じる。許していたのは、道具の層のために決めた規則ではない。no-more-spaghetti の一般則「依存は外から内へ向かってよい」を、Rust へ移したとき（コミット edd3499）に当てはめた結果であり、層を飛ばしてよいかを判断した記録は無い。サービス層を置く理由は道具の一覧を1か所に保つことであり、飛ばすと一覧を経ない呼び出し方ができる。既存の14件の Skill に、層を飛ばす依存は0件である（2026-09-30 に Cargo.toml を検索した）。",
+ "shift": [
+  {
+   "what": "層の呼び名",
+   "from": "部品 ・ 宣言 ・ 入口（独自の語）",
+   "to": "業務ロジック層 ・ サービス層 ・ プレゼンテーション層（レイヤードアーキテクチャの正式名）"
+  },
+  {
+   "what": "依存の規則の呼び名",
+   "from": "許可辺",
+   "to": "依存の向き"
+  },
+  {
+   "what": "crate のフォルダ",
+   "from": "parts ・ declare ・ cli ・ mcp",
+   "to": "business_logic ・ service ・ cli ・ mcp"
+  },
+  {
+   "what": "層を飛ばす依存",
+   "from": "許す（外から内なら、どの層へも依存してよい）",
+   "to": "禁じる（直下の層だけに依存する）"
+  },
+  {
+   "what": "アーキテクチャの名乗り",
+   "from": "規定していない",
+   "to": "ヘキサゴナル ・ クリーンと称さない。ポートは外部を差し替える必要が生じたときに限って導入する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は独自の語で層を呼び、入口から部品への依存（破線）も許していた。変更後はレイヤードアーキテクチャの正式名で呼び、直下の層だけに依存する",
+ "alternatives": [
+  {
+   "option": "ヘキサゴナルとクリーンのハイブリッドの語（アダプタ ・ ユースケース ・ ドメイン）で呼ぶ",
+   "why_not": "両者の核心である依存の逆転を、この構成は持たない。名乗ると、備えていない性質を名前で主張することになる。「ドメイン」は集約などのドメインモデルを連想させ、業務の状態を持たない変換の関数の層と一致しない"
+  },
+  {
+   "option": "純ヘキサゴナルへ作り替える（ファイルと外部コマンドの前にポートを置く）",
+   "why_not": "判断基準では、ポートとアダプターが向くのはドメインモデルを使う複雑な業務ロジックである。道具の大半は変換の関数なので、実装が1つしかない抽象が増えるだけである"
+  },
+  {
+   "option": "業務ロジック層のフォルダを core と呼ぶ",
+   "why_not": "判断基準で「コア層」が別名に挙がるのは、ポートとアダプターの系統の表だけである。レイヤードの表の別名は「ドメイン層 ・ モデル層」で、core を使うと外したヘキサゴナルの語彙が戻る"
+  },
+  {
+   "option": "業務ロジック層のフォルダを logic と略す",
+   "why_not": "レイヤードの層の名前として一般的な語ではない。正式名の直訳 business_logic なら、文書の「業務ロジック層」と対応表なしで1対1に読める"
+  },
+  {
+   "option": "文書の語だけ改め、フォルダと crate は parts ・ declare のまま残す",
+   "why_not": "文書とコードで語彙が2つになり、読み手が対応づけることになる。今回わかりにくいと指摘されたのは、まさにこの種の対応づけである"
+  },
+  {
+   "option": "層を飛ばす依存を許したまま（緩いレイヤリング）にする",
+   "why_not": "CLI が業務ロジック層を直に呼べると、道具の一覧に載らない能力を CLI だけが持てる。MCP との食い違いを1段目の検査が検出できなくなり、契約の原則「能力は1つ、呼び出し方は複数」が構造で守られない。既存の違反は0件なので、禁じても失うものが無い"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "contract",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "道具のソースは、サービス層を挟んだレイヤードアーキテクチャで組む。",
+     "before": "層は3つである ── 部品 ・ 宣言 ・ 入口（CLI と MCP）。内から外の順に並び、外の層は内の層だけを参照してよい。",
+     "why": "独自の語をレイヤードアーキテクチャの層の正式名へ改めた。「内の層だけを参照してよい」は層を飛ばす依存を許していたので、直下の層だけに改めた"
+    },
+    {
+     "find": "サービス層を置くのは、プレゼンテーション層が2つ在るからである。",
+     "before": "（無い）",
+     "why": "判断基準がサービス層を置く理由として挙げる「複数のプレゼンテーション層から業務ロジックを隔離する」を、この構成の CLI と MCP に当てはめて明記した"
+    },
+    {
+     "find": "業務ロジック層に、集約 ・ エンティティ ・ リポジトリの型を作らない。",
+     "before": "（無い）",
+     "why": "ddd-advisor が、層の名前から連想してドメインモデルの型を持ち込むことを、AI が作業するときの違反しやすい点に挙げた"
+    },
+    {
+     "find": "この構成を、ヘキサゴナルアーキテクチャともクリーンアーキテクチャとも称さない。",
+     "before": "（無い）",
+     "why": "この構成は依存の逆転を持たないので、両者の名を付けると備えていない性質を主張することになる"
+    },
+    {
+     "find": "ポートを導入するのは、業務ロジック層が使う外部（ファイル ・ 外部コマンド）を差し替える必要が生じたときに限る。",
+     "before": "（無い）",
+     "why": "純ヘキサゴナルへ作り替えない理由を、将来の見直しの条件として残した"
+    },
+    {
+     "find": "道具と業務ロジック層の関数の区別",
+     "before": "道具と部品の区別",
+     "why": "「部品」を層の正式名で呼ぶ語へ改めた"
+    },
+    {
+     "find": "能力をサービス層の道具の一覧に1度だけ書き",
+     "before": "能力を宣言に1度だけ書き、CLI と MCP はその宣言から組む。",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）と、それを持つ層の名前で呼ぶ"
+    },
+    {
+     "find": "業務ロジック層は名前を直書きしない",
+     "before": "部品は名前を直書きしない ── 宣言の層が tool.json から読み、部品へ引数として渡す。",
+     "why": "層の呼び名を正式名へ改めた"
+    },
+    {
+     "find": "動詞なしの --json が道具の一覧を返さない",
+     "before": "動詞なしの --json が宣言を返さない",
+     "why": "1段目の検査の出力文と、同じ語にそろえた"
+    }
+   ]
+  },
+  {
+   "key": "rust",
+   "tab": "profiles/rust.md",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "crate のフォルダの名前は、レイヤードアーキテクチャの層の正式名に合わせる",
+     "before": "（無い）",
+     "why": "フォルダの名前を改めた理由を、以前の rs/ の改名と同じ場所に残した"
+    },
+    {
+     "find": "references の実装が使う serde_json と jsonschema だけ",
+     "before": "| `parts` | 部品 | 無し（外の crate は、references の部品が使う serde_json と jsonschema だけ） |\n| `declare` | 宣言 | `parts` |\n| `cli` ・ `mcp` | 入口 | `declare` |",
+     "why": "crate の表を層の正式名で書き直した。依存してよい先は直下の層だけである"
+    },
+    {
+     "find": "parts/ か declare/ が残っている",
+     "before": "（無い）",
+     "why": "改名が済んでいない Skill を、rs/ の残りと同じ形で検出する"
+    },
+    {
+     "find": "依存の向きに違反している",
+     "before": "許可していない辺を宣言している | 内側の crate が外側を依存に宣言している",
+     "why": "層を飛ばす依存も違反として検出するよう、検出の範囲を広げた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "道具の層を、サービス層を挟んだレイヤードアーキテクチャにさせる",
+     "before": "（無い）",
+     "why": "新しい Skill を作るときのガードレールに、層の形と、業務ロジック層にドメインモデルの型を作らせない規則を加えた"
+    },
+    {
+     "find": "業務ロジック層の関数に呼び出し方を付けさせない",
+     "before": "部品に入口を付けさせない。import される部品は宣言に載せない",
+     "why": "層の呼び名を正式名へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! Skill が契約を満たしているかを検査する。**見つけるが、直さない。**\n//!\n//! **2段で検査する**（ACDR 0036）。1段目は入口を起動して振る舞いを確認する ── どの言語でも\n//! 同じである（`behavior`）。2段目はソースを読む検査で、**言語の組が持つ**。組が在るのは\n//! いま Rust だけで、組が無い言語では「実行しない」と出す ── 合格とは扱わない。\n//! 最後に、節の構成が対応する雛形を満たすかを見る。\n//!\n//! Rust の組の2段目が見るのは、層が crate に分かれていること、**許可辺が宣言どおりで\n//! あること**、部品が外部の道具の名前を直書きしていないことである。\n//!\n//! **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても\n//! コンパイラが通す（実測 2026-09-26）── 層の境界を crate の境界に置いて初めて、\n//! 宣言に無い依存が解決しなくなる。\n//!\n//! **許可辺は各 `Cargo.toml` が宣言する。** この検査は宣言を読み、並びと食い違って\n//! いないかを見る ── 実際に守られているかはコンパイラが判定する。\n\nuse std::fs;\nuse std::path::{Path, PathBuf};\n\nuse crate::behavior::{self, Verdict};\nuse crate::sections;\n\n/// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──\n/// 以前の rs/ は言語の名前で、役割を示さなかった。\npub const TOOL: &str = \"tool\";\n\n/// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**\npub const BIN: &str = \"bin\";\n\n/// 層の並び。**内から外である** ── 先頭が最も内側である。\npub const ORDER: [&str; 3] = [\"parts\", \"declare\", \"entry\"];\n\n/// 入口の層に属する crate。**合成する側なので複数在ってよい。**\npub const ENTRIES: [&str; 2] = [\"cli\", \"mcp\"];\n\n/// 事例を置く場所（`tool/` からの相対）。\npub const TESTS: &str = \"parts/tests\";\n\n/// 助言の Skill を見分ける節の名前。**名前で分岐しない** ── Skill が増えるたびに直す。\npub const ADVISOR_MARK: &str = \"相談種別と回答テンプレート\";\n\n/// 雛形の置き場所。**呼ぶ側が渡す** ── この crate が Skill の並びを認知しない。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Templates {\n    /// 一般の Skill が満たす雛形。\n    pub general: PathBuf,\n    /// 助言の Skill が満たす雛形。\n    pub advisor: PathBuf,\n    /// references の部品の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**\n    pub refs: Option<PathBuf>,\n}\n\nimpl Templates {\n    /// 雛形の置き場所を組む。**欄を足しても、呼ぶ側は壊れない。**\n    #[must_use]\n    pub const fn new(general: PathBuf, advisor: PathBuf) -> Self {\n        Self {\n            general,\n            advisor,\n            refs: None,\n        }\n    }\n\n    /// references の部品の雛形を足す。\n    #[must_use]\n    pub fn with_refs(mut self, refs: PathBuf) -> Self {\n        self.refs = Some(refs);\n        self\n    }\n}\n\n/// その層が参照してよい層を返す。**並びから導く** ── 表を別に持つと、並びとずれる。\n#[must_use]\nfn allowed(layer: &str) -> Vec<&'static str> {\n    let at = ORDER.iter().position(|x| *x == layer);\n    match at {\n        Some(i) => ORDER[..i].to_vec(),\n        None => Vec::new(),\n    }\n}\n\n/// crate の名前から、属する層を決める。\n#[must_use]\nfn layer_of(name: &str) -> Option<&'static str> {\n    let tail = name.rsplit('_').next().unwrap_or(name);\n    if ENTRIES.contains(&tail) {\n        return Some(\"entry\");\n    }\n    ORDER.iter().copied().find(|x| *x == tail)\n}\n\n/// `Cargo.toml` が宣言している、同じ workspace の中の依存を読む。\n///\n/// **`path = \"../…\"` の形だけを見る** ── 外の crate は層の外である。\nfn declared(manifest: &Path) -> Vec<String> {\n    let Ok(body) = fs::read_to_string(manifest) else {\n        return Vec::new();\n    };\n    let mut out = Vec::new();\n    let mut in_deps = false;\n    for line in body.lines() {\n        let trimmed = line.trim();\n        if trimmed.starts_with('[') {\n            in_deps = trimmed == \"[dependencies]\";\n            continue;\n        }\n        if !in_deps || !trimmed.contains(\"path\") {\n            continue;\n        }\n        let Some((name, _)) = trimmed.split_once('=') else {\n            continue;\n        };\n        out.push(name.trim().to_owned());\n    }\n    out\n}\n\n/// workspace が並べている crate を読む。\nfn members(manifest: &Path) -> Vec<String> {\n    let Ok(body) = fs::read_to_string(manifest) else {\n        return Vec::new();\n    };\n    let Some(head) = body.find(\"members\") else {\n        return Vec::new();\n    };\n    let rest = &body[head..];\n    let Some(open) = rest.find('[') else {\n        return Vec::new();\n    };\n    let Some(close) = rest[open..].find(']') else {\n        return Vec::new();\n    };\n    rest[open + 1..open + close]\n        .split(',')\n        .map(|x| x.trim().trim_matches('\"').to_owned())\n        .filter(|x| !x.is_empty())\n        .collect()\n}\n\n/// 節の構成が、対応する雛形を満たすかを見る。**文書が無ければ、そう返す。**\nfn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {\n    let document = root.join(\"SKILL.md\");\n    let Ok(body) = fs::read_to_string(&document) else {\n        return vec![\"文書が無い: SKILL.md\".to_owned()];\n    };\n    let is_advisor = sections::headings(&body).iter().any(|x| x == ADVISOR_MARK);\n    let template = if is_advisor {\n        &templates.advisor\n    } else {\n        &templates.general\n    };\n    let Ok(want) = fs::read_to_string(template) else {\n        return Vec::new();\n    };\n    let name = template\n        .file_name()\n        .map_or_else(String::new, |x| x.to_string_lossy().into_owned());\n    sections::missing(&body, &want)\n        .into_iter()\n        .map(|x| format!(\"節が無い: {x} ── {name} が要求する\"))\n        .collect()\n}\n\n/// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**\n#[must_use]\npub fn has_tools(root: &Path) -> bool {\n    root.join(\"tool.json\").is_file()\n        || root.join(\"mcp.json\").is_file()\n        || root.join(TOOL).is_dir()\n        || root.join(\"rs\").is_dir()\n        || root.join(\"scripts\").is_dir()\n}\n\n/// 検査の段。\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n#[non_exhaustive]\npub enum Stage {\n    /// 入口を起動する検査。全言語で共通である。\n    Behavior,\n    /// ソースを読む検査。言語の組が持つ。\n    Source,\n    /// 文書の節の構成。\n    Document,\n}\n\n/// 検査1件の状態。**「実行しない」を合格と同じにしない。**\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n#[non_exhaustive]\npub enum State {\n    /// 満たしている。\n    Pass,\n    /// 満たしていない。\n    Fail,\n    /// 実行しない（言語の組が無い）。\n    Skip,\n}\n\n/// 検査1件。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Line {\n    /// どの段か。\n    pub stage: Stage,\n    /// 状態。\n    pub state: State,\n    /// 人が読む文。\n    pub text: String,\n}\n\nimpl Line {\n    fn new(stage: Stage, state: State, text: String) -> Self {\n        Self { stage, state, text }\n    }\n}\n\n/// 検査の結果。\n#[derive(Debug, Clone, Default)]\n#[non_exhaustive]\npub struct Report {\n    /// 検査1件ずつ。段の順に並ぶ。\n    pub lines: Vec<Line>,\n}\n\nimpl Report {\n    /// 満たしていないものの文。\n    #[must_use]\n    pub fn findings(&self) -> Vec<String> {\n        self.lines\n            .iter()\n            .filter(|l| l.state == State::Fail)\n            .map(|l| l.text.clone())\n            .collect()\n    }\n}\n\n/// 契約を満たしているかを、2段で検査する。\n#[must_use]\npub fn check(root: &Path, templates: &Templates) -> Report {\n    let mut report = Report::default();\n    // **道具を持たない Skill に、入口も層も要求しない。** 助言と手順だけの Skill が在る\n    if has_tools(root) {\n        for v in behavior::run(root) {\n            report.lines.push(match v {\n                Verdict::Pass(t) => Line::new(Stage::Behavior, State::Pass, t),\n                Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),\n            });\n        }\n        report.lines.extend(source(root, templates));\n    }\n    let missing = document(root, templates);\n    if missing.is_empty() {\n        report.lines.push(Line::new(\n            Stage::Document,\n            State::Pass,\n            \"節の構成が雛形を満たす\".to_owned(),\n        ));\n    }\n    report.lines.extend(\n        missing\n            .into_iter()\n            .map(|t| Line::new(Stage::Document, State::Fail, t)),\n    );\n    report\n}\n\n/// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。\n#[must_use]\npub fn source(root: &Path, templates: &Templates) -> Vec<Line> {\n    if root.join(TOOL).join(\"Cargo.toml\").is_file() || root.join(\"rs\").is_dir() {\n        let mut found = rust(root);\n        if behavior::contract_version(root) >= 2 {\n            found.extend(rust_refs(root, templates));\n        }\n        if found.is_empty() {\n            return vec![Line::new(\n                Stage::Source,\n                State::Pass,\n                \"Rust の組 ── 層が crate に分かれ、許可辺が宣言どおりで、部品が外部の道具の名前を直書きしていない\"\n                    .to_owned(),\n            )];\n        }\n        return found\n            .into_iter()\n            .map(|t| Line::new(Stage::Source, State::Fail, t))\n            .collect();\n    }\n    if root.join(\"scripts\").is_dir() {\n        return vec![Line::new(\n            Stage::Source,\n            State::Fail,\n            format!(\"Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ\"),\n        )];\n    }\n    vec![Line::new(\n        Stage::Source,\n        State::Skip,\n        \"実行しない ── この Skill の言語の組が無い（合格とは扱わない）\".to_owned(),\n    )]\n}\n\n/// Rust の組の、版2 の規則。**references の部品は雛形の複製である** ── Skill ごとに書き換えると、\n/// どの Skill でも同じ get ・ validate ・ view ・ import になるという契約が崩れる。\n#[must_use]\npub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {\n    let mut findings = Vec::new();\n    for need in [\"parts/src/refs.rs\", \"declare/src/refs.rs\"] {\n        if !root.join(TOOL).join(need).is_file() {\n            findings.push(format!(\n                \"references の部品が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く\"\n            ));\n        }\n    }\n    if let Some(tmpl) = &templates.refs {\n        let want = fs::read_to_string(tmpl).unwrap_or_default();\n        let have =\n            fs::read_to_string(root.join(TOOL).join(\"parts/src/refs.rs\")).unwrap_or_default();\n        if !have.is_empty() && !want.is_empty() && have != want {\n            findings.push(format!(\n                \"references の部品が雛形と違う: {TOOL}/parts/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す\"\n            ));\n        }\n    }\n    findings\n}\n\n/// 節の構成が、対応する雛形を満たすかを見る。\n#[must_use]\npub fn document(root: &Path, templates: &Templates) -> Vec<String> {\n    missing_sections(root, templates)\n}\n\n/// Rust の組の2段目。**層 ・ 許可辺 ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。\n#[must_use]\npub fn rust(root: &Path) -> Vec<String> {\n    let mut findings = Vec::new();\n    let rs = root.join(TOOL);\n    if !rs.join(\"Cargo.toml\").is_file() {\n        findings.push(format!(\n            \"層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \\\n             1つの単位の中の module では、内側が外側を参照してもコンパイラが通す\"\n        ));\n    } else {\n        let listed = members(&rs.join(\"Cargo.toml\"));\n        for need in ORDER.iter().copied().filter(|x| *x != \"entry\") {\n            if !listed.iter().any(|x| x == need) {\n                findings.push(format!(\"層の crate が無い: {TOOL}/{need}\"));\n            }\n        }\n        if !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {\n            findings.push(format!(\n                \"入口の crate が無い: {TOOL}/ に {} のどれかを置く\",\n                ENTRIES.join(\" か \")\n            ));\n        }\n        // **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する\n        for member in &listed {\n            let manifest = rs.join(member).join(\"Cargo.toml\");\n            if !manifest.is_file() {\n                findings.push(format!(\"宣言が無い: {TOOL}/{member}/Cargo.toml\"));\n                continue;\n            }\n            let Some(here) = layer_of(member) else {\n                findings.push(format!(\n                    \"どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える\",\n                    ORDER.join(\" ・ \"),\n                    ENTRIES.join(\" ・ \")\n                ));\n                continue;\n            };\n            let may = allowed(here);\n            for dep in declared(&manifest) {\n                let Some(to) = layer_of(&dep) else { continue };\n                if !may.contains(&to) {\n                    findings.push(format!(\n                        \"許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \\\n                         {here} → {to}\"\n                    ));\n                }\n            }\n        }\n        if !rs.join(TESTS).is_dir() {\n            findings.push(format!(\"事例が無い: {TOOL}/{TESTS}/\"));\n        }\n    }\n    // **Python を残さない。** 移行が済んでいない箇所を、黙って通さない\n    if root.join(\"scripts\").is_dir() {\n        findings.push(format!(\n            \"Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ\"\n        ));\n    }\n    if root.join(\"rs\").is_dir() {\n        findings.push(format!(\n            \"rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）\"\n        ));\n    }\n    let ignored = fs::read_to_string(root.join(\".gitignore\")).unwrap_or_default();\n    if !ignored\n        .lines()\n        .map(str::trim)\n        .any(|l| l == \"bin/\" || l == \"/bin/\" || l == \"bin\")\n    {\n        findings.push(format!(\n            \"{BIN}/ を git の追跡から外していない: .gitignore に {BIN}/ を書く ── \\\n             組み立てた実行ファイルは追跡しない\"\n        ));\n    }\n    findings.extend(hardcoded(root));\n    findings\n}\n\n/// 部品が外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、\n/// 宣言の層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、\n/// 試験で偽物を渡せない。\nfn hardcoded(root: &Path) -> Vec<String> {\n    let mut files = Vec::new();\n    rust_files(&root.join(TOOL), &mut files);\n    let mut findings = Vec::new();\n    for file in files {\n        let Ok(body) = fs::read_to_string(&file) else {\n            continue;\n        };\n        let at = file\n            .strip_prefix(root)\n            .unwrap_or(&file)\n            .display()\n            .to_string();\n        for name in spawned(&body).into_iter().flatten() {\n            findings.push(format!(\n                \"部品が外部の道具の名前を直書きしている: {at} ── \\\"{name}\\\"（tool.json の external に宣言し、given.external で受け取って渡す）\"\n            ));\n        }\n    }\n    findings\n}\n\n/// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**\n/// 注記の行（`//` で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。\nfn spawned(body: &str) -> Vec<Option<String>> {\n    const CALL: &str = \"Command::new(\";\n    let mut out = Vec::new();\n    for line in body.lines().filter(|l| !l.trim_start().starts_with(\"//\")) {\n        let mut rest = line;\n        while let Some(at) = rest.find(CALL) {\n            // **文字列の中に書かれたものは数えない** ── 直前が引用符なら、呼び出しではない\n            if rest[..at].ends_with('\"') {\n                rest = &rest[at + CALL.len()..];\n                continue;\n            }\n            let after = rest[at + CALL.len()..].trim_start();\n            if let Some(stripped) = after.strip_prefix('\"') {\n                out.push(Some(stripped.chars().take_while(|c| *c != '\"').collect()));\n            } else {\n                out.push(None);\n            }\n            rest = &rest[at + CALL.len()..];\n        }\n    }\n    out\n}\n\n/// Rust のファイルを集める。**組み立ての出力（target/）・ 事例（tests/）・ 開発用の例（examples/）は\n/// 見ない** ── どれも配布する実行ファイルに入らない。\nfn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {\n    let Ok(entries) = fs::read_dir(dir) else {\n        return;\n    };\n    for entry in entries.flatten() {\n        let path = entry.path();\n        let name = entry.file_name().to_string_lossy().into_owned();\n        if path.is_dir() {\n            if name != \"target\" && name != \"tests\" && name != \"examples\" {\n                rust_files(&path, out);\n            }\n        } else if name.ends_with(\".rs\") {\n            out.push(path);\n        }\n    }\n}\n",
+   "marks": [
+    {
+     "find": "//! **2段で検査する**（ACDR 0036）。1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも",
+     "before": "//! **2段で検査する**（ACDR 0036）。1段目は入口を起動して振る舞いを確認する ── どの言語でも\n//! Rust の組の2段目が見るのは、層が crate に分かれていること、**許可辺が宣言どおりで\n//! あること**、部品が外部の道具の名前を直書きしていないことである。\n//! 宣言に無い依存が解決しなくなる。\n//! **許可辺は各 `Cargo.toml` が宣言する。** この検査は宣言を読み、並びと食い違って\n//! いないかを見る ── 実際に守られているかはコンパイラが判定する。",
+     "why": "モジュールの説明の語を改めた。実行ファイルそのものを指す「入口」は「実行ファイル」、「許可辺」は「依存の向き」、「宣言に無い依存」は「Cargo.toml に書いていない依存」と呼ぶ"
+    },
+    {
+     "find": "/// 層の並び。**下から上である** ── 先頭が最も下（業務ロジック層）である。",
+     "before": "/// 層の並び。**内から外である** ── 先頭が最も内側である。\npub const ORDER: [&str; 3] = [\"parts\", \"declare\", \"entry\"];\n/// 入口の層に属する crate。**合成する側なので複数在ってよい。**\npub const TESTS: &str = \"parts/tests\";",
+     "why": "層の並びの名前を正式名へ改め、以前の名前（parts ・ declare）を RETIRED として残した。残っていれば改名が済んでいないと検出するためである"
+    },
+    {
+     "find": "/// references の実装の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**",
+     "before": "/// references の部品の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**",
+     "why": "「references の部品」は層の名前の「部品」と紛れるので、「references の実装」と呼ぶ"
+    },
+    {
+     "find": "/// references の実装の雛形を足す。",
+     "before": "/// references の部品の雛形を足す。",
+     "why": "「references の部品」は層の名前の「部品」と紛れるので、「references の実装」と呼ぶ"
+    },
+    {
+     "find": "/// その層が依存してよい層を返す。**直下の1つだけである** ── 層を飛ばすと、サービス層の",
+     "before": "/// その層が参照してよい層を返す。**並びから導く** ── 表を別に持つと、並びとずれる。\nlet at = ORDER.iter().position(|x| *x == layer);\nmatch at {\nSome(i) => ORDER[..i].to_vec(),\nNone => Vec::new(),\n/// crate の名前から、属する層を決める。\nlet tail = name.rsplit('_').next().unwrap_or(name);\nif ENTRIES.contains(&tail) {\nreturn Some(\"entry\");\nORDER.iter().copied().find(|x| *x == tail)",
+     "why": "依存してよい先を「内側のすべて」から「直下の1つ」へ狭めた。層を飛ばすと、道具の一覧を経ない呼び出し方ができる。crate の名前は層の名前そのものが _ を含むので、区切りで割らず末尾で見る"
+    },
+    {
+     "find": "/// 実行ファイルを起動する検査。全言語で共通である。",
+     "before": "/// 入口を起動する検査。全言語で共通である。",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "// **道具を持たない Skill に、実行ファイルも層も要求しない。** 助言と手順だけの Skill が在る",
+     "before": "// **道具を持たない Skill に、入口も層も要求しない。** 助言と手順だけの Skill が在る",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "\"Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、外部の道具の名前を直書きしていない\"",
+     "before": "\"Rust の組 ── 層が crate に分かれ、許可辺が宣言どおりで、部品が外部の道具の名前を直書きしていない\"",
+     "why": "「許可辺」を、レイヤードアーキテクチャの語「依存の向き」で呼ぶ"
+    },
+    {
+     "find": "/// Rust の組の、版2 の規則。**references の実装は雛形の複製である** ── Skill ごとに書き換えると、",
+     "before": "/// Rust の組の、版2 の規則。**references の部品は雛形の複製である** ── Skill ごとに書き換えると、\nfor need in [\"parts/src/refs.rs\", \"declare/src/refs.rs\"] {\n\"references の部品が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く\"\nfs::read_to_string(root.join(TOOL).join(\"parts/src/refs.rs\")).unwrap_or_default();\n\"references の部品が雛形と違う: {TOOL}/parts/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す\"",
+     "why": "「references の部品」は層の名前の「部品」と紛れるので、「references の実装」と呼ぶ"
+    },
+    {
+     "find": "/// Rust の組の2段目。**層 ・ 依存の向き ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。",
+     "before": "/// Rust の組の2段目。**層 ・ 許可辺 ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。",
+     "why": "「許可辺」を、レイヤードアーキテクチャの語「依存の向き」で呼ぶ"
+    },
+    {
+     "find": "for need in ORDER.iter().copied().filter(|x| *x != \"presentation\") {",
+     "before": "for need in ORDER.iter().copied().filter(|x| *x != \"entry\") {\n\"入口の crate が無い: {TOOL}/ に {} のどれかを置く\",\n// **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する\nfindings.push(format!(\"宣言が無い: {TOOL}/{member}/Cargo.toml\"));\n\"どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える\",\nORDER.join(\" ・ \"),",
+     "why": "プレゼンテーション層の内部の名前を entry から presentation へ改めた。検出の文も層の正式名で呼ぶ"
+    },
+    {
+     "find": "\"依存の向きに違反している: {TOOL}/{member}/Cargo.toml ── \\",
+     "before": "\"許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \\\n{here} → {to}\"",
+     "why": "検出の文を「依存の向き」で呼び、直下の層だけに依存してよいことを添えた"
+    },
+    {
+     "find": "for (old, new) in RETIRED {",
+     "before": "（無い）",
+     "why": "以前の層の名前のフォルダが残っていれば検出する。rs/ の残りと同じ形である"
+    },
+    {
+     "find": "/// 外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、",
+     "before": "/// 部品が外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、\n/// 宣言の層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、",
+     "why": "直書きの検出はすべての層を見るので、「部品が」と層を限定しない"
+    },
+    {
+     "find": "\"外部の道具の名前を直書きしている: {at} ── \\\"{name}\\\"（tool.json の external に宣言し、given.external で受け取って渡す）\"",
+     "before": "\"部品が外部の道具の名前を直書きしている: {at} ── \\\"{name}\\\"（tool.json の external に宣言し、given.external で受け取って渡す）\"",
+     "why": "直書きの検出はすべての層を見るので、「部品が」と層を限定しない"
+    },
+    {
+     "find": "join(\"business_logic/src/refs.rs\")).unwrap_or_default();",
+     "before": "fs::read_to_string(root.join(TOOL).join(\"parts/src/refs.rs\")).unwrap_or_default();",
+     "why": "references の実装の置き場所を、業務ロジック層の正式名のフォルダへ改めた"
+    },
+    {
+     "find": "\"プレゼンテーション層の crate が無い: {TOOL}/ に {} のどれかを置く\",",
+     "before": "\"入口の crate が無い: {TOOL}/ に {} のどれかを置く\",",
+     "why": "「入口」を層の正式名で呼び、「許可辺」を「依存の向き」で呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "check-tests",
+   "tab": "check.rs の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! 契約の検査を事例で検証する。\n//!\n//!     cargo test -p sc_parts\n\nuse std::path::{Path, PathBuf};\n\nuse sc_parts::behavior::{self, Verdict};\nuse sc_parts::check::{self, State, Templates};\n\nfn templates() -> Templates {\n    let skills = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"../../..\");\n    Templates::new(\n        skills.join(\"skills-creator/references/skill-template.md\"),\n        skills.join(\"advisor-creator/references/skill-template-advisor.md\"),\n    )\n}\n\nfn scratch(name: &str) -> PathBuf {\n    let dir = std::env::temp_dir().join(format!(\"sc-check-{name}\"));\n    let _ = std::fs::remove_dir_all(&dir);\n    std::fs::create_dir_all(&dir).expect(\"作れる\");\n    dir\n}\n\n/// 2段目（Rust の組）と文書の検出。**入口を起動しない** ── 層と許可辺の事例は、\n/// 実行ファイルを組まずに確かめる。\nfn found_in_source(root: &Path) -> Vec<String> {\n    let mut out = check::rust(root);\n    out.extend(check::document(root, &templates()));\n    out\n}\n\n/// 2段すべての検出。\nfn found_all(root: &Path) -> Vec<String> {\n    check::check(root, &templates()).findings()\n}\n\n/// 雛形が要求する節だけを持つ文書を置く。\nfn write_document(root: &Path) {\n    let template = std::fs::read_to_string(templates().general).expect(\"読める\");\n    let body: String = sc_parts::sections::headings(&template)\n        .iter()\n        .filter(|x| !x.contains(\"{{\"))\n        .map(|x| format!(\"## {x}\\n\\n本文\\n\\n\"))\n        .collect();\n    std::fs::write(root.join(\"SKILL.md\"), body).expect(\"書ける\");\n}\n\n/// 層を crate に分けた、契約を満たす形を置く。**道具のソースは tool/ に、実行ファイルは\n/// bin/ に置き、bin/ は git で追跡しない。**\nfn write_layers(root: &Path, edges: &[(&str, &[&str])]) {\n    std::fs::write(root.join(\".gitignore\"), \"bin/\\ntool/target/\\n\").expect(\"書ける\");\n    let rs = root.join(check::TOOL);\n    let members: Vec<String> = edges\n        .iter()\n        .map(|(name, _)| format!(\"\\\"{name}\\\"\"))\n        .collect();\n    std::fs::create_dir_all(&rs).expect(\"作れる\");\n    std::fs::write(\n        rs.join(\"Cargo.toml\"),\n        format!(\"[workspace]\\nmembers = [{}]\\n\", members.join(\", \")),\n    )\n    .expect(\"書ける\");\n    for (name, deps) in edges {\n        let dir = rs.join(name);\n        std::fs::create_dir_all(&dir).expect(\"作れる\");\n        let listed: String = deps\n            .iter()\n            .map(|d| format!(\"{d} = {{ path = \\\"../{d}\\\" }}\\n\"))\n            .collect();\n        std::fs::write(\n            dir.join(\"Cargo.toml\"),\n            format!(\"[package]\\nname = \\\"{name}\\\"\\n\\n[dependencies]\\n{listed}\"),\n        )\n        .expect(\"書ける\");\n    }\n    std::fs::create_dir_all(rs.join(check::TESTS)).expect(\"作れる\");\n}\n\nconst GOOD: [(&str, &[&str]); 3] = [\n    (\"parts\", &[]),\n    (\"declare\", &[\"parts\"]),\n    (\"cli\", &[\"declare\"]),\n];\n\n#[test]\nfn a_skill_with_layers_as_crates_passes() {\n    let root = scratch(\"ok\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    let found = found_in_source(&root);\n    assert!(found.is_empty(), \"食い違いが出た ── {found:?}\");\n}\n\n#[test]\nfn a_skill_without_tools_needs_no_layers() {\n    let root = scratch(\"advice\");\n    write_document(&root);\n    let found = found_all(&root);\n    assert!(\n        found.is_empty(),\n        \"助言だけの Skill に層を要求しない ── {found:?}\"\n    );\n}\n\n#[test]\nfn python_that_remains_is_reported() {\n    let root = scratch(\"python\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    std::fs::create_dir_all(root.join(\"scripts\")).expect(\"作れる\");\n    let found = found_all(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"Python が残っている\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn layers_that_are_not_crates_are_reported() {\n    let root = scratch(\"flat\");\n    write_document(&root);\n    std::fs::create_dir_all(root.join(\"scripts\")).expect(\"作れる\");\n    let found = found_in_source(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"crate に分かれていない\")),\n        \"1つの単位の中の module では、内側が外側を参照してもコンパイラが通す ── {found:?}\"\n    );\n}\n\n#[test]\nfn an_edge_that_goes_outward_is_reported() {\n    let root = scratch(\"outward\");\n    write_document(&root);\n    // **部品が入口を参照する宣言** ── 内から外である\n    write_layers(\n        &root,\n        &[\n            (\"parts\", &[\"cli\"]),\n            (\"declare\", &[\"parts\"]),\n            (\"cli\", &[\"declare\"]),\n        ],\n    );\n    let found = found_in_source(&root);\n    assert!(\n        found\n            .iter()\n            .any(|x| x.contains(\"許可していない辺\") && x.contains(\"parts → entry\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn an_edge_that_skips_inward_is_allowed() {\n    let root = scratch(\"skip\");\n    write_document(&root);\n    // 入口が部品を直に参照する ── 外から内なので許す\n    write_layers(\n        &root,\n        &[\n            (\"parts\", &[]),\n            (\"declare\", &[\"parts\"]),\n            (\"cli\", &[\"declare\", \"parts\"]),\n        ],\n    );\n    let found = found_in_source(&root);\n    assert!(found.is_empty(), \"外から内は許す ── {found:?}\");\n}\n\n#[test]\nfn a_missing_layer_is_reported() {\n    let root = scratch(\"missing\");\n    write_document(&root);\n    write_layers(&root, &[(\"parts\", &[]), (\"cli\", &[\"parts\"])]);\n    let found = found_in_source(&root);\n    assert!(\n        found\n            .iter()\n            .any(|x| x.contains(\"層の crate が無い\") && x.contains(\"declare\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn a_missing_entry_is_reported() {\n    let root = scratch(\"noentry\");\n    write_document(&root);\n    write_layers(&root, &[(\"parts\", &[]), (\"declare\", &[\"parts\"])]);\n    let found = found_in_source(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"入口の crate が無い\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn absent_examples_are_reported() {\n    let root = scratch(\"notests\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    std::fs::remove_dir_all(root.join(check::TOOL).join(check::TESTS)).expect(\"消せる\");\n    let found = found_in_source(&root);\n    assert!(found.iter().any(|x| x.contains(\"事例が無い\")), \"{found:?}\");\n}\n\n#[test]\nfn a_missing_section_is_reported() {\n    let root = scratch(\"section\");\n    write_layers(&root, &GOOD);\n    std::fs::write(root.join(\"SKILL.md\"), \"## 目的\\n\\n本文\\n\").expect(\"書ける\");\n    let found = found_in_source(&root);\n    assert!(found.iter().any(|x| x.contains(\"節が無い\")), \"{found:?}\");\n}\n\n#[test]\nfn an_absent_document_is_reported() {\n    let root = scratch(\"nodoc\");\n    write_layers(&root, &GOOD);\n    let found = found_in_source(&root);\n    assert!(found.iter().any(|x| x.contains(\"文書が無い\")), \"{found:?}\");\n}\n\n/// 部品に1つのファイルを置く。\nfn write_part(root: &Path, body: &str) {\n    let dir = root.join(check::TOOL).join(\"parts/src\");\n    std::fs::create_dir_all(&dir).expect(\"作れる\");\n    std::fs::write(dir.join(\"run.rs\"), body).expect(\"書ける\");\n}\n\n#[test]\nfn a_remaining_rs_folder_is_reported() {\n    // **道具のソースは tool/ に置く** ── rs/ は言語の名前で、中身の役割を示さない\n    let root = scratch(\"rs-left\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    std::fs::create_dir_all(root.join(\"rs\")).expect(\"作れる\");\n    let found = found_in_source(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"rs/ が残っている\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn bin_that_git_would_track_is_reported() {\n    // **実行ファイルは配布物だけが持つ** ── git で追跡すると、OS ごとの実行ファイルが混ざる\n    let root = scratch(\"bin-tracked\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    std::fs::write(root.join(\".gitignore\"), \"tool/target/\\n\").expect(\"書ける\");\n    let found = found_in_source(&root);\n    assert!(found.iter().any(|x| x.contains(\"bin/\")), \"{found:?}\");\n}\n\n#[test]\nfn a_call_written_inside_a_string_is_not_counted() {\n    // **文字列の中の `Command::new(` は、呼び出しではない** ── 呼び出しを探す側の定数が該当する\n    let root = scratch(\"in-string\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    write_part(&root, \"const CALL: &str = \\\"Command::new(\\\";\\n\");\n    let found = found_in_source(&root);\n    assert!(found.is_empty(), \"{found:?}\");\n}\n\n#[test]\nfn examples_are_not_shipped_so_their_tools_are_not_counted() {\n    // **cargo の examples は、配布する実行ファイルに入らない** ── 開発用の例が呼ぶ道具を、宣言に求めない\n    let root = scratch(\"examples\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    let dir = root.join(check::TOOL).join(\"parts/examples\");\n    std::fs::create_dir_all(&dir).expect(\"作れる\");\n    std::fs::write(\n        dir.join(\"bench.rs\"),\n        \"fn f() { std::process::Command::new(\\\"dot\\\"); }\\n\",\n    )\n    .expect(\"書ける\");\n    let found = found_in_source(&root);\n    assert!(found.is_empty(), \"{found:?}\");\n}\n\n#[test]\nfn what_scaffold_places_satisfies_check() {\n    // **生んだものが、そのまま契約を満たす。** 満たさないと、新しい Skill は必ず\n    // 不合格の状態で生まれる（実測 ── 契約を Rust の形へ変えたとき、雛形が Python の\n    // ままだったのでそうなった）\n    let here = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"../..\");\n    let tmpl = here.join(\"references/profiles/rust\");\n    let root = scratch(\"scaffolded\");\n    for (from, to) in [\n        (\"workspace.Cargo.toml.tmpl\", \"tool/Cargo.toml\"),\n        (\"parts.Cargo.toml.tmpl\", \"tool/parts/Cargo.toml\"),\n        (\"parts.lib.rs.tmpl\", \"tool/parts/src/lib.rs\"),\n        (\"parts.tests.rs.tmpl\", \"tool/parts/tests/example.rs\"),\n        (\"declare.Cargo.toml.tmpl\", \"tool/declare/Cargo.toml\"),\n        (\"declare.lib.rs.tmpl\", \"tool/declare/src/lib.rs\"),\n        (\"contract.rs.tmpl\", \"tool/declare/src/contract.rs\"),\n        (\"cli.Cargo.toml.tmpl\", \"tool/cli/Cargo.toml\"),\n        (\"mcp.Cargo.toml.tmpl\", \"tool/mcp/Cargo.toml\"),\n        (\"mcp.json.tmpl\", \"mcp.json\"),\n        (\"tool.json.tmpl\", \"tool.json\"),\n        (\"gitignore.tmpl\", \".gitignore\"),\n        (\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),\n        (\"declare.refs.rs.tmpl\", \"tool/declare/src/refs.rs\"),\n        (\n            \"document.schema.json.tmpl\",\n            \"references/document.schema.json\",\n        ),\n    ] {\n        let body = std::fs::read_to_string(tmpl.join(from))\n            .unwrap_or_else(|e| panic!(\"{from} を読めない ── {e}\"))\n            .replace(\"{{Skill名}}\", \"sample\")\n            .replace(\"{{接頭辞}}\", \"sample\");\n        let dst = root.join(to);\n        std::fs::create_dir_all(dst.parent().expect(\"親が在る\")).expect(\"作れる\");\n        std::fs::write(&dst, body).expect(\"書ける\");\n    }\n    write_document(&root);\n    let mut found = found_in_source(&root);\n    // **版2 の規則も満たす** ── references の部品は雛形の複製で、references はスキーマに合う\n    found.extend(check::rust_refs(\n        &root,\n        &templates().with_refs(tmpl.join(\"refs.rs.tmpl\")),\n    ));\n    found.extend(sc_parts::refs::validate(&root.join(\"references\")).expect(\"読める\"));\n    // **1段目のうち、起動せずに見られる書き方も満たす**（入口は組んでいないので起動しない）\n    found.extend(\n        behavior::declaration(&root)\n            .into_iter()\n            .filter_map(|v| match v {\n                Verdict::Fail(t) => Some(t),\n                _ => None,\n            }),\n    );\n    assert!(\n        found.is_empty(),\n        \"生んだものが契約を満たしていない ── {found:?}\"\n    );\n}\n\n#[test]\nfn a_hardcoded_tool_name_is_reported() {\n    // **部品は外部の道具の名前を直書きしない** ── tool.json に宣言し、宣言の層から注入する\n    let root = scratch(\"hardcoded\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    write_part(&root, \"fn f() { std::process::Command::new(\\\"git\\\"); }\\n\");\n    let found = found_in_source(&root);\n    assert!(\n        found\n            .iter()\n            .any(|x| x.contains(\"直書きしている\") && x.contains(\"git\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn a_command_passed_in_is_allowed() {\n    // 注入されたコマンドを起動するのは、直書きではない\n    let root = scratch(\"injected\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    write_part(\n        &root,\n        \"fn f(git: &str) { std::process::Command::new(git); }\\n\",\n    );\n    let found = found_in_source(&root);\n    assert!(found.is_empty(), \"{found:?}\");\n}\n\n/// 入口の宣言（tool.json と mcp.json）を置く。\nfn write_entries(root: &Path, tool: &str, mcp: &str) {\n    std::fs::write(root.join(\"tool.json\"), tool).expect(\"書ける\");\n    std::fs::write(root.join(\"mcp.json\"), mcp).expect(\"書ける\");\n}\n\nconst TOOL_JSON: &str =\n    r#\"{\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#;\nconst MCP_JSON: &str =\n    r#\"{\"mcpServers\":{\"fake\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake-mcp\",\"args\":[]}}}\"#;\n\n#[test]\nfn an_external_tool_without_a_reason_or_command_is_reported() {\n    let root = scratch(\"no-reason\");\n    write_entries(\n        &root,\n        r#\"{\"cli\":{\"command\":\"bin/x\"},\"external\":[{\"name\":\"git\",\"command\":\"git\",\"reason\":\"\"},{\"name\":\"aws\",\"reason\":\"音声を合成する\"}]}\"#,\n        MCP_JSON,\n    );\n    let found: Vec<String> = behavior::declaration(&root)\n        .into_iter()\n        .filter_map(|v| match v {\n            Verdict::Fail(t) => Some(t),\n            Verdict::Pass(_) => None,\n            _ => None,\n        })\n        .collect();\n    assert!(\n        found\n            .iter()\n            .any(|x| x.contains(\"理由が無い\") && x.contains(\"git\")),\n        \"{found:?}\"\n    );\n    assert!(\n        found\n            .iter()\n            .any(|x| x.contains(\"起動するコマンドが無い\") && x.contains(\"aws\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn an_absolute_path_in_the_registration_is_reported() {\n    // **登録に開発機の絶対パスを書かない** ── 別の場所では存在しない場所を指す\n    let root = scratch(\"abs\");\n    write_entries(\n        &root,\n        TOOL_JSON,\n        r#\"{\"mcpServers\":{\"x\":{\"command\":\"/home/me/x/bin/x-mcp\",\"args\":[]}}}\"#,\n    );\n    let found: Vec<String> = behavior::declaration(&root)\n        .into_iter()\n        .filter_map(|v| match v {\n            Verdict::Fail(t) => Some(t),\n            _ => None,\n        })\n        .collect();\n    assert!(found.iter().any(|x| x.contains(\"絶対パス\")), \"{found:?}\");\n}\n\n#[test]\nfn an_entry_that_is_not_built_is_reported() {\n    let root = scratch(\"not-built\");\n    write_document(&root);\n    write_entries(&root, TOOL_JSON, MCP_JSON);\n    let found = found_all(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"組み立ててから\")),\n        \"{found:?}\"\n    );\n}\n\n/// シェルで書いた入口を置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。\n#[cfg(unix)]\nfn write_shell_entries(root: &Path, flag_exit: i32, mcp_args: &str) {\n    use std::os::unix::fs::PermissionsExt as _;\n    let bin = root.join(\"bin\");\n    std::fs::create_dir_all(&bin).expect(\"作れる\");\n    let cli = format!(\n        r#\"#!/bin/sh\ncase \"$1\" in\n  --json) printf '{{\"ok\":true,\"findings\":[],\"data\":{{\"tools\":[{{\"name\":\"run\",\"args\":[{{\"name\":\"path\"}}]}}],\"skill_root\":\"%s\"}}}}\\n' \"$(cd \"$(dirname \"$0\")/..\" && pwd)\"; exit 0;;\n  *) exit {flag_exit};;\nesac\n\"#\n    );\n    let mcp = format!(\n        r#\"#!/bin/sh\nwhile IFS= read -r line; do\n  case \"$line\" in\n    *'\"initialize\"'*) printf '{{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{{\"tools\":{{}}}},\"serverInfo\":{{\"name\":\"fake\",\"version\":\"1\"}}}}}}\\n';;\n    *'\"tools/list\"'*) printf '{{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{{\"tools\":[{{\"name\":\"run\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{{mcp_args}}}}}}}]}}}}\\n';;\n  esac\ndone\n\"#\n    );\n    for (name, body) in [(\"fake\", cli), (\"fake-mcp\", mcp)] {\n        let path = bin.join(name);\n        std::fs::write(&path, body).expect(\"書ける\");\n        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))\n            .expect(\"変えられる\");\n    }\n    write_entries(root, TOOL_JSON, MCP_JSON);\n}\n\n#[cfg(unix)]\n#[test]\nfn a_skill_written_in_shell_passes_the_first_stage_and_the_second_is_not_run() {\n    let root = scratch(\"shell\");\n    write_document(&root);\n    write_shell_entries(&root, 2, r#\"\"path\":{\"type\":\"string\"}\"#);\n    let report = check::check(&root, &templates());\n    assert!(report.findings().is_empty(), \"{:?}\", report.findings());\n    assert!(\n        report\n            .lines\n            .iter()\n            .any(|l| l.state == State::Skip && l.text.contains(\"言語の組が無い\")),\n        \"組が無い言語では、2段目を実行しないと出す ── {:?}\",\n        report.lines\n    );\n}\n\n#[cfg(unix)]\n#[test]\nfn mcp_tools_that_differ_from_the_cli_are_reported() {\n    // **能力を2か所に書いた実装は、CLI と MCP で食い違う**\n    let root = scratch(\"differ\");\n    write_document(&root);\n    write_shell_entries(&root, 2, r#\"\"target\":{\"type\":\"string\"}\"#);\n    let found = found_all(&root);\n    assert!(found.iter().any(|x| x.contains(\"食い違う\")), \"{found:?}\");\n}\n\n#[cfg(unix)]\n#[test]\nfn a_cli_that_accepts_an_unknown_flag_is_reported() {\n    let root = scratch(\"lenient\");\n    write_document(&root);\n    write_shell_entries(&root, 0, r#\"\"path\":{\"type\":\"string\"}\"#);\n    let found = found_all(&root);\n    assert!(\n        found.iter().any(|x| x.contains(\"旗を断らない\")),\n        \"{found:?}\"\n    );\n}\n\n#[test]\nfn a_version_two_skill_without_the_references_parts_is_reported() {\n    // **版2 の規則は、版2 の Skill にだけ当てる** ── 移行していない Skill は、これまでの規則のまま\n    let root = scratch(\"v2-missing\");\n    write_document(&root);\n    write_layers(&root, &GOOD);\n    assert!(\n        check::rust_refs(&root, &templates()).len() == 2,\n        \"部品が2つとも無い\"\n    );\n    std::fs::write(\n        root.join(\"tool.json\"),\n        r#\"{\"contract\": 2, \"cli\": {\"command\": \"bin/x\"}, \"external\": []}\"#,\n    )\n    .expect(\"書ける\");\n    let lines = check::source(&root, &templates());\n    assert!(\n        lines\n            .iter()\n            .any(|l| l.state == State::Fail && l.text.contains(\"references の部品が無い\")),\n        \"{lines:?}\"\n    );\n    std::fs::write(\n        root.join(\"tool.json\"),\n        r#\"{\"cli\": {\"command\": \"bin/x\"}, \"external\": []}\"#,\n    )\n    .expect(\"書ける\");\n    let lines = check::source(&root, &templates());\n    assert!(\n        lines.iter().all(|l| l.state != State::Fail),\n        \"版1 には当てない ── {lines:?}\"\n    );\n}\n",
+   "marks": [
+    {
+     "find": "//!     cargo test -p sc_business_logic",
+     "before": "//!     cargo test -p sc_parts\nuse sc_parts::behavior::{self, Verdict};\nuse sc_parts::check::{self, State, Templates};",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "/// 2段目（Rust の組）と文書の検出。**実行ファイルを起動しない** ── 層と依存の向きの事例は、",
+     "before": "/// 2段目（Rust の組）と文書の検出。**入口を起動しない** ── 層と許可辺の事例は、",
+     "why": "「許可辺」を、レイヤードアーキテクチャの語「依存の向き」で呼ぶ"
+    },
+    {
+     "find": "let body: String = sc_business_logic::sections::headings(&template)",
+     "before": "let body: String = sc_parts::sections::headings(&template)",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "(\"business_logic\", &[]),",
+     "before": "(\"parts\", &[]),\n(\"declare\", &[\"parts\"]),\n(\"cli\", &[\"declare\"]),",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "// **業務ロジック層がプレゼンテーション層を参照する** ── 下から上である",
+     "before": "// **部品が入口を参照する宣言** ── 内から外である\n(\"parts\", &[\"cli\"]),\n(\"declare\", &[\"parts\"]),\n(\"cli\", &[\"declare\"]),\n.any(|x| x.contains(\"許可していない辺\") && x.contains(\"parts → entry\")),\nfn an_edge_that_skips_inward_is_allowed() {\n// 入口が部品を直に参照する ── 外から内なので許す\n(\"parts\", &[]),\n(\"declare\", &[\"parts\"]),\n(\"cli\", &[\"declare\", \"parts\"]),\nassert!(found.is_empty(), \"外から内は許す ── {found:?}\");\nwrite_layers(&root, &[(\"parts\", &[]), (\"cli\", &[\"parts\"])]);\n.any(|x| x.contains(\"層の crate が無い\") && x.contains(\"declare\")),",
+     "why": "層を飛ばす依存を「許す」事例を「検出する」事例へ反転し、以前の層の名前の残りを検出する事例を加えた"
+    },
+    {
+     "find": "write_layers(&root, &[(\"business_logic\", &[]), (\"service\", &[\"business_logic\"])]);",
+     "before": "write_layers(&root, &[(\"parts\", &[]), (\"declare\", &[\"parts\"])]);\nfound.iter().any(|x| x.contains(\"入口の crate が無い\")),",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "/// 業務ロジック層に1つのファイルを置く。",
+     "before": "/// 部品に1つのファイルを置く。\nlet dir = root.join(check::TOOL).join(\"parts/src\");",
+     "why": "「部品」を、層の正式名「業務ロジック層」で呼ぶ"
+    },
+    {
+     "find": "// **cargo の examples は、配布する実行ファイルに入らない** ── 開発用の例が呼ぶ道具を、tool.json に求めない",
+     "before": "// **cargo の examples は、配布する実行ファイルに入らない** ── 開発用の例が呼ぶ道具を、宣言に求めない\nlet dir = root.join(check::TOOL).join(\"parts/examples\");",
+     "why": "開発用の例が呼ぶ道具を登録する先は tool.json である。「宣言」は何を指すかが読み取れなかった"
+    },
+    {
+     "find": "(\"business_logic.Cargo.toml.tmpl\", \"tool/business_logic/Cargo.toml\"),",
+     "before": "(\"parts.Cargo.toml.tmpl\", \"tool/parts/Cargo.toml\"),\n(\"parts.lib.rs.tmpl\", \"tool/parts/src/lib.rs\"),\n(\"parts.tests.rs.tmpl\", \"tool/parts/tests/example.rs\"),\n(\"declare.Cargo.toml.tmpl\", \"tool/declare/Cargo.toml\"),\n(\"declare.lib.rs.tmpl\", \"tool/declare/src/lib.rs\"),\n(\"contract.rs.tmpl\", \"tool/declare/src/contract.rs\"),\n(\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),\n(\"declare.refs.rs.tmpl\", \"tool/declare/src/refs.rs\"),",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "// **版2 の規則も満たす** ── references の実装は雛形の複製で、references はスキーマに合う",
+     "before": "// **版2 の規則も満たす** ── references の部品は雛形の複製で、references はスキーマに合う\nfound.extend(sc_parts::refs::validate(&root.join(\"references\")).expect(\"読める\"));\n// **1段目のうち、起動せずに見られる書き方も満たす**（入口は組んでいないので起動しない）",
+     "why": "「references の部品」は層の名前の「部品」と紛れるので、「references の実装」と呼ぶ"
+    },
+    {
+     "find": "// **業務ロジック層は外部の道具の名前を直書きしない** ── tool.json に宣言し、サービス層から注入する",
+     "before": "// **部品は外部の道具の名前を直書きしない** ── tool.json に宣言し、宣言の層から注入する",
+     "why": "「宣言」を、層の正式名「サービス層」で呼ぶ"
+    },
+    {
+     "find": "/// 起動のコマンドの登録（tool.json と mcp.json）を置く。",
+     "before": "/// 入口の宣言（tool.json と mcp.json）を置く。",
+     "why": "tool.json と mcp.json は起動のコマンドを登録する。「入口の宣言」は何を指すかが読み取れなかった"
+    },
+    {
+     "find": "/// シェルで書いた実行ファイルを置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。",
+     "before": "/// シェルで書いた入口を置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "fn a_version_two_skill_without_the_references_implementation_is_reported() {",
+     "before": "fn a_version_two_skill_without_the_references_parts_is_reported() {\n\"部品が2つとも無い\"",
+     "why": "「references の部品」を「references の実装」と呼ぶので、事例の名前もそろえた"
+    },
+    {
+     "find": ".any(|l| l.state == State::Fail && l.text.contains(\"references の実装が無い\")),",
+     "before": ".any(|l| l.state == State::Fail && l.text.contains(\"references の部品が無い\")),",
+     "why": "「references の部品」は層の名前の「部品」と紛れるので、「references の実装」と呼ぶ"
+    },
+    {
+     "find": "x.contains(\"business_logic → presentation\")",
+     "before": ".any(|x| x.contains(\"許可していない辺\") && x.contains(\"parts → entry\")),",
+     "why": "検出の文と層の名前を改めた。続く事例は、層を飛ばす依存を「許す」から「検出する」へ反転した"
+    },
+    {
+     "find": "write_layers(&root, &[(\"business_logic\", &[]), (\"cli\", &[\"business_logic\"])]);",
+     "before": "write_layers(&root, &[(\"parts\", &[]), (\"cli\", &[\"parts\"])]);",
+     "why": "事例の crate の名前を、層の正式名へ改めた"
+    },
+    {
+     "find": "\"references の実装が2つとも無い\"",
+     "before": "\"部品が2つとも無い\"",
+     "why": "「references の部品」を「references の実装」と呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! skills-creator の道具の宣言。**能力の正本はここである。**\n//!\n//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。\n\npub mod contract;\n\nuse std::path::{Path, PathBuf};\n\nuse sc_parts::{check, scaffold};\nuse serde_json::json;\n\npub use contract::{catalog, Arg, Given, Outcome, Tool};\n\n/// Skill の置き場所が見つからなければ、誤用として返す。**黙って「.」へ寄せない** ──\n/// 実行した場所で結果が変わり、契約を読めずに止まる（ACDR 0019 ・ 0029）。\nmacro_rules! or_misuse {\n    ($e:expr) => {\n        match $e {\n            Ok(v) => v,\n            Err(why) => return Outcome::misuse(why),\n        }\n    };\n}\n\n/// 雛形の置き場所。**この crate が Skill の並びを知る唯一の場所である。**\nfn templates(here: &Path) -> check::Templates {\n    let references = here.join(\"references\");\n    let advisor = here.parent().map_or_else(\n        || references.join(\"skill-template-advisor.md\"),\n        |skills| skills.join(\"advisor-creator/references/skill-template-advisor.md\"),\n    );\n    check::Templates::new(references.join(\"skill-template.md\"), advisor)\n        .with_refs(references.join(\"profiles/rust/refs.rs.tmpl\"))\n}\n\n/// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の\n/// 置き場所に依存する。引数で受け取り、渡されなければいま作業している場所を使う。\nfn skill_root(given: &Given) -> Result<PathBuf, String> {\n    given.skill_root()\n}\n\nfn run_check(given: &Given) -> Outcome {\n    let root = PathBuf::from(given.one(\"path\", \"\"));\n    if root.as_os_str().is_empty() {\n        return Outcome::misuse(\"Skill のフォルダを渡していない\".to_owned());\n    }\n    let report = check::check(&root, &templates(&or_misuse!(skill_root(given))));\n    let lines: Vec<serde_json::Value> = report\n        .lines\n        .iter()\n        .map(|l| {\n            json!({\n                \"stage\": match l.stage {\n                    check::Stage::Behavior => \"behavior\",\n                    check::Stage::Source => \"source\",\n                    _ => \"document\",\n                },\n                \"state\": match l.state {\n                    check::State::Pass => \"pass\",\n                    check::State::Fail => \"fail\",\n                    _ => \"skip\",\n                },\n                \"text\": l.text,\n            })\n        })\n        .collect();\n    Outcome::found(\n        report.findings(),\n        json!({ \"root\": root.display().to_string(), \"lines\": lines }),\n    )\n}\n\n/// 段ごとに、1件1行で並べる。**「実行しない」を合格の印で出さない。**\nfn human_check(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    let lines = out\n        .data\n        .get(\"lines\")\n        .and_then(|x| x.as_array())\n        .cloned()\n        .unwrap_or_default();\n    let field = |l: &serde_json::Value, k: &str| {\n        l.get(k)\n            .and_then(|x| x.as_str())\n            .unwrap_or_default()\n            .to_owned()\n    };\n    let mut text = Vec::new();\n    for (stage, head) in [\n        (\"behavior\", \"1段目（振る舞い）\"),\n        (\"source\", \"2段目（ソース）\"),\n        (\"document\", \"文書\"),\n    ] {\n        let here: Vec<&serde_json::Value> = lines\n            .iter()\n            .filter(|l| field(l, \"stage\") == stage)\n            .collect();\n        if here.is_empty() {\n            continue;\n        }\n        text.push(head.to_owned());\n        for l in here {\n            let mark = match field(l, \"state\").as_str() {\n                \"pass\" => \"OK\",\n                \"fail\" => \"×\",\n                _ => \"－\",\n            };\n            text.push(format!(\"  {mark}  {}\", field(l, \"text\")));\n        }\n    }\n    text.join(\"\\n\")\n}\n\n/// 置く一式を組む。**何を置くかはここが決める** ── 部品は並びを認知しない。\n///\n/// **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても\n/// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、宣言に無い依存が\n/// 解決しなくなる。\nfn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {\n    let tmpl = here.join(\"references/profiles/rust\");\n    let read = |name: &str| std::fs::read_to_string(tmpl.join(name));\n    // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う。\n    // 語が1つなら頭の3文字を採る ── 1文字では、他の crate と見分けがつかない\n    let words: Vec<&str> = skill.split('-').filter(|w| !w.is_empty()).collect();\n    let prefix: String = if words.len() >= 2 {\n        words.iter().filter_map(|w| w.chars().next()).collect()\n    } else {\n        words\n            .first()\n            .map_or_else(String::new, |w| w.chars().take(3).collect())\n    };\n    let fill = |body: String| {\n        body.replace(\"{{Skill名}}\", skill)\n            .replace(\"{{接頭辞}}\", &prefix)\n    };\n    let mut out = Vec::new();\n    // **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない\n    for (from, to) in [\n        (\"workspace.Cargo.toml.tmpl\", \"tool/Cargo.toml\"),\n        (\"parts.Cargo.toml.tmpl\", \"tool/parts/Cargo.toml\"),\n        (\"parts.lib.rs.tmpl\", \"tool/parts/src/lib.rs\"),\n        (\"parts.tests.rs.tmpl\", \"tool/parts/tests/example.rs\"),\n        (\"declare.Cargo.toml.tmpl\", \"tool/declare/Cargo.toml\"),\n        (\"declare.lib.rs.tmpl\", \"tool/declare/src/lib.rs\"),\n        (\"contract.rs.tmpl\", \"tool/declare/src/contract.rs\"),\n        (\"cli.Cargo.toml.tmpl\", \"tool/cli/Cargo.toml\"),\n        (\"cli.main.rs.tmpl\", \"tool/cli/src/main.rs\"),\n        (\"mcp.Cargo.toml.tmpl\", \"tool/mcp/Cargo.toml\"),\n        (\"mcp.main.rs.tmpl\", \"tool/mcp/src/main.rs\"),\n        (\"mcp.json.tmpl\", \"mcp.json\"),\n        (\"tool.json.tmpl\", \"tool.json\"),\n        (\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),\n        (\"declare.refs.rs.tmpl\", \"tool/declare/src/refs.rs\"),\n        (\n            \"document.schema.json.tmpl\",\n            \"references/document.schema.json\",\n        ),\n        (\"gitignore.tmpl\", \".gitignore\"),\n    ] {\n        out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));\n    }\n    Ok(out)\n}\n\nfn run_scaffold(given: &Given) -> Outcome {\n    let skill = given.one(\"skill\", \"\");\n    if skill.is_empty() {\n        return Outcome::misuse(\"Skill の名前を渡していない\".to_owned());\n    }\n    let here = or_misuse!(skill_root(given));\n    let root = PathBuf::from(given.one(\"path\", \".claude/skills\")).join(skill);\n    let items = match items(skill, &here) {\n        Ok(items) => items,\n        Err(e) => return Outcome::misuse(format!(\"雛形を読めない ── {e}\")),\n    };\n    let placed = match scaffold::place(&root, &items) {\n        Ok(placed) => placed,\n        Err(e) => return Outcome::misuse(format!(\"置けない ── {e}\")),\n    };\n    let findings = placed\n        .kept\n        .iter()\n        .map(|k| format!(\"既に在るので残した: {k}\"))\n        .collect();\n    Outcome::found(\n        findings,\n        json!({ \"written\": placed.written, \"root\": root.display().to_string() }),\n    )\n}\n\nfn human_scaffold(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    let written = out\n        .data\n        .get(\"written\")\n        .and_then(|x| x.as_array())\n        .cloned()\n        .unwrap_or_default();\n    let mut lines: Vec<String> = written\n        .iter()\n        .filter_map(|x| x.as_str())\n        .map(|p| format!(\"置いた: {p}\"))\n        .collect();\n    lines.extend(out.findings.iter().cloned());\n    lines.push(\n        \"次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を tool/parts/src/ へ置く\".to_owned(),\n    );\n    lines.push(\n        \"組む ── Skill のフォルダで cargo install --path tool/cli --root . --target-dir tool/target（mcp も同じ）。bin/ に置かれる\"\n            .to_owned(),\n    );\n    lines.join(\"\\n\")\n}\n\n/// 配布元のリポジトリに置く一式。**導入スクリプトと組み立ての定義は、配布元に1つずつ置く**\n/// ── Skill ごとに複製すると、直しても既存の Skill に反映されない（ACDR 0029）。\nfn dist_items(repo: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {\n    let tmpl = here.join(\"references/distribution\");\n    let mut out = Vec::new();\n    for (from, to) in [\n        (\"install.sh.tmpl\", \"install.sh\"),\n        (\"install.ps1.tmpl\", \"install.ps1\"),\n        (\"release.yml.tmpl\", \".github/workflows/release.yml\"),\n    ] {\n        let body = std::fs::read_to_string(tmpl.join(from))?.replace(\"{{配布元}}\", repo);\n        out.push(scaffold::Item::keep(PathBuf::from(to), body));\n    }\n    Ok(out)\n}\n\nfn run_dist(given: &Given) -> Outcome {\n    let repo = given.one(\"repo\", \"\");\n    if repo.split('/').filter(|x| !x.is_empty()).count() != 2 {\n        return Outcome::misuse(format!(\"配布元を 所有者/リポジトリ の形で渡す ── {repo}\"));\n    }\n    let here = or_misuse!(skill_root(given));\n    let root = PathBuf::from(given.one(\"path\", \".\"));\n    let items = match dist_items(repo, &here) {\n        Ok(items) => items,\n        Err(e) => return Outcome::misuse(format!(\"雛形を読めない ── {e}\")),\n    };\n    let placed = match scaffold::place(&root, &items) {\n        Ok(placed) => placed,\n        Err(e) => return Outcome::misuse(format!(\"置けない ── {e}\")),\n    };\n    let findings = placed\n        .kept\n        .iter()\n        .map(|k| format!(\"既に在るので残した: {k}\"))\n        .collect();\n    Outcome::found(\n        findings,\n        json!({ \"written\": placed.written, \"root\": root.display().to_string() }),\n    )\n}\n\nfn human_dist(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    let mut lines: Vec<String> = out\n        .data\n        .get(\"written\")\n        .and_then(|x| x.as_array())\n        .cloned()\n        .unwrap_or_default()\n        .iter()\n        .filter_map(|x| x.as_str())\n        .map(|p| format!(\"置いた: {p}\"))\n        .collect();\n    lines.extend(out.findings.iter().cloned());\n    lines.push(\n        \"公開 ── tag <Skill の名前>-v<版> を push すると、その Skill だけを組み立て ・ 試験 ・ 公開する（v<版> は全部をまとめて公開する）\".to_owned(),\n    );\n    lines.join(\"\\n\")\n}\n\n/// 道具の一覧。**能力の正本である。**\n#[must_use]\npub fn tools() -> Vec<Tool> {\n    vec![\n        Tool {\n            name: \"scaffold\",\n            summary: \"道具の契約一式を、Skill のフォルダへ置く\",\n            args: vec![\n                Arg::need(\"skill\", \"Skill の名前\"),\n                Arg::opt(\"path\", \"置き場所\", Some(\".claude/skills\")),\n                Arg::opt(\n                    \"skill_root\",\n                    \"この Skill の置き場所（既定は、実行ファイルの1つ上）\",\n                    None,\n                ),\n            ],\n            run: run_scaffold,\n            human: human_scaffold,\n        },\n        Tool {\n            name: \"check\",\n            summary: \"契約を満たしているかを検査する\",\n            args: vec![\n                Arg::need(\"path\", \"Skill のフォルダ\"),\n                Arg::opt(\n                    \"skill_root\",\n                    \"この Skill の置き場所（既定は、実行ファイルの1つ上）\",\n                    None,\n                ),\n            ],\n            run: run_check,\n            human: human_check,\n        },\n        Tool {\n            name: \"dist\",\n            summary: \"配布元のリポジトリに、導入スクリプトと組み立ての定義を置く\",\n            args: vec![\n                Arg::need(\"repo\", \"配布元（所有者/リポジトリ）\"),\n                Arg::opt(\"path\", \"配布元のリポジトリの場所\", Some(\".\")),\n                Arg::opt(\n                    \"skill_root\",\n                    \"この Skill の置き場所（既定は、実行ファイルの1つ上）\",\n                    None,\n                ),\n            ],\n            run: run_dist,\n            human: human_dist,\n        },\n    ]\n}\n",
+   "marks": [
+    {
+     "find": "//! skills-creator のサービス層。道具の一覧を持ち、**能力の正本はここである。**",
+     "before": "//! skills-creator の道具の宣言。**能力の正本はここである。**\n//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。\nuse sc_parts::{check, scaffold};",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "/// 置く一式を組む。**何を置くかはここが決める** ── 業務ロジック層は並びを認知しない。",
+     "before": "/// 置く一式を組む。**何を置くかはここが決める** ── 部品は並びを認知しない。\n/// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、宣言に無い依存が",
+     "why": "「部品」を、層の正式名「業務ロジック層」で呼ぶ"
+    },
+    {
+     "find": "(\"business_logic.Cargo.toml.tmpl\", \"tool/business_logic/Cargo.toml\"),",
+     "before": "(\"parts.Cargo.toml.tmpl\", \"tool/parts/Cargo.toml\"),\n(\"parts.lib.rs.tmpl\", \"tool/parts/src/lib.rs\"),\n(\"parts.tests.rs.tmpl\", \"tool/parts/tests/example.rs\"),\n(\"declare.Cargo.toml.tmpl\", \"tool/declare/Cargo.toml\"),\n(\"declare.lib.rs.tmpl\", \"tool/declare/src/lib.rs\"),\n(\"contract.rs.tmpl\", \"tool/declare/src/contract.rs\"),\n(\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),\n(\"declare.refs.rs.tmpl\", \"tool/declare/src/refs.rs\"),",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "\"次に書くもの ── 差し込む場所（{{…}}）を埋め、業務ロジック層の関数を tool/business_logic/src/ へ置く\".to_owned(),",
+     "before": "\"次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を tool/parts/src/ へ置く\".to_owned(),",
+     "why": "crate とフォルダの名前を、層の正式名（business_logic ・ service）へ改めた"
+    },
+    {
+     "find": "(\"refs.rs.tmpl\", \"tool/business_logic/src/refs.rs\"),",
+     "before": "(\"refs.rs.tmpl\", \"tool/parts/src/refs.rs\"),\n(\"declare.refs.rs.tmpl\", \"tool/declare/src/refs.rs\"),",
+     "why": "雛形のファイル名と置き先を、層の正式名へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! 1段目の検査 ── **入口を起動して、振る舞いを見る。** どの言語で書いた Skill でも同じである。\n//!\n//! 読むのは2つのファイルだけである ── `tool.json`（CLI の起動のコマンドと外部の道具）と\n//! `mcp.json`（MCP の起動のコマンド。ホストの形式）。ソースは読まない ── ソースを読む検査は、\n//! 言語の組が持つ（2段目）。\n\nuse std::io::{BufRead as _, BufReader, Read as _, Write as _};\nuse std::path::{Path, PathBuf};\nuse std::process::{Child, Command, Stdio};\nuse std::sync::mpsc;\nuse std::time::{Duration, Instant};\n\nuse serde_json::{json, Value};\n\n/// 起動のコマンドの中の、プロジェクトの場所を指す書き方。**ホスト（Claude Code）が展開する。**\npub const PROJECT_DIR: &str = \"${CLAUDE_PROJECT_DIR:-.}\";\n\n/// 利用者が実行時に指定する外部の道具を表す名前。**command を持たない。**\npub const USER_CHOSEN: &str = \"*\";\n\n/// 契約の版2 で、どの Skill も持つ references の道具。\npub const REFS_TOOLS: [&str; 4] = [\"get\", \"validate\", \"view\", \"import\"];\n\n/// 契約の版を読む。**`tool.json` の contract の欄。無ければ 1 である。**\n#[must_use]\npub fn contract_version(root: &Path) -> u64 {\n    read_json(&root.join(\"tool.json\"))\n        .ok()\n        .and_then(|d| d.get(\"contract\").and_then(Value::as_u64))\n        .unwrap_or(1)\n}\n\n/// `validate` を起動し、references がスキーマに合うかを見る。\nfn references_pass(command: &Path, args: &[String]) -> Verdict {\n    let mut with = args.to_vec();\n    with.extend([\"validate\".to_owned(), \"--json\".to_owned()]);\n    match output(command, &with, &std::env::temp_dir()) {\n        Ok((0, _)) => Verdict::Pass(\"references の JSON がスキーマに合う\".to_owned()),\n        Ok((_, text)) => {\n            let found: Vec<String> = serde_json::from_str::<Value>(text.trim())\n                .ok()\n                .and_then(|d| d.get(\"findings\").and_then(Value::as_array).cloned())\n                .unwrap_or_default()\n                .iter()\n                .filter_map(|x| x.as_str().map(str::to_owned))\n                .collect();\n            Verdict::Fail(format!(\n                \"references がスキーマに合わない ── {}\",\n                found.join(\" ／ \")\n            ))\n        }\n        Err(why) => Verdict::Fail(why),\n    }\n}\n\n/// 入口1回の起動に待つ時間。**止まった入口を、永久に待たない。**\nconst LIMIT: Duration = Duration::from_secs(30);\n\n/// 宣言に無い旗の名前。**検査のためだけの名前で、どの道具も受けない。**\nconst NO_SUCH_FLAG: &str = \"--no-such-flag-for-check\";\n\n/// 検査1件の結果。\n#[derive(Debug, Clone, PartialEq, Eq)]\n#[non_exhaustive]\npub enum Verdict {\n    /// 満たしている。\n    Pass(String),\n    /// 満たしていない。\n    Fail(String),\n}\n\n/// `tool.json` と `mcp.json` を読み、書き方だけを見る。**起動はしない。**\n#[must_use]\npub fn declaration(root: &Path) -> Vec<Verdict> {\n    let mut out = Vec::new();\n    match read_json(&root.join(\"tool.json\")) {\n        Err(why) => out.push(Verdict::Fail(format!(\n            \"tool.json が無いか読めない ── {why}（CLI の起動のコマンドと外部の道具を書く）\"\n        ))),\n        Ok(doc) => {\n            let cli = doc\n                .pointer(\"/cli/command\")\n                .and_then(Value::as_str)\n                .unwrap_or_default();\n            if cli.is_empty() {\n                out.push(Verdict::Fail(\n                    \"tool.json に cli.command が無い ── CLI の起動のコマンドを書く\".to_owned(),\n                ));\n            } else if is_absolute(cli) {\n                out.push(Verdict::Fail(format!(\n                    \"登録に絶対パスがある: tool.json の cli ── {cli}（別の場所では存在しない場所を指す）\"\n                )));\n            }\n            for item in doc\n                .get(\"external\")\n                .and_then(Value::as_array)\n                .into_iter()\n                .flatten()\n            {\n                let field = |k: &str| item.get(k).and_then(Value::as_str).unwrap_or_default();\n                let name = field(\"name\");\n                if field(\"reason\").trim().is_empty() {\n                    out.push(Verdict::Fail(format!(\n                        \"外部の道具に理由が無い: {name}（tool.json の external）── 目的に不可欠である理由を書く\"\n                    )));\n                }\n                if name != USER_CHOSEN && field(\"command\").trim().is_empty() {\n                    out.push(Verdict::Fail(format!(\n                        \"外部の道具に起動するコマンドが無い: {name}（tool.json の external）\"\n                    )));\n                }\n            }\n        }\n    }\n    match read_json(&root.join(\"mcp.json\")) {\n        Err(why) => out.push(Verdict::Fail(format!(\"mcp.json が無いか読めない ── {why}\"))),\n        Ok(doc) => {\n            for (name, server) in doc\n                .get(\"mcpServers\")\n                .and_then(Value::as_object)\n                .into_iter()\n                .flatten()\n            {\n                let command = server\n                    .get(\"command\")\n                    .and_then(Value::as_str)\n                    .unwrap_or_default();\n                if is_absolute(command) {\n                    out.push(Verdict::Fail(format!(\n                        \"登録に絶対パスがある: mcp.json の {name} ── {command}（別の場所では存在しない場所を指す）\"\n                    )));\n                }\n            }\n        }\n    }\n    if !out.iter().any(|v| matches!(v, Verdict::Fail(_))) {\n        out.push(Verdict::Pass(\n            \"tool.json と mcp.json が在り、経路が絶対パスでない\".to_owned(),\n        ));\n    }\n    out\n}\n\n/// 入口を起動して、振る舞いを見る。**書き方に誤りが在れば、起動しない。**\n#[must_use]\npub fn run(root: &Path) -> Vec<Verdict> {\n    let mut out = declaration(root);\n    if out.iter().any(|v| matches!(v, Verdict::Fail(_))) {\n        return out;\n    }\n    let (Ok(tool), Ok(mcp)) = (\n        read_json(&root.join(\"tool.json\")),\n        read_json(&root.join(\"mcp.json\")),\n    ) else {\n        return out;\n    };\n    let cli = launch(root, tool.get(\"cli\").unwrap_or(&Value::Null));\n    let catalog = match cli\n        .as_ref()\n        .map_err(Clone::clone)\n        .and_then(|(c, a)| catalog(c, a))\n    {\n        Err(why) => {\n            out.push(Verdict::Fail(why));\n            return out;\n        }\n        Ok(catalog) => catalog,\n    };\n    let names = tool_names(&catalog);\n    out.push(Verdict::Pass(format!(\n        \"動詞なしの --json で宣言を返す（道具 {}件）\",\n        names.len()\n    )));\n    out.push(skill_root_matches(root, &catalog));\n    if let (Ok((command, args)), Some(first)) = (&cli, names.first()) {\n        out.push(refuses_unknown_flag(command, args, first));\n    }\n    // **版2 の規則**（ACDR 0043）── references の4つの道具を持ち、references がスキーマに合う\n    if contract_version(root) >= 2 {\n        let missing: Vec<&str> = REFS_TOOLS\n            .iter()\n            .copied()\n            .filter(|t| !names.iter().any(|n| n == t))\n            .collect();\n        if missing.is_empty() {\n            out.push(Verdict::Pass(\n                \"references の4つの道具（get ・ validate ・ view ・ import）を持つ\".to_owned(),\n            ));\n            if let Ok((command, args)) = &cli {\n                out.push(references_pass(command, args));\n            }\n        } else {\n            out.push(Verdict::Fail(format!(\n                \"references の道具が無い: {} ── 契約の版2 は get ・ validate ・ view ・ import を求める\",\n                missing.join(\" ・ \")\n            )));\n        }\n    }\n    let servers: Vec<(String, Value)> = mcp\n        .get(\"mcpServers\")\n        .and_then(Value::as_object)\n        .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())\n        .unwrap_or_default();\n    if servers.is_empty() {\n        out.push(Verdict::Fail(\n            \"mcp.json に mcpServers が無い ── MCP の起動のコマンドを書く\".to_owned(),\n        ));\n    }\n    for (name, server) in servers {\n        out.push(match launch(root, &server) {\n            Err(why) => Verdict::Fail(why),\n            Ok((command, args)) => same_tools(&name, &command, &args, &catalog),\n        });\n    }\n    out\n}\n\nfn read_json(path: &Path) -> Result<Value, String> {\n    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;\n    serde_json::from_str(&text).map_err(|e| format!(\"JSON でない ── {e}\"))\n}\n\n/// 絶対パスか。**Windows の書き方も含める** ── `C:\\\\…` ・ `C:/…`\n#[must_use]\npub fn is_absolute(command: &str) -> bool {\n    let bytes = command.as_bytes();\n    command.starts_with('/')\n        || command.starts_with('~')\n        || (bytes.len() > 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')\n}\n\n/// 起動のコマンドと引数を、この機械の上の経路へ解く。**プロジェクトの場所は、Skill の\n/// フォルダから上へたどり、コマンドが実在する場所を採る** ── ホストが展開する値を、\n/// 検査の側で推測しない。\nfn launch(root: &Path, entry: &Value) -> Result<(PathBuf, Vec<String>), String> {\n    let command = entry\n        .get(\"command\")\n        .and_then(Value::as_str)\n        .unwrap_or_default();\n    let args: Vec<String> = entry\n        .get(\"args\")\n        .and_then(Value::as_array)\n        .into_iter()\n        .flatten()\n        .filter_map(|x| x.as_str().map(str::to_owned))\n        .collect();\n    let Some(rest) = command.strip_prefix(PROJECT_DIR) else {\n        return Ok((PathBuf::from(command), args));\n    };\n    let rest = rest.trim_start_matches('/');\n    // **絶対の経路へ解く** ── 入口は別の作業場所から起動するので、相対のままだと解けない\n    let base = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());\n    base.ancestors()\n        .map(|dir| dir.join(rest))\n        .find(|p| p.is_file())\n        .map(|p| (p, args))\n        .ok_or_else(|| {\n            format!(\"入口を起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）\")\n        })\n}\n\n/// 起動して、終了コードと標準出力を返す。**標準入力は閉じ、制限時間で止める。**\nfn output(command: &Path, args: &[String], cwd: &Path) -> Result<(i32, String), String> {\n    let mut child = Command::new(command)\n        .args(args)\n        .current_dir(cwd)\n        .stdin(Stdio::null())\n        .stdout(Stdio::piped())\n        .stderr(Stdio::null())\n        .spawn()\n        .map_err(|e| format!(\"入口を起動できない: {} ── {e}\", command.display()))?;\n    let mut stdout = child.stdout.take().ok_or(\"標準出力を受けられない\")?;\n    let reader = std::thread::spawn(move || {\n        let mut text = String::new();\n        let _ = stdout.read_to_string(&mut text);\n        text\n    });\n    let code = wait_limited(&mut child, command)?;\n    let text = reader.join().unwrap_or_default();\n    Ok((code, text))\n}\n\nfn wait_limited(child: &mut Child, command: &Path) -> Result<i32, String> {\n    let start = Instant::now();\n    loop {\n        if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {\n            return Ok(status.code().unwrap_or(-1));\n        }\n        if start.elapsed() > LIMIT {\n            let _ = child.kill();\n            let _ = child.wait();\n            return Err(format!(\n                \"入口が {} 秒で終わらない: {}\",\n                LIMIT.as_secs(),\n                command.display()\n            ));\n        }\n        std::thread::sleep(Duration::from_millis(20));\n    }\n}\n\n/// 動詞なしの `--json` で宣言を読む。**別の作業場所から起動する** ── Skill のフォルダを\n/// 作業場所に頼って求めていれば、ここで分かる。\nfn catalog(command: &Path, args: &[String]) -> Result<Value, String> {\n    let away = std::env::temp_dir();\n    let mut with = args.to_vec();\n    with.push(\"--json\".to_owned());\n    let (code, text) = output(command, &with, &away)?;\n    if code != 0 {\n        return Err(format!(\n            \"動詞なしの --json が宣言を返さない: 終了コード {code}（宣言を JSON で返し、0 で終える）\"\n        ));\n    }\n    let doc: Value = serde_json::from_str(text.trim())\n        .map_err(|e| format!(\"動詞なしの --json の出力が JSON でない ── {e}\"))?;\n    if doc\n        .pointer(\"/data/tools\")\n        .and_then(Value::as_array)\n        .is_none()\n    {\n        return Err(\"動詞なしの --json の出力に data.tools が無い\".to_owned());\n    }\n    Ok(doc)\n}\n\nfn tool_names(catalog: &Value) -> Vec<String> {\n    catalog\n        .pointer(\"/data/tools\")\n        .and_then(Value::as_array)\n        .into_iter()\n        .flatten()\n        .filter_map(|t| t.get(\"name\").and_then(Value::as_str).map(str::to_owned))\n        .collect()\n}\n\nfn arg_names(tool: &Value) -> Vec<String> {\n    let mut names: Vec<String> = tool\n        .get(\"args\")\n        .and_then(Value::as_array)\n        .into_iter()\n        .flatten()\n        .filter_map(|a| a.get(\"name\").and_then(Value::as_str).map(str::to_owned))\n        .collect();\n    names.sort();\n    names\n}\n\nfn skill_root_matches(root: &Path, catalog: &Value) -> Verdict {\n    let said = catalog\n        .pointer(\"/data/skill_root\")\n        .and_then(Value::as_str)\n        .unwrap_or_default();\n    let same = |p: &Path| std::fs::canonicalize(p).ok();\n    if !said.is_empty() && same(Path::new(said)) == same(root) {\n        Verdict::Pass(\"別の作業場所から起動しても、Skill のフォルダを求められる\".to_owned())\n    } else {\n        Verdict::Fail(format!(\n            \"Skill のフォルダを求められない: 宣言の skill_root が「{said}」── 渡された値か、入口自身の位置から求める\"\n        ))\n    }\n}\n\nfn refuses_unknown_flag(command: &Path, args: &[String], verb: &str) -> Verdict {\n    let mut with = args.to_vec();\n    with.extend([verb.to_owned(), NO_SUCH_FLAG.to_owned(), \"1\".to_owned()]);\n    match output(command, &with, &std::env::temp_dir()) {\n        Ok((2, _)) => Verdict::Pass(\"宣言に無い旗を、終了コード 2 で断る\".to_owned()),\n        Ok((code, _)) => Verdict::Fail(format!(\n            \"宣言に無い旗を断らない: {verb} {NO_SUCH_FLAG} が終了コード {code}（2 で断る）\"\n        )),\n        Err(why) => Verdict::Fail(why),\n    }\n}\n\n/// MCP の入口を起動し、`tools/list` を CLI の宣言と突き合わせる。**道具の名前と引数の\n/// 名前が一致すること**を見る ── 能力を2か所に書いた実装は、ここで食い違う。\nfn same_tools(server: &str, command: &Path, args: &[String], catalog: &Value) -> Verdict {\n    let listed = match tools_list(command, args) {\n        Ok(listed) => listed,\n        Err(why) => return Verdict::Fail(format!(\"MCP の {server} ── {why}\")),\n    };\n    let mut want: Vec<(String, Vec<String>)> = catalog\n        .pointer(\"/data/tools\")\n        .and_then(Value::as_array)\n        .into_iter()\n        .flatten()\n        .map(|t| {\n            (\n                t.get(\"name\")\n                    .and_then(Value::as_str)\n                    .unwrap_or_default()\n                    .to_owned(),\n                arg_names(t),\n            )\n        })\n        .collect();\n    let mut got: Vec<(String, Vec<String>)> = listed\n        .iter()\n        .map(|t| {\n            let mut props: Vec<String> = t\n                .pointer(\"/inputSchema/properties\")\n                .and_then(Value::as_object)\n                .map(|m| m.keys().cloned().collect())\n                .unwrap_or_default();\n            props.sort();\n            (\n                t.get(\"name\")\n                    .and_then(Value::as_str)\n                    .unwrap_or_default()\n                    .to_owned(),\n                props,\n            )\n        })\n        .collect();\n    want.sort();\n    got.sort();\n    if want == got {\n        Verdict::Pass(format!(\n            \"MCP の {server} の tools/list が、CLI の宣言と一致する（{}件）\",\n            got.len()\n        ))\n    } else {\n        Verdict::Fail(format!(\n            \"MCP の {server} の tools/list が、CLI の宣言と食い違う ── CLI {want:?} ／ MCP {got:?}\"\n        ))\n    }\n}\n\n/// MCP の入口と、初期化から `tools/list` までをやりとりする。**応答を読んだら止める。**\nfn tools_list(command: &Path, args: &[String]) -> Result<Vec<Value>, String> {\n    let mut child = Command::new(command)\n        .args(args)\n        .current_dir(std::env::temp_dir())\n        .stdin(Stdio::piped())\n        .stdout(Stdio::piped())\n        .stderr(Stdio::null())\n        .spawn()\n        .map_err(|e| format!(\"入口を起動できない: {} ── {e}\", command.display()))?;\n    let result = converse(&mut child);\n    let _ = child.kill();\n    let _ = child.wait();\n    result\n}\n\nfn converse(child: &mut Child) -> Result<Vec<Value>, String> {\n    let mut stdin = child.stdin.take().ok_or(\"標準入力を渡せない\")?;\n    let stdout = child.stdout.take().ok_or(\"標準出力を受けられない\")?;\n    let (tx, rx) = mpsc::channel::<Value>();\n    std::thread::spawn(move || {\n        for line in BufReader::new(stdout).lines().map_while(Result::ok) {\n            if let Ok(v) = serde_json::from_str::<Value>(&line) {\n                if tx.send(v).is_err() {\n                    break;\n                }\n            }\n        }\n    });\n    let mut send = |v: Value| {\n        writeln!(stdin, \"{v}\")\n            .and_then(|()| stdin.flush())\n            .map_err(|e| format!(\"書き込めない ── {e}\"))\n    };\n    send(\n        json!({\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": {\n        \"protocolVersion\": \"2025-06-18\", \"capabilities\": {},\n        \"clientInfo\": {\"name\": \"skills-creator-check\", \"version\": \"1\"}}}),\n    )?;\n    reply(&rx, 1)?;\n    send(json!({\"jsonrpc\": \"2.0\", \"method\": \"notifications/initialized\"}))?;\n    send(json!({\"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\"}))?;\n    let listed = reply(&rx, 2)?;\n    Ok(listed\n        .pointer(\"/result/tools\")\n        .and_then(Value::as_array)\n        .cloned()\n        .unwrap_or_default())\n}\n\n/// 識別子が一致する応答を待つ。**通知や別の応答は読み飛ばす。**\nfn reply(rx: &mpsc::Receiver<Value>, id: u64) -> Result<Value, String> {\n    let deadline = Instant::now() + LIMIT;\n    loop {\n        let left = deadline.saturating_duration_since(Instant::now());\n        let v = rx.recv_timeout(left).map_err(|_| {\n            format!(\"応答が無い（id {id}）── 標準出力に MCP の通信以外を書いていないかを確かめる\")\n        })?;\n        if v.get(\"id\").and_then(Value::as_u64) == Some(id) {\n            return Ok(v);\n        }\n    }\n}\n",
+   "marks": [
+    {
+     "find": "//! 1段目の検査 ── **実行ファイルを起動して、振る舞いを見る。** どの言語で書いた Skill でも同じである。",
+     "before": "//! 1段目の検査 ── **入口を起動して、振る舞いを見る。** どの言語で書いた Skill でも同じである。",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "/// 実行ファイル1回の起動に待つ時間。**止まった実行ファイルを、永久に待たない。**",
+     "before": "/// 入口1回の起動に待つ時間。**止まった入口を、永久に待たない。**\n/// 宣言に無い旗の名前。**検査のためだけの名前で、どの道具も受けない。**",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "/// 実行ファイルを起動して、振る舞いを見る。**書き方に誤りが在れば、起動しない。**",
+     "before": "/// 入口を起動して、振る舞いを見る。**書き方に誤りが在れば、起動しない。**",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "\"動詞なしの --json で道具の一覧を返す（道具 {}件）\",",
+     "before": "\"動詞なしの --json で宣言を返す（道具 {}件）\",",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "// **絶対の経路へ解く** ── 実行ファイルは別の作業場所から起動するので、相対のままだと解けない",
+     "before": "// **絶対の経路へ解く** ── 入口は別の作業場所から起動するので、相対のままだと解けない\nformat!(\"入口を起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）\")",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": ".map_err(|e| format!(\"実行ファイルを起動できない: {} ── {e}\", command.display()))?;",
+     "before": ".map_err(|e| format!(\"入口を起動できない: {} ── {e}\", command.display()))?;",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "\"実行ファイルが {} 秒で終わらない: {}\",",
+     "before": "\"入口が {} 秒で終わらない: {}\",",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "/// 動詞なしの `--json` で道具の一覧を読む。**別の作業場所から起動する** ── Skill のフォルダを",
+     "before": "/// 動詞なしの `--json` で宣言を読む。**別の作業場所から起動する** ── Skill のフォルダを",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "\"動詞なしの --json が道具の一覧を返さない: 終了コード {code}（道具の一覧を JSON で返し、0 で終える）\"",
+     "before": "\"動詞なしの --json が宣言を返さない: 終了コード {code}（宣言を JSON で返し、0 で終える）\"",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "\"Skill のフォルダを求められない: 道具の一覧の skill_root が「{said}」── 渡された値か、実行ファイル自身の位置から求める\"",
+     "before": "\"Skill のフォルダを求められない: 宣言の skill_root が「{said}」── 渡された値か、入口自身の位置から求める\"",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "Ok((2, _)) => Verdict::Pass(\"道具の一覧に無い旗を、終了コード 2 で断る\".to_owned()),",
+     "before": "Ok((2, _)) => Verdict::Pass(\"宣言に無い旗を、終了コード 2 で断る\".to_owned()),\n\"宣言に無い旗を断らない: {verb} {NO_SUCH_FLAG} が終了コード {code}（2 で断る）\"\n/// MCP の入口を起動し、`tools/list` を CLI の宣言と突き合わせる。**道具の名前と引数の",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "\"MCP の {server} の tools/list が、CLI の道具の一覧と一致する（{}件）\",",
+     "before": "\"MCP の {server} の tools/list が、CLI の宣言と一致する（{}件）\",\n\"MCP の {server} の tools/list が、CLI の宣言と食い違う ── CLI {want:?} ／ MCP {got:?}\"\n/// MCP の入口と、初期化から `tools/list` までをやりとりする。**応答を読んだら止める。**",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": ".map_err(|e| format!(\"実行ファイルを起動できない: {} ── {e}\", command.display()))?;",
+     "before": ".map_err(|e| format!(\"入口を起動できない: {} ── {e}\", command.display()))?;",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "format!(\"実行ファイルを起動できない: {command}",
+     "before": "format!(\"入口を起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）\")",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "workspace",
+   "tab": "tool/Cargo.toml",
+   "file": ".claude/skills/skills-creator/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "members = [\"parts\", \"declare\", \"cli\", \"mcp\"]",
+     "why": "workspace の crate を、層の正式名のフォルダへ改めた"
+    }
+   ]
+  },
+  {
+   "key": "tmpl-contract",
+   "tab": "contract.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 引数1つ。**位置引数と旗を区別しない** ── 呼ぶ側の形はプレゼンテーション層が決める。",
+     "before": "/// 引数1つ。**位置引数と旗を区別しない** ── 呼ぶ側の形は入口が決める。",
+     "why": "「入口」を、層の正式名「プレゼンテーション層」で呼ぶ"
+    },
+    {
+     "find": "/// 渡された引数。**プレゼンテーション層が組み、道具が読む。**",
+     "before": "/// 渡された引数。**入口が組み、道具が読む。**",
+     "why": "「入口」を、層の正式名「プレゼンテーション層」で呼ぶ"
+    },
+    {
+     "find": "/// 渡されなければ、実行ファイル自身の位置から求める ── Rust の組は実行ファイルを `bin/` に置くので、",
+     "before": "/// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは実行ファイルそのものを指すので「実行ファイル」と呼ぶ"
+    },
+    {
+     "find": "/// 外部の道具の、起動するコマンド。**業務ロジック層は名前を直書きせず、これで受け取る。**",
+     "before": "/// 外部の道具の、起動するコマンド。**部品は名前を直書きせず、これで受け取る。**\n/// その名前の宣言か、その `command` が無いときに返す。",
+     "why": "「部品」を、層の正式名「業務ロジック層」で呼ぶ"
+    },
+    {
+     "find": "/// 道具の一覧を、機械が読む形で返す。**動詞なしで `--json` を付けたときに CLI が返す。**",
+     "before": "/// 宣言を、機械が読む形で返す。**動詞なしで `--json` を付けたときに入口が返す。**\n/// 求め方を確かめる ── 言語に依存せずに、入口を起動するだけで検査できる。",
+     "why": "「宣言」は名詞として何を指すかが読み取れなかった。中身（道具の一覧）の名前で呼ぶ"
+    },
+    {
+     "find": "/// 道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。",
+     "before": "/// 道具の戻り値。**印字はしない** ── 印字と終了コードは入口が持つ。",
+     "why": "「入口」を、層の正式名「プレゼンテーション層」で呼ぶ"
+    },
+    {
+     "find": "tool.json にその名前の登録か",
+     "before": "/// その名前の宣言か、その `command` が無いときに返す。",
+     "why": "ここの「宣言」は tool.json の external に書いた項目を指していた。起動のコマンドの登録なので「登録」と呼ぶ"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "contract": "a5aa623b432372030bbd6cad66ef2d9481c009f52933ef348dcbbd89cb393366",
+  "rust": "58d5de8f5687a52b9d2eb136d55adc1191dfa02bd9418df4384a101752bf2cec",
+  "skill": "a438004207fb1dac687b7f150a0d41b0cb88bbdbea3339ca3b41516228e8fb3e",
+  "check": "b9964961c178642c6a1e14d69a06c09225de78a8b8ebeebc13e1fefd79456490",
+  "check-tests": "9c40dbd0c74f188c78a1ef4527431392c39d30635d4aca63895f6302aaeda215",
+  "service": "d8210b6cb663dd5f21e068d86308ac85e49a8bc8c2a3dd2aeece581798b6f644",
+  "behavior": "abccda5f20ce8b05e529dc51d8b4a5ea038f6a4bd9fb5ca771c953424fc4e1a4",
+  "workspace": "4ac0a36a7dc701389c5d2d1dac269eaaf0e5f3e0d1ed9dc531bb3dda9185088a",
+  "tmpl-contract": "4f594c2401353c836b8435d3a741e3fae6948e4d999b69f35a532dfa479fc41d"
+ }
+}

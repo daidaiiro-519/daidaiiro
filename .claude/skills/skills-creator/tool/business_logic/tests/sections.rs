@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 //! 節の構成が、対応する雛形を満たすかを事例で検証する。
 //!
-//!     cargo test -p sc_parts
+//!     cargo test -p sc_business_logic
 
-use sc_parts::sections::{headings, missing};
+use sc_business_logic::sections::{headings, missing};
 
 fn doc(names: &[&str]) -> String {
     names

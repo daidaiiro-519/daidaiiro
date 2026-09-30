@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! references の部品。**どの Skill も同じファイルを複製して使う** ── `contract.rs` と同じ扱いである。
+//! references の実装。**どの Skill も同じファイルを複製して使う** ── `contract.rs` と同じ扱いである。
 //!
 //! references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。種類ごとに、
 //! JSON Schema（`<種類>.schema.json`）と、それに従う JSON（`<種類>.json`）を置く。JSON は
@@ -414,7 +414,7 @@ pub fn put_document(refs: &Path, doc: Value) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// SHA-256 を16進で返す。**外の crate に頼らない** ── 部品の依存を増やさない。
+/// SHA-256 を16進で返す。**外の crate に頼らない** ── 業務ロジック層の依存を増やさない。
 #[must_use]
 pub fn sha256_hex(data: &[u8]) -> String {
     const K: [u32; 64] = [

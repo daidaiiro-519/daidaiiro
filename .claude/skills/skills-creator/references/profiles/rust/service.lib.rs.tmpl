@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-//! {{Skill名}} の道具の宣言。**能力の正本はここである。**
+//! {{Skill名}} のサービス層。道具の一覧を持ち、**能力の正本はここである。**
 //!
-//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。
-//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。
+//! プレゼンテーション層（CLI ・ MCP）はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+//! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
 mod refs;
@@ -14,13 +14,13 @@ pub use contract::{catalog, Arg, Given, Outcome, Tool};
 /// {{道具の名前}} を実行する。
 fn run_{{道具の名前}}(given: &Given) -> Outcome {
     let _ = given;
-    // **ここに実体を書かない。** 部品（{{接頭辞}}_parts）を呼び、結果を組むだけである。
-    // 部品が外部の道具を起動するなら、`given.external("名前")` で tool.json から読み、
-    // 引数として渡す ── 部品は外部の道具の名前を直書きしない
+    // **ここに実体を書かない。** 業務ロジック層（{{接頭辞}}_business_logic）を呼び、結果を組むだけである。
+    // 業務ロジック層が外部の道具を起動するなら、`given.external("名前")` で tool.json から読み、
+    // 引数として渡す ── 業務ロジック層は外部の道具の名前を直書きしない
     Outcome::found(Vec::new(), json!({}))
 }
 
-/// 人向けの文を組む。**印字はしない** ── 印字と終了コードは入口が持つ。
+/// 人向けの文を組む。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。
 fn human_{{道具の名前}}(out: &Outcome) -> String {
     if !out.ok {
         return out.findings.join(" ／ ");

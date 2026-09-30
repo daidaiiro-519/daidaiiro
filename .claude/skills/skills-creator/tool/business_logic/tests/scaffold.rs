@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 //! 置く操作を事例で検証する。
 //!
-//!     cargo test -p sc_parts
+//!     cargo test -p sc_business_logic
 
 use std::path::PathBuf;
 
-use sc_parts::scaffold::{place, Item};
+use sc_business_logic::scaffold::{place, Item};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("sc-scaffold-{name}"));
@@ -18,7 +18,7 @@ fn scratch(name: &str) -> PathBuf {
 fn the_items_are_written_where_they_are_told() {
     let root = scratch("write");
     let items = vec![
-        Item::keep(PathBuf::from("tool/parts/src/lib.rs"), "部品".to_owned()),
+        Item::keep(PathBuf::from("tool/business_logic/src/lib.rs"), "業務ロジック層".to_owned()),
         Item::keep(PathBuf::from("mcp.json"), "登録".to_owned()),
     ];
     let placed = place(&root, &items).expect("置ける");
@@ -26,8 +26,8 @@ fn the_items_are_written_where_they_are_told() {
     assert!(placed.kept.is_empty());
     // **深い場所でも、包みごと作る**
     assert_eq!(
-        std::fs::read_to_string(root.join("tool/parts/src/lib.rs")).expect("読める"),
-        "部品"
+        std::fs::read_to_string(root.join("tool/business_logic/src/lib.rs")).expect("読める"),
+        "業務ロジック層"
     );
 }
 

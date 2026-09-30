@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 //! 契約の検査を事例で検証する。
 //!
-//!     cargo test -p sc_parts
+//!     cargo test -p sc_business_logic
 
 use std::path::{Path, PathBuf};
 
-use sc_parts::behavior::{self, Verdict};
-use sc_parts::check::{self, State, Templates};
+use sc_business_logic::behavior::{self, Verdict};
+use sc_business_logic::check::{self, State, Templates};
 
 fn templates() -> Templates {
     let skills = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
@@ -23,7 +23,7 @@ fn scratch(name: &str) -> PathBuf {
     dir
 }
 
-/// 2段目（Rust の組）と文書の検出。**入口を起動しない** ── 層と許可辺の事例は、
+/// 2段目（Rust の組）と文書の検出。**実行ファイルを起動しない** ── 層と依存の向きの事例は、
 /// 実行ファイルを組まずに確かめる。
 fn found_in_source(root: &Path) -> Vec<String> {
     let mut out = check::rust(root);
@@ -39,7 +39,7 @@ fn found_all(root: &Path) -> Vec<String> {
 /// 雛形が要求する節だけを持つ文書を置く。
 fn write_document(root: &Path) {
     let template = std::fs::read_to_string(templates().general).expect("読める");
-    let body: String = sc_parts::sections::headings(&template)
+    let body: String = sc_business_logic::sections::headings(&template)
         .iter()
         .filter(|x| !x.contains("{{"))
         .map(|x| format!("## {x}\n\n本文\n\n"))
@@ -79,9 +79,9 @@ fn write_layers(root: &Path, edges: &[(&str, &[&str])]) {
 }
 
 const GOOD: [(&str, &[&str]); 3] = [
-    ("parts", &[]),
-    ("declare", &["parts"]),
-    ("cli", &["declare"]),
+    ("business_logic", &[]),
+    ("service", &["business_logic"]),
+    ("cli", &["service"]),
 ];
 
 #[test]
@@ -133,51 +133,69 @@ fn layers_that_are_not_crates_are_reported() {
 fn an_edge_that_goes_outward_is_reported() {
     let root = scratch("outward");
     write_document(&root);
-    // **部品が入口を参照する宣言** ── 内から外である
+    // **業務ロジック層がプレゼンテーション層を参照する** ── 下から上である
     write_layers(
         &root,
         &[
-            ("parts", &["cli"]),
-            ("declare", &["parts"]),
-            ("cli", &["declare"]),
+            ("business_logic", &["cli"]),
+            ("service", &["business_logic"]),
+            ("cli", &["service"]),
         ],
     );
     let found = found_in_source(&root);
     assert!(
         found
             .iter()
-            .any(|x| x.contains("許可していない辺") && x.contains("parts → entry")),
+            .any(|x| x.contains("依存の向きに違反している") && x.contains("business_logic → presentation")),
         "{found:?}"
     );
 }
 
 #[test]
-fn an_edge_that_skips_inward_is_allowed() {
+fn an_edge_that_skips_a_layer_is_reported() {
     let root = scratch("skip");
     write_document(&root);
-    // 入口が部品を直に参照する ── 外から内なので許す
+    // プレゼンテーション層が業務ロジック層を直に参照する ── サービス層を飛ばしている
     write_layers(
         &root,
         &[
-            ("parts", &[]),
-            ("declare", &["parts"]),
-            ("cli", &["declare", "parts"]),
+            ("business_logic", &[]),
+            ("service", &["business_logic"]),
+            ("cli", &["service", "business_logic"]),
         ],
     );
     let found = found_in_source(&root);
-    assert!(found.is_empty(), "外から内は許す ── {found:?}");
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("依存の向きに違反している") && x.contains("presentation → business_logic")),
+        "層を飛ばす依存は、道具の一覧を経ない呼び出し方を作る ── {found:?}"
+    );
+}
+
+#[test]
+fn a_retired_layer_name_is_reported() {
+    let root = scratch("retired");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    std::fs::create_dir_all(root.join(check::TOOL).join("parts")).expect("作れる");
+    let found = found_in_source(&root);
+    assert!(
+        found.iter().any(|x| x.contains("parts/ が残っている") && x.contains("business_logic")),
+        "{found:?}"
+    );
 }
 
 #[test]
 fn a_missing_layer_is_reported() {
     let root = scratch("missing");
     write_document(&root);
-    write_layers(&root, &[("parts", &[]), ("cli", &["parts"])]);
+    write_layers(&root, &[("business_logic", &[]), ("cli", &["business_logic"])]);
     let found = found_in_source(&root);
     assert!(
         found
             .iter()
-            .any(|x| x.contains("層の crate が無い") && x.contains("declare")),
+            .any(|x| x.contains("層の crate が無い") && x.contains("service")),
         "{found:?}"
     );
 }
@@ -186,10 +204,10 @@ fn a_missing_layer_is_reported() {
 fn a_missing_entry_is_reported() {
     let root = scratch("noentry");
     write_document(&root);
-    write_layers(&root, &[("parts", &[]), ("declare", &["parts"])]);
+    write_layers(&root, &[("business_logic", &[]), ("service", &["business_logic"])]);
     let found = found_in_source(&root);
     assert!(
-        found.iter().any(|x| x.contains("入口の crate が無い")),
+        found.iter().any(|x| x.contains("プレゼンテーション層の crate が無い")),
         "{found:?}"
     );
 }
@@ -221,9 +239,9 @@ fn an_absent_document_is_reported() {
     assert!(found.iter().any(|x| x.contains("文書が無い")), "{found:?}");
 }
 
-/// 部品に1つのファイルを置く。
+/// 業務ロジック層に1つのファイルを置く。
 fn write_part(root: &Path, body: &str) {
-    let dir = root.join(check::TOOL).join("parts/src");
+    let dir = root.join(check::TOOL).join("business_logic/src");
     std::fs::create_dir_all(&dir).expect("作れる");
     std::fs::write(dir.join("run.rs"), body).expect("書ける");
 }
@@ -266,11 +284,11 @@ fn a_call_written_inside_a_string_is_not_counted() {
 
 #[test]
 fn examples_are_not_shipped_so_their_tools_are_not_counted() {
-    // **cargo の examples は、配布する実行ファイルに入らない** ── 開発用の例が呼ぶ道具を、宣言に求めない
+    // **cargo の examples は、配布する実行ファイルに入らない** ── 開発用の例が呼ぶ道具を、tool.json に求めない
     let root = scratch("examples");
     write_document(&root);
     write_layers(&root, &GOOD);
-    let dir = root.join(check::TOOL).join("parts/examples");
+    let dir = root.join(check::TOOL).join("business_logic/examples");
     std::fs::create_dir_all(&dir).expect("作れる");
     std::fs::write(
         dir.join("bench.rs"),
@@ -291,19 +309,19 @@ fn what_scaffold_places_satisfies_check() {
     let root = scratch("scaffolded");
     for (from, to) in [
         ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("parts.Cargo.toml.tmpl", "tool/parts/Cargo.toml"),
-        ("parts.lib.rs.tmpl", "tool/parts/src/lib.rs"),
-        ("parts.tests.rs.tmpl", "tool/parts/tests/example.rs"),
-        ("declare.Cargo.toml.tmpl", "tool/declare/Cargo.toml"),
-        ("declare.lib.rs.tmpl", "tool/declare/src/lib.rs"),
-        ("contract.rs.tmpl", "tool/declare/src/contract.rs"),
+        ("business_logic.Cargo.toml.tmpl", "tool/business_logic/Cargo.toml"),
+        ("business_logic.lib.rs.tmpl", "tool/business_logic/src/lib.rs"),
+        ("business_logic.tests.rs.tmpl", "tool/business_logic/tests/example.rs"),
+        ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
+        ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
+        ("contract.rs.tmpl", "tool/service/src/contract.rs"),
         ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
         ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
         ("mcp.json.tmpl", "mcp.json"),
         ("tool.json.tmpl", "tool.json"),
         ("gitignore.tmpl", ".gitignore"),
-        ("refs.rs.tmpl", "tool/parts/src/refs.rs"),
-        ("declare.refs.rs.tmpl", "tool/declare/src/refs.rs"),
+        ("refs.rs.tmpl", "tool/business_logic/src/refs.rs"),
+        ("service.refs.rs.tmpl", "tool/service/src/refs.rs"),
         (
             "document.schema.json.tmpl",
             "references/document.schema.json",
@@ -319,13 +337,13 @@ fn what_scaffold_places_satisfies_check() {
     }
     write_document(&root);
     let mut found = found_in_source(&root);
-    // **版2 の規則も満たす** ── references の部品は雛形の複製で、references はスキーマに合う
+    // **版2 の規則も満たす** ── references の実装は雛形の複製で、references はスキーマに合う
     found.extend(check::rust_refs(
         &root,
         &templates().with_refs(tmpl.join("refs.rs.tmpl")),
     ));
-    found.extend(sc_parts::refs::validate(&root.join("references")).expect("読める"));
-    // **1段目のうち、起動せずに見られる書き方も満たす**（入口は組んでいないので起動しない）
+    found.extend(sc_business_logic::refs::validate(&root.join("references")).expect("読める"));
+    // **1段目のうち、起動せずに見られる書き方も満たす**（実行ファイルは組んでいないので起動しない）
     found.extend(
         behavior::declaration(&root)
             .into_iter()
@@ -342,7 +360,7 @@ fn what_scaffold_places_satisfies_check() {
 
 #[test]
 fn a_hardcoded_tool_name_is_reported() {
-    // **部品は外部の道具の名前を直書きしない** ── tool.json に宣言し、宣言の層から注入する
+    // **業務ロジック層は外部の道具の名前を直書きしない** ── tool.json に宣言し、サービス層から注入する
     let root = scratch("hardcoded");
     write_document(&root);
     write_layers(&root, &GOOD);
@@ -370,7 +388,7 @@ fn a_command_passed_in_is_allowed() {
     assert!(found.is_empty(), "{found:?}");
 }
 
-/// 入口の宣言（tool.json と mcp.json）を置く。
+/// 起動のコマンドの登録（tool.json と mcp.json）を置く。
 fn write_entries(root: &Path, tool: &str, mcp: &str) {
     std::fs::write(root.join("tool.json"), tool).expect("書ける");
     std::fs::write(root.join("mcp.json"), mcp).expect("書ける");
@@ -442,7 +460,7 @@ fn an_entry_that_is_not_built_is_reported() {
     );
 }
 
-/// シェルで書いた入口を置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。
+/// シェルで書いた実行ファイルを置く。**Rust 以外で書いた Skill も、1段目は同じに検査できる**ことを示す。
 #[cfg(unix)]
 fn write_shell_entries(root: &Path, flag_exit: i32, mcp_args: &str) {
     use std::os::unix::fs::PermissionsExt as _;
@@ -518,14 +536,14 @@ fn a_cli_that_accepts_an_unknown_flag_is_reported() {
 }
 
 #[test]
-fn a_version_two_skill_without_the_references_parts_is_reported() {
+fn a_version_two_skill_without_the_references_implementation_is_reported() {
     // **版2 の規則は、版2 の Skill にだけ当てる** ── 移行していない Skill は、これまでの規則のまま
     let root = scratch("v2-missing");
     write_document(&root);
     write_layers(&root, &GOOD);
     assert!(
         check::rust_refs(&root, &templates()).len() == 2,
-        "部品が2つとも無い"
+        "references の実装が2つとも無い"
     );
     std::fs::write(
         root.join("tool.json"),
@@ -536,7 +554,7 @@ fn a_version_two_skill_without_the_references_parts_is_reported() {
     assert!(
         lines
             .iter()
-            .any(|l| l.state == State::Fail && l.text.contains("references の部品が無い")),
+            .any(|l| l.state == State::Fail && l.text.contains("references の実装が無い")),
         "{lines:?}"
     );
     std::fs::write(

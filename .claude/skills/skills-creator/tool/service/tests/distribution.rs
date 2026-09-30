@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 //! 配布の形を置く操作を、事例で検証する。
 //!
-//!     cargo test -p sc_declare --test distribution
+//!     cargo test -p sc_service --test distribution
 
 use std::path::PathBuf;
 
-use sc_declare::{tools, Given, Outcome};
+use sc_service::{tools, Given, Outcome};
 
 fn here() -> String {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

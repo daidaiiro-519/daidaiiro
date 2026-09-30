@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! 1段目の検査 ── **入口を起動して、振る舞いを見る。** どの言語で書いた Skill でも同じである。
+//! 1段目の検査 ── **実行ファイルを起動して、振る舞いを見る。** どの言語で書いた Skill でも同じである。
 //!
 //! 読むのは2つのファイルだけである ── `tool.json`（CLI の起動のコマンドと外部の道具）と
 //! `mcp.json`（MCP の起動のコマンド。ホストの形式）。ソースは読まない ── ソースを読む検査は、
@@ -54,10 +54,10 @@ fn references_pass(command: &Path, args: &[String]) -> Verdict {
     }
 }
 
-/// 入口1回の起動に待つ時間。**止まった入口を、永久に待たない。**
+/// 実行ファイル1回の起動に待つ時間。**止まった実行ファイルを、永久に待たない。**
 const LIMIT: Duration = Duration::from_secs(30);
 
-/// 宣言に無い旗の名前。**検査のためだけの名前で、どの道具も受けない。**
+/// 道具の一覧に無い旗の名前。**検査のためだけの名前で、どの道具も受けない。**
 const NO_SUCH_FLAG: &str = "--no-such-flag-for-check";
 
 /// 検査1件の結果。
@@ -142,7 +142,7 @@ pub fn declaration(root: &Path) -> Vec<Verdict> {
     out
 }
 
-/// 入口を起動して、振る舞いを見る。**書き方に誤りが在れば、起動しない。**
+/// 実行ファイルを起動して、振る舞いを見る。**書き方に誤りが在れば、起動しない。**
 #[must_use]
 pub fn run(root: &Path) -> Vec<Verdict> {
     let mut out = declaration(root);
@@ -169,7 +169,7 @@ pub fn run(root: &Path) -> Vec<Verdict> {
     };
     let names = tool_names(&catalog);
     out.push(Verdict::Pass(format!(
-        "動詞なしの --json で宣言を返す（道具 {}件）",
+        "動詞なしの --json で道具の一覧を返す（道具 {}件）",
         names.len()
     )));
     out.push(skill_root_matches(root, &catalog));
@@ -249,14 +249,14 @@ fn launch(root: &Path, entry: &Value) -> Result<(PathBuf, Vec<String>), String> 
         return Ok((PathBuf::from(command), args));
     };
     let rest = rest.trim_start_matches('/');
-    // **絶対の経路へ解く** ── 入口は別の作業場所から起動するので、相対のままだと解けない
+    // **絶対の経路へ解く** ── 実行ファイルは別の作業場所から起動するので、相対のままだと解けない
     let base = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     base.ancestors()
         .map(|dir| dir.join(rest))
         .find(|p| p.is_file())
         .map(|p| (p, args))
         .ok_or_else(|| {
-            format!("入口を起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）")
+            format!("実行ファイルを起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）")
         })
 }
 
@@ -269,7 +269,7 @@ fn output(command: &Path, args: &[String], cwd: &Path) -> Result<(i32, String), 
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("入口を起動できない: {} ── {e}", command.display()))?;
+        .map_err(|e| format!("実行ファイルを起動できない: {} ── {e}", command.display()))?;
     let mut stdout = child.stdout.take().ok_or("標準出力を受けられない")?;
     let reader = std::thread::spawn(move || {
         let mut text = String::new();
@@ -291,7 +291,7 @@ fn wait_limited(child: &mut Child, command: &Path) -> Result<i32, String> {
             let _ = child.kill();
             let _ = child.wait();
             return Err(format!(
-                "入口が {} 秒で終わらない: {}",
+                "実行ファイルが {} 秒で終わらない: {}",
                 LIMIT.as_secs(),
                 command.display()
             ));
@@ -300,7 +300,7 @@ fn wait_limited(child: &mut Child, command: &Path) -> Result<i32, String> {
     }
 }
 
-/// 動詞なしの `--json` で宣言を読む。**別の作業場所から起動する** ── Skill のフォルダを
+/// 動詞なしの `--json` で道具の一覧を読む。**別の作業場所から起動する** ── Skill のフォルダを
 /// 作業場所に頼って求めていれば、ここで分かる。
 fn catalog(command: &Path, args: &[String]) -> Result<Value, String> {
     let away = std::env::temp_dir();
@@ -309,7 +309,7 @@ fn catalog(command: &Path, args: &[String]) -> Result<Value, String> {
     let (code, text) = output(command, &with, &away)?;
     if code != 0 {
         return Err(format!(
-            "動詞なしの --json が宣言を返さない: 終了コード {code}（宣言を JSON で返し、0 で終える）"
+            "動詞なしの --json が道具の一覧を返さない: 終了コード {code}（道具の一覧を JSON で返し、0 で終える）"
         ));
     }
     let doc: Value = serde_json::from_str(text.trim())
@@ -356,7 +356,7 @@ fn skill_root_matches(root: &Path, catalog: &Value) -> Verdict {
         Verdict::Pass("別の作業場所から起動しても、Skill のフォルダを求められる".to_owned())
     } else {
         Verdict::Fail(format!(
-            "Skill のフォルダを求められない: 宣言の skill_root が「{said}」── 渡された値か、入口自身の位置から求める"
+            "Skill のフォルダを求められない: 道具の一覧の skill_root が「{said}」── 渡された値か、実行ファイル自身の位置から求める"
         ))
     }
 }
@@ -365,15 +365,15 @@ fn refuses_unknown_flag(command: &Path, args: &[String], verb: &str) -> Verdict 
     let mut with = args.to_vec();
     with.extend([verb.to_owned(), NO_SUCH_FLAG.to_owned(), "1".to_owned()]);
     match output(command, &with, &std::env::temp_dir()) {
-        Ok((2, _)) => Verdict::Pass("宣言に無い旗を、終了コード 2 で断る".to_owned()),
+        Ok((2, _)) => Verdict::Pass("道具の一覧に無い旗を、終了コード 2 で断る".to_owned()),
         Ok((code, _)) => Verdict::Fail(format!(
-            "宣言に無い旗を断らない: {verb} {NO_SUCH_FLAG} が終了コード {code}（2 で断る）"
+            "道具の一覧に無い旗を断らない: {verb} {NO_SUCH_FLAG} が終了コード {code}（2 で断る）"
         )),
         Err(why) => Verdict::Fail(why),
     }
 }
 
-/// MCP の入口を起動し、`tools/list` を CLI の宣言と突き合わせる。**道具の名前と引数の
+/// MCP の実行ファイルを起動し、`tools/list` を CLI の道具の一覧と突き合わせる。**道具の名前と引数の
 /// 名前が一致すること**を見る ── 能力を2か所に書いた実装は、ここで食い違う。
 fn same_tools(server: &str, command: &Path, args: &[String], catalog: &Value) -> Verdict {
     let listed = match tools_list(command, args) {
@@ -417,17 +417,17 @@ fn same_tools(server: &str, command: &Path, args: &[String], catalog: &Value) ->
     got.sort();
     if want == got {
         Verdict::Pass(format!(
-            "MCP の {server} の tools/list が、CLI の宣言と一致する（{}件）",
+            "MCP の {server} の tools/list が、CLI の道具の一覧と一致する（{}件）",
             got.len()
         ))
     } else {
         Verdict::Fail(format!(
-            "MCP の {server} の tools/list が、CLI の宣言と食い違う ── CLI {want:?} ／ MCP {got:?}"
+            "MCP の {server} の tools/list が、CLI の道具の一覧と食い違う ── CLI {want:?} ／ MCP {got:?}"
         ))
     }
 }
 
-/// MCP の入口と、初期化から `tools/list` までをやりとりする。**応答を読んだら止める。**
+/// MCP の実行ファイルと、初期化から `tools/list` までをやりとりする。**応答を読んだら止める。**
 fn tools_list(command: &Path, args: &[String]) -> Result<Vec<Value>, String> {
     let mut child = Command::new(command)
         .args(args)
@@ -436,7 +436,7 @@ fn tools_list(command: &Path, args: &[String]) -> Result<Vec<Value>, String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("入口を起動できない: {} ── {e}", command.display()))?;
+        .map_err(|e| format!("実行ファイルを起動できない: {} ── {e}", command.display()))?;
     let result = converse(&mut child);
     let _ = child.kill();
     let _ = child.wait();

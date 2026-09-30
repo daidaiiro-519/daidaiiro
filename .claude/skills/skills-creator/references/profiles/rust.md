@@ -13,11 +13,11 @@
 ```
 tool/           道具のソース
   Cargo.toml    workspace ── 4つの crate を並べる
-  parts/        部品 ── 実体。読み込まれるもの
+  business_logic/  業務ロジック層 ── 処理の実体。サービス層から読み込まれる
     tests/      事例
-  declare/      能力の宣言（正本）と契約の実体（contract.rs）
-  cli/          唯一の入口
-  mcp/          MCP の面
+  service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）
+  cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路
+  mcp/          プレゼンテーション層 ── MCP の面
 bin/            組み立てた実行ファイル（git で追跡しない）
   <名前>        CLI（Windows は <名前>.exe）
   <名前>-mcp    MCP サーバー（Windows は <名前>-mcp.exe）
@@ -27,17 +27,18 @@ mcp.json        MCP の起動のコマンド（ホストの形式）
 ```
 
 **道具のソースの置き場所の名前は、中身の役割で付ける。** 以前の `rs/` は言語の名前で、役割を示さなかった。
+crate のフォルダの名前は、レイヤードアーキテクチャの層の正式名に合わせる（以前の `parts/` ・ `declare/` は、層の名前と一致しなかった）。
 
-| crate | 層 | 参照してよい先 |
+| crate | 層 | 依存してよい先 |
 |---|---|---|
-| `parts` | 部品 | **無し**（外の crate は、references の部品が使う serde_json と jsonschema だけ） |
-| `declare` | 宣言 | `parts` |
-| `cli` ・ `mcp` | 入口 | `declare` |
+| `business_logic` | 業務ロジック層 | **無し**（外の crate は、references の実装が使う serde_json と jsonschema だけ） |
+| `service` | サービス層 | `business_logic` |
+| `cli` ・ `mcp` | プレゼンテーション層 | `service` |
 
 **層の境界を crate の境界に置く。** 1つの crate の中の module では、内側が外側を参照してもコンパイラが通す
-── crate に分けて初めて、**宣言に無い依存が解決しなくなる**。許可辺は各 `Cargo.toml` が宣言する。
+── crate に分けて初めて、**`Cargo.toml` に書いていない依存が解決しなくなる**。依存の向きは各 `Cargo.toml` が宣言する。
 
-**入口は `bin/` に置く。Skill のフォルダは、実行ファイルの1つ上（`bin/` の親）である。**
+**実行ファイルは `bin/` に置く。Skill のフォルダは、実行ファイルの1つ上（`bin/` の親）である。**
 求める処理は `contract.rs`（`Given::skill_root`）が持ち、すべての Skill が同じ実装を使う。
 **build のときの絶対パスを埋め込まない** ── 組み立てた機械のパスが残り、別の機械では存在しない場所を指す（ACDR 0029）。
 
@@ -54,9 +55,9 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 
 | 契約の規定 | Rust の組での実装 |
 |---|---|
-| 宣言 | `tool/declare/` の `tools()`。MCP の面で `#[tool]` マクロを使い、道具をその場で宣言しない |
+| 道具の一覧 | `tool/service/` の `tools()`。MCP の面で `#[tool]` マクロを使い、道具をその場で宣言しない |
 | 動詞なしの `--json` | CLI が `catalog()` の結果を返す（`contract.rs`） |
-| 外部の道具 | 宣言の層が `given.external("名前")` で `tool.json` から読み、部品の関数へ引数として渡す。**部品は `Command::new("…")` に名前を直書きしない** |
+| 外部の道具 | サービス層が `given.external("名前")` で `tool.json` から読み、業務ロジック層の関数へ引数として渡す。**業務ロジック層は `Command::new("…")` に名前を直書きしない** |
 | 標準出力 | 道具の中で `println!` を使わない。子プロセスの出力は `Stdio::piped()` かファイルで受ける |
 | 子プロセスの規律 | `.stdin(Stdio::null())` ・ `try_wait` で待ち、制限時間を過ぎたら `kill` ・ `.stdout(…)` と `.stderr(…)` を指定する |
 | 誤りの返し方 | `ok` が偽なら `CallToolResult` の `is_error` を立てる（`mcp.main.rs.tmpl`） |
@@ -71,13 +72,13 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 | 雛形 | 置く先 |
 |---|---|
 | `workspace.Cargo.toml.tmpl` | `tool/Cargo.toml` |
-| `parts.Cargo.toml.tmpl` ・ `parts.lib.rs.tmpl` ・ `parts.tests.rs.tmpl` | `tool/parts/` |
-| `declare.Cargo.toml.tmpl` ・ `declare.lib.rs.tmpl` ・ `contract.rs.tmpl` | `tool/declare/` |
+| `business_logic.Cargo.toml.tmpl` ・ `business_logic.lib.rs.tmpl` ・ `business_logic.tests.rs.tmpl` | `tool/business_logic/` |
+| `service.Cargo.toml.tmpl` ・ `service.lib.rs.tmpl` ・ `contract.rs.tmpl` | `tool/service/` |
 | `cli.Cargo.toml.tmpl` ・ `cli.main.rs.tmpl` | `tool/cli/` |
 | `mcp.Cargo.toml.tmpl` ・ `mcp.main.rs.tmpl` | `tool/mcp/` |
 | `tool.json.tmpl` ・ `mcp.json.tmpl` ・ `gitignore.tmpl` | Skill のフォルダ |
-| `refs.rs.tmpl` | `tool/parts/src/refs.rs` ── references の部品。**どの Skill も同じファイルを複製する**（契約の版2） |
-| `declare.refs.rs.tmpl` | `tool/declare/src/refs.rs` ── get ・ validate ・ view ・ import の宣言 |
+| `refs.rs.tmpl` | `tool/business_logic/src/refs.rs` ── references の実装。**どの Skill も同じファイルを複製する**（契約の版2） |
+| `service.refs.rs.tmpl` | `tool/service/src/refs.rs` ── get ・ validate ・ view ・ import を道具の一覧に載せる |
 | `document.schema.json.tmpl` | `references/document.schema.json` ── 原典の複製の形 |
 
 ---
@@ -89,15 +90,16 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 | 検出 | 何が起きているか |
 |---|---|
 | 層が crate に分かれていない | `tool/Cargo.toml` が無い |
-| 層の crate が無い ／ 入口の crate が無い | 契約の一式が完備していない |
+| 層の crate が無い ／ プレゼンテーション層の crate が無い | 契約の一式が完備していない |
 | どの層か決まらない | crate の名前が層の名前で終わっていない |
-| 許可していない辺を宣言している | 内側の crate が外側を依存に宣言している |
-| 事例が無い | `tool/parts/tests/` が無い |
+| 依存の向きに違反している | 下の層の crate が上の層を依存に宣言している。または、プレゼンテーション層が業務ロジック層を依存に宣言している |
+| 事例が無い | `tool/business_logic/tests/` が無い |
 | Python が残っている | `scripts/` が在る ── 道具は `tool/` が持つ |
 | rs/ が残っている | 道具のソースを `tool/` へ移していない |
+| parts/ か declare/ が残っている | crate のフォルダを層の正式名（`business_logic/` ・ `service/`）へ改めていない |
 | bin/ を git の追跡から外していない | `.gitignore` に `bin/` が無い |
-| 部品が外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
-| references の部品が無い（版2） | `tool/parts/src/refs.rs` か `tool/declare/src/refs.rs` が無い |
-| references の部品が雛形と違う（版2） | `tool/parts/src/refs.rs` が `refs.rs.tmpl` と一致しない。雛形から複製し直す |
+| 外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
+| references の実装が無い（版2） | `tool/business_logic/src/refs.rs` か `tool/service/src/refs.rs` が無い |
+| references の実装が雛形と違う（版2） | `tool/business_logic/src/refs.rs` が `refs.rs.tmpl` と一致しない。雛形から複製し直す |
 
-依存が宣言どおりに守られているかは、コンパイラが判定する。**見つけるが、直さない。**
+依存が `Cargo.toml` どおりに守られているかは、コンパイラが判定する。**見つけるが、直さない。**

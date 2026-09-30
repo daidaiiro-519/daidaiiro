@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Value};
 
-/// 引数1つ。**位置引数と旗を区別しない** ── 呼ぶ側の形は入口が決める。
+/// 引数1つ。**位置引数と旗を区別しない** ── 呼ぶ側の形はプレゼンテーション層が決める。
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Arg {
@@ -80,7 +80,7 @@ impl Arg {
     }
 }
 
-/// 渡された引数。**入口が組み、道具が読む。**
+/// 渡された引数。**プレゼンテーション層が組み、道具が読む。**
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct Given {
@@ -115,7 +115,7 @@ impl Given {
     }
 
     /// この Skill の置き場所。**呼ぶ側が `skill_root` を渡したときは、それを優先する。**
-    /// 渡されなければ、入口自身の位置から求める ── Rust の組は入口を `bin/` に置くので、
+    /// 渡されなければ、実行ファイル自身の位置から求める ── Rust の組は実行ファイルを `bin/` に置くので、
     /// 実行ファイルの1つ上（`bin/` の親）である。配布しても変わらない。どちらにも
     /// `SKILL.md` が無ければ、試した経路を示して止める ── `SKILL.md` はどの Skill も持つが、
     /// `references/` を持たない Skill も在る（実測 ── fact-check）。
@@ -145,14 +145,14 @@ impl Given {
 }
 
 impl Given {
-    /// 外部の道具の、起動するコマンド。**部品は名前を直書きせず、これで受け取る。**
+    /// 外部の道具の、起動するコマンド。**業務ロジック層は名前を直書きせず、これで受け取る。**
     /// Skill のフォルダの `tool.json` の `external` から、名前で引く ── 利用者は
     /// `tool.json` を書き換えるだけで、呼ぶコマンドを差し替えられる。
     ///
     /// # Errors
     ///
     /// Skill のフォルダが見つからないとき、`tool.json` を読めないとき、
-    /// その名前の宣言か、その `command` が無いときに返す。
+    /// tool.json にその名前の登録か、その `command` が無いときに返す。
     pub fn external(&self, name: &str) -> Result<String, String> {
         let path = self.skill_root()?.join("tool.json");
         let text = std::fs::read_to_string(&path)
@@ -171,9 +171,9 @@ impl Given {
     }
 }
 
-/// 宣言を、機械が読む形で返す。**動詞なしで `--json` を付けたときに入口が返す。**
+/// 道具の一覧を、機械が読む形で返す。**動詞なしで `--json` を付けたときに CLI が返す。**
 /// 検査はこれを MCP の `tools/list` と突き合わせ、`skill_root` で Skill のフォルダの
-/// 求め方を確かめる ── 言語に依存せずに、入口を起動するだけで検査できる。
+/// 求め方を確かめる ── 言語に依存せずに、実行ファイルを起動するだけで検査できる。
 #[must_use]
 pub fn catalog(all: &[Tool], given: &Given) -> Outcome {
     let tools: Vec<Value> = all
@@ -194,7 +194,7 @@ pub fn catalog(all: &[Tool], given: &Given) -> Outcome {
     Outcome::found(Vec::new(), json!({ "tools": tools, "skill_root": root }))
 }
 
-/// 道具の戻り値。**印字はしない** ── 印字と終了コードは入口が持つ。
+/// 道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Outcome {

@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 //! Skill が契約を満たしているかを検査する。**見つけるが、直さない。**
 //!
-//! **2段で検査する**（ACDR 0036）。1段目は入口を起動して振る舞いを確認する ── どの言語でも
+//! **2段で検査する**（ACDR 0036）。1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも
 //! 同じである（`behavior`）。2段目はソースを読む検査で、**言語の組が持つ**。組が在るのは
 //! いま Rust だけで、組が無い言語では「実行しない」と出す ── 合格とは扱わない。
 //! 最後に、節の構成が対応する雛形を満たすかを見る。
 //!
-//! Rust の組の2段目が見るのは、層が crate に分かれていること、**許可辺が宣言どおりで
-//! あること**、部品が外部の道具の名前を直書きしていないことである。
+//! Rust の組の2段目が見るのは、層が crate に分かれていること、**依存の向きが契約どおりで
+//! あること**、外部の道具の名前を直書きしていないことである。
 //!
 //! **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
 //! コンパイラが通す（実測 2026-09-26）── 層の境界を crate の境界に置いて初めて、
-//! 宣言に無い依存が解決しなくなる。
+//! `Cargo.toml` に書いていない依存が解決しなくなる。
 //!
-//! **許可辺は各 `Cargo.toml` が宣言する。** この検査は宣言を読み、並びと食い違って
-//! いないかを見る ── 実際に守られているかはコンパイラが判定する。
+//! **依存の向きは各 `Cargo.toml` が宣言する。** この検査は `Cargo.toml` を読み、層の並びと
+//! 食い違っていないかを見る ── 実際に守られているかはコンパイラが判定する。
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -29,14 +29,18 @@ pub const TOOL: &str = "tool";
 /// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**
 pub const BIN: &str = "bin";
 
-/// 層の並び。**内から外である** ── 先頭が最も内側である。
-pub const ORDER: [&str; 3] = ["parts", "declare", "entry"];
+/// 層の並び。**下から上である** ── 先頭が最も下（業務ロジック層）である。
+/// 名前はレイヤードアーキテクチャの層の正式名に合わせる。
+pub const ORDER: [&str; 3] = ["business_logic", "service", "presentation"];
 
-/// 入口の層に属する crate。**合成する側なので複数在ってよい。**
+/// プレゼンテーション層に属する crate。**呼び出し方ごとに1つなので、複数在ってよい。**
 pub const ENTRIES: [&str; 2] = ["cli", "mcp"];
 
+/// 以前の層の名前。**残っていれば、改名が済んでいない**（ACDR 0056）。
+pub const RETIRED: [(&str, &str); 2] = [("parts", "business_logic"), ("declare", "service")];
+
 /// 事例を置く場所（`tool/` からの相対）。
-pub const TESTS: &str = "parts/tests";
+pub const TESTS: &str = "business_logic/tests";
 
 /// 助言の Skill を見分ける節の名前。**名前で分岐しない** ── Skill が増えるたびに直す。
 pub const ADVISOR_MARK: &str = "相談種別と回答テンプレート";
@@ -49,7 +53,7 @@ pub struct Templates {
     pub general: PathBuf,
     /// 助言の Skill が満たす雛形。
     pub advisor: PathBuf,
-    /// references の部品の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**
+    /// references の実装の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**
     pub refs: Option<PathBuf>,
 }
 
@@ -64,7 +68,7 @@ impl Templates {
         }
     }
 
-    /// references の部品の雛形を足す。
+    /// references の実装の雛形を足す。
     #[must_use]
     pub fn with_refs(mut self, refs: PathBuf) -> Self {
         self.refs = Some(refs);
@@ -72,24 +76,25 @@ impl Templates {
     }
 }
 
-/// その層が参照してよい層を返す。**並びから導く** ── 表を別に持つと、並びとずれる。
+/// その層が依存してよい層を返す。**直下の1つだけである** ── 層を飛ばすと、サービス層の
+/// 道具の一覧を経ない呼び出し方ができる。**並びから導く** ── 表を別に持つと、並びとずれる。
 #[must_use]
 fn allowed(layer: &str) -> Vec<&'static str> {
-    let at = ORDER.iter().position(|x| *x == layer);
-    match at {
-        Some(i) => ORDER[..i].to_vec(),
-        None => Vec::new(),
+    match ORDER.iter().position(|x| *x == layer) {
+        Some(i) if i > 0 => vec![ORDER[i - 1]],
+        _ => Vec::new(),
     }
 }
 
-/// crate の名前から、属する層を決める。
+/// crate の名前から、属する層を決める。**名前の末尾で見る** ── crate は `<接頭辞>_<層>` の形で、
+/// 層の名前そのものが `_` を含む（`business_logic`）ので、区切りで割らない。
 #[must_use]
 fn layer_of(name: &str) -> Option<&'static str> {
-    let tail = name.rsplit('_').next().unwrap_or(name);
-    if ENTRIES.contains(&tail) {
-        return Some("entry");
+    let ends = |x: &str| name == x || name.ends_with(&format!("_{x}"));
+    if ENTRIES.iter().any(|e| ends(e)) {
+        return Some("presentation");
     }
-    ORDER.iter().copied().find(|x| *x == tail)
+    ORDER.iter().copied().find(|x| ends(x))
 }
 
 /// `Cargo.toml` が宣言している、同じ workspace の中の依存を読む。
@@ -178,7 +183,7 @@ pub fn has_tools(root: &Path) -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Stage {
-    /// 入口を起動する検査。全言語で共通である。
+    /// 実行ファイルを起動する検査。全言語で共通である。
     Behavior,
     /// ソースを読む検査。言語の組が持つ。
     Source,
@@ -240,7 +245,7 @@ impl Report {
 #[must_use]
 pub fn check(root: &Path, templates: &Templates) -> Report {
     let mut report = Report::default();
-    // **道具を持たない Skill に、入口も層も要求しない。** 助言と手順だけの Skill が在る
+    // **道具を持たない Skill に、実行ファイルも層も要求しない。** 助言と手順だけの Skill が在る
     if has_tools(root) {
         for v in behavior::run(root) {
             report.lines.push(match v {
@@ -278,7 +283,7 @@ pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
             return vec![Line::new(
                 Stage::Source,
                 State::Pass,
-                "Rust の組 ── 層が crate に分かれ、許可辺が宣言どおりで、部品が外部の道具の名前を直書きしていない"
+                "Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、外部の道具の名前を直書きしていない"
                     .to_owned(),
             )];
         }
@@ -301,25 +306,25 @@ pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
     )]
 }
 
-/// Rust の組の、版2 の規則。**references の部品は雛形の複製である** ── Skill ごとに書き換えると、
+/// Rust の組の、版2 の規則。**references の実装は雛形の複製である** ── Skill ごとに書き換えると、
 /// どの Skill でも同じ get ・ validate ・ view ・ import になるという契約が崩れる。
 #[must_use]
 pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
     let mut findings = Vec::new();
-    for need in ["parts/src/refs.rs", "declare/src/refs.rs"] {
+    for need in ["business_logic/src/refs.rs", "service/src/refs.rs"] {
         if !root.join(TOOL).join(need).is_file() {
             findings.push(format!(
-                "references の部品が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く"
+                "references の実装が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く"
             ));
         }
     }
     if let Some(tmpl) = &templates.refs {
         let want = fs::read_to_string(tmpl).unwrap_or_default();
         let have =
-            fs::read_to_string(root.join(TOOL).join("parts/src/refs.rs")).unwrap_or_default();
+            fs::read_to_string(root.join(TOOL).join("business_logic/src/refs.rs")).unwrap_or_default();
         if !have.is_empty() && !want.is_empty() && have != want {
             findings.push(format!(
-                "references の部品が雛形と違う: {TOOL}/parts/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す"
+                "references の実装が雛形と違う: {TOOL}/business_logic/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す"
             ));
         }
     }
@@ -332,7 +337,7 @@ pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
     missing_sections(root, templates)
 }
 
-/// Rust の組の2段目。**層 ・ 許可辺 ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。
+/// Rust の組の2段目。**層 ・ 依存の向き ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。
 #[must_use]
 pub fn rust(root: &Path) -> Vec<String> {
     let mut findings = Vec::new();
@@ -344,28 +349,29 @@ pub fn rust(root: &Path) -> Vec<String> {
         ));
     } else {
         let listed = members(&rs.join("Cargo.toml"));
-        for need in ORDER.iter().copied().filter(|x| *x != "entry") {
+        for need in ORDER.iter().copied().filter(|x| *x != "presentation") {
             if !listed.iter().any(|x| x == need) {
                 findings.push(format!("層の crate が無い: {TOOL}/{need}"));
             }
         }
         if !ENTRIES.iter().any(|e| listed.iter().any(|x| x == e)) {
             findings.push(format!(
-                "入口の crate が無い: {TOOL}/ に {} のどれかを置く",
+                "プレゼンテーション層の crate が無い: {TOOL}/ に {} のどれかを置く",
                 ENTRIES.join(" か ")
             ));
         }
-        // **許可辺が宣言どおりかを見る。** 守られているかはコンパイラが判定する
+        // **依存の向きが契約どおりかを見る。** 守られているかはコンパイラが判定する
         for member in &listed {
             let manifest = rs.join(member).join("Cargo.toml");
             if !manifest.is_file() {
-                findings.push(format!("宣言が無い: {TOOL}/{member}/Cargo.toml"));
+                findings.push(format!("Cargo.toml が無い: {TOOL}/{member}/Cargo.toml"));
                 continue;
             }
             let Some(here) = layer_of(member) else {
                 findings.push(format!(
-                    "どの層か決まらない: {TOOL}/{member} ── 名前を {} か {} で終える",
-                    ORDER.join(" ・ "),
+                    "どの層か決まらない: {TOOL}/{member} ── 名前を {} ・ {} か {} で終える",
+                    ORDER[0],
+                    ORDER[1],
                     ENTRIES.join(" ・ ")
                 ));
                 continue;
@@ -375,8 +381,8 @@ pub fn rust(root: &Path) -> Vec<String> {
                 let Some(to) = layer_of(&dep) else { continue };
                 if !may.contains(&to) {
                     findings.push(format!(
-                        "許可していない辺を宣言している: {TOOL}/{member}/Cargo.toml ── \
-                         {here} → {to}"
+                        "依存の向きに違反している: {TOOL}/{member}/Cargo.toml ── \
+                         {here} → {to}（依存してよいのは直下の層だけである）"
                     ));
                 }
             }
@@ -396,6 +402,13 @@ pub fn rust(root: &Path) -> Vec<String> {
             "rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）"
         ));
     }
+    for (old, new) in RETIRED {
+        if rs.join(old).is_dir() {
+            findings.push(format!(
+                "{old}/ が残っている: {TOOL}/{old} ── 層の正式名 {TOOL}/{new} へ改める"
+            ));
+        }
+    }
     let ignored = fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
     if !ignored
         .lines()
@@ -411,8 +424,8 @@ pub fn rust(root: &Path) -> Vec<String> {
     findings
 }
 
-/// 部品が外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、
-/// 宣言の層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
+/// 外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、
+/// サービス層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
 /// 試験で偽物を渡せない。
 fn hardcoded(root: &Path) -> Vec<String> {
     let mut files = Vec::new();
@@ -429,7 +442,7 @@ fn hardcoded(root: &Path) -> Vec<String> {
             .to_string();
         for name in spawned(&body).into_iter().flatten() {
             findings.push(format!(
-                "部品が外部の道具の名前を直書きしている: {at} ── \"{name}\"（tool.json の external に宣言し、given.external で受け取って渡す）"
+                "外部の道具の名前を直書きしている: {at} ── \"{name}\"（tool.json の external に宣言し、given.external で受け取って渡す）"
             ));
         }
     }

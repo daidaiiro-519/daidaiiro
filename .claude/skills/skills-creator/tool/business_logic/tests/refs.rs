@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-//! references の部品（refs）を事例で検証する。**この部品は雛形から各 Skill へ複製する**ので、
+//! references の実装（refs）を事例で検証する。**この実装は雛形から各 Skill へ複製する**ので、
 //! ここで固定した振る舞いが、すべての Skill の get ・ validate ・ view ・ import になる。
 //!
-//!     cargo test -p sc_parts --test refs
+//!     cargo test -p sc_business_logic --test refs
 
 #![recursion_limit = "256"]
 
 use std::path::{Path, PathBuf};
 
-use sc_parts::refs;
+use sc_business_logic::refs;
 use serde_json::{json, Value};
 
 fn scratch(name: &str) -> PathBuf {

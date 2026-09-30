@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-//! skills-creator の道具の宣言。**能力の正本はここである。**
+//! skills-creator のサービス層。道具の一覧を持ち、**能力の正本はここである。**
 //!
-//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。
-//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。
+//! プレゼンテーション層（CLI ・ MCP）はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+//! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use sc_parts::{check, scaffold};
+use sc_business_logic::{check, scaffold};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -115,10 +115,10 @@ fn human_check(out: &Outcome) -> String {
     text.join("\n")
 }
 
-/// 置く一式を組む。**何を置くかはここが決める** ── 部品は並びを認知しない。
+/// 置く一式を組む。**何を置くかはここが決める** ── 業務ロジック層は並びを認知しない。
 ///
 /// **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
-/// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、宣言に無い依存が
+/// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、`Cargo.toml` に書いていない依存が
 /// 解決しなくなる。
 fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     let tmpl = here.join("references/profiles/rust");
@@ -141,20 +141,20 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     // **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない
     for (from, to) in [
         ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("parts.Cargo.toml.tmpl", "tool/parts/Cargo.toml"),
-        ("parts.lib.rs.tmpl", "tool/parts/src/lib.rs"),
-        ("parts.tests.rs.tmpl", "tool/parts/tests/example.rs"),
-        ("declare.Cargo.toml.tmpl", "tool/declare/Cargo.toml"),
-        ("declare.lib.rs.tmpl", "tool/declare/src/lib.rs"),
-        ("contract.rs.tmpl", "tool/declare/src/contract.rs"),
+        ("business_logic.Cargo.toml.tmpl", "tool/business_logic/Cargo.toml"),
+        ("business_logic.lib.rs.tmpl", "tool/business_logic/src/lib.rs"),
+        ("business_logic.tests.rs.tmpl", "tool/business_logic/tests/example.rs"),
+        ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
+        ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
+        ("contract.rs.tmpl", "tool/service/src/contract.rs"),
         ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
         ("cli.main.rs.tmpl", "tool/cli/src/main.rs"),
         ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
         ("mcp.main.rs.tmpl", "tool/mcp/src/main.rs"),
         ("mcp.json.tmpl", "mcp.json"),
         ("tool.json.tmpl", "tool.json"),
-        ("refs.rs.tmpl", "tool/parts/src/refs.rs"),
-        ("declare.refs.rs.tmpl", "tool/declare/src/refs.rs"),
+        ("refs.rs.tmpl", "tool/business_logic/src/refs.rs"),
+        ("service.refs.rs.tmpl", "tool/service/src/refs.rs"),
         (
             "document.schema.json.tmpl",
             "references/document.schema.json",
@@ -209,7 +209,7 @@ fn human_scaffold(out: &Outcome) -> String {
         .collect();
     lines.extend(out.findings.iter().cloned());
     lines.push(
-        "次に書くもの ── 差し込む場所（{{…}}）を埋め、部品を tool/parts/src/ へ置く".to_owned(),
+        "次に書くもの ── 差し込む場所（{{…}}）を埋め、業務ロジック層の関数を tool/business_logic/src/ へ置く".to_owned(),
     );
     lines.push(
         "組む ── Skill のフォルダで cargo install --path tool/cli --root . --target-dir tool/target（mcp も同じ）。bin/ に置かれる"
