@@ -12,8 +12,9 @@
 
 ```
 tool/           道具のソース
-  Cargo.toml    workspace ── 4つの crate を並べる
-  business_logic/  業務ロジック層 ── 処理の実体。サービス層から読み込まれる
+  Cargo.toml    workspace ── 5つの crate を並べる
+  data_access/  データアクセス層 ── ファイル ・ 外部の道具 ・ 通信の入出力（files.rs ・ process.rs は雛形の複製）
+  business_logic/  業務ロジック層 ── 判定と変換の実体。入出力を禁じる
     tests/      事例
   service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）
   cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路
@@ -31,7 +32,8 @@ crate のフォルダの名前は、レイヤードアーキテクチャの層�
 
 | crate | 層 | 依存してよい先 |
 |---|---|---|
-| `business_logic` | 業務ロジック層 | **無し**（外の crate は、references の実装が使う serde_json と jsonschema だけ） |
+| `data_access` | データアクセス層 | **無し** |
+| `business_logic` | 業務ロジック層 | `data_access`（外の crate は、references の実装が使う serde_json と jsonschema だけ） |
 | `service` | サービス層 | `business_logic` |
 | `cli` ・ `mcp` | プレゼンテーション層 | `service` |
 
@@ -57,9 +59,10 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 |---|---|
 | 道具の一覧 | `tool/service/` の `tools()`。MCP の面で `#[tool]` マクロを使い、道具をその場で宣言しない |
 | 動詞なしの `--json` | CLI が `catalog()` の結果を返す（`contract.rs`） |
-| 外部の道具 | サービス層が `given.external("名前")` で `tool.json` から読み、業務ロジック層の関数へ引数として渡す。**業務ロジック層は `Command::new("…")` に名前を直書きしない** |
+| 外部の道具 | サービス層が `given.external("名前")` で `tool.json` から読み、業務ロジック層の関数へ引数として渡す。起動するのはデータアクセス層の `process::run` ・ `process::Session` である。**どの層も `Command::new("…")` に名前を直書きしない** |
+| 入出力 | 業務ロジック層とサービス層は `std::fs` ・ `std::process` ・ `std::net` を直接呼ばない。業務ロジック層は、`lib.rs` に置いた公開しない別名 `use <接頭辞>_data_access as data_access;` を経由して `data_access::files` ・ `data_access::process` を呼ぶ ── 別名を公開すると、上の層がこの crate を経由してデータアクセス層へ届く |
 | 標準出力 | 道具の中で `println!` を使わない。子プロセスの出力は `Stdio::piped()` かファイルで受ける |
-| 子プロセスの規律 | `.stdin(Stdio::null())` ・ `try_wait` で待ち、制限時間を過ぎたら `kill` ・ `.stdout(…)` と `.stderr(…)` を指定する |
+| 子プロセスの規律 | データアクセス層の `process.rs` が1回だけ実装する ── `.stdin(Stdio::null())` ・ `try_wait` で待ち、制限時間を過ぎたら `kill` ・ 標準出力と標準エラーを上限（`MAX_OUTPUT`）までだけ受け取る |
 | 誤りの返し方 | `ok` が偽なら `CallToolResult` の `is_error` を立てる（`mcp.main.rs.tmpl`） |
 
 ---
@@ -67,11 +70,13 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 ## 雛形
 
 `references/profiles/rust/` に置く。`skills-creator scaffold` がこの一式を置く。
-**`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く。
+**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く。
 
 | 雛形 | 置く先 |
 |---|---|
 | `workspace.Cargo.toml.tmpl` | `tool/Cargo.toml` |
+| `data_access.Cargo.toml.tmpl` ・ `data_access.lib.rs.tmpl` | `tool/data_access/` |
+| `files.rs.tmpl` ・ `process.rs.tmpl` | `tool/data_access/src/` ── ファイルと外部の道具の入出力。**どの Skill も同じファイルを複製する** |
 | `business_logic.Cargo.toml.tmpl` ・ `business_logic.lib.rs.tmpl` ・ `business_logic.tests.rs.tmpl` | `tool/business_logic/` |
 | `service.Cargo.toml.tmpl` ・ `service.lib.rs.tmpl` ・ `contract.rs.tmpl` | `tool/service/` |
 | `cli.Cargo.toml.tmpl` ・ `cli.main.rs.tmpl` | `tool/cli/` |
@@ -98,6 +103,7 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 | rs/ が残っている | 道具のソースを `tool/` へ移していない |
 | parts/ か declare/ が残っている | crate のフォルダを層の正式名（`business_logic/` ・ `service/`）へ改めていない |
 | bin/ を git の追跡から外していない | `.gitignore` に `bin/` が無い |
+| 入出力を禁じた層が入出力を直接扱っている | 業務ロジック層かサービス層（`contract.rs` を除く）の行に、`std::fs` ・ `std::process` ・ `std::net` ・ `Command::new` ・ `.is_file()` などが在る。行ごとに出す。文字列の中と注記の行は数えない |
 | 外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
 | references の実装が無い（版2） | `tool/business_logic/src/refs.rs` か `tool/service/src/refs.rs` が無い |
 | references の実装が雛形と違う（版2） | `tool/business_logic/src/refs.rs` が `refs.rs.tmpl` と一致しない。雛形から複製し直す |

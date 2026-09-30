@@ -1,0 +1,477 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0058",
+ "title": "道具の入出力をデータアクセス層へ集める",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "道具のファイル ・ 外部の道具 ・ 通信の入出力を、データアクセス層だけに持たせる。道具の層は、サービス層を挟んだレイヤードアーキテクチャの4層（プレゼンテーション層 ・ サービス層 ・ 業務ロジック層 ・ データアクセス層）とする。",
+ "why": "0056 で道具の層をレイヤードアーキテクチャの正式名で呼ぶと決めた。しかし、判断基準のレイヤードが持つデータアクセス層が無く、業務ロジック層がファイルと外部の道具を直接扱っていた（14件で、ファイル操作 約200か所 ・ 外部の道具 10か所 ・ 通信 5か所）。全 Skill 共通の references の実装も同じである。利用者から「今後データを扱うのが増えた時に辛い」と指摘された。雛形がこの形のまま複製され続けると、データを処理する Skill が増えるほど、後で分ける量が増える。いま決めるのは、6つの言語の組の雛形をこれから起こすからである。3つの形を ddd-advisor の判断基準と原典で比べた（下の比較した案）。道具の処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける。あわせて、SKILL.md が存在しないファイル（placeholder-definitions.md）を参照し、Step 4 と矛盾していた点と、汎用の Skill に固有名 Waffle が残っていた点を直す。",
+ "shift": [
+  {
+   "what": "道具の層",
+   "from": "3層（プレゼンテーション ・ サービス ・ 業務ロジック）",
+   "to": "4層（データアクセス層を加える）"
+  },
+  {
+   "what": "入出力の置き場所",
+   "from": "業務ロジック層とサービス層が直接扱う",
+   "to": "データアクセス層だけが扱う。例外は contract.rs が読む起動の設定"
+  },
+  {
+   "what": "子プロセスの規律の実装",
+   "from": "入出力を扱う箇所ごとに実装する",
+   "to": "データアクセス層の process.rs が1回だけ実装する（雛形の複製）"
+  },
+  {
+   "what": "check の2段目",
+   "from": "層 ・ 依存の向き ・ 外部の道具の直書き",
+   "to": "入出力の混入を行ごとに検出する規則を加える"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は業務ロジック層とサービス層が入出力を直接扱っていた（破線）。変更後は入出力をデータアクセス層へ集め、業務ロジック層は判定と変換だけを持つ",
+ "alternatives": [
+  {
+   "option": "ヘキサゴナル（コアがポートを定義し、アダプタが実装する）",
+   "why_not": "判断基準は、ポートとアダプターをドメインモデル（集約と不変条件を持つ業務）向けとしている。道具にはその前提が無く、入出力の種類ごとに trait と注入が増える。ドメインモデルを必要とする Skill が現れたら、その Skill だけを移せばよい（判断基準は業務領域ごとに方式を混ぜてよいとする）"
+  },
+  {
+   "option": "関数型コア＋命令型シェル（サービス層が入出力を行い、業務ロジック層は純粋な関数だけにする）",
+   "why_not": "「読んだ内容で次に読むものが決まる」処理（references の参照の解決、外部の道具の結果による分岐）で、シェルとコアの往復が増える。Bernhardt 自身も「If this became more complex, then I would become afraid」（FCIS 字幕:933）と限定している"
+  },
+  {
+   "option": "データアクセス層を分けず、契約に「分けない」と明記する",
+   "why_not": "データを処理する Skill が増えるたびに、業務ロジックが保存先の都合を知る。雛形の references の実装が入出力を持つので、複製するたびに分ける対象が増える"
+  },
+  {
+   "option": "入出力の禁止を業務ロジック層だけに当てる",
+   "why_not": "サービス層が雛形のファイルを直接読んでいた。サービス層の入出力を許すと、データアクセス層を飛ばす経路が残る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "contract",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "層は4つである。",
+     "before": "層は3つである。",
+     "why": "データアクセス層を加えた。判断基準のレイヤードの層（プレゼンテーション ・ 業務ロジック ・ データアクセス）にサービス層を挟んだ形である"
+    },
+    {
+     "find": "データアクセス層を置くのは、入出力を1か所に集めるためである",
+     "before": "（無い）",
+     "why": "データを処理する Skill が増えても、変わる層を1つに限る。子プロセスの規律も1か所で実装する"
+    },
+    {
+     "find": "業務ロジック層がデータアクセス層を直接呼ぶ。",
+     "before": "（無い）",
+     "why": "ヘキサゴナルと称さない理由を、依存の向きで明示した"
+    },
+    {
+     "find": "ドメインモデルを必要とする Skill が現れたら",
+     "before": "（無い）",
+     "why": "判断基準が業務領域ごとに方式を混ぜてよいとする点を、将来の見直しの条件として残した"
+    }
+   ]
+  },
+  {
+   "key": "rust",
+   "tab": "profiles/rust.md",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "外の crate は、references の実装が使う serde_json と jsonschema だけ",
+     "before": "（無い）",
+     "why": "データアクセス層の crate を加え、業務ロジック層がそれだけに依存する形にした"
+    },
+    {
+     "find": "入出力を禁じた層が入出力を直接扱っている",
+     "before": "（無い）",
+     "why": "規定だけでは戻るので、入出力の混入を2段目で行ごとに検出する"
+    },
+    {
+     "find": "公開しない別名",
+     "before": "（無い）",
+     "why": "雛形の複製が Skill の接頭辞に依存せずにデータアクセス層を呼べるようにした。公開すると、上の層がこの crate を経由してデータアクセス層へ届く"
+    },
+    {
+     "find": "が1回だけ実装する",
+     "before": ".stdin(Stdio::null()) ・ try_wait で待ち、制限時間を過ぎたら kill ・ .stdout(…) と .stderr(…) を指定する",
+     "why": "子プロセスの規律を、入出力を扱う箇所ごとではなく1か所で実装する。受け取る量の上限も加えた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "入出力をデータアクセス層だけに持たせる",
+     "before": "（無い）",
+     "why": "新しい Skill を作るときのガードレールに加えた"
+    },
+    {
+     "find": "references/skill-template.md の各",
+     "before": "プレースフォルダーを記入する前に必ずreferences/placeholder-definitions.mdを参照する。定義票なしで記入しない",
+     "why": "存在しないファイルを参照していた。Step 4 は「別途定義票を参照する必要はない」と書いており、ガードレールと矛盾していた。Step 4 に一致させた"
+    },
+    {
+     "find": "特定の CLI ・ MCP など",
+     "before": "Waffle、特定のCLI/MCP等",
+     "why": "汎用の Skill に、このリポジトリの外で意味の通じない固有名が残っていた"
+    }
+   ]
+  },
+  {
+   "key": "files",
+   "tab": "files.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/files.rs.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "ファイルの入出力。",
+     "before": "（無い）",
+     "why": "データアクセス層の共通の雛形として新しく置いた。関数は std::fs と同じ名前と引数にそろえ、移すときに呼び出しの形を変えずに済むようにした"
+    }
+   ]
+  },
+  {
+   "key": "process",
+   "tab": "process.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/process.rs.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "外部の道具の起動。",
+     "before": "（無い）",
+     "why": "子プロセスの規律（標準入力を閉じる ・ 制限時間 ・ 受け取る量の上限）を1か所で実装する共通の雛形として新しく置いた。失敗は文言ではなく種類で返し、どう伝えるかは業務ロジック層が決める"
+    }
+   ]
+  },
+  {
+   "key": "refs",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::data_access;",
+     "before": "（無い）",
+     "why": "references の実装は全 Skill 共通の複製なので、接頭辞に依存しない別名を経由してデータアクセス層を呼ぶ"
+    },
+    {
+     "find": "let entries = data_access::files::list(refs)",
+     "before": "let entries =\nstd::fs::read_dir(refs).map_err(|e| format!(\"{} を読めない ── {e}\", refs.display()))?;\nlet mut names: Vec<String> = entries\n.flatten()\n.map(|e| e.file_name().to_string_lossy().into_owned())",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "data: data_access::files::is_file(&data).then_some(data),",
+     "before": "data: data.is_file().then_some(data),\nlet body = std::fs::read_to_string(path)",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let mut files: Vec<String> = file_names(",
+     "before": "let mut files: Vec<String> = std::fs::read_dir(refs)\n.map_err(|e| format!(\"{} を読めない ── {e}\", refs.display()))?\n.flatten()\n.map(|e| e.file_name().to_string_lossy().into_owned())\n.collect();",
+     "why": "データアクセス層の list は経路の並びを返すので、名前を取り出す変換を業務ロジック層に置いた"
+    },
+    {
+     "find": "let mut all = if data_access::files::is_file(&path) {",
+     "before": "let mut all = if path.is_file() {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "data_access::files::write(&path, text + \"\\n\")",
+     "before": "std::fs::write(&path, text + \"\\n\")",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "data_access::files::read_to_string(base.join(p)).unwrap_or_default()",
+     "before": "std::fs::read_to_string(base.join(p)).unwrap_or_default()",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "data_access::files::read_to_string(base.join(p)).unwrap_or_default()",
+     "before": "std::fs::read_to_string(base.join(p)).unwrap_or_default()",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "data_access::files::read_to_string(ctx.base.join(p)).unwrap_or_default()",
+     "before": "std::fs::read_to_string(ctx.base.join(p)).unwrap_or_default()",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let template = data_access::files::read_to_string(refs.join(\"view.template.html\"))",
+     "before": "let template = std::fs::read_to_string(refs.join(\"view.template.html\"))",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "/// 描画した頁を書き出す。",
+     "before": "let body = std::fs::read_to_string(path)",
+     "why": "サービス層は入出力を禁じるので、書き出しと読み込みを業務ロジック層の関数に移し、データアクセス層を呼ぶ。続く読み込みもデータアクセス層を通す"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::data_access::files;",
+     "before": "use std::fs;",
+     "why": "入出力をデータアクセス層を経由して行う"
+    },
+    {
+     "find": "pub const ORDER: [&str; 4] = [\"data_access\", \"business_logic\", \"service\", \"presentation\"];",
+     "before": "/// 層の並び。**下から上である** ── 先頭が最も下（業務ロジック層）である。\n/// 名前はレイヤードアーキテクチャの層の正式名に合わせる。\npub const ORDER: [&str; 3] = [\"business_logic\", \"service\", \"presentation\"];",
+     "why": "層の並びの先頭にデータアクセス層を加えた"
+    },
+    {
+     "find": "let Ok(body) = files::read_to_string(manifest) else {",
+     "before": "let Ok(body) = fs::read_to_string(manifest) else {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let Ok(body) = files::read_to_string(manifest) else {",
+     "before": "let Ok(body) = fs::read_to_string(manifest) else {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let Ok(body) = files::read_to_string(&document) else {",
+     "before": "let Ok(body) = fs::read_to_string(&document) else {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let Ok(want) = files::read_to_string(template) else {",
+     "before": "let Ok(want) = fs::read_to_string(template) else {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "files::is_file(root.join(\"tool.json\"))",
+     "before": "root.join(\"tool.json\").is_file()\n|| root.join(\"mcp.json\").is_file()\n|| root.join(TOOL).is_dir()\n|| root.join(\"rs\").is_dir()\n|| root.join(\"scripts\").is_dir()",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "if files::is_file(root.join(TOOL).join(\"Cargo.toml\")) || files::is_dir(root.join(\"rs\")) {",
+     "before": "if root.join(TOOL).join(\"Cargo.toml\").is_file() || root.join(\"rs\").is_dir() {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "\"Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、入出力はデータアクセス層だけが持ち、外部の道具の名前を直書きしていない\"",
+     "before": "\"Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、外部の道具の名前を直書きしていない\"",
+     "why": "合格の文に、入出力の規則を加えた"
+    },
+    {
+     "find": "if files::is_dir(root.join(\"scripts\")) {",
+     "before": "if root.join(\"scripts\").is_dir() {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "if !files::is_file(root.join(TOOL).join(need)) {",
+     "before": "if !root.join(TOOL).join(need).is_file() {\nlet want = fs::read_to_string(tmpl).unwrap_or_default();\nlet have =\nfs::read_to_string(root.join(TOOL).join(\"business_logic/src/refs.rs\")).unwrap_or_default();",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "if !files::is_file(rs.join(\"Cargo.toml\")) {",
+     "before": "if !rs.join(\"Cargo.toml\").is_file() {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "if !files::is_file(&manifest) {",
+     "before": "if !manifest.is_file() {\n\"どの層か決まらない: {TOOL}/{member} ── 名前を {} ・ {} か {} で終える\",",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "if !files::is_dir(rs.join(TESTS)) {",
+     "before": "if !rs.join(TESTS).is_dir() {\nif root.join(\"scripts\").is_dir() {\nif root.join(\"rs\").is_dir() {\nif rs.join(old).is_dir() {\nlet ignored = fs::read_to_string(root.join(\".gitignore\")).unwrap_or_default();",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "findings.extend(io_leaks(root));",
+     "before": "（無い）",
+     "why": "入出力の混入を行ごとに検出する。どこを移せばよいかをそのまま示すためである"
+    },
+    {
+     "find": "let Ok(body) = files::read_to_string(&file) else {",
+     "before": "let Ok(body) = fs::read_to_string(&file) else {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "fn has_mark(code: &str, mark: &str) -> bool {",
+     "before": "（無い）",
+     "why": "識別子の途中の一致（refs:: の中の fs::）を数えない"
+    },
+    {
+     "find": "let Ok(entries) = files::list(dir) else {",
+     "before": "let Ok(entries) = fs::read_dir(dir) else {\nfor entry in entries.flatten() {\nlet path = entry.path();\nlet name = entry.file_name().to_string_lossy().into_owned();\nif path.is_dir() {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let want = files::read_to_string(tmpl).unwrap_or_default();",
+     "before": "let want = fs::read_to_string(tmpl).unwrap_or_default();",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::data_access::files;",
+     "before": "use std::io::{BufRead as _, BufReader, Read as _, Write as _};\nuse std::process::{Child, Command, Stdio};\nuse std::sync::mpsc;",
+     "why": "入出力をデータアクセス層を経由して行う"
+    },
+    {
+     "find": "match output(command, &with, &files::temp_dir()) {",
+     "before": "match output(command, &with, &std::env::temp_dir()) {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let text = files::read_to_string(path).map_err(|e| e.to_string())?;",
+     "before": "let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let base = files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());",
+     "before": "let base = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());\n.find(|p| p.is_file())\n/// 起動して、終了コードと標準出力を返す。**標準入力は閉じ、制限時間で止める。**\nlet mut child = Command::new(command)\n.args(args)\n.current_dir(cwd)\n.stdin(Stdio::null())\n.stdout(Stdio::piped())\n.stderr(Stdio::null())\n.spawn()\n.map_err(|e| format!(\"実行ファイルを起動できない: {} ── {e}\", command.display()))?;\nlet mut stdout = child.stdout.take().ok_or(\"標準出力を受けられない\")?;\nlet reader = std::thread::spawn(move || {\nlet mut text = String::new();\nlet _ = stdout.read_to_string(&mut text);\ntext\n});\nlet code = wait_limited(&mut child, command)?;\nlet text = reader.join().unwrap_or_default();\nOk((code, text))\nfn wait_limited(child: &mut Child, command: &Path) -> Result<i32, String> {\nlet start = Instant::now();\nloop {\nif let Some(status) = child.try_wait().map_err(|e| e.to_string())? {\nreturn Ok(status.code().unwrap_or(-1));\n}\nif start.elapsed() > LIMIT {\nlet _ = child.kill();\nlet _ = child.wait();\nreturn Err(format!(\n\"実行ファイルが {} 秒で終わらない: {}\",\nLIMIT.as_secs(),\ncommand.display()\n));\n}\nstd::thread::sleep(Duration::from_millis(20));\nlet away = std::env::temp_dir();",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "let same = |p: &Path| files::canonicalize(p).ok();",
+     "before": "let same = |p: &Path| std::fs::canonicalize(p).ok();",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "match output(command, &with, &files::temp_dir()) {",
+     "before": "match output(command, &with, &std::env::temp_dir()) {",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "Session::open(command, args, files::temp_dir()).map_err(|why| failed(command, &why))?;",
+     "before": "let mut child = Command::new(command)\n.args(args)\n.current_dir(std::env::temp_dir())\n.stdin(Stdio::piped())\n.stdout(Stdio::piped())\n.stderr(Stdio::null())\n.spawn()\n.map_err(|e| format!(\"実行ファイルを起動できない: {} ── {e}\", command.display()))?;\nlet result = converse(&mut child);\nlet _ = child.kill();\nlet _ = child.wait();\nresult\nfn converse(child: &mut Child) -> Result<Vec<Value>, String> {\nlet mut stdin = child.stdin.take().ok_or(\"標準入力を渡せない\")?;\nlet stdout = child.stdout.take().ok_or(\"標準出力を受けられない\")?;\nlet (tx, rx) = mpsc::channel::<Value>();\nstd::thread::spawn(move || {\nfor line in BufReader::new(stdout).lines().map_while(Result::ok) {\nif let Ok(v) = serde_json::from_str::<Value>(&line) {\nif tx.send(v).is_err() {\nbreak;\n}\n}\n}\n});\nlet mut send = |v: Value| {\nwriteln!(stdin, \"{v}\")\n.and_then(|()| stdin.flush())\n.map_err(|e| format!(\"書き込めない ── {e}\"))\n};\nreply(&rx, 1)?;\nsend(json!({\"jsonrpc\": \"2.0\", \"method\": \"notifications/initialized\"}))?;\nsend(json!({\"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\"}))?;\nlet listed = reply(&rx, 2)?;",
+     "why": "ファイルの入出力を、データアクセス層の files を通す形へ移した"
+    },
+    {
+     "find": "fn reply(session: &Session, id: u64) -> Result<Value, Talk> {",
+     "before": "/// 識別子が一致する応答を待つ。**通知や別の応答は読み飛ばす。**\nfn reply(rx: &mpsc::Receiver<Value>, id: u64) -> Result<Value, String> {\nlet v = rx.recv_timeout(left).map_err(|_| {\nformat!(\"応答が無い（id {id}）── 標準出力に MCP の通信以外を書いていないかを確かめる\")\n})?;",
+     "why": "MCP との対話の入出力を process::Session へ移した。どの電文を送り、どの応答を待つかの判定は、ここ（業務ロジック層）に残した"
+    },
+    {
+     "find": "process::run(command, args, cwd, LIMIT)",
+     "before": "let mut child = Command::new(command)",
+     "why": "起動と子プロセスの規律を、データアクセス層の process へ移した。失敗の種類ごとの文言は、ここ（業務ロジック層）が決める"
+    },
+    {
+     "find": "let away = files::temp_dir();",
+     "before": "let away = std::env::temp_dir();",
+     "why": "一時の置き場所の取得も入出力なので、データアクセス層を通す"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".acdr/0058-道具の入出力をデータアクセス層へ集める/rules.after.json",
+   "before": "{\n  \"$schema\": \"../.claude/skills/no-more-spaghetti/references/rules.schema.json\",\n  \"units\": {\n    \"repository\": {\n      \"root\": \".\"\n    },\n    \"skills\": {\n      \"root\": \".claude/skills\"\n    },\n    \"board\": {\n      \"root\": \".brainstorming-board\"\n    },\n    \"docs\": {\n      \"root\": \"docs\"\n    },\n    \"design-svg\": {\n      \"root\": \".claude/skills/design-svg/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"brainstorming-board\": {\n      \"root\": \".claude/skills/brainstorming-board/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"acdr\": {\n      \"root\": \".claude/skills/acdr/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"rust\": {\n      \"root\": \"rust\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"core\",\n          \"where\": [\n            \"core\"\n          ]\n        },\n        {\n          \"name\": \"adapter\",\n          \"where\": [\n            \"adapter\"\n          ]\n        }\n      ]\n    },\n    \"go\": {\n      \"root\": \"go\",\n      \"language\": \"go\",\n      \"layers\": [\n        {\n          \"name\": \"core\",\n          \"where\": [\n            \"core\"\n          ]\n        },\n        {\n          \"name\": \"adapter\",\n          \"where\": [\n            \"adapter\"\n          ]\n        }\n      ]\n    },\n    \"no-more-spaghetti\": {\n      \"root\": \".claude/skills/no-more-spaghetti/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"skills-creator\": {\n      \"root\": \".claude/skills/skills-creator/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"doc-writing-skills\": {\n      \"root\": \".claude/skills/doc-writing-skills/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"fact-check\": {\n      \"root\": \".claude/skills/fact-check/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"slide-deck\": {\n      \"root\": \".claude/skills/slide-deck/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"narration\": {\n      \"root\": \".claude/skills/narration/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"ddd-advisor\": {\n      \"root\": \".claude/skills/ddd-advisor/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"platform-advisor\": {\n      \"root\": \".claude/skills/platform-advisor/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"qa-advisor\": {\n      \"root\": \".claude/skills/qa-advisor/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"ux-advisor\": {\n      \"root\": \".claude/skills/ux-advisor/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    },\n    \"usecase-advisor\": {\n      \"root\": \".claude/skills/usecase-advisor/tool\",\n      \"language\": \"rust\",\n      \"layers\": [\n        {\n          \"name\": \"parts\",\n          \"where\": [\n            \"parts\"\n          ]\n        },\n        {\n          \"name\": \"declare\",\n          \"where\": [\n            \"declare\"\n          ]\n        },\n        {\n          \"name\": \"cli\",\n          \"where\": [\n            \"cli\"\n          ]\n        },\n        {\n          \"name\": \"mcp\",\n          \"where\": [\n            \"mcp\"\n          ]\n        }\n      ]\n    }\n  },\n  \"rules\": [\n    {\n      \"rule\": \"配線表が、形の契約を満たす\",\n      \"source\": {\n        \"record\": \"skill-router/references/skill-wiring.schema.json\"\n      },\n      \"scope\": \"この配線表が、そのスキーマへ適合すること\",\n      \"check\": {\n        \"tool\": [\n          \"python3\",\n          \"-m\",\n          \"jsonschema\",\n          \"-i\",\n          \"skill-wiring.json\",\n          \".claude/skills/skill-router/references/skill-wiring.schema.json\"\n        ]\n      },\n      \"units\": [\n        \"repository\"\n      ]\n    },\n    {\n      \"rule\": \"ブレストボードの入力が、契約を満たす\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"no-more-spaghetti のブレストボードに限る\",\n      \"check\": {\n        \"tool\": [\n          \".claude/skills/brainstorming-board/bin/brainstorming-board\",\n          \"validate\",\n          \".brainstorming-board/no-more-spaghetti\",\n          \"--skill_root\",\n          \".claude/skills/brainstorming-board\"\n        ]\n      },\n      \"units\": [\n        \"repository\"\n      ]\n    },\n    {\n      \"rule\": \"ブレストボードの生成が冪等である\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"no-more-spaghetti のブレストボードに限る\",\n      \"check\": {\n        \"tool\": [\n          \".claude/skills/brainstorming-board/bin/brainstorming-board\",\n          \"render\",\n          \".brainstorming-board/no-more-spaghetti\",\n          \"--check\",\n          \"1\",\n          \"--skill_root\",\n          \".claude/skills/brainstorming-board\"\n        ]\n      },\n      \"units\": [\n        \"repository\"\n      ]\n    },\n    {\n      \"rule\": \"規則ファイルが、形の契約を満たす\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/rules.schema.json\"\n      },\n      \"scope\": \"形 ・ 道具の書き方 ・ 出典の有無 ・ $schema の解決\",\n      \"check\": {\n        \"tool\": [\n          \".claude/skills/no-more-spaghetti/bin/no-more-spaghetti\",\n          \"validate\",\n          \"--rules\",\n          \".coding-rules/rules.json\",\n          \"--root\",\n          \".\",\n          \"--skill_root\",\n          \".claude/skills/no-more-spaghetti\"\n        ]\n      },\n      \"units\": [\n        \"repository\"\n      ]\n    },\n    {\n      \"rule\": \"すべての実装が、構文として妥当である\",\n      \"source\": {\n        \"meta\": \"Python 3.14 documentation, compileall\",\n        \"authority\": \"spec\",\n        \"quote\": \"Return a true value if all the files compiled successfully, and a false value otherwise.\",\n        \"fetched\": {\n          \"url\": \"https://docs.python.org/3/library/compileall.html\",\n          \"date\": \"2026-09-24\",\n          \"sha256\": \"4d63a78c7de74a90fb96ec2555eb9f049a1614cceb5ef6e7e081c0a8eee35f62\",\n          \"line\": 398\n        }\n      },\n      \"scope\": \"構文の検査のみ ── 実行時の誤りは対象にしない\",\n      \"check\": {\n        \"tool\": [\n          \"python3\",\n          \"-m\",\n          \"compileall\",\n          \"-q\",\n          \"-x\",\n          \"(__pycache__|/trial/)\",\n          \".claude/skills\"\n        ]\n      },\n      \"units\": [\n        \"repository\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"acdr\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"acdr\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"acdr/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"acdr\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"acdr/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"acdr\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"acdr/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"acdr\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、コンパイルで強制される\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/concepts.json#依存の向き\"\n      },\n      \"scope\": \"crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い crate は解決しない\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"build\",\n          \"--all-targets\"\n        ]\n      },\n      \"units\": [\n        \"acdr\",\n        \"brainstorming-board\",\n        \"fact-check\",\n        \"slide-deck\",\n        \"design-svg\",\n        \"no-more-spaghetti\",\n        \"skills-creator\",\n        \"doc-writing-skills\",\n        \"narration\",\n        \"ddd-advisor\",\n        \"platform-advisor\",\n        \"qa-advisor\",\n        \"ux-advisor\",\n        \"usecase-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"brainstorming-board\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"brainstorming-board\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"brainstorming-board\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"brainstorming-board\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"brainstorming-board\"\n      ]\n    },\n    {\n      \"rule\": \"デザイントークンの参照と定義が一致する\",\n      \"source\": {\n        \"record\": \"brainstorming-board/SKILL.md\"\n      },\n      \"scope\": \"トークンの層を跨ぐ参照と、明暗のキー集合のみ\",\n      \"check\": {\n        \"tool\": [\n          \"bin/brainstorming-board\",\n          \"tokens\",\n          \"--check\",\n          \"1\",\n          \"--skill_root\",\n          \".\"\n        ],\n        \"target\": \"brainstorming-board\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"design-svg\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"design-svg/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ ── 移す前の出力を固定した事例を含む\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"design-svg\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"design-svg/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"design-svg\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"design-svg/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"design-svg\"\n      ]\n    },\n    {\n      \"rule\": \"生の数値が残っていない\",\n      \"source\": {\n        \"record\": \"design-svg/SKILL.md\"\n      },\n      \"scope\": \"設計上の選択はトークンから、量はデータから出すこと\",\n      \"check\": {\n        \"tool\": [\n          \"bin/design-svg\",\n          \"lint\",\n          \"--skill_root\",\n          \".\"\n        ],\n        \"target\": \"design-svg\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"design-svg\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"doc-writing-skills\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"doc-writing-skills\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"fact-check\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"ddd-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"fact-check\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"ddd-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"fact-check/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"fact-check\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"ddd-advisor/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"ddd-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"fact-check/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"fact-check\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"ddd-advisor/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"ddd-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"fact-check/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"fact-check\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"ddd-advisor/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"ddd-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"narration\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"narration\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"no-more-spaghetti\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"no-more-spaghetti\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"skills-creator\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"skills-creator\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"slide-deck\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"slide-deck\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"slide-deck/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"slide-deck\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"slide-deck/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"slide-deck\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"slide-deck/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"slide-deck\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"meta\": \"rustfmt README\",\n        \"authority\": \"spec\",\n        \"quote\": \"When running with `--check`, Rustfmt will exit with `0` if Rustfmt would not make any formatting changes to the input, and `1` if Rustfmt would make changes.\",\n        \"fetched\": {\n          \"url\": \"https://raw.githubusercontent.com/rust-lang/rustfmt/master/README.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"f064e0c8e663367ae94f343aa6c7aa55892eb0c6f80fb1d7e1fe48ff3fbaaa9e\",\n          \"line\": 104\n        }\n      },\n      \"scope\": \"整形の差分のみ ── 設定は rustfmt.toml が持つ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"meta\": \"Clippy Usage\",\n        \"authority\": \"spec\",\n        \"quote\": \"cause Clippy to exit with a code other than\",\n        \"fetched\": {\n          \"url\": \"https://doc.rust-lang.org/clippy/usage.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"650126a0e847c10f99b4d3e64e4bff4ac77040334a5fac9d71d70bae1acbcfbc\",\n          \"line\": 214\n        }\n      },\n      \"scope\": \"警告を誤りへ引き上げた既定の lint のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"試験が通る\",\n      \"source\": {\n        \"meta\": \"The Cargo Book, cargo-test\",\n        \"authority\": \"spec\",\n        \"quote\": \"Cargo failed to complete\",\n        \"fetched\": {\n          \"url\": \"https://doc.rust-lang.org/cargo/commands/cargo-test.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"6e58ba60403affa2b62d805af716cd301ed66b551150c2c5be5d981ed53d926d\",\n          \"line\": 811\n        }\n      },\n      \"scope\": \"既定の実行のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"--all-targets\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"既知の脆弱性が無い\",\n      \"source\": {\n        \"meta\": \"cargo-audit README\",\n        \"authority\": \"third-party\",\n        \"quote\": \"Audit your dependencies for crates with security vulnerabilities reported to the\",\n        \"fetched\": {\n          \"url\": \"https://raw.githubusercontent.com/rustsec/rustsec/main/cargo-audit/README.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"bafc27dabec7fdf2c3f1f8ce23cf7d8588445efade324abc4dc690ed38c2c9a7\",\n          \"line\": 10\n        }\n      },\n      \"scope\": \"RustSec の助言データベースに報告されたもののみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"audit\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"命名が、RFC 430 の規約に従う\",\n      \"source\": {\n        \"meta\": \"Rust API Guidelines, Naming (C-CASE)\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"In general, Rust tends to use <code>UpperCamelCase</code> for &quot;type-level&quot; constructs (types and\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/api-guidelines/naming.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"5e1c03f7a473ca7654d55b5baac4f4bdac620dc7763e5b872350f8c46f59fc13\",\n          \"line\": 170\n        }\n      },\n      \"scope\": \"大文字小文字の規約のみ ── 語の選び方は対象にしない\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--\",\n          \"-Dnon_camel_case_types\",\n          \"-Dnon_snake_case\",\n          \"-Dnon_upper_case_globals\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"取り出しの失敗を、unwrap で潰さない\",\n      \"source\": {\n        \"meta\": \"Clippy lints, unwrap_used\",\n        \"authority\": \"spec\",\n        \"quote\": \"It is better to handle the <code>None</code> or <code>Err</code> case,\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/rust-clippy/master/index.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b\",\n          \"line\": 17900\n        }\n      },\n      \"scope\": \"unwrap と expect のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--\",\n          \"-Dclippy::unwrap_used\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"unsafe を使わない\",\n      \"source\": {\n        \"meta\": \"rustc lints, unsafe_code\",\n        \"authority\": \"spec\",\n        \"quote\": \"The <code>unsafe_code</code> lint catches usage of <code>unsafe</code> code and other\",\n        \"fetched\": {\n          \"url\": \"https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"ed5ccd9ef74615b7fca887ee7c162098db680a02116cf7978ee1e3f482d54d76\",\n          \"line\": 2387\n        }\n      },\n      \"scope\": \"unsafe の使用のみ ── 必要になったら、この規則を外して理由を記録する\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--\",\n          \"-Dunsafe_code\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"公開する項目に文書を書く\",\n      \"source\": {\n        \"meta\": \"rustc lints, missing_docs\",\n        \"authority\": \"spec\",\n        \"quote\": \"The <code>missing_docs</code> lint detects missing documentation for public items.\",\n        \"fetched\": {\n          \"url\": \"https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"ed5ccd9ef74615b7fca887ee7c162098db680a02116cf7978ee1e3f482d54d76\",\n          \"line\": 1261\n        }\n      },\n      \"scope\": \"公開する項目のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--\",\n          \"-Dmissing_docs\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"crate のメタデータを完備させる\",\n      \"source\": {\n        \"meta\": \"Rust API Guidelines, C-METADATA\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"The <code>[package]</code> section of <code>Cargo.toml</code> should include the following\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/api-guidelines/documentation.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455\",\n          \"line\": 292\n        }\n      },\n      \"scope\": \"crate ごとの Cargo.toml の [package] のみ ── 検査が要求する欄の集合は道具が持つ。**publish = false の crate では発火しない**（実測）ので、公開する crate だけが対象になる\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::cargo_common_metadata\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"新しい型に、共通の trait を実装する\",\n      \"source\": {\n        \"meta\": \"Rust API Guidelines, C-COMMON-TRAITS\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Consequently, crates that define new types should eagerly implement all\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/api-guidelines/interoperability.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"5cf108916e92a1ea3eb9930ba309e48aff930e7864bb75d687887edfc2cba836\",\n          \"line\": 171\n        }\n      },\n      \"scope\": \"Debug と Copy のみ ── 他の trait は、検査できる道具が無い\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dmissing_debug_implementations\",\n          \"-Dmissing_copy_implementations\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"想定される失敗を、panic ではなく Result で返す\",\n      \"source\": {\n        \"meta\": \"The Rust Programming Language, 9.3\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"However, when failure is expected, it’s more appropriate to return a <code>Result</code>\",\n        \"fetched\": {\n          \"url\": \"https://doc.rust-lang.org/book/ch09-03-to-panic-or-not-to-panic.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"e936c60fc1acae2e3839758ea8a10861c9a850353e79b8d73608fb573659c34f\",\n          \"line\": 269\n        }\n      },\n      \"scope\": \"panic の呼び出しと、Result を返す関数の中の panic のみ ── 回復できない状態は対象外\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::panic\",\n          \"-Dclippy::panic_in_result_fn\",\n          \"-Dclippy::unwrap_in_result\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"Result の誤りの型を、空にしない\",\n      \"source\": {\n        \"meta\": \"Clippy lints, result_unit_err\",\n        \"authority\": \"spec\",\n        \"quote\": \"Checks for public functions that return a <code>Result</code>\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/rust-clippy/master/index.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b\",\n          \"line\": 13840\n        }\n      },\n      \"scope\": \"公開する関数の Result のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::result_unit_err\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"誤りの条件を、文書の Errors の節に書く\",\n      \"source\": {\n        \"meta\": \"Rust API Guidelines, C-FAILURE\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Error conditions should be documented in an &quot;Errors&quot; section. This applies to\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/api-guidelines/documentation.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455\",\n          \"line\": 211\n        }\n      },\n      \"scope\": \"公開する関数のうち Result を返すもののみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::missing_errors_doc\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"panic の条件を、文書の Panics の節に書く\",\n      \"source\": {\n        \"meta\": \"Rust API Guidelines, C-FAILURE\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Panic conditions should be documented in a &quot;Panics&quot; section. This applies to\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/api-guidelines/documentation.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"da9dc9ad2b0516362da6055a362b5f0ff13ce79cb937bc40044c57f22fb8f455\",\n          \"line\": 227\n        }\n      },\n      \"scope\": \"公開する関数のうち panic しうるもののみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::missing_panics_doc\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"公開する構造と列挙を、あとから欄を足せる形にする\",\n      \"source\": {\n        \"meta\": \"Clippy lints, exhaustive_structs\",\n        \"authority\": \"spec\",\n        \"quote\": \"Warns on any exported <code>struct</code>s that are not tagged <code>#[non_exhaustive]</code>\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/rust-clippy/master/index.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b\",\n          \"line\": 3780\n        }\n      },\n      \"scope\": \"公開する struct と enum のみ ── **publish = false でも発火する**（実測）ので、適用の範囲はこちらで決める。欄の追加が他所の crate を壊しうる crate、つまり公開する crate に適用する。同じ単位で配布する crate どうしの間の型と、欄が固定であることを約束する型は、理由を書いた allow で外す（`#[allow(clippy::exhaustive_structs, reason = \\\"…\\\")]`）\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::exhaustive_structs\",\n          \"-Dclippy::exhaustive_enums\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"1つの関数を、読み切れる長さに収める\",\n      \"source\": {\n        \"meta\": \"Clippy lints, too_many_lines\",\n        \"authority\": \"spec\",\n        \"quote\": \"Functions with a lot of lines are harder to understand\",\n        \"fetched\": {\n          \"url\": \"https://rust-lang.github.io/rust-clippy/master/index.html\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"25712351c16f50b73c18e0083f02ffeb784d4e692450d22283e2e2ffe7e5ab4b\",\n          \"line\": 15824\n        }\n      },\n      \"scope\": \"関数の本体の行数のみ ── 上限の値は道具が持つ（既定は100行）。空行と註釈は数えない\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\",\n          \"-Dclippy::too_many_lines\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、コンパイルで強制される\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/concepts.json#依存の向き\"\n      },\n      \"scope\": \"crate をまたぐ依存のみ ── 許可する辺は各 Cargo.toml が宣言し、宣言に無い依存はコンパイルが通らない（実測 101）。1つの crate の中は対象外である\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"build\",\n          \"--all-targets\"\n        ]\n      },\n      \"units\": [\n        \"rust\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"meta\": \"cmd/gofmt, -d\",\n        \"authority\": \"spec\",\n        \"quote\": \"If a file&#39;s formatting is different than gofmt&#39;s, print diffs\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/gofmt\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"28fce07f4fbe4cf1f69c91c4bfe1452dd662a4e03cbf0b36e597f6b657b0ce40\",\n          \"line\": 910\n        }\n      },\n      \"scope\": \"整形のみ ── **-l は違反があっても終了コード0を返す**（実測）。差分を出す呼び方を選ぶ\",\n      \"check\": {\n        \"tool\": [\n          \"gofmt\",\n          \"-d\",\n          \".\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"meta\": \"cmd/vet\",\n        \"authority\": \"spec\",\n        \"quote\": \"Vet&#39;s exit code is non-zero for erroneous invocation of the tool or if a\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/vet\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"155143f739f367380a7a4fbd041cd2d699578adb56f94c236cdf9bc3a9005a54\",\n          \"line\": 869\n        }\n      },\n      \"scope\": \"vet が持つ検査のみ ── 原典が guidance only と書いている範囲である\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"vet\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"試験が通る\",\n      \"source\": {\n        \"meta\": \"The Go command, test\",\n        \"authority\": \"spec\",\n        \"quote\": \"After the package test finishes, go test prints a summary line\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/go\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4\",\n          \"line\": 2222\n        }\n      },\n      \"scope\": \"試験の成否のみ ── 網羅率は見ない\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"test\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、実装と一致する\",\n      \"source\": {\n        \"meta\": \"The Go command, mod tidy -diff\",\n        \"authority\": \"spec\",\n        \"quote\": \"instead print the necessary changes as a unified diff. It exits\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/go\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4\",\n          \"line\": 2057\n        }\n      },\n      \"scope\": \"go.mod と go.sum のみ ── 版の選び方は見ない\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"mod\",\n          \"tidy\",\n          \"-diff\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"既知の脆弱性が無い\",\n      \"source\": {\n        \"meta\": \"govulncheck\",\n        \"authority\": \"spec\",\n        \"quote\": \"Govulncheck reports known vulnerabilities that affect Go code. It uses static\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"9e2bbfd91e774abbf7635b02155c6869a0584364351e6060dcdf7792bee2d437\",\n          \"line\": 890\n        }\n      },\n      \"scope\": \"vuln.go.dev が持つものだけ ── **道具は同梱ではない**（go install で入れる）。違反のとき終了コードは3である（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"govulncheck\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"命名が、MixedCaps の規約に従う\",\n      \"source\": {\n        \"meta\": \"Effective Go, MixedCaps\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Finally, the convention in Go is to use <code>MixedCaps</code>\",\n        \"fetched\": {\n          \"url\": \"https://go.dev/doc/effective_go.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"31b3beeb4fea135b85070f0362a1373b5e67981b8d6adc4afbb7291e06cdac5f\",\n          \"line\": 756\n        }\n      },\n      \"scope\": \"多語の名前の区切りのみ ── **検査は第三者の道具が実行する**（staticcheck ST1003）。vet は命名を見ない（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"staticcheck\",\n          \"-checks\",\n          \"all\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"誤りを捨てない\",\n      \"source\": {\n        \"meta\": \"Go Code Review Comments, Handle Errors\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Do not discard errors using <code>_</code> variables.\",\n        \"fetched\": {\n          \"url\": \"https://go.dev/wiki/CodeReviewComments.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"6fc11c7dea267b3f56b18d4f51a63a5a487e1d0ac16c3c7fa57950e4ab7a3d8b\",\n          \"line\": 547\n        }\n      },\n      \"scope\": \"空白の識別子への代入のみ ── **検査は第三者の道具が実行する**（errcheck）。vet も staticcheck も検出しない（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"errcheck\",\n          \"-blank\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、コンパイルで強制される\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/concepts.json#依存の向き\"\n      },\n      \"scope\": \"module をまたぐ依存のみ（core）── 許可する辺は go.mod が宣言し、宣言に無い module は解決しない（実測 1）。**go.work を置かない** ── workspace にすると、宣言に無い module も解決する（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"build\",\n          \"./...\"\n        ],\n        \"target\": \"core\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"meta\": \"cmd/gofmt, -d\",\n        \"authority\": \"spec\",\n        \"quote\": \"If a file&#39;s formatting is different than gofmt&#39;s, print diffs\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/gofmt\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"28fce07f4fbe4cf1f69c91c4bfe1452dd662a4e03cbf0b36e597f6b657b0ce40\",\n          \"line\": 910\n        }\n      },\n      \"scope\": \"整形のみ ── **-l は違反があっても終了コード0を返す**（実測）。差分を出す呼び方を選ぶ\",\n      \"check\": {\n        \"tool\": [\n          \"gofmt\",\n          \"-d\",\n          \".\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"meta\": \"cmd/vet\",\n        \"authority\": \"spec\",\n        \"quote\": \"Vet&#39;s exit code is non-zero for erroneous invocation of the tool or if a\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/vet\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"155143f739f367380a7a4fbd041cd2d699578adb56f94c236cdf9bc3a9005a54\",\n          \"line\": 869\n        }\n      },\n      \"scope\": \"vet が持つ検査のみ ── 原典が guidance only と書いている範囲である\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"vet\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"試験が通る\",\n      \"source\": {\n        \"meta\": \"The Go command, test\",\n        \"authority\": \"spec\",\n        \"quote\": \"After the package test finishes, go test prints a summary line\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/go\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4\",\n          \"line\": 2222\n        }\n      },\n      \"scope\": \"試験の成否のみ ── 網羅率は見ない\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"test\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、実装と一致する\",\n      \"source\": {\n        \"meta\": \"The Go command, mod tidy -diff\",\n        \"authority\": \"spec\",\n        \"quote\": \"instead print the necessary changes as a unified diff. It exits\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/cmd/go\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"a2ab3e61d770f5a3a35864343dcd75e72ddbdbe389ad60162157fab7dd2194c4\",\n          \"line\": 2057\n        }\n      },\n      \"scope\": \"go.mod と go.sum のみ ── 版の選び方は見ない\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"mod\",\n          \"tidy\",\n          \"-diff\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"既知の脆弱性が無い\",\n      \"source\": {\n        \"meta\": \"govulncheck\",\n        \"authority\": \"spec\",\n        \"quote\": \"Govulncheck reports known vulnerabilities that affect Go code. It uses static\",\n        \"fetched\": {\n          \"url\": \"https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"9e2bbfd91e774abbf7635b02155c6869a0584364351e6060dcdf7792bee2d437\",\n          \"line\": 890\n        }\n      },\n      \"scope\": \"vuln.go.dev が持つものだけ ── **道具は同梱ではない**（go install で入れる）。違反のとき終了コードは3である（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"govulncheck\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"命名が、MixedCaps の規約に従う\",\n      \"source\": {\n        \"meta\": \"Effective Go, MixedCaps\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Finally, the convention in Go is to use <code>MixedCaps</code>\",\n        \"fetched\": {\n          \"url\": \"https://go.dev/doc/effective_go.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"31b3beeb4fea135b85070f0362a1373b5e67981b8d6adc4afbb7291e06cdac5f\",\n          \"line\": 756\n        }\n      },\n      \"scope\": \"多語の名前の区切りのみ ── **検査は第三者の道具が実行する**（staticcheck ST1003）。vet は命名を見ない（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"staticcheck\",\n          \"-checks\",\n          \"all\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"誤りを捨てない\",\n      \"source\": {\n        \"meta\": \"Go Code Review Comments, Handle Errors\",\n        \"authority\": \"recommendation\",\n        \"quote\": \"Do not discard errors using <code>_</code> variables.\",\n        \"fetched\": {\n          \"url\": \"https://go.dev/wiki/CodeReviewComments.md\",\n          \"date\": \"2026-09-26\",\n          \"sha256\": \"6fc11c7dea267b3f56b18d4f51a63a5a487e1d0ac16c3c7fa57950e4ab7a3d8b\",\n          \"line\": 547\n        }\n      },\n      \"scope\": \"空白の識別子への代入のみ ── **検査は第三者の道具が実行する**（errcheck）。vet も staticcheck も検出しない（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"errcheck\",\n          \"-blank\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"依存の宣言が、コンパイルで強制される\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/concepts.json#依存の向き\"\n      },\n      \"scope\": \"module をまたぐ依存のみ（adapter）── 許可する辺は go.mod が宣言し、宣言に無い module は解決しない（実測 1）。**go.work を置かない** ── workspace にすると、宣言に無い module も解決する（実測）\",\n      \"check\": {\n        \"tool\": [\n          \"go\",\n          \"build\",\n          \"./...\"\n        ],\n        \"target\": \"adapter\"\n      },\n      \"units\": [\n        \"go\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"no-more-spaghetti\",\n        \"skills-creator\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"no-more-spaghetti\",\n        \"skills-creator\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"no-more-spaghetti\",\n        \"skills-creator\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"doc-writing-skills\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"doc-writing-skills\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"doc-writing-skills\"\n      ]\n    },\n    {\n      \"rule\": \"和語の一覧が、契約を満たす\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/references/predicates.schema.json\"\n      },\n      \"scope\": \"形と、出典の4つの値のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../no-more-spaghetti/bin/no-more-spaghetti\",\n          \"validate\",\n          \"--rules\",\n          \"references/predicates.json\",\n          \"--skill_root\",\n          \"../no-more-spaghetti\"\n        ],\n        \"target\": \"doc-writing-skills\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"narration/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"narration\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"narration/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"narration\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"narration/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"narration\"\n      ]\n    },\n    {\n      \"rule\": \"依存の向きが、層の並びと一致する\",\n      \"source\": {\n        \"record\": \"no-more-spaghetti/references/concepts.json#依存の向き\"\n      },\n      \"scope\": \"層を持つ成果物すべて ── 層の並びは成果物ごとに units が宣言し、この Skill の inward が言語に依存しない4段と7つの義務で測る（ACDR 0024）\",\n      \"check\": {\n        \"inward\": true\n      },\n      \"units\": [\n        \"*\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"platform-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"qa-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"ux-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"platform-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"qa-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"ux-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"platform-advisor/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"platform-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"qa-advisor/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"qa-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"ux-advisor/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"ux-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"platform-advisor/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"platform-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"qa-advisor/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"qa-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"ux-advisor/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"ux-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"platform-advisor/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"platform-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"qa-advisor/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"qa-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"ux-advisor/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"ux-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"入口と部品の置き場所が、契約を満たす\",\n      \"source\": {\n        \"record\": \"skills-creator/references/tool-contract.md\"\n      },\n      \"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",\n      \"check\": {\n        \"tool\": [\n          \"../skills-creator/bin/skills-creator\",\n          \"check\",\n          \".\",\n          \"--skill_root\",\n          \"../skills-creator\"\n        ],\n        \"target\": \"usecase-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"人が読む文書が、10の判定を通る\",\n      \"source\": {\n        \"record\": \"doc-writing-skills/SKILL.md\"\n      },\n      \"scope\": \"この成果物の SKILL.md のみ\",\n      \"check\": {\n        \"tool\": [\n          \"../doc-writing-skills/bin/doc-writing-skills\",\n          \"check\",\n          \"SKILL.md\",\n          \"--skill_root\",\n          \"../doc-writing-skills\"\n        ],\n        \"target\": \"usecase-advisor\"\n      },\n      \"units\": [\n        \"skills\"\n      ]\n    },\n    {\n      \"rule\": \"事例が通る\",\n      \"source\": {\n        \"record\": \"usecase-advisor/SKILL.md\"\n      },\n      \"scope\": \"この成果物の事例のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"test\",\n          \"-q\"\n        ]\n      },\n      \"units\": [\n        \"usecase-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"整形されている\",\n      \"source\": {\n        \"record\": \"usecase-advisor/SKILL.md\"\n      },\n      \"scope\": \"整形のみ ── --check は差分が在れば0以外を返す\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"fmt\",\n          \"--all\",\n          \"--\",\n          \"--check\"\n        ]\n      },\n      \"units\": [\n        \"usecase-advisor\"\n      ]\n    },\n    {\n      \"rule\": \"静的解析を通る\",\n      \"source\": {\n        \"record\": \"usecase-advisor/SKILL.md\"\n      },\n      \"scope\": \"clippy が持つ検査のみ\",\n      \"check\": {\n        \"tool\": [\n          \"cargo\",\n          \"clippy\",\n          \"--all-targets\",\n          \"--all-features\",\n          \"--\",\n          \"-Dwarnings\"\n        ]\n      },\n      \"units\": [\n        \"usecase-advisor\"\n      ]\n    }\n  ]\n}\n",
+   "marks": [
+    {
+     "find": "\"name\": \"data_access\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "skills-creator の単位の層を、改名後のフォルダ（0056 の取りこぼし）と、加えたデータアクセス層に合わせた"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    },
+    {
+     "find": "\"rule\": \"道具の層と入出力の置き場所が、契約を満たす\",",
+     "before": "\"rule\": \"入口と部品の置き場所が、契約を満たす\",\n\"scope\": \"入口 ・ 宣言 ・ 部品の置き場所と、部品が入口を持たないこと\",",
+     "why": "規則の名前と範囲を、4層と入出力の規則に合わせた。旧い名前は独自の語（入口 ・ 部品）だった"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "contract": "3011a48542b29e97d7f9c3cd5d7030e1b49897aabb414d6bda614ce920f292e5",
+  "rust": "f1aeae5f17b4989ba74f787599e40f7be084ba3edf0bef148f44e526a113a885",
+  "skill": "f31fef43799955c8362fc784d910a8d5fa1868306176e1f1bf08b5019cdb45a7",
+  "files": "bf4e3427f9575094a4dffd5d8a16b8098720d6629ebf6ab9dc6e023deb5163b6",
+  "process": "e6e1275b3cf55a12806cd2b6023def598ca693fdb0b922c605d1bc004b193767",
+  "refs": "660091830e716f59c493fc782e5512b28908a594ebd637f4e627eecd9d84708d",
+  "check": "2b27cd83cd5b3d5da72eacc42426c962273c31eea31f56e45750fd31df59599f",
+  "behavior": "838a0190471ee9e471b0353a60897552290be1bb02690ef20119ef3a59e8fd28",
+  "rules": "cf87d203e7f89d185e5804ba75cd89ef398e84bf94fefe2b1bd0649b30b04d3b"
+ }
+}

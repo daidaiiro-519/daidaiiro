@@ -28,7 +28,7 @@
 |---|---|---|
 | `references/` | Claudeが実行時に読む文書。スケルトンテンプレート、仕様書、定義票など | ほぼ全てのスキルで使う |
 | `examples/` | サンプル入出力、使用例 | ユーザーへの説明や参考が必要なとき |
-| `tool/` | 道具のソース。Rust の組では `business_logic` ・ `service` ・ `cli` ・ `mcp` の4つの crate（`references/profiles/rust.md`） | 検査、生成、組み立ての処理が必要なとき |
+| `tool/` | 道具のソース。Rust の組では `data_access` ・ `business_logic` ・ `service` ・ `cli` ・ `mcp` の5つの crate（`references/profiles/rust.md`） | 検査、生成、組み立ての処理が必要なとき |
 | `bin/` | 組み立てた実行ファイル。git で追跡しない | 道具を持つとき（Rust の組） |
 | `tool.json` | CLI の起動のコマンドと、外部の道具（`references/tool-contract.md`） | 道具を持つとき |
 | `agents/` | Claudeが呼び出すサブエージェントの定義 | 複数の専門エージェントに処理を分担させるとき |
@@ -57,6 +57,7 @@
 │   └── sample-output.md
 ├── tool/
 │   ├── Cargo.toml
+│   ├── data_access/
 │   ├── business_logic/
 │   ├── service/
 │   ├── cli/

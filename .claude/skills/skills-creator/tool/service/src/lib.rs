@@ -122,7 +122,7 @@ fn human_check(out: &Outcome) -> String {
 /// 解決しなくなる。
 fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     let tmpl = here.join("references/profiles/rust");
-    let read = |name: &str| std::fs::read_to_string(tmpl.join(name));
+    let read = |name: &str| scaffold::read_template(&tmpl, name);
     // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う。
     // 語が1つなら頭の3文字を採る ── 1文字では、他の crate と見分けがつかない
     let words: Vec<&str> = skill.split('-').filter(|w| !w.is_empty()).collect();
@@ -141,9 +141,22 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
     // **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない
     for (from, to) in [
         ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("business_logic.Cargo.toml.tmpl", "tool/business_logic/Cargo.toml"),
-        ("business_logic.lib.rs.tmpl", "tool/business_logic/src/lib.rs"),
-        ("business_logic.tests.rs.tmpl", "tool/business_logic/tests/example.rs"),
+        ("data_access.Cargo.toml.tmpl", "tool/data_access/Cargo.toml"),
+        ("data_access.lib.rs.tmpl", "tool/data_access/src/lib.rs"),
+        ("files.rs.tmpl", "tool/data_access/src/files.rs"),
+        ("process.rs.tmpl", "tool/data_access/src/process.rs"),
+        (
+            "business_logic.Cargo.toml.tmpl",
+            "tool/business_logic/Cargo.toml",
+        ),
+        (
+            "business_logic.lib.rs.tmpl",
+            "tool/business_logic/src/lib.rs",
+        ),
+        (
+            "business_logic.tests.rs.tmpl",
+            "tool/business_logic/tests/example.rs",
+        ),
         ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
         ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
         ("contract.rs.tmpl", "tool/service/src/contract.rs"),
@@ -228,7 +241,7 @@ fn dist_items(repo: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
         ("install.ps1.tmpl", "install.ps1"),
         ("release.yml.tmpl", ".github/workflows/release.yml"),
     ] {
-        let body = std::fs::read_to_string(tmpl.join(from))?.replace("{{配布元}}", repo);
+        let body = scaffold::read_template(&tmpl, from)?.replace("{{配布元}}", repo);
         out.push(scaffold::Item::keep(PathBuf::from(to), body));
     }
     Ok(out)

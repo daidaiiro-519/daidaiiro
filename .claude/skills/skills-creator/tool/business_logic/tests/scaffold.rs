@@ -18,7 +18,10 @@ fn scratch(name: &str) -> PathBuf {
 fn the_items_are_written_where_they_are_told() {
     let root = scratch("write");
     let items = vec![
-        Item::keep(PathBuf::from("tool/business_logic/src/lib.rs"), "業務ロジック層".to_owned()),
+        Item::keep(
+            PathBuf::from("tool/business_logic/src/lib.rs"),
+            "業務ロジック層".to_owned(),
+        ),
         Item::keep(PathBuf::from("mcp.json"), "登録".to_owned()),
     ];
     let placed = place(&root, &items).expect("置ける");

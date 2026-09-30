@@ -78,8 +78,9 @@ fn write_layers(root: &Path, edges: &[(&str, &[&str])]) {
     std::fs::create_dir_all(rs.join(check::TESTS)).expect("作れる");
 }
 
-const GOOD: [(&str, &[&str]); 3] = [
-    ("business_logic", &[]),
+const GOOD: [(&str, &[&str]); 4] = [
+    ("data_access", &[]),
+    ("business_logic", &["data_access"]),
     ("service", &["business_logic"]),
     ("cli", &["service"]),
 ];
@@ -144,9 +145,8 @@ fn an_edge_that_goes_outward_is_reported() {
     );
     let found = found_in_source(&root);
     assert!(
-        found
-            .iter()
-            .any(|x| x.contains("依存の向きに違反している") && x.contains("business_logic → presentation")),
+        found.iter().any(|x| x.contains("依存の向きに違反している")
+            && x.contains("business_logic → presentation")),
         "{found:?}"
     );
 }
@@ -166,9 +166,8 @@ fn an_edge_that_skips_a_layer_is_reported() {
     );
     let found = found_in_source(&root);
     assert!(
-        found
-            .iter()
-            .any(|x| x.contains("依存の向きに違反している") && x.contains("presentation → business_logic")),
+        found.iter().any(|x| x.contains("依存の向きに違反している")
+            && x.contains("presentation → business_logic")),
         "層を飛ばす依存は、道具の一覧を経ない呼び出し方を作る ── {found:?}"
     );
 }
@@ -181,7 +180,92 @@ fn a_retired_layer_name_is_reported() {
     std::fs::create_dir_all(root.join(check::TOOL).join("parts")).expect("作れる");
     let found = found_in_source(&root);
     assert!(
-        found.iter().any(|x| x.contains("parts/ が残っている") && x.contains("business_logic")),
+        found
+            .iter()
+            .any(|x| x.contains("parts/ が残っている") && x.contains("business_logic")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn io_in_the_business_logic_layer_is_reported() {
+    // **入出力はデータアクセス層だけが持つ**（ACDR 0058）── 見つけた行を、そのまま示す
+    let root = scratch("io-leak");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_part(
+        &root,
+        "fn f() -> String {\n    std::fs::read_to_string(\"a\").unwrap()\n}\n",
+    );
+    let found = found_in_source(&root);
+    assert!(
+        found.iter().any(|x| x.contains("入出力を直接扱っている")
+            && x.contains("run.rs:2")
+            && x.contains("std::fs")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn io_through_the_data_access_layer_is_allowed() {
+    let root = scratch("io-through");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_part(&root, "fn f() -> bool {\n    files::is_file(\"a\")\n}\n");
+    write_access(
+        &root,
+        "pub fn g() -> bool {\n    std::path::Path::new(\"a\").is_file()\n}\n",
+    );
+    let found = found_in_source(&root);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn the_service_layer_is_checked_but_the_contract_is_exempt() {
+    // **サービス層も入出力を持たない。** 例外は、起動の設定を読む contract.rs だけである
+    let root = scratch("io-service");
+    write_document(&root);
+    write_layers(&root, &GOOD);
+    write_in(
+        &root,
+        "service/src",
+        "fn f() { let _ = std::fs::write(\"a\", \"b\"); }\n",
+    );
+    let dir = root.join(check::TOOL).join("service/src");
+    std::fs::write(
+        dir.join("contract.rs"),
+        "fn g() { let _ = std::fs::read_to_string(\"tool.json\"); }\n",
+    )
+    .expect("書ける");
+    let found = found_in_source(&root);
+    assert!(
+        found.iter().any(|x| x.contains("service/src/run.rs")),
+        "{found:?}"
+    );
+    assert!(
+        !found.iter().any(|x| x.contains("contract.rs")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn a_service_that_skips_to_data_access_is_reported() {
+    let root = scratch("skip-to-data");
+    write_document(&root);
+    write_layers(
+        &root,
+        &[
+            ("data_access", &[]),
+            ("business_logic", &["data_access"]),
+            ("service", &["business_logic", "data_access"]),
+            ("cli", &["service"]),
+        ],
+    );
+    let found = found_in_source(&root);
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("依存の向きに違反している") && x.contains("service → data_access")),
         "{found:?}"
     );
 }
@@ -190,7 +274,10 @@ fn a_retired_layer_name_is_reported() {
 fn a_missing_layer_is_reported() {
     let root = scratch("missing");
     write_document(&root);
-    write_layers(&root, &[("business_logic", &[]), ("cli", &["business_logic"])]);
+    write_layers(
+        &root,
+        &[("business_logic", &[]), ("cli", &["business_logic"])],
+    );
     let found = found_in_source(&root);
     assert!(
         found
@@ -204,10 +291,15 @@ fn a_missing_layer_is_reported() {
 fn a_missing_entry_is_reported() {
     let root = scratch("noentry");
     write_document(&root);
-    write_layers(&root, &[("business_logic", &[]), ("service", &["business_logic"])]);
+    write_layers(
+        &root,
+        &[("business_logic", &[]), ("service", &["business_logic"])],
+    );
     let found = found_in_source(&root);
     assert!(
-        found.iter().any(|x| x.contains("プレゼンテーション層の crate が無い")),
+        found
+            .iter()
+            .any(|x| x.contains("プレゼンテーション層の crate が無い")),
         "{found:?}"
     );
 }
@@ -241,7 +333,16 @@ fn an_absent_document_is_reported() {
 
 /// 業務ロジック層に1つのファイルを置く。
 fn write_part(root: &Path, body: &str) {
-    let dir = root.join(check::TOOL).join("business_logic/src");
+    write_in(root, "business_logic/src", body);
+}
+
+/// データアクセス層に1つのファイルを置く。**入出力はここだけが持つ。**
+fn write_access(root: &Path, body: &str) {
+    write_in(root, "data_access/src", body);
+}
+
+fn write_in(root: &Path, dir: &str, body: &str) {
+    let dir = root.join(check::TOOL).join(dir);
     std::fs::create_dir_all(&dir).expect("作れる");
     std::fs::write(dir.join("run.rs"), body).expect("書ける");
 }
@@ -309,9 +410,22 @@ fn what_scaffold_places_satisfies_check() {
     let root = scratch("scaffolded");
     for (from, to) in [
         ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("business_logic.Cargo.toml.tmpl", "tool/business_logic/Cargo.toml"),
-        ("business_logic.lib.rs.tmpl", "tool/business_logic/src/lib.rs"),
-        ("business_logic.tests.rs.tmpl", "tool/business_logic/tests/example.rs"),
+        ("data_access.Cargo.toml.tmpl", "tool/data_access/Cargo.toml"),
+        ("data_access.lib.rs.tmpl", "tool/data_access/src/lib.rs"),
+        ("files.rs.tmpl", "tool/data_access/src/files.rs"),
+        ("process.rs.tmpl", "tool/data_access/src/process.rs"),
+        (
+            "business_logic.Cargo.toml.tmpl",
+            "tool/business_logic/Cargo.toml",
+        ),
+        (
+            "business_logic.lib.rs.tmpl",
+            "tool/business_logic/src/lib.rs",
+        ),
+        (
+            "business_logic.tests.rs.tmpl",
+            "tool/business_logic/tests/example.rs",
+        ),
         ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
         ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
         ("contract.rs.tmpl", "tool/service/src/contract.rs"),
@@ -364,7 +478,7 @@ fn a_hardcoded_tool_name_is_reported() {
     let root = scratch("hardcoded");
     write_document(&root);
     write_layers(&root, &GOOD);
-    write_part(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
+    write_access(&root, "fn f() { std::process::Command::new(\"git\"); }\n");
     let found = found_in_source(&root);
     assert!(
         found
@@ -380,7 +494,7 @@ fn a_command_passed_in_is_allowed() {
     let root = scratch("injected");
     write_document(&root);
     write_layers(&root, &GOOD);
-    write_part(
+    write_access(
         &root,
         "fn f(git: &str) { std::process::Command::new(git); }\n",
     );

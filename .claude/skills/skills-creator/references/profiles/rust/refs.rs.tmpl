@@ -11,6 +11,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::data_access;
+
 use serde_json::{json, Map, Value};
 
 /// スキーマのファイル名の末尾。
@@ -87,11 +89,10 @@ pub struct Kind {
 /// references を読めないときに返す。
 pub fn kinds(refs: &Path) -> Result<Vec<Kind>, String> {
     let mut out = Vec::new();
-    let entries =
-        std::fs::read_dir(refs).map_err(|e| format!("{} を読めない ── {e}", refs.display()))?;
-    let mut names: Vec<String> = entries
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
+    let entries = data_access::files::list(refs)
+        .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?;
+    let mut names: Vec<String> = file_names(entries)
+        .into_iter()
         .filter(|n| n.ends_with(SCHEMA_TAIL))
         .collect();
     names.sort();
@@ -100,15 +101,42 @@ pub fn kinds(refs: &Path) -> Result<Vec<Kind>, String> {
         let data = refs.join(format!("{name}.json"));
         out.push(Kind {
             schema: refs.join(&file),
-            data: data.is_file().then_some(data),
+            data: data_access::files::is_file(&data).then_some(data),
             name,
         });
     }
     Ok(out)
 }
 
+/// 描画した頁を書き出す。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// 書けないときに返す。
+pub fn save(out: &Path, html: &str) -> Result<(), String> {
+    data_access::files::write(out, html).map_err(|e| format!("{} に書けない ── {e}", out.display()))
+}
+
+/// 取り込む文書を読む。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// 読めないときに返す。
+pub fn read_text(file: &Path) -> Result<String, String> {
+    data_access::files::read_to_string(file)
+        .map_err(|e| format!("{} を読めない ── {e}", file.display()))
+}
+
+/// 経路の並びから、ファイルの名前だけを取り出す。
+fn file_names(paths: Vec<PathBuf>) -> Vec<String> {
+    paths
+        .iter()
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .collect()
+}
+
 fn read_json(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path)
+    let body = data_access::files::read_to_string(path)
         .map_err(|e| format!("{} を読めない ── {e}", path.display()))?;
     serde_json::from_str(&body).map_err(|e| format!("{} が JSON でない ── {e}", path.display()))
 }
@@ -143,11 +171,10 @@ fn against(schema: &Value, instance: &Value, head: &str) -> Vec<String> {
 /// references を読めないときに返す。
 pub fn validate(refs: &Path) -> Result<Vec<String>, String> {
     let mut found = Vec::new();
-    let mut files: Vec<String> = std::fs::read_dir(refs)
-        .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .collect();
+    let mut files: Vec<String> = file_names(
+        data_access::files::list(refs)
+            .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?,
+    );
     files.sort();
     for file in &files {
         if file.ends_with(".md") {
@@ -396,7 +423,7 @@ pub fn import_markdown(id: &str, location: &str, fetched: &str, text: &str) -> V
 /// document を読めない ・ 書けないときに返す。
 pub fn put_document(refs: &Path, doc: Value) -> Result<PathBuf, String> {
     let path = refs.join("document.json");
-    let mut all = if path.is_file() {
+    let mut all = if data_access::files::is_file(&path) {
         read_json(&path)?
     } else {
         json!({"$schema": "document.schema.json", "items": []})
@@ -409,7 +436,7 @@ pub fn put_document(refs: &Path, doc: Value) -> Result<PathBuf, String> {
     items.retain(|x| x.get("id") != Some(&id));
     items.push(doc);
     let text = serde_json::to_string_pretty(&all).map_err(|e| e.to_string())?;
-    std::fs::write(&path, text + "\n")
+    data_access::files::write(&path, text + "\n")
         .map_err(|e| format!("{} に書けない ── {e}", path.display()))?;
     Ok(path)
 }
@@ -726,7 +753,7 @@ fn svg_of(p: &str, base: &Path) -> String {
     if p.trim_start().starts_with("<svg") {
         p.to_owned()
     } else {
-        std::fs::read_to_string(base.join(p)).unwrap_or_default()
+        data_access::files::read_to_string(base.join(p)).unwrap_or_default()
     }
 }
 
@@ -873,7 +900,7 @@ fn blocks_html(blocks: &Value, base: &Path) -> String {
                         if p.trim_start().starts_with("<svg") {
                             p.to_owned()
                         } else {
-                            std::fs::read_to_string(base.join(p)).unwrap_or_default()
+                            data_access::files::read_to_string(base.join(p)).unwrap_or_default()
                         }
                     })
                     .unwrap_or_default();
@@ -968,7 +995,7 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
                     if p.trim_start().starts_with("<svg") {
                         p.to_owned()
                     } else {
-                        std::fs::read_to_string(ctx.base.join(p)).unwrap_or_default()
+                        data_access::files::read_to_string(ctx.base.join(p)).unwrap_or_default()
                     }
                 })
                 .unwrap_or_default();
@@ -1110,7 +1137,7 @@ pub fn view(
             page_body(&root, &plain, &ctx)
         }
     };
-    let template = std::fs::read_to_string(refs.join("view.template.html"))
+    let template = data_access::files::read_to_string(refs.join("view.template.html"))
         .unwrap_or_else(|_| DEFAULT_TEMPLATE.to_owned());
     let title = esc(str_of(&root, "title").unwrap_or(kind));
     Ok(template

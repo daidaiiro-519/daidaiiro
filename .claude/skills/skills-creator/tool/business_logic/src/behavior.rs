@@ -5,13 +5,13 @@
 //! `mcp.json`（MCP の起動のコマンド。ホストの形式）。ソースは読まない ── ソースを読む検査は、
 //! 言語の組が持つ（2段目）。
 
-use std::io::{BufRead as _, BufReader, Read as _, Write as _};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
+
+use crate::data_access::files;
+use crate::data_access::process::{self, Failed, Session};
 
 /// 起動のコマンドの中の、プロジェクトの場所を指す書き方。**ホスト（Claude Code）が展開する。**
 pub const PROJECT_DIR: &str = "${CLAUDE_PROJECT_DIR:-.}";
@@ -35,7 +35,7 @@ pub fn contract_version(root: &Path) -> u64 {
 fn references_pass(command: &Path, args: &[String]) -> Verdict {
     let mut with = args.to_vec();
     with.extend(["validate".to_owned(), "--json".to_owned()]);
-    match output(command, &with, &std::env::temp_dir()) {
+    match output(command, &with, &files::temp_dir()) {
         Ok((0, _)) => Verdict::Pass("references の JSON がスキーマに合う".to_owned()),
         Ok((_, text)) => {
             let found: Vec<String> = serde_json::from_str::<Value>(text.trim())
@@ -217,7 +217,7 @@ pub fn run(root: &Path) -> Vec<Verdict> {
 }
 
 fn read_json(path: &Path) -> Result<Value, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let text = files::read_to_string(path).map_err(|e| e.to_string())?;
     serde_json::from_str(&text).map_err(|e| format!("JSON でない ── {e}"))
 }
 
@@ -250,60 +250,41 @@ fn launch(root: &Path, entry: &Value) -> Result<(PathBuf, Vec<String>), String> 
     };
     let rest = rest.trim_start_matches('/');
     // **絶対の経路へ解く** ── 実行ファイルは別の作業場所から起動するので、相対のままだと解けない
-    let base = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let base = files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     base.ancestors()
         .map(|dir| dir.join(rest))
-        .find(|p| p.is_file())
+        .find(|p| files::is_file(p))
         .map(|p| (p, args))
         .ok_or_else(|| {
             format!("実行ファイルを起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）")
         })
 }
 
-/// 起動して、終了コードと標準出力を返す。**標準入力は閉じ、制限時間で止める。**
+/// 起動して、終了コードと標準出力を返す。**標準入力は閉じ、制限時間で止める**（データアクセス層）。
 fn output(command: &Path, args: &[String], cwd: &Path) -> Result<(i32, String), String> {
-    let mut child = Command::new(command)
-        .args(args)
-        .current_dir(cwd)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("実行ファイルを起動できない: {} ── {e}", command.display()))?;
-    let mut stdout = child.stdout.take().ok_or("標準出力を受けられない")?;
-    let reader = std::thread::spawn(move || {
-        let mut text = String::new();
-        let _ = stdout.read_to_string(&mut text);
-        text
-    });
-    let code = wait_limited(&mut child, command)?;
-    let text = reader.join().unwrap_or_default();
-    Ok((code, text))
+    process::run(command, args, cwd, LIMIT)
+        .map(|ran| (ran.code, ran.stdout))
+        .map_err(|why| failed(command, &why))
 }
 
-fn wait_limited(child: &mut Child, command: &Path) -> Result<i32, String> {
-    let start = Instant::now();
-    loop {
-        if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
-            return Ok(status.code().unwrap_or(-1));
-        }
-        if start.elapsed() > LIMIT {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(format!(
-                "実行ファイルが {} 秒で終わらない: {}",
-                LIMIT.as_secs(),
-                command.display()
-            ));
-        }
-        std::thread::sleep(Duration::from_millis(20));
+/// 起動の失敗を、検査の文にする。
+fn failed(command: &Path, why: &Failed) -> String {
+    match why {
+        Failed::Timeout => format!(
+            "実行ファイルが {} 秒で終わらない: {}",
+            LIMIT.as_secs(),
+            command.display()
+        ),
+        Failed::Spawn(e) => format!("実行ファイルを起動できない: {} ── {e}", command.display()),
+        Failed::Pipe(e) => format!("実行ファイルと受け渡せない: {} ── {e}", command.display()),
+        _ => format!("実行ファイルを起動できない: {}", command.display()),
     }
 }
 
 /// 動詞なしの `--json` で道具の一覧を読む。**別の作業場所から起動する** ── Skill のフォルダを
 /// 作業場所に頼って求めていれば、ここで分かる。
 fn catalog(command: &Path, args: &[String]) -> Result<Value, String> {
-    let away = std::env::temp_dir();
+    let away = files::temp_dir();
     let mut with = args.to_vec();
     with.push("--json".to_owned());
     let (code, text) = output(command, &with, &away)?;
@@ -351,7 +332,7 @@ fn skill_root_matches(root: &Path, catalog: &Value) -> Verdict {
         .pointer("/data/skill_root")
         .and_then(Value::as_str)
         .unwrap_or_default();
-    let same = |p: &Path| std::fs::canonicalize(p).ok();
+    let same = |p: &Path| files::canonicalize(p).ok();
     if !said.is_empty() && same(Path::new(said)) == same(root) {
         Verdict::Pass("別の作業場所から起動しても、Skill のフォルダを求められる".to_owned())
     } else {
@@ -364,7 +345,7 @@ fn skill_root_matches(root: &Path, catalog: &Value) -> Verdict {
 fn refuses_unknown_flag(command: &Path, args: &[String], verb: &str) -> Verdict {
     let mut with = args.to_vec();
     with.extend([verb.to_owned(), NO_SUCH_FLAG.to_owned(), "1".to_owned()]);
-    match output(command, &with, &std::env::temp_dir()) {
+    match output(command, &with, &files::temp_dir()) {
         Ok((2, _)) => Verdict::Pass("道具の一覧に無い旗を、終了コード 2 で断る".to_owned()),
         Ok((code, _)) => Verdict::Fail(format!(
             "道具の一覧に無い旗を断らない: {verb} {NO_SUCH_FLAG} が終了コード {code}（2 で断る）"
@@ -429,47 +410,40 @@ fn same_tools(server: &str, command: &Path, args: &[String], catalog: &Value) ->
 
 /// MCP の実行ファイルと、初期化から `tools/list` までをやりとりする。**応答を読んだら止める。**
 fn tools_list(command: &Path, args: &[String]) -> Result<Vec<Value>, String> {
-    let mut child = Command::new(command)
-        .args(args)
-        .current_dir(std::env::temp_dir())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("実行ファイルを起動できない: {} ── {e}", command.display()))?;
-    let result = converse(&mut child);
-    let _ = child.kill();
-    let _ = child.wait();
-    result
+    let mut session =
+        Session::open(command, args, files::temp_dir()).map_err(|why| failed(command, &why))?;
+    converse(&mut session).map_err(|why| match why {
+        Talk::Pipe(e) => failed(command, &e),
+        Talk::Silent(id) => {
+            format!("応答が無い（id {id}）── 標準出力に MCP の通信以外を書いていないかを確かめる")
+        }
+    })
 }
 
-fn converse(child: &mut Child) -> Result<Vec<Value>, String> {
-    let mut stdin = child.stdin.take().ok_or("標準入力を渡せない")?;
-    let stdout = child.stdout.take().ok_or("標準出力を受けられない")?;
-    let (tx, rx) = mpsc::channel::<Value>();
-    std::thread::spawn(move || {
-        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-            if let Ok(v) = serde_json::from_str::<Value>(&line) {
-                if tx.send(v).is_err() {
-                    break;
-                }
-            }
-        }
-    });
-    let mut send = |v: Value| {
-        writeln!(stdin, "{v}")
-            .and_then(|()| stdin.flush())
-            .map_err(|e| format!("書き込めない ── {e}"))
-    };
+/// 対話の失敗。
+enum Talk {
+    Pipe(Failed),
+    Silent(u64),
+}
+
+fn converse(session: &mut Session) -> Result<Vec<Value>, Talk> {
+    let send = |s: &mut Session, v: Value| s.send(&v.to_string()).map_err(Talk::Pipe);
     send(
+        session,
         json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
         "protocolVersion": "2025-06-18", "capabilities": {},
         "clientInfo": {"name": "skills-creator-check", "version": "1"}}}),
     )?;
-    reply(&rx, 1)?;
-    send(json!({"jsonrpc": "2.0", "method": "notifications/initialized"}))?;
-    send(json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}))?;
-    let listed = reply(&rx, 2)?;
+    reply(session, 1)?;
+    send(
+        session,
+        json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+    )?;
+    send(
+        session,
+        json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+    )?;
+    let listed = reply(session, 2)?;
     Ok(listed
         .pointer("/result/tools")
         .and_then(Value::as_array)
@@ -477,14 +451,15 @@ fn converse(child: &mut Child) -> Result<Vec<Value>, String> {
         .unwrap_or_default())
 }
 
-/// 識別子が一致する応答を待つ。**通知や別の応答は読み飛ばす。**
-fn reply(rx: &mpsc::Receiver<Value>, id: u64) -> Result<Value, String> {
+/// 識別子が一致する応答を待つ。**通知や別の応答、JSON でない行は読み飛ばす。**
+fn reply(session: &Session, id: u64) -> Result<Value, Talk> {
     let deadline = Instant::now() + LIMIT;
     loop {
         let left = deadline.saturating_duration_since(Instant::now());
-        let v = rx.recv_timeout(left).map_err(|_| {
-            format!("応答が無い（id {id}）── 標準出力に MCP の通信以外を書いていないかを確かめる")
-        })?;
+        let line = session.recv(left).ok_or(Talk::Silent(id))?;
+        let Ok(v) = serde_json::from_str::<Value>(&line) else {
+            continue;
+        };
         if v.get("id").and_then(Value::as_u64) == Some(id) {
             return Ok(v);
         }

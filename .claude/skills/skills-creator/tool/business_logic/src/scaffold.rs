@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 //! 道具の契約一式を、Skill のフォルダへ置く。**既に在るものは上書きしない。**
 
-use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+
+use crate::data_access::files;
 
 /// 置いたものと、残したもの。
 #[derive(Debug, Clone, Default)]
@@ -41,14 +42,14 @@ impl Item {
 
 fn write(item: &Item, root: &Path, placed: &mut Placed) -> io::Result<()> {
     let dst = root.join(&item.to);
-    if dst.exists() && !item.overwrite {
+    if files::exists(&dst) && !item.overwrite {
         placed.kept.push(dst.display().to_string());
         return Ok(());
     }
     if let Some(parent) = dst.parent() {
-        fs::create_dir_all(parent)?;
+        files::create_dir_all(parent)?;
     }
-    fs::write(&dst, &item.body)?;
+    files::write(&dst, &item.body)?;
     placed.written.push(dst.display().to_string());
     Ok(())
 }
@@ -65,4 +66,13 @@ pub fn place(root: &Path, items: &[Item]) -> io::Result<Placed> {
         write(item, root, &mut placed)?;
     }
     Ok(placed)
+}
+
+/// 雛形を1つ読む。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// 読めないときに返す。
+pub fn read_template(dir: &Path, name: &str) -> io::Result<String> {
+    files::read_to_string(dir.join(name))
 }

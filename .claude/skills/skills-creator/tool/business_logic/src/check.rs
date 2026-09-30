@@ -16,10 +16,10 @@
 //! **依存の向きは各 `Cargo.toml` が宣言する。** この検査は `Cargo.toml` を読み、層の並びと
 //! 食い違っていないかを見る ── 実際に守られているかはコンパイラが判定する。
 
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::behavior::{self, Verdict};
+use crate::data_access::files;
 use crate::sections;
 
 /// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──
@@ -29,9 +29,32 @@ pub const TOOL: &str = "tool";
 /// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**
 pub const BIN: &str = "bin";
 
-/// 層の並び。**下から上である** ── 先頭が最も下（業務ロジック層）である。
-/// 名前はレイヤードアーキテクチャの層の正式名に合わせる。
-pub const ORDER: [&str; 3] = ["business_logic", "service", "presentation"];
+/// 層の並び。**下から上である** ── 先頭が最も下（データアクセス層）である。
+/// 名前はレイヤードアーキテクチャの層の正式名に合わせる（ACDR 0056 ・ 0058）。
+pub const ORDER: [&str; 4] = ["data_access", "business_logic", "service", "presentation"];
+
+/// 入出力を禁じた層のソース（`tool/` からの相対）。**入出力はデータアクセス層だけが持つ**（ACDR 0058）。
+pub const NO_IO: [&str; 2] = ["business_logic/src", "service/src"];
+
+/// 入出力の禁止から外すファイル。**`contract.rs` は起動の設定（tool.json）と
+/// Skill のフォルダを求める** ── 全 Skill 共通の複製であり、呼ぶ側との契約そのものである。
+pub const NO_IO_EXEMPT: [&str; 1] = ["contract.rs"];
+
+/// 入出力の印。**この文字列を含む行は、入出力を直接扱っている** ── `files::` ・ `process::` を通す。
+pub const IO_MARKS: [&str; 12] = [
+    "std::fs",
+    "fs::",
+    "std::process",
+    "Command::new",
+    "std::net",
+    "TcpListener",
+    "TcpStream",
+    "File::",
+    "std::env::temp_dir",
+    ".is_file()",
+    ".is_dir()",
+    ".exists()",
+];
 
 /// プレゼンテーション層に属する crate。**呼び出し方ごとに1つなので、複数在ってよい。**
 pub const ENTRIES: [&str; 2] = ["cli", "mcp"];
@@ -101,7 +124,7 @@ fn layer_of(name: &str) -> Option<&'static str> {
 ///
 /// **`path = "../…"` の形だけを見る** ── 外の crate は層の外である。
 fn declared(manifest: &Path) -> Vec<String> {
-    let Ok(body) = fs::read_to_string(manifest) else {
+    let Ok(body) = files::read_to_string(manifest) else {
         return Vec::new();
     };
     let mut out = Vec::new();
@@ -125,7 +148,7 @@ fn declared(manifest: &Path) -> Vec<String> {
 
 /// workspace が並べている crate を読む。
 fn members(manifest: &Path) -> Vec<String> {
-    let Ok(body) = fs::read_to_string(manifest) else {
+    let Ok(body) = files::read_to_string(manifest) else {
         return Vec::new();
     };
     let Some(head) = body.find("members") else {
@@ -148,7 +171,7 @@ fn members(manifest: &Path) -> Vec<String> {
 /// 節の構成が、対応する雛形を満たすかを見る。**文書が無ければ、そう返す。**
 fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
     let document = root.join("SKILL.md");
-    let Ok(body) = fs::read_to_string(&document) else {
+    let Ok(body) = files::read_to_string(&document) else {
         return vec!["文書が無い: SKILL.md".to_owned()];
     };
     let is_advisor = sections::headings(&body).iter().any(|x| x == ADVISOR_MARK);
@@ -157,7 +180,7 @@ fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
     } else {
         &templates.general
     };
-    let Ok(want) = fs::read_to_string(template) else {
+    let Ok(want) = files::read_to_string(template) else {
         return Vec::new();
     };
     let name = template
@@ -172,11 +195,11 @@ fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
 /// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**
 #[must_use]
 pub fn has_tools(root: &Path) -> bool {
-    root.join("tool.json").is_file()
-        || root.join("mcp.json").is_file()
-        || root.join(TOOL).is_dir()
-        || root.join("rs").is_dir()
-        || root.join("scripts").is_dir()
+    files::is_file(root.join("tool.json"))
+        || files::is_file(root.join("mcp.json"))
+        || files::is_dir(root.join(TOOL))
+        || files::is_dir(root.join("rs"))
+        || files::is_dir(root.join("scripts"))
 }
 
 /// 検査の段。
@@ -274,7 +297,7 @@ pub fn check(root: &Path, templates: &Templates) -> Report {
 /// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
 #[must_use]
 pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
-    if root.join(TOOL).join("Cargo.toml").is_file() || root.join("rs").is_dir() {
+    if files::is_file(root.join(TOOL).join("Cargo.toml")) || files::is_dir(root.join("rs")) {
         let mut found = rust(root);
         if behavior::contract_version(root) >= 2 {
             found.extend(rust_refs(root, templates));
@@ -283,7 +306,7 @@ pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
             return vec![Line::new(
                 Stage::Source,
                 State::Pass,
-                "Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、外部の道具の名前を直書きしていない"
+                "Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、入出力はデータアクセス層だけが持ち、外部の道具の名前を直書きしていない"
                     .to_owned(),
             )];
         }
@@ -292,7 +315,7 @@ pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
             .map(|t| Line::new(Stage::Source, State::Fail, t))
             .collect();
     }
-    if root.join("scripts").is_dir() {
+    if files::is_dir(root.join("scripts")) {
         return vec![Line::new(
             Stage::Source,
             State::Fail,
@@ -312,16 +335,16 @@ pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
 pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
     let mut findings = Vec::new();
     for need in ["business_logic/src/refs.rs", "service/src/refs.rs"] {
-        if !root.join(TOOL).join(need).is_file() {
+        if !files::is_file(root.join(TOOL).join(need)) {
             findings.push(format!(
                 "references の実装が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く"
             ));
         }
     }
     if let Some(tmpl) = &templates.refs {
-        let want = fs::read_to_string(tmpl).unwrap_or_default();
-        let have =
-            fs::read_to_string(root.join(TOOL).join("business_logic/src/refs.rs")).unwrap_or_default();
+        let want = files::read_to_string(tmpl).unwrap_or_default();
+        let have = files::read_to_string(root.join(TOOL).join("business_logic/src/refs.rs"))
+            .unwrap_or_default();
         if !have.is_empty() && !want.is_empty() && have != want {
             findings.push(format!(
                 "references の実装が雛形と違う: {TOOL}/business_logic/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す"
@@ -342,7 +365,7 @@ pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
 pub fn rust(root: &Path) -> Vec<String> {
     let mut findings = Vec::new();
     let rs = root.join(TOOL);
-    if !rs.join("Cargo.toml").is_file() {
+    if !files::is_file(rs.join("Cargo.toml")) {
         findings.push(format!(
             "層が crate に分かれていない: {TOOL}/Cargo.toml が無い ── \
              1つの単位の中の module では、内側が外側を参照してもコンパイラが通す"
@@ -363,15 +386,16 @@ pub fn rust(root: &Path) -> Vec<String> {
         // **依存の向きが契約どおりかを見る。** 守られているかはコンパイラが判定する
         for member in &listed {
             let manifest = rs.join(member).join("Cargo.toml");
-            if !manifest.is_file() {
+            if !files::is_file(&manifest) {
                 findings.push(format!("Cargo.toml が無い: {TOOL}/{member}/Cargo.toml"));
                 continue;
             }
             let Some(here) = layer_of(member) else {
                 findings.push(format!(
-                    "どの層か決まらない: {TOOL}/{member} ── 名前を {} ・ {} か {} で終える",
+                    "どの層か決まらない: {TOOL}/{member} ── 名前を {} ・ {} ・ {} か {} で終える",
                     ORDER[0],
                     ORDER[1],
+                    ORDER[2],
                     ENTRIES.join(" ・ ")
                 ));
                 continue;
@@ -387,29 +411,29 @@ pub fn rust(root: &Path) -> Vec<String> {
                 }
             }
         }
-        if !rs.join(TESTS).is_dir() {
+        if !files::is_dir(rs.join(TESTS)) {
             findings.push(format!("事例が無い: {TOOL}/{TESTS}/"));
         }
     }
     // **Python を残さない。** 移行が済んでいない箇所を、黙って通さない
-    if root.join("scripts").is_dir() {
+    if files::is_dir(root.join("scripts")) {
         findings.push(format!(
             "Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"
         ));
     }
-    if root.join("rs").is_dir() {
+    if files::is_dir(root.join("rs")) {
         findings.push(format!(
             "rs/ が残っている ── 道具のソースは {TOOL}/ に置く（名前は中身の役割で付ける）"
         ));
     }
     for (old, new) in RETIRED {
-        if rs.join(old).is_dir() {
+        if files::is_dir(rs.join(old)) {
             findings.push(format!(
                 "{old}/ が残っている: {TOOL}/{old} ── 層の正式名 {TOOL}/{new} へ改める"
             ));
         }
     }
-    let ignored = fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
+    let ignored = files::read_to_string(root.join(".gitignore")).unwrap_or_default();
     if !ignored
         .lines()
         .map(str::trim)
@@ -421,6 +445,47 @@ pub fn rust(root: &Path) -> Vec<String> {
         ));
     }
     findings.extend(hardcoded(root));
+    findings.extend(io_leaks(root));
+    findings
+}
+
+/// 入出力を禁じた層が、入出力を直接扱っていないかを見る。**見つけた行ごとに出す**
+/// ── どこを移せばよいかを、そのまま示すためである。注記の行（`//`）は見ない。
+fn io_leaks(root: &Path) -> Vec<String> {
+    let mut findings = Vec::new();
+    for dir in NO_IO {
+        let mut sources = Vec::new();
+        rust_files(&root.join(TOOL).join(dir), &mut sources);
+        for file in sources {
+            let name = file
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            if NO_IO_EXEMPT.contains(&name.as_str()) {
+                continue;
+            }
+            let Ok(body) = files::read_to_string(&file) else {
+                continue;
+            };
+            let at = file
+                .strip_prefix(root)
+                .unwrap_or(&file)
+                .display()
+                .to_string();
+            for (i, line) in body.lines().enumerate() {
+                if line.trim_start().starts_with("//") {
+                    continue;
+                }
+                let code = without_strings(line);
+                if let Some(mark) = IO_MARKS.iter().find(|m| has_mark(&code, m)) {
+                    findings.push(format!(
+                        "入出力を禁じた層が入出力を直接扱っている: {at}:{} ── `{mark}`（{TOOL}/data_access の files ・ process を通す）",
+                        i + 1
+                    ));
+                }
+            }
+        }
+    }
     findings
 }
 
@@ -432,7 +497,7 @@ fn hardcoded(root: &Path) -> Vec<String> {
     rust_files(&root.join(TOOL), &mut files);
     let mut findings = Vec::new();
     for file in files {
-        let Ok(body) = fs::read_to_string(&file) else {
+        let Ok(body) = files::read_to_string(&file) else {
             continue;
         };
         let at = file
@@ -447,6 +512,40 @@ fn hardcoded(root: &Path) -> Vec<String> {
         }
     }
     findings
+}
+
+/// 印が、識別子の途中ではない位置に在るか。**`refs::` の中の `fs::` を数えない。**
+fn has_mark(code: &str, mark: &str) -> bool {
+    let word = |c: char| c.is_alphanumeric() || c == '_';
+    let starts_word = mark.chars().next().is_some_and(word);
+    code.match_indices(mark)
+        .any(|(at, _)| !starts_word || !code[..at].chars().next_back().is_some_and(word))
+}
+
+/// 行から文字列の中身を除く。**文字列の中に書かれたものは、呼び出しではない** ── 検出の
+/// 印そのものを定数に持つと、それを入出力として数えてしまう。
+fn without_strings(line: &str) -> String {
+    let mut out = String::new();
+    let mut quoted = false;
+    let mut escaped = false;
+    for c in line.chars() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == '"' {
+                quoted = false;
+                out.push(c);
+            }
+            continue;
+        }
+        if c == '"' {
+            quoted = true;
+        }
+        out.push(c);
+    }
+    out
 }
 
 /// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**
@@ -477,13 +576,15 @@ fn spawned(body: &str) -> Vec<Option<String>> {
 /// Rust のファイルを集める。**組み立ての出力（target/）・ 事例（tests/）・ 開発用の例（examples/）は
 /// 見ない** ── どれも配布する実行ファイルに入らない。
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(dir) else {
+    let Ok(entries) = files::list(dir) else {
         return;
     };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if path.is_dir() {
+    for path in entries {
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if files::is_dir(&path) {
             if name != "target" && name != "tests" && name != "examples" {
                 rust_files(&path, out);
             }
