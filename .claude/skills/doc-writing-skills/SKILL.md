@@ -335,11 +335,11 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
 - `tool/business_logic/src/gate.rs`: ゲート1の実行。**拠って立つものは `checks` で見られる**
 - `tool/business_logic/src/checks.rs`: 8つの判定の実体
-- `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**
+- `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**。**HTML の頁は要素で割る**（`split_html`）── タグを本文として読まず、コードの要素（`pre` ・ `code`）の中は記号で囲んだ中と同じ扱いにする。Markdown として読むと、閉じの `**` の直後のタグを文字と数え、表に並べたコードの行を本文として判定する
 - `tool/business_logic/src/tails.rs`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `references/predicates.json` へ追加する
 - `tool/business_logic/src/input.rs`: `reply` ・ `review` が読む入力（フックの入力 ・ 判定基準 ・ 事例）。サービス層は入出力を保持しないので、ここが読み込む
 - `tool/data_access/`: データアクセス層。**ファイルと標準入力の入出力だけを持つ** ── 業務ロジック層はここを経由して読み込む。`files.rs` ・ `process.rs` は skills-creator の雛形の複製、`stdin.rs` はこの Skill に固有である
-- `tool/business_logic/tests/`: 事例（36件）。8つの判定と、単位の割り方と、手順の変換を固定してある
+- `tool/business_logic/tests/`: 事例（42件）。8つの判定と、単位の割り方（HTML の頁を含む）と、手順の変換を固定してある
 - `references/predicates.json`: **和語の述部と言い換え先の正本**（59件）。出典と、その立場を持つ
 - `references/review-criteria.json`: `review` が依頼文へ組む判定基準（8件）。形は `references/review-criteria.schema.json` が定義する
 - `references/document.json`: `review` の手順（`review-instruction`）。形は `references/document.schema.json` が定義する

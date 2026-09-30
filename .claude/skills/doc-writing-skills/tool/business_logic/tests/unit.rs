@@ -92,3 +92,45 @@ fn the_indent_of_an_item_is_counted() {
     assert_eq!(got[0].indent, 0);
     assert_eq!(got[1].indent, 2);
 }
+
+use dws_business_logic::unit::split_html;
+
+#[test]
+fn an_html_page_is_split_by_its_elements_not_by_its_lines() {
+    // **タグを本文として読まない** ── 1行に並んだ要素も、要素ごとの単位になる
+    let page =
+        "<h2>題</h2><p>本文である。</p><ul><li>項目</li></ul><table><tr><td>欄</td></tr></table>";
+    let got = split_html(page);
+    let kinds: Vec<Kind> = got.iter().map(|u| u.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![Kind::Heading, Kind::Body, Kind::Item, Kind::Cell]
+    );
+    assert_eq!(got[0].level, 2);
+    assert_eq!(got[1].text, "本文である。");
+    assert!(!got[1].raw.contains('<'), "{}", got[1].raw);
+}
+
+#[test]
+fn code_in_an_html_page_is_not_prose() {
+    // **コードの要素の中は、書き手の文ではない** ── 欄の中身が全部コードなら、その欄はコードである
+    let page = "<table><tr><td class=\"cd\"><code>/// 規則を捨てる。**強調**</code></td></tr></table><pre>形を揃える</pre>";
+    let got = split_html(page);
+    assert!(got.iter().all(|u| u.kind == Kind::Code), "{got:?}");
+}
+
+#[test]
+fn scripts_and_styles_are_not_units() {
+    let page = "<style>.a{} /* 効く */</style><script>let x = 1;</script><p>本文である。</p>";
+    let got = split_html(page);
+    assert_eq!(got.len(), 1, "{got:?}");
+    assert_eq!(got[0].text, "本文である。");
+}
+
+#[test]
+fn entities_are_decoded_and_the_line_is_kept() {
+    let page = "<p>一行目</p>\n<p>A &amp; B &lt;C&gt;</p>";
+    let got = split_html(page);
+    assert_eq!(got[1].text, "A & B <C>");
+    assert_eq!(got[1].line, 2, "行は原文のままである");
+}

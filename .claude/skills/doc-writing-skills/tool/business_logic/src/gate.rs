@@ -180,26 +180,42 @@ pub fn inspect(path: &Path, words: &Words) -> io::Result<Vec<Finding>> {
     if path.extension().is_some_and(|x| x == "json") {
         raw = prose_of_json(&raw);
     }
+    // **HTML は要素で切る** ── Markdown として読むと、タグを本文として判定する
+    if path
+        .extension()
+        .is_some_and(|x| x.eq_ignore_ascii_case("html") || x.eq_ignore_ascii_case("htm"))
+    {
+        if exempt(&raw) {
+            return Ok(Vec::new());
+        }
+        return Ok(inspect_units(&unit::split_html(&raw), words));
+    }
     Ok(inspect_text(&raw, words))
+}
+
+/// **外す印は、文書の頭に在るときだけ効く** ── 途中に書いて全体を外せないようにする
+fn exempt(raw: &str) -> bool {
+    raw.chars()
+        .take(400)
+        .collect::<String>()
+        .contains(EXEMPT_MARK)
 }
 
 /// 文字列へ全部の判定を当てる。**ファイルを経由しない本文**（利用者への応答）のための入口である。
 #[must_use]
 pub fn inspect_text(raw: &str, words: &Words) -> Vec<Finding> {
-    // **外す印は、文書の頭に在るときだけ効く** ── 途中に書いて全体を外せないようにする
-    if raw
-        .chars()
-        .take(400)
-        .collect::<String>()
-        .contains(EXEMPT_MARK)
-    {
+    if exempt(raw) {
         return Vec::new();
     }
-    let units = unit::split(raw);
+    inspect_units(&unit::split(raw), words)
+}
+
+/// 切り出した単位へ全部の判定を当てる。
+fn inspect_units(units: &[unit::Unit], words: &Words) -> Vec<Finding> {
     let mut out = Vec::new();
     for check in all() {
         if check.scope == Scope::Whole {
-            out.extend(whole(&check, &units, words));
+            out.extend(whole(&check, units, words));
             continue;
         }
         for u in units.iter().filter(|u| check.scope.takes(u.kind)) {

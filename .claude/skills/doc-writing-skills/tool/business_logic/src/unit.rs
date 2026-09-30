@@ -222,3 +222,245 @@ pub fn split(text: &str) -> Vec<Unit> {
     }
     units
 }
+
+/// 中身を読まない要素。**頁の見た目と動きであり、人が読む文ではない。**
+const SKIPPED: [&str; 3] = ["script", "style", "template"];
+
+/// 中身がコードである要素。
+const CODE: [&str; 2] = ["pre", "code"];
+
+/// 単位を区切る要素。**開きでも閉じでも、そこで単位が終わる。**
+const BLOCKS: [&str; 34] = [
+    "address",
+    "article",
+    "aside",
+    "blockquote",
+    "body",
+    "br",
+    "caption",
+    "dd",
+    "details",
+    "div",
+    "dl",
+    "dt",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "hr",
+    "li",
+    "main",
+    "nav",
+    "ol",
+    "p",
+    "section",
+    "summary",
+    "table",
+    "td",
+    "th",
+];
+
+/// 文字参照を解く。**知らない参照は、そのまま残す。**
+fn decode(s: &str) -> String {
+    let mut out = String::new();
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        let tail = &rest[i..];
+        let Some(end) = tail.find(';').filter(|e| *e <= 10) else {
+            out.push('&');
+            rest = &tail[1..];
+            continue;
+        };
+        let name = &tail[1..end];
+        let ch = match name {
+            "amp" => Some('&'),
+            "lt" => Some('<'),
+            "gt" => Some('>'),
+            "quot" => Some('"'),
+            "apos" => Some('\''),
+            "nbsp" => Some(' '),
+            _ => name
+                .strip_prefix("#x")
+                .or_else(|| name.strip_prefix("#X"))
+                .and_then(|h| u32::from_str_radix(h, 16).ok())
+                .or_else(|| name.strip_prefix('#').and_then(|d| d.parse().ok()))
+                .and_then(char::from_u32),
+        };
+        match ch {
+            Some(c) => {
+                out.push(c);
+                rest = &tail[end + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// 組み立て中の単位。
+#[derive(Default)]
+struct Pending {
+    line: usize,
+    /// 記号で囲んだコードを含む中身。
+    raw: String,
+    /// コードの外に文字が在るか。
+    prose: bool,
+    /// コードを含むか。
+    code: bool,
+}
+
+/// いま開いている要素から、単位の種類を決める。**内側の要素が優先する。**
+fn kind_of(open: &[String]) -> (Kind, usize) {
+    for name in open.iter().rev() {
+        match name.as_str() {
+            "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+                return (Kind::Heading, usize::from(name.as_bytes()[1] - b'0'));
+            }
+            "li" | "dt" | "dd" => return (Kind::Item, 0),
+            "td" | "th" => return (Kind::Cell, 0),
+            "blockquote" => return (Kind::Quote, 0),
+            _ => {}
+        }
+    }
+    (Kind::Body, 0)
+}
+
+fn flush(units: &mut Vec<Unit>, p: &mut Pending, open: &[String]) {
+    let taken = std::mem::take(p);
+    let raw = decode(taken.raw.trim());
+    if raw.is_empty() {
+        return;
+    }
+    let (kind, level) = if taken.code && !taken.prose {
+        (Kind::Code, 0)
+    } else {
+        kind_of(open)
+    };
+    let text = if kind == Kind::Code {
+        raw.trim_matches('`').to_owned()
+    } else {
+        plain(&raw)
+    };
+    units.push(Unit {
+        kind,
+        line: taken.line,
+        raw,
+        text,
+        level,
+        indent: 0,
+    });
+}
+
+/// HTML の頁を単位へ切る。**タグではなく要素で区切り、タグを本文として読まない。**
+///
+/// Markdown として読むと、タグの文字が本文に混ざる ── 閉じの `**` の直後の `<` を文字と数えて
+/// 強調の判定が誤り、表に並べたコードの行を本文として判定する。コードの要素（pre ・ code）の中は
+/// 記号で囲んだ中身と同じ扱いにし、中身が全部コードの単位はコードの単位にする。
+#[must_use]
+pub fn split_html(text: &str) -> Vec<Unit> {
+    let mut units = Vec::new();
+    let mut open: Vec<String> = Vec::new();
+    let mut p = Pending::default();
+    let mut code_depth = 0usize;
+    let mut line = 1usize;
+    let mut rest = text;
+    while !rest.is_empty() {
+        let Some(lt) = rest.find('<') else {
+            for c in rest.chars() {
+                if c == '\n' {
+                    line += 1;
+                }
+            }
+            push_text(&mut p, rest, line, code_depth > 0);
+            break;
+        };
+        let (head, tail) = rest.split_at(lt);
+        let mut at = line;
+        for piece in head.split_inclusive('\n') {
+            push_text(&mut p, piece, at, code_depth > 0);
+            if piece.ends_with('\n') {
+                at += 1;
+            }
+        }
+        line = at;
+        // 注釈と宣言は読まない
+        let skip_to = if tail.starts_with("<!--") { "-->" } else { ">" };
+        let Some(gt) = tail.find(skip_to) else {
+            break;
+        };
+        let tag = &tail[..gt + skip_to.len()];
+        line += tag.matches('\n').count();
+        rest = &tail[gt + skip_to.len()..];
+        if tag.starts_with("<!") || tag.starts_with("<?") {
+            continue;
+        }
+        let closing = tag.starts_with("</");
+        let name: String = tag
+            .trim_start_matches('<')
+            .trim_start_matches('/')
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric())
+            .collect::<String>()
+            .to_ascii_lowercase();
+        if !closing && SKIPPED.contains(&name.as_str()) {
+            // **閉じまで読み飛ばす** ── 中身の行も数える
+            let close = format!("</{name}");
+            let end = rest.to_ascii_lowercase().find(&close).unwrap_or(rest.len());
+            line += rest[..end].matches('\n').count();
+            rest = &rest[end..];
+            continue;
+        }
+        if CODE.contains(&name.as_str()) {
+            if closing {
+                code_depth = code_depth.saturating_sub(1);
+                p.raw.push('`');
+            } else {
+                code_depth += 1;
+                p.raw.push('`');
+            }
+            continue;
+        }
+        if BLOCKS.contains(&name.as_str()) {
+            flush(&mut units, &mut p, &open);
+            if closing {
+                if let Some(i) = open.iter().rposition(|n| *n == name) {
+                    open.truncate(i);
+                }
+            } else if !matches!(name.as_str(), "br" | "hr") && !tag.ends_with("/>") {
+                open.push(name);
+            }
+        }
+    }
+    flush(&mut units, &mut p, &open);
+    units
+}
+
+fn push_text(p: &mut Pending, piece: &str, line: usize, in_code: bool) {
+    if piece.trim().is_empty() {
+        if !p.raw.is_empty() {
+            p.raw.push(' ');
+        }
+        return;
+    }
+    if !p.prose && !p.code {
+        p.line = line;
+    }
+    if in_code {
+        p.code = true;
+    } else {
+        p.prose = true;
+    }
+    p.raw.push_str(piece.trim_end_matches('\n'));
+}

@@ -195,6 +195,34 @@ fn a_broken_emphasis_is_found() {
 }
 
 #[test]
+fn an_emphasis_inside_code_is_not_judged() {
+    // **記号で囲んだ中の ** は記法ではない**
+    assert!(!hit(
+        "code.md",
+        "例は `**強調する。**続き` である。\n",
+        "強調が描画されない"
+    ));
+}
+
+#[test]
+fn a_tag_next_to_the_mark_is_not_judged_in_html() {
+    // HTML では、閉じの印の直後に在るのはタグであり、文字ではない
+    assert!(!hit(
+        "tag.html",
+        "<p><b>強調</b>の後に **これは強調である。**</p><p>次の段落</p>",
+        "強調が描画されない"
+    ));
+    // 表に並べたコードの行は、判定しない
+    assert!(!hit(
+        "diff.html",
+        "<table><tr><td class=\"cd\"><code>/// 規則を捨てる。**強調する。**</code></td></tr></table>",
+        "述部が和語である"
+    ));
+    // 本文の和語は、HTML でも検出する
+    assert!(hit("prose.html", "<p>布を畳む。</p>", "述部が和語である"));
+}
+
+#[test]
 fn the_inside_of_a_fence_is_not_judged_as_prose() {
     let body = "# 題\n\n```\n形を揃える\n```\n";
     assert!(!hit("fence.md", body, "述部が和語である"));

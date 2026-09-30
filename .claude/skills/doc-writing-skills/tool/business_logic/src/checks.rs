@@ -444,7 +444,9 @@ const JA_PUNCT: [char; 8] = ['。', '、', '）', '」', '・', '：', '；', '�
 /// 在ると、閉じ記号として読まれない。
 #[must_use]
 pub fn broken_emphasis(u: &Unit) -> Vec<String> {
-    let parts: Vec<&str> = u.raw.split("**").collect();
+    // **記号で囲んだ中の `**` は記法ではない**
+    let raw = without_code(&u.raw);
+    let parts: Vec<&str> = raw.split("**").collect();
     let mut hits = Vec::new();
     // 1つ目の区切りが開き、2つ目が閉じ ── 閉じの前後だけを見る
     for k in (2..parts.len()).step_by(2) {

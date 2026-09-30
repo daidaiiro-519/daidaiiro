@@ -226,3 +226,15 @@ fn an_unknown_extension_is_refused() {
     assert!(code::render_code(&parts(), "x", ".md", &[]).is_err());
     assert!(code::render_diff(&parts(), "x", "y", ".md", &[]).is_err());
 }
+
+#[test]
+fn a_code_line_is_marked_up_as_code() {
+    // **コードの行はコードの要素に入れる** ── 文書の検査（doc-writing-skills）は、コードの要素の中を
+    // 書き手の文として判定しない。入れないと、差分に並んだ注記を本文として判定する
+    let diff = code::render_diff(&parts(), "a\nb\n", "a\nx\n", ".py", &[]).expect("組める");
+    assert!(
+        diff.body.contains("<td class=\"cd\"><code>"),
+        "{}",
+        diff.body
+    );
+}

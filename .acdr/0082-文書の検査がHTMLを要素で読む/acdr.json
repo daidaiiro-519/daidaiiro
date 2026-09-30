@@ -1,0 +1,183 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0082",
+ "title": "文書の検査が、HTML の頁を要素で読む",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "doc-writing-skills のゲート1は、HTML の頁を要素ごとの単位で判定し、タグとコードを書き手の文として判定しない。",
+ "why": "ACDR 0081 の頁にゲート1を実行すると、2件の「強調が描画されない」が出た。どちらも差分に並んだ Rust の注記の行で、閉じの ** の直後に在るのは文字ではなく </span> のタグだった。ゲート1は HTML の頁も Markdown として1行ずつ解析するので、タグの文字を本文と数え、コードの行も本文として判定していた。SKILL.md の説明は「既存のmdやHTMLの本文を直すときに必ず使う」と HTML を対象に含めているので、HTML を正しく解析しないのは Skill の欠陥である。利用者から「doc-writing-skillsは直さないんですか？」と問われた。",
+ "shift": [
+  {
+   "what": "HTML の頁の解析",
+   "from": "Markdown として1行ずつ解析する（タグも本文の文字として数える）",
+   "to": "要素ごとの単位へ分割する（見出し ・ 段落 ・ 箇条書き ・ 表の欄 ・ 引用）"
+  },
+  {
+   "what": "HTML の中のコード",
+   "from": "本文として判定する",
+   "to": "pre ・ code の中身はコードとして処理し、script ・ style ・ template の中身は判定しない"
+  },
+  {
+   "what": "記号で囲んだ中の **",
+   "from": "強調の記法として判定する",
+   "to": "判定しない（Markdown でも同じ）"
+  },
+  {
+   "what": "acdr のコードの差分",
+   "from": "コードの行を表の欄に直接置く",
+   "to": "コードの行を code の要素に格納する。見た目は変化しない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ゲート1が HTML の頁を要素ごとに分割し、コードの要素の中を判定から外す。acdr はコードの行を code の要素に格納する",
+ "alternatives": [
+  {
+   "option": "HTML の頁ではタグを取り除いてから、Markdown として解析する",
+   "why_not": "1行に並んだ要素が1つの単位になり、見出しと表の欄の区別が消える。コードの行とその説明の区別も消えるので、コードを本文として判定する誤りが残る"
+  },
+  {
+   "option": "acdr の頁だけを、ゲート1の対象から外す",
+   "why_not": "記録の本文（決定 ・ なぜ ・ 比較した案）は人が読む文書であり、CLAUDE.md の規則はゲート1の適用を求めている。外すと本文の誤りも検出しない"
+  },
+  {
+   "option": "doc-writing-skills の側で、acdr の差分の欄（class=\"cd\"）をコードとして扱う",
+   "why_not": "doc-writing-skills が acdr の内部の形を知ることになる。HTML の標準の要素（code）で表せば、どの頁にも同じ規則が適用される"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "unit",
+   "tab": "unit.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/src/unit.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn split_html(text: &str) -> Vec<Unit> {",
+     "before": "（HTML の頁も split で Markdown として解析していた）",
+     "why": "タグの文字を本文と数えないよう、要素ごとの単位へ分割する。コードの要素の中は記号で囲んだ中と同じ扱いにする"
+    }
+   ]
+  },
+  {
+   "key": "gate",
+   "tab": "gate.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/src/gate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "return Ok(inspect_units(&unit::split_html(&raw), words));",
+     "before": "    Ok(inspect_text(&raw, words))",
+     "why": "拡張子が html ・ htm のときは、要素ごとの単位へ分割してから判定する。外す印の判定と、単位へ判定を適用する処理は Markdown と共用にした"
+    }
+   ]
+  },
+  {
+   "key": "checks",
+   "tab": "checks.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/src/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let raw = without_code(&u.raw);",
+     "before": "    let parts: Vec<&str> = u.raw.split(\"**\").collect();",
+     "why": "記号で囲んだ中の ** は記法ではない。Markdown でも HTML でも、コードの中の ** を強調の閉じとして判定していた"
+    }
+   ]
+  },
+  {
+   "key": "tunit",
+   "tab": "tests/unit.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/tests/unit.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_html_page_is_split_by_its_elements_not_by_its_lines()",
+     "before": "（HTML の頁の事例が無かった）",
+     "why": "要素ごとの単位 ・ コードの要素 ・ script と style の除外 ・ 文字参照と行番号を固定する"
+    }
+   ]
+  },
+  {
+   "key": "tchecks",
+   "tab": "tests/checks.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/tests/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_emphasis_inside_code_is_not_judged()",
+     "before": "（無い）",
+     "why": "記号で囲んだ中の ** を判定しないこと、HTML ではタグの隣の ** とコードの行を判定しないこと、本文の和語は HTML でも検出することを固定する"
+    }
+   ]
+  },
+  {
+   "key": "dskill",
+   "tab": "doc-writing-skills の SKILL.md",
+   "file": ".claude/skills/doc-writing-skills/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "HTML の頁は要素で割る",
+     "before": "（HTML の頁の扱いを書いていなかった）",
+     "why": "参照の節に、HTML の頁をどう単位へ割るかを追加した。事例の数も 36 件から 42 件へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "askill",
+   "tab": "acdr の SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "文書の検査は、コードの要素の中を書き手の文として判定しない",
+     "before": "（無い）",
+     "why": "文書の検査がコードの要素の中を判定しないことを、acdr の側の決まりとして記述した。事例の数も 84 件から 85 件へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "acss",
+   "tab": "acdr.css",
+   "file": ".claude/skills/acdr/references/acdr.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".code td.cd code{",
+     "before": "（無い）",
+     "why": "code の要素には頁全体の規則（地の色 ・ 余白 ・ 字の大きさ）が適用される。差分の行の見た目を変えないよう、欄の中では打ち消す"
+    }
+   ]
+  },
+  {
+   "key": "atest",
+   "tab": "acdr の tests/code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/code.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_code_line_is_marked_up_as_code()",
+     "before": "（無い）",
+     "why": "コードの行が code の要素に入ることを固定する。acdr.template.html の code-row ・ diff-row の2か所を変更した（.html は描画した見た目で置かれ、template の中は表示されないので、この試験が変更を示す）"
+    }
+   ]
+  }
+ ],
+ "how": "doc-writing-skills の unit.rs に split_html を追加した。タグを読み、単位を区切る要素（p ・ li ・ td ・ h1〜h6 など）で単位を分け、いま開いている要素から単位の種類を決める。文字参照を解き、行番号は原文の行を保持する。pre ・ code の中身は記号で囲んだ中と同じ扱いにし、中身が全部コードの単位はコードの単位にする。gate.rs は拡張子が html ・ htm のときに split_html を使う。強調の判定は、記号で囲んだ中を除いてから実行する。acdr は、差分とコードの面の行（acdr.template.html の code-row ・ diff-row）を code の要素に格納し、acdr.css でその要素の見た目を行の見た目に揃えた。承認済みの記録は組み直さない。",
+ "applies_to": "doc-writing-skills の tool/business_logic（unit.rs ・ gate.rs ・ checks.rs と試験）と SKILL.md。acdr の references（acdr.template.html ・ acdr.css）・ 試験（tests/code.rs）・ SKILL.md。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "seal": {
+  "unit": "eb3e430894adf2ca2b116ebd05660546ee94eb1ae0424a6ef080fc461d22f99d",
+  "gate": "bbf88ff94cc705d2f6ac00a11c1fe8f2527aac9d23da71254444e4f99972c7f7",
+  "checks": "37eff6bb83c0d2f5c0fefb069a9f134a19cc07139e4392b3f9c38665d2a33dc7",
+  "tunit": "5f344e683f548e5c1e4fd8abbf71a9f4b4f5c098adc352a893b9196cf84e329a",
+  "tchecks": "c2957f9416ada877a9c4595fcd6e2d35e1c34567c74310275b19ee9a6b27022d",
+  "dskill": "808a859137f5ae99b282e34f5a9c803117e22c7663e10dceec0a321aa432ac37",
+  "askill": "e827fa902b971a329d07984ba4f92cf9d560b398412a21ee37868290dff61eef",
+  "acss": "05b1216c3d6d9bc91abe82c6b053fe29613e8a056f573bc326edd89bad40d717",
+  "atest": "839614f265a6ee3b91cf89cc2e2919ca913fc008088c08978aa5a848726c318d"
+ }
+}
