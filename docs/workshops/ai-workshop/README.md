@@ -8,8 +8,8 @@
 
 | もの | 中身 |
 |---|---|
-| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編10枚＋付録27枚。ブラウザで開き、矢印キーでめくる |
-| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編23枚＋付録14枚 |
+| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編10枚＋付録29枚。ブラウザで開き、矢印キーでめくる |
+| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編21枚＋付録18枚 |
 | [要点版の1ページ版](proposal/out/director-deck-brief-all.html) ・ [詳細版の1ページ版](proposal/out/director-deck-all.html) | 全枚を縦に並べた版。通し読みに使う |
 | [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
 | [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
