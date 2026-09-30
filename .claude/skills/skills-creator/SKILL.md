@@ -100,11 +100,11 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 | 置く先 | 中身 | 文書 |
 |---|---|---|
 | 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/tool-contract.md` |
-| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust（版2 ・ 作業型と助言型）と Python ・ TypeScript（版1 ・ 作業型） | `references/profiles/<言語>.md` |
+| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust（版2 ・ 作業型と助言型）と Python ・ TypeScript ・ C#（版1 ・ 作業型） | `references/profiles/<言語>.md` |
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/distribution.md` |
 
 ```
-skills-creator scaffold <Skill の名前> [--type work|generate|advisor] [--language rust|python|typescript]   # 型と言語の組の一式を置く
+skills-creator scaffold <Skill の名前> [--type work|generate|advisor] [--language rust|python|typescript|csharp]   # 型と言語の組の一式を置く
 skills-creator check <Skill のフォルダ>  # 2段の検査と、節の構成の検査
 skills-creator accept <advisor のフォルダ>  # 助言型の受け入れの検査（機械の7件）
 skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだけ。導入スクリプトと組み立ての定義を置く
@@ -169,6 +169,7 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/profiles/python.md` ・ `references/profiles/python/`: Python の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/csharp.md` ・ `references/profiles/csharp/`: C# の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
 - `references/profiles/typescript.md` ・ `references/profiles/typescript/`: TypeScript の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
 - `references/profiles/rust.md` ・ `references/profiles/rust/`: Rust の組。置き場所 ・ 契約の実装 ・
   雛形（21件）・ 2段目の検査。**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く

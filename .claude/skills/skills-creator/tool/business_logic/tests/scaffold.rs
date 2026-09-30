@@ -174,3 +174,28 @@ fn a_work_skill_can_be_planned_in_typescript() {
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
     assert!(profile::plan(&profiles, &types, &ts, &advisor).is_err());
 }
+
+#[test]
+fn a_work_skill_can_be_planned_in_csharp() {
+    let (profiles, types) = defs();
+    let cs = profile::load(&profiles, "csharp").expect("C# の組が在る");
+    let work = profile::load_type(&types, "work").expect("作業型が在る");
+    let plan = profile::plan(&profiles, &types, &cs, &work).expect("組み合わせられる");
+    for to in [
+        "tool/Directory.Build.props",
+        "tool/Skill/Contract.cs",
+        "tool/Cli/Program.cs",
+        "tool/Mcp/Program.cs",
+        "tool/Skill/Tools.cs",
+        "tool.json",
+        "mcp.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
+    // **版1 の組は助言型を断る**
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    assert!(profile::plan(&profiles, &types, &cs, &advisor).is_err());
+}

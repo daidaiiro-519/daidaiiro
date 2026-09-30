@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: MIT
+// 契約の実体。**どの Skill も同じファイルを複製して使う**（ACDR 0064）。
+//
+// 道具の一覧（能力の正本）・ 引数 ・ 渡された値 ・ 戻り値 ・ 道具の一覧を機械が読む形で返す処理を持つ。
+// CLI と MCP は、この形の一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace SkillTool;
+
+/// <summary>引数1つ。位置引数と旗を区別しない ── 呼ぶ側の形はプレゼンテーション層が決める。</summary>
+public sealed record Arg(string Name, string Summary, bool Required, bool Many, string? Default = null)
+{
+    /// <summary>省略できない引数を宣言する。</summary>
+    public static Arg Need(string name, string summary) => new(name, summary, true, false);
+
+    /// <summary>省略できる引数を宣言する。</summary>
+    public static Arg Opt(string name, string summary, string? fallback = null) => new(name, summary, false, false, fallback);
+
+    /// <summary>まとめて受ける引数を宣言する。</summary>
+    public static Arg ManyOf(string name, string summary) => new(name, summary, true, true);
+}
+
+/// <summary>道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。</summary>
+public sealed record Outcome(bool Ok, IReadOnlyList<string> Findings, JsonObject Data)
+{
+    public static Outcome Found(IReadOnlyList<string> findings, JsonObject data) => new(true, findings, data);
+
+    public static Outcome Misuse(string reason) => new(false, [reason], []);
+
+    /// <summary>0 正常 ／ 1 検出あり ／ 2 誤用。</summary>
+    public int ExitCode => !Ok ? 2 : Findings.Count > 0 ? 1 : 0;
+
+    public JsonObject ToJson() => new()
+    {
+        ["ok"] = Ok,
+        ["findings"] = new JsonArray([.. Findings.Select(f => (JsonNode?)JsonValue.Create(f))]),
+        ["data"] = Data.DeepClone(),
+    };
+}
+
+/// <summary>渡された引数。**プレゼンテーション層が組み、道具が読む。**</summary>
+public sealed class Given
+{
+    private readonly Dictionary<string, List<string>> values = [];
+
+    public void Push(string name, string value)
+    {
+        if (!values.TryGetValue(name, out var list))
+        {
+            list = [];
+            values[name] = list;
+        }
+        list.Add(value);
+    }
+
+    public string One(string name, string fallback) =>
+        values.TryGetValue(name, out var list) && list.Count > 0 ? list[0] : fallback;
+
+    public bool Has(string name) => values.ContainsKey(name);
+
+    public IReadOnlyList<string> All(string name) => values.TryGetValue(name, out var list) ? [.. list] : [];
+
+    /// <summary>Skill のフォルダ。渡されなければ、実行ファイルの位置から SKILL.md の在る上のフォルダを求める。</summary>
+    public string SkillRoot()
+    {
+        if (Has("skill_root")) return One("skill_root", ".");
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "SKILL.md"))) return dir.FullName;
+        }
+        throw new InvalidOperationException("Skill の置き場所が見つからない ── --skill_root で渡す");
+    }
+
+    /// <summary>外部の道具の起動するコマンド。**名前を直書きせず、tool.json から読んで渡す。**</summary>
+    public string External(string name)
+    {
+        var path = Path.Combine(SkillRoot(), "tool.json");
+        var doc = JsonNode.Parse(File.ReadAllText(path));
+        foreach (var x in doc?["external"]?.AsArray() ?? [])
+        {
+            if (x?["name"]?.GetValue<string>() == name && x["command"]?.GetValue<string>() is { } command)
+            {
+                return command;
+            }
+        }
+        throw new InvalidOperationException($"{path} の external に {name} の command が無い");
+    }
+}
+
+/// <summary>道具1つ。Run は結果を返し、Human は人向けの文を組む。</summary>
+public sealed record Tool(string Name, string Summary, IReadOnlyList<Arg> Args, Func<Given, Outcome> Run, Func<Outcome, string> Human);
+
+public static class Contract
+{
+    /// <summary>道具の一覧を、機械が読む形で返す。**動詞なしで --json を付けたときに CLI が返す。**</summary>
+    public static Outcome Catalog(IReadOnlyList<Tool> tools, Given given)
+    {
+        var listed = new JsonArray();
+        foreach (var t in tools)
+        {
+            var args = new JsonArray();
+            foreach (var a in t.Args)
+            {
+                args.Add(new JsonObject { ["name"] = a.Name, ["required"] = a.Required, ["many"] = a.Many });
+            }
+            listed.Add(new JsonObject { ["name"] = t.Name, ["summary"] = t.Summary, ["args"] = args });
+        }
+        string root;
+        try
+        {
+            root = given.SkillRoot();
+        }
+        catch (InvalidOperationException)
+        {
+            root = "";
+        }
+        return Outcome.Found([], new JsonObject { ["tools"] = listed, ["skill_root"] = root });
+    }
+
+    /// <summary>JSON を人が読める形で書き出す。**日本語を \\u へ逃がさない。**</summary>
+    public static readonly JsonSerializerOptions Pretty = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    /// <summary>JSON を1行で書き出す。MCP の結果の文字列に使う。</summary>
+    public static readonly JsonSerializerOptions Compact = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+}

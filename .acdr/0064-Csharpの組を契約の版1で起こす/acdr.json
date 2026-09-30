@@ -1,0 +1,188 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0064",
+ "title": "C# の組を契約の版1で起こす",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator に C# の組を加え、契約の版1 を満たす作業型の Skill を C# で生めるようにする。",
+ "why": "ボードの論点5で、組を起こす順を Python → TypeScript → C# → Go と決めた。TypeScript の組は ACDR 0063 で承認した。C# の組も、Rust の組と同じ振る舞いを別の言語で満たす雛形を持ち、中の構成は指定しない（ACDR 0059）。MCP の公式 C# SDK は v2（NuGet の ModelContextProtocol.Core 2.2.0）である。原文（commit c40ee04）の McpServer.Create と McpServerHandlers に一致させた。C# は1つのプロジェクトに入口を1つしか持てない。そのため CLI と MCP を別のプロジェクトにし、道具の一覧を共有のライブラリに置いた。",
+ "shift": [
+  {
+   "what": "生める言語の組",
+   "from": "Rust ・ Python ・ TypeScript",
+   "to": "Rust ・ Python ・ TypeScript ・ C#"
+  },
+  {
+   "what": "C# の Skill の起動",
+   "from": "（無い）",
+   "to": "dotnet tool/bin/cli/cli.dll ／ tool/bin/mcp/mcp.dll。dll は OS に依存しない"
+  },
+  {
+   "what": "C# の Skill のプロジェクト",
+   "from": "（無い）",
+   "to": "Skill（契約と道具の一覧）・ Cli ・ Mcp ・ Tests の4つ"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "C# の組で生んだ Skill の起動の流れ。CLI と MCP は別の dll で、同じ道具の一覧（Tools.cs）から組む。その先の構成は Skill を作る人が決める",
+ "alternatives": [
+  {
+   "option": "1つの実行ファイルで、引数によって CLI と MCP を切り替える",
+   "why_not": "MCP の起動に専用の引数が要り、CLI の側では一覧に無い旗として断る規定と食い違う。他の組は CLI と MCP を別の入口にしている"
+  },
+  {
+   "option": "dotnet run --project で起動する",
+   "why_not": "起動のたびに組み立ての検査が走り、MCP の接続と CLI の応答が数秒遅れる"
+  },
+  {
+   "option": "OS ごとの実行ファイル（apphost）を起動する",
+   "why_not": "Windows では .exe が付くので、登録の経路が OS で変わる。dll を dotnet で起動すれば1つの登録で足りる"
+  },
+  {
+   "option": "ModelContextProtocol（ホストの仕組みを含む）と属性で道具を宣言する",
+   "why_not": "道具をその場で宣言するので、能力の正本が CLI の一覧と2か所になる。低水準の API は Core に在る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "cs-md",
+   "tab": "C# の組の説明",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "この組は契約の版1 を満たし、作業型だけを保持する。",
+     "before": "（無い）",
+     "why": "版2 を要る助言型は Rust の組で生む。scaffold は版の不足を理由に断る"
+    },
+    {
+     "find": "dll は OS に依存しないので",
+     "before": "（無い）",
+     "why": "dll を dotnet で起動し、OS ごとに登録を変えない"
+    },
+    {
+     "find": "文化に依存する処理を使わない",
+     "before": "（無い）",
+     "why": "ICU の無い環境では .NET の実行が止まる。InvariantGlobalization で起動を保つ"
+    }
+   ]
+  },
+  {
+   "key": "profile",
+   "tab": "csharp.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp.profile.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"contract\": 1,",
+     "before": "（無い）",
+     "why": "版1 の組として定義した"
+    },
+    {
+     "find": "\"Process.Start(\",",
+     "before": "（無い）",
+     "why": "外部の道具の名前の直書きを、.NET の起動の書き方で検出する"
+    }
+   ]
+  },
+  {
+   "key": "contract-cs",
+   "tab": "Contract.cs の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Contract.cs.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "    public static Outcome Catalog(IReadOnlyList<Tool> tools, Given given)",
+     "before": "（無い）",
+     "why": "Rust の contract.rs の catalog と同じ形（tools と skill_root）を返す"
+    }
+   ]
+  },
+  {
+   "key": "cli-cs",
+   "tab": "Cli の Program.cs の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Cli.Program.cs.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "            if (!tool.Args.Any(x => x.Name == key))",
+     "before": "（無い）",
+     "why": "一覧に無い旗を終了コード 2 で断る。Rust の組と同じ文言にした"
+    },
+    {
+     "find": "    public static int Run(string[] argv)",
+     "before": "（無い）",
+     "why": "最上位の文と Main が並ぶと、C# は入口を決められずに組み立てを止める。名前を Run にした"
+    }
+   ]
+  },
+  {
+   "key": "mcp-cs",
+   "tab": "Mcp の Program.cs の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Mcp.Program.cs.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "await using var server = McpServer.Create(new StdioServerTransport(options), options);",
+     "before": "（無い）",
+     "why": "公式 SDK v2 の低水準の API を、同じ道具の一覧から組む"
+    },
+    {
+     "find": "            IsError = !out_.Ok,",
+     "before": "（無い）",
+     "why": "ok が偽なら IsError を立てる。Rust の組と同じ分け方である"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_work_skill_can_be_planned_in_csharp() {",
+     "before": "（無い）",
+     "why": "C# の組の計画 ・ 雛形の実在 ・ 助言型を断ることを固定した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Python ・ TypeScript ・ C#（版1 ・ 作業型）",
+     "before": "Python ・ TypeScript（版1 ・ 作業型）",
+     "why": "組の一覧を、置いた組に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "道具の契約",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "C# は",
+     "before": "TypeScript は node で .ts を直接起動する",
+     "why": "実行ファイルの置き場所の例に、C# の組の形を加えた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "cs-md": "61b5d7af5ef78e1c442e5689fb954651589c07b88e21a4195c2db0a1cd5d5c0f",
+  "profile": "f61ca062c661b0b970e9e02b5b42763ca77318a5598c22534a4ab9eeb555ca13",
+  "contract-cs": "487187c017bc20b8c236ee709368ad33df20d572662ab510afaf9f32383c0066",
+  "cli-cs": "aea7a536a60c2477c0cbd37e329b31872f15156b18306bea8d24c4108bbbbde3",
+  "mcp-cs": "c368f611200b31349143bb38c343a8653b1b2eddb1b9f7e626cac3eb99a928a3",
+  "tests": "a91f84dd6096960e6217e0458a41042a6227f11aa1b4fc445a9e834d32f18e29",
+  "skill": "5b6d77e778ed497825519e0492632d0b29f40ab4d1cb6346947746b327c1779e",
+  "contract": "1e716b87f663daea08c274f0ca381a0b38a5ffed0a4e2c6e3a8e94c155994d10"
+ }
+}
