@@ -481,7 +481,10 @@ pub fn check_attachment(svg: &str) -> Vec<String> {
     ) {
         let (dx, dy, sc) = transform(el, dx, dy, sc);
         let inside_node = inside_node || el.get("class").unwrap_or("").contains("wf-node");
-        if !inside_node && el.tag == "path" && el.get("fill") == Some("none") {
+        // 矢じり（wf-head）は辺の端の飾りであって辺ではない ── かぎ ・ 開いた矢じりの先は
+        // 節点に着かなくてよい
+        let head = el.get("class").unwrap_or("").contains("wf-head");
+        if !inside_node && !head && el.tag == "path" && el.get("fill") == Some("none") {
             if let Some(d) = el.get("d").filter(|d| !d.is_empty()) {
                 let pts: Vec<Point> = sample(d)
                     .iter()

@@ -262,3 +262,25 @@ fn geometry_stays_sound_when_tiled() {
     assert!(ds_business_logic::verify::check(&svg).is_empty());
     assert!(ds_business_logic::verify::check_shapes(&svg).is_empty());
 }
+
+/// 辺1本を描く。
+fn edge_svg(extra: Value) -> String {
+    let mut p = json!({"points": [[0, 100], [0, 0]]});
+    for (k, v) in extra.as_object().expect("対応表") {
+        p[k] = v.clone();
+    }
+    render("edge", &props(p), &style()).expect("描ける").svg
+}
+
+#[test]
+fn a_hook_is_an_open_curve_not_a_filled_head() {
+    let svg = edge_svg(json!({"arrowhead": "hook"}));
+    assert!(!svg.contains("<polygon"), "かぎは塗った三角ではない: {svg}");
+    assert!(svg.contains(" A"), "かぎは弧で描く: {svg}");
+}
+
+#[test]
+fn an_unknown_arrowhead_is_refused() {
+    let p = props(json!({"points": [[0, 100], [0, 0]], "arrowhead": "star"}));
+    assert!(render("edge", &p, &style()).is_err());
+}

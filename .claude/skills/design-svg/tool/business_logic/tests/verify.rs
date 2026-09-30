@@ -239,3 +239,12 @@ fn deliberate_overflow_is_measured() {
     );
     assert!(pts.iter().any(|(p, _)| p.0 < -1.0));
 }
+
+#[test]
+fn an_arrow_head_is_not_an_edge_end() {
+    // かぎの先は、節点の外へ折り返す ── 矢じり（wf-head）は辺の終端として照らさない
+    let node = r##"<rect x="0" y="0" width="60" height="30" fill="#eee"/>"##;
+    let hook = r##"<path class="wf-head" d="M30,20 A4,4 0 0 1 38,20 L38,26" fill="none" stroke="#000" stroke-width="1.2"/>"##;
+    let svg = fig(node, "M30,20 L100,100", 1.2).replace("</svg>", &format!("{hook}</svg>"));
+    assert!(check_attachment(&svg).is_empty(), "{:?}", check_attachment(&svg));
+}

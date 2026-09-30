@@ -1,0 +1,128 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0072",
+ "title": "design-svg の辺に、かぎの形の端を足す",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "design-svg の辺の端に、かぎの形（hook）を加える。",
+ "why": "usecase-advisor の拡張ユースケースの図は、原典の図10.1が拡張をかぎの形のコネクタで示しているのに、破線と「拡張」の文字で代用し、その差を注意の欄に書いていた。design-svg の矢じりは solid と open の2つだけで、かぎを描けなかった。利用者から、原典どおりに直すよう指示があった。あわせて、design-svg の幾何の検査は、塗りの無い path をすべて辺として扱い、かぎの先が節点に接していないと検出した。矢じりは辺の端の飾りであって辺ではないので、検査の対象から除外する。",
+ "shift": [
+  {
+   "what": "矢じりの形",
+   "from": "solid ・ open の2つ。それ以外の値は solid として描く",
+   "to": "solid ・ open ・ hook の3つ。それ以外の値は誤りとして断る"
+  },
+  {
+   "what": "かぎの大きさ",
+   "from": "（無い）",
+   "to": "矢じりの長さに比例させる。比はトークン size.hook-radius-ratio が保持する"
+  },
+  {
+   "what": "辺の終端の検査",
+   "from": "塗りの無い path はすべて辺として、両端が節点に接しているかを照合する",
+   "to": "矢じり（class が wf-head の path）は照合しない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "矢じりにかぎを加え、終端の検査から矢じりを除外して、拡張ユースケースの図を原典の形で描けるようにする",
+ "alternatives": [
+  {
+   "option": "図を破線のまま残し、差を注意の欄に書く（今の形）",
+   "why_not": "利用者の指示は、原典どおりに直すことだった"
+  },
+  {
+   "option": "線の始点に端を付ける指定（arrow: tail）も加え、自動の配置で描く",
+   "why_not": "自動の配置では3本の線が基底の1点に集まり、かぎが重なった。座標を宣言する画布で描けば始点の指定は使わないので、加えなかった"
+  },
+  {
+   "option": "幾何の検査で、終端の許容の隔たりをかぎの大きさまで広げる",
+   "why_not": "本物の辺の終端が浮いている誤りまで見逃す。矢じりだけを対象から外せば、辺の検査の強さは変化しない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "shapes",
+   "tab": "shapes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"hook\" => {",
+     "before": "if shape == \"open\" { … } polygon",
+     "why": "矢じりの形を match で分け、かぎを加えた。未知の形は solid で描かずに断る（宣言の誤りを見逃さない）"
+    }
+   ]
+  },
+  {
+   "key": "verify",
+   "tab": "verify.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/verify.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "wf-head",
+     "before": "if !inside_node && el.tag == \"path\" && el.get(\"fill\") == Some(\"none\") {",
+     "why": "かぎの先は節点の外へ折り返すので、辺の終端として照合すると必ず検出される。矢じりは辺の端の飾りであり、辺ではない"
+    }
+   ]
+  },
+  {
+   "key": "theme",
+   "tab": "theme.json",
+   "file": ".claude/skills/design-svg/references/theme.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "size.hook-radius-ratio",
+     "before": "（無い）",
+     "why": "かぎの半径を生の数値で書くと、生の数値の検査（no_guessed_numbers_remain）に反する。矢じりの他の寸法と同じくトークンで持つ"
+    },
+    {
+     "find": "\"size.hook-radius-ratio\": [",
+     "before": "（無い）",
+     "why": "トークンの説明の欄。かぎを矢じりの大きさに比例させる理由を書く"
+    }
+   ]
+  },
+  {
+   "key": "tshapes",
+   "tab": "tests/shapes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/shapes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn edge_svg",
+     "before": "（無い）",
+     "why": "かぎを弧で描くことと、未知の矢じりを断ることを固定する"
+    }
+   ]
+  },
+  {
+   "key": "tverify",
+   "tab": "tests/verify.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/verify.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_arrow_head_is_not_an_edge_end",
+     "before": "（無い）",
+     "why": "矢じりの先が節点に接していなくても、終端の検査が検出しないことを固定する"
+    }
+   ]
+  }
+ ],
+ "how": "arrow_head に hook を加えた。端から前方へ半円を描き、短い線で折り返す。open と hook の path には class=\"wf-head\" を付け、check_attachment はその path を照合しない。試験は shapes.rs に2件（かぎは弧で描く ・ 未知の矢じりを断る）、verify.rs に1件（矢じりの先は終端として照合しない）を加えた。拡張ユースケースの図は、自動の配置では3本の線が基底の1点に集まってかぎが重なったので、座標を宣言する画布（canvas）で描いた。",
+ "applies_to": "design-svg の描画エンジン（tool/business_logic/src/shapes.rs ・ verify.rs）とトークン（references/theme.json）。試験2本（tests/shapes.rs ・ tests/verify.rs）。",
+ "after_approval": [
+  "状態を accepted にして組み直し、design-svg の5ファイルと記録をコミットする",
+  "ACDR 0068 の拡張ユースケースの図（かぎの形で描き直したもの）も、0068 の承認とあわせてコミットする"
+ ],
+ "seal": {
+  "shapes": "1839de1ddf4999cd7314d3d4d3cb6ec9f0854fdb54213d7a41971cdf99ad64d0",
+  "verify": "213d8b84e9218c99b3f9f08fa486c5b3d28bfa3662c9b74ef302d551f119552a",
+  "theme": "f1e8fa0635e2d8505cbb86237ab495e68a290e81c64b1508fc342962e8a4f38a",
+  "tshapes": "4752ed2f675d1daac59acfba726c913cfd6b1e0025ce7afb5e226ebc76301893",
+  "tverify": "27f366b3eb99bad1410221465124aece525e8ab4fe8c99026d41744706363a33"
+ }
+}

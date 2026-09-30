@@ -64,15 +64,27 @@ pub fn arrow_head(
         Some(c) if !c.is_empty() => c.to_owned(),
         _ => style.text_or("color.line", &style.text("color.ink-faint")?)?,
     };
-    if shape == "open" {
-        return Ok(format!(
-            "<path d=\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",
-            f(style.num("size.stroke-width")?)
-        ));
+    let sw = f(style.num("size.stroke-width")?);
+    match shape {
+        "open" => Ok(format!(
+            "<path class=\"wf-head\" d=\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+        )),
+        // **かぎ** ── 線の端を前へ曲げて折り返す半円。UML の図でユースケースの拡張を表す
+        // コネクタに使う（コーバーン『ユースケース実践ガイド』図10.1 ・ 付録 A）
+        "hook" => {
+            let r = head_len * style.num("size.hook-radius-ratio")?;
+            let (nx, ny) = (-angle.sin(), angle.cos());
+            let (ex, ey) = (x2 + nx * 2.0 * r, y2 + ny * 2.0 * r);
+            let (bx, by) = (ex - angle.cos() * r, ey - angle.sin() * r);
+            Ok(format!(
+                "<path class=\"wf-head\" d=\"M{x2:.1},{y2:.1} A{r:.1},{r:.1} 0 0 1 {ex:.1},{ey:.1} L{bx:.1},{by:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\"/>"
+            ))
+        }
+        "solid" => Ok(format!(
+            "<polygon points=\"{x2:.1},{y2:.1} {hx1:.1},{hy1:.1} {hx2:.1},{hy2:.1}\" fill=\"{ink}\"/>"
+        )),
+        other => Err(format!("矢じりの形は solid ・ open ・ hook のどれか ── {other}")),
     }
-    Ok(format!(
-        "<polygon points=\"{x2:.1},{y2:.1} {hx1:.1},{hy1:.1} {hx2:.1},{hy2:.1}\" fill=\"{ink}\"/>"
-    ))
 }
 
 /// 名前を1つ持つ、角丸の矩形。**つながり ・ 階層 ・ 包含などの節点に使う。**
