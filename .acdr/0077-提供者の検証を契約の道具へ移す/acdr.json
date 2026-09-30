@@ -1,0 +1,138 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0077",
+ "title": "提供者の検証を、シェルのスクリプトから契約の道具へ移す",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "提供者が雛形を直したときの検証（5言語 × 2型の生成と突き合わせ）を、シェルのスクリプトではなく、skills-creator の道具の契約に従う提供者の道具で行う。",
+ "why": "tool/verify-profiles.sh（ACDR 0070）は、skills-creator の能力でありながら道具の契約の外にあった。bash ・ tar ・ sed ・ eval で組み立てのコマンドを解釈し、検出は人が読む文字列だけで返した。bash の無い環境（Windows など）では実行できず、ほかの Skill が遵守する「Linux に依存しない」という決まりにも反していた。利用者に「なんで sh なの？」と問われ、是正を指示された（「契約の外で作成されたものの是正もやるにきまってるでしょ」）。突き合わせ（conform）も、cargo の example の独自の入口で、契約の規約（旗の検査 ・ --json）を持たなかった。",
+ "shift": [
+  {
+   "what": "検証の実装",
+   "from": "bash のスクリプト（tar ・ sed ・ eval ・ python3 で JSON を読む）",
+   "to": "Rust の業務ロジック（business_logic/src/provider.rs）。組み立てのコマンドを語の並びとして起動し、検出を JSON で受け取る"
+  },
+  {
+   "what": "入口",
+   "from": "tool/verify-profiles.sh と、突き合わせだけの cargo の example（conform）",
+   "to": "提供者の道具の一覧（verify ・ conform）と、cli の example（provider）。規約は利用者の CLI と同じ"
+  },
+  {
+   "what": "利用者への見え方",
+   "from": "（配布物に入らない）",
+   "to": "変化しない。利用者の道具の一覧と MCP には出さない"
+  },
+  {
+   "what": "作業場所",
+   "from": "既定は一時フォルダ。同じ名前を消して作り直す（rm -rf）",
+   "to": "既定は tool/target/verify。その下に run-<番号> を新しく作り、既存のものを削除しない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "検証を提供者の道具の一覧へ移し、利用者の CLI と同じ規約の入口から呼ぶ。利用者の一覧と MCP には出さない",
+ "alternatives": [
+  {
+   "option": "スクリプトを残し、PowerShell 版も用意する",
+   "why_not": "同じ検証を2つの言語で書くことになり、片方だけが古くなる。検出を JSON で受け取れない点も残る"
+  },
+  {
+   "option": "verify を利用者の道具の一覧に加える",
+   "why_not": "利用者に使う場面が無く、MCP の一覧にも出てしまう。ACDR 0070 が突き合わせを配布物から外した理由と同じである"
+  },
+  {
+   "option": "提供者の入口のために、CLI の旗の読み方を複製する",
+   "why_not": "旗の検査と終了コードの規約を2回書くことになり、片方だけが古くなる。sc_cli の関数に1つだけ置く"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "provider",
+   "tab": "provider.rs（新）",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/provider.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn verify(",
+     "before": "（tool/verify-profiles.sh の本体）",
+     "why": "シェルを経由せず、どの OS でも同じ道具で検証する"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/src/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use sc_business_logic::{accept, check, conform, profile, provider, scaffold};",
+     "before": "use sc_business_logic::{accept, check, profile, scaffold};",
+     "why": "提供者の道具が、検証と突き合わせの業務ロジックを使う"
+    },
+    {
+     "find": ".with_view(references.join(\"view\"))",
+     "before": "（無い）",
+     "why": "ACDR 0076 の変更（check が見た目の正本の置き場所を知る）。同じファイルにあるのでここにも示す"
+    },
+    {
+     "find": "pub fn provider_tools() -> Vec<Tool> {",
+     "before": "（無い。検証はシェルのスクリプト、突き合わせは cargo の example が持っていた）",
+     "why": "提供者の道具を、利用者の一覧（tools）とは別の一覧に置く。利用者の一覧と MCP には出さない"
+    }
+   ]
+  },
+  {
+   "key": "clilib",
+   "tab": "cli/src/lib.rs（新）",
+   "file": ".claude/skills/skills-creator/tool/cli/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn run(all: &[Tool]) -> ExitCode {",
+     "before": "fn main() -> ExitCode { let all = tools(); …",
+     "why": "利用者の実行ファイルと提供者の入口で、旗の読み方 ・ --json ・ 終了コードを1つだけ持つ"
+    }
+   ]
+  },
+  {
+   "key": "climain",
+   "tab": "cli/src/main.rs",
+   "file": ".claude/skills/skills-creator/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "sc_cli::run(&sc_service::tools())",
+     "before": "（旗の読み方と実行の全体）",
+     "why": "実行の本体を sc_cli の関数へ移した。振る舞いは変えていない"
+    }
+   ]
+  },
+  {
+   "key": "example",
+   "tab": "examples/provider.rs（新）",
+   "file": ".claude/skills/skills-creator/tool/cli/examples/provider.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT",
+     "before": "（スクリプトが dotnet の起動に失敗したときだけ立てていた）",
+     "why": "ICU の無い環境では dotnet のコマンドが起動時に止まる。生む C# の Skill は文化に依存しない設定で動くので、立てても検証の結果は変化しない"
+    }
+   ]
+  }
+ ],
+ "how": "CLI の旗の読み方と実行を sc_cli の関数 run に移し、利用者の実行ファイル（main.rs）と提供者の入口（examples/provider.rs）が同じ関数を使うようにした。サービス層に provider_tools（verify ・ conform）を足した。verify は、自分の実行ファイルの scaffold で空の作業場所に Skill を生み、scaffold が返す組み立てのコマンドと言語の組の試験を起動し、check と accept を JSON で受け取る。最後に Rust の助言型を基準に他の言語を突き合わせる。ICU の無い環境で dotnet が起動時に止まる対処（DOTNET_SYSTEM_GLOBALIZATION_INVARIANT）は、提供者の入口が立てる。旧いスクリプトと、突き合わせの example を消し、tool/README.md を直した。",
+ "applies_to": "skills-creator の tool/ の業務ロジック（provider.rs）とサービス層（lib.rs の provider_tools）。CLI（lib.rs ・ main.rs ・ examples/provider.rs）と README.md。消すものは tool/verify-profiles.sh と business_logic/examples/conform.rs である。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "別セッションへ、検証の入口が変更されたことを伝える"
+ ],
+ "seal": {
+  "provider": "78f2194cb967b1107387dbf1a4b282d55570a4204426a94436ec774a4012e64b",
+  "service": "5f1bd42770038eeaedd8a3f9b3cc2ea11583ba97a87c18ad675a26089c99cf06",
+  "clilib": "24d60c1b4c7bca56b6d1bda7aa2750b97b6bb18cc812a36cbb16e5e57e0d711e",
+  "climain": "8ba9ab98b49d715059a2200388486e7ac8f004a2055863030cf00b6714bb6403",
+  "example": "d06fac9ebc8cecb6bf70f2f900c46cbb7d723f6a2cc651b0e7ff6bb00fb617e0"
+ }
+}

@@ -14,6 +14,7 @@ pub mod behavior;
 pub mod check;
 pub mod conform;
 pub mod profile;
+pub mod provider;
 pub mod refs;
 pub mod scaffold;
 pub mod sections;

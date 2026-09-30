@@ -9,7 +9,7 @@ mod refs;
 
 use std::path::{Path, PathBuf};
 
-use sc_business_logic::{accept, check, profile, scaffold};
+use sc_business_logic::{accept, check, conform, profile, provider, scaffold};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -442,4 +442,114 @@ pub fn tools() -> Vec<Tool> {
     // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
     all.extend(refs::tools());
     all
+}
+
+/// 提供者の検証の結果を、人が読む形にする。
+fn human_verify(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    let mut lines: Vec<String> = out
+        .data
+        .get("lines")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|x| x.as_str())
+        .map(|l| format!("   {l}"))
+        .collect();
+    lines.extend(out.findings.iter().map(|f| format!("×  {f}")));
+    if let Some(w) = out.data.get("work").and_then(|x| x.as_str()) {
+        lines.push(format!("作業場所 ── {w}"));
+    }
+    lines.join("\n")
+}
+
+fn run_verify(given: &Given) -> Outcome {
+    let here = or_misuse!(skill_root(given));
+    // **自分の実行ファイルで生む** ── 利用者と同じ道具で検証する
+    let bin = here.join(check::BIN).join("skills-creator");
+    let work = PathBuf::from(given.one("work", "tool/target/verify"));
+    let work = if work.is_absolute() {
+        work
+    } else {
+        here.join(work)
+    };
+    let languages: Vec<String> = given
+        .one("languages", "rust,python,typescript,csharp,go")
+        .split(',')
+        .map(|l| l.trim().to_owned())
+        .filter(|l| !l.is_empty())
+        .collect();
+    let corpus = PathBuf::from(given.one("corpus", ".claude/skills"));
+    match provider::verify(&bin, &here, &work, &languages, &corpus) {
+        Ok(v) => Outcome::found(
+            v.failures,
+            json!({ "work": v.work.display().to_string(), "lines": v.lines }),
+        ),
+        Err(e) => Outcome::misuse(e),
+    }
+}
+
+fn human_conform(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    let cases = out
+        .data
+        .get("cases")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0);
+    let mut lines = vec![format!(
+        "事例 {cases} 件 ／ 不一致 {} 件",
+        out.findings.len()
+    )];
+    lines.extend(out.findings.iter().map(|f| format!("  ×  {f}")));
+    lines.join("\n")
+}
+
+fn run_conform(given: &Given) -> Outcome {
+    let here = or_misuse!(skill_root(given));
+    let schema = here.join("references/profiles/shared/document.schema.json.tmpl");
+    match conform::conform(
+        Path::new(given.one("base", "")),
+        Path::new(given.one("other", "")),
+        Path::new(given.one("corpus", ".claude/skills")),
+        &schema,
+    ) {
+        Ok(r) => Outcome::found(r.mismatches, json!({ "cases": r.cases })),
+        Err(e) => Outcome::misuse(e),
+    }
+}
+
+/// 提供者だけが使う道具の一覧。**利用者の一覧（`tools`）と MCP には出さない** ── 使う場面が無い。
+/// 入口は cli の example（provider）である。
+#[must_use]
+pub fn provider_tools() -> Vec<Tool> {
+    vec![
+        Tool {
+            name: "verify",
+            summary: "言語の組の雛形を検証する ── 5言語 × 2型を生み、組み立て ・ 試験 ・ check ・ accept と、言語間の突き合わせを行う",
+            args: vec![
+                Arg::opt("work", "作業場所（この下に run-<番号> を作る）", Some("tool/target/verify")),
+                Arg::opt("languages", "検証する言語の組（カンマ区切り）", Some("rust,python,typescript,csharp,go")),
+                Arg::opt("corpus", "突き合わせに使う references を持つ Skill の置き場所", Some(".claude/skills")),
+                Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None),
+            ],
+            run: run_verify,
+            human: human_verify,
+        },
+        Tool {
+            name: "conform",
+            summary: "2つの Skill の references の道具の出力を突き合わせる",
+            args: vec![
+                Arg::need("base", "基準の Skill のフォルダ"),
+                Arg::need("other", "比べる Skill のフォルダ"),
+                Arg::opt("corpus", "突き合わせに使う references を持つ Skill の置き場所", Some(".claude/skills")),
+                Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None),
+            ],
+            run: run_conform,
+            human: human_conform,
+        },
+    ]
 }

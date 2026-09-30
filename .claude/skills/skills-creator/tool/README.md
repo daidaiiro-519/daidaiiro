@@ -18,10 +18,10 @@
 | `business_logic/src/conform.rs` | 言語の組の references の実装の出力の突き合わせ（提供者だけが使う） |
 | `business_logic/src/refs.rs` | この Skill 自身の references の実装（Rust の組の雛形 `refs.rs.tmpl` と同じ処理） |
 | `business_logic/tests/` | 事例。生んだものが契約を満たすこと ・ 検査の検出 ・ references の実装 ・ 突き合わせの判定を固定してある |
-| `business_logic/examples/conform.rs` | 突き合わせの入口。**配布する実行ファイルに入れない** |
-| `service/src/lib.rs` | 道具の一覧（能力の正本）── `scaffold` ・ `check` ・ `accept` ・ `dist` |
-| `cli/` ・ `mcp/` | 2つのプレゼンテーション層 |
-| `verify-profiles.sh` | 言語の組の雛形の確認（下の節） |
+| `business_logic/src/provider.rs` | 提供者の検証（verify）。5言語 × 2型を生み、組み立て ・ 試験 ・ check ・ accept と突き合わせを行う。**シェルを経由しない** |
+| `business_logic/src/view.rs` | 見た目の複製の検査（複製と正本の差 ・ 色の直値 ・ 定まらない変数 ・ 文字と地の比） |
+| `service/src/lib.rs` | 道具の一覧（能力の正本）── 利用者の `scaffold` ・ `check` ・ `accept` ・ `dist` と、提供者の `verify` ・ `conform`（`provider_tools`） |
+| `cli/` ・ `mcp/` | 2つのプレゼンテーション層。`cli/examples/provider.rs` は提供者の道具の入口で、**配布する実行ファイルに入れない** |
 
 ---
 
@@ -34,16 +34,17 @@
 
 ```
 cargo install --path tool/cli --root . --target-dir tool/target
-tool/verify-profiles.sh
+cargo run -q --release --manifest-path tool/Cargo.toml -p sc_cli --example provider -- verify --skill_root . [--work <作業場所>] [--json]
 ```
 
-配布物と同じ形を空の作業場所へ置き、利用者と同じ手順で5言語 × 2型を生んで、組み立て ・ 試験 ・ check ・ accept を実行する。
+作業場所（既定は `tool/target/verify`）の下に新しい置き場所を作り、利用者と同じ道具（`bin/skills-creator` の scaffold）で5言語 × 2型を生んで、
+組み立て ・ 試験 ・ check ・ accept を実行する。**シェルを経由しない** ── 組み立てのコマンドは語の並びとして起動し、検出は JSON で受け取る。
 最後に、Rust の助言型を基準に、他の4言語の出力をリポジトリの references で突き合わせる。**終了コードが0なら、公開してよい。**
 
 突き合わせだけを実行するときは次である。**基準が失敗した事例は、一致と数えない** ── 両方が同じ誤りを返すと、比べていないのに一致に見える。
 
 ```
-cargo run -q --manifest-path tool/Cargo.toml -p sc_business_logic --example conform -- <基準の Skill> <比べる Skill> [<置き場所>]
+cargo run -q --manifest-path tool/Cargo.toml -p sc_cli --example provider -- conform <基準の Skill> <比べる Skill> --skill_root . [--corpus <置き場所>]
 ```
 
 必要な処理系は cargo ・ uv ・ node（22.18 以上）・ dotnet（10）・ go である。
