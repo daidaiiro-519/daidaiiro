@@ -28,6 +28,8 @@
 
 use std::path::Path;
 
+use crate::data_access::files;
+
 /// 構造上どうしても現れる数。
 const STRUCTURAL: [f64; 7] = [0.0, 1.0, 2.0, -1.0, -2.0, 0.5, -0.5];
 /// 角度と割合。**座標系そのものが決めている数。**
@@ -385,17 +387,16 @@ fn statement(toks: &[Tok], i: usize) -> &[Tok] {
 ///
 /// 置き場所が無いときと、読めないときに返す。
 pub fn findings(root: &Path) -> Result<Vec<Finding>, String> {
-    if !root.exists() {
+    if !files::exists(root) {
         // **無い場所を検査して「0 箇所」と返さない。** 呼ぶ側は合格と受け取る
         return Err(format!("検査する場所が無い: {}", root.display()));
     }
-    let mut paths: Vec<_> = std::fs::read_dir(root)
+    // **名前の順に並べて受ける** ── 並びを OS に任せると、同じ置き場所から別の順が出る
+    let paths: Vec<_> = files::list(root)
         .map_err(|e| format!("{}: 読めない ── {e}", root.display()))?
-        .flatten()
-        .map(|e| e.path())
+        .into_iter()
         .filter(|p| p.extension().is_some_and(|x| x == "rs"))
         .collect();
-    paths.sort();
     let mut out = Vec::new();
     for path in paths {
         let name = path
@@ -406,7 +407,7 @@ pub fn findings(root: &Path) -> Result<Vec<Finding>, String> {
         if SKIP.contains(&name.as_str()) {
             continue;
         }
-        let src = std::fs::read_to_string(&path).map_err(|e| format!("{name}: 読めない ── {e}"))?;
+        let src = files::read_to_string(&path).map_err(|e| format!("{name}: 読めない ── {e}"))?;
         out.extend(scan(&name, &src));
     }
     Ok(out)

@@ -92,9 +92,9 @@ fn run_validate(given: &Given) -> Outcome {
     if record.is_empty() {
         return Outcome::misuse("記録のフォルダを渡していない".to_owned());
     }
-    let folder = match std::fs::canonicalize(record) {
+    let folder = match record::resolve(record) {
         Ok(folder) => folder,
-        Err(e) => return Outcome::misuse(format!("{record}: 開けない ── {e}")),
+        Err(why) => return Outcome::misuse(why),
     };
     let root = record::repo_root(&folder);
     match validate::check(&or_misuse!(references(given)), &folder, Some(&root)) {

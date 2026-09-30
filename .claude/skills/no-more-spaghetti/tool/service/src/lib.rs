@@ -48,12 +48,7 @@ fn rules_path(given: &Given) -> PathBuf {
     if named.is_empty() {
         return root.join(RULES_PATH);
     }
-    let direct = PathBuf::from(named);
-    if direct.is_file() {
-        direct
-    } else {
-        root.join(named)
-    }
+    nms_business_logic::rules::locate(&root, named)
 }
 
 fn run_check(given: &Given) -> Outcome {
@@ -173,7 +168,7 @@ fn run_plan(given: &Given) -> Outcome {
                 })
                 .collect();
             // **場所は解決して出す** ── 相対のままだと、呼んだ場所によって別を指す
-            let where_ = root.canonicalize().unwrap_or(root);
+            let where_ = nms_business_logic::rules::absolute(&root);
             Outcome::found(
                 Vec::new(),
                 json!({

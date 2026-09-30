@@ -1,12 +1,13 @@
 [package]
 name = "ds_business_logic"
-description = "業務ロジック層。サービス層とプレゼンテーション層を参照しない"
+description = "業務ロジック層。入出力を持たず、データアクセス層だけを参照する"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-# **外側の層を1件も宣言しない。** 参照した時点でコンパイルが通らない
+# **同じ workspace の crate は、データアクセス層だけを参照する。** 上の層を参照した時点でコンパイルが通らない
 [dependencies]
+ds_data_access = { path = "../data_access" }
 regex = "1"
 serde = "1"
 # **小数は最後の桁まで正しく読む** ── 既定の読み方は速さのために最後の桁を丸め、同じ宣言から

@@ -9,7 +9,7 @@ pub mod contract;
 use std::path::{Path, PathBuf};
 
 use dws_business_logic::checks::Words;
-use dws_business_logic::{gate, tails};
+use dws_business_logic::{gate, input, tails};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -53,13 +53,7 @@ fn words(given: &Given, target: &Path) -> Result<Words, String> {
     let synonyms = given
         .all("synonyms")
         .first()
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .map(|body| {
-            body.lines()
-                .filter_map(|line| line.split_once('\t'))
-                .map(|(a, b)| (a.trim().to_owned(), b.trim().to_owned()))
-                .collect()
-        })
+        .map(|p| gate::load_synonyms(Path::new(p)))
         .unwrap_or_default();
     Ok(Words::new(predicates, synonyms, retired))
 }
@@ -191,14 +185,7 @@ fn reply_source(given: &Given) -> Result<(String, PathBuf), String> {
         return Ok((given.one("message", "").to_owned(), here));
     }
     let from = given.one("hook", "-");
-    let body = if from == "-" {
-        let mut buf = String::new();
-        std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)
-            .map_err(|e| format!("標準入力を読めない ── {e}"))?;
-        buf
-    } else {
-        std::fs::read_to_string(from).map_err(|e| format!("読めない ── {from} ── {e}"))?
-    };
+    let body = input::hook_body(from)?;
     let input: serde_json::Value =
         serde_json::from_str(&body).map_err(|e| format!("フックの入力が JSON ではない ── {e}"))?;
     let message = input
@@ -268,9 +255,7 @@ fn run_review(given: &Given) -> Outcome {
         Err(e) => return Outcome::misuse(e),
     };
     let root = or_misuse!(skill_root(given));
-    let read = |p: PathBuf| {
-        std::fs::read_to_string(&p).map_err(|e| format!("読めない ── {} ── {e}", p.display()))
-    };
+    let read = |p: PathBuf| input::read_text(&p);
     let instruction = match read(root.join("references/review-instruction.md")) {
         Ok(x) => x,
         Err(e) => return Outcome::misuse(e),
@@ -292,12 +277,7 @@ fn run_review(given: &Given) -> Outcome {
         })
         .unwrap_or_default();
     // 事例はプロジェクトが持つ ── 廃語の一覧と同じく、上へたどって探す。無ければ無しで組む
-    let here = base.canonicalize().unwrap_or(base);
-    let examples = std::iter::successors(Some(here.as_path()), |p| p.parent())
-        .map(|d| d.join(".doc-writing").join("review-examples.json"))
-        .find(|c| c.exists())
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .unwrap_or_default();
+    let examples = input::find_examples(&base);
     let prompt = format!(
         "{instruction}\n## 判定基準（適用するもの {} 件）\n\n{}\n\n## 事例\n\n{}\n\n## 本文\n\n{message}\n",
         applied.len(),

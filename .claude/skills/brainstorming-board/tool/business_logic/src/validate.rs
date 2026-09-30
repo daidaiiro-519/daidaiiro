@@ -7,6 +7,8 @@
 //!
 //! 検査は4系統である ── 形（スキーマ）・ 散文 ・ 見出しや表の混入 ・ 参照の解決。
 
+use crate::data_access::files;
+
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -386,7 +388,7 @@ pub fn refs(dir: &Path, d: &Value) -> Vec<String> {
                     if let Some(name) = map.get("name").and_then(|x| x.as_str()) {
                         if !seen.contains(&name.to_owned()) {
                             seen.push(name.to_owned());
-                            if !dir.join("figures").join(format!("{name}.svg")).exists() {
+                            if !files::exists(dir.join("figures").join(format!("{name}.svg"))) {
                                 bad.push(format!("図 figures/{name}.svg が無い"));
                             }
                         }
@@ -430,8 +432,8 @@ pub fn inspect(references: &Path, dir: &Path, d: &Value) -> Vec<String> {
 /// 入力を読めないときに返す。
 pub fn check(references: &Path, dir: &Path) -> Result<Vec<String>, String> {
     let path = dir.join("board.json");
-    let body = std::fs::read_to_string(&path)
-        .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
+    let body =
+        files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     let d: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))?;
     Ok(inspect(references, dir, &d))

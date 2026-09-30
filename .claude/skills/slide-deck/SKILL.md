@@ -303,6 +303,7 @@ slide-deck export <照合の入力>.json <出力のフォルダ> --browser <ブ�
 - `tool/cli/`: **唯一の CLI。** `new` ・ `render` ・ `check` ・ `theme` ・ `review` ・ `export` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
 - `tool/mcp/` ・ `mcp.json`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
+- `tool/data_access/`: データアクセス層。**ファイルとブラウザの起動だけを持つ** ── 業務ロジック層はここを経由して読み書きし、ブラウザを起動する。`files.rs` ・ `process.rs` は skills-creator の雛形の複製
 - `tool/business_logic/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**
 - `tool/business_logic/src/template.rs`: 型を読み、部品を組む。**差し込む場所の過不足を、その場で誤りにする**
 - `tool/business_logic/src/validate.rs`: 形では書けない規則を検査する。**組み立てより前に止まる**

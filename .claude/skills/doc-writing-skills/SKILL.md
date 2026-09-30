@@ -331,6 +331,8 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 - `tool/business_logic/src/checks.rs`: 8つの判定の実体
 - `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**
 - `tool/business_logic/src/tails.rs`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `references/predicates.json` へ追加する
+- `tool/business_logic/src/input.rs`: `reply` ・ `review` が読む入力（フックの入力 ・ 審査の手順と判定基準 ・ 事例）。サービス層は入出力を保持しないので、ここが読み込む
+- `tool/data_access/`: データアクセス層。**ファイルと標準入力の入出力だけを持つ** ── 業務ロジック層はここを経由して読み込む。`files.rs` ・ `process.rs` は skills-creator の雛形の複製、`stdin.rs` はこの Skill に固有である
 - `tool/business_logic/tests/`: 事例（28件）。8つの判定と、単位の割り方を固定してある
 - `references/predicates.json`: **和語の述部と言い換え先の正本**（59件）。出典と、その立場を持つ
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない

@@ -4,6 +4,11 @@
 //! 読みの印の最後は、最後の語が**始まる**時刻である ── 音声の終わりではない。
 //! **長さは音声そのものから測る。**
 
+use std::io;
+use std::path::Path;
+
+use crate::data_access::files;
+
 /// ビット率の表（MPEG1 Layer III）。
 const BITRATE_V1: [u32; 16] = [
     0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0,
@@ -95,4 +100,13 @@ pub fn duration_ms(data: &[u8]) -> u64 {
     {
         ms.round() as u64
     }
+}
+
+/// 音声のファイルを読み、長さをミリ秒で返す。**読むのはデータアクセス層である。**
+///
+/// # Errors
+///
+/// 読めないときに返す。
+pub fn measure(path: &Path) -> io::Result<u64> {
+    files::read(path).map(|data| duration_ms(&data))
 }

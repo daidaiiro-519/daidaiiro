@@ -13,6 +13,8 @@
 //! **受け取るのは SVG のファイルである** ── 以前はモジュールの名前を受け取って読み込んで
 //! いたが、ブレストボードは SVG のファイルを持つので、読み込む相手がもう居ない。
 
+use crate::data_access::files;
+
 use std::path::Path;
 
 /// 文字1つの置き場所。`(縦, 左, 右, 中身)`
@@ -301,7 +303,7 @@ pub fn count(paths: &[String]) -> Result<Vec<Found>, String> {
     let mut out = Vec::new();
     for path in paths {
         let at = Path::new(path);
-        let svg = std::fs::read_to_string(at).map_err(|e| format!("{path}: 読めない ── {e}"))?;
+        let svg = files::read_to_string(at).map_err(|e| format!("{path}: 読めない ── {e}"))?;
         let name = at
             .file_stem()
             .unwrap_or_default()

@@ -8,11 +8,13 @@
 
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::time::Duration;
 
 use serde_json::{json, Value};
 use sha2::{Digest as _, Sha256};
 
+use crate::data_access::files;
+use crate::data_access::process::{self, Failed};
 use crate::mp3;
 
 /// 読みの印の種類。**1つの引数として渡す** ── 分けると、続く引数まで飲み込む。
@@ -60,7 +62,7 @@ pub fn key_of(text: &str, voice: &str, engine: &str) -> String {
 ///
 /// 読めないとき、または形が違うときに返す。
 pub fn load(dir: &Path) -> io::Result<Script> {
-    let body = std::fs::read_to_string(dir.join("narration.json"))?;
+    let body = files::read_to_string(dir.join("narration.json"))?;
     let parsed: Value = serde_json::from_str(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     let text = |key: &str, default: &str| {
@@ -132,7 +134,7 @@ pub fn plan(dir: &Path, script: &Script, voice: &str) -> Vec<Planned> {
                 id: item.id.clone(),
                 key: key.clone(),
                 text: item.text.clone(),
-                cached: dir.join(&audio).exists(),
+                cached: files::exists(dir.join(&audio)),
                 audio: audio.display().to_string(),
                 marks: cache
                     .join(format!("{key}.marks.json"))
@@ -145,18 +147,19 @@ pub fn plan(dir: &Path, script: &Script, voice: &str) -> Vec<Planned> {
 
 /// Amazon Polly を呼ぶ。**コマンドは引数で受け取る**（tool.json の external から、サービス層が渡す）。
 fn polly(aws: &str, args: &[&str], out: &Path) -> io::Result<()> {
-    let mut command = Command::new(aws);
-    command
-        .args(["polly", "synthesize-speech"])
-        .args(args)
-        .arg(out);
-    let done = run_limited(command, TIMEOUT)?;
-    if done.status.success() {
+    let mut with: Vec<String> = ["polly", "synthesize-speech"]
+        .iter()
+        .chain(args)
+        .map(|x| (*x).to_owned())
+        .collect();
+    with.push(out.display().to_string());
+    let done = run_limited(aws, &with, TIMEOUT)?;
+    if done.code == 0 {
         return Ok(());
     }
     Err(io::Error::other(format!(
         "合成できない ── {}",
-        String::from_utf8_lossy(&done.stderr).trim()
+        done.stderr.trim()
     )))
 }
 
@@ -219,12 +222,12 @@ pub struct Made {
 /// 合成に失敗したとき、または書けないときに返す。
 pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Made> {
     let cache = dir.join(&script.cache);
-    std::fs::create_dir_all(&cache)?;
+    files::create_dir_all(&cache)?;
     let mut out = Made::default();
     let mut items = Vec::new();
     for row in plan(dir, script, voice) {
         let dest = cache.join(&row.key);
-        if dest.with_extension("mp3").exists() {
+        if files::exists(dest.with_extension("mp3")) {
             out.taken.push(row.id.clone());
         } else {
             synthesize(
@@ -237,7 +240,7 @@ pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Ma
             )?;
             out.made.push(row.id.clone());
         }
-        let data = std::fs::read(dest.with_extension("mp3")).unwrap_or_default();
+        let data = files::read(dest.with_extension("mp3")).unwrap_or_default();
         let ms = mp3::duration_ms(&data);
         out.durations.push((row.id.clone(), ms));
         items.push(json!({
@@ -248,7 +251,7 @@ pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Ma
     let body = json!({ "voice": voice, "engine": script.engine, "items": items });
     let text = serde_json::to_string_pretty(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-    std::fs::write(dir.join("narration.out.json"), text + "\n")?;
+    files::write(dir.join("narration.out.json"), text + "\n")?;
     Ok(out)
 }
 
@@ -259,65 +262,37 @@ pub fn run(aws: &str, dir: &Path, script: &Script, voice: &str) -> io::Result<Ma
 /// 登録に失敗したときに返す。
 pub fn put_lexicon(aws: &str, path: &Path, name: &str) -> io::Result<()> {
     let content = format!("file://{}", path.display());
-    let mut command = Command::new(aws);
-    command.args([
+    let args: Vec<String> = [
         "polly",
         "put-lexicon",
         "--name",
         name,
         "--content",
         &content,
-    ]);
-    let done = run_limited(command, 60)?;
-    if done.status.success() {
+    ]
+    .iter()
+    .map(|x| (*x).to_owned())
+    .collect();
+    let done = run_limited(aws, &args, 60)?;
+    if done.code == 0 {
         return Ok(());
     }
-    let why: String = String::from_utf8_lossy(&done.stderr)
-        .trim()
-        .chars()
-        .take(300)
-        .collect();
+    let why: String = done.stderr.trim().chars().take(300).collect();
     Err(io::Error::other(why))
 }
 
-/// 外部の道具を、制限時間つきで実行する。**timeout コマンドを使わない** ── macOS の標準に無く、
-/// Windows では別の意味のコマンドである（ACDR 0029）。時間を超えたら子プロセスを終了させる。
+/// 外部の道具を、制限時間つきで実行する。**起動はデータアクセス層の `process::run` が持つ**
+/// ── 標準入力を閉じ、制限時間を過ぎたら子プロセスを終了させる。ここが決めるのは、
+/// 起動の失敗をどの文言で伝えるかだけである。
 ///
 /// # Errors
 ///
 /// 起動できないとき、または制限時間を超えたときに返す。
-fn run_limited(mut command: Command, secs: u64) -> io::Result<std::process::Output> {
-    let mut child = command
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    // **標準エラーは別の糸で読み切る** ── 読まずに待つと、出力が詰まって子が止まる
-    let mut err = child.stderr.take();
-    let reader = std::thread::spawn(move || {
-        let mut buf = Vec::new();
-        if let Some(pipe) = err.as_mut() {
-            let _ = io::Read::read_to_end(pipe, &mut buf);
-        }
-        buf
-    });
-    let start = std::time::Instant::now();
-    let status = loop {
-        if let Some(status) = child.try_wait()? {
-            break status;
-        }
-        if start.elapsed().as_secs() >= secs {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = reader.join();
-            return Err(io::Error::other(format!("{secs}秒で終わらない")));
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    };
-    let stderr = reader.join().unwrap_or_default();
-    Ok(std::process::Output {
-        status,
-        stdout: Vec::new(),
-        stderr,
+fn run_limited(command: &str, args: &[String], secs: u64) -> io::Result<process::Ran> {
+    // **作業場所は呼んだ側と同じにする** ── 経路は呼んだ側の作業場所からの相対で渡る
+    process::run(command, args, ".", Duration::from_secs(secs)).map_err(|e| match e {
+        Failed::Timeout => io::Error::other(format!("{secs}秒で終わらない")),
+        Failed::Spawn(why) | Failed::Pipe(why) => io::Error::other(why),
+        _ => io::Error::other("起動できない"),
     })
 }

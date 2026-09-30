@@ -7,6 +7,8 @@
 //! **動きも、正本のファイルから読む** ── `references/board.js` である。同じ理由で、
 //! 150行の script をこちら側の文字列に持たない。
 
+use crate::data_access::files;
+
 use std::path::Path;
 
 /// 見た目と動き。
@@ -36,8 +38,7 @@ impl Style {
         }
         let read = |name: &str| -> Result<String, String> {
             let path = references.join(name);
-            std::fs::read_to_string(&path)
-                .map_err(|e| format!("{}: 読めない ── {e}", path.display()))
+            files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))
         };
         Ok(Self {
             css: crate::tokens::css(&value, false)? + &read("board.css")?,

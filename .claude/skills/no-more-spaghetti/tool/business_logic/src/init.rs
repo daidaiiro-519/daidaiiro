@@ -10,6 +10,8 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::data_access::files;
+
 use serde_json::{json, Map, Value};
 
 /// 規則ファイルを置くディレクトリ。
@@ -83,7 +85,7 @@ pub fn skeleton(
     target: &str,
     language: &str,
 ) -> io::Result<Value> {
-    let body = std::fs::read_to_string(contract)?;
+    let body = files::read_to_string(contract)?;
     let schema: Value = serde_json::from_str(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     let shape = schema
@@ -161,7 +163,7 @@ pub fn create(
         ));
     }
     let path = root.join(RULES_DIR).join("rules.json");
-    if path.exists() {
+    if files::exists(&path) {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
             format!("既に在る: {} ── 作り直さない", path.display()),
@@ -169,10 +171,10 @@ pub fn create(
     }
     let body = skeleton(contract, layers, target, language)?;
     if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir)?;
+        files::create_dir_all(dir)?;
     }
     let text = serde_json::to_string_pretty(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-    std::fs::write(&path, text + "\n")?;
+    files::write(&path, text + "\n")?;
     Ok(path)
 }

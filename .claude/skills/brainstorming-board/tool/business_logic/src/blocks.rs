@@ -6,6 +6,8 @@
 //! **正規化した SVG を JSON へ格納しない** ── 固定幅を外す処理は自身の出力へ再適用すると
 //! `max-width` が消失し、冪等でなくなる。
 
+use crate::data_access::files;
+
 use std::path::Path;
 
 use serde_json::Value;
@@ -148,8 +150,8 @@ pub fn fit(svg: &str) -> String {
 fn figure(parts: &Parts, b: &Value, figures: &Path) -> Result<String, String> {
     let name = text_of(b, "name");
     let path = figures.join(format!("{name}.svg"));
-    let svg = std::fs::read_to_string(&path)
-        .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
+    let svg =
+        files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     let caption = text_of(b, "caption");
     let note = if caption.is_empty() {
         String::new()

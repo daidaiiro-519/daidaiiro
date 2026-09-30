@@ -9,7 +9,9 @@
 //! `check.target`」である。
 
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use crate::data_access::files;
 
 use serde_json::Value;
 
@@ -136,13 +138,31 @@ fn layer(raw: &Value) -> UnitLayer {
     }
 }
 
+/// 名前を渡された規則ファイルの経路を決める。**その名前でファイルが在れば、それを使う**
+/// ── 無ければ、根からの相対とみなす。
+#[must_use]
+pub fn locate(root: &Path, named: &str) -> PathBuf {
+    let direct = PathBuf::from(named);
+    if files::is_file(&direct) {
+        direct
+    } else {
+        root.join(named)
+    }
+}
+
+/// 場所を解決する。**解決できなければ、渡した形のまま返す。**
+#[must_use]
+pub fn absolute(root: &Path) -> PathBuf {
+    files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf())
+}
+
 /// 規則ファイルから、実行の一覧を取り出す。**1件だけの形も受け取る。**
 ///
 /// # Errors
 ///
 /// 読めないとき、または JSON として解析できないときに返す。
 pub fn load(path: &Path) -> io::Result<Vec<Rule>> {
-    let body = std::fs::read_to_string(path)?;
+    let body = files::read_to_string(path)?;
     let parsed: Value = serde_json::from_str(&body).map_err(|e| {
         io::Error::new(
             io::ErrorKind::InvalidData,

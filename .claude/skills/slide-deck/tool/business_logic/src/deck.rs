@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use crate::data_access::files;
 use crate::template::Parts;
 use crate::{theme, validate};
 
@@ -398,10 +399,31 @@ pub fn build(references: &Path, deck: &Value) -> Result<String, String> {
 ///
 /// 読めないときと、JSON として読めないときに返す。
 pub fn load(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path)
-        .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
+    let body =
+        files::read_to_string(path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))
+}
+
+/// 書き出し先に、既に何かが在るか。**作り直さないための判定に使う。**
+#[must_use]
+pub fn exists(path: &Path) -> bool {
+    files::exists(path)
+}
+
+/// 入力を書き出す。**書き出し先のフォルダが無ければ作る。**
+///
+/// # Errors
+///
+/// フォルダを作れないときと、書けないときに返す。
+pub fn save(path: &Path, body: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            files::create_dir_all(parent)
+                .map_err(|e| format!("{}: 作れない ── {e}", parent.display()))?;
+        }
+    }
+    files::write(path, body).map_err(|e| format!("{}: 書けない ── {e}", path.display()))
 }
 
 /// 組んだ結果。
@@ -427,7 +449,7 @@ pub fn build_deck(
 ) -> Result<Built, String> {
     let body = build(references, &load(source)?)?;
     if check_only {
-        let same = std::fs::read_to_string(out).is_ok_and(|now| now == body);
+        let same = files::read_to_string(out).is_ok_and(|now| now == body);
         return Ok(Built {
             same,
             note: if same { "同一" } else { "差が在る" }.to_owned(),
@@ -435,11 +457,11 @@ pub fn build_deck(
     }
     if let Some(parent) = out.parent() {
         if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
+            files::create_dir_all(parent)
                 .map_err(|e| format!("{}: 作れない ── {e}", parent.display()))?;
         }
     }
-    std::fs::write(out, &body).map_err(|e| format!("{}: 書けない ── {e}", out.display()))?;
+    files::write(out, &body).map_err(|e| format!("{}: 書けない ── {e}", out.display()))?;
     Ok(Built {
         same: true,
         note: format!("{} 字", body.chars().count()),

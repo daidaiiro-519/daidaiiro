@@ -13,6 +13,8 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::data_access::files;
+
 use super::judge::Edge;
 use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator as _};
 
@@ -441,7 +443,9 @@ fn resolve(
                 .chain(bridge.search.iter().filter(|x| x.is_empty()));
             for sr in order {
                 let base = root.join(sr);
-                if base.join(first).is_dir() || base.join(format!("{first}.py")).is_file() {
+                if files::is_dir(base.join(first))
+                    || files::is_file(base.join(format!("{first}.py")))
+                {
                     return if sr.is_empty() {
                         spec.to_owned()
                     } else {
@@ -463,7 +467,7 @@ fn resolve(
                     let exists = |x: &str| {
                         ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]
                             .iter()
-                            .any(|e| root.join(format!("{x}{e}")).exists())
+                            .any(|e| files::exists(root.join(format!("{x}{e}"))))
                     };
                     if exists(&to) {
                         return to;
@@ -485,15 +489,17 @@ fn resolve(
                 "ruby" if how != "require_relative" && !relative => {
                     for lp in &bridge.search {
                         let base = root.join(lp);
-                        if base.join(format!("{spec}.rb")).is_file() || base.join(spec).is_dir() {
+                        if files::is_file(base.join(format!("{spec}.rb")))
+                            || files::is_dir(base.join(spec))
+                        {
                             return format!("{lp}/{spec}");
                         }
                     }
                     // 行き先が無くても、頭のディレクトリが検索パスの下に在れば、そこを指している（生成物か、名前の誤り）
                     let first = spec.split('/').next().unwrap_or(spec);
                     for lp in &bridge.search {
-                        if root.join(lp).join(first).exists()
-                            || root.join(lp).join(format!("{first}.rb")).is_file()
+                        if files::exists(root.join(lp).join(first))
+                            || files::is_file(root.join(lp).join(format!("{first}.rb")))
                         {
                             return format!("{lp}/{spec}");
                         }
@@ -502,7 +508,7 @@ fn resolve(
                 }
                 "cpp" => {
                     let folded = fold(root, rel_file, spec);
-                    if root.join(&folded).exists() {
+                    if files::exists(root.join(&folded)) {
                         return folded;
                     }
                     for inc in &bridge.search {
@@ -511,7 +517,7 @@ fn resolve(
                         } else {
                             format!("{inc}/{spec}")
                         };
-                        if root.join(&cand).exists() {
+                        if files::exists(root.join(&cand)) {
                             return cand;
                         }
                     }
@@ -523,7 +529,7 @@ fn resolve(
                         } else {
                             root.join(inc)
                         };
-                        if spec.contains('/') && base.join(first).is_dir() {
+                        if spec.contains('/') && files::is_dir(base.join(first)) {
                             return if inc.is_empty() {
                                 spec.to_owned()
                             } else {
@@ -591,18 +597,17 @@ const SKIP: [&str; 6] = [
 ];
 
 fn sources(dir: &Path, want: &[&str], out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
+    // **名前の順に並べて返る** ── 並びを OS に任せると、同じ入力から別の結果が出る
+    let Ok(paths) = files::list(dir) else {
         return;
     };
-    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-    paths.sort();
     for p in paths {
         let name = p
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
-        if p.is_dir() {
+        if files::is_dir(&p) {
             if !SKIP.contains(&name.as_str()) && !name.starts_with('.') {
                 sources(&p, want, out);
             }
@@ -688,7 +693,7 @@ impl Extractor for Tree {
         let mut points = Vec::new();
 
         for file in &files {
-            let Ok(body) = std::fs::read_to_string(file) else {
+            let Ok(body) = files::read_to_string(file) else {
                 undecided.push(format!("{} ── 読めない", file.display()));
                 continue;
             };
@@ -786,7 +791,8 @@ impl Extractor for Tree {
                         } else {
                             root.join(format!("{to}.{x}"))
                         };
-                        f.is_file() || root.join(&to).join(format!("index.{x}")).is_file()
+                        files::is_file(&f)
+                            || files::is_file(root.join(&to).join(format!("index.{x}")))
                     })
                 {
                     points.push(to.clone());

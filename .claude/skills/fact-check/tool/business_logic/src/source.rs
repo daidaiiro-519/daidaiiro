@@ -11,11 +11,10 @@
 //! （実測 ── PDF から起こした原文が CR を 11,526 件持っていた）。統一しないと、
 //! 報告する行が読み手の見る行と食い違う。
 
+use crate::data_access::{self, files, http};
+use crate::find::{self, How};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-
-use crate::find::{self, How};
 
 /// 1つの原文で読む上限（バイト）。
 pub const MAX_BYTES: u64 = 4_000_000;
@@ -127,18 +126,16 @@ impl Scan {
 }
 
 fn walk(dir: &Path, base: &Path, out: &mut Vec<(PathBuf, String)>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
+    let Ok(paths) = files::list(dir) else {
         return;
     };
-    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-    paths.sort();
     for p in paths {
         let name = p
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
-        if p.is_dir() {
+        if files::is_dir(&p) {
             if !SKIP.contains(&name.as_str()) {
                 walk(&p, base, out);
             }
@@ -162,14 +159,14 @@ pub fn normalize(text: &str) -> String {
 #[must_use]
 pub fn read_docs(path: &Path, max_bytes: u64) -> (Vec<Doc>, Vec<(String, String)>) {
     let mut files = Vec::new();
-    if path.is_file() {
+    if files::is_file(path) {
         let name = path
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
         files.push((path.to_path_buf(), name));
-    } else if path.is_dir() {
+    } else if files::is_dir(path) {
         walk(path, path, &mut files);
     } else {
         return (
@@ -180,15 +177,15 @@ pub fn read_docs(path: &Path, max_bytes: u64) -> (Vec<Doc>, Vec<(String, String)
     let mut docs = Vec::new();
     let mut bad = Vec::new();
     for (file, name) in files {
-        let Ok(meta) = std::fs::metadata(&file) else {
+        let Ok(size) = files::size(&file) else {
             bad.push((name, "開けない".to_owned()));
             continue;
         };
-        if meta.len() > max_bytes {
-            bad.push((name, format!("大きすぎる（{} バイト）", meta.len())));
+        if size > max_bytes {
+            bad.push((name, format!("大きすぎる（{size} バイト）")));
             continue;
         }
-        match std::fs::read(&file) {
+        match files::read(&file) {
             Ok(raw) => match String::from_utf8(raw) {
                 Ok(text) => docs.push(Doc::new(name, normalize(&text))),
                 Err(_) => bad.push((name, "文字として読めない".to_owned())),
@@ -318,6 +315,16 @@ fn now() -> String {
         .to_string()
 }
 
+/// 起動の失敗を、呼ぶ側へ見せる文言にする。**起動できないときは、OS が返した理由をそのまま見せる。**
+fn failed(why: &data_access::process::Failed) -> String {
+    use data_access::process::Failed;
+    match why {
+        Failed::Spawn(e) | Failed::Pipe(e) => e.clone(),
+        Failed::Timeout => "取得が制限時間を過ぎたので止めた".to_owned(),
+        _ => format!("{why:?}"),
+    }
+}
+
 /// 原文を取得する。**まず `<出どころ>.md` を試し、無ければ本体を取る。**
 ///
 /// 取得は curl で行う ── 利用者の環境のプロキシと証明書の設定をそのまま使うためである。
@@ -327,7 +334,7 @@ fn now() -> String {
 ///
 /// 取得できなかったとき、試した先を添えて返す。
 pub fn fetch(curl: &str, url: &str, outdir: &Path) -> io::Result<Fetched> {
-    std::fs::create_dir_all(outdir)?;
+    files::create_dir_all(outdir)?;
     let plain = url.ends_with(".md") || url.ends_with(".txt") || url.ends_with(".json");
     let candidates: Vec<String> = if plain {
         vec![url.to_owned()]
@@ -337,20 +344,12 @@ pub fn fetch(curl: &str, url: &str, outdir: &Path) -> io::Result<Fetched> {
     let mut tried = Vec::new();
     for cand in candidates {
         let path = outdir.join(slug(&cand));
-        let done = Command::new(curl)
-            .args(["-sSL", "-m", "60", "-A", "Mozilla/5.0", &cand, "-o"])
-            .arg(&path)
-            .args(["-w", "%{http_code} %{content_type}"])
-            .stdin(Stdio::null())
-            .output()?;
-        let out = String::from_utf8_lossy(&done.stdout).into_owned();
-        let mut parts = out.splitn(2, ' ');
-        let code: u32 = parts.next().unwrap_or("0").trim().parse().unwrap_or(0);
-        let ctype = parts.next().unwrap_or("").trim().to_owned();
-        let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        let got = http::download(curl, &cand, &path).map_err(|e| io::Error::other(failed(&e)))?;
+        let (code, ctype) = (got.code, got.content_type);
+        let size = files::size(&path).unwrap_or(0);
         tried.push(format!("  {code}  {size:>9}  {ctype:32}{cand}"));
         if acceptable(code, size) {
-            let body = std::fs::read(&path)?;
+            let body = files::read(&path)?;
             return Ok(Fetched {
                 sha256: sha256_of(&body),
                 bytes: body.len() as u64,
@@ -362,7 +361,7 @@ pub fn fetch(curl: &str, url: &str, outdir: &Path) -> io::Result<Fetched> {
                 content_type: ctype,
             });
         }
-        let _ = std::fs::remove_file(&path); // 受け取らなかったものを残さない
+        let _ = files::remove_file(&path); // 受け取らなかったものを残さない
     }
     Err(io::Error::other(format!(
         "取得できなかった。試したもの:\n{}",
@@ -390,24 +389,22 @@ pub fn write_meta(got: &Fetched) -> io::Result<PathBuf> {
     });
     let text = serde_json::to_string_pretty(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-    std::fs::write(&meta, text.replace("  ", " ") + "\n")?;
+    files::write(&meta, text.replace("  ", " ") + "\n")?;
     Ok(meta)
 }
 
 /// 取得したものを並べる。**印字はしない。**
 #[must_use]
 pub fn listing(outdir: &Path) -> Vec<(String, usize, String)> {
-    let Ok(entries) = std::fs::read_dir(outdir) else {
+    let Ok(names) = files::list(outdir) else {
         return Vec::new();
     };
-    let mut names: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-    names.sort();
     let mut rows = Vec::new();
     for p in names {
         if !p.to_string_lossy().ends_with(".meta.json") {
             continue;
         }
-        let Ok(body) = std::fs::read_to_string(&p) else {
+        let Ok(body) = files::read_to_string(&p) else {
             continue;
         };
         let Ok(meta) = serde_json::from_str::<serde_json::Value>(&body) else {
@@ -429,4 +426,37 @@ pub fn listing(outdir: &Path) -> Vec<(String, usize, String)> {
         ));
     }
     rows
+}
+
+/// 置き場所がフォルダとして在るか。
+#[must_use]
+pub fn is_place(dir: &Path) -> bool {
+    files::is_dir(dir)
+}
+
+/// 照合するものを一覧のファイルから読む。**空の行を捨てる。** 読めなければ空を返す。
+#[must_use]
+pub fn needles_in(from: &str) -> Vec<String> {
+    files::read_to_string(from).map_or_else(
+        |_| Vec::new(),
+        |body| {
+            body.lines()
+                .map(str::trim)
+                .filter(|x| !x.is_empty())
+                .map(str::to_owned)
+                .collect()
+        },
+    )
+}
+
+/// 原文の横に置いた取得の記録（`<名前>.meta.json`）の中身。**無ければ None を返す。**
+#[must_use]
+pub fn meta_text(path: &Path) -> Option<String> {
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned();
+    let meta = path.with_file_name(format!("{name}.meta.json"));
+    files::read_to_string(meta).ok()
 }

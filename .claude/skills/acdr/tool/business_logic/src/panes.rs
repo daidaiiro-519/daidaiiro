@@ -15,12 +15,13 @@
 //! **HTML の形は、ここが持たない** ── `references/acdr.template.html` が持つ。
 
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::time::Duration;
 
 use regex::Regex;
 use serde_json::Value;
 
 use crate::code;
+use crate::data_access;
 use crate::markdown::{self, esc};
 use crate::style::Style;
 use crate::template::Parts;
@@ -167,6 +168,10 @@ fn index(parts: &Parts, marks: &[Value]) -> Result<String, String> {
     )
 }
 
+/// git の起動を待つ上限。**過ぎたら止めて、取得できなかったものとして扱う**
+/// ── 呼ぶ側は全文を置く（契約の「子プロセスを起こすときの規律」）。
+const GIT_LIMIT: Duration = Duration::from_secs(60);
+
 /// 変更前の中身を取得する。**記録へ複製しない** ── git から取る。
 ///
 /// 記録が `before` を渡していればそれを使う。無ければ `rev`（既定は `HEAD`）の版から取る。
@@ -180,8 +185,11 @@ pub fn before_of(doc: &Value, git: &str) -> Option<String> {
         return Some(given.to_owned()); // 直に渡された場合はそれを使う
     }
     let rev = doc.get("rev").and_then(|x| x.as_str()).unwrap_or("HEAD");
-    let path = std::fs::canonicalize(text_of(doc, "file")).ok()?;
-    let root = path.ancestors().skip(1).find(|d| d.join(".git").exists())?;
+    let path = data_access::files::canonicalize(text_of(doc, "file")).ok()?;
+    let root = path
+        .ancestors()
+        .skip(1)
+        .find(|d| data_access::files::exists(d.join(".git")))?;
     let rel = path.strip_prefix(root).ok()?;
     // 版の中の経路は、OS を問わず / で区切る
     let rel = rel
@@ -189,18 +197,17 @@ pub fn before_of(doc: &Value, git: &str) -> Option<String> {
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
         .collect::<Vec<_>>()
         .join("/");
-    let done = Command::new(git)
-        .arg("-C")
-        .arg(root)
-        .arg("show")
-        .arg(format!("{rev}:{rel}"))
-        .stdin(Stdio::null())
-        .output()
-        .ok()?;
-    if !done.status.success() {
+    let args = vec![
+        "-C".to_owned(),
+        root.to_string_lossy().into_owned(),
+        "show".to_owned(),
+        format!("{rev}:{rel}"),
+    ];
+    let done = data_access::process::run(git, &args, root, GIT_LIMIT).ok()?;
+    if done.code != 0 {
         return None;
     }
-    String::from_utf8(done.stdout).ok()
+    Some(done.stdout)
 }
 
 /// 面1つを組む。
@@ -208,7 +215,8 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
     let parts = shop.parts;
     let file = text_of(doc, "file");
     let path = Path::new(&file);
-    let src = std::fs::read_to_string(path).map_err(|e| format!("{file}: 読めない ── {e}"))?;
+    let src =
+        data_access::files::read_to_string(path).map_err(|e| format!("{file}: 読めない ── {e}"))?;
     let marks = array_of(doc, "marks");
     let ext = code::ext_of(path);
     let key = text_of(doc, "key");

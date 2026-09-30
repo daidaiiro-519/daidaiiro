@@ -8,7 +8,7 @@
 ## 使う
 
 ```
-cd rs && cargo build --release
+cargo install --path tool/cli --root . --target-dir tool/target
 bin/design-svg figure 宣言.json --out 図.svg
 ```
 
@@ -48,17 +48,17 @@ bin/design-svg catalog   # 目録をJSONで出す
 層状・環状・放射の木・格子の4つが同じ契約を返し、宣言の `layout` で差し替える。
 層状は Graphviz の `dot` と同じ系統（網状単体法で辺の長さの総和を最小化し、
 等調回帰で層の中を詰める）。同じ図を `dot` にも解かせて突き合わせる計測の道具を
-`tool/parts/examples/bench_layout.rs` に持つ。
+`tool/business_logic/examples/bench_layout.rs` に持つ。
 
 ## 開発
 
 ```
-cd rs
+cd tool
 cargo test                                          # 試験（移す前の出力を固定した事例を含む）
 cargo clippy --all-targets -- -Dwarnings            # 静的検査
-cargo run -q -p ds_parts --example bench_layout     # 本家との突き合わせ
+cargo run -q -p ds_business_logic --example bench_layout     # 本家との突き合わせ
 ```
 
 規律は3条 ── 下から上を呼ばない／層ごとに型が変わり前の層を飛ばせない／
 契約は中立が所有し実装が所有しない。詳しくは design-svg Skill の
-`references/knowledge/svg-engine-discipline.md` を読む。層の規約は `tool/parts/tests/contracts.rs` が検査する。
+`references/knowledge/svg-engine-discipline.md` を読む。層の規約は `tool/business_logic/tests/contracts.rs` が検査する。

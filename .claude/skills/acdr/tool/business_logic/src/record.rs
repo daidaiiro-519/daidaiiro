@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use crate::data_access;
 use crate::markdown::esc;
 use crate::panes::{self, Shop};
 use crate::refs;
@@ -40,6 +41,15 @@ fn array_of<'a>(value: &'a Value, key: &str) -> &'a [Value] {
         .map_or(&[], |x| x.as_slice())
 }
 
+/// 記録のフォルダを、絶対の経路へ解く。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// フォルダが無いときに返す。
+pub fn resolve(record: &str) -> Result<PathBuf, String> {
+    data_access::files::canonicalize(record).map_err(|e| format!("{record}: 開けない ── {e}"))
+}
+
 /// リポジトリの根を探す。
 ///
 /// **パスを実行場所に依存させない** ── 依存させると、どこから呼んだかで結果が変わり、
@@ -48,7 +58,7 @@ fn array_of<'a>(value: &'a Value, key: &str) -> &'a [Value] {
 pub fn repo_root(start: &Path) -> PathBuf {
     start
         .ancestors()
-        .find(|d| d.join(ROOT_MARK).exists())
+        .find(|d| data_access::files::exists(d.join(ROOT_MARK)))
         .unwrap_or(start)
         .to_path_buf()
 }
@@ -163,7 +173,7 @@ pub fn check(out: &str, spec: &Value, made: &panes::Made) -> Vec<(String, bool)>
 /// 読めないときと、入力の検査が通らないときに返す。
 pub fn load(references: &Path, folder: &Path) -> Result<(Value, String), String> {
     let path = folder.join("acdr.json");
-    let body = std::fs::read_to_string(&path)
+    let body = data_access::files::read_to_string(&path)
         .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     let mut spec: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))?;
@@ -188,7 +198,7 @@ pub fn load(references: &Path, folder: &Path) -> Result<(Value, String), String>
         None => String::new(),
         Some(name) => {
             let at = folder.join(name);
-            std::fs::read_to_string(&at)
+            data_access::files::read_to_string(&at)
                 .map_err(|e| format!("{}: 読めない ── {e}", at.display()))?
         }
     };
@@ -223,7 +233,8 @@ pub fn seal(spec: &Value) -> Result<Vec<(String, String)>, String> {
     let mut out = Vec::new();
     for doc in array_of(spec, "docs") {
         let file = text_of(doc, "file");
-        let raw = std::fs::read(&file).map_err(|e| format!("{file}: 読めない ── {e}"))?;
+        let raw =
+            data_access::files::read(&file).map_err(|e| format!("{file}: 読めない ── {e}"))?;
         out.push((text_of(doc, "key"), sha256_of(&raw)));
     }
     Ok(out)
@@ -246,7 +257,9 @@ pub fn drifted(folder: &Path, raw: &Value) -> Vec<String> {
     let mut moved = Vec::new();
     for doc in array_of(raw, "docs") {
         let path = root.join(text_of(doc, "file"));
-        let now = std::fs::read(&path).ok().map(|body| sha256_of(&body));
+        let now = data_access::files::read(&path)
+            .ok()
+            .map(|body| sha256_of(&body));
         let key = text_of(doc, "key");
         let was = sealed.get(&key).and_then(|x| x.as_str());
         if was != now.as_deref() {
@@ -280,7 +293,7 @@ pub fn build_record(
 ) -> Result<Report, String> {
     let dest = folder.join("index.html");
     let path = folder.join("acdr.json");
-    let body = std::fs::read_to_string(&path)
+    let body = data_access::files::read_to_string(&path)
         .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     let mut raw: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))?;
@@ -318,7 +331,7 @@ pub fn build_record(
     let parts = Parts::load(&references.join("acdr.template.html"))?;
     let style = Style::load(references)?;
     let schema: Value = serde_json::from_str(
-        &std::fs::read_to_string(references.join("acdr.schema.json"))
+        &data_access::files::read_to_string(references.join("acdr.schema.json"))
             .map_err(|e| format!("acdr.schema.json を読めない ── {e}"))?,
     )
     .map_err(|e| format!("acdr.schema.json が JSON でない ── {e}"))?;
@@ -335,7 +348,7 @@ pub fn build_record(
     }
 
     if check_only {
-        let same = std::fs::read_to_string(&dest).is_ok_and(|now| now == made.page);
+        let same = data_access::files::read_to_string(&dest).is_ok_and(|now| now == made.page);
         lines.push(format!(
             "  {}  {}",
             if same { "同一" } else { "差が在る" },
@@ -347,7 +360,7 @@ pub fn build_record(
         });
     }
 
-    std::fs::write(&dest, &made.page)
+    data_access::files::write(&dest, &made.page)
         .map_err(|e| format!("{}: 書けない ── {e}", dest.display()))?;
     if text_of(&raw, "status") == "accepted" && !sealed {
         let taken = seal(&spec)?;
@@ -358,7 +371,7 @@ pub fn build_record(
             }
             map.insert("seal".to_owned(), Value::Object(into));
         }
-        std::fs::write(&path, flat_json(&raw) + "\n")
+        data_access::files::write(&path, flat_json(&raw) + "\n")
             .map_err(|e| format!("{}: 書けない ── {e}", path.display()))?;
         lines.push("  封印した  対象の文書の sha256 を記録へ保存した".to_owned());
     }
@@ -398,11 +411,11 @@ fn today() -> String {
 ///
 /// 既に在るときと、雛形を読めないときと、書けないときに返す。
 pub fn new(references: &Path, folder: &Path, title: &str) -> Result<Vec<String>, String> {
-    if folder.exists() {
+    if data_access::files::exists(folder) {
         return Err(format!("既に在る: {}", folder.display()));
     }
     let template = references.join("spec-template.json");
-    let body = std::fs::read_to_string(&template)
+    let body = data_access::files::read_to_string(&template)
         .map_err(|e| format!("{}: 読めない ── {e}", template.display()))?;
     let mut spec: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", template.display()))?;
@@ -417,10 +430,10 @@ pub fn new(references: &Path, folder: &Path, title: &str) -> Result<Vec<String>,
         map.insert("no".to_owned(), Value::String(format!("ACDR {no}")));
         map.insert("date".to_owned(), Value::String(today()));
     }
-    std::fs::create_dir_all(folder)
+    data_access::files::create_dir_all(folder)
         .map_err(|e| format!("{}: 作れない ── {e}", folder.display()))?;
     let path = folder.join("acdr.json");
-    std::fs::write(&path, flat_json(&spec) + "\n")
+    data_access::files::write(&path, flat_json(&spec) + "\n")
         .map_err(|e| format!("{}: 書けない ── {e}", path.display()))?;
     Ok(vec![
         format!("作った: {}", path.display()),

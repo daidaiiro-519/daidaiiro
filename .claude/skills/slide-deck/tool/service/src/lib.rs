@@ -115,8 +115,8 @@ fn run_theme(given: &Given) -> Outcome {
     let tokens = Value::Object(tokens);
     let out = given.one("out", "");
     if !out.is_empty() {
-        if let Err(e) = std::fs::write(out, flat_json(&tokens) + "\n") {
-            return Outcome::misuse(format!("{out}: 書けない ── {e}"));
+        if let Err(why) = colors::save(Path::new(out), &(flat_json(&tokens) + "\n")) {
+            return Outcome::misuse(why);
         }
     }
     Outcome::found(
@@ -158,7 +158,7 @@ fn run_new(given: &Given) -> Outcome {
         return Outcome::misuse("書き出し先を渡していない".to_owned());
     }
     let path = Path::new(out);
-    if path.exists() {
+    if build::exists(path) {
         return Outcome::found(
             vec![format!("既に在る: {out} ── 作り直さない")],
             json!({ "out": out }),
@@ -175,15 +175,8 @@ fn run_new(given: &Given) -> Outcome {
         map.insert("title".to_owned(), Value::String(title.to_owned()));
         map.insert("theme".to_owned(), Value::String(theme.to_owned()));
     }
-    if let Some(parent) = path.parent() {
-        if !parent.as_os_str().is_empty() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                return Outcome::misuse(format!("{}: 作れない ── {e}", parent.display()));
-            }
-        }
-    }
-    if let Err(e) = std::fs::write(path, flat_json(&deck) + "\n") {
-        return Outcome::misuse(format!("{out}: 書けない ── {e}"));
+    if let Err(why) = build::save(path, &(flat_json(&deck) + "\n")) {
+        return Outcome::misuse(why);
     }
     Outcome::found(Vec::new(), json!({ "out": out, "theme": theme }))
 }

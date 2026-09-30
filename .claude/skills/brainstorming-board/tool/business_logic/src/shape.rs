@@ -3,6 +3,8 @@
 //!
 //! **並びは経路の順である** ── 検出の順が実行ごとに変わると、差分が毎回出る。
 
+use crate::data_access::files;
+
 use std::path::Path;
 
 use serde_json::Value;
@@ -10,7 +12,7 @@ use serde_json::Value;
 /// 契約を当て、食い違いを並べる。
 #[must_use]
 pub fn against(schema_path: &Path, instance: &Value, head: &str) -> Vec<String> {
-    let Ok(body) = std::fs::read_to_string(schema_path) else {
+    let Ok(body) = files::read_to_string(schema_path) else {
         return vec![format!(
             "{head}: 契約を読めない ── {}",
             schema_path.display()

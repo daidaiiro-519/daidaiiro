@@ -7,6 +7,8 @@
 //! **層を跨いだ参照を、形の層で弾く。** 意味の層は基礎のキーだけを参照し、部品の層は
 //! 意味か基礎のキーだけを参照する。散文の規定では破れる。
 
+use crate::data_access::files;
+
 use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
@@ -98,8 +100,8 @@ pub fn schema_path(references: &Path) -> PathBuf {
 ///
 /// 読めないときと、JSON として読めないときに返す。
 pub fn load(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path)
-        .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
+    let body =
+        files::read_to_string(path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))
 }

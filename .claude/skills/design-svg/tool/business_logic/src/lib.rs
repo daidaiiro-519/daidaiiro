@@ -8,11 +8,16 @@
 //! 囲みという、どんなグラフ図にも共通する一般名詞で、そのデータが何を意味するかは知らない。
 //!
 //! サービス層とプレゼンテーション層を参照しない ── 依存の向きは `Cargo.toml` が宣言する。
+//! **入出力を直接扱わない** ── ファイルの読み書きは、公開しない別名 `data_access` を通す（ACDR 0058）。
+
+// **別名を公開しない** ── 公開すると、上の層がこの crate を経由してデータアクセス層へ届く
+use ds_data_access as data_access;
 
 pub mod boolean;
 pub mod canvas;
 pub mod catalog;
 pub mod compose;
+pub mod files;
 pub mod geometry;
 pub mod grid;
 pub mod ids;

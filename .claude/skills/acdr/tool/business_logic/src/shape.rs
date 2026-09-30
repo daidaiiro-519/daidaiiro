@@ -7,10 +7,12 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use crate::data_access;
+
 /// 契約を当て、食い違いを並べる。
 #[must_use]
 pub fn against(schema_path: &Path, instance: &Value, head: &str) -> Vec<String> {
-    let Ok(body) = std::fs::read_to_string(schema_path) else {
+    let Ok(body) = data_access::files::read_to_string(schema_path) else {
         return vec![format!(
             "{head}: 契約を読めない ── {}",
             schema_path.display()

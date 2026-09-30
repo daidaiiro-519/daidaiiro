@@ -10,6 +10,8 @@
 //! **節の構造は、生成の時点で確定させる。** 閲覧する側の script で組み直すと、保存した
 //! HTML の中に構造が存在しない。
 
+use crate::data_access::{files, host, tree};
+
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -56,12 +58,12 @@ fn array_of<'a>(value: &'a Value, key: &str) -> &'a [Value] {
 /// どちらにも `board.json` が無いときに返す。
 pub fn board_dir(board: &str) -> Result<PathBuf, String> {
     let given = PathBuf::from(board);
-    if given.join("board.json").exists() {
-        return std::fs::canonicalize(&given).map_err(|e| format!("{board}: 開けない ── {e}"));
+    if files::exists(given.join("board.json")) {
+        return files::canonicalize(&given).map_err(|e| format!("{board}: 開けない ── {e}"));
     }
     let alt = PathBuf::from(BOARDS).join(board);
-    if alt.join("board.json").exists() {
-        return std::fs::canonicalize(&alt).map_err(|e| format!("{board}: 開けない ── {e}"));
+    if files::exists(alt.join("board.json")) {
+        return files::canonicalize(&alt).map_err(|e| format!("{board}: 開けない ── {e}"));
     }
     Err(format!(
         "board.json が無い: {board} ── {} にも {} にも見つからない",
@@ -77,8 +79,8 @@ pub fn board_dir(board: &str) -> Result<PathBuf, String> {
 /// 読めないときと、JSON として読めないときに返す。
 pub fn load(dir: &Path) -> Result<Value, String> {
     let path = dir.join("board.json");
-    let body = std::fs::read_to_string(&path)
-        .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
+    let body =
+        files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))
 }
@@ -133,8 +135,8 @@ pub fn render(references: &Path, dir: &Path, verify: bool) -> Result<deck::Made,
     let mut prev = None;
     if round > 0 {
         let before = dir.join("rounds").join(format!("{}.json", round - 1));
-        if before.exists() {
-            let body = std::fs::read_to_string(&before)
+        if files::exists(&before) {
+            let body = files::read_to_string(&before)
                 .map_err(|e| format!("{}: 読めない ── {e}", before.display()))?;
             let value: Value = serde_json::from_str(&body)
                 .map_err(|e| format!("{}: JSON として読めない ── {e}", before.display()))?;
@@ -192,7 +194,7 @@ pub fn write(references: &Path, dir: &Path, body: &str) -> Result<usize, String>
     let style = Style::load(references)?;
     let page = deck::page(&parts, &text_of(&d, "title"), &style.css, body)?;
     let path = dir.join("board.html");
-    std::fs::write(&path, &page).map_err(|e| format!("{}: 書けない ── {e}", path.display()))?;
+    files::write(&path, &page).map_err(|e| format!("{}: 書けない ── {e}", path.display()))?;
     Ok(body.len())
 }
 
@@ -210,12 +212,12 @@ pub fn freeze(references: &Path, dir: &Path) -> Result<String, String> {
     let round = d.get("round").and_then(Value::as_u64).unwrap_or(1) as usize;
     let out = dir.join("rounds").join(format!("{round}.json"));
     if let Some(parent) = out.parent() {
-        std::fs::create_dir_all(parent)
+        files::create_dir_all(parent)
             .map_err(|e| format!("{}: 作れない ── {e}", parent.display()))?;
     }
     let body = serde_json::json!({ "round": round, "snap": snapshot(&topics) });
     // **末尾に改行を足さない** ── 機械が読む記録であり、移す前と1バイトも変えない
-    std::fs::write(&out, flat_json(&body))
+    files::write(&out, flat_json(&body))
         .map_err(|e| format!("{}: 書けない ── {e}", out.display()))?;
     Ok(format!(
         "基準を保存: {} ── 次は board.json の「回」を {} へ進める",
@@ -259,13 +261,11 @@ fn sha256_of(data: &[u8]) -> String {
 /// 入力のファイルの姿を集める。**生成物は入力ではない。**
 fn inputs(dir: &Path) -> Vec<(PathBuf, String)> {
     fn walk(at: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(at) else {
+        let Ok(paths) = files::list(at) else {
             return;
         };
-        let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-        paths.sort();
         for p in paths {
-            if p.is_dir() {
+            if files::is_dir(&p) {
                 walk(&p, out);
             } else if p.file_name().is_some_and(|n| n != "board.html") {
                 out.push(p);
@@ -277,7 +277,7 @@ fn inputs(dir: &Path) -> Vec<(PathBuf, String)> {
     paths
         .into_iter()
         .map(|p| {
-            let digest = std::fs::read(&p).map(|b| sha256_of(&b)).unwrap_or_default();
+            let digest = files::read(&p).map(|b| sha256_of(&b)).unwrap_or_default();
             (p, digest)
         })
         .collect()
@@ -348,53 +348,21 @@ fn read_only_run(references: &Path, dir: &Path) -> Result<(), String> {
         .unwrap_or_default()
         .to_string_lossy()
         .into_owned();
-    let many = std::env::temp_dir()
+    let many = files::temp_dir()
         .join("bb-readonly")
-        .join(format!("{}-{name}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&many);
-    copy_tree(dir, &many).map_err(|e| format!("複製を作れない ── {e}"))?;
-    let _ = std::fs::remove_file(many.join("board.html"));
-    set_read_only(&many, true).map_err(|e| format!("読み取り専用にできない ── {e}"))?;
+        .join(format!("{}-{name}", host::pid()));
+    let _ = tree::remove_dir_all(&many);
+    tree::copy_tree(dir, &many).map_err(|e| format!("複製を作れない ── {e}"))?;
+    let _ = files::remove_file(many.join("board.html"));
+    tree::set_read_only(&many, true).map_err(|e| format!("読み取り専用にできない ── {e}"))?;
     let got = render(references, &many, true);
     // 消せるように、書ける状態へ戻す
-    let _ = set_read_only(&many, false);
-    let _ = std::fs::remove_dir_all(&many);
+    let _ = tree::set_read_only(&many, false);
+    let _ = tree::remove_dir_all(&many);
     got.map(|_| ()).map_err(|why| {
         format!(
             "読み取り専用の複製で異常終了した: {}",
             why.lines().last().unwrap_or("(出力無し)")
         )
     })
-}
-
-/// 木ごと写す。
-fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(to)?;
-    for entry in std::fs::read_dir(from)? {
-        let entry = entry?;
-        let at = entry.path();
-        let into = to.join(entry.file_name());
-        if at.is_dir() {
-            copy_tree(&at, &into)?;
-        } else {
-            std::fs::copy(&at, &into)?;
-        }
-    }
-    Ok(())
-}
-
-/// ファイルを読み取り専用にする（戻すこともできる）。
-fn set_read_only(at: &Path, on: bool) -> std::io::Result<()> {
-    for entry in std::fs::read_dir(at)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            set_read_only(&path, on)?;
-            continue;
-        }
-        let mut perm = std::fs::metadata(&path)?.permissions();
-        perm.set_readonly(on);
-        std::fs::set_permissions(&path, perm)?;
-    }
-    Ok(())
 }

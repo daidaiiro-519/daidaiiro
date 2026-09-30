@@ -19,6 +19,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use crate::data_access::files;
+
 /// 別名1件。**参照の名前の頭を、置き場所の名前の頭へ置き換える。**
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Alias {
@@ -57,18 +59,17 @@ const SKIP: [&str; 7] = [
 
 /// 名前が条件に合うファイルを、根の下から集める。
 fn find(dir: &Path, want: &dyn Fn(&str) -> bool, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
+    // **名前の順に並べて返る** ── 並びを OS に任せると、同じ入力から別の結果が出る
+    let Ok(paths) = files::list(dir) else {
         return;
     };
-    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-    paths.sort();
     for p in paths {
         let file = p
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
             .into_owned();
-        if p.is_dir() {
+        if files::is_dir(&p) {
             if !SKIP.contains(&file.as_str()) && !file.starts_with('.') {
                 find(&p, want, out);
             }
@@ -163,12 +164,12 @@ fn jsonc(body: &str) -> String {
 }
 
 fn read_jsonc(p: &Path) -> Result<serde_json::Value, String> {
-    let body = std::fs::read_to_string(p).map_err(|e| e.to_string())?;
+    let body = files::read_to_string(p).map_err(|e| e.to_string())?;
     serde_json::from_str(&jsonc(&body)).map_err(|e| e.to_string())
 }
 
 fn read_toml(p: &Path) -> Result<toml::Value, String> {
-    let body = std::fs::read_to_string(p).map_err(|e| e.to_string())?;
+    let body = files::read_to_string(p).map_err(|e| e.to_string())?;
     body.parse::<toml::Value>().map_err(|e| e.to_string())
 }
 
@@ -239,7 +240,7 @@ pub fn go(root: &Path, b: &mut Bridge) {
     let mut found = Vec::new();
     find(root, &|f| f == "go.mod", &mut found);
     for f in found {
-        let Ok(body) = std::fs::read_to_string(&f) else {
+        let Ok(body) = files::read_to_string(&f) else {
             b.unreadable.push((
                 rel(root, f.parent().unwrap_or(root)),
                 format!("{} ── 読めない", rel(root, &f)),
@@ -358,7 +359,7 @@ pub fn typescript(root: &Path, b: &mut Bridge) {
                 }
             }
         }
-        if src.is_none() && pkg.join("src").is_dir() {
+        if src.is_none() && files::is_dir(pkg.join("src")) {
             src = Some(rel(root, &pkg.join("src")));
         }
         if let Some(s) = src {
@@ -470,7 +471,7 @@ pub fn python(root: &Path, b: &mut Bridge) {
         }
         b.sources.push(rel(root, f));
     }
-    if b.search.is_empty() && root.join("src").is_dir() {
+    if b.search.is_empty() && files::is_dir(root.join("src")) {
         b.search.push("src".to_owned());
         b.sources.push("src（既定の source root）".to_owned());
     }
@@ -483,7 +484,7 @@ pub fn ruby(root: &Path, b: &mut Bridge) {
     let mut found = Vec::new();
     find(root, &|f| f.ends_with(".gemspec"), &mut found);
     for f in &found {
-        let Ok(body) = std::fs::read_to_string(f) else {
+        let Ok(body) = files::read_to_string(f) else {
             b.unreadable.push((
                 rel(root, f.parent().unwrap_or(root)),
                 format!("{} ── 読めない", rel(root, f)),
@@ -498,12 +499,12 @@ pub fn ruby(root: &Path, b: &mut Bridge) {
                 got = true;
             }
         }
-        if !got && dir.join("lib").is_dir() {
+        if !got && files::is_dir(dir.join("lib")) {
             b.search.push(rel(root, &dir.join("lib")));
         }
         b.sources.push(rel(root, f));
     }
-    if found.is_empty() && root.join("lib").is_dir() {
+    if found.is_empty() && files::is_dir(root.join("lib")) {
         b.search.push("lib".to_owned());
         b.sources.push("lib（既定の load path）".to_owned());
     }
@@ -560,7 +561,7 @@ pub fn cpp(root: &Path, b: &mut Bridge) {
     let mut found = Vec::new();
     find(root, &|f| f == "CMakeLists.txt", &mut found);
     for f in &found {
-        let Ok(body) = std::fs::read_to_string(f) else {
+        let Ok(body) = files::read_to_string(f) else {
             b.unreadable.push((
                 rel(root, f.parent().unwrap_or(root)),
                 format!("{} ── 読めない", rel(root, f)),
@@ -628,7 +629,7 @@ pub fn cpp(root: &Path, b: &mut Bridge) {
         b.sources.push(rel(root, f));
     }
     let cc = root.join("compile_commands.json");
-    if cc.is_file() {
+    if files::is_file(&cc) {
         if let Ok(v) = read_jsonc(&cc) {
             for e in v.as_array().into_iter().flatten() {
                 let cmd = e["command"].as_str().unwrap_or("");

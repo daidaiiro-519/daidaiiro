@@ -10,7 +10,8 @@
 **宣言を JSON のファイルで受け取る** ── 呼ぶ側は台本を書かず、宣言だけで同じ図を組み直せる。
 
 ```
-cd rs && cargo build --release      # bin/design-svg ができる
+cargo install --path tool/cli --root . --target-dir tool/target   # bin/design-svg ができる
+cargo install --path tool/mcp --root . --target-dir tool/target   # bin/design-svg-mcp ができる
 ```
 
 以下の `design-svg` は、この実行ファイルを指す。
@@ -278,7 +279,8 @@ fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
 - `tool/cli/`: **唯一の CLI** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `tool/service/`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` は読み込まれるものであり、呼び出し方を保持しない
 - `tool/mcp/` ・ `mcp.json`: MCP サーバー `design-svg-mcp`。宣言から道具を組む
-- `tool/business_logic/`: 描画エンジン（業務ロジック層）。依存の向きは各 `Cargo.toml` が宣言する
+- `tool/business_logic/`: 描画エンジン（業務ロジック層）。**入出力を直接扱わない**。依存の向きは各 `Cargo.toml` が宣言する
+- `tool/data_access/`: データアクセス層。ファイルの入出力だけを持ち、同じ workspace の crate を参照しない（`files.rs` ・ `process.rs` は skills-creator の雛形の複製）
 - `references/theme.json`: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名
-- `tool/business_logic/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd rs && cargo test`
-- `tool/business_logic/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd rs && cargo run -q -p ds_parts --example bench_layout`
+- `tool/business_logic/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd tool && cargo test`
+- `tool/business_logic/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd tool && cargo run -q -p ds_business_logic --example bench_layout`

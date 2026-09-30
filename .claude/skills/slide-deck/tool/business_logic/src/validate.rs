@@ -9,6 +9,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use crate::data_access::files;
 use crate::theme;
 
 /// 大きい要素。**4つ以上あると、どれが主張か消える**（設計規則 §2）
@@ -65,7 +66,7 @@ fn at_of(no: usize, slide: &Value) -> String {
 /// 形を検査する。
 #[must_use]
 pub fn shape(schema_path: &Path, deck: &Value) -> Vec<String> {
-    let Ok(body) = std::fs::read_to_string(schema_path) else {
+    let Ok(body) = files::read_to_string(schema_path) else {
         return vec![format!("形: 契約を読めない ── {}", schema_path.display())];
     };
     let Ok(schema) = serde_json::from_str::<Value>(&body) else {

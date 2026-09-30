@@ -159,10 +159,10 @@ fn run_measure(given: &Given) -> Outcome {
     }
     let mut rows = Vec::new();
     for raw in paths {
-        let Ok(data) = std::fs::read(raw) else {
+        let Ok(ms) = mp3::measure(std::path::Path::new(raw)) else {
             return Outcome::misuse(format!("読めない ── {raw}"));
         };
-        rows.push(json!({ "path": raw, "durationMs": mp3::duration_ms(&data) }));
+        rows.push(json!({ "path": raw, "durationMs": ms }));
     }
     Outcome::found(Vec::new(), json!({ "measured": rows }))
 }

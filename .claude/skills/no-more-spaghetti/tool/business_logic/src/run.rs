@@ -7,13 +7,13 @@
 //! **出力はファイルへ流す。** まとめて受け取ると、道具が出した量がそのままこの側の
 //! 記憶に載る（実測 2026-09-24、100MB を出す道具で最大常駐 306MB）。
 
-use std::fs::File;
-use std::io::{self, Read as _, Seek as _, SeekFrom, Write as _};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use crate::data_access::files;
+use crate::data_access::logfile::{self, Failed};
 use crate::inward::judge::Layer;
 use crate::label::Verdict;
 use crate::rules::{Inward, Rule};
@@ -72,10 +72,8 @@ impl Outcome {
 /// この成果物の保存先。**成果物ごとに分ける** ── 別の成果物の実行を消さない。
 #[must_use]
 pub fn runs_dir(root: &Path) -> PathBuf {
-    let key = short_key(&root.canonicalize().unwrap_or_else(|_| root.to_path_buf()));
-    std::env::temp_dir()
-        .join("no-more-spaghetti-runs")
-        .join(key)
+    let key = short_key(&files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()));
+    files::temp_dir().join("no-more-spaghetti-runs").join(key)
 }
 
 /// 経路から、短い固定長の名前を作る。**衝突しても別の成果物の出力を返さない** ──
@@ -106,43 +104,22 @@ pub fn new_run_id() -> String {
 /// 混ぜる。
 fn sink_path(index: usize) -> PathBuf {
     let serial = NEXT.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!(
+    files::temp_dir().join(format!(
         "no-more-spaghetti-{}-{}-{serial}-{index}.log",
-        std::process::id(),
+        logfile::process_id(),
         new_run_id()
     ))
 }
 
-/// 子を待つ。**制限時間を超えたら終わらせる。**
-fn wait_for(child: &mut std::process::Child, limit: Duration) -> io::Result<Option<i32>> {
-    let started = Instant::now();
-    loop {
-        if let Some(status) = child.try_wait()? {
-            return Ok(Some(status.code().unwrap_or(-1)));
-        }
-        if started.elapsed() >= limit {
-            child.kill()?;
-            let _ = child.wait()?;
-            return Ok(None);
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
-}
-
 /// 出力から、先頭と末尾を読む。**中略したことを本文へ書く。**
-fn read_ends(file: &mut File, size: u64) -> io::Result<String> {
+fn read_ends(path: &Path, size: u64) -> io::Result<String> {
     let cap = (OUTPUT_HEAD + OUTPUT_TAIL) as u64;
-    file.seek(SeekFrom::Start(0))?;
     if size <= cap {
-        let mut body = Vec::new();
-        file.read_to_end(&mut body)?;
+        let body = files::read(path)?;
         return Ok(String::from_utf8_lossy(&body).trim().to_owned());
     }
-    let mut head = vec![0_u8; OUTPUT_HEAD];
-    file.read_exact(&mut head)?;
-    file.seek(SeekFrom::Start(size - OUTPUT_TAIL as u64))?;
-    let mut tail = vec![0_u8; OUTPUT_TAIL];
-    file.read_exact(&mut tail)?;
+    let head = logfile::read_range(path, 0, OUTPUT_HEAD)?;
+    let tail = logfile::read_range(path, size - OUTPUT_TAIL as u64, OUTPUT_TAIL)?;
     Ok(format!(
         "{}\n\n── 中略（全 {size} バイトのうち {cap} バイトを表示）\n\
          ── 続きは output で読む（offset={OUTPUT_HEAD}）\n\n{}",
@@ -181,8 +158,8 @@ pub fn run_one(
             return Ok(Outcome::skipped(rule, "検証方法に道具が無い".to_owned()));
         }
     }
-    let base = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
-    let Ok(cwd) = base.join(&rule.target).canonicalize() else {
+    let base = files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let Ok(cwd) = files::canonicalize(base.join(&rule.target)) else {
         return Ok(Outcome::skipped(
             rule,
             format!("対象が実在しない ── {}", base.join(&rule.target).display()),
@@ -194,7 +171,7 @@ pub fn run_one(
             format!("対象が成果物の場所の外を指す ── {}", rule.target),
         ));
     }
-    if !cwd.is_dir() {
+    if !files::is_dir(&cwd) {
         return Ok(Outcome::skipped(
             rule,
             format!("対象が実在しない ── {}", cwd.display()),
@@ -206,45 +183,41 @@ pub fn run_one(
     }
 
     let sink_path = sink_path(index);
-    let sink = File::create(&sink_path)?;
-    let err = sink.try_clone()?;
-    let spawned = Command::new(&rule.tool[0])
-        .args(&rule.tool[1..])
-        .current_dir(&cwd)
-        .stdin(Stdio::null())
-        .stdout(sink)
-        .stderr(err)
-        .spawn();
-    let mut child = match spawned {
-        Ok(child) => child,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {
-            let _ = std::fs::remove_file(&sink_path);
+    let ran = logfile::run(
+        &rule.tool[0],
+        &rule.tool[1..],
+        &cwd,
+        &sink_path,
+        Duration::from_secs(timeout),
+    );
+    let code = match ran {
+        Ok(code) => code,
+        Err(Failed::Spawn(e)) if e.kind() == io::ErrorKind::NotFound => {
+            let _ = files::remove_file(&sink_path);
             return Ok(Outcome::skipped(rule, "道具が見つからない".to_owned()));
         }
-        Err(e) => {
-            let _ = std::fs::remove_file(&sink_path);
+        Err(Failed::Spawn(e)) => {
+            let _ = files::remove_file(&sink_path);
             return Err(e);
         }
+        Err(Failed::Sink(e) | Failed::Wait(e)) => return Err(e),
     };
-    let code = wait_for(&mut child, Duration::from_secs(timeout))?;
     let Some(code) = code else {
-        let _ = std::fs::remove_file(&sink_path);
+        let _ = files::remove_file(&sink_path);
         return Ok(Outcome::skipped(rule, format!("{timeout}秒で終わらない")));
     };
 
-    let mut file = File::open(&sink_path)?;
-    let size = file.metadata()?.len();
-    let output = read_ends(&mut file, size)?;
+    let size = files::size(&sink_path)?;
+    let output = read_ends(&sink_path, size)?;
     let mut saved = false;
     if size > (OUTPUT_HEAD + OUTPUT_TAIL) as u64 {
         if let Some(dir) = save_to {
-            std::fs::create_dir_all(dir)?;
-            std::fs::copy(&sink_path, dir.join(format!("{index}.log")))?;
+            files::create_dir_all(dir)?;
+            logfile::copy(&sink_path, dir.join(format!("{index}.log")))?;
             saved = true;
         }
     }
-    drop(file);
-    let _ = std::fs::remove_file(&sink_path);
+    let _ = files::remove_file(&sink_path);
     Ok(Outcome {
         name: rule.name.clone(),
         tool: rule.tool.clone(),
@@ -345,7 +318,7 @@ pub fn check(root: &Path, rules_file: &Path, timeout: u64) -> io::Result<Report>
     // **保持するのは直近の1回だけである。** 溜め続けると置き場所が膨らむ
     let run = new_run_id();
     let dir = runs_dir(root);
-    let _ = std::fs::remove_dir_all(&dir);
+    let _ = logfile::remove_dir_all(&dir);
     let save_to = dir.join(&run);
     let mut out: Vec<Outcome> = Vec::new();
     // **生成の手順が失敗した成果物は、inward を実行しない** ── 生成物が無いまま測ると、
@@ -383,11 +356,13 @@ pub fn check(root: &Path, rules_file: &Path, timeout: u64) -> io::Result<Report>
         findings.push("規則が0件である ── 1件も検査していない".to_owned());
     }
     if out.iter().any(|x| x.saved) {
-        std::fs::create_dir_all(&save_to)?;
+        files::create_dir_all(&save_to)?;
         let names: Vec<&str> = out.iter().map(|x| x.name.as_str()).collect();
         let body = serde_json::json!({ "run": run, "rules": names });
-        let mut index = File::create(save_to.join("index.json"))?;
-        index.write_all(serde_json::to_string(&body).unwrap_or_default().as_bytes())?;
+        files::write(
+            save_to.join("index.json"),
+            serde_json::to_string(&body).unwrap_or_default(),
+        )?;
     }
     Ok(Report {
         rules: out,
@@ -424,7 +399,7 @@ pub fn read_output(
 ) -> io::Result<Slice> {
     let saved = runs_dir(root).join(run);
     let index = saved.join("index.json");
-    let Ok(body) = std::fs::read_to_string(&index) else {
+    let Ok(body) = files::read_to_string(&index) else {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
             format!("その実行の出力は保持していない ── run={run}。check を実行し直す"),
@@ -444,17 +419,14 @@ pub fn read_output(
         ));
     };
     let path = saved.join(format!("{at}.log"));
-    let mut file = File::open(&path).map_err(|_| {
+    let size = files::size(&path).map_err(|_| {
         io::Error::new(
             io::ErrorKind::NotFound,
             format!("その規則の出力は保持していない ── {name}"),
         )
     })?;
-    let size = file.metadata()?.len();
-    file.seek(SeekFrom::Start(offset))?;
-    let mut buf = vec![0_u8; length.max(1)];
-    let read = file.read(&mut buf)?;
-    buf.truncate(read);
+    let buf = logfile::read_range(&path, offset, length.max(1))?;
+    let read = buf.len();
     let next = offset + read as u64;
     Ok(Slice {
         output: String::from_utf8_lossy(&buf).into_owned(),

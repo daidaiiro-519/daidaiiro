@@ -1,0 +1,257 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0071",
+ "title": "道具を持つ8件の Skill を雛形の4層へ移す",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "道具を持つ8件の Skill を、skills-creator の雛形の4層の構成へ移し、その構成を規則で保つ。",
+ "why": "ACDR 0058 で雛形を4層（入出力をデータアクセス層だけが持つ）にしたが、構成は契約ではない（ACDR 0059）ので、既存の Skill は移していなかった。8件は、業務ロジック層とサービス層が入出力を直接扱い、雛形の構成の検査で合計232件を検出していた。利用者の指示で、advisor 以外の道具を持つ Skill をこの構成へ移した。移すときは判定を書き換えず、入出力の呼び出しをデータアクセス層へ移すことに徹した。8件とも事例の件数を減らさずに合格し、組み直す前と後の実行ファイルで出力を比べて一致を確かめた。8件は acdr ・ brainstorming-board ・ design-svg ・ doc-writing-skills である。残りは fact-check ・ narration ・ no-more-spaghetti ・ slide-deck である。雛形の process::run へ起動を移した Skill は、制限時間を元の値か十分な値にした。narration の合成は300秒、slide-deck は300秒、acdr の git は60秒、fact-check の curl は90秒である。no-more-spaghetti だけは、道具の出力の扱いを保つために固有の起動（logfile）を残した。",
+ "shift": [
+  {
+   "what": "8件の道具の層",
+   "from": "業務ロジック層 ・ サービス層 ・ プレゼンテーション層の3層（入出力は各層に散在）",
+   "to": "データアクセス層を足した4層（入出力はデータアクセス層だけ）"
+  },
+  {
+   "what": "雛形の構成の検査（check --layout 1）",
+   "from": "8件で合計232件を検出",
+   "to": "8件とも0件"
+  },
+  {
+   "what": "雛形の構成の規則",
+   "from": "skills-creator だけ",
+   "to": "skills-creator と8件"
+  },
+  {
+   "what": "acdr の references の実装（refs.rs）",
+   "from": "雛形と違う",
+   "to": "雛形と一致"
+  },
+  {
+   "what": "design-svg の cli ・ mcp の crate の名前",
+   "from": "bb_cli ・ bb_mcp（別の Skill の接頭辞）",
+   "to": "ds_cli ・ ds_mcp"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "8件の道具の層と依存の向き。データアクセス層を足し、ファイル ・ 外部の道具 ・ 通信の入出力をそこへ集めた",
+ "alternatives": [
+  {
+   "option": "8件を3層のまま残す（構成は契約ではないので、移さなくても check は合格する）",
+   "why_not": "利用者の指示である。入出力が各層に散っていると、Skill ごとに読み方が違い、1つを読んで得た理解が次の Skill で通用しない"
+  },
+  {
+   "option": "no-more-spaghetti の起動も雛形の process::run へ移す",
+   "why_not": "process::run は標準出力と標準エラーを分けて最大16MB ずつメモリに受け取る。規則の道具の出力を出た順のまま1本のファイルへ書く振る舞いと、道具が見つからないことの判定が保てない"
+  },
+  {
+   "option": "データアクセス層の files と process に、各 Skill が要る関数（通信 ・ 標準入力 ・ フォルダの複製など）を足す",
+   "why_not": "files と process は雛形の複製で、Skill をまたいで同一に保つ。Skill に固有の入出力は別の module に置く（雛形の lib.rs の注記どおり）"
+  },
+  {
+   "option": "advisor の5件も同時に移す",
+   "why_not": "advisor は別のセッションが作り直している途中で、道具も助言型の雛形へ揃えている（usecase-advisor は ACDR 0068 で4層へ移した）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "acdr-ws",
+   "tab": "acdr の workspace",
+   "file": ".claude/skills/acdr/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 41 件から0件になり、事例 84 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "brainstorming-board-ws",
+   "tab": "brainstorming-board の workspace",
+   "file": ".claude/skills/brainstorming-board/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 58 件から0件になり、事例 59 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "design-svg-ws",
+   "tab": "design-svg の workspace",
+   "file": ".claude/skills/design-svg/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 8 件から0件になり、事例 136 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "doc-writing-skills-ws",
+   "tab": "doc-writing-skills の workspace",
+   "file": ".claude/skills/doc-writing-skills/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 10 件から0件になり、事例 40 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "fact-check-ws",
+   "tab": "fact-check の workspace",
+   "file": ".claude/skills/fact-check/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 19 件から0件になり、事例 25 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "narration-ws",
+   "tab": "narration の workspace",
+   "file": ".claude/skills/narration/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 13 件から0件になり、事例 5 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "no-more-spaghetti-ws",
+   "tab": "no-more-spaghetti の workspace",
+   "file": ".claude/skills/no-more-spaghetti/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 57 件から0件になり、事例 69 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "slide-deck-ws",
+   "tab": "slide-deck の workspace",
+   "file": ".claude/skills/slide-deck/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "（無い）",
+     "why": "データアクセス層を workspace に足した。雛形の構成の検出は 26 件から0件になり、事例 57 件はすべて合格した"
+    }
+   ]
+  },
+  {
+   "key": "brainstorming-board-mod",
+   "tab": "brainstorming-board の net.rs",
+   "file": ".claude/skills/brainstorming-board/tool/data_access/src/net.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "ボードを HTTP で配る処理の通信の部分を、ここへ移した。どの要求にどう応えるかの判定は業務ロジック層に残した"
+    }
+   ]
+  },
+  {
+   "key": "fact-check-mod",
+   "tab": "fact-check の http.rs",
+   "file": ".claude/skills/fact-check/tool/data_access/src/http.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "原文の取得（curl の起動と応答の読み取り）を、ここへ移した。curl の名前は tool.json の external から注入する形を保った"
+    }
+   ]
+  },
+  {
+   "key": "no-more-spaghetti-mod",
+   "tab": "no-more-spaghetti の logfile.rs",
+   "file": ".claude/skills/no-more-spaghetti/tool/data_access/src/logfile.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "規則の道具の起動は、雛形の process::run ではなくここに置いた。標準出力と標準エラーを出た順に1本のファイルへ書き、100MB を出す道具でもメモリに載せず、道具が見つからないことを判定するため"
+    }
+   ]
+  },
+  {
+   "key": "doc-writing-skills-mod",
+   "tab": "doc-writing-skills の stdin.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/data_access/src/stdin.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "フックの入力（標準入力）の読み取りを、ここへ移した。雛形の files と process には無い入出力である"
+    }
+   ]
+  },
+  {
+   "key": "ds-cli",
+   "tab": "design-svg の cli の crate",
+   "file": ".claude/skills/design-svg/tool/cli/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "name = \"ds_cli\"",
+     "before": "name = \"bb_cli\"",
+     "why": "別の Skill（brainstorming-board）の接頭辞を写したままだった。実行ファイルの名前（design-svg）は変えていない"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"target\": \"acdr\"",
+     "before": "（無い）",
+     "why": "雛形の構成の規則（check --layout 1）を、skills-creator だけから8件へ広げた。構成が崩れれば、規則の検査が検出する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "acdr-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "brainstorming-board-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "design-svg-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "doc-writing-skills-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "fact-check-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "narration-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "no-more-spaghetti-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "slide-deck-ws": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "brainstorming-board-mod": "55e1ccc9c955af2c3e8b13c04f7214a8a3c28bce1d2d96f7f09f159384dcb6f5",
+  "fact-check-mod": "6274823a45c24212ee8dc334fe1f8fcbad86a51d805ba9842a49f75afa87f270",
+  "no-more-spaghetti-mod": "b4a445f576818480be480299de17e32fe2cfd973bedef96ae739bb431a0b77e1",
+  "doc-writing-skills-mod": "f5bb9e82c4f6f9e2ff9472016b51f20de553b706537fa6144a9e39f1aa313d87",
+  "ds-cli": "81d07d3dd697595d37fecfc1fa57aad6cb72d60f4dd354583c1911451d6e8444",
+  "rules": "676238e279f1570fcd40b5a8aa389840f4bcc4ef669c0f82506f8160fd81299c"
+ }
+}

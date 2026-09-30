@@ -214,6 +214,7 @@ acdr render .acdr/0007-<短い名詞句> --check 1   差が無いかを検査す
 - `tool/cli/`: **唯一の CLI。** `new` ・ `inspect` ・ `render` ・ `tokens` と、契約の版2 の `get` ・ `validate` ・ `view` ・ `import` を持つ ── どれも `--json` で機械が読む形が出る。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` に在るものは読み込まれるものであり、呼び出し方を保持しない
 - `tool/mcp/` ・ `mcp.json`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
+- `tool/data_access/`: データアクセス層。**ファイルと外部の道具（git）の入出力は、ここだけが持つ** ── `files` と `process` は skills-creator の雛形の複製である。業務ロジック層とサービス層は入出力を直接扱わず、ここを経由する
 
 ### 正本と組み立て
 

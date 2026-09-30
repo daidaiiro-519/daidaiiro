@@ -12,6 +12,8 @@ use std::path::{Path, PathBuf};
 use regex::Regex;
 use serde_json::Value;
 
+use crate::data_access;
+
 /// 承認の状態。**これ以外を書かせない** ── 状態が自由文になると、承認を得ているかを
 /// 読む側が判定することになる。
 pub const STATUS: [&str; 3] = ["proposed", "accepted", "superseded"];
@@ -226,7 +228,7 @@ pub fn refs(folder: &Path, spec: &Value, root: Option<&Path>) -> Vec<String> {
         .filter(|name| !name.is_empty())
     {
         let at = folder.join(name);
-        if !at.exists() {
+        if !data_access::files::exists(&at) {
             bad.push(format!(
                 "図が無い: {} ── design-svg に組ませて置くか、\"figure\" の欄を削除する",
                 at.display()
@@ -236,7 +238,7 @@ pub fn refs(folder: &Path, spec: &Value, root: Option<&Path>) -> Vec<String> {
     for doc in array_of(spec, "docs") {
         let file = value_text(doc, "file");
         let path = root.map_or_else(|| PathBuf::from(&file), |root| root.join(&file));
-        if !path.exists() {
+        if !data_access::files::exists(&path) {
             bad.push(format!("対象の文書が無い: {}", path.display()));
         }
     }
@@ -270,7 +272,7 @@ pub fn inspect(
 /// 入力を読めないときに返す。
 pub fn check(references: &Path, folder: &Path, root: Option<&Path>) -> Result<Vec<String>, String> {
     let path = folder.join("acdr.json");
-    let body = std::fs::read_to_string(&path)
+    let body = data_access::files::read_to_string(&path)
         .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     let spec: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))?;

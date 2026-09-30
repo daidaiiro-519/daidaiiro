@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 use ds_business_logic::grid::{self, Grid, Key};
 use ds_business_logic::layout_contract::{LayoutResult, Sizes, Strategy, Unsupported};
-use ds_business_logic::{canvas, catalog, compose, lint, radial, theme, tree, verify};
+use ds_business_logic::{canvas, catalog, compose, files, lint, radial, theme, tree, verify};
 use serde::Serialize as _;
 use serde_json::{json, Map, Value};
 
@@ -105,14 +105,14 @@ fn str_of(v: &Value, key: &str) -> String {
 const BUSINESS_LOGIC_SRC: &str = "tool/business_logic/src";
 
 fn read_json(path: &str) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path).map_err(|e| format!("読めない: {path} ── {e}"))?;
+    let body = files::read_to_string(path).map_err(|e| format!("読めない: {path} ── {e}"))?;
     serde_json::from_str(&body).map_err(|e| format!("読めない: {path} ── {e}"))
 }
 
 /// 生成物を置く。**置き場所を渡されなければ、そのまま返す。**
 fn write(svg: &str, out: &str, data: &mut Map<String, Value>) -> Result<(), String> {
     if !out.is_empty() {
-        std::fs::write(out, svg).map_err(|e| format!("書けない: {out} ── {e}"))?;
+        files::write(out, svg).map_err(|e| format!("書けない: {out} ── {e}"))?;
     }
     data.insert("path".to_owned(), Value::from(out));
     data.insert(
@@ -149,7 +149,7 @@ fn run_catalog(given: &Given) -> Outcome {
     let body = String::from_utf8_lossy(&buf).into_owned();
     let out = given.one("out", "");
     if !out.is_empty() {
-        if let Err(e) = std::fs::write(out, format!("{body}\n")) {
+        if let Err(e) = files::write(out, format!("{body}\n")) {
             return Outcome::misuse(format!("書けない: {out} ── {e}"));
         }
     }
@@ -416,7 +416,7 @@ fn human_svg(out: &Outcome) -> String {
 
 fn run_verify(given: &Given) -> Outcome {
     let path = given.one("svg", "");
-    match std::fs::read_to_string(path) {
+    match files::read_to_string(path) {
         Ok(body) => Outcome::found(verify::all(&body), json!({ "svg": path })),
         Err(e) => Outcome::misuse(format!("読めない: {path} ── {e}")),
     }

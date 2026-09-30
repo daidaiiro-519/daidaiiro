@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
+use crate::data_access;
+
 /// 明暗の3つの選択子。**1つの表から生成する** ── 手で3か所へ書くと、1つのキーが
 /// 片側から脱落しても誰も検出しない。
 const LIGHT: &str = ":root";
@@ -56,7 +58,7 @@ pub fn schema_path(references: &Path) -> PathBuf {
 ///
 /// 読めないときと、JSON として読めないときに返す。
 pub fn load(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path)
+    let body = data_access::files::read_to_string(path)
         .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
     serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", path.display()))

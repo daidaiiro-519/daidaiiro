@@ -91,7 +91,7 @@ fn human_fetch(out: &Outcome) -> String {
 
 fn run_list(given: &Given) -> Outcome {
     let dir = outdir(given);
-    if !dir.is_dir() {
+    if !source::is_place(&dir) {
         return Outcome::found(
             vec![format!("まだ何も取得していない: {}", dir.display())],
             json!({ "dir": dir.display().to_string(), "rows": [] }),
@@ -138,16 +138,7 @@ fn human_list(out: &Outcome) -> String {
 fn needles(given: &Given) -> Vec<String> {
     let from = given.one("from", "");
     if !from.is_empty() {
-        return std::fs::read_to_string(from).map_or_else(
-            |_| Vec::new(),
-            |body| {
-                body.lines()
-                    .map(str::trim)
-                    .filter(|x| !x.is_empty())
-                    .map(str::to_owned)
-                    .collect()
-            },
-        );
+        return source::needles_in(from);
     }
     given.all("needle").to_vec()
 }
@@ -225,13 +216,7 @@ fn report_lines(
     within: usize,
 ) -> Vec<String> {
     let mut out = Vec::new();
-    let name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .into_owned();
-    let meta = path.with_file_name(format!("{name}.meta.json"));
-    if let Ok(body) = std::fs::read_to_string(&meta) {
+    if let Some(body) = source::meta_text(path) {
         if let Ok(m) = serde_json::from_str::<serde_json::Value>(&body) {
             let get = |k: &str| {
                 m.get(k)

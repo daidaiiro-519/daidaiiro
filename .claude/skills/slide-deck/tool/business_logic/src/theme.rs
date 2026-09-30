@@ -10,6 +10,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use crate::data_access::files;
+
 /// 適合条件。`(文字, 地, 名前, 要る比)`
 ///
 /// `--line` は装飾専用である ── 情報を単独で担わせないので、比を課さない。
@@ -157,16 +159,13 @@ pub fn tokens(body: &str) -> BTreeMap<String, String> {
 /// 置いてあるテーマの場所。**名前の並びは、置いてあるファイルが決める。**
 #[must_use]
 pub fn theme_files(references: &Path) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir(references)) else {
+    let Ok(entries) = files::list(dir(references)) else {
         return Vec::new();
     };
-    let mut found: Vec<PathBuf> = entries
-        .flatten()
-        .map(|e| e.path())
+    entries
+        .into_iter()
         .filter(|p| p.extension().is_some_and(|x| x == "css"))
-        .collect();
-    found.sort();
-    found
+        .collect()
 }
 
 /// 置いてあるテーマの名前。
@@ -190,7 +189,7 @@ pub fn theme_names(references: &Path) -> Vec<String> {
 /// 置いていない名前のとき、使える名前を添えて返す。
 pub fn theme_path(references: &Path, name: &str) -> Result<PathBuf, String> {
     let path = dir(references).join(format!("{name}.css"));
-    if !path.exists() {
+    if !files::exists(&path) {
         return Err(format!(
             "知らないテーマ: {name}。使えるのは {} である",
             theme_names(references).join("／")
@@ -206,7 +205,16 @@ pub fn theme_path(references: &Path, name: &str) -> Result<PathBuf, String> {
 /// 置いていない名前のときと、読めないときに返す。
 pub fn read(references: &Path, name: &str) -> Result<String, String> {
     let path = theme_path(references, name)?;
-    std::fs::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))
+    files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))
+}
+
+/// 図の中の役割ごとの色を書き出す。**書き出し先のフォルダは作らない。**
+///
+/// # Errors
+///
+/// 書けないときに返す。
+pub fn save(path: &Path, body: &str) -> Result<(), String> {
+    files::write(path, body).map_err(|e| format!("{}: 書けない ── {e}", path.display()))
 }
 
 /// テーマを、図の中の役割ごとの色へ複製する。
@@ -284,7 +292,7 @@ pub fn findings(references: &Path, decks: &[String]) -> Vec<String> {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .into_owned();
-            let body = std::fs::read_to_string(p).unwrap_or_default();
+            let body = files::read_to_string(p).unwrap_or_default();
             (name, tokens(&body))
         })
         .collect();
@@ -311,7 +319,7 @@ pub fn findings(references: &Path, decks: &[String]) -> Vec<String> {
     }
 
     for deck in decks {
-        let Ok(body) = std::fs::read_to_string(deck) else {
+        let Ok(body) = files::read_to_string(deck) else {
             bad.push(format!("{deck}: 読めない"));
             continue;
         };

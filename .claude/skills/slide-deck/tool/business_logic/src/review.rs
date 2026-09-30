@@ -11,9 +11,12 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde_json::Value;
 
+use crate::data_access::files;
+use crate::data_access::process::{self, Failed};
 use crate::deck::esc;
 use crate::template::Parts;
 use crate::validate;
@@ -151,7 +154,7 @@ fn place_image(
 ) -> Result<(String, Vec<u8>), String> {
     let src = base.join(text_of(slide, "image"));
     let bytes =
-        std::fs::read(&src).map_err(|e| format!("{}: 画像を読めない ── {e}", src.display()))?;
+        files::read(&src).map_err(|e| format!("{}: 画像を読めない ── {e}", src.display()))?;
     let ext = src
         .extension()
         .and_then(|x| x.to_str())
@@ -160,10 +163,10 @@ fn place_image(
     let rel = format!("img/{side}/{section}-{}.{ext}", text_of(slide, "id"));
     let dest = out_dir.join(&rel);
     if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent)
+        files::create_dir_all(parent)
             .map_err(|e| format!("{}: 作れない ── {e}", parent.display()))?;
     }
-    std::fs::write(&dest, &bytes).map_err(|e| format!("{}: 書けない ── {e}", dest.display()))?;
+    files::write(&dest, &bytes).map_err(|e| format!("{}: 書けない ── {e}", dest.display()))?;
     Ok((rel, bytes))
 }
 
@@ -191,7 +194,7 @@ type Sections = Vec<(String, String, Vec<Item>)>;
 
 /// 入力を読み、検査し、画像を写して、枚ごとの比較の中身を組む。
 fn items(references: &Path, input: &Path, out_dir: &Path) -> Result<(Value, Sections), String> {
-    let body = std::fs::read_to_string(input)
+    let body = files::read_to_string(input)
         .map_err(|e| format!("{}: 読めない ── {e}", input.display()))?;
     let review: Value = serde_json::from_str(&body)
         .map_err(|e| format!("{}: JSON として読めない ── {e}", input.display()))?;
@@ -724,11 +727,11 @@ fn results(
 fn write(path: &Path, body: &str) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
+            files::create_dir_all(parent)
                 .map_err(|e| format!("{}: 作れない ── {e}", parent.display()))?;
         }
     }
-    std::fs::write(path, body).map_err(|e| format!("{}: 書けない ── {e}", path.display()))
+    files::write(path, body).map_err(|e| format!("{}: 書けない ── {e}", path.display()))
 }
 
 /// 比較ページを1枚書き出す。画像は出力の隣の `img/` へ写す。
@@ -770,29 +773,39 @@ pub fn build_exports(
     Ok(done)
 }
 
+/// PDF の描画を待つ上限。**1回の描画が数秒で済むのに対し、十分に長く取る** ── 越えたら
+/// ブラウザを止めて誤りにする（止めずに待つと、描画が終わらないブラウザで道具が戻らない）。
+const PRINT_LIMIT: Duration = Duration::from_secs(300);
+
 /// HTML を描画して PDF を書き出す。**ブラウザの場所は、呼ぶ側が渡す** ── どこに
 /// 在るかを、この側で推測しない。
 ///
 /// # Errors
 ///
-/// ブラウザを起動できないとき、PDF が書き出されなかったときに返す。
+/// ブラウザを起動できないとき、制限時間を過ぎたとき、PDF が書き出されなかったときに返す。
 pub fn print_pdf(browser: &Path, html: &Path, pdf: &Path) -> Result<(), String> {
     let abs =
-        std::fs::canonicalize(html).map_err(|e| format!("{}: 読めない ── {e}", html.display()))?;
-    let status = std::process::Command::new(browser)
-        .args([
-            "--headless",
-            "--no-sandbox",
-            "--disable-gpu",
-            "--no-pdf-header-footer",
-            &format!("--print-to-pdf={}", pdf.display()),
-            &format!("file://{}", abs.display()),
-        ])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map_err(|e| format!("{}: 起動できない ── {e}", browser.display()))?;
-    if !status.success() || !pdf.exists() {
+        files::canonicalize(html).map_err(|e| format!("{}: 読めない ── {e}", html.display()))?;
+    let args = [
+        "--headless".to_owned(),
+        "--no-sandbox".to_owned(),
+        "--disable-gpu".to_owned(),
+        "--no-pdf-header-footer".to_owned(),
+        format!("--print-to-pdf={}", pdf.display()),
+        format!("file://{}", abs.display()),
+    ];
+    // **作業場所は、道具を起動した場所のまま渡す** ── 以前の起動と同じ場所で描画する
+    let ran = process::run(browser, &args, ".", PRINT_LIMIT).map_err(|why| match why {
+        Failed::Spawn(e) => format!("{}: 起動できない ── {e}", browser.display()),
+        Failed::Timeout => format!(
+            "{}: 制限時間（{} 秒）を過ぎたので止めた",
+            browser.display(),
+            PRINT_LIMIT.as_secs()
+        ),
+        Failed::Pipe(e) => format!("{}: 出力を受けられない ── {e}", browser.display()),
+        _ => format!("{}: 起動できない", browser.display()),
+    })?;
+    if ran.code != 0 || !files::exists(pdf) {
         return Err(format!("{}: PDF が書き出されなかった", pdf.display()));
     }
     Ok(())

@@ -9,8 +9,9 @@
 //! 形は `references/answer-sheet.schema.json` が決めるが、ここでは**素の形だけ**を検査する
 //! （必須の欄が在るか、諾否が決められた値か）。中身が妥当かは機械には分からない。
 
-use std::io::{BufRead as _, BufReader, Read as _, Write as _};
-use std::net::{TcpListener, TcpStream};
+use crate::data_access::files;
+use crate::data_access::net::{Connection, Listener};
+
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -160,8 +161,8 @@ fn resolve(root: &Path, target: &str) -> Option<PathBuf> {
         }
         at.push(percent_decoded(piece));
     }
-    let real = std::fs::canonicalize(&at).ok()?;
-    let inside = std::fs::canonicalize(root).ok()?;
+    let real = files::canonicalize(&at).ok()?;
+    let inside = files::canonicalize(root).ok()?;
     real.starts_with(inside).then_some(real)
 }
 
@@ -184,7 +185,7 @@ fn percent_decoded(piece: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-fn send(stream: &mut TcpStream, code: u16, reason: &str, kind: &str, body: &[u8], store: bool) {
+fn send(stream: &mut Connection, code: u16, reason: &str, kind: &str, body: &[u8], store: bool) {
     let mut head = format!(
         "HTTP/1.1 {code} {reason}\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nConnection: close\r\n",
         body.len()
@@ -193,12 +194,10 @@ fn send(stream: &mut TcpStream, code: u16, reason: &str, kind: &str, body: &[u8]
         head.push_str("Cache-Control: no-store\r\n");
     }
     head.push_str("\r\n");
-    let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(body);
-    let _ = stream.flush();
+    stream.send(&[head.as_bytes(), body]);
 }
 
-fn send_json(stream: &mut TcpStream, code: u16, reason: &str, payload: &Value) {
+fn send_json(stream: &mut Connection, code: u16, reason: &str, payload: &Value) {
     let body = serde_json::to_vec(payload).unwrap_or_default();
     send(
         stream,
@@ -241,7 +240,7 @@ pub fn accept(pattern: &str, body: &Value) -> Result<Value, (u16, Value)> {
             }),
         ));
     };
-    if let Err(e) = std::fs::create_dir_all(&dir) {
+    if let Err(e) = files::create_dir_all(&dir) {
         return Err((
             500,
             serde_json::json!({ "error": format!("{}: 作れない ── {e}", dir.display()) }),
@@ -251,18 +250,16 @@ pub fn accept(pattern: &str, body: &Value) -> Result<Value, (u16, Value)> {
         .get("answers")
         .and_then(|x| x.as_array())
         .map_or(0, Vec::len);
-    let mut kept: Vec<PathBuf> = std::fs::read_dir(&dir)
+    let kept: Vec<PathBuf> = files::list(&dir)
         .map(|entries| {
             entries
-                .flatten()
-                .map(|e| e.path())
+                .into_iter()
                 .filter(|p| p.extension().is_some_and(|x| x == "json"))
                 .collect()
         })
         .unwrap_or_default();
-    kept.sort();
     if let Some(last) = kept.last() {
-        if std::fs::read_to_string(last)
+        if files::read_to_string(last)
             .ok()
             .and_then(|x| serde_json::from_str::<Value>(&x).ok())
             .is_some_and(|x| x == *body)
@@ -275,7 +272,7 @@ pub fn accept(pattern: &str, body: &Value) -> Result<Value, (u16, Value)> {
     }
     let out = dir.join(format!("{}.json", now()));
     let text = serde_json::to_string_pretty(body).unwrap_or_default() + "\n";
-    if let Err(e) = std::fs::write(&out, text) {
+    if let Err(e) = files::write(&out, text) {
         return Err((
             500,
             serde_json::json!({ "error": format!("{}: 書けない ── {e}", out.display()) }),
@@ -287,26 +284,18 @@ pub fn accept(pattern: &str, body: &Value) -> Result<Value, (u16, Value)> {
     }))
 }
 
-fn handle(stream: &mut TcpStream, root: &Path, pattern: &str) {
-    let mut reader = BufReader::new(match stream.try_clone() {
-        Ok(x) => x,
-        Err(_) => return,
-    });
-    let mut line = String::new();
-    if reader.read_line(&mut line).is_err() {
+fn handle(stream: &mut Connection, root: &Path, pattern: &str) {
+    let Some(line) = stream.read_line() else {
         return;
-    }
+    };
     let mut parts = line.split_whitespace();
     let (method, target) = (
         parts.next().unwrap_or_default().to_owned(),
         parts.next().unwrap_or("/").to_owned(),
     );
     let mut length = 0usize;
-    loop {
-        let mut header = String::new();
-        if reader.read_line(&mut header).is_err() || header.trim().is_empty() {
-            break;
-        }
+    // 空の行か、読めない行で、見出しの終わりとする
+    while let Some(header) = stream.read_line().filter(|x| !x.trim().is_empty()) {
         if let Some(value) = header
             .to_lowercase()
             .strip_prefix("content-length:")
@@ -334,8 +323,7 @@ fn handle(stream: &mut TcpStream, root: &Path, pattern: &str) {
             );
             return;
         }
-        let mut raw = vec![0u8; length];
-        if reader.read_exact(&mut raw).is_err() {
+        let Some(raw) = stream.read_exact(length) else {
             send_json(
                 stream,
                 400,
@@ -343,7 +331,7 @@ fn handle(stream: &mut TcpStream, root: &Path, pattern: &str) {
                 &serde_json::json!({ "error": "本文を読めない" }),
             );
             return;
-        }
+        };
         let Ok(body) = serde_json::from_slice::<Value>(&raw) else {
             send_json(
                 stream,
@@ -372,7 +360,7 @@ fn handle(stream: &mut TcpStream, root: &Path, pattern: &str) {
         );
         return;
     };
-    match std::fs::read(&path) {
+    match files::read(&path) {
         Ok(body) => {
             let kind = content_type(&path);
             let store = kind.starts_with("text/html");
@@ -395,19 +383,19 @@ fn handle(stream: &mut TcpStream, root: &Path, pattern: &str) {
 ///
 /// 配るフォルダが無いときと、待ち受けられないときに返す。
 pub fn run(root: &str, answers: &str, port: u16) -> Result<Vec<String>, String> {
-    let root = std::fs::canonicalize(root)
-        .map_err(|e| format!("配るディレクトリが無い: {root} ── {e}"))?;
-    if !root.is_dir() {
+    let root =
+        files::canonicalize(root).map_err(|e| format!("配るディレクトリが無い: {root} ── {e}"))?;
+    if !files::is_dir(&root) {
         return Err(format!("配るディレクトリが無い: {}", root.display()));
     }
     let pattern = if answers.contains("{board}") {
         answers.to_owned()
     } else {
-        std::fs::canonicalize(answers)
+        files::canonicalize(answers)
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| answers.to_owned())
     };
-    let listener = TcpListener::bind(("127.0.0.1", port))
+    let listener = Listener::bind("127.0.0.1", port)
         .map_err(|e| format!("待ち受けられない: 127.0.0.1:{port} ── {e}"))?;
     let lines = vec![
         format!("配る  : {}", root.display()),
@@ -417,11 +405,8 @@ pub fn run(root: &str, answers: &str, port: u16) -> Result<Vec<String>, String> 
     for line in &lines {
         println!("{line}");
     }
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => handle(&mut stream, &root, &pattern),
-            Err(_) => continue,
-        }
+    for mut stream in listener.incoming() {
+        handle(&mut stream, &root, &pattern);
     }
     Ok(lines)
 }

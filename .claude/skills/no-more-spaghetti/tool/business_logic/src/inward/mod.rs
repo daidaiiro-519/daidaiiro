@@ -15,6 +15,8 @@
 
 use std::path::Path;
 
+use crate::data_access::files;
+
 use self::judge::{judge, layer_for, unresolved, Edge, Order, Unresolved};
 use self::syntax::Tree;
 
@@ -116,7 +118,7 @@ pub fn measure(language: &str, root: &Path, layers: Vec<judge::Layer>) -> Result
             Tree::languages().join(" ・ ")
         ));
     };
-    if !root.is_dir() {
+    if !files::is_dir(root) {
         return Err(format!("根が無い ── {}", root.display()));
     }
     let got = tree

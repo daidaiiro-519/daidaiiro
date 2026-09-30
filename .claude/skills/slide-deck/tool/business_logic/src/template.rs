@@ -11,6 +11,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use crate::data_access::files;
+
 const OPEN: &str = "<template data-part=\"";
 const CLOSE: &str = "</template>";
 
@@ -44,7 +46,7 @@ impl Parts {
     ///
     /// 読めないとき、部品が1つも無いとき、閉じていないとき、名前が重複するときに返す。
     pub fn load(path: &Path) -> Result<Self, String> {
-        let body = std::fs::read_to_string(path)
+        let body = files::read_to_string(path)
             .map_err(|e| format!("{}: 読めない ── {e}", path.display()))?;
         let mut found = Vec::new();
         let mut from = 0;

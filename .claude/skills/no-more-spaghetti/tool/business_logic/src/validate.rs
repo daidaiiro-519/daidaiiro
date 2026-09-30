@@ -7,6 +7,8 @@
 use std::io;
 use std::path::Path;
 
+use crate::data_access::files;
+
 use serde_json::Value;
 
 /// 契約の置き場所。**呼ぶ側が渡す** ── この crate は Skill の並びを認知しない。
@@ -38,7 +40,7 @@ impl Contracts {
 }
 
 fn read_json(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path).map_err(|e| format!("読めない ── {e}"))?;
+    let body = files::read_to_string(path).map_err(|e| format!("読めない ── {e}"))?;
     serde_json::from_str(&body).map_err(|e| format!("JSON として読めない ── {e}"))
 }
 
@@ -372,7 +374,7 @@ pub fn check_generated(path: &Path) -> io::Result<Vec<String>> {
 /// 読めないファイルかを見る。**誤用と検出を、同じ番号で返さないためである。**
 #[must_use]
 pub fn unreadable(path: &Path) -> Option<String> {
-    match std::fs::read_to_string(path) {
+    match files::read_to_string(path) {
         Err(e) => Some(format!("ファイルを読めない ── {e}")),
         Ok(body) => serde_json::from_str::<Value>(&body)
             .err()
@@ -383,14 +385,14 @@ pub fn unreadable(path: &Path) -> Option<String> {
 /// `$schema` の相対の経路が解決するかを見る ── 移動で壊れる（実測 2026-09-26）。
 #[must_use]
 pub fn unresolved_schema(path: &Path) -> Option<String> {
-    let body = std::fs::read_to_string(path).ok()?;
+    let body = files::read_to_string(path).ok()?;
     let parsed: Value = serde_json::from_str(&body).ok()?;
     let reference = parsed.get("$schema").and_then(Value::as_str)?;
     if reference.starts_with("http") {
         return None;
     }
     let base = path.parent().unwrap_or(Path::new("."));
-    if base.join(reference).exists() {
+    if files::exists(base.join(reference)) {
         return None;
     }
     Some(format!("$schema が解決しない ── {reference}"))

@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use crate::checks::{self, Pair, Words};
+use crate::data_access::files;
 use crate::finding::Finding;
 use crate::unit::{self, Kind, Unit};
 
@@ -175,7 +176,7 @@ fn whole(check: &Check, units: &[Unit], words: &Words) -> Vec<Finding> {
 ///
 /// 読めないときに返す。
 pub fn inspect(path: &Path, words: &Words) -> io::Result<Vec<Finding>> {
-    let mut raw = std::fs::read_to_string(path)?;
+    let mut raw = files::read_to_string(path)?;
     if path.extension().is_some_and(|x| x == "json") {
         raw = prose_of_json(&raw);
     }
@@ -221,7 +222,7 @@ pub fn inspect_text(raw: &str, words: &Words) -> Vec<Finding> {
 ///
 /// 読めないとき、または形が違うときに返す。
 pub fn load_predicates(path: &Path) -> io::Result<Vec<(String, String)>> {
-    let body = std::fs::read_to_string(path)?;
+    let body = files::read_to_string(path)?;
     let parsed: Value = serde_json::from_str(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     let items = parsed
@@ -239,16 +240,32 @@ pub fn load_predicates(path: &Path) -> io::Result<Vec<(String, String)>> {
         .collect())
 }
 
+/// 同義語の一覧（1行に1組、タブ区切り）を読む。
+///
+/// **読めないことを、失敗として扱わない。** 同義語はプロジェクトごとに相違するので、
+/// 渡されなかったときと同じく空の一覧で続行する。
+#[must_use]
+pub fn load_synonyms(path: &Path) -> Vec<(String, String)> {
+    files::read_to_string(path)
+        .map(|body| {
+            body.lines()
+                .filter_map(|line| line.split_once('\t'))
+                .map(|(a, b)| (a.trim().to_owned(), b.trim().to_owned()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// 対象のファイルから上へたどり、廃語の一覧を探す。
 ///
 /// **見つからないことを、失敗として扱わない。** 一覧を持たないプロジェクトでも、この
 /// 道具はそのまま動く ── 持ち出した先で必ず止まる作りにしない。
 #[must_use]
 pub fn find_retired(start: &Path) -> Option<PathBuf> {
-    let here = start.canonicalize().unwrap_or_else(|_| start.to_path_buf());
+    let here = files::canonicalize(start).unwrap_or_else(|_| start.to_path_buf());
     std::iter::successors(Some(here.as_path()), |p| p.parent())
         .map(|d| d.join(".doc-writing").join("retired-words.json"))
-        .find(|c| c.exists())
+        .find(|c| files::exists(c))
 }
 
 /// 廃語の一覧を読む。**形が違えば返す** ── 黙って空にしない。
@@ -257,7 +274,7 @@ pub fn find_retired(start: &Path) -> Option<PathBuf> {
 ///
 /// 読めないとき、または形が違うときに返す。
 pub fn load_retired(path: &Path) -> io::Result<Vec<Pair>> {
-    let body = std::fs::read_to_string(path)?;
+    let body = files::read_to_string(path)?;
     let parsed: Value = serde_json::from_str(&body)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     let items = parsed

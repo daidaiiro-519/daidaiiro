@@ -21,6 +21,8 @@
 
 use std::path::Path;
 
+use crate::data_access;
+
 /// 正本が持つ塊。**4つでなければ止まる。**
 const BLOCKS: [&str; 4] = ["BASE", "CODE", "MARK", "SECTION"];
 
@@ -79,7 +81,7 @@ impl Style {
         let tokens = crate::tokens::load(&crate::tokens::path(references))?;
         let read = |name: &str| -> Result<String, String> {
             let path = references.join(name);
-            std::fs::read_to_string(&path)
+            data_access::files::read_to_string(&path)
                 .map_err(|e| format!("{}: 読めない ── {e}", path.display()))
         };
         let css = read("acdr.css")?;

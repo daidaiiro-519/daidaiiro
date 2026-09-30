@@ -16,6 +16,8 @@ use std::sync::OnceLock;
 use fancy_regex::Regex;
 use serde_json::Value;
 
+use crate::data_access::files;
+
 fn kango() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| {
@@ -100,7 +102,7 @@ fn prose_of_json(raw: &str) -> String {
 pub fn counted(paths: &[&Path]) -> io::Result<Vec<(String, usize)>> {
     let mut count: BTreeMap<String, usize> = BTreeMap::new();
     for path in paths {
-        let mut raw = std::fs::read_to_string(path)?;
+        let mut raw = files::read_to_string(path)?;
         if path.extension().is_some_and(|x| x == "json") {
             raw = prose_of_json(&raw);
         }

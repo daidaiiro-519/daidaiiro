@@ -216,6 +216,7 @@ brainstorming-board init <ブレストボードの名前> [--title <題>]
 
 - `tool/cli/`: 唯一の CLI。`init` ・ `validate` ・ `render` ・ `tokens` ・ `freeze` ・ `figures` ・ `serve` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` に在るものは読み込まれるものであり、呼び出し方を保持しない
+- `tool/data_access/`: データアクセス層。**ファイル ・ 通信の入出力だけを持つ** ── 業務ロジック層は `std::fs` ・ `std::net` を直接呼ばず、この層の関数を呼び出す。`files.rs` ・ `process.rs` は skills-creator の雛形の複製であり、この Skill に固有の入出力は `net.rs`（`serve` の待ち受けと送受信）・ `tree.rs`（読み取り専用の複製）・ `host.rs`（プロセスの番号）が持つ。**どの要求にどう応えるかは `serve.rs` が決める**
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
 - `tool/business_logic/src/topic.rs`: 論点の形。論点 ・ 状態 ・ 答え ・ 完成イメージ ・ 案 ・ 除外した案 ・ 道筋 ・ 根拠 ・ 要求事項 ・ 扱わない範囲 ・ 未修正の誤り ・ 図を持つ
 - `tool/business_logic/src/deck.rs`: 論点をタブ1枚の HTML へ組む。いま見る論点を渡すと、それだけが回答欄を持つ
