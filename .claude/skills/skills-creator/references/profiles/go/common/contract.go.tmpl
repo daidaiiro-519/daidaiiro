@@ -40,11 +40,12 @@ func ManyOf(name, summary string) Arg {
 type Outcome struct {
 	Ok       bool           `json:"ok"`
 	Findings []string       `json:"findings"`
-	Data     map[string]any `json:"data"`
+	// Data は任意の JSON である。**道具によっては配列を返す**（get の一覧など）。
+	Data any `json:"data"`
 }
 
 // Found は検出と結果を返す。
-func Found(findings []string, data map[string]any) Outcome {
+func Found(findings []string, data any) Outcome {
 	if findings == nil {
 		findings = []string{}
 	}

@@ -11,6 +11,7 @@ use serde_json::Value;
 
 use crate::data_access::files;
 use crate::data_access::process;
+use crate::profile::Profile;
 use crate::refs;
 
 /// 検査1件の結果。
@@ -84,9 +85,9 @@ fn prose(v: &Value, at: &str, out: &mut Vec<(String, String)>) {
     }
 }
 
-/// 助言型の受け入れの検査を、7件すべて行う。
+/// 助言型の受け入れの検査を、7件すべて行う。**言語に依存する置き場所と試験は、言語の組の定義が持つ。**
 #[must_use]
-pub fn accept(root: &Path, others: &[String], test: &[String]) -> Vec<Check> {
+pub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {
     let references = root.join("references");
     let criteria: Value = files::read_to_string(references.join("criteria.json"))
         .ok()
@@ -102,21 +103,21 @@ pub fn accept(root: &Path, others: &[String], test: &[String]) -> Vec<Check> {
             .join("\n"),
     );
     vec![
-        shape(root),
+        shape(root, &lang.fixtures),
         not_in_notes(&items, &notes, &body),
         quotes_brought(&items, &notes),
         concept_units(&items, &notes),
         figures(root, &items),
-        other_skills(root, others),
-        tests(root, test),
+        other_skills(root, others, lang),
+        tests(root, &lang.test),
     ]
 }
 
 /// 1 形 ── 判断基準と回答の例が、スキーマの検査に合格する。
-fn shape(root: &Path) -> Check {
+fn shape(root: &Path, fixtures: &str) -> Check {
     let references = root.join("references");
     let mut findings = refs::validate(&references).unwrap_or_else(|e| vec![e]);
-    let fixtures = root.join("tool/business_logic/tests/fixtures");
+    let fixtures = root.join(fixtures);
     for f in files::list(&fixtures).unwrap_or_default() {
         let name = f
             .file_name()
@@ -254,29 +255,38 @@ fn figures(root: &Path, items: &[Value]) -> Check {
 }
 
 /// 6 他の Skill の名前 ── SKILL.md ・ スキーマ ・ 道具に、同じ置き場所の他の Skill の名前が無い。
-fn other_skills(root: &Path, others: &[String]) -> Check {
+fn other_skills(root: &Path, others: &[String], lang: &Profile) -> Check {
     let mut targets = vec![root.join("SKILL.md")];
     for p in files::list(root.join("references")).unwrap_or_default() {
         if p.to_string_lossy().ends_with(".schema.json") {
             targets.push(p);
         }
     }
-    fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
+    // **ソースの拡張子と、入らないフォルダは言語の組が決める**（試験は数える ── 試験も道具の一部である）
+    fn sources(dir: &Path, lang: &Profile, out: &mut Vec<PathBuf>) {
         for p in files::list(dir).unwrap_or_default() {
             let name = p
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default();
             if files::is_dir(&p) {
-                if name != "target" {
-                    sources(&p, out);
+                let generated = [
+                    "target",
+                    "node_modules",
+                    ".venv",
+                    "bin",
+                    "obj",
+                    "__pycache__",
+                ];
+                if !generated.contains(&name.as_str()) {
+                    sources(&p, lang, out);
                 }
-            } else if name.ends_with(".rs") {
+            } else if lang.extensions.iter().any(|e| name.ends_with(e.as_str())) {
                 out.push(p);
             }
         }
     }
-    sources(&root.join("tool"), &mut targets);
+    sources(&root.join("tool"), lang, &mut targets);
     let mut findings = Vec::new();
     for t in targets {
         let Ok(body) = files::read_to_string(&t) else {

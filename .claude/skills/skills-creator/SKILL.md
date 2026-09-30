@@ -100,7 +100,7 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 | 置く先 | 中身 | 文書 |
 |---|---|---|
 | 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/tool-contract.md` |
-| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust（版2 ・ 作業型と助言型）と Python ・ TypeScript ・ C# ・ Go（版1 ・ 作業型） | `references/profiles/<言語>.md` |
+| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。どれも版2 で、作業型と助言型を生む | `references/profiles/<言語>.md` |
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/distribution.md` |
 
 ```
@@ -168,10 +168,10 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
-- `references/profiles/python.md` ・ `references/profiles/python/`: Python の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/go.md` ・ `references/profiles/go/`: Go の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/csharp.md` ・ `references/profiles/csharp/`: C# の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/typescript.md` ・ `references/profiles/typescript/`: TypeScript の組（版1 ・ 作業型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/python.md` ・ `references/profiles/python/`: Python の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/go.md` ・ `references/profiles/go/`: Go の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/csharp.md` ・ `references/profiles/csharp/`: C# の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/typescript.md` ・ `references/profiles/typescript/`: TypeScript の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
 - `references/profiles/rust.md` ・ `references/profiles/rust/`: Rust の組。置き場所 ・ 契約の実装 ・
   雛形（21件）・ 2段目の検査。**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く
 - `references/distribution.md` ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形

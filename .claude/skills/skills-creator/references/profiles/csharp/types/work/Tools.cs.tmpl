@@ -9,7 +9,8 @@ namespace SkillTool;
 
 public static class Tools
 {
-    /// <summary>この Skill が持つ道具の一覧。</summary>
+    /// <summary>この Skill が持つ道具の一覧。references の4つの道具（get ・ validate ・ view ・ import）は、
+    /// どの Skill も同じものを足す（ACDR 0043）。</summary>
     public static IReadOnlyList<Tool> All() =>
     [
         new Tool(
@@ -18,6 +19,7 @@ public static class Tools
             [Arg.Need("name", "あいさつする相手の名前")],
             RunHello,
             HumanHello),
+        .. RefsTools.All(),
     ];
 
     /// <summary>
@@ -28,5 +30,5 @@ public static class Tools
         Outcome.Found([], new JsonObject { ["greeting"] = Hello.Greet(given.One("name", "")) });
 
     static string HumanHello(Outcome out_) =>
-        !out_.Ok ? string.Join(" ／ ", out_.Findings) : out_.Data["greeting"]?.GetValue<string>() ?? "";
+        !out_.Ok ? string.Join(" ／ ", out_.Findings) : out_.Data?["greeting"]?.GetValue<string>() ?? "";
 }

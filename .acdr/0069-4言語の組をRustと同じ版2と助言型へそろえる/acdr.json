@@ -1,0 +1,286 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0069",
+ "title": "4言語の組を Rust と同じ版2と助言型へそろえる",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "Python ・ TypeScript ・ C# ・ Go の組を、Rust の組と同じ契約の版2 に上げ、作業型と助言型の両方を生めるようにする。",
+ "why": "利用者は最初に、言語ごとの雛形を Rust と同じ水準で求めた。ACDR 0062〜0065 で4言語の組を起こしたが、どれも契約の版1 で作業型だけだった。Rust の組は版2 で、作業型にも references の4つの道具（get ・ validate ・ view ・ import）を持たせ、助言型も生む。0062 は版2 を後の ACDR で足すとしたが、0063〜0065 の報告で残りを明示しなかった。そのため利用者は、4言語が Rust にそろったと受け取った。版2 の実体（refs.rs）は、スキーマの x-view で決まる HTML を組む。同じ references が言語によって違って見えないように、4言語へ移した実装の出力を、Rust の出力と1バイトずつ突き合わせた。助言型の受け入れの検査（accept）は、回答の例の置き場所とソースの拡張子を Rust の形に固定していた。この2つを、言語の組の定義から読むようにした。C# の雛形（Refs.cs）は、acdr が .cs をコードとして扱わないため、この記録の面に置いていない。",
+ "shift": [
+  {
+   "what": "Python ・ TypeScript ・ C# ・ Go の組の契約の版",
+   "from": "版1（作業型だけ）",
+   "to": "版2（作業型と助言型）"
+  },
+  {
+   "what": "作業型の道具",
+   "from": "見本の hello だけ",
+   "to": "hello と references の4つの道具（Rust の組と同じ）"
+  },
+  {
+   "what": "references の実装の出力",
+   "from": "Rust だけが持つ",
+   "to": "5言語が同じバイト列を返す（実物の references の186件で確かめた）"
+  },
+  {
+   "what": "document.schema.json の雛形の置き場所",
+   "from": "profiles/rust/common/",
+   "to": "profiles/shared/（言語に依存しないので、全ての組が同じものを置く）"
+  },
+  {
+   "what": "受け入れの検査が読む回答の例とソース",
+   "from": "Rust の置き場所と .rs に固定",
+   "to": "言語の組の定義（fixtures ・ sources）から読む"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "実物の references に get ・ view ・ import を当て、Rust の出力を基準に4言語の出力を突き合わせた。どの言語も186件すべてが1バイトずつ一致した",
+ "alternatives": [
+  {
+   "option": "4言語は版1 のまま残し、版2 と助言型は Rust の組だけにする",
+   "why_not": "利用者が求めたのは、言語ごとの雛形を Rust と同じ水準で持つことである。references を持つ Skill と助言型を、Rust を書かない利用者が作れない"
+  },
+  {
+   "option": "描画（view）だけは Rust の実行ファイルを呼び出して、各言語は検査と取り出しだけを持つ",
+   "why_not": "Python などの Skill が Rust の実行ファイルに依存し、処理系のほかに Rust の組み立てが要る。言語の組を選ぶ意味が無くなる"
+  },
+  {
+   "option": "出力の一致を確かめず、各言語の事例だけで合格とする",
+   "why_not": "描画の規則は x-view ・ 欄の順 ・ 空白の定義 ・ JSON の逃がし方で細かく分かれる。実際に、空白の定義（Python ・ JS）と全角空白の逃がし方（.NET）で違いが出て、突き合わせで見つけて直した"
+  },
+  {
+   "option": "検査の検出の文言と件数も、言語をまたいで一致させる",
+   "why_not": "検出の文言は JSON Schema の検査の道具ごとに違い、契約はそれを規定しない。合否と、事例が確かめる語（definition ・ steps）が入ることで足りる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "py-md",
+   "tab": "Python の組の説明",
+   "file": ".claude/skills/skills-creator/references/profiles/python.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "この組は契約の版2 を満たし、作業型と助言型を保持する",
+     "before": "この組は契約の版1 を満たし、作業型だけを持つ。助言型（版2）は Rust の組で生む。",
+     "why": "版2 の実体と助言型の雛形を持たせた。Rust の組と同じ水準である"
+    }
+   ]
+  },
+  {
+   "key": "py-refs",
+   "tab": "refs.py の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs.py.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"\"\"references の実装。**どの Skill も同じファイルを複製して使う** ── contract.py と同じ扱いである。",
+     "before": "（無い）",
+     "why": "Rust の refs.rs を関数ごとに移した。空白の集合 ・ JSON の値の等しさ（True と 1 を区別）・ 欄の欠けと null の区別を、Rust と同じにした"
+    }
+   ]
+  },
+  {
+   "key": "ts-refs",
+   "tab": "refs.ts の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs.ts.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "Rust の refs.rs を移した。JS の \\s は BOM を含むので、空白の集合を明示した。置換は関数で渡し、$& などを記法として解釈させない"
+    }
+   ]
+  },
+  {
+   "key": "go-refs",
+   "tab": "refs.go の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.go.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "Rust の refs.rs を移した。Go の map は欄の順を保たないので、順を保って読む JSON の型（Object）を持たせた。検査は MCP の Go SDK と同じ google/jsonschema-go で行う"
+    }
+   ]
+  },
+  {
+   "key": "py-profile",
+   "tab": "python.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/python.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"contract\": 2,",
+     "before": "\"contract\": 1,",
+     "why": "版2 の組にした。助言型の計画が通る"
+    },
+    {
+     "find": "  \"$comment\": \"言語の組の定義（ACDR 0062 ・ 0069）。Python の組は契約の版2 で、作業型と助言型を持つ。from は profiles/python/ からの相対。依存は uv が揃える\",",
+     "before": "（無い）",
+     "why": "定義の説明を、版2 と助言型に合わせた"
+    },
+    {
+     "find": "      \"from\": \"common/refs.py.tmpl\",",
+     "before": "（無い）",
+     "why": "references の実装と4つの道具を、共通の一式に足した"
+    },
+    {
+     "find": "      \"from\": \"../shared/document.schema.json.tmpl\",",
+     "before": "（無い）",
+     "why": "document のスキーマを、Rust の組と同じ共有の置き場所から置く"
+    },
+    {
+     "find": "      \"from\": \"types/advisor/tools.py.tmpl\",",
+     "before": "（無い）",
+     "why": "助言型の一式（道具の一覧 ・ 事例5件 ・ 回答の例）を足した"
+    },
+    {
+     "find": "  \"fixtures\": \"tool/tests/fixtures\"",
+     "before": "（無い）",
+     "why": "受け入れの検査が読む、回答の例の置き場所である"
+    }
+   ]
+  },
+  {
+   "key": "accept",
+   "tab": "accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/accept.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {",
+     "before": "pub fn accept(root: &Path, others: &[String], test: &[String]) -> Vec<Check> {",
+     "why": "回答の例の置き場所 ・ ソースの拡張子 ・ 試験のコマンドを、言語の組の定義から読む"
+    },
+    {
+     "find": "    // **ソースの拡張子と、入らないフォルダは言語の組が決める**（試験は数える ── 試験も道具の一部である）",
+     "before": "（無い）",
+     "why": "他の Skill の名前を探すソースが .rs に固定されていた。Python などの助言型では、道具の中の名前を見逃していた"
+    },
+    {
+     "find": "use crate::profile::Profile;",
+     "before": "（無い）",
+     "why": "言語の組の定義を受け取るために読み込む"
+    },
+    {
+     "find": "fn shape(root: &Path, fixtures: &str) -> Check {",
+     "before": "（無い）",
+     "why": "回答の例の置き場所を、言語の組の定義から受け取る"
+    },
+    {
+     "find": "                let generated = [",
+     "before": "（無い）",
+     "why": "組み立ての産物のフォルダ（node_modules ・ .venv ・ bin ・ obj など）には入らない。Rust の target だけを外していた"
+    },
+    {
+     "find": "    sources(&root.join(\"tool\"), lang, &mut targets);",
+     "before": "（無い）",
+     "why": "ソースを集めるときに、言語の組の定義を渡す"
+    },
+    {
+     "find": "fn other_skills(root: &Path, others: &[String], lang: &Profile) -> Check {",
+     "before": "fn other_skills(root: &Path, others: &[String]) -> Check {",
+     "why": "ソースの拡張子を、言語の組の定義から受け取る"
+    }
+   ]
+  },
+  {
+   "key": "profile-rs",
+   "tab": "profile.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/profile.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    pub fixtures: String,",
+     "before": "（無い）",
+     "why": "回答の例の置き場所を、言語の組の定義に持たせた（Rust は tool/business_logic/tests/fixtures、Go は tool/tools/testdata など）"
+    },
+    {
+     "find": "        fixtures: text(\"fixtures\"),",
+     "before": "（無い）",
+     "why": "定義の fixtures を読む。無ければ空である"
+    }
+   ]
+  },
+  {
+   "key": "rust-profile",
+   "tab": "rust.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"from\": \"../shared/document.schema.json.tmpl\",",
+     "before": "\"from\": \"common/document.schema.json.tmpl\",",
+     "why": "document.schema.json は言語に依存しないので、全ての組が共有の置き場所から置く"
+    },
+    {
+     "find": "  \"fixtures\": \"tool/business_logic/tests/fixtures\"",
+     "before": "（無い）",
+     "why": "Rust の組の回答の例の置き場所を、定義に書いた。以前は accept.rs に直書きしていた"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_advisor_skill_can_be_planned_in_python() {",
+     "before": "（無い）",
+     "why": "版1 の組が助言型を断る事例を、版2 の組が助言型を生む事例へ置き換えた。TypeScript ・ C# ・ Go も同じである"
+    },
+    {
+     "find": "    // **Python の組は版2 を満たす**（ACDR 0069）── 助言型の事例と回答の例を置く",
+     "before": "（無い）",
+     "why": "Python の組が助言型の一式を置くことを確かめる"
+    },
+    {
+     "find": "    let plan = profile::plan(&profiles, &types, &ts, &advisor).expect(\"組み合わせられる\");",
+     "before": "（無い）",
+     "why": "TypeScript の組が助言型を生めることを確かめる"
+    },
+    {
+     "find": "    let plan = profile::plan(&profiles, &types, &cs, &advisor).expect(\"組み合わせられる\");",
+     "before": "（無い）",
+     "why": "C# の組が助言型を生めることを確かめる"
+    },
+    {
+     "find": "    let plan = profile::plan(&profiles, &types, &go, &advisor).expect(\"組み合わせられる\");",
+     "before": "（無い）",
+     "why": "Go の組が助言型を生めることを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。どれも版2 で、作業型と助言型を生む",
+     "before": "Rust（版2 ・ 作業型と助言型）と Python ・ TypeScript ・ C# ・ Go（版1 ・ 作業型）",
+     "why": "組の一覧を、そろえた後の水準に一致させた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "py-md": "7445948a07739a4e915d3b6933e653eb26dcba1dc45d1587f209f382dc695f57",
+  "py-refs": "4bbaa122b769e0b305e61ab959a1be5df512c3f6b57a41a6efeb665dcc882d8b",
+  "ts-refs": "904f090bbf91c7e06a19845574a716dea2c9cb9f1ec0f66350ba552bd5d51c93",
+  "go-refs": "128dc2b274854bcc4137742b20616a5d377f6ea31415fb56688b8f4c9f75892d",
+  "py-profile": "c1b263f3b067e916ea14b3c299df8562b8f09642b26247013abed33a091425bf",
+  "accept": "4cac51d86bd6dd026ceae7309928a642fdf50049416825a9380b748e5db650d8",
+  "profile-rs": "ba1e90cd0a43c79a48402016eb5a6d5594ae48a8bff41d73e62d3b9febdc8eb6",
+  "rust-profile": "d1ab06d52bc031e56a294517d1ac366166498c7a75cceb04c821e4a0e99d39cf",
+  "tests": "0099d48090f7653f90a5e30bcbbf5974df6ed5daf208e86d8725896fbd4c8ff8",
+  "skill": "fa16cd76058f1c49a00ddb8eb486a14b3449987badfdc834c8621b597744a82b"
+ }
+}

@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: MIT
+"""references の道具を、道具の一覧に載せる。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・
+描画する ・ 取り込む（ACDR 0043）。実体は refs.py が持つ。**どの Skill も同じファイルを複製して使う。**
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from {{パッケージ名}} import refs
+from {{パッケージ名}}.contract import Arg, Given, Outcome, Tool
+
+
+def _refs_dir(given: Given) -> Path:
+    return given.skill_root() / "references"
+
+
+def _opt(given: Given, name: str) -> str | None:
+    v = given.one(name, "")
+    return v or None
+
+
+def _guard(run):
+    """読めない ・ 無いを、誤用として返す。"""
+
+    def wrapped(given: Given) -> Outcome:
+        try:
+            return run(given)
+        except (refs.RefsError, LookupError) as why:
+            return Outcome.misuse(str(why))
+
+    return wrapped
+
+
+@_guard
+def _run_get(given: Given) -> Outcome:
+    return Outcome.found([], refs.get(_refs_dir(given), given.one("kind", ""), _opt(given, "id")))
+
+
+@_guard
+def _run_validate(given: Given) -> Outcome:
+    d = _refs_dir(given)
+    file = _opt(given, "file")
+    found = refs.validate_file(d, given.one("kind", ""), Path(file)) if file else refs.validate(d)
+    return Outcome.found(found, {"kinds": [k.name for k in refs.kinds(d)]})
+
+
+@_guard
+def _run_view(given: Given) -> Outcome:
+    d = _refs_dir(given)
+    file = _opt(given, "file")
+    html = refs.view(d, given.one("kind", ""), _opt(given, "id"), Path(file) if file else None)
+    out = _opt(given, "out")
+    if out is None:
+        return Outcome.found([], {"html": html})
+    refs.save(Path(out), html)
+    return Outcome.found([], {"out": out, "bytes": len(html.encode("utf-8"))})
+
+
+@_guard
+def _run_import(given: Given) -> Outcome:
+    d = _refs_dir(given)
+    file = given.one("file", "")
+    text = refs.read_text(Path(file))
+    doc = refs.import_markdown(given.one("id", ""), given.one("source", file), given.one("fetched", ""), text)
+    path = refs.put_document(d, doc)
+    return Outcome.found(refs.validate(d), {"path": str(path)})
+
+
+def _human(out: Outcome) -> str:
+    if not out.ok or out.findings:
+        return "\n".join(f"  ×  {x}" for x in out.findings)
+    if isinstance(out.data, dict) and isinstance(out.data.get("html"), str):
+        return out.data["html"]
+    return json.dumps(out.data, ensure_ascii=False, indent=2)
+
+
+def tools() -> list[Tool]:
+    """references の4つの道具。**道具の一覧（tools.py）がこれを足す。**"""
+    root = lambda: Arg.opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）")  # noqa: E731
+    return [
+        Tool("get", "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
+             [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), root()], _run_get, _human),
+        Tool("validate", "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
+             [Arg.opt("kind", "種類の名前（file と一緒に渡す）"), Arg.opt("file", "検査する JSON"), root()], _run_validate, _human),
+        Tool("view", "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
+             [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), Arg.opt("file", "描画する JSON（回答など）"),
+              Arg.opt("out", "HTML の置き場所"), root()], _run_view, _human),
+        Tool("import", "Markdown の文書を、見出しを節の入れ子に分けて document へ取り込む",
+             [Arg.need("file", "取り込む Markdown"), Arg.need("id", "document の id"), Arg.opt("source", "元の場所（既定は file）"),
+              Arg.opt("fetched", "取り込んだ日"), root()], _run_import, _human),
+    ]

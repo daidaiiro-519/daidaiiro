@@ -5,11 +5,15 @@
 // CLI と MCP はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。
 package tools
 
-import "{{パッケージ名}}/contract"
+import (
+	"{{パッケージ名}}/contract"
+	"{{パッケージ名}}/refs"
+)
 
-// All はこの Skill が持つ道具の一覧である。
+// All はこの Skill が持つ道具の一覧である。references の4つの道具（get ・ validate ・ view ・ import）は、
+// どの Skill も同じものを足す（ACDR 0043）。
 func All() []contract.Tool {
-	return []contract.Tool{
+	return append([]contract.Tool{
 		{
 			Name:    "hello",
 			Summary: "見本の道具。名前を受けて、あいさつの文を返す",
@@ -17,7 +21,7 @@ func All() []contract.Tool {
 			Run:     runHello,
 			Human:   humanHello,
 		},
-	}
+	}, refs.Tools()...)
 }
 
 // runHello は見本の道具である。**書き換えて、この Skill の道具にする。**
@@ -30,6 +34,7 @@ func humanHello(out contract.Outcome) string {
 	if !out.Ok {
 		return out.Findings[0]
 	}
-	s, _ := out.Data["greeting"].(string)
+	data, _ := out.Data.(map[string]any)
+	s, _ := data["greeting"].(string)
 	return s
 }

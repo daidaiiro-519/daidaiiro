@@ -41,6 +41,8 @@ pub struct Profile {
     pub dist: bool,
     /// 雛形の構成の検査（`--layout 1`）を持つか。
     pub layout: bool,
+    /// 回答の例の置き場所（Skill のフォルダからの相対）。**助言型の受け入れの検査が読む。**
+    pub fixtures: String,
 }
 
 fn strings(v: &Value, key: &str) -> Vec<String> {
@@ -97,6 +99,7 @@ fn parse(body: &str, at: &Path) -> Result<Profile, String> {
         spawn: strings(&v, "spawn"),
         dist: flag("dist"),
         layout: flag("layout"),
+        fixtures: text("fixtures"),
     })
 }
 

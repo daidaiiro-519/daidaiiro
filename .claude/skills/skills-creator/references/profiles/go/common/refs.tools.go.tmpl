@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: MIT
+
+package refs
+
+// references の道具を、道具の一覧に載せる。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・
+// 描画する ・ 取り込む（ACDR 0043）。**どの Skill も同じファイルを複製して使う。**
+
+import (
+	"encoding/json"
+	"path/filepath"
+	"strings"
+
+	"{{パッケージ名}}/contract"
+)
+
+func refsDir(given *contract.Given) (string, error) {
+	root, err := given.SkillRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "references"), nil
+}
+
+func runGet(given *contract.Given) contract.Outcome {
+	d, err := refsDir(given)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	got, err := Get(d, given.One("kind", ""), given.One("id", ""))
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	return contract.Found(nil, got)
+}
+
+func runValidate(given *contract.Given) contract.Outcome {
+	d, err := refsDir(given)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	var found []string
+	if file := given.One("file", ""); file != "" {
+		found, err = ValidateFile(d, given.One("kind", ""), file)
+	} else {
+		found, err = Validate(d)
+	}
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	all, err := Kinds(d)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	names := []string{}
+	for _, k := range all {
+		names = append(names, k.Name)
+	}
+	return contract.Found(found, map[string]any{"kinds": names})
+}
+
+func runView(given *contract.Given) contract.Outcome {
+	d, err := refsDir(given)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	html, err := View(d, given.One("kind", ""), given.One("id", ""), given.One("file", ""))
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	out := given.One("out", "")
+	if out == "" {
+		return contract.Found(nil, map[string]any{"html": html})
+	}
+	if err := Save(out, html); err != nil {
+		return contract.Misuse(err.Error())
+	}
+	return contract.Found(nil, map[string]any{"out": out, "bytes": len(html)})
+}
+
+func runImport(given *contract.Given) contract.Outcome {
+	d, err := refsDir(given)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	file := given.One("file", "")
+	text, err := ReadText(file)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	doc := ImportMarkdown(given.One("id", ""), given.One("source", file), given.One("fetched", ""), text)
+	path, err := PutDocument(d, doc)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	found, err := Validate(d)
+	if err != nil {
+		return contract.Misuse(err.Error())
+	}
+	return contract.Found(found, map[string]any{"path": path})
+}
+
+func human(out contract.Outcome) string {
+	if !out.Ok || len(out.Findings) > 0 {
+		lines := make([]string, 0, len(out.Findings))
+		for _, x := range out.Findings {
+			lines = append(lines, "  ×  "+x)
+		}
+		return strings.Join(lines, "\n")
+	}
+	if m, ok := out.Data.(map[string]any); ok {
+		if html, ok := m["html"].(string); ok {
+			return html
+		}
+	}
+	body, _ := json.MarshalIndent(out.Data, "", "  ")
+	return string(body)
+}
+
+// Tools は references の4つの道具である。**道具の一覧（tools.All）がこれを足す。**
+func Tools() []contract.Tool {
+	root := contract.Opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）", nil)
+	return []contract.Tool{
+		{Name: "get", Summary: "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
+			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), root}, Run: runGet, Human: human},
+		{Name: "validate", Summary: "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
+			Args: []contract.Arg{contract.Opt("kind", "種類の名前（file と一緒に渡す）", nil), contract.Opt("file", "検査する JSON", nil), root}, Run: runValidate, Human: human},
+		{Name: "view", Summary: "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
+			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), contract.Opt("file", "描画する JSON（回答など）", nil),
+				contract.Opt("out", "HTML の置き場所", nil), root}, Run: runView, Human: human},
+		{Name: "import", Summary: "Markdown の文書を、見出しを節の入れ子に分けて document へ取り込む",
+			Args: []contract.Arg{contract.Need("file", "取り込む Markdown"), contract.Need("id", "document の id"), contract.Opt("source", "元の場所（既定は file）", nil),
+				contract.Opt("fetched", "取り込んだ日", nil), root}, Run: runImport, Human: human},
+	}
+}

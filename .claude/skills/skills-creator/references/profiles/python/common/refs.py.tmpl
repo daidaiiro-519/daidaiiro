@@ -1,0 +1,808 @@
+# SPDX-License-Identifier: MIT
+"""references の実装。**どの Skill も同じファイルを複製して使う** ── contract.py と同じ扱いである。
+
+references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。種類ごとに、
+JSON Schema（<種類>.schema.json）と、それに従う JSON（<種類>.json）を置く。JSON は
+$schema でスキーマを指す。回答の形のように、スキーマだけの種類も在る。
+
+持つ能力は4つである ── 取り出す（get）・ 検査する（validate）・ 描画する（view）・
+既存の文書を取り込む（import）。**描画は回答の形も種類の中身も参照しない** ── スキーマの
+title を見出しに、description を説明にし、見せ方は x-view が決める。
+
+**出力は Rust の組の refs.rs と1バイトずつ同じにする**（ACDR 0069）── 同じ references が、
+言語によって違って見えてはならない。
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
+
+SCHEMA_TAIL = ".schema.json"
+
+# 見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。**
+DEFAULT_TOKENS = [
+    ("ink", "#1f2328"),
+    ("muted", "#59636e"),
+    ("line", "#d1d9e0"),
+    ("paper", "#ffffff"),
+    ("band", "#f3f5f7"),
+    ("accent", "#0f6e5c"),
+    ("accent-soft", "#e3f1ed"),
+    ("warn", "#9a3412"),
+    ("warn-soft", "#fdeee6"),
+    ("radius", "10px"),
+    ("gap", "16px"),
+]
+
+# 既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。
+# Skill は references/view.template.html で差し替えてよい。
+DEFAULT_TEMPLATE = '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style></head><body><main class="rv">{{body}}</main></body></html>'
+
+# 頁の規則（body と main）。**単独の頁のときだけ使う。**
+PAGE_STYLE = "*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}"
+
+# 型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。
+STYLE = '.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}'
+
+# 空白の集合。**Rust の char::is_whitespace（Unicode の White_Space）と同じにする** ──
+# Python の既定の strip は制御文字 \x1c〜\x1f も外し、結果が Rust と食い違う。
+_WS = "\t\n\x0b\x0c\r \x85\xa0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000"
+
+# 欄が無いことを示す印。**欄が在って値が null のときと区別する** ── Rust の Option と同じ扱いにする。
+_MISSING = object()
+
+
+class RefsError(Exception):
+    """references を読めない ・ 書けない ・ 項目が無いときの誤り。道具は誤用として返す。"""
+
+
+@dataclass(frozen=True)
+class Kind:
+    """種類1つ。data はスキーマだけの種類では None である。"""
+
+    name: str
+    schema: Path
+    data: Path | None
+
+
+def _names(refs: Path) -> list[str]:
+    try:
+        return sorted(p.name for p in refs.iterdir())
+    except OSError as e:
+        raise RefsError(f"{refs} を読めない ── {e}") from e
+
+
+def kinds(refs: Path) -> list[Kind]:
+    """references の種類を並べる。**名前の順である** ── 実行ごとに順が変わると、差分が毎回出る。"""
+    out = []
+    for file in _names(refs):
+        if not file.endswith(SCHEMA_TAIL):
+            continue
+        name = file[: -len(SCHEMA_TAIL)]
+        data = refs / f"{name}.json"
+        out.append(Kind(name, refs / file, data if data.is_file() else None))
+    return out
+
+
+def save(out: Path, html: str) -> None:
+    """描画した頁を書き出す。"""
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(html, encoding="utf-8")
+    except OSError as e:
+        raise RefsError(f"{out} に書けない ── {e}") from e
+
+
+def read_text(file: Path) -> str:
+    """取り込む文書を読む。"""
+    try:
+        return file.read_text(encoding="utf-8")
+    except OSError as e:
+        raise RefsError(f"{file} を読めない ── {e}") from e
+
+
+def _read_json(path: Path):
+    try:
+        body = path.read_text(encoding="utf-8")
+    except OSError as e:
+        raise RefsError(f"{path} を読めない ── {e}") from e
+    try:
+        return json.loads(body)
+    except ValueError as e:
+        raise RefsError(f"{path} が JSON でない ── {e}") from e
+
+
+def _pointer(path) -> str:
+    return "/".join(str(p).replace("~", "~0").replace("/", "~1") for p in path)
+
+
+def _against(schema, instance, head: str) -> list[str]:
+    """スキーマで検査する。**$schema の欄は、スキーマを指す印なので外してから当てる。**"""
+    plain = instance
+    if isinstance(plain, dict):
+        plain = {k: v for k, v in plain.items() if k != "$schema"}
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError:
+        return [f"{head}: スキーマとして無効である"]
+    found = [f"{head}: {_pointer(e.absolute_path)} ── {e.message}" for e in Draft202012Validator(schema).iter_errors(plain)]
+    return sorted(found)
+
+
+def validate(refs: Path) -> list[str]:
+    """references を検査する。**スキーマに合わない JSON、スキーマを指さない JSON、Markdown を並べる。**"""
+    found: list[str] = []
+    for file in _names(refs):
+        if file.endswith(".md"):
+            found.append(f"{file}: Markdown が在る ── references は JSON Schema と JSON で持つ（Markdown は SKILL.md だけ）")
+        if not file.endswith(".json") or file.endswith(SCHEMA_TAIL):
+            continue
+        try:
+            data = _read_json(refs / file)
+        except RefsError as why:
+            found.append(str(why))
+            continue
+        # **$schema が指すスキーマで検査する** ── 雛形のように、種類の名前と違うスキーマを指してよい
+        own = file[: -len(".json")] + SCHEMA_TAIL
+        want = data.get("$schema") if isinstance(data, dict) else None
+        if not isinstance(want, str):
+            found.append(f"{file}: $schema が無い ── {own} を指す")
+            want = own
+        try:
+            schema = _read_json(refs / want)
+        except RefsError:
+            found.append(f"{file}: スキーマ {want} が無い")
+            continue
+        found.extend(_against(schema, data, file))
+    return found
+
+
+def validate_file(refs: Path, kind: str, file: Path) -> list[str]:
+    """1つの JSON を、種類のスキーマで検査する。**回答のように、references の外の JSON に使う。**"""
+    schema = _read_json(refs / f"{kind}{SCHEMA_TAIL}")
+    data = _read_json(file)
+    return _against(schema, data, str(file))
+
+
+def get(refs: Path, kind: str, id: str | None = None):
+    """種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。"""
+    data = _read_json(refs / f"{kind}.json")
+    if isinstance(data, dict):
+        data.pop("$schema", None)
+    if id is None:
+        return data
+    items = data.get("items", _MISSING) if isinstance(data, dict) else _MISSING
+    if items is _MISSING:
+        items = data
+    if not isinstance(items, list):
+        raise RefsError(f"{kind} は項目の並びではない ── id で取り出せない")
+    for x in items:
+        if isinstance(x, dict) and _same(x.get("id", _MISSING), id):
+            return x
+    raise RefsError(f"{kind} に id {id} の項目が無い")
+
+
+def _lines(text: str) -> list[str]:
+    """行に分ける。**Rust の str::lines と同じ規則である** ── 末尾の改行は空の行を作らず、行末の CR を外す。"""
+    parts = text.split("\n")
+    if parts and parts[-1] == "":
+        parts.pop()
+    return [p[:-1] if p.endswith("\r") else p for p in parts]
+
+
+def _numbered(t: str) -> tuple[bool, str]:
+    n, sep, rest = t.partition(". ")
+    if sep and n and all(c in "0123456789" for c in n):
+        return True, rest
+    return False, ""
+
+
+def blocks_of(lines: list[str]) -> list[dict]:
+    """本文を塊に分ける ── 段落 ・ 箇条書き ・ 表 ・ コード。**記号のまま残さない。** 区切りの線（---）は捨てる。"""
+
+    def plain(t: str) -> str:
+        return t.replace("**", "").replace("`", "")
+
+    def cells(line: str) -> list[str]:
+        return [plain(c.strip(_WS)) for c in line.strip(_WS).strip("|").split("|")]
+
+    out: list[dict] = []
+    para: list[str] = []
+
+    def flush() -> None:
+        if para:
+            out.append({"kind": "para", "text": "".join(para)})
+            para.clear()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip(_WS)
+        t = line.lstrip(_WS)
+        if t.startswith("```"):
+            flush()
+            code = []
+            i += 1
+            while i < len(lines) and not lines[i].lstrip(_WS).startswith("```"):
+                code.append(lines[i])
+                i += 1
+            out.append({"kind": "code", "text": "\n".join(code)})
+        elif t.startswith("|"):
+            flush()
+            head = cells(t)
+            rows = []
+            i += 1
+            while i < len(lines) and lines[i].lstrip(_WS).startswith("|"):
+                r = cells(lines[i])
+                if not all(all(ch in "-: " for ch in c) for c in r):
+                    rows.append(r)
+                i += 1
+            out.append({"kind": "table", "head": head, "rows": rows})
+            continue
+        elif t.startswith("- ") or t.startswith("* ") or _numbered(t)[0]:
+            flush()
+            ordered = not t.startswith("-") and not t.startswith("*")
+            items = []
+            while i < len(lines):
+                l = lines[i].lstrip(_WS)
+                if l.startswith("- ") or l.startswith("* "):
+                    item = l[2:]
+                else:
+                    ok, rest = _numbered(l)
+                    if not ok:
+                        break
+                    item = rest
+                items.append(plain(item))
+                i += 1
+            out.append({"kind": "list", "ordered": ordered, "items": items})
+            continue
+        elif t == "" or all(c == "-" for c in t):
+            flush()
+        else:
+            para.append(plain(t.lstrip(">").strip(_WS)))
+        i += 1
+    flush()
+    return out
+
+
+def import_markdown(id: str, location: str, fetched: str, text: str) -> dict:
+    """Markdown の文書を、document の1件へ取り込む。**見出しを節の入れ子に分ける。**"""
+
+    class Node:
+        def __init__(self, title: str = "", level: int = 0) -> None:
+            self.title, self.level, self.body, self.children = title, level, [], []
+
+    def to_json(n: Node) -> dict:
+        m: dict = {"title": n.title}
+        blocks = blocks_of(n.body)
+        if blocks:
+            m["blocks"] = blocks
+        if n.children:
+            m["sections"] = [to_json(c) for c in n.children]
+        return m
+
+    stack = [Node()]
+    fence = False
+    # **frontmatter は取り込まない** ── 原典の管理のための欄であって、本文ではない
+    body = text
+    if text.startswith("---\n"):
+        rest = text[4:]
+        at = rest.find("\n---\n")
+        if at >= 0:
+            body = rest[at + 5 :]
+    for line in _lines(body):
+        if line.lstrip(_WS).startswith("```"):
+            fence = not fence
+        hashes = len(line) - len(line.lstrip("#"))
+        heading = not fence and 1 <= hashes <= 6 and line[hashes:].startswith(" ")
+        if not heading:
+            stack[-1].body.append(line)
+            continue
+        while len(stack) > 1 and stack[-1].level >= hashes:
+            done = stack.pop()
+            stack[-1].children.append(done)
+        stack.append(Node(line[hashes:].strip(_WS), hashes))
+    while len(stack) > 1:
+        done = stack.pop()
+        stack[-1].children.append(done)
+    root = stack.pop()
+    title = root.children[0].title if root.children else id
+    doc: dict = {
+        "id": id,
+        "title": title,
+        "source": {"location": location, "sha256": sha256_hex(text.encode("utf-8")), "fetched": fetched},
+    }
+    doc["sections"] = [to_json(c) for c in root.children]
+    lead = blocks_of(root.body)
+    if lead:
+        doc["blocks"] = lead
+    return doc
+
+
+def _pretty(v) -> str:
+    return json.dumps(v, ensure_ascii=False, indent=2)
+
+
+def put_document(refs: Path, doc: dict) -> Path:
+    """document の並びへ1件を置く。**同じ id が在れば置き換える。**"""
+    path = refs / "document.json"
+    everything = _read_json(path) if path.is_file() else {"$schema": "document.schema.json", "items": []}
+    items = everything.get("items") if isinstance(everything, dict) else None
+    if not isinstance(items, list):
+        raise RefsError("document.json に items が無い")
+    key = doc.get("id")
+    items[:] = [x for x in items if not (isinstance(x, dict) and "id" in x and _same(x["id"], key))]
+    items.append(doc)
+    try:
+        path.write_text(_pretty(everything) + "\n", encoding="utf-8")
+    except OSError as e:
+        raise RefsError(f"{path} に書けない ── {e}") from e
+    return path
+
+
+def sha256_hex(data: bytes) -> str:
+    """SHA-256 を16進で返す。"""
+    return hashlib.sha256(data).hexdigest()
+
+
+# ── 描画 ────────────────────────────────────────────────────────────────
+
+
+def _same(a, b) -> bool:
+    """JSON の値として等しいか。**真偽と数を区別する** ── Python では True == 1 が成り立つ。"""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is type(b) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return a == b
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, dict):
+        return a.keys() == b.keys() and all(_same(a[k], b[k]) for k in a)
+    if isinstance(a, list):
+        return len(a) == len(b) and all(_same(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+def _esc(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _text(v) -> str:
+    """値を文字列にする。**文字列はそのまま、null は空、それ以外は1行の JSON である。**"""
+    if isinstance(v, str):
+        return v
+    if v is None or v is _MISSING:
+        return ""
+    return json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+
+
+def _get(v, key: str):
+    return v.get(key, _MISSING) if isinstance(v, dict) else _MISSING
+
+
+def _str(v, key: str) -> str | None:
+    x = _get(v, key)
+    return x if isinstance(x, str) else None
+
+
+def _str_or(v, key: str, fallback: str) -> str:
+    """文字列の欄を返す。**欄が無いときだけ fallback を使う** ── 空の文字列は、そのまま空として使う。"""
+    x = _str(v, key)
+    return fallback if x is None else x
+
+
+def _walk(root, pointer: str):
+    """JSON Pointer を解く。**無ければ _MISSING を返す。**"""
+    if pointer == "":
+        return root
+    if not pointer.startswith("/"):
+        return _MISSING
+    cur = root
+    for raw in pointer[1:].split("/"):
+        token = raw.replace("~1", "/").replace("~0", "~")
+        if isinstance(cur, dict):
+            if token not in cur:
+                return _MISSING
+            cur = cur[token]
+        elif isinstance(cur, list):
+            if not token.isdigit() or (len(token) > 1 and token[0] == "0") or int(token) >= len(cur):
+                return _MISSING
+            cur = cur[int(token)]
+        else:
+            return _MISSING
+    return cur
+
+
+def _resolve(schema, root):
+    """$ref（#/$defs/…）を解く。**スキーマの中だけを指す** ── 外を指す参照は解かない。"""
+    r = _str(schema, "$ref")
+    if r is None or not r.startswith("#"):
+        return schema
+    hit = _walk(root, r[1:])
+    return schema if hit is _MISSING else hit
+
+
+def _label(schema, value) -> str:
+    options = _get(schema, "oneOf")
+    if isinstance(options, list):
+        for o in options:
+            if isinstance(o, dict) and "const" in o and _same(o["const"], value):
+                t = _str(o, "title")
+                if t is not None:
+                    return t
+                break
+    return _text(value)
+
+
+def _tag(schema, value) -> str:
+    neg = value is False or value == "reject"
+    return f'<span class="{"tag neg" if neg else "tag"}">{_esc(_label(schema, value))}</span>'
+
+
+def _scalar(schema) -> bool:
+    return _get(schema, "oneOf") is not _MISSING or _str(schema, "type") in ("string", "number", "integer", "boolean")
+
+
+def _head(key: str, schema, level: int) -> str:
+    h = min(max(level, 2), 3)
+    title = _str_or(schema, "title", key)
+    d = _str(schema, "description")
+    desc = f'<p class="desc">{_esc(d)}</p>' if d is not None else ""
+    return f"<h{h}>{_esc(title)}</h{h}>{desc}"
+
+
+@dataclass
+class _Ctx:
+    root: object
+    base: Path
+
+
+def _view(schema) -> str:
+    return _str(schema, "x-view") or ""
+
+
+def _cell(schema, value, ctx: _Ctx) -> str:
+    schema = _resolve(schema, ctx.root)
+    if _view(schema) == "tag" or _get(schema, "oneOf") is not _MISSING:
+        return _tag(schema, value)
+    return _esc(_text(value))
+
+
+def _props(schema):
+    p = _get(schema, "properties")
+    return p if isinstance(p, dict) else None
+
+
+def _inner(value, schema, level: int, ctx: _Ctx) -> str:
+    schema = _resolve(schema, ctx.root)
+    if isinstance(value, dict):
+        props = _props(schema)
+        out = []
+        for key in list(props.keys()) if props is not None else list(value.keys()):
+            if key not in value:
+                continue
+            sub = props.get(key) if props is not None else None
+            if _view(_resolve(sub, ctx.root)) == "hidden":
+                continue
+            out.append(f'<div class="nest">{_head(key, _resolve(sub, ctx.root), level)}{_inner(value[key], sub, level + 1, ctx)}</div>')
+        return "".join(out)
+    if isinstance(value, list):
+        item = _resolve(_get(schema, "items") if _get(schema, "items") is not _MISSING else None, ctx.root)
+        props = _props(item)
+        if props is not None and all(_scalar(_resolve(s, ctx.root)) for s in props.values()):
+            # **どの行も値を保持しない列は描かない** ── 空の列は、欠けがあるように読める
+            cols = [(k, s) for k, s in props.items() if any(_get(v, k) is not _MISSING for v in value)]
+            # **列が1つなら箇条書きにする** ── 1列の表は、見出しの升が中身を説明しない
+            if len(cols) == 1:
+                k, s = cols[0]
+                lis = "".join(f"<li>{_cell(s, _get(v, k), ctx)}</li>" for v in value if _get(v, k) is not _MISSING)
+                return f"<ul>{lis}</ul>"
+            th = "".join(f"<th>{_esc(_str_or(s, 'title', k))}</th>" for k, s in cols)
+            rows = "".join(
+                "<tr>" + "".join(f"<td>{_cell(s, None if _get(v, k) is _MISSING else _get(v, k), ctx)}</td>" for k, s in cols) + "</tr>"
+                for v in value
+            )
+            return f'<div class="scroll"><table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div>'
+        if props is not None:
+            return "".join(f'<div class="item">{_inner(v, item, level + 1, ctx)}</div>' for v in value)
+        lis = "".join(f"<li>{_esc(_text(v))}</li>" for v in value)
+        return f"<ul>{lis}</ul>"
+    if _get(schema, "oneOf") is not _MISSING or _view(schema) == "tag":
+        return _tag(schema, value)
+    t = _text(value)
+    return f"<pre>{_esc(t)}</pre>" if "\n" in t else f"<p>{_esc(t)}</p>"
+
+
+def _read_or_empty(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        return ""
+
+
+def _svg_of(p: str, base: Path) -> str:
+    """SVG を埋め込む。**svg はファイル名（references からの経路）か、SVG そのもの。**"""
+    return p if p.lstrip(_WS).startswith("<svg") else _read_or_empty(base / p)
+
+
+def _items_of(schema, ctx: _Ctx):
+    return _resolve(_get(schema, "items") if _get(schema, "items") is not _MISSING else None, ctx.root)
+
+
+def _sections(schema, value, ctx: _Ctx) -> str:
+    """論点の並びを描く ── **1件を1枚にし、heading の欄を題、lead の欄を主張にする。**"""
+    item = _items_of(schema, ctx)
+    values = value if isinstance(value, list) else []
+    return "".join(f'<section class="block topic">{_fields(item, v, ctx)}</section>' for v in values)
+
+
+def _fields(schema, value, ctx: _Ctx) -> str:
+    """欄を順に描く。**heading は題、lead は主張、hidden は描かない。**"""
+    props = _props(schema)
+    if props is None:
+        return _inner(value, schema, 3, ctx)
+    out = []
+    for k, p in props.items():
+        if k == "kind":
+            continue
+        v = _get(value, k)
+        if v is not _MISSING:
+            out.append(_field(_resolve(p, ctx.root), v, ctx))
+    return "".join(out)
+
+
+def _field(schema, value, ctx: _Ctx) -> str:
+    """欄1つを描く。見出しを付けない ── 論点と単位の中では、形そのものが役割を示す。"""
+    v = _view(schema)
+    if v == "hidden":
+        return ""
+    if v == "heading":
+        return f"<h2>{_esc(_text(value))}</h2>"
+    if v == "lead":
+        return f'<p class="claim">{_esc(_text(value))}</p>'
+    if v == "subhead":
+        return f"<h3>{_esc(_text(value))}</h3>"
+    if v == "paras":
+        # **段落の並びは、段落ごとに描く** ── 1つの文字列へ連結すると、原文の段落の切れ目が消える
+        return "".join(f"<p>{_esc(_text(p))}</p>" for p in (value if isinstance(value, list) else []))
+    if v == "svg":
+        return f"<figure>{_svg_of(value if isinstance(value, str) else '', ctx.base)}</figure>"
+    if v == "code":
+        return f'<pre class="code">{_esc(_text(value))}</pre>'
+    if v == "units":
+        return _units(schema, value, ctx)
+    if v == "blocks":
+        return _blocks(value, ctx.base)
+    if v == "steps":
+        return _steps(schema, value, ctx)
+    if v == "table":
+        t = dict(value) if isinstance(value, dict) else {}
+        t["kind"] = "table"
+        return _blocks([t], ctx.base)
+    return _inner(value, schema, 4, ctx)
+
+
+def _units(schema, value, ctx: _Ctx) -> str:
+    """単位の並びを描く。**形は kind の値で、items.oneOf から選ぶ** ── 形の title を札にする。"""
+    items = _get(schema, "items")
+    forms = []
+    if items is not _MISSING:
+        options = _get(_resolve(items, ctx.root), "oneOf")
+        if isinstance(options, list):
+            forms = [_resolve(f, ctx.root) for f in options]
+    out = []
+    for u in value if isinstance(value, list) else []:
+        want = _get(u, "kind")
+        form = None
+        for f in forms:
+            have = _walk(f, "/properties/kind/const")
+            if (have is _MISSING and want is _MISSING) or (have is not _MISSING and want is not _MISSING and _same(have, want)):
+                form = f
+                break
+        t = _str(form, "title")
+        label = f'<span class="ulabel">{_esc(t)}</span>' if t is not None else ""
+        out.append(f'<div class="unit">{label}{_fields(form, u, ctx)}</div>')
+    return "".join(out)
+
+
+def _steps(schema, value, ctx: _Ctx) -> str:
+    """手順を番号付きで描く。**各段の1つ目の欄を太字にし、残りを添える。**"""
+    item = _items_of(schema, ctx)
+    props = _props(item)
+    keys = list(props.keys()) if props is not None else []
+    lis = []
+    for v in value if isinstance(value, list) else []:
+        parts = [_get(v, k) for k in keys if _get(v, k) is not _MISSING]
+        lead = f'<p class="lead">{_esc(_text(parts[0]))}</p>' if parts else ""
+        rest = "".join(f'<p class="sub">{_esc(_text(x))}</p>' for x in parts[1:])
+        lis.append(f"<li>{lead}{rest}</li>")
+    return f'<ol class="steps">{"".join(lis)}</ol>'
+
+
+def _blocks(blocks, base: Path) -> str:
+    """本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む。**"""
+    out = []
+    for b in blocks if isinstance(blocks, list) else []:
+        kind = _str(b, "kind")
+        if kind == "list":
+            tag = "ol" if _get(b, "ordered") is True else "ul"
+            items = _get(b, "items")
+            lis = "".join(f"<li>{_esc(_text(x))}</li>" for x in (items if isinstance(items, list) else []))
+            out.append(f"<{tag}>{lis}</{tag}>")
+        elif kind == "table":
+            def row(r, t):
+                return "".join(f"<{t}>{_esc(_text(c))}</{t}>" for c in (r if isinstance(r, list) else []))
+            head = _get(b, "head")
+            th = row(head, "th") if head is not _MISSING else ""
+            rows = _get(b, "rows")
+            trs = "".join(f"<tr>{row(r, 'td')}</tr>" for r in (rows if isinstance(rows, list) else []))
+            out.append(f'<div class="scroll"><table><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>')
+        elif kind == "figure":
+            p = _str(b, "svg")
+            svg = _svg_of(p, base) if p is not None else ""
+            c = _str(b, "caption")
+            cap = f"<figcaption>{_esc(c)}</figcaption>" if c is not None else ""
+            out.append(f"<figure>{svg}{cap}</figure>")
+        elif kind == "code":
+            out.append(f'<pre class="code">{_esc(_str(b, "text") or "")}</pre>')
+        else:
+            out.append(f"<p>{_esc(_str(b, 'text') or '')}</p>")
+    return "".join(out)
+
+
+def _outline(items, level: int, base: Path) -> str:
+    """節の入れ子を、見出しと本文の字下げで組む。**欄の名前（見出し ・ 本文）は表示しない。**"""
+    h = min(max(level + 1, 3), 6)
+    out = []
+    for n in items if isinstance(items, list) else []:
+        title = _esc(_str(n, "title") or "")
+        b = _get(n, "blocks")
+        body = _blocks(b, base) if b is not _MISSING else ""
+        k = _get(n, "sections")
+        kids = _outline(k, level + 1, base) if k is not _MISSING else ""
+        out.append(f'<div class="nest"><h{h}>{title}</h{h}>{body}{kids}</div>')
+    return "".join(out)
+
+
+def _block(key: str, schema, value, ctx: _Ctx) -> str:
+    schema = _resolve(schema, ctx.root)
+    head = _head(key, schema, 2)
+    v = _view(schema)
+    if v == "hidden":
+        return ""
+    if v == "outline":
+        return f'<section class="block">{head}{_outline(value, 2, ctx.base)}</section>'
+    if v == "blocks":
+        return f'<section class="block">{head}{_blocks(value, ctx.base)}</section>'
+    if v == "sections":
+        return _sections(schema, value, ctx)
+    if v == "group":
+        # **導入の文と表を1枚にまとめる** ── 分けると、導入の文が別の論点に属すように読める
+        return f'<section class="block">{head}{_fields(schema, value, ctx)}</section>'
+    if v == "card" and isinstance(value, str):
+        title = _esc(_str_or(schema, "title", key))
+        return f'<section class="card"><div class="cardhead"><h2>{title}</h2></div><p class="lead">{_esc(_text(value))}</p></section>'
+    if v == "card":
+        props = _props(schema) or {}
+        tags = []
+        lines = []
+        for k, p in props.items():
+            x = _get(value, k)
+            if x is _MISSING:
+                continue
+            if _view(p) == "tag":
+                tags.append(_tag(p, x))
+            else:
+                lines.append(_esc(_text(x)))
+        body = "".join(f'<p class="{"lead" if i == 0 else "sub"}">{l}</p>' for i, l in enumerate(lines))
+        title = _esc(_str_or(schema, "title", key))
+        return f'<section class="card"><div class="cardhead"><h2>{title}</h2>{"".join(tags)}</div>{body}</section>'
+    if v == "figure":
+        # **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
+        p = _str(value, "svg")
+        svg = _svg_of(p, ctx.base) if p is not None else ""
+        cap = _esc(_str(value, "caption") or "")
+        return f'<section class="block">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>'
+    if v == "steps":
+        return f'<section class="block">{head}{_steps(schema, value, ctx)}</section>'
+    return f'<section class="block">{head}{_inner(value, schema, 3, ctx)}</section>'
+
+
+def _page_body(schema, value, ctx: _Ctx) -> str:
+    """1件を描画する。**x-view が heading の欄を h1、トップの tag の欄を見出しの上の札にする。**"""
+    schema = _resolve(schema, ctx.root)
+    props = _props(schema)
+    if props is None:
+        return _inner(value, schema, 2, ctx)
+    eyebrow = [_esc(_str(ctx.root, "title") or "")]
+    h1 = ""
+    body = []
+    for k, p in props.items():
+        p = _resolve(p, ctx.root)
+        v = _get(value, k)
+        if v is _MISSING:
+            continue
+        view = _view(p)
+        if view == "tag":
+            eyebrow.append(_tag(p, v))
+        elif view == "meta":
+            t = _text(v)
+            if t:
+                eyebrow.append(_esc(t))
+        elif view == "heading":
+            h1 = _esc(_text(v))
+        else:
+            body.append(_block(k, p, v, ctx))
+    lead = h1 if h1 else _esc(_str(value, "title") or "")
+    return f'<header><p class="eyebrow">{" ・ ".join(eyebrow)}</p><h1>{lead}</h1></header>{"".join(body)}'
+
+
+def scoped_style() -> str:
+    """.rv の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う。**"""
+    return STYLE
+
+
+def render_body(schema, value, base: Path) -> str:
+    """1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**"""
+    return f'<div class="rv">{_page_body(schema, value, _Ctx(schema, base))}</div>'
+
+
+def _tokens(refs: Path) -> str:
+    """見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**"""
+    tokens = [list(t) for t in DEFAULT_TOKENS]
+    try:
+        over = _read_json(refs / "view.tokens.json")
+    except RefsError:
+        over = None
+    if isinstance(over, dict):
+        for k, v in over.items():
+            if not isinstance(v, str):
+                continue
+            slot = next((t for t in tokens if t[0] == k), None)
+            if slot is not None:
+                slot[1] = v
+            else:
+                tokens.append([k, v])
+    decl = "".join(f"--{k}:{v};" for k, v in tokens)
+    return f":root{{{decl}}}{PAGE_STYLE}{STYLE}"
+
+
+def view(refs: Path, kind: str, id: str | None = None, file: Path | None = None) -> str:
+    """種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。"""
+    root = _read_json(refs / f"{kind}{SCHEMA_TAIL}")
+    if file is not None:
+        value, base = _read_json(file), file.parent
+    else:
+        value, base = get(refs, kind), refs
+    ctx = _Ctx(root, base)
+    if id is not None:
+        if file is not None:
+            items = _get(value, "items")
+            if items is _MISSING:
+                items = value
+            one = next((x for x in items if _str(x, "id") == id), None) if isinstance(items, list) else None
+            if one is None:
+                raise RefsError(f"id {id} の項目が無い")
+        else:
+            one = get(refs, kind, id)
+        top = _resolve(root, root)
+        item_schema = _walk(top, "/properties/items/items")
+        if item_schema is _MISSING:
+            item_schema = _get(top, "items")
+        if item_schema is _MISSING:
+            item_schema = None
+        body = _page_body(item_schema, one, ctx)
+    else:
+        plain = {k: v for k, v in value.items() if k != "$schema"} if isinstance(value, dict) else value
+        body = _page_body(root, plain, ctx)
+    try:
+        template = (refs / "view.template.html").read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        template = DEFAULT_TEMPLATE
+    title = _esc(_str_or(root, "title", kind))
+    return template.replace("{{title}}", title).replace("{{style}}", _tokens(refs)).replace("{{body}}", body)

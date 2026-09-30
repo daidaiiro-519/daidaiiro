@@ -1,0 +1,1335 @@
+// SPDX-License-Identifier: MIT
+
+// Package refs は references の実装である。**どの Skill も同じファイルを複製して使う** ── contract と同じ扱いである。
+//
+// references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。種類ごとに、
+// JSON Schema（<種類>.schema.json）と、それに従う JSON（<種類>.json）を置く。JSON は
+// $schema でスキーマを指す。回答の形のように、スキーマだけの種類も在る。
+//
+// 持つ能力は4つである ── 取り出す（Get）・ 検査する（Validate）・ 描画する（View）・
+// 既存の文書を取り込む（ImportMarkdown）。**描画は回答の形も種類の中身も参照しない** ── スキーマの
+// title を見出しに、description を説明にし、見せ方は x-view が決める。
+//
+// **出力は Rust の組の refs.rs と1バイトずつ同じにする**（ACDR 0069）── 同じ references が、
+// 言語によって違って見えてはならない。**JSON は欄の順を保って読む** ── Go の map は順を保たず、
+// スキーマの欄の順が描画の順だからである。
+package refs
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/google/jsonschema-go/jsonschema"
+)
+
+// SchemaTail はスキーマのファイル名の末尾である。
+const SchemaTail = ".schema.json"
+
+// 見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。**
+var defaultTokens = [][2]string{
+	{"ink", "#1f2328"},
+	{"muted", "#59636e"},
+	{"line", "#d1d9e0"},
+	{"paper", "#ffffff"},
+	{"band", "#f3f5f7"},
+	{"accent", "#0f6e5c"},
+	{"accent-soft", "#e3f1ed"},
+	{"warn", "#9a3412"},
+	{"warn-soft", "#fdeee6"},
+	{"radius", "10px"},
+	{"gap", "16px"},
+}
+
+// 既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。
+const defaultTemplate = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style></head><body><main class="rv">{{body}}</main></body></html>`
+
+// 頁の規則（body と main）。**単独の頁のときだけ使う。**
+const pageStyle = `*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}`
+
+// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。
+const style = `.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}`
+
+// Error は references を読めない ・ 書けない ・ 項目が無いときの誤りである。道具は誤用として返す。
+type Error struct{ msg string }
+
+func (e *Error) Error() string { return e.msg }
+
+func fail(format string, a ...any) error { return &Error{fmt.Sprintf(format, a...)} }
+
+// ── 順を保つ JSON ─────────────────────────────────────────────────────────
+
+// Object は欄の順を保つ JSON のオブジェクトである。
+type Object struct {
+	Keys []string
+	Vals map[string]any
+}
+
+// NewObject は空のオブジェクトを作る。
+func NewObject() *Object { return &Object{Vals: map[string]any{}} }
+
+// Get は欄の値を返す。**欄が無いときは ok が偽である** ── 値が null のときと区別する。
+func (o *Object) Get(k string) (any, bool) {
+	v, ok := o.Vals[k]
+	return v, ok
+}
+
+// Set は欄を置く。**既に在る欄は、位置を保って値だけを置き換える。**
+func (o *Object) Set(k string, v any) {
+	if _, ok := o.Vals[k]; !ok {
+		o.Keys = append(o.Keys, k)
+	}
+	o.Vals[k] = v
+}
+
+// Delete は欄を外す。
+func (o *Object) Delete(k string) {
+	if _, ok := o.Vals[k]; !ok {
+		return
+	}
+	delete(o.Vals, k)
+	o.Keys = slices.DeleteFunc(o.Keys, func(x string) bool { return x == k })
+}
+
+// MarshalJSON は欄の順を保って書き出す。
+func (o *Object) MarshalJSON() ([]byte, error) { return []byte(ToJSON(o, false)), nil }
+
+// Parse は JSON を、欄の順を保って読む。数は元の綴りのまま json.Number で持つ。
+func Parse(data []byte) (any, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	v, err := parseValue(dec)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, errors.New("JSON の後ろに余分な値が在る")
+	}
+	return v, nil
+}
+
+func parseValue(dec *json.Decoder) (any, error) {
+	tok, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	switch t := tok.(type) {
+	case json.Delim:
+		switch t {
+		case '{':
+			o := NewObject()
+			for dec.More() {
+				kt, err := dec.Token()
+				if err != nil {
+					return nil, err
+				}
+				v, err := parseValue(dec)
+				if err != nil {
+					return nil, err
+				}
+				o.Set(kt.(string), v)
+			}
+			_, err := dec.Token()
+			return o, err
+		case '[':
+			a := []any{}
+			for dec.More() {
+				v, err := parseValue(dec)
+				if err != nil {
+					return nil, err
+				}
+				a = append(a, v)
+			}
+			_, err := dec.Token()
+			return a, err
+		}
+	}
+	return tok, nil
+}
+
+// ToJSON は JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 逃がすのは " ・ \ ・ 制御文字だけである。
+func ToJSON(v any, pretty bool) string {
+	var sb strings.Builder
+	write(&sb, v, pretty, 0)
+	return sb.String()
+}
+
+func write(sb *strings.Builder, v any, pretty bool, depth int) {
+	nl := func(d int) {
+		if pretty {
+			sb.WriteByte('\n')
+			sb.WriteString(strings.Repeat("  ", d))
+		}
+	}
+	switch x := v.(type) {
+	case nil:
+		sb.WriteString("null")
+	case bool:
+		sb.WriteString(strconv.FormatBool(x))
+	case json.Number:
+		sb.WriteString(x.String())
+	case string:
+		quote(sb, x)
+	case *Object:
+		if len(x.Keys) == 0 {
+			sb.WriteString("{}")
+			return
+		}
+		sb.WriteByte('{')
+		for i, k := range x.Keys {
+			if i > 0 {
+				sb.WriteByte(',')
+			}
+			nl(depth + 1)
+			quote(sb, k)
+			if pretty {
+				sb.WriteString(": ")
+			} else {
+				sb.WriteByte(':')
+			}
+			write(sb, x.Vals[k], pretty, depth+1)
+		}
+		nl(depth)
+		sb.WriteByte('}')
+	case []any:
+		if len(x) == 0 {
+			sb.WriteString("[]")
+			return
+		}
+		sb.WriteByte('[')
+		for i, e := range x {
+			if i > 0 {
+				sb.WriteByte(',')
+			}
+			nl(depth + 1)
+			write(sb, e, pretty, depth+1)
+		}
+		nl(depth)
+		sb.WriteByte(']')
+	default:
+		b, _ := json.Marshal(x)
+		sb.Write(b)
+	}
+}
+
+func quote(sb *strings.Builder, s string) {
+	sb.WriteByte('"')
+	for _, c := range s {
+		switch c {
+		case '"':
+			sb.WriteString(`\"`)
+		case '\\':
+			sb.WriteString(`\\`)
+		case '\b':
+			sb.WriteString(`\b`)
+		case '\f':
+			sb.WriteString(`\f`)
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '\t':
+			sb.WriteString(`\t`)
+		default:
+			if c < 0x20 {
+				fmt.Fprintf(sb, `\u%04x`, c)
+			} else {
+				sb.WriteRune(c)
+			}
+		}
+	}
+	sb.WriteByte('"')
+}
+
+// plain は順を保つ JSON を、標準の形（map と []any）へ移す。**検査の道具へ渡すときに使う。**
+func plain(v any) any {
+	var out any
+	_ = json.Unmarshal([]byte(ToJSON(v, false)), &out)
+	return out
+}
+
+// same は JSON の値として等しいかを返す。
+func same(a, b any) bool { return ToJSON(a, false) == ToJSON(b, false) }
+
+// ── references ───────────────────────────────────────────────────────────
+
+// Kind は種類1つである。Data はスキーマだけの種類では空である。
+type Kind struct {
+	Name   string
+	Schema string
+	Data   string
+}
+
+func names(refs string) ([]string, error) {
+	entries, err := os.ReadDir(refs)
+	if err != nil {
+		return nil, fail("%s を読めない ── %v", refs, err)
+	}
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, e.Name())
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+func isFile(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && st.Mode().IsRegular()
+}
+
+// Kinds は references の種類を並べる。**名前の順である** ── 実行ごとに順が変わると、差分が毎回出る。
+func Kinds(refs string) ([]Kind, error) {
+	all, err := names(refs)
+	if err != nil {
+		return nil, err
+	}
+	var out []Kind
+	for _, file := range all {
+		if !strings.HasSuffix(file, SchemaTail) {
+			continue
+		}
+		name := strings.TrimSuffix(file, SchemaTail)
+		data := filepath.Join(refs, name+".json")
+		if !isFile(data) {
+			data = ""
+		}
+		out = append(out, Kind{Name: name, Schema: filepath.Join(refs, file), Data: data})
+	}
+	return out, nil
+}
+
+// Save は描画した頁を書き出す。
+func Save(out, html string) error {
+	if dir := filepath.Dir(out); dir != "" {
+		_ = os.MkdirAll(dir, 0o755)
+	}
+	if err := os.WriteFile(out, []byte(html), 0o644); err != nil {
+		return fail("%s に書けない ── %v", out, err)
+	}
+	return nil
+}
+
+// ReadText は取り込む文書を読む。
+func ReadText(file string) (string, error) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return "", fail("%s を読めない ── %v", file, err)
+	}
+	return string(b), nil
+}
+
+func readJSON(path string) (any, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fail("%s を読めない ── %v", path, err)
+	}
+	v, err := Parse(b)
+	if err != nil {
+		return nil, fail("%s が JSON でない ── %v", path, err)
+	}
+	return v, nil
+}
+
+// against はスキーマで検査する。**$schema の欄は、スキーマを指す印なので外してから当てる。**
+func against(schema, instance any, head string) []string {
+	if o, ok := instance.(*Object); ok {
+		c := &Object{Keys: slices.Clone(o.Keys), Vals: map[string]any{}}
+		for k, v := range o.Vals {
+			c.Vals[k] = v
+		}
+		c.Delete("$schema")
+		instance = c
+	}
+	var s jsonschema.Schema
+	if err := json.Unmarshal([]byte(ToJSON(schema, false)), &s); err != nil {
+		return []string{head + ": スキーマとして無効である"}
+	}
+	// **相対の $id を解くために、基準の URI を渡す** ── 外の参照は取りに行かない
+	r, err := s.Resolve(&jsonschema.ResolveOptions{BaseURI: "file:///references/"})
+	if err != nil {
+		return []string{head + ": スキーマとして無効である"}
+	}
+	if err := r.Validate(plain(instance)); err != nil {
+		return []string{fmt.Sprintf("%s:  ── %v", head, err)}
+	}
+	return nil
+}
+
+// Validate は references を検査する。**スキーマに合わない JSON、スキーマを指さない JSON、Markdown を並べる。**
+func Validate(refs string) ([]string, error) {
+	all, err := names(refs)
+	if err != nil {
+		return nil, err
+	}
+	found := []string{}
+	for _, file := range all {
+		if strings.HasSuffix(file, ".md") {
+			found = append(found, file+": Markdown が在る ── references は JSON Schema と JSON で持つ（Markdown は SKILL.md だけ）")
+		}
+		if !strings.HasSuffix(file, ".json") || strings.HasSuffix(file, SchemaTail) {
+			continue
+		}
+		data, err := readJSON(filepath.Join(refs, file))
+		if err != nil {
+			found = append(found, err.Error())
+			continue
+		}
+		// **$schema が指すスキーマで検査する** ── 雛形のように、種類の名前と違うスキーマを指してよい
+		own := strings.TrimSuffix(file, ".json") + SchemaTail
+		want, ok := str(data, "$schema")
+		if !ok {
+			found = append(found, fmt.Sprintf("%s: $schema が無い ── %s を指す", file, own))
+			want = own
+		}
+		schema, err := readJSON(filepath.Join(refs, want))
+		if err != nil {
+			found = append(found, fmt.Sprintf("%s: スキーマ %s が無い", file, want))
+			continue
+		}
+		found = append(found, against(schema, data, file)...)
+	}
+	return found, nil
+}
+
+// ValidateFile は1つの JSON を、種類のスキーマで検査する。**回答のように、references の外の JSON に使う。**
+func ValidateFile(refs, kind, file string) ([]string, error) {
+	schema, err := readJSON(filepath.Join(refs, kind+SchemaTail))
+	if err != nil {
+		return nil, err
+	}
+	data, err := readJSON(file)
+	if err != nil {
+		return nil, err
+	}
+	return against(schema, data, file), nil
+}
+
+// Get は種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。
+func Get(refs, kind, id string) (any, error) {
+	data, err := readJSON(filepath.Join(refs, kind+".json"))
+	if err != nil {
+		return nil, err
+	}
+	if o, ok := data.(*Object); ok {
+		o.Delete("$schema")
+	}
+	if id == "" {
+		return data, nil
+	}
+	items := data
+	if v, ok := at(data, "items"); ok {
+		items = v
+	}
+	list, ok := items.([]any)
+	if !ok {
+		return nil, fail("%s は項目の並びではない ── id で取り出せない", kind)
+	}
+	for _, x := range list {
+		if s, ok := str(x, "id"); ok && s == id {
+			return x, nil
+		}
+	}
+	return nil, fail("%s に id %s の項目が無い", kind, id)
+}
+
+// lines は行に分ける。**Rust の str::lines と同じ規則である** ── 末尾の改行は空の行を作らず、行末の CR を外す。
+func lines(text string) []string {
+	parts := strings.Split(text, "\n")
+	if len(parts) > 0 && parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
+	for i, p := range parts {
+		parts[i] = strings.TrimSuffix(p, "\r")
+	}
+	return parts
+}
+
+// 空白は Unicode の White_Space である。**Rust の char::is_whitespace と同じ集合になる。**
+var (
+	trim      = strings.TrimSpace
+	trimStart = func(s string) string { return strings.TrimLeftFunc(s, unicode.IsSpace) }
+	trimEnd   = func(s string) string { return strings.TrimRightFunc(s, unicode.IsSpace) }
+)
+
+func numbered(t string) (string, bool) {
+	n, rest, ok := strings.Cut(t, ". ")
+	if !ok || n == "" || strings.Trim(n, "0123456789") != "" {
+		return "", false
+	}
+	return rest, true
+}
+
+func plainText(t string) string { return strings.ReplaceAll(strings.ReplaceAll(t, "**", ""), "`", "") }
+
+// BlocksOf は本文を塊に分ける ── 段落 ・ 箇条書き ・ 表 ・ コード。**記号のまま残さない。** 区切りの線（---）は捨てる。
+func BlocksOf(src []string) []any {
+	cells := func(line string) []any {
+		var out []any
+		for _, c := range strings.Split(strings.Trim(trim(line), "|"), "|") {
+			out = append(out, plainText(trim(c)))
+		}
+		return out
+	}
+	out := []any{}
+	var para []string
+	flush := func() {
+		if len(para) > 0 {
+			o := NewObject()
+			o.Set("kind", "para")
+			o.Set("text", strings.Join(para, ""))
+			out = append(out, o)
+			para = nil
+		}
+	}
+	for i := 0; i < len(src); {
+		line := trimEnd(src[i])
+		t := trimStart(line)
+		switch {
+		case strings.HasPrefix(t, "```"):
+			flush()
+			var code []string
+			i++
+			for i < len(src) && !strings.HasPrefix(trimStart(src[i]), "```") {
+				code = append(code, src[i])
+				i++
+			}
+			o := NewObject()
+			o.Set("kind", "code")
+			o.Set("text", strings.Join(code, "\n"))
+			out = append(out, o)
+		case strings.HasPrefix(t, "|"):
+			flush()
+			head := cells(t)
+			rows := []any{}
+			i++
+			for i < len(src) && strings.HasPrefix(trimStart(src[i]), "|") {
+				r := cells(src[i])
+				sep := true
+				for _, c := range r {
+					if strings.Trim(c.(string), "-: ") != "" {
+						sep = false
+					}
+				}
+				if !sep {
+					rows = append(rows, r)
+				}
+				i++
+			}
+			o := NewObject()
+			o.Set("kind", "table")
+			o.Set("head", head)
+			o.Set("rows", rows)
+			out = append(out, o)
+			continue
+		case strings.HasPrefix(t, "- ") || strings.HasPrefix(t, "* ") || func() bool { _, ok := numbered(t); return ok }():
+			flush()
+			ordered := !strings.HasPrefix(t, "-") && !strings.HasPrefix(t, "*")
+			items := []any{}
+			for i < len(src) {
+				l := trimStart(src[i])
+				var item string
+				if strings.HasPrefix(l, "- ") || strings.HasPrefix(l, "* ") {
+					item = l[2:]
+				} else if rest, ok := numbered(l); ok {
+					item = rest
+				} else {
+					break
+				}
+				items = append(items, plainText(item))
+				i++
+			}
+			o := NewObject()
+			o.Set("kind", "list")
+			o.Set("ordered", ordered)
+			o.Set("items", items)
+			out = append(out, o)
+			continue
+		case t == "" || strings.Trim(t, "-") == "":
+			flush()
+		default:
+			para = append(para, plainText(trim(strings.TrimLeft(t, ">"))))
+		}
+		i++
+	}
+	flush()
+	return out
+}
+
+type node struct {
+	title    string
+	level    int
+	body     []string
+	children []*node
+}
+
+// ImportMarkdown は Markdown の文書を、document の1件へ取り込む。**見出しを節の入れ子に分ける。**
+func ImportMarkdown(id, location, fetched, text string) *Object {
+	var toJSON func(n *node) *Object
+	toJSON = func(n *node) *Object {
+		m := NewObject()
+		m.Set("title", n.title)
+		if blocks := BlocksOf(n.body); len(blocks) > 0 {
+			m.Set("blocks", blocks)
+		}
+		if len(n.children) > 0 {
+			kids := make([]any, 0, len(n.children))
+			for _, c := range n.children {
+				kids = append(kids, toJSON(c))
+			}
+			m.Set("sections", kids)
+		}
+		return m
+	}
+	stack := []*node{{}}
+	fence := false
+	// **frontmatter は取り込まない** ── 原典の管理のための欄であって、本文ではない
+	body := text
+	if rest, ok := strings.CutPrefix(text, "---\n"); ok {
+		if _, after, found := strings.Cut(rest, "\n---\n"); found {
+			body = after
+		}
+	}
+	for _, line := range lines(body) {
+		if strings.HasPrefix(trimStart(line), "```") {
+			fence = !fence
+		}
+		hashes := len(line) - len(strings.TrimLeft(line, "#"))
+		heading := !fence && hashes >= 1 && hashes <= 6 && strings.HasPrefix(line[hashes:], " ")
+		if !heading {
+			top := stack[len(stack)-1]
+			top.body = append(top.body, line)
+			continue
+		}
+		for len(stack) > 1 && stack[len(stack)-1].level >= hashes {
+			done := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			stack[len(stack)-1].children = append(stack[len(stack)-1].children, done)
+		}
+		stack = append(stack, &node{title: trim(line[hashes:]), level: hashes})
+	}
+	for len(stack) > 1 {
+		done := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		stack[len(stack)-1].children = append(stack[len(stack)-1].children, done)
+	}
+	root := stack[0]
+	title := id
+	if len(root.children) > 0 {
+		title = root.children[0].title
+	}
+	source := NewObject()
+	source.Set("location", location)
+	source.Set("sha256", Sha256Hex([]byte(text)))
+	source.Set("fetched", fetched)
+	doc := NewObject()
+	doc.Set("id", id)
+	doc.Set("title", title)
+	doc.Set("source", source)
+	sections := []any{}
+	for _, c := range root.children {
+		sections = append(sections, toJSON(c))
+	}
+	doc.Set("sections", sections)
+	if lead := BlocksOf(root.body); len(lead) > 0 {
+		doc.Set("blocks", lead)
+	}
+	return doc
+}
+
+// PutDocument は document の並びへ1件を置く。**同じ id が在れば置き換える。**
+func PutDocument(refs string, doc *Object) (string, error) {
+	path := filepath.Join(refs, "document.json")
+	var everything any
+	if isFile(path) {
+		v, err := readJSON(path)
+		if err != nil {
+			return "", err
+		}
+		everything = v
+	} else {
+		o := NewObject()
+		o.Set("$schema", "document.schema.json")
+		o.Set("items", []any{})
+		everything = o
+	}
+	top, ok := everything.(*Object)
+	var items []any
+	if ok {
+		v, _ := top.Get("items")
+		items, ok = v.([]any)
+	}
+	if !ok {
+		return "", fail("document.json に items が無い")
+	}
+	id, _ := doc.Get("id")
+	kept := []any{}
+	for _, x := range items {
+		if xid, has := at(x, "id"); has && same(xid, id) {
+			continue
+		}
+		kept = append(kept, x)
+	}
+	top.Set("items", append(kept, doc))
+	if err := os.WriteFile(path, []byte(ToJSON(top, true)+"\n"), 0o644); err != nil {
+		return "", fail("%s に書けない ── %v", path, err)
+	}
+	return path, nil
+}
+
+// Sha256Hex は SHA-256 を16進で返す。
+func Sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+// ── 描画 ────────────────────────────────────────────────────────────────
+
+func at(v any, key string) (any, bool) {
+	if o, ok := v.(*Object); ok {
+		return o.Get(key)
+	}
+	return nil, false
+}
+
+func has(v any, key string) bool {
+	_, ok := at(v, key)
+	return ok
+}
+
+func str(v any, key string) (string, bool) {
+	x, _ := at(v, key)
+	s, ok := x.(string)
+	return s, ok
+}
+
+func strOr(v any, key, fallback string) string {
+	if s, ok := str(v, key); ok {
+		return s
+	}
+	return fallback
+}
+
+var esc = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;").Replace
+
+// text は値を文字列にする。**文字列はそのまま、null は空、それ以外は1行の JSON である。**
+func text(v any) string {
+	switch x := v.(type) {
+	case string:
+		return x
+	case nil:
+		return ""
+	default:
+		return ToJSON(x, false)
+	}
+}
+
+// walk は JSON Pointer を解く。
+func walk(root any, pointer string) (any, bool) {
+	if pointer == "" {
+		return root, true
+	}
+	if !strings.HasPrefix(pointer, "/") {
+		return nil, false
+	}
+	cur := root
+	for _, raw := range strings.Split(pointer[1:], "/") {
+		token := strings.ReplaceAll(strings.ReplaceAll(raw, "~1", "/"), "~0", "~")
+		switch c := cur.(type) {
+		case *Object:
+			v, ok := c.Get(token)
+			if !ok {
+				return nil, false
+			}
+			cur = v
+		case []any:
+			n, err := strconv.Atoi(token)
+			if err != nil || n < 0 || n >= len(c) || (len(token) > 1 && token[0] == '0') || strings.Trim(token, "0123456789") != "" {
+				return nil, false
+			}
+			cur = c[n]
+		default:
+			return nil, false
+		}
+	}
+	return cur, true
+}
+
+// resolve は $ref（#/$defs/…）を解く。**スキーマの中だけを指す** ── 外を指す参照は解かない。
+func resolve(schema, root any) any {
+	r, ok := str(schema, "$ref")
+	if !ok || !strings.HasPrefix(r, "#") {
+		return schema
+	}
+	if hit, ok := walk(root, r[1:]); ok {
+		return hit
+	}
+	return schema
+}
+
+func label(schema, value any) string {
+	options, _ := at(schema, "oneOf")
+	if list, ok := options.([]any); ok {
+		for _, o := range list {
+			if c, ok := at(o, "const"); ok && same(c, value) {
+				if t, ok := str(o, "title"); ok {
+					return t
+				}
+				return text(value)
+			}
+		}
+	}
+	return text(value)
+}
+
+func tag(schema, value any) string {
+	class := "tag"
+	if b, ok := value.(bool); (ok && !b) || value == "reject" {
+		class = "tag neg"
+	}
+	return fmt.Sprintf(`<span class="%s">%s</span>`, class, esc(label(schema, value)))
+}
+
+func scalar(schema any) bool {
+	t, _ := str(schema, "type")
+	return has(schema, "oneOf") || t == "string" || t == "number" || t == "integer" || t == "boolean"
+}
+
+func head(key string, schema any, level int) string {
+	h := min(max(level, 2), 3)
+	desc := ""
+	if d, ok := str(schema, "description"); ok {
+		desc = fmt.Sprintf(`<p class="desc">%s</p>`, esc(d))
+	}
+	return fmt.Sprintf("<h%d>%s</h%d>%s", h, esc(strOr(schema, "title", key)), h, desc)
+}
+
+type ctx struct {
+	root any
+	base string
+}
+
+func viewOf(schema any) string { return strOr(schema, "x-view", "") }
+
+func props(schema any) *Object {
+	p, _ := at(schema, "properties")
+	o, _ := p.(*Object)
+	return o
+}
+
+func items(v any) []any {
+	a, _ := v.([]any)
+	return a
+}
+
+func cell(schema, value any, c ctx) string {
+	s := resolve(schema, c.root)
+	if viewOf(s) == "tag" || has(s, "oneOf") {
+		return tag(s, value)
+	}
+	return esc(text(value))
+}
+
+func inner(value, schemaIn any, level int, c ctx) string {
+	schema := resolve(schemaIn, c.root)
+	switch v := value.(type) {
+	case *Object:
+		p := props(schema)
+		keys := v.Keys
+		if p != nil {
+			keys = p.Keys
+		}
+		var sb strings.Builder
+		for _, key := range keys {
+			x, ok := v.Get(key)
+			if !ok {
+				continue
+			}
+			var sub any
+			if p != nil {
+				sub, _ = p.Get(key)
+			}
+			if viewOf(resolve(sub, c.root)) == "hidden" {
+				continue
+			}
+			fmt.Fprintf(&sb, `<div class="nest">%s%s</div>`, head(key, resolve(sub, c.root), level), inner(x, sub, level+1, c))
+		}
+		return sb.String()
+	case []any:
+		itemSchema, _ := at(schema, "items")
+		item := resolve(itemSchema, c.root)
+		p := props(item)
+		allScalar := p != nil
+		if p != nil {
+			for _, k := range p.Keys {
+				if !scalar(resolve(p.Vals[k], c.root)) {
+					allScalar = false
+				}
+			}
+		}
+		if allScalar {
+			// **どの行も値を保持しない列は描かない** ── 空の列は、欠けがあるように読める
+			var cols []string
+			for _, k := range p.Keys {
+				if slices.ContainsFunc(v, func(x any) bool { return has(x, k) }) {
+					cols = append(cols, k)
+				}
+			}
+			// **列が1つなら箇条書きにする** ── 1列の表は、見出しの升が中身を説明しない
+			if len(cols) == 1 {
+				k := cols[0]
+				var sb strings.Builder
+				for _, x := range v {
+					if y, ok := at(x, k); ok {
+						fmt.Fprintf(&sb, "<li>%s</li>", cell(p.Vals[k], y, c))
+					}
+				}
+				return "<ul>" + sb.String() + "</ul>"
+			}
+			var th, rows strings.Builder
+			for _, k := range cols {
+				fmt.Fprintf(&th, "<th>%s</th>", esc(strOr(p.Vals[k], "title", k)))
+			}
+			for _, x := range v {
+				rows.WriteString("<tr>")
+				for _, k := range cols {
+					y, _ := at(x, k)
+					fmt.Fprintf(&rows, "<td>%s</td>", cell(p.Vals[k], y, c))
+				}
+				rows.WriteString("</tr>")
+			}
+			return fmt.Sprintf(`<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>`, th.String(), rows.String())
+		}
+		var sb strings.Builder
+		if p != nil {
+			for _, x := range v {
+				fmt.Fprintf(&sb, `<div class="item">%s</div>`, inner(x, item, level+1, c))
+			}
+			return sb.String()
+		}
+		for _, x := range v {
+			fmt.Fprintf(&sb, "<li>%s</li>", esc(text(x)))
+		}
+		return "<ul>" + sb.String() + "</ul>"
+	}
+	if has(schema, "oneOf") || viewOf(schema) == "tag" {
+		return tag(schema, value)
+	}
+	t := text(value)
+	if strings.Contains(t, "\n") {
+		return "<pre>" + esc(t) + "</pre>"
+	}
+	return "<p>" + esc(t) + "</p>"
+}
+
+func readOrEmpty(path string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+// svgOf は SVG を埋め込む。**svg はファイル名（references からの経路）か、SVG そのもの。**
+func svgOf(p, base string) string {
+	if strings.HasPrefix(trimStart(p), "<svg") {
+		return p
+	}
+	return readOrEmpty(filepath.Join(base, p))
+}
+
+// sections は論点の並びを描く ── **1件を1枚にし、heading の欄を題、lead の欄を主張にする。**
+func sections(schema, value any, c ctx) string {
+	is, _ := at(schema, "items")
+	item := resolve(is, c.root)
+	var sb strings.Builder
+	for _, v := range items(value) {
+		fmt.Fprintf(&sb, `<section class="block topic">%s</section>`, fields(item, v, c))
+	}
+	return sb.String()
+}
+
+// fields は欄を順に描く。**heading は題、lead は主張、hidden は描かない。**
+func fields(schema, value any, c ctx) string {
+	p := props(schema)
+	if p == nil {
+		return inner(value, schema, 3, c)
+	}
+	var sb strings.Builder
+	for _, k := range p.Keys {
+		if k == "kind" {
+			continue
+		}
+		if v, ok := at(value, k); ok {
+			sb.WriteString(field(resolve(p.Vals[k], c.root), v, c))
+		}
+	}
+	return sb.String()
+}
+
+// field は欄1つを描く。見出しを付けない ── 論点と単位の中では、形そのものが役割を示す。
+func field(schema, value any, c ctx) string {
+	switch viewOf(schema) {
+	case "hidden":
+		return ""
+	case "heading":
+		return "<h2>" + esc(text(value)) + "</h2>"
+	case "lead":
+		return `<p class="claim">` + esc(text(value)) + "</p>"
+	case "subhead":
+		return "<h3>" + esc(text(value)) + "</h3>"
+	case "paras":
+		// **段落の並びは、段落ごとに描く** ── 1つの文字列へ連結すると、原文の段落の切れ目が消える
+		var sb strings.Builder
+		for _, p := range items(value) {
+			sb.WriteString("<p>" + esc(text(p)) + "</p>")
+		}
+		return sb.String()
+	case "svg":
+		s, _ := value.(string)
+		return "<figure>" + svgOf(s, c.base) + "</figure>"
+	case "code":
+		return `<pre class="code">` + esc(text(value)) + "</pre>"
+	case "units":
+		return units(schema, value, c)
+	case "blocks":
+		return blocks(value, c.base)
+	case "steps":
+		return steps(schema, value, c)
+	case "table":
+		t := NewObject()
+		if o, ok := value.(*Object); ok {
+			for _, k := range o.Keys {
+				t.Set(k, o.Vals[k])
+			}
+		}
+		t.Set("kind", "table")
+		return blocks([]any{t}, c.base)
+	default:
+		return inner(value, schema, 4, c)
+	}
+}
+
+// units は単位の並びを描く。**形は kind の値で、items.oneOf から選ぶ** ── 形の title を札にする。
+func units(schema, value any, c ctx) string {
+	var forms []any
+	if is, ok := at(schema, "items"); ok {
+		options, _ := at(resolve(is, c.root), "oneOf")
+		for _, f := range items(options) {
+			forms = append(forms, resolve(f, c.root))
+		}
+	}
+	var sb strings.Builder
+	for _, u := range items(value) {
+		want, hasWant := at(u, "kind")
+		var form any
+		for _, f := range forms {
+			have, hasHave := walk(f, "/properties/kind/const")
+			if hasHave == hasWant && (!hasHave || same(have, want)) {
+				form = f
+				break
+			}
+		}
+		lab := ""
+		if t, ok := str(form, "title"); ok {
+			lab = `<span class="ulabel">` + esc(t) + "</span>"
+		}
+		fmt.Fprintf(&sb, `<div class="unit">%s%s</div>`, lab, fields(form, u, c))
+	}
+	return sb.String()
+}
+
+// steps は手順を番号付きで描く。**各段の1つ目の欄を太字にし、残りを添える。**
+func steps(schema, value any, c ctx) string {
+	is, _ := at(schema, "items")
+	p := props(resolve(is, c.root))
+	var sb strings.Builder
+	for _, v := range items(value) {
+		var parts []any
+		if p != nil {
+			for _, k := range p.Keys {
+				if x, ok := at(v, k); ok {
+					parts = append(parts, x)
+				}
+			}
+		}
+		sb.WriteString("<li>")
+		for i, x := range parts {
+			if i == 0 {
+				sb.WriteString(`<p class="lead">` + esc(text(x)) + "</p>")
+			} else {
+				sb.WriteString(`<p class="sub">` + esc(text(x)) + "</p>")
+			}
+		}
+		sb.WriteString("</li>")
+	}
+	return `<ol class="steps">` + sb.String() + "</ol>"
+}
+
+// blocks は本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む。**
+func blocks(list any, base string) string {
+	var sb strings.Builder
+	for _, b := range items(list) {
+		kind, _ := str(b, "kind")
+		switch kind {
+		case "list":
+			t := "ul"
+			if o, _ := at(b, "ordered"); o == true {
+				t = "ol"
+			}
+			is, _ := at(b, "items")
+			sb.WriteString("<" + t + ">")
+			for _, x := range items(is) {
+				sb.WriteString("<li>" + esc(text(x)) + "</li>")
+			}
+			sb.WriteString("</" + t + ">")
+		case "table":
+			row := func(r any, t string) string {
+				var rb strings.Builder
+				for _, x := range items(r) {
+					rb.WriteString("<" + t + ">" + esc(text(x)) + "</" + t + ">")
+				}
+				return rb.String()
+			}
+			th := ""
+			if h, ok := at(b, "head"); ok {
+				th = row(h, "th")
+			}
+			rs, _ := at(b, "rows")
+			var trs strings.Builder
+			for _, r := range items(rs) {
+				trs.WriteString("<tr>" + row(r, "td") + "</tr>")
+			}
+			fmt.Fprintf(&sb, `<div class="scroll"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>`, th, trs.String())
+		case "figure":
+			svg := ""
+			if p, ok := str(b, "svg"); ok {
+				svg = svgOf(p, base)
+			}
+			cp := ""
+			if s, ok := str(b, "caption"); ok {
+				cp = "<figcaption>" + esc(s) + "</figcaption>"
+			}
+			sb.WriteString("<figure>" + svg + cp + "</figure>")
+		case "code":
+			sb.WriteString(`<pre class="code">` + esc(strOr(b, "text", "")) + "</pre>")
+		default:
+			sb.WriteString("<p>" + esc(strOr(b, "text", "")) + "</p>")
+		}
+	}
+	return sb.String()
+}
+
+// outline は節の入れ子を、見出しと本文の字下げで組む。**欄の名前（見出し ・ 本文）は表示しない。**
+func outline(list any, level int, base string) string {
+	h := min(max(level+1, 3), 6)
+	var sb strings.Builder
+	for _, n := range items(list) {
+		body := ""
+		if b, ok := at(n, "blocks"); ok {
+			body = blocks(b, base)
+		}
+		kids := ""
+		if k, ok := at(n, "sections"); ok {
+			kids = outline(k, level+1, base)
+		}
+		fmt.Fprintf(&sb, `<div class="nest"><h%d>%s</h%d>%s%s</div>`, h, esc(strOr(n, "title", "")), h, body, kids)
+	}
+	return sb.String()
+}
+
+func block(key string, schemaIn, value any, c ctx) string {
+	schema := resolve(schemaIn, c.root)
+	hd := head(key, schema, 2)
+	switch viewOf(schema) {
+	case "hidden":
+		return ""
+	case "outline":
+		return `<section class="block">` + hd + outline(value, 2, c.base) + "</section>"
+	case "blocks":
+		return `<section class="block">` + hd + blocks(value, c.base) + "</section>"
+	case "sections":
+		return sections(schema, value, c)
+	case "group":
+		// **導入の文と表を1枚にまとめる** ── 分けると、導入の文が別の論点に属すように読める
+		return `<section class="block">` + hd + fields(schema, value, c) + "</section>"
+	case "card":
+		title := esc(strOr(schema, "title", key))
+		if s, ok := value.(string); ok {
+			return fmt.Sprintf(`<section class="card"><div class="cardhead"><h2>%s</h2></div><p class="lead">%s</p></section>`, title, esc(s))
+		}
+		var tags, body strings.Builder
+		n := 0
+		if p := props(schema); p != nil {
+			for _, k := range p.Keys {
+				v, ok := at(value, k)
+				if !ok {
+					continue
+				}
+				if viewOf(p.Vals[k]) == "tag" {
+					tags.WriteString(tag(p.Vals[k], v))
+					continue
+				}
+				class := "sub"
+				if n == 0 {
+					class = "lead"
+				}
+				fmt.Fprintf(&body, `<p class="%s">%s</p>`, class, esc(text(v)))
+				n++
+			}
+		}
+		return fmt.Sprintf(`<section class="card"><div class="cardhead"><h2>%s</h2>%s</div>%s</section>`, title, tags.String(), body.String())
+	case "figure":
+		// **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
+		svg := ""
+		if p, ok := str(value, "svg"); ok {
+			svg = svgOf(p, c.base)
+		}
+		return fmt.Sprintf(`<section class="block">%s<figure>%s<figcaption>%s</figcaption></figure></section>`, hd, svg, esc(strOr(value, "caption", "")))
+	case "steps":
+		return `<section class="block">` + hd + steps(schema, value, c) + "</section>"
+	default:
+		return `<section class="block">` + hd + inner(value, schema, 3, c) + "</section>"
+	}
+}
+
+// pageBody は1件を描画する。**x-view が heading の欄を h1、トップの tag の欄を見出しの上の札にする。**
+func pageBody(schemaIn, value any, c ctx) string {
+	schema := resolve(schemaIn, c.root)
+	p := props(schema)
+	if p == nil {
+		return inner(value, schema, 2, c)
+	}
+	eyebrow := []string{esc(strOr(c.root, "title", ""))}
+	h1 := ""
+	var body strings.Builder
+	for _, k := range p.Keys {
+		s := resolve(p.Vals[k], c.root)
+		v, ok := at(value, k)
+		if !ok {
+			continue
+		}
+		switch viewOf(s) {
+		case "tag":
+			eyebrow = append(eyebrow, tag(s, v))
+		case "meta":
+			if t := text(v); t != "" {
+				eyebrow = append(eyebrow, esc(t))
+			}
+		case "heading":
+			h1 = esc(text(v))
+		default:
+			body.WriteString(block(k, s, v, c))
+		}
+	}
+	lead := h1
+	if lead == "" {
+		lead = esc(strOr(value, "title", ""))
+	}
+	return fmt.Sprintf(`<header><p class="eyebrow">%s</p><h1>%s</h1></header>%s`, strings.Join(eyebrow, " ・ "), lead, body.String())
+}
+
+// ScopedStyle は .rv の囲みの中だけに効く規則である。**他の型の頁に埋め込むときに使う。**
+func ScopedStyle() string { return style }
+
+// RenderBody は1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**
+func RenderBody(schema, value any, base string) string {
+	return `<div class="rv">` + pageBody(schema, value, ctx{root: schema, base: base}) + "</div>"
+}
+
+// tokens は見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**
+func tokens(refs string) string {
+	vars := slices.Clone(defaultTokens)
+	if over, err := readJSON(filepath.Join(refs, "view.tokens.json")); err == nil {
+		if o, ok := over.(*Object); ok {
+			for _, k := range o.Keys {
+				v, ok := o.Vals[k].(string)
+				if !ok {
+					continue
+				}
+				if i := slices.IndexFunc(vars, func(x [2]string) bool { return x[0] == k }); i >= 0 {
+					vars[i][1] = v
+				} else {
+					vars = append(vars, [2]string{k, v})
+				}
+			}
+		}
+	}
+	var decl strings.Builder
+	for _, x := range vars {
+		decl.WriteString("--" + x[0] + ":" + x[1] + ";")
+	}
+	return ":root{" + decl.String() + "}" + pageStyle + style
+}
+
+// View は種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。
+func View(refs, kind, id, file string) (string, error) {
+	root, err := readJSON(filepath.Join(refs, kind+SchemaTail))
+	if err != nil {
+		return "", err
+	}
+	var value any
+	base := refs
+	if file != "" {
+		if value, err = readJSON(file); err != nil {
+			return "", err
+		}
+		base = filepath.Dir(file)
+	} else if value, err = Get(refs, kind, ""); err != nil {
+		return "", err
+	}
+	c := ctx{root: root, base: base}
+	var body string
+	if id != "" {
+		var one any
+		if file != "" {
+			list := value
+			if v, ok := at(value, "items"); ok {
+				list = v
+			}
+			arr, _ := list.([]any)
+			idx := slices.IndexFunc(arr, func(x any) bool { s, ok := str(x, "id"); return ok && s == id })
+			if idx < 0 {
+				return "", fail("id %s の項目が無い", id)
+			}
+			one = arr[idx]
+		} else if one, err = Get(refs, kind, id); err != nil {
+			return "", err
+		}
+		top := resolve(root, root)
+		itemSchema, ok := walk(top, "/properties/items/items")
+		if !ok {
+			itemSchema, _ = at(top, "items")
+		}
+		body = pageBody(itemSchema, one, c)
+	} else {
+		plainValue := value
+		if o, ok := value.(*Object); ok {
+			cp := &Object{Keys: slices.Clone(o.Keys), Vals: map[string]any{}}
+			for k, v := range o.Vals {
+				cp.Vals[k] = v
+			}
+			cp.Delete("$schema")
+			plainValue = cp
+		}
+		body = pageBody(root, plainValue, c)
+	}
+	template := defaultTemplate
+	if b, err := os.ReadFile(filepath.Join(refs, "view.template.html")); err == nil {
+		template = string(b)
+	}
+	title := esc(strOr(root, "title", kind))
+	out := strings.ReplaceAll(template, "{{title}}", title)
+	out = strings.ReplaceAll(out, "{{style}}", tokens(refs))
+	return strings.ReplaceAll(out, "{{body}}", body), nil
+}

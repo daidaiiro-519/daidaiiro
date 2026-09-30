@@ -387,6 +387,7 @@ fn builtin_rust(root: &Path) -> Option<Profile> {
             spawn: vec!["Command::new(".to_owned()],
             dist: true,
             layout: true,
+            fixtures: format!("{TOOL}/business_logic/tests/fixtures"),
         },
     )
 }

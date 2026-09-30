@@ -141,13 +141,24 @@ fn a_work_skill_can_be_planned_in_python() {
 }
 
 #[test]
-fn an_advisor_skill_is_refused_in_python() {
-    // **契約の版1 の組は、版2 を要る助言型を生まない** ── 対応している組を並べて断る
+fn an_advisor_skill_can_be_planned_in_python() {
+    // **Python の組は版2 を満たす**（ACDR 0069）── 助言型の事例と回答の例を置く
     let (profiles, types) = defs();
     let python = profile::load(&profiles, "python").expect("Python の組が在る");
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let why = profile::plan(&profiles, &types, &python, &advisor).expect_err("断る");
-    assert!(why.contains("版2") && why.contains("rust"), "{why}");
+    let plan = profile::plan(&profiles, &types, &python, &advisor).expect("組み合わせられる");
+    for to in [
+        "references/criteria.schema.json",
+        "references/document.schema.json",
+        "tool/{{パッケージ名}}/refs.py",
+        "tool/tests/test_references.py",
+        "tool/tests/fixtures/answer.example.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
 }
 
 #[test]
@@ -170,9 +181,16 @@ fn a_work_skill_can_be_planned_in_typescript() {
     for (from, _) in &plan {
         assert!(from.is_file(), "{} が無い", from.display());
     }
-    // **版1 の組は助言型を断る**
+    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    assert!(profile::plan(&profiles, &types, &ts, &advisor).is_err());
+    let plan = profile::plan(&profiles, &types, &ts, &advisor).expect("組み合わせられる");
+    assert!(plan
+        .iter()
+        .any(|(_, t)| t == "references/document.schema.json"));
+    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
 }
 
 #[test]
@@ -195,9 +213,16 @@ fn a_work_skill_can_be_planned_in_csharp() {
     for (from, _) in &plan {
         assert!(from.is_file(), "{} が無い", from.display());
     }
-    // **版1 の組は助言型を断る**
+    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    assert!(profile::plan(&profiles, &types, &cs, &advisor).is_err());
+    let plan = profile::plan(&profiles, &types, &cs, &advisor).expect("組み合わせられる");
+    assert!(plan
+        .iter()
+        .any(|(_, t)| t == "references/document.schema.json"));
+    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
 }
 
 #[test]
@@ -222,7 +247,14 @@ fn a_work_skill_can_be_planned_in_go() {
     }
     // **実行ファイルの名前は Skill の名前である** ── 組み立てのコマンドが差し込む場所を持つ
     assert!(go.build.iter().any(|b| b.contains("{{Skill名}}")));
-    // **版1 の組は助言型を断る**
+    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    assert!(profile::plan(&profiles, &types, &go, &advisor).is_err());
+    let plan = profile::plan(&profiles, &types, &go, &advisor).expect("組み合わせられる");
+    assert!(plan
+        .iter()
+        .any(|(_, t)| t == "references/document.schema.json"));
+    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
 }

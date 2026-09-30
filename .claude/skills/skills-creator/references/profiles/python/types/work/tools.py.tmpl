@@ -6,6 +6,7 @@ CLI と MCP はこの一覧から組む ── 能力を2回書くと、片方�
 
 from __future__ import annotations
 
+from {{パッケージ名}} import refs_tools
 from {{パッケージ名}}.contract import Arg, Given, Outcome, Tool
 from {{パッケージ名}}.hello import greet
 
@@ -25,7 +26,8 @@ def human_hello(out: Outcome) -> str:
 
 
 def tools() -> list[Tool]:
-    """この Skill が持つ道具の一覧。"""
+    """この Skill が持つ道具の一覧。references の4つの道具（get ・ validate ・ view ・ import）は、
+    どの Skill も同じものを足す（ACDR 0043）。"""
     return [
         Tool(
             name="hello",
@@ -33,5 +35,6 @@ def tools() -> list[Tool]:
             args=[Arg.need("name", "あいさつする相手の名前")],
             run=run_hello,
             human=human_hello,
-        )
+        ),
+        *refs_tools.tools(),
     ]

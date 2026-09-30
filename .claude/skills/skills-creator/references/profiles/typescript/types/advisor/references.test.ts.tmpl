@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: MIT
+/**
+ * {{Skill名}} の references を事例で検証する。**助言型の雛形の事例5件である**（ACDR 0061）。
+ * 判断基準の件数や題に依存しない ── 全件に同じ性質を確かめる。
+ */
+
+import { strict as assert } from 'node:assert';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import * as refs from '../src/refs.ts';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const references = join(here, '../../references');
+const fixture = (name: string) => join(here, 'fixtures', name);
+
+function answer(body: object): string {
+    const path = join(mkdtempSync(join(tmpdir(), '{{Skill名}}-')), 'answer.json');
+    writeFileSync(path, JSON.stringify(body));
+    return path;
+}
+
+test('references がスキーマに合う', () => {
+    assert.deepEqual(refs.validate(references), []);
+});
+
+test('判断基準は1件ずつ取り出せる', () => {
+    // **回答の前に読む手順が、この取り出しに頼る**
+    const all = refs.get(references, 'criteria') as { items: { id: string }[] };
+    for (const item of all.items) {
+        assert.equal((refs.get(references, 'criteria', item.id) as { id: string }).id, item.id);
+    }
+});
+
+test('回答の例が回答の形に合う', () => {
+    assert.deepEqual(refs.validateFile(references, 'answer', fixture('answer.example.json')), []);
+});
+
+test('概念相談は、定義と具体例を欠くと合格しない', () => {
+    const fx = answer({ kind: 'concept', question: 'それは何か', conclusion: { stance: 'adopt', headline: 'こうである' }, grounds: [{ criterion: 'x', quote: 'x' }], next: ['読む'] });
+    const found = refs.validateFile(references, 'answer', fx);
+    assert.ok(found.some(f => f.includes('definition')), found.join('\n'));
+});
+
+test('設計相談は、設計の手順を欠くと合格しない', () => {
+    const fx = answer({ kind: 'design', question: 'どう組み立てるか', conclusion: { stance: 'adopt', headline: 'こう組む' }, grounds: [{ criterion: 'x', quote: 'x' }], next: ['組む'] });
+    const found = refs.validateFile(references, 'answer', fx);
+    assert.ok(found.some(f => f.includes('steps')), found.join('\n'));
+});

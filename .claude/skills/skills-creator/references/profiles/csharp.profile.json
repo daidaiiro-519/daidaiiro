@@ -1,26 +1,98 @@
 {
-  "$comment": "言語の組の定義（ACDR 0064）。C# の組は契約の版1 で、作業型だけを持つ。from は profiles/csharp/ からの相対。組み立てた dll を dotnet で起動する",
+  "$comment": "言語の組の定義（ACDR 0064 ・ 0069）。C# の組は契約の版2 で、作業型と助言型を持つ。from は profiles/csharp/ からの相対。組み立てた dll を dotnet で起動する",
   "name": "csharp",
   "detect": "tool/Directory.Build.props",
-  "contract": 1,
+  "contract": 2,
   "common": [
-    {"from": "common/Directory.Build.props.tmpl", "to": "tool/Directory.Build.props"},
-    {"from": "common/Skill.csproj.tmpl", "to": "tool/Skill/Skill.csproj"},
-    {"from": "common/Contract.cs.tmpl", "to": "tool/Skill/Contract.cs"},
-    {"from": "common/Cli.csproj.tmpl", "to": "tool/Cli/Cli.csproj"},
-    {"from": "common/Cli.Program.cs.tmpl", "to": "tool/Cli/Program.cs"},
-    {"from": "common/Mcp.csproj.tmpl", "to": "tool/Mcp/Mcp.csproj"},
-    {"from": "common/Mcp.Program.cs.tmpl", "to": "tool/Mcp/Program.cs"},
-    {"from": "common/tool.json.tmpl", "to": "tool.json"},
-    {"from": "common/mcp.json.tmpl", "to": "mcp.json"},
-    {"from": "common/gitignore.tmpl", "to": ".gitignore"}
+    {
+      "from": "common/Directory.Build.props.tmpl",
+      "to": "tool/Directory.Build.props"
+    },
+    {
+      "from": "common/Skill.csproj.tmpl",
+      "to": "tool/Skill/Skill.csproj"
+    },
+    {
+      "from": "common/Contract.cs.tmpl",
+      "to": "tool/Skill/Contract.cs"
+    },
+    {
+      "from": "common/Refs.cs.tmpl",
+      "to": "tool/Skill/Refs.cs"
+    },
+    {
+      "from": "common/RefsTools.cs.tmpl",
+      "to": "tool/Skill/RefsTools.cs"
+    },
+    {
+      "from": "common/Cli.csproj.tmpl",
+      "to": "tool/Cli/Cli.csproj"
+    },
+    {
+      "from": "common/Cli.Program.cs.tmpl",
+      "to": "tool/Cli/Program.cs"
+    },
+    {
+      "from": "common/Mcp.csproj.tmpl",
+      "to": "tool/Mcp/Mcp.csproj"
+    },
+    {
+      "from": "common/Mcp.Program.cs.tmpl",
+      "to": "tool/Mcp/Program.cs"
+    },
+    {
+      "from": "common/tool.json.tmpl",
+      "to": "tool.json"
+    },
+    {
+      "from": "common/mcp.json.tmpl",
+      "to": "mcp.json"
+    },
+    {
+      "from": "common/gitignore.tmpl",
+      "to": ".gitignore"
+    },
+    {
+      "from": "../shared/document.schema.json.tmpl",
+      "to": "references/document.schema.json"
+    }
   ],
   "types": {
     "work": [
-      {"from": "types/work/Tools.cs.tmpl", "to": "tool/Skill/Tools.cs"},
-      {"from": "types/work/Hello.cs.tmpl", "to": "tool/Skill/Hello.cs"},
-      {"from": "types/work/Tests.csproj.tmpl", "to": "tool/Tests/Tests.csproj"},
-      {"from": "types/work/HelloTests.cs.tmpl", "to": "tool/Tests/HelloTests.cs"}
+      {
+        "from": "types/work/Tools.cs.tmpl",
+        "to": "tool/Skill/Tools.cs"
+      },
+      {
+        "from": "types/work/Hello.cs.tmpl",
+        "to": "tool/Skill/Hello.cs"
+      },
+      {
+        "from": "types/work/Tests.csproj.tmpl",
+        "to": "tool/Tests/Tests.csproj"
+      },
+      {
+        "from": "types/work/HelloTests.cs.tmpl",
+        "to": "tool/Tests/HelloTests.cs"
+      }
+    ],
+    "advisor": [
+      {
+        "from": "types/advisor/Tools.cs.tmpl",
+        "to": "tool/Skill/Tools.cs"
+      },
+      {
+        "from": "types/work/Tests.csproj.tmpl",
+        "to": "tool/Tests/Tests.csproj"
+      },
+      {
+        "from": "types/advisor/ReferencesTests.cs.tmpl",
+        "to": "tool/Tests/ReferencesTests.cs"
+      },
+      {
+        "from": "../rust/types/advisor/answer.example.json.tmpl",
+        "to": "tool/Tests/fixtures/answer.example.json"
+      }
     ]
   },
   "parts": {},
@@ -34,8 +106,14 @@
     "tool/Tests"
   ],
   "sources": {
-    "extensions": [".cs"],
-    "skip": ["bin", "obj", "Tests"]
+    "extensions": [
+      ".cs"
+    ],
+    "skip": [
+      "bin",
+      "obj",
+      "Tests"
+    ]
   },
   "spawn": [
     "Process.Start(",
@@ -43,5 +121,6 @@
     "FileName = "
   ],
   "dist": false,
-  "layout": false
+  "layout": false,
+  "fixtures": "tool/Tests/fixtures"
 }

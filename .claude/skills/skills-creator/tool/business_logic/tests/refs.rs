@@ -224,7 +224,7 @@ fn markdown_is_imported_as_nested_sections() {
 fn an_imported_document_passes_the_document_schema() {
     let dir = scratch("import");
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../references/profiles/rust/common/document.schema.json.tmpl");
+        .join("../../references/profiles/shared/document.schema.json.tmpl");
     std::fs::copy(here, dir.join("document.schema.json")).expect("写せる");
     let doc = refs::import_markdown("sample", "a.md", "2026-09-29", "# 題\n\n## 節\n\n本文\n");
     refs::put_document(&dir, doc.clone()).expect("置ける");
@@ -280,7 +280,7 @@ fn sections_are_drawn_as_an_outline() {
     // **節の入れ子は、見出しと本文の字下げで描く** ── 欄の名前を並べない
     let dir = scratch("outline");
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../references/profiles/rust/common/document.schema.json.tmpl");
+        .join("../../references/profiles/shared/document.schema.json.tmpl");
     std::fs::copy(here, dir.join("document.schema.json")).expect("写せる");
     let doc = refs::import_markdown(
         "sample",
@@ -315,7 +315,7 @@ fn a_figure_block_embeds_its_svg() {
     // **図は design-svg が組んだ SVG を埋め込む** ── 描画は図の記法を解釈しない
     let dir = scratch("figure");
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../references/profiles/rust/common/document.schema.json.tmpl");
+        .join("../../references/profiles/shared/document.schema.json.tmpl");
     std::fs::copy(here, dir.join("document.schema.json")).expect("写せる");
     std::fs::create_dir_all(dir.join("figures")).expect("作れる");
     std::fs::write(dir.join("figures/a.svg"), "<svg id=\"a\"></svg>").expect("書ける");

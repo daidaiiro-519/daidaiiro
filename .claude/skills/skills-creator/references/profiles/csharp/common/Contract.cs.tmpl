@@ -23,11 +23,12 @@ public sealed record Arg(string Name, string Summary, bool Required, bool Many, 
 }
 
 /// <summary>道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。</summary>
-public sealed record Outcome(bool Ok, IReadOnlyList<string> Findings, JsonObject Data)
+public sealed record Outcome(bool Ok, IReadOnlyList<string> Findings, JsonNode? Data)
 {
-    public static Outcome Found(IReadOnlyList<string> findings, JsonObject data) => new(true, findings, data);
+    /// <summary>検出と結果を返す。**結果は任意の JSON である** ── 道具によっては配列を返す（get の一覧など）。</summary>
+    public static Outcome Found(IReadOnlyList<string> findings, JsonNode? data) => new(true, findings, data);
 
-    public static Outcome Misuse(string reason) => new(false, [reason], []);
+    public static Outcome Misuse(string reason) => new(false, [reason], new JsonObject());
 
     /// <summary>0 正常 ／ 1 検出あり ／ 2 誤用。</summary>
     public int ExitCode => !Ok ? 2 : Findings.Count > 0 ? 1 : 0;
@@ -36,7 +37,7 @@ public sealed record Outcome(bool Ok, IReadOnlyList<string> Findings, JsonObject
     {
         ["ok"] = Ok,
         ["findings"] = new JsonArray([.. Findings.Select(f => (JsonNode?)JsonValue.Create(f))]),
-        ["data"] = Data.DeepClone(),
+        ["data"] = Data?.DeepClone(),
     };
 }
 
@@ -123,6 +124,7 @@ public static class Contract
     public static readonly JsonSerializerOptions Pretty = new()
     {
         WriteIndented = true,
+        NewLine = "\n",
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 

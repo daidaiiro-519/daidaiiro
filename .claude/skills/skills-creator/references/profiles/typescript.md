@@ -6,7 +6,7 @@
 契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・
 組み立て ・ ソースの検査を保持する（ACDR 0063）。
 
-**この組は契約の版1 を満たし、作業型だけを保持する。** 助言型（版2）は Rust の組で生む。
+**この組は契約の版2 を満たし、作業型と助言型を保持する**（ACDR 0069）。references の実装は、Rust の組の `refs.rs` と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。
 作った Skill の配布（`dist`）には対応しない ── 利用者の環境に Node.js（22.18 以上）を必要とする。
 
 ---
@@ -19,6 +19,8 @@ tool/              道具のソース
   tsconfig.json    型の検査と編集の補助だけに使う。出力を置かない
   src/
     contract.ts    契約の実体（どの Skill も同じファイル）
+    refs.ts        references の実装（どの Skill も同じファイル）── 取り出す ・ 検査する ・ 描画する ・ 取り込む
+    refs_tools.ts  references の4つの道具（どの Skill も同じファイル）
     cli.ts         プレゼンテーション層 ── シェルから呼ぶ唯一の経路
     mcp.ts         プレゼンテーション層 ── MCP の面
     tools.ts       道具の一覧（能力の正本）
@@ -55,6 +57,7 @@ npm run --silent --prefix tool check
 | 外部の道具 | `given.external("名前")` で `tool.json` から読み、引数として渡す。**`spawnSync("…")` に名前を直書きしない** |
 | 標準出力 | MCP の面は標準出力へ書かない。標準出力は JSON-RPC の通信路である |
 | 誤りの返し方 | `ok` が偽なら `isError` を立てる。無い道具と足りない引数は、`ProtocolError(ProtocolErrorCode.InvalidParams, …)` で返す（Rust の組と同じ分け方） |
+| references（版2） | `refs.ts` が取り出す ・ 検査する ・ 描画する ・ 取り込むを持ち、`refs_tools.ts` が4つの道具（get ・ validate ・ view ・ import）として一覧に足す。JSON Schema の検査は `ajv`（Draft 2020-12）が行う |
 
 ---
 
@@ -65,10 +68,11 @@ npm run --silent --prefix tool check
 
 | 置き場所 | 中身 | 置く先 |
 |---|---|---|
-| `common/` | 全ての型に置く共通の一式 ── `package.json` ・ `tsconfig.json` ・ `contract.ts` ・ `cli.ts` ・ `mcp.ts` ・ `tool.json` ・ `mcp.json` ・ `.gitignore` | `tool/` と Skill のフォルダ |
+| `common/` | 全ての型に置く共通の一式 ── `package.json` ・ `tsconfig.json` ・ `contract.ts` ・ `cli.ts` ・ `mcp.ts` ・ `tool.json` ・ `mcp.json` ・ `.gitignore` ・ `refs.ts` ・ `refs_tools.ts` ・ `document.schema.json` | `tool/` と Skill のフォルダ |
 | `types/work/` | 作業型の一式 ── 道具の一覧 `tools.ts`、見本の道具 `hello`、その事例 | `tool/src/` ・ `tool/tests/` |
+| `types/advisor/` | 助言型の一式 ── 道具の一覧 `tools.ts`（references の4つだけ）、事例5件 `references.test.ts`、回答の例 | `tool/src/` ・ `tool/tests/` |
 
-**生んだ直後に動く。** 見本の道具 `hello` を書き換えて、この Skill の道具にする。
+**生んだ直後に動く。** 見本の道具 `hello` を書き換えて、この Skill の道具にする。助言型は、`references/types/advisor/procedure.md` の手順で判断基準を作る。
 
 ---
 

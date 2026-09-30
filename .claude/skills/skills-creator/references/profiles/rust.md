@@ -77,7 +77,7 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 
 | 置き場所 | 中身 | 置く先 |
 |---|---|---|
-| `common/` | 全ての型に置く共通の一式 ── workspace ・ データアクセス層（`files.rs` ・ `process.rs`）・ 業務ロジック層とサービス層の Cargo.toml ・ `contract.rs` ・ references の実装（`refs.rs` ・ `service.refs.rs`）・ CLI ・ MCP ・ `tool.json` ・ `mcp.json` ・ `.gitignore` ・ `document.schema.json` | `tool/` と Skill のフォルダ |
+| `common/` | 全ての型に置く共通の一式 ── workspace ・ データアクセス層（`files.rs` ・ `process.rs`）・ 業務ロジック層とサービス層の Cargo.toml ・ `contract.rs` ・ references の実装（`refs.rs` ・ `service.refs.rs`）・ CLI ・ MCP ・ `tool.json` ・ `mcp.json` ・ `.gitignore` ・ `document.schema.json`（言語に依存しないので `profiles/shared/` に置き、全ての組が同じものを置く） | `tool/` と Skill のフォルダ |
 | `types/work/` | 作業型の一式 ── 業務ロジック層とサービス層の `lib.rs`、見本の道具 `hello`、その事例 | `tool/business_logic/` ・ `tool/service/` |
 | `types/<型>/` | その型の道具のコード。**ここに無い型は、この組では生めない** | 型の定義による |
 

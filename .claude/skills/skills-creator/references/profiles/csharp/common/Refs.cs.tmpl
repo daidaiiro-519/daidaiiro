@@ -1,0 +1,982 @@
+// SPDX-License-Identifier: MIT
+// references の実装。**どの Skill も同じファイルを複製して使う** ── Contract.cs と同じ扱いである。
+//
+// references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。種類ごとに、
+// JSON Schema（<種類>.schema.json）と、それに従う JSON（<種類>.json）を置く。JSON は
+// $schema でスキーマを指す。回答の形のように、スキーマだけの種類も在る。
+//
+// 持つ能力は4つである ── 取り出す（Get）・ 検査する（Validate）・ 描画する（View）・
+// 既存の文書を取り込む（ImportMarkdown）。**描画は回答の形も種類の中身も参照しない** ── スキーマの
+// title を見出しに、description を説明にし、見せ方は x-view が決める。
+//
+// **出力は Rust の組の refs.rs と1バイトずつ同じにする**（ACDR 0069）── 同じ references が、
+// 言語によって違って見えてはならない。
+
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Json.Schema;
+
+namespace SkillTool;
+
+/// <summary>references を読めない ・ 書けない ・ 項目が無いときの誤り。道具は誤用として返す。</summary>
+public sealed class RefsException(string message) : Exception(message);
+
+/// <summary>種類1つ。Data はスキーマだけの種類では null である。</summary>
+public sealed record Kind(string Name, string Schema, string? Data);
+
+public static class Refs
+{
+    public const string SchemaTail = ".schema.json";
+
+    /// <summary>見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。**</summary>
+    static readonly (string, string)[] DefaultTokens =
+    [
+        ("ink", "#1f2328"),
+        ("muted", "#59636e"),
+        ("line", "#d1d9e0"),
+        ("paper", "#ffffff"),
+        ("band", "#f3f5f7"),
+        ("accent", "#0f6e5c"),
+        ("accent-soft", "#e3f1ed"),
+        ("warn", "#9a3412"),
+        ("warn-soft", "#fdeee6"),
+        ("radius", "10px"),
+        ("gap", "16px"),
+    ];
+
+    /// <summary>既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。</summary>
+    const string DefaultTemplate = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style></head><body><main class="rv">{{body}}</main></body></html>""";
+
+    /// <summary>頁の規則（body と main）。**単独の頁のときだけ使う。**</summary>
+    const string PageStyle = """*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}""";
+
+    /// <summary>型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。</summary>
+    const string Style = """.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}""";
+
+    /// <summary>空白の集合。**Rust の char::is_whitespace（Unicode の White_Space）と同じにする** ──
+    /// char.IsWhiteSpace は制御文字 \x1c〜\x1f も空白に数え、結果が Rust と食い違う。</summary>
+    static readonly char[] Ws =
+    [
+        '\t', '\n', '\v', '\f', '\r', ' ', '\u0085', '\u00a0', '\u1680', '\u2000', '\u2001', '\u2002', '\u2003', '\u2004',
+        '\u2005', '\u2006', '\u2007', '\u2008', '\u2009', '\u200a', '\u2028', '\u2029', '\u202f', '\u205f', '\u3000',
+    ];
+
+    static string Trim(string s) => s.Trim(Ws);
+    static string TrimStart(string s) => s.TrimStart(Ws);
+    static string TrimEnd(string s) => s.TrimEnd(Ws);
+
+    /// <summary>JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 逃がすのは " ・ \ ・ 制御文字だけで、
+    /// 全角空白などは逃がさない。System.Text.Json の既定の書き出しは U+3000 などを \u へ逃がし、
+    /// 同じ値でもファイルのバイト列が言語によって変わる。</summary>
+    public static string ToJson(JsonNode? v, bool pretty)
+    {
+        var sb = new StringBuilder();
+        Write(sb, v, pretty, 0);
+        return sb.ToString();
+    }
+
+    static void Write(StringBuilder sb, JsonNode? v, bool pretty, int depth)
+    {
+        switch (v)
+        {
+            case null:
+                sb.Append("null");
+                return;
+            case JsonObject o:
+                if (o.Count == 0)
+                {
+                    sb.Append("{}");
+                    return;
+                }
+                sb.Append('{');
+                var first = true;
+                foreach (var (k, x) in o)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
+                    Quote(sb, k);
+                    sb.Append(pretty ? ": " : ":");
+                    Write(sb, x, pretty, depth + 1);
+                }
+                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
+                sb.Append('}');
+                return;
+            case JsonArray a:
+                if (a.Count == 0)
+                {
+                    sb.Append("[]");
+                    return;
+                }
+                sb.Append('[');
+                for (var i = 0; i < a.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
+                    Write(sb, a[i], pretty, depth + 1);
+                }
+                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
+                sb.Append(']');
+                return;
+            case JsonValue jv when jv.GetValueKind() == JsonValueKind.String:
+                Quote(sb, jv.GetValue<string>());
+                return;
+            default:
+                sb.Append(v.ToJsonString());
+                return;
+        }
+    }
+
+    static void Quote(StringBuilder sb, string s)
+    {
+        sb.Append('"');
+        foreach (var c in s)
+        {
+            switch (c)
+            {
+                case '"': sb.Append("\\\""); break;
+                case '\\': sb.Append("\\\\"); break;
+                case '\b': sb.Append("\\b"); break;
+                case '\f': sb.Append("\\f"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                case < ' ': sb.Append($"\\u{(int)c:x4}"); break;
+                default: sb.Append(c); break;
+            }
+        }
+        sb.Append('"');
+    }
+
+    /// <summary>名前を UTF-8 のバイトの順に並べる。**Rust の文字列の順と同じにする。**</summary>
+    static int ByBytes(string a, string b) =>
+        Encoding.UTF8.GetBytes(a).AsSpan().SequenceCompareTo(Encoding.UTF8.GetBytes(b));
+
+    static List<string> Names(string refs)
+    {
+        try
+        {
+            var names = Directory.EnumerateFileSystemEntries(refs).Select(Path.GetFileName).OfType<string>().ToList();
+            names.Sort(ByBytes);
+            return names;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new RefsException($"{refs} を読めない ── {e.Message}");
+        }
+    }
+
+    /// <summary>references の種類を並べる。**名前の順である** ── 実行ごとに順が変わると、差分が毎回出る。</summary>
+    public static List<Kind> Kinds(string refs) =>
+        [.. Names(refs).Where(f => f.EndsWith(SchemaTail, StringComparison.Ordinal)).Select(file =>
+        {
+            var name = file[..^SchemaTail.Length];
+            var data = Path.Combine(refs, $"{name}.json");
+            return new Kind(name, Path.Combine(refs, file), File.Exists(data) ? data : null);
+        })];
+
+    /// <summary>描画した頁を書き出す。</summary>
+    public static void Save(string out_, string html)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(out_));
+            if (dir is not null) Directory.CreateDirectory(dir);
+            File.WriteAllText(out_, html, new UTF8Encoding(false));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new RefsException($"{out_} に書けない ── {e.Message}");
+        }
+    }
+
+    /// <summary>取り込む文書を読む。</summary>
+    public static string ReadText(string file)
+    {
+        try
+        {
+            return File.ReadAllText(file);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new RefsException($"{file} を読めない ── {e.Message}");
+        }
+    }
+
+    static JsonNode? ReadJson(string path)
+    {
+        string body;
+        try
+        {
+            body = File.ReadAllText(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new RefsException($"{path} を読めない ── {e.Message}");
+        }
+        try
+        {
+            return JsonNode.Parse(body);
+        }
+        catch (JsonException e)
+        {
+            throw new RefsException($"{path} が JSON でない ── {e.Message}");
+        }
+    }
+
+    /// <summary>未知の欄（x-view など）を許す 2020-12 の方言。**描画の指定をスキーマの中に置くためである。**</summary>
+    static readonly Dialect Draft = Dialect.Draft202012.With([], allowUnknownKeywords: true);
+
+    /// <summary>スキーマで検査する。**$schema の欄は、スキーマを指す印なので外してから当てる。**</summary>
+    static List<string> Against(JsonNode? schema, JsonNode? instance, string head)
+    {
+        var plain = instance?.DeepClone();
+        if (plain is JsonObject o) o.Remove("$schema");
+        JsonSchema built;
+        try
+        {
+            built = JsonSchema.FromText(schema?.ToJsonString() ?? "null", new BuildOptions { SchemaRegistry = new SchemaRegistry(), Dialect = Draft });
+        }
+        catch (Exception)
+        {
+            return [$"{head}: スキーマとして無効である"];
+        }
+        var element = JsonDocument.Parse(plain?.ToJsonString() ?? "null").RootElement;
+        var result = built.Evaluate(element, new EvaluationOptions { OutputFormat = OutputFormat.Hierarchical, IncludeApplicatorErrors = false });
+        var found = new List<string>();
+        // **合格した部分木には降りない** ── 合格した oneOf の、選ばれなかった枝の誤りを数えない
+        void Collect(EvaluationResults r)
+        {
+            if (r.IsValid) return;
+            foreach (var e in r.Errors ?? new Dictionary<string, string>())
+            {
+                found.Add($"{head}: {r.InstanceLocation.ToString().TrimStart('/')} ── {e.Key}: {e.Value}");
+            }
+            foreach (var d in r.Details ?? []) Collect(d);
+        }
+        Collect(result);
+        found.Sort(ByBytes);
+        return found;
+    }
+
+    /// <summary>references を検査する。**スキーマに合わない JSON、スキーマを指さない JSON、Markdown を並べる。**</summary>
+    public static List<string> Validate(string refs)
+    {
+        var found = new List<string>();
+        foreach (var file in Names(refs))
+        {
+            if (file.EndsWith(".md", StringComparison.Ordinal))
+            {
+                found.Add($"{file}: Markdown が在る ── references は JSON Schema と JSON で持つ（Markdown は SKILL.md だけ）");
+            }
+            if (!file.EndsWith(".json", StringComparison.Ordinal) || file.EndsWith(SchemaTail, StringComparison.Ordinal)) continue;
+            JsonNode? data;
+            try
+            {
+                data = ReadJson(Path.Combine(refs, file));
+            }
+            catch (RefsException why)
+            {
+                found.Add(why.Message);
+                continue;
+            }
+            // **$schema が指すスキーマで検査する** ── 雛形のように、種類の名前と違うスキーマを指してよい
+            var own = $"{file[..^".json".Length]}{SchemaTail}";
+            var want = Str(data, "$schema");
+            if (want is null)
+            {
+                found.Add($"{file}: $schema が無い ── {own} を指す");
+                want = own;
+            }
+            JsonNode? schema;
+            try
+            {
+                schema = ReadJson(Path.Combine(refs, want));
+            }
+            catch (RefsException)
+            {
+                found.Add($"{file}: スキーマ {want} が無い");
+                continue;
+            }
+            found.AddRange(Against(schema, data, file));
+        }
+        return found;
+    }
+
+    /// <summary>1つの JSON を、種類のスキーマで検査する。**回答のように、references の外の JSON に使う。**</summary>
+    public static List<string> ValidateFile(string refs, string kind, string file) =>
+        Against(ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}")), ReadJson(file), file);
+
+    /// <summary>種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。</summary>
+    public static JsonNode? Get(string refs, string kind, string? id = null)
+    {
+        var data = ReadJson(Path.Combine(refs, $"{kind}.json"));
+        if (data is JsonObject o) o.Remove("$schema");
+        if (id is null) return data;
+        var items = TryAt(data, "items", out var x) ? x : data;
+        if (items is not JsonArray list) throw new RefsException($"{kind} は項目の並びではない ── id で取り出せない");
+        foreach (var item in list)
+        {
+            if (Str(item, "id") == id)
+            {
+                var hit = item!.DeepClone();
+                return hit;
+            }
+        }
+        throw new RefsException($"{kind} に id {id} の項目が無い");
+    }
+
+    /// <summary>行に分ける。**Rust の str::lines と同じ規則である** ── 末尾の改行は空の行を作らず、行末の CR を外す。</summary>
+    static List<string> Lines(string text)
+    {
+        var parts = text.Split('\n').ToList();
+        if (parts.Count > 0 && parts[^1].Length == 0) parts.RemoveAt(parts.Count - 1);
+        return [.. parts.Select(p => p.EndsWith('\r') ? p[..^1] : p)];
+    }
+
+    static string? Numbered(string t)
+    {
+        var at = t.IndexOf(". ", StringComparison.Ordinal);
+        if (at < 1) return null;
+        return t[..at].All(c => c is >= '0' and <= '9') ? t[(at + 2)..] : null;
+    }
+
+    static string Plain(string t) => t.Replace("**", "").Replace("`", "");
+
+    /// <summary>本文を塊に分ける ── 段落 ・ 箇条書き ・ 表 ・ コード。**記号のまま残さない。** 区切りの線（---）は捨てる。</summary>
+    public static JsonArray BlocksOf(IReadOnlyList<string> src)
+    {
+        static JsonArray Cells(string line) =>
+            new([.. Trim(line).Trim('|').Split('|').Select(c => (JsonNode?)JsonValue.Create(Plain(Trim(c))))]);
+        var out_ = new JsonArray();
+        var para = new List<string>();
+        void Flush()
+        {
+            if (para.Count == 0) return;
+            out_.Add(new JsonObject { ["kind"] = "para", ["text"] = string.Concat(para) });
+            para.Clear();
+        }
+        var i = 0;
+        while (i < src.Count)
+        {
+            var line = TrimEnd(src[i]);
+            var t = TrimStart(line);
+            if (t.StartsWith("```", StringComparison.Ordinal))
+            {
+                Flush();
+                var code = new List<string>();
+                i++;
+                while (i < src.Count && !TrimStart(src[i]).StartsWith("```", StringComparison.Ordinal))
+                {
+                    code.Add(src[i]);
+                    i++;
+                }
+                out_.Add(new JsonObject { ["kind"] = "code", ["text"] = string.Join("\n", code) });
+            }
+            else if (t.StartsWith('|'))
+            {
+                Flush();
+                var head = Cells(t);
+                var rows = new JsonArray();
+                i++;
+                while (i < src.Count && TrimStart(src[i]).StartsWith('|'))
+                {
+                    var r = Cells(src[i]);
+                    if (!r.All(c => c!.GetValue<string>().All(ch => ch is '-' or ':' or ' '))) rows.Add(r);
+                    i++;
+                }
+                out_.Add(new JsonObject { ["kind"] = "table", ["head"] = head, ["rows"] = rows });
+                continue;
+            }
+            else if (t.StartsWith("- ", StringComparison.Ordinal) || t.StartsWith("* ", StringComparison.Ordinal) || Numbered(t) is not null)
+            {
+                Flush();
+                var ordered = !t.StartsWith('-') && !t.StartsWith('*');
+                var items = new JsonArray();
+                while (i < src.Count)
+                {
+                    var l = TrimStart(src[i]);
+                    string item;
+                    if (l.StartsWith("- ", StringComparison.Ordinal) || l.StartsWith("* ", StringComparison.Ordinal)) item = l[2..];
+                    else if (Numbered(l) is { } rest) item = rest;
+                    else break;
+                    items.Add(Plain(item));
+                    i++;
+                }
+                out_.Add(new JsonObject { ["kind"] = "list", ["ordered"] = ordered, ["items"] = items });
+                continue;
+            }
+            else if (t.Length == 0 || t.All(c => c == '-'))
+            {
+                Flush();
+            }
+            else
+            {
+                para.Add(Plain(Trim(t.TrimStart('>'))));
+            }
+            i++;
+        }
+        Flush();
+        return out_;
+    }
+
+    sealed class Node(string title, int level)
+    {
+        public string Title { get; } = title;
+        public int Level { get; } = level;
+        public List<string> Body { get; } = [];
+        public List<Node> Children { get; } = [];
+    }
+
+    /// <summary>Markdown の文書を、document の1件へ取り込む。**見出しを節の入れ子に分ける。**</summary>
+    public static JsonObject ImportMarkdown(string id, string location, string fetched, string text)
+    {
+        static JsonObject ToJson(Node n)
+        {
+            var m = new JsonObject { ["title"] = n.Title };
+            var blocks = BlocksOf(n.Body);
+            if (blocks.Count > 0) m["blocks"] = blocks;
+            if (n.Children.Count > 0) m["sections"] = new JsonArray([.. n.Children.Select(c => (JsonNode?)ToJson(c))]);
+            return m;
+        }
+        var stack = new List<Node> { new("", 0) };
+        var fence = false;
+        // **frontmatter は取り込まない** ── 原典の管理のための欄であって、本文ではない
+        var body = text;
+        if (text.StartsWith("---\n", StringComparison.Ordinal))
+        {
+            var rest = text[4..];
+            var at = rest.IndexOf("\n---\n", StringComparison.Ordinal);
+            if (at >= 0) body = rest[(at + 5)..];
+        }
+        foreach (var line in Lines(body))
+        {
+            if (TrimStart(line).StartsWith("```", StringComparison.Ordinal)) fence = !fence;
+            var hashes = line.TakeWhile(c => c == '#').Count();
+            var heading = !fence && hashes is >= 1 and <= 6 && line[hashes..].StartsWith(' ');
+            if (!heading)
+            {
+                stack[^1].Body.Add(line);
+                continue;
+            }
+            while (stack.Count > 1 && stack[^1].Level >= hashes)
+            {
+                var done = stack[^1];
+                stack.RemoveAt(stack.Count - 1);
+                stack[^1].Children.Add(done);
+            }
+            stack.Add(new Node(Trim(line[hashes..]), hashes));
+        }
+        while (stack.Count > 1)
+        {
+            var done = stack[^1];
+            stack.RemoveAt(stack.Count - 1);
+            stack[^1].Children.Add(done);
+        }
+        var root = stack[0];
+        var title = root.Children.Count > 0 ? root.Children[0].Title : id;
+        var doc = new JsonObject
+        {
+            ["id"] = id,
+            ["title"] = title,
+            ["source"] = new JsonObject { ["location"] = location, ["sha256"] = Sha256Hex(Encoding.UTF8.GetBytes(text)), ["fetched"] = fetched },
+            ["sections"] = new JsonArray([.. root.Children.Select(c => (JsonNode?)ToJson(c))]),
+        };
+        var lead = BlocksOf(root.Body);
+        if (lead.Count > 0) doc["blocks"] = lead;
+        return doc;
+    }
+
+    /// <summary>document の並びへ1件を置く。**同じ id が在れば置き換える。**</summary>
+    public static string PutDocument(string refs, JsonObject doc)
+    {
+        var path = Path.Combine(refs, "document.json");
+        var all = File.Exists(path) ? ReadJson(path) : new JsonObject { ["$schema"] = "document.schema.json", ["items"] = new JsonArray() };
+        if (all is not JsonObject top || top["items"] is not JsonArray items) throw new RefsException("document.json に items が無い");
+        var hasId = doc.TryGetPropertyValue("id", out var id);
+        var kept = new JsonArray();
+        foreach (var x in items.ToList())
+        {
+            items.Remove(x);
+            var drop = x is JsonObject xo && xo.TryGetPropertyValue("id", out var xid) && JsonNode.DeepEquals(xid, hasId ? id : null);
+            if (!drop) kept.Add(x);
+        }
+        kept.Add(doc);
+        top["items"] = kept;
+        try
+        {
+            File.WriteAllText(path, ToJson(top, true) + "\n", new UTF8Encoding(false));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new RefsException($"{path} に書けない ── {e.Message}");
+        }
+        return path;
+    }
+
+    /// <summary>SHA-256 を16進で返す。</summary>
+    public static string Sha256Hex(byte[] data) => Convert.ToHexStringLower(SHA256.HashData(data));
+
+    // ── 描画 ────────────────────────────────────────────────────────────────
+
+    static bool TryAt(JsonNode? v, string key, out JsonNode? x)
+    {
+        x = null;
+        return v is JsonObject o && o.TryGetPropertyValue(key, out x);
+    }
+
+    static JsonNode? At(JsonNode? v, string key) => TryAt(v, key, out var x) ? x : null;
+
+    static bool Has(JsonNode? v, string key) => TryAt(v, key, out _);
+
+    static string? Str(JsonNode? v, string key) =>
+        TryAt(v, key, out var x) && x is JsonValue jv && jv.GetValueKind() == JsonValueKind.String ? jv.GetValue<string>() : null;
+
+    static string Esc(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    /// <summary>値を文字列にする。**文字列はそのまま、null は空、それ以外は1行の JSON である。**</summary>
+    static string Text(JsonNode? v) => v switch
+    {
+        null => "",
+        JsonValue jv when jv.GetValueKind() == JsonValueKind.String => jv.GetValue<string>(),
+        _ => ToJson(v, false),
+    };
+
+    /// <summary>JSON Pointer を解く。</summary>
+    static bool Walk(JsonNode? root, string pointer, out JsonNode? hit)
+    {
+        hit = root;
+        if (pointer.Length == 0) return true;
+        if (!pointer.StartsWith('/')) return false;
+        foreach (var raw in pointer[1..].Split('/'))
+        {
+            var token = raw.Replace("~1", "/").Replace("~0", "~");
+            if (hit is JsonObject o)
+            {
+                if (!o.TryGetPropertyValue(token, out hit)) return false;
+            }
+            else if (hit is JsonArray a)
+            {
+                if (token.Length == 0 || !token.All(char.IsAsciiDigit) || (token.Length > 1 && token[0] == '0')
+                    || !int.TryParse(token, out var n) || n >= a.Count) return false;
+                hit = a[n];
+            }
+            else return false;
+        }
+        return true;
+    }
+
+    /// <summary>$ref（#/$defs/…）を解く。**スキーマの中だけを指す** ── 外を指す参照は解かない。</summary>
+    static JsonNode? Resolve(JsonNode? schema, JsonNode? root)
+    {
+        var r = Str(schema, "$ref");
+        if (r is null || !r.StartsWith('#')) return schema;
+        return Walk(root, r[1..], out var hit) ? hit : schema;
+    }
+
+    static string Label(JsonNode? schema, JsonNode? value)
+    {
+        if (At(schema, "oneOf") is JsonArray options)
+        {
+            foreach (var o in options)
+            {
+                if (TryAt(o, "const", out var c) && JsonNode.DeepEquals(c, value))
+                {
+                    return Str(o, "title") ?? Text(value);
+                }
+            }
+        }
+        return Text(value);
+    }
+
+    static string Tag(JsonNode? schema, JsonNode? value)
+    {
+        var neg = (value is JsonValue b && b.GetValueKind() == JsonValueKind.False)
+            || (value is JsonValue s && s.GetValueKind() == JsonValueKind.String && s.GetValue<string>() == "reject");
+        return $"<span class=\"{(neg ? "tag neg" : "tag")}\">{Esc(Label(schema, value))}</span>";
+    }
+
+    static bool Scalar(JsonNode? schema) =>
+        Has(schema, "oneOf") || Str(schema, "type") is "string" or "number" or "integer" or "boolean";
+
+    static string Head(string key, JsonNode? schema, int level)
+    {
+        var h = Math.Clamp(level, 2, 3);
+        var d = Str(schema, "description");
+        var desc = d is not null ? $"<p class=\"desc\">{Esc(d)}</p>" : "";
+        return $"<h{h}>{Esc(Str(schema, "title") ?? key)}</h{h}>{desc}";
+    }
+
+    sealed record Ctx(JsonNode? Root, string Base);
+
+    static string ViewOf(JsonNode? schema) => Str(schema, "x-view") ?? "";
+
+    static JsonObject? Props(JsonNode? schema) => At(schema, "properties") as JsonObject;
+
+    static string Cell(JsonNode? schema, JsonNode? value, Ctx ctx)
+    {
+        schema = Resolve(schema, ctx.Root);
+        if (ViewOf(schema) == "tag" || Has(schema, "oneOf")) return Tag(schema, value);
+        return Esc(Text(value));
+    }
+
+    static string Inner(JsonNode? value, JsonNode? schemaIn, int level, Ctx ctx)
+    {
+        var schema = Resolve(schemaIn, ctx.Root);
+        if (value is JsonObject map)
+        {
+            var p = Props(schema);
+            var sb = new StringBuilder();
+            foreach (var key in p is not null ? p.Select(kv => kv.Key).ToList() : map.Select(kv => kv.Key).ToList())
+            {
+                if (!map.TryGetPropertyValue(key, out var v)) continue;
+                var sub = p is not null ? At(p, key) : null;
+                if (ViewOf(Resolve(sub, ctx.Root)) == "hidden") continue;
+                sb.Append($"<div class=\"nest\">{Head(key, Resolve(sub, ctx.Root), level)}{Inner(v, sub, level + 1, ctx)}</div>");
+            }
+            return sb.ToString();
+        }
+        if (value is JsonArray items)
+        {
+            var item = Resolve(At(schema, "items"), ctx.Root);
+            var p = Props(item);
+            if (p is not null && p.All(kv => Scalar(Resolve(kv.Value, ctx.Root))))
+            {
+                // **どの行も値を保持しない列は描かない** ── 空の列は、欠けがあるように読める
+                var cols = p.Where(kv => items.Any(v => Has(v, kv.Key))).ToList();
+                // **列が1つなら箇条書きにする** ── 1列の表は、見出しの升が中身を説明しない
+                if (cols.Count == 1)
+                {
+                    var (k, s) = (cols[0].Key, cols[0].Value);
+                    return $"<ul>{string.Concat(items.Where(v => Has(v, k)).Select(v => $"<li>{Cell(s, At(v, k), ctx)}</li>"))}</ul>";
+                }
+                var th = string.Concat(cols.Select(kv => $"<th>{Esc(Str(kv.Value, "title") ?? kv.Key)}</th>"));
+                var rows = string.Concat(items.Select(v => $"<tr>{string.Concat(cols.Select(kv => $"<td>{Cell(kv.Value, At(v, kv.Key), ctx)}</td>"))}</tr>"));
+                return $"<div class=\"scroll\"><table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div>";
+            }
+            if (p is not null) return string.Concat(items.Select(v => $"<div class=\"item\">{Inner(v, item, level + 1, ctx)}</div>"));
+            return $"<ul>{string.Concat(items.Select(v => $"<li>{Esc(Text(v))}</li>"))}</ul>";
+        }
+        if (Has(schema, "oneOf") || ViewOf(schema) == "tag") return Tag(schema, value);
+        var t = Text(value);
+        return t.Contains('\n') ? $"<pre>{Esc(t)}</pre>" : $"<p>{Esc(t)}</p>";
+    }
+
+    static string ReadOrEmpty(string path)
+    {
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (Exception)
+        {
+            return "";
+        }
+    }
+
+    /// <summary>SVG を埋め込む。**svg はファイル名（references からの経路）か、SVG そのもの。**</summary>
+    static string SvgOf(string p, string base_) =>
+        TrimStart(p).StartsWith("<svg", StringComparison.Ordinal) ? p : ReadOrEmpty(Path.Combine(base_, p));
+
+    static IEnumerable<JsonNode?> Each(JsonNode? v) => v is JsonArray a ? a : [];
+
+    /// <summary>論点の並びを描く ── **1件を1枚にし、heading の欄を題、lead の欄を主張にする。**</summary>
+    static string Sections(JsonNode? schema, JsonNode? value, Ctx ctx)
+    {
+        var item = Resolve(At(schema, "items"), ctx.Root);
+        return string.Concat(Each(value).Select(v => $"<section class=\"block topic\">{Fields(item, v, ctx)}</section>"));
+    }
+
+    /// <summary>欄を順に描く。**heading は題、lead は主張、hidden は描かない。**</summary>
+    static string Fields(JsonNode? schema, JsonNode? value, Ctx ctx)
+    {
+        var p = Props(schema);
+        if (p is null) return Inner(value, schema, 3, ctx);
+        var sb = new StringBuilder();
+        foreach (var (k, s) in p)
+        {
+            if (k == "kind") continue;
+            if (TryAt(value, k, out var v)) sb.Append(Field(Resolve(s, ctx.Root), v, ctx));
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>欄1つを描く。見出しを付けない ── 論点と単位の中では、形そのものが役割を示す。</summary>
+    static string Field(JsonNode? schema, JsonNode? value, Ctx ctx) => ViewOf(schema) switch
+    {
+        "hidden" => "",
+        "heading" => $"<h2>{Esc(Text(value))}</h2>",
+        "lead" => $"<p class=\"claim\">{Esc(Text(value))}</p>",
+        "subhead" => $"<h3>{Esc(Text(value))}</h3>",
+        // **段落の並びは、段落ごとに描く** ── 1つの文字列へ連結すると、原文の段落の切れ目が消える
+        "paras" => string.Concat(Each(value).Select(p => $"<p>{Esc(Text(p))}</p>")),
+        "svg" => $"<figure>{SvgOf(value is JsonValue jv && jv.GetValueKind() == JsonValueKind.String ? jv.GetValue<string>() : "", ctx.Base)}</figure>",
+        "code" => $"<pre class=\"code\">{Esc(Text(value))}</pre>",
+        "units" => Units(schema, value, ctx),
+        "blocks" => Blocks(value, ctx.Base),
+        "steps" => Steps(schema, value, ctx),
+        "table" => TableField(value, ctx),
+        _ => Inner(value, schema, 4, ctx),
+    };
+
+    static string TableField(JsonNode? value, Ctx ctx)
+    {
+        var t = value is JsonObject o ? (JsonObject)o.DeepClone() : new JsonObject();
+        t["kind"] = "table";
+        return Blocks(new JsonArray(t), ctx.Base);
+    }
+
+    /// <summary>単位の並びを描く。**形は kind の値で、items.oneOf から選ぶ** ── 形の title を札にする。</summary>
+    static string Units(JsonNode? schema, JsonNode? value, Ctx ctx)
+    {
+        var forms = Has(schema, "items") && At(Resolve(At(schema, "items"), ctx.Root), "oneOf") is JsonArray options
+            ? options.Select(f => Resolve(f, ctx.Root)).ToList()
+            : [];
+        var sb = new StringBuilder();
+        foreach (var u in Each(value))
+        {
+            var hasWant = TryAt(u, "kind", out var want);
+            JsonNode? form = null;
+            foreach (var f in forms)
+            {
+                var hasHave = Walk(f, "/properties/kind/const", out var have);
+                if (hasHave != hasWant) continue;
+                if (!hasHave || JsonNode.DeepEquals(have, want))
+                {
+                    form = f;
+                    break;
+                }
+            }
+            var t = Str(form, "title");
+            var label = t is not null ? $"<span class=\"ulabel\">{Esc(t)}</span>" : "";
+            sb.Append($"<div class=\"unit\">{label}{Fields(form, u, ctx)}</div>");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>手順を番号付きで描く。**各段の1つ目の欄を太字にし、残りを添える。**</summary>
+    static string Steps(JsonNode? schema, JsonNode? value, Ctx ctx)
+    {
+        var p = Props(Resolve(At(schema, "items"), ctx.Root));
+        var keys = p is not null ? p.Select(kv => kv.Key).ToList() : [];
+        var sb = new StringBuilder();
+        foreach (var v in Each(value))
+        {
+            var parts = keys.Where(k => Has(v, k)).Select(k => At(v, k)).ToList();
+            var lead = parts.Count > 0 ? $"<p class=\"lead\">{Esc(Text(parts[0]))}</p>" : "";
+            var rest = string.Concat(parts.Skip(1).Select(x => $"<p class=\"sub\">{Esc(Text(x))}</p>"));
+            sb.Append($"<li>{lead}{rest}</li>");
+        }
+        return $"<ol class=\"steps\">{sb}</ol>";
+    }
+
+    /// <summary>本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む。**</summary>
+    static string Blocks(JsonNode? list, string base_)
+    {
+        var sb = new StringBuilder();
+        foreach (var b in Each(list))
+        {
+            switch (Str(b, "kind"))
+            {
+                case "list":
+                {
+                    var tag = At(b, "ordered") is JsonValue ov && ov.GetValueKind() == JsonValueKind.True ? "ol" : "ul";
+                    sb.Append($"<{tag}>{string.Concat(Each(At(b, "items")).Select(x => $"<li>{Esc(Text(x))}</li>"))}</{tag}>");
+                    break;
+                }
+                case "table":
+                {
+                    static string Row(JsonNode? r, string t) => string.Concat(Each(r).Select(c => $"<{t}>{Esc(Text(c))}</{t}>"));
+                    var th = Has(b, "head") ? Row(At(b, "head"), "th") : "";
+                    var trs = string.Concat(Each(At(b, "rows")).Select(r => $"<tr>{Row(r, "td")}</tr>"));
+                    sb.Append($"<div class=\"scroll\"><table><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>");
+                    break;
+                }
+                case "figure":
+                {
+                    var p = Str(b, "svg");
+                    var c = Str(b, "caption");
+                    sb.Append($"<figure>{(p is not null ? SvgOf(p, base_) : "")}{(c is not null ? $"<figcaption>{Esc(c)}</figcaption>" : "")}</figure>");
+                    break;
+                }
+                case "code":
+                    sb.Append($"<pre class=\"code\">{Esc(Str(b, "text") ?? "")}</pre>");
+                    break;
+                default:
+                    sb.Append($"<p>{Esc(Str(b, "text") ?? "")}</p>");
+                    break;
+            }
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>節の入れ子を、見出しと本文の字下げで組む。**欄の名前（見出し ・ 本文）は表示しない。**</summary>
+    static string Outline(JsonNode? items, int level, string base_)
+    {
+        var h = Math.Clamp(level + 1, 3, 6);
+        return string.Concat(Each(items).Select(n =>
+        {
+            var body = Has(n, "blocks") ? Blocks(At(n, "blocks"), base_) : "";
+            var kids = Has(n, "sections") ? Outline(At(n, "sections"), level + 1, base_) : "";
+            return $"<div class=\"nest\"><h{h}>{Esc(Str(n, "title") ?? "")}</h{h}>{body}{kids}</div>";
+        }));
+    }
+
+    static string Block(string key, JsonNode? schemaIn, JsonNode? value, Ctx ctx)
+    {
+        var schema = Resolve(schemaIn, ctx.Root);
+        var head = Head(key, schema, 2);
+        switch (ViewOf(schema))
+        {
+            case "hidden":
+                return "";
+            case "outline":
+                return $"<section class=\"block\">{head}{Outline(value, 2, ctx.Base)}</section>";
+            case "blocks":
+                return $"<section class=\"block\">{head}{Blocks(value, ctx.Base)}</section>";
+            case "sections":
+                return Sections(schema, value, ctx);
+            case "group":
+                // **導入の文と表を1枚にまとめる** ── 分けると、導入の文が別の論点に属すように読める
+                return $"<section class=\"block\">{head}{Fields(schema, value, ctx)}</section>";
+            case "card" when value is JsonValue sv && sv.GetValueKind() == JsonValueKind.String:
+                return $"<section class=\"card\"><div class=\"cardhead\"><h2>{Esc(Str(schema, "title") ?? key)}</h2></div><p class=\"lead\">{Esc(Text(value))}</p></section>";
+            case "card":
+            {
+                var tags = new StringBuilder();
+                var lines = new List<string>();
+                foreach (var (k, p) in Props(schema) ?? new JsonObject())
+                {
+                    if (!TryAt(value, k, out var v)) continue;
+                    if (ViewOf(p) == "tag") tags.Append(Tag(p, v));
+                    else lines.Add(Esc(Text(v)));
+                }
+                var body = string.Concat(lines.Select((l, i) => $"<p class=\"{(i == 0 ? "lead" : "sub")}\">{l}</p>"));
+                return $"<section class=\"card\"><div class=\"cardhead\"><h2>{Esc(Str(schema, "title") ?? key)}</h2>{tags}</div>{body}</section>";
+            }
+            case "figure":
+            {
+                // **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
+                var p = Str(value, "svg");
+                var svg = p is not null ? SvgOf(p, ctx.Base) : "";
+                return $"<section class=\"block\">{head}<figure>{svg}<figcaption>{Esc(Str(value, "caption") ?? "")}</figcaption></figure></section>";
+            }
+            case "steps":
+                return $"<section class=\"block\">{head}{Steps(schema, value, ctx)}</section>";
+            default:
+                return $"<section class=\"block\">{head}{Inner(value, schema, 3, ctx)}</section>";
+        }
+    }
+
+    /// <summary>1件を描画する。**x-view が heading の欄を h1、トップの tag の欄を見出しの上の札にする。**</summary>
+    static string PageBody(JsonNode? schemaIn, JsonNode? value, Ctx ctx)
+    {
+        var schema = Resolve(schemaIn, ctx.Root);
+        var props = Props(schema);
+        if (props is null) return Inner(value, schema, 2, ctx);
+        var eyebrow = new List<string> { Esc(Str(ctx.Root, "title") ?? "") };
+        var h1 = "";
+        var body = new StringBuilder();
+        foreach (var (k, raw) in props)
+        {
+            var p = Resolve(raw, ctx.Root);
+            if (!TryAt(value, k, out var v)) continue;
+            switch (ViewOf(p))
+            {
+                case "tag":
+                    eyebrow.Add(Tag(p, v));
+                    break;
+                case "meta":
+                    var t = Text(v);
+                    if (t.Length > 0) eyebrow.Add(Esc(t));
+                    break;
+                case "heading":
+                    h1 = Esc(Text(v));
+                    break;
+                default:
+                    body.Append(Block(k, p, v, ctx));
+                    break;
+            }
+        }
+        var lead = h1.Length > 0 ? h1 : Esc(Str(value, "title") ?? "");
+        return $"<header><p class=\"eyebrow\">{string.Join(" ・ ", eyebrow)}</p><h1>{lead}</h1></header>{body}";
+    }
+
+    /// <summary>.rv の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う。**</summary>
+    public static string ScopedStyle() => Style;
+
+    /// <summary>1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**</summary>
+    public static string RenderBody(JsonNode? schema, JsonNode? value, string base_) =>
+        $"<div class=\"rv\">{PageBody(schema, value, new Ctx(schema, base_))}</div>";
+
+    /// <summary>見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**</summary>
+    static string Tokens(string refs)
+    {
+        var vars = DefaultTokens.Select(t => new[] { t.Item1, t.Item2 }).ToList();
+        JsonNode? over;
+        try
+        {
+            over = ReadJson(Path.Combine(refs, "view.tokens.json"));
+        }
+        catch (RefsException)
+        {
+            over = null;
+        }
+        if (over is JsonObject o)
+        {
+            foreach (var (k, v) in o)
+            {
+                if (v is not JsonValue jv || jv.GetValueKind() != JsonValueKind.String) continue;
+                var slot = vars.FirstOrDefault(x => x[0] == k);
+                if (slot is not null) slot[1] = jv.GetValue<string>();
+                else vars.Add([k, jv.GetValue<string>()]);
+            }
+        }
+        return $":root{{{string.Concat(vars.Select(x => $"--{x[0]}:{x[1]};"))}}}{PageStyle}{Style}";
+    }
+
+    /// <summary>種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。</summary>
+    public static string View(string refs, string kind, string? id = null, string? file = null)
+    {
+        var root = ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}"));
+        var value = file is not null ? ReadJson(file) : Get(refs, kind);
+        var ctx = new Ctx(root, file is not null ? Path.GetDirectoryName(file) ?? refs : refs);
+        string body;
+        if (id is not null)
+        {
+            JsonNode? one;
+            if (file is not null)
+            {
+                var items = TryAt(value, "items", out var x) ? x : value;
+                one = items is JsonArray list ? list.FirstOrDefault(i => Str(i, "id") == id) : null;
+                if (one is null) throw new RefsException($"id {id} の項目が無い");
+            }
+            else
+            {
+                one = Get(refs, kind, id);
+            }
+            var top = Resolve(root, root);
+            var itemSchema = Walk(top, "/properties/items/items", out var deep) ? deep : At(top, "items");
+            body = PageBody(itemSchema, one, ctx);
+        }
+        else
+        {
+            var plain = value?.DeepClone();
+            if (plain is JsonObject po) po.Remove("$schema");
+            body = PageBody(root, plain, ctx);
+        }
+        string template;
+        try
+        {
+            template = File.ReadAllText(Path.Combine(refs, "view.template.html"));
+        }
+        catch (Exception)
+        {
+            template = DefaultTemplate;
+        }
+        var title = Esc(Str(root, "title") ?? kind);
+        return template.Replace("{{title}}", title).Replace("{{style}}", Tokens(refs)).Replace("{{body}}", body);
+    }
+}

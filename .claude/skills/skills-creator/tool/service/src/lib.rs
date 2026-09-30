@@ -64,7 +64,7 @@ fn run_accept(given: &Given) -> Outcome {
         .into_iter()
         .filter(|n| *n != own)
         .collect::<Vec<_>>();
-    let checks = accept::accept(&root, &others, &found.test);
+    let checks = accept::accept(&root, &others, &found);
     let findings: Vec<String> = checks
         .iter()
         .flat_map(|c| c.findings.iter().map(move |f| format!("{} {f}", c.no)))

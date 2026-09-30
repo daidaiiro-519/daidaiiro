@@ -7,6 +7,7 @@
 
 import { found, type Given, need, type Outcome, type Tool } from './contract.ts';
 import { greet } from './hello.ts';
+import { refsTools } from './refs_tools.ts';
 
 /**
  * 見本の道具。**書き換えて、この Skill の道具にする。**
@@ -19,10 +20,13 @@ function runHello(given: Given): Outcome {
 
 function humanHello(out: Outcome): string {
     if (!out.ok) return out.findings.join(' ／ ');
-    return String(out.data.greeting ?? '');
+    return String((out.data as { greeting?: unknown }).greeting ?? '');
 }
 
-/** この Skill が持つ道具の一覧。 */
+/**
+ * この Skill が持つ道具の一覧。references の4つの道具（get ・ validate ・ view ・ import）は、
+ * どの Skill も同じものを足す（ACDR 0043）。
+ */
 export function tools(): Tool[] {
     return [
         {
@@ -31,6 +35,7 @@ export function tools(): Tool[] {
             args: [need('name', 'あいさつする相手の名前')],
             run: runHello,
             human: humanHello
-        }
+        },
+        ...refsTools()
     ];
 }

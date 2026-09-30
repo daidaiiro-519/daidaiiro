@@ -1,23 +1,82 @@
 {
-  "$comment": "言語の組の定義（ACDR 0063）。TypeScript の組は契約の版1 で、作業型だけを持つ。from は profiles/typescript/ からの相対。node が型の注記を外して .ts を直接実行する",
+  "$comment": "言語の組の定義（ACDR 0063 ・ 0069）。TypeScript の組は契約の版2 で、作業型と助言型を持つ。from は profiles/typescript/ からの相対。node が型の注記を外して .ts を直接実行する",
   "name": "typescript",
   "detect": "tool/package.json",
-  "contract": 1,
+  "contract": 2,
   "common": [
-    {"from": "common/package.json.tmpl", "to": "tool/package.json"},
-    {"from": "common/tsconfig.json.tmpl", "to": "tool/tsconfig.json"},
-    {"from": "common/contract.ts.tmpl", "to": "tool/src/contract.ts"},
-    {"from": "common/cli.ts.tmpl", "to": "tool/src/cli.ts"},
-    {"from": "common/mcp.ts.tmpl", "to": "tool/src/mcp.ts"},
-    {"from": "common/tool.json.tmpl", "to": "tool.json"},
-    {"from": "common/mcp.json.tmpl", "to": "mcp.json"},
-    {"from": "common/gitignore.tmpl", "to": ".gitignore"}
+    {
+      "from": "common/package.json.tmpl",
+      "to": "tool/package.json"
+    },
+    {
+      "from": "common/tsconfig.json.tmpl",
+      "to": "tool/tsconfig.json"
+    },
+    {
+      "from": "common/contract.ts.tmpl",
+      "to": "tool/src/contract.ts"
+    },
+    {
+      "from": "common/refs.ts.tmpl",
+      "to": "tool/src/refs.ts"
+    },
+    {
+      "from": "common/refs_tools.ts.tmpl",
+      "to": "tool/src/refs_tools.ts"
+    },
+    {
+      "from": "common/cli.ts.tmpl",
+      "to": "tool/src/cli.ts"
+    },
+    {
+      "from": "common/mcp.ts.tmpl",
+      "to": "tool/src/mcp.ts"
+    },
+    {
+      "from": "common/tool.json.tmpl",
+      "to": "tool.json"
+    },
+    {
+      "from": "common/mcp.json.tmpl",
+      "to": "mcp.json"
+    },
+    {
+      "from": "common/gitignore.tmpl",
+      "to": ".gitignore"
+    },
+    {
+      "from": "../shared/document.schema.json.tmpl",
+      "to": "references/document.schema.json"
+    }
   ],
   "types": {
     "work": [
-      {"from": "types/work/tools.ts.tmpl", "to": "tool/src/tools.ts"},
-      {"from": "types/work/hello.ts.tmpl", "to": "tool/src/hello.ts"},
-      {"from": "types/work/hello.test.ts.tmpl", "to": "tool/tests/hello.test.ts"}
+      {
+        "from": "types/work/tools.ts.tmpl",
+        "to": "tool/src/tools.ts"
+      },
+      {
+        "from": "types/work/hello.ts.tmpl",
+        "to": "tool/src/hello.ts"
+      },
+      {
+        "from": "types/work/hello.test.ts.tmpl",
+        "to": "tool/tests/hello.test.ts"
+      }
+    ],
+    "advisor": [
+      {
+        "from": "types/advisor/tools.ts.tmpl",
+        "to": "tool/src/tools.ts"
+      },
+      {
+        "from": "types/advisor/references.test.ts.tmpl",
+        "to": "tool/tests/references.test.ts"
+      },
+      {
+        "from": "../rust/types/advisor/answer.example.json.tmpl",
+        "to": "tool/tests/fixtures/answer.example.json"
+      }
     ]
   },
   "parts": {},
@@ -30,8 +89,16 @@
     "tool/tests/**/*.test.ts"
   ],
   "sources": {
-    "extensions": [".ts", ".mts", ".js", ".mjs"],
-    "skip": ["node_modules", "tests"]
+    "extensions": [
+      ".ts",
+      ".mts",
+      ".js",
+      ".mjs"
+    ],
+    "skip": [
+      "node_modules",
+      "tests"
+    ]
   },
   "spawn": [
     "spawn(",
@@ -41,5 +108,6 @@
     "execFileSync("
   ],
   "dist": false,
-  "layout": false
+  "layout": false,
+  "fixtures": "tool/tests/fixtures"
 }
