@@ -640,3 +640,21 @@ def i0_dig():
         a += check(1086, y, ACCENT, .7)
     a += band(318, '頭の中の基準を言葉にすれば、ほかの人にもAIにも渡せる')
     return svg('いまは基準がPMの頭の中にしかなく、補佐にも後任にもAIにも届かない。言葉にすれば届く', a, 384)
+
+
+def i0_books():
+    """教材の考え方のもとにした3冊を、表紙と、どの教材の考え方を深められるかで紹介する。"""
+    from visuals import cover, BOOKS
+    notes = [('教材1', ['目的を捉える高さを、', 'システム開発の場面で説明する']),
+             ('教材1', ['目的のレベルを分けて、', '何を実現したいかを書く']),
+             ('教材2', ['業務の言葉の意味を統一し、', 'ソフトウェアの設計と結びつける'])]
+    a = ''
+    for k, ((isbn, title, author, pub), (lesson, note)) in enumerate(zip(BOOKS, notes)):
+        x = k * 384
+        a += cover(x + 94, 0, 154, 220, isbn)
+        a += text(x + 171, 256, ''.join(title), 16, INK, 700, 'middle')
+        a += text(x + 171, 282, f'{author}（{pub}）', 13, DIM, anchor='middle')
+        a += rect(x + 20, 302, 302, 86, PAPER, 10, LINE)
+        a += text(x + 40, 328, lesson + 'を深める', 13, DIM, 700)
+        a += text(x + 40, 352, note, 14, INK, gap=22)
+    return svg('教材の考え方のもとにした3冊。システム開発と「具体と抽象」とユースケース実践ガイドは教材1を、ドメイン駆動設計をはじめようは教材2を深められる', a, 396)

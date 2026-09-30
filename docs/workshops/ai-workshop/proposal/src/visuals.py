@@ -857,3 +857,41 @@ def mechanism():
         a += rect(x, 312, 540, 72, PAPER, 12, LINE) + fig
         a += text(x + (88 if k == 0 else 102), 340, name, 14, DIM, 700) + text(x + (88 if k == 0 else 102), 368, t, 17, INK, 700)
     return svg('業務ごとにエージェントがあり、その下に作業ごとのSkillが並ぶ。自分で達成するコースは自分の業務を支えるAIとして使い、チームに広げるコースはチームの誰が使っても同じ品質で出せるようにする', a, 392)
+
+
+# ワークショップの土台にした3冊。表紙は docs/workshops/ai-workshop/books/<ISBN>.jpg に置く
+BOOKS = [('9784297157906', ['システム開発と', '「具体と抽象」'], '細谷功', '技術評論社'),
+         ('9784798195490', ['ユースケース実践ガイド', '［復刻版］'], 'アリスター・コーバーン', '翔泳社'),
+         ('9784814400737', ['ドメイン駆動設計を', 'はじめよう'], 'Vlad Khononov', 'オライリー・ジャパン')]
+
+
+def cover(x, y, w, h, isbn):
+    """書籍の表紙。ファイルを data URI にして埋め込み、1枚で完結させる。"""
+    import base64, pathlib
+    f = pathlib.Path(__file__).resolve().parents[2] / 'books' / f'{isbn}.jpg'
+    b = base64.b64encode(f.read_bytes()).decode()
+    return (f'<image x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid meet" href="data:image/jpeg;base64,{b}"/>'
+            + f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="none" stroke="{LINE}" stroke-width="1"/>')
+
+
+def book_basis():
+    """3冊の書籍と、ワークショップで使う考え方と、対応する教材。教材3は3冊で決めたことを仕組みに置く。"""
+    ideas = [['抽象と具体を往復し、目的を', 'AIに頼める高さで捉える'],
+             ['目的のレベルを分け、何を', '実現したいかを書く'],
+             ['業務で使う言葉の意味を', 'チームで統一する']]
+    a = ''
+    for k, ((isbn, title, author, pub), idea) in enumerate(zip(BOOKS, ideas)):
+        x = k * 384
+        a += cover(x, 0, 105, 150, isbn)
+        a += text(x + 124, 26, title, 17, INK, 700, gap=26)
+        a += text(x + 124, 94, author, 14, DIM) + text(x + 124, 118, pub, 14, DIM)
+        a += text(x, 180, 'ワークショップで使う考え方', 13, DIM, 700)
+        a += text(x, 206, idea, 16, INK, gap=25)
+    # 対応する教材
+    a += path('M56 246 V256 M440 246 V256 M56 256 H440 M248 256 V266', LINE, 2)
+    a += rect(0, 266, 728, 44, PAPER, 10, LINE) + text(364, 295, '教材1　目的の把握', 17, INK, 700, 'middle')
+    a += path('M824 246 V266', LINE, 2)
+    a += rect(768, 266, 344, 44, PAPER, 10, LINE) + text(940, 295, '教材2　言葉の定義', 17, INK, 700, 'middle')
+    a += rect(0, 322, 1112, 44, PAPER, 10, ACCENT)
+    a += text(556, 350, '教材3　仕組みの構築：3冊をもとに決めた目的と言葉を、Skill ・ MCP ・ Hook ・ エージェントに置く', 16, ACCENT, 700, 'middle')
+    return svg('システム開発と「具体と抽象」とユースケース実践ガイドの考え方を教材1に、ドメイン駆動設計をはじめようの考え方を教材2に使い、教材3で3冊をもとに決めた目的と言葉を仕組みに置く', a, 372)

@@ -245,6 +245,11 @@ DEV_THEME = dict(label='付録｜題材の例：開発', title='題材の例：�
 
 
 # 期待する効果と、終了時の判断
+BOOK_BASIS = dict(label='土台にした書籍', title='設計の土台：ワークショップは、3冊の書籍をもとに組んだ', cls='ws-diagram',
+  intro='目的の捉え方は2冊、言葉の定義は1冊の考え方をもとにした。教材3で、決めたことをAIの仕組みに置く。',
+  body=visuals.book_basis(),
+  notes='この3つは、3冊の書籍をもとに設計しています。1冊目は、細谷功さんの「システム開発と具体と抽象」です。抽象と具体を往復して問題を捉える考え方を、目的をAIに頼める高さで捉えることに使います。2冊目は、アリスター・コーバーンさんの「ユースケース実践ガイド」の復刻版です。目的のレベルを分けて、何を実現したいかを書く考え方を使います。この2冊を、教材1の目的の把握のもとにしています。3冊目は、Vlad Khononovさんの「ドメイン駆動設計をはじめよう」です。業務で使う言葉の意味をチームで統一する考え方を、教材2の言葉の定義のもとにしています。教材3の仕組みの構築では、3冊をもとに決めた目的と言葉を、Skill、MCP、Hook、エージェントといった仕組みに置きます。どれも、特定のAIツールに依存しない考え方です。')
+
 IMPACT = dict(label='期待する効果', title='期待する効果：身につけた3つが仕組みに残り、品質と効率が上がる', cls='ws-diagram',
   intro='本質で述べた、目的をAIで達成する力を、3つに分けて身につける。3つは、それぞれ仕組みの一部として残る。',
   body=visuals.impact_rows(),
@@ -376,7 +381,7 @@ F_HEND = form_card_slide('希望者の終了時', '回答フォーム：参加�
   foot='事前アンケートに回答し、ワークショップに参加しなかった人に配る。ナレッジを出す人の広がりは、ポータルの掲載記録から数える。')
 FORMS_ALL = [F_PRE1, F_PRE2, F_PRE3, F_APP, F_END1, F_END2, F_HEND]
 
-ORDER = [0, AGENDA, BACKGROUND, ESSENCE, STRUCTURE, 1, 2, IMPACT, 5, 6, 7, SHARING, 8, 11, 17, KPI_SUB, KEEP_OPEN, PORTAL_DESIGN, PART2, SPREAD, KPI_PART2, CLOSING,
+ORDER = [0, AGENDA, BACKGROUND, ESSENCE, STRUCTURE, 1, 2, BOOK_BASIS, IMPACT, 5, 6, 7, SHARING, 8, 11, 17, KPI_SUB, KEEP_OPEN, PORTAL_DESIGN, PART2, SPREAD, KPI_PART2, CLOSING,
          APPENDIX_INDEX, 16, KPI_SUB_Q, 28, QUESTIONS, *FORMS_ALL]
 AGENDA_BRIEF = dict(label='本日の内容', title='本日の内容：2つの取り組み', cls='ws-diagram',
   intro='要点だけを10枚で説明する。企画は、ワークショップとAI活用を促進する基盤づくりの2つの取り組みである。',
@@ -388,7 +393,7 @@ AGENDA_BRIEF = dict(label='本日の内容', title='本日の内容：2つの取
 
 APPENDIX_BRIEF = dict(label='付録｜案内', title='付録の構成', cls='ws-diagram',
   intro='要点版で外した詳細を、5つに分けて置いている。ご質問の箇所を、この一覧から開く。',
-  body=visuals.index_cards([('ワークショップの詳細', ['身につけること ・ 仕組みの形', '教材 ・ 共有 ・ 支援']),
+  body=visuals.index_cards([('ワークショップの詳細', ['身につけること ・ 土台にした書籍', '仕組みの形 ・ 教材 ・ 共有 ・ 支援']),
     ('効果測定', ['効果測定の方法 ・ 補助の指標', '設問 ・ アンケートの取り方']),
     ('基盤づくりの詳細', ['ポータルの設計 ・ 目指す姿', '運営チームの役割 ・ 指標']),
     ('利用環境', ['Kiro ・ Claude ・ Copilot']),
@@ -397,7 +402,7 @@ APPENDIX_BRIEF = dict(label='付録｜案内', title='付録の構成', cls='ws-
 
 ORDER_BRIEF = [0, AGENDA_BRIEF, BACKGROUND, ESSENCE, STRUCTURE, 1, IMPACT, 7, 17, KEEP_OPEN, CLOSING,
                APPENDIX_BRIEF,
-               2, 5, 6, SHARING, 8,
+               2, BOOK_BASIS, 5, 6, SHARING, 8,
                11, KPI_SUB, KPI_SUB_Q, 28,
                PORTAL_DESIGN, PART2, SPREAD, KPI_PART2,
                16, QUESTIONS, *FORMS_ALL]
@@ -522,7 +527,7 @@ html,body{height:auto;overflow:visible;background:#deded3}
 </style>'''
 
 # 見出しの上の表示で、どの枚がワークショップと基盤づくりのどちらに属するかを示す
-PART = {**{k: 'ワークショップ' for k in ['ワークショップの目的','身につけること','期待する効果','テーマの設計','仕組みの形','教材','下期の進め方','サポート体制','共有','効果測定の方法','主KPI','補助の指標','共通の設問','アンケートの取り方']},
+PART = {**{k: 'ワークショップ' for k in ['ワークショップの目的','身につけること','土台にした書籍','期待する効果','テーマの設計','仕組みの形','教材','下期の進め方','サポート体制','共有','効果測定の方法','主KPI','補助の指標','共通の設問','アンケートの取り方']},
         **{k: 'AI活用を促進する基盤づくり' for k in ['促進する基盤','ポータルの設計','目指す姿','取り組む範囲','運営チームの役割','基盤づくりの指標']}}
 
 def build(order, stem='director-deck', notes_name='speaker-notes.md',

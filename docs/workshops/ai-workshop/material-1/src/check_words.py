@@ -31,6 +31,9 @@ def check(paths, words=None):
         text = p.read_text()
         lines = visible(text) if p.suffix == '.html' else text.split('\n')
         for i, line in enumerate(lines, 1):
+            # 書名は固有名詞なので、検査の前に除く
+            for t in w.get('書名', {}).get('題', []):
+                line = line.replace(t, '')
             for g in w['同じものを指す語']:
                 for ng in g['使わない']:
                     rest = line
