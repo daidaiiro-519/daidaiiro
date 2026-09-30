@@ -8,6 +8,7 @@
 //! キーを**図の中の役割の名前**へ複製して出す。誰に組ませるかは配線表が決める。
 
 pub mod contract;
+mod refs;
 
 use std::path::{Path, PathBuf};
 
@@ -172,6 +173,8 @@ fn run_new(given: &Given) -> Outcome {
     let theme = given.one("theme", DEFAULT_THEME);
     let title = given.one("title", DEFAULT_TITLE);
     if let Some(map) = deck.as_object_mut() {
+        // **`$schema` は references の中でスキーマを指す印である** ── 起こしたデッキへ写さない
+        map.shift_remove("$schema");
         map.insert("title".to_owned(), Value::String(title.to_owned()));
         map.insert("theme".to_owned(), Value::String(theme.to_owned()));
     }
@@ -366,7 +369,7 @@ pub fn tools() -> Vec<Tool> {
         "この Skill の置き場所（既定は、実行ファイルの1つ上）",
         None,
     );
-    vec![
+    let mut all = vec![
         Tool {
             name: "new",
             summary: "デッキの入力（JSON）を起こす",
@@ -436,5 +439,7 @@ pub fn tools() -> Vec<Tool> {
             run: run_theme,
             human: human_theme,
         },
-    ]
+    ];
+    all.extend(refs::tools());
+    all
 }

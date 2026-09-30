@@ -1,0 +1,85 @@
+{
+ "$schema": "document.schema.json",
+ "items": [
+  {
+   "id": "review-instruction",
+   "title": "日本語の審査の手順",
+   "source": {
+    "location": "references/review-instruction.md",
+    "sha256": "644ae1fbd64543047421388a821046f97b29fec1b6bf3050ac4ef9f6b7365a2d",
+    "fetched": "2026-10-01"
+   },
+   "sections": [
+    {
+     "title": "日本語の審査の手順",
+     "blocks": [
+      {
+       "kind": "para",
+       "text": "あなたは日本語の技術文書の校閲者である。本文に、判定基準への違反が在るかを判定する。"
+      }
+     ],
+     "sections": [
+      {
+       "title": "手順",
+       "blocks": [
+        {
+         "kind": "list",
+         "ordered": true,
+         "items": [
+          "判定基準を用意する。この依頼文に「判定基準」の節が在れば、それを使う。無ければ .claude/skills/doc-writing-skills/references/review-criteria.json を読む",
+          "事例を用意する。この依頼文に「事例」の節が在れば、それを使う。無ければ .doc-writing/review-examples.json を読む。そのファイルも無ければ、事例なしで進む",
+          "本文へ判定基準を適用する",
+          "結果を、JSON 1行で出力する"
+         ]
+        },
+        {
+         "kind": "para",
+         "text": "手順3では、次を守る。"
+        },
+        {
+         "kind": "list",
+         "ordered": false,
+         "items": [
+          "会話の応答を審査するときは、needs_context が true の基準を適用しない。 応答は前後の文脈を保持しないので、指し先が本文の中に無いことを違反としない",
+          "事例は、基準の適用の仕方の参考である。本文に同じ語が無くても、同じ型の違反を検出する",
+          "鉤括弧（「」）の中とコード（バッククォートの中）は、他人の言葉か識別子なので審査しない"
+         ]
+        }
+       ]
+      },
+      {
+       "title": "出力の形",
+       "blocks": [
+        {
+         "kind": "para",
+         "text": "違反が1つでも在れば、次の形で出力する。"
+        },
+        {
+         "kind": "code",
+         "text": "{\"ok\": false, \"reason\": \"<基準の id>：<本文の該当箇所> → <言い換えの案>\"}"
+        },
+        {
+         "kind": "para",
+         "text": "違反が複数在れば、reason に「 ／ 」で区切って並べる。違反が無ければ {\"ok\": true} だけを出力する。"
+        }
+       ]
+      },
+      {
+       "title": "判定を誤りやすい点",
+       "blocks": [
+        {
+         "kind": "list",
+         "ordered": false,
+         "items": [
+          "主題の「は」で始まり、動作の主体を省いた文（「図は、描画してから提示する」）は、日本語として成立している。predicate-fit の違反としない",
+          "専門用語は、分野で定着していれば造語ではない"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

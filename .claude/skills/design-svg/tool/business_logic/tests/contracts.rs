@@ -17,7 +17,7 @@ use ds_business_logic::style::resolve;
 ///
 /// 依存の深さ（`use` の連鎖）とは別物である ── 深さは「呼ぶ順序」と「型をどこから借りたか」を
 /// 映すだけなので、責務の側をここに明示し、揃い続けることを機械で検証する。
-const LAYER: [(&str, u8); 33] = [
+const LAYER: [(&str, u8); 34] = [
     // 0 語彙 ・ 台帳 ── 誰の都合も知らない。名前 ・ 数 ・ 形 ・ 登録簿
     ("theme", 0),
     ("text", 0),
@@ -57,7 +57,14 @@ const LAYER: [(&str, u8); 33] = [
     ("catalog", 3),
     // 層の数直線に載らないもの ── 生成物を外から検査する直交した軸
     ("verify", u8::MAX),
+    // references の実装 ── skills-creator の雛形の複製であり、描画エンジンの外に在る。
+    // 同じ crate のモジュールを参照しない（参照すれば、雛形との一致が崩れる）
+    ("refs", u8::MAX),
 ];
+
+/// skills-creator の雛形を中身のまま複製したモジュール。**描画エンジンの語彙の検査の対象外である** ──
+/// 中身を書き換えると `skills-creator check` が雛形との不一致を検出する。
+const TEMPLATE_COPIES: [&str; 1] = ["refs"];
 
 fn layer(name: &str) -> Option<u8> {
     LAYER
@@ -144,6 +151,16 @@ fn every_module_is_assigned_to_a_layer() {
 }
 
 #[test]
+fn template_copies_call_no_engine_module() {
+    // 雛形の複製が描画エンジンを参照すると、層の数直線の外に置いた理由が消える
+    let g = graph();
+    for name in TEMPLATE_COPIES {
+        let deps = g.get(name).expect("雛形の複製が在る");
+        assert!(deps.is_empty(), "{name} がエンジンを参照している: {deps:?}");
+    }
+}
+
+#[test]
 fn lower_layers_do_not_call_upper_ones() {
     let mut bad = Vec::new();
     for (name, deps) in graph() {
@@ -223,7 +240,7 @@ fn the_engine_holds_no_caller_vocabulary() {
             .copied()
             .filter(|w| body.contains(w))
             .collect();
-        if !hit.is_empty() && name != "lint" {
+        if !hit.is_empty() && name != "lint" && !TEMPLATE_COPIES.contains(&name.as_str()) {
             bad.push(format!("{name}: {hit:?}"));
         }
     }

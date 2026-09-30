@@ -344,6 +344,10 @@ no-more-spaghetti output <成果物の場所> <実行の識別子> <規則の名
 - `references/rules.schema.json`: **規則ファイルの契約。** 規則1件が3要素（出典 ・ 採用範囲 ・
   検証方法）を持ち、適用する成果物（`units`）の名前を持つ。成果物は根 ・ 言語 ・ 層の並びを持つ。**層の名前は原典に無い** ──
   `domain` も `usecase` も、ヘキサゴナルとクリーンのどちらの原文にも無い（2026-09-22 に照合）
+- `references/self-rules.json`: この Skill 自身に適用する規則の例。`references/rules.schema.json` に従う
+- **references は JSON Schema と JSON だけで持つ**（契約の版2。`tool.json` の `"contract": 2`）──
+  Markdown を置かない。`get` ・ `validate` ・ `view` ・ `import` が、種類ごとに取り出す ・ 検査する ・
+  描画する ・ 取り込む
 - `tool/data_access/`: データアクセス層。**ファイルと外部の道具の入出力だけを持ち、同じ workspace の
   crate を参照しない**。`files.rs` ・ `process.rs` は雛形の複製である。`logfile.rs` は規則の道具を起動し、
   標準出力と標準エラーを1本のファイルへ書き込む ── 業務ロジック層とサービス層は入出力を直接扱わない
@@ -359,6 +363,8 @@ no-more-spaghetti output <成果物の場所> <実行の識別子> <規則の名
   **出力はファイルへ書き、先頭と末尾だけを読む** ── 道具が出した量を、そのままこの側の記憶に載せない。
   **道具の名前を保持しない** ── 実行するものは規則から来るので、この Skill の依存は0件である
 - `tool/business_logic/src/validate.rs`: 規則ファイルの形と、層の宣言の構造と、概念の出典と、案内を検査する
+- `tool/business_logic/src/refs.rs`: references の実装（取り出す ・ 検査する ・ 描画する ・ 取り込む）。
+  **雛形 `refs.rs.tmpl` の複製であり、書き換えない**
 - `tool/business_logic/src/inward/`: **依存の向きを、原文の構文木で測る。** 検査は4段（モジュール ・ 依存 ・
   モジュール解決 ・ 向きの判定）である。`syntax.rs` が言語の表を持ち、各言語が契約の欄
   （`bridge` ・ `dynamic` ・ `branches` ・ `naming`）を宣言する。`names.rs` が別名と検索パスを
@@ -368,13 +374,19 @@ no-more-spaghetti output <成果物の場所> <実行の識別子> <規則の名
   **測り方の限界は、検出と分けて返す** ── 混ぜると、解決しなかった参照が違反として出る。
   **報告するのは、参照元が層に属す依存だけである** ── 層の外のファイルは、向きの規則を課されない
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
-- `tool/cli/`: **唯一の CLI。** `check` ・ `init` ・ `plan` ・ `output` ・ `validate` ・ `inward` を持つ ──
+- `tool/service/src/refs.rs`: references の4つの道具を、道具の一覧へ載せる。雛形 `service.refs.rs.tmpl` の複製である。
+  **`validate` は重ねて載せない** ── この Skill の `validate` が、references の検査も受ける
+- `tool/cli/`: **唯一の CLI。** `check` ・ `init` ・ `plan` ・ `output` ・ `validate` ・ `inward` と、
+  references の `get` ・ `view` ・ `import` を持つ ──
   どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。
   **`validate` は、渡されたファイルの種類（規則 ・ 概念 ・ スキーマ）で適用する契約を替える**。
+  **`--rules` も `--root` も渡さなければ、references の JSON を、指しているスキーマで検査する**。
   **道具の一覧に無い旗は断る**
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
-- `tool/business_logic/tests/`: 事例（66件）。実行と判定 ・ 契約の検査 ・ 雛形 ・ 禁じた辺 ・
+- `tool/business_logic/tests/`: 事例（68件）。実行と判定 ・ 契約の検査 ・ 雛形 ・ 禁じた辺 ・
   10言語の読み込みの抽出 ・ 言語に依存しない2つの義務 ・ 成果物ごとの展開 ・ 生成の手順を固定してある
+- `tool/service/tests/validate.rs`: `validate` が、`--rules` か `--root` の有無で規則ファイルと
+  references の検査を切り替えることを固定する
 - `tool/service/tests/contract.rs`: **依存の向きの契約を、言語の表のすべての言語へ課す**（7つの義務）。
   **表に言語を足すと、この試験がその言語にも課される** ── 試験データが無ければ失敗する
 - `tool/fixtures/contract/`: 契約の試験データ（10言語）。**違反を意図して含むので、どの層にも属さない

@@ -18,9 +18,40 @@ use std::path::{Path, PathBuf};
 /// 索引の名前。
 const INDEX: &str = "README.md";
 
+/// Markdown の本文の置き場所。**references に Markdown を置かない**（契約の版2）ので、本文は JSON の文字列で持つ。
+const TEXTS: &str = "init-files.json";
+
+/// 雛形の `$schema`。references の中では隣のスキーマを指す ── `validate` が雛形を検査できるようにする。
+const SCHEMA_HERE: &str = "\"$schema\": \"board.schema.json\"";
+
+/// 置いた `board.json` の `$schema`。ブレストボードの置き場所（`.brainstorming-board/<名前>/`）から、スキーマを指す。
+const SCHEMA_THERE: &str =
+    "\"$schema\": \"../../.claude/skills/brainstorming-board/references/board.schema.json\"";
+
+/// 雛形のボードの名前。スキーマの規則（英小文字とハイフン）を満たす値にして、`validate` が雛形を検査できるようにする。
+const NAME_HERE: &str = "\"board\": \"example\"";
+
 fn read(references: &Path, name: &str) -> Result<String, String> {
     let path = references.join(name);
     files::read_to_string(&path).map_err(|e| format!("{}: 読めない ── {e}", path.display()))
+}
+
+/// `init-files.json` から、id の本文を取り出す。
+fn text_of(references: &Path, id: &str) -> Result<String, String> {
+    let body = read(references, TEXTS)?;
+    let data: serde_json::Value =
+        serde_json::from_str(&body).map_err(|e| format!("{TEXTS}: JSON として読めない ── {e}"))?;
+    data.get("items")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|items| {
+            items
+                .iter()
+                .find(|x| x.get("id").and_then(serde_json::Value::as_str) == Some(id))
+        })
+        .and_then(|x| x.get("text"))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned)
+        .ok_or_else(|| format!("{TEXTS}: id {id} の本文が無い"))
 }
 
 /// 置き場所 ・ 雛形 ・ 索引の行を作り、報告の行を返す。**印字はしない。**
@@ -61,18 +92,19 @@ pub fn create(
     put(board.join("answers").join(".read"), "")?;
     put(
         board.join("sources").join(INDEX),
-        &read(references, "sources.example.md")?,
+        &text_of(references, "sources")?,
     )?;
     put(
         board.join("board.json"),
         &read(references, "board.example.json")?
-            .replace("{title}", title)
-            .replace("{name}", name),
+            .replacen(SCHEMA_HERE, SCHEMA_THERE, 1)
+            .replacen(NAME_HERE, &format!("\"board\": \"{name}\""), 1)
+            .replace("{title}", title),
     )?;
 
     let index = root.join(INDEX);
     if !files::exists(&index) {
-        put(index.clone(), &read(references, "index.example.md")?)?;
+        put(index.clone(), &text_of(references, "index")?)?;
     }
     let line = format!("| `{name}/` | {title} | （未発行） | （未複製） |\n");
     let now = files::read_to_string(&index)

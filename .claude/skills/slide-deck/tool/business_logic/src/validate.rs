@@ -2,7 +2,7 @@
 //! デッキの入力を検査する。**組み立てより前に、1件でも出れば止まる。**
 //!
 //! 形は `references/slide-deck.schema.json` が見る。ここが見るのは、
-//! **形では書けない規則**である ── 設計規則（`references/design-rules.md`）のうち、
+//! **形では書けない規則**である ── 設計規則（`references/document.json` の `design-rules`）のうち、
 //! 数えれば判定できるものを機械に見させる。散文の規定は破れる。
 
 use std::path::Path;

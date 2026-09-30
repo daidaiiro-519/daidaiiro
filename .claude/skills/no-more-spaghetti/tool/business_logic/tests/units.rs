@@ -13,7 +13,7 @@ use nms_business_logic::label::Verdict;
 use nms_business_logic::{rules, run, validate};
 
 fn scratch(name: &str, body: &str) -> (PathBuf, PathBuf) {
-    let root = std::env::temp_dir().join(format!("nms-units-{name}"));
+    let root = std::env::temp_dir().join(format!("nms-units-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join(".coding-rules")).expect("作れる");
     let file = root.join(".coding-rules/rules.json");

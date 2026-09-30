@@ -33,7 +33,7 @@ pub fn schema_path(references: &Path) -> PathBuf {
     references.join("review.schema.json")
 }
 
-/// 観点の群。**並び順は `review.md` §2 と一致させる。**
+/// 観点の群。**並び順は `references/document.json` の `review` §2 と一致させる。**
 pub const GROUPS: [(&str, &str); 7] = [
     ("consistency", "スライドと原稿の整合"),
     ("story", "論とストーリー"),

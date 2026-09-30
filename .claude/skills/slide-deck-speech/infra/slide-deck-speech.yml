@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: MIT
 # 手元と同じ手順を、AWS側で実行するための環境。使うときだけ作る。
-#   aws cloudformation deploy --template-file infra/narration.yml \
-#     --stack-name narration --capabilities CAPABILITY_IAM
+#   aws cloudformation deploy --template-file infra/slide-deck-speech.yml \
+#     --stack-name slide-deck-speech --capabilities CAPABILITY_IAM
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 教材の音声と動画を作る環境（ECR・CodeBuild・S3・実行の権限）
 
 Parameters:
   ProjectName:
     Type: String
-    Default: narration
+    Default: slide-deck-speech
     Description: 作る資源に付ける名前
 
 Resources:
@@ -42,7 +42,7 @@ Resources:
             Principal: { Service: codebuild.amazonaws.com }
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: narration
+        - PolicyName: slide-deck-speech
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -80,7 +80,7 @@ Resources:
           phases:
             build:
               commands:
-                - python3 .claude/skills/narration/scripts/cli.py synth docs/workshops/ai-workshop
+                - .claude/skills/slide-deck-speech/bin/slide-deck-speech synth docs/workshops/ai-workshop
           artifacts:
             files:
               - 'movie/**/*'

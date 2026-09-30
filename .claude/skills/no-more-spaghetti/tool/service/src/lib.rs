@@ -5,6 +5,7 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::{Path, PathBuf};
 
@@ -224,7 +225,27 @@ fn human_plan(out: &Outcome) -> String {
     lines.join("\n")
 }
 
+/// references の `validate`（契約の版2）の実体を、道具の一覧から取り出す。
+///
+/// **同じ名前の道具を2つ並べない** ── この Skill の `validate` は、規則ファイルの検査と
+/// references の検査を1つの名前で受ける。雛形の複製（`refs.rs`）は書き換えない。
+fn refs_tool() -> Option<Tool> {
+    refs::tools().into_iter().find(|t| t.name == "validate")
+}
+
+/// 規則ファイルを検査する指定（`rules` か `root`）が在るかを判定する。
+/// **どちらも無ければ、references を検査する**（契約の版2 の `validate`）。
+fn names_rules(given: &Given) -> bool {
+    given.has("rules") || given.has("root")
+}
+
 fn run_validate(given: &Given) -> Outcome {
+    if !names_rules(given) {
+        return match refs_tool() {
+            Some(tool) => (tool.run)(given),
+            None => Outcome::misuse("references の検査の道具が無い".to_owned()),
+        };
+    }
     let file = rules_path(given);
     // **読めないものを渡すのは誤用である。** 検出（1）と同じ番号で返すと、
     // 呼ぶ側は「違反が在った」と解釈する
@@ -257,6 +278,10 @@ fn run_validate(given: &Given) -> Outcome {
 }
 
 fn human_validate(out: &Outcome) -> String {
+    // references の検査の結果は `kinds` を持つ ── 規則ファイルの検査の結果は `kind` を持つ
+    if out.data.get("kinds").is_some() {
+        return refs_tool().map_or_else(String::new, |tool| (tool.human)(out));
+    }
     if !out.ok {
         return out.findings.join(" ／ ");
     }
@@ -473,7 +498,7 @@ pub fn tools() -> Vec<Tool> {
         "この Skill の置き場所（既定は、実行ファイルの1つ上）",
         None,
     );
-    vec![
+    let mut all = vec![
         Tool {
             name: "check",
             summary: "規則を全件実行し、終了コードで判定する",
@@ -538,20 +563,26 @@ pub fn tools() -> Vec<Tool> {
         },
         Tool {
             name: "validate",
-            summary: "規則ファイルの形を検査する",
+            summary: "規則ファイルの形を検査する。rules も root も渡さなければ、references の JSON を指しているスキーマで検査する",
             args: vec![
                 Arg::opt(
                     "rules",
-                    "規則ファイルのパス（既定 .coding-rules/rules.json）",
+                    "規則ファイルのパス（root だけを渡すと root/.coding-rules/rules.json）",
                     None,
                 ),
                 Arg::opt("root", "成果物の場所（層の宣言も見る）", None),
+                Arg::opt("kind", "references の種類の名前（file と一緒に渡す）", None),
+                Arg::opt("file", "references の種類のスキーマで検査する JSON", None),
                 skill_root,
             ],
             run: run_validate,
             human: human_validate,
         },
-    ]
+    ];
+    // **references の道具（get ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）。
+    // `validate` は上の1件が references の検査も受けるので、重ねて足さない
+    all.extend(refs::tools().into_iter().filter(|t| t.name != "validate"));
+    all
 }
 
 /// 契約の置き場所を、呼ぶ側へ見せる ── プレゼンテーション層が `--skill_root` の既定を決めるために使う。

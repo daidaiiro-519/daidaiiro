@@ -5,11 +5,12 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::{Path, PathBuf};
 
 use dws_business_logic::checks::Words;
-use dws_business_logic::{gate, input, tails};
+use dws_business_logic::{gate, input, instruction, tails};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -246,29 +247,34 @@ fn human_reply(out: &Outcome) -> String {
 /// 日本語の審査の依頼文を組む。**判定はしない** ── 判定するのはモデルであり、この道具は
 /// 判定基準・手順・事例を1つの依頼文へ組むだけである。
 ///
-/// 正本は3つである ── 手順（`references/review-instruction.md`）と判定基準
+/// 正本は3つである ── 手順（`references/document.json` の `review-instruction`）と判定基準
 /// （`references/review-criteria.json`）はこの Skill が持ち、事例
 /// （`.doc-writing/review-examples.json`）はプロジェクトが持つ。
+/// 審査の手順を持つ document の id。
+const REVIEW_INSTRUCTION: &str = "review-instruction";
+
 fn run_review(given: &Given) -> Outcome {
     let (message, base) = match reply_source(given) {
         Ok(x) => x,
         Err(e) => return Outcome::misuse(e),
     };
     let root = or_misuse!(skill_root(given));
+    let refs_dir = root.join("references");
+    let instruction =
+        match dws_business_logic::refs::get(&refs_dir, "document", Some(REVIEW_INSTRUCTION)) {
+            Ok(doc) => instruction::text(&doc),
+            Err(e) => return Outcome::misuse(format!("審査の手順を読めない ── {e}")),
+        };
     let read = |p: PathBuf| input::read_text(&p);
-    let instruction = match read(root.join("references/review-instruction.md")) {
-        Ok(x) => x,
-        Err(e) => return Outcome::misuse(e),
-    };
-    let criteria: serde_json::Value = match read(root.join("references/review-criteria.json"))
-        .and_then(|b| {
+    let criteria: serde_json::Value =
+        match read(refs_dir.join("review-criteria.json")).and_then(|b| {
             serde_json::from_str(&b).map_err(|e| format!("判定基準が JSON ではない ── {e}"))
         }) {
-        Ok(x) => x,
-        Err(e) => return Outcome::misuse(e),
-    };
+            Ok(x) => x,
+            Err(e) => return Outcome::misuse(e),
+        };
     let whole = given.one("scope", "document") == "document";
-    let applied: Vec<&serde_json::Value> = criteria["criteria"]
+    let applied: Vec<&serde_json::Value> = criteria["items"]
         .as_array()
         .map(|xs| {
             xs.iter()
@@ -300,7 +306,7 @@ fn human_review(out: &Outcome) -> String {
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    vec![
+    let mut all = vec![
         Tool {
             name: "check",
             summary: "10の判定を当てる（ゲート1）",
@@ -361,5 +367,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_checks,
             human: human_checks,
         },
-    ]
+    ];
+    // references の4つの道具（get ・ validate ・ view ・ import）。実体は雛形の複製 `refs` が持つ
+    all.extend(refs::tools());
+    all
 }

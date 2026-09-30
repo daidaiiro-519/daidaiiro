@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "meta.schema.json",
+  "title": "取得の記録",
+  "description": "fetch が原文の横に置く記録（<名前>.meta.json）の形。いつ・どの版を読んだかを提示するために、取得した日時と sha256 を保持する",
+  "$comment": "fetch が書き、list と verify が読む。書く側は道具だけであり、人は書き換えない。原文を取得し直したら、記録も書き直す",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "url",
+    "requested",
+    "fetched_at",
+    "sha256",
+    "bytes",
+    "lines",
+    "content_type"
+  ],
+  "properties": {
+    "url": {
+      "title": "取得した出どころ",
+      "description": "実際に取得した URL。`<URL>.md` が返ったときは、そちらが入る",
+      "type": "string",
+      "minLength": 1
+    },
+    "requested": {
+      "title": "頼まれた出どころ",
+      "description": "fetch に渡した URL",
+      "type": "string",
+      "minLength": 1
+    },
+    "fetched_at": {
+      "title": "取得した日時",
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "title": "sha256",
+      "description": "取得した中身の sha256（16進数の64文字）",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bytes": {
+      "title": "バイト数",
+      "type": "integer",
+      "minimum": 0
+    },
+    "lines": {
+      "title": "行数",
+      "type": "integer",
+      "minimum": 0
+    },
+    "content_type": {
+      "title": "種類",
+      "description": "取得したときに返った Content-Type",
+      "type": "string"
+    }
+  }
+}

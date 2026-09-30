@@ -61,4 +61,4 @@ cargo run -q -p ds_business_logic --example bench_layout     # 本家との突�
 
 規律は3条 ── 下から上を呼ばない／層ごとに型が変わり前の層を飛ばせない／
 契約は中立が所有し実装が所有しない。詳しくは design-svg Skill の
-`references/knowledge/svg-engine-discipline.md` を読む。層の規約は `tool/business_logic/tests/contracts.rs` が検査する。
+`references/document.json` の `svg-engine-discipline` を読む（`design-svg get --kind document --id svg-engine-discipline`）。層の規約は `tool/business_logic/tests/contracts.rs` が検査する。

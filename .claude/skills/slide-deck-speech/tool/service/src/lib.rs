@@ -5,6 +5,7 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::PathBuf;
 
@@ -201,7 +202,7 @@ fn human_measure(out: &Outcome) -> String {
 /// この Skill が持つ道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    vec![
+    let mut all = vec![
         Tool {
             name: "plan",
             summary: "合成せずに、合成と取り出しの内訳を出す",
@@ -239,5 +240,7 @@ pub fn tools() -> Vec<Tool> {
             run: run_measure,
             human: human_measure,
         },
-    ]
+    ];
+    all.extend(refs::tools());
+    all
 }

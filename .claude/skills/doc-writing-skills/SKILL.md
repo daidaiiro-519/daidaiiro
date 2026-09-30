@@ -132,7 +132,7 @@ doc-writing-skills reply                    # Claude Code の Stop フックの�
 
 **語の単位で判定できない不自然さは、`review` でモデルに審査させる。**
 造語 ・ 比喩 ・ 主述の不整合 ・ 含意の不一致 ・ 幼い語り口 ・ 回りくどさは、語彙表では検出できない。
-`review` は、判定基準（`references/review-criteria.json`）・手順（`references/review-instruction.md`）・
+`review` は、判定基準（`references/review-criteria.json`）・手順（`references/document.json` の `review-instruction`）・
 事例（プロジェクトの `.doc-writing/review-examples.json`）を1つの依頼文へ組む。判定はモデルが実施する。
 
 ```
@@ -212,18 +212,24 @@ doc-writing-skills review --message <本文> --scope reply   # 前後の文脈�
 | Google developer documentation style guide | `developers.google.com/style/`（highlights ・ headings ・ translation） | 2026-09-12 |
 | Microsoft Writing Style Guide | `learn.microsoft.com/en-us/style-guide/`（top 10 tips ・ scannable content） | 2026-09-12 |
 
-**原文は `sources/` に取得してある。git には入れていない**（PDF 3本で 8.8MB）。
-**入れてあるのは `sources/MANIFEST.json` だけで、URL ・ sha256 ・ 取得した日を持つ。**
+**原典の複製は `references/source.json` が保持する**（`document` と同じ形）。**git で追跡しない** ── 第三者の本文を公開のリポジトリへ置かないためである。追跡するのは `sources/MANIFEST.json`（URL ・ sha256 ・ 取得した日）だけである。
+1件が原典1つで、出典（URL）・ 取得した原文の sha256 ・ 取得した日を持つ。PDF はテキスト化した本文を、
+HTML の頁は本文の見出し ・ 段落 ・ 箇条書き ・ 表を収録している。
+
+| id | 原典 |
+|---|---|
+| `kobun-sakusei-no-kangaekata` | 公用文作成の考え方（文化審議会建議） |
+| `jtf-style-guide` | JTF日本語標準スタイルガイド |
+| `ddd-reference` | Domain-Driven Design Reference |
+| `google-style-highlights` ・ `google-style-headings` ・ `google-style-translation` | Google developer documentation style guide |
+| `microsoft-style-top-10-tips` ・ `microsoft-style-scannable-content` | Microsoft Writing Style Guide |
 
 ```
-doc-writing-skills sources              # 取得する。MANIFEST.json を書く
-doc-writing-skills sources --check 1    # 手元のものが MANIFEST と一致するかを検査する
+doc-writing-skills get --kind source --id kobun-sakusei-no-kangaekata   # 1件を取り出す
+doc-writing-skills view --kind source --id ddd-reference --out 原典.html  # HTML に描画する
 ```
 
-**この Skill は、外の Skill にも、Linux にも依存しない。**
-PDF のテキスト化だけは `pdftotext` が在れば行い、無ければ PDF をそのまま残す。
-
-**規約の文言を参照するときは、`sources/` の原文を開いて文字列で照合する。記憶で書かない。**
+**規約の文言を参照するときは、`references/source.json` の原文を開いて文字列で照合する。記憶で書かない。**
 
 **概念8の「名前のあるものを、描写で呼ばない」は、DDD Reference の次の行から取っている。**
 
@@ -297,16 +303,16 @@ PDF のテキスト化だけは `pdftotext` が在れば行い、無ければ PD
 **原典は禁止していない。** 公用文作成の考え方 Ⅲ－４ には、ウ と エ が対称に置かれている。
 
 > ウ　重厚さや正確さを高めるには、述部に漢語を用いる
-> （`sources/www.bunka.go.jp_..._93651301_01.txt:2292`）
+> （`references/source.json` の `kobun-sakusei-no-kangaekata`）
 
 > 文書の重厚感を増し、改まった雰囲気にするには、訓読みの動詞（和語の動詞）を漢語にすると、
-> （同 `:2293`。例）決める → 決定（する）　消える → 消失（する））
+> （同。例）決める → 決定（する）　消える → 消失（する））
 
 > エ　分かりやすさや親しみやすさを高めるには、述部に訓読みの動詞を用いる
-> （同 `:2302`）
+> （同）
 
 > ただし、訓読みの動詞は意味の範囲が広いため、厳密に意味を特定しなければならないときには不
-> （同 `:2307`）
+> （同）
 
 **原典の強度は「効果が得られることがある」── 推奨である。**
 ゲート1 の「述部が和語である」は、それを技術文書に対して**必須**へ上げた、このリポジトリの決定である。
@@ -325,14 +331,19 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 
 ## 参照
 
-- `tool/cli/`: 唯一の CLI。`check` ・ `checks` ・ `tails` ・ `reply` ・ `review` ・ `sources` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
+- `tool/cli/`: 唯一の CLI。`check` ・ `checks` ・ `tails` ・ `reply` ・ `review` と、references の4つの道具 `get` ・ `validate` ・ `view` ・ `import` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
 - `tool/business_logic/src/gate.rs`: ゲート1の実行。**拠って立つものは `checks` で見られる**
 - `tool/business_logic/src/checks.rs`: 8つの判定の実体
 - `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**
 - `tool/business_logic/src/tails.rs`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `references/predicates.json` へ追加する
-- `tool/business_logic/src/input.rs`: `reply` ・ `review` が読む入力（フックの入力 ・ 審査の手順と判定基準 ・ 事例）。サービス層は入出力を保持しないので、ここが読み込む
+- `tool/business_logic/src/input.rs`: `reply` ・ `review` が読む入力（フックの入力 ・ 判定基準 ・ 事例）。サービス層は入出力を保持しないので、ここが読み込む
 - `tool/data_access/`: データアクセス層。**ファイルと標準入力の入出力だけを持つ** ── 業務ロジック層はここを経由して読み込む。`files.rs` ・ `process.rs` は skills-creator の雛形の複製、`stdin.rs` はこの Skill に固有である
-- `tool/business_logic/tests/`: 事例（28件）。8つの判定と、単位の割り方を固定してある
+- `tool/business_logic/tests/`: 事例（36件）。8つの判定と、単位の割り方と、手順の変換を固定してある
 - `references/predicates.json`: **和語の述部と言い換え先の正本**（59件）。出典と、その立場を持つ
+- `references/review-criteria.json`: `review` が依頼文へ組む判定基準（8件）。形は `references/review-criteria.schema.json` が定義する
+- `references/document.json`: `review` の手順（`review-instruction`）。形は `references/document.schema.json` が定義する
+- `references/source.json`: 外部の原典の複製（git で追跡しない）。形は `references/source.schema.json` が定義する。取得し直すときは `sources/MANIFEST.json` の URL から原文を取得し、`import` で取り込んだ項目を source.json へ移す
+- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の4つの道具の実体。skills-creator の雛形の複製である
+- `tool/business_logic/src/instruction.rs`: document の1件を、`review` の依頼文へ入れる本文へ変換する
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない

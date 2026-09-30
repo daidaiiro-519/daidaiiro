@@ -17,6 +17,7 @@ pub mod deck;
 pub mod figcheck;
 pub mod init;
 pub mod panel;
+pub mod refs;
 pub mod render;
 pub mod seq;
 pub mod serve;

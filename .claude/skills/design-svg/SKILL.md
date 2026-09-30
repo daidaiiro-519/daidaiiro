@@ -225,7 +225,7 @@ fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
 // register() の並びへ ("しおり", bookmark) を足す
 ```
 
-足すときの規約は `references/knowledge/svg-engine-discipline.md` にある。**新しいファイルは
+足すときの規約は `references/document.json` の `svg-engine-discipline` にある（`design-svg get --kind document --id svg-engine-discipline` で取得する）。**新しいファイルは
 `tool/business_logic/src/lib.rs` の `components()` へ足す**こと ── 足さないと台帳に載らない。
 **目録の表（`catalog.rs` の `PARTS`）にも1行足す** ── 部品が読むキーと表が食い違えば、事例が失敗する。
 
@@ -274,13 +274,12 @@ fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
 ## 参照
 
 - `README.md`: エンジンの入口（使い方・目録・配置・開発）
-- `references/knowledge/svg-engine-discipline.md`: エンジンが遵守する規律と、外へ公開する面
-- `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各層が保証すること
-- `tool/cli/`: **唯一の CLI** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `references/document.json`: 手引きの文書。`svg-engine-discipline`（エンジンが遵守する規律と、外へ公開する面）と `svg-engine-layout-algorithms`（配置アルゴリズムの中身と、各層が保証すること）を持つ。形は `references/document.schema.json` が規定する
+- `tool/cli/`: **唯一の CLI** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` と、references の道具 `get` ・ `validate` ・ `view` ・ `import` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
 - `tool/service/`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` は読み込まれるものであり、呼び出し方を保持しない
 - `tool/mcp/` ・ `mcp.json`: MCP サーバー `design-svg-mcp`。宣言から道具を組む
 - `tool/business_logic/`: 描画エンジン（業務ロジック層）。**入出力を直接扱わない**。依存の向きは各 `Cargo.toml` が宣言する
 - `tool/data_access/`: データアクセス層。ファイルの入出力だけを持ち、同じ workspace の crate を参照しない（`files.rs` ・ `process.rs` は skills-creator の雛形の複製）
-- `references/theme.json`: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名
+- `references/theme.json`: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名。形は `references/theme.schema.json` が規定し、`design-svg validate` が検査する
 - `tool/business_logic/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd tool && cargo test`
 - `tool/business_logic/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd tool && cargo run -q -p ds_business_logic --example bench_layout`

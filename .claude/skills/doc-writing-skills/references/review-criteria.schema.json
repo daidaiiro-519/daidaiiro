@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-criteria.schema.json",
+  "title": "日本語の審査の判定基準",
+  "description": "語の単位では判定できない不自然さを、モデルに審査させるための判定基準。review が依頼文へ組む",
+  "$comment": "項目を足すときは、id を英小文字とハイフンで付け、rule ・ test ・ why を1文ずつ書く。前後の文脈を読まないと判定できない基準は needs_context を true にする",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "concept",
+    "note",
+    "reader",
+    "items"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "x-view": "hidden"
+    },
+    "concept": {
+      "title": "拠って立つ概念",
+      "type": "string"
+    },
+    "note": {
+      "title": "適用の範囲",
+      "type": "string",
+      "x-view": "card"
+    },
+    "reader": {
+      "title": "読み手",
+      "type": "string"
+    },
+    "items": {
+      "title": "判定基準",
+      "type": "array",
+      "x-view": "table",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "rule",
+          "test",
+          "why",
+          "needs_context"
+        ],
+        "properties": {
+          "id": {
+            "title": "識別子",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "rule": {
+            "title": "基準",
+            "type": "string"
+          },
+          "test": {
+            "title": "判定の方法",
+            "type": "string"
+          },
+          "why": {
+            "title": "理由",
+            "type": "string"
+          },
+          "needs_context": {
+            "title": "文脈を要する",
+            "description": "true なら、文書の全体を読める場合だけ適用する",
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

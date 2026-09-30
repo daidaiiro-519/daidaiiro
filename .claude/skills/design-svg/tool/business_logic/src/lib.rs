@@ -29,6 +29,7 @@ pub mod nesting;
 pub mod props;
 pub mod py;
 pub mod radial;
+pub mod refs;
 pub mod registry;
 pub mod shapes;
 pub mod shapes_decor;

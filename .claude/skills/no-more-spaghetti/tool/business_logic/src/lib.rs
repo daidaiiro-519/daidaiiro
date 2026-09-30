@@ -12,6 +12,7 @@ use nms_data_access as data_access;
 pub mod init;
 pub mod inward;
 pub mod label;
+pub mod refs;
 pub mod rules;
 pub mod run;
 pub mod validate;

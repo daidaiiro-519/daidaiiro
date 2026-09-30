@@ -61,11 +61,11 @@ skills-creator scaffold <名前> --type <work|advisor> --language <rust|python|t
 
 置いたファイルの一覧と、次に書くもの ・ 組み立てのコマンドが出る。**既に在るファイルは上書きしない。**
 
-道具を保持しない Skill は、`references/skill-template.md` を `.claude/skills/<名前>/SKILL.md` として置くだけにする。
+道具を保持しない Skill は、`references/skill-template.md.tmpl` を `.claude/skills/<名前>/SKILL.md` として置くだけにする。
 
 ### Step 3: 組み立てる
 
-`scaffold` が出した「組む ──」のコマンドを、Skill のフォルダで実行する。その言語の処理系を必要とする（`references/profiles/<言語>.md` の置き場所の節）。**処理系が無い環境では組み立てられない** ── 利用者に導入を頼む。
+`scaffold` が出した「組む ──」のコマンドを、Skill のフォルダで実行する。その言語の処理系を必要とする（`references/document.json`（profile-<言語>） の置き場所の節）。**処理系が無い環境では組み立てられない** ── 利用者に導入を頼む。
 
 ### Step 4: 中身を書く
 
@@ -114,7 +114,7 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 ## 道具を伴う Skill
 
 **道具を持つ Skill は、道具の契約に従わせる。**
-契約は `references/tool-contract.md` が規定する ── 呼び方を1つに固定し、
+契約は `references/document.json`（tool-contract） が規定する ── 呼び方を1つに固定し、
 **能力をサービス層の道具の一覧に1度だけ書かせて、CLI と MCP をその一覧から組ませる**。
 
 **契約が規定するのは、呼ぶ側から観察できるものだけである**（ACDR 0036）。
@@ -122,9 +122,9 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 
 | 置く先 | 中身 | 文書 |
 |---|---|---|
-| 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/tool-contract.md` |
-| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。どれも版2 で、作業型と助言型を生む | `references/profiles/<言語>.md` |
-| 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/distribution.md` |
+| 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/document.json`（tool-contract） |
+| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。どれも版2 で、作業型と助言型を生む | `references/document.json`（profile-<言語>） |
+| 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/document.json`（distribution） |
 
 ```
 skills-creator scaffold <Skill の名前> [--type work|advisor] [--language rust|python|typescript|csharp|go]   # 型と言語の組の一式を置く
@@ -153,10 +153,10 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 
 ## ガードレール
 
-- **節の構成を、対応する雛形と一致させる**。助言型の Skill は `references/types/advisor/skill-template.md`、それ以外は
-  `references/skill-template.md` を満たす ── **どちらを適用するかは節の有無で決まる**（名前で分岐すると、Skill が
+- **節の構成を、対応する雛形と一致させる**。助言型の Skill は `references/types/advisor/skill-template.md.tmpl`、それ以外は
+  `references/skill-template.md.tmpl` を満たす ── **どちらを適用するかは節の有無で決まる**（名前で分岐すると、Skill が
   増えるたびに検査を直すことになる）
-- **道具を持つ Skill には、道具の契約を適用させる**（`references/tool-contract.md`）── 呼び出し方の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
+- **道具を持つ Skill には、道具の契約を適用させる**（`references/document.json`（tool-contract））── 呼び出し方の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
 - **同じ概念の仕組みは、同じ実装の形にさせる**。入力の契約（スキーマ）・トークンの正本・入力の検査・置き場所を、Skill ごとに違う形で実装させない ── 概念が同じで形が違うと、**1つを読んで得た理解が、次の Skill で通用しない**
 - **能力を2か所へ記述させない**。CLI と MCP は、サービス層の道具の一覧から組ませる ── 同じ能力を2度書くと、片方だけが古くなる
 - **業務ロジック層の関数に呼び出し方を付けさせない**。業務ロジック層の関数は道具の一覧に載せない ── 載せると、同じ能力に呼び方が2つできる
@@ -167,7 +167,7 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - SKILL.md は必ずスキルフォルダのルートに置く。サブフォルダには置かない
 - テンプレートファイルは assets/ ではなく references/ に置く
 - 不要なフォルダは作らない。使うものだけ作る
-- 差し込み場所は、`references/skill-template.md` の各 `{{…}}` に書かれた指示に従って記入する。指示を読まずに推測で記入しない
+- 差し込み場所は、`references/skill-template.md.tmpl` の各 `{{…}}` に書かれた指示に従って記入する。指示を読まずに推測で記入しない
 - スキル名は英小文字・ハイフン区切りに統一する（スペース・アンダースコア不可）
 - 利用者が要件を明確にしていない場合は作成を開始しない。必ず確認を先に完了させる
 - **一式を手で書き起こさない**。道具を持つ Skill は `scaffold` で生む ── 手で書くと、契約（道具の一覧 ・ CLI の規約 ・ MCP ・ references の4つの道具）のどれかが欠落し、`check` が不合格になる
@@ -181,13 +181,13 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 この Skill のフォルダに在るものだけを並べる。道具のソース（`tool/`）は配布物に入らない。
 
 - `bin/skills-creator` ・ `bin/skills-creator-mcp`: この Skill の CLI と MCP サーバー。`scaffold` ・ `check` ・ `accept` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
-- `references/skill-template.md`: SKILL.md の雛形（作業型）。各 `{{…}}` が、記入のしかたの指示を持つ
-- `references/folder-structure.md`: Skill のフォルダのミニマム構成とフル構成
-- `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
+- `references/skill-template.md.tmpl`: SKILL.md の雛形（作業型）。各 `{{…}}` が、記入のしかたの指示を持つ
+- `references/document.json`（folder-structure）: Skill のフォルダのミニマム構成とフル構成
+- `references/document.json`（tool-contract）: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義
 - `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順（`procedure.md`）
-- `references/profiles/<言語>.md` ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/document.json`（profile-<言語>） ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
 - `references/profiles/<言語>.profile.json`: 言語の組の定義。何をどこへ置くか ・ 組み立てと試験のコマンド ・ 外部の道具の起動の書き方
-- `references/distribution.md` ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形
+- `references/document.json`（distribution） ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形

@@ -10,6 +10,7 @@
 //! この宣言へ直す変換は、呼ぶ側が持つ。
 
 pub mod contract;
+mod refs;
 
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -472,7 +473,7 @@ fn human_lint(out: &Outcome) -> String {
 #[must_use]
 pub fn tools() -> Vec<Tool> {
     let out = Arg::opt("out", "書き出し先の SVG", None);
-    vec![
+    let mut all = vec![
         Tool {
             name: "catalog",
             summary: "目録を出す（部品・トークン・役割・配置戦略）",
@@ -540,5 +541,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_lint,
             human: human_lint,
         },
-    ]
+    ];
+    // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
+    all.extend(refs::tools());
+    all
 }

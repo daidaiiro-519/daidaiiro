@@ -11,8 +11,8 @@ use sc_business_logic::check::{self, State, Templates};
 fn templates() -> Templates {
     let skills = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
     Templates::new(
-        skills.join("skills-creator/references/skill-template.md"),
-        skills.join("skills-creator/references/types/advisor/skill-template.md"),
+        skills.join("skills-creator/references/skill-template.md.tmpl"),
+        skills.join("skills-creator/references/types/advisor/skill-template.md.tmpl"),
     )
 }
 
@@ -529,8 +529,7 @@ fn write_entries(root: &Path, tool: &str, mcp: &str) {
     std::fs::write(root.join("mcp.json"), mcp).expect("書ける");
 }
 
-const TOOL_JSON: &str =
-    r#"{"contract":2,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
+const TOOL_JSON: &str = r#"{"contract":2,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
 const MCP_JSON: &str =
     r#"{"mcpServers":{"fake":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake-mcp","args":[]}}}"#;
 
@@ -817,6 +816,9 @@ fn a_path_in_the_document_that_does_not_exist_is_reported() {
             .any(|x| x.contains("指す先が無い") && x.contains("tool/parts/src/find.rs")),
         "{found:?}"
     );
-    assert!(!found.iter().any(|x| x.contains("references/a.json")), "{found:?}");
+    assert!(
+        !found.iter().any(|x| x.contains("references/a.json")),
+        "{found:?}"
+    );
     assert!(!found.iter().any(|x| x.contains("<層>")), "{found:?}");
 }

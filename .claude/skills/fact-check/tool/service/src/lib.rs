@@ -5,6 +5,7 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::{Path, PathBuf};
 
@@ -320,7 +321,7 @@ fn human_verify(out: &Outcome) -> String {
 #[must_use]
 pub fn tools() -> Vec<Tool> {
     let dir = Arg::opt("dir", "置き場所", Some(DEFAULT_DIR));
-    vec![
+    let mut all = vec![
         Tool {
             name: "fetch",
             summary: "原文を取得して保存する",
@@ -349,5 +350,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_verify,
             human: human_verify,
         },
-    ]
+    ];
+    // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
+    all.extend(refs::tools());
+    all
 }

@@ -5,6 +5,7 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::{Path, PathBuf};
 
@@ -29,8 +30,8 @@ fn templates(here: &Path) -> check::Templates {
     let references = here.join("references");
     // **助言型の SKILL.md の雛形は、型の置き場所が持つ**（ACDR 0061 ── advisor-creator を廃止した）
     check::Templates::new(
-        references.join("skill-template.md"),
-        references.join("types/advisor/skill-template.md"),
+        references.join("skill-template.md.tmpl"),
+        references.join("types/advisor/skill-template.md.tmpl"),
     )
     .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
     .with_profiles(references.join("profiles"))
@@ -362,7 +363,7 @@ fn human_dist(out: &Outcome) -> String {
 /// 道具の一覧。**能力の正本である。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    vec![
+    let mut all = vec![
         Tool {
             name: "scaffold",
             summary: "道具の契約一式を、Skill のフォルダへ置く",
@@ -436,5 +437,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_dist,
             human: human_dist,
         },
-    ]
+    ];
+    // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
+    all.extend(refs::tools());
+    all
 }

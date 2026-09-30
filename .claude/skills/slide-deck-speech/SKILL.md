@@ -126,15 +126,17 @@ slide-deck-speech lexicon <辞書のファイル> <辞書の名前>
 
 ## 参照
 
-- `tool/cli/`: 唯一の CLI。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **道具の一覧に無い旗は断る**
+- `tool/cli/`: 唯一の CLI。`plan` ・ `synth` ・ `lexicon` ・ `measure` と、references の `get` ・ `validate` ・ `view` ・ `import` を持つ ── **道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
 - `tool/business_logic/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
 - `tool/data_access/`: データアクセス層。ファイルと外部の道具の入出力（`files` ・ `process`）だけを持つ ── 業務ロジック層はここを経由して読み書きし、合成の CLI を起動する
+- `tool/business_logic/src/refs.rs`: references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）。skills-creator の雛形の複製であり、書き換えない
+- `tool/service/src/refs.rs`: references の4つの道具を、道具の一覧へ登録する
 - `tool/business_logic/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
 - `tool/business_logic/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
 - `references/narration.schema.json`: 入力の契約
 - `references/narration.out.schema.json`: 出力の契約。`durationMs` の定義を含む
+- `infra/slide-deck-speech.yml`: AWS側で実行するための構成。`aws cloudformation deploy` で作る。CodeBuild は `bin/slide-deck-speech synth` を呼ぶ
 - `references/lexicon.example.pls`: 読みの辞書の例（W3CのPLS準拠）
-- `infra/narration.yml`: AWS側で実行するための構成。`aws cloudformation deploy` で作る
 - `.brainstorming-board/narration-skill/`: この設計を決めた5件の論点と、試作の記録

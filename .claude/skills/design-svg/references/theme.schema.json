@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "theme.schema.json",
+  "title": "既定のテーマ",
+  "description": "トークンの名前と値の対応 ・ 値の範囲 ・ 色の濃さの呼び名。部品のコードは色 ・ 寸法 ・ 角丸 ・ 書体の値を持たず、ここを読む",
+  "$comment": "業務ロジック層の theme.rs と catalog.rs が、組み立ての時点で埋め込んで読む。項目を足したら、読む側のコードも確認する",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tokens",
+    "ranges",
+    "tones"
+  ],
+  "properties": {
+    "why": {
+      "title": "この形を採る理由",
+      "x-view": "list",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tokens": {
+      "title": "トークン",
+      "description": "名前から値へ。値がトークン名を指していたら、指し先の値へ解決する（1層だけ）。役割は role.<名前>.<トークン名> で同じ袋に置く",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "title": "数",
+            "type": "number"
+          },
+          {
+            "title": "文字列",
+            "type": "string"
+          },
+          {
+            "title": "文字列の並び",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "ranges": {
+      "title": "値の範囲",
+      "description": "値に妥当な範囲があるトークン。[最小, 最大]",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "tones": {
+      "title": "色の濃さの呼び名",
+      "description": "呼び名から、色のトークンの名前へ",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "title": "トークンの注記",
+      "description": "トークンの名前から、その値を選んだ理由へ",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

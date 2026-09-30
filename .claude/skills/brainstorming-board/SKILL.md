@@ -210,11 +210,11 @@ brainstorming-board init <ブレストボードの名前> [--title <題>]
 - `references/board.js`: **動きの正本。** タブの切り替え ・ 印の開閉 ・ 変更の引き出し ・ 回答の送信を持つ。**これも組み立ての外に置く** ── 置かないと、150行の script が実装の中の文字列になる
 - `tool/business_logic/src/style.rs`: 見た目と動きの正本を読み、トークンを前へ置く。**データから決まる CSS の値だけを作る** ── 除外した案の記号の起点のように、入力の中身から計算しないと決まらないものである
 - `tool/business_logic/src/render.rs`: **`board.json` から HTML を組む。** `brainstorming-board render <ボードのディレクトリ>` で実行する。**入力を書き換えない** ── 前の回の基準は `rounds/<番号>.json` から読むだけで、書き出さない。**節の構造は生成の時点で確定させる** ── 閲覧する側の script で組み直すと、保存した HTML の中に構造が存在しない。`render … --check 1` は冪等を検査する（2回の一致 ・ 入力のハッシュの不変 ・ 読み取り専用での実行）。`freeze` は次の回の基準を保存する ── **組み立てから分離してある**（組み立てが基準を出力すると、1回目と2回目で結果が相違する）
-- `tool/business_logic/src/validate.rs`: **入力を検査する。** 形（スキーマ）・**節の見出しを手で書いていないか**・散文（1つの**行**に主張が同居していないか ・ 1文が長すぎないか。引用は除外し、`<br>` は欄の中の行を分ける）・見出しや表の混入 ・ 参照の解決（図が実在するか）の4系統である。**生成物ではなく入力を検査する** ── 生成物の検査からは、複製が正しく生成されたことしか判明しない。しかも不合格の時点で HTML は既に出ている。**不合格なら HTML を1バイトも出さない**
+- `tool/business_logic/src/validate.rs`: **入力を検査する**（`brainstorming-board inspect <ボードのディレクトリ>` で実行する）。形（スキーマ）・**節の見出しを手で書いていないか**・散文（1つの**行**に主張が同居していないか ・ 1文が長すぎないか。引用は除外し、`<br>` は欄の中の行を分ける）・見出しや表の混入 ・ 参照の解決（図が実在するか）の4系統である。**生成物ではなく入力を検査する** ── 生成物の検査からは、複製が正しく生成されたことしか判明しない。しかも不合格の時点で HTML は既に出ている。**不合格なら HTML を1バイトも出さない**
 
 ### 組み立ての中身
 
-- `tool/cli/`: 唯一の CLI。`init` ・ `validate` ・ `render` ・ `tokens` ・ `freeze` ・ `figures` ・ `serve` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
+- `tool/cli/`: 唯一の CLI。`init` ・ `inspect` ・ `render` ・ `tokens` ・ `freeze` ・ `figures` ・ `serve` と、references の4つの道具（`get` ・ `validate` ・ `view` ・ `import`）を持つ ── **どれも `--json` で機械が読む形が出る**。**入力（`board.json`）の検査は `inspect` である** ── `validate` は契約の版2 が references の検査に割り当てた名前なので、入力の検査には使用しない。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` に在るものは読み込まれるものであり、呼び出し方を保持しない
 - `tool/data_access/`: データアクセス層。**ファイル ・ 通信の入出力だけを持つ** ── 業務ロジック層は `std::fs` ・ `std::net` を直接呼ばず、この層の関数を呼び出す。`files.rs` ・ `process.rs` は skills-creator の雛形の複製であり、この Skill に固有の入出力は `net.rs`（`serve` の待ち受けと送受信）・ `tree.rs`（読み取り専用の複製）・ `host.rs`（プロセスの番号）が持つ。**どの要求にどう応えるかは `serve.rs` が決める**
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
@@ -226,8 +226,10 @@ brainstorming-board init <ブレストボードの名前> [--title <題>]
 - `tool/business_logic/src/snapshot.rs`: **この回で変わったところを、ブレストボードが自分で示す。** 前の回の姿を記録し、欄ごとに比べる。**並びを突き合わせてから比べる** ── 位置だけで比べると、1行足しただけで以降が全部「変わった」と出る
 - `tool/business_logic/src/seq.rs`: 並びの突き合わせ。**Ratcliff と Obershelp の方式である** ── 手順が違うと、同じ入力から別の対応が出て、印の付く場所が変わる
 - `tool/business_logic/src/blocks.rs`: 宣言の並びを HTML へ組み、入力から論点を起こす。**種類ごとに1つの形だけを持つ**
-- `tool/business_logic/src/init.rs`: ブレストボードの置き場所と、入力の雛形 `board.json` と、索引の行を作る。**ブレストボードの下に実装を置かない** ── 正本は JSON である。既に在る名前は作り直さない。**雛形の本文は `references/` が持つ**
+- `tool/business_logic/src/init.rs`: ブレストボードの置き場所と、入力の雛形 `board.json` と、索引の行を作る。**ブレストボードの下に実装を置かない** ── 正本は JSON である。既に在る名前は作り直さない。**雛形の本文は `references/` が持つ** ── 入力の雛形は `references/board.example.json`、索引と取り直し方の Markdown の本文は `references/init-files.json` の文字列が保持する（references に Markdown を置かない）
 - `tool/business_logic/src/figcheck.rs`: 図の文字の重なり ・ はみ出し ・ 線が箱を貫くことを検査する。**受け取るのは SVG のファイルである**。**絶対座標で描いた図だけが対象である** ── 群を平行移動して組む図は、この検査では全部の文字が重なって見える（実測で129件の偽陽性）。その図は**組ませた相手の検査**に掛ける。**行をまたぐ文字は測らない** ── 幅の見積もりは1行ぶんなので、適用すると重なりを捏造する
 - `tool/business_logic/src/serve.rs`: ブレストボードを配り、押された回答を1件ずつファイルへ書き出す。`serve <配るディレクトリ> --answers <蓄積先>` で実行する
-- `tool/business_logic/tests/`: 事例（59件）。欄の整形（冪等 ・ 引用を変えない ・ 属性が漏れない）・ この回の印（欄ごとに該当する ・ 行を足しても以降は不変である ・ 引き出しから跳べる）・ 1枚の組み立て（完成イメージを畳まない ・ 決着した論点に回答欄を出さない）・ 出す前の検査6件 ・ 入力の検査 ・ トークン ・ 図の検査を固定してある
+- `tool/business_logic/tests/`: 事例（60件）。欄の整形（冪等 ・ 引用を変えない ・ 属性が漏れない）・ この回の印（欄ごとに該当する ・ 行を足しても以降は不変である ・ 引き出しから跳べる）・ 1枚の組み立て（完成イメージを畳まない ・ 決着した論点に回答欄を出さない）・ 出す前の検査6件 ・ 入力の検査 ・ トークン ・ 図の検査 ・ 置き場所の作成（references の本文をそのまま置く）を固定してある
 - `references/answer-sheet.schema.json`: 回答1件の形
+- `references/init-files.json`: `init` が置く Markdown の本文（索引 `README.md` と、取り直し方 `sources/README.md`）。形は `references/init-files.schema.json` が決める
+- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の4つの道具（`get` ・ `validate` ・ `view` ・ `import`）の実体。skills-creator の雛形の複製であり、この Skill では書き換えない

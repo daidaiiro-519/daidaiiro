@@ -5,6 +5,7 @@
 //! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。
 
 pub mod contract;
+mod refs;
 
 use std::path::PathBuf;
 
@@ -107,7 +108,7 @@ fn human_init(out: &Outcome) -> String {
     }
 }
 
-fn run_validate(given: &Given) -> Outcome {
+fn run_inspect(given: &Given) -> Outcome {
     let board = given.one("board", "");
     if board.is_empty() {
         return Outcome::misuse("ブレストボードのディレクトリを渡していない".to_owned());
@@ -122,7 +123,7 @@ fn run_validate(given: &Given) -> Outcome {
     }
 }
 
-fn human_validate(out: &Outcome) -> String {
+fn human_inspect(out: &Outcome) -> String {
     let tail = if out.findings.is_empty() {
         "入力の検査　通った".to_owned()
     } else {
@@ -353,7 +354,7 @@ pub fn tools() -> Vec<Tool> {
         None,
     );
     let board = Arg::need("board", "ブレストボードのディレクトリ");
-    vec![
+    let mut all = vec![
         Tool {
             name: "init",
             summary: "ブレストボードの置き場所と雛形と索引の行を作る",
@@ -367,11 +368,12 @@ pub fn tools() -> Vec<Tool> {
             human: human_init,
         },
         Tool {
-            name: "validate",
+            // **references の検査（validate）と名前が重なるので、入力の検査は inspect と称する**（契約の版2）
+            name: "inspect",
             summary: "入力（board.json）を検査する",
             args: vec![board.clone(), root.clone()],
-            run: run_validate,
-            human: human_validate,
+            run: run_inspect,
+            human: human_inspect,
         },
         Tool {
             name: "render",
@@ -417,5 +419,8 @@ pub fn tools() -> Vec<Tool> {
             run: run_serve,
             human: human_serve,
         },
-    ]
+    ];
+    // **references の4つの道具（get ・ validate ・ view ・ import）は、どの Skill も同じものを足す**（契約の版2）
+    all.extend(refs::tools());
+    all
 }

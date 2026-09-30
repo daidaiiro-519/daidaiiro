@@ -8,12 +8,12 @@ version: 1.3.0
 
 **HTMLのスライドデッキを、1枚1主張・量の上限・描画確認の3つを遵守して作る。**
 **配色は選ぶ ── `references/themes/` の1本を適用する。図は組ませて、返った SVG をそのまま置く。**
-**規則が立っている考え方は `references/knowledge/visual-design-for-slide-decks.md` にある。**
+**規則が立っている考え方は `references/document.json` の `visual-design-for-slide-decks` にある。**
 新しくデッキを起こすとき、既存の枚を直すとき、短い版に集約するときに使う。
 
 **原稿を持つデッキは、スライドと原稿を1枚ずつ照合して直す。**
 変更前と変更後を並べた比較ページで1枚ずつ確認し、全枚が済んだら、台本 ・ 確認記録 ・ 観点ごとの結果の3つをHTMLとPDFで出す。
-工程と観点は `references/review.md` が保持する。
+工程と観点は `references/document.json` の `review` が保持する。
 
 ## 役割
 
@@ -72,7 +72,7 @@ version: 1.3.0
 | どこまで細かく作るか | 明示されなければ確認する。1論点1枚で並べるのか、章あたり数枚に集約するのかで枚数が変わる |
 | 配色 | 明示されなければ、`references/themes/` の一覧を見せて選んでもらう。勝手に決めない |
 | 出典 | 原典のファイルが手元にあるかを確認する。無ければ、数値を載せずに構成だけ組む |
-| 原稿 | 枚ごとの原稿が在るかを確認する。在れば、照合の工程（`references/review.md`）で直す |
+| 原稿 | 枚ごとの原稿が在るかを確認する。在れば、照合の工程（`references/document.json` の `review`）で直す |
 | 変更前の基準 | 照合するとき、明示されなければ、最後に承認された版（git の HEAD など）を基準にする |
 
 ---
@@ -88,7 +88,7 @@ version: 1.3.0
 
 ### Step 2: 設計規則を読み込む
 
-`references/design-rules.md` を読み、量の上限と3つの型を把握してから構成を選ぶ。
+`references/document.json` の `design-rules` を読み、量の上限と3つの型を把握してから構成を選ぶ。
 
 - 大きい要素は2つか3つ。4つ以上あると、どれが主張か消える
 - 各要素の下は 条件1行 → 但し書き1〜2行 → 出典1行 の順を崩さない
@@ -113,7 +113,7 @@ version: 1.3.0
 
 ### Step 3: 配色を選ぶ
 
-**`references/themes.md` を読み、`references/themes/` の1本を選ぶ。**
+**`references/document.json` の `themes` を読み、`references/themes/` の1本を選ぶ。**
 
 | テーマ | 地 | 強調 | いつ選ぶか |
 |---|---|---|---|
@@ -166,7 +166,7 @@ slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して
 - 新しい分類色を足す前に、位置・ラベル・線の違いで区別できるかを判定する
 - **描く側の幾何の検査を実行し、そのうえで描画して目視する**
 
-渡し方と色の対応は `references/figures.md` が持つ。
+渡し方と色の対応は `references/document.json` の `figures` が持つ。
 
 ### Step 6: 数値を原典で確認する
 
@@ -178,7 +178,7 @@ slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して
 
 ### Step 7: 描画して目視で確認する
 
-`references/render-check.md` の手順で画像にし、実際に目視で確認する。
+`references/document.json` の `render-check` の手順で画像にし、実際に目視で確認する。
 
 - 変更した枚を必ず描画する
 - 全枚の下端を測り、620を超える枚を把握する
@@ -194,7 +194,7 @@ slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して
 
 ### Step 8: 日本語を声に出して読む
 
-`references/design-rules.md` §7 に照らして、枚に置いた文をすべて読み直す。
+`references/document.json` の `design-rules` の §7 に照らして、枚に置いた文をすべて読み直す。
 
 - 語尾や助詞を、鉤括弧で括って名詞のように使っていないか
 - 見出しと導入文を、主語・目的語・述語の3つに分解できるか
@@ -222,7 +222,7 @@ slide-deck theme <テーマの名前> --out theme.json   # 配色を複製して
 
 ### Step 10: 原稿を持つデッキは、1枚ずつ照合する
 
-**`references/review.md` を読み、§1 の7つの段を1枚ずつ実施する。**
+**`references/document.json` の `review` を読み、§1 の7つの段を1枚ずつ実施する。**
 
 - 変更前を先に固定し、比較ページの変更前の列に置く
 - 1枚ごとに、描画した画像と原稿の全文を並べて読む。抜き出した文字の一覧だけで照合しない
@@ -287,21 +287,24 @@ slide-deck export <照合の入力>.json <出力のフォルダ> --browser <ブ�
 
 ## 参照
 
-- `references/knowledge/visual-design-for-slide-decks.md`: 設計規則が立っている8つの概念。出所は Anthropic の `pptx`
-- `references/design-rules.md`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は保持しない**
-- `references/render-check.md`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
-- `references/review.md`: **原稿を持つデッキの照合。** 7つの段の工程 ・ 7つの群の観点 ・ 最後に出す3つ ・ 比較ページの形。設計規則は複製しない
+- `references/document.json`: **手引きと知識の正本。** 6件を document の形（節の入れ子 ・ 段落 ・ 一覧 ・ 表 ・ コードの塊）で持つ。1件は `slide-deck get --kind document --id <id>` で取り出し、`slide-deck view --kind document --id <id>` で HTML に描画する。以下の6件である
+  - `visual-design-for-slide-decks`: 設計規則が立っている8つの概念。出所は Anthropic の `pptx`
+  - `design-rules`: 1枚1主張・量の上限・3つの型・左右の扱い・列の役割・主従。**文の書き方は保持しない**
+  - `render-check`: 描画の手順、はみ出しの測り方、画面サイズへの追従、自動縮小の保険
+  - `review`: **原稿を持つデッキの照合。** 7つの段の工程 ・ 7つの群の観点 ・ 最後に出す3つ ・ 比較ページの形。設計規則は複製しない
+  - `themes`: テーマの選び方、22のキーと満たすこと、検査の通し方
+  - `figures`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどのキーから出るか。**この Skill は図を描かない**
+- `references/document.schema.json`: document の形の正本。skills-creator の雛形の複製
 - `references/review.schema.json`: **照合の入力の形の正本。** 変更前と変更後の各枚と、枚ごと ・ 観点の群ごとの結果を持つ
 - `references/review.template.html`: **照合の出力の形の正本。** 比較ページ ・ 確認記録 ・ 台本 ・ 観点ごとの結果の部品を1枚で持つ
 - `references/slide-deck.template.html`: **出来上がりの形の正本。** 固定ステージ ・ 部品 ・ めくる仕掛けを持ち、配色はテーマを貼る場所だけを持つ
 - `references/slide-deck.schema.json`: **入力の形の正本。** 枚と、14種類の要素が持てるキーを決める
 - `references/deck-example.json`: 入力の雛形。`new` がこれを複製して起こす
-- `references/themes.md`: テーマの選び方、22のキーと満たすこと、検査の通し方
 - `references/themes/`: 配色の正本。1ファイル1テーマで、`:root` の中身をそのまま貼る
 - `tool/business_logic/src/theme.rs`: キーの欠け・適合条件・色の直書きを検査し、配色を描く側のトークンへ複製する
-- `references/figures.md`: **図の依頼の仕方。** 何を渡し、図の中の役割がテーマのどのキーから出るか。**この Skill は図を描かない**
-- `tool/cli/`: **唯一の CLI。** `new` ・ `render` ・ `check` ・ `theme` ・ `review` ・ `export` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
+- `tool/cli/`: **唯一の CLI。** `new` ・ `render` ・ `check` ・ `theme` ・ `review` ・ `export` と、references の4つ（`get` ・ `validate` ・ `view` ・ `import`）を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の実装（`get` ・ `validate` ・ `view` ・ `import`）。skills-creator の雛形の複製であり、Skill の側で変更しない
 - `tool/mcp/` ・ `mcp.json`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
 - `tool/data_access/`: データアクセス層。**ファイルとブラウザの起動だけを持つ** ── 業務ロジック層はここを経由して読み書きし、ブラウザを起動する。`files.rs` ・ `process.rs` は skills-creator の雛形の複製
 - `tool/business_logic/src/deck.rs`: 入力の値を、型の部品へ差し込む。**HTML の形をここへ書かない**

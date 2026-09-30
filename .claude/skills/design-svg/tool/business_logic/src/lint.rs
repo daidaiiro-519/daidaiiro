@@ -38,7 +38,9 @@ const GEOMETRIC: [f64; 5] = [90.0, 180.0, 270.0, 360.0, 100.0];
 const TOLERANCE: f64 = 1e-6;
 
 /// 見ないファイル。**値が書かれている場所そのもの**と、読み書きの道具。
-const SKIP: [&str; 4] = ["lint.rs", "theme.rs", "lib.rs", "py.rs"];
+/// `refs.rs` は skills-creator の雛形の複製である ── 描画エンジンの一部ではなく、中身を書き換えると
+/// `skills-creator check` が雛形との不一致を検出する。
+const SKIP: [&str; 5] = ["lint.rs", "theme.rs", "lib.rs", "py.rs", "refs.rs"];
 
 /// 見つけた1件。`(ファイル, 行, 関数, その行)`
 pub type Finding = (String, usize, String, String);

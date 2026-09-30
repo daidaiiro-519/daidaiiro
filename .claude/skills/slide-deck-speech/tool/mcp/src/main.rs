@@ -17,7 +17,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use sds_service::{tools, Given};
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,
@@ -26,6 +25,7 @@ use rmcp::model::{
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::transport::stdio;
 use rmcp::{ErrorData as McpError, ServiceExt};
+use sds_service::{tools, Given};
 use serde_json::{json, Map, Value};
 
 /// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、

@@ -6,11 +6,13 @@
 //!
 //! **3つで組む。** 入力の形は契約が、出来上がりの形は型が、配色はテーマが持つ。
 
-// **公開しない別名である** ── 公開すると、上の層がこの crate を経由してデータアクセス層へ届き、
+// **公開しない別名である** ── 雛形の複製（refs）が Skill の接頭辞に依存せずに呼べるようにする。
+// 公開すると、上の層がこの crate を経由してデータアクセス層へ届き、
 // 層を飛ばせてしまう
 use sd_data_access as data_access;
 
 pub mod deck;
+pub mod refs;
 pub mod review;
 pub mod template;
 pub mod theme;

@@ -33,7 +33,10 @@ fn every_tool_is_declared_once() {
     let names: Vec<&str> = tools().iter().map(|t| t.name).collect();
     assert_eq!(
         names,
-        ["catalog", "figure", "chart", "canvas", "verify", "lint"]
+        [
+            "catalog", "figure", "chart", "canvas", "verify", "lint", "get", "validate", "view",
+            "import"
+        ]
     );
 }
 
@@ -336,4 +339,13 @@ fn wrapped_lines_are_balanced() {
         .collect();
     assert!(lines.len() >= 2, "{lines:?}");
     assert!(lines.iter().all(|n| *n > 2), "短すぎる行がある: {lines:?}");
+}
+
+#[test]
+fn the_references_pass_their_schemas() {
+    // **references の JSON は、指しているスキーマに合う**（契約の版2）── theme.json も document.json も対象である
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let out = call("validate", &[("skill_root", &root.display().to_string())]);
+    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
+    assert_eq!(out.data["kinds"], serde_json::json!(["document", "theme"]));
 }

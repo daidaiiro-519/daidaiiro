@@ -296,8 +296,13 @@ Step 3 は「こちらが書いたものが原文に在るか」を検査する�
   日本語を含む原文で読み手の見る位置と食い違う
 - `tool/business_logic/src/source.rs`: 原文の読み取りと取得。**原文を連結しない**（どこで一致したかを
   報告するため）／ **読めなかったものを黙って除外しない** ／ **行の区切りを LF へ統一する**
+- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の4つの道具（`get` ・ `validate` ・
+  `view` ・ `import`）の実体。**雛形の複製であり、この Skill の側で書き換えない**
 - `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
-- `tool/cli/`: 唯一の CLI。`fetch` ・ `list` ・ `verify` を持つ ── **どれも `--json` で機械が読む形が出る**。
+- `tool/cli/`: 唯一の CLI。`fetch` ・ `list` ・ `verify` と、references の `get` ・ `validate` ・ `view` ・ `import` を持つ ── **どれも `--json` で機械が読む形が出る**。
   終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
 - `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
+- `references/meta.schema.json`: 取得の記録（`<名前>.meta.json`）の形。`fetch` が書き、`list` ・ `verify` が読む
+- `references/document.schema.json`: 原典の複製（document）の形。`import` が Markdown の原文を、出典 ・ sha256 ・
+  節の入れ子を持つ document の JSON へ取り込む（初回の import で作成する）
 - `tool/business_logic/tests/`: 事例（23件）。照合の3つの種類と、読めなかった範囲の扱いを固定してある

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! `reply` ・ `review` が読む入力。**読むのはデータアクセス層であり、ここは何を読むかだけを決める。**
 //!
-//! サービス層は入出力を持たないので、フックの入力 ・ 審査の手順と判定基準 ・ 事例の読み込みを
+//! サービス層は入出力を持たないので、フックの入力 ・ 判定基準 ・ 事例の読み込みを
 //! ここに置く（ACDR 0058）。**文言は呼ぶ側が誤用として出す** ── 読めない理由をそのまま返す。
 
 use std::path::Path;
@@ -20,7 +20,7 @@ pub fn hook_body(from: &str) -> Result<String, String> {
     files::read_to_string(from).map_err(|e| format!("読めない ── {from} ── {e}"))
 }
 
-/// この Skill が持つ正本（審査の手順 ・ 判定基準）を読む。
+/// この Skill が持つ正本（判定基準）を読む。審査の手順は references の実装（`refs::get`）が読む。
 ///
 /// # Errors
 ///
