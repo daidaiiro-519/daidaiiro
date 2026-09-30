@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "criteria.schema.json",
   "title": "ユースケースの判断基準",
-  "description": "usecase-advisor が相談に回答するときの拠りどころ。1件が1つの章の判断基準である",
-  "$comment": "Skill 自身の知見であり、Skill が正本である。本文は論点の並びで、論点は主張1文と意味の単位（定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足）を持つ。**原文に無い文字列を持たない** ── どの欄の値も、原典の書き起こしの一部である",
+  "description": "usecase-advisor が相談に回答するときの拠りどころ。1件が、領域の原典が名前を付けて立てている1つの概念の判断基準である（ACDR 0061）",
+  "$comment": "Skill 自身の知見であり、Skill が正本である。1件が1つの概念で、その概念を構成する要素を、原典の節の並びではなく概念を理解する順に持つ。要素の中身は、原典の学習ノートを読んでまとめた言葉で書き、原典の文を写さない。要素ごとに、拠る原典の章と頁を出典として持つ",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,21 +22,21 @@
           "id",
           "title",
           "summary",
-          "answers",
-          "topics",
-          "source"
+          "elements"
         ],
         "properties": {
           "id": {
             "title": "識別子",
             "x-view": "hidden",
             "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "description": "概念の英語の短い名前（例：aggregate ・ primary-actor）"
           },
           "title": {
             "type": "string",
             "title": "題",
-            "x-view": "heading"
+            "x-view": "heading",
+            "description": "概念の名前（原典の語のまま）"
           },
           "tags": {
             "title": "札",
@@ -51,22 +51,25 @@
             "title": "概要",
             "x-view": "card"
           },
-          "answers": {
-            "title": "扱う節",
-            "x-view": "list",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          },
-          "topics": {
-            "title": "論点",
-            "x-view": "sections",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "$ref": "#/$defs/topic"
+          "elements": {
+            "title": "構成要素",
+            "description": "この概念を構成する要素。原典の節の並びではなく、その概念を理解する順（定義 → 性質や条件 → 時期や流れ → 書き方 → 注意）に並べる。要素の中身は原典の文を写さず、学習ノートを読んでまとめた言葉で書く",
+            "x-view": "group",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "units"
+            ],
+            "properties": {
+              "units": {
+                "title": "要素",
+                "x-view": "units",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/unit"
+                }
+              }
             }
           },
           "antipatterns": {
@@ -90,7 +93,8 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "what"
+                    "what",
+                    "source"
                   ],
                   "properties": {
                     "what": {
@@ -104,6 +108,9 @@
                     "alternative": {
                       "type": "string",
                       "title": "代わりにすること"
+                    },
+                    "source": {
+                      "$ref": "#/$defs/source"
                     }
                   }
                 }
@@ -131,68 +138,12 @@
                 }
               }
             }
-          },
-          "source": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "origin",
-              "method"
-            ],
-            "properties": {
-              "origin": {
-                "type": "string",
-                "title": "原典"
-              },
-              "method": {
-                "type": "string",
-                "title": "移し方"
-              },
-              "reservations": {
-                "title": "留保事項",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "title": "出典",
-            "description": "この判断基準が拠る原典と、留保事項"
           }
         }
       }
     }
   },
   "$defs": {
-    "topic": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "title",
-        "units"
-      ],
-      "properties": {
-        "title": {
-          "type": "string",
-          "title": "題",
-          "x-view": "heading"
-        },
-        "claim": {
-          "type": "string",
-          "title": "主張",
-          "x-view": "lead"
-        },
-        "units": {
-          "title": "単位",
-          "x-view": "units",
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/unit"
-          }
-        }
-      }
-    },
     "unit": {
       "oneOf": [
         {
@@ -201,7 +152,8 @@
           "required": [
             "kind",
             "term",
-            "meaning"
+            "meaning",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -220,6 +172,9 @@
             "meaning": {
               "type": "string",
               "title": "意味"
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "定義",
@@ -230,7 +185,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "rules"
+            "rules",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -271,6 +227,9 @@
                   }
                 }
               }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "規則",
@@ -281,7 +240,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "transitions"
+            "transitions",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -321,6 +281,9 @@
                   }
                 }
               }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "移行",
@@ -331,7 +294,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "table"
+            "table",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -381,6 +345,9 @@
                 }
               },
               "x-view": "table"
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "表",
@@ -392,7 +359,7 @@
           "required": [
             "kind",
             "svg",
-            "declaration"
+            "source"
           ],
           "properties": {
             "kind": {
@@ -420,11 +387,8 @@
             "svg": {
               "type": "string",
               "title": "SVG",
-              "x-view": "svg"
-            },
-            "declaration": {
-              "type": "object",
-              "x-view": "hidden"
+              "x-view": "svg",
+              "description": "references/figures/ に同梱した SVG の経路。描く道具は問わない"
             },
             "caveats": {
               "type": "array",
@@ -447,17 +411,21 @@
                   }
                 }
               }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "図",
-          "description": "構造を図で示す。描画は design-svg が持つ"
+          "description": "構造を図で示す。SVG は references/figures/ に同梱する"
         },
         {
           "type": "object",
           "additionalProperties": false,
           "required": [
             "kind",
-            "steps"
+            "steps",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -494,6 +462,9 @@
                 }
               },
               "x-view": "steps"
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "手順",
@@ -504,7 +475,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "code"
+            "code",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -533,6 +505,9 @@
               "type": "string",
               "title": "コード",
               "x-view": "code"
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "例",
@@ -543,7 +518,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "caveats"
+            "caveats",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -580,6 +556,9 @@
                   }
                 }
               }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "注意",
@@ -590,7 +569,8 @@
           "additionalProperties": false,
           "required": [
             "kind",
-            "text"
+            "text",
+            "source"
           ],
           "properties": {
             "kind": {
@@ -609,12 +589,53 @@
               "items": {
                 "type": "string"
               }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
             }
           },
           "title": "補足",
           "description": "他の形に当てはまらない説明"
         }
       ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "section",
+        "location",
+        "fetched",
+        "method"
+      ],
+      "title": "出典",
+      "x-view": "hidden",
+      "description": "この要素が拠る原典の節。要素ごとに持つ ── 1件の中の要素は、原典の複数の章と、複数の原典から集まる",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "title": "原典"
+        },
+        "section": {
+          "type": "string",
+          "title": "章 ・ 節"
+        },
+        "location": {
+          "type": "string",
+          "title": "所在",
+          "description": "書誌か URL"
+        },
+        "fetched": {
+          "type": "string",
+          "title": "取得した日"
+        },
+        "method": {
+          "type": "string",
+          "title": "移し方",
+          "description": "学習ノートから移した、など"
+        }
+      }
     }
   }
 }

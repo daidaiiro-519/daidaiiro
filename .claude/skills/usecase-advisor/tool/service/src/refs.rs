@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-//! references の道具の宣言。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・ 描画する ・
-//! 取り込む（ACDR 0043）。実体は部品の `refs` が持つ。
+//! references の道具を、道具の一覧に載せる。**どの Skill も同じ4つを持つ** ── 取り出す ・ 検査する ・ 描画する ・
+//! 取り込む（ACDR 0043）。実体は業務ロジック層の `refs` が持つ。
 
 use std::path::{Path, PathBuf};
 
 use serde_json::json;
-use ua_parts::refs;
+use ua_business_logic::refs;
 
 use crate::contract::{Arg, Given, Outcome, Tool};
 
@@ -35,17 +35,10 @@ fn run_get(given: &Given) -> Outcome {
 fn run_validate(given: &Given) -> Outcome {
     let dir = or_misuse!(refs_dir(given));
     let found = match opt(given, "file") {
-        Some(file) => or_misuse!(refs::validate_file(
-            &dir,
-            given.one("kind", ""),
-            Path::new(file)
-        )),
+        Some(file) => or_misuse!(refs::validate_file(&dir, given.one("kind", ""), Path::new(file))),
         None => or_misuse!(refs::validate(&dir)),
     };
-    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir))
-        .into_iter()
-        .map(|k| k.name)
-        .collect();
+    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir)).into_iter().map(|k| k.name).collect();
     Outcome::found(found, json!({ "kinds": kinds }))
 }
 
@@ -58,9 +51,9 @@ fn run_view(given: &Given) -> Outcome {
         opt(given, "file").map(Path::new)
     ));
     match opt(given, "out") {
-        Some(out) => match std::fs::write(out, &html) {
+        Some(out) => match refs::save(Path::new(out), &html) {
             Ok(()) => Outcome::found(Vec::new(), json!({ "out": out, "bytes": html.len() })),
-            Err(e) => Outcome::misuse(format!("{out} に書けない ── {e}")),
+            Err(e) => Outcome::misuse(e),
         },
         None => Outcome::found(Vec::new(), json!({ "html": html })),
     }
@@ -69,8 +62,7 @@ fn run_view(given: &Given) -> Outcome {
 fn run_import(given: &Given) -> Outcome {
     let dir = or_misuse!(refs_dir(given));
     let file = given.one("file", "");
-    let text =
-        or_misuse!(std::fs::read_to_string(file).map_err(|e| format!("{file} を読めない ── {e}")));
+    let text = or_misuse!(refs::read_text(Path::new(file)));
     let doc = refs::import_markdown(
         given.one("id", ""),
         given.one("source", file),
@@ -84,12 +76,7 @@ fn run_import(given: &Given) -> Outcome {
 
 fn human(out: &Outcome) -> String {
     if !out.ok || !out.findings.is_empty() {
-        return out
-            .findings
-            .iter()
-            .map(|x| format!("  ×  {x}"))
-            .collect::<Vec<_>>()
-            .join("\n");
+        return out.findings.iter().map(|x| format!("  ×  {x}")).collect::<Vec<_>>().join("\n");
     }
     if let Some(html) = out.data.get("html").and_then(|x| x.as_str()) {
         return html.to_owned();
@@ -97,16 +84,10 @@ fn human(out: &Outcome) -> String {
     serde_json::to_string_pretty(&out.data).unwrap_or_default()
 }
 
-/// references の4つの道具。**宣言の `tools()` がこれを足す。**
+/// references の4つの道具。**サービス層の `tools()` がこれを足す。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    let root = || {
-        Arg::opt(
-            "skill_root",
-            "この Skill の置き場所（既定は、実行ファイルの1つ上）",
-            None,
-        )
-    };
+    let root = || Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None);
     vec![
         Tool {
             name: "get",
