@@ -1,0 +1,120 @@
+{
+  "$comment": "言語の組の定義（ACDR 0060）。common は全ての型に置く共通の一式、types は型ごとに足す一式である。from は profiles/rust/ からの相対。ここに無い型は、この組では生めない",
+  "name": "rust",
+  "detect": "tool/Cargo.toml",
+  "contract": 2,
+  "common": [
+    {
+      "from": "common/workspace.Cargo.toml.tmpl",
+      "to": "tool/Cargo.toml"
+    },
+    {
+      "from": "common/data_access.Cargo.toml.tmpl",
+      "to": "tool/data_access/Cargo.toml"
+    },
+    {
+      "from": "common/data_access.lib.rs.tmpl",
+      "to": "tool/data_access/src/lib.rs"
+    },
+    {
+      "from": "common/files.rs.tmpl",
+      "to": "tool/data_access/src/files.rs"
+    },
+    {
+      "from": "common/process.rs.tmpl",
+      "to": "tool/data_access/src/process.rs"
+    },
+    {
+      "from": "common/business_logic.Cargo.toml.tmpl",
+      "to": "tool/business_logic/Cargo.toml"
+    },
+    {
+      "from": "common/service.Cargo.toml.tmpl",
+      "to": "tool/service/Cargo.toml"
+    },
+    {
+      "from": "common/contract.rs.tmpl",
+      "to": "tool/service/src/contract.rs"
+    },
+    {
+      "from": "common/cli.Cargo.toml.tmpl",
+      "to": "tool/cli/Cargo.toml"
+    },
+    {
+      "from": "common/cli.main.rs.tmpl",
+      "to": "tool/cli/src/main.rs"
+    },
+    {
+      "from": "common/mcp.Cargo.toml.tmpl",
+      "to": "tool/mcp/Cargo.toml"
+    },
+    {
+      "from": "common/mcp.main.rs.tmpl",
+      "to": "tool/mcp/src/main.rs"
+    },
+    {
+      "from": "common/mcp.json.tmpl",
+      "to": "mcp.json"
+    },
+    {
+      "from": "common/tool.json.tmpl",
+      "to": "tool.json"
+    },
+    {
+      "from": "common/refs.rs.tmpl",
+      "to": "tool/business_logic/src/refs.rs"
+    },
+    {
+      "from": "common/service.refs.rs.tmpl",
+      "to": "tool/service/src/refs.rs"
+    },
+    {
+      "from": "common/document.schema.json.tmpl",
+      "to": "references/document.schema.json"
+    },
+    {
+      "from": "common/gitignore.tmpl",
+      "to": ".gitignore"
+    }
+  ],
+  "types": {
+    "work": [
+      {
+        "from": "types/work/business_logic.lib.rs.tmpl",
+        "to": "tool/business_logic/src/lib.rs"
+      },
+      {
+        "from": "types/work/business_logic.hello.rs.tmpl",
+        "to": "tool/business_logic/src/hello.rs"
+      },
+      {
+        "from": "types/work/business_logic.tests.rs.tmpl",
+        "to": "tool/business_logic/tests/example.rs"
+      },
+      {
+        "from": "types/work/service.lib.rs.tmpl",
+        "to": "tool/service/src/lib.rs"
+      }
+    ]
+  },
+  "parts": {},
+  "build": [
+    "cargo install --path tool/cli --root . --target-dir tool/target",
+    "cargo install --path tool/mcp --root . --target-dir tool/target"
+  ],
+  "sources": {
+    "extensions": [
+      ".rs"
+    ],
+    "skip": [
+      "target",
+      "tests",
+      "examples"
+    ]
+  },
+  "spawn": [
+    "Command::new("
+  ],
+  "dist": true,
+  "layout": true
+}

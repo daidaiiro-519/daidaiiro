@@ -11,6 +11,7 @@ use sc_data_access as data_access;
 
 pub mod behavior;
 pub mod check;
+pub mod profile;
 pub mod refs;
 pub mod scaffold;
 pub mod sections;

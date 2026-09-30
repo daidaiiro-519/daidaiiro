@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 
 use crate::behavior::{self, Verdict};
 use crate::data_access::files;
+use crate::profile::{self, Profile};
 use crate::sections;
 
 /// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──
@@ -78,6 +79,8 @@ pub struct Templates {
     pub advisor: PathBuf,
     /// references の実装の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**
     pub refs: Option<PathBuf>,
+    /// 言語の組の定義の置き場所（`references/profiles/`）。**無ければ Rust の組だけを知る。**
+    pub profiles: Option<PathBuf>,
 }
 
 impl Templates {
@@ -88,7 +91,15 @@ impl Templates {
             general,
             advisor,
             refs: None,
+            profiles: None,
         }
+    }
+
+    /// 言語の組の定義の置き場所を足す。
+    #[must_use]
+    pub fn with_profiles(mut self, dir: PathBuf) -> Self {
+        self.profiles = Some(dir);
+        self
     }
 
     /// references の実装の雛形を足す。
@@ -302,39 +313,81 @@ pub fn check(root: &Path, templates: &Templates, layout: bool) -> Report {
 /// リポジトリが、自分で選んで有効にする。
 #[must_use]
 pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
-    if files::is_file(root.join(TOOL).join("Cargo.toml")) || files::is_dir(root.join("rs")) {
-        let mut found = hardcoded(root);
-        if layout {
+    let found_profile = match &templates.profiles {
+        Some(dir) => profile::of(root, dir),
+        None => builtin_rust(root),
+    };
+    let Some(p) = found_profile else {
+        if layout && files::is_dir(root.join("scripts")) {
+            return vec![Line::new(
+                Stage::Source,
+                State::Fail,
+                format!("Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"),
+            )];
+        }
+        return vec![Line::new(
+            Stage::Source,
+            State::Skip,
+            "実行しない ── この Skill の言語の組が無い（合格とは扱わない）".to_owned(),
+        )];
+    };
+    let mut found = hardcoded(root, &p);
+    let mut lines = Vec::new();
+    if layout {
+        if p.layout {
             found.extend(rust(root));
             if behavior::contract_version(root) >= 2 {
                 found.extend(rust_refs(root, templates));
             }
+        } else {
+            lines.push(Line::new(
+                Stage::Source,
+                State::Skip,
+                format!(
+                    "実行しない ── {} の組は雛形の構成の検査を持たない（合格とは扱わない）",
+                    p.name
+                ),
+            ));
         }
-        if found.is_empty() {
-            let text = if layout {
-                "Rust の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす"
-            } else {
-                "Rust の組 ── 外部の道具の名前を直書きしていない"
-            };
-            return vec![Line::new(Stage::Source, State::Pass, text.to_owned())];
-        }
-        return found
+    }
+    if found.is_empty() {
+        let text = if layout && p.layout {
+            format!("{} の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす", p.name)
+        } else {
+            format!("{} の組 ── 外部の道具の名前を直書きしていない", p.name)
+        };
+        lines.insert(0, Line::new(Stage::Source, State::Pass, text));
+        return lines;
+    }
+    lines.extend(
+        found
             .into_iter()
-            .map(|t| Line::new(Stage::Source, State::Fail, t))
-            .collect();
-    }
-    if layout && files::is_dir(root.join("scripts")) {
-        return vec![Line::new(
-            Stage::Source,
-            State::Fail,
-            format!("Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ"),
-        )];
-    }
-    vec![Line::new(
-        Stage::Source,
-        State::Skip,
-        "実行しない ── この Skill の言語の組が無い（合格とは扱わない）".to_owned(),
-    )]
+            .map(|t| Line::new(Stage::Source, State::Fail, t)),
+    );
+    lines
+}
+
+/// 組の定義を渡されなかったときの Rust の組。**`tool/Cargo.toml` か `rs/` が在れば Rust とみなす。**
+fn builtin_rust(root: &Path) -> Option<Profile> {
+    (files::is_file(root.join(TOOL).join("Cargo.toml")) || files::is_dir(root.join("rs"))).then(
+        || Profile {
+            name: "rust".to_owned(),
+            detect: format!("{TOOL}/Cargo.toml"),
+            contract: 2,
+            common: Vec::new(),
+            types: std::collections::BTreeMap::new(),
+            build: Vec::new(),
+            extensions: vec![".rs".to_owned()],
+            skip: vec![
+                "target".to_owned(),
+                "tests".to_owned(),
+                "examples".to_owned(),
+            ],
+            spawn: vec!["Command::new(".to_owned()],
+            dist: true,
+            layout: true,
+        },
+    )
 }
 
 /// Rust の組の、版2 の規則。**references の実装は雛形の複製である** ── Skill ごとに書き換えると、
@@ -497,13 +550,13 @@ fn io_leaks(root: &Path) -> Vec<String> {
 }
 
 /// 外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、
-/// サービス層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
-/// 試験で偽物を渡せない。
-fn hardcoded(root: &Path) -> Vec<String> {
-    let mut files = Vec::new();
-    rust_files(&root.join(TOOL), &mut files);
+/// そこから読んで渡す**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
+/// 試験で偽物を渡せない。**起動の書き方は組の定義が持つ**（ACDR 0060）。
+fn hardcoded(root: &Path, p: &Profile) -> Vec<String> {
+    let mut sources = Vec::new();
+    source_files(&root.join(TOOL), p, &mut sources);
     let mut findings = Vec::new();
-    for file in files {
+    for file in sources {
         let Ok(body) = files::read_to_string(&file) else {
             continue;
         };
@@ -512,9 +565,9 @@ fn hardcoded(root: &Path) -> Vec<String> {
             .unwrap_or(&file)
             .display()
             .to_string();
-        for name in spawned(&body).into_iter().flatten() {
+        for name in spawned(&body, &p.spawn).into_iter().flatten() {
             findings.push(format!(
-                "外部の道具の名前を直書きしている: {at} ── \"{name}\"（tool.json の external に宣言し、given.external で受け取って渡す）"
+                "外部の道具の名前を直書きしている: {at} ── \"{name}\"（tool.json の external に宣言し、読んで渡す）"
             ));
         }
     }
@@ -555,29 +608,53 @@ fn without_strings(line: &str) -> String {
     out
 }
 
-/// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**
-/// 注記の行（`//` で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。
-fn spawned(body: &str) -> Vec<Option<String>> {
-    const CALL: &str = "Command::new(";
+/// 外部の道具を起動する呼び出しを拾う。**直後が文字列なら名前、そうでなければ None。**
+/// 配列で渡す書き方（`["git", …]`）も、先頭が文字列なら名前とみなす。注記の行（`//` と `#`
+/// で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。
+fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {
     let mut out = Vec::new();
-    for line in body.lines().filter(|l| !l.trim_start().starts_with("//")) {
-        let mut rest = line;
-        while let Some(at) = rest.find(CALL) {
-            // **文字列の中に書かれたものは数えない** ── 直前が引用符なら、呼び出しではない
-            if rest[..at].ends_with('"') {
-                rest = &rest[at + CALL.len()..];
-                continue;
+    for line in body.lines().filter(|l| {
+        let t = l.trim_start();
+        !t.starts_with("//") && !t.starts_with('#')
+    }) {
+        for call in calls {
+            let mut rest = line;
+            while let Some(at) = rest.find(call.as_str()) {
+                // **文字列の中に書かれたものは数えない** ── 直前が引用符なら、呼び出しではない
+                if rest[..at].ends_with('"') || rest[..at].ends_with('\'') {
+                    rest = &rest[at + call.len()..];
+                    continue;
+                }
+                let after = rest[at + call.len()..].trim_start();
+                let after = after.strip_prefix('[').map_or(after, str::trim_start);
+                let quote = after.chars().next().filter(|c| *c == '"' || *c == '\'');
+                out.push(quote.map(|q| after[1..].chars().take_while(|c| *c != q).collect()));
+                rest = &rest[at + call.len()..];
             }
-            let after = rest[at + CALL.len()..].trim_start();
-            if let Some(stripped) = after.strip_prefix('"') {
-                out.push(Some(stripped.chars().take_while(|c| *c != '"').collect()));
-            } else {
-                out.push(None);
-            }
-            rest = &rest[at + CALL.len()..];
         }
     }
     out
+}
+
+/// 組のソースのファイルを集める。**組が入らないと決めたフォルダ（組み立ての出力 ・ 事例 ・
+/// 開発用の例など）は見ない** ── どれも配布する道具に入らない。
+fn source_files(dir: &Path, p: &Profile, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = files::list(dir) else {
+        return;
+    };
+    for path in entries {
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if files::is_dir(&path) {
+            if !p.skip.contains(&name) {
+                source_files(&path, p, out);
+            }
+        } else if p.extensions.iter().any(|e| name.ends_with(e.as_str())) {
+            out.push(path);
+        }
+    }
 }
 
 /// Rust のファイルを集める。**組み立ての出力（target/）・ 事例（tests/）・ 開発用の例（examples/）は

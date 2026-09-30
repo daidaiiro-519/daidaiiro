@@ -1,0 +1,268 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0060",
+ "title": "Skill を型と言語の組の組み合わせで生む",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator は、Skill を「型（作業型 ・ 生成型 ・ 助言型）」と「言語の組」の組み合わせで生む。型が必要とするものを言語の組が持たない組み合わせは、理由を示して断る。",
+ "why": "完成の条件は、配布した skills-creator から、利用者が言語の組を選んで Skill を作れることである（ブレストボード skills-creator-profiles）。しかし scaffold は Rust の雛形しか置けず、言語を選ぶ引数が無かった。別のボード skill-types は、Skill の型を助言型 ・ 作業型 ・ 生成型の3つと決め、advisor-creator を skills-creator の助言型へ統合すると決めた。型の軸が無いまま言語の組を足すと、型を足すときに scaffold と組の定義を作り直すことになる。そこで、置き場所を skills-creator-profiles の論点2（Round 8）で決めたとおりにする。言語に依存しない型の定義は references/types/<型>/ に置き、道具のコードは references/profiles/<言語>/（common ・ types/<型>）に置く。あわせて、Rust の雛形を、生んだ直後に組み立てられる形（見本の道具 hello）にする。いままでは、道具の名前などの差し込み場所がコードの識別子の位置に在り、埋めるまでコンパイルできなかった。check の2段目も、組の判定と外部の道具の直書きの検出を、組の定義から行う形にする。組を足すたびに check のコードを直さずに済む。",
+ "shift": [
+  {
+   "what": "scaffold が受け取るもの",
+   "from": "Skill の名前（Rust の雛形だけを置く）",
+   "to": "Skill の名前 ・ 型（--type）・ 言語の組（--language）"
+  },
+  {
+   "what": "何をどこへ置くか",
+   "from": "サービス層のコードに一覧を書く",
+   "to": "型の定義（types/<型>/type.json）と組の定義（profiles/<言語>.profile.json）が持つ"
+  },
+  {
+   "what": "雛形の置き場所",
+   "from": "references/profiles/rust/ に平らに並べる",
+   "to": "common/（全ての型に共通の一式）と types/<型>/（型の一式）に分ける"
+  },
+  {
+   "what": "生んだ直後の雛形",
+   "from": "差し込み場所を埋めるまでコンパイルできない",
+   "to": "見本の道具 hello を持ち、そのまま組み立てと検査に合格する"
+  },
+  {
+   "what": "check の2段目の組の判定",
+   "from": "tool/Cargo.toml の有無（Rust だけ）",
+   "to": "組の定義の detect と spawn（言語ごとの外部の道具の起動の書き方）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "scaffold は型の定義と言語の組の定義を読み、組み合わせられれば共通の一式と型の一式を置き、組み合わせられなければ理由を示して断る",
+ "alternatives": [
+  {
+   "option": "型の側に言語を持たせる（types/<型>/<言語>/）",
+   "why_not": "共通の一式は型に属さないので、別の置き場所が要る。言語の組を足すたびに、型の数だけ別のフォルダを触る（skills-creator-profiles の論点2）"
+  },
+  {
+   "option": "scaffold に言語の引数だけを足し、型は後で足す",
+   "why_not": "型を足すときに、組の定義と scaffold を作り直す。別のセッションが助言型の雛形を足す前に、置き場所を決めておく必要がある"
+  },
+  {
+   "option": "雛形の差し込み場所を残し、試験のときだけ仮の値で埋める",
+   "why_not": "利用者が生んだ直後に組み立てられない。試験（skills-creator-profiles の論点4）が、利用者の手元と違う状態を試すことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rust-md",
+   "tab": "profiles/rust.md",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "が、何をどこへ置くかを持つ",
+     "before": "references/profiles/rust/ に置く。skills-creator scaffold がこの一式を置く。",
+     "why": "何をどこへ置くかを、組の定義ファイルへ移した"
+    },
+    {
+     "find": "全ての型に置く共通の一式",
+     "before": "（雛形を平らに並べた表）",
+     "why": "雛形を、共通の一式（common/）と型の一式（types/<型>/）に分けた"
+    },
+    {
+     "find": "生んだ直後に組み立てられる。",
+     "before": "（無い）",
+     "why": "見本の道具 hello を持たせ、差し込み場所をコードの識別子の位置に置かない形にした"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "言語の組（",
+     "before": "（無い）",
+     "why": "scaffold が型と言語の組を受け取るようになった。型と言語の組を読んで置く一式を決める部品と、型の定義の置き場所を参照に加えた"
+    }
+   ]
+  },
+  {
+   "key": "profile-json",
+   "tab": "rust.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.profile.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"name\": \"rust\"",
+     "before": "（無い）",
+     "why": "Rust の組の定義を新しく置いた。共通の一式 ・ 対応する型 ・ 組み立てのコマンド ・ 外部の道具の起動の書き方を持つ"
+    }
+   ]
+  },
+  {
+   "key": "type-json",
+   "tab": "types/work/type.json",
+   "file": ".claude/skills/skills-creator/references/types/work/type.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"name\": \"work\"",
+     "before": "（無い）",
+     "why": "作業型の定義を新しく置いた。生成型と助言型も同じ形で置き、助言型の中身は別のセッションの ACDR で足す"
+    }
+   ]
+  },
+  {
+   "key": "profile-rs",
+   "tab": "profile.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/profile.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "組の定義と型の定義を読み、置く一式を決める部品を新しく置いた。組み合わせられなければ、対応している組を並べて断る"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use sc_business_logic::{check, profile, scaffold};",
+     "before": "use sc_business_logic::{check, scaffold};",
+     "why": "置く一式を、コードの一覧ではなく型と組の定義から読む"
+    },
+    {
+     "find": ".with_refs(references.join(\"profiles/rust/common/refs.rs.tmpl\"))",
+     "before": ".with_refs(references.join(\"profiles/rust/refs.rs.tmpl\"))",
+     "why": "check に組の定義の置き場所を渡す。雛形の置き場所が common/ へ移った"
+    },
+    {
+     "find": "fn items(skill: &str, plan: &[(PathBuf, String)]) -> std::io::Result<Vec<scaffold::Item>> {",
+     "before": "fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {\nlet tmpl = here.join(\"references/profiles/rust\");\nlet read = |name: &str| scaffold::read_template(&tmpl, name);",
+     "why": "scaffold が型を受け取り、型と組の定義から置く一式を決める"
+    },
+    {
+     "find": "// **パッケージの名前は、Skill の名前の区切りを _ にしたもの**（- を使えない言語のため）",
+     "before": "// **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない\nfor (from, to) in [\n(\"workspace.Cargo.toml.tmpl\", \"tool/Cargo.toml\"),\n(\"data_access.Cargo.toml.tmpl\", \"tool/data_access/Cargo.toml\"),\n(\"data_access.lib.rs.tmpl\", \"tool/data_access/src/lib.rs\"),\n(\"files.rs.tmpl\", \"tool/data_access/src/files.rs\"),\n(\"process.rs.tmpl\", \"tool/data_access/src/process.rs\"),\n(\n\"business_logic.Cargo.toml.tmpl\",\n\"tool/business_logic/Cargo.toml\",\n),\n(\n\"business_logic.lib.rs.tmpl\",\n\"tool/business_logic/src/lib.rs\",\n),\n(\n\"business_logic.tests.rs.tmpl\",\n\"tool/business_logic/tests/example.rs\",\n),\n(\"service.Cargo.toml.tmpl\", \"tool/service/Cargo.toml\"),\n(\"service.lib.rs.tmpl\", \"tool/service/src/lib.rs\"),\n(\"contract.rs.tmpl\", \"tool/service/src/contract.rs\"),\n(\"cli.Cargo.toml.tmpl\", \"tool/cli/Cargo.toml\"),\n(\"cli.main.rs.tmpl\", \"tool/cli/src/main.rs\"),\n(\"mcp.Cargo.toml.tmpl\", \"tool/mcp/Cargo.toml\"),\n(\"mcp.main.rs.tmpl\", \"tool/mcp/src/main.rs\"),\n(\"mcp.json.tmpl\", \"mcp.json\"),\n(\"tool.json.tmpl\", \"tool.json\"),\n(\"refs.rs.tmpl\", \"tool/business_logic/src/refs.rs\"),\n(\"service.refs.rs.tmpl\", \"tool/service/src/refs.rs\"),\n(\n\"document.schema.json.tmpl\",\n\"references/document.schema.json\",\n),\n(\"gitignore.tmpl\", \".gitignore\"),\n] {\nout.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));",
+     "why": "置く一式を、コードの一覧ではなく型と組の定義から読む"
+    },
+    {
+     "find": "let dir = here.join(\"references/profiles\");",
+     "before": "let items = match items(skill, &here) {",
+     "why": "置く一式を、コードの一覧ではなく型と組の定義から読む"
+    },
+    {
+     "find": "json!({",
+     "before": "json!({ \"written\": placed.written, \"root\": root.display().to_string() }),",
+     "why": "置く一式を、コードの一覧ではなく型と組の定義から読む"
+    },
+    {
+     "find": "\"次に書くもの ── 見本の道具（hello）を書き換えて、この Skill の道具にする\".to_owned(),",
+     "before": "\"次に書くもの ── 差し込む場所（{{…}}）を埋め、業務ロジック層の関数を tool/business_logic/src/ へ置く\".to_owned(),\nlines.push(\n\"組む ── Skill のフォルダで cargo install --path tool/cli --root . --target-dir tool/target（mcp も同じ）。bin/ に置かれる\"\n.to_owned(),\n);",
+     "why": "次にすることの案内を、見本の道具と組の組み立てのコマンドに合わせた"
+    },
+    {
+     "find": "\"type\",",
+     "before": "（無い）",
+     "why": "scaffold が型を受け取り、型と組の定義から置く一式を決める"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::profile::{self, Profile};",
+     "before": "（無い）",
+     "why": "組の定義から検査する形へ一般化した"
+    },
+    {
+     "find": "/// 言語の組の定義の置き場所（`references/profiles/`）。**無ければ Rust の組だけを知る。**",
+     "before": "（無い）",
+     "why": "組の判定を、tool/Cargo.toml の有無から組の定義の detect へ移した"
+    },
+    {
+     "find": "profiles: None,",
+     "before": "（無い）",
+     "why": "組の判定を、tool/Cargo.toml の有無から組の定義の detect へ移した"
+    },
+    {
+     "find": "let found_profile = match &templates.profiles {",
+     "before": "if files::is_file(root.join(TOOL).join(\"Cargo.toml\")) || files::is_dir(root.join(\"rs\")) {\nlet mut found = hardcoded(root);\nif layout {\nif found.is_empty() {\nlet text = if layout {\n\"Rust の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす\"\n} else {\n\"Rust の組 ── 外部の道具の名前を直書きしていない\"\n};\nreturn vec![Line::new(Stage::Source, State::Pass, text.to_owned())];\n}\nreturn found\n.map(|t| Line::new(Stage::Source, State::Fail, t))\n.collect();\n}\nif layout && files::is_dir(root.join(\"scripts\")) {\nreturn vec![Line::new(\nStage::Source,\nState::Fail,\nformat!(\"Python が残っている: scripts/ ── 道具は {TOOL}/ が持つ\"),\n)];\n}\nvec![Line::new(\nStage::Source,\nState::Skip,\n\"実行しない ── この Skill の言語の組が無い（合格とは扱わない）\".to_owned(),\n)]",
+     "why": "組の判定を、tool/Cargo.toml の有無から組の定義の detect へ移した"
+    },
+    {
+     "find": "/// そこから読んで渡す**（ACDR 0036）── 直書きすると、利用者が差し替えられず、",
+     "before": "/// サービス層から注入する**（ACDR 0036）── 直書きすると、利用者が差し替えられず、\n/// 試験で偽物を渡せない。\nfn hardcoded(root: &Path) -> Vec<String> {\nlet mut files = Vec::new();\nrust_files(&root.join(TOOL), &mut files);\nfor file in files {",
+     "why": "組の定義から検査する形へ一般化した"
+    },
+    {
+     "find": "for name in spawned(&body, &p.spawn).into_iter().flatten() {",
+     "before": "for name in spawned(&body).into_iter().flatten() {\n\"外部の道具の名前を直書きしている: {at} ── \\\"{name}\\\"（tool.json の external に宣言し、given.external で受け取って渡す）\"",
+     "why": "外部の道具の起動の書き方を組の定義から読み、言語ごとに直書きを探す"
+    },
+    {
+     "find": "/// 外部の道具を起動する呼び出しを拾う。**直後が文字列なら名前、そうでなければ None。**",
+     "before": "/// `Command::new` の呼び出しを拾う。**文字列で書かれていれば名前、そうでなければ None。**\n/// 注記の行（`//` で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。\nfn spawned(body: &str) -> Vec<Option<String>> {\nconst CALL: &str = \"Command::new(\";\nfor line in body.lines().filter(|l| !l.trim_start().starts_with(\"//\")) {\nlet mut rest = line;\nwhile let Some(at) = rest.find(CALL) {\n// **文字列の中に書かれたものは数えない** ── 直前が引用符なら、呼び出しではない\nif rest[..at].ends_with('\"') {\nrest = &rest[at + CALL.len()..];\ncontinue;\nlet after = rest[at + CALL.len()..].trim_start();\nif let Some(stripped) = after.strip_prefix('\"') {\nout.push(Some(stripped.chars().take_while(|c| *c != '\"').collect()));\n} else {\nout.push(None);\n}\nrest = &rest[at + CALL.len()..];",
+     "why": "組の定義から検査する形へ一般化した"
+    }
+   ]
+  },
+  {
+   "key": "svc-tmpl",
+   "tab": "types/work/service.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/types/work/service.lib.rs.tmpl",
+   "before": "// SPDX-License-Identifier: MIT\n//! {{Skill名}} のサービス層。道具の一覧を持ち、**能力の正本はここである。**\n//!\n//! プレゼンテーション層（CLI ・ MCP）はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 依存の向きは `Cargo.toml` が宣言する ── この crate は業務ロジック層だけを参照する。\n\npub mod contract;\nmod refs;\n\nuse serde_json::json;\n\npub use contract::{catalog, Arg, Given, Outcome, Tool};\n\n/// {{道具の名前}} を実行する。\nfn run_{{道具の名前}}(given: &Given) -> Outcome {\n    let _ = given;\n    // **ここに実体を書かない。** 業務ロジック層（{{接頭辞}}_business_logic）を呼び、結果を組むだけである。\n    // 外部の道具を起動するなら、`given.external(\"名前\")` で tool.json から読み、業務ロジック層へ\n    // 引数として渡す。起動するのはデータアクセス層の `process` である ── どの層も名前を直書きしない\n    Outcome::found(Vec::new(), json!({}))\n}\n\n/// 人向けの文を組む。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。\nfn human_{{道具の名前}}(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    out.findings.join(\"\\n\")\n}\n\n/// この Skill が持つ道具の一覧。**能力の正本である。** references の4つの道具（get ・ validate ・\n/// view ・ import）は、どの Skill も同じものを足す（ACDR 0043）。\n#[must_use]\npub fn tools() -> Vec<Tool> {\n    let mut all = vec![Tool {\n        name: \"{{道具の名前}}\",\n        summary: \"{{その道具が何をするか}}\",\n        args: vec![Arg::need(\"{{引数の名前}}\", \"{{何を渡すか}}\")],\n        run: run_{{道具の名前}},\n        human: human_{{道具の名前}},\n    }];\n    all.extend(refs::tools());\n    all\n}\n",
+   "marks": [
+    {
+     "find": "/// 見本の道具。**書き換えて、この Skill の道具にする。**",
+     "before": "/// {{道具の名前}} を実行する。\nfn run_{{道具の名前}}(given: &Given) -> Outcome {\nlet _ = given;\nOutcome::found(Vec::new(), json!({}))\nfn human_{{道具の名前}}(out: &Outcome) -> String {\nout.findings.join(\"\\n\")",
+     "why": "見本の道具 hello を置き、差し込み場所をコードの識別子の位置から無くした。生んだ直後に組み立てられる"
+    },
+    {
+     "find": "name: \"hello\",",
+     "before": "name: \"{{道具の名前}}\",\nsummary: \"{{その道具が何をするか}}\",\nargs: vec![Arg::need(\"{{引数の名前}}\", \"{{何を渡すか}}\")],\nrun: run_{{道具の名前}},\nhuman: human_{{道具の名前}},",
+     "why": "見本の道具 hello を置き、差し込み場所をコードの識別子の位置から無くした。生んだ直後に組み立てられる"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold.rs の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use sc_business_logic::profile;",
+     "before": "（無い）",
+     "why": "型と言語の組み合わせの判定（作業型は生める ・ 助言型はまだ断る ・ 無い型は在る型を並べる）を事例で固定した"
+    },
+    {
+     "find": "/// 型と言語の組の定義（ACDR 0060）。**事例は skills-creator の references を読む。**",
+     "before": "（無い）",
+     "why": "型と言語の組み合わせの判定（作業型は生める ・ 助言型はまだ断る ・ 無い型は在る型を並べる）を事例で固定した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "rust-md": "e19f652719fb95773e0c570b2e3e8fef6ac414cd1856eaeac6b443c6f1730649",
+  "skill": "3c045853df86ba1fc354146e26dc0074e94bcbfdf8c64999b6312fa560ac097d",
+  "profile-json": "07fbb68b549a4d42bc5eab67171551873950e91c1fe8ee3b96501b13f0f87eab",
+  "type-json": "348597e98bb355e74dbb6908759c8135ad863f0e99aed029e1b712efe17e7277",
+  "profile-rs": "a870ab02c72757823146a30f1244da68e29bbab51df0c37b775dd06847bcc28e",
+  "service": "2b9a12085d24071ed3880713b58a9e169b917261ed7ed08b4929419198bde255",
+  "check": "142879d0638f6e9f00e423fd5a763b5c94957539db851b28cc3888a5d3106a9d",
+  "svc-tmpl": "505a89a2d64ef844b661eb2ff6ca7541af4a882e595eaecc19ad2b3de88dec88",
+  "tests": "a62f7708d9dfaf38bc8ea8de40fe48777352a920958c96a092ee7cd1bd5f6f73"
+ }
+}

@@ -8,7 +8,7 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use sc_business_logic::{check, scaffold};
+use sc_business_logic::{check, profile, scaffold};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -32,7 +32,8 @@ fn templates(here: &Path) -> check::Templates {
         |skills| skills.join("advisor-creator/references/skill-template-advisor.md"),
     );
     check::Templates::new(references.join("skill-template.md"), advisor)
-        .with_refs(references.join("profiles/rust/refs.rs.tmpl"))
+        .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
+        .with_profiles(references.join("profiles"))
 }
 
 /// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の
@@ -121,9 +122,7 @@ fn human_check(out: &Outcome) -> String {
 /// **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
 /// コンパイラが通す ── 層の境界を crate の境界に置いて初めて、`Cargo.toml` に書いていない依存が
 /// 解決しなくなる。
-fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
-    let tmpl = here.join("references/profiles/rust");
-    let read = |name: &str| scaffold::read_template(&tmpl, name);
+fn items(skill: &str, plan: &[(PathBuf, String)]) -> std::io::Result<Vec<scaffold::Item>> {
     // **接頭辞は名前から導く。** 別に受け取ると、名前と食い違う。
     // 語が1つなら頭の3文字を採る ── 1文字では、他の crate と見分けがつかない
     let words: Vec<&str> = skill.split('-').filter(|w| !w.is_empty()).collect();
@@ -134,48 +133,25 @@ fn items(skill: &str, here: &Path) -> std::io::Result<Vec<scaffold::Item>> {
             .first()
             .map_or_else(String::new, |w| w.chars().take(3).collect())
     };
+    // **パッケージの名前は、Skill の名前の区切りを _ にしたもの**（- を使えない言語のため）
+    let package = skill.replace('-', "_");
     let fill = |body: String| {
         body.replace("{{Skill名}}", skill)
             .replace("{{接頭辞}}", &prefix)
+            .replace("{{パッケージ名}}", &package)
     };
     let mut out = Vec::new();
-    // **道具のソースは tool/ に置く。** 実行ファイルは bin/ に置き、git で追跡しない
-    for (from, to) in [
-        ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("data_access.Cargo.toml.tmpl", "tool/data_access/Cargo.toml"),
-        ("data_access.lib.rs.tmpl", "tool/data_access/src/lib.rs"),
-        ("files.rs.tmpl", "tool/data_access/src/files.rs"),
-        ("process.rs.tmpl", "tool/data_access/src/process.rs"),
-        (
-            "business_logic.Cargo.toml.tmpl",
-            "tool/business_logic/Cargo.toml",
-        ),
-        (
-            "business_logic.lib.rs.tmpl",
-            "tool/business_logic/src/lib.rs",
-        ),
-        (
-            "business_logic.tests.rs.tmpl",
-            "tool/business_logic/tests/example.rs",
-        ),
-        ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
-        ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
-        ("contract.rs.tmpl", "tool/service/src/contract.rs"),
-        ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
-        ("cli.main.rs.tmpl", "tool/cli/src/main.rs"),
-        ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
-        ("mcp.main.rs.tmpl", "tool/mcp/src/main.rs"),
-        ("mcp.json.tmpl", "mcp.json"),
-        ("tool.json.tmpl", "tool.json"),
-        ("refs.rs.tmpl", "tool/business_logic/src/refs.rs"),
-        ("service.refs.rs.tmpl", "tool/service/src/refs.rs"),
-        (
-            "document.schema.json.tmpl",
-            "references/document.schema.json",
-        ),
-        ("gitignore.tmpl", ".gitignore"),
-    ] {
-        out.push(scaffold::Item::keep(PathBuf::from(to), fill(read(from)?)));
+    // **何をどこへ置くかは、型と言語の組の定義が決める**（ACDR 0060）
+    for (from, to) in plan {
+        let dir = from.parent().unwrap_or_else(|| Path::new("."));
+        let name = from
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        out.push(scaffold::Item::keep(
+            PathBuf::from(fill(to.clone())),
+            fill(scaffold::read_template(dir, &name)?),
+        ));
     }
     Ok(out)
 }
@@ -187,7 +163,12 @@ fn run_scaffold(given: &Given) -> Outcome {
     }
     let here = or_misuse!(skill_root(given));
     let root = PathBuf::from(given.one("path", ".claude/skills")).join(skill);
-    let items = match items(skill, &here) {
+    let dir = here.join("references/profiles");
+    let types = here.join("references/types");
+    let found = or_misuse!(profile::load(&dir, given.one("language", "rust")));
+    let ty = or_misuse!(profile::load_type(&types, given.one("type", "work")));
+    let plan = or_misuse!(profile::plan(&dir, &types, &found, &ty));
+    let items = match items(skill, &plan) {
         Ok(items) => items,
         Err(e) => return Outcome::misuse(format!("雛形を読めない ── {e}")),
     };
@@ -202,7 +183,13 @@ fn run_scaffold(given: &Given) -> Outcome {
         .collect();
     Outcome::found(
         findings,
-        json!({ "written": placed.written, "root": root.display().to_string() }),
+        json!({
+            "written": placed.written,
+            "root": root.display().to_string(),
+            "language": found.name,
+            "type": ty.name,
+            "build": found.build,
+        }),
     )
 }
 
@@ -223,12 +210,19 @@ fn human_scaffold(out: &Outcome) -> String {
         .collect();
     lines.extend(out.findings.iter().cloned());
     lines.push(
-        "次に書くもの ── 差し込む場所（{{…}}）を埋め、業務ロジック層の関数を tool/business_logic/src/ へ置く".to_owned(),
+        "次に書くもの ── 見本の道具（hello）を書き換えて、この Skill の道具にする".to_owned(),
     );
-    lines.push(
-        "組む ── Skill のフォルダで cargo install --path tool/cli --root . --target-dir tool/target（mcp も同じ）。bin/ に置かれる"
-            .to_owned(),
-    );
+    let build: Vec<String> = out
+        .data
+        .get("build")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|x| x.as_str().map(str::to_owned))
+        .collect();
+    if !build.is_empty() {
+        lines.push(format!("組む ── Skill のフォルダで {}", build.join(" ／ ")));
+    }
     lines.join("\n")
 }
 
@@ -305,6 +299,16 @@ pub fn tools() -> Vec<Tool> {
             args: vec![
                 Arg::need("skill", "Skill の名前"),
                 Arg::opt("path", "置き場所", Some(".claude/skills")),
+                Arg::opt(
+                    "type",
+                    "Skill の型（work ＝作業型 ・ generate ＝生成型 ・ advisor ＝助言型）",
+                    Some("work"),
+                ),
+                Arg::opt(
+                    "language",
+                    "雛形の言語の組（references/profiles/ に定義が在るもの）",
+                    Some("rust"),
+                ),
                 Arg::opt(
                     "skill_root",
                     "この Skill の置き場所（既定は、実行ファイルの1つ上）",

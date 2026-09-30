@@ -452,43 +452,18 @@ fn what_scaffold_places_satisfies_check() {
     // 不合格の状態で生まれる（実測 ── 契約を Rust の形へ変えたとき、雛形が Python の
     // ままだったのでそうなった）
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let tmpl = here.join("references/profiles/rust");
+    let tmpl = here.join("references/profiles/rust/common");
     let root = scratch("scaffolded");
-    for (from, to) in [
-        ("workspace.Cargo.toml.tmpl", "tool/Cargo.toml"),
-        ("data_access.Cargo.toml.tmpl", "tool/data_access/Cargo.toml"),
-        ("data_access.lib.rs.tmpl", "tool/data_access/src/lib.rs"),
-        ("files.rs.tmpl", "tool/data_access/src/files.rs"),
-        ("process.rs.tmpl", "tool/data_access/src/process.rs"),
-        (
-            "business_logic.Cargo.toml.tmpl",
-            "tool/business_logic/Cargo.toml",
-        ),
-        (
-            "business_logic.lib.rs.tmpl",
-            "tool/business_logic/src/lib.rs",
-        ),
-        (
-            "business_logic.tests.rs.tmpl",
-            "tool/business_logic/tests/example.rs",
-        ),
-        ("service.Cargo.toml.tmpl", "tool/service/Cargo.toml"),
-        ("service.lib.rs.tmpl", "tool/service/src/lib.rs"),
-        ("contract.rs.tmpl", "tool/service/src/contract.rs"),
-        ("cli.Cargo.toml.tmpl", "tool/cli/Cargo.toml"),
-        ("mcp.Cargo.toml.tmpl", "tool/mcp/Cargo.toml"),
-        ("mcp.json.tmpl", "mcp.json"),
-        ("tool.json.tmpl", "tool.json"),
-        ("gitignore.tmpl", ".gitignore"),
-        ("refs.rs.tmpl", "tool/business_logic/src/refs.rs"),
-        ("service.refs.rs.tmpl", "tool/service/src/refs.rs"),
-        (
-            "document.schema.json.tmpl",
-            "references/document.schema.json",
-        ),
-    ] {
-        let body = std::fs::read_to_string(tmpl.join(from))
-            .unwrap_or_else(|e| panic!("{from} を読めない ── {e}"))
+    // **置く一式は型と組の定義が持つ**（ACDR 0060）── 事例も同じ定義を読む
+    let profiles = here.join("references/profiles");
+    let types = here.join("references/types");
+    let rust = sc_business_logic::profile::load(&profiles, "rust").expect("Rust の組の定義が在る");
+    let work = sc_business_logic::profile::load_type(&types, "work").expect("作業型の定義が在る");
+    let plan = sc_business_logic::profile::plan(&profiles, &types, &rust, &work)
+        .expect("組み合わせられる");
+    for (from, to) in &plan {
+        let body = std::fs::read_to_string(from)
+            .unwrap_or_else(|e| panic!("{} を読めない ── {e}", from.display()))
             .replace("{{Skill名}}", "sample")
             .replace("{{接頭辞}}", "sample");
         let dst = root.join(to);

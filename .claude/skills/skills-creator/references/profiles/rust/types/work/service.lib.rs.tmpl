@@ -11,21 +11,25 @@ use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
 
-/// {{道具の名前}} を実行する。
-fn run_{{道具の名前}}(given: &Given) -> Outcome {
-    let _ = given;
+/// 見本の道具。**書き換えて、この Skill の道具にする。**
+fn run_hello(given: &Given) -> Outcome {
     // **ここに実体を書かない。** 業務ロジック層（{{接頭辞}}_business_logic）を呼び、結果を組むだけである。
     // 外部の道具を起動するなら、`given.external("名前")` で tool.json から読み、業務ロジック層へ
     // 引数として渡す。起動するのはデータアクセス層の `process` である ── どの層も名前を直書きしない
-    Outcome::found(Vec::new(), json!({}))
+    let greeting = {{接頭辞}}_business_logic::hello::greet(given.one("name", ""));
+    Outcome::found(Vec::new(), json!({ "greeting": greeting }))
 }
 
 /// 人向けの文を組む。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。
-fn human_{{道具の名前}}(out: &Outcome) -> String {
+fn human_hello(out: &Outcome) -> String {
     if !out.ok {
         return out.findings.join(" ／ ");
     }
-    out.findings.join("\n")
+    out.data
+        .get("greeting")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .to_owned()
 }
 
 /// この Skill が持つ道具の一覧。**能力の正本である。** references の4つの道具（get ・ validate ・
@@ -33,11 +37,11 @@ fn human_{{道具の名前}}(out: &Outcome) -> String {
 #[must_use]
 pub fn tools() -> Vec<Tool> {
     let mut all = vec![Tool {
-        name: "{{道具の名前}}",
-        summary: "{{その道具が何をするか}}",
-        args: vec![Arg::need("{{引数の名前}}", "{{何を渡すか}}")],
-        run: run_{{道具の名前}},
-        human: human_{{道具の名前}},
+        name: "hello",
+        summary: "見本の道具。名前を受けて、あいさつの文を返す",
+        args: vec![Arg::need("name", "あいさつする相手の名前")],
+        run: run_hello,
+        human: human_hello,
     }];
     all.extend(refs::tools());
     all

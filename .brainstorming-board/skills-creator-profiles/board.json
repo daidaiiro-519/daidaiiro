@@ -21,7 +21,7 @@
        "text": "<b>2段目の検査</b> ── 4つの組の2段目は、契約に関わる検査（外部の道具の名前の直書き）だけを持つ。雛形の構成の検査は Rust の組だけが持つ"
       },
       {
-       "text": "<b>共通の実装と型の雛形</b> ── 型の定義 ・ スキーマ ・ SKILL.md の雛形は references/types/<型>/ に置く。道具のコードは references/profiles/<言語>/（skeleton ・ types/<型> ・ parts/<部品>）に置く。scaffold は --type と --language を受け、型が要る部品を持たない組では断る。同じ振る舞いは共通の事例で保証する"
+       "text": "<b>共通の実装と型の雛形</b> ── 型の定義 ・ スキーマ ・ SKILL.md の雛形は references/types/<型>/ に置く。道具のコードは references/profiles/<言語>/（common ・ types/<型> ・ parts/<部品>）に置く。scaffold は --type と --language を受け、型が要る部品を持たない組では断る。同じ振る舞いは共通の事例で保証する"
       },
       {
        "text": "<b>作った Skill の配布</b> ── Rust の組だけ。4つの組は dist が理由を示して断る"
@@ -70,7 +70,7 @@
        "text": "型の定義 ・ スキーマ（criteria.schema.json ・ answer.schema.json など）・ 型ごとの SKILL.md の雛形は、言語に依存しないので references/types/<型>/ に1か所だけ置く"
       },
       {
-       "text": "道具のコードは references/profiles/<言語>/ に置き、中を skeleton/（共通の骨組み：refs ・ tool.json ・ CLI と MCP の入口）・ types/<型>/（型ごとのコード。助言型なら事例）・ parts/<部品>/（作業型が選ぶ部品）に分ける"
+       "text": "道具のコードは references/profiles/<言語>/ に置き、中を common/（共通の一式：refs ・ tool.json ・ CLI と MCP の入口）・ types/<型>/（型ごとのコード。助言型なら事例）・ parts/<部品>/（作業型が選ぶ部品）に分ける"
       },
       {
        "text": "型の定義（types/<型>/type.json）は要る部品と契約の版を持ち、言語の組の定義（profiles/<言語>.profile.json）は対応する型と部品を持つ。scaffold --type --language は、要る部品を組が持たなければ断る"
@@ -79,7 +79,7 @@
        "text": "助言型は refs（契約の版2）を要する。新しい言語の組は版1から始めるので、助言型を生めるのは当面 Rust の組だけである"
       },
       {
-       "text": "置き場所の骨組みは、このセッションが ACDR 0060 で skills-creator に足す。助言型の中身（手順 ・ 雛形 ・ 検査7件）は、その後に先方の ACDR で types/advisor/ と profiles/rust/types/advisor/ へ置く"
+       "text": "置き場所の一式は、このセッションが ACDR 0060 で skills-creator に足す。助言型の中身（手順 ・ 雛形 ・ 検査7件）は、その後に先方の ACDR で types/advisor/ と profiles/rust/types/advisor/ へ置く"
       }
      ]
     }
@@ -298,9 +298,9 @@
    "no": 2,
    "name": "共通の実装と型の雛形の置き場所 ・ 同等性",
    "status": "settled",
-   "question": "共通の骨組み ・ 型の雛形（助言型 ・ 生成型）・ 作業型が選ぶ部品を、5つの組でどこに置き、同じ振る舞いをどう保証するか",
+   "question": "共通の一式 ・ 型の雛形（助言型 ・ 生成型）・ 作業型が選ぶ部品を、5つの組でどこに置き、同じ振る舞いをどう保証するか",
    "intro": "<b>承認された（2026-09-30、Round 8）。</b>Round 7 で型の軸を入れて答え直した。別のボード skill-types が、Skill の型（助言型 ・ 作業型 ・ 生成型）を決めたためである。skill-types の論点3（型と言語の組の関係）は、この答えを待っている。",
-   "answer": "言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types/<型>/ に置き、言語に依存するもの（道具のコード）は references/profiles/<言語>/ に置く。言語の組の中は、共通の骨組み（skeleton/）・ 型ごとのコード（types/<型>/）・ 作業型が選ぶ部品（parts/<部品>/）に分ける。scaffold は型と言語を受け取り、型が要る部品をその言語の組が持たなければ断る。同じ振る舞いは、共通の事例（CLI の出力）で組をまたいで保証する",
+   "answer": "言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types/<型>/ に置き、言語に依存するもの（道具のコード）は references/profiles/<言語>/ に置く。言語の組の中は、共通の一式（common/）・ 型ごとのコード（types/<型>/）・ 作業型が選ぶ部品（parts/<部品>/）に分ける。scaffold は型と言語を受け取り、型が要る部品をその言語の組が持たなければ断る。同じ振る舞いは、共通の事例（CLI の出力）で組をまたいで保証する",
    "decision": {
     "letter": "B",
     "text": [
@@ -310,7 +310,7 @@
      },
      {
       "kind": "html",
-      "text": "<pre>references/\n  types/                         言語に依存しない（型の側）\n    advisor/\n      type.json                  要る部品 ・ 契約の版 ・ SKILL.md の雛形の名前\n      criteria.schema.json       判断基準のスキーマ\n      answer.schema.json         回答のスキーマ\n      skill-template.md          助言型の SKILL.md の雛形\n    generate/\n      type.json\n      input.schema.json          入力のスキーマの見本\n      skill-template.md\n    work/\n      type.json\n      skill-template.md\n  profiles/                      言語に依存する（道具のコード）\n    rust.profile.json            骨組みの一式 ・ 対応する型と部品 ・ 組み立てのコマンド\n    rust/\n      skeleton/                  共通の骨組み（contract ・ cli ・ mcp ・ refs ・ tool.json ・ 見本の道具）\n      types/advisor/             助言型の道具のコード（事例 5件）\n      types/generate/            生成型の組む道具のコード\n      parts/check/ ・ parts/render/   作業型が選ぶ部品\n    python.profile.json\n    python/ …                    同じ並び\n  conformance/                   共通の事例（組をまたいで同じ入力と期待する出力）</pre>"
+      "text": "<pre>references/\n  types/                         言語に依存しない（型の側）\n    advisor/\n      type.json                  要る部品 ・ 契約の版 ・ SKILL.md の雛形の名前\n      criteria.schema.json       判断基準のスキーマ\n      answer.schema.json         回答のスキーマ\n      skill-template.md          助言型の SKILL.md の雛形\n    generate/\n      type.json\n      input.schema.json          入力のスキーマの見本\n      skill-template.md\n    work/\n      type.json\n      skill-template.md\n  profiles/                      言語に依存する（道具のコード）\n    rust.profile.json            一式の一式 ・ 対応する型と部品 ・ 組み立てのコマンド\n    rust/\n      common/                  共通の一式（contract ・ cli ・ mcp ・ refs ・ tool.json ・ 見本の道具）\n      types/advisor/             助言型の道具のコード（事例 5件）\n      types/generate/            生成型の組む道具のコード\n      parts/check/ ・ parts/render/   作業型が選ぶ部品\n    python.profile.json\n    python/ …                    同じ並び\n  conformance/                   共通の事例（組をまたいで同じ入力と期待する出力）</pre>"
      },
      {
       "kind": "table",
@@ -327,9 +327,9 @@
         ]
        ],
        [
-        "共通の骨組み（refs ・ tool.json ・ CLI と MCP の入口）",
+        "共通の一式（refs ・ tool.json ・ CLI と MCP の入口）",
         [
-         "references/profiles/<言語>/skeleton/",
+         "references/profiles/<言語>/common/",
          "する"
         ]
        ],
@@ -351,7 +351,7 @@
      },
      {
       "kind": "para",
-      "text": "<b>scaffold は型と言語を受け取る</b>（scaffold &lt;名前&gt; --type &lt;型&gt; --language &lt;言語&gt;）。型の定義が要る部品を、言語の組の定義が持たなければ、理由を示して断る。例：助言型は版2の骨組み（refs）を要するので、版1の組（最初の Python）では断る。"
+      "text": "<b>scaffold は型と言語を受け取る</b>（scaffold &lt;名前&gt; --type &lt;型&gt; --language &lt;言語&gt;）。型の定義が要る部品を、言語の組の定義が持たなければ、理由を示して断る。例：助言型は版2の一式（refs）を要するので、版1の組（最初の Python）では断る。"
      },
      {
       "kind": "para",
@@ -385,7 +385,7 @@
     {
      "name": "型の側に言語を持たせる（types/<型>/<言語>/）",
      "body": "型ごとにフォルダを切り、その中に言語ごとのコードを置く",
-     "cost": "共通の骨組みは型に属さないので、別の置き場所が要る。言語の組が1か所にまとまらない"
+     "cost": "共通の一式は型に属さないので、別の置き場所が要る。言語の組が1か所にまとまらない"
     }
    ],
    "tables": [
@@ -456,7 +456,7 @@
     },
     {
      "supports": "型の軸",
-     "basis": "skills-creator が生む Skill の型は、助言型 ・ 作業型 ・ 生成型の3つ。refs.rs ・ tool.json ・ CLI と MCP の入口は、全 Skill 共通の骨組みとして skills-creator が持つ（型には数えない）",
+     "basis": "skills-creator が生む Skill の型は、助言型 ・ 作業型 ・ 生成型の3つ。refs.rs ・ tool.json ・ CLI と MCP の入口は、全 Skill 共通の一式として skills-creator が持つ（型には数えない）",
      "tag": "rule",
      "source": ".brainstorming-board/skill-types/（論点1 ・ 2 ・ 4、コミット 8d8e21c ・ 5c69aee）"
     }

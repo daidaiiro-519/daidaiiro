@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 
+use sc_business_logic::profile;
 use sc_business_logic::scaffold::{place, Item};
 
 fn scratch(name: &str) -> PathBuf {
@@ -48,4 +49,50 @@ fn what_is_already_there_is_kept() {
         std::fs::read_to_string(root.join("mcp.json")).expect("読める"),
         "はじめ"
     );
+}
+
+/// 型と言語の組の定義（ACDR 0060）。**事例は skills-creator の references を読む。**
+fn defs() -> (PathBuf, PathBuf) {
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../references");
+    (here.join("profiles"), here.join("types"))
+}
+
+#[test]
+fn a_work_skill_can_be_planned_in_rust() {
+    let (profiles, types) = defs();
+    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
+    let work = profile::load_type(&types, "work").expect("作業型が在る");
+    let plan = profile::plan(&profiles, &types, &rust, &work).expect("組み合わせられる");
+    // **共通の一式と型の一式が両方入る** ── 見本の道具は作業型の一式から来る
+    assert!(plan
+        .iter()
+        .any(|(_, to)| to == "tool/service/src/contract.rs"));
+    assert!(plan
+        .iter()
+        .any(|(_, to)| to == "tool/business_logic/src/hello.rs"));
+    // **同じ置き先は1回だけ**
+    let mut tos: Vec<&String> = plan.iter().map(|(_, to)| to).collect();
+    let n = tos.len();
+    tos.dedup();
+    assert_eq!(n, tos.len());
+}
+
+#[test]
+fn a_type_without_templates_in_the_language_is_refused() {
+    // **型の一式を持たない組では生まない** ── 生んでから壊れていると分かる形にしない
+    let (profiles, types) = defs();
+    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    let why = profile::plan(&profiles, &types, &rust, &advisor).expect_err("まだ断る");
+    assert!(
+        why.contains("助言型") && why.contains("雛形をまだ持たない"),
+        "{why}"
+    );
+}
+
+#[test]
+fn an_unknown_type_lists_the_known_ones() {
+    let (_, types) = defs();
+    let why = profile::load_type(&types, "nope").expect_err("無い型");
+    assert!(why.contains("work") && why.contains("advisor"), "{why}");
 }

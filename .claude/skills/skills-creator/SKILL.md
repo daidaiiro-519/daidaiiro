@@ -90,7 +90,7 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/distribution.md` |
 
 ```
-skills-creator scaffold <Skill の名前>   # Rust の組の一式を置く
+skills-creator scaffold <Skill の名前> [--type work|generate|advisor] [--language rust]   # 型と言語の組の一式を置く
 skills-creator check <Skill のフォルダ>  # 2段の検査と、節の構成の検査
 skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだけ。導入スクリプトと組み立ての定義を置く
 ```
@@ -144,8 +144,10 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
   道具の一覧の JSON ・ 旗の拒否 ・ Skill のフォルダの求め方 ・ MCP の `tools/list` との一致
 - `tool/business_logic/src/check.rs`: 2段の検査をまとめる。Rust の組の2段目（**層が crate に分かれていること** ・
   **依存の向きが各 `Cargo.toml` で契約どおりであること** ・ 入出力の混入 ・ 外部の道具の直書き ・ 以前の層の名前の残り）を持つ
-- `tool/business_logic/src/scaffold.rs`: 受け取った一式を置く。**何を置くかはサービス層が決める**
-- `tool/business_logic/tests/`: 事例（61件）。references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）と、**生んだものが契約を満たすこと**と、シェルで書いた実行ファイルが1段目に合格し2段目が「実行しない」になることも固定してある
+- `tool/business_logic/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは型と言語の組の定義が決める**
+- `tool/business_logic/src/profile.rs`: 言語の組（`references/profiles/<言語>.profile.json`）と型（`references/types/<型>/type.json`）を読み、置く一式を決める。型が必要とする契約の版に組が届かないか、組が型の一式を持たなければ断る
+- `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義。言語に依存しない一式（スキーマ ・ SKILL.md の雛形）の置き場所
+- `tool/business_logic/tests/`: 事例（66件）。references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）と、**生んだものが契約を満たすこと**と、シェルで書いた実行ファイルが1段目に合格し2段目が「実行しない」になることも固定してある
 - `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である

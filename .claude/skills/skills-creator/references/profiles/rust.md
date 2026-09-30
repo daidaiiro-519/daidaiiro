@@ -71,22 +71,17 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 
 ## 雛形
 
-`references/profiles/rust/` に置く。`skills-creator scaffold` がこの一式を置く。
-**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く。
+`references/profiles/rust/` に置き、組の定義 `references/profiles/rust.profile.json` が、何をどこへ置くかを持つ（ACDR 0060）。
+`skills-creator scaffold <名前> --type <型> --language rust` が、共通の一式と型ごとの一式を合わせて置く。
+**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `refs.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く。
 
-| 雛形 | 置く先 |
-|---|---|
-| `workspace.Cargo.toml.tmpl` | `tool/Cargo.toml` |
-| `data_access.Cargo.toml.tmpl` ・ `data_access.lib.rs.tmpl` | `tool/data_access/` |
-| `files.rs.tmpl` ・ `process.rs.tmpl` | `tool/data_access/src/` ── ファイルと外部の道具の入出力。**どの Skill も同じファイルを複製する** |
-| `business_logic.Cargo.toml.tmpl` ・ `business_logic.lib.rs.tmpl` ・ `business_logic.tests.rs.tmpl` | `tool/business_logic/` |
-| `service.Cargo.toml.tmpl` ・ `service.lib.rs.tmpl` ・ `contract.rs.tmpl` | `tool/service/` |
-| `cli.Cargo.toml.tmpl` ・ `cli.main.rs.tmpl` | `tool/cli/` |
-| `mcp.Cargo.toml.tmpl` ・ `mcp.main.rs.tmpl` | `tool/mcp/` |
-| `tool.json.tmpl` ・ `mcp.json.tmpl` ・ `gitignore.tmpl` | Skill のフォルダ |
-| `refs.rs.tmpl` | `tool/business_logic/src/refs.rs` ── references の実装。**どの Skill も同じファイルを複製する**（契約の版2） |
-| `service.refs.rs.tmpl` | `tool/service/src/refs.rs` ── get ・ validate ・ view ・ import を道具の一覧に載せる |
-| `document.schema.json.tmpl` | `references/document.schema.json` ── 原典の複製の形 |
+| 置き場所 | 中身 | 置く先 |
+|---|---|---|
+| `common/` | 全ての型に置く共通の一式 ── workspace ・ データアクセス層（`files.rs` ・ `process.rs`）・ 業務ロジック層とサービス層の Cargo.toml ・ `contract.rs` ・ references の実装（`refs.rs` ・ `service.refs.rs`）・ CLI ・ MCP ・ `tool.json` ・ `mcp.json` ・ `.gitignore` ・ `document.schema.json` | `tool/` と Skill のフォルダ |
+| `types/work/` | 作業型の一式 ── 業務ロジック層とサービス層の `lib.rs`、見本の道具 `hello`、その事例 | `tool/business_logic/` ・ `tool/service/` |
+| `types/<型>/` | その型の道具のコード。**ここに無い型は、この組では生めない** | 型の定義による |
+
+**生んだ直後に組み立てられる。** 雛形は、コードの識別子の位置に差し込み場所を置かない。見本の道具 `hello` を書き換えて、この Skill の道具にする。
 
 ---
 
