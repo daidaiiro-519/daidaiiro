@@ -482,7 +482,9 @@ fn run_verify(given: &Given) -> Outcome {
         .filter(|l| !l.is_empty())
         .collect();
     let corpus = PathBuf::from(given.one("corpus", ".claude/skills"));
-    match provider::verify(&bin, &here, &work, &languages, &corpus) {
+    // **Rust の組み立ての出力先は、入口（examples/provider.rs）が CARGO_TARGET_DIR で渡す**
+    let shared = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from);
+    match provider::verify(&bin, &here, &work, &languages, &corpus, shared.as_deref()) {
         Ok(v) => Outcome::found(
             v.failures,
             json!({ "work": v.work.display().to_string(), "lines": v.lines }),

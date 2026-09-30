@@ -3,7 +3,7 @@
 //!
 //!     cargo test -p sc_business_logic --test provider
 
-use sc_business_logic::provider::{argv, blocking_accept, blocking_check};
+use sc_business_logic::provider::{argv, blocking_accept, blocking_check, shared_target};
 use serde_json::json;
 
 #[test]
@@ -41,4 +41,19 @@ fn accept_may_fail_only_the_notes_check_after_scaffolding() {
         {"no": 5, "pass": false}
     ]}});
     assert_eq!(blocking_accept(&out), vec![5]);
+}
+
+#[test]
+fn the_build_output_goes_to_the_shared_place_when_one_is_given() {
+    // **組み立ての出力先だけを置換する** ── 他の語は利用者の手順のまま起動する
+    let command = argv("cargo install --path tool/cli --root . --target-dir tool/target");
+    assert_eq!(
+        shared_target(command.clone(), Some("/cache/cargo")),
+        argv("cargo install --path tool/cli --root . --target-dir /cache/cargo")
+    );
+    // 共有の出力先が無ければ、そのまま起動する
+    assert_eq!(shared_target(command.clone(), None), command);
+    // --target-dir を保持しないコマンドは変更しない
+    let go = argv("go build -C tool ./cli");
+    assert_eq!(shared_target(go.clone(), Some("/cache/cargo")), go);
 }

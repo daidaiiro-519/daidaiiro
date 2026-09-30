@@ -28,6 +28,22 @@ pub fn argv(command: &str) -> Vec<String> {
     command.split_whitespace().map(str::to_owned).collect()
 }
 
+/// 組み立ての出力先（`--target-dir` の値）を、共有の出力先へ置換する。**他の語は利用者の手順のまま起動する。**
+///
+/// 生んだ Skill ごとの出力先へ組み立てると、同じ依存を型ごと ・ 実行ごとにコンパイルし直す（実測 2026-10-01、
+/// Rust の2つの型で1回あたり約 2.5G）。共有の出力先が無ければ、コマンドを変更しない。
+#[must_use]
+pub fn shared_target(mut command: Vec<String>, shared: Option<&str>) -> Vec<String> {
+    if let Some(dir) = shared {
+        if let Some(i) = command.iter().position(|w| w == "--target-dir") {
+            if let Some(value) = command.get_mut(i + 1) {
+                dir.clone_into(value);
+            }
+        }
+    }
+    command
+}
+
 /// check の検出のうち、生んだ直後に出てはならないもの。**未記入の差し込み場所だけは出てよい。**
 #[must_use]
 pub fn blocking_check(out: &Value) -> Vec<String> {
@@ -104,8 +120,8 @@ fn one(
     bin: &Path,
     here: &Path,
     skills: &Path,
-    lang: &str,
-    ty: &str,
+    (lang, ty): (&str, &str),
+    shared: Option<&str>,
     v: &mut Verified,
 ) -> Result<(), String> {
     let name = format!("v-{lang}-{ty}");
@@ -141,7 +157,7 @@ fn one(
         .flatten()
         .filter_map(Value::as_str)
     {
-        let ran = launch(&argv(command), &dir)?;
+        let ran = launch(&shared_target(argv(command), shared), &dir)?;
         if ran.code != 0 {
             v.failures
                 .push(format!("[{name}] 組み立て: {command} ── {}", tail(&ran)));
@@ -172,7 +188,7 @@ fn one(
 
 /// 5言語 × 2型を生成して検証する。`bin` は skills-creator の実行ファイル、`here` は skills-creator の
 /// フォルダ、`work` は作業場所（その下に新しい置き場所を作る）、`corpus` は突き合わせに使う references を
-/// 持つ Skill の置き場所である。
+/// 持つ Skill の置き場所である。`shared` は Rust の組み立ての共有の出力先で、無ければ利用者の手順のまま組み立てる。
 ///
 /// # Errors
 ///
@@ -183,12 +199,14 @@ pub fn verify(
     work: &Path,
     languages: &[String],
     corpus: &Path,
+    shared: Option<&Path>,
 ) -> Result<Verified, String> {
     // **絶対の経路にする** ── 生んだ Skill のフォルダから起動するので、相対の経路では届かない
     let abs =
         |p: &Path| files::canonicalize(p).map_err(|e| format!("{} を読めない ── {e}", p.display()));
     let (bin, here) = (abs(bin)?, abs(here)?);
     let (bin, here) = (bin.as_path(), here.as_path());
+    let shared = shared.map(|p| p.display().to_string());
     let dir = fresh(work)?;
     let skills = dir.join(".claude/skills");
     let mut v = Verified {
@@ -197,7 +215,7 @@ pub fn verify(
     };
     for lang in languages {
         for ty in TYPES {
-            one(bin, here, &skills, lang, ty, &mut v)?;
+            one(bin, here, &skills, (lang, ty), shared.as_deref(), &mut v)?;
         }
     }
     let base = skills.join("v-rust-advisor");
