@@ -9,6 +9,7 @@
 | `out/videos/` | 本ごとの動画（mp4）。枚ごとの画像と読み上げの音声を結合したもの |
 | `out/slides/` | 本ごとのスライド（HTML）。ブラウザで開き、矢印キーでめくる |
 | `out/scripts/` | 本ごとの読み上げの原稿（Markdown） |
+| `out/pdf/` | 全枚を縦に並べたスライド（HTML）と、そのPDF。配る・印刷するときに使う |
 
 | 本 | 題 |
 |---|---|
@@ -41,6 +42,7 @@
 | 1. スライドを組む | `python3 build_lessons.py` | `out/slides/` ・ `out/scripts/`。語と図の検査も実行する |
 | 2. 図を検査する | `python3 check_figures.py` | 文字の重なり ・ はみ出しの検出 |
 | 3. 画像にする | `python3 render_previews.py --browser <ブラウザ> [本の番号…]` | `previews/` |
+| 3b. PDFにする | `python3 export_pdf.py --browser <ブラウザ> [本の番号…]`（既定は 00） | `out/pdf/` |
 | 4. 読み上げの入力を組む | `python3 build_narration.py [00-start …]` | `narration/narration.json` |
 | 5. 音声を合成する | `narration synth narration`（narration Skill、`AWS_PROFILE=dev`） | `narration/narration.out.json` と音声 |
 | 6. 動画にする | `python3 build_videos.py [00-start …]` | `out/videos/` |
