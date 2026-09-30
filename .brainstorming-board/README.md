@@ -25,3 +25,4 @@
 | `advisor-creator/` | advisor-creator を、構造化した references の形へ作り直す | （未発行） | （未複製） |
 | `skills-creator-profiles/` | skills-creator に7言語の組を用意する | （未発行） | （未複製） |
 | `skill-types/` | skills-creator が生む Skill の型を決める | （未発行） | （未複製） |
+| `survey-redesign/` | アンケートを、指標から逆算して組み直す | `https://claude.ai/artifact/FmB7AQtBzHZRqaXfC5ZFpi` | （未複製） |
