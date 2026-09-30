@@ -71,7 +71,7 @@ skills-creator scaffold <名前> --type <work|advisor> --language <rust|python|t
 
 - SKILL.md の各 `{{…}}` を、そこに書かれた指示に従って記入する。**指示を読まずに推測で記入しない**
 - 作業型は、見本の道具 `hello` を、この Skill の道具に書き換える。道具の一覧（能力の正本）と、そこから組む CLI と MCP の形は変えない
-- 助言型は、`references/types/advisor/procedure.md` の9段の手順で判断基準を作る
+- 助言型は、`references/document.json` の手順（id「procedure」）の9段で判断基準を作る
 
 ### Step 5: 検査する
 
@@ -107,7 +107,7 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 | 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | **準備中**（どの言語の組も雛形を保持せず、`scaffold` は断る）。それまでは作業型で生む |
 | 助言型（`advisor`） | 相談を受け、原典の判断基準に照らして答える | 雛形を丸ごと固定する（判断基準と回答のスキーマ ・ 回答の道具 ・ 試験） |
 
-**助言型は、`references/types/advisor/procedure.md` の9段の手順で作り、`skills-creator accept <フォルダ>` の受け入れの検査（機械の7件）を実行する。** 判断基準は、原典が名前を付けて立てている概念を1件の単位にする。語彙は原典の語のまま使い、説明は学習ノートを読んでまとめた言葉で書く（ノートの文を複製しない）。
+**助言型は、`references/document.json` の手順（id「procedure」。`skills-creator view --kind document --id procedure` で読む）の9段で作り、`skills-creator accept <フォルダ>` の受け入れの検査（機械の7件）を実行する。** 判断基準は、原典が名前を付けて立てている概念を1件の単位にする。語彙は原典の語のまま使い、説明は学習ノートを読んでまとめた言葉で書く（ノートの文を複製しない）。
 
 ---
 
@@ -187,7 +187,7 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
 - `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義
-- `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順（`procedure.md`）
+- `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順は `references/document.json` の id「procedure」が持つ
 - `references/document.json`（profile-<言語>） ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
 - `references/profiles/<言語>.profile.json`: 言語の組の定義。何をどこへ置くか ・ 組み立てと試験のコマンド ・ 外部の道具の起動の書き方
 - `references/document.json`（distribution） ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形
