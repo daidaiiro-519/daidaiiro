@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: MIT
+"""{{Skill名}} のプレゼンテーション層（CLI）。シェルから呼ぶ唯一の経路である。
+
+**道具ごとに実行ファイルを作らない** ── 実行ファイルが増えると、呼ぶ側が形を推測することになる。
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+from {{パッケージ名}}.contract import Given, Outcome, Tool, catalog
+from {{パッケージ名}}.tools import tools
+
+
+def read_args(tool: Tool, rest: list[str]) -> Given:
+    given = Given()
+    positional: list[str] = []
+    i = 0
+    while i < len(rest):
+        a = rest[i]
+        if a.startswith("--"):
+            body = a[2:]
+            if "=" in body:
+                key, value = body.split("=", 1)
+            elif i + 1 < len(rest) and not rest[i + 1].startswith("--"):
+                key, value = body, rest[i + 1]
+                i += 1
+            else:
+                key, value = body, "1"
+            key = key.replace("-", "_")
+            # **道具の一覧に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない
+            if not any(x.name == key for x in tool.args):
+                known = " ・ ".join(x.name for x in tool.args)
+                raise ValueError(f"その旗は無い: --{key}（{tool.name} は {known} を受ける）")
+            given.push(key, value)
+        else:
+            positional.append(a)
+        i += 1
+    free = iter(positional)
+    for arg in tool.args:
+        if given.has(arg.name):
+            continue
+        if arg.many:
+            for v in free:
+                given.push(arg.name, v)
+            continue
+        v = next(free, None)
+        if v is not None:
+            given.push(arg.name, v)
+        elif arg.default is not None:
+            given.push(arg.name, arg.default)
+    return given
+
+
+def usage(all_tools: list[Tool]) -> None:
+    print("道具の一覧")
+    for t in all_tools:
+        need = " ".join(
+            f"<{a.name}…>" if a.many else f"<{a.name}>" if a.required else f"[{a.name}]" for a in t.args
+        )
+        print(f"  {t.name} {need}\n      {t.summary}")
+    print("\n  どれも --json を付けると、機械が読む形で出る")
+
+
+def emit(out: Outcome, as_json: bool, human) -> int:
+    if as_json:
+        print(json.dumps(out.to_json(), ensure_ascii=False, indent=2))
+    else:
+        print(human(out))
+    return out.exit_code()
+
+
+def main() -> int:
+    all_tools = tools()
+    argv = sys.argv[1:]
+    as_json = "--json" in argv
+    argv = [a for a in argv if a != "--json"]
+    if not argv:
+        if as_json:
+            return emit(catalog(all_tools, Given()), True, lambda _: "")
+        usage(all_tools)
+        return 2
+    verb = argv[0]
+    if verb in ("-h", "--help", "help"):
+        usage(all_tools)
+        return 0
+    tool = next((t for t in all_tools if t.name == verb), None)
+    if tool is None:
+        print(f"その動詞は無い: {verb} ── 一覧は help である", file=sys.stderr)
+        return 2
+    try:
+        given = read_args(tool, argv[1:])
+    except ValueError as why:
+        print(why, file=sys.stderr)
+        return 2
+    missing = next((a.name for a in tool.args if a.required and not given.has(a.name)), None)
+    if missing:
+        print(f"引数が足りない: {tool.name} は {missing} を要する", file=sys.stderr)
+        return 2
+    return emit(tool.run(given), as_json, tool.human)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

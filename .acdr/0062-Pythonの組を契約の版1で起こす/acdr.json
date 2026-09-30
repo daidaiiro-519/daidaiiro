@@ -1,0 +1,217 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0062",
+ "title": "Python の組を契約の版1で起こす",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator に Python の組を加え、契約の版1 を満たす作業型の Skill を Python で生めるようにする。",
+ "why": "利用者は、skills-creator を配布し、利用者が使いやすい言語の組から Skill を作れる状態を目標にした。いまの組は Rust だけで、Rust を書かない利用者は Skill の道具を作れない。対象の言語は Rust ・ Go ・ Python ・ TypeScript ・ C# と決め、Python から起こすと決めた（案A の承認）。契約が規定するのは呼び方と成果物の形だけである（ACDR 0059）。そこで Python の組は、Rust の組と同じ振る舞いを別の言語で満たす雛形を持つ。中の構成は指定しない。起動は uv が依存を揃えてから行う形にした。検査の道具は、処理系を介して起動する形の引数の中の経路を解けなかった。この経路を解くようにした。",
+ "shift": [
+  {
+   "what": "生める言語の組",
+   "from": "Rust だけ",
+   "to": "Rust（版2 ・ 作業型と助言型）と Python（版1 ・ 作業型）"
+  },
+  {
+   "what": "Python の Skill の起動",
+   "from": "（無い）",
+   "to": "uv run --project tool python cli.py ／ mcp_server.py。実行ファイルを置かない"
+  },
+  {
+   "what": "検査が解く起動の経路",
+   "from": "コマンドの中のプロジェクトの場所だけ",
+   "to": "コマンドと引数の両方のプロジェクトの場所"
+  },
+  {
+   "what": "作った Skill の配布",
+   "from": "Rust の組だけが対応する",
+   "to": "変えない。Python の組は対応しない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "Python の組で生んだ Skill の起動の流れ。CLI と MCP は同じ道具の一覧（tools.py）から組み、その先の構成は Skill を作る人が決める",
+ "alternatives": [
+  {
+   "option": "Python の組も契約の版2（references の4つの道具）で起こす",
+   "why_not": "版2 の実体（refs.rs）は JSON Schema の検査と HTML の描画を持ち、移すと雛形が大きくなる。版1 で作業型を先に通し、版2 は後の ACDR で足す（案A の承認）"
+  },
+  {
+   "option": "FastMCP（デコレータで道具を宣言する高水準の API）で MCP の面を組む",
+   "why_not": "道具をその場で宣言するので、能力の正本が CLI の一覧と2か所になる。Rust の組が #[tool] マクロを使わないのと同じ理由である"
+  },
+  {
+   "option": "pip と venv で依存を揃える",
+   "why_not": "起動のコマンドに仮想環境の場所を書くことになり、OS ごとに経路が変わる。uv run は1つのコマンドで依存を揃えてから起動する"
+  },
+  {
+   "option": "Python の組にも雛形の構成の検査（--layout 1）を持たせる",
+   "why_not": "Python の組は中の構成を指定しないので、照らす先が無い（ACDR 0059）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "python-md",
+   "tab": "Python の組の説明",
+   "file": ".claude/skills/skills-creator/references/profiles/python.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "この組は契約の版1 を満たし、作業型だけを持つ。",
+     "before": "（無い）",
+     "why": "版2 を要る助言型は Rust の組で生む。scaffold は版の不足を理由に断る"
+    },
+    {
+     "find": "実行ファイルを置かない。",
+     "before": "（無い）",
+     "why": "Python は処理系を介して起動するので、Rust の bin/ に当たるものを持たない。経路は ${CLAUDE_PROJECT_DIR:-.} から書く"
+    },
+    {
+     "find": "中の構成は指定しない",
+     "before": "（無い）",
+     "why": "ACDR 0059 に一致させた。雛形はパッケージを1つ置くだけにした"
+    }
+   ]
+  },
+  {
+   "key": "profile",
+   "tab": "python.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/python.profile.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"contract\": 1,",
+     "before": "（無い）",
+     "why": "版1 の組として定義した。助言型の計画はここで断られる"
+    },
+    {
+     "find": "\"subprocess.run(\",",
+     "before": "（無い）",
+     "why": "外部の道具の名前の直書きを、Python の起動の書き方で検出する"
+    }
+   ]
+  },
+  {
+   "key": "contract-py",
+   "tab": "contract.py の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/contract.py.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "def catalog(tools: list[Tool], given: Given) -> Outcome:",
+     "before": "（無い）",
+     "why": "Rust の contract.rs の catalog と同じ形（tools と skill_root）を返す"
+    }
+   ]
+  },
+  {
+   "key": "cli-py",
+   "tab": "cli.py の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/cli.py.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "            if not any(x.name == key for x in tool.args):",
+     "before": "（無い）",
+     "why": "一覧に無い旗を終了コード 2 で断る。Rust の組と同じ文言にした"
+    }
+   ]
+  },
+  {
+   "key": "mcp-py",
+   "tab": "mcp_server.py の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/mcp_server.py.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "    server = Server(\"{{Skill名}}\", on_list_tools=list_tools, on_call_tool=call_tool)",
+     "before": "（無い）",
+     "why": "公式 SDK v2 の低水準の Server を、同じ道具の一覧から組む"
+    },
+    {
+     "find": "        is_error=not out.ok,",
+     "before": "（無い）",
+     "why": "ok が偽なら is_error を立てる。Rust の組と同じ分け方である"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 検査の側で推測しない。**引数の中の同じ値も解く** ── 処理系を介して起動する組",
+     "before": "（無い）",
+     "why": "処理系を介して起動する組が在るので、引数も解くことを説明に加えた"
+    },
+    {
+     "find": "    let resolve = |value: &str| -> Option<Option<PathBuf>> {",
+     "before": "（無い）",
+     "why": "uv run の引数に Skill の経路が在るので、コマンドだけでなく引数のプロジェクトの場所も解く"
+    },
+    {
+     "find": "    match resolve(command) {",
+     "before": "（無い）",
+     "why": "コマンドも同じ解き方で解く。uv のように経路でないコマンドは、そのまま PATH から起動する"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_work_skill_can_be_planned_in_python() {",
+     "before": "（無い）",
+     "why": "Python の組の計画と、定義が指す雛形の実在を固定した"
+    },
+    {
+     "find": "fn an_advisor_skill_is_refused_in_python() {",
+     "before": "（無い）",
+     "why": "版1 の組が助言型を断ることを固定した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Rust（版2 ・ 作業型と助言型）と Python（版1 ・ 作業型）",
+     "before": "いまは Rust だけである",
+     "why": "組の一覧を、置いた組に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "道具の契約",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Python は実行ファイルを置かず",
+     "before": "置き場所は言語の組が決める（Rust は bin/）",
+     "why": "実行ファイルの置き場所の例に、Python の組の形を加えた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "python-md": "b40a84a6ed6827112ae8fe37db983c2c00b9c0000a1c7d0eb066d84d6f176a14",
+  "profile": "dde0ca1ddd895160d2db984e4a28f7bb470f7f2022f8c31721710ec3c8e6bf91",
+  "contract-py": "685b1977dc86d8211bf19b880da8b728b2b84bee3d910e95fbf383c20a265ab3",
+  "cli-py": "0ca3aa14910408fce82086f0584fc017292a0de98b0b8bf4dd0264721e193dea",
+  "mcp-py": "fa6264bcb2df1ad4480424e95e7f3f5d0b99edb909726d056de86f0b10b86181",
+  "behavior": "d84d3968c93096e5623a0e0114cd4c1fb26cc7b54f0ad918ccda99e20998ba30",
+  "tests": "e4fa3a1d1f8043dbf90dbf5458fa975d28ea95484dfb03edc8fb15fb7fd310b9",
+  "skill": "ca34a797dedd3e30c60bc6bf695e6081f9880cb98866b30fa095eb7638274f28",
+  "contract": "e4e2874c0058ab69c161b5b087efbc2bfbb323adcd1e814f2e9309268c43fe39"
+ }
+}

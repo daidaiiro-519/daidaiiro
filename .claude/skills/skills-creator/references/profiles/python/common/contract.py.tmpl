@@ -1,0 +1,131 @@
+# SPDX-License-Identifier: MIT
+"""契約の実体。**どの Skill も同じファイルを複製して使う**（ACDR 0062）。
+
+道具の一覧（能力の正本）・ 引数 ・ 渡された値 ・ 戻り値 ・ 道具の一覧を機械が読む形で返す処理を持つ。
+CLI と MCP は、この形の一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable
+
+
+@dataclass(frozen=True)
+class Arg:
+    """引数1つ。位置引数と旗を区別しない ── 呼ぶ側の形はプレゼンテーション層が決める。"""
+
+    name: str
+    summary: str
+    required: bool = True
+    many: bool = False
+    default: str | None = None
+
+    @staticmethod
+    def need(name: str, summary: str) -> "Arg":
+        """省略できない引数を宣言する。"""
+        return Arg(name, summary)
+
+    @staticmethod
+    def opt(name: str, summary: str, default: str | None = None) -> "Arg":
+        """省略できる引数を宣言する。"""
+        return Arg(name, summary, required=False, default=default)
+
+    @staticmethod
+    def many_(name: str, summary: str) -> "Arg":
+        """まとめて受ける引数を宣言する。"""
+        return Arg(name, summary, many=True)
+
+
+@dataclass
+class Outcome:
+    """道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。"""
+
+    ok: bool
+    findings: list[str]
+    data: dict
+
+    @staticmethod
+    def found(findings: list[str], data: dict) -> "Outcome":
+        return Outcome(True, findings, data)
+
+    @staticmethod
+    def misuse(reason: str) -> "Outcome":
+        return Outcome(False, [reason], {})
+
+    def to_json(self) -> dict:
+        return {"ok": self.ok, "findings": self.findings, "data": self.data}
+
+    def exit_code(self) -> int:
+        """0 正常 ／ 1 検出あり ／ 2 誤用。"""
+        if not self.ok:
+            return 2
+        return 1 if self.findings else 0
+
+
+@dataclass
+class Given:
+    """渡された引数。**プレゼンテーション層が組み、道具が読む。**"""
+
+    values: dict[str, list[str]] = field(default_factory=dict)
+
+    def push(self, name: str, value: str) -> None:
+        self.values.setdefault(name, []).append(value)
+
+    def one(self, name: str, default: str) -> str:
+        v = self.values.get(name)
+        return v[0] if v else default
+
+    def has(self, name: str) -> bool:
+        return name in self.values
+
+    def all(self, name: str) -> list[str]:
+        return list(self.values.get(name, []))
+
+    def skill_root(self) -> Path:
+        """Skill のフォルダ。渡されなければ、このファイルの位置から SKILL.md の在る上のフォルダを求める。"""
+        if self.has("skill_root"):
+            return Path(self.one("skill_root", "."))
+        for d in Path(__file__).resolve().parents:
+            if (d / "SKILL.md").is_file():
+                return d
+        raise LookupError("Skill の置き場所が見つからない ── --skill_root で渡す")
+
+    def external(self, name: str) -> str:
+        """外部の道具の起動するコマンド。**名前を直書きせず、tool.json から読んで渡す。**"""
+        path = self.skill_root() / "tool.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for x in doc.get("external", []):
+            if x.get("name") == name and x.get("command"):
+                return x["command"]
+        raise LookupError(f"{path} の external に {name} の command が無い")
+
+
+@dataclass(frozen=True)
+class Tool:
+    """道具1つ。run は結果を返し、human は人向けの文を組む。"""
+
+    name: str
+    summary: str
+    args: list[Arg]
+    run: Callable[[Given], Outcome]
+    human: Callable[[Outcome], str]
+
+
+def catalog(tools: list[Tool], given: Given) -> Outcome:
+    """道具の一覧を、機械が読む形で返す。**動詞なしで --json を付けたときに CLI が返す。**"""
+    listed = [
+        {
+            "name": t.name,
+            "summary": t.summary,
+            "args": [{"name": a.name, "required": a.required, "many": a.many} for a in t.args],
+        }
+        for t in tools
+    ]
+    try:
+        root = str(given.skill_root())
+    except LookupError:
+        root = ""
+    return Outcome.found([], {"tools": listed, "skill_root": root})

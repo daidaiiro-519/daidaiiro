@@ -231,33 +231,50 @@ pub fn is_absolute(command: &str) -> bool {
 }
 
 /// 起動のコマンドと引数を、この機械の上の経路へ解く。**プロジェクトの場所は、Skill の
-/// フォルダから上へたどり、コマンドが実在する場所を採る** ── ホストが展開する値を、
-/// 検査の側で推測しない。
+/// フォルダから上へたどり、経路が実在する場所を採る** ── ホストが展開する値を、
+/// 検査の側で推測しない。**引数の中の同じ値も解く** ── 処理系を介して起動する組
+/// （`uv run … cli.py`）は、経路を引数に持つ。
 fn launch(root: &Path, entry: &Value) -> Result<(PathBuf, Vec<String>), String> {
     let command = entry
         .get("command")
         .and_then(Value::as_str)
         .unwrap_or_default();
-    let args: Vec<String> = entry
+    let raw: Vec<String> = entry
         .get("args")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
         .filter_map(|x| x.as_str().map(str::to_owned))
         .collect();
-    let Some(rest) = command.strip_prefix(PROJECT_DIR) else {
-        return Ok((PathBuf::from(command), args));
-    };
-    let rest = rest.trim_start_matches('/');
     // **絶対の経路へ解く** ── 実行ファイルは別の作業場所から起動するので、相対のままだと解けない
     let base = files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
-    base.ancestors()
-        .map(|dir| dir.join(rest))
-        .find(|p| files::is_file(p))
-        .map(|p| (p, args))
-        .ok_or_else(|| {
-            format!("実行ファイルを起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）")
-        })
+    let resolve = |value: &str| -> Option<Option<PathBuf>> {
+        let rest = value.strip_prefix(PROJECT_DIR)?.trim_start_matches('/');
+        Some(
+            base.ancestors()
+                .map(|dir| dir.join(rest))
+                .find(|p| files::is_file(p) || files::is_dir(p)),
+        )
+    };
+    let mut args = Vec::new();
+    for a in raw {
+        match resolve(&a) {
+            None => args.push(a),
+            Some(Some(p)) => args.push(p.display().to_string()),
+            Some(None) => {
+                return Err(format!(
+                    "実行ファイルを起動できない: 引数 {a} の経路が無い（組み立ててから検査する）"
+                ))
+            }
+        }
+    }
+    match resolve(command) {
+        None => Ok((PathBuf::from(command), args)),
+        Some(Some(p)) => Ok((p, args)),
+        Some(None) => Err(format!(
+            "実行ファイルを起動できない: {command} ── 実行ファイルが無い（組み立ててから検査する）"
+        )),
+    }
 }
 
 /// 起動して、終了コードと標準出力を返す。**標準入力は閉じ、制限時間で止める**（データアクセス層）。

@@ -115,3 +115,37 @@ fn an_advisor_skill_can_be_planned_in_rust() {
     // **見本の道具は置かない** ── 助言型の道具は references の4つだけである
     assert!(!plan.iter().any(|(_, t)| t.ends_with("hello.rs")));
 }
+
+#[test]
+fn a_work_skill_can_be_planned_in_python() {
+    // **置き先の中のパッケージ名は、差し込む前の形で返る** ── 差し込みはサービス層が行う
+    let (profiles, types) = defs();
+    let python = profile::load(&profiles, "python").expect("Python の組が在る");
+    let work = profile::load_type(&types, "work").expect("作業型が在る");
+    let plan = profile::plan(&profiles, &types, &python, &work).expect("組み合わせられる");
+    for to in [
+        "tool/pyproject.toml",
+        "tool/cli.py",
+        "tool/mcp_server.py",
+        "tool/{{パッケージ名}}/contract.py",
+        "tool/{{パッケージ名}}/tools.py",
+        "tool.json",
+        "mcp.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    // **雛形はすべて実在する** ── 定義にだけ在る行を、生んでから見つける形にしない
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
+}
+
+#[test]
+fn an_advisor_skill_is_refused_in_python() {
+    // **契約の版1 の組は、版2 を要る助言型を生まない** ── 対応している組を並べて断る
+    let (profiles, types) = defs();
+    let python = profile::load(&profiles, "python").expect("Python の組が在る");
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    let why = profile::plan(&profiles, &types, &python, &advisor).expect_err("断る");
+    assert!(why.contains("版2") && why.contains("rust"), "{why}");
+}

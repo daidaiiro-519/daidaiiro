@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: MIT
+"""{{Skill名}} の道具の一覧。**能力の正本はここである。**
+
+CLI と MCP はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+"""
+
+from __future__ import annotations
+
+from {{パッケージ名}}.contract import Arg, Given, Outcome, Tool
+from {{パッケージ名}}.hello import greet
+
+
+def run_hello(given: Given) -> Outcome:
+    """見本の道具。**書き換えて、この Skill の道具にする。**
+
+    外部の道具を起動するなら、given.external("名前") で tool.json から読み、引数として渡す。
+    """
+    return Outcome.found([], {"greeting": greet(given.one("name", ""))})
+
+
+def human_hello(out: Outcome) -> str:
+    if not out.ok:
+        return " ／ ".join(out.findings)
+    return out.data.get("greeting", "")
+
+
+def tools() -> list[Tool]:
+    """この Skill が持つ道具の一覧。"""
+    return [
+        Tool(
+            name="hello",
+            summary="見本の道具。名前を受けて、あいさつの文を返す",
+            args=[Arg.need("name", "あいさつする相手の名前")],
+            run=run_hello,
+            human=human_hello,
+        )
+    ]
