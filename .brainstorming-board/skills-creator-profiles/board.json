@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "skills-creator に4言語の組を足す",
  "board": "skills-creator-profiles",
- "round": 6,
+ "round": 8,
  "intro": [
   {
    "kind": "para",
@@ -11,7 +11,7 @@
  ],
  "panels": [
   {
-   "heading": "決まりの一覧 ── 5件とも決着（2026-09-30）",
+   "heading": "決まりの一覧 ── 5件とも決着（2026-09-30、論点2は Round 8 で型の軸を入れて決着）",
    "body": [
     {
      "kind": "list",
@@ -21,7 +21,7 @@
        "text": "<b>2段目の検査</b> ── 4つの組の2段目は、契約に関わる検査（外部の道具の名前の直書き）だけを持つ。雛形の構成の検査は Rust の組だけが持つ"
       },
       {
-       "text": "<b>共通の実装</b> ── 組ごとに正本を1組持ち、同じ振る舞いは共通の事例（CLI の出力）で保証する。validate の検出はファイルと位置で比べる"
+       "text": "<b>共通の実装と型の雛形</b> ── 言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types/<型>/、道具のコードは references/profiles/<言語>/（skeleton ・ types/<型> ・ parts/<部品>）に置く。scaffold は --type と --language を受け、型が要る部品を持たない組では断る。同じ振る舞いは共通の事例で保証する"
       },
       {
        "text": "<b>作った Skill の配布</b> ── Rust の組だけ。4つの組は dist が理由を示して断る"
@@ -54,6 +54,32 @@
       },
       {
        "text": "TypeScript ・ C# ・ Go の組を、この順に ACDR で起こす"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "skill-types の論点3への申し送り",
+   "body": [
+    {
+     "kind": "list",
+     "ordered": false,
+     "items": [
+      {
+       "text": "型の定義 ・ スキーマ（criteria.schema.json ・ answer.schema.json など）・ 型ごとの SKILL.md の雛形は、言語に依存しないので references/types/<型>/ に1か所だけ置く"
+      },
+      {
+       "text": "道具のコードは references/profiles/<言語>/ に置き、中を skeleton/（共通の骨組み：refs ・ tool.json ・ CLI と MCP の入口）・ types/<型>/（型ごとのコード。助言型なら事例）・ parts/<部品>/（作業型が選ぶ部品）に分ける"
+      },
+      {
+       "text": "型の定義（types/<型>/type.json）は要る部品と契約の版を持ち、言語の組の定義（profiles/<言語>.profile.json）は対応する型と部品を持つ。scaffold --type --language は、要る部品を組が持たなければ断る"
+      },
+      {
+       "text": "助言型は refs（契約の版2）を要する。新しい言語の組は版1から始めるので、助言型を生めるのは当面 Rust の組だけである"
+      },
+      {
+       "text": "置き場所の骨組みは、このセッションが ACDR 0060 で skills-creator に足す。助言型の中身（手順 ・ 雛形 ・ 検査7件）は、その後に先方の ACDR で types/advisor/ と profiles/rust/types/advisor/ へ置く"
       }
      ]
     }
@@ -270,65 +296,66 @@
   },
   {
    "no": 2,
-   "name": "共通の実装の正本と同等性",
+   "name": "共通の実装と型の雛形の置き場所 ・ 同等性",
    "status": "settled",
-   "question": "Skill をまたいで同一の実装（contract ・ cli ・ mcp ・ 版2 の references の実装）を、5つの組でどう持ち、同じ振る舞いをどう保証するか",
-   "intro": "<b>承認された（2026-09-30、Round 5）。</b>Rust の組は、共通の実装の正本を references/profiles/rust/ に1組持つ。5つの組では、同じ契約の実装が5組になる。比べるのは呼ぶ側から観察できる出力だけである（ACDR 0059）。",
-   "answer": "共通の実装の正本は、組ごとに references/profiles/<言語>/ へ1組ずつ置く。同じ振る舞いは、言語に依存しない共通の事例（入力と期待する出力）で保証する。事例は references/conformance/ に置き、各組の雛形で生んだ Skill の CLI に同じ入力を与えて、出力を比べる。validate の検出は「ファイルと位置」で比べ、JSON Schema のライブラリが出す文言は比べない",
+   "question": "共通の骨組み ・ 型の雛形（助言型 ・ 生成型）・ 作業型が選ぶ部品を、5つの組でどこに置き、同じ振る舞いをどう保証するか",
+   "intro": "<b>承認された（2026-09-30、Round 8）。</b>Round 7 で型の軸を入れて答え直した。別のボード skill-types が、Skill の型（助言型 ・ 作業型 ・ 生成型）を決めたためである。skill-types の論点3（型と言語の組の関係）は、この答えを待っている。",
+   "answer": "言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types/<型>/ に置き、言語に依存するもの（道具のコード）は references/profiles/<言語>/ に置く。言語の組の中は、共通の骨組み（skeleton/）・ 型ごとのコード（types/<型>/）・ 作業型が選ぶ部品（parts/<部品>/）に分ける。scaffold は型と言語を受け取り、型が要る部品をその言語の組が持たなければ断る。同じ振る舞いは、共通の事例（CLI の出力）で組をまたいで保証する",
    "decision": {
-    "letter": "A",
+    "letter": "B",
     "text": [
      {
       "kind": "para",
-      "text": "<b>正本は組ごとに1組、同等性は共通の事例で検査する。</b>"
+      "text": "<b>言語に依存しないものは型の側、道具のコードは言語の組の側に置く。</b>"
+     },
+     {
+      "kind": "html",
+      "text": "<pre>references/\n  types/                         言語に依存しない（型の側）\n    advisor/\n      type.json                  要る部品 ・ 契約の版 ・ SKILL.md の雛形の名前\n      criteria.schema.json       判断基準のスキーマ\n      answer.schema.json         回答のスキーマ\n      skill-template.md          助言型の SKILL.md の雛形\n    generate/\n      type.json\n      input.schema.json          入力のスキーマの見本\n      skill-template.md\n    work/\n      type.json\n      skill-template.md\n  profiles/                      言語に依存する（道具のコード）\n    rust.profile.json            骨組みの一式 ・ 対応する型と部品 ・ 組み立てのコマンド\n    rust/\n      skeleton/                  共通の骨組み（contract ・ cli ・ mcp ・ refs ・ tool.json ・ 見本の道具）\n      types/advisor/             助言型の道具のコード（事例 5件）\n      types/generate/            生成型の組む道具のコード\n      parts/check/ ・ parts/render/   作業型が選ぶ部品\n    python.profile.json\n    python/ …                    同じ並び\n  conformance/                   共通の事例（組をまたいで同じ入力と期待する出力）</pre>"
      },
      {
       "kind": "table",
       "cols": [
-       "比べ方"
+       "置き場所",
+       "言語に依存するか"
       ],
       "rows": [
        [
-        "動詞なしの --json（道具の一覧）",
+        "型の定義 ・ スキーマ ・ SKILL.md の雛形",
         [
-         "JSON として一致"
+         "references/types/<型>/",
+         "しない"
         ]
        ],
        [
-        "道具の一覧に無い旗",
+        "共通の骨組み（refs ・ tool.json ・ CLI と MCP の入口）",
         [
-         "終了コード 2"
+         "references/profiles/<言語>/skeleton/",
+         "する"
         ]
        ],
        [
-        "get の出力",
+        "型ごとの道具のコード",
         [
-         "JSON として一致"
+         "references/profiles/<言語>/types/<型>/",
+         "する"
         ]
        ],
        [
-        "validate の検出",
+        "作業型が選ぶ部品（検査 ・ 生成）",
         [
-         "ファイルと位置の組の集合が一致"
-        ]
-       ],
-       [
-        "view の出力",
-        [
-         "HTML がバイト単位で一致"
-        ]
-       ],
-       [
-        "import の出力（document）",
-        [
-         "JSON として一致"
+         "references/profiles/<言語>/parts/<部品>/",
+         "する"
         ]
        ]
       ]
      },
      {
       "kind": "para",
-      "text": "<b>事例は1段目の検査の拡張である。</b>実行ファイルを起動して観察するので、どの言語の組にも同じ事例が当たる。"
+      "text": "<b>scaffold は型と言語を受け取る</b>（scaffold &lt;名前&gt; --type &lt;型&gt; --language &lt;言語&gt;）。型の定義が要る部品を、言語の組の定義が持たなければ、理由を示して断る。例：助言型は版2の骨組み（refs）を要するので、版1の組（最初の Python）では断る。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>同じ振る舞いは、共通の事例で保証する。</b>比べるのは CLI の出力だけで、validate の検出はファイルと位置で比べる（Round 5 の答えのまま）。"
      }
     ]
    },
@@ -342,23 +369,23 @@
    "example": [
     {
      "kind": "para",
-     "text": "事例1件の実例である。validate の検出は、ファイルと位置だけを持つ。"
+     "text": "scaffold が型と言語の組み合わせを断るときの出力の実例である。"
     },
     {
      "kind": "html",
-     "text": "<pre>references/conformance/validate-missing-id/\n  input/criteria.schema.json\n  input/criteria.json      items[2] に id が無い\n  expect.json              {\"verb\": \"validate\",\n                            \"findings\": [{\"file\": \"criteria.json\", \"at\": \"items/2\"}]}</pre>"
+     "text": "<pre>$ skills-creator scaffold qa-advisor --type advisor --language python\n誤用: python の組は助言型に対応しない ── 助言型は refs（契約の版2）を要する。対応している組は rust</pre>"
     }
    ],
    "passed": [
     {
-     "name": "組ごとに正本を置き、共通の事例で同等性を検査する",
-     "body": "7組の実装を持ち、振る舞いの一致を事例で固定する",
-     "cost": "共通の実装の変更が、7組への変更になる。事例が、どの組を直し忘れたかを示す"
+     "name": "型の側に言語非依存、言語の組の側にコード（profiles/<言語>/types/<型>/）",
+     "body": "スキーマ ・ SKILL.md の雛形は1か所、道具のコードは言語ごと",
+     "cost": "型を足すと、型の側に1か所、対応する言語の組ごとにコードを足す"
     },
     {
-     "name": "view だけを共通の JavaScript で描画し、他は組ごとに持つ",
-     "body": "view の HTML は JSON と描画用の script を埋め込むだけにし、描画を閲覧側で行う",
-     "cost": "組ごとの描画の実装が消える。保存した HTML の中に構造が存在しなくなる"
+     "name": "型の側に言語を持たせる（types/<型>/<言語>/）",
+     "body": "型ごとにフォルダを切り、その中に言語ごとのコードを置く",
+     "cost": "共通の骨組みは型に属さないので、別の置き場所が要る。言語の組が1か所にまとまらない"
     }
    ],
    "tables": [
@@ -369,15 +396,15 @@
      ],
      "rows": [
       [
-       "組ごとに正本を置き、共通の事例で同等性を検査する",
+       "型の側に言語非依存、言語の組の側にコード（profiles/<言語>/types/<型>/）",
        [
-        "描画の規則（x-view）を1つ足すと、7組の view と事例を直す"
+        "言語の組を足す作業が profiles/<言語>/ の1か所で閉じる。スキーマを直すと全言語に効く"
        ]
       ],
       [
-       "view だけを共通の JavaScript で描画し、他は組ごとに持つ",
+       "型の側に言語を持たせる（types/<型>/<言語>/）",
        [
-        "brainstorming-board の規則「節の構造は生成の時点で確定させる」と矛盾する"
+        "言語の組を足すたびに、型の数だけ別のフォルダを触る。組の定義と中身が離れる"
        ]
       ]
      ]
@@ -426,18 +453,45 @@
      "basis": "同じ概念の仕組みは、同じ実装の形にさせる",
      "tag": "rule",
      "source": ".claude/skills/skills-creator/SKILL.md（ガードレール）"
+    },
+    {
+     "supports": "型の軸",
+     "basis": "skills-creator が生む Skill の型は、助言型 ・ 作業型 ・ 生成型の3つ。refs.rs ・ tool.json ・ CLI と MCP の入口は、全 Skill 共通の骨組みとして skills-creator が持つ（型には数えない）",
+     "tag": "rule",
+     "source": ".brainstorming-board/skill-types/（論点1 ・ 2 ・ 4、コミット 8d8e21c ・ 5c69aee）"
     }
    ],
    "out_of_scope": [
     {
-     "item": "各言語で使う JSON Schema のライブラリの選定",
-     "treatment": "later",
-     "note": "組を起こすときに決める。この答えを覆さない ── 比べるのはファイルと位置だけである"
+     "item": "助言型の手順 ・ 雛形の中身 ・ 検査7件",
+     "treatment": "out",
+     "note": "別のセッション（advisor-creator のボード）が決着させ、ACDR で skills-creator に足す。この答えは置き場所だけを決める"
     },
     {
-     "item": "版1 の Skill を他の言語の組で作るか",
-     "treatment": "out",
-     "note": "新しい組は版2 だけを持つ。版1 は移行していない Rust の Skill のための互換である"
+     "item": "各言語で使う JSON Schema のライブラリ",
+     "treatment": "later",
+     "note": "組を起こすときに決める。この答えを覆さない"
+    }
+   ],
+   "path": [
+    {
+     "kind": "card",
+     "letter": "A",
+     "heading": "共通の実装の正本は、組ごとに references/profiles/<言語>/ へ1組ずつ置く。同じ振る舞いは、言語に依存しない共通の事例（入力と期待する出力）で保証する。事例は references/conformance/ に置き、各組の雛形で生んだ Skill の CLI に同じ入力を与えて、出力を比べる。validate の検出は「ファイルと位置」で比べ、JSON Schema のライブラリが出す文言は比べない",
+     "events": [
+      {
+       "tag": "returned",
+       "text": "別のセッションの依頼：「skills-creator-profiles の論点2（共通部品の正本と同等性）を決めるときに、型の軸も入れてほしい」"
+      },
+      {
+       "tag": "obsolete",
+       "text": "共通の実装の置き場所を、言語の組の中の1つの並びとして決めていた。型ごとの雛形と部品の置き場所が無かった"
+      },
+      {
+       "tag": "finding",
+       "text": "助言型のスキーマ（criteria.schema.json ・ answer.schema.json）は言語に依存しない。言語に依存するのは道具のコードだけである"
+      }
+     ]
     }
    ]
   },
