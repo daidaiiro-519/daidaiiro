@@ -1,0 +1,57 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0083",
+ "title": "acdr の記録の頁のパレットを、acdr の差し色に一致させる",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "acdr の記録の頁は、上部の節にも acdr の差し色（amber）を使用する。",
+ "why": "ACDR 0076 で、記録の上部の節（決めたこと ・ なぜ ・ 表）を、見た目の正本の複製（view.tokens.json）から描画する形へ移した。そのとき acdr の複製のパレットを既定の teal のまま残したので、上部の節の見出し ・ 枠 ・ 表の見出しが緑になった。下部の差分とタブは acdr 自身のトークン（move ＝ amber-700）で描画するので、1枚の頁に2つの差し色が並んだ。acdr のガードレールは「差し色を1つに限定する」と規定している。ACDR 0075 までの記録は上部も amber だった。利用者から「緑が入ってしまってない？」と指摘された。",
+ "shift": [
+  {
+   "what": "記録の上部の節の差し色",
+   "from": "teal（緑、#0f6e5c）",
+   "to": "amber（#9a5b00）。acdr の差し色 amber-700（#9a5b2c）と同じ色相"
+  },
+  {
+   "what": "acdr の view.tokens.json",
+   "from": "\"palette\": \"teal\"",
+   "to": "\"palette\": \"amber\""
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "acdr の差し色に合わせて、複製のパレットを amber にする",
+ "alternatives": [
+  {
+   "option": "acdr 固有のトークン（view.skill.tokens.json）で accent を acdr の色に上書きする",
+   "why_not": "固有のトークンは共通の役割と重ならない名前にする決まり（ACDR 0076）であり、共通の accent を上書きできない。パレットの選択は、Skill が選ぶための仕組みとして既に在る"
+  },
+  {
+   "option": "acdr 自身の tokens.json を teal へ寄せる",
+   "why_not": "下部の差分 ・ タブ ・ 印の色がすべて変化する。ACDR 0075 までの記録の見た目とも一致しなくなる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tokens",
+   "tab": "view.tokens.json",
+   "file": ".claude/skills/acdr/references/view.tokens.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"palette\": \"amber\",",
+     "before": "  \"palette\": \"teal\",",
+     "why": "上部の節の差し色を、acdr 自身の差し色（amber-700）と同じ色相にする"
+    }
+   ]
+  }
+ ],
+ "how": "acdr の references/view.tokens.json の palette を amber にした。check はパレットの選択を正本との差として数えない。承認済みの記録（0076 ・ 0077 を含む）は組み直さない ── 承認時点の姿を保持する。提案中の 0081 ・ 0082 は組み直した。",
+ "applies_to": "acdr の references/view.tokens.json。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "seal": {
+  "tokens": "356d78bfdb82aacb9398c6993ddd221c2a16844acbf11cdf23dfb605ada08a48"
+ }
+}
