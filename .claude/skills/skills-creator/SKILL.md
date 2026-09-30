@@ -74,6 +74,20 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 
 ---
 
+## Skill の型
+
+**skills-creator は、Skill を型と言語の組の組み合わせで生む**（ACDR 0060 ・ 0061）。型は、その Skill を使うときに誰が何を作るかで決まる。
+
+| 型 | 定義 | 生み方 |
+|---|---|---|
+| 作業型（`work`） | エージェントが成果物を作る作業の手順を持ち、途中で検査や生成の道具を使う | 共通の一式に、見本の道具を置く |
+| 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | 入力と出力のスキーマ ・ 入力の検査 ・ 組む道具（雛形はまだ無い） |
+| 助言型（`advisor`） | 相談を受け、原典の判断基準に照らして答える | 雛形を丸ごと固定する（判断基準と回答のスキーマ ・ 回答の道具 ・ 試験） |
+
+**助言型は、`references/types/advisor/procedure.md` の9段の手順で作り、`skills-creator accept <フォルダ>` の受け入れの検査（機械の7件）を実行する。** 判断基準は、原典が名前を付けて立てている概念を1件の単位にし、学習ノートの言葉だけで書く。
+
+---
+
 ## 道具を伴う Skill
 
 **道具を持つ Skill は、道具の契約に従わせる。**
@@ -92,6 +106,7 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 ```
 skills-creator scaffold <Skill の名前> [--type work|generate|advisor] [--language rust]   # 型と言語の組の一式を置く
 skills-creator check <Skill のフォルダ>  # 2段の検査と、節の構成の検査
+skills-creator accept <advisor のフォルダ>  # 助言型の受け入れの検査（機械の7件）
 skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだけ。導入スクリプトと組み立ての定義を置く
 ```
 
@@ -115,8 +130,8 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 
 ## ガードレール
 
-- **節の構成を、対応する雛形と一致させる**。助言の Skill は advisor-creator の雛形、それ以外は
-  こちらの雛形を満たす ── **どちらを適用するかは節の有無で決まる**（名前で分岐すると、Skill が
+- **節の構成を、対応する雛形と一致させる**。助言型の Skill は `references/types/advisor/skill-template.md`、それ以外は
+  `references/skill-template.md` を満たす ── **どちらを適用するかは節の有無で決まる**（名前で分岐すると、Skill が
   増えるたびに検査を直すことになる）
 - **道具を持つ Skill には、道具の契約を適用させる**（`references/tool-contract.md`）── 呼び出し方の形が道具ごとに違うと、呼ぶ側は呼ぶたびに本文を読み直すことになる
 - **同じ概念の仕組みは、同じ実装の形にさせる**。入力の契約（スキーマ）・トークンの正本・入力の検査・置き場所を、Skill ごとに違う形で実装させない ── 概念が同じで形が違うと、**1つを読んで得た理解が、次の Skill で通用しない**
@@ -147,6 +162,8 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - `tool/business_logic/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは型と言語の組の定義が決める**
 - `tool/business_logic/src/profile.rs`: 言語の組（`references/profiles/<言語>.profile.json`）と型（`references/types/<型>/type.json`）を読み、置く一式を決める。型が必要とする契約の版に組が届かないか、組が型の一式を持たなければ断る
 - `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義。言語に依存しない一式（スキーマ ・ SKILL.md の雛形）の置き場所
+- `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順（`procedure.md`）
+- `tool/business_logic/src/accept.rs`: 助言型の受け入れの検査（機械の7件）。学習ノートは `references/archive/notes/*.md` から読む
 - `tool/business_logic/tests/`: 事例（66件）。references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）と、**生んだものが契約を満たすこと**と、シェルで書いた実行ファイルが1段目に合格し2段目が「実行しない」になることも固定してある
 - `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・

@@ -76,3 +76,17 @@ pub fn place(root: &Path, items: &[Item]) -> io::Result<Placed> {
 pub fn read_template(dir: &Path, name: &str) -> io::Result<String> {
     files::read_to_string(dir.join(name))
 }
+
+/// 同じ置き場所に在る Skill の名前を返す。**SKILL.md を持つフォルダだけである。**
+#[must_use]
+pub fn siblings(root: &Path) -> Vec<String> {
+    let Some(parent) = root.parent() else {
+        return Vec::new();
+    };
+    files::list(parent)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| files::is_file(p.join("SKILL.md")))
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .collect()
+}

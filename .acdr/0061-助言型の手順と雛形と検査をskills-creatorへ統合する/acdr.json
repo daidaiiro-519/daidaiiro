@@ -1,0 +1,331 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0061",
+ "title": "助言型の手順と雛形と検査を skills-creator へ統合する",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "advisor-creator を廃止し、助言型の Skill を作る手順（9段）・雛形・受け入れの検査（機械の7件）を skills-creator の助言型に統合する。",
+ "why": "ブレストボード skill-types の論点4で、advisor-creator を廃止して skills-creator の助言型へ統合すると決めた。ブレストボード advisor-creator の5論点で、作る手順 ・ advisor の契約 ・ 受け入れの検査を決めた。これらは別のセッションが ACDR で起こす予定だったが、利用者がこのセッションで決めてよいとした。ACDR 0060 で、型の置き場所（references/types/<型>/ と references/profiles/<言語>/types/<型>/）を用意してある。いまの advisor-creator は古い形（knowledge の Markdown）の雛形しか持たず、5つの advisor は判断基準と回答のスキーマが少しずつ違っていた。回答の相談種別も advisor ごとに違っていた。そこで決定どおりの正本を組む。変えてよいのは題 ・ 説明 ・ 判断基準の一覧だけにし、相談種別は概念 ・ 判断 ・ 設計、出典は節ごと、id は概念の英語の短い名前とする。他の Skill の名前（design-svg）と図の宣言は、正本に置かない。受け入れの検査は accept として道具にした。既存の5つに当てると、図の宣言 ・ ノートの引用の取り込み ・ design-svg の名前を検出した。いずれも決定で作り直すとした箇所であり、作り直しはこの ACDR の範囲外である。",
+ "shift": [
+  {
+   "what": "advisor を作る Skill",
+   "from": "advisor-creator（古い形の雛形だけを持つ）",
+   "to": "skills-creator の助言型（scaffold --type advisor ・ 手順 ・ accept）"
+  },
+  {
+   "what": "判断基準と回答のスキーマ",
+   "from": "advisor ごとに少しずつ違う",
+   "to": "references/types/advisor/ の正本を1つ。変えてよいのは題 ・ 説明 ・ 判断基準の一覧だけ"
+  },
+  {
+   "what": "回答の相談種別",
+   "from": "advisor ごとに違う（完了の定義 ・ 記述相談など）",
+   "to": "全ての助言型で概念 ・ 判断 ・ 設計"
+  },
+  {
+   "what": "判断基準の出典",
+   "from": "1件に1つ（原典と移し方）",
+   "to": "節ごとに、原典 ・ 章と節 ・ 所在 ・ 取得した日 ・ 移し方"
+  },
+  {
+   "what": "完成の判定",
+   "from": "手で確かめる",
+   "to": "accept の7件（形 ・ ノートに無い文字列 ・ 取り込んだ引用 ・ 概念の単位 ・ 図の同梱 ・ 他の Skill の名前 ・ 試験）と、人の目視"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "原文のファイルを受け取ってから受け入れの検査までの9段。3段目の振り分けで、判断基準の単位（概念）が決まる（ブレストボード advisor-creator の論点2の図）",
+ "alternatives": [
+  {
+   "option": "advisor-creator を残し、中身だけを新しい形へ直す",
+   "why_not": "skill-types の論点4で廃止と決めた。Skill を作る窓口が2つになり、型の置き場所（ACDR 0060）と別に雛形を持つことになる"
+  },
+  {
+   "option": "既存の qa-advisor のスキーマをそのまま正本にする",
+   "why_not": "相談種別が qa 固有で、出典が1件に1つで、design-svg の名前と図の宣言を持つ。advisor-creator の論点3の決定と食い違う"
+  },
+  {
+   "option": "受け入れの検査を文書の手順だけにし、道具にしない",
+   "why_not": "ノートに無い文字列と取り込んだ引用は、数千の文字列を照らすので手では確かめられない。前に照合の道具を作ったが、会話をまたいで残らず作り直した（advisor-creator の論点2の根拠）"
+  },
+  {
+   "option": "既存の5つの advisor を、この ACDR で作り直す",
+   "why_not": "原典の取り直しと学習ノートの書き直しを含む大きな作業で、advisor ごとに ACDR を起こす（advisor-creator の論点5）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "skills-creator は、Skill を型と言語の組の組み合わせで生む",
+     "before": "（無い）",
+     "why": "型の節を加えた。助言型は9段の手順で作り、accept を実行する"
+    },
+    {
+     "find": "references/types/advisor/skill-template.md",
+     "before": "助言の Skill は advisor-creator の雛形",
+     "why": "advisor-creator を廃止したので、助言型の SKILL.md の雛形の置き場所を改めた"
+    },
+    {
+     "find": "助言型の受け入れの検査（機械の7件）",
+     "before": "（無い）",
+     "why": "accept の使い方を加えた"
+    }
+   ]
+  },
+  {
+   "key": "procedure",
+   "tab": "助言型の手順",
+   "file": ".claude/skills/skills-creator/references/types/advisor/procedure.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "9段の手順",
+     "before": "（無い）",
+     "why": "advisor-creator の論点2の9段を、助言型の手順として置いた。他の Skill を名指ししない"
+    },
+    {
+     "find": "判断基準の書き方",
+     "before": "（無い）",
+     "why": "advisor-creator の論点3の、語彙 ・ 要点 ・ 引用 ・ 事例 ・ 出典の扱いを置いた"
+    },
+    {
+     "find": "受け入れの検査",
+     "before": "（無い）",
+     "why": "advisor-creator の論点4の、機械の7件と人の目視を置いた"
+    }
+   ]
+  },
+  {
+   "key": "template",
+   "tab": "助言型の SKILL.md の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/skill-template.md",
+   "before": "---\nname: \"{{このadvisorを一意に識別する識別子。kebab-case。例: security-advisor}}\"\ndescription: \"{{このadvisorがいつ使われるべきかを1〜2文で。相談の種別・トリガーとなるキーワードを含める。他のSkill名を書かない。追加の文脈情報があれば精度が上がる場合は、その情報の抽象的な形状のみを記述し、誰が生成したかには触れない。このadvisorは単体で完結して回答できることを前提とする。}}\"\n---\n\n# {{専門領域の説明：識別子の形式。説明部分はこのadvisorが何を判断するSkillかを業務語彙で簡潔に表す句。識別子部分はこのadvisorの一意な名前をそのまま使う。}}\n\n## 目的\n\n{{descriptionと同じ内容を1〜2文で。}}\n\n---\n\n## 役割\n\n- {{専門家役割}}として、確立された{{原則名・理論名}}に基づいて回答する\n- {{このadvisorが判断する具体的な領域を列挙。何を判断し、何を判断しないか（範囲外）を明示する}}\n- アンチパターンを見つけたときはリスクと代替案をセットで提示する（または領域に応じた同型の締め方）\n\n---\n\n## 入力の想定\n\n| 受け取る情報 | 解釈・既定値 |\n|---|---|\n| {{相談内容そのもの}} | {{不明な場合はユーザーに確認する。抽象論だけで判断を返さない}} |\n| {{前提とする追加の文脈情報があれば、その情報の抽象的な形状（誰が生成したかには触れない）}} | {{明示されなければ不明として扱い、単体で完結する範囲の判断のみ行う}} |\n\n---\n\n## 相談種別と回答テンプレート\n\n| 相談種別 | 判定条件 | テンプレート |\n|---|---|---|\n| {{相談種別の名前。例: 概念質問}} | {{この種別だと判定する条件。例: 「〜とは」という形式の質問}} | {{使う回答テンプレートを特定できる名前。例: 概念質問用テンプレート}} |\n\n{{相談種別が1つだけ、またはknowledgeファイルの決定木だけで十分な場合は、この表を1行にするかテンプレートを作らない選択肢もある。}}\n\n---\n\n## 実行手順\n\n### Step 1: 相談内容を上表の相談種別に分類する\n\nユーザーの相談を「相談種別と回答テンプレート」の表に基づいて分類し、対応するテンプレート（該当する場合）を選ぶ。\n\n### Step 2: 対応するバックボーンknowledgeファイルを特定して必ず読む\n\n相談内容に関連する概念を特定し、参照knowledgeセクションに列挙された対応するファイルをReadツールで読み込む。この手順を完了する前に回答を始めてはならない。\n\n- 既に知っている内容だと感じても、必ず先に読む\n- 該当するファイルが複数ある場合は全て読み込む\n\n### Step 3: 判断基準に沿って判定し、根拠を示す\n\nknowledgeファイルの判断基準（決定木）を辿り、判定結果と理由を示す。\n\n- 判断基準はknowledgeファイルの記述をそのまま使い、勝手に言い換えない\n- 判定理由を必ず示す\n- アンチパターンに該当する場合はリスクと代替案をセットで提示する\n\n---\n\n## 出力形式\n\n判定結果→根拠、の順で回答する。\n\n---\n\n## ガードレール\n\n- knowledgeファイルをReadする前に回答を始めてはならない。最優先ルールであり例外なし\n- knowledgeファイルに記載されていない内容は「バックボーンの範囲外」として正直に伝え、推測で答えない\n- 判断基準はknowledgeファイルから引用し、勝手に言い換えない\n- 他のadvisor Skillの名前を本文に直接書かない（疎結合原則）。前提とする追加文脈は抽象的な形状のみ記述する\n- {{このバックボーンが単一の権威ある出典か、複数の実務知見の交差点かを明示し、後者の場合は断定的に語らない}}\n- {{専門用語は使ってよいが、初出時は文脈・具体例を添えて意味が解釈できるようにする}}\n\n---\n\n## 参照knowledge\n\n- `references/knowledge/{{概念名}}.md`: {{この概念が何を判断する材料になるかを1文で}}\n",
+   "marks": [
+    {
+     "find": "概念相談(「〜とは」)",
+     "before": "{{このadvisorがいつ使われるべきかを1〜2文で。…}}",
+     "why": "相談種別を全ての助言型に共通の概念 ・ 判断 ・ 設計にした"
+    },
+    {
+     "find": "判断基準の id は次である。",
+     "before": "references/knowledge/{{概念名}}.md",
+     "why": "knowledge の Markdown から、判断基準（criteria.json）を道具で取り出す形にした（契約の版2）"
+    },
+    {
+     "find": "SVG は任意である",
+     "before": "（無い）",
+     "why": "他の Skill の名前を置かない。回答の図は宣言だけで成り立つ"
+    }
+   ]
+  },
+  {
+   "key": "criteria",
+   "tab": "判断基準のスキーマ（qa との差）",
+   "file": ".claude/skills/skills-creator/references/types/advisor/criteria.schema.json",
+   "before": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"criteria.schema.json\",\n  \"title\": \"テスト方針 ・ 実装の強度 ・ 完了の定義の判断基準\",\n  \"description\": \"qa-advisor が相談に回答するときの拠りどころ。1件が1つの概念の判断基準である\",\n  \"$comment\": \"Skill 自身の知見であり、Skill が正本である。本文は論点の並びで、論点は主張1文と意味の単位（定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足）を持つ。**原文に無い文字列を持たない** ── どの欄の値も、原典の書き起こしの一部である\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\n    \"items\"\n  ],\n  \"properties\": {\n    \"$schema\": {\n      \"type\": \"string\"\n    },\n    \"items\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"id\",\n          \"title\",\n          \"summary\",\n          \"answers\",\n          \"topics\",\n          \"source\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"title\": \"識別子\",\n            \"x-view\": \"hidden\",\n            \"type\": \"string\",\n            \"pattern\": \"^[a-z0-9]+(-[a-z0-9]+)*$\"\n          },\n          \"title\": {\n            \"type\": \"string\",\n            \"title\": \"題\",\n            \"x-view\": \"heading\"\n          },\n          \"tags\": {\n            \"title\": \"札\",\n            \"x-view\": \"hidden\",\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"summary\": {\n            \"type\": \"string\",\n            \"title\": \"概要\",\n            \"x-view\": \"card\"\n          },\n          \"answers\": {\n            \"title\": \"使う原典\",\n            \"x-view\": \"list\",\n            \"type\": \"array\",\n            \"minItems\": 1,\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"topics\": {\n            \"title\": \"論点\",\n            \"x-view\": \"sections\",\n            \"type\": \"array\",\n            \"minItems\": 1,\n            \"items\": {\n              \"$ref\": \"#/$defs/topic\"\n            }\n          },\n          \"antipatterns\": {\n            \"title\": \"アンチパターン\",\n            \"x-view\": \"group\",\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\n              \"items\"\n            ],\n            \"properties\": {\n              \"intro\": {\n                \"type\": \"string\",\n                \"title\": \"導入\",\n                \"x-view\": \"lead\"\n              },\n              \"items\": {\n                \"type\": \"array\",\n                \"minItems\": 1,\n                \"items\": {\n                  \"type\": \"object\",\n                  \"additionalProperties\": false,\n                  \"required\": [\n                    \"what\"\n                  ],\n                  \"properties\": {\n                    \"what\": {\n                      \"type\": \"string\",\n                      \"title\": \"誤り\"\n                    },\n                    \"risk\": {\n                      \"type\": \"string\",\n                      \"title\": \"起きること\"\n                    },\n                    \"alternative\": {\n                      \"type\": \"string\",\n                      \"title\": \"代わりにすること\"\n                    }\n                  }\n                }\n              }\n            }\n          },\n          \"related\": {\n            \"title\": \"関連する基準\",\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"additionalProperties\": false,\n              \"required\": [\n                \"criterion\",\n                \"relation\"\n              ],\n              \"properties\": {\n                \"criterion\": {\n                  \"type\": \"string\",\n                  \"title\": \"判断基準\"\n                },\n                \"relation\": {\n                  \"type\": \"string\",\n                  \"title\": \"関係\"\n                }\n              }\n            }\n          },\n          \"source\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\n              \"origin\",\n              \"method\"\n            ],\n            \"properties\": {\n              \"origin\": {\n                \"type\": \"string\",\n                \"title\": \"原典\"\n              },\n              \"method\": {\n                \"type\": \"string\",\n                \"title\": \"移し方\"\n              },\n              \"reservations\": {\n                \"title\": \"留保事項\",\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"string\"\n                }\n              }\n            },\n            \"title\": \"出典\",\n            \"description\": \"この判断基準が拠る原典と、留保事項\"\n          }\n        }\n      }\n    }\n  },\n  \"$defs\": {\n    \"topic\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"title\",\n        \"units\"\n      ],\n      \"properties\": {\n        \"title\": {\n          \"type\": \"string\",\n          \"title\": \"題\",\n          \"x-view\": \"heading\"\n        },\n        \"claim\": {\n          \"type\": \"string\",\n          \"title\": \"主張\",\n          \"x-view\": \"lead\"\n        },\n        \"units\": {\n          \"title\": \"単位\",\n          \"x-view\": \"units\",\n          \"type\": \"array\",\n          \"minItems\": 1,\n          \"items\": {\n            \"$ref\": \"#/$defs/unit\"\n          }\n        }\n      }\n    },\n    \"unit\": {\n      \"oneOf\": [\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"term\",\n            \"meaning\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"definition\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"term\": {\n              \"type\": \"string\",\n              \"title\": \"語\",\n              \"x-view\": \"lead\"\n            },\n            \"meaning\": {\n              \"type\": \"string\",\n              \"title\": \"意味\"\n            }\n          },\n          \"title\": \"定義\",\n          \"description\": \"語の意味を1つ決める\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"rules\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"rules\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何に当てはまるか\",\n              \"description\": \"続く規則 ・ 注意のすべてに共通する前置き。1回だけ置き、各行に繰り返さない\",\n              \"x-view\": \"lead\"\n            },\n            \"rules\": {\n              \"type\": \"array\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"object\",\n                \"additionalProperties\": false,\n                \"required\": [\n                  \"then\"\n                ],\n                \"properties\": {\n                  \"when\": {\n                    \"type\": \"string\",\n                    \"title\": \"条件\"\n                  },\n                  \"then\": {\n                    \"type\": \"string\",\n                    \"title\": \"対応\"\n                  },\n                  \"why\": {\n                    \"type\": \"string\",\n                    \"title\": \"理由\"\n                  }\n                }\n              }\n            }\n          },\n          \"title\": \"規則\",\n          \"description\": \"条件が成り立つときに、何をするか。理由を添える\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"transitions\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"transitions\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"transitions\": {\n              \"type\": \"array\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"object\",\n                \"additionalProperties\": false,\n                \"required\": [\n                  \"from\",\n                  \"to\"\n                ],\n                \"properties\": {\n                  \"from\": {\n                    \"type\": \"string\",\n                    \"title\": \"移る前\"\n                  },\n                  \"to\": {\n                    \"type\": \"string\",\n                    \"title\": \"移った後\"\n                  },\n                  \"when\": {\n                    \"type\": \"string\",\n                    \"title\": \"移る条件\"\n                  },\n                  \"detail\": {\n                    \"type\": \"string\",\n                    \"title\": \"詳しく\"\n                  }\n                }\n              }\n            }\n          },\n          \"title\": \"移行\",\n          \"description\": \"ある状態から別の状態へ移る条件\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"table\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"comparison\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何を対比するか\",\n              \"x-view\": \"lead\"\n            },\n            \"explanation\": {\n              \"type\": \"array\",\n              \"title\": \"読み方\",\n              \"x-view\": \"paras\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"string\"\n              }\n            },\n            \"table\": {\n              \"type\": \"object\",\n              \"additionalProperties\": false,\n              \"required\": [\n                \"head\",\n                \"rows\"\n              ],\n              \"properties\": {\n                \"head\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"type\": \"string\"\n                  }\n                },\n                \"rows\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"type\": \"array\",\n                    \"items\": {\n                      \"type\": \"string\"\n                    }\n                  }\n                }\n              },\n              \"x-view\": \"table\"\n            }\n          },\n          \"title\": \"表\",\n          \"description\": \"複数の対象を、同じ観点で並べる\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"svg\",\n            \"declaration\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"figure\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何を示すか\",\n              \"x-view\": \"lead\"\n            },\n            \"explanation\": {\n              \"type\": \"array\",\n              \"title\": \"読み方\",\n              \"x-view\": \"paras\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"string\"\n              }\n            },\n            \"svg\": {\n              \"type\": \"string\",\n              \"title\": \"SVG\",\n              \"x-view\": \"svg\"\n            },\n            \"declaration\": {\n              \"type\": \"object\",\n              \"x-view\": \"hidden\"\n            },\n            \"caveats\": {\n              \"type\": \"array\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"object\",\n                \"additionalProperties\": false,\n                \"required\": [\n                  \"where\",\n                  \"note\"\n                ],\n                \"properties\": {\n                  \"where\": {\n                    \"type\": \"string\",\n                    \"title\": \"どこの話か\"\n                  },\n                  \"note\": {\n                    \"type\": \"string\",\n                    \"title\": \"図に載せきれないこと\"\n                  }\n                }\n              }\n            }\n          },\n          \"title\": \"図\",\n          \"description\": \"構造を図で示す。描画は design-svg が持つ\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"steps\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"steps\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何の手順か\",\n              \"x-view\": \"lead\"\n            },\n            \"steps\": {\n              \"type\": \"array\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"object\",\n                \"additionalProperties\": false,\n                \"required\": [\n                  \"do\"\n                ],\n                \"properties\": {\n                  \"do\": {\n                    \"type\": \"string\",\n                    \"title\": \"何をする\"\n                  },\n                  \"why\": {\n                    \"type\": \"string\",\n                    \"title\": \"理由\"\n                  }\n                }\n              },\n              \"x-view\": \"steps\"\n            }\n          },\n          \"title\": \"手順\",\n          \"description\": \"順に実施すること\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"code\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"example\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何の例か\",\n              \"x-view\": \"lead\"\n            },\n            \"explanation\": {\n              \"type\": \"array\",\n              \"title\": \"読み方\",\n              \"x-view\": \"paras\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"string\"\n              }\n            },\n            \"code\": {\n              \"type\": \"string\",\n              \"title\": \"コード\",\n              \"x-view\": \"code\"\n            }\n          },\n          \"title\": \"例\",\n          \"description\": \"コードや記録の具体例\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"caveats\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"caveats\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"purpose\": {\n              \"type\": \"string\",\n              \"title\": \"何に当てはまるか\",\n              \"description\": \"続く規則 ・ 注意のすべてに共通する前置き。1回だけ置き、各行に繰り返さない\",\n              \"x-view\": \"lead\"\n            },\n            \"caveats\": {\n              \"type\": \"array\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"object\",\n                \"additionalProperties\": false,\n                \"required\": [\n                  \"note\"\n                ],\n                \"properties\": {\n                  \"where\": {\n                    \"type\": \"string\",\n                    \"title\": \"どこの話か\"\n                  },\n                  \"note\": {\n                    \"type\": \"string\",\n                    \"title\": \"注意\"\n                  }\n                }\n              }\n            }\n          },\n          \"title\": \"注意\",\n          \"description\": \"読み違えやすい点\"\n        },\n        {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"required\": [\n            \"kind\",\n            \"text\"\n          ],\n          \"properties\": {\n            \"kind\": {\n              \"const\": \"note\"\n            },\n            \"heading\": {\n              \"type\": \"string\",\n              \"title\": \"小見出し\",\n              \"x-view\": \"subhead\"\n            },\n            \"text\": {\n              \"type\": \"array\",\n              \"title\": \"本文\",\n              \"x-view\": \"paras\",\n              \"minItems\": 1,\n              \"items\": {\n                \"type\": \"string\"\n              }\n            }\n          },\n          \"title\": \"補足\",\n          \"description\": \"他の形に当てはまらない説明\"\n        }\n      ]\n    }\n  }\n}",
+   "marks": [
+    {
+     "find": "\"title\": \"{{助言の対象}}の判断基準\",",
+     "before": "\"title\": \"テスト方針 ・ 実装の強度 ・ 完了の定義の判断基準\",\n\"description\": \"qa-advisor が相談に回答するときの拠りどころ。1件が1つの概念の判断基準である\",",
+     "why": "題と説明を advisor ごとに埋める場所にした。変えてよいのは題 ・ 説明だけである"
+    },
+    {
+     "find": "\"pattern\": \"^[a-z][a-z0-9]*(-[a-z0-9]+)*$\",",
+     "before": "\"topics\",\n\"source\"\n\"pattern\": \"^[a-z0-9]+(-[a-z0-9]+)*$\"\n\"x-view\": \"heading\"",
+     "why": "id を概念の英語の短い名前にした"
+    },
+    {
+     "find": "\"source\"",
+     "before": "\"units\"",
+     "why": "出典を節ごとに持つ形にした。原典 ・ 章と節 ・ 所在 ・ 取得した日 ・ 移し方を必須にした（advisor-creator の論点3）"
+    },
+    {
+     "find": "\"svg\"",
+     "before": "\"svg\",\n\"declaration\"",
+     "why": "図の宣言を正本から外し、SVG を同梱する形にした。描く道具を名指ししない"
+    },
+    {
+     "find": "\"x-view\": \"svg\",",
+     "before": "\"x-view\": \"svg\"\n},\n\"declaration\": {\n\"type\": \"object\",\n\"x-view\": \"hidden\"",
+     "why": "図の宣言を正本から外し、SVG を同梱する形にした。描く道具を名指ししない"
+    },
+    {
+     "find": "\"description\": \"構造を図で示す。SVG は references/figures/ に同梱する\"",
+     "before": "\"description\": \"構造を図で示す。描画は design-svg が持つ\"",
+     "why": "図の宣言を正本から外し、SVG を同梱する形にした。描く道具を名指ししない"
+    },
+    {
+     "find": "\"topics\"",
+     "before": "\"topics\",\n\"source\"",
+     "why": "判断基準1件の必須の欄から出典を外した。出典は節ごとに持つ（advisor-creator の論点3）"
+    },
+    {
+     "find": "\"source\": {",
+     "before": "（判断基準1件の出典 ── 原典 ・ 移し方 ・ 留保事項）",
+     "why": "出典を節ごとに持つ形にした。原典 ・ 章と節 ・ 所在 ・ 取得した日 ・ 移し方を必須にした（advisor-creator の論点3）"
+    },
+    {
+     "find": "\"source\": {",
+     "before": "判断基準1件の出典（原典 ・ 移し方 ・ 留保事項）",
+     "why": "判断基準1件の出典の欄を外した。出典は節ごとに持つ"
+    }
+   ]
+  },
+  {
+   "key": "answer",
+   "tab": "回答のスキーマ（qa との差）",
+   "file": ".claude/skills/skills-creator/references/types/advisor/answer.schema.json",
+   "before": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"answer.schema.json\",\n  \"title\": \"qa-advisor の回答\",\n  \"description\": \"qa-advisor が 完了の定義 ・ 実装の強度 ・ テスト計画の判断に回答するときの形。人は描画した HTML で読む\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\n    \"kind\",\n    \"question\",\n    \"conclusion\",\n    \"grounds\",\n    \"next\"\n  ],\n  \"properties\": {\n    \"$schema\": {\n      \"type\": \"string\",\n      \"x-view\": \"hidden\"\n    },\n    \"kind\": {\n      \"title\": \"相談種別\",\n      \"x-view\": \"tag\",\n      \"oneOf\": [\n        {\n          \"const\": \"definition-of-done\",\n          \"title\": \"完了の定義\"\n        },\n        {\n          \"const\": \"strength\",\n          \"title\": \"強度の評価\"\n        },\n        {\n          \"const\": \"test-planning\",\n          \"title\": \"テスト計画\"\n        }\n      ]\n    },\n    \"question\": {\n      \"title\": \"相談\",\n      \"description\": \"相談された対象と問い\",\n      \"type\": \"string\",\n      \"x-view\": \"heading\"\n    },\n    \"premises\": {\n      \"title\": \"前置き\",\n      \"description\": \"判定の前に確定させた前提と、その出所\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"name\",\n          \"value\"\n        ],\n        \"properties\": {\n          \"name\": {\n            \"type\": \"string\",\n            \"title\": \"前提\"\n          },\n          \"value\": {\n            \"type\": \"string\",\n            \"title\": \"内容\"\n          },\n          \"source\": {\n            \"type\": \"string\",\n            \"title\": \"出所\"\n          }\n        }\n      },\n      \"$comment\": \"未判定の前提は、未判定であることを内容に書く\"\n    },\n    \"conclusion\": {\n      \"title\": \"結論\",\n      \"x-view\": \"card\",\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"headline\",\n        \"stance\"\n      ],\n      \"properties\": {\n        \"stance\": {\n          \"title\": \"判定\",\n          \"x-view\": \"tag\",\n          \"oneOf\": [\n            {\n              \"const\": \"adopt\",\n              \"title\": \"採る\"\n            },\n            {\n              \"const\": \"reject\",\n              \"title\": \"採らない\"\n            },\n            {\n              \"const\": \"conditional\",\n              \"title\": \"条件付きで採る\"\n            },\n            {\n              \"const\": \"define\",\n              \"title\": \"定義\"\n            },\n            {\n              \"const\": \"sound\",\n              \"title\": \"良好\"\n            },\n            {\n              \"const\": \"weak\",\n              \"title\": \"弱い\"\n            }\n          ]\n        },\n        \"headline\": {\n          \"title\": \"結論\",\n          \"type\": \"string\",\n          \"$comment\": \"1文で言い切る\"\n        },\n        \"because\": {\n          \"title\": \"なぜ\",\n          \"description\": \"判断基準に基づく理由\",\n          \"type\": \"string\",\n          \"$comment\": \"1〜2文で書く\"\n        }\n      }\n    },\n    \"definition\": {\n      \"title\": \"定義\",\n      \"x-view\": \"card\",\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"term\",\n        \"meaning\"\n      ],\n      \"properties\": {\n        \"term\": {\n          \"title\": \"用語\",\n          \"x-view\": \"tag\",\n          \"type\": \"string\"\n        },\n        \"meaning\": {\n          \"title\": \"意味\",\n          \"type\": \"string\"\n        }\n      }\n    },\n    \"figure\": {\n      \"title\": \"図で確認する\",\n      \"x-view\": \"figure\",\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"caption\",\n        \"nodes\",\n        \"edges\"\n      ],\n      \"description\": \"結論の構造を図で示す\",\n      \"properties\": {\n        \"caption\": {\n          \"title\": \"図が示すこと\",\n          \"type\": \"string\"\n        },\n        \"nodes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\n              \"id\",\n              \"label\"\n            ],\n            \"properties\": {\n              \"id\": {\n                \"type\": \"string\"\n              },\n              \"label\": {\n                \"type\": \"string\"\n              },\n              \"role\": {\n                \"type\": \"string\"\n              }\n            }\n          }\n        },\n        \"edges\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"required\": [\n              \"from\",\n              \"to\"\n            ],\n            \"properties\": {\n              \"from\": {\n                \"type\": \"string\"\n              },\n              \"to\": {\n                \"type\": \"string\"\n              },\n              \"label\": {\n                \"type\": \"string\"\n              },\n              \"dashed\": {\n                \"type\": \"boolean\"\n              }\n            }\n          }\n        },\n        \"svg\": {\n          \"type\": \"string\",\n          \"description\": \"design-svg が組んだ SVG の置き場所\"\n        }\n      },\n      \"$comment\": \"節点と辺で宣言する。SVG は design-svg が組み、Orchestrator が svg の欄に置く。閉じた流れは輪の配置で組む\"\n    },\n    \"comparison\": {\n      \"title\": \"比較した案\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 2,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"option\",\n          \"effect\",\n          \"chosen\"\n        ],\n        \"properties\": {\n          \"option\": {\n            \"title\": \"案\",\n            \"type\": \"string\"\n          },\n          \"effect\": {\n            \"title\": \"何が起きるか\",\n            \"type\": \"string\"\n          },\n          \"chosen\": {\n            \"title\": \"採否\",\n            \"x-view\": \"tag\",\n            \"oneOf\": [\n              {\n                \"const\": true,\n                \"title\": \"採る\"\n              },\n              {\n                \"const\": false,\n                \"title\": \"採らない\"\n              }\n            ]\n          }\n        }\n      }\n    },\n    \"path\": {\n      \"title\": \"判断の道筋\",\n      \"x-view\": \"steps\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"ask\",\n          \"answer\"\n        ],\n        \"properties\": {\n          \"ask\": {\n            \"title\": \"問い\",\n            \"type\": \"string\"\n          },\n          \"answer\": {\n            \"title\": \"答え\",\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"steps\": {\n      \"title\": \"実装の手順\",\n      \"x-view\": \"steps\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"do\",\n          \"detail\"\n        ],\n        \"properties\": {\n          \"do\": {\n            \"title\": \"すること\",\n            \"type\": \"string\"\n          },\n          \"detail\": {\n            \"title\": \"詳細\",\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"code\": {\n      \"title\": \"コードの例\",\n      \"description\": \"良い例と、避ける例\",\n      \"x-view\": \"blocks\",\n      \"$ref\": \"#/$defs/blocks\"\n    },\n    \"examples\": {\n      \"title\": \"具体例\",\n      \"x-view\": \"list\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"grounds\": {\n      \"title\": \"根拠\",\n      \"description\": \"判定の拠りどころにした判断基準の記述\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"criterion\",\n          \"quote\"\n        ],\n        \"properties\": {\n          \"criterion\": {\n            \"title\": \"判断基準\",\n            \"type\": \"string\"\n          },\n          \"quote\": {\n            \"title\": \"引用\",\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"$comment\": \"criteria の記述を言い換えずに引く\"\n    },\n    \"cautions\": {\n      \"title\": \"注意\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"name\",\n          \"risk\",\n          \"alternative\"\n        ],\n        \"properties\": {\n          \"name\": {\n            \"title\": \"アンチパターン\",\n            \"type\": \"string\"\n          },\n          \"risk\": {\n            \"title\": \"リスク\",\n            \"type\": \"string\"\n          },\n          \"alternative\": {\n            \"title\": \"代替案\",\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"records\": {\n      \"title\": \"記録案\",\n      \"description\": \"仕様書などへ記録すべき内容。該当しない相談では置かない\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"target\",\n          \"content\"\n        ],\n        \"properties\": {\n          \"target\": {\n            \"type\": \"string\",\n            \"title\": \"記録先\"\n          },\n          \"content\": {\n            \"type\": \"string\",\n            \"title\": \"記録する内容\"\n          }\n        }\n      }\n    },\n    \"referrals\": {\n      \"title\": \"差し戻し\",\n      \"description\": \"原因が上流の判断に在る疑い。断定せず、疑いとして示す\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"suspect\",\n          \"why\"\n        ],\n        \"properties\": {\n          \"suspect\": {\n            \"type\": \"string\",\n            \"title\": \"疑われる上流（advisor ・ 判断）\"\n          },\n          \"why\": {\n            \"type\": \"string\",\n            \"title\": \"疑う理由\"\n          }\n        }\n      }\n    },\n    \"next\": {\n      \"title\": \"次にすること\",\n      \"x-view\": \"list\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"$comment\": \"動詞で始める\"\n    },\n    \"related\": {\n      \"title\": \"関連する基準\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"criterion\",\n          \"relation\"\n        ],\n        \"properties\": {\n          \"criterion\": {\n            \"title\": \"判断基準\",\n            \"type\": \"string\"\n          },\n          \"relation\": {\n            \"title\": \"関係\",\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"ai_cautions\": {\n      \"title\": \"AI が作業するときの注意\",\n      \"description\": \"この回答の結論に、AI の作業が違反しやすい点と、それを検査する方法。工程を問わない\",\n      \"x-view\": \"table\",\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"$comment\": \"任意の欄。置くかどうかは advisor ごとに SKILL.md が決める。設計 ・ 実装 ・ 試験 ・ 文書のどの工程でもよい。一般論ではなく、機械で検査できる形で書く\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"breaks\",\n          \"check\"\n        ],\n        \"properties\": {\n          \"breaks\": {\n            \"title\": \"違反しやすい点\",\n            \"type\": \"string\"\n          },\n          \"check\": {\n            \"title\": \"検査する方法\",\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  },\n  \"allOf\": [\n    {\n      \"if\": {\n        \"properties\": {\n          \"kind\": {\n            \"const\": \"definition-of-done\"\n          }\n        }\n      },\n      \"then\": {\n        \"required\": [\n          \"path\"\n        ]\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"kind\": {\n            \"const\": \"strength\"\n          }\n        }\n      },\n      \"then\": {\n        \"required\": [\n          \"path\"\n        ]\n      }\n    },\n    {\n      \"if\": {\n        \"properties\": {\n          \"kind\": {\n            \"const\": \"test-planning\"\n          }\n        }\n      },\n      \"then\": {\n        \"required\": [\n          \"path\"\n        ]\n      }\n    }\n  ],\n  \"$comment\": \"人は HTML で読む。description は読み手に表示する説明、$comment は回答を書く側への指示で、描画しない。x-view は見せ方の指定である。回答は相談ごとの出力であり、references に置かない\",\n  \"$defs\": {\n    \"blocks\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"kind\"\n        ],\n        \"oneOf\": [\n          {\n            \"properties\": {\n              \"kind\": {\n                \"const\": \"para\"\n              },\n              \"text\": {\n                \"type\": \"string\"\n              }\n            },\n            \"required\": [\n              \"kind\",\n              \"text\"\n            ],\n            \"additionalProperties\": false\n          },\n          {\n            \"properties\": {\n              \"kind\": {\n                \"const\": \"list\"\n              },\n              \"ordered\": {\n                \"type\": \"boolean\"\n              },\n              \"items\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"string\"\n                }\n              }\n            },\n            \"required\": [\n              \"kind\",\n              \"items\"\n            ],\n            \"additionalProperties\": false\n          },\n          {\n            \"properties\": {\n              \"kind\": {\n                \"const\": \"table\"\n              },\n              \"head\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"string\"\n                }\n              },\n              \"rows\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"type\": \"string\"\n                  }\n                }\n              }\n            },\n            \"required\": [\n              \"kind\",\n              \"head\",\n              \"rows\"\n            ],\n            \"additionalProperties\": false\n          },\n          {\n            \"properties\": {\n              \"kind\": {\n                \"const\": \"code\"\n              },\n              \"text\": {\n                \"type\": \"string\"\n              }\n            },\n            \"required\": [\n              \"kind\",\n              \"text\"\n            ],\n            \"additionalProperties\": false\n          },\n          {\n            \"properties\": {\n              \"kind\": {\n                \"const\": \"figure\"\n              },\n              \"svg\": {\n                \"type\": \"string\"\n              },\n              \"caption\": {\n                \"type\": \"string\"\n              },\n              \"declaration\": {\n                \"type\": \"object\"\n              }\n            },\n            \"required\": [\n              \"kind\",\n              \"svg\"\n            ],\n            \"additionalProperties\": false\n          }\n        ]\n      }\n    }\n  }\n}",
+   "marks": [
+    {
+     "find": "\"title\": \"{{Skill名}} の回答\",",
+     "before": "\"title\": \"qa-advisor の回答\",\n\"description\": \"qa-advisor が 完了の定義 ・ 実装の強度 ・ テスト計画の判断に回答するときの形。人は描画した HTML で読む\",",
+     "why": "題と説明を advisor ごとに埋める場所にした"
+    },
+    {
+     "find": "\"const\": \"concept\",",
+     "before": "\"const\": \"definition-of-done\",\n\"title\": \"完了の定義\"\n\"const\": \"strength\",\n\"title\": \"強度の評価\"\n\"const\": \"test-planning\",\n\"title\": \"テスト計画\"\n]",
+     "why": "相談種別を、全ての助言型に共通の概念 ・ 判断 ・ 設計にした"
+    },
+    {
+     "find": "\"description\": \"図の SVG の置き場所（任意）。描く道具は問わない ── 回答の図は、節点と辺の宣言だけで成り立つ\"",
+     "before": "\"description\": \"design-svg が組んだ SVG の置き場所\"\n},\n\"$comment\": \"節点と辺で宣言する。SVG は design-svg が組み、Orchestrator が svg の欄に置く。閉じた流れは輪の配置で組む\"",
+     "why": "回答の図の SVG を任意にし、描く道具を名指ししない"
+    },
+    {
+     "find": "\"title\": \"設計の手順\",",
+     "before": "\"title\": \"実装の手順\",",
+     "why": "設計相談の必須の欄の名前にした"
+    },
+    {
+     "find": "\"const\": \"concept\"",
+     "before": "\"const\": \"definition-of-done\"",
+     "why": "相談種別を、全ての助言型に共通の概念 ・ 判断 ・ 設計にした"
+    },
+    {
+     "find": "\"const\": \"design\"",
+     "before": "\"const\": \"strength\"\n\"path\"\n]\n}\n},\n{\n\"if\": {\n\"properties\": {\n\"kind\": {\n\"const\": \"test-planning\"\n}\n}\n},\n\"then\": {\n\"required\": [\n\"path\"",
+     "why": "相談種別を、全ての助言型に共通の概念 ・ 判断 ・ 設計にした"
+    }
+   ]
+  },
+  {
+   "key": "accept",
+   "tab": "accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/accept.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "// SPDX-License-Identifier: MIT",
+     "before": "（無い）",
+     "why": "受け入れの検査（機械の7件）を道具にした。学習ノートは references/archive/notes/*.md から読み、Markdown の記法を外して照合する"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use sc_business_logic::{accept, check, profile, scaffold};",
+     "before": "use sc_business_logic::{check, profile, scaffold};",
+     "why": "accept を道具の一覧に載せた"
+    },
+    {
+     "find": "// **助言型の SKILL.md の雛形は、型の置き場所が持つ**（ACDR 0061 ── advisor-creator を廃止した）",
+     "before": "let advisor = here.parent().map_or_else(\n|| references.join(\"skill-template-advisor.md\"),\n|skills| skills.join(\"advisor-creator/references/skill-template-advisor.md\"),\n);\ncheck::Templates::new(references.join(\"skill-template.md\"), advisor)\n.with_refs(references.join(\"profiles/rust/common/refs.rs.tmpl\"))\n.with_profiles(references.join(\"profiles\"))",
+     "why": "助言型の SKILL.md の雛形の置き場所を、advisor-creator から型の置き場所へ移した"
+    },
+    {
+     "find": "\"next\": ty.next,",
+     "before": "（無い）",
+     "why": "次にすることの案内を、型の定義から出す"
+    },
+    {
+     "find": "if let Some(next) = out.data.get(\"next\").and_then(|x| x.as_str()) {",
+     "before": "lines.push(\n\"次に書くもの ── 見本の道具（hello）を書き換えて、この Skill の道具にする\".to_owned(),\n);",
+     "why": "次にすることの案内を、型の定義から出す"
+    },
+    {
+     "find": "name: \"accept\",",
+     "before": "（無い）",
+     "why": "accept を道具の一覧に載せた"
+    },
+    {
+     "find": "fn run_accept(given: &Given) -> Outcome {",
+     "before": "（無い）",
+     "why": "accept を実行する。同じ置き場所の他の Skill の名前を集め、試験のコマンドは言語の組の定義から読む"
+    }
+   ]
+  },
+  {
+   "key": "profile-json",
+   "tab": "rust.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"from\": \"types/advisor/references.tests.rs.tmpl\",",
+     "before": "（無い）",
+     "why": "受け入れの検査が試験を実行するコマンドを、組の定義に持たせた"
+    },
+    {
+     "find": "\"test\": [",
+     "before": "（無い）",
+     "why": "受け入れの検査が試験を実行するコマンドを、組の定義に持たせた"
+    }
+   ]
+  },
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"request\": \"助言型の雛形と手順で advisor を作ってもらい、その本文に判定を適用してもらう\",",
+     "before": "\"request\": \"advisorの判断力の器とbackbone knowledge文書を作ってもらい、その本文に判定を適用してもらう\",\n\"advisor-creator\",",
+     "why": "新しい advisor を作るときに呼ぶ Skill を、advisor-creator から skills-creator の助言型へ替えた"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "16のSkillを組み合わせて",
+     "before": "17のSkillを組み合わせて",
+     "why": "advisor-creator を廃止したので、Skill は16になった"
+    },
+    {
+     "find": "fact-check ・ skills-creator）",
+     "before": "fact-check ・ skills-creator ・ advisor-creator）",
+     "why": "作る側の Skill から advisor-creator を外した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "c8d4eee0c5f81f60a2eae27c5cbeaf5e44fa6d265c54a45dc5830f204b562ffc",
+  "procedure": "a124f5119c249fef57a734db1e299a77af027879a923567643529d132ec680d9",
+  "template": "e9cf09002ec8d97ce4f7652ef06a4f6dd87f0884f491dd3dfaaeefadb4009ccc",
+  "criteria": "b0e204cead98422802914237a7bb811fb4268899b8ecaa6a0ca5e4722cda54ed",
+  "answer": "20571be31857e3c00b4906dc2b0c6228f8d070bf129758feec9762d6e08ea984",
+  "accept": "21a097c5be8e4ecbd2c389d0f4c3c21b46162d3ac302ca37e1f08cef3ba59940",
+  "service": "2d0131a0f958443c0f82171c9f3dd7e50bb9d0a164f6a335b90b47c6b177eb32",
+  "profile-json": "1d473e683808efb892920f19eb9708be9bd598718a1d481e398d0a0304bf3708",
+  "wiring": "7e6026a58790327ca04f869fbee974702a3400a47a1a4f1a4526617ee735a2e8",
+  "claude": "893391e3a8552ad39d9de28ace88a84b5ad96ef0c1508a901e12901c31e67dc4"
+ }
+}

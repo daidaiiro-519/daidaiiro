@@ -8,7 +8,7 @@ pub mod contract;
 
 use std::path::{Path, PathBuf};
 
-use sc_business_logic::{check, profile, scaffold};
+use sc_business_logic::{accept, check, profile, scaffold};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -27,19 +27,83 @@ macro_rules! or_misuse {
 /// 雛形の置き場所。**この crate が Skill の並びを知る唯一の場所である。**
 fn templates(here: &Path) -> check::Templates {
     let references = here.join("references");
-    let advisor = here.parent().map_or_else(
-        || references.join("skill-template-advisor.md"),
-        |skills| skills.join("advisor-creator/references/skill-template-advisor.md"),
-    );
-    check::Templates::new(references.join("skill-template.md"), advisor)
-        .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
-        .with_profiles(references.join("profiles"))
+    // **助言型の SKILL.md の雛形は、型の置き場所が持つ**（ACDR 0061 ── advisor-creator を廃止した）
+    check::Templates::new(
+        references.join("skill-template.md"),
+        references.join("types/advisor/skill-template.md"),
+    )
+    .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
+    .with_profiles(references.join("profiles"))
 }
 
 /// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の
 /// 置き場所に依存する。引数で受け取り、渡されなければいま作業している場所を使う。
 fn skill_root(given: &Given) -> Result<PathBuf, String> {
     given.skill_root()
+}
+
+fn run_accept(given: &Given) -> Outcome {
+    let root = PathBuf::from(given.one("path", ""));
+    if root.as_os_str().is_empty() {
+        return Outcome::misuse("advisor のフォルダを渡していない".to_owned());
+    }
+    let here = or_misuse!(skill_root(given));
+    let dir = here.join("references/profiles");
+    let Some(found) = profile::of(&root, &dir) else {
+        return Outcome::misuse(format!(
+            "言語の組が決まらない: {} ── 組の定義の detect が在る Skill を渡す",
+            root.display()
+        ));
+    };
+    // **同じ置き場所の他の Skill の名前を集める** ── 助言型は、それらを名指ししない
+    let own = root
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let others = scaffold::siblings(&root)
+        .into_iter()
+        .filter(|n| *n != own)
+        .collect::<Vec<_>>();
+    let checks = accept::accept(&root, &others, &found.test);
+    let findings: Vec<String> = checks
+        .iter()
+        .flat_map(|c| c.findings.iter().map(move |f| format!("{} {f}", c.no)))
+        .collect();
+    let data: Vec<serde_json::Value> = checks
+        .iter()
+        .map(|c| json!({ "no": c.no, "what": c.what, "pass": c.findings.is_empty(), "findings": c.findings }))
+        .collect();
+    Outcome::found(findings, json!({ "checks": data }))
+}
+
+fn human_accept(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join(" ／ ");
+    }
+    let mut lines = Vec::new();
+    for c in out
+        .data
+        .get("checks")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
+        let mark = if c["pass"].as_bool().unwrap_or(false) {
+            "OK"
+        } else {
+            "×"
+        };
+        lines.push(format!(
+            "  {mark}  {} {}",
+            c["no"],
+            c["what"].as_str().unwrap_or_default()
+        ));
+        for f in c["findings"].as_array().into_iter().flatten() {
+            lines.push(format!("       {}", f.as_str().unwrap_or_default()));
+        }
+    }
+    lines.push("8 目視（人）── 判断基準と回答の頁を、1200px と 390px で描画して読む".to_owned());
+    lines.join("\n")
 }
 
 fn run_check(given: &Given) -> Outcome {
@@ -188,6 +252,7 @@ fn run_scaffold(given: &Given) -> Outcome {
             "root": root.display().to_string(),
             "language": found.name,
             "type": ty.name,
+            "next": ty.next,
             "build": found.build,
         }),
     )
@@ -209,9 +274,9 @@ fn human_scaffold(out: &Outcome) -> String {
         .map(|p| format!("置いた: {p}"))
         .collect();
     lines.extend(out.findings.iter().cloned());
-    lines.push(
-        "次に書くもの ── 見本の道具（hello）を書き換えて、この Skill の道具にする".to_owned(),
-    );
+    if let Some(next) = out.data.get("next").and_then(|x| x.as_str()) {
+        lines.push(format!("次に書くもの ── {next}"));
+    }
     let build: Vec<String> = out
         .data
         .get("build")
@@ -336,6 +401,20 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_check,
             human: human_check,
+        },
+        Tool {
+            name: "accept",
+            summary: "助言型の受け入れの検査（機械の7件）を行う",
+            args: vec![
+                Arg::need("path", "advisor のフォルダ"),
+                Arg::opt(
+                    "skill_root",
+                    "この Skill の置き場所（既定は、実行ファイルの1つ上）",
+                    None,
+                ),
+            ],
+            run: run_accept,
+            human: human_accept,
         },
         Tool {
             name: "dist",

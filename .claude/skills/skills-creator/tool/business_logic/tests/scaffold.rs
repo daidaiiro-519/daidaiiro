@@ -82,10 +82,10 @@ fn a_type_without_templates_in_the_language_is_refused() {
     // **型の一式を持たない組では生まない** ── 生んでから壊れていると分かる形にしない
     let (profiles, types) = defs();
     let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let why = profile::plan(&profiles, &types, &rust, &advisor).expect_err("まだ断る");
+    let generate = profile::load_type(&types, "generate").expect("生成型が在る");
+    let why = profile::plan(&profiles, &types, &rust, &generate).expect_err("まだ断る");
     assert!(
-        why.contains("助言型") && why.contains("雛形をまだ持たない"),
+        why.contains("生成型") && why.contains("雛形をまだ持たない"),
         "{why}"
     );
 }
@@ -95,4 +95,23 @@ fn an_unknown_type_lists_the_known_ones() {
     let (_, types) = defs();
     let why = profile::load_type(&types, "nope").expect_err("無い型");
     assert!(why.contains("work") && why.contains("advisor"), "{why}");
+}
+
+#[test]
+fn an_advisor_skill_can_be_planned_in_rust() {
+    // **助言型は、スキーマ ・ SKILL.md（型の側）と、references の道具と事例（組の側）を置く**
+    let (profiles, types) = defs();
+    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    let plan = profile::plan(&profiles, &types, &rust, &advisor).expect("組み合わせられる");
+    for to in [
+        "references/criteria.schema.json",
+        "references/answer.schema.json",
+        "SKILL.md",
+        "tool/business_logic/tests/references.rs",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    // **見本の道具は置かない** ── 助言型の道具は references の4つだけである
+    assert!(!plan.iter().any(|(_, t)| t.ends_with("hello.rs")));
 }

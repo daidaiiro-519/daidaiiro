@@ -9,6 +9,7 @@
 // 公開すると、上の層がこの crate を経由してデータアクセス層へ届き、層を飛ばせてしまう
 use sc_data_access as data_access;
 
+pub mod accept;
 pub mod behavior;
 pub mod check;
 pub mod profile;

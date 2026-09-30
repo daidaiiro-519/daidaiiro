@@ -377,6 +377,7 @@ fn builtin_rust(root: &Path) -> Option<Profile> {
             common: Vec::new(),
             types: std::collections::BTreeMap::new(),
             build: Vec::new(),
+            test: Vec::new(),
             extensions: vec![".rs".to_owned()],
             skip: vec![
                 "target".to_owned(),

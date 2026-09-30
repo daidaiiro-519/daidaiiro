@@ -12,7 +12,7 @@ fn templates() -> Templates {
     let skills = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
     Templates::new(
         skills.join("skills-creator/references/skill-template.md"),
-        skills.join("advisor-creator/references/skill-template-advisor.md"),
+        skills.join("skills-creator/references/types/advisor/skill-template.md"),
     )
 }
 

@@ -29,6 +29,8 @@ pub struct Profile {
     pub types: BTreeMap<String, Vec<(String, String)>>,
     /// 生んだあとに Skill のフォルダで実行する組み立てのコマンド。
     pub build: Vec<String>,
+    /// Skill のフォルダで試験を実行するコマンド（先頭がコマンド、残りが引数）。
+    pub test: Vec<String>,
     /// ソースのファイルの拡張子。
     pub extensions: Vec<String>,
     /// ソースを探すときに入らないフォルダの名前。
@@ -89,6 +91,7 @@ fn parse(body: &str, at: &Path) -> Result<Profile, String> {
         common: pairs(v.get("common")),
         types,
         build: strings(&v, "build"),
+        test: strings(&v, "test"),
         extensions: strings(&sources, "extensions"),
         skip: strings(&sources, "skip"),
         spawn: strings(&v, "spawn"),
@@ -157,6 +160,8 @@ pub struct SkillType {
     pub label: String,
     /// この型が要る契約の版。
     pub contract: u64,
+    /// 生んだあとに次にすること（人向けの1文）。
+    pub next: String,
     /// 言語に依存しない一式 ── 雛形（型のフォルダからの相対）と、置く先。
     pub items: Vec<(String, String)>,
 }
@@ -189,6 +194,7 @@ pub fn load_type(dir: &Path, name: &str) -> Result<SkillType, String> {
         name: text("name"),
         label: text("label"),
         contract: v.get("contract").and_then(Value::as_u64).unwrap_or(1),
+        next: text("next"),
         items: pairs(v.get("items")),
     })
 }
