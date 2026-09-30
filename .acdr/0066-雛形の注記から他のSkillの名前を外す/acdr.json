@@ -1,0 +1,109 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0066",
+ "title": "雛形の注記から他の Skill の名前を外す",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator の Rust の雛形（refs.rs.tmpl ・ contract.rs.tmpl）の注記から、他の Skill の名前（acdr ・ design-svg ・ fact-check）を外す。",
+ "why": "助言型は他の Skill に依存せず単体で動くと決め、accept の検査6が SKILL.md ・ スキーマ ・ 道具に他の Skill の名前が無いことを見る（ACDR 0061）。ところが雛形そのものの注記に3つの名前が残っており、scaffold --type advisor で生んだ advisor は必ず検査6で不合格になる。usecase-advisor の作り直しで accept を実行して判明した。注記は動作に影響しないが、雛形と検査の決まりを一致させるため、注記の側を直す。",
+ "shift": [
+  {
+   "what": "雛形の注記",
+   "from": "acdr ・ design-svg ・ fact-check を例として名指しする",
+   "to": "名前を出さずに同じことを書く（差分の面 ・ 呼ぶ側 ・ 実測）"
+  },
+  {
+   "what": "生んだ advisor の検査6",
+   "from": "どの advisor でも3件を検出して不合格",
+   "to": "検出0件"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "雛形から生んだ advisor の道具を accept の検査6が見る。変更前は注記の名前で必ず不合格になり、変更後は検出0件になる",
+ "alternatives": [
+  {
+   "option": "accept の検査6の対象から、道具のコードの注記を外す",
+   "why_not": "注記を除く規則を道具ごとの言語で実装することになり、検査が複雑になる。雛形の注記は他の Skill の名前が無くても意味が通る"
+  },
+  {
+   "option": "usecase-advisor の ACDR に含める",
+   "why_not": "雛形の欠陥は5つの advisor すべてに及ぶ。advisor ごとの ACDR に入れると、どの記録で直したかが追えなくなる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tmpl-refs",
+   "tab": "refs.rs.tmpl（雛形）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 他の型（差分の面など）と同じ頁に置いても、見た目が混ざらない。",
+     "why": "acdr の名前を外した。どの型の頁と並べても見た目が混ざらない、という意味は変わらない",
+     "before": "/// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。"
+    },
+    {
+     "find": "/// 描くのは呼ぶ側で、ここは描かない。",
+     "why": "design-svg の名前を外した。図は呼ぶ側が SVG を用意し、ここは埋め込むだけである（助言型の手順の段6：描く道具は問わない）",
+     "before": "/// 描くのは design-svg で、ここは描かない。"
+    }
+   ]
+  },
+  {
+   "key": "tmpl-contract",
+   "tab": "contract.rs.tmpl（雛形）",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/contract.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Skill も在る（実測）。",
+     "why": "fact-check の名前を外した。references/ を持たない Skill が在るという実測の事実だけを残す",
+     "before": "Skill も在る（実測 ── fact-check）。"
+    }
+   ]
+  },
+  {
+   "key": "sc-refs",
+   "tab": "skills-creator の refs.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 他の型（差分の面など）と同じ頁に置いても、見た目が混ざらない。",
+     "why": "acdr の名前を外した。どの型の頁と並べても見た目が混ざらない、という意味は変わらない",
+     "before": "/// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。"
+    },
+    {
+     "find": "/// 描くのは呼ぶ側で、ここは描かない。",
+     "why": "design-svg の名前を外した。図は呼ぶ側が SVG を用意し、ここは埋め込むだけである（助言型の手順の段6：描く道具は問わない）",
+     "before": "/// 描くのは design-svg で、ここは描かない。"
+    }
+   ]
+  },
+  {
+   "key": "sc-contract",
+   "tab": "skills-creator の contract.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Skill も在る（実測）。",
+     "why": "fact-check の名前を外した。references/ を持たない Skill が在るという実測の事実だけを残す",
+     "before": "Skill も在る（実測 ── fact-check）。"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、4つのファイルと記録をコミットする",
+  "他の13の Skill の道具にある refs.rs ・ contract.rs の複製は、未承認の ACDR 0057 の作業ツリーにあるので触らない。0057 を適用するときに雛形から複製し直すよう、別のセッションへ伝える"
+ ],
+ "applies_to": "skills-creator の Rust の雛形2つと、skills-creator 自身の道具にあるその複製2つ。",
+ "seal": {
+  "tmpl-refs": "063ce81cb9e38f17c1db85b8d9aaba14ff3445c6699eb105376caa2f351f608c",
+  "tmpl-contract": "13d61b6c46e492e5fcb3874fce6cf23af7901961b0c97734e59ed6c63db97b6e",
+  "sc-refs": "063ce81cb9e38f17c1db85b8d9aaba14ff3445c6699eb105376caa2f351f608c",
+  "sc-contract": "13d61b6c46e492e5fcb3874fce6cf23af7901961b0c97734e59ed6c63db97b6e"
+ }
+}

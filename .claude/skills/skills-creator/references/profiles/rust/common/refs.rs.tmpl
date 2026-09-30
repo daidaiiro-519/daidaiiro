@@ -45,7 +45,7 @@ main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480
 }";
 
 /// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** `.rv` の囲みの中だけに効く ──
-/// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。
+/// 他の型（差分の面など）と同じ頁に置いても、見た目が混ざらない。
 const STYLE: &str = ".rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;\
 line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;\
 margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);\
@@ -872,7 +872,7 @@ fn steps_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {
 }
 
 /// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む** ──
-/// 描くのは design-svg で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。
+/// 描くのは呼ぶ側で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。
 fn blocks_html(blocks: &Value, base: &Path) -> String {
     blocks
         .as_array()
