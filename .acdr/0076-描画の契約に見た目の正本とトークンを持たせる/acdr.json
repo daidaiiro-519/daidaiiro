@@ -1,0 +1,271 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0076",
+ "title": "描画の契約に、見た目の正本と色のトークンを保持させる",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "描画の見た目を、skills-creator が持つ正本（色のトークン ・ 規則 ・ 頁の型）の複製だけから描き、描画のコードに見た目の値を保持しない。",
+ "why": "ボード skill-references の論点2で「見た目はトークンが持つ ── 色と寸法を直書きしない」と決めたが、ACDR 0044 は色など11個だけをトークンにし、字の大きさ ・ 余白 ・ 規則を描画のコードの文字列に直書きした。その文字列は5言語の描画の雛形と、雛形から作った Skill に複製され、見た目を1つ直すたびに12か所を書き換えていた。直値が混ざっても検出する仕組みが無かった。利用者は判断基準の頁の表とコードブロックを「見にくい」と指摘し、「描画する契約の場合はデザイントークンを用意するはず」と問うた。ボード view-design-tokens で4つの論点を決着させた。",
+ "shift": [
+  {
+   "what": "見た目の正本",
+   "from": "描画のコードの定数（DEFAULT_TOKENS ・ PAGE_STYLE ・ STYLE）。5言語 × 雛形から作った Skill に複製",
+   "to": "skills-creator の references/view/ の4つ（view.tokens.json ・ view.tokens.schema.json ・ view.css ・ view.template.html）"
+  },
+  {
+   "what": "配り方",
+   "from": "雛形のコードの複製に含まれる",
+   "to": "scaffold が型の定義（type.json）に従い、各 Skill の references/ へ複製する"
+  },
+  {
+   "what": "トークン",
+   "from": "色9つ ・ 角の丸み ・ 余白の11個（字の大きさ ・ 余白の多くは直書き）",
+   "to": "色だけ。差し色の違う3つのパレット（緑 ・ 藍 ・ 橙）× 明暗、10の役割。Skill は palette で1つを選ぶ"
+  },
+  {
+   "what": "Skill 固有の見た目",
+   "from": "（仕組みが無い）",
+   "to": "必要とする Skill だけが view.skill.tokens.json ・ view.skill.css を置き、描画は共通の後ろに重ねる"
+  },
+  {
+   "what": "検査",
+   "from": "無い",
+   "to": "check が、複製と正本の差 ・ 色の直値 ・ 定まらない変数 ・ 文字と地の比（4.5 以上）を検査する"
+  },
+  {
+   "what": "表とコードブロック",
+   "from": "見出しの行が 12px の薄い文字で地の色が無い。コードブロックは本文と同じ書体",
+   "to": "見出しの行に面の色と太字、行ごとに交互の地、枠。コードブロックは等幅の書体と枠と差し色の縦線"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "見た目の正本を skills-creator に1組置き、scaffold が複製し、描画は複製だけを読む。check が複製と正本の差と、色と比を検査する",
+ "alternatives": [
+  {
+   "option": "今の形のまま、足りない値をトークンへ足していく",
+   "why_not": "描画のコードの文字列が12か所に残り、直値が混ざっても検出できない（ボード論点1）"
+  },
+  {
+   "option": "各言語の道具に、ビルドのときに正本を取り込む",
+   "why_not": "取り込み方が5言語で違い、Python と TypeScript は組み立ての手順を保持しない（ボード論点2）"
+  },
+  {
+   "option": "字の大きさ ・ 余白もトークンにする",
+   "why_not": "利用者の方針（共通のトークンは色味の違いだけ）に反する。acdr の字の大きさは17段で、段階として設計しないまま値だけが増えていた（ボード論点1 ・ 3）"
+  },
+  {
+   "option": "Skill 固有の見た目を、共通の複製に直接書き足す",
+   "why_not": "check が正本との差として報告し続け、正本を直して複製し直すと消える（ボード論点4）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tokens",
+   "tab": "view.tokens.json（新）",
+   "file": ".claude/skills/skills-creator/references/view/view.tokens.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"palette\": \"teal\"",
+     "before": "（無い。見た目の値は描画のコードの DEFAULT_TOKENS が持っていた）",
+     "why": "共通のトークンは色だけにし、差し色の違う3つのパレットを明暗で持つ（ボード論点3）。Skill は palette で1つを選ぶ"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "view.css（新）",
+   "file": ".claude/skills/skills-creator/references/view/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".rv th{",
+     "before": ".rv th{color:var(--muted);font-weight:600;font-size:12px}",
+     "why": "見出しの行が薄く小さく、中身と区別できなかった（利用者の指摘）。面の色の地に太字にし、行ごとに交互の地を敷いて枠で囲む"
+    },
+    {
+     "find": ".rv pre.code{",
+     "before": ".rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}",
+     "why": "コードブロックに等幅の書体の指定が無かった。等幅にし、枠と差し色の縦線で本文と分ける"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 見た目の正本の複製（ボード view-design-tokens）",
+     "before": "const DEFAULT_TOKENS ・ DEFAULT_TEMPLATE ・ PAGE_STYLE ・ STYLE（見た目の値と規則の文字列）",
+     "why": "描画のコードに見た目の値を保持しない（ボード論点1）。読むファイルの名前だけを持つ"
+    },
+    {
+     "find": ".filter(|n| !n.starts_with(\"view.\"))",
+     "before": "（無い）",
+     "why": "見た目の正本の複製は中身の種類ではない。種類の一覧に出すと get ・ view の対象に混ざる"
+    },
+    {
+     "find": "m.shift_remove(\"$schema\");",
+     "before": "m.remove(\"$schema\");",
+     "why": "欄の順を保つ設定では remove が最後の欄を先頭へ移し、他の4言語と出力の順が食い違った（突き合わせで検出）"
+    },
+    {
+     "find": "m.shift_remove(\"$schema\");",
+     "before": "m.remove(\"$schema\");",
+     "why": "同上"
+    },
+    {
+     "find": "fn missing(name: &str) -> String {",
+     "before": "fn tokens(refs: &Path) -> String { …DEFAULT_TOKENS を並べ、view.tokens.json で上書きし、PAGE_STYLE と STYLE を続ける… } ・ pub const fn scoped_style() -> &'static str { STYLE }",
+     "why": "見た目の複製だけを読む。無ければ描かずに理由を返す（ボード論点2）。色の変数は鍵の順に並べ、5言語で同じ文字列にする。埋め込み用の scoped_style も複製から読み、色の変数は .rv に定めて、埋め込む側の :root の変数を上書きしない"
+    },
+    {
+     "find": ".map_err(|_| missing(VIEW_TEMPLATE))?;",
+     "before": ".unwrap_or_else(|_| DEFAULT_TEMPLATE.to_owned());",
+     "why": "頁の型も複製から読む。単独の頁は :root に色の変数を定める"
+    },
+    {
+     "find": "format!(\"<div class=\\\"rv\\\">{}</div>\", page_body(schema, value, &ctx))",
+     "before": "fn tokens(refs: &Path) -> String { …DEFAULT_TOKENS を並べ、view.tokens.json で上書きし、PAGE_STYLE と STYLE を続ける… }",
+     "why": "既定値をコードに持って上書きする関数を消した。見た目は複製から読む（palette_vars ・ style_for）"
+    }
+   ]
+  },
+  {
+   "key": "tsrefs",
+   "tab": "TypeScript の refs.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const VIEW_TOKENS = 'view.tokens.json';",
+     "before": "const DEFAULT_TOKENS: [string, string][] = [ ・ const DEFAULT_TEMPLATE ・ const PAGE_STYLE ・ const STYLE（見た目の値と規則をコードの文字列で保持していた）",
+     "why": "Rust の雛形と同じく、見た目を Skill の references/ に置いた正本の複製から読む形にした。コードに見た目の値を残すと、正本を直しても5言語の雛形の12か所が取り残される"
+    },
+    {
+     "find": "const RAW = JSON as unknown as",
+     "before": "（数を原文の書き方のまま保持する値の扱いが無かった）",
+     "why": "新しい検証（ACDR 0077）の conform が、design-svg の theme で Rust の 4.0 と TypeScript の 4 の不一致を2件検出した。JSON.parse が数の書き方を失うためである。JSON.rawJSON で原文の書き方を保持し、Go の雛形（UseNumber）と同じ扱いに統一した。保持した値は配列でも連想配列でもないので、isObj から外す"
+    },
+    {
+     "find": ".filter(f => !f.startsWith('view.'))",
+     "before": "（view.* のスキーマも種類として列挙していた）",
+     "why": "見た目の正本の複製は references の中身の種類ではない。Rust の kinds() と同じ除外を入れ、種類の一覧と突き合わせを統一した"
+    },
+    {
+     "find": "function readJson(path: string, keep = false): Json {",
+     "before": "function readJson(path: string): Json {",
+     "why": "取り出し ・ 描画 ・ 文書の書き戻しだけが原文の書き方を保持する。スキーマの検査は数を数として受け取る必要があるので、検査に使う値は従来どおりに読む"
+    },
+    {
+     "find": "if (!keep) return JSON.parse(body) as Json;",
+     "before": "        return JSON.parse(body) as Json;",
+     "why": "JSON.parse の3つ目の引数（原文の文字列）から、数の書き方をそのまま取り出す。Node 22.18 以上（package.json の engines）で使える"
+    },
+    {
+     "find": "const data = readJson(join(refs, `${kind}.json`), true);",
+     "before": "    const data = readJson(join(refs, `${kind}.json`));",
+     "why": "get の出力（JSON）が、原文の 4.0 を 4 に変えていた。Rust ・ Python ・ Go ・ C# の出力と一致させる"
+    },
+    {
+     "find": "const all = isFile(path) ? readJson(path, true)",
+     "before": "    const all = isFile(path) ? readJson(path) : ({ $schema: 'document.schema.json', items: [] } as Json);",
+     "why": "import が document.json を書き戻すとき、既に在る項目の数の書き方を変えてしまう。取り込んだ1件と無関係な行に差分が出るのを防ぐ"
+    },
+    {
+     "find": "if (RAW.isRawJSON(a)) a = JSON.parse(JSON.stringify(a)) as Json;",
+     "before": "（比較の前に、原文を保持した数を数へ戻す処理が無かった）",
+     "why": "スキーマの const は数として読むので、原文を保持した値のままでは一致しない。選択肢の表示名が引けなくなるのを防ぐ"
+    },
+    {
+     "find": "function missing(name: string): string {",
+     "before": "export const scopedStyle = () => STYLE; ・ function tokens(refs: string): string {（見た目の値が無ければ、コードの中の既定値へ縮退していた）",
+     "why": "複製が無いときに既定へ縮退すると、複製の欠けが見えないまま古い見た目で出る。どのファイルが無く、誰が置くかを誤りの文で示す。色は共通のパレット（view.tokens.json の palette が選ぶ1組）から明と暗の2組を組み、Skill 固有のトークンを後ろに足し、鍵の順に並べる。埋め込む側（acdr の記録の頁）の :root の変数を上書きしないよう、scopedStyle は色の変数も .rv に定める"
+    },
+    {
+     "find": "const value = file !== undefined ? readJson(file, true) : get(refs, kind);",
+     "before": "    const value = file !== undefined ? readJson(file) : get(refs, kind);",
+     "why": "view に渡した JSON（回答など）の描画でも、数を原文の書き方のまま出す。get から読む場合と統一する"
+    },
+    {
+     "find": "const style = styleFor(refs, ':root');",
+     "before": "    const style = tokens(refs);",
+     "why": "単独の頁は :root に色の変数を定める。型も複製の view.template.html だけを読み、無ければ既定へ縮退せず誤りにする ── 縮退すると、複製の欠けが見えないまま古い見た目で出る"
+    }
+   ]
+  },
+  {
+   "key": "view",
+   "tab": "view.rs（新・検査）",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn findings(root: &Path, canon: &Path)",
+     "before": "（無い）",
+     "why": "複製と正本の差、色の直値、定まらない変数、文字と地の比を check が機械で検出する（ボード論点1 ・ 2）"
+    }
+   ]
+  },
+  {
+   "key": "type",
+   "tab": "type.json（助言型）",
+   "file": ".claude/skills/skills-creator/references/types/advisor/type.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"from\": \"../../view/view.tokens.json\"",
+     "before": "（無い）",
+     "why": "scaffold が置くものは型の定義が決める。見た目の正本4つの複製を加えた（作業型 ・ 生成型も同じ）"
+    }
+   ]
+  },
+  {
+   "key": "acdr",
+   "tab": "acdr の record.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/record.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "references: &Path,",
+     "before": "pub fn header(schema: &Value, spec: &Value, figure: &str)",
+     "why": "埋め込み用の見た目を acdr 自身の references/ の複製から読むため、記録の頁を組む関数へ references の場所を渡す"
+    },
+    {
+     "find": "refs::scoped_style(references)?",
+     "before": "refs::scoped_style(),",
+     "why": "埋め込み用の見た目も、acdr 自身の references/ の複製から読む。色の変数は .rv に定めるので、acdr の頁の変数を上書きしない"
+    },
+    {
+     "find": "header(shop.schema, spec, figure, shop.references)",
+     "before": "header(shop.schema, spec, figure)",
+     "why": "埋め込み用の見た目を acdr 自身の references/ の複製から読むため、記録の頁を組む関数へ references の場所を渡す"
+    },
+    {
+     "find": "        references,",
+     "before": "（無い）",
+     "why": "Shop に references の場所を保持させる（panes.rs で欄を足した）"
+    }
+   ]
+  }
+ ],
+ "how": "描画の雛形（5言語）から見た目の定数を外し、Skill の references/ の複製を読む形にした。単独の頁は :root に、他の頁に埋め込む scoped_style は .rv に色の変数を定める（acdr の記録の頁に埋め込むとき、acdr の :root の変数を上書きしないため）。4言語への移植はエージェントに行わせ、7つの場合で Rust と出力が1バイトも違わないことを確認した。雛形の文言と注記から Skill の名前を外した（生んだ Skill が受け入れの検査6に掛かったため）。references の種類の一覧と突き合わせ（conform）から view.* を外し、Rust の $schema の除去を欄の順を保つ形にした。雛形から作った10の Skill に、新しい雛形と正本の複製を置いた。対象は、適用先に列挙した Skill である。旧い4つの advisor（ddd ・ qa ・ platform ・ ux）は、雛形の層を保持しないので複製だけを置き、描画のコードは作り直しのときに入れ替える。check の配線は service の templates() に with_view を足した。TypeScript の雛形は、数の書き方（4.0）を原文のまま保持する形にした（新しい検証の conform が検出した不一致の是正）。",
+ "applies_to": "skills-creator の見た目の正本（references/view/）と、5言語の描画の雛形（references/profiles/*/common/ の refs）。型の定義（types/*/type.json）・ check（view.rs ・ check.rs）・ conform ・ 契約の文書と SKILL.md。雛形から作った Skill の refs.rs と見た目の複製（skills-creator ・ usecase-advisor ・ acdr ・ ブレストボード ・ design-svg）。doc-writing-skills ・ fact-check ・ slide-deck-speech ・ slide-deck ・ no-more-spaghetti も同じである。旧い4つの advisor の見た目の複製。acdr の記録の頁の組み立て（record.rs ・ panes.rs）。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "段2（acdr の記録の頁）と段3（ブレストボード）の見た目を、共通の複製と固有の2つへ分け直す ACDR を起こす",
+  "別セッションへ、雛形と check の変更と、TypeScript の数の書き方の差（design-svg の theme）を伝える"
+ ],
+ "seal": {
+  "tokens": "5d3cfce33ae6008b1a67ad12080244031266f5394d590cd583f261989a3389c7",
+  "css": "4dac051eca0a915bb168fe89b55da521a294be91186465d830192601cec5c0a2",
+  "tmpl": "76c31aa41f064d3984a3a87a37f6b58e01ddfae0fd457d1f177d9f97a01920b4",
+  "tsrefs": "255063aaab468e5e858b540e931e36ed07de6324ce6ca45b317f2dcd427062ce",
+  "view": "1192ef443de21e872b3c2bc4c266f563515728a238b6b75cf698bc778bca27cd",
+  "type": "8f164ff4a846b584e64c13dce4a87648f834e49fa29774946e3c821cf2dfa56d",
+  "acdr": "d0a1b3e8158090c771105af7567e71ccdd15c51d087de2cdd2c07b903af414f1"
+ }
+}

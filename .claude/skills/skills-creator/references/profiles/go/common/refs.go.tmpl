@@ -36,29 +36,21 @@ import (
 // SchemaTail はスキーマのファイル名の末尾である。
 const SchemaTail = ".schema.json"
 
-// 見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。**
-var defaultTokens = [][2]string{
-	{"ink", "#1f2328"},
-	{"muted", "#59636e"},
-	{"line", "#d1d9e0"},
-	{"paper", "#ffffff"},
-	{"band", "#f3f5f7"},
-	{"accent", "#0f6e5c"},
-	{"accent-soft", "#e3f1ed"},
-	{"warn", "#9a3412"},
-	{"warn-soft", "#fdeee6"},
-	{"radius", "10px"},
-	{"gap", "16px"},
-}
+// 見た目の正本の複製（ボード view-design-tokens）。**描画は、Skill の references/ に置いた複製だけを読む**
+// ── コードに見た目の値を保持しない。正本は Skill を生んだ道具が持ち、Skill を生むときに複製する。
+const viewTokens = "view.tokens.json"
 
-// 既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。
-const defaultTemplate = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style></head><body><main class="rv">{{body}}</main></body></html>`
+// 描画の規則（.rv の囲みの中だけに適用される）。
+const viewCSS = "view.css"
 
-// 頁の規則（body と main）。**単独の頁のときだけ使う。**
-const pageStyle = `*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}`
+// 頁の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。
+const viewTemplate = "view.template.html"
 
-// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。
-const style = `.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:16px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:400;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:15px}}`
+// Skill 固有のトークン（必要とする Skill だけが置く）。
+const skillTokens = "view.skill.tokens.json"
+
+// Skill 固有の規則（必要とする Skill だけが置く）。
+const skillCSS = "view.skill.css"
 
 // Error は references を読めない ・ 書けない ・ 項目が無いときの誤りである。道具は誤用として返す。
 type Error struct{ msg string }
@@ -296,7 +288,8 @@ func Kinds(refs string) ([]Kind, error) {
 	}
 	var out []Kind
 	for _, file := range all {
-		if !strings.HasSuffix(file, SchemaTail) {
+		// **見た目の正本の複製（view.*）は種類ではない** ── 中身ではなく見た目である。形は validate が検査する
+		if !strings.HasSuffix(file, SchemaTail) || strings.HasPrefix(file, "view.") {
 			continue
 		}
 		name := strings.TrimSuffix(file, SchemaTail)
@@ -1246,37 +1239,77 @@ func pageBody(schemaIn, value any, c ctx) string {
 	return fmt.Sprintf(`<header><p class="eyebrow">%s</p><h1>%s</h1></header>%s`, strings.Join(eyebrow, " ・ "), lead, body.String())
 }
 
-// ScopedStyle は .rv の囲みの中だけに効く規則である。**他の型の頁に埋め込むときに使う。**
-func ScopedStyle() string { return style }
+// missing は見た目の正本の複製が無いときの理由である。
+func missing(name string) error {
+	return fail("references/%s が無い ── 見た目の正本の複製である。Skill を生んだ道具が置く（その道具の check が正本との差を報告する）", name)
+}
+
+// paletteVars は明と暗の色の変数を組む。**共通のパレットの後ろに Skill 固有のトークンを足し、鍵の順に並べる。**
+func paletteVars(refs string) (string, string, error) {
+	tokens, err := readJSON(filepath.Join(refs, viewTokens))
+	if err != nil {
+		return "", "", missing(viewTokens)
+	}
+	name, ok := str(tokens, "palette")
+	if !ok {
+		return "", "", fail("%s: palette が無い", viewTokens)
+	}
+	palettes, _ := at(tokens, "palettes")
+	chosen, ok := at(palettes, name)
+	if !ok {
+		return "", "", fail("%s: palettes に %s が無い", viewTokens, name)
+	}
+	skill, _ := readJSON(filepath.Join(refs, skillTokens))
+	var out [2]string
+	for i, scheme := range []string{"light", "dark"} {
+		decl := map[string]string{}
+		for _, source := range []any{chosen, skill} {
+			part, _ := at(source, scheme)
+			o, ok := part.(*Object)
+			if !ok {
+				continue
+			}
+			for _, k := range o.Keys {
+				if v, ok := o.Vals[k].(string); ok {
+					decl[k] = v
+				}
+			}
+		}
+		keys := make([]string, 0, len(decl))
+		for k := range decl {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		var b strings.Builder
+		for _, k := range keys {
+			b.WriteString("--" + k + ":" + decl[k] + ";")
+		}
+		out[i] = b.String()
+	}
+	return out[0], out[1], nil
+}
+
+// styleFor は色の変数を selector に定め、共通と Skill 固有の規則を続ける。
+func styleFor(refs, selector string) (string, error) {
+	light, dark, err := paletteVars(refs)
+	if err != nil {
+		return "", err
+	}
+	css, err := os.ReadFile(filepath.Join(refs, viewCSS))
+	if err != nil {
+		return "", missing(viewCSS)
+	}
+	own, _ := os.ReadFile(filepath.Join(refs, skillCSS))
+	return selector + "{" + light + "}@media (prefers-color-scheme:dark){" + selector + "{" + dark + "}}" + string(css) + string(own), nil
+}
+
+// ScopedStyle は .rv の囲みの中だけに適用される規則と色である。**他の型の頁に埋め込むときに使う** ── 色の変数も
+// .rv に定めるので、埋め込む側の :root の変数を上書きしない。複製が無いか読めないときは誤りを返す。
+func ScopedStyle(refs string) (string, error) { return styleFor(refs, ".rv") }
 
 // RenderBody は1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**
 func RenderBody(schema, value any, base string) string {
 	return `<div class="rv">` + pageBody(schema, value, ctx{root: schema, base: base}) + "</div>"
-}
-
-// tokens は見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**
-func tokens(refs string) string {
-	vars := slices.Clone(defaultTokens)
-	if over, err := readJSON(filepath.Join(refs, "view.tokens.json")); err == nil {
-		if o, ok := over.(*Object); ok {
-			for _, k := range o.Keys {
-				v, ok := o.Vals[k].(string)
-				if !ok {
-					continue
-				}
-				if i := slices.IndexFunc(vars, func(x [2]string) bool { return x[0] == k }); i >= 0 {
-					vars[i][1] = v
-				} else {
-					vars = append(vars, [2]string{k, v})
-				}
-			}
-		}
-	}
-	var decl strings.Builder
-	for _, x := range vars {
-		decl.WriteString("--" + x[0] + ":" + x[1] + ";")
-	}
-	return ":root{" + decl.String() + "}" + pageStyle + style
 }
 
 // View は種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。
@@ -1331,12 +1364,16 @@ func View(refs, kind, id, file string) (string, error) {
 		}
 		body = pageBody(root, plainValue, c)
 	}
-	template := defaultTemplate
-	if b, err := os.ReadFile(filepath.Join(refs, "view.template.html")); err == nil {
-		template = string(b)
+	b, err := os.ReadFile(filepath.Join(refs, viewTemplate))
+	if err != nil {
+		return "", missing(viewTemplate)
 	}
 	title := esc(strOr(root, "title", kind))
-	out := strings.ReplaceAll(template, "{{title}}", title)
-	out = strings.ReplaceAll(out, "{{style}}", tokens(refs))
+	style, err := styleFor(refs, ":root")
+	if err != nil {
+		return "", err
+	}
+	out := strings.ReplaceAll(string(b), "{{title}}", title)
+	out = strings.ReplaceAll(out, "{{style}}", style)
 	return strings.ReplaceAll(out, "{{body}}", body), nil
 }

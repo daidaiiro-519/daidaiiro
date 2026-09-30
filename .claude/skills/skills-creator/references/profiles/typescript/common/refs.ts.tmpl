@@ -22,29 +22,19 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 
 export const SCHEMA_TAIL = '.schema.json';
 
-/** 見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。** */
-const DEFAULT_TOKENS: [string, string][] = [
-    ['ink', '#1f2328'],
-    ['muted', '#59636e'],
-    ['line', '#d1d9e0'],
-    ['paper', '#ffffff'],
-    ['band', '#f3f5f7'],
-    ['accent', '#0f6e5c'],
-    ['accent-soft', '#e3f1ed'],
-    ['warn', '#9a3412'],
-    ['warn-soft', '#fdeee6'],
-    ['radius', '10px'],
-    ['gap', '16px']
-];
-
-/** 既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。 */
-const DEFAULT_TEMPLATE = "<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{{title}}</title><style>{{style}}</style></head><body><main class=\"rv\">{{body}}</main></body></html>";
-
-/** 頁の規則（body と main）。**単独の頁のときだけ使う。** */
-const PAGE_STYLE = "*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}";
-
-/** 型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。 */
-const STYLE = ".rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:16px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:400;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:15px}}";
+/**
+ * 見た目の正本の複製（ボード view-design-tokens）。**描画は、Skill の references/ に置いた複製だけを読む**
+ * ── コードに見た目の値を保持しない。正本は Skill を生んだ道具が持ち、Skill を生むときに複製する。
+ */
+const VIEW_TOKENS = 'view.tokens.json';
+/** 描画の規則（.rv の囲みの中だけに適用される）。 */
+const VIEW_CSS = 'view.css';
+/** 頁の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。 */
+const VIEW_TEMPLATE = 'view.template.html';
+/** Skill 固有のトークン（必要とする Skill だけが置く）。 */
+const SKILL_TOKENS = 'view.skill.tokens.json';
+/** Skill 固有の規則（必要とする Skill だけが置く）。 */
+const SKILL_CSS = 'view.skill.css';
 
 /** JSON の値。 */
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -60,8 +50,11 @@ export interface Kind {
     data: string | null;
 }
 
+/** 数の原文を保持する値（JSON.rawJSON）。**書き出すと、読んだときの書き方（4.0 など）のまま出る。** */
+const RAW = JSON as unknown as { rawJSON(text: string): Json; isRawJSON(v: unknown): boolean };
+
 function isObj(v: Json | undefined): v is Obj {
-    return typeof v === 'object' && v !== null && !Array.isArray(v);
+    return typeof v === 'object' && v !== null && !Array.isArray(v) && !RAW.isRawJSON(v);
 }
 
 function names(refs: string): string[] {
@@ -89,6 +82,8 @@ function isFile(p: string): boolean {
 export function kinds(refs: string): Kind[] {
     return names(refs)
         .filter(f => f.endsWith(SCHEMA_TAIL))
+        // **見た目の正本の複製（view.*）は種類ではない** ── 中身ではなく見た目である。形は validate が検査する
+        .filter(f => !f.startsWith('view.'))
         .map(file => {
             const name = file.slice(0, -SCHEMA_TAIL.length);
             const data = join(refs, `${name}.json`);
@@ -115,7 +110,12 @@ export function readText(file: string): string {
     }
 }
 
-function readJson(path: string): Json {
+/**
+ * JSON を読む。`keep` を渡すと、**数を原文の書き方のまま保持する** ── JSON.parse は 4.0 を 4 にするので、
+ * 取り出しと描画の出力が、原文と ・ 他の言語の道具と食い違う。**検査に使う値には渡さない**（スキーマの
+ * 検査は、数を数として受け取る）。
+ */
+function readJson(path: string, keep = false): Json {
     let body: string;
     try {
         body = readFileSync(path, 'utf8');
@@ -123,7 +123,8 @@ function readJson(path: string): Json {
         throw new RefsError(`${path} を読めない ── ${(e as Error).message}`);
     }
     try {
-        return JSON.parse(body) as Json;
+        if (!keep) return JSON.parse(body) as Json;
+        return JSON.parse(body, (_k, v, ctx?: { source?: string }) => (typeof v === 'number' && ctx?.source !== undefined ? RAW.rawJSON(ctx.source) : v)) as Json;
     } catch (e) {
         throw new RefsError(`${path} が JSON でない ── ${(e as Error).message}`);
     }
@@ -190,7 +191,7 @@ export function validateFile(refs: string, kind: string, file: string): string[]
 
 /** 種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。 */
 export function get(refs: string, kind: string, id?: string): Json {
-    const data = readJson(join(refs, `${kind}.json`));
+    const data = readJson(join(refs, `${kind}.json`), true);
     if (isObj(data)) delete data.$schema;
     if (id === undefined) return data;
     const items = isObj(data) && 'items' in data ? data.items : data;
@@ -356,7 +357,7 @@ export function importMarkdown(id: string, location: string, fetched: string, te
 /** document の並びへ1件を置く。**同じ id が在れば置き換える。** */
 export function putDocument(refs: string, doc: Obj): string {
     const path = join(refs, 'document.json');
-    const all = isFile(path) ? readJson(path) : ({ $schema: 'document.schema.json', items: [] } as Json);
+    const all = isFile(path) ? readJson(path, true) : ({ $schema: 'document.schema.json', items: [] } as Json);
     const items = isObj(all) ? all.items : undefined;
     if (!Array.isArray(items)) throw new RefsError('document.json に items が無い');
     const id = doc.id ?? null;
@@ -381,6 +382,9 @@ export function sha256Hex(data: Uint8Array): string {
 /** JSON の値として等しいか。 */
 function same(a: Json | undefined, b: Json | undefined): boolean {
     if (a === undefined || b === undefined) return a === b;
+    // **原文を保持した数は、数として比べる** ── スキーマの const は数で読んでいる
+    if (RAW.isRawJSON(a)) a = JSON.parse(JSON.stringify(a)) as Json;
+    if (RAW.isRawJSON(b)) b = JSON.parse(JSON.stringify(b)) as Json;
     if (Array.isArray(a) || Array.isArray(b)) {
         return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => same(x, b[i]));
     }
@@ -748,38 +752,78 @@ function pageBody(schemaIn: Json | undefined, value: Json, ctx: Ctx): string {
     return `<header><p class="eyebrow">${eyebrow.join(' ・ ')}</p><h1>${lead}</h1></header>${body}`;
 }
 
-/** .rv の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う。** */
-export const scopedStyle = () => STYLE;
+/** 見た目の正本の複製が無いときの理由。 */
+function missing(name: string): string {
+    return `references/${name} が無い ── 見た目の正本の複製である。Skill を生んだ道具が置く（その道具の check が正本との差を報告する）`;
+}
+
+/** 明と暗の色の変数を組む。**共通のパレットの後ろに Skill 固有のトークンを足し、鍵の順に並べる。** */
+function paletteVars(refs: string): [string, string] {
+    let tokens: Json;
+    try {
+        tokens = readJson(join(refs, VIEW_TOKENS));
+    } catch {
+        throw new RefsError(missing(VIEW_TOKENS));
+    }
+    const name = at(tokens, 'palette');
+    if (typeof name !== 'string') throw new RefsError(`${VIEW_TOKENS}: palette が無い`);
+    const chosen = at(at(tokens, 'palettes'), name);
+    if (chosen === undefined) throw new RefsError(`${VIEW_TOKENS}: palettes に ${name} が無い`);
+    let skill: Json | undefined;
+    try {
+        skill = readJson(join(refs, SKILL_TOKENS));
+    } catch {
+        skill = undefined;
+    }
+    const out: string[] = [];
+    for (const scheme of ['light', 'dark']) {
+        const decl = new Map<string, string>();
+        for (const source of [chosen, skill]) {
+            const part = at(source, scheme);
+            if (!isObj(part)) continue;
+            for (const [k, v] of Object.entries(part)) {
+                if (typeof v === 'string') decl.set(k, v);
+            }
+        }
+        const keys = [...decl.keys()].sort(byBytes);
+        out.push(keys.map(k => `--${k}:${decl.get(k)};`).join(''));
+    }
+    return [out[0], out[1]];
+}
+
+/** 色の変数を selector に定め、共通と Skill 固有の規則を続ける。 */
+function styleFor(refs: string, selector: string): string {
+    const [light, dark] = paletteVars(refs);
+    let css: string;
+    try {
+        css = readFileSync(join(refs, VIEW_CSS), 'utf8');
+    } catch {
+        throw new RefsError(missing(VIEW_CSS));
+    }
+    let own: string;
+    try {
+        own = readFileSync(join(refs, SKILL_CSS), 'utf8');
+    } catch {
+        own = '';
+    }
+    return `${selector}{${light}}@media (prefers-color-scheme:dark){${selector}{${dark}}}${css}${own}`;
+}
+
+/**
+ * .rv の囲みの中だけに適用される規則と色。**他の型の頁に埋め込むときに使う** ── 色の変数も .rv に定めるので、
+ * 埋め込む側の :root の変数を上書きしない。複製が無いか読めないときは RefsError を投げる。
+ */
+export const scopedStyle = (refs: string): string => styleFor(refs, '.rv');
 
 /** 1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。** */
 export function renderBody(schema: Json, value: Json, base: string): string {
     return `<div class="rv">${pageBody(schema, value, { root: schema, base })}</div>`;
 }
 
-/** 見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。** */
-function tokens(refs: string): string {
-    const vars = DEFAULT_TOKENS.map(([k, v]) => [k, v] as [string, string]);
-    let over: Json | undefined;
-    try {
-        over = readJson(join(refs, 'view.tokens.json'));
-    } catch {
-        over = undefined;
-    }
-    if (isObj(over)) {
-        for (const [k, v] of Object.entries(over)) {
-            if (typeof v !== 'string') continue;
-            const slot = vars.find(([n]) => n === k);
-            if (slot) slot[1] = v;
-            else vars.push([k, v]);
-        }
-    }
-    return `:root{${vars.map(([k, v]) => `--${k}:${v};`).join('')}}${PAGE_STYLE}${STYLE}`;
-}
-
 /** 種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。 */
 export function view(refs: string, kind: string, id?: string, file?: string): string {
     const root = readJson(join(refs, `${kind}${SCHEMA_TAIL}`));
-    const value = file !== undefined ? readJson(file) : get(refs, kind);
+    const value = file !== undefined ? readJson(file, true) : get(refs, kind);
     const ctx: Ctx = { root, base: file !== undefined ? dirname(file) : refs };
     let body: string;
     if (id !== undefined) {
@@ -804,12 +848,12 @@ export function view(refs: string, kind: string, id?: string, file?: string): st
     }
     let tpl: string;
     try {
-        tpl = readFileSync(join(refs, 'view.template.html'), 'utf8');
+        tpl = readFileSync(join(refs, VIEW_TEMPLATE), 'utf8');
     } catch {
-        tpl = DEFAULT_TEMPLATE;
+        throw new RefsError(missing(VIEW_TEMPLATE));
     }
     const title = esc(strOr(root, 'title', kind));
-    const style = tokens(refs);
+    const style = styleFor(refs, ':root');
     // **置き換えは関数で渡す** ── 文字列で渡すと、$& などが置換の記法として解釈される
     return tpl.replaceAll('{{title}}', () => title).replaceAll('{{style}}', () => style).replaceAll('{{body}}', () => body);
 }

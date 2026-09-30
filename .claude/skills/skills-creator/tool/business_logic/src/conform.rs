@@ -192,6 +192,11 @@ pub fn conform(
             .unwrap_or_default()
             .into_iter()
             .filter(|p| p.to_string_lossy().ends_with(".schema.json"))
+            // **見た目の正本の写し（view.*）は種類ではない** ── references の道具の kinds と同じ扱いにする
+            .filter(|p| {
+                !p.file_name()
+                    .is_some_and(|n| n.to_string_lossy().starts_with("view."))
+            })
             .collect();
         kinds.sort();
         for schema in kinds {

@@ -72,7 +72,12 @@ pub fn repo_root(start: &Path) -> PathBuf {
 /// # Errors
 ///
 /// 節が欠けているときと、状態が決められた値でないときに返す。
-pub fn header(schema: &Value, spec: &Value, figure: &str) -> Result<String, String> {
+pub fn header(
+    schema: &Value,
+    spec: &Value,
+    figure: &str,
+    references: &Path,
+) -> Result<String, String> {
     let missing: Vec<&str> = validate::SECTIONS
         .iter()
         .copied()
@@ -117,7 +122,7 @@ pub fn header(schema: &Value, spec: &Value, figure: &str) -> Result<String, Stri
     }
     Ok(format!(
         "<style>{}</style>{}",
-        refs::scoped_style(),
+        refs::scoped_style(references)?,
         refs::render_body(schema, &view, Path::new("."))
     ))
 }
@@ -128,7 +133,7 @@ pub fn header(schema: &Value, spec: &Value, figure: &str) -> Result<String, Stri
 ///
 /// 節が欠けているときと、型と噛み合わないときに返す。
 pub fn build(shop: &Shop, spec: &Value, figure: &str) -> Result<panes::Made, String> {
-    let head = header(shop.schema, spec, figure)?;
+    let head = header(shop.schema, spec, figure, shop.references)?;
     if array_of(spec, "docs").is_empty() {
         // 新規の決定。差分が無いので、節だけの1枚になる
         let style = &shop.style;
@@ -340,6 +345,7 @@ pub fn build_record(
         style: &style,
         git,
         schema: &schema,
+        references,
     };
     let made = build(&shop, &spec, &figure)?;
     let mut lines = made.notes.clone();

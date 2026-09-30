@@ -48,6 +48,7 @@ fn made(spec: &Value, figure: &str) -> panes::Made {
         style: &style,
         git: "git",
         schema: &schema,
+        references: &refs,
     };
     record::build(&shop, spec, figure).expect("組める")
 }
@@ -123,6 +124,7 @@ fn an_absent_comparison_refuses_the_build() {
         style: &style,
         git: "git",
         schema: &schema,
+        references: &refs,
     };
     let mut spec = sound();
     spec.as_object_mut()
@@ -155,6 +157,7 @@ fn a_missing_section_refuses_the_build() {
         style: &style,
         git: "git",
         schema: &schema,
+        references: &refs,
     };
     let mut spec = sound();
     spec.as_object_mut().expect("表である").remove("why");
@@ -176,6 +179,7 @@ fn a_status_outside_the_three_refuses_the_build() {
         style: &style,
         git: "git",
         schema: &schema,
+        references: &refs,
     };
     let mut spec = sound();
     spec["status"] = json!("たぶん承認");

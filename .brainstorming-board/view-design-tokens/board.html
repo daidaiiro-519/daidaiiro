@@ -1,0 +1,414 @@
+<title>描画の契約にデザイントークンを持たせる</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="view-design-tokens" data-round="5" data-theme-name="描画の契約にデザイントークンを持たせる"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　描画の契約にデザイントークンを持たせる　/　Round 5</p><h1>描画の契約にデザイントークンを持たせる</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>見た目の正本と検査<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>置き場所と配り方<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q3</span>色のトークンと表 ・ コードブロック<span class="st done">決着</span></button><button data-t="p4" aria-selected="false"><span class="tn">Q4</span>Skill 固有のトークンと既存の Skill<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>skills-creator の描画の契約に、デザイントークンの仕組み（正本 ・ 配り方 ・ 検査）を持たせ、判断基準の頁の表とコードブロックを見やすくする。4つの論点はすべて決着した。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>描画の契約は、見た目について何を正本として持ち、何を検査するか</td><td><span class="st done">決着</span></td><td>見た目はトークン（3層）と CSS（直値を持たない）の2つの正本で持ち、描画の道具は値を差し込むだけにする。トークンと CSS は validate が検査する</td></tr><tr><td><span class="n">2</span></td><td>トークンと CSS の正本をどこに1つ置き、5言語の描画と各 Skill へどう行き渡らせるか</td><td><span class="st done">決着</span></td><td>正本は skills-creator の references/view/ に1つ置き、scaffold が各 Skill の references/ へ写す。描画の道具は Skill 自身の写しを読み、コードに見た目の既定値を持たない。check が写しと正本の差を報告する</td></tr><tr><td><span class="n">3</span></td><td>共通の色のトークンを何パターン持ち、表とコードブロックをどの規則で描くか</td><td><span class="st done">決着</span></td><td>差し色の違う3つのパレット（緑 ・ 藍 ・ 橙）を明暗つきで持ち、Skill はそのうち1つを選ぶ。表は見出しの行に面の色を敷いて太字にし、行ごとに面の色を交互に敷いて枠で囲む。コードブロックは等幅の書体にし、枠と差し色の縦線で本文と分ける</td></tr><tr><td><span class="n">4</span></td><td>Skill 固有の見た目をどう持たせ、acdr ・ ブレストボードと雛形から作った Skill を契約の形へどう移すか</td><td><span class="st done">決着</span></td><td>Skill 固有の見た目は、共通の写しとは別の2つのファイル（view.skill.tokens.json ・ view.skill.css）に持ち、描画は共通の後ろに重ねる。移すのは3段で、skills-creator と14の Skill の描画を先に、acdr とブレストボードの独自の出力をそれぞれ後に移す</td></tr></table></div><details><summary>この回で変わったところ（1 か所）</summary><div><p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── 押すと前の回の中身が開く。</p><div class="scroll"><table><tr><th>論点</th><th>変わった欄</th></tr><tr><td><button class="jump" data-go="p4">Q4　Skill 固有のトークンと既存の Skill</button></td><td>1 か所</td></tr></table></div></div></details><details><summary>次にすること</summary><div><ol><li><b class="lead-s">段1</b><div class="sub-s">skills-creator の references/view/ に正本を置き、5言語の描画の雛形 ・ scaffold ・ check を直し、雛形から作った14の Skill へ写す。ACDR で提示する</div></li><li><b class="lead-s">段2</b><div class="sub-s">acdr の記録の頁の見た目を、共通の写しと固有の2つへ分け直す。ACDR で提示する</div></li><li><b class="lead-s">段3</b><div class="sub-s">ブレストボードの見た目を、共通の写しと固有の2つへ分け直す。ACDR で提示する</div></li></ol></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>描画の契約は、見た目について何を正本として持ち、何を検査するか</h2></div><div class="note">描画の雛形のコードから、色 ・ 寸法 ・ 規則の文字列をすべて外すかを決める。</div><div class="ans"><span class="big">A</span><p>描画の契約は、見た目を次の2つの正本で持つ。頁の型（view.template.html）と合わせて3つになる。</p><ol><li><b class="lead-s">view.tokens.json</b><div class="sub-s">共通のトークンは色だけにする。色味の違う数パターン（パレット）を、明暗の両方で持つ。字の大きさ ・ 余白は、共通の view.css が固定の値で持つ</div></li><li><b class="lead-s">view.css</b><div class="sub-s">セレクタと規則だけを持つ。色 ・ 寸法 ・ 字の大きさは、トークンの変数だけを参照する</div></li><li><b class="lead-s">描画の道具（view）</b><div class="sub-s">3つの正本を読み、値を差し込むだけにする。雛形のコードに見た目の文字列を持たない</div></li><li><b class="lead-s">検査（validate）</b><div class="sub-s">トークンの形、CSS に色の直値が無いこと、CSS が参照する変数がすべてトークンに在ること、文字と地の色の比、の4つを検査する</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,899px)" class="wf-fig" viewBox="0 0 899 272" height="272" role="img"><g transform="translate(6.0,6.0)"><path d="M97.4,50.8 L462.4,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.4,113.4 455.3,114.7 456.1,109.8" fill="#C3CAD2"/><path d="M299.2,50.8 L462.4,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.4,113.4 455.2,113.3 456.9,108.7" fill="#C3CAD2"/><path d="M513.4,32.6 L462.4,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.4,113.4 463.9,106.4 468.0,109.0" fill="#C3CAD2"/><path d="M766.6,32.6 L462.4,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.4,113.4 468.3,109.3 469.5,114.0" fill="#C3CAD2"/><path d="M462.4,146.6 L462.4,227.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.4,227.4 459.9,220.6 464.8,220.6" fill="#C3CAD2"/><path d="M97.4,50.8 L241.3,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="241.3,113.4 234.1,113.0 236.1,108.4" fill="#C3CAD2"/><path d="M299.2,50.8 L241.3,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="241.3,113.4 244.1,106.8 247.7,110.1" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="194.8" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="97.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">view.tokens.json：トー</text><text x="97.4" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">クン（基礎 → 意味 → 部品）</text></g></g><g class="wf-node" transform="translate(218.8,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="162.4" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="81.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">view.css：規則だけ。</text><text x="81.2" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">値はトークンの変数</text></g></g><g class="wf-node" transform="translate(405.2,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="216.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="108.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">view.template.html：頁の型</text></g></g><g class="wf-node" transform="translate(645.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="241.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="120.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">criteria.json と スキーマ：中身</text></g></g><g class="wf-node" transform="translate(378.2,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="167.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="83.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">view：値を差し込むだけ</text></g></g><g class="wf-node" transform="translate(384.2,228.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="155.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="77.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">判断基準の頁（HTML）</text></g></g><g class="wf-node" transform="translate(134.3,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="214.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="107.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">validate：トークンの形 ・ 直</text><text x="107.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">値 ・ 未定義の変数 ・ 色の比</text></g></g></g></svg><figcaption>描画の道具は、トークン ・ CSS ・ 型 ・ 中身の4つを読んで頁を組むだけにする。トークンと CSS は validate が検査する</figcaption></figure></div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>今</th><th>決めたあと</th></tr></thead><tbody><tr><th>字の大きさ</th><td>CSS の文字列に直書き（.rv h3{font-size:16px} など）</td><td>トークン（例：意味の層の text-heading が基礎の size-5 を指す）を、CSS が var(--text-heading) で参照する</td></tr><tr><th>表の見た目</th><td>CSS の文字列に直書き。5言語の雛形と7つの道具の12か所に同じ文字列</td><td>view.css の1か所。値はトークンが持つ</td></tr><tr><th>見た目を直す作業</th><td>12か所の文字列を書き換える</td><td>トークンか view.css の1か所を書き換える</td></tr><tr><th>直値の混入</th><td>検出する仕組みが無い</td><td>validate が検出する</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── トークンと CSS の2つの正本を契約が持つ</b></td><td>見た目の値はトークン、規則は CSS に置き、描画の道具は値を差し込むだけにする</td><td><span class="cost">5言語の描画の雛形から CSS の文字列を外し、ファイルを読む形へ直す作業が生じる</span></td></tr><tr><td><span class="n">B</span></td><td><b>A2 ── A と同じ2つの正本を持ち、トークンを2層（基礎と意味）にする</b></td><td>部品の層を置かず、表の見出しの地のような部品ごとの値も意味の層に置く</td><td><span class="cost">部品ごとの値が意味の層に混ざって層が膨らみ、どの値が役割でどの値が部品かを区別できなくなる。acdr とブレストボードの3層とも揃わない</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="CSS の文字列が12か所に残り、見た目を1つ直すたびに12か所を書き換える。直値が混ざっても検出できない"><b>B ── 今の形のまま、足りない値をトークンへ足していく</b></mark></td><td>CSS の文字列が12か所に残り、見た目を1つ直すたびに12か所を書き換える。直値が混ざっても検出できない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="acdr の字の大きさは17段（fs-1〜fs-17）で、段階として設計した値ではない。ブレストボードのスキーマと食い違い、どちらを正にするかが決まらない"><b>C ── acdr のトークンの仕組み（tokens.rs とスキーマ）をそのまま契約へ持ち上げる</b></mark></td><td>acdr の字の大きさは17段（fs-1〜fs-17）で、段階として設計した値ではない。ブレストボードのスキーマと食い違い、どちらを正にするかが決まらない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="助言型の5つの Skill が、同じ CSS をそれぞれ書くことになる。描画を契約が1つだけ持つという決定（skill-references 論点2）に反する"><b>D ── トークンだけを契約にし、CSS は各 Skill が書く</b></mark></td><td>助言型の5つの Skill が、同じ CSS をそれぞれ書くことになる。描画を契約が1つだけ持つという決定（skill-references 論点2）に反する</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">見た目をトークンが持つこと</span></td><td>見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-09-29、skill-references Round 2 の差し戻し）</small></td></tr><tr><td><span class="part">見た目をトークンが持つこと</span></td><td><b class="lead-s">見た目はトークンが持つ</b><div class="sub-s">色と寸法を直書きしない</div></td><td><span class="kind k-rule">決まり</span><small>skill-references 論点2（2026-09-29 Round 3 で承認）</small></td></tr><tr><td><span class="part">描画する契約はトークンを持つこと</span></td><td>描画する契約の場合はデザイントークンを用意するはずです</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-10-01）</small></td></tr><tr><td><span class="part">12か所の複製</span></td><td>CSS の同じ文字列が、5言語の雛形 refs.* と、7つの道具の refs.rs に在る</td><td><span class="kind k-fact">実測</span><small>grep（2026-10-01）</small></td></tr><tr><td><span class="part">3層と検査の形</span></td><td>acdr とブレストボードは、基礎 ・ 意味 ・ 部品の3層、明暗、トークンの検査（文字と地の比）を持つ</td><td><span class="kind k-fact">実測</span><small>.claude/skills/acdr/references/tokens.json ・ brainstorming-board/references/tokens.json</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（4件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>トークンと CSS の置き場所と、5言語 ・ 各 Skill への配り方</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点2で決める</div></td></tr><tr><td>表 ・ コードブロックなど部品の具体的な値</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める</div></td></tr><tr><td>acdr とブレストボードの独自のトークンの扱い</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4で決める</div></td></tr><tr><td>design-svg の図の見た目（theme.json）</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">図の見た目は SVG の中で閉じ、頁の CSS を使わない。この決定を覆さない</div></td></tr></table></div></div></details><details><summary>この答えの履歴（2件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>Round 1 で承認された（2026-10-01、利用者の言葉「おｋ」）。論点2が、この答えの正本の種類を前提に置き場所を決める</p></li><li><div class="card"><div class="card-h"><span class="ver">A</span>Round 2 の書き足しで、共通のトークンを色だけに絞った</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。</span></td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>共通のトークンは色だけにし、字の大きさ ・ 余白はトークンにしない。CSS の検査は色の直値に限る。Skill 固有の見た目は、Skill 固有のトークンで持つ（論点4）</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">skill-references の論点2で「見た目はトークンが持つ</b><div class="sub-s">色と寸法を直書きしない」と決めたが、ACDR 0044 は色など11個だけをトークンにした</div></b></td><td></td></tr><tr><td><b>描画の雛形の CSS は、「値は直書きせず、トークンの変数だけを参照する」という注記に反して、字の大きさと余白を直書きしている</b></td><td></td></tr><tr><td><b>同じ CSS の文字列が、5言語の描画の雛形と、雛形から作った7つの道具の12か所に在る</b></td><td></td></tr><tr><td><b>acdr とブレストボードは、トークンの正本 ・ スキーマ ・ 検査を別々に実装している（tokens.rs は268行と363行）</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>5言語の描画の雛形が、トークンと CSS をファイルから読む形になる</b></td><td></td></tr><tr><td><b>validate に、トークンと CSS の4つの検査が加わる</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>トークンと CSS の正本をどこに1つ置き、5言語の描画と各 Skill へどう行き渡らせるか</h2></div><div class="note">見た目の正本を、コードではなくデータとして各 Skill に持たせるかを決める。</div><div class="ans"><span class="big">A</span><ol><li><b class="lead-s">正本</b><div class="sub-s">skills-creator の references/view/ に1組だけ置く。中身は、トークン ・ トークンのスキーマ ・ CSS ・ 頁の型の4つである</div></li><li><b class="lead-s">配り方</b><div class="sub-s">scaffold が、Skill を作るときに4つを Skill の references/ へ写す。判断基準のスキーマを写すのと同じ扱いにする</div></li><li><b class="lead-s">描画</b><div class="sub-s">5言語の view は、Skill 自身の references/ から4つを読むだけにする。コードに見た目の既定値を持たない。4つが無ければ、描かずに理由を返す</div></li><li><b class="lead-s">同期</b><div class="sub-s">check が、Skill の写しと正本の差を報告する。正本を直したら、報告に従って各 Skill の写しを直す</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,481px)" class="wf-fig" viewBox="0 0 481 482" height="482" role="img"><g transform="translate(6.0,6.0)"><path d="M295.7,68.8 L222.7,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="222.7,131.4 226.2,125.1 229.4,128.9" fill="#C3CAD2"/><path d="M222.7,164.6 L224.4,227.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="224.4,227.2 221.8,220.5 226.7,220.4" fill="#C3CAD2"/><path d="M295.7,68.8 Q369.2,132.0 369.2,148.0 Q369.2,164.0 368.1,196.0 Q367.0,228.0 367.0,244.0 Q367.0,260.0 362.4,291.7 L357.8,323.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="357.8,323.4 356.4,316.4 361.2,317.1" fill="#C3CAD2"/><path d="M224.4,260.8 L357.8,323.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="357.8,323.4 350.6,322.8 352.7,318.3" fill="#C3CAD2"/><path d="M224.4,260.8 L111.7,323.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="111.7,323.4 116.4,318.0 118.8,322.3" fill="#C3CAD2"/><path d="M110.1,374.6 L110.4,437.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="110.4,437.4 107.9,430.6 112.8,430.6" fill="#C3CAD2"/><g class="wf-node" transform="translate(180.6,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="230.2" height="68.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="115.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">skills-creator の </text><text x="115.1" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">references/view/：正本（トー</text><text x="115.1" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">クン ・ スキーマ ・ CSS ・ 型）</text></g></g><g class="wf-node" transform="translate(99.5,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="245.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="122.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">scaffold：Skill を作るときに写す</text></g></g><g class="wf-node" transform="translate(245.8,324.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="223.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="111.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">check：写しと正本の差を報告する</text></g></g><g class="wf-node" transform="translate(106.3,228.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="236.2" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="118.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">各 Skill の references/：写し</text></g></g><g class="wf-node" transform="translate(0.0,324.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="221.8" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">view（5言語とも同じ）：Skill </text><text x="110.9" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">自身の references/ から読む</text></g></g><g class="wf-node" transform="translate(63.3,438.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="95.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="47.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">頁（HTML）</text></g></g></g></svg><figcaption>正本は skills-creator に1つ置き、scaffold が各 Skill へ写す。描画の道具は Skill 自身の写しを読み、check が写しと正本の差を報告する</figcaption></figure></div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>何を置くか</th></tr></thead><tbody><tr><th>skills-creator/references/view/</th><td>正本の4つ（トークン ・ トークンのスキーマ ・ CSS ・ 頁の型）</td></tr><tr><th>usecase-advisor/references/</th><td>scaffold が写した4つ。描画の道具はここから読む</td></tr><tr><th>5言語の描画の雛形（refs.*）</th><td>見た目の文字列を持たない。読むファイルの名前だけを持つ</td></tr><tr><th>skills-creator check の報告</th><td>例：「view.css が正本と違う（12行目）」</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 正本を1つ置き、scaffold が写し、check が差を報告する</b></td><td>見た目をデータとして各 Skill に持たせ、コードからは外す</td><td><span class="cost">Skill の数だけ写しができる。正本を直したら、check の報告に従って写しを直す作業が生じる</span></td></tr><tr><td><span class="n">B</span></td><td><b>A2 ── A と同じく写すが、check は差を報告しない</b></td><td>写したあとの見た目は、各 Skill に任せる</td><td><span class="cost">正本を直しても古い写しが残り、どの Skill が古いかを誰も検出できない</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="取り込み方が5言語で違い、生成の手順が5つ要る。Python と TypeScript は組み立ての手順を持たない"><b>B ── 各言語の道具に、正本をビルドのときに取り込む</b></mark></td><td>取り込み方が5言語で違い、生成の手順が5つ要る。Python と TypeScript は組み立ての手順を持たない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Skill が他の Skill に依存し、単独で配れない。skill-references で除外した案と同じ理由である"><b>C ── 描画の道具が、実行時に skills-creator のフォルダから読む</b></mark></td><td>Skill が他の Skill に依存し、単独で配れない。skill-references で除外した案と同じ理由である</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="コードに見た目の文字列が残り、論点1に反する"><b>D ── 既定値をコードに残し、Skill の references/ で上書きする（今の形）</b></mark></td><td>コードに見た目の文字列が残り、論点1に反する</td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">コードに見た目を持たないこと</span></td><td>見た目の正本はトークン ・ CSS ・ 型の3つで、描画の道具は値を差し込むだけにする</td><td><span class="kind k-rule">決まり</span><small>論点1（Round 1 で承認）</small></td></tr><tr><td><span class="part">Skill を単独で配れること</span></td><td>Skill は他の Skill に依存しない</td><td><span class="kind k-rule">決まり</span><small>skills-creator の決まり（ACDR 0066）</small></td></tr><tr><td><span class="part">実行時に Skill の references/ から読めること</span></td><td>tokens() は refs.join("view.tokens.json") を、view() は refs.join("view.template.html") を読む</td><td><span class="kind k-fact">実測</span><small>skills-creator/references/profiles/rust/common/refs.rs.tmpl</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>トークンと CSS の具体的な値</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める</div></td></tr><tr><td>acdr とブレストボードの独自の見た目の扱い</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4で決める</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>Round 2 で承認された（2026-10-01、利用者の言葉「OKです」）</p></li></ol></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>描画の道具は、すでに Skill 自身の references/ から view.tokens.json と view.template.html を実行時に読んでいる</b></td><td></td></tr><tr><td><b>既定値はコードの中の定数（DEFAULT_TOKENS ・ STYLE）にあり、これが12か所の複製になっている</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>scaffold が4つを写す</b></td><td></td></tr><tr><td><b>5言語の描画の雛形から DEFAULT_TOKENS ・ PAGE_STYLE ・ STYLE を外し、ファイルを読む形にする</b></td><td></td></tr><tr><td><b>check に、写しと正本の差の報告を加える</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>共通の色のトークンを何パターン持ち、表とコードブロックをどの規則で描くか</h2></div><div class="note">判断基準の頁で「見にくい」と指摘された表とコードブロックを、色のトークンと固定の規則で描き直す。</div><div class="ans"><span class="big">A</span><ol><li><b class="lead-s">パレット</b><div class="sub-s">差し色の違う3つ（緑 ・ 藍 ・ 橙）を、明と暗の両方で持つ。Skill は写しの palette の欄で1つを選ぶ</div></li><li><b class="lead-s">色の役割</b><div class="sub-s">どのパレットも同じ10の役割を持つ。頁の地 ・ 面 ・ 帯 ・ 文字 ・ 薄い文字 ・ 線 ・ 差し色 ・ 差し色の淡い地 ・ 注意 ・ 注意の淡い地である</div></li><li><b class="lead-s">表</b><div class="sub-s">見出しの行は面の色の地に太字で書き、下に太い線を引く。行ごとに面の色を交互に敷き、表全体を角の丸い枠で囲む</div></li><li><b class="lead-s">コードブロック</b><div class="sub-s">等幅の書体にし、面の色の地と枠を付け、左に差し色の縦線を引いて本文と分ける</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 実例</summary><div><div class="ex"><p>試作の頁：https://claude.ai/artifact/Vi3FyQ9nhphC9YMwSPDaxi （上の帯でパレットと明暗を切り替えられる）</p><div class="scroll"><table class="fact"><thead><tr><th></th><th>何に使うか</th></tr></thead><tbody><tr><th>頁の地（paper）</th><td>カードと表の地</td></tr><tr><th>面（surface）</th><td>表の見出しの行 ・ 交互の行 ・ コードブロックの地</td></tr><tr><th>帯（band）</th><td>頁の外側の地</td></tr><tr><th>文字（ink）</th><td>本文</td></tr><tr><th>薄い文字（muted）</th><td>補足の文字</td></tr><tr><th>線（line）</th><td>枠と行の区切り</td></tr><tr><th>差し色（accent）</th><td>要素の種類の見出し ・ 概要の枠 ・ コードブロックの縦線</td></tr><tr><th>差し色の淡い地（accent-soft）</th><td>要素の種類の札</td></tr><tr><th>注意（warn）と注意の淡い地（warn-soft）</th><td>否定の札</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 3つのパレットを持ち、Skill が1つを選ぶ</b></td><td>色味の違いだけを共通のトークンにし、規則は共通の view.css が持つ</td><td><span class="cost">パレットごとに10の役割 × 明暗の値を用意し、文字と地の比を検査する</span></td></tr><tr><td><span class="n">B</span></td><td><b>A2 ── 3つのパレットを持ち、頁を読む人が切り替える</b></td><td>試作の頁のように、頁の中で切り替える</td><td><span class="cost">描画が切り替えの script を持つことになり、頁の中に見た目の選択が混ざる</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="利用者の方針（色以外の共通のトークンは要らない）に反する。段階として設計しないまま値だけが増える（acdr の字の大きさは17段）"><b>B ── 字の大きさ ・ 余白もトークンにする</b></mark></td><td>利用者の方針（色以外の共通のトークンは要らない）に反する。段階として設計しないまま値だけが増える（acdr の字の大きさは17段）</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="試作で、長い文の列が重くなり読みにくかった"><b>C ── 表の1列目を太字にする</b></mark></td><td>試作で、長い文の列が重くなり読みにくかった</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="見出しの行と中身の区別がつかず、利用者に「見にくい」と指摘された"><b>D ── 行の区切りを細い線1本にする（今の形）</b></mark></td><td>見出しの行と中身の区別がつかず、利用者に「見にくい」と指摘された</td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">共通のトークンを色だけにすること</span></td><td>色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-10-01、Round 2 への書き足し）</small></td></tr><tr><td><span class="part">表とコードブロックを直すこと</span></td><td>表テーブルのデザインが結構見にくいね。あとはコードブロックの部分とかかな。</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-10-01）</small></td></tr><tr><td><span class="part">見た目の正本と配り方</span></td><td>トークン ・ CSS ・ 型を skills-creator に1組置き、scaffold が写す</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ 2（Round 1 ・ 2 で承認）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>図（SVG）の暗の表示</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">図の色は design-svg が持ち、頁のトークンを使わない。この決定を覆さない</div></td></tr><tr><td>Skill 固有の見た目のトークン</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4で決める</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>Round 3 で承認された（2026-10-01）</p></li></ol></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>試作では、見出しの行の地と交互の行の地で、表の行を追いやすくなった</b></td><td></td></tr><tr><td><b>コードブロックに等幅の書体が指定されておらず、本文と同じ書体だった</b></td><td></td></tr><tr><td><b>図（design-svg）は頁のトークンを使わないので、暗の表示でも明るい地のままになる</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>3つのパレットの値を明暗で用意し、文字と地の比を検査に通す</b></td><td></td></tr><tr><td><b>共通の view.css に、表とコードブロックの規則を書く</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>Skill 固有の見た目をどう持たせ、acdr ・ ブレストボードと雛形から作った Skill を契約の形へどう移すか</h2></div><div class="note">共通の写しと Skill 固有の見た目を、ファイルで分けるかを決める。</div><div class="ans"><span class="big">A</span><ol><li><b class="lead-s">Skill 固有の見た目</b><div class="sub-s">要る Skill だけが、view.skill.tokens.json（固有のトークン）と view.skill.css（固有の規則）を references/ に置く。固有の規則も色の直値を持たず、共通の色の役割か固有のトークンを参照する</div></li><li><b class="lead-s">描画</b><div class="sub-s">共通の3つを読み、固有の2つが在れば後ろに重ねる</div></li><li><b class="lead-s">check</b><div class="sub-s">共通の写しだけを正本と比べる。固有の2つは比べない</div></li><li><b class="lead-s">移す順</b><div class="sub-s">段1で skills-creator（正本 ・ 雛形 ・ scaffold ・ check）と、雛形から作った14の Skill の描画を移す。段2で acdr、段3でブレストボードの独自の出力（記録 ・ ボード）を移す。段ごとに ACDR を1件起こす</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,548px)" class="wf-fig" viewBox="0 0 548 272" height="272" role="img"><g transform="translate(6.0,6.0)"><path d="M193.9,68.8 L381.0,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.0,131.4 373.8,131.6 375.4,126.9" fill="#C3CAD2"/><path d="M437.4,68.8 L381.0,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.0,131.4 383.7,124.7 387.4,128.0" fill="#C3CAD2"/><path d="M381.0,164.6 L381.5,227.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="381.5,227.4 379.0,220.7 383.9,220.6" fill="#C3CAD2"/><path d="M193.9,68.8 L118.0,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="118.0,131.4 121.7,125.2 124.8,129.0" fill="#C3CAD2"/><g class="wf-node" transform="translate(70.5,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="244.6" height="68.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="122.3" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">共通の写し：view.tokens.json ・</text><text x="122.3" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">view.css ・ view.template.</text><text x="122.3" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">html（正本と一致させる）</text></g></g><g class="wf-node" transform="translate(339.1,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="196.6" height="68.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="98.3" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">Skill 固有：view.skill.</text><text x="98.3" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">tokens.json ・ view.</text><text x="98.3" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">skill.css（在るときだけ）</text></g></g><g class="wf-node" transform="translate(259.0,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="244.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="122.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">描画：共通を読み、固有を後ろに重ねる</text></g></g><g class="wf-node" transform="translate(0.0,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="235.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="117.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">check：共通の写しだけ正本と比べる</text></g></g><g class="wf-node" transform="translate(333.4,228.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="95.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="47.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">頁（HTML）</text></g></g></g></svg><figcaption>共通の写しは正本と一致させ、Skill 固有の見た目は別の2つのファイルで後ろに重ねる。check は共通の写しだけを比べる</figcaption></figure></div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>何を持つか</th></tr></thead><tbody><tr><th>usecase-advisor</th><td>共通の写しだけ。固有のファイルは無い</td></tr><tr><th>acdr（段2）</th><td>共通の写し ＋ 固有：差分の追加 ・ 削除の地の色（add-bg ・ del-bg）、変更の印の色。記録の頁の規則は view.skill.css に移す</td></tr><tr><th>ブレストボード（段3）</th><td>共通の写し ＋ 固有：時系列の線と節（tl-node ・ tl-rail）など。ボードの規則は view.skill.css に移す</td></tr><tr><th>design-svg</th><td>移さない。図の色は design-svg の theme.json が持つ</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 固有の見た目を別の2つのファイルに持ち、3段で移す</b></td><td>共通と固有をファイルで分け、共通の写しは正本と一致させる</td><td><span class="cost">Skill によって references/ のファイルが2つ増える。acdr とブレストボードは、今の見た目の正本を共通と固有へ分け直す</span></td></tr><tr><td><span class="n">B</span></td><td><b>A2 ── A と同じく分け、14の Skill と acdr ・ ブレストボードを一度に移す</b></td><td>移す作業を1回で終える</td><td><span class="cost">1件の ACDR の変更が大きくなり、承認するときに差分を追えない</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="check が正本との差として報告し続ける。正本を直して写し直すと、書き足した分が消える"><b>B ── 固有の見た目を、共通の写しに直接書き足す</b></mark></td><td>check が正本との差として報告し続ける。正本を直して写し直すと、書き足した分が消える</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="トークンの仕組みが3つ並び続け（共通 ・ acdr ・ ブレストボード）、共通の色の役割とも揃わない"><b>C ── acdr とブレストボードは今のまま残す</b></mark></td><td>トークンの仕組みが3つ並び続け（共通 ・ acdr ・ ブレストボード）、共通の色の役割とも揃わない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="色以外の共通のトークンは要らないという方針（論点1の書き足し）と同じ理由で、固有でも要るものだけにする。acdr の字の大きさの17段は、固有の規則の中の固定の値へ移す"><b>D ── 字の大きさや余白も、Skill 固有のトークンとして持つ</b></mark></td><td>色以外の共通のトークンは要らないという方針（論点1の書き足し）と同じ理由で、固有でも要るものだけにする。acdr の字の大きさの17段は、固有の規則の中の固定の値へ移す</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">Skill 固有のトークンを持つこと</span></td><td>Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。</td><td><span class="kind k-rule">決まり</span><small>利用者の言葉（2026-10-01）</small></td></tr><tr><td><span class="part">共通の写しを正本と一致させること</span></td><td>scaffold が写し、check が写しと正本の差を報告する</td><td><span class="kind k-rule">決まり</span><small>論点2（Round 2 で承認）</small></td></tr><tr><td><span class="part">共通のトークンは色だけ</span></td><td>色の3つのパレットと10の役割</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ 3（Round 2 ・ 3 で承認）</small></td></tr><tr><td><span class="part">acdr とブレストボードの部品の層</span></td><td>部品の層の鍵は、acdr が4つ（pop-bg ・ add-bg など）、ブレストボードが6つ（tl-node ・ tl-rail など）である</td><td><span class="kind k-fact">実測</span><small>acdr ・ brainstorming-board の references/tokens.json</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>design-svg の図の色</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">図は SVG の中で閉じ、頁のトークンを使わない。この決定を覆さない</div></td></tr><tr><td>段2 ・ 段3 の具体的な差分</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">段ごとの ACDR で示す</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><mark class="chg" tabindex="0" role="button" id="c4-0" aria-expanded="false" data-b="（この回で足した）" data-w="この回で足した"><p>Round 4 で承認された（2026-10-01）</p></mark></li></ol></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>acdr とブレストボードの部品の層は、acdr が4つ（pop-bg ・ pre-bg ・ add-bg ・ del-bg）、ブレストボードが6つ（tl-node ・ tl-rail など）で、どちらも Skill の出力に固有の値である</b></td><td></td></tr><tr><td><b>雛形から作った14の Skill の描画は、同じ雛形の複製なので、段1で一度に移せる</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>段1：skills-creator の references/view/ の正本、5言語の描画の雛形、scaffold、check、トークンの検査。雛形から作った14の Skill への写し</b></td><td></td></tr><tr><td><b>段2 ・ 段3：acdr とブレストボードの見た目の正本を、共通の写しと固有の2つへ分け直す</b></td><td></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><button id="dtoggle" aria-expanded="false" aria-controls="drawer">この回の変更<span class="dn">1</span></button><aside id="drawer" hidden aria-label="この回で変わったところ"><div class="dhead"><b>この回で変わったところ</b><button id="dclose" aria-label="閉じる">閉じる</button></div><div class="dbody"><p class="note-s">押すと、その箇所まで運ぶ。<b>印をもう一度押すと、前の回の中身が開く。</b></p><ol class="dlist"><li class="dq">Q4　Skill 固有のトークンと既存の Skill<span class="dn">1</span></li><li><button class="dgo" data-go="p4" data-cid="c4-0"><span class="dw">道筋</span>Round 4 で承認された（2026-10-01）</button></li></ol></div></aside><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

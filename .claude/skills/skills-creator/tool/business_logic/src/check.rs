@@ -81,6 +81,8 @@ pub struct Templates {
     pub refs: Option<PathBuf>,
     /// 言語の組の定義の置き場所（`references/profiles/`）。**無ければ Rust の組だけを知る。**
     pub profiles: Option<PathBuf>,
+    /// 見た目の正本の置き場所（`references/view/`）。**在れば、道具を持つ Skill の写しを突き合わせる。**
+    pub view: Option<PathBuf>,
 }
 
 impl Templates {
@@ -92,6 +94,7 @@ impl Templates {
             advisor,
             refs: None,
             profiles: None,
+            view: None,
         }
     }
 
@@ -99,6 +102,13 @@ impl Templates {
     #[must_use]
     pub fn with_profiles(mut self, dir: PathBuf) -> Self {
         self.profiles = Some(dir);
+        self
+    }
+
+    /// 見た目の正本の置き場所を足す。
+    #[must_use]
+    pub fn with_view(mut self, dir: PathBuf) -> Self {
+        self.view = Some(dir);
         self
     }
 
@@ -328,6 +338,21 @@ pub fn check(root: &Path, templates: &Templates, layout: bool) -> Report {
             });
         }
         report.lines.extend(source(root, templates, layout));
+        if let Some(canon) = &templates.view {
+            let found = crate::view::findings(root, canon);
+            if found.is_empty() {
+                report.lines.push(Line::new(
+                    Stage::Source,
+                    State::Pass,
+                    "見た目の写しが正本と一致し、色の直値と定まらない変数が無く、文字と地の比が足りる".to_owned(),
+                ));
+            }
+            report.lines.extend(
+                found
+                    .into_iter()
+                    .map(|t| Line::new(Stage::Source, State::Fail, t)),
+            );
+        }
     }
     let missing = document(root, templates);
     if missing.is_empty() {

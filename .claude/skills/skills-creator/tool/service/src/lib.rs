@@ -35,6 +35,7 @@ fn templates(here: &Path) -> check::Templates {
     )
     .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
     .with_profiles(references.join("profiles"))
+    .with_view(references.join("view"))
 }
 
 /// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の

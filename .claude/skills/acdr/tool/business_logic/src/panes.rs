@@ -38,6 +38,8 @@ pub struct Shop<'a> {
     pub git: &'a str,
     /// 記録のスキーマ。**上部の節の見出しと見せ方は、ここから取る。**
     pub schema: &'a Value,
+    /// この Skill の references/。**上部の節の見た目（見た目の正本の複製）は、ここから読む。**
+    pub references: &'a std::path::Path,
 }
 
 /// 組んだ結果。

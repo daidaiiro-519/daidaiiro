@@ -27,3 +27,4 @@
 | `skill-types/` | skills-creator が生む Skill の型を決める | （未発行） | （未複製） |
 | `survey-redesign/` | アンケートを、指標から逆算して組み直す | `https://claude.ai/artifact/FmB7AQtBzHZRqaXfC5ZFpi` | （未複製） |
 | `coding-rules-scope/` | no-more-spaghetti の単位と規則の範囲を決める | `https://claude.ai/artifact/BJXhYkREzdLyvp9hMFoye7` | （未複製） |
+| `view-design-tokens/` | 描画の契約にデザイントークンを持たせる | （未発行） | （未複製） |

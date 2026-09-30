@@ -17,3 +17,4 @@ pub mod profile;
 pub mod refs;
 pub mod scaffold;
 pub mod sections;
+pub mod view;

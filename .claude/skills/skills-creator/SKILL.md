@@ -183,6 +183,7 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - `bin/skills-creator` ・ `bin/skills-creator-mcp`: この Skill の CLI と MCP サーバー。`scaffold` ・ `check` ・ `accept` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
 - `references/skill-template.md.tmpl`: SKILL.md の雛形（作業型）。各 `{{…}}` が、記入のしかたの指示を持つ
 - `references/document.json`（folder-structure）: Skill のフォルダのミニマム構成とフル構成
+- `references/view/`: **描画の見た目の正本**（ボード view-design-tokens）── 色のトークン（パレット × 明暗）・ トークンのスキーマ ・ 規則（view.css）・ 頁の型。scaffold が各 Skill の references/ へ複製し、check が複製と正本の差 ・ 色の直値 ・ 定まらない変数 ・ 文字と地の比を検査する（`tool/business_logic/src/view.rs`）
 - `references/document.json`（tool-contract）: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である

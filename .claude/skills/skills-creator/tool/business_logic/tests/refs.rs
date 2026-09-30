@@ -15,6 +15,16 @@ fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("sc-refs-{name}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("作れる");
+    // **見た目の正本の写しを置く** ── scaffold が Skill の references/ へ置くのと同じ4つ
+    let view = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../references/view");
+    for f in [
+        "view.tokens.json",
+        "view.tokens.schema.json",
+        "view.css",
+        "view.template.html",
+    ] {
+        std::fs::copy(view.join(f), dir.join(f)).expect("写せる");
+    }
     dir
 }
 
@@ -141,14 +151,61 @@ fn the_view_follows_the_schema_titles() {
 }
 
 #[test]
-fn the_tokens_can_be_replaced() {
-    // **見た目はトークンが持つ** ── Skill は値を差し替えられる
-    let dir = scratch("tokens");
+fn the_palette_is_chosen_by_the_copy() {
+    // **共通のトークンは色だけで、Skill はパレットを1つ選ぶ**（ボード view-design-tokens）
+    let dir = scratch("palette");
     criteria(&dir);
-    write(&dir, "view.tokens.json", &json!({"accent": "#123456"}));
+    let mut tokens: Value = serde_json::from_str(
+        &std::fs::read_to_string(dir.join("view.tokens.json")).expect("読める"),
+    )
+    .expect("JSON");
+    tokens["palette"] = json!("indigo");
+    write(&dir, "view.tokens.json", &tokens);
     let html = refs::view(&dir, "criteria", None, None).expect("描ける");
-    assert!(html.contains("--accent:#123456;"), "差し替えた値が使われる");
-    assert!(!html.contains("--accent:#0f6e5c;"), "既定の値は残らない");
+    assert!(
+        html.contains("--accent:#3949ab;"),
+        "選んだパレットの色が使われる"
+    );
+    assert!(html.contains("prefers-color-scheme:dark"), "暗の色も定める");
+}
+
+#[test]
+fn skill_tokens_and_rules_are_layered_after_the_common_ones() {
+    let dir = scratch("skill");
+    criteria(&dir);
+    write(
+        &dir,
+        "view.skill.tokens.json",
+        &json!({"light": {"add-bg": "#e6ffed"}, "dark": {"add-bg": "#12331c"}}),
+    );
+    std::fs::write(
+        dir.join("view.skill.css"),
+        ".rv .add{background:var(--add-bg)}",
+    )
+    .expect("書ける");
+    let html = refs::view(&dir, "criteria", None, None).expect("描ける");
+    assert!(html.contains("--add-bg:#e6ffed;"), "固有のトークンが加わる");
+    let common = html.find(".rv table").expect("共通の規則");
+    let own = html.find(".rv .add{").expect("固有の規則");
+    assert!(common < own, "固有の規則は共通の後ろに重ねる");
+}
+
+#[test]
+fn a_missing_copy_is_reported() {
+    let dir = scratch("missing");
+    criteria(&dir);
+    std::fs::remove_file(dir.join("view.css")).expect("消せる");
+    let why = refs::view(&dir, "criteria", None, None).expect_err("描かない");
+    assert!(why.contains("view.css"), "{why}");
+}
+
+#[test]
+fn the_embedded_style_does_not_touch_the_root() {
+    // **埋め込む側の :root の変数を上書きしない**
+    let dir = scratch("scoped");
+    let css = refs::scoped_style(&dir).expect("組める");
+    assert!(css.starts_with(".rv{"), "{}", &css[..40]);
+    assert!(!css.contains(":root"));
 }
 
 #[test]

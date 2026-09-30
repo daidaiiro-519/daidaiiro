@@ -1,0 +1,461 @@
+{
+ "round": 4,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "描画の雛形のコードから、色 ・ 寸法 ・ 規則の文字列をすべて外すかを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>描画の契約は、見た目を次の2つの正本で持つ。頁の型（view.template.html）と合わせて3つになる。</p><ol><li><b class=\"lead-s\">view.tokens.json</b><div class=\"sub-s\">共通のトークンは色だけにする。色味の違う数パターン（パレット）を、明暗の両方で持つ。字の大きさ ・ 余白は、共通の view.css が固定の値で持つ</div></li><li><b class=\"lead-s\">view.css</b><div class=\"sub-s\">セレクタと規則だけを持つ。色 ・ 寸法 ・ 字の大きさは、トークンの変数だけを参照する</div></li><li><b class=\"lead-s\">描画の道具（view）</b><div class=\"sub-s\">3つの正本を読み、値を差し込むだけにする。雛形のコードに見た目の文字列を持たない</div></li><li><b class=\"lead-s\">検査（validate）</b><div class=\"sub-s\">トークンの形、CSS に色の直値が無いこと、CSS が参照する変数がすべてトークンに在ること、文字と地の色の比、の4つを検査する</div></li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "見た目はトークン（3層）と CSS（直値を持たない）の2つの正本で持ち、描画の道具は値を差し込むだけにする。トークンと CSS は validate が検査する"
+    ]
+   ],
+   "figures": [
+    [
+     "描画の道具は、トークン ・ CSS ・ 型 ・ 中身の4つを読んで頁を組むだけにする。トークンと CSS は validate が検査する",
+     "690f4920946e"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>今</th><th>決めたあと</th></tr></thead><tbody><tr><th>字の大きさ</th><td>CSS の文字列に直書き（.rv h3{font-size:16px} など）</td><td>トークン（例：意味の層の text-heading が基礎の size-5 を指す）を、CSS が var(--text-heading) で参照する</td></tr><tr><th>表の見た目</th><td>CSS の文字列に直書き。5言語の雛形と7つの道具の12か所に同じ文字列</td><td>view.css の1か所。値はトークンが持つ</td></tr><tr><th>見た目を直す作業</th><td>12か所の文字列を書き換える</td><td>トークンか view.css の1か所を書き換える</td></tr><tr><th>直値の混入</th><td>検出する仕組みが無い</td><td>validate が検出する</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "A ── トークンと CSS の2つの正本を契約が持つ",
+     "見た目の値はトークン、規則は CSS に置き、描画の道具は値を差し込むだけにする",
+     "5言語の描画の雛形から CSS の文字列を外し、ファイルを読む形へ直す作業が生じる"
+    ],
+    [
+     "A2 ── A と同じ2つの正本を持ち、トークンを2層（基礎と意味）にする",
+     "部品の層を置かず、表の見出しの地のような部品ごとの値も意味の層に置く",
+     "部品ごとの値が意味の層に混ざって層が膨らみ、どの値が役割でどの値が部品かを区別できなくなる。acdr とブレストボードの3層とも揃わない"
+    ]
+   ],
+   "dropped": [
+    [
+     "B ── 今の形のまま、足りない値をトークンへ足していく",
+     "CSS の文字列が12か所に残り、見た目を1つ直すたびに12か所を書き換える。直値が混ざっても検出できない"
+    ],
+    [
+     "C ── acdr のトークンの仕組み（tokens.rs とスキーマ）をそのまま契約へ持ち上げる",
+     "acdr の字の大きさは17段（fs-1〜fs-17）で、段階として設計した値ではない。ブレストボードのスキーマと食い違い、どちらを正にするかが決まらない"
+    ],
+    [
+     "D ── トークンだけを契約にし、CSS は各 Skill が書く",
+     "助言型の5つの Skill が、同じ CSS をそれぞれ書くことになる。描画を契約が1つだけ持つという決定（skill-references 論点2）に反する"
+    ]
+   ],
+   "path": [
+    [
+     "<p>Round 1 で承認された（2026-10-01、利用者の言葉「おｋ」）。論点2が、この答えの正本の種類を前提に置き場所を決める</p>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>Round 2 の書き足しで、共通のトークンを色だけに絞った</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。</span></td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>共通のトークンは色だけにし、字の大きさ ・ 余白はトークンにしない。CSS の検査は色の直値に限る。Skill 固有の見た目は、Skill 固有のトークンで持つ（論点4）</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">skill-references の論点2で「見た目はトークンが持つ</b><div class=\"sub-s\">色と寸法を直書きしない」と決めたが、ACDR 0044 は色など11個だけをトークンにした</div>"
+    ],
+    [
+     "描画の雛形の CSS は、「値は直書きせず、トークンの変数だけを参照する」という注記に反して、字の大きさと余白を直書きしている"
+    ],
+    [
+     "同じ CSS の文字列が、5言語の描画の雛形と、雛形から作った7つの道具の12か所に在る"
+    ],
+    [
+     "acdr とブレストボードは、トークンの正本 ・ スキーマ ・ 検査を別々に実装している（tokens.rs は268行と363行）"
+    ]
+   ],
+   "costs": [
+    [
+     "5言語の描画の雛形が、トークンと CSS をファイルから読む形になる"
+    ],
+    [
+     "validate に、トークンと CSS の4つの検査が加わる"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "トークンと CSS の置き場所と、5言語 ・ 各 Skill への配り方",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める"
+    ],
+    [
+     "表 ・ コードブロックなど部品の具体的な値",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める"
+    ],
+    [
+     "acdr とブレストボードの独自のトークンの扱い",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める"
+    ],
+    [
+     "design-svg の図の見た目（theme.json）",
+     "<span class=\"kind k-rule\">対象外</span> ── 図の見た目は SVG の中で閉じ、頁の CSS を使わない。この決定を覆さない"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "見た目をトークンが持つこと",
+     "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。",
+     "rule",
+     "利用者の言葉（2026-09-29、skill-references Round 2 の差し戻し）"
+    ],
+    [
+     "見た目をトークンが持つこと",
+     "<b class=\"lead-s\">見た目はトークンが持つ</b><div class=\"sub-s\">色と寸法を直書きしない</div>",
+     "rule",
+     "skill-references 論点2（2026-09-29 Round 3 で承認）"
+    ],
+    [
+     "描画する契約はトークンを持つこと",
+     "描画する契約の場合はデザイントークンを用意するはずです",
+     "rule",
+     "利用者の言葉（2026-10-01）"
+    ],
+    [
+     "12か所の複製",
+     "CSS の同じ文字列が、5言語の雛形 refs.* と、7つの道具の refs.rs に在る",
+     "measured",
+     "grep（2026-10-01）"
+    ],
+    [
+     "3層と検査の形",
+     "acdr とブレストボードは、基礎 ・ 意味 ・ 部品の3層、明暗、トークンの検査（文字と地の比）を持つ",
+     "measured",
+     ".claude/skills/acdr/references/tokens.json ・ brainstorming-board/references/tokens.json"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "見た目の正本を、コードではなくデータとして各 Skill に持たせるかを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">正本</b><div class=\"sub-s\">skills-creator の references/view/ に1組だけ置く。中身は、トークン ・ トークンのスキーマ ・ CSS ・ 頁の型の4つである</div></li><li><b class=\"lead-s\">配り方</b><div class=\"sub-s\">scaffold が、Skill を作るときに4つを Skill の references/ へ写す。判断基準のスキーマを写すのと同じ扱いにする</div></li><li><b class=\"lead-s\">描画</b><div class=\"sub-s\">5言語の view は、Skill 自身の references/ から4つを読むだけにする。コードに見た目の既定値を持たない。4つが無ければ、描かずに理由を返す</div></li><li><b class=\"lead-s\">同期</b><div class=\"sub-s\">check が、Skill の写しと正本の差を報告する。正本を直したら、報告に従って各 Skill の写しを直す</div></li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "正本は skills-creator の references/view/ に1つ置き、scaffold が各 Skill の references/ へ写す。描画の道具は Skill 自身の写しを読み、コードに見た目の既定値を持たない。check が写しと正本の差を報告する"
+    ]
+   ],
+   "figures": [
+    [
+     "正本は skills-creator に1つ置き、scaffold が各 Skill へ写す。描画の道具は Skill 自身の写しを読み、check が写しと正本の差を報告する",
+     "5228d7f36773"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>何を置くか</th></tr></thead><tbody><tr><th>skills-creator/references/view/</th><td>正本の4つ（トークン ・ トークンのスキーマ ・ CSS ・ 頁の型）</td></tr><tr><th>usecase-advisor/references/</th><td>scaffold が写した4つ。描画の道具はここから読む</td></tr><tr><th>5言語の描画の雛形（refs.*）</th><td>見た目の文字列を持たない。読むファイルの名前だけを持つ</td></tr><tr><th>skills-creator check の報告</th><td>例：「view.css が正本と違う（12行目）」</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 正本を1つ置き、scaffold が写し、check が差を報告する",
+     "見た目をデータとして各 Skill に持たせ、コードからは外す",
+     "Skill の数だけ写しができる。正本を直したら、check の報告に従って写しを直す作業が生じる"
+    ],
+    [
+     "A2 ── A と同じく写すが、check は差を報告しない",
+     "写したあとの見た目は、各 Skill に任せる",
+     "正本を直しても古い写しが残り、どの Skill が古いかを誰も検出できない"
+    ]
+   ],
+   "dropped": [
+    [
+     "B ── 各言語の道具に、正本をビルドのときに取り込む",
+     "取り込み方が5言語で違い、生成の手順が5つ要る。Python と TypeScript は組み立ての手順を持たない"
+    ],
+    [
+     "C ── 描画の道具が、実行時に skills-creator のフォルダから読む",
+     "Skill が他の Skill に依存し、単独で配れない。skill-references で除外した案と同じ理由である"
+    ],
+    [
+     "D ── 既定値をコードに残し、Skill の references/ で上書きする（今の形）",
+     "コードに見た目の文字列が残り、論点1に反する"
+    ]
+   ],
+   "path": [
+    [
+     "<p>Round 2 で承認された（2026-10-01、利用者の言葉「OKです」）</p>"
+    ]
+   ],
+   "found": [
+    [
+     "描画の道具は、すでに Skill 自身の references/ から view.tokens.json と view.template.html を実行時に読んでいる"
+    ],
+    [
+     "既定値はコードの中の定数（DEFAULT_TOKENS ・ STYLE）にあり、これが12か所の複製になっている"
+    ]
+   ],
+   "costs": [
+    [
+     "scaffold が4つを写す"
+    ],
+    [
+     "5言語の描画の雛形から DEFAULT_TOKENS ・ PAGE_STYLE ・ STYLE を外し、ファイルを読む形にする"
+    ],
+    [
+     "check に、写しと正本の差の報告を加える"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "トークンと CSS の具体的な値",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める"
+    ],
+    [
+     "acdr とブレストボードの独自の見た目の扱い",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "コードに見た目を持たないこと",
+     "見た目の正本はトークン ・ CSS ・ 型の3つで、描画の道具は値を差し込むだけにする",
+     "rule",
+     "論点1（Round 1 で承認）"
+    ],
+    [
+     "Skill を単独で配れること",
+     "Skill は他の Skill に依存しない",
+     "rule",
+     "skills-creator の決まり（ACDR 0066）"
+    ],
+    [
+     "実行時に Skill の references/ から読めること",
+     "tokens() は refs.join(\"view.tokens.json\") を、view() は refs.join(\"view.template.html\") を読む",
+     "measured",
+     "skills-creator/references/profiles/rust/common/refs.rs.tmpl"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "判断基準の頁で「見にくい」と指摘された表とコードブロックを、色のトークンと固定の規則で描き直す。"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">パレット</b><div class=\"sub-s\">差し色の違う3つ（緑 ・ 藍 ・ 橙）を、明と暗の両方で持つ。Skill は写しの palette の欄で1つを選ぶ</div></li><li><b class=\"lead-s\">色の役割</b><div class=\"sub-s\">どのパレットも同じ10の役割を持つ。頁の地 ・ 面 ・ 帯 ・ 文字 ・ 薄い文字 ・ 線 ・ 差し色 ・ 差し色の淡い地 ・ 注意 ・ 注意の淡い地である</div></li><li><b class=\"lead-s\">表</b><div class=\"sub-s\">見出しの行は面の色の地に太字で書き、下に太い線を引く。行ごとに面の色を交互に敷き、表全体を角の丸い枠で囲む</div></li><li><b class=\"lead-s\">コードブロック</b><div class=\"sub-s\">等幅の書体にし、面の色の地と枠を付け、左に差し色の縦線を引いて本文と分ける</div></li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "差し色の違う3つのパレット（緑 ・ 藍 ・ 橙）を明暗つきで持ち、Skill はそのうち1つを選ぶ。表は見出しの行に面の色を敷いて太字にし、行ごとに面の色を交互に敷いて枠で囲む。コードブロックは等幅の書体にし、枠と差し色の縦線で本文と分ける"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     "<p>試作の頁：https://claude.ai/artifact/Vi3FyQ9nhphC9YMwSPDaxi （上の帯でパレットと明暗を切り替えられる）</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>何に使うか</th></tr></thead><tbody><tr><th>頁の地（paper）</th><td>カードと表の地</td></tr><tr><th>面（surface）</th><td>表の見出しの行 ・ 交互の行 ・ コードブロックの地</td></tr><tr><th>帯（band）</th><td>頁の外側の地</td></tr><tr><th>文字（ink）</th><td>本文</td></tr><tr><th>薄い文字（muted）</th><td>補足の文字</td></tr><tr><th>線（line）</th><td>枠と行の区切り</td></tr><tr><th>差し色（accent）</th><td>要素の種類の見出し ・ 概要の枠 ・ コードブロックの縦線</td></tr><tr><th>差し色の淡い地（accent-soft）</th><td>要素の種類の札</td></tr><tr><th>注意（warn）と注意の淡い地（warn-soft）</th><td>否定の札</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 3つのパレットを持ち、Skill が1つを選ぶ",
+     "色味の違いだけを共通のトークンにし、規則は共通の view.css が持つ",
+     "パレットごとに10の役割 × 明暗の値を用意し、文字と地の比を検査する"
+    ],
+    [
+     "A2 ── 3つのパレットを持ち、頁を読む人が切り替える",
+     "試作の頁のように、頁の中で切り替える",
+     "描画が切り替えの script を持つことになり、頁の中に見た目の選択が混ざる"
+    ]
+   ],
+   "dropped": [
+    [
+     "B ── 字の大きさ ・ 余白もトークンにする",
+     "利用者の方針（色以外の共通のトークンは要らない）に反する。段階として設計しないまま値だけが増える（acdr の字の大きさは17段）"
+    ],
+    [
+     "C ── 表の1列目を太字にする",
+     "試作で、長い文の列が重くなり読みにくかった"
+    ],
+    [
+     "D ── 行の区切りを細い線1本にする（今の形）",
+     "見出しの行と中身の区別がつかず、利用者に「見にくい」と指摘された"
+    ]
+   ],
+   "path": [
+    [
+     "<p>Round 3 で承認された（2026-10-01）</p>"
+    ]
+   ],
+   "found": [
+    [
+     "試作では、見出しの行の地と交互の行の地で、表の行を追いやすくなった"
+    ],
+    [
+     "コードブロックに等幅の書体が指定されておらず、本文と同じ書体だった"
+    ],
+    [
+     "図（design-svg）は頁のトークンを使わないので、暗の表示でも明るい地のままになる"
+    ]
+   ],
+   "costs": [
+    [
+     "3つのパレットの値を明暗で用意し、文字と地の比を検査に通す"
+    ],
+    [
+     "共通の view.css に、表とコードブロックの規則を書く"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "図（SVG）の暗の表示",
+     "<span class=\"kind k-rule\">対象外</span> ── 図の色は design-svg が持ち、頁のトークンを使わない。この決定を覆さない"
+    ],
+    [
+     "Skill 固有の見た目のトークン",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "共通のトークンを色だけにすること",
+     "色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
+     "rule",
+     "利用者の言葉（2026-10-01、Round 2 への書き足し）"
+    ],
+    [
+     "表とコードブロックを直すこと",
+     "表テーブルのデザインが結構見にくいね。あとはコードブロックの部分とかかな。",
+     "rule",
+     "利用者の言葉（2026-10-01）"
+    ],
+    [
+     "見た目の正本と配り方",
+     "トークン ・ CSS ・ 型を skills-creator に1組置き、scaffold が写す",
+     "rule",
+     "論点1 ・ 2（Round 1 ・ 2 で承認）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "共通の写しと Skill 固有の見た目を、ファイルで分けるかを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">Skill 固有の見た目</b><div class=\"sub-s\">要る Skill だけが、view.skill.tokens.json（固有のトークン）と view.skill.css（固有の規則）を references/ に置く。固有の規則も色の直値を持たず、共通の色の役割か固有のトークンを参照する</div></li><li><b class=\"lead-s\">描画</b><div class=\"sub-s\">共通の3つを読み、固有の2つが在れば後ろに重ねる</div></li><li><b class=\"lead-s\">check</b><div class=\"sub-s\">共通の写しだけを正本と比べる。固有の2つは比べない</div></li><li><b class=\"lead-s\">移す順</b><div class=\"sub-s\">段1で skills-creator（正本 ・ 雛形 ・ scaffold ・ check）と、雛形から作った14の Skill の描画を移す。段2で acdr、段3でブレストボードの独自の出力（記録 ・ ボード）を移す。段ごとに ACDR を1件起こす</div></li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "Skill 固有の見た目は、共通の写しとは別の2つのファイル（view.skill.tokens.json ・ view.skill.css）に持ち、描画は共通の後ろに重ねる。移すのは3段で、skills-creator と14の Skill の描画を先に、acdr とブレストボードの独自の出力をそれぞれ後に移す"
+    ]
+   ],
+   "figures": [
+    [
+     "共通の写しは正本と一致させ、Skill 固有の見た目は別の2つのファイルで後ろに重ねる。check は共通の写しだけを比べる",
+     "9f4224ae45ca"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>何を持つか</th></tr></thead><tbody><tr><th>usecase-advisor</th><td>共通の写しだけ。固有のファイルは無い</td></tr><tr><th>acdr（段2）</th><td>共通の写し ＋ 固有：差分の追加 ・ 削除の地の色（add-bg ・ del-bg）、変更の印の色。記録の頁の規則は view.skill.css に移す</td></tr><tr><th>ブレストボード（段3）</th><td>共通の写し ＋ 固有：時系列の線と節（tl-node ・ tl-rail）など。ボードの規則は view.skill.css に移す</td></tr><tr><th>design-svg</th><td>移さない。図の色は design-svg の theme.json が持つ</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "A ── 固有の見た目を別の2つのファイルに持ち、3段で移す",
+     "共通と固有をファイルで分け、共通の写しは正本と一致させる",
+     "Skill によって references/ のファイルが2つ増える。acdr とブレストボードは、今の見た目の正本を共通と固有へ分け直す"
+    ],
+    [
+     "A2 ── A と同じく分け、14の Skill と acdr ・ ブレストボードを一度に移す",
+     "移す作業を1回で終える",
+     "1件の ACDR の変更が大きくなり、承認するときに差分を追えない"
+    ]
+   ],
+   "dropped": [
+    [
+     "B ── 固有の見た目を、共通の写しに直接書き足す",
+     "check が正本との差として報告し続ける。正本を直して写し直すと、書き足した分が消える"
+    ],
+    [
+     "C ── acdr とブレストボードは今のまま残す",
+     "トークンの仕組みが3つ並び続け（共通 ・ acdr ・ ブレストボード）、共通の色の役割とも揃わない"
+    ],
+    [
+     "D ── 字の大きさや余白も、Skill 固有のトークンとして持つ",
+     "色以外の共通のトークンは要らないという方針（論点1の書き足し）と同じ理由で、固有でも要るものだけにする。acdr の字の大きさの17段は、固有の規則の中の固定の値へ移す"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "acdr とブレストボードの部品の層は、acdr が4つ（pop-bg ・ pre-bg ・ add-bg ・ del-bg）、ブレストボードが6つ（tl-node ・ tl-rail など）で、どちらも Skill の出力に固有の値である"
+    ],
+    [
+     "雛形から作った14の Skill の描画は、同じ雛形の複製なので、段1で一度に移せる"
+    ]
+   ],
+   "costs": [
+    [
+     "段1：skills-creator の references/view/ の正本、5言語の描画の雛形、scaffold、check、トークンの検査。雛形から作った14の Skill への写し"
+    ],
+    [
+     "段2 ・ 段3：acdr とブレストボードの見た目の正本を、共通の写しと固有の2つへ分け直す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "design-svg の図の色",
+     "<span class=\"kind k-rule\">対象外</span> ── 図は SVG の中で閉じ、頁のトークンを使わない。この決定を覆さない"
+    ],
+    [
+     "段2 ・ 段3 の具体的な差分",
+     "<span class=\"kind k-given\">後続で決定</span> ── 段ごとの ACDR で示す"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "Skill 固有のトークンを持つこと",
+     "Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
+     "rule",
+     "利用者の言葉（2026-10-01）"
+    ],
+    [
+     "共通の写しを正本と一致させること",
+     "scaffold が写し、check が写しと正本の差を報告する",
+     "rule",
+     "論点2（Round 2 で承認）"
+    ],
+    [
+     "共通のトークンは色だけ",
+     "色の3つのパレットと10の役割",
+     "rule",
+     "論点1 ・ 3（Round 2 ・ 3 で承認）"
+    ],
+    [
+     "acdr とブレストボードの部品の層",
+     "部品の層の鍵は、acdr が4つ（pop-bg ・ add-bg など）、ブレストボードが6つ（tl-node ・ tl-rail など）である",
+     "measured",
+     "acdr ・ brainstorming-board の references/tokens.json"
+    ]
+   ]
+  }
+ }
+}

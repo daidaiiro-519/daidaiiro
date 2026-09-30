@@ -30,30 +30,21 @@ public static class Refs
 {
     public const string SchemaTail = ".schema.json";
 
-    /// <summary>見た目の値の既定。**描画は、この値かその差し替え（view.tokens.json）だけを使う。**</summary>
-    static readonly (string, string)[] DefaultTokens =
-    [
-        ("ink", "#1f2328"),
-        ("muted", "#59636e"),
-        ("line", "#d1d9e0"),
-        ("paper", "#ffffff"),
-        ("band", "#f3f5f7"),
-        ("accent", "#0f6e5c"),
-        ("accent-soft", "#e3f1ed"),
-        ("warn", "#9a3412"),
-        ("warn-soft", "#fdeee6"),
-        ("radius", "10px"),
-        ("gap", "16px"),
-    ];
+    /// <summary>見た目の正本の複製（ボード view-design-tokens）。**描画は、Skill の references/ に置いた複製だけを読む**
+    /// ── コードに見た目の値を保持しない。正本は Skill を生んだ道具が持ち、Skill を生むときに複製する。</summary>
+    const string ViewTokens = "view.tokens.json";
 
-    /// <summary>既定の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。</summary>
-    const string DefaultTemplate = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style></head><body><main class="rv">{{body}}</main></body></html>""";
+    /// <summary>描画の規則（.rv の囲みの中だけに適用される）。</summary>
+    const string ViewCss = "view.css";
 
-    /// <summary>頁の規則（body と main）。**単独の頁のときだけ使う。**</summary>
-    const string PageStyle = """*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}}""";
+    /// <summary>頁の型。**差し込む場所は3つ** ── {{title}} ・ {{style}} ・ {{body}}。</summary>
+    const string ViewTemplate = "view.template.html";
 
-    /// <summary>型の規則。**値は直書きせず、トークンの変数だけを参照する。** .rv の囲みの中だけに効く。</summary>
-    const string Style = """.rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:16px;margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:400;margin:2px 0 4px}.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:15px}}""";
+    /// <summary>Skill 固有のトークン（必要とする Skill だけが置く）。</summary>
+    const string SkillTokens = "view.skill.tokens.json";
+
+    /// <summary>Skill 固有の規則（必要とする Skill だけが置く）。</summary>
+    const string SkillCss = "view.skill.css";
 
     /// <summary>空白の集合。**Rust の char::is_whitespace（Unicode の White_Space）と同じにする** ──
     /// char.IsWhiteSpace は制御文字 \x1c〜\x1f も空白に数え、結果が Rust と食い違う。</summary>
@@ -170,7 +161,8 @@ public static class Refs
 
     /// <summary>references の種類を並べる。**名前の順である** ── 実行ごとに順が変わると、差分が毎回出る。</summary>
     public static List<Kind> Kinds(string refs) =>
-        [.. Names(refs).Where(f => f.EndsWith(SchemaTail, StringComparison.Ordinal)).Select(file =>
+        // **見た目の正本の複製（view.*）は種類ではない** ── 中身ではなく見た目である。形は validate が検査する
+        [.. Names(refs).Where(f => f.EndsWith(SchemaTail, StringComparison.Ordinal) && !f.StartsWith("view.", StringComparison.Ordinal)).Select(file =>
         {
             var name = file[..^SchemaTail.Length];
             var data = Path.Combine(refs, $"{name}.json");
@@ -905,38 +897,85 @@ public static class Refs
         return $"<header><p class=\"eyebrow\">{string.Join(" ・ ", eyebrow)}</p><h1>{lead}</h1></header>{body}";
     }
 
-    /// <summary>.rv の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う。**</summary>
-    public static string ScopedStyle() => Style;
+    /// <summary>見た目の正本の複製が無いときの理由。</summary>
+    static string Missing(string name) =>
+        $"references/{name} が無い ── 見た目の正本の複製である。Skill を生んだ道具が置く（その道具の check が正本との差を報告する）";
+
+    /// <summary>明と暗の色の変数を組む。**共通のパレットの後ろに Skill 固有のトークンを足し、鍵の順に並べる。**</summary>
+    static (string Light, string Dark) PaletteVars(string refs)
+    {
+        JsonNode? tokens;
+        try
+        {
+            tokens = ReadJson(Path.Combine(refs, ViewTokens));
+        }
+        catch (RefsException)
+        {
+            throw new RefsException(Missing(ViewTokens));
+        }
+        var name = Str(tokens, "palette") ?? throw new RefsException($"{ViewTokens}: palette が無い");
+        if (!TryAt(At(tokens, "palettes"), name, out var chosen))
+            throw new RefsException($"{ViewTokens}: palettes に {name} が無い");
+        JsonNode? skill;
+        try
+        {
+            skill = ReadJson(Path.Combine(refs, SkillTokens));
+        }
+        catch (RefsException)
+        {
+            skill = null;
+        }
+        var out_ = new List<string>();
+        foreach (var scheme in new[] { "light", "dark" })
+        {
+            var decl = new Dictionary<string, string>();
+            foreach (var source in new[] { chosen, skill })
+            {
+                if (At(source, scheme) is not JsonObject part) continue;
+                foreach (var (k, v) in part)
+                {
+                    if (v is JsonValue jv && jv.GetValueKind() == JsonValueKind.String) decl[k] = jv.GetValue<string>();
+                }
+            }
+            var keys = decl.Keys.ToList();
+            keys.Sort(ByBytes);
+            out_.Add(string.Concat(keys.Select(k => $"--{k}:{decl[k]};")));
+        }
+        return (out_[0], out_[1]);
+    }
+
+    /// <summary>色の変数を selector に定め、共通と Skill 固有の規則を続ける。</summary>
+    static string StyleFor(string refs, string selector)
+    {
+        var (light, dark) = PaletteVars(refs);
+        string css;
+        try
+        {
+            css = File.ReadAllText(Path.Combine(refs, ViewCss));
+        }
+        catch (Exception)
+        {
+            throw new RefsException(Missing(ViewCss));
+        }
+        string own;
+        try
+        {
+            own = File.ReadAllText(Path.Combine(refs, SkillCss));
+        }
+        catch (Exception)
+        {
+            own = "";
+        }
+        return $"{selector}{{{light}}}@media (prefers-color-scheme:dark){{{selector}{{{dark}}}}}{css}{own}";
+    }
+
+    /// <summary>.rv の囲みの中だけに適用される規則と色。**他の型の頁に埋め込むときに使う** ── 色の変数も .rv に
+    /// 定めるので、埋め込む側の :root の変数を上書きしない。複製が無いか読めないときは RefsException を投げる。</summary>
+    public static string ScopedStyle(string refs) => StyleFor(refs, ".rv");
 
     /// <summary>1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**</summary>
     public static string RenderBody(JsonNode? schema, JsonNode? value, string base_) =>
         $"<div class=\"rv\">{PageBody(schema, value, new Ctx(schema, base_))}</div>";
-
-    /// <summary>見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**</summary>
-    static string Tokens(string refs)
-    {
-        var vars = DefaultTokens.Select(t => new[] { t.Item1, t.Item2 }).ToList();
-        JsonNode? over;
-        try
-        {
-            over = ReadJson(Path.Combine(refs, "view.tokens.json"));
-        }
-        catch (RefsException)
-        {
-            over = null;
-        }
-        if (over is JsonObject o)
-        {
-            foreach (var (k, v) in o)
-            {
-                if (v is not JsonValue jv || jv.GetValueKind() != JsonValueKind.String) continue;
-                var slot = vars.FirstOrDefault(x => x[0] == k);
-                if (slot is not null) slot[1] = jv.GetValue<string>();
-                else vars.Add([k, jv.GetValue<string>()]);
-            }
-        }
-        return $":root{{{string.Concat(vars.Select(x => $"--{x[0]}:{x[1]};"))}}}{PageStyle}{Style}";
-    }
 
     /// <summary>種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。</summary>
     public static string View(string refs, string kind, string? id = null, string? file = null)
@@ -971,13 +1010,13 @@ public static class Refs
         string template;
         try
         {
-            template = File.ReadAllText(Path.Combine(refs, "view.template.html"));
+            template = File.ReadAllText(Path.Combine(refs, ViewTemplate));
         }
         catch (Exception)
         {
-            template = DefaultTemplate;
+            throw new RefsException(Missing(ViewTemplate));
         }
         var title = Esc(Str(root, "title") ?? kind);
-        return template.Replace("{{title}}", title).Replace("{{style}}", Tokens(refs)).Replace("{{body}}", body);
+        return template.Replace("{{title}}", title).Replace("{{style}}", StyleFor(refs, ":root")).Replace("{{body}}", body);
     }
 }
