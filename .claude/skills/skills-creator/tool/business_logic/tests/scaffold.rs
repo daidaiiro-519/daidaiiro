@@ -149,3 +149,28 @@ fn an_advisor_skill_is_refused_in_python() {
     let why = profile::plan(&profiles, &types, &python, &advisor).expect_err("断る");
     assert!(why.contains("版2") && why.contains("rust"), "{why}");
 }
+
+#[test]
+fn a_work_skill_can_be_planned_in_typescript() {
+    let (profiles, types) = defs();
+    let ts = profile::load(&profiles, "typescript").expect("TypeScript の組が在る");
+    let work = profile::load_type(&types, "work").expect("作業型が在る");
+    let plan = profile::plan(&profiles, &types, &ts, &work).expect("組み合わせられる");
+    for to in [
+        "tool/package.json",
+        "tool/src/contract.ts",
+        "tool/src/cli.ts",
+        "tool/src/mcp.ts",
+        "tool/src/tools.ts",
+        "tool.json",
+        "mcp.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
+    // **版1 の組は助言型を断る**
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    assert!(profile::plan(&profiles, &types, &ts, &advisor).is_err());
+}

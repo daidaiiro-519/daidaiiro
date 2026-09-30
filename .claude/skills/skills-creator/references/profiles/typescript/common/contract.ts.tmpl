@@ -1,0 +1,125 @@
+// SPDX-License-Identifier: MIT
+/**
+ * 契約の実体。**どの Skill も同じファイルを複製して使う**（ACDR 0063）。
+ *
+ * 道具の一覧（能力の正本）・ 引数 ・ 渡された値 ・ 戻り値 ・ 道具の一覧を機械が読む形で返す処理を持つ。
+ * CLI と MCP は、この形の一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+ */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/** 引数1つ。位置引数と旗を区別しない ── 呼ぶ側の形はプレゼンテーション層が決める。 */
+export interface Arg {
+    name: string;
+    summary: string;
+    required: boolean;
+    many: boolean;
+    default?: string;
+}
+
+/** 省略できない引数を宣言する。 */
+export function need(name: string, summary: string): Arg {
+    return { name, summary, required: true, many: false };
+}
+
+/** 省略できる引数を宣言する。 */
+export function opt(name: string, summary: string, fallback?: string): Arg {
+    return { name, summary, required: false, many: false, default: fallback };
+}
+
+/** まとめて受ける引数を宣言する。 */
+export function many(name: string, summary: string): Arg {
+    return { name, summary, required: true, many: true };
+}
+
+/** 道具の戻り値。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。 */
+export interface Outcome {
+    ok: boolean;
+    findings: string[];
+    data: Record<string, unknown>;
+}
+
+export function found(findings: string[], data: Record<string, unknown>): Outcome {
+    return { ok: true, findings, data };
+}
+
+export function misuse(reason: string): Outcome {
+    return { ok: false, findings: [reason], data: {} };
+}
+
+/** 0 正常 ／ 1 検出あり ／ 2 誤用。 */
+export function exitCode(out: Outcome): number {
+    if (!out.ok) return 2;
+    return out.findings.length > 0 ? 1 : 0;
+}
+
+/** 渡された引数。**プレゼンテーション層が組み、道具が読む。** */
+export class Given {
+    readonly values = new Map<string, string[]>();
+
+    push(name: string, value: string): void {
+        const list = this.values.get(name) ?? [];
+        list.push(value);
+        this.values.set(name, list);
+    }
+
+    one(name: string, fallback: string): string {
+        return this.values.get(name)?.[0] ?? fallback;
+    }
+
+    has(name: string): boolean {
+        return this.values.has(name);
+    }
+
+    all(name: string): string[] {
+        return [...(this.values.get(name) ?? [])];
+    }
+
+    /** Skill のフォルダ。渡されなければ、このファイルの位置から SKILL.md の在る上のフォルダを求める。 */
+    skillRoot(): string {
+        if (this.has('skill_root')) return this.one('skill_root', '.');
+        let dir = dirname(fileURLToPath(import.meta.url));
+        for (;;) {
+            if (existsSync(join(dir, 'SKILL.md'))) return dir;
+            const up = dirname(dir);
+            if (up === dir) throw new Error('Skill の置き場所が見つからない ── --skill_root で渡す');
+            dir = up;
+        }
+    }
+
+    /** 外部の道具の起動するコマンド。**名前を直書きせず、tool.json から読んで渡す。** */
+    external(name: string): string {
+        const path = join(this.skillRoot(), 'tool.json');
+        const doc = JSON.parse(readFileSync(path, 'utf8')) as { external?: { name?: string; command?: string }[] };
+        const hit = (doc.external ?? []).find(x => x.name === name && x.command);
+        if (!hit?.command) throw new Error(`${path} の external に ${name} の command が無い`);
+        return hit.command;
+    }
+}
+
+/** 道具1つ。run は結果を返し、human は人向けの文を組む。 */
+export interface Tool {
+    name: string;
+    summary: string;
+    args: Arg[];
+    run: (given: Given) => Outcome;
+    human: (out: Outcome) => string;
+}
+
+/** 道具の一覧を、機械が読む形で返す。**動詞なしで --json を付けたときに CLI が返す。** */
+export function catalog(tools: Tool[], given: Given): Outcome {
+    const listed = tools.map(t => ({
+        name: t.name,
+        summary: t.summary,
+        args: t.args.map(a => ({ name: a.name, required: a.required, many: a.many }))
+    }));
+    let root = '';
+    try {
+        root = given.skillRoot();
+    } catch {
+        root = '';
+    }
+    return found([], { tools: listed, skill_root: root });
+}

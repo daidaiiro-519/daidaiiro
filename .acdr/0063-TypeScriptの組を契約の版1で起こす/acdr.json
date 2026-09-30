@@ -1,0 +1,188 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0063",
+ "title": "TypeScript の組を契約の版1で起こす",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator に TypeScript の組を加え、契約の版1 を満たす作業型の Skill を TypeScript で生めるようにする。",
+ "why": "ボードの論点5で、組を起こす順を Python → TypeScript → C# → Go と決めた。Python の組は ACDR 0062 で承認した。TypeScript の組も、Rust の組と同じ振る舞いを別の言語で満たす雛形を持ち、中の構成は指定しない（ACDR 0059）。MCP の公式 TypeScript SDK は v2 で @modelcontextprotocol/server へ分かれた。原文（commit 7f4c12a）の低水準の Server と serveStdio に一致させた。Node.js は 22.18 から型の注記を外して .ts を直接実行する。そのため変換の段と出力を置かない形にした。",
+ "shift": [
+  {
+   "what": "生める言語の組",
+   "from": "Rust と Python",
+   "to": "Rust ・ Python ・ TypeScript"
+  },
+  {
+   "what": "TypeScript の Skill の起動",
+   "from": "（無い）",
+   "to": "node tool/src/cli.ts ／ mcp.ts。実行ファイルも変換した JavaScript も置かない"
+  },
+  {
+   "what": "型の検査",
+   "from": "（無い）",
+   "to": "npm run check（tsc --noEmit）。実行の経路には入れない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "TypeScript の組で生んだ Skill の起動の流れ。CLI と MCP は同じ道具の一覧（tools.ts）から組み、その先の構成は Skill を作る人が決める",
+ "alternatives": [
+  {
+   "option": "tsc で JavaScript へ変換し、dist/ の .js を起動する",
+   "why_not": "生んだあとと書き換えるたびに変換の段が要り、変換を忘れると古い .js が動く。Node.js 22.18 以上は .ts を直接実行できる"
+  },
+  {
+   "option": "tsx などの実行の道具を依存に入れて起動する",
+   "why_not": "起動のたびに外部の道具を経由する。Node.js の標準の機能で足りる"
+  },
+  {
+   "option": "McpServer と registerTool（zod で道具を宣言する）で MCP の面を組む",
+   "why_not": "道具をその場で宣言するので、能力の正本が CLI の一覧と2か所になる。Rust の組が #[tool] マクロを使わないのと同じ理由である"
+  },
+  {
+   "option": "v1 の @modelcontextprotocol/sdk を使う",
+   "why_not": "v2 が公開済みで、v1 の McpError などは v2 で ProtocolError へ置き換わった。新しく起こす組は v2 に合わせる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "ts-md",
+   "tab": "TypeScript の組の説明",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "この組は契約の版1 を満たし、作業型だけを保持する。",
+     "before": "（無い）",
+     "why": "版2 を要る助言型は Rust の組で生む。scaffold は版の不足を理由に断る"
+    },
+    {
+     "find": "実行ファイルも、変換した JavaScript も置かない。",
+     "before": "（無い）",
+     "why": "Node.js が .ts を直接実行するので、変換の段を置かない"
+    },
+    {
+     "find": "型の注記を外すだけで実行できる構文に限る",
+     "before": "（無い）",
+     "why": "enum と名前空間は型の注記を外すだけでは実行できない。tsconfig の erasableSyntaxOnly で検出する"
+    }
+   ]
+  },
+  {
+   "key": "profile",
+   "tab": "typescript.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript.profile.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"contract\": 1,",
+     "before": "（無い）",
+     "why": "版1 の組として定義した"
+    },
+    {
+     "find": "\"spawnSync(\",",
+     "before": "（無い）",
+     "why": "外部の道具の名前の直書きを、Node.js の起動の書き方で検出する"
+    }
+   ]
+  },
+  {
+   "key": "contract-ts",
+   "tab": "contract.ts の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/contract.ts.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "export function catalog(tools: Tool[], given: Given): Outcome {",
+     "before": "（無い）",
+     "why": "Rust の contract.rs の catalog と同じ形（tools と skill_root）を返す"
+    }
+   ]
+  },
+  {
+   "key": "cli-ts",
+   "tab": "cli.ts の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/cli.ts.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "        if (!tool.args.some(x => x.name === key)) {",
+     "before": "（無い）",
+     "why": "一覧に無い旗を終了コード 2 で断る。Rust の組と同じ文言にした"
+    }
+   ]
+  },
+  {
+   "key": "mcp-ts",
+   "tab": "mcp.ts の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/mcp.ts.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "    server.setRequestHandler('tools/list', async () => ({",
+     "before": "（無い）",
+     "why": "公式 SDK v2 の低水準の Server を、同じ道具の一覧から組む"
+    },
+    {
+     "find": "type Property = {",
+     "before": "（無い）",
+     "why": "interface は SDK の型が要る索引を満たさず、tsc が通らなかった"
+    },
+    {
+     "find": "            isError: !out.ok",
+     "before": "（無い）",
+     "why": "ok が偽なら isError を立てる。Rust の組と同じ分け方である"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_work_skill_can_be_planned_in_typescript() {",
+     "before": "（無い）",
+     "why": "TypeScript の組の計画 ・ 雛形の実在 ・ 助言型を断ることを固定した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Python ・ TypeScript（版1 ・ 作業型）",
+     "before": "Python（版1 ・ 作業型）",
+     "why": "組の一覧を、置いた組に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "道具の契約",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "TypeScript は",
+     "before": "Python は実行ファイルを置かず uv run で起動する",
+     "why": "実行ファイルの置き場所の例に、TypeScript の組の形を加えた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "ts-md": "938656b0dad06d54f279361c49d8d15555e9543cdf4268f33f36d8a57ee31371",
+  "profile": "c52987957a9f3b7f2d3bfa0ac5f77e4575c9527b9c042f5bb0ba07ea7e0bd263",
+  "contract-ts": "4f7ad4a0c0ad86af6141a96963d9cc0a5eba98758d7fcb881e6ff73f4facd17e",
+  "cli-ts": "3189418524aee9fc0a8365293c42c643545ab318acc96bde416a723ea241b025",
+  "mcp-ts": "492b6564db37a5f76f9125e30ac534b18130dcb0df12d882f13f00abe8a95376",
+  "tests": "1cc08302ed4850159d55e001681e5cbfac46e29d75ab163dfb97400f0615afc8",
+  "skill": "907a7cda6e5021024ebacfdf72167d856711242a7d36252dbb9da4555970ecb5",
+  "contract": "aa747393b418840d2ef19fcd3c12af66e40f552c2043f397776ef9272482e08a"
+ }
+}
