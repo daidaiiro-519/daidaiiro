@@ -28,7 +28,7 @@ description: "テスト・シナリオの品質評価に関する相談(「こ�
 | 相談種別 | 判定条件 | `kind` | 必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて） |
 |---|---|---|---|
 | テスト強度評価相談 | 「このテストは弱くないか」「実装をなぞっているだけでは」等、既存テスト・シナリオの品質評価を求める相談 | `strength` | 判断の道筋 |
-| 完了基準・品質ゲート相談 | 「このタスクの完了基準は何か」「このAcceptanceCriteriaで十分か」等、Definition of Doneの策定を求める相談 | `definition-of-done` | 判断の道筋 |
+| 完了基準・品質ゲート相談 | 「このタスクの完了基準は何か」「このAcceptanceCriteriaで十分か」等、Definition of Doneの策定を求める相談 | `definition-of-done` | 完成の定義（Definition of Done） |
 | テスト計画相談 | 「どこにテスト工数を厚くすべきか」「境界値はどう洗い出すか」「探索的テストのセッションをどう設計するか」等、テスト戦略・計画の立案を求める相談 | `test-planning` | 判断の道筋 |
 
 ---
@@ -135,7 +135,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（9件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（9件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も、取得した原典の原文から作った原典ごとの学習ノートの一部であり、ノートに無い文字列を保持しない**。原典の URL と取得した日は、各判断基準の `source` が持つ |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 | `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |
@@ -144,12 +144,12 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | id | 題 |
 |---|---|
-| `boundary-value-analysis-equivalence-partitioning` | 「境界値分析と同値分割によるテスト設計技法を対象とする概念」 |
-| `definition-of-done` | 「完了の定義（DoD）の普遍的な品質基準を対象とする概念」 |
-| `exploratory-testing` | 「探索的テストの手法を対象とする概念」 |
-| `mutation-testing` | 「ミューテーションテストによる検出力測定を対象とする概念」 |
-| `risk-based-testing` | 「リスクベースのテスト工数配分を対象とする概念」 |
-| `sociable-solitary-unit-tests` | 「sociable/solitaryなユニットテストの使い分けを対象とする概念」 |
-| `tdd` | 「テスト駆動開発（TDD）の原則を対象とする概念」 |
-| `test-induced-design-damage` | 「テストが引き起こす設計の歪みを対象とする概念」 |
-| `test-smells` | 「テストコードの臭い（アンチパターン）を対象とする概念」 |
+| `boundary-value-analysis-equivalence-partitioning` | 同値分割と境界値分析 |
+| `definition-of-done` | 完成の定義（Definition of Done） |
+| `exploratory-testing` | 探索的テスト |
+| `mutation-testing` | ミューテーションテスト |
+| `risk-based-testing` | リスクベースドテスト |
+| `sociable-solitary-unit-tests` | 社交的な単体テストと孤立した単体テスト |
+| `tdd` | テスト駆動開発（Canon TDD） |
+| `test-induced-design-damage` | テストが招く設計の損傷 |
+| `test-smells` | テストの臭い |
