@@ -162,6 +162,38 @@ fn katakana(s: &str) -> Vec<String> {
     words
 }
 
+/// 原典の中を指す番号（表 ・ 図 ・ 指針 ・ 練習 ・ メモ ・ 付録）と「本書」を取り出す。
+///
+/// **判断基準の頁に原典は無い** ── 読み手は「表20.1」も「指針14」も辿れない。どこから取ったかは
+/// 出典の欄が持つので、本文には書かない。
+fn numbers_of_original(s: &str) -> Vec<String> {
+    const MARKS: [&str; 6] = ["表", "図", "指針", "練習", "メモ", "付録"];
+    let mut found = Vec::new();
+    for m in MARKS {
+        for (i, _) in s.match_indices(m) {
+            let rest = &s[i + m.len()..];
+            let next = rest.chars().next();
+            if next.is_some_and(|c| c.is_ascii_digit() || (m == "付録" && c.is_ascii_uppercase()))
+            {
+                let n: String = rest
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '.')
+                    .collect();
+                found.push(format!("{m}{n}"));
+            }
+        }
+    }
+    // 「1本書き」「数本書く」の「本書」は原典を指さない ── 後ろが動詞の活用なら数えない
+    for (i, _) in s.match_indices("本書") {
+        let next = s[i + "本書".len()..].chars().next();
+        if !next.is_some_and(|c| "かきくけこいっ".contains(c)) {
+            found.push("本書".to_owned());
+            break;
+        }
+    }
+    found
+}
+
 /// 出典の節に頁が書かれているか。**頁を書けば、学習ノートとスキャンに戻れる。**
 fn pages_missing(item: &Value, id: &str, findings: &mut Vec<String>) {
     let mut check = |at: String, v: &Value| {
@@ -172,10 +204,20 @@ fn pages_missing(item: &Value, id: &str, findings: &mut Vec<String>) {
             ));
         }
     };
-    for (i, u) in item["elements"]["units"].as_array().into_iter().flatten().enumerate() {
+    for (i, u) in item["elements"]["units"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
         check(format!("/elements/units/{i}"), u);
     }
-    for (i, a) in item["antipatterns"]["items"].as_array().into_iter().flatten().enumerate() {
+    for (i, a) in item["antipatterns"]["items"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
         check(format!("/antipatterns/items/{i}"), a);
     }
 }
@@ -194,10 +236,8 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
         );
     } else {
         let body: Vec<char> = notes.iter().flat_map(|(_, b)| plain(b)).collect();
-        let windows: std::collections::HashSet<String> = body
-            .windows(COPY_MIN)
-            .map(|w| w.iter().collect())
-            .collect();
+        let windows: std::collections::HashSet<String> =
+            body.windows(COPY_MIN).map(|w| w.iter().collect()).collect();
         let vocabulary: std::collections::HashSet<String> =
             notes.iter().flat_map(|(_, b)| katakana(b)).collect();
         for item in items {
@@ -215,6 +255,11 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
                         "{id}{at}: ノートの文を複製している ──「{w}」── ノートを読んでまとめた言葉で書く"
                     ));
                 }
+                for n in numbers_of_original(&s) {
+                    findings.push(format!(
+                        "{id}{at}: 原典の番号 ──「{n}」── 判断基準の頁に原典は無い。番号は出典の欄に書く"
+                    ));
+                }
                 for w in katakana(&s) {
                     if !vocabulary.contains(&w) {
                         findings.push(format!(
@@ -228,7 +273,7 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
     }
     Check {
         no: 2,
-        what: "複製と語彙と出典 ── ノートの文を複製せず、原典に無い語を使わず、要素ごとに頁つきの出典を持つ",
+        what: "複製と語彙と出典 ── ノートの文を複製せず、原典に無い語と原典の番号を本文に書かず、要素ごとに頁つきの出典を持つ",
         findings,
     }
 }

@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use sc_business_logic::accept::{concept_units, copied};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 /// 学習ノート1本。**原典に近い言い回しを持つ。**
 fn notes() -> Vec<(PathBuf, String)> {
@@ -33,7 +33,10 @@ fn item(meaning: &str, section: &str) -> Value {
 
 #[test]
 fn a_summary_in_own_words_passes() {
-    let items = [item("目的をかなえてもらうために、システムを呼び出す側の利害関係者。", "4.2（58頁）")];
+    let items = [item(
+        "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
+        "4.2（58頁）",
+    )];
     let check = copied(&items, &notes());
     assert_eq!(check.no, 2);
     assert!(check.findings.is_empty(), "{:?}", check.findings);
@@ -41,7 +44,10 @@ fn a_summary_in_own_words_passes() {
 
 #[test]
 fn a_sentence_copied_from_the_notes_is_found() {
-    let items = [item("主アクターは、システムが動くことで満たされる目的を持つ利害関係者である。", "4.2（58頁）")];
+    let items = [item(
+        "主アクターは、システムが動くことで満たされる目的を持つ利害関係者である。",
+        "4.2（58頁）",
+    )];
     let check = copied(&items, &notes());
     assert!(
         check.findings.iter().any(|f| f.contains("複製している")),
@@ -52,7 +58,10 @@ fn a_sentence_copied_from_the_notes_is_found() {
 
 #[test]
 fn a_copy_is_found_even_with_different_spacing_and_markup() {
-    let items = [item("主アクター は、システム が 動くことで満たされる **目的** を持つ利害関係者", "4.2（58頁）")];
+    let items = [item(
+        "主アクター は、システム が 動くことで満たされる **目的** を持つ利害関係者",
+        "4.2（58頁）",
+    )];
     let check = copied(&items, &notes());
     assert!(
         check.findings.iter().any(|f| f.contains("複製している")),
@@ -63,7 +72,10 @@ fn a_copy_is_found_even_with_different_spacing_and_markup() {
 
 #[test]
 fn a_katakana_word_absent_from_the_notes_is_found() {
-    let items = [item("システムを呼び出す側の利害関係者で、ペルソナとも呼ぶ。", "4.2（58頁）")];
+    let items = [item(
+        "システムを呼び出す側の利害関係者で、ペルソナとも呼ぶ。",
+        "4.2（58頁）",
+    )];
     let check = copied(&items, &notes());
     assert!(
         check.findings.iter().any(|f| f.contains("ペルソナ")),
@@ -81,7 +93,10 @@ fn a_vocabulary_word_of_the_notes_passes() {
 
 #[test]
 fn a_source_without_a_page_is_found() {
-    let items = [item("目的をかなえてもらうために、システムを呼び出す側の利害関係者。", "4.2")];
+    let items = [item(
+        "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
+        "4.2",
+    )];
     let check = copied(&items, &notes());
     assert!(
         check.findings.iter().any(|f| f.contains("頁")),
@@ -92,7 +107,10 @@ fn a_source_without_a_page_is_found() {
 
 #[test]
 fn no_notes_is_a_finding() {
-    let items = [item("目的をかなえてもらうために、システムを呼び出す側の利害関係者。", "4.2（58頁）")];
+    let items = [item(
+        "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
+        "4.2（58頁）",
+    )];
     let check = copied(&items, &[]);
     assert!(!check.findings.is_empty(), "学習ノートが無ければ照らせない");
 }
@@ -130,4 +148,46 @@ fn a_title_named_nowhere_is_found() {
         !check.findings.is_empty(),
         "原典が名付けていない題は概念の単位ではない"
     );
+}
+
+#[test]
+fn a_number_of_the_original_is_found() {
+    // 判断基準の頁に原典の表は無い ── 読み手は「表20.1」を辿れない。番号は出典の欄が持つ
+    for text in [
+        "合否基準（表20.1）の各項目で確認する。",
+        "指針14のとおり、下に置く。",
+        "本書の考え方に合わせる。",
+    ] {
+        let items = [item(text, "4.2（58頁）")];
+        let check = copied(&items, &notes());
+        assert!(
+            check
+                .findings
+                .iter()
+                .any(|f| f.contains("原典の番号") || f.contains("本書")),
+            "{text}: {:?}",
+            check.findings
+        );
+    }
+}
+
+#[test]
+fn a_number_in_the_source_is_not_found() {
+    let items = [item(
+        "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
+        "メモ11 表20.1（241頁）",
+    )];
+    let check = copied(&items, &notes());
+    assert!(check.findings.is_empty(), "{:?}", check.findings);
+}
+
+#[test]
+fn writing_one_scenario_is_not_the_book() {
+    // 「1本書き」の「本書」は原典を指す語ではない
+    let items = [item(
+        "成功の流れを1本書き、数本書くだけにする。",
+        "4.2（58頁）",
+    )];
+    let check = copied(&items, &notes());
+    assert!(check.findings.is_empty(), "{:?}", check.findings);
 }

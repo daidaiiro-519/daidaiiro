@@ -52,11 +52,11 @@
             "type": "string",
             "title": "概要",
             "x-view": "card",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 100
           },
           "elements": {
             "title": "構成要素",
-            "description": "この概念を構成する要素。原典の節の並びではなく、その概念を理解する順（定義 → 性質や条件 → 時期や流れ → 書き方 → 注意）に並べる。要素の中身は原典の文を複製せず、学習ノートを読んでまとめた言葉で書く",
             "x-view": "group",
             "type": "object",
             "additionalProperties": false,
@@ -73,7 +73,8 @@
                   "$ref": "#/$defs/unit"
                 }
               }
-            }
+            },
+            "$comment": "この概念を構成する要素。原典の節の並びではなく、その概念を理解する順（定義 → 性質や条件 → 時期や流れ → 書き方 → 注意）に並べる。要素の中身は原典の文を複製せず、学習ノートを読んでまとめた言葉で書く"
           },
           "antipatterns": {
             "title": "アンチパターン",
@@ -103,17 +104,17 @@
                   "properties": {
                     "what": {
                       "type": "string",
-                      "title": "誤り",
+                      "title": "よくある誤り",
                       "minLength": 1
                     },
                     "risk": {
                       "type": "string",
-                      "title": "起きること",
+                      "title": "困ること",
                       "minLength": 1
                     },
                     "alternative": {
                       "type": "string",
-                      "title": "代わりにすること",
+                      "title": "こう直す",
                       "minLength": 1
                     },
                     "source": {
@@ -132,13 +133,22 @@
               "additionalProperties": false,
               "required": [
                 "criterion",
+                "title",
                 "relation"
               ],
               "properties": {
                 "criterion": {
                   "type": "string",
+                  "title": "識別子",
+                  "x-view": "hidden",
+                  "minLength": 1,
+                  "description": "関連する判断基準の id"
+                },
+                "title": {
+                  "type": "string",
                   "title": "判断基準",
-                  "minLength": 1
+                  "minLength": 1,
+                  "description": "関連する判断基準の題。criterion が指す判断基準の title と同じ文字列にする"
                 },
                 "relation": {
                   "type": "string",
@@ -177,13 +187,14 @@
             "term": {
               "type": "string",
               "title": "語",
-              "x-view": "lead",
+              "x-view": "subhead",
               "minLength": 1
             },
             "meaning": {
               "type": "string",
               "title": "意味",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 120
             },
             "source": {
               "$ref": "#/$defs/source"
@@ -215,7 +226,8 @@
               "title": "何に当てはまるか",
               "description": "続く規則 ・ 注意のすべてに共通する前置き。1回だけ置き、各行に繰り返さない",
               "x-view": "lead",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 80
             },
             "rules": {
               "type": "array",
@@ -230,17 +242,20 @@
                   "when": {
                     "type": "string",
                     "title": "条件",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 40
                   },
                   "then": {
                     "type": "string",
                     "title": "対応",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 60
                   },
                   "why": {
                     "type": "string",
                     "title": "理由",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 80
                   }
                 }
               },
@@ -462,7 +477,7 @@
                           "–"
                         ]
                       },
-                      "description": "升を空や記号だけにしない"
+                      "description": "欄を空や記号だけにしない"
                     }
                   }
                 }
@@ -602,6 +617,64 @@
           },
           "title": "手順",
           "description": "順に実施すること"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "heading",
+            "checks",
+            "source"
+          ],
+          "title": "合否基準",
+          "properties": {
+            "kind": {
+              "const": "checklist"
+            },
+            "heading": {
+              "type": "string",
+              "title": "題",
+              "x-view": "subhead",
+              "minLength": 1
+            },
+            "purpose": {
+              "type": "string",
+              "title": "使い方",
+              "x-view": "lead",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "checks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "field",
+                  "check"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "title": "欄",
+                    "minLength": 1
+                  },
+                  "check": {
+                    "type": "string",
+                    "title": "確認事項",
+                    "minLength": 1,
+                    "maxLength": 60
+                  }
+                }
+              }
+            },
+            "source": {
+              "$ref": "#/$defs/source"
+            }
+          },
+          "$comment": "原典が合否の確認事項の表を持つとき、その概念に当たる行を、テンプレートの欄と確認事項の表として持つ。原典の表番号と行番号は出典の欄に書き、本文に書かない（判断基準の頁に原典の表は無い）"
         },
         {
           "type": "object",

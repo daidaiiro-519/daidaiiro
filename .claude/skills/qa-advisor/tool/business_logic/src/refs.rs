@@ -45,11 +45,11 @@ main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480
 /// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** `.rv` の囲みの中だけに効く ──
 /// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。
 const STYLE: &str = ".rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;\
-line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:14px;\
+line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:16px;\
 margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);\
 border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}\
 .rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;\
-flex-wrap:wrap}.rv .lead{font-size:18px;font-weight:700;margin:6px 0 2px}.rv .tag{display:inline-block;\
+flex-wrap:wrap}.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .tag{display:inline-block;\
 background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;\
 font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}\
 .rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);\
@@ -63,10 +63,10 @@ margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-t
 padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;\
 margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}\
 .rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);\
-font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:700;margin:2px 0 4px}\
+font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:400;margin:2px 0 4px}\
 .rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}\
 .rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);\
-border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:16px}}";
+border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:15px}}";
 
 /// 種類1つ。
 #[derive(Debug, Clone)]
@@ -593,7 +593,10 @@ fn tag(schema: &Value, value: &Value) -> String {
 }
 
 fn is_scalar(schema: &Value) -> bool {
-    schema.get("oneOf").is_some()
+    // **画面に出さない欄は、表にするかの判定を妨げない**（ACDR 0073）── 出典のように各行が持つ欄で、
+    // 表が見出しつきの積み重ねに崩れていた
+    str_of(schema, "x-view") == Some("hidden")
+        || schema.get("oneOf").is_some()
         || matches!(
             str_of(schema, "type"),
             Some("string" | "number" | "integer" | "boolean")
@@ -657,6 +660,7 @@ fn inner(value: &Value, schema: &Value, level: usize, ctx: &Ctx) -> String {
                     let p: Vec<(&String, &Value)> = p
                         .iter()
                         .filter(|(k, _)| items.iter().any(|v| v.get(k.as_str()).is_some()))
+                        .filter(|(_, s)| str_of(resolve(s, ctx.root), "x-view") != Some("hidden"))
                         .collect();
                     // **列が1つなら箇条書きにする** ── 1列の表は、見出しの升が中身を説明しない
                     if p.len() == 1 {
