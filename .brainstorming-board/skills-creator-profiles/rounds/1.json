@@ -1,0 +1,506 @@
+{
+ "round": 1,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "契約の「層と依存の向き」を、Rust 以外の組がどう満たすかを決める。論点4の試験は、この答えの違反を検出できるかを試す。"
+    ]
+   ],
+   "pick": [
+    [
+     "<b>処理系が拒否できる辺は処理系に任せ、拒否できない辺だけを2段目が読む。</b>言語ごとに、どの辺をどちらが守るかは実測で確定した。<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>組み立てで拒否する辺</th><th>2段目が読む辺</th><th>2段目が検査する設定</th></tr></thead><tbody><tr><th>Rust</th><td>全辺（crate の依存）</td><td>無し</td><td>各 Cargo.toml の依存（現行どおり）</td></tr><tr><th>Go</th><td>全辺（業務ロジック層を service/internal/ に置く ・ 循環の禁止）</td><td>無し</td><td>業務ロジック層が service/internal/ の下に在ること</td></tr><tr><th>Java</th><td>全辺（module-info の requires）</td><td>無し</td><td>requires transitive を使っていないこと</td></tr><tr><th>C#</th><td>全辺（ProjectReference）</td><td>無し</td><td>プレゼンテーション層の csproj に DisableTransitiveProjectReferences が true で在ること</td></tr><tr><th>TypeScript</th><td>内から外の辺（project references と composite）</td><td>層を飛ばす辺（プレゼンテーション層から業務ロジック層）</td><td>各 tsconfig の references</td></tr><tr><th>Python</th><td>無し</td><td>全辺</td><td>無し</td></tr><tr><th>Ruby</th><td>無し</td><td>全辺</td><td>無し</td></tr></tbody></table></div><b>2段目が読めない import は、合格にしない。</b>引数が文字列の定数でない import（Python の importlib、Ruby の変数を渡す require、TypeScript の動的 import）は、判定できないと出す。"
+    ]
+   ],
+   "answer": [
+    [
+     "組み立てる処理系が依存を拒否できる言語は、その仕組みで守らせる（Rust ・ Go ・ Java ・ C# は全辺、TypeScript は内から外の辺だけ）。拒否できない辺（TypeScript の層を飛ばす辺、Python と Ruby の全辺）は、skills-creator の2段目がソースの import 文を読んで検出する。2段目は、処理系で守らせる言語でも、その設定が契約どおりかを検査する"
+    ]
+   ],
+   "figures": [
+    [
+     "実線は組み立てで拒否する辺、破線は2段目が import 文を読んで検出する辺である。TypeScript だけが両方に分かれる",
+     "18fde09eb00c"
+    ]
+   ],
+   "example": [
+    [
+     "<p>Go の組の置き場所の実例である。cli から business_logic を import すると、go コマンドが「use of internal package … not allowed」で拒否する。</p><pre><code><pre>tool/\n  go.mod\n  service/\n    service.go             サービス層（business_logic を import してよい）\n    internal/business_logic/  業務ロジック層（service の下からだけ import できる）\n  cli/main.go              プレゼンテーション層（service だけを import する）\n  mcp/main.go              プレゼンテーション層（service だけを import する）</pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "処理系で守らせ、拒否できない辺だけを2段目が読む",
+     "言語ごとに、処理系が拒否できる辺と、2段目が読む辺を分ける",
+     "2段目が、TypeScript ・ Python ・ Ruby の import 文の読み方を3種類持つ"
+    ],
+    [
+     "処理系で守らせ、拒否できない辺は各言語の構文解析器で読む",
+     "2段目が python3 ・ ruby ・ node を起動し、ast ・ Prism ・ TypeScript の構文解析器で import を列挙させる",
+     "skills-creator が外部の道具を3つ持ち、check の実行に3つの処理系が必要になる"
+    ]
+   ],
+   "dropped": [
+    [
+     "7言語すべてを2段目の import の読み取りで守らせる",
+     "処理系が組み立ての時点で拒否できる言語で、検出を事後の読み取りへ弱める。C# と Java は import の名前と層の対応が一意でない（名前空間とプロジェクトが別の概念である）"
+    ],
+    [
+     "第三者の検査道具を組ごとに使う（import-linter ・ dependency-cruiser ・ packwerk ・ ArchUnit ・ NetArchTest）",
+     "生んだ Skill のすべてが第三者の道具へ依存する。道具ごとに設定の形が違い、2段目の検出の形が組ごとに分かれる"
+    ],
+    [
+     "TypeScript を npm の workspaces と package の dependencies で守らせる",
+     "node_modules の巻き上げで、宣言していない package も解決できる（推測。実測していない）。project references で内から外の辺を拒否できることは実測した"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "TypeScript の project references は推移的に効く。cli が service だけを参照していても、cli から business_logic を import すると tsc は通した"
+    ],
+    [
+     "C# の ProjectReference は既定で推移的に効く。DisableTransitiveProjectReferences を true にした場合だけ、cli から business_logic の import を CS0234 で拒否した"
+    ],
+    [
+     "Go は go.mod の require では層を分けられない。go 1.17 以降、推移的な依存も require に載るためである。internal ディレクトリと循環の禁止で、全辺を拒否できた"
+    ],
+    [
+     "Java は module-info の requires で、層を飛ばす辺も内から外の辺も javac が拒否した"
+    ],
+    [
+     "Python と Ruby は、層を飛ばす import をそのまま実行した"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "import 文の読み方の実装（正規表現か、字句の走査か）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 組を起こすときに、雛形の事例で決める。この答えを覆さない ── どちらの実装でも、読む辺と読めない import の扱いは同じである"
+    ],
+    [
+     "層の名前（business_logic ・ service ・ cli ・ mcp）を各言語の慣習に合わせるか",
+     "<span class=\"kind k-rule\">対象外</span> ── skills-creator-language の論点1で、フォルダの名前は契約に置かず、言語の組が決めると決着している"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "処理系で守らせ、拒否できない辺だけを2段目が読む",
+     "skills-creator だけで check が完結する。行をまたぐ import や文字列の中の import を誤読する余地が残る"
+    ],
+    [
+     "案ごとの帰結",
+     "処理系で守らせ、拒否できない辺は各言語の構文解析器で読む",
+     "読み違いは無くなる。check を実行する環境に、検査対象でない言語の処理系まで要求する場合がある"
+    ]
+   ],
+   "grounds": [
+    [
+     "Go の internal の規則",
+     "Code in or below a directory named &#34;internal&#34; is importable only",
+     "primary",
+     "sources/pkg.go.dev_cmd_go:3233（2026-09-30 取得）"
+    ],
+    [
+     "Go の require では層を分けられないこと",
+     "transitively imported by a package or test in the main module.",
+     "primary",
+     "sources/go.dev_ref_mod.md:943（2026-09-30 取得）"
+    ],
+    [
+     "TS6307 の文言",
+     "「File '{0}' is not listed within the file list of project '{1}'. Projects must list all files or use an 'include' pattern.」",
+     "primary",
+     "sources/raw.githubusercontent.com_microsoft_TypeScript_release-5.9_src_compiler_diagnosticMessages.json:5774（2026-09-30 取得）"
+    ],
+    [
+     "C# で推移を切る設定が要ること",
+     "However, in .NET Core (including .NET 5 and later), project references <em>are</em> transitive.",
+     "primary",
+     "sources/learn.microsoft.com_en-us_visualstudio_msbuild_common-msbuild-project-items:1012（2026-09-30 取得）"
+    ],
+    [
+     "Rust の2段目の現行の検査",
+     "依存が宣言どおりに守られているかは、コンパイラが判定する。",
+     "rule",
+     ".claude/skills/skills-creator/references/profiles/rust.md（2段目の検査の節）"
+    ],
+    [
+     "Go が全辺を拒否すること",
+     "「cli/main.go:6:2: use of internal package example.com/tool/declare/internal/parts not allowed ／ imports example.com/tool/declare from parts.go: import cycle not allowed」",
+     "measured",
+     "実測（2026-09-30、scratchpad で3層の最小構成を組んだ）。go1.27.1。実測は改名前の名前（parts ・ declare）で行った"
+    ],
+    [
+     "TypeScript が内から外の辺だけを拒否すること",
+     "parts から declare の import は TS6059 と TS6307 で拒否した。cli から parts の import はエラー無しで通った",
+     "measured",
+     "実測（2026-09-30、scratchpad で3層の最小構成を組んだ）。typescript 5.9.3、tsc -b。実測は改名前の名前（parts ・ declare）で行った"
+    ],
+    [
+     "C# が推移を切った場合に拒否すること",
+     "DisableTransitiveProjectReferences あり：CS0234 で拒否。なし：Build succeeded",
+     "measured",
+     "実測（2026-09-30、scratchpad で3層の最小構成を組んだ）。.NET SDK 10.0.401"
+    ],
+    [
+     "Java が全辺を拒否すること",
+     "package tool.parts is declared in module tool.parts, but module tool.cli does not read it",
+     "measured",
+     "実測（2026-09-30、scratchpad で3層の最小構成を組んだ）。javac 25.0.4.1。実測は改名前の名前（parts ・ declare）で行った"
+    ],
+    [
+     "Python と Ruby が拒否しないこと",
+     "cli から parts の import が実行され、hi を出力した",
+     "measured",
+     "実測（2026-09-30、scratchpad で3層の最小構成を組んだ）。Python 3.14.4 ・ ruby 4.0.7。実測は改名前の名前（parts ・ declare）で行った"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "Rust の組は、共通の実装の正本を references/profiles/rust/ に1組持つ。7つの組では、同じ契約の実装が7組になる。"
+    ]
+   ],
+   "pick": [
+    [
+     "<b>正本は組ごとに1組、同等性は共通の事例で検査する。</b><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>比べ方</th></tr></thead><tbody><tr><th>動詞なしの --json（道具の一覧）</th><td>JSON として一致</td></tr><tr><th>道具の一覧に無い旗</th><td>終了コード 2</td></tr><tr><th>get の出力</th><td>JSON として一致</td></tr><tr><th>validate の検出</th><td>ファイルと位置の組の集合が一致</td></tr><tr><th>view の出力</th><td>HTML がバイト単位で一致</td></tr><tr><th>import の出力（document）</th><td>JSON として一致</td></tr></tbody></table></div><b>事例は1段目の検査の拡張である。</b>実行ファイルを起動して観察するので、どの言語の組にも同じ事例が当たる。"
+    ]
+   ],
+   "answer": [
+    [
+     "共通の実装の正本は、組ごとに references/profiles/<言語>/ へ1組ずつ置く。同じ振る舞いは、言語に依存しない共通の事例（入力と期待する出力）で保証する。事例は references/conformance/ に置き、各組の雛形で生んだ Skill の CLI に同じ入力を与えて、出力を比べる。validate の検出は「ファイルと位置」で比べ、JSON Schema のライブラリが出す文言は比べない"
+    ]
+   ],
+   "figures": [
+    [
+     "共通の事例を、7つの組で生んだ Skill の CLI へ同じ入力として与え、出力を期待する出力と照合する",
+     "338303bbad7c"
+    ]
+   ],
+   "example": [
+    [
+     "<p>事例1件の実例である。validate の検出は、ファイルと位置だけを持つ。</p><pre><code><pre>references/conformance/validate-missing-id/\n  input/criteria.schema.json\n  input/criteria.json      items[2] に id が無い\n  expect.json              {\"verb\": \"validate\",\n                            \"findings\": [{\"file\": \"criteria.json\", \"at\": \"items/2\"}]}</pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "組ごとに正本を置き、共通の事例で同等性を検査する",
+     "7組の実装を持ち、振る舞いの一致を事例で固定する",
+     "共通の実装の変更が、7組への変更になる。事例が、どの組を直し忘れたかを示す"
+    ],
+    [
+     "view だけを共通の JavaScript で描画し、他は組ごとに持つ",
+     "view の HTML は JSON と描画用の script を埋め込むだけにし、描画を閲覧側で行う",
+     "組ごとの描画の実装が消える。保存した HTML の中に構造が存在しなくなる"
+    ]
+   ],
+   "dropped": [
+    [
+     "Rust で組んだ共通の実装の実行ファイルを、他の言語の Skill から呼ぶ",
+     "他の言語の Skill が Rust の実行ファイルへ依存する。組を言語ごとに用意する目的（利用者が自分の言語だけで道具を作る）と矛盾する"
+    ],
+    [
+     "validate の検出を文言まで一致させる",
+     "検出の文言は JSON Schema のライブラリが出す（Rust は jsonschema の crate）。7言語で同じライブラリは無いので、一致させられない"
+    ],
+    [
+     "事例を持たず、各組の雛形の単体の試験だけにする",
+     "組の中で閉じた試験は、組どうしの食い違いを検出しない"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "版2 の references の実装は、Rust で 1120 行ある（get ・ validate ・ view ・ import）"
+    ],
+    [
+     "Rust の組の validate は、検出の文言に jsonschema の crate の誤りの文言をそのまま含む"
+    ],
+    [
+     "Rust の組でも、JSON Schema の検証は第三者の crate（jsonschema 0.34）に依存している"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "各言語で使う JSON Schema のライブラリの選定",
+     "<span class=\"kind k-given\">後続で決定</span> ── 組を起こすときに決める。この答えを覆さない ── 比べるのはファイルと位置だけである"
+    ],
+    [
+     "版1 の Skill を他の言語の組で作るか",
+     "<span class=\"kind k-rule\">対象外</span> ── 新しい組は版2 だけを持つ。版1 は移行していない Rust の Skill のための互換である"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "組ごとに正本を置き、共通の事例で同等性を検査する",
+     "描画の規則（x-view）を1つ足すと、7組の view と事例を直す"
+    ],
+    [
+     "案ごとの帰結",
+     "view だけを共通の JavaScript で描画し、他は組ごとに持つ",
+     "brainstorming-board の規則「節の構造は生成の時点で確定させる」と矛盾する"
+    ]
+   ],
+   "grounds": [
+    [
+     "共通の実装の正本を組に置く現行の形",
+     "`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である",
+     "rule",
+     ".claude/skills/skills-creator/references/profiles/rust.md（雛形の節）"
+    ],
+    [
+     "閲覧側で描画する案の除外",
+     "節の構造は生成の時点で確定させる",
+     "rule",
+     ".claude/skills/brainstorming-board/SKILL.md（参照の節、render.rs）"
+    ],
+    [
+     "同じ概念を同じ形にする要求",
+     "同じ概念の仕組みは、同じ実装の形にさせる",
+     "rule",
+     ".claude/skills/skills-creator/SKILL.md（ガードレール）"
+    ],
+    [
+     "validate の検出が、ライブラリの文言を含むこと",
+     "<b class=\"lead-s\">format!(\"{head}: {}</b><div class=\"sub-s\">{e}\", at.trim_start_matches('/'))</div>",
+     "measured",
+     ".claude/skills/skills-creator/tool/parts/src/refs.rs:132（2026-09-30 に読んだ）"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "配布は契約の外の任意の機能である（skills-creator-language の論点1）。ここで決めるのは、dist がどの組を受け付けるかである。"
+    ]
+   ],
+   "pick": [
+    [
+     "<b>配布の規定を緩めず、規定を満たせる組だけが dist に対応する。</b>組ごとの対応は、組の文書に1行で宣言する。<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>公式の手段</th><th>dist</th></tr></thead><tbody><tr><th>Rust</th><td>cargo（公開済み）</td><td>対応</td></tr><tr><th>Go</th><td>go build（標準で静的リンク、別の OS 向けにも組める）</td><td>対応</td></tr><tr><th>C#</th><td>Native AOT（OS をまたいで組めない。各 OS のランナーで組む）</td><td>対応</td></tr><tr><th>Java</th><td>jpackage（JDK を同梱したフォルダ。各 OS のランナーで組む）</td><td>対応</td></tr><tr><th>TypeScript</th><td>Single executable applications（Stability 1.1 ・ Experimental）</td><td>断る</td></tr><tr><th>Python</th><td>freeze（ソースツリーに同梱の道具）。他は第三者</td><td>断る</td></tr><tr><th>Ruby</th><td>公式の手段を示す記述が見つからない。他は第三者</td><td>断る</td></tr></tbody></table></div>"
+    ]
+   ],
+   "answer": [
+    [
+     "配布の規定は変えない。dist は、処理系を同梱するか不要にする公式の手段（Experimental でないもの）を持つ組だけを受け付ける。Rust ・ Go ・ C#（Native AOT）・ Java（jpackage）が該当する。TypeScript ・ Python ・ Ruby の組には、dist が理由を示して断る。Skill そのものは、処理系を入れた環境で動く"
+    ]
+   ],
+   "figures": [
+    [
+     "dist は、公式の手段で処理系を同梱か不要にできる4つの組を組み立て、残る3つの組には理由を出して断る",
+     "531cbbcc936b"
+    ]
+   ],
+   "example": [
+    [
+     "<p>TypeScript の組の Skill で dist を実行したときの出力の実例である。</p><pre><code><pre>$ skills-creator dist --repo owner/repo\n誤用: TypeScript の組は配布に対応しない\n  ── 処理系を同梱する公式の手段（Single executable applications）が Experimental である\n終了コード 2</pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "公式で Experimental でない手段を持つ組だけが対応する",
+     "規定を緩めず、満たせない組は dist が断る",
+     "TypeScript ・ Python ・ Ruby の Skill は、このリポジトリの配布の仕組みで配れない"
+    ],
+    [
+     "第三者の手段も組ごとに認める",
+     "PyInstaller ・ bun ・ tebako などで、7組すべてを dist に対応させる",
+     "配布物が第三者の道具の版と不具合に依存する。PyInstaller は別の OS 向けに組めない"
+    ]
+   ],
+   "dropped": [
+    [
+     "処理系を要求する形で配り、導入スクリプトで処理系の有無を確かめる",
+     "「利用者の環境に処理系が無くても動く形で配る」と「利用者はどの実行ファイルかを選ばない」（ACDR 0029 ・ 0031）に違反する"
+    ],
+    [
+     "Node の Single executable applications で TypeScript を対応させる",
+     "原典が本番での使用を推奨していない（Use of the feature is not recommended in production environments.）"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "C# の Native AOT と Java の jpackage は、別の OS 向けに組めない。現行の release.yml は各 OS のランナーで組むので、この制約に収まる"
+    ],
+    [
+     "jpackage の成果物は runtime/ を含むフォルダで、ファイル1つにはならない。配布物は tar.gz と zip なので、フォルダのまま収まる"
+    ],
+    [
+     "Java の jpackage と C# の Native AOT で MCP の SDK が動くかは、まだ試していない"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "Go ・ C# ・ Java の組で、MCP の SDK が単体の実行ファイルとして動くか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4の試験で確かめる。動かなければ、その組を「断る」へ移す ── 規定そのものは覆らない"
+    ],
+    [
+     "Ruby に公式の手段が無いことの確定",
+     "<span class=\"kind k-given\">後続で決定</span> ── 原典で確定できていない。公式の手段が見つかれば、Ruby の組を「対応」へ移す ── 規定そのものは覆らない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "公式で Experimental でない手段を持つ組だけが対応する",
+     "Node の SEA が Stability 2 になれば、TypeScript の組を対応へ移せる"
+    ],
+    [
+     "案ごとの帰結",
+     "第三者の手段も組ごとに認める",
+     "bun は Node と別の処理系なので、MCP の TypeScript SDK が同じに動く保証が無い"
+    ]
+   ],
+   "grounds": [
+    [
+     "Go が処理系を不要にすること",
+     "creates statically-linked binaries by default.",
+     "primary",
+     "sources/go.dev_doc_faq.md:2036（2026-09-30 取得）"
+    ],
+    [
+     "Go が別の OS 向けに組めること",
+     "In effect, you are always cross-compiling.",
+     "primary",
+     "sources/go.dev_doc_install_source.md:1220（2026-09-30 取得）"
+    ],
+    [
+     "C# の Native AOT が処理系を不要にすること",
+     "These apps can run on machines that don't have the .NET runtime installed.",
+     "primary",
+     "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot:741（2026-09-30 取得）"
+    ],
+    [
+     "C# の Native AOT が OS をまたげないこと",
+     "Cross-OS compilation with Native AOT requires some form of emulation, like a virtual machine or Windows WSL.",
+     "primary",
+     "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot_cross-compile:752（2026-09-30 取得）"
+    ],
+    [
+     "Java の jpackage が JDK を同梱すること",
+     "An application image contains both the files comprising your application as well as the JDK",
+     "primary",
+     "sources/openjdk.org_jeps_392:127（2026-09-30 取得）"
+    ],
+    [
+     "Java の jpackage が OS をまたげないこと",
+     "「There is no support for cross compilation. For example, in order to create Windows packages one must run the tool on Windows.」",
+     "primary",
+     "sources/openjdk.org_jeps_392:54（2026-09-30 取得）"
+    ],
+    [
+     "TypeScript の SEA を採らないこと",
+     "Use of the feature is not recommended in production environments.",
+     "primary",
+     "sources/nodejs.org_api_documentation.html:225（2026-09-30 取得。SEA は同 single-executable-applications.html:321 で Stability: 1.1）"
+    ],
+    [
+     "Python の公式の手段が freeze だけであること",
+     "One is to use the freeze tool, which is included in the Python source tree as",
+     "primary",
+     "sources/docs.python.org_3_faq_programming.html:378（2026-09-30 取得）"
+    ],
+    [
+     "PyInstaller が別の OS 向けに組めないこと",
+     "However, it is not a cross-compiler; to make a Windows app you run PyInstaller on Windows,",
+     "primary",
+     "sources/pyinstaller.org_en_stable:128（2026-09-30 取得。第三者）"
+    ],
+    [
+     "配布の規定",
+     "利用者の環境に Rust が無くても動く形で配る。",
+     "rule",
+     ".claude/skills/skills-creator/references/distribution.md（規定の節）・ ACDR 0029 ・ 0031"
+    ],
+    [
+     "Ruby に公式の手段が無いこと",
+     "ruby-lang.org の FAQ に executable の記述が無かった",
+     "unverified",
+     "sources/www.ruby-lang.org_en_documentation_faq（text で探しただけで、照合の証しにならない）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1 ・ 論点2 ・ 論点3の答えを待つ"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "何を試験するか",
+     "守らせ方 ・ 共通の事例 ・ 配布の対応が決まってから決める。前のボードで組を全部持つ案を除外した理由（試験できないまま保守する）に、ここで答える",
+     "rule",
+     "論点1 ・ 論点2 ・ 論点3 ・ skills-creator-language の論点1"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1 ・ 論点3 ・ 論点4の答えを待つ"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "順の判定",
+     "新しく作る仕組み（import の読み取り ・ dist が断る経路 ・ 共通の事例）をどの組が最初に使うかで決める",
+     "rule",
+     "論点1 ・ 論点3 ・ 論点4"
+    ]
+   ]
+  }
+ }
+}
