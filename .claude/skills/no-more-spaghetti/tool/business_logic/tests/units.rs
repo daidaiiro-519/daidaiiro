@@ -32,11 +32,12 @@ const TWO_UNITS: &str = r#"{
     "app": { "root": "app", "language": "typescript",
              "layers": [ { "name": "core", "where": ["src/core"] },
                          { "name": "adapter", "where": ["src/adapter"] } ] },
-    "docs": { "root": "docs" }
+    "lib": { "root": "lib", "language": "typescript",
+             "layers": [ { "name": "core", "where": ["src/core"] } ] }
   },
   "rules": [
     { "rule": "整形されている", "source": { "record": "x" }, "scope": "全体",
-      "check": { "tool": ["true"], "target": "src" }, "units": ["app", "docs"] },
+      "check": { "tool": ["true"], "target": "src" }, "units": ["app", "lib"] },
     { "rule": "依存の向きが、層の並びと一致する", "source": { "record": "x" }, "scope": "全体",
       "check": { "inward": true }, "units": ["*"] }
   ]
@@ -53,21 +54,22 @@ fn a_rule_is_expanded_for_each_unit_it_names() {
     assert_eq!(tidy.len(), 2, "{got:?}");
     // 実行する場所は、成果物の根 ＋ target である
     assert_eq!(tidy[0].target, "app/src");
-    assert_eq!(tidy[1].target, "docs/src");
+    assert_eq!(tidy[1].target, "lib/src");
     // 2つ以上の成果物へ展開した規則は、どの成果物の実行かを名前に持つ
     assert_eq!(tidy[0].name, "整形されている（app）");
-    assert_eq!(tidy[1].name, "整形されている（docs）");
+    assert_eq!(tidy[1].name, "整形されている（lib）");
 }
 
 #[test]
-fn every_unit_for_an_inward_rule_means_every_unit_with_layers() {
-    // 層を持たない成果物（docs）は、依存の向きを測る対象にならない
+fn every_unit_for_an_inward_rule_means_every_unit() {
+    // **単位はどれもコードの成果物で、層の並びを持つ**（言語と層は契約が必須にする）──
+    // 「すべての成果物」は、その全部である
     let (_, file) = scratch("star", TWO_UNITS);
     let got = rules::load(&file).expect("読める");
     let inward: Vec<_> = got.iter().filter(|r| r.inward.is_some()).collect();
-    assert_eq!(inward.len(), 1, "{got:?}");
+    assert_eq!(inward.len(), 2, "{got:?}");
     assert_eq!(inward[0].target, "app");
-    assert_eq!(inward[0].name, "依存の向きが、層の並びと一致する");
+    assert_eq!(inward[1].target, "lib");
 }
 
 #[test]
@@ -95,13 +97,13 @@ fn an_inward_rule_measures_the_unit_with_its_language_and_layers() {
         "app/src/adapter/use.ts",
         "import { n } from '../core/name';\nexport const m = n;\n",
     );
-    write(&root, "docs/src/.keep", "");
+    write(&root, "lib/src/core/.keep", "");
     write(&root, "app/src/.keep", "");
     let report = run::check(&root, &file, 10).expect("実行できる");
     let got = report
         .rules
         .iter()
-        .find(|r| r.name.starts_with("依存の向き"))
+        .find(|r| r.name.starts_with("依存の向き") && r.target == "app")
         .expect("在る");
     assert_eq!(got.verdict, Verdict::Pass, "{got:?}");
 
@@ -118,7 +120,7 @@ fn an_inward_rule_measures_the_unit_with_its_language_and_layers() {
     let got = report
         .rules
         .iter()
-        .find(|r| r.name.starts_with("依存の向き"))
+        .find(|r| r.name.starts_with("依存の向き") && r.target == "app")
         .expect("在る");
     assert_eq!(got.verdict, Verdict::Fail, "{got:?}");
     assert!(got.output.contains("use.ts"), "{}", got.output);
@@ -298,4 +300,36 @@ fn the_generation_is_a_list_of_commands_in_the_contract() {
         let found = validate::check_rules(&file, &contracts()).expect("検査できる");
         assert!(!found.is_empty(), "{bad} を受け付けた");
     }
+}
+
+#[test]
+fn the_root_mark_in_a_tool_is_the_repository_root() {
+    // **道具の欄の ${root} は、リポジトリの根である** ── 道具は成果物の根（app）で起動するが、
+    // 経路は根から書ける
+    let body = r#"{ "units": { "app": { "root": "app", "language": "typescript",
+                     "layers": [ { "name": "core", "where": ["src"] } ] } },
+      "rules": [ { "rule": "根の印を見る", "source": { "record": "x" }, "scope": "s",
+                   "check": { "tool": ["test", "-d", "${root}/marker"] }, "units": ["app"] } ] }"#;
+    let (root, file) = scratch("root-mark", body);
+    write(&root, "app/.keep", "");
+    write(&root, "marker/.keep", "");
+    let report = run::check(&root, &file, 10).expect("実行できる");
+    assert_eq!(
+        report.rules[0].verdict,
+        Verdict::Pass,
+        "{:?}",
+        report.rules[0]
+    );
+}
+
+#[test]
+fn the_root_mark_is_replaced_in_every_argument() {
+    let tool = vec![
+        "${root}/bin/x".to_owned(),
+        "--rules".to_owned(),
+        "${root}/r.json".to_owned(),
+        "plain".to_owned(),
+    ];
+    let got = run::with_root(&tool, std::path::Path::new("/repo"));
+    assert_eq!(got, vec!["/repo/bin/x", "--rules", "/repo/r.json", "plain"]);
 }

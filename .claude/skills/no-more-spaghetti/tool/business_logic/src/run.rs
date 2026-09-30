@@ -128,6 +128,17 @@ fn read_ends(path: &Path, size: u64) -> io::Result<String> {
     ))
 }
 
+/// 道具の欄で、リポジトリの根（規則ファイルを実行する場所）を指す記法。
+pub const ROOT_MARK: &str = "${root}";
+
+/// 道具の欄の `${root}` を、リポジトリの根の絶対の経路へ置き換える。**経路を根から書けるようにする**
+/// ── 道具は成果物の根で起動するので、置き換えないと、根の深さの分だけ `../` を重ねて書くことになる。
+#[must_use]
+pub fn with_root(tool: &[String], root: &Path) -> Vec<String> {
+    let root = root.to_string_lossy();
+    tool.iter().map(|a| a.replace(ROOT_MARK, &root)).collect()
+}
+
 /// 1件を実行する。**シェルを経由しない** ── 配列のまま渡す。
 ///
 /// **`check.target` が在れば、そこで実行する。** 実在しなければ「実行しない」で、
@@ -183,9 +194,10 @@ pub fn run_one(
     }
 
     let sink_path = sink_path(index);
+    let tool = with_root(&rule.tool, &base);
     let ran = logfile::run(
-        &rule.tool[0],
-        &rule.tool[1..],
+        &tool[0],
+        &tool[1..],
         &cwd,
         &sink_path,
         Duration::from_secs(timeout),

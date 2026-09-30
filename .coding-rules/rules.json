@@ -1,18 +1,6 @@
 {
   "$schema": "../.claude/skills/no-more-spaghetti/references/rules.schema.json",
   "units": {
-    "repository": {
-      "root": "."
-    },
-    "skills": {
-      "root": ".claude/skills"
-    },
-    "board": {
-      "root": ".brainstorming-board"
-    },
-    "docs": {
-      "root": "docs"
-    },
     "design-svg": {
       "root": ".claude/skills/design-svg/tool",
       "language": "rust",
@@ -523,66 +511,6 @@
   },
   "rules": [
     {
-      "rule": "配線表が、形の契約を満たす",
-      "source": {
-        "record": "skill-router/references/skill-wiring.schema.json"
-      },
-      "scope": "この配線表が、そのスキーマへ適合すること",
-      "check": {
-        "tool": [
-          "python3",
-          "-m",
-          "jsonschema",
-          "-i",
-          "skill-wiring.json",
-          ".claude/skills/skill-router/references/skill-wiring.schema.json"
-        ]
-      },
-      "units": [
-        "repository"
-      ]
-    },
-    {
-      "rule": "ブレストボードの入力が、契約を満たす",
-      "source": {
-        "record": "brainstorming-board/SKILL.md"
-      },
-      "scope": "no-more-spaghetti のブレストボードに限る",
-      "check": {
-        "tool": [
-          ".claude/skills/brainstorming-board/bin/brainstorming-board",
-          "validate",
-          ".brainstorming-board/no-more-spaghetti",
-          "--skill_root",
-          ".claude/skills/brainstorming-board"
-        ]
-      },
-      "units": [
-        "repository"
-      ]
-    },
-    {
-      "rule": "ブレストボードの生成が冪等である",
-      "source": {
-        "record": "brainstorming-board/SKILL.md"
-      },
-      "scope": "no-more-spaghetti のブレストボードに限る",
-      "check": {
-        "tool": [
-          ".claude/skills/brainstorming-board/bin/brainstorming-board",
-          "render",
-          ".brainstorming-board/no-more-spaghetti",
-          "--check",
-          "1",
-          "--skill_root",
-          ".claude/skills/brainstorming-board"
-        ]
-      },
-      "units": [
-        "repository"
-      ]
-    },
-    {
       "rule": "規則ファイルが、形の契約を満たす",
       "source": {
         "record": "no-more-spaghetti/references/rules.schema.json"
@@ -590,18 +518,18 @@
       "scope": "形 ・ 道具の書き方 ・ 出典の有無 ・ $schema の解決",
       "check": {
         "tool": [
-          ".claude/skills/no-more-spaghetti/bin/no-more-spaghetti",
+          "${root}/.claude/skills/no-more-spaghetti/bin/no-more-spaghetti",
           "validate",
           "--rules",
-          ".coding-rules/rules.json",
+          "${root}/.coding-rules/rules.json",
           "--root",
-          ".",
+          "${root}",
           "--skill_root",
-          ".claude/skills/no-more-spaghetti"
+          "${root}/.claude/skills/no-more-spaghetti"
         ]
       },
       "units": [
-        "repository"
+        "no-more-spaghetti"
       ]
     },
     {
@@ -626,51 +554,11 @@
           "-q",
           "-x",
           "(__pycache__|/trial/)",
-          ".claude/skills"
+          "."
         ]
       },
       "units": [
-        "repository"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "acdr"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "acdr"
-      },
-      "units": [
-        "skills"
+        "no-more-spaghetti"
       ]
     },
     {
@@ -760,46 +648,6 @@
       ]
     },
     {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "brainstorming-board"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "brainstorming-board"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
       "rule": "事例が通る",
       "source": {
         "record": "brainstorming-board/SKILL.md"
@@ -853,47 +701,6 @@
       },
       "units": [
         "brainstorming-board"
-      ]
-    },
-    {
-      "rule": "デザイントークンの参照と定義が一致する",
-      "source": {
-        "record": "brainstorming-board/SKILL.md"
-      },
-      "scope": "トークンの層を跨ぐ参照と、明暗のキー集合のみ",
-      "check": {
-        "tool": [
-          "bin/brainstorming-board",
-          "tokens",
-          "--check",
-          "1",
-          "--skill_root",
-          "."
-        ],
-        "target": "brainstorming-board"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "design-svg"
-      },
-      "units": [
-        "skills"
       ]
     },
     {
@@ -960,155 +767,14 @@
       "scope": "設計上の選択はトークンから、量はデータから出すこと",
       "check": {
         "tool": [
-          "bin/design-svg",
+          "${root}/.claude/skills/design-svg/bin/design-svg",
           "lint",
           "--skill_root",
-          "."
-        ],
-        "target": "design-svg"
+          "${root}/.claude/skills/design-svg"
+        ]
       },
       "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "design-svg"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "doc-writing-skills"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "doc-writing-skills"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "fact-check"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "ddd-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "fact-check"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "ddd-advisor"
-      },
-      "units": [
-        "skills"
+        "design-svg"
       ]
     },
     {
@@ -1224,103 +890,24 @@
       ]
     },
     {
-      "rule": "道具が契約を満たす",
+      "rule": "道具が雛形の構成を満たす",
       "source": {
         "record": "skills-creator/references/tool-contract.md"
       },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
+      "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/skills-creator",
           "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "narration"
+          "${root}/.claude/skills/skills-creator",
+          "--layout",
+          "1"
+        ]
       },
       "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "narration"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "no-more-spaghetti"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "no-more-spaghetti"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "skills-creator"
-      },
-      "units": [
-        "skills"
+        "skills-creator"
       ]
     },
     {
@@ -1331,18 +918,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/acdr",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "skills-creator"
+        ]
       },
       "units": [
-        "skills"
+        "acdr"
       ]
     },
     {
@@ -1353,18 +939,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/brainstorming-board",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "acdr"
+        ]
       },
       "units": [
-        "skills"
+        "brainstorming-board"
       ]
     },
     {
@@ -1375,18 +960,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/design-svg",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "brainstorming-board"
+        ]
       },
       "units": [
-        "skills"
+        "design-svg"
       ]
     },
     {
@@ -1397,18 +981,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/doc-writing-skills",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "design-svg"
+        ]
       },
       "units": [
-        "skills"
+        "doc-writing-skills"
       ]
     },
     {
@@ -1419,18 +1002,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/fact-check",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "doc-writing-skills"
+        ]
       },
       "units": [
-        "skills"
+        "fact-check"
       ]
     },
     {
@@ -1441,18 +1023,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/narration",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "fact-check"
+        ]
       },
       "units": [
-        "skills"
+        "narration"
       ]
     },
     {
@@ -1463,18 +1044,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/no-more-spaghetti",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "narration"
+        ]
       },
       "units": [
-        "skills"
+        "no-more-spaghetti"
       ]
     },
     {
@@ -1485,100 +1065,17 @@
       "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
       "check": {
         "tool": [
-          "../skills-creator/bin/skills-creator",
+          "${root}/.claude/skills/skills-creator/bin/skills-creator",
           "check",
-          ".",
+          "${root}/.claude/skills/slide-deck",
           "--skill_root",
-          "../skills-creator",
+          "${root}/.claude/skills/skills-creator",
           "--layout",
           "1"
-        ],
-        "target": "no-more-spaghetti"
+        ]
       },
       "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が雛形の構成を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "4つの層の置き場所 ・ 依存の向き ・ 入出力をデータアクセス層だけが持つこと（このリポジトリが採る構成。ACDR 0059）",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator",
-          "--layout",
-          "1"
-        ],
-        "target": "slide-deck"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "skills-creator"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "slide-deck"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "slide-deck"
-      },
-      "units": [
-        "skills"
+        "slide-deck"
       ]
     },
     {
@@ -2621,27 +2118,6 @@
       ]
     },
     {
-      "rule": "和語の一覧が、契約を満たす",
-      "source": {
-        "record": "doc-writing-skills/references/predicates.schema.json"
-      },
-      "scope": "形と、出典の4つの値のみ",
-      "check": {
-        "tool": [
-          "../no-more-spaghetti/bin/no-more-spaghetti",
-          "validate",
-          "--rules",
-          "references/predicates.json",
-          "--skill_root",
-          "../no-more-spaghetti"
-        ],
-        "target": "doc-writing-skills"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
       "rule": "事例が通る",
       "source": {
         "record": "narration/SKILL.md"
@@ -2711,126 +2187,6 @@
       ]
     },
     {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "platform-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "qa-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "ux-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "platform-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "qa-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "ux-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
       "rule": "事例が通る",
       "source": {
         "record": "platform-advisor/SKILL.md"
@@ -2996,46 +2352,6 @@
       },
       "units": [
         "ux-advisor"
-      ]
-    },
-    {
-      "rule": "道具が契約を満たす",
-      "source": {
-        "record": "skills-creator/references/tool-contract.md"
-      },
-      "scope": "呼ぶ側から観察できるもの ── 2つの入口 ・ 道具の一覧 ・ 旗の拒否 ・ tools/list の一致 ・ 外部の道具の宣言",
-      "check": {
-        "tool": [
-          "../skills-creator/bin/skills-creator",
-          "check",
-          ".",
-          "--skill_root",
-          "../skills-creator"
-        ],
-        "target": "usecase-advisor"
-      },
-      "units": [
-        "skills"
-      ]
-    },
-    {
-      "rule": "人が読む文書が、10の判定を通る",
-      "source": {
-        "record": "doc-writing-skills/SKILL.md"
-      },
-      "scope": "この成果物の SKILL.md のみ",
-      "check": {
-        "tool": [
-          "../doc-writing-skills/bin/doc-writing-skills",
-          "check",
-          "SKILL.md",
-          "--skill_root",
-          "../doc-writing-skills"
-        ],
-        "target": "usecase-advisor"
-      },
-      "units": [
-        "skills"
       ]
     },
     {

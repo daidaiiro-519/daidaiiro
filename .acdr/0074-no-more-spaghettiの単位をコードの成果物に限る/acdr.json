@@ -1,0 +1,275 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0074",
+ "title": "no-more-spaghetti の単位をコードの成果物に限る",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "no-more-spaghetti の単位を、コーディングを伴う成果物のディレクトリだけに限り、規則をその単位のアーキテクチャ ・ 依存の向き ・ テストに絞る。道具の経路は、リポジトリの根から ${root} で書けるようにする。",
+ "why": "no-more-spaghetti は、コーディングのときに使い、成果物ごとにアーキテクチャ ・ 依存の向き ・ テストの規則を管理する Skill である。ところが規則ファイルの契約（rules.schema.json）は、文書だけの場所やリポジトリ全体も単位にしてよいと案内していた。ACDR 0026 で単位を導入したとき、その案内どおり repository ・ skills ・ board ・ docs が単位として入った。そこへ文書の判定や Skill の契約の検査がぶら下がり、規則119件のうち45件が、言語も層の並びも持たない単位に付いていた。ACDR 0071 で足した9件も、同じ流れで skills の単位に付けていた。利用者の指摘で、単位を本来の定義に戻す。",
+ "shift": [
+  {
+   "what": "単位の定義",
+   "from": "成果物の一覧（文書だけの場所やリポジトリ全体も root だけで書いてよい）",
+   "to": "コーディングを伴う成果物だけ。根 ・ 言語 ・ 層の並びを必須にする"
+  },
+  {
+   "what": "規則ファイルの単位",
+   "from": "20件（成果物16 ・ 成果物でない4）",
+   "to": "16件（成果物だけ）"
+  },
+  {
+   "what": "規則",
+   "from": "119件",
+   "to": "86件。成果物でない単位の45件のうち12件を成果物の単位へ付け直し、33件を外した"
+  },
+  {
+   "what": "外した33件",
+   "from": "no-more-spaghetti が実行する",
+   "to": "no-more-spaghetti の外。行き先はボード coding-rules-scope で決める"
+  },
+  {
+   "what": "道具の経路の書き方",
+   "from": "成果物の根からの相対だけ（../../../../.coding-rules/rules.json など）",
+   "to": "リポジトリの根から ${root} で書ける（${root}/.coding-rules/rules.json）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "規則119件の行き先。成果物の単位の74件はそのまま残し、成果物でない単位の45件は、12件を成果物の単位へ付け直し、33件を no-more-spaghetti の外へ出す",
+ "alternatives": [
+  {
+   "option": "成果物でない単位を残し、そこに付いた規則も残す",
+   "why_not": "コードではないものの検査が、この Skill の規則として増え続ける。契約が案内している限り、次に足す規則も同じ所に付く"
+  },
+  {
+   "option": "規則の種類（文書 ・ 契約 ・ データ）で線を引く",
+   "why_not": "単位を見ないので、成果物の構造を見る規則（雛形の構成 ・ 生の数値）まで、成果物でない単位に付いたまま残る。ボードの Round 1 で利用者が差し戻した"
+  },
+  {
+   "option": "整形と静的解析も外し、アーキテクチャと試験だけにする",
+   "why_not": "整形と静的解析は、書いたコードに当てる検査でテストに入る（利用者の説明）"
+  },
+  {
+   "option": "外す33件の行き先を決めてから外す",
+   "why_not": "外す33件は、これまでも誰かが手で no-more-spaghetti を呼んだときにしか流れていなかった。持ち主の Skill の検査（skills-creator の check ・ 文書のゲート）は、それぞれの Skill と CLAUDE.md の決まりが呼ぶ。行き先はボードで決める"
+  },
+  {
+   "option": "規則を、成果物の根ではなくリポジトリの根で実行する",
+   "why_not": "cargo test のように、成果物の中で動かす規則の書き方が全部変わる。起動する場所は変えず、経路の書き方だけを足した"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "schema",
+   "tab": "rules.schema.json",
+   "file": ".claude/skills/no-more-spaghetti/references/rules.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "      \"description\": \"コーディングを伴う成果物の一覧。キーが成果物の名前、値が根 ・ 言語 ・ 層の並びである。**単位は、コードの成果物を構成するディレクトリだけである** ── 文書だけの場所やリポジトリ全体は単位にしない。**層の並びは成果物の中でだけ意味を持つ** ── 無関係な成果物の層を1列に並べない。\",",
+     "before": "（無い）",
+     "why": "単位の案内を、コードの成果物だけに改めた。文書だけの場所を root だけで書く案内を外した"
+    },
+    {
+     "find": "              \"description\": \"実行するコマンド。**配列で書く** ── シェルを経由しない。**判定を終了コードで返す呼び方を選ぶ**（違反を並べながら0を返す呼び方が在る）。 **リポジトリの根は ${root} で書ける** ── 道具は成果物の根で起動するが、経路は根から書ける。実行の前に絶対の経路へ置き換える。\",",
+     "before": "（無い）",
+     "why": "道具の経路を、リポジトリの根から ${root} で書けると説明した。../ を重ねない"
+    },
+    {
+     "find": "        \"root\",",
+     "before": "（無い）",
+     "why": "単位は根 ・ 言語 ・ 層の並びをすべて持つ。言語も層も無い場所は、コードの成果物ではない"
+    },
+    {
+     "find": "            \"write\": \"成果物を構成するディレクトリを書く。規則ファイルを実行する場所からの相対である\"",
+     "before": "（無い）",
+     "why": "リポジトリ全体（.）を単位にする案内を外し、言語を必須と書いた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "no-more-spaghetti の SKILL.md",
+   "file": ".claude/skills/no-more-spaghetti/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "単位は、コーディングを伴う成果物だけである。",
+     "before": "（無い）",
+     "why": "単位の定義を明記した。規則の範囲（アーキテクチャ ・ 依存の向き ・ テスト）と、テストに書いた後の検査が入ることも書いた"
+    },
+    {
+     "find": "で書く。",
+     "before": "（無い）",
+     "why": "成果物の外の道具やファイルを、../ を重ねずに根から書けるようにした"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    \"repository\": {",
+     "before": "（無い）",
+     "why": "成果物でない単位（repository ・ skills ・ board ・ docs）を外した。言語も層の並びも持たず、コードの成果物ではない"
+    },
+    {
+     "find": "      \"rule\": \"配線表が、形の契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（配線表が、形の契約を満たす ・ ブレストボードの入力が、契約を満たす ・ ブレストボードの生成が冪等である）を外した。配線表（データ）の形の検査で、コードではない"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/no-more-spaghetti/bin/no-more-spaghetti\",",
+     "before": "（無い）",
+     "why": "付け直しに伴って、規則の単位の並びを直した"
+    },
+    {
+     "find": "        \"no-more-spaghetti\"",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "      \"rule\": \"道具が契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "      \"rule\": \"デザイントークンの参照と定義が一致する\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（道具が契約を満たす ・ デザイントークンの参照と定義が一致する）を外した。Skill の呼び方の契約の検査で、コードの成果物のアーキテクチャ ・ 依存の向き ・ テストの規則ではない"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/design-svg/bin/design-svg\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "      \"rule\": \"道具が契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "「道具が雛形の構成を満たす」を、Skill の置き場所全体（skills）から、その Skill の成果物の単位へ付け直した。経路は ${root} から書いた"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "      \"rule\": \"和語の一覧が、契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（和語の一覧が、契約を満たす）を外した。references のデータの検査で、コードではない"
+    },
+    {
+     "find": "      \"rule\": \"道具が契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    },
+    {
+     "find": "      \"rule\": \"道具が契約を満たす\",",
+     "before": "（無い）",
+     "why": "範囲外の規則（人が読む文書が、10の判定を通る ・ 道具が契約を満たす）を外した。文書の質の検査で、コードの成果物の規則ではない"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "units.rs の事例",
+   "file": ".claude/skills/no-more-spaghetti/tool/business_logic/tests/units.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    \"lib\": { \"root\": \"lib\", \"language\": \"typescript\",",
+     "before": "（無い）",
+     "why": "試験データの2つ目の単位が、言語も層も無い docs だった。新しい契約では書けないので、コードの成果物 lib に置き換えた"
+    },
+    {
+     "find": "    assert_eq!(tidy[1].target, \"lib/src\");",
+     "before": "（無い）",
+     "why": "単位はどれも層の並びを持つので、「すべての成果物」は全部の単位である"
+    },
+    {
+     "find": "    write(&root, \"lib/src/core/.keep\", \"\");",
+     "before": "（無い）",
+     "why": "2つ目の単位の層の置き場所を作り、依存の向きの検査は app の単位で見る"
+    },
+    {
+     "find": "        .find(|r| r.name.starts_with(\"依存の向き\") && r.target == \"app\")",
+     "before": "（無い）",
+     "why": "2つ目の単位の層の置き場所を作り、依存の向きの検査は app の単位で見る"
+    },
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "道具の欄の ${root} が、成果物の根で起動しても、リポジトリの根を指すことを固定した"
+    }
+   ]
+  },
+  {
+   "key": "run",
+   "tab": "run.rs",
+   "file": ".claude/skills/no-more-spaghetti/tool/business_logic/src/run.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 道具の欄で、リポジトリの根（規則ファイルを実行する場所）を指す記法。",
+     "before": "（無い）",
+     "why": "道具の欄の ${root} を、起動の直前にリポジトリの根の絶対の経路へ置き換える"
+    },
+    {
+     "find": "    let tool = with_root(&rule.tool, &base);",
+     "before": "（無い）",
+     "why": "道具の欄の ${root} を、起動の直前にリポジトリの根の絶対の経路へ置き換える"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "schema": "a936d2694b162b5f9807a4a4064921cdb82b88e7eb9d730105171ae1974dc231",
+  "skill": "b95592f012e193689c010826791e0fe2a0bd754055dd6ceae5c63c7a3eb327cc",
+  "rules": "56939401d0be5b5666888021bffe63d15a01a7da8c8e81c505fd537f80ceaaa0",
+  "tests": "b3de51e6b7c0167db7c799423674e17635af3323f4fe7af3313d282676629554",
+  "run": "13e84aefdcd7a523f6f40f598e44628dd76ba65098d985ef603d25acfc86d042"
+ }
+}
