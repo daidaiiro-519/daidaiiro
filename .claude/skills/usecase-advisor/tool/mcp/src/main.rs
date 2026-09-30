@@ -17,7 +17,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use ua_service::{tools, Given};
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,
@@ -27,6 +26,7 @@ use rmcp::service::{RequestContext, RoleServer};
 use rmcp::transport::stdio;
 use rmcp::{ErrorData as McpError, ServiceExt};
 use serde_json::{json, Map, Value};
+use ua_service::{tools, Given};
 
 /// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
 /// 呼ぶ側がどの引数を渡せばよいかを認知できない。

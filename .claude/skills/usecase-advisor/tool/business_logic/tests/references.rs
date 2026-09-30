@@ -13,7 +13,9 @@ fn references() -> PathBuf {
 }
 
 fn fixture(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name)
 }
 
 #[test]
@@ -35,8 +37,8 @@ fn every_criterion_is_taken_by_its_id() {
 
 #[test]
 fn the_answer_example_passes_the_answer_schema() {
-    let found =
-        refs::validate_file(&references(), "answer", &fixture("answer.example.json")).expect("読める");
+    let found = refs::validate_file(&references(), "answer", &fixture("answer.example.json"))
+        .expect("読める");
     assert!(found.is_empty(), "{found:?}");
 }
 
