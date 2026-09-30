@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-//! narration の唯一の入口。
+//! narration のプレゼンテーション層（CLI）。シェルから呼ぶ唯一の経路である。
 //!
 //!     narration <動詞> [対象…] [--json]
 //!
-//! **道具ごとに入口を作らない** ── 入口が増えると、呼ぶ側が形を推測することになる。
-//! 許可辺は `Cargo.toml` が宣言する ── この crate は宣言だけを参照する。
+//! **道具ごとに実行ファイルを作らない** ── 実行ファイルが増えると、呼ぶ側が形を推測することになる。
+//! 依存の向きは `Cargo.toml` が宣言する ── この crate はサービス層だけを参照する。
 
 use std::process::ExitCode;
 
-use nar_declare::{catalog, tools, Given, Outcome, Tool};
+use nar_service::{catalog, tools, Given, Outcome, Tool};
 
 /// 旗と位置引数を読み、渡された引数を組む。
 ///
@@ -36,7 +36,7 @@ fn read_args(tool: &Tool, rest: &[String]) -> Result<Given, String> {
                 },
             };
             let key = key.replace('-', "_");
-            // **宣言に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない
+            // **道具の一覧に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない
             if !tool.args.iter().any(|a| a.name == key) {
                 let known: Vec<&str> = tool.args.iter().map(|a| a.name).collect();
                 return Err(format!(
@@ -115,7 +115,7 @@ fn main() -> ExitCode {
     let argv: Vec<String> = argv.into_iter().filter(|a| a != "--json").collect();
 
     let Some(verb) = argv.first() else {
-        // **動詞なしで `--json` を付けたら、宣言を返す。** 検査は入口を起動するだけで、
+        // **動詞なしで `--json` を付けたら、道具の一覧を返す。** 検査は実行ファイルを起動するだけで、
         // 言語に依存せずに道具の一覧を読める
         if as_json {
             return emit(&catalog(&all, &Given::default()), true, |_| String::new());

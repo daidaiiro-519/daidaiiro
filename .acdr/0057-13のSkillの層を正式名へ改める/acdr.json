@@ -1,0 +1,233 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0057",
+ "title": "13の Skill の層を正式名へ改める",
+ "date": "2026-09-30",
+ "status": "proposed",
+ "decision": "道具を持つ残りの13件の Skill を、ACDR 0056 で改めた層の正式名（業務ロジック層 ・ サービス層 ・ プレゼンテーション層）と依存の向きの規則に従う形へ移す。",
+ "why": "ACDR 0056 で skills-creator の契約 ・ 雛形 ・ check を改めたので、他の13件は check が不合格になっている（parts/ と declare/ の残り、および雛形と違う refs.rs）。契約と実物を一致させる。改名は ACDR 0056 と同じ規則を機械的に当てた。置き換えたのは、フォルダ ・ workspace の members ・ crate の名前 ・ path の依存 ・ description ・ use 文の crate の識別子である。contract.rs と refs.rs は新しい雛形で差し替えた。13件とも、旧い雛形と完全に一致していたことを確かめてから差し替えた。コメントと SKILL.md は、層の意味で使った語だけを直した。design-svg の描画の「部品」や図の「宣言」のように、その Skill 固有の語は変えていない。リポジトリの依存の規則（.coding-rules/rules.json）も層の名前を改め、サービス層に closed を付けた。0056 の「層を飛ばさない」を、no-more-spaghetti の検査でも強制するためである。適用後、13件の事例（492件）・ skills-creator の check（14件とも不合格0）・ no-more-spaghetti の検査（141件）がすべて合格した。下の面は、それぞれの種類の変更の代表である。",
+ "shift": [
+  {
+   "what": "13件の Skill の crate のフォルダ",
+   "from": "parts ・ declare ・ cli ・ mcp",
+   "to": "business_logic ・ service ・ cli ・ mcp"
+  },
+  {
+   "what": "共通の複製（contract.rs ・ refs.rs）",
+   "from": "旧い雛形の複製",
+   "to": "ACDR 0056 の雛形の複製"
+  },
+  {
+   "what": "依存の規則ファイルの層",
+   "from": "parts ・ declare（層を越える依存を禁じない）",
+   "to": "business_logic ・ service（サービス層に closed を付け、層を越える依存を禁じる）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ACDR 0056 の契約と雛形を、13件の Skill と依存の規則ファイルへ当て、3種の検査がすべて合格した",
+ "alternatives": [
+  {
+   "option": "0056 と同じ記録で13件にも適用する",
+   "why_not": "契約の決定と、それを各 Skill へ移す作業が1枚に混ざる。0032 と 0033 と同じく、決定と適用を分けたほうが、どの差分が何のためかを読み手が追える"
+  },
+  {
+   "option": "コメントと SKILL.md の旧い語を一括で置き換える",
+   "why_not": "「部品」「宣言」「入口」は、design-svg の描画の部品や図の宣言のように、Skill 固有の意味でも使われている。一括で置き換えると、層と関係の無い語まで書き換わる"
+  },
+  {
+   "option": "依存の規則ファイルの層の名前だけを改め、closed は付けない",
+   "why_not": "no-more-spaghetti の検査が層を越える依存を通したままになり、0056 の「層を飛ばさない」と食い違う"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rules",
+   "tab": ".coding-rules/rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    },
+    {
+     "find": "\"name\": \"business_logic\",",
+     "before": "\"name\": \"parts\",\n\"parts\"\n\"name\": \"declare\",\n\"declare\"",
+     "why": "層の名前と識別子を、改名後のフォルダ（business_logic ・ service）に合わせた。合わせないと、検査が層を見失う。あわせてサービス層に closed を付け、0056 の「層を飛ばさない」を依存の向きの検査でも強制する"
+    }
+   ]
+  },
+  {
+   "key": "ds-service",
+   "tab": "design-svg の service/lib.rs",
+   "file": ".claude/skills/design-svg/tool/service/src/lib.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! design-svg の道具の宣言。**能力の正本はここである。**\n//!\n//! 計算は部品（`ds_parts`）が保持し、この宣言は**呼び方だけ**を固定する。\n//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。\n//!\n//! **この Skill は、呼ぶ側の語彙を知らない。** 受けるのは節点・辺・囲みという\n//! 一般名詞と、部品・トークン・配置戦略の名前だけである ── 固有の語彙から\n//! この宣言へ直す変換は、呼ぶ側が持つ。\n\npub mod contract;\n\nuse std::cell::RefCell;\nuse std::path::PathBuf;\n\nuse ds_parts::grid::{self, Grid, Key};\nuse ds_parts::layout_contract::{LayoutResult, Sizes, Strategy, Unsupported};\nuse ds_parts::{canvas, catalog, compose, lint, radial, theme, tree, verify};\nuse serde::Serialize as _;\nuse serde_json::{json, Map, Value};\n\npub use contract::{catalog, Arg, Given, Outcome, Tool};\n\n/// 配置戦略 ── 名前から実体へ。**呼ぶ側に関数を渡させない。**\n/// 既定（層状）は `None` で表す ── 組み立て側が既定を持つ。\nconst LAYOUTS: [(&str, Option<Strategy>); 4] = [\n    (\"graph\", None),\n    (\"radial\", Some(radial::layout_radial)),\n    (\"tree\", Some(tree::layout_tree)),\n    (\"grid\", Some(declared_grid)),\n];\n\nthread_local! {\n    /// 格子の座標。**配置戦略は関数であって値を束ねられない**ので、宣言から読んだ座標をここに\n    /// 置き、戦略がそれを参照する。組み立ての直前に置き、直後に空へ戻す。\n    static GRID: RefCell<Grid> = RefCell::new(Grid::default());\n}\n\n/// 宣言が持つ座標のとおりに置く。**座標は [`GRID`] から受け取る。**\nfn declared_grid(\n    sizes: &Sizes,\n    edges: &[(String, String)],\n    gap_rank: f64,\n    gap_order: f64,\n    _direction: &str,\n) -> Result<LayoutResult, Unsupported> {\n    GRID.with(|g| grid::layout_grid(sizes, edges, gap_rank, gap_order, &g.borrow()))\n}\n\n/// 宣言の `grid` を読む ── `{\"at\": {節点: [列, 行]}, \"cols\": [...], \"rows\": [...],\n/// \"elbow\": [[始点, 終点, \"vertical\" | \"horizontal\"], ...]}`。**`cols` ・ `rows` ・ `elbow` は省ける。**\nfn grid_of(d: &Value) -> Result<Grid, String> {\n    let g = d\n        .get(\"grid\")\n        .and_then(Value::as_object)\n        .ok_or(\"格子の配置には grid が要る ── {\\\"at\\\": {節点: [列, 行]}}\")?;\n    let at = g\n        .get(\"at\")\n        .and_then(Value::as_object)\n        .ok_or(\"grid.at が無い ── 節点ごとの [列, 行] を渡す\")?;\n    let mut out = Grid::default();\n    for (id, cell) in at {\n        let pair = cell\n            .as_array()\n            .filter(|a| a.len() == 2)\n            .ok_or_else(|| format!(\"grid.at.{id} は [列, 行] でなければならない\"))?;\n        out.at\n            .push((id.clone(), (Key::of(&pair[0]), Key::of(&pair[1]))));\n    }\n    let keys = |k: &str| {\n        g.get(k)\n            .and_then(Value::as_array)\n            .map(|a| a.iter().map(Key::of).collect())\n            .unwrap_or_default()\n    };\n    out.cols = keys(\"cols\");\n    out.rows = keys(\"rows\");\n    for e in g\n        .get(\"elbow\")\n        .and_then(Value::as_array)\n        .map_or(&[][..], Vec::as_slice)\n    {\n        let parts: Vec<&str> = e\n            .as_array()\n            .map(|a| a.iter().filter_map(Value::as_str).collect())\n            .unwrap_or_default();\n        let [from, to, corner] = parts[..] else {\n            return Err(format!(\n                \"grid.elbow の各行は [始点, 終点, 置き方] である: {e}\"\n            ));\n        };\n        out.elbow\n            .push(((from.to_owned(), to.to_owned()), corner.to_owned()));\n    }\n    Ok(out)\n}\n\n/// 欄の文字列。**無ければ空** ── 空の名前は、どの辺とも一致しない。\nfn str_of(v: &Value, key: &str) -> String {\n    v.get(key).and_then(Value::as_str).unwrap_or(\"\").to_owned()\n}\n\n/// 部品の置き場所 ── `lint` が既定で探す場所である。\nconst PARTS_SRC: &str = \"tool/parts/src\";\n\nfn read_json(path: &str) -> Result<Value, String> {\n    let body = std::fs::read_to_string(path).map_err(|e| format!(\"読めない: {path} ── {e}\"))?;\n    serde_json::from_str(&body).map_err(|e| format!(\"読めない: {path} ── {e}\"))\n}\n\n/// 生成物を置く。**置き場所を渡されなければ、そのまま返す。**\nfn write(svg: &str, out: &str, data: &mut Map<String, Value>) -> Result<(), String> {\n    if !out.is_empty() {\n        std::fs::write(out, svg).map_err(|e| format!(\"書けない: {out} ── {e}\"))?;\n    }\n    data.insert(\"path\".to_owned(), Value::from(out));\n    data.insert(\n        \"svg\".to_owned(),\n        Value::from(if out.is_empty() { svg } else { \"\" }),\n    );\n    // **字数で数える** ── バイトで数えると、日本語を含む図で読み手の数え方と食い違う\n    data.insert(\"bytes\".to_owned(), Value::from(svg.chars().count()));\n    Ok(())\n}\n\n/// 描いた SVG を検査して、結果を組む。**幾何の検査を3種とも当てる。**\nfn drawn(svg: &str, out: &str, mut data: Map<String, Value>) -> Outcome {\n    if let Err(why) = write(svg, out, &mut data) {\n        return Outcome::misuse(why);\n    }\n    Outcome::found(verify::all(svg), Value::Object(data))\n}\n\nfn run_catalog(given: &Given) -> Outcome {\n    let d = match catalog::catalog() {\n        Ok(d) => d,\n        Err(why) => return Outcome::misuse(why),\n    };\n    // **移す前と同じ形で書く** ── 1字下げ ・ 非 ASCII をそのまま\n    let mut buf = Vec::new();\n    let mut w = serde_json::Serializer::with_formatter(\n        &mut buf,\n        serde_json::ser::PrettyFormatter::with_indent(b\" \"),\n    );\n    if let Err(e) = d.serialize(&mut w) {\n        return Outcome::misuse(format!(\"目録を組めない ── {e}\"));\n    }\n    let body = String::from_utf8_lossy(&buf).into_owned();\n    let out = given.one(\"out\", \"\");\n    if !out.is_empty() {\n        if let Err(e) = std::fs::write(out, format!(\"{body}\\n\")) {\n            return Outcome::misuse(format!(\"書けない: {out} ── {e}\"));\n        }\n    }\n    let keys = |k: &str| -> Vec<String> {\n        let mut v: Vec<String> = d[k]\n            .as_object()\n            .map(|m| m.keys().cloned().collect())\n            .unwrap_or_default();\n        v.sort();\n        v\n    };\n    Outcome::found(\n        Vec::new(),\n        json!({\n            \"path\": out,\n            \"parts\": keys(\"parts\"),\n            \"strategies\": keys(\"strategies\"),\n            \"tokens\": d[\"tokens\"].as_object().map_or(0, Map::len),\n            \"body\": if out.is_empty() { body } else { String::new() },\n        }),\n    )\n}\n\nfn human_catalog(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\"\\n\");\n    }\n    let d = &out.data;\n    let body = d[\"body\"].as_str().unwrap_or_default();\n    if !body.is_empty() {\n        return body.to_owned();\n    }\n    let count = |k: &str| d[k].as_array().map_or(0, Vec::len);\n    format!(\n        \"目録を書き出した: {}　／　部品 {} ・ 配置戦略 {} ・ トークン {}\",\n        d[\"path\"].as_str().unwrap_or_default(),\n        count(\"parts\"),\n        count(\"strategies\"),\n        d[\"tokens\"]\n    )\n}\n\n/// 宣言の中の `theme` を、テーマの上書きとして受ける。**渡すのは差分だけでよい** ──\n/// 既定のテーマへ重ねる。\n///\n/// **入口がテーマを通さないと、呼ぶ側は台本を書くことになる** ── そしてその台本は\n/// 呼ぶ側の作業場に残るだけで、成果物の隣には何も残らない。\nfn theme_of(d: &Value, strict: bool) -> Result<Option<Map<String, Value>>, String> {\n    let Some(over) = d.get(\"theme\").filter(|v| !is_empty(v)) else {\n        return Ok(None);\n    };\n    let Some(over) = over.as_object() else {\n        return Err(\"theme は名前と値の対でなければならない\".to_owned());\n    };\n    let base = theme::default_theme();\n    if strict {\n        // **役割の行は、指す先の名前で判定する** ── `role.<役割>.<名前>` の `<名前>` が、既定の\n        // トークンか、既存の役割の行が使っている名前なら受け付ける。断ると、新しい役割を宣言から\n        // 足せなくなる。**それ以外は綴りの誤りとして断る**\n        let role_target = |k: &str| -> Option<String> {\n            let (role, token) = k.strip_prefix(theme::ROLE_PREFIX)?.split_once('.')?;\n            (!role.is_empty() && !token.is_empty()).then(|| token.to_owned())\n        };\n        let readable: std::collections::BTreeSet<String> = base\n            .keys()\n            .filter_map(|k| role_target(k))\n            .chain(base.keys().cloned())\n            .collect();\n        let known =\n            |k: &str| base.contains_key(k) || role_target(k).is_some_and(|t| readable.contains(&t));\n        let mut unknown: Vec<&String> = over.keys().filter(|k| !known(k)).collect();\n        unknown.sort();\n        if !unknown.is_empty() {\n            let names: Vec<&str> = unknown.iter().map(|s| s.as_str()).collect();\n            return Err(format!(\n                \"知らないトークン: {} ── 目録（catalog）に在る名前だけを使う\",\n                names.join(\" ・ \")\n            ));\n        }\n    }\n    let mut merged = base.clone();\n    for (k, v) in over {\n        merged.insert(k.clone(), v.clone());\n    }\n    Ok(Some(merged))\n}\n\n/// 値が「無い」と同じか ── 空の対応表 ・ 空の並び ・ 空の文字列 ・ null ・ 偽 ・ 0。\nfn is_empty(v: &Value) -> bool {\n    match v {\n        Value::Null => true,\n        Value::Bool(b) => !b,\n        Value::Number(n) => n.as_f64() == Some(0.0),\n        Value::String(s) => s.is_empty(),\n        Value::Array(a) => a.is_empty(),\n        Value::Object(o) => o.is_empty(),\n    }\n}\n\nfn list(d: &Value, key: &str) -> Vec<Value> {\n    d.get(key)\n        .and_then(Value::as_array)\n        .cloned()\n        .unwrap_or_default()\n}\n\nfn run_figure(given: &Given) -> Outcome {\n    let d = match read_json(given.one(\"declaration\", \"\")) {\n        Ok(d) => d,\n        Err(why) => return Outcome::misuse(why),\n    };\n    // **宣言に書いたものを、入口が読む** ── 引数でしか渡せないと、\n    // 宣言だけでは同じ図が組み直せない（実測で、direction が無視された）\n    let layout = d\n        .get(\"layout\")\n        .and_then(Value::as_str)\n        .unwrap_or_else(|| given.one(\"layout\", \"graph\"));\n    let direction = d\n        .get(\"direction\")\n        .and_then(Value::as_str)\n        .unwrap_or_else(|| given.one(\"direction\", \"TB\"));\n    let Some((_, strategy)) = LAYOUTS.iter().find(|(name, _)| *name == layout) else {\n        let names: Vec<&str> = LAYOUTS.iter().map(|(n, _)| *n).collect();\n        return Outcome::misuse(format!(\n            \"知らない配置戦略: {layout}。使えるのは {} である\",\n            names.join(\"／\")\n        ));\n    };\n    let theme_ = match theme_of(&d, true) {\n        Ok(t) => t,\n        Err(why) => return Outcome::misuse(why),\n    };\n    if layout == \"grid\" {\n        match grid_of(&d) {\n            Ok(g) => {\n                // **鍵線が宣言に無い辺を指すなら断る** ── 配置は段ごとなので、図全体を見られるのはここだけ\n                let declared: Vec<(String, String)> = list(&d, \"edges\")\n                    .iter()\n                    .map(|e| (str_of(e, \"from\"), str_of(e, \"to\")))\n                    .collect();\n                let absent: Vec<&(String, String)> = g\n                    .elbow\n                    .iter()\n                    .map(|(k, _)| k)\n                    .filter(|k| !declared.contains(k))\n                    .collect();\n                if !absent.is_empty() {\n                    return Outcome::misuse(format!(\"辺に無いものが elbow にあります: {absent:?}\"));\n                }\n                GRID.with(|slot| *slot.borrow_mut() = g);\n            }\n            Err(why) => return Outcome::misuse(why),\n        }\n    }\n    let placed = compose::render_figure(\n        &list(&d, \"nodes\"),\n        &list(&d, \"edges\"),\n        &list(&d, \"groups\"),\n        direction,\n        theme_.as_ref(),\n        *strategy,\n    );\n    // **座標を残さない** ── 次の呼び出しが、前の図の格子を読むことになる\n    GRID.with(|slot| *slot.borrow_mut() = Grid::default());\n    match placed {\n        Ok(svg) => drawn(&svg, given.one(\"out\", \"\"), Map::new()),\n        Err(why) => Outcome::misuse(why),\n    }\n}\n\nfn run_chart(given: &Given) -> Outcome {\n    let kind = given.one(\"kind\", \"\");\n    let d = match read_json(given.one(\"data\", \"\")) {\n        Ok(d) => d,\n        Err(why) => return Outcome::misuse(why),\n    };\n    let Some(props) = d.as_object() else {\n        return Outcome::misuse(\"データは名前と値の対でなければならない\".to_owned());\n    };\n    let theme_ = match theme_of(&d, true) {\n        Ok(t) => t,\n        Err(why) => return Outcome::misuse(why),\n    };\n    match compose::render_chart(kind, props, theme::PLAIN, None, theme_.as_ref()) {\n        Ok(svg) => {\n            let mut data = Map::new();\n            data.insert(\"kind\".to_owned(), Value::from(kind));\n            drawn(&svg, given.one(\"out\", \"\"), data)\n        }\n        Err(why) => Outcome::misuse(why),\n    }\n}\n\n/// 画布の大きさを読む。**引数が宣言に勝つ。**\nfn side(given: &Given, d: &Value, key: &str) -> Result<f64, String> {\n    let arg = given.one(key, \"\");\n    if !arg.is_empty() {\n        return arg\n            .trim()\n            .parse()\n            .map_err(|_| format!(\"{key} が数でない: {arg}\"));\n    }\n    Ok(d.get(key).and_then(Value::as_f64).unwrap_or(0.0))\n}\n\nfn run_canvas(given: &Given) -> Outcome {\n    let d = match read_json(given.one(\"layers\", \"\")) {\n        Ok(d) => d,\n        Err(why) => return Outcome::misuse(why),\n    };\n    // **渡す JSON は `{\"width\", \"height\", \"layers\"}` か、層の並びだけ**\n    let body = match &d {\n        Value::Array(a) => a.clone(),\n        Value::Object(_) => match d.get(\"layers\").and_then(Value::as_array) {\n            Some(a) => a.clone(),\n            None => return Outcome::misuse(\"layers が無い ── 層の並びを渡す\".to_owned()),\n        },\n        _ => return Outcome::misuse(\"層は並びか、名前と値の対で渡す\".to_owned()),\n    };\n    let (w, h) = match (side(given, &d, \"width\"), side(given, &d, \"height\")) {\n        (Ok(w), Ok(h)) => (w, h),\n        (Err(why), _) | (_, Err(why)) => return Outcome::misuse(why),\n    };\n    if w == 0.0 || h == 0.0 {\n        return Outcome::misuse(\"画布の大きさが無い ── width と height を渡す\".to_owned());\n    }\n    // **画布のテーマは名前を検査しない** ── 移す前の振る舞いを保つ\n    let theme_ = match theme_of(&d, false) {\n        Ok(t) => t,\n        Err(why) => return Outcome::misuse(why),\n    };\n    let background = d\n        .get(\"background\")\n        .and_then(Value::as_str)\n        .filter(|s| !s.is_empty());\n    match canvas::render_canvas(w, h, &body, theme_.as_ref(), background) {\n        Ok(svg) => drawn(&svg, given.one(\"out\", \"\"), Map::new()),\n        Err(why) => Outcome::misuse(why),\n    }\n}\n\nfn human_svg(out: &Outcome) -> String {\n    let mut lines: Vec<String> = out.findings.iter().map(|x| format!(\"  × {x}\")).collect();\n    if !out.ok {\n        return lines.join(\"\\n\");\n    }\n    // **宣言が通らなかったときも、検出を読める形で出す**\n    let path = out.data[\"path\"].as_str().unwrap_or_default();\n    if !path.is_empty() {\n        lines.push(if out.findings.is_empty() {\n            \"幾何の検査　通った\".to_owned()\n        } else {\n            format!(\"幾何の検査　通っていない（{} 件）\", out.findings.len())\n        });\n        lines.push(format!(\"書き出し: {path}　／　{} 字\", out.data[\"bytes\"]));\n    } else {\n        let svg = out.data[\"svg\"].as_str().unwrap_or_default();\n        if !svg.is_empty() {\n            lines.push(svg.to_owned());\n        }\n    }\n    lines.join(\"\\n\")\n}\n\nfn run_verify(given: &Given) -> Outcome {\n    let path = given.one(\"svg\", \"\");\n    match std::fs::read_to_string(path) {\n        Ok(body) => Outcome::found(verify::all(&body), json!({ \"svg\": path })),\n        Err(e) => Outcome::misuse(format!(\"読めない: {path} ── {e}\")),\n    }\n}\n\n/// 幾何の検査の結果を並べる。**この検査が見ないもの**が3つある ── 極端な縦横比、\n/// 配置戦略の選び違い、詰まり・読みにくさ・配色の良し悪し。目視の代わりにはならない。\nfn human_verify(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\"\\n\");\n    }\n    let mut lines: Vec<String> = out.findings.iter().map(|x| format!(\"  × {x}\")).collect();\n    lines.push(if out.findings.is_empty() {\n        \"幾何の検査　通った\".to_owned()\n    } else {\n        format!(\"幾何の検査　通っていない（{} 件）\", out.findings.len())\n    });\n    lines.join(\"\\n\")\n}\n\nfn run_lint(given: &Given) -> Outcome {\n    let path = given.one(\"path\", \"\");\n    let root: PathBuf = if path.is_empty() {\n        match given.skill_root() {\n            Ok(root) => root.join(PARTS_SRC),\n            Err(why) => return Outcome::misuse(why),\n        }\n    } else {\n        PathBuf::from(path)\n    };\n    match lint::findings(&root) {\n        Ok(hits) => Outcome::found(\n            hits.into_iter()\n                .map(|(name, line, func, text)| format!(\"{name}:{line} {func} ── {}\", text.trim()))\n                .collect(),\n            json!({ \"root\": root.display().to_string() }),\n        ),\n        // **無い場所を検査して「0 箇所」と返さない。** 呼ぶ側は合格と受け取る\n        Err(why) => Outcome::misuse(why),\n    }\n}\n\nfn human_lint(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\"\\n\");\n    }\n    let mut lines: Vec<String> = out.findings.iter().map(|x| format!(\"  × {x}\")).collect();\n    lines.push(format!(\"生の数値: {} 箇所\", out.findings.len()));\n    lines.join(\"\\n\")\n}\n\n/// この Skill が持つ道具の一覧。**能力の正本である。**\n#[must_use]\npub fn tools() -> Vec<Tool> {\n    let out = Arg::opt(\"out\", \"書き出し先の SVG\", None);\n    vec![\n        Tool {\n            name: \"catalog\",\n            summary: \"目録を出す（部品・トークン・役割・配置戦略）\",\n            args: vec![Arg::opt(\"out\", \"書き出し先。省くとそのまま出す\", None)],\n            run: run_catalog,\n            human: human_catalog,\n        },\n        Tool {\n            name: \"figure\",\n            summary: \"宣言（節点・辺・囲み）から図を組む\",\n            args: vec![\n                Arg::need(\"declaration\", \"宣言の JSON\"),\n                out.clone(),\n                Arg::opt(\n                    \"layout\",\n                    \"配置戦略（graph ／ radial ／ tree）\",\n                    Some(\"graph\"),\n                ),\n                Arg::opt(\"direction\", \"向き（TB ／ LR）\", Some(\"TB\")),\n            ],\n            run: run_figure,\n            human: human_svg,\n        },\n        Tool {\n            name: \"chart\",\n            summary: \"量を描く部品を1つ選んで描く\",\n            args: vec![\n                Arg::need(\"kind\", \"部品の名前\"),\n                Arg::need(\"data\", \"データの JSON\"),\n                out.clone(),\n            ],\n            run: run_chart,\n            human: human_svg,\n        },\n        Tool {\n            name: \"canvas\",\n            summary: \"画布へ部品を重ねて、意匠そのものを組む\",\n            args: vec![\n                Arg::need(\"layers\", \"層の JSON\"),\n                out,\n                Arg::opt(\"width\", \"画布の幅\", None),\n                Arg::opt(\"height\", \"画布の高さ\", None),\n            ],\n            run: run_canvas,\n            human: human_svg,\n        },\n        Tool {\n            name: \"verify\",\n            summary: \"生成物の幾何を検査する\",\n            args: vec![Arg::need(\"svg\", \"検査する SVG\")],\n            run: run_verify,\n            human: human_verify,\n        },\n        Tool {\n            name: \"lint\",\n            summary: \"生の数値を探す\",\n            args: vec![\n                Arg::opt(\"path\", \"探す場所。省くと部品の crate 全体\", None),\n                Arg::opt(\n                    \"skill_root\",\n                    \"この Skill の置き場所（既定は、実行ファイルの1つ上）\",\n                    None,\n                ),\n            ],\n            run: run_lint,\n            human: human_lint,\n        },\n    ]\n}\n",
+   "marks": [
+    {
+     "find": "//! design-svg のサービス層。道具の一覧を持ち、**能力の正本はここである。**",
+     "before": "//! design-svg の道具の宣言。**能力の正本はここである。**\n//! 計算は部品（`ds_parts`）が保持し、この宣言は**呼び方だけ**を固定する。\n//! 入口（CLI ・ MCP）はこの宣言から組む ── 能力を2回書くと、片方だけが古くなる。\n//! 許可辺は `Cargo.toml` が宣言する ── この crate は部品だけを参照する。",
+     "why": "雛形から複製したコメントを、0056 で雛形に当てた規則と同じに改めた"
+    },
+    {
+     "find": "use ds_business_logic::grid::{self, Grid, Key};",
+     "before": "use ds_parts::grid::{self, Grid, Key};\nuse ds_parts::layout_contract::{LayoutResult, Sizes, Strategy, Unsupported};\nuse ds_parts::{canvas, catalog, compose, lint, radial, theme, tree, verify};",
+     "why": "crate の名前を、層の正式名へ改めた"
+    },
+    {
+     "find": "/// 業務ロジック層の置き場所 ── `lint` が既定で探す場所である。",
+     "before": "/// 部品の置き場所 ── `lint` が既定で探す場所である。\nconst PARTS_SRC: &str = \"tool/parts/src\";",
+     "why": "雛形から複製したコメントを、0056 で雛形に当てた規則と同じに改めた"
+    },
+    {
+     "find": "/// **道具がテーマを通さないと、呼ぶ側は台本を書くことになる** ── そしてその台本は",
+     "before": "/// **入口がテーマを通さないと、呼ぶ側は台本を書くことになる** ── そしてその台本は",
+     "why": "ここの「入口」は design-svg の道具を指していた。「宣言」は図の宣言で、Skill 固有の語なので変えない"
+    },
+    {
+     "find": "// **宣言に書いたものを、道具が読む** ── 引数でしか渡せないと、",
+     "before": "// **宣言に書いたものを、入口が読む** ── 引数でしか渡せないと、",
+     "why": "ここの「入口」は design-svg の道具を指していた。「宣言」は図の宣言で、Skill 固有の語なので変えない"
+    },
+    {
+     "find": "Ok(root) => root.join(BUSINESS_LOGIC_SRC),",
+     "before": "Ok(root) => root.join(PARTS_SRC),",
+     "why": "lint が既定で探す場所を、文字列で旧いフォルダ（tool/parts/src）に固定していた。改名の置き換えは crate の識別子だけを対象にしたので漏れ、事例1件が不合格になった"
+    }
+   ]
+  },
+  {
+   "key": "fc-ws",
+   "tab": "fact-check の tool/Cargo.toml",
+   "file": ".claude/skills/fact-check/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "members = [\"parts\", \"declare\", \"cli\", \"mcp\"]",
+     "why": "workspace の crate を、層の正式名のフォルダへ改めた（13件とも同じ）"
+    }
+   ]
+  },
+  {
+   "key": "fc-source",
+   "tab": "fact-check の source.rs",
+   "file": ".claude/skills/fact-check/tool/business_logic/src/source.rs",
+   "before": "// SPDX-License-Identifier: MIT\n//! 原文を読み、照合し、取得する。\n//!\n//! **原文を連結しない。** 位置をたどれる形のまま持つ ── 連結すると、どの原文の\n//! どこで一致したかが報告できない。\n//!\n//! **読めなかったものを、黙って除外しない。** 除外すると、0件が「無い」なのか\n//! 「読めなかっただけ」なのかを、読み手が区別できない。\n//!\n//! **行の区切りを1つへ統一してから読む。** 原文には CR 単独で行を区切るものが在る\n//! （実測 ── PDF から起こした原文が CR を 11,526 件持っていた）。統一しないと、\n//! 報告する行が読み手の見る行と食い違う。\n\nuse std::io;\nuse std::path::{Path, PathBuf};\nuse std::process::{Command, Stdio};\n\nuse crate::find::{self, How};\n\n/// 1つの原文で読む上限（バイト）。\npub const MAX_BYTES: u64 = 4_000_000;\n\n/// 見ない包み。\nconst SKIP: [&str; 7] = [\n    \".git\",\n    \"node_modules\",\n    \"target\",\n    \"dist\",\n    \"build\",\n    \".venv\",\n    \"__pycache__\",\n];\n\n/// 原文1つ。**位置をたどれる形で持つ。**\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Doc {\n    /// 呼ぶ側へ見せる名前。\n    pub name: String,\n    /// 中身。\n    pub text: String,\n    /// 行の頭の位置（文字で数える）。\n    starts: Vec<usize>,\n}\n\nimpl Doc {\n    /// 原文を組む。\n    #[must_use]\n    pub fn new(name: String, text: String) -> Self {\n        let mut starts = vec![0];\n        for (i, c) in text.chars().enumerate() {\n            if c == '\\n' {\n                starts.push(i + 1);\n            }\n        }\n        Self { name, text, starts }\n    }\n\n    /// その位置が何行目かを返す（1から数える）。\n    #[must_use]\n    pub fn line_of(&self, offset: usize) -> usize {\n        self.starts.partition_point(|s| *s <= offset)\n    }\n\n    /// その行の中身を返す。\n    #[must_use]\n    pub fn line_text(&self, line: usize) -> String {\n        let Some(a) = self.starts.get(line.saturating_sub(1)) else {\n            return String::new();\n        };\n        let chars: Vec<char> = self.text.chars().collect();\n        let b = self.starts.get(line).copied().unwrap_or(chars.len());\n        chars[*a..b.min(chars.len())]\n            .iter()\n            .collect::<String>()\n            .trim_end_matches('\\n')\n            .to_owned()\n    }\n}\n\n/// 一致1件。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Hit {\n    /// どの原文か。\n    pub doc: String,\n    /// 何行目か。\n    pub line: usize,\n    /// その行の中身。\n    pub excerpt: String,\n}\n\n/// 1つの語の照合の結果。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Found {\n    /// 照合した語。\n    pub needle: String,\n    /// 一致した箇所。\n    pub hits: Vec<Hit>,\n}\n\n/// 照合の全体。**見つかった位置と、読めなかった範囲を必ず一緒に持つ。**\n#[derive(Debug, Clone, Default)]\n#[non_exhaustive]\npub struct Scan {\n    /// 語ごとの結果。\n    pub results: Vec<Found>,\n    /// 読めなかったものと、その理由。\n    pub unreadable: Vec<(String, String)>,\n    /// 読めた原文の数。\n    pub docs_read: usize,\n}\n\nimpl Scan {\n    /// 0件を「無い」と結論してよいか。**読めなかった範囲が在るなら、よくない。**\n    #[must_use]\n    pub fn can_conclude_absent(&self) -> bool {\n        self.unreadable.is_empty()\n    }\n\n    /// 一致が1件も無かった語。\n    #[must_use]\n    pub fn missing(&self) -> Vec<&Found> {\n        self.results.iter().filter(|r| r.hits.is_empty()).collect()\n    }\n}\n\nfn walk(dir: &Path, base: &Path, out: &mut Vec<(PathBuf, String)>) {\n    let Ok(entries) = std::fs::read_dir(dir) else {\n        return;\n    };\n    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();\n    paths.sort();\n    for p in paths {\n        let name = p\n            .file_name()\n            .unwrap_or_default()\n            .to_string_lossy()\n            .into_owned();\n        if p.is_dir() {\n            if !SKIP.contains(&name.as_str()) {\n                walk(&p, base, out);\n            }\n        } else if !name.ends_with(\".meta.json\") {\n            let rel = p.strip_prefix(base).unwrap_or(&p).display().to_string();\n            out.push((p.clone(), rel));\n        }\n    }\n}\n\n/// 行の区切りを LF へ統一する。**CR 単独と CRLF の両方を直す。**\n#[must_use]\npub fn normalize(text: &str) -> String {\n    if !text.contains('\\r') {\n        return text.to_owned();\n    }\n    text.replace(\"\\r\\n\", \"\\n\").replace('\\r', \"\\n\")\n}\n\n/// 原文を読む。**読めなかったものは、黙って除外せず返す。**\n#[must_use]\npub fn read_docs(path: &Path, max_bytes: u64) -> (Vec<Doc>, Vec<(String, String)>) {\n    let mut files = Vec::new();\n    if path.is_file() {\n        let name = path\n            .file_name()\n            .unwrap_or_default()\n            .to_string_lossy()\n            .into_owned();\n        files.push((path.to_path_buf(), name));\n    } else if path.is_dir() {\n        walk(path, path, &mut files);\n    } else {\n        return (\n            Vec::new(),\n            vec![(path.display().to_string(), \"在らない\".to_owned())],\n        );\n    }\n    let mut docs = Vec::new();\n    let mut bad = Vec::new();\n    for (file, name) in files {\n        let Ok(meta) = std::fs::metadata(&file) else {\n            bad.push((name, \"開けない\".to_owned()));\n            continue;\n        };\n        if meta.len() > max_bytes {\n            bad.push((name, format!(\"大きすぎる（{} バイト）\", meta.len())));\n            continue;\n        }\n        match std::fs::read(&file) {\n            Ok(raw) => match String::from_utf8(raw) {\n                Ok(text) => docs.push(Doc::new(name, normalize(&text))),\n                Err(_) => bad.push((name, \"文字として読めない\".to_owned())),\n            },\n            Err(e) => bad.push((name, format!(\"開けない（{e}）\"))),\n        }\n    }\n    (docs, bad)\n}\n\n/// 原文と照合する。\n///\n/// **種類は呼ぶ側が渡す** ── 道具の側で「たぶん識別子だろう」と決めない。\n/// `near` を渡すと、その語の在る行から `within` 行の内側だけを一致として数える ──\n/// **名前が在ることと、その名前がそこで使われることは別である。**\n#[must_use]\npub fn scan(\n    path: &Path,\n    needles: &[String],\n    how: How,\n    near: Option<&str>,\n    within: usize,\n    max_bytes: u64,\n) -> Scan {\n    let (docs, bad) = read_docs(path, max_bytes);\n    let mut results = Vec::new();\n    for needle in needles {\n        let mut hits = Vec::new();\n        for doc in &docs {\n            let anchors: Option<Vec<usize>> = near.map(|a| {\n                find::text(&doc.text, a)\n                    .into_iter()\n                    .map(|o| doc.line_of(o))\n                    .collect()\n            });\n            for offset in find::find(how, &doc.text, needle) {\n                let line = doc.line_of(offset);\n                if let Some(anchors) = &anchors {\n                    if !anchors.iter().any(|a| line.abs_diff(*a) <= within) {\n                        continue;\n                    }\n                }\n                hits.push(Hit {\n                    doc: doc.name.clone(),\n                    line,\n                    excerpt: doc.line_text(line).trim().to_owned(),\n                });\n            }\n        }\n        results.push(Found {\n            needle: needle.clone(),\n            hits,\n        });\n    }\n    Scan {\n        results,\n        unreadable: bad,\n        docs_read: docs.len(),\n    }\n}\n\n/// 保存する名前を、出どころから作る。\n#[must_use]\npub fn slug(url: &str) -> String {\n    let body = url\n        .strip_prefix(\"https://\")\n        .or_else(|| url.strip_prefix(\"http://\"))\n        .unwrap_or(url);\n    let mut out = String::new();\n    let mut last_join = false;\n    for c in body.chars() {\n        if c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-' {\n            out.push(c);\n            last_join = false;\n        } else if !last_join {\n            out.push('_');\n            last_join = true;\n        }\n    }\n    out.trim_matches('_').chars().take(120).collect()\n}\n\n/// 取得したものを原文として受け取るか。\n///\n/// **記法を剥がしたり変換したりしない** ── 変換した時点で、「原文と1文字ずつ同じ」が\n/// 主張できなくなる。\n#[must_use]\npub const fn acceptable(code: u32, size: u64) -> bool {\n    code == 200 && size > 0\n}\n\n/// 取得の記録。\n#[derive(Debug, Clone)]\n#[non_exhaustive]\npub struct Fetched {\n    /// 保存した場所。\n    pub path: PathBuf,\n    /// 実際に取得した出どころ。\n    pub url: String,\n    /// 頼まれた出どころ。\n    pub requested: String,\n    /// 取得した日時。\n    pub fetched_at: String,\n    /// 中身の要約。\n    pub sha256: String,\n    /// バイト数。\n    pub bytes: u64,\n    /// 行数。\n    pub lines: usize,\n    /// 種類。\n    pub content_type: String,\n}\n\nfn sha256_of(data: &[u8]) -> String {\n    use sha2::{Digest as _, Sha256};\n    Sha256::digest(data)\n        .iter()\n        .map(|b| format!(\"{b:02x}\"))\n        .collect()\n}\n\nfn now() -> String {\n    // **外部コマンドの date を呼ばない** ── Windows に実行ファイルとして無い（ACDR 0029）。\n    // 利用者の地域の時刻で書く ── date と同じく、協定世界時にしない\n    chrono::Local::now()\n        .format(\"%Y-%m-%dT%H:%M:%S%z\")\n        .to_string()\n}\n\n/// 原文を取得する。**まず `<出どころ>.md` を試し、無ければ本体を取る。**\n///\n/// 取得は curl で行う ── 利用者の環境のプロキシと証明書の設定をそのまま使うためである。\n/// **コマンドは引数で受け取る**（tool.json の external から、宣言の層が渡す）。\n///\n/// # Errors\n///\n/// 取得できなかったとき、試した先を添えて返す。\npub fn fetch(curl: &str, url: &str, outdir: &Path) -> io::Result<Fetched> {\n    std::fs::create_dir_all(outdir)?;\n    let plain = url.ends_with(\".md\") || url.ends_with(\".txt\") || url.ends_with(\".json\");\n    let candidates: Vec<String> = if plain {\n        vec![url.to_owned()]\n    } else {\n        vec![format!(\"{url}.md\"), url.to_owned()]\n    };\n    let mut tried = Vec::new();\n    for cand in candidates {\n        let path = outdir.join(slug(&cand));\n        let done = Command::new(curl)\n            .args([\"-sSL\", \"-m\", \"60\", \"-A\", \"Mozilla/5.0\", &cand, \"-o\"])\n            .arg(&path)\n            .args([\"-w\", \"%{http_code} %{content_type}\"])\n            .stdin(Stdio::null())\n            .output()?;\n        let out = String::from_utf8_lossy(&done.stdout).into_owned();\n        let mut parts = out.splitn(2, ' ');\n        let code: u32 = parts.next().unwrap_or(\"0\").trim().parse().unwrap_or(0);\n        let ctype = parts.next().unwrap_or(\"\").trim().to_owned();\n        let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);\n        tried.push(format!(\"  {code}  {size:>9}  {ctype:32}{cand}\"));\n        if acceptable(code, size) {\n            let body = std::fs::read(&path)?;\n            return Ok(Fetched {\n                sha256: sha256_of(&body),\n                bytes: body.len() as u64,\n                lines: body.iter().filter(|b| **b == b'\\n').count() + 1,\n                path,\n                url: cand,\n                requested: url.to_owned(),\n                fetched_at: now(),\n                content_type: ctype,\n            });\n        }\n        let _ = std::fs::remove_file(&path); // 受け取らなかったものを残さない\n    }\n    Err(io::Error::other(format!(\n        \"取得できなかった。試したもの:\\n{}\",\n        tried.join(\"\\n\")\n    )))\n}\n\n/// 取得の記録を書く。\n///\n/// # Errors\n///\n/// 書けないときに返す。\npub fn write_meta(got: &Fetched) -> io::Result<PathBuf> {\n    let name = got\n        .path\n        .file_name()\n        .unwrap_or_default()\n        .to_string_lossy()\n        .into_owned();\n    let meta = got.path.with_file_name(format!(\"{name}.meta.json\"));\n    let body = serde_json::json!({\n        \"url\": got.url, \"requested\": got.requested, \"fetched_at\": got.fetched_at,\n        \"sha256\": got.sha256, \"bytes\": got.bytes, \"lines\": got.lines,\n        \"content_type\": got.content_type,\n    });\n    let text = serde_json::to_string_pretty(&body)\n        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;\n    std::fs::write(&meta, text.replace(\"  \", \" \") + \"\\n\")?;\n    Ok(meta)\n}\n\n/// 取得したものを並べる。**印字はしない。**\n#[must_use]\npub fn listing(outdir: &Path) -> Vec<(String, usize, String)> {\n    let Ok(entries) = std::fs::read_dir(outdir) else {\n        return Vec::new();\n    };\n    let mut names: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();\n    names.sort();\n    let mut rows = Vec::new();\n    for p in names {\n        if !p.to_string_lossy().ends_with(\".meta.json\") {\n            continue;\n        }\n        let Ok(body) = std::fs::read_to_string(&p) else {\n            continue;\n        };\n        let Ok(meta) = serde_json::from_str::<serde_json::Value>(&body) else {\n            continue;\n        };\n        let at = meta\n            .get(\"fetched_at\")\n            .and_then(|x| x.as_str())\n            .unwrap_or_default();\n        rows.push((\n            at.chars().take(10).collect(),\n            meta.get(\"lines\")\n                .and_then(serde_json::Value::as_u64)\n                .unwrap_or(0) as usize,\n            meta.get(\"url\")\n                .and_then(|x| x.as_str())\n                .unwrap_or_default()\n                .to_owned(),\n        ));\n    }\n    rows\n}\n",
+   "marks": [
+    {
+     "find": "/// **コマンドは引数で受け取る**（tool.json の external から、サービス層が渡す）。",
+     "before": "/// **コマンドは引数で受け取る**（tool.json の external から、宣言の層が渡す）。",
+     "why": "「宣言の層」を、層の正式名「サービス層」で呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "fc-skill",
+   "tab": "fact-check の SKILL.md",
+   "file": ".claude/skills/fact-check/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "tool/business_logic/src/find.rs",
+     "before": "tool/parts/src/find.rs",
+     "why": "参照の経路を、改名後のフォルダへ改めた"
+    },
+    {
+     "find": "サービス層の道具の一覧。",
+     "before": "tool/declare/src/lib.rs: 道具の宣言。",
+     "why": "「道具の宣言」を、中身（道具の一覧）と層の正式名で呼ぶ"
+    },
+    {
+     "find": "唯一の CLI。",
+     "before": "唯一の入口。",
+     "why": "「入口」は層の名前と実行ファイルの両方を指していた。ここは CLI そのものを指す"
+    },
+    {
+     "find": "道具の一覧に無い旗は断る",
+     "before": "宣言に無い旗は断る",
+     "why": "1段目の検査の出力文と同じ語にそろえた"
+    },
+    {
+     "find": "MCP の面（プレゼンテーション層）。",
+     "before": "MCP の面。同じ宣言から組む",
+     "why": "MCP の面がプレゼンテーション層であることを明記し、「宣言」を「道具の一覧」と呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "sc-service",
+   "tab": "skills-creator の service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "(",
+     "before": "(\"business_logic.Cargo.toml.tmpl\", \"tool/business_logic/Cargo.toml\"),\n(\"business_logic.lib.rs.tmpl\", \"tool/business_logic/src/lib.rs\"),\n(\"business_logic.tests.rs.tmpl\", \"tool/business_logic/tests/example.rs\"),",
+     "why": "crate の名前が長くなり、rustfmt の折り返しの位置が変わった。0056 のコミットで整形が漏れていたので、ここで整形した"
+    }
+   ]
+  }
+ ]
+}

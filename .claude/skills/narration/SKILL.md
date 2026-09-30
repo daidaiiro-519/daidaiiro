@@ -120,18 +120,18 @@ narration lexicon <辞書のファイル> <辞書の名前>
 - **声を枚ごとに変えてはならない。** 聞き手は、声の変化を話者の交代として解釈する。教材の話者は1人である
 - **環境を先に作ってはならない。同時に、環境の作り方を保持しない状態にしてもならない。** 既定は手元で実行し、AWS側で実行するための構成はテンプレートとして同梱する ── 先に作ると使っていない設備を保守することになり、作り方が無いと端末の状態に依存し続ける
 - **結合の道具を、端末へ直接導入してはならない。** 版の差が動画の差になる。版を固定した公開のイメージを使う
-- **道具に印字させてはならない。** 戻り値は `{ok, findings, data}` とし、印字と終了コードは入口が持つ ── 道具が印字すると、MCP から呼んだときに戻り値が空になる
+- **道具に印字させてはならない。** 戻り値は `{ok, findings, data}` とし、印字と終了コードはプレゼンテーション層が持つ ── 道具が印字すると、MCP から呼んだときに戻り値が空になる
 
 ---
 
 ## 参照
 
-- `tool/cli/`: 唯一の入口。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **宣言に無い旗は断る**
-- `tool/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `tool/parts/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
-- `tool/parts/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
-- `tool/parts/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
-- `tool/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `tool/cli/`: 唯一の CLI。`plan` ・ `synth` ・ `lexicon` ・ `measure` を持つ ── **道具の一覧に無い旗は断る**
+- `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/business_logic/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
+- `tool/business_logic/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
+- `tool/business_logic/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
+- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
 - `references/narration.schema.json`: 入力の契約
 - `references/narration.out.schema.json`: 出力の契約。`durationMs` の定義を含む
 - `references/lexicon.example.pls`: 読みの辞書の例（W3CのPLS準拠）

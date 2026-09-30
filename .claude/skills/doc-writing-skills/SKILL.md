@@ -325,12 +325,12 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 
 ## 参照
 
-- `tool/cli/`: 唯一の入口。`check` ・ `checks` ・ `tails` ・ `reply` ・ `review` ・ `sources` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**宣言に無い旗は断る**
-- `tool/declare/src/lib.rs`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む
-- `tool/parts/src/gate.rs`: ゲート1の実行。**拠って立つものは `checks` で見られる**
-- `tool/parts/src/checks.rs`: 8つの判定の実体
-- `tool/parts/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**
-- `tool/parts/src/tails.rs`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `references/predicates.json` へ追加する
-- `tool/parts/tests/`: 事例（28件）。8つの判定と、単位の割り方を固定してある
+- `tool/cli/`: 唯一の CLI。`check` ・ `checks` ・ `tails` ・ `reply` ・ `review` ・ `sources` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
+- `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/business_logic/src/gate.rs`: ゲート1の実行。**拠って立つものは `checks` で見られる**
+- `tool/business_logic/src/checks.rs`: 8つの判定の実体
+- `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**
+- `tool/business_logic/src/tails.rs`: **語彙表を使わずに**句の末尾を全部収集して並べる。ゲート1 の和語の検査は語彙表で照合するので、表に無い和語は通過する ── この道具で洗い出し、確定したものを `references/predicates.json` へ追加する
+- `tool/business_logic/tests/`: 事例（28件）。8つの判定と、単位の割り方を固定してある
 - `references/predicates.json`: **和語の述部と言い換え先の正本**（59件）。出典と、その立場を持つ
-- `tool/mcp/`: MCP の面。**同じ宣言から組む** ── 能力を1行も複製しない
+- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない

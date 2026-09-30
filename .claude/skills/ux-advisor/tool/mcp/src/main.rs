@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-//! ux-advisor の MCP の面。**同じ宣言から組む** ── 能力は1行も複製しない。
+//! ux-advisor の MCP の面。**同じ道具の一覧から組む** ── 能力は1行も複製しない。
 //!
 //! **`#[tool]` マクロを使わない。** マクロは道具をその場で宣言するので、能力の正本が
 //! 2か所になる。代わりに `ServerHandler` を手で実装し、`list_tools` と `call_tool` を
-//! 宣言から組む。
+//! 道具の一覧から組む。
 //!
 //! **標準出力へ1バイトも書かない。** 原典が禁じている ── `The server MUST NOT
 //! write anything to its stdout that is not a valid MCP message.`
@@ -26,11 +26,11 @@ use rmcp::service::{RequestContext, RoleServer};
 use rmcp::transport::stdio;
 use rmcp::{ErrorData as McpError, ServiceExt};
 use serde_json::{json, Map, Value};
-use ua_declare::{tools, Given};
+use ua_service::{tools, Given};
 
-/// 宣言から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
+/// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
 /// 呼ぶ側がどの引数を渡せばよいかを認知できない。
-fn input_schema(tool: &ua_declare::Tool) -> Arc<Map<String, Value>> {
+fn input_schema(tool: &ua_service::Tool) -> Arc<Map<String, Value>> {
     let mut properties = Map::new();
     let mut required = Vec::new();
     for a in &tool.args {

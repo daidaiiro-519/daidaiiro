@@ -6,7 +6,7 @@
 宣言し、見た目はトークンで決め、座標は配置戦略に解かせる。紹介ページの主画像・概念の説明図・
 仕組みの内訳図・量を示す図のいずれも、単体で完結するインラインSVGとして得られる。
 
-この Skill が持つ描画エンジン（`tool/parts/`）が実体である。入口は1つの実行ファイル `design-svg` で、
+この Skill が持つ描画エンジン（`tool/business_logic/`）が実体である。CLI は1つの実行ファイル `design-svg` で、
 **宣言を JSON のファイルで受け取る** ── 呼ぶ側は台本を書かず、宣言だけで同じ図を組み直せる。
 
 ```
@@ -109,7 +109,7 @@ design-svg chart bars データ.json --out 図.svg
 design-svg canvas 層.json --out 図.svg
 ```
 
-- **`text`** ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。**中央へ置くのは呼ぶ側の仕事である**（部品は自分の原点を基準に描く。幅の測り方は `tool/parts/src/text.rs` が持つ）
+- **`text`** ── 任意の位置の文字。行の並び ・ 大きさ ・ 太さ ・ 濃さ ・ 寄せを渡す。**中央へ置くのは呼ぶ側の仕事である**（部品は自分の原点を基準に描く。幅の測り方は `tool/business_logic/src/text.rs` が持つ）
 - **`panel`** ── 塗りと枠だけの面。**囲み（`frame`）とは別である** ── 囲みは「ここは領域の内側」を示す破線の注記で、面は意匠そのものである
 - **`icon`** ── 絵記号（人も含む）。**どれも 0..24 の同じ枠で描く**ので、並べたときに大きさが一致する。**拡大しても線は太らない** ── 枠ごと拡大すると、大きい絵だけ重くなる
 - **`path`** ── **SVG のパスの文法をそのまま受ける**（`M/L/H/V/C/S/Q/T/A/Z` を絶対でも相対でも）。**座標は書き換えない** ── 外接矩形ぶんの平行移動で置く
@@ -213,7 +213,7 @@ design-svg verify 図.svg
 
 ### Step 7: 部品が足りなければ足す
 
-部品は、`tool/parts/src/shapes*.rs` の関数1つと、そのファイルの `register()` への1行で増える。核は変化しない。
+部品は、`tool/business_logic/src/shapes*.rs` の関数1つと、そのファイルの `register()` への1行で増える。核は変化しない。
 
 ```rust
 fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
@@ -225,7 +225,7 @@ fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
 ```
 
 足すときの規約は `references/knowledge/svg-engine-discipline.md` にある。**新しいファイルは
-`tool/parts/src/lib.rs` の `components()` へ足す**こと ── 足さないと台帳に載らない。
+`tool/business_logic/src/lib.rs` の `components()` へ足す**こと ── 足さないと台帳に載らない。
 **目録の表（`catalog.rs` の `PARTS`）にも1行足す** ── 部品が読むキーと表が食い違えば、事例が失敗する。
 
 ---
@@ -275,10 +275,10 @@ fn bookmark(p: &Props, style: &Style) -> Result<Fragment, String> {
 - `README.md`: エンジンの入口（使い方・目録・配置・開発）
 - `references/knowledge/svg-engine-discipline.md`: エンジンが遵守する規律と、外へ公開する面
 - `references/knowledge/svg-engine-layout-algorithms.md`: 配置アルゴリズムの中身と、各層が保証すること
-- `tool/cli/`: **唯一の入口** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
-- `tool/declare/`: 道具の宣言。**能力の正本**であり、CLI と MCP はここから組む。**部品は載せない** ── `tool/parts/` は読み込まれるものであり、入口を保持しない
+- `tool/cli/`: **唯一の CLI** `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `canvas` ・ `verify` ・ `lint` を持つ ── どれも `--json` で機械が読む形が出る。終了コードは `0` 正常 ／ `1` 検出あり ／ `2` 誤用
+- `tool/service/`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む。**業務ロジック層の関数は載せない** ── `tool/business_logic/` は読み込まれるものであり、呼び出し方を保持しない
 - `tool/mcp/` ・ `mcp.json`: MCP サーバー `design-svg-mcp`。宣言から道具を組む
-- `tool/parts/`: 描画エンジン。依存の許可辺は各 `Cargo.toml` が宣言する
+- `tool/business_logic/`: 描画エンジン（業務ロジック層）。依存の向きは各 `Cargo.toml` が宣言する
 - `references/theme.json`: 既定のテーマの正本 ── トークン ・ 値の範囲 ・ 色の濃さの呼び名
-- `tool/parts/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd rs && cargo test`
-- `tool/parts/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd rs && cargo run -q -p ds_parts --example bench_layout`
+- `tool/business_logic/tests/`: 規約 ・ 契約 ・ 幾何の検査と、移す前の出力を固定した事例（`golden/`）。何が守られているかが読める。`cd rs && cargo test`
+- `tool/business_logic/examples/bench_layout.rs`: 層状配置を Graphviz の `dot` と同じ宣言で測る計測の道具（交差 ・ 辺の長さ ・ 面積 ・ 揺れ）。`cd rs && cargo run -q -p ds_parts --example bench_layout`
