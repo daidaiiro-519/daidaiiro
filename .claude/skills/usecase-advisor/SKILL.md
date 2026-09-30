@@ -110,7 +110,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | ユースケースの判断基準。1件が、原典が名前を付けて立てている1つの概念である。**どの欄の値も学習ノートの一部であり、ノートに無い文字列を保持しない** |
+| `references/criteria.schema.json` ・ `criteria.json` | ユースケースの判断基準。1件が、原典が名前を付けて立てている1つの概念である。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った章と頁を出典として持つ** |
 | `references/figures/*.svg` | 判断基準の図。Skill の中に同梱する |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
