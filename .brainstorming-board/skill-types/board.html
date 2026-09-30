@@ -1,0 +1,420 @@
+<title>skills-creator が生む Skill の型を決める</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="skill-types" data-round="3" data-theme-name="skills-creator が生む Skill の型を決める"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　skills-creator が生む Skill の型を決める　/　Round 3</p><h1>skills-creator が生む Skill の型を決める</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>型の定義<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>17の Skill の割り当て<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q3</span>型と言語の組の関係<span class="st wait">未</span></button><button data-t="p4" aria-selected="false"><span class="tn">Q4</span>advisor-creator の扱い<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>advisor-creator を skills-creator の「advisor の型」へ統合する案から、Skill の型をどう定義するかという問いが生じた。型の定義 ・ 17の Skill の割り当て ・ 言語の組との関係 ・ advisor-creator の扱いの4つをここで決める。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>skills-creator が生む Skill の「型」を、何によって定義するか</td><td><span class="st done">決着</span></td><td>Skill の型は、その Skill を使うときに誰が何を作るかで定義し、助言型 ・ 作業型 ・ 生成型の3つとする。道具の種類（回答 ・ 生成 ・ 検査）は型ではなく、型が組み合わせて持つ部品として扱う。skills-creator は、助言型は雛形を丸ごと、生成型は入力と出力のスキーマを中心に、作業型は共通の骨組みに部品を選んで足して生む。</td></tr><tr><td><span class="n">2</span></td><td>今ある17の Skill を、論点1の定義に当てはめると、どの型に属するか</td><td><span class="st done">決着</span></td><td>17の Skill を、助言型5 ・ 作業型10 ・ 生成型2へ割り当てる。作業型のうち advisor-creator は、skills-creator の助言型の雛形へ統合するかを論点4で決める。</td></tr><tr><td><span class="n">3</span></td><td>advisor の型の正本を、7言語の組（skills-creator-profiles）とどう組み合わせるか</td><td><span class="st wait">未</span></td><td>論点1 ・ 論点2の答えと、skills-creator-profiles の論点2（共通部品の正本と同等性）の答えを待つ</td></tr><tr><td><span class="n">4</span></td><td>advisor-creator を、skills-creator の助言型の雛形へ統合するか</td><td><span class="st done">決着</span></td><td>advisor-creator を廃止し、その中身を skills-creator の助言型の雛形と手順へ統合する。skills-creator は型を判定し、助言型なら、原文のファイルの受け取りから照合までの手順と、判断基準 ・ 回答の雛形を使って advisor を生む。advisor-creator のボードで決めた作る手順と契約は、そのまま助言型の手順と雛形の中身になる。</td></tr></table></div><details><summary>この回で変わったところ（0 か所）</summary><div><p class="note-s">前の回から、中身は1つも変わっていない。</p></div></details><details><summary>現在地</summary><div><p>論点1 ・ 論点2 ・ 論点4が決着した。論点3（言語の組との関係）は、別のボード skills-creator-profiles の論点2（共通部品の正本）の答えを待つ。</p><div class="scroll"><table class="fact"><thead><tr><th></th><th>次にすること</th></tr></thead><tbody><tr><th>1</th><td>advisor-creator のボードの論点2 ・ 論点3を、skills-creator の助言型の手順と雛形として決着させる</td></tr><tr><th>2</th><td>skills-creator-profiles の論点2が決着したら、論点3を開く</td></tr><tr><th>3</th><td>別のセッションの skills-creator の変更と順を決めてから、統合を ACDR で提示する</td></tr></tbody></table></div></div></details><details><summary>別のボードとの関係</summary><div><div class="scroll"><table class="fact"><thead><tr><th></th><th>このボードとの関係</th></tr></thead><tbody><tr><th>skills-creator-profiles（別のセッションで進行中）</th><td>skills-creator に7言語の組を用意する。論点3がその論点2（共通部品の正本）の答えを待つ</td></tr><tr><th>advisor-creator</th><td>論点2 ・ 論点3（作る手順 ・ advisor の契約）が、このボードの決着を待つ</td></tr></tbody></table></div><p>このボードは skills-creator のファイルを変更しない。変更は決着後に ACDR で提示する。</p></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>skills-creator が生む Skill の「型」を、何によって定義するか</h2></div><div class="note">skills-creator の雛形を、型ごとに分けるかどうかを決める。論点2 ・ 論点3 ・ 論点4の前提になる。</div><div class="ans"><span class="big">A</span><p>Skill の型は、その Skill を使うときに誰が何を作るかで定義し、助言型 ・ 作業型 ・ 生成型の3つとする。道具の種類（回答 ・ 生成 ・ 検査）は型ではなく、型が組み合わせて持つ部品として扱う。skills-creator は、助言型は雛形を丸ごと、生成型は入力と出力のスキーマを中心に、作業型は共通の骨組みに部品を選んで足して生む。</p><div class="scroll"><table class="fact"><thead><tr><th></th><th>定義</th><th>判定の問い</th><th>雛形</th></tr></thead><tbody><tr><th>助言型</th><td>相談を受け、原典の判断基準に照らして答える</td><td>相談に答えるか</td><td>丸ごと固定（判断基準 ・ 回答の形 ・ 回答の道具）</td></tr><tr><th>作業型</th><td>エージェントが成果物を作る作業の手順を持ち、途中で検査や生成の道具を使う</td><td>エージェント自身の作業を導くか</td><td>共通の骨組みに、検査 ・ 生成の部品を選んで足す</td></tr><tr><th>生成型</th><td>他から入力を渡され、道具が成果物を組んで返す。作業の手順は持たない</td><td>入力を渡されて返すだけか</td><td>入力と出力のスキーマ ・ 入力の検査 ・ 組む道具</td></tr></tbody></table></div></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,675px)" class="wf-fig" viewBox="0 0 675 530" height="530" role="img"><g transform="translate(6.0,6.0)"><path d="M324.5,68.6 L96.9,131.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="96.9,131.2 102.8,127.0 104.1,131.8" fill="#C3CAD2"/><path d="M324.5,68.6 L312.1,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="312.1,131.4 311.0,124.3 315.9,125.2" fill="#C3CAD2"/><path d="M324.5,68.6 L560.3,131.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="560.3,131.4 553.1,132.0 554.4,127.3" fill="#C3CAD2"/><path d="M96.9,182.8 L96.9,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="96.9,245.4 94.4,238.6 99.4,238.6" fill="#C3CAD2"/><path d="M312.1,182.6 L310.6,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="310.6,245.4 308.3,238.6 313.2,238.7" fill="#C3CAD2"/><path d="M560.3,182.6 L560.3,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="560.3,245.4 557.8,238.6 562.8,238.6" fill="#C3CAD2"/><path d="M98.5,296.6 L101.3,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="101.3,359.4 98.5,352.8 103.5,352.5" fill="#C3CAD2"/><path d="M312.2,296.6 L305.3,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="305.3,359.4 303.6,352.4 308.5,352.9" fill="#C3CAD2"/><path d="M560.3,296.6 L561.6,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="561.6,359.4 559.0,352.7 563.9,352.6" fill="#C3CAD2"/><g class="wf-node" transform="translate(200.8,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="245.2" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="122.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">共通の骨組み（全 Skill）：SKILL.</text><text x="122.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">md。道具を持つなら tool.json ・ </text><text x="122.6" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">CLI と MCP の入口 ・ refs.rs</text></g></g><g class="wf-node" transform="translate(1.3,132.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="191.2" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="95.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">助言型 ── 相談を受け、原典</text><text x="95.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">の判断基準に照らして答える</text></g></g><g class="wf-node" transform="translate(216.5,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="191.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="95.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作業型 ── エージェントが成</text><text x="95.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">果物を作る作業の手順を持つ</text></g></g><g class="wf-node" transform="translate(463.1,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">生成型 ── 渡された入力か</text><text x="98.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ら、道具が成果物を組んで返す</text></g></g><g class="wf-node" transform="translate(0.0,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="195.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="97.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">雛形：丸ごと固定（判断基準</text><text x="97.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ 回答の形 ・ 回答の道具）</text></g></g><g class="wf-node" transform="translate(219.4,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">雛形：共通の骨組みに、検査</text><text x="92.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ 生成の部品を選んで足す</text></g></g><g class="wf-node" transform="translate(469.1,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">雛形：入力と出力のスキーマ</text><text x="92.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ 入力の検査 ・ 組む道具</text></g></g><g class="wf-node" transform="translate(46.2,360.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="110.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="55.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">advisor 5つ</text></g></g><g class="wf-node" transform="translate(180.4,360.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="254.8" height="158.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="127.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">no-more-spaghetti ・ </text><text x="127.4" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">doc-writing-skills ・ </text><text x="127.4" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">fact-check ・ </text><text x="127.4" y="74.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">brainstorming-board ・ acdr ・</text><text x="127.4" y="92.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">slide-deck ・ skills-creator</text><text x="127.4" y="110.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ advisor-creator ・ </text><text x="127.4" y="128.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">skill-router ・ </text><text x="127.4" y="146.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">memory-cultivator</text></g></g><g class="wf-node" transform="translate(459.2,360.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="203.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">design-svg ・ narration</text></g></g></g></svg><figcaption>共通の骨組みの上に3つの型が並び、型ごとに雛形の固定の度合いが違う。advisor-creator は論点4で扱いを決める</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 3件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 3件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 使うときに誰が何を作るかで定義する</b></td><td>助言型 ・ 作業型 ・ 生成型に分け、道具の種類は部品として組み合わせる</td><td><span class="cost">作業型が10と広い。作業型の中は手順が Skill ごとに違うので、細かく分けても雛形の差は生まれない</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── 道具が返すもので定義する</b></td><td>回答型 ・ 生成型 ・ 検査型に分ける（前の答え）</td><td><span class="cost">道具を分けているだけで、Skill の使う場面を誤って表す。コーディングに使う no-more-spaghetti が検査型になる</span></td></tr><tr><td><span class="n">C</span></td><td><b>C ── 実装の同一性で定義する</b></td><td>実装が同一で、データだけが違う集まりを型にする（最初の答え）</td><td><span class="cost">型になるのは advisor だけで、残る12は1つの残りの箱に入る</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="成果物の種類は作業ごとに増えるので、型が際限なく増える。骨組みの違いも表さない"><b>SKILL.md の「成果物」の節の種類（コード ・ 文書 ・ 図…）で分ける</b></mark></td><td>成果物の種類は作業ごとに増えるので、型が際限なく増える。骨組みの違いも表さない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="領域が違っても骨組みは変わらないので、skills-creator が生むものが区別されない"><b>領域で分ける（anthropics/skills の Creative & Design などの区分）</b></mark></td><td>領域が違っても骨組みは変わらないので、skills-creator が生むものが区別されない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="原典は、作業ごとに指示の具体性を選ぶよう求めている。Skill 全体の区分ではない"><b>自由度で分ける（best practices の High ・ Medium ・ Low freedom）</b></mark></td><td>原典は、作業ごとに指示の具体性を選ぶよう求めている。Skill 全体の区分ではない</td></tr></table></div></div></details><details><summary>この答えの前提（11件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">確立された型の分類が無いこと</span></td><td>Agent Skills の仕様が必須とするのは SKILL.md だけで、scripts/ ・ references/ ・ assets/ は推奨の置き方である。Skill の型は定めていない</td><td><span class="kind k-src">原典</span><small>agentskills.io/specification（2026-09-30 取得、sources/）</small></td></tr><tr><td><span class="part">公開の Skill 集の区分が領域であること</span></td><td>「Skill examples for Creative & Design, Development & Technical, Enterprise & Communication, and Document Skills」</td><td><span class="kind k-src">原典</span><small>github.com/anthropics/skills の README.md（2026-09-30 取得）</small></td></tr><tr><td><span class="part">自由度が作業ごとの選択であること</span></td><td>「Match the level of specificity to the task's fragility and variability.」</td><td><span class="kind k-src">原典</span><small>docs.claude.com の Agent Skills best practices:63（2026-09-30 取得）</small></td></tr><tr><td><span class="part">名前ではなく構造で分けること</span></td><td>skills-creator のガードレールは、どの雛形を適用するかを節の有無で決め、名前で分岐させない</td><td><span class="kind k-rule">決まり</span><small>skills-creator の SKILL.md</small></td></tr><tr><td><span class="part">型を定義する必要</span></td><td>スキル自体の型を定義するってことだよね？そうなると抽象設計が大事だな。ここまでskillクリエーターで作成した他のスキルが何の型になるのかをきめないといけなくなってくるな</td><td><span class="kind k-rule">決まり</span><small>利用者の発言（2026-09-30）</small></td></tr><tr><td><span class="part">型の軸を組み直すこと</span></td><td>no-more-spaghettiを検査方におくんだ。。 これってコーディングの時に使うスキルなのに？  助言型と作業型、生成型？みたいな感じか？</td><td><span class="kind k-rule">決まり</span><small>利用者の差し戻し（2026-09-30）</small></td></tr><tr><td><span class="part">refs.rs を共通の骨組みに数えること</span></td><td>refs.rs は acdr ・ skills-creator を含む7つの Skill でバイト単位で同一である</td><td><span class="kind k-fact">実測</span><small>refs.rs の md5 の比較（2026-09-30）</small></td></tr><tr><td><span class="part">advisor が回答型の全部を型で持つこと</span></td><td>5つの advisor の lib.rs は、Skill の名前を書いた1行だけが違う</td><td><span class="kind k-fact">実測</span><small>5つの advisor の比較（2026-09-30）</small></td></tr><tr><td><span class="part">道具を部品として扱うこと</span></td><td>no-more-spaghetti の手順はコーディング（テスト ・ 実装 ・ 検査）で、検査の道具はその中の1工程である。doc-writing-skills も文書を書く手順の中で検査を使う</td><td><span class="kind k-fact">実測</span><small>両 Skill の SKILL.md の実行手順</small></td></tr><tr><td><span class="part">道具の種類が組み合わされていること</span></td><td>no-more-spaghetti は check と init、slide-deck は render と check、fact-check は fetch と verify を持つ</td><td><span class="kind k-fact">実測</span><small>14の道具の --help（2026-09-30）</small></td></tr><tr><td><span class="part">skill-router と memory-cultivator を作業型にすること</span></td><td>2つとも道具を持たず、SKILL.md の手順と references の雛形 ・ スキーマだけを持つ</td><td><span class="kind k-fact">実測</span><small>両 Skill のファイルの並び（2026-09-30）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>言語ごとの組（Rust ・ Go など）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で扱う。型は言語と独立に定義するので、この答えを覆さない</div></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>skills-creator に、助言型 ・ 生成型の雛形と、作業型が選んで足す部品（検査 ・ 生成）の正本を置く</b></td><td></td></tr><tr><td><b>型を判定する問い（相談に答えるか ・ エージェントの作業を導くか ・ 入力を渡されて返すだけか）を skills-creator の手順に書く</b></td><td></td></tr></table></div></div></details><details><summary>この答えの履歴 ── 2件</summary><div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　型は、Skill の道具が返すもの（道具を持たない Skill は手順が返すもの）で定義し、回答型 ・ 生成型 ・ 検査型の3つとする。型ごとに、その返し方に要る部品（スキーマ ・ 動詞 ・ 出力の形）を固定し、skills-creator は型の部品を共通の骨組みへ足して生む。advisor は、部品の全部が型で決まり、データだけを書けば完成する回答型である。</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">道具が返すもので型を定義した</b><div class="sub-s">分けていたのは Skill ではなく道具で、コーディングに使う no-more-spaghetti が検査型になった</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>no-more-spaghettiを検査方におくんだ。。
+これってコーディングの時に使うスキルなのに？
+
+助言型と作業型、生成型？みたいな感じか？</td></tr></table></div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　型は、実装が同一で、references のデータだけが違う Skill の集まりとして定義する。全 Skill が持つ共通の骨組みは型に数えず、skills-creator が今までどおり生む。実装を自分で持つ Skill は、型に属さない Skill として扱い、無理に分類しない。</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">型を「実装が同一な集まり」と定義した</b><div class="sub-s">当てはまるのが advisor だけになり、17のうち12が「型に属さない」という1つの残りの箱へ入った。型が全体を分けていない</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>アドバイザーかそれ以外はちょっと抽象設計としてはバツが悪くないか？笑笑</td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>今ある17の Skill を、論点1の定義に当てはめると、どの型に属するか</h2></div><div class="note">論点1の答え（使うときに誰が何を作るかで、助言型 ・ 作業型 ・ 生成型に分ける）を当てはめた結果である。</div><div class="ans"><span class="big">A</span><p>17の Skill を、助言型5 ・ 作業型10 ・ 生成型2へ割り当てる。作業型のうち advisor-creator は、skills-creator の助言型の雛形へ統合するかを論点4で決める。</p></div><div><details class="image" open><summary>この答えの完成イメージ ── 実例</summary><div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>型</th><th>理由</th></tr></thead><tbody><tr><th>ddd ・ usecase ・ qa ・ platform ・ ux の advisor</th><td>助言型</td><td>相談に答える。判断基準と回答の形だけが違う</td></tr><tr><th>no-more-spaghetti</th><td>作業型</td><td>コーディング。検査（check ・ inward）と生成（init）を使う</td></tr><tr><th>doc-writing-skills</th><td>作業型</td><td>文書を書く。検査（check）を使う</td></tr><tr><th>fact-check</th><td>作業型</td><td>調べる。取得（fetch）と照合（verify）を使う</td></tr><tr><th>brainstorming-board</th><td>作業型</td><td>決めることを対話で進める。生成（render）を使う</td></tr><tr><th>acdr</th><td>作業型</td><td>決定を記録して承認を得る。生成（render）を使う</td></tr><tr><th>slide-deck</th><td>作業型</td><td>資料を作る。生成（render ・ export）と検査（check）を使う</td></tr><tr><th>skills-creator</th><td>作業型</td><td>Skill を作る。生成（scaffold）と検査（check）を使う</td></tr><tr><th>advisor-creator</th><td>作業型（論点4で扱いを決める）</td><td>advisor を作る。道具を持たない</td></tr><tr><th>skill-router</th><td>作業型</td><td>配線表を読み、書き換える手順を持つ。道具を持たない</td></tr><tr><th>memory-cultivator</th><td>作業型</td><td>記録を書く手順と雛形を持つ。道具を持たない</td></tr><tr><th>design-svg</th><td>生成型</td><td>宣言を渡され、SVG を組んで返す</td></tr><tr><th>narration</th><td>生成型</td><td>原稿を渡され、音声と時刻を組んで返す</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── 判定の問いを上から順に当てる</b></td><td>相談に答えるか → エージェントの作業を導くか → 入力を渡されて返すだけか</td><td><span class="cost">作業を導きながら生成の道具も持つ Skill（slide-deck ・ acdr）は、道具より手順を優先して作業型にする判定が要る</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── 道具を中心に持つ Skill を生成型に寄せる</b></td><td>render を持つ acdr ・ brainstorming-board ・ slide-deck も生成型にする</td><td><span class="cost">3つとも手順（承認の取り方 ・ 対話の進め方 ・ 資料の作り方）が本体で、道具はその一部である。使う場面を誤って表す</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="返すのは配線表から引いた行で、生成ではない。道具を持たず、手順だけの Skill である"><b>skill-router を生成型に入れる</b></mark></td><td>返すのは配線表から引いた行で、生成ではない。道具を持たず、手順だけの Skill である</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="原典から導いた概念を持つが、相談に答えるのではなく、エージェントが文書を書く作業を導く"><b>doc-writing-skills を助言型に入れる</b></mark></td><td>原典から導いた概念を持つが、相談に答えるのではなく、エージェントが文書を書く作業を導く</td></tr></table></div></div></details><details><summary>この答えの前提（3件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">割り当ての基準</span></td><td>使うときに誰が何を作るかで、助言型 ・ 作業型 ・ 生成型に分ける</td><td><span class="kind k-rule">決まり</span><small>論点1</small></td></tr><tr><td><span class="part">割り当てを組み直すこと</span></td><td>no-more-spaghettiを検査方におくんだ。。 これってコーディングの時に使うスキルなのに？  助言型と作業型、生成型？みたいな感じか？</td><td><span class="kind k-rule">決まり</span><small>利用者の差し戻し（2026-09-30）</small></td></tr><tr><td><span class="part">各 Skill の使う場面</span></td><td>17の SKILL.md の目的と実行手順</td><td><span class="kind k-fact">実測</span><small>SKILL.md（2026-09-30）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>作業型の中を、さらに分けるか</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">作業型は手順が Skill ごとに違うのが本質で、分けても雛形の差が生まれない。この答えを覆さない</div></td></tr></table></div></div></details><details><summary>この答えの履歴 ── 2件</summary><div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　17の Skill を、回答型6 ・ 生成型7 ・ 検査型3へ割り当てる。advisor-creator は論点4で扱いを決める。主な動詞のほかに別の動詞を持つ Skill は、主な出力で型を決め、別の動詞は型の外の追加の能力として持つ。</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">道具が返すもので割り当てた</b><div class="sub-s">論点1の定義を組み直したので、割り当ても組み直した</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>no-more-spaghettiを検査方におくんだ。。
+これってコーディングの時に使うスキルなのに？
+
+助言型と作業型、生成型？みたいな感じか？</td></tr></table></div><div class="scroll"><table><tr><th>前の答え</th><td><b>A</b>　advisor の型に属するのは、ddd ・ usecase ・ qa ・ platform ・ ux の5つとする。残る12の Skill は、型に属さない Skill とする。acdr ・ brainstorming-board ・ slide-deck は似た部品を持つが、実装が同一ではないので型にしない。</td></tr><tr><th>なぜ組み直したか</th><td><b class="lead-s">型に属するのが advisor の5つだけだった</b><div class="sub-s">論点1の定義を組み直したので、割り当ても組み直した</div></td></tr><tr><th>利用者の言葉（そのまま）</th><td>アドバイザーかそれ以外はちょっと抽象設計としてはバツが悪くないか？笑笑</td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>advisor の型の正本を、7言語の組（skills-creator-profiles）とどう組み合わせるか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">何を待つか</span></td><td>型の実装を言語ごとに持つかは、共通部品の正本の置き方で決まる</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ skills-creator-profiles の論点2</small></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>advisor-creator を、skills-creator の助言型の雛形へ統合するか</h2></div><div class="note">論点1 ・ 論点2（助言型は雛形を丸ごと固定する）を前提にする。advisor-creator のボードの論点2 ・ 論点3が、この答えを待っている。</div><div class="ans"><span class="big">A</span><p>advisor-creator を廃止し、その中身を skills-creator の助言型の雛形と手順へ統合する。skills-creator は型を判定し、助言型なら、原文のファイルの受け取りから照合までの手順と、判断基準 ・ 回答の雛形を使って advisor を生む。advisor-creator のボードで決めた作る手順と契約は、そのまま助言型の手順と雛形の中身になる。</p><div class="scroll"><table class="fact"><thead><tr><th></th><th>今</th><th>統合後</th></tr></thead><tbody><tr><th>advisor を作る手順</th><td>advisor-creator の SKILL.md（古い形）</td><td>skills-creator の助言型の手順</td></tr><tr><th>判断基準 ・ 回答の雛形</th><td>各 advisor に写したものだけ（正本が無い）</td><td>skills-creator の助言型の雛形</td></tr><tr><th>共通の骨組み（道具 ・ refs.rs）</th><td>skills-creator の雛形</td><td>同じ</td></tr><tr><th>advisor-creator</th><td>Skill として在る</td><td>廃止する</td></tr></tbody></table></div></div><div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="figs"><figure><svg style="max-width:min(100%,713px)" class="wf-fig" viewBox="0 0 713 422" height="422" role="img"><g transform="translate(6.0,6.0)"><path d="M404.0,50.6 L216.2,113.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="216.2,113.2 221.8,108.7 223.4,113.4" fill="#C3CAD2"/><path d="M404.0,50.6 L403.4,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="403.4,113.4 401.0,106.6 405.9,106.7" fill="#C3CAD2"/><path d="M404.0,50.6 L588.7,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="588.7,113.4 581.5,113.6 583.1,108.9" fill="#C3CAD2"/><path d="M217.8,164.8 L102.9,227.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="102.9,227.4 107.7,222.0 110.0,226.3" fill="#C3CAD2"/><path d="M217.8,164.8 L329.2,227.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="329.2,227.4 322.1,226.2 324.5,221.9" fill="#C3CAD2"/><path d="M105.1,296.6 L217.8,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="217.8,359.4 210.7,358.3 213.1,354.0" fill="#C3CAD2"/><path d="M330.8,278.6 L217.8,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="217.8,359.4 221.9,353.5 224.7,357.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(298.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="209.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">skills-creator（作業型）：</text><text x="104.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">型を判定し、共通の骨組みを生む</text></g></g><g class="wf-node" transform="translate(104.6,114.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="224.8" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="112.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">助言型の雛形と手順</text><text x="112.4" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">（advisor-creator から移す）</text></g></g><g class="wf-node" transform="translate(353.4,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">生成型の雛形</text></g></g><g class="wf-node" transform="translate(477.4,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="223.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="111.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作業型が選ぶ部品（検査 ・ 生成）</text></g></g><g class="wf-node" transform="translate(0.0,228.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="208.0" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">手順：原文のファイルを受け取る</text><text x="104.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">→ 学習ノート → 概念へ振り分</text><text x="104.0" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">け → 判断基準へ変換 → 照合</text></g></g><g class="wf-node" transform="translate(232.0,228.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="196.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">雛形：判断基準と回答のスキー</text><text x="98.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">マ ・ 回答の道具 ・ 試験</text></g></g><g class="wf-node" transform="translate(112.4,360.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="209.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">生んだ advisor（他の Skill</text><text x="104.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">に依存せず単体で動く）</text></g></g></g></svg><figcaption>skills-creator が型を判定し、助言型なら、移した手順と雛形で advisor を生む。生んだ advisor は他の Skill に依存しない</figcaption></figure></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>A ── skills-creator の助言型へ統合し、advisor-creator を廃止する</b></td><td>助言型の手順と雛形を skills-creator の references に置く</td><td><span class="cost">skills-creator の手順に、型ごとの分岐と、助言型の長い手順（ノート ・ 振り分け ・ 照合）が加わる</span></td></tr><tr><td><span class="n">B</span></td><td><b>B ── advisor-creator を残し、雛形を丸ごと自分で持つ</b></td><td>共通の骨組み（道具 ・ refs.rs）も advisor-creator が写して持つ</td><td><span class="cost">共通の骨組みの正本が2か所になり、片方だけが古くなる</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Skill が他の Skill に依存する。利用者の決まりに反する"><b>advisor-creator を残し、共通の骨組みは skills-creator を呼んで生む</b></mark></td><td>Skill が他の Skill に依存する。利用者の決まりに反する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="今の雛形は契約の版2より前の形で、今回の advisor 作りに使っていない"><b>advisor-creator を残し、今の Markdown の雛形のまま使う</b></mark></td><td>今の雛形は契約の版2より前の形で、今回の advisor 作りに使っていない</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">統合先があること</span></td><td>助言型は雛形を丸ごと固定する型であり、skills-creator が型ごとの雛形を持つ</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ 論点2</small></td></tr><tr><td><span class="part">他の Skill に依存させないこと</span></td><td>「skillは他のskillに依存してまとめないほうがいい」</td><td><span class="kind k-rule">決まり</span><small>利用者の差し戻し（2026-09-30）</small></td></tr><tr><td><span class="part">今の advisor の骨組みの出どころ</span></td><td>5つの advisor の道具 ・ refs.rs ・ tool.json ・ document.schema.json は、skills-creator の references/profiles/rust/ の雛形から生んだ</td><td><span class="kind k-fact">実測</span><small>skills-creator の雛形と advisor の比較（2026-09-30）</small></td></tr><tr><td><span class="part">2つの Skill が互いを名指ししていること</span></td><td>skills-creator のガードレールは「助言の Skill は advisor-creator の雛形」を満たすと書く</td><td><span class="kind k-fact">実測</span><small>skills-creator の SKILL.md</small></td></tr><tr><td><span class="part">今の advisor-creator の中身</span></td><td>SKILL.md と Markdown の雛形2つ（skill-template-advisor.md ・ knowledge-template.md）だけで、道具を持たない</td><td><span class="kind k-fact">実測</span><small>advisor-creator のファイルの並び（2026-09-30）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>skills-creator のファイルを変更する時期</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">別のセッションが skills-creator の言語の組を進めている。論点3と合わせて、変更の順を決めてから ACDR で提示する。この答えを覆さない</div></td></tr><tr><td>助言型の雛形を言語ごとに持つか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。この答えを覆さない</div></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>advisor-creator のボードの論点2 ・ 論点3を、skills-creator の助言型の手順と雛形として決着させる</b></td><td></td></tr><tr><td><b>skills-creator のガードレールから advisor-creator の名前を外し、型ごとの雛形を指す形にする</b></td><td></td></tr><tr><td><b>CLAUDE.md ・ skill-wiring.json ・ 索引から advisor-creator を外す</b></td><td></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

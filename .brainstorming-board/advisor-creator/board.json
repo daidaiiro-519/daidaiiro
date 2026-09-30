@@ -1,12 +1,12 @@
 {
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "advisor-creator の仕様と契約を決め、advisor の形を揃える",
+ "title": "skills-creator の助言型の手順と契約を決め、advisor の形を揃える",
  "board": "advisor-creator",
  "round": 3,
  "intro": [
   {
    "kind": "para",
-   "text": "advisor の出来がばらついたのは、advisor-creator の仕様と契約が決まっていないためである。何を advisor にしてよいか ・ どう作るか ・ どんな形で持つか ・ 何を満たせば完成か ・ 既存の advisor をどう扱うか、の5つをここで決める。"
+   "text": "advisor の出来がばらついたのは、advisor を作る手順と契約が決まっていないためである。何を advisor にしてよいか ・ どう作るか ・ どんな形で持つか ・ 何を満たせば完成か ・ 既存の advisor をどう扱うか、の5つをここで決める。作る手順と雛形の持ち主は、skill-types のボードの決着により skills-creator の助言型である。"
   }
  ],
  "panels": [
@@ -130,7 +130,7 @@
   {
    "no": 1,
    "name": "advisor の条件",
-   "status": "open",
+   "status": "settled",
    "question": "何を advisor にしてよいか。1つの advisor は、どの範囲の原典を持つか",
    "intro": "Round 2 の論点1（原典の条件）と論点6（tech-lead-advisor）の差し戻しを受けて、組み直した。",
    "answer": "advisor は、確立された1つの体系を原典とし、その原文を取得できるときだけ作る。1つの体系とは、同じ著者か同じ発行元が1つの枠組みとして出したもの（1冊の書籍、ISTQB のシラバスと用語集、AWS Well-Architected の各 Pillar など）である。1つの advisor は1つの体系だけを持ち、扱う範囲はその体系が名前を付けて立てている概念で決まる。判断基準は、取得した原文を元に章ごとに作ったまとめ（学習ノート）から作ってよい。原文を読まずに書いたまとめ、複数の体系を総合したまとめ、このリポジトリ独自の内容は採らない。別の体系の視点が要るときは、advisor を体系ごとに分けて並列で呼ぶ。",
@@ -344,21 +344,21 @@
   {
    "no": 2,
    "name": "作る手順",
-   "status": "open",
+   "status": "settled",
    "question": "条件に当てはまる原典から、advisor をどの手順で作るか。手順の道具をどこに置くか",
    "intro": "論点1の答え（1つの体系を、原文を取得して使う）を前提にする。usecase-advisor（ACDR 0050）と qa-advisor（ACDR 0055）で、同じ手順を2回通した。",
-   "answer": "advisor は9段の手順で作る。原典を取得し、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。",
+   "answer": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は skills-creator の助言型が持ち、他の Skill を名指しで呼ばない。原文の取得は skills-creator の外で行い、skills-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。",
    "figures": [
     {
      "kind": "figure",
      "name": "procedure",
-     "caption": "原典の取得から受け入れの検査までの9段。3段目の振り分けで、判断基準の単位（概念）が決まる。6段目は SVG のファイルを出すことだけを決め、描く道具を名指ししない"
+     "caption": "原文のファイルを受け取ってから受け入れの検査までの9段。3段目の振り分けで、判断基準の単位（概念）が決まる。1段目と6段目は受け渡すファイルだけを決め、使う道具を名指ししない"
     }
    ],
    "passed": [
     {
-     "name": "A ── 手順と道具を advisor-creator が持つ",
-     "body": "取り込み ・ 照合 ・ 図 ・ 後処理を advisor-creator の道具にする",
+     "name": "A ── 手順と道具を skills-creator の助言型が持つ",
+     "body": "取り込み ・ 照合 ・ 図 ・ 後処理を skills-creator の助言型の道具にする",
      "cost": "作業用の置き場にある道具（prep ・ check ・ reshape ・ refig ・ dedup）を、試験つきの道具へ作り直す"
     },
     {
@@ -375,6 +375,10 @@
     {
      "body": "原典を一言一句書き写してから、判断基準を作る",
      "reason": "利用者の決まりは構造化したノートであり、書き写しは求められていない。著作物の全文の複製にもなる"
+    },
+    {
+     "body": "skills-creator の助言型が原文を取得する機能を持つ",
+     "reason": "fact-check の取得の機能を複製することになる。書籍のスキャンは道具で取得できないので、どのみち外から受け取る経路が要る"
     }
    ],
    "grounds": [
@@ -407,12 +411,25 @@
      "basis": "「skillは他のskillに依存してまとめないほうがいい」",
      "tag": "rule",
      "source": "利用者の差し戻し（2026-09-30）"
+    },
+    {
+     "supports": "原文の取得を外で行うこと",
+     "basis": "論点2・3を「単体で動く」に合わせたときに見つかった2点の案に、利用者が同意した",
+     "tag": "rule",
+     "source": "利用者の回答（2026-09-30）"
+    },
+    {
+     "supports": "持ち主を skills-creator の助言型にすること",
+     "basis": "利用者が skill-types の論点4を承認した",
+     "tag": "rule",
+     "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
     }
    ],
    "requirements": [
-    "作業用の置き場の道具（prep ・ check ・ reshape ・ refig ・ dedup）を、advisor-creator の道具として作り直す",
-    "学習ノートの書き方（NOTES.md）を advisor-creator の references に置く",
-    "advisor-creator の SKILL.md と道具に、他の Skill の名前を置かない。原文の取得と図の描画は、段の出力（原文のファイル ・ SVG のファイル）だけを決める"
+    "作業用の置き場の道具（prep ・ check ・ reshape ・ refig ・ dedup）を、skills-creator の助言型の道具として作り直す",
+    "学習ノートの書き方（NOTES.md）を skills-creator の references の助言型の雛形に置く",
+    "skills-creator の助言型の手順と道具に、他の Skill の名前を置かない。原文の取得と図の描画は、段の出力（原文のファイル ・ SVG のファイル）だけを決める",
+    "skills-creator の助言型の入力に、原文のファイルと、その所在 ・ 取得した日を受け取る形を定める。sha256 は skills-creator の助言型が計算する"
    ],
    "out_of_scope": [
     {
@@ -423,7 +440,7 @@
     {
      "item": "このリポジトリで、作った advisor を ACDR で提示してから正本へ適用すること",
      "treatment": "out",
-     "note": "リポジトリの運用（CLAUDE.md）が決める。advisor-creator の手順には含めない。この答えを覆さない"
+     "note": "リポジトリの運用（CLAUDE.md）が決める。skills-creator の助言型の手順には含めない。この答えを覆さない"
     }
    ],
    "decision": {
@@ -431,14 +448,28 @@
     "text": [
      {
       "kind": "para",
-      "text": "advisor は9段の手順で作る。原典を取得し、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。"
+      "text": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は skills-creator の助言型が持ち、他の Skill を名指しで呼ばない。原文の取得は skills-creator の外で行い、skills-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。"
      }
     ]
    },
    "panels": [
     {
-     "heading": "この答えの履歴 ── 1件",
+     "heading": "この答えの履歴 ── 3件",
      "body": [
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。原文の取得は advisor-creator の外で行い、advisor-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。",
+       "why": "<b>手順と道具の持ち主を advisor-creator としていた</b> ── advisor-creator は廃止となり、skills-creator の助言型が持つ",
+       "user_words": "おけ"
+      },
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "advisor は9段の手順で作る。原典を取得し、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。",
+       "why": "<b>1段目で原典を取得するとしていた</b> ── fact-check を名指ししないなら、advisor-creator が取得の機能を持つか、外から受け取るかを決める必要があった",
+       "user_words": "おけです！"
+      },
       {
        "kind": "previous",
        "letter": "A",
@@ -453,10 +484,10 @@
   {
    "no": 3,
    "name": "advisor の契約",
-   "status": "open",
+   "status": "settled",
    "question": "advisor の判断基準と回答を、どの形で持つか。advisor ごとに違ってよいのはどこまでか",
    "intro": "Round 2 の論点2（雛形の正本、承認済み）を取り込み、論点1の答え（1つの体系の章を単位にする）を前提にした。",
-   "answer": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
+   "answer": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
    "example": [
     {
      "kind": "note",
@@ -491,7 +522,7 @@
    ],
    "grounds": [
     {
-     "supports": "スキーマの正本を advisor-creator が持つこと",
+     "supports": "スキーマの正本を skills-creator の助言型が持つこと",
      "basis": "Round 2 の論点2で承認された",
      "tag": "rule",
      "source": "利用者の承認（2026-09-29）"
@@ -567,10 +598,22 @@
      "basis": "5つの advisor とも、SKILL.md の回答の手順と answer.schema.json が「design-svg が組んだ SVG」を前提にする。criteria.schema.json は図の説明で design-svg を名指しする。道具のコードでは注記の中だけに現れる",
      "tag": "measured",
      "source": "5つの advisor の grep（2026-09-30）"
+    },
+    {
+     "supports": "骨組みの持ち主",
+     "basis": "refs.rs と道具は全 Skill の共通の骨組みで skills-creator が持つ。advisor-creator は廃止し、助言型の雛形と手順として skills-creator へ統合する",
+     "tag": "rule",
+     "source": "skill-types の論点1 ・ 論点4"
+    },
+    {
+     "supports": "持ち主を skills-creator の助言型にすること",
+     "basis": "利用者が skill-types の論点4を承認した",
+     "tag": "rule",
+     "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
     }
    ],
    "requirements": [
-    "advisor-creator の references に、criteria.schema.json と answer.schema.json の正本を置く（Round 2 の論点2）",
+    "skills-creator の references の助言型の雛形に、criteria.schema.json と answer.schema.json の正本を置く（Round 2 の論点2）",
     "answer.schema.json の相談種別を、概念 ・ 判断 ・ 設計の3つにする",
     "usecase-advisor を概念ごとに組み直し、ddd-advisor の題 ・ 概要 ・ 扱う範囲 ・ 関連を原典の文字列へ差し替える（論点5）",
     "学習ノートの書き方（NOTES.md）に、事例は構造と要点だけ ・ 定義の引用は短く区別して出典を付ける、を明記する",
@@ -605,7 +648,7 @@
     "text": [
      {
       "kind": "para",
-      "text": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。"
+      "text": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。"
      },
      {
       "kind": "table",
@@ -620,15 +663,15 @@
         [
          "SKILL.md ・ tool.json ・ mcp.json と、references/ ・ tool/ の中身",
          "同じ",
-         "固定（advisor-creator の雛形）"
+         "固定（skills-creator の助言型の雛形）"
         ]
        ],
        [
         "道具",
         [
-         "get ・ validate ・ view ・ import（契約の版2）",
+         "get ・ validate ・ view ・ import（契約の版2）。refs.rs は skills-creator の雛形から写したもの",
          "同じ（MCP の説明文だけ違う）",
-         "固定。MCP の説明文だけ advisor ごと"
+         "固定。道具と refs.rs は skills-creator の共通の骨組みから写す。MCP の説明文だけ advisor ごと"
         ]
        ],
        [
@@ -830,8 +873,22 @@
    },
    "panels": [
     {
-     "heading": "この答えの履歴 ── 2件",
+     "heading": "この答えの履歴 ── 4件",
      "body": [
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が自分の雛形として正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
+       "why": "<b>骨組みの正本を advisor-creator が持つとしていた</b> ── advisor-creator は廃止となり、道具と refs.rs は skills-creator の共通の骨組み、スキーマは助言型の雛形が持つ",
+       "user_words": "おけ"
+      },
+      {
+       "kind": "previous",
+       "letter": "A",
+       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
+       "why": "<b>骨組みの正本の出どころを決めていなかった</b> ── refs.rs は skills-creator の雛形から写しており、作る側に skills-creator への依存が残っていた",
+       "user_words": "おけです！"
+      },
       {
        "kind": "previous",
        "letter": "A",
