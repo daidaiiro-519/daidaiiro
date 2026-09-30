@@ -22,3 +22,4 @@
 ── 前提が別のボードに在ると、どちらが正しいかを毎回確認することになる。統合前の Artifact
 `https://claude.ai/artifact/HcTAfdRQc5b1ZAckrNtuBw` は、まだ消していない。
 | `skill-references/` | skill-references | （未発行） | （未複製） |
+| `advisor-creator/` | advisor-creator を、構造化した references の形へ作り直す | （未発行） | （未複製） |
