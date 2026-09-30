@@ -31,7 +31,7 @@ V.cover = DV.t_cover
 FIG = {
  # はじめに
  'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_scene, 'I0-S0C': IV.i0_dig, 'I0-S1': IV.i0_case,
- 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S3B': IV.i0_next2, 'I0-S3C': IV.i0_next3, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base,
+ 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S3B': IV.i0_next2, 'I0-S3C': IV.i0_next3, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base, 'I0-SE': IV.i0_effect, 'I0-SP': IV.i0_flow,
  # 教材1のはじめに
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
  'L1-S0': IV.i1_bridge, # 1本目　原因を知る

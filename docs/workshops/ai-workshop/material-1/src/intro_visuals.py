@@ -4,75 +4,87 @@ from lesson_visuals import (text, rect, path, arrow, circle, person, icon, svg,
 
 
 def i0_case():
-    """1つの案件に、3つの業務が関わっている。"""
-    a = text(0, 24, '題材の案件', 18, DIM)
-    a += rect(356, 44, 400, 84, ACCENT, 12, ACCENT)
-    a += text(556, 82, '経費精算システムを入れ替える', 21, PAPER, 700, 'middle')
-    a += text(556, 110, '本番の切り替えは3か月後', 15, PAPER, anchor='middle')
-    roles = [('経費の精算業務', '経理が、日々の精算と支払を担当している'),
-             ('案件の進行管理', 'PMが、案件を止めずに本番まで進める'),
-             ('システムの開発', '開発が、画面と連携を作っている')]
-    for i, (name, what) in enumerate(roles):
-        x = i * 384
-        a += path(f'M556 128 V152 H{x + 172} V176', LINE)
-        a += path(f'M{x + 172 - 6} 170 l6 8 6 -8', LINE, 2)
-        a += rect(x, 182, 344, 96, PAPER, 12, LINE)
-        a += person(x + 44, 222, .62, DIM)
-        a += text(x + 80, 226, name, 19, INK, 700)
-        a += text(x + 24, 262, what, 16, INK)
-    # 3つの業務の担当者が定例に集まり、書記が議事録にまとめる。流れを線でたどれるようにする
-    # 定例と議事録の組を、図の中央に置く
-    for i in range(3):
-        cx = i * 384 + 172
-        a += path(f'M{cx} 278 V300', LINE)
-    a += path('M172 300 H940 M370 300 V316 M364 310 l6 8 6 -8', LINE, 2)
-    a += rect(170, 322, 400, 72, PANEL, 12)
-    a += icon(194, 336, 'chat', INK, .8)
-    a += text(254, 352, '週に1回の定例', 18, INK, 700)
-    a += text(254, 378, '3つの業務の担当者が集まる', 15, INK)
-    a += arrow(580, 358, 626, 358)
-    a += rect(634, 322, 308, 72, PAPER, 12, LINE)
-    a += icon(656, 336, 'doc', INK, .8)
-    a += text(712, 352, '議事録', 18, INK, 700)
-    a += text(712, 378, '書記が、決定と未決をまとめる', 15, INK)
-    return svg('1つの案件に3つの業務が関わり、担当者が定例に集まって、書記が議事録にまとめる', a, 402)
+    """案件の目的はAIに頼むには大きすぎる。関わる業務ごとの目的に分け、PMの目的に絞る。担当者は定例に集まり、書記が議事録にまとめる。"""
+    # 上：案件の目的。このままではAIが何をすればいいか決まらない
+    a = rect(0, 0, 640, 92, PAPER, 12, INK)
+    a += text(24, 32, '案件の目的', 14, DIM, 700)
+    a += text(24, 66, '経費精算システムを入れ替え、本番を切り替える', 20, INK, 700)
+    a += text(616, 32, '本番の切り替えは3か月後', 13, DIM, anchor='end')
+    a += arrow(652, 46, 700, 46)
+    a += _robot_at(716, 20, DIM)
+    a += text(790, 40, '大きすぎて、AIが', 16, DIM, 700)
+    a += text(790, 66, '何をすればいいか決まらない', 16, DIM, 700)
+    # 業務ごとの目的に分ける
+    a += path('M320 92 V118 M176 118 H936 M176 118 V136 M556 118 V136 M936 118 V136', LINE, 2)
+    for x in (176, 556, 936):
+        a += path(f'M{x - 6} 130 l6 8 6 -8', LINE, 2)
+    a += text(340, 112, '関わる業務ごとの目的に分ける', 13, DIM)
+    roles = [('経費の精算業務', '経理', ['切り替えの前後も、', '精算と支払を止めない'], False),
+             ('システムの開発', '開発', ['新しいシステムと連携を、', '切り替えまでに作る'], False),
+             ('案件の進行管理', 'PM', ['本番の切り替えまで、', '案件を止めずに進める'], True)]
+    for k, (name, who, goal, hot) in enumerate(roles):
+        x = k * 380
+        col = ACCENT if hot else INK
+        a += rect(x, 142, 352, 132, PAPER, 12, ACCENT if hot else LINE)
+        a += person(x + 36, 184, .62, col)
+        a += text(x + 70, 176, name, 18, col, 700)
+        a += text(x + 70, 200, '担当：' + who, 14, DIM)
+        a += text(x + 24, 236, '目的：' + goal[0], 15, INK, 700)
+        a += text(x + 72, 260, goal[1], 15, INK, 700)
+        if hot:
+            a += text(x + 328, 176, '教材の例', 13, ACCENT, 700, 'end')
+    # 担当者が定例に集まり、書記が議事録にまとめる
+    for k in range(3):
+        a += path(f'M{k * 380 + 176} 274 V296', LINE)
+    a += path('M176 296 H936 M380 296 V312 M374 306 l6 8 6 -8', LINE, 2)
+    a += rect(170, 318, 420, 72, PAPER, 12, LINE)
+    a += icon(194, 332, 'chat', INK, .8)
+    a += text(254, 348, '週に1回の定例', 18, INK, 700)
+    a += text(254, 374, '3つの業務の担当者が集まる', 15, INK)
+    a += arrow(598, 354, 634, 354)
+    a += rect(642, 318, 330, 72, PAPER, 12, LINE)
+    a += icon(664, 332, 'doc', INK, .8)
+    a += text(720, 348, '議事録', 18, INK, 700)
+    a += text(720, 374, '書記が、決定と未決をまとめる', 15, INK)
+    return svg('案件の目的は大きすぎるので、関わる業務ごとの目的に分け、PMの目的に絞る。担当者は定例に集まり、書記が議事録にまとめる', a, 398)
 
 
 def i0_usecases():
-    """業務は作業でできていて、前の作業の結果を次の作業が受け取る。経理にも開発にも、それぞれの作業がある。"""
-    a = text(0, 22, 'PMの業務', 17, DIM)
-    a += rect(0, 34, W, 190, PAPER, 12, ACCENT)
-    a += text(24, 68, '案件の進行管理', 20, INK, 700)
-    a += text(186, 68, '目的　本番の切り替えまで、案件を止めずに進める', 15, DIM)
-    tasks = ['課題を整理する', 'スケジュールを引き直す', '工数を見積もる', '要員を調整する']
-    passed = ['課題管理表', '引き直したスケジュール', '見積もった工数']
-    for i, name in enumerate(tasks):
-        x = 24 + i * 284
-        a += rect(x, 92, 212, 60, PANEL, 10)
-        a += text(x + 106, 128, name, 17, INK, 700, 'middle')
-        if i < 3:
-            gx = x + 212 + 36          # 作業のあいだの中心
-            a += arrow(x + 218, 122, x + 278, 122)
-            # 次の作業へ渡るもの
-            a += path(f'M{gx} 130 V170', LINE, 1.5)
-            w = 176
-            a += rect(gx - w / 2, 172, w, 30, PAPER, 15, LINE)
-            a += text(gx, 193, passed[i], 14, INK, anchor='middle')
-    a += text(0, 258, 'ほかの業務も、同じように作業でできている', 17, DIM)
-    others = [('経費の精算業務', '経理', ['申請を受け付ける', '内容を確認する', '支払を処理する']),
-              ('システムの開発', '開発', ['仕様を決める', '画面を作る', '連携を試験する'])]
-    for k, (name, who, ts) in enumerate(others):
-        x0 = k * 572
-        a += rect(x0, 270, 540, 102, PAPER, 12, LINE)
-        a += text(x0 + 20, 300, name, 16, INK, 700)
-        a += text(x0 + 20 + len(name) * 16 + 12, 300, who, 14, DIM)
-        for j, t in enumerate(ts):
-            x = x0 + 20 + j * 172
-            a += rect(x, 318, 148, 36, PANEL, 8)
-            a += text(x + 74, 341, t, 14, INK, anchor='middle')
-            if j < 2:
-                a += arrow(x + 150, 336, x + 170, 336)
-    return svg('業務は作業でできていて、前の作業の結果を次の作業が受け取る。経理にも開発にも作業がある', a, 380)
+    """業務の目的はそのままではAIに頼めない。目的を達成するための作業に分けると、作業ごとの目的は1行で書け、AIに頼める。"""
+    # 上：業務と、その目的。このままAIに頼んでも、何を返せばいいか決まらない
+    a = rect(0, 0, 700, 88, PAPER, 12, INK)
+    a += person(34, 40, .62, INK)
+    a += text(68, 34, '業務：案件の進行管理（PM）', 16, DIM, 700)
+    a += text(68, 66, '目的：本番の切り替えまで、案件を止めずに進める', 19, INK, 700)
+    a += arrow(712, 44, 752, 44)
+    a += _robot_at(768, 18, DIM) + cross(846, 44, DIM, .6)
+    a += text(870, 38, 'このまま頼んでも、', 15, DIM, 700)
+    a += text(870, 62, '何を返せばいいか決まらない', 15, DIM, 700)
+    # 目的を達成するための作業に分ける
+    a += path('M350 88 V112', LINE, 2) + path('M344 106 l6 8 6 -8', LINE, 2)
+    a += text(366, 108, '目的を達成するための作業に分ける', 13, DIM)
+    works = [('課題を整理する', ['どれから決めるか、', '優先順位を付ける'], True),
+             ('スケジュールを引き直す', ['切り替えの日に', '間に合う計画にする'], False),
+             ('工数を見積もる', ['必要な人手と', '期間を把握する'], False),
+             ('要員を調整する', ['足りない作業に', '要員を配置する'], False)]
+    cw, gap = 254, 32
+    for k, (name, goal, hot) in enumerate(works):
+        x = k * (cw + gap)
+        a += rect(x, 122, cw, 150, PAPER, 12, ACCENT if hot else LINE)
+        a += text(x + 18, 150, '作業', 13, ACCENT if hot else DIM, 700)
+        if hot:
+            a += text(x + cw - 18, 150, '教材1で扱う', 13, ACCENT, 700, 'end')
+        a += text(x + 18, 182, name, 18, ACCENT if hot else INK, 700)
+        a += text(x + 18, 216, '目的：' + goal[0], 14, INK)
+        a += text(x + 60, 240, goal[1], 14, INK)
+        if k < 3:
+            a += arrow(x + cw + 4, 197, x + cw + gap - 4, 197)
+    a += text(cw + gap // 2, 290, '課題管理表を受け取る', 12, DIM, anchor='middle')
+    # 下：作業の目的なら、1行で指示に書ける
+    a += _robot_at(0, 306, INK) + check(78, 332, ACCENT, .55)
+    a += text(104, 330, '作業の目的なら、1行で指示に書ける。AIに頼む1回の単位は、作業である', 17, INK, 700)
+    a += text(104, 356, '作業の目的を1つずつ達成すると、業務の目的に近づく', 14, DIM)
+    return svg('業務の目的はそのままではAIに頼めない。目的を達成するための作業に分けると、作業ごとの目的は1行で書け、AIに頼める', a, 366)
 
 
 def _table_icon(x, y, color=INK):
@@ -83,153 +95,171 @@ def _table_icon(x, y, color=INK):
 
 
 def i0_usecase():
-    """4つの作業から、課題を整理するを選ぶ。作業まで絞ると、目的が指示に書ける大きさになり、AIに頼める。"""
-    # 上：前の枚の作業の並びから、1つを選ぶ
-    a = text(0, 20, 'PMの業務の作業', 15, DIM)
-    for i, name in enumerate(['課題を整理する', 'スケジュールを引き直す', '工数を見積もる', '要員を調整する']):
-        x = i * 236
-        hot = (i == 0)
-        a += rect(x, 32, 200, 36, ACCENT if hot else PANEL, 8)
-        a += text(x + 100, 56, name, 15, PAPER if hot else DIM, 700 if hot else 400, 'middle')
-        if i < 3:
-            a += arrow(x + 204, 50, x + 232, 50)
-    a += path('M100 68 V100', ACCENT, 2)
-    # 左：選んだ作業の4つの項目
-    a += rect(0, 100, 520, 250, PAPER, 12, ACCENT)
-    a += text(24, 140, '課題を整理する', 22, INK, 700)
-    a += path('M24 158 H496', LINE, 1)
-    for i, (k, v) in enumerate([('誰が', 'PM'), ('何のために', 'どの課題から決めるか、優先順位を付ける'),
-                                ('渡すもの', '定例の議事録'), ('返すもの', '課題管理表')]):
-        y = 200 + i * 40
-        hot = (k == '何のために')   # 目的の行。教材1が扱う中心である
-        a += text(24, y, k, 15, ACCENT if hot else DIM, 700)
-        a += text(140, y, v, 16, INK, 700 if hot else 400)
-    # 右：AIへの頼み方の対比。上下の枠は同じ高さ ・ 同じ地にし、入力 ・ AI ・ 出力 ・ 結果を同じ位置に置く
-    a += text(560, 96, 'AIに頼むとき', 15, DIM)
-    for k, (title, bad) in enumerate([('業務の目的のまま', True), ('作業の目的にすると', False)]):
-        y = 108 + k * 126
-        a += rect(560, y, 552, 116, PAPER, 12, LINE)
-        a += text(580, y + 28, title, 14, INK, 700)
-        if bad:
-            a += text(580, y + 66, '「本番まで案件を止めずに進めて」', 15, INK)
-            a += arrow(820, y + 60, 850, y + 60)
+    """目的には大きさがある。業務の目的では大きすぎ、作業の目的まで小さくすると、渡すものと返してもらうものが決まる。教材1で学ぶ3つを添える。"""
+    # 左：目的の大きさ。上ほど大きい。段ごとに、何の目的かを絵で示す
+    a = text(0, 18, '目的の大きさ', 15, DIM, 700)
+    a += path('M14 34 V222 M7 215 l7 8 7 -8', LINE, 2)
+    a += text(24, 46, '大きい', 12, DIM) + text(24, 222, '小さい', 12, DIM)
+    rows = [(70, 'calendar', '案件の目的', '経費精算システムを入れ替える', False),
+            (136, 'person', '業務の目的', '本番の切り替えまで、案件を止めずに進める', False),
+            (202, 'table', '作業の目的', '優先順位を付けるために、課題を整理する', True)]
+    for y, ic, tag, what, hot in rows:
+        col = ACCENT if hot else INK
+        a += rect(80, y - 34, 440, 56, PAPER, 10, ACCENT if hot else LINE)
+        if ic == 'person':
+            a += person(106, y - 4, .5, col)
+        elif ic == 'table':
+            a += _table_icon(92, y - 20, col)
         else:
-            a += icon(584, y + 40, 'doc', INK, .6)
-            a += text(620, y + 66, '議事録', 15, INK)
-            a += arrow(676, y + 60, 850, y + 60)
-        a += _robot_at(866, y + 36, INK)
-        a += arrow(928, y + 60, 958, y + 60)
-        if bad:
-            a += text(990, y + 70, '？', 26, DIM, 700, 'middle')
-            a += cross(592, y + 96, DIM, .6)
-            a += text(608, y + 102, '返すものが決まらない', 14, DIM)
-        else:
-            a += _table_icon(970, y + 44)
-            a += text(1010, y + 66, '課題管理表', 15, INK)
-            a += check(592, y + 96, ACCENT, .6)
-            a += text(608, y + 102, '返ってきた表で、そのまま優先順位を付けられるかで判断できる', 14, INK)
-    return svg('4つの作業から課題を整理するを選ぶ。作業まで絞ると、目的が指示に書ける大きさになり、AIに頼める', a, 360)
+            a += icon(92, y - 22, ic, col, .6)
+        a += text(136, y - 12, tag, 12, ACCENT if hot else DIM, 700)
+        a += text(136, y + 12, what, 15, col, 700)
+        a += (check(500, y - 4, ACCENT, .45) if hot else cross(500, y - 4, DIM, .45))
+    a += text(80, 250, '業務の目的では大きすぎて、何を返せばいいかが決まらない', 13, DIM)
+    # 右：作業の目的をプロンプトに書き、議事録を添えて渡す。AIが解釈して、課題管理表を返す
+    a += arrow(530, 198, 566, 198)
+    a += rect(574, 0, 538, 236, PAPER, 12, ACCENT)
+    a += text(598, 32, '教材1の例', 15, ACCENT, 700)
+    a += rect(594, 50, 214, 168, PAPER, 8, INK)
+    a += text(610, 76, '指示（いわゆるプロンプト）', 13, ACCENT, 700)
+    a += text(610, 104, ['目的：優先順位を', '付けるために、', '課題を整理する'], 14, INK, 700, gap=22)
+    a += path('M610 164 H792', LINE, 1)
+    a += icon(612, 174, 'doc', INK, .5) + text(644, 200, '議事録を添えて渡す', 13, INK)
+    a += arrow(814, 134, 858, 134)
+    a += _robot_at(872, 108, ACCENT)
+    a += text(896, 190, 'AIが', 13, ACCENT, 700, 'middle') + text(896, 210, '解釈する', 13, ACCENT, 700, 'middle')
+    a += arrow(934, 134, 1000, 134)
+    a += _table_icon(1016, 118, INK)
+    a += text(1031, 190, '課題管理表', 14, INK, 700, 'middle') + text(1031, 210, '返ってくるもの', 12, DIM, 400, 'middle')
+    # 下：教材1で学ぶこと
+    a += text(0, 300, '教材1で学ぶこと', 15, DIM, 700)
+    learn = [('search', ['返ってくるものが、', '目的からずれる原因を知る']),
+             ('book', ['言葉の意味 ・ 対象の範囲 ・', '必ず入れる条件を、指示に書く']),
+             ('check', ['指示をどこまで決めて書くかを、', '目的に合わせる'])]
+    for k, (ic, ls) in enumerate(learn):
+        x = k * 380
+        a += rect(x, 314, 352, 72, PAPER, 10, LINE)
+        a += icon(x + 18, 332 if ic != 'check' else 338, ic, INK, .6 if ic != 'check' else .7)
+        a += text(x + 70, 344, ls, 14, INK, gap=22)
+    return svg('目的には大きさがある。業務の目的では大きすぎ、作業の目的まで小さくすると、渡すものと返してもらうものが決まる。教材1で学ぶ3つ', a, 392)
+
+
+def _mini_table(x, y, rows, head_col, filled):
+    """課題管理表の小さい形。filled が偽なら、工数と遅延時の影響を「？」にする。"""
+    cols = [('課題', 0), ('担当', 96), ('期限', 146), ('工数', 196), ('遅延時の影響', 256)]
+    a = rect(x, y, 404, 150, PAPER, 10, head_col)
+    for name, dx in cols:
+        a += text(x + 12 + dx, y + 26, name, 12, DIM, 700)
+    a += path(f'M{x} {y + 38} H{x + 404}', LINE, 1)
+    for r, row in enumerate(rows):
+        yy = y + 72 + r * 50
+        for k, (name, dx) in enumerate(cols):
+            val = row[k]
+            if k >= 3 and not filled:
+                a += rect(x + 8 + dx, yy - 20, 40 if k == 3 else 130, 28, PAPER, 6, ACCENT)
+                a += text(x + 8 + dx + (20 if k == 3 else 65), yy, '？', 14, ACCENT, 700, 'middle')
+            else:
+                a += text(x + 12 + dx, yy, val, 13, ACCENT if (k >= 3) else INK, 700 if k in (0, 3, 4) else 400)
+    return a
 
 
 def i0_next2():
-    """教材1の課題管理表は、工数と遅延時の影響が空いている。各業務の言葉で読むと埋まり、期限と優先順位に裏付けが付く。"""
-    a = text(0, 20, '教材1でAIが返す課題管理表', 15, DIM)
-    cols = [('課題', 0), ('決める担当', 176), ('期限', 290), ('工数', 380), ('遅延時の影響', 540)]
-    a += rect(0, 32, 712, 168, PAPER, 10, LINE)
-    a += rect(0, 32, 712, 40, PANEL, 10)
-    for name, x in cols:
-        a += text(x + 18, 58, name, 14, DIM, 700)
-    # 行の中心を、右のカードの中心と同じ高さに置く
-    rows = [('連携の仕様', '開発', '9/16', '実装が進まない要因'), ('申請の締め日', '経理', '9/30', '日々の精算が止まる要因')]
-    for i, (k, who, due, mean) in enumerate(rows):
-        y = 72 + i * 64
-        cy = y + 32
-        if i:
-            a += path(f'M0 {y} H712', LINE, 1)
-        a += text(18, cy + 6, k, 16, INK, 700)
-        a += text(194, cy + 6, who, 16, INK)
-        a += text(308, cy + 6, due, 16, INK)
-        for x, w in ((380, 136), (540, 144)):
-            a += rect(x + 12, cy - 16, w, 32, PAPER, 6, ACCENT)
-            a += text(x + 12 + w / 2, cy + 7, '？', 17, ACCENT, 700, 'middle')
-        a += rect(772, cy - 29, 340, 58, PANEL, 10)
-        a += person(802, cy + 2, .55, INK)
-        a += text(832, cy - 5, f'{who}にとっての課題', 13, DIM, 700)
-        a += text(832, cy + 17, mean, 16, INK, 700)
-        a += path(f'M766 {cy} H720 M728 {cy - 7} L720 {cy} L728 {cy + 7}', LINE, 2)
-    a += text(772, 62, 'その業務の言葉で、AIが読む', 15, DIM)
-    a += text(0, 226, '期限は、定例で各業務が言った日付を写しただけで、裏付けが無い', 14, DIM)
-    a += text(772, 226, '分かると、2つの列が埋まる', 14, DIM)
-    a += band(252, '言葉が何を指すかを指示に書くと、期限と優先順位に裏付けが付く')
-    return svg('教材1の課題管理表は工数と遅延時の影響が空いている。各業務の言葉で読むと埋まり、期限と優先順位に裏付けが付く', a, 318)
+    """教材1の課題管理表は、工数と遅延時の影響が空で、優先順位を付ける精度に届かない。業務ごとの言葉の意味をチームで統一すると、表が埋まり、チームでも話が通じる。"""
+    rows_b = [('連携の仕様', '開発', '9/16', '', ''), ('申請の締め日', '経理', '9/30', '', '')]
+    rows_a = [('連携の仕様', '開発', '9/16', '3人日', '連携の開発が止まる'), ('申請の締め日', '経理', '9/30', '1人日', '運用の準備が遅れる')]
+    a = text(0, 18, '教材1のあとの課題管理表', 14, DIM, 700)
+    a += _mini_table(0, 30, rows_b, LINE, False)
+    a += cross(18, 208, DIM, .45) + text(36, 213, '工数と影響が空で、優先順位を付けられない', 13, DIM)
+    # 中央：チームで言葉の意味を統一する
+    a += arrow(410, 105, 434, 105)
+    a += rect(440, 0, 232, 226, PAPER, 12, INK)
+    for k in range(3):
+        a += person(486 + k * 70, 34, .45, INK)
+    a += text(556, 80, 'チームで「課題」の', 14, INK, 700, 'middle')
+    a += text(556, 100, '意味を統一する', 14, INK, 700, 'middle')
+    for k, (who, what) in enumerate([('経理', '精算が止まる要因'), ('開発', '実装が進まない要因'), ('PM', '進行が止まる要因')]):
+        y = 132 + k * 28
+        a += text(458, y, who, 12, DIM, 700) + text(496, y, what, 13, INK)
+    a += text(556, 216, '定義を、指示に書く', 12, ACCENT, 700, 'middle')
+    a += arrow(678, 105, 702, 105)
+    a += text(708, 18, '教材2のあとの課題管理表', 14, ACCENT, 700)
+    a += _mini_table(708, 30, rows_a, ACCENT, True)
+    a += check(726, 208, ACCENT, .45) + text(744, 213, '工数と影響が入り、優先順位に裏付けが付く', 13, ACCENT, 700)
+    # 下：言葉の意味を統一すると、よいこと
+    a += text(0, 262, '言葉の意味を統一すると', 15, DIM, 700)
+    goods = [('robot', ['AIが、業務ごとの言葉を', '正しく読み分ける']),
+             ('table', ['課題管理表の期限と', '優先順位に、裏付けが付く']),
+             ('chat', ['チームの中でも、', '業務をまたいで話が通じる'])]
+    for k, (ic, ls) in enumerate(goods):
+        x = k * 380
+        a += rect(x, 276, 352, 76, PAPER, 10, LINE)
+        if ic == 'robot':
+            a += _robot_at(x + 16, 290, INK)
+        elif ic == 'table':
+            a += _table_icon(x + 22, 298, INK)
+        else:
+            a += icon(x + 18, 298, ic, INK, .6)
+        a += text(x + 80, 306, ls, 14, INK, gap=22)
+    return svg('教材1の課題管理表は、工数と遅延時の影響が空で、優先順位を付ける精度に届かない。業務ごとの言葉の意味をチームで統一すると、表が埋まり、チームでも話が通じる', a, 358)
 
 
 def i0_next3():
-    """Agentは業務の目的を達成し、Skillは作業ごとの道具である。決めたことは、作業のSkillの中に書く。"""
-    # 上：業務を担うAgent
-    a = rect(0, 8, 1112, 76, PAPER, 12, LINE)
-    a += _robot_at(22, 20, INK)
-    a += text(86, 40, 'Agent', 18, INK, 700)
-    a += text(160, 40, '業務：案件を遅延なく進める', 17, INK, 700)
-    a += text(86, 68, 'どのSkillを、いつ使うかを判断し、業務の目的を達成する', 14, DIM)
-    # Agentから、作業ごとのSkillへ
-    for x in (280, 710, 966):
-        a += path(f'M{x} 88 V120 M{x - 6} 114 l6 6 6 -6', LINE, 2)
-    a += text(300, 108, '使う', 13, DIM)
-    # 左：教材で作るSkill。決めたことは、すべてこの中に書く
-    a += rect(0, 124, 660, 214, PAPER, 12, ACCENT)
-    a += text(24, 154, 'Skill', 17, ACCENT, 700)
-    a += text(84, 154, '作業：議事録から課題を整理する', 17, INK, 700)
-    rows = [('目的', '優先順位を付けるために整理する'),
-            ('意味', '何を課題として並べるか'),
-            ('範囲', 'どこから拾うか'),
-            ('条件', '必ず入れるもの（期限 ・ 工数 ・ 遅延時の影響）')]
-    for i, (k, v) in enumerate(rows):
-        y = 170 + i * 40
-        a += rect(24, y, 612, 32, PANEL, 6)
-        a += text(40, y + 22, k, 14, INK, 700)
-        a += text(96, y + 22, v, 14, INK)
-    # 右：ほかの作業も、同じ形のSkillになる
-    for x, name in ((680, '進捗報告を作る'), (906, '遅れを検知する')):
-        a += rect(x, 124, 206, 106, PAPER, 12, LINE)
-        a += text(x + 18, 154, 'Skill', 15, DIM, 700)
-        a += text(x + 18, 184, '作業：', 14, DIM)
-        a += text(x + 18, 208, name, 15, INK)
-    a += text(680, 262, '作業ごとに、進め方と', 14, DIM)
-    a += text(680, 284, '出すものが違うので、Skillを分ける', 14, DIM)
-    # 下：人が確認して承認する
-    a += _table_icon(686, 306)
-    a += text(740, 328, '課題管理表を', 15, INK)
-    a += person(870, 322, .5, INK)
-    a += text(900, 328, 'PMが確認して承認する', 15, ACCENT, 700)
-    a += band(366, '誰が使っても、目的から外れずに課題を整理できる')
-    return svg('Agentは業務の目的を達成し、Skillは作業ごとの道具である。決めたことは作業のSkillの中に書き、最後は人が確認して承認する', a, 430)
+    """教材1と教材2で決めたことを、Skill ・ MCP ・ Hook ・ エージェントの4つの部品で仕組みにする。どれも特定のAIツールに依存しない。"""
+    # 左：教材1と教材2で決めたこと
+    a = text(0, 18, '教材1 ・ 2で決めたこと', 14, DIM, 700)
+    a += rect(0, 30, 300, 292, PAPER, 12, INK)
+    decided = [('目的', '優先順位を付けるために整理する'),
+               ('言葉の意味', '「課題」が業務ごとに指すもの'),
+               ('対象の範囲', '定例の議事録とスケジュール'),
+               ('必ず入れる条件', '期限 ・ 工数 ・ 遅延時の影響')]
+    ys = [76, 146, 216, 286]
+    for (k_, v_), y in zip(decided, ys):
+        a += text(20, y - 14, k_, 13, DIM, 700)
+        a += text(20, y + 10, v_, 14, INK, 700)
+    # 右：4つの部品。決めたことのどれを受け持つかを線で示す
+    parts = [('doc', 'Skill', '作業ごとの指示と、言葉の意味をまとめる', 1),
+             ('branch', 'MCP', 'AIが参照する情報源に、決めた範囲でつなぐ', 2),
+             ('check', 'Hook', '決まった時点で動き、条件を満たすかを確認する', 3),
+             ('robot', 'エージェント', '業務の目的のために、どのSkillをいつ使うかを判断する', 0)]
+    for k, (ic, name, what, src) in enumerate(parts):
+        y = 30 + k * 76
+        hot = name == 'エージェント'
+        a += path(f'M300 {ys[src]} C 340 {ys[src]}, 350 {y + 32}, 390 {y + 32}', LINE, 1.5)
+        a += rect(394, y, 718, 64, PAPER, 10, ACCENT if hot else LINE)
+        if ic == 'robot':
+            a += _robot_at(412, y + 8, ACCENT)
+        else:
+            a += icon(414, y + 16 if ic != 'check' else y + 22, ic, INK, .7)
+        a += text(484, y + 30, name, 18, ACCENT if hot else INK, 700)
+        a += text(484, y + 54, what, 14, INK)
+    # 下：どのAIツールでも使える。最後は人が確認して承認する
+    a += text(0, 362, 'どのAIツールでも使える、仕組みの考え方として学ぶ', 16, INK, 700)
+    a += _table_icon(620, 340, INK) + person(684, 356, .45, INK)
+    a += text(708, 362, '返ってきた課題管理表は、PMが確認して承認する', 14, DIM)
+    return svg('教材1と教材2で決めたことを、Skill ・ MCP ・ Hook ・ エージェントの4つの部品で仕組みにする。どれも特定のAIツールに依存しない', a, 380)
 
 
 def i0_journey():
-    """2枚目と同じ3段の階段。段を1つ上がるごとに、AIでできることが1つ増える。"""
-    a = text(0, 22, 'この教材を終えると、AIでできること', 16, DIM)
-    base, SW = 336, 370
-    tops = [236, 166, 96]
-    a += path(f'M0 {base} V{tops[0]} H{SW} V{tops[1]} H{2 * SW} V{tops[2]} H{3 * SW} V{base} Z', LINE, 1.5, PANEL)
-    a += path(f'M{SW} {tops[0]} V{base} M{2 * SW} {tops[1]} V{base}', LINE, 1)
-    # 段の名前と印は、2枚目の階段と同じにする
-    steps = [('教材1　目的の把握', ['議事録が替わっても、', '同じ指示で使える']),
-             ('教材2　言葉の定義', ['＋ 言葉の意味が違っても、', '　 正しく読み分ける']),
-             ('教材3　仕組みの構築', ['＋ 誰が使っても、', '　 同じように動く'])]
-    for k, (title, can) in enumerate(steps):
-        x0 = k * SW
-        top = tops[k]
-        cx = x0 + SW / 2
-        a += text(x0 + 22, top + 32, title, 17, INK, 700)
-        a += text(x0 + 22, top + 62, can, 15, INK, gap=24)
-        if k == 0:
-            a += icon(cx - 25, top - 58, 'search', INK, 1)
-        elif k == 1:
-            a += icon(cx - 27, top - 58, 'book', INK, 1)
+    """教材を1つ終えるごとに、AIでできることが1つずつ増える。段を上がるごとに、課題管理表と仕組みが育つ。"""
+    steps = [('教材1　目的の把握', 'search', '議事録を渡すと、目的に合った', '課題管理表が返る', '議事録が替わっても、同じ指示で使える', 150),
+             ('教材2　言葉の定義', 'book', '＋ 工数と影響まで入り、', '優先順位に裏付けが付く', 'チームで、言葉の意味が統一される', 90),
+             ('教材3　仕組みの構築', 'robot', '＋ 誰が使っても、', '同じように動く', 'エージェントがSkillを使い分け、業務を支える', 30)]
+    a = text(0, 20, '教材を終えると、AIでできること', 15, DIM, 700)
+    base = 350
+    for k, (tag, ic, l1, l2, sub, top) in enumerate(steps):
+        x = k * 380
+        hot = k == 2
+        a += rect(x, top, 352, base - top, PAPER, 12, ACCENT if hot else LINE)
+        if ic == 'robot':
+            a += _robot_at(x + 22, top + 18, ACCENT)
         else:
-            a += _robot_at(cx - 24, top - 60, INK)
-    return svg('2枚目と同じ3段の階段。段を1つ上がるごとに、AIでできることが1つ増える', a, base + 8)
+            a += icon(x + 22, top + 20, ic, INK, .8)
+        a += text(x + 88, top + 46, tag, 15, ACCENT if hot else DIM, 700)
+        a += text(x + 22, top + 104, [l1, l2], 18, ACCENT if hot else INK, 700, gap=28)
+        a += text(x + 22, top + 170, sub, 14, DIM)
+        if k < 2:
+            a += arrow(x + 356, top + 40, x + 376, top + 40)
+    return svg('教材を1つ終えるごとに、AIでできることが1つずつ増える。段を上がるごとに、課題管理表と仕組みが育つ', a, base + 6)
 
 
 def _bubble_r(x, y, w, h, tail_y):
@@ -239,47 +269,95 @@ def _bubble_r(x, y, w, h, tail_y):
 
 
 def i0_base():
-    """目的を言語化し、AIで仕組みを作り、目的を達成する。教材1のあとに書いた達成条件で、終了時に照合する。"""
-    T = 40   # 段の名前の行の下から、カードを置く
-    a = text(0, 20, '1　目的を言語化する', 16, INK, 700)
-    a += text(340, 20, '2　AIで仕組みを作る', 16, INK, 700)
-    a += text(812, 20, '3　目的を達成する', 16, INK, 700)
-    # 1：教材1を終えて記入する用紙。目的の捉え方を学んでから書く。空欄の線は、受講者が書き込む欄である
-    a += rect(0, T, 300, 254, PANEL, 12)
-    a += text(24, T + 30, '教材1　目的の把握を終えて記入する', 14, DIM, 700)
-    a += rect(20, T + 46, 260, 190, PAPER, 8, LINE)
-    a += text(40, T + 76, '実現したい目的', 13, INK, 700)
-    a += rect(40, T + 88, 220, 10, LINE, 5)
-    a += text(40, T + 130, '達成条件', 13, INK, 700)
-    for k, name in enumerate(['結果', '確認の方法', '期限']):
-        y = T + 158 + k * 26
-        a += text(40, y, name, 13, DIM)
-        a += rect(130, y - 9, 130, 8, LINE, 4)
-    a += arrow(308, T + 127, 332, T + 127)
-    # 2：教材2と教材3。例は課題の整理だが、作るのは選んだ目的のための仕組み
-    a += rect(340, T + 20, 432, 214, PANEL, 12)
-    for k, (name, what) in enumerate([('教材2　言葉の定義', '言葉が何を指すかを定める'),
-                                      ('教材3　仕組みの構築', '目的から外れない仕組みにする')]):
-        y = T + 44 + k * 92
-        a += rect(356, y, 400, 62, PAPER, 10, LINE)
-        a += text(376, y + 37, name, 16, INK, 700)
-        a += text(556, y + 37, what, 13, DIM)
-    a += arrow(780, T + 127, 804, T + 127)
-    # 3：終了時に照合する。教材1のあとに書いた達成条件と実際の結果を並べ、判定する
-    a += rect(812, T, 300, 254, PAPER, 12, ACCENT)
-    a += text(836, T + 30, '終了時に照合する', 14, DIM, 700)
-    a += text(836, T + 74, '達成条件', 13, INK, 700)
-    a += rect(836, T + 86, 252, 10, LINE, 5)
-    a += text(836, T + 130, '実際の結果', 13, INK, 700)
-    a += rect(836, T + 142, 252, 10, LINE, 5)
-    a += text(836, T + 186, '判定', 13, INK, 700)
-    a += text(836, T + 212, '達成 ／ 一部達成 ／ 未達 ／ 未実施', 13, DIM)
-    # 教材1のあとに書いた達成条件を、そのまま終了時の照合に使う
-    a += path(f'M150 {T + 254} V{T + 274} H962 V{T + 260}', LINE, 2)
-    a += path(f'M956 {T + 266} L962 {T + 258} L968 {T + 266}', LINE, 2)
-    a += text(556, T + 296, '教材1のあとに書いた達成条件で、終了時に照合する', 13, DIM, anchor='middle')
-    a += band(T + 314, '見るのは、何を作ったかではなく、目的をどれだけ達成できたか')
-    return svg('目的を言語化し、AIで仕組みを作り、目的を達成する。教材1のあとに書いた達成条件で、終了時に照合する', a, T + 378)
+    """目的を言語化し、AIで仕組みを作り、目的を達成する。3つを、自分が実現したい目的で進める。"""
+    a = ''
+    cards = [('doc', '1　目的を言語化する', '準備期間 ・ 参加するとき',
+              ['AIで実現したいことを書く', 'AIに頼める大きさまで定める', '達成に何が必要かを考える'], False),
+             ('robot', '2　AIで仕組みを作る', 'ワークショップの3か月',
+              ['Skillとエージェントで作る', '自分のチームで使ってもらう', '振り返りの場で直す'], False),
+             ('check', '3　目的を達成する', 'ワークショップの終わり ・ 最終共有会',
+              ['目的をAIで達成する', '作った仕組みを見せ合う'], True)]
+    for k, (ic, head, when, items, hot) in enumerate(cards):
+        x = k * 380
+        col = ACCENT if hot else INK
+        a += rect(x, 0, 352, 272, PAPER, 12, ACCENT if hot else LINE)
+        if ic == 'robot':
+            a += _robot_at(x + 22, 18, col)
+        else:
+            a += icon(x + 22, 20 if ic == 'doc' else 32, ic, col, .8)
+        a += text(x + 22, 106, head, 20, col, 700)
+        a += text(x + 22, 134, when, 14, DIM, 700)
+        for j_, s_ in enumerate(items):
+            y = 176 + j_ * 36
+            a += circle(x + 28, y - 6, 4, LINE, LINE) + text(x + 44, y, s_, 15, INK)
+        if k < 2:
+            a += arrow(x + 356, 136, x + 376, 136)
+    a += text(556, 318, '見るのは、何を作ったかではなく、目的をAIで達成できたか', 20, ACCENT, 700, 'middle')
+    return svg('目的を言語化し、AIで仕組みを作り、目的を達成する。3つを、自分が実現したい目的で進める', a, 330)
+
+
+def i0_effect():
+    """業務ごとにエージェントがあり、その下に作業ごとのSkillが並ぶ。これができると、成果物の品質と作業の効率が上がる。"""
+    cols = [('PM ・ PL', '案件を止めずに進める', ['課題を整理する', '進捗報告を作る', '遅れを検知する']),
+            ('開発', '仕様どおりに、品質よく作る', ['仕様をまとめる', 'コードをレビューする', 'テスト項目を作る']),
+            ('事務 ・ 管理', '申請と問い合わせを処理する', ['申請内容を確認する', '問い合わせに回答する', '定型の書類を作る'])]
+    a = ''
+    for k, (role, goal, skills) in enumerate(cols):
+        x = k * 380
+        a += rect(x, 0, 352, 88, PAPER, 12, INK)
+        a += _robot_at(x + 20, 18, INK)
+        a += text(x + 88, 38, role + 'のエージェント', 17, INK, 700)
+        a += text(x + 88, 66, '業務：' + goal, 14, DIM)
+        a += path(f'M{x + 44} 88 V{112 + 2 * 48 + 20}', LINE, 2)
+        for m, sk in enumerate(skills):
+            y = 112 + m * 48
+            a += path(f'M{x + 44} {y + 20} H{x + 70}', LINE, 2)
+            a += rect(x + 70, y, 282, 40, PAPER, 8, LINE)
+            a += text(x + 86, y + 26, 'Skill', 13, DIM, 700) + text(x + 130, y + 26, sk, 15, INK)
+    # 3つの業務から、効果へ
+    a += path('M176 268 V288 M556 268 V288 M936 268 V288 M176 288 H936 M556 288 V304 m-7 -7 l7 7 7 -7', LINE, 2)
+    effects = ['成果物の品質が上がる', '作業の効率が上がる', '誰が担当しても、同じ品質で出せる']
+    for k, e in enumerate(effects):
+        x = k * 380
+        a += rect(x, 312, 352, 56, PAPER, 12, ACCENT)
+        a += check(x + 30, 340, ACCENT, .5) + text(x + 54, 346, e, 17, ACCENT, 700)
+    return svg('業務ごとにエージェントがあり、その下に作業ごとのSkillが並ぶ。これができると、成果物の品質と作業の効率が上がり、誰が担当しても同じ品質で出せる', a, 374)
+
+
+def i0_flow():
+    """10月から3月の進め方。準備期間に教材を見て目的を考え、12月に参加を受け付け、1月から3か月のワークショップで目的を達成する。"""
+    cw = 1112 / 6
+    a = ''
+    for k, m in enumerate(['10月', '11月', '12月', '1月', '2月', '3月']):
+        a += text(k * cw + cw / 2, 18, m, 14, DIM, 700, 'middle')
+        if k:
+            a += path(f'M{k * cw:.0f} 28 V84', LINE, 1)
+    a += rect(0, 32, 552, 44, PAPER, 8, LINE) + text(18, 60, '準備期間（希望者）', 15, INK, 700)
+    a += rect(560, 32, 552, 44, PAPER, 8, ACCENT) + text(578, 60, 'ワークショップ（先着15名）', 15, ACCENT, 700)
+    # 節目
+    a += path('M0 98 H1112', LINE, 1)
+    marks = [(8, 116, '教材1を公開', 'start'),
+             (278, 146, '教材2 ・ 3を順に公開', 'middle'),
+             (463, 116, '参加の受付（12月中）', 'middle'),
+             (566, 146, 'ワークショップ開始', 'start'),
+             (834, 116, 'チームで使い、振り返る', 'middle'),
+             (1104, 146, '最終共有会', 'end')]
+    for x, y, label, anc in marks:
+        a += circle(x, 98, 5, ACCENT if x > 552 else INK, ACCENT if x > 552 else INK)
+        if y > 130:
+            a += path(f'M{x} 103 V132', LINE, 1)
+        a += text(x, y + 8, label, 13, INK, 700, anc)
+    # 期間ごとにすること
+    a += rect(0, 176, 540, 150, PAPER, 12, LINE)
+    a += icon(22, 196, 'book', INK, .6) + text(70, 214, '教材をポータルで順に見て、', 16, INK, 700)
+    a += text(70, 240, 'AIで実現したい目的を考える', 16, INK, 700)
+    a += icon(22, 270, 'chat', INK, .55) + text(70, 294, '分からないことは、Teamsで相談できる', 14, DIM)
+    a += rect(572, 176, 540, 150, PAPER, 12, ACCENT)
+    a += _robot_at(594, 192, ACCENT) + text(660, 214, '目的を達成する仕組みを、', 16, ACCENT, 700)
+    a += text(660, 240, 'AIで作る', 16, ACCENT, 700)
+    a += text(596, 280, 'KiroのアカウントとAWS環境を発行する', 14, DIM)
+    a += text(596, 306, '自分で達成するコースか、チームに広げるコースを選ぶ', 14, DIM)
+    return svg('10月から3月の進め方。準備期間に教材を見て目的を考え、12月に参加を受け付け、1月から3か月のワークショップで目的を達成する', a, 334)
 
 
 def _robot_at(x, y, color):
@@ -296,40 +374,35 @@ def _robot_at(x, y, color):
 
 
 def i0_why():
-    """いまは、ノウハウが個人の手元に留まっている。3つの教材を終えると、チームで共有できる。"""
-    a = text(0, 22, 'いま', 17, DIM)
-    a += rect(0, 38, 300, 258, PAPER, 12, LINE)
-    a += text(22, 78, ['AIを使うノウハウが、', '個人の手元に留まっている'], 17, INK, 700, gap=26)
-    for k, s_ in enumerate(['指示の書き方が人によって違う', '返ってくるものも人によって違う', 'うまくいった指示が共有されない']):
-        y = 164 + k * 42
-        a += cross(28, y - 6, DIM, .55)
-        a += text(52, y, s_, 15, DIM)
-    a += arrow(310, 262, 342, 262, LINE)
-    a += text(352, 22, 'このワークショップの3つの教材', 17, DIM)
-    a += text(1108, 22, '誰が頼んでも、目的をAIで達成できる', 16, ACCENT, 700, 'end')
-    base = 296
-    tops = [226, 176, 126]
-    a += path(f'M352 {base} V{tops[0]} H604 V{tops[1]} H856 V{tops[2]} H1108 V{base} Z', LINE, 1.5, PANEL)
-    a += path(f'M604 {tops[0]} V{base} M856 {tops[1]} V{base}', LINE, 1)
-    # 3つの教材は、表紙のカードと同じ名前・同じ印にする
-    steps = [('教材1　目的の把握', '目的を捉え、指示に書く'),
-             ('教材2　言葉の定義', '言葉が何を指すかを定める'),
-             ('教材3　仕組みの構築', '目的から外れない仕組みにする')]
-    for k, (title, sub) in enumerate(steps):
-        x0 = 352 + k * 252
-        top = tops[k]
-        cx = x0 + 126
-        a += text(x0 + 20, top + 30, title, 17, INK, 700)
-        a += text(x0 + 20, top + 54, sub, 14, DIM)
-        if k == 0:
-            a += icon(cx - 25, top - 58, 'search', INK, 1)
-        elif k == 1:
-            a += icon(cx - 27, top - 58, 'book', INK, 1)
+    """目的を定め、言葉の意味を統一し、仕組みにする。3つを教材で1つずつ身につけ、目的をAIで達成する。"""
+    steps = [('教材1　目的の把握', 'search', '目的を定める', 'AIに頼める大きさで、的確に',
+              ['例：優先順位を付けるために、', '課題を整理する']),
+             ('教材2　言葉の定義', 'book', '言葉の意味を統一する', '同じ言葉が指すものを定める',
+              ['例：「課題」は、', '案件の進行が止まる要因']),
+             ('教材3　仕組みの構築', 'robot', '仕組みにする', 'Skillに書き、エージェントが使う',
+              ['例：誰が頼んでも、', '同じ課題管理表が返る'])]
+    a = ''
+    cw, gap = 280, 36
+    for k, (tag, ic, name, what, ex) in enumerate(steps):
+        x = k * (cw + gap)
+        a += rect(x, 0, cw, 316, PAPER, 12, LINE)
+        a += text(x + 22, 34, tag, 14, DIM, 700)
+        if ic == 'robot':
+            a += _robot_at(x + 22, 58, INK)
         else:
-            a += _robot_at(cx - 24, top - 60, INK)
-    a += path('M372 150 L1060 40 M1049 48 L1060 40 L1047 36', ACCENT, 2)
-    a += band(318, '3つの教材を終えると、目的をAIで達成する力が身につく')
-    return svg('いまはノウハウが個人の手元に留まっている。3つの教材を終えると、チームで共有できる', a, 386)
+            a += icon(x + 22, 58, ic, INK, 1)
+        a += text(x + 22, 152, name, 22, INK, 700)
+        a += text(x + 22, 184, what, 15, INK)
+        a += path(f'M{x + 22} 214 H{x + cw - 22}', LINE, 1)
+        a += text(x + 22, 246, ex, 14, DIM, gap=24)
+        a += arrow(x + cw + 6, 158, x + cw + gap - 6, 158)
+    cx, cy, r = 1112 - 84, 158, 84
+    a += circle(cx, cy, r, ACCENT, ACCENT)
+    a += text(cx, cy - 8, '目的を', 21, PAPER, 700, 'middle')
+    a += text(cx, cy + 24, 'AIで達成する', 21, PAPER, 700, 'middle')
+    return svg('目的を定め、言葉の意味を統一し、仕組みにする。3つを教材で1つずつ身につけ、目的をAIで達成する', a, 324)
+
+
 def i1_bridge():
     """今週の定例の議事録を渡し、「課題を整理して」とだけ頼む。返ってくる課題管理表は、頼むたびに違う。"""
     # 左：渡すもの。議事録の中身は、意味を決める動画の1枚目の原稿と同じにする
@@ -553,12 +626,12 @@ def i0_dig():
     a += rect(604, 64, 236, 202, PAPER, 8, INK)
     a += text(622, 96, '言葉にした基準', 16, INK, 700)
     a += path('M622 110 H822', LINE, 1)
-    a += text(622, 144, '整理の目的', 15, INK)
+    a += text(622, 144, '整理の目的を定める', 15, INK)
     a += text(822, 144, '教材1', 13, DIM, 700, 'end')
-    a += text(622, 182, '言葉が指すもの', 15, INK)
+    a += text(622, 182, '言葉の意味を統一する', 15, INK)
     a += text(822, 182, '教材2', 13, DIM, 700, 'end')
     a += path('M622 210 H822', LINE, 1)
-    a += text(622, 240, '誰でも使える形にする', 14, DIM)
+    a += text(622, 240, '仕組みにする', 14, DIM)
     a += text(822, 240, '教材3', 13, DIM, 700, 'end')
     for y in RY:
         a += _ray(848, 165, 960, y, INK, 2)
