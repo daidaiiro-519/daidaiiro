@@ -3,7 +3,7 @@
   "$id": "criteria.schema.json",
   "title": "{{助言の対象}}の判断基準",
   "description": "{{Skill名}} が相談に回答するときの拠りどころ。1件が、領域の原典が名前を付けて立てている1つの概念の判断基準である（ACDR 0061）",
-  "$comment": "Skill 自身の知見であり、Skill が正本である。1件が1つの概念で、その概念を構成する要素を、原典の節の並びではなく概念を理解する順に持つ。要素の中身は、原典の学習ノートを読んでまとめた言葉で書き、原典の文を写さない。要素ごとに、拠る原典の章と頁を出典として持つ",
+  "$comment": "Skill 自身の知見であり、Skill が正本である。1件が1つの概念で、その概念を構成する要素を、原典の節の並びではなく概念を理解する順に持つ。要素の中身は、原典の学習ノートを読んでまとめた言葉で書き、原典の文を複製しない。要素ごとに、拠る原典の章と頁を出典として持つ",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -36,24 +36,27 @@
             "type": "string",
             "title": "題",
             "x-view": "heading",
-            "description": "概念の名前（原典の語のまま）"
+            "description": "概念の名前（原典の語のまま）",
+            "minLength": 1
           },
           "tags": {
             "title": "札",
             "x-view": "hidden",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           },
           "summary": {
             "type": "string",
             "title": "概要",
-            "x-view": "card"
+            "x-view": "card",
+            "minLength": 1
           },
           "elements": {
             "title": "構成要素",
-            "description": "この概念を構成する要素。原典の節の並びではなく、その概念を理解する順（定義 → 性質や条件 → 時期や流れ → 書き方 → 注意）に並べる。要素の中身は原典の文を写さず、学習ノートを読んでまとめた言葉で書く",
+            "description": "この概念を構成する要素。原典の節の並びではなく、その概念を理解する順（定義 → 性質や条件 → 時期や流れ → 書き方 → 注意）に並べる。要素の中身は原典の文を複製せず、学習ノートを読んでまとめた言葉で書く",
             "x-view": "group",
             "type": "object",
             "additionalProperties": false,
@@ -84,7 +87,8 @@
               "intro": {
                 "type": "string",
                 "title": "導入",
-                "x-view": "lead"
+                "x-view": "lead",
+                "minLength": 1
               },
               "items": {
                 "type": "array",
@@ -99,15 +103,18 @@
                   "properties": {
                     "what": {
                       "type": "string",
-                      "title": "誤り"
+                      "title": "誤り",
+                      "minLength": 1
                     },
                     "risk": {
                       "type": "string",
-                      "title": "起きること"
+                      "title": "起きること",
+                      "minLength": 1
                     },
                     "alternative": {
                       "type": "string",
-                      "title": "代わりにすること"
+                      "title": "代わりにすること",
+                      "minLength": 1
                     },
                     "source": {
                       "$ref": "#/$defs/source"
@@ -130,11 +137,13 @@
               "properties": {
                 "criterion": {
                   "type": "string",
-                  "title": "判断基準"
+                  "title": "判断基準",
+                  "minLength": 1
                 },
                 "relation": {
                   "type": "string",
-                  "title": "関係"
+                  "title": "関係",
+                  "minLength": 1
                 }
               }
             }
@@ -162,16 +171,19 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "term": {
               "type": "string",
               "title": "語",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "meaning": {
               "type": "string",
-              "title": "意味"
+              "title": "意味",
+              "minLength": 1
             },
             "source": {
               "$ref": "#/$defs/source"
@@ -195,13 +207,15 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何に当てはまるか",
               "description": "続く規則 ・ 注意のすべてに共通する前置き。1回だけ置き、各行に繰り返さない",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "rules": {
               "type": "array",
@@ -215,18 +229,65 @@
                 "properties": {
                   "when": {
                     "type": "string",
-                    "title": "条件"
+                    "title": "条件",
+                    "minLength": 1
                   },
                   "then": {
                     "type": "string",
-                    "title": "対応"
+                    "title": "対応",
+                    "minLength": 1
                   },
                   "why": {
                     "type": "string",
-                    "title": "理由"
+                    "title": "理由",
+                    "minLength": 1
                   }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "description": "条件は、すべての行に書くか、どの行にも書かない（1つの表の中で列を混ぜない）",
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "when"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "not": {
+                          "required": [
+                            "when"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "description": "理由は、すべての行に書くか、どの行にも書かない",
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "why"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "not": {
+                          "required": [
+                            "why"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "source": {
               "$ref": "#/$defs/source"
@@ -250,7 +311,8 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "transitions": {
               "type": "array",
@@ -265,22 +327,68 @@
                 "properties": {
                   "from": {
                     "type": "string",
-                    "title": "移る前"
+                    "title": "移る前",
+                    "minLength": 1
                   },
                   "to": {
                     "type": "string",
-                    "title": "移った後"
+                    "title": "移った後",
+                    "minLength": 1
                   },
                   "when": {
                     "type": "string",
-                    "title": "移る条件"
+                    "title": "移る条件",
+                    "minLength": 1
                   },
                   "detail": {
                     "type": "string",
-                    "title": "詳しく"
+                    "title": "詳しく",
+                    "minLength": 1
                   }
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "when"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "not": {
+                          "required": [
+                            "when"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "detail"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "not": {
+                          "required": [
+                            "detail"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "source": {
               "$ref": "#/$defs/source"
@@ -304,12 +412,14 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何を対比するか",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "explanation": {
               "type": "array",
@@ -317,7 +427,8 @@
               "x-view": "paras",
               "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             },
             "table": {
@@ -331,7 +442,8 @@
                 "head": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   }
                 },
                 "rows": {
@@ -339,7 +451,18 @@
                   "items": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1,
+                      "not": {
+                        "enum": [
+                          "—",
+                          "―",
+                          "ー",
+                          "-",
+                          "–"
+                        ]
+                      },
+                      "description": "升を空や記号だけにしない"
                     }
                   }
                 }
@@ -368,12 +491,14 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何を示すか",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "explanation": {
               "type": "array",
@@ -381,14 +506,16 @@
               "x-view": "paras",
               "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             },
             "svg": {
               "type": "string",
               "title": "SVG",
               "x-view": "svg",
-              "description": "references/figures/ に同梱した SVG の経路。描く道具は問わない"
+              "description": "references/figures/ に同梱した SVG の経路。描く道具は問わない",
+              "minLength": 1
             },
             "caveats": {
               "type": "array",
@@ -403,11 +530,13 @@
                 "properties": {
                   "where": {
                     "type": "string",
-                    "title": "どこの話か"
+                    "title": "どこの話か",
+                    "minLength": 1
                   },
                   "note": {
                     "type": "string",
-                    "title": "図に載せきれないこと"
+                    "title": "図に載せきれないこと",
+                    "minLength": 1
                   }
                 }
               }
@@ -434,12 +563,14 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何の手順か",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "steps": {
               "type": "array",
@@ -453,11 +584,13 @@
                 "properties": {
                   "do": {
                     "type": "string",
-                    "title": "何をする"
+                    "title": "何をする",
+                    "minLength": 1
                   },
                   "why": {
                     "type": "string",
-                    "title": "理由"
+                    "title": "理由",
+                    "minLength": 1
                   }
                 }
               },
@@ -485,12 +618,14 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何の例か",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "explanation": {
               "type": "array",
@@ -498,13 +633,15 @@
               "x-view": "paras",
               "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             },
             "code": {
               "type": "string",
               "title": "コード",
-              "x-view": "code"
+              "x-view": "code",
+              "minLength": 1
             },
             "source": {
               "$ref": "#/$defs/source"
@@ -528,13 +665,15 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "purpose": {
               "type": "string",
               "title": "何に当てはまるか",
               "description": "続く規則 ・ 注意のすべてに共通する前置き。1回だけ置き、各行に繰り返さない",
-              "x-view": "lead"
+              "x-view": "lead",
+              "minLength": 1
             },
             "caveats": {
               "type": "array",
@@ -543,16 +682,19 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "note"
+                  "note",
+                  "where"
                 ],
                 "properties": {
                   "where": {
                     "type": "string",
-                    "title": "どこの話か"
+                    "title": "どこの話か",
+                    "minLength": 1
                   },
                   "note": {
                     "type": "string",
-                    "title": "注意"
+                    "title": "注意",
+                    "minLength": 1
                   }
                 }
               }
@@ -579,7 +721,8 @@
             "heading": {
               "type": "string",
               "title": "小見出し",
-              "x-view": "subhead"
+              "x-view": "subhead",
+              "minLength": 1
             },
             "text": {
               "type": "array",
@@ -587,7 +730,8 @@
               "x-view": "paras",
               "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             },
             "source": {
@@ -615,25 +759,30 @@
       "properties": {
         "origin": {
           "type": "string",
-          "title": "原典"
+          "title": "原典",
+          "minLength": 1
         },
         "section": {
           "type": "string",
-          "title": "章 ・ 節"
+          "title": "章 ・ 節",
+          "minLength": 1
         },
         "location": {
           "type": "string",
           "title": "所在",
-          "description": "書誌か URL"
+          "description": "書誌か URL",
+          "minLength": 1
         },
         "fetched": {
           "type": "string",
-          "title": "取得した日"
+          "title": "取得した日",
+          "minLength": 1
         },
         "method": {
           "type": "string",
           "title": "移し方",
-          "description": "学習ノートから移した、など"
+          "description": "学習ノートから移した、など",
+          "minLength": 1
         }
       }
     }

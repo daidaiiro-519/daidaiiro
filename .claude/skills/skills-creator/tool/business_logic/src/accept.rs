@@ -2,8 +2,8 @@
 //! 助言型の受け入れの検査（機械の7件）。**見つけるが、直さない**（ACDR 0061）。
 //!
 //! 学習ノートは `references/archive/notes/*.md` に置く ── 原典の複製を含むので git の管理の外である。
-//! 判断基準（`references/criteria.json`）は、ノートの言葉だけで書く。ノートの引用（`>` で始まる行）は
-//! 原文のままの文なので、判断基準へ取り込まない。
+//! 判断基準（`references/criteria.json`）は、語彙を原典の語のまま使い、説明をノートを読んでまとめた言葉で書く
+//! （ACDR 0067）。ノートの文を複製せず、ノートの引用（`>` で始まる行）も判断基準へ取り込まない。
 
 use std::path::{Path, PathBuf};
 
@@ -95,16 +95,9 @@ pub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {
         .unwrap_or(Value::Null);
     let items: Vec<Value> = criteria["items"].as_array().cloned().unwrap_or_default();
     let notes = notes(root);
-    let body = squash(
-        &notes
-            .iter()
-            .map(|(_, b)| b.as_str())
-            .collect::<Vec<_>>()
-            .join("\n"),
-    );
     vec![
         shape(root, &lang.fixtures),
-        not_in_notes(&items, &notes, &body),
+        copied(&items, &notes),
         quotes_brought(&items, &notes),
         concept_units(&items, &notes),
         figures(root, &items),
@@ -135,8 +128,64 @@ fn shape(root: &Path, fixtures: &str) -> Check {
     }
 }
 
-/// 2 ノートに無い文字列 ── 判断基準のすべての文字列が、学習ノートの本文の一部である。
-fn not_in_notes(items: &[Value], notes: &[(PathBuf, String)], body: &str) -> Check {
+/// 複製とみなす最短の長さ（文字）。**これより短い一致は、原典の語彙が続いただけのことが多い。**
+const COPY_MIN: usize = 25;
+
+/// 語彙として照らすカタカナ語の最短の長さ（文字）。
+const KATAKANA_MIN: usize = 3;
+
+/// 照らすための平文。**空白と Markdown の記号（`*` ・ `` ` `` ・ `>` ・ `#` ・ `|`）を外す** ──
+/// ノートは Markdown で書くので、記号や改行が文の間に入る。
+fn plain(s: &str) -> Vec<char> {
+    squash(s)
+        .chars()
+        .filter(|c| !c.is_whitespace() && !"*`>#|".contains(*c))
+        .collect()
+}
+
+/// カタカナ語を取り出す。**長音と連結の `-` は語の内側に数える**（アクター-目的リスト）。
+fn katakana(s: &str) -> Vec<String> {
+    let kana = |c: char| ('ァ'..='ヶ').contains(&c) || c == 'ー';
+    let mut words = Vec::new();
+    let mut word = String::new();
+    for c in s.chars().chain(std::iter::once(' ')) {
+        if kana(c) || (c == '-' && !word.is_empty()) {
+            word.push(c);
+        } else {
+            let w = word.trim_end_matches('-').to_owned();
+            if w.chars().count() >= KATAKANA_MIN {
+                words.push(w);
+            }
+            word.clear();
+        }
+    }
+    words
+}
+
+/// 出典の節に頁が書かれているか。**頁を書けば、学習ノートとスキャンに戻れる。**
+fn pages_missing(item: &Value, id: &str, findings: &mut Vec<String>) {
+    let mut check = |at: String, v: &Value| {
+        let section = v["source"]["section"].as_str().unwrap_or_default();
+        if !section.contains('頁') {
+            findings.push(format!(
+                "{id}{at}: 出典に頁が無い ──「{section}」── 章 ・ 節と頁を書く"
+            ));
+        }
+    };
+    for (i, u) in item["elements"]["units"].as_array().into_iter().flatten().enumerate() {
+        check(format!("/elements/units/{i}"), u);
+    }
+    for (i, a) in item["antipatterns"]["items"].as_array().into_iter().flatten().enumerate() {
+        check(format!("/antipatterns/items/{i}"), a);
+    }
+}
+
+/// 2 複製と語彙と出典 ── 判断基準は学習ノートを読んでまとめた言葉で書く（ACDR 0067）。
+///
+/// **見るのは3つである。** ノートと長く一致する文字列が無いこと（複製していない）。カタカナ語が
+/// ノートに在ること（原典の語彙を言い換えていない）。要素とアンチパターンの出典に頁が在ること。
+#[must_use]
+pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
     let mut findings = Vec::new();
     if notes.is_empty() {
         findings.push(
@@ -144,21 +193,42 @@ fn not_in_notes(items: &[Value], notes: &[(PathBuf, String)], body: &str) -> Che
                 .to_owned(),
         );
     } else {
+        let body: Vec<char> = notes.iter().flat_map(|(_, b)| plain(b)).collect();
+        let windows: std::collections::HashSet<String> = body
+            .windows(COPY_MIN)
+            .map(|w| w.iter().collect())
+            .collect();
+        let vocabulary: std::collections::HashSet<String> =
+            notes.iter().flat_map(|(_, b)| katakana(b)).collect();
         for item in items {
             let id = item["id"].as_str().unwrap_or("?");
             let mut strings = Vec::new();
             prose(item, "", &mut strings);
             for (at, s) in strings {
-                if !body.contains(&squash(&s)) {
-                    let head: String = s.chars().take(30).collect();
-                    findings.push(format!("{id}{at}: ノートに無い ──「{head}…」"));
+                let p = plain(&s);
+                if let Some(w) = p
+                    .windows(COPY_MIN)
+                    .map(|w| w.iter().collect::<String>())
+                    .find(|w| windows.contains(w))
+                {
+                    findings.push(format!(
+                        "{id}{at}: ノートの文を複製している ──「{w}」── ノートを読んでまとめた言葉で書く"
+                    ));
+                }
+                for w in katakana(&s) {
+                    if !vocabulary.contains(&w) {
+                        findings.push(format!(
+                            "{id}{at}: 原典に無い語 ──「{w}」── 語彙は原典の語のまま使う"
+                        ));
+                    }
                 }
             }
+            pages_missing(item, id, &mut findings);
         }
     }
     Check {
         no: 2,
-        what: "ノートに無い文字列 ── 判断基準の文字列がすべて学習ノートに在る",
+        what: "複製と語彙と出典 ── ノートの文を複製せず、原典に無い語を使わず、要素ごとに頁つきの出典を持つ",
         findings,
     }
 }
@@ -195,11 +265,20 @@ fn quotes_brought(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
 }
 
 /// 4 概念の単位 ── 各判断基準の題が、学習ノートの見出しに原典の概念の名前として在る。
-fn concept_units(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
+///
+/// **照らすのは、節の見出しと、図 ・ 表の題である** ── 原典は概念を図や表の題で名付けることもある
+/// （図1.1 要求のハブ-スポークモデル）。
+#[must_use]
+pub fn concept_units(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
+    let caption = |l: &str| {
+        let l = l.trim_start_matches(['-', '*', ' ']);
+        let mut c = l.chars();
+        matches!(c.next(), Some('図' | '表')) && c.next().is_some_and(|d| d.is_ascii_digit())
+    };
     let headings: Vec<String> = notes
         .iter()
         .flat_map(|(_, b)| b.lines())
-        .filter(|l| l.starts_with('#'))
+        .filter(|l| l.starts_with('#') || caption(l))
         .map(|l| squash(l.trim_start_matches('#')))
         .collect();
     let mut findings = Vec::new();
@@ -208,13 +287,13 @@ fn concept_units(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
         let title = squash(item["title"].as_str().unwrap_or_default());
         if !headings.iter().any(|h| h.contains(&title)) {
             findings.push(format!(
-                "{id}: 題「{title}」が学習ノートの見出しに無い ── 判断基準は原典が名前を付けた概念を単位にする"
+                "{id}: 題「{title}」が学習ノートの見出しにも図 ・ 表の題にも無い ── 判断基準は原典が名前を付けた概念を単位にする"
             ));
         }
     }
     Check {
         no: 4,
-        what: "概念の単位 ── 判断基準の題が学習ノートの見出しに在る",
+        what: "概念の単位 ── 判断基準の題が学習ノートの見出しか図 ・ 表の題に在る",
         findings,
     }
 }
