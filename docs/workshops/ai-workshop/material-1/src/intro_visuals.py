@@ -340,7 +340,7 @@ def i0_flow():
              (278, 146, '教材2 ・ 3を順に公開', 'middle'),
              (463, 116, '参加の受付（12月中）', 'middle'),
              (566, 146, 'ワークショップ開始', 'start'),
-             (834, 116, 'チームで使い、振り返る', 'middle'),
+             (834, 116, '使って直す', 'middle'),
              (1104, 146, '最終共有会', 'end')]
     for x, y, label, anc in marks:
         a += circle(x, 98, 5, ACCENT if x > 552 else INK, ACCENT if x > 552 else INK)
