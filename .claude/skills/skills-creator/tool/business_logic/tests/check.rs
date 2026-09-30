@@ -24,16 +24,24 @@ fn scratch(name: &str) -> PathBuf {
 }
 
 /// 2段目（Rust の組）と文書の検出。**実行ファイルを起動しない** ── 層と依存の向きの事例は、
-/// 実行ファイルを組まずに確かめる。
+/// 実行ファイルを組まずに確かめる。雛形の構成の検査も有効にする。
 fn found_in_source(root: &Path) -> Vec<String> {
-    let mut out = check::rust(root);
+    found_with(root, true)
+}
+
+fn found_with(root: &Path, layout: bool) -> Vec<String> {
+    let mut out: Vec<String> = check::source(root, &templates(), layout)
+        .into_iter()
+        .filter(|l| l.state == State::Fail)
+        .map(|l| l.text)
+        .collect();
     out.extend(check::document(root, &templates()));
     out
 }
 
 /// 2段すべての検出。
 fn found_all(root: &Path) -> Vec<String> {
-    check::check(root, &templates()).findings()
+    check::check(root, &templates(), true).findings()
 }
 
 /// 雛形が要求する節だけを持つ文書を置く。
@@ -86,6 +94,44 @@ const GOOD: [(&str, &[&str]); 4] = [
 ];
 
 #[test]
+fn by_default_only_the_contract_is_checked() {
+    // **道具の中の構成は Skill ごとの設計であり、契約ではない**（ACDR 0059）── 層を1つの
+    // crate にまとめ、業務ロジックで入出力を扱っても、既定では不合格にしない
+    let root = scratch("contract-only");
+    write_document(&root);
+    write_layers(&root, &[("app", &[]), ("cli", &["app"])]);
+    write_in(
+        &root,
+        "app/src",
+        "fn f() { let _ = std::fs::read_to_string(\"a\"); }\n",
+    );
+    let found = found_with(&root, false);
+    assert!(found.is_empty(), "{found:?}");
+    let with_layout = found_with(&root, true);
+    assert!(!with_layout.is_empty(), "雛形の構成を選んだときは検出する");
+}
+
+#[test]
+fn a_hardcoded_tool_name_is_reported_by_default() {
+    // **外部の道具を tool.json に宣言することは契約である** ── 既定でも検出する
+    let root = scratch("hardcoded-default");
+    write_document(&root);
+    write_layers(&root, &[("app", &[]), ("cli", &["app"])]);
+    write_in(
+        &root,
+        "app/src",
+        "fn f() { std::process::Command::new(\"git\"); }\n",
+    );
+    let found = found_with(&root, false);
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("直書きしている") && x.contains("git")),
+        "{found:?}"
+    );
+}
+
+#[test]
 fn a_skill_with_layers_as_crates_passes() {
     let root = scratch("ok");
     write_document(&root);
@@ -123,7 +169,7 @@ fn layers_that_are_not_crates_are_reported() {
     let root = scratch("flat");
     write_document(&root);
     std::fs::create_dir_all(root.join("scripts")).expect("作れる");
-    let found = found_in_source(&root);
+    let found = check::rust(&root);
     assert!(
         found.iter().any(|x| x.contains("crate に分かれていない")),
         "1つの単位の中の module では、内側が外側を参照してもコンパイラが通す ── {found:?}"
@@ -613,7 +659,7 @@ fn a_skill_written_in_shell_passes_the_first_stage_and_the_second_is_not_run() {
     let root = scratch("shell");
     write_document(&root);
     write_shell_entries(&root, 2, r#""path":{"type":"string"}"#);
-    let report = check::check(&root, &templates());
+    let report = check::check(&root, &templates(), true);
     assert!(report.findings().is_empty(), "{:?}", report.findings());
     assert!(
         report
@@ -664,7 +710,7 @@ fn a_version_two_skill_without_the_references_implementation_is_reported() {
         r#"{"contract": 2, "cli": {"command": "bin/x"}, "external": []}"#,
     )
     .expect("書ける");
-    let lines = check::source(&root, &templates());
+    let lines = check::source(&root, &templates(), true);
     assert!(
         lines
             .iter()
@@ -676,7 +722,7 @@ fn a_version_two_skill_without_the_references_implementation_is_reported() {
         r#"{"cli": {"command": "bin/x"}, "external": []}"#,
     )
     .expect("書ける");
-    let lines = check::source(&root, &templates());
+    let lines = check::source(&root, &templates(), true);
     assert!(
         lines.iter().all(|l| l.state != State::Fail),
         "版1 には当てない ── {lines:?}"

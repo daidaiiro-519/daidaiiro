@@ -46,7 +46,8 @@ fn run_check(given: &Given) -> Outcome {
     if root.as_os_str().is_empty() {
         return Outcome::misuse("Skill のフォルダを渡していない".to_owned());
     }
-    let report = check::check(&root, &templates(&or_misuse!(skill_root(given))));
+    let layout = given.one("layout", "0") == "1";
+    let report = check::check(&root, &templates(&or_misuse!(skill_root(given))), layout);
     let lines: Vec<serde_json::Value> = report
         .lines
         .iter()
@@ -318,6 +319,11 @@ pub fn tools() -> Vec<Tool> {
             summary: "契約を満たしているかを検査する",
             args: vec![
                 Arg::need("path", "Skill のフォルダ"),
+                Arg::opt(
+                    "layout",
+                    "1 なら、雛形の構成（層 ・ 依存の向き ・ 入出力の置き場所）も検査する。既定は契約だけ",
+                    Some("0"),
+                ),
                 Arg::opt(
                     "skill_root",
                     "この Skill の置き場所（既定は、実行ファイルの1つ上）",

@@ -30,6 +30,8 @@ mcp.json        MCP の起動のコマンド（ホストの形式）
 **道具のソースの置き場所の名前は、中身の役割で付ける。** 以前の `rs/` は言語の名前で、役割を示さなかった。
 crate のフォルダの名前は、レイヤードアーキテクチャの層の正式名に合わせる（以前の `parts/` ・ `declare/` は、層の名前と一致しなかった）。
 
+以下は雛形が採る構成である（契約ではない。`references/tool-contract.md` の「雛形が採る構成」）。
+
 | crate | 層 | 依存してよい先 |
 |---|---|---|
 | `data_access` | データアクセス層 | **無し** |
@@ -92,19 +94,26 @@ cargo install --path tool/mcp --root . --target-dir tool/target
 
 `skills-creator check` は、`tool/Cargo.toml` が在る Skill にこの組の検査を適用する。
 
+**既定では、契約に関わるものだけを検査する**（ACDR 0059）。
+
+| 検出 | 何が起きているか |
+|---|---|
+| 外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
+
+**`--layout 1` を渡すと、雛形の構成も検査する。** 雛形の構成を保つと決めたリポジトリが、自分で選んで有効にする。
+
 | 検出 | 何が起きているか |
 |---|---|
 | 層が crate に分かれていない | `tool/Cargo.toml` が無い |
-| 層の crate が無い ／ プレゼンテーション層の crate が無い | 契約の一式が完備していない |
+| 層の crate が無い ／ プレゼンテーション層の crate が無い | 雛形の一式が完備していない |
 | どの層か決まらない | crate の名前が層の名前で終わっていない |
-| 依存の向きに違反している | 下の層の crate が上の層を依存に宣言している。または、プレゼンテーション層が業務ロジック層を依存に宣言している |
+| 依存の向きに違反している | 下の層の crate が上の層を依存に宣言している。または、層を飛ばして依存を宣言している |
 | 事例が無い | `tool/business_logic/tests/` が無い |
 | Python が残っている | `scripts/` が在る ── 道具は `tool/` が持つ |
 | rs/ が残っている | 道具のソースを `tool/` へ移していない |
 | parts/ か declare/ が残っている | crate のフォルダを層の正式名（`business_logic/` ・ `service/`）へ改めていない |
 | bin/ を git の追跡から外していない | `.gitignore` に `bin/` が無い |
 | 入出力を禁じた層が入出力を直接扱っている | 業務ロジック層かサービス層（`contract.rs` を除く）の行に、`std::fs` ・ `std::process` ・ `std::net` ・ `Command::new` ・ `.is_file()` などが在る。行ごとに出す。文字列の中と注記の行は数えない |
-| 外部の道具の名前を直書きしている | `Command::new("…")` に名前が書いてある。`tool.json` に宣言し、注入する |
 | references の実装が無い（版2） | `tool/business_logic/src/refs.rs` か `tool/service/src/refs.rs` が無い |
 | references の実装が雛形と違う（版2） | `tool/business_logic/src/refs.rs` が `refs.rs.tmpl` と一致しない。雛形から複製し直す |
 

@@ -266,7 +266,7 @@ impl Report {
 
 /// 契約を満たしているかを、2段で検査する。
 #[must_use]
-pub fn check(root: &Path, templates: &Templates) -> Report {
+pub fn check(root: &Path, templates: &Templates, layout: bool) -> Report {
     let mut report = Report::default();
     // **道具を持たない Skill に、実行ファイルも層も要求しない。** 助言と手順だけの Skill が在る
     if has_tools(root) {
@@ -276,7 +276,7 @@ pub fn check(root: &Path, templates: &Templates) -> Report {
                 Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),
             });
         }
-        report.lines.extend(source(root, templates));
+        report.lines.extend(source(root, templates, layout));
     }
     let missing = document(root, templates);
     if missing.is_empty() {
@@ -295,27 +295,35 @@ pub fn check(root: &Path, templates: &Templates) -> Report {
 }
 
 /// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
+///
+/// **既定では契約だけを見る**（ACDR 0059）── 外部の道具の名前を直書きしていないこと。
+/// 道具の中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は Skill ごとの設計であり、契約ではない。
+/// `layout` が真のときだけ、雛形の構成を満たすかも見る ── 雛形の構成を採ると決めた
+/// リポジトリが、自分で選んで有効にする。
 #[must_use]
-pub fn source(root: &Path, templates: &Templates) -> Vec<Line> {
+pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
     if files::is_file(root.join(TOOL).join("Cargo.toml")) || files::is_dir(root.join("rs")) {
-        let mut found = rust(root);
-        if behavior::contract_version(root) >= 2 {
-            found.extend(rust_refs(root, templates));
+        let mut found = hardcoded(root);
+        if layout {
+            found.extend(rust(root));
+            if behavior::contract_version(root) >= 2 {
+                found.extend(rust_refs(root, templates));
+            }
         }
         if found.is_empty() {
-            return vec![Line::new(
-                Stage::Source,
-                State::Pass,
-                "Rust の組 ── 層が crate に分かれ、依存の向きが契約どおりで、入出力はデータアクセス層だけが持ち、外部の道具の名前を直書きしていない"
-                    .to_owned(),
-            )];
+            let text = if layout {
+                "Rust の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす"
+            } else {
+                "Rust の組 ── 外部の道具の名前を直書きしていない"
+            };
+            return vec![Line::new(Stage::Source, State::Pass, text.to_owned())];
         }
         return found
             .into_iter()
             .map(|t| Line::new(Stage::Source, State::Fail, t))
             .collect();
     }
-    if files::is_dir(root.join("scripts")) {
+    if layout && files::is_dir(root.join("scripts")) {
         return vec![Line::new(
             Stage::Source,
             State::Fail,
@@ -444,7 +452,6 @@ pub fn rust(root: &Path) -> Vec<String> {
              組み立てた実行ファイルは追跡しない"
         ));
     }
-    findings.extend(hardcoded(root));
     findings.extend(io_leaks(root));
     findings
 }
