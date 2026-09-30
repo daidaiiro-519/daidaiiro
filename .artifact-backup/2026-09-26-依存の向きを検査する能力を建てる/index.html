@@ -1,0 +1,81 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>依存の向きを検査する能力を建てる</title><style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 -1.2rem var(--sp-21)}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);
+background:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:var(--bw-1) solid var(--line);background:var(--panel);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);margin-left:var(--sp-10);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:var(--fs-6)}
+
+
+.acdr{border:var(--bw-1) solid var(--line);background:var(--panel);border-radius:var(--rd-4);
+padding:var(--sp-22) var(--sp-24) var(--sp-23);margin:0 0 var(--sp-27);max-width:var(--w-2)}
+.acdr .hd{display:flex;gap:var(--sp-17);align-items:baseline;flex-wrap:wrap;
+border-bottom:var(--bw-1) solid var(--line);padding-bottom:var(--sp-14);margin-bottom:var(--sp-21)}
+.acdr .no{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move)}
+.acdr h1.t{font-size:var(--fs-16);margin:0;letter-spacing:var(--tr-1);border:0;padding:0}
+.acdr .when{margin-left:auto;font-size:var(--fs-5);color:var(--muted)}
+.acdr .st{font-size:var(--fs-2);font-weight:700;padding:var(--sp-2) var(--sp-14);border-radius:var(--rd-5);
+border:var(--bw-1) solid currentColor}
+.acdr .st.proposed{color:var(--move)}
+.acdr .st.accepted{color:var(--key)}
+.acdr .st.superseded{color:var(--muted)}
+.acdr .stnote{font-size:var(--fs-5);color:var(--muted)}
+.acdr .ask{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-9)}
+.acdr .decide{font-size:var(--fs-14);background:var(--paper);border-left:var(--bw-3) solid var(--move);
+padding:var(--sp-16) var(--sp-20);margin:0 0 var(--sp-22)}
+.acdr .sec{margin:var(--sp-22) 0 0}
+.acdr .sec h4{font-size:var(--fs-3);font-weight:700;letter-spacing:var(--tr-2);color:var(--move);
+margin:0 0 var(--sp-8);text-transform:none}
+.acdr .sec p{margin:0}
+.acdr .sec ul{margin:var(--sp-3) 0;padding-left:var(--sp-23)}
+.acdr .sec table{margin:var(--sp-9) 0 0}
+.acdr .none{color:var(--muted)}
+.acdr .lead{font-size:var(--fs-7);color:var(--muted);margin:0 0 var(--sp-8)}
+.acdr table.shift td:nth-child(3){font-weight:700}
+.acdr .fig{margin:var(--sp-10) 0 0;padding:var(--sp-15);background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);overflow-x:auto}
+.acdr .fig svg{display:block;max-width:100%;height:auto}
+.acdr .fig figcaption{font-size:var(--fs-6);color:var(--muted);margin-top:var(--sp-10)}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}
+</style><div class="wrap"><div class="acdr"><div class="hd"><span class="no">ACDR 0017</span><h1 class="t">依存の向きを検査する能力を建てる</h1><span class="st proposed">提案</span><span class="stnote">まだ承認を得ていない。適用してはならない</span><span class="when">2026-09-26</span></div><div class="ask">決めること ── 承認か差し戻しを返すのは、この1件である</div><div class="decide">許可辺の正本を規則ファイルへ一本化し、依存の向きを検査する能力を、言語に依存しない部分と言語の具体へ分離して建てる。</div><div class="sec"><h4>なぜ、いま決めるのか</h4><p>いまの検査は、許可辺を2か所が宣言している ── 層の並びは規則ファイルの order が宣言し、検査へは禁じる名前を引数で別途渡している。ずれても、どの検査も検出しない。実際にずれており、検査が禁じる contract と mcp_server の2つは、order にも layers にも1件も無い。加えて、いまの検査は取りこぼしを4件保持する。別名で束縛した動的な読み込み、脚本の実行、層を越える相対の参照、および空振り（対象が0件、禁じる名前の誤記）である。空振りが合格になるので、引数を書き間違えた規則は永久に合格する。取りこぼしは、違反をそのまま構造へ固着させ、誰も気づかない。</p></div><div class="sec"><h4>形の変化</h4><table class="shift"><thead><tr><th>何が</th><th>いまの形</th><th>これからの形</th></tr></thead><tbody><tr><td>許可辺の宣言</td><td>層の並び（order）と、検査へ渡す禁じる名前の2か所</td><td>規則ファイルの units だけ</td></tr><tr><td>層の宣言の形</td><td>平らな配列34件。成果物は `<成果物>:<層>` の接頭辞で区別し、先頭6件は接頭辞を保持しない</td><td>units ── 成果物ごとに root ・ order ・ layers を入れ子で保持する</td></tr><tr><td>検査の実体</td><td>.coding-rules/tools/inward.py（82行の1ファイル、事例0件）</td><td>.coding-rules/tools/inward/ ── 辺の導出 ・ 走査 ・ 入口 ・ 事例の4つ</td></tr><tr><td>取りこぼしの扱い</td><td>どこにも記述が無い</td><td>経路表14行を規則の採用範囲へ列挙し、検出しない経路を明示する</td></tr><tr><td>検査自身の検証</td><td>事例0件。常に0を返すようになっても、全件合格に見える</td><td>事例と変異8件を規則1件として実行する</td></tr></tbody></table></div><div class="sec"><h4>実現の形</h4><p>検査を3つへ分ける。辺の導出は units を受領して「層名から、参照してはならない層」を導出し、言語を認知しない。走査は識別子をその言語の名前へ変換し、構文木で参照を集める。入口は両者を結び、終了コードを返す。入口が、両方を認知する唯一の場所である。新しい言語を足すとき触るのは入口の1か所で、対応表はこの時点では作らない（該当する言語が1つだけである）。偽陰性は2段で測る。経路表の各行へ違反を注入して検出を確認し、検査の側へ変異8件を注入して事例が殺せることを確認する。</p></div><div class="sec"><h4>適用先</h4><p>no-more-spaghetti の契約（rules.schema.json）と、層を検査する部品（validate.py ・ init.py）。リポジトリの規則ファイル（.coding-rules/rules.json）の層の宣言と9件の規則。検査の実体（.coding-rules/tools/）。</p></div><div class="sec"><h4>比較した案</h4><p class="lead">どれも反証を通過しなかった案である ── 未解決のまま残っているものではない。</p><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>引数を正本とし、order と layers を除去する</td><td>コンパイラが検査する成果物は引数を保持しないので、向きの宣言がどこにも残らない。規則ファイルから、向きが検査されていることを読めなくなる</td></tr><tr><td>禁じる名前を規則の採用範囲（散文）へ記述する</td><td>採用範囲は自由記述で、機械が消費しない。引数とずれても検出しない ── いまの欠陥が残る</td></tr><tr><td>平らな配列を維持し、接頭辞を契約で強制する</td><td>接頭辞は文字列の約束にとどまる。34件が1本の並びである以上、成果物をまたいだ辺が許可されていると読める状態が解消しない</td></tr><tr><td>外部の道具（import-linter）へ戻す</td><td>文字列でモジュールを読み込む箇所を見ない。実測で、9つの成果物すべてを合格と判定した</td></tr><tr><td>検査の実体を Skill へ配置する</td><td>Skill は道具を保持しない。構文木の走査は言語の具体であり、2つ目の言語で分岐が Skill の内部に発生する</td></tr><tr><td>9件の規則を1件へ統合する</td><td>どの成果物がどの言語かを検査の側が判定することになり、言語の対応表をいま作ることになる。コンパイラが検査する成果物の形とも不整合になる</td></tr><tr><td>件数や網羅率を完了の基準にする</td><td>件数の取得には道具の出力の解析が要る。網羅率は「実行したか」しか測らず、取りこぼしは網羅率が満ちても残る</td></tr></tbody></table></div><div class="sec"><h4>承認後に実施すること</h4><ul><li>契約へ units を新設し、平らな order と layers を除去する</li><li>validate の層の検査を units へ対応させ、layers のキーのうち order に無いものを検出する</li><li>init を units へ対応させる</li><li>検査を .coding-rules/tools/inward/ の3つへ分け、取りこぼし4件を塞ぐ</li><li>空振りと符号化の誤用を、終了コード2へ移す</li><li>事例と変異8件を .coding-rules/tools/inward/tests/ へ置く</li><li>規則ファイルの units を書き直し、9件の規則から引数の許可辺を除去する</li><li>検査自身を検査する規則を1件足す</li><li>contract と mcp_server を層として宣言する</li><li>skills ・ board ・ docs の3層の扱いを決める（検査を付けるか、宣言から除去するか）</li></ul></div></div><p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p></div>
+</body></html>

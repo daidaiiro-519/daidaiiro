@@ -1,0 +1,146 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>末尾の ID で結ぶ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+ :root{--paper:#FBFAF7;--panel:#FFF;--ink:#1E2430;--soft:#5B6473;--faint:#8B94A3;
+  --line:#E2DCD2;--key:#16636B;--kbg:#E9F2F1;--warn:#9A4A21;--wbg:#F7EDE6;
+  --mincho:"Shippori Mincho B1",serif;--goth:"Zen Kaku Gothic New",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;}
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15181D;--panel:#1C2128;--ink:#E7EAEF;--soft:#A9B2BF;--faint:#79828F;
+  --line:#2C333C;--key:#5FB3B8;--kbg:#173033;--warn:#D98A5B;--wbg:#2E211A;}}
+ :root[data-theme="dark"]{--paper:#15181D;--panel:#1C2128;--ink:#E7EAEF;--soft:#A9B2BF;
+  --faint:#79828F;--line:#2C333C;--key:#5FB3B8;--kbg:#173033;--warn:#D98A5B;--wbg:#2E211A;}
+ body{background:var(--paper);color:var(--ink);font-family:var(--goth);line-height:1.8;}
+ .wrap{max-width:900px;margin:0 auto;padding-inline:20px;padding-block:44px 80px;}
+ .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--key);margin:0 0 10px;}
+ h1{font-family:var(--mincho);font-weight:700;font-size:clamp(1.65rem,4.8vw,2.3rem);
+  line-height:1.42;margin:0 0 14px;}
+ .lede{color:var(--soft);margin:0 0 34px;}
+ h2{font-family:var(--mincho);font-weight:700;font-size:1.1rem;margin:44px 0 6px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);}
+ p{margin:0 0 14px;} b{font-weight:700;}
+ code{font-family:var(--mono);font-size:.85em;background:var(--kbg);color:var(--key);
+  padding:1px 5px;border-radius:3px;}
+ pre{margin:0 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:.75rem;
+  line-height:1.72;color:var(--ink);white-space:pre;}
+ .cap{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;color:var(--faint);
+  margin:0 0 5px;}
+ .three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+ .three > div{min-width:0;}
+ .lang{font-family:var(--mono);font-size:.72rem;color:var(--key);background:var(--kbg);
+  display:inline-block;padding:2px 9px;border-radius:99px;margin-bottom:6px;}
+ .id{color:var(--warn);font-weight:700;}
+ .flow{display:grid;grid-template-columns:1fr;gap:0;margin:8px 0 18px;}
+ .flow div{border-left:2px solid var(--line);padding:0 0 14px 18px;position:relative;}
+ .flow div:last-child{border-left-color:transparent;padding-bottom:0;}
+ .flow div::before{content:"";position:absolute;left:-5px;top:9px;width:8px;height:8px;
+  border-radius:50%;background:var(--key);}
+ .flow b{display:block;}
+ .flow span{color:var(--soft);font-size:.9rem;}
+ .res{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:12px 15px;font-family:var(--mono);font-size:.78rem;line-height:1.9;}
+ .res .ok{color:var(--key);} .res .ng{color:var(--warn);}
+ .case{margin:0 0 14px;}
+ .case h3{font-size:.95rem;font-family:var(--goth);font-weight:700;margin:0 0 6px;}
+ table{width:100%;border-collapse:collapse;font-size:.92rem;}
+ th{text-align:left;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;
+  color:var(--faint);font-weight:400;border-bottom:1px solid var(--line);padding:0 10px 8px 0;}
+ td{border-bottom:1px solid var(--line);padding:10px 10px 10px 0;vertical-align:top;}
+ .gone{color:var(--faint);text-decoration:line-through;}
+ .scroll{overflow-x:auto;}
+ @media (max-width:700px){.three{grid-template-columns:1fr;}}
+</style>
+<div class="wrap">
+<p class="eyebrow">シミュレーション ／ 3言語で実測</p>
+<h1>シナリオのテストが在るかを、名前の末尾で確かめる</h1>
+<p class="lede">テストの名前の<b>末尾にシナリオID を置く</b>。道具は<b>ソースを1行も読まず</b>、申告（<code>bind</code>）も要らない ── 見るのは、テスト実行器が出した<b>識別子の一覧</b>だけである。</p>
+
+<h2>仕様の側 ── シナリオ2本</h2>
+<pre>SC-01J7Q4M   明細が0件のとき、確定できない
+SC-01J7Q4N   明細が1件あれば、確定できる</pre>
+
+<h2>実装の側 ── 名前の末尾に ID を置く</h2>
+<div class="three">
+ <div><span class="lang">Go</span><pre>// <span class="id">SC-01J7Q4M</span> 明細が0件のとき、確定できない
+func TestConfirmFailsWhenNoLines_<span class="id">SC_01J7Q4M</span>(t *testing.T) {
+	o := &amp;Order{Status: "準備中"}
+	if err := o.Confirm(); err == nil {
+		t.Fatal("確定できてしまった")</pre></div>
+ <div><span class="lang">Python</span><pre># <span class="id">SC-01J7Q4M</span> 明細が0件のとき、確定できない
+def test_確定できない_明細が0件_<span class="id">SC_01J7Q4M</span>():
+    o = Order()
+    with pytest.raises(ValueError):</pre></div>
+ <div><span class="lang">TypeScript</span><pre>// <span class="id">SC-01J7Q4M</span> 明細が0件のとき、確定できない
+test("明細が0件のとき、確定できない <span class="id">SC-01J7Q4M</span>", () =&gt; {
+  const o = new Order();
+  assert.throws(() =&gt; o.confirm());</pre></div>
+</div>
+<p class="cap">Go の識別子は <code>-</code> を使えないので <code>SC_01J7Q4M</code> になる。道具は <code>_</code> を <code>-</code> に直してから、<b>末尾であること</b>を見る。</p>
+<p><b>末尾に置くと、照合を厳しくできる。</b>「含む」ではなく「末尾である」を要求できるので、<code>TestSomething_SC-01J7Q4M_old</code> のような紛れ込みを弾ける ── 先頭に置くと「含む」しか選べない。絞り込み（<code>-run TestConfirm</code> ・ <code>-k 確定</code>）が振る舞いの名前で効き、一覧も振る舞いの順に並ぶ。</p>
+<h2>実行器が列挙する ── これが道具への入力である</h2>
+<div class="three">
+ <div><span class="lang">go test -list</span><pre>example.com/shop/order.TestConfirmFailsWhenNoLines_<span class="id">SC_01J7Q4M</span>
+example.com/shop/order.TestConfirmSucceedsWithOneLine_<span class="id">SC_01J7Q4N</span>
+example.com/shop/order.TestConfirmBoundaries_<span class="id">SC_01J7Q4N</span></pre></div>
+ <div><span class="lang">pytest --collect-only</span><pre>tests/test_order.py::test_確定できない_明細が0件_<span class="id">SC_01J7Q4M</span>
+tests/test_order.py::test_確定できる_境界_<span class="id">SC_01J7Q4N</span>
+tests/test_order.py::test_確定できる_明細が1件_<span class="id">SC_01J7Q4N</span></pre></div>
+ <div><span class="lang">node --test (tap)</span><pre>order.test.mjs::明細が0件のとき、確定できない <span class="id">SC-01J7Q4M</span>
+order.test.mjs::明細が1件あれば、確定できる <span class="id">SC-01J7Q4N</span>
+order.test.mjs::確定の境界 <span class="id">SC-01J7Q4N</span></pre></div>
+</div>
+<p class="cap"><code>SC-01J7Q4N</code> には、境界値ごとに分けたテストが<b>2本</b>付いている。</p>
+<h2>道具の判定 ── 3言語とも同じ</h2>
+<div class="case"><h3>① そろっている（1つのシナリオに2本付いていてもよい）</h3>
+<div class="res"><span class="ok">○ SC-01J7Q4M</span>　1 本　TestConfirmFailsWhenNoLines_SC_01J7Q4M<br>
+<span class="ok">○ SC-01J7Q4N</span>　2 本　TestConfirmBoundaries_SC_01J7Q4N ・ TestConfirmSucceedsWithOneLine_SC_01J7Q4N</div></div>
+
+<div class="case"><h3>② テストを消した</h3>
+<div class="res"><span class="ok">○ SC-01J7Q4M</span>　1 本<br>
+<span class="ng">× SC-01J7Q4N</span>　テストが無い</div></div>
+
+<div class="case"><h3>③ 名前から ID を落とした</h3>
+<div class="res"><span class="ok">○ SC-01J7Q4M</span>　1 本<br>
+<span class="ng">× SC-01J7Q4N</span>　テストが無い<br>
+<span class="ng">× 仕様の外に在るテスト</span>　example.com/shop/order.TestConfirmOK_…　<b>常時ゼロ（落とす）</b></div></div>
+
+<div class="case"><h3>④ ID のあとに何か付いている</h3>
+<div class="res">含むで照合　<span class="ok">○</span> pkg.TestSomething_SC-01J7Q4M_old　← 通ってしまう<br>
+末尾で照合　<span class="ng">×</span> テストが無い　← <b>弾ける</b></div></div>
+
+<h2>入れ子と分割は、渡す側の変換で揃う</h2>
+<div class="scroll"><table>
+<thead><tr><th>実行器</th><th>入れ子 ・ 分割を列挙に出すか</th><th>変換</th></tr></thead>
+<tbody>
+<tr><td>Go <code>go test -list</code></td><td><b>出さない</b> ── 小分け（<code>t.Run</code>）は実行時だけ</td><td>要らない</td></tr>
+<tr><td>Python <code>pytest --collect-only</code></td><td>出す ── <code>…_SC_01J7Q4N[lines0]</code></td><td><code>sed 's/\[.*\]$//'</code></td></tr>
+<tr><td>TypeScript <code>node --test</code></td><td>出す ── 字下げで親子が分かる</td><td>字下げのある行を取らない</td></tr>
+</tbody></table></div>
+<p class="cap">どれも<b>利用者の側の変換1行</b>で済む。道具は3言語とも同じコードのままである。</p>
+
+<h2>この形にすると、要らなくなるもの</h2>
+<div class="scroll"><table>
+<thead><tr><th>いまの形</th><th>名前で結ぶ形</th></tr></thead>
+<tbody>
+<tr><td>AI が <code>bind</code> で申告する</td><td class="gone">要らない</td></tr>
+<tr><td>対応表 <code>bindings.json</code> を道具が持つ</td><td class="gone">要らない ── 一覧から導ける</td></tr>
+<tr><td>言語ごとの雛形</td><td class="gone">要らない</td></tr>
+<tr><td>ソースを読む ・ tree-sitter</td><td>しない（変わらず）</td></tr>
+</tbody></table></div>
+<p>ブレストボードの保留「<b>AI が申告しないまま実装したと主張できる</b>」が、そのまま消える ── 名前に ID が無ければ「テストが無い」と出るからである。</p>
+
+<h2>これでも見えないもの</h2>
+<p><b>カバレッジは、コードの性質ではなく仕様の性質になる</b> ── シナリオにテストが無ければ「テストが無い」、テストにシナリオが無ければ「仕様の外」。足りないときは、シナリオを書き足すか、そのテストを消すかの二択である。</p>
+<p><b>中身は1文字も見ていない。</b><code>TestSC_01J7Q4M_…</code> の本体を空にしても、一覧には載り、判定は <span style="color:var(--key)">○</span> のままである（実測）。そこは規則（CodingSkills）と CI の領分で、道具の責務の外にある。</p>
+
+<h2>決めたこと</h2>
+<div class="flow">
+<div><b>1つのシナリオに、テストは何本でもよい</b><span>境界値ごとに分けるのは普通である ── 実測でも <code>SC-01J7Q4N</code> に2本付いた。0本だけを不合格にする</span></div>
+<div><b>ID は名前の末尾に置く</b><span>照合は「末尾である」。<code>_</code> は <code>-</code> に直してから見る</span></div>
+<div><b>シナリオを持たないテストは、落とす</b><span>論点3 の「仕様の外に出られなくする」がそのまま効く ── テストを1本書くたびに、対応するシナリオが仕様に要る。<b>両方向が塞がる</b></span></div>
+</div>
+<p class="cap">この頁の出力は、Go 1.27 ・ pytest 9.0.2 ・ Node 24 で実際に流したものである（2026-09-27）。道具の側は3言語とも同じコードで、言語を1つも知らない。</p>
+</div>
+</body></html>

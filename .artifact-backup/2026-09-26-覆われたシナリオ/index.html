@@ -1,0 +1,144 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>覆われたシナリオ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+ :root{--paper:#FBFAF7;--panel:#FFF;--ink:#1E2430;--soft:#5B6473;--faint:#8B94A3;
+  --line:#E2DCD2;--key:#16636B;--kbg:#E9F2F1;--warn:#9A4A21;--wbg:#F7EDE6;
+  --mincho:"Shippori Mincho B1",serif;--goth:"Zen Kaku Gothic New",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;}
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15181D;--panel:#1C2128;--ink:#E7EAEF;--soft:#A9B2BF;--faint:#79828F;
+  --line:#2C333C;--key:#5FB3B8;--kbg:#173033;--warn:#D98A5B;--wbg:#2E211A;}}
+ :root[data-theme="dark"]{--paper:#15181D;--panel:#1C2128;--ink:#E7EAEF;--soft:#A9B2BF;
+  --faint:#79828F;--line:#2C333C;--key:#5FB3B8;--kbg:#173033;--warn:#D98A5B;--wbg:#2E211A;}
+ body{background:var(--paper);color:var(--ink);font-family:var(--goth);line-height:1.8;}
+ .wrap{max-width:920px;margin:0 auto;padding-inline:20px;padding-block:44px 80px;}
+ .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--key);margin:0 0 10px;}
+ h1{font-family:var(--mincho);font-weight:700;font-size:clamp(1.65rem,4.8vw,2.3rem);line-height:1.42;margin:0 0 14px;}
+ .lede{color:var(--soft);margin:0 0 30px;}
+ h2{font-family:var(--mincho);font-weight:700;font-size:1.1rem;margin:46px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+ p{margin:0 0 14px;} b{font-weight:700;}
+ code{font-family:var(--mono);font-size:.85em;background:var(--kbg);color:var(--key);padding:1px 5px;border-radius:3px;}
+ .fig{background:#FFF;border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;}
+ .fig svg{display:block;width:100%;min-width:680px;height:auto;}
+ .cap{color:var(--faint);font-size:.85rem;margin:10px 2px 0;}
+ pre{margin:0 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 15px;
+  overflow-x:auto;font-family:var(--mono);font-size:.76rem;line-height:1.72;color:var(--ink);}
+ pre.cmd{background:var(--kbg);border-color:var(--kbg);color:var(--key);margin-bottom:0;border-radius:8px 8px 0 0;}
+ pre.cmd + pre{border-radius:0 0 8px 8px;border-top-color:var(--kbg);}
+ .step{display:grid;grid-template-columns:auto 1fr;gap:18px;border-top:1px solid var(--line);padding-block:22px;}
+ .step .n{font-family:var(--mono);font-size:1.4rem;color:var(--key);line-height:1.2;}
+ .step h3{font-family:var(--mincho);font-weight:700;font-size:1.02rem;margin:0 0 2px;}
+ .who{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:var(--faint);display:block;margin-bottom:10px;}
+ .scroll{overflow-x:auto;}
+ table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:720px;}
+ th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--faint);font-weight:400;border-bottom:1px solid var(--line);padding:0 12px 8px 0;}
+ td{border-bottom:1px solid var(--line);padding:10px 12px 10px 0;vertical-align:top;}
+ td.m{font-family:var(--mono);font-size:.72rem;color:var(--soft);}
+ .ok{color:var(--key);font-weight:700;white-space:nowrap;}
+ .ng{color:var(--warn);}
+ .req{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:0 0 6px;}
+ .req div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:.88rem;}
+ .req b{display:block;font-family:var(--mono);font-size:.72rem;color:var(--key);letter-spacing:.06em;}
+ @media (max-width:620px){.step{grid-template-columns:1fr;gap:4px;}}
+</style>
+<div class="wrap">
+<p class="eyebrow">完成イメージ ／ 試作に実装して、7言語で流した</p>
+<h1>道具が知るのは、2つの集合だけ</h1>
+<p class="lede"><b>仕様が要るシナリオ</b>と、<b>テストの側が覆ったシナリオ</b>。道具はこの2つを引き算するだけで、テストをどう書いたか ・ どの言語か ・ どの実行器かを1つも知らない。</p>
+
+<div class="fig"><svg class="wf-fig" viewBox="0 0 847 332" width="847" height="332" role="img"><g transform="translate(6.0,6.0)"><path d="M644.1,32.6 L644.1,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="644.1,95.4 641.7,88.6 646.6,88.6" fill="#C3CAD2"/><path d="M86.0,128.6 L312.0,191.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="312.0,191.2 304.8,191.8 306.1,187.0" fill="#C3CAD2"/><rect x="185.0" y="149.9" width="28.0" height="16.0" fill="#F5F7F9"/><text x="199.0" y="163.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">要る</text><path d="M644.1,128.6 L312.0,191.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="312.0,191.2 318.2,187.5 319.1,192.4" fill="#C3CAD2"/><rect x="459.1" y="149.9" width="38.0" height="16.0" fill="#F5F7F9"/><text x="478.1" y="163.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">覆った</text><path d="M312.0,224.8 L86.0,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="86.0,287.4 91.9,283.2 93.2,288.0" fill="#C3CAD2"/><rect x="160.2" y="246.1" width="77.5" height="16.0" fill="#F5F7F9"/><text x="199.0" y="259.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">要る − 覆った</text><path d="M312.0,224.8 L643.6,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="643.6,287.4 636.5,288.6 637.4,283.7" fill="#C3CAD2"/><rect x="439.1" y="246.1" width="77.5" height="16.0" fill="#F5F7F9"/><text x="477.8" y="259.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">覆った − 要る</text><g class="wf-node" transform="translate(452.0,0.0)"><g class="svg-box" role="利用者"><rect x="0" y="0" width="383.2" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="191.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作り方は利用者が選ぶ ── 既定：テストが走ったときに書き出す</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="172.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="86.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">仕様が要るシナリオの集合</text></g></g><g class="wf-node" transform="translate(500.0,96.0)"><g class="svg-box" role="利用者"><rect x="0" y="0" width="287.2" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="143.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストの側が覆ったシナリオの集合（1行1ID）</text></g></g><g class="wf-node" transform="translate(196.0,192.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="232.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="116.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">引き算（道具がするのは、これだけ）</text></g></g><g class="wf-node" transform="translate(36.0,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストが無い</text></g></g><g class="wf-node" transform="translate(533.6,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">仕様に無いシナリオ（書き間違い）</text></g></g></g></svg></div>
+<p class="cap">破線は利用者のリポジトリの側、実線は道具の側。覆った集合の作り方は利用者が選ぶ。</p>
+
+<h2>要件をどう満たすか</h2>
+<div class="req">
+ <div><b>R1 シナリオのテストが在るか</b>走ったシナリオが記録に載る</div>
+ <div><b>R2 言語を知らない</b>道具が読むのは1行1ID の文字列だけ</div>
+ <div><b>R3 ソースを読まない</b>書き出すのはテスト自身</div>
+ <div><b>R4 申告を信じない</b>記録は、そのテストが実際に走ったときにしか出ない</div>
+ <div><b>R5 無い側へ倒れる</b>忘れた ・ 飛ばした ・ 書き間違えた、どれも「無い」</div>
+</div>
+
+<h2>ひと回り ── 利用者の CI で起きること</h2>
+
+<div class="step"><span class="n">1</span><div><h3>AI が、シナリオを取る</h3><span class="who">AI ／ 取る操作</span>
+<pre class="cmd">&gt; get AGG-01J7Q4K</pre><pre>… "nodes":[{"id":"SC-01J7Q4M","name":"明細が0件のとき、確定できない", … },
+           {"id":"SC-01J7Q4N","name":"明細が1件あれば、確定できる", … }]</pre></div></div>
+
+<div class="step"><span class="n">2</span><div><h3>AI が、テストを書く ── シナリオを名乗る1行を入れる</h3><span class="who">AI ／ 利用者のリポジトリ</span>
+<pre>func TestConfirm(t *testing.T) {
+	t.Run("明細が0件なら確定できない", func(t *testing.T) {
+		scenario("SC-01J7Q4M")
+		o := &amp;Order{Status: "準備中"}
+		if o.Confirm() == nil { t.Fatal("確定できてしまった") }
+	})
+	t.Run("明細が1件あれば確定できる", func(t *testing.T) {
+		scenario("SC-01J7Q4N")
+		…
+	})
+}</pre>
+<p class="cap">名乗る場所は、小分けの中でも分割の中でもよい。<b>名前の規約は要らない。</b></p></div></div>
+
+<div class="step"><span class="n">3</span><div><h3>CI が、テストを走らせる</h3><span class="who">CI ／ いつもの実行器</span>
+<pre class="cmd">$ SCENARIO_TRACE=covered.txt go test ./...</pre><pre>ok  	example.com/e/order	0.001s
+
+$ cat covered.txt
+SC-01J7Q4M
+SC-01J7Q4N</pre>
+<p class="cap">名乗る関数は、利用者の側に置く補助1つ（標準ライブラリだけ）。</p>
+<pre>func scenario(id string) {
+	if p := os.Getenv("SCENARIO_TRACE"); p != "" {
+		f, _ := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		defer f.Close()
+		f.WriteString(id + "\n")
+	}
+}</pre></div></div>
+
+<div class="step"><span class="n">4</span><div><h3>CI が、道具に渡す</h3><span class="who">道具 ／ 引き算</span>
+<pre class="cmd">$ schema covered covered.txt AGG-01J7Q4K</pre><pre>○ SC-01J7Q4M　明細が0件のとき、確定できない
+○ SC-01J7Q4N　明細が1件あれば、確定できる
+覆った 2/2 ／ 見つかったこと 0 件</pre>
+<p class="cap">宣言ID を渡すと、その宣言のシナリオだけを要る集合にする ── 実装の PR の範囲である。終了コードは 0 ／ 1 で、CI はこれで止まる。</p></div></div>
+
+<h2>7言語で流した ── 道具は同じ1本</h2>
+<div class="scroll"><table>
+<thead><tr><th>言語</th><th>名乗る1行（要点）</th><th>名乗った場所</th><th>判定</th></tr></thead>
+<tbody><tr><td><b>Go</b></td><td class="m">if p := os.Getenv("SCENARIO_TRACE"); p != "" { … f.WriteString(id + "\n") }</td><td>t.Run の中</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>Python</b></td><td class="m">open(os.environ["SCENARIO_TRACE"], "a").write(id + "\n")</td><td>parametrize の中</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>TypeScript</b></td><td class="m">appendFileSync(process.env.SCENARIO_TRACE, id + "\n")</td><td>t.test の中</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>Rust</b></td><td class="m">writeln!(OpenOptions::new().append(true).create(true).open(p)?, "{id}")</td><td>1本の中のループ</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>Ruby</b></td><td class="m">File.open(ENV["SCENARIO_TRACE"], "a") { |f| f.puts id }</td><td>define_method で生成</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>PHP</b></td><td class="m">file_put_contents(getenv("SCENARIO_TRACE"), $id . "\n", FILE_APPEND)</td><td>DataProvider</td><td class="ok">覆った 2/2</td></tr>
+<tr><td><b>Java</b></td><td class="m">Files.writeString(Path.of(p), id + "\n", CREATE, APPEND)</td><td>ParameterizedTest</td><td class="ok">覆った 2/2</td></tr></tbody></table></div>
+<p class="cap">どれも、前の方式（名前 ・ 列挙）では見えなかった位置で名乗らせた。7言語とも同じ結果である。</p>
+
+<h2>壊し方 ── どれも「無い」側へ倒れる</h2>
+<pre class="cmd">① 名乗る1行を忘れた</pre><pre>○ SC-01J7Q4M　明細が0件のとき、確定できない
+<span class="ng">× SC-01J7Q4N　明細が1件あれば、確定できる　── テストが無い</span></pre>
+<pre class="cmd">② テストを飛ばした（t.Skip）</pre><pre>○ SC-01J7Q4M　明細が0件のとき、確定できない
+<span class="ng">× SC-01J7Q4N　明細が1件あれば、確定できる　── テストが無い</span></pre>
+<pre class="cmd">③ ID を書き間違えた（SC-01J7Q4X）</pre><pre>○ SC-01J7Q4M　明細が0件のとき、確定できない
+<span class="ng">× SC-01J7Q4N　明細が1件あれば、確定できる　── テストが無い
+× SC-01J7Q4X　── 仕様に無いシナリオを名乗っている</span>
+覆った 1/2 ／ 見つかったこと 2 件　（終了コード 1）</pre>
+<p><b>「在る」と偽る道は1つだけ</b> ── 関係の無いテストに、実在する ID を名乗らせたとき。それは中身の保証で、道具の責務の外である。</p>
+
+<h2>道具の中身</h2>
+<pre>pub fn coverage(required: &amp;BTreeSet&lt;String&gt;, covered: &amp;BTreeSet&lt;String&gt;) -&gt; Coverage {
+    Coverage {
+        uncovered: required.difference(covered).cloned().collect(),
+        unknown:   covered.difference(required).cloned().collect(),
+    }
+}</pre>
+<p><b>これで全部である。</b>文字列の規則も、言語の知識も、実行器の知識も持たない。試験は3件足して、試作の全体で通っている。</p>
+
+<h2>選べる作り方</h2>
+<div class="scroll"><table>
+<thead><tr><th>作り方</th><th>手間</th><th>壊れ方</th></tr></thead>
+<tbody>
+<tr><td><b>既定</b> ── テストが走ったときに名乗る</td><td>補助の関数1つ</td><td class="ok">無い側だけへ倒れる</td></tr>
+<tr><td>簡易 ── テストのファイルを文字列で探す</td><td>1行</td><td class="ng">在る側へも倒れる（註釈 ・ 飛ばしたテスト）</td></tr>
+</tbody></table></div>
+<p class="cap">どちらでも道具に渡すものは同じ1行1ID のファイルで、道具はソースを読まない。Go 1.27 ・ pytest 9.0.2 ・ Node 24 ・ cargo 1.98 ・ Ruby 4.0.7 ・ PHPUnit 11.5 ・ JUnit 5.11（JDK 25）で実行した（2026-09-27）。</p>
+</div>
+</body></html>

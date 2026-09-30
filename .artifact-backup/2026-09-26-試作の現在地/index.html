@@ -1,0 +1,272 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>試作の現在地</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    --ground:#eef2f0; --card:#ffffff; --sunk:#e4eae7;
+    --ink:#1b2422; --dim:#556561; --faint:#7d8d88;
+    --rule:#b9c7c2; --rule-soft:#d4ddd9;
+    --key:#16636b; --key-soft:#dcecec; --warn:#9a4a21; --warn-soft:#f4e6dd;
+    --serif:'Shippori Mincho',"Hiragino Mincho ProN","Yu Mincho",serif;
+    --sans:'Zen Kaku Gothic New',"Hiragino Sans","Yu Gothic",sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0f1513; --card:#18211f; --sunk:#131b19;
+      --ink:#e8eeec; --dim:#9fb0ab; --faint:#7e8f8a;
+      --rule:#2c3a36; --rule-soft:#232e2b;
+      --key:#5cb6ae; --key-soft:#12312f; --warn:#d98c62; --warn-soft:#331f14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0f1513; --card:#18211f; --sunk:#131b19;
+    --ink:#e8eeec; --dim:#9fb0ab; --faint:#7e8f8a;
+    --rule:#2c3a36; --rule-soft:#232e2b;
+    --key:#5cb6ae; --key-soft:#12312f; --warn:#d98c62; --warn-soft:#331f14;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+       font-feature-settings:"palt" 1;line-height:1.85;margin:0}
+  .wrap{max-width:60rem;margin:0 auto;padding-block:2.6rem 5rem;padding-left:1rem;padding-right:1rem;
+        display:flex;flex-direction:column;gap:2.2rem}
+  .eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;color:var(--faint);
+           text-transform:uppercase}
+  h1{font-family:var(--serif);font-size:clamp(1.7rem,4.4vw,2.5rem);line-height:1.3;margin:.35rem 0 0;
+     text-wrap:balance;font-weight:600}
+  .lede{font-size:1rem;color:var(--dim);max-width:46rem;margin:.5rem 0 0}
+  .lede b{color:var(--ink);font-weight:700}
+  h2{font-family:var(--serif);font-size:1.22rem;font-weight:600;margin:0;line-height:1.5}
+  h3{font-size:.95rem;font-weight:700;margin:0}
+  section{display:flex;flex-direction:column;gap:1rem}
+  .head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;
+        border-bottom:1px solid var(--rule);padding-bottom:.5rem}
+  .head .note{font-size:.82rem;color:var(--faint)}
+
+  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(10.2rem,1fr));gap:.75rem}
+  .num{background:var(--card);border:1px solid var(--rule-soft);border-radius:.5rem;
+       padding:.85rem 1rem}
+  .num .v{font-family:var(--serif);font-size:1.9rem;line-height:1.1;font-variant-numeric:tabular-nums}
+  .num .l{font-size:.76rem;line-height:1.5;color:var(--dim);margin-top:.15rem}
+  .num.key .v{color:var(--key)}
+  .num.warn .v{color:var(--warn)}
+
+  pre{font-family:var(--mono);font-size:.78rem;line-height:1.75;background:var(--sunk);
+      border:1px solid var(--rule-soft);border-radius:.45rem;padding:.9rem 1rem;margin:0;
+      overflow-x:auto;white-space:pre;color:var(--ink)}
+  pre .x{color:var(--warn)}
+  pre .k{color:var(--key)}
+  pre .c{color:var(--faint)}
+  code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.08em .34em;
+       border-radius:.22em}
+
+  ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.85rem;
+           counter-reset:s}
+  ol.steps>li{counter-increment:s;background:var(--card);border:1px solid var(--rule-soft);
+              border-radius:.5rem;padding:1rem 1.1rem;display:grid;
+              grid-template-columns:2.1rem 1fr;gap:.2rem .8rem}
+  ol.steps>li::before{content:counter(s);font-family:var(--mono);font-size:.82rem;color:var(--key);
+                      border:1px solid var(--key);border-radius:.3rem;width:1.7rem;height:1.7rem;
+                      display:flex;align-items:center;justify-content:center;grid-row:span 3}
+  .step-body{display:flex;flex-direction:column;gap:.55rem;min-width:0}
+  .found{font-size:.88rem;color:var(--dim)}
+  .found b{color:var(--ink)}
+  .verdict{font-size:.9rem;border-left:2px solid var(--key);padding-left:.7rem;color:var(--ink)}
+  .verdict b{color:var(--key)}
+
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:var(--faint);
+     font-weight:400;padding:.4rem .6rem;border-bottom:1px solid var(--rule)}
+  td{padding:.55rem .6rem;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--dim)}
+  td.nm{color:var(--ink);font-weight:700}
+  .scroll{overflow-x:auto}
+
+  .chip{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;padding:.12em .5em;
+        border-radius:.25em;border:1px solid;white-space:nowrap}
+  .chip.stop{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+  .chip.open{color:var(--key);border-color:var(--key);background:var(--key-soft)}
+  .chip.bydesign{color:var(--faint);border-color:var(--rule)}
+
+  ul.trouble{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.7rem}
+  ul.trouble>li{background:var(--card);border:1px solid var(--rule-soft);border-radius:.5rem;
+                padding:.9rem 1rem;display:flex;flex-direction:column;gap:.35rem}
+  ul.trouble .t{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+  ul.trouble .why{font-size:.85rem;color:var(--dim)}
+  ul.trouble.stopline>li{border-left:3px solid var(--warn)}
+
+  .map{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}
+  .box{background:var(--card);border:1px solid var(--rule-soft);border-radius:.5rem;padding:.85rem 1rem}
+  .box.on{border-color:var(--key);background:var(--key-soft)}
+  .box.off{border-style:dashed;border-color:var(--warn);color:var(--warn)}
+  .box .bt{font-size:.9rem;font-weight:700}
+  .box .bs{font-size:.78rem;color:var(--dim);margin-top:.2rem}
+  .box.off .bs{color:var(--warn)}
+  .foot{font-size:.8rem;color:var(--faint);border-top:1px solid var(--rule);padding-top:.9rem}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">schema 駆動の道具 ／ 試作 trial/spike ／ 2026-09-26</div>
+    <h1>試作の現在地</h1>
+    <p class="lede">決めた8本のとおりに<b>受注を書いて、道具を動かした</b>。
+      仕様の側は最後まで通り、<b>引き算は出るべきものだけを出している</b>。
+      止まっているのは道具の外側 ── <b>呼び出し口が1つも無い</b>。</p>
+  </header>
+
+  <section>
+    <div class="head"><h2>数字</h2><span class="note">すべて実測である</span></div>
+    <div class="nums">
+      <div class="num key"><div class="v">17</div><div class="l">宣言（6種類）</div></div>
+      <div class="num key"><div class="v">8</div><div class="l">シナリオ</div></div>
+      <div class="num key"><div class="v">63</div><div class="l">検査が通る</div></div>
+      <div class="num"><div class="v">38</div><div class="l">射影のファイル</div></div>
+      <div class="num"><div class="v">0.7<span style="font-size:.9rem">ms</span></div><div class="l">射影＋引き算</div></div>
+      <div class="num warn"><div class="v">0</div><div class="l">実装した呼び出し口</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><h2>いま道具が出すもの</h2><span class="note">$ cargo run --bin usecase</span></div>
+    <pre><span class="x">対応の無い節： SC-01J9C4D</span>   <span class="c">← 在庫の引当。テストをまだ書いていない</span>
+<span class="x">対応の無い節： SC-01J9E2G</span>   <span class="c">← またがる業務。同上</span>
+見つかったこと 2 件
+<span class="k">既定値で埋めた： render.codex.agent.toml::model = "gpt-5.6-luna"</span>
+<span class="k">既定値で埋めた： render.codex.agent.toml::sandbox_mode = "read-only"</span></pre>
+    <p class="found">この2件は<b>「実装までの間の正当な状態」</b>である（常時ゼロを要求しない系統）。
+      常時ゼロの2系統 ── 結ばれていない識別子と、切れた対応 ── は<b>0件</b>である。</p>
+  </section>
+
+  <section>
+    <div class="head"><h2>やったこと</h2><span class="note">次にすること 1〜5</span></div>
+    <ol class="steps">
+
+      <li><div class="step-body">
+        <h3>受注で、宣言3件とシナリオ4件を書く</h3>
+        <p class="found">書いたとおりには通らなかった。<b>道具が3つ検出した</b> ──
+          業務サービスに書き換えを持たせた／業務領域にユースケースが1件も無い／操作を関門へ登録していない。</p>
+        <pre><span class="x">SV-01J9B3C が書き換えている ── 業務サービスは自分自身の状態を持たない</span>
+<span class="x">空の業務領域が挙がらない： left ["SD-01J8C2B","SD-01J9A2T"]</span></pre>
+        <p class="verdict"><b>在庫引当は業務サービスではなく、集約だった。</b>
+          論点9 の判定（状態を持つものは集約）を、道具が独立に指した。</p>
+      </div></li>
+
+      <li><div class="step-body">
+        <h3>またがる業務と、文脈の関係を書く</h3>
+        <p class="found">確定の進行（集約）を調整する側へ置き、受注の文脈へ上流を2件宣言した。
+          <b>関係の引き算を道具へ足した</b> ── 宣言していない文脈を挙げると出る。</p>
+        <pre><span class="x">宣言していない文脈を上流に挙げた： BC-01J9Z9Z</span>
+<span class="c">──（与信の文脈を宣言したら消えた。地図は宣言せず、上流の宣言から導出する）</span>
+受注の文脈 ──（モデル変換装置）──＞ 在庫の文脈
+受注の文脈 ──（従属する）　　　──＞ 与信の文脈</pre>
+        <p class="verdict"><b>属させ先では、引き算が1件も変わらなかった。</b>
+          受注の文脈から在庫の文脈へ移しても出力は同一 ── <b>道具は属させ先を判定しない</b>。</p>
+      </div></li>
+
+      <li><div class="step-body">
+        <h3>期待の書き方を決める</h3>
+        <p class="found"><code>fails</code> と <code>check</code> の1組では足りなかった。
+          <b>1つのシナリオが2つのことを言う</b>（確定しない／引当を戻す）。
+          しかも期待を除外しても実体の無い検査を書いても、<b>49件すべてが通った</b> ── 誰も見ていなかった。</p>
+        <pre><span class="c">いまの形（1つの成否 ＋ 確認する点の列）</span>
+"then": { "fails": true,
+          "checks": ["check.precondition", <span class="k">"check.allocationReturned"</span>] }
+
+<span class="c">射影（人が読む1行）にも出るようにした</span>
+SC-01J9E2G　与信が通らなければ、引当を戻して確定しない
+            ── 失敗する（check.precondition ・ check.allocationReturned）</pre>
+        <p class="verdict">形の検査は<b>注入する側</b>が持つ ── 基盤は節の中身を見ない（論点2）。</p>
+      </div></li>
+
+      <li><div class="step-body">
+        <h3>テストの一覧の形と、フックの契機を決める</h3>
+        <p class="found">実行系の生の出力を渡すと<b>「結ばれていない識別子」が6件出て、CI が失敗した</b>。
+          Rust の <code>--list</code> は関数名だけを出し、crate の道を出さない。</p>
+        <div class="scroll"><table>
+          <tr><th>測ったもの</th><th>結果</th></tr>
+          <tr><td class="nm">宣言17件 ・ 節8件</td><td>0.7 ms</td></tr>
+          <tr><td class="nm">宣言509件 ・ 節1008件（551KB）</td><td>13.6 ms</td></tr>
+        </table></div>
+        <p class="verdict"><b>一覧は1行1識別子のテキスト</b>（空行と <code>#</code> を無視）。
+          <b>契機は保存時で成り立つ</b> ── 500宣言でも14ms である。</p>
+      </div></li>
+
+      <li><div class="step-body">
+        <h3>埋められないキーの扱いを決める</h3>
+        <p class="found">Codex の <code>model</code> は、宣言のどこにも無い値を要求する（原文で照合した）。
+          宣言へ足すと<b>方法論の語彙へ AI ツールの語が入る</b> ── 論点2 に違反する。</p>
+        <pre><span class="c">表に無いキーを変換機が直に書くと、検査で出る</span>
+<span class="x">出どころの分からないキー： {"approval_policy"}</span></pre>
+        <p class="verdict"><b>既定値は注入する側が表で持ち、何を充填したかを毎回申告する。</b></p>
+      </div></li>
+
+    </ol>
+  </section>
+
+  <section>
+    <div class="head"><h2>いま困っていること</h2><span class="note">道具の外側である</span></div>
+    <ul class="trouble stopline">
+      <li>
+        <div class="t"><span class="chip stop">止まる</span><h3>呼び出し口が1つも無い</h3></div>
+        <p class="why">論点1 は <b>MCP ・ CLI ・ フックの3つ</b>を決めたが、実装は0である。
+          いま動かせるのは <code>cargo run</code> だけで、<b>他所のリポジトリから呼べない</b>。仕様はもうバイナリの外に在るので、残るのは口だけである。</p>
+      </li>
+      <li>
+        <div class="t"><span class="chip stop">止まる</span><h3>対応表が Rust のコードに直書きである</h3></div>
+        <p class="why">契約3本のうち1本（対応表）が、<code>bindings()</code> という関数の中に在る。
+          <b>AI が MCP で申告して、道具が書く</b>形になっていない。</p>
+      </li>
+    </ul>
+    <ul class="trouble">
+      <li>
+        <div class="t"><span class="chip bydesign">片付いた</span><h3>仕様の焼き込みは、外した</h3></div>
+        <p class="why"><code>include_str!</code> をやめ、<b>基盤が仕様の木を根から読む</b>ようにした
+          （<code>read_spec_tree</code>）。走査する場所は根1つだけで、JSON だけを読む。
+          <b>置き場所の契約が、手で打った文字列ではなく実在の木に当たるようになった</b> ──
+          根の外へ事業領域を置いた木で、2行出ることを確かめた。</p>
+      </li>
+      <li>
+        <div class="t"><span class="chip open">未決</span><h3>承認の画面の形が決まっていない</h3></div>
+        <p class="why">HTML の文字列は出るが、<b>PR のレビューへどう出すかは未定</b>である（論点8 の保留）。
+          人が押せる形にはなっていない。</p>
+      </li>
+      <li>
+        <div class="t"><span class="chip bydesign">設計どおり</span><h3>意味は、機械に見えない</h3></div>
+        <p class="why">テストの中身がシナリオと違っていても、名前が一致すれば通る（論点5 の保留）。
+          <b>AI が担保し、人が承認のときに判定する</b>と決めてある ── 道具の穴ではない。</p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="head"><h2>道具の形と、できている範囲</h2></div>
+    <div class="map">
+      <div class="box on"><div class="bt">宣言を読む</div><div class="bs">6種類 ・ 17件。JSON</div></div>
+      <div class="box on"><div class="bt">射影を出す</div><div class="bs">宣言 × 変換機 ＝ 38ファイル</div></div>
+      <div class="box on"><div class="bt">引き算する</div><div class="bs">3系統＋関係＋置き場所。常時ゼロは0件</div></div>
+      <div class="box on"><div class="bt">仕様を根から読む</div><div class="bs">SCHEMA_SPEC_ROOT ／ 再構築が要らない</div></div>
+      <div class="box off"><div class="bt">MCP</div><div class="bs">未実装 ── AI が申告する口</div></div>
+      <div class="box off"><div class="bt">CLI</div><div class="bs">未実装 ── CI が止める口</div></div>
+      <div class="box off"><div class="bt">フック</div><div class="bs">未実装 ── 保存時に走る口</div></div>
+    </div>
+    <p class="found"><b>撤退条件は満たしている</b> ── 基盤 crate（462行）に方法論の語は
+      <b>1件も無い</b>（ユースケース ・ 集約 ・ 業務領域 ・ 文脈 ・ シナリオを検索して0件）。
+      concrete を1件も参照せずに、射影が出ている。</p>
+  </section>
+
+  <section>
+    <div class="head"><h2>残り</h2><span class="note">次にすること 6</span></div>
+    <p class="found"><b>決めた8本を acdr へ記録する。</b>
+      承認が成立した時点で「なぜ」が消失すると、あとから改訂してよいかを判定できない。
+      これは正本への適用を伴うので、決定と差分を組んで承認をもらう手順になる。</p>
+  </section>
+
+  <p class="foot">出どころ ── 試作は <code>.brainstorming-board/usecase-schema-driven/trial/spike</code>、
+    決まりは同じフォルダの <code>board.json</code>（Round 47、論点8本が決着）。
+    数字はこの頁を作った時点の実測である。</p>
+
+</div>
+
+</body></html>

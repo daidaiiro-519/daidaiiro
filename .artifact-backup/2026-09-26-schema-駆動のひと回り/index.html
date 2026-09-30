@@ -1,0 +1,216 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>schema 駆動のひと回り</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#FBFAF7; --panel:#FFFFFF; --ink:#1E2430; --ink-soft:#5B6473; --ink-faint:#8B94A3;
+    --line:#E2DCD2; --key:#16636B; --key-bg:#E9F2F1; --warn:#9A4A21; --warn-bg:#F7EDE6;
+    --mincho:"Shippori Mincho B1",serif;
+    --gothic:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --paper:#15181D; --panel:#1C2128; --ink:#E7EAEF; --ink-soft:#A9B2BF; --ink-faint:#79828F;
+    --line:#2C333C; --key:#5FB3B8; --key-bg:#173033; --warn:#D98A5B; --warn-bg:#2E211A; } }
+  :root[data-theme="dark"]{
+    --paper:#15181D; --panel:#1C2128; --ink:#E7EAEF; --ink-soft:#A9B2BF; --ink-faint:#79828F;
+    --line:#2C333C; --key:#5FB3B8; --key-bg:#173033; --warn:#D98A5B; --warn-bg:#2E211A; }
+  body{background:var(--paper);color:var(--ink);font-family:var(--gothic);line-height:1.85;}
+  .wrap{max-width:880px;margin:0 auto;padding-inline:20px;padding-block:44px 80px;}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--key);margin:0 0 10px;}
+  h1{font-family:var(--mincho);font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);
+     line-height:1.4;margin:0 0 14px;text-wrap:balance;}
+  .lede{color:var(--ink-soft);margin:0 0 40px;}
+  p{margin:0 0 14px;} b{font-weight:700;}
+  code{font-family:var(--mono);font-size:.86em;background:var(--key-bg);color:var(--key);
+       padding:1px 5px;border-radius:3px;}
+  pre{margin:0 0 4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+      padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:.76rem;
+      line-height:1.7;color:var(--ink);}
+  pre.cmd{background:var(--key-bg);border-color:var(--key-bg);color:var(--key);margin-bottom:0;
+          border-bottom-left-radius:0;border-bottom-right-radius:0;}
+  pre.cmd + pre{border-top-left-radius:0;border-top-right-radius:0;border-top-color:var(--key-bg);}
+  .tree{font-family:var(--mono);font-size:.8rem;line-height:1.95;background:var(--panel);
+        border:1px solid var(--line);border-radius:8px;padding:16px 18px;overflow-x:auto;
+        white-space:pre;color:var(--ink-soft);}
+  .tree b{color:var(--key);font-weight:500;} .tree i{color:var(--ink-faint);font-style:normal;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:20px;
+        border-top:1px solid var(--line);padding-block:26px;}
+  .step .n{font-family:var(--mono);font-size:1.5rem;color:var(--key);line-height:1.2;
+           font-variant-numeric:tabular-nums;}
+  .step h2{font-family:var(--mincho);font-weight:700;font-size:1.1rem;margin:0 0 4px;}
+  .who{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:var(--ink-faint);
+       display:block;margin-bottom:10px;}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;
+       border-radius:99px;padding:1px 9px;margin-left:8px;vertical-align:.12em;
+       border:1px solid var(--key);color:var(--key);}
+  .tag.next{border-color:var(--warn);color:var(--warn);}
+  .note{color:var(--ink-faint);font-size:.85rem;margin:8px 0 0;}
+  @media (max-width:620px){ .two{grid-template-columns:1fr;} .step{grid-template-columns:1fr;gap:6px;} }
+</style>
+<div class="wrap">
+<p class="eyebrow">完成イメージ</p>
+<h1>仕様を書いてから、CI が止めるまで</h1>
+<p class="lede">宅配のサービスで、受注の確定を1件つくる。9段ある。<b>実際に動いている試作の出力</b>を並べた ── 札が <b>試作で動く</b> のものは、いまそのまま出る。<b>これから</b> のものは、論点10 が決着したらこうなる。</p>
+
+<div class="tree"><b>道具（配布するもの）</b>
+  abstract schema/            <i>能力の契約 ── 宣言 ／ 検査 ／ 射影 ／ 対応表 ／ テストの一覧 ／ 操作</i>
+  concrete/usecase/           <i>既定の concrete。利用者が差し替えてよい</i>
+    usecase-driven.schema.json     <i>宣言6種類の形と、x-prompt</i>
+    context.html / context.render.json      <i>射影（雛形と宣言）</i>
+    aggregate.html / aggregate.render.json
+
+<b>利用者のリポジトリ　shipping-platform/</b>
+  .&lt;道具名&gt;/
+    <b>spec/宅配のサービス/</b>      <i>仕様の実体 ── 正本。AI が書き、人が承認する</i>
+    <b>schema/</b>                   <i>自前の concrete（置くときだけ）</i>
+    bindings.json              <i>対応表 ── 道具が書く</i>
+    out/                       <i>射影の出力 ── 毎回出る。版に入れなくてよい</i>
+  src/ ・ tests/               <i>実装とテスト</i>
+  .claude/ ・ .codex/ ・ .kiro/  <i>実行系が読む形（道具が出す）</i></div>
+
+<div class="step"><span class="n">1</span><div>
+<h2>AI が仕様を書く<span class="tag">試作で動く</span></h2><span class="who">AI ／ 利用者のリポジトリ</span>
+<p><b>宣言もテストも AI が書き、人は承認する</b>（論点1）。正本は構造化データ1つで、<b>人はこれを直に読まない</b> ── 読むのは4段目の HTML である。事業領域で切ったフォルダの根に、事業領域の宣言を必ず置く ── これは契約である。</p>
+<pre class="cmd">$ ls .&lt;道具名&gt;/spec/宅配のサービス/</pre>
+<pre>business-domain.json   ← 根（全体のコンセプト）
+contexts/all.json
+subdomains/all.json
+usecases/all.json</pre>
+</div></div>
+
+<div class="step"><span class="n">2</span><div>
+<h2>道具が、形を検査する<span class="tag next">これから</span></h2><span class="who">道具 ／ concrete の schema</span>
+<p>利用者が置いた concrete の JSON Schema で、宣言の中身を検査する。<b>いまの試作は <code>body</code> を素通ししている</b> ── ここが論点10 で入る。</p>
+<pre class="cmd">$ schema validate</pre>
+<pre>× spec/宅配のサービス/contexts/all.json
+    BC-01J8B7C/body: 欄 owner が無い
+    BC-01J9A1S/body/language[0]: 知らない欄 note
+見つかったこと 2 件</pre>
+</div></div>
+
+<div class="step"><span class="n">3</span><div>
+<h2>道具が、射影を出す<span class="tag">試作で動く</span></h2><span class="who">道具 ／ 雛形は concrete が持つ</span>
+<p>同じ宣言から、<b>人が承認する HTML</b> と、<b>実行系が読む形</b>が出る。出す先は 宣言 × 変換機 で決まり、ここでは 39 件出た。</p>
+<div class="two">
+<div>
+<pre class="cmd">$ schema render --as 承認</pre>
+<pre>&lt;h1&gt;出荷指示（集約）&lt;/h1&gt;
+&lt;h2&gt;不変条件&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;明細の合計は、引当済の数量を超えない
+    &lt;code&gt;sum(lines.qty) &lt;= allocatedQty&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;操作&lt;/h2&gt;
+&lt;li&gt;&lt;b&gt;確定する&lt;/b&gt; ── 事前 ["status == 準備中",
+    "lines.length &gt; 0"］／ 事後 ["status == 確定済"]&lt;/li&gt;</pre>
+</div>
+<div>
+<pre class="cmd">$ cat .codex/agents/AGG-01J7Q4K.toml</pre>
+<pre>name = "AGG-01J7Q4K"
+description = "出荷指示"
+model = "gpt-5.6-luna"
+sandbox_mode = "read-only"
+developer_instructions = """
+明細の合計は、引当済の数量を超えない を保つこと。
+確定する は、事前条件 ["status == 準備中",
+  "lines.length > 0"] を満たすときだけ実行する。
+"""</pre>
+</div>
+</div>
+<p class="note">雛形は concrete が持つので、<b>出す先を1つ足すのは雛形1枚と宣言1件</b>である（Rust は0行）。</p>
+</div></div>
+
+<div class="step"><span class="n">4</span><div>
+<h2>人が承認する<span class="tag">試作で動く</span></h2><span class="who">人 ／ PR のレビューで1回</span>
+<p><b>人が触るのは、ここだけである。</b>読むのは HTML で、承認したのはシナリオ <code>SC-01J7Q4M</code> と <code>SC-01J7Q4N</code> の2本。<b>承認は仕様の PR で1回で、道具は承認を記録しない</b>（論点5 ・ 論点8）。</p>
+</div></div>
+
+<div class="step"><span class="n">5</span><div>
+<h2>AI が、要る分だけ取る<span class="tag">試作で動く</span></h2><span class="who">AI ／ 取る操作 3つ</span>
+<p><b>仕様を全部は渡さない。</b>索引を取り、参照をたどり、実装する宣言だけを取る。括弧の数はトークンで、実在の仕様を数えた値である。</p>
+<pre class="cmd">&gt; list　　　　　　　　　　　　　　　　　　　# 索引（299／17行）</pre>
+<pre>BD-01J8D0P 宅配のサービス &lt;business-domain&gt;
+BC-01J8B7C 受注の文脈 &lt;bounded-context&gt;
+SD-01J8C1A 配送手配 &lt;subdomain&gt;
+AGG-01J7Q4K 出荷指示 &lt;aggregate&gt;
+UC-01J7Q8Q 出荷を確定する &lt;usecase&gt;
+…（17行）</pre>
+<pre class="cmd">&gt; refs AGG-01J7Q4K　　　　　　　　　　　　 # 参照をたどる（38）</pre>
+<pre>指している　 BC-01J8B7C　SD-01J8C1A
+指されている （無し）</pre>
+<pre class="cmd">&gt; get AGG-01J7Q4K　　　　　　　　　　　　　# 宣言1件（360。中央値は108）</pre>
+<pre>{ "kind":"aggregate", "id":"AGG-01J7Q4K", "name":"出荷指示",
+  "rules":[{"name":"明細の合計は、引当済の数量を超えない",
+            "predicate":"sum(lines.qty) &lt;= allocatedQty"}],
+  "ops":[{"name":"確定する",
+          "pre":["status == 準備中","lines.length &gt; 0"],
+          "post":["status == 確定済"],
+          "writes":["出荷指示","出荷明細"]}],
+  "nodes":[{"id":"SC-01J7Q4M","name":"明細が0件のとき、確定できない",
+            "then":{"fails":true,"checks":["status == 準備中"]}}] }</pre>
+<p class="note">実測 ── <b>この3つで 697</b>（索引299 ＋ 参照38 ＋ 宣言360）。全部を詰めて渡すと 2,674 なので <b>26%</b> である。釣り合う点は取る宣言の大きさで動く ── 中央値の宣言なら12.6件、いちばん大きい宣言なら5.6件で並ぶ。</p>
+</div></div>
+
+<div class="step"><span class="n">6</span><div>
+<h2>AI の文脈に載るもの<span class="tag next">これから</span></h2><span class="who">AI ／ 読まれ方</span>
+<p>取った結果に、concrete の schema が持つ <code>x-prompt</code> が付く。<b>読み方も利用者が書く</b> ── 道具は「<code>x-prompt</code> が在れば頭に出す」しか知らない。</p>
+<pre># aggregate 読む: 状態と不変条件を持つ単位
+# aggregate 書く: 操作を呼ぶ前に事前条件を取り直す。書き換える先も宣言に在る
+# scenario 書く: 期待（given / when / then）はテストの元である。作り替えない
+
+AGG-01J7Q4K 出荷指示 &lt;aggregate&gt;
+  不変条件　明細の合計は、引当済の数量を超えない
+  　　　　　sum(lines.qty) &lt;= allocatedQty
+  操作　　　確定する
+  　　　　　事前 status == 準備中 ／ lines.length &gt; 0
+  　　　　　事後 status == 確定済
+  　　　　　書き換える 出荷指示 ・ 出荷明細
+  シナリオ　SC-01J7Q4M 明細が0件のとき、確定できない
+  　　　　　期待 失敗する（status == 準備中）</pre>
+<p class="note">同じ宣言を <code>--as 承認</code> で取れば HTML が出る。<b>操作と射影は直交する</b> ── 何を取るかと、どの形で受け取るかは別である。</p>
+</div></div>
+
+<div class="step"><span class="n">7</span><div>
+<h2>AI が書く<span class="tag">試作で動く</span></h2><span class="who">AI ／ 受ける操作 2つ</span>
+<p>書く先は3つある。<b>実装とテストはふつうにファイルへ書く</b> ── 道具はソースを1行も読まない。道具へ入るのは<b>対応表の1行だけ</b>である。</p>
+<pre class="cmd">① 実装とテストを、ファイルへ書く</pre>
+<pre>src/出荷指示.rs
+tests/出荷指示.rs
+  #[test] fn 明細が0件のとき確定できない() { … }</pre>
+<pre class="cmd">② 結んだと申告する ── 道具へ入るのはここだけ</pre>
+<pre>&gt; bind(node="SC-01J7Q4M", external="usecase::tests::明細が0件のとき確定できない")
+対応表へ1行入った</pre>
+<pre class="cmd">③ 仕様を直すときは、ファイルへ書いて validate で受ける</pre>
+<pre>&gt; validate
+× spec/宅配のサービス/usecases/all.json
+    UC-01J9B2B/body: 欄 context が無い
+見つかったこと 1 件</pre>
+<p class="note"><b>道具に、仕様を書き換える操作は持たせない。</b>書き換えられると、承認を経ない変更の経路ができる ── 仕様の変更は PR を通る（論点8）。<b>書くのは AI だが、通すのは人である。</b></p>
+</div></div>
+
+<div class="step"><span class="n">8</span><div>
+<h2>CI が引き算する<span class="tag">試作で動く</span></h2><span class="who">道具 ／ CLI ・ フック ・ MCP のどれからでも</span>
+<p>仕様と、対応表と、テストの一覧を引き算する。<b>出るのは「仕様の外に在るもの」だけ</b>である。</p>
+<pre class="cmd">$ schema check</pre>
+<pre>対応の無い節： SC-01J9C4D  ／ 承認の境目でゼロ
+対応の無い節： SC-01J9E2G  ／ 承認の境目でゼロ
+見つかったこと 2 件</pre>
+</div></div>
+
+<div class="step"><span class="n">9</span><div>
+<h2>壊すと、別の行で出る<span class="tag">試作で動く</span></h2><span class="who">道具 ／ 4通りの壊れ方</span>
+<pre class="cmd">① シナリオを足して、テストをまだ書いていない</pre>
+<pre>対応の無い節： SC-01J9C1A  ／ 承認の境目でゼロ</pre>
+<pre class="cmd">② 誰も宣言していないテストが在る</pre>
+<pre>結ばれていない識別子： usecase::tests::こっそり足した  ／ 常時ゼロ（落とす）</pre>
+<pre class="cmd">③ テストの名前を変えた</pre>
+<pre>切れた対応： usecase::tests::明細が1件あれば確定できる ── 外に無い  ／ 承認の境目でゼロ</pre>
+<pre class="cmd">④ 宣言していない Skill を、手で置いた</pre>
+<pre>結ばれていない識別子： .claude/skills/手で置いた/SKILL.md  ／ 常時ゼロ（落とす）</pre>
+<p class="note"><b>「常時ゼロ」は落とす行</b>で、<b>「承認の境目でゼロ」は人が承認するまで残ってよい行</b>である。直す手は2つしかない ── 仕様へ入れるか、成果物を消すか。</p>
+</div></div>
+</div>
+
+</body></html>

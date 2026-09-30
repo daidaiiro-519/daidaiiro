@@ -1,0 +1,315 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>schema 駆動の手引き</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+ :root{
+  --paper:#FBFAF7; --panel:#FFFFFF; --ink:#1E2430; --soft:#535C6B; --faint:#858E9C;
+  --line:#E2DCD2; --key:#16636B; --kbg:#E8F1F0; --warn:#9A4A21; --wbg:#F7EDE6;
+  --mincho:"Shippori Mincho B1","Hiragino Mincho ProN",serif;
+  --goth:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",monospace;
+ }
+ @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#14171C; --panel:#1B2027; --ink:#E6E9EE; --soft:#AAB3C0; --faint:#7A8390;
+  --line:#2C333C; --key:#62B6BB; --kbg:#16302F; --warn:#DA8C5E; --wbg:#2D211A; } }
+ :root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#14171C; --panel:#1B2027; --ink:#E6E9EE; --soft:#AAB3C0; --faint:#7A8390;
+  --line:#2C333C; --key:#62B6BB; --kbg:#16302F; --warn:#DA8C5E; --wbg:#2D211A; }
+ body{background:var(--paper);color:var(--ink);font-family:var(--goth);font-size:15px;line-height:1.85;}
+ .wrap{max-width:860px;margin:0 auto;padding-inline:20px;padding-block:48px 90px;}
+ .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--key);margin:0 0 12px;}
+ h1{font-family:var(--mincho);font-weight:700;font-size:clamp(1.55rem,4.4vw,2.15rem);line-height:1.45;margin:0 0 16px;text-wrap:balance;}
+ .lede{font-size:1.02rem;color:var(--soft);margin:0 0 14px;max-width:66ch;}
+ .status{font-size:.88rem;color:var(--soft);margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+ .pill{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;border:1px solid var(--warn);color:var(--warn);background:var(--wbg);border-radius:99px;padding:1px 10px;}
+ .toc{margin:34px 0 8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 22px;}
+ .toc-h{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;color:var(--faint);margin:0 0 6px;}
+ .toc ol{margin:0;padding-left:1.4em;columns:2;column-gap:30px;}
+ .toc li{margin:3px 0;break-inside:avoid;}
+ .toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);}
+ .toc a:hover,.toc a:focus-visible{color:var(--key);border-bottom-color:var(--key);outline:none;}
+ section{margin-top:52px;scroll-margin-top:20px;}
+ h2{font-family:var(--mincho);font-weight:700;font-size:1.28rem;line-height:1.5;margin:0 0 10px;padding-bottom:10px;border-bottom:2px solid var(--key);text-wrap:balance;}
+ h3{font-family:var(--goth);font-weight:700;font-size:1rem;margin:28px 0 8px;color:var(--key);}
+ p{margin:0 0 14px;max-width:70ch;}
+ p.lead{font-size:1.02rem;}
+ b{font-weight:700;}
+ code{font-family:var(--mono);font-size:.84em;background:var(--kbg);color:var(--key);padding:1px 5px;border-radius:3px;}
+ pre{margin:0 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;}
+ pre code{background:none;color:var(--ink);padding:0;font-size:.8rem;line-height:1.75;}
+ .three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px;}
+ .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+ .card .k{font-weight:700;color:var(--key);margin:0 0 6px;font-size:.95rem;}
+ .card p{margin:0;font-size:.92rem;}
+ .scroll{overflow-x:auto;margin:6px 0 16px;}
+ table{width:100%;border-collapse:collapse;font-size:.9rem;}
+ th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--faint);font-weight:400;border-bottom:1px solid var(--line);padding:0 14px 8px 0;}
+ td{border-bottom:1px solid var(--line);padding:11px 14px 11px 0;vertical-align:top;}
+ td.ng{color:var(--warn);font-weight:700;white-space:nowrap;}
+ table.code td:first-child,table.roles td:first-child{white-space:nowrap;font-weight:700;}
+ ol.steps{list-style:none;counter-reset:s;margin:10px 0 0;padding:0;}
+ ol.steps li{counter-increment:s;position:relative;padding:0 0 18px 52px;border-left:2px solid var(--line);margin-left:16px;}
+ ol.steps li:last-child{border-left-color:transparent;padding-bottom:0;}
+ ol.steps li::before{content:counter(s);position:absolute;left:-17px;top:-2px;width:32px;height:32px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--key);color:var(--key);font-family:var(--mono);font-weight:500;
+  display:flex;align-items:center;justify-content:center;font-size:.9rem;}
+ ol.steps .st{font-weight:700;margin:0 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+ ol.steps p{margin:0 0 4px;}
+ .who{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;border:1px solid var(--line);color:var(--soft);border-radius:4px;padding:0 7px;font-weight:400;}
+ .who.human{border-color:var(--warn);color:var(--warn);background:var(--wbg);}
+ .fig{background:#FFFFFF;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;margin:6px 0 4px;}
+ .fig svg{display:block;width:100%;min-width:640px;height:auto;}
+ .cap,.note{font-size:.84rem;color:var(--faint);margin:6px 2px 16px;}
+ ul.rules{margin:0 0 14px;padding-left:1.3em;}
+ ul.rules li{margin:6px 0;}
+ dl.words{display:grid;grid-template-columns:8.5em 1fr;gap:0;margin:8px 0 0;border-top:1px solid var(--line);}
+ dl.words dt,dl.words dd{margin:0;padding:11px 0;border-bottom:1px solid var(--line);}
+ dl.words dt{font-weight:700;color:var(--key);}
+ .foot{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:.84rem;color:var(--faint);}
+ @media (max-width:680px){ .three{grid-template-columns:1fr;} .toc ol{columns:1;} dl.words{grid-template-columns:1fr;} dl.words dt{border-bottom:none;padding-bottom:0;} }
+ @media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto;} }
+</style>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">はじめて使う人のための手引き ／ 試作段階</p>
+  <h1>仕様に書いたシナリオを、<br>テストが全部網羅しているかを検査する道具</h1>
+  <p class="lede">AI にコードを書かせると、<b>仕様に書いたことと、実際にテストされていることが、いつの間にか食い違う</b>。この道具は、その食い違いを CI で毎回検出する。人が行うのは、AI が書いた仕様を読んで承認することだけである。</p>
+  <p class="status"><span class="pill">試作段階</span>道具の名前はまだ決まっていない。この手引きでは、コマンド名を仮に <code>schema</code> と書く。</p>
+</header>
+
+<nav class="toc" aria-label="目次">
+  <p class="toc-h">この手引きの構成</p>
+  <ol>
+    <li><a href="#can">この道具でできること</a></li>
+    <li><a href="#who">人 ・ AI ・ 道具 ・ CI の分担</a></li>
+    <li><a href="#flow">仕様を書いてから CI が止めるまでの流れ</a></li>
+    <li><a href="#files">リポジトリに置くファイル</a></li>
+    <li><a href="#test">テストの書き方 ── シナリオID を記録する1行</a></li>
+    <li><a href="#cmd">コマンドの一覧</a></li>
+    <li><a href="#result">検出の結果と、直し方</a></li>
+    <li><a href="#not">この道具が検査しないこと</a></li>
+    <li><a href="#state">決まっていないこと</a></li>
+    <li><a href="#words">用語</a></li>
+  </ol>
+</nav>
+
+<section id="can">
+<h2>この道具でできること</h2>
+<p class="lead">できることは3つである。どれも、<b>仕様を1か所に置き、そこから外れたものを検出する</b>ための機能である。</p>
+<div class="three">
+  <div class="card">
+    <p class="k">1 ── 仕様を1か所に置く</p>
+    <p>業務の決まりを、決まった形のファイル（JSON）へ書く。<b>このファイルが正本</b>で、コードやテストよりも先に在る。形が方法論の決めと合っていなければ、道具が検出する。</p>
+  </div>
+  <div class="card">
+    <p class="k">2 ── 人が読む形と、AI ツールが読む形を出す</p>
+    <p>同じ仕様から、<b>人が承認のときに読む HTML</b> と、<b>AI ツールが読む設定ファイル</b>（Claude Code ・ Codex ・ Kiro の形）を出力する。手で転記しない。</p>
+  </div>
+  <div class="card">
+    <p class="k">3 ── シナリオのテストが在るかを検査する</p>
+    <p>仕様に書いたシナリオ（期待する振る舞い）の1つ1つについて、<b>それを検査するテストが実際に走ったか</b>を CI で確認する。無ければ CI が停止する。</p>
+  </div>
+</div>
+</section>
+
+<section id="who">
+<h2>人 ・ AI ・ 道具 ・ CI の分担</h2>
+<p class="lead"><b>人が行うのは承認だけ</b>である。仕様もテストも実装も AI が書き、つながりの検査は道具が、テストの合否は CI が担当する。</p>
+<div class="scroll"><table class="roles">
+  <thead><tr><th>担当</th><th>行うこと</th><th>行わないこと</th></tr></thead>
+  <tbody>
+    <tr><td><b>人</b></td><td>AI が書いた仕様を、HTML で読んで承認する（プルリクエストのレビューで1回）</td><td>仕様の JSON を直接読む ・ 書く</td></tr>
+    <tr><td><b>AI</b></td><td>仕様を書く。仕様からシナリオを取得し、テストと実装を書く</td><td>承認する</td></tr>
+    <tr><td><b>道具</b></td><td>仕様の形を検査する。射影を出力する。シナリオのテストが在るかを検査する</td><td>ソースコードを読む ・ テストの中身を判定する</td></tr>
+    <tr><td><b>CI</b></td><td>テストを走らせる。道具を呼び、検出があれば停止させる</td><td>── </td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<section id="flow">
+<h2>仕様を書いてから CI が止めるまでの流れ</h2>
+<p class="lead">1回の開発は、次の6段で進む。<b>人が関わるのは3段目だけ</b>である。</p>
+<ol class="steps">
+  <li>
+    <p class="st"><span class="who">AI</span>仕様を書く</p>
+    <p>業務の決まりとシナリオを、仕様のファイルへ書く。書いたら <code>schema validate</code> で形を検査する。</p>
+  </li>
+  <li>
+    <p class="st"><span class="who">道具</span>射影を出力する</p>
+    <p><b>射影</b>とは、仕様から道具が出力する別の形のことである。<code>schema emit</code> が、承認用の HTML と、AI ツールが読む設定ファイルを出力する。</p>
+  </li>
+  <li>
+    <p class="st"><span class="who human">人</span>承認する</p>
+    <p>プルリクエストで HTML を読み、シナリオが<b>やりたいことを表しているか</b>を判断する。承認はこの1回だけである。</p>
+  </li>
+  <li>
+    <p class="st"><span class="who">AI</span>テストと実装を書く</p>
+    <p><code>schema get &lt;ID&gt;</code> で必要な宣言だけを取得し、シナリオごとにテストを書く。<b>テストの中で、どのシナリオを検査するかを1行で記録する</b>（次の次の節）。</p>
+  </li>
+  <li>
+    <p class="st"><span class="who">CI</span>テストを走らせる</p>
+    <p>いつものテストの実行器を、環境変数 <code>SCENARIO_TRACE</code> を付けて走らせる。走ったテストが、記録したシナリオID をファイルへ1行ずつ書き出す。</p>
+  </li>
+  <li>
+    <p class="st"><span class="who">道具</span>シナリオのテストが在るかを検査する</p>
+    <p><code>schema covered</code> が、仕様のシナリオと、テストが記録したシナリオを照合する。欠けがあれば終了コード 1 を返し、CI が停止する。</p>
+  </li>
+</ol>
+</section>
+
+<section id="files">
+<h2>リポジトリに置くファイル</h2>
+<p class="lead">道具が使うファイルは、リポジトリの <code>.&lt;道具名&gt;/</code> の下にまとめて置く。<b>正本は <code>spec/</code> だけ</b>である。</p>
+<div class="scroll"><table>
+  <thead><tr><th>場所</th><th>中身</th><th>誰が書くか</th><th>版に入れるか</th></tr></thead>
+  <tbody>
+    <tr><td><code>spec/&lt;事業領域&gt;/</code></td><td>仕様の本体。宣言を JSON で書く</td><td>AI</td><td>入れる</td></tr>
+    <tr><td><code>schema/</code></td><td>方法論を差し替えるときの定義（宣言の形 ・ 射影の雛形）。既定の方法論を使うなら空のまま</td><td>利用者</td><td>入れる</td></tr>
+    <tr><td><code>out/</code></td><td>承認用の HTML など、道具が毎回出力するもの</td><td>道具</td><td>入れない</td></tr>
+  </tbody>
+</table></div>
+<p>AI ツールが読む設定ファイルは、それぞれのツールが決めた場所（<code>.claude/</code> ・ <code>.codex/</code> ・ <code>.kiro/</code>）へ道具が出力する。<b>手で書き換えない</b> ── 仕様に無い振る舞いが混入する。</p>
+</section>
+
+<section id="test">
+<h2>テストの書き方 ── シナリオID を記録する1行</h2>
+<p class="lead">テストの中で <code>scenario("シナリオID")</code> を1回呼ぶ。<b>これだけで、道具はそのシナリオのテストが走ったことを把握する</b>。</p>
+<p>テストがあるシナリオを検査することを、この手引きでは<b>網羅する</b>（カバーする）と呼ぶ。道具が扱うのは、次の2つの集合だけである。</p>
+<div class="fig"><svg class="wf-fig" viewBox="0 0 883 332" width="883" height="332" role="img"><g transform="translate(6.0,6.0)"><path d="M680.1,32.6 L680.1,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="680.1,95.4 677.7,88.6 682.6,88.6" fill="#C3CAD2"/><path d="M104.0,128.6 L348.0,191.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="348.0,191.2 340.8,191.9 342.1,187.1" fill="#C3CAD2"/><rect x="212.0" y="149.9" width="28.0" height="16.0" fill="#F5F7F9"/><text x="226.0" y="163.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">必要</text><path d="M680.1,128.6 L348.0,191.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="348.0,191.2 354.2,187.5 355.1,192.4" fill="#C3CAD2"/><rect x="500.1" y="149.9" width="28.0" height="16.0" fill="#F5F7F9"/><text x="514.1" y="163.5" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">網羅</text><path d="M348.0,224.8 L104.0,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="104.0,287.4 109.9,283.3 111.2,288.1" fill="#C3CAD2"/><rect x="192.2" y="246.1" width="67.5" height="16.0" fill="#F5F7F9"/><text x="226.0" y="259.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">必要 − 網羅</text><path d="M348.0,224.8 L679.6,287.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="679.6,287.4 672.5,288.6 673.4,283.7" fill="#C3CAD2"/><rect x="480.0" y="246.1" width="67.5" height="16.0" fill="#F5F7F9"/><text x="513.8" y="259.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">網羅 − 必要</text><g class="wf-node" transform="translate(488.0,0.0)"><g class="svg-box" role="利用者"><rect x="0" y="0" width="383.2" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="191.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">作り方は利用者が選ぶ ── 既定：テストが走ったときに書き出す</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="208.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">仕様が必要とするシナリオの集合</text></g></g><g class="wf-node" transform="translate(530.0,96.0)"><g class="svg-box" role="利用者"><rect x="0" y="0" width="299.2" height="32.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="149.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストの側が網羅したシナリオの集合（1行1ID）</text></g></g><g class="wf-node" transform="translate(232.0,192.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="232.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="116.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">引き算（道具が行うのは、これだけ）</text></g></g><g class="wf-node" transform="translate(54.0,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストが無い</text></g></g><g class="wf-node" transform="translate(569.6,288.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">仕様に無いシナリオ（書き間違い）</text></g></g></g></svg></div>
+<p class="cap">破線はリポジトリの側、実線は道具の側。道具は2つの集合の差を取るだけで、テストの言語も、テストの実行器も、テストの書き方も扱わない。</p>
+
+<h3>記録する1行を入れたテスト（Go の例）</h3>
+<pre><code>func TestConfirm(t *testing.T) {
+	t.Run("明細が0件なら確定できない", func(t *testing.T) {
+		scenario("SC-01J7Q4M")   // ← このテストが検査するシナリオを記録する
+		o := &amp;Order{Status: "準備中"}
+		if o.Confirm() == nil {
+			t.Fatal("確定できてしまった")
+		}
+	})
+}</code></pre>
+
+<h3><code>scenario</code> の中身 ── 言語ごとに1つ置く</h3>
+<p><code>SCENARIO_TRACE</code> が指すファイルへ、ID を1行追記するだけである。どの言語も標準ライブラリだけで書ける。</p>
+<div class="scroll"><table class="code">
+  <thead><tr><th>言語</th><th>中身（要点）</th></tr></thead>
+  <tbody>
+    <tr><td>Go</td><td><code>os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)</code> へ <code>id + "\n"</code></td></tr>
+    <tr><td>Python</td><td><code>open(os.environ["SCENARIO_TRACE"], "a").write(id + "\n")</code></td></tr>
+    <tr><td>TypeScript ／ JavaScript</td><td><code>appendFileSync(process.env.SCENARIO_TRACE, id + "\n")</code></td></tr>
+    <tr><td>Java</td><td><code>Files.writeString(Path.of(p), id + "\n", CREATE, APPEND)</code></td></tr>
+    <tr><td>Ruby</td><td><code>File.open(ENV["SCENARIO_TRACE"], "a") { |f| f.puts id }</code></td></tr>
+    <tr><td>PHP</td><td><code>file_put_contents(getenv("SCENARIO_TRACE"), $id . "\n", FILE_APPEND)</code></td></tr>
+    <tr><td>Rust</td><td><code>OpenOptions::new().append(true).create(true).open(p)</code> へ <code>writeln!</code></td></tr>
+  </tbody>
+</table></div>
+<p class="note">7言語とも、表駆動のテスト ・ 引数付きのテスト ・ 入れ子のテストの中で記録させて、同じ結果になることを確認している（2026-09-27）。</p>
+
+<h3>遵守すること</h3>
+<ul class="rules">
+  <li><b>1つのテストで、検査するシナリオを記録する。</b>1つのシナリオを複数のテストで検査してよい（境界値ごとに分けるなど）</li>
+  <li><b>テストの先頭で記録する。</b>飛ばした（skip した）テストは記録しないので、網羅したことにならない</li>
+  <li><b>記録してよいのは、そのテストが実際に検査するシナリオだけである。</b>関係の無い ID を記録すると、道具は「在る」と判定してしまう</li>
+</ul>
+</section>
+
+<section id="cmd">
+<h2>コマンドの一覧</h2>
+<p class="lead">コマンドは6つである。<b>名前はすべて仮</b>で、試作では同じ処理が別の名前で動いている。</p>
+<div class="scroll"><table>
+  <thead><tr><th>コマンド</th><th>行うこと</th><th>主に使う人</th></tr></thead>
+  <tbody>
+    <tr><td><code>schema validate</code></td><td>仕様の形を検査する。方法論が決めた欄が欠けていないか ・ 知らない欄が無いかを検査する</td><td>AI ・ CI</td></tr>
+    <tr><td><code>schema emit</code></td><td>仕様から射影（承認用の HTML と、AI ツールが読む設定ファイル）を出力する</td><td>CI</td></tr>
+    <tr><td><code>schema list</code></td><td>宣言の索引（ID ・ 名前 ・ 種類）を出力する</td><td>AI</td></tr>
+    <tr><td><code>schema refs &lt;ID&gt;</code></td><td>その宣言が参照している ID と、その宣言を参照している ID を出力する</td><td>AI</td></tr>
+    <tr><td><code>schema get &lt;ID&gt; [--as 射影]</code></td><td>宣言を1件出力する。射影の名前を渡すと、その形で出力する</td><td>AI</td></tr>
+    <tr><td><code>schema covered &lt;記録&gt; [宣言ID]</code></td><td>テストが記録したシナリオと、仕様のシナリオを照合する。宣言ID を渡すと、その宣言のシナリオだけを対象にする</td><td>CI</td></tr>
+  </tbody>
+</table></div>
+<p>AI は <code>list</code> ・ <code>refs</code> ・ <code>get</code> を MCP から呼ぶ。<b>仕様を全部読み込まず、必要な宣言だけを取得する</b> ── 試作の仕様（宣言17件）では、全部を渡すと 2,674 トークン、索引と参照と宣言1件で 697 トークンだった。</p>
+
+<h3>CI に書く内容の例</h3>
+<pre><code>schema validate                                  # 仕様の形
+schema emit                                      # 射影の出力
+SCENARIO_TRACE=covered.txt go test ./...         # いつものテスト
+schema covered covered.txt                       # シナリオのテストが在るか</code></pre>
+</section>
+
+<section id="result">
+<h2>検出の結果と、直し方</h2>
+<p class="lead">検出はどれも「仕様の外に在るもの」か「仕様に在るのに無いもの」である。<b>直し方は、仕様を直すか、実装側を直すかの2つしかない</b>。</p>
+
+<h3><code>schema covered</code> の出力の例</h3>
+<pre><code>○ SC-01J7Q4M　明細が0件のとき、確定できない
+× SC-01J7Q4N　明細が1件あれば、確定できる　── テストが無い
+× SC-01J7Q4X　── 仕様に無いシナリオを記録している
+網羅 1/2 ／ 見つかったこと 2 件</code></pre>
+
+<div class="scroll"><table>
+  <thead><tr><th>出力</th><th>起きていること</th><th>直し方</th></tr></thead>
+  <tbody>
+    <tr><td class="ng">テストが無い</td><td>そのシナリオを記録するテストが走っていない。書いていない ・ 記録する1行を入れ忘れた ・ テストを飛ばした、のどれか</td><td>テストを書くか、<code>scenario(...)</code> を入れるか、skip を外す</td></tr>
+    <tr><td class="ng">仕様に無いシナリオを記録している</td><td>テストが記録した ID が、仕様に無い。多くは ID の書き間違い</td><td>ID を仕様のものに直す</td></tr>
+    <tr><td class="ng">形の検査に通らない（<code>validate</code>）</td><td>宣言に、方法論が決めた欄が欠けている ・ 知らない欄がある</td><td>仕様を直す</td></tr>
+    <tr><td class="ng">宣言していない成果物が在る</td><td>道具が出力していない設定ファイルが、手で置かれている</td><td>消すか、仕様へ入れて道具に出力させる</td></tr>
+  </tbody>
+</table></div>
+<p><b>道具の検出は、必ず「無い」の側に帰着する。</b>記録の入れ忘れ ・ skip ・ ID の書き間違いは、どれも「テストが無い」として出る。テストが無いのに「在る」と出るのは、関係の無いテストが実在する ID を記録したときだけである。</p>
+</section>
+
+<section id="not">
+<h2>この道具が検査しないこと</h2>
+<p class="lead">道具が検査するのは<b>つながりが在るかどうかだけ</b>である。次の4つは、道具ではなく別の担当が担当する。</p>
+<div class="scroll"><table>
+  <thead><tr><th>検査しないこと</th><th>担当するもの</th></tr></thead>
+  <tbody>
+    <tr><td>シナリオが、やりたいことを表しているか</td><td><b>人</b>（承認）</td></tr>
+    <tr><td>テストが、そのシナリオを正しく検査しているか（中身が空のテストでも、記録すれば「在る」になる）</td><td><b>コーディングの規則と、プルリクエストのレビュー</b></td></tr>
+    <tr><td>テストが通るか</td><td><b>CI</b>（テストの実行器の終了コード）</td></tr>
+    <tr><td>実装の品質</td><td><b>コーディングの規則</b></td></tr>
+  </tbody>
+</table></div>
+<p>道具がソースコードを読まないのは、<b>言語に依存しないため</b>である。ソースを読むと、言語ごとに解析の仕組みが要り、言語が増えるたびに道具が変わる。</p>
+</section>
+
+<section id="state">
+<h2>決まっていないこと</h2>
+<p class="lead">この道具は<b>試作段階</b>である。仕組みは試作で動いているが、次の点はまだ決まっていない。</p>
+<div class="scroll"><table>
+  <thead><tr><th>項目</th><th>いまの状態</th></tr></thead>
+  <tbody>
+    <tr><td>道具の名前 ・ コマンドの名前</td><td>未定。この手引きの <code>schema</code> は仮の名前である</td></tr>
+    <tr><td>方法論を差し替えるときの書き方（JSON Schema ・ 雛形 ・ 射影の宣言）</td><td>試作で動作を確認済み。<b>承認待ち</b></td></tr>
+    <tr><td>取得のコマンド4つと、シナリオID を記録する方式</td><td>試作で動作を確認済み（7言語）。<b>承認待ち</b></td></tr>
+    <tr><td>MCP の1回の呼び出しに掛かるトークン</td><td>測定していない</td></tr>
+    <tr><td>宣言が1,000件を超えるときの索引の絞り込み</td><td>決めていない</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<section id="words">
+<h2>用語</h2>
+<p class="lead">この手引きで使う語は、次の8つである。同じものは、いつも同じ語で呼ぶ。</p>
+<dl class="words">
+  <dt>仕様</dt><dd>業務の決まりを書いたファイルの集まり。<code>spec/</code> に置き、これが正本である。</dd>
+  <dt>宣言</dt><dd>仕様の中の1件。ID を持ち、種類（集約 ・ ユースケースなど）が決まっている。</dd>
+  <dt>シナリオ</dt><dd>宣言が持つ、期待する振る舞いの1つ。「明細が0件のとき、確定できない」のように書く。テストと1対1ではなく、1つのシナリオを複数のテストで検査してよい。</dd>
+  <dt>シナリオID</dt><dd>シナリオに付いた識別子。<code>SC-01J7Q4M</code> の形をしている。</dd>
+  <dt>射影</dt><dd>仕様から道具が出力する、別の形。人が読む HTML と、AI ツールが読む設定ファイルがある。射影は毎回出力し直すもので、手で書き換えない。</dd>
+  <dt>承認</dt><dd>人が射影の HTML を読み、シナリオがやりたいことを表しているかを判断すること。プルリクエストのレビューで1回行う。</dd>
+  <dt>網羅する</dt><dd>テストが、あるシナリオを検査すること（カバーすること）。テストが走ったときに記録したシナリオを、「網羅したシナリオ」と呼ぶ。</dd>
+  <dt>方法論</dt><dd>宣言の種類と、その形を決めたもの。既定はユースケース駆動で、利用者が差し替えてよい。</dd>
+</dl>
+</section>
+
+<footer class="foot">
+  <p>この手引きの出力例は、試作（<code>.brainstorming-board/usecase-schema-driven/trial/</code>）で実際に実行したものである。7言語の確認は <code>trial/coverage-langs/run.sh</code> で再現できる。</p>
+</footer>
+
+</div>
+
+</body></html>

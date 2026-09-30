@@ -1,0 +1,487 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Jev 入力選別シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#F2F4F6; --surface:#FFFFFF; --ink:#17212B; --muted:#5B6877; --line:#D6DDE4; --soft:#E9EDF1;
+  --jev:#2E6A5B; --jev-soft:#D5E7E1; --opus:#8A4F24; --opus-soft:#F1E1D3; --miss:#B23A2E; --miss-soft:#F4D9D5;
+  --waste:#9AA7B4; --idle:#E4E8EC;
+  --sans:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#12181E; --surface:#1A222A; --ink:#E4E9EE; --muted:#96A3B0; --line:#2E3A45; --soft:#222C35;
+    --jev:#6CC0A8; --jev-soft:#1F3A33; --opus:#D9955E; --opus-soft:#3A2A1D; --miss:#E57364; --miss-soft:#3F2522;
+    --waste:#5E6B78; --idle:#27313A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#12181E; --surface:#1A222A; --ink:#E4E9EE; --muted:#96A3B0; --line:#2E3A45; --soft:#222C35;
+  --jev:#6CC0A8; --jev-soft:#1F3A33; --opus:#D9955E; --opus-soft:#3A2A1D; --miss:#E57364; --miss-soft:#3F2522;
+  --waste:#5E6B78; --idle:#27313A;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;padding:24px 16px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:20px}
+header{display:grid;gap:6px}
+h1{font-size:24px;line-height:1.3;margin:0;font-weight:700;text-wrap:balance}
+.lead{margin:0;color:var(--muted);max-width:70ch}
+h2{font-size:15px;margin:0 0 10px;font-weight:700;text-wrap:balance}
+.label{font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.main{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.controls{display:grid;gap:14px;position:sticky;top:env(safe-area-inset-top,0px)}
+@media (max-width:860px){.controls{position:static}}
+.presets{display:grid;gap:6px}
+.presets button{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:8px 10px;cursor:pointer}
+.presets button[aria-pressed="true"]{border-color:var(--jev);background:var(--jev-soft)}
+.presets button:focus-visible,.ctl input:focus-visible,.btn:focus-visible{outline:2px solid var(--jev);outline-offset:2px}
+.ctl{display:grid;gap:4px}
+.ctl .row{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ctl label{font-weight:500}
+.ctl output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--jev);white-space:nowrap}
+.ctl input[type=range]{width:100%;accent-color:var(--jev)}
+.ctl .hint{font-size:12px;color:var(--muted)}
+.group{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.check{display:flex;gap:8px;align-items:flex-start;font-weight:500}
+.check input{accent-color:var(--jev);margin-top:4px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer}
+.results{display:grid;gap:20px;min-width:0}
+.intro{display:grid;grid-template-columns:1.2fr 1fr;gap:24px}
+@media (max-width:860px){.intro{grid-template-columns:1fr}}
+.intro ol{margin:0;padding-left:1.4em;display:grid;gap:8px;max-width:62ch}
+.intro dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0;font-size:13px}
+.intro dt{font-weight:700}.intro dd{margin:0;color:var(--muted)}
+.story{border-color:var(--jev);border-width:2px}
+.story p{margin:6px 0 0;font-size:16px;line-height:1.8;max-width:75ch}
+.story b{color:var(--jev)} .story .bad{color:var(--miss);font-weight:700}
+details.more{border-top:1px solid var(--line);padding-top:12px}
+details.more summary{cursor:pointer;font-weight:700;color:var(--muted)}
+details.more[open] summary{margin-bottom:12px}
+details.more .group{border-top:none;padding-top:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:2px}
+.kpi .v{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.good .v{color:var(--jev)} .kpi.bad .v{color:var(--miss)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:170px 1fr 92px;gap:10px;align-items:center}
+@media (max-width:560px){.bar{grid-template-columns:1fr 84px}.bar .name{grid-column:1 / -1}}
+.track{height:20px;background:var(--soft);border-radius:4px;display:flex;overflow:hidden}
+.seg{height:100%}
+.seg.jev{background:var(--jev)} .seg.opus{background:var(--opus)} .seg.idx{background:var(--waste)} .seg.pull{background:var(--miss)} .seg.base{background:var(--opus)} .seg.cache{background:color-mix(in srgb,var(--opus) 45%,var(--soft))}
+.bar .cost{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:640px){.flow{grid-template-columns:1fr 1fr}}
+.stage{border:1px solid var(--line);border-radius:6px;padding:10px;display:grid;gap:2px;background:var(--surface)}
+.stage .t{font-weight:700;font-size:13px}
+.stage .v{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
+.stage .s{font-size:12px;color:var(--muted)}
+.stage.jev{border-color:var(--jev)} .stage.opus{border-color:var(--opus)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(14px,1fr));gap:3px}
+.cell{aspect-ratio:1;border-radius:2px;background:var(--idle)}
+.cell.tp{background:var(--jev)} .cell.fp{background:transparent;box-shadow:inset 0 0 0 1.5px var(--waste)} .cell.fn{background:var(--miss)} .cell.fnq{background:var(--miss-soft);box-shadow:inset 0 0 0 1.5px var(--miss)}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:500}
+td.p{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px}
+.pill.tp{background:var(--jev-soft);color:var(--jev)} .pill.fp{background:var(--soft);color:var(--muted)} .pill.fn{background:var(--miss-soft);color:var(--miss)} .pill.tn{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.warn{border-left:3px solid var(--miss);padding:8px 12px;background:var(--miss-soft);border-radius:0 6px 6px 0;font-size:13px}
+.src{display:grid;gap:6px;font-size:13px}
+.src dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0}
+.src dt{font-weight:500}.src dd{margin:0;color:var(--muted)}
+.tag{font-size:11px;padding:0 6px;border-radius:4px;margin-left:6px;vertical-align:1px}
+.tag.src-t{background:var(--jev-soft);color:var(--jev)} .tag.asm{background:var(--opus-soft);color:var(--opus)}
+@media (prefers-reduced-motion:no-preference){.seg{transition:width .25s ease}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="label">試算 ・ 例の値</span>
+    <h1>Jev 入力選別シミュレーター</h1>
+    <p class="lead">この頁が答える問いは1つ ──「Opus に資料を全部読ませる代わりに、Jev に先に選ばせたら、読ませる費用はいくら減るか。必要な資料を見落とさないか」。</p>
+  </header>
+
+  <section class="panel intro">
+    <div class="how">
+      <h2>使い方（3つの手順）</h2>
+      <ol>
+        <li><b>場面を選ぶ。</b>左上の3つのボタンのどれかを押す。まずは「リポジトリで不具合を修正する」のままでよい。</li>
+        <li><b>下の「いまの結果」の文章を読む。</b>費用がいくら減ったか、必要な資料を見落としたかを、文章で示す。</li>
+        <li><b>スライダーを2本だけ動かす。</b>「Jev の判別力」を下げると Jev の判断が雑になり、「Opus へ渡す基準」を上げると渡す資料が減る。文章と数字がどう変わるかを見る。</li>
+      </ol>
+    </div>
+    <div class="terms">
+      <h2>用語</h2>
+      <dl>
+        <dt>塊</dt><dd>資料を一定の大きさに切った1片。ファイル1つ、または長いファイルの一部。</dd>
+        <dt>Jev の判別力</dt><dd>関係ある塊と関係ない塊を、Jev がどれだけ正しく見分けるか。大きいほど正確。</dd>
+        <dt>Opus へ渡す基準</dt><dd>Jev の「関係する確率」がこの値以上の塊だけを Opus に読ませる。上げるほど渡す量が減り、見落としが増える。</dd>
+        <dt>目次と取り寄せ</dt><dd>渡さなかった塊は、名前だけを一覧にして Opus に見せる。Opus が「これも必要」と判断したら、その塊を追加で読む。</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="panel story" aria-live="polite">
+    <span class="label">いまの結果</span>
+    <p id="story"></p>
+  </section>
+
+  <div class="main">
+    <form class="panel controls" id="form" autocomplete="off">
+      <div class="presets" role="group" aria-label="場面">
+        <span class="label">場面</span>
+        <button type="button" id="p-repo" data-preset="repo">リポジトリで不具合を修正する（探索型）</button>
+        <button type="button" id="p-docs" data-preset="docs">大量の文書から調べる</button>
+        <button type="button" id="p-chat" data-preset="chat">同じ資料で長く対話する</button>
+      </div>
+
+      <div class="group">
+        <div class="ctl"><div class="row"><label for="sep">Jev の判別力</label><output id="sep-o"></output></div>
+          <input type="range" id="sep" min="0.5" max="5" step="0.1"><span class="hint">大きいほど、Jev の見分けが正確。日本語の資料では低めに見積もる</span></div>
+        <div class="ctl"><div class="row"><label for="thr">Opus へ渡す基準</label><output id="thr-o"></output></div>
+          <input type="range" id="thr" min="0.02" max="0.98" step="0.01"><span class="hint">上げるほど Opus に渡す量が減り、見落としが増える</span></div>
+
+      </div>
+
+      <details class="more">
+        <summary>細かい条件（最初は触らなくてよい）</summary>
+      <div class="group">
+        <div class="ctl"><div class="row"><label for="n">資料の総量</label><output id="n-o"></output></div>
+          <input type="range" id="n" min="100000" max="5000000" step="50000"><span class="hint">コードが候補として列挙した量（トークン）</span></div>
+        <div class="ctl"><div class="row"><label for="chunk">塊の大きさ</label><output id="chunk-o"></output></div>
+          <input type="range" id="chunk" min="500" max="30000" step="500"><span class="hint">上限は状態＋最長の問いで 32k（原典）</span></div>
+        <div class="ctl"><div class="row"><label for="rel">関係する塊の割合</label><output id="rel-o"></output></div>
+          <input type="range" id="rel" min="1" max="60" step="1"></div>
+        <div class="ctl"><div class="row"><label for="scan">現状で Opus が読む割合</label><output id="scan-o"></output></div>
+          <input type="range" id="scan" min="10" max="100" step="5"><span class="hint">Jev を使わない場合に、探索として Opus が実際に読む量</span></div>
+        <label class="check" for="cached"><input type="checkbox" id="cached"> 同じ資料を繰り返し読む（現状はキャッシュから読む）</label>
+      </div>
+
+      <div class="group">
+        <div class="ctl"><div class="row"><label for="notice">目次から不足に気づく率</label><output id="notice-o"></output></div>
+          <input type="range" id="notice" min="0" max="100" step="5"></div>
+        <div class="ctl"><div class="row"><label for="q">塊あたりの問いの数</label><output id="q-o"></output></div>
+          <input type="range" id="q" min="1" max="8" step="1"></div>
+        <div class="ctl"><div class="row"><label for="ctx">取り寄せ1回で読み直す文脈</label><output id="ctx-o"></output></div>
+          <input type="range" id="ctx" min="10000" max="300000" step="10000"><span class="hint">取り寄せの手番ごとに、キャッシュから読み直す会話の量</span></div>
+        <button type="button" class="btn" id="reseed">採点の乱数を引き直す</button>
+      </div>
+      </details>
+    </form>
+
+    <div class="results">
+      <div class="kpis" aria-live="polite">
+        <div class="kpi good"><span class="label">入力費用の削減</span><span class="v" id="k-red"></span><span class="s" id="k-red-s"></span></div>
+        <div class="kpi"><span class="label">Opus へ渡した割合</span><span class="v" id="k-pass"></span><span class="s" id="k-pass-s"></span></div>
+        <div class="kpi bad"><span class="label">取りこぼし</span><span class="v" id="k-miss"></span><span class="s" id="k-miss-s"></span></div>
+        <div class="kpi"><span class="label">Jev の所要</span><span class="v" id="k-time"></span><span class="s" id="k-time-s"></span></div>
+      </div>
+
+      <div id="cachewarn" class="warn" hidden></div>
+
+      <section class="panel">
+        <h2>1課題あたりの入力費用</h2>
+        <div class="bars" id="bars"></div>
+        <div class="legend" style="margin-top:10px">
+          <span><i style="background:var(--jev)"></i>Jev の採点</span>
+          <span><i style="background:var(--opus)"></i>Opus が読む塊</span>
+          <span><i style="background:var(--waste)"></i>目次</span>
+          <span><i style="background:var(--miss)"></i>取り寄せ（塊＋文脈の読み直し）</span>
+        </div>
+        <p class="note">出力の費用は、どの構成でも Opus が同じ量を書くとみなして含めない。</p>
+      </section>
+
+      <section class="panel">
+        <h2>各段のトークン量</h2>
+        <div class="flow" id="flow"></div>
+      </section>
+
+      <section class="panel">
+        <h2>塊ごとの判定</h2>
+        <div class="grid" id="grid" role="img" aria-label="塊ごとの判定の格子"></div>
+        <div class="legend" style="margin-top:10px">
+          <span><i style="background:var(--jev)"></i>関係あり ・ 渡した</span>
+          <span><i style="box-shadow:inset 0 0 0 1.5px var(--waste)"></i>関係なし ・ 渡した（無駄）</span>
+          <span><i style="background:var(--miss)"></i>関係あり ・ 除外 → 取り寄せた</span>
+          <span><i style="background:var(--miss-soft);box-shadow:inset 0 0 0 1.5px var(--miss)"></i>関係あり ・ 除外 → 気づかない</span>
+          <span><i style="background:var(--idle)"></i>関係なし ・ 除外</span>
+        </div>
+        <p class="note" id="grid-note"></p>
+      </section>
+
+      <section class="panel">
+        <h2>渡す基準を動かしたとき</h2>
+        <svg class="chart" id="sweep" viewBox="0 0 640 250" role="img" aria-label="基準ごとの入力費用と取りこぼし率"></svg>
+        <div class="legend">
+          <span><i style="background:var(--opus)"></i>Jev 構成の入力費用（左の軸）</span>
+          <span><i style="background:var(--miss)"></i>取りこぼし率（右の軸）</span>
+          <span><i style="background:var(--muted)"></i>現状の費用</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>塊の明細（関係ありの塊と、確率の高い関係なしの塊）</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>塊</th><th>実際</th><th>Jev の確率</th><th>判定</th><th>Opus の入力</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <p class="note">塊の名前と関係の有無は、この場面の例として作った値である。</p>
+      </section>
+
+      <section class="panel src">
+        <h2>使った値の出どころ</h2>
+        <dl>
+          <dt>Jev 1.13 の入力単価<span class="tag src-t">原典</span></dt><dd>100万トークンあたり 0.042ドル。出力は無料（docs.typesafe.ai/models、2026-09-27 取得）</dd>
+          <dt>1回の要求の上限<span class="tag src-t">原典</span></dt><dd>状態＋最長の問いで 32k、全部の問いを合わせて 64k（同）</dd>
+          <dt>レート上限<span class="tag src-t">原典</span></dt><dd>毎秒 250,000 トークン ／ 毎分 1,200 要求（同。予告なく変わると明記）</dd>
+          <dt>Opus 5.5 の単価<span class="tag src-t">原典</span></dt><dd>入力 4ドル ・ キャッシュ読み出し 0.20ドル（100万トークンあたり。Anthropic の料金表、同日取得）</dd>
+          <dt>塊ごとの手順<span class="tag src-t">原典</span></dt><dd>取得した断片ごとに1回要求し、渡すかをコードで決める（docs.typesafe.ai の Classifying RAG passages）</dd>
+          <dt>判別力 ・ 割合 ・ 気づく率<span class="tag asm">仮定</span></dt><dd>実測ではない。関係ありと関係なしの点数を正規分布で模し、確率へ変換した。実際の値は、過去の作業で Opus が読んだ箇所を正解として測る必要がある</dd>
+          <dt>問い1つ ・ 課題文 ・ 目次1行<span class="tag asm">仮定</span></dt><dd>問い 50 ・ 課題文 150 ・ 目次1行 30 トークン</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const PRICE = {jev:0.042, opus:4, cache:0.20};         // 100万トークンあたりのドル（原典）
+  const RATE = {tokPerSec:250000, reqPerMin:1200};      // Jev 1.13 のレート上限（原典）
+  const TOK = {question:50, task:150, index:30};        // 仮定
+  const GRID_MAX = 480;
+
+  const PRESETS = {
+    repo:{cached:false, n:600000, chunk:3000, rel:4, scan:50, sep:3.0, thr:0.30, notice:85, q:3, ctx:60000,
+      rel_names:["doc-writing-skills/rs/declare/src/lib.rs#run_reply","doc-writing-skills/rs/declare/tests/reply.rs","doc-writing-skills/SKILL.md#reply","doc-writing-skills/rs/cli/src/main.rs#emit",".claude/settings.json#hooks","doc-writing-skills/rs/parts/src/gate.rs#inspect_text","docs/research/claude-code-hooks/…/hooks.md#Stop"],
+      other_names:["design-svg/rs/parts/src/sugiyama.rs","brainstorming-board/rs/parts/src/render.rs","acdr/rs/parts/src/record.rs","slide-deck/rs/parts/src/deck.rs","narration/rs/parts/src/voice.rs","fact-check/rs/parts/src/source.rs","no-more-spaghetti/rs/parts/src/run.rs","skills-creator/references/tool-contract.md","design-svg/rs/parts/src/verify.rs","brainstorming-board/SKILL.md",".acdr/0017-…/acdr.json","docs/workshops/ai-workshop/materials/build_lessons.py","design-svg/rs/parts/src/compose.rs","acdr/rs/parts/src/panes.rs"]},
+    docs:{cached:false, n:2000000, chunk:6000, rel:8, scan:70, sep:2.4, thr:0.30, notice:80, q:4, ctx:120000,
+      rel_names:["製品仕様書 v3 §4.2","障害報告 2026-08-14","設計判断の記録 0012","運用手順書 §7","API 変更履歴 2026-09"],
+      other_names:["議事録 2026-05-11","採用ページの原稿","四半期報告 Q2","社内 FAQ","旧仕様書 v1 §2","研修資料 第3回","営業資料 2026 春","請求の手順書","休暇の規程","障害報告 2025-12-03"]},
+    chat:{cached:true, n:300000, chunk:2000, rel:30, scan:100, sep:2.5, thr:0.30, notice:85, q:3, ctx:150000,
+      rel_names:["会議の資料 §1","会議の資料 §3","前提の整理","決めること一覧"],
+      other_names:["付録 A","付録 B","参考文献","更新履歴","用語集"]}
+  };
+
+  const ids = ["n","chunk","rel","scan","sep","thr","notice","q","ctx"];
+  const el = id => document.getElementById(id);
+  let preset = "repo", seed = 7;
+
+  // 再現できる乱数
+  function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  function normal(r){ const u=Math.max(r(),1e-12), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  const fmtTok = t => t>=1e6 ? (t/1e6).toFixed(2)+"M" : t>=1e3 ? Math.round(t/1e3)+"k" : String(Math.round(t));
+  const fmtUsd = d => d>=1 ? "$"+d.toFixed(2) : d>=0.01 ? "$"+d.toFixed(3) : "$"+d.toFixed(4);
+  const pct = x => (x*100).toFixed(x<0.1&&x>0?1:0)+"%";
+
+  function read(){ const v={}; ids.forEach(k=>v[k]=parseFloat(el(k).value)); v.cached=el("cached").checked; return v; }
+
+  function sample(v){
+    const C = Math.max(1, Math.ceil(v.n / v.chunk));
+    const R = Math.max(1, Math.round(C * v.rel/100));
+    const r = rng(seed*1000 + C*7 + R);
+    // 関係ありの塊を散らす
+    const idx = Array.from({length:C},(_,i)=>i);
+    for(let i=C-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+    const relSet = new Set(idx.slice(0,R));
+    const chunks = [];
+    for(let i=0;i<C;i++){
+      const isRel = relSet.has(i);
+      const z = normal(r) + (isRel ? v.sep/2 : -v.sep/2);
+      const p = 1/(1+Math.exp(-1.6*z + 0.8));   // 関係なしが多い前提で、確率の中心を低めに置く
+      chunks.push({i, rel:isRel, p, noticeDraw:r()});
+    }
+    return chunks;
+  }
+
+  function evaluate(v, chunks, thr){
+    const C = chunks.length;
+    let pass=0, tp=0, fp=0, fn=0, pulled=0, silent=0;
+    chunks.forEach(c=>{
+      const passed = c.p >= thr;
+      if(passed){ pass++; c.rel ? tp++ : fp++; }
+      else if(c.rel){ fn++; if(c.noticeDraw*100 < v.notice) pulled++; else silent++; }
+    });
+    const R = tp+fn;
+    const jevTok = C*(v.chunk + TOK.task + v.q*TOK.question);
+    const opusTok = pass*v.chunk + TOK.task;
+    const idxTok = (C-pass)*TOK.index;
+    const pullTok = pulled*v.chunk;
+    const pullCtxTok = pulled*(v.ctx + opusTok + idxTok);        // 取り寄せの手番ごとに、文脈をキャッシュから読み直す
+    const cost = {
+      jev: jevTok*PRICE.jev/1e6,
+      opus: opusTok*PRICE.opus/1e6,
+      idx: idxTok*PRICE.opus/1e6,
+      pull: pullTok*PRICE.opus/1e6 + pullCtxTok*PRICE.cache/1e6
+    };
+    cost.total = cost.jev+cost.opus+cost.idx+cost.pull;
+    const baseTok = v.n*v.scan/100;
+    // 一度しか読まない資料はキャッシュの対象にならない ── 繰り返し読む場合だけ、キャッシュの単価で比べる
+    const base = baseTok*(v.cached ? PRICE.cache : PRICE.opus)/1e6;
+    const baseCache = base;
+    return {C,R,pass,tp,fp,fn,pulled,silent,jevTok,opusTok,idxTok,pullTok,pullCtxTok,cost,base,baseCache,baseTok,
+      missRate: R? (fn)/R : 0, silentRate: R? silent/R : 0};
+  }
+
+  function render(){
+    const v = read();
+    el("n-o").textContent = fmtTok(v.n)+" トークン";
+    el("chunk-o").textContent = fmtTok(v.chunk)+" トークン";
+    el("rel-o").textContent = v.rel+"%";
+    el("scan-o").textContent = v.scan+"%";
+    el("sep-o").textContent = v.sep.toFixed(1);
+    el("thr-o").textContent = v.thr.toFixed(2);
+    el("notice-o").textContent = v.notice+"%";
+    el("q-o").textContent = v.q+" 問";
+    el("ctx-o").textContent = fmtTok(v.ctx)+" トークン";
+
+    const chunks = sample(v);
+    const e = evaluate(v, chunks, v.thr);
+    const red = 1 - e.cost.total/e.base;
+
+    el("k-red").textContent = (red>=0?"":"−")+pct(Math.abs(red));
+    el("k-red").parentElement.className = "kpi "+(red>=0?"good":"bad");
+    el("k-red-s").textContent = "現状 "+fmtUsd(e.base)+" → "+fmtUsd(e.cost.total);
+    el("k-pass").textContent = pct(e.pass/e.C);
+    el("k-pass-s").textContent = e.pass+" / "+e.C+" 塊";
+    el("k-miss").textContent = pct(e.missRate);
+    el("k-miss-s").textContent = "関係あり "+e.R+" 塊のうち除外 "+e.fn+"（取り寄せ "+e.pulled+" ・ 気づかない "+e.silent+"）";
+    const sec = Math.max(e.jevTok/RATE.tokPerSec, e.C/RATE.reqPerMin*60);
+    el("k-time").textContent = sec<60 ? sec.toFixed(1)+"秒" : (sec/60).toFixed(1)+"分";
+    el("k-time-s").textContent = e.C+" 要求 ・ レート上限からの下限";
+
+    const w = el("cachewarn");
+    if(v.cached && red < 0){
+      w.hidden = false;
+      w.textContent = "現状は同じ資料をキャッシュから読むので（"+fmtUsd(e.base)+"）、この構成（"+fmtUsd(e.cost.total)+"）の方が高い。選別した塊は問いごとに変わり、キャッシュに載らないためである。削減が見込めるのは、一度しか読まない資料を探索する場面である。";
+    } else { w.hidden = true; }
+
+    // 費用の棒
+    const max = Math.max(e.base, e.cost.total);
+    const W = x => (x/max*100).toFixed(2)+"%";
+    el("bars").innerHTML =
+      '<div class="bar"><span class="name">'+(v.cached?"現状（キャッシュから読む）":"現状（Opus が新規に読む）")+'</span><div class="track"><div class="seg '+(v.cached?"cache":"base")+'" style="width:'+W(e.base)+'"></div></div><span class="cost">'+fmtUsd(e.base)+'</span></div>'+
+      '<div class="bar"><span class="name">Jev で選別した構成</span><div class="track">'+
+        '<div class="seg jev" style="width:'+W(e.cost.jev)+'" title="Jev '+fmtUsd(e.cost.jev)+'"></div>'+
+        '<div class="seg opus" style="width:'+W(e.cost.opus)+'" title="Opus '+fmtUsd(e.cost.opus)+'"></div>'+
+        '<div class="seg idx" style="width:'+W(e.cost.idx)+'" title="目次 '+fmtUsd(e.cost.idx)+'"></div>'+
+        '<div class="seg pull" style="width:'+W(e.cost.pull)+'" title="取り寄せ '+fmtUsd(e.cost.pull)+'"></div>'+
+      '</div><span class="cost">'+fmtUsd(e.cost.total)+'</span></div>'+
+      '<p class="note">内訳：Jev '+fmtUsd(e.cost.jev)+' ・ Opus の塊 '+fmtUsd(e.cost.opus)+' ・ 目次 '+fmtUsd(e.cost.idx)+' ・ 取り寄せ '+fmtUsd(e.cost.pull)+'</p>';
+
+    // 各段
+    el("flow").innerHTML =
+      stage("","資料", fmtTok(v.n), e.C+" 塊に分割")+
+      stage("jev","Jev が読む", fmtTok(e.jevTok), "問い "+v.q+" 問 ・ 課題文を同梱")+
+      stage("opus","Opus の入力", fmtTok(e.opusTok+e.idxTok), "塊 "+fmtTok(e.opusTok)+" ＋ 目次 "+fmtTok(e.idxTok))+
+      stage("","取り寄せ", fmtTok(e.pullTok), e.pulled+" 回 ・ 文脈の読み直し "+fmtTok(e.pullCtxTok));
+
+    // 格子
+    const show = chunks.slice(0, GRID_MAX);
+    el("grid").innerHTML = show.map(c=>{
+      const passed = c.p>=v.thr;
+      let k = "";
+      if(passed) k = c.rel?"tp":"fp";
+      else if(c.rel) k = (c.noticeDraw*100 < v.notice) ? "fn" : "fnq";
+      return '<div class="cell '+k+'" title="塊 '+(c.i+1)+' ・ 確率 '+c.p.toFixed(2)+'"></div>';
+    }).join("");
+    el("grid-note").textContent = chunks.length>GRID_MAX ? "全 "+chunks.length+" 塊のうち先頭 "+GRID_MAX+" 塊を表示している。数値は全塊から算出した。" : "全 "+chunks.length+" 塊を表示している。";
+
+    const s1 = fmtTok(v.n)+" トークンの資料を <b>"+e.C+" 個の塊</b>に分け、Jev が1つずつ「この課題に関係するか」を採点した。";
+    const s2 = "Opus に渡したのは <b>"+e.pass+" 塊（"+pct(e.pass/e.C)+"）</b>で、残りは名前だけを目次に載せた。";
+    const s3 = (v.cached ? "同じ資料をキャッシュから読む現状" : "Opus が自分で探して読む現状")+"の費用 "+fmtUsd(e.base)+" に対し、この構成は "+fmtUsd(e.cost.total)+"。"+
+      (red>=0 ? "<b>"+pct(red)+" 安い。</b>" : '<span class="bad">'+pct(-red)+" 高い。</span>");
+    let s4;
+    if(e.fn===0) s4 = "関係ある "+e.R+" 塊は、すべて Opus に渡った（<b>見落とし 0</b>）。";
+    else if(e.silent===0) s4 = "関係ある "+e.R+" 塊のうち "+e.fn+" 塊を Jev が除外したが、Opus が目次から気づいて取り寄せたので、<b>最終的な見落としは 0</b>。取り寄せの費用は "+fmtUsd(e.cost.pull)+"。";
+    else s4 = "関係ある "+e.R+" 塊のうち "+e.fn+" 塊を Jev が除外し、そのうち <span class=\"bad\">"+e.silent+" 塊は Opus も気づかず、読まれないまま</span>になった。回答の質が下がる恐れがある。基準を下げると減る。";
+    el("story").innerHTML = s1+s2+s3+s4;
+
+    sweep(v, chunks, e);
+    table(v, chunks);
+  }
+
+  function stage(cls,t,val,s){ return '<div class="stage '+cls+'"><span class="t">'+t+'</span><span class="v">'+val+'</span><span class="s">'+s+'</span></div>'; }
+
+  function sweep(v, chunks, cur){
+    const svg = el("sweep");
+    const L=52,R=52,T=14,B=44,Wd=640,Ht=250, w=Wd-L-R, h=Ht-T-B;
+    const pts=[];
+    for(let t=0.02;t<=0.981;t+=0.02){ const e=evaluate(v,chunks,t); pts.push({t,cost:e.cost.total,miss:e.missRate}); }
+    const cmax = Math.max(cur.base, ...pts.map(p=>p.cost))*1.05;
+    const x = t => L + (t-0.02)/(0.96)*w;
+    const yc = c => T + h - c/cmax*h;
+    const ym = m => T + h - m*h;
+    const path = (f) => pts.map((p,i)=>(i?"L":"M")+x(p.t).toFixed(1)+","+f(p).toFixed(1)).join(" ");
+    let g = "";
+    for(let i=0;i<=4;i++){
+      const y=T+h*i/4;
+      g += '<line x1="'+L+'" x2="'+(L+w)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)" stroke-width="1"/>';
+      g += '<text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end">'+fmtUsd(cmax*(1-i/4))+'</text>';
+      g += '<text x="'+(L+w+6)+'" y="'+(y+4)+'">'+Math.round(100*(1-i/4))+'%</text>';
+    }
+    [0.1,0.3,0.5,0.7,0.9].forEach(t=>{ g+='<text x="'+x(t)+'" y="'+(T+h+18)+'" text-anchor="middle">'+t.toFixed(1)+'</text>'; });
+    g += '<text x="'+(L+w/2)+'" y="'+(Ht-2)+'" text-anchor="middle">Opus へ渡す基準</text>';
+    g += '<line x1="'+L+'" x2="'+(L+w)+'" y1="'+yc(cur.base)+'" y2="'+yc(cur.base)+'" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"/>';
+    g += '<path d="'+path(p=>yc(p.cost))+'" fill="none" stroke="var(--opus)" stroke-width="2.2"/>';
+    g += '<path d="'+path(p=>ym(p.miss))+'" fill="none" stroke="var(--miss)" stroke-width="2.2"/>';
+    const cx = x(Math.min(0.98,Math.max(0.02,v.thr)));
+    g += '<line x1="'+cx+'" x2="'+cx+'" y1="'+T+'" y2="'+(T+h)+'" stroke="var(--jev)" stroke-width="1.5"/>';
+    g += '<circle cx="'+cx+'" cy="'+yc(cur.cost.total)+'" r="4" fill="var(--opus)"/>';
+    g += '<circle cx="'+cx+'" cy="'+ym(cur.missRate)+'" r="4" fill="var(--miss)"/>';
+    svg.innerHTML = g;
+  }
+
+  function table(v, chunks){
+    const P = PRESETS[preset];
+    let ri=0, oi=0;
+    // 関係ありの塊を先に、そのあと確率の高い関係なしの塊を並べる
+    const relc = chunks.filter(c=>c.rel).slice(0,8);
+    const other = chunks.filter(c=>!c.rel).sort((a,b)=>b.p-a.p).slice(0,16-relc.length);
+    const rows = relc.concat(other).map(c=>{
+      const name = c.rel ? P.rel_names[(ri++)%P.rel_names.length] : P.other_names[(oi++)%P.other_names.length];
+      const passed = c.p>=v.thr;
+      let k,label,inp;
+      if(passed && c.rel){k="tp";label="渡す";inp="全文（"+fmtTok(v.chunk)+"）";}
+      else if(passed){k="fp";label="渡す";inp="全文（"+fmtTok(v.chunk)+"・無駄）";}
+      else if(c.rel){k="fn";label="除外";inp=(c.noticeDraw*100<v.notice)?"目次 → 取り寄せ":"目次のみ（気づかない）";}
+      else {k="tn";label="除外";inp="目次 1行";}
+      return '<tr><td>'+name+'</td><td>'+(c.rel?"関係あり":"関係なし")+'</td><td class="p">'+c.p.toFixed(3)+'</td><td><span class="pill '+k+'">'+label+'</span></td><td>'+inp+'</td></tr>';
+    });
+    el("rows").innerHTML = rows.join("");
+  }
+
+  function apply(name){
+    preset = name; const P = PRESETS[name];
+    ids.forEach(k=>el(k).value = P[k]);
+    el("cached").checked = P.cached;
+    document.querySelectorAll(".presets button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.preset===name?"true":"false"));
+    render();
+  }
+
+  document.querySelectorAll(".presets button").forEach(b=>b.addEventListener("click",()=>apply(b.dataset.preset)));
+  ids.forEach(k=>el(k).addEventListener("input", render));
+  el("cached").addEventListener("change", render);
+  el("reseed").addEventListener("click",()=>{ seed = (seed*48271)%2147483647; render(); });
+  el("form").addEventListener("submit", e=>e.preventDefault());
+  apply("repo");
+})();
+</script>
+
+</body></html>
