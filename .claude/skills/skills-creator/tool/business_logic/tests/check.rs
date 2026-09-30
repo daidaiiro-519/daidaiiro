@@ -530,7 +530,7 @@ fn write_entries(root: &Path, tool: &str, mcp: &str) {
 }
 
 const TOOL_JSON: &str =
-    r#"{"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
+    r#"{"contract":2,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
 const MCP_JSON: &str =
     r#"{"mcpServers":{"fake":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake-mcp","args":[]}}}"#;
 
@@ -604,7 +604,8 @@ fn write_shell_entries(root: &Path, flag_exit: i32, mcp_args: &str) {
     let cli = format!(
         r#"#!/bin/sh
 case "$1" in
-  --json) printf '{{"ok":true,"findings":[],"data":{{"tools":[{{"name":"run","args":[{{"name":"path"}}]}}],"skill_root":"%s"}}}}\n' "$(cd "$(dirname "$0")/.." && pwd)"; exit 0;;
+  --json) printf '{{"ok":true,"findings":[],"data":{{"tools":[{{"name":"run","args":[{{"name":"path"}}]}},{{"name":"get","args":[]}},{{"name":"validate","args":[]}},{{"name":"view","args":[]}},{{"name":"import","args":[]}}],"skill_root":"%s"}}}}\n' "$(cd "$(dirname "$0")/.." && pwd)"; exit 0;;
+  validate) printf '{{"ok":true,"findings":[],"data":{{}}}}\n'; exit 0;;
   *) exit {flag_exit};;
 esac
 "#
@@ -614,7 +615,7 @@ esac
 while IFS= read -r line; do
   case "$line" in
     *'"initialize"'*) printf '{{"jsonrpc":"2.0","id":1,"result":{{"protocolVersion":"2025-06-18","capabilities":{{"tools":{{}}}},"serverInfo":{{"name":"fake","version":"1"}}}}}}\n';;
-    *'"tools/list"'*) printf '{{"jsonrpc":"2.0","id":2,"result":{{"tools":[{{"name":"run","inputSchema":{{"type":"object","properties":{{{mcp_args}}}}}}}]}}}}\n';;
+    *'"tools/list"'*) printf '{{"jsonrpc":"2.0","id":2,"result":{{"tools":[{{"name":"run","inputSchema":{{"type":"object","properties":{{{mcp_args}}}}}}},{{"name":"get","inputSchema":{{"type":"object","properties":{{}}}}}},{{"name":"validate","inputSchema":{{"type":"object","properties":{{}}}}}},{{"name":"view","inputSchema":{{"type":"object","properties":{{}}}}}},{{"name":"import","inputSchema":{{"type":"object","properties":{{}}}}}}]}}}}\n';;
   esac
 done
 "#
@@ -737,4 +738,85 @@ fn unfilled_placeholders_are_counted_outside_code() {
     // **未記入の差し込み場所を数える** ── コードの枠と記法の中は、書き方の説明なので数えない
     let body = "name: \"{{Skill名}}\"\n説明は `{{名前}}` の形で書く\n```\n{{例}}\n```\n{{目的}} と {{役割}}\n";
     assert_eq!(check::placeholders(body), 3);
+}
+
+/// 書き方の検査の検出だけを取り出す。
+fn declaration_failures(root: &Path) -> Vec<String> {
+    behavior::declaration(root)
+        .into_iter()
+        .filter_map(|v| match v {
+            Verdict::Fail(t) => Some(t),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_tool_without_contract_2_is_reported() {
+    // **版1 の免除は無い** ── 道具を持つ Skill は、どれも契約の版2 に従う
+    let root = scratch("contract-1");
+    write_entries(
+        &root,
+        r#"{"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#,
+        MCP_JSON,
+    );
+    let found = declaration_failures(&root);
+    assert!(found.iter().any(|x| x.contains("契約の版")), "{found:?}");
+}
+
+#[test]
+fn a_tool_with_contract_2_passes_the_version() {
+    let root = scratch("contract-2");
+    write_entries(&root, TOOL_JSON, MCP_JSON);
+    let found = declaration_failures(&root);
+    assert!(!found.iter().any(|x| x.contains("契約の版")), "{found:?}");
+}
+
+#[test]
+fn markdown_in_references_is_reported() {
+    // **Markdown は SKILL.md だけ** ── references に置くと、スキーマで検査できない
+    let root = scratch("refs-md");
+    write_document(&root);
+    write_entries(&root, TOOL_JSON, MCP_JSON);
+    std::fs::create_dir_all(root.join("references/knowledge")).expect("作れる");
+    std::fs::write(root.join("references/knowledge/notes.md"), "# 覚え書き\n").expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("Markdown") && x.contains("references/knowledge/notes.md")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn markdown_in_references_of_a_skill_without_tools_is_allowed() {
+    // 道具を持たない Skill は契約の版2 の外である
+    let root = scratch("refs-md-notool");
+    write_document(&root);
+    std::fs::create_dir_all(root.join("references")).expect("作れる");
+    std::fs::write(root.join("references/template.md"), "# 雛形\n").expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn a_path_in_the_document_that_does_not_exist_is_reported() {
+    // **SKILL.md が指すファイルは実在する** ── 改名した後に旧い名前が残ると、読み手は開けない
+    let root = scratch("stale-path");
+    write_document(&root);
+    let mut body = std::fs::read_to_string(root.join("SKILL.md")).expect("読める");
+    body.push_str("- `tool/parts/src/find.rs`: 照合\n- `references/a.json`: 在る\n- `tool/<層>/src/x.rs`: 書き方の説明\n");
+    std::fs::write(root.join("SKILL.md"), body).expect("書ける");
+    std::fs::create_dir_all(root.join("references")).expect("作れる");
+    std::fs::write(root.join("references/a.json"), "{}").expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("指す先が無い") && x.contains("tool/parts/src/find.rs")),
+        "{found:?}"
+    );
+    assert!(!found.iter().any(|x| x.contains("references/a.json")), "{found:?}");
+    assert!(!found.iter().any(|x| x.contains("<層>")), "{found:?}");
 }

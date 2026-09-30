@@ -138,7 +138,7 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだ�
 
 **references は JSON Schema と JSON で持つ**（契約の版2、ACDR 0043）。`tool.json` に `"contract": 2` を書いた
 Skill は、雛形の references の実装で get ・ validate ・ view ・ import を持ち、Markdown は SKILL.md だけにする。
-移行していない Skill（版1）には、この規則を当てない。
+**道具を持つ Skill は、どれも版2 に従う**（ACDR 0075）── `tool.json` に `"contract": 2` が無ければ、`check` が検出する。**SKILL.md がコードの記法で指す Skill の中のファイルは、実在しなければ検出する。**
 
 **外部の道具は、外から注入する。** `tool.json` の `external` に名前 ・ 起動するコマンド ・ 理由を書き、
 サービス層が業務ロジック層へ渡す ── 業務ロジック層は名前を直書きしない。利用者は `tool.json` を書き換えるだけで差し替えられる。

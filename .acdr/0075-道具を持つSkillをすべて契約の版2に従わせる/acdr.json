@@ -1,0 +1,257 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0075",
+ "title": "道具を持つ Skill をすべて契約の版2 に従わせ、2件の Skill の名前を改める",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "道具を持つ Skill は、例外なく skills-creator の契約の版2 に従わせる。あわせて、名前から用途が読み取れない2件の Skill を、用途を表す名前へ改める（memory-cultivator → session-memory、narration → slide-deck-speech）。",
+ "why": "skills-creator の check は、道具を持つ9件のうち8件で合格を返していたが、版2 に従っていたのは acdr だけだった。契約が「版1 の Skill には版2 の規則を適用しない」と免除していたので、tool.json に contract を書かない Skill は、references の形 ・ 4つの道具 ・ Markdown の禁止のどれも検査されずに合格した。ACDR 0071 で層の構成だけを統一し、版2 への移行を残したまま「統一した」と報告していた。利用者の指摘（契約を完全に守られているように見えない）で、合格の判定と実際の状態の食い違いが判明した。検査を契約どおりに厳しくし、合格が版2 への準拠を意味する状態に一致させる。名前は、利用者が memory-cultivator と narration を「何ができるのか分からない」と指摘し、新しい名前を指定した。",
+ "shift": [
+  {
+   "what": "版1 の扱い",
+   "from": "版1 の Skill には版2 の規則を適用しない（免除）",
+   "to": "免除しない。tool.json に \"contract\": 2 が無ければ check が検出する"
+  },
+  {
+   "what": "check の文書の検査",
+   "from": "節の構成と未記入の差し込み場所だけ",
+   "to": "加えて、道具を持つ Skill の references に在る Markdown と、SKILL.md がコードの記法で指す Skill の中の経路の実在を検査する"
+  },
+  {
+   "what": "版2 に従う Skill",
+   "from": "道具を持つ Skill のうち acdr と助言型5件",
+   "to": "道具を持つ Skill すべて。未移行の8件は、承認の後に移す"
+  },
+  {
+   "what": "未移行の作業の Skill（6件）",
+   "from": "版1（tool.json に contract が無い）",
+   "to": "brainstorming-board ・ design-svg ・ doc-writing-skills ・ fact-check ・ slide-deck-speech ・ slide-deck"
+  },
+  {
+   "what": "未移行の道具の Skill（2件）",
+   "from": "版1（tool.json に contract が無い）",
+   "to": "no-more-spaghetti ・ skills-creator"
+  },
+  {
+   "what": "移し方",
+   "from": "references に Markdown（knowledge ・ 手引き ・ 見本）と、直下の sources/ ・ infra/",
+   "to": "Markdown は import で document の JSON へ取り込み、見本は JSON Schema と JSON にする。外部の原典は document で持つ。指す先が消えた構成ファイルは消す"
+  },
+  {
+   "what": "Skill の名前",
+   "from": "memory-cultivator ・ narration（実行ファイル narration ・ narration-mcp）",
+   "to": "session-memory ・ slide-deck-speech（実行ファイル slide-deck-speech ・ slide-deck-speech-mcp）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "版1 の Skill を check に掛けたときの流れ。変更前は版2 の規則を適用せずに合格し、変更後は検出して版2 へ移す",
+ "alternatives": [
+  {
+   "option": "免除を残し、各 Skill の tool.json に contract: 2 を書くだけにする",
+   "why_not": "免除が残る限り、contract を書かない新しい Skill はまた検査されずに合格する。合格が版2 への準拠を意味しない状態が続く"
+  },
+  {
+   "option": "検査は変えず、8件を手で版2 へ移す",
+   "why_not": "移したことを確認する手段が無い。今回、手で統一したと報告した状態が契約に反していた"
+  },
+  {
+   "option": "README.md など、直下の Markdown もすべて禁止する",
+   "why_not": "契約が禁じているのは references の Markdown である（folder-structure.md は README.md を任意として認める）。契約に無い規則を検査に足すと、検査と契約が食い違う"
+  },
+  {
+   "option": "名前を用途の説明どおりの長い名前にする（session-handoff ・ script-to-speech など）",
+   "why_not": "利用者が session-memory と slide-deck-speech を指定した"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "behavior",
+   "tab": "behavior.rs（1段目）",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **版1 の免除は無い**（ACDR 0075）── 道具を持つ Skill は、どれも版2 に従う",
+     "why": "tool.json に contract が無い Skill を、版2 の規則を適用せずに合格させていた。版2 でなければ検出する",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs（文書）",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn markdown_in_references(root: &Path) -> Vec<String> {",
+     "why": "契約の版2 は references に Markdown を置かないと規定するが、検査していなかった。道具を持つ Skill だけに適用する",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "事例 check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_tool_without_contract_2_is_reported() {",
+     "why": "版1 の免除を撤廃したことを固定する。先に書いて失敗することを確認した",
+     "before": "（無い）"
+    },
+    {
+     "find": "  validate) printf '{{\"ok\":true,\"findings\":[],\"data\":{{}}}}\\n'; exit 0;;",
+     "why": "シェルで書いた見本も版2 に従わせる。references の4つの道具を持ち、validate が合格する",
+     "before": "（無い）"
+    },
+    {
+     "find": "    r#\"{\"contract\":2,\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#;",
+     "why": "事例の登録も版2 にする。版1 のままでは、他の検査に届く前に版の検出で止まる",
+     "before": "    r#\"{\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#;"
+    },
+    {
+     "find": "*'\"tools/list\"'*) printf",
+     "before": "（無い）",
+     "why": "MCP の側の道具の一覧にも、references の4つの道具を足した。CLI と MCP の一覧が一致しないと、1段目が検出する"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "tool-contract.md",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "── 版1 の免除は無い。",
+     "before": "`tool.json` に `\"contract\": 2` を書き、次を満たす。版1 の Skill には、この節の規則を適用しない。",
+     "why": "免除の規定が、検査されずに合格する Skill を生んでいた"
+    }
+   ]
+  },
+  {
+   "key": "sc",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Skill の中のファイルは、実在しなければ検出する。",
+     "before": "移行していない Skill（版1）には、この規則を適用しない。",
+     "why": "契約の文書と同じく、免除を撤廃し、新しく足した検査を書いた"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "session-memory",
+     "before": "memory-cultivator",
+     "why": "利用者の指定した名前へ改めた"
+    }
+   ]
+  },
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "        \"session-memory\"",
+     "why": "配線表の呼ぶ相手を、改めた名前へ直した",
+     "before": "        \"memory-cultivator\""
+    }
+   ]
+  },
+  {
+   "key": "mcpjson",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    \"slide-deck-speech\": {",
+     "why": "MCP のサーバー名と実行ファイルの経路を、改めた名前へ直した",
+     "before": "    \"narration\": {"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": "rules.json",
+   "file": ".coding-rules/rules.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    \"slide-deck-speech\": {",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"slide-deck-speech\",",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "          \"${root}/.claude/skills/slide-deck-speech\",",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"slide-deck-speech\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"record\": \"slide-deck-speech/SKILL.md\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"slide-deck-speech\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"record\": \"slide-deck-speech/SKILL.md\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"slide-deck-speech\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"record\": \"slide-deck-speech/SKILL.md\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    },
+    {
+     "find": "        \"slide-deck-speech\"",
+     "before": "narration",
+     "why": "Skill の名前を改めたので、規則が指す Skill の名前を直した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "behavior": "17033ac7e9c61dcdf8995e565229324d18bc147cdf77fc45688478de72dcad7c",
+  "check": "39777d9928925c6dd0868bbd688a766ae6de58ec13969a5173bbc57164d3b8f3",
+  "tests": "60a6ee4ec24d1f0f5d0a8948e81f2192a97b7c8c937e44e98b27a0724a147758",
+  "contract": "fb7ff564967a10898ac22a0f6e6b15b56613958833daba29aa6019b78f417e17",
+  "sc": "4337563280e1903b38860d40e24dbbac0c7f6edb62559f63e0fbfe5df1644a92",
+  "claude": "0ea4d2b19f943dec68fbfb16f2422ce6a6436dc879147526b875615c207fd010",
+  "wiring": "a8e08912cf155b5ac67bc6c4c1607a2fbcb92594e1a5ca998d51c9b1c4fa9143",
+  "mcpjson": "efac9255a1ceb8bf9c37449264f4166729323d04a633dc4aaca64b657715111f",
+  "rules": "c3962c66598e36ed2018c5a84c0f7103dbacaeda6803864a2108bf6e012ba264"
+ }
+}

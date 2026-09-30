@@ -460,7 +460,62 @@ pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
 /// 節の構成が、対応する雛形を満たすかを見る。
 #[must_use]
 pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
-    missing_sections(root, templates)
+    let mut found = missing_sections(root, templates);
+    if files::is_file(root.join("tool.json")) {
+        found.extend(markdown_in_references(root));
+    }
+    found.extend(missing_targets(root));
+    found
+}
+
+/// references に置いた Markdown。**道具を持つ Skill は、Markdown を SKILL.md だけにする**（契約の版2）──
+/// references に置くと、スキーマで検査できず、`view` でも描画できない。
+fn markdown_in_references(root: &Path) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut stack = vec![root.join("references")];
+    while let Some(dir) = stack.pop() {
+        for path in files::list(&dir).unwrap_or_default() {
+            if files::is_dir(&path) {
+                stack.push(path);
+            } else if path.extension().is_some_and(|x| x == "md") {
+                let rel = path.strip_prefix(root).unwrap_or(&path);
+                found.push(format!(
+                    "references に Markdown が在る: {} ── 契約の版2 は JSON Schema と JSON で持つ（Markdown は SKILL.md だけ）",
+                    rel.display()
+                ));
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
+/// SKILL.md がコードの記法で指す、Skill の中のファイル。**指す先が無ければ検出する** ──
+/// 改名や移動の後に旧い名前が残ると、読み手はその場所を開けない。
+/// 書き方の説明（`<…>` ・ `{…}` ・ `*` を含むもの）は、ファイルを指していないので見ない。
+fn missing_targets(root: &Path) -> Vec<String> {
+    let Ok(body) = files::read_to_string(root.join("SKILL.md")) else {
+        return Vec::new();
+    };
+    let mut found = Vec::new();
+    for (i, part) in body.split('`').enumerate() {
+        if i % 2 == 0 {
+            continue;
+        }
+        let path = part.trim().trim_end_matches(':');
+        let inside = ["tool/", "references/", "infra/", "examples/", "assets/", "agents/"]
+            .iter()
+            .any(|p| path.starts_with(p));
+        let pattern = path.contains(['<', '>', '{', '}', '*', ' ', '…']);
+        if !inside || pattern {
+            continue;
+        }
+        let text = format!("SKILL.md が指す先が無い: {path} ── 実在する経路へ直すか、記述を消す");
+        if !files::exists(root.join(path)) && !found.contains(&text) {
+            found.push(text);
+        }
+    }
+    found
 }
 
 /// Rust の組の2段目。**層 ・ 依存の向き ・ 事例 ・ bin/ の追跡 ・ 外部の道具の直書き**を見る。

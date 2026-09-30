@@ -125,7 +125,7 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 ## references（契約の版2）
 
 **references は、Skill の目的を達成するために参照する情報である**（ACDR 0043）。版2 の Skill は、
-`tool.json` に `"contract": 2` を書き、次を満たす。版1 の Skill には、この節の規則を当てない。
+`tool.json` に `"contract": 2` を書き、次を満たす。**道具を持つ Skill は、どれも版2 に従う**（ACDR 0075）── 版1 の免除は無い。
 
 | 規定 | 中身 |
 |---|---|

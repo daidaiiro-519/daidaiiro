@@ -79,6 +79,12 @@ pub fn declaration(root: &Path) -> Vec<Verdict> {
             "tool.json が無いか読めない ── {why}（CLI の起動のコマンドと外部の道具を書く）"
         ))),
         Ok(doc) => {
+            // **版1 の免除は無い**（ACDR 0075）── 道具を持つ Skill は、どれも版2 に従う
+            if doc.get("contract").and_then(Value::as_u64).unwrap_or(1) < 2 {
+                out.push(Verdict::Fail(
+                    "契約の版が2でない: tool.json に \"contract\": 2 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持つ".to_owned(),
+                ));
+            }
             let cli = doc
                 .pointer("/cli/command")
                 .and_then(Value::as_str)

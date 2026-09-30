@@ -1,6 +1,6 @@
 """枚ごとの画像と音声を、本ごとの動画1本へ結合する。
 
-音声と尺は narration Skill が作る（narration/narration.out.json）。
+音声と尺は slide-deck-speech Skill が作る（narration/narration.out.json）。
 ここが保持するのは、枚の並び ・ 画像の置き場 ・ 動画の条件だけである。
 
   python3 build_videos.py            全9本を組む
@@ -46,7 +46,7 @@ def build(stem, no, ids, dur):
     parts = []
     for i, sid in enumerate(ids, 1):
         if sid not in dur:
-            raise SystemExit(f'音声が無い: {sid} ── narration Skill を先に実行する')
+            raise SystemExit(f'音声が無い: {sid} ── slide-deck-speech Skill を先に実行する')
         png = HERE / 'previews' / f'{no:02d}-{i:02d}.png'
         if not png.exists():
             raise SystemExit(f'画像が無い: {png}')
@@ -76,7 +76,7 @@ def build(stem, no, ids, dur):
 if __name__ == '__main__':
     out = NARR / 'narration.out.json'
     if not out.exists():
-        raise SystemExit('narration.out.json が無い ── narration Skill を先に実行する')
+        raise SystemExit('narration.out.json が無い ── slide-deck-speech Skill を先に実行する')
     dur = {x['id']: x for x in json.loads(out.read_text())['items']}
     OUT.mkdir(parents=True, exist_ok=True)
     want = sys.argv[1:]
