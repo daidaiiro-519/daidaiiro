@@ -70,6 +70,8 @@ fn a_work_skill_can_be_planned_in_rust() {
     assert!(plan
         .iter()
         .any(|(_, to)| to == "tool/business_logic/src/hello.rs"));
+    // **作業型も SKILL.md の雛形を置く** ── 置かないと、SKILL.md を探して自分の置き場所を決める言語の組が動かない
+    assert!(plan.iter().any(|(_, to)| to == "SKILL.md"));
     // **同じ置き先は1回だけ**
     let mut tos: Vec<&String> = plan.iter().map(|(_, to)| to).collect();
     let n = tos.len();

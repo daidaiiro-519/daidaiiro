@@ -3,7 +3,7 @@ name: "skills-creator"
 description: "新しいSkillsを作成したいとき、Skillのテンプレートが欲しいとき、「スキルを作って」「Skills作成」「新しいスキル」と言われたとき、またはベストプラクティスに従ったSkillフォルダ構成を生成したいときに使う。"
 ---
 
-# 新規Skillのテンプレート生成を行うSkill：skills-creator
+# 型と言語を選んで新しい Skill の一式を生み、契約を検査するのを担当する Skill：skills-creator
 
 ## 目的
 
@@ -13,10 +13,11 @@ description: "新しいSkillsを作成したいとき、Skillのテンプレー�
 
 ## 役割
 
-- スキル設計のコンサルタントとして要件をヒアリングする
-- ベストプラクティスのフォルダ構成を遵守した実装者として動く
-- SKILL.mdの各セクション（目的・役割・実行手順・ガードレール）を適切に記入するファシリテーターとして振る舞う
-- 作成後はスキルの動作確認方法をユーザーに伝える
+- 新しい Skill の要件（名前 ・ 使う場面 ・ 型 ・ 道具の要否 ・ 言語）を確認する
+- 道具を持つ Skill は、`skills-creator scaffold` で型と言語の組の一式を生む
+- SKILL.md の各 `{{…}}` を、そこに書かれた指示に従って記入する
+- `skills-creator check`（助言型は `accept` も）で契約を検査し、検出を0件にしてから渡す
+- 作ったものの使い方（CLI と MCP の呼び方）を利用者に伝える
 
 ---
 
@@ -24,11 +25,11 @@ description: "新しいSkillsを作成したいとき、Skillのテンプレー�
 
 ### 処理対象
 
-新規Skillの要件（スキル名・トリガー条件・スコープ・テンプレートの要否・追加フォルダの要否）。
+新しい Skill の要件。名前 ・ 使う場面 ・ 型 ・ 道具の要否 ・ 道具を書く言語が決まっていない状態も含む。
 
 ### 成果物
 
-ベストプラクティスに従ったフォルダ構成とSKILL.mdを備えた新しいSkill（プレースホルダー付きスケルトンから量産）。
+`.claude/skills/<名前>/` に置いた新しい Skill。SKILL.md と、道具を持つなら道具の一式（`tool/` ・ `tool.json` ・ `mcp.json` ・ `references/`）を持ち、`check` の検出が0件である。
 
 ---
 
@@ -36,41 +37,63 @@ description: "新しいSkillsを作成したいとき、Skillのテンプレー�
 
 | 受け取る情報 | 解釈・既定値 |
 |---|---|
-| 新規Skillの要件（スキル名・トリガー条件・スコープ・テンプレートの要否・追加フォルダの要否） | 要件が明確でない場合は作成を開始せず、先にヒアリングを完了させる。 |
+| Skill の名前 | 英小文字とハイフンにする（例：`release-notes`）。明示されなければ、用途から案を出して確認する |
+| 使う場面と、何を作るか | 明示されなければ作成を始めず、先に確認する |
+| 型 | 下の「Skill の型」の表で決める。明示されなければ、何を作る Skill かから判定して確認する |
+| 道具の要否 | 検査 ・ 生成 ・ 変換を道具にするなら必要とする。手順と知識だけの Skill なら不要である |
+| 道具を書く言語 | `rust` ・ `python` ・ `typescript` ・ `csharp` ・ `go` のどれか。明示されなければ、利用者が普段使う言語を確認する。既定は `rust` である |
 
 ---
 
 ## 実行手順
 
-### Step 1: 要件のヒアリング
+### Step 1: 要件を確認する
 
-スキル名・トリガー条件・スコープ（プロジェクト専用/グローバル）・テンプレートの要否・追加フォルダの要否を確認する。不明な項目はユーザーに質問する。
+名前 ・ 使う場面 ・ 型 ・ 道具の要否 ・ 言語を確認する。不明な項目は利用者に質問する。**要件が決まるまで作成を始めない。**
 
-### Step 2: フォルダ構成を決定する
+### Step 2: 一式を置く
 
-folder-structure.mdを参照し、ヒアリング内容に応じてミニマム構成かフル構成かを選ぶ。
+道具を持つ Skill は、`scaffold` で型と言語の組の一式を置く。
 
-### Step 3: フォルダ構成を作成する
+```
+skills-creator scaffold <名前> --type <work|advisor> --language <rust|python|typescript|csharp|go>
+```
 
-決定した構成に従い、SKILL.mdと必要ならreferences/等のフォルダを作成する。
+置いたファイルの一覧と、次に書くもの ・ 組み立てのコマンドが出る。**既に在るファイルは上書きしない。**
 
-### Step 4: SKILL.mdを生成する
+道具を保持しない Skill は、`references/skill-template.md` を `.claude/skills/<名前>/SKILL.md` として置くだけにする。
 
-references/skill-template.mdを読み込む。各{{...}}プレースホルダーは、そこに書かれた指示を読めばそのまま記入できる自己完結の形式になっているため、別途定義票を参照する必要はない。ヒアリング内容に従って全プレースホルダーを記入し、{{スコープ}}/skills/{{スキル名}}/SKILL.mdとして保存する。
+### Step 3: 組み立てる
 
-### Step 5: テンプレートファイルを生成する（必要な場合のみ）
+`scaffold` が出した「組む ──」のコマンドを、Skill のフォルダで実行する。その言語の処理系を必要とする（`references/profiles/<言語>.md` の置き場所の節）。**処理系が無い環境では組み立てられない** ── 利用者に導入を頼む。
 
-出力ドキュメントを生成するスキルの場合、プレースホルダー付きのスケルトンテンプレートを{{スコープ}}/skills/{{スキル名}}/references/template.mdとして作成する。
+### Step 4: 中身を書く
 
-### Step 6: 完成確認
+- SKILL.md の各 `{{…}}` を、そこに書かれた指示に従って記入する。**指示を読まずに推測で記入しない**
+- 作業型は、見本の道具 `hello` を、この Skill の道具に書き換える。道具の一覧（能力の正本）と、そこから組む CLI と MCP の形は変えない
+- 助言型は、`references/types/advisor/procedure.md` の9段の手順で判断基準を作る
 
-作成したファイル一覧を表示し、スキルの呼び出し方をユーザーに伝える。
+### Step 5: 検査する
+
+```
+skills-creator check <Skill のフォルダ>     # 振る舞い ・ ソース ・ 文書の3つ
+skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入れの検査（機械の7件）
+```
+
+**検出が0件になるまで Step 4 へ戻る。** 生んだ直後の `check` は、SKILL.md の未記入の差し込み場所を検出する ── 記入が完了していないという印である。
+
+### Step 6: 使い方を伝える
+
+作ったファイルの一覧と、呼び方を利用者に伝える。
+
+- CLI：`tool.json` の `cli` に書いた起動のコマンド
+- MCP：`mcp.json` に書いた起動のコマンドを、プロジェクトの MCP の登録へ足す（Claude Code では `.mcp.json` の `mcpServers` に足すか、`claude mcp add --scope project` で登録する）
 
 ---
 
 ## 出力形式
 
-作成したファイル一覧を表示し、スキルの呼び出し方をユーザーに伝える。
+作ったファイルの一覧 ・ `check` の結果（検出0件） ・ CLI と MCP の呼び方を、利用者に伝える。
 
 ---
 
@@ -80,8 +103,8 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 
 | 型 | 定義 | 生み方 |
 |---|---|---|
-| 作業型（`work`） | エージェントが成果物を作る作業の手順を持ち、途中で検査や生成の道具を使う | 共通の一式に、見本の道具を置く |
-| 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | 入力と出力のスキーマ ・ 入力の検査 ・ 組む道具（雛形はまだ無い） |
+| 作業型（`work`） | エージェントが成果物を作る作業の手順を持ち、途中で検査や生成の道具を使う | 共通の一式 ・ 見本の道具 `hello` ・ SKILL.md の雛形 |
+| 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | **準備中**（どの言語の組も雛形を保持せず、`scaffold` は断る）。それまでは作業型で生む |
 | 助言型（`advisor`） | 相談を受け、原典の判断基準に照らして答える | 雛形を丸ごと固定する（判断基準と回答のスキーマ ・ 回答の道具 ・ 試験） |
 
 **助言型は、`references/types/advisor/procedure.md` の9段の手順で作り、`skills-creator accept <フォルダ>` の受け入れの検査（機械の7件）を実行する。** 判断基準は、原典が名前を付けて立てている概念を1件の単位にし、学習ノートの言葉だけで書く。
@@ -104,8 +127,8 @@ references/skill-template.mdを読み込む。各{{...}}プレースホルダー
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/distribution.md` |
 
 ```
-skills-creator scaffold <Skill の名前> [--type work|generate|advisor] [--language rust|python|typescript|csharp|go]   # 型と言語の組の一式を置く
-skills-creator check <Skill のフォルダ>  # 2段の検査と、節の構成の検査
+skills-creator scaffold <Skill の名前> [--type work|advisor] [--language rust|python|typescript|csharp|go]   # 型と言語の組の一式を置く
+skills-creator check <Skill のフォルダ>  # 2段の検査と、文書の検査（節の構成 ・ 未記入の差し込み場所）
 skills-creator accept <advisor のフォルダ>  # 助言型の受け入れの検査（機械の7件）
 skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだけ。導入スクリプトと組み立ての定義を置く
 ```
@@ -144,38 +167,27 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - SKILL.md は必ずスキルフォルダのルートに置く。サブフォルダには置かない
 - テンプレートファイルは assets/ ではなく references/ に置く
 - 不要なフォルダは作らない。使うものだけ作る
-- プレースホルダーは、references/skill-template.md の各 {{…}} に書かれた指示に従って記入する。指示を読まずに推測で記入しない
+- 差し込み場所は、`references/skill-template.md` の各 `{{…}}` に書かれた指示に従って記入する。指示を読まずに推測で記入しない
 - スキル名は英小文字・ハイフン区切りに統一する（スペース・アンダースコア不可）
-- ユーザーが要件を明確にしていない場合は作成を開始しない。必ずヒアリングを先に完了させる
+- 利用者が要件を明確にしていない場合は作成を開始しない。必ず確認を先に完了させる
+- **一式を手で書き起こさない**。道具を持つ Skill は `scaffold` で生む ── 手で書くと、契約（道具の一覧 ・ CLI の規約 ・ MCP ・ references の4つの道具）のどれかが欠落し、`check` が不合格になる
+- **`check` の検出を残したまま渡さない**。0件にしてから渡す
 - 新しいSkillに、特定の外部ツール・システム（特定の CLI ・ MCP など）の存在を自ら判定して振る舞いを変えるロジックを持たせない。汎用のSkillが具体的な実装の有無を参照するのは依存性の方向違反であり、正しい向きは「具体的なシステムの側が汎用Skillを自分の中に注入・統合する」（composition-rootの原則）。特定システムとの統合が必要な場合は、そのSkill自体は単一の環境非依存な実装のままにし、統合はSkillの外側（呼び出し側・Orchestrator側）に置く設計を選ぶ
 
 ---
 
 ## 参照
 
-- `tool/business_logic/src/sections.rs`: 節の構成を、対応する雛形と照合する。**節の名前は雛形が持つ** ──
-  こちらに一覧を書くと、雛形を直した瞬間に食い違う。**並び順は問わない**
-- `tool/business_logic/src/behavior.rs`: 1段目の検査。**実行ファイルを起動して振る舞いを確認する** ──
-  道具の一覧の JSON ・ 旗の拒否 ・ Skill のフォルダの求め方 ・ MCP の `tools/list` との一致
-- `tool/business_logic/src/check.rs`: 2段の検査をまとめる。Rust の組の2段目（**層が crate に分かれていること** ・
-  **依存の向きが各 `Cargo.toml` で契約どおりであること** ・ 入出力の混入 ・ 外部の道具の直書き ・ 以前の層の名前の残り）を持つ
-- `tool/business_logic/src/scaffold.rs`: 受け取った一式を置く。**何を置くかは型と言語の組の定義が決める**
-- `tool/business_logic/src/profile.rs`: 言語の組（`references/profiles/<言語>.profile.json`）と型（`references/types/<型>/type.json`）を読み、置く一式を決める。型が必要とする契約の版に組が届かないか、組が型の一式を持たなければ断る
-- `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義。言語に依存しない一式（スキーマ ・ SKILL.md の雛形）の置き場所
-- `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順（`procedure.md`）
-- `tool/business_logic/src/accept.rs`: 助言型の受け入れの検査（機械の7件）。学習ノートは `references/archive/notes/*.md` から読む
-- `tool/business_logic/tests/`: 事例（66件）。references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）と、**生んだものが契約を満たすこと**と、シェルで書いた実行ファイルが1段目に合格し2段目が「実行しない」になることも固定してある
+この Skill のフォルダに在るものだけを並べる。道具のソース（`tool/`）は配布物に入らない。
+
+- `bin/skills-creator` ・ `bin/skills-creator-mcp`: この Skill の CLI と MCP サーバー。`scaffold` ・ `check` ・ `accept` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
+- `references/skill-template.md`: SKILL.md の雛形（作業型）。各 `{{…}}` が、記入のしかたの指示を持つ
+- `references/folder-structure.md`: Skill のフォルダのミニマム構成とフル構成
 - `references/tool-contract.md`: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
-- `references/profiles/python.md` ・ `references/profiles/python/`: Python の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/go.md` ・ `references/profiles/go/`: Go の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/csharp.md` ・ `references/profiles/csharp/`: C# の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/typescript.md` ・ `references/profiles/typescript/`: TypeScript の組（版2 ・ 作業型と助言型）。置き場所 ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/rust.md` ・ `references/profiles/rust/`: Rust の組。置き場所 ・ 契約の実装 ・
-  雛形（21件）・ 2段目の検査。**`contract.rs` ・ `files.rs` ・ `process.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である**ので、正本をここに置く
+- `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義
+- `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順（`procedure.md`）
+- `references/profiles/<言語>.md` ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
+- `references/profiles/<言語>.profile.json`: 言語の組の定義。何をどこへ置くか ・ 組み立てと試験のコマンド ・ 外部の道具の起動の書き方
 - `references/distribution.md` ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形
-- `tool/cli/`: この Skill 自身の CLI。`scaffold` ・ `check` ・ `dist` を持つ ── **この Skill も、同じ契約に従う**
-
-- `references/skill-template.md`: SKILL.md自体の雛形（プレースホルダー付き、各プレースホルダーが自己完結した執筆ガイダンスを持つ）。
-- `references/folder-structure.md`: Skillフォルダのミニマム構成・フル構成の基準。

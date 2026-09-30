@@ -1,0 +1,316 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0070",
+ "title": "skills-creator を利用者が使える状態に仕上げる",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator を、配布物だけを持つ利用者が scaffold から check の合格まで迷わずに進める状態に仕上げ、提供者だけが使う確かめの道具は配布物の外に置く。",
+ "why": "利用者は、組み立て済みの実行ファイルと雛形だけを受け取る。skills-creator のソースは届かないので、実行ファイルと雛形の誤りを利用者は直せない。配布物と同じ形を空のリポジトリへ置き、利用者と同じ手順で試すと、3つの問題が出た。1つ目は、作業型の scaffold が SKILL.md を置かないことである。Python ・ TypeScript ・ C# ・ Go の Skill は SKILL.md を探して自分の置き場所を決めるので、生んだ直後から check に落ちた。これまでの確認では、SKILL.md を手で置いていたため見逃していた。2つ目は、SKILL.md の実行手順が scaffold を使わない古い手順のままだったことである。利用者のエージェントは、雛形も契約の検査も使わずに手で Skill を作ることになる。3つ目は、未記入の {{…}} が残ったまま check に合格することである。0070 の前の版は、提供者だけが使う突き合わせ（conform）を、配布する実行ファイルの道具の一覧に載せていた。利用者の MCP の一覧に使う場面の無い道具が出るので、提供元だけで動く入口へ移した。",
+ "shift": [
+  {
+   "what": "作業型の scaffold が置くもの",
+   "from": "道具の一式だけ（SKILL.md が無い）",
+   "to": "道具の一式と、SKILL.md の雛形（name に Skill の名前を差し込む）"
+  },
+  {
+   "what": "SKILL.md の実行手順",
+   "from": "フォルダと SKILL.md を手で作る古い手順",
+   "to": "要件 → scaffold → 組み立て → 記入 → check（検出0件まで） → 呼び方を伝える"
+  },
+  {
+   "what": "未記入の差し込み場所",
+   "from": "残っていても check に合格する",
+   "to": "check の文書の検査が検出する（コードの枠と記法の中は数えない）"
+  },
+  {
+   "what": "言語の組の突き合わせ（conform）",
+   "from": "作業用の台本／配布する実行ファイルの道具",
+   "to": "提供元だけの入口（cargo の example）と、確かめの台本 tool/verify-profiles.sh"
+  },
+  {
+   "what": "外部の道具の直書きの検出",
+   "from": "名前が2つ目の引数に在る呼び出しを見逃し、識別子の途中の一致を拾う",
+   "to": "exec.CommandContext(…, の書き方で検出し、識別子の途中の一致は数えない"
+  },
+  {
+   "what": "生成型",
+   "from": "型の表に在るが、scaffold が断る",
+   "to": "準備中と明示し、使える型は作業型と助言型の2つとする"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "利用者の手順。scaffold が SKILL.md まで置き、check が未記入の差し込み場所も検出するので、検出が0件になるまで4と5を往復する",
+ "alternatives": [
+  {
+   "option": "生成型を、作業型の雛形を流用して生めるようにする",
+   "why_not": "ACDR 0060 が生成型に求める一式（入力と出力のスキーマ ・ 入力の検査）を満たさない。形だけ生めても、生成型として完成していない"
+  },
+  {
+   "option": "未記入の差し込み場所を、check ではなく scaffold の案内の文だけで知らせる",
+   "why_not": "案内は生んだときに1度出るだけで、書き終えたかを後から確かめる手段にならない。check は完成の判定に使う道具である"
+  },
+  {
+   "option": "conform を配布する実行ファイルに残し、SKILL.md に提供者向けと書く",
+   "why_not": "MCP の道具の一覧は、利用者のエージェントが毎回読む。使う場面の無い道具が一覧に在り続ける"
+  },
+  {
+   "option": "公開の前の関門（3つの OS で5言語 × 2型を試す CI）を、この決定に含める",
+   "why_not": "利用者の指示で、まず使える状態に仕上げることを先にした。関門は tool/verify-profiles.sh を CI から呼ぶ形で、後の決定にする"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "型と言語を選んで新しい Skill の一式を生み、契約を検査するのを担当する Skill：skills-creator",
+     "before": "新規Skillのテンプレート生成を行うSkill：skills-creator",
+     "why": "題を、scaffold と check を使う Skill であることが分かる形にした"
+    },
+    {
+     "find": "Step 2: 一式を置く",
+     "before": "Step 2: フォルダ構成を決定する",
+     "why": "実行手順を、scaffold → 組み立て → 記入 → check の流れに書き直した。以前の手順は、フォルダと SKILL.md を手で作らせていた"
+    },
+    {
+     "find": "検出が0件になるまで Step 4 へ戻る。",
+     "before": "（無い）",
+     "why": "check を完成の判定に使うことを、手順に書いた"
+    },
+    {
+     "find": "準備中",
+     "before": "入力と出力のスキーマ ・ 入力の検査 ・ 組む道具（雛形はまだ無い）",
+     "why": "どの言語の組も生成型の雛形を保持しないので、準備中と明示した"
+    },
+    {
+     "find": "一式を手で書き起こさない",
+     "before": "（無い）",
+     "why": "手で書くと契約のどれかが欠落する。scaffold で生ませる"
+    },
+    {
+     "find": "この Skill のフォルダに在るものだけを並べる。",
+     "before": "tool/business_logic/src/sections.rs: 節の構成を、対応する雛形と照合する。",
+     "why": "参照の節が、配布されない tool/ の下のソースを指していた。利用者の手元に在るものだけにし、ソースの地図は tool/README.md へ移した"
+    }
+   ]
+  },
+  {
+   "key": "work",
+   "tab": "作業型の定義",
+   "file": ".claude/skills/skills-creator/references/types/work/type.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"to\": \"SKILL.md\"",
+     "before": "\"items\": [],",
+     "why": "作業型も SKILL.md の雛形を置く。置かないと、SKILL.md を探して自分の置き場所を決める言語の組が動かない"
+    }
+   ]
+  },
+  {
+   "key": "template",
+   "tab": "SKILL.md の雛形",
+   "file": ".claude/skills/skills-creator/references/skill-template.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Skill名",
+     "before": "name: \"{{この文書を一意に識別する識別子。}}\"",
+     "why": "scaffold が Skill の名前を差し込む。名前は scaffold に渡した値と一致させる"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "            \"未記入の差し込み場所が在る: SKILL.md の {{{{…}}}} が {left} か所 ── 各 {{{{…}}}} の指示に従って記入する\"",
+     "before": "（無い）",
+     "why": "未記入の差し込み場所を、文書の検査で検出する"
+    },
+    {
+     "find": "pub fn placeholders(body: &str) -> usize {",
+     "before": "（無い）",
+     "why": "コードの枠と記法の中は、差し込み場所の書き方の説明なので数えない。既存の15件の Skill で誤検出が0件であることを確かめた"
+    },
+    {
+     "find": "            let (head, skip) = call.split_once('…').unwrap_or((call.as_str(), \"\"));",
+     "before": "（無い）",
+     "why": "… の前を呼び出し、後ろを飛ばす引数の終わりとして探す。識別子の途中の一致は数えない"
+    },
+    {
+     "find": "pub fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {",
+     "before": "fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {",
+     "why": "事例から直接確かめられるように公開した"
+    }
+   ]
+  },
+  {
+   "key": "verify",
+   "tab": "verify-profiles.sh",
+   "file": ".claude/skills/skills-creator/tool/verify-profiles.sh",
+   "before": "",
+   "marks": [
+    {
+     "find": "# 提供者が、言語の組の雛形を直したときに流す確かめ（ACDR 0070）。**配布物には入らない**（tool/ の下）。",
+     "before": "（無い）",
+     "why": "配布物と同じ形を空の作業場所へ置き、利用者と同じ手順で5言語 × 2型を試す。この台本で、作業型の SKILL.md の欠けを見つけた"
+    }
+   ]
+  },
+  {
+   "key": "readme",
+   "tab": "tool/README.md",
+   "file": ".claude/skills/skills-creator/tool/README.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "の下は、配布物に入らない",
+     "before": "（無い）",
+     "why": "提供者向けの内容（ソースの地図 ・ 雛形を直したときの確認 ・ 突き合わせ）を、配布されない場所に置いた"
+    }
+   ]
+  },
+  {
+   "key": "example",
+   "tab": "examples/conform.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/examples/conform.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "//! **配布する実行ファイルには入れない** ── cargo の example は `cargo install` で組み立てられず、",
+     "before": "（無い）",
+     "why": "突き合わせを、利用者の道具の一覧と MCP に出さない入口にした"
+    }
+   ]
+  },
+  {
+   "key": "conform",
+   "tab": "conform.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/conform.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "//! references の道具の出力を、言語の組をまたいで突き合わせる（ACDR 0070）。**見つけるが、直さない。**",
+     "before": "（無い）",
+     "why": "2つの Skill の CLI を tool.json から起動し、実物の references で出力を比べる。基準が失敗した事例は一致と数えない"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn cli_of(root: &Path) -> Result<(PathBuf, Vec<String>), String> {",
+     "before": "（無い）",
+     "why": "Skill の CLI の起動のしかたを tool.json から解く処理を、突き合わせからも使えるようにした"
+    }
+   ]
+  },
+  {
+   "key": "lib",
+   "tab": "business_logic/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod conform;",
+     "before": "（無い）",
+     "why": "突き合わせの実体を業務ロジック層に置いた。道具の一覧には載せない"
+    }
+   ]
+  },
+  {
+   "key": "tests-check",
+   "tab": "check の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_name_in_the_second_argument_is_found() {",
+     "before": "（無い）",
+     "why": "2つ目の引数の名前 ・ 識別子の途中の一致 ・ テンプレート文字列 ・ 未記入の差し込み場所の数え方を固定した"
+    }
+   ]
+  },
+  {
+   "key": "tests-conform",
+   "tab": "conform の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/conform.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "fn a_failing_base_is_not_counted_as_a_match() {",
+     "before": "（無い）",
+     "why": "両方が同じ誤りを返しても一致と数えないことを固定した。作る途中で実際に起きた"
+    }
+   ]
+  },
+  {
+   "key": "tests-scaffold",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "    assert!(plan.iter().any(|(_, to)| to == \"SKILL.md\"));",
+     "before": "（無い）",
+     "why": "作業型の計画に SKILL.md が入ることを固定した"
+    }
+   ]
+  },
+  {
+   "key": "go",
+   "tab": "go.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/go.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"exec.CommandContext(…,\"",
+     "before": "（無い）",
+     "why": "名前が2つ目の引数に在る Go の呼び出しを、検出の対象に入れた"
+    }
+   ]
+  },
+  {
+   "key": "ts",
+   "tab": "typescript.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"exec(\"",
+     "before": "（無い）",
+     "why": "child_process の exec を、検出の対象に入れた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "6acbda40e242cf6a4b3565c3f8bbe97c25550816b0b948c337669b978a411750",
+  "work": "d1dcb418786ce92a01bab1a76fa755e797d0a0c8f521e8aad8f17c2a3dec27f1",
+  "template": "4752dc9b414fd9547b610436f07cc1d4e1fe449bdbd9d6163564b2bb2e4f611f",
+  "check": "471f0b26f0a03dd2c3df75e08bcae095b7492a1b84ae21f80732958d145ea55e",
+  "verify": "fa2e75cb3c232e30c46ded9c613170434412898f6ea4f5f4c9cf571cd08f16de",
+  "readme": "c32e95f14347d8c3021448a3b2180a69e1c6ab8ead359d9843952071ed533e35",
+  "example": "3be2f2bf9ab78c23c7964f9d191679eeb7d047fab244d0d40b521571277074c8",
+  "conform": "2860e6d6e14df2980d557bd5b993ff9caf5762dc11cd5b7d891799c5de8b7e45",
+  "behavior": "eeec2b51b48e1543cc0ed08e1d9979304962b3d68e7a281b8ff7ef00c07090dd",
+  "lib": "b97086df918c278fd784b29196d8fd3f453dfbcfb3a8fdeff8a9fa22517dc19a",
+  "tests-check": "bc8f5ad728acf955c5297b2dbbcbd9c5bf6fc403089b2e719e01463a0e386a31",
+  "tests-conform": "0763e7e696f61c3dc122a47253f274fb580837dd74858a2b770edb539bf79287",
+  "tests-scaffold": "b9e40537fdf9f327fbd48854d9d039ee8a507c4bed35103d598e9a6bf89b8379",
+  "go": "e2d86d9de9cca758c59c41f96b084fd3d433210f18bf155962852f4510ba69d4",
+  "ts": "41a8a26bbf9121b3a60153c67c116d542801d453c4f705f78bfbad62d1e7ac2c"
+ }
+}

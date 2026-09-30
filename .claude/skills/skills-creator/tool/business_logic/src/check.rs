@@ -197,10 +197,50 @@ fn missing_sections(root: &Path, templates: &Templates) -> Vec<String> {
     let name = template
         .file_name()
         .map_or_else(String::new, |x| x.to_string_lossy().into_owned());
-    sections::missing(&body, &want)
+    let mut found: Vec<String> = sections::missing(&body, &want)
         .into_iter()
         .map(|x| format!("節が無い: {x} ── {name} が要求する"))
-        .collect()
+        .collect();
+    let left = placeholders(&body);
+    if left > 0 {
+        found.push(format!(
+            "未記入の差し込み場所が在る: SKILL.md の {{{{…}}}} が {left} か所 ── 各 {{{{…}}}} の指示に従って記入する"
+        ));
+    }
+    found
+}
+
+/// 未記入の差し込み場所（`{{…}}`）を数える。**コードの枠とコードの記法の中は数えない** ──
+/// そこに在るのは、差し込み場所の書き方の説明である。
+#[must_use]
+pub fn placeholders(body: &str) -> usize {
+    let mut count = 0;
+    let mut fence = false;
+    for line in body.lines() {
+        if line.trim_start().starts_with("```") {
+            fence = !fence;
+            continue;
+        }
+        if fence {
+            continue;
+        }
+        // コードの記法（`…`）の中を外す
+        let plain: String = line
+            .split('`')
+            .enumerate()
+            .filter(|(i, _)| i % 2 == 0)
+            .map(|(_, x)| x)
+            .collect();
+        let mut rest = plain.as_str();
+        while let Some(open) = rest.find("{{") {
+            let Some(close) = rest[open..].find("}}") else {
+                break;
+            };
+            count += 1;
+            rest = &rest[open + close + 2..];
+        }
+    }
+    count
 }
 
 /// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**
@@ -613,25 +653,48 @@ fn without_strings(line: &str) -> String {
 /// 外部の道具を起動する呼び出しを拾う。**直後が文字列なら名前、そうでなければ None。**
 /// 配列で渡す書き方（`["git", …]`）も、先頭が文字列なら名前とみなす。注記の行（`//` と `#`
 /// で始まる行）は見ない ── 説明の中の呼び出しの形を、呼び出しと数えない。
-fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {
+///
+/// **呼び出しの書き方に `…` を含めると、そこまでの引数を飛ばす**（例：`exec.CommandContext(…,`）──
+/// 名前が2つ目の引数に在る呼び出しがある。**識別子の途中の一致は数えない** ── `respawn(` の中の
+/// `spawn(` は、別の関数である。
+#[must_use]
+pub fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {
+    let word = |c: char| c.is_alphanumeric() || c == '_';
     let mut out = Vec::new();
     for line in body.lines().filter(|l| {
         let t = l.trim_start();
         !t.starts_with("//") && !t.starts_with('#')
     }) {
         for call in calls {
+            let (head, skip) = call.split_once('…').unwrap_or((call.as_str(), ""));
+            let starts_word = head.chars().next().is_some_and(word);
             let mut rest = line;
-            while let Some(at) = rest.find(call.as_str()) {
+            while let Some(at) = rest.find(head) {
+                let before = &rest[..at];
+                let tail = &rest[at + head.len()..];
+                rest = tail;
                 // **文字列の中に書かれたものは数えない** ── 直前が引用符なら、呼び出しではない
-                if rest[..at].ends_with('"') || rest[..at].ends_with('\'') {
-                    rest = &rest[at + call.len()..];
+                if before.ends_with('"') || before.ends_with('\'') {
                     continue;
                 }
-                let after = rest[at + call.len()..].trim_start();
+                if starts_word && before.chars().next_back().is_some_and(word) {
+                    continue;
+                }
+                let after = if skip.is_empty() {
+                    tail
+                } else {
+                    match tail.find(skip) {
+                        Some(k) => &tail[k + skip.len()..],
+                        None => continue,
+                    }
+                };
+                let after = after.trim_start();
                 let after = after.strip_prefix('[').map_or(after, str::trim_start);
-                let quote = after.chars().next().filter(|c| *c == '"' || *c == '\'');
+                let quote = after
+                    .chars()
+                    .next()
+                    .filter(|c| *c == '"' || *c == '\'' || *c == '`');
                 out.push(quote.map(|q| after[1..].chars().take_while(|c| *c != q).collect()));
-                rest = &rest[at + call.len()..];
             }
         }
     }

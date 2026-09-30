@@ -703,3 +703,38 @@ fn a_version_two_skill_without_the_references_implementation_is_reported() {
         "版1 には当てない ── {lines:?}"
     );
 }
+
+fn calls(list: &[&str]) -> Vec<String> {
+    list.iter().map(|s| (*s).to_owned()).collect()
+}
+
+#[test]
+fn a_name_in_the_second_argument_is_found() {
+    // **`…` で1つ目の引数を飛ばす** ── Go の exec.CommandContext は、名前が2つ目の引数に在る
+    let found = check::spawned(
+        "\tcmd := exec.CommandContext(ctx, \"git\", \"status\")\n",
+        &calls(&["exec.Command(", "exec.CommandContext(…,"]),
+    );
+    assert_eq!(found, vec![Some("git".to_owned())]);
+}
+
+#[test]
+fn a_call_inside_another_name_is_not_counted() {
+    // **識別子の途中の一致は数えない** ── respawn( の中の spawn( は、別の関数である
+    let found = check::spawned("respawn(\"worker\");\n", &calls(&["spawn("]));
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn a_template_literal_name_is_found() {
+    // **TypeScript のテンプレート文字列も名前とみなす**
+    let found = check::spawned("exec(`git status`);\n", &calls(&["exec("]));
+    assert_eq!(found, vec![Some("git status".to_owned())]);
+}
+
+#[test]
+fn unfilled_placeholders_are_counted_outside_code() {
+    // **未記入の差し込み場所を数える** ── コードの枠と記法の中は、書き方の説明なので数えない
+    let body = "name: \"{{Skill名}}\"\n説明は `{{名前}}` の形で書く\n```\n{{例}}\n```\n{{目的}} と {{役割}}\n";
+    assert_eq!(check::placeholders(body), 3);
+}

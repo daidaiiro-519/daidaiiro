@@ -221,6 +221,17 @@ fn read_json(path: &Path) -> Result<Value, String> {
     serde_json::from_str(&text).map_err(|e| format!("JSON でない ── {e}"))
 }
 
+/// Skill の CLI の起動のコマンドと引数を、`tool.json` から解く。**突き合わせ（conform）も使う。**
+///
+/// # Errors
+///
+/// `tool.json` が読めないとき、起動のコマンドの経路が無いときに返す。
+pub fn cli_of(root: &Path) -> Result<(PathBuf, Vec<String>), String> {
+    let tool = read_json(&root.join("tool.json"))
+        .map_err(|e| format!("{} を読めない ── {e}", root.join("tool.json").display()))?;
+    launch(root, tool.get("cli").unwrap_or(&Value::Null))
+}
+
 /// 絶対パスか。**Windows の書き方も含める** ── `C:\\…` ・ `C:/…`
 #[must_use]
 pub fn is_absolute(command: &str) -> bool {
