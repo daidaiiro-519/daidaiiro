@@ -471,10 +471,22 @@ pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
 /// references に置いた Markdown。**道具を持つ Skill は、Markdown を SKILL.md だけにする**（契約の版2）──
 /// references に置くと、スキーマで検査できず、`view` でも描画できない。
 fn markdown_in_references(root: &Path) -> Vec<String> {
+    let ignored = ignored_prefixes(root);
+    let is_ignored = |path: &Path| {
+        ignored.iter().any(|(prefix, name)| match name {
+            Some(name) => path
+                .strip_prefix(root)
+                .is_ok_and(|rel| rel.components().any(|c| c.as_os_str() == name.as_str())),
+            None => path.starts_with(prefix),
+        })
+    };
     let mut found = Vec::new();
     let mut stack = vec![root.join("references")];
     while let Some(dir) = stack.pop() {
         for path in files::list(&dir).unwrap_or_default() {
+            if is_ignored(&path) {
+                continue;
+            }
             if files::is_dir(&path) {
                 stack.push(path);
             } else if path.extension().is_some_and(|x| x == "md") {
@@ -490,6 +502,37 @@ fn markdown_in_references(root: &Path) -> Vec<String> {
     found
 }
 
+/// git が追跡しない場所。**配らないものは契約の外である** ── 手元だけに置く覚え書きを検出しない。
+/// Skill のフォルダから上へ辿り、各 `.gitignore` の行のうち文字どおりの経路だけを読む
+/// （`*` ・ `?` ・ `[` ・ `!` を含む行は読まない）。`/` を途中に含む行はその `.gitignore` の場所からの経路、
+/// 含まない行はどの階層でも一致する名前として扱う。
+fn ignored_prefixes(root: &Path) -> Vec<(PathBuf, Option<String>)> {
+    let mut out = Vec::new();
+    let start = files::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    for dir in start.ancestors() {
+        let Ok(body) = files::read_to_string(dir.join(".gitignore")) else {
+            continue;
+        };
+        for line in body.lines().map(str::trim) {
+            if line.is_empty() || line.starts_with('#') || line.contains(['*', '?', '[', '!']) {
+                continue;
+            }
+            let bare = line.trim_start_matches('/').trim_end_matches('/');
+            if bare.contains('/') || line.starts_with('/') {
+                let full = dir.join(bare);
+                let rel = full
+                    .strip_prefix(&start)
+                    .map(|r| root.join(r))
+                    .unwrap_or(full);
+                out.push((rel, None));
+            } else {
+                out.push((PathBuf::new(), Some(bare.to_owned())));
+            }
+        }
+    }
+    out
+}
+
 /// SKILL.md がコードの記法で指す、Skill の中のファイル。**指す先が無ければ検出する** ──
 /// 改名や移動の後に旧い名前が残ると、読み手はその場所を開けない。
 /// 書き方の説明（`<…>` ・ `{…}` ・ `*` を含むもの）は、ファイルを指していないので見ない。
@@ -503,9 +546,16 @@ fn missing_targets(root: &Path) -> Vec<String> {
             continue;
         }
         let path = part.trim().trim_end_matches(':');
-        let inside = ["tool/", "references/", "infra/", "examples/", "assets/", "agents/"]
-            .iter()
-            .any(|p| path.starts_with(p));
+        let inside = [
+            "tool/",
+            "references/",
+            "infra/",
+            "examples/",
+            "assets/",
+            "agents/",
+        ]
+        .iter()
+        .any(|p| path.starts_with(p));
         let pattern = path.contains(['<', '>', '{', '}', '*', ' ', '…']);
         if !inside || pattern {
             continue;

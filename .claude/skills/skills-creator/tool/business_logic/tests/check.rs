@@ -822,3 +822,21 @@ fn a_path_in_the_document_that_does_not_exist_is_reported() {
     );
     assert!(!found.iter().any(|x| x.contains("<層>")), "{found:?}");
 }
+
+#[test]
+fn markdown_that_git_ignores_is_not_reported() {
+    // **配らないものは契約の外である** ── .gitignore が外した手元の覚え書きは、references に在っても検出しない
+    let root = scratch("refs-md-ignored");
+    write_document(&root);
+    write_entries(&root, TOOL_JSON, MCP_JSON);
+    std::fs::create_dir_all(root.join("references/archive/notes")).expect("作れる");
+    std::fs::write(root.join("references/archive/notes/a.md"), "# 覚え書き\n").expect("書ける");
+    std::fs::write(root.join("references/b.md"), "# 配る文書\n").expect("書ける");
+    std::fs::write(root.join(".gitignore"), "# 手元だけ\nreferences/archive/\n").expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(!found.iter().any(|x| x.contains("archive")), "{found:?}");
+    assert!(
+        found.iter().any(|x| x.contains("references/b.md")),
+        "{found:?}"
+    );
+}
