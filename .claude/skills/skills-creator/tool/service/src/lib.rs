@@ -253,7 +253,12 @@ fn run_scaffold(given: &Given) -> Outcome {
             "language": found.name,
             "type": ty.name,
             "next": ty.next,
-            "build": found.build,
+            // **組み立てのコマンドにも Skill の名前を差し込む** ── 実行ファイルの名前を持つ組が在る
+            "build": found
+                .build
+                .iter()
+                .map(|b| b.replace("{{Skill名}}", skill))
+                .collect::<Vec<_>>(),
         }),
     )
 }

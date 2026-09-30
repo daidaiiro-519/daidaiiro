@@ -1,0 +1,197 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0065",
+ "title": "Go の組を契約の版1で起こす",
+ "date": "2026-09-30",
+ "status": "accepted",
+ "decision": "skills-creator に Go の組を加え、契約の版1 を満たす作業型の Skill を Go で生めるようにする。",
+ "why": "ボードの論点5で、組を起こす順を Python → TypeScript → C# → Go と決めた。C# の組は ACDR 0064 で承認した。Go の組も、Rust の組と同じ振る舞いを別の言語で満たす雛形を持ち、中の構成は指定しない（ACDR 0059）。MCP の公式 Go SDK の最新の安定版は v1.8.0 である。原文（commit 3f3b699）の NewServer と Server.AddTool と StdioTransport に一致させた。Go は Rust と同じく実行ファイルを作るので、置き場所も Rust と同じ bin/ にした。実行ファイルの名前が Skill の名前なので、scaffold が案内する組み立てのコマンドへ名前を差し込む必要が生じた。",
+ "shift": [
+  {
+   "what": "生める言語の組",
+   "from": "Rust ・ Python ・ TypeScript ・ C#",
+   "to": "Rust ・ Python ・ TypeScript ・ C# ・ Go（ボードで決めた4言語がそろう）"
+  },
+  {
+   "what": "Go の Skill の起動",
+   "from": "（無い）",
+   "to": "bin/<名前> ／ bin/<名前>-mcp。起動に処理系を必要としない"
+  },
+  {
+   "what": "scaffold が案内する組み立てのコマンド",
+   "from": "組の定義の文字列のまま",
+   "to": "Skill の名前を差し込んだ文字列"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "Go の組で生んだ Skill の起動の流れ。CLI と MCP は別の実行ファイルで、同じ道具の一覧（tools.go）から組む。その先の構成は Skill を作る人が決める",
+ "alternatives": [
+  {
+   "option": "汎用の mcp.AddTool（引数の型から入力の形を導く）で道具を登録する",
+   "why_not": "道具ごとに引数の型を書くことになり、能力の正本が CLI の一覧と2か所になる。Server.AddTool は入力の形と処理を一覧から渡せる"
+  },
+  {
+   "option": "go run で起動する",
+   "why_not": "起動のたびに組み立てが走り、MCP の接続と CLI の応答が遅れる。組み立てた実行ファイルを起動する"
+  },
+  {
+   "option": "v1.8.0 より前の版に固定する",
+   "why_not": "新しく起こす組は、最新の安定版に合わせる。v1.8.0 の Server.AddTool は、引数を JSON のまま受ける"
+  },
+  {
+   "option": "組み立てのコマンドに名前を持たせず、実行ファイルの名前を cli と mcp に固定する",
+   "why_not": "Rust の組は bin/<名前> と bin/<名前>-mcp であり、同じ bin/ に置く組どうしで名前の決まりが食い違う"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "go-md",
+   "tab": "Go の組の説明",
+   "file": ".claude/skills/skills-creator/references/profiles/go.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "この組は契約の版1 を満たし、作業型だけを保持する。",
+     "before": "（無い）",
+     "why": "版2 を要る助言型は Rust の組で生む。scaffold は版の不足を理由に断る"
+    },
+    {
+     "find": "起動に処理系を必要としない。",
+     "before": "（無い）",
+     "why": "Go は実行ファイルを作るので、Rust の組の置き場所と名前の決まりに一致させた"
+    },
+    {
+     "find": "は git で追跡する。",
+     "before": "（無い）",
+     "why": "依存の版を固定するために、go mod tidy が作る go.sum を残す"
+    }
+   ]
+  },
+  {
+   "key": "profile",
+   "tab": "go.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/go.profile.json",
+   "before": "",
+   "marks": [
+    {
+     "find": "\"contract\": 1,",
+     "before": "（無い）",
+     "why": "版1 の組として定義した"
+    },
+    {
+     "find": "\"exec.Command(\"",
+     "before": "（無い）",
+     "why": "外部の道具の名前の直書きを、Go の起動の書き方で検出する"
+    }
+   ]
+  },
+  {
+   "key": "contract-go",
+   "tab": "contract.go の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/contract.go.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "func Catalog(tools []Tool, given *Given) Outcome {",
+     "before": "（無い）",
+     "why": "Rust の contract.rs の catalog と同じ形（tools と skill_root）を返す"
+    }
+   ]
+  },
+  {
+   "key": "cli-go",
+   "tab": "cmd/cli の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/cli.main.go.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "\t\tif !slices.ContainsFunc(tool.Args, func(x contract.Arg) bool { return x.Name == key }) {",
+     "before": "（無い）",
+     "why": "一覧に無い旗を終了コード 2 で断る。Rust の組と同じ文言にした"
+    }
+   ]
+  },
+  {
+   "key": "mcp-go",
+   "tab": "cmd/mcp の雛形",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/mcp.main.go.tmpl",
+   "before": "",
+   "marks": [
+    {
+     "find": "\t\tserver.AddTool(&mcp.Tool{Name: t.Name, Description: t.Summary, InputSchema: inputSchema(t)}, handler(t))",
+     "before": "（無い）",
+     "why": "公式 SDK の低水準の登録を、同じ道具の一覧から組む"
+    },
+    {
+     "find": "\t\t\tIsError:           !out.Ok,",
+     "before": "（無い）",
+     "why": "ok が偽なら IsError を立てる。Rust の組と同じ分け方である"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "            // **組み立てのコマンドにも Skill の名前を差し込む** ── 実行ファイルの名前を持つ組が在る",
+     "before": "（無い）",
+     "why": "Go の組の組み立てのコマンドは実行ファイルの名前を持つ。差し込まないと、案内のコマンドが {{Skill名}} のまま出る"
+    }
+   ]
+  },
+  {
+   "key": "tests",
+   "tab": "scaffold の事例",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn a_work_skill_can_be_planned_in_go() {",
+     "before": "（無い）",
+     "why": "Go の組の計画 ・ 雛形の実在 ・ 組み立てのコマンドの差し込み場所 ・ 助言型を断ることを固定した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator の SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Python ・ TypeScript ・ C# ・ Go（版1 ・ 作業型）",
+     "before": "Python ・ TypeScript ・ C#（版1 ・ 作業型）",
+     "why": "組の一覧を、置いた組に一致させた"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "道具の契約",
+   "file": ".claude/skills/skills-creator/references/tool-contract.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Rust と Go は",
+     "before": "Rust は bin/",
+     "why": "実行ファイルの置き場所の例に、Go の組を加えた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "go-md": "12ea976b70f4c6a375144de2fc89606c8af467f3755192ecc9dc7f3d4d3bae66",
+  "profile": "834917f289eb851deca715b2cae0da02e55929e6e224339fc8fce5bde5a8fb21",
+  "contract-go": "1350b07ead1cacb3f5b5bb2074dbfd45a688471d228c01fb2b528f2b57cd091f",
+  "cli-go": "621a58ffcc0e5ab97aad6acc27fa6046f4efedd9d068e1a2247455542c90b0f7",
+  "mcp-go": "e3a4dcf7f78b144ae1ff274acb7c0ef27b4aa1427364728ee9c9f51dada0b150",
+  "service": "2d4db9aa107609eb28c416036c0e1874cabf084da1360c0a2878e8dd07acfc1b",
+  "tests": "f1ac904a9387d6b474cfd6b59ac7370c458f068e2f2b1a4fcf92aeb32fd7e7ca",
+  "skill": "541a64af9156fc7b8279d7e708b5e8e5d57d62562c39b766d87eae9c262cc0fa",
+  "contract": "7b9ec7eab349d3c96a79816b055e5cc46e2d2013853ff0b7fd2c0eb3ce87439c"
+ }
+}

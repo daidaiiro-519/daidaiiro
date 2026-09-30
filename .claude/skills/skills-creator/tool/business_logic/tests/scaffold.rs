@@ -199,3 +199,30 @@ fn a_work_skill_can_be_planned_in_csharp() {
     let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
     assert!(profile::plan(&profiles, &types, &cs, &advisor).is_err());
 }
+
+#[test]
+fn a_work_skill_can_be_planned_in_go() {
+    let (profiles, types) = defs();
+    let go = profile::load(&profiles, "go").expect("Go の組が在る");
+    let work = profile::load_type(&types, "work").expect("作業型が在る");
+    let plan = profile::plan(&profiles, &types, &go, &work).expect("組み合わせられる");
+    for to in [
+        "tool/go.mod",
+        "tool/contract/contract.go",
+        "tool/cmd/cli/main.go",
+        "tool/cmd/mcp/main.go",
+        "tool/tools/tools.go",
+        "tool.json",
+        "mcp.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    for (from, _) in &plan {
+        assert!(from.is_file(), "{} が無い", from.display());
+    }
+    // **実行ファイルの名前は Skill の名前である** ── 組み立てのコマンドが差し込む場所を持つ
+    assert!(go.build.iter().any(|b| b.contains("{{Skill名}}")));
+    // **版1 の組は助言型を断る**
+    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
+    assert!(profile::plan(&profiles, &types, &go, &advisor).is_err());
+}

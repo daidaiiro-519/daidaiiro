@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: MIT
+
+// Package tools は {{Skill名}} の道具の一覧である。**能力の正本はここである。**
+//
+// CLI と MCP はこの一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+package tools
+
+import "{{パッケージ名}}/contract"
+
+// All はこの Skill が持つ道具の一覧である。
+func All() []contract.Tool {
+	return []contract.Tool{
+		{
+			Name:    "hello",
+			Summary: "見本の道具。名前を受けて、あいさつの文を返す",
+			Args:    []contract.Arg{contract.Need("name", "あいさつする相手の名前")},
+			Run:     runHello,
+			Human:   humanHello,
+		},
+	}
+}
+
+// runHello は見本の道具である。**書き換えて、この Skill の道具にする。**
+// 外部の道具を起動するなら、given.External("名前") で tool.json から読み、引数として渡す。
+func runHello(given *contract.Given) contract.Outcome {
+	return contract.Found(nil, map[string]any{"greeting": Greet(given.One("name", ""))})
+}
+
+func humanHello(out contract.Outcome) string {
+	if !out.Ok {
+		return out.Findings[0]
+	}
+	s, _ := out.Data["greeting"].(string)
+	return s
+}

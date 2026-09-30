@@ -9,7 +9,7 @@ Skill が道具（実行ファイル）を伴うとき、**呼ぶ側に形を推
 
 **契約は、呼ぶ側から観察できるものだけを規定する**（ACDR 0036）。道具を書く言語と、
 配布するかどうかは、利用者に委ねる。言語ごとの実装の形は**言語の組**が持ち
-（いまは Rust ・ Python ・ TypeScript ・ C#。`references/profiles/<言語>.md`）、配布は任意の機能として
+（いまは Rust ・ Python ・ TypeScript ・ C# ・ Go。`references/profiles/<言語>.md`）、配布は任意の機能として
 `references/distribution.md` が持つ。
 
 | 置く先 | 中身 |
@@ -160,7 +160,7 @@ MCP の実装が無い環境では、MCP サーバーは立たず、CLI だけ�
 | 検出の意味 | `findings` は検出であって、誤りではない。意味づけは呼ぶ側が持つ |
 | MCP の実装 | サーバーの組み方はホストの側の都合である |
 | **道具を書く言語** | 公式の MCP の SDK が在る言語なら、どれでもよい。実装の形は言語の組が持つ |
-| **実行ファイルの置き場所** | 起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。置き場所は言語の組が決める（Rust は `bin/`、Python は実行ファイルを置かず `uv run` で、TypeScript は `node` で `.ts` を直接、C# は `dotnet` で組み立てた dll を起動する） |
+| **実行ファイルの置き場所** | 起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。置き場所は言語の組が決める（Rust と Go は `bin/`、Python は実行ファイルを置かず `uv run` で、TypeScript は `node` で `.ts` を直接、C# は `dotnet` で組み立てた dll を起動する） |
 | **配布** | 作った Skill を配布しない人が多い。配布は任意の機能であり、`references/distribution.md` が持つ |
 | **道具の中の構成**（層 ・ 依存の向き ・ 入出力の置き場所） | Skill ごとに実現したいことが違うので、中身の設計は Skill が決める（ACDR 0059）。雛形は下の「雛形が採る構成」を採るが、契約ではない |
 
@@ -235,7 +235,7 @@ skills-creator check <Skill のフォルダ>
 ```
 
 **2段で検査する。** 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。
-2段目はソースを読む検査で、**言語の組が持つ**（Rust の組の検査は `references/profiles/rust.md`、Python ・ TypeScript ・ C# の組の検査は `references/profiles/<言語>.md`）。
+2段目はソースを読む検査で、**言語の組が持つ**（Rust の組の検査は `references/profiles/rust.md`、Python ・ TypeScript ・ C# ・ Go の組の検査は `references/profiles/<言語>.md`）。
 2段目が既定で検査するのは、契約に関わるものだけである（外部の道具の名前の直書き）。`--layout 1` を渡すと、
 雛形の構成（上の節）も検査する。**組が無い言語では、2段目は「実行しない」と出し、合格とは扱わない。**
 

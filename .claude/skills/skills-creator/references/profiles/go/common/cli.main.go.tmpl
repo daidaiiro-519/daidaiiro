@@ -1,0 +1,135 @@
+// SPDX-License-Identifier: MIT
+
+// {{Skill名}} のプレゼンテーション層（CLI）。シェルから呼ぶ唯一の経路である。
+//
+// **道具ごとに実行ファイルを作らない** ── 実行ファイルが増えると、呼ぶ側が形を推測することになる。
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"slices"
+	"strings"
+
+	"{{パッケージ名}}/contract"
+	"{{パッケージ名}}/tools"
+)
+
+func main() { os.Exit(run(os.Args[1:])) }
+
+func run(argv []string) int {
+	all := tools.All()
+	asJSON := slices.Contains(argv, "--json")
+	rest := slices.DeleteFunc(slices.Clone(argv), func(a string) bool { return a == "--json" })
+	if len(rest) == 0 {
+		if asJSON {
+			return emit(contract.Catalog(all, &contract.Given{}), true, nil)
+		}
+		usage(all)
+		return 2
+	}
+	verb := rest[0]
+	if verb == "-h" || verb == "--help" || verb == "help" {
+		usage(all)
+		return 0
+	}
+	i := slices.IndexFunc(all, func(t contract.Tool) bool { return t.Name == verb })
+	if i < 0 {
+		fmt.Fprintf(os.Stderr, "その動詞は無い: %s ── 一覧は help である\n", verb)
+		return 2
+	}
+	tool := all[i]
+	given, err := readArgs(tool, rest[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	for _, a := range tool.Args {
+		if a.Required && !given.Has(a.Name) {
+			fmt.Fprintf(os.Stderr, "引数が足りない: %s は %s を要する\n", tool.Name, a.Name)
+			return 2
+		}
+	}
+	return emit(tool.Run(given), asJSON, tool.Human)
+}
+
+func readArgs(tool contract.Tool, rest []string) (*contract.Given, error) {
+	given := &contract.Given{}
+	var positional []string
+	for i := 0; i < len(rest); i++ {
+		a := rest[i]
+		if !strings.HasPrefix(a, "--") {
+			positional = append(positional, a)
+			continue
+		}
+		body := a[2:]
+		var key, value string
+		if k, v, ok := strings.Cut(body, "="); ok {
+			key, value = k, v
+		} else if i+1 < len(rest) && !strings.HasPrefix(rest[i+1], "--") {
+			key, value = body, rest[i+1]
+			i++
+		} else {
+			key, value = body, "1"
+		}
+		key = strings.ReplaceAll(key, "-", "_")
+		// **道具の一覧に無い旗は断る。** 黙って無視すると、打ち間違いが検出されない
+		if !slices.ContainsFunc(tool.Args, func(x contract.Arg) bool { return x.Name == key }) {
+			var known []string
+			for _, x := range tool.Args {
+				known = append(known, x.Name)
+			}
+			return nil, fmt.Errorf("その旗は無い: --%s（%s は %s を受ける）", key, tool.Name, strings.Join(known, " ・ "))
+		}
+		given.Push(key, value)
+	}
+	next := 0
+	for _, arg := range tool.Args {
+		if given.Has(arg.Name) {
+			continue
+		}
+		if arg.Many {
+			for ; next < len(positional); next++ {
+				given.Push(arg.Name, positional[next])
+			}
+			continue
+		}
+		if next < len(positional) {
+			given.Push(arg.Name, positional[next])
+			next++
+		} else if arg.Default != nil {
+			given.Push(arg.Name, *arg.Default)
+		}
+	}
+	return given, nil
+}
+
+func usage(all []contract.Tool) {
+	fmt.Println("道具の一覧")
+	for _, t := range all {
+		var need []string
+		for _, a := range t.Args {
+			switch {
+			case a.Many:
+				need = append(need, "<"+a.Name+"…>")
+			case a.Required:
+				need = append(need, "<"+a.Name+">")
+			default:
+				need = append(need, "["+a.Name+"]")
+			}
+		}
+		fmt.Printf("  %s %s\n      %s\n", t.Name, strings.Join(need, " "), t.Summary)
+	}
+	fmt.Println("\n  どれも --json を付けると、機械が読む形で出る")
+}
+
+func emit(out contract.Outcome, asJSON bool, human func(contract.Outcome) string) int {
+	if asJSON {
+		body, _ := json.MarshalIndent(out, "", "  ")
+		fmt.Println(string(body))
+	} else {
+		fmt.Println(human(out))
+	}
+	return out.ExitCode()
+}

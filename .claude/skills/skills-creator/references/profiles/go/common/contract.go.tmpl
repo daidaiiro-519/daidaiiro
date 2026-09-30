@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: MIT
+
+// Package contract は契約の実体である。**どの Skill も同じファイルを複製して使う**（ACDR 0065）。
+//
+// 道具の一覧（能力の正本）・ 引数 ・ 渡された値 ・ 戻り値 ・ 道具の一覧を機械が読む形で返す処理を持つ。
+// CLI と MCP は、この形の一覧から組む ── 能力を2回書くと、片方だけが古くなる。
+package contract
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// Arg は引数1つである。位置引数と旗を区別しない ── 呼ぶ側の形はプレゼンテーション層が決める。
+type Arg struct {
+	Name     string
+	Summary  string
+	Required bool
+	Many     bool
+	Default  *string
+}
+
+// Need は省略できない引数を宣言する。
+func Need(name, summary string) Arg { return Arg{Name: name, Summary: summary, Required: true} }
+
+// Opt は省略できる引数を宣言する。
+func Opt(name, summary string, fallback *string) Arg {
+	return Arg{Name: name, Summary: summary, Default: fallback}
+}
+
+// ManyOf はまとめて受ける引数を宣言する。
+func ManyOf(name, summary string) Arg {
+	return Arg{Name: name, Summary: summary, Required: true, Many: true}
+}
+
+// Outcome は道具の戻り値である。**印字はしない** ── 印字と終了コードはプレゼンテーション層が持つ。
+type Outcome struct {
+	Ok       bool           `json:"ok"`
+	Findings []string       `json:"findings"`
+	Data     map[string]any `json:"data"`
+}
+
+// Found は検出と結果を返す。
+func Found(findings []string, data map[string]any) Outcome {
+	if findings == nil {
+		findings = []string{}
+	}
+	return Outcome{Ok: true, Findings: findings, Data: data}
+}
+
+// Misuse は誤用を返す。
+func Misuse(reason string) Outcome {
+	return Outcome{Ok: false, Findings: []string{reason}, Data: map[string]any{}}
+}
+
+// ExitCode は 0 正常 ／ 1 検出あり ／ 2 誤用 である。
+func (o Outcome) ExitCode() int {
+	switch {
+	case !o.Ok:
+		return 2
+	case len(o.Findings) > 0:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// Given は渡された引数である。**プレゼンテーション層が組み、道具が読む。**
+type Given struct {
+	values map[string][]string
+}
+
+// Push は値を1つ足す。
+func (g *Given) Push(name, value string) {
+	if g.values == nil {
+		g.values = map[string][]string{}
+	}
+	g.values[name] = append(g.values[name], value)
+}
+
+// One は最初の値を返す。無ければ fallback を返す。
+func (g *Given) One(name, fallback string) string {
+	if v := g.values[name]; len(v) > 0 {
+		return v[0]
+	}
+	return fallback
+}
+
+// Has は値が渡されたかを返す。
+func (g *Given) Has(name string) bool {
+	_, ok := g.values[name]
+	return ok
+}
+
+// All は全ての値を返す。
+func (g *Given) All(name string) []string { return append([]string(nil), g.values[name]...) }
+
+// SkillRoot は Skill のフォルダである。渡されなければ、実行ファイルの位置から SKILL.md の在る上のフォルダを求める。
+func (g *Given) SkillRoot() (string, error) {
+	if g.Has("skill_root") {
+		return g.One("skill_root", "."), nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = resolved
+	}
+	for dir := filepath.Dir(exe); ; {
+		if _, err := os.Stat(filepath.Join(dir, "SKILL.md")); err == nil {
+			return dir, nil
+		}
+		up := filepath.Dir(dir)
+		if up == dir {
+			return "", errors.New("Skill の置き場所が見つからない ── --skill_root で渡す")
+		}
+		dir = up
+	}
+}
+
+// External は外部の道具の起動するコマンドである。**名前を直書きせず、tool.json から読んで渡す。**
+func (g *Given) External(name string) (string, error) {
+	root, err := g.SkillRoot()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(root, "tool.json")
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	var doc struct {
+		External []struct {
+			Name    string `json:"name"`
+			Command string `json:"command"`
+		} `json:"external"`
+	}
+	if err := json.Unmarshal(body, &doc); err != nil {
+		return "", err
+	}
+	for _, x := range doc.External {
+		if x.Name == name && x.Command != "" {
+			return x.Command, nil
+		}
+	}
+	return "", fmt.Errorf("%s の external に %s の command が無い", path, name)
+}
+
+// Tool は道具1つである。Run は結果を返し、Human は人向けの文を組む。
+type Tool struct {
+	Name    string
+	Summary string
+	Args    []Arg
+	Run     func(*Given) Outcome
+	Human   func(Outcome) string
+}
+
+// Catalog は道具の一覧を、機械が読む形で返す。**動詞なしで --json を付けたときに CLI が返す。**
+func Catalog(tools []Tool, given *Given) Outcome {
+	listed := []map[string]any{}
+	for _, t := range tools {
+		args := []map[string]any{}
+		for _, a := range t.Args {
+			args = append(args, map[string]any{"name": a.Name, "required": a.Required, "many": a.Many})
+		}
+		listed = append(listed, map[string]any{"name": t.Name, "summary": t.Summary, "args": args})
+	}
+	root, err := given.SkillRoot()
+	if err != nil {
+		root = ""
+	}
+	return Found(nil, map[string]any{"tools": listed, "skill_root": root})
+}
