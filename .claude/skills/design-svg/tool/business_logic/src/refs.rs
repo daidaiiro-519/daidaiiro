@@ -1067,7 +1067,8 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
                 svg
             };
             let cap = esc(str_of(value, "caption").unwrap_or(""));
-            format!("<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>")
+            // **説明を図の前に置く** ── 何の図かを知ってから、図を読む
+            format!("<section class=\"block\">{head}<figure><figcaption>{cap}</figcaption>{svg}</figure></section>")
         }
         "steps" => format!(
             "<section class=\"block\">{head}{}</section>",

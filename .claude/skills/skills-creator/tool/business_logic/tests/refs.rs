@@ -577,8 +577,11 @@ fn a_figure_of_nodes_and_edges_is_drawn_as_its_links() {
         html.contains("<ol class=\"graph\"><li>ユーザー目的 → サブ機能（どのように ・ 破線）</li><li>単独</li></ol>"),
         "{html}"
     );
-    assert!(
-        html.contains("<figcaption>レベルの関係</figcaption>"),
-        "{html}"
-    );
+    // **何の図かを、図の前に示す** ── 説明が後ろにあると、読み手は何の図かを知らないまま並びを読む
+    // （実測 2026-10-01、ddd-advisor の試しの相談）
+    let cap = html
+        .find("<figcaption>レベルの関係</figcaption>")
+        .expect("説明が在る");
+    let graph = html.find("<ol class=\"graph\">").expect("並びが在る");
+    assert!(cap < graph, "{html}");
 }

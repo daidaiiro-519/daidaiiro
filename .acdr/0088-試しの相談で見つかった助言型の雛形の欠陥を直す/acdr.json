@@ -1,0 +1,281 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0088",
+ "title": "試しの相談で見つかった、助言型の雛形の欠陥を直す",
+ "date": "2026-10-02",
+ "status": "accepted",
+ "decision": "助言型の雛形は、相談種別ごとの判定の選び方 ・ 判断基準の範囲外の扱い ・ 推測の印を手順に持ち、図の説明を図の前に描き、生成したコードは Skill の名前に関わらず整形済みにする。",
+ "why": "作り直した ddd-advisor を実際の相談で検証するため、概念相談 ・ 判断相談 ・ 設計相談を1件ずつ、SKILL.md の手順どおりに実行した。回答は validate に合格したが、回答を組む途中で、手順に書いていない判断が必要になった。判定の値の選び方 ・ 比較した案の欄の使いどころ ・ 範囲外の条件の書き場所 ・ 推測の注意の示し方 ・ 関連する基準の読み方 ・ 次にすることの書き方の6つである。どれも相談の領域に依存しない手順の欠けで、雛形から作る advisor すべてに及ぶ。あわせて、図の説明が図の後ろに描かれ、何の図かを認知しないまま読むことになった。また、ddd-advisor を雛形から生成すると、整形の検査が不合格になった。service の refs.rs が、この Skill の crate と外部の crate を同じ組で並べるので、接頭辞の文字で並びの正解が変わる（usecase の u は通り、ddd の d は通らない）。",
+ "shift": [
+  {
+   "what": "回答の手順（助言型の SKILL.md）",
+   "from": "判定の選び方 ・ 比較した案の使いどころ ・ 範囲外の書き場所 ・ 推測の印 ・ 関連する基準の読み方 ・ 次にすることの文の形を書いていない",
+   "to": "書いた（Step 2 に1項、Step 3 に4項を足し、3項を改めた）"
+  },
+  {
+   "what": "図の説明",
+   "from": "図の後ろに描く",
+   "to": "図の前に描く"
+  },
+  {
+   "what": "生成した service の refs.rs の読み込みの並び",
+   "from": "この Skill の crate を外部の crate と同じ組に置く。接頭辞によって整形の検査が不合格になる",
+   "to": "別の組に置く。どの接頭辞でも整形済みになる"
+  },
+  {
+   "what": "回答の形の注記（next）",
+   "from": "動詞で始める",
+   "to": "1件に1つの行為を書き、動詞で終わる文にする"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ddd-advisor の試しの相談で見つかった欠陥を、雛形で直して、雛形から作った Skill へ複製する",
+ "how": "Rust の雛形を先に直し、試験（図の説明が並びより前に在ること）を先に書いて失敗を確かめてから実装した。4言語の雛形も同じ1行を直した。5言語 × 2型の検証は終了コード 0、320件の突き合わせの不一致は 0 件である。service の refs.rs の雛形は、接頭辞 a ・ d ・ z の3つで生成して整形の検査に通した。Rust の雛形を11の Skill の refs.rs へ複製し、11とも試験 ・ 静的解析 ・ 整形に通した。SKILL.md の雛形の追記は、usecase-advisor と ddd-advisor の SKILL.md にも同じ文で入れた。",
+ "applies_to": "skills-creator の5言語の描画の雛形（refs）と service の refs.rs の雛形 ・ 試験（tests/refs.rs）・ 助言型の SKILL.md と answer.schema.json の雛形。雛形の複製である11の Skill の refs.rs。usecase-advisor の SKILL.md と answer.schema.json。",
+ "alternatives": [
+  {
+   "option": "手順は直さず、回答の validate で検出する",
+   "why_not": "判定の値と相談種別の組み合わせは検査できるが、範囲外の条件を根拠にしたこと ・ 読んでいない基準を載せたことは、回答の JSON だけからは判定できない。手順に書けば、回答を組む時点で防げる"
+  },
+  {
+   "option": "ddd-advisor の SKILL.md だけを直す",
+   "why_not": "どれも相談の領域に依存しない手順の欠けであり、雛形から作る advisor（qa ・ platform ・ ux も）すべてに同じ欠けが出る"
+  },
+  {
+   "option": "service の refs.rs の並びを、生成のたびに整形器で直す",
+   "why_not": "雛形の契約は「生成した直後のコードが整形済みである」（ACDR 0084）。整形器を後から掛けると、雛形と生成物が一致しなくなる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rs",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **説明を図の前に置く**",
+     "why": "図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする",
+     "before": "            format!(\"<section class=\\\"block\\\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>\")"
+    }
+   ]
+  },
+  {
+   "key": "rst",
+   "tab": "service.refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/service.refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **この Skill の層は、外部の crate と別の組に置く**",
+     "why": "この Skill の crate を外部の crate と別の組に置いた。同じ組に置くと、整形器が名前の順に並べ替えるので、接頭辞 d の ddd-advisor では serde_json より前が正解になり、雛形の並びが不合格になった",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "py",
+   "tab": "refs.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<figure><figcaption>{cap}</figcaption>{svg}</figure>",
+     "why": "図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする",
+     "before": "        return f'<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>'"
+    }
+   ]
+  },
+  {
+   "key": "ts",
+   "tab": "refs.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<figure><figcaption>${esc(str(value, 'caption') ?? '')}</figcaption>${svg}</figure>",
+     "why": "図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする",
+     "before": "            return `<section class=\"block\">${hd}<figure>${svg}<figcaption>${esc(str(value, 'caption') ?? '')}</figcaption></figure></section>`;"
+    }
+   ]
+  },
+  {
+   "key": "go",
+   "tab": "refs.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<figure><figcaption>%s</figcaption>%s</figure>",
+     "why": "図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする",
+     "before": "\t\treturn fmt.Sprintf(`<section class=\"block\">%s<figure>%s<figcaption>%s</figcaption></figure></section>`, hd, svg, esc(strOr(value, \"caption\", \"\")))"
+    }
+   ]
+  },
+  {
+   "key": "cs",
+   "tab": "Refs.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Refs.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "<figure><figcaption>{Esc(Str(value, \"caption\") ?? \"\")}</figcaption>{svg}</figure>",
+     "why": "図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする",
+     "before": "                return $\"<section class=\\\"block\\\">{head}<figure>{svg}<figcaption>{Esc(Str(value, \"caption\") ?? \"\")}</figcaption></figure></section>\";"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/refs.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **何の図かを、図の前に示す**",
+     "why": "説明が並びより前に在ることを試験で固定した。以前の試験は説明が在ることだけを見ていたので、位置の誤りを検出しなかった",
+     "before": "    assert!(\n        html.contains(\"<figcaption>レベルの関係</figcaption>\"),\n        \"{html}\"\n    );"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "SKILL.md の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/skill-template.md.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "に載せる基準も、読んでから載せる",
+     "before": "（無い）",
+     "why": "Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る"
+    },
+    {
+     "find": "は相談種別で選ぶ。判断相談は",
+     "before": "（無い）",
+     "why": "判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた"
+    },
+    {
+     "find": "は、採否を判定する案の比較にだけ使う",
+     "before": "（無い）",
+     "why": "概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である"
+    },
+    {
+     "find": "判断基準の範囲外のこと（判断基準が触れていない条件など）は",
+     "before": "（無い）",
+     "why": "ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない"
+    },
+    {
+     "find": "表 ・ 規則 ・ 注意の1行を引用するときは",
+     "before": "- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。表の1行を引用するときは、列の題と値を「列の題：値」の形にして「 ・ 」でつなぐ",
+     "why": "0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した"
+    },
+    {
+     "find": "判断基準に無い注意を回答の側で組み立てたときは",
+     "before": "- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く",
+     "why": "ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない"
+    },
+    {
+     "find": "結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置く",
+     "before": "- AI が作業するときの注意（`ai_cautions`）は、一般論ではなく、違反しやすい点と検査する方法の組で書く",
+     "why": "いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった"
+    },
+    {
+     "find": "は、1件に1つの行為を書き、動詞で終わる文にする",
+     "before": "（無い）",
+     "why": "answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない"
+    }
+   ]
+  },
+  {
+   "key": "ans",
+   "tab": "answer.schema.json の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "1件に1つの行為を書き、動詞で終わる文にする",
+     "why": "注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた",
+     "before": "      \"$comment\": \"動詞で始める\""
+    }
+   ]
+  },
+  {
+   "key": "ucskill",
+   "tab": "usecase-advisor の SKILL.md",
+   "file": ".claude/skills/usecase-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "に載せる基準も、読んでから載せる",
+     "before": "（無い）",
+     "why": "Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る"
+    },
+    {
+     "find": "は相談種別で選ぶ。判断相談は",
+     "before": "（無い）",
+     "why": "判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた"
+    },
+    {
+     "find": "は、採否を判定する案の比較にだけ使う",
+     "before": "（無い）",
+     "why": "概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である"
+    },
+    {
+     "find": "判断基準の範囲外のこと（判断基準が触れていない条件など）は",
+     "before": "（無い）",
+     "why": "ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない"
+    },
+    {
+     "find": "表 ・ 規則 ・ 注意の1行を引用するときは",
+     "before": "- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。表の1行を引用するときは、列の題と値を「列の題：値」の形にして「 ・ 」でつなぐ",
+     "why": "0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した"
+    },
+    {
+     "find": "判断基準に無い注意を回答の側で組み立てたときは",
+     "before": "- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く",
+     "why": "ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない"
+    },
+    {
+     "find": "結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置く",
+     "before": "- AI が作業するときの注意（`ai_cautions`）は、一般論ではなく、違反しやすい点と検査する方法の組で書く",
+     "why": "いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった"
+    },
+    {
+     "find": "は、1件に1つの行為を書き、動詞で終わる文にする",
+     "before": "（無い）",
+     "why": "answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない"
+    }
+   ]
+  },
+  {
+   "key": "ucans",
+   "tab": "usecase の answer.schema.json",
+   "file": ".claude/skills/usecase-advisor/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "1件に1つの行為を書き、動詞で終わる文にする",
+     "why": "注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた",
+     "before": "      \"$comment\": \"動詞で始める\""
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "rs": "d4f1158095f6554c432cc84e756c8cb43be2f99d0d267c791bcd37105af8e26e",
+  "rst": "5f1ff22f864a67dcdd7559a5ba263ae701fd0d5eeb62bd93ac9f878c9ab90560",
+  "py": "f56218ba07083ef3ca8e1c7d45a3295ab6d1532ac3701165b241e67687b42534",
+  "ts": "8614abe32ed676aa5676fd14bd49641f2cd644d4e35d64a112292177dee8b10e",
+  "go": "bd453d5041e4851bc2f0fc791d58d3ef8d85d8a4eab09d132a335a3110d9a2c6",
+  "cs": "5a71a3efd4c90fbda8904ee816b227b9305881dcd3164c45a02360b6d2cdb3f5",
+  "test": "495c958decc44ebfd68b41542c2e05ae6449ff80f60e4aef790dbb6c43a056b3",
+  "tmpl": "0c6217b6a9802732dcc65573d1806d3cc881dc73f391f3759e9b411db8ed2d91",
+  "ans": "13d3cc735c643e6fb33d0c483e4fdb7ae8f496eba0f24ed48b88ea728c2d6cf9",
+  "ucskill": "96d3e83a07949cf38159226330921058eaa605c176b2068a04fc0aa6470c5208",
+  "ucans": "e4d35f8051352a8a96a451710a82b3c93506ea38403affceb724ced65b6232e2"
+ }
+}

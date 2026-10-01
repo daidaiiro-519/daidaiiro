@@ -1,0 +1,471 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>試しの相談で見つかった、助言型の雛形の欠陥を直す</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 -1.2rem var(--sp-21)}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);
+background:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto;font-style:italic}
+.idx{border-bottom:var(--bw-1) solid var(--line);background:var(--panel);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);margin-left:var(--sp-10);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .b{color:var(--muted);font-size:var(--fs-6)}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い面、節の枠は白い面。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0088 ・ 2026-10-02 ・ <span class="tag">承認</span></p><h1>試しの相談で見つかった、助言型の雛形の欠陥を直す</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">助言型の雛形は、相談種別ごとの判定の選び方 ・ 判断基準の範囲外の扱い ・ 推測の印を手順に持ち、図の説明を図の前に描き、生成したコードは Skill の名前に関わらず整形済みにする。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>作り直した ddd-advisor を実際の相談で検証するため、概念相談 ・ 判断相談 ・ 設計相談を1件ずつ、SKILL.md の手順どおりに実行した。回答は validate に合格したが、回答を組む途中で、手順に書いていない判断が必要になった。判定の値の選び方 ・ 比較した案の欄の使いどころ ・ 範囲外の条件の書き場所 ・ 推測の注意の示し方 ・ 関連する基準の読み方 ・ 次にすることの書き方の6つである。どれも相談の領域に依存しない手順の欠けで、雛形から作る advisor すべてに及ぶ。あわせて、図の説明が図の後ろに描かれ、何の図かを認知しないまま読むことになった。また、ddd-advisor を雛形から生成すると、整形の検査が不合格になった。service の refs.rs が、この Skill の crate と外部の crate を同じ組で並べるので、接頭辞の文字で並びの正解が変わる（usecase の u は通り、ddd の d は通らない）。</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>ddd-advisor の試しの相談で見つかった欠陥を、雛形で直して、雛形から作った Skill へ複製する</figcaption><svg class="wf-fig" viewBox="0 0 1182 192" width="1182" height="192" role="img"><g transform="translate(6.0,6.0)"><path d="M194.2,87.0 L285.0,28.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="285.0,28.0 280.7,33.8 278.0,29.6" fill="#C3CAD2"/><path d="M194.2,87.0 L285.0,84.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="285.0,84.0 278.3,86.7 278.2,81.8" fill="#C3CAD2"/><path d="M194.2,87.0 L285.0,149.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="285.0,149.0 278.0,147.2 280.8,143.2" fill="#C3CAD2"/><path d="M530.2,28.0 L621.0,84.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="621.0,84.0 613.9,82.5 616.5,78.4" fill="#C3CAD2"/><rect x="546.6" y="46.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="575.6" y="59.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">手順に書く</text><path d="M422.2,84.0 L621.0,84.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="621.0,84.0 614.2,86.5 614.2,81.5" fill="#C3CAD2"/><rect x="492.6" y="74.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="521.6" y="87.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">説明を前へ</text><path d="M434.2,149.0 L621.0,84.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="621.0,84.0 615.4,88.5 613.8,83.9" fill="#C3CAD2"/><rect x="493.6" y="106.5" width="68.0" height="16.0" fill="#F5F7F9"/><text x="527.6" y="120.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">別の組に置く</text><path d="M820.0,84.0 L910.8,16.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="910.8,16.0 906.9,22.0 903.9,18.1" fill="#C3CAD2"/><rect x="851.4" y="40.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="865.4" y="53.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">複製</text><path d="M820.0,84.0 L910.8,81.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="910.8,81.0 904.1,83.7 904.0,78.8" fill="#C3CAD2"/><rect x="846.4" y="72.5" width="38.0" height="16.0" fill="#F5F7F9"/><text x="865.4" y="86.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">同じ文</text><path d="M820.0,84.0 L910.8,155.0" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="910.8,155.0 904.0,152.8 907.0,148.9" fill="#C3CAD2"/><rect x="851.4" y="109.5" width="28.0" height="16.0" fill="#F5F7F9"/><text x="865.4" y="123.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">生成</text><g class="wf-node" transform="translate(0.0,62.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="193.6" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="96.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ddd-advisor の試しの相談</text><text x="96.8" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（概念 ・ 判断 ・ 設計）</text></g></g><g class="wf-node" transform="translate(285.6,12.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="244.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="122.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">手順に書いていない判断が必要になった</text></g></g><g class="wf-node" transform="translate(285.6,68.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">図の説明が図の後ろ</text></g></g><g class="wf-node" transform="translate(285.6,124.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="148.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="74.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">生成した直後のコード</text><text x="74.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">が整形の検査に不合格</text></g></g><g class="wf-node" transform="translate(621.6,50.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="197.8" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">skills-creator の雛形</text><text x="98.9" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（SKILL.md ・ 5言語の描画</text><text x="98.9" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ service の refs.rs）</text></g></g><g class="wf-node" transform="translate(911.4,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="192.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="96.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">11 の Skill の refs.rs</text></g></g><g class="wf-node" transform="translate(911.4,56.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="258.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="129.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">usecase-advisor ・ ddd-advisor</text><text x="129.2" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">の SKILL.md と answer.schema</text></g></g><g class="wf-node" transform="translate(911.4,130.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="190.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="95.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">これから作る advisor（qa</text><text x="95.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ platform ・ ux）</text></g></g></g></svg></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>回答の手順（助言型の SKILL.md）</td><td>判定の選び方 ・ 比較した案の使いどころ ・ 範囲外の書き場所 ・ 推測の印 ・ 関連する基準の読み方 ・ 次にすることの文の形を書いていない</td><td>書いた（Step 2 に1項、Step 3 に4項を足し、3項を改めた）</td></tr><tr><td>図の説明</td><td>図の後ろに描く</td><td>図の前に描く</td></tr><tr><td>生成した service の refs.rs の読み込みの並び</td><td>この Skill の crate を外部の crate と同じ組に置く。接頭辞によって整形の検査が不合格になる</td><td>別の組に置く。どの接頭辞でも整形済みになる</td></tr><tr><td>回答の形の注記（next）</td><td>動詞で始める</td><td>1件に1つの行為を書き、動詞で終わる文にする</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>手順は直さず、回答の validate で検出する</td><td>判定の値と相談種別の組み合わせは検査できるが、範囲外の条件を根拠にしたこと ・ 読んでいない基準を載せたことは、回答の JSON だけからは判定できない。手順に書けば、回答を組む時点で防げる</td></tr><tr><td>ddd-advisor の SKILL.md だけを直す</td><td>どれも相談の領域に依存しない手順の欠けであり、雛形から作る advisor（qa ・ platform ・ ux も）すべてに同じ欠けが出る</td></tr><tr><td>service の refs.rs の並びを、生成のたびに整形器で直す</td><td>雛形の契約は「生成した直後のコードが整形済みである」（ACDR 0084）。整形器を後から掛けると、雛形と生成物が一致しなくなる</td></tr></tbody></table></div></section></div><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p>
+<p class="lede"></p>
+
+<div id="bar"><b>変更 25 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="rs">refs.rs.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="rst">service.refs.rs.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="py">refs.py.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="ts">refs.ts.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="go">refs.go.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="cs">Refs.cs.tmpl<span class="n">1</span></button><button class="tab" role="tab" data-t="test">tests/refs.rs<span class="n">1</span></button><button class="tab" role="tab" data-t="tmpl">SKILL.md の雛形<span class="n">8</span></button><button class="tab" role="tab" data-t="ans">answer.schema.json の雛形<span class="n">1</span></button><button class="tab" role="tab" data-t="ucskill">usecase-advisor の SKILL.md<span class="n">8</span></button><button class="tab" role="tab" data-t="ucans">usecase の answer.schema.json<span class="n">1</span></button></div>
+<section class="pane code-pane" data-k="rs" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>// **説明を図の前に置く**</b><button class="go" data-i="0">その場所へ</button><div class="b">図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 1067 ／ 新 1067 @@</td></tr><tr class="r"><td class="ln">1067</td><td class="ln">1067</td><td class="mk"> </td><td class="cd"><code>                svg</code></td></tr><tr class="r"><td class="ln">1068</td><td class="ln">1068</td><td class="mk"> </td><td class="cd"><code>            };</code></td></tr><tr class="r"><td class="ln">1069</td><td class="ln">1069</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">let</span> cap = esc(str_of(value, &quot;caption&quot;).unwrap_or(&quot;&quot;));</code></td></tr><tr class="rd"><td class="ln">1070</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>            format!(&quot;&lt;section class=\&quot;block\&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{cap}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&quot;)</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">1070</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="            format!(&quot;&lt;section class=\&quot;block\&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{cap}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&quot;)" data-w="図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする">            <span class="t-c">// **説明を図の前に置く** ── 何の図かを知ってから、図を読む</span></mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">1071</td><td class="mk">+</td><td class="cd"><code>            format!(&quot;&lt;section class=\&quot;block\&quot;&gt;{head}&lt;figure&gt;&lt;figcaption&gt;{cap}&lt;/figcaption&gt;{svg}&lt;/figure&gt;&lt;/section&gt;&quot;)</code></td></tr><tr class="r"><td class="ln">1071</td><td class="ln">1072</td><td class="mk"> </td><td class="cd"><code>        }</code></td></tr><tr class="r"><td class="ln">1072</td><td class="ln">1073</td><td class="mk"> </td><td class="cd"><code>        &quot;steps&quot; =&gt; format!(</code></td></tr><tr class="r"><td class="ln">1073</td><td class="ln">1074</td><td class="mk"> </td><td class="cd"><code>            &quot;&lt;section class=\&quot;block\&quot;&gt;{head}{}&lt;/section&gt;&quot;,</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="rst" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>// **この Skill の層は、外部の crate と別の組に置く**</b><button class="go" data-i="0">その場所へ</button><div class="b">この Skill の crate を外部の crate と別の組に置いた。同じ組に置くと、整形器が名前の順に並べ替えるので、接頭辞 d の ddd-advisor では serde_json より前が正解になり、雛形の並びが不合格になった</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 5 ／ 新 5 @@</td></tr><tr class="r"><td class="ln">5</td><td class="ln">5</td><td class="mk"> </td><td class="cd"><code><span class="t-k">use</span> std::path::{Path, PathBuf};</code></td></tr><tr class="r"><td class="ln">6</td><td class="ln">6</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">7</td><td class="ln">7</td><td class="mk"> </td><td class="cd"><code><span class="t-k">use</span> serde_json::json;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">8</td><td class="mk">+</td><td class="cd"><code>&nbsp;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">9</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="この Skill の crate を外部の crate と別の組に置いた。同じ組に置くと、整形器が名前の順に並べ替えるので、接頭辞 d の ddd-advisor では serde_json より前が正解になり、雛形の並びが不合格になった"><span class="t-c">// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする</span></mark></code></td></tr><tr class="r"><td class="ln">8</td><td class="ln">10</td><td class="mk"> </td><td class="cd"><code><span class="t-k">use</span> {{接頭辞}}_business_logic::refs;</code></td></tr><tr class="r"><td class="ln">9</td><td class="ln">11</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">10</td><td class="ln">12</td><td class="mk"> </td><td class="cd"><code><span class="t-k">use</span> <span class="t-k">crate</span>::contract::{Arg, Given, Outcome, Tool};</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="py" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>&lt;figure&gt;&lt;figcaption&gt;{cap}&lt;/figcaption&gt;{s</b><button class="go" data-i="0">その場所へ</button><div class="b">図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする</div></li></ol></details><div class="code diff" data-lang="python"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 751 ／ 新 751 @@</td></tr><tr class="r"><td class="ln">751</td><td class="ln">751</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">if</span> <span class="t-k">not</span> svg:</code></td></tr><tr class="r"><td class="ln">752</td><td class="ln">752</td><td class="mk"> </td><td class="cd"><code>            svg = _graph_html(value)</code></td></tr><tr class="r"><td class="ln">753</td><td class="ln">753</td><td class="mk"> </td><td class="cd"><code>        cap = _esc(_str(value, &quot;caption&quot;) <span class="t-k">or</span> &quot;&quot;)</code></td></tr><tr class="rd"><td class="ln">754</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        <span class="t-k">return</span> f&<span class="t-c">#x27;&lt;section class=&quot;block&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{cap}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&#x27;</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">754</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="        return f&#x27;&lt;section class=&quot;block&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{cap}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&#x27;" data-w="図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする">        <span class="t-k">return</span> f&<span class="t-c">#x27;&lt;section class=&quot;block&quot;&gt;{head}&lt;figure&gt;&lt;figcaption&gt;{cap}&lt;/figcaption&gt;{svg}&lt;/figure&gt;&lt;/section&gt;&#x27;</span></mark></code></td></tr><tr class="r"><td class="ln">755</td><td class="ln">755</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">if</span> v == &quot;steps&quot;:</code></td></tr><tr class="r"><td class="ln">756</td><td class="ln">756</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">return</span> f&<span class="t-c">#x27;&lt;section class=&quot;block&quot;&gt;{head}{_steps(schema, value, ctx)}&lt;/section&gt;&#x27;</span></code></td></tr><tr class="r"><td class="ln">757</td><td class="ln">757</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">return</span> f&<span class="t-c">#x27;&lt;section class=&quot;block&quot;&gt;{head}{_inner(value, schema, 3, ctx)}&lt;/section&gt;&#x27;</span></code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="ts" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>&lt;figure&gt;&lt;figcaption&gt;${esc(str(value, &#x27;ca</b><button class="go" data-i="0">その場所へ</button><div class="b">図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする</div></li></ol></details><div class="code diff" data-lang="js"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 759 ／ 新 759 @@</td></tr><tr class="r"><td class="ln">759</td><td class="ln">759</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">const</span> file = p !== <span class="t-k">null</span> ? svgOf(p, ctx.base) : &#x27;&#x27;;</code></td></tr><tr class="r"><td class="ln">760</td><td class="ln">760</td><td class="mk"> </td><td class="cd"><code>            <span class="t-c">// **SVG が無ければ、節点と辺の宣言を描く**</span></code></td></tr><tr class="r"><td class="ln">761</td><td class="ln">761</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">const</span> svg = file !== &#x27;&#x27; ? file : graphHtml(value);</code></td></tr><tr class="rd"><td class="ln">762</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>            <span class="t-k">return</span> <span class="t-s">`&lt;section class=&quot;block&quot;&gt;${hd}&lt;figure&gt;${svg}&lt;figcaption&gt;${esc(str(value, &#x27;caption&#x27;) ?? &#x27;&#x27;)}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;`</span>;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">762</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="            return `&lt;section class=&quot;block&quot;&gt;${hd}&lt;figure&gt;${svg}&lt;figcaption&gt;${esc(str(value, &#x27;caption&#x27;) ?? &#x27;&#x27;)}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;`;" data-w="図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする">            <span class="t-k">return</span> <span class="t-s">`&lt;section class=&quot;block&quot;&gt;${hd}&lt;figure&gt;&lt;figcaption&gt;${esc(str(value, &#x27;caption&#x27;) ?? &#x27;&#x27;)}&lt;/figcaption&gt;${svg}&lt;/figure&gt;&lt;/section&gt;`</span>;</mark></code></td></tr><tr class="r"><td class="ln">763</td><td class="ln">763</td><td class="mk"> </td><td class="cd"><code>        }</code></td></tr><tr class="r"><td class="ln">764</td><td class="ln">764</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">case</span> &#x27;steps&#x27;:</code></td></tr><tr class="r"><td class="ln">765</td><td class="ln">765</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">return</span> <span class="t-s">`&lt;section class=&quot;block&quot;&gt;${hd}${steps(schema, value, ctx)}&lt;/section&gt;`</span>;</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="go" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>&lt;figure&gt;&lt;figcaption&gt;%s&lt;/figcaption&gt;%s&lt;/f</b><button class="go" data-i="0">その場所へ</button><div class="b">図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする</div></li></ol></details><div class="code diff" data-lang="go"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 1290 ／ 新 1290 @@</td></tr><tr class="r"><td class="ln">1290</td><td class="ln">1290</td><td class="mk"> </td><td class="cd"><code>		<span class="t-k">if</span> svg == &quot;&quot; {</code></td></tr><tr class="r"><td class="ln">1291</td><td class="ln">1291</td><td class="mk"> </td><td class="cd"><code>			svg = graphHTML(value)</code></td></tr><tr class="r"><td class="ln">1292</td><td class="ln">1292</td><td class="mk"> </td><td class="cd"><code>		}</code></td></tr><tr class="rd"><td class="ln">1293</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>		<span class="t-k">return</span> fmt.Sprintf(<span class="t-s">`&lt;section class=&quot;block&quot;&gt;%s&lt;figure&gt;%s&lt;figcaption&gt;%s&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;`</span>, hd, svg, esc(strOr(value, &quot;caption&quot;, &quot;&quot;)))</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">1293</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="		return fmt.Sprintf(`&lt;section class=&quot;block&quot;&gt;%s&lt;figure&gt;%s&lt;figcaption&gt;%s&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;`, hd, svg, esc(strOr(value, &quot;caption&quot;, &quot;&quot;)))" data-w="図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする">		<span class="t-k">return</span> fmt.Sprintf(<span class="t-s">`&lt;section class=&quot;block&quot;&gt;%s&lt;figure&gt;&lt;figcaption&gt;%s&lt;/figcaption&gt;%s&lt;/figure&gt;&lt;/section&gt;`</span>, hd, esc(strOr(value, &quot;caption&quot;, &quot;&quot;)), svg)</mark></code></td></tr><tr class="r"><td class="ln">1294</td><td class="ln">1294</td><td class="mk"> </td><td class="cd"><code>	<span class="t-k">case</span> &quot;steps&quot;:</code></td></tr><tr class="r"><td class="ln">1295</td><td class="ln">1295</td><td class="mk"> </td><td class="cd"><code>		<span class="t-k">return</span> <span class="t-s">`&lt;section class=&quot;block&quot;&gt;`</span> + hd + steps(schema, value, c) + &quot;&lt;/section&gt;&quot;</code></td></tr><tr class="r"><td class="ln">1296</td><td class="ln">1296</td><td class="mk"> </td><td class="cd"><code>	<span class="t-k">default</span>:</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="cs" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>&lt;figure&gt;&lt;figcaption&gt;{Esc(Str(value, &quot;cap</b><button class="go" data-i="0">その場所へ</button><div class="b">図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする</div></li></ol></details><div class="code diff" data-lang="csharp"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 912 ／ 新 912 @@</td></tr><tr class="r"><td class="ln">912</td><td class="ln">912</td><td class="mk"> </td><td class="cd"><code>                <span class="t-k">var</span> svg = p <span class="t-k">is</span> not <span class="t-k">null</span> ? SvgOf(p, ctx.Base) : &quot;&quot;;</code></td></tr><tr class="r"><td class="ln">913</td><td class="ln">913</td><td class="mk"> </td><td class="cd"><code>                <span class="t-c">// **SVG が無ければ、節点と辺の宣言を描く**</span></code></td></tr><tr class="r"><td class="ln">914</td><td class="ln">914</td><td class="mk"> </td><td class="cd"><code>                <span class="t-k">if</span> (svg.Length == <span class="t-n">0</span>) svg = GraphHtml(value);</code></td></tr><tr class="rd"><td class="ln">915</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>                <span class="t-k">return</span> $&quot;&lt;section <span class="t-k">class</span>=\&quot;block\&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{Esc(Str(value, &quot;caption&quot;) ?? &quot;&quot;)}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&quot;;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">915</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="                return $&quot;&lt;section class=\&quot;block\&quot;&gt;{head}&lt;figure&gt;{svg}&lt;figcaption&gt;{Esc(Str(value, &quot;caption&quot;) ?? &quot;&quot;)}&lt;/figcaption&gt;&lt;/figure&gt;&lt;/section&gt;&quot;;" data-w="図の説明（figcaption）を図の前へ移した。試しの相談で、説明が図の後ろにあると、何の図かを認知しないままつながりの並びを読むことになった。5言語の雛形で同じ出力にする">                <span class="t-k">return</span> $&quot;&lt;section <span class="t-k">class</span>=\&quot;block\&quot;&gt;{head}&lt;figure&gt;&lt;figcaption&gt;{Esc(Str(value, &quot;caption&quot;) ?? &quot;&quot;)}&lt;/figcaption&gt;{svg}&lt;/figure&gt;&lt;/section&gt;&quot;;</mark></code></td></tr><tr class="r"><td class="ln">916</td><td class="ln">916</td><td class="mk"> </td><td class="cd"><code>            }</code></td></tr><tr class="r"><td class="ln">917</td><td class="ln">917</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">case</span> &quot;steps&quot;:</code></td></tr><tr class="r"><td class="ln">918</td><td class="ln">918</td><td class="mk"> </td><td class="cd"><code>                <span class="t-k">return</span> $&quot;&lt;section <span class="t-k">class</span>=\&quot;block\&quot;&gt;{head}{Steps(schema, value, ctx)}&lt;/section&gt;&quot;;</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="test" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>// **何の図かを、図の前に示す**</b><button class="go" data-i="0">その場所へ</button><div class="b">説明が並びより前に在ることを試験で固定した。以前の試験は説明が在ることだけを見ていたので、位置の誤りを検出しなかった</div></li></ol></details><div class="code diff" data-lang="rust"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 577 ／ 新 577 @@</td></tr><tr class="r"><td class="ln">577</td><td class="ln">577</td><td class="mk"> </td><td class="cd"><code>        html.contains(&quot;&lt;ol class=\&quot;graph\&quot;&gt;&lt;li&gt;ユーザー目的 → サブ機能（どのように ・ 破線）&lt;/li&gt;&lt;li&gt;単独&lt;/li&gt;&lt;/ol&gt;&quot;),</code></td></tr><tr class="r"><td class="ln">578</td><td class="ln">578</td><td class="mk"> </td><td class="cd"><code>        &quot;{html}&quot;</code></td></tr><tr class="r"><td class="ln">579</td><td class="ln">579</td><td class="mk"> </td><td class="cd"><code>    );</code></td></tr><tr class="rd"><td class="ln">580</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>    assert!(</code></td></tr><tr class="rd"><td class="ln">581</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        html.contains(&quot;&lt;figcaption&gt;レベルの関係&lt;/figcaption&gt;&quot;),</code></td></tr><tr class="rd"><td class="ln">582</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        &quot;{html}&quot;</code></td></tr><tr class="rd"><td class="ln">583</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>    );</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">580</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="    assert!(
+        html.contains(&quot;&lt;figcaption&gt;レベルの関係&lt;/figcaption&gt;&quot;),
+        &quot;{html}&quot;
+    );" data-w="説明が並びより前に在ることを試験で固定した。以前の試験は説明が在ることだけを見ていたので、位置の誤りを検出しなかった">    <span class="t-c">// **何の図かを、図の前に示す** ── 説明が後ろにあると、読み手は何の図かを知らないまま並びを読む</span></mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">581</td><td class="mk">+</td><td class="cd"><code>    <span class="t-c">// （実測 2026-10-01、ddd-advisor の試しの相談）</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">582</td><td class="mk">+</td><td class="cd"><code>    <span class="t-k">let</span> cap = html</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">583</td><td class="mk">+</td><td class="cd"><code>        .find(&quot;&lt;figcaption&gt;レベルの関係&lt;/figcaption&gt;&quot;)</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">584</td><td class="mk">+</td><td class="cd"><code>        .expect(&quot;説明が在る&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">585</td><td class="mk">+</td><td class="cd"><code>    <span class="t-k">let</span> graph = html.find(&quot;&lt;ol class=\&quot;graph\&quot;&gt;&quot;).expect(&quot;並びが在る&quot;);</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">586</td><td class="mk">+</td><td class="cd"><code>    assert!(cap &lt; graph, &quot;{html}&quot;);</code></td></tr><tr class="r"><td class="ln">584</td><td class="ln">587</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr><tr class="r"><td class="ln">585</td><td class="ln">588</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane md" data-k="tmpl" hidden><details class="idx" open><summary>この面の変更 8 件</summary><ol><li><b>に載せる基準も、読んでから載せる</b><button class="go" data-i="0">その場所へ</button><div class="b">Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る</div></li><li><b>は相談種別で選ぶ。判断相談は</b><button class="go" data-i="1">その場所へ</button><div class="b">判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた</div></li><li><b>は、採否を判定する案の比較にだけ使う</b><button class="go" data-i="2">その場所へ</button><div class="b">概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である</div></li><li><b>判断基準の範囲外のこと（判断基準が触れていない条件など）は</b><button class="go" data-i="3">その場所へ</button><div class="b">ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない</div></li><li><b>表 ・ 規則 ・ 注意の1行を引用するときは</b><button class="go" data-i="4">その場所へ</button><div class="b">0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した</div></li><li><b>判断基準に無い注意を回答の側で組み立てたときは</b><button class="go" data-i="5">その場所へ</button><div class="b">ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない</div></li><li><b>結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置</b><button class="go" data-i="6">その場所へ</button><div class="b">いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった</div></li><li><b>は、1件に1つの行為を書き、動詞で終わる文にする</b><button class="go" data-i="7">その場所へ</button><div class="b">answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない</div></li></ol></details><div class="doc"><hr>
+<p>name: &quot;{{Skill名}}&quot;<br>description: &quot;{{助言の対象}}についての概念相談(「〜とは」)・判断相談(「〜すべきか」)・設計相談(「〜をどう組み立てるか」)を受けたときに使う。{{原典}}の判断基準に根拠を示して回答し、回答は構造化した JSON で組んで HTML で渡す。&quot;</p>
+<hr>
+<h1>{{助言の対象}}の相談に、判断基準の根拠を示して答えるのを担当する助言型の Skill：{{Skill名}}</h1>
+<h2>目的</h2>
+<p>{{助言の対象}}についての概念相談 ・ 判断相談 ・ 設計相談を受けたときに使う。{{原典}}の判断基準（<code>references/criteria.json</code>）に根拠を示して回答する。<strong>回答は <code>references/answer.schema.json</code> の形の JSON で組み、人は描画した HTML で読む。</strong></p>
+<hr>
+<h2>役割</h2>
+<p>- {{助言の対象}}のアドバイザーとして、判断基準に基づいて回答する<br>- 抽象的な説明に留まらず、相談者の状況に当てはめた具体的な判断を示す<br>- アンチパターンを見つけたときは、リスクと代替案を組で示す<br>- AI が作業するときに、この回答の結論に違反しやすい点と、それを検査する方法を示す（該当する場合）</p>
+<hr>
+<h2>相談種別と回答テンプレート</h2>
+<p>回答の形は <code>references/answer.schema.json</code> の1つである。相談種別（<code>kind</code>）で、必須の欄が変わる。</p>
+<div class="scroll"><table><tr><th>相談種別</th><th>判定条件</th><th><code>kind</code></th><th>必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて）</th></tr><tr><td>概念相談</td><td>「〜とは」「〜の違いは」</td><td><code>concept</code></td><td>定義 ・ 具体例</td></tr><tr><td>判断相談</td><td>「〜すべきか」「この案でよいか」</td><td><code>judgment</code></td><td>比較した案 ・ 判断の道筋</td></tr><tr><td>設計相談</td><td>「〜をどう組み立てるか」</td><td><code>design</code></td><td>設計の手順</td></tr></table></div>
+<p>この領域での相談の例：{{この領域での相談の例（概念 ・ 判断 ・ 設計を1つずつ）}}</p>
+<hr>
+<h2>入力の想定</h2>
+<div class="scroll"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>相談の種類（概念相談 ・ 判断相談 ・ 設計相談）</td><td>明示されなければ、相談の文の形から判定する</td></tr><tr><td>相談の対象と状況</td><td>明示されなければ相談者に確認する。確認できないときは、置いた仮定を前置き（<code>premises</code>）に書き、仮定に依存する判定を「未判定」と示す。抽象論だけで判断を返さない</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: 相談内容を上表の相談種別に分類する</h3>
+<p>相談を「概念相談」「判断相談」「設計相談」のいずれかに分類し、<code>kind</code> を決める。</p>
+<h3>Step 2: 関連する判断基準を特定して必ず読む</h3>
+<p>関連する判断基準の id を下の一覧から特定し、<strong>道具で1件ずつ取り出して読む</strong>。読む前に回答を始めない。</p>
+<pre class="code">{{Skill名}} get criteria &lt;id&gt;        判断基準を1件取り出す（JSON）
+{{Skill名}} view criteria --id &lt;id&gt;  人が読む形で描画する</pre>
+<p>- 既に知っている内容だと感じても、必ず先に読む<br>- 複数の判断基準が関連する場合は、すべて読んでから次に進む<br>- 関連する基準（<code>related</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る">に載せる基準も、読んでから載せる</mark>。読んでいない基準の名前を回答に書かない</p>
+<h3>Step 3: 判断基準に沿って判定し、根拠を示す</h3>
+<p>回答を <code>answer.schema.json</code> の形の JSON で組み、検査してから描画する。</p>
+<pre class="code">{{Skill名}} validate --kind answer --file &lt;回答.json&gt;      欄の欠けを検出する
+{{Skill名}} view answer --file &lt;回答.json&gt; --out &lt;回答.html&gt;  描画する</pre>
+<p>- 結論（<code>conclusion</code>）を先に置く。判断相談では判定理由（<code>because</code>）を必ず書く<br>- 判定（<code>stance</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた">は相談種別で選ぶ。判断相談は</mark> 採る ・ 採らない ・ 条件付きで採る（前提に未判定が残るとき）、概念相談は 定義、設計相談で案を評価するときは 良好 ・ 弱い<br>- 比較した案（<code>comparison</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である">は、採否を判定する案の比較にだけ使う</mark>。概念どうしの違いを問われたときは、定義（<code>definition</code>）と具体例（<code>examples</code>）で違いを示す<br>- <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない">判断基準の範囲外のこと（判断基準が触れていない条件など）は</mark>、前置き（<code>premises</code>）に出所を「判断基準の範囲外」として書き、判定の根拠にしない<br>- 根拠（<code>grounds</code>）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。表の1行を引用するときは、列の題と値を「列の題：値」の形にして「 ・ 」でつなぐ" data-w="0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した">表 ・ 規則 ・ 注意の1行を引用するときは</mark>、欄の題と値を「欄の題：値」の形にして「 ・ 」でつなぐ（規則なら「条件：… ・ 対応：… ・ 理由：…」）<br>- アンチパターンに該当する場合は、注意（<code>cautions</code>）にリスクと代替案を組で書く。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く" data-w="ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない">判断基準に無い注意を回答の側で組み立てたときは</mark>、アンチパターンの欄の冒頭に「（推測）」と書く<br>- 図（<code>figure</code>）は節点と辺で宣言する。SVG は任意である ── SVG が無ければ、描画はつながりの並び（「A → B（辺の名前）」）を描く<br>- AI が作業するときの注意（<code>ai_cautions</code>）は、<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- AI が作業するときの注意（`ai_cautions`）は、一般論ではなく、違反しやすい点と検査する方法の組で書く" data-w="いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった">結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置く</mark>。一般論ではなく、違反しやすい点と検査する方法の組で書く<br>- 次にすること（<code>next</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない">は、1件に1つの行為を書き、動詞で終わる文にする</mark></p>
+<hr>
+<h2>出力形式</h2>
+<p><strong>回答の JSON と、描画した HTML である。</strong> 人は HTML で読む ── チャットに回答の文章を流さない。</p>
+<div class="scroll"><table><tr><th>置くもの</th><th>内容</th></tr><tr><td>結論</td><td>判定と1文の結論。最初に読む</td></tr><tr><td>図 ・ 比較 ・ 道筋 ・ 手順</td><td>結論に至った構造。種別で必須の欄が変わる</td></tr><tr><td>根拠</td><td>判断基準の id と、その記述の引用</td></tr><tr><td>次にすること</td><td>動詞で始まる行動</td></tr></table></div>
+<hr>
+<h2>ガードレール</h2>
+<p>- 判断基準を道具で読む前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし<br>- 判断基準に記載されていない内容は「判断基準の範囲外」として正直に伝え、推測で答えない<br>- 判断基準は <code>criteria</code> から引用し、勝手に言い換えない<br>- 判断相談では必ず判定理由を示す。「〜です」で終わらせない<br>- アンチパターンに該当する場合は必ずリスクと代替案を組で示す。<strong>判断基準に代替案が無いときは、回答の側で組み立て、推測であることを明示する</strong> ── 判断基準は原典に無い文を保持しない<br>- <strong>回答は validate に合格してから渡す。</strong> 欄の欠けを機械で検出できる形にしたので、手で確認しない<br>- <strong>判断基準は原典の複製ではない。</strong> 原典ごとの学習ノートから、概念ごとに移したものである ── 原典の文そのものを参照していると断言しない。引用は「判断基準の記述」として示す<br>- 専門用語は使ってよいが、初出時は文脈 ・ 具体例を添える</p>
+<hr>
+<h2>参照knowledge</h2>
+<p>references は JSON Schema と JSON で持つ（契約の版2）。Markdown は SKILL.md だけである。</p>
+<div class="scroll"><table><tr><th>ファイル</th><th>中身</th></tr><tr><td><code>references/criteria.schema.json</code> ・ <code>criteria.json</code></td><td>{{助言の対象}}の判断基準。1件が、原典が名前を付けて立てている1つの概念である。<strong>語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った章と頁を出典として持つ</strong></td></tr><tr><td><code>references/figures/*.svg</code></td><td>判断基準の図。Skill の中に同梱する</td></tr><tr><td><code>references/answer.schema.json</code></td><td>回答の形。相談種別ごとに必須の欄が変わる</td></tr><tr><td><code>references/document.schema.json</code></td><td>原典の複製の形（import が使う）</td></tr></table></div>
+<p>判断基準の id は次である。</p>
+<div class="scroll"><table><tr><td>id</td><td>題（原典の概念の名前）</td><td>原典の節</td></tr></table></div>
+<p>{{判断基準の一覧（id ・ 題 ・ 原典の節を1行ずつ）}}</p>
+<p>学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。</p></div></section><section class="pane code-pane" data-k="ans" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>1件に1つの行為を書き、動詞で終わる文にする</b><button class="go" data-i="0">その場所へ</button><div class="b">注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた</div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 426 ／ 新 426 @@</td></tr><tr class="r"><td class="ln">426</td><td class="ln">426</td><td class="mk"> </td><td class="cd"><code>      &quot;items&quot;: {</code></td></tr><tr class="r"><td class="ln">427</td><td class="ln">427</td><td class="mk"> </td><td class="cd"><code>        &quot;type&quot;: &quot;string&quot;</code></td></tr><tr class="r"><td class="ln">428</td><td class="ln">428</td><td class="mk"> </td><td class="cd"><code>      },</code></td></tr><tr class="rd"><td class="ln">429</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;$comment&quot;: &quot;動詞で始める&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">429</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="      &quot;$comment&quot;: &quot;動詞で始める&quot;" data-w="注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた">      &quot;$comment&quot;: &quot;1件に1つの行為を書き、動詞で終わる文にする&quot;</mark></code></td></tr><tr class="r"><td class="ln">430</td><td class="ln">430</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">431</td><td class="ln">431</td><td class="mk"> </td><td class="cd"><code>    &quot;related&quot;: {</code></td></tr><tr class="r"><td class="ln">432</td><td class="ln">432</td><td class="mk"> </td><td class="cd"><code>      &quot;title&quot;: &quot;関連する基準&quot;,</code></td></tr></tbody></table></div></section><section class="pane md" data-k="ucskill" hidden><details class="idx" open><summary>この面の変更 8 件</summary><ol><li><b>に載せる基準も、読んでから載せる</b><button class="go" data-i="0">その場所へ</button><div class="b">Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る</div></li><li><b>は相談種別で選ぶ。判断相談は</b><button class="go" data-i="1">その場所へ</button><div class="b">判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた</div></li><li><b>は、採否を判定する案の比較にだけ使う</b><button class="go" data-i="2">その場所へ</button><div class="b">概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である</div></li><li><b>判断基準の範囲外のこと（判断基準が触れていない条件など）は</b><button class="go" data-i="3">その場所へ</button><div class="b">ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない</div></li><li><b>表 ・ 規則 ・ 注意の1行を引用するときは</b><button class="go" data-i="4">その場所へ</button><div class="b">0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した</div></li><li><b>判断基準に無い注意を回答の側で組み立てたときは</b><button class="go" data-i="5">その場所へ</button><div class="b">ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない</div></li><li><b>結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置</b><button class="go" data-i="6">その場所へ</button><div class="b">いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった</div></li><li><b>は、1件に1つの行為を書き、動詞で終わる文にする</b><button class="go" data-i="7">その場所へ</button><div class="b">answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない</div></li></ol></details><div class="doc"><hr>
+<p>name: &quot;usecase-advisor&quot;<br>description: &quot;ユースケースについての概念相談(「〜とは」)・判断相談(「〜すべきか」)・設計相談(「〜をどう組み立てるか」)を受けたときに使う。アリスター・コーバーン『ユースケース実践ガイド 復刻版』の判断基準に根拠を示して回答し、回答は構造化した JSON で組んで HTML で渡す。&quot;</p>
+<hr>
+<h1>ユースケースの相談に、判断基準の根拠を示して答えるのを担当する助言型の Skill：usecase-advisor</h1>
+<h2>目的</h2>
+<p>ユースケースについての概念相談 ・ 判断相談 ・ 設計相談を受けたときに使う。アリスター・コーバーン『ユースケース実践ガイド 復刻版』の判断基準（<code>references/criteria.json</code>）に根拠を示して回答する。<strong>回答は <code>references/answer.schema.json</code> の形の JSON で組み、人は描画した HTML で読む。</strong></p>
+<hr>
+<h2>役割</h2>
+<p>- ユースケースのアドバイザーとして、判断基準に基づいて回答する<br>- 抽象的な説明に留まらず、相談者の状況に当てはめた具体的な判断を示す<br>- アンチパターンを見つけたときは、リスクと代替案を組で示す<br>- AI が作業するときに、この回答の結論に違反しやすい点と、それを検査する方法を示す（該当する場合）</p>
+<hr>
+<h2>相談種別と回答テンプレート</h2>
+<p>回答の形は <code>references/answer.schema.json</code> の1つである。相談種別（<code>kind</code>）で、必須の欄が変わる。</p>
+<div class="scroll"><table><tr><th>相談種別</th><th>判定条件</th><th><code>kind</code></th><th>必須の欄（全種別の結論 ・ 根拠 ・ 次にすることに加えて）</th></tr><tr><td>概念相談</td><td>「〜とは」「〜の違いは」</td><td><code>concept</code></td><td>定義 ・ 具体例</td></tr><tr><td>判断相談</td><td>「〜すべきか」「この案でよいか」</td><td><code>judgment</code></td><td>比較した案 ・ 判断の道筋</td></tr><tr><td>設計相談</td><td>「〜をどう組み立てるか」</td><td><code>design</code></td><td>設計の手順</td></tr></table></div>
+<p>この領域での相談の例：「主アクターとは何か」（概念）・「このユースケースは目的レベルが低すぎないか」（判断）・「この業務の拡張条件をどう洗い出すか」（設計）</p>
+<hr>
+<h2>入力の想定</h2>
+<div class="scroll"><table><tr><th>受け取る情報</th><th>解釈・既定値</th></tr><tr><td>相談の種類（概念相談 ・ 判断相談 ・ 設計相談）</td><td>明示されなければ、相談の文の形から判定する</td></tr><tr><td>相談の対象と状況</td><td>明示されなければ相談者に確認する。確認できないときは、置いた仮定を前置き（<code>premises</code>）に書き、仮定に依存する判定を「未判定」と示す。抽象論だけで判断を返さない</td></tr></table></div>
+<hr>
+<h2>実行手順</h2>
+<h3>Step 1: 相談内容を上表の相談種別に分類する</h3>
+<p>相談を「概念相談」「判断相談」「設計相談」のいずれかに分類し、<code>kind</code> を決める。</p>
+<h3>Step 2: 関連する判断基準を特定して必ず読む</h3>
+<p>関連する判断基準の id を下の一覧から特定し、<strong>道具で1件ずつ取り出して読む</strong>。読む前に回答を始めない。</p>
+<pre class="code">usecase-advisor get criteria &lt;id&gt;        判断基準を1件取り出す（JSON）
+usecase-advisor view criteria --id &lt;id&gt;  人が読む形で描画する</pre>
+<p>- 既に知っている内容だと感じても、必ず先に読む<br>- 複数の判断基準が関連する場合は、すべて読んでから次に進む<br>- 関連する基準（<code>related</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="Step 2 は「読む前に回答を始めない」と書くが、関連する基準の欄に載せる基準にも及ぶかを書いていなかった。読んでいない基準の名前を載せると、根拠の無い参照が回答に残る">に載せる基準も、読んでから載せる</mark>。読んでいない基準の名前を回答に書かない</p>
+<h3>Step 3: 判断基準に沿って判定し、根拠を示す</h3>
+<p>回答を <code>answer.schema.json</code> の形の JSON で組み、検査してから描画する。</p>
+<pre class="code">usecase-advisor validate --kind answer --file &lt;回答.json&gt;      欄の欠けを検出する
+usecase-advisor view answer --file &lt;回答.json&gt; --out &lt;回答.html&gt;  描画する</pre>
+<p>- 結論（<code>conclusion</code>）を先に置く。判断相談では判定理由（<code>because</code>）を必ず書く<br>- 判定（<code>stance</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="判定の値（採る ・ 採らない ・ 条件付きで採る ・ 定義 ・ 良好 ・ 弱い）を、相談種別ごとにどれから選ぶかを書いていなかった。回答の形は値の一覧だけを持つので、組む側の判断になっていた">は相談種別で選ぶ。判断相談は</mark> 採る ・ 採らない ・ 条件付きで採る（前提に未判定が残るとき）、概念相談は 定義、設計相談で案を評価するときは 良好 ・ 弱い<br>- 比較した案（<code>comparison</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="概念の違いを問う相談で、比較した案の欄に置くと、採る ・ 採らないの判定が付く形になる。概念の違いは定義と具体例が示す欄である">は、採否を判定する案の比較にだけ使う</mark>。概念どうしの違いを問われたときは、定義（<code>definition</code>）と具体例（<code>examples</code>）で違いを示す<br>- <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="ガードレールは「範囲外として正直に伝える」と書くが、回答のどの欄に書くかを書いていなかった。根拠の欄に置くと、判断基準の記述と区別できない">判断基準の範囲外のこと（判断基準が触れていない条件など）は</mark>、前置き（<code>premises</code>）に出所を「判断基準の範囲外」として書き、判定の根拠にしない<br>- 根拠（<code>grounds</code>）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- 根拠（`grounds`）は、判断基準の記述を言い換えずに引き、判断基準の id を添える。表の1行を引用するときは、列の題と値を「列の題：値」の形にして「 ・ 」でつなぐ" data-w="0087 では表の1行の引き方だけを書いた。規則と注意の行を引用するときも、欄の題を除外すると値だけが並び、どの欄の値かが分からない。規則の3つの欄を引用する形を追加した">表 ・ 規則 ・ 注意の1行を引用するときは</mark>、欄の題と値を「欄の題：値」の形にして「 ・ 」でつなぐ（規則なら「条件：… ・ 対応：… ・ 理由：…」）<br>- アンチパターンに該当する場合は、注意（<code>cautions</code>）にリスクと代替案を組で書く。<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- アンチパターンに該当する場合は、注意（`cautions`）にリスクと代替案を組で書く" data-w="ガードレールは推測であることの明示を求めるが、回答のどこに書くかを書いていなかった。印が無いと、判断基準の記述と区別できない">判断基準に無い注意を回答の側で組み立てたときは</mark>、アンチパターンの欄の冒頭に「（推測）」と書く<br>- 図（<code>figure</code>）は節点と辺で宣言する。SVG は任意である ── SVG が無ければ、描画はつながりの並び（「A → B（辺の名前）」）を描く<br>- AI が作業するときの注意（<code>ai_cautions</code>）は、<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="- AI が作業するときの注意（`ai_cautions`）は、一般論ではなく、違反しやすい点と検査する方法の組で書く" data-w="いつ置く欄かを書いていなかった。結論と関係しない一般論が入る余地があった">結論を AI が設計 ・ 実装 ・ 文書へ移すときに違反しやすい点があるときに置く</mark>。一般論ではなく、違反しやすい点と検査する方法の組で書く<br>- 次にすること（<code>next</code>）<mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="（無い）" data-w="answer.schema の注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わない。1件に2つの行為をつなぐと、どこまで終えたかを判定できない">は、1件に1つの行為を書き、動詞で終わる文にする</mark></p>
+<hr>
+<h2>出力形式</h2>
+<p><strong>回答の JSON と、描画した HTML である。</strong> 人は HTML で読む ── チャットに回答の文章を流さない。</p>
+<div class="scroll"><table><tr><th>置くもの</th><th>内容</th></tr><tr><td>結論</td><td>判定と1文の結論。最初に読む</td></tr><tr><td>図 ・ 比較 ・ 道筋 ・ 手順</td><td>結論に至った構造。種別で必須の欄が変わる</td></tr><tr><td>根拠</td><td>判断基準の id と、その記述の引用</td></tr><tr><td>次にすること</td><td>動詞で始まる行動</td></tr></table></div>
+<hr>
+<h2>ガードレール</h2>
+<p>- 判断基準を道具で読む前に回答を始めてはならない。知っている内容でも必ず先に読む。最優先ルールであり例外なし<br>- 判断基準に記載されていない内容は「判断基準の範囲外」として正直に伝え、推測で答えない<br>- 判断基準は <code>criteria</code> から引用し、勝手に言い換えない<br>- 判断相談では必ず判定理由を示す。「〜です」で終わらせない<br>- アンチパターンに該当する場合は必ずリスクと代替案を組で示す。<strong>判断基準に代替案が無いときは、回答の側で組み立て、推測であることを明示する</strong> ── 判断基準は原典に無い文を保持しない<br>- <strong>回答は validate に合格してから渡す。</strong> 欄の欠けを機械で検出できる形にしたので、手で確認しない<br>- <strong>判断基準は原典の複製ではない。</strong> 原典ごとの学習ノートから、概念ごとに移したものである ── 原典の文そのものを参照していると断言しない。引用は「判断基準の記述」として示す<br>- 専門用語は使ってよいが、初出時は文脈 ・ 具体例を添える</p>
+<hr>
+<h2>参照knowledge</h2>
+<p>references は JSON Schema と JSON で持つ（契約の版2）。Markdown は SKILL.md だけである。</p>
+<div class="scroll"><table><tr><th>ファイル</th><th>中身</th></tr><tr><td><code>references/criteria.schema.json</code> ・ <code>criteria.json</code></td><td>ユースケースの判断基準。1件が、原典が名前を付けて立てている1つの概念である。<strong>語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った章と頁を出典として持つ</strong></td></tr><tr><td><code>references/figures/*.svg</code></td><td>判断基準の図。Skill の中に同梱する</td></tr><tr><td><code>references/answer.schema.json</code></td><td>回答の形。相談種別ごとに必須の欄が変わる</td></tr><tr><td><code>references/document.schema.json</code></td><td>原典の複製の形（import が使う）</td></tr></table></div>
+<p>判断基準の id は次である。</p>
+<div class="scroll"><table><tr><th>id</th><th>題（原典の概念の名前）</th><th>原典の節</th></tr><tr><td><code>use-case</code></td><td>ユースケース</td><td>第1章 ・ 1.1 ・ 1.4 ・ 第2章 ・ 2.1 ・ 2.3 ・ 第12章 ・ 第13章 ・ 第17章 ・ 17.1 ・ 17.2 ・ 17.3 ・ 17.4 ・ 17.5 ・ 17.6 ・ 第20章 ・ 第21章 ・ メモ14 ・ メモ15 ・ 第22章 ・ メモ16 ・ メモ18 ・ メモ19 ・ メモ25 ・ 付録C</td></tr><tr><td><code>usage-narrative</code></td><td>利用ストーリー</td><td>第1章 ・ 1.6</td></tr><tr><td><code>precision</code></td><td>精度</td><td>第1章 ・ 1.5 ・ 第13章 ・ 第21章 ・ 第22章 ・ メモ17 ・ メモ20</td></tr><tr><td><code>stakeholder</code></td><td>利害関係者</td><td>第2章 ・ 2.2 ・ 第4章 ・ 4.1 ・ 第20章 ・ 付録C</td></tr><tr><td><code>actor</code></td><td>アクター</td><td>第4章 ・ 第22章 ・ メモ23 ・ 付録C</td></tr><tr><td><code>primary-actor</code></td><td>主アクター</td><td>第4章 ・ 4.2 ・ 第12章 ・ 第19章 ・ 19.2 ・ メモ22</td></tr><tr><td><code>supporting-actor</code></td><td>支援アクター</td><td>4.3</td></tr><tr><td><code>system-under-discussion</code></td><td>対象システム</td><td>第4章 ・ 4.4 ・ 4.5 ・ 第21章 ・ 付録C</td></tr><tr><td><code>functional-scope</code></td><td>機能スコープ</td><td>第3章 ・ 3.1</td></tr><tr><td><code>use-case-brief</code></td><td>ユースケース概要</td><td>3.1 ・ 第18章 ・ メモ26 ・ 付録C</td></tr><tr><td><code>design-scope</code></td><td>設計スコープ</td><td>第3章 ・ 3.2 ・ 3.3 ・ 3.4 ・ メモ13 ・ 付録C</td></tr><tr><td><code>goal-level</code></td><td>目的レベル</td><td>第5章 ・ 5.1 ・ 5.2 ・ 5.3 ・ 5.4 ・ 5.5 ・ 5.6 ・ 第12章 ・ 第19章 ・ 19.4 ・ 19.5 ・ 第20章 ・ 第21章 ・ メモ12 ・ 第22章 ・ 付録C</td></tr><tr><td><code>precondition</code></td><td>事前条件</td><td>第6章 ・ 6.1 ・ 第20章</td></tr><tr><td><code>minimal-guarantee</code></td><td>最低保証</td><td>第6章 ・ 6.2</td></tr><tr><td><code>success-guarantee</code></td><td>成功時保証</td><td>6.3</td></tr><tr><td><code>trigger</code></td><td>トリガー</td><td>6.4 ・ 第12章</td></tr><tr><td><code>main-success-scenario</code></td><td>主成功シナリオ</td><td>第7章 ・ 7.1 ・ 第20章 ・ 第21章 ・ 付録C</td></tr><tr><td><code>action-step</code></td><td>アクションステップ</td><td>第7章 ・ 7.2 ・ 第19章 ・ 19.1 ・ 19.3 ・ 19.6 ・ 第20章 ・ 第21章</td></tr><tr><td><code>extension</code></td><td>拡張</td><td>第1章 ・ 第2章 ・ 第8章 ・ 8.1 ・ 8.2 ・ 8.3 ・ 第20章 ・ 第22章 ・ メモ21 ・ 付録C</td></tr><tr><td><code>technology-data-variation</code></td><td>技術およびデータのバリエーション</td><td>第9章</td></tr><tr><td><code>sub-use-case</code></td><td>サブユースケース</td><td>第2章 ・ 第10章 ・ 10.1 ・ 第20章 ・ A.5</td></tr><tr><td><code>extension-use-case</code></td><td>拡張ユースケース</td><td>第10章 ・ 10.2 ・ 第20章 ・ 付録C</td></tr><tr><td><code>use-case-format</code></td><td>ユースケースの書式</td><td>第1章 ・ 1.2 ・ 第11章 ・ 11.1 ・ 11.2 ・ 11.3 ・ 11.4 ・ 第20章 ・ 付録C</td></tr><tr><td><code>crud-use-case</code></td><td>CRUDユースケース</td><td>第14章 ・ 14.1</td></tr><tr><td><code>parameterized-use-case</code></td><td>パラメタライズドユースケース</td><td>第14章 ・ 14.2</td></tr><tr><td><code>business-and-system-use-case</code></td><td>ビジネスユースケースとシステムユースケース</td><td>第15章 ・ 15.1 ・ 15.2 ・ 第21章 ・ 付録C</td></tr><tr><td><code>data-requirement-precision</code></td><td>データ要求の精度</td><td>第16章 ・ 16.1</td></tr><tr><td><code>hub-and-spoke-model</code></td><td>要求のハブ-スポークモデル</td><td>第1章 ・ 1.3 ・ 第16章 ・ 16.2 ・ 第22章 ・ 第16章冒頭</td></tr><tr><td><code>use-case-diagram</code></td><td>ユースケース図</td><td>11.1 ・ 第21章 ・ 第22章 ・ メモ24 ・ 付録A ・ A.1 ・ A.2 ・ A.3 ・ A.4 ・ A.6 ・ A.7 ・ 付録C</td></tr></table></div>
+<p>学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。</p></div></section><section class="pane code-pane" data-k="ucans" hidden><div class="lane code-lane"><b>Git の差分として置く</b><span class="how">まとまり 1 件 ／ 全件に理由が付いている</span></div><details class="idx" open><summary>この面の変更 1 件</summary><ol><li><b>1件に1つの行為を書き、動詞で終わる文にする</b><button class="go" data-i="0">その場所へ</button><div class="b">注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた</div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 426 ／ 新 426 @@</td></tr><tr class="r"><td class="ln">426</td><td class="ln">426</td><td class="mk"> </td><td class="cd"><code>      &quot;items&quot;: {</code></td></tr><tr class="r"><td class="ln">427</td><td class="ln">427</td><td class="mk"> </td><td class="cd"><code>        &quot;type&quot;: &quot;string&quot;</code></td></tr><tr class="r"><td class="ln">428</td><td class="ln">428</td><td class="mk"> </td><td class="cd"><code>      },</code></td></tr><tr class="rd"><td class="ln">429</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;$comment&quot;: &quot;動詞で始める&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">429</td><td class="mk">+</td><td class="cd"><code><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="      &quot;$comment&quot;: &quot;動詞で始める&quot;" data-w="注記「動詞で始める」は、動詞が文末に来る日本語の文の形と合わないので、SKILL.md の手順と同じ文に改めた">      &quot;$comment&quot;: &quot;1件に1つの行為を書き、動詞で終わる文にする&quot;</mark></code></td></tr><tr class="r"><td class="ln">430</td><td class="ln">430</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">431</td><td class="ln">431</td><td class="mk"> </td><td class="cd"><code>    &quot;related&quot;: {</code></td></tr><tr class="r"><td class="ln">432</td><td class="ln">432</td><td class="mk"> </td><td class="cd"><code>      &quot;title&quot;: &quot;関連する基準&quot;,</code></td></tr></tbody></table></div></section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+      var p = doc.createElement("div");
+      p.className = "pop"; p.hidden = true;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        var host = m.closest("td") || m.closest("li") || m.parentNode;
+        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+        else host.parentNode.appendChild(p);
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      m.addEventListener("click", tg);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  function reveal(m){
+    if (m.offsetParent) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (m.offsetParent) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (m.offsetParent) return true;
+      ins[i].checked = was;
+    }
+    return !!m.offsetParent;
+  }
+
+  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンの面 */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
