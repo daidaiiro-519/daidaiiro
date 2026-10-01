@@ -1,0 +1,279 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0084",
+ "title": "雛形から生成した直後の Rust のコードを、整形済みにする",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "skills-creator が生成した直後の Rust の Skill は、整形の検査（cargo fmt --check）に合格する。",
+ "why": "利用者から「現在は skills-creator の契約通りに作成できてるんですかね？」と問われ、usecase-advisor を同じ名前で雛形から生成し直して現物と比べた。差は2点だった。1点目は、雛形から生成した直後の Rust のコードが cargo fmt --check に7か所で不合格になることである。リポジトリの規則（.coding-rules の「整形されている」）にその場で不合格になるので、usecase-advisor は手で整形していた（6e0a4c4e）。これから作り直す ddd ・ qa ・ platform ・ ux も同じ手作業になる。提供者の検証も整形を検査していなかったので、検出できなかった。2点目は、usecase-advisor の SKILL.md が archive の置き場所を旧い書き方（コードの記法）のまま保持していたことである。ACDR 0076 で雛形の書き方を改めたが、反映していなかった。",
+ "shift": [
+  {
+   "what": "生成した直後の Rust のコード",
+   "from": "cargo fmt --check に7か所で不合格（work 型 4ファイル ・ advisor 型 3ファイル）",
+   "to": "合格する"
+  },
+  {
+   "what": "MCP の面の use の並び",
+   "from": "Skill の crate の use を外部の crate と同じ組に置く（接頭辞の文字で並びが変化する）",
+   "to": "別の組に置く。接頭辞に依存せず、並びが一定になる"
+  },
+  {
+   "what": "言語の組の定義",
+   "from": "組み立てと試験のコマンドだけを保持する",
+   "to": "整形の検査のコマンド（format）も保持できる。Rust は cargo fmt --check"
+  },
+  {
+   "what": "提供者の検証",
+   "from": "組み立て ・ 試験 ・ check ・ accept",
+   "to": "加えて、組が format を保持するときは整形を検査する"
+  },
+  {
+   "what": "usecase-advisor",
+   "from": "MCP の面の use の並びと、SKILL.md の archive の書き方が雛形と相違する",
+   "to": "雛形から生成したものと、差し込み場所の中身以外は一致する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "雛形の行の配置を rustfmt の出力に一致させ、整形の検査を提供者の検証に加える",
+ "alternatives": [
+  {
+   "option": "scaffold が生成したあとに rustfmt を実行する",
+   "why_not": "scaffold が Rust の処理系の道具に依存し、言語の組ごとの整形の道具を知ることになる。雛形そのものが整形済みなら、追加の道具は必要ない"
+  },
+  {
+   "option": "生成した Skill を、その都度手で整形する",
+   "why_not": "作り直す4件で同じ作業を繰り返す。雛形と生成物の差も毎回生じ、契約どおりかの比較が成立しない"
+  },
+  {
+   "option": "5言語すべての整形の検査を同時に加える",
+   "why_not": "各言語の整形の道具（gofmt ・ ruff ・ prettier ・ dotnet format）を提供者の環境に準備する作業が必要になる。欄を用意したので、組ごとに追加できる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "mcp",
+   "tab": "mcp.main.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/mcp.main.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **この Skill の層は、外部の crate と別の組に置く**",
+     "before": "use {{接頭辞}}_service::{tools, Given};\nuse rmcp::handler::server::ServerHandler;",
+     "why": "rustfmt は組の中で use を名前の順に並べる。接頭辞（例：ua ・ va ・ vw）の文字で rmcp ・ serde_json との前後が変化するので、雛形の側で1つの並びに固定できない。独立した組に置けば、rustfmt は組をまたいで並べ替えない"
+    },
+    {
+     "find": "use {{接頭辞}}_service::{tools, Given};",
+     "before": "use {{接頭辞}}_service::{tools, Given};",
+     "why": "外部の crate の組から外し、独立した組へ移す"
+    }
+   ]
+  },
+  {
+   "key": "srefs",
+   "tab": "service.refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/service.refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Some(file) => or_misuse!(refs::validate_file(",
+     "before": "        Some(file) => or_misuse!(refs::validate_file(&dir, given.one(\"kind\", \"\"), Path::new(file))),",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    },
+    {
+     "find": "let kinds: Vec<String> = or_misuse!(refs::kinds(&dir))",
+     "before": "    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir)).into_iter().map(|k| k.name).collect();",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    },
+    {
+     "find": "return out",
+     "before": "        return out.findings.iter().map(|x| format!(\"  ×  {x}\")).collect::<Vec<_>>().join(\"\\n\");",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    },
+    {
+     "find": "let root = || {",
+     "before": "    let root = || Arg::opt(\"skill_root\", \"この Skill の置き場所（既定は、実行ファイルの1つ上）\", None);",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    }
+   ]
+  },
+  {
+   "key": "atests",
+   "tab": "references.tests.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/types/advisor/references.tests.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "PathBuf::from(env!(\"CARGO_MANIFEST_DIR\"))",
+     "before": "    PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"tests/fixtures\").join(name)",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    },
+    {
+     "find": "let found = refs::validate_file(&references(), \"answer\", &fixture(\"answer.example.json\"))",
+     "before": "    let found =\n        refs::validate_file(&references(), \"answer\", &fixture(\"answer.example.json\")).expect(\"読める\");",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    }
+   ]
+  },
+  {
+   "key": "wlib",
+   "tab": "business_logic.lib.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/types/work/business_logic.lib.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod refs;",
+     "before": "（pub mod refs; を hello の前に置いていた）",
+     "why": "rustfmt は mod の宣言を名前の順に並べる。rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    }
+   ]
+  },
+  {
+   "key": "wtests",
+   "tab": "business_logic.tests.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/types/work/business_logic.tests.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert_eq!(",
+     "before": "    assert_eq!(greet(\"世界\"), \"こんにちは、世界\", \"名前を差し込んだ文を返す\");",
+     "why": "rustfmt の出力に行の配置を一致させた。生成した直後の Skill が cargo fmt --check に合格する"
+    }
+   ]
+  },
+  {
+   "key": "profile",
+   "tab": "rust.profile.json",
+   "file": ".claude/skills/skills-creator/references/profiles/rust.profile.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"format\": [",
+     "before": "（無い）",
+     "why": "整形の検査の書き方を、言語の組の定義が保持する。差が在れば 0 以外を返す呼び方（--check）を書く。業務ロジックに言語の名前で分岐を書かない（ACDR 0060）"
+    }
+   ]
+  },
+  {
+   "key": "prs",
+   "tab": "profile.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/profile.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub format: Vec<String>,",
+     "before": "（無い）",
+     "why": "組の定義の format を読む。無い組は空で、検証はその組の整形を検査しない"
+    },
+    {
+     "find": "format: strings(&v, \"format\"),",
+     "before": "（無い）",
+     "why": "組の定義の format を、test と同じ形（文字列の並び）で読む"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "format: Vec::new(),",
+     "before": "（無い）",
+     "why": "組の定義を渡されなかったときの既定の Rust の組にも、欄を追加する。check は整形を検査しない"
+    }
+   ]
+  },
+  {
+   "key": "provider",
+   "tab": "provider.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/provider.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "if !defs.format.is_empty() {",
+     "before": "    let test = profile::load(&here.join(\"references/profiles\"), lang)?.test;",
+     "why": "試験のあとに整形を検査する。生成した直後のコードが整形されていない雛形を、提供者の検証で検出する"
+    }
+   ]
+  },
+  {
+   "key": "tscaffold",
+   "tab": "tests/scaffold.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_rust_profile_names_its_format_check()",
+     "before": "（無い）",
+     "why": "Rust の組が整形の検査を保持し、保持しない組は空であることを固定する"
+    }
+   ]
+  },
+  {
+   "key": "readme",
+   "tab": "tool/README.md",
+   "file": ".claude/skills/skills-creator/tool/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "整形の検査 ・ check ・ accept と突き合わせを行う",
+     "before": "組み立て ・ 試験 ・ check ・ accept と突き合わせを行う",
+     "why": "検証が実行する工程に、整形の検査を追加した"
+    },
+    {
+     "find": "言語の組が整形の検査（profile の format）を持つときはその検査を実行する",
+     "before": "組み立て ・ 試験 ・ check ・ accept を実行する。",
+     "why": "どの組で整形を検査するかは、組の定義が決める"
+    }
+   ]
+  },
+  {
+   "key": "umcp",
+   "tab": "usecase の mcp/src/main.rs",
+   "file": ".claude/skills/usecase-advisor/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **この Skill の層は、外部の crate と別の組に置く**",
+     "before": "（ua_service の use を serde_json の後ろに置いていた）",
+     "why": "新しい雛形の生成物に一致させる"
+    }
+   ]
+  },
+  {
+   "key": "uskill",
+   "tab": "usecase の SKILL.md",
+   "file": ".claude/skills/usecase-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "references の下の archive フォルダに置く",
+     "before": "学習ノートと原典の原文は `references/archive/` に置く",
+     "why": "archive は git の管理外なので、新しく取得した環境では指し先が存在しない。ACDR 0076 で改めた雛形の書き方に一致させる"
+    }
+   ]
+  }
+ ],
+ "how": "Rust の2つの型を生成して cargo fmt を実行し、変化した5つの雛形へ結果の配置を戻した（差し込み場所は雛形の記法のまま）。MCP の面は、Skill の crate の use を独立した組に置き、接頭辞の文字で並びが変化しないようにした。言語の組の定義に format を追加し、Rust は cargo fmt --manifest-path tool/Cargo.toml --all -- --check とした。提供者の検証は、試験のあとに format を実行し、0 以外なら不合格として報告する。旧い雛形では2つの型とも整形で不合格になり、直した雛形では合格することを確認した。usecase-advisor は MCP の面と SKILL.md の1行を、新しい雛形の生成物に一致させた。",
+ "applies_to": "skills-creator の Rust の雛形5件（mcp.main.rs ・ service.refs.rs ・ references.tests.rs と、work 型の2件）。skills-creator の rust.profile.json と tool/README.md。skills-creator の tool/business_logic（profile.rs ・ check.rs ・ provider.rs ・ tests/scaffold.rs）。usecase-advisor の tool/mcp/src/main.rs と SKILL.md。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "seal": {
+  "mcp": "5ac45a81aa7a9079541a998cdb9ca22f1b8484c45ef8dc77c4be7042fe357209",
+  "srefs": "ce74a46aa08b6524f6e15f01d8fa91878d12f75a28cb4bfc84716d162b21c4fe",
+  "atests": "0440bb49f0301bc911a45d0bae1c3c719fa4671012121c16d2f0e4521c25a493",
+  "wlib": "187bfa9f70032cb5cb70aa73cbc06fd72d93e1ab3f227158b86a0c7da15e7c9a",
+  "wtests": "d9ef7fe55ed83f39978b0e32b57a4697b56279a46d2a014fb3b2169bea234918",
+  "profile": "29f1ed14a8b5446f9d1c1b5a4dbbc2f330888260829037c1a490e20fd5c799f3",
+  "prs": "6bcd6d096162d420329bec85c191a96f54d3f4c7c0d77585f171ee0be211253f",
+  "check": "fc8fb6cfa56a4888584adea6cbfac3605021b726c84885094805d354e77dd4d2",
+  "provider": "cce6c1cc3f4f7e0aeecc8dbebe1822bab1292610afd5e2c8b717914ef2ee9128",
+  "tscaffold": "734e4e85149380cbd2f15aa4ba33b12221f38bd2ceca7aabf2c77ccf6087e7a1",
+  "readme": "ec4f1a49b28b3f4039792be2b9f63f1315f5c4d4323f5d59973f7a36924f8bff",
+  "umcp": "0492bd7ff5f0fd7ec917c1e77c1a78d3c80c9a29cc9c31266e2053b57206571f",
+  "uskill": "dac30357e962e4bf6befae5d4d61383528b9870d15f716b744b8772f03b5083a"
+ }
+}

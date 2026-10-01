@@ -35,10 +35,17 @@ fn run_get(given: &Given) -> Outcome {
 fn run_validate(given: &Given) -> Outcome {
     let dir = or_misuse!(refs_dir(given));
     let found = match opt(given, "file") {
-        Some(file) => or_misuse!(refs::validate_file(&dir, given.one("kind", ""), Path::new(file))),
+        Some(file) => or_misuse!(refs::validate_file(
+            &dir,
+            given.one("kind", ""),
+            Path::new(file)
+        )),
         None => or_misuse!(refs::validate(&dir)),
     };
-    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir)).into_iter().map(|k| k.name).collect();
+    let kinds: Vec<String> = or_misuse!(refs::kinds(&dir))
+        .into_iter()
+        .map(|k| k.name)
+        .collect();
     Outcome::found(found, json!({ "kinds": kinds }))
 }
 
@@ -76,7 +83,12 @@ fn run_import(given: &Given) -> Outcome {
 
 fn human(out: &Outcome) -> String {
     if !out.ok || !out.findings.is_empty() {
-        return out.findings.iter().map(|x| format!("  ×  {x}")).collect::<Vec<_>>().join("\n");
+        return out
+            .findings
+            .iter()
+            .map(|x| format!("  ×  {x}"))
+            .collect::<Vec<_>>()
+            .join("\n");
     }
     if let Some(html) = out.data.get("html").and_then(|x| x.as_str()) {
         return html.to_owned();
@@ -87,7 +99,13 @@ fn human(out: &Outcome) -> String {
 /// references の4つの道具。**サービス層の `tools()` がこれを足す。**
 #[must_use]
 pub fn tools() -> Vec<Tool> {
-    let root = || Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None);
+    let root = || {
+        Arg::opt(
+            "skill_root",
+            "この Skill の置き場所（既定は、実行ファイルの1つ上）",
+            None,
+        )
+    };
     vec![
         Tool {
             name: "get",

@@ -149,4 +149,4 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 | `hub-and-spoke-model` | 要求のハブ-スポークモデル | 第1章 ・ 1.3 ・ 第16章 ・ 16.2 ・ 第22章 ・ 第16章冒頭 |
 | `use-case-diagram` | ユースケース図 | 11.1 ・ 第21章 ・ 第22章 ・ メモ24 ・ 付録A ・ A.1 ・ A.2 ・ A.3 ・ A.4 ・ A.6 ・ A.7 ・ 付録C |
 
-学習ノートと原典の原文は `references/archive/` に置く ── 原典の複製を含むため、git の管理の外である。
+学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。

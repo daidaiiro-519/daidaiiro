@@ -31,6 +31,9 @@ pub struct Profile {
     pub build: Vec<String>,
     /// Skill のフォルダで試験を実行するコマンド（先頭がコマンド、残りが引数）。
     pub test: Vec<String>,
+    /// Skill のフォルダで整形を検査するコマンド（先頭がコマンド、残りが引数）。**差が在れば 0 以外を返す呼び方を
+    /// 書く。** 空なら、提供者の検証はこの組の整形を検査しない。
+    pub format: Vec<String>,
     /// ソースのファイルの拡張子。
     pub extensions: Vec<String>,
     /// ソースを探すときに入らないフォルダの名前。
@@ -94,6 +97,7 @@ fn parse(body: &str, at: &Path) -> Result<Profile, String> {
         types,
         build: strings(&v, "build"),
         test: strings(&v, "test"),
+        format: strings(&v, "format"),
         extensions: strings(&sources, "extensions"),
         skip: strings(&sources, "skip"),
         spawn: strings(&v, "spawn"),

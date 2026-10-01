@@ -443,6 +443,7 @@ fn builtin_rust(root: &Path) -> Option<Profile> {
             types: std::collections::BTreeMap::new(),
             build: Vec::new(),
             test: Vec::new(),
+            format: Vec::new(),
             extensions: vec![".rs".to_owned()],
             skip: vec![
                 "target".to_owned(),

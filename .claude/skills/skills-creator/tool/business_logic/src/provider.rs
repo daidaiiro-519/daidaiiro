@@ -164,10 +164,18 @@ fn one(
             return Ok(());
         }
     }
-    let test = profile::load(&here.join("references/profiles"), lang)?.test;
-    let ran = launch(&test, &dir)?;
+    let defs = profile::load(&here.join("references/profiles"), lang)?;
+    let ran = launch(&defs.test, &dir)?;
     if ran.code != 0 {
         v.failures.push(format!("[{name}] 試験 ── {}", tail(&ran)));
+    }
+    // **生んだ直後のコードが整形されているか** ── 整形されていない雛形は、生んだ Skill をリポジトリの
+    // 整形の規則にその場で不合格にする（実測 2026-10-01、Rust の雛形で7か所）
+    if !defs.format.is_empty() {
+        let ran = launch(&defs.format, &dir)?;
+        if ran.code != 0 {
+            v.failures.push(format!("[{name}] 整形 ── {}", tail(&ran)));
+        }
     }
     let checked = sc(&["check", &dir.display().to_string()])?;
     for f in blocking_check(&json_of(&checked)) {

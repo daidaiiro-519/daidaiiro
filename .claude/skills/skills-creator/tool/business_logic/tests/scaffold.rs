@@ -260,3 +260,25 @@ fn a_work_skill_can_be_planned_in_go() {
         assert!(from.is_file(), "{} が無い", from.display());
     }
 }
+
+#[test]
+fn the_rust_profile_names_its_format_check() {
+    // **生んだ直後のコードが整形されているかを、言語の組が検査の書き方として持つ** ── 提供者の検証が実行する
+    let (profiles, _) = defs();
+    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
+    assert_eq!(
+        rust.format,
+        vec![
+            "cargo",
+            "fmt",
+            "--manifest-path",
+            "tool/Cargo.toml",
+            "--all",
+            "--",
+            "--check"
+        ]
+    );
+    // 持たない組は空である ── 検証はその組の整形を検査しない
+    let go = profile::load(&profiles, "go").expect("Go の組が在る");
+    assert!(go.format.is_empty());
+}
