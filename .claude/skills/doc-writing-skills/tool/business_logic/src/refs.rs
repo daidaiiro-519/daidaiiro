@@ -563,6 +563,101 @@ fn resolve<'a>(schema: &'a Value, root: &'a Value) -> &'a Value {
         .unwrap_or(schema)
 }
 
+/// $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**
+/// （JSON Schema 2020-12 では隣の語も効く）。隣の語の無い $ref は、そのまま残す。**深さで止める** ──
+/// 自分を参照する定義でも、展開が終わる。
+fn merge_refs(v: &Value, root: &Value, depth: usize) -> Value {
+    match v {
+        Value::Object(m) => {
+            if let (Some(r), true) = (m.get("$ref").and_then(Value::as_str), m.len() > 1) {
+                if let Some(Value::Object(target)) =
+                    r.strip_prefix('#').and_then(|p| root.pointer(p))
+                {
+                    if depth < 8 {
+                        let mut merged =
+                            match merge_refs(&Value::Object(target.clone()), root, depth + 1) {
+                                Value::Object(t) => t,
+                                _ => serde_json::Map::new(),
+                            };
+                        for (k, x) in m {
+                            if k != "$ref" {
+                                merged.insert(k.clone(), merge_refs(x, root, depth));
+                            }
+                        }
+                        return Value::Object(merged);
+                    }
+                }
+            }
+            Value::Object(
+                m.iter()
+                    .map(|(k, x)| (k.clone(), merge_refs(x, root, depth)))
+                    .collect(),
+            )
+        }
+        Value::Array(a) => Value::Array(a.iter().map(|x| merge_refs(x, root, depth)).collect()),
+        other => other.clone(),
+    }
+}
+
+/// 節点と辺だけの図を、つながりの並びにする。**SVG の無い図でも、読み手が構造を確認できる。**
+fn graph_html(value: &Value) -> String {
+    let nodes: Vec<&Value> = value
+        .get("nodes")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().collect())
+        .unwrap_or_default();
+    let edges: Vec<&Value> = value
+        .get("edges")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().collect())
+        .unwrap_or_default();
+    if nodes.is_empty() && edges.is_empty() {
+        return String::new();
+    }
+    let label = |id: &str| -> String {
+        nodes
+            .iter()
+            .find(|n| str_of(n, "id") == Some(id))
+            .and_then(|n| str_of(n, "label"))
+            .unwrap_or(id)
+            .to_owned()
+    };
+    let mut lis = String::new();
+    for e in &edges {
+        let mut notes: Vec<String> = Vec::new();
+        if let Some(l) = str_of(e, "label").filter(|l| !l.is_empty()) {
+            notes.push(l.to_owned());
+        }
+        if e.get("dashed").and_then(Value::as_bool) == Some(true) {
+            notes.push("破線".to_owned());
+        }
+        let note = if notes.is_empty() {
+            String::new()
+        } else {
+            format!("（{}）", notes.join(" ・ "))
+        };
+        lis.push_str(&format!(
+            "<li>{} → {}{}</li>",
+            esc(&label(str_of(e, "from").unwrap_or(""))),
+            esc(&label(str_of(e, "to").unwrap_or(""))),
+            esc(&note)
+        ));
+    }
+    for n in &nodes {
+        let id = str_of(n, "id").unwrap_or("");
+        let linked = edges
+            .iter()
+            .any(|e| str_of(e, "from") == Some(id) || str_of(e, "to") == Some(id));
+        if !linked {
+            lis.push_str(&format!(
+                "<li>{}</li>",
+                esc(str_of(n, "label").unwrap_or(id))
+            ));
+        }
+    }
+    format!("<ol class=\"graph\">{lis}</ol>")
+}
+
 fn label_of(schema: &Value, value: &Value) -> String {
     schema
         .get("oneOf")
@@ -965,6 +1060,12 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
                     }
                 })
                 .unwrap_or_default();
+            // **SVG が無ければ、節点と辺の宣言を描く**
+            let svg = if svg.is_empty() {
+                graph_html(value)
+            } else {
+                svg
+            };
             let cap = esc(str_of(value, "caption").unwrap_or(""));
             format!("<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>")
         }
@@ -1082,6 +1183,7 @@ pub fn scoped_style(refs: &Path) -> Result<String, String> {
 /// 1件の本文を組む（`.rv` の囲みを含む）。**他の型の頁に埋め込むときに使う。**
 #[must_use]
 pub fn render_body(schema: &Value, value: &Value, base: &Path) -> String {
+    let schema = &merge_refs(schema, schema, 0);
     let ctx = Ctx { root: schema, base };
     format!("<div class=\"rv\">{}</div>", page_body(schema, value, &ctx))
 }
@@ -1099,6 +1201,8 @@ pub fn view(
 ) -> Result<String, String> {
     let schema_path = refs.join(format!("{kind}{SCHEMA_TAIL}"));
     let root = read_json(&schema_path)?;
+    // **$ref の隣の語を、参照先に重ねてから描く**
+    let root = merge_refs(&root, &root, 0);
     let (value, base) = match file {
         Some(f) => (
             read_json(f)?,
@@ -1138,7 +1242,26 @@ pub fn view(
             if let Some(m) = plain.as_object_mut() {
                 m.shift_remove("$schema");
             }
-            page_body(&root, &plain, &ctx)
+            // **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、
+            // 項目の中の欄（units など）が見せ方を失い、JSON の文字列のまま並ぶ
+            let only_items = plain.as_object().is_some_and(|m| m.len() == 1);
+            let item_schema = resolve(&root, &root).pointer("/properties/items/items");
+            match (
+                only_items,
+                plain.get("items").and_then(Value::as_array),
+                item_schema,
+            ) {
+                (true, Some(list), Some(s)) => list
+                    .iter()
+                    .map(|it| {
+                        format!(
+                            "<section class=\"entry\">{}</section>",
+                            page_body(s, it, &ctx)
+                        )
+                    })
+                    .collect(),
+                _ => page_body(&root, &plain, &ctx),
+            }
         }
     };
     let template = data_access::files::read_to_string(refs.join(VIEW_TEMPLATE))

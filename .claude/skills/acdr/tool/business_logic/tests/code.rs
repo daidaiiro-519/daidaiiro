@@ -238,3 +238,13 @@ fn a_code_line_is_marked_up_as_code() {
         diff.body
     );
 }
+
+#[test]
+fn csharp_is_code() {
+    // **C# の雛形もコードとして置く** ── コードとして扱わないと、HTML として頁へ流し込まれ、
+    // 文字列の中のタグ（"<section>" など）が頁の構造を壊す（実測 2026-10-01、ACDR 0087）
+    assert!(code::is_code(".cs"));
+    let diff =
+        code::render_diff(&parts(), "a\n", "var x = \"<section>\";\n", ".cs", &[]).expect("組める");
+    assert!(!diff.body.contains("\"<section>\""), "{}", diff.body);
+}

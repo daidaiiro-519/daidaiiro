@@ -770,6 +770,97 @@ func resolve(schema, root any) any {
 	return schema
 }
 
+// mergeRefs は $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より
+// 優先する**（JSON Schema 2020-12 では隣の語も効く）。隣の語の無い $ref は、そのまま残す。**深さで止める** ──
+// 自分を参照する定義でも、展開が終わる。
+func mergeRefs(v, root any, depth int) any {
+	switch x := v.(type) {
+	case *Object:
+		if r, ok := str(x, "$ref"); ok && len(x.Keys) > 1 && strings.HasPrefix(r, "#") {
+			if target, ok := walk(root, r[1:]); ok {
+				if t, ok := target.(*Object); ok && depth < 8 {
+					merged := mergeRefs(t, root, depth+1).(*Object)
+					for _, k := range x.Keys {
+						if k != "$ref" {
+							merged.Set(k, mergeRefs(x.Vals[k], root, depth))
+						}
+					}
+					return merged
+				}
+			}
+		}
+		out := NewObject()
+		for _, k := range x.Keys {
+			out.Set(k, mergeRefs(x.Vals[k], root, depth))
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = mergeRefs(e, root, depth)
+		}
+		return out
+	default:
+		return v
+	}
+}
+
+// graphHTML は節点と辺だけの図を、つながりの並びにする。**SVG の無い図でも、読み手が構造を確認できる。**
+func graphHTML(value any) string {
+	ns, _ := at(value, "nodes")
+	nodes, _ := ns.([]any)
+	es, _ := at(value, "edges")
+	edges, _ := es.([]any)
+	if len(nodes) == 0 && len(edges) == 0 {
+		return ""
+	}
+	labelOf := func(id string) string {
+		for _, n := range nodes {
+			if s, ok := str(n, "id"); ok && s == id {
+				return strOr(n, "label", id)
+			}
+		}
+		return id
+	}
+	is := func(v any, key, id string) bool {
+		s, ok := str(v, key)
+		return ok && s == id
+	}
+	var sb strings.Builder
+	sb.WriteString(`<ol class="graph">`)
+	for _, e := range edges {
+		var notes []string
+		if l, ok := str(e, "label"); ok && l != "" {
+			notes = append(notes, l)
+		}
+		if d, _ := at(e, "dashed"); d == true {
+			notes = append(notes, "破線")
+		}
+		note := ""
+		if len(notes) > 0 {
+			note = "（" + strings.Join(notes, " ・ ") + "）"
+		}
+		from, _ := str(e, "from")
+		to, _ := str(e, "to")
+		sb.WriteString("<li>" + esc(labelOf(from)) + " → " + esc(labelOf(to)) + esc(note) + "</li>")
+	}
+	for _, n := range nodes {
+		id, _ := str(n, "id")
+		linked := false
+		for _, e := range edges {
+			if is(e, "from", id) || is(e, "to", id) {
+				linked = true
+				break
+			}
+		}
+		if !linked {
+			sb.WriteString("<li>" + esc(strOr(n, "label", id)) + "</li>")
+		}
+	}
+	sb.WriteString("</ol>")
+	return sb.String()
+}
+
 func label(schema, value any) string {
 	options, _ := at(schema, "oneOf")
 	if list, ok := options.([]any); ok {
@@ -1195,6 +1286,10 @@ func block(key string, schemaIn, value any, c ctx) string {
 		if p, ok := str(value, "svg"); ok {
 			svg = svgOf(p, c.base)
 		}
+		// **SVG が無ければ、節点と辺の宣言を描く**
+		if svg == "" {
+			svg = graphHTML(value)
+		}
 		return fmt.Sprintf(`<section class="block">%s<figure>%s<figcaption>%s</figcaption></figure></section>`, hd, svg, esc(strOr(value, "caption", "")))
 	case "steps":
 		return `<section class="block">` + hd + steps(schema, value, c) + "</section>"
@@ -1309,6 +1404,7 @@ func ScopedStyle(refs string) (string, error) { return styleFor(refs, ".rv") }
 
 // RenderBody は1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**
 func RenderBody(schema, value any, base string) string {
+	schema = mergeRefs(schema, schema, 0)
 	return `<div class="rv">` + pageBody(schema, value, ctx{root: schema, base: base}) + "</div>"
 }
 
@@ -1318,6 +1414,8 @@ func View(refs, kind, id, file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// **$ref の隣の語を、参照先に重ねてから描く**
+	root = mergeRefs(root, root, 0)
 	var value any
 	base := refs
 	if file != "" {
@@ -1362,7 +1460,23 @@ func View(refs, kind, id, file string) (string, error) {
 			cp.Delete("$schema")
 			plainValue = cp
 		}
-		body = pageBody(root, plainValue, c)
+		// **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、
+		// 項目の中の欄（units など）が見せ方を失い、JSON の文字列のまま並ぶ
+		itemSchema, hasItem := walk(resolve(root, root), "/properties/items/items")
+		o, isObject := plainValue.(*Object)
+		var list []any
+		if isObject && len(o.Keys) == 1 {
+			list, _ = o.Vals["items"].([]any)
+		}
+		if hasItem && list != nil {
+			var sb strings.Builder
+			for _, it := range list {
+				sb.WriteString("<section class=\"entry\">" + pageBody(itemSchema, it, c) + "</section>")
+			}
+			body = sb.String()
+		} else {
+			body = pageBody(root, plainValue, c)
+		}
 	}
 	b, err := os.ReadFile(filepath.Join(refs, viewTemplate))
 	if err != nil {

@@ -46,7 +46,22 @@ fn run_validate(given: &Given) -> Outcome {
         .into_iter()
         .map(|k| k.name)
         .collect();
-    Outcome::found(found, json!({ "kinds": kinds }))
+    // **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを
+    // 読み手が区別できない（実測 2026-10-01、試しの相談3件とも）
+    let checked = opt(given, "file").unwrap_or("references");
+    Outcome::found(found, json!({ "kinds": kinds, "checked": checked }))
+}
+
+fn human_validate(out: &Outcome) -> String {
+    if !out.ok || !out.findings.is_empty() {
+        return human(out);
+    }
+    let checked = out
+        .data
+        .get("checked")
+        .and_then(|x| x.as_str())
+        .unwrap_or("references");
+    format!("合格 ── {checked} に検出は無い")
 }
 
 fn run_view(given: &Given) -> Outcome {
@@ -119,7 +134,7 @@ pub fn tools() -> Vec<Tool> {
             summary: "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
             args: vec![Arg::opt("kind", "種類の名前（file と一緒に渡す）", None), Arg::opt("file", "検査する JSON", None), root()],
             run: run_validate,
-            human,
+            human: human_validate,
         },
         Tool {
             name: "view",

@@ -43,7 +43,9 @@ def _run_validate(given: Given) -> Outcome:
     d = _refs_dir(given)
     file = _opt(given, "file")
     found = refs.validate_file(d, given.one("kind", ""), Path(file)) if file else refs.validate(d)
-    return Outcome.found(found, {"kinds": [k.name for k in refs.kinds(d)]})
+    # **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを
+    # 読み手が区別できない（実測 2026-10-01、試しの相談3件とも）
+    return Outcome.found(found, {"kinds": [k.name for k in refs.kinds(d)], "checked": file or "references"})
 
 
 @_guard
@@ -76,6 +78,13 @@ def _human(out: Outcome) -> str:
     return json.dumps(out.data, ensure_ascii=False, indent=2)
 
 
+def _human_validate(out: Outcome) -> str:
+    if not out.ok or out.findings:
+        return _human(out)
+    checked = out.data.get("checked") if isinstance(out.data, dict) else None
+    return f"合格 ── {checked if isinstance(checked, str) else 'references'} に検出は無い"
+
+
 def tools() -> list[Tool]:
     """references の4つの道具。**道具の一覧（tools.py）がこれを足す。**"""
     root = lambda: Arg.opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）")  # noqa: E731
@@ -83,7 +92,7 @@ def tools() -> list[Tool]:
         Tool("get", "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
              [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), root()], _run_get, _human),
         Tool("validate", "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
-             [Arg.opt("kind", "種類の名前（file と一緒に渡す）"), Arg.opt("file", "検査する JSON"), root()], _run_validate, _human),
+             [Arg.opt("kind", "種類の名前（file と一緒に渡す）"), Arg.opt("file", "検査する JSON"), root()], _run_validate, _human_validate),
         Tool("view", "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
              [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), Arg.opt("file", "描画する JSON（回答など）"),
               Arg.opt("out", "HTML の置き場所"), root()], _run_view, _human),

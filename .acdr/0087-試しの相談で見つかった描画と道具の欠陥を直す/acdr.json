@@ -1,0 +1,476 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0087",
+ "title": "試しの相談で見つかった、描画と道具の欠陥を直す",
+ "date": "2026-10-01",
+ "status": "accepted",
+ "decision": "references の道具は、一覧 ・ $ref の隣の語 ・ 節点と辺だけの図を正しく描画し、validate は何を検査して合格したかを示す。5言語の雛形で同じ出力にする。",
+ "why": "usecase-advisor を実際の相談で検証するため、概念相談 ・ 判断相談 ・ 設計相談を1件ずつ、SKILL.md の手順どおりに実行した。回答の中身は判断基準に沿っていたが、描画と道具に4つの欠陥があった。1つ目に、id を渡さない view は種類の全体を1つの値として描くので、判断基準の構成要素が JSON の文字列のまま並んだ。2つ目に、$ref の隣に置いた題と見せ方（x-view）を描画が破棄したので、回答のコードの例が「code」の見出しと JSON の文字列になった。3つ目に、節点と辺だけで宣言した図が描かれず、説明文だけが出た（3件とも）。4つ目に、validate が合格したとき種類の一覧だけを出すので、検査したのかどうかを読み手が区別できなかった（3件とも）。描画の雛形は5言語で共通なので、雛形から作った Skill すべてに同じ欠陥がある。あわせて、この記録を組むと acdr が C# の雛形をコードとして扱わず、文字列の中のタグが頁の構造を壊した。",
+ "shift": [
+  {
+   "what": "id を渡さない view",
+   "from": "種類の全体を1つの値として描く",
+   "to": "項目の並びだけを持つ種類は、1件ずつの頁（id を渡したときと同じ本文）を並べる"
+  },
+  {
+   "what": "$ref の隣の語（title ・ x-view など）",
+   "from": "参照先へ置き換えたときに破棄する",
+   "to": "参照先に重ねる。隣の語が優先する（JSON Schema 2020-12 と同じ）"
+  },
+  {
+   "what": "節点と辺だけの図",
+   "from": "説明文だけを出す",
+   "to": "つながりの並び（「A → B（辺の名前 ・ 破線）」）として描く"
+  },
+  {
+   "what": "validate の合格",
+   "from": "種類の一覧だけを出す",
+   "to": "「合格 ── <検査した対象> に検出は無い」と出す。--json の data に checked を足す"
+  },
+  {
+   "what": "SKILL.md（助言型の雛形と usecase-advisor）",
+   "from": "相談者に確認できないときの扱い ・ 表の行の引用の仕方 ・ SVG の無い図の描かれ方を書いていない",
+   "to": "書いた"
+  },
+  {
+   "what": "acdr が差分として置く言語",
+   "from": "C#（.cs）を保持しない",
+   "to": "C# を保持する。色付けは JavaScript と同じ規則で行う"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "試しの相談で見つかった4つの欠陥を、5言語の雛形で同じ形に直す",
+ "alternatives": [
+  {
+   "option": "スキーマの側で $ref を展開し、隣の語を保持しない形にする",
+   "why_not": "同じ形の $ref が20の Skill の文書と回答のスキーマにある。描画が JSON Schema の決まりに従えば、スキーマを書き換えずに済む"
+  },
+  {
+   "option": "節点と辺から SVG を組む描画を、5言語の雛形に入れる",
+   "why_not": "配置の計算を5言語で同じ結果にする実装が必要で、雛形が大きくなる。つながりの並びでも読み手は構造を確認でき、SVG が必要なときは回答の側で置ける"
+  },
+  {
+   "option": "一覧の描画で、項目の中の欄の見せ方を個別に解く",
+   "why_not": "1件の頁を組む処理と同じことを、別の経路でもう1度書くことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rs",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **SVG が無ければ、節点と辺の宣言を描く**",
+     "before": "（無い）",
+     "why": "SVG の無い図は、節点と辺の宣言をつながりの並びとして描く。説明文だけを出すと、読み手は図で何も確認できない（試しの相談3件とも）"
+    },
+    {
+     "find": "let schema = &merge_refs(schema, schema, 0);",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **$ref の隣の語を、参照先に重ねてから描く**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、",
+     "before": "            page_body(&root, &plain, &ctx)",
+     "why": "項目の並びだけを持つ種類を、1件ずつの頁（id を渡したときと同じ本文）の並びとして描く。全体を1つの値として描くと、項目の中の欄が JSON の文字列のまま並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "rst",
+   "tab": "service.refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/service.refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを",
+     "before": "    Outcome::found(found, json!({ \"kinds\": kinds }))",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "human: human_validate,",
+     "before": "            human,",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    }
+   ]
+  },
+  {
+   "key": "py",
+   "tab": "refs.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "def _merge_refs(v, root, depth: int):",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "# **SVG が無ければ、節点と辺の宣言を描く**",
+     "before": "（無い）",
+     "why": "SVG の無い図は、節点と辺の宣言をつながりの並びとして描く。説明文だけを出すと、読み手は図で何も確認できない（試しの相談3件とも）"
+    },
+    {
+     "find": "schema = _merge_refs(schema, schema, 0)",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "# **$ref の隣の語を、参照先に重ねてから描く**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "# **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、",
+     "before": "        body = _page_body(root, plain, ctx)",
+     "why": "項目の並びだけを持つ種類を、1件ずつの頁（id を渡したときと同じ本文）の並びとして描く。全体を1つの値として描くと、項目の中の欄が JSON の文字列のまま並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "pyt",
+   "tab": "refs_tools.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs_tools.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを",
+     "before": "    return Outcome.found(found, {\"kinds\": [k.name for k in refs.kinds(d)]})",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "def _human_validate(out: Outcome) -> str:",
+     "before": "（無い）",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "[Arg.opt(\"kind\", \"種類の名前（file と一緒に渡す）\"), Arg.opt(\"file\", \"検査する JSON\"), root()], _run_validate, _human_validate),",
+     "before": "             [Arg.opt(\"kind\", \"種類の名前（file と一緒に渡す）\"), Arg.opt(\"file\", \"検査する JSON\"), root()], _run_validate, _human),",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    }
+   ]
+  },
+  {
+   "key": "ts",
+   "tab": "refs.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "* $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "const file = p !== null ? svgOf(p, ctx.base) : '';",
+     "before": "            const svg = p !== null ? svgOf(p, ctx.base) : '';",
+     "why": "SVG の無い図は、節点と辺の宣言をつながりの並びとして描く。説明文だけを出すと、読み手は図で何も確認できない（試しの相談3件とも）"
+    },
+    {
+     "find": "export function renderBody(schemaIn: Json, value: Json, base: string): string {",
+     "before": "export function renderBody(schema: Json, value: Json, base: string): string {\n    const root = readJson(join(refs, `${kind}${SCHEMA_TAIL}`));",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、",
+     "before": "        body = pageBody(root, plain, ctx);",
+     "why": "項目の並びだけを持つ種類を、1件ずつの頁（id を渡したときと同じ本文）の並びとして描く。全体を1つの値として描くと、項目の中の欄が JSON の文字列のまま並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "tst",
+   "tab": "refs_tools.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs_tools.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを",
+     "before": "    return found(hits, { kinds: refs.kinds(d).map(k => k.name) });",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "function humanValidate(out: Outcome): string {",
+     "before": "（無い）",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "human: humanValidate",
+     "before": "            human",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    }
+   ]
+  },
+  {
+   "key": "go",
+   "tab": "refs.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// mergeRefs は $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **SVG が無ければ、節点と辺の宣言を描く**",
+     "before": "（無い）",
+     "why": "SVG の無い図は、節点と辺の宣言をつながりの並びとして描く。説明文だけを出すと、読み手は図で何も確認できない（試しの相談3件とも）"
+    },
+    {
+     "find": "schema = mergeRefs(schema, schema, 0)",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **$ref の隣の語を、参照先に重ねてから描く**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、",
+     "before": "\t\tbody = pageBody(root, plainValue, c)",
+     "why": "項目の並びだけを持つ種類を、1件ずつの頁（id を渡したときと同じ本文）の並びとして描く。全体を1つの値として描くと、項目の中の欄が JSON の文字列のまま並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "got",
+   "tab": "refs.tools.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.tools.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "if file != \"\" {",
+     "before": "\tif file := given.One(\"file\", \"\"); file != \"\" {",
+     "why": "上の修正に伴う変更（呼び出しの引数 ・ 取り込み ・ 変数の名前）"
+    },
+    {
+     "find": "// **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを",
+     "before": "\treturn contract.Found(found, map[string]any{\"kinds\": names})",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "func humanValidate(out contract.Outcome) string {",
+     "before": "（無い）",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "Args: []contract.Arg{contract.Opt(\"kind\", \"種類の名前（file と一緒に渡す）\", nil), contract.Opt(\"file\", \"検査する JSON\", nil), root}, Run: runValidate, Human: humanValidate},",
+     "before": "\t\t\tArgs: []contract.Arg{contract.Opt(\"kind\", \"種類の名前（file と一緒に渡す）\", nil), contract.Opt(\"file\", \"検査する JSON\", nil), root}, Run: runValidate, Human: human},",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    }
+   ]
+  },
+  {
+   "key": "cs",
+   "tab": "Refs.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Refs.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**",
+     "before": "（無い）",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **SVG が無ければ、節点と辺の宣言を描く**",
+     "before": "（無い）",
+     "why": "SVG の無い図は、節点と辺の宣言をつながりの並びとして描く。説明文だけを出すと、読み手は図で何も確認できない（試しの相談3件とも）"
+    },
+    {
+     "find": "public static string RenderBody(JsonNode? schemaIn, JsonNode? value, string base_)",
+     "before": "    public static string RenderBody(JsonNode? schema, JsonNode? value, string base_) =>\n        $\"<div class=\\\"rv\\\">{PageBody(schema, value, new Ctx(schema, base_))}</div>\";\n        var root = ReadJson(Path.Combine(refs, $\"{kind}{SchemaTail}\"));",
+     "why": "$ref の隣の語（title ・ x-view など）を参照先に重ねてから描く。破棄すると、見出しが欄の名前になり、中身が JSON の文字列のまま並ぶ（試しの相談のコードの例）"
+    },
+    {
+     "find": "// **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、",
+     "before": "            body = PageBody(root, plain, ctx);",
+     "why": "項目の並びだけを持つ種類を、1件ずつの頁（id を渡したときと同じ本文）の並びとして描く。全体を1つの値として描くと、項目の中の欄が JSON の文字列のまま並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "cst",
+   "tab": "RefsTools.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/RefsTools.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを",
+     "before": "        return Outcome.Found(found, new JsonObject { [\"kinds\"] = kinds });",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "static string HumanValidate(Outcome out_)",
+     "before": "（無い）",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    },
+    {
+     "find": "[Arg.Opt(\"kind\", \"種類の名前（file と一緒に渡す）\"), Arg.Opt(\"file\", \"検査する JSON\"), Root()], Guard(RunValidate), HumanValidate),",
+     "before": "                [Arg.Opt(\"kind\", \"種類の名前（file と一緒に渡す）\"), Arg.Opt(\"file\", \"検査する JSON\"), Root()], Guard(RunValidate), Human),",
+     "why": "validate が何を検査したかを data の checked に返し、合格なら「合格 ── <対象> に検出は無い」と出す。種類の一覧だけでは、合格したのか検査されなかったのかを区別できない（試しの相談3件とも）"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/refs.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_whole_kind_is_drawn_as_the_pages_of_its_items() {",
+     "before": "（無い）",
+     "why": "一覧 ・ $ref の隣の語 ・ 節点と辺の図の3つを、先に書いた試験で固定する。どれも実装の前に失敗することを確認した"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "助言型の SKILL.md の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/skill-template.md.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "確認できないときは、置いた仮定を前置き",
+     "before": "| 相談の対象と状況 | 明示されなければ相談者に確認する。抽象論だけで判断を返さない |",
+     "why": "試しの相談では相談者に確認する手段が無く、3件とも扱いを推測した。置いた仮定を前置きに書き、仮定に依存する判定を未判定と示す扱いを明記する"
+    },
+    {
+     "find": "表の1行を引用するときは",
+     "before": "- 根拠（grounds）は、判断基準の記述を言い換えずに引き、判断基準の id を添える",
+     "why": "判断基準の比較の表は行と列に分かれていて、1行を引用する形が決まっていなかった（試しの相談）。列の題と値を組にする形に統一する"
+    },
+    {
+     "find": "SVG が無ければ、描画はつながりの並び",
+     "before": "- 図（figure）は節点と辺で宣言する。SVG は任意である",
+     "why": "SVG の無い図がどう描かれるかを書く。描画の修正（つながりの並び）と合わせる"
+    }
+   ]
+  },
+  {
+   "key": "ucskill",
+   "tab": "usecase-advisor の SKILL.md",
+   "file": ".claude/skills/usecase-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "確認できないときは、置いた仮定を前置き",
+     "before": "| 相談の対象と状況 | 明示されなければ相談者に確認する。抽象論だけで判断を返さない |",
+     "why": "試しの相談では相談者に確認する手段が無く、3件とも扱いを推測した。置いた仮定を前置きに書き、仮定に依存する判定を未判定と示す扱いを明記する"
+    },
+    {
+     "find": "表の1行を引用するときは",
+     "before": "- 根拠（grounds）は、判断基準の記述を言い換えずに引き、判断基準の id を添える",
+     "why": "判断基準の比較の表は行と列に分かれていて、1行を引用する形が決まっていなかった（試しの相談）。列の題と値を組にする形に統一する"
+    },
+    {
+     "find": "SVG が無ければ、描画はつながりの並び",
+     "before": "- 図（figure）は節点と辺で宣言する。SVG は任意である",
+     "why": "SVG の無い図がどう描かれるかを書く。描画の修正（つながりの並び）と合わせる"
+    }
+   ]
+  },
+  {
+   "key": "acode",
+   "tab": "acdr の code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/code.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const LANGS: [(&str, &str); 24] = [",
+     "before": "const LANGS: [(&str, &str); 23] = [",
+     "why": "言語の表に C# を1行足したので、表の大きさを改めた"
+    },
+    {
+     "find": "(\".cs\", \"csharp\"),",
+     "before": "（無い）",
+     "why": "C# の雛形を差分として置けるようにする。表に無い拡張子はコードとして扱わないので、HTML の面になり、文字列の中のタグが頁の構造を壊していた"
+    },
+    {
+     "find": "const KEYWORDS: [(&str, &str); 13] = [",
+     "before": "const KEYWORDS: [(&str, &str); 12] = [",
+     "why": "予約語の表に C# を足したので、表の大きさを改めた"
+    },
+    {
+     "find": "\"abstract as async await base bool",
+     "before": "（無い）",
+     "why": "C# の予約語。色付けは近似であり、判定の根拠にしない"
+    },
+    {
+     "find": "const LINE: [(&str, &[(&str, &str)]); 13] = [",
+     "before": "const LINE: [(&str, &[(&str, &str)]); 12] = [",
+     "why": "行の色付けの規則に C# を足したので、表の大きさを改めた"
+    },
+    {
+     "find": "r\"(?s)/\\*.*?\\*/\", \"c\"),",
+     "before": "（無い）",
+     "why": "C# の注記（// と /* */）と文字列の色付け。JavaScript と同じ規則である"
+    }
+   ]
+  },
+  {
+   "key": "atest",
+   "tab": "acdr の tests/code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/code.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn csharp_is_code()",
+     "before": "（無い）",
+     "why": "C# がコードとして扱われ、文字列の中のタグがエスケープされることを固定する"
+    }
+   ]
+  },
+  {
+   "key": "askill",
+   "tab": "acdr の SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".cs",
+     "before": "（.go ・ .rs の間に .cs が無かった）",
+     "why": "コードとして置く拡張子の一覧に C# を足した。事例の数も 85 件から 86 件へ改めた"
+    }
+   ]
+  }
+ ],
+ "how": "Rust の雛形を先に直し、試験（一覧 ・ $ref の隣の語 ・ 節点と辺の図）を先に書いて失敗を確かめてから実装した。4言語への移植はエージェントに行わせ、Rust と1バイトも違わない出力を求めた。5言語 × 2型の検証は終了コード 0、突き合わせの不一致は 0 件で、2つの事例と validate の出力も Rust と一致した。Rust の雛形を10の Skill の refs.rs へ複製し、service の refs.rs の validate も同じ形に直した。試しの相談の回答3件を新しい道具で描き直し、図がつながりの並びで出ることを確認した。",
+ "applies_to": "skills-creator の5言語の雛形（refs と、references の道具の雛形）・ 試験（tests/refs.rs）・ 助言型の SKILL.md の雛形。雛形の複製である10の Skill の refs.rs と service の refs.rs。usecase-advisor の SKILL.md。acdr の言語の表（code.rs）・ 試験 ・ SKILL.md。",
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "seal": {
+  "rs": "36b426dfe0077d20c7bc4f627b0377ed53b30ca13b5a8e5cd3ea3757f2de2f47",
+  "rst": "d8d6c3443ae701005e1c493a28cf872366395fd8b7f1c2c0bbcb4b127f64f8d6",
+  "py": "4042f7844f9739692180b9a694d4f2a8d5dc264c16267897dd74891df3e2d3c3",
+  "pyt": "facbc468480d83d3bcca65729495136934e7d89631a4c56d471243754fddfb07",
+  "ts": "65dd4c25f604cff93cd3585f171235051839e6a22dfecf5afd51d1d6815d2105",
+  "tst": "26d909fce545b717f75aa442d9eddadb928d0b8009fad27b7c5e84e7a7b7f5be",
+  "go": "56c4213c3fd5b8cc1975abe7ff63bc94ce2679cb3f48bdf769e9ce517b65cbe3",
+  "got": "55203d58d1f1c3b43d61c4c1db41aa389534d44e238ce8f6442a54dcff66d1d4",
+  "cs": "549477f4a21a73b9e2813f0b37cab3599e7389c544e6f9bf67d8810c8b2b2df0",
+  "cst": "7f206bbc1a9945bd30ecd7692aa74ee978319532da5cc8535f8aa944059d25ed",
+  "test": "1907e5ca8771038093fb44fc30cd9390071175f3e1740c259de3f316fef316d2",
+  "tmpl": "956c6f3e389a1397cbb2e1c9978a604a5d634c91dbe3071ba7adff5878a31cc0",
+  "ucskill": "4b7a75e1cc95b77a034704f427d6edd08f4a61a82ead67ee306f2aa1250e213e",
+  "acode": "3545714fd2378e0158f0de3ec14d659cda6a65a8036e5d412d73f5db604101fd",
+  "atest": "d4cd71a3b4882563551e02ec89f05ce005a2ca661859225deefa6f7367cf06f4",
+  "askill": "4ccbbe387d364ad14399f6c6e4cac1340828d1acb2f847d418313b98c7ff682b"
+ }
+}

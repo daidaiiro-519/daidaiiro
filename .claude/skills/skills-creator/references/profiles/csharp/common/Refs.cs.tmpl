@@ -568,6 +568,62 @@ public static class Refs
         return Walk(root, r[1..], out var hit) ? hit : schema;
     }
 
+    /// <summary>
+    /// $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**
+    /// （JSON Schema 2020-12 では隣の語も効く）。隣の語の無い $ref は、そのまま残す。**深さで止める** ──
+    /// 自分を参照する定義でも、展開が終わる。
+    /// </summary>
+    static JsonNode? MergeRefs(JsonNode? v, JsonNode? root, int depth)
+    {
+        switch (v)
+        {
+            case JsonObject m:
+            {
+                if (Str(m, "$ref") is { } r && m.Count > 1 && r.StartsWith('#')
+                    && Walk(root, r[1..], out var target) && target is JsonObject t && depth < 8)
+                {
+                    var merged = (JsonObject)MergeRefs(t, root, depth + 1)!;
+                    foreach (var (k, x) in m)
+                    {
+                        if (k != "$ref") merged[k] = MergeRefs(x, root, depth);
+                    }
+                    return merged;
+                }
+                var o = new JsonObject();
+                foreach (var (k, x) in m) o[k] = MergeRefs(x, root, depth);
+                return o;
+            }
+            case JsonArray a:
+                return new JsonArray([.. a.Select(x => MergeRefs(x, root, depth))]);
+            default:
+                return v?.DeepClone();
+        }
+    }
+
+    /// <summary>節点と辺だけの図を、つながりの並びにする。**SVG の無い図でも、読み手が構造を確認できる。**</summary>
+    static string GraphHtml(JsonNode? value)
+    {
+        var nodes = Each(At(value, "nodes")).ToList();
+        var edges = Each(At(value, "edges")).ToList();
+        if (nodes.Count == 0 && edges.Count == 0) return "";
+        string LabelOf(string id) => nodes.FirstOrDefault(x => Str(x, "id") == id) is { } hit ? Str(hit, "label") ?? id : id;
+        var lis = new StringBuilder();
+        foreach (var e in edges)
+        {
+            var notes = new List<string>();
+            if (Str(e, "label") is { Length: > 0 } l) notes.Add(l);
+            if (At(e, "dashed") is JsonValue d && d.GetValueKind() == JsonValueKind.True) notes.Add("破線");
+            var note = notes.Count > 0 ? $"（{string.Join(" ・ ", notes)}）" : "";
+            lis.Append($"<li>{Esc(LabelOf(Str(e, "from") ?? ""))} → {Esc(LabelOf(Str(e, "to") ?? ""))}{Esc(note)}</li>");
+        }
+        foreach (var n in nodes)
+        {
+            var id = Str(n, "id") ?? "";
+            if (!edges.Any(e => Str(e, "from") == id || Str(e, "to") == id)) lis.Append($"<li>{Esc(Str(n, "label") ?? id)}</li>");
+        }
+        return $"<ol class=\"graph\">{lis}</ol>";
+    }
+
     static string Label(JsonNode? schema, JsonNode? value)
     {
         if (At(schema, "oneOf") is JsonArray options)
@@ -854,6 +910,8 @@ public static class Refs
                 // **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
                 var p = Str(value, "svg");
                 var svg = p is not null ? SvgOf(p, ctx.Base) : "";
+                // **SVG が無ければ、節点と辺の宣言を描く**
+                if (svg.Length == 0) svg = GraphHtml(value);
                 return $"<section class=\"block\">{head}<figure>{svg}<figcaption>{Esc(Str(value, "caption") ?? "")}</figcaption></figure></section>";
             }
             case "steps":
@@ -974,13 +1032,18 @@ public static class Refs
     public static string ScopedStyle(string refs) => StyleFor(refs, ".rv");
 
     /// <summary>1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。**</summary>
-    public static string RenderBody(JsonNode? schema, JsonNode? value, string base_) =>
-        $"<div class=\"rv\">{PageBody(schema, value, new Ctx(schema, base_))}</div>";
+    public static string RenderBody(JsonNode? schemaIn, JsonNode? value, string base_)
+    {
+        var schema = MergeRefs(schemaIn, schemaIn, 0);
+        return $"<div class=\"rv\">{PageBody(schema, value, new Ctx(schema, base_))}</div>";
+    }
 
     /// <summary>種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。</summary>
     public static string View(string refs, string kind, string? id = null, string? file = null)
     {
-        var root = ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}"));
+        var read = ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}"));
+        // **$ref の隣の語を、参照先に重ねてから描く**
+        var root = MergeRefs(read, read, 0);
         var value = file is not null ? ReadJson(file) : Get(refs, kind);
         var ctx = new Ctx(root, file is not null ? Path.GetDirectoryName(file) ?? refs : refs);
         string body;
@@ -1005,7 +1068,17 @@ public static class Refs
         {
             var plain = value?.DeepClone();
             if (plain is JsonObject po) po.Remove("$schema");
-            body = PageBody(root, plain, ctx);
+            // **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、
+            // 項目の中の欄（units など）が見せ方を失い、JSON の文字列のまま並ぶ
+            if (plain is JsonObject only && only.Count == 1 && only["items"] is JsonArray list
+                && Walk(Resolve(root, root), "/properties/items/items", out var itemSchema))
+            {
+                body = string.Concat(list.Select(it => $"<section class=\"entry\">{PageBody(itemSchema, it, ctx)}</section>"));
+            }
+            else
+            {
+                body = PageBody(root, plain, ctx);
+            }
         }
         string template;
         try

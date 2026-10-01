@@ -496,3 +496,89 @@ fn a_unit_is_drawn_by_the_form_its_kind_selects() {
         "手順は番号付き: {html}"
     );
 }
+
+#[test]
+fn the_whole_kind_is_drawn_as_the_pages_of_its_items() {
+    // **id を渡さずに描くと、1件ずつの頁を並べる** ── 種類の全体を1つの値として描くと、項目の中の
+    // 単位（units など）が見せ方を失い、JSON の文字列のまま並ぶ（実測 2026-10-01、usecase-advisor）
+    let dir = scratch("whole");
+    criteria(&dir);
+    let whole = refs::view(&dir, "criteria", None, None).expect("描ける");
+    assert_eq!(whole.matches("<section class=\"entry\">").count(), 2);
+    for id in ["aggregate", "context"] {
+        let one = refs::view(&dir, "criteria", Some(id), None).expect("描ける");
+        let body = one
+            .split("<main class=\"rv\">")
+            .nth(1)
+            .and_then(|b| b.split_once("</main>"))
+            .map(|(b, _)| b.to_owned())
+            .expect("本文が在る");
+        assert!(whole.contains(&body), "{id} の頁と同じ本文が並ぶ");
+    }
+}
+
+/// 回答の形を持つ種類を置く。**$ref の隣の title ・ x-view と、節点と辺だけの図を持つ。**
+fn answer(dir: &Path) {
+    write(
+        dir,
+        "answer.schema.json",
+        &json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "回答", "type": "object",
+            "properties": {
+                "question": {"title": "相談", "x-view": "heading", "type": "string"},
+                "code": {"title": "コードの例", "x-view": "blocks", "$ref": "#/$defs/blocks"},
+                "figure": {"title": "図で確認する", "x-view": "figure", "type": "object"}
+            },
+            "$defs": {"blocks": {"type": "array", "items": {"type": "object"}}}
+        }),
+    );
+}
+
+#[test]
+fn the_title_and_view_next_to_a_ref_are_kept() {
+    // **$ref の隣の title と x-view を捨てない**（JSON Schema 2020-12 では隣の語も効く） ── 捨てると、
+    // 見出しが欄の名前（code）になり、中身が JSON の文字列のまま並ぶ（実測 2026-10-01、試しの相談）
+    let dir = scratch("ref-sibling");
+    answer(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({"question": "問い", "code": [{"kind": "code", "text": "1. 顧客は注文を出す"}]}),
+    );
+    let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
+    assert!(html.contains("コードの例"), "{html}");
+    assert!(
+        html.contains("<pre class=\"code\">1. 顧客は注文を出す</pre>"),
+        "{html}"
+    );
+    assert!(!html.contains("{&quot;kind"), "{html}");
+}
+
+#[test]
+fn a_figure_of_nodes_and_edges_is_drawn_as_its_links() {
+    // **SVG の無い図は、節点と辺の宣言を、つながりの並びとして描く** ── 説明文だけを出すと、読み手は
+    // 図で何も確認できない（実測 2026-10-01、試しの相談3件とも）
+    let dir = scratch("figure-graph");
+    answer(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({"question": "問い", "figure": {
+            "caption": "レベルの関係",
+            "nodes": [{"id": "u", "label": "ユーザー目的"}, {"id": "s", "label": "サブ機能"}, {"id": "x", "label": "単独"}],
+            "edges": [{"from": "u", "to": "s", "label": "どのように", "dashed": true}]
+        }}),
+    );
+    let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
+    assert!(
+        html.contains("<ol class=\"graph\"><li>ユーザー目的 → サブ機能（どのように ・ 破線）</li><li>単独</li></ol>"),
+        "{html}"
+    );
+    assert!(
+        html.contains("<figcaption>レベルの関係</figcaption>"),
+        "{html}"
+    );
+}

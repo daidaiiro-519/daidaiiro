@@ -438,6 +438,52 @@ function resolve(schema: Json | undefined, root: Json): Json | undefined {
     return hit === undefined ? schema : hit;
 }
 
+/**
+ * $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**
+ * （JSON Schema 2020-12 では隣の語も効く）。隣の語の無い $ref は、そのまま残す。**深さで止める** ──
+ * 自分を参照する定義でも、展開が終わる。
+ */
+function mergeRefs(v: Json, root: Json, depth: number): Json {
+    if (Array.isArray(v)) return v.map(x => mergeRefs(x, root, depth));
+    if (!isObj(v)) return v;
+    const r = str(v, '$ref');
+    if (r !== null && Object.keys(v).length > 1 && r.startsWith('#')) {
+        const target = walk(root, r.slice(1));
+        if (isObj(target) && depth < 8) {
+            const merged = new Map(Object.entries(mergeRefs(target, root, depth + 1) as Obj));
+            for (const [k, x] of Object.entries(v)) {
+                if (k !== '$ref') merged.set(k, mergeRefs(x, root, depth));
+            }
+            return Object.fromEntries(merged);
+        }
+    }
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mergeRefs(x, root, depth)]));
+}
+
+/** 節点と辺だけの図を、つながりの並びにする。**SVG の無い図でも、読み手が構造を確認できる。** */
+function graphHtml(value: Json): string {
+    const ns = at(value, 'nodes');
+    const nodes = Array.isArray(ns) ? ns : [];
+    const es = at(value, 'edges');
+    const edges = Array.isArray(es) ? es : [];
+    if (nodes.length === 0 && edges.length === 0) return '';
+    const labelOf = (id: string) => str(nodes.find(n => str(n, 'id') === id), 'label') ?? id;
+    let lis = '';
+    for (const e of edges) {
+        const notes: string[] = [];
+        const l = str(e, 'label');
+        if (l !== null && l !== '') notes.push(l);
+        if (at(e, 'dashed') === true) notes.push('破線');
+        const note = notes.length > 0 ? `（${notes.join(' ・ ')}）` : '';
+        lis += `<li>${esc(labelOf(str(e, 'from') ?? ''))} → ${esc(labelOf(str(e, 'to') ?? ''))}${esc(note)}</li>`;
+    }
+    for (const n of nodes) {
+        const id = str(n, 'id') ?? '';
+        if (!edges.some(e => str(e, 'from') === id || str(e, 'to') === id)) lis += `<li>${esc(strOr(n, 'label', id))}</li>`;
+    }
+    return `<ol class="graph">${lis}</ol>`;
+}
+
 function label(schema: Json | undefined, value: Json | undefined): string {
     const options = at(schema, 'oneOf');
     if (Array.isArray(options)) {
@@ -710,7 +756,9 @@ function block(key: string, schemaIn: Json | undefined, value: Json, ctx: Ctx): 
         case 'figure': {
             // **svg は、ファイル名か、SVG そのもの** ── 呼ぶ側が読み込み済みなら、そのまま埋め込む
             const p = str(value, 'svg');
-            const svg = p !== null ? svgOf(p, ctx.base) : '';
+            const file = p !== null ? svgOf(p, ctx.base) : '';
+            // **SVG が無ければ、節点と辺の宣言を描く**
+            const svg = file !== '' ? file : graphHtml(value);
             return `<section class="block">${hd}<figure>${svg}<figcaption>${esc(str(value, 'caption') ?? '')}</figcaption></figure></section>`;
         }
         case 'steps':
@@ -816,13 +864,16 @@ function styleFor(refs: string, selector: string): string {
 export const scopedStyle = (refs: string): string => styleFor(refs, '.rv');
 
 /** 1件の本文を組む（.rv の囲みを含む）。**他の型の頁に埋め込むときに使う。** */
-export function renderBody(schema: Json, value: Json, base: string): string {
+export function renderBody(schemaIn: Json, value: Json, base: string): string {
+    const schema = mergeRefs(schemaIn, schemaIn, 0);
     return `<div class="rv">${pageBody(schema, value, { root: schema, base })}</div>`;
 }
 
 /** 種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。 */
 export function view(refs: string, kind: string, id?: string, file?: string): string {
-    const root = readJson(join(refs, `${kind}${SCHEMA_TAIL}`));
+    const read = readJson(join(refs, `${kind}${SCHEMA_TAIL}`));
+    // **$ref の隣の語を、参照先に重ねてから描く**
+    const root = mergeRefs(read, read, 0);
     const value = file !== undefined ? readJson(file, true) : get(refs, kind);
     const ctx: Ctx = { root, base: file !== undefined ? dirname(file) : refs };
     let body: string;
@@ -844,7 +895,15 @@ export function view(refs: string, kind: string, id?: string, file?: string): st
             const { $schema: _, ...rest } = plain;
             plain = rest;
         }
-        body = pageBody(root, plain, ctx);
+        // **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、
+        // 項目の中の欄（units など）が見せ方を失い、JSON の文字列のまま並ぶ
+        const itemSchema = walk(resolve(root, root), '/properties/items/items');
+        const list = at(plain, 'items');
+        if (isObj(plain) && Object.keys(plain).length === 1 && Array.isArray(list) && itemSchema !== undefined) {
+            body = list.map(it => `<section class="entry">${pageBody(itemSchema, it, ctx)}</section>`).join('');
+        } else {
+            body = pageBody(root, plain, ctx);
+        }
     }
     let tpl: string;
     try {

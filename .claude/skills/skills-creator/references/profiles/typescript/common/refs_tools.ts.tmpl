@@ -29,7 +29,9 @@ const runValidate = guard(given => {
     const d = refsDir(given);
     const file = optional(given, 'file');
     const hits = file !== undefined ? refs.validateFile(d, given.one('kind', ''), file) : refs.validate(d);
-    return found(hits, { kinds: refs.kinds(d).map(k => k.name) });
+    // **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを
+    // 読み手が区別できない（実測 2026-10-01、試しの相談3件とも）
+    return found(hits, { kinds: refs.kinds(d).map(k => k.name), checked: file ?? 'references' });
 });
 
 const runView = guard(given => {
@@ -56,6 +58,12 @@ function human(out: Outcome): string {
     return JSON.stringify(out.data, null, 2);
 }
 
+function humanValidate(out: Outcome): string {
+    if (!out.ok || out.findings.length > 0) return human(out);
+    const checked = (out.data as { checked?: unknown } | null)?.checked;
+    return `合格 ── ${typeof checked === 'string' ? checked : 'references'} に検出は無い`;
+}
+
 /** references の4つの道具。**道具の一覧（tools.ts）がこれを足す。** */
 export function refsTools(): Tool[] {
     const root = () => opt('skill_root', 'この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）');
@@ -72,7 +80,7 @@ export function refsTools(): Tool[] {
             summary: 'references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する',
             args: [opt('kind', '種類の名前（file と一緒に渡す）'), opt('file', '検査する JSON'), root()],
             run: runValidate,
-            human
+            human: humanValidate
         },
         {
             name: 'view',

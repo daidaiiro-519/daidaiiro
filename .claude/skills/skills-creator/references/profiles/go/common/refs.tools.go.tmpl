@@ -39,7 +39,8 @@ func runValidate(given *contract.Given) contract.Outcome {
 		return contract.Misuse(err.Error())
 	}
 	var found []string
-	if file := given.One("file", ""); file != "" {
+	file := given.One("file", "")
+	if file != "" {
 		found, err = ValidateFile(d, given.One("kind", ""), file)
 	} else {
 		found, err = Validate(d)
@@ -55,7 +56,16 @@ func runValidate(given *contract.Given) contract.Outcome {
 	for _, k := range all {
 		names = append(names, k.Name)
 	}
-	return contract.Found(found, map[string]any{"kinds": names})
+	// **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを
+	// 読み手が区別できない（実測 2026-10-01、試しの相談3件とも）
+	checked := file
+	if checked == "" {
+		checked = "references"
+	}
+	data := NewObject()
+	data.Set("kinds", names)
+	data.Set("checked", checked)
+	return contract.Found(found, data)
 }
 
 func runView(given *contract.Given) contract.Outcome {
@@ -116,6 +126,17 @@ func human(out contract.Outcome) string {
 	return string(body)
 }
 
+func humanValidate(out contract.Outcome) string {
+	if !out.Ok || len(out.Findings) > 0 {
+		return human(out)
+	}
+	checked := "references"
+	if o, ok := out.Data.(*Object); ok {
+		checked = strOr(o, "checked", checked)
+	}
+	return "合格 ── " + checked + " に検出は無い"
+}
+
 // Tools は references の4つの道具である。**道具の一覧（tools.All）がこれを足す。**
 func Tools() []contract.Tool {
 	root := contract.Opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）", nil)
@@ -123,7 +144,7 @@ func Tools() []contract.Tool {
 		{Name: "get", Summary: "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
 			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), root}, Run: runGet, Human: human},
 		{Name: "validate", Summary: "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
-			Args: []contract.Arg{contract.Opt("kind", "種類の名前（file と一緒に渡す）", nil), contract.Opt("file", "検査する JSON", nil), root}, Run: runValidate, Human: human},
+			Args: []contract.Arg{contract.Opt("kind", "種類の名前（file と一緒に渡す）", nil), contract.Opt("file", "検査する JSON", nil), root}, Run: runValidate, Human: humanValidate},
 		{Name: "view", Summary: "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
 			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), contract.Opt("file", "描画する JSON（回答など）", nil),
 				contract.Opt("out", "HTML の置き場所", nil), root}, Run: runView, Human: human},

@@ -35,7 +35,9 @@ public static class RefsTools
         var file = Optional(given, "file");
         var found = file is not null ? Refs.ValidateFile(d, given.One("kind", ""), file) : Refs.Validate(d);
         var kinds = new JsonArray([.. Refs.Kinds(d).Select(k => (JsonNode?)JsonValue.Create(k.Name))]);
-        return Outcome.Found(found, new JsonObject { ["kinds"] = kinds });
+        // **何を検査したかを返す** ── 種類の一覧だけを返すと、合格したのか、検査が実行されなかったのかを
+        // 読み手が区別できない（実測 2026-10-01、試しの相談3件とも）
+        return Outcome.Found(found, new JsonObject { ["kinds"] = kinds, ["checked"] = file ?? "references" });
     }
 
     static Outcome RunView(Given given)
@@ -64,6 +66,13 @@ public static class RefsTools
         return out_.Data?.ToJsonString(Contract.Pretty) ?? "null";
     }
 
+    static string HumanValidate(Outcome out_)
+    {
+        if (!out_.Ok || out_.Findings.Count > 0) return Human(out_);
+        var checked_ = out_.Data is JsonObject o && o["checked"] is JsonValue c && c.TryGetValue<string>(out var s) ? s : "references";
+        return $"合格 ── {checked_} に検出は無い";
+    }
+
     /// <summary>references の4つの道具。**道具の一覧（Tools.cs）がこれを足す。**</summary>
     public static IReadOnlyList<Tool> All()
     {
@@ -73,7 +82,7 @@ public static class RefsTools
             new Tool("get", "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
                 [Arg.Need("kind", "種類の名前"), Arg.Opt("id", "項目の id"), Root()], Guard(RunGet), Human),
             new Tool("validate", "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
-                [Arg.Opt("kind", "種類の名前（file と一緒に渡す）"), Arg.Opt("file", "検査する JSON"), Root()], Guard(RunValidate), Human),
+                [Arg.Opt("kind", "種類の名前（file と一緒に渡す）"), Arg.Opt("file", "検査する JSON"), Root()], Guard(RunValidate), HumanValidate),
             new Tool("view", "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
                 [Arg.Need("kind", "種類の名前"), Arg.Opt("id", "項目の id"), Arg.Opt("file", "描画する JSON（回答など）"), Arg.Opt("out", "HTML の置き場所"), Root()],
                 Guard(RunView), Human),

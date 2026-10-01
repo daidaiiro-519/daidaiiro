@@ -18,7 +18,7 @@ use crate::markdown::esc;
 use crate::template::Parts;
 
 /// 拡張子と言語の対応。**ここに無い拡張子は、コードとして扱わない。**
-const LANGS: [(&str, &str); 23] = [
+const LANGS: [(&str, &str); 24] = [
     (".py", "python"),
     (".pyi", "python"),
     (".js", "js"),
@@ -29,6 +29,7 @@ const LANGS: [(&str, &str); 23] = [
     (".jsx", "js"),
     (".json", "json"),
     (".go", "go"),
+    (".cs", "csharp"),
     (".rs", "rust"),
     (".rb", "ruby"),
     (".sh", "shell"),
@@ -45,7 +46,7 @@ const LANGS: [(&str, &str); 23] = [
 ];
 
 /// 予約語。
-const KEYWORDS: [(&str, &str); 12] = [
+const KEYWORDS: [(&str, &str); 13] = [
     (
         "python",
         "False None True and as assert async await break class continue def del elif \
@@ -63,6 +64,13 @@ const KEYWORDS: [(&str, &str); 12] = [
         "go",
         "break case chan const continue default defer else fallthrough for func go goto if \
       import interface map package range return select struct switch type var nil true false",
+    ),
+    (
+        "csharp",
+        "abstract as async await base bool break case catch class const continue default \
+      delegate do else enum false finally for foreach get if in init interface internal is \
+      new null out override params private protected public readonly record ref return \
+      sealed set static string struct switch this throw true try using var void while yield",
     ),
     (
         "rust",
@@ -94,7 +102,7 @@ const KEYWORDS: [(&str, &str); 12] = [
 ];
 
 /// 行の中を色付けする規則。**順に適用し、先に一致したものが優先する。**
-const LINE: [(&str, &[(&str, &str)]); 12] = [
+const LINE: [(&str, &[(&str, &str)]); 13] = [
     (
         "python",
         &[
@@ -116,6 +124,14 @@ const LINE: [(&str, &[(&str, &str)]); 12] = [
     (
         "go",
         &[(r"//.*$", "c"), (r"'[^']*'|\x22[^\x22]*\x22|`[^`]*`", "s")],
+    ),
+    (
+        "csharp",
+        &[
+            (r"//.*$", "c"),
+            (r"(?s)/\*.*?\*/", "c"),
+            (r"'[^']*'|\x22[^\x22]*\x22", "s"),
+        ],
     ),
     (
         "rust",
