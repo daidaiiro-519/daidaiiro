@@ -17,7 +17,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use da_service::{tools, Given};
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,
@@ -27,6 +26,9 @@ use rmcp::service::{RequestContext, RoleServer};
 use rmcp::transport::stdio;
 use rmcp::{ErrorData as McpError, ServiceExt};
 use serde_json::{json, Map, Value};
+
+// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする
+use da_service::{tools, Given};
 
 /// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
 /// 呼ぶ側がどの引数を渡せばよいかを認知できない。
@@ -68,9 +70,7 @@ impl ServerHandler for Handler {
                 icons: None,
                 website_url: None,
             },
-            instructions: Some(
-                "DDD の判断基準に根拠を示して、概念 ・ 判断 ・ 実装の相談に回答する".to_owned(),
-            ),
+            instructions: Some("ddd-advisor の道具".to_owned()),
         }
     }
 

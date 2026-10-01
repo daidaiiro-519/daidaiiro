@@ -11,62 +11,24 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::data_access;
+
 use serde_json::{json, Map, Value};
 
 /// スキーマのファイル名の末尾。
 pub const SCHEMA_TAIL: &str = ".schema.json";
 
-/// 見た目の値の既定。**描画は、この値かその差し替え（`view.tokens.json`）だけを使う。**
-const DEFAULT_TOKENS: &[(&str, &str)] = &[
-    ("ink", "#1f2328"),
-    ("muted", "#59636e"),
-    ("line", "#d1d9e0"),
-    ("paper", "#ffffff"),
-    ("band", "#f3f5f7"),
-    ("accent", "#0f6e5c"),
-    ("accent-soft", "#e3f1ed"),
-    ("warn", "#9a3412"),
-    ("warn-soft", "#fdeee6"),
-    ("radius", "10px"),
-    ("gap", "16px"),
-];
-
-/// 既定の型。**差し込む場所は3つ** ── `{{title}}` ・ `{{style}}` ・ `{{body}}`。
-/// Skill は `references/view.template.html` で差し替えてよい。
-const DEFAULT_TEMPLATE: &str = "<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\">\
-<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{{title}}</title>\
-<style>{{style}}</style></head><body><main class=\"rv\">{{body}}</main></body></html>";
-
-/// 頁の規則（body と main）。**単独の頁のときだけ使う。**
-const PAGE_STYLE: &str = "*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}\
-main{max-width:880px;margin:0 auto;padding:24px var(--gap)}@media (max-width:480px){main{padding:16px 12px}\
-}";
-
-/// 型の規則。**値は直書きせず、トークンの変数だけを参照する。** `.rv` の囲みの中だけに効く ──
-/// 他の型（acdr の差分の面など）と同じ頁に置いても、見た目が混ざらない。
-const STYLE: &str = ".rv header{margin:0 0 var(--gap)}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}.rv h1{font-size:21px;\
-line-height:1.5;margin:4px 0 0}.rv h2{font-size:14px;color:var(--accent);margin:0 0 2px}.rv h3,.rv h4,.rv h5,.rv h6{font-size:16px;\
-margin:8px 0 2px}.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}.rv .block,.rv .card{background:var(--paper);\
-border:1px solid var(--line);border-radius:var(--radius);padding:14px var(--gap);margin:0 0 12px}\
-.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;\
-flex-wrap:wrap}.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .tag{display:inline-block;\
-background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;\
-font-weight:600;white-space:nowrap}.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}.rv .scroll{overflow-x:auto}\
-.rv table{border-collapse:collapse;width:100%;font-size:14px}.rv th,.rv td{border-bottom:1px solid var(--line);\
-padding:8px 10px;text-align:left;vertical-align:top;min-width:4.5em}.rv th:first-child,.rv td:first-child{min-width:7em}.rv li,.rv td,.rv h2,.rv h3{overflow-wrap:anywhere}.rv th{color:var(--muted);font-weight:600;font-size:12px}\
-.rv ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}.rv ol.steps li{counter-increment:s;\
-position:relative;padding:4px 0 10px 40px}.rv ol.steps li::before{content:counter(s);position:absolute;\
-left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);\
-font-size:13px;display:flex;align-items:center;justify-content:center}.rv ol.steps .lead{font-size:15px;\
-margin:0}.rv .sub{margin:0}.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}\
-.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}.rv ul{margin:0;\
-padding-left:1.2em}.rv p{margin:0;overflow-wrap:anywhere}.rv pre{white-space:pre-wrap;overflow-wrap:anywhere;\
-margin:0}.rv pre.code{background:var(--band);padding:8px 10px;border-radius:6px;font-size:13px}.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}\
-.rv figure{margin:0;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:center}.rv figure svg{max-width:100%;height:auto}.rv figcaption{color:var(--muted);\
-font-size:12px}.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}.rv .claim{font-weight:400;margin:2px 0 4px}\
-.rv .unit{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:4px}\
-.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent-soft);\
-border-radius:4px;padding:0 6px;margin:0 0 4px}.rv .unit p+p{margin-top:6px}@media (max-width:480px){.rv h1{font-size:18px}.rv .lead{font-size:15px}}";
+/// 見た目の正本の複製（ボード view-design-tokens）。**描画は、Skill の references/ に置いた複製だけを読む**
+/// ── コードに見た目の値を保持しない。正本は Skill を生んだ道具が持ち、Skill を生むときに複製する。
+const VIEW_TOKENS: &str = "view.tokens.json";
+/// 描画の規則（`.rv` の囲みの中だけに適用される）。
+const VIEW_CSS: &str = "view.css";
+/// 頁の型。**差し込む場所は3つ** ── `{{title}}` ・ `{{style}}` ・ `{{body}}`。
+const VIEW_TEMPLATE: &str = "view.template.html";
+/// Skill 固有のトークン（必要とする Skill だけが置く）。
+const SKILL_TOKENS: &str = "view.skill.tokens.json";
+/// Skill 固有の規則（必要とする Skill だけが置く）。
+const SKILL_CSS: &str = "view.skill.css";
 
 /// 種類1つ。
 #[derive(Debug, Clone)]
@@ -87,12 +49,13 @@ pub struct Kind {
 /// references を読めないときに返す。
 pub fn kinds(refs: &Path) -> Result<Vec<Kind>, String> {
     let mut out = Vec::new();
-    let entries =
-        std::fs::read_dir(refs).map_err(|e| format!("{} を読めない ── {e}", refs.display()))?;
-    let mut names: Vec<String> = entries
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
+    let entries = data_access::files::list(refs)
+        .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?;
+    let mut names: Vec<String> = file_names(entries)
+        .into_iter()
         .filter(|n| n.ends_with(SCHEMA_TAIL))
+        // **見た目の正本の複製（view.*）は種類ではない** ── 中身ではなく見た目である。形は validate が検査する
+        .filter(|n| !n.starts_with("view."))
         .collect();
     names.sort();
     for file in names {
@@ -100,15 +63,42 @@ pub fn kinds(refs: &Path) -> Result<Vec<Kind>, String> {
         let data = refs.join(format!("{name}.json"));
         out.push(Kind {
             schema: refs.join(&file),
-            data: data.is_file().then_some(data),
+            data: data_access::files::is_file(&data).then_some(data),
             name,
         });
     }
     Ok(out)
 }
 
+/// 描画した頁を書き出す。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// 書けないときに返す。
+pub fn save(out: &Path, html: &str) -> Result<(), String> {
+    data_access::files::write(out, html).map_err(|e| format!("{} に書けない ── {e}", out.display()))
+}
+
+/// 取り込む文書を読む。**サービス層は入出力を持たない**ので、ここを通す。
+///
+/// # Errors
+///
+/// 読めないときに返す。
+pub fn read_text(file: &Path) -> Result<String, String> {
+    data_access::files::read_to_string(file)
+        .map_err(|e| format!("{} を読めない ── {e}", file.display()))
+}
+
+/// 経路の並びから、ファイルの名前だけを取り出す。
+fn file_names(paths: Vec<PathBuf>) -> Vec<String> {
+    paths
+        .iter()
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .collect()
+}
+
 fn read_json(path: &Path) -> Result<Value, String> {
-    let body = std::fs::read_to_string(path)
+    let body = data_access::files::read_to_string(path)
         .map_err(|e| format!("{} を読めない ── {e}", path.display()))?;
     serde_json::from_str(&body).map_err(|e| format!("{} が JSON でない ── {e}", path.display()))
 }
@@ -117,7 +107,7 @@ fn read_json(path: &Path) -> Result<Value, String> {
 fn against(schema: &Value, instance: &Value, head: &str) -> Vec<String> {
     let mut plain = instance.clone();
     if let Some(m) = plain.as_object_mut() {
-        m.remove("$schema");
+        m.shift_remove("$schema");
     }
     let built = jsonschema::options()
         .with_draft(jsonschema::Draft::Draft202012)
@@ -143,11 +133,10 @@ fn against(schema: &Value, instance: &Value, head: &str) -> Vec<String> {
 /// references を読めないときに返す。
 pub fn validate(refs: &Path) -> Result<Vec<String>, String> {
     let mut found = Vec::new();
-    let mut files: Vec<String> = std::fs::read_dir(refs)
-        .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .collect();
+    let mut files: Vec<String> = file_names(
+        data_access::files::list(refs)
+            .map_err(|e| format!("{} を読めない ── {e}", refs.display()))?,
+    );
     files.sort();
     for file in &files {
         if file.ends_with(".md") {
@@ -203,7 +192,7 @@ pub fn get(refs: &Path, kind: &str, id: Option<&str>) -> Result<Value, String> {
     let path = refs.join(format!("{kind}.json"));
     let mut data = read_json(&path)?;
     if let Some(m) = data.as_object_mut() {
-        m.remove("$schema");
+        m.shift_remove("$schema");
     }
     let Some(id) = id else { return Ok(data) };
     let items = data
@@ -396,7 +385,7 @@ pub fn import_markdown(id: &str, location: &str, fetched: &str, text: &str) -> V
 /// document を読めない ・ 書けないときに返す。
 pub fn put_document(refs: &Path, doc: Value) -> Result<PathBuf, String> {
     let path = refs.join("document.json");
-    let mut all = if path.is_file() {
+    let mut all = if data_access::files::is_file(&path) {
         read_json(&path)?
     } else {
         json!({"$schema": "document.schema.json", "items": []})
@@ -409,7 +398,7 @@ pub fn put_document(refs: &Path, doc: Value) -> Result<PathBuf, String> {
     items.retain(|x| x.get("id") != Some(&id));
     items.push(doc);
     let text = serde_json::to_string_pretty(&all).map_err(|e| e.to_string())?;
-    std::fs::write(&path, text + "\n")
+    data_access::files::write(&path, text + "\n")
         .map_err(|e| format!("{} に書けない ── {e}", path.display()))?;
     Ok(path)
 }
@@ -574,6 +563,101 @@ fn resolve<'a>(schema: &'a Value, root: &'a Value) -> &'a Value {
         .unwrap_or(schema)
 }
 
+/// $ref の隣の語（title ・ x-view ・ description など）を、参照先に重ねる。**隣の語が参照先より優先する**
+/// （JSON Schema 2020-12 では隣の語も効く）。隣の語の無い $ref は、そのまま残す。**深さで止める** ──
+/// 自分を参照する定義でも、展開が終わる。
+fn merge_refs(v: &Value, root: &Value, depth: usize) -> Value {
+    match v {
+        Value::Object(m) => {
+            if let (Some(r), true) = (m.get("$ref").and_then(Value::as_str), m.len() > 1) {
+                if let Some(Value::Object(target)) =
+                    r.strip_prefix('#').and_then(|p| root.pointer(p))
+                {
+                    if depth < 8 {
+                        let mut merged =
+                            match merge_refs(&Value::Object(target.clone()), root, depth + 1) {
+                                Value::Object(t) => t,
+                                _ => serde_json::Map::new(),
+                            };
+                        for (k, x) in m {
+                            if k != "$ref" {
+                                merged.insert(k.clone(), merge_refs(x, root, depth));
+                            }
+                        }
+                        return Value::Object(merged);
+                    }
+                }
+            }
+            Value::Object(
+                m.iter()
+                    .map(|(k, x)| (k.clone(), merge_refs(x, root, depth)))
+                    .collect(),
+            )
+        }
+        Value::Array(a) => Value::Array(a.iter().map(|x| merge_refs(x, root, depth)).collect()),
+        other => other.clone(),
+    }
+}
+
+/// 節点と辺だけの図を、つながりの並びにする。**SVG の無い図でも、読み手が構造を確認できる。**
+fn graph_html(value: &Value) -> String {
+    let nodes: Vec<&Value> = value
+        .get("nodes")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().collect())
+        .unwrap_or_default();
+    let edges: Vec<&Value> = value
+        .get("edges")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().collect())
+        .unwrap_or_default();
+    if nodes.is_empty() && edges.is_empty() {
+        return String::new();
+    }
+    let label = |id: &str| -> String {
+        nodes
+            .iter()
+            .find(|n| str_of(n, "id") == Some(id))
+            .and_then(|n| str_of(n, "label"))
+            .unwrap_or(id)
+            .to_owned()
+    };
+    let mut lis = String::new();
+    for e in &edges {
+        let mut notes: Vec<String> = Vec::new();
+        if let Some(l) = str_of(e, "label").filter(|l| !l.is_empty()) {
+            notes.push(l.to_owned());
+        }
+        if e.get("dashed").and_then(Value::as_bool) == Some(true) {
+            notes.push("破線".to_owned());
+        }
+        let note = if notes.is_empty() {
+            String::new()
+        } else {
+            format!("（{}）", notes.join(" ・ "))
+        };
+        lis.push_str(&format!(
+            "<li>{} → {}{}</li>",
+            esc(&label(str_of(e, "from").unwrap_or(""))),
+            esc(&label(str_of(e, "to").unwrap_or(""))),
+            esc(&note)
+        ));
+    }
+    for n in &nodes {
+        let id = str_of(n, "id").unwrap_or("");
+        let linked = edges
+            .iter()
+            .any(|e| str_of(e, "from") == Some(id) || str_of(e, "to") == Some(id));
+        if !linked {
+            lis.push_str(&format!(
+                "<li>{}</li>",
+                esc(str_of(n, "label").unwrap_or(id))
+            ));
+        }
+    }
+    format!("<ol class=\"graph\">{lis}</ol>")
+}
+
 fn label_of(schema: &Value, value: &Value) -> String {
     schema
         .get("oneOf")
@@ -730,7 +814,7 @@ fn svg_of(p: &str, base: &Path) -> String {
     if p.trim_start().starts_with("<svg") {
         p.to_owned()
     } else {
-        std::fs::read_to_string(base.join(p)).unwrap_or_default()
+        data_access::files::read_to_string(base.join(p)).unwrap_or_default()
     }
 }
 
@@ -849,7 +933,7 @@ fn steps_html(schema: &Value, value: &Value, ctx: &Ctx) -> String {
 }
 
 /// 本文の塊を描く ── 段落 ・ 一覧 ・ 表 ・ コード ・ 図。**図は SVG をそのまま埋め込む** ──
-/// 描くのは design-svg で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。
+/// 描くのは呼ぶ側で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。
 fn blocks_html(blocks: &Value, base: &Path) -> String {
     blocks
         .as_array()
@@ -877,7 +961,7 @@ fn blocks_html(blocks: &Value, base: &Path) -> String {
                         if p.trim_start().starts_with("<svg") {
                             p.to_owned()
                         } else {
-                            std::fs::read_to_string(base.join(p)).unwrap_or_default()
+                            data_access::files::read_to_string(base.join(p)).unwrap_or_default()
                         }
                     })
                     .unwrap_or_default();
@@ -972,12 +1056,19 @@ fn block(key: &str, schema: &Value, value: &Value, ctx: &Ctx) -> String {
                     if p.trim_start().starts_with("<svg") {
                         p.to_owned()
                     } else {
-                        std::fs::read_to_string(ctx.base.join(p)).unwrap_or_default()
+                        data_access::files::read_to_string(ctx.base.join(p)).unwrap_or_default()
                     }
                 })
                 .unwrap_or_default();
+            // **SVG が無ければ、節点と辺の宣言を描く**
+            let svg = if svg.is_empty() {
+                graph_html(value)
+            } else {
+                svg
+            };
             let cap = esc(str_of(value, "caption").unwrap_or(""));
-            format!("<section class=\"block\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>")
+            // **説明を図の前に置く** ── 何の図かを知ってから、図を読む
+            format!("<section class=\"block\">{head}<figure><figcaption>{cap}</figcaption>{svg}</figure></section>")
         }
         "steps" => format!(
             "<section class=\"block\">{head}{}</section>",
@@ -1025,38 +1116,77 @@ fn page_body(schema: &Value, value: &Value, ctx: &Ctx) -> String {
     )
 }
 
-/// `.rv` の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う** ── トークンの変数
-/// （ink ・ muted ・ line ・ paper ・ band ・ accent ・ accent-soft ・ warn ・ warn-soft ・ radius ・ gap）は、
-/// 埋め込む側が定義する。
-#[must_use]
-pub const fn scoped_style() -> &'static str {
-    STYLE
+/// 見た目の正本の複製が無いときの理由。
+fn missing(name: &str) -> String {
+    format!("references/{name} が無い ── 見た目の正本の複製である。Skill を生んだ道具が置く（その道具の check が正本との差を報告する）")
+}
+
+/// 明と暗の色の変数を組む。**共通のパレットの後ろに Skill 固有のトークンを足し、鍵の順に並べる** ──
+/// 並びを固定しないと、言語の組ごとに違う文字列になる。
+fn palette_vars(refs: &Path) -> Result<(String, String), String> {
+    let tokens = read_json(&refs.join(VIEW_TOKENS)).map_err(|_| missing(VIEW_TOKENS))?;
+    let name = tokens
+        .get("palette")
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{VIEW_TOKENS}: palette が無い"))?;
+    let chosen = tokens
+        .get("palettes")
+        .and_then(|p| p.get(name))
+        .ok_or_else(|| format!("{VIEW_TOKENS}: palettes に {name} が無い"))?;
+    let skill = read_json(&refs.join(SKILL_TOKENS)).ok();
+    let mut out = Vec::new();
+    for scheme in ["light", "dark"] {
+        let mut vars: Vec<(String, String)> = Vec::new();
+        for source in [Some(chosen), skill.as_ref()].into_iter().flatten() {
+            for (k, v) in source
+                .get(scheme)
+                .and_then(Value::as_object)
+                .into_iter()
+                .flatten()
+            {
+                if let Some(v) = v.as_str() {
+                    vars.retain(|(n, _)| n != k);
+                    vars.push((k.clone(), v.to_owned()));
+                }
+            }
+        }
+        vars.sort();
+        out.push(
+            vars.iter()
+                .map(|(k, v)| format!("--{k}:{v};"))
+                .collect::<String>(),
+        );
+    }
+    Ok((out[0].clone(), out[1].clone()))
+}
+
+/// 色の変数を `selector` に定め、共通と Skill 固有の規則を続ける。
+fn style_for(refs: &Path, selector: &str) -> Result<String, String> {
+    let (light, dark) = palette_vars(refs)?;
+    let css =
+        data_access::files::read_to_string(refs.join(VIEW_CSS)).map_err(|_| missing(VIEW_CSS))?;
+    let own = data_access::files::read_to_string(refs.join(SKILL_CSS)).unwrap_or_default();
+    Ok(format!(
+        "{selector}{{{light}}}@media (prefers-color-scheme:dark){{{selector}{{{dark}}}}}{css}{own}"
+    ))
+}
+
+/// `.rv` の囲みの中だけに適用される規則と色。**他の型の頁に埋め込むときに使う** ── 色の変数も `.rv` に
+/// 定めるので、埋め込む側の `:root` の変数を上書きしない。
+///
+/// # Errors
+///
+/// 見た目の正本の複製が無いか、読めないときに返す。
+pub fn scoped_style(refs: &Path) -> Result<String, String> {
+    style_for(refs, ".rv")
 }
 
 /// 1件の本文を組む（`.rv` の囲みを含む）。**他の型の頁に埋め込むときに使う。**
 #[must_use]
 pub fn render_body(schema: &Value, value: &Value, base: &Path) -> String {
+    let schema = &merge_refs(schema, schema, 0);
     let ctx = Ctx { root: schema, base };
     format!("<div class=\"rv\">{}</div>", page_body(schema, value, &ctx))
-}
-
-/// 見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**
-fn tokens(refs: &Path) -> String {
-    let mut vars: Vec<(String, String)> = DEFAULT_TOKENS
-        .iter()
-        .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
-        .collect();
-    if let Ok(over) = read_json(&refs.join("view.tokens.json")) {
-        for (k, v) in over.as_object().into_iter().flatten() {
-            let Some(v) = v.as_str() else { continue };
-            match vars.iter_mut().find(|(n, _)| n == k) {
-                Some(slot) => slot.1 = v.to_owned(),
-                None => vars.push((k.clone(), v.to_owned())),
-            }
-        }
-    }
-    let decl: String = vars.iter().map(|(k, v)| format!("--{k}:{v};")).collect();
-    format!(":root{{{decl}}}{PAGE_STYLE}{STYLE}")
 }
 
 /// 種類の JSON（か、その id の1件か、渡された JSON）を HTML にする。
@@ -1072,6 +1202,8 @@ pub fn view(
 ) -> Result<String, String> {
     let schema_path = refs.join(format!("{kind}{SCHEMA_TAIL}"));
     let root = read_json(&schema_path)?;
+    // **$ref の隣の語を、参照先に重ねてから描く**
+    let root = merge_refs(&root, &root, 0);
     let (value, base) = match file {
         Some(f) => (
             read_json(f)?,
@@ -1109,16 +1241,35 @@ pub fn view(
         None => {
             let mut plain = value.clone();
             if let Some(m) = plain.as_object_mut() {
-                m.remove("$schema");
+                m.shift_remove("$schema");
             }
-            page_body(&root, &plain, &ctx)
+            // **項目の並びだけを持つ種類は、1件ずつの頁を並べる** ── 全体を1つの値として描くと、
+            // 項目の中の欄（units など）が見せ方を失い、JSON の文字列のまま並ぶ
+            let only_items = plain.as_object().is_some_and(|m| m.len() == 1);
+            let item_schema = resolve(&root, &root).pointer("/properties/items/items");
+            match (
+                only_items,
+                plain.get("items").and_then(Value::as_array),
+                item_schema,
+            ) {
+                (true, Some(list), Some(s)) => list
+                    .iter()
+                    .map(|it| {
+                        format!(
+                            "<section class=\"entry\">{}</section>",
+                            page_body(s, it, &ctx)
+                        )
+                    })
+                    .collect(),
+                _ => page_body(&root, &plain, &ctx),
+            }
         }
     };
-    let template = std::fs::read_to_string(refs.join("view.template.html"))
-        .unwrap_or_else(|_| DEFAULT_TEMPLATE.to_owned());
+    let template = data_access::files::read_to_string(refs.join(VIEW_TEMPLATE))
+        .map_err(|_| missing(VIEW_TEMPLATE))?;
     let title = esc(str_of(&root, "title").unwrap_or(kind));
     Ok(template
         .replace("{{title}}", &title)
-        .replace("{{style}}", &tokens(refs))
+        .replace("{{style}}", &style_for(refs, ":root")?)
         .replace("{{body}}", &body))
 }
