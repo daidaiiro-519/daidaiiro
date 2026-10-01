@@ -54,3 +54,52 @@ claude.ai の Artifact の件数が上限（1000件）に達したため、最�
 | 2026-09-15 | [Coding の本質は何か](2026-09-15-Coding-の本質は何か/index.html) | https://claude.ai/artifact/RzwbD1Cvt75TrEg3v6UKUf | 削除する |
 | 2026-09-06 | [関係と、文脈の地図](2026-09-06-関係と、文脈の地図/index.html) | https://claude.ai/artifact/W1h3NYar2mT2hPP6CJiEah | 削除する |
 | 2026-09-06 | [schema 観の三層](2026-09-06-schema-観の三層/index.html) | https://claude.ai/artifact/PmLxqYf8iHJhzomwUWt12Z | 削除する |
+
+## 2026-10-01 の追加
+
+最新50件のうち、進行中の8件を残し、42件の最新の版をここへ写してから削除した。
+
+| 更新日 | 題 | Artifact | 状態 |
+|---|---|---|---|
+| 2026-10-01 | [雛形から生成した直後の Rust のコードを、整形済みにする](2026-10-01-雛形から生成した直後の-Rust-のコードを、整形済みにする/index.html) | https://claude.ai/artifact/WmaGaLkQ9YRzYEMgFqMRDo | 削除する |
+| 2026-09-30 | [企画書とオリエンテーションの残りの決定](2026-09-30-企画書とオリエンテーションの残りの決定/index.html) | https://claude.ai/artifact/2WY3MKKd4PMjJuxcEdymNy | 削除する |
+| 2026-09-30 | [acdr の記録の頁のパレットを、acdr の差し色に一致させる](2026-09-30-acdr-の記録の頁のパレットを、acdr-の差し色に一致させる/index.html) | https://claude.ai/artifact/SSbdqLuPeMAJbJti8TDBNm | 削除する |
+| 2026-09-30 | [検証の Rust の組み立ての出力先を、1か所で共有する](2026-09-30-検証の-Rust-の組み立ての出力先を、1か所で共有する/index.html) | https://claude.ai/artifact/KF3dQytAZuhxP5NohbDgBD | 削除する |
+| 2026-09-30 | [文書の検査が、HTML の頁を要素で読む](2026-09-30-文書の検査が、HTML-の頁を要素で読む/index.html) | https://claude.ai/artifact/5wcB7dp9gcgVLwp8Vy9Kvz | 削除する |
+| 2026-09-30 | [提供者の検証を、シェルのスクリプトから契約の道具へ移す](2026-09-30-提供者の検証を、シェルのスクリプトから契約の道具へ移す/index.html) | https://claude.ai/artifact/XQNM7RrZqoWk7fBt8Hc5ao | 削除する |
+| 2026-09-30 | [描画の契約に、見た目の正本と色のトークンを保持させる](2026-09-30-描画の契約に、見た目の正本と色のトークンを保持させる/index.html) | https://claude.ai/artifact/WMLacMHKRP2s7F4tAKbsFH | 削除する |
+| 2026-09-30 | [企画書とオリエンテーションの変更前後](2026-09-30-企画書とオリエンテーションの変更前後/index.html) | https://claude.ai/artifact/2xDbxquXSDmfEaQGKVbm7x | 削除する |
+| 2026-09-30 | [描画の契約にデザイントークンを持たせる](2026-09-30-描画の契約にデザイントークンを持たせる/index.html) | https://claude.ai/artifact/CnSRyckEB4e3Uuq5t2P349 | 削除する |
+| 2026-09-30 | [判断基準の頁を、原典の説明の順と表の形で読める形にする](2026-09-30-判断基準の頁を、原典の説明の順と表の形で読める形にする/index.html) | https://claude.ai/artifact/3gWPtyM92vAUzegEHsQHQw | 削除する |
+| 2026-09-30 | [ユースケースの判断基準](2026-09-30-ユースケースの判断基準-Vi3FyQ/index.html) | https://claude.ai/artifact/Vi3FyQ9nhphC9YMwSPDaxi | 削除する |
+| 2026-09-30 | [道具を持つ Skill をすべて契約の版2 に従わせ、2件の Skill の名前を改める](2026-09-30-道具を持つ-Skill-をすべて契約の版2-に従わせ、2件の-Skill-の名前を改める/index.html) | https://claude.ai/artifact/2Y1SXDx36qgCaSXfBRYj66 | 削除する |
+| 2026-09-30 | [ユースケースの判断基準](2026-09-30-ユースケースの判断基準-SJhKDJ/index.html) | https://claude.ai/artifact/SJhKDJiCb7asCSab9MJo2E | 削除する |
+| 2026-09-30 | [no-more-spaghetti の単位と規則の範囲を決める](2026-09-30-no-more-spaghetti-の単位と規則の範囲を決める/index.html) | https://claude.ai/artifact/BJXhYkREzdLyvp9hMFoye7 | 削除する |
+| 2026-09-30 | [ユースケースの判断基準](2026-09-30-ユースケースの判断基準-Ua5fD4/index.html) | https://claude.ai/artifact/Ua5fD43skUsFjRPqS5wYKD | 削除する |
+| 2026-09-30 | [no-more-spaghetti の単位をコードの成果物に限る](2026-09-30-no-more-spaghetti-の単位をコードの成果物に限る/index.html) | https://claude.ai/artifact/5fj8B5psFFQUD6DaB856Rf | 削除する |
+| 2026-09-30 | [アンケートを、指標から逆算して組み直す](2026-09-30-アンケートを、指標から逆算して組み直す/index.html) | https://claude.ai/artifact/FmB7AQtBzHZRqaXfC5ZFpi | 削除する |
+| 2026-09-30 | [usecase-advisor を概念ごとの判断基準へ作り直す](2026-09-30-usecase-advisor-を概念ごとの判断基準へ作り直す/index.html) | https://claude.ai/artifact/LMLGXKdhBgSir91RPMhFGr | 削除する |
+| 2026-09-30 | [design-svg の辺に、かぎの形の端を足す](2026-09-30-design-svg-の辺に、かぎの形の端を足す/index.html) | https://claude.ai/artifact/9tngEPmAbgxbxfxtck97Gy | 削除する |
+| 2026-09-30 | [道具を持つ8件の Skill を雛形の4層へ移す](2026-09-30-道具を持つ8件の-Skill-を雛形の4層へ移す/index.html) | https://claude.ai/artifact/D7P4oSVL3W4t6eqjGqnZ2v | 削除する |
+| 2026-09-30 | [助言型の判断基準を、概念の構成要素で持つ](2026-09-30-助言型の判断基準を、概念の構成要素で持つ/index.html) | https://claude.ai/artifact/K7jW59ZQpjRAiCcCSfcGmY | 削除する |
+| 2026-09-30 | [skills-creator を利用者が使える状態に仕上げる](2026-09-30-skills-creator-を利用者が使える状態に仕上げる/index.html) | https://claude.ai/artifact/F9rDRhTa1qQ8zp58bdrQf4 | 削除する |
+| 2026-09-30 | [言語の組の突き合わせの道具を置き、直書きの検出の漏れを塞ぐ](2026-09-30-言語の組の突き合わせの道具を置き、直書きの検出の漏れを塞ぐ/index.html) | https://claude.ai/artifact/EHvzGgiierSkhJc1TGoxz6 | 削除する |
+| 2026-09-30 | [ユースケースの判断基準](2026-09-30-ユースケースの判断基準-JoBQLo/index.html) | https://claude.ai/artifact/JoBQLoARxq7MZUGvTsBwpn | 削除する |
+| 2026-09-30 | [4言語の組を Rust と同じ版2と助言型へそろえる](2026-09-30-4言語の組を-Rust-と同じ版2と助言型へそろえる/index.html) | https://claude.ai/artifact/6RXUSY4Etq5C3yVpGPrMYy | 削除する |
+| 2026-09-30 | [雛形の注記から他の Skill の名前を外す](2026-09-30-雛形の注記から他の-Skill-の名前を外す/index.html) | https://claude.ai/artifact/QHyrbri5SrSAR2yjzmSZhb | 削除する |
+| 2026-09-30 | [Go の組を契約の版1で起こす](2026-09-30-Go-の組を契約の版1で起こす/index.html) | https://claude.ai/artifact/39iG4K4BsNpQcSGaNebPv1 | 削除する |
+| 2026-09-30 | [C# の組を契約の版1で起こす](2026-09-30-C#-の組を契約の版1で起こす/index.html) | https://claude.ai/artifact/UKG93C1TJg2xPvUC8dyzoH | 削除する |
+| 2026-09-30 | [TypeScript の組を契約の版1で起こす](2026-09-30-TypeScript-の組を契約の版1で起こす/index.html) | https://claude.ai/artifact/J8279FsgggG3MSUa7KKH9a | 削除する |
+| 2026-09-30 | [Python の組を契約の版1で起こす](2026-09-30-Python-の組を契約の版1で起こす/index.html) | https://claude.ai/artifact/VF8Z7gJntWEsh8zfqWAQii | 削除する |
+| 2026-09-30 | [助言型の手順と雛形と検査を skills-creator へ統合する](2026-09-30-助言型の手順と雛形と検査を-skills-creator-へ統合する/index.html) | https://claude.ai/artifact/VWhLWeS7T4WsiCDdjFFEs3 | 削除する |
+| 2026-09-30 | [Skill を型と言語の組の組み合わせで生む](2026-09-30-Skill-を型と言語の組の組み合わせで生む/index.html) | https://claude.ai/artifact/LSwBQpdQZFX1U5N7w6naoM | 削除する |
+| 2026-09-30 | [skills-creator に4言語の組を足す](2026-09-30-skills-creator-に4言語の組を足す/index.html) | https://claude.ai/artifact/MHQptS89XcUMSbxtyGXSAX | 削除する |
+| 2026-09-30 | [道具の中の構成を契約から外す](2026-09-30-道具の中の構成を契約から外す/index.html) | https://claude.ai/artifact/6DMcMNXmfcS1jzY2m5KBtx | 削除する |
+| 2026-09-30 | [企画書の未決3件](2026-09-30-企画書の未決3件/index.html) | https://claude.ai/artifact/Ngv5FWHNUCcnEXyMt9AG12 | 削除する |
+| 2026-09-30 | [道具の入出力をデータアクセス層へ集める](2026-09-30-道具の入出力をデータアクセス層へ集める/index.html) | https://claude.ai/artifact/AwRwWUeS2sDXvcrehfx52k | 削除する |
+| 2026-09-30 | [13の Skill の層を正式名へ改める](2026-09-30-13の-Skill-の層を正式名へ改める/index.html) | https://claude.ai/artifact/UaKhisM58SGChXLw2EfBK5 | 削除する |
+| 2026-09-30 | [道具の層をレイヤードアーキテクチャの正式名で呼ぶ](2026-09-30-道具の層をレイヤードアーキテクチャの正式名で呼ぶ/index.html) | https://claude.ai/artifact/MKdxgjNnLG7DVr8rwYq5eM | 削除する |
+| 2026-09-30 | [skills-creator の助言型の手順と契約を決め、advisor の形を揃える](2026-09-30-skills-creator-の助言型の手順と契約を決め、advisor-の形を揃える/index.html) | https://claude.ai/artifact/MkgXWR5U1ya1y79BiLgEN9 | 削除する |
+| 2026-09-30 | [skills-creator が生む Skill の型を決める](2026-09-30-skills-creator-が生む-Skill-の型を決める/index.html) | https://claude.ai/artifact/Kk4zmeEv3yCuUHQaw4PYmL | 削除する |
+| 2026-09-09 | [型の切り方と、道具の持ち主](2026-09-09-型の切り方と、道具の持ち主/index.html) | https://claude.ai/artifact/3Ri7RnJGZzkRLV59qtyTUa | 削除する |
+| 2026-09-30 | [qa-advisor を、取得した原典の原文から作り直す](2026-09-30-qa-advisor-を、取得した原典の原文から作り直す/index.html) | https://claude.ai/artifact/Nej5YD1BBzUcVdE7faQwXR | 削除する |

@@ -1,0 +1,416 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>no-more-spaghetti の単位と規則の範囲を決める</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="coding-rules-scope" data-round="3" data-theme-name="no-more-spaghetti の単位と規則の範囲を決める"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　no-more-spaghetti の単位と規則の範囲を決める　/　Round 3</p><h1>no-more-spaghetti の単位と規則の範囲を決める</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>単位と規則の範囲<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>成果物でない単位に付いた45件の行き先<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q4</span>移す順序<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>no-more-spaghetti の規則ファイルを、この Skill の単位（コーディングを伴う成果物）と範囲（アーキテクチャ ・ 依存の向き ・ テスト）に合わせる。論点1 ・ 2 ・ 4 は ACDR 0074 で決着し、このボードは決着した。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>no-more-spaghetti は、何を単位にし、その単位にどの規則を持つか</td><td><span class="st done">決着</span></td><td>単位は、コーディングを伴う成果物のディレクトリだけにする。規則は、その単位のアーキテクチャ ・ 依存の向き ・ テスト（試験と、整形 ・ 静的解析 ・ 言語の規約などの書いた後の検査）だけを持つ。成果物でない4つの単位（repository ・ skills ・ board ・ docs）は、単位の一覧から外す。</td></tr><tr><td><span class="n">2</span></td><td>skills と repository の単位に付いている45件の規則を、それぞれどこへ移すか</td><td><span class="st done">決着</span></td><td><mark class="chg" tabindex="0" role="button" id="c2-0" aria-expanded="false" data-b="論点1の決着を待つ。見込み：付け先を成果物へ直す11件 ・ 成果物の検査へ入れる2件 ・ no-more-spaghetti から外す32件に分ける。" data-w="この回で変わった">12件を成果物の単位へ付け直し、33件を no-more-spaghetti から外した（ACDR 0074）。外した33件は no-more-spaghetti の範囲の外で、それぞれの持ち主の手順が実行する。</mark></td></tr><tr><td><span class="n">4</span></td><td>規則を移し、外すあいだに、検査が抜けない順序はどれか</td><td><span class="st done">決着</span></td><td><mark class="chg" tabindex="0" role="button" id="c4-0" aria-expanded="false" data-b="論点1 ・ 論点2 ・ 論点3 の決着を待つ。" data-w="この回で変わった">外してから行き先を決める順序にした（ACDR 0074）。外した33件は、これまでも手で no-more-spaghetti を呼んだときにしか実行されていなかったので、外したことで抜けた自動の検査は無い。</mark></td></tr></table></div><details><summary>この回で変わったところ（23 か所）</summary><div><p class="note-s">本文の中で、<b>色の付いた欄が今回の変更である</b> ── 押すと前の回の中身が開く。</p><div class="scroll"><table><tr><th>論点</th><th>変わった欄</th></tr><tr><td><button class="jump" data-go="p1">Q1　単位と規則の範囲</button></td><td>9 か所</td></tr><tr><td><button class="jump" data-go="p2">Q2　成果物でない単位に付いた45件の行き先</button></td><td>7 か所</td></tr><tr><td><button class="jump" data-go="p3">Q4　移す順序</button></td><td>7 か所</td></tr></table></div></div></details><details><summary>範囲外として外した論点（2件）</summary><div><p>Round 3 で立てた2件は、利用者の依頼に無く、no-more-spaghetti の範囲の外なので、ボードから外した。</p><div class="scroll"><table><thead><tr><th>論点</th><th>外した理由</th><th>利用者の言葉</th></tr></thead><tbody><tr><td>外した33件を実行する窓口（根の check.sh と pre-push）</td><td>依頼に無い。Skill のどれにも属さない呼び出し役を足す案だった。外した検査は、それぞれの持ち主の手順が実行する</td><td>「別にこんなの頼んでないし、スコープ外だろ。」</td></tr><tr><td>単位に登録されていないコード（docs/workshops の Python）</td><td>単位は利用者が登録した成果物だけであり、すべての成果物へ規則を強制するものではない</td><td>「これ別に私対象にしてないよね？これ別に全部の成果物に対して強制するわけではないよね？」</td></tr></tbody></table></div></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>no-more-spaghetti は、何を単位にし、その単位にどの規則を持つか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c1-0" aria-expanded="false" data-b="この論点が、規則ファイルの単位と範囲を縛る。論点2〜5は、この軸を前提にする。" data-w="この回で変わった">ACDR 0074 で承認し、規則ファイルと契約へ適用した。単位は20件から16件、規則は119件から86件になった。</mark></div><div class="ans"><span class="big">B</span><mark class="chg" tabindex="0" role="button" id="c1-1" aria-expanded="false" data-b="&lt;p&gt;no-more-spaghetti の単位を、コーディングを伴う成果物に限る。&lt;/p&gt;&lt;ol&gt;&lt;li&gt;単位：成果物を構成するディレクトリ（モノレポでも、成果物ごとに1単位）。根 ・ 言語 ・ 層の並びを持つ&lt;/li&gt;&lt;li&gt;規則：その単位のアーキテクチャ（層の置き場所）・ 依存の向き ・ テスト&lt;/li&gt;&lt;li&gt;テストには、試験と、書いた後の検査（整形 ・ 静的解析 ・ 言語の規約）を含む&lt;/li&gt;&lt;li&gt;成果物でない単位（repository ・ skills ・ board ・ docs）は持たない&lt;/li&gt;&lt;/ol&gt;" data-w="この回で変わった"><p>no-more-spaghetti の単位を、コーディングを伴う成果物に限る。</p><ol><li>単位：成果物を構成するディレクトリ（モノレポでも、成果物ごとに1単位）。根 ・ 言語 ・ 層の並びを持つ</li><li>規則：その単位のアーキテクチャ（層の置き場所）・ 依存の向き ・ テスト</li><li>テストには、試験と、書いた後の検査（整形 ・ 静的解析 ・ 言語の規約）を含む</li><li>成果物でない単位（repository ・ skills ・ board ・ docs）は保持しない</li></ol></mark></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,860px)" class="wf-fig" viewBox="0 0 860 267" height="267" role="img"><g><line x1="62.0" y1="45.2" x2="62.0" y2="195.2" stroke="#C3CAD2"/><line x1="62.0" y1="195.2" x2="838.0" y2="195.2" stroke="#C3CAD2"/><text x="62.0" y="28.0" text-anchor="start" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">件</text><rect x="128.0" y="45.2" width="62.0" height="150.0" rx="3.0" fill="#16636B"/><text x="159.0" y="40.2" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#171B23">74</text><text x="159.0" y="212.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">コードの成果物（16単位）</text><rect x="322.0" y="114.1" width="62.0" height="81.1" rx="3.0" fill="#9A4A21"/><text x="353.0" y="109.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#171B23">40</text><text x="353.0" y="212.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">skills（Skill の置き場所全体）</text><rect x="516.0" y="185.1" width="62.0" height="10.1" rx="3.0" fill="#7A4368"/><text x="547.0" y="180.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#171B23">5</text><text x="547.0" y="212.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">repository（リポジトリ全体）</text><rect x="710.0" y="195.2" width="62.0" height="0.0" rx="3.0" fill="#8A8F98"/><text x="741.0" y="190.2" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#171B23">0</text><text x="741.0" y="212.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">board ・ docs</text><text x="450.0" y="228.4" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" font-weight="400" fill="#79828F">規則が付いている単位</text></g></svg><figcaption>規則119件が付いている単位。成果物でない単位（skills ・ repository）に45件が付いている</figcaption></figure></div><div class="ex"><div class="scroll"><table><thead><tr><th>単位</th><th>根</th><th>言語と層</th><th>扱い</th></tr></thead><tbody><tr><td>design-svg ほか Skill の道具 14件</td><td>.claude/skills/<名前>/tool</td><td>rust ・ 4層（skills-creator は5層）</td><td>残す</td></tr><tr><td>rust ・ go</td><td>rust ・ go</td><td>rust ・ go ・ 2層</td><td>残す</td></tr><tr><td>skills</td><td>.claude/skills</td><td>無し</td><td>外す（規則40件が付いている）</td></tr><tr><td>repository</td><td>.</td><td>無し</td><td>外す（規則5件が付いている）</td></tr><tr><td>board ・ docs</td><td>.brainstorming-board ・ docs</td><td>無し</td><td>外す（規則は0件）</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>成果物だけを単位にする</b></td><td>単位はコーディングを伴う成果物のディレクトリだけで、規則はアーキテクチャ ・ 依存の向き ・ テストだけを持つ</td><td><span class="cost">成果物でない単位に付いた45件の行き先を決める必要がある（論点2 ・ 論点3）</span></td></tr><tr><td><span class="n">B</span></td><td><b>成果物に加えて、リポジトリ全体を1単位として残す</b></td><td>成果物をまたぐ規則の置き場として、repository の単位だけを残す</td><td><span class="cost">いま成果物をまたぐ規則は1件も無い。言語も層の並びも持てないので、依存の向きの検査が働かない単位になる</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="単位を見ないので、成果物の構造を検査する規則（雛形の構成 ・ 生の数値）まで、成果物でない単位に付いたまま残る"><b><mark class="chg" tabindex="0" role="button" id="c1-2" aria-expanded="false" data-b="規則の種類（文書 ・ 契約 ・ データ）で線を引く（Round 1 の答え）" data-w="この回で変わった">規則の種類（文書 ・ 契約 ・ データ）で区分する（Round 1 の答え）</mark></b></mark></td><td><mark class="chg" tabindex="0" role="button" id="c1-3" aria-expanded="false" data-b="単位を見ないので、成果物の構造を見る規則（雛形の構成 ・ 生の数値）まで、成果物でない単位に付いたまま残る" data-w="この回で変わった">単位を見ないので、成果物の構造を検査する規則（雛形の構成 ・ 生の数値）まで、成果物でない単位に付いたまま残る</mark></td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="書いたコードに適用する検査で、テストに入る。SKILL.md の役割「書いた後の検査を実行する」に該当する"><b>整形と静的解析を範囲の外に置く</b></mark></td><td><mark class="chg" tabindex="0" role="button" id="c1-4" aria-expanded="false" data-b="書いたコードに当てる検査で、テストに入る。SKILL.md の役割「書いた後の検査を実行する」に当たる" data-w="この回で変わった">書いたコードに適用する検査で、テストに入る。SKILL.md の役割「書いた後の検査を実行する」に該当する</mark></td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Skill ごとに言語も層も違い、1つの層の並びで表せない。成果物ごとの単位が既に在る"><b>Skill の置き場所全体（skills）を1単位として残す</b></mark></td><td>Skill ごとに言語も層も違い、1つの層の並びで表せない。成果物ごとの単位が既に在る</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">範囲の定義</span></td><td>「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」</td><td><span class="kind k-rule">決まり</span><small>利用者の説明（2026-09-30）</small></td></tr><tr><td><span class="part">テストに書いた後の検査を含むこと</span></td><td>「整形（rustfmt ・ gofmt）と静的解析（clippy ・ staticcheck）の規則のようなコーディング規則は当たり前だがありますよね？これはテストに入るのではないのか？検査の一部だよな？」</td><td><span class="kind k-rule">決まり</span><small>利用者の説明（2026-09-30）</small></td></tr><tr><td><span class="part">単位の仕組み</span></td><td>成果物が2つ以上あるなら、1つのファイルの units に成果物を並べ、規則は適用する成果物の名前を持つ</td><td><span class="kind k-rule">決まり</span><small>.claude/skills/no-more-spaghetti/SKILL.md（規則の置き場所の節）</small></td></tr><tr><td><span class="part">単位と規則の件数</span></td><td>単位20件、うち4件は言語と層の並びを持たない。成果物でない単位に規則45件</td><td><span class="kind k-fact">実測</span><small>.coding-rules/rules.json（2026-09-30）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>成果物でない単位に付いた45件の行き先</td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c1-5" aria-expanded="false" data-b="&lt;span class=&quot;kind k-given&quot;&gt;後続で決定&lt;/span&gt; ── 論点2で決める" data-w="この回で変わった"><span class="kind k-fact">解消済</span></b><div class="sub-s">論点2で決着した（ACDR 0074）</mark></div></td></tr><tr><td><mark class="chg" tabindex="0" role="button" id="c1-6" aria-expanded="false" data-b="単位に登録されていないコードの成果物（docs/workshops の Python など）" data-w="この回で変わった">単位に登録されていないコードの成果物</mark></td><td><b class="lead-s"><mark class="chg" tabindex="0" role="button" id="c1-7" aria-expanded="false" data-b="&lt;span class=&quot;kind k-given&quot;&gt;後続で決定&lt;/span&gt; ── 論点5で決める" data-w="この回で変わった"><span class="kind k-rule">対象外</span></b><div class="sub-s">この決定を覆さない。単位は利用者が登録した成果物だけで、全部の成果物へ強制しない</mark></div></td></tr></table></div></div></details><details><summary>この答えの履歴（1件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><mark class="chg" tabindex="0" role="button" id="c1-8" aria-expanded="false" data-b="&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;card-h&quot;&gt;&lt;span class=&quot;ver&quot;&gt;A&lt;/span&gt;アーキテクチャ（依存の向き ・ 層の構成）と、書いた後のコードの検査（試験 ・ 整形 ・ 静的解析 ・ 言語の規約）だけを残す。範囲外の33件は規則ファイルから外す。&lt;/div&gt;&lt;table class=&quot;ev&quot;&gt;&lt;tbody&gt;&lt;tr class=&quot;g-returned&quot;&gt;&lt;th rowspan=&quot;2&quot;&gt;&lt;span class=&quot;kind k-given&quot;&gt;差し戻し&lt;/span&gt;&lt;small&gt;2件&lt;/small&gt;&lt;/th&gt;&lt;td&gt;&lt;span class=&quot;ev-n&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;q-in&quot;&gt;「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr class=&quot;g-returned g-end&quot;&gt;&lt;td&gt;&lt;span class=&quot;ev-n&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;q-in&quot;&gt;「整形（rustfmt ・ gofmt）と静的解析（clippy ・ staticcheck）の規則のようなコーディング規則は当たり前だがありますよね？これはテストに入るのではないのか？検査の一部だよな？」&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr class=&quot;g-obsolete g-end&quot;&gt;&lt;th rowspan=&quot;1&quot;&gt;&lt;span class=&quot;kind k-open&quot;&gt;失効した点&lt;/span&gt;&lt;/th&gt;&lt;td&gt;規則の種類で範囲の線を引くという軸が失効した。軸は単位（コーディングを伴う成果物）である&lt;/td&gt;&lt;/tr&gt;&lt;tr class=&quot;g-finding&quot;&gt;&lt;th rowspan=&quot;2&quot;&gt;&lt;span class=&quot;kind k-fact&quot;&gt;判明事項&lt;/span&gt;&lt;small&gt;2件&lt;/small&gt;&lt;/th&gt;&lt;td&gt;&lt;span class=&quot;ev-n&quot;&gt;1&lt;/span&gt;規則119件のうち45件が、成果物でない単位（skills 40件 ・ repository 5件）に付いている&lt;/td&gt;&lt;/tr&gt;&lt;tr class=&quot;g-finding&quot;&gt;&lt;td&gt;&lt;span class=&quot;ev-n&quot;&gt;2&lt;/span&gt;整形 ・ 静的解析 ・ 言語の規約は、テストの一部として範囲に入る&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;" data-w="この回で変わった"><div class="card"><div class="card-h"><span class="ver">A</span>アーキテクチャ（依存の向き ・ 層の構成）と、書いた後のコードの検査（試験 ・ 整形 ・ 静的解析 ・ 言語の規約）だけを残す。範囲外の33件は規則ファイルから外す。</div><table class="ev"><tbody><tr class="g-returned"><th rowspan="2"><span class="kind k-given">差し戻し</span><small>2件</small></th><td><span class="ev-n">1</span><span class="q-in">「ちょっとなんか勘違いしてるのが、このスキルはコーディング時に使用するものですよね？これってさ、どういう単位で規則をまとめてる？スコープはどう考えてる？これはリポジトリがモノレポだろうが何だろうがコーディングを伴う箇所をその成果物を構成するディレクトリ配下のアーキテクチャと依存の向き、そしてテストに対する規則を管理し、スパゲティコードにならないようにコーディングできるためのものです。それはわかってるかな？」</span></td></tr><tr class="g-returned g-end"><td><span class="ev-n">2</span><span class="q-in">「整形（rustfmt ・ gofmt）と静的解析（clippy ・ staticcheck）の規則のようなコーディング規則は当たり前だがありますよね？これはテストに入るのではないのか？検査の一部だよな？」</span></td></tr><tr class="g-obsolete g-end"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>規則の種類で範囲を区分するという軸が失効した。軸は単位（コーディングを伴う成果物）である</td></tr><tr class="g-finding"><th rowspan="2"><span class="kind k-fact">判明事項</span><small>2件</small></th><td><span class="ev-n">1</span>規則119件のうち45件が、成果物でない単位（skills 40件 ・ repository 5件）に付いている</td></tr><tr class="g-finding"><td><span class="ev-n">2</span>整形 ・ 静的解析 ・ 言語の規約は、テストの一部として範囲に入る</td></tr></tbody></table></div></mark></li></ol></div></details><details><summary>反証で分かったこと（2件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>規則ファイルの単位は20件で、そのうち4件（repository ・ skills ・ board ・ docs）は根だけを持ち、言語も層の並びも持たない</b></td><td></td></tr><tr><td><b>成果物でない単位に付いた45件のうち11件は、中身が成果物の構造やコードの規律を見ている（論点2で付け先を直す）</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>規則ファイルの units から repository ・ skills ・ board ・ docs を外す</b></td><td></td></tr><tr><td><b>外す単位に付いた45件の規則の行き先を決める（論点2 ・ 論点3）</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>skills と repository の単位に付いている45件の規則を、それぞれどこへ移すか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c2-1" aria-expanded="false" data-b="論点1が単位を成果物に限ると、成果物でない単位に付いた45件が宙に浮く。その行き先を決める。" data-w="この回で変わった">論点1が単位を成果物に限ったので、成果物でない単位に付いた45件を仕分けた。Round 2 の見込み（付け直し11件）は、実際に仕分けると12件だった。</mark></div><div><details class="image" open><summary>この答えの完成イメージ ── 実例</summary><div><div class="ex"><mark class="chg" tabindex="0" role="button" id="c2-2" aria-expanded="false" data-b="" data-w="この回で変わった"><div class="scroll"><table><thead><tr><th>行き先</th><th>件数</th><th>中身</th></tr></thead><tbody><tr><td>成果物の単位へ付け直した</td><td>12</td><td>雛形の構成（--layout）・ 生の数値など、成果物の構造を検査する規則</td></tr><tr><td>no-more-spaghetti から外した</td><td>33</td><td>文書の判定 ・ 道具の契約 ・ データの形（範囲の外）</td></tr></tbody></table></div></mark></div></div></details><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c2-3" aria-expanded="false" data-b="待つ理由" data-w="この回で変わった">仕分けの件数</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c2-4" aria-expanded="false" data-b="行き先は、論点1が決める単位と範囲で決まる" data-w="この回で変わった">規則 119件 → 86件。成果物でない単位の45件のうち12件を付け直し、33件を外した</mark></td><td><span class="kind k-fact">実測</span><small><mark class="chg" tabindex="0" role="button" id="c2-5" aria-expanded="false" data-b="このボードの論点1" data-w="この回で変わった">.coding-rules/rules.json と ACDR 0074（2026-10-01）</mark></small></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>規則を移し、外すあいだに、検査が抜けない順序はどれか</h2></div><div class="note"><mark class="chg" tabindex="0" role="button" id="c4-1" aria-expanded="false" data-b="移す対象と移す先が決まってから、切り替えの順序を決める。" data-w="この回で変わった">順序は ACDR 0074 の比較した案で決着した。</mark></div><div><details class="image" open><summary>この答えの完成イメージ ── 実例</summary><div><div class="ex"><mark class="chg" tabindex="0" role="button" id="c4-2" aria-expanded="false" data-b="" data-w="この回で変わった"><div class="scroll"><table><thead><tr><th>順</th><th>すること</th><th>状態</th></tr></thead><tbody><tr><td>1</td><td>規則ファイルから33件を外す</td><td>済（ACDR 0074）</td></tr></tbody></table></div></mark></div></div></details><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part"><mark class="chg" tabindex="0" role="button" id="c4-3" aria-expanded="false" data-b="待つ理由" data-w="この回で変わった">抜けた自動の検査が無いこと</mark></span></td><td><mark class="chg" tabindex="0" role="button" id="c4-4" aria-expanded="false" data-b="移す対象は論点1 ・ 論点2、外した検査の窓口は論点3が決める" data-w="この回で変わった">規則の実行は hook にも CI にも入っていない（settings.json は disableAllHooks: true）</mark></td><td><span class="kind k-fact">実測</span><small><mark class="chg" tabindex="0" role="button" id="c4-5" aria-expanded="false" data-b="このボードの論点1 ・ 論点2 ・ 論点3" data-w="この回で変わった">.claude/settings.json（2026-09-30）</mark></small></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><button id="dtoggle" aria-expanded="false" aria-controls="drawer">この回の変更<span class="dn">23</span></button><aside id="drawer" hidden aria-label="この回で変わったところ"><div class="dhead"><b>この回で変わったところ</b><button id="dclose" aria-label="閉じる">閉じる</button></div><div class="dbody"><p class="note-s">押すと、その箇所まで運ぶ。<b>印をもう一度押すと、前の回の中身が開く。</b></p><ol class="dlist"><li class="dq">Q1　単位と規則の範囲<span class="dn">9</span></li><li><button class="dgo" data-go="p1" data-cid="c1-0"><span class="dw">前書き</span>ACDR 0074 で承認し、規則ファイルと契約へ適用した。単位は20件から16件、規則は1…</button></li><li><button class="dgo" data-go="p1" data-cid="c1-1"><span class="dw">答え</span>no-more-spaghetti の単位を、コーディングを伴う成果物に限る。単位：成果物を…</button></li><li><button class="dgo" data-go="p1" data-cid="c1-2"><span class="dw">dropped</span>規則の種類（文書 ・ 契約 ・ データ）で区分する（Round 1 の答え）</button></li><li><button class="dgo" data-go="p1" data-cid="c1-4"><span class="dw">dropped</span>整形と静的解析を範囲の外に置く</button></li><li><button class="dgo" data-go="p1" data-cid="c1-5"><span class="dw">扱わない範囲</span>成果物でない単位に付いた45件の行き先</button></li><li><button class="dgo" data-go="p1" data-cid="c1-6"><span class="dw">扱わない範囲</span>単位に登録されていないコードの成果物</button></li><li><button class="dgo" data-go="p1" data-cid="c1-8"><span class="dw">道筋</span>Aアーキテクチャ（依存の向き ・ 層の構成）と、書いた後のコードの検査（試験 ・ 整形 ・ …</button></li><li class="dq">Q2　成果物でない単位に付いた45件の行き先<span class="dn">7</span></li><li><button class="dgo" data-go="p2" data-cid="c2-0"><span class="dw">answer</span>12件を成果物の単位へ付け直し、33件を no-more-spaghetti から外した（A…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-1"><span class="dw">前書き</span>論点1が単位を成果物に限ったので、成果物でない単位に付いた45件を仕分けた。Round 2 …</button></li><li><button class="dgo" data-go="p2" data-cid="c2-2"><span class="dw">example</span>行き先件数中身成果物の単位へ付け直した12雛形の構成（--layout）・ 生の数値など、成…</button></li><li><button class="dgo" data-go="p2" data-cid="c2-3"><span class="dw">根拠</span>仕分けの件数</button></li><li class="dq">Q4　移す順序<span class="dn">7</span></li><li><button class="dgo" data-go="p3" data-cid="c4-0"><span class="dw">answer</span>外してから行き先を決める順序にした（ACDR 0074）。外した33件は、これまでも手で n…</button></li><li><button class="dgo" data-go="p3" data-cid="c4-1"><span class="dw">前書き</span>順序は ACDR 0074 の比較した案で決着した。</button></li><li><button class="dgo" data-go="p3" data-cid="c4-2"><span class="dw">example</span>順すること状態1規則ファイルから33件を外す済（ACDR 0074）</button></li><li><button class="dgo" data-go="p3" data-cid="c4-3"><span class="dw">根拠</span>抜けた自動の検査が無いこと</button></li></ol></div></aside><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,368 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<title>型の切り方と、道具の持ち主</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --paper:#eef1ef; --card:#f8faf9; --ink:#111d1a; --muted:#5b6b66;
+  --rule:#ccd8d4; --rule-soft:#dfe7e4; --sunk:#e7ecea;
+  --key:#0d5c55; --key-soft:#d5e6e3;
+  --warn:#8f5410; --warn-soft:#f0e2cd;
+  --dim:#7d8a86;
+  --src-o:#7a3b6d; --src-k:#0d5c55; --src-j:#8f5410; --src-z:#5b6b66;
+  --shadow:0 1px 0 rgba(17,29,26,.06), 0 8px 22px -18px rgba(17,29,26,.5);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0e1614; --card:#16211e; --ink:#e6eeeb; --muted:#93a29d;
+  --rule:#2a3936; --rule-soft:#22302d; --sunk:#111a18;
+  --key:#6cc9b8; --key-soft:#173330;
+  --warn:#d9a35f; --warn-soft:#33281a;
+  --dim:#7b8985;
+  --src-o:#d094c2; --src-k:#6cc9b8; --src-j:#d9a35f; --src-z:#93a29d;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 10px 26px -18px #000;
+}}
+:root[data-theme="dark"]{
+  --paper:#0e1614; --card:#16211e; --ink:#e6eeeb; --muted:#93a29d;
+  --rule:#2a3936; --rule-soft:#22302d; --sunk:#111a18;
+  --key:#6cc9b8; --key-soft:#173330;
+  --warn:#d9a35f; --warn-soft:#33281a;
+  --dim:#7b8985;
+  --src-o:#d094c2; --src-k:#6cc9b8; --src-j:#d9a35f; --src-z:#93a29d;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 10px 26px -18px #000;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+  font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2.6rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}
+h3{font-size:1rem}
+h4{margin:0;font-size:.78rem;font-weight:700;color:var(--ink);letter-spacing:.04em}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:42rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+.src{font-size:.76rem;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── 比較 ── */
+.compare{display:flex;flex-direction:column;gap:1rem}
+.panes{display:grid;gap:1rem;grid-template-columns:1fr}
+@media(min-width:58rem){.panes{grid-template-columns:1fr 1fr}}
+.pane{background:var(--card);border:1px solid var(--rule-soft);border-radius:.5rem;padding:1.15rem 1.25rem;
+  display:flex;flex-direction:column;gap:.7rem;min-width:0}
+.pane.now{border-color:var(--rule)}
+.pane.next{border-color:var(--key);box-shadow:var(--shadow)}
+.pane-hd{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;
+  border-bottom:1px solid var(--rule-soft);padding-bottom:.5rem}
+.pane-hd .t{font-weight:700;font-size:.95rem}
+.pane.now .pane-hd .t{color:var(--dim)}
+.pane.next .pane-hd .t{color:var(--key)}
+.pane .body{font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:.55rem}
+.pane.now .body{color:var(--dim)}
+.opt{border-left:2px solid var(--rule);padding-left:.7rem}
+.opt b{color:var(--ink);font-weight:700}
+.pane.now .opt b{color:var(--dim)}
+.reco{background:var(--key-soft);border-left:3px solid var(--key);padding:.6rem .8rem;border-radius:0 .3rem .3rem 0;
+  color:var(--ink);font-size:.95rem}
+.reco .lbl{font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.14em;color:var(--key);
+  display:block;margin-bottom:.15rem}
+.ask{font-weight:700;color:var(--ink)}
+.pane.now .ask{color:var(--dim)}
+.meters{display:grid;gap:.55rem;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr))}
+.meter{border-top:2px solid var(--rule);padding-top:.5rem;display:flex;flex-direction:column;gap:.05rem}
+.meter .k{font-size:.74rem;color:var(--muted)}
+.meter .v{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:700}
+.meter .v small{font-size:.72rem;font-weight:400;color:var(--muted);margin-left:.15rem}
+.meter.a{border-top-color:var(--dim)} .meter.a .v{color:var(--dim)}
+.meter.b{border-top-color:var(--key)} .meter.b .v{color:var(--key)}
+
+/* ── ラウンド ── */
+.round{display:flex;flex-direction:column;gap:1rem}
+.round-hd{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.round-hd .n{font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.14em;color:var(--key);
+  border:1px solid var(--key);border-radius:2rem;padding:.05rem .6rem}
+.round-hd .why{font-size:.8rem;color:var(--muted)}
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.5rem;padding:1.1rem 1.25rem;
+  display:flex;flex-direction:column;gap:.75rem;box-shadow:var(--shadow);transition:border-color .2s}
+.q.done{border-color:var(--key)}
+.q.sent{border-color:var(--warn)}
+.q-hd{display:flex;gap:.6rem;align-items:baseline}
+.q-hd .id{font-family:"JetBrains Mono",monospace;font-size:.78rem;font-weight:700;color:var(--key);flex:none}
+.q-hd h3{flex:1}
+.q-hd .tag{font-family:"JetBrains Mono",monospace;font-size:.66rem;color:var(--muted);flex:none}
+.q .ask{font-size:.93rem;font-weight:400;color:var(--muted)}
+
+/* ── 折りたたみの中 ── */
+details{border-top:1px solid var(--rule-soft);padding-top:.55rem}
+summary{cursor:pointer;font-size:.82rem;color:var(--muted);list-style:none;display:flex;gap:.4rem;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"＋";font-family:"JetBrains Mono",monospace;color:var(--key);font-weight:700}
+details[open] summary::before{content:"−"}
+summary:focus-visible{outline:2px solid var(--key);outline-offset:3px}
+.inside{display:flex;flex-direction:column;gap:1.15rem;margin-top:.85rem;padding-left:.9rem;
+  border-left:2px solid var(--rule-soft)}
+.block{display:flex;flex-direction:column;gap:.4rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.83rem;min-width:30rem}
+th,td{text-align:left;vertical-align:top;padding:.35rem .55rem;border-bottom:1px solid var(--rule-soft)}
+th{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.05em;border-bottom-color:var(--rule);
+  white-space:nowrap}
+td.what{color:var(--ink);font-weight:700;width:26%}
+td.src-cell{width:26%;color:var(--muted)}
+tr:last-child td{border-bottom:none}
+.tag-src{font-family:"JetBrains Mono",monospace;font-size:.64rem;font-weight:700;letter-spacing:.08em;
+  border:1px solid currentColor;border-radius:.2rem;padding:0 .3rem;margin-right:.35rem;white-space:nowrap;
+  display:inline-block;vertical-align:.08em}
+.o{color:var(--src-o)} .k{color:var(--src-k)} .j{color:var(--src-j)} .z{color:var(--src-z)}
+ol.chain{margin:0;padding:0;list-style:none;counter-reset:c;display:flex;flex-direction:column;gap:.3rem}
+ol.chain li{counter-increment:c;font-size:.85rem;color:var(--muted);display:flex;gap:.5rem}
+ol.chain li::before{content:counter(c);font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:700;
+  color:var(--key);border:1px solid var(--rule);border-radius:50%;width:1.35rem;height:1.35rem;flex:none;
+  display:grid;place-items:center;margin-top:.35rem}
+ol.chain b{color:var(--ink)}
+td.kill{color:var(--muted)}
+td.kill b{color:var(--ink)}
+
+
+/* ── 完成イメージ ── */
+.fig{display:flex;flex-direction:column;gap:.5rem;background:var(--sunk);border:1px solid var(--rule-soft);
+  border-radius:.4rem;padding:.85rem .95rem}
+.fig svg{width:100%;height:auto;display:block;color:var(--ink);overflow:visible}
+.diff{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.76rem;line-height:1.65;
+  display:flex;flex-direction:column;gap:.02rem;overflow-x:auto}
+.diff .dh{font-family:"Zen Kaku Gothic New",sans-serif;font-size:.8rem;color:var(--muted);margin-bottom:.3rem}
+.diff .dn{font-family:"Zen Kaku Gothic New",sans-serif;font-size:.76rem;color:var(--muted);margin-top:.5rem;
+  border-top:1px solid var(--rule-soft);padding-top:.45rem;line-height:1.75}
+.dl{display:flex;gap:.8rem;padding:.06rem .4rem;border-left:2px solid transparent;white-space:nowrap}
+.dl .c{flex:none;min-width:14rem}
+.dl .d{color:var(--muted);white-space:normal;font-family:"Zen Kaku Gothic New",sans-serif;font-size:.78rem}
+.dl.add{border-left-color:var(--key);background:var(--key-soft);color:var(--ink)}
+.dl.add .c::before{content:"+ ";color:var(--key);font-weight:700}
+.dl.del{border-left-color:var(--dim);color:var(--dim)}
+.dl.del .c{text-decoration:line-through;text-decoration-color:var(--dim)}
+.dl.del .c::before{content:"− ";text-decoration:none;display:inline-block}
+.dl.del .d{color:var(--dim)}
+.dl.same .c::before{content:"= ";color:var(--muted)}
+.dl.sub{color:var(--muted)}
+.dl.sub .c{padding-left:.2rem}
+.dl.tmp{color:var(--warn)}
+.dl.tmp .c::before{content:"? ";font-weight:700}
+.dl.grp{margin-top:.4rem;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;color:var(--ink);
+  font-size:.78rem;border-bottom:1px solid var(--rule-soft)}
+
+/* ── 操作 ── */
+.acts{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+button.act{font:inherit;font-size:.87rem;cursor:pointer;border-radius:.35rem;padding:.4rem 1.1rem;
+  border:1px solid var(--rule);background:var(--card);color:var(--muted);transition:.15s}
+button.act:hover{border-color:var(--muted)}
+button.act.yes{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+button.act.yes:hover{filter:brightness(1.08)}
+button.act:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+.verdict{font-size:.87rem;color:var(--muted)}
+.verdict .ok{color:var(--key);font-weight:700}
+.verdict .back{color:var(--warn);font-weight:700}
+.backs{display:flex;gap:.4rem;flex-wrap:wrap;padding:.55rem .7rem;background:var(--warn-soft);border-radius:.35rem}
+.backs span{font-size:.8rem;color:var(--warn);align-self:center;margin-right:.2rem}
+.backs[hidden]{display:none}
+.note{display:flex;flex-direction:column;gap:.3rem;border-top:1px solid var(--rule-soft);padding-top:.6rem}
+label{font-size:.78rem;color:var(--muted)}
+textarea{font:inherit;font-size:.87rem;background:var(--sunk);color:var(--ink);border:1px solid var(--rule);
+  border-radius:.35rem;padding:.55rem .7rem;resize:vertical;min-height:3.2rem;width:100%}
+textarea:focus-visible{outline:2px solid var(--key);outline-offset:1px;border-color:var(--key)}
+
+/* ── 締め ── */
+.done-card{background:var(--card);border:1px solid var(--key);border-radius:.5rem;padding:1.3rem 1.4rem;
+  display:flex;flex-direction:column;gap:1rem;box-shadow:var(--shadow)}
+.done-card[hidden]{display:none}
+.cols{display:grid;gap:1.1rem;grid-template-columns:1fr}
+@media(min-width:48rem){.cols{grid-template-columns:1fr 1fr}}
+ul{margin:0;padding-left:1.1rem;font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:.3rem}
+ul b{color:var(--ink)}
+.strike li{text-decoration:line-through;text-decoration-color:var(--dim);color:var(--dim)}
+.handback{display:flex;flex-direction:column;gap:.5rem;border:1px dashed var(--key);border-radius:.5rem;
+  padding:1rem 1.15rem;background:var(--card)}
+#out{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.76rem;min-height:7rem;line-height:1.7}
+footer{border-top:1px solid var(--rule);padding-top:1.2rem;font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div class="wrap">
+<header>
+  <p class="eyebrow">schema 観の三層 ／ ROUND 1</p>
+  <h1>型の切り方と、道具の持ち主</h1>
+  <p class="thesis">未決5つのうち、<b>いま答えられる2つ</b>。どちらも他の問いに依存していない。
+  残り3つ（何を schema で持つか ・ 文書の単位 ・ フォルダの形）は、<b>この2つが決まると答えられるようになる</b>。
+  実例はすべて <b>coding-skills</b> ── 規約32本・層4種・同梱スクリプト4本を、実際に数えて当てた。<b>軸が横並びでないことは、そこで出た</b>（押すと変更前と理由が開く）。</p>
+</header>
+<div class="round"><div class="round-hd"><span class="n">ROUND 1</span><span class="why">Q1・Q2 は他の問いに依存していない。Q3 は Q1 の上に乗る ── 軸の依存が分かって答えられるようになった。</span></div><article class="q" data-id="Q1">
+<div class="q-hd"><span class="id">Q1</span><h3>型を立てる基準</h3><span class="tag">論点14</span></div>
+<p class="ask">JSON Schema を何本立てるか、その分け目を何で引くか。</p>
+<div class="reco"><span class="lbl">私の答え</span><b>軸の集合で切ります。</b>〈言語×アーキ×用途〉に依存して変わるものは全部 CodingSchema。ただし<b>軸は横並びではありません</b> ── <mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="軸3本は横並びで、実行環境だけが用途から定まる" data-w="実物を測ったら、用途がアーキも決めていた（purpose/*/stack.md が『採用するアーキテクチャ＝hexagonal』を宣言）。自分で選ぶのは用途と言語の2つだけで、アーキと実行環境は用途から定まる。言語がアーキを決めているわけではない ── 言語が決めるのは表し方（lang/go/arch/hexagonal の2本）">自分で選ぶのは用途と言語の2つ</mark>で、<b>アーキと実行環境は用途から定まります</b>。言語が決めるのは<b>表し方</b>であって、取れるアーキではありません。</div>
+<div class="fig"><h4>この答えを採ると、こうなる</h4><div style="text-align:center"><svg style="max-width:34rem;margin:0 auto" class="wf-fig" viewBox="0 0 500 324" width="500" height="324" role="img"><g transform="translate(6.0,6.0)"><rect x="174.5" y="16.0" width="172.0" height="60.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><rect x="135.4" y="156.0" width="192.0" height="60.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><path d="M218.5,62.8 L181.4,169.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="181.4,169.4 181.3,162.2 185.9,163.8" fill="#C3CAD2"/><rect x="180.9" y="106.1" width="38.0" height="16.0" fill="#F5F7F9"/><text x="199.9" y="119.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">決める</text><path d="M218.5,62.8 L275.4,169.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="275.4,169.4 270.0,164.6 274.4,162.3" fill="#C3CAD2"/><rect x="227.9" y="106.1" width="38.0" height="16.0" fill="#F5F7F9"/><text x="246.9" y="119.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">決める</text><path d="M302.5,62.8 L56.2,139.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="56.2,139.4 61.9,135.0 63.4,139.7" fill="#C3CAD2"/><path d="M181.4,202.6 L190.3,279.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="190.3,279.4 187.1,273.0 192.0,272.4" fill="#C3CAD2"/><path d="M333.3,46.0 Q356.5,46.0 356.5,93.0 Q356.5,140.0 356.5,178.0 Q356.5,216.0 344.6,247.7 L332.8,279.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="332.8,279.4 332.8,272.2 337.4,273.9" fill="#C3CAD2"/><path d="M181.4,202.6 L332.8,279.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="332.8,279.4 325.6,278.5 327.8,274.1" fill="#C3CAD2"/><rect x="238.1" y="231.0" width="38.0" height="16.0" fill="#F5F7F9"/><text x="257.1" y="244.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">表し方</text><path d="M218.5,62.8 L431.6,139.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="431.6,139.4 424.4,139.4 426.0,134.8" fill="#C3CAD2"/><rect x="182.5" y="7.0" width="58.0" height="15.0" fill="#F5F7F9"/><text x="211.5" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">自分で選ぶ</text><rect x="143.4" y="147.0" width="78.0" height="15.0" fill="#F5F7F9"/><text x="182.4" y="158.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">用途から定まる</text><g class="wf-node" transform="translate(188.5,30.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">用途</text></g></g><g class="wf-node" transform="translate(272.5,30.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">言語</text></g></g><g class="wf-node" transform="translate(149.4,170.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="64.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="32.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">アーキ</text></g></g><g class="wf-node" transform="translate(237.4,170.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="76.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="38.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">実行環境</text></g></g><g class="wf-node" transform="translate(0.0,140.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="111.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="55.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">言語だけ 10本</text></g></g><g class="wf-node" transform="translate(132.0,280.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="115.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="57.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">アーキだけ 3本</text></g></g><g class="wf-node" transform="translate(271.6,280.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="123.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="61.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">言語×アーキ 4本</text></g></g><g class="wf-node" transform="translate(376.4,140.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="111.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="55.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">用途だけ 15本</text></g></g></g></svg></div></div>
+<details><summary>出どころ 5件 ・ 判断の道筋 6手 ・ 落とした案 5件</summary>
+<div class="inside">
+<div class="block"><h4>なぜそう言えるか</h4><div class="scroll"><table><tr><th>答えのどこを支えるか</th><th>もとにしたこと</th><th>出どころ</th></tr><tr><td class="what">軸で切ること</td><td>型が増えても abstract が太らないのは、軸の値が増えるだけだから</td><td class="src-cell"><span class="tag-src k">決まり</span>論点5（型は横に増える）</td></tr><tr><td class="what">用途がアーキを決めていること</td><td>3つの用途すべてが「採用するアーキテクチャ」を宣言している</td><td class="src-cell"><span class="tag-src j">実測</span><code>purpose/backend-api ・ hook ・ mcp-server の stack.md</code>（2026-09-09）</td></tr><tr><td class="what">言語がアーキを決めていないこと</td><td>アーキだけで言える規約が3本あり、言語×アーキの4本は「層を言語の仕組みで表す形」だった</td><td class="src-cell"><span class="tag-src j">実測</span><code>arch/hexagonal/</code> 3本と <code>lang/*/arch/hexagonal/</code> 各2本</td></tr><tr><td class="what">規約が層に漏れなく属すこと</td><td>32本が、言語だけ10 ・ アーキだけ3 ・ 言語×アーキ4 ・ 用途だけ15 に分かれる</td><td class="src-cell"><span class="tag-src j">実測</span><code>constraints/</code> を数えた</td></tr><tr><td class="what">読み手や形で切らないこと</td><td>読み手の違いは射影で吸収でき、形で切ると意味が1つなのに型が増える</td><td class="src-cell"><span class="tag-src k">決まり</span>論点8</td></tr></table></div></div>
+<div class="block"><h4>そこへ至った道筋</h4><ol class="chain"><li><span>最初は<b>「欄の集合が違えば別の型」</b>を推していた ── 「1欄だけ違うとき」に答えられず落とした</span></li><li><span>軸で切る形へ置き直し、<b>軸3本は横並びだと考えていた</b></span></li><li><span><b>実行環境が軸でないことは、用途を固定すると1つに定まることから出た</b></span></li><li><span><b>同じ検査をアーキにも当てたら、アーキも用途から定まっていた</b> ── 3つの用途すべてが「採用するアーキテクチャ」を宣言していた</span></li><li><span><b>では言語がアーキを決めるのか、を当てた ── 決めていない。</b>アーキだけで言える規約が3本あり、言語×アーキの4本は「表し方」だった</span></li><li><span><b>自分で選ぶのは用途と言語の2つ</b>で、アーキと実行環境はそこから定まる ── 軸は横並びではなかった</span></li></ol></div>
+<div class="block"><h4>落とした案と、落とした理由</h4><div class="scroll"><table><tr><th>案</th><th>何が壊れるか（反証）</th></tr><tr><td class="what">宣言する欄の集合で切る</td><td class="kill">「1欄だけ違う」で必ず迷う。<b>閾値に根拠が持てない</b></td></tr><tr><td class="what">読み手と用途で切る</td><td class="kill">同じ構造の文書が読み手の数だけ増える ── <b>読み手は射影で分けられる</b></td></tr><tr><td class="what">射影先（できあがる成果物）で切る</td><td class="kill">形で切ることになり、<b>論点8 と正面から衝突する</b></td></tr><tr><td class="what">全部を1つの型にし、種だけで並べる</td><td class="kill"><b>種ごとに構造がまるで違うものが、1つの型に入る</b></td></tr><tr><td class="what">軸3本を横並びに置く</td><td class="kill"><b>用途がアーキを宣言している実物と食い違う</b> ── 選べるかのように見せると、用途と別のアーキを指定できてしまう</td></tr></table></div></div>
+<div class="block"><h4>この答えを採ると、引き受けること</h4><p class="src" style="font-size:.85rem">軸を立てるとき、どれが自分で選ぶもので、どれが定まるものかまで決める必要があります。</p></div>
+</div></details>
+<div class="acts"><button class="act yes">これで進める</button><button class="act no">差し戻す</button></div>
+<div class="backs" hidden><span>理由を1つ：</span></div>
+<div class="note"><label for="n-Q1">Q1 について、思っていること・条件・引っかかり</label>
+<textarea id="n-Q1" placeholder="ここに書いたことは、私が答えを組み直すときの材料になります"></textarea></div>
+</article><article class="q" data-id="Q2">
+<div class="q-hd"><span class="id">Q2</span><h3>道具の中の処理を、どこに紐づけるか</h3><span class="tag">論点18</span></div>
+<p class="ask">Skill や Hook が同梱しているスクリプトを、何の持ち物にするか。</p>
+<div class="reco"><span class="lbl">私の答え</span><b>能力は業務の層に、差し出し方は業務×接点の層に置きます。</b>同梱スクリプトは<b>差し出し口の1つ</b>であって、能力そのものではありません。<b>宣言は「何ができるか」だけを言い、実装がどこに在るかは言いません</b>。</div>
+<div class="fig"><h4>この答えを採ると、こうなる</h4><div class="diff">
+<p class="dh">coding-skills の同梱スクリプト4本が、どこへ属すか</p>
+<div class="dl same"><span class="c">collect.py</span><span class="d">軸の値から、当てはまる規約を集める → <b>能力（業務の層）</b>。同梱の実装は<b>差し出し口の1つ</b></span></div>
+<div class="dl same"><span class="c">check.py</span><span class="d">規約の形が揃っているかを確かめる → <b>能力（業務の層）</b></span></div>
+<div class="dl same"><span class="c">index.py</span><span class="d">索引を作り直す → <b>能力（業務の層）</b></span></div>
+<div class="dl same"><span class="c">tests.py</span><span class="d">上の3つを走らせる → <b>能力ではない</b>。道具の都合</span></div>
+<div class="dl add"><span class="c">業務の層</span><span class="d">「集める」「形を確かめる」「索引を作る」を<b>能力として宣言</b>する（実装の在り処は書かない）</span></div>
+<div class="dl add"><span class="c">業務 × 接点</span><span class="d">CLI（<code>waffle</code> の命令）／Skill（同梱 script）／MCP ── <b>同じ能力の差し出し口</b></span></div>
+<div class="dl del"><span class="c">いまの形</span><span class="d">能力の宣言がどこにも無く、<b>script がそれ自体で能力になっている</b> ── CLI からも MCP からも呼べない</span></div>
+<p class="dn"><b>宣言と実装を分けるので、同梱のままでよい。</b>
+coding-skills が外部依存ゼロで持ち出せる性質は失わない ──
+宣言は「何ができるか」だけを言い、<b>実装がどこに在るかは言わない</b>（論点6の決まり）。
+実装が2つ（Waffle 側と同梱）並んだときは、<b>宣言が1つなので食い違いを検査で出せる</b>。</p>
+</div></div>
+<details><summary>出どころ 4件 ・ 判断の道筋 5手 ・ 落とした案 4件</summary>
+<div class="inside">
+<div class="block"><h4>なぜそう言えるか</h4><div class="scroll"><table><tr><th>答えのどこを支えるか</th><th>もとにしたこと</th><th>出どころ</th></tr><tr><td class="what">接点として扱うこと</td><td>CLI ・ MCP ・ Skill ・ Hook は、同じ能力を差し出す先が違うだけである</td><td class="src-cell"><span class="tag-src k">決まり</span>論点15（接点は軸。値が増えても型は増えない）</td></tr><tr><td class="what">実装の在り処を宣言に書かないこと</td><td>実体は宣言の外に置き、名前で結ぶ</td><td class="src-cell"><span class="tag-src k">決まり</span>論点6（検査の実体は宣言の外、名前で指す）</td></tr><tr><td class="what">coding-skills が実物で示していること</td><td><code>collect.py</code> は軸の値から規約を集めるが、この能力は<b>どこにも宣言されていない</b> ── CLI からも MCP からも呼べない</td><td class="src-cell"><span class="tag-src j">実測</span><code>scripts/</code> 4本を開いて確認（2026-09-09）</td></tr><tr><td class="what">持ち出せることを壊さないこと</td><td>外部パッケージ0で動くことが、この Skill の売りである</td><td class="src-cell"><span class="tag-src j">実測</span><code>scripts/</code> の import を数えた ── 標準ライブラリ以外0件</td></tr></table></div></div>
+<div class="block"><h4>そこへ至った道筋</h4><ol class="chain"><li><span>Skill の script が処理そのものを持つと、<b>そこからしか使えない能力ができる</b></span></li><li><span>coding-skills に当てると、<b>「規約を集める」を CLI からも MCP からも呼べない</b>ことが分かった</span></li><li><span>ではWaffle 側へ移すか ── <b>それだと外部依存ゼロという売りが壊れる</b>。ここで一度詰まった</span></li><li><span>詰まりを解いたのは論点6 の決まりだった ── <b>宣言は名前で指すだけで、実装の在り処を書かない</b></span></li><li><span>だから<b>宣言だけを業務の層へ置き、実装は同梱のままでよい</b>。持ち出せることも、呼べることも両立する</span></li></ol></div>
+<div class="block"><h4>落とした案と、落とした理由</h4><div class="scroll"><table><tr><th>案</th><th>何が壊れるか（反証）</th></tr><tr><td class="what">script の中に処理を書いたままにする</td><td class="kill"><b>そこからしか使えない能力ができる</b> ── 承認も検証も通らない</td></tr><tr><td class="what">実装ごと Waffle 側へ移す</td><td class="kill"><b>外部依存ゼロで持ち出せる性質が壊れる</b></td></tr><tr><td class="what">Skill ごとに独立した spec を作る</td><td class="kill">同じ能力の spec が接点の数だけ増え、<b>どれが正かを言う仕組みがまた要る</b></td></tr><tr><td class="what">能力の側に、呼ばれ方（事象・命令名）を持たせる</td><td class="kill"><b>能力が特定の接点の言葉を持つ</b>ことになり、差し替えられなくなる</td></tr></table></div></div>
+<div class="block"><h4>この答えを採ると、引き受けること</h4><p class="src" style="font-size:.85rem">同じ能力に実装が2つ（Waffle 側と同梱）並びうる。宣言が1つなので、食い違いは検査で出せます。</p></div>
+</div></details>
+<div class="acts"><button class="act yes">これで進める</button><button class="act no">差し戻す</button></div>
+<div class="backs" hidden><span>理由を1つ：</span></div>
+<div class="note"><label for="n-Q2">Q2 について、思っていること・条件・引っかかり</label>
+<textarea id="n-Q2" placeholder="ここに書いたことは、私が答えを組み直すときの材料になります"></textarea></div>
+</article><article class="q" data-id="Q3">
+<div class="q-hd"><span class="id">Q3</span><h3>何を1つの文書にし、どう出すか</h3><span class="tag">論点19・20（coding 版）</span></div>
+<p class="ask">規約32本を、どの単位で文書にし、使うときにどう出すか。</p>
+<div class="reco"><span class="lbl">私の答え</span><b>規約1本を1つの文書にします</b>（32本）。<b>どの層に属すかは文書の欄で宣言し、フォルダの入れ子では表しません。</b>使うときの一式（言語×用途）は<b>集めて出す</b> ── 保存しません。</div>
+<div class="fig"><h4>この答えを採ると、こうなる</h4><div class="diff">
+<p class="dh">① 正本 ── 層でフォルダを切り、入れ子にはしない</p>
+<div class="dl same"><span class="c">.waffle/documents/coding/</span><span class="d">フォルダ名は<b>層</b>＝軸の値の組</span></div>
+<div class="dl sub"><span class="c">　lang.go/</span><span class="d">style ・ failure ・ concurrency ・ test-mechanism ・ toolchain　<b>5本</b></span></div>
+<div class="dl sub"><span class="c">　lang.rust/</span><span class="d">同じ5種　<b>5本</b></span></div>
+<div class="dl sub"><span class="c">　arch.hexagonal/</span><span class="d">dependency ・ layers ・ elements　<b>3本</b></span></div>
+<div class="dl sub"><span class="c">　lang.go+arch.hexagonal/</span><span class="d">layer-mapping ・ test-placement　<b>2本</b></span></div>
+<div class="dl sub"><span class="c">　lang.rust+arch.hexagonal/</span><span class="d">同じ2種　<b>2本</b></span></div>
+<div class="dl sub"><span class="c">　purpose.backend-api/</span><span class="d">contract ・ stack ・ lifecycle ・ acceptance ・ test-strategy　<b>5本</b></span></div>
+<div class="dl sub"><span class="c">　purpose.hook/</span><span class="d">同じ5種　<b>5本</b></span></div>
+<div class="dl sub"><span class="c">　purpose.mcp-server/</span><span class="d">同じ5種　<b>5本</b></span></div>
+<div class="dl del"><span class="c">lang/go/arch/hexagonal/</span><span class="d">入れ子にすると<b>アーキが言語に従属して見える</b>。実際は用途が決めている</span></div>
+<p class="dn"><b>1文書＝規約1本、合計32本。</b>フォルダは<b>主たる層1つ</b>を名乗り、
+用途の規約が同時にアーキの層へ属することは<b>文書の欄で宣言する</b>（フォルダは1か所にしか置けないため）。</p>
+
+<p class="dh" style="margin-top:1rem">② 出す一式 ── 集めて1枚にする。保存しない</p>
+<div class="dl add"><span class="c">waffle render-constraints</span><span class="d"><code>--lang rust --purpose hook --out &lt;場所&gt;</code></span></div>
+<div class="dl sub"><span class="c">　&lt;場所&gt;/CONSTRAINTS.md</span><span class="d"><b>1枚だけ</b>。目録＋該当する規約の本文を連結（この組では <b>14本</b>）</span></div>
+<div class="dl tmp"><span class="c">　置き場所</span><span class="d">呼び出し側が決める。<b>使い捨て</b> ── 正本ではない</span></div>
+<p class="dn"><b>分けずに1枚にするのは、使う側が「この場面の規約を全部」まとめて読むから。</b>
+ファイルを分けると読み落とす。<b>保存しないのは、正本が2つになるのを避けるため</b>（規約を直したとき、集めた一式だけ古くなる）。</p>
+
+<p class="dh" style="margin-top:1rem">③ 出た文書1本の形 ── いまの雛形のまま</p>
+<pre style="background:var(--card);border:1px solid var(--rule-soft);border-radius:.3rem;padding:.7rem .9rem;overflow-x:auto;font-size:.74rem;line-height:1.7;margin:.3rem 0">---
+id: lang.rust.failure
+軸: language=rust
+種: failure　（雛形の単位）
+宣言すること: 失敗の運び方
+所属する層: lang.rust ／ <b>arch.hexagonal</b>（欄で宣言。フォルダは lang.rust の1か所）
+承認: daidaiiro / 2026-09-06
+---
+
+# Rust における失敗の運び方
+
+## 概要      … 1〜2文
+## 規則一覧    … 表（規則ID・言明・検証方法）
+## 規則の詳細  … 規則ごとに、理由と反例
+## 適用範囲外  … 何を・どの層が決めるか
+## 委譲する判断 … 委譲先と、委譲する理由
+## 出典       … 原典・版・取得日・何を裏づけるか</pre>
+<p class="dn"><b>節の並びは種ごとに違う</b>（雛形16本がそれを決める）── 規則を持つ種だけが「規則一覧」を持ち、
+構造を宣言する種は持たない。<b>いまの規約32本がすでにこの形なので、中身の書き直しは要らない</b> ──
+変わるのは置き場所と、層を欄で宣言することだけ。</p>
+</div></div>
+<details><summary>出どころ 5件 ・ 判断の道筋 6手 ・ 落とした案 4件</summary>
+<div class="inside">
+<div class="block"><h4>なぜそう言えるか</h4><div class="scroll"><table><tr><th>答えのどこを支えるか</th><th>もとにしたこと</th><th>出どころ</th></tr><tr><td class="what">規約1本を1文書にすること</td><td>種は「その層で決まることの単位」であり、雛形の単位がそれに当たる</td><td class="src-cell"><span class="tag-src k">決まり</span>論点16の決着（CodingSchema の種は雛形の単位）</td></tr><tr><td class="what">層を欄で宣言すること</td><td>入れ子にすると表せない形が出る。並べて宣言すれば作りは1通りのまま</td><td class="src-cell"><span class="tag-src k">決まり</span>論点19の決着（対応は宣言で持つ）</td></tr><tr><td class="what">入れ子が破れる実例</td><td>用途がアーキを決めるので、purpose/hook の規約は arch/hexagonal にも属する</td><td class="src-cell"><span class="tag-src j">実測</span><code>purpose/hook/stack.md</code> が hexagonal を宣言している</td></tr><tr><td class="what">一式を保存しないこと</td><td>集めた結果は導出であって正本ではない ── 文脈の地図と同じ</td><td class="src-cell"><span class="tag-src k">決まり</span>論点19の決着（地図は保存せず描く）</td></tr><tr><td class="what">集める仕組みが既に在ること</td><td>軸の値から該当する規約を集められる</td><td class="src-cell"><span class="tag-src j">実測</span><code>collect.py --lang rust --purpose hook</code> が動く（足りない規約0本）</td></tr></table></div></div>
+<div class="block"><h4>そこへ至った道筋</h4><ol class="chain"><li><span>規約は層ごとにフォルダへ入れてある ── <b>フォルダの入れ子が層を表している</b></span></li><li><span>だが<b>用途がアーキを決めるので、用途の規約はアーキの層にも属する</b></span></li><li><span><b>入れ子では、どちらか一方にしか置けない</b> ── ここで破れる</span></li><li><span>論点19 で同じ形を一度通っていた ── <b>入れ子をやめ、対応は宣言で持つ</b></span></li><li><span>では使うときの一式はどうするか ── <b>集めて出す</b>。集める仕組みは既に動いている</span></li><li><span>一式を保存すると<b>正本が2つになる</b> ── 文脈の地図と同じ理由で、保存しない</span></li></ol></div>
+<div class="block"><h4>落とした案と、落とした理由</h4><div class="scroll"><table><tr><th>案</th><th>何が壊れるか（反証）</th></tr><tr><td class="what">層ごとに1文書（8本）にまとめる</td><td class="kill"><b>1つの文書に粒度の違うものが同居する</b> ── 綴りの規則と層の責務が同じ欄に並ぶ</td></tr><tr><td class="what">フォルダの入れ子を正本のまま残す</td><td class="kill"><b>用途がアーキを決める形を表せない</b> ── どちらか一方にしか置けない</td></tr><tr><td class="what">使う一式を reference フォルダとして保存する</td><td class="kill"><b>正本が2つになる</b> ── 規約を直したとき、集めた一式が古いまま残る</td></tr><tr><td class="what">軸の値をファイル名に入れる（lang-go-style.md）</td><td class="kill">名前が鍵になり、<b>軸を足すと全部の名前が変わる</b></td></tr></table></div></div>
+<div class="block"><h4>この答えを採ると、引き受けること</h4><p class="src" style="font-size:.85rem">フォルダを見ただけでは層が分からなくなります。層で見たいときは、軸の値で引くことになります。</p></div>
+</div></details>
+<div class="acts"><button class="act yes">これで進める</button><button class="act no">差し戻す</button></div>
+<div class="backs" hidden><span>理由を1つ：</span></div>
+<div class="note"><label for="n-Q3">Q3 について、思っていること・条件・引っかかり</label>
+<textarea id="n-Q3" placeholder="ここに書いたことは、私が答えを組み直すときの材料になります"></textarea></div>
+</article></div><div class="handback">
+  <h3>書いたことを、私に渡す</h3>
+  <p class="src">諾否と、書いたことを1件の回答にまとめて送ります。<b>送れたら、Claude に一言書いてください</b>。
+  送れない場所で開いているときは、下の JSON を写して会話に貼ってください。</p>
+  <div class="acts"><button class="act yes" id="send">まとめて送る</button>
+  <button class="act" id="copy">写す</button><span class="src" id="copied"></span></div>
+  <textarea id="out" readonly aria-label="私に渡す回答"></textarea>
+</div>
+<footer>この回答は <code>brainstorm-schema-conception-board</code> への回答として積まれます。
+承認されたものは盤面へ決まりとして記録し、差し戻されたものは直した答えを1つ出します。</footer>
+</div>
+<script>
+const BACKS=["もっと単純に","前提が違う","別の道も見たい"];
+const state={log:[]};
+document.querySelectorAll('.q').forEach(el=>{
+  const acts=el.querySelector('.acts'), backs=el.querySelector('.backs');
+  BACKS.forEach(r=>{const b=document.createElement('button');b.className='act';b.textContent=r;
+    b.addEventListener('click',()=>settle(el,acts,backs,'returned',r));backs.appendChild(b);});
+  el.querySelector('.yes').addEventListener('click',()=>settle(el,acts,backs,'approved'));
+  el.querySelector('.no').addEventListener('click',()=>{backs.hidden=false;backs.querySelector('button').focus();});
+});
+function settle(el,acts,backs,verdict,reason){
+  backs.hidden=true;
+  const v=document.createElement('p'); v.className='verdict';
+  if(verdict==='approved'){el.classList.add('done');v.innerHTML='<span class="ok">承認</span> この答えで先へ進みます。';}
+  else{el.classList.add('sent');v.innerHTML='<span class="back">差し戻し</span> 「'+reason+'」で持ち帰ります ── 直した答えを1つ出します。';}
+  acts.replaceWith(v);
+  state.log.push({id:el.dataset.id,verdict:verdict,reason:reason||null});
+}
+function sheet(){
+  const seen={}; state.log.forEach(l=>seen[l.id]=l);
+  const answers=[];
+  document.querySelectorAll('.q').forEach(el=>{
+    const id=el.dataset.id, l=seen[id], note=(el.querySelector('textarea').value||'').trim();
+    if(!l&&!note) return;
+    const a={questionId:id,topic:el.querySelector('.tag').textContent,
+      title:el.querySelector('h3').textContent,
+      verdict:l?l.verdict:'unanswered',returnReason:l&&l.reason?l.reason:null};
+    if(note)a.note=note;
+    answers.push(a);
+  });
+  return {board:'brainstorm-schema-conception-board',round:1,
+    answeredAt:new Date().toISOString(),answers:answers};
+}
+const out=document.getElementById('out'), msg=document.getElementById('copied');
+document.getElementById('send').addEventListener('click',async()=>{
+  const body=sheet(); if(!body.answers.length){msg.textContent='まだ何も答えていません';return;}
+  out.value=JSON.stringify(body,null,2); msg.textContent='送っています…';
+  try{const res=await fetch('/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:out.value});
+    const j=await res.json();
+    msg.textContent=res.ok?('送りました（'+j.count+' 件）── Claude に一言書いてください')
+      :('送れませんでした：'+(j.faults||[j.error]).join(' / '));
+  }catch{msg.textContent='ここからは送れません ── 下の JSON を写して、会話に貼ってください';}
+});
+document.getElementById('copy').addEventListener('click',async()=>{
+  const body=sheet(); if(!body.answers.length){msg.textContent='まだ何も答えていません';return;}
+  out.value=JSON.stringify(body,null,2);
+  out.removeAttribute('readonly'); out.select();
+  try{await navigator.clipboard.writeText(out.value);msg.textContent='写しました';}
+  catch{msg.textContent='選択したので、そのままコピーしてください';}
+  out.setAttribute('readonly','');
+});
+</script>
+
+</body></html>
