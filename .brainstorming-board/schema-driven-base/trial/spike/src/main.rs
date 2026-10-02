@@ -1,8 +1,10 @@
 //! 論点1の7つの契約とドリフト検知を、1つのユースケースと1つの集約で1回通す（引数なし）。
 //! 論点2の案（注釈 ・ 集合の検証 ・ 報告の Schema）を確かめる（引数 q2）。
+//! 論点3の案（実体の描画は基盤、目的の連鎖は concrete）を確かめる（引数 q3）。
 mod base;
 mod usecase;
 mod usecase_q2;
+mod usecase_q3;
 use serde_json::{json, Value};
 use std::{fs, path::Path};
 
@@ -16,6 +18,7 @@ fn show(v: &Value) {
 fn main() {
     match std::env::args().nth(1).as_deref() {
         Some("q2") => q2(),
+        Some("q3") => q3(),
         _ => q1(),
     }
 }
@@ -145,4 +148,68 @@ fn q2() {
     step(7, "削除（実体）── 参照されている宣言は削除しない");
     println!("結果: {:?}", usecase_q2::delete(&dir, &agg));
     println!("AGG-1 のファイルは残っている: {}", agg.exists());
+}
+
+fn q3() {
+    let root = Path::new("work-q3");
+    let _ = fs::remove_dir_all(root);
+    let dir = root.join("decls");
+    let sc = |k: &str| base::load(Path::new(&format!("schemas/{k}.q3.schema.json")));
+    let (dom_s, uc_s, agg_s) = (sc("domain"), sc("use-case"), sc("aggregate"));
+    let mk = |s: &Value, k: &str, id: &str, patch: Value| {
+        let p = base::create(root, s, &[("$schema", json!(format!("../../schemas/{k}.q3.schema.json"))), ("id", json!(id))]);
+        base::update(&p, s, patch).unwrap();
+        p
+    };
+
+    step(1, "作成と記入 ── ドメイン ・ ユースケース ・ 集約を1件ずつ");
+    mk(&dom_s, "domain", "DOM-1", json!([
+        {"op": "replace", "path": "/name", "value": "注文管理"},
+        {"op": "replace", "path": "/problem", "value": "店舗の担当者が、在庫を確認せずに注文を受け、欠品の連絡に追われている"},
+        {"op": "replace", "path": "/value", "value": "店舗の担当者に、引当済の注文だけを確定させ、欠品の連絡をなくす"},
+        {"op": "add", "path": "/success/-", "value": {"id": "SC-1", "name": "確定した注文の欠品が0件である"}},
+        {"op": "add", "path": "/success/-", "value": {"id": "SC-2", "name": "注文の確定が1分以内に終わる"}}]));
+    mk(&agg_s, "aggregate", "AGG-1", json!([
+        {"op": "replace", "path": "/name", "value": "注文"},
+        {"op": "add", "path": "/conditions/-", "value": {"id": "INV-1", "name": "明細の合計は、引当済の数量を超えない"}}]));
+    mk(&uc_s, "use-case", "UC-1", json!([
+        {"op": "replace", "path": "/name", "value": "注文を確定する"},
+        {"op": "replace", "path": "/goal", "value": "注文が確定済になり、在庫が引き当てられている"},
+        {"op": "add", "path": "/serves/-", "value": "DOM-1.SC-1"},
+        {"op": "add", "path": "/writes/-", "value": "AGG-1"},
+        {"op": "add", "path": "/scenarios/-", "value": {"id": "S-1", "name": "在庫があり、注文が確定する"}},
+        {"op": "add", "path": "/scenarios/-", "value": {"id": "S-2", "name": "在庫が足りず、確定を断る"}}]));
+    let all = usecase_q2::load_all(&dir);
+    println!("集合の検証: {:?}", usecase_q3::validate_set(&all, "domain"));
+    for d in &all {
+        println!("{} の目的の連鎖: {}", d.kind, usecase_q3::chain(&all, d));
+    }
+
+    step(2, "上位の目的を保持しない要素を検出する");
+    let orphan = mk(&agg_s, "aggregate", "AGG-2", json!([
+        {"op": "replace", "path": "/name", "value": "ポイント"},
+        {"op": "add", "path": "/conditions/-", "value": {"id": "INV-1", "name": "残高は0以上である"}}]));
+    println!("集合の検証: {:?}", usecase_q3::validate_set(&usecase_q2::load_all(&dir), "domain"));
+    base::delete(&orphan);
+
+    step(3, "違反の描画 ── 検証の違反を、欄の title と x-prompt.write で示す");
+    let blank = base::create(root, &uc_s, &[("$schema", json!("../../schemas/use-case.q3.schema.json")), ("id", json!("UC-2"))]);
+    let d = base::load(&blank);
+    println!("検証器の文:");
+    for e in base::validate(&uc_s, &d) { println!("  {e}"); }
+    println!("描画した文:");
+    for e in base::render_violations(&uc_s, &d) { println!("  {e}"); }
+    base::delete(&blank);
+
+    step(4, "描画 ── ドメインを先頭に、どの頁も目的の連鎖から始める（Markdown）");
+    print!("{}", usecase_q3::render_site(&dir, "domain"));
+
+    step(5, "AI ツールが読む ── ツールごとの形へ変換せず、案内（x-prompt.read）と取得（JMESPath）で読む");
+    let uc = base::load(&dir.join("UC-1.json"));
+    for (at, p) in base::guide(&uc_s, &uc, "read").into_iter().filter(|(a, _)| a == "/serves" || a == "/scenarios") {
+        println!("{at}\t{p}");
+    }
+    for expr in ["serves", "scenarios[].{id: id, name: name}"] {
+        println!("式  {expr}\n値  {}", base::get(&uc, expr));
+    }
 }

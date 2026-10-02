@@ -92,6 +92,11 @@ pub fn guide(schema: &Value, doc: &Value, mode: &str) -> Vec<(String, String)> {
 
 /// 描画の契約：title と x-view に従って Markdown へ描画する。
 pub fn render(schema: &Value, doc: &Value) -> String {
+    render_with(schema, doc, &|_, _| None)
+}
+
+/// 描画の契約に、concrete が値の見せ方を注入する口。fmt が None を返した値は、そのまま描く。
+pub fn render_with(schema: &Value, doc: &Value, fmt: &dyn Fn(&str, &str) -> Option<String>) -> String {
     let props = schema["properties"].as_object().unwrap();
     let mut out = String::new();
     for (k, p) in props {
@@ -102,7 +107,8 @@ pub fn render(schema: &Value, doc: &Value) -> String {
             "list" => {
                 out += &format!("## {title}\n\n");
                 for x in v.as_array().into_iter().flatten() {
-                    out += &format!("- {}\n", x.as_str().unwrap_or(""));
+                    let x = x.as_str().unwrap_or("");
+                    out += &format!("- {}\n", fmt(k, x).unwrap_or(x.to_string()));
                 }
                 out += "\n";
             }
@@ -118,4 +124,27 @@ pub fn render(schema: &Value, doc: &Value) -> String {
         }
     }
     out
+}
+
+/// 描画の契約（違反）：検証の違反を、欄の title と x-prompt.write で人へ描画する。語は基盤が持つ。
+pub fn render_violations(schema: &Value, doc: &Value) -> Vec<String> {
+    use jsonschema::error::ValidationErrorKind as K;
+    let v = jsonschema::validator_for(schema).expect("スキーマが誤っている");
+    v.iter_errors(doc).map(|e| {
+        let at = e.instance_path().to_string();
+        let key = match e.kind() {
+            K::Required { property } => property.as_str().unwrap_or("").to_string(),
+            _ => at.trim_start_matches('/').split('/').next().unwrap_or("").to_string(),
+        };
+        let p = &schema["properties"][&key];
+        let title = p["title"].as_str().unwrap_or(&key);
+        let what = match e.kind() {
+            K::Required { .. } | K::MinLength { .. } | K::MinItems { .. } => "が未記入である".to_string(),
+            K::Pattern { pattern } => format!("の形式が異なる（{pattern}）"),
+            K::Enum { .. } => "の値が候補に無い".to_string(),
+            k => format!("が検証を通過しない（{}）", k.keyword()),
+        };
+        let hint = p["x-prompt"]["write"].as_str().map(|w| format!(" ── {w}")).unwrap_or_default();
+        format!("「{title}」{what}{hint}")
+    }).collect()
 }

@@ -1,0 +1,117 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "ユースケース",
+ "x-generates": "decls/{id}.json",
+ "type": "object",
+ "required": [
+  "id",
+  "name",
+  "goal",
+  "serves",
+  "writes",
+  "scenarios"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "pattern": "^UC-[0-9]+$",
+   "title": "ID",
+   "x-view": "hidden",
+   "description": "ユースケースの識別子",
+   "x-prompt": {
+    "read": "テストと結ぶときの接頭辞として読む",
+    "write": "UC- に続けて番号を書く"
+   }
+  },
+  "name": {
+   "type": "string",
+   "minLength": 1,
+   "title": "名前",
+   "x-view": "heading",
+   "description": "主アクターの目的を動詞で書いた名前",
+   "x-prompt": {
+    "read": "このユースケースが何を達成するかとして読む",
+    "write": "「〜を〜する」の形で、主アクターの目的を書く"
+   }
+  },
+  "goal": {
+   "type": "string",
+   "minLength": 1,
+   "title": "目的",
+   "x-view": "text",
+   "description": "達成したときに主アクターが得るもの",
+   "x-prompt": {
+    "read": "成功の保証として読む",
+    "write": "成功したとき何が成り立っているかを1文で書く"
+   }
+  },
+  "serves": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "string",
+    "pattern": "^DOM-[0-9]+\\.SC-[0-9]+$"
+   },
+   "title": "寄与する達成の基準",
+   "x-view": "list",
+   "description": "このユースケースが寄与する、ドメインの達成の基準",
+   "x-prompt": {
+    "read": "このユースケースの上位の目的として読む",
+    "write": "寄与する達成の基準を「ドメインの ID.基準の ID」で並べる"
+   },
+   "x-ref": {
+    "kind": "domain",
+    "item": "success"
+   },
+   "x-purpose": "upward"
+  },
+  "writes": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "string",
+    "pattern": "^AGG-[0-9]+$"
+   },
+   "title": "書き換える集約",
+   "x-view": "list",
+   "description": "このユースケースが書き換える集約の ID",
+   "x-prompt": {
+    "read": "トランザクションの範囲として読む",
+    "write": "書き換える集約の ID を並べる"
+   },
+   "x-ref": "aggregate",
+   "x-purpose": "downward"
+  },
+  "scenarios": {
+   "type": "array",
+   "minItems": 1,
+   "title": "シナリオ",
+   "x-view": "table",
+   "description": "主成功シナリオと拡張",
+   "x-prompt": {
+    "read": "テスト仕様として読む。1件が1つのテストに対応する",
+    "write": "主成功シナリオを1件目に、拡張を2件目以降に書く"
+   },
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^S-[0-9]+$",
+      "title": "ID"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "シナリオ"
+     }
+    }
+   },
+   "x-test-spec": true
+  }
+ }
+}

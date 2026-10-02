@@ -1,0 +1,66 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "集約",
+ "x-generates": "decls/{id}.json",
+ "type": "object",
+ "required": [
+  "id",
+  "name",
+  "conditions"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "pattern": "^AGG-[0-9]+$",
+   "title": "ID",
+   "x-view": "hidden",
+   "description": "集約の識別子",
+   "x-prompt": {
+    "read": "テストと結ぶときの接頭辞として読む",
+    "write": "AGG- に続けて番号を書く"
+   }
+  },
+  "name": {
+   "type": "string",
+   "minLength": 1,
+   "title": "名前",
+   "x-view": "heading",
+   "description": "集約の名前",
+   "x-prompt": {
+    "read": "整合性を守る単位の名前として読む",
+    "write": "ユビキタス言語の名詞で書く"
+   }
+  },
+  "conditions": {
+   "type": "array",
+   "minItems": 1,
+   "title": "条件",
+   "x-view": "table",
+   "description": "不変条件と、操作ごとの事前条件 ・ 事後条件",
+   "x-prompt": {
+    "read": "テスト仕様として読む。1件が1つのテストに対応する",
+    "write": "不変条件は INV-、事前条件は PRE-、事後条件は POST- で番号を振る"
+   },
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^(INV|PRE|POST)-[0-9]+$",
+      "title": "ID"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "条件"
+     }
+    }
+   },
+   "x-test-spec": true
+  }
+ }
+}
