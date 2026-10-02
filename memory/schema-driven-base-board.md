@@ -8,8 +8,9 @@ metadata:
 
 `.brainstorming-board/schema-driven-base/`（Artifact https://claude.ai/artifact/2SFURsbhMHgDHg9Vj5oLgG ）。スキーマ駆動の道具を、どの concrete にも使える抽象の基盤として形を決める。ユースケース駆動はその concrete の1つで、ボード usecase-modeling-coding と ACDR 0092 の決定は concrete の側の決定として扱う。
 
-現在地（2026-10-02、1回目）：
-- 論点1（基盤が持つ形：kind ・ id ・ name ・ body だけ。body の形は concrete の JSON Schema、節と参照の在りかは concrete が JSONPath で申告）は回答待ち
-- 論点2（concrete の契約）・ 3（射影と変換）・ 4（配り方と名前）は待ち
+現在地（2026-10-03、2回目）：
+- 論点1を B′ に組み直し、回答待ち。抽象の基盤の契約は3つ（スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write）。concrete は同じ3つを特化した表現で持ち、ユースケース駆動の concrete はテスト仕様（シナリオと条件）とテスト実装のドリフト検知の契約を足す
+- 1回目の答え（kind ・ id ・ name ・ body と JSONPath の在りかの申告）は、基盤が宣言の構造を知るので撤回した（前の答えとしてボードに残る）
+- 論点2（concrete の契約）・ 3（描画の持ち方）・ 4（配り方と名前）は待ち
 
-試作の基盤（usecase-schema-driven/trial/spike/base）は、宣言の形として rules ・ ops（pre ・ post ・ writes ・ nodes）を固定している。これを concrete の Schema へ移すのが論点1の要点。
+抽象の3つの契約は、既存の Skill の references の契約の版2（validate ・ view ・ x-view）と no-more-spaghetti の schema-meta.schema.json（x-prompt の read ・ write）に実装がある。

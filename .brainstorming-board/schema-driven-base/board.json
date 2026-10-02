@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "スキーマ駆動の道具（抽象の基盤）",
  "board": "schema-driven-base",
- "round": 1,
+ "round": 2,
  "intro": [
   {
    "kind": "para",
@@ -15,7 +15,7 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1を開いた。</b>基盤が宣言のどこまでを知るかは、残りの論点すべての前提である。"
+     "text": "<b>論点1を組み直した。</b>基盤の契約は検証 ・ 描画 ・ 案内の3つで、ドリフト検知は concrete の契約である。残りの論点すべての前提になる。"
     }
    ]
   },
@@ -32,134 +32,174 @@
  "queue": [
   {
    "no": 1,
-   "why": "基盤が知る形の線引きが、concrete の契約 ・ 射影と変換 ・ 配り方のすべての前提になる"
+   "why": "基盤と concrete の契約の境目が、concrete が渡すもの ・ 描画の持ち方 ・ 配り方のすべての前提になる"
   }
  ],
  "topics": [
   {
    "no": 1,
-   "name": "基盤が持つ形",
+   "name": "基盤が持つ契約",
    "status": "open",
-   "question": "基盤は、宣言のどこまでの形を知るか",
-   "answer": "B ── <b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する",
-   "intro": "この論点が、基盤が concrete の語を含めずに済むかを決める。<b>論点2〜4は、この線を前提にする</b>",
+   "question": "抽象の基盤は、何を契約として持つか",
+   "answer": "B′ ── <b>抽象の基盤は3つの契約だけを持つ。</b>スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write である。ユースケース駆動の concrete は同じ3つを特化した表現で持ち、<b>テスト仕様とテスト実装のドリフト検知</b>の契約を足す",
+   "intro": "この論点が、基盤と concrete の境目を決める。<b>論点2〜4は、この線を前提にする</b>",
    "decision": {
-    "letter": "B",
+    "letter": "B′",
     "text": [
      {
       "kind": "para",
-      "text": "<b>基盤の宣言は4つの欄だけを持つ。</b>kind（種類の名前、文字列のまま）・ id ・ name ・ body（基盤は形を見ない）。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>concrete が申告する3つ。</b>"
+      "text": "<b>抽象の基盤の契約は3つである。</b>どの構造化データにも、同じ3つを課す。"
      },
      {
       "kind": "list",
       "items": [
        {
-        "text": "<b>種類ごとの JSON Schema</b> ── body の形と検査。操作 ・ 条件 ・ シナリオのような構造は、ここにだけ現れる"
+        "text": "<b>スキーマ検証の契約</b> ── 構造化データを JSON Schema で検証できる"
        },
        {
-        "text": "<b>ID を持つ節の在りか</b> ── body の中のどこに、テストや外の識別子と結ぶ節があるかを JSONPath で書く"
+        "text": "<b>描画の契約</b> ── 構造化データを Markdown と HTML へ描画できる。見出しはスキーマの title、見せ方は x-view が決める"
        },
        {
-        "text": "<b>参照の在りか</b> ── body の中のどこが、どの種類の宣言の ID を指すかを JSONPath で書く。多重度もここに書く"
+        "text": "<b>案内の契約</b> ── 項目ごとに x-prompt の read（読み取るとき）と write（値を書くとき）を持つ"
        }
       ]
      },
      {
       "kind": "para",
-      "text": "基盤は、この申告だけを読んで、節の一覧 ・ 参照と逆参照 ・ 引き算を行う。<b>試作の基盤が固定していた rules ・ ops ・ pre ・ post ・ writes ・ nodes は、ユースケース駆動の concrete の Schema へ移す。</b>"
+      "text": "<b>concrete も同じ3つの契約を持つ。</b>違うのは表現だけである。ユースケース駆動の concrete は、人が確認して承認できる構造化データとして宣言を持つ。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>ユースケース駆動の concrete は、4つ目の契約を持つ。</b>テスト仕様とテスト実装のドリフト検知である。"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>テスト仕様</b> ── ユースケースのシナリオと、集約 ・ ドメインサービスの条件。品質を担保する要素になる"
+       },
+       {
+        "text": "<b>テスト実装</b> ── 実装の側のテスト。仕様の各要素を指すテストが存在し、通っていることを実装の品質とする"
+       },
+       {
+        "text": "<b>ドリフト</b> ── 仕様に在ってテストに無いもの、テストに在って仕様に無いもの、テストが通らないもの"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>基盤は、宣言の形を認知しない。</b>種類 ・ ID ・ 参照のような宣言の構造は、concrete のスキーマにだけ現れる。"
      }
     ]
    },
    "example": [
     {
      "kind": "para",
-     "text": "ユースケース駆動の concrete が申告する内容のスケッチ。<b>例示であって、決定ではない。</b>"
+     "text": "契約ごとに、抽象の基盤が持つものと、ユースケース駆動の concrete が持つものを並べた。"
     },
     {
-     "kind": "html",
-     "text": "<pre><code>{\n  \"concrete\": \"use-case-driven\",\n  \"kinds\": {\n    \"aggregate\": {\n      \"schema\": \"kinds/aggregate.schema.json\",\n      \"nodes\": [\n        \"$.body.invariants[*]\",\n        \"$.body.ops[*].pre[*]\",\n        \"$.body.ops[*].post[*]\"\n      ],\n      \"refs\": [\n        {\n          \"at\": \"$.body.context\",\n          \"to\": \"bounded-context\",\n          \"count\": \"1\"\n        }\n      ]\n    },\n    \"use-case\": {\n      \"schema\": \"kinds/use-case.schema.json\",\n      \"nodes\": [\n        \"$.body.ops[*].scenarios[*]\",\n        \"$.body.guarantees[*]\"\n      ],\n      \"refs\": [\n        {\n          \"at\": \"$.body.serves[*]\",\n          \"to\": \"domain#success\"\n        },\n        {\n          \"at\": \"$.body.ops[*].writes[*]\",\n          \"to\": \"aggregate\"\n        }\n      ]\n    }\n  }\n}</code></pre>"
+     "kind": "grid",
+     "cols": [
+      "契約",
+      "抽象の基盤",
+      "ユースケース駆動の concrete"
+     ],
+     "rows": [
+      [
+       "スキーマ検証",
+       "任意の構造化データを、それが指す JSON Schema で検証する",
+       "宣言の種類ごとの Schema（ドメイン ・ ユースケース ・ 集約 ・ ドメインサービスなど）で検証する"
+      ],
+      [
+       "描画",
+       "title と x-view に従い、Markdown と HTML へ描画する",
+       "ビジョンを先頭に、下の要素が上位の目的を指す連鎖として描画する"
+      ],
+      [
+       "案内",
+       "項目ごとに x-prompt の read と write を要求する",
+       "宣言の項目ごとに、何を読み何を書くかを案内する"
+      ],
+      [
+       "ドリフト検知",
+       "保持しない",
+       "シナリオと条件の一覧と、テストが申告する一覧を突き合わせ、欠け ・ 余り ・ 失敗を報告する"
+      ]
+     ]
     },
     {
      "kind": "para",
-     "text": "この申告のもとでの、集約の宣言1件。基盤が読むのは kind ・ id ・ name と、申告された在りかの節（INV-1 ・ PRE-1 ・ POST-1）と参照（BC-配送）だけである。"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>{\n  \"kind\": \"aggregate\",\n  \"id\": \"AGG-出荷指示\",\n  \"name\": \"出荷指示\",\n  \"body\": {\n    \"context\": \"BC-配送\",\n    \"invariants\": [\n      {\n        \"id\": \"INV-1\",\n        \"name\": \"明細の合計は、引当済の数量を超えない\"\n      }\n    ],\n    \"ops\": [\n      {\n        \"name\": \"確定する\",\n        \"pre\": [\n          {\n            \"id\": \"PRE-1\",\n            \"name\": \"明細が1件以上ある\"\n          }\n        ],\n        \"post\": [\n          {\n            \"id\": \"POST-1\",\n            \"name\": \"状態が確定済になる\"\n          }\n        ]\n      }\n    ]\n  }\n}</code></pre>"
+     "text": "既存の Skill は、すでに抽象の3つの契約に従っている。references の契約の版2 の validate と view、x-view、x-prompt の read と write がそれである。"
     }
    ],
    "figures": [
     {
      "kind": "figure",
-     "name": "shape",
-     "caption": "今の試作は、操作 ・ 事前事後 ・ 書き換える先 ・ 規則 ・ 節を基盤の宣言の形として固定している。<b>基盤は最小の4つの欄だけを持ち</b>、残りは concrete が JSON Schema と在りかの申告で渡す。"
+     "name": "contracts",
+     "caption": "抽象の基盤は3つの契約を持つ。<b>concrete は同じ3つを具体化し</b>、ユースケース駆動の concrete は<b>ドリフト検知の契約</b>を足す。"
     }
    ],
    "passed": [
     {
-     "name": "今の試作の形のまま",
-     "body": "基盤の宣言が rules ・ ops（pre ・ post ・ writes ・ nodes）・ render ・ body を持つ",
-     "cost": "ユースケースと DDD の構造が基盤に入る"
+     "name": "3つの契約と、concrete のドリフト検知",
+     "body": "基盤は検証 ・ 描画 ・ 案内の3つを持ち、ドリフト検知はユースケース駆動の concrete が持つ",
+     "cost": "concrete ごとに、3つの契約の表現を用意する"
     },
     {
-     "name": "4つの欄と在りかの申告",
-     "body": "基盤は kind ・ id ・ name ・ body だけを持ち、節と参照の在りかを concrete が JSONPath で申告する",
-     "cost": "concrete ごとに在りかを申告する"
+     "name": "4つの欄と在りかの申告（1回目の答え）",
+     "body": "基盤が kind ・ id ・ name ・ body を持ち、節と参照の在りかを concrete が JSONPath で申告する",
+     "cost": "基盤が宣言の形を知る"
     },
     {
-     "name": "基盤が種類の一覧を持つ",
-     "body": "基盤が、宣言の種類ごとの Rust の型を持つ",
-     "cost": "種類の名前が基盤に入る"
+     "name": "検証だけを持つ",
+     "body": "基盤はスキーマ検証だけを持ち、描画と案内は concrete が持つ",
+     "cost": "concrete ごとに描画と案内を作る"
     },
     {
-     "name": "在りかを申告せず、決まった名前の欄を探す",
-     "body": "body の中の id という名前の欄を、すべて節とみなす",
-     "cost": "節でない ID（参照先など）と区別できない"
+     "name": "ドリフト検知も基盤が持つ",
+     "body": "仕様とテストの突き合わせを、基盤の4つ目の契約にする",
+     "cost": "テストという concrete の語が基盤に入る"
     }
    ],
    "tables": [
     {
      "caption": "案ごとの帰結",
      "cols": [
-      "基盤に concrete の語が入るか",
-      "条件に ID を持たせられるか",
-      "別の concrete で使えるか"
+      "基盤に宣言の構造が入るか",
+      "別の concrete で使えるか",
+      "既存の Skill の契約と一致するか"
      ],
      "rows": [
       [
-       "今の試作の形のまま",
-       [
-        "<b>入る</b>（ops ・ pre ・ post ・ writes）",
-        "<b>持たせられない</b>（pre ・ post が文字列）",
-        "使いにくい"
-       ]
-      ],
-      [
-       "4つの欄と在りかの申告",
+       "3つの契約と、concrete のドリフト検知",
        [
         "<b>入らない</b>",
-        "<b>持たせられる</b>（在りかを申告するだけ）",
-        "<b>使える</b>"
+        "<b>使える</b>",
+        "<b>一致する</b>（版2 の validate ・ view ・ x-prompt）"
        ]
       ],
       [
-       "基盤が種類の一覧を持つ",
+       "4つの欄と在りかの申告（1回目の答え）",
        [
-        "<b>入る</b>",
-        "持たせられる",
-        "使えない"
+        "<b>入る</b>（kind ・ id ・ 節 ・ 参照）",
+        "宣言を持つ concrete でだけ使える",
+        "一致しない"
        ]
       ],
       [
-       "在りかを申告せず、決まった名前の欄を探す",
+       "検証だけを持つ",
        [
         "入らない",
-        "持たせられる",
-        "使えるが、節と参照を取り違える"
+        "使える",
+        "一致しない（描画と案内が concrete ごとに分かれる）"
+       ]
+      ],
+      [
+       "ドリフト検知も基盤が持つ",
+       [
+        "<b>入る</b>（テスト仕様とテスト実装）",
+        "テストを保持しない concrete では使えない",
+        "一致する"
        ]
       ]
      ]
@@ -167,88 +207,95 @@
    ],
    "dropped": [
     {
-     "body": "今の試作の形のまま",
-     "reason": "操作 ・ 事前事後 ・ 書き換える先はユースケースと DDD の構造で、基盤が知ると別の concrete で使えない。ACDR 0092 で決めた「条件に ID を持たせる」も、pre ・ post が文字列の配列のままでは表せない"
+     "body": "4つの欄と在りかの申告（1回目の答え）",
+     "reason": "基盤が kind ・ id ・ 節 ・ 参照という宣言の構造を知ることになり、抽象の高さが下がる。利用者が、基盤の契約は検証 ・ 描画 ・ 案内の3つだと示した"
     },
     {
-     "body": "基盤が種類の一覧を持つ",
-     "reason": "試作の基盤自身が「基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る」と書いている"
+     "body": "検証だけを持つ",
+     "reason": "描画と案内が concrete ごとに作られ、見た目と書き方が concrete ごとに分かれる。既存の契約の版2 も、検証と描画と案内を1つの契約で持つ"
     },
     {
-     "body": "在りかを申告せず、決まった名前の欄を探す",
-     "reason": "参照先の ID も同じ名前の欄に入りうるので、テストと結ぶ節と、他の宣言を指す参照を区別できない"
+     "body": "ドリフト検知も基盤が持つ",
+     "reason": "テスト仕様とテスト実装は、ユースケース駆動の concrete の語である。基盤に入れると、テストを保持しない concrete に意味の無い契約が課される"
     }
    ],
    "path": [
     {
+     "kind": "previous",
+     "letter": "B",
+     "body": "<b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する",
+     "why": "基盤が宣言の構造（kind ・ id ・ 節 ・ 参照）を知る形は、抽象の高さに合わない。基盤の契約を検証 ・ 描画 ・ 案内の3つにし、ドリフト検知をユースケース駆動の concrete の契約にした",
+     "user_words": "これスキーマ駆動自体も考え方的には抽象モデリングの考え方ですよ。concrateとしてのユースケース駆動に関するモデリングはおそらくですが、人間が確認承認できる構造化データになります。ここでイメージして欲しいのは、abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です。concrateスキーマ自体も同じ契約を持ちますが、ユースケース駆動に特化した表現になるところがabstructを具体した表現になってると思ってください。そしてこのconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け、このユースケースのシナリオ仕様とドメイン側の条件などを品質を担保する際の要素とし、これが実装側のテストに存在して正しくテストが通ってることを実装の品質として担保できるような仕組みとする。つまりconcrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ"
+    },
+    {
      "kind": "para",
-     "text": "利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。試作の基盤のコードを読み、宣言の形に concrete の構造が固定されていることを見つけた。"
+     "text": "利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。1回目は、試作の基盤のコードから宣言の形を削る方向で答えた。"
     }
    ],
    "findings": [
-    "試作の基盤は、kind を文字列のまま持ち、種類を列挙していない ── この方針は残す",
-    "試作の基盤は、宣言の形として rules ・ ops（pre ・ post ・ writes ・ nodes）を固定している ── ユースケースと DDD の構造が基盤に入っている",
-    "ACDR 0092 で、集約とドメインサービスの条件に ID を持たせると決めた ── pre ・ post が文字列の配列の形では表せないので、形を concrete へ移す必要がある",
-    "節と参照の在りかを申告で受け取れば、基盤は body の形を知らずに、節の一覧 ・ 参照と逆参照 ・ 引き算を行える ── JSONPath は値を選び出す文字列の構文として規格がある"
+    "利用者が、抽象の契約を検証 ・ 描画 ・ 案内の3つと示した ── 基盤は宣言の構造を認知せず、構造化データ一般を処理する",
+    "既存の Skill は、references の契約の版2 で validate と view を持ち、描画は title と x-view に従う ── 抽象の2つの契約は、すでに実装がある",
+    "no-more-spaghetti の案内の契約は、x-generates を持つスキーマの項目に x-prompt の read と write を要求する ── 抽象の3つ目の契約も、すでに形がある",
+    "9月のボードの論点11は、仕様の ID の集合とテストが申告する ID の集合を引き算すると決めた ── これはドリフト検知であり、ユースケース駆動の concrete の契約へ移す"
    ],
    "grounds": [
     {
-     "supports": "基盤を抽象として扱うこと",
-     "basis": "「これはね抽象設計的にはabstructレベルのもだからconcrate次第ではユースケース駆動のconcrate以外にも使える便利なものだと思ってくれたらいいよ」",
+     "supports": "基盤の契約が3つであること",
+     "basis": "「abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です」",
      "tag": "assumption",
-     "source": "利用者の言明（2026-10-02）"
+     "source": "利用者の言明（2026-10-03）"
     },
     {
-     "supports": "基盤が種類を列挙しないこと",
-     "basis": "kind は文字列のまま持つ ── 基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る",
-     "tag": "measured",
-     "source": "trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作） の Decl の注記"
+     "supports": "concrete がドリフト検知の契約を持つこと",
+     "basis": "「このconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け」「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
+     "tag": "assumption",
+     "source": "利用者の言明（2026-10-03）"
     },
     {
-     "supports": "試作の基盤が形を固定していること",
-     "basis": "Decl は kind ・ id ・ name ・ rules ・ ops ・ render ・ body を持ち、Op は name ・ pre ・ post ・ writes ・ nodes を持つ。pre と post は文字列の配列である",
+     "supports": "検証と描画がすでに実装されていること",
+     "basis": "どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）",
+     "tag": "rule",
+     "source": "skills-creator の references/document.json「references（契約の版2）」"
+    },
+    {
+     "supports": "描画が title と x-view に従うこと",
+     "basis": "契約が1つだけ持つ。見出しはスキーマの title、説明は description、見せ方は x-view",
+     "tag": "rule",
+     "source": "skills-creator の references/document.json「references（契約の版2）」"
+    },
+    {
+     "supports": "案内の契約の形",
+     "basis": "x-prompt は read と write を必須とし、最上位に x-generates を持つスキーマの項目に要求される",
      "tag": "measured",
-     "source": "trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作）"
+     "source": "no-more-spaghetti の references/schema-meta.schema.json"
+    },
+    {
+     "supports": "ドリフト検知の中身",
+     "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
+     "tag": "rule",
+     "source": "ボード usecase-schema-driven 論点11の決着"
     },
     {
      "supports": "基盤が方法論を認知しないこと",
      "basis": "基盤は方法論も AI ツールも知らない。注入点は2つ",
      "tag": "rule",
      "source": "ボード usecase-schema-driven 論点2の決着"
-    },
-    {
-     "supports": "注入を宣言で行うこと",
-     "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点10の決着"
-    },
-    {
-     "supports": "条件に ID を持たせること",
-     "basis": "集約とドメインサービスの操作の下には、シナリオではなく条件を ID 付きで置く",
-     "tag": "rule",
-     "source": "ACDR 0092（9月のボードの論点12の改訂）"
-    },
-    {
-     "supports": "在りかを JSONPath で書くこと",
-     "basis": "「JSONPath defines a string syntax for selecting and extracting JSON (RFC 8259) values from within a given JSON value.」",
-     "tag": "primary",
-     "source": "RFC 9535 JSONPath（sources/www.rfc-editor.org_rfc_rfc9535.txt:18、2026-10-02 取得）"
     }
    ],
    "requirements": [
-    "ユースケース駆動の concrete に、7種類の JSON Schema と、節と参照の在りかの申告を用意する ── 試作の基盤から移す形の受け皿になる",
-    "基盤に、JSONPath で在りかを読む処理を置く ── 既存の実装を使い、自作しない"
+    "ユースケース駆動の concrete に、宣言の Schema と、ドリフト検知の契約を用意する ── 試作の基盤が持つ宣言の形の受け皿になる",
+    "抽象の3つの契約を、既存の版2 の実装から取り出して1つの基盤にする ── Skill ごとに複製されている validate ・ view の実体を寄せる"
    ],
    "out_of_scope": [
     {
-     "item": "concrete が申告するものの一覧と形",
+     "item": "concrete が基盤に何をどの形で渡すか",
      "treatment": "later",
      "note": "論点2で決める"
     },
     {
-     "item": "射影（render）と変換の持ち方",
+     "item": "ドリフト検知でテストの一覧をどう受け取るか",
      "treatment": "later",
-     "note": "論点3で決める。試作では宣言ごとに render の名前を持っていた"
+     "note": "論点2で決める。9月の論点11は1行1ID の一覧と決めている"
     }
    ]
   },
@@ -256,12 +303,12 @@
    "no": 2,
    "name": "concrete の契約",
    "status": "waiting",
-   "question": "concrete は、基盤に何を、どの形で申告するか",
-   "answer": "論点1の決着後に出す。基盤が知る形が決まっている必要がある",
+   "question": "concrete は、3つの契約をどの形で満たし、ドリフト検知を何で行うか",
+   "answer": "論点1の決着後に出す。基盤と concrete の契約の境目が決まっている必要がある",
    "grounds": [
     {
      "supports": "この論点を待たせること",
-     "basis": "論点1の決着後に出す。基盤が知る形が決まっている必要がある",
+     "basis": "論点1の決着後に出す。基盤と concrete の契約の境目が決まっている必要がある",
      "tag": "rule",
      "source": "このボードの論点1"
     }
@@ -269,14 +316,14 @@
   },
   {
    "no": 3,
-   "name": "射影と変換",
+   "name": "描画の持ち方",
    "status": "waiting",
-   "question": "人が読む射影とツールごとの形を、基盤と concrete のどちらが持つか",
-   "answer": "論点2の決着後に出す。concrete が申告するものが決まっている必要がある",
+   "question": "描画の型とツールごとの形を、基盤と concrete のどちらが持つか",
+   "answer": "論点2の決着後に出す。concrete が渡すものが決まっている必要がある",
    "grounds": [
     {
      "supports": "この論点を待たせること",
-     "basis": "論点2の決着後に出す。concrete が申告するものが決まっている必要がある",
+     "basis": "論点2の決着後に出す。concrete が渡すものが決まっている必要がある",
      "tag": "rule",
      "source": "このボードの論点2"
     }
