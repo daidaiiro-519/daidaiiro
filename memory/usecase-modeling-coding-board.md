@@ -14,9 +14,9 @@ metadata:
 シナリオという語はユースケースにだけ使う。集約は不変条件と事前 ・ 事後条件を、ドメインサービスは事前 ・ 事後条件を持ち、テストはその条件と結ぶ（2026-10-02、宣言の形も合わせて直す前提。9月の試作の ops[].nodes を外す改訂は、このボードの決着後に ACDR で提示する）。
 Q7 は12回目で、テストを10の種類（宣言から7つ、実装の定義から3つ）にした。宣言に値オブジェクトの種類と、保証 ・ 業務イベント ・ サーガ ・ 公開された言葉の欄を足す（9月の宣言の6種類の改訂を伴う）。
 
-現在地（2026-10-02、17回目）：
+現在地（2026-10-02、18回目）：
 - 7論点すべてに答えが付いた。Q1〜4 は決着、Q5〜7 は承認済み（外の作業で試した時点で決着）
 - Q8（名前：domain-modeling ・ model-driven-design ・ use-case-driven-development）は回答待ち
-- 次にすること：Q8 の決着 → 9月のボードの改訂を ACDR で提示 → ctxtrace で外の作業 → no-more-spaghetti から引き継ぐものを ACDR で決める。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
+- 次にすること：Q8 の決着 → 9月のボードの改訂を ACDR で提示 → ctxtrace で外の作業 → no-more-spaghetti を廃止する（言語の高さで組まれた失敗作。何も引き継がない、利用者の判断 2026-10-02）。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
 
-持ち越し：ACDR 0085（no-more-spaghetti の inward の不備の修正、未コミット）は承認待ち。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）と規則ファイル（ctxtrace/.coding-rules/、未コミット）は、このボードの決着後に当てる。
+持ち越し：ACDR 0085（no-more-spaghetti の inward の修正、未コミット）と ctxtrace の作業ツリーの規則ファイルは、no-more-spaghetti の廃止に伴い取り下げるかを利用者に確認中。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）と規則ファイル（ctxtrace/.coding-rules/、未コミット）は、このボードの決着後に当てる。

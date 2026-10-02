@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "ユースケース抽象設計モデリングとユースケース抽象コーディング",
  "board": "usecase-modeling-coding",
- "round": 17,
+ "round": 18,
  "intro": [
   {
    "kind": "para",
@@ -15,7 +15,7 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点8（名前）を開いた（17回目）。</b>論点1〜4は決着、論点5〜7は承認済み。"
+     "text": "<b>no-more-spaghetti を下敷きにしていた箇所を外した（18回目）。</b>論点3の実装の定義は新しく設計するものとし、論点8は「何も引き継がない」にした。論点8は回答待ち。"
     }
    ]
   },
@@ -85,7 +85,7 @@
        "text": "外の作業で試す ── ctxtrace で、ドメインの宣言から実装の定義 ・ 10の種類のテストを導き、目的の連鎖の射影を出す（論点6 ・ 7）。インストーラで Claude Code と Codex に入れる（論点5）"
       },
       {
-       "text": "no-more-spaghetti から引き継ぐもの（inward ・ 規則の実行）と廃止するものを、ACDR で決める"
+       "text": "no-more-spaghetti を廃止する。何も引き継がない（言語の高さで組まれた失敗作として扱う）"
       }
      ]
     },
@@ -97,9 +97,6 @@
      "kind": "list",
      "items": [
       {
-       "text": "ACDR 0085（inward の不備の修正）── 承認待ち"
-      },
-      {
        "text": "brainstorming-board の不備（印の付いた項目が2列に割れない ・ 定型文言）と、ux-advisor の validate の不備 ── ACDR の提示待ち"
       },
       {
@@ -107,6 +104,9 @@
       },
       {
        "text": "テストの理論との照合 ── qa-advisor の作り直しの完了後"
+      },
+      {
+       "text": "no-more-spaghetti を前提にした作業（ACDR 0085、ctxtrace の作業ツリーの規則ファイル）── 取り下げるかを利用者に確認中"
       }
      ]
     }
@@ -1040,7 +1040,7 @@
     },
     {
      "body": "Skill に同梱する",
-     "reason": "層の識別子はプロダクトごとに違う。no-more-spaghetti の SKILL.md も「規則を、この Skill の中に置かない」と決めている"
+     "reason": "層の識別子と技術スタックはプロダクトごとに違うので、Skill に同梱した既定の規則は、どのプロダクトにも当てはまらない"
     }
    ],
    "path": [
@@ -1064,7 +1064,6 @@
     }
    ],
    "findings": [
-    "今の units は、プロダクトの入口の半分（根 ・ 言語 ・ 層）を保持している ── 実装の定義は、これを広げたものにする",
     "層の並びをポートとアダプターで固定した ── 実装の定義が書くのは、層がその言語でどこに該当するかだけになる",
     "コーディングの規則の源は、アーキテクチャと技術スタックの2つである ── シナリオの管理を書き込まない。書き込むとスキーマ駆動の道具を前提にし、単独で動かなくなる"
    ],
@@ -1080,12 +1079,6 @@
      "basis": "ctxtrace に言語の規則を適用したところ、整形 ・ 静的解析 ・ 試験の判定は出たが、ユースケースが入口にある不整合はどの規則も検出しなかった",
      "tag": "measured",
      "source": "ctxtrace（7816796）の検査（2026-10-01）"
-    },
-    {
-     "supports": "規則を Skill の中に置かないこと",
-     "basis": "規則を、この Skill の中に置かない。層の名前と識別子は成果物ごとに違う",
-     "tag": "rule",
-     "source": "no-more-spaghetti の SKILL.md（処理対象と成果物）"
     },
     {
      "supports": "シナリオ ID とテストの引き算",
@@ -1134,19 +1127,25 @@
      "basis": "エージェントが、スキーマ駆動の道具からシナリオを取り出してコーディングの Skill へ渡す",
      "tag": "rule",
      "source": "このボードの論点4（回答待ち）"
+    },
+    {
+     "supports": "no-more-spaghetti を下敷きにしないこと",
+     "basis": "「ノーモアスパゲッティにはあまりひきづられないで欲しい。これ失敗作です。そもそも言語依存すぎて参考にできるところがない」",
+     "tag": "assumption",
+     "source": "利用者の言明（2026-10-02）"
     }
    ],
    "requirements": [
-    "規則ファイルの units を、実装の定義へ広げる ── 今の units は根 ・ 言語 ・ 層しか持たない",
+    "実装の定義の形を、新しく設計する ── no-more-spaghetti の規則ファイルは言語の高さで組まれていて、下敷きにしない",
     "層ごとのテストの書き方を、コーディングの Skill の手順に持たせる ── テストの書き方は層で変わる（論点7）",
     "アダプターの契約試験の組がそろっているかを、実装の定義の規則にする ── ポートは実装の側のもので、スキーマ駆動の道具は検査できない",
     "appliedTo を、ドメインの宣言から実装の定義へ移す ── 適用するリポジトリは技術の側の情報だから"
    ],
    "out_of_scope": [
     {
-     "item": "no-more-spaghetti の道具（inward ・ 規則の実行）の引き継ぎ方",
-     "treatment": "later",
-     "note": "論点1〜6の決着後に ACDR で決める"
+     "item": "no-more-spaghetti の道具（inward ・ 規則の実行）",
+     "treatment": "resolved",
+     "note": "引き継がない。言語の高さで組まれた失敗作として廃止する（利用者の判断、2026-10-02）"
     },
     {
      "item": "外の作業で試すこと",
@@ -2733,10 +2732,16 @@
      "basis": "name は64字以内、小文字の英字 ・ 数字 ・ ハイフンだけ",
      "tag": "primary",
      "source": "Agent Skills Specification（sources/tools/agentskills.io_specification.md）"
+    },
+    {
+     "supports": "no-more-spaghetti を引き継がないこと",
+     "basis": "「ノーモアスパゲッティにはあまりひきづられないで欲しい。これ失敗作です。そもそも言語依存すぎて参考にできるところがない」",
+     "tag": "assumption",
+     "source": "利用者の言明（2026-10-02）"
     }
    ],
    "requirements": [
-    "no-more-spaghetti の名前を廃止し、引き継ぐものの置き場所を model-driven-design にする ── 道具（inward ・ 規則の実行）はコーディングの側で使う"
+    "no-more-spaghetti は廃止し、何も引き継がない ── 言語の高さで組まれていて、プロダクトの高さで導く今回の形の下敷きにならない"
    ],
    "out_of_scope": [
     {
