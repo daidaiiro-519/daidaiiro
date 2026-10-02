@@ -59,10 +59,16 @@ pub fn validate(schema: &Value, doc: &Value) -> Vec<String> {
 
 /// 更新の契約（削除の項目単位も同じ）：JSON Patch を適用し、検証を通過したときだけ書き込む。
 pub fn update(path: &Path, schema: &Value, patch: Value) -> Result<(), Vec<String>> {
+    update_with(path, schema, patch, &|_| vec![])
+}
+
+/// 更新の契約に、concrete の検証を足す注入点。check は適用したあとの実体を受け、違反を返す。
+pub fn update_with(path: &Path, schema: &Value, patch: Value, check: &dyn Fn(&Value) -> Vec<String>) -> Result<(), Vec<String>> {
     let mut doc = load(path);
     let p: json_patch::Patch = serde_json::from_value(patch).expect("JSON Patch でない");
     json_patch::patch(&mut doc, &p).map_err(|e| vec![e.to_string()])?;
-    let errs = validate(schema, &doc);
+    let mut errs = validate(schema, &doc);
+    errs.extend(check(&doc));
     if !errs.is_empty() {
         return Err(errs);
     }

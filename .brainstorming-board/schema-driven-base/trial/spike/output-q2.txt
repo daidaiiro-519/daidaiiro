@@ -1,0 +1,67 @@
+
+━━ 1. 作成と記入 ── $schema で種類を指し、注釈の付いた Schema から作る
+結果: Ok(())
+{
+  "id": "UC-1",
+  "name": "注文を確定する",
+  "goal": "注文が確定済になり、在庫が引き当てられている",
+  "writes": [
+    "AGG-1"
+  ],
+  "scenarios": [
+    {
+      "id": "S-1",
+      "name": "在庫があり、注文が確定する"
+    },
+    {
+      "id": "S-2",
+      "name": "在庫が足りず、確定を断る"
+    }
+  ],
+  "$schema": "../../schemas/use-case.q2.schema.json"
+}
+
+━━ 2. 注釈から読む ── x-test-spec と x-ref
+テスト仕様（x-test-spec）: ["AGG-1.INV-1", "AGG-1.PRE-1", "UC-1.S-1", "UC-1.S-2"]
+aggregate の参照（x-ref）: []
+use-case の参照（x-ref）: [("AGG-1", "aggregate")]
+集合の検証: []
+
+━━ 3. 更新 ── 項目の ID が重複する Patch は書き込まない
+結果: Err(["項目の ID が重複している: UC-1.S-1"])
+
+━━ 4. 更新 ── 無い宣言を指す Patch は書き込まない
+結果: Err(["UC-1 が指す AGG-9 が無い"])
+
+━━ 5. ドリフト検知 ── 報告の形が誤っていれば突き合わせない
+報告: {"results":[{"id":"UC-1.S-1","result":"ok"}]}
+結果: Some(["/results/0/result : \"ok\" is not one of \"pass\", \"fail\" or \"skip\""])
+
+━━ 6. ドリフト検知 ── 報告（test-report.json）とテスト仕様を突き合わせる
+{
+  "results": [
+    {
+      "id": "UC-1.S-1",
+      "result": "pass"
+    },
+    {
+      "id": "UC-1.S-2",
+      "result": "fail"
+    },
+    {
+      "id": "AGG-1.INV-1",
+      "result": "skip"
+    },
+    {
+      "id": "UC-1.S-3",
+      "result": "pass"
+    }
+  ]
+}
+仕様に在ってテストに無い: ["AGG-1.PRE-1"]
+テストに在って仕様に無い: ["UC-1.S-3"]
+通っていない:             [("AGG-1.INV-1", "skip"), ("UC-1.S-2", "fail")]
+
+━━ 7. 削除（実体）── 参照されている宣言は削除しない
+結果: Err(["UC-1 が指す AGG-1 が無い"])
+AGG-1 のファイルは残っている: true
