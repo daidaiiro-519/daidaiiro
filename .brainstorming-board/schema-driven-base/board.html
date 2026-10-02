@@ -1,0 +1,480 @@
+<title>スキーマ駆動の道具（抽象の基盤）</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="schema-driven-base" data-round="1" data-theme-name="スキーマ駆動の道具（抽象の基盤）"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　スキーマ駆動の道具（抽象の基盤）　/　Round 1</p><h1>スキーマ駆動の道具（抽象の基盤）</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>基盤が持つ形<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="wait"><span class="tn">Q2</span>concrete の契約<span class="st wait">待ち</span></button><button data-t="p3" aria-selected="false" class="wait"><span class="tn">Q3</span>射影と変換<span class="st wait">待ち</span></button><button data-t="p4" aria-selected="false" class="wait"><span class="tn">Q4</span>配り方と名前<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>スキーマ駆動の道具を、どの concrete にも使える抽象の基盤として形を決める。ユースケース駆動は、その上に載る concrete の1つである。</p></div><div class="front"><h3>いま見るのは 1 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　基盤が持つ形</button><br><span class="why">基盤が知る形の線引きが、concrete の契約 ・ 射影と変換 ・ 配り方のすべての前提になる</span></li></ol><p class="waiting">残り 3 件は、上流が決まるまで動く。回答欄は持たない。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>基盤は、宣言のどこまでの形を知るか</td><td><span class="st now">いま見る</span></td><td><b class="lead-s">B</b><div class="sub-s"><b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する</div></td></tr><tr><td><span class="n">2</span></td><td>concrete は、基盤に何を、どの形で申告するか</td><td><span class="st wait">待ち</span></td><td>論点1の決着後に出す。基盤が知る形が決まっている必要がある</td></tr><tr><td><span class="n">3</span></td><td>人が読む射影とツールごとの形を、基盤と concrete のどちらが持つか</td><td><span class="st wait">待ち</span></td><td>論点2の決着後に出す。concrete が申告するものが決まっている必要がある</td></tr><tr><td><span class="n">4</span></td><td>基盤と concrete を、どの単位で配り、何と呼ぶか</td><td><span class="st wait">待ち</span></td><td>論点1〜3の決着後に出す</td></tr></table></div><details><summary>いま見る論点</summary><div><b>論点1を開いた。</b>基盤が宣言のどこまでを知るかは、残りの論点すべての前提である。</div></details><details><summary>このボードの前提</summary><div><p>ボード usecase-schema-driven（9月）の決定のうち、基盤の仕組みに該当するもの（道具の範囲 ・ 方法論の注入 ・ 宣言が変わったときの扱い ・ concrete の注入形式 ・ 仕様の取り方と引き算）を土台にする。ボード usecase-modeling-coding と ACDR 0092 の決定は、ユースケース駆動の concrete の側の決定として扱う。</p></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>基盤は、宣言のどこまでの形を知るか</h2></div><div class="note">この論点が、基盤が concrete の語を含めずに済むかを決める。<b>論点2〜4は、この線を前提にする</b></div><div class="ans"><span class="big">B</span><b>基盤の宣言は4つの欄だけを持つ。</b>kind（種類の名前、文字列のまま）・ id ・ name ・ body（基盤は形を見ない）。<b>concrete が申告する3つ。</b><ul><li><b class="lead-s">種類ごとの JSON Schema</b><div class="sub-s">body の形と検査。操作 ・ 条件 ・ シナリオのような構造は、ここにだけ現れる</div></li><li><b class="lead-s">ID を持つ節の在りか</b><div class="sub-s">body の中のどこに、テストや外の識別子と結ぶ節があるかを JSONPath で書く</div></li><li><b class="lead-s">参照の在りか</b><div class="sub-s">body の中のどこが、どの種類の宣言の ID を指すかを JSONPath で書く。多重度もここに書く</div></li></ul><p>基盤は、この申告だけを読んで、節の一覧 ・ 参照と逆参照 ・ 引き算を行う。<b>試作の基盤が固定していた rules ・ ops ・ pre ・ post ・ writes ・ nodes は、ユースケース駆動の concrete の Schema へ移す。</b></p></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,578px)" class="wf-fig" viewBox="0 0 578 486" height="486" role="img"><g transform="translate(6.0,6.0)"><rect x="0.0" y="64.2" width="255.8" height="361.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><rect x="303.8" y="16.0" width="261.8" height="457.5" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><path d="M209.1,103.2 L434.7,62.8" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="434.7,62.8 428.5,66.4 427.6,61.6" fill="#C3CAD2"/><path d="M127.4,228.2 L343.1,178.5" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="343.1,178.5 337.1,182.4 336.0,177.6" fill="#C3CAD2"/><rect x="197.0" y="193.3" width="76.5" height="16.0" fill="#F5F7F9"/><text x="235.2" y="206.9" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">concrete へ</text><path d="M211.2,386.2 L435.2,327.8" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="435.2,327.8 429.3,331.9 428.1,327.1" fill="#C3CAD2"/><rect x="359.0" y="327.7" width="76.5" height="16.0" fill="#F5F7F9"/><text x="397.2" y="341.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">concrete へ</text><rect x="8.0" y="55.2" width="178.0" height="15.0" fill="#F5F7F9"/><text x="97.0" y="66.2" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">今の試作：基盤が宣言の形を固定する</text><rect x="311.8" y="7.0" width="253.0" height="15.0" fill="#F5F7F9"/><text x="438.3" y="18.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">基盤は最小の形だけ。残りは concrete が申告する</text><g class="wf-node" transform="translate(47.3,78.2)"><g class="svg-box" role="plain"><rect x="0" y="0" width="161.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="80.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">kind ・ id ・ name</text><text x="80.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">・ render ・ body</text></g></g><g class="wf-node" transform="translate(14.0,228.8)"><g class="svg-box" role="plain"><rect x="0" y="0" width="227.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="113.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">rules（predicate ・ check）</text></g></g><g class="wf-node" transform="translate(45.2,361.2)"><g class="svg-box" role="plain"><rect x="0" y="0" width="165.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="82.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ops（pre ・ post ・</text><text x="82.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">writes ・ nodes）</text></g></g><g class="wf-node" transform="translate(324.7,30.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">kind ・ id ・ name ・ body</text></g></g><g class="wf-node" transform="translate(343.9,162.5)"><g class="svg-box" role="focus"><rect x="0" y="0" width="181.6" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="90.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">種類ごとの JSON Schema</text></g></g><g class="wf-node" transform="translate(317.8,295.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="233.8" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="116.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">ID を持つ節の在りか（JSONPath）</text></g></g><g class="wf-node" transform="translate(341.5,427.5)"><g class="svg-box" role="focus"><rect x="0" y="0" width="186.4" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="93.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">参照の在りか（JSONPath）</text></g></g></g></svg><figcaption>今の試作は、操作 ・ 事前事後 ・ 書き換える先 ・ 規則 ・ 節を基盤の宣言の形として固定している。<b>基盤は最小の4つの欄だけを持ち</b>、残りは concrete が JSON Schema と在りかの申告で渡す。</figcaption></figure></div><div class="ex"><p>ユースケース駆動の concrete が申告する内容のスケッチ。<b>例示であって、決定ではない。</b></p><pre><code><pre><code>{
+  "concrete": "use-case-driven",
+  "kinds": {
+    "aggregate": {
+      "schema": "kinds/aggregate.schema.json",
+      "nodes": [
+        "$.body.invariants[*]",
+        "$.body.ops[*].pre[*]",
+        "$.body.ops[*].post[*]"
+      ],
+      "refs": [
+        {
+          "at": "$.body.context",
+          "to": "bounded-context",
+          "count": "1"
+        }
+      ]
+    },
+    "use-case": {
+      "schema": "kinds/use-case.schema.json",
+      "nodes": [
+        "$.body.ops[*].scenarios[*]",
+        "$.body.guarantees[*]"
+      ],
+      "refs": [
+        {
+          "at": "$.body.serves[*]",
+          "to": "domain#success"
+        },
+        {
+          "at": "$.body.ops[*].writes[*]",
+          "to": "aggregate"
+        }
+      ]
+    }
+  }
+}</code></pre></code></pre><p>この申告のもとでの、集約の宣言1件。基盤が読むのは kind ・ id ・ name と、申告された在りかの節（INV-1 ・ PRE-1 ・ POST-1）と参照（BC-配送）だけである。</p><pre><code><pre><code>{
+  "kind": "aggregate",
+  "id": "AGG-出荷指示",
+  "name": "出荷指示",
+  "body": {
+    "context": "BC-配送",
+    "invariants": [
+      {
+        "id": "INV-1",
+        "name": "明細の合計は、引当済の数量を超えない"
+      }
+    ],
+    "ops": [
+      {
+        "name": "確定する",
+        "pre": [
+          {
+            "id": "PRE-1",
+            "name": "明細が1件以上ある"
+          }
+        ],
+        "post": [
+          {
+            "id": "POST-1",
+            "name": "状態が確定済になる"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 4件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 4件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>今の試作の形のまま</b></td><td>基盤の宣言が rules ・ ops（pre ・ post ・ writes ・ nodes）・ render ・ body を持つ</td><td><span class="cost">ユースケースと DDD の構造が基盤に入る</span></td></tr><tr><td><span class="n">B</span></td><td><b>4つの欄と在りかの申告</b></td><td>基盤は kind ・ id ・ name ・ body だけを持ち、節と参照の在りかを concrete が JSONPath で申告する</td><td><span class="cost">concrete ごとに在りかを申告する</span></td></tr><tr><td><span class="n">C</span></td><td><b>基盤が種類の一覧を持つ</b></td><td>基盤が、宣言の種類ごとの Rust の型を持つ</td><td><span class="cost">種類の名前が基盤に入る</span></td></tr><tr><td><span class="n">D</span></td><td><b>在りかを申告せず、決まった名前の欄を探す</b></td><td>body の中の id という名前の欄を、すべて節とみなす</td><td><span class="cost">節でない ID（参照先など）と区別できない</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="操作 ・ 事前事後 ・ 書き換える先はユースケースと DDD の構造で、基盤が知ると別の concrete で使えない。ACDR 0092 で決めた「条件に ID を持たせる」も、pre ・ post が文字列の配列のままでは表せない"><b>今の試作の形のまま</b></mark></td><td>操作 ・ 事前事後 ・ 書き換える先はユースケースと DDD の構造で、基盤が知ると別の concrete で使えない。ACDR 0092 で決めた「条件に ID を持たせる」も、pre ・ post が文字列の配列のままでは表せない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="試作の基盤自身が「基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る」と書いている"><b>基盤が種類の一覧を持つ</b></mark></td><td>試作の基盤自身が「基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る」と書いている</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="参照先の ID も同じ名前の欄に入りうるので、テストと結ぶ節と、他の宣言を指す参照を区別できない"><b>在りかを申告せず、決まった名前の欄を探す</b></mark></td><td>参照先の ID も同じ名前の欄に入りうるので、テストと結ぶ節と、他の宣言を指す参照を区別できない</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>基盤に concrete の語が入るか</th><th>条件に ID を持たせられるか</th><th>別の concrete で使えるか</th></tr><tr><td><span class="n">今の試作の形のまま</span></td><td><b>入る</b>（ops ・ pre ・ post ・ writes）</td><td><b>持たせられない</b>（pre ・ post が文字列）</td><td>使いにくい</td></tr><tr><td><span class="n">4つの欄と在りかの申告</span></td><td><b>入らない</b></td><td><b>持たせられる</b>（在りかを申告するだけ）</td><td><b>使える</b></td></tr><tr><td><span class="n">基盤が種類の一覧を持つ</span></td><td><b>入る</b></td><td>持たせられる</td><td>使えない</td></tr><tr><td><span class="n">在りかを申告せず、決まった名前の欄を探す</span></td><td>入らない</td><td>持たせられる</td><td>使えるが、節と参照を取り違える</td></tr></table></div></div></details><details><summary>この答えの前提（7件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">在りかを JSONPath で書くこと</span></td><td>「JSONPath defines a string syntax for selecting and extracting JSON (RFC 8259) values from within a given JSON value.」</td><td><span class="kind k-src">原典</span><small>RFC 9535 JSONPath（sources/www.rfc-editor.org_rfc_rfc9535.txt:18、2026-10-02 取得）</small></td></tr><tr><td><span class="part">基盤が方法論を認知しないこと</span></td><td>基盤は方法論も AI ツールも知らない。注入点は2つ</td><td><span class="kind k-rule">決まり</span><small>ボード usecase-schema-driven 論点2の決着</small></td></tr><tr><td><span class="part">注入を宣言で行うこと</span></td><td>既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す</td><td><span class="kind k-rule">決まり</span><small>ボード usecase-schema-driven 論点10の決着</small></td></tr><tr><td><span class="part">条件に ID を持たせること</span></td><td>集約とドメインサービスの操作の下には、シナリオではなく条件を ID 付きで置く</td><td><span class="kind k-rule">決まり</span><small>ACDR 0092（9月のボードの論点12の改訂）</small></td></tr><tr><td><span class="part">基盤が種類を列挙しないこと</span></td><td><b class="lead-s">kind は文字列のまま持つ</b><div class="sub-s">基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る</div></td><td><span class="kind k-fact">実測</span><small>trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作） の Decl の注記</small></td></tr><tr><td><span class="part">試作の基盤が形を固定していること</span></td><td>Decl は kind ・ id ・ name ・ rules ・ ops ・ render ・ body を持ち、Op は name ・ pre ・ post ・ writes ・ nodes を持つ。pre と post は文字列の配列である</td><td><span class="kind k-fact">実測</span><small>trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作）</small></td></tr><tr><td><span class="part">基盤を抽象として扱うこと</span></td><td>「これはね抽象設計的にはabstructレベルのもだからconcrate次第ではユースケース駆動のconcrate以外にも使える便利なものだと思ってくれたらいいよ」</td><td><span class="kind k-given">前提</span><small>利用者の言明（2026-10-02）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>concrete が申告するものの一覧と形</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点2で決める</div></td></tr><tr><td>射影（render）と変換の持ち方</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。試作では宣言ごとに render の名前を持っていた</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。試作の基盤のコードを読み、宣言の形に concrete の構造が固定されていることを見つけた。</p></li></ol></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">試作の基盤は、kind を文字列のまま持ち、種類を列挙していない</b><div class="sub-s">この方針は残す</div></b></td><td></td></tr><tr><td><b><b class="lead-s">試作の基盤は、宣言の形として rules ・ ops（pre ・ post ・ writes ・ nodes）を固定している</b><div class="sub-s">ユースケースと DDD の構造が基盤に入っている</div></b></td><td></td></tr><tr><td><b><b class="lead-s">ACDR 0092 で、集約とドメインサービスの条件に ID を持たせると決めた</b><div class="sub-s">pre ・ post が文字列の配列の形では表せないので、形を concrete へ移す必要がある</div></b></td><td></td></tr><tr><td><b><b class="lead-s">節と参照の在りかを申告で受け取れば、基盤は body の形を知らずに、節の一覧 ・ 参照と逆参照 ・ 引き算を行える</b><div class="sub-s">JSONPath は値を選び出す文字列の構文として規格がある</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b><b class="lead-s">ユースケース駆動の concrete に、7種類の JSON Schema と、節と参照の在りかの申告を用意する</b><div class="sub-s">試作の基盤から移す形の受け皿になる</div></b></td><td></td></tr><tr><td><b><b class="lead-s">基盤に、JSONPath で在りかを読む処理を置く</b><div class="sub-s">既存の実装を使い、自作しない</div></b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q1" data-title="基盤は、宣言のどこまでの形を知るか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>concrete は、基盤に何を、どの形で申告するか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">この論点を待たせること</span></td><td>論点1の決着後に出す。基盤が知る形が決まっている必要がある</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1</small></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>人が読む射影とツールごとの形を、基盤と concrete のどちらが持つか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">この論点を待たせること</span></td><td>論点2の決着後に出す。concrete が申告するものが決まっている必要がある</td><td><span class="kind k-rule">決まり</span><small>このボードの論点2</small></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>基盤と concrete を、どの単位で配り、何と呼ぶか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">この論点を待たせること</span></td><td>論点1〜3の決着後に出す</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1 ・ 論点2 ・ 論点3</small></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 1</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

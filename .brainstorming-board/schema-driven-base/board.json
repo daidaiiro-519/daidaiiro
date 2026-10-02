@@ -1,0 +1,301 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "title": "スキーマ駆動の道具（抽象の基盤）",
+ "board": "schema-driven-base",
+ "round": 1,
+ "intro": [
+  {
+   "kind": "para",
+   "text": "スキーマ駆動の道具を、どの concrete にも使える抽象の基盤として形を決める。ユースケース駆動は、その上に載る concrete の1つである。"
+  }
+ ],
+ "panels": [
+  {
+   "heading": "いま見る論点",
+   "body": [
+    {
+     "kind": "para",
+     "text": "<b>論点1を開いた。</b>基盤が宣言のどこまでを知るかは、残りの論点すべての前提である。"
+    }
+   ]
+  },
+  {
+   "heading": "このボードの前提",
+   "body": [
+    {
+     "kind": "para",
+     "text": "ボード usecase-schema-driven（9月）の決定のうち、基盤の仕組みに該当するもの（道具の範囲 ・ 方法論の注入 ・ 宣言が変わったときの扱い ・ concrete の注入形式 ・ 仕様の取り方と引き算）を土台にする。ボード usecase-modeling-coding と ACDR 0092 の決定は、ユースケース駆動の concrete の側の決定として扱う。"
+    }
+   ]
+  }
+ ],
+ "queue": [
+  {
+   "no": 1,
+   "why": "基盤が知る形の線引きが、concrete の契約 ・ 射影と変換 ・ 配り方のすべての前提になる"
+  }
+ ],
+ "topics": [
+  {
+   "no": 1,
+   "name": "基盤が持つ形",
+   "status": "open",
+   "question": "基盤は、宣言のどこまでの形を知るか",
+   "answer": "B ── <b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する",
+   "intro": "この論点が、基盤が concrete の語を含めずに済むかを決める。<b>論点2〜4は、この線を前提にする</b>",
+   "decision": {
+    "letter": "B",
+    "text": [
+     {
+      "kind": "para",
+      "text": "<b>基盤の宣言は4つの欄だけを持つ。</b>kind（種類の名前、文字列のまま）・ id ・ name ・ body（基盤は形を見ない）。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>concrete が申告する3つ。</b>"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>種類ごとの JSON Schema</b> ── body の形と検査。操作 ・ 条件 ・ シナリオのような構造は、ここにだけ現れる"
+       },
+       {
+        "text": "<b>ID を持つ節の在りか</b> ── body の中のどこに、テストや外の識別子と結ぶ節があるかを JSONPath で書く"
+       },
+       {
+        "text": "<b>参照の在りか</b> ── body の中のどこが、どの種類の宣言の ID を指すかを JSONPath で書く。多重度もここに書く"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "基盤は、この申告だけを読んで、節の一覧 ・ 参照と逆参照 ・ 引き算を行う。<b>試作の基盤が固定していた rules ・ ops ・ pre ・ post ・ writes ・ nodes は、ユースケース駆動の concrete の Schema へ移す。</b>"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "ユースケース駆動の concrete が申告する内容のスケッチ。<b>例示であって、決定ではない。</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>{\n  \"concrete\": \"use-case-driven\",\n  \"kinds\": {\n    \"aggregate\": {\n      \"schema\": \"kinds/aggregate.schema.json\",\n      \"nodes\": [\n        \"$.body.invariants[*]\",\n        \"$.body.ops[*].pre[*]\",\n        \"$.body.ops[*].post[*]\"\n      ],\n      \"refs\": [\n        {\n          \"at\": \"$.body.context\",\n          \"to\": \"bounded-context\",\n          \"count\": \"1\"\n        }\n      ]\n    },\n    \"use-case\": {\n      \"schema\": \"kinds/use-case.schema.json\",\n      \"nodes\": [\n        \"$.body.ops[*].scenarios[*]\",\n        \"$.body.guarantees[*]\"\n      ],\n      \"refs\": [\n        {\n          \"at\": \"$.body.serves[*]\",\n          \"to\": \"domain#success\"\n        },\n        {\n          \"at\": \"$.body.ops[*].writes[*]\",\n          \"to\": \"aggregate\"\n        }\n      ]\n    }\n  }\n}</code></pre>"
+    },
+    {
+     "kind": "para",
+     "text": "この申告のもとでの、集約の宣言1件。基盤が読むのは kind ・ id ・ name と、申告された在りかの節（INV-1 ・ PRE-1 ・ POST-1）と参照（BC-配送）だけである。"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>{\n  \"kind\": \"aggregate\",\n  \"id\": \"AGG-出荷指示\",\n  \"name\": \"出荷指示\",\n  \"body\": {\n    \"context\": \"BC-配送\",\n    \"invariants\": [\n      {\n        \"id\": \"INV-1\",\n        \"name\": \"明細の合計は、引当済の数量を超えない\"\n      }\n    ],\n    \"ops\": [\n      {\n        \"name\": \"確定する\",\n        \"pre\": [\n          {\n            \"id\": \"PRE-1\",\n            \"name\": \"明細が1件以上ある\"\n          }\n        ],\n        \"post\": [\n          {\n            \"id\": \"POST-1\",\n            \"name\": \"状態が確定済になる\"\n          }\n        ]\n      }\n    ]\n  }\n}</code></pre>"
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "shape",
+     "caption": "今の試作は、操作 ・ 事前事後 ・ 書き換える先 ・ 規則 ・ 節を基盤の宣言の形として固定している。<b>基盤は最小の4つの欄だけを持ち</b>、残りは concrete が JSON Schema と在りかの申告で渡す。"
+    }
+   ],
+   "passed": [
+    {
+     "name": "今の試作の形のまま",
+     "body": "基盤の宣言が rules ・ ops（pre ・ post ・ writes ・ nodes）・ render ・ body を持つ",
+     "cost": "ユースケースと DDD の構造が基盤に入る"
+    },
+    {
+     "name": "4つの欄と在りかの申告",
+     "body": "基盤は kind ・ id ・ name ・ body だけを持ち、節と参照の在りかを concrete が JSONPath で申告する",
+     "cost": "concrete ごとに在りかを申告する"
+    },
+    {
+     "name": "基盤が種類の一覧を持つ",
+     "body": "基盤が、宣言の種類ごとの Rust の型を持つ",
+     "cost": "種類の名前が基盤に入る"
+    },
+    {
+     "name": "在りかを申告せず、決まった名前の欄を探す",
+     "body": "body の中の id という名前の欄を、すべて節とみなす",
+     "cost": "節でない ID（参照先など）と区別できない"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "基盤に concrete の語が入るか",
+      "条件に ID を持たせられるか",
+      "別の concrete で使えるか"
+     ],
+     "rows": [
+      [
+       "今の試作の形のまま",
+       [
+        "<b>入る</b>（ops ・ pre ・ post ・ writes）",
+        "<b>持たせられない</b>（pre ・ post が文字列）",
+        "使いにくい"
+       ]
+      ],
+      [
+       "4つの欄と在りかの申告",
+       [
+        "<b>入らない</b>",
+        "<b>持たせられる</b>（在りかを申告するだけ）",
+        "<b>使える</b>"
+       ]
+      ],
+      [
+       "基盤が種類の一覧を持つ",
+       [
+        "<b>入る</b>",
+        "持たせられる",
+        "使えない"
+       ]
+      ],
+      [
+       "在りかを申告せず、決まった名前の欄を探す",
+       [
+        "入らない",
+        "持たせられる",
+        "使えるが、節と参照を取り違える"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "今の試作の形のまま",
+     "reason": "操作 ・ 事前事後 ・ 書き換える先はユースケースと DDD の構造で、基盤が知ると別の concrete で使えない。ACDR 0092 で決めた「条件に ID を持たせる」も、pre ・ post が文字列の配列のままでは表せない"
+    },
+    {
+     "body": "基盤が種類の一覧を持つ",
+     "reason": "試作の基盤自身が「基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る」と書いている"
+    },
+    {
+     "body": "在りかを申告せず、決まった名前の欄を探す",
+     "reason": "参照先の ID も同じ名前の欄に入りうるので、テストと結ぶ節と、他の宣言を指す参照を区別できない"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。試作の基盤のコードを読み、宣言の形に concrete の構造が固定されていることを見つけた。"
+    }
+   ],
+   "findings": [
+    "試作の基盤は、kind を文字列のまま持ち、種類を列挙していない ── この方針は残す",
+    "試作の基盤は、宣言の形として rules ・ ops（pre ・ post ・ writes ・ nodes）を固定している ── ユースケースと DDD の構造が基盤に入っている",
+    "ACDR 0092 で、集約とドメインサービスの条件に ID を持たせると決めた ── pre ・ post が文字列の配列の形では表せないので、形を concrete へ移す必要がある",
+    "節と参照の在りかを申告で受け取れば、基盤は body の形を知らずに、節の一覧 ・ 参照と逆参照 ・ 引き算を行える ── JSONPath は値を選び出す文字列の構文として規格がある"
+   ],
+   "grounds": [
+    {
+     "supports": "基盤を抽象として扱うこと",
+     "basis": "「これはね抽象設計的にはabstructレベルのもだからconcrate次第ではユースケース駆動のconcrate以外にも使える便利なものだと思ってくれたらいいよ」",
+     "tag": "assumption",
+     "source": "利用者の言明（2026-10-02）"
+    },
+    {
+     "supports": "基盤が種類を列挙しないこと",
+     "basis": "kind は文字列のまま持つ ── 基盤が種類を列挙してはならない。列挙した瞬間、方法論の語彙が基盤へ入る",
+     "tag": "measured",
+     "source": "trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作） の Decl の注記"
+    },
+    {
+     "supports": "試作の基盤が形を固定していること",
+     "basis": "Decl は kind ・ id ・ name ・ rules ・ ops ・ render ・ body を持ち、Op は name ・ pre ・ post ・ writes ・ nodes を持つ。pre と post は文字列の配列である",
+     "tag": "measured",
+     "source": "trial/spike/base/src/lib.rs（ボード usecase-schema-driven の試作）"
+    },
+    {
+     "supports": "基盤が方法論を認知しないこと",
+     "basis": "基盤は方法論も AI ツールも知らない。注入点は2つ",
+     "tag": "rule",
+     "source": "ボード usecase-schema-driven 論点2の決着"
+    },
+    {
+     "supports": "注入を宣言で行うこと",
+     "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
+     "tag": "rule",
+     "source": "ボード usecase-schema-driven 論点10の決着"
+    },
+    {
+     "supports": "条件に ID を持たせること",
+     "basis": "集約とドメインサービスの操作の下には、シナリオではなく条件を ID 付きで置く",
+     "tag": "rule",
+     "source": "ACDR 0092（9月のボードの論点12の改訂）"
+    },
+    {
+     "supports": "在りかを JSONPath で書くこと",
+     "basis": "「JSONPath defines a string syntax for selecting and extracting JSON (RFC 8259) values from within a given JSON value.」",
+     "tag": "primary",
+     "source": "RFC 9535 JSONPath（sources/www.rfc-editor.org_rfc_rfc9535.txt:18、2026-10-02 取得）"
+    }
+   ],
+   "requirements": [
+    "ユースケース駆動の concrete に、7種類の JSON Schema と、節と参照の在りかの申告を用意する ── 試作の基盤から移す形の受け皿になる",
+    "基盤に、JSONPath で在りかを読む処理を置く ── 既存の実装を使い、自作しない"
+   ],
+   "out_of_scope": [
+    {
+     "item": "concrete が申告するものの一覧と形",
+     "treatment": "later",
+     "note": "論点2で決める"
+    },
+    {
+     "item": "射影（render）と変換の持ち方",
+     "treatment": "later",
+     "note": "論点3で決める。試作では宣言ごとに render の名前を持っていた"
+    }
+   ]
+  },
+  {
+   "no": 2,
+   "name": "concrete の契約",
+   "status": "waiting",
+   "question": "concrete は、基盤に何を、どの形で申告するか",
+   "answer": "論点1の決着後に出す。基盤が知る形が決まっている必要がある",
+   "grounds": [
+    {
+     "supports": "この論点を待たせること",
+     "basis": "論点1の決着後に出す。基盤が知る形が決まっている必要がある",
+     "tag": "rule",
+     "source": "このボードの論点1"
+    }
+   ]
+  },
+  {
+   "no": 3,
+   "name": "射影と変換",
+   "status": "waiting",
+   "question": "人が読む射影とツールごとの形を、基盤と concrete のどちらが持つか",
+   "answer": "論点2の決着後に出す。concrete が申告するものが決まっている必要がある",
+   "grounds": [
+    {
+     "supports": "この論点を待たせること",
+     "basis": "論点2の決着後に出す。concrete が申告するものが決まっている必要がある",
+     "tag": "rule",
+     "source": "このボードの論点2"
+    }
+   ]
+  },
+  {
+   "no": 4,
+   "name": "配り方と名前",
+   "status": "waiting",
+   "question": "基盤と concrete を、どの単位で配り、何と呼ぶか",
+   "answer": "論点1〜3の決着後に出す",
+   "grounds": [
+    {
+     "supports": "この論点を待たせること",
+     "basis": "論点1〜3の決着後に出す",
+     "tag": "rule",
+     "source": "このボードの論点1 ・ 論点2 ・ 論点3"
+    }
+   ]
+  }
+ ]
+}
