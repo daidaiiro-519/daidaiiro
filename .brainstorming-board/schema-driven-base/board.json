@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "スキーマ駆動の道具（抽象の基盤）",
  "board": "schema-driven-base",
- "round": 2,
+ "round": 3,
  "intro": [
   {
    "kind": "para",
@@ -15,7 +15,7 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1を組み直した。</b>基盤の契約は検証 ・ 描画 ・ 案内の3つで、ドリフト検知は concrete の契約である。残りの論点すべての前提になる。"
+     "text": "<b>論点1を組み直した。</b>基盤の契約は、操作の4つ（作成 ・ 取得 ・ 更新 ・ 削除）と形の3つ（検証 ・ 描画 ・ 案内）の7つである。ドリフト検知は concrete の契約である。"
     }
    ]
   },
@@ -41,23 +41,44 @@
    "name": "基盤が持つ契約",
    "status": "open",
    "question": "抽象の基盤は、何を契約として持つか",
-   "answer": "B′ ── <b>抽象の基盤は3つの契約だけを持つ。</b>スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write である。ユースケース駆動の concrete は同じ3つを特化した表現で持ち、<b>テスト仕様とテスト実装のドリフト検知</b>の契約を足す",
+   "answer": "B″ ── <b>抽象の基盤は7つの契約を持つ。</b>操作の4つ（作成 ・ 取得 ・ 更新 ・ 削除）と、形の3つ（検証 ・ 描画 ・ 案内）である。<b>取得は JMESPath、更新と削除は JSON Patch</b> で受ける。ユースケース駆動の concrete は同じ7つを特化した表現で持ち、ドリフト検知の契約を足す",
    "intro": "この論点が、基盤と concrete の境目を決める。<b>論点2〜4は、この線を前提にする</b>",
    "decision": {
-    "letter": "B′",
+    "letter": "B″",
     "text": [
      {
       "kind": "para",
-      "text": "<b>抽象の基盤の契約は3つである。</b>どの構造化データにも、同じ3つを課す。"
+      "text": "<b>操作の契約は4つである。</b>実体の JSON を作成 ・ 取得 ・ 更新 ・ 削除する。"
      },
      {
       "kind": "list",
       "items": [
        {
-        "text": "<b>スキーマ検証の契約</b> ── 構造化データを JSON Schema で検証できる"
+        "text": "<b>作成の契約</b> ── スキーマから実体の JSON を作成する。置き場所はスキーマの x-generates が決める"
        },
        {
-        "text": "<b>描画の契約</b> ── 構造化データを Markdown と HTML へ描画できる。見出しはスキーマの title、見せ方は x-view が決める"
+        "text": "<b>取得の契約</b> ── 実体から、JMESPath の式で値を取得する"
+       },
+       {
+        "text": "<b>更新の契約</b> ── 実体を、JSON Patch（RFC 6902）で更新する。位置は JSON Pointer で指す"
+       },
+       {
+        "text": "<b>削除の契約</b> ── 実体の項目を JSON Patch の remove で削除し、実体そのものはファイル単位で削除する"
+       }
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>形の契約は3つである。</b>どの実体にも同じ3つを課す。"
+     },
+     {
+      "kind": "list",
+      "items": [
+       {
+        "text": "<b>スキーマ検証の契約</b> ── 実体を JSON Schema で検証する"
+       },
+       {
+        "text": "<b>描画の契約</b> ── 実体を Markdown と HTML へ描画する。見出しはスキーマの title、見せ方は x-view が決める"
        },
        {
         "text": "<b>案内の契約</b> ── 項目ごとに x-prompt の read（読み取るとき）と write（値を書くとき）を持つ"
@@ -66,11 +87,11 @@
      },
      {
       "kind": "para",
-      "text": "<b>concrete も同じ3つの契約を持つ。</b>違うのは表現だけである。ユースケース駆動の concrete は、人が確認して承認できる構造化データとして宣言を持つ。"
+      "text": "<b>更新と削除は、適用したあとの実体が検証の契約を通過したときだけ書き込む。</b>作成した直後の実体は、未記入の項目があるので検証を通過しなくてよい。"
      },
      {
       "kind": "para",
-      "text": "<b>ユースケース駆動の concrete は、4つ目の契約を持つ。</b>テスト仕様とテスト実装のドリフト検知である。"
+      "text": "<b>concrete も同じ7つの契約を持つ。</b>違うのは表現だけである。ユースケース駆動の concrete は、人が確認して承認できる構造化データとして宣言を持ち、ドリフト検知の契約を足す。"
      },
      {
       "kind": "list",
@@ -106,8 +127,28 @@
      ],
      "rows": [
       [
+       "作成",
+       "スキーマから実体の JSON を作成し、x-generates の場所へ置く",
+       "宣言の種類の Schema から、未記入の宣言を作成する"
+      ],
+      [
+       "取得",
+       "JMESPath の式で値を取得する",
+       "例：<code>scenarios[].id</code> でユースケースのシナリオ ID の一覧を取得する"
+      ],
+      [
+       "更新",
+       "JSON Patch を適用し、検証を通過したときだけ書き込む",
+       "宣言の項目を更新する。例：<code>{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"…\"}</code>"
+      ],
+      [
+       "削除",
+       "JSON Patch の remove と、ファイル単位の削除",
+       "宣言を削除し、その宣言を指す参照が残っていれば報告する"
+      ],
+      [
        "スキーマ検証",
-       "任意の構造化データを、それが指す JSON Schema で検証する",
+       "任意の実体を、それが指す JSON Schema で検証する",
        "宣言の種類ごとの Schema（ドメイン ・ ユースケース ・ 集約 ・ ドメインサービスなど）で検証する"
       ],
       [
@@ -129,36 +170,41 @@
     },
     {
      "kind": "para",
-     "text": "既存の Skill は、すでに抽象の3つの契約に従っている。references の契約の版2 の validate と view、x-view、x-prompt の read と write がそれである。"
+     "text": "Rust には、どちらも crate がある。<code>jmespath</code>（0.5.0、2026-01-19 更新）と <code>json-patch</code>（4.2.0、2026-04-30 更新）である。"
     }
    ],
    "figures": [
     {
      "kind": "figure",
      "name": "contracts",
-     "caption": "抽象の基盤は3つの契約を持つ。<b>concrete は同じ3つを具体化し</b>、ユースケース駆動の concrete は<b>ドリフト検知の契約</b>を足す。"
+     "caption": "左が抽象の基盤の7つの契約、右がユースケース駆動の concrete での具体化である。<b>矢印は具体化を示す。</b>ドリフト検知は concrete だけが持つ。"
     }
    ],
    "passed": [
     {
-     "name": "3つの契約と、concrete のドリフト検知",
-     "body": "基盤は検証 ・ 描画 ・ 案内の3つを持ち、ドリフト検知はユースケース駆動の concrete が持つ",
-     "cost": "concrete ごとに、3つの契約の表現を用意する"
+     "name": "7つの契約（取得は JMESPath、更新と削除は JSON Patch）",
+     "body": "基盤は操作の4つと形の3つを持ち、ドリフト検知はユースケース駆動の concrete が持つ",
+     "cost": "取得と更新で、式の文法が2つになる"
     },
     {
-     "name": "4つの欄と在りかの申告（1回目の答え）",
-     "body": "基盤が kind ・ id ・ name ・ body を持ち、節と参照の在りかを concrete が JSONPath で申告する",
-     "cost": "基盤が宣言の形を知る"
+     "name": "形の3つだけ（2回目の答え）",
+     "body": "基盤は検証 ・ 描画 ・ 案内だけを持つ",
+     "cost": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作る"
     },
     {
-     "name": "検証だけを持つ",
-     "body": "基盤はスキーマ検証だけを持ち、描画と案内は concrete が持つ",
-     "cost": "concrete ごとに描画と案内を作る"
+     "name": "取得も更新も JMESPath",
+     "body": "1つの文法で、読むことと書くことを受ける",
+     "cost": "書き込む位置を指せない"
     },
     {
-     "name": "ドリフト検知も基盤が持つ",
-     "body": "仕様とテストの突き合わせを、基盤の4つ目の契約にする",
-     "cost": "テストという concrete の語が基盤に入る"
+     "name": "全部を JSONPath",
+     "body": "取得は JSONPath で行い、結果の位置（Normalized Path）を更新と削除に使う",
+     "cost": "取得の結果を組み替えられない"
+    },
+    {
+     "name": "全部を JSON Pointer",
+     "body": "取得も更新も削除も、1つの位置を指す JSON Pointer で受ける",
+     "cost": "条件で絞った一覧を取得できない"
     }
    ],
    "tables": [
@@ -166,40 +212,48 @@
      "caption": "案ごとの帰結",
      "cols": [
       "基盤に宣言の構造が入るか",
-      "別の concrete で使えるか",
-      "既存の Skill の契約と一致するか"
+      "取得で一覧を絞って組み替えられるか",
+      "書き込む位置を規格で指せるか"
      ],
      "rows": [
       [
-       "3つの契約と、concrete のドリフト検知",
+       "7つの契約（取得は JMESPath、更新と削除は JSON Patch）",
        [
         "<b>入らない</b>",
-        "<b>使える</b>",
-        "<b>一致する</b>（版2 の validate ・ view ・ x-prompt）"
+        "<b>できる</b>（JMESPath）",
+        "<b>指せる</b>（JSON Patch の path）"
        ]
       ],
       [
-       "4つの欄と在りかの申告（1回目の答え）",
-       [
-        "<b>入る</b>（kind ・ id ・ 節 ・ 参照）",
-        "宣言を持つ concrete でだけ使える",
-        "一致しない"
-       ]
-      ],
-      [
-       "検証だけを持つ",
+       "形の3つだけ（2回目の答え）",
        [
         "入らない",
-        "使える",
-        "一致しない（描画と案内が concrete ごとに分かれる）"
+        "基盤では扱わない",
+        "基盤では扱わない"
        ]
       ],
       [
-       "ドリフト検知も基盤が持つ",
+       "取得も更新も JMESPath",
        [
-        "<b>入る</b>（テスト仕様とテスト実装）",
-        "テストを保持しない concrete では使えない",
-        "一致する"
+        "入らない",
+        "できる",
+        "<b>指せない</b>（結果は値だけ）"
+       ]
+      ],
+      [
+       "全部を JSONPath",
+       [
+        "入らない",
+        "絞れるが、組み替えられない",
+        "指せる（Normalized Path）が、書き込みの規格は別に必要"
+       ]
+      ],
+      [
+       "全部を JSON Pointer",
+       [
+        "入らない",
+        "<b>できない</b>（1つの値だけを指す）",
+        "指せる"
        ]
       ]
      ]
@@ -207,19 +261,30 @@
    ],
    "dropped": [
     {
-     "body": "4つの欄と在りかの申告（1回目の答え）",
-     "reason": "基盤が kind ・ id ・ 節 ・ 参照という宣言の構造を知ることになり、抽象の高さが下がる。利用者が、基盤の契約は検証 ・ 描画 ・ 案内の3つだと示した"
+     "body": "形の3つだけ（2回目の答え）",
+     "reason": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作ると、実体の扱いが concrete ごとに分かれる。利用者が、この4つも基盤の契約だと示した"
     },
     {
-     "body": "検証だけを持つ",
-     "reason": "描画と案内が concrete ごとに作られ、見た目と書き方が concrete ごとに分かれる。既存の契約の版2 も、検証と描画と案内を1つの契約で持つ"
+     "body": "取得も更新も JMESPath",
+     "reason": "JMESPath の結果は JSON の値で、元の位置を返さない。書き込む先を指せないので、更新と削除には使えない"
     },
     {
-     "body": "ドリフト検知も基盤が持つ",
-     "reason": "テスト仕様とテスト実装は、ユースケース駆動の concrete の語である。基盤に入れると、テストを保持しない concrete に意味の無い契約が課される"
+     "body": "全部を JSONPath",
+     "reason": "取得の結果は節の一覧で、読み手に合わせて形を組み替えられない。更新の規格も JSONPath には無いので、結局 JSON Patch が必要になる"
+    },
+    {
+     "body": "全部を JSON Pointer",
+     "reason": "1つの位置しか指せないので、x-prompt の read が必要とする「条件で絞った一覧」を取得できない"
     }
    ],
    "path": [
+    {
+     "kind": "previous",
+     "letter": "B′",
+     "body": "抽象の基盤は3つの契約（スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write）だけを持つ。ユースケース駆動の concrete は同じ3つを特化した表現で持ち、ドリフト検知の契約を足す",
+     "why": "操作の契約（作成 ・ 取得 ・ 更新 ・ 削除）が欠けていた。取得は JMESPath、更新と削除は JSON Patch で受ける形にした",
+     "user_words": "あと大事な契約を忘れてました。取得と更新、削除はありますね。あとはスキーマからも実体jsonを作成するのもいるね。取得ではJMESを使うんじゃないか？"
+    },
     {
      "kind": "previous",
      "letter": "B",
@@ -233,23 +298,67 @@
     }
    ],
    "findings": [
-    "利用者が、抽象の契約を検証 ・ 描画 ・ 案内の3つと示した ── 基盤は宣言の構造を認知せず、構造化データ一般を処理する",
-    "既存の Skill は、references の契約の版2 で validate と view を持ち、描画は title と x-view に従う ── 抽象の2つの契約は、すでに実装がある",
-    "no-more-spaghetti の案内の契約は、x-generates を持つスキーマの項目に x-prompt の read と write を要求する ── 抽象の3つ目の契約も、すでに形がある",
+    "利用者が、作成 ・ 取得 ・ 更新 ・ 削除も基盤の契約だと示した ── 基盤の契約は、操作の4つと形の3つの7つになる",
+    "JMESPath は、構造化データを受けて構造化データを返す ── 取得の結果を、読み手に合わせた形へ組み替えられる",
+    "JMESPath の仕様には、結果の位置を返す規定が無い ── 書き込む位置を指せないので、更新と削除は別の規格で受ける",
+    "JSON Patch は、操作ごとに JSON Pointer で位置を指す ── 更新と削除の契約は、この形で受けられる",
+    "no-more-spaghetti の init は、契約に対して不合格の雛形を出す ── 作成した直後の実体は、検証を通過しなくてよい",
     "9月のボードの論点11は、仕様の ID の集合とテストが申告する ID の集合を引き算すると決めた ── これはドリフト検知であり、ユースケース駆動の concrete の契約へ移す"
    ],
    "grounds": [
     {
-     "supports": "基盤の契約が3つであること",
+     "supports": "操作の4つを基盤の契約にすること",
+     "basis": "「あと大事な契約を忘れてました。取得と更新、削除はありますね。あとはスキーマからも実体jsonを作成するのもいるね。取得ではJMESを使うんじゃないか？」",
+     "tag": "assumption",
+     "source": "利用者の言明（2026-10-03）"
+    },
+    {
+     "supports": "形の3つを基盤の契約にすること",
      "basis": "「abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です」",
      "tag": "assumption",
      "source": "利用者の言明（2026-10-03）"
     },
     {
      "supports": "concrete がドリフト検知の契約を持つこと",
-     "basis": "「このconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け」「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
+     "basis": "「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
      "tag": "assumption",
      "source": "利用者の言明（2026-10-03）"
+    },
+    {
+     "supports": "取得を JMESPath で受けること",
+     "basis": "「The result of applying a JMESPath expression against a JSON document will always result in valid JSON, provided there are no errors during the evaluation process.  Structured data in, structured data out.」",
+     "tag": "primary",
+     "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得） 本文の86〜88行"
+    },
+    {
+     "supports": "JMESPath が位置を返さないこと",
+     "basis": "仕様の全文に location と JSON Pointer の語が0件である",
+     "tag": "measured",
+     "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得）"
+    },
+    {
+     "supports": "更新と削除を JSON Patch で受けること",
+     "basis": "「Its value MUST be one of \"add\", \"remove\", \"replace\", \"move\", \"copy\", or \"test\"; other values are errors.」",
+     "tag": "primary",
+     "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 185〜187行"
+    },
+    {
+     "supports": "位置を JSON Pointer で指すこと",
+     "basis": "「Additionally, operation objects MUST have exactly one \"path\" member.」",
+     "tag": "primary",
+     "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 189行"
+    },
+    {
+     "supports": "作成の置き場所を x-generates が決めること",
+     "basis": "x-generates は「このスキーマが生成する実体の置き場所」である",
+     "tag": "measured",
+     "source": "no-more-spaghetti の references/schema-meta.schema.json"
+    },
+    {
+     "supports": "作成した直後の実体が検証を通過しなくてよいこと",
+     "basis": "「雛形は、契約に対して不合格で出る ── 道具と出典が空だからである。」",
+     "tag": "rule",
+     "source": "no-more-spaghetti の SKILL.md の Step 2"
     },
     {
      "supports": "検証と描画がすでに実装されていること",
@@ -258,39 +367,33 @@
      "source": "skills-creator の references/document.json「references（契約の版2）」"
     },
     {
-     "supports": "描画が title と x-view に従うこと",
-     "basis": "契約が1つだけ持つ。見出しはスキーマの title、説明は description、見せ方は x-view",
-     "tag": "rule",
-     "source": "skills-creator の references/document.json「references（契約の版2）」"
-    },
-    {
-     "supports": "案内の契約の形",
-     "basis": "x-prompt は read と write を必須とし、最上位に x-generates を持つスキーマの項目に要求される",
-     "tag": "measured",
-     "source": "no-more-spaghetti の references/schema-meta.schema.json"
-    },
-    {
      "supports": "ドリフト検知の中身",
      "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
      "tag": "rule",
      "source": "ボード usecase-schema-driven 論点11の決着"
     },
     {
-     "supports": "基盤が方法論を認知しないこと",
-     "basis": "基盤は方法論も AI ツールも知らない。注入点は2つ",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点2の決着"
+     "supports": "Rust の実装があること",
+     "basis": "jmespath 0.5.0 の説明は「Rust implementation of JMESPath, a query language for JSON」、json-patch 4.2.0 の説明は「RFC 6902, JavaScript Object Notation (JSON) Patch」",
+     "tag": "measured",
+     "source": "crates.io の API（2026-10-03 取得）"
     }
    ],
    "requirements": [
     "ユースケース駆動の concrete に、宣言の Schema と、ドリフト検知の契約を用意する ── 試作の基盤が持つ宣言の形の受け皿になる",
-    "抽象の3つの契約を、既存の版2 の実装から取り出して1つの基盤にする ── Skill ごとに複製されている validate ・ view の実体を寄せる"
+    "抽象の7つの契約を、1つの基盤にする ── Skill ごとに複製されている get ・ validate ・ view の実体を寄せ、作成 ・ 更新 ・ 削除を足す",
+    "jmespath と json-patch の crate を、原文と試験で確認してから採用する ── 仕様への準拠の範囲を、まだ照合していない"
    ],
    "out_of_scope": [
     {
      "item": "concrete が基盤に何をどの形で渡すか",
      "treatment": "later",
      "note": "論点2で決める"
+    },
+    {
+     "item": "複数の実体をまたぐ取得（宣言の一覧からの絞り込み）",
+     "treatment": "later",
+     "note": "論点2で決める。基盤の取得は実体1件を対象にする"
     },
     {
      "item": "ドリフト検知でテストの一覧をどう受け取るか",

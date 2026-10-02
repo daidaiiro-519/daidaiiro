@@ -1,0 +1,297 @@
+{
+ "round": 2,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点が、基盤と concrete の境目を決める。<b>論点2〜4は、この線を前提にする</b>"
+    ]
+   ],
+   "pick": [
+    [
+     "<b>抽象の基盤の契約は3つである。</b>どの構造化データにも、同じ3つを課す。<ul><li><b class=\"lead-s\">スキーマ検証の契約</b><div class=\"sub-s\">構造化データを JSON Schema で検証できる</div></li><li><b class=\"lead-s\">描画の契約</b><div class=\"sub-s\">構造化データを Markdown と HTML へ描画できる。見出しはスキーマの title、見せ方は x-view が決める</div></li><li><b class=\"lead-s\">案内の契約</b><div class=\"sub-s\">項目ごとに x-prompt の read（読み取るとき）と write（値を書くとき）を持つ</div></li></ul><b>concrete も同じ3つの契約を持つ。</b>違うのは表現だけである。ユースケース駆動の concrete は、人が確認して承認できる構造化データとして宣言を持つ。<b>ユースケース駆動の concrete は、4つ目の契約を持つ。</b>テスト仕様とテスト実装のドリフト検知である。<ul><li><b class=\"lead-s\">テスト仕様</b><div class=\"sub-s\">ユースケースのシナリオと、集約 ・ ドメインサービスの条件。品質を担保する要素になる</div></li><li><b class=\"lead-s\">テスト実装</b><div class=\"sub-s\">実装の側のテスト。仕様の各要素を指すテストが存在し、通っていることを実装の品質とする</div></li><li><b class=\"lead-s\">ドリフト</b><div class=\"sub-s\">仕様に在ってテストに無いもの、テストに在って仕様に無いもの、テストが通らないもの</div></li></ul><b>基盤は、宣言の形を認知しない。</b>種類 ・ ID ・ 参照のような宣言の構造は、concrete のスキーマにだけ現れる。"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">B′</b><div class=\"sub-s\"><b>抽象の基盤は3つの契約だけを持つ。</b>スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write である。ユースケース駆動の concrete は同じ3つを特化した表現で持ち、<b>テスト仕様とテスト実装のドリフト検知</b>の契約を足す</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "抽象の基盤は3つの契約を持つ。<b>concrete は同じ3つを具体化し</b>、ユースケース駆動の concrete は<b>ドリフト検知の契約</b>を足す。",
+     "3b34098e447a"
+    ]
+   ],
+   "example": [
+    [
+     "<p>契約ごとに、抽象の基盤が持つものと、ユースケース駆動の concrete が持つものを並べた。</p><div class=\"scroll\"><table><thead><tr><th>契約</th><th>抽象の基盤</th><th>ユースケース駆動の concrete</th></tr></thead><tbody><tr><td>スキーマ検証</td><td>任意の構造化データを、それが指す JSON Schema で検証する</td><td>宣言の種類ごとの Schema（ドメイン ・ ユースケース ・ 集約 ・ ドメインサービスなど）で検証する</td></tr><tr><td>描画</td><td>title と x-view に従い、Markdown と HTML へ描画する</td><td>ビジョンを先頭に、下の要素が上位の目的を指す連鎖として描画する</td></tr><tr><td>案内</td><td>項目ごとに x-prompt の read と write を要求する</td><td>宣言の項目ごとに、何を読み何を書くかを案内する</td></tr><tr><td>ドリフト検知</td><td>保持しない</td><td>シナリオと条件の一覧と、テストが申告する一覧を突き合わせ、欠け ・ 余り ・ 失敗を報告する</td></tr></tbody></table></div><p>既存の Skill は、すでに抽象の3つの契約に従っている。references の契約の版2 の validate と view、x-view、x-prompt の read と write がそれである。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "3つの契約と、concrete のドリフト検知",
+     "基盤は検証 ・ 描画 ・ 案内の3つを持ち、ドリフト検知はユースケース駆動の concrete が持つ",
+     "concrete ごとに、3つの契約の表現を用意する"
+    ],
+    [
+     "4つの欄と在りかの申告（1回目の答え）",
+     "基盤が kind ・ id ・ name ・ body を持ち、節と参照の在りかを concrete が JSONPath で申告する",
+     "基盤が宣言の形を知る"
+    ],
+    [
+     "検証だけを持つ",
+     "基盤はスキーマ検証だけを持ち、描画と案内は concrete が持つ",
+     "concrete ごとに描画と案内を作る"
+    ],
+    [
+     "ドリフト検知も基盤が持つ",
+     "仕様とテストの突き合わせを、基盤の4つ目の契約にする",
+     "テストという concrete の語が基盤に入る"
+    ]
+   ],
+   "dropped": [
+    [
+     "4つの欄と在りかの申告（1回目の答え）",
+     "基盤が kind ・ id ・ 節 ・ 参照という宣言の構造を知ることになり、抽象の高さが下がる。利用者が、基盤の契約は検証 ・ 描画 ・ 案内の3つだと示した"
+    ],
+    [
+     "検証だけを持つ",
+     "描画と案内が concrete ごとに作られ、見た目と書き方が concrete ごとに分かれる。既存の契約の版2 も、検証と描画と案内を1つの契約で持つ"
+    ],
+    [
+     "ドリフト検知も基盤が持つ",
+     "テスト仕様とテスト実装は、ユースケース駆動の concrete の語である。基盤に入れると、テストを保持しない concrete に意味の無い契約が課される"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"scroll\"><table><tr><th>前の答え</th><td><b>B</b>　<b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する</td></tr><tr><th>なぜ組み直したか</th><td>基盤が宣言の構造（kind ・ id ・ 節 ・ 参照）を知る形は、抽象の高さに合わない。基盤の契約を検証 ・ 描画 ・ 案内の3つにし、ドリフト検知をユースケース駆動の concrete の契約にした</td></tr><tr><th>利用者の言葉（そのまま）</th><td>これスキーマ駆動自体も考え方的には抽象モデリングの考え方ですよ。concrateとしてのユースケース駆動に関するモデリングはおそらくですが、人間が確認承認できる構造化データになります。ここでイメージして欲しいのは、abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です。concrateスキーマ自体も同じ契約を持ちますが、ユースケース駆動に特化した表現になるところがabstructを具体した表現になってると思ってください。そしてこのconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け、このユースケースのシナリオ仕様とドメイン側の条件などを品質を担保する際の要素とし、これが実装側のテストに存在して正しくテストが通ってることを実装の品質として担保できるような仕組みとする。つまりconcrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ</td></tr></table></div>"
+    ],
+    [
+     "<p>利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。1回目は、試作の基盤のコードから宣言の形を削る方向で答えた。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">利用者が、抽象の契約を検証 ・ 描画 ・ 案内の3つと示した</b><div class=\"sub-s\">基盤は宣言の構造を認知せず、構造化データ一般を処理する</div>"
+    ],
+    [
+     "<b class=\"lead-s\">既存の Skill は、references の契約の版2 で validate と view を持ち、描画は title と x-view に従う</b><div class=\"sub-s\">抽象の2つの契約は、すでに実装がある</div>"
+    ],
+    [
+     "<b class=\"lead-s\">no-more-spaghetti の案内の契約は、x-generates を持つスキーマの項目に x-prompt の read と write を要求する</b><div class=\"sub-s\">抽象の3つ目の契約も、すでに形がある</div>"
+    ],
+    [
+     "<b class=\"lead-s\">9月のボードの論点11は、仕様の ID の集合とテストが申告する ID の集合を引き算すると決めた</b><div class=\"sub-s\">これはドリフト検知であり、ユースケース駆動の concrete の契約へ移す</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "<b class=\"lead-s\">ユースケース駆動の concrete に、宣言の Schema と、ドリフト検知の契約を用意する</b><div class=\"sub-s\">試作の基盤が持つ宣言の形の受け皿になる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">抽象の3つの契約を、既存の版2 の実装から取り出して1つの基盤にする</b><div class=\"sub-s\">Skill ごとに複製されている validate ・ view の実体を寄せる</div>"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "concrete が基盤に何をどの形で渡すか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める"
+    ],
+    [
+     "ドリフト検知でテストの一覧をどう受け取るか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める。9月の論点11は1行1ID の一覧と決めている"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "3つの契約と、concrete のドリフト検知",
+     "<b>入らない</b>",
+     "<b>使える</b>",
+     "<b>一致する</b>（版2 の validate ・ view ・ x-prompt）"
+    ],
+    [
+     "案ごとの帰結",
+     "4つの欄と在りかの申告（1回目の答え）",
+     "<b>入る</b>（kind ・ id ・ 節 ・ 参照）",
+     "宣言を持つ concrete でだけ使える",
+     "一致しない"
+    ],
+    [
+     "案ごとの帰結",
+     "検証だけを持つ",
+     "入らない",
+     "使える",
+     "一致しない（描画と案内が concrete ごとに分かれる）"
+    ],
+    [
+     "案ごとの帰結",
+     "ドリフト検知も基盤が持つ",
+     "<b>入る</b>（テスト仕様とテスト実装）",
+     "テストを保持しない concrete では使えない",
+     "一致する"
+    ]
+   ],
+   "grounds": [
+    [
+     "検証と描画がすでに実装されていること",
+     "<b class=\"lead-s\">どの Skill も持つ</b><div class=\"sub-s\">get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）</div>",
+     "rule",
+     "skills-creator の references/document.json「references（契約の版2）」"
+    ],
+    [
+     "描画が title と x-view に従うこと",
+     "契約が1つだけ持つ。見出しはスキーマの title、説明は description、見せ方は x-view",
+     "rule",
+     "skills-creator の references/document.json「references（契約の版2）」"
+    ],
+    [
+     "ドリフト検知の中身",
+     "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
+     "rule",
+     "ボード usecase-schema-driven 論点11の決着"
+    ],
+    [
+     "基盤が方法論を認知しないこと",
+     "基盤は方法論も AI ツールも知らない。注入点は2つ",
+     "rule",
+     "ボード usecase-schema-driven 論点2の決着"
+    ],
+    [
+     "案内の契約の形",
+     "x-prompt は read と write を必須とし、最上位に x-generates を持つスキーマの項目に要求される",
+     "measured",
+     "no-more-spaghetti の references/schema-meta.schema.json"
+    ],
+    [
+     "基盤の契約が3つであること",
+     "「abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です」",
+     "assumption",
+     "利用者の言明（2026-10-03）"
+    ],
+    [
+     "concrete がドリフト検知の契約を持つこと",
+     "「このconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け」「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
+     "assumption",
+     "利用者の言明（2026-10-03）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着後に出す。基盤と concrete の契約の境目が決まっている必要がある"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を待たせること",
+     "論点1の決着後に出す。基盤と concrete の契約の境目が決まっている必要がある",
+     "rule",
+     "このボードの論点1"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点2の決着後に出す。concrete が渡すものが決まっている必要がある"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を待たせること",
+     "論点2の決着後に出す。concrete が渡すものが決まっている必要がある",
+     "rule",
+     "このボードの論点2"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1〜3の決着後に出す"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "この論点を待たせること",
+     "論点1〜3の決着後に出す",
+     "rule",
+     "このボードの論点1 ・ 論点2 ・ 論点3"
+    ]
+   ]
+  }
+ }
+}
