@@ -21,7 +21,7 @@ func main() { os.Exit(run(os.Args[1:])) }
 func run(argv []string) int {
 	all := tools.All()
 	asJSON := slices.Contains(argv, "--json")
-	rest := slices.DeleteFunc(slices.Clone(argv), func(a string) bool { return a == "--json" })
+	rest := verbFirst(slices.DeleteFunc(slices.Clone(argv), func(a string) bool { return a == "--json" }))
 	if len(rest) == 0 {
 		if asJSON {
 			return emit(contract.Catalog(all, &contract.Given{}), true, nil)
@@ -52,6 +52,22 @@ func run(argv []string) int {
 		}
 	}
 	return emit(tool.Run(given), asJSON, tool.Human)
+}
+
+// verbFirst は、動詞の前に置いた旗（`--名前 値`）を、引数の末尾へ移す。**旗の位置で失敗させない** ──
+// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。
+func verbFirst(argv []string) []string {
+	var lead []string
+	i := 0
+	for i < len(argv) && strings.HasPrefix(argv[i], "--") {
+		lead = append(lead, argv[i])
+		i++
+		if i < len(argv) && !strings.HasPrefix(argv[i], "--") {
+			lead = append(lead, argv[i])
+			i++
+		}
+	}
+	return append(slices.Clone(argv[i:]), lead...)
 }
 
 func readArgs(tool contract.Tool, rest []string) (*contract.Given, error) {
@@ -126,8 +142,11 @@ func usage(all []contract.Tool) {
 
 func emit(out contract.Outcome, asJSON bool, human func(contract.Outcome) string) int {
 	if asJSON {
-		body, _ := json.MarshalIndent(out, "", "  ")
-		fmt.Println(string(body))
+		// **< ・ > ・ & を逃がさない** ── Rust の serde_json と同じ綴りにする（描画した HTML を1バイトずつ同じに返す）
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(out)
 	} else {
 		fmt.Println(human(out))
 	}

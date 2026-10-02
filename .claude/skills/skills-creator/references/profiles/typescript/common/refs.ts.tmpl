@@ -186,7 +186,106 @@ export function validate(refs: string): string[] {
 export function validateFile(refs: string, kind: string, file: string): string[] {
     const schema = readJson(join(refs, `${kind}${SCHEMA_TAIL}`));
     const data = readJson(file);
-    return against(schema, data, file);
+    const found = against(schema, data, file);
+    // **形に合っても、指す先が無ければ通さない** ── 無い基準や無い文を根拠に書いても、形の検査は通る
+    const merged = mergeRefs(schema, schema, 0);
+    const cited: string[] = [];
+    cite(refs, merged, merged, data, '', file, cited);
+    cited.sort(byBytes);
+    found.push(...cited);
+    return found;
+}
+
+/**
+ * 指す先の種類の項目を返す。**項目が0件なら null** ── 生成した直後の Skill は、見本の id を指す
+ * 回答の例を持つので、書き入れるまでは照らさない。
+ */
+function itemsOf(refs: string, kind: string): Json[] | null {
+    let data: Json;
+    try {
+        data = readJson(join(refs, `${kind}.json`));
+    } catch {
+        return null;
+    }
+    const items = isObj(data) && Object.hasOwn(data, 'items') ? data.items : data;
+    return Array.isArray(items) && items.length > 0 ? items : null;
+}
+
+/** 項目の中の文字列をすべてつなぐ。**空白は外す** ── 引用と照らすための平文である。 */
+function plainOf(v: Json | undefined): string {
+    if (typeof v === 'string') return v.replace(new RegExp(WS, 'gu'), '');
+    if (Array.isArray(v)) return v.map(plainOf).join('');
+    if (isObj(v)) return Object.values(v).map(plainOf).join('');
+    return '';
+}
+
+/**
+ * 引用を、照らす断片に分ける。**省略（…）と並び（ ・ ）で切り、「欄の題：」を外す** ── 表 ・ 規則の
+ * 行は「欄の題：値」の形で引く。2文字に満たない断片は照らさない。
+ */
+function fragments(quote: string): string[] {
+    return quote
+        .split('…')
+        .flatMap(x => x.split(' ・ '))
+        .map(x => {
+            const c = x.indexOf('：');
+            return c >= 0 ? x.slice(c + 1) : x;
+        })
+        .map(x => x.replace(new RegExp(WS, 'gu'), '').replace(/。+$/u, ''))
+        .filter(x => [...x].length >= 2);
+}
+
+/**
+ * 参照の注記（`x-refers` ・ `x-quotes`）に従って、指す先を照らす。**`x-refers: 種類` の欄は、その種類の
+ * id を指す。`x-quotes: 隣の欄` の欄は、隣の欄が指す項目の記述を引く。**
+ */
+function cite(refs: string, schema: Json | undefined, root: Json, value: Json, path: string, head: string, out: string[]): void {
+    const node = resolve(schema, root);
+    if (isObj(value)) {
+        const props = at(node, 'properties');
+        for (const [k, v] of Object.entries(value)) {
+            const raw = at(props, k);
+            if (raw === undefined) continue;
+            const ps = resolve(raw, root);
+            const here = `${path}/${k}`;
+            const kind = str(ps, 'x-refers');
+            if (kind !== null && typeof v === 'string') {
+                const items = itemsOf(refs, kind);
+                if (items !== null && !items.some(x => str(x, 'id') === v)) out.push(`${head}: ${here} ── ${kind} に id ${v} が無い`);
+            }
+            const sib = str(ps, 'x-quotes');
+            if (sib !== null && typeof v === 'string') {
+                const sp = at(props, sib);
+                const kindOf = sp === undefined ? null : str(resolve(sp, root), 'x-refers');
+                const id = str(value, sib);
+                if (kindOf !== null && id !== null) {
+                    const item = itemsOf(refs, kindOf)?.find(x => str(x, 'id') === id);
+                    if (item !== undefined) {
+                        const whole = plainOf(item);
+                        for (const f of fragments(v)) {
+                            if (!whole.includes(f)) out.push(`${head}: ${here} ── ${kindOf} の ${id} の記述に無い ──「${f}」`);
+                        }
+                    }
+                }
+            }
+            cite(refs, ps, root, v, here, head, out);
+        }
+    } else if (Array.isArray(value)) {
+        const items = at(node, 'items');
+        if (items !== undefined) value.forEach((x, i) => cite(refs, items, root, x, `${path}/${i}`, head, out));
+    }
+}
+
+/** 指定した欄を、入れ子のすべてから除く。**取り出す量を減らす** ── 要素ごとの出典（source）は、判断基準 1件の大半を占める。 */
+export function omit(v: Json, keys: string[]): Json {
+    if (Array.isArray(v)) return v.map(x => omit(x, keys));
+    if (!isObj(v)) return v;
+    return Object.fromEntries(Object.entries(v).filter(([k]) => !keys.includes(k)).map(([k, x]) => [k, omit(x, keys)]));
+}
+
+/** 除く欄の指定（, で区切る）を、欄の名前の並びにする。**空白の規則は Rust の str::trim と同じである。** */
+export function omitKeys(spec: string | undefined): string[] {
+    return spec === undefined ? [] : spec.split(',').map(trim).filter(k => k !== '');
 }
 
 /** 種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。 */
@@ -474,8 +573,9 @@ function graphHtml(value: Json): string {
         const l = str(e, 'label');
         if (l !== null && l !== '') notes.push(l);
         if (at(e, 'dashed') === true) notes.push('破線');
-        const note = notes.length > 0 ? `（${notes.join(' ・ ')}）` : '';
-        lis += `<li>${esc(labelOf(str(e, 'from') ?? ''))} → ${esc(labelOf(str(e, 'to') ?? ''))}${esc(note)}</li>`;
+        const arrow = notes.length > 0 ? `→（${notes.join(' ・ ')}）→` : '→';
+        // **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
+        lis += `<li>${esc(labelOf(str(e, 'from') ?? ''))} ${esc(arrow)} ${esc(labelOf(str(e, 'to') ?? ''))}</li>`;
     }
     for (const n of nodes) {
         const id = str(n, 'id') ?? '';

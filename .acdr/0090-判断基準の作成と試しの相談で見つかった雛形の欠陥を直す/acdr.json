@@ -1,0 +1,745 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0090",
+ "title": "判断基準の作成と試しの相談で見つかった、雛形の欠陥を直す",
+ "date": "2026-10-02",
+ "status": "accepted",
+ "decision": "助言型の受け入れ検査は原典の名前を複製と数えず、道具の検査はスキーマに残った雛形の差し込み場所を検出し、回答の手順は判定 ・ 引用 ・ 任意の欄の扱いを定める。references の道具は、回答の根拠が実在する判断基準とその記述を指すかを検査し、出典を除いた取り出しと、旗の位置に依存しない呼び出しを受け付け、図の辺の名前を矢印の上に描く。5言語の雛形で同じ出力にする。",
+ "why": "qa-advisor を作り直す途中で、雛形の欠陥が3つ見つかった。1つ目に、受け入れ検査が原典の名前を学習ノートの複製として検出したので、担当が原典の名前を変えて検出を避けた。原典の語のまま書く規則と検査が衝突していた。2つ目に、道具の検査が差し込み場所を SKILL.md でしか数えないので、スキーマに「{{助言の対象}}」が残ったまま合格し、判断基準の頁の見出しに出た。ddd では手で充填したので表に出なかった。3つ目に、試しの相談3件で、手順に書いていない判断が4つ必要になった。設計相談で評価する案が無いときの判定 ・ 条件付きで採るの条件 ・ 定義や補足の引き方 ・ 手順に無い3つの欄の扱いである。どれも雛形から作る advisor すべてに及ぶ。利用者から「直していない点は直さないと不味そう」と指摘され、試しの相談で残していた欠陥も直す。最も重いのは、validate が回答の形だけを検査し、根拠の id と引用が判断基準に在るかを照らさないことである。判断基準に無い文を根拠に書いても合格する。実際に、usecase-advisor の以前の試しの回答3件に新しい検査を適用すると、判断基準を直す前の旧い文の引用と、id の欄に題まで書いた誤りが見つかった。ほかに、判断基準1件の取り出しが要素ごとの出典で大きく、5件で約49KB になって読み切れなかった。図の辺の名前が節点名の後ろに付き、節点名の括弧と区別できなかった。--skill_root を動詞の前に置くと失敗した。移植の途中で、Go と C# の CLI が JSON の文字を置き換えて出す欠陥も見つかった（< を \\u003c、全角空白を \\u3000 にする）。",
+ "shift": [
+  {
+   "what": "受け入れ検査の複製の照合",
+   "from": "題 ・ 関連する基準の題 ・ 定義の語と「」の引用も、ノートと25字以上一致すれば複製と数える",
+   "to": "原典の名前を書く欄と「」の引用は照合から外す。地の文は従来どおり照らす"
+  },
+  {
+   "what": "道具の検査の差し込み場所",
+   "from": "SKILL.md だけを数える",
+   "to": "references の直下のスキーマ（*.schema.json）も数える"
+  },
+  {
+   "what": "回答の手順（助言型の SKILL.md）",
+   "from": "評価する案が無い設計相談の判定 ・ 条件付きの条件 ・ 定義と補足の引き方 ・ 3つの欄を書いていない",
+   "to": "書いた"
+  },
+  {
+   "what": "回答の検査（validate）",
+   "from": "形だけを検査する。無い判断基準の id や、判断基準に無い引用も合格する",
+   "to": "スキーマの注記（x-refers ・ x-quotes）に従い、根拠と関連する基準の id が在るか、引用が判断基準の記述に在るかも照らす。判断基準が0件のあいだは照らさない"
+  },
+  {
+   "what": "取り出し（get）",
+   "from": "出典を含めて全部を返す",
+   "to": "除く欄を指定できる（--omit source）"
+  },
+  {
+   "what": "図の辺の名前",
+   "from": "「A → B（名前）」と節点名の後ろに付ける",
+   "to": "「A →（名前）→ B」と矢印の上に置く"
+  },
+  {
+   "what": "旗の位置",
+   "from": "--skill_root を動詞の前に置くと失敗する",
+   "to": "動詞の前にも後ろにも置ける"
+  },
+  {
+   "what": "Go と C# の JSON の書き出し",
+   "from": "< > & や全角空白を \\u 形式に置き換える",
+   "to": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "qa-advisor の作成と試しの相談で見つかった欠陥を雛形で直し、雛形から作った Skill へ複製する",
+ "how": "受け入れ検査と道具の検査は、試験を先に書いて失敗を確認してから直した（名前の欄と引用が複製と数えられないこと、地の文の複製は従来どおり検出すること、スキーマの差し込み場所を検出し埋めれば消えること）。skills-creator の試験120件 ・ 静的解析 ・ 整形が通り、5言語の生成の検証は各言語384件の突き合わせで不一致0件だった。全 Skill に新しい検査を当て、検出は qa-advisor の2か所だけだった。手順の追記は、雛形と usecase-advisor ・ ddd-advisor の SKILL.md に同じ文で入れた。 追加の4点は、Rust の雛形で試験を先に書き（辺の名前の置き場所 ・ 名前の無い辺 ・ 欄を除く取り出し ・ 根拠の照合 ・ 判断基準が0件のときの照合の省略）、失敗を確認してから直した。4言語への移植は担当に分け、qa-advisor の references で5つの呼び出しの出力が Rust と1バイトも違わないことを確認させた。5言語の突き合わせに3種類の事例（欄を除く取り出し ・ 回答の検査の合否 ・ 動詞の前の旗）を足し、各言語582件で不一致0件、検証の終了コードは 0 だった。雛形を複製している11の Skill の refs.rs ・ service の refs.rs ・ CLI の入口を揃え、試験 ・ 静的解析 ・ 整形が通った。usecase ・ ddd ・ qa の回答の例は、実在する判断基準を引く形に改めた。",
+ "applies_to": "skills-creator の受け入れ検査 ・ 道具の検査 ・ 突き合わせと、その試験。5言語の references の道具の雛形（refs ・ 道具の一覧 ・ CLI の入口。C# は Contract と MCP の入口も）。助言型の SKILL.md ・ answer.schema.json の雛形と生成後の案内。雛形を複製している11の Skill の refs.rs ・ service の refs.rs ・ CLI の入口。usecase ・ ddd ・ qa の SKILL.md ・ answer.schema.json ・ 回答の例。",
+ "alternatives": [
+  {
+   "option": "原典の名前をノートの側で変える",
+   "why_not": "ノートは原典の語のまま書く決まりで、判断基準も原典の語を使う。名前を変えると、どちらの規則にも反する"
+  },
+  {
+   "option": "差し込み場所を references のすべての JSON で数える",
+   "why_not": "skills-creator の document.json が、差し込み場所の書き方を説明する文を4か所持ち、誤って検出した。雛形が差し込み場所を置くのはスキーマだけである"
+  },
+  {
+   "option": "判定の欄を設計相談では任意にする",
+   "why_not": "回答の形は5言語の雛形と既存の回答が共有しており、必須の欄を外すと、相談種別ごとの必須の欄の検査が変わる。値の選び方を手順に書けば、形を変えずに済む"
+  },
+  {
+   "option": "回答の引用は人が目で照らす",
+   "why_not": "ガードレールは「判断基準を言い換えずに引く」と書くが、試しの相談では判断基準に無い文を引いた回答が合格していた。機械で検出できる形にすれば、回答を渡す前に止まる"
+  },
+  {
+   "option": "引用を判断基準の文字列と完全一致で照らす",
+   "why_not": "手順は表や規則の行を「欄の題：値」の形で引かせ、省略に「…」を使う。完全一致では正しい引用も不合格になる。断片に分けて照らせば、作った文だけを検出できる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "acc",
+   "tab": "accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/accept.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const NAME_KEYS: [&str; 2] = [\"title\", \"term\"];",
+     "before": "（無い）",
+     "why": "原典の名前を書く欄（題 ・ 関連する基準の題 ・ 定義の語）と「」で囲んだ引用を、ノートとの照合から外した。qa-advisor の判断基準を作ると、原典の名前がノートと25字以上一致して「複製」と検出された。担当は検出を避けるため、原則の名前の助詞を1字変え、原則7の「「欠陥ゼロ」の落とし穴」を「思い込み」に変えていた。題「テストモニタリング、テストコントロールとテスト完了」は25字なので、正しく書いても検出された"
+    },
+    {
+     "find": "let p = unquoted(&plain(&s));",
+     "before": "                let p = plain(&s);",
+     "why": "原典の名前を書く欄（題 ・ 関連する基準の題 ・ 定義の語）と「」で囲んだ引用を、ノートとの照合から外した。qa-advisor の判断基準を作ると、原典の名前がノートと25字以上一致して「複製」と検出された。担当は検出を避けるため、原則の名前の助詞を1字変え、原則7の「「欠陥ゼロ」の落とし穴」を「思い込み」に変えていた。題「テストモニタリング、テストコントロールとテスト完了」は25字なので、正しく書いても検出された"
+    },
+    {
+     "find": ".filter(|_| !named)",
+     "before": "（無い）",
+     "why": "原典の名前を書く欄（題 ・ 関連する基準の題 ・ 定義の語）と「」で囲んだ引用を、ノートとの照合から外した。qa-advisor の判断基準を作ると、原典の名前がノートと25字以上一致して「複製」と検出された。担当は検出を避けるため、原則の名前の助詞を1字変え、原則7の「「欠陥ゼロ」の落とし穴」を「思い込み」に変えていた。題「テストモニタリング、テストコントロールとテスト完了」は25字なので、正しく書いても検出された"
+    }
+   ]
+  },
+  {
+   "key": "acct",
+   "tab": "tests/accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/accept.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn named_notes() -> Vec<(PathBuf, String)> {",
+     "before": "（無い）",
+     "why": "原典の名前を書く欄（題 ・ 関連する基準の題 ・ 定義の語）と「」で囲んだ引用を、ノートとの照合から外した。qa-advisor の判断基準を作ると、原典の名前がノートと25字以上一致して「複製」と検出された。担当は検出を避けるため、原則の名前の助詞を1字変え、原則7の「「欠陥ゼロ」の落とし穴」を「思い込み」に変えていた。題「テストモニタリング、テストコントロールとテスト完了」は25字なので、正しく書いても検出された"
+    }
+   ]
+  },
+  {
+   "key": "chk",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "found.extend(placeholders_in_references(root));",
+     "before": "（無い）",
+     "why": "雛形の差し込み場所が SKILL.md のほかにスキーマ（*.schema.json）にも在るので、そこも数える。qa-advisor を生成すると、answer.schema.json と criteria.schema.json に「{{助言の対象}}」が残ったまま check に合格した。criteria.schema.json の題は判断基準の頁の見出しに出る。スキーマに限るのは、skills-creator の document.json が差し込み場所の書き方を説明する文を持つためである"
+    }
+   ]
+  },
+  {
+   "key": "chkt",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "雛形の差し込み場所が SKILL.md のほかにスキーマ（*.schema.json）にも在るので、そこも数える。qa-advisor を生成すると、answer.schema.json と criteria.schema.json に「{{助言の対象}}」が残ったまま check に合格した。criteria.schema.json の題は判断基準の頁の見出しに出る。スキーマに限るのは、skills-creator の document.json が差し込み場所の書き方を説明する文を持つためである"
+    }
+   ]
+  },
+  {
+   "key": "type",
+   "tab": "type.json",
+   "file": ".claude/skills/skills-creator/references/types/advisor/type.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"next\": \"助言型の手順に従い、原典の学習ノートから概念ごとの判断基準を作る。SKILL.md と references の JSON の {{…}} へ記入する\"",
+     "before": "  \"next\": \"助言型の手順に従い、原典の学習ノートから概念ごとの判断基準を作る。SKILL.md の {{…}} へ記入する\"",
+     "why": "生成のあとの案内が「SKILL.md の {{…}} へ記入する」だけで、スキーマの差し込み場所を案内していなかった"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "SKILL.md の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/skill-template.md.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "（前提に残る未判定によって結論が変わるとき）",
+     "before": "- 判定（`stance`）は相談種別で選ぶ。判断相談は 採る ・ 採らない ・ 条件付きで採る（前提に未判定が残るとき）、概念相談は 定義、設計相談で案を評価するときは 良好 ・ 弱い",
+     "why": "試しの判断相談で、前提に未判定が残ったが結論はそれに左右されなかった。手順の「前提に未判定が残るとき」を字義どおりに読むと、条件付きで採るになる。未判定によって結論が変わるときに限ることを書いた"
+    },
+    {
+     "find": "評価する案が無く回答の側で設計を示すときは",
+     "before": "（無い）",
+     "why": "試しの設計相談に、評価する相談者の案が無かった。判定は必須の欄なのに、その場合の値を書いていなかったので、回答の側の設計を自分で「良好」と評価する形になった"
+    },
+    {
+     "find": "条件の無い行は「対応：…」",
+     "before": "（規則なら「条件：… ・ 対応：… ・ 理由：…」）",
+     "why": "試しの相談で、条件の欄が無い規則の行 ・ 定義 ・ 補足を引用するときの書き方と、列の多い表から一部の列だけを引いてよいかを書いていなかった。担当ごとに引き方が変わった"
+    },
+    {
+     "find": "は、相談が該当するときだけ置く",
+     "before": "（無い）",
+     "why": "回答の形には記録案 ・ 差し戻し ・ コードの例の欄が在るが、手順に1語も無かった。試しの設計相談で、置くべきかを判断できなかった"
+    },
+    {
+     "find": "根拠の id と引用が判断基準に在るかを機械で検出できる形にしたので",
+     "before": "- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない",
+     "why": "validate が根拠の id と引用を照らすようになったので、ガードレールと道具の使い方（validate の検出の中身 ・ 出典を除く取り出し）を書き直した"
+    }
+   ]
+  },
+  {
+   "key": "uc",
+   "tab": "usecase-advisor の SKILL.md",
+   "file": ".claude/skills/usecase-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "（前提に残る未判定によって結論が変わるとき）",
+     "before": "- 判定（`stance`）は相談種別で選ぶ。判断相談は 採る ・ 採らない ・ 条件付きで採る（前提に未判定が残るとき）、概念相談は 定義、設計相談で案を評価するときは 良好 ・ 弱い",
+     "why": "試しの判断相談で、前提に未判定が残ったが結論はそれに左右されなかった。手順の「前提に未判定が残るとき」を字義どおりに読むと、条件付きで採るになる。未判定によって結論が変わるときに限ることを書いた"
+    },
+    {
+     "find": "評価する案が無く回答の側で設計を示すときは",
+     "before": "（無い）",
+     "why": "試しの設計相談に、評価する相談者の案が無かった。判定は必須の欄なのに、その場合の値を書いていなかったので、回答の側の設計を自分で「良好」と評価する形になった"
+    },
+    {
+     "find": "条件の無い行は「対応：…」",
+     "before": "（規則なら「条件：… ・ 対応：… ・ 理由：…」）",
+     "why": "試しの相談で、条件の欄が無い規則の行 ・ 定義 ・ 補足を引用するときの書き方と、列の多い表から一部の列だけを引いてよいかを書いていなかった。担当ごとに引き方が変わった"
+    },
+    {
+     "find": "は、相談が該当するときだけ置く",
+     "before": "（無い）",
+     "why": "回答の形には記録案 ・ 差し戻し ・ コードの例の欄が在るが、手順に1語も無かった。試しの設計相談で、置くべきかを判断できなかった"
+    },
+    {
+     "find": "根拠の id と引用が判断基準に在るかを機械で検出できる形にしたので",
+     "before": "- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない",
+     "why": "validate が根拠の id と引用を照らすようになったので、ガードレールと道具の使い方（validate の検出の中身 ・ 出典を除く取り出し）を書き直した"
+    }
+   ]
+  },
+  {
+   "key": "ddd",
+   "tab": "ddd-advisor の SKILL.md",
+   "file": ".claude/skills/ddd-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "（前提に残る未判定によって結論が変わるとき）",
+     "before": "- 判定（`stance`）は相談種別で選ぶ。判断相談は 採る ・ 採らない ・ 条件付きで採る（前提に未判定が残るとき）、概念相談は 定義、設計相談で案を評価するときは 良好 ・ 弱い",
+     "why": "試しの判断相談で、前提に未判定が残ったが結論はそれに左右されなかった。手順の「前提に未判定が残るとき」を字義どおりに読むと、条件付きで採るになる。未判定によって結論が変わるときに限ることを書いた"
+    },
+    {
+     "find": "評価する案が無く回答の側で設計を示すときは",
+     "before": "（無い）",
+     "why": "試しの設計相談に、評価する相談者の案が無かった。判定は必須の欄なのに、その場合の値を書いていなかったので、回答の側の設計を自分で「良好」と評価する形になった"
+    },
+    {
+     "find": "条件の無い行は「対応：…」",
+     "before": "（規則なら「条件：… ・ 対応：… ・ 理由：…」）",
+     "why": "試しの相談で、条件の欄が無い規則の行 ・ 定義 ・ 補足を引用するときの書き方と、列の多い表から一部の列だけを引いてよいかを書いていなかった。担当ごとに引き方が変わった"
+    },
+    {
+     "find": "は、相談が該当するときだけ置く",
+     "before": "（無い）",
+     "why": "回答の形には記録案 ・ 差し戻し ・ コードの例の欄が在るが、手順に1語も無かった。試しの設計相談で、置くべきかを判断できなかった"
+    },
+    {
+     "find": "根拠の id と引用が判断基準に在るかを機械で検出できる形にしたので",
+     "before": "- **回答は validate に合格してから渡す。** 欄の欠けを機械で検出できる形にしたので、手で確認しない",
+     "why": "validate が根拠の id と引用を照らすようになったので、ガードレールと道具の使い方（validate の検出の中身 ・ 出典を除く取り出し）を書き直した"
+    }
+   ]
+  },
+  {
+   "key": "rr",
+   "tab": "refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let head = file.display().to_string();",
+     "before": "    Ok(against(&schema, &data, &file.display().to_string()))",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "let arrow = if notes.is_empty() {",
+     "before": "        let note = if notes.is_empty() {\n            String::new()",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "format!(\"→（{}）→\", notes.join(\" ・ \"))",
+     "before": "            format!(\"（{}）\", notes.join(\" ・ \"))",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "\"<li>{} {} {}</li>\",",
+     "before": "            \"<li>{} → {}{}</li>\",",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "esc(&arrow),",
+     "before": "            esc(&label(str_of(e, \"to\").unwrap_or(\"\"))),\n            esc(&note)",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    }
+   ]
+  },
+  {
+   "key": "rs",
+   "tab": "service.refs.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/service.refs.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let keys: Vec<&str> = opt(given, \"omit\")",
+     "before": "    Outcome::found(Vec::new(), got)",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "args: vec![Arg::need(\"kind\", \"種類の名前\"), Arg::opt(\"id\", \"項目の id\", None), Arg::opt(\"omit\", \"除く欄の名前（, で区切る。例：source）\", None), root()],",
+     "before": "            args: vec![Arg::need(\"kind\", \"種類の名前\"), Arg::opt(\"id\", \"項目の id\", None), root()],",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    }
+   ]
+  },
+  {
+   "key": "rc",
+   "tab": "cli.main.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/rust/common/cli.main.rs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    },
+    {
+     "find": "let argv = verb_first(argv);",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    }
+   ]
+  },
+  {
+   "key": "pr",
+   "tab": "refs.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "head = str(file)",
+     "before": "    return _against(schema, data, str(file))",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "arrow = f\"→（{' ・ '.join(notes)}）→\" if notes else \"→\"",
+     "before": "        note = f\"（{' ・ '.join(notes)}）\" if notes else \"\"\n        lis.append(f\"<li>{_esc(label(_str(e, 'from') or ''))} → {_esc(label(_str(e, 'to') or ''))}{_esc(note)}</li>\")",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    }
+   ]
+  },
+  {
+   "key": "pt",
+   "tab": "refs_tools.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/refs_tools.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "got = refs.get(_refs_dir(given), given.one(\"kind\", \"\"), _opt(given, \"id\"))",
+     "before": "    return Outcome.found([], refs.get(_refs_dir(given), given.one(\"kind\", \"\"), _opt(given, \"id\")))",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "[Arg.need(\"kind\", \"種類の名前\"), Arg.opt(\"id\", \"項目の id\"), Arg.opt(\"omit\", \"除く欄の名前（, で区切る。例：source）\"),",
+     "before": "             [Arg.need(\"kind\", \"種類の名前\"), Arg.opt(\"id\", \"項目の id\"), root()], _run_get, _human),",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    }
+   ]
+  },
+  {
+   "key": "pc",
+   "tab": "cli.py.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/python/common/cli.py.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "def verb_first(argv: list[str]) -> list[str]:",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    },
+    {
+     "find": "argv = verb_first(argv)",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    }
+   ]
+  },
+  {
+   "key": "tr",
+   "tab": "refs.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const found = against(schema, data, file);",
+     "before": "    return against(schema, data, file);",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "const arrow = notes.length > 0 ? `→（${notes.join(' ・ ')}）→` : '→';",
+     "before": "        const note = notes.length > 0 ? `（${notes.join(' ・ ')}）` : '';\n        lis += `<li>${esc(labelOf(str(e, 'from') ?? ''))} → ${esc(labelOf(str(e, 'to') ?? ''))}${esc(note)}</li>`;",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    }
+   ]
+  },
+  {
+   "key": "tt",
+   "tab": "refs_tools.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/refs_tools.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const runGet = guard(given => {",
+     "before": "const runGet = guard(given => found([], refs.get(refsDir(given), given.one('kind', ''), optional(given, 'id'))));",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "args: [need('kind', '種類の名前'), opt('id', '項目の id'), opt('omit', '除く欄の名前（, で区切る。例：source）'), root()],",
+     "before": "            args: [need('kind', '種類の名前'), opt('id', '項目の id'), root()],",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    }
+   ]
+  },
+  {
+   "key": "tc",
+   "tab": "cli.ts.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/typescript/common/cli.ts.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "* `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    },
+    {
+     "find": "const argv = verbFirst(process.argv.slice(2).filter(a => a !== '--json'));",
+     "before": "    const argv = process.argv.slice(2).filter(a => a !== '--json');",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した"
+    }
+   ]
+  },
+  {
+   "key": "gr",
+   "tab": "refs.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"unicode/utf8\"",
+     "before": "（無い）",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "found := against(schema, data, file)",
+     "before": "\treturn against(schema, data, file), nil",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "arrow := \"→\"",
+     "before": "\t\tnote := \"\"",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "arrow = \"→（\" + strings.Join(notes, \" ・ \") + \"）→\"",
+     "before": "\t\t\tnote = \"（\" + strings.Join(notes, \" ・ \") + \"）\"",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "sb.WriteString(\"<li>\" + esc(labelOf(from)) + \" \" + esc(arrow) + \" \" + esc(labelOf(to)) + \"</li>\")",
+     "before": "\t\tsb.WriteString(\"<li>\" + esc(labelOf(from)) + \" → \" + esc(labelOf(to)) + esc(note) + \"</li>\")",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    }
+   ]
+  },
+  {
+   "key": "gt",
+   "tab": "refs.tools.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/refs.tools.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "var keys []string",
+     "before": "\treturn contract.Found(nil, got)",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "Args: []contract.Arg{contract.Need(\"kind\", \"種類の名前\"), contract.Opt(\"id\", \"項目の id\", nil), contract.Opt(\"omit\", \"除く欄の名前（, で区切る。例：source）\", nil), root}, Run: runGet, Human: human},",
+     "before": "\t\t\tArgs: []contract.Arg{contract.Need(\"kind\", \"種類の名前\"), contract.Opt(\"id\", \"項目の id\", nil), root}, Run: runGet, Human: human},",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    }
+   ]
+  },
+  {
+   "key": "gc",
+   "tab": "cli.main.go.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/go/common/cli.main.go.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "rest := verbFirst(slices.DeleteFunc(slices.Clone(argv), func(a string) bool { return a == \"--json\" }))",
+     "before": "\trest := slices.DeleteFunc(slices.Clone(argv), func(a string) bool { return a == \"--json\" })",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "enc := json.NewEncoder(os.Stdout)",
+     "before": "\t\tbody, _ := json.MarshalIndent(out, \"\", \"  \")\n\t\tfmt.Println(string(body))",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    }
+   ]
+  },
+  {
+   "key": "cr",
+   "tab": "Refs.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Refs.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "public static string ToJson(JsonNode? v, bool pretty) => Contract.Text(v, pretty);",
+     "before": "    /// <summary>JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 逃がすのは \" ・ \\ ・ 制御文字だけで、\n    /// 全角空白などは逃がさない。System.Text.Json の既定の書き出しは U+3000 などを \\u へ逃がし、\n    /// 同じ値でもファイルのバイト列が言語によって変わる。</summary>\n    public static string ToJson(JsonNode? v, bool pretty)\n    {\n        var sb = new StringBuilder();\n        Write(sb, v, pretty, 0);\n        return sb.ToString();\n    }\n\n    static void Write(StringBuilder sb, JsonNode? v, bool pretty, int depth)\n    {\n        switch (v)\n        {\n            case null:\n                sb.Append(\"null\");\n                return;\n            case JsonObject o:\n                if (o.Count == 0)\n                {\n                    sb.Append(\"{}\");\n                    return;\n                }\n                sb.Append('{');\n                var first = true;\n                foreach (var (k, x) in o)\n                {\n                    if (!first) sb.Append(',');\n                    first = false;\n                    if (pretty) sb.Append('\\n').Append(' ', 2 * (depth + 1));\n                    Quote(sb, k);\n                    sb.Append(pretty ? \": \" : \":\");\n                    Write(sb, x, pretty, depth + 1);\n                }\n                if (pretty) sb.Append('\\n').Append(' ', 2 * depth);\n                sb.Append('}');\n                return;\n            case JsonArray a:\n                if (a.Count == 0)\n                {\n                    sb.Append(\"[]\");\n                    return;\n                }\n                sb.Append('[');\n                for (var i = 0; i < a.Count; i++)\n                {\n                    if (i > 0) sb.Append(',');\n                    if (pretty) sb.Append('\\n').Append(' ', 2 * (depth + 1));\n                    Write(sb, a[i], pretty, depth + 1);\n                }\n                if (pretty) sb.Append('\\n').Append(' ', 2 * depth);\n                sb.Append(']');\n                return;\n            case JsonValue jv when jv.GetValueKind() == JsonValueKind.String:\n                Quote(sb, jv.GetValue<string>());\n                return;\n            default:\n                sb.Append(v.ToJsonString());\n                return;\n        }\n    }\n\n    static void Quote(StringBuilder sb, string s)\n    {\n        sb.Append('\"');\n        foreach (var c in s)\n        {\n            switch (c)\n            {\n                case '\"': sb.Append(\"\\\\\\\"\"); break;\n                case '\\\\': sb.Append(\"\\\\\\\\\"); break;\n                case '\\b': sb.Append(\"\\\\b\"); break;\n                case '\\f': sb.Append(\"\\\\f\"); break;\n                case '\\n': sb.Append(\"\\\\n\"); break;\n                case '\\r': sb.Append(\"\\\\r\"); break;\n                case '\\t': sb.Append(\"\\\\t\"); break;\n                case < ' ': sb.Append($\"\\\\u{(int)c:x4}\"); break;\n                default: sb.Append(c); break;\n            }\n        }\n        sb.Append('\"');\n    }",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "public static List<string> ValidateFile(string refs, string kind, string file)",
+     "before": "    public static List<string> ValidateFile(string refs, string kind, string file) =>\n        Against(ReadJson(Path.Combine(refs, $\"{kind}{SchemaTail}\")), ReadJson(file), file);",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    },
+    {
+     "find": "var arrow = notes.Count > 0 ? $\"→（{string.Join(\" ・ \", notes)}）→\" : \"→\";",
+     "before": "            var note = notes.Count > 0 ? $\"（{string.Join(\" ・ \", notes)}）\" : \"\";\n            lis.Append($\"<li>{Esc(LabelOf(Str(e, \"from\") ?? \"\"))} → {Esc(LabelOf(Str(e, \"to\") ?? \"\"))}{Esc(note)}</li>\");",
+     "why": "回答の根拠と関連する基準が、実在する判断基準の id と記述を指すかを照らす（x-refers ・ x-quotes）。取り出しで欄を除く関数と、図の辺の名前を矢印の上に置く描き方を足した。usecase の以前の試しの回答では、判断基準に無い旧い文の引用と、id の欄に題を書いた誤りが、形の検査を合格していた"
+    }
+   ]
+  },
+  {
+   "key": "ct",
+   "tab": "RefsTools.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/RefsTools.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "static Outcome RunGet(Given given)",
+     "before": "    static Outcome RunGet(Given given) =>\n        Outcome.Found([], Refs.Get(RefsDir(given), given.One(\"kind\", \"\"), Optional(given, \"id\")));",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "return Contract.Text(out_.Data, true);",
+     "before": "        return out_.Data?.ToJsonString(Contract.Pretty) ?? \"null\";",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    },
+    {
+     "find": "[Arg.Need(\"kind\", \"種類の名前\"), Arg.Opt(\"id\", \"項目の id\"), Arg.Opt(\"omit\", \"除く欄の名前（, で区切る。例：source）\"), Root()], Guard(RunGet), Human),",
+     "before": "                [Arg.Need(\"kind\", \"種類の名前\"), Arg.Opt(\"id\", \"項目の id\"), Root()], Guard(RunGet), Human),",
+     "why": "取り出しに除く欄の引数（omit）を足した。判断基準5件の取り出しが、要素ごとの出典で約49KB になり、読み切れなかった"
+    }
+   ]
+  },
+  {
+   "key": "cc",
+   "tab": "Cli.Program.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Cli.Program.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "var rest = VerbFirst(argv.Where(a => a != \"--json\").ToList());",
+     "before": "        var rest = argv.Where(a => a != \"--json\").ToList();",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "/// --skill_root <場所> get … の順でも、get … --skill_root <場所> と同じに読む。</summary>",
+     "before": "（無い）",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "Console.WriteLine(asJson ? Contract.Text(out_.ToJson(), true) : human(out_));",
+     "before": "        Console.WriteLine(asJson ? out_.ToJson().ToJsonString(Contract.Pretty) : human(out_));",
+     "why": "動詞の前に置いた旗を引数の末尾へ移す。試しの相談で、--skill_root を動詞の前に置くと「その動詞は無い」で失敗した。あわせて、JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    }
+   ]
+  },
+  {
+   "key": "ck",
+   "tab": "Contract.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Contract.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "using System.Text;",
+     "before": "（無い）",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "/// 全角空白（U+3000）・ &lt; ・ &gt; ・ &amp; などは逃がさない。System.Text.Json の書き出しは、",
+     "before": "    /// <summary>JSON を人が読める形で書き出す。**日本語を \\\\u へ逃がさない。**</summary>\n    public static readonly JsonSerializerOptions Pretty = new()",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "var sb = new StringBuilder();",
+     "before": "        WriteIndented = true,\n        NewLine = \"\\n\",\n        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,\n    };",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "static void Write(StringBuilder sb, JsonNode? v, bool pretty, int depth)",
+     "before": "    /// <summary>JSON を1行で書き出す。MCP の結果の文字列に使う。</summary>\n    public static readonly JsonSerializerOptions Compact = new()",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    },
+    {
+     "find": "switch (v)",
+     "before": "        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,\n    };",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    }
+   ]
+  },
+  {
+   "key": "cm",
+   "tab": "Mcp.Program.cs.tmpl",
+   "file": ".claude/skills/skills-creator/references/profiles/csharp/common/Mcp.Program.cs.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Content = [new TextContentBlock { Text = Contract.Text(body, false) }],",
+     "before": "            Content = [new TextContentBlock { Text = body.ToJsonString(Contract.Compact) }],",
+     "why": "JSON の規則で必須の文字だけを逃がし、Rust と同じ文字列を出す。Go は < > & を、C# は全角空白を \\u 形式に置き換えていた"
+    }
+   ]
+  },
+  {
+   "key": "ans",
+   "tab": "answer.schema.json の雛形",
+   "file": ".claude/skills/skills-creator/references/types/advisor/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"type\": \"string\",",
+     "before": "            \"type\": \"string\"",
+     "why": "根拠と関連する基準の id に x-refers、引用に x-quotes を付けた。validate がこの注記に従って、指す先を照らす"
+    },
+    {
+     "find": "\"x-quotes\": \"criterion\",",
+     "before": "            \"type\": \"string\"",
+     "why": "根拠と関連する基準の id に x-refers、引用に x-quotes を付けた。validate がこの注記に従って、指す先を照らす"
+    },
+    {
+     "find": "\"x-refers\": \"criteria\"",
+     "before": "            \"type\": \"string\"",
+     "why": "根拠と関連する基準の id に x-refers、引用に x-quotes を付けた。validate がこの注記に従って、指す先を照らす"
+    }
+   ]
+  },
+  {
+   "key": "conf",
+   "tab": "conform.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/conform.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let args = [",
+     "before": "（無い）",
+     "why": "5言語の突き合わせに、欄を除く取り出し ・ 回答の検査の合否 ・ 動詞の前の旗の3種類の事例を足した。足さないと、4言語が新しい振る舞いを Rust と同じに持つかを検証できない"
+    },
+    {
+     "find": "label.clone(),",
+     "before": "                    label,",
+     "why": "5言語の突き合わせに、欄を除く取り出し ・ 回答の検査の合否 ・ 動詞の前の旗の3種類の事例を足した。足さないと、4言語が新しい振る舞いを Rust と同じに持つかを検証できない"
+    },
+    {
+     "find": "strs(&[",
+     "before": "（無い）",
+     "why": "5言語の突き合わせに、欄を除く取り出し ・ 回答の検査の合否 ・ 動詞の前の旗の3種類の事例を足した。足さないと、4言語が新しい振る舞いを Rust と同じに持つかを検証できない"
+    }
+   ]
+  },
+  {
+   "key": "rt",
+   "tab": "tests/refs.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "html.contains(\"<ol class=\\\"graph\\\"><li>ユーザー目的 →（どのように ・ 破線）→ サブ機能</li><li>単独</li></ol>\"),",
+     "before": "        html.contains(\"<ol class=\\\"graph\\\"><li>ユーザー目的 → サブ機能（どのように ・ 破線）</li><li>単独</li></ol>\"),",
+     "why": "追加の4点を試験で固定した。先に書いて失敗を確認してから直した"
+    },
+    {
+     "find": "#[test]",
+     "before": "（無い）",
+     "why": "追加の4点を試験で固定した。先に書いて失敗を確認してから直した"
+    }
+   ]
+  },
+  {
+   "key": "fxu",
+   "tab": "usecase の回答の例",
+   "file": ".claude/skills/usecase-advisor/tool/business_logic/tests/fixtures/answer.example.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"criterion\": \"goal-level\",",
+     "before": "      \"criterion\": \"example\",\n      \"quote\": \"見本の引用\"",
+     "why": "判断基準を書き入れた Skill では、回答の例が実在する判断基準を引用しないと検査に合格しない。見本の id のままだった例を、判断基準の定義を引用する形に改めた"
+    }
+   ]
+  },
+  {
+   "key": "fxd",
+   "tab": "ddd の回答の例",
+   "file": ".claude/skills/ddd-advisor/tool/business_logic/tests/fixtures/answer.example.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"criterion\": \"aggregate\",",
+     "before": "      \"criterion\": \"example\",\n      \"quote\": \"見本の引用\"",
+     "why": "判断基準を書き入れた Skill では、回答の例が実在する判断基準を引用しないと検査に合格しない。見本の id のままだった例を、判断基準の定義を引用する形に改めた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "acc": "8c8a3443bc1e2b59d0e9b0e210aaafd52fe4caf3231417551869e17c1226168c",
+  "acct": "fd92b0581179e57c5cb76d7d356eb9c7c8b1a63e24c91285ca58229b571c935c",
+  "chk": "611ec412a02f7f11a7cdde8f5c2f80f5bdcb70fc343543e3b1ef0973fbcfdf63",
+  "chkt": "a39a9f6a0e912a31b8720e26333d33e4e954eb5851136e4ca6684907c7f9b421",
+  "type": "6545316e1c5e436ca8e9b9652367752143efa8ea55c88a004c9e937da4389708",
+  "tmpl": "2f53bee3ea16586fbf7d141498b3e0edbb3265c127d65d72c4a1f309e3f3cf05",
+  "uc": "e70ebfac98b195e98e07ef3f82cb010df0ad0d374f234ccfa67d2f9c67701fdf",
+  "ddd": "973c6e8286a4bec9e3d4ceebc1c428d015c26b5dd84b950a3fd3cccc6c1a9432",
+  "rr": "995a42865cbca49be7ada6ac12c0bb2399d4e7211cc5a9510b54420c8245f8ec",
+  "rs": "5be7f93058df16253c078cdeca73564a2a42aea8ccf120dd25157b1b321a762c",
+  "rc": "4e40291604a6e96c188884a641b905d104ad16c3986e0031dfc288953e5b2804",
+  "pr": "4ba3c24150ed3da78564e8ae406db8425c96ad7aa1a912dcfe0bf4160f0ee8d5",
+  "pt": "75a87f184607a3c3e28a6ed890b24a195571d62221468d32d75a5a9f062d46c4",
+  "pc": "4e948e86a70dfcbd9d19c693aec6b2e51e8dd50085efb13ea525719edeb4a821",
+  "tr": "8347f8335e9b03839a06735b3f3ce0551b959f2d04aac8b2ac120cc8e7f2266d",
+  "tt": "903394e7817e50ace81149632564712ea12dee467a5fc596deb17bd76ac38442",
+  "tc": "a8e1b9fe5511b76fbf5f45ba090aafd3c85a92d8537a6985c333a9706ef69c1d",
+  "gr": "4a2da27327dd475c943122ce76e07082a86f1d65faf4027a3d9d2df40d40a156",
+  "gt": "b0ec90454f442ba5e2c874391d59ba0aa5db21b654147e2b588e77e29189e676",
+  "gc": "5b353691fabd4e9fe39e0a52deabb522373cd234ce45b9eb161c97fa4f65892d",
+  "cr": "bdbe438191f7ac67e0dcfde11df0005969b7cf8b50a7c29ddfe4de35ed0d828d",
+  "ct": "cd3012998c63b9c4c69333f80926fafc70d89ed80d380751b34d1c4d7206a945",
+  "cc": "5e7c8963d2a4e9d16755500d9d919f951ef5af3a2d2d8d04c5e1e0a0334bb5b0",
+  "ck": "89d7f051e2a523c28f233f49f314346d1503ecec0719edcb01ac8c5b9a138a57",
+  "cm": "05020da3be6db8cb5df7bd86c5ef70d26a7ccd9e16b4b783941db3d5601f3aa9",
+  "ans": "5b41d891871f2930cb75b2814c0c420ae6e5802da1f940e12274c2cf853ff64a",
+  "conf": "3b976035dd7548c1ab05ddfe839760ab84c6e7e1b625e0fd35ffa2cceb59d76f",
+  "rt": "df2ce70268345ca81e1cdc6635bde6b38853aa509eae39f2fc8e712827463653",
+  "fxu": "1c5c4dccacf732bc8868a782be5b2e8bcb664b65f46e21bf382b63aafad6156e",
+  "fxd": "30ff8db8d9a9ccc0f1ee52f418824df88804781025377c36f31c2abb09aacdb9"
+ }
+}

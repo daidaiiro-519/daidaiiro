@@ -491,6 +491,37 @@ pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
         found.extend(markdown_in_references(root));
     }
     found.extend(missing_targets(root));
+    found.extend(placeholders_in_references(root));
+    found
+}
+
+/// references の直下の JSON に残った差し込み場所。**スキーマの題と説明は、描画した頁の見出しになる** ──
+/// SKILL.md だけを見ると、雛形の `{{…}}` が頁に出たまま検査を通る（実測 2026-10-02、qa-advisor）。
+/// 雛形が差し込み場所を置くのはスキーマ（`*.schema.json`）だけなので、それだけを見る ── ほかの JSON
+/// には、差し込み場所の書き方を説明する文が在る（skills-creator の document.json）。下位のフォルダ
+/// （学習ノートの置き場など）も見ない。
+fn placeholders_in_references(root: &Path) -> Vec<String> {
+    let mut found: Vec<String> = files::list(root.join("references"))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| {
+            files::is_file(p)
+                && p
+                    .file_name()
+                    .is_some_and(|x| x.to_string_lossy().ends_with(".schema.json"))
+        })
+        .filter_map(|p| {
+            let left = placeholders(&files::read_to_string(&p).ok()?);
+            (left > 0).then(|| {
+                let rel = p.strip_prefix(root).unwrap_or(&p);
+                format!(
+                    "未記入の差し込み場所が在る: {} の {{{{…}}}} が {left} か所 ── 各 {{{{…}}}} の指示に従って記入する",
+                    rel.display()
+                )
+            })
+        })
+        .collect();
+    found.sort();
     found
 }
 

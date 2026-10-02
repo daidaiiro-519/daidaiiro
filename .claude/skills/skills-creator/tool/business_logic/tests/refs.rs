@@ -574,7 +574,7 @@ fn a_figure_of_nodes_and_edges_is_drawn_as_its_links() {
     );
     let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
     assert!(
-        html.contains("<ol class=\"graph\"><li>ユーザー目的 → サブ機能（どのように ・ 破線）</li><li>単独</li></ol>"),
+        html.contains("<ol class=\"graph\"><li>ユーザー目的 →（どのように ・ 破線）→ サブ機能</li><li>単独</li></ol>"),
         "{html}"
     );
     // **何の図かを、図の前に示す** ── 説明が後ろにあると、読み手は何の図かを知らないまま並びを読む
@@ -584,4 +584,134 @@ fn a_figure_of_nodes_and_edges_is_drawn_as_its_links() {
         .expect("説明が在る");
     let graph = html.find("<ol class=\"graph\">").expect("並びが在る");
     assert!(cap < graph, "{html}");
+}
+
+#[test]
+fn an_edge_name_is_placed_on_the_arrow() {
+    // **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
+    // （実測 2026-10-02、qa-advisor の試しの相談「単体テスト（合格済み）（実施済み）」）
+    let dir = scratch("figure-edge-name");
+    answer(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({"question": "問い", "figure": {
+            "nodes": [{"id": "a", "label": "単体テスト（合格済み）"}, {"id": "b", "label": "リリース"}],
+            "edges": [{"from": "a", "to": "b", "label": "実施済み"}]
+        }}),
+    );
+    let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
+    assert!(
+        html.contains("<li>単体テスト（合格済み） →（実施済み）→ リリース</li>"),
+        "{html}"
+    );
+}
+
+#[test]
+fn named_fields_are_left_out_of_what_is_taken() {
+    // **取り出すときに、指定した欄を除ける** ── 要素ごとの出典が、判断基準1件の大半を占める
+    // （実測 2026-10-02、qa-advisor の判断基準5件で約49KB）
+    let v = json!({"id": "x", "units": [{"text": "本文", "source": {"page": 1}}], "source": {"page": 2}});
+    let got = refs::omit(&v, &["source"]);
+    assert_eq!(got, json!({"id": "x", "units": [{"text": "本文"}]}));
+}
+
+/// 判断基準を指す回答のスキーマを置く。**参照の注記（x-refers ・ x-quotes）を持つ。**
+fn grounded_answer_schema(dir: &Path) {
+    write(
+        dir,
+        "answer.schema.json",
+        &json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "回答", "type": "object",
+            "properties": {
+                "grounds": {"type": "array", "items": {"$ref": "#/$defs/ground"}},
+                "related": {"type": "array", "items": {"type": "object", "properties": {
+                    "criterion": {"type": "string", "x-refers": "criteria"}
+                }}}
+            },
+            "$defs": {"ground": {"type": "object", "properties": {
+                "criterion": {"type": "string", "x-refers": "criteria"},
+                "quote": {"type": "string", "x-quotes": "criterion"}
+            }}}
+        }),
+    );
+}
+
+#[test]
+fn a_ground_must_point_at_a_criterion_and_quote_it() {
+    // **根拠は、在る判断基準を指し、その記述を引く** ── 形の検査だけでは、無い基準や無い文を
+    // 根拠に書いても合格する（実測 2026-10-02、qa-advisor の試しの判断相談）
+    let dir = scratch("grounds");
+    criteria(&dir);
+    grounded_answer_schema(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({
+            "grounds": [
+                {"criterion": "aggregate", "quote": "判断の基準：集約は1つのトランザクションの単位である"},
+                {"criterion": "context", "quote": "語の意味は … 1つに決まる"},
+                {"criterion": "nothing", "quote": "無い基準"},
+                {"criterion": "aggregate", "quote": "集約は複数の文脈にまたがる"}
+            ],
+            "related": [{"criterion": "missing"}]
+        }),
+    );
+    let found = refs::validate_file(&dir, "answer", &file).expect("読める");
+    assert_eq!(found.len(), 3, "{found:?}");
+    assert!(
+        found
+            .iter()
+            .any(|f| f.contains("/grounds/2/criterion") && f.contains("nothing")),
+        "{found:?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|f| f.contains("/grounds/3/quote") && f.contains("集約は複数の文脈にまたがる")),
+        "{found:?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|f| f.contains("/related/0/criterion") && f.contains("missing")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn references_are_not_checked_while_the_criteria_are_empty() {
+    // **判断基準が0件のあいだは照らさない** ── 生成した直後の Skill は、見本の id を指す回答の例を持つ
+    let dir = scratch("grounds-empty");
+    write(&dir, "criteria.schema.json", &json!({"type": "object"}));
+    write(&dir, "criteria.json", &json!({"items": []}));
+    grounded_answer_schema(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({"grounds": [{"criterion": "example", "quote": "見本の引用"}]}),
+    );
+    let found = refs::validate_file(&dir, "answer", &file).expect("読める");
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn an_edge_without_a_name_is_a_plain_arrow() {
+    let dir = scratch("figure-edge-plain");
+    answer(&dir);
+    let file = dir.join("a.json");
+    write(
+        &dir,
+        "a.json",
+        &json!({"question": "問い", "figure": {
+            "nodes": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}],
+            "edges": [{"from": "a", "to": "b"}]
+        }}),
+    );
+    let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
+    assert!(html.contains("<li>A → B</li>"), "{html}");
 }

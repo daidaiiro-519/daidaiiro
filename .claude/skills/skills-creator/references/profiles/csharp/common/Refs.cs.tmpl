@@ -58,88 +58,8 @@ public static class Refs
     static string TrimStart(string s) => s.TrimStart(Ws);
     static string TrimEnd(string s) => s.TrimEnd(Ws);
 
-    /// <summary>JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 逃がすのは " ・ \ ・ 制御文字だけで、
-    /// 全角空白などは逃がさない。System.Text.Json の既定の書き出しは U+3000 などを \u へ逃がし、
-    /// 同じ値でもファイルのバイト列が言語によって変わる。</summary>
-    public static string ToJson(JsonNode? v, bool pretty)
-    {
-        var sb = new StringBuilder();
-        Write(sb, v, pretty, 0);
-        return sb.ToString();
-    }
-
-    static void Write(StringBuilder sb, JsonNode? v, bool pretty, int depth)
-    {
-        switch (v)
-        {
-            case null:
-                sb.Append("null");
-                return;
-            case JsonObject o:
-                if (o.Count == 0)
-                {
-                    sb.Append("{}");
-                    return;
-                }
-                sb.Append('{');
-                var first = true;
-                foreach (var (k, x) in o)
-                {
-                    if (!first) sb.Append(',');
-                    first = false;
-                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
-                    Quote(sb, k);
-                    sb.Append(pretty ? ": " : ":");
-                    Write(sb, x, pretty, depth + 1);
-                }
-                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
-                sb.Append('}');
-                return;
-            case JsonArray a:
-                if (a.Count == 0)
-                {
-                    sb.Append("[]");
-                    return;
-                }
-                sb.Append('[');
-                for (var i = 0; i < a.Count; i++)
-                {
-                    if (i > 0) sb.Append(',');
-                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
-                    Write(sb, a[i], pretty, depth + 1);
-                }
-                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
-                sb.Append(']');
-                return;
-            case JsonValue jv when jv.GetValueKind() == JsonValueKind.String:
-                Quote(sb, jv.GetValue<string>());
-                return;
-            default:
-                sb.Append(v.ToJsonString());
-                return;
-        }
-    }
-
-    static void Quote(StringBuilder sb, string s)
-    {
-        sb.Append('"');
-        foreach (var c in s)
-        {
-            switch (c)
-            {
-                case '"': sb.Append("\\\""); break;
-                case '\\': sb.Append("\\\\"); break;
-                case '\b': sb.Append("\\b"); break;
-                case '\f': sb.Append("\\f"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                case < ' ': sb.Append($"\\u{(int)c:x4}"); break;
-                default: sb.Append(c); break;
-            }
-        }
-        sb.Append('"');
-    }
+    /// <summary>JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 規則の実体は Contract.Text が持つ。</summary>
+    public static string ToJson(JsonNode? v, bool pretty) => Contract.Text(v, pretty);
 
     /// <summary>名前を UTF-8 のバイトの順に並べる。**Rust の文字列の順と同じにする。**</summary>
     static int ByBytes(string a, string b) =>
@@ -298,8 +218,145 @@ public static class Refs
     }
 
     /// <summary>1つの JSON を、種類のスキーマで検査する。**回答のように、references の外の JSON に使う。**</summary>
-    public static List<string> ValidateFile(string refs, string kind, string file) =>
-        Against(ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}")), ReadJson(file), file);
+    public static List<string> ValidateFile(string refs, string kind, string file)
+    {
+        var schema = ReadJson(Path.Combine(refs, $"{kind}{SchemaTail}"));
+        var data = ReadJson(file);
+        var found = Against(schema, data, file);
+        // **形に合っても、指す先が無ければ通さない** ── 無い基準や無い文を根拠に書いても、形の検査は通る
+        var merged = MergeRefs(schema, schema, 0);
+        var cited = new List<string>();
+        Cite(refs, merged, merged, data, "", file, cited);
+        cited.Sort(ByBytes);
+        found.AddRange(cited);
+        return found;
+    }
+
+    /// <summary>指す先の種類の項目を返す。**項目が0件なら null** ── 生成した直後の Skill は、見本の id を指す
+    /// 回答の例を持つので、書き入れるまでは照らさない。</summary>
+    static List<JsonNode?>? ItemsOf(string refs, string kind)
+    {
+        JsonNode? data;
+        try
+        {
+            data = ReadJson(Path.Combine(refs, $"{kind}.json"));
+        }
+        catch (RefsException)
+        {
+            return null;
+        }
+        var items = TryAt(data, "items", out var x) ? x : data;
+        return items is JsonArray a && a.Count > 0 ? [.. a] : null;
+    }
+
+    /// <summary>項目の中の文字列をすべてつなぐ。**空白は外す** ── 引用と照らすための平文である。</summary>
+    static void PlainOf(JsonNode? v, StringBuilder out_)
+    {
+        switch (v)
+        {
+            case JsonValue jv when jv.GetValueKind() == JsonValueKind.String:
+                foreach (var c in jv.GetValue<string>())
+                {
+                    if (Array.IndexOf(Ws, c) < 0) out_.Append(c);
+                }
+                return;
+            case JsonArray a:
+                foreach (var x in a) PlainOf(x, out_);
+                return;
+            case JsonObject o:
+                foreach (var (_, x) in o) PlainOf(x, out_);
+                return;
+        }
+    }
+
+    /// <summary>引用を、照らす断片に分ける。**省略（…）と並び（ ・ ）で切り、「欄の題：」を外す** ── 表 ・ 規則の
+    /// 行は「欄の題：値」の形で引く。2文字に満たない断片は照らさない。</summary>
+    static List<string> Fragments(string quote) =>
+        [.. quote
+            .Split('…')
+            .SelectMany(x => x.Split(" ・ "))
+            .Select(x => x.IndexOf('：') is var at && at >= 0 ? x[(at + 1)..] : x)
+            .Select(x => string.Concat(x.Where(c => Array.IndexOf(Ws, c) < 0)).TrimEnd('。'))
+            .Where(x => x.EnumerateRunes().Count() >= 2)];
+
+    /// <summary>参照の注記（x-refers ・ x-quotes）に従って、指す先を照らす。**x-refers: 種類 の欄は、その種類の
+    /// id を指す。x-quotes: 隣の欄 の欄は、隣の欄が指す項目の記述を引く。**</summary>
+    static void Cite(string refs, JsonNode? schema, JsonNode? root, JsonNode? value, string at, string head, List<string> out_)
+    {
+        var node = Resolve(schema, root);
+        switch (value)
+        {
+            case JsonObject m:
+            {
+                var props = At(node, "properties");
+                foreach (var (k, v) in m)
+                {
+                    if (!TryAt(props, k, out var raw)) continue;
+                    var ps = Resolve(raw, root);
+                    var path = $"{at}/{k}";
+                    var asStr = v is JsonValue sv && sv.GetValueKind() == JsonValueKind.String ? sv.GetValue<string>() : null;
+                    if (Str(ps, "x-refers") is { } kind && asStr is { } id && ItemsOf(refs, kind) is { } items
+                        && !items.Any(x => Str(x, "id") == id))
+                    {
+                        out_.Add($"{head}: {path} ── {kind} に id {id} が無い");
+                    }
+                    if (Str(ps, "x-quotes") is { } sib && asStr is { } quote)
+                    {
+                        var qkind = TryAt(props, sib, out var sraw) ? Str(Resolve(sraw, root), "x-refers") : null;
+                        var qid = Str(m, sib);
+                        if (qkind is not null && qid is not null
+                            && ItemsOf(refs, qkind)?.FirstOrDefault(x => Str(x, "id") == qid) is { } item)
+                        {
+                            var text = new StringBuilder();
+                            PlainOf(item, text);
+                            var plain = text.ToString();
+                            foreach (var f in Fragments(quote))
+                            {
+                                if (!plain.Contains(f, StringComparison.Ordinal))
+                                {
+                                    out_.Add($"{head}: {path} ── {qkind} の {qid} の記述に無い ──「{f}」");
+                                }
+                            }
+                        }
+                    }
+                    Cite(refs, ps, root, v, path, head, out_);
+                }
+                return;
+            }
+            case JsonArray a:
+                if (TryAt(node, "items", out var each))
+                {
+                    for (var i = 0; i < a.Count; i++) Cite(refs, each, root, a[i], $"{at}/{i}", head, out_);
+                }
+                return;
+        }
+    }
+
+    /// <summary>指定した欄を、入れ子のすべてから除く。**取り出す量を減らす** ── 要素ごとの出典（source）は、判断基準
+    /// 1件の大半を占める。</summary>
+    public static JsonNode? Omit(JsonNode? v, IReadOnlyCollection<string> keys)
+    {
+        switch (v)
+        {
+            case JsonObject m:
+            {
+                var o = new JsonObject();
+                foreach (var (k, x) in m)
+                {
+                    if (!keys.Contains(k)) o[k] = Omit(x, keys);
+                }
+                return o;
+            }
+            case JsonArray a:
+                return new JsonArray([.. a.Select(x => Omit(x, keys))]);
+            default:
+                return v?.DeepClone();
+        }
+    }
+
+    /// <summary>, で区切った欄の名前を分ける。**前後の空白を外し、空の名前は捨てる。**</summary>
+    public static List<string> KeysOf(string? list) =>
+        list is null ? [] : [.. list.Split(',').Select(Trim).Where(k => k.Length > 0)];
 
     /// <summary>種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。</summary>
     public static JsonNode? Get(string refs, string kind, string? id = null)
@@ -613,8 +670,9 @@ public static class Refs
             var notes = new List<string>();
             if (Str(e, "label") is { Length: > 0 } l) notes.Add(l);
             if (At(e, "dashed") is JsonValue d && d.GetValueKind() == JsonValueKind.True) notes.Add("破線");
-            var note = notes.Count > 0 ? $"（{string.Join(" ・ ", notes)}）" : "";
-            lis.Append($"<li>{Esc(LabelOf(Str(e, "from") ?? ""))} → {Esc(LabelOf(Str(e, "to") ?? ""))}{Esc(note)}</li>");
+            var arrow = notes.Count > 0 ? $"→（{string.Join(" ・ ", notes)}）→" : "→";
+            // **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
+            lis.Append($"<li>{Esc(LabelOf(Str(e, "from") ?? ""))} {Esc(arrow)} {Esc(LabelOf(Str(e, "to") ?? ""))}</li>");
         }
         foreach (var n in nodes)
         {

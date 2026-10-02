@@ -23,7 +23,11 @@ function guard(run: (given: Given) => Outcome): (given: Given) => Outcome {
     };
 }
 
-const runGet = guard(given => found([], refs.get(refsDir(given), given.one('kind', ''), optional(given, 'id'))));
+const runGet = guard(given => {
+    const got = refs.get(refsDir(given), given.one('kind', ''), optional(given, 'id'));
+    // **除く欄を渡すと、入れ子のすべてから除いて返す**（例：omit=source）
+    return found([], refs.omit(got, refs.omitKeys(optional(given, 'omit'))));
+});
 
 const runValidate = guard(given => {
     const d = refsDir(given);
@@ -71,7 +75,7 @@ export function refsTools(): Tool[] {
         {
             name: 'get',
             summary: 'references の種類の JSON を取り出す。id を渡すと、その1件だけを返す',
-            args: [need('kind', '種類の名前'), opt('id', '項目の id'), root()],
+            args: [need('kind', '種類の名前'), opt('id', '項目の id'), opt('omit', '除く欄の名前（, で区切る。例：source）'), root()],
             run: runGet,
             human
         },

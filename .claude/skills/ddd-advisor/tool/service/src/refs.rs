@@ -31,7 +31,16 @@ fn opt<'a>(given: &'a Given, name: &str) -> Option<&'a str> {
 fn run_get(given: &Given) -> Outcome {
     let dir = or_misuse!(refs_dir(given));
     let got = or_misuse!(refs::get(&dir, given.one("kind", ""), opt(given, "id")));
-    Outcome::found(Vec::new(), got)
+    // **除く欄を渡すと、入れ子のすべてから除いて返す**（例：omit=source）
+    let keys: Vec<&str> = opt(given, "omit")
+        .map(|o| {
+            o.split(',')
+                .map(str::trim)
+                .filter(|k| !k.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+    Outcome::found(Vec::new(), refs::omit(&got, &keys))
 }
 
 fn run_validate(given: &Given) -> Outcome {
@@ -127,7 +136,7 @@ pub fn tools() -> Vec<Tool> {
         Tool {
             name: "get",
             summary: "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
-            args: vec![Arg::need("kind", "種類の名前"), Arg::opt("id", "項目の id", None), root()],
+            args: vec![Arg::need("kind", "種類の名前"), Arg::opt("id", "項目の id", None), Arg::opt("omit", "除く欄の名前（, で区切る。例：source）", None), root()],
             run: run_get,
             human,
         },

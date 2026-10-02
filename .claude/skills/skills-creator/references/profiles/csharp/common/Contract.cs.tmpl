@@ -4,6 +4,7 @@
 // 道具の一覧（能力の正本）・ 引数 ・ 渡された値 ・ 戻り値 ・ 道具の一覧を機械が読む形で返す処理を持つ。
 // CLI と MCP は、この形の一覧から組む ── 能力を2回書くと、片方だけが古くなる。
 
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -120,17 +121,87 @@ public static class Contract
         return Outcome.Found([], new JsonObject { ["tools"] = listed, ["skill_root"] = root });
     }
 
-    /// <summary>JSON を人が読める形で書き出す。**日本語を \\u へ逃がさない。**</summary>
-    public static readonly JsonSerializerOptions Pretty = new()
+    /// <summary>JSON を書き出す。**Rust の serde_json と同じ規則にする** ── 逃がすのは " ・ \\ ・ 制御文字だけで、
+    /// 全角空白（U+3000）・ &lt; ・ &gt; ・ &amp; などは逃がさない。System.Text.Json の書き出しは、
+    /// UnsafeRelaxedJsonEscaping でも U+3000 などを \\u へ逃がし、同じ値でも出力が言語によって変わる。
+    /// pretty は字下げ2つ ・ 改行は \\n である（serde_json の to_string_pretty と同じ）。</summary>
+    public static string Text(JsonNode? v, bool pretty)
     {
-        WriteIndented = true,
-        NewLine = "\n",
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
+        var sb = new StringBuilder();
+        Write(sb, v, pretty, 0);
+        return sb.ToString();
+    }
 
-    /// <summary>JSON を1行で書き出す。MCP の結果の文字列に使う。</summary>
-    public static readonly JsonSerializerOptions Compact = new()
+    static void Write(StringBuilder sb, JsonNode? v, bool pretty, int depth)
     {
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
+        switch (v)
+        {
+            case null:
+                sb.Append("null");
+                return;
+            case JsonObject o:
+                if (o.Count == 0)
+                {
+                    sb.Append("{}");
+                    return;
+                }
+                sb.Append('{');
+                var first = true;
+                foreach (var (k, x) in o)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
+                    Quote(sb, k);
+                    sb.Append(pretty ? ": " : ":");
+                    Write(sb, x, pretty, depth + 1);
+                }
+                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
+                sb.Append('}');
+                return;
+            case JsonArray a:
+                if (a.Count == 0)
+                {
+                    sb.Append("[]");
+                    return;
+                }
+                sb.Append('[');
+                for (var i = 0; i < a.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    if (pretty) sb.Append('\n').Append(' ', 2 * (depth + 1));
+                    Write(sb, a[i], pretty, depth + 1);
+                }
+                if (pretty) sb.Append('\n').Append(' ', 2 * depth);
+                sb.Append(']');
+                return;
+            case JsonValue jv when jv.GetValueKind() == JsonValueKind.String:
+                Quote(sb, jv.GetValue<string>());
+                return;
+            default:
+                sb.Append(v.ToJsonString());
+                return;
+        }
+    }
+
+    static void Quote(StringBuilder sb, string s)
+    {
+        sb.Append('"');
+        foreach (var c in s)
+        {
+            switch (c)
+            {
+                case '"': sb.Append("\\\""); break;
+                case '\\': sb.Append("\\\\"); break;
+                case '\b': sb.Append("\\b"); break;
+                case '\f': sb.Append("\\f"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                case < ' ': sb.Append($"\\u{(int)c:x4}"); break;
+                default: sb.Append(c); break;
+            }
+        }
+        sb.Append('"');
+    }
 }

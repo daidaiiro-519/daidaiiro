@@ -230,6 +230,33 @@ pub fn conform(
                         key,
                     );
                 }
+                // **除く欄を指定した取り出し**（ACDR 0090）
+                let args = [
+                    strs(&["get", "--kind", &kind, "--id", &id, "--omit", "source"]),
+                    root.clone(),
+                ]
+                .concat();
+                compare(
+                    &mut report,
+                    format!("{name} get {kind} {id} --omit source"),
+                    a.call(&args),
+                    b.call(&args),
+                    None,
+                );
+            }
+            // **旗を動詞の前に置いても、後ろに置いたときと同じに読む**（ACDR 0090）
+            let usual = [strs(&["get", "--kind", &kind]), root.clone()].concat();
+            let first = [root.clone(), strs(&["get", "--kind", &kind])].concat();
+            let x = a.call(&usual);
+            for (side, cli) in [("基準", &a), ("比べる側", &b)] {
+                report.cases += 1;
+                let y = cli.call(&first);
+                if y != x {
+                    report.mismatches.push(format!(
+                        "{name} get {kind}: {side}の道具が、動詞の前の旗を後ろの旗と同じに読まない（終了コード {}）",
+                        y.0
+                    ));
+                }
             }
         }
         if files::is_file(refs.join("answer.schema.json")) {
@@ -257,11 +284,33 @@ pub fn conform(
                 );
                 compare(
                     &mut report,
-                    label,
+                    label.clone(),
                     a.call(&args),
                     b.call(&args),
                     Some("html"),
                 );
+                // **回答の検査の合否を比べる** ── 指す先の照合（x-refers ・ x-quotes）を含む（ACDR 0090）
+                let args = [
+                    strs(&[
+                        "validate",
+                        "--kind",
+                        "answer",
+                        "--file",
+                        &fx.display().to_string(),
+                    ]),
+                    root.clone(),
+                ]
+                .concat();
+                let (x, y) = (a.call(&args), b.call(&args));
+                report.cases += 1;
+                if x.0 != y.0 {
+                    report.mismatches.push(format!(
+                        "{} の validate: 合否が基準と違う（基準 {} ／ 比べる側 {}）",
+                        label.replace(" view answer ", " "),
+                        x.0,
+                        y.0
+                    ));
+                }
             }
         }
         // **validate は合否と種類の一覧だけを比べる** ── 検出の文言と件数は、検査の道具ごとに違う

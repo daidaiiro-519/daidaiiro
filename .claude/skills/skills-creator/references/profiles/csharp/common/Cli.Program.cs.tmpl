@@ -14,7 +14,7 @@ static class Cli
     {
         var all = Tools.All();
         var asJson = argv.Contains("--json");
-        var rest = argv.Where(a => a != "--json").ToList();
+        var rest = VerbFirst(argv.Where(a => a != "--json").ToList());
         if (rest.Count == 0)
         {
             if (asJson) return Emit(Contract.Catalog(all, new Given()), true, _ => "");
@@ -50,6 +50,20 @@ static class Cli
             return 2;
         }
         return Emit(tool.Run(given), asJson, tool.Human);
+    }
+
+    /// <summary>動詞の前に置いた旗（--名前 値）を、引数の末尾へ移す。**旗の位置で失敗させない** ──
+    /// --skill_root <場所> get … の順でも、get … --skill_root <場所> と同じに読む。</summary>
+    static List<string> VerbFirst(List<string> argv)
+    {
+        var lead = new List<string>();
+        var i = 0;
+        while (i < argv.Count && argv[i].StartsWith("--", StringComparison.Ordinal))
+        {
+            lead.Add(argv[i++]);
+            if (i < argv.Count && !argv[i].StartsWith("--", StringComparison.Ordinal)) lead.Add(argv[i++]);
+        }
+        return [.. argv.Skip(i), .. lead];
     }
 
     static Given ReadArgs(Tool tool, List<string> rest)
@@ -121,7 +135,7 @@ static class Cli
 
     static int Emit(Outcome out_, bool asJson, Func<Outcome, string> human)
     {
-        Console.WriteLine(asJson ? out_.ToJson().ToJsonString(Contract.Pretty) : human(out_));
+        Console.WriteLine(asJson ? Contract.Text(out_.ToJson(), true) : human(out_));
         return out_.ExitCode;
     }
 }

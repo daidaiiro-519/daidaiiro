@@ -30,7 +30,14 @@ func runGet(given *contract.Given) contract.Outcome {
 	if err != nil {
 		return contract.Misuse(err.Error())
 	}
-	return contract.Found(nil, got)
+	// **除く欄を渡すと、入れ子のすべてから除いて返す**（例：omit=source）
+	var keys []string
+	for _, k := range strings.Split(given.One("omit", ""), ",") {
+		if k = strings.TrimSpace(k); k != "" {
+			keys = append(keys, k)
+		}
+	}
+	return contract.Found(nil, Omit(got, keys))
 }
 
 func runValidate(given *contract.Given) contract.Outcome {
@@ -142,7 +149,7 @@ func Tools() []contract.Tool {
 	root := contract.Opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）", nil)
 	return []contract.Tool{
 		{Name: "get", Summary: "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
-			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), root}, Run: runGet, Human: human},
+			Args: []contract.Arg{contract.Need("kind", "種類の名前"), contract.Opt("id", "項目の id", nil), contract.Opt("omit", "除く欄の名前（, で区切る。例：source）", nil), root}, Run: runGet, Human: human},
 		{Name: "validate", Summary: "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
 			Args: []contract.Arg{contract.Opt("kind", "種類の名前（file と一緒に渡す）", nil), contract.Opt("file", "検査する JSON", nil), root}, Run: runValidate, Human: humanValidate},
 		{Name: "view", Summary: "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",

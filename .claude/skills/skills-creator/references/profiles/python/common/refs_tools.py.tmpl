@@ -35,7 +35,11 @@ def _guard(run):
 
 @_guard
 def _run_get(given: Given) -> Outcome:
-    return Outcome.found([], refs.get(_refs_dir(given), given.one("kind", ""), _opt(given, "id")))
+    got = refs.get(_refs_dir(given), given.one("kind", ""), _opt(given, "id"))
+    # **除く欄を渡すと、入れ子のすべてから除いて返す**（例：omit=source）
+    o = _opt(given, "omit")
+    keys = [k for k in (x.strip(refs._WS) for x in o.split(",")) if k] if o else []
+    return Outcome.found([], refs.omit(got, keys))
 
 
 @_guard
@@ -90,7 +94,8 @@ def tools() -> list[Tool]:
     root = lambda: Arg.opt("skill_root", "この Skill の置き場所（既定は、SKILL.md の在る上のフォルダ）")  # noqa: E731
     return [
         Tool("get", "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
-             [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), root()], _run_get, _human),
+             [Arg.need("kind", "種類の名前"), Arg.opt("id", "項目の id"), Arg.opt("omit", "除く欄の名前（, で区切る。例：source）"),
+              root()], _run_get, _human),
         Tool("validate", "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
              [Arg.opt("kind", "種類の名前（file と一緒に渡す）"), Arg.opt("file", "検査する JSON"), root()], _run_validate, _human_validate),
         Tool("view", "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",

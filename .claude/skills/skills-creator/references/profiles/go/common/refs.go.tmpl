@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -405,7 +406,151 @@ func ValidateFile(refs, kind, file string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return against(schema, data, file), nil
+	found := against(schema, data, file)
+	// **形に合っても、指す先が無ければ通さない** ── 無い基準や無い文を根拠に書いても、形の検査は通る
+	merged := mergeRefs(schema, schema, 0)
+	var cited []string
+	cite(refs, merged, merged, data, "", file, &cited)
+	slices.Sort(cited)
+	return append(found, cited...), nil
+}
+
+// itemsOf は指す先の種類の項目を返す。**項目が0件なら nil** ── 生成した直後の Skill は、見本の id を指す
+// 回答の例を持つので、書き入れるまでは照らさない。
+func itemsOf(refs, kind string) []any {
+	data, err := readJSON(filepath.Join(refs, kind+".json"))
+	if err != nil {
+		return nil
+	}
+	list := data
+	if v, ok := at(data, "items"); ok {
+		list = v
+	}
+	items, _ := list.([]any)
+	return items
+}
+
+// plainOf は項目の中の文字列をすべてつなぐ。**空白は外す** ── 引用と照らすための平文である。
+func plainOf(v any, out *strings.Builder) {
+	switch x := v.(type) {
+	case string:
+		for _, c := range x {
+			if !unicode.IsSpace(c) {
+				out.WriteRune(c)
+			}
+		}
+	case []any:
+		for _, e := range x {
+			plainOf(e, out)
+		}
+	case *Object:
+		for _, k := range x.Keys {
+			plainOf(x.Vals[k], out)
+		}
+	}
+}
+
+// fragments は引用を、照らす断片に分ける。**省略（…）と並び（ ・ ）で切り、「欄の題：」を外す** ── 表 ・ 規則の
+// 行は「欄の題：値」の形で引く。2文字に満たない断片は照らさない。
+func fragments(quote string) []string {
+	var out []string
+	for _, a := range strings.Split(quote, "…") {
+		for _, x := range strings.Split(a, " ・ ") {
+			if _, v, ok := strings.Cut(x, "："); ok {
+				x = v
+			}
+			x = strings.TrimRight(strings.Map(func(c rune) rune {
+				if unicode.IsSpace(c) {
+					return -1
+				}
+				return c
+			}, x), "。")
+			if utf8.RuneCountInString(x) >= 2 {
+				out = append(out, x)
+			}
+		}
+	}
+	return out
+}
+
+// cite は参照の注記（`x-refers` ・ `x-quotes`）に従って、指す先を照らす。**`x-refers: 種類` の欄は、その種類の
+// id を指す。`x-quotes: 隣の欄` の欄は、隣の欄が指す項目の記述を引く。**
+func cite(refs string, schema, root, value any, path, head string, out *[]string) {
+	node := resolve(schema, root)
+	switch x := value.(type) {
+	case *Object:
+		props, _ := at(node, "properties")
+		for _, k := range x.Keys {
+			v := x.Vals[k]
+			ps, ok := at(props, k)
+			if !ok {
+				continue
+			}
+			ps = resolve(ps, root)
+			p := path + "/" + k
+			kind, okK := str(ps, "x-refers")
+			id, okI := v.(string)
+			if okK && okI {
+				if items := itemsOf(refs, kind); len(items) > 0 {
+					if !slices.ContainsFunc(items, func(e any) bool { s, ok := str(e, "id"); return ok && s == id }) {
+						*out = append(*out, fmt.Sprintf("%s: %s ── %s に id %s が無い", head, p, kind, id))
+					}
+				}
+			}
+			sib, okS := str(ps, "x-quotes")
+			quote, okQ := v.(string)
+			if okS && okQ {
+				sp, okP := at(props, sib)
+				kind, okK := str(resolve(sp, root), "x-refers")
+				id, okI := str(x, sib)
+				if okP && okK && okI {
+					for _, item := range itemsOf(refs, kind) {
+						if s, ok := str(item, "id"); !ok || s != id {
+							continue
+						}
+						var text strings.Builder
+						plainOf(item, &text)
+						for _, f := range fragments(quote) {
+							if !strings.Contains(text.String(), f) {
+								*out = append(*out, fmt.Sprintf("%s: %s ── %s の %s の記述に無い ──「%s」", head, p, kind, id, f))
+							}
+						}
+						break
+					}
+				}
+			}
+			cite(refs, ps, root, v, p, head, out)
+		}
+	case []any:
+		if items, ok := at(node, "items"); ok {
+			for i, e := range x {
+				cite(refs, items, root, e, path+"/"+strconv.Itoa(i), head, out)
+			}
+		}
+	}
+}
+
+// Omit は指定した欄を、入れ子のすべてから除く。**取り出す量を減らす** ── 要素ごとの出典（source）は、判断基準
+// 1件の大半を占める。
+func Omit(v any, keys []string) any {
+	switch x := v.(type) {
+	case *Object:
+		out := NewObject()
+		for _, k := range x.Keys {
+			if !slices.Contains(keys, k) {
+				out.Set(k, Omit(x.Vals[k], keys))
+			}
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = Omit(e, keys)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 // Get は種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。
@@ -836,13 +981,14 @@ func graphHTML(value any) string {
 		if d, _ := at(e, "dashed"); d == true {
 			notes = append(notes, "破線")
 		}
-		note := ""
+		arrow := "→"
 		if len(notes) > 0 {
-			note = "（" + strings.Join(notes, " ・ ") + "）"
+			arrow = "→（" + strings.Join(notes, " ・ ") + "）→"
 		}
 		from, _ := str(e, "from")
 		to, _ := str(e, "to")
-		sb.WriteString("<li>" + esc(labelOf(from)) + " → " + esc(labelOf(to)) + esc(note) + "</li>")
+		// **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
+		sb.WriteString("<li>" + esc(labelOf(from)) + " " + esc(arrow) + " " + esc(labelOf(to)) + "</li>")
 	}
 	for _, n := range nodes {
 		id, _ := str(n, "id")

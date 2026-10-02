@@ -71,11 +71,26 @@ def emit(out: Outcome, as_json: bool, human) -> int:
     return out.exit_code()
 
 
+def verb_first(argv: list[str]) -> list[str]:
+    """動詞の前に置いた旗（--名前 値）を、引数の末尾へ移す。**旗の位置で失敗させない** ──
+    --skill_root <場所> get … の順でも、get … --skill_root <場所> と同じに読む。"""
+    lead: list[str] = []
+    i = 0
+    while i < len(argv) and argv[i].startswith("--"):
+        lead.append(argv[i])
+        i += 1
+        if i < len(argv) and not argv[i].startswith("--"):
+            lead.append(argv[i])
+            i += 1
+    return argv[i:] + lead
+
+
 def main() -> int:
     all_tools = tools()
     argv = sys.argv[1:]
     as_json = "--json" in argv
     argv = [a for a in argv if a != "--json"]
+    argv = verb_first(argv)
     if not argv:
         if as_json:
             return emit(catalog(all_tools, Given()), True, lambda _: "")

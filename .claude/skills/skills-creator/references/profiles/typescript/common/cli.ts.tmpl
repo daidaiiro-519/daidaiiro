@@ -69,10 +69,24 @@ function emit(out: Outcome, asJson: boolean, human: (out: Outcome) => string): n
     return exitCode(out);
 }
 
+/**
+ * 動詞の前に置いた旗（`--名前 値`）を、引数の末尾へ移す。**旗の位置で失敗させない** ──
+ * `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。
+ */
+function verbFirst(argv: string[]): string[] {
+    const lead: string[] = [];
+    let i = 0;
+    while (i < argv.length && argv[i].startsWith('--')) {
+        lead.push(argv[i++]);
+        if (i < argv.length && !argv[i].startsWith('--')) lead.push(argv[i++]);
+    }
+    return [...argv.slice(i), ...lead];
+}
+
 function main(): number {
     const all = tools();
     const asJson = process.argv.includes('--json');
-    const argv = process.argv.slice(2).filter(a => a !== '--json');
+    const argv = verbFirst(process.argv.slice(2).filter(a => a !== '--json'));
     if (argv.length === 0) {
         if (asJson) return emit(catalog(all, new Given()), true, () => '');
         usage(all);

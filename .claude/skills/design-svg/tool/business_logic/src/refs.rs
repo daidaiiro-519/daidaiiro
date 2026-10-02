@@ -180,7 +180,135 @@ pub fn validate(refs: &Path) -> Result<Vec<String>, String> {
 pub fn validate_file(refs: &Path, kind: &str, file: &Path) -> Result<Vec<String>, String> {
     let schema = read_json(&refs.join(format!("{kind}{SCHEMA_TAIL}")))?;
     let data = read_json(file)?;
-    Ok(against(&schema, &data, &file.display().to_string()))
+    let head = file.display().to_string();
+    let mut found = against(&schema, &data, &head);
+    // **形に合っても、指す先が無ければ通さない** ── 無い基準や無い文を根拠に書いても、形の検査は通る
+    let merged = merge_refs(&schema, &schema, 0);
+    let mut cited = Vec::new();
+    cite(refs, &merged, &merged, &data, "", &head, &mut cited);
+    cited.sort();
+    found.extend(cited);
+    Ok(found)
+}
+
+/// 指す先の種類の項目を返す。**項目が0件なら None** ── 生成した直後の Skill は、見本の id を指す
+/// 回答の例を持つので、書き入れるまでは照らさない。
+fn items_of(refs: &Path, kind: &str) -> Option<Vec<Value>> {
+    let data = read_json(&refs.join(format!("{kind}.json"))).ok()?;
+    let items = data
+        .get("items")
+        .or(Some(&data))
+        .and_then(Value::as_array)?
+        .clone();
+    (!items.is_empty()).then_some(items)
+}
+
+/// 項目の中の文字列をすべてつなぐ。**空白は外す** ── 引用と照らすための平文である。
+fn plain_of(v: &Value, out: &mut String) {
+    match v {
+        Value::String(s) => out.extend(s.chars().filter(|c| !c.is_whitespace())),
+        Value::Array(a) => a.iter().for_each(|x| plain_of(x, out)),
+        Value::Object(m) => m.values().for_each(|x| plain_of(x, out)),
+        _ => {}
+    }
+}
+
+/// 引用を、照らす断片に分ける。**省略（…）と並び（ ・ ）で切り、「欄の題：」を外す** ── 表 ・ 規則の
+/// 行は「欄の題：値」の形で引く。2文字に満たない断片は照らさない。
+fn fragments(quote: &str) -> Vec<String> {
+    quote
+        .split('…')
+        .flat_map(|x| x.split(" ・ "))
+        .map(|x| x.split_once('：').map_or(x, |(_, v)| v))
+        .map(|x| {
+            x.chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>()
+                .trim_end_matches('。')
+                .to_owned()
+        })
+        .filter(|x| x.chars().count() >= 2)
+        .collect()
+}
+
+/// 参照の注記（`x-refers` ・ `x-quotes`）に従って、指す先を照らす。**`x-refers: 種類` の欄は、その種類の
+/// id を指す。`x-quotes: 隣の欄` の欄は、隣の欄が指す項目の記述を引く。**
+fn cite(
+    refs: &Path,
+    schema: &Value,
+    root: &Value,
+    value: &Value,
+    at: &str,
+    head: &str,
+    out: &mut Vec<String>,
+) {
+    let node = resolve(schema, root);
+    match value {
+        Value::Object(m) => {
+            let props = node.get("properties");
+            for (k, v) in m {
+                let Some(ps) = props.and_then(|p| p.get(k)) else {
+                    continue;
+                };
+                let ps = resolve(ps, root);
+                let path = format!("{at}/{k}");
+                if let (Some(kind), Some(id)) = (str_of(ps, "x-refers"), v.as_str()) {
+                    if let Some(items) = items_of(refs, kind) {
+                        if !items.iter().any(|x| str_of(x, "id") == Some(id)) {
+                            out.push(format!("{head}: {path} ── {kind} に id {id} が無い"));
+                        }
+                    }
+                }
+                if let (Some(sib), Some(quote)) = (str_of(ps, "x-quotes"), v.as_str()) {
+                    let kind = props
+                        .and_then(|p| p.get(sib))
+                        .map(|x| resolve(x, root))
+                        .and_then(|x| str_of(x, "x-refers"));
+                    let id = m.get(sib).and_then(Value::as_str);
+                    if let (Some(kind), Some(id)) = (kind, id) {
+                        let item = items_of(refs, kind)
+                            .and_then(|xs| xs.into_iter().find(|x| str_of(x, "id") == Some(id)));
+                        if let Some(item) = item {
+                            let mut text = String::new();
+                            plain_of(&item, &mut text);
+                            for f in fragments(quote) {
+                                if !text.contains(&f) {
+                                    out.push(format!(
+                                        "{head}: {path} ── {kind} の {id} の記述に無い ──「{f}」"
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+                cite(refs, ps, root, v, &path, head, out);
+            }
+        }
+        Value::Array(a) => {
+            if let Some(items) = node.get("items") {
+                for (i, x) in a.iter().enumerate() {
+                    cite(refs, items, root, x, &format!("{at}/{i}"), head, out);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// 指定した欄を、入れ子のすべてから除く。**取り出す量を減らす** ── 要素ごとの出典（source）は、判断基準
+/// 1件の大半を占める。
+#[must_use]
+pub fn omit(v: &Value, keys: &[&str]) -> Value {
+    match v {
+        Value::Object(m) => Value::Object(
+            m.iter()
+                .filter(|(k, _)| !keys.contains(&k.as_str()))
+                .map(|(k, x)| (k.clone(), omit(x, keys)))
+                .collect(),
+        ),
+        Value::Array(a) => Value::Array(a.iter().map(|x| omit(x, keys)).collect()),
+        other => other.clone(),
+    }
 }
 
 /// 種類の JSON を取り出す。**id を渡すと、その1件だけを返す** ── モデルは全体を読まずに済む。
@@ -631,16 +759,17 @@ fn graph_html(value: &Value) -> String {
         if e.get("dashed").and_then(Value::as_bool) == Some(true) {
             notes.push("破線".to_owned());
         }
-        let note = if notes.is_empty() {
-            String::new()
+        let arrow = if notes.is_empty() {
+            "→".to_owned()
         } else {
-            format!("（{}）", notes.join(" ・ "))
+            format!("→（{}）→", notes.join(" ・ "))
         };
+        // **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
         lis.push_str(&format!(
-            "<li>{} → {}{}</li>",
+            "<li>{} {} {}</li>",
             esc(&label(str_of(e, "from").unwrap_or(""))),
-            esc(&label(str_of(e, "to").unwrap_or(""))),
-            esc(&note)
+            esc(&arrow),
+            esc(&label(str_of(e, "to").unwrap_or("")))
         ));
     }
     for n in &nodes {

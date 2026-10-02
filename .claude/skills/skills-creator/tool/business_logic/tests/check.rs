@@ -840,3 +840,31 @@ fn markdown_that_git_ignores_is_not_reported() {
         "{found:?}"
     );
 }
+
+#[test]
+fn unfilled_placeholders_in_references_are_reported() {
+    // **references の JSON に残った差し込み場所も数える** ── スキーマの題は判断基準の頁の見出しになる
+    // （実測 2026-10-02、qa-advisor の頁41件の見出しが「{{助言の対象}}の判断基準」のまま出た）
+    let root = scratch("placeholders-in-references");
+    write_document(&root);
+    std::fs::create_dir_all(root.join("references")).expect("作れる");
+    std::fs::write(
+        root.join("references/criteria.schema.json"),
+        r#"{"title": "{{助言の対象}}の判断基準"}"#,
+    )
+    .expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(
+        found
+            .iter()
+            .any(|f| f.contains("未記入") && f.contains("criteria.schema.json")),
+        "{found:?}"
+    );
+    std::fs::write(
+        root.join("references/criteria.schema.json"),
+        r#"{"title": "ソフトウェアテストの判断基準"}"#,
+    )
+    .expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(!found.iter().any(|f| f.contains("未記入")), "{found:?}");
+}

@@ -155,7 +155,106 @@ def validate_file(refs: Path, kind: str, file: Path) -> list[str]:
     """1つの JSON を、種類のスキーマで検査する。**回答のように、references の外の JSON に使う。**"""
     schema = _read_json(refs / f"{kind}{SCHEMA_TAIL}")
     data = _read_json(file)
-    return _against(schema, data, str(file))
+    head = str(file)
+    found = _against(schema, data, head)
+    # **形に合っても、指す先が無ければ通さない** ── 無い基準や無い文を根拠に書いても、形の検査は通る
+    merged = _merge_refs(schema, schema, 0)
+    cited: list[str] = []
+    _cite(refs, merged, merged, data, "", head, cited)
+    cited.sort()
+    found.extend(cited)
+    return found
+
+
+def _cited_items(refs: Path, kind: str) -> list | None:
+    """指す先の種類の項目を返す。**項目が0件なら None** ── 生成した直後の Skill は、見本の id を指す
+    回答の例を持つので、書き入れるまでは照らさない。"""
+    try:
+        data = _read_json(refs / f"{kind}.json")
+    except RefsError:
+        return None
+    items = _get(data, "items")
+    if items is _MISSING:
+        items = data
+    if not isinstance(items, list) or not items:
+        return None
+    return items
+
+
+def _plain_of(v, out: list[str]) -> None:
+    """項目の中の文字列をすべてつなぐ。**空白は外す** ── 引用と照らすための平文である。"""
+    if isinstance(v, str):
+        out.append("".join(c for c in v if c not in _WS))
+    elif isinstance(v, list):
+        for x in v:
+            _plain_of(x, out)
+    elif isinstance(v, dict):
+        for x in v.values():
+            _plain_of(x, out)
+
+
+def _fragments(quote: str) -> list[str]:
+    """引用を、照らす断片に分ける。**省略（…）と並び（ ・ ）で切り、「欄の題：」を外す** ── 表 ・ 規則の
+    行は「欄の題：値」の形で引く。2文字に満たない断片は照らさない。"""
+    out = []
+    for part in quote.split("…"):
+        for x in part.split(" ・ "):
+            _, sep, after = x.partition("：")
+            x = after if sep else x
+            x = "".join(c for c in x if c not in _WS).rstrip("。")
+            if len(x) >= 2:
+                out.append(x)
+    return out
+
+
+def _cite(refs: Path, schema, root, value, at: str, head: str, out: list[str]) -> None:
+    """参照の注記（x-refers ・ x-quotes）に従って、指す先を照らす。**x-refers: 種類 の欄は、その種類の
+    id を指す。x-quotes: 隣の欄 の欄は、隣の欄が指す項目の記述を引く。**"""
+    node = _resolve(schema, root)
+    if isinstance(value, dict):
+        props = _get(node, "properties")
+        for k, v in value.items():
+            ps = _get(props, k)
+            if ps is _MISSING:
+                continue
+            ps = _resolve(ps, root)
+            path = f"{at}/{k}"
+            kind = _str(ps, "x-refers")
+            if kind is not None and isinstance(v, str):
+                items = _cited_items(refs, kind)
+                if items is not None and not any(_str(x, "id") == v for x in items):
+                    out.append(f"{head}: {path} ── {kind} に id {v} が無い")
+            sib = _str(ps, "x-quotes")
+            if sib is not None and isinstance(v, str):
+                sp = _get(props, sib)
+                kind = _str(_resolve(sp, root), "x-refers") if sp is not _MISSING else None
+                id = _str(value, sib)
+                if kind is not None and id is not None:
+                    items = _cited_items(refs, kind) or []
+                    item = next((x for x in items if _str(x, "id") == id), None)
+                    if item is not None:
+                        parts: list[str] = []
+                        _plain_of(item, parts)
+                        text = "".join(parts)
+                        for f in _fragments(v):
+                            if f not in text:
+                                out.append(f"{head}: {path} ── {kind} の {id} の記述に無い ──「{f}」")
+            _cite(refs, ps, root, v, path, head, out)
+    elif isinstance(value, list):
+        items = _get(node, "items")
+        if items is not _MISSING:
+            for i, x in enumerate(value):
+                _cite(refs, items, root, x, f"{at}/{i}", head, out)
+
+
+def omit(v, keys: list[str]):
+    """指定した欄を、入れ子のすべてから除く。**取り出す量を減らす** ── 要素ごとの出典（source）は、判断基準
+    1件の大半を占める。"""
+    if isinstance(v, dict):
+        return {k: omit(x, keys) for k, x in v.items() if k not in keys}
+    if isinstance(v, list):
+        return [omit(x, keys) for x in v]
+    return v
 
 
 def get(refs: Path, kind: str, id: str | None = None):
@@ -457,8 +556,9 @@ def _graph_html(value) -> str:
             notes.append(l)
         if _get(e, "dashed") is True:
             notes.append("破線")
-        note = f"（{' ・ '.join(notes)}）" if notes else ""
-        lis.append(f"<li>{_esc(label(_str(e, 'from') or ''))} → {_esc(label(_str(e, 'to') or ''))}{_esc(note)}</li>")
+        arrow = f"→（{' ・ '.join(notes)}）→" if notes else "→"
+        # **辺の名前は矢印の上に置く** ── 節点名の後ろに置くと、節点名の括弧と区別できない
+        lis.append(f"<li>{_esc(label(_str(e, 'from') or ''))} {_esc(arrow)} {_esc(label(_str(e, 'to') or ''))}</li>")
     for n in nodes:
         id = _str(n, "id") or ""
         if not any(_str(e, "from") == id or _str(e, "to") == id for e in edges):

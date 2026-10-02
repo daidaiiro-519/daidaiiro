@@ -26,8 +26,12 @@ public static class RefsTools
         }
     };
 
-    static Outcome RunGet(Given given) =>
-        Outcome.Found([], Refs.Get(RefsDir(given), given.One("kind", ""), Optional(given, "id")));
+    static Outcome RunGet(Given given)
+    {
+        var got = Refs.Get(RefsDir(given), given.One("kind", ""), Optional(given, "id"));
+        // **除く欄を渡すと、入れ子のすべてから除いて返す**（例：omit=source）
+        return Outcome.Found([], Refs.Omit(got, Refs.KeysOf(Optional(given, "omit"))));
+    }
 
     static Outcome RunValidate(Given given)
     {
@@ -63,7 +67,7 @@ public static class RefsTools
     {
         if (!out_.Ok || out_.Findings.Count > 0) return string.Join("\n", out_.Findings.Select(x => $"  ×  {x}"));
         if (out_.Data is JsonObject o && o["html"] is JsonValue h && h.TryGetValue<string>(out var html)) return html;
-        return out_.Data?.ToJsonString(Contract.Pretty) ?? "null";
+        return Contract.Text(out_.Data, true);
     }
 
     static string HumanValidate(Outcome out_)
@@ -80,7 +84,7 @@ public static class RefsTools
         return
         [
             new Tool("get", "references の種類の JSON を取り出す。id を渡すと、その1件だけを返す",
-                [Arg.Need("kind", "種類の名前"), Arg.Opt("id", "項目の id"), Root()], Guard(RunGet), Human),
+                [Arg.Need("kind", "種類の名前"), Arg.Opt("id", "項目の id"), Arg.Opt("omit", "除く欄の名前（, で区切る。例：source）"), Root()], Guard(RunGet), Human),
             new Tool("validate", "references の JSON を、指しているスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査する",
                 [Arg.Opt("kind", "種類の名前（file と一緒に渡す）"), Arg.Opt("file", "検査する JSON"), Root()], Guard(RunValidate), HumanValidate),
             new Tool("view", "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",

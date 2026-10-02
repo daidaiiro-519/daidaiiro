@@ -191,3 +191,53 @@ fn writing_one_scenario_is_not_the_book() {
     let check = copied(&items, &notes());
     assert!(check.findings.is_empty(), "{:?}", check.findings);
 }
+
+/// 原典が付けた長い名前を持つノート。**名前は25字を超える。**
+fn named_notes() -> Vec<(PathBuf, String)> {
+    vec![(
+        PathBuf::from("notes/05.md"),
+        "## テストモニタリング、テストコントロールとテスト完了（5.3）（54頁）\n\n1. テストは欠陥があることは示せるが、欠陥がないことは示せない（18頁）\n".to_owned(),
+    )]
+}
+
+#[test]
+fn a_long_name_in_a_title_is_not_a_copy() {
+    // **題は原典の名前をそのまま書く欄である** ── ノートと一致するのが正しい
+    // （実測 2026-10-02、qa-advisor の「テストモニタリング、テストコントロールとテスト完了」）
+    let mut it = item("自分の言葉でまとめた意味。", "5.3（54頁）");
+    it["title"] = json!("テストモニタリング、テストコントロールとテスト完了");
+    it["related"] = json!([{"criterion": "x", "title": "テストモニタリング、テストコントロールとテスト完了", "relation": "関係"}]);
+    it["elements"]["units"][0]["term"] =
+        json!("テストモニタリング、テストコントロールとテスト完了");
+    let check = copied(&[it], &named_notes());
+    assert!(
+        !check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+}
+
+#[test]
+fn a_name_quoted_in_brackets_is_not_a_copy() {
+    // **「」で囲んだ部分は引用である** ── 原典の名前を示すときに使う。地の文の複製は従来どおり検出する
+    let quoted = item(
+        "原則の1つ目は「テストは欠陥があることは示せるが、欠陥がないことは示せない」である。",
+        "1.3（18頁）",
+    );
+    let check = copied(&[quoted], &named_notes());
+    assert!(
+        !check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+    let bare = item(
+        "テストは欠陥があることは示せるが、欠陥がないことは示せないとする原則。",
+        "1.3（18頁）",
+    );
+    let check = copied(&[bare], &named_notes());
+    assert!(
+        check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+}

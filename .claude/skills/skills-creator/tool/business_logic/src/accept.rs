@@ -131,6 +131,31 @@ fn shape(root: &Path, fixtures: &str) -> Check {
 /// 複製とみなす最短の長さ（文字）。**これより短い一致は、原典の語彙が続いただけのことが多い。**
 const COPY_MIN: usize = 25;
 
+/// 原典の名前を書く欄。**ノートと一致するのが正しい状態である** ── 題 ・ 関連する基準の題 ・ 定義の語。
+const NAME_KEYS: [&str; 2] = ["title", "term"];
+
+/// 「」で囲んだ部分を、照らさない区切りに置き換える。**引用は複製ではない** ── 原典の名前を示すときに
+/// 使う（入れ子の「「欠陥ゼロ」の落とし穴」も1つの引用として外す）。区切りを残すので、引用の前後の
+/// 地の文が1続きの文字列にならない。
+fn unquoted(p: &[char]) -> Vec<char> {
+    let mut depth = 0usize;
+    let mut out = Vec::with_capacity(p.len());
+    for &c in p {
+        match c {
+            '「' => depth += 1,
+            '」' if depth > 0 => {
+                depth -= 1;
+                if depth == 0 {
+                    out.push('\u{0}');
+                }
+            }
+            _ if depth == 0 => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
 /// 語彙として照らすカタカナ語の最短の長さ（文字）。
 const KATAKANA_MIN: usize = 3;
 
@@ -245,9 +270,11 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
             let mut strings = Vec::new();
             prose(item, "", &mut strings);
             for (at, s) in strings {
-                let p = plain(&s);
+                let p = unquoted(&plain(&s));
+                let named = NAME_KEYS.iter().any(|k| at.ends_with(&format!("/{k}")));
                 if let Some(w) = p
                     .windows(COPY_MIN)
+                    .filter(|_| !named)
                     .map(|w| w.iter().collect::<String>())
                     .find(|w| windows.contains(w))
                 {
