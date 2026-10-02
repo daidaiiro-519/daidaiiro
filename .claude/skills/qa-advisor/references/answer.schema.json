@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "answer.schema.json",
   "title": "qa-advisor の回答",
-  "description": "qa-advisor が 完了の定義 ・ 実装の強度 ・ テスト計画の判断に回答するときの形。人は描画した HTML で読む",
+  "description": "qa-advisor が ソフトウェアテストの相談に回答するときの形。人は描画した HTML で読む",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,18 +22,19 @@
       "x-view": "tag",
       "oneOf": [
         {
-          "const": "definition-of-done",
-          "title": "完了の定義"
+          "const": "concept",
+          "title": "概念相談"
         },
         {
-          "const": "strength",
-          "title": "強度の評価"
+          "const": "judgment",
+          "title": "判断相談"
         },
         {
-          "const": "test-planning",
-          "title": "テスト計画"
+          "const": "design",
+          "title": "設計相談"
         }
-      ]
+      ],
+      "description": "全ての助言型に共通する3つ（ACDR 0061）。概念は「〜とは」、判断は「〜すべきか」「この案でよいか」、設計は「〜をどう組み立てるか」"
     },
     "question": {
       "title": "相談",
@@ -208,10 +209,9 @@
         },
         "svg": {
           "type": "string",
-          "description": "design-svg が組んだ SVG の置き場所"
+          "description": "図の SVG の置き場所（任意）。描く道具は問わない ── 回答の図は、節点と辺の宣言だけで成り立つ"
         }
-      },
-      "$comment": "節点と辺で宣言する。SVG は design-svg が組み、Orchestrator が svg の欄に置く。閉じた流れは輪の配置で組む"
+      }
     },
     "comparison": {
       "title": "比較した案",
@@ -277,7 +277,7 @@
       }
     },
     "steps": {
-      "title": "実装の手順",
+      "title": "設計の手順",
       "x-view": "steps",
       "type": "array",
       "minItems": 1,
@@ -330,11 +330,15 @@
         "properties": {
           "criterion": {
             "title": "判断基準",
-            "type": "string"
+            "type": "string",
+            "x-refers": "criteria",
+            "description": "criteria の id。無い id は validate が検出する"
           },
           "quote": {
             "title": "引用",
-            "type": "string"
+            "type": "string",
+            "x-quotes": "criterion",
+            "description": "criterion が指す判断基準の記述。判断基準に無い文は validate が検出する"
           }
         }
       },
@@ -426,7 +430,7 @@
       "items": {
         "type": "string"
       },
-      "$comment": "動詞で始める"
+      "$comment": "1件に1つの行為を書き、動詞で終わる文にする"
     },
     "related": {
       "title": "関連する基準",
@@ -442,7 +446,8 @@
         "properties": {
           "criterion": {
             "title": "判断基準",
-            "type": "string"
+            "type": "string",
+            "x-refers": "criteria"
           },
           "relation": {
             "title": "関係",
@@ -483,12 +488,28 @@
       "if": {
         "properties": {
           "kind": {
-            "const": "definition-of-done"
+            "const": "concept"
           }
         }
       },
       "then": {
         "required": [
+          "definition",
+          "examples"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "judgment"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "comparison",
           "path"
         ]
       }
@@ -497,27 +518,13 @@
       "if": {
         "properties": {
           "kind": {
-            "const": "strength"
+            "const": "design"
           }
         }
       },
       "then": {
         "required": [
-          "path"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "kind": {
-            "const": "test-planning"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "path"
+          "steps"
         ]
       }
     }

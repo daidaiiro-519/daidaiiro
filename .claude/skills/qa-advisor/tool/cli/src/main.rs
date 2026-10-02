@@ -108,11 +108,28 @@ fn emit(out: &Outcome, as_json: bool, human: fn(&Outcome) -> String) -> ExitCode
     ExitCode::from(out.exit_code() as u8)
 }
 
+/// 動詞の前に置いた旗（`--名前 値`）を、引数の末尾へ移す。**旗の位置で失敗させない** ──
+/// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。
+fn verb_first(argv: Vec<String>) -> Vec<String> {
+    let mut lead = Vec::new();
+    let mut rest = argv.into_iter().peekable();
+    while let Some(flag) = rest.next_if(|a| a.starts_with("--")) {
+        lead.push(flag);
+        if let Some(value) = rest.next_if(|a| !a.starts_with("--")) {
+            lead.push(value);
+        }
+    }
+    let mut out: Vec<String> = rest.collect();
+    out.extend(lead);
+    out
+}
+
 fn main() -> ExitCode {
     let all = tools();
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let as_json = argv.iter().any(|a| a == "--json");
     let argv: Vec<String> = argv.into_iter().filter(|a| a != "--json").collect();
+    let argv = verb_first(argv);
 
     let Some(verb) = argv.first() else {
         // **動詞なしで `--json` を付けたら、道具の一覧を返す。** 検査は実行ファイルを起動するだけで、
