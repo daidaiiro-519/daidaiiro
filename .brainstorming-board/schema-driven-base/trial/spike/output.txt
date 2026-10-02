@@ -1,0 +1,121 @@
+
+━━ 1. 作成 ── スキーマから実体を作る
+作成した: work/decls/UC-1.json と work/decls/AGG-1.json
+{
+  "id": "UC-1",
+  "name": "",
+  "goal": "",
+  "writes": [],
+  "scenarios": []
+}
+検証: ["/name : \"\" is shorter than 1 character", "/goal : \"\" is shorter than 1 character", "/writes : [] has less than 1 item", "/scenarios : [] has less than 1 item"]
+
+━━ 2. 案内 ── 未記入の項目に、何を書くかを示す（x-prompt.write）
+/name	「〜を〜する」の形で、主アクターの目的を書く
+/goal	成功したとき何が成り立っているかを1文で書く
+/writes	書き換える集約の ID を並べる
+/scenarios	主成功シナリオを1件目に、拡張を2件目以降に書く
+
+━━ 3. 更新 ── JSON Patch で書き込む（検証を通過したので書き込む）
+適用する Patch:
+[
+  {
+    "op": "replace",
+    "path": "/name",
+    "value": "注文を確定する"
+  },
+  {
+    "op": "replace",
+    "path": "/goal",
+    "value": "注文が確定済になり、在庫が引き当てられている"
+  },
+  {
+    "op": "add",
+    "path": "/writes/-",
+    "value": "AGG-1"
+  },
+  {
+    "op": "add",
+    "path": "/scenarios/-",
+    "value": {
+      "id": "S-1",
+      "name": "在庫があり、注文が確定する"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/scenarios/-",
+    "value": {
+      "id": "S-2",
+      "name": "在庫が足りず、確定を断る"
+    }
+  }
+]
+結果: Ok(())
+集約の結果: Ok(())
+
+━━ 4. 更新 ── 検証に通らない Patch は書き込まない
+[
+  {
+    "op": "replace",
+    "path": "/scenarios",
+    "value": []
+  }
+]
+結果: Err(["/scenarios : [] has less than 1 item"])
+ファイルのシナリオ数（変わっていない）: 2
+
+━━ 5. 取得 ── JMESPath の式で取り出す
+式  scenarios[].id
+値  ["S-1","S-2"]
+式  {name: name, scenarios: length(scenarios), writes: writes}
+値  {"name":"注文を確定する","scenarios":2,"writes":["AGG-1"]}
+式  scenarios[?id == 'S-2'].name | [0]
+値  "在庫が足りず、確定を断る"
+
+━━ 6. 描画 ── title と x-view に従って Markdown へ
+# 注文を確定する（ユースケース）
+
+## 目的
+
+注文が確定済になり、在庫が引き当てられている
+
+## 書き換える集約
+
+- AGG-1
+
+## シナリオ
+
+| ID | シナリオ |
+|---|---|
+| S-1 | 在庫があり、注文が確定する |
+| S-2 | 在庫が足りず、確定を断る |
+
+
+━━ 7. 案内 ── 読む側への案内（x-prompt.read）
+/id	テストと結ぶときの接頭辞として読む
+/name	このユースケースが何を達成するかとして読む
+/goal	成功の保証として読む
+/writes	トランザクションの範囲として読む
+/scenarios	テスト仕様として読む。1件が1つのテストに対応する
+
+━━ 8. ドリフト検知（concrete だけの契約）── テスト仕様とテスト実装を突き合わせる
+テスト実装の報告（test-report.txt）:
+UC-1.S-1	pass
+UC-1.S-2	fail
+AGG-1.INV-1	pass
+UC-1.S-3	pass
+
+テスト仕様: ["UC-1.S-1", "UC-1.S-2", "AGG-1.INV-1", "AGG-1.PRE-1"]
+仕様に在ってテストに無い: ["AGG-1.PRE-1"]
+テストに在って仕様に無い: ["UC-1.S-3"]
+テストが通っていない:     ["UC-1.S-2"]
+
+━━ 9. 削除（項目）── シナリオ S-2 を JSON Patch の remove で消す
+結果: Ok(())
+仕様に在ってテストに無い: ["AGG-1.PRE-1"]
+テストに在って仕様に無い: ["UC-1.S-2", "UC-1.S-3"]
+テストが通っていない:     []
+
+━━ 10. 削除（実体）── 集約 AGG-1 を消し、残った参照を探す
+AGG-1 を指したまま残っている宣言: ["UC-1"]
