@@ -5,7 +5,7 @@
 
 use std::path::PathBuf;
 
-use sc_business_logic::profile;
+use sc_business_logic::sample;
 use sc_business_logic::scaffold::{place, Item};
 
 fn scratch(name: &str) -> PathBuf {
@@ -51,18 +51,23 @@ fn what_is_already_there_is_kept() {
     );
 }
 
-/// 型と言語の組の定義（ACDR 0060）。**事例は skills-creator の references を読む。**
-fn defs() -> (PathBuf, PathBuf) {
+/// リファレンス実装と型の定義（ACDR 0060 ・ 0097）。**事例は skills-creator の references を読む。**
+fn defs() -> (PathBuf, PathBuf, sample::Sample) {
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../references");
-    (here.join("profiles"), here.join("types"))
+    let dir = here.join("sample/rust");
+    let rust = sample::load(&dir).expect("リファレンス実装の定義が在る");
+    (dir, here.join("types"), rust)
+}
+
+fn plan_of(ty: &str, language: &str) -> Vec<(PathBuf, String)> {
+    let (dir, types, rust) = defs();
+    let ty = sample::load_type(&types, ty).expect("型が在る");
+    sample::plan(&dir, &types, &rust, &ty, language).expect("組み合わせられる")
 }
 
 #[test]
 fn a_work_skill_can_be_planned_in_rust() {
-    let (profiles, types) = defs();
-    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
-    let work = profile::load_type(&types, "work").expect("作業型が在る");
-    let plan = profile::plan(&profiles, &types, &rust, &work).expect("組み合わせられる");
+    let plan = plan_of("work", "rust");
     // **共通の一式と型の一式が両方入る** ── 見本の道具は作業型の一式から来る
     assert!(plan
         .iter()
@@ -70,42 +75,106 @@ fn a_work_skill_can_be_planned_in_rust() {
     assert!(plan
         .iter()
         .any(|(_, to)| to == "tool/business_logic/src/hello.rs"));
-    // **作業型も SKILL.md の雛形を置く** ── 置かないと、SKILL.md を探して自分の置き場所を決める言語の組が動かない
+    // **作業型も SKILL.md の雛形を置く**
     assert!(plan.iter().any(|(_, to)| to == "SKILL.md"));
+    // **CLI の共通の決まりのテストも置く** ── 契約のテストケースと同じ名前で確かめる
+    assert!(plan.iter().any(|(_, to)| to == "tool/cli/tests/cli.rs"));
     // **同じ置き先は1回だけ**
     let mut tos: Vec<&String> = plan.iter().map(|(_, to)| to).collect();
     let n = tos.len();
+    tos.sort();
     tos.dedup();
     assert_eq!(n, tos.len());
 }
 
 #[test]
-fn a_type_without_templates_in_the_language_is_refused() {
-    // **型の一式を持たない組では生まない** ── 生んでから壊れていると分かる形にしない
-    let (profiles, types) = defs();
-    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
-    let generate = profile::load_type(&types, "generate").expect("生成型が在る");
-    let why = profile::plan(&profiles, &types, &rust, &generate).expect_err("まだ断る");
+fn the_rust_tool_json_replaces_the_skeleton() {
+    // **リファレンス実装の tool.json が、枠の tool.json を置き換える** ── 組み立て ・ テスト ・ フォーマットの
+    // コマンドを持つのは、リファレンス実装の側である
+    let plan = plan_of("work", "rust");
+    let (from, _) = plan
+        .iter()
+        .find(|(_, to)| to == "tool.json")
+        .expect("tool.json を置く");
     assert!(
-        why.contains("生成型") && why.contains("雛形をまだ持たない"),
-        "{why}"
+        from.ends_with("sample/rust/common/tool.json.tmpl"),
+        "{}",
+        from.display()
+    );
+    let body = std::fs::read_to_string(from).expect("読める");
+    let v: serde_json::Value = serde_json::from_str(&body).expect("JSON");
+    assert_eq!(v["contract"], 3);
+    assert_eq!(
+        v["format"][0],
+        serde_json::json!([
+            "cargo",
+            "fmt",
+            "--manifest-path",
+            "tool/Cargo.toml",
+            "--all",
+            "--",
+            "--check"
+        ])
     );
 }
 
 #[test]
+fn another_language_gets_only_the_skeleton() {
+    // **リファレンス実装と違う言語なら、道具のソースを置かない** ── AI がリファレンス実装から移植する
+    let plan = plan_of("advisor", "go");
+    assert!(
+        !plan.iter().any(|(_, to)| to.starts_with("tool/")),
+        "{plan:?}"
+    );
+    for to in [
+        "SKILL.md",
+        "tool.json",
+        "mcp.json",
+        ".gitignore",
+        "references/document.schema.json",
+        "references/criteria.schema.json",
+        "references/answer.schema.json",
+    ] {
+        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
+    }
+    // 枠の tool.json は、組み立て ・ テスト ・ フォーマットを空で持つ ── 移植した言語のコマンドを書く
+    let (from, _) = plan
+        .iter()
+        .find(|(_, to)| to == "tool.json")
+        .expect("tool.json を置く");
+    let v: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(from).expect("読める")).expect("JSON");
+    assert_eq!(v["contract"], 3);
+    for key in ["build", "test", "format"] {
+        assert_eq!(v[key], serde_json::json!([]), "{key}");
+    }
+}
+
+#[test]
+fn a_type_without_templates_in_the_sample_is_refused() {
+    // **リファレンス実装が型の一式を持たなければ生まない** ── 移植の元も無い
+    let (dir, types, rust) = defs();
+    let generate = sample::load_type(&types, "generate").expect("生成型が在る");
+    for language in ["rust", "go"] {
+        let why = sample::plan(&dir, &types, &rust, &generate, language).expect_err("まだ断る");
+        assert!(
+            why.contains("生成型") && why.contains("雛形をまだ持たない"),
+            "{why}"
+        );
+    }
+}
+
+#[test]
 fn an_unknown_type_lists_the_known_ones() {
-    let (_, types) = defs();
-    let why = profile::load_type(&types, "nope").expect_err("無い型");
+    let (_, types, _) = defs();
+    let why = sample::load_type(&types, "nope").expect_err("無い型");
     assert!(why.contains("work") && why.contains("advisor"), "{why}");
 }
 
 #[test]
 fn an_advisor_skill_can_be_planned_in_rust() {
-    // **助言型は、スキーマ ・ SKILL.md（型の側）と、references の道具と事例（組の側）を置く**
-    let (profiles, types) = defs();
-    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let plan = profile::plan(&profiles, &types, &rust, &advisor).expect("組み合わせられる");
+    // **助言型は、スキーマ ・ SKILL.md（型の側）と、references の道具と事例（リファレンス実装の側）を置く**
+    let plan = plan_of("advisor", "rust");
     for to in [
         "references/criteria.schema.json",
         "references/answer.schema.json",
@@ -119,166 +188,24 @@ fn an_advisor_skill_can_be_planned_in_rust() {
 }
 
 #[test]
-fn a_work_skill_can_be_planned_in_python() {
-    // **置き先の中のパッケージ名は、差し込む前の形で返る** ── 差し込みはサービス層が行う
-    let (profiles, types) = defs();
-    let python = profile::load(&profiles, "python").expect("Python の組が在る");
-    let work = profile::load_type(&types, "work").expect("作業型が在る");
-    let plan = profile::plan(&profiles, &types, &python, &work).expect("組み合わせられる");
-    for to in [
-        "tool/pyproject.toml",
-        "tool/cli.py",
-        "tool/mcp_server.py",
-        "tool/{{パッケージ名}}/contract.py",
-        "tool/{{パッケージ名}}/tools.py",
-        "tool.json",
-        "mcp.json",
+fn every_template_in_the_plan_exists() {
+    for (ty, language) in [
+        ("work", "rust"),
+        ("advisor", "rust"),
+        ("work", "go"),
+        ("advisor", "go"),
     ] {
-        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
-    }
-    // **雛形はすべて実在する** ── 定義にだけ在る行を、生んでから見つける形にしない
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
+        for (from, _) in plan_of(ty, language) {
+            assert!(from.is_file(), "{} が無い", from.display());
+        }
     }
 }
 
 #[test]
-fn an_advisor_skill_can_be_planned_in_python() {
-    // **Python の組は版2 を満たす**（ACDR 0069）── 助言型の事例と回答の例を置く
-    let (profiles, types) = defs();
-    let python = profile::load(&profiles, "python").expect("Python の組が在る");
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let plan = profile::plan(&profiles, &types, &python, &advisor).expect("組み合わせられる");
-    for to in [
-        "references/criteria.schema.json",
-        "references/document.schema.json",
-        "tool/{{パッケージ名}}/refs.py",
-        "tool/tests/test_references.py",
-        "tool/tests/fixtures/answer.example.json",
-    ] {
-        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
-    }
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-}
-
-#[test]
-fn a_work_skill_can_be_planned_in_typescript() {
-    let (profiles, types) = defs();
-    let ts = profile::load(&profiles, "typescript").expect("TypeScript の組が在る");
-    let work = profile::load_type(&types, "work").expect("作業型が在る");
-    let plan = profile::plan(&profiles, &types, &ts, &work).expect("組み合わせられる");
-    for to in [
-        "tool/package.json",
-        "tool/src/contract.ts",
-        "tool/src/cli.ts",
-        "tool/src/mcp.ts",
-        "tool/src/tools.ts",
-        "tool.json",
-        "mcp.json",
-    ] {
-        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
-    }
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let plan = profile::plan(&profiles, &types, &ts, &advisor).expect("組み合わせられる");
-    assert!(plan
-        .iter()
-        .any(|(_, t)| t == "references/document.schema.json"));
-    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-}
-
-#[test]
-fn a_work_skill_can_be_planned_in_csharp() {
-    let (profiles, types) = defs();
-    let cs = profile::load(&profiles, "csharp").expect("C# の組が在る");
-    let work = profile::load_type(&types, "work").expect("作業型が在る");
-    let plan = profile::plan(&profiles, &types, &cs, &work).expect("組み合わせられる");
-    for to in [
-        "tool/Directory.Build.props",
-        "tool/Skill/Contract.cs",
-        "tool/Cli/Program.cs",
-        "tool/Mcp/Program.cs",
-        "tool/Skill/Tools.cs",
-        "tool.json",
-        "mcp.json",
-    ] {
-        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
-    }
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let plan = profile::plan(&profiles, &types, &cs, &advisor).expect("組み合わせられる");
-    assert!(plan
-        .iter()
-        .any(|(_, t)| t == "references/document.schema.json"));
-    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-}
-
-#[test]
-fn a_work_skill_can_be_planned_in_go() {
-    let (profiles, types) = defs();
-    let go = profile::load(&profiles, "go").expect("Go の組が在る");
-    let work = profile::load_type(&types, "work").expect("作業型が在る");
-    let plan = profile::plan(&profiles, &types, &go, &work).expect("組み合わせられる");
-    for to in [
-        "tool/go.mod",
-        "tool/contract/contract.go",
-        "tool/cmd/cli/main.go",
-        "tool/cmd/mcp/main.go",
-        "tool/tools/tools.go",
-        "tool.json",
-        "mcp.json",
-    ] {
-        assert!(plan.iter().any(|(_, t)| t == to), "{to} が無い");
-    }
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-    // **実行ファイルの名前は Skill の名前である** ── 組み立てのコマンドが差し込む場所を持つ
-    assert!(go.build.iter().any(|b| b.contains("{{Skill名}}")));
-    // **版2 の組は助言型も生む**（ACDR 0069）── references の実装と事例を置く
-    let advisor = profile::load_type(&types, "advisor").expect("助言型が在る");
-    let plan = profile::plan(&profiles, &types, &go, &advisor).expect("組み合わせられる");
-    assert!(plan
-        .iter()
-        .any(|(_, t)| t == "references/document.schema.json"));
-    assert!(plan.iter().any(|(_, t)| t.ends_with("answer.example.json")));
-    for (from, _) in &plan {
-        assert!(from.is_file(), "{} が無い", from.display());
-    }
-}
-
-#[test]
-fn the_rust_profile_names_its_format_check() {
-    // **生んだ直後のコードが整形されているかを、言語の組が検査の書き方として持つ** ── 提供者の検証が実行する
-    let (profiles, _) = defs();
-    let rust = profile::load(&profiles, "rust").expect("Rust の組が在る");
-    assert_eq!(
-        rust.format,
-        vec![
-            "cargo",
-            "fmt",
-            "--manifest-path",
-            "tool/Cargo.toml",
-            "--all",
-            "--",
-            "--check"
-        ]
-    );
-    // 持たない組は空である ── 検証はその組の整形を検査しない
-    let go = profile::load(&profiles, "go").expect("Go の組が在る");
-    assert!(go.format.is_empty());
+fn a_language_name_is_lowercase_letters_and_digits() {
+    assert!(sample::is_language_name("go"));
+    assert!(sample::is_language_name("python3"));
+    assert!(!sample::is_language_name("Go"));
+    assert!(!sample::is_language_name("../x"));
+    assert!(!sample::is_language_name(""));
 }

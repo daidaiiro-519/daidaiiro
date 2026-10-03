@@ -3,21 +3,8 @@
 //!
 //!     cargo test -p sc_business_logic --test provider
 
-use sc_business_logic::provider::{argv, blocking_accept, blocking_check, shared_target};
+use sc_business_logic::provider::{blocking_accept, blocking_check, shared_target};
 use serde_json::json;
-
-#[test]
-fn a_build_command_is_split_without_a_shell() {
-    // **シェルを経由しない** ── 組み立てのコマンドは空白で区切った語の並びである
-    assert_eq!(
-        argv("cargo install --path tool/cli --root ."),
-        vec!["cargo", "install", "--path", "tool/cli", "--root", "."]
-    );
-    assert_eq!(
-        argv("  go   mod tidy -C tool "),
-        vec!["go", "mod", "tidy", "-C", "tool"]
-    );
-}
 
 #[test]
 fn only_the_unfilled_placeholders_are_allowed_after_scaffolding() {
@@ -46,14 +33,15 @@ fn accept_may_fail_only_the_notes_check_after_scaffolding() {
 #[test]
 fn the_build_output_goes_to_the_shared_place_when_one_is_given() {
     // **組み立ての出力先だけを置換する** ── 他の語は利用者の手順のまま起動する
-    let command = argv("cargo install --path tool/cli --root . --target-dir tool/target");
+    let words = |s: &str| s.split(' ').map(str::to_owned).collect::<Vec<_>>();
+    let command = words("cargo install --path tool/cli --root . --target-dir tool/target");
     assert_eq!(
         shared_target(command.clone(), Some("/cache/cargo")),
-        argv("cargo install --path tool/cli --root . --target-dir /cache/cargo")
+        words("cargo install --path tool/cli --root . --target-dir /cache/cargo")
     );
     // 共有の出力先が無ければ、そのまま起動する
     assert_eq!(shared_target(command.clone(), None), command);
     // --target-dir を保持しないコマンドは変更しない
-    let go = argv("go build -C tool ./cli");
+    let go = words("go build -C tool ./cli");
     assert_eq!(shared_target(go.clone(), Some("/cache/cargo")), go);
 }

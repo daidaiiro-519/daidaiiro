@@ -9,7 +9,7 @@ mod refs;
 
 use std::path::{Path, PathBuf};
 
-use sc_business_logic::{accept, check, conform, profile, provider, scaffold};
+use sc_business_logic::{accept, behavior, check, provider, sample, scaffold};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -25,6 +25,9 @@ macro_rules! or_misuse {
     };
 }
 
+/// リファレンス実装の置き場所（`references/` からの相対）。
+const SAMPLE: &str = "sample/rust";
+
 /// 雛形の置き場所。**この crate が Skill の並びを知る唯一の場所である。**
 fn templates(here: &Path) -> check::Templates {
     let references = here.join("references");
@@ -33,8 +36,8 @@ fn templates(here: &Path) -> check::Templates {
         references.join("skill-template.md.tmpl"),
         references.join("types/advisor/skill-template.md.tmpl"),
     )
-    .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
-    .with_profiles(references.join("profiles"))
+    .with_refs(references.join("sample/rust/common/refs.rs.tmpl"))
+    .with_sample(references.join(SAMPLE))
     .with_view(references.join("view"))
     .with_cases(references.join("contract/cases"))
 }
@@ -50,14 +53,6 @@ fn run_accept(given: &Given) -> Outcome {
     if root.as_os_str().is_empty() {
         return Outcome::misuse("advisor のフォルダを渡していない".to_owned());
     }
-    let here = or_misuse!(skill_root(given));
-    let dir = here.join("references/profiles");
-    let Some(found) = profile::of(&root, &dir) else {
-        return Outcome::misuse(format!(
-            "言語の組が決まらない: {} ── 組の定義の detect が在る Skill を渡す",
-            root.display()
-        ));
-    };
     // **同じ置き場所の他の Skill の名前を集める** ── 助言型は、それらを名指ししない
     let own = root
         .file_name()
@@ -67,7 +62,7 @@ fn run_accept(given: &Given) -> Outcome {
         .into_iter()
         .filter(|n| *n != own)
         .collect::<Vec<_>>();
-    let checks = accept::accept(&root, &others, &found);
+    let checks = accept::accept(&root, &others);
     let findings: Vec<String> = checks
         .iter()
         .flat_map(|c| c.findings.iter().map(move |f| format!("{} {f}", c.no)))
@@ -217,7 +212,7 @@ fn items(skill: &str, plan: &[(PathBuf, String)]) -> std::io::Result<Vec<scaffol
             .replace("{{パッケージ名}}", &package)
     };
     let mut out = Vec::new();
-    // **何をどこへ置くかは、型と言語の組の定義が決める**（ACDR 0060）
+    // **何をどこへ置くかは、型とリファレンス実装の定義が決める**（ACDR 0060 ・ 0097）
     for (from, to) in plan {
         let dir = from.parent().unwrap_or_else(|| Path::new("."));
         let name = from
@@ -237,13 +232,19 @@ fn run_scaffold(given: &Given) -> Outcome {
     if skill.is_empty() {
         return Outcome::misuse("Skill の名前を渡していない".to_owned());
     }
+    let language = given.one("language", sample::RUST);
+    if !sample::is_language_name(language) {
+        return Outcome::misuse(format!(
+            "言語の名前は英小文字と数字で書く（例：rust ・ go ・ python）── {language}"
+        ));
+    }
     let here = or_misuse!(skill_root(given));
     let root = PathBuf::from(given.one("path", ".claude/skills")).join(skill);
-    let dir = here.join("references/profiles");
+    let dir = here.join("references").join(SAMPLE);
     let types = here.join("references/types");
-    let found = or_misuse!(profile::load(&dir, given.one("language", "rust")));
-    let ty = or_misuse!(profile::load_type(&types, given.one("type", "work")));
-    let plan = or_misuse!(profile::plan(&dir, &types, &found, &ty));
+    let found = or_misuse!(sample::load(&dir));
+    let ty = or_misuse!(sample::load_type(&types, given.one("type", "work")));
+    let plan = or_misuse!(sample::plan(&dir, &types, &found, &ty, language));
     let items = match items(skill, &plan) {
         Ok(items) => items,
         Err(e) => return Outcome::misuse(format!("雛形を読めない ── {e}")),
@@ -257,20 +258,28 @@ fn run_scaffold(given: &Given) -> Outcome {
         .iter()
         .map(|k| format!("既に在るので残した: {k}"))
         .collect();
+    // **組み立てのコマンドは、置いた tool.json が持つ**（契約の版3）── 言語ごとの定義を持たない
+    let build: Vec<String> = behavior::commands(&root, "build")
+        .unwrap_or_default()
+        .iter()
+        .map(|c| c.join(" "))
+        .collect();
+    let port = (language != found.name).then(|| {
+        format!(
+            "道具は {language} で書く。リファレンス実装（skills-creator の references/{SAMPLE}/）を移植し、tool.json の build ・ test ・ format に {language} のコマンドを書く。手順は skills-creator view --kind document --id porting で読む。書き終えたら skills-creator check {} --cases 1 で、テストケースに全件合格させる",
+            root.display()
+        )
+    });
     Outcome::found(
         findings,
         json!({
             "written": placed.written,
             "root": root.display().to_string(),
-            "language": found.name,
+            "language": language,
             "type": ty.name,
             "next": ty.next,
-            // **組み立てのコマンドにも Skill の名前を差し込む** ── 実行ファイルの名前を持つ組が在る
-            "build": found
-                .build
-                .iter()
-                .map(|b| b.replace("{{Skill名}}", skill))
-                .collect::<Vec<_>>(),
+            "build": build,
+            "port": port,
         }),
     )
 }
@@ -291,6 +300,9 @@ fn human_scaffold(out: &Outcome) -> String {
         .map(|p| format!("置いた: {p}"))
         .collect();
     lines.extend(out.findings.iter().cloned());
+    if let Some(port) = out.data.get("port").and_then(|x| x.as_str()) {
+        lines.push(format!("移植 ── {port}"));
+    }
     if let Some(next) = out.data.get("next").and_then(|x| x.as_str()) {
         lines.push(format!("次に書くもの ── {next}"));
     }
@@ -388,7 +400,7 @@ pub fn tools() -> Vec<Tool> {
                 ),
                 Arg::opt(
                     "language",
-                    "雛形の言語の組（references/profiles/ に定義が在るもの）",
+                    "道具を書く言語。rust ならリファレンス実装から生成し、ほかの言語なら枠だけを置いて移植の手順を案内する",
                     Some("rust"),
                 ),
                 Arg::opt(
@@ -490,51 +502,13 @@ fn run_verify(given: &Given) -> Outcome {
     } else {
         here.join(work)
     };
-    let languages: Vec<String> = given
-        .one("languages", "rust,python,typescript,csharp,go")
-        .split(',')
-        .map(|l| l.trim().to_owned())
-        .filter(|l| !l.is_empty())
-        .collect();
-    let corpus = PathBuf::from(given.one("corpus", ".claude/skills"));
     // **Rust の組み立ての出力先は、入口（examples/provider.rs）が CARGO_TARGET_DIR で渡す**
     let shared = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from);
-    match provider::verify(&bin, &here, &work, &languages, &corpus, shared.as_deref()) {
+    match provider::verify(&bin, &here, &work, shared.as_deref()) {
         Ok(v) => Outcome::found(
             v.failures,
             json!({ "work": v.work.display().to_string(), "lines": v.lines }),
         ),
-        Err(e) => Outcome::misuse(e),
-    }
-}
-
-fn human_conform(out: &Outcome) -> String {
-    if !out.ok {
-        return out.findings.join(" ／ ");
-    }
-    let cases = out
-        .data
-        .get("cases")
-        .and_then(serde_json::Value::as_u64)
-        .unwrap_or(0);
-    let mut lines = vec![format!(
-        "事例 {cases} 件 ／ 不一致 {} 件",
-        out.findings.len()
-    )];
-    lines.extend(out.findings.iter().map(|f| format!("  ×  {f}")));
-    lines.join("\n")
-}
-
-fn run_conform(given: &Given) -> Outcome {
-    let here = or_misuse!(skill_root(given));
-    let schema = here.join("references/profiles/shared/document.schema.json.tmpl");
-    match conform::conform(
-        Path::new(given.one("base", "")),
-        Path::new(given.one("other", "")),
-        Path::new(given.one("corpus", ".claude/skills")),
-        &schema,
-    ) {
-        Ok(r) => Outcome::found(r.mismatches, json!({ "cases": r.cases })),
         Err(e) => Outcome::misuse(e),
     }
 }
@@ -546,27 +520,13 @@ pub fn provider_tools() -> Vec<Tool> {
     vec![
         Tool {
             name: "verify",
-            summary: "言語の組の雛形を検証する ── 5言語 × 2型を生み、組み立て ・ 試験 ・ check ・ accept と、言語間の突き合わせを行う",
+            summary: "リファレンス実装を検証する ── 作業型と助言型を生み、tool.json の組み立て ・ テスト ・ フォーマットと、check（テストケースを含む）・ accept を行い、テストとテストケースの対応と、ほかの言語の枠を確かめる",
             args: vec![
                 Arg::opt("work", "作業場所（この下に run-<番号> を作る）", Some("tool/target/verify")),
-                Arg::opt("languages", "検証する言語の組（カンマ区切り）", Some("rust,python,typescript,csharp,go")),
-                Arg::opt("corpus", "突き合わせに使う references を持つ Skill の置き場所", Some(".claude/skills")),
                 Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None),
             ],
             run: run_verify,
             human: human_verify,
-        },
-        Tool {
-            name: "conform",
-            summary: "2つの Skill の references の道具の出力を突き合わせる",
-            args: vec![
-                Arg::need("base", "基準の Skill のフォルダ"),
-                Arg::need("other", "比べる Skill のフォルダ"),
-                Arg::opt("corpus", "突き合わせに使う references を持つ Skill の置き場所", Some(".claude/skills")),
-                Arg::opt("skill_root", "この Skill の置き場所（既定は、実行ファイルの1つ上）", None),
-            ],
-            run: run_conform,
-            human: human_conform,
         },
     ]
 }

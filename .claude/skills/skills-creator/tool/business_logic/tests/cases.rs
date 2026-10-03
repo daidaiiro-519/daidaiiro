@@ -197,3 +197,19 @@ fn every_assumption_points_at_existing_cases() {
         }
     }
 }
+
+#[test]
+fn the_tests_of_the_reference_implementation_all_have_cases() {
+    // **リポジトリのリファレンス実装のテストと、テストケースが1件も食い違わない** ── 共通ツールのテストと、
+    // CLI の共通の決まりのテストの両方を照らす
+    let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let tests: String = sc_business_logic::cases::REFERENCE_TESTS
+        .iter()
+        .map(|t| std::fs::read_to_string(here.join(t)).expect("読める"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let found =
+        sc_business_logic::cases::unmatched(&tests, &here.join(sc_business_logic::cases::DIR))
+            .expect("読める");
+    assert!(found.is_empty(), "{found:?}");
+}

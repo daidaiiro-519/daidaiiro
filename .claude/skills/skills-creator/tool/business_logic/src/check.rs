@@ -2,11 +2,12 @@
 //! Skill が契約を満たしているかを検査する。**見つけるが、直さない。**
 //!
 //! **2段で検査する**（ACDR 0036）。1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも
-//! 同じである（`behavior`）。2段目はソースを読む検査で、**言語の組が持つ**。組が在るのは
-//! いま Rust だけで、組が無い言語では「実行しない」と出す ── 合格とは扱わない。
+//! 同じである（`behavior`）。2段目はソースを読む検査で、**リファレンス実装と同じ言語（Rust）の Skill だけ**に
+//! 当てる。ほかの言語では「実行しない」と出す ── 合格とは扱わない。どの言語でも、共通ツールの振る舞いは
+//! テストケース（`--cases 1`）で確かめる（ACDR 0096 ・ 0097）。
 //! 最後に、節の構成が対応する雛形を満たすかを見る。
 //!
-//! Rust の組の2段目が見るのは、層が crate に分かれていること、**依存の向きが契約どおりで
+//! Rust の2段目が見るのは、層が crate に分かれていること、**依存の向きが契約どおりで
 //! あること**、外部の道具の名前を直書きしていないことである。
 //!
 //! **層を crate に分ける。** 1つの crate の中の module では、内側が外側を参照しても
@@ -20,14 +21,14 @@ use std::path::{Path, PathBuf};
 
 use crate::behavior::{self, Verdict};
 use crate::data_access::files;
-use crate::profile::{self, Profile};
+use crate::sample::{self, Sample};
 use crate::sections;
 
 /// Skill の道具のソースを置く場所。**配布しない。** 名前は中身の役割（道具）で付ける ──
 /// 以前の rs/ は言語の名前で、役割を示さなかった。
 pub const TOOL: &str = "tool";
 
-/// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**
+/// リファレンス実装が、組み立てた実行ファイルを置く場所。**git で追跡しない。**
 pub const BIN: &str = "bin";
 
 /// 層の並び。**下から上である** ── 先頭が最も下（データアクセス層）である。
@@ -77,10 +78,10 @@ pub struct Templates {
     pub general: PathBuf,
     /// 助言の Skill が満たす雛形。
     pub advisor: PathBuf,
-    /// references の実装の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**
+    /// references の実装の雛形（リファレンス実装）。**Rust の Skill の複製と突き合わせる。**
     pub refs: Option<PathBuf>,
-    /// 言語の組の定義の置き場所（`references/profiles/`）。**無ければ Rust の組だけを知る。**
-    pub profiles: Option<PathBuf>,
+    /// リファレンス実装の置き場所（`references/sample/rust/`）。**無ければ組み込みの Rust の定義を使う。**
+    pub sample: Option<PathBuf>,
     /// 見た目の正本の置き場所（`references/view/`）。**在れば、道具を持つ Skill の写しを突き合わせる。**
     pub view: Option<PathBuf>,
     /// テストケースの置き場所（`references/contract/cases/`）。**`--cases 1` のときだけ実行する。**
@@ -95,16 +96,16 @@ impl Templates {
             general,
             advisor,
             refs: None,
-            profiles: None,
+            sample: None,
             view: None,
             cases: None,
         }
     }
 
-    /// 言語の組の定義の置き場所を足す。
+    /// リファレンス実装の置き場所を足す。
     #[must_use]
-    pub fn with_profiles(mut self, dir: PathBuf) -> Self {
-        self.profiles = Some(dir);
+    pub fn with_sample(mut self, dir: PathBuf) -> Self {
+        self.sample = Some(dir);
         self
     }
 
@@ -279,7 +280,7 @@ pub fn has_tools(root: &Path) -> bool {
 pub enum Stage {
     /// 実行ファイルを起動する検査。全言語で共通である。
     Behavior,
-    /// ソースを読む検査。言語の組が持つ。
+    /// ソースを読む検査。リファレンス実装と同じ言語の Skill だけに当てる。
     Source,
     /// 文書の節の構成。
     Document,
@@ -295,7 +296,7 @@ pub enum State {
     Pass,
     /// 満たしていない。
     Fail,
-    /// 実行しない（言語の組が無い）。
+    /// 実行しない（リファレンス実装と違う言語など）。
     Skip,
 }
 
@@ -406,19 +407,21 @@ pub fn cases(root: &Path, dir: &Path) -> Vec<Line> {
     }
 }
 
-/// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
+/// 2段目。**リファレンス実装と同じ言語の Skill だけに当てる。** ほかの言語なら「実行しない」と返す。
 ///
-/// **既定では契約だけを見る**（ACDR 0059）── 外部の道具の名前を直書きしていないこと。
+/// **既定では契約だけを見る**（ACDR 0059）── 外部の道具の名前を直書きしていないことと、references の
+/// 実装がリファレンス実装の複製と一致すること（ボード skills-creator-contract の論点4）。
 /// 道具の中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は Skill ごとの設計であり、契約ではない。
 /// `layout` が真のときだけ、雛形の構成を満たすかも見る ── 雛形の構成を採ると決めた
 /// リポジトリが、自分で選んで有効にする。
 #[must_use]
 pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
-    let found_profile = match &templates.profiles {
-        Some(dir) => profile::of(root, dir),
-        None => builtin_rust(root),
-    };
-    let Some(p) = found_profile else {
+    let p = templates
+        .sample
+        .as_ref()
+        .and_then(|dir| sample::load(dir).ok())
+        .unwrap_or_else(builtin_rust);
+    if !sample::is_written_in(root, &p) {
         if layout && files::is_dir(root.join("scripts")) {
             return vec![Line::new(
                 Stage::Source,
@@ -429,23 +432,26 @@ pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
         return vec![Line::new(
             Stage::Source,
             State::Skip,
-            "実行しない ── この Skill の言語の組が無い（合格とは扱わない）".to_owned(),
+            format!(
+                "実行しない ── ソースの検査はリファレンス実装と同じ言語（{}）の Skill だけに当てる。共通ツールの振る舞いはテストケース（--cases 1）で確かめる（合格とは扱わない）",
+                p.name
+            ),
         )];
     };
     let mut found = hardcoded(root, &p);
+    if behavior::contract_version(root) >= 2 {
+        found.extend(rust_refs(root, templates));
+    }
     let mut lines = Vec::new();
     if layout {
         if p.layout {
             found.extend(rust(root));
-            if behavior::contract_version(root) >= 2 {
-                found.extend(rust_refs(root, templates));
-            }
         } else {
             lines.push(Line::new(
                 Stage::Source,
                 State::Skip,
                 format!(
-                    "実行しない ── {} の組は雛形の構成の検査を持たない（合格とは扱わない）",
+                    "実行しない ── {} のリファレンス実装は雛形の構成の検査を持たない（合格とは扱わない）",
                     p.name
                 ),
             ));
@@ -453,9 +459,12 @@ pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
     }
     if found.is_empty() {
         let text = if layout && p.layout {
-            format!("{} の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす", p.name)
+            format!("{} ── 外部の道具の名前を直書きせず、references の実装がリファレンス実装と一致する。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす", p.name)
         } else {
-            format!("{} の組 ── 外部の道具の名前を直書きしていない", p.name)
+            format!(
+                "{} ── 外部の道具の名前を直書きせず、references の実装がリファレンス実装と一致する",
+                p.name
+            )
         };
         lines.insert(0, Line::new(Stage::Source, State::Pass, text));
         return lines;
@@ -468,33 +477,25 @@ pub fn source(root: &Path, templates: &Templates, layout: bool) -> Vec<Line> {
     lines
 }
 
-/// 組の定義を渡されなかったときの Rust の組。**`tool/Cargo.toml` か `rs/` が在れば Rust とみなす。**
-fn builtin_rust(root: &Path) -> Option<Profile> {
-    (files::is_file(root.join(TOOL).join("Cargo.toml")) || files::is_dir(root.join("rs"))).then(
-        || Profile {
-            name: "rust".to_owned(),
-            detect: format!("{TOOL}/Cargo.toml"),
-            contract: 2,
-            common: Vec::new(),
-            types: std::collections::BTreeMap::new(),
-            build: Vec::new(),
-            test: Vec::new(),
-            format: Vec::new(),
-            extensions: vec![".rs".to_owned()],
-            skip: vec![
-                "target".to_owned(),
-                "tests".to_owned(),
-                "examples".to_owned(),
-            ],
-            spawn: vec!["Command::new(".to_owned()],
-            dist: true,
-            layout: true,
-            fixtures: format!("{TOOL}/business_logic/tests/fixtures"),
-        },
-    )
+/// リファレンス実装の定義を渡されなかったときの Rust の定義。**`tool/Cargo.toml` が在れば Rust とみなす。**
+fn builtin_rust() -> Sample {
+    Sample {
+        name: sample::RUST.to_owned(),
+        detect: format!("{TOOL}/Cargo.toml"),
+        common: Vec::new(),
+        types: std::collections::BTreeMap::new(),
+        extensions: vec![".rs".to_owned()],
+        skip: vec![
+            "target".to_owned(),
+            "tests".to_owned(),
+            "examples".to_owned(),
+        ],
+        spawn: vec!["Command::new(".to_owned()],
+        layout: true,
+    }
 }
 
-/// Rust の組の、版2 の規則。**references の実装は雛形の複製である** ── Skill ごとに書き換えると、
+/// Rust の Skill の、版2 の規則。**references の実装は雛形の複製である** ── Skill ごとに書き換えると、
 /// どの Skill でも同じ get ・ validate ・ view ・ import になるという契約が崩れる。
 #[must_use]
 pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
@@ -502,7 +503,7 @@ pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
     for need in ["business_logic/src/refs.rs", "service/src/refs.rs"] {
         if !files::is_file(root.join(TOOL).join(need)) {
             findings.push(format!(
-                "references の実装が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く"
+                "references の実装が無い: {TOOL}/{need} ── Rust の Skill はリファレンス実装の複製を置く"
             ));
         }
     }
@@ -512,7 +513,7 @@ pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
             .unwrap_or_default();
         if !have.is_empty() && !want.is_empty() && have != want {
             findings.push(format!(
-                "references の実装が雛形と違う: {TOOL}/business_logic/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す"
+                "references の実装がリファレンス実装と違う: {TOOL}/business_logic/src/refs.rs ── リファレンス実装（sample/rust/common/refs.rs.tmpl）から複製し直す"
             ));
         }
     }
@@ -797,8 +798,8 @@ fn io_leaks(root: &Path) -> Vec<String> {
 
 /// 外部の道具の名前を直書きしていないかを見る。**外部の道具は tool.json に宣言し、
 /// そこから読んで渡す**（ACDR 0036）── 直書きすると、利用者が差し替えられず、
-/// 試験で偽物を渡せない。**起動の書き方は組の定義が持つ**（ACDR 0060）。
-fn hardcoded(root: &Path, p: &Profile) -> Vec<String> {
+/// 試験で偽物を渡せない。**起動の書き方はリファレンス実装の定義が持つ**（ACDR 0060）。
+fn hardcoded(root: &Path, p: &Sample) -> Vec<String> {
     let mut sources = Vec::new();
     source_files(&root.join(TOOL), p, &mut sources);
     let mut findings = Vec::new();
@@ -905,9 +906,9 @@ pub fn spawned(body: &str, calls: &[String]) -> Vec<Option<String>> {
     out
 }
 
-/// 組のソースのファイルを集める。**組が入らないと決めたフォルダ（組み立ての出力 ・ 事例 ・
+/// ソースのファイルを集める。**定義が入らないと決めたフォルダ（組み立ての出力 ・ 事例 ・
 /// 開発用の例など）は見ない** ── どれも配布する道具に入らない。
-fn source_files(dir: &Path, p: &Profile, out: &mut Vec<PathBuf>) {
+fn source_files(dir: &Path, p: &Sample, out: &mut Vec<PathBuf>) {
     let Ok(entries) = files::list(dir) else {
         return;
     };

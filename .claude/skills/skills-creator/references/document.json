@@ -831,8 +831,8 @@
       ]
     },
     {
-      "id": "profile-rust",
-      "title": "言語の組：Rust",
+      "id": "sample-rust",
+      "title": "リファレンス実装：Rust",
       "source": {
         "location": "references/profiles/rust.md",
         "sha256": "6a9277921182bc26e6b558a6b8ae357d585bc38b18bfa59c6608871d7ae9cc47",
@@ -840,14 +840,14 @@
       },
       "sections": [
         {
-          "title": "言語の組：Rust",
+          "title": "リファレンス実装：Rust",
           "sections": [
             {
               "title": "目的",
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "道具の契約（references/document.json の tool-contract）を、Rust で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を持つ（ACDR 0036）。"
+                  "text": "共通ツールと CLI ・ MCP の実装は、Rust のリファレンス実装を1組だけ持つ（ボード skills-creator-contract ・ ACDR 0097）。この文書は、リファレンス実装の置き場所 ・ 雛形 ・ 組み立て ・ ソースの検査を持つ。Rust で作る Skill はリファレンス実装から生成し、ほかの言語で作る Skill は、リファレンス実装を AI が移植する（手順は references/document.json の porting）。どの言語でも、共通ツールの振る舞いは契約のテストケース（references/contract/cases/）で確かめる。"
                 }
               ]
             },
@@ -856,7 +856,7 @@
               "blocks": [
                 {
                   "kind": "code",
-                  "text": "tool/           道具のソース\n  Cargo.toml    workspace ── 5つの crate を並べる\n  data_access/  データアクセス層 ── ファイル ・ 外部の道具 ・ 通信の入出力（files.rs ・ process.rs は雛形の複製）\n  business_logic/  業務ロジック層 ── 判定と変換の実体。入出力を禁じる\n    tests/      事例\n  service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）\n  cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n  mcp/          プレゼンテーション層 ── MCP の面\nbin/            組み立てた実行ファイル（git で追跡しない）\n  <名前>        CLI（Windows は <名前>.exe）\n  <名前>-mcp    MCP サーバー（Windows は <名前>-mcp.exe）\ntool.json       CLI の起動のコマンドと、外部の道具\nmcp.json        MCP の起動のコマンド（ホストの形式）\n.gitignore      bin/ と tool/target/ を追跡しない"
+                  "text": "tool/           道具のソース\n  Cargo.toml    workspace ── 5つの crate を並べる\n  data_access/  データアクセス層 ── ファイル ・ 外部の道具 ・ 通信の入出力（files.rs ・ process.rs は雛形の複製）\n  business_logic/  業務ロジック層 ── 判定と変換の実体。入出力を禁じる\n    tests/      事例\n  cli/tests/    CLI の共通の決まりのテスト（テストケースと同じ名前）\n  service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）\n  cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n  mcp/          プレゼンテーション層 ── MCP の面\nbin/            組み立てた実行ファイル（git で追跡しない）\n  <名前>        CLI（Windows は <名前>.exe）\n  <名前>-mcp    MCP サーバー（Windows は <名前>-mcp.exe）\ntool.json       CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\nmcp.json        MCP の起動のコマンド（ホストの形式）\n.gitignore      bin/ と tool/target/ を追跡しない"
                 },
                 {
                   "kind": "para",
@@ -906,7 +906,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "開発時も bin/ へ置く。 Skill のフォルダで次を実行する。"
+                  "text": "開発時も bin/ へ置く。 組み立てのコマンドは tool.json の build が持ち、Skill のフォルダで実行する。"
                 },
                 {
                   "kind": "code",
@@ -961,7 +961,7 @@
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "references/profiles/rust/ に置き、組の定義 references/profiles/rust.profile.json が、何をどこへ置くかを持つ（ACDR 0060）。skills-creator scaffold <名前> --type <型> --language rust が、共通の一式と型ごとの一式を合わせて置く。contract.rs ・ files.rs ・ process.rs ・ refs.rs ・ cli ・ mcp は Skill をまたいで同一であるので、正本をここに置く。"
+                  "text": "references/sample/rust/ に置き、定義 references/sample/rust/sample.json が、何をどこへ置くかを持つ（ACDR 0060 ・ 0097）。skills-creator scaffold <名前> --type <型> が、言語に依存しない枠（references/types/skeleton.json）・ 共通の一式 ・ 型ごとの一式を合わせて置く。contract.rs ・ files.rs ・ process.rs ・ refs.rs ・ cli ・ mcp は Skill をまたいで同一であるので、正本をここに置く。"
                 },
                 {
                   "kind": "table",
@@ -973,7 +973,7 @@
                   "rows": [
                     [
                       "common/",
-                      "全ての型に置く共通の一式 ── workspace ・ データアクセス層（files.rs ・ process.rs）・ 業務ロジック層とサービス層の Cargo.toml ・ contract.rs ・ references の実装（refs.rs ・ service.refs.rs）・ CLI ・ MCP ・ tool.json ・ mcp.json ・ .gitignore ・ document.schema.json（言語に依存しないので profiles/shared/ に置き、全ての組が同じものを置く）",
+                      "全ての型に置く共通の一式 ── workspace ・ データアクセス層（files.rs ・ process.rs）・ 業務ロジック層とサービス層の Cargo.toml ・ contract.rs ・ references の実装（refs.rs ・ service.refs.rs）・ CLI とその共通の決まりのテスト ・ MCP ・ tool.json（Rust の組み立て ・ テスト ・ フォーマットのコマンドを持つ）・ .gitignore。mcp.json と document.schema.json は言語に依存しないので、枠（references/types/common/ ・ references/types/）が置く",
                       "tool/ と Skill のフォルダ"
                     ],
                     [
@@ -983,7 +983,7 @@
                     ],
                     [
                       "types/<型>/",
-                      "その型の道具のコード。ここに無い型は、この組では生めない",
+                      "その型の道具のコード。ここに無い型は生めない。移植の元も無いので、ほかの言語でも生めない",
                       "型の定義による"
                     ]
                   ]
@@ -999,11 +999,11 @@
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "skills-creator check は、tool/Cargo.toml が在る Skill にこの組の検査を適用する。"
+                  "text": "skills-creator check は、tool/Cargo.toml が在る Skill にこの検査を適用する。ほかの言語の Skill では、2段目は「実行しない」と出す。"
                 },
                 {
                   "kind": "para",
-                  "text": "既定では、契約に関わるものだけを検査する（ACDR 0059）。"
+                  "text": "既定では、契約に関わるものだけを検査する（ACDR 0059 ・ 0097）。"
                 },
                 {
                   "kind": "table",
@@ -1015,6 +1015,14 @@
                     [
                       "外部の道具の名前を直書きしている",
                       "Command::new(\"…\") に名前が書いてある。tool.json に宣言し、注入する"
+                    ],
+                    [
+                      "references の実装がリファレンス実装と違う",
+                      "tool/business_logic/src/refs.rs が refs.rs.tmpl と一致しない。リファレンス実装から複製し直す（ボード skills-creator-contract の論点4）"
+                    ],
+                    [
+                      "references の実装が無い",
+                      "tool/business_logic/src/refs.rs か tool/service/src/refs.rs が無い"
                     ]
                   ]
                 },
@@ -1068,14 +1076,6 @@
                     [
                       "入出力を禁じた層が入出力を直接扱っている",
                       "業務ロジック層かサービス層（contract.rs を除く）の行に、std::fs ・ std::process ・ std::net ・ Command::new ・ .is_file() などが在る。行ごとに出す。文字列の中と注記の行は数えない"
-                    ],
-                    [
-                      "references の実装が無い（版2）",
-                      "tool/business_logic/src/refs.rs か tool/service/src/refs.rs が無い"
-                    ],
-                    [
-                      "references の実装が雛形と違う（版2）",
-                      "tool/business_logic/src/refs.rs が refs.rs.tmpl と一致しない。雛形から複製し直す"
                     ]
                   ]
                 },
@@ -1090,642 +1090,108 @@
       ]
     },
     {
-      "id": "profile-python",
-      "title": "言語の組：Python",
+      "id": "porting",
+      "title": "ほかの言語へ移植する手順：porting",
       "source": {
-        "location": "references/profiles/python.md",
-        "sha256": "7445948a07739a4e915d3b6933e653eb26dcba1dc45d1587f209f382dc695f57",
-        "fetched": ""
+        "location": "references/document.json（Markdown から取り込まずに、この項目に直接書いた）",
+        "sha256": "075968b7de5a1caebb8354bacac01b44e89abada1297a6532024ec5cba49d600",
+        "fetched": "2026-10-03"
       },
       "sections": [
         {
-          "title": "言語の組：Python",
+          "title": "ほかの言語へ移植する手順",
           "sections": [
             {
               "title": "目的",
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "道具の契約（references/document.json の tool-contract）を、Python で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を持つ（ACDR 0062）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "この組は契約の版2 を満たし、作業型と助言型を保持する（ACDR 0069）。references の実装は、Rust の組の refs.rs と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。作った Skill の配布（dist）には対応しない ── 利用者の環境に Python と uv を必要とする。"
+                  "text": "Rust 以外の言語で、道具を持つ Skill を作るときの手順である（ボード skills-creator-contract ・ ACDR 0097）。skills-creator は Rust のリファレンス実装を1組だけ持つ。ほかの言語では、AI がリファレンス実装を移植し、契約のテストケースに全件合格させる。"
                 }
               ]
             },
             {
-              "title": "置き場所",
+              "title": "読むもの",
               "blocks": [
-                {
-                  "kind": "code",
-                  "text": "tool/                道具のソース\n  pyproject.toml     依存（MCP の公式 SDK の v2）。組み立ての仕組みを置かない ── uv は依存だけを揃える\n  cli.py             プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n  mcp_server.py      プレゼンテーション層 ── MCP の面\n  <パッケージ名>/    Skill の名前の - を _ にしたもの\n    contract.py      契約の実体（どの Skill も同じファイル）\n    refs.py          references の実装（どの Skill も同じファイル）── 取り出す ・ 検査する ・ 描画する ・ 取り込む\n    refs_tools.py    references の4つの道具（どの Skill も同じファイル）\n    tools.py         道具の一覧（能力の正本）\n    hello.py         見本の業務ロジック\n  tests/             事例（unittest）\ntool.json            CLI の起動のコマンドと、外部の道具\nmcp.json             MCP の起動のコマンド（ホストの形式）\n.gitignore           tool/.venv/ ・ __pycache__/ ・ tool/uv.lock を追跡しない"
-                },
-                {
-                  "kind": "para",
-                  "text": "実行ファイルを置かない。 起動のコマンドは uv run --project <tool のフォルダ> python <入口> である。経路は ${CLAUDE_PROJECT_DIR:-.} から書く ── 登録の中で、作業場所に依存しない。Skill のフォルダは、contract.py の位置から上へたどり、SKILL.md の在るフォルダである（Given.skill_root）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "中の構成は指定しない（ACDR 0059）。雛形はパッケージを1つ置くだけで、層に分けない ──分けるかどうか、どう分けるかは Skill を作る人が決める。"
-                },
-                {
-                  "kind": "para",
-                  "text": "組み立ては、Skill のフォルダで次を実行する。"
-                },
-                {
-                  "kind": "code",
-                  "text": "uv sync --quiet --project tool"
-                }
-              ]
-            },
-            {
-              "title": "契約の実装",
-              "blocks": [
-                {
-                  "kind": "table",
-                  "head": [
-                    "契約の規定",
-                    "Python の組での実装"
-                  ],
-                  "rows": [
-                    [
-                      "道具の一覧",
-                      "tools.py の tools()。MCP の面で、道具をその場で宣言するデコレータを使わない ── 低水準の Server の on_list_tools ・ on_call_tool を、同じ一覧から組む"
-                    ],
-                    [
-                      "動詞なしの --json",
-                      "CLI が catalog() の結果を返す（contract.py）"
-                    ],
-                    [
-                      "一覧に無い旗",
-                      "CLI が終了コード 2 で断る（cli.py の read_args）"
-                    ],
-                    [
-                      "外部の道具",
-                      "given.external(\"名前\") で tool.json から読み、引数として渡す。subprocess.run([\"…\"]) に名前を直書きしない"
-                    ],
-                    [
-                      "標準出力",
-                      "stdio で配るあいだ、SDK が標準出力を標準エラーへ向け直す"
-                    ],
-                    [
-                      "誤りの返し方",
-                      "ok が偽なら CallToolResult の is_error を立てる。無い道具と足りない引数は、MCPError(INVALID_PARAMS, …) で返す（Rust の組と同じ分け方）"
-                    ],
-                    [
-                      "references（版2）",
-                      "refs.py が取り出す ・ 検査する ・ 描画する ・ 取り込むを持ち、refs_tools.py が4つの道具（get ・ validate ・ view ・ import）として一覧に足す。JSON Schema の検査は jsonschema（Draft 2020-12）が行う"
-                    ]
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "雛形",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "references/profiles/python/ に置き、組の定義 references/profiles/python.profile.json が、何をどこへ置くかを持つ。skills-creator scaffold <名前> --type work --language python が、共通の一式と作業型の一式を合わせて置く。"
-                },
                 {
                   "kind": "table",
                   "head": [
                     "置き場所",
-                    "中身",
-                    "置く先"
+                    "中身"
                   ],
                   "rows": [
                     [
-                      "common/",
-                      "全ての型に置く共通の一式 ── pyproject.toml ・ contract.py ・ cli.py ・ mcp_server.py ・ tool.json ・ mcp.json ・ .gitignore ・ refs.py ・ refs_tools.py ・ document.schema.json",
-                      "tool/ と Skill のフォルダ"
+                      "references/contract/structure.json",
+                      "Skill の構成 ── 置くファイルと、置かないもの"
                     ],
                     [
-                      "types/work/",
-                      "作業型の一式 ── 道具の一覧 tools.py、見本の道具 hello、その事例",
-                      "tool/<パッケージ名>/ ・ tool/tests/"
+                      "references/contract/tools.json",
+                      "CLI のインターフェース ・ 出力の形 ・ 終了コード ・ 共通ツールのサブコマンド ・ tool.json の欄"
                     ],
                     [
-                      "types/advisor/",
-                      "助言型の一式 ── 道具の一覧 tools.py（references の4つだけ）、事例5件 test_references.py、回答の例",
-                      "tool/<パッケージ名>/ ・ tool/tests/"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "生んだ直後に動く。 見本の道具 hello を書き換えて、この Skill の道具にする。助言型は、references/document.json の手順（id「procedure」）で判断基準を作る。"
-                }
-              ]
-            },
-            {
-              "title": "2段目の検査",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "skills-creator check は、tool/pyproject.toml が在る Skill にこの組の検査を適用する。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "検出",
-                    "何が起きているか"
-                  ],
-                  "rows": [
+                      "references/contract/assumptions.json",
+                      "リファレンス実装のコードからしか読み取れない実装上の前提（空白の判定 ・ 文字数の数え方 ・ 行の分け方 ・ 並べ替えの順など）"
+                    ],
                     [
-                      "外部の道具の名前を直書きしている",
-                      "subprocess.run( ・ subprocess.Popen( ・ os.system( などの直後に、名前が文字列で書いてある。tool.json に宣言し、注入する"
+                      "references/contract/cases/",
+                      "テストケース。呼び出しと期待値（終了コードと --json の出力）を1件1ファイルで持つ"
+                    ],
+                    [
+                      "references/sample/rust/",
+                      "リファレンス実装。common/ が共通ツール ・ CLI ・ MCP、types/<型>/ が型ごとの道具"
                     ]
                   ]
-                },
-                {
-                  "kind": "para",
-                  "text": "雛形の構成の検査（--layout 1）は保持しない。 構成を指定しないので、照らす先が無い。"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "profile-typescript",
-      "title": "言語の組：TypeScript",
-      "source": {
-        "location": "references/profiles/typescript.md",
-        "sha256": "a6f69b8e22851213376b197a82bd6aff553b33bcef822bfee0b407bd61b97acc",
-        "fetched": ""
-      },
-      "sections": [
-        {
-          "title": "言語の組：TypeScript",
-          "sections": [
-            {
-              "title": "目的",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "道具の契約（references/document.json の tool-contract）を、TypeScript で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を保持する（ACDR 0063）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "この組は契約の版2 を満たし、作業型と助言型を保持する（ACDR 0069）。references の実装は、Rust の組の refs.rs と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。作った Skill の配布（dist）には対応しない ── 利用者の環境に Node.js（22.18 以上）を必要とする。"
                 }
               ]
             },
             {
-              "title": "置き場所",
+              "title": "手順",
               "blocks": [
                 {
-                  "kind": "code",
-                  "text": "tool/              道具のソース\n  package.json     依存（MCP の公式 SDK の v2 ・ @modelcontextprotocol/server）と、型の検査の道具\n  tsconfig.json    型の検査と編集の補助だけに使う。出力を置かない\n  src/\n    contract.ts    契約の実体（どの Skill も同じファイル）\n    refs.ts        references の実装（どの Skill も同じファイル）── 取り出す ・ 検査する ・ 描画する ・ 取り込む\n    refs_tools.ts  references の4つの道具（どの Skill も同じファイル）\n    cli.ts         プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n    mcp.ts         プレゼンテーション層 ── MCP の面\n    tools.ts       道具の一覧（能力の正本）\n    hello.ts       見本の業務ロジック\n  tests/           事例（node:test）\ntool.json          CLI の起動のコマンドと、外部の道具\nmcp.json           MCP の起動のコマンド（ホストの形式）\n.gitignore         tool/node_modules/ を追跡しない"
-                },
-                {
-                  "kind": "para",
-                  "text": "実行ファイルも、変換した JavaScript も置かない。 Node.js は型の注記を外して .ts を直接実行する。起動のコマンドは node <tool/src/cli.ts の経路> である。経路は ${CLAUDE_PROJECT_DIR:-.} から書く。型の注記を外すだけで実行できる構文に限る（tsconfig.json の erasableSyntaxOnly）── enum と名前空間は使わない。Skill のフォルダは、contract.ts の位置から上へたどり、SKILL.md の在るフォルダである（Given.skillRoot）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "中の構成は指定しない（ACDR 0059）。雛形は src/ にファイルを並べるだけで、層に分けない。"
-                },
-                {
-                  "kind": "para",
-                  "text": "組み立てと型の検査は、Skill のフォルダで次を実行する。"
-                },
-                {
-                  "kind": "code",
-                  "text": "npm install --silent --prefix tool\nnpm run --silent --prefix tool check"
+                  "kind": "list",
+                  "ordered": true,
+                  "items": [
+                    "skills-creator scaffold <名前> --type <型> --language <言語> で枠を置く。SKILL.md ・ references ・ tool.json ・ mcp.json ・ .gitignore が置かれ、tool/ は置かれない",
+                    "リファレンス実装の common/ と types/<型>/ を、層の分け方ごと <言語> へ移植して tool/ に置く。層の分け方は推奨で、契約ではない",
+                    "tool.json の build ・ test ・ format に、<言語> のコマンドを書く。どれも Skill のフォルダで実行するコマンドの並びで、シェルを経由しない。format は、ファイルを書き換えずに、違反があれば 0 以外で終わるコマンドを書く。そういう呼び方を持たない整形器（例：gofmt -l は違反があっても 0 で終わる）しか無ければ、format を空にする",
+                    "mcp.json のコマンドが、組み立てた MCP サーバーを指すようにする",
+                    "リファレンス実装のテストも移植する。CLI の共通の決まりのテスト（cli.tests.rs.tmpl）と、型の事例を含む",
+                    "skills-creator check <フォルダ> --cases 1 で、1段目 ・ 文書の検査 ・ テストケースのすべてに合格させる"
+                  ]
                 }
               ]
             },
             {
-              "title": "契約の実装",
+              "title": "合格しないとき",
               "blocks": [
                 {
                   "kind": "table",
                   "head": [
-                    "契約の規定",
-                    "TypeScript の組での実装"
+                    "出る不合格",
+                    "まず見るもの"
                   ],
                   "rows": [
                     [
-                      "道具の一覧",
-                      "tools.ts の tools()。MCP の面で、道具をその場で宣言する registerTool を使わない ── 低水準の Server の tools/list ・ tools/call を、同じ一覧から組む"
+                      "出力が期待値と違う: /data/html",
+                      "描画の順。assumptions.json の json-key-order（JSON のキーは読んだ順を保つ）"
                     ],
                     [
-                      "動詞なしの --json",
-                      "CLI が catalog() の結果を返す（contract.ts）"
+                      "検出の並びが違う",
+                      "assumptions.json の sort-order（UTF-8 のバイト順）"
                     ],
                     [
-                      "一覧に無い旗",
-                      "CLI が終了コード 2 で断る（cli.ts の readArgs）"
+                      "引用の照合の結果が違う",
+                      "assumptions.json の whitespace ・ char-count"
                     ],
                     [
-                      "外部の道具",
-                      "given.external(\"名前\") で tool.json から読み、引数として渡す。spawnSync(\"…\") に名前を直書きしない"
+                      "import の結果が違う",
+                      "assumptions.json の line-split（\\r を除く ・ 末尾の改行で空の行を作らない）"
                     ],
                     [
-                      "標準出力",
-                      "MCP の面は標準出力へ書かない。標準出力は JSON-RPC の通信路である"
-                    ],
-                    [
-                      "誤りの返し方",
-                      "ok が偽なら isError を立てる。無い道具と足りない引数は、ProtocolError(ProtocolErrorCode.InvalidParams, …) で返す（Rust の組と同じ分け方）"
-                    ],
-                    [
-                      "references（版2）",
-                      "refs.ts が取り出す ・ 検査する ・ 描画する ・ 取り込むを持ち、refs_tools.ts が4つの道具（get ・ validate ・ view ・ import）として一覧に足す。JSON Schema の検査は ajv（Draft 2020-12）が行う"
+                      "スキーマの検出の文が違う",
+                      "比べていない（テストケースの ignore）。ok ・ 終了コード ・ 検出の有無を合わせる"
                     ]
                   ]
-                }
-              ]
-            },
-            {
-              "title": "雛形",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "references/profiles/typescript/ に置き、組の定義 references/profiles/typescript.profile.json が、何をどこへ置くかを保持する。skills-creator scaffold <名前> --type work --language typescript が、共通の一式と作業型の一式を合わせて置く。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "置き場所",
-                    "中身",
-                    "置く先"
-                  ],
-                  "rows": [
-                    [
-                      "common/",
-                      "全ての型に置く共通の一式 ── package.json ・ tsconfig.json ・ contract.ts ・ cli.ts ・ mcp.ts ・ tool.json ・ mcp.json ・ .gitignore ・ refs.ts ・ refs_tools.ts ・ document.schema.json",
-                      "tool/ と Skill のフォルダ"
-                    ],
-                    [
-                      "types/work/",
-                      "作業型の一式 ── 道具の一覧 tools.ts、見本の道具 hello、その事例",
-                      "tool/src/ ・ tool/tests/"
-                    ],
-                    [
-                      "types/advisor/",
-                      "助言型の一式 ── 道具の一覧 tools.ts（references の4つだけ）、事例5件 references.test.ts、回答の例",
-                      "tool/src/ ・ tool/tests/"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "生んだ直後に動く。 見本の道具 hello を書き換えて、この Skill の道具にする。助言型は、references/document.json の手順（id「procedure」）で判断基準を作る。"
-                }
-              ]
-            },
-            {
-              "title": "2段目の検査",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "skills-creator check は、tool/package.json が在る Skill にこの組の検査を適用する。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "検出",
-                    "何が起きているか"
-                  ],
-                  "rows": [
-                    [
-                      "外部の道具の名前を直書きしている",
-                      "spawn( ・ spawnSync( ・ execSync( ・ execFile( ・ execFileSync( の直後に、名前が文字列で書いてある。tool.json に宣言し、注入する"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "雛形の構成の検査（--layout 1）は保持しない。 構成を指定しないので、照らす先が無い。"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "profile-csharp",
-      "title": "言語の組：C#",
-      "source": {
-        "location": "references/profiles/csharp.md",
-        "sha256": "203c4ab1dafb005896837e9777536f3168b575c31a2fac44dac7404d6e6f94fb",
-        "fetched": ""
-      },
-      "sections": [
-        {
-          "title": "言語の組：C#",
-          "sections": [
-            {
-              "title": "目的",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "道具の契約（references/document.json の tool-contract）を、C# で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を保持する（ACDR 0064）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "この組は契約の版2 を満たし、作業型と助言型を保持する（ACDR 0069）。references の実装は、Rust の組の refs.rs と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。作った Skill の配布（dist）には対応しない ── 利用者の環境に .NET SDK（10）を必要とする。"
-                }
-              ]
-            },
-            {
-              "title": "置き場所",
-              "blocks": [
-                {
-                  "kind": "code",
-                  "text": "tool/                      道具のソース\n  Directory.Build.props    全てのプロジェクトに共通の設定（net10.0 ・ InvariantGlobalization ほか）\n  Skill/                   契約の実体と道具の一覧（ライブラリ）\n    Contract.cs            契約の実体（どの Skill も同じファイル）\n    Refs.cs                references の実装（どの Skill も同じファイル）\n    RefsTools.cs           references の4つの道具（どの Skill も同じファイル）\n    Tools.cs               道具の一覧（能力の正本）\n    Hello.cs               見本の業務ロジック\n  Cli/                     プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n  Mcp/                     プレゼンテーション層 ── MCP の面（ModelContextProtocol.Core 2.x）\n  Tests/                   事例（xUnit）\n  bin/cli/ ・ bin/mcp/     組み立てた dll（git で追跡しない）\ntool.json                  CLI の起動のコマンドと、外部の道具\nmcp.json                   MCP の起動のコマンド（ホストの形式）\n.gitignore                 bin/ と obj/ を追跡しない"
-                },
-                {
-                  "kind": "para",
-                  "text": "起動のコマンドは dotnet <tool/bin/cli/cli.dll の経路> である。 dll は OS に依存しないので、Windows でも同じ登録で起動する。経路は ${CLAUDE_PROJECT_DIR:-.} から書く。Skill のフォルダは、実行中の dll の位置から上へたどり、SKILL.md の在るフォルダである（Given.SkillRoot）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "文化に依存する処理を使わない（InvariantGlobalization）── ICU の無い環境でも起動する。"
-                },
-                {
-                  "kind": "para",
-                  "text": "中の構成は指定しない（ACDR 0059）。雛形は CLI と MCP が同じ一覧を参照するために Skill/ を分けるだけで、層に分けない。"
-                },
-                {
-                  "kind": "para",
-                  "text": "組み立ては、Skill のフォルダで次を実行する。"
-                },
-                {
-                  "kind": "code",
-                  "text": "dotnet build tool/Cli -c Release -o tool/bin/cli\ndotnet build tool/Mcp -c Release -o tool/bin/mcp"
-                }
-              ]
-            },
-            {
-              "title": "契約の実装",
-              "blocks": [
-                {
-                  "kind": "table",
-                  "head": [
-                    "契約の規定",
-                    "C# の組での実装"
-                  ],
-                  "rows": [
-                    [
-                      "道具の一覧",
-                      "Tools.cs の Tools.All()。MCP の面で、道具をその場で宣言する属性（McpServerTool）を使わない ── McpServer.Create と McpServerHandlers の ListToolsHandler ・ CallToolHandler を、同じ一覧から組む"
-                    ],
-                    [
-                      "動詞なしの --json",
-                      "CLI が Contract.Catalog() の結果を返す（Contract.cs）"
-                    ],
-                    [
-                      "一覧に無い旗",
-                      "CLI が終了コード 2 で断る（Cli/Program.cs の ReadArgs）"
-                    ],
-                    [
-                      "外部の道具",
-                      "given.External(\"名前\") で tool.json から読み、引数として渡す。Process.Start(\"…\") に名前を直書きしない"
-                    ],
-                    [
-                      "標準出力",
-                      "MCP の面は標準出力へ書かない。標準出力は JSON-RPC の通信路である"
-                    ],
-                    [
-                      "誤りの返し方",
-                      "ok が偽なら IsError を立てる。無い道具と足りない引数は、McpProtocolException(…, McpErrorCode.InvalidParams) で返す（Rust の組と同じ分け方）"
-                    ],
-                    [
-                      "references（版2）",
-                      "Refs.cs が取り出す ・ 検査する ・ 描画する ・ 取り込むを持ち、RefsTools.cs が4つの道具（get ・ validate ・ view ・ import）として一覧に足す。JSON Schema の検査は JsonSchema.Net（Draft 2020-12。未知の欄 x-view を許す方言）が行う"
-                    ]
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "雛形",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "references/profiles/csharp/ に置き、組の定義 references/profiles/csharp.profile.json が、何をどこへ置くかを保持する。skills-creator scaffold <名前> --type work --language csharp が、共通の一式と作業型の一式を合わせて置く。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "置き場所",
-                    "中身",
-                    "置く先"
-                  ],
-                  "rows": [
-                    [
-                      "common/",
-                      "全ての型に置く共通の一式 ── Directory.Build.props ・ 3つのプロジェクトの定義 ・ Contract.cs ・ CLI と MCP の Program.cs ・ tool.json ・ mcp.json ・ .gitignore ・ Refs.cs ・ RefsTools.cs ・ document.schema.json",
-                      "tool/ と Skill のフォルダ"
-                    ],
-                    [
-                      "types/work/",
-                      "作業型の一式 ── 道具の一覧 Tools.cs、見本の道具 Hello、その事例",
-                      "tool/Skill/ ・ tool/Tests/"
-                    ],
-                    [
-                      "types/advisor/",
-                      "助言型の一式 ── 道具の一覧 Tools.cs（references の4つだけ）、事例5件 ReferencesTests.cs、回答の例",
-                      "tool/Skill/ ・ tool/Tests/"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "生んだ直後に組み立てられる。 見本の道具 Hello を書き換えて、この Skill の道具にする。助言型は、references/document.json の手順（id「procedure」）で判断基準を作る。"
-                }
-              ]
-            },
-            {
-              "title": "2段目の検査",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "skills-creator check は、tool/Directory.Build.props が在る Skill にこの組の検査を適用する。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "検出",
-                    "何が起きているか"
-                  ],
-                  "rows": [
-                    [
-                      "外部の道具の名前を直書きしている",
-                      "Process.Start( ・ new ProcessStartInfo( ・ FileName =  の直後に、名前が文字列で書いてある。tool.json に宣言し、注入する"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "雛形の構成の検査（--layout 1）は保持しない。 構成を指定しないので、照らす先が無い。"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "profile-go",
-      "title": "言語の組：Go",
-      "source": {
-        "location": "references/profiles/go.md",
-        "sha256": "46a985abfcf9f2f5694dc7b5896c4298758d01398bb0ccd31033c7851ce8256e",
-        "fetched": ""
-      },
-      "sections": [
-        {
-          "title": "言語の組：Go",
-          "sections": [
-            {
-              "title": "目的",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "道具の契約（references/document.json の tool-contract）を、Go で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を保持する（ACDR 0065）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "この組は契約の版2 を満たし、作業型と助言型を保持する（ACDR 0069）。references の実装は、Rust の組の refs.rs と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。作った Skill の配布（dist）には対応しない。組み立てには Go（1.25 以上）を必要とする。"
-                }
-              ]
-            },
-            {
-              "title": "置き場所",
-              "blocks": [
-                {
-                  "kind": "code",
-                  "text": "tool/                道具のソース\n  go.mod             モジュール（名前は Skill の名前の - を _ にしたもの）と、MCP の公式 SDK（v1.8.0）\n  contract/          契約の実体（どの Skill も同じファイル）\n  refs/              references の実装と4つの道具（どの Skill も同じファイル）\n  tools/             道具の一覧（能力の正本）と、見本の業務ロジック・事例\n  cmd/cli/           プレゼンテーション層 ── シェルから呼ぶ唯一の経路\n  cmd/mcp/           プレゼンテーション層 ── MCP の面\nbin/                 組み立てた実行ファイル（git で追跡しない）\n  <名前>             CLI（Windows は <名前>.exe）\n  <名前>-mcp         MCP サーバー（Windows は <名前>-mcp.exe）\ntool.json            CLI の起動のコマンドと、外部の道具\nmcp.json             MCP の起動のコマンド（ホストの形式）\n.gitignore           bin/ を追跡しない"
-                },
-                {
-                  "kind": "para",
-                  "text": "実行ファイルの置き場所は Rust の組と同じ bin/ である。 起動に処理系を必要としない。Skill のフォルダは、実行ファイルの位置から上へたどり、SKILL.md の在るフォルダである（Given.SkillRoot）。"
-                },
-                {
-                  "kind": "para",
-                  "text": "中の構成は指定しない（ACDR 0059）。雛形は CLI と MCP が同じ一覧を参照するためにパッケージを分けるだけで、層に分けない。"
-                },
-                {
-                  "kind": "para",
-                  "text": "組み立ては、Skill のフォルダで次を実行する。go mod tidy が go.sum を作る ── go.sum は git で追跡する。"
-                },
-                {
-                  "kind": "code",
-                  "text": "go mod tidy -C tool\ngo build -C tool -o ../bin/<名前> ./cmd/cli\ngo build -C tool -o ../bin/<名前>-mcp ./cmd/mcp"
-                }
-              ]
-            },
-            {
-              "title": "契約の実装",
-              "blocks": [
-                {
-                  "kind": "table",
-                  "head": [
-                    "契約の規定",
-                    "Go の組での実装"
-                  ],
-                  "rows": [
-                    [
-                      "道具の一覧",
-                      "tools の All()。MCP の面で、引数の型から入力の形を導く汎用の mcp.AddTool を使わない ── Server.AddTool に、同じ一覧から組んだ入力の形と処理を渡す"
-                    ],
-                    [
-                      "動詞なしの --json",
-                      "CLI が contract.Catalog() の結果を返す"
-                    ],
-                    [
-                      "一覧に無い旗",
-                      "CLI が終了コード 2 で断る（cmd/cli の readArgs）"
-                    ],
-                    [
-                      "外部の道具",
-                      "given.External(\"名前\") で tool.json から読み、引数として渡す。exec.Command(\"…\") に名前を直書きしない"
-                    ],
-                    [
-                      "標準出力",
-                      "MCP の面は標準出力へ書かない。標準出力は JSON-RPC の通信路である"
-                    ],
-                    [
-                      "誤りの返し方",
-                      "ok が偽なら IsError を立てる。足りない引数は、jsonrpc.Error{Code: jsonrpc.CodeInvalidParams} で返す（Rust の組と同じ分け方）"
-                    ],
-                    [
-                      "references（版2）",
-                      "refs/refs.go が取り出す ・ 検査する ・ 描画する ・ 取り込むを持ち、refs/tools.go が4つの道具（get ・ validate ・ view ・ import）として一覧に足す。JSON Schema の検査は github.com/google/jsonschema-go（MCP の Go SDK と同じもの）が行う。JSON は欄の順を保って読む ── Go の map は順を保たず、スキーマの欄の順が描画の順だからである"
-                    ]
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "雛形",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "references/profiles/go/ に置き、組の定義 references/profiles/go.profile.json が、何をどこへ置くかを保持する。skills-creator scaffold <名前> --type work --language go が、共通の一式と作業型の一式を合わせて置く。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "置き場所",
-                    "中身",
-                    "置く先"
-                  ],
-                  "rows": [
-                    [
-                      "common/",
-                      "全ての型に置く共通の一式 ── go.mod ・ contract.go ・ CLI と MCP の main.go ・ tool.json ・ mcp.json ・ .gitignore ・ refs/refs.go ・ refs/tools.go ・ document.schema.json",
-                      "tool/ と Skill のフォルダ"
-                    ],
-                    [
-                      "types/work/",
-                      "作業型の一式 ── 道具の一覧 tools.go、見本の道具 hello、その事例",
-                      "tool/tools/"
-                    ],
-                    [
-                      "types/advisor/",
-                      "助言型の一式 ── 道具の一覧 tools.go（references の4つだけ）、事例5件 references_test.go、回答の例（testdata/）",
-                      "tool/tools/"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "生んだ直後に組み立てられる。 見本の道具 hello を書き換えて、この Skill の道具にする。助言型は、references/document.json の手順（id「procedure」）で判断基準を作る。"
-                }
-              ]
-            },
-            {
-              "title": "2段目の検査",
-              "blocks": [
-                {
-                  "kind": "para",
-                  "text": "skills-creator check は、tool/go.mod が在る Skill にこの組の検査を適用する。"
-                },
-                {
-                  "kind": "table",
-                  "head": [
-                    "検出",
-                    "何が起きているか"
-                  ],
-                  "rows": [
-                    [
-                      "外部の道具の名前を直書きしている",
-                      "exec.Command( の直後に、名前が文字列で書いてある。tool.json に宣言し、注入する"
-                    ]
-                  ]
-                },
-                {
-                  "kind": "para",
-                  "text": "雛形の構成の検査（--layout 1）は保持しない。 構成を指定しないので、照らす先が無い。"
                 }
               ]
             }

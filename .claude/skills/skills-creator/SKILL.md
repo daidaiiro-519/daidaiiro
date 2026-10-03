@@ -14,7 +14,7 @@ description: "新しいSkillsを作成したいとき、Skillのテンプレー�
 ## 役割
 
 - 新しい Skill の要件（名前 ・ 使う場面 ・ 型 ・ 道具の要否 ・ 言語）を確認する
-- 道具を持つ Skill は、`skills-creator scaffold` で型と言語の組の一式を生む
+- 道具を持つ Skill は、`skills-creator scaffold` で生む。Rust ならリファレンス実装から生成し、ほかの言語なら枠を置いてリファレンス実装を移植する
 - SKILL.md の各 `{{…}}` を、そこに書かれた指示に従って記入する
 - `skills-creator check`（助言型は `accept` も）で契約を検査し、検出を0件にしてから渡す
 - 作ったものの使い方（CLI と MCP の呼び方）を利用者に伝える
@@ -53,19 +53,22 @@ description: "新しいSkillsを作成したいとき、Skillのテンプレー�
 
 ### Step 2: 一式を置く
 
-道具を持つ Skill は、`scaffold` で型と言語の組の一式を置く。
+道具を持つ Skill は、`scaffold` で型の一式を置く。
 
 ```
-skills-creator scaffold <名前> --type <work|advisor> --language <rust|python|typescript|csharp|go>
+skills-creator scaffold <名前> --type <work|advisor> [--language <言語>]
 ```
 
-置いたファイルの一覧と、次に書くもの ・ 組み立てのコマンドが出る。**既に在るファイルは上書きしない。**
+`--language` を省くか `rust` を渡すと、Rust のリファレンス実装（`references/sample/rust/`）から道具まで生成する。
+ほかの言語（`go` ・ `python` など）を渡すと、言語に依存しない枠（SKILL.md ・ references ・ `tool.json` ・ `mcp.json`）だけを置き、
+道具はリファレンス実装を移植して書く（手順は `skills-creator view --kind document --id porting` で読む）。
+置いたファイルの一覧と、次に書くもの ・ 組み立てのコマンド（または移植の案内）が出る。**既に在るファイルは上書きしない。**
 
 道具を保持しない Skill は、`references/skill-template.md.tmpl` を `.claude/skills/<名前>/SKILL.md` として置くだけにする。
 
 ### Step 3: 組み立てる
 
-`scaffold` が出した「組む ──」のコマンドを、Skill のフォルダで実行する。その言語の処理系を必要とする（`references/document.json`（profile-<言語>） の置き場所の節）。**処理系が無い環境では組み立てられない** ── 利用者に導入を頼む。
+`tool.json` の `build` のコマンドを、Skill のフォルダで実行する（`scaffold` が「組む ──」として出す）。その言語の処理系を必要とする。**処理系が無い環境では組み立てられない** ── 利用者に導入を頼む。
 
 ### Step 4: 中身を書く
 
@@ -99,12 +102,12 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 
 ## Skill の型
 
-**skills-creator は、Skill を型と言語の組の組み合わせで生む**（ACDR 0060 ・ 0061）。型は、その Skill を使うときに誰が何を作るかで決まる。
+**skills-creator は、Skill を型ごとに生む**（ACDR 0060 ・ 0061 ・ 0097）。型は、その Skill を使うときに誰が何を作るかで決まる。
 
 | 型 | 定義 | 生み方 |
 |---|---|---|
 | 作業型（`work`） | エージェントが成果物を作る作業の手順を持ち、途中で検査や生成の道具を使う | 共通の一式 ・ 見本の道具 `hello` ・ SKILL.md の雛形 |
-| 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | **準備中**（どの言語の組も雛形を保持せず、`scaffold` は断る）。それまでは作業型で生む |
+| 生成型（`generate`） | 他から入力を渡され、道具が成果物を組んで返す。作業の手順は保持しない | **準備中**（リファレンス実装が雛形を持たず、`scaffold` は断る）。それまでは作業型で生む |
 | 助言型（`advisor`） | 相談を受け、原典の判断基準に照らして答える | 雛形を丸ごと固定する（判断基準と回答のスキーマ ・ 回答の道具 ・ 試験） |
 
 **助言型は、`references/document.json` の手順（id「procedure」。`skills-creator view --kind document --id procedure` で読む）の9段で作り、`skills-creator accept <フォルダ>` の受け入れの検査（機械の7件）を実行する。** 判断基準は、原典が名前を付けて立てている概念を1件の単位にする。語彙は原典の語のまま使い、説明は学習ノートを読んでまとめた言葉で書く（ノートの文を複製しない）。
@@ -123,11 +126,11 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 | 置く先 | 中身 | 文書 |
 |---|---|---|
 | 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/document.json`（tool-contract） |
-| 言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。どれも版2 で、作業型と助言型を生む | `references/document.json`（profile-<言語>） |
+| リファレンス実装 | Rust の実装1組 ── 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 2段目の検査。作業型と助言型を生む。ほかの言語の Skill は、これを移植する | `references/document.json`（sample-rust ・ porting） |
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/document.json`（distribution） |
 
 ```
-skills-creator scaffold <Skill の名前> [--type work|advisor] [--language rust|python|typescript|csharp|go]   # 型と言語の組の一式を置く
+skills-creator scaffold <Skill の名前> [--type work|advisor] [--language <言語>]   # Rust は道具まで、ほかの言語は枠だけを置く
 skills-creator check <Skill のフォルダ>  # 2段の検査と、文書の検査（節の構成 ・ 未記入の差し込み場所）
 skills-creator check <Skill のフォルダ> --cases 1  # 加えて、契約のテストケースを Skill の実行コマンドで実行する
 skills-creator accept <advisor のフォルダ>  # 助言型の受け入れの検査（機械の7件）
@@ -135,7 +138,7 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだ�
 ```
 
 **check は2段で検査する。** 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。
-2段目はソースを読む検査で、言語の組が持つ。**組が無い言語では「実行しない」と出し、合格とは扱わない。**
+2段目はソースを読む検査で、リファレンス実装と同じ言語（Rust）の Skill だけに当てる。**ほかの言語では「実行しない」と出し、合格とは扱わない** ── 共通ツールの振る舞いは、どの言語でもテストケースで確かめる。
 
 **共通ツール（get ・ validate ・ view ・ import）の振る舞いは、テストケースで決まる**（ACDR 0096）。
 テストケースは `references/contract/cases/` に1件1ファイルで置き、呼び出しと期待値（終了コードと `--json` の出力）を持つ。
@@ -197,6 +200,7 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - `references/contract/cases/`: 共通ツールのテストケースと、その入力データ（`fixtures/`）。対応するテストを持たない理由は `exempt.json` が持つ
 - `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義
 - `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順は `references/document.json` の id「procedure」が持つ
-- `references/document.json`（profile-<言語>） ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ
-- `references/profiles/<言語>.profile.json`: 言語の組の定義。何をどこへ置くか ・ 組み立てと試験のコマンド ・ 外部の道具の起動の書き方
+- `references/sample/rust/`: **リファレンス実装**（Rust の実装1組）。`sample.json` が何をどこへ置くか ・ ソースの拡張子 ・ 外部の道具の起動の書き方を持つ。説明は `references/document.json`（sample-rust）
+- `references/types/skeleton.json` ・ `references/types/common/`: どの言語の Skill にも置く枠（`tool.json` ・ `mcp.json` ・ `.gitignore` ・ `references/document.schema.json`）
+- `references/document.json`（porting）: ほかの言語へリファレンス実装を移植する手順
 - `references/document.json`（distribution） ・ `references/distribution/`: 配布（任意）。導入スクリプトと組み立ての定義の雛形

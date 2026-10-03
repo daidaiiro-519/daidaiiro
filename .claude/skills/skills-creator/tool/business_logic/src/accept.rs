@@ -9,9 +9,9 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use crate::behavior;
 use crate::data_access::files;
 use crate::data_access::process;
-use crate::profile::Profile;
 use crate::refs;
 
 /// 検査1件の結果。
@@ -85,9 +85,38 @@ fn prose(v: &Value, at: &str, out: &mut Vec<(String, String)>) {
     }
 }
 
-/// 助言型の受け入れの検査を、7件すべて行う。**言語に依存する置き場所と試験は、言語の組の定義が持つ。**
+/// 組み立ての出力と、処理系が作るフォルダ。**道具のソースではない** ── 中を探さない。
+const GENERATED: [&str; 6] = [
+    "target",
+    "node_modules",
+    ".venv",
+    "bin",
+    "obj",
+    "__pycache__",
+];
+
+/// `tool/` の下のファイルを集める。**組み立ての出力は見ない。** どの言語で書いても同じ規則で集める
+/// （ACDR 0097）── 拡張子を言語ごとに持つと、言語を足すたびに定義が要る。
+fn tool_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    for p in files::list(dir).unwrap_or_default() {
+        let name = p
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if files::is_dir(&p) {
+            if !GENERATED.contains(&name.as_str()) {
+                tool_files(&p, out);
+            }
+        } else {
+            out.push(p);
+        }
+    }
+}
+
+/// 助言型の受け入れの検査を、7件すべて行う。**言語に依存しない** ── 回答の例は `tool/` の下の
+/// `answer*.json` を探し、試験のコマンドは `tool.json` の `test` から読む（ACDR 0097）。
 #[must_use]
-pub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {
+pub fn accept(root: &Path, others: &[String]) -> Vec<Check> {
     let references = root.join("references");
     let criteria: Value = files::read_to_string(references.join("criteria.json"))
         .ok()
@@ -96,22 +125,24 @@ pub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {
     let items: Vec<Value> = criteria["items"].as_array().cloned().unwrap_or_default();
     let notes = notes(root);
     vec![
-        shape(root, &lang.fixtures),
+        shape(root),
         copied(&items, &notes),
         quotes_brought(&items, &notes),
         concept_units(&items, &notes),
         figures(root, &items),
-        other_skills(root, others, lang),
-        tests(root, &lang.test),
+        other_skills(root, others),
+        tests(root),
     ]
 }
 
 /// 1 形 ── 判断基準と回答の例が、スキーマの検査に合格する。
-fn shape(root: &Path, fixtures: &str) -> Check {
+fn shape(root: &Path) -> Check {
     let references = root.join("references");
     let mut findings = refs::validate(&references).unwrap_or_else(|e| vec![e]);
-    let fixtures = root.join(fixtures);
-    for f in files::list(&fixtures).unwrap_or_default() {
+    let mut found = Vec::new();
+    tool_files(&root.join("tool"), &mut found);
+    found.sort();
+    for f in found {
         let name = f
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
@@ -406,38 +437,15 @@ fn figures(root: &Path, items: &[Value]) -> Check {
 }
 
 /// 6 他の Skill の名前 ── SKILL.md ・ スキーマ ・ 道具に、同じ置き場所の他の Skill の名前が無い。
-fn other_skills(root: &Path, others: &[String], lang: &Profile) -> Check {
+fn other_skills(root: &Path, others: &[String]) -> Check {
     let mut targets = vec![root.join("SKILL.md")];
     for p in files::list(root.join("references")).unwrap_or_default() {
         if p.to_string_lossy().ends_with(".schema.json") {
             targets.push(p);
         }
     }
-    // **ソースの拡張子と、入らないフォルダは言語の組が決める**（試験は数える ── 試験も道具の一部である）
-    fn sources(dir: &Path, lang: &Profile, out: &mut Vec<PathBuf>) {
-        for p in files::list(dir).unwrap_or_default() {
-            let name = p
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_default();
-            if files::is_dir(&p) {
-                let generated = [
-                    "target",
-                    "node_modules",
-                    ".venv",
-                    "bin",
-                    "obj",
-                    "__pycache__",
-                ];
-                if !generated.contains(&name.as_str()) {
-                    sources(&p, lang, out);
-                }
-            } else if lang.extensions.iter().any(|e| name.ends_with(e.as_str())) {
-                out.push(p);
-            }
-        }
-    }
-    sources(&root.join("tool"), lang, &mut targets);
+    // **道具のファイルはすべて見る**（試験も道具の一部である）。文字として読めないものは飛ばす
+    tool_files(&root.join("tool"), &mut targets);
     let mut findings = Vec::new();
     for t in targets {
         let Ok(body) = files::read_to_string(&t) else {
@@ -459,28 +467,35 @@ fn other_skills(root: &Path, others: &[String], lang: &Profile) -> Check {
     }
 }
 
-/// 7 試験 ── 雛形の試験が通る。**試験のコマンドは言語の組の定義が持つ。**
-fn tests(root: &Path, test: &[String]) -> Check {
-    let findings = match test.split_first() {
-        None => vec!["試験のコマンドが無い ── 言語の組の定義に test を書く".to_owned()],
-        Some((cmd, args)) => {
-            match process::run(cmd, args, root, std::time::Duration::from_secs(600)) {
-                Ok(ran) if ran.code == 0 => Vec::new(),
-                Ok(ran) => {
-                    let tail: Vec<&str> = ran.stdout.lines().rev().take(5).collect();
-                    vec![format!(
-                        "試験が通らない（終了コード {}）── {}",
-                        ran.code,
-                        tail.into_iter().rev().collect::<Vec<_>>().join(" ／ ")
-                    )]
-                }
-                Err(e) => vec![format!("試験を起動できない: {cmd} ── {e:?}")],
-            }
+/// 7 試験 ── 道具の試験が通る。**試験のコマンドは `tool.json` の `test` が持つ**（契約の版3）。
+fn tests(root: &Path) -> Check {
+    let findings = match behavior::commands(root, "test") {
+        Err(why) => vec![why],
+        Ok(list) if list.is_empty() => {
+            vec!["試験のコマンドが無い ── tool.json の test に書く".to_owned()]
         }
+        Ok(list) => list
+            .iter()
+            .filter_map(|command| {
+                let (cmd, args) = command.split_first()?;
+                match process::run(cmd, args, root, std::time::Duration::from_secs(600)) {
+                    Ok(ran) if ran.code == 0 => None,
+                    Ok(ran) => {
+                        let tail: Vec<&str> = ran.stdout.lines().rev().take(5).collect();
+                        Some(format!(
+                            "試験が通らない（終了コード {}）── {}",
+                            ran.code,
+                            tail.into_iter().rev().collect::<Vec<_>>().join(" ／ ")
+                        ))
+                    }
+                    Err(e) => Some(format!("試験を起動できない: {cmd} ── {e:?}")),
+                }
+            })
+            .collect(),
     };
     Check {
         no: 7,
-        what: "試験 ── 雛形の試験が通る",
+        what: "試験 ── 道具の試験が通る",
         findings,
     }
 }

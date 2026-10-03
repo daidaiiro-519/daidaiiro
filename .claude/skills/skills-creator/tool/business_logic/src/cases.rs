@@ -29,6 +29,16 @@ const LIMIT: Duration = Duration::from_secs(120);
 /// 一時ディレクトリの通し番号。**同じプロセスの中で並行して実行しても、名前が重ならない。**
 static SERIAL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
+/// テストケースの置き場所（skills-creator のフォルダからの相対）。
+pub const DIR: &str = "references/contract/cases";
+
+/// リファレンス実装のテストを持つファイル（skills-creator のフォルダからの相対）。**テスト1件ごとに、同じ名前の
+/// テストケースを置く** ── 共通ツールのテストと、CLI の共通の決まりのテスト（ACDR 0097）。
+pub const REFERENCE_TESTS: [&str; 2] = [
+    "tool/business_logic/tests/refs.rs",
+    "references/sample/rust/common/cli.tests.rs.tmpl",
+];
+
 /// テストケースの対応の例外を置くファイルの名前。
 const EXEMPT: &str = "exempt.json";
 

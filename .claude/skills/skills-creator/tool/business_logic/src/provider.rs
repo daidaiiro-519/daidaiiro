@@ -1,32 +1,38 @@
 // SPDX-License-Identifier: MIT
-//! 提供者の検証 ── 言語の組の雛形を直したときに、5言語 × 2型を生成して検証する。**見つけるが、直さない。**
+//! 提供者の検証 ── リファレンス実装を直したときに、Skill を生成して検証する。**見つけるが、直さない。**
 //!
-//! 空の作業場所に、利用者と同じ道具（`bin/skills-creator` の scaffold）で Skill を生み、scaffold が案内する
-//! 組み立てのコマンドと、言語の組の試験を起動する。生んだ Skill に check と accept（助言型）を当て、最後に
-//! Rust の助言型を基準に、他の言語の references の道具の出力を突き合わせる（conform）。
+//! 空の作業場所に、利用者と同じ道具（`bin/skills-creator` の scaffold）でリファレンス実装から作業型と助言型を
+//! 生み、生んだ Skill の `tool.json` が持つ組み立て ・ テスト ・ フォーマットのコマンドを起動する。生んだ Skill に
+//! check（テストケースを含む）と accept（助言型）を当てる。リファレンス実装のテストとテストケースの対応を照合し、
+//! ほかの言語の枠が置けることも確かめる（ACDR 0097）。
 //!
-//! **シェルを経由しない**（以前の tool/verify-profiles.sh を置き換えた）── 組み立てのコマンドは語の並びとして
-//! 起動し、検出は JSON で受け取る。どの OS でも、同じ道具で検証できる。
+//! **シェルを経由しない** ── コマンドは語の並びとして起動し、検出は JSON で受け取る。どの OS でも、
+//! 同じ道具で検証できる。
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde_json::Value;
 
+use crate::behavior;
 use crate::data_access::{files, process};
-use crate::{conform, profile};
 
 /// 生む型。
 pub const TYPES: [&str; 2] = ["work", "advisor"];
 
+/// 枠だけを生む言語の例。**リファレンス実装と違う言語なら、どれでも同じ枠が置かれる。**
+pub const PORT_LANGUAGE: &str = "go";
+
+/// ほかの言語の枠が持つファイル（Skill のフォルダからの相対）。
+pub const SKELETON_FILES: [&str; 4] = [
+    "SKILL.md",
+    "tool.json",
+    "mcp.json",
+    "references/document.schema.json",
+];
+
 /// 1回の起動の制限時間。**組み立ては、依存を取り寄せると数分かかる。**
 const LIMIT: Duration = Duration::from_secs(1800);
-
-/// 組み立てのコマンドを、語の並びにする。**シェルを経由しない** ── 言語の組の定義は、演算子を使わない。
-#[must_use]
-pub fn argv(command: &str) -> Vec<String> {
-    command.split_whitespace().map(str::to_owned).collect()
-}
 
 /// 組み立ての出力先（`--target-dir` の値）を、共有の出力先へ置換する。**他の語は利用者の手順のまま起動する。**
 ///
@@ -115,16 +121,16 @@ fn fresh(work: &Path) -> Result<PathBuf, String> {
     }
 }
 
-/// 1つの Skill を生み、組み立て、試験し、検査する。
+/// 1つの Skill を生み、組み立て、試験し、検査する。**コマンドは生んだ Skill の tool.json から読む。**
 fn one(
     bin: &Path,
     here: &Path,
     skills: &Path,
-    (lang, ty): (&str, &str),
+    ty: &str,
     shared: Option<&str>,
     v: &mut Verified,
 ) -> Result<(), String> {
-    let name = format!("v-{lang}-{ty}");
+    let name = format!("v-rust-{ty}");
     let root = here.display().to_string();
     let sc = |args: &[&str]| -> Result<process::Ran, String> {
         let mut all: Vec<String> = vec![bin.display().to_string()];
@@ -132,55 +138,52 @@ fn one(
         all.extend(["--skill_root".to_owned(), root.clone(), "--json".to_owned()]);
         launch(&all, skills)
     };
-    let made = sc(&[
-        "scaffold",
-        &name,
-        "--language",
-        lang,
-        "--type",
-        ty,
-        "--path",
-        ".",
-    ])?;
-    let made_json = json_of(&made);
+    let made = sc(&["scaffold", &name, "--type", ty, "--path", "."])?;
     if made.code != 0 {
         v.failures
             .push(format!("[{name}] scaffold: {}", tail(&made)));
         return Ok(());
     }
     let dir = skills.join(&name);
-    for command in made_json
-        .get("data")
-        .and_then(|d| d.get("build"))
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-    {
-        let ran = launch(&shared_target(argv(command), shared), &dir)?;
+    for command in behavior::commands(&dir, "build")? {
+        let ran = launch(&shared_target(command.clone(), shared), &dir)?;
         if ran.code != 0 {
-            v.failures
-                .push(format!("[{name}] 組み立て: {command} ── {}", tail(&ran)));
+            v.failures.push(format!(
+                "[{name}] 組み立て: {} ── {}",
+                command.join(" "),
+                tail(&ran)
+            ));
             return Ok(());
         }
     }
-    let defs = profile::load(&here.join("references/profiles"), lang)?;
-    let ran = launch(&defs.test, &dir)?;
-    if ran.code != 0 {
-        v.failures.push(format!("[{name}] 試験 ── {}", tail(&ran)));
-    }
     // **生んだ直後のコードが整形されているか** ── 整形されていない雛形は、生んだ Skill をリポジトリの
     // 整形の規則にその場で不合格にする（実測 2026-10-01、Rust の雛形で7か所）
-    if !defs.format.is_empty() {
-        let ran = launch(&defs.format, &dir)?;
-        if ran.code != 0 {
-            v.failures.push(format!("[{name}] 整形 ── {}", tail(&ran)));
+    for (key, what) in [("test", "試験"), ("format", "整形")] {
+        for command in behavior::commands(&dir, key)? {
+            let ran = launch(&command, &dir)?;
+            if ran.code != 0 {
+                v.failures
+                    .push(format!("[{name}] {what} ── {}", tail(&ran)));
+            }
         }
     }
-    let checked = sc(&["check", &dir.display().to_string()])?;
-    for f in blocking_check(&json_of(&checked)) {
+    let checked = sc(&["check", &dir.display().to_string(), "--cases", "1"])?;
+    let checked = json_of(&checked);
+    for f in blocking_check(&checked) {
         v.failures.push(format!("[{name}] check: {f}"));
     }
+    let cases: Vec<&Value> = checked
+        .pointer("/data/lines")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|l| l["stage"] == "cases")
+        .collect();
+    v.lines.push(format!(
+        "[{name}] テストケース {} 件 ／ 不合格 {} 件",
+        cases.len(),
+        cases.iter().filter(|l| l["state"] != "pass").count()
+    ));
     if ty == "advisor" {
         let accepted = sc(&["accept", &dir.display().to_string()])?;
         let bad = blocking_accept(&json_of(&accepted));
@@ -194,19 +197,60 @@ fn one(
     Ok(())
 }
 
-/// 5言語 × 2型を生成して検証する。`bin` は skills-creator の実行ファイル、`here` は skills-creator の
-/// フォルダ、`work` は作業場所（その下に新しい置き場所を作る）、`corpus` は突き合わせに使う references を
-/// 持つ Skill の置き場所である。`shared` は Rust の組み立ての共有の出力先で、無ければ利用者の手順のまま組み立てる。
+/// ほかの言語の枠を生み、置いたものを確かめる。**道具のソースは置かない** ── AI が移植して書く。
+fn skeleton(bin: &Path, here: &Path, skills: &Path, v: &mut Verified) -> Result<(), String> {
+    let name = format!("v-{PORT_LANGUAGE}-advisor");
+    let mut all: Vec<String> = vec![bin.display().to_string()];
+    all.extend(
+        [
+            "scaffold",
+            &name,
+            "--type",
+            "advisor",
+            "--language",
+            PORT_LANGUAGE,
+            "--path",
+            ".",
+            "--skill_root",
+        ]
+        .map(str::to_owned),
+    );
+    all.extend([here.display().to_string(), "--json".to_owned()]);
+    let made = launch(&all, skills)?;
+    if made.code != 0 {
+        v.failures
+            .push(format!("[{name}] scaffold: {}", tail(&made)));
+        return Ok(());
+    }
+    let dir = skills.join(&name);
+    for need in SKELETON_FILES {
+        if !files::is_file(dir.join(need)) {
+            v.failures.push(format!("[{name}] 枠に {need} が無い"));
+        }
+    }
+    if files::exists(dir.join("tool")) {
+        v.failures
+            .push(format!("[{name}] 枠に tool/ が在る ── 道具は移植して書く"));
+    }
+    if behavior::contract_version(&dir) != 3 {
+        v.failures
+            .push(format!("[{name}] 枠の tool.json が契約の版3 でない"));
+    }
+    v.lines.push(format!("[{name}] 済"));
+    Ok(())
+}
+
+/// リファレンス実装から作業型と助言型を生成して検証し、ほかの言語の枠を確かめる。`bin` は skills-creator の
+/// 実行ファイル、`here` は skills-creator のフォルダ、`work` は作業場所（その下に新しい置き場所を作る）である。
+/// `shared` は Rust の組み立ての共有の出力先で、無ければ利用者の手順のまま組み立てる。
 ///
 /// # Errors
 ///
-/// 作業場所を作れないとき、道具を起動できないとき、言語の組の定義を読めないときに返す。
+/// 作業場所を作れないとき、道具を起動できないとき、生んだ Skill の tool.json を読めないときに返す。
 pub fn verify(
     bin: &Path,
     here: &Path,
     work: &Path,
-    languages: &[String],
-    corpus: &Path,
     shared: Option<&Path>,
 ) -> Result<Verified, String> {
     // **絶対の経路にする** ── 生んだ Skill のフォルダから起動するので、相対の経路では届かない
@@ -221,69 +265,28 @@ pub fn verify(
         work: dir,
         ..Verified::default()
     };
-    for lang in languages {
-        for ty in TYPES {
-            one(bin, here, &skills, (lang, ty), shared.as_deref(), &mut v)?;
-        }
+    for ty in TYPES {
+        one(bin, here, &skills, ty, shared.as_deref(), &mut v)?;
     }
-    let base = skills.join("v-rust-advisor");
+    skeleton(bin, here, &skills, &mut v)?;
     // **テストケース（ボード skills-creator-contract の論点2 ・ 3）**：リファレンス実装のテスト1件ごとに
-    // 同名のテストケースが在るかを照合し、生成した Rust の助言型でテストケースを実行する
-    let cases_dir = here.join("references/contract/cases");
-    if files::is_dir(&cases_dir) {
-        let tests = files::read_to_string(here.join("tool/business_logic/tests/refs.rs"))
-            .unwrap_or_default();
-        match crate::cases::unmatched(&tests, &cases_dir) {
-            Ok(found) => {
-                v.lines.push(format!(
-                    "[cases] テストとテストケースの対応 ── 不一致 {} 件",
-                    found.len()
-                ));
-                v.failures
-                    .extend(found.into_iter().map(|f| format!("[cases] {f}")));
-            }
-            Err(e) => v.failures.push(format!("[cases] {e}")),
+    // 同名のテストケースが在るかを照合する
+    let cases_dir = here.join(crate::cases::DIR);
+    let tests: String = crate::cases::REFERENCE_TESTS
+        .iter()
+        .map(|t| files::read_to_string(here.join(t)).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join("\n");
+    match crate::cases::unmatched(&tests, &cases_dir) {
+        Ok(found) => {
+            v.lines.push(format!(
+                "[cases] テストとテストケースの対応 ── 不一致 {} 件",
+                found.len()
+            ));
+            v.failures
+                .extend(found.into_iter().map(|f| format!("[cases] {f}")));
         }
-        if languages.iter().any(|l| l == "rust") {
-            match crate::cases::run(&base, &cases_dir) {
-                Ok(results) => {
-                    let failed: Vec<String> = results
-                        .iter()
-                        .filter_map(|(n, w)| {
-                            w.as_ref()
-                                .map(|w| format!("[cases v-rust-advisor] {n} ── {w}"))
-                        })
-                        .collect();
-                    v.lines.push(format!(
-                        "[cases v-rust-advisor] テストケース {} 件 ／ 不合格 {} 件",
-                        results.len(),
-                        failed.len()
-                    ));
-                    v.failures.extend(failed);
-                }
-                Err(e) => v.failures.push(format!("[cases v-rust-advisor] {e}")),
-            }
-        }
-    }
-    let schema = here.join("references/profiles/shared/document.schema.json.tmpl");
-    for lang in languages.iter().filter(|l| l.as_str() != "rust") {
-        let other = skills.join(format!("v-{lang}-advisor"));
-        match conform::conform(&base, &other, corpus, &schema) {
-            Ok(report) => {
-                v.lines.push(format!(
-                    "[conform {lang}] 事例 {} 件 ／ 不一致 {} 件",
-                    report.cases,
-                    report.mismatches.len()
-                ));
-                v.failures.extend(
-                    report
-                        .mismatches
-                        .into_iter()
-                        .map(|m| format!("[conform {lang}] {m}")),
-                );
-            }
-            Err(e) => v.failures.push(format!("[conform {lang}] {e}")),
-        }
+        Err(e) => v.failures.push(format!("[cases] {e}")),
     }
     Ok(v)
 }

@@ -1,0 +1,726 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0097",
+ "title": "テンプレートを Rust のリファレンス実装1組に絞る",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "skills-creator の実装のテンプレートを Rust のリファレンス実装1組に絞り、ほかの言語で作る Skill には言語に依存しない枠だけを置いて、道具はリファレンス実装を移植して書く形にする。",
+ "why": "ボード skills-creator-contract で、言語ごとにテンプレートを持つ形をやめ、Rust のリファレンス実装を1組だけ持つと決めた（論点1 ・ 3 ・ 5、2026-10-02）。いまは5言語のテンプレート（Python ・ TypeScript ・ C# ・ Go を合わせて約14,000行）を持ち、共通ツールを直すたびに5言語を書き直して、言語ごとに578件の出力を Rust と突き合わせている。ACDR 0096 で共通ツールの振る舞いをテストケースで決めたので、ほかの言語の Skill はテストケースで確かめられる。ボードの試しでは、Rust のリファレンス実装とテストケースだけを渡して AI に Go へ移植させ、テストケースに全件合格した。この ACDR はボードの移行の手順の B である。",
+ "shift": [
+  {
+   "what": "実装のテンプレート",
+   "from": "references/profiles/ に5言語（Rust ・ Python ・ TypeScript ・ C# ・ Go）の組と、言語ごとの定義（<言語>.profile.json）",
+   "to": "references/sample/rust/ に Rust のリファレンス実装1組と、その定義（sample.json）"
+  },
+  {
+   "what": "Rust 以外の言語で scaffold したとき",
+   "from": "その言語の組のテンプレートから道具まで生成する",
+   "to": "言語に依存しない枠（SKILL.md ・ references ・ tool.json ・ mcp.json ・ .gitignore）だけを置き、移植の手順を案内する"
+  },
+  {
+   "what": "組み立て ・ テスト ・ フォーマットのコマンドの置き場所",
+   "from": "言語の組の定義（profile.json の build ・ test ・ format）",
+   "to": "生んだ Skill の tool.json（契約の版3 の build ・ test ・ format）"
+  },
+  {
+   "what": "accept と verify が言語を知る方法",
+   "from": "言語の組の定義を読む（回答の例の置き場所 ・ ソースの拡張子 ・ 試験のコマンド）",
+   "to": "言語を知らない。回答の例は tool/ の下の answer*.json を探し、コマンドは tool.json から読む"
+  },
+  {
+   "what": "提供者の検証（verify）",
+   "from": "5言語 × 2型を生み、Rust 以外の4言語の出力を Rust と578件ずつ突き合わせる",
+   "to": "Rust の2型を生み、テストケースを含む check と accept を当てる。ほかの言語の枠が置けることを確かめる"
+  },
+  {
+   "what": "CLI の共通の決まり",
+   "from": "テストもテストケースも無い",
+   "to": "リファレンス実装に CLI のテスト3件（cli.tests.rs.tmpl）を置き、同じ名前のテストケース3件を足す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は言語ごとにテンプレートを持ち、変更後は Rust のリファレンス実装1組を、ほかの言語へ移植する",
+ "how": "git mv で references/profiles/rust/ を references/sample/rust/ へ移し、定義を sample.json にした。4言語のテンプレートと定義（67ファイル）を消した。git の履歴には残る。言語に依存しない枠を references/types/skeleton.json と references/types/common/ に置き、document.schema.json と mcp.json の雛形をそこへ移した。業務ロジック層の profile.rs を sample.rs に書き直した。置く一式は、枠 → リファレンス実装 → 型の順に重ね、リファレンス実装と違う言語にはリファレンス実装の一式を置かない。言語の突き合わせ（conform.rs）を消した。リファレンス実装の tool.json の雛形に build ・ test ・ format を書き、check は tool.json のコマンドの欄の形を検査する。CLI の共通の決まりのテスト3件をリファレンス実装に足した。そのテストケースで、skills-creator 自身の CLI がサブコマンドの前のオプションを断ることが分かったので、リファレンス実装と同じ処理（verb_first）を入れた。移植の手順を references/document.json の porting に書いた。",
+ "applies_to": "skills-creator だけが変わる。references/profiles/ を消し、references/sample/rust/ と references/types/ の枠を置く。業務ロジック層 ・ サービス層 ・ CLI とそれぞれのテストを直す。references/document.json ・ SKILL.md ・ tool/README.md も直す。テストケースを3件足す。",
+ "alternatives": [
+  {
+   "option": "4言語のテンプレートを残し、テストケースで確かめる手段だけを足す",
+   "why_not": "共通ツールを直すたびに5言語を書き直すことは変わらない。ボードの論点1で、テンプレートを言語ごとに持つ形そのものをやめると決めた"
+  },
+  {
+   "option": "擬似言語のテンプレートを置く",
+   "why_not": "ボードの論点1で比べた。擬似言語は動かせず、移植した結果を確かめる手段にならない"
+  },
+  {
+   "option": "ほかの言語では scaffold を断る",
+   "why_not": "SKILL.md ・ references ・ tool.json ・ mcp.json は言語に依存しないので、置ける。置かないと、移植する側が契約のファイルの構成を手で揃えることになる"
+  },
+  {
+   "option": "言語ごとの定義（拡張子 ・ 回答の例の置き場所）を、ほかの言語の分も残す",
+   "why_not": "定義を持つ言語だけが accept と verify を通せる形が残る。tool.json と探し方で言語に依存しない形にできたので、定義を持たなくてよい"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "続けて C（既存の Skill に契約の版3 を当てる）を承認してもらう"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "sample",
+   "tab": "sample.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/sample.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "pub fn plan(",
+     "before": "（無い）",
+     "why": "枠 → リファレンス実装 → 型の順に重ねて、置く一式を決める。リファレンス実装と違う言語には、リファレンス実装の一式を置かない ── 道具は移植して書く"
+    },
+    {
+     "find": "pub fn load(dir: &Path) -> Result<Sample, String> {",
+     "before": "（無い）",
+     "why": "言語ごとの定義（<言語>.profile.json）を読む代わりに、リファレンス実装の定義を1つだけ読む"
+    },
+    {
+     "find": "pub fn is_language_name(name: &str) -> bool {",
+     "before": "（無い）",
+     "why": "ほかの言語の名前は置く一式に入らないが、案内の文に出す。経路の記号などを含む名前を断る"
+    }
+   ]
+  },
+  {
+   "key": "skel",
+   "tab": "skeleton.json",
+   "file": ".claude/skills/skills-creator/references/types/skeleton.json",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "\"items\": [",
+     "before": "（無い）",
+     "why": "どの言語で作る Skill にも置く枠。tool.json ・ mcp.json ・ .gitignore ・ document.schema.json は言語に依存しない"
+    }
+   ]
+  },
+  {
+   "key": "skeltool",
+   "tab": "枠の tool.json",
+   "file": ".claude/skills/skills-creator/references/types/common/tool.json.tmpl",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "\"build\": [],",
+     "before": "（無い）",
+     "why": "ほかの言語の枠は、組み立て ・ テスト ・ フォーマットを空で持つ。移植した言語のコマンドを書く"
+    }
+   ]
+  },
+  {
+   "key": "sampletool",
+   "tab": "Rust の tool.json",
+   "file": ".claude/skills/skills-creator/references/sample/rust/common/tool.json.tmpl",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "\"build\": [",
+     "before": "（無い）",
+     "why": "組み立て ・ テスト ・ フォーマットのコマンドを、言語ごとの定義から tool.json へ移した。accept と verify は、ここから読む"
+    }
+   ]
+  },
+  {
+   "key": "samplejson",
+   "tab": "sample.json",
+   "file": ".claude/skills/skills-creator/references/sample/rust/sample.json",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "\"name\": \"rust\",",
+     "before": "（無い）",
+     "why": "rust.profile.json を移して名前を変えた。build ・ test ・ format ・ contract ・ dist は tool.json か不要になったので外し、CLI のテストを common に足した"
+    }
+   ]
+  },
+  {
+   "key": "clitests",
+   "tab": "cli.tests.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/sample/rust/common/cli.tests.rs.tmpl",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "fn options_can_come_before_the_subcommand() {",
+     "before": "（無い）",
+     "why": "CLI の共通の決まり（オプションの位置 ・ 知らないオプションを断る ・ サブコマンド無しで一覧を返す）にテストが無かった。リファレンス実装に置き、同じ名前のテストケースも足した"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "//! 同じである（`behavior`）。2段目はソースを読む検査で、**リファレンス実装と同じ言語（Rust）の Skill だけ**に",
+     "before": "//! 同じである（`behavior`）。2段目はソースを読む検査で、**言語の組が持つ**。組が在るのは\n//! いま Rust だけで、組が無い言語では「実行しない」と出す ── 合格とは扱わない。\n//! Rust の組の2段目が見るのは、層が crate に分かれていること、**依存の向きが契約どおりで",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "use crate::sample::{self, Sample};",
+     "before": "use crate::profile::{self, Profile};",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "/// リファレンス実装が、組み立てた実行ファイルを置く場所。**git で追跡しない。**",
+     "before": "/// Rust の組が、組み立てた実行ファイルを置く場所。**git で追跡しない。**",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "/// リファレンス実装の置き場所（`references/sample/rust/`）。**無ければ組み込みの Rust の定義を使う。**",
+     "before": "/// references の実装の雛形（Rust の組）。**版2 の Skill の複製と突き合わせる。**\n    /// 言語の組の定義の置き場所（`references/profiles/`）。**無ければ Rust の組だけを知る。**\n    pub profiles: Option<PathBuf>,",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "pub fn with_sample(mut self, dir: PathBuf) -> Self {",
+     "before": "profiles: None,\n    /// 言語の組の定義の置き場所を足す。\n    pub fn with_profiles(mut self, dir: PathBuf) -> Self {\n        self.profiles = Some(dir);",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "/// ソースを読む検査。リファレンス実装と同じ言語の Skill だけに当てる。",
+     "before": "/// ソースを読む検査。言語の組が持つ。",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "/// 実行しない（リファレンス実装と違う言語など）。",
+     "before": "/// 実行しない（言語の組が無い）。",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "/// **既定では契約だけを見る**（ACDR 0059）── 外部の道具の名前を直書きしていないことと、references の",
+     "before": "/// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。\n/// **既定では契約だけを見る**（ACDR 0059）── 外部の道具の名前を直書きしていないこと。\n    let found_profile = match &templates.profiles {\n        Some(dir) => profile::of(root, dir),\n        None => builtin_rust(root),\n    };\n    let Some(p) = found_profile else {",
+     "why": "2段目は、リファレンス実装と同じ言語（Rust）の Skill だけに当てる。references の実装がリファレンス実装の複製と一致するかを、既定の2段目で見るようにした（ボードの論点4）。これまでは --layout 1 のときだけ見ていた"
+    },
+    {
+     "find": "\"実行しない ── ソースの検査はリファレンス実装と同じ言語（{}）の Skill だけに当てる。共通ツールの振る舞いはテストケース（--cases 1）で確かめる（合格とは扱わない）\",",
+     "before": "\"実行しない ── この Skill の言語の組が無い（合格とは扱わない）\".to_owned(),\n            if behavior::contract_version(root) >= 2 {\n                found.extend(rust_refs(root, templates));\n            }\n                    \"実行しない ── {} の組は雛形の構成の検査を持たない（合格とは扱わない）\",",
+     "why": "ほかの言語では「実行しない」と出し、テストケースで確かめるよう案内する"
+    },
+    {
+     "find": "format!(\"{} ── 外部の道具の名前を直書きせず、references の実装がリファレンス実装と一致する。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす\", p.name)",
+     "before": "format!(\"{} の組 ── 外部の道具の名前を直書きしていない。雛形の構成（層が crate に分かれ、依存の向きが直下の層だけで、入出力はデータアクセス層だけが持つ）も満たす\", p.name)\n            format!(\"{} の組 ── 外部の道具の名前を直書きしていない\", p.name)",
+     "why": "合格の文に、references の実装がリファレンス実装と一致することを足した"
+    },
+    {
+     "find": "/// リファレンス実装の定義を渡されなかったときの Rust の定義。**`tool/Cargo.toml` が在れば Rust とみなす。**",
+     "before": "/// 組の定義を渡されなかったときの Rust の組。**`tool/Cargo.toml` か `rs/` が在れば Rust とみなす。**\nfn builtin_rust(root: &Path) -> Option<Profile> {\n    (files::is_file(root.join(TOOL).join(\"Cargo.toml\")) || files::is_dir(root.join(\"rs\"))).then(\n        || Profile {\n            name: \"rust\".to_owned(),\n            detect: format!(\"{TOOL}/Cargo.toml\"),\n            contract: 2,\n            common: Vec::new(),\n            types: std::collections::BTreeMap::new(),\n            build: Vec::new(),\n            test: Vec::new(),\n            format: Vec::new(),\n            extensions: vec![\".rs\".to_owned()],\n            skip: v\n…",
+     "why": "組み込みの Rust の定義を、Sample の形にした。rs/ の判定は、もう rs/ を持つ Skill が無いので外した"
+    },
+    {
+     "find": "\"references の実装が無い: {TOOL}/{need} ── Rust の Skill はリファレンス実装の複製を置く\"",
+     "before": "\"references の実装が無い: {TOOL}/{need} ── 契約の版2 は雛形の複製を置く\"",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "\"references の実装がリファレンス実装と違う: {TOOL}/business_logic/src/refs.rs ── リファレンス実装（sample/rust/common/refs.rs.tmpl）から複製し直す\"",
+     "before": "\"references の実装が雛形と違う: {TOOL}/business_logic/src/refs.rs ── 雛形（refs.rs.tmpl）から複製し直す\"",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "fn hardcoded(root: &Path, p: &Sample) -> Vec<String> {",
+     "before": "/// 試験で偽物を渡せない。**起動の書き方は組の定義が持つ**（ACDR 0060）。\nfn hardcoded(root: &Path, p: &Profile) -> Vec<String> {",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "fn source_files(dir: &Path, p: &Sample, out: &mut Vec<PathBuf>) {",
+     "before": "/// 組のソースのファイルを集める。**組が入らないと決めたフォルダ（組み立ての出力 ・ 事例 ・\nfn source_files(dir: &Path, p: &Profile, out: &mut Vec<PathBuf>) {",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    }
+   ]
+  },
+  {
+   "key": "accept",
+   "tab": "accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/accept.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "use crate::behavior;",
+     "before": "use crate::profile::Profile;",
+     "why": "言語の組の定義を使わなくなったので、tool.json を読む behavior を使う"
+    },
+    {
+     "find": "/// `answer*.json` を探し、試験のコマンドは `tool.json` の `test` から読む（ACDR 0097）。",
+     "before": "/// 助言型の受け入れの検査を、7件すべて行う。**言語に依存する置き場所と試験は、言語の組の定義が持つ。**\npub fn accept(root: &Path, others: &[String], lang: &Profile) -> Vec<Check> {",
+     "why": "回答の例とソースを、言語ごとの拡張子や置き場所を使わずに tool/ の下から集める。組み立ての出力のフォルダは見ない"
+    },
+    {
+     "find": "tool_files(&root.join(\"tool\"), &mut found);",
+     "before": "shape(root, &lang.fixtures),\n        other_skills(root, others, lang),\n        tests(root, &lang.test),\nfn shape(root: &Path, fixtures: &str) -> Check {\n    let fixtures = root.join(fixtures);\n    for f in files::list(&fixtures).unwrap_or_default() {",
+     "why": "回答の例を tool/ の下の answer*.json から探す。Rust 以外の言語では置き場所が違ってよい"
+    },
+    {
+     "find": "fn other_skills(root: &Path, others: &[String]) -> Check {",
+     "before": "fn other_skills(root: &Path, others: &[String], lang: &Profile) -> Check {",
+     "why": "他の Skill の名前を探す関数に、言語の組を渡さない"
+    },
+    {
+     "find": "// **道具のファイルはすべて見る**（試験も道具の一部である）。文字として読めないものは飛ばす",
+     "before": "// **ソースの拡張子と、入らないフォルダは言語の組が決める**（試験は数える ── 試験も道具の一部である）\n    fn sources(dir: &Path, lang: &Profile, out: &mut Vec<PathBuf>) {\n        for p in files::list(dir).unwrap_or_default() {\n            let name = p\n                .file_name()\n                .map(|n| n.to_string_lossy().into_owned())\n                .unwrap_or_default();\n            if files::is_dir(&p) {\n                let generated = [\n                    \"target\",\n                    \"node_modules\",\n                    \".venv\",\n                    \"bin\",\n                    \"obj\",\n                    \"__pycache__\",\n              \n…",
+     "why": "他の Skill の名前を探す対象を、tool/ の下のすべてのファイルにした。文字として読めないものは飛ばす"
+    },
+    {
+     "find": "match process::run(cmd, args, root, std::time::Duration::from_secs(600)) {",
+     "before": "/// 7 試験 ── 雛形の試験が通る。**試験のコマンドは言語の組の定義が持つ。**\nfn tests(root: &Path, test: &[String]) -> Check {\n    let findings = match test.split_first() {\n        None => vec![\"試験のコマンドが無い ── 言語の組の定義に test を書く\".to_owned()],\n        Some((cmd, args)) => {\n            match process::run(cmd, args, root, std::time::Duration::from_secs(600)) {\n                Ok(ran) if ran.code == 0 => Vec::new(),\n                Ok(ran) => {\n                    let tail: Vec<&str> = ran.stdout.lines().rev().take(5).collect();\n                    vec![format!(\n                        \"試験が通らない（終了コード {}）── {}\",\n                  \n…",
+     "why": "試験のコマンドを tool.json の test から読む（契約の版3）。無ければ検出する"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "//! リファレンス実装と同じ言語の Skill だけに当てる（2段目）。",
+     "before": "//! 言語の組が持つ（2段目）。",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "pub fn commands(root: &Path, key: &str) -> Result<Vec<Vec<String>>, String> {",
+     "before": "（無い）",
+     "why": "tool.json の build ・ test ・ format を読む関数を足した。コマンドの並びの並びで、シェルを経由しない"
+    },
+    {
+     "find": "// **版3 の欄**（ACDR 0097）── 組み立て ・ テスト ・ フォーマットのコマンドは、言語に依存しない形で書く",
+     "before": "（無い）",
+     "why": "build ・ test ・ format の形が違えば、1段目で検出する"
+    }
+   ]
+  },
+  {
+   "key": "cases",
+   "tab": "cases.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/cases.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "/// リファレンス実装のテストを持つファイル（skills-creator のフォルダからの相対）。**テスト1件ごとに、同じ名前の",
+     "before": "（無い）",
+     "why": "テストケースと対応させるリファレンス実装のテストに、CLI の共通の決まりのテストを足した。verify とテストが同じ一覧を使う"
+    }
+   ]
+  },
+  {
+   "key": "provider",
+   "tab": "provider.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/provider.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "//! 生み、生んだ Skill の `tool.json` が持つ組み立て ・ テスト ・ フォーマットのコマンドを起動する。生んだ Skill に",
+     "before": "//! 提供者の検証 ── 言語の組の雛形を直したときに、5言語 × 2型を生成して検証する。**見つけるが、直さない。**\n//! 空の作業場所に、利用者と同じ道具（`bin/skills-creator` の scaffold）で Skill を生み、scaffold が案内する\n//! 組み立てのコマンドと、言語の組の試験を起動する。生んだ Skill に check と accept（助言型）を当て、最後に\n//! Rust の助言型を基準に、他の言語の references の道具の出力を突き合わせる（conform）。\n//! **シェルを経由しない**（以前の tool/verify-profiles.sh を置き換えた）── 組み立てのコマンドは語の並びとして\n//! 起動し、検出は JSON で受け取る。どの OS でも、同じ道具で検証できる。",
+     "why": "verify の説明を、5言語の突き合わせから、リファレンス実装の検証に書き直した"
+    },
+    {
+     "find": "/// 枠だけを生む言語の例。**リファレンス実装と違う言語なら、どれでも同じ枠が置かれる。**",
+     "before": "use crate::{conform, profile};\n\n/// 組み立てのコマンドを、語の並びにする。**シェルを経由しない** ── 言語の組の定義は、演算子を使わない。\n#[must_use]\npub fn argv(command: &str) -> Vec<String> {\n    command.split_whitespace().map(str::to_owned).collect()\n}",
+     "why": "conform と profile を使わず、tool.json を読む behavior を使う"
+    },
+    {
+     "find": "/// 1つの Skill を生み、組み立て、試験し、検査する。**コマンドは生んだ Skill の tool.json から読む。**",
+     "before": "/// 1つの Skill を生み、組み立て、試験し、検査する。\n    (lang, ty): (&str, &str),\n    let name = format!(\"v-{lang}-{ty}\");",
+     "why": "生んだ Skill の tool.json からコマンドを読む"
+    },
+    {
+     "find": "let made = sc(&[\"scaffold\", &name, \"--type\", ty, \"--path\", \".\"])?;",
+     "before": "let made = sc(&[\n        \"scaffold\",\n        &name,\n        \"--language\",\n        lang,\n        \"--type\",\n        ty,\n        \"--path\",\n        \".\",\n    ])?;\n    let made_json = json_of(&made);",
+     "why": "Rust の2型だけを生む。言語を渡さない"
+    },
+    {
+     "find": "let checked = sc(&[\"check\", &dir.display().to_string(), \"--cases\", \"1\"])?;",
+     "before": "for command in made_json\n        .get(\"data\")\n        .and_then(|d| d.get(\"build\"))\n        .filter_map(Value::as_str)\n    {\n        let ran = launch(&shared_target(argv(command), shared), &dir)?;\n        if ran.code != 0 {\n            v.failures\n                .push(format!(\"[{name}] 組み立て: {command} ── {}\", tail(&ran)));\n            return Ok(());\n        }\n    }\n    let defs = profile::load(&here.join(\"references/profiles\"), lang)?;\n    let ran = launch(&defs.test, &dir)?;\n    if ran.code != 0 {\n        v.failures.push(format!(\"[{name}] 試験 ── {}\", tail(&ran)));\n    }\n    // **生んだ直後のコードが整形され\n…",
+     "why": "tool.json の build ・ test ・ format を実行し、テストケースを含む check を当てる"
+    },
+    {
+     "find": "fn skeleton(bin: &Path, here: &Path, skills: &Path, v: &mut Verified) -> Result<(), String> {",
+     "before": "/// 5言語 × 2型を生成して検証する。`bin` は skills-creator の実行ファイル、`here` は skills-creator の\n/// フォルダ、`work` は作業場所（その下に新しい置き場所を作る）、`corpus` は突き合わせに使う references を\n/// 持つ Skill の置き場所である。`shared` は Rust の組み立ての共有の出力先で、無ければ利用者の手順のまま組み立てる。\n/// 作業場所を作れないとき、道具を起動できないとき、言語の組の定義を読めないときに返す。\n    languages: &[String],\n    corpus: &Path,",
+     "why": "ほかの言語の枠が置けることを確かめる段を足した。tool/ が無く、tool.json が契約の版3 であること"
+    },
+    {
+     "find": "// **テストケース（ボード skills-creator-contract の論点2 ・ 3）**：リファレンス実装のテスト1件ごとに",
+     "before": "for lang in languages {\n        for ty in TYPES {\n            one(bin, here, &skills, (lang, ty), shared.as_deref(), &mut v)?;\n    }\n    let base = skills.join(\"v-rust-advisor\");\n    // **テストケース（ボード skills-creator-contract の論点2 ・ 3）**：リファレンス実装のテスト1件ごとに\n    // 同名のテストケースが在るかを照合し、生成した Rust の助言型でテストケースを実行する\n    let cases_dir = here.join(\"references/contract/cases\");\n    if files::is_dir(&cases_dir) {\n        let tests = files::read_to_string(here.join(\"tool/business_logic/tests/refs.rs\"))\n            .unwrap_or_default();\n        match crate::cases::unmatched(&tests, &cases_dir) {\n            Ok(f\n…",
+     "why": "言語ごとの繰り返しと、4言語の突き合わせ（578件 × 4）を消した。テストとテストケースの対応は残す"
+    }
+   ]
+  },
+  {
+   "key": "service",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "use sc_business_logic::{accept, behavior, check, provider, sample, scaffold};",
+     "before": "use sc_business_logic::{accept, check, conform, profile, provider, scaffold};",
+     "why": "profile と conform を外し、sample と behavior を使う"
+    },
+    {
+     "find": "/// リファレンス実装の置き場所（`references/` からの相対）。",
+     "before": "（無い）",
+     "why": "リファレンス実装の置き場所を1か所に書く"
+    },
+    {
+     "find": ".with_refs(references.join(\"sample/rust/common/refs.rs.tmpl\"))",
+     "before": ".with_refs(references.join(\"profiles/rust/common/refs.rs.tmpl\"))\n    .with_profiles(references.join(\"profiles\"))",
+     "why": "references の実装の雛形と、リファレンス実装の置き場所を新しい場所にした"
+    },
+    {
+     "find": "return Outcome::misuse(\"advisor のフォルダを渡していない\".to_owned());",
+     "before": "let here = or_misuse!(skill_root(given));\n    let dir = here.join(\"references/profiles\");\n    let Some(found) = profile::of(&root, &dir) else {\n        return Outcome::misuse(format!(\n            \"言語の組が決まらない: {} ── 組の定義の detect が在る Skill を渡す\",\n            root.display()\n        ));\n    };",
+     "why": "accept が言語の組を探さなくなったので、組が決まらないときの断りを外した"
+    },
+    {
+     "find": "let checks = accept::accept(&root, &others);",
+     "before": "let checks = accept::accept(&root, &others, &found);",
+     "why": "accept に言語の組を渡さない"
+    },
+    {
+     "find": "// **何をどこへ置くかは、型とリファレンス実装の定義が決める**（ACDR 0060 ・ 0097）",
+     "before": "// **何をどこへ置くかは、型と言語の組の定義が決める**（ACDR 0060）",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "let ty = or_misuse!(sample::load_type(&types, given.one(\"type\", \"work\")));",
+     "before": "let dir = here.join(\"references/profiles\");\n    let found = or_misuse!(profile::load(&dir, given.one(\"language\", \"rust\")));\n    let ty = or_misuse!(profile::load_type(&types, given.one(\"type\", \"work\")));\n    let plan = or_misuse!(profile::plan(&dir, &types, &found, &ty));",
+     "why": "scaffold は、言語の名前を確かめ、リファレンス実装と枠と型から置く一式を決める"
+    },
+    {
+     "find": "\"道具は {language} で書く。リファレンス実装（skills-creator の references/{SAMPLE}/）を移植し、tool.json の build ・ test ・ format に {language} のコマンドを書く。手順は skills-creator view --kind document --id porting で読む。書き終えたら skills-creator check {} --cases 1 で、テストケースに全件合格させる\",",
+     "before": "\"language\": found.name,\n            // **組み立てのコマンドにも Skill の名前を差し込む** ── 実行ファイルの名前を持つ組が在る\n            \"build\": found\n                .build\n                .iter()\n                .map(|b| b.replace(\"{{Skill名}}\", skill))\n                .collect::<Vec<_>>(),",
+     "why": "組み立てのコマンドは置いた tool.json から読む。リファレンス実装と違う言語なら、移植の案内を出す"
+    },
+    {
+     "find": "if let Some(port) = out.data.get(\"port\").and_then(|x| x.as_str()) {",
+     "before": "（無い）",
+     "why": "移植の案内を、人が読む出力にも出す"
+    },
+    {
+     "find": "\"道具を書く言語。rust ならリファレンス実装から生成し、ほかの言語なら枠だけを置いて移植の手順を案内する\",",
+     "before": "\"雛形の言語の組（references/profiles/ に定義が在るもの）\",",
+     "why": "--language の説明を、リファレンス実装と移植に合わせた"
+    },
+    {
+     "find": "match provider::verify(&bin, &here, &work, shared.as_deref()) {",
+     "before": "let languages: Vec<String> = given\n        .one(\"languages\", \"rust,python,typescript,csharp,go\")\n        .split(',')\n        .map(|l| l.trim().to_owned())\n        .filter(|l| !l.is_empty())\n        .collect();\n    let corpus = PathBuf::from(given.one(\"corpus\", \".claude/skills\"));\n    match provider::verify(&bin, &here, &work, &languages, &corpus, shared.as_deref()) {\n        Err(e) => Outcome::misuse(e),\n    }\n}\n\nfn human_conform(out: &Outcome) -> String {\n    if !out.ok {\n        return out.findings.join(\" ／ \");\n    }\n    let cases = out\n        .data\n        .get(\"cases\")\n        .and_then(s\n…",
+     "why": "verify から言語の一覧と突き合わせの置き場所の引数を外し、conform の道具を消した"
+    },
+    {
+     "find": "summary: \"リファレンス実装を検証する ── 作業型と助言型を生み、tool.json の組み立て ・ テスト ・ フォーマットと、check（テストケースを含む）・ accept を行い、テストとテストケースの対応と、ほかの言語の枠を確かめる\",",
+     "before": "summary: \"言語の組の雛形を検証する ── 5言語 × 2型を生み、組み立て ・ 試験 ・ check ・ accept と、言語間の突き合わせを行う\",\n                Arg::opt(\"languages\", \"検証する言語の組（カンマ区切り）\", Some(\"rust,python,typescript,csharp,go\")),\n                Arg::opt(\"corpus\", \"突き合わせに使う references を持つ Skill の置き場所\", Some(\".claude/skills\")),\n        Tool {\n            name: \"conform\",\n            summary: \"2つの Skill の references の道具の出力を突き合わせる\",\n            args: vec![\n                Arg::need(\"base\", \"基準の Skill のフォルダ\"),\n                Arg::need(\"other\", \"比べる Skill のフォルダ\"),\n                Arg::opt(\"corpus\", \"突き合わせに使う references を持つ Skill の置き場所\", Some(\"\n…",
+     "why": "verify の説明と引数を書き直した"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "cli/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/cli/src/lib.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "/// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。",
+     "before": "（無い）",
+     "why": "テストケース options_can_come_before_the_subcommand で、skills-creator 自身の CLI がオプションをサブコマンドの前に置くと断ることが分かった。リファレンス実装の cli.main.rs.tmpl と同じ verb_first を入れた"
+    },
+    {
+     "find": "let argv = verb_first(argv);",
+     "before": "（無い）",
+     "why": "引数を読む前に verb_first を通す"
+    }
+   ]
+  },
+  {
+   "key": "example",
+   "tab": "examples/provider.rs",
+   "file": ".claude/skills/skills-creator/tool/cli/examples/provider.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "//! 提供者だけが使う入口 ── リファレンス実装を直したときの検証（verify）。**利用者の道具の一覧と MCP には出さない** ── 使う場面が無い。cargo の example は",
+     "before": "//! 提供者だけが使う入口 ── 言語の組の雛形を直したときの検証（verify）と、references の道具の出力の\n//! 突き合わせ（conform）。**利用者の道具の一覧と MCP には出さない** ── 使う場面が無い。cargo の example は",
+     "why": "提供者の入口の説明から、突き合わせ（conform）を外した"
+    },
+    {
+     "find": "// **Rust の組み立ての出力先を1か所に固定する** ── 生んだ Skill ごとの tool/target/ に出すと、同じ依存を",
+     "before": "// **ICU の無い環境では、dotnet のコマンドそのものが起動時に止まる** ── 文化に依存しない動きにする。\n    // 生む C# の Skill は InvariantGlobalization を保持するので、検証の結果は変化しない\n    std::env::set_var(\"DOTNET_SYSTEM_GLOBALIZATION_INVARIANT\", \"1\");",
+     "why": "C# の組を検証しなくなったので、dotnet のための環境変数を外した"
+    }
+   ]
+  },
+  {
+   "key": "doc",
+   "tab": "document.json",
+   "file": ".claude/skills/skills-creator/references/document.json",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "\"id\": \"sample-rust\",",
+     "before": "\"id\": \"profile-rust\",\n      \"title\": \"言語の組：Rust\",",
+     "why": "profile-rust を sample-rust（リファレンス実装：Rust）にした"
+    },
+    {
+     "find": "\"title\": \"リファレンス実装：Rust\",",
+     "before": "\"title\": \"言語の組：Rust\",",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "\"text\": \"共通ツールと CLI ・ MCP の実装は、Rust のリファレンス実装を1組だけ持つ（ボード skills-creator-contract ・ ACDR 0097）。この文書は、リファレンス実装の置き場所 ・ 雛形 ・ 組み立て ・ ソースの検査を持つ。Rust で作る Skill はリファレンス実装から生成し、ほかの言語で作る Skill は、リファレンス実装を AI が移植する（手順は references/document.json の porting）。どの言語でも、共通ツールの振る舞いは契約のテストケース（references/contract/cases/）で確かめる。\"",
+     "before": "\"text\": \"道具の契約（references/document.json の tool-contract）を、Rust で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を持つ（ACDR 0036）。\"",
+     "why": "目的を、リファレンス実装を1組だけ持ち、ほかの言語は移植し、テストケースで確かめることに書き直した"
+    },
+    {
+     "find": "\"text\": \"tool/           道具のソース\\n  Cargo.toml    workspace ── 5つの crate を並べる\\n  data_access/  データアクセス層 ── ファイル ・ 外部の道具 ・ 通信の入出力（files.rs ・ process.rs は雛形の複製）\\n  business_logic/  業務ロジック層 ── 判定と変換の実体。入出力を禁じる\\n    tests/      事例\\n  cli/tests/    CLI の共通の決まりのテスト（テストケースと同じ名前）\\n  service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）\\n  cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路\\n  mcp/          プレゼンテーション層 ── MCP の面\\nbin/            組み立てた実行ファイル（git で追跡しない）\\n  <名前>        CLI（Windows は <名前>.exe）\\n  <名前>-mcp    MCP サーバー（Windows は <名前>-mcp.exe）\\ntool.json       CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\\nmcp.json        MCP の起動のコマンド（ホストの形式）\\n.gitignore      bin/ と tool/target/ を追跡しない\"",
+     "before": "\"text\": \"tool/           道具のソース\\n  Cargo.toml    workspace ── 5つの crate を並べる\\n  data_access/  データアクセス層 ── ファイル ・ 外部の道具 ・ 通信の入出力（files.rs ・ process.rs は雛形の複製）\\n  business_logic/  業務ロジック層 ── 判定と変換の実体。入出力を禁じる\\n    tests/      事例\\n  service/      サービス層 ── 道具の一覧（能力の正本）と契約の実体（contract.rs）\\n  cli/          プレゼンテーション層 ── シェルから呼ぶ唯一の経路\\n  mcp/          プレゼンテーション層 ── MCP の面\\nbin/            組み立てた実行ファイル（git で追跡しない）\\n  <名前>        CLI（Windows は <名前>.exe）\\n  <名前>-mcp    MCP サーバー（Windows は <名前>-mcp.exe）\\ntool.json       CLI の起動のコマンドと、外部の道具\\nmcp.json        MCP の起動のコマンド（ホストの形式）\\n.gitignore      bin/ と tool/ta\n…",
+     "why": "置き場所の図に、tool.json の新しい欄と CLI のテストを足した"
+    },
+    {
+     "find": "\"text\": \"開発時も bin/ へ置く。 組み立てのコマンドは tool.json の build が持ち、Skill のフォルダで実行する。\"",
+     "before": "\"text\": \"開発時も bin/ へ置く。 Skill のフォルダで次を実行する。\"",
+     "why": "組み立てのコマンドは tool.json の build が持つ"
+    },
+    {
+     "find": "\"text\": \"references/sample/rust/ に置き、定義 references/sample/rust/sample.json が、何をどこへ置くかを持つ（ACDR 0060 ・ 0097）。skills-creator scaffold <名前> --type <型> が、言語に依存しない枠（references/types/skeleton.json）・ 共通の一式 ・ 型ごとの一式を合わせて置く。contract.rs ・ files.rs ・ process.rs ・ refs.rs ・ cli ・ mcp は Skill をまたいで同一であるので、正本をここに置く。\"",
+     "before": "\"text\": \"references/profiles/rust/ に置き、組の定義 references/profiles/rust.profile.json が、何をどこへ置くかを持つ（ACDR 0060）。skills-creator scaffold <名前> --type <型> --language rust が、共通の一式と型ごとの一式を合わせて置く。contract.rs ・ files.rs ・ process.rs ・ refs.rs ・ cli ・ mcp は Skill をまたいで同一であるので、正本をここに置く。\"",
+     "why": "雛形の置き場所を references/sample/rust/ と sample.json にした"
+    },
+    {
+     "find": "\"全ての型に置く共通の一式 ── workspace ・ データアクセス層（files.rs ・ process.rs）・ 業務ロジック層とサービス層の Cargo.toml ・ contract.rs ・ references の実装（refs.rs ・ service.refs.rs）・ CLI とその共通の決まりのテスト ・ MCP ・ tool.json（Rust の組み立て ・ テスト ・ フォーマットのコマンドを持つ）・ .gitignore。mcp.json と document.schema.json は言語に依存しないので、枠（references/types/common/ ・ references/types/）が置く\",",
+     "before": "\"全ての型に置く共通の一式 ── workspace ・ データアクセス層（files.rs ・ process.rs）・ 業務ロジック層とサービス層の Cargo.toml ・ contract.rs ・ references の実装（refs.rs ・ service.refs.rs）・ CLI ・ MCP ・ tool.json ・ mcp.json ・ .gitignore ・ document.schema.json（言語に依存しないので profiles/shared/ に置き、全ての組が同じものを置く）\",",
+     "why": "共通の一式に CLI のテストと tool.json のコマンドを足し、mcp.json と document.schema.json は枠が置くことを書いた"
+    },
+    {
+     "find": "\"その型の道具のコード。ここに無い型は生めない。移植の元も無いので、ほかの言語でも生めない\",",
+     "before": "\"その型の道具のコード。ここに無い型は、この組では生めない\",",
+     "why": "型の一式が無ければ、移植の元も無いので、ほかの言語でも生めない"
+    },
+    {
+     "find": "\"text\": \"skills-creator check は、tool/Cargo.toml が在る Skill にこの検査を適用する。ほかの言語の Skill では、2段目は「実行しない」と出す。\"",
+     "before": "\"text\": \"skills-creator check は、tool/Cargo.toml が在る Skill にこの組の検査を適用する。\"\n                  \"text\": \"既定では、契約に関わるものだけを検査する（ACDR 0059）。\"",
+     "why": "2段目は Rust の Skill だけに当てる"
+    },
+    {
+     "find": "\"tool/business_logic/src/refs.rs が refs.rs.tmpl と一致しない。リファレンス実装から複製し直す（ボード skills-creator-contract の論点4）\"",
+     "before": "（無い）",
+     "why": "references の実装がリファレンス実装と一致するかを、既定の検査の表へ移した"
+    },
+    {
+     "find": "\"業務ロジック層かサービス層（contract.rs を除く）の行に、std::fs ・ std::process ・ std::net ・ Command::new ・ .is_file() などが在る。行ごとに出す。文字列の中と注記の行は数えない\"",
+     "before": "],\n                    [\n                      \"references の実装が無い（版2）\",\n                      \"tool/business_logic/src/refs.rs か tool/service/src/refs.rs が無い\"\n                    ],\n                    [\n                      \"references の実装が雛形と違う（版2）\",\n                      \"tool/business_logic/src/refs.rs が refs.rs.tmpl と一致しない。雛形から複製し直す\"",
+     "why": "同じ行を --layout 1 の表から外した"
+    },
+    {
+     "find": "\"sha256\": \"075968b7de5a1caebb8354bacac01b44e89abada1297a6532024ec5cba49d600\",",
+     "before": "\"id\": \"profile-python\",\n      \"title\": \"言語の組：Python\",\n        \"location\": \"references/profiles/python.md\",\n        \"sha256\": \"7445948a07739a4e915d3b6933e653eb26dcba1dc45d1587f209f382dc695f57\",\n        \"fetched\": \"\"\n          \"title\": \"言語の組：Python\",",
+     "why": "4言語の組（profile-python ・ typescript ・ csharp ・ go）を消し、ほかの言語へ移植する手順（porting）を足した"
+    },
+    {
+     "find": "\"text\": \"Rust 以外の言語で、道具を持つ Skill を作るときの手順である（ボード skills-creator-contract ・ ACDR 0097）。skills-creator は Rust のリファレンス実装を1組だけ持つ。ほかの言語では、AI がリファレンス実装を移植し、契約のテストケースに全件合格させる。\"",
+     "before": "\"text\": \"道具の契約（references/document.json の tool-contract）を、Python で満たすときの実装の形を規定する。契約が規定するのは呼ぶ側から観察できるものだけで、この文書はそれを満たす置き場所 ・ 雛形 ・組み立て ・ ソースの検査を持つ（ACDR 0062）。\"\n                },\n                {\n                  \"kind\": \"para\",\n                  \"text\": \"この組は契約の版2 を満たし、作業型と助言型を保持する（ACDR 0069）。references の実装は、Rust の組の refs.rs と同じ出力を返す ── 同じ references が、言語によって違って見えてはならない。作った Skill の配布（dist）には対応しない ── 利用者の環境に Python と uv を必要とする。\"\n              \"title\": \"置き場所\",\n              \"blocks\": [\n                {\n                  \"kind\": \"code\",\n                  \"text\": \"tool/                道具のソース\\n \n…",
+     "why": "移植の手順の目的と読むものを書いた"
+    },
+    {
+     "find": "\"tool.json の build ・ test ・ format に、<言語> のコマンドを書く。どれも Skill のフォルダで実行するコマンドの並びで、シェルを経由しない。format は、ファイルを書き換えずに、違反があれば 0 以外で終わるコマンドを書く。そういう呼び方を持たない整形器（例：gofmt -l は違反があっても 0 で終わる）しか無ければ、format を空にする\",",
+     "before": "\"title\": \"雛形\",\n                  \"kind\": \"para\",\n                  \"text\": \"references/profiles/python/ に置き、組の定義 references/profiles/python.profile.json が、何をどこへ置くかを持つ。skills-creator scaffold <名前> --type work --language python が、共通の一式と作業型の一式を合わせて置く。\"\n                },\n                {\n                  \"kind\": \"table\",\n                  \"head\": [\n                    \"置き場所\",\n                    \"中身\",\n                    \"置く先\"\n                  ],\n                  \"rows\": [\n                    [\n                      \"common/\",\n                      \"全ての型に置く共通の一式 ── pyproject.toml ・ contract.p\n…",
+     "why": "移植の手順と、合格しないときに見るもの（assumptions.json の前提）を書いた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "Rust ならリファレンス実装から生成し、ほかの言語なら枠を置いてリファレンス実装を移植する",
+     "before": "道具を持つ Skill は、skills-creator scaffold で型と言語の組の一式を生む",
+     "why": "scaffold は Rust ならリファレンス実装から生成し、ほかの言語なら枠を置く"
+    },
+    {
+     "find": "から道具まで生成する",
+     "before": "skills-creator scaffold <名前> --type <work|advisor> --language <rust|python|typescript|csharp|go>",
+     "why": "--language の意味と、移植の手順の読み方を書いた"
+    },
+    {
+     "find": "のコマンドを、Skill のフォルダで実行する",
+     "before": "scaffold が出した「組む ──」のコマンドを、Skill のフォルダで実行する。その言語の処理系を必要とする（references/document.json（profile-<言語>） の置き場所の節）。",
+     "why": "組み立てのコマンドは tool.json の build が持つ"
+    },
+    {
+     "find": "Skill を型ごとに生む",
+     "before": "skills-creator は、Skill を型と言語の組の組み合わせで生む（ACDR 0060 ・ 0061）。",
+     "why": "Skill を生む単位が、型と言語の組の組み合わせから、型だけになった"
+    },
+    {
+     "find": "Rust の実装1組 ── 実行ファイルの置き場所",
+     "before": "言語の組 | 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査。Rust ・ Python ・ TypeScript ・ C# ・ Go の5つ。",
+     "why": "言語の組の行を、リファレンス実装の行に置き換えた"
+    },
+    {
+     "find": "Skill だけに当てる",
+     "before": "2段目はソースを読む検査で、言語の組が持つ。組が無い言語では「実行しない」と出し、合格とは扱わない。",
+     "why": "2段目は Rust の Skill だけに当て、ほかの言語はテストケースで確かめる"
+    },
+    {
+     "find": "ほかの言語へリファレンス実装を移植する手順",
+     "before": "references/document.json（profile-<言語>） ・ references/profiles/<言語>/: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。",
+     "why": "参照の節の profiles を、sample/rust ・ 枠 ・ porting に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "readme",
+   "tab": "tool/README.md",
+   "file": ".claude/skills/skills-creator/tool/README.md",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "Rust 以外の言語には枠と型の一式だけを置く",
+     "before": "profile.rs ── 言語の組（references/profiles/<言語>.profile.json）と型を読み、置く一式を決める",
+     "why": "profile.rs を sample.rs に置き換えた"
+    },
+    {
+     "find": "── 言語に依存しない",
+     "before": "回答の例の置き場所とソースの拡張子は、言語の組の定義から読む",
+     "why": "accept が言語の組の定義を読まなくなった"
+    },
+    {
+     "find": "リファレンス実装から2型を生み",
+     "before": "5言語 × 2型を生み、組み立て ・ 試験 ・ 整形の検査 ・ check ・ accept と突き合わせを行う",
+     "why": "verify の説明を書き直し、conform の行を消した"
+    },
+    {
+     "find": "振る舞いは契約のテストケース",
+     "before": "言語の組の雛形を直したとき ── 5つの言語の組は、references の実装（refs.rs.tmpl ・ refs.py.tmpl ・ refs.ts.tmpl ・ Refs.cs.tmpl ・ refs.go.tmpl）をそれぞれ保持する。",
+     "why": "提供者の手順を、リファレンス実装を直したときの手順に書き直した。必要な処理系は cargo だけになった"
+    }
+   ]
+  },
+  {
+   "key": "tscaffold",
+   "tab": "tests/scaffold.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/scaffold.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "use sc_business_logic::sample;",
+     "before": "use sc_business_logic::profile;",
+     "why": "profile を sample に置き換えた"
+    },
+    {
+     "find": "/// リファレンス実装と型の定義（ACDR 0060 ・ 0097）。**事例は skills-creator の references を読む。**",
+     "before": "/// 型と言語の組の定義（ACDR 0060）。**事例は skills-creator の references を読む。**\nfn defs() -> (PathBuf, PathBuf) {\n    (here.join(\"profiles\"), here.join(\"types\"))\n    let (profiles, types) = defs();\n    let rust = profile::load(&profiles, \"rust\").expect(\"Rust の組が在る\");\n    let work = profile::load_type(&types, \"work\").expect(\"作業型が在る\");\n    let plan = profile::plan(&profiles, &types, &rust, &work).expect(\"組み合わせられる\");",
+     "why": "「言語の組」を「リファレンス実装」に言い換えた。言語ごとの組を消し、Rust のリファレンス実装を1組だけ持つ形にしたので、組という単位が無くなった"
+    },
+    {
+     "find": "let why = sample::plan(&dir, &types, &rust, &generate, language).expect_err(\"まだ断る\");",
+     "before": "// **作業型も SKILL.md の雛形を置く** ── 置かないと、SKILL.md を探して自分の置き場所を決める言語の組が動かない\nfn a_type_without_templates_in_the_language_is_refused() {\n    // **型の一式を持たない組では生まない** ── 生んでから壊れていると分かる形にしない\n    let (profiles, types) = defs();\n    let rust = profile::load(&profiles, \"rust\").expect(\"Rust の組が在る\");\n    let generate = profile::load_type(&types, \"generate\").expect(\"生成型が在る\");\n    let why = profile::plan(&profiles, &types, &rust, &generate).expect_err(\"まだ断る\");\n        why.contains(\"生成型\") && why.contains(\"雛形をまだ持たない\"),\n        \"{why}\"\n    let (_, types) = defs();\n    let why = profile::load_type(&types, \"nope\").\n…",
+     "why": "Rust の事例を sample の関数で書き直し、CLI のテストを置くことを足した"
+    },
+    {
+     "find": "fn a_language_name_is_lowercase_letters_and_digits() {",
+     "before": "fn a_work_skill_can_be_planned_in_python() {\n    // **置き先の中のパッケージ名は、差し込む前の形で返る** ── 差し込みはサービス層が行う\n    let (profiles, types) = defs();\n    let python = profile::load(&profiles, \"python\").expect(\"Python の組が在る\");\n    let work = profile::load_type(&types, \"work\").expect(\"作業型が在る\");\n    let plan = profile::plan(&profiles, &types, &python, &work).expect(\"組み合わせられる\");\n    for to in [\n        \"tool/pyproject.toml\",\n        \"tool/cli.py\",\n        \"tool/mcp_server.py\",\n        \"tool/{{パッケージ名}}/contract.py\",\n        \"tool/{{パッケージ名}}/tools.py\",\n        \"tool.json\",\n        \"mcp.json\",\n        assert!(plan.i\n…",
+     "why": "4言語の事例を消し、Rust の tool.json が枠を置き換えること ・ ほかの言語には枠だけを置くこと ・ 言語の名前の形の事例を足した"
+    }
+   ]
+  },
+  {
+   "key": "tprovider",
+   "tab": "tests/provider.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/provider.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "use sc_business_logic::provider::{blocking_accept, blocking_check, shared_target};",
+     "before": "use sc_business_logic::provider::{argv, blocking_accept, blocking_check, shared_target};\n\n#[test]\nfn a_build_command_is_split_without_a_shell() {\n    // **シェルを経由しない** ── 組み立てのコマンドは空白で区切った語の並びである\n    assert_eq!(\n        argv(\"cargo install --path tool/cli --root .\"),\n        vec![\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\"]\n    );\n    assert_eq!(\n        argv(\"  go   mod tidy -C tool \"),\n        vec![\"go\", \"mod\", \"tidy\", \"-C\", \"tool\"]\n    );\n}",
+     "why": "コマンドを文字列から分ける argv を消した。コマンドは tool.json に語の並びで書く"
+    },
+    {
+     "find": "let command = words(\"cargo install --path tool/cli --root . --target-dir tool/target\");",
+     "before": "let command = argv(\"cargo install --path tool/cli --root . --target-dir tool/target\");\n        argv(\"cargo install --path tool/cli --root . --target-dir /cache/cargo\")\n    let go = argv(\"go build -C tool ./cli\");",
+     "why": "事例の中で語の並びを作る"
+    }
+   ]
+  },
+  {
+   "key": "tcheck",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "let work = sc_business_logic::sample::load_type(&types, \"work\").expect(\"作業型の定義が在る\");",
+     "before": "let tmpl = here.join(\"references/profiles/rust/common\");\n    // **置く一式は型と組の定義が持つ**（ACDR 0060）── 事例も同じ定義を読む\n    let profiles = here.join(\"references/profiles\");\n    let rust = sc_business_logic::profile::load(&profiles, \"rust\").expect(\"Rust の組の定義が在る\");\n    let work = sc_business_logic::profile::load_type(&types, \"work\").expect(\"作業型の定義が在る\");\n    let plan = sc_business_logic::profile::plan(&profiles, &types, &rust, &work)",
+     "why": "事例が読む置き場所を references/sample/rust に変えた"
+    },
+    {
+     "find": ".any(|l| l.state == State::Skip && l.text.contains(\"リファレンス実装と同じ言語\")),",
+     "before": ".any(|l| l.state == State::Skip && l.text.contains(\"言語の組が無い\")),\n        \"組が無い言語では、2段目を実行しないと出す ── {:?}\",",
+     "why": "ほかの言語で2段目を実行しないときの文を変えた"
+    }
+   ]
+  },
+  {
+   "key": "trefs",
+   "tab": "tests/refs.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/refs.rs",
+   "rev": "e291e2bbedf530af876bb817c9623cd80beb4e4c",
+   "marks": [
+    {
+     "find": "let doc = refs::import_markdown(\"sample\", \"a.md\", \"2026-09-29\", \"# 題\\n\\n## 節\\n\\n本文\\n\");",
+     "before": ".join(\"../../references/profiles/shared/document.schema.json.tmpl\");",
+     "why": "document.schema.json の雛形を references/types/ へ移した"
+    },
+    {
+     "find": "std::fs::read_to_string(here.join(\"../../references/sample/rust/common/refs.rs.tmpl\"))",
+     "before": "std::fs::read_to_string(here.join(\"../../references/profiles/rust/common/refs.rs.tmpl\"))",
+     "why": "refs.rs.tmpl の置き場所が references/sample/rust/ になった"
+    },
+    {
+     "find": "// **節の入れ子は、見出しと本文の字下げで描く** ── 欄の名前を並べない",
+     "before": ".join(\"../../references/profiles/shared/document.schema.json.tmpl\");",
+     "why": "document.schema.json の雛形を references/types/ へ移した"
+    },
+    {
+     "find": "std::fs::write(dir.join(\"figures/a.svg\"), \"<svg id=\\\"a\\\"></svg>\").expect(\"書ける\");",
+     "before": ".join(\"../../references/profiles/shared/document.schema.json.tmpl\");",
+     "why": "document.schema.json の雛形を references/types/ へ移した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "sample": "285f09c1d5457f7ac76adb673ed6ed92a4a6fc579cb2e0b33118f12169a4ec96",
+  "skel": "9dff727b4d70742f61f8a479133d47994f3918e34f73c3cbef5e9b11bd0db9b5",
+  "skeltool": "7f40844df38687f563dc91d546092229b06a158a2e8717a08f7d6de65b497690",
+  "sampletool": "516e7ad5db1615e4bc330ad8d13766ec84730bbe839cf58733e63a23556779ef",
+  "samplejson": "59823d521bd11bafbacf25b87bfb2faa8479ce0547aea495a559f3aa432be378",
+  "clitests": "39987852b5ca2619bdd6641fa4c0babefbee9c04fbd98c1211703d32792351bb",
+  "check": "e18411a52858bf7ab2ad7a9703328b51913cac1130aef4528bd6711632acb114",
+  "accept": "b7a3c48c6509881fb85fe6152e2dda1814a300a50e806202435317f4425d057c",
+  "behavior": "94dc7bdb01b6f82fce9da76d484861ec6c1aad15a0e51965956467b2d37e090e",
+  "cases": "09153c8167ba536debeb880cdd5cdf50c2e877d70ae915d168b417c8a85e6037",
+  "provider": "53cd129b3ab7ebbfad1fbb7b29f99154825fa11a59477e6e74a0c79cacedc89d",
+  "service": "1f1c9cb986396fb7870b927e51d1d6f95e54ec3ff0e603ef08e2aa07c5d870f7",
+  "cli": "c994a606de2e1f6780842bb6bc2866ad26af16e2f349ee43c5945a1b329487c4",
+  "example": "346ccd8e89bd84f285de2d3baf62ea990ae106b03a4dcb9b9bd99ac691c63cbc",
+  "doc": "0132f6d84d7079dd949c0db192b2361aa888eedb300157ea9f697cf66ad118d8",
+  "skill": "02c57738ca60680ed23abb6e51e97878363c26de87e0ed47303fe7df3b89ef29",
+  "readme": "373be8f558bfbb95134e2dad83f540454191f73977e555523b0a56bf47559ad3",
+  "tscaffold": "aae785b1a52c6094bbf4e241bba53438ca572b0ee5dae98fa7bfdc597bfac06a",
+  "tprovider": "bbc1af88bbcf8f3285e1591e462a8788c25812edebfcb03eda007a2668add140",
+  "tcheck": "a39f5abaec8300fef937fb0a8cd7f73d8ea38f064d79d4329a567b8e2fe2b62a",
+  "trefs": "2e1ade46d063f06e6ffdedf2963f7a68de1fa382e35e123b31cd2c26a9b294a8"
+ }
+}

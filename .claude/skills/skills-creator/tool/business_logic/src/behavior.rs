@@ -3,7 +3,7 @@
 //!
 //! 読むのは2つのファイルだけである ── `tool.json`（CLI の起動のコマンドと外部の道具）と
 //! `mcp.json`（MCP の起動のコマンド。ホストの形式）。ソースは読まない ── ソースを読む検査は、
-//! 言語の組が持つ（2段目）。
+//! リファレンス実装と同じ言語の Skill だけに当てる（2段目）。
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -29,6 +29,47 @@ pub fn contract_version(root: &Path) -> u64 {
         .ok()
         .and_then(|d| d.get("contract").and_then(Value::as_u64))
         .unwrap_or(1)
+}
+
+/// 組み立て ・ テスト ・ フォーマットのコマンドを置く `tool.json` の欄（契約の版3）。**Skill のフォルダで実行する。**
+/// フォーマットは検査だけで、ファイルを書き換えない。
+pub const COMMAND_KEYS: [&str; 3] = ["build", "test", "format"];
+
+/// `tool.json` の欄からコマンドの並びを読む。**1件はコマンドと引数の並びで、シェルを経由しない。**
+/// 欄が無ければ空を返す。
+///
+/// # Errors
+///
+/// `tool.json` を読めないとき、欄の形が違う（コマンドの並びの並びでない ・ 空のコマンドが在る）ときに返す。
+pub fn commands(root: &Path, key: &str) -> Result<Vec<Vec<String>>, String> {
+    let doc = read_json(&root.join("tool.json"))?;
+    commands_in(&doc, key)
+}
+
+fn commands_in(doc: &Value, key: &str) -> Result<Vec<Vec<String>>, String> {
+    let Some(v) = doc.get(key) else {
+        return Ok(Vec::new());
+    };
+    let bad = || {
+        format!(
+            "tool.json の {key} の形が違う ── コマンドの並びの並び（[[\"コマンド\", \"引数\", …], …]）で書く"
+        )
+    };
+    let list = v.as_array().ok_or_else(bad)?;
+    list.iter()
+        .map(|c| {
+            let words: Vec<String> = c
+                .as_array()
+                .ok_or_else(bad)?
+                .iter()
+                .map(|w| w.as_str().map(str::to_owned).ok_or_else(bad))
+                .collect::<Result<_, _>>()?;
+            if words.first().is_none_or(|w| w.trim().is_empty()) {
+                return Err(bad());
+            }
+            Ok(words)
+        })
+        .collect()
 }
 
 /// `validate` を起動し、references がスキーマに合うかを見る。
@@ -84,6 +125,12 @@ pub fn declaration(root: &Path) -> Vec<Verdict> {
                 out.push(Verdict::Fail(
                     "契約の版が2でない: tool.json に \"contract\": 2 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持つ".to_owned(),
                 ));
+            }
+            // **版3 の欄**（ACDR 0097）── 組み立て ・ テスト ・ フォーマットのコマンドは、言語に依存しない形で書く
+            for key in COMMAND_KEYS {
+                if let Err(why) = commands_in(&doc, key) {
+                    out.push(Verdict::Fail(why));
+                }
             }
             let cli = doc
                 .pointer("/cli/command")

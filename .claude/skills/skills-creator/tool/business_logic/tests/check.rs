@@ -452,14 +452,14 @@ fn what_scaffold_places_satisfies_check() {
     // 不合格の状態で生まれる（実測 ── 契約を Rust の形へ変えたとき、雛形が Python の
     // ままだったのでそうなった）
     let here = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let tmpl = here.join("references/profiles/rust/common");
+    let tmpl = here.join("references/sample/rust/common");
     let root = scratch("scaffolded");
-    // **置く一式は型と組の定義が持つ**（ACDR 0060）── 事例も同じ定義を読む
-    let profiles = here.join("references/profiles");
+    // **置く一式はリファレンス実装と型の定義が持つ**（ACDR 0060 ・ 0097）── 事例も同じ定義を読む
+    let dir = here.join("references/sample/rust");
     let types = here.join("references/types");
-    let rust = sc_business_logic::profile::load(&profiles, "rust").expect("Rust の組の定義が在る");
-    let work = sc_business_logic::profile::load_type(&types, "work").expect("作業型の定義が在る");
-    let plan = sc_business_logic::profile::plan(&profiles, &types, &rust, &work)
+    let rust = sc_business_logic::sample::load(&dir).expect("リファレンス実装の定義が在る");
+    let work = sc_business_logic::sample::load_type(&types, "work").expect("作業型の定義が在る");
+    let plan = sc_business_logic::sample::plan(&dir, &types, &rust, &work, "rust")
         .expect("組み合わせられる");
     for (from, to) in &plan {
         let body = std::fs::read_to_string(from)
@@ -640,8 +640,8 @@ fn a_skill_written_in_shell_passes_the_first_stage_and_the_second_is_not_run() {
         report
             .lines
             .iter()
-            .any(|l| l.state == State::Skip && l.text.contains("言語の組が無い")),
-        "組が無い言語では、2段目を実行しないと出す ── {:?}",
+            .any(|l| l.state == State::Skip && l.text.contains("リファレンス実装と同じ言語")),
+        "リファレンス実装と違う言語では、2段目を実行しないと出す ── {:?}",
         report.lines
     );
 }
