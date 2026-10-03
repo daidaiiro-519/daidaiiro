@@ -85,3 +85,21 @@ fn dist_places_the_installers_and_the_workflow_once() {
         "手を入れた"
     );
 }
+
+#[test]
+fn the_text_of_check_shows_the_cases_stage() {
+    // `--json` だけでなく、人向けの文にもテストケースの段を出す
+    let tool = tools()
+        .into_iter()
+        .find(|t| t.name == "check")
+        .expect("在る");
+    let out = Outcome::found(
+        Vec::new(),
+        serde_json::json!({ "lines": [
+            { "stage": "cases", "state": "pass", "text": "テストケース one_item_is_taken_by_its_id" }
+        ] }),
+    );
+    let text = (tool.human)(&out);
+    assert!(text.contains("テストケース\n"), "{text}");
+    assert!(text.contains("one_item_is_taken_by_its_id"), "{text}");
+}

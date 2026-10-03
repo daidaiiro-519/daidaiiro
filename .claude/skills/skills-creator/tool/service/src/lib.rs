@@ -36,6 +36,7 @@ fn templates(here: &Path) -> check::Templates {
     .with_refs(references.join("profiles/rust/common/refs.rs.tmpl"))
     .with_profiles(references.join("profiles"))
     .with_view(references.join("view"))
+    .with_cases(references.join("contract/cases"))
 }
 
 /// この Skill が置かれている場所。**実行ファイルの位置から辿らない** ── build の
@@ -114,7 +115,14 @@ fn run_check(given: &Given) -> Outcome {
         return Outcome::misuse("Skill のフォルダを渡していない".to_owned());
     }
     let layout = given.one("layout", "0") == "1";
-    let report = check::check(&root, &templates(&or_misuse!(skill_root(given))), layout);
+    let tmpl = templates(&or_misuse!(skill_root(given)));
+    let mut report = check::check(&root, &tmpl, layout);
+    // **テストケースは渡したときだけ実行する** ── Skill の道具を何十回も起動するので、既定の検査に含めない
+    if given.one("cases", "0") == "1" {
+        if let Some(dir) = &tmpl.cases {
+            report.lines.extend(check::cases(&root, dir));
+        }
+    }
     let lines: Vec<serde_json::Value> = report
         .lines
         .iter()
@@ -123,6 +131,7 @@ fn run_check(given: &Given) -> Outcome {
                 "stage": match l.stage {
                     check::Stage::Behavior => "behavior",
                     check::Stage::Source => "source",
+                    check::Stage::Cases => "cases",
                     _ => "document",
                 },
                 "state": match l.state {
@@ -162,6 +171,7 @@ fn human_check(out: &Outcome) -> String {
         ("behavior", "1段目（振る舞い）"),
         ("source", "2段目（ソース）"),
         ("document", "文書"),
+        ("cases", "テストケース"),
     ] {
         let here: Vec<&serde_json::Value> = lines
             .iter()
@@ -398,6 +408,11 @@ pub fn tools() -> Vec<Tool> {
                 Arg::opt(
                     "layout",
                     "1 なら、雛形の構成（層 ・ 依存の向き ・ 入出力の置き場所）も検査する。既定は契約だけ",
+                    Some("0"),
+                ),
+                Arg::opt(
+                    "cases",
+                    "1 なら、契約のテストケースを Skill の tool.json の実行コマンドで実行する",
                     Some("0"),
                 ),
                 Arg::opt(

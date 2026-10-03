@@ -1,0 +1,333 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0096",
+ "title": "共通ツールの振る舞いをテストケースで決める",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "skills-creator の共通ツール（get ・ validate ・ view ・ import）の振る舞いを、言語に依存しないテストケースで決め、check がどの Skill にも同じテストケースを実行できるようにする。",
+ "why": "ボード skills-creator-contract で、契約を言語に依存しない形にし、リファレンス実装を Rust 1組にすると決めた（論点1〜5、2026-10-02）。今の共通ツールの正しさは、Rust のテストと、ほかの4言語の出力を Rust の出力と突き合わせる578件で確かめている。基準が Rust のコードの中にしか無いので、Go などで書いた Skill が正しいかを、その Skill だけを見て判定できない。テストケースを JSON で置けば、どの言語の Skill にも同じものを実行できる。ボードの試しでは、Rust のリファレンス実装とテストケースだけを渡して AI に Go へ移植させ、テストケースすべてに合格した。この ACDR はボードの移行の手順の A（契約とテストケースの追加）で、B（テンプレートを Rust 1組に限定する）と C（既存の Skill への適用）は別の ACDR にする。",
+ "shift": [
+  {
+   "what": "共通ツールの振る舞いの基準",
+   "from": "Rust のリファレンス実装のテストと、Rust の出力",
+   "to": "references/contract/cases/ のテストケース36件（呼び出しと期待値）"
+  },
+  {
+   "what": "Rust 以外の言語の確かめ方",
+   "from": "Rust の出力と、言語ごとに578件を突き合わせる（提供者だけが実行できる）",
+   "to": "check --cases 1 で、その Skill の tool.json の実行コマンドからテストケースを実行する（利用者も実行できる）"
+  },
+  {
+   "what": "契約の置き場所",
+   "from": "references/document.json の tool-contract の散文",
+   "to": "references/contract/ の JSON（Skill の構成 ・ ツールの CLI と出力と tool.json の欄 ・ 実装上の前提）と、それぞれのスキーマ"
+  },
+  {
+   "what": "リファレンス実装とテストケースの対応",
+   "from": "無い",
+   "to": "verify が、Rust のテスト1件ごとに同じ名前のテストケースが在るかを照合する。対応しないテストは理由を付けて exempt.json に置く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は Rust の出力が基準で、変更後はテストケースが基準になる。Rust のテストとテストケースの対応は verify が照合する",
+ "how": "references/contract/ に、Skill の構成（structure.json）・ ツールの契約（tools.json）・ 実装上の前提（assumptions.json）と、それぞれのスキーマを置いた。テストケースは Rust の refs のテスト31件から29件を作り（残り2件は CLI から観察できないので exempt.json に理由を書いた）、条件を変えた7件を足して36件にした。7件のうち2件は、実装上の前提を確かめるためのものである。1件は全角空白を含む引用 ・ 1文字の断片 ・ バイト順の並べ替えを使い、もう1件は CRLF の改行の Markdown を使う。テストケースの実行は tool/business_logic/src/cases.rs が持つ。1件ごとにテストケースのフォルダを一時フォルダへ複製し、setup の呼び出しのあとに call を実行して、終了コードと --json の出力を期待値と比べる。JSON は値として比べ、ignore の JSON Pointer の位置を両方から除く。check に --cases 1 を足し、文字の出力にも「テストケース」の段を出す。テストケースの入力データの Markdown は、references に Markdown を置かない検査から除いた。道具を持つ今の Rust の Skill のうち12件は、36件すべてに合格した。platform-advisor と ux-advisor は ACDR 0090 より前の refs の複製を持つので、9件だけ合格する。この2件は作り直しの予定に入っているので、そこで直す。",
+ "applies_to": "skills-creator だけが変わり、ほかの Skill は変わらない。新しく references/contract/ と tool/business_logic/src/cases.rs を置く。check.rs ・ provider.rs ・ lib.rs ・ files.rs ・ service/src/lib.rs とそれぞれのテスト、SKILL.md、tool/README.md を直す。",
+ "alternatives": [
+  {
+   "option": "擬似言語で書いたテンプレートを契約にする",
+   "why_not": "ボードの論点1で比べた。擬似言語のままでは動かせず、正しさを確かめる手段が無い。Rust のリファレンス実装とテストケースの組なら、移植した結果をテストケースで確かめられる"
+  },
+  {
+   "option": "今の578件の突き合わせを続け、テストケースを置かない",
+   "why_not": "基準が Rust の出力なので、Rust の実行環境が無いと確かめられず、利用者が自分の Skill を確かめる手段にならない。言語を1つ足すたびに突き合わせの組み合わせも増える"
+  },
+  {
+   "option": "期待値の比較を文字列の一致にする",
+   "why_not": "JSON の文字のエスケープや数値の書き方は、言語のライブラリごとに違う。値として比べないと、振る舞いが同じでも不合格になる（assumptions.json の json-values）"
+  },
+  {
+   "option": "テストケースを Skill の外（リポジトリの直下など）に置く",
+   "why_not": "skills-creator を別のリポジトリへ持っていったときに、テストケースが欠ける。ボードの論点3で references/contract/cases/ に置くと決めた"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "続けて B（テンプレートを Rust 1組に限定する）の ACDR を作る"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "cases",
+   "tab": "cases.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/cases.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "pub fn compare(expected: &Value, actual: &Value, ignore: &[String]) -> Option<String> {",
+     "before": "（無い）",
+     "why": "期待値と出力を JSON の値として比べる。文字のエスケープや数値の書き方は言語ごとに違うので、文字列では比べない。スキーマ検査のエラー文のように実装ごとに違ってよい位置は、テストケースの ignore で除く"
+    },
+    {
+     "find": "pub fn unmatched(test_source: &str, dir: &Path) -> Result<Vec<String>, String> {",
+     "before": "（無い）",
+     "why": "Rust のリファレンス実装のテスト1件ごとに、同じ名前のテストケースが在るかを照合する。テストを足してテストケースを足し忘れると、その振る舞いはほかの言語へ伝わらない"
+    },
+    {
+     "find": "pub fn run(root: &Path, dir: &Path) -> Result<Vec<(String, Option<String>)>, String> {",
+     "before": "（無い）",
+     "why": "検証する Skill の tool.json の実行コマンドで呼ぶので、どの言語で書いた Skill にも同じテストケースを実行できる。import は references を書き換えるので、1件ごとに一時フォルダへ複製して実行する"
+    }
+   ]
+  },
+  {
+   "key": "casest",
+   "tab": "tests/cases.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/cases.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "fn every_test_of_the_reference_needs_a_case() {",
+     "before": "（無い）",
+     "why": "リポジトリのリファレンス実装のテストとテストケースが、いま1件も食い違っていないことを固定する"
+    },
+    {
+     "find": "fn every_assumption_points_at_existing_cases() {",
+     "before": "（無い）",
+     "why": "assumptions.json の実装上の前提が、実在するテストケースを指していることを固定する。前提を書いただけで確かめていない状態を残さない"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "pub fn with_cases(mut self, dir: PathBuf) -> Self {",
+     "before": "（無い）",
+     "why": "テストケースの置き場所は skills-creator の references にある。検証する Skill の側には無いので、check に外から渡す"
+    },
+    {
+     "find": "pub fn cases(root: &Path, dir: &Path) -> Vec<Line> {",
+     "before": "（無い）",
+     "why": "テストケースを check の1つの段にした。1件ごとに合格か不合格を出すので、どのテストケースが落ちたかが分かる"
+    },
+    {
+     "find": "const CASE_FIXTURES: &str = \"references/contract/cases/fixtures\";",
+     "before": "（無い）",
+     "why": "import のテストケースは Markdown を入力に使う。この Markdown は references の内容ではなくテストケースの入力なので、references に Markdown を置かない検査から除いた。除かないと skills-creator 自身の check が9件を検出した"
+    },
+    {
+     "find": "pub cases: Option<PathBuf>,",
+     "before": "（無い）",
+     "why": "テストケースの置き場所を、テンプレートの置き場所と同じ構造体で持つ。渡さなければテストケースの段は無い"
+    },
+    {
+     "find": "    Cases,",
+     "before": "（無い）",
+     "why": "check の段に「テストケース」を足した。--json の出力では stage が cases になる"
+    },
+    {
+     "find": "let fixtures = root.join(CASE_FIXTURES);",
+     "before": "（無い）",
+     "why": "テストケースの入力データの置き場所を、git が追跡しない場所と同じく検査から除く"
+    },
+    {
+     "find": "cases: None,",
+     "before": "（無い）",
+     "why": "既定ではテストケースの置き場所を持たない。with_cases で渡したときだけ持つ"
+    }
+   ]
+  },
+  {
+   "key": "checkt",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "fn markdown_that_the_test_cases_import_is_not_reported() {",
+     "before": "（無い）",
+     "why": "テストケースの入力データの Markdown を検出しないことを固定する"
+    },
+    {
+     "find": "fn cases_are_reported_as_their_own_stage() {",
+     "before": "（無い）",
+     "why": "テストケースの結果が、ほかの段と混ざらずに cases の段として出ることを固定する"
+    }
+   ]
+  },
+  {
+   "key": "prov",
+   "tab": "provider.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/provider.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "let cases_dir = here.join(\"references/contract/cases\");",
+     "before": "（無い）",
+     "why": "公開の前に実行する verify に、テストとテストケースの対応の照合と、生成した Rust の助言型でのテストケースの実行を足した。テンプレートを直したときに、テストケースとのずれがここで分かる"
+    }
+   ]
+  },
+  {
+   "key": "svc",
+   "tab": "service/lib.rs",
+   "file": ".claude/skills/skills-creator/tool/service/src/lib.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "if given.one(\"cases\", \"0\") == \"1\" {",
+     "before": "（無い）",
+     "why": "テストケースは Skill の実行ファイルを36回以上起動するので、既定の check には含めず、--cases 1 のときだけ実行する"
+    },
+    {
+     "find": "(\"cases\", \"テストケース\"),",
+     "before": "（無い）",
+     "why": "--json の出力にだけ結果が出て、文字の出力には出ていなかった。文字の出力にもテストケースの段を出す"
+    },
+    {
+     "find": ".with_cases(references.join(\"contract/cases\"))",
+     "before": "（無い）",
+     "why": "skills-creator 自身の references/contract/cases/ を、check に渡すテストケースの置き場所にする"
+    },
+    {
+     "find": "check::Stage::Cases => \"cases\",",
+     "before": "（無い）",
+     "why": "--json の出力の stage の値を cases にする"
+    },
+    {
+     "find": "\"1 なら、契約のテストケースを Skill の tool.json の実行コマンドで実行する\",",
+     "before": "（無い）",
+     "why": "check のオプション --cases を道具の一覧に足した。CLI と MCP はこの一覧から組まれるので、どちらからも渡せる"
+    }
+   ]
+  },
+  {
+   "key": "svct",
+   "tab": "tests/distribution.rs",
+   "file": ".claude/skills/skills-creator/tool/service/tests/distribution.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "fn the_text_of_check_shows_the_cases_stage() {",
+     "before": "（無い）",
+     "why": "文字の出力にテストケースの段が出ることを固定する。修正を外すと、このテストは失敗した"
+    }
+   ]
+  },
+  {
+   "key": "files",
+   "tab": "files.rs",
+   "file": ".claude/skills/skills-creator/tool/data_access/src/files.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "pub fn remove_dir_all(path: impl AsRef<Path>) -> io::Result<()> {",
+     "before": "（無い）",
+     "why": "テストケースごとの一時フォルダを消すため。ファイルの入出力はデータアクセス層だけが持つ"
+    }
+   ]
+  },
+  {
+   "key": "lib",
+   "tab": "lib.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/lib.rs",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "pub mod cases;",
+     "before": "（無い）",
+     "why": "テストケースの実行を業務ロジック層のモジュールとして足した"
+    }
+   ]
+  },
+  {
+   "key": "asm",
+   "tab": "assumptions.json",
+   "file": ".claude/skills/skills-creator/references/contract/assumptions.json",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "\"id\": \"whitespace\"",
+     "before": "（無い）",
+     "why": "リファレンス実装のコードからしか読み取れない前提（空白の判定 ・ 文字数の数え方 ・ 行の分け方 ・ 並べ替えの順など）を7件書いた。移植した実装がここで食い違うと、テストケースの一部だけが落ちて原因が分かりにくい。各前提は、それを確かめるテストケースを指す"
+    }
+   ]
+  },
+  {
+   "key": "exm",
+   "tab": "exempt.json",
+   "file": ".claude/skills/skills-creator/references/contract/cases/exempt.json",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "\"test\": \"the_copy_in_this_skill_matches_the_template\",",
+     "before": "（無い）",
+     "why": "Rust のテスト31件のうち2件は、Rust のソースそのものや CLI から呼ばれない関数を確かめるもので、呼び出しから観察できない。テストケースを作らない理由をここに書く"
+    }
+   ]
+  },
+  {
+   "key": "case",
+   "tab": "テストケースの例",
+   "file": ".claude/skills/skills-creator/references/contract/cases/a_ground_must_point_at_a_criterion_and_quote_it--assumptions.json",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "\"call\": [",
+     "before": "（無い）",
+     "why": "テストケース1件の例。全角空白を含む引用 ・ 1文字の断片 ・ 2桁の番号を含む検出の並べ替えを1件で確かめる。期待値は Rust のリファレンス実装の出力から書き出し、引用の照合先の文と照らして正しいことを確かめた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "の振る舞いは、テストケースで決まる",
+     "before": "（無い）",
+     "why": "テストケースの置き場所と、check --cases 1 で何が起きるかを書いた"
+    },
+    {
+     "find": "言語に依存しない契約",
+     "before": "（無い）",
+     "why": "参照の節に references/contract/ と cases/ を足した"
+    }
+   ]
+  },
+  {
+   "key": "readme",
+   "tab": "tool/README.md",
+   "file": ".claude/skills/skills-creator/tool/README.md",
+   "rev": "495f9d23328ed4ee7a48f005315f529fa10e722c",
+   "marks": [
+    {
+     "find": "契約のテストケース（",
+     "before": "（無い）",
+     "why": "ソースの地図に cases.rs を足した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "cases": "557b840faf12c3d8dddef1595b627d6be2e9c710a57c7f1d4e2d754441212118",
+  "casest": "937befced228c60f97746a48c40eea0bc73f4a22581a35b3bc3ce099f8caca36",
+  "check": "202299bd5448d4567ccb011da55c9f876f0d5eb9c91d0dec486ef0ccc78e8688",
+  "checkt": "ec3ec49a5e7e92adc08e1b415c8d140c5749670275b9df3c5d547e13f595cf27",
+  "prov": "c5c4e7bb1c8d572843120dadf0a43efdbcaa7ab575f022d16feaa03d4240cb3f",
+  "svc": "fec9a582274a0a88051009ed403ecac944331913da74df162b4d217f58b7b0e2",
+  "svct": "41da62a47cc3c024620a5fce21d9cff4ced48dd6bab0317b2e1e1c32f88419e6",
+  "files": "dde9ffa05001fa805ba399f8c78bf69138f11b5157596504237efc295e3c779d",
+  "lib": "fa18d423fa9a1400cbef992dad285f288f1f7932301bac1a75a1163954a90372",
+  "asm": "4f2629851aa6567276ec284050d6760af792fc435d722ddc494903a859c4a010",
+  "exm": "bace702e07599b7311feaf3c1bd1832a7c1d10e22274c68dc46944759d6752d7",
+  "case": "d826fae08785738ca8046c79cdc135ef206c16f7fde0e6414d99267ac06d5f64",
+  "skill": "91cbef7451282e33c057e9bce7c40e6504b7eb175862021740b1b950f3a6847c",
+  "readme": "9b946c6feecd01337586d69ac577f69e373cf44e317f121fc5dead99c4bcb008"
+ }
+}

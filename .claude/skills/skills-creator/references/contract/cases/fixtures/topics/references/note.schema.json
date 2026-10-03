@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "覚え書き",
+  "type": "object",
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "topics"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-view": "hidden"
+          },
+          "title": {
+            "type": "string",
+            "x-view": "heading"
+          },
+          "topics": {
+            "title": "本文",
+            "x-view": "sections",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "title",
+                "claim",
+                "units"
+              ],
+              "properties": {
+                "title": {
+                  "title": "題",
+                  "type": "string",
+                  "x-view": "heading"
+                },
+                "claim": {
+                  "title": "主張",
+                  "type": "string",
+                  "x-view": "lead"
+                },
+                "units": {
+                  "title": "単位",
+                  "x-view": "units",
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "title": "規則",
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "rules"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "rules"
+                          },
+                          "heading": {
+                            "type": "string",
+                            "x-view": "subhead"
+                          },
+                          "rules": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "when": {
+                                  "title": "条件",
+                                  "type": "string"
+                                },
+                                "then": {
+                                  "title": "対応",
+                                  "type": "string"
+                                },
+                                "why": {
+                                  "title": "理由",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "title": "図",
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "purpose",
+                          "svg"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "figure"
+                          },
+                          "purpose": {
+                            "title": "目的",
+                            "type": "string",
+                            "x-view": "lead"
+                          },
+                          "explanation": {
+                            "type": "array",
+                            "x-view": "paras",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "svg": {
+                            "type": "string",
+                            "x-view": "svg"
+                          },
+                          "declaration": {
+                            "type": "object",
+                            "x-view": "hidden"
+                          }
+                        }
+                      },
+                      {
+                        "title": "対比",
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "table"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "comparison"
+                          },
+                          "table": {
+                            "type": "object",
+                            "x-view": "table"
+                          }
+                        }
+                      },
+                      {
+                        "title": "手順",
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "steps"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "steps"
+                          },
+                          "steps": {
+                            "type": "array",
+                            "x-view": "steps",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "do": {
+                                  "type": "string"
+                                },
+                                "why": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "pitfalls": {
+            "title": "よくある誤り",
+            "x-view": "group",
+            "type": "object",
+            "properties": {
+              "intro": {
+                "type": "string",
+                "x-view": "lead"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "what": {
+                      "title": "誤り",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

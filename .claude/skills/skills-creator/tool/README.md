@@ -15,6 +15,7 @@
 | `business_logic/src/check.rs` | check の2段目と文書の検査。外部の道具の直書き ・ 雛形の構成（`--layout 1`）・ 節の構成 ・ 未記入の差し込み場所 |
 | `business_logic/src/sections.rs` | 節の構成を、対応する雛形と照合する。**節の名前は雛形が保持する** |
 | `business_logic/src/accept.rs` | 助言型の受け入れの検査（機械の7件）。回答の例の置き場所とソースの拡張子は、言語の組の定義から読む |
+| `business_logic/src/cases.rs` | 契約のテストケース（`references/contract/cases/`）を、検証する Skill の tool.json の実行コマンドで実行し、期待値と JSON の値として比較する。リファレンス実装のテストとテストケースの対応も照合する |
 | `business_logic/src/conform.rs` | 言語の組の references の実装の出力の突き合わせ（提供者だけが使う） |
 | `business_logic/src/refs.rs` | この Skill 自身の references の実装（Rust の組の雛形 `refs.rs.tmpl` と同じ処理） |
 | `business_logic/tests/` | 事例。生んだものが契約を満たすこと ・ 検査の検出 ・ references の実装 ・ 突き合わせの判定を固定してある |

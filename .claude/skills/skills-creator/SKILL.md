@@ -129,12 +129,18 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 ```
 skills-creator scaffold <Skill の名前> [--type work|advisor] [--language rust|python|typescript|csharp|go]   # 型と言語の組の一式を置く
 skills-creator check <Skill のフォルダ>  # 2段の検査と、文書の検査（節の構成 ・ 未記入の差し込み場所）
+skills-creator check <Skill のフォルダ> --cases 1  # 加えて、契約のテストケースを Skill の実行コマンドで実行する
 skills-creator accept <advisor のフォルダ>  # 助言型の受け入れの検査（機械の7件）
 skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだけ。導入スクリプトと組み立ての定義を置く
 ```
 
 **check は2段で検査する。** 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。
 2段目はソースを読む検査で、言語の組が持つ。**組が無い言語では「実行しない」と出し、合格とは扱わない。**
+
+**共通ツール（get ・ validate ・ view ・ import）の振る舞いは、テストケースで決まる**（ACDR 0096）。
+テストケースは `references/contract/cases/` に1件1ファイルで置き、呼び出しと期待値（終了コードと `--json` の出力）を持つ。
+`check --cases 1` は、検証する Skill の `tool.json` の実行コマンドで全件を実行し、JSON の値として比較する ── どの言語で書いた Skill にも、同じテストケースを実行できる。
+テストケースは、Rust のリファレンス実装のテスト1件に1件以上を対応させる。
 
 **references は JSON Schema と JSON で持つ**（契約の版2、ACDR 0043）。`tool.json` に `"contract": 2` を書いた
 Skill は、雛形の references の実装で get ・ validate ・ view ・ import を持ち、Markdown は SKILL.md だけにする。
@@ -187,6 +193,8 @@ Skill は、雛形の references の実装で get ・ validate ・ view ・ impo
 - `references/document.json`（tool-contract）: 道具の契約。**言語に依存しない**。2つのプレゼンテーション層 ・ 戻り値 ・ 終了コード ・
   外部の道具 ・ 1段目の検査 ・ 雛形が採る構成（推奨 ・ 契約ではない） ・ **MCP サーバーの規約**（標準出力 ・ 誤りの返し方 ・
   引数の型 ・ 子プロセスの規律）を規定する ── MCP の規約は**原典の引用と行番号つき**である
+- `references/contract/`: **言語に依存しない契約**（ACDR 0096）── Skill の構成（`structure.json`）・ ツールの CLI ・ 出力 ・ 終了コード ・ サブコマンド ・ `tool.json` の欄（`tools.json`）・ リファレンス実装からしか読み取れない実装上の前提（`assumptions.json`）。それぞれのスキーマを並べて置く
+- `references/contract/cases/`: 共通ツールのテストケースと、その入力データ（`fixtures/`）。対応するテストを持たない理由は `exempt.json` が持つ
 - `references/types/`: Skill の型（作業型 ・ 生成型 ・ 助言型）の定義
 - `references/types/advisor/`: 助言型の正本 ── 判断基準と回答のスキーマ ・ SKILL.md の雛形 ・ 9段の手順は `references/document.json` の id「procedure」が持つ
 - `references/document.json`（profile-<言語>） ・ `references/profiles/<言語>/`: 言語の組（Rust ・ Python ・ TypeScript ・ C# ・ Go）。置き場所 ・ 必要な処理系 ・ 組み立てのコマンド ・ 契約の実装 ・ 雛形 ・ 2段目の検査を持つ

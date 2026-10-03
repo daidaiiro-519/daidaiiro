@@ -1,0 +1,92 @@
+{
+ "case": "Markdown の見出しを節の入れ子にして取り込む",
+ "test": "markdown_is_imported_as_nested_sections",
+ "setup": [
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/nested.md",
+   "--id",
+   "sample",
+   "--source",
+   "https://example.com/a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ]
+ ],
+ "call": [
+  "get",
+  "--kind",
+  "document",
+  "--id",
+  "sample",
+  "--skill_root",
+  "fixtures/document"
+ ],
+ "expect": {
+  "exit": 0,
+  "json": {
+   "ok": true,
+   "findings": [],
+   "data": {
+    "id": "sample",
+    "title": "題",
+    "source": {
+     "location": "https://example.com/a.md",
+     "sha256": "f66c22e94a831629f63dfc7dc5e95fb60d806ae64c6eb20f464080ab3590d105",
+     "fetched": "2026-09-29"
+    },
+    "sections": [
+     {
+      "title": "題",
+      "blocks": [
+       {
+        "kind": "para",
+        "text": "本文1"
+       }
+      ],
+      "sections": [
+       {
+        "title": "節A",
+        "blocks": [
+         {
+          "kind": "para",
+          "text": "A の本文"
+         }
+        ],
+        "sections": [
+         {
+          "title": "節A1",
+          "blocks": [
+           {
+            "kind": "para",
+            "text": "A1"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "title": "節B",
+        "blocks": [
+         {
+          "kind": "code",
+          "text": "# コードの中は見出しではない"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "blocks": [
+     {
+      "kind": "para",
+      "text": "前文"
+     }
+    ]
+   }
+  }
+ }
+}

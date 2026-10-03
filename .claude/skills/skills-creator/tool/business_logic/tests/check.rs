@@ -789,6 +789,19 @@ fn markdown_in_references_is_reported() {
 }
 
 #[test]
+fn markdown_that_the_test_cases_import_is_not_reported() {
+    // テストケースの入力データは references の内容ではない ── import が取り込む Markdown を持つ
+    let root = scratch("refs-md-cases");
+    write_document(&root);
+    write_entries(&root, TOOL_JSON, MCP_JSON);
+    let dir = root.join("references/contract/cases/fixtures/markdown");
+    std::fs::create_dir_all(&dir).expect("作れる");
+    std::fs::write(dir.join("small.md"), "# 題\n").expect("書ける");
+    let found = check::document(&root, &templates());
+    assert!(!found.iter().any(|x| x.contains("Markdown")), "{found:?}");
+}
+
+#[test]
 fn markdown_in_references_of_a_skill_without_tools_is_allowed() {
     // 道具を持たない Skill は契約の版2 の外である
     let root = scratch("refs-md-notool");
@@ -867,4 +880,56 @@ fn unfilled_placeholders_in_references_are_reported() {
     .expect("書ける");
     let found = check::document(&root, &templates());
     assert!(!found.iter().any(|f| f.contains("未記入")), "{found:?}");
+}
+
+#[test]
+fn cases_are_reported_as_their_own_stage() {
+    // **テストケースは check の1段である**（ボード skills-creator-contract の論点2）── 渡したときだけ実行する
+    let root = scratch("cases-stage");
+    let cs = root.join("cases");
+    std::fs::create_dir_all(cs.join("fixtures")).expect("作れる");
+    let script = root.join("bin/fake");
+    std::fs::create_dir_all(root.join("bin")).expect("作れる");
+    std::fs::write(
+        &script,
+        "#!/bin/sh\necho '{\"ok\":true,\"findings\":[],\"data\":{}}'\n",
+    )
+    .expect("書ける");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).expect("権限");
+    }
+    std::fs::write(
+        root.join("tool.json"),
+        format!(
+            r#"{{"contract":2,"cli":{{"command":"{}","args":[]}},"external":[]}}"#,
+            script.display()
+        ),
+    )
+    .expect("書ける");
+    std::fs::write(cs.join("ok.json"), r#"{"case":"合格","test":"t","call":["get"],"expect":{"exit":0,"json":{"ok":true,"findings":[],"data":{}}}}"#).expect("書ける");
+    std::fs::write(
+        cs.join("ng.json"),
+        r#"{"case":"不合格","test":"u","call":["get"],"expect":{"exit":1}}"#,
+    )
+    .expect("書ける");
+    let lines = check::cases(&root, &cs);
+    assert!(
+        lines.iter().all(|l| l.stage == check::Stage::Cases),
+        "{lines:?}"
+    );
+    assert_eq!(
+        lines
+            .iter()
+            .filter(|l| l.state == check::State::Pass)
+            .count(),
+        1
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.state == check::State::Fail && l.text.contains("ng")),
+        "{lines:?}"
+    );
 }

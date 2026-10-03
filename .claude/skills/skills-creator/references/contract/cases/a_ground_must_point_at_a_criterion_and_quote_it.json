@@ -1,0 +1,31 @@
+{
+ "case": "根拠が無い基準を指すか、記述に無い文を引けば検出する",
+ "test": "a_ground_must_point_at_a_criterion_and_quote_it",
+ "call": [
+  "validate",
+  "--kind",
+  "answer",
+  "--file",
+  "fixtures/answers/grounds.json",
+  "--skill_root",
+  "fixtures/grounds"
+ ],
+ "expect": {
+  "exit": 1,
+  "json": {
+   "ok": true,
+   "findings": [
+    "fixtures/answers/grounds.json: /grounds/2/criterion ── criteria に id nothing が無い",
+    "fixtures/answers/grounds.json: /grounds/3/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」",
+    "fixtures/answers/grounds.json: /related/0/criterion ── criteria に id missing が無い"
+   ],
+   "data": {
+    "kinds": [
+     "answer",
+     "criteria"
+    ],
+    "checked": "fixtures/answers/grounds.json"
+   }
+  }
+ }
+}

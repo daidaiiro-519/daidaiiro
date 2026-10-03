@@ -1,0 +1,31 @@
+{
+ "case": "回答を種類のスキーマで検査し、欄の欠けを検出する",
+ "test": "an_answer_is_checked_against_the_answer_schema",
+ "call": [
+  "validate",
+  "--kind",
+  "answer",
+  "--file",
+  "fixtures/answers/answer.without-next.json",
+  "--skill_root",
+  "fixtures/answer"
+ ],
+ "expect": {
+  "exit": 1,
+  "json": {
+   "ok": true,
+   "findings": [
+    "fixtures/answers/answer.without-next.json:  ── \"next\" is a required property"
+   ],
+   "data": {
+    "kinds": [
+     "answer"
+    ],
+    "checked": "fixtures/answers/answer.without-next.json"
+   }
+  }
+ },
+ "ignore": [
+  "/findings/0"
+ ]
+}

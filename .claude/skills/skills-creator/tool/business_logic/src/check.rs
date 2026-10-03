@@ -83,6 +83,8 @@ pub struct Templates {
     pub profiles: Option<PathBuf>,
     /// 見た目の正本の置き場所（`references/view/`）。**在れば、道具を持つ Skill の写しを突き合わせる。**
     pub view: Option<PathBuf>,
+    /// テストケースの置き場所（`references/contract/cases/`）。**`--cases 1` のときだけ実行する。**
+    pub cases: Option<PathBuf>,
 }
 
 impl Templates {
@@ -95,6 +97,7 @@ impl Templates {
             refs: None,
             profiles: None,
             view: None,
+            cases: None,
         }
     }
 
@@ -109,6 +112,13 @@ impl Templates {
     #[must_use]
     pub fn with_view(mut self, dir: PathBuf) -> Self {
         self.view = Some(dir);
+        self
+    }
+
+    /// テストケースの置き場所を足す。
+    #[must_use]
+    pub fn with_cases(mut self, dir: PathBuf) -> Self {
+        self.cases = Some(dir);
         self
     }
 
@@ -273,6 +283,8 @@ pub enum Stage {
     Source,
     /// 文書の節の構成。
     Document,
+    /// テストケース（ボード skills-creator-contract の論点2）。**渡したときだけ実行する。**
+    Cases,
 }
 
 /// 検査1件の状態。**「実行しない」を合格と同じにしない。**
@@ -368,6 +380,30 @@ pub fn check(root: &Path, templates: &Templates, layout: bool) -> Report {
             .map(|t| Line::new(Stage::Document, State::Fail, t)),
     );
     report
+}
+
+/// テストケースを実行する段。**Skill の tool.json の実行コマンドで呼ぶ** ── どの言語で書いた Skill にも、
+/// 同じテストケースを実行できる。1件ごとに合格か不合格を返し、読めなければ1件の不合格にする。
+#[must_use]
+pub fn cases(root: &Path, dir: &Path) -> Vec<Line> {
+    match crate::cases::run(root, dir) {
+        Err(e) => vec![Line::new(
+            Stage::Cases,
+            State::Fail,
+            format!("テストケースを実行できない ── {e}"),
+        )],
+        Ok(results) => results
+            .into_iter()
+            .map(|(name, why)| match why {
+                None => Line::new(Stage::Cases, State::Pass, format!("テストケース {name}")),
+                Some(w) => Line::new(
+                    Stage::Cases,
+                    State::Fail,
+                    format!("テストケース {name} ── {w}"),
+                ),
+            })
+            .collect(),
+    }
 }
 
 /// 2段目。**言語の組を、ソースの置き方から選ぶ。** 組が無ければ「実行しない」と返す。
@@ -525,17 +561,23 @@ fn placeholders_in_references(root: &Path) -> Vec<String> {
     found
 }
 
+/// テストケースの入力データの置き場所。**import が取り込む Markdown を入力として持つ** ── 中身は
+/// references の内容ではなく、テストケースの入力である。
+const CASE_FIXTURES: &str = "references/contract/cases/fixtures";
+
 /// references に置いた Markdown。**道具を持つ Skill は、Markdown を SKILL.md だけにする**（契約の版2）──
-/// references に置くと、スキーマで検査できず、`view` でも描画できない。
+/// references に置くと、スキーマで検査できず、`view` でも描画できない。テストケースの入力データは除く。
 fn markdown_in_references(root: &Path) -> Vec<String> {
     let ignored = ignored_prefixes(root);
+    let fixtures = root.join(CASE_FIXTURES);
     let is_ignored = |path: &Path| {
-        ignored.iter().any(|(prefix, name)| match name {
-            Some(name) => path
-                .strip_prefix(root)
-                .is_ok_and(|rel| rel.components().any(|c| c.as_os_str() == name.as_str())),
-            None => path.starts_with(prefix),
-        })
+        path.starts_with(&fixtures)
+            || ignored.iter().any(|(prefix, name)| match name {
+                Some(name) => path
+                    .strip_prefix(root)
+                    .is_ok_and(|rel| rel.components().any(|c| c.as_os_str() == name.as_str())),
+                None => path.starts_with(prefix),
+            })
     };
     let mut found = Vec::new();
     let mut stack = vec![root.join("references")];

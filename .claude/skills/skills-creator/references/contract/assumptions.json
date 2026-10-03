@@ -1,0 +1,65 @@
+{
+  "$schema": "assumptions.schema.json",
+  "items": [
+    {
+      "id": "json-key-order",
+      "rule": "JSON のキーは、読んだ順を保つ。既存のキーを上書きするときは、元の位置に置く",
+      "why": "描画はスキーマの properties の順に項目を並べる。順が変わると HTML が変わる",
+      "cases": [
+        "the_view_follows_the_schema_titles",
+        "the_title_and_view_next_to_a_ref_are_kept"
+      ]
+    },
+    {
+      "id": "whitespace",
+      "rule": "空白は Unicode の White_Space で判定する",
+      "why": "引用の照合で空白を除くとき、全角空白も除く",
+      "cases": [
+        "a_ground_must_point_at_a_criterion_and_quote_it--assumptions"
+      ]
+    },
+    {
+      "id": "char-count",
+      "rule": "文字数は Unicode のスカラー値で数える（バイトでも UTF-16 の単位でもない）",
+      "why": "引用の断片の長さの判定に使う",
+      "cases": [
+        "a_ground_must_point_at_a_criterion_and_quote_it--assumptions"
+      ]
+    },
+    {
+      "id": "line-split",
+      "rule": "行は改行（\\n）で分割する。末尾の改行で空の行を作らず、行末の \\r を除く",
+      "why": "import が Markdown を行に分けるとき、改行の書き方の違いで結果を変えない",
+      "cases": [
+        "markdown_is_imported_as_nested_sections--crlf"
+      ]
+    },
+    {
+      "id": "sort-order",
+      "rule": "検出の並べ替えは、文字列の UTF-8 のバイト順で行う",
+      "why": "検出の順は出力の一部である。言語の既定の並べ替え（ロケール順など）を使うと順が変わる",
+      "cases": [
+        "a_ground_must_point_at_a_criterion_and_quote_it--assumptions",
+        "a_ground_must_point_at_a_criterion_and_quote_it"
+      ]
+    },
+    {
+      "id": "json-values",
+      "rule": "--json の出力は、JSON として同じ値であればよい。文字のエスケープや数値の書き方は問わない",
+      "why": "テストケースは JSON を値として比較する。言語ごとの書き出しの違いで不合格にしない",
+      "cases": [
+        "one_item_is_taken_by_its_id",
+        "sha256_matches_the_known_value"
+      ]
+    },
+    {
+      "id": "schema-messages",
+      "rule": "スキーマ検査のエラー文は、実装ごとに違ってよい。ok ・ 終了コード ・ 検出の有無は一致させる",
+      "why": "エラー文は JSON Schema のライブラリが作る。テストケースは ignore で比較から除外する",
+      "cases": [
+        "json_that_breaks_its_schema_is_reported",
+        "an_answer_is_checked_against_the_answer_schema"
+      ]
+    }
+  ]
+}

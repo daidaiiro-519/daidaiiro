@@ -1,0 +1,76 @@
+{
+ "case": "取り込んだ原文の SHA-256 が既知の値と一致する",
+ "test": "sha256_matches_the_known_value",
+ "setup": [
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/abc.md",
+   "--id",
+   "abc",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ],
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/empty.md",
+   "--id",
+   "empty",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ]
+ ],
+ "call": [
+  "get",
+  "--kind",
+  "document",
+  "--skill_root",
+  "fixtures/document"
+ ],
+ "expect": {
+  "exit": 0,
+  "json": {
+   "ok": true,
+   "findings": [],
+   "data": {
+    "items": [
+     {
+      "id": "abc",
+      "title": "abc",
+      "source": {
+       "location": "a.md",
+       "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+       "fetched": "2026-09-29"
+      },
+      "sections": [],
+      "blocks": [
+       {
+        "kind": "para",
+        "text": "abc"
+       }
+      ]
+     },
+     {
+      "id": "empty",
+      "title": "empty",
+      "source": {
+       "location": "a.md",
+       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+       "fetched": "2026-09-29"
+      },
+      "sections": []
+     }
+    ]
+   }
+  }
+ }
+}

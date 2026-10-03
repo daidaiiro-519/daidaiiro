@@ -1,0 +1,172 @@
+{
+  "$schema": "tools.schema.json",
+  "cli": [
+    "<Skill の名前> <サブコマンド> [引数…] [--json]",
+    "オプション（--名前 値）は、サブコマンドの前に置いても後ろに置いてもよい",
+    "サブコマンドを付けずに --json を付けると、ツールの一覧を JSON で返す（data.tools と data.skill_root）",
+    "ツールの一覧に無いオプションは、終了コード 2 で断る",
+    "Skill のフォルダは --skill_root で渡す。渡さなければ、実行ファイルの位置から求める"
+  ],
+  "output": [
+    "--json の出力は {\"ok\": 真偽, \"findings\": [検出], \"data\": {本体}} の1つの JSON である",
+    "findings は誤りではなく検出である。検出が在っても ok は偽にしない",
+    "MCP サーバーでは、ツールが標準出力へ書かない。書くなら標準エラーへ書く"
+  ],
+  "exit": [
+    {
+      "code": 0,
+      "meaning": "正常"
+    },
+    {
+      "code": 1,
+      "meaning": "検出あり"
+    },
+    {
+      "code": 2,
+      "meaning": "誤用（引数の不足 ・ 知らないサブコマンドやオプション ・ 読めない入力）"
+    }
+  ],
+  "subcommands": [
+    {
+      "name": "get",
+      "purpose": "references の種類の JSON を取り出す。id を渡すとその1件だけを返す",
+      "args": [
+        {
+          "name": "kind",
+          "need": true,
+          "meaning": "種類の名前"
+        },
+        {
+          "name": "id",
+          "need": false,
+          "meaning": "項目の id"
+        },
+        {
+          "name": "omit",
+          "need": false,
+          "meaning": "除くキーの名前（, で区切る。例：source）"
+        },
+        {
+          "name": "skill_root",
+          "need": false,
+          "meaning": "Skill のフォルダ"
+        }
+      ]
+    },
+    {
+      "name": "validate",
+      "purpose": "references の JSON をスキーマで検査する。file を渡すと、その JSON を種類のスキーマで検査し、x-refers ・ x-quotes の参照先も検査する",
+      "args": [
+        {
+          "name": "kind",
+          "need": false,
+          "meaning": "種類の名前（file と一緒に渡す）"
+        },
+        {
+          "name": "file",
+          "need": false,
+          "meaning": "検査する JSON"
+        },
+        {
+          "name": "skill_root",
+          "need": false,
+          "meaning": "Skill のフォルダ"
+        }
+      ]
+    },
+    {
+      "name": "view",
+      "purpose": "references の種類の JSON を、スキーマの title と x-view に従って HTML に描画する",
+      "args": [
+        {
+          "name": "kind",
+          "need": true,
+          "meaning": "種類の名前"
+        },
+        {
+          "name": "id",
+          "need": false,
+          "meaning": "項目の id"
+        },
+        {
+          "name": "file",
+          "need": false,
+          "meaning": "描画する JSON（回答など）"
+        },
+        {
+          "name": "out",
+          "need": false,
+          "meaning": "HTML の置き場所"
+        },
+        {
+          "name": "skill_root",
+          "need": false,
+          "meaning": "Skill のフォルダ"
+        }
+      ]
+    },
+    {
+      "name": "import",
+      "purpose": "Markdown の文書を、見出しを節の入れ子に分けて document へ取り込む",
+      "args": [
+        {
+          "name": "file",
+          "need": true,
+          "meaning": "取り込む Markdown"
+        },
+        {
+          "name": "id",
+          "need": true,
+          "meaning": "document の id"
+        },
+        {
+          "name": "source",
+          "need": false,
+          "meaning": "元の場所（既定は file）"
+        },
+        {
+          "name": "fetched",
+          "need": false,
+          "meaning": "取り込んだ日"
+        },
+        {
+          "name": "skill_root",
+          "need": false,
+          "meaning": "Skill のフォルダ"
+        }
+      ]
+    }
+  ],
+  "tool_json": [
+    {
+      "key": "contract",
+      "need": true,
+      "meaning": "契約の版"
+    },
+    {
+      "key": "cli",
+      "need": true,
+      "meaning": "CLI の実行コマンド {\"command\": 経路, \"args\": [引数]}。経路は ${CLAUDE_PROJECT_DIR:-.} から書き、絶対パスを書かない"
+    },
+    {
+      "key": "build",
+      "need": false,
+      "meaning": "ビルドのコマンドの並び（[[コマンド, 引数…], …]）。Skill のフォルダで実行する"
+    },
+    {
+      "key": "test",
+      "need": false,
+      "meaning": "テストのコマンドの並び。Skill のフォルダで実行する"
+    },
+    {
+      "key": "format",
+      "need": false,
+      "meaning": "フォーマットのチェックのコマンドの並び。書き換えずに、違反があれば 0 以外で終わるコマンドを書く。Skill のフォルダで実行する"
+    },
+    {
+      "key": "external",
+      "need": true,
+      "meaning": "呼ぶ外部コマンド（名前 ・ コマンド ・ 理由）。Skill の目的に不可欠なものだけ"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+ "case": "同じ id で2回取り込んでも、document のスキーマに合格する",
+ "test": "an_imported_document_passes_the_document_schema",
+ "setup": [
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/small.md",
+   "--id",
+   "sample",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ],
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/small.md",
+   "--id",
+   "sample",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ]
+ ],
+ "call": [
+  "validate",
+  "--skill_root",
+  "fixtures/document"
+ ],
+ "expect": {
+  "exit": 0,
+  "json": {
+   "ok": true,
+   "findings": [],
+   "data": {
+    "kinds": [
+     "document"
+    ],
+    "checked": "references"
+   }
+  }
+ }
+}

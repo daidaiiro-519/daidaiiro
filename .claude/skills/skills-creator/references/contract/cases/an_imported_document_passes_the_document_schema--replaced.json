@@ -1,0 +1,75 @@
+{
+ "case": "同じ id で2回取り込むと、項目は1件に置き換わる",
+ "test": "an_imported_document_passes_the_document_schema",
+ "call": [
+  "get",
+  "--kind",
+  "document",
+  "--skill_root",
+  "fixtures/document"
+ ],
+ "setup": [
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/small.md",
+   "--id",
+   "sample",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ],
+  [
+   "import",
+   "--file",
+   "fixtures/markdown/small.md",
+   "--id",
+   "sample",
+   "--source",
+   "a.md",
+   "--fetched",
+   "2026-09-29",
+   "--skill_root",
+   "fixtures/document"
+  ]
+ ],
+ "expect": {
+  "exit": 0,
+  "json": {
+   "ok": true,
+   "findings": [],
+   "data": {
+    "items": [
+     {
+      "id": "sample",
+      "title": "題",
+      "source": {
+       "location": "a.md",
+       "sha256": "1d6a5c4bbdd4cbaf34aab0d20a52e004523c63ac4187ac392749ad217739d7de",
+       "fetched": "2026-09-29"
+      },
+      "sections": [
+       {
+        "title": "題",
+        "sections": [
+         {
+          "title": "節",
+          "blocks": [
+           {
+            "kind": "para",
+            "text": "本文"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

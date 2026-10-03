@@ -227,6 +227,44 @@ pub fn verify(
         }
     }
     let base = skills.join("v-rust-advisor");
+    // **テストケース（ボード skills-creator-contract の論点2 ・ 3）**：リファレンス実装のテスト1件ごとに
+    // 同名のテストケースが在るかを照合し、生成した Rust の助言型でテストケースを実行する
+    let cases_dir = here.join("references/contract/cases");
+    if files::is_dir(&cases_dir) {
+        let tests = files::read_to_string(here.join("tool/business_logic/tests/refs.rs"))
+            .unwrap_or_default();
+        match crate::cases::unmatched(&tests, &cases_dir) {
+            Ok(found) => {
+                v.lines.push(format!(
+                    "[cases] テストとテストケースの対応 ── 不一致 {} 件",
+                    found.len()
+                ));
+                v.failures
+                    .extend(found.into_iter().map(|f| format!("[cases] {f}")));
+            }
+            Err(e) => v.failures.push(format!("[cases] {e}")),
+        }
+        if languages.iter().any(|l| l == "rust") {
+            match crate::cases::run(&base, &cases_dir) {
+                Ok(results) => {
+                    let failed: Vec<String> = results
+                        .iter()
+                        .filter_map(|(n, w)| {
+                            w.as_ref()
+                                .map(|w| format!("[cases v-rust-advisor] {n} ── {w}"))
+                        })
+                        .collect();
+                    v.lines.push(format!(
+                        "[cases v-rust-advisor] テストケース {} 件 ／ 不合格 {} 件",
+                        results.len(),
+                        failed.len()
+                    ));
+                    v.failures.extend(failed);
+                }
+                Err(e) => v.failures.push(format!("[cases v-rust-advisor] {e}")),
+            }
+        }
+    }
     let schema = here.join("references/profiles/shared/document.schema.json.tmpl");
     for lang in languages.iter().filter(|l| l.as_str() != "rust") {
         let other = skills.join(format!("v-{lang}-advisor"));
