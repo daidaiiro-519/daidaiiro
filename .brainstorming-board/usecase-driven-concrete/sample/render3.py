@@ -189,7 +189,7 @@ def p_uc(d):
       frag='break' if x['ending']=='失敗' else 'opt'
       groups.append({"label":frag,"cases":[{"name":f"{x['label']} {x['name']} → {x['ending']}","span":[start,len(msgs)-1]}]})
       card(x['label'],x['name'],[['分岐元の手順',str(s['no'])],['条件',E(x['condition'])],['条件の種類',E(x['condition_kind'])]]+[[E(t['no']),E(t['text'])] for t in x['steps']]+[['終わり方',E(x['ending'])]],'fail' if x['ending']=='失敗' else 'ext')
-  seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":13,"font.size":14,"chart.exchange-col-w":190}})
+  seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":16,"font.size":17,"chart.exchange-col-w":240,"chart.pad":6,"chart.exchange-row-h":44}})
   sh=d['stakeholders']; g=d['guarantees']
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   b=head(d,badge(h['level'])+f' ・ スコープ {ref(ctx)}')
