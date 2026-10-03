@@ -169,40 +169,38 @@ def p_ds(d):
 def p_uc(d):
   h=d['header']; sc=d['scenario']; ctx=h['scope'].get('context')
   parts=[h['primary_actor'],'システム']+sc['supporting_actors']
-  msgs=[];groups=[]
+  msgs=[];groups=[];detail=[]
   def add(s):
     frm=s['actor']; to=s.get('to') or frm
     msgs.append({"from":frm,"to":to,"label":f"{s['no']} {s['name']}"})
     if s.get('reply'): msgs.append({"from":to,"to":frm,"label":s['reply'],"kind":"return"})
+  def card(no,title,rows,cls=''):
+    detail.append(f'<div class="dc {cls}" data-no="{E(str(no))}" hidden><p class="dno">{E(str(no))}</p><h3>{E(title)}</h3>'+tbl(['項目','内容'],rows)+'</div>')
   for s in sc['steps']:
     add(s)
+    rows=[['する人',E(s['actor'])+(f' → {E(s["to"])}' if s.get('to') else '')],['種類',E(s['kind'])],['内容',E(s['text'])]]
+    if s.get('reply'): rows.append(['受け取るもの',E(s['reply'])])
+    rows+=[['バリエーション',E(v['varies'])+'（'+E('、'.join(v['values']))+'）'] for v in s.get('variations',[])]
+    rows+=[['拡張',f'<a class="jump" href="#" data-go="{E(x["label"])}">{E(x["label"])} {E(x["name"])}</a>'] for x in s['extensions']]
+    card(s['no'],s['name'],rows)
     for x in s['extensions']:
       start=len(msgs)
       for t in x['steps']: add(t)
-      groups.append({"label":"拡張","cases":[{"name":f"{x['label']} {x['name']} → {x['ending']}","span":[start,len(msgs)-1]}]})
-  seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":12.5,"font.size":14}})
-  rows=[]
-  for s in sc['steps']:
-    va='、'.join(f'{v["varies"]}（{"、".join(v["values"])}）' for v in s.get('variations',[]))
-    rows.append(f'<tr class="step"><td class="no">{E(str(s["no"]))}</td><td><b>{E(s["name"])}</b></td><td>{E(s["text"])}</td><td>{E(va) or ""}</td></tr>')
-    for x in s['extensions']:
-      cls='ext fail' if x['ending']=='失敗' else 'ext'
-      rows.append(f'<tr class="{cls}"><td class="no">{E(x["label"])}</td><td><b>{E(x["name"])}</b></td><td>{E(x["condition"])}</td><td>→ {E(x["ending"])}</td></tr>')
-      for t in x['steps']:
-        rows.append(f'<tr class="{cls} sub"><td class="no">{E(t["no"])}</td><td>{E(t["name"])}</td><td>{E(t["text"])}</td><td></td></tr>')
-  steps_tbl='<div class="tw"><table class="steps"><thead><tr><th>番号</th><th>手順 ・ 拡張</th><th>内容</th><th>バリエーション ・ 終わり方</th></tr></thead><tbody>'+''.join(rows)+'</tbody></table></div>'
-  b=head(d,badge(h['level'])+f' ・ スコープ {ref(ctx)}')
-  b+=props([('主アクター',E(h['primary_actor'])),('トリガー',E(h['trigger']))])
-  b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[E(x['text']),ref(x['established_by'])] for x in d['preconditions']]))
-  b+=block('主成功シナリオと拡張',seq+steps_tbl)
+      frag='break' if x['ending']=='失敗' else 'opt'
+      groups.append({"label":frag,"cases":[{"name":f"{x['label']} {x['name']} → {x['ending']}","span":[start,len(msgs)-1]}]})
+      card(x['label'],x['name'],[['分岐元の手順',str(s['no'])],['条件',E(x['condition'])],['条件の種類',E(x['condition_kind'])]]+[[E(t['no']),E(t['text'])] for t in x['steps']]+[['終わり方',E(x['ending'])]],'fail' if x['ending']=='失敗' else 'ext')
+  seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":13,"font.size":14,"chart.exchange-col-w":190}})
   sh=d['stakeholders']; g=d['guarantees']
+  scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
+  b=head(d,badge(h['level'])+f' ・ スコープ {ref(ctx)}')
+  b+=props([('主アクター',E(h['primary_actor'])),('トリガー',E(h['trigger'])),('寄与する達成の基準',' ・ '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))]+([('未決定',E('、'.join(d['links']['open_issues'])))] if d['links'].get('open_issues') else []))
+  b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[E(x['text']),ref(x['established_by'])] for x in d['preconditions']]))
+  chips=''.join(f'<button class="chip-btn" data-go="{E(str(s["no"]))}">{E(str(s["no"]))}</button>'+''.join(f'<button class="chip-btn ext" data-go="{E(x["label"])}">{E(x["label"])}</button>' for x in s['extensions']) for s in sc['steps'])
+  b+=block('主成功シナリオと拡張',f'<div class="seqview"><div class="seqfig">{seq}</div><aside class="seqside"><div class="chips">{chips}</div>{"".join(detail)}<p class="hint">図の手順か、上の番号を押すと説明が出ます</p></aside></div>')
+  hdr=['保証']+[f'{E(s["who"])}<span class="int">{E(s["interest"])}</span>' for s in sh]
   grows=[[f'<span class="tag t-min">最低保証</span> {E(x["text"])}']+['●' if s['id'] in x['protects'] else '' for s in sh] for x in g['minimal']]
   grows+=[[f'<span class="tag t-ok">成功時保証</span> {E(x["text"])}']+['●' if s['id'] in x['satisfies'] else '' for s in sh] for x in g['success']]
-  b+=block('最低保証と成功時保証',tbl(['保証']+[f'{E(s["who"])}' for s in sh],grows,'matrix')+tbl(['利害関係者','利益'],[[E(s['who']),E(s['interest'])] for s in sh],'small'))
-  aggs=list(dict.fromkeys(s['aggregate'] for s in sc['steps'] if s.get('aggregate')))
-  b+=fold('寄与する達成の基準',len(d['contributes_to']),' ・ '.join(E(x['name']) for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']))
-  b+=fold('変更する集約（手順から導く）',len(aggs),' ・ '.join(ref(a) for a in aggs))
-  lk=d['links']; b+=fold('関連情報',len(lk['quality'])+len(lk['open_issues']),tbl(['種類','内容'],[['品質の要求',E(q['name'])] for q in D['DOM-1']['quality'] if q['id'] in lk['quality']]+[['未決定',E(x)] for x in lk['open_issues']]))
+  b+=block('最低保証と成功時保証（列は利害関係者と利益）',tbl(hdr,grows,'matrix'))
   return b
 R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
 nav=''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
@@ -217,5 +215,8 @@ page=f'''<title>来店前注文の宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
+const pick=(no)=>{{const v=document.querySelector('.page:not([hidden]) .seqview');if(!v)return;v.querySelectorAll('.dc').forEach(c=>c.hidden=c.dataset.no!==no);v.querySelectorAll('.chip-btn').forEach(b=>b.classList.toggle('on',b.dataset.go===no));v.querySelector('.hint').hidden=true;v.querySelectorAll('svg text').forEach(t=>{{const on=t.textContent.split(' ')[0]===no;t.classList.toggle('sel',on)}})}};
+document.addEventListener('click',e=>{{const b=e.target.closest('[data-go]');if(b){{e.preventDefault();pick(b.dataset.go);return}}const t=e.target.closest('.seqfig svg text');if(t){{const no=t.textContent.split(' ')[0];if(document.querySelector('.dc[data-no="'+no+'"]'))pick(no)}}}});
+document.querySelectorAll('.seqview').forEach(v=>{{v.querySelectorAll('svg text').forEach(t=>{{const no=t.textContent.split(' ')[0];if(v.querySelector('.dc[data-no="'+no+'"]'))t.classList.add('pickable')}});const f=v.querySelector('.chip-btn');if(f)pick(f.dataset.go)}});
 </script>'''
 open(f'{OUT}/viewer.html','w').write(page); print(len(page))
