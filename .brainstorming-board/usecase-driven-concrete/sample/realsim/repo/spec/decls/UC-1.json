@@ -1,0 +1,397 @@
+{
+ "kind": "use_case",
+ "id": "UC-1",
+ "header": {
+  "name": "注文を確定する",
+  "level": "ユーザー目的",
+  "scope": {
+   "context": "BC-1"
+  },
+  "primary_actor": "顧客",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [
+  {
+   "id": "PRE-1",
+   "condition": {
+    "target": "AGG-1.ST-7",
+    "op": "not_empty"
+   },
+   "established_by": "UC-8"
+  },
+  {
+   "id": "PRE-2",
+   "ensures": [
+    "AGG-1.CMD-1.PRE-2"
+   ],
+   "established_by": "UC-2"
+  },
+  {
+   "id": "PRE-3",
+   "ensures": [
+    "AGG-1.CMD-1.PRE-1"
+   ],
+   "established_by": "UC-2"
+  }
+ ],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-1",
+   "interest": "約束した時刻に受け取り、確定した合計額だけを支払う"
+  },
+  {
+   "id": "SH-2",
+   "who": "DOM-1.SH-2",
+   "interest": "調理の空きを超えて注文を受けず、支払いの承認を得た注文だけを確定する"
+  },
+  {
+   "id": "SH-3",
+   "who": "DOM-1.SH-3",
+   "interest": "確定と請求の記録を、後から突き合わせられる"
+  }
+ ],
+ "guarantees": {
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "承認なしで確定しない",
+    "condition": {
+     "if": {
+      "target": "AGG-1.ST-2",
+      "op": "eq",
+      "value": "TERM-11"
+     },
+     "target": "AGG-1.ST-5",
+     "op": "not_empty"
+    },
+    "protects": [
+     "SH-2"
+    ]
+   },
+   {
+    "id": "MG-2",
+    "name": "失敗したら調理枠を残さない",
+    "condition": {
+     "if": {
+      "target": "AGG-1.ST-2",
+      "op": "eq",
+      "value": "TERM-10"
+     },
+     "target": "AGG-1.ST-8",
+     "op": "empty"
+    },
+    "protects": [
+     "SH-1",
+     "SH-2"
+    ]
+   },
+   {
+    "id": "MG-3",
+    "name": "どこまで進んだかを残す",
+    "condition": {
+     "target": "AGG-1.ST-6",
+     "agg": "count",
+     "op": "ge",
+     "value": 1
+    },
+    "protects": [
+     "SH-2",
+     "SH-3"
+    ]
+   }
+  ],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "確定",
+    "established_by": [
+     "AGG-1.CMD-1.POST-1"
+    ],
+    "satisfies": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "SG-2",
+    "name": "受け取り時刻と調理枠の確保",
+    "established_by": [
+     "AGG-1.CMD-1.POST-2",
+     "AGG-1.CMD-1.POST-4"
+    ],
+    "satisfies": [
+     "SH-1",
+     "SH-2"
+    ]
+   },
+   {
+    "id": "SG-3",
+    "name": "承認番号の記録",
+    "established_by": [
+     "AGG-1.CMD-1.POST-3"
+    ],
+    "satisfies": [
+     "SH-3"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [
+   "決済代行"
+  ],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "相互作用",
+    "actor": "顧客",
+    "to": "システム",
+    "data": [
+     "TERM-33"
+    ],
+    "verb": "TERM-48",
+    "serves": [
+     "SH-1"
+    ],
+    "variations": [
+     {
+      "varies": "支払い手段",
+      "values": [
+       "クレジットカード",
+       "電子マネー"
+      ]
+     }
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "妥当性確認",
+    "actor": "システム",
+    "checks": [
+     "BC-1.BR-1"
+    ],
+    "serves": [
+     "SH-1",
+     "SH-2"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-1",
+      "condition_kind": "妥当性確認の失敗",
+      "fails": [
+       "BC-1.BR-1"
+      ],
+      "ending": "STEP-2",
+      "steps": [
+       {
+        "id": "EXT-1.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "顧客",
+        "data": [
+         "TERM-35"
+        ],
+        "verb": "TERM-49",
+        "extensions": []
+       },
+       {
+        "id": "EXT-1.S-2",
+        "kind": "相互作用",
+        "actor": "顧客",
+        "to": "システム",
+        "data": [
+         "TERM-36"
+        ],
+        "verb": "TERM-48",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-7",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "invokes": "DS-1.OP-1",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-3",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "invokes": "AGG-2.CMD-1",
+    "serves": [
+     "SH-1",
+     "SH-2"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-2",
+      "condition_kind": "コマンドの拒否",
+      "handles": [
+       "AGG-2.CMD-1.PRE-1"
+      ],
+      "ending": "STEP-3",
+      "steps": [
+       {
+        "id": "EXT-2.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "顧客",
+        "data": [
+         "TERM-45"
+        ],
+        "verb": "TERM-49",
+        "extensions": []
+       },
+       {
+        "id": "EXT-2.S-2",
+        "kind": "相互作用",
+        "actor": "顧客",
+        "to": "システム",
+        "data": [
+         "TERM-46"
+        ],
+        "verb": "TERM-48",
+        "extensions": []
+       }
+      ]
+     },
+     {
+      "id": "EXT-4",
+      "condition_kind": "コマンドの拒否",
+      "handles": [
+       "AGG-2.CMD-1.PRE-2"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-4.S-1",
+        "kind": "内部の状態変化",
+        "actor": "システム",
+        "invokes": "AGG-1.CMD-2",
+        "keeps": [
+         "MG-3"
+        ],
+        "extensions": []
+       },
+       {
+        "id": "EXT-4.S-2",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "顧客",
+        "data": [
+         "TERM-52"
+        ],
+        "verb": "TERM-50",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-4",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "決済代行",
+    "data": [
+     "TERM-34"
+    ],
+    "verb": "TERM-48",
+    "reply": [
+     "TERM-21"
+    ],
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-2"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-3",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "決済代行",
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-3.S-1",
+        "kind": "内部の状態変化",
+        "actor": "システム",
+        "invokes": "AGG-2.CMD-2",
+        "keeps": [
+         "MG-2"
+        ],
+        "extensions": []
+       },
+       {
+        "id": "EXT-3.S-2",
+        "kind": "内部の状態変化",
+        "actor": "システム",
+        "invokes": "AGG-1.CMD-2",
+        "keeps": [
+         "MG-3"
+        ],
+        "extensions": []
+       },
+       {
+        "id": "EXT-3.S-3",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "顧客",
+        "data": [
+         "TERM-47"
+        ],
+        "verb": "TERM-50",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-5",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "invokes": "AGG-1.CMD-1",
+    "quality": [
+     "BC-1.QR-1"
+    ],
+    "serves": [
+     "SH-1",
+     "SH-3"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-6",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "顧客",
+    "data": [
+     "TERM-14",
+     "TERM-4"
+    ],
+    "verb": "TERM-50",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   }
+  ]
+ },
+ "contributes_to": [
+  "SC-1",
+  "SC-2"
+ ],
+ "open_issues": [
+  "受け取り予定時刻を過ぎた注文の扱い"
+ ],
+ "exemptions": []
+}

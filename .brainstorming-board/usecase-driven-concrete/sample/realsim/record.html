@@ -1,0 +1,587 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>実行の記録</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>:root{--surface-page:#f5f7f6;--surface-card:#ffffff;--surface-sunken:#eceff0;--text-primary:#1b2320;--text-secondary:#66736e;--text-strong-muted:#3b4642;--border-subtle:#dde2e1;--border-strong:#c4ccca;--accent:#1f6b57;--accent-soft:#e0efe8;--info:#2c5d9f;--info-soft:#e2ebf7;--caution:#875f0f;--caution-soft:#f6ecd5;--negative:#ad3f27;--negative-soft:#f8e3dc;--neutral:#3b4642;--neutral-soft:#eceff0;--actor-primary:#2c5d9f;--actor-primary-bg:#e2ebf7;--actor-system:#3b4642;--actor-system-bg:#eceff0;--actor-supporting:#875f0f;--actor-supporting-bg:#f6ecd5;--guarantee-success:#1f6b57;--guarantee-success-bg:#e0efe8;--guarantee-minimal:#ad3f27;--guarantee-minimal-bg:#f8e3dc;--ending-return:#2c5d9f;--ending-return-bg:#e2ebf7;--ending-fail:#ad3f27;--ending-fail-bg:#f8e3dc;--category-core:#1f6b57;--category-core-bg:#e0efe8;--category-supporting:#875f0f;--category-supporting-bg:#f6ecd5;--category-generic:#3b4642;--category-generic-bg:#eceff0;--tag:#66736e;--tag-bg:#eceff0;--figure-ink:#1b2320;--figure-soft:#66736e;--figure-edge:#66736e;--figure-box:#ffffff;--figure-box-stroke:#c4ccca;--figure-accent:#1f6b57;--figure-accent-bg:#e0efe8;--figure-warn:#ad3f27;--figure-warn-bg:#f8e3dc;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--surface-page:#121715;--surface-card:#1a201e;--surface-sunken:#232b28;--text-primary:#e7ecea;--text-secondary:#97a59f;--text-strong-muted:#c5cecb;--border-subtle:#2c3532;--border-strong:#3d4945;--accent:#7fc8ac;--accent-soft:#1f3a30;--info:#93b9ec;--info-soft:#1d2b3e;--caution:#e2bf72;--caution-soft:#3a2f18;--negative:#f1a283;--negative-soft:#3d241c;--neutral:#c5cecb;--neutral-soft:#232b28;--actor-primary:#93b9ec;--actor-primary-bg:#1d2b3e;--actor-system:#c5cecb;--actor-system-bg:#232b28;--actor-supporting:#e2bf72;--actor-supporting-bg:#3a2f18;--guarantee-success:#7fc8ac;--guarantee-success-bg:#1f3a30;--guarantee-minimal:#f1a283;--guarantee-minimal-bg:#3d241c;--ending-return:#93b9ec;--ending-return-bg:#1d2b3e;--ending-fail:#f1a283;--ending-fail-bg:#3d241c;--category-core:#7fc8ac;--category-core-bg:#1f3a30;--category-supporting:#e2bf72;--category-supporting-bg:#3a2f18;--category-generic:#c5cecb;--category-generic-bg:#232b28;--tag:#97a59f;--tag-bg:#232b28;--figure-ink:#e7ecea;--figure-soft:#97a59f;--figure-edge:#97a59f;--figure-box:#1a201e;--figure-box-stroke:#3d4945;--figure-accent:#7fc8ac;--figure-accent-bg:#1f3a30;--figure-warn:#f1a283;--figure-warn-bg:#3d241c;color-scheme:dark}}
+:root[data-theme="dark"]{--surface-page:#121715;--surface-card:#1a201e;--surface-sunken:#232b28;--text-primary:#e7ecea;--text-secondary:#97a59f;--text-strong-muted:#c5cecb;--border-subtle:#2c3532;--border-strong:#3d4945;--accent:#7fc8ac;--accent-soft:#1f3a30;--info:#93b9ec;--info-soft:#1d2b3e;--caution:#e2bf72;--caution-soft:#3a2f18;--negative:#f1a283;--negative-soft:#3d241c;--neutral:#c5cecb;--neutral-soft:#232b28;--actor-primary:#93b9ec;--actor-primary-bg:#1d2b3e;--actor-system:#c5cecb;--actor-system-bg:#232b28;--actor-supporting:#e2bf72;--actor-supporting-bg:#3a2f18;--guarantee-success:#7fc8ac;--guarantee-success-bg:#1f3a30;--guarantee-minimal:#f1a283;--guarantee-minimal-bg:#3d241c;--ending-return:#93b9ec;--ending-return-bg:#1d2b3e;--ending-fail:#f1a283;--ending-fail-bg:#3d241c;--category-core:#7fc8ac;--category-core-bg:#1f3a30;--category-supporting:#e2bf72;--category-supporting-bg:#3a2f18;--category-generic:#c5cecb;--category-generic-bg:#232b28;--tag:#97a59f;--tag-bg:#232b28;--figure-ink:#e7ecea;--figure-soft:#97a59f;--figure-edge:#97a59f;--figure-box:#1a201e;--figure-box-stroke:#3d4945;--figure-accent:#7fc8ac;--figure-accent-bg:#1f3a30;--figure-warn:#f1a283;--figure-warn-bg:#3d241c;color-scheme:dark}
+/* 部品の見た目。色は tokens.css の変数だけを使い、直値を書かない */
+body{background:var(--surface-page);color:var(--text-primary);font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;font-size:15px;line-height:1.7}
+.shell{display:grid;grid-template-columns:11rem minmax(0,1fr);gap:1.25rem;max-width:84rem;margin:0 auto;padding-inline:16px;padding-block:24px 64px}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start}
+.brand{margin:0 0 .75rem;font-weight:700}
+.nav{display:flex;flex-direction:column;gap:.6rem}
+.ng{display:flex;flex-direction:column}
+.nk{font-size:.7rem;color:var(--text-secondary);letter-spacing:.06em;margin-bottom:.1rem}
+.nav a{color:var(--text-primary);text-decoration:none;font-size:.9rem;padding:.1rem .5rem;border-radius:4px}
+.nav a:hover{background:var(--surface-sunken)}
+.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.page{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:10px;padding:1.25rem 1.5rem 1.25rem;min-width:0}
+.ph .kind{margin:0;font-size:.78rem;color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:.25rem .5rem;align-items:center}
+.ph h1{font-size:1.45rem;margin:.15rem 0 .25rem;line-height:1.35;text-wrap:balance}
+.id{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;color:var(--text-secondary);margin-left:.5em;font-weight:400;vertical-align:.15em}
+.lead{margin:.25rem 0 1rem;color:var(--text-secondary);max-width:46em}
+.blk{margin-top:1.75rem}
+.blk>h2{font-size:1rem;margin:0 0 .7rem;display:flex;align-items:center}
+/* 札 */
+.pill{display:inline-block;font-size:.72rem;line-height:1.7;padding:0 .5rem;border-radius:999px;background:var(--tag-bg);color:var(--tag);margin:0 .25rem .2rem 0;white-space:nowrap}
+.pill.t-success{background:var(--guarantee-success-bg);color:var(--guarantee-success)}
+.pill.t-minimal,.pill.t-fail{background:var(--guarantee-minimal-bg);color:var(--guarantee-minimal)}
+.pill.t-return{background:var(--ending-return-bg);color:var(--ending-return)}
+.pill.t-core{background:var(--category-core-bg);color:var(--category-core);font-weight:600}
+.pill.t-supporting{background:var(--category-supporting-bg);color:var(--category-supporting)}
+.pill.t-generic{background:var(--category-generic-bg);color:var(--category-generic)}
+.pill.t-accent{background:var(--accent-soft);color:var(--accent)}
+.act{display:inline-block;font-size:.75rem;font-weight:600;padding:.05rem .55rem;border-radius:999px;white-space:nowrap}
+.act.primary{color:var(--actor-primary);background:var(--actor-primary-bg)}
+.act.system{color:var(--actor-system);background:var(--actor-system-bg)}
+.act.supporting{color:var(--actor-supporting);background:var(--actor-supporting-bg)}
+.k{font-size:.68rem;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:3px;padding:0 .3rem;margin-right:.35rem}
+/* タイル */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.6rem}
+.tile{border:1px solid var(--border-subtle);border-radius:8px;padding:.6rem .8rem;background:var(--surface-card)}
+.tl{font-size:.75rem;color:var(--text-secondary);margin-bottom:.15rem;display:flex;align-items:center}
+.tv{font-size:.95rem}
+/* カード */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:.75rem}
+.card{border:1px solid var(--border-subtle);border-radius:8px;padding:.7rem .9rem;background:var(--surface-card)}
+.card.top-success{border-top:3px solid var(--guarantee-success)}
+.card.top-minimal{border-top:3px solid var(--guarantee-minimal)}
+.card.left-return{border-left:4px solid var(--ending-return)}
+.card.left-fail{border-left:4px solid var(--ending-fail)}
+.card.left-accent{border-left:4px solid var(--accent)}
+.card.left-neutral{border-left:4px solid var(--border-strong)}
+.card h3{font-size:.92rem;margin:0 0 .35rem;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}
+.item{padding:.4rem 0;border-top:1px solid var(--border-subtle)}
+.item:first-of-type{border-top:0}
+.txt{display:block;font-size:.83rem;color:var(--text-secondary);line-height:1.6}
+.ln{display:block;font-size:.78rem;color:var(--text-secondary);margin-top:.15rem}
+.no{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.75rem;color:var(--text-secondary)}
+/* 表 */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{text-align:left;font-weight:600;font-size:.74rem;color:var(--text-secondary);border-bottom:1px solid var(--border-strong);padding:.35rem .6rem;white-space:nowrap}
+td{border-bottom:1px solid var(--border-subtle);padding:.5rem .6rem;vertical-align:top}
+td.num span{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.78rem}
+tr.end td{color:var(--accent);font-size:.82rem;border-bottom:0}
+.yes{color:var(--accent);font-weight:600}.no-ans{color:var(--text-secondary)}
+.ref{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.ref:hover,.ref:focus-visible{border-bottom-color:var(--accent);outline:none}
+.missing{color:var(--negative);font-size:.85rem}
+.avoid{font-size:.75rem;color:var(--text-secondary);text-decoration:line-through}
+/* 図 */
+.fig{margin:0 0 .75rem;padding:.75rem;border:1px solid var(--border-subtle);border-radius:8px;background:var(--surface-page);overflow-x:auto}
+.fig svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.hs{display:grid;grid-template-columns:2.6rem max-content minmax(0,1fr);gap:.5rem;align-items:start;padding:.35rem 0;border-top:1px solid var(--border-subtle)}
+/* 説明 */
+.help{display:inline-grid;place-items:center;width:1.15rem;height:1.15rem;margin-left:.35rem;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface-card);color:var(--text-secondary);font-size:.68rem;font-weight:700;cursor:pointer;padding:0}
+.help:hover,.help:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+.pop{max-width:26rem;border:1px solid var(--border-strong);border-radius:8px;padding:.8rem 1rem;background:var(--surface-card);color:var(--text-primary);font-size:.88rem;line-height:1.7}
+.pop p{margin:.3rem 0 0}
+.fold{border-top:1px solid var(--border-subtle);padding:.5rem 0;margin-top:1.5rem}
+.fold summary{cursor:pointer;font-size:.88rem;color:var(--text-secondary)}
+.fold summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fbody{padding:.5rem 0 .25rem}
+@media (max-width:760px){.shell{grid-template-columns:1fr}.side{position:static}.nav{flex-direction:row;flex-wrap:wrap;gap:.5rem 1rem}.page{padding:1rem}}
+
+.pill.t-caution{background:var(--caution-soft);color:var(--caution)}
+.tc{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;padding:0 .4rem;border-radius:4px;border:1px solid var(--border-strong);color:var(--text-secondary);margin-left:.35rem;white-space:nowrap;vertical-align:.1em}
+.tc.t-success{border-color:var(--guarantee-success);color:var(--guarantee-success)}
+.tc.t-fail{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}
+.tc.t-caution{border-color:var(--caution);color:var(--caution);background:var(--caution-soft)}
+pre.code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.75rem;background:var(--surface-sunken);padding:.75rem;border-radius:6px;overflow-x:auto;max-height:28rem}
+
+h2.sec{font-size:1.05rem;margin:1.5rem 0 .5rem;padding-top:1rem;border-top:1px solid var(--border-subtle)}
+
+.sbtn{font:inherit;font-size:.8rem;min-width:2rem;padding:.2rem .6rem;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-card);color:var(--text-primary);cursor:pointer}
+.sbtn:hover{border-color:var(--accent)}
+.sbtn.on{background:var(--accent);border-color:var(--accent);color:var(--surface-card)}
+.stepper{display:flex;gap:.4rem;flex-wrap:wrap;margin:1.5rem 0 1rem;padding:.75rem 0;border-top:1px solid var(--border-subtle);position:sticky;top:0;background:var(--surface-card);z-index:2}
+.snav{display:flex;justify-content:space-between;margin-top:1.25rem}
+h3.sub{font-size:.85rem;font-weight:600;color:var(--text-secondary);margin:1rem 0 .4rem}
+ .main{max-width:1100px;margin:0 auto} body{background:var(--surface-page)}</style></head><body><main class="main" style="padding:1.5rem 16px"><header class="ph"><p class="kind">シミュレーション</p><h1>実行の記録</h1></header><p class="lead">実際のリポジトリで、Python（集約などの component テスト）と Go（ユースケースの system テスト）の2つの言語のテストを流し、道具 concrete と突き合わせた記録。</p><section class="blk"><h2>仕組み</h2><div class="tw"><table><thead><tr><th></th><th>道具（concrete）</th><th>テストの実行器（pytest ・ go test）</th></tr></thead><tbody><tr><td>読むもの</td><td>宣言（spec/）と、記録ファイル（build/trace.jsonl）だけ</td><td>テストのソース</td></tr><tr><td>読まないもの</td><td>テストのソース、テストの合否</td><td>宣言</td></tr><tr><td>判定すること</td><td>欠け ・ 余り ・ 古い ・ レベル違い（仕様とテストの対応）</td><td>テストが通るか</td></tr><tr><td>言語に依存するか</td><td>しない</td><td>する（その言語のもの）</td></tr><tr><td>結果の置き場所</td><td>標準出力だけ。保存しない</td><td>標準出力だけ。保存しない</td></tr></tbody></table></div><p class="txt">CI は、両方が通ったときだけ通る。2つをつなぐのは、テストが走ったときに1行ずつ追記する記録ファイルだけである。</p></section><section class="blk"><h2>記録の契約（concrete contract の出力）</h2><pre class="code">記録の契約（concrete。言語によらない）
+1. テストを始めるときに、環境変数 CONCRETE_TRACE を読む。設定されていなければ何もしない。
+2. 設定されていれば、そのファイルの末尾へ、JSON を1行追記する（改行で終える）。
+   {&quot;condition&quot;: テスト条件の ID, &quot;hash&quot;: テスト条件のハッシュ値, &quot;level&quot;: テストレベル, &quot;test&quot;: テストの名前（任意）}
+3. 値は concrete conditions が出したものを、そのまま書く。ハッシュ値は、テストを書いたときに読んだ値である。
+4. 追記する処理は、その言語の標準ライブラリだけで補助の関数として1つ作り、テストの間で共有する。
+5. 1つのテストが確かめるテスト条件ごとに1行書く。確かめないテスト条件の ID は書かない。
+6. skip するテストは、書く前に skip する。
+7. テストの合否はここに書かない。合否はテストの実行器が出す。
+8. 記録は、テストを実際に実行したときにだけ書かれる。実行器が前回の結果を再利用する仕組み（キャッシュ）は切って流す。</pre></section><section class="blk"><h2>補助の関数（契約どおりに、各言語の標準ライブラリだけで書いたもの）</h2><div class="cards"><div class="card"><h3>Python（tests/trace.py）</h3><pre class="code">&quot;&quot;&quot;記録の契約（concrete contract）の補助の関数。標準ライブラリだけで書き、テストの間で共有する&quot;&quot;&quot;
+import json,os
+def trace(condition,hash,level):
+  path=os.environ.get(&#x27;CONCRETE_TRACE&#x27;)
+  if not path: return
+  test=os.environ.get(&#x27;PYTEST_CURRENT_TEST&#x27;,&#x27;&#x27;).split(&#x27; &#x27;)[0]
+  with open(path,&#x27;a&#x27;,encoding=&#x27;utf-8&#x27;) as f:
+    f.write(json.dumps({&quot;condition&quot;:condition,&quot;hash&quot;:hash,&quot;level&quot;:level,&quot;test&quot;:test},ensure_ascii=False)+&#x27;\n&#x27;)
+</pre></div><div class="card"><h3>Go（systemtest/trace_test.go）</h3><pre class="code">package systemtest
+
+// 記録の契約（concrete contract）の補助の関数。標準ライブラリだけで書き、テストの間で共有する
+import (
+	&quot;encoding/json&quot;
+	&quot;os&quot;
+	&quot;testing&quot;
+)
+
+func trace(t *testing.T, condition, hash, level string) {
+	path := os.Getenv(&quot;CONCRETE_TRACE&quot;)
+	if path == &quot;&quot; {
+		return
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	b, _ := json.Marshal(map[string]string{&quot;condition&quot;: condition, &quot;hash&quot;: hash, &quot;level&quot;: level, &quot;test&quot;: t.Name()})
+	f.Write(append(b, &#x27;\n&#x27;))
+}
+</pre></div></div></section><section class="blk"><h2>テストの側の書き方（テストの先頭で、確かめるテスト条件の ID とハッシュ値を記録する）</h2><div class="cards"><div class="card"><h3>Python ・ component</h3><pre class="code">def test_reserve_rejects_short():
+  trace(&quot;AGG-2.CMD-1.PRE-1&quot;,&quot;77d3e427&quot;,&quot;component&quot;)
+  with pytest.raises(Rejected) as e: slot(1).reserve(CookAmount(1))
+  assert e.value.reason==&#x27;調理の空きが足りない&#x27;
+</pre></div><div class="card"><h3>Go ・ system</h3><pre class="code">func TestSlotShort(t *testing.T) {
+	trace(t, &quot;UC-1.EXT-2&quot;, &quot;b125148e&quot;, &quot;system&quot;)
+	o := run(t, `{`+base+`,&quot;catalog&quot;:{&quot;P-1&quot;:500,&quot;P-2&quot;:300},&quot;slots&quot;:[{&quot;id&quot;:&quot;12:00&quot;,&quot;start&quot;:&quot;2026-10-03T12:00&quot;,&quot;free&quot;:0},{&quot;id&quot;:&quot;12:30&quot;,&quot;start&quot;:&quot;2026-10-03T12:30&quot;,&quot;free&quot;:10}],&quot;payment&quot;:&quot;approve&quot;}`)
+	successGuarantees(t, o, &quot;12:30&quot;)
+}
+
+</pre></div></div></section><section class="blk"><h2>記録ファイルの実物（最後の手で、2つの言語のテストが合わせて 29 行を書いた。抜粋）</h2><pre class="code">{&quot;condition&quot;: &quot;AGG-1.INV-1&quot;, &quot;hash&quot;: &quot;00caf1db&quot;, &quot;level&quot;: &quot;component&quot;, &quot;test&quot;: &quot;tests/test_domain.py::test_inv1_confirmed_needs_pickup&quot;}
+{&quot;condition&quot;: &quot;AGG-1.INV-2&quot;, &quot;hash&quot;: &quot;9efd2f10&quot;, &quot;level&quot;: &quot;component&quot;, &quot;test&quot;: &quot;tests/test_domain.py::test_inv2_confirmed_needs_lines&quot;}
+{&quot;condition&quot;: &quot;AGG-1.ST-3.MAX&quot;, &quot;hash&quot;: &quot;2f0bdb3c&quot;, &quot;level&quot;: &quot;component&quot;, &quot;test&quot;: &quot;tests/test_domain.py::test_lines_max_20&quot;}
+{&quot;condition&quot;: &quot;AGG-1.CMD-1.PRE-1&quot;, &quot;hash&quot;: &quot;d2b64f49&quot;, &quot;level&quot;: &quot;component&quot;, &quot;test&quot;: &quot;tests/test_domain.py::test_confirm_rejects_confirmed&quot;}
+…
+{&quot;condition&quot;:&quot;UC-1.EXT-3&quot;,&quot;hash&quot;:&quot;8a16eb95&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestPaymentDeclined&quot;}
+{&quot;condition&quot;:&quot;UC-1.STEP-5.QR-1&quot;,&quot;hash&quot;:&quot;903cbb3d&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestConfirmResponseTime&quot;}
+{&quot;condition&quot;:&quot;UC-1.EXT-4&quot;,&quot;hash&quot;:&quot;9acfca23&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestOverLimit&quot;}</pre><p class="txt">書いたのは pytest と go test で、道具は書いていない。1行が「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。合否は書かない。</p></section><section class="blk"><h2>リポジトリに残るもの ／ 残らないもの</h2><div class="tw"><table><thead><tr><th>場所</th><th>中身</th><th>git で管理するか</th></tr></thead><tbody><tr><td>spec/decls/</td><td>宣言（17件）</td><td>する</td></tr><tr><td>spec/confirmed.json</td><td>宣言どうしの対応を承認した時点のハッシュ値（承認者が concrete approve で書く）</td><td>する</td></tr><tr><td>src/ ・ tests/ ・ systemtest/</td><td>実装と、2つの言語のテスト（テスト条件の ID とハッシュ値はテストのソースの中にある）</td><td>する</td></tr><tr><td>tool/ ・ ci.sh</td><td>道具と、CI の手順</td><td>する</td></tr><tr><td>build/trace.jsonl</td><td>記録ファイル（テストを流すたびに作り直す）</td><td>しない（.gitignore）</td></tr><tr><td>テストの合否</td><td>実行器の標準出力</td><td>しない（どこにも残さない）</td></tr></tbody></table></div><p class="txt">最後の手のあとの <code>git status --ignored</code>：</p><pre class="code">!! .pytest_cache/
+!! base/
+!! build/
+!! run_sim.py
+!! src/__pycache__/
+!! src/order/__pycache__/
+!! tests/__pycache__/
+!! tool/__pycache__/
+</pre></section><section class="blk"><h2>手の一覧（手ごとに git でコミットし、CI を流した）</h2><div class="tw"><table><thead><tr><th>手</th><th>誰が</th><th>何をしたか</th><th>concrete check</th><th>pytest</th><th>go test</th><th>concrete match</th><th>CI</th></tr></thead><tbody><tr><td><button class="sbtn" data-go="0">0</button></td><td>人（承認者）</td><td><span class="txt">承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td></tr><tr><td><button class="sbtn" data-go="1">1</button></td><td>人（業務エキスパート）</td><td><span class="txt">業務の変更：1回に確保できる調理の量は10食まで。調理枠の「確保する」に事前条件を足す</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-fail">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="2">2</button></td><td>AI</td><td><span class="txt">拡張 4b を足して新しい拒否を扱い、実装とテスト（Python ・ Go）を足す</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-fail">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="3">3</button></td><td>人（承認者）</td><td><span class="txt">PR を承認する。宣言どうしの対応を記録する</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td></tr><tr><td><button class="sbtn" data-go="4">4</button></td><td>人（業務エキスパート）</td><td><span class="txt">業務の変更：調理枠は予備の1食を残す。「確保する」の事前条件1の比較する値を書き換える</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-fail">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="5">5</button></td><td>AI</td><td><span class="txt">concrete match の「古い」を受けて、予備の1食を実装し、テストとハッシュ値を直す</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-fail">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="6">6</button></td><td>人（承認者）</td><td><span class="txt">確かめ直しになった拡張 4a を読み、扱う拒否が今も正しいことを確かめて承認する</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td></tr><tr><td><button class="sbtn" data-go="7">7</button></td><td>AI</td><td><span class="txt">手順を整理しようとして、拡張 5a の手順 5a1（調理枠を戻す）を宣言と実装から消す</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-fail">落ちた</span></td><td><span class="pill t-fail">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="8">8</button></td><td>人（承認者）</td><td><span class="txt">CI が落ちたので PR を差し戻し、変更を戻す</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td><td><span class="pill t-success">通った</span></td></tr></tbody></table></div></section><div class="stepper"><button class="sbtn" data-go="0">0</button><button class="sbtn" data-go="1">1</button><button class="sbtn" data-go="2">2</button><button class="sbtn" data-go="3">3</button><button class="sbtn" data-go="4">4</button><button class="sbtn" data-go="5">5</button><button class="sbtn" data-go="6">6</button><button class="sbtn" data-go="7">7</button><button class="sbtn" data-go="8">8</button></div><section class="simstep" data-no="0"><p class="lead"><b>手0　人（承認者）</b>　承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する　<span class="no">commit 96f2ac0</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">（最初のコミット）</pre></section><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 23
+
+$ pytest -q tests
+21 passed in 0.02s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.547s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 27 件 ・ 記録 27 行
+
+CI：通った</pre></section><div class="snav"><span></span><button class="sbtn" data-go="1">次の手 →</button></div></section><section class="simstep" data-no="1"><p class="lead"><b>手1　人（業務エキスパート）</b>　業務の変更：1回に確保できる調理の量は10食まで。調理枠の「確保する」に事前条件を足す　<span class="no">commit c92100b</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/decls/AGG-2.json | 9 +++++++++
+ spec/decls/BC-1.json  | 7 +++++++
+ 2 files changed, 16 insertions(+)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/spec/decls/AGG-2.json b/spec/decls/AGG-2.json
+index 4fcf86e..6abc415 100644
+--- a/spec/decls/AGG-2.json
++++ b/spec/decls/AGG-2.json
+@@ -66,6 +66,15 @@
+        &quot;ARG-1&quot;: 1
+       }
+      }
++    },
++    {
++     &quot;id&quot;: &quot;PRE-2&quot;,
++     &quot;condition&quot;: {
++      &quot;target&quot;: &quot;ARG-1&quot;,
++      &quot;op&quot;: &quot;le&quot;,
++      &quot;value&quot;: 10
++     },
++     &quot;reject&quot;: &quot;TERM-51&quot;
+     }
+    ],
+    &quot;postconditions&quot;: [
+diff --git a/spec/decls/BC-1.json b/spec/decls/BC-1.json
+index a36dbec..116a3e0 100644
+--- a/spec/decls/BC-1.json
++++ b/spec/decls/BC-1.json
+@@ -374,6 +374,13 @@
+     &quot;kind&quot;: &quot;動作&quot;,
+     &quot;definition&quot;: &quot;相手に結果を伝える&quot;,
+     &quot;avoid&quot;: []
++   },
++   {
++    &quot;id&quot;: &quot;TERM-51&quot;,
++    &quot;word&quot;: &quot;一度に確保できる量を超えている&quot;,
++    &quot;kind&quot;: &quot;拒否の理由&quot;,
++    &quot;definition&quot;: &quot;1回で確保したい量が、上限の10食を超えている&quot;,
++    &quot;avoid&quot;: []
+    }
+   ]
+  },
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 23 ・ 対応の欠け 1
+  対応の欠け  コマンドの拒否を扱う  UC-1.STEP-3 → AGG-2.CMD-1.PRE-2  手順4が呼ぶコマンドの拒否「一度に確保できる量を超えている」を、事前条件も拡張も扱っていない
+
+$ pytest -q tests
+21 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.506s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 28 件 ・ 記録 27 行 ・ 欠け 1
+  欠け  AGG-2.CMD-1.PRE-2  記録が無い。今のハッシュ値 da3169c1 ・ 求めるレベル component
+
+CI：落ちた</pre></section><div class="snav"><button class="sbtn" data-go="0">← 前の手</button><button class="sbtn" data-go="2">次の手 →</button></div></section><section class="simstep" data-no="2"><p class="lead"><b>手2　AI</b>　拡張 4b を足して新しい拒否を扱い、実装とテスト（Python ・ Go）を足す　<span class="no">commit b1fc7d8</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/decls/BC-1.json   |  7 +++++++
+ spec/decls/UC-1.json   | 31 +++++++++++++++++++++++++++++++
+ src/order/domain.py    |  1 +
+ src/order/usecase.py   |  2 ++
+ systemtest/uc1_test.go |  9 +++++++++
+ tests/test_domain.py   |  4 ++++
+ 6 files changed, 54 insertions(+)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/spec/decls/BC-1.json b/spec/decls/BC-1.json
+index 116a3e0..e294b6a 100644
+--- a/spec/decls/BC-1.json
++++ b/spec/decls/BC-1.json
+@@ -381,6 +381,13 @@
+     &quot;kind&quot;: &quot;拒否の理由&quot;,
+     &quot;definition&quot;: &quot;1回で確保したい量が、上限の10食を超えている&quot;,
+     &quot;avoid&quot;: []
++   },
++   {
++    &quot;id&quot;: &quot;TERM-52&quot;,
++    &quot;word&quot;: &quot;一度に受けられる量&quot;,
++    &quot;kind&quot;: &quot;情報の別名&quot;,
++    &quot;definition&quot;: &quot;1回の注文で受けられる調理の量の上限&quot;,
++    &quot;avoid&quot;: []
+    }
+   ]
+  },
+diff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json
+index 37a9cde..c3726c2 100644
+--- a/spec/decls/UC-1.json
++++ b/spec/decls/UC-1.json
+@@ -261,6 +261,37 @@
+         &quot;extensions&quot;: []
+        }
+       ]
++     },
++     {
++      &quot;id&quot;: &quot;EXT-4&quot;,
++      &quot;condition_kind&quot;: &quot;コマンドの拒否&quot;,
++      &quot;handles&quot;: [
++       &quot;AGG-2.CMD-1.PRE-2&quot;
++      ],
++      &quot;ending&quot;: &quot;失敗&quot;,
++      &quot;steps&quot;: [
++       {
++        &quot;id&quot;: &quot;EXT-4.S-1&quot;,
++        &quot;kind&quot;: &quot;内部の状態変化&quot;,
++        &quot;actor&quot;: &quot;システム&quot;,
++        &quot;invokes&quot;: &quot;AGG-1.CMD-2&quot;,
++        &quot;keeps&quot;: [
++         &quot;MG-3&quot;
++        ],
++        &quot;extensions&quot;: []
++       },
++       {
++        &quot;id&quot;: &quot;EXT-4.S-2&quot;,
++        &quot;kind&quot;: &quot;相互作用&quot;,
++        &quot;actor&quot;: &quot;システム&quot;,
++        &quot;to&quot;: &quot;顧客&quot;,
++        &quot;data&quot;: [
++         &quot;TERM-52&quot;
++        ],
++        &quot;verb&quot;: &quot;TERM-50&quot;,
++        &quot;extensions&quot;: []
++       }
++      ]
+      }
+     ]
+    },
+diff --git a/src/order/domain.py b/src/order/domain.py
+index 0630913..fc37ca5 100644
+--- a/src/order/domain.py
++++ b/src/order/domain.py
+@@ -59,6 +59,7 @@ class CookingSlot:
+   slot_id:str; start:datetime; free:CookAmount; store:str
+   def reserve(self,amount):                                # CMD-1 確保する
+     if not (self.free.value&gt;=amount.value): raise Rejected(&#x27;調理の空きが足りない&#x27;)
++    if not (amount.value&lt;=10): raise Rejected(&#x27;一度に確保できる量を超えている&#x27;)
+     self.free=self.free.sub(amount); return []
+   def release(self,amount):                                # CMD-2 戻す
+     self.free=self.free.add(amount); return []
+diff --git a/src/order/usecase.py b/src/order/usecase.py
+index 45512d9..c3d1830 100644
+--- a/src/order/usecase.py
++++ b/src/order/usecase.py
+@@ -22,6 +22,8 @@ class ConfirmOrder:
+       try:
+         slot.reserve(total); break
+       except Rejected as e:
++        if e.reason==&#x27;一度に確保できる量を超えている&#x27;:
++          o.record_progress(self.clock()); self.ui.notify(&#x27;一度に受けられる量&#x27;); return Result(False,&#x27;量を超えた&#x27;)
+         if e.reason!=&#x27;調理の空きが足りない&#x27;: raise
+         slot=self.ui.choose_other_slot(self.slots,total)
+         if slot is None: return Result(False,&#x27;時刻に同意しなかった&#x27;)
+diff --git a/systemtest/uc1_test.go b/systemtest/uc1_test.go
+index d7e813e..4c0f74e 100644
+--- a/systemtest/uc1_test.go
++++ b/systemtest/uc1_test.go
+@@ -96,3 +96,12 @@ func TestConfirmResponseTime(t *testing.T) {
+ 	}
+ }
+ 
++
++func TestOverLimit(t *testing.T) {
++	trace(t, &quot;UC-1.EXT-4&quot;, &quot;9acfca23&quot;, &quot;system&quot;)
++	o := run(t, `{&quot;lines&quot;:[{&quot;product&quot;:&quot;P-1&quot;,&quot;qty&quot;:11,&quot;price&quot;:500}],&quot;catalog&quot;:{&quot;P-1&quot;:500},&quot;slots&quot;:[{&quot;id&quot;:&quot;12:00&quot;,&quot;start&quot;:&quot;2026-10-03T12:00&quot;,&quot;free&quot;:20}],&quot;payment&quot;:&quot;approve&quot;}`)
++	if o.OK || o.Status != &quot;下書き&quot; {
++		t.Fatalf(&quot;成功時保証は成り立ってはいけない: %+v&quot;, o)
++	}
++	minimalGuarantees(t, o, &quot;12:00&quot;, 20)
++}
+diff --git a/tests/test_domain.py b/tests/test_domain.py
+index d77fa1e..5cc0986 100644
+--- a/tests/test_domain.py
++++ b/tests/test_domain.py
+@@ -77,3 +77,7 @@ def test_estimate():
+   trace(&quot;DS-1.OP-1.POST-2&quot;,&quot;b692bac2&quot;,&quot;component&quot;)
+   start=datetime(2026,10,3,12,0); r=estimate_pickup(CookAmount(4),CookAmount(10),start)
+   assert r is not None and r&gt;=start
++def test_reserve_rejects_over_limit():
++  trace(&quot;AGG-2.CMD-1.PRE-2&quot;,&quot;da3169c1&quot;,&quot;component&quot;)
++  with pytest.raises(Rejected) as e: slot(20).reserve(CookAmount(11))
++  assert e.value.reason==&#x27;一度に確保できる量を超えている&#x27;
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 24 ・ 確かめ直し 1
+  確かめ直し  上流の変更（handles）  UC-1.EXT-4 → AGG-2.CMD-1.PRE-2  まだ承認していない対応。PR の承認で記録する
+
+$ pytest -q tests
+22 passed in 0.02s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.554s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行
+
+CI：落ちた</pre></section><div class="snav"><button class="sbtn" data-go="1">← 前の手</button><button class="sbtn" data-go="3">次の手 →</button></div></section><section class="simstep" data-no="3"><p class="lead"><b>手3　人（承認者）</b>　PR を承認する。宣言どうしの対応を記録する　<span class="no">commit 1ca1918</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/confirmed.json | 1 +
+ 1 file changed, 1 insertion(+)</pre></section><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 25
+
+$ pytest -q tests
+22 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.534s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行
+
+CI：通った</pre></section><div class="snav"><button class="sbtn" data-go="2">← 前の手</button><button class="sbtn" data-go="4">次の手 →</button></div></section><section class="simstep" data-no="4"><p class="lead"><b>手4　人（業務エキスパート）</b>　業務の変更：調理枠は予備の1食を残す。「確保する」の事前条件1の比較する値を書き換える　<span class="no">commit 292d17c</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/decls/AGG-2.json | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/spec/decls/AGG-2.json b/spec/decls/AGG-2.json
+index 6abc415..91f2442 100644
+--- a/spec/decls/AGG-2.json
++++ b/spec/decls/AGG-2.json
+@@ -55,7 +55,13 @@
+      &quot;condition&quot;: {
+       &quot;target&quot;: &quot;ST-2&quot;,
+       &quot;op&quot;: &quot;ge&quot;,
+-      &quot;value&quot;: &quot;ARG-1&quot;
++      &quot;value&quot;: {
++       &quot;call&quot;: &quot;VO-5.OP-1&quot;,
++       &quot;args&quot;: [
++        &quot;ARG-1&quot;,
++        1
++       ]
++      }
+      },
+      &quot;reject&quot;: &quot;TERM-19&quot;,
+      &quot;example&quot;: {
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 24 ・ 確かめ直し 1
+  確かめ直し  上流の変更（handles）  UC-1.EXT-2 → AGG-2.CMD-1.PRE-1  承認のあとで参照先が変わった。参照元を確かめ直す
+
+$ pytest -q tests
+22 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.549s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行 ・ 古い 2
+  古い  UC-1.EXT-2  記録のハッシュ値 ed3c2076 ／ 今 b125148e　TestSlotShort
+  古い  AGG-2.CMD-1.PRE-1  記録のハッシュ値 42258840 ／ 今 77d3e427　tests/test_domain.py::test_reserve_rejects_short
+
+CI：落ちた</pre></section><div class="snav"><button class="sbtn" data-go="3">← 前の手</button><button class="sbtn" data-go="5">次の手 →</button></div></section><section class="simstep" data-no="5"><p class="lead"><b>手5　AI</b>　concrete match の「古い」を受けて、予備の1食を実装し、テストとハッシュ値を直す　<span class="no">commit f54e25d</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">src/order/domain.py    | 2 +-
+ systemtest/uc1_test.go | 2 +-
+ tests/test_domain.py   | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/src/order/domain.py b/src/order/domain.py
+index fc37ca5..4f417e4 100644
+--- a/src/order/domain.py
++++ b/src/order/domain.py
+@@ -58,7 +58,7 @@ class Order:
+ class CookingSlot:
+   slot_id:str; start:datetime; free:CookAmount; store:str
+   def reserve(self,amount):                                # CMD-1 確保する
+-    if not (self.free.value&gt;=amount.value): raise Rejected(&#x27;調理の空きが足りない&#x27;)
++    if not (self.free.value&gt;=amount.value+1): raise Rejected(&#x27;調理の空きが足りない&#x27;)
+     if not (amount.value&lt;=10): raise Rejected(&#x27;一度に確保できる量を超えている&#x27;)
+     self.free=self.free.sub(amount); return []
+   def release(self,amount):                                # CMD-2 戻す
+diff --git a/systemtest/uc1_test.go b/systemtest/uc1_test.go
+index 4c0f74e..00d456c 100644
+--- a/systemtest/uc1_test.go
++++ b/systemtest/uc1_test.go
+@@ -67,7 +67,7 @@ func TestPriceChanged(t *testing.T) {
+ }
+ 
+ func TestSlotShort(t *testing.T) {
+-	trace(t, &quot;UC-1.EXT-2&quot;, &quot;ed3c2076&quot;, &quot;system&quot;)
++	trace(t, &quot;UC-1.EXT-2&quot;, &quot;b125148e&quot;, &quot;system&quot;)
+ 	o := run(t, `{`+base+`,&quot;catalog&quot;:{&quot;P-1&quot;:500,&quot;P-2&quot;:300},&quot;slots&quot;:[{&quot;id&quot;:&quot;12:00&quot;,&quot;start&quot;:&quot;2026-10-03T12:00&quot;,&quot;free&quot;:0},{&quot;id&quot;:&quot;12:30&quot;,&quot;start&quot;:&quot;2026-10-03T12:30&quot;,&quot;free&quot;:10}],&quot;payment&quot;:&quot;approve&quot;}`)
+ 	successGuarantees(t, o, &quot;12:30&quot;)
+ }
+diff --git a/tests/test_domain.py b/tests/test_domain.py
+index 5cc0986..a178e30 100644
+--- a/tests/test_domain.py
++++ b/tests/test_domain.py
+@@ -49,8 +49,8 @@ def test_hand_over():
+   assert o.status==HANDED and ev==[OrderHanded(&#x27;N-1&#x27;)]
+ def slot(free): return CookingSlot(&#x27;SL-1&#x27;,datetime(2026,10,3,12,0),CookAmount(free),&#x27;S-1&#x27;)
+ def test_reserve_rejects_short():
+-  trace(&quot;AGG-2.CMD-1.PRE-1&quot;,&quot;42258840&quot;,&quot;component&quot;)
+-  with pytest.raises(Rejected) as e: slot(0).reserve(CookAmount(1))
++  trace(&quot;AGG-2.CMD-1.PRE-1&quot;,&quot;77d3e427&quot;,&quot;component&quot;)
++  with pytest.raises(Rejected) as e: slot(1).reserve(CookAmount(1))
+   assert e.value.reason==&#x27;調理の空きが足りない&#x27;
+ def test_reserve():
+   trace(&quot;AGG-2.CMD-1.OK-1&quot;,&quot;6b300d99&quot;,&quot;component&quot;)
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 24 ・ 確かめ直し 1
+  確かめ直し  上流の変更（handles）  UC-1.EXT-2 → AGG-2.CMD-1.PRE-1  承認のあとで参照先が変わった。参照元を確かめ直す
+
+$ pytest -q tests
+22 passed in 0.02s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.523s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行
+
+CI：落ちた</pre></section><div class="snav"><button class="sbtn" data-go="4">← 前の手</button><button class="sbtn" data-go="6">次の手 →</button></div></section><section class="simstep" data-no="6"><p class="lead"><b>手6　人（承認者）</b>　確かめ直しになった拡張 4a を読み、扱う拒否が今も正しいことを確かめて承認する　<span class="no">commit f939c6b</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/confirmed.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)</pre></section><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 25
+
+$ pytest -q tests
+22 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.562s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行
+
+CI：通った</pre></section><div class="snav"><button class="sbtn" data-go="5">← 前の手</button><button class="sbtn" data-go="7">次の手 →</button></div></section><section class="simstep" data-no="7"><p class="lead"><b>手7　AI</b>　手順を整理しようとして、拡張 5a の手順 5a1（調理枠を戻す）を宣言と実装から消す　<span class="no">commit 3456ecf</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/decls/UC-1.json | 10 ----------
+ src/order/usecase.py |  2 +-
+ 2 files changed, 1 insertion(+), 11 deletions(-)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json
+index c3726c2..d446fc7 100644
+--- a/spec/decls/UC-1.json
++++ b/spec/decls/UC-1.json
+@@ -320,16 +320,6 @@
+       &quot;actor&quot;: &quot;決済代行&quot;,
+       &quot;ending&quot;: &quot;失敗&quot;,
+       &quot;steps&quot;: [
+-       {
+-        &quot;id&quot;: &quot;EXT-3.S-1&quot;,
+-        &quot;kind&quot;: &quot;内部の状態変化&quot;,
+-        &quot;actor&quot;: &quot;システム&quot;,
+-        &quot;invokes&quot;: &quot;AGG-2.CMD-2&quot;,
+-        &quot;keeps&quot;: [
+-         &quot;MG-2&quot;
+-        ],
+-        &quot;extensions&quot;: []
+-       },
+        {
+         &quot;id&quot;: &quot;EXT-3.S-2&quot;,
+         &quot;kind&quot;: &quot;内部の状態変化&quot;,
+diff --git a/src/order/usecase.py b/src/order/usecase.py
+index c3d1830..8e515ae 100644
+--- a/src/order/usecase.py
++++ b/src/order/usecase.py
+@@ -30,7 +30,7 @@ class ConfirmOrder:
+     # 手順5 支払いの承認を得る。拡張 5a：調理枠を戻し、経過を記録し、承認の拒否を知らせる
+     approval=self.payment.approve(o)
+     if approval is None:
+-      slot.release(total); o.record_progress(self.clock())
++      o.record_progress(self.clock())
+       self.ui.notify(&#x27;承認の拒否&#x27;); return Result(False,&#x27;承認されなかった&#x27;)
+     events=o.confirm(pickup,approval,slot.slot_id)          # 手順6
+     self.ui.notify((&#x27;注文番号&#x27;,o.order_no,o.pickup))        # 手順7
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 24 ・ 対応の欠け 1
+  対応の欠け  最低保証を守る手順  UC-1.MG-2 → ―  「失敗したら調理枠を残さない」を守る手順が無い
+
+$ pytest -q tests
+22 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+    uc1_test.go:50: MG-2: 調理枠が残った: {OK:false Status:下書き Pickup:&lt;nil&gt; Approval:&lt;nil&gt; Reserved:&lt;nil&gt; SlotFree:map[12:00:7] Progress:1 Sent:[承認の拒否]}
+FAIL
+FAIL	systemtest	0.535s
+FAIL
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行 ・ 古い 1
+  古い  UC-1.EXT-3  記録のハッシュ値 8a16eb95 ／ 今 55be498f　TestPaymentDeclined
+
+CI：落ちた</pre></section><div class="snav"><button class="sbtn" data-go="6">← 前の手</button><button class="sbtn" data-go="8">次の手 →</button></div></section><section class="simstep" data-no="8"><p class="lead"><b>手8　人（承認者）</b>　CI が落ちたので PR を差し戻し、変更を戻す　<span class="no">commit 8e8bebe</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">spec/decls/UC-1.json | 10 ++++++++++
+ src/order/usecase.py |  2 +-
+ 2 files changed, 11 insertions(+), 1 deletion(-)</pre></section><details class="fold"><summary>差分（git diff）</summary><div class="fbody"><pre class="code">diff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json
+index d446fc7..c3726c2 100644
+--- a/spec/decls/UC-1.json
++++ b/spec/decls/UC-1.json
+@@ -320,6 +320,16 @@
+       &quot;actor&quot;: &quot;決済代行&quot;,
+       &quot;ending&quot;: &quot;失敗&quot;,
+       &quot;steps&quot;: [
++       {
++        &quot;id&quot;: &quot;EXT-3.S-1&quot;,
++        &quot;kind&quot;: &quot;内部の状態変化&quot;,
++        &quot;actor&quot;: &quot;システム&quot;,
++        &quot;invokes&quot;: &quot;AGG-2.CMD-2&quot;,
++        &quot;keeps&quot;: [
++         &quot;MG-2&quot;
++        ],
++        &quot;extensions&quot;: []
++       },
+        {
+         &quot;id&quot;: &quot;EXT-3.S-2&quot;,
+         &quot;kind&quot;: &quot;内部の状態変化&quot;,
+diff --git a/src/order/usecase.py b/src/order/usecase.py
+index 8e515ae..c3d1830 100644
+--- a/src/order/usecase.py
++++ b/src/order/usecase.py
+@@ -30,7 +30,7 @@ class ConfirmOrder:
+     # 手順5 支払いの承認を得る。拡張 5a：調理枠を戻し、経過を記録し、承認の拒否を知らせる
+     approval=self.payment.approve(o)
+     if approval is None:
+-      o.record_progress(self.clock())
++      slot.release(total); o.record_progress(self.clock())
+       self.ui.notify(&#x27;承認の拒否&#x27;); return Result(False,&#x27;承認されなかった&#x27;)
+     events=o.confirm(pickup,approval,slot.slot_id)          # 手順6
+     self.ui.notify((&#x27;注文番号&#x27;,o.order_no,o.pickup))        # 手順7
+</pre></div></details><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+宣言どうし：合格 25
+
+$ pytest -q tests
+22 passed in 0.01s
+
+$ (cd systemtest &amp;&amp; go test -count=1 ./...)
+ok  	systemtest	0.531s
+
+$ concrete match build/trace.jsonl
+突き合わせ：テスト条件 29 件 ・ 記録 29 行
+
+CI：通った</pre></section><div class="snav"><button class="sbtn" data-go="7">← 前の手</button></div></section><section class="blk"><h2>実行して分かったこと</h2><div class="tw"><table><thead><tr><th>分かったこと</th><th>どうしたか</th></tr></thead><tbody><tr><td>手4：業務の変更で条件が変わっても、テストは Python も Go もすべて通った。実行器だけでは気づけない</td><td>道具が「古い」を2件出して CI を止めた。ハッシュ値が、仕様の版とテストを結んでいる</td></tr><tr><td>手7：最低保証を守る手順を消すと、道具は「対応の欠け」、Go のテストは最低保証の破れで落ちた</td><td>2つの判定は独立に落ち、どちらか片方だけでも CI は止まる</td></tr><tr><td>Go のテストは、前回と同じ入力だと結果をキャッシュから返し、テストを実行しない。記録が書かれず、道具は system の5件を「欠け」と出した</td><td>契約に「キャッシュを切って流す」を足し、CI は go test -count=1 で流す</td></tr><tr><td>シミュレーションの途中で、AI 役のスクリプトが Python のテストのハッシュ値を書き換え損ねた</td><td>道具がその条件を「古い」として出し続けた。直してから流し直した</td></tr></tbody></table></div></section></main>
+<script>
+const go=n=>{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));};
+document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{go(b.dataset.go);document.querySelector('.stepper').scrollIntoView({behavior:'smooth'})}));go('0');
+</script></body></html>

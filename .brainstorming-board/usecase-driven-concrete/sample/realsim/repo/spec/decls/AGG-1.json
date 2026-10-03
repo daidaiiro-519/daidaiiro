@@ -1,0 +1,347 @@
+{
+ "kind": "aggregate",
+ "id": "AGG-1",
+ "header": {
+  "name": "TERM-1",
+  "context": "BC-1"
+ },
+ "structure": {
+  "state": [
+   {
+    "id": "ST-1",
+    "name": "TERM-14",
+    "type": "VO-2",
+    "multiplicity": {
+     "min": 1,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-2",
+    "name": "TERM-5",
+    "type": "VO-3",
+    "multiplicity": {
+     "min": 1,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-3",
+    "name": "TERM-2",
+    "type": "ENT-1",
+    "multiplicity": {
+     "min": 0,
+     "max": 20
+    }
+   },
+   {
+    "id": "ST-4",
+    "name": "TERM-4",
+    "type": "VO-4",
+    "multiplicity": {
+     "min": 0,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-5",
+    "name": "TERM-21",
+    "type": "VO-7",
+    "multiplicity": {
+     "min": 0,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-6",
+    "name": "TERM-22",
+    "type": "ENT-2",
+    "multiplicity": {
+     "min": 0,
+     "max": null
+    }
+   },
+   {
+    "id": "ST-7",
+    "name": "TERM-24",
+    "type": "ID",
+    "multiplicity": {
+     "min": 1,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-8",
+    "name": "TERM-38",
+    "type": "AGG-2",
+    "multiplicity": {
+     "min": 0,
+     "max": 1
+    }
+   },
+   {
+    "id": "ST-9",
+    "name": "TERM-25",
+    "type": "ID",
+    "multiplicity": {
+     "min": 1,
+     "max": 1
+    }
+   }
+  ],
+  "entities": [
+   {
+    "id": "ENT-1",
+    "name": "TERM-2",
+    "state": [
+     {
+      "id": "ES-1",
+      "name": "TERM-26",
+      "type": "ID"
+     },
+     {
+      "id": "ES-2",
+      "name": "TERM-3",
+      "type": "VO-1"
+     },
+     {
+      "id": "ES-3",
+      "name": "TERM-39",
+      "type": "VO-9"
+     }
+    ]
+   },
+   {
+    "id": "ENT-2",
+    "name": "TERM-22",
+    "state": [
+     {
+      "id": "ES-1",
+      "name": "TERM-37",
+      "type": "VO-6"
+     }
+    ]
+   }
+  ]
+ },
+ "invariants": [
+  {
+   "id": "INV-1",
+   "condition": {
+    "if": {
+     "target": "ST-2",
+     "op": "eq",
+     "value": "TERM-11"
+    },
+    "target": "ST-4",
+    "op": "not_empty"
+   },
+   "via": [
+    "CMD-1"
+   ]
+  },
+  {
+   "id": "INV-2",
+   "condition": {
+    "if": {
+     "target": "ST-2",
+     "op": "eq",
+     "value": "TERM-11"
+    },
+    "target": "ST-3",
+    "agg": "count",
+    "op": "ge",
+    "value": 1
+   },
+   "via": [
+    "CMD-1"
+   ]
+  }
+ ],
+ "commands": [
+  {
+   "id": "CMD-1",
+   "name": "TERM-6",
+   "args": [
+    {
+     "id": "ARG-1",
+     "name": "TERM-4",
+     "type": "VO-4"
+    },
+    {
+     "id": "ARG-2",
+     "name": "TERM-21",
+     "type": "VO-7"
+    },
+    {
+     "id": "ARG-3",
+     "name": "TERM-38",
+     "type": "AGG-2"
+    }
+   ],
+   "preconditions": [
+    {
+     "id": "PRE-1",
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-10"
+     },
+     "reject": "TERM-12"
+    },
+    {
+     "id": "PRE-2",
+     "condition": {
+      "target": "ST-3",
+      "agg": "count",
+      "op": "ge",
+      "value": 1
+     },
+     "reject": "TERM-13"
+    }
+   ],
+   "postconditions": [
+    {
+     "id": "POST-1",
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-11"
+     }
+    },
+    {
+     "id": "POST-2",
+     "condition": {
+      "target": "ST-4",
+      "op": "eq",
+      "value": "ARG-1"
+     }
+    },
+    {
+     "id": "POST-3",
+     "condition": {
+      "target": "ST-5",
+      "op": "eq",
+      "value": "ARG-2"
+     }
+    },
+    {
+     "id": "POST-4",
+     "condition": {
+      "target": "ST-8",
+      "op": "eq",
+      "value": "ARG-3"
+     }
+    }
+   ],
+   "emits": [
+    {
+     "id": "EVT-1",
+     "name": "TERM-7",
+     "fields": [
+      {
+       "from": "ST-1"
+      },
+      {
+       "from": "ST-4"
+      }
+     ]
+    }
+   ],
+   "accept_examples": [
+    {
+     "id": "OK-1",
+     "before": {
+      "ST-2": "TERM-10",
+      "ST-3": {
+       "count": 2
+      }
+     },
+     "args": {
+      "ARG-1": "12:30",
+      "ARG-2": "A-1029",
+      "ARG-3": "調理枠 12:00"
+     }
+    }
+   ]
+  },
+  {
+   "id": "CMD-2",
+   "name": "TERM-23",
+   "args": [],
+   "preconditions": [],
+   "postconditions": [
+    {
+     "id": "POST-1",
+     "condition": {
+      "target": "ST-6",
+      "agg": "count",
+      "op": "gt",
+      "value": {
+       "before": "ST-6",
+       "agg": "count"
+      }
+     }
+    }
+   ],
+   "emits": [],
+   "accept_examples": [
+    {
+     "id": "OK-1",
+     "before": {
+      "ST-6": {
+       "count": 0
+      }
+     },
+     "args": {}
+    }
+   ]
+  },
+  {
+   "id": "CMD-3",
+   "name": "TERM-30",
+   "args": [],
+   "preconditions": [
+    {
+     "id": "PRE-1",
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-11"
+     },
+     "reject": "TERM-41"
+    }
+   ],
+   "postconditions": [
+    {
+     "id": "POST-1",
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-42"
+     }
+    }
+   ],
+   "emits": [
+    {
+     "id": "EVT-2",
+     "name": "TERM-31",
+     "fields": [
+      {
+       "from": "ST-1"
+      }
+     ]
+    }
+   ],
+   "accept_examples": [
+    {
+     "id": "OK-1",
+     "before": {
+      "ST-2": "TERM-11"
+     },
+     "args": {}
+    }
+   ]
+  }
+ ]
+}

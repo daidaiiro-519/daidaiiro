@@ -1,0 +1,110 @@
+[
+ {
+  "no": 0,
+  "who": "人（承認者）",
+  "what": "承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する",
+  "commit": "96f2ac0",
+  "stat": "",
+  "diff": "",
+  "ci": "$ concrete check\n宣言どうし：合格 23\n\n$ pytest -q tests\n.....................                                                    [100%]\n21 passed in 0.02s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.547s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 27 件 ・ 記録 27 行\n\nCI：通った\n",
+  "ci_ok": true,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 1,
+  "who": "人（業務エキスパート）",
+  "what": "業務の変更：1回に確保できる調理の量は10食まで。調理枠の「確保する」に事前条件を足す",
+  "commit": "c92100b",
+  "stat": " spec/decls/AGG-2.json | 9 +++++++++\n spec/decls/BC-1.json  | 7 +++++++\n 2 files changed, 16 insertions(+)\n",
+  "diff": "diff --git a/spec/decls/AGG-2.json b/spec/decls/AGG-2.json\nindex 4fcf86e..6abc415 100644\n--- a/spec/decls/AGG-2.json\n+++ b/spec/decls/AGG-2.json\n@@ -66,6 +66,15 @@\n        \"ARG-1\": 1\n       }\n      }\n+    },\n+    {\n+     \"id\": \"PRE-2\",\n+     \"condition\": {\n+      \"target\": \"ARG-1\",\n+      \"op\": \"le\",\n+      \"value\": 10\n+     },\n+     \"reject\": \"TERM-51\"\n     }\n    ],\n    \"postconditions\": [\ndiff --git a/spec/decls/BC-1.json b/spec/decls/BC-1.json\nindex a36dbec..116a3e0 100644\n--- a/spec/decls/BC-1.json\n+++ b/spec/decls/BC-1.json\n@@ -374,6 +374,13 @@\n     \"kind\": \"動作\",\n     \"definition\": \"相手に結果を伝える\",\n     \"avoid\": []\n+   },\n+   {\n+    \"id\": \"TERM-51\",\n+    \"word\": \"一度に確保できる量を超えている\",\n+    \"kind\": \"拒否の理由\",\n+    \"definition\": \"1回で確保したい量が、上限の10食を超えている\",\n+    \"avoid\": []\n    }\n   ]\n  },\n",
+  "ci": "$ concrete check\n宣言どうし：合格 23 ・ 対応の欠け 1\n  対応の欠け  コマンドの拒否を扱う  UC-1.STEP-3 → AGG-2.CMD-1.PRE-2  手順4が呼ぶコマンドの拒否「一度に確保できる量を超えている」を、事前条件も拡張も扱っていない\n\n$ pytest -q tests\n.....................                                                    [100%]\n21 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.506s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 28 件 ・ 記録 27 行 ・ 欠け 1\n  欠け  AGG-2.CMD-1.PRE-2  記録が無い。今のハッシュ値 da3169c1 ・ 求めるレベル component\n\nCI：落ちた\n",
+  "ci_ok": false,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 2,
+  "who": "AI",
+  "what": "拡張 4b を足して新しい拒否を扱い、実装とテスト（Python ・ Go）を足す",
+  "commit": "b1fc7d8",
+  "stat": " spec/decls/BC-1.json   |  7 +++++++\n spec/decls/UC-1.json   | 31 +++++++++++++++++++++++++++++++\n src/order/domain.py    |  1 +\n src/order/usecase.py   |  2 ++\n systemtest/uc1_test.go |  9 +++++++++\n tests/test_domain.py   |  4 ++++\n 6 files changed, 54 insertions(+)\n",
+  "diff": "diff --git a/spec/decls/BC-1.json b/spec/decls/BC-1.json\nindex 116a3e0..e294b6a 100644\n--- a/spec/decls/BC-1.json\n+++ b/spec/decls/BC-1.json\n@@ -381,6 +381,13 @@\n     \"kind\": \"拒否の理由\",\n     \"definition\": \"1回で確保したい量が、上限の10食を超えている\",\n     \"avoid\": []\n+   },\n+   {\n+    \"id\": \"TERM-52\",\n+    \"word\": \"一度に受けられる量\",\n+    \"kind\": \"情報の別名\",\n+    \"definition\": \"1回の注文で受けられる調理の量の上限\",\n+    \"avoid\": []\n    }\n   ]\n  },\ndiff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json\nindex 37a9cde..c3726c2 100644\n--- a/spec/decls/UC-1.json\n+++ b/spec/decls/UC-1.json\n@@ -261,6 +261,37 @@\n         \"extensions\": []\n        }\n       ]\n+     },\n+     {\n+      \"id\": \"EXT-4\",\n+      \"condition_kind\": \"コマンドの拒否\",\n+      \"handles\": [\n+       \"AGG-2.CMD-1.PRE-2\"\n+      ],\n+      \"ending\": \"失敗\",\n+      \"steps\": [\n+       {\n+        \"id\": \"EXT-4.S-1\",\n+        \"kind\": \"内部の状態変化\",\n+        \"actor\": \"システム\",\n+        \"invokes\": \"AGG-1.CMD-2\",\n+        \"keeps\": [\n+         \"MG-3\"\n+        ],\n+        \"extensions\": []\n+       },\n+       {\n+        \"id\": \"EXT-4.S-2\",\n+        \"kind\": \"相互作用\",\n+        \"actor\": \"システム\",\n+        \"to\": \"顧客\",\n+        \"data\": [\n+         \"TERM-52\"\n+        ],\n+        \"verb\": \"TERM-50\",\n+        \"extensions\": []\n+       }\n+      ]\n      }\n     ]\n    },\ndiff --git a/src/order/domain.py b/src/order/domain.py\nindex 0630913..fc37ca5 100644\n--- a/src/order/domain.py\n+++ b/src/order/domain.py\n@@ -59,6 +59,7 @@ class CookingSlot:\n   slot_id:str; start:datetime; free:CookAmount; store:str\n   def reserve(self,amount):                                # CMD-1 確保する\n     if not (self.free.value>=amount.value): raise Rejected('調理の空きが足りない')\n+    if not (amount.value<=10): raise Rejected('一度に確保できる量を超えている')\n     self.free=self.free.sub(amount); return []\n   def release(self,amount):                                # CMD-2 戻す\n     self.free=self.free.add(amount); return []\ndiff --git a/src/order/usecase.py b/src/order/usecase.py\nindex 45512d9..c3d1830 100644\n--- a/src/order/usecase.py\n+++ b/src/order/usecase.py\n@@ -22,6 +22,8 @@ class ConfirmOrder:\n       try:\n         slot.reserve(total); break\n       except Rejected as e:\n+        if e.reason=='一度に確保できる量を超えている':\n+          o.record_progress(self.clock()); self.ui.notify('一度に受けられる量'); return Result(False,'量を超えた')\n         if e.reason!='調理の空きが足りない': raise\n         slot=self.ui.choose_other_slot(self.slots,total)\n         if slot is None: return Result(False,'時刻に同意しなかった')\ndiff --git a/systemtest/uc1_test.go b/systemtest/uc1_test.go\nindex d7e813e..4c0f74e 100644\n--- a/systemtest/uc1_test.go\n+++ b/systemtest/uc1_test.go\n@@ -96,3 +96,12 @@ func TestConfirmResponseTime(t *testing.T) {\n \t}\n }\n \n+\n+func TestOverLimit(t *testing.T) {\n+\ttrace(t, \"UC-1.EXT-4\", \"9acfca23\", \"system\")\n+\to := run(t, `{\"lines\":[{\"product\":\"P-1\",\"qty\":11,\"price\":500}],\"catalog\":{\"P-1\":500},\"slots\":[{\"id\":\"12:00\",\"start\":\"2026-10-03T12:00\",\"free\":20}],\"payment\":\"approve\"}`)\n+\tif o.OK || o.Status != \"下書き\" {\n+\t\tt.Fatalf(\"成功時保証は成り立ってはいけない: %+v\", o)\n+\t}\n+\tminimalGuarantees(t, o, \"12:00\", 20)\n+}\ndiff --git a/tests/test_domain.py b/tests/test_domain.py\nindex d77fa1e..5cc0986 100644\n--- a/tests/test_domain.py\n+++ b/tests/test_domain.py\n@@ -77,3 +77,7 @@ def test_estimate():\n   trace(\"DS-1.OP-1.POST-2\",\"b692bac2\",\"component\")\n   start=datetime(2026,10,3,12,0); r=estimate_pickup(CookAmount(4),CookAmount(10),start)\n   assert r is not None and r>=start\n+def test_reserve_rejects_over_limit():\n+  trace(\"AGG-2.CMD-1.PRE-2\",\"da3169c1\",\"component\")\n+  with pytest.raises(Rejected) as e: slot(20).reserve(CookAmount(11))\n+  assert e.value.reason=='一度に確保できる量を超えている'\n",
+  "ci": "$ concrete check\n宣言どうし：合格 24 ・ 確かめ直し 1\n  確かめ直し  上流の変更（handles）  UC-1.EXT-4 → AGG-2.CMD-1.PRE-2  まだ承認していない対応。PR の承認で記録する\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.02s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.554s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行\n\nCI：落ちた\n",
+  "ci_ok": false,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 3,
+  "who": "人（承認者）",
+  "what": "PR を承認する。宣言どうしの対応を記録する",
+  "commit": "1ca1918",
+  "stat": " spec/confirmed.json | 1 +\n 1 file changed, 1 insertion(+)\n",
+  "diff": "",
+  "ci": "$ concrete check\n宣言どうし：合格 25\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.534s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行\n\nCI：通った\n",
+  "ci_ok": true,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 4,
+  "who": "人（業務エキスパート）",
+  "what": "業務の変更：調理枠は予備の1食を残す。「確保する」の事前条件1の比較する値を書き換える",
+  "commit": "292d17c",
+  "stat": " spec/decls/AGG-2.json | 8 +++++++-\n 1 file changed, 7 insertions(+), 1 deletion(-)\n",
+  "diff": "diff --git a/spec/decls/AGG-2.json b/spec/decls/AGG-2.json\nindex 6abc415..91f2442 100644\n--- a/spec/decls/AGG-2.json\n+++ b/spec/decls/AGG-2.json\n@@ -55,7 +55,13 @@\n      \"condition\": {\n       \"target\": \"ST-2\",\n       \"op\": \"ge\",\n-      \"value\": \"ARG-1\"\n+      \"value\": {\n+       \"call\": \"VO-5.OP-1\",\n+       \"args\": [\n+        \"ARG-1\",\n+        1\n+       ]\n+      }\n      },\n      \"reject\": \"TERM-19\",\n      \"example\": {\n",
+  "ci": "$ concrete check\n宣言どうし：合格 24 ・ 確かめ直し 1\n  確かめ直し  上流の変更（handles）  UC-1.EXT-2 → AGG-2.CMD-1.PRE-1  承認のあとで参照先が変わった。参照元を確かめ直す\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.549s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行 ・ 古い 2\n  古い  UC-1.EXT-2  記録のハッシュ値 ed3c2076 ／ 今 b125148e　TestSlotShort\n  古い  AGG-2.CMD-1.PRE-1  記録のハッシュ値 42258840 ／ 今 77d3e427　tests/test_domain.py::test_reserve_rejects_short\n\nCI：落ちた\n",
+  "ci_ok": false,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 5,
+  "who": "AI",
+  "what": "concrete match の「古い」を受けて、予備の1食を実装し、テストとハッシュ値を直す",
+  "commit": "f54e25d",
+  "stat": " src/order/domain.py    | 2 +-\n systemtest/uc1_test.go | 2 +-\n tests/test_domain.py   | 4 ++--\n 3 files changed, 4 insertions(+), 4 deletions(-)\n",
+  "diff": "diff --git a/src/order/domain.py b/src/order/domain.py\nindex fc37ca5..4f417e4 100644\n--- a/src/order/domain.py\n+++ b/src/order/domain.py\n@@ -58,7 +58,7 @@ class Order:\n class CookingSlot:\n   slot_id:str; start:datetime; free:CookAmount; store:str\n   def reserve(self,amount):                                # CMD-1 確保する\n-    if not (self.free.value>=amount.value): raise Rejected('調理の空きが足りない')\n+    if not (self.free.value>=amount.value+1): raise Rejected('調理の空きが足りない')\n     if not (amount.value<=10): raise Rejected('一度に確保できる量を超えている')\n     self.free=self.free.sub(amount); return []\n   def release(self,amount):                                # CMD-2 戻す\ndiff --git a/systemtest/uc1_test.go b/systemtest/uc1_test.go\nindex 4c0f74e..00d456c 100644\n--- a/systemtest/uc1_test.go\n+++ b/systemtest/uc1_test.go\n@@ -67,7 +67,7 @@ func TestPriceChanged(t *testing.T) {\n }\n \n func TestSlotShort(t *testing.T) {\n-\ttrace(t, \"UC-1.EXT-2\", \"ed3c2076\", \"system\")\n+\ttrace(t, \"UC-1.EXT-2\", \"b125148e\", \"system\")\n \to := run(t, `{`+base+`,\"catalog\":{\"P-1\":500,\"P-2\":300},\"slots\":[{\"id\":\"12:00\",\"start\":\"2026-10-03T12:00\",\"free\":0},{\"id\":\"12:30\",\"start\":\"2026-10-03T12:30\",\"free\":10}],\"payment\":\"approve\"}`)\n \tsuccessGuarantees(t, o, \"12:30\")\n }\ndiff --git a/tests/test_domain.py b/tests/test_domain.py\nindex 5cc0986..a178e30 100644\n--- a/tests/test_domain.py\n+++ b/tests/test_domain.py\n@@ -49,8 +49,8 @@ def test_hand_over():\n   assert o.status==HANDED and ev==[OrderHanded('N-1')]\n def slot(free): return CookingSlot('SL-1',datetime(2026,10,3,12,0),CookAmount(free),'S-1')\n def test_reserve_rejects_short():\n-  trace(\"AGG-2.CMD-1.PRE-1\",\"42258840\",\"component\")\n-  with pytest.raises(Rejected) as e: slot(0).reserve(CookAmount(1))\n+  trace(\"AGG-2.CMD-1.PRE-1\",\"77d3e427\",\"component\")\n+  with pytest.raises(Rejected) as e: slot(1).reserve(CookAmount(1))\n   assert e.value.reason=='調理の空きが足りない'\n def test_reserve():\n   trace(\"AGG-2.CMD-1.OK-1\",\"6b300d99\",\"component\")\n",
+  "ci": "$ concrete check\n宣言どうし：合格 24 ・ 確かめ直し 1\n  確かめ直し  上流の変更（handles）  UC-1.EXT-2 → AGG-2.CMD-1.PRE-1  承認のあとで参照先が変わった。参照元を確かめ直す\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.02s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.523s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行\n\nCI：落ちた\n",
+  "ci_ok": false,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 6,
+  "who": "人（承認者）",
+  "what": "確かめ直しになった拡張 4a を読み、扱う拒否が今も正しいことを確かめて承認する",
+  "commit": "f939c6b",
+  "stat": " spec/confirmed.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+  "diff": "",
+  "ci": "$ concrete check\n宣言どうし：合格 25\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.562s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行\n\nCI：通った\n",
+  "ci_ok": true,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 7,
+  "who": "AI",
+  "what": "手順を整理しようとして、拡張 5a の手順 5a1（調理枠を戻す）を宣言と実装から消す",
+  "commit": "3456ecf",
+  "stat": " spec/decls/UC-1.json | 10 ----------\n src/order/usecase.py |  2 +-\n 2 files changed, 1 insertion(+), 11 deletions(-)\n",
+  "diff": "diff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json\nindex c3726c2..d446fc7 100644\n--- a/spec/decls/UC-1.json\n+++ b/spec/decls/UC-1.json\n@@ -320,16 +320,6 @@\n       \"actor\": \"決済代行\",\n       \"ending\": \"失敗\",\n       \"steps\": [\n-       {\n-        \"id\": \"EXT-3.S-1\",\n-        \"kind\": \"内部の状態変化\",\n-        \"actor\": \"システム\",\n-        \"invokes\": \"AGG-2.CMD-2\",\n-        \"keeps\": [\n-         \"MG-2\"\n-        ],\n-        \"extensions\": []\n-       },\n        {\n         \"id\": \"EXT-3.S-2\",\n         \"kind\": \"内部の状態変化\",\ndiff --git a/src/order/usecase.py b/src/order/usecase.py\nindex c3d1830..8e515ae 100644\n--- a/src/order/usecase.py\n+++ b/src/order/usecase.py\n@@ -30,7 +30,7 @@ class ConfirmOrder:\n     # 手順5 支払いの承認を得る。拡張 5a：調理枠を戻し、経過を記録し、承認の拒否を知らせる\n     approval=self.payment.approve(o)\n     if approval is None:\n-      slot.release(total); o.record_progress(self.clock())\n+      o.record_progress(self.clock())\n       self.ui.notify('承認の拒否'); return Result(False,'承認されなかった')\n     events=o.confirm(pickup,approval,slot.slot_id)          # 手順6\n     self.ui.notify(('注文番号',o.order_no,o.pickup))        # 手順7\n",
+  "ci": "$ concrete check\n宣言どうし：合格 24 ・ 対応の欠け 1\n  対応の欠け  最低保証を守る手順  UC-1.MG-2 → ―  「失敗したら調理枠を残さない」を守る手順が無い\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\n    uc1_test.go:50: MG-2: 調理枠が残った: {OK:false Status:下書き Pickup:<nil> Approval:<nil> Reserved:<nil> SlotFree:map[12:00:7] Progress:1 Sent:[承認の拒否]}\nFAIL\nFAIL\tsystemtest\t0.535s\nFAIL\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行 ・ 古い 1\n  古い  UC-1.EXT-3  記録のハッシュ値 8a16eb95 ／ 今 55be498f　TestPaymentDeclined\n\nCI：落ちた\n",
+  "ci_ok": false,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ },
+ {
+  "no": 8,
+  "who": "人（承認者）",
+  "what": "CI が落ちたので PR を差し戻し、変更を戻す",
+  "commit": "8e8bebe",
+  "stat": " spec/decls/UC-1.json | 10 ++++++++++\n src/order/usecase.py |  2 +-\n 2 files changed, 11 insertions(+), 1 deletion(-)\n",
+  "diff": "diff --git a/spec/decls/UC-1.json b/spec/decls/UC-1.json\nindex d446fc7..c3726c2 100644\n--- a/spec/decls/UC-1.json\n+++ b/spec/decls/UC-1.json\n@@ -320,6 +320,16 @@\n       \"actor\": \"決済代行\",\n       \"ending\": \"失敗\",\n       \"steps\": [\n+       {\n+        \"id\": \"EXT-3.S-1\",\n+        \"kind\": \"内部の状態変化\",\n+        \"actor\": \"システム\",\n+        \"invokes\": \"AGG-2.CMD-2\",\n+        \"keeps\": [\n+         \"MG-2\"\n+        ],\n+        \"extensions\": []\n+       },\n        {\n         \"id\": \"EXT-3.S-2\",\n         \"kind\": \"内部の状態変化\",\ndiff --git a/src/order/usecase.py b/src/order/usecase.py\nindex 8e515ae..c3d1830 100644\n--- a/src/order/usecase.py\n+++ b/src/order/usecase.py\n@@ -30,7 +30,7 @@ class ConfirmOrder:\n     # 手順5 支払いの承認を得る。拡張 5a：調理枠を戻し、経過を記録し、承認の拒否を知らせる\n     approval=self.payment.approve(o)\n     if approval is None:\n-      o.record_progress(self.clock())\n+      slot.release(total); o.record_progress(self.clock())\n       self.ui.notify('承認の拒否'); return Result(False,'承認されなかった')\n     events=o.confirm(pickup,approval,slot.slot_id)          # 手順6\n     self.ui.notify(('注文番号',o.order_no,o.pickup))        # 手順7\n",
+  "ci": "$ concrete check\n宣言どうし：合格 25\n\n$ pytest -q tests\n......................                                                   [100%]\n22 passed in 0.01s\n\n$ (cd systemtest && go test -count=1 ./...)\nok  \tsystemtest\t0.531s\n\n$ concrete match build/trace.jsonl\n突き合わせ：テスト条件 29 件 ・ 記録 29 行\n\nCI：通った\n",
+  "ci_ok": true,
+  "ignored": "!! .pytest_cache/\n!! base/\n!! build/\n!! run_sim.py\n!! src/__pycache__/\n!! src/order/__pycache__/\n!! tests/__pycache__/\n!! tool/__pycache__/\n",
+  "tracked_build": ""
+ }
+]
