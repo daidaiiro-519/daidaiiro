@@ -59,7 +59,7 @@ def tchip(cid):
 def tblock(decl):
   cs=[c for c in CONDS if c['decl']==decl]
   if not cs: return ''
-  return block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','指紋','状態'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["fingerprint"]}</span>',pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in cs]))
+  return block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値','状態'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>',pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in cs]))
 def head(d,badges='',lead=''):
   return f'<header class="ph"><p class="kind">{KIND[d["kind"]]}{badges}</p><h1>{E(dname(d["id"]))}{idt(d["id"])}</h1></header>'+(f'<p class="lead">{E(lead)}</p>' if lead else '')
 OPS={"eq":"は{v}","ne":"は{v}ではない","ge":"は{v}以上","le":"は{v}以下","not_empty":"は空でない"}
@@ -240,7 +240,7 @@ def p_drift():
   rows=[[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in sorted(CONDS,key=lambda c:(order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9)*-1 if False else order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9,reverse=False)]
   rows=sorted(rows,key=lambda r:0 if '合格' in r[5] and 't-success' in r[5] else -1)
   b+=block('テスト条件',tbl(['ID','宣言','対象','確かめること','求めるレベル','状態'],rows))
-  if EXTRA: b+=block('余り（条件に無い報告）',tbl(['報告の条件 ID','テスト','理由'],[[f'<span class="tc t-fail">{E(x["condition"])}</span>',f'<span class="no">{E(x["test"])}</span>','退役した条件' if x['condition'] in drift.RETIRED else '不明な ID'] for x in EXTRA]))
+  if EXTRA: b+=block('余り（条件に無い報告）',tbl(['報告の条件 ID','テスト','理由'],[[f'<span class="tc t-fail">{E(x["condition"])}</span>',f'<span class="no">{E(x["test"])}</span>','廃止した条件' if x['condition'] in drift.RETIRED else '不明な ID'] for x in EXTRA]))
   b+=f'<details class="fold"><summary>報告の JSON（テスト実装が出したもの）</summary><div class="fbody"><pre class="code">{E(json.dumps(REPORT,ensure_ascii=False,indent=1))}</pre></div></details>'
   return b
 R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}

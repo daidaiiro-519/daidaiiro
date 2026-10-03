@@ -1,4 +1,4 @@
-# concrete のドリフト検知：宣言からテスト条件を取り出し、指紋を計算し、テスト実装の報告と突き合わせる
+# concrete のドリフト検知：宣言からテスト条件を取り出し、ハッシュ値を計算し、テスト実装の報告と突き合わせる
 import json,hashlib
 from data3 import D,IMPL
 LEVEL={"ドメインモデル":{"use_case":"system","quality":"system","aggregate":"component","value_object":"component","domain_service":"component"},
@@ -10,7 +10,7 @@ def conditions():
   out=[]
   def add(cid,label,kind,checks,expect,decl,anchor):
     lv=LEVEL[IMPL.get(ctx_of(D[decl]),'ドメインモデル')][kind]
-    out.append({"id":cid,"label":label,"kind":kind,"checks":checks,"fingerprint":fp(expect),"required_level":lv,"decl":decl,"anchor":anchor})
+    out.append({"id":cid,"label":label,"kind":kind,"checks":checks,"hash":fp(expect),"required_level":lv,"decl":decl,"anchor":anchor})
   for k,d in D.items():
     if d['kind']=='use_case':
       sc=d['scenario']; g=d['guarantees']
@@ -39,9 +39,9 @@ def report(conds):
   by={c['id']:c for c in conds}
   r=[]
   def put(cid,result,level=None,stale=False,reason=None):
-    c=by.get(cid); f=(c['fingerprint'] if c else '00000000')
+    c=by.get(cid); f=(c['hash'] if c else '00000000')
     if stale: f='9f3a01c7'
-    x={"condition":cid,"fingerprint":f,"test":"tests/"+cid.lower().replace('.','_')+".rs","level":level or (c['required_level'] if c else 'component'),"result":result}
+    x={"condition":cid,"hash":f,"test":"tests/"+cid.lower().replace('.','_')+".rs","level":level or (c['required_level'] if c else 'component'),"result":result}
     if reason: x['reason']=reason
     r.append(x)
   for c in conds:
@@ -62,7 +62,7 @@ def judge(conds,rep,exempt=()):
     if c['id'] in exempt: st='免除'
     elif not rows: st='欠け'
     elif any(x['result']=='fail' for x in rows): st='不合格'
-    elif any(x['fingerprint']!=c['fingerprint'] for x in rows): st='古い'
+    elif any(x['hash']!=c['hash'] for x in rows): st='古い'
     elif all(x['result']=='skip' for x in rows): st='未実行'
     elif not any(x['level']==c['required_level'] and x['result']=='pass' for x in rows): st='レベル違い'
     else: st='合格'
