@@ -7,9 +7,10 @@ metadata:
 
 `.brainstorming-board/usecase-driven-concrete/`（Artifact https://claude.ai/artifact/RCzv1XstzQ3Y5PHtFsT5Gr ）。宣言の種類ごとの欄と、AI が書いても出力が安定する書き方を、ddd-advisor と usecase-advisor の回答（`advice/` に保存）から決める。試作（trial）は根拠にしない。
 
-現在地（2026-10-03、5回目、コミット 90949194）：
-- 論点1 ・ 論点2 は決着。論点3（B′＋完成イメージで足した8項目）と論点4（テストとのつなぎ方、A）が回答待ち
-- 論点4 の中身：テスト条件（JSTQB）を単位にし、ID「宣言ID.種類-連番」とハッシュ値（期待する結果を決める欄の SHA-256）で報告と突き合わせる。判定は欠け ・ 余り ・ 不合格 ・ 古い ・ 未実行 ・ レベル違い。qa-advisor の回答は advice/qa.json
-- 完成イメージ sample/（Artifact https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ ）に、テスト条件の ID ・ 突き合わせの頁 ・ report.schema.json がある
+現在地（2026-10-03、6回目、コミット 7b13d759）：
+- 論点1 ・ 論点2 は決着。論点3（B′）・ 論点4（テストとのつなぎ方）・ 論点5（宣言どうしのつなぎ方）が回答待ち
+- 論点4：テスト条件を単位に、ID とハッシュ値で報告と突き合わせる。終了基準は「宣言どうしのずれ0件」を前提にする
+- 論点5：ずれを4つ（構造で検査 ・ 対応の欄で検査 ・ 上流の変更 ・ 人のレビュー）に分ける。ユースケースに handles ・ ensures ・ established_by ・ keeps を足し、guarantees_hold を外す。上流の変更は参照される項目ごとのハッシュ値を承認時に記録し、1段だけ伝える。回答は advice/q5/
+- 完成イメージ sample/（Artifact https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ ）の「突き合わせ」に、宣言どうし（spec_drift.py）と宣言とテスト実装（drift.py）の2つの検査がある。見本の宣言の13件のずれは検知の見本として残している
 - 次：承認されたら ACDR を起こす（usecase-modeling-coding 論点1 の writes→invokes、論点7 のサーガのテストと集約のレベル、ACDR 0093 の報告の形）。design-svg の exchange の自分宛てメッセージ（作業コピー、未コミット）も ACDR が要る。qa-advisor の validate が findings があっても ok:true を返す不具合は未報告
 - 関連：[[schema-driven-base-board]] の論点2はこのボードの決定に合わせて組み直し、論点3は保留
