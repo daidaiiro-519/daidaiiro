@@ -19,6 +19,9 @@ pub const PROJECT_DIR: &str = "${CLAUDE_PROJECT_DIR:-.}";
 /// 利用者が実行時に指定する外部の道具を表す名前。**command を持たない。**
 pub const USER_CHOSEN: &str = "*";
 
+/// いまの契約の版。**版3 は、版2（references の4つの道具）に tool.json の build ・ test ・ format を足した**（ACDR 0098）。
+pub const CONTRACT: u64 = 3;
+
 /// 契約の版2 で、どの Skill も持つ references の道具。
 pub const REFS_TOOLS: [&str; 4] = ["get", "validate", "view", "import"];
 
@@ -120,10 +123,10 @@ pub fn declaration(root: &Path) -> Vec<Verdict> {
             "tool.json が無いか読めない ── {why}（CLI の起動のコマンドと外部の道具を書く）"
         ))),
         Ok(doc) => {
-            // **版1 の免除は無い**（ACDR 0075）── 道具を持つ Skill は、どれも版2 に従う
-            if doc.get("contract").and_then(Value::as_u64).unwrap_or(1) < 2 {
+            // **古い版の免除は無い**（ACDR 0075 ・ 0098）── 道具を持つ Skill は、どれも版3 に従う
+            if doc.get("contract").and_then(Value::as_u64).unwrap_or(1) < CONTRACT {
                 out.push(Verdict::Fail(
-                    "契約の版が2でない: tool.json に \"contract\": 2 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持つ".to_owned(),
+                    "契約の版が3でない: tool.json に \"contract\": 3 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持ち、tool.json に組み立て ・ テスト ・ フォーマットのコマンド（build ・ test ・ format）を書く".to_owned(),
                 ));
             }
             // **版3 の欄**（ACDR 0097）── 組み立て ・ テスト ・ フォーマットのコマンドは、言語に依存しない形で書く

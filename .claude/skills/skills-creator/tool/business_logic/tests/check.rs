@@ -529,7 +529,7 @@ fn write_entries(root: &Path, tool: &str, mcp: &str) {
     std::fs::write(root.join("mcp.json"), mcp).expect("書ける");
 }
 
-const TOOL_JSON: &str = r#"{"contract":2,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
+const TOOL_JSON: &str = r#"{"contract":3,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#;
 const MCP_JSON: &str =
     r#"{"mcpServers":{"fake":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake-mcp","args":[]}}}"#;
 
@@ -751,24 +751,52 @@ fn declaration_failures(root: &Path) -> Vec<String> {
 }
 
 #[test]
-fn a_tool_without_contract_2_is_reported() {
-    // **版1 の免除は無い** ── 道具を持つ Skill は、どれも契約の版2 に従う
-    let root = scratch("contract-1");
+fn a_tool_without_contract_3_is_reported() {
+    // **古い版の免除は無い** ── 道具を持つ Skill は、どれも契約の版3 に従う（ACDR 0098）
+    let root = scratch("contract-2-old");
     write_entries(
         &root,
-        r#"{"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#,
+        r#"{"contract":2,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"external":[]}"#,
         MCP_JSON,
     );
     let found = declaration_failures(&root);
-    assert!(found.iter().any(|x| x.contains("契約の版")), "{found:?}");
+    assert!(
+        found.iter().any(|x| x.contains("契約の版が3でない")),
+        "{found:?}"
+    );
 }
 
 #[test]
-fn a_tool_with_contract_2_passes_the_version() {
-    let root = scratch("contract-2");
+fn a_tool_with_contract_3_passes_the_version() {
+    let root = scratch("contract-3");
     write_entries(&root, TOOL_JSON, MCP_JSON);
     let found = declaration_failures(&root);
     assert!(!found.iter().any(|x| x.contains("契約の版")), "{found:?}");
+}
+
+#[test]
+fn commands_in_tool_json_must_be_lists_of_words() {
+    // **build ・ test ・ format は、コマンドの並びの並び**である ── シェルの1行で書くと、シェルを経由することになる
+    let root = scratch("contract-3-shape");
+    write_entries(
+        &root,
+        r#"{"contract":3,"cli":{"command":"${CLAUDE_PROJECT_DIR:-.}/bin/fake","args":[]},"build":["cargo build"],"test":[[]],"format":[["cargo","fmt"]],"external":[]}"#,
+        MCP_JSON,
+    );
+    let found = declaration_failures(&root);
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("tool.json の build の形が違う")),
+        "{found:?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|x| x.contains("tool.json の test の形が違う")),
+        "{found:?}"
+    );
+    assert!(!found.iter().any(|x| x.contains("format")), "{found:?}");
 }
 
 #[test]
@@ -903,7 +931,7 @@ fn cases_are_reported_as_their_own_stage() {
     std::fs::write(
         root.join("tool.json"),
         format!(
-            r#"{{"contract":2,"cli":{{"command":"{}","args":[]}},"external":[]}}"#,
+            r#"{{"contract":3,"cli":{{"command":"{}","args":[]}},"external":[]}}"#,
             script.display()
         ),
     )

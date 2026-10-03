@@ -117,7 +117,7 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 ## 道具を伴う Skill
 
 **道具を持つ Skill は、道具の契約に従わせる。**
-契約は `references/document.json`（tool-contract） が規定する ── 呼び方を1つに固定し、
+契約は `references/contract/` の JSON が規定し、`references/document.json`（tool-contract）がその理由と MCP の規約を持つ ── 呼び方を1つに固定し、
 **能力をサービス層の道具の一覧に1度だけ書かせて、CLI と MCP をその一覧から組ませる**。
 
 **契約が規定するのは、呼ぶ側から観察できるものだけである**（ACDR 0036）。
@@ -125,7 +125,7 @@ skills-creator accept <Skill のフォルダ>    # 助言型だけ。受け入�
 
 | 置く先 | 中身 | 文書 |
 |---|---|---|
-| 契約 | CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具 | `references/document.json`（tool-contract） |
+| 契約 | Skill の構成 ・ CLI と MCP の2つのプレゼンテーション層と起動のコマンド（`tool.json` ・ `mcp.json`）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具 ・ 共通ツールのテストケース | `references/contract/` ・ `references/document.json`（tool-contract） |
 | リファレンス実装 | Rust の実装1組 ── 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 2段目の検査。作業型と助言型を生む。ほかの言語の Skill は、これを移植する | `references/document.json`（sample-rust ・ porting） |
 | 配布（任意） | 配布物 ・ 導入スクリプト ・ 組み立ての定義。全言語で1つを共有する | `references/document.json`（distribution） |
 
@@ -145,9 +145,14 @@ skills-creator dist --repo <所有者/リポジトリ>  # 配布するときだ�
 `check --cases 1` は、検証する Skill の `tool.json` の実行コマンドで全件を実行し、JSON の値として比較する ── どの言語で書いた Skill にも、同じテストケースを実行できる。
 テストケースは、Rust のリファレンス実装のテスト1件に1件以上を対応させる。
 
-**references は JSON Schema と JSON で持つ**（契約の版2、ACDR 0043）。`tool.json` に `"contract": 2` を書いた
-Skill は、雛形の references の実装で get ・ validate ・ view ・ import を持ち、Markdown は SKILL.md だけにする。
-**道具を持つ Skill は、どれも版2 に従う**（ACDR 0075）── `tool.json` に `"contract": 2` が無ければ、`check` が検出する。**SKILL.md がコードの記法で指す Skill の中のファイルは、実在しなければ検出する。**
+**道具を持つ Skill は、契約の版3 に従う**（ACDR 0098）。`tool.json` に `"contract": 3` を書き、次を満たす。
+
+| 版 | 足したもの |
+|---|---|
+| 2（ACDR 0043 ・ 0075） | references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持つ。Markdown は SKILL.md だけにする |
+| 3（ACDR 0098） | `tool.json` に、組み立て ・ テスト ・ フォーマットのコマンド（`build` ・ `test` ・ `format`）を、コマンドの並びの並びで書く。どれも Skill のフォルダで実行し、`format` はファイルを書き換えずに検査する |
+
+`tool.json` に `"contract": 3` が無いか、コマンドの欄の形が違えば、`check` が検出する。`accept` と提供者の検証は、`tool.json` のコマンドで試験 ・ 組み立て ・ 整形の検査をする ── 言語ごとの定義を持たない。**SKILL.md がコードの記法で指す Skill の中のファイルは、実在しなければ検出する。**
 
 **外部の道具は、外から注入する。** `tool.json` の `external` に名前 ・ 起動するコマンド ・ 理由を書き、
 サービス層が業務ロジック層へ渡す ── 業務ロジック層は名前を直書きしない。利用者は `tool.json` を書き換えるだけで差し替えられる。

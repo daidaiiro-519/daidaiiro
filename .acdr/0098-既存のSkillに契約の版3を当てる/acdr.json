@@ -1,0 +1,406 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0098",
+ "title": "既存の Skill に契約の版3 を当てる",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "道具を持つ13の Skill の tool.json を契約の版3 にし、skills-creator の check が版3 を求め、契約の文書を references/contract/ の JSON を正本とする形に書き直す。",
+ "why": "ACDR 0097 で、組み立て ・ テスト ・ フォーマットのコマンドを言語ごとの定義から tool.json へ移した（契約の版3）。いまの Skill の tool.json は版2 のままで、これらのコマンドを持たない。このままだと accept の試験と提供者の検証が、既存の Skill でコマンドを見つけられない。契約の文書（references/document.json の tool-contract）も、版2 と5言語の組を前提に書いてある。この ACDR はボード skills-creator-contract の移行の手順の C である。",
+ "shift": [
+  {
+   "what": "13の Skill の tool.json",
+   "from": "契約の版2 ── cli と external だけ",
+   "to": "契約の版3 ── build ・ test ・ format を足す"
+  },
+  {
+   "what": "check が求める版",
+   "from": "版2 以上",
+   "to": "版3。build ・ test ・ format の形も検査する"
+  },
+  {
+   "what": "契約の文書の正本",
+   "from": "references/document.json の tool-contract の散文",
+   "to": "references/contract/ の JSON。tool-contract は理由と MCP の規約を持つ"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "13の Skill の tool.json に build ・ test ・ format を足し、check が版3 を求める",
+ "how": "13の Skill の tool.json に、Rust のリファレンス実装と同じ build ・ test ・ format を書いた。どの Skill も tool/ の下に Cargo のワークスペースを持ち、cli と mcp の crate を持つので、同じコマンドで足りる。書いたコマンドを13件すべてで実行し、test は13件、format は12件が合格した。format の1件（doc-writing-skills）は、ほかのセッションが編集中のテストのファイルが整形されていないもので、この ACDR では触らない。check の1段目は、版3 でなければ検出する。references/document.json の tool-contract ・ folder-structure ・ distribution を、版3 とリファレンス実装に合わせて書き直した。skills-creator の SKILL.md も同じく直した。利用者の指示で、no-more-spaghetti（2026-10-02 に廃止を決めた）は対象から外した。版2 のままなので、check が「契約の版が3でない」と出す。",
+ "applies_to": "道具を持つ13の Skill の tool.json が変わる。対象は no-more-spaghetti を除くすべてである。skills-creator では behavior.rs とテスト、references/document.json、references/contract/tools.json、SKILL.md も変わる。",
+ "alternatives": [
+  {
+   "option": "版2 の Skill も受け入れ、build ・ test ・ format が無ければ言語ごとの既定を使う",
+   "why_not": "既定を持つには、言語ごとの定義をまた持つことになる。ACDR 0097 で言語ごとの定義を無くした"
+  },
+  {
+   "option": "platform-advisor と ux-advisor を、この ACDR でリファレンス実装から作り直す",
+   "why_not": "2件はデータアクセス層を持たない古い構成で、references の実装だけを複製し直しても組み立てられない。作り直しは advisor の作り直しの作業として、この後に行う（ボードの論点5）"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "利用者が挙げた Skill を契約で見直し、advisor の4件の契約を合わせる（別の ACDR）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "t-acdr",
+   "tab": "acdr/tool.json",
+   "file": ".claude/skills/acdr/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-brainstorming-board",
+   "tab": "brainstorming-board/tool.json",
+   "file": ".claude/skills/brainstorming-board/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-ddd-advisor",
+   "tab": "ddd-advisor/tool.json",
+   "file": ".claude/skills/ddd-advisor/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-design-svg",
+   "tab": "design-svg/tool.json",
+   "file": ".claude/skills/design-svg/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-doc-writing-skills",
+   "tab": "doc-writing-skills/tool.json",
+   "file": ".claude/skills/doc-writing-skills/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-fact-check",
+   "tab": "fact-check/tool.json",
+   "file": ".claude/skills/fact-check/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-platform-advisor",
+   "tab": "platform-advisor/tool.json",
+   "file": ".claude/skills/platform-advisor/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-qa-advisor",
+   "tab": "qa-advisor/tool.json",
+   "file": ".claude/skills/qa-advisor/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-skills-creator",
+   "tab": "skills-creator/tool.json",
+   "file": ".claude/skills/skills-creator/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "\"reason\": \"受け入れの検査（accept）が、検査する Skill の tool.json の test が持つ試験のコマンドを、その Skill のフォルダで起動する\"",
+     "before": "\"contract\": 2,\n      \"reason\": \"受け入れの検査（accept）が、言語の組の定義が持つ試験のコマンドを、検査する Skill のフォルダで起動する\"",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する。外部の道具の理由も、言語の組の定義から tool.json の test に合わせて直した"
+    }
+   ]
+  },
+  {
+   "key": "t-slide-deck-speech",
+   "tab": "slide-deck-speech/tool.json",
+   "file": ".claude/skills/slide-deck-speech/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-slide-deck",
+   "tab": "slide-deck/tool.json",
+   "file": ".claude/skills/slide-deck/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-ux-advisor",
+   "tab": "ux-advisor/tool.json",
+   "file": ".claude/skills/ux-advisor/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "t-usecase-advisor",
+   "tab": "usecase-advisor/tool.json",
+   "file": ".claude/skills/usecase-advisor/tool.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "\"contract\": 2,",
+     "why": "契約の版3 にした。組み立て ・ テスト ・ フォーマットのコマンドを、Rust のリファレンス実装と同じ形で書いた。どれも Skill のフォルダで実行し、format はファイルを書き換えずに検査する"
+    }
+   ]
+  },
+  {
+   "key": "behavior",
+   "tab": "behavior.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/behavior.rs",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "/// いまの契約の版。**版3 は、版2（references の4つの道具）に tool.json の build ・ test ・ format を足した**（ACDR 0098）。",
+     "before": "（無い）",
+     "why": "いまの契約の版を定数にした"
+    },
+    {
+     "find": "\"契約の版が3でない: tool.json に \\\"contract\\\": 3 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持ち、tool.json に組み立て ・ テスト ・ フォーマットのコマンド（build ・ test ・ format）を書く\".to_owned(),",
+     "before": "// **版1 の免除は無い**（ACDR 0075）── 道具を持つ Skill は、どれも版2 に従う\n            if doc.get(\"contract\").and_then(Value::as_u64).unwrap_or(1) < 2 {\n                    \"契約の版が2でない: tool.json に \\\"contract\\\": 2 が無い ── 道具を持つ Skill は、references を JSON Schema と JSON で持ち、get ・ validate ・ view ・ import を持つ\".to_owned(),",
+     "why": "1段目は、版3 でなければ検出する。古い版の免除は無い"
+    }
+   ]
+  },
+  {
+   "key": "tcheck",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "const TOOL_JSON: &str = r#\"{\"contract\":3,\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#;",
+     "before": "const TOOL_JSON: &str = r#\"{\"contract\":2,\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#;",
+     "why": "事例の tool.json を版3 にした"
+    },
+    {
+     "find": "r#\"{\"contract\":3,\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"build\":[\"cargo build\"],\"test\":[[]],\"format\":[[\"cargo\",\"fmt\"]],\"external\":[]}\"#,",
+     "before": "fn a_tool_without_contract_2_is_reported() {\n    // **版1 の免除は無い** ── 道具を持つ Skill は、どれも契約の版2 に従う\n    let root = scratch(\"contract-1\");\n        r#\"{\"cli\":{\"command\":\"${CLAUDE_PROJECT_DIR:-.}/bin/fake\",\"args\":[]},\"external\":[]}\"#,\n    assert!(found.iter().any(|x| x.contains(\"契約の版\")), \"{found:?}\");\nfn a_tool_with_contract_2_passes_the_version() {\n    let root = scratch(\"contract-2\");",
+     "why": "版2 の tool.json を検出することと、build ・ test の形の誤りを検出することを固定した"
+    },
+    {
+     "find": "r#\"{{\"contract\":3,\"cli\":{{\"command\":\"{}\",\"args\":[]}},\"external\":[]}}\"#,",
+     "before": "r#\"{{\"contract\":2,\"cli\":{{\"command\":\"{}\",\"args\":[]}},\"external\":[]}}\"#,",
+     "why": "事例の tool.json を版3 にした"
+    }
+   ]
+  },
+  {
+   "key": "tools",
+   "tab": "contract/tools.json",
+   "file": ".claude/skills/skills-creator/references/contract/tools.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "\"meaning\": \"契約の版。いまは 3（ACDR 0098）。2 は references の4つの道具を、3 はそれに build ・ test ・ format を足した\"",
+     "before": "\"meaning\": \"契約の版\"",
+     "why": "contract の欄の意味に、いまの版が3であることを書いた"
+    }
+   ]
+  },
+  {
+   "key": "doc",
+   "tab": "document.json",
+   "file": ".claude/skills/skills-creator/references/document.json",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "\"text\": \"契約は、呼ぶ側から観察できるものだけを規定する（ACDR 0036）。道具を書く言語と、配布するかどうかは、利用者に委ねる。機械が読む契約の正本は references/contract/ の JSON である ── Skill の構成（structure.json）・ CLI のインターフェースと tool.json の欄（tools.json）・ 実装上の前提（assumptions.json）・ 共通ツールのテストケース（cases/）。この文書は、その理由と MCP の規約を持つ。実装は Rust のリファレンス実装を1組だけ持ち（references/document.json の sample-rust）、ほかの言語の Skill はそれを移植する（porting）。配布は任意の機能として references/document.json の distribution が持つ。\"",
+     "before": "\"text\": \"契約は、呼ぶ側から観察できるものだけを規定する（ACDR 0036）。道具を書く言語と、配布するかどうかは、利用者に委ねる。言語ごとの実装の形は言語の組が持ち（いまは Rust ・ Python ・ TypeScript ・ C# ・ Go。references/document.json の profile-<言語>）、配布は任意の機能としてreferences/document.json の distribution が持つ。\"",
+     "why": "契約の正本は references/contract/ の JSON で、この文書は理由と MCP の規約を持つことを書いた。実装はリファレンス実装1組である"
+    },
+    {
+     "find": "\"Skill の構成 ・ CLI と MCP の2つのプレゼンテーション層と起動のコマンド ・ CLI の規約 ・ 1つの道具の一覧から CLI と MCP を組む ・ MCP の規約 ・ Skill のフォルダの求め方 ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具 ・ 1段目の検査 ・ 共通ツールのテストケース\"",
+     "before": "\"契約（この文書）\",\n                      \"CLI と MCP の2つのプレゼンテーション層と起動のコマンド ・ CLI の規約 ・ 1つの道具の一覧から CLI と MCP を組む ・ MCP の規約 ・ Skill のフォルダの求め方 ・ 外部の道具 ・ 1段目の検査\"\n                      \"言語の組\",\n                      \"組の定義（references/profiles/<言語>.profile.json）・ 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査\"",
+     "why": "置く先の表を、契約 ・ リファレンス実装 ・ 配布の3つにした"
+    },
+    {
+     "find": "\"text\": \"道具を書いてよい言語の条件は、公式の MCP の SDK が在ることだけである。どの言語で書いても、契約のテストケースに全件合格させる。\"",
+     "before": "\"text\": \"言語の組を作ってよい言語の条件は、公式の MCP の SDK が在ることだけである。組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。\"",
+     "why": "道具を書いてよい言語の条件に、テストケースへの全件合格を足した"
+    },
+    {
+     "find": "\"tool.json の build ・ test ・ format に、コマンドの並びの並び（[[\\\"コマンド\\\", \\\"引数\\\", …], …]）で書く（契約の版3、ACDR 0098）。どれも Skill のフォルダで実行し、シェルを経由しない。format はファイルを書き換えずに検査し、違反があれば 0 以外で終わるコマンドを書く。そういう呼び方を持たない言語では空にしてよい\"",
+     "before": "（無い）",
+     "why": "規定するものの表に、組み立て ・ テスト ・ フォーマットの行を足した（契約の版3）"
+    },
+    {
+     "find": "\"text\": \"{\\n  \\\"contract\\\": 3,\\n  \\\"cli\\\": {\\\"command\\\": \\\"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\\\", \\\"args\\\": []},\\n  \\\"build\\\":  [[\\\"cargo\\\", \\\"install\\\", \\\"--path\\\", \\\"tool/cli\\\", \\\"--root\\\", \\\".\\\", \\\"--target-dir\\\", \\\"tool/target\\\"]],\\n  \\\"test\\\":   [[\\\"cargo\\\", \\\"test\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"-q\\\"]],\\n  \\\"format\\\": [[\\\"cargo\\\", \\\"fmt\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"--all\\\", \\\"--\\\", \\\"--check\\\"]],\\n  \\\"external\\\": [\\n    {\\\"name\\\": \\\"git\\\", \\\"command\\\": \\\"git\\\", \\\"reason\\\": \\\"目的に不可欠である理由\\\"}\\n  ]\\n}\"",
+     "before": "\"text\": \"tool.json の形は次である。\\\"*\\\" は、規則ファイルや引数で利用者が実行時に指定する道具を表し、command を保持しない。\"\n                  \"text\": \"{\\n  \\\"cli\\\": {\\\"command\\\": \\\"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\\\", \\\"args\\\": []},\\n  \\\"external\\\": [\\n    {\\\"name\\\": \\\"git\\\", \\\"command\\\": \\\"git\\\", \\\"reason\\\": \\\"目的に不可欠である理由\\\"}\\n  ]\\n}\"",
+     "why": "tool.json の形の例を、版3 の欄を持つ形にした"
+    },
+    {
+     "find": "\"text\": \"予期した失敗は、道具の結果として返す。 ok が偽なら CallToolResult の is_error を立て、こちらの文言を content に載せる ── 異常終了（panic）させると、呼ぶ側には理由が届かない。リファレンス実装がこの形を持つ。\"",
+     "before": "\"text\": \"予期した失敗は、道具の結果として返す。 ok が偽なら CallToolResult の is_error を立て、こちらの文言を content に載せる ── 異常終了（panic）させると、呼ぶ側には理由が届かない。言語の組の雛形がこの形を持つ。\"",
+     "why": "「言語の組」を前提にした文を、リファレンス実装と移植の形に書き直した"
+    },
+    {
+     "find": "\"text\": \"references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。契約の版2 で次を定め、版3 も同じである。道具を持つ Skill は、どれも版3 に従う（ACDR 0075 ・ 0098）── 古い版の免除は無い。\"",
+     "before": "\"title\": \"references（契約の版2）\",\n                  \"text\": \"references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。版2 の Skill は、tool.json に \\\"contract\\\": 2 を書き、次を満たす。道具を持つ Skill は、どれも版2 に従う（ACDR 0075）── 版1 の免除は無い。\"",
+     "why": "references の規定は版2 で定め、版3 も同じであることを書いた"
+    },
+    {
+     "find": "\"どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）。振る舞いは契約のテストケース（references/contract/cases/）が決める。Rust の Skill はリファレンス実装の複製を持ち、ほかの言語の Skill は移植したものを持つ\"",
+     "before": "\"どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）。実体は言語の組の雛形が持ち、Skill ごとに書かない\"",
+     "why": "4つの道具の振る舞いはテストケースが決め、Rust の Skill は複製、ほかの言語は移植したものを持つ"
+    },
+    {
+     "find": "\"text\": \"1段目の検査は、4つの道具が道具の一覧に在ること、validate が合格することを加える。check に --cases 1 を渡すと、テストケースも実行する。\"",
+     "before": "\"text\": \"版2 の1段目の検査は、4つの道具が道具の一覧に在ること、validate が合格することを加える。\"",
+     "why": "1段目の検査に、--cases 1 のテストケースを足した"
+    },
+    {
+     "find": "\"起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。リファレンス実装は bin/ に置く。ほかの言語の置き場所は、移植する側が決めて tool.json と mcp.json に書く\"",
+     "before": "\"公式の MCP の SDK が在る言語なら、どれでもよい。実装の形は言語の組が持つ\"\n                      \"起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。置き場所は言語の組が決める（Rust と Go は bin/、Python は実行ファイルを置かず uv run で、TypeScript は node で .ts を直接、C# は dotnet で組み立てた dll を起動する）\"",
+     "why": "「言語の組」を前提にした文を、リファレンス実装と移植の形に書き直した"
+    },
+    {
+     "find": "\"text\": \"この節は契約ではない（ACDR 0059）。リファレンス実装が、生んだ直後から動く出発点として採る構成である。利用者は構成を変更してよく、skills-creator check は既定ではこの構成を検査しない。雛形の構成を保つと決めたリポジトリは、check に --layout 1 を渡して検査を有効にする。\"",
+     "before": "\"text\": \"この節は契約ではない（ACDR 0059）。言語の組の雛形が、生んだ直後から動く出発点として採る構成である。利用者は構成を変更してよく、skills-creator check は既定ではこの構成を検査しない。雛形の構成を保つと決めたリポジトリは、check に --layout 1 を渡して検査を有効にする。\"",
+     "why": "「言語の組」を前提にした文を、リファレンス実装と移植の形に書き直した"
+    },
+    {
+     "find": "\"text\": \"どう保つかは、言語ごとに決める（Rust は crate の境界に置き、各 Cargo.toml が依存の向きを宣言する。入出力の混入は --layout 1 の2段目が検出する）。\"",
+     "before": "\"text\": \"どう保つかは、言語の組が決める（Rust は crate の境界に置き、各 Cargo.toml が依存の向きを宣言する。入出力の混入は --layout 1 の2段目が検出する）。\"",
+     "why": "「言語の組」を前提にした文を、リファレンス実装と移植の形に書き直した"
+    },
+    {
+     "find": "\"text\": \"2段で検査する。 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。2段目はソースを読む検査で、リファレンス実装と同じ言語（Rust）の Skill だけに当てる（references/document.json の sample-rust）。2段目が既定で検査するのは、契約に関わるものだけである（外部の道具の名前の直書きと、references の実装がリファレンス実装と一致すること）。--layout 1 を渡すと、雛形の構成（上の節）も検査する。ほかの言語では、2段目は「実行しない」と出し、合格とは扱わない ── 共通ツールの振る舞いは --cases 1 のテストケースで確かめる。\"",
+     "before": "\"text\": \"skills-creator check <Skill のフォルダ>\"\n                  \"text\": \"2段で検査する。 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。2段目はソースを読む検査で、言語の組が持つ（Rust の組の検査は references/document.json の profile-rust、Python ・ TypeScript ・ C# ・ Go の組の検査は references/document.json の profile-<言語>）。2段目が既定で検査するのは、契約に関わるものだけである（外部の道具の名前の直書き）。--layout 1 を渡すと、雛形の構成（上の節）も検査する。組が無い言語では、2段目は「実行しない」と出し、合格とは扱わない。\"",
+     "why": "check の書き方に --cases 1 を足した"
+    },
+    {
+     "find": "\"tool.json に \\\"contract\\\": 3 が無い。build ・ test ・ format がコマンドの並びの並びでない\"",
+     "before": "\"CLI の起動のコマンドと外部の道具を書いていない\"",
+     "why": "1段目の検出の表に、契約の版が3でないことと、コマンドの欄の形の誤りを足した"
+    },
+    {
+     "find": "\"text\": \"配布の仕組み（配布物 ・ 導入スクリプト ・ 組み立ての定義）は、1つを全ての Skill で共有する。組み立ての定義が組み立てるのは、Rust の Skill（tool/Cargo.toml を持つもの）だけである。ほかの言語で書いた Skill の配布は、まだ定義を持たない。実行ファイルが bin/ に在ることを前提にする。\"",
+     "before": "\"text\": \"配布の仕組み（配布物 ・ 導入スクリプト ・ 組み立ての定義）は、全言語で1つを共有する。言語の組からは、組み立てのコマンドだけを借りる。実行ファイルが bin/ に在ることを前提にする。\"",
+     "why": "配布の組み立ての定義が組み立てるのは Rust の Skill だけであることを、事実どおりに書いた"
+    },
+    {
+     "find": "\"text\": \".claude/skills/{{スキル名}}/\\n├── SKILL.md              # 必須・ルートに固定\\n├── README.md             # 任意・人間向け説明\\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\\n│   ├── skill-template.md\\n│   └── ...\\n├── examples/             # 使用例・サンプル出力\\n│   └── ...\\n├── tool/                 # 道具のソース（構成は言語ごとに決める。リファレンス実装の Rust は workspace）\\n├── bin/                  # 組み立てた実行ファイル（リファレンス実装の置き場所。git で追跡しない）\\n├── tool.json             # CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\\n│   └── ...\\n├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）\\n├── agents/               # サブエージェント定義\\n│   └── ...\\n└── assets/               # HTML等の静的ファイル\\n    └── ...\"",
+     "before": "\"text\": \".claude/skills/{{スキル名}}/\\n├── SKILL.md              # 必須・ルートに固定\\n├── README.md             # 任意・人間向け説明\\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\\n│   ├── skill-template.md\\n│   └── ...\\n├── examples/             # 使用例・サンプル出力\\n│   └── ...\\n├── tool/                 # 道具のソース（言語の組が構成を決める。Rust は workspace）\\n├── bin/                  # 組み立てた実行ファイル（Rust の組の置き場所。git で追跡しない）\\n├── tool.json             # CLI の起動のコマンドと、外部の道具\\n│   └── ...\\n├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）\\n├── agents/               # サブエージェント定義\\n│   └── ...\\n└── assets/               # HTML等の静的\n…",
+     "why": "フォルダ構成の図の tool/ ・ bin/ ・ tool.json の説明を、リファレンス実装と版3 に合わせた"
+    },
+    {
+     "find": "\"道具のソース。リファレンス実装（Rust）では data_access ・ business_logic ・ service ・ cli ・ mcp の5つの crate（references/document.json の sample-rust）\",",
+     "before": "\"道具のソース。Rust の組では data_access ・ business_logic ・ service ・ cli ・ mcp の5つの crate（references/document.json の profile-rust）\",",
+     "why": "「言語の組」を前提にした文を、リファレンス実装と移植の形に書き直した"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "skills-creator/SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "49ba61bf2484326dec36befc01a3b1f7403b2d8d",
+   "marks": [
+    {
+     "find": "がその理由と MCP の規約を持つ",
+     "before": "契約は references/document.json（tool-contract） が規定する",
+     "why": "契約の正本を references/contract/ の JSON にした"
+    },
+    {
+     "find": "組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具 ・ 共通ツールのテストケース",
+     "before": "CLI と MCP の2つのプレゼンテーション層と起動のコマンド（tool.json ・ mcp.json）・ CLI の規約 ・ 1つの道具の一覧 ・ Skill のフォルダの求め方 ・ 外部の道具",
+     "why": "契約の行に、Skill の構成 ・ コマンド ・ テストケースを足した"
+    },
+    {
+     "find": "契約の版3 に従う",
+     "before": "references は JSON Schema と JSON で持つ（契約の版2、ACDR 0043）。tool.json に \"contract\": 2 を書いた Skill は、雛形の references の実装で get ・ validate ・ view ・ import を持ち、Markdown は SKILL.md だけにする。道具を持つ Skill は、どれも版2 に従う（ACDR 0075）",
+     "why": "版2 と版3 で足したものを表にし、版3 を求めることを書いた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "t-acdr": "2f13df5d9a15732b086b94ab5092a2246e018b1e6be1a4c0c7ebd5163aed968e",
+  "t-brainstorming-board": "458a9f06d2e5c46a08f492102dfd2390d75ca39f4cf517ac6eded1093ac951e1",
+  "t-ddd-advisor": "9d991187499056a8a1d8062e3f01221e5ce7aa1952df26f146f6faa00ed54415",
+  "t-design-svg": "aa6489de0ba8207a50d9441441c3c06c0e628ee3201a02d480fb762eec57635d",
+  "t-doc-writing-skills": "b3b6819c3d68b01b3684ad31e2228e569fe463ebf3a055c5640bf03b479d6963",
+  "t-fact-check": "0274696186f0b5777c0dfef82536d5b4dbc480a70530632d9bb50f651c12ca33",
+  "t-platform-advisor": "7a61c6754a61cf0e57cfb63a41c57586553b38ffd445d68f72a9f2fd66b67b65",
+  "t-qa-advisor": "503cbac186262d8043263ba2f5bfff85dec9bb002ab9c428577395e6faff84fb",
+  "t-skills-creator": "9042dc2462691c0824fc3337ad2513bac9636194055d1fe0d9e7cbed2f01c02f",
+  "t-slide-deck-speech": "66653ee69bda5563d16ace32ad0e1c2f0b21d8ecfc65c33f338710defd030099",
+  "t-slide-deck": "53c342328d8e4175be91c5e0fe35055e9e0a3026ca9443ff17daffb504a239c7",
+  "t-ux-advisor": "d6a5e6c97d198ee115493ffdc876d16a4d0c4f8313e577d11f9efda1f6a5f321",
+  "t-usecase-advisor": "fb9d8acd8fbdace2ab90d5fafd3dfaf2ca394c60aaa8e0a611ad66aa8000b058",
+  "behavior": "7b557bbe974b9183d1fe200cb16e90d70b26b1fe16d819b59345b27e584acf7a",
+  "tcheck": "f9fe26ad2de6d88c05807d1acadcd841362a382516d5443cf081a5dfaf0a926d",
+  "tools": "35c7575e610860476ee0969234d6d07abacf2d8d7fe81e038b4e5d879da5852b",
+  "doc": "1144056dd49916d089da15b520a74f4aa8a594a96212f0d7595ec7646c3861da",
+  "skill": "fb791a044dbbdf9ec1fe054df1f5dbed070a5428a32aae6f503ac4d1b8850b33"
+ }
+}

@@ -1,13 +1,23 @@
 {
-  "contract": 2,
+  "contract": 3,
   "cli": {
     "command": "${CLAUDE_PROJECT_DIR:-.}/.claude/skills/skills-creator/bin/skills-creator",
     "args": []
   },
+  "build": [
+    ["cargo", "install", "--path", "tool/cli", "--root", ".", "--target-dir", "tool/target"],
+    ["cargo", "install", "--path", "tool/mcp", "--root", ".", "--target-dir", "tool/target"]
+  ],
+  "test": [
+    ["cargo", "test", "--manifest-path", "tool/Cargo.toml", "-q"]
+  ],
+  "format": [
+    ["cargo", "fmt", "--manifest-path", "tool/Cargo.toml", "--all", "--", "--check"]
+  ],
   "external": [
     {
       "name": "*",
-      "reason": "受け入れの検査（accept）が、言語の組の定義が持つ試験のコマンドを、検査する Skill のフォルダで起動する"
+      "reason": "受け入れの検査（accept）が、検査する Skill の tool.json の test が持つ試験のコマンドを、その Skill のフォルダで起動する"
     }
   ]
 }

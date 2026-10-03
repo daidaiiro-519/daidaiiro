@@ -26,7 +26,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "契約は、呼ぶ側から観察できるものだけを規定する（ACDR 0036）。道具を書く言語と、配布するかどうかは、利用者に委ねる。言語ごとの実装の形は言語の組が持ち（いまは Rust ・ Python ・ TypeScript ・ C# ・ Go。references/document.json の profile-<言語>）、配布は任意の機能としてreferences/document.json の distribution が持つ。"
+                  "text": "契約は、呼ぶ側から観察できるものだけを規定する（ACDR 0036）。道具を書く言語と、配布するかどうかは、利用者に委ねる。機械が読む契約の正本は references/contract/ の JSON である ── Skill の構成（structure.json）・ CLI のインターフェースと tool.json の欄（tools.json）・ 実装上の前提（assumptions.json）・ 共通ツールのテストケース（cases/）。この文書は、その理由と MCP の規約を持つ。実装は Rust のリファレンス実装を1組だけ持ち（references/document.json の sample-rust）、ほかの言語の Skill はそれを移植する（porting）。配布は任意の機能として references/document.json の distribution が持つ。"
                 },
                 {
                   "kind": "table",
@@ -36,12 +36,12 @@
                   ],
                   "rows": [
                     [
-                      "契約（この文書）",
-                      "CLI と MCP の2つのプレゼンテーション層と起動のコマンド ・ CLI の規約 ・ 1つの道具の一覧から CLI と MCP を組む ・ MCP の規約 ・ Skill のフォルダの求め方 ・ 外部の道具 ・ 1段目の検査"
+                      "契約（references/contract/ とこの文書）",
+                      "Skill の構成 ・ CLI と MCP の2つのプレゼンテーション層と起動のコマンド ・ CLI の規約 ・ 1つの道具の一覧から CLI と MCP を組む ・ MCP の規約 ・ Skill のフォルダの求め方 ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具 ・ 1段目の検査 ・ 共通ツールのテストケース"
                     ],
                     [
-                      "言語の組",
-                      "組の定義（references/profiles/<言語>.profile.json）・ 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 組み立てのコマンド ・ 2段目の検査"
+                      "リファレンス実装",
+                      "定義（references/sample/rust/sample.json）・ 実行ファイルの置き場所 ・ 雛形とその構成（推奨） ・ 2段目の検査。ほかの言語へは移植する"
                     ],
                     [
                       "配布（任意）",
@@ -51,7 +51,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "言語の組を作ってよい言語の条件は、公式の MCP の SDK が在ることだけである。組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである。"
+                  "text": "道具を書いてよい言語の条件は、公式の MCP の SDK が在ることだけである。どの言語で書いても、契約のテストケースに全件合格させる。"
                 }
               ]
             },
@@ -103,6 +103,10 @@
                       "呼ぶ側が --skill_root を渡せばそれを使い、渡さなければ実行ファイル自身の位置から求める。どちらでも見つからなければ、試した経路を示して止める"
                     ],
                     [
+                      "組み立て ・ テスト ・ フォーマット",
+                      "tool.json の build ・ test ・ format に、コマンドの並びの並び（[[\"コマンド\", \"引数\", …], …]）で書く（契約の版3、ACDR 0098）。どれも Skill のフォルダで実行し、シェルを経由しない。format はファイルを書き換えずに検査し、違反があれば 0 以外で終わるコマンドを書く。そういう呼び方を持たない言語では空にしてよい"
+                    ],
+                    [
                       "外部の道具",
                       "外部コマンドは例外である。 呼んでよいのは Skill の目的に不可欠な道具だけで、tool.json の external に名前 ・ 起動するコマンド ・ 理由を書く。道具のソースは名前を直書きしない ── tool.json から読み、起動する処理へ引数として渡す。利用者は tool.json を書き換えるだけで、呼ぶコマンドを差し替えられる。OS によって無いコマンド（date ・ timeout）は、どの場合も呼ばない"
                     ],
@@ -126,11 +130,11 @@
                 },
                 {
                   "kind": "para",
-                  "text": "tool.json の形は次である。\"*\" は、規則ファイルや引数で利用者が実行時に指定する道具を表し、command を保持しない。"
+                  "text": "tool.json の形は次である（契約の版3）。\"*\" は、規則ファイルや引数で利用者が実行時に指定する道具を表し、command を保持しない。"
                 },
                 {
                   "kind": "code",
-                  "text": "{\n  \"cli\": {\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\", \"args\": []},\n  \"external\": [\n    {\"name\": \"git\", \"command\": \"git\", \"reason\": \"目的に不可欠である理由\"}\n  ]\n}"
+                  "text": "{\n  \"contract\": 3,\n  \"cli\": {\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\", \"args\": []},\n  \"build\":  [[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"]],\n  \"test\":   [[\"cargo\", \"test\", \"--manifest-path\", \"tool/Cargo.toml\", \"-q\"]],\n  \"format\": [[\"cargo\", \"fmt\", \"--manifest-path\", \"tool/Cargo.toml\", \"--all\", \"--\", \"--check\"]],\n  \"external\": [\n    {\"name\": \"git\", \"command\": \"git\", \"reason\": \"目的に不可欠である理由\"}\n  ]\n}"
                 }
               ],
               "sections": [
@@ -201,7 +205,7 @@
                     },
                     {
                       "kind": "para",
-                      "text": "予期した失敗は、道具の結果として返す。 ok が偽なら CallToolResult の is_error を立て、こちらの文言を content に載せる ── 異常終了（panic）させると、呼ぶ側には理由が届かない。言語の組の雛形がこの形を持つ。"
+                      "text": "予期した失敗は、道具の結果として返す。 ok が偽なら CallToolResult の is_error を立て、こちらの文言を content に載せる ── 異常終了（panic）させると、呼ぶ側には理由が届かない。リファレンス実装がこの形を持つ。"
                     },
                     {
                       "kind": "para",
@@ -301,11 +305,11 @@
               ]
             },
             {
-              "title": "references（契約の版2）",
+              "title": "references（契約の版2 から）",
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。版2 の Skill は、tool.json に \"contract\": 2 を書き、次を満たす。道具を持つ Skill は、どれも版2 に従う（ACDR 0075）── 版1 の免除は無い。"
+                  "text": "references は、Skill の目的を達成するために参照する情報である（ACDR 0043）。契約の版2 で次を定め、版3 も同じである。道具を持つ Skill は、どれも版3 に従う（ACDR 0075 ・ 0098）── 古い版の免除は無い。"
                 },
                 {
                   "kind": "table",
@@ -332,7 +336,7 @@
                     ],
                     [
                       "4つの道具",
-                      "どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）。実体は言語の組の雛形が持ち、Skill ごとに書かない"
+                      "どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）。振る舞いは契約のテストケース（references/contract/cases/）が決める。Rust の Skill はリファレンス実装の複製を持ち、ほかの言語の Skill は移植したものを持つ"
                     ],
                     [
                       "描画",
@@ -383,7 +387,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "版2 の1段目の検査は、4つの道具が道具の一覧に在ること、validate が合格することを加える。"
+                  "text": "1段目の検査は、4つの道具が道具の一覧に在ること、validate が合格することを加える。check に --cases 1 を渡すと、テストケースも実行する。"
                 }
               ]
             },
@@ -411,11 +415,11 @@
                     ],
                     [
                       "道具を書く言語",
-                      "公式の MCP の SDK が在る言語なら、どれでもよい。実装の形は言語の組が持つ"
+                      "公式の MCP の SDK が在る言語なら、どれでもよい。Rust はリファレンス実装から生成し、ほかの言語は移植する"
                     ],
                     [
                       "実行ファイルの置き場所",
-                      "起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。置き場所は言語の組が決める（Rust と Go は bin/、Python は実行ファイルを置かず uv run で、TypeScript は node で .ts を直接、C# は dotnet で組み立てた dll を起動する）"
+                      "起動のコマンドを登録に書けば、置き場所に依存せずに呼べる。リファレンス実装は bin/ に置く。ほかの言語の置き場所は、移植する側が決めて tool.json と mcp.json に書く"
                     ],
                     [
                       "配布",
@@ -434,7 +438,7 @@
               "blocks": [
                 {
                   "kind": "para",
-                  "text": "この節は契約ではない（ACDR 0059）。言語の組の雛形が、生んだ直後から動く出発点として採る構成である。利用者は構成を変更してよく、skills-creator check は既定ではこの構成を検査しない。雛形の構成を保つと決めたリポジトリは、check に --layout 1 を渡して検査を有効にする。"
+                  "text": "この節は契約ではない（ACDR 0059）。リファレンス実装が、生んだ直後から動く出発点として採る構成である。利用者は構成を変更してよく、skills-creator check は既定ではこの構成を検査しない。雛形の構成を保つと決めたリポジトリは、check に --layout 1 を渡して検査を有効にする。"
                 },
                 {
                   "kind": "para",
@@ -497,7 +501,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "どう保つかは、言語の組が決める（Rust は crate の境界に置き、各 Cargo.toml が依存の向きを宣言する。入出力の混入は --layout 1 の2段目が検出する）。"
+                  "text": "どう保つかは、言語ごとに決める（Rust は crate の境界に置き、各 Cargo.toml が依存の向きを宣言する。入出力の混入は --layout 1 の2段目が検出する）。"
                 }
               ]
             },
@@ -581,11 +585,11 @@
               "blocks": [
                 {
                   "kind": "code",
-                  "text": "skills-creator check <Skill のフォルダ>"
+                  "text": "skills-creator check <Skill のフォルダ> [--cases 1]"
                 },
                 {
                   "kind": "para",
-                  "text": "2段で検査する。 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。2段目はソースを読む検査で、言語の組が持つ（Rust の組の検査は references/document.json の profile-rust、Python ・ TypeScript ・ C# ・ Go の組の検査は references/document.json の profile-<言語>）。2段目が既定で検査するのは、契約に関わるものだけである（外部の道具の名前の直書き）。--layout 1 を渡すと、雛形の構成（上の節）も検査する。組が無い言語では、2段目は「実行しない」と出し、合格とは扱わない。"
+                  "text": "2段で検査する。 1段目は実行ファイルを起動して振る舞いを確認する ── どの言語でも同じである。2段目はソースを読む検査で、リファレンス実装と同じ言語（Rust）の Skill だけに当てる（references/document.json の sample-rust）。2段目が既定で検査するのは、契約に関わるものだけである（外部の道具の名前の直書きと、references の実装がリファレンス実装と一致すること）。--layout 1 を渡すと、雛形の構成（上の節）も検査する。ほかの言語では、2段目は「実行しない」と出し、合格とは扱わない ── 共通ツールの振る舞いは --cases 1 のテストケースで確かめる。"
                 },
                 {
                   "kind": "table",
@@ -596,7 +600,11 @@
                   "rows": [
                     [
                       "tool.json が無いか読めない",
-                      "CLI の起動のコマンドと外部の道具を書いていない"
+                      "CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具を書いていない"
+                    ],
+                    [
+                      "契約の版が3でない ／ tool.json の build などの形が違う",
+                      "tool.json に \"contract\": 3 が無い。build ・ test ・ format がコマンドの並びの並びでない"
                     ],
                     [
                       "登録に絶対パスがある",
@@ -659,7 +667,7 @@
                 },
                 {
                   "kind": "para",
-                  "text": "配布の仕組み（配布物 ・ 導入スクリプト ・ 組み立ての定義）は、全言語で1つを共有する。言語の組からは、組み立てのコマンドだけを借りる。実行ファイルが bin/ に在ることを前提にする。"
+                  "text": "配布の仕組み（配布物 ・ 導入スクリプト ・ 組み立ての定義）は、1つを全ての Skill で共有する。組み立ての定義が組み立てるのは、Rust の Skill（tool/Cargo.toml を持つもの）だけである。ほかの言語で書いた Skill の配布は、まだ定義を持たない。実行ファイルが bin/ に在ることを前提にする。"
                 }
               ]
             },
@@ -738,7 +746,7 @@
               "blocks": [
                 {
                   "kind": "code",
-                  "text": ".claude/skills/{{スキル名}}/\n├── SKILL.md              # 必須・ルートに固定\n├── README.md             # 任意・人間向け説明\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\n│   ├── skill-template.md\n│   └── ...\n├── examples/             # 使用例・サンプル出力\n│   └── ...\n├── tool/                 # 道具のソース（言語の組が構成を決める。Rust は workspace）\n├── bin/                  # 組み立てた実行ファイル（Rust の組の置き場所。git で追跡しない）\n├── tool.json             # CLI の起動のコマンドと、外部の道具\n│   └── ...\n├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）\n├── agents/               # サブエージェント定義\n│   └── ...\n└── assets/               # HTML等の静的ファイル\n    └── ..."
+                  "text": ".claude/skills/{{スキル名}}/\n├── SKILL.md              # 必須・ルートに固定\n├── README.md             # 任意・人間向け説明\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\n│   ├── skill-template.md\n│   └── ...\n├── examples/             # 使用例・サンプル出力\n│   └── ...\n├── tool/                 # 道具のソース（構成は言語ごとに決める。リファレンス実装の Rust は workspace）\n├── bin/                  # 組み立てた実行ファイル（リファレンス実装の置き場所。git で追跡しない）\n├── tool.json             # CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\n│   └── ...\n├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）\n├── agents/               # サブエージェント定義\n│   └── ...\n└── assets/               # HTML等の静的ファイル\n    └── ..."
                 }
               ]
             },
@@ -765,7 +773,7 @@
                     ],
                     [
                       "tool/",
-                      "道具のソース。Rust の組では data_access ・ business_logic ・ service ・ cli ・ mcp の5つの crate（references/document.json の profile-rust）",
+                      "道具のソース。リファレンス実装（Rust）では data_access ・ business_logic ・ service ・ cli ・ mcp の5つの crate（references/document.json の sample-rust）",
                       "検査、生成、組み立ての処理が必要なとき"
                     ],
                     [
