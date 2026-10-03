@@ -1,6 +1,8 @@
 import json,html,sys,os,subprocess,itertools
 HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data3 import D
+from desc3 import DESC
+HC=[0]
 OUT='/home/daidaiiro/workspace/daidaiiro/.brainstorming-board/usecase-driven-concrete/sample'
 DSB='/home/daidaiiro/workspace/daidaiiro/.claude/skills/design-svg/tool/target/release/design-svg'
 for sub in ('decls','figures'): os.makedirs(f'{OUT}/{sub}',exist_ok=True)
@@ -35,7 +37,14 @@ def ref(i):
   return f'<span class="missing">{E(i)}（未作成）</span>' if n is None else f'<a class="ref" href="#{E(i)}">{E(n)}</a>'
 def tbl(cols,rows,cls=''):
   return f'<div class="tw"><table class="{cls}"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td>{c}</td>' for c in r)+'</tr>' for r in rows)+'</tbody></table></div>'
-def block(title,body,cls=''): return f'<section class="blk {cls}"><h2>{E(title)}</h2>{body}</section>'
+def helpbtn(t):
+  if t not in DESC: return ''
+  HC[0]+=1; i=f'h{HC[0]}'
+  return f'<button class="help" popovertarget="{i}" aria-label="{E(t)}の説明">?</button><div class="pop" id="{i}" popover><b>{E(t)}</b><p>{E(DESC[t])}</p></div>'
+def label(t): return f'{E(t)}{helpbtn(t)}'
+def block(title,body,cls=''):
+  base=title.split('（')[0]
+  return f'<section class="blk {cls}"><h2>{E(title)}{helpbtn(base)}</h2>{body}</section>'
 def fold(label,n,body): return f'<details class="fold"><summary>{E(label)}<span class="count">{n}</span></summary><div class="fbody">{body}</div></details>'
 def props(pairs): return '<dl class="props">'+''.join(f'<dt>{E(k)}</dt><dd>{v}</dd>' for k,v in pairs)+'</dl>'
 def head(d,badges=''):
@@ -166,10 +175,17 @@ def p_ds(d):
     card=tbl(['種類','内容'],crow)
     b+=block(f'操作「{o["name"]}」',f+card)
   return b
+ACT={}
+def actor(a):
+  if a not in ACT: ACT[a]=len(ACT)%4
+  return f'<span class="act a{ACT[a]}">{E(a)}</span>'
+def chips(names,cls=''): return ''.join(f'<span class="pill {cls}">{E(n)}</span>' for n in names)
 def p_uc(d):
+  ACT.clear()
   h=d['header']; sc=d['scenario']; ctx=h['scope'].get('context')
+  for a in [h['primary_actor'],'システム']+sc['supporting_actors']: actor(a)
   sh={x['id']:x for x in d['stakeholders']}; g=d['guarantees']
-  def who(ids): return '、'.join(E(sh[i]['who']) for i in ids)
+  def whos(ids): return chips([sh[i]['who'] for i in ids])
   def cmd(r):
     a,c=r.split('.'); ag=D[a]; ca=ag['header']['context']
     cm=[x for x in ag['commands'] if x['id']==c][0]
@@ -177,10 +193,9 @@ def p_uc(d):
   def qual(ids): return '、'.join(E(q['text']) for q in D['DOM-1']['quality'] if q['id'] in ids)
   def links(s):
     out=[]
-    if s.get('invokes'): out.append('コマンド：'+cmd(s['invokes']))
-    if s.get('quality'): out.append('品質の要求：'+qual(s['quality']))
-    return '<br>'.join(out)
-  # シーケンス図（補助）
+    if s.get('invokes'): out.append(f'<span class="ln"><span class="k">コマンド</span>{cmd(s["invokes"])}</span>')
+    if s.get('quality'): out.append(f'<span class="ln"><span class="k">品質の要求</span>{qual(s["quality"])}</span>')
+    return ''.join(out)
   parts=[h['primary_actor'],'システム']+sc['supporting_actors']; msgs=[]; groups=[]
   def add(s):
     frm=s['actor']; to=s.get('to') or frm
@@ -195,44 +210,35 @@ def p_uc(d):
   seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":14,"font.size":15,"chart.exchange-col-w":220,"chart.pad":6,"chart.exchange-row-h":40}})
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   b=head(d,badge(h['level'])+f' ・ スコープ {ref(ctx)}')
-  # 1 目的
-  goal=[['主アクター',E(h['primary_actor'])],['支援アクター','、'.join(E(a) for a in sc['supporting_actors'])],['トリガー',E(h['trigger'])],['寄与する達成の基準','、'.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs)]]
-  b+=block('目的',tbl(['項目','内容'],goal,'kv')+tbl(['成功時保証','内容','満たす利害関係者'],[[f'<b>{E(x["name"])}</b>',E(x['text']),who(x['satisfies'])] for x in g['success']]))
-  # 2 事前条件
+  tiles=[('主アクター',actor(h['primary_actor'])),('支援アクター',''.join(actor(a) for a in sc['supporting_actors'])),('トリガー',E(h['trigger'])),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))]
+  b+='<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{label(k)}</div><div class="tv">{v}</div></div>' for k,v in tiles)+'</div>'
+  def gcard(kind,items,key,cls):
+    return f'<div class="gcard {cls}"><h3>{label(kind)}</h3>'+''.join(f'<div class="gi"><b>{E(x["name"])}</b><span class="gt">{E(x["text"])}</span><span class="gw">{whos(x[key])}</span></div>' for x in items)+'</div>'
+  b+='<div class="gpair">'+gcard('成功時保証',g['success'],'satisfies','ok')+gcard('最低保証',g['minimal'],'protects','ng')+'</div>'
   b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[E(x['text']),ref(x['established_by'])] for x in d['preconditions']]))
-  # 3 主成功シナリオ
-  rows=[[f'<span class="no">{s["no"]}</span>',E(s['actor']),E(s['text'])+(f'<span class="sub block">戻りメッセージ：{E(s["reply"])}</span>' if s.get('reply') else ''),who(s.get('serves',[])),links(s)] for s in sc['steps']]
-  rows.append(['','',f'<span class="ok">→ 成功時保証が成り立つ</span>','',''])
-  b+=block('主成功シナリオ',tbl(['手順','アクター','内容','守る利害関係者','呼び出すコマンド ・ 品質の要求'],rows,'mss'))
-  # 4 拡張（処理の手順ごとに1行、拡張の欄はまとめる）
-  er=[]
+  rows=''
+  for s in sc['steps']:
+    rows+=f'<tr><td class="num"><span>{s["no"]}</span></td><td>{actor(s["actor"])}</td><td><b>{E(s["name"])}</b><span class="txt">{E(s["text"])}</span>'+(f'<span class="ln"><span class="k">戻りメッセージ</span>{E(s["reply"])}</span>' if s.get('reply') else '')+links(s)+f'</td><td>{whos(s.get("serves",[]))}</td><td class="exl">'+''.join(f'<span class="pill {"bad" if x["ending"]=="失敗" else "alt"}">{E(x["label"])}</span>' for x in s['extensions'])+'</td></tr>'
+  rows+='<tr class="end"><td></td><td></td><td colspan="3">→ 成功時保証が成り立つ</td></tr>'
+  b+=block('主成功シナリオ','<div class="tw"><table class="mss"><thead><tr><th>#</th><th>アクター</th><th>手順</th><th>守る利害関係者</th><th>拡張</th></tr></thead><tbody>'+rows+'</tbody></table></div>')
+  ex=''
   for s in sc['steps']:
     for x in s['extensions']:
-      n=len(x['steps']); fail=x['ending']=='失敗'
-      held='<br>'.join(E(m['name']) for m in g['minimal'] if m['id'] in x.get('guarantees_hold',[])) if fail else '—'
-      for k,t in enumerate(x['steps']):
-        lead=f'<td rowspan="{n}" class="no">{E(x["label"])}</td><td rowspan="{n}">{E(x["condition"].rstrip("："))}<span class="sub block">{E(x["condition_kind"])}</span></td>' if k==0 else ''
-        tail=f'<td rowspan="{n}" class="{"bad" if fail else ""}">{E(x["ending"])}</td><td rowspan="{n}">{held}</td>' if k==0 else ''
-        er.append(f'<tr class="{"fail" if fail else ""}">{lead}<td><span class="no">{E(t["no"])}</span> {E(t["text"])}'+(f'<span class="sub block">{links(t)}</span>' if links(t) else '')+f'</td>{tail}</tr>')
-  b+=block('拡張','<div class="tw"><table class="exts"><thead><tr><th>拡張</th><th>条件</th><th>処理</th><th>終わり方</th><th>成り立つ最低保証</th></tr></thead><tbody>'+''.join(er)+'</tbody></table></div>')
-  # 5 最低保証
-  fails={}
-  for s in sc['steps']:
-    for x in s['extensions']:
-      for m in x.get('guarantees_hold',[]): fails.setdefault(m,[]).append(x['label'])
-  b+=block('最低保証',tbl(['最低保証','内容','守る利害関係者','失敗で終わる拡張'],[[f'<b>{E(x["name"])}</b>',E(x['text']),who(x['protects']),'、'.join(fails.get(x['id'],[])) or '—'] for x in g['minimal']]))
-  # 6 利害関係者と利益（どの手順と保証が守るか）
+      fail=x['ending']=='失敗'
+      held=chips([m['name'] for m in g['minimal'] if m['id'] in x.get('guarantees_hold',[])],'bad') if fail else ''
+      steps=''.join(f'<div class="hs"><span class="no">{E(t["no"])}</span>{actor(t["actor"])}<span><b>{E(t["name"])}</b><span class="txt">{E(t["text"])}</span>{links(t)}</span></div>' for t in x['steps'])
+      ex+=f'<div class="xcard {"fail" if fail else ""}"><div class="xh"><span class="xl">{E(x["label"])}</span><b>{E(x["name"])}</b><span class="pill {"bad" if fail else "alt"}">{E("失敗" if fail else x["ending"])}</span></div><p class="xc">{E(x["condition"].rstrip("："))}<span class="kind">{E(x["condition_kind"])}</span></p>{steps}'+(f'<div class="xg"><span class="k">成り立つ最低保証</span>{held}</div>' if fail else '')+'</div>'
+  b+=block('拡張','<div class="xgrid">'+ex+'</div>')
   srows=[]
   for k,x in sh.items():
-    steps='、'.join(str(s['no']) for s in sc['steps'] if k in s.get('serves',[]))
-    gs='<br>'.join(E(m['name']) for m in g['minimal']+g['success'] if k in m.get('protects',[])+m.get('satisfies',[]))
-    srows.append([f'<b>{E(x["who"])}</b>',E(x['interest']),steps or '<span class="missing">なし</span>',gs or '<span class="missing">なし</span>'])
+    st='、'.join(str(s['no']) for s in sc['steps'] if k in s.get('serves',[]))
+    gs=chips([m['name'] for m in g['success'] if k in m['satisfies']],'ok')+chips([m['name'] for m in g['minimal'] if k in m['protects']],'bad')
+    srows.append([f'<b>{E(x["who"])}</b>',f'<span class="txt">{E(x["interest"])}</span>',st or '<span class="missing">なし</span>',gs or '<span class="missing">なし</span>'])
   b+=block('利害関係者と利益',tbl(['利害関係者','利益','守る手順','守る保証'],srows))
-  # 7 バリエーション・未決定事項
   vr=[[str(s['no']),E(v['varies']),'、'.join(E(x) for x in v['values'])] for s in sc['steps'] for v in s.get('variations',[])]
   if vr: b+=block('技術およびデータのバリエーション',tbl(['手順','違い','値'],vr))
   if d['links'].get('open_issues'): b+=block('未決定事項',tbl(['未決定事項'],[[E(x)] for x in d['links']['open_issues']]))
-  b+=fold('シーケンス図（主成功シナリオと拡張）',len(msgs),seq)
+  b+=f'<details class="fold"><summary>シーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seq}</div></details>'
   return b
 R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
 nav=''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
