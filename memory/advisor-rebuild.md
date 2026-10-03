@@ -1,6 +1,6 @@
 ---
 name: advisor-rebuild
-description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd は完了、qa はテストの臭いを足すかの返事待ち。platform ・ ux はブレストボードを立てて作り直す
+description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd は完了、qa はテストの臭い15件を足している途中。platform ・ ux はブレストボードを立てて作り直す
 metadata:
   node_type: memory
   type: project
@@ -12,9 +12,9 @@ metadata:
 
 **次**：利用者の指摘「言語ごとに雛形を置く方針が筋が悪い。どの言語でも満たす契約 ・ ディレクトリ構成 ・ 擬似言語の雛形にすべき（Rust でも Go でも書きたい）」を受け、skills-creator を契約中心に作り直すブレストボードを立てる（利用者の了承済み）。論点の候補：契約に何を置くか ／ 擬似言語の雛形と正解の事例の形 ／ 既存11の Skill と5言語の雛形の移し方 ／ references の道具を各 Skill に複製するか共通の1つにするか。platform ・ ux の作り直しはその後。
 
-**利用者の返事待ち**（2026-10-03）
-- qa にテストの臭い（Meszaros、xunitpatterns.com の Test Smells、16件 ・ 3分類）を足すか。利用者は「必要か」を確認中。テストコードそのものの質を qa に相談する使い方をするなら足す。ミューテーションテストは原文（DeMillo ほか 1978）を取得できないので足さない
-- 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）
+**qa にテストの臭いを足す作業**（2026-10-03 開始、利用者の決定）：原典は xunitpatterns.com（Meszaros）の Test Smells 15件（コード5 ・ 振る舞い6 ・ プロジェクト4）。原文は qa の archive/sources/xunitpatterns/（git の外）、指示書は archive/BRIEF-smells.md。3人の担当が学習ノート（notes/07〜09）と判断基準の下書き（criteria-draft/）を作っている。終わったら照合 → criteria.json へ入れる → 目的の表に「書いたテストの問題の兆候を見分け、直し方を決める」を足す → ACDR。配線表に「テストを書いたら必ず qa」の行は足さない
+- **引き継ぎ**：テストを書くときに臭いを作らない規則（ガードレール）は、モデリング ・ コーディングの Skill が持つ（利用者の判断）。no-more-spaghetti に代わる Skill を設計するボード（usecase-modeling-coding）で、ガードレールに入れ、困ったときは qa-advisor の判断基準を引く形にする
+- 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）。ミューテーションテストは原文を取得できないので足さない
 
 **次**：platform ・ ux はそれぞれブレストボードを立てて、原典の選び直しから判断基準を作り直す（契約は ACDR 0099 で揃った）。
 
