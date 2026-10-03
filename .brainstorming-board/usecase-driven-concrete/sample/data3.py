@@ -131,3 +131,14 @@ for gid,n in {"MG-1":"承認なしで確定しない","MG-2":"失敗したら何
   [x for x in D['UC-1']['guarantees']['minimal'] if x['id']==gid][0]['name']=n
 for gid,n in {"SG-1":"確定と請求","SG-2":"受け取り時刻と調理枠の確保","SG-3":"承認番号と合計額の記録"}.items():
   [x for x in D['UC-1']['guarantees']['success'] if x['id']==gid][0]['name']=n
+# 突き合わせに使う不変の ID。2a などのラベルは表示専用で、手順を足しても ID は変わらない
+for i,s in enumerate(D['UC-1']['scenario']['steps'],1): s['id']=f'STEP-{i}'
+_n=0
+for s in D['UC-1']['scenario']['steps']:
+  for x in s['extensions']:
+    _n+=1; x['id']=f'EXT-{_n}'
+D['AGG-1']['commands'][0]['accept_examples']=[{"id":"OK-1","text":D['AGG-1']['commands'][0].pop('accept_example')}]
+for c in D['AGG-2']['commands']: c['accept_examples']=[{"id":"OK-1","text":c.pop('accept_example')}]
+D['UC-1']['exemptions']=[]
+# 実装の定義（コーディング側）が持つ、文脈ごとの業務ロジックの実装方法。ここでは受注はドメインモデル
+IMPL={"BC-1":"ドメインモデル"}
