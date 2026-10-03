@@ -8,4 +8,4 @@
 - [advisor の作り直し](advisor-rebuild.md) ── usecase ・ ddd ・ qa は完了（未 push）。次は skills-creator を契約中心に作り直すボード → platform ・ ux
 - [skills-creator を契約中心に作り直すボード](skills-creator-contract-board.md) ── 5論点とも決着。次は ACDR A（契約とテストケース）→ B → C
 - [スキーマ駆動の道具（抽象の基盤）のボード](schema-driven-base-board.md) ── 論点1決着。論点2は concrete のボードに合わせて組み直し、論点3は保留
-- [ユースケース駆動の concrete の宣言のボード](usecase-driven-concrete-board.md) ── 論点1・2承認済み。ACDR 0094・0095 承認待ち、そのあと論点3
+- [ユースケース駆動の concrete の宣言のボード](usecase-driven-concrete-board.md) ── 論点1・2決着、論点3（種類ごとの項目）回答待ち
