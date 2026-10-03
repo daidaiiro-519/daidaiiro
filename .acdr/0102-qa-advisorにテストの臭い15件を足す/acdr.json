@@ -1,0 +1,128 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0102",
+ "title": "qa-advisor にテストの臭い15件を足す",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "qa-advisor の判断基準に、Gerard Meszaros がまとめたテストの臭い15件を足し、書いたテストの問題の兆候を見分けて直し方を決める相談に、根拠を示して答えられるようにする。",
+ "why": "qa-advisor の判断基準（ACDR 0091）は JSTQB のシラバスから作ったもので、テストの進め方と技法が中心である。「このテストは壊れやすくないか」「なぜ時々落ちるのか」のような、書いたテストコードそのものの問題には根拠を示せなかった。利用者は、テストを書くときに臭いを作らない規則はモデリング ・ コーディングの Skill が持ち、それでも判断がつかないときに qa-advisor が答えられるよう知識を持つ、と決めた（2026-10-03）。",
+ "shift": [
+  {
+   "what": "qa-advisor の判断基準",
+   "from": "41件。JSTQB のシラバスだけを原典にする",
+   "to": "56件。シラバスの41件に、xunitpatterns.com のテストの臭い15件（Code Smells 5 ・ Behavior Smells 6 ・ Project Smells 4）を足す"
+  },
+  {
+   "what": "qa-advisor が支える判断",
+   "from": "テストを組み立てる ・ 十分かを判定する ・ 継続して運用する",
+   "to": "それに、書いたテストの問題の兆候を見分け、直し方を決める を足す"
+  },
+  {
+   "what": "受け入れの検査の写しの判定",
+   "from": "空白を外した25字の一致を写しとみなす。空白を外すと25字を超える英語の名前（Database Partitioning Scheme）も写しになり、名前を言い換えることになった",
+   "to": "日本語の文字が10字未満の並びは、英語の名前かコードとして写しに数えない。日本語の文を写したものはこれまでどおり検出する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "原典の15頁から学習ノートを作り、臭い1つを判断基準1件にして、照合と検査を通す",
+ "how": "xunitpatterns.com から臭いの頁15件と概要の頁を取得し、qa の archive（git の外）に置いた。3つの分類ごとに担当を分け、学習ノート3本（notes/07〜09）と判断基準の下書きを作らせた。臭いの名前は原典の英語のまま使い、説明は日本語でまとめた。担当は要素ごとに原典の頁と照合し、may や usually の強さの脱落、原典に無い因果、影響を誤りに仕立てた要素などを直した。組み込んだあと、関連する基準の指し先がすべて実在することを確かめた。受け入れの検査が英語の名前を写しと数えたので、検査のほうを直した（テストを先に書き、失敗を確かめた）。名前を言い換えていた2か所は原典の名前に戻し、本当に写していた1か所は書き直した。受け入れの検査は qa ・ ddd ・ usecase の3件とも機械の7件に合格した。テストの臭いを根拠にした試しの相談（時々落ちる結合テスト）は、validate とゲート1に合格した。",
+ "applies_to": "qa-advisor の references/criteria.json と SKILL.md、skills-creator の受け入れの検査（accept.rs）とテストが変わる。学習ノートと原文は qa の archive に在り、git の管理の外である。配線表は変えない。",
+ "alternatives": [
+  {
+   "option": "臭いの名前を日本語に訳す",
+   "why_not": "日本語の定訳を確かめられていない。訳すと新しい語を作ることになる"
+  },
+  {
+   "option": "配線表に「テストを書いたら必ず qa-advisor を呼ぶ」行を足す",
+   "why_not": "テストを書くときの規則は、モデリング ・ コーディングの Skill が守るものである（利用者の判断）。advisor は判断がつかないときに相談される"
+  },
+  {
+   "option": "受け入れの検査を変えず、長い英語の名前を言い換える",
+   "why_not": "原典の名前を言い換えると、語彙を原典の語のまま使う決まりに反する"
+  },
+  {
+   "option": "ミューテーションテストも足す",
+   "why_not": "名付けた論文（DeMillo ほか 1978）の原文を取得できない"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "モデリング ・ コーディングの Skill を設計するボードへ、テストの臭いをガードレールに入れることを引き継ぐ（記憶に置いた）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "criteria",
+   "tab": "qa/criteria.json",
+   "file": ".claude/skills/qa-advisor/references/criteria.json",
+   "rev": "f726570d93192a312ff6fdb9621e2d79e819e5f6",
+   "marks": [
+    {
+     "find": "\"チームが customer test ばかりを書き、単体テストを使う test-driven development をしていないときに、よく起きる。customer test が通るだけの機能を作った後、リファクタリングで機能が壊れる。単体テストがあれば、おそらくその変更は Integration Build に入らずに済んだ。test-driven development の最中に、導く失敗するテストなしでコードを先に書いても起きる\",",
+     "before": "（無い）",
+     "why": "テストの臭い15件を、Code Smells 5 ・ Behavior Smells 6 ・ Project Smells 4 の順に足した。1件は、原典が名前を付けた臭い1つである"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "qa/SKILL.md",
+   "file": ".claude/skills/qa-advisor/SKILL.md",
+   "rev": "f726570d93192a312ff6fdb9621e2d79e819e5f6",
+   "marks": [
+    {
+     "find": "書いたテストの問題の兆候を見分け、直し方を決める",
+     "before": "（無い）",
+     "why": "支える判断に、テストの臭いを見分けて直し方を決める判断を足した"
+    },
+    {
+     "find": "このテストが時々落ちる原因と直し方は何か",
+     "before": "（無い）",
+     "why": "相談の例に、テストの臭いの判断相談を足した"
+    },
+    {
+     "find": "Test Smells の Behavior Smells ・ Fragile Test の頁",
+     "before": "（無い）",
+     "why": "判断基準の一覧に15件を足した。原典の節の欄は、xunitpatterns.com の頁を示す"
+    }
+   ]
+  },
+  {
+   "key": "accept",
+   "tab": "accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/accept.rs",
+   "rev": "f726570d93192a312ff6fdb9621e2d79e819e5f6",
+   "marks": [
+    {
+     "find": "/// 写しとみなす並びに入る、日本語の文字の最少の数。**これより少ない並びは、英語の名前かコードである。**",
+     "before": "（無い）",
+     "why": "写しとみなす並びに入る、日本語の文字の最少の数を定めた"
+    },
+    {
+     "find": ".filter(|w| w.iter().filter(|c| !c.is_ascii()).count() >= PROSE_MIN)",
+     "before": "（無い）",
+     "why": "日本語の文字が10字未満の並びを、写しに数えない。原典の英語の名前とコードはそのまま書くのが正しい"
+    }
+   ]
+  },
+  {
+   "key": "taccept",
+   "tab": "tests/accept.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/accept.rs",
+   "rev": "f726570d93192a312ff6fdb9621e2d79e819e5f6",
+   "marks": [
+    {
+     "find": "\"- **Database Partitioning Scheme** を使い、テストごとにデータを分ける。\\n\".to_owned(),",
+     "before": "（無い）",
+     "why": "長い英語の名前 ・ 助詞の付いた名前は写しに数えず、名前を挟んだ日本語の文の写しは検出することを固定した。直す前に失敗することを確かめた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "criteria": "088508797f593d8acffea1283fdeeb6abd6f252d6359bfc61326a475c45d9518",
+  "skill": "3b703da2293c1c1036fceadda5e316d165fbbd4a5816634ef149fa961638cbfe",
+  "accept": "a4e9b142e122fcfe5b0692a642e73a4dc737dc8fbd53ec497154c82b78728338",
+  "taccept": "d4d7dacd4021b5a762612558059bb77ff936f4a8e6fc8ea35e36bd60587a261b"
+ }
+}

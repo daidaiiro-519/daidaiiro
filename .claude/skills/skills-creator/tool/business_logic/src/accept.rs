@@ -162,6 +162,9 @@ fn shape(root: &Path) -> Check {
 /// 複製とみなす最短の長さ（文字）。**これより短い一致は、原典の語彙が続いただけのことが多い。**
 const COPY_MIN: usize = 25;
 
+/// 写しとみなす並びに入る、日本語の文字の最少の数。**これより少ない並びは、英語の名前かコードである。**
+const PROSE_MIN: usize = 10;
+
 /// 原典の名前を書く欄。**ノートと一致するのが正しい状態である** ── 題 ・ 関連する基準の題 ・ 定義の語。
 const NAME_KEYS: [&str; 2] = ["title", "term"];
 
@@ -306,6 +309,10 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
                 if let Some(w) = p
                     .windows(COPY_MIN)
                     .filter(|_| !named)
+                    // **日本語の文字が少ない並びは数えない** ── 原典の英語の名前とコードは、そのまま書くのが正しい。
+                    // 空白を外すと25字を超える名前（Database Partitioning Scheme）が在り、助詞や括弧が付いても
+                    // 名前のままである。日本語の文を写したものは、25字の中に日本語が十分に入るので検出できる
+                    .filter(|w| w.iter().filter(|c| !c.is_ascii()).count() >= PROSE_MIN)
                     .map(|w| w.iter().collect::<String>())
                     .find(|w| windows.contains(w))
                 {

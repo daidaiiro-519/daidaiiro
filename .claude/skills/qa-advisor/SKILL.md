@@ -1,6 +1,6 @@
 ---
 name: "qa-advisor"
-description: "ソフトウェアテストについての概念相談(「〜とは」)・判断相談(「〜すべきか」)・設計相談(「〜をどう組み立てるか」)を受けたときに使う。『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）の判断基準に根拠を示して回答し、回答は構造化した JSON で組んで HTML で渡す。"
+description: "ソフトウェアテストについての概念相談(「〜とは」)・判断相談(「〜すべきか」)・設計相談(「〜をどう組み立てるか」)を受けたときに使う。『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）と、テストの臭い（Gerard Meszaros の xunitpatterns.com）の判断基準に根拠を示して回答し、回答は構造化した JSON で組んで HTML で渡す。"
 ---
 
 # ソフトウェアテストの相談に、判断基準の根拠を示して答えるのを担当する助言型の Skill：qa-advisor
@@ -14,8 +14,9 @@ description: "ソフトウェアテストについての概念相談(「〜と�
 | テストを組み立てる | どのテストレベル ・ テストタイプ ・ テスト技法を使用するか。テスト計画書 ・ 開始基準と終了基準 ・ 見積りをどう決定するか |
 | テストが十分かを判定する | カバレッジ ・ リスク ・ 終了基準に照らして、どこが足りないか、何を追加するか |
 | テストを継続して運用する | 欠陥の扱い、確認テストとリグレッションテストの範囲、テスト自動化、レビュー、進捗の報告 |
+| 書いたテストの問題の兆候を見分け、直し方を決める | テストが壊れやすい ・ 時々落ちる ・ 遅い ・ 何を確かめているか読めないとき、どの臭い（Fragile Test など）に当たるか、原因は何か、どう直すか |
 
-ソフトウェアテストについての概念相談 ・ 判断相談 ・ 設計相談を受けたときに使う。『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）の判断基準（`references/criteria.json`）に根拠を示して回答する。**回答は `references/answer.schema.json` の形の JSON で組み、人は描画した HTML で読む。**
+ソフトウェアテストについての概念相談 ・ 判断相談 ・ 設計相談を受けたときに使う。『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）と、テストの臭い（Gerard Meszaros の xunitpatterns.com）の判断基準（`references/criteria.json`）に根拠を示して回答する。**回答は `references/answer.schema.json` の形の JSON で組み、人は描画した HTML で読む。**
 
 ---
 
@@ -38,7 +39,7 @@ description: "ソフトウェアテストについての概念相談(「〜と�
 | 判断相談 | 「〜すべきか」「この案でよいか」 | `judgment` | 比較した案 ・ 判断の道筋 |
 | 設計相談 | 「〜をどう組み立てるか」 | `design` | 設計の手順 |
 
-この領域での相談の例：「境界値分析とは何か」（概念）・「この修正にリグレッションテストを実施すべきか」（判断）・「リスクベースドテストのテスト計画書をどう組み立てるか」（設計）
+この領域での相談の例：「境界値分析とは何か」（概念）・「この修正にリグレッションテストを実施すべきか」（判断）・「リスクベースドテストのテスト計画書をどう組み立てるか」（設計）・「このテストが時々落ちる原因と直し方は何か」（判断）
 
 ---
 
@@ -132,7 +133,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 判断基準の id は次である。
 
-| id | 題（原典の概念の名前） | 原典の節 |
+| id | 題（原典の概念の名前） | 原典の節（JSTQB のシラバスの節番号 ・ xunitpatterns.com の頁） |
 |---|---|---|
 | `testing` | テスト | 1.1 ・ 1.1.1 ・ 1.1.2 ・ 1.3 |
 | `quality-assurance` | 品質保証（QA） | 1.2 ・ 1.2.1 ・ 1.2.2 ・ 2.1.2 |
@@ -175,5 +176,20 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 | `configuration-management` | 構成管理 | 1.4.3 ・ 5.4 ・ 6.1 |
 | `defect-management` | 欠陥マネジメント | 1.4.1 ・ 1.4.3 ・ 3.2.2 ・ 5.5 |
 | `test-automation` | テスト自動化 | 1.1 ・ 1.3 ・ 1.4.2 ・ 2.1.1 ・ 2.1.4 ・ 2.2.3 ・ 3.1 ・ 4.5.3 ・ 5.1.6 ・ 5.1.7 ・ 6.1 ・ 6.2 |
+| `obscure-test` | Obscure Test | Test Smells の Code Smells ・ Obscure Test の頁 |
+| `conditional-test-logic` | Conditional Test Logic | Test Smells の Code Smells ・ Conditional Test Logic の頁 |
+| `hard-to-test-code` | Hard-to-Test Code | Test Smells の Code Smells ・ Hard-to-Test Code の頁 |
+| `test-code-duplication` | Test Code Duplication | Test Smells の Code Smells ・ Test Code Duplication の頁 |
+| `test-logic-in-production` | Test Logic in Production | Test Smells の Code Smells ・ Test Logic in Production の頁 |
+| `assertion-roulette` | Assertion Roulette | Test Smells の Behavior Smells ・ Assertion Roulette の頁 |
+| `erratic-test` | Erratic Test | Test Smells の Behavior Smells ・ Erratic Test の頁 |
+| `fragile-test` | Fragile Test | Test Smells の Behavior Smells ・ Fragile Test の頁 |
+| `frequent-debugging` | Frequent Debugging | Test Smells の Behavior Smells ・ Frequent Debugging の頁 |
+| `manual-intervention` | Manual Intervention | Test Smells の Behavior Smells ・ Manual Intervention の頁 |
+| `slow-tests` | Slow Tests | Test Smells の Behavior Smells ・ Slow Tests の頁 |
+| `buggy-tests` | Buggy Tests | Test Smells の Project Smells ・ Buggy Tests の頁 |
+| `developers-not-writing-tests` | Developers Not Writing Tests | Test Smells の Project Smells ・ Developers Not Writing Tests の頁 |
+| `high-test-maintenance-cost` | High Test Maintenance Cost | Test Smells の Project Smells ・ High Test Maintenance Cost の頁 |
+| `production-bugs` | Production Bugs | Test Smells の Project Smells ・ Production Bugs の頁 |
 
 学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。

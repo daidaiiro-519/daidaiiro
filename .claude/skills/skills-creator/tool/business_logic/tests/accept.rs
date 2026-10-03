@@ -241,3 +241,62 @@ fn a_name_quoted_in_brackets_is_not_a_copy() {
         check.findings
     );
 }
+
+#[test]
+fn a_long_english_name_of_the_source_is_not_a_copy() {
+    // **原典の英語の名前は、そのまま書くのが正しい** ── 空白を外すと25字を超える名前
+    // （Database Partitioning Scheme）を写しと数えると、名前を言い換えることになる
+    let notes = vec![(
+        PathBuf::from("notes/08.md"),
+        "- **Database Partitioning Scheme** を使い、テストごとにデータを分ける。\n".to_owned(),
+    )];
+    let items = [item(
+        "Database Partitioning Scheme で、テストが使うデータの範囲を分ける。",
+        "4.2（58頁）",
+    )];
+    let check = copied(&items, &notes);
+    assert!(
+        !check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+}
+
+#[test]
+fn a_japanese_sentence_around_an_english_name_is_still_a_copy() {
+    // 英字だけの並びを外しても、日本語の文を写したものは検出する
+    let notes = vec![(
+        PathBuf::from("notes/08.md"),
+        "- Shared Fixture を使うと、ほかのテストが残したデータで結果が変わることがある。\n"
+            .to_owned(),
+    )];
+    let items = [item(
+        "Shared Fixture を使うと、ほかのテストが残したデータで結果が変わることがある。",
+        "4.2（58頁）",
+    )];
+    let check = copied(&items, &notes);
+    assert!(
+        check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+}
+
+#[test]
+fn a_long_english_name_with_a_particle_is_not_a_copy() {
+    // 名前に助詞や括弧が付いただけの並び（「、High Test Maintenance Cost に」）も、文を写したものではない
+    let notes = vec![(
+        PathBuf::from("notes/09.md"),
+        "- 保守の手間が増え、High Test Maintenance Cost につながる。\n".to_owned(),
+    )];
+    let items = [item(
+        "手で確かめる手順が増えると、High Test Maintenance Cost になる。",
+        "4.2（58頁）",
+    )];
+    let check = copied(&items, &notes);
+    assert!(
+        !check.findings.iter().any(|f| f.contains("複製している")),
+        "{:?}",
+        check.findings
+    );
+}
