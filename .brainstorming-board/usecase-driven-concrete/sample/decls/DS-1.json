@@ -1,10 +1,12 @@
 {
  "kind": "domain_service",
  "id": "DS-1",
- "context": "BC-1",
- "name": "TERM-8",
- "reason": "複数の集約にまたがる計算",
- "reason_text": "注文の明細と調理枠の空きの両方を使うので、どちらの集約に置いても、もう一方の状態を持ち込むことになる",
+ "header": {
+  "name": "TERM-8",
+  "context": "BC-1",
+  "reason": "複数の集約にまたがる計算",
+  "reason_text": "注文の明細と調理枠の空きの両方を使うので、どちらの集約に置いても、もう一方の状態を持ち込むことになる"
+ },
  "reads": [
   "AGG-1",
   "AGG-2"
@@ -14,21 +16,31 @@
    "id": "OP-1",
    "name": "見積もる",
    "inputs": [
-    "明細の数量の合計（VO-1）",
-    "調理枠の空き（VO-1）"
+    {
+     "name": "明細の数量の合計",
+     "type": "VO-1"
+    },
+    {
+     "name": "調理枠の空き",
+     "type": "VO-1"
+    }
    ],
    "output": "VO-4",
-   "post": [
+   "postconditions": [
     {
      "id": "POST-1",
-     "target": "結果",
-     "op": "not_empty"
+     "condition": {
+      "target": "結果",
+      "op": "not_empty"
+     }
     },
     {
      "id": "POST-2",
-     "target": "結果",
-     "op": "ge",
-     "value": "調理枠の開始時刻"
+     "condition": {
+      "target": "結果",
+      "op": "ge",
+      "value": "調理枠の開始時刻"
+     }
     }
    ]
   }

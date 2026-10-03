@@ -1,66 +1,92 @@
 {
  "kind": "aggregate",
  "id": "AGG-1",
- "context": "BC-1",
- "name": "TERM-1",
- "description": "受け取り予定時刻の約束と、約束した明細の一貫性を守る",
- "state": [
-  {
-   "id": "ST-1",
-   "name": "TERM-14",
-   "type": "VO-2",
-   "multiplicity": "1"
-  },
-  {
-   "id": "ST-2",
-   "name": "TERM-5",
-   "type": "VO-3",
-   "multiplicity": "1"
-  },
-  {
-   "id": "ST-3",
-   "name": "TERM-2",
-   "type": "ENT-1",
-   "multiplicity": "0..20"
-  },
-  {
-   "id": "ST-4",
-   "name": "TERM-4",
-   "type": "VO-4",
-   "multiplicity": "0..1"
-  }
- ],
+ "header": {
+  "name": "TERM-1",
+  "context": "BC-1",
+  "description": "受け取り予定時刻の約束と、約束した明細の一貫性を守る"
+ },
+ "structure": {
+  "state": [
+   {
+    "id": "ST-1",
+    "name": "TERM-14",
+    "type": "VO-2",
+    "multiplicity": "1"
+   },
+   {
+    "id": "ST-2",
+    "name": "TERM-5",
+    "type": "VO-3",
+    "multiplicity": "1"
+   },
+   {
+    "id": "ST-3",
+    "name": "TERM-2",
+    "type": "ENT-1",
+    "multiplicity": "0..20"
+   },
+   {
+    "id": "ST-4",
+    "name": "TERM-4",
+    "type": "VO-4",
+    "multiplicity": "0..1"
+   }
+  ],
+  "entities": [
+   {
+    "id": "ENT-1",
+    "name": "TERM-2",
+    "state": [
+     {
+      "name": "商品",
+      "type": "商品の ID"
+     },
+     {
+      "name": "数量",
+      "type": "VO-1"
+     }
+    ]
+   }
+  ]
+ },
  "invariants": [
   {
    "id": "INV-1",
-   "if": {
-    "target": "ST-2",
-    "op": "eq",
-    "value": "TERM-11"
+   "condition": {
+    "if": {
+     "target": "ST-2",
+     "op": "eq",
+     "value": "TERM-11"
+    },
+    "target": "ST-4",
+    "op": "not_empty"
    },
-   "target": "ST-4",
-   "op": "not_empty",
-   "violation": "状態が確定済で、受け取り予定時刻が空"
+   "violation": "確定済なのに、受け取り予定時刻が空"
   },
   {
    "id": "INV-2",
-   "if": {
-    "target": "ST-2",
-    "op": "eq",
-    "value": "TERM-11"
+   "condition": {
+    "if": {
+     "target": "ST-2",
+     "op": "eq",
+     "value": "TERM-11"
+    },
+    "target": "ST-3",
+    "agg": "count",
+    "op": "ge",
+    "value": 1
    },
-   "target": "ST-3",
-   "agg": "count",
-   "op": "ge",
-   "value": 1,
-   "violation": "状態が確定済で、明細が0件"
+   "violation": "確定済なのに、明細が0件"
   },
   {
    "id": "INV-3",
-   "target": "ST-3",
-   "agg": "count",
-   "op": "le",
-   "value": 20,
+   "condition": {
+    "target": "ST-3",
+    "agg": "count",
+    "op": "le",
+    "value": 20
+   },
    "violation": "明細が21件"
   }
  ],
@@ -75,85 +101,64 @@
      "type": "VO-4"
     }
    ],
-   "pre": [
+   "preconditions": [
     {
      "id": "PRE-1",
-     "target": "ST-2",
-     "op": "eq",
-     "value": "TERM-10",
-     "reject": "TERM-12"
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-10"
+     },
+     "reject": "TERM-12",
+     "example": "確定済の注文を確定する"
     },
     {
      "id": "PRE-2",
-     "target": "ST-3",
-     "agg": "count",
-     "op": "ge",
-     "value": 1,
-     "reject": "TERM-13"
+     "condition": {
+      "target": "ST-3",
+      "agg": "count",
+      "op": "ge",
+      "value": 1
+     },
+     "reject": "TERM-13",
+     "example": "明細0件の下書きを確定する"
     }
    ],
-   "post": [
+   "postconditions": [
     {
      "id": "POST-1",
-     "target": "ST-2",
-     "op": "eq",
-     "value": "TERM-11"
+     "condition": {
+      "target": "ST-2",
+      "op": "eq",
+      "value": "TERM-11"
+     }
     },
     {
      "id": "POST-2",
-     "target": "ST-4",
-     "op": "eq",
-     "value": "ARG-1"
+     "condition": {
+      "target": "ST-4",
+      "op": "eq",
+      "value": "ARG-1"
+     }
     }
    ],
    "emits": [
-    "EVT-1"
-   ],
-   "accepts": [
     {
-     "before": "下書き ・ 明細2件",
-     "args": "受け取り予定時刻 12:30",
-     "after": "確定済 ・ 受け取り予定時刻 12:30 ・ 注文確定済を出す"
+     "id": "EVT-1",
+     "name": "TERM-7",
+     "fields": [
+      {
+       "name": "注文番号",
+       "from": "ST-1"
+      },
+      {
+       "name": "受け取り予定時刻",
+       "from": "ST-4"
+      }
+     ]
     }
    ],
-   "rejects": [
-    {
-     "pre": "PRE-1",
-     "before": "確定済",
-     "reason": "TERM-12"
-    },
-    {
-     "pre": "PRE-2",
-     "before": "下書き ・ 明細0件",
-     "reason": "TERM-13"
-    }
-   ]
-  }
- ],
- "events": [
-  {
-   "id": "EVT-1",
-   "name": "TERM-7",
-   "fields": [
-    {
-     "name": "注文番号",
-     "from": "ST-1"
-    },
-    {
-     "name": "受け取り予定時刻",
-     "from": "ST-4"
-    }
-   ]
-  }
- ],
- "entities": [
-  {
-   "id": "ENT-1",
-   "name": "TERM-2",
-   "state": [
-    "商品",
-    "数量"
-   ]
+   "accept_example": "明細2件の下書きを、受け取り予定時刻 12:30 で確定する → 確定済になり、注文確定済を出す"
   }
  ]
 }
