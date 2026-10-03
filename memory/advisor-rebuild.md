@@ -1,6 +1,6 @@
 ---
 name: advisor-rebuild
-description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd ・ qa は完了 ・ 未 push。platform ・ ux は、skills-creator を契約中心に作り直すボードの決着後
+description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd は完了、qa はテストの臭いを足すかの返事待ち。platform ・ ux はブレストボードを立てて作り直す
 metadata:
   node_type: memory
   type: project
@@ -12,10 +12,11 @@ metadata:
 
 **次**：利用者の指摘「言語ごとに雛形を置く方針が筋が悪い。どの言語でも満たす契約 ・ ディレクトリ構成 ・ 擬似言語の雛形にすべき（Rust でも Go でも書きたい）」を受け、skills-creator を契約中心に作り直すブレストボードを立てる（利用者の了承済み）。論点の候補：契約に何を置くか ／ 擬似言語の雛形と正解の事例の形 ／ 既存11の Skill と5言語の雛形の移し方 ／ references の道具を各 Skill に複製するか共通の1つにするか。platform ・ ux の作り直しはその後。
 
-**利用者の返事待ち**
-- qa にテストの臭い（Meszaros、条件を満たす）とミューテーションテスト（名付けた論文を取得できたら）を1件ずつ足すか
-- 配線表の2行（「qa-advisor（弱いテストの原因が…疑いのとき）」「qa-advisor（分類が入力に無いとき）」→ ddd-advisor）を残すか消すか。新しい qa の手順に該当する場面が無い
-- 回答にゲート1を当てる手順を SKILL.md に入れるか
+**利用者の返事待ち**（2026-10-03）
+- qa にテストの臭い（Meszaros、xunitpatterns.com の Test Smells、16件 ・ 3分類）を足すか。利用者は「必要か」を確認中。テストコードそのものの質を qa に相談する使い方をするなら足す。ミューテーションテストは原文（DeMillo ほか 1978）を取得できないので足さない
+- 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）
+
+**次**：platform ・ ux はそれぞれブレストボードを立てて、原典の選び直しから判断基準を作り直す（契約は ACDR 0099 で揃った）。
 
 **未着手の欠陥**：図の role を描かない ・ ux-advisor の validate（CLI の `validate --kind answer --file` がファイルを検査しない ・ MCP が指摘のあるときも ok を返す）── ux は作り直しで扱う。usecase の以前の試しの回答3件（scratchpad）は、新しい validate で旧い引用と id の誤りが見つかる。
 
