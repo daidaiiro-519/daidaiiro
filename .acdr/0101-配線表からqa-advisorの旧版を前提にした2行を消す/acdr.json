@@ -1,0 +1,67 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0101",
+ "title": "配線表から、qa-advisor の旧版を前提にした2行を消す",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "配線表から、qa-advisor が ddd-advisor に業務領域の分類を頼む2行を消す。",
+ "why": "2行は、旧版の qa-advisor（業務領域の分類ごとにテストの強さを評価する形）を前提にしていた。ACDR 0091 で qa-advisor を JSTQB のシラバスから作り直し、判断基準は業務領域の分類を使わなくなった。利用者が2行とも消すと決めた（2026-10-03）。",
+ "shift": [
+  {
+   "what": "配線表の行",
+   "from": "22行。qa-advisor から ddd-advisor への2行を含む",
+   "to": "20行"
+  },
+  {
+   "what": "qa-advisor を呼ぶ行",
+   "from": "完了基準とテスト方針を決めるときに qa-advisor を呼ぶ1行",
+   "to": "変わらない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "qa-advisor から ddd-advisor への2本の線を消す。qa-advisor を呼ぶ1本は残す",
+ "how": "skill-wiring.json から2行を消し、skill-router の validate で配線表の形を検査した。CLAUDE.md に書いてある配線表の行数を20行に直した。",
+ "applies_to": "skill-wiring.json と CLAUDE.md の1行が変わる。qa-advisor と ddd-advisor は変わらない。",
+ "alternatives": [
+  {
+   "option": "2行を残す",
+   "why_not": "呼ばれる場面が無い行が残ると、配線表を読む人が、qa-advisor が業務領域の分類を使うと誤って読む"
+  }
+ ],
+ "after_approval": [
+  "対象のファイルと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "432d340f5f9cd3858c07006fe3ba906640fa328a",
+   "marks": [
+    {
+     "find": "\"request\": \"アーキテクチャを決め・保ち・測りながら実装してもらう\",",
+     "before": "\"request\": \"サブドメイン分類とテストの比率が食い違っていないかを判定してもらう\",\n      \"when\": \"qa-advisor（弱いテストの原因が、上流の業務領域の分類に在る疑いのとき）\",\n      \"skills\": [\n        \"ddd-advisor\"\n      ],\n      \"reliance\": \"advisory\"\n    },\n    {\n      \"request\": \"業務領域の分類（中核 ・ 一般 ・ 補完）を判定してもらう\",\n      \"when\": \"qa-advisor（分類が入力に無いとき）\",\n      \"skills\": [\n        \"ddd-advisor\"\n      ],\n      \"reliance\": \"advisory\"\n    },\n    {",
+     "why": "新しい qa-advisor（ACDR 0091）の判断基準は、業務領域の分類（中核 ・ 一般 ・ 補完）を使わない。リスクは発生可能性と影響度で扱うので、この2行が呼ばれる場面が無い"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "432d340f5f9cd3858c07006fe3ba906640fa328a",
+   "marks": [
+    {
+     "find": "配線表。20行と",
+     "before": "配線表。22行と、このプロジェクトの決め事を持つ",
+     "why": "配線表の行数を、2行消したあとの数に直した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "wiring": "75eea9ce052d0b84cebc32f5c9ae26ce205522bf77556f2b2b35d7889fc88254",
+  "claude": "aea3c2ba60fc5418a15a491ca455f71af3aad33b49a98a0afc723835eedd78a8"
+ }
+}
