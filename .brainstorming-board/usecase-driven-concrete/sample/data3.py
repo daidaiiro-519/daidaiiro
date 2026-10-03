@@ -109,3 +109,17 @@ D['UC-1']={"kind":"use_case","id":"UC-1",
  "links":{"quality":["QR-1"],"open_issues":["受け取り予定時刻を過ぎた注文の扱い"]}}
 D['UC-1']['scenario']['steps'][2]['aggregate']='AGG-2'
 D['UC-1']['scenario']['steps'][4]['aggregate']='AGG-1'
+# 手順は、変更する集約ではなく、呼び出す集約のコマンドを指す。品質の要求は、かかる手順に付ける
+D['BC-1']['ubiquitous_language']['terms']+= [{"id":"TERM-15","word":"確保する","kind":"コマンド","definition":"調理枠から、注文の分の空きを取る","avoid":[]},
+                                             {"id":"TERM-16","word":"戻す","kind":"コマンド","definition":"確保した空きを、調理枠へ返す","avoid":[]}]
+D['AGG-2']['commands']=[
+ {"id":"CMD-1","name":"TERM-15","args":[{"id":"ARG-1","name":"TERM-3","type":"VO-1"}],
+  "preconditions":[{"id":"PRE-1","condition":{"target":"ST-2","op":"ge","value":"ARG-1"},"reject":"TERM-13","example":"空き0の枠から1つ確保する"}],
+  "postconditions":[{"id":"POST-1","condition":{"target":"ST-2","op":"not_empty"}}],"emits":[],"accept_example":"空き5の枠から2つ確保する → 空きが3になる"},
+ {"id":"CMD-2","name":"TERM-16","args":[{"id":"ARG-1","name":"TERM-3","type":"VO-1"}],"preconditions":[],"postconditions":[{"id":"POST-1","condition":{"target":"ST-2","op":"not_empty"}}],"emits":[],"accept_example":"空き3の枠へ2つ戻す → 空きが5になる"}]
+st=D['UC-1']['scenario']['steps']
+for s in st: s.pop('aggregate',None)
+st[2]['invokes']='AGG-2.CMD-1'
+st[4]['invokes']='AGG-1.CMD-1'; st[4]['quality']=['QR-1']
+st[3]['extensions'][0]['steps'][0]['invokes']='AGG-2.CMD-2'
+D['UC-1']['links'].pop('quality',None)

@@ -175,11 +175,18 @@ def p_uc(d):
     msgs.append({"from":frm,"to":to,"label":f"{s['no']} {s['name']}"})
     if s.get('reply'): msgs.append({"from":to,"to":frm,"label":s['reply'],"kind":"return"})
   def card(no,title,rows,cls=''):
-    detail.append(f'<div class="dc {cls}" data-no="{E(str(no))}" hidden><p class="dno">{E(str(no))}</p><h3>{E(title)}</h3>'+tbl(['項目','内容'],rows)+'</div>')
+    detail.append(f'<div class="dc {cls}" data-no="{E(str(no))}" hidden><p class="dno">{E(str(no))}</p><h3>{E(title)}</h3><dl class="props">'+''.join(f'<dt>{k}</dt><dd>{v}</dd>' for k,v in rows)+'</dl></div>')
+  def cmd(r):
+    a,c=r.split('.'); ag=D[a]; ctxa=ag['header']['context']
+    cm=[x for x in ag['commands'] if x['id']==c][0]
+    return f'{ref(a)} の「{E(term(ctxa,cm["name"]))}」'
+  def qual(ids): return ' ・ '.join(E(q['text']) for q in D['DOM-1']['quality'] if q['id'] in ids)
   for s in sc['steps']:
     add(s)
-    rows=[['する人',E(s['actor'])+(f' → {E(s["to"])}' if s.get('to') else '')],['種類',E(s['kind'])],['内容',E(s['text'])]]
+    rows=[['内容',E(s['text'])],['する人',E(s['actor'])+(f' → {E(s["to"])}' if s.get('to') else '')],['種類',E(s['kind'])]]
     if s.get('reply'): rows.append(['受け取るもの',E(s['reply'])])
+    if s.get('invokes'): rows.append(['呼び出すコマンド',cmd(s['invokes'])])
+    if s.get('quality'): rows.append(['品質の要求',qual(s['quality'])])
     rows+=[['バリエーション',E(v['varies'])+'（'+E('、'.join(v['values']))+'）'] for v in s.get('variations',[])]
     rows+=[['拡張',f'<a class="jump" href="#" data-go="{E(x["label"])}">{E(x["label"])} {E(x["name"])}</a>'] for x in s['extensions']]
     card(s['no'],s['name'],rows)
@@ -188,12 +195,12 @@ def p_uc(d):
       for t in x['steps']: add(t)
       frag='break' if x['ending']=='失敗' else 'opt'
       groups.append({"label":frag,"cases":[{"name":f"{x['label']} {x['name']} → {x['ending']}","span":[start,len(msgs)-1]}]})
-      card(x['label'],x['name'],[['分岐元の手順',str(s['no'])],['条件',E(x['condition'])],['条件の種類',E(x['condition_kind'])]]+[[E(t['no']),E(t['text'])] for t in x['steps']]+[['終わり方',E(x['ending'])]],'fail' if x['ending']=='失敗' else 'ext')
+      card(x['label'],x['name'],[['条件',E(x['condition'])],['分岐元の手順',str(s['no'])],['条件の種類',E(x['condition_kind'])]]+[[E(t['no']),E(t['text'])+(f'<br><span class="sub">呼び出すコマンド：{cmd(t["invokes"])}</span>' if t.get('invokes') else '')] for t in x['steps']]+[['終わり方',E(x['ending'])]],'fail' if x['ending']=='失敗' else '')
   seq=chart('uc-'+d['id'],'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":16,"font.size":17,"chart.exchange-col-w":240,"chart.pad":6,"chart.exchange-row-h":44}})
   sh=d['stakeholders']; g=d['guarantees']
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   b=head(d,badge(h['level'])+f' ・ スコープ {ref(ctx)}')
-  b+=props([('主アクター',E(h['primary_actor'])),('トリガー',E(h['trigger'])),('寄与する達成の基準',' ・ '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))]+([('未決定',E('、'.join(d['links']['open_issues'])))] if d['links'].get('open_issues') else []))
+  b+=props([('主アクター',E(h['primary_actor'])),('トリガー',E(h['trigger'])),('寄与する達成の基準',' ・ '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))]+([('未決定の事項',E('、'.join(d['links']['open_issues'])))] if d['links'].get('open_issues') else []))
   b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[E(x['text']),ref(x['established_by'])] for x in d['preconditions']]))
   chips=''.join(f'<button class="chip-btn" data-go="{E(str(s["no"]))}">{E(str(s["no"]))}</button>'+''.join(f'<button class="chip-btn ext" data-go="{E(x["label"])}">{E(x["label"])}</button>' for x in s['extensions']) for s in sc['steps'])
   b+=block('主成功シナリオと拡張',f'<div class="seqview"><div class="seqfig">{seq}</div><aside class="seqside"><div class="chips">{chips}</div>{"".join(detail)}<p class="hint">図の手順か、上の番号を押すと説明が出ます</p></aside></div>')
@@ -215,7 +222,7 @@ page=f'''<title>来店前注文の宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
-const pick=(no)=>{{const v=document.querySelector('.page:not([hidden]) .seqview');if(!v)return;v.querySelectorAll('.dc').forEach(c=>c.hidden=c.dataset.no!==no);v.querySelectorAll('.chip-btn').forEach(b=>b.classList.toggle('on',b.dataset.go===no));v.querySelector('.hint').hidden=true;v.querySelectorAll('svg text').forEach(t=>{{const on=t.textContent.split(' ')[0]===no;t.classList.toggle('sel',on)}})}};
+const pick=(no)=>{{const v=document.querySelector('.page:not([hidden]) .seqview');if(!v)return;v.querySelectorAll('.dc').forEach(c=>c.hidden=c.dataset.no!==no);v.querySelectorAll('.chip-btn').forEach(b=>b.classList.toggle('on',b.dataset.go===no));v.querySelector('.hint').hidden=true;const svg=v.querySelector('svg');svg.querySelectorAll('.band').forEach(r=>r.remove());const g=svg.querySelector('g');const W=svg.viewBox.baseVal.width;v.querySelectorAll('svg text').forEach(t=>{{const k=t.textContent.split(' ')[0];const on=(k===no)||(/[a-z]/.test(no)&&k.startsWith(no));t.classList.toggle('sel',on);if(on){{const bb=t.getBBox();const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('class','band');r.setAttribute('x',0);r.setAttribute('width',W);r.setAttribute('y',bb.y-6);r.setAttribute('height',bb.height+22);g.insertBefore(r,g.firstChild)}}}})}};
 document.addEventListener('click',e=>{{const b=e.target.closest('[data-go]');if(b){{e.preventDefault();pick(b.dataset.go);return}}const t=e.target.closest('.seqfig svg text');if(t){{const no=t.textContent.split(' ')[0];if(document.querySelector('.dc[data-no="'+no+'"]'))pick(no)}}}});
 document.querySelectorAll('.seqview').forEach(v=>{{v.querySelectorAll('svg text').forEach(t=>{{const no=t.textContent.split(' ')[0];if(v.querySelector('.dc[data-no="'+no+'"]'))t.classList.add('pickable')}});const f=v.querySelector('.chip-btn');if(f)pick(f.dataset.go)}});
 </script>'''
