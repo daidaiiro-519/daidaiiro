@@ -6,5 +6,6 @@
 - [ユースケース抽象設計モデリングと抽象コーディングのボード](usecase-modeling-coding-board.md) ── 9月のスキーマ駆動のボードと合わせて考える。19回目。8論点とも答えあり（Q1〜4 決着、Q5〜8 承認済み）。9月のボードの改訂は ACDR 0092 で済み
 - [下期AI活用ワークショップ](ai-workshop.md) ── 企画書とオリエンテーションは承認 ・ push 済み。残りは動画の作り直し ・ 教材1の照合（L1-S3 まで）・ 教材2と3
 - [advisor の作り直し](advisor-rebuild.md) ── usecase ・ ddd ・ qa は完了（未 push）。次は skills-creator を契約中心に作り直すボード → platform ・ ux
+- [skills-creator を契約中心に作り直すボード](skills-creator-contract-board.md) ── 5論点とも決着。次は ACDR A（契約とテストケース）→ B → C
 - [スキーマ駆動の道具（抽象の基盤）のボード](schema-driven-base-board.md) ── 論点1決着。論点2は concrete のボードに合わせて組み直し、論点3は保留
 - [ユースケース駆動の concrete の宣言のボード](usecase-driven-concrete-board.md) ── 1回目、論点1（宣言の構成）・ 論点2（書き方の文法）回答待ち
