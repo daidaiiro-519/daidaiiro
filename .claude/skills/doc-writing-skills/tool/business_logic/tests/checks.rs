@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: MIT
-//! 8つの判定を事例で検証する。
+//! 7つの判定を事例で検証する。
 //!
 //!     cargo test -p dws_business_logic
-
-use std::path::PathBuf;
 
 use dws_business_logic::checks::{Pair, Words};
 use dws_business_logic::gate;
 
-fn references() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../references")
-}
-
 fn words() -> Words {
     Words::new(
-        gate::load_predicates(&references().join("predicates.json")).expect("読める"),
         vec![("ブレストボード".to_owned(), "板".to_owned())],
         vec![Pair::new(
             "盤面".to_owned(),
@@ -160,26 +153,6 @@ fn a_retired_word_is_found() {
 }
 
 #[test]
-fn a_wago_predicate_is_found() {
-    assert!(hit("wago.md", "形を揃える。\n", "述部が和語である"));
-    assert!(!hit("kango.md", "形を統一する。\n", "述部が和語である"));
-}
-
-#[test]
-fn a_quotation_is_not_checked_for_the_predicate() {
-    // **原文の形を変えない。** 言い換えた時点で、それは引用ではなくなる
-    let body = "原典は「形を揃える」と述べる。\n";
-    assert!(!hit("wagoq.md", body, "述部が和語である"));
-}
-
-#[test]
-fn a_lookbehind_keeps_the_replacement_itself() {
-    // 「折り畳む」は言い換える先そのものである ── 前に「折り」が在れば検出しない
-    assert!(!hit("fold.md", "節を折り畳む。\n", "述部が和語である"));
-    assert!(hit("tatamu.md", "布を畳む。\n", "述部が和語である"));
-}
-
-#[test]
 fn a_broken_emphasis_is_found() {
     // 閉じの印が約物の直後に在ると、CommonMark では閉じ記号にならない
     assert!(hit(
@@ -215,17 +188,17 @@ fn a_tag_next_to_the_mark_is_not_judged_in_html() {
     // 表に並べたコードの行は、判定しない
     assert!(!hit(
         "diff.html",
-        "<table><tr><td class=\"cd\"><code>/// 規則を捨てる。**強調する。**</code></td></tr></table>",
-        "述部が和語である"
+        "<table><tr><td class=\"cd\"><code>/// 規則を捨てる。**強調する。**続き</code></td></tr></table>",
+        "強調が描画されない"
     ));
-    // 本文の和語は、HTML でも検出する
-    assert!(hit("prose.html", "<p>布を畳む。</p>", "述部が和語である"));
+    // 本文の廃語は、HTML でも検出する
+    assert!(hit("prose.html", "<p>盤面を組む。</p>", "廃語を使用している"));
 }
 
 #[test]
 fn the_inside_of_a_fence_is_not_judged_as_prose() {
-    let body = "# 題\n\n```\n形を揃える\n```\n";
-    assert!(!hit("fence.md", body, "述部が和語である"));
+    let body = "# 題\n\n```\n盤面を組む\n```\n";
+    assert!(!hit("fence.md", body, "廃語を使用している"));
 }
 
 #[test]
@@ -250,27 +223,27 @@ fn the_mark_only_works_at_the_head() {
 #[test]
 fn json_is_read_as_the_strings_it_holds() {
     // **構文を本文として読まない** ── 名前も括弧も書き手の文ではない
-    let body = r#"{"$schema": "x", "answer": "形を揃える。"}"#;
-    assert!(hit("a.json", body, "述部が和語である"));
-    let body = r#"{"$schema": "形を揃える。"}"#;
+    let body = r#"{"$schema": "x", "answer": "盤面を組む。"}"#;
+    assert!(hit("a.json", body, "廃語を使用している"));
+    let body = r#"{"$schema": "盤面を組む。"}"#;
     assert!(
-        !hit("b.json", body, "述部が和語である"),
+        !hit("b.json", body, "廃語を使用している"),
         "印で始まる名前は見ない"
     );
 }
 
 #[test]
 fn the_same_finding_is_not_reported_twice() {
-    let body = "形を揃える。\n";
+    let body = "盤面を組む。\n";
     let found = inspect("dup.md", body);
-    let wago = found.iter().filter(|x| *x == "述部が和語である").count();
-    assert_eq!(wago, 1, "読み手が同じ場所を2回開くことになる");
+    let retired = found.iter().filter(|x| *x == "廃語を使用している").count();
+    assert_eq!(retired, 1, "読み手が同じ場所を2回開くことになる");
 }
 
 #[test]
 fn the_declared_checks_are_the_ones_that_run() {
     let names: Vec<&str> = gate::all().iter().map(|c| c.name).collect();
-    assert_eq!(names.len(), 8, "判定の一覧が正本である");
+    assert_eq!(names.len(), 7, "判定の一覧が正本である");
     let found = inspect("all.md", "# 一\n\n### 三\n\n形を揃える。\n");
     for name in &found {
         assert!(
@@ -278,33 +251,6 @@ fn the_declared_checks_are_the_ones_that_run() {
             "宣言していない判定が出た ── {name}"
         );
     }
-}
-
-#[test]
-fn every_example_of_a_predicate_is_found() {
-    // **常体と敬体の両方を、一覧の事例で当てる。** 事例は predicates.json が持つ ──
-    // この側に語を書かない。1件でも通過すれば、その行は活用を取りこぼしている
-    let body = std::fs::read_to_string(references().join("predicates.json")).expect("読める");
-    let parsed: serde_json::Value = serde_json::from_str(&body).expect("JSON である");
-    let mut missed = Vec::new();
-    for (i, item) in parsed["predicates"]
-        .as_array()
-        .expect("配列である")
-        .iter()
-        .enumerate()
-    {
-        for ex in item["examples"].as_array().expect("事例を持つ") {
-            let text = ex.as_str().expect("文字列である");
-            if !hit(
-                &format!("ex{i}.md"),
-                &format!("{text}。\n"),
-                "述部が和語である",
-            ) {
-                missed.push(format!("{i}: {text}"));
-            }
-        }
-    }
-    assert!(missed.is_empty(), "検出しなかった事例: {missed:?}");
 }
 
 #[test]
@@ -346,7 +292,6 @@ fn a_pattern_finds_the_conjugated_forms_of_a_retired_verb() {
     )
     .expect("書ける");
     let words = Words::new(
-        gate::load_predicates(&references().join("predicates.json")).expect("読める"),
         Vec::new(),
         gate::load_retired(&list).expect("読める"),
     );

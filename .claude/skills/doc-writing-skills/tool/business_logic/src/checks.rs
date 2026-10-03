@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-//! 人が読む文書へ当てる8つの判定。
+//! 人が読む文書へ当てる7つの判定。
 //!
 //! **概念から導けるものと、媒体の決めを分ける。** どちらかが読めないと、直すべきか
 //! 外すべきかを判定できない。
 //!
-//! **語の一覧を、この側に書かない** ── 和語は `references/predicates.json`、同義語と
-//! 廃語は呼ぶ側が渡す。語を1つ足すたびに組み直すことになる。
+//! **語の一覧を、この側に書かない** ── 同義語と廃語は呼ぶ側が渡す。語を1つ足すたびに
+//! 組み直すことになる。
 
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -70,8 +70,6 @@ fn mask_quotes(text: &str) -> String {
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
 pub struct Words {
-    /// 和語の述部と、その言い換え先。
-    pub predicates: Vec<(String, String)>,
     /// 同じ意味の語の対。
     pub synonyms: Vec<(String, String)>,
     /// 一度破棄した語。
@@ -81,16 +79,8 @@ pub struct Words {
 impl Words {
     /// 語の一覧を組む。**欄を足しても、呼ぶ側は壊れない。**
     #[must_use]
-    pub const fn new(
-        predicates: Vec<(String, String)>,
-        synonyms: Vec<(String, String)>,
-        retired: Vec<Pair>,
-    ) -> Self {
-        Self {
-            predicates,
-            synonyms,
-            retired,
-        }
+    pub const fn new(synonyms: Vec<(String, String)>, retired: Vec<Pair>) -> Self {
+        Self { synonyms, retired }
     }
 }
 
@@ -384,53 +374,6 @@ pub fn retired_word(u: &Unit, words: &Words) -> Vec<String> {
         }
     }
     out
-}
-
-// ── 概念8 ──────────────────────────────────────────────────
-
-/// 述部が和語かを見る。
-///
-/// 訓読みの動詞は意味の範囲が広い（公用文 Ⅲ－４ エ のただし書き）。技術文書は厳密に
-/// 意味を特定しなければならない文書なので、ウ を必須として適用する ── **原典は禁止
-/// していない。強度を上げたのは、このリポジトリの決定である。**
-///
-/// **引用は検査しない** ── 原文の形を変えないと決めている。原典の語を言い換えた
-/// 時点で、それは引用ではなくなる。
-#[must_use]
-pub fn wago_predicate(u: &Unit, words: &Words) -> Vec<String> {
-    static COMPILED: OnceLock<Vec<(Regex, String)>> = OnceLock::new();
-    let patterns = COMPILED.get_or_init(|| {
-        words
-            .predicates
-            .iter()
-            .filter_map(|(p, to)| Regex::new(p).ok().map(|r| (r, to.clone())))
-            .collect()
-    });
-    // 鉤括弧の中を伏せる ── 廃語の照合と同じ処理を使う
-    let masked = mask_quotes(&u.text);
-    let mut hits = Vec::new();
-    for (rx, to) in patterns {
-        if let Ok(Some(m)) = rx.find(&masked) {
-            let at = masked[..m.start()].chars().count();
-            let hit: String = u
-                .text
-                .chars()
-                .skip(at)
-                .take(m.as_str().chars().count())
-                .collect();
-            let after: String = u
-                .text
-                .chars()
-                .skip(at + m.as_str().chars().count())
-                .take(8)
-                .collect();
-            hits.push(format!(
-                "{} → {to}",
-                excerpt_around(&u.text, at, &hit, &after, 12)
-            ));
-        }
-    }
-    hits
 }
 
 // ── 媒体の決め ──────────────────────────────────────────────

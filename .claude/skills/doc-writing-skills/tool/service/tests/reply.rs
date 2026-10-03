@@ -21,10 +21,10 @@ fn reply(message: &str) -> Outcome {
 }
 
 #[test]
-fn a_wago_predicate_in_a_reply_is_blocked() {
+fn a_retired_word_in_a_reply_is_blocked() {
     // 検出があれば、Stop フックが読む additionalContext を持つ ── **decision: block は使わない**
     // （原典は block を hook error として表示し、additionalContext を hook feedback として表示する）
-    let out = reply("結果を揃えます。");
+    let out = reply("代償が大きい。");
     assert!(out.ok);
     assert_eq!(out.findings.len(), 1, "{:?}", out.findings);
     let hook = &out.data["hookSpecificOutput"];
@@ -32,7 +32,7 @@ fn a_wago_predicate_in_a_reply_is_blocked() {
     assert!(hook["additionalContext"]
         .as_str()
         .unwrap_or_default()
-        .contains("揃えま"));
+        .contains("代償"));
     assert!(out.data.get("decision").is_none());
 }
 
@@ -48,7 +48,7 @@ fn a_clean_reply_passes_without_output() {
 
 #[test]
 fn the_layout_checks_are_not_applied_to_a_reply() {
-    // 見出しの階層や文体は、会話の応答には当てない ── 語彙表で決まる2つだけである
+    // 見出しの階層や文体は、会話の応答には当てない ── 語彙表で決まる1つだけである
     let out = reply("# 一\n\n### 三\n\nこれは本文である。\n\nこれは本文です。\n");
     assert!(out.findings.is_empty(), "{:?}", out.findings);
 }

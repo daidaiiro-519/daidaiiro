@@ -15,5 +15,4 @@ pub mod gate;
 pub mod input;
 pub mod instruction;
 pub mod refs;
-pub mod tails;
 pub mod unit;

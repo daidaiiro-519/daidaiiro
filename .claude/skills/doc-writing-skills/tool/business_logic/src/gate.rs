@@ -102,13 +102,6 @@ pub fn all() -> Vec<Check> {
             note: "対を渡さなければ何も出ない",
         },
         Check {
-            name: "述部が和語である",
-            basis: "概念8",
-            scope: Scope::Written,
-            note: "公用文 Ⅲ－４ ウ を必須へ上げたリポジトリの決定（.acdr/0003）。\
-                   引用は検査しない ── 原文を書き換えてはならない",
-        },
-        Check {
             name: "廃語を使用している",
             basis: "概念7",
             scope: Scope::Written,
@@ -153,7 +146,6 @@ fn prose_of_json(raw: &str) -> String {
 fn per_unit(check: &Check, u: &Unit, words: &Words) -> Vec<String> {
     match check.name {
         "文字で図や表を描いている" => checks::drawn_figure(u),
-        "述部が和語である" => checks::wago_predicate(u, words),
         "廃語を使用している" => checks::retired_word(u, words),
         "強調が描画されない" => checks::broken_emphasis(u),
         _ => Vec::new(),
@@ -230,30 +222,6 @@ fn inspect_units(units: &[unit::Unit], words: &Words) -> Vec<Finding> {
     let mut seen = std::collections::BTreeSet::new();
     out.retain(|f| seen.insert((f.check.clone(), f.line, f.excerpt.clone())));
     out
-}
-
-/// 和語の一覧を、契約から読む。**この側に語を書かない。**
-///
-/// # Errors
-///
-/// 読めないとき、または形が違うときに返す。
-pub fn load_predicates(path: &Path) -> io::Result<Vec<(String, String)>> {
-    let body = files::read_to_string(path)?;
-    let parsed: Value = serde_json::from_str(&body)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-    let items = parsed
-        .get("predicates")
-        .and_then(Value::as_array)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "predicates が無い"))?;
-    Ok(items
-        .iter()
-        .filter_map(|x| {
-            Some((
-                x.get("pattern")?.as_str()?.to_owned(),
-                x.get("use_instead")?.as_str()?.to_owned(),
-            ))
-        })
-        .collect())
 }
 
 /// 同義語の一覧（1行に1組、タブ区切り）を読む。

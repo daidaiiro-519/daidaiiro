@@ -10,7 +10,7 @@ mod refs;
 use std::path::{Path, PathBuf};
 
 use dws_business_logic::checks::Words;
-use dws_business_logic::{gate, input, instruction, tails};
+use dws_business_logic::{gate, input, instruction};
 use serde_json::json;
 
 pub use contract::{catalog, Arg, Given, Outcome, Tool};
@@ -30,20 +30,8 @@ fn skill_root(given: &Given) -> Result<PathBuf, String> {
     given.skill_root()
 }
 
-/// 語の一覧を組む。**この Skill が持つのは和語だけ** ── 同義語と廃語は
-/// プロジェクトごとに相違するので、外から受け取る。
-///
-/// **和語の一覧を読めなければ、誤用として止める。** 空の一覧で続行すると、和語の検査を
-/// 実施しないまま「0件」と報告する ── 検査しなかったことと、検出が無かったことを
-/// 読み手が区別できない。廃語の一覧と違い、和語の一覧はこの Skill が必ず持つものである。
+/// 語の一覧を組む。同義語と廃語はプロジェクトごとに違うので、外から受け取る。
 fn words(given: &Given, target: &Path) -> Result<Words, String> {
-    let at = skill_root(given)?.join("references/predicates.json");
-    let predicates = gate::load_predicates(&at).map_err(|e| {
-        format!(
-            "和語の一覧を読めない ── {} ── {e}。--skill-root にこの Skill の場所を渡す",
-            at.display()
-        )
-    })?;
     // 一覧が無いことは失敗にしない。**在るのに読めないことは、失敗にする** ── 空の一覧として続行すると、
     // 廃語の検査を実施しないまま0件と報告する
     let retired = match gate::find_retired(target) {
@@ -56,7 +44,7 @@ fn words(given: &Given, target: &Path) -> Result<Words, String> {
         .first()
         .map(|p| gate::load_synonyms(Path::new(p)))
         .unwrap_or_default();
-    Ok(Words::new(predicates, synonyms, retired))
+    Ok(Words::new(synonyms, retired))
 }
 
 fn run_check(given: &Given) -> Outcome {
@@ -152,28 +140,9 @@ fn human_checks(out: &Outcome) -> String {
     lines.join("\n")
 }
 
-fn run_tails(given: &Given) -> Outcome {
-    let paths: Vec<PathBuf> = given.all("path").iter().map(PathBuf::from).collect();
-    if paths.is_empty() {
-        return Outcome::misuse("対象のファイルを渡していない".to_owned());
-    }
-    let refs: Vec<&Path> = paths.iter().map(PathBuf::as_path).collect();
-    match tails::lines(&refs) {
-        Ok(lines) => Outcome::found(lines, json!({ "looked": paths.len() })),
-        Err(e) => Outcome::misuse(format!("読めない ── {e}")),
-    }
-}
-
-fn human_tails(out: &Outcome) -> String {
-    if !out.ok {
-        return out.findings.join(" ／ ");
-    }
-    out.findings.join("\n")
-}
-
-/// 利用者への応答に当てる判定。**語彙表で決まる2つだけである** ── 見出しや表の判定は、
+/// 利用者への応答に当てる判定。**語彙表で決まる1つだけである** ── 見出しや表の判定は、
 /// 会話の応答の形には当てない。
-const REPLY_CHECKS: [&str; 2] = ["述部が和語である", "廃語を使用している"];
+const REPLY_CHECKS: [&str; 1] = ["廃語を使用している"];
 
 /// 応答の本文と、廃語の一覧を探し始める場所を取る。
 ///
@@ -352,13 +321,6 @@ pub fn tools() -> Vec<Tool> {
             ],
             run: run_review,
             human: human_review,
-        },
-        Tool {
-            name: "tails",
-            summary: "述部の末尾を数える",
-            args: vec![Arg::many("path", "対象のファイル（複数可）")],
-            run: run_tails,
-            human: human_tails,
         },
         Tool {
             name: "checks",
