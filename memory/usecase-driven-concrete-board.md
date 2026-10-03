@@ -7,8 +7,9 @@ metadata:
 
 `.brainstorming-board/usecase-driven-concrete/`（Artifact https://claude.ai/artifact/RCzv1XstzQ3Y5PHtFsT5Gr ）。宣言の種類ごとの欄と、AI が書いても出力が安定する書き方を、ddd-advisor と usecase-advisor の回答（`advice/` に保存）から決める。試作（trial）は根拠にしない。
 
-現在地（2026-10-03、3回目）：
-- 論点1（宣言の構成）・ 論点2（書き方）は決着。ACDR 0094（usecase-modeling-coding の表）・ 0095（述部を漢語にする規則を外す）は承認・適用済み
-- 論点3（種類ごとの項目）は B′ で回答待ち：3つのアドバイザー（usecase ・ ddd ・ ux）の見直しを反映。導ける項目（整合性の境界 ・ 書き換える集約など）を外し、実装の都合（識別子の型 ・ データの型 ・ サーガ）を実装側へ、競合 ・ 拒否の例 ・ 所属するサブドメイン ・ 端数の扱いを足し、画面で見せる/畳む項目を決めた。見直しの全文は advice/review/
-- 次：論点3が承認されたら、usecase-modeling-coding の論点1（書き換える集約を ID で指す）・ 論点7（サーガのテスト）を見直す ACDR を起こし、論点4（テストとのつなぎ方。テストの ID、テストのレベル、指摘3件）を開く。qa-advisor（required）を呼ぶ必要がある。アドバイザーの2つの例は ID の付け方がそろっていないので、論点4のあと1つの例に書き直す
+現在地（2026-10-03、5回目、コミット 90949194）：
+- 論点1 ・ 論点2 は決着。論点3（B′＋完成イメージで足した8項目）と論点4（テストとのつなぎ方、A）が回答待ち
+- 論点4 の中身：テスト条件（JSTQB）を単位にし、ID「宣言ID.種類-連番」とハッシュ値（期待する結果を決める欄の SHA-256）で報告と突き合わせる。判定は欠け ・ 余り ・ 不合格 ・ 古い ・ 未実行 ・ レベル違い。qa-advisor の回答は advice/qa.json
+- 完成イメージ sample/（Artifact https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ ）に、テスト条件の ID ・ 突き合わせの頁 ・ report.schema.json がある
+- 次：承認されたら ACDR を起こす（usecase-modeling-coding 論点1 の writes→invokes、論点7 のサーガのテストと集約のレベル、ACDR 0093 の報告の形）。design-svg の exchange の自分宛てメッセージ（作業コピー、未コミット）も ACDR が要る。qa-advisor の validate が findings があっても ok:true を返す不具合は未報告
 - 関連：[[schema-driven-base-board]] の論点2はこのボードの決定に合わせて組み直し、論点3は保留
