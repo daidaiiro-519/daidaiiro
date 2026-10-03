@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ddd-advisor の回答</title>
+<style>*{box-sizing:border-box}body{margin:0;background:var(--band);color:var(--ink);font:15px/1.8 'Noto Sans JP',sans-serif}main{max-width:880px;margin:0 auto;padding:24px 16px}@media (max-width:480px){main{padding:16px 12px}}:root{--accent:#0f6e5c;--accent-soft:#e2f1ec;--band:#eef2f2;--ink:#1f2328;--line:#d3dcdc;--muted:#555f6a;--paper:#ffffff;--surface:#f3f6f6;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){:root{--accent:#5cc2a8;--accent-soft:#1d3a33;--band:#12171a;--ink:#e6ebec;--line:#34403f;--muted:#9aa6aa;--paper:#161b1d;--surface:#1e2527;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style>
+</head>
+<body><main class="rv"><header><p class="eyebrow">ddd-advisor の回答 ・ <span class="tag">設計相談</span></p><h1>ユースケース駆動の宣言で、サブドメイン ・ 区切られた文脈 ・ 集約 ・ 値オブジェクト ・ ドメインサービスの宣言は、それぞれどの欄を、どの細かさで持つべきか。条件をどう書けば、AI が書いても出力が安定し、テストへ一意に変換できるか</h1></header><section class="block"><h2>前置き</h2><p class="desc">判定の前に確定させた前提と、その出所</p><div class="scroll"><table><thead><tr><th>前提</th><th>内容</th><th>出所</th></tr></thead><tbody><tr><td>構成の前提</td><td>モデリングの側が宣言を書き、コーディングの側はポートとアダプターを外枠に固定する。境目はサブドメインの分類で、宣言には技術を書かない。宣言の種類は7つ（ドメイン ・ サブドメイン ・ 区切られた文脈 ・ ユースケース ・ 集約 ・ 値オブジェクト ・ ドメインサービス）</td><td>ボード usecase-modeling-coding の決定（相談者が提示）</td></tr><tr><td>入れ子の前提</td><td>ユースケース ・ 集約 ・ ドメインサービスは区切られた文脈の中に並ぶ。ユースケースは書き換える集約を ID で指し、複数ならサーガの欄を持つ。シナリオはユースケースだけが持つ</td><td>ボード usecase-modeling-coding の決定（相談者が提示）</td></tr><tr><td>テストの種類の前提</td><td>集約の条件の試験 ・ 値オブジェクトの条件の試験 ・ ドメインサービスの条件の試験（模擬を使わない）・ 公開された言葉の契約試験。各項目は AGG-1.INV-1 の形の ID でテストと結ぶ</td><td>ボード usecase-modeling-coding の決定（相談者が提示）</td></tr><tr><td>器の前提</td><td>器は JSON Schema。各欄は title ・ description ・ x-prompt（read ／ write）を持つ。器の都合で欄の中身を削らない</td><td>相談者が提示</td></tr><tr><td>推測の範囲</td><td>判断基準は、条件を構造で書く文法（主語 ・ 述語の列挙 ・ 量化 ・ 集計）、条件からテストへの変換規則、ID の付け方、欄の必須 ・ 任意の区別を扱わない。これらは判断基準の範囲外であり、本回答では記録案の行頭に（推測）と書いた。判定の根拠には使っていない</td><td>判断基準の範囲外</td></tr><tr><td>読んでいないもの</td><td>schema-driven-base と usecase-schema-driven の trial 配下の試作は読んでいない。本回答は試作のスキーマに依存しない</td><td>相談者の指示</td></tr></tbody></table></div></section><section class="card"><div class="cardhead"><h2>結論</h2><span class="tag">採る</span></div><p class="lead">5種類の宣言は、判断基準が判定に使う問いの答え（分類の根拠 ・ 業務ロジックの性質 ・ 強い一貫性の要否 ・ 連係方法 ・ 置く理由）を列挙値で持ち、名前はすべて区切られた文脈の用語を ID で指し、条件は「前提 ・ 主語 ・ 集計 ・ 量化 ・ 述語（閉じた列挙）・ 対象」の6要素の構造と、破る例 ・ 受理する例を持たせて、1条件を1つのテストへ機械的に写す形にする。</p><p class="sub">判断基準は、カテゴリーと実装方法を業務ルール ・ データ構造の複雑さの問いで判定し（subdomain ・ design-heuristics）、集約の内側に置くかを強い一貫性の問いで判定し（aggregate）、用語は1つの意味だけを持ち同義語を使わない（ubiquitous-language）と定めるので、これらを自由文でなく問いの答えと用語の参照として持たせれば、AI の書き方の揺れが入る範囲が説明文だけに狭まる。</p></section><section class="block"><h2>図で確認する</h2><p class="desc">結論の構造を図で示す</p><figure><figcaption>宣言どうしの参照（実線は ID で指す、点線は名前が用語を指す）。多重度は辺の名前に書く</figcaption><ol class="graph"><li>ドメイン（提供価値 VAL-n ・ サブドメインの一覧） →（サブドメインの一覧 1..n）→ サブドメイン SD-n</li><li>サブドメイン SD-n →（担う提供価値 0..n（中核は1..n））→ ドメイン（提供価値 VAL-n ・ サブドメインの一覧）</li><li>サブドメイン SD-n →（含むユースケース 1..n）→ ユースケース UC-n</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（対応するサブドメイン 1..n）→ サブドメイン SD-n</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（関係.相手 0..n（連係方法の列挙））→ 区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉）</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（入れ子 0..n）→ 集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント）</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（入れ子 1..n）→ ユースケース UC-n</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（入れ子 0..n）→ ドメインサービス DS-n（操作 ・ 入力 ・ 出力）</li><li>区切られた文脈 BC-n（用語 ・ 関係 ・ 公開された言葉） →（入れ子 0..n）→ 値オブジェクト VO-n（構成する値 ・ 不変条件 ・ 等価）</li><li>ユースケース UC-n →（書き換える集約 1（2以上はサーガ））→ 集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント）</li><li>集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント） →（状態 ・ 引数の型 1）→ 値オブジェクト VO-n（構成する値 ・ 不変条件 ・ 等価）</li><li>集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント） →（他の集約の識別子 0..n（ID だけ））→ 集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント）</li><li>ドメインサービス DS-n（操作 ・ 入力 ・ 出力） →（参照する集約 1..n（読むだけ））→ 集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント）</li><li>ドメインサービス DS-n（操作 ・ 入力 ・ 出力） →（入力 ・ 出力の型 1）→ 値オブジェクト VO-n（構成する値 ・ 不変条件 ・ 等価）</li><li>公開された言葉 PL-n（BC の中） →（元の業務イベント 1）→ 集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント）</li><li>集約 AGG-n（状態 ・ 不変条件 ・ 操作 ・ 業務イベント） →（名前 1 ・ 破線）→ 用語 TERM-n（BC の中）</li><li>値オブジェクト VO-n（構成する値 ・ 不変条件 ・ 等価） →（名前 1 ・ 破線）→ 用語 TERM-n（BC の中）</li><li>ドメインサービス DS-n（操作 ・ 入力 ・ 出力） →（名前 1 ・ 破線）→ 用語 TERM-n（BC の中）</li></ol></figure></section><section class="block"><h2>設計の手順</h2><ol class="steps"><li><p class="lead">ドメインの提供価値に ID と差別化の真偽を持たせ、サブドメインの一覧を ID で並べる</p><p class="sub">分類はドメインに書かず、サブドメインの側が持つ（前提）。（推測）差別化が真の提供価値は、中核のサブドメインが1件以上「担う提供価値」で指す、を検査にする。根拠は subdomain の「中核：競合他社との違いを生み出す業務活動」である</p></li><li><p class="lead">サブドメインごとに、分類と、分類を判定した問いの答えを列挙値で書く</p><p class="sub">分類の根拠は subdomain の「カテゴリーの判断が難しいときの問い」の3行から1つを選ぶ。業務ロジックの性質は design-heuristics の実装方法を選ぶ問い1〜3の真偽で書く。実装方法の名前と技術名は書かない ── 実装方法は、コーディングの側が真偽から判断基準の表で導く</p></li><li><p class="lead">区切られた文脈ごとに、用語集を先に書き、それ以外の宣言の名前を用語の ID で指す</p><p class="sub">用語は1つの意味だけを持ち、同義語を「使わない語」に挙げる。文脈の名前を付けた語（「受注の注文」）を作らない。集約 ・ 値オブジェクト ・ コマンド ・ 業務イベント ・ ドメインサービス ・ 拒否の理由も用語に載せる</p></li><li><p class="lead">他の区切られた文脈との関係を、連係方法の6つの列挙値と自分の立場で書く</p><p class="sub">良きパートナー ・ モデルの共有 ・ 従属 ・ モデル変換装置 ・ 共用サービス ・ 互いに独立。中核のサブドメインを含む文脈は、下流なら従属を選ばない、互いに独立を選ばない、を検査にする</p></li><li><p class="lead">集約ごとに、状態 ・ 不変条件 ・ 操作（事前条件 ・ 事後条件 ・ 出す業務イベント）・ 業務イベント ・ 整合性の境界を書く</p><p class="sub">状態の各項目は、それを必要とする条件の ID を「内側に置く理由」で指す。どの条件にも使われない状態は、集約の外へ出す候補として検出する。他の集約は識別子だけで指す</p></li><li><p class="lead">値オブジェクトごとに、構成する値 ・ 不変条件 ・ 等価の定義を書く</p><p class="sub">等価は既定で「全構成値」。不変（変更できない）は欄にせず、値オブジェクトであることから常に真とする</p></li><li><p class="lead">ドメインサービスごとに、置く理由を2つの列挙値から選び、操作の入力 ・ 出力を値オブジェクトの型で書く</p><p class="sub">事後条件の主語は「結果」と入力に限る。集約の状態を変える事後条件を書けたら、それは集約の操作である</p></li><li><p class="lead">すべての条件を6要素の構造で書き、破る例と受理する例を付ける</p><p class="sub">1条件に1つの述語。「かつ」は条件を分けて書き、「または」は「のどれか」で1つの主語に書く。「〜なら」は前提に1段だけ書く。文は構造から生成し、AI が手で書かない</p></li><li><p class="lead">条件の ID からテストの ID を機械的に作り、宣言とテストの対応を検査する</p><p class="sub">AGG-1.INV-2.例1 → 拒否の単体テスト1件、AGG-1.CMD-1.POST-1 → 受理する例の中の表明1件、というように1対1で写す。記録案の「条件からテストへの変換」の行に従う</p></li></ol></section><section class="block"><h2>コードの例</h2><p class="desc">良い例と、避ける例</p><p>（推測）条件1件の良い例と、避ける例。良い例は構造だけを AI が書き、文は道具が生成する</p><pre class="code">良い例（AGG-1.INV-2）
+{
+  &quot;id&quot;: &quot;INV-2&quot;,
+  &quot;前提&quot;: {
+    &quot;主語&quot;: {
+      &quot;参照&quot;: &quot;ST-4&quot;,
+      &quot;集計&quot;: &quot;なし&quot;
+    },
+    &quot;述語&quot;: &quot;等しい&quot;,
+    &quot;対象&quot;: {
+      &quot;値&quot;: &quot;確定済&quot;
+    }
+  },
+  &quot;主語&quot;: {
+    &quot;参照&quot;: &quot;ST-3&quot;,
+    &quot;集計&quot;: &quot;件数&quot;
+  },
+  &quot;量化&quot;: &quot;なし&quot;,
+  &quot;述語&quot;: &quot;以上&quot;,
+  &quot;対象&quot;: {
+    &quot;値&quot;: 1
+  },
+  &quot;破れたとき&quot;: &quot;TERM-13&quot;,
+  &quot;文&quot;: &quot;注文状態が確定済なら、明細の件数は1以上&quot;,
+  &quot;例&quot;: [
+    {
+      &quot;前の状態&quot;: {
+        &quot;ST-4&quot;: &quot;下書き&quot;,
+        &quot;ST-3&quot;: []
+      },
+      &quot;操作&quot;: &quot;CMD-1&quot;,
+      &quot;引数&quot;: {
+        &quot;ARG-1&quot;: &quot;10:30&quot;,
+        &quot;ARG-2&quot;: &quot;10:00&quot;
+      },
+      &quot;期待&quot;: &quot;拒否&quot;,
+      &quot;拒否&quot;: &quot;TERM-13&quot;
+    }
+  ]
+}
+
+避ける例
+{&quot;id&quot;: &quot;INV-2&quot;, &quot;文&quot;: &quot;確定した注文には必ず適切な明細があり、受け取り時刻も設定され、イベントが発行されること&quot;}
+── 3つの事項が1条件に入り、「適切な」は判定できず、「受け取り時刻」は用語（受け取り予定時刻）と一致せず、業務イベントを条件に書いている</pre><p>具体例：店舗の注文を確定する。ドメイン（DDD に関わる部分）</p><pre class="code">{
+  &quot;id&quot;: &quot;DOM-1&quot;,
+  &quot;提供価値&quot;: [
+    {
+      &quot;id&quot;: &quot;VAL-1&quot;,
+      &quot;内容&quot;: &quot;来店前に注文を確定でき、店舗の調理の空きに合わせた受け取り予定時刻を約束する&quot;,
+      &quot;差別化&quot;: true
+    },
+    {
+      &quot;id&quot;: &quot;VAL-2&quot;,
+      &quot;内容&quot;: &quot;店頭で現金を扱わずに支払える&quot;,
+      &quot;差別化&quot;: false
+    }
+  ],
+  &quot;サブドメインの一覧&quot;: [
+    &quot;SD-1&quot;,
+    &quot;SD-2&quot;
+  ]
+}</pre><p>サブドメイン SD-1</p><pre class="code">{
+  &quot;id&quot;: &quot;SD-1&quot;,
+  &quot;名前&quot;: &quot;受注&quot;,
+  &quot;説明&quot;: &quot;来店前の注文を受け付け、店舗の調理の空きに合わせて受け取り予定時刻を約束する&quot;,
+  &quot;分類&quot;: &quot;中核&quot;,
+  &quot;分類の根拠&quot;: {
+    &quot;競争優位を生むか&quot;: true,
+    &quot;競争優位の理由&quot;: &quot;受け取り予定時刻を約束できることが、競合店との違いになる（VAL-1）&quot;,
+    &quot;使った問い&quot;: &quot;中核か補完か（ソフトウェアと関係する場合）&quot;,
+    &quot;問いの答え&quot;: &quot;業務ルールと制約条件（確定できる状態 ・ 明細の上限 ・ 受け取り予定時刻の約束）の記述を必要とする&quot;
+  },
+  &quot;業務ロジックの性質&quot;: {
+    &quot;金銭追跡・監査記録・行動分析を必要とするか&quot;: false,
+    &quot;業務ルールは複雑か&quot;: true,
+    &quot;データ構造は複雑か&quot;: false,
+    &quot;根拠となる条件&quot;: [
+      &quot;BC-1.AGG-1.INV-1&quot;,
+      &quot;BC-1.AGG-1.INV-2&quot;,
+      &quot;BC-1.DS-1.OP-1.POST-2&quot;
+    ]
+  },
+  &quot;担う提供価値&quot;: [
+    &quot;VAL-1&quot;
+  ],
+  &quot;含むユースケース&quot;: [
+    &quot;BC-1.UC-1&quot;,
+    &quot;BC-1.UC-2&quot;
+  ]
+}</pre><p>区切られた文脈 BC-1（入れ子の集約 ・ 値オブジェクト ・ ドメインサービスは下に分けて記す）</p><pre class="code">{
+  &quot;id&quot;: &quot;BC-1&quot;,
+  &quot;名前&quot;: &quot;受注&quot;,
+  &quot;目的&quot;: &quot;来店前の注文を受け付け、受け取り予定時刻を約束する&quot;,
+  &quot;対応するサブドメイン&quot;: [
+    &quot;SD-1&quot;
+  ],
+  &quot;用語&quot;: [
+    {
+      &quot;id&quot;: &quot;TERM-1&quot;,
+      &quot;語&quot;: &quot;注文&quot;,
+      &quot;定義&quot;: &quot;1人の顧客が1つの店舗で受け取る商品の一覧と、その受け取り予定時刻の約束&quot;,
+      &quot;種類&quot;: &quot;集約&quot;,
+      &quot;使わない語&quot;: [
+        &quot;オーダー&quot;,
+        &quot;注文データ&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-2&quot;,
+      &quot;語&quot;: &quot;明細&quot;,
+      &quot;定義&quot;: &quot;注文に含まれる、1つの商品とその数量の組&quot;,
+      &quot;種類&quot;: &quot;エンティティ&quot;,
+      &quot;使わない語&quot;: [
+        &quot;注文行&quot;,
+        &quot;レコード&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-3&quot;,
+      &quot;語&quot;: &quot;数量&quot;,
+      &quot;定義&quot;: &quot;1つの明細で注文する商品の個数&quot;,
+      &quot;種類&quot;: &quot;値オブジェクト&quot;,
+      &quot;使わない語&quot;: [
+        &quot;個数&quot;,
+        &quot;件数&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-4&quot;,
+      &quot;語&quot;: &quot;注文状態&quot;,
+      &quot;定義&quot;: &quot;注文がライフサイクルのどこにあるか。下書き ・ 確定済 ・ 取消済のどれか&quot;,
+      &quot;種類&quot;: &quot;値オブジェクト&quot;,
+      &quot;使わない語&quot;: [
+        &quot;ステータス&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-5&quot;,
+      &quot;語&quot;: &quot;受け取り予定時刻&quot;,
+      &quot;定義&quot;: &quot;顧客が店舗で商品を受け取れると約束した時刻&quot;,
+      &quot;種類&quot;: &quot;値オブジェクト&quot;,
+      &quot;使わない語&quot;: [
+        &quot;納期&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-6&quot;,
+      &quot;語&quot;: &quot;確定する&quot;,
+      &quot;定義&quot;: &quot;下書きの注文を、受け取り予定時刻の約束とともに確定済にする&quot;,
+      &quot;種類&quot;: &quot;コマンド&quot;,
+      &quot;使わない語&quot;: [
+        &quot;注文を送信する&quot;,
+        &quot;コミットする&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-7&quot;,
+      &quot;語&quot;: &quot;明細を追加する&quot;,
+      &quot;定義&quot;: &quot;下書きの注文に、商品と数量の組を1つ加える&quot;,
+      &quot;種類&quot;: &quot;コマンド&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-8&quot;,
+      &quot;語&quot;: &quot;注文確定済&quot;,
+      &quot;定義&quot;: &quot;注文が確定され、受け取り予定時刻が約束されたという出来事&quot;,
+      &quot;種類&quot;: &quot;業務イベント&quot;,
+      &quot;使わない語&quot;: [
+        &quot;注文確定イベント&quot;
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;TERM-9&quot;,
+      &quot;語&quot;: &quot;調理枠&quot;,
+      &quot;定義&quot;: &quot;店舗が一定の時間帯に調理できる量の割り当て&quot;,
+      &quot;種類&quot;: &quot;集約&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-10&quot;,
+      &quot;語&quot;: &quot;受け取り時刻を見積もる&quot;,
+      &quot;定義&quot;: &quot;明細と調理枠の空きから、受け取り予定時刻を求める&quot;,
+      &quot;種類&quot;: &quot;ドメインサービス&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-11&quot;,
+      &quot;語&quot;: &quot;下書きでない注文は確定できない&quot;,
+      &quot;定義&quot;: &quot;確定するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-12&quot;,
+      &quot;語&quot;: &quot;明細の上限を超える&quot;,
+      &quot;定義&quot;: &quot;明細を追加するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-13&quot;,
+      &quot;語&quot;: &quot;明細の無い注文は確定できない&quot;,
+      &quot;定義&quot;: &quot;確定するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-14&quot;,
+      &quot;語&quot;: &quot;受け取り予定時刻の無い注文は確定できない&quot;,
+      &quot;定義&quot;: &quot;確定するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-15&quot;,
+      &quot;語&quot;: &quot;受け取り予定時刻が確定時刻より前&quot;,
+      &quot;定義&quot;: &quot;確定するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-16&quot;,
+      &quot;語&quot;: &quot;同じ商品の明細は追加できない&quot;,
+      &quot;定義&quot;: &quot;明細を追加するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-17&quot;,
+      &quot;語&quot;: &quot;数量が範囲の外&quot;,
+      &quot;定義&quot;: &quot;数量を作るのを拒否する理由&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-18&quot;,
+      &quot;語&quot;: &quot;明細の無い注文は見積もれない&quot;,
+      &quot;定義&quot;: &quot;見積もるを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-19&quot;,
+      &quot;語&quot;: &quot;調理枠に空きが無い&quot;,
+      &quot;定義&quot;: &quot;見積もるを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    },
+    {
+      &quot;id&quot;: &quot;TERM-20&quot;,
+      &quot;語&quot;: &quot;下書きでない注文は変更できない&quot;,
+      &quot;定義&quot;: &quot;明細を追加するを拒否する理由の1つ&quot;,
+      &quot;種類&quot;: &quot;拒否の理由&quot;,
+      &quot;使わない語&quot;: []
+    }
+  ],
+  &quot;関係&quot;: [
+    {
+      &quot;相手&quot;: &quot;BC-2&quot;,
+      &quot;自分の立場&quot;: &quot;下流&quot;,
+      &quot;連係方法&quot;: &quot;モデル変換装置&quot;,
+      &quot;選んだ理由&quot;: &quot;BC-1 は中核のサブドメイン SD-1 を含むので、決済（一般 SD-2、外部サービス）のモデルに従属せず、変換して自分のモデルを保護する&quot;
+    },
+    {
+      &quot;相手&quot;: &quot;BC-3&quot;,
+      &quot;自分の立場&quot;: &quot;上流&quot;,
+      &quot;連係方法&quot;: &quot;共用サービス&quot;,
+      &quot;選んだ理由&quot;: &quot;受注のモデルを繰り返し変更しても調理（補完）へ影響させないため、公開された言葉 PL-1 で提供する&quot;,
+      &quot;使う公開された言葉&quot;: [
+        &quot;PL-1&quot;
+      ]
+    }
+  ],
+  &quot;公開された言葉&quot;: [
+    {
+      &quot;id&quot;: &quot;PL-1&quot;,
+      &quot;名前&quot;: &quot;注文確定済&quot;,
+      &quot;版&quot;: 1,
+      &quot;種類&quot;: &quot;業務イベント&quot;,
+      &quot;元の業務イベント&quot;: &quot;BC-1.AGG-1.EVT-1&quot;,
+      &quot;項目&quot;: [
+        {
+          &quot;名前&quot;: &quot;注文番号&quot;,
+          &quot;型&quot;: &quot;文字列&quot;,
+          &quot;元&quot;: &quot;EVT-1.注文番号&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;受け取り予定時刻&quot;,
+          &quot;型&quot;: &quot;日時&quot;,
+          &quot;元&quot;: &quot;EVT-1.受け取り予定時刻&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;明細&quot;,
+          &quot;型&quot;: &quot;一覧&quot;,
+          &quot;元&quot;: &quot;EVT-1.明細&quot;,
+          &quot;要素&quot;: [
+            {
+              &quot;名前&quot;: &quot;商品番号&quot;,
+              &quot;型&quot;: &quot;文字列&quot;
+            },
+            {
+              &quot;名前&quot;: &quot;数量&quot;,
+              &quot;型&quot;: &quot;整数&quot;
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  &quot;集約&quot;: [
+    &quot;AGG-1（下に記す）&quot;,
+    &quot;AGG-2 調理枠（省略）&quot;
+  ],
+  &quot;値オブジェクト&quot;: [
+    &quot;VO-1（下に記す）&quot;,
+    &quot;VO-2 注文番号 ・ VO-3 商品番号 ・ VO-4 注文状態 ・ VO-5 受け取り予定時刻 ・ VO-6 確定時刻 ・ VO-7 調理枠の空き（省略）&quot;
+  ],
+  &quot;ドメインサービス&quot;: [
+    &quot;DS-1（下に記す）&quot;
+  ],
+  &quot;ユースケース&quot;: [
+    &quot;UC-1 注文を確定する（usecase-advisor の担当。書き換える集約は AGG-1 の1つ）&quot;,
+    &quot;UC-2 明細を追加する&quot;
+  ]
+}</pre><p>集約 BC-1.AGG-1</p><pre class="code">{
+  &quot;id&quot;: &quot;AGG-1&quot;,
+  &quot;名前&quot;: &quot;TERM-1（注文）&quot;,
+  &quot;説明&quot;: &quot;受け取り予定時刻の約束と、約束した明細の一貫性を守る&quot;,
+  &quot;ルート&quot;: {
+    &quot;名前&quot;: &quot;TERM-1（注文）&quot;,
+    &quot;識別子&quot;: &quot;VO-2（注文番号）&quot;
+  },
+  &quot;状態&quot;: [
+    {
+      &quot;id&quot;: &quot;ST-1&quot;,
+      &quot;名前&quot;: &quot;注文番号&quot;,
+      &quot;型&quot;: &quot;VO-2&quot;,
+      &quot;多重度&quot;: &quot;1&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ST-2&quot;,
+      &quot;名前&quot;: &quot;顧客&quot;,
+      &quot;型&quot;: &quot;他の集約の識別子：顧客管理の顧客&quot;,
+      &quot;多重度&quot;: &quot;1&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ST-3&quot;,
+      &quot;名前&quot;: &quot;明細&quot;,
+      &quot;型&quot;: &quot;ENT-1&quot;,
+      &quot;多重度&quot;: &quot;0..n&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ST-4&quot;,
+      &quot;名前&quot;: &quot;注文状態&quot;,
+      &quot;型&quot;: &quot;VO-4&quot;,
+      &quot;多重度&quot;: &quot;1&quot;
+    },
+    {
+      &quot;id&quot;: &quot;ST-5&quot;,
+      &quot;名前&quot;: &quot;受け取り予定時刻&quot;,
+      &quot;型&quot;: &quot;VO-5&quot;,
+      &quot;多重度&quot;: &quot;0..1&quot;
+    }
+  ],
+  &quot;内側のエンティティ&quot;: [
+    {
+      &quot;id&quot;: &quot;ENT-1&quot;,
+      &quot;名前&quot;: &quot;TERM-2（明細）&quot;,
+      &quot;識別子&quot;: &quot;明細番号（集約の内側で一意）&quot;,
+      &quot;状態&quot;: [
+        {
+          &quot;id&quot;: &quot;ST-1&quot;,
+          &quot;名前&quot;: &quot;商品番号&quot;,
+          &quot;型&quot;: &quot;VO-3&quot;,
+          &quot;多重度&quot;: &quot;1&quot;
+        },
+        {
+          &quot;id&quot;: &quot;ST-2&quot;,
+          &quot;名前&quot;: &quot;数量&quot;,
+          &quot;型&quot;: &quot;VO-1&quot;,
+          &quot;多重度&quot;: &quot;1&quot;
+        }
+      ]
+    }
+  ],
+  &quot;不変条件&quot;: [
+    {
+      &quot;id&quot;: &quot;INV-1&quot;,
+      &quot;前提&quot;: {
+        &quot;主語&quot;: {
+          &quot;参照&quot;: &quot;ST-4&quot;,
+          &quot;集計&quot;: &quot;なし&quot;
+        },
+        &quot;述語&quot;: &quot;等しい&quot;,
+        &quot;対象&quot;: {
+          &quot;値&quot;: &quot;確定済&quot;
+        }
+      },
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;ST-5&quot;,
+        &quot;集計&quot;: &quot;なし&quot;
+      },
+      &quot;量化&quot;: &quot;なし&quot;,
+      &quot;述語&quot;: &quot;空でない&quot;,
+      &quot;破れたとき&quot;: &quot;TERM-14&quot;,
+      &quot;文&quot;: &quot;注文状態が確定済なら、受け取り予定時刻は空でない&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: [
+              {
+                &quot;商品番号&quot;: &quot;P-1&quot;,
+                &quot;数量&quot;: 1
+              }
+            ],
+            &quot;ST-5&quot;: null
+          },
+          &quot;操作&quot;: &quot;CMD-1&quot;,
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: null,
+            &quot;ARG-2&quot;: &quot;10:00&quot;
+          },
+          &quot;期待&quot;: &quot;拒否&quot;,
+          &quot;拒否&quot;: &quot;TERM-14&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;INV-2&quot;,
+      &quot;前提&quot;: {
+        &quot;主語&quot;: {
+          &quot;参照&quot;: &quot;ST-4&quot;,
+          &quot;集計&quot;: &quot;なし&quot;
+        },
+        &quot;述語&quot;: &quot;等しい&quot;,
+        &quot;対象&quot;: {
+          &quot;値&quot;: &quot;確定済&quot;
+        }
+      },
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;ST-3&quot;,
+        &quot;集計&quot;: &quot;件数&quot;
+      },
+      &quot;量化&quot;: &quot;なし&quot;,
+      &quot;述語&quot;: &quot;以上&quot;,
+      &quot;対象&quot;: {
+        &quot;値&quot;: 1
+      },
+      &quot;破れたとき&quot;: &quot;TERM-13&quot;,
+      &quot;文&quot;: &quot;注文状態が確定済なら、明細の件数は1以上&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: []
+          },
+          &quot;操作&quot;: &quot;CMD-1&quot;,
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: &quot;10:30&quot;,
+            &quot;ARG-2&quot;: &quot;10:00&quot;
+          },
+          &quot;期待&quot;: &quot;拒否&quot;,
+          &quot;拒否&quot;: &quot;TERM-13&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;INV-3&quot;,
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;ST-3&quot;,
+        &quot;集計&quot;: &quot;件数&quot;
+      },
+      &quot;量化&quot;: &quot;なし&quot;,
+      &quot;述語&quot;: &quot;以下&quot;,
+      &quot;対象&quot;: {
+        &quot;値&quot;: 20
+      },
+      &quot;破れたとき&quot;: &quot;TERM-12&quot;,
+      &quot;文&quot;: &quot;明細の件数は20以下&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: &quot;商品の異なる明細20件&quot;
+          },
+          &quot;操作&quot;: &quot;CMD-2&quot;,
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: &quot;P-21&quot;,
+            &quot;ARG-2&quot;: 1
+          },
+          &quot;期待&quot;: &quot;拒否&quot;,
+          &quot;拒否&quot;: &quot;TERM-12&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;INV-4&quot;,
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;ST-3.ST-1&quot;,
+        &quot;集計&quot;: &quot;なし&quot;
+      },
+      &quot;量化&quot;: &quot;すべての&quot;,
+      &quot;述語&quot;: &quot;重複しない&quot;,
+      &quot;破れたとき&quot;: &quot;TERM-16&quot;,
+      &quot;文&quot;: &quot;すべての明細の商品番号は重複しない&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: [
+              {
+                &quot;商品番号&quot;: &quot;P-1&quot;,
+                &quot;数量&quot;: 1
+              }
+            ]
+          },
+          &quot;操作&quot;: &quot;CMD-2&quot;,
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: &quot;P-1&quot;,
+            &quot;ARG-2&quot;: 2
+          },
+          &quot;期待&quot;: &quot;拒否&quot;,
+          &quot;拒否&quot;: &quot;TERM-16&quot;
+        }
+      ]
+    }
+  ],
+  &quot;操作&quot;: [
+    {
+      &quot;id&quot;: &quot;CMD-1&quot;,
+      &quot;名前&quot;: &quot;TERM-6（確定する）&quot;,
+      &quot;引数&quot;: [
+        {
+          &quot;id&quot;: &quot;ARG-1&quot;,
+          &quot;名前&quot;: &quot;受け取り予定時刻&quot;,
+          &quot;型&quot;: &quot;VO-5&quot;
+        },
+        {
+          &quot;id&quot;: &quot;ARG-2&quot;,
+          &quot;名前&quot;: &quot;確定時刻&quot;,
+          &quot;型&quot;: &quot;VO-6&quot;
+        }
+      ],
+      &quot;事前条件&quot;: [
+        {
+          &quot;id&quot;: &quot;PRE-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ST-4&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: &quot;下書き&quot;
+          },
+          &quot;破れたとき&quot;: &quot;TERM-11&quot;,
+          &quot;文&quot;: &quot;注文状態が下書きと等しい&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;前の状態&quot;: {
+                &quot;ST-4&quot;: &quot;確定済&quot;
+              },
+              &quot;引数&quot;: {
+                &quot;ARG-1&quot;: &quot;10:30&quot;,
+                &quot;ARG-2&quot;: &quot;10:00&quot;
+              },
+              &quot;期待&quot;: &quot;拒否&quot;,
+              &quot;拒否&quot;: &quot;TERM-11&quot;
+            }
+          ]
+        },
+        {
+          &quot;id&quot;: &quot;PRE-2&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ARG-1&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;より大きい&quot;,
+          &quot;対象&quot;: {
+            &quot;参照&quot;: &quot;ARG-2&quot;
+          },
+          &quot;破れたとき&quot;: &quot;TERM-15&quot;,
+          &quot;文&quot;: &quot;引数の受け取り予定時刻が、引数の確定時刻より後&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;前の状態&quot;: {
+                &quot;ST-4&quot;: &quot;下書き&quot;,
+                &quot;ST-3&quot;: [
+                  {
+                    &quot;商品番号&quot;: &quot;P-1&quot;,
+                    &quot;数量&quot;: 1
+                  }
+                ]
+              },
+              &quot;引数&quot;: {
+                &quot;ARG-1&quot;: &quot;09:50&quot;,
+                &quot;ARG-2&quot;: &quot;10:00&quot;
+              },
+              &quot;期待&quot;: &quot;拒否&quot;,
+              &quot;拒否&quot;: &quot;TERM-15&quot;
+            }
+          ]
+        }
+      ],
+      &quot;事後条件&quot;: [
+        {
+          &quot;id&quot;: &quot;POST-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ST-4&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: &quot;確定済&quot;
+          },
+          &quot;文&quot;: &quot;注文状態が確定済と等しい&quot;
+        },
+        {
+          &quot;id&quot;: &quot;POST-2&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ST-5&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;参照&quot;: &quot;ARG-1&quot;
+          },
+          &quot;文&quot;: &quot;受け取り予定時刻が、引数の受け取り予定時刻と等しい&quot;
+        }
+      ],
+      &quot;出す業務イベント&quot;: [
+        &quot;EVT-1&quot;
+      ],
+      &quot;受理する例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: [
+              {
+                &quot;商品番号&quot;: &quot;P-1&quot;,
+                &quot;数量&quot;: 2
+              }
+            ],
+            &quot;ST-5&quot;: null
+          },
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: &quot;10:30&quot;,
+            &quot;ARG-2&quot;: &quot;10:00&quot;
+          },
+          &quot;期待&quot;: &quot;受理&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;CMD-2&quot;,
+      &quot;名前&quot;: &quot;TERM-7（明細を追加する）&quot;,
+      &quot;引数&quot;: [
+        {
+          &quot;id&quot;: &quot;ARG-1&quot;,
+          &quot;名前&quot;: &quot;商品番号&quot;,
+          &quot;型&quot;: &quot;VO-3&quot;
+        },
+        {
+          &quot;id&quot;: &quot;ARG-2&quot;,
+          &quot;名前&quot;: &quot;数量&quot;,
+          &quot;型&quot;: &quot;VO-1&quot;
+        }
+      ],
+      &quot;事前条件&quot;: [
+        {
+          &quot;id&quot;: &quot;PRE-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ST-4&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: &quot;下書き&quot;
+          },
+          &quot;破れたとき&quot;: &quot;TERM-20&quot;,
+          &quot;文&quot;: &quot;注文状態が下書きと等しい&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;前の状態&quot;: {
+                &quot;ST-4&quot;: &quot;確定済&quot;
+              },
+              &quot;引数&quot;: {
+                &quot;ARG-1&quot;: &quot;P-2&quot;,
+                &quot;ARG-2&quot;: 1
+              },
+              &quot;期待&quot;: &quot;拒否&quot;,
+              &quot;拒否&quot;: &quot;TERM-20&quot;
+            }
+          ]
+        }
+      ],
+      &quot;事後条件&quot;: [
+        {
+          &quot;id&quot;: &quot;POST-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;ST-3&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;含む&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: {
+              &quot;ST-1&quot;: &quot;ARG-1&quot;,
+              &quot;ST-2&quot;: &quot;ARG-2&quot;
+            }
+          },
+          &quot;文&quot;: &quot;明細が、引数の商品番号と数量の組を含む&quot;
+        }
+      ],
+      &quot;出す業務イベント&quot;: [],
+      &quot;受理する例&quot;: [
+        {
+          &quot;前の状態&quot;: {
+            &quot;ST-4&quot;: &quot;下書き&quot;,
+            &quot;ST-3&quot;: []
+          },
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: &quot;P-1&quot;,
+            &quot;ARG-2&quot;: 2
+          },
+          &quot;期待&quot;: &quot;受理&quot;
+        }
+      ]
+    }
+  ],
+  &quot;業務イベント&quot;: [
+    {
+      &quot;id&quot;: &quot;EVT-1&quot;,
+      &quot;名前&quot;: &quot;TERM-8（注文確定済）&quot;,
+      &quot;項目&quot;: [
+        {
+          &quot;名前&quot;: &quot;注文番号&quot;,
+          &quot;元&quot;: &quot;ST-1&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;顧客&quot;,
+          &quot;元&quot;: &quot;ST-2&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;明細&quot;,
+          &quot;元&quot;: &quot;ST-3&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;受け取り予定時刻&quot;,
+          &quot;元&quot;: &quot;ST-5&quot;
+        },
+        {
+          &quot;名前&quot;: &quot;確定時刻&quot;,
+          &quot;元&quot;: &quot;CMD-1.ARG-2&quot;
+        }
+      ]
+    }
+  ],
+  &quot;整合性の境界&quot;: {
+    &quot;内側に置く理由&quot;: [
+      {
+        &quot;状態&quot;: &quot;ST-3&quot;,
+        &quot;必要とする条件&quot;: [
+          &quot;INV-2&quot;,
+          &quot;INV-3&quot;,
+          &quot;INV-4&quot;
+        ]
+      },
+      {
+        &quot;状態&quot;: &quot;ST-4&quot;,
+        &quot;必要とする条件&quot;: [
+          &quot;INV-1&quot;,
+          &quot;INV-2&quot;,
+          &quot;CMD-1.PRE-1&quot;,
+          &quot;CMD-2.PRE-1&quot;
+        ]
+      },
+      {
+        &quot;状態&quot;: &quot;ST-5&quot;,
+        &quot;必要とする条件&quot;: [
+          &quot;INV-1&quot;
+        ]
+      }
+    ],
+    &quot;外側に置くもの&quot;: [
+      {
+        &quot;名前&quot;: &quot;顧客&quot;,
+        &quot;参照&quot;: &quot;識別子だけ（ST-2）&quot;,
+        &quot;理由&quot;: &quot;結果的に整合していればよい&quot;
+      },
+      {
+        &quot;名前&quot;: &quot;商品&quot;,
+        &quot;参照&quot;: &quot;商品番号だけ（ENT-1.ST-1）&quot;,
+        &quot;理由&quot;: &quot;結果的に整合していればよい&quot;
+      },
+      {
+        &quot;名前&quot;: &quot;調理枠&quot;,
+        &quot;参照&quot;: &quot;持たない（DS-1 が値として受け取る）&quot;,
+        &quot;理由&quot;: &quot;別の集約 AGG-2。受注の確定と同じトランザクションで変更しない&quot;
+      }
+    ]
+  }
+}</pre><p>値オブジェクト BC-1.VO-1</p><pre class="code">{
+  &quot;id&quot;: &quot;VO-1&quot;,
+  &quot;名前&quot;: &quot;TERM-3（数量）&quot;,
+  &quot;表す概念&quot;: &quot;1つの明細で注文する商品の個数&quot;,
+  &quot;構成する値&quot;: [
+    {
+      &quot;id&quot;: &quot;CMP-1&quot;,
+      &quot;名前&quot;: &quot;個数&quot;,
+      &quot;型&quot;: &quot;整数&quot;,
+      &quot;単位&quot;: &quot;個&quot;
+    }
+  ],
+  &quot;不変条件&quot;: [
+    {
+      &quot;id&quot;: &quot;INV-1&quot;,
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;CMP-1&quot;,
+        &quot;集計&quot;: &quot;なし&quot;
+      },
+      &quot;量化&quot;: &quot;なし&quot;,
+      &quot;述語&quot;: &quot;以上&quot;,
+      &quot;対象&quot;: {
+        &quot;値&quot;: 1
+      },
+      &quot;破れたとき&quot;: &quot;TERM-17&quot;,
+      &quot;文&quot;: &quot;個数は1以上&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;作る値&quot;: {
+            &quot;CMP-1&quot;: 0
+          },
+          &quot;期待&quot;: &quot;拒否&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;: &quot;INV-2&quot;,
+      &quot;主語&quot;: {
+        &quot;参照&quot;: &quot;CMP-1&quot;,
+        &quot;集計&quot;: &quot;なし&quot;
+      },
+      &quot;量化&quot;: &quot;なし&quot;,
+      &quot;述語&quot;: &quot;以下&quot;,
+      &quot;対象&quot;: {
+        &quot;値&quot;: 99
+      },
+      &quot;破れたとき&quot;: &quot;TERM-17&quot;,
+      &quot;文&quot;: &quot;個数は99以下&quot;,
+      &quot;例&quot;: [
+        {
+          &quot;作る値&quot;: {
+            &quot;CMP-1&quot;: 100
+          },
+          &quot;期待&quot;: &quot;拒否&quot;
+        }
+      ]
+    }
+  ],
+  &quot;等価の定義&quot;: {
+    &quot;方式&quot;: &quot;全構成値&quot;,
+    &quot;構成値&quot;: [
+      &quot;CMP-1&quot;
+    ],
+    &quot;例&quot;: [
+      {
+        &quot;左&quot;: {
+          &quot;CMP-1&quot;: 3
+        },
+        &quot;右&quot;: {
+          &quot;CMP-1&quot;: 3
+        },
+        &quot;期待&quot;: &quot;等しい&quot;
+      },
+      {
+        &quot;左&quot;: {
+          &quot;CMP-1&quot;: 3
+        },
+        &quot;右&quot;: {
+          &quot;CMP-1&quot;: 4
+        },
+        &quot;期待&quot;: &quot;等しくない&quot;
+      }
+    ]
+  },
+  &quot;操作&quot;: [
+    {
+      &quot;id&quot;: &quot;OP-1&quot;,
+      &quot;名前&quot;: &quot;加える&quot;,
+      &quot;引数&quot;: [
+        {
+          &quot;id&quot;: &quot;ARG-1&quot;,
+          &quot;名前&quot;: &quot;加える数量&quot;,
+          &quot;型&quot;: &quot;VO-1&quot;
+        }
+      ],
+      &quot;結果&quot;: &quot;VO-1&quot;,
+      &quot;事前条件&quot;: [
+        {
+          &quot;id&quot;: &quot;PRE-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: {
+              &quot;式&quot;: {
+                &quot;演算&quot;: &quot;和&quot;,
+                &quot;項&quot;: [
+                  &quot;CMP-1&quot;,
+                  &quot;ARG-1.CMP-1&quot;
+                ]
+              }
+            },
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;以下&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: 99
+          },
+          &quot;破れたとき&quot;: &quot;TERM-17&quot;,
+          &quot;文&quot;: &quot;個数と、加える数量の個数の和は99以下&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;自身&quot;: {
+                &quot;CMP-1&quot;: 90
+              },
+              &quot;引数&quot;: {
+                &quot;ARG-1&quot;: {
+                  &quot;CMP-1&quot;: 10
+                }
+              },
+              &quot;期待&quot;: &quot;拒否&quot;
+            }
+          ]
+        }
+      ],
+      &quot;事後条件&quot;: [
+        {
+          &quot;id&quot;: &quot;POST-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;結果.CMP-1&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;式&quot;: {
+              &quot;演算&quot;: &quot;和&quot;,
+              &quot;項&quot;: [
+                &quot;CMP-1&quot;,
+                &quot;ARG-1.CMP-1&quot;
+              ]
+            }
+          },
+          &quot;文&quot;: &quot;結果の個数は、個数と加える数量の個数の和と等しい&quot;
+        },
+        {
+          &quot;id&quot;: &quot;POST-2&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;CMP-1&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;等しい&quot;,
+          &quot;対象&quot;: {
+            &quot;変更前&quot;: &quot;CMP-1&quot;
+          },
+          &quot;文&quot;: &quot;自身の個数は変わらない（新しい値を返す）&quot;
+        }
+      ],
+      &quot;例&quot;: [
+        {
+          &quot;自身&quot;: {
+            &quot;CMP-1&quot;: 2
+          },
+          &quot;引数&quot;: {
+            &quot;ARG-1&quot;: {
+              &quot;CMP-1&quot;: 3
+            }
+          },
+          &quot;期待&quot;: {
+            &quot;CMP-1&quot;: 5
+          }
+        }
+      ]
+    }
+  ]
+}</pre><p>ドメインサービス BC-1.DS-1</p><pre class="code">{
+  &quot;id&quot;: &quot;DS-1&quot;,
+  &quot;名前&quot;: &quot;TERM-10（受け取り時刻を見積もる）&quot;,
+  &quot;置く理由&quot;: &quot;複数の集約を参照する計算&quot;,
+  &quot;理由の説明&quot;: &quot;注文（AGG-1）の明細と、調理枠（AGG-2）の空きの両方を必要とし、どちらの集約に置いても他方の状態を持ち込むことになる&quot;,
+  &quot;参照する集約&quot;: [
+    &quot;AGG-1&quot;,
+    &quot;AGG-2&quot;
+  ],
+  &quot;操作&quot;: [
+    {
+      &quot;id&quot;: &quot;OP-1&quot;,
+      &quot;名前&quot;: &quot;見積もる&quot;,
+      &quot;入力&quot;: [
+        {
+          &quot;id&quot;: &quot;IN-1&quot;,
+          &quot;名前&quot;: &quot;明細&quot;,
+          &quot;型&quot;: &quot;ENT-1 の値の一覧&quot;,
+          &quot;出所&quot;: &quot;AGG-1.ST-3&quot;
+        },
+        {
+          &quot;id&quot;: &quot;IN-2&quot;,
+          &quot;名前&quot;: &quot;調理枠の空き&quot;,
+          &quot;型&quot;: &quot;VO-7 の一覧&quot;,
+          &quot;出所&quot;: &quot;AGG-2.ST-2&quot;
+        },
+        {
+          &quot;id&quot;: &quot;IN-3&quot;,
+          &quot;名前&quot;: &quot;確定時刻&quot;,
+          &quot;型&quot;: &quot;VO-6&quot;
+        }
+      ],
+      &quot;出力&quot;: {
+        &quot;名前&quot;: &quot;受け取り予定時刻&quot;,
+        &quot;型&quot;: &quot;VO-5&quot;
+      },
+      &quot;事前条件&quot;: [
+        {
+          &quot;id&quot;: &quot;PRE-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;IN-1&quot;,
+            &quot;集計&quot;: &quot;件数&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;以上&quot;,
+          &quot;対象&quot;: {
+            &quot;値&quot;: 1
+          },
+          &quot;破れたとき&quot;: &quot;TERM-18&quot;,
+          &quot;文&quot;: &quot;明細の件数は1以上&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;入力&quot;: {
+                &quot;IN-1&quot;: [],
+                &quot;IN-2&quot;: [
+                  &quot;10:30&quot;
+                ],
+                &quot;IN-3&quot;: &quot;10:00&quot;
+              },
+              &quot;期待&quot;: &quot;拒否&quot;
+            }
+          ]
+        },
+        {
+          &quot;id&quot;: &quot;PRE-2&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;IN-2&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;空でない&quot;,
+          &quot;破れたとき&quot;: &quot;TERM-19&quot;,
+          &quot;文&quot;: &quot;調理枠の空きは空でない&quot;,
+          &quot;例&quot;: [
+            {
+              &quot;入力&quot;: {
+                &quot;IN-1&quot;: [
+                  {
+                    &quot;商品番号&quot;: &quot;P-1&quot;,
+                    &quot;数量&quot;: 1
+                  }
+                ],
+                &quot;IN-2&quot;: [],
+                &quot;IN-3&quot;: &quot;10:00&quot;
+              },
+              &quot;期待&quot;: &quot;拒否&quot;
+            }
+          ]
+        }
+      ],
+      &quot;事後条件&quot;: [
+        {
+          &quot;id&quot;: &quot;POST-1&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;結果&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;より大きい&quot;,
+          &quot;対象&quot;: {
+            &quot;参照&quot;: &quot;IN-3&quot;
+          },
+          &quot;文&quot;: &quot;結果は確定時刻より後&quot;
+        },
+        {
+          &quot;id&quot;: &quot;POST-2&quot;,
+          &quot;主語&quot;: {
+            &quot;参照&quot;: &quot;結果&quot;,
+            &quot;集計&quot;: &quot;なし&quot;
+          },
+          &quot;量化&quot;: &quot;なし&quot;,
+          &quot;述語&quot;: &quot;のどれか&quot;,
+          &quot;対象&quot;: {
+            &quot;参照&quot;: &quot;IN-2.開始時刻&quot;
+          },
+          &quot;文&quot;: &quot;結果は、調理枠の空きの開始時刻のどれか&quot;
+        }
+      ],
+      &quot;例&quot;: [
+        {
+          &quot;入力&quot;: {
+            &quot;IN-1&quot;: [
+              {
+                &quot;商品番号&quot;: &quot;P-1&quot;,
+                &quot;数量&quot;: 2
+              }
+            ],
+            &quot;IN-2&quot;: [
+              &quot;09:45&quot;,
+              &quot;10:30&quot;,
+              &quot;10:45&quot;
+            ],
+            &quot;IN-3&quot;: &quot;10:00&quot;
+          },
+          &quot;期待&quot;: &quot;10:30&quot;
+        }
+      ]
+    }
+  ]
+}</pre><p>（推測）この例から導くテストの一覧</p><div class="scroll"><table><thead><tr><th>条件の ID</th><th>テストの種類</th><th>導くテスト</th></tr></thead><tbody><tr><td>BC-1.AGG-1.INV-1.例1</td><td>集約の条件の試験</td><td>受け取り予定時刻の無いまま確定すると、受け取り予定時刻の無い注文は確定できない、で拒まれ状態が変わらない</td></tr><tr><td>BC-1.AGG-1.INV-2.例1</td><td>集約の条件の試験</td><td>明細の無い下書きの注文を確定すると拒まれる</td></tr><tr><td>BC-1.AGG-1.INV-3.例1</td><td>集約の条件の試験</td><td>明細20件の注文に明細を追加すると、明細の上限を超える、で拒まれる</td></tr><tr><td>BC-1.AGG-1.INV-4.例1</td><td>集約の条件の試験</td><td>同じ商品番号の明細を追加すると拒まれる</td></tr><tr><td>BC-1.AGG-1.CMD-1.PRE-1.例1 ／ PRE-2.例1</td><td>集約の条件の試験</td><td>確定済の注文の確定 ／ 確定時刻より前の受け取り予定時刻が拒まれる</td></tr><tr><td>BC-1.AGG-1.CMD-1.受理する例1</td><td>集約の条件の試験</td><td>POST-1 ・ POST-2 を表明し、出た業務イベントが EVT-1 の1件だけで、項目が状態 ・ 引数と一致し、注文番号 ・ 顧客 ・ 明細が変わらない</td></tr><tr><td>BC-1.VO-1.INV-1.例1 ／ INV-2.例1</td><td>値オブジェクトの条件の試験</td><td>個数0 ・ 個数100 の数量を作れない</td></tr><tr><td>BC-1.VO-1.等価.例1 ／ 例2</td><td>値オブジェクトの条件の試験</td><td>個数3どうしは等しく、3と4は等しくない</td></tr><tr><td>BC-1.VO-1.不変</td><td>値オブジェクトの条件の試験</td><td>加えるの後で、元の数量が等しいまま</td></tr><tr><td>BC-1.DS-1.OP-1.例1</td><td>ドメインサービスの条件の試験</td><td>明細と空き 09:45 ・ 10:30 ・ 10:45、確定時刻 10:00 を渡すと 10:30 を返し、POST-1 ・ POST-2 を満たす</td></tr><tr><td>BC-1.DS-1.OP-1.PRE-1.例1 ／ PRE-2.例1</td><td>ドメインサービスの条件の試験</td><td>明細が空 ／ 空きが空なら拒む</td></tr><tr><td>BC-1.PL-1.版1</td><td>公開された言葉の契約試験</td><td>EVT-1 から変換した注文確定済 v1 の項目と型が、宣言と一致する</td></tr></tbody></table></div></section><section class="block"><h2>根拠</h2><p class="desc">判定の拠りどころにした判断基準の記述</p><div class="scroll"><table><thead><tr><th>判断基準</th><th>引用</th></tr></thead><tbody><tr><td>business-domain</td><td>事業領域は事業活動の領域全体であり、業務領域はそれを細分化したものである。個々の業務領域は、単独で利益を生むものではない。すべての業務領域の活動が連動して、顧客へのサービス提供になる。スターバックスの成功には、コーヒーの淹れ方だけでなく、出店 ・ 採用 ・ 資金調達の活動も必要だった</td></tr><tr><td>subdomain</td><td>カテゴリー：中核 ・ 何か：競合他社との違いを生み出す業務活動 ・ 競争優位：生み出す ・ 複雑さ：複雑 ・ 変化：多い ・ 実装：社内で開発する ・ 課題の特徴：複雑で興味深い</td></tr><tr><td>subdomain</td><td>迷う組み合わせ：中核か補完か（ソフトウェアと関係する場合） ・ 問い：ソースコードの業務ロジックは、データ入力の CRUD 画面の集まりか。複雑なアルゴリズムや、業務ルールと制約条件の記述を必要とするか ・ 判定：前者ならおそらく補完。後者なら典型的な中核</td></tr><tr><td>subdomain</td><td>業務領域は事業として何をするかを説明し、それをどのように実現するかは説明しない</td></tr><tr><td>subdomain</td><td>条件：細分化をどこで止めるか迷うとき ・ 対応：同じアクター ・ 同じ外部システム ・ 密接に関係するデータを処理するユースケースの集まりで区切る ・ 理由：この定義を使うと停止する位置を判断しやすく、この定義による分割が境界として最も正確である</td></tr><tr><td>subdomain</td><td>条件：一般 ・ 対応：パッケージ製品の購入やオープンソースの利用を選択する ・ 理由：複雑だが解決策が既に存在し、自社で開発するより費用対効果が高い</td></tr><tr><td>design-heuristics</td><td>順：2 ・ 問い：業務ルールは複雑か ・ 該当するときの実装方法：ドメインモデル</td></tr><tr><td>design-heuristics</td><td>順：3 ・ 問い：データ構造は複雑か ・ 該当するときの実装方法：アクティブレコード</td></tr><tr><td>testing-strategy</td><td>対応：業務ロジックの実装方法を判定してから、それに対応するテスト方針を選択する ・ 理由：最も適するテスト方針は、業務ロジックの実装方法ごとに異なるため</td></tr><tr><td>ubiquitous-language</td><td>条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。意味を推測させない</td></tr><tr><td>ubiquitous-language</td><td>条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。言葉が違えば、ほとんどの場合、意図も違う</td></tr><tr><td>ubiquitous-language</td><td>条件：業務用語だけで構成する ・ 内容：技術用語を入れない。業務エキスパートに、シングルトンやファクトリーパターンを説明しない</td></tr><tr><td>ubiquitous-language</td><td>対応：用語集は、ユースケースや Gherkin のテストなど、振る舞いを表す手法と組み合わせる ・ 理由：用語集は名詞の整理に役立つが、業務ルール ・ 前提条件 ・ 制約という振る舞いを表現できない</td></tr><tr><td>bounded-context</td><td>対応：同じデータを操作するユースケースの集まりを、複数の文脈に分散させない ・ 理由：誤った分割では、1つの変更要求のために複数の文脈を同時に修正し、同時に配置する調整が必要になる</td></tr><tr><td>bounded-context</td><td>業務領域と区切られた文脈の対応は、一対一が最善になることもあれば、別の方針での分割が有効になることもある。</td></tr><tr><td>context-map</td><td>協力関係：利用者と供給者 ・ 連係方法：モデル変換装置 ・ 何をするか：利用する側が、提供する側のモデルを自分のモデルへ変換する</td></tr><tr><td>open-host-service</td><td>公開された言葉：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。</td></tr><tr><td>open-host-service</td><td>条件：業務領域が中核の業務領域である ・ 対応：モデル変換装置か、公開された言葉（共用サービス）を使用する ・ 理由：自身のモデルを繰り返し変更しても、連係する他の区切られた文脈に影響させないため</td></tr><tr><td>separate-ways</td><td>対応：互いに独立を選択するのは、補完的な業務領域か一般的な業務領域に限定する ・ 理由：中核の業務領域は、どちらか一方のチームが開発すべきである</td></tr><tr><td>aggregate</td><td>構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ</td></tr><tr><td>aggregate</td><td>構成するもの：業務イベント ・ 役割：集約のライフサイクルで起きた出来事を表すメッセージ。名前は必ず過去形にし、出来事に関する必要なデータをすべて持たせる。外部のコンポーネントが購読する</td></tr><tr><td>aggregate</td><td>問い：集約の業務ロジックが、その情報に強い一貫性を必要とするか ・ 「はい」なら：集約の内側に置く</td></tr><tr><td>aggregate</td><td>対応：他の集約は、オブジェクトそのものではなく ID で参照する ・ 理由：境界の外側であることを明確に表現し、集約ごとに固有のトランザクション境界を持たせる</td></tr><tr><td>aggregate</td><td>対応：集約 ・ フィールド ・ メソッド ・ 業務イベントの名前を、区切られた文脈の同じ言葉で命名する ・ 理由：ソースコードは、開発者や業務エキスパートが会話で使用する同じ言葉に基づいて記述する</td></tr><tr><td>entity</td><td>対応：エンティティを単独で実装せず、集約の実装の一部にする</td></tr><tr><td>value-object</td><td>性質：値による識別 ・ 内容：等しいかどうかを、値が同じかどうかで判定する。ID フィールドや参照ポインタでは判定しない</td></tr><tr><td>value-object</td><td>性質：不変 ・ 内容：フィールドを変更すると別の値になってしまうので、変更せず、別のインスタンスを生成する</td></tr><tr><td>value-object</td><td>対応：妥当性を検証するロジックを、値オブジェクト自身に持たせる ・ 理由：値を設定するたびに、使う側で妥当性を検証する必要がなくなる</td></tr><tr><td>domain-service</td><td>問い：その業務ロジックは、集約や値オブジェクトでは表現しにくいか ・ 「はい」なら：業務サービスに記述する</td></tr><tr><td>domain-service</td><td>問い：複数の集約を参照する計算のロジックか ・ 「はい」なら：業務サービスで記述すると、わかりやすくなる</td></tr><tr><td>event</td><td>観点：受信側の扱い ・ イベント：取り消せない。逆方向の処理は、サーガの補償アクションの起動（コマンドの発行）だけで実施する ・ コマンド：拒否される可能性がある。内容が不完全なものや、業務ルールに違反するものは受け入れられない</td></tr><tr><td>testing-strategy</td><td>方針：ピラミッド形 ・ 最も適する実装方法：ドメインモデル、イベント履歴式ドメインモデル ・ 理由：集約と値オブジェクトの単体テストが、業務ロジックのテストとして最も効果的である</td></tr><tr><td>saga</td><td>対応：集約境界の設計の不備を補うために、サーガを使用しない ・ 理由：1つの集約に所属させる業務処理は、強い一貫性を保証したデータを必要とするため</td></tr></tbody></table></div></section><section class="block"><h2>注意</h2><div class="scroll"><table><thead><tr><th>アンチパターン</th><th>リスク</th><th>代替案</th></tr></thead><tbody><tr><td>要求事項に出てくる名詞（代理店 ・ キャンペーン ・ 広告配置 ・ 媒体など）をすべて集約として宣言する</td><td>トランザクションの境界とずれ、業務ロジックもほぼ持たない、名前だけの「集約」になる</td><td>集約の宣言に不変条件1件以上と「内側に置く理由」を必須にし、条件を持たない名詞は値オブジェクトか、他の集約の識別子として宣言する</td></tr><tr><td>CRMLead と MarketingLead のように、集約名の先頭に文脈の単語を付けて、2つのモデルを1つの文脈に置く</td><td>業務エキスパートとの会話では使わない不自然な言葉になる。区切られた文脈が必要なことを示す兆候である</td><td>用語に文脈の名前を付けず、意味が分かれたら区切られた文脈を分けて、それぞれの文脈で同じ語を定義する</td></tr><tr><td>中核の業務領域を含む下流の文脈が、供給側のモデルにそのまま合わせる（関係の連係方法に従属を書く）</td><td>供給側のモデルに引きずられ、中核の課題を表現するモデルが歪む可能性がある</td><td>連係方法をモデル変換装置にする。宣言の検査で、中核を含む下流の従属を拒む</td></tr><tr><td>業務サービスを使って、複数の集約のインスタンスを1つのデータベーストランザクションで変更する（ドメインサービスの事後条件に集約の状態を書く）</td><td>集約のインスタンス1つにトランザクション1つ、という原則に反する</td><td>ドメインサービスの事後条件の主語を「結果」と入力に限り、集約の変更は集約の操作として宣言する</td></tr><tr><td>集約境界の設計が不適切なことを、サーガで補う（強い一貫性が要る条件をサーガの手順で守る）</td><td>集約の境界の外側のデータは結果的に整合するだけなので、強い一貫性を必要とする業務処理の要求を満たせない</td><td>強い一貫性が要る条件は、1つの集約の不変条件として宣言し、その状態を同じ集約の内側に置く</td></tr><tr><td>Person の電話番号や国コードを文字列型で持つように、集約の状態を基本の型で宣言する（基本データ型への執着）</td><td>妥当性を検査するロジックがあちこちに重複し、値が必ず検査済みであることを保証しにくい</td><td>集約の状態の型は VO-n だけを許し、基本の型は値オブジェクトの構成する値にだけ書く</td></tr><tr><td>（推測）条件を自由文1行で書かせる</td><td>AI が書くたびに語 ・ 粒度 ・ 結合（かつ ・ または）が揺れ、テストへの写し方が一意に決まらない。人の承認も、文の言い回しの確認に偏る</td><td>条件を6要素の構造で書かせ、文は構造から生成する。述語 ・ 集計 ・ 量化は閉じた列挙にする</td></tr></tbody></table></div></section><section class="block"><h2>記録案</h2><p class="desc">仕様書などへ記録すべき内容。該当しない相談では置かない</p><div class="scroll"><table><thead><tr><th>記録先</th><th>記録する内容</th></tr></thead><tbody><tr><td>ドメイン.提供価値[].id ・ 差別化（必須 ・ 文字列 VAL-n ／ 真偽）</td><td>（推測）サブドメインから指すための ID と、差別化かどうかの真偽を持たせる。write：差別化は「競合他社との違いを生み出すか」に答えて真偽で書く。検査：差別化が真の項目を、中核のサブドメインが1件以上指す</td></tr><tr><td>ドメイン.サブドメインの一覧（必須 ・ ID の配列 1件以上）</td><td>write：SD-n の ID だけを並べ、分類 ・ 説明はサブドメインの側に書く。事業領域を細分化したものが業務領域である（business-domain）</td></tr><tr><td>サブドメイン.名前（必須 ・ 文字列）</td><td>write：業務活動の名前を名詞句で書く。システム名 ・ 製品名 ・ 技術名を書かない</td></tr><tr><td>サブドメイン.説明（必須 ・ 文字列 1〜2文）</td><td>write：事業として何をするかを書き、どのように実現するかは書かない（subdomain の注意）</td></tr><tr><td>サブドメイン.分類（必須 ・ 列挙）</td><td>値：中核 ・ 一般 ・ 補完。write：分類の根拠を書いてから選ぶ</td></tr><tr><td>サブドメイン.分類の根拠（必須 ・ 構造）</td><td>競争優位を生むか（真偽）・ 競争優位の理由（文字列）・ 使った問い（列挙：中核か補完か ／ 補完か一般か ／ 中核か補完か（ソフトウェアと関係する場合））・ 問いの答え（文字列）。write：subdomain の「カテゴリーの判断が難しいときの問い」から1つを選び、その問いへの答えを書く</td></tr><tr><td>サブドメイン.業務ロジックの性質（必須 ・ 構造）</td><td>金銭追跡・監査記録・行動分析を必要とするか ・ 業務ルールは複雑か ・ データ構造は複雑か（いずれも真偽）・ 根拠となる条件（条件 ID の配列）。write：実装方法の名前（ドメインモデル等）も技術も書かず、design-heuristics の問い1〜3の答えだけを書く。業務ルールは複雑かを真にしたら、その業務ルールに当たる条件 ID を1件以上指す。（推測）検査：分類が中核で3つとも偽、または分類が補完で問い1か2が真なら、分類と実装方法の不一致として人の確認を求める</td></tr><tr><td>サブドメイン.担う提供価値（中核は必須 ・ ID の配列）</td><td>（推測）VAL-n を指す。中核は1件以上、一般 ・ 補完は任意</td></tr><tr><td>サブドメイン.含むユースケース（必須 ・ ID の配列 1件以上）</td><td>write：同じアクター ・ 同じ外部システム ・ 密接に関係するデータを処理するユースケースの集まりで区切る（subdomain の境界の規則）。（推測）BC.ユースケースと二重に持たないよう、所属の正本は BC の入れ子とし、ここは参照だけにする</td></tr><tr><td>サブドメイン.調達（任意 ・ 列挙）</td><td>（推測）一般のときだけ：購入 ・ オープンソース ・ 外部サービス。一般のサブドメインは集約 ・ 値オブジェクト ・ ドメインサービスを宣言せず、それを使う側の文脈の関係（モデル変換装置など）だけで扱う</td></tr><tr><td>区切られた文脈.名前 ・ 目的（必須 ・ 文字列）</td><td>write：名前は業務の言葉。目的は、この文脈のモデルが解く課題を1文で書く</td></tr><tr><td>区切られた文脈.対応するサブドメイン（必須 ・ ID の配列 1件以上）</td><td>write：一対一に限定しない（bounded-context）。（推測）検査：1つのサブドメインの「含むユースケース」が複数の文脈に分かれたら、同じデータを操作するユースケースの分散として警告する</td></tr><tr><td>区切られた文脈.用語[]（必須 ・ 構造の配列）</td><td>id（TERM-n）・ 語 ・ 定義（文字列）・ 種類（列挙：集約 ・ エンティティ ・ 値オブジェクト ・ コマンド ・ 業務イベント ・ ドメインサービス ・ 状態の値 ・ 役割 ・ 拒否の理由 ・ その他）・ 使わない語（配列）。write：1つの語に1つの意味、同義語を使わない、技術用語を入れない、文脈の名前を語に付けない。（推測）検査：宣言の中の名前 ・ 拒否の理由 ・ 状態の値は、すべて同じ文脈の TERM-n か、その語に一致する</td></tr><tr><td>区切られた文脈.関係[]（任意 ・ 構造の配列）</td><td>相手（BC-n）・ 自分の立場（列挙：上流 ・ 下流 ・ 対等）・ 連係方法（列挙：良きパートナー ・ モデルの共有 ・ 従属 ・ モデル変換装置 ・ 共用サービス ・ 互いに独立）・ 選んだ理由（文字列）・ 使う公開された言葉（PL-n）。（推測）検査：中核を含む下流の文脈が従属を選んでいない ・ 中核を含む文脈が互いに独立を選んでいない。（推測）関係は両端の片方（下流）だけに書き、上流の側は導く</td></tr><tr><td>区切られた文脈.公開された言葉[]（共用サービスの上流なら必須 ・ 構造の配列）</td><td>id（PL-n）・ 名前 ・ 版（整数）・ 種類（列挙：業務イベント ・ イベント通知 ・ イベントによる状態転送）・ 元の業務イベント（AGG-n.EVT-n）・ 項目[]（名前 ・ 基本の型 ・ 元）。write：内部の同じ言葉に一致させず、連係の用途に特化して定義する。内部の業務イベントをそのまま出さない。契約試験は PL-n.版 ごとに1件</td></tr><tr><td>区切られた文脈.集約 ・ 値オブジェクト ・ ドメインサービス ・ ユースケース（入れ子）</td><td>前提どおり文脈の中に並べる。値オブジェクトも文脈に置き、集約 ・ ドメインサービスから VO-n で指す。（推測）値オブジェクトを文脈をまたいで共有しない</td></tr><tr><td>集約.名前 ・ 説明（必須）</td><td>名前は TERM-n（種類＝集約）を指す。説明は、この集約が守る一貫性を1文で書く</td></tr><tr><td>集約.ルート（必須 ・ 構造）</td><td>名前（TERM-n）・ 識別子（VO-n）。ルートは1つ。内側のエンティティはルートを経由してだけ変更する（aggregate）</td></tr><tr><td>集約.状態[]（必須 ・ 構造の配列）</td><td>id（ST-n）・ 名前 ・ 型（VO-n ／ ENT-n ／ 他の集約の識別子）・ 多重度（列挙：1 ・ 0..1 ・ 0..n ・ 1..n）。write：基本の型（文字列 ・ 整数）を直接書かず、値オブジェクトで型付けする。他の集約はオブジェクトでなく識別子で持つ</td></tr><tr><td>集約.内側のエンティティ[]（任意 ・ 構造の配列）</td><td>id（ENT-n）・ 名前 ・ 識別子 ・ 状態[]。エンティティは集約の外に単独で宣言しない（entity）</td></tr><tr><td>集約.不変条件[]（必須 ・ 条件の配列 1件以上）</td><td>条件の文法に従う。主語は状態（ST-n）だけ。各不変条件に、破ろうとして拒まれる例（前の状態 ・ 操作 ・ 引数 ・ 拒否の理由）を1件以上付ける。（推測）不変条件と同じ内容を事前条件に重ねて書かない ── 不変条件はすべての操作で守られる</td></tr><tr><td>集約.操作[]（必須 ・ 構造の配列）</td><td>id（CMD-n）・ 名前（TERM-n、種類＝コマンド、動詞）・ 引数[]（ARG-n ・ 名前 ・ VO-n）・ 事前条件[] ・ 事後条件[] ・ 出す業務イベント（EVT-n の配列、0件可）・ 受理する例[]（1件以上）</td></tr><tr><td>集約.業務イベント[]（操作が出すなら必須 ・ 構造の配列）</td><td>id（EVT-n）・ 名前（TERM-n、過去形）・ 項目[]（名前 ・ 元＝ST-n か CMD-n.ARG-n）。write：出来事に関する必要なデータをすべて項目に持たせ、項目はすべて状態か引数を元として指す</td></tr><tr><td>集約.整合性の境界（必須 ・ 構造）</td><td>内側に置く理由[]（状態 ST-n ・ 必要とする条件 ID の配列）・ 外側に置くもの[]（名前 ・ 参照の仕方 ・ 理由）。（推測）検査：ルートの識別子以外で、どの条件にも指されない状態は、集約の外へ出す候補として報告する</td></tr><tr><td>値オブジェクト.名前 ・ 表す概念（必須）</td><td>名前は TERM-n（種類＝値オブジェクト）を指す。表す概念は用語の定義と同じ文にする</td></tr><tr><td>値オブジェクト.構成する値[]（必須 ・ 構造の配列 1件以上）</td><td>id（CMP-n）・ 名前 ・ 型（列挙：整数 ・ 小数 ・ 文字列 ・ 真偽 ・ 日付 ・ 日時 ・ 列挙、または VO-n）・ 単位（任意）・ 列挙の値（型＝列挙のとき必須）。ID の欄を持たない（value-object）</td></tr><tr><td>値オブジェクト.不変条件[]（必須 ・ 条件の配列）</td><td>主語は CMP-n だけ。各条件に、作れない値の例を1件以上付ける。列挙だけの値オブジェクトは、列挙の値が不変条件を兼ねるので0件を許す</td></tr><tr><td>値オブジェクト.等価の定義（必須 ・ 構造）</td><td>方式（列挙：全構成値 ・ 指定した構成値）・ 構成値（CMP-n の配列）・ 例。既定は全構成値。（推測）指定した構成値を選ぶときは、外した構成値と理由を書かせ、人の確認を求める</td></tr><tr><td>値オブジェクト.操作[]（任意 ・ 構造の配列）</td><td>id（OP-n）・ 名前 ・ 引数 ・ 結果（VO-n）・ 事前条件 ・ 事後条件 ・ 例。操作は新しい値を返し、自身を変えない（value-object）。不変は欄にせず、全操作に共通の試験（操作の後で自身が等しいまま）を1件導く</td></tr><tr><td>ドメインサービス.名前（必須）</td><td>TERM-n（種類＝ドメインサービス）を指す</td></tr><tr><td>ドメインサービス.置く理由（必須 ・ 列挙）＋理由の説明（必須 ・ 文字列）</td><td>値：集約や値オブジェクトでは表現しにくい ・ 複数の集約を参照する計算（domain-service の判定の問い）。説明は、どの集約に置くと何が不自然になるかを1文で書く</td></tr><tr><td>ドメインサービス.参照する集約（必須 ・ AGG-n の配列）</td><td>（推測）置く理由が「複数の集約を参照する計算」なら2件以上。参照は読むだけで、変更しない</td></tr><tr><td>ドメインサービス.操作[]（必須 ・ 構造の配列）</td><td>id（OP-n）・ 名前 ・ 入力[]（IN-n ・ 名前 ・ VO-n ・ 出所＝AGG-n.ST-n 任意）・ 出力（VO-n）・ 事前条件 ・ 事後条件 ・ 例（1件以上）。（推測）入力は値で受け取り、集約やリポジトリを受け取らない ── 模擬を使わない試験の前提を満たすため。事後条件の主語は「結果」か IN-n に限り、業務イベントを出さない</td></tr><tr><td>条件の文法.構造（すべての条件）</td><td>（推測）id ・ 前提（任意、1段だけ：主語 ・ 述語 ・ 対象）・ 主語（参照＝ST-n ／ CMP-n ／ ARG-n ／ IN-n ／ 結果、または和 ・ 差の式）・ 集計（列挙：なし ・ 件数 ・ 合計 ・ 最大 ・ 最小）・ 量化（列挙：なし ・ すべての ・ いずれかの）・ 述語（列挙）・ 対象（値 ／ 参照 ／ 変更前 ／ 式）・ 破れたとき（不変条件 ・ 事前条件で必須、拒否の理由の TERM-n）・ 文（構造から生成）・ 例</td></tr><tr><td>条件の文法.述語（閉じた列挙）</td><td>（推測）等しい ・ 等しくない ・ より大きい ・ 以上 ・ より小さい ・ 以下 ・ のどれか ・ のどれでもない ・ 空である ・ 空でない ・ 含む ・ 含まない ・ 重複しない。列挙に無い述語が必要になったら、自由文で逃がさず列挙を足す ACDR を起こす</td></tr><tr><td>条件の文法.1条件1事項</td><td>（推測）1つの条件に述語は1つ。「かつ」は条件を分ける。「または」は1つの主語に「のどれか」で書く。「〜なら」は前提に1段だけ書き、前提の中に前提を置かない</td></tr><tr><td>条件の文法.言及の仕方</td><td>（推測）主語 ・ 対象は ID で指し、語で書かない。値に業務の状態の値を書くときは、用語（種類＝状態の値）か値オブジェクトの列挙の値に一致させる。数値は値オブジェクトの単位で書く。「適切に」「十分に」など判定できない語を値にしない</td></tr><tr><td>条件の文法.事後条件と業務イベントの書き分け</td><td>（推測）事後条件は操作の後の状態だけを書き、「イベントを出す」を事後条件に書かない。業務イベントは「出す業務イベント」に ID で書く。事後条件に挙げない状態は変わらない（フレームの規則）とし、試験で表明する</td></tr><tr><td>条件からテストへの変換（集約）</td><td>（推測）不変条件の例1件 → 単体テスト1件：前の状態で集約を作り、操作を実行し、拒否の理由が一致 ・ 状態が変わらない ・ 業務イベントが出ないことを表明する。事前条件の例1件 → 同じ形の単体テスト1件。受理する例1件 → 単体テスト1件：事後条件ごとに表明1件、出す業務イベントの一覧と完全一致、項目ごとに元との一致、事後条件に無い状態が変わらないことを表明する。テスト ID は 条件の完全 ID ＋ 例の番号</td></tr><tr><td>条件からテストへの変換（値オブジェクト ・ ドメインサービス ・ 公開された言葉）</td><td>（推測）VO の不変条件の例1件 → 作れない値を拒む試験1件。等価の例1件 → 等価の試験1件。VO 1件につき不変の試験1件。DS の例1件 → 値を渡して値を受け取る試験1件（事後条件をすべて表明）、事前条件の例1件 → 拒否の試験1件。PL-n.版 1件 → 契約試験1件</td></tr></tbody></table></div></section><section class="block"><h2>差し戻し</h2><p class="desc">原因が上流の判断に在る疑い。断定せず、疑いとして示す</p><div class="scroll"><table><thead><tr><th>疑われる上流（advisor ・ 判断）</th><th>疑う理由</th></tr></thead><tbody><tr><td>ボード usecase-modeling-coding の決定「コーディングは分類から業務ロジックの実装方法を決める」</td><td>判断基準（design-heuristics ・ domain-model）は、実装方法を分類ではなく「金銭追跡 ・ 監査記録 ・ 行動分析の要否」「業務ルールは複雑か」「データ構造は複雑か」の問いで選ぶ。補完はトランザクションスクリプトにもアクティブレコードにもなり、分類だけでは1つに決まらない疑いがある。本回答はサブドメインに問いの答え（業務ロジックの性質）を持たせて補った。境目を「分類」から「分類と業務ロジックの性質」へ改めるかを、ボードで確認してほしい</td></tr><tr><td>ボード usecase-modeling-coding の決定「集約の条件の試験＝集約を直接作って操作する単体テスト」</td><td>判断基準（testing-strategy）は、単体テストを重視するのはドメインモデルとイベント履歴式ドメインモデルで、アクティブレコードはダイヤモンド形、トランザクションスクリプトは逆ピラミッド形とする。補完のサブドメインで集約の宣言を書いた場合、同じ条件 ID を統合テストやエンドツーエンドのテストへ写す規則が無い疑いがある。条件の ID は実装方法に依存させず、写す先のテストの階層だけを実装方法で変える、という規則を足すかを確認してほしい</td></tr><tr><td>ボード usecase-modeling-coding の決定「ドメインサービスの条件の試験は模擬を使わない」</td><td>判断基準（domain-service）の例は、業務サービスの内部で部門のリポジトリから方針と勤務予定を読み込む。模擬を使わない試験を前提にすると、入力を値で渡し、読み込みはアプリケーション層（ユースケース）が担う形に限られる。本回答はこの制約を宣言の規則（入力は値だけ）にしたが、判断基準の例とは形が異なるので、ボードの決定として明記するかを確認してほしい</td></tr></tbody></table></div></section><section class="block"><h2>次にすること</h2><ul><li>記録案の欄の一覧を、宣言の器（JSON Schema）の title ・ description ・ x-prompt.write へ写す</li><li>条件の文法（述語 ・ 集計 ・ 量化の列挙と6要素の構造）を、器の $defs に1つの定義として置く</li><li>（推測）とした規則の採否を、ボードの論点として人に承認させる</li><li>差し戻しの3件を、ボード usecase-modeling-coding の論点として開く</li><li>具体例の宣言から、記録案の変換規則でテストの一覧を道具で生成し、表の12件と一致するかを確かめる</li></ul></section><section class="block"><h2>関連する基準</h2><div class="scroll"><table><thead><tr><th>判断基準</th><th>関係</th></tr></thead><tbody><tr><td>domain-model</td><td>集約 ・ 値オブジェクト ・ 業務イベント ・ 業務サービスを部品とする実装方法。宣言の4種類はこの部品に対応する</td></tr><tr><td>context-map</td><td>区切られた文脈の関係の欄を全文脈で集めると、文脈の地図になる</td></tr><tr><td>conformist</td><td>中核を含む下流の文脈が従属を選ばない、という関係の検査の根拠</td></tr><tr><td>anticorruption-layer</td><td>一般のサブドメイン（外部サービス）との関係の既定の連係方法</td></tr><tr><td>partnership</td><td>関係の連係方法の列挙のうち、緊密な協力に属するもの</td></tr><tr><td>shared-kernel</td><td>関係の連係方法の列挙のうち、例外的に使うもの</td></tr></tbody></table></div></section><section class="block"><h2>AI が作業するときの注意</h2><p class="desc">この回答の結論に、AI の作業が違反しやすい点と、それを検査する方法。工程を問わない</p><div class="scroll"><table><thead><tr><th>違反しやすい点</th><th>検査する方法</th></tr></thead><tbody><tr><td>サブドメインの説明や業務ロジックの性質に、実装方法の名前（ドメインモデル ・ トランザクションスクリプト）や技術名（データベース製品 ・ フレームワーク）を書く</td><td>器の検査で、サブドメインの文字列の欄に実装方法の名前と技術名の禁止語の一覧が無いことを照合する</td></tr><tr><td>用語集に無い語や同義語（オーダー ・ ステータス）で集約 ・ 状態 ・ 拒否の理由を名付ける</td><td>宣言の中の名前 ・ 拒否の理由 ・ 状態の値を、同じ文脈の用語 TERM-n の語と照合し、「使わない語」に一致したら拒む</td></tr><tr><td>述語を列挙の外の語（「妥当である」「適切に設定されている」）で書く、または1条件に「かつ」を入れる</td><td>JSON Schema の enum で述語 ・ 集計 ・ 量化を閉じ、文の欄を AI に書かせず生成する。生成した文と AI が書いた文の差を検出する</td></tr><tr><td>事後条件に「注文確定済を出す」と書き、出す業務イベントの欄と二重に持つ</td><td>事後条件の主語が ST-n ／ 結果 ／ CMP-n だけであること、業務イベントの名前が事後条件の値に現れないことを検査する</td></tr><tr><td>不変条件 ・ 事前条件に、破る例を付けない。または受理する例が事前条件を満たしていない</td><td>条件ごとに例が1件以上あることを Schema の minItems で検査し、受理する例の前の状態と引数を事前条件 ・ 不変条件へ代入して真になることを道具で評価する</td></tr><tr><td>集約の状態に、どの条件にも使われない項目（顧客の住所など）を足す</td><td>整合性の境界の「内側に置く理由」がすべての ST-n（ルートの識別子を除く）を指しているかを検査し、指されない状態を報告する</td></tr><tr><td>ドメインサービスの入力にリポジトリや集約そのものを書き、模擬を使わない試験ができなくなる</td><td>入力 ・ 出力の型が VO-n か ENT-n の値の一覧だけであることを検査する</td></tr></tbody></table></div></section></main></body>
+</html>

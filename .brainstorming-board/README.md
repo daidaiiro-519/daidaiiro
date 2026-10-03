@@ -31,3 +31,4 @@
 | `workshop-open-items/` | 企画書とオリエンテーションの残りの決定 | 削除済み（`.artifact-backup/2026-09-30-企画書とオリエンテーションの残りの決定/`） | （未複製） |
 | `usecase-modeling-coding/` | ユースケース抽象設計モデリングとユースケース抽象コーディング | `https://claude.ai/artifact/SfY1RnNxrmAoPS2N3CDDGm` | （未複製） |
 | `schema-driven-base/` | スキーマ駆動の道具（抽象の基盤） | `https://claude.ai/artifact/2SFURsbhMHgDHg9Vj5oLgG` | （未複製） |
+| `usecase-driven-concrete/` | ユースケース駆動の concrete の宣言 | `https://claude.ai/artifact/RCzv1XstzQ3Y5PHtFsT5Gr` | （未複製） |

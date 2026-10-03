@@ -1,0 +1,538 @@
+<title>ユースケース駆動の concrete の宣言</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="usecase-driven-concrete" data-round="1" data-theme-name="ユースケース駆動の concrete の宣言"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　ユースケース駆動の concrete の宣言　/　Round 1</p><h1>ユースケース駆動の concrete の宣言</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>宣言の構成<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>書き方の文法<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="wait"><span class="tn">Q3</span>種類ごとの欄<span class="st wait">待ち</span></button><button data-t="p4" aria-selected="false" class="wait"><span class="tn">Q4</span>テストへの結び方<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>ユースケース駆動の concrete で、宣言の種類ごとに何をどの細かさで書くかと、AI が書いても出力が安定する書き方を決める。根拠は ddd-advisor と usecase-advisor の回答と、それぞれの判断基準である。</p></div><div class="front"><h3>いま見るのは 2 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　宣言の構成</button><br><span class="why">アドバイザーが差し戻した前提のうち、宣言の境目に関わる3件である。論点3の前提になる</span></li><li><button class="jump" data-go="p2">Q2　書き方の文法</button><br><span class="why">2つの回答で、出力の安定のさせ方が異なった。論点1に依存しない</span></li></ol><p class="waiting">残り 2 件は、上流が決まるまで動く。回答欄は持たない。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>アドバイザーが差し戻した3件（実装方法の決め方 ・ 文脈をまたぐ要約 ・ 技術のバリエーション）を、宣言の構成のどこで受けるか</td><td><span class="st now">いま見る</span></td><td><b class="lead-s">B</b><div class="sub-s"><b>サブドメインに「業務ロジックの性質」を持たせ、コーディングはそこから実装方法を導く。</b>ユースケースのスコープは区切られた文脈かドメインで、ドメインは要約レベルだけが使う。<b>技術のバリエーションは実装の定義が持ち、ユースケースの手順を ID で指す</b></div></td></tr><tr><td><span class="n">2</span></td><td>条件とシナリオを、AI が書いても出力が安定し、テストへ一意に変換できる形にするには、どの文法で書くか</td><td><span class="st now">いま見る</span></td><td><b class="lead-s">B</b><div class="sub-s"><b>条件は6要素の構造で書き、文は道具が生成する。</b>シナリオの手順と拡張は、枠を列挙と ID にし、文は自由文に文型と禁止語を課す。<b>どちらも、語は区切られた文脈の用語集の語に限る</b></div></td></tr><tr><td><span class="n">3</span></td><td>7種類の宣言は、それぞれどの欄を、どの細かさで持つか</td><td><span class="st wait">待ち</span></td><td>論点1と論点2の決着後に出す。宣言の境目と書き方の文法が決まっている必要がある</td></tr><tr><td><span class="n">4</span></td><td>テストの ID と試験の階層を、宣言からどう導くか。差し戻しの3件（集約の試験の階層 ・ ドメインサービスの入力 ・ サーガと拡張）をどう受けるか</td><td><span class="st wait">待ち</span></td><td>論点3の決着後に出す。qa-advisor の判断が必要である（配線表で required）</td></tr></table></div><details><summary>いま見る論点</summary><div><b>論点1と論点2を開いた。</b>2つは互いに依存しない。論点1は宣言の境目を、論点2は書き方の文法を決める。論点3と論点4は、この2つの決着を待つ。</div></details><details><summary>このボードの前提</summary><div><p>ボード usecase-modeling-coding の決定（7種類の宣言 ・ ドメインの7つの欄 ・ テストの10種類 ・ ポートとアダプター）を土台にする。試作（schema-driven-base と usecase-schema-driven の trial）は、設計の根拠にしない。</p><p>アドバイザーの回答の全文は <code>advice/</code> に在る（usecase.html ・ ddd.html）。</p></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>アドバイザーが差し戻した3件（実装方法の決め方 ・ 文脈をまたぐ要約 ・ 技術のバリエーション）を、宣言の構成のどこで受けるか</h2></div><div class="note">この論点が、7種類の宣言の境目を決める。<b>論点3（種類ごとの欄）は、この境目を前提にする</b></div><div class="ans"><span class="big">B</span><p>差し戻しの3件を、次のように受ける。</p><ol><li><b class="lead-s">実装方法は、分類ではなく業務ロジックの性質から導く</b><div class="sub-s">サブドメインは分類に加えて、判断基準の3つの問いの答えを真偽で持つ。問いは、金銭追跡 ・ 監査記録 ・ 行動分析の要否、業務ルールの複雑さ、データ構造の複雑さである。宣言には実装方法の名前を書かず、コーディングが判断基準の表で実装方法とテストの形を導く</div></li><li><b class="lead-s">ユースケースのスコープは、区切られた文脈かドメインのどちらかにする</b><div class="sub-s">ドメインをスコープにできるのは要約レベルだけで、手順はすべて文脈の中のユースケースの呼び出しにする。主アクターごとに、一番外側の要約を1件以上置く</div></li><li><b class="lead-s">技術のバリエーションは、実装の定義が持つ</b><div class="sub-s">宣言のバリエーションは、ドメインの語の手段とデータだけを並べる。技術の違いは、実装の定義がユースケースの手順を ID で指して持ち、駆動される側のアダプターの契約試験で担保する</div></li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,452px)" class="wf-fig" viewBox="0 0 452 272" height="272" role="img"><g transform="translate(6.0,6.0)"><path d="M312.0,32.8 L311.2,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="311.2,95.4 308.8,88.6 313.7,88.7" fill="#C3CAD2"/><rect x="272.6" y="54.1" width="78.0" height="16.0" fill="#F5F7F9"/><text x="311.6" y="67.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">手順で呼び出す</text><path d="M80.0,146.8 L80.0,209.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="80.0,209.4 77.5,202.6 82.5,202.6" fill="#C3CAD2"/><rect x="51.0" y="168.1" width="58.0" height="16.0" fill="#F5F7F9"/><text x="80.0" y="181.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">問いの答え</text><path d="M312.0,218.2 L312.8,146.6" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="312.8,146.6 315.2,153.4 310.3,153.3" fill="#C3CAD2"/><rect x="265.4" y="172.4" width="94.0" height="16.0" fill="#F5F7F9"/><text x="312.4" y="186.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">手順を ID で指す</text><g class="wf-node" transform="translate(184.0,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="256.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="128.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">ドメイン：要約のユースケースのスコープ</text></g></g><g class="wf-node" transform="translate(220.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">区切られた文脈：ユーザー目</text><text x="92.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">的とサブ機能のユースケース</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="160.0" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="80.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">サブドメイン：分類と、</text><text x="80.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">業務ロジックの性質</text></g></g><g class="wf-node" transform="translate(0.0,210.0)"><g class="svg-box" role="muted"><rect x="0" y="0" width="160.0" height="50.0" rx="5.0" fill="none" stroke="#79828F" stroke-width="1.2" stroke-dasharray="4 3"/><text x="80.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">コーディング：実装方法</text><text x="80.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#79828F">を判断基準の表から導く</text></g></g><g class="wf-node" transform="translate(202.0,219.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">実装の定義：技術のバリエーション</text></g></g></g></svg><figcaption>要約のユースケースはドメインをスコープにし、文脈の中のユースケースを呼び出す。<b>サブドメインは問いの答えを持ち、コーディングが実装方法を導く。</b>技術のバリエーションは実装の定義が持ち、手順を ID で指す。</figcaption></figure></div><div class="ex"><b>1. サブドメインの宣言。</b>ddd-advisor の回答の例である。分類の根拠と、業務ロジックの性質の真偽を持つ。<pre><code><pre><code>{
+  "id": "SD-1",
+  "名前": "受注",
+  "説明": "来店前の注文を受け付け、店舗の調理の空きに合わせて受け取り予定時刻を約束する",
+  "分類": "中核",
+  "分類の根拠": {
+    "競争優位を生むか": true,
+    "競争優位の理由": "受け取り予定時刻を約束できることが、競合店との違いになる（VAL-1）",
+    "使った問い": "中核か補完か（ソフトウェアと関係する場合）",
+    "問いの答え": "業務ルールと制約条件（確定できる状態 ・ 明細の上限 ・ 受け取り予定時刻の約束）の記述を必要とする"
+  },
+  "業務ロジックの性質": {
+    "金銭追跡・監査記録・行動分析を必要とするか": false,
+    "業務ルールは複雑か": true,
+    "データ構造は複雑か": false,
+    "根拠となる条件": [
+      "BC-1.AGG-1.INV-1",
+      "BC-1.AGG-1.INV-2",
+      "BC-1.DS-1.OP-1.POST-2"
+    ]
+  },
+  "担う提供価値": [
+    "VAL-1"
+  ],
+  "含むユースケース": [
+    "BC-1.UC-1",
+    "BC-1.UC-2"
+  ]
+}</code></pre></code></pre><b>2. 文脈をまたぐ要約のユースケース。</b>スコープがドメインで、手順はすべて文脈の中のユースケースの呼び出しである。<pre><code><pre><code>id: UC-0
+name: 来店前に注文して、店舗で受け取る
+scope: {domain: DOM-1}              # ドメインをスコープにするのは要約レベルだけ
+level: 要約
+primary_actor: {role: 顧客}
+main_success_scenario:              # 手順はすべて、文脈の中のユースケースの呼び出し
+  - {no: 1, actor: 顧客, kind: サブユースケースの呼び出し, calls: BC-1.UC-2,
+     text: 顧客は、商品をカートに入れる}
+  - {no: 2, actor: 顧客, kind: サブユースケースの呼び出し, calls: BC-1.UC-1,
+     text: 顧客は、注文を確定する}
+  - {no: 3, actor: 顧客, kind: サブユースケースの呼び出し, calls: BC-2.UC-5,
+     text: 顧客は、店舗で商品を受け取る}</code></pre></code></pre><b>3. バリエーションの置き分け。</b>宣言はドメインの語だけを、実装の定義は技術の違いを持つ。実装の定義の形は論点の外であり、例示である。<pre><code><pre><code># 宣言の側（ユースケースの技術およびデータのバリエーション）── ドメインの語だけ
+variations:
+  - {step: 4, varies: 支払い手段, values: [クレジットカード, 電子マネー, 店頭払い]}
+
+# 実装の定義の側（コーディング）── 技術の違いは、手順を ID で指して持つ（形は例示）
+technology_variations:
+  - {step: BC-1.UC-1.4, varies: 決済代行との接続, values: [決済代行 A の API, 決済代行 B の API]}</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 5件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 5件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>問いの答え ・ ドメインのスコープ ・ 実装の定義</b></td><td>サブドメインが業務ロジックの性質を持ち、要約はドメインをスコープにし、技術のバリエーションは実装の定義が持つ</td><td><span class="cost">usecase-modeling-coding の論点1 ・ 2 ・ 7 を改める</span></td></tr><tr><td><span class="n">B</span></td><td><b>前提のまま</b></td><td>分類だけで実装方法を決め、ユースケースは文脈の中だけに置き、技術のバリエーションは扱わない</td><td><span class="cost">3件の差し戻しが解消しない</span></td></tr><tr><td><span class="n">C</span></td><td><b>実装方法の名前をサブドメインに書く</b></td><td>サブドメインに、ドメインモデル ・ トランザクションスクリプトなどの名前を直接書く</td><td><span class="cost">実装方法の選択がモデリングの側に入る</span></td></tr><tr><td><span class="n">D</span></td><td><b>要約をドメインの宣言の欄に置く</b></td><td>文脈をまたぐ要約を、ドメインの宣言の欄（主アクターごとの流れ）として持つ</td><td><span class="cost">ユースケースの形がドメインの宣言にも現れる</span></td></tr><tr><td><span class="n">E</span></td><td><b>技術のバリエーションも宣言に書く</b></td><td>ユースケースのバリエーションに、技術の違いも並べる</td><td><span class="cost">宣言に技術が入る</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="補完のサブドメインはトランザクションスクリプトにもアクティブレコードにもなり、分類だけでは実装方法が1つに決まらない。文脈をまたぐ要約と技術のバリエーションの置き場も無いまま残る"><b>前提のまま</b></mark></td><td>補完のサブドメインはトランザクションスクリプトにもアクティブレコードにもなり、分類だけでは実装方法が1つに決まらない。文脈をまたぐ要約と技術のバリエーションの置き場も無いまま残る</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="実装方法を選ぶのはコーディングの側である（ボード usecase-modeling-coding の論点1）。モデリングが持つべきは、業務についての問いの答えであり、選んだ結果ではない"><b>実装方法の名前をサブドメインに書く</b></mark></td><td>実装方法を選ぶのはコーディングの側である（ボード usecase-modeling-coding の論点1）。モデリングが持つべきは、業務についての問いの答えであり、選んだ結果ではない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="要約も主アクター ・ 手順 ・ 拡張を持つユースケースである。ドメインの宣言に欄として置くと、ユースケースの形が2か所に在ることになる"><b>要約をドメインの宣言の欄に置く</b></mark></td><td>要約も主アクター ・ 手順 ・ 拡張を持つユースケースである。ドメインの宣言に欄として置くと、ユースケースの形が2か所に在ることになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="宣言に技術を書かないことは、ボード usecase-modeling-coding の論点1と論点2で決めている。技術の違いは、駆動される側のアダプターの契約試験で担保すると論点7で決めている"><b>技術のバリエーションも宣言に書く</b></mark></td><td>宣言に技術を書かないことは、ボード usecase-modeling-coding の論点1と論点2で決めている。技術の違いは、駆動される側のアダプターの契約試験で担保すると論点7で決めている</td></tr></table></div><p class="note-s"><b>実装方法の決め方</b></p><div class="scroll"><table><tr><th></th><th>分類だけで実装方法が1つに決まるか</th><th>宣言に実装方法の名前が入るか</th></tr><tr><td><span class="n">問いの答え ・ ドメインのスコープ ・ 実装の定義</span></td><td><b>決まる</b>（問いの答えから）</td><td><b>入らない</b></td></tr><tr><td><span class="n">前提のまま</span></td><td><b>決まらない</b>（補完は2通り）</td><td>入らない</td></tr><tr><td><span class="n">実装方法の名前をサブドメインに書く</span></td><td>決まる</td><td><b>入る</b></td></tr></table></div><p class="note-s"><b>文脈をまたぐ要約</b></p><div class="scroll"><table><tr><th></th><th>主アクターごとの一番外側の要約を置けるか</th><th>ユースケースの形が1種類で済むか</th></tr><tr><td><span class="n">問いの答え ・ ドメインのスコープ ・ 実装の定義</span></td><td><b>置ける</b></td><td><b>済む</b>（スコープの値が違うだけ）</td></tr><tr><td><span class="n">前提のまま</span></td><td><b>置けない</b></td><td>済む</td></tr><tr><td><span class="n">要約をドメインの宣言の欄に置く</span></td><td>置ける</td><td><b>済まない</b>（2か所に形が在る）</td></tr></table></div><p class="note-s"><b>技術のバリエーション</b></p><div class="scroll"><table><tr><th></th><th>宣言に技術が入るか</th><th>技術の違いを追跡できるか</th></tr><tr><td><span class="n">問いの答え ・ ドメインのスコープ ・ 実装の定義</span></td><td><b>入らない</b></td><td><b>できる</b>（手順の ID で結ぶ）</td></tr><tr><td><span class="n">前提のまま</span></td><td>入らない</td><td><b>できない</b></td></tr><tr><td><span class="n">技術のバリエーションも宣言に書く</span></td><td><b>入る</b></td><td>できる</td></tr></table></div></div></details><details><summary>この答えの前提（8件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">業務ロジックの性質を持たせること</span></td><td>「順：2 ・ 問い：業務ルールは複雑か ・ 該当するときの実装方法：ドメインモデル」「順：3 ・ 問い：データ構造は複雑か ・ 該当するときの実装方法：アクティブレコード」</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の判断基準 design-heuristics（ddd-advisor の回答（advice/ddd.json、2026-10-03） の根拠に引用）</small></td></tr><tr><td><span class="part">テストの形も実装方法から導くこと</span></td><td>「対応：業務ロジックの実装方法を判定してから、それに対応するテスト方針を選択する ・ 理由：最も適するテスト方針は、業務ロジックの実装方法ごとに異なるため」</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の判断基準 testing-strategy</small></td></tr><tr><td><span class="part">主アクターごとに一番外側の要約を置くこと</span></td><td>「各主アクターについて、一番外側の設計スコープで最も高いレベルのユースケースがあるか」</td><td><span class="kind k-rule">決まり</span><small>usecase-advisor の判断基準（.claude/skills/usecase-advisor/references/criteria.json）</small></td></tr><tr><td><span class="part">要約の手順を呼び出しにすること</span></td><td>「対応：要約のユースケースは、ユーザー目的の文脈と目次を示す分だけ書く ・ 理由：要約からは機能要求を読み取れない」</td><td><span class="kind k-rule">決まり</span><small>usecase-advisor の判断基準 goal-level</small></td></tr><tr><td><span class="part">バリエーションに条件と処理を書かないこと</span></td><td>「観点：主成功シナリオと何が異なるか ・ 拡張：システムが「何を」するか ・ 技術およびデータのバリエーション：同じことを「どのように」行うか」</td><td><span class="kind k-rule">決まり</span><small>usecase-advisor の判断基準 technology-data-variation</small></td></tr><tr><td><span class="part">宣言に技術を書かないこと</span></td><td>モデリング（仕様 ・ 抽象）は、提供価値 ・ 範囲 ・ 達成の基準 ・ サブドメインとその分類 ・ ユースケースとそのシナリオなどを宣言にする。技術を書かない</td><td><span class="kind k-rule">決まり</span><small>ボード usecase-modeling-coding 論点1の決着</small></td></tr><tr><td><span class="part">技術のバリエーションを契約試験で担保すること</span></td><td>ポートごとに1組の試験を、各アダプターに実物の基盤で実行する。技術とデータのバリエーションもここで担保する</td><td><span class="kind k-rule">決まり</span><small>ボード usecase-modeling-coding 論点7の決着</small></td></tr><tr><td><span class="part">差し戻しの3件</span></td><td>実装方法は分類だけでは1つに決まらない ・ 文脈をまたぐ要約に置き場が無い ・ 技術のバリエーションの置き場が実装の側に必要である</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の回答（advice/ddd.json、2026-10-03） と usecase-advisor の回答（advice/usecase.json、2026-10-03） の差し戻し</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>実装の定義の形</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">コーディングの側の文書であり、このボードは宣言だけを決める</div></td></tr><tr><td>サブドメインの分類と業務ロジックの性質が食い違うときの検査</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で、欄の検査として決める。ddd-advisor は推測として示した</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>ddd-advisor と usecase-advisor に、要素ごとの欄と書き方を設計相談として問い、2つの回答が前提との食い違いを合わせて6件差し戻した。このうち宣言の構成に関わる3件を、この論点で決定する。テストの方針に関わる3件は論点4へ委譲する。</p></li></ol></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">判断基準は、実装方法を分類ではなく3つの問いで選ぶ</b><div class="sub-s">サブドメインは分類と一緒に問いの答えを持つ必要がある</div></b></td><td></td></tr><tr><td><b><b class="lead-s">判断基準は、主アクターごとに一番外側のスコープで最も高いレベルのユースケースが在るかを、集合の点検に含める</b><div class="sub-s">文脈をまたぐ要約の置き場が必要である</div></b></td><td></td></tr><tr><td><b><b class="lead-s">判断基準のバリエーションの例には、磁気カード ・ 網膜スキャン ・ 指紋のような技術の違いが含まれる</b><div class="sub-s">技術を書かない宣言の外に、置き場が必要である</div></b></td><td></td></tr><tr><td><b><b class="lead-s">駆動される側のアダプターの契約試験で、技術とデータのバリエーションを担保すると決めている</b><div class="sub-s">技術のバリエーションは実装の定義の側に置ける</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b><b class="lead-s">ボード usecase-modeling-coding の論点1（境目を分類から「分類と業務ロジックの性質」へ）・ 論点2 ・ 論点7 を改める</b><div class="sub-s">ACDR で提示してから適用する</div></b></td><td></td></tr><tr><td><b><b class="lead-s">実装の定義に、技術のバリエーションの欄を置く</b><div class="sub-s">実装の定義の形は、コーディングの Skill を正本へ起こすときに決める</div></b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q1" data-title="アドバイザーが差し戻した3件（実装方法の決め方 ・ 文脈をまたぐ要約 ・ 技術のバリエーション）を、宣言の構成のどこで受けるか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>条件とシナリオを、AI が書いても出力が安定し、テストへ一意に変換できる形にするには、どの文法で書くか</h2></div><div class="note">この論点が、宣言のどこに書き手のぶれが入るかを決める。<b>論点3（種類ごとの欄）と論点4（テストへの結び方）は、この文法を前提にする</b></div><div class="ans"><span class="big">B</span><b>条件は、6要素の構造で書く。</b>集約の不変条件 ・ 事前条件 ・ 事後条件、値オブジェクトの不変条件、ドメインサービスの事前条件 ・ 事後条件が該当する。<ul><li><b class="lead-s">6要素</b><div class="sub-s">前提（1段だけ）・ 主語（ID で指す）・ 集計 ・ 量化 ・ 述語 ・ 対象</div></li><li><b class="lead-s">閉じた列挙</b><div class="sub-s">集計 ・ 量化 ・ 述語は列挙の値だけを使う。足りない述語は、自由文で逃がさず列挙を足す</div></li><li><b class="lead-s">1条件1述語</b><div class="sub-s">「かつ」は条件を分け、「または」は「のどれか」で書く</div></li><li><b class="lead-s">例</b><div class="sub-s">不変条件と事前条件は破る例を、操作は受理する例を必ず持つ</div></li><li><b class="lead-s">文</b><div class="sub-s">人が読む文は、構造から道具が生成する。書き手は文を書かない</div></li></ul><b>シナリオの手順と拡張は、枠を列挙と ID にし、文だけを自由文にする。</b><ul><li><b class="lead-s">手順の枠</b><div class="sub-s">主語（アクターの列挙）・ 種類（相互作用 ・ 妥当性確認 ・ 内部の状態変化 ・ サブユースケースの呼び出し）・ 参照（相手 ・ 集約 ・ 呼び出す先 ・ 保護する利害関係者）</div></li><li><b class="lead-s">拡張の枠</b><div class="sub-s">結び付く手順 ・ 条件の種類 ・ 終わり方（列挙で必須）</div></li><li><b class="lead-s">文型</b><div class="sub-s">手順の文は主語で始まる能動態の1文、拡張の条件は検出したことを表す句で、末尾をコロンにする</div></li><li><b class="lead-s">禁止語</b><div class="sub-s">分岐の語 ・ UI の語 ・ 技術の語を、文に書かない</div></li></ul><b>どちらも、語は区切られた文脈の用語集の語に限る。</b>名前 ・ 状態の値 ・ 拒否の理由 ・ 手順のデータは用語の語と照合し、用語の「使わない語」に一致したら拒む。</div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,727px)" class="wf-fig" viewBox="0 0 727 342" height="342" role="img"><g transform="translate(6.0,6.0)"><path d="M104.0,157.4 Q104.0,25.0 104.0,25.0 Q104.0,25.0 167.6,25.0 L231.2,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="231.2,25.0 224.4,27.5 224.4,22.5" fill="#C3CAD2"/><rect x="62.0" y="17.6" width="84.0" height="16.0" fill="#F5F7F9"/><text x="104.0" y="31.2" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">語を ID で指す</text><path d="M104.0,190.6 Q104.0,314.0 104.0,314.0 Q104.0,314.0 181.5,314.0 L259.1,314.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="259.1,314.0 252.3,316.5 252.3,311.5" fill="#C3CAD2"/><rect x="85.8" y="304.0" width="68.0" height="16.0" fill="#F5F7F9"/><text x="119.8" y="317.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">語を照合する</text><path d="M472.0,25.0 L536.6,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="536.6,25.0 529.8,27.5 529.8,22.5" fill="#C3CAD2"/><path d="M444.1,314.0 L494.6,314.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="494.6,314.0 487.8,316.5 487.8,311.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,158.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="208.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">用語集（区切られた文脈の用語）</text></g></g><g class="wf-node" transform="translate(232.0,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="239.2" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="119.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">条件：6要素の構造（前提 ・ 主語 ・</text><text x="119.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">集計 ・ 量化 ・ 述語 ・ 対象）</text></g></g><g class="wf-node" transform="translate(537.2,9.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="136.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="68.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">文は道具が生成する</text></g></g><g class="wf-node" transform="translate(259.9,298.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="183.4" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="91.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">手順と拡張：枠は列挙と ID</text></g></g><g class="wf-node" transform="translate(495.2,298.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="220.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">文は自由文に、文型と禁止語を課す</text></g></g></g></svg><figcaption>条件は構造で書き、文は道具が生成する。<b>手順と拡張は枠を列挙と ID にし</b>、文だけを自由文にして文型と禁止語を課す。どちらの語も用語集と照合する。</figcaption></figure></div><div class="ex"><b>条件の例。</b>ddd-advisor の回答の例で、構造だけを書き手が書き、「文」は道具が生成する。<pre><code><pre><code>良い例（AGG-1.INV-2）
+{
+  "id": "INV-2",
+  "前提": {
+    "主語": {
+      "参照": "ST-4",
+      "集計": "なし"
+    },
+    "述語": "等しい",
+    "対象": {
+      "値": "確定済"
+    }
+  },
+  "主語": {
+    "参照": "ST-3",
+    "集計": "件数"
+  },
+  "量化": "なし",
+  "述語": "以上",
+  "対象": {
+    "値": 1
+  },
+  "破れたとき": "TERM-13",
+  "文": "注文状態が確定済なら、明細の件数は1以上",
+  "例": [
+    {
+      "前の状態": {
+        "ST-4": "下書き",
+        "ST-3": []
+      },
+      "操作": "CMD-1",
+      "引数": {
+        "ARG-1": "10:30",
+        "ARG-2": "10:00"
+      },
+      "期待": "拒否",
+      "拒否": "TERM-13"
+    }
+  ]
+}
+
+避ける例
+{"id": "INV-2", "文": "確定した注文には必ず適切な明細があり、受け取り時刻も設定され、イベントが発行されること"}
+── 3つの事項が1条件に入り、「適切な」は判定できず、「受け取り時刻」は用語（受け取り予定時刻）と一致せず、業務イベントを条件に書いている</code></pre></code></pre><b>手順の例。</b>usecase-advisor の回答の例の主成功シナリオで、枠は列挙と ID、文は「主語は、…」の1文である。<pre><code><pre><code>main_success_scenario:            # 3〜9手順。1手順は「主語・種類・文」
+  - {no: 1, actor: 顧客, kind: 相互作用, to: システム, data: [受け取り方法, 支払い手段],
+     text: 顧客は、受け取り方法と支払い手段を添えて、注文の確定をシステムに依頼する}
+  - {no: 2, actor: システム, kind: 妥当性確認, serves: [SH-1, SH-2],
+     text: システムは、カートの商品の価格が提示した額から変わっておらず、在庫が注文の数量に足りていることを確認する}
+  - {no: 3, actor: システム, kind: 内部の状態変化, aggregate: AG-在庫, saga: SAGA-1, serves: [SH-2],
+     text: システムは、注文の商品と数量の在庫を引き当てる}
+  - {no: 4, actor: システム, kind: 相互作用, to: 決済代行, data: [請求額, 支払い手段], saga: SAGA-2, serves: [SH-2],
+     text: システムは、決済代行に請求額の承認を依頼し、承認番号を受け取る}
+  - {no: 5, actor: システム, kind: 内部の状態変化, aggregate: AG-注文, saga: SAGA-3, serves: [SH-1, SH-3],
+     text: システムは、注文を確定し、承認番号・確定した合計額・確定の経過を注文に記録する}
+  - {no: 6, actor: システム, kind: 相互作用, to: 顧客, data: [注文番号, 受け取りの予定],
+     text: システムは、顧客に注文番号と受け取りの予定を知らせる}
+extensions:                       # 結び付く手順・条件の種類・条件・処理・終わり方
+  - label: 2a
+    anchor: {step: 2}
+    condition_kind: 確認の失敗
+    condition: 提示した額から価格が変わった商品があった：
+    steps:
+      - {no: 2a1, actor: システム, kind: 相互作用, to: 顧客, data: [変わった価格], text: システムは、顧客に変わった価格を示す}
+      - {no: 2a2, actor: 顧客, kind: 相互作用, to: システム, text: 顧客は、変わった価格を受け入れる}
+    ending: {kind: 同じ手順へ戻る, to: 2}
+    extensions:
+      - label: 2a2a
+        anchor: {step: 2a2}
+        condition_kind: 主アクターの取りやめ
+        condition: 顧客が変わった価格を受け入れなかった：
+        steps:
+          - {no: 2a2a1, actor: システム, kind: 内部の状態変化, aggregate: AG-注文, serves: [SH-3], text: システムは、確定しなかった理由と進んだ手順を注文の経過に記録する}
+        ending: {kind: 失敗する}</code></pre></code></pre><b>避ける例。</b>どの行も、書き直すたびに形が変わり、テストへ一意に変換できない。<pre><code><pre><code># 避ける例（同じ UC を、出力が安定しない形で書いたもの）
+1. 「注文を確定」ボタンが押される                 ← 受け身で主語が無い。UI の操作
+2. 価格をチェックし、もし変わっていれば新しい価格を表示する。そうでなければ次へ進む
+                                                    ← 「チェックする」と if。分岐は拡張へ
+3. システムは在庫 API を呼び出し、stock テーブルを更新する ← 技術の語。宣言は技術を書かない
+4. 顧客の氏名・郵便番号・住所1・住所2・電話番号を検証する  ← 別名でなく項目の一覧
+最低保証：残高不足のとき、ネットワーク停止のとき…  ← 失敗の仕方の列挙。拡張に書く
+拡張 3：エラーなら適当に処理する                  ← 結び付く手順・条件の形・終わり方が無い</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 4件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 4件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>条件は構造、手順は枠と自由文</b></td><td>条件は6要素の構造から文を生成し、手順と拡張は枠を列挙と ID にして、文に文型と禁止語を課す</td><td><span class="cost">条件と手順で、書き方が2つになる</span></td></tr><tr><td><span class="n">B</span></td><td><b>両方とも構造から生成</b></td><td>手順の文も、主語 ・ 動詞 ・ 目的語の構造から生成する</td><td><span class="cost">動詞と目的語の列挙が必要になる</span></td></tr><tr><td><span class="n">C</span></td><td><b>両方とも自由文に文型と禁止語</b></td><td>条件も、文型と禁止語を課した自由文で書く</td><td><span class="cost">例を道具で評価できない</span></td></tr><tr><td><span class="n">D</span></td><td><b>両方とも自由文</b></td><td>文型も禁止語も課さない</td><td><span class="cost">書き直すたびに形が変わる</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="判断基準は、手順にアクターの意図を書き、データは別名で書くとする。動詞と目的語を列挙に限ると、意図を表す語が列挙の外に出るたびに列挙を足すことになる（推測）"><b>両方とも構造から生成</b></mark></td><td>判断基準は、手順にアクターの意図を書き、データは別名で書くとする。動詞と目的語を列挙に限ると、意図を表す語が列挙の外に出るたびに列挙を足すことになる（推測）</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="条件は、例の前の状態と引数を代入して真偽を評価する対象である。自由文の条件は「適切に」のような判定できない語が文型を通過し、評価できない"><b>両方とも自由文に文型と禁止語</b></mark></td><td>条件は、例の前の状態と引数を代入して真偽を評価する対象である。自由文の条件は「適切に」のような判定できない語が文型を通過し、評価できない</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="usecase-advisor の避ける例のとおり、受け身 ・ 分岐 ・ 技術の語 ・ 項目の一覧が入り、テストへ一意に変換できない"><b>両方とも自由文</b></mark></td><td>usecase-advisor の避ける例のとおり、受け身 ・ 分岐 ・ 技術の語 ・ 項目の一覧が入り、テストへ一意に変換できない</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>条件の例を道具で評価できるか</th><th>手順にアクターの意図を書けるか</th><th>書き手のぶれが入る範囲</th></tr><tr><td><span class="n">条件は構造、手順は枠と自由文</span></td><td><b>できる</b></td><td><b>書ける</b></td><td>手順の文の中だけ</td></tr><tr><td><span class="n">両方とも構造から生成</span></td><td>できる</td><td><b>書きにくい</b>（列挙の語に限られる）</td><td>無い</td></tr><tr><td><span class="n">両方とも自由文に文型と禁止語</span></td><td><b>できない</b></td><td>書ける</td><td>条件と手順の文</td></tr><tr><td><span class="n">両方とも自由文</span></td><td>できない</td><td>書ける</td><td><b>すべての文</b></td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">手順に意図とデータの別名を書くこと</span></td><td>「対応：ステップには、アクターの意図を書き、渡されるデータは別名で書く ・ 理由：別名より詳しく書くと、要求の収集が長引き、ユースケースは長く読みにくく、データ要求が変わるたびに書き直す不安定なものになる」</td><td><span class="kind k-rule">決まり</span><small>usecase-advisor の判断基準 data-requirement-precision</small></td></tr><tr><td><span class="part">拡張の条件を先に出し切ること</span></td><td>「対応：第3段階では、処理を書く前に失敗条件のリストを書き上げる ・ 理由：処理を書くほうがずっと手間がかかる。見つけるたびに処理まで書くと、リストが完成する前に労力が尽きる」</td><td><span class="kind k-rule">決まり</span><small>usecase-advisor の判断基準 precision</small></td></tr><tr><td><span class="part">語を用語集に限ること</span></td><td>用語は1つの意味だけを持ち、同義語を使わない</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の判断基準 ubiquitous-language（ddd-advisor の回答（advice/ddd.json、2026-10-03） の結論の理由）</small></td></tr><tr><td><span class="part">手順の枠と文型 ・ 禁止語</span></td><td>手順を「主語 ・ 種類 ・ 文」の組に固定し、自由文には文型と禁止語を課して validate で検査する</td><td><span class="kind k-given">前提</span><small>usecase-advisor の回答（advice/usecase.json、2026-10-03）（推測と明記）</small></td></tr><tr><td><span class="part">条件の6要素と、文の生成</span></td><td>条件は「前提 ・ 主語 ・ 集計 ・ 量化 ・ 述語（閉じた列挙）・ 対象」の6要素の構造で書き、文は構造から生成する</td><td><span class="kind k-given">前提</span><small>ddd-advisor の回答（advice/ddd.json、2026-10-03）（推測と明記）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>テストの ID と、条件 ・ 手順からテストへの変換</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4で決める</div></td></tr><tr><td>種類ごとの欄の一覧</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。この論点は書き方の文法だけを決める</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>2つの回答は、出力の安定のさせ方が異なった。usecase-advisor は手順の文を自由文のまま文型と禁止語で検査し、ddd-advisor は条件の文を道具に生成させる。両方を突き合わせ、テストが条件と手順に何を求めるかで分けた。</p></li></ol></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">条件は、例の状態と引数を代入して評価する対象である</b><div class="sub-s">構造で書けば、受理する例が事前条件を満たすかを道具が評価できる</div></b></td><td></td></tr><tr><td><b><b class="lead-s">手順は、アクターの意図と渡すデータの別名を書く物語である</b><div class="sub-s">文を自由文に残し、ぶれが入る範囲を1手順の文の中に狭める</div></b></td><td></td></tr><tr><td><b><b class="lead-s">2つの回答は、どちらも語を区切られた文脈の用語に結び付けた</b><div class="sub-s">用語集との照合を、条件と手順の共通の規則にできる</div></b></td><td></td></tr><tr><td><b><b class="lead-s">6要素の構造 ・ 述語の列挙 ・ 文型と禁止語の一覧は、どちらのアドバイザーも推測と明記した</b><div class="sub-s">判断基準に直接の根拠が無いので、宣言を書いて検証する必要がある</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b><b class="lead-s">条件の述語の列挙と、手順の禁止語の一覧を、宣言を書いて検証する</b><div class="sub-s">どちらも判断基準に直接の根拠が無い</div></b></td><td></td></tr><tr><td><b><b class="lead-s">述語の列挙を足すときの手順を決める</b><div class="sub-s">ddd-advisor は ACDR を起こすとした</div></b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q2" data-title="条件とシナリオを、AI が書いても出力が安定し、テストへ一意に変換できる形にするには、どの文法で書くか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>7種類の宣言は、それぞれどの欄を、どの細かさで持つか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">この論点を待たせること</span></td><td>論点1と論点2の決着後に出す。宣言の境目と書き方の文法が決まっている必要がある</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1 ・ 論点2</small></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>テストの ID と試験の階層を、宣言からどう導くか。差し戻しの3件（集約の試験の階層 ・ ドメインサービスの入力 ・ サーガと拡張）をどう受けるか</h2></div><div><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">この論点を待たせること</span></td><td>論点3の決着後に出す。qa-advisor の判断が必要である（配線表で required）</td><td><span class="kind k-rule">決まり</span><small>このボードの論点3 と、配線表の qa-advisor の行</small></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 2</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
