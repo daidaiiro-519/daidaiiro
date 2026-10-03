@@ -58,6 +58,10 @@ def cond(c,decl=None,cmd=None):
     if clause: op='が'+op[1:]
     return t+op.format(v=val(v,decl,cmd) if v!='' else '')
   s=one(c); return (one(c['if'],True)+'なら、'+s) if c.get('if') else s
+def clause(c,decl=None,cmd=None):
+  """「XがYと同じ」の形の節（妥当性確認の文 ・ 拡張の条件に使う）"""
+  t=cond(dict(c,**{}),decl,cmd)
+  i=t.find('は'); return t[:i]+'が'+t[i+1:] if i>0 else t
 def item(ref):
   """「AGG-1.CMD-1.PRE-2」「BC-1.BR-1」「BC-1.QR-1」などの項目と、その宣言 ・ コマンドを返す"""
   p=ref.split('.'); d=D[p[0]]
@@ -69,6 +73,8 @@ def item(ref):
     return find(d['business_rules'] if p[1].startswith('BR') else d['quality'],p[1]),p[0],None
   if d['kind']=='domain_service': return find(d['operations'],p[1]),p[0],None
   return None,p[0],None
+def g_item(ref):
+  x,_,_=item(ref); return x['condition']
 def item_cond(ref):
   x,decl,cmd=item(ref); return cond(x['condition'],decl,cmd)
 def cmd_label(ref):
@@ -80,13 +86,15 @@ def joinw(ids): return 'と'.join(word(x) for x in ids)
 # ── ユースケースの文
 def step_text(s):
   a=s['actor']
-  if s['kind']=='相互作用': return f'{a}は、{s["to"]}に、{joinw(s["data"])}を{word(s["verb"])}'
-  if s['kind']=='妥当性確認': return f'{a}は、'+'、'.join(f'「{item_cond(r)}」' for r in s['checks'])+'を確かめる'
+  if s['kind']=='相互作用':
+    f=terms()[s['verb']].get('form','{to}に{data}を'+word(s['verb']))
+    return f'{a}は、'+f.format(to=s['to'],data=joinw(s['data']))
+  if s['kind']=='妥当性確認': return f'{a}は、'+'、'.join(clause(g_item(r)) for r in s['checks'])+'であることを確かめる'
   if s['kind']=='内部の状態変化': return f'{a}は、{cmd_label(s["invokes"])}'
   if s['kind']=='サブユースケースの呼び出し': return f'{a}は、「{dname(s["calls"])}」を行う'
   return a
 def step_short(s):
-  if s['kind']=='相互作用': return f'{joinw(s["data"])}を{word(s["verb"])}'
+  if s['kind']=='相互作用': return terms()[s['verb']].get('form','{data}を'+word(s['verb'])).replace('{to}に','').format(data=joinw(s['data']))
   if s['kind']=='妥当性確認': return '確かめる'
   if s['kind']=='内部の状態変化': return cmd_label(s['invokes'])
   return ''
@@ -95,7 +103,7 @@ def ext_text(x):
   k=x['condition_kind']
   if k=='コマンドの拒否':
     return '、'.join('「'+word(item(r)[0]['reject'])+'」' for r in x['handles'])+'で拒否された：'
-  if k=='妥当性確認の失敗': return '、'.join(f'「{item_cond(r)}」' for r in x['fails'])+'が成り立たなかった：'
+  if k=='妥当性確認の失敗': return '、'.join(clause(g_item(r)) for r in x['fails'])+'でなかった：'
   if k=='支援アクターの失敗': return f'{x["actor"]}が応答しなかった、または誤った応答を返した：'
   return ''
 def ending_text(x,nums): return '失敗' if x['ending']=='失敗' else f'{nums[x["ending"]]}へ戻る'

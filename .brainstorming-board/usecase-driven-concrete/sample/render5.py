@@ -243,20 +243,29 @@ def p_uc(d):
   mgc=card(lab('最低保証'),''.join(item(x['name'],g.mg_text(x),f'<span class="ln">{whos(x["protects"])}</span>') for x in gu['minimal']),'top-minimal')
   b+='<div style="height:.75rem"></div>'+cards([sgc,mgc])
   b+=block('事前条件',tbl(['組んだ文','成り立たせるユースケース','これで起こらない拒否'],[[gen(g.pre_text(x)),ref(x['established_by']),'、'.join(pref(r) for r in x.get('ensures',[])) or '―'] for x in d['preconditions']]))
-  rows=''.join(f'<tr><td class="num"><span>{nums[s["id"]]}</span></td><td>{act(s["actor"])}</td><td><b>{gen(g.step_text(s))}</b><span class="ln"><span class="no">{E(s["id"])}</span> ・ {E(s["kind"])}</span>{links(s)}</td><td>{whos(s.get("serves",[]))}</td><td>'+''.join(pill(nums[x['id']],'t-fail' if x['ending']=='失敗' else 't-return') for x in s['extensions'])+'</td></tr>' for s in sc['steps'])
-  rows+=f'<tr class="end"><td></td><td></td><td colspan="3">→ 成功時保証が成り立つ {tchip(k+".M")}</td></tr>'
-  b+=block('主成功シナリオ','<div class="tw"><table><thead><tr><th>#</th><th>アクター</th><th>手順（組んだ文）</th><th>守る利害関係者</th><th>拡張</th></tr></thead><tbody>'+rows+'</tbody></table></div>')
-  b+=f'<details class="fold near"><summary>主成功シナリオのシーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seqm}</div></details>'
-  ex=[]
+  def who_to(t): return act(t['actor'])
+  def body(t):
+    s=g.step_text(t); p=t['actor']+'は、'
+    return s[len(p):] if s.startswith(p) else s
+  def meta(t,extra=''):
+    return f'<div class="meta"><span class="no">{E(t["id"])} ・ {E(t["kind"])}</span>{links(t)}{extra}</div>'
+  def line(t,no,cls='step'):
+    rep=f'<span class="reply">← {E(g.reply_text(t))}</span>' if t.get('reply') else ''
+    return f'<li class="{cls}"><span class="sn">{E(no)}</span><div class="sb"><div class="sh">{who_to(t)}<b>{gen(body(t))}</b>{rep}</div>{meta(t)}</div></li>'
+  fl=''
   for s in sc['steps']:
+    fl+=line(s,nums[s['id']])
     for x in s['extensions']:
       fail=x['ending']=='失敗'
-      body=f'<span class="ln"><span class="k">条件の種類</span>{pill(x["condition_kind"])}</span>'
-      if x.get('handles'): body+=f'<span class="ln"><span class="k">扱う拒否</span>{"、".join(pref(r) for r in x["handles"])}</span>'
-      if x.get('fails'): body+=f'<span class="ln"><span class="k">fails</span>'+' '.join(f'<span class="no">{E(r)}</span>' for r in x['fails'])+'</span>'
-      body+=''.join(f'<div class="hs"><span class="no">{E(nums[t["id"]])}</span>{act(t["actor"])}<span><b>{gen(g.step_text(t))}</b>{links(t)}</span></div>' for t in x['steps'])
-      ex.append(card(f'<span class="no">{E(nums[x["id"]])}</span>{gen(g.ext_text(x))}'+pill(g.ending_text(x,nums),'t-fail' if fail else 't-return')+tchip(k+'.'+x['id']),body,'left-fail' if fail else 'left-return'))
-  b+=block('拡張',cards(ex))+f'<details class="fold near"><summary>拡張を含むシーケンス図</summary><div class="fbody">{seq}</div></details>'
+      sub=''.join(line(t,nums[t['id']],'sub') for t in x['steps'])
+      end=(f'<li class="end fail"><span class="sn">✕</span><div class="sb"><b>失敗で終わる</b><span class="note">最低保証が成り立つ</span></div></li>' if fail
+           else f'<li class="end back"><span class="sn">↩</span><div class="sb"><b>手順{E(nums[x["ending"]])}へ戻る</b></div></li>')
+      xm=f'<div class="meta"><span class="no">{E(x["id"])} ・ {E(x["condition_kind"])}</span>'+(f'<span class="ln"><span class="k">扱う拒否</span>{"、".join(pref(r) for r in x["handles"])}</span>' if x.get('handles') else '')+(f'<span class="ln"><span class="k">fails</span>{" ".join(E(r) for r in x["fails"])}</span>' if x.get('fails') else '')+f'<span class="ln">{tchip(k+"."+x["id"])}</span></div>'
+      fl+=f'<li class="ext"><div class="xh"><span class="xl">{E(nums[x["id"]])}</span><b>{gen(g.ext_text(x))}</b></div>{xm}<ol class="xs">{sub}{end}</ol></li>'
+  fl+=f'<li class="end ok"><span class="sn">✓</span><div class="sb"><b>成功で終わる</b><span class="note">成功時保証が成り立つ</span><div class="meta">{tchip(k+".M")}</div></div></li>'
+  b+=f'<section class="blk"><h2>主成功シナリオと拡張{helpbtn("主成功シナリオ")}</h2><label class="mt"><input type="checkbox" id="mt-{k}" class="mtog"> 宣言の欄を表示（ID ・ invokes ・ テスト条件）</label><ol class="flow">{fl}</ol></section>'
+  b+=f'<details class="fold near"><summary>主成功シナリオのシーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seqm}</div></details>'
+  b+=f'<details class="fold near"><summary>拡張を含むシーケンス図</summary><div class="fbody">{seq}</div></details>'
   srows=[[f'<b>{E(who(i))}</b>',f'<span class="txt">{E(x["interest"])}</span>','、'.join(nums[s['id']] for s in sc['steps'] if i in s.get('serves',[])) or '<span class="missing">なし</span>',pills([m['name'] for m in gu['success'] if i in m['satisfies']],'t-success')+pills([m['name'] for m in gu['minimal'] if i in m['protects']],'t-minimal')] for i,x in sh.items()]
   b+=block('利害関係者と利益',tbl(['利害関係者','利益','守る手順','守る保証'],srows))
   vr=[[nums[s['id']],E(v['varies']),pills(v['values'])] for s in sc['steps'] for v in s.get('variations',[])]
