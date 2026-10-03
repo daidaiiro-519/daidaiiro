@@ -1,6 +1,6 @@
 ---
 name: advisor-rebuild
-description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd は完了、qa も完了（テストの臭い15件を足した）。platform ・ ux はブレストボードを立てて作り直す
+description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd ・ qa は完了。platform も完了（ACDR 0104）、ux は未着手
 metadata:
   node_type: memory
   type: project
@@ -16,7 +16,10 @@ metadata:
 - **引き継ぎ**：テストを書くときに臭いを作らない規則（ガードレール）は、モデリング ・ コーディングの Skill が持つ（利用者の判断）。no-more-spaghetti に代わる Skill を設計するボード（usecase-modeling-coding）で、ガードレールに入れ、困ったときは qa-advisor の判断基準を引く形にする
 - 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）。ミューテーションテストは原文を取得できないので足さない
 
-**次**：platform ・ ux はそれぞれブレストボードを立てて、原典の選び直しから判断基準を作り直す（契約は ACDR 0099 で揃った）。
+**platform（2026-10-03 完了）**：ACDR 0104 で承認 ・ コミット済み（未 push）。判断基準57件（WAF の質問ごと）・ 水準35件（grades.json）・ licenses.json。原典 ・ ノート ・ 依頼書 ・ grades-gen.py は archive（git の外）。確認用の頁は 8749 の /platform/
+- ACDR 0103（ブレストボードの組み込みの文言）も承認待ち・未コミット
+
+**次**：ux はブレストボードを立てて、原典の選び直しから判断基準を作り直す。
 
 **未着手の欠陥**：図の role を描かない ・ ux-advisor の validate（CLI の `validate --kind answer --file` がファイルを検査しない ・ MCP が指摘のあるときも ok を返す）── ux は作り直しで扱う。usecase の以前の試しの回答3件（scratchpad）は、新しい validate で旧い引用と id の誤りが見つかる。
 
