@@ -1,21 +1,12 @@
 <title>テスト条件 ID の突き合わせ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* 縦に読む説明の頁：1件の流れ → ハッシュ値 → 場面ごとの突き合わせ表。色は完成イメージと同じ系統 */
-:root{
- --bg:#f5f7f6;--card:#ffffff;--sunken:#eceff0;--fg:#1b2320;--muted:#66736e;--line:#dde2e1;--line2:#c4ccca;
- --accent:#1f6b57;--accent-soft:#e0efe8;--info:#2c5d9f;--info-soft:#e2ebf7;--caution:#875f0f;--caution-soft:#f6ecd5;
- --neg:#ad3f27;--neg-soft:#f8e3dc;--py:#2c5d9f;--py-soft:#e2ebf7;--go:#0f6f73;--go-soft:#dcefef;
+/* 縦に読む説明の頁。色は共通の view トークン（teal）の10キーだけ：差し色 accent と警告 warn の2色で、ほかは濃淡 */
+:root{--bg:#f3f6f6;--card:#ffffff;--sunken:#eef2f2;--fg:#1f2328;--muted:#555f6a;--line:#d3dcdc;--line2:#d3dcdc;--accent:#0f6e5c;--accent-soft:#e2f1ec;--neg:#9a3412;--neg-soft:#fdeee6;--info:var(--muted);--info-soft:var(--sunken);--caution:var(--muted);--caution-soft:var(--sunken);--py:var(--fg);--py-soft:var(--sunken);--go:var(--fg);--go-soft:var(--sunken);
  --sans:"Noto Sans JP",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
- --bg:#121715;--card:#1a201e;--sunken:#232b28;--fg:#e7ecea;--muted:#97a59f;--line:#2c3532;--line2:#3d4945;
- --accent:#7fc8ac;--accent-soft:#1f3a30;--info:#93b9ec;--info-soft:#1d2b3e;--caution:#e2bf72;--caution-soft:#3a2f18;
- --neg:#f1a283;--neg-soft:#3d241c;--py:#93b9ec;--py-soft:#1d2b3e;--go:#7fd0cf;--go-soft:#173434;color-scheme:dark}}
-:root[data-theme="dark"]{
- --bg:#121715;--card:#1a201e;--sunken:#232b28;--fg:#e7ecea;--muted:#97a59f;--line:#2c3532;--line2:#3d4945;
- --accent:#7fc8ac;--accent-soft:#1f3a30;--info:#93b9ec;--info-soft:#1d2b3e;--caution:#e2bf72;--caution-soft:#3a2f18;
- --neg:#f1a283;--neg-soft:#3d241c;--py:#93b9ec;--py-soft:#1d2b3e;--go:#7fd0cf;--go-soft:#173434;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e2527;--card:#161b1d;--sunken:#12171a;--fg:#e6ebec;--muted:#9aa6aa;--line:#34403f;--line2:#34403f;--accent:#5cc2a8;--accent-soft:#1d3a33;--neg:#f0a07a;--neg-soft:#3a241c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1e2527;--card:#161b1d;--sunken:#12171a;--fg:#e6ebec;--muted:#9aa6aa;--line:#34403f;--line2:#34403f;--accent:#5cc2a8;--accent-soft:#1d3a33;--neg:#f0a07a;--neg-soft:#3a241c;color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7}
 .wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:28px 64px;display:grid;gap:36px}
 h1{font-size:1.6rem;margin:0;text-wrap:balance}
@@ -34,7 +25,7 @@ code,.mono{font-family:var(--mono);font-size:.82em}
 .pre{background:var(--sunken);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:.76rem;line-height:1.55;white-space:pre-wrap;word-break:break-all;margin:0;overflow-x:auto}
 .k{color:var(--accent);font-weight:600}
 .lang{display:inline-block;font-size:.7rem;font-weight:600;padding:0 .45rem;border-radius:4px}
-.lang.py{background:var(--py-soft);color:var(--py)} .lang.go{background:var(--go-soft);color:var(--go)}
+.lang.py{background:var(--py-soft);color:var(--py)} .lang.go{background:var(--card);color:var(--go);border:1px solid var(--line)}
 .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .steps .card b{display:block}
 .num{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.8rem;margin-right:.4em}
@@ -42,7 +33,7 @@ code,.mono{font-family:var(--mono);font-size:.82em}
 .hash{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center}
 .hash .arrow{color:var(--muted);font-weight:700}
 .hv{font-family:var(--mono);font-weight:600;font-size:1.05rem}
-.diff{background:var(--caution-soft);color:var(--caution);border-radius:3px;padding:0 2px}
+.diff{background:var(--sunken);color:var(--fg);border-bottom:2px solid var(--fg);padding:0 2px;font-weight:600}
 /* 場面 */
 .tabs{display:flex;flex-wrap:wrap;gap:6px}
 .tab{font:inherit;font-size:.85rem;border:1px solid var(--line2);background:var(--card);color:var(--fg);border-radius:999px;padding:.3rem .8rem;cursor:pointer}
@@ -66,10 +57,9 @@ td.sep{border-left:2px solid var(--line2)}
 .empty{color:var(--muted)}
 .chk{font-family:var(--mono);font-size:.8rem;white-space:nowrap}
 .ok{color:var(--accent)} .ng{color:var(--neg);font-weight:700} .na{color:var(--muted)}
-.chg{background:var(--caution-soft)}
+.chg{background:var(--sunken);box-shadow:inset 3px 0 0 var(--fg)}
 .st{display:inline-block;font-size:.75rem;font-weight:600;padding:.1rem .55rem;border-radius:999px;white-space:nowrap}
 .st.good{background:var(--accent-soft);color:var(--accent)} .st.bad{background:var(--neg-soft);color:var(--neg)}
-.out{background:#0000;}
 .term{background:var(--sunken);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:.78rem;white-space:pre-wrap;margin:0;overflow-x:auto}
 .nav{display:flex;justify-content:space-between;gap:8px}
 .nav button{font:inherit;font-size:.85rem;border:1px solid var(--line2);background:var(--card);color:var(--fg);border-radius:8px;padding:.35rem .9rem;cursor:pointer}
@@ -152,7 +142,7 @@ trace(t, "<span class="k">UC-1.EXT-2</span>",
   <thead><tr><th class="grp" colspan="3">仕様の側（concrete conditions）</th><th class="grp sep" colspan="3">道具の比較</th><th class="grp sep" colspan="3">記録の側（build/trace.jsonl）</th><th class="sep">判定</th></tr>
   <tr><th>テスト条件 ID</th><th>ハッシュ値</th><th>求めるレベル</th><th class="sep">① ID</th><th>② ハッシュ値</th><th>③ レベル</th><th class="sep">ハッシュ値</th><th>レベル</th><th>書いたテスト</th><th class="sep"></th></tr></thead>
   <tbody id="rows"></tbody></table></div>
- <div class="legend"><span><span class="lang py">Python</span> pytest が書いた行</span><span><span class="lang go">Go</span> go test が書いた行</span><span><span class="chg" style="padding:0 .4rem">　</span> 前の場面から変わったところ</span></div>
+ <div class="legend"><span><span class="lang py">Python</span> pytest が書いた行</span><span><span class="lang go">Go</span> go test が書いた行</span><span><span class="chg" style="padding:0 .5rem">　</span> 前の場面から変わったところ</span></div>
  <pre class="term" id="term"></pre>
  <div class="nav"><button id="prev">← 前の場面</button><button id="next">次の場面 →</button></div>
 </section>
