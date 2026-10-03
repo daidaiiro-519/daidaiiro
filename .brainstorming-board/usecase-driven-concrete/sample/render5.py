@@ -15,8 +15,8 @@ for sub in ('decls','figures'):
 for k,v in D.items(): json.dump(v,open(f'{OUT}/decls/{k}.json','w'),ensure_ascii=False,indent=1)
 json.dump({"conditions":CONDS,"retired":RETIRED},open(f'{OUT}/conditions.json','w'),ensure_ascii=False,indent=1)
 E=html.escape; HC=[0]
-THEME={"color.box-fill":"var(--figure-box)","color.box-stroke":"var(--figure-box-stroke)","color.ink":"var(--figure-ink)","color.ink-soft":"var(--figure-soft)","color.ink-faint":"var(--figure-edge)",
- "color.line":"var(--figure-edge)","color.accent":"var(--figure-accent)","color.accent-bg":"var(--figure-accent-bg)","color.accent-fg":"var(--figure-accent)","color.warn":"var(--figure-warn)","color.warn-bg":"var(--figure-warn-bg)"}
+THEME={"color.box-fill":"var(--paper)","color.box-stroke":"var(--line)","color.ink":"var(--ink)","color.ink-soft":"var(--muted)","color.ink-faint":"var(--muted)",
+ "color.line":"var(--muted)","color.accent":"var(--accent)","color.accent-bg":"var(--accent-soft)","color.accent-fg":"var(--accent)","color.warn":"var(--warn)","color.warn-bg":"var(--warn-soft)"}
 def svg(name,args,decl):
   decl=dict(decl); decl['theme']={**THEME,**decl.get('theme',{})}
   p=f'{OUT}/figures/{name}.json'; json.dump(decl,open(p,'w'),ensure_ascii=False)
@@ -148,7 +148,7 @@ def p_agg(d):
     for p in c['preconditions']:
       ex=g.reject_example(d,c,p)
       exs='、'.join(f'{E(g.qname(a,k,c))}＝{sv(v)}' for a,v in list(ex['before'].items())+list(ex.get('args',{}).items())) if ex else '<span class="missing">組めない</span>'
-      pr.append([tchip(f'{k}.{c["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k,c)),pill(g.word(p['reject']),'t-fail'),exs+(' '+pill('手で書いた例') if ex and ex.get('manual') else ' '+pill('道具が組む'))])
+      pr.append([tchip(f'{k}.{c["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k,c)),pill(g.word(p['reject'])),exs+(' '+pill('手で書いた例') if ex and ex.get('manual') else ' '+pill('道具が組む'))])
     pre=[p for p in c['preconditions'] if p['condition']['op']=='eq']; post=[p for p in c['postconditions'] if p['condition']['op']=='eq']
     nodes=[];edges=[];seen=set()
     for a in pre:
@@ -178,7 +178,7 @@ def p_vo(d):
     if c.get('precision'): parts.append(c['precision'])
     return ' ・ '.join(parts) or '―'
   b+=block('構成する値',tbl(['名前','値の種類','桁 ・ 精度 ・ 値','単位'],[[f'<b>{E(c["name"])}</b>',pill(c['kind']),E(shape(c)),E(c.get('unit','―'))] for c in d['components']]))
-  inv=[[tchip(f'{k}.{i["id"]}'),gen(g.cond(i['condition'],k)),pill(str(g.impossible(i['condition'])),'t-fail'),' ・ '.join(f'{x}（{kk}）' for x,kk in g.bounds(i['condition']))] for c in d['components'] for i in c['invariants']]
+  inv=[[tchip(f'{k}.{i["id"]}'),gen(g.cond(i['condition'],k)),pill(str(g.impossible(i['condition']))),' ・ '.join(f'{x}（{kk}）' for x,kk in g.bounds(i['condition']))] for c in d['components'] for i in c['invariants']]
   if inv: b+=block('不変条件',tbl(['テスト条件','組んだ文','作れない値（道具が組む）',f'境界値（道具が導く）'],inv))
   if d['operations']:
     b+=block('操作',tbl(['テスト条件','操作','引数','結果','例'],[[tchip(f'{k}.{o["id"]}.{x["id"]}'),f'<b>{E(g.word(o["name"]))}</b>',' ・ '.join(ref(a) for a in o['args']),ref(o['result']),E(f'{x["self"]} を {x["args"][0]} で「{g.word(o["name"])}」→ {x["result"]}')] for o in d['operations'] for x in o['accept_examples']]))
@@ -200,7 +200,8 @@ def p_ds(d):
 def p_uc(d):
   h=d['header']; sc=d['scenario']; ctx=h['scope'].get('context'); k=d['id']; nums=g.number(d)
   role={h['primary_actor']:'primary','システム':'system'}; role.update({a:'supporting' for a in sc['supporting_actors']})
-  act=lambda a: f'<span class="act {role.get(a,"system")}">{E(a)}</span>'
+  RL={'primary':'主','supporting':'支援','system':''}
+  act=lambda a: f'<span class="act {role.get(a,"system")}">'+(f'<span class="ar">{RL[role.get(a,"system")]}</span>' if RL[role.get(a,'system')] else '')+f'{E(a)}</span>'
   dom={x['id']:x for x in D['DOM-1']['stakeholders']}
   sh={x['id']:x for x in d['stakeholders']}; gu=d['guarantees']
   who=lambda i: dom[sh[i]['who'].split('.')[-1]]['who']
@@ -265,7 +266,7 @@ def p_drift():
   scnt=collections.Counter(x['status'] for x in SPEC)
   b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','対応の欠け','確かめ直し','レビュー','合格']])
   CAT={'structure':'構造で検査','link':'対応の欄で検査','change':'上流の変更','review':'人のレビュー'}
-  SST={'合格':'t-success','ずれ':'t-fail','対応の欠け':'t-fail','確かめ直し':'t-caution','レビュー':'t-caution'}
+  SST={'合格':'','ずれ':'t-warn','対応の欠け':'t-warn','確かめ直し':'','レビュー':''}
   def at(i):
     if i.startswith('TERM-'): return f'「{E(g.word(i))}」'
     return ref(i.split('.')[0])+(f' <span class="no">{E(".".join(i.split(".")[1:]))}</span>' if '.' in i else '') if i and i.split('.')[0] in D else E(i)

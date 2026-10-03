@@ -10,7 +10,7 @@ def code(s): return f'<pre class="code">{E(s)}</pre>'
 def part(ci,head):
   m=re.search(re.escape(head)+r'\n(.*?)(?=\n\$ |\nCI：)',ci,re.S); return m.group(1).strip() if m else ''
 def verdict(ci,head,okpat):
-  t=part(ci,head); return pill('通った','t-success') if re.search(okpat,t) else pill('落ちた','t-fail')
+  t=part(ci,head); return pill('通った') if re.search(okpat,t) else pill('落ちた','t-warn')
 contract=re.search(r'CONTRACT="""(.*?)"""',open(f'{R}/tool/concrete.py').read(),re.S).group(1)
 b='<header class="ph"><p class="kind">シミュレーション</p><h1>実行の記録</h1></header><p class="lead">実際のリポジトリで、Python（集約などの component テスト）と Go（ユースケースの system テスト）の2つの言語のテストを流し、道具 concrete と突き合わせた記録。</p>'
 b+=blk('仕組み',tbl(['','道具（concrete）','テストの実行器（pytest ・ go test）'],[
@@ -43,8 +43,8 @@ rows=[]
 for x in L:
   ci=x['ci']
   rows.append([f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>',E(x['who']),f'<span class="txt">{E(x["what"])}</span>',
-    verdict(ci,'$ concrete check',r'^宣言どうし：合格 \d+$'),verdict(ci,'$ pytest -q tests',r'passed') if 'failed' not in part(ci,'$ pytest -q tests') else pill('落ちた','t-fail'),
-    verdict(ci,'$ (cd systemtest && go test -count=1 ./...)',r'^ok'),verdict(ci,'$ concrete match build/trace.jsonl',r'^突き合わせ：[^・]*・ 記録 \d+ 行$'),pill('通った','t-success') if x['ci_ok'] else pill('落ちた','t-fail')])
+    verdict(ci,'$ concrete check',r'^宣言どうし：合格 \d+$'),verdict(ci,'$ pytest -q tests',r'passed') if 'failed' not in part(ci,'$ pytest -q tests') else pill('落ちた','t-warn'),
+    verdict(ci,'$ (cd systemtest && go test -count=1 ./...)',r'^ok'),verdict(ci,'$ concrete match build/trace.jsonl',r'^突き合わせ：[^・]*・ 記録 \d+ 行$'),pill('通った') if x['ci_ok'] else pill('落ちた','t-warn')])
 b+=blk('手の一覧（手ごとに git でコミットし、CI を流した）',tbl(['手','誰が','何をしたか','concrete check','pytest','go test','concrete match','CI'],rows))
 b+='<div class="stepper">'+''.join(f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>' for x in L)+'</div>'
 for x in L:
