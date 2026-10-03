@@ -18,22 +18,26 @@ def expect(ref):
 def links():
   """宣言どうしの対応の一覧（参照元・欄・参照先）"""
   out=[]
-  U=D['UC-1']
+  for uk,U in [(k,v) for k,v in D.items() if v['kind']=='use_case']:
+    out+=_links(uk,U)
+  return out
+def _links(uk,U):
+  out=[]
   for p in U['preconditions']:
-    for r in p.get('ensures',[]): out.append(('UC-1.'+p['id'],'ensures',r))
+    for r in p.get('ensures',[]): out.append((uk+'.'+p['id'],'ensures',r))
   for g in U['guarantees']['success']:
-    for r in g.get('established_by',[]): out.append(('UC-1.'+g['id'],'established_by',r))
+    for r in g.get('established_by',[]): out.append((uk+'.'+g['id'],'established_by',r))
   for s in U['scenario']['steps']:
-    if s.get('invokes'): out.append(('UC-1.'+s['id'],'invokes',s['invokes']))
+    if s.get('invokes'): out.append((uk+'.'+s['id'],'invokes',s['invokes']))
     for x in s['extensions']:
-      for r in x.get('handles',[]): out.append(('UC-1.'+x['id'],'handles',r))
+      for r in x.get('handles',[]): out.append((uk+'.'+x['id'],'handles',r))
   return out
 # 確かめた時点の上流のハッシュ値。宣言とは別の記録で、道具が持ち、PR の承認で確定する
 def confirmed():
   c={f'{a}→{r}':fp(expect(r)) for a,f,r in links() if f!='invokes'}
   c['UC-1.EXT-2→AGG-2.CMD-1.PRE-1']='5e0a9c21'   # 見本：承認のあとで、確保する の事前条件が書き換わった
   return c
-def checks():
+def checks(rec=None):
   R=[]
   def put(cat,name,src,dst,text,st): R.append({"category":cat,"check":name,"from":src,"to":dst,"text":text,"status":st})
   # (a) 構造だけで検査できる
@@ -94,17 +98,19 @@ def checks():
   for m in U['guarantees']['minimal']:
     put('link','最低保証を守る手順','UC-1.'+m['id'],'', '守る手順がある' if m['id'] in kept else f'「{m["name"]}」を守る手順が無い','合格' if m['id'] in kept else '対応の欠け')
   # 上流の変更：確かめた時点のハッシュ値と、今のハッシュ値
-  C=confirmed()
+  C=confirmed() if rec is None else rec
   for a,f,r in links():
     if f=='invokes': continue
     key=f'{a}→{r}'; now=fp(expect(r))
-    put('change',f'上流の変更（{f}）',a,r,'承認のあとで参照先が変わった。参照元を確かめ直す' if C.get(key)!=now else '承認した時点から変わっていない','確かめ直し' if C.get(key)!=now else '合格')
+    if key not in C: put('change',f'上流の変更（{f}）',a,r,'まだ承認していない対応。PR の承認で記録する','確かめ直し')
+    elif C[key]!=now: put('change',f'上流の変更（{f}）',a,r,'承認のあとで参照先が変わった。参照元を確かめ直す','確かめ直し')
+    else: put('change',f'上流の変更（{f}）',a,r,'承認した時点から変わっていない','合格')
   # (c) 人のレビューへ渡す
   for k,d in D.items():
     if d['kind']=='subdomain':
       c=d['classification']['category']; bl=d['business_logic']
       if c=='一般' and (bl['needs_tracking'] or bl['complex_rules']): put('review','カテゴリーと業務ロジックの性質',k,'',f'一般のサブドメインなのに、「経緯を追う必要がある」が真','レビュー')
-  put('review','用語の定義が文脈に合う','AGG-2.CMD-1.ARG-1','TERM-3','引数「数量」の定義は「1つの明細で注文する商品の個数」で、調理枠の量とは意味が違う疑い','レビュー')
+  if 'AGG-2' in D and D['AGG-2']['commands'][0]['args'][0]['name']=='TERM-3': put('review','用語の定義が文脈に合う','AGG-2.CMD-1.ARG-1','TERM-3','引数「数量」の定義は「1つの明細で注文する商品の個数」で、調理枠の量とは意味が違う疑い','レビュー')
   return R
 if __name__=='__main__':
   import collections

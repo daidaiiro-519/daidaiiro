@@ -3,7 +3,8 @@ import json,html,sys,os,subprocess,itertools
 HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data3 import D
 from desc3 import DESC
-import drift, spec_drift
+import drift, spec_drift, sim
+SIM=sim.simulate()
 SPEC=spec_drift.checks()
 CONDS=drift.conditions(); REPORT=drift.report(CONDS); JUDGE,EXTRA=drift.judge(CONDS,REPORT)
 STONE={'合格':'t-success','不合格':'t-fail','欠け':'t-fail','古い':'t-fail','レベル違い':'t-fail','未実行':'t-caution','免除':''}
@@ -260,9 +261,35 @@ def p_drift():
   if EXTRA: b+=block('余り（条件に無い報告）',tbl(['報告の条件 ID','テスト','理由'],[[f'<span class="tc t-fail">{E(x["condition"])}</span>',f'<span class="no">{E(x["test"])}</span>','廃止した条件' if x['condition'] in drift.RETIRED else '不明な ID'] for x in EXTRA]))
   b+=f'<details class="fold"><summary>報告の JSON（テスト実装が出したもの）</summary><div class="fbody"><pre class="code">{E(json.dumps(REPORT,ensure_ascii=False,indent=1))}</pre></div></details>'
   return b
+def p_sim():
+  SST={'合格':'t-success','ずれ':'t-fail','対応の欠け':'t-fail','確かめ直し':'t-caution','レビュー':'t-caution'}
+  def ok(x): return not [s for s in x['spec'] if s['status']!='合格'] and all(v=='合格' for v in x['judge'].values()) and not x['extra']
+  def short(v):
+    t=json.dumps(v,ensure_ascii=False)
+    return E(t if len(t)<=90 else t[:88]+'…')
+  def nbad(x): return len([s for s in x['spec'] if s['status']!='合格'])
+  def tbad(x): return len([v for v in x['judge'].values() if v!='合格'])
+  b='<header class="ph"><p class="kind">テスト</p><h1>シミュレーション</h1></header><p class="lead">承認済みの宣言を JSON Patch で1手ずつ書き換え、そのたびに道具の2つの検査を流した結果。</p>'
+  rows=[[f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>',E(x['who']),f'<span class="txt">{E(x["what"])}</span>',pill(str(nbad(x)),'t-fail' if nbad(x) else 't-success'),pill(str(tbad(x)),'t-fail' if tbad(x) else 't-success'),pill('満たす','t-success') if ok(x) else pill('満たさない','t-fail')] for x in SIM]
+  b+=block('手の一覧',tbl(['手','誰が','何をしたか','宣言どうし','テスト','終了基準'],rows))
+  b+='<div class="stepper">'+''.join(f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>' for x in SIM)+'</div>'
+  for x in SIM:
+    d=f'<section class="simstep" data-no="{x["no"]}">'
+    d+=tiles([('手',f'<b style="font-size:1.3rem">{x["no"]}</b>'),('誰が',E(x['who']) or '―'),('終了基準',pill('満たす','t-success') if ok(x) else pill('満たさない','t-fail'))])
+    d+=f'<p class="lead" style="margin-top:.75rem">{E(x["what"])}</p>'
+    if x['ops']: d+=block('変更（JSON Patch）',tbl(['操作','場所（JSON Pointer）','値'],[[pill(o['op']),f'<span class="no">{E(o["path"])}</span>',short(o.get('value',o.get('removed','')))] for o in x['ops']]))
+    else: d+=block('変更（JSON Patch）','<p class="txt">宣言は変えていない</p>')
+    sb=[s for s in x['spec'] if s['status']!='合格']
+    d+=block('道具の検知：宣言どうし',tbl(['状態','検査','参照元','参照先','内容'],[[pill(s['status'],SST[s['status']]),E(s['check']),f'<span class="no">{E(s["from"])}</span>',f'<span class="no">{E(s["to"])}</span>',E(s['text'])] for s in sb]) if sb else pill('検知なし','t-success'))
+    cm={c['id']:c for c in x['conds']}
+    tb=[(k,v) for k,v in x['judge'].items() if v!='合格']
+    d+=block('道具の検知：宣言とテスト実装',tbl(['テスト条件','確かめること','報告のハッシュ値','今のハッシュ値','状態'],[[f'<span class="tc {STONE[v]}">{E(k)}</span>',E(cm[k]['checks']),f'<span class="no">{x["rep"][k]["hash"] if k in x["rep"] else "―"}</span>',f'<span class="no">{cm[k]["hash"]}</span>',pill(v,STONE[v])] for k,v in tb]) if tb else pill('検知なし','t-success'))
+    d+='<div class="snav">'+(f'<button class="sbtn" data-go="{x["no"]-1}">← 前の手</button>' if x['no']>0 else '<span></span>')+(f'<button class="sbtn" data-go="{x["no"]+1}">次の手 →</button>' if x['no']<len(SIM)-1 else '')+'</div>'
+    b+=d+'</section>'
+  return b
 R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
-nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">突き合わせ</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
-pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'
+nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">突き合わせ</a><a href="#SIM" data-id="SIM">シミュレーション</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
+pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'+f'<article class="page" id="SIM">{p_sim()}</article>'
 css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
 page=f'''<title>来店前注文の宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -273,5 +300,7 @@ page=f'''<title>来店前注文の宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
+const go=n=>{{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));const st=document.querySelector('.stepper');if(st&&window.scrollY>st.offsetTop)st.scrollIntoView();}};
+document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{{go(b.dataset.go);document.querySelector('.stepper').scrollIntoView({{behavior:'smooth'}})}}));go('0');
 </script>'''
 open(f'{OUT}/viewer.html','w').write(page); print(len(page))
