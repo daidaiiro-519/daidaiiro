@@ -248,3 +248,20 @@ fn csharp_is_code() {
         code::render_diff(&parts(), "a\n", "var x = \"<section>\";\n", ".cs", &[]).expect("組める");
     assert!(!diff.body.contains("\"<section>\""), "{}", diff.body);
 }
+
+#[test]
+fn a_hunk_that_only_deletes_lines_still_gets_its_mark() {
+    // **削除だけのまとまりにも印を付ける** ── 付けないと、理由は在るのに一覧から外れ、
+    // 変更箇所の数と一覧の数が食い違う
+    let old = "a\nb\nc\nd\n";
+    let new = "a\nd\n";
+    let diff = code::render_diff(&parts(), old, new, ".py", &[change("a", "b", "消した理由")])
+        .expect("組める");
+    assert_eq!(diff.hunks, 1);
+    assert_eq!(
+        diff.body.matches("<mark class=\"chg\"").count(),
+        1,
+        "{}",
+        diff.body
+    );
+}

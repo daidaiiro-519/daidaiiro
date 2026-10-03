@@ -624,7 +624,7 @@ pub fn render_diff(
         let a = hunk.iter().find_map(|(x, _, _, _)| *x);
         let b = hunk.iter().find_map(|(_, y, _, _)| *y);
         let change = at.get(&i);
-        let mut head = parts.part(
+        let head = parts.part(
             "hunk-head",
             &[
                 ("old", a.map_or_else(|| "-".to_owned(), |x| x.to_string())),
@@ -640,11 +640,19 @@ pub fn render_diff(
             ],
         )?;
         rows.push_str(&head);
-        for (x, y, mk, line) in hunk {
+        // **印を置く行を先に決める** ── 探す文字列を含む足した行、無ければ含む行、無ければ最初の消した行。
+        // 削除だけのまとまりにも印を付ける（付けないと、理由は在るのに一覧から外れる）
+        let target = change.and_then(|c| {
+            let find = text_of(c, "find");
+            hunk.iter()
+                .position(|(_, _, mk, line)| *mk == '+' && line.contains(&find))
+                .or_else(|| hunk.iter().position(|(_, _, _, line)| line.contains(&find)))
+                .or_else(|| hunk.iter().position(|(_, _, mk, _)| *mk == '-'))
+        });
+        for (k, (x, y, mk, line)) in hunk.iter().enumerate() {
             let mut body = painted(&painter, parts, line)?;
             if let Some(change) = change {
-                let find = text_of(change, "find");
-                if *mk == '+' && line.contains(&find) && !head.contains("chg") {
+                if Some(k) == target {
                     let before = change
                         .get("before")
                         .and_then(|x| x.as_str())
@@ -658,7 +666,6 @@ pub fn render_diff(
                             ("body", body),
                         ],
                     )?;
-                    head.push_str("chg");
                 }
             }
             let cls = match mk {

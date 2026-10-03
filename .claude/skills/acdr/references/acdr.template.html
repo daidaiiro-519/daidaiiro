@@ -24,9 +24,9 @@
 <!-- 対象の文書が無い決定。差分が出ないので、節だけの1枚になる -->
 <template data-part="page-bare"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title><style>{{style}}</style><div class="wrap">{{head}}<p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p></div></template>
 
-<template data-part="bridge"><p class="bridge">下に並ぶのは、この決定を採ったときに<b>何がどう変わるか</b>である ── 上の決定の具体である。</p></template>
+<template data-part="bridge"><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p></template>
 
-<!-- ── 面（対象の文書と、その上の印） ─────────────────────── -->
+<!-- ── ファイルの差分（対象の文書と、その上の印） ─────────────────────── -->
 <template data-part="page"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{title}}</title>
@@ -38,10 +38,12 @@
 {{heading}}
 <p class="lede">{{lede}}</p>
 {{intro}}
+<section class="diffs">
 <div id="bar"><b>変更 {{total}} 件</b>
 <button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
 <div id="tabs" role="tablist">{{tabs}}</div>
 {{panes}}
+</section>
 </div>
 <script>{{js}}</script>
 </template>
@@ -49,18 +51,19 @@
 <template data-part="tab"><button class="tab" role="tab" data-t="{{key}}">{{label}}<span class="n">{{count}}</span></button></template>
 
 <template data-part="pane-code"><section class="pane code-pane" data-k="{{key}}" hidden><div class="lane code-lane">{{lane}}</div>{{index}}{{body}}</section></template>
-<template data-part="pane-md"><section class="pane md" data-k="{{key}}" hidden>{{index}}<div class="doc">{{body}}</div></section></template>
-<template data-part="pane-html"><section class="pane html" data-k="{{key}}" data-tab="{{tab}}" hidden><div class="lane"><b>そのままの見た目で置く</b><span class="how">経路を確認している…</span></div>{{index}}<template data-shadowcss="{{shadowcss}}">{{body}}</template></section></template>
+<template data-part="pane-md"><section class="pane md" data-k="{{key}}" hidden><div class="lane">{{lane}}</div>{{index}}<div class="doc">{{body}}</div></section></template>
+<template data-part="pane-html"><section class="pane html" data-k="{{key}}" data-tab="{{tab}}" hidden><div class="lane"><b>HTML（そのままの見た目）</b><span class="how">経路を確認している…</span></div>{{index}}<template data-shadowcss="{{shadowcss}}">{{body}}</template></section></template>
 
-<template data-part="lane-code"><b>コードとして置く</b><span class="how">{{note}}</span></template>
-<template data-part="lane-diff"><b>Git の差分として置く</b><span class="how">まとまり {{count}} 件{{why}}</span></template>
-<template data-part="lane-nowhy"> ／ <b class="nowhy">理由が付いていないもの {{count}} 件</b></template>
+<template data-part="lane-code"><b>コードの全文</b><span class="how">{{note}}</span></template>
+<template data-part="lane-diff"><b>Git の差分</b><span class="how">変更箇所 {{count}} 件{{why}}</span></template>
+<template data-part="lane-md"><b>Markdown を描画した文書</b><span class="how">変更箇所 {{count}} 件</span></template>
+<template data-part="lane-nowhy"> ／ <b class="nowhy">理由の無い変更箇所 {{count}} 件</b></template>
 
-<!-- 面の頭に置く、変更の一覧。印が内側の隠れたタブに入ることがある -->
-<template data-part="index"><details class="idx" open><summary>この面の変更 {{count}} 件</summary><ol>{{items}}</ol></details></template>
-<template data-part="index-item"><li><b>{{find}}</b><button class="go" data-i="{{at}}">その場所へ</button><div class="b">{{why}}</div></li></template>
+<!-- ファイルの頭に置く、変更の一覧。印が内側の隠れたタブに入ることがある -->
+<template data-part="index"><details class="idx" open><summary>このファイルの変更 {{count}} 件</summary><ol>{{items}}</ol></details></template>
+<template data-part="index-item"><li><div class="w">{{why}}</div><div class="at"><span class="lbl">場所</span><code>{{find}}</code><button class="go" data-i="{{at}}">その箇所へ移動</button></div></li></template>
 
-<!-- 印 ── 3つの面のどれでも、この1つの形である -->
+<!-- 印 ── 3種類のファイルのどれでも、この1つの形である -->
 <template data-part="mark"><mark class="chg" tabindex="0" role="button" aria-expanded="false" data-b="{{before}}" data-w="{{why}}">{{body}}</mark></template>
 
 <!-- ── マークダウンの描画 ─────────────────────────────────── -->

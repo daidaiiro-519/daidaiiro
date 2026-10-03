@@ -319,7 +319,7 @@ fn a_target_is_marked_and_counted() {
     write(&folder, &spec);
     let got = record::build_record(&references(), &folder, false, false, "git").expect("組める");
     assert!(
-        got.lines.iter().any(|x| x.contains("印 1 件 / 1 面")),
+        got.lines.iter().any(|x| x.contains("印 1 件 / 1 ファイル")),
         "{:?}",
         got.lines
     );

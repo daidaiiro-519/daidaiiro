@@ -1,0 +1,257 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0100",
+ "title": "ACDR の差分の表示を、読める語と見た目に直す",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "acdr が組む1枚の下半分（ファイルごとの差分）を、ふだん使う言葉で書き、ファイルの種類によらず同じ形で並べ、上の節と同じく白い枠で区切る。",
+ "why": "利用者から、ACDR 0099 の1枚について3つの指摘を受けた（2026-10-03）。1つ目は、ファイルの種類によって変更の一覧の表し方が微妙に違うこと。2つ目は、変更の一覧の見出しの「面」のように、何を指すか分からない語を使っていること。3つ目は、下半分が頁と同じ色の上に直に書かれていて、背景とのコントラストも境目も無く、文字が見えにくいこと。上半分の節は前の指摘で白い枠に直したが、下半分は直っていなかった。",
+ "shift": [
+  {
+   "what": "変更の一覧の見出し",
+   "from": "何を指すか分からない「面」の語で、変更の件数を見出しにしていた",
+   "to": "このファイルの変更 N 件"
+  },
+  {
+   "what": "一覧の1件",
+   "from": "太字で探す文字列（途中で切れたコード）、その下に薄い字で理由、「その場所へ」",
+   "to": "1行目に理由、2行目に「場所」と探す文字列と「その箇所へ移動」"
+  },
+  {
+   "what": "ファイルの上の帯",
+   "from": "コードだけに「Git の差分として置く ・ まとまり N 件」。Markdown には帯が無い",
+   "to": "どのファイルにも同じ帯を置く ── 「Git の差分 ・ 変更箇所 N 件」「Markdown を描画した文書 ・ 変更箇所 N 件」「HTML（そのままの見た目）」"
+  },
+  {
+   "what": "変更箇所の数と一覧の件数",
+   "from": "削除だけの変更箇所に印が付かず、一覧から外れる（check.rs で変更箇所 4 件 ・ 一覧 3 件）",
+   "to": "削除だけの変更箇所にも印を付け、数が一致する"
+  },
+  {
+   "what": "下半分の見た目",
+   "from": "帯 ・ タブ ・ 一覧が頁と同じ色の上に直に在り、補足の文字は薄い灰色",
+   "to": "下半分を白い枠に入れ、タブと帯は一段濃い背景色、一覧は淡い色と左の線で区切る。文字は本文の色にする"
+  },
+  {
+   "what": "道具の出力と文書の語",
+   "from": "「印 N 件 / N 面」・ 差分の「まとまり」・ SKILL.md の「面」",
+   "to": "「印 N 件 / N ファイル」・「変更箇所」・ SKILL.md も「ファイルごとの差分」"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "下半分を白い枠に入れ、ファイルごとに同じ形（帯 → 変更の一覧 → 本文）で並べる",
+ "how": "型（acdr.template.html）の文言と並びを直し、Markdown のファイルにも帯を置いた。一覧の1件は、理由を先に、探す文字列を「場所」として後ろに置いた。見た目の正本（acdr.css）で下半分を白い枠に入れ、トークンに一覧の背景（index-bg）を足した。差分を組む処理（code.rs）は、印を置く行を先に決める形にし、削除だけの変更箇所にも印を付ける。そのテストを先に書き、失敗を確かめてから直した。トークンの検査（コントラストを含む）とテストは合格した。廃語の一覧に「この面」を足した。",
+ "applies_to": "acdr の型 ・ 見た目の正本 ・ 動きの正本 ・ トークン ・ 差分を組む処理（code.rs ・ panes.rs ・ record.rs）・ テスト ・ SKILL.md が変わる。リポジトリの廃語の一覧（.doc-writing/retired-words.json）にも1件足す。承認済みの記録は封印されているので、組み直さない。",
+ "alternatives": [
+  {
+   "option": "「面」を残し、SKILL.md で定義して使う",
+   "why_not": "定義を読まないと分からない語は、1枚を開いた人には通じない。ファイルの差分を指すので、ファイルと書けば足りる"
+  },
+  {
+   "option": "一覧の1件を、今までどおり探す文字列から書く",
+   "why_not": "探す文字列は、印を置く場所を決めるための文字列で、途中で切れたコードのことが多い。読み手が知りたいのは、何をなぜ変えたかである"
+  },
+  {
+   "option": "差分の「まとまり」を Git の用語「ハンク」と書く",
+   "why_not": "ハンクは Git に慣れた人には通じるが、承認する人が読む画面では、変更箇所のほうが意味がそのまま伝わる"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "css",
+   "tab": "acdr.css",
+   "file": ".claude/skills/acdr/references/acdr.css",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": ".idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}",
+     "before": "#bar{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:var(--bw-2) solid var(--move);\nmargin:0 -1.2rem var(--sp-21)}\nborder-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--panel);color:var(--muted);cursor:pointer}\n.pane.md{padding:var(--sp-23) var(--sp-27)}\n.lane{font-size:var(--fs-4);color:var(--muted);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) dashed var(--line);\nbackground:var(--panel);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}\n.lane .how{margin-left:auto;font-style:italic}\n.idx{border-bottom:var(--bw-1) solid var\n…",
+     "why": "帯 ・ タブ ・ 帯の文字 ・ 変更の一覧の見た目を直した。帯とタブは一段濃い背景色に置き、文字を本文の色にする。変更の一覧は淡い色と左の線で区切り、理由を先に、場所を後ろに小さく置く。Markdown のファイルでも帯を枠いっぱいに置く"
+    },
+    {
+     "find": "/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */",
+     "before": "/* 対比を付ける ── 頁は一段暗い面、節の枠は白い面。枠の境目で、どこからどこまでが1つの節かが分かる */",
+     "why": "注記の「面」を「背景色」にした"
+    },
+    {
+     "find": ".diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}",
+     "before": ".bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--muted);margin:0 0 var(--sp-15)}",
+     "why": "下半分を白い枠に入れる。前置きの文を本文の色にする"
+    }
+   ]
+  },
+  {
+   "key": "tokens",
+   "tab": "tokens.json",
+   "file": ".claude/skills/acdr/references/tokens.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"index-bg\": \"wash-move\"",
+     "before": "\"del-bg\": \"wash-gone\"",
+     "why": "変更の一覧の背景を、部品の層のトークンとして足した（基礎の wash-move を参照する）"
+    }
+   ]
+  },
+  {
+   "key": "js",
+   "tab": "acdr.js",
+   "file": ".claude/skills/acdr/references/acdr.js",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "/* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */",
+     "before": "/* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */",
+     "why": "注記の文言を、ボタンの新しい文言に合わせた"
+    },
+    {
+     "find": "b.textContent = shown ? \"その箇所へ移動\" : \"表示されていない箇所\";",
+     "before": "b.textContent = shown ? \"その場所へ\" : \"隠れたまま\";",
+     "why": "ボタンの文言を「その箇所へ移動」にした。移動できないときは「表示されていない箇所」と出す"
+    },
+    {
+     "find": "/* マークダウンのファイル */",
+     "before": "/* マークダウンの面 */",
+     "why": "注記の「面」を「ファイル」にした"
+    }
+   ]
+  },
+  {
+   "key": "panes",
+   "tab": "panes.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/panes.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\" ／ すべてに理由がある\".to_owned()",
+     "before": "\" ／ 全件に理由が付いている\".to_owned()",
+     "why": "帯の文言を「すべてに理由がある」にした"
+    },
+    {
+     "find": "let lane = parts.part(\"lane-md\", &[(\"count\", marked.kept.to_string())])?;",
+     "before": "（無い）",
+     "why": "Markdown のファイルにも、変更箇所の数を持つ帯を置く"
+    },
+    {
+     "find": "format!(\"{key}: 変更箇所 {all} 件のうち {miss} 件に理由が付いていない\"),",
+     "before": "ok.push((\"差分のまとまりに、全件理由が付いている\".to_owned(), true));\n                format!(\"{key}: まとまり {all} 件のうち {miss} 件に理由が付いていない\"),",
+     "why": "検査の文言の「まとまり」を「変更箇所」にした"
+    },
+    {
+     "find": "\"HTML のファイルに雛形が在る（{}／{}）\",",
+     "before": "\"HTML の面に雛形が在る（{}／{}）\",",
+     "why": "検査の文言の「面」を「ファイル」にした"
+    }
+   ]
+  },
+  {
+   "key": "code",
+   "tab": "code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/code.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "let head = parts.part(",
+     "before": "let mut head = parts.part(",
+     "why": "見出しの行に印の有無を書き足す処理をやめたので、変更しない値にした"
+    },
+    {
+     "find": ".or_else(|| hunk.iter().position(|(_, _, _, line)| line.contains(&find)))",
+     "before": "for (x, y, mk, line) in hunk {\n                let find = text_of(change, \"find\");\n                if *mk == '+' && line.contains(&find) && !head.contains(\"chg\") {",
+     "why": "印を置く行を先に決める。探す文字列を含む足した行、無ければ含む行、無ければ最初の消した行に置く。削除だけの変更箇所にも印が付き、一覧から外れない"
+    },
+    {
+     "find": "let cls = match mk {",
+     "before": "head.push_str(\"chg\");",
+     "why": "見出しの行に印の有無を書き足す処理を消した。印を置く行は先に決めている"
+    }
+   ]
+  },
+  {
+   "key": "record",
+   "tab": "record.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/record.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"  印 {} 件 / {} ファイル / {} 字\",",
+     "before": "\"  印 {} 件 / {} 面 / {} 字\",",
+     "why": "道具の出力の「面」を「ファイル」にした"
+    }
+   ]
+  },
+  {
+   "key": "tcode",
+   "tab": "tests/code.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/code.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "let diff = code::render_diff(&parts(), old, new, \".py\", &[change(\"a\", \"b\", \"消した理由\")])",
+     "before": "（無い）",
+     "why": "削除だけの変更箇所にも印が付くことを固定した。直す前に失敗することを確かめた"
+    }
+   ]
+  },
+  {
+   "key": "trecord",
+   "tab": "tests/record.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/record.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "got.lines.iter().any(|x| x.contains(\"印 1 件 / 1 ファイル\")),",
+     "before": "got.lines.iter().any(|x| x.contains(\"印 1 件 / 1 面\")),",
+     "why": "道具の出力の文言の変更に合わせた"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "下のファイルごとの差分が持つ",
+     "before": "具体の変更箇所と理由は、下の面が持つ。",
+     "why": "「面」を「ファイルごとの差分」にした"
+    },
+    {
+     "find": "ファイルの差分の見せ方は、拡張子で決まる",
+     "before": "面の中身は、拡張子で決まる。",
+     "why": "「面」を「ファイルの差分」にした"
+    }
+   ]
+  },
+  {
+   "key": "retired",
+   "tab": "retired-words.json",
+   "file": ".doc-writing/retired-words.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"source\": \"利用者の指摘（「この面の変更」の「面」という語は、何を指すか分からない）\"",
+     "before": "（無い）",
+     "why": "「この面」を廃語にした。ゲート1が検出する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "css": "0cda6d90d35880a10af5b12a885c485c747ea926616dfa4ccf1d0a94b75aaf8b",
+  "tokens": "43d392fd6980b73846049d6a50f6b89834ca1af55cbb2be86a5f28ecfe069e74",
+  "js": "53e2e44682fad6aeb0b672c77341722702b4b69b4f698d12fa9adfaf2501c0b1",
+  "panes": "a51ccf76ddb25c8e27859525afa6350a5edf95bd00122f26bca6a0c9810405cf",
+  "code": "f0e15ef408678df617020b5eff7528ec64eebb3109b5e2c5530927838b8e58b4",
+  "record": "a4a1c0802305ef185bcdf432bdc6f51c715dccc5e4b762d0a684e3f74e1f5c99",
+  "tcode": "e8f47cfaadaa8a7c6d5919f2df58b2a3e5518323e94c32c4f64d8b38eee3317d",
+  "trecord": "4bfaadab141c14c2dc879c8358e505e82a6d70c036d27dfbbad121c793e8e75d",
+  "skill": "56105ad6e2e399ab8547472278084611b75bbb0f483fdcfff5985ebff88b3e5b",
+  "retired": "2ae2f415817396f340cf726a819df6688c52666f79323f17effeb8c014d59f14"
+ }
+}

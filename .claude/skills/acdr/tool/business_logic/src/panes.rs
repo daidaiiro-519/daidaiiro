@@ -249,7 +249,7 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
                     let why = if miss > 0 {
                         parts.part("lane-nowhy", &[("count", miss.to_string())])?
                     } else {
-                        " ／ 全件に理由が付いている".to_owned()
+                        " ／ すべてに理由がある".to_owned()
                     };
                     (
                         diff.body,
@@ -280,10 +280,12 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
             .push(format!("{}/{} 件に印を付けた", marked.kept, marked.asked));
         let (kept, notes) = landed(&marked.body, marks);
         made.notes.extend(notes);
+        let lane = parts.part("lane-md", &[("count", marked.kept.to_string())])?;
         parts.part(
             "pane-md",
             &[
                 ("key", key),
+                ("lane", lane),
                 ("index", index(parts, &kept)?),
                 ("body", marked.body),
             ],
@@ -417,18 +419,18 @@ pub fn check(out: &str, spec: &Value, made: &Made) -> Vec<(String, bool)> {
         open == shut,
     ));
     if made.nowhy.is_empty() {
-        ok.push(("差分のまとまりに、全件理由が付いている".to_owned(), true));
+        ok.push(("差分の変更箇所すべてに理由が付いている".to_owned(), true));
     } else {
         for (key, miss, all) in &made.nowhy {
             ok.push((
-                format!("{key}: まとまり {all} 件のうち {miss} 件に理由が付いていない"),
+                format!("{key}: 変更箇所 {all} 件のうち {miss} 件に理由が付いていない"),
                 false,
             ));
         }
     }
     ok.push((
         format!(
-            "HTML の面に雛形が在る（{}／{}）",
+            "HTML のファイルに雛形が在る（{}／{}）",
             out.matches("<template").count(),
             made.embedded
         ),

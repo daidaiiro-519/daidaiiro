@@ -135,7 +135,7 @@
     return !!m.offsetParent;
   }
 
-  /* 一覧の「その場所へ」。印を開いて、そこまで運ぶ */
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
   document.querySelectorAll(".idx button.go").forEach(function(b){
     b.onclick = function(){
       var pane = b.closest(".pane");
@@ -151,7 +151,7 @@
       if (!m) return;
       var shown = reveal(m);
       if (m.getAttribute("aria-expanded") !== "true") m.click();
-      b.textContent = shown ? "その場所へ" : "隠れたまま";
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
       setTimeout(function(){
         var y = 0, e = m;
         while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
@@ -162,7 +162,7 @@
     };
   });
 
-  /* マークダウンの面 */
+  /* マークダウンのファイル */
   document.querySelectorAll(".pane.md, .pane.code-pane")
           .forEach(function(p){ wire(p, document); });
 

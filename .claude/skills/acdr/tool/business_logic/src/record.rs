@@ -382,7 +382,7 @@ pub fn build_record(
         lines.push("  封印した  対象の文書の sha256 を記録へ保存した".to_owned());
     }
     lines.push(format!(
-        "  印 {} 件 / {} 面 / {} 字",
+        "  印 {} 件 / {} ファイル / {} 字",
         made.total,
         array_of(&spec, "docs").len(),
         made.page.chars().count()
