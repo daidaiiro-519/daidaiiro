@@ -3,7 +3,8 @@ import json,html,sys,os,subprocess,itertools
 HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data3 import D
 from desc3 import DESC
-import drift
+import drift, spec_drift
+SPEC=spec_drift.checks()
 CONDS=drift.conditions(); REPORT=drift.report(CONDS); JUDGE,EXTRA=drift.judge(CONDS,REPORT)
 STONE={'合格':'t-success','不合格':'t-fail','欠け':'t-fail','古い':'t-fail','レベル違い':'t-fail','未実行':'t-caution','免除':''}
 OUT='/home/daidaiiro/workspace/daidaiiro/.brainstorming-board/usecase-driven-concrete/sample'
@@ -190,6 +191,7 @@ def p_uc(d):
     o=''
     if s.get('reply'): o+=f'<span class="ln"><span class="k">戻りメッセージ</span>{E(s["reply"])}</span>'
     if s.get('invokes'): o+=f'<span class="ln"><span class="k">コマンド</span>{cmd(s["invokes"])}</span>'
+    if s.get('keeps'): o+=f'<span class="ln"><span class="k">守る最低保証</span>{pills([m["name"] for m in g["minimal"] if m["id"] in s["keeps"]],"t-minimal")}</span>'
     if s.get('quality'): o+=f'<span class="ln"><span class="k">品質の要求</span>{qual(s["quality"])} '+''.join(tchip(f'{d["id"]}.{s["id"]}.{q}') for q in s['quality'])+'</span>'
     return o
   parts=[h['primary_actor'],'システム']+sc['supporting_actors']; msgs=[]; groups=[]
@@ -207,9 +209,14 @@ def p_uc(d):
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   b=head(d,' '+pill(h['level'])+f' ・ スコープ {ref(ctx)}')
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',E(h['trigger'])),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
-  gc=lambda title,items,key,cls: card(lab(title),''.join(item(x['name'],x['text'],f'<span class="ln">{whos(x[key])}</span>') for x in items),cls)
+  def pref(rr):
+    a,c,p=rr.split('.'); cm=[x for x in D[a]['commands'] if x['id']==c][0]; ca=D[a]['header']['context']
+    x=[y for y in cm['preconditions']+cm['postconditions'] if y['id']==p][0]
+    return f'{ref(a)}「{E(term(ca,cm["name"]))}」の{"事前条件" if p.startswith("PRE") else "事後条件"}<span class="no">{E(p)}</span>'
+  sline=lambda x: f'<span class="ln"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
+  gc=lambda title,items,key,cls: card(lab(title),''.join(item(x['name'],x['text'],f'<span class="ln">{whos(x[key])}</span>'+(sline(x) if key=='satisfies' else '')) for x in items),cls)
   b+='<div style="height:.75rem"></div>'+cards([gc('成功時保証',g['success'],'satisfies','top-success'),gc('最低保証',g['minimal'],'protects','top-minimal')])
-  b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[E(x['text']),ref(x['established_by'])] for x in d['preconditions']]))
+  b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース','これで起こらない拒否'],[[E(x['text']),ref(x['established_by']),'、'.join(pref(r) for r in x.get('ensures',[]))] for x in d['preconditions']]))
   rows=''.join(f'<tr><td class="num"><span>{s["no"]}</span></td><td>{act(s["actor"])}</td><td><b>{E(s["name"])}</b><span class="txt">{E(s["text"])}</span>{links(s)}</td><td>{whos(s.get("serves",[]))}</td><td>'+''.join(pill(x['label'],'t-fail' if x['ending']=='失敗' else 't-return') for x in s['extensions'])+'</td></tr>' for s in sc['steps'])
   rows+=f'<tr class="end"><td></td><td></td><td colspan="3">→ 成功時保証が成り立つ {tchip(d["id"]+".M")}</td></tr>'
   b+=block('主成功シナリオ','<div class="tw"><table><thead><tr><th>#</th><th>アクター</th><th>手順</th><th>守る利害関係者</th><th>拡張</th></tr></thead><tbody>'+rows+'</tbody></table></div>')
@@ -218,7 +225,7 @@ def p_uc(d):
     for x in s['extensions']:
       fail=x['ending']=='失敗'
       body=f'<span class="txt">{E(x["condition"].rstrip("："))} ・ {E(x["condition_kind"])}</span>'+''.join(f'<div class="hs"><span class="no">{E(t["no"])}</span>{act(t["actor"])}<span><b>{E(t["name"])}</b><span class="txt">{E(t["text"])}</span>{links(t)}</span></div>' for t in x['steps'])
-      if fail: body+=f'<span class="ln"><span class="k">成り立つ最低保証</span>{pills([m["name"] for m in g["minimal"] if m["id"] in x.get("guarantees_hold",[])],"t-minimal")}</span>'
+      if x.get('handles'): body=f'<span class="ln"><span class="k">扱う拒否</span>{"、".join(pref(r) for r in x["handles"])}</span>'+body
       ex.append(card(f'<span class="no">{E(x["label"])}</span>{E(x["name"])}'+pill('失敗' if fail else x['ending'],'t-fail' if fail else 't-return')+tchip(d['id']+'.'+x['id']),body,'left-fail' if fail else 'left-return'))
   b+=block('拡張',cards(ex))
   srows=[[f'<b>{E(x["who"])}</b>',f'<span class="txt">{E(x["interest"])}</span>','、'.join(str(s['no']) for s in sc['steps'] if k in s.get('serves',[])) or '<span class="missing">なし</span>',pills([m['name'] for m in g['success'] if k in m['satisfies']],'t-success')+pills([m['name'] for m in g['minimal'] if k in m['protects']],'t-minimal')] for k,x in sh.items()]
@@ -233,9 +240,19 @@ def p_drift():
   import collections
   cnt=collections.Counter(JUDGE.values())
   order=['合格','不合格','欠け','古い','未実行','レベル違い']
-  ok_all=all(v in('合格','免除') for v in JUDGE.values()) and not EXTRA
+  ok_all=all(v in('合格','免除') for v in JUDGE.values()) and not EXTRA and all(x['status']=='合格' for x in SPEC)
   b='<header class="ph"><p class="kind">テスト</p><h1>突き合わせ</h1></header>'+f'<p class="lead">報告：{E(REPORT["producer"])} ・ 宣言の版 {E(REPORT["spec_revision"])}</p>'
-  b+=tiles([('終了基準',pill('満たしている','t-success') if ok_all else pill('満たしていない','t-fail'))]+[(k if k!='合格' else '合格',f'<b style="font-size:1.3rem">{cnt.get(k,0)}</b>') for k in order]+[('余り',f'<b style="font-size:1.3rem">{len(EXTRA)}</b>')])
+  b+=tiles([('終了基準',pill('満たしている','t-success') if ok_all else pill('満たしていない','t-fail')),('条件','宣言どうしのずれが0件で、テスト条件がすべて合格し、余りが0件')])
+  scnt=collections.Counter(x['status'] for x in SPEC)
+  b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','対応の欠け','確かめ直し','レビュー','合格']])
+  CAT={'structure':'構造で検査','link':'対応の欄で検査','change':'上流の変更','review':'人のレビュー'}
+  SST={'合格':'t-success','ずれ':'t-fail','対応の欠け':'t-fail','確かめ直し':'t-caution','レビュー':'t-caution'}
+  def at(i):
+    if i.startswith('TERM-'): return f'「{E(term("BC-1",i))}」'
+    return ref(i.split('.')[0])+(f' <span class="no">{E(".".join(i.split(".")[1:]))}</span>' if '.' in i else '') if i and i.split('.')[0] in D else E(i)
+  srow=[[pill(x['status'],SST[x['status']]),E(CAT[x['category']]),E(x['check']),at(x['from']),'、'.join(at(t) for t in x['to'].split('・')) if x['to'] else '',E(x['text'])] for x in sorted(SPEC,key=lambda x:(x['status']=='合格',list(CAT).index(x['category'])))]
+  b+=block('宣言どうしの検査',tbl(['状態','分け方','検査','参照元','参照先','内容'],srow))
+  b+='<h2 class="sec">宣言とテスト実装</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{cnt.get(k,0)}</b>') for k in order]+[('余り',f'<b style="font-size:1.3rem">{len(EXTRA)}</b>')])
   b+=block('ドリフトの種類','<p class="txt">状態ごとの意味は ❓ にある。合格以外はすべて、終了基準を満たさない。</p>')
   rows=[[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in sorted(CONDS,key=lambda c:(order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9)*-1 if False else order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9,reverse=False)]
   rows=sorted(rows,key=lambda r:0 if '合格' in r[5] and 't-success' in r[5] else -1)

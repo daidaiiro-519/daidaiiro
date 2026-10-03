@@ -142,3 +142,15 @@ for c in D['AGG-2']['commands']: c['accept_examples']=[{"id":"OK-1","text":c.pop
 D['UC-1']['exemptions']=[]
 # 実装の定義（コーディング側）が持つ、文脈ごとの業務ロジックの実装方法。ここでは受注はドメインモデル
 IMPL={"BC-1":"ドメインモデル"}
+# 宣言どうしの対応（論点5）。参照は呼び出し側から1方向だけ書き、逆向きは道具が計算する
+U=D['UC-1']; st=U['scenario']['steps']
+for s in st:
+  for x in s['extensions']: x.pop('guarantees_hold',None)   # 最低保証はどう終わっても守られるので、全件と同じになり、持たない
+st[2]['extensions'][0]['handles']=['AGG-2.CMD-1.PRE-1']        # 3a 調理の空きがない
+[p for p in U['preconditions'] if p['id']=='PRE-2'][0]['ensures']=['AGG-1.CMD-1.PRE-2']
+sg={x['id']:x for x in U['guarantees']['success']}
+sg['SG-1']['established_by']=['AGG-1.CMD-1.POST-1']
+sg['SG-2']['established_by']=['AGG-1.CMD-1.POST-2','AGG-2.CMD-1.POST-1']
+st[3]['keeps']=['MG-1']                                        # 承認を得てから確定へ進む
+ex4=st[3]['extensions'][0]['steps']
+ex4[0]['keeps']=['MG-2']; ex4[1]['keeps']=['MG-3']

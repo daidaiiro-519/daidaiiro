@@ -5,6 +5,11 @@ LEVEL={"ドメインモデル":{"use_case":"system","quality":"system","aggregat
        "アクティブレコード":{"use_case":"system","quality":"system","aggregate":"component-integration","value_object":"component","domain_service":"component-integration"},
        "トランザクションスクリプト":{"use_case":"system","quality":"system","aggregate":"system","value_object":"component","domain_service":"system"}}
 def fp(obj): return hashlib.sha256(json.dumps(obj,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:8]
+def up(ref):
+  # 期待する結果を決める上流の項目を、1段だけ含める
+  p=ref.split('.'); c=[x for x in D[p[0]]['commands'] if x['id']==p[1]][0]
+  x=[y for y in c['preconditions']+c['postconditions'] if y['id']==p[2]][0]
+  return {k:x[k] for k in ('condition','reject','example') if k in x}
 def ctx_of(d): return d['header'].get('context') or (d['header'].get('scope') or {}).get('context')
 def conditions():
   out=[]
@@ -14,11 +19,11 @@ def conditions():
   for k,d in D.items():
     if d['kind']=='use_case':
       sc=d['scenario']; g=d['guarantees']
-      add(f'{k}.M','主成功シナリオ','use_case','成功時保証がすべて成り立つ',{"steps":[(s['actor'],s['text']) for s in sc['steps']],"success":[x['text'] for x in g['success']]},k,'M')
+      add(f'{k}.M','主成功シナリオ','use_case','成功時保証がすべて成り立つ',{"steps":[(s['actor'],s['text']) for s in sc['steps']],"success":[x['text'] for x in g['success']],"by":[up(r) for x in g['success'] for r in x.get('established_by',[])]},k,'M')
       for s in sc['steps']:
         for x in s['extensions']:
           fail=x['ending']=='失敗'
-          add(f'{k}.{x["id"]}',x['label'],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順に戻り、成功時保証が成り立つ',{"cond":x['condition'],"steps":[(t['actor'],t['text']) for t in x['steps']],"ending":x['ending'],"hold":[m['text'] for m in g['minimal'] if m['id'] in x.get('guarantees_hold',[])]},k,x['id'])
+          add(f'{k}.{x["id"]}',x['label'],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順に戻り、成功時保証が成り立つ',{"cond":x['condition'],"steps":[(t['actor'],t['text']) for t in x['steps']],"ending":x['ending'],"hold":[m['text'] for m in g['minimal']] if fail else [],"handles":[up(r) for r in x.get('handles',[])]},k,x['id'])
         for q in s.get('quality',[]):
           qt=[x for x in D['DOM-1']['quality'] if x['id']==q][0]
           add(f'{k}.{s["id"]}.{q}',f'手順{s["no"]}の品質の要求','quality',qt['text'],{"q":qt['text'],"step":s['text']},k,s['id'])
