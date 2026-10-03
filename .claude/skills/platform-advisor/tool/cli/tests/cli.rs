@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //! platform-advisor の CLI の共通の決まりを、実行ファイルを起動して確かめる。**どの Skill の CLI も同じ決まりに従う**
-//! ── 契約のテストケース（skills-creator の references/contract/cases/）が、同じ名前で同じことを確かめる。
+//! ── 契約のテストケースが、同じ名前で同じことを確かめる。
 //!
 //!     cargo test -p pa_cli
 

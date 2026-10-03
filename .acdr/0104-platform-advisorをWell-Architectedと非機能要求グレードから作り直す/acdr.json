@@ -1,0 +1,282 @@
+{
+ "$schema": "../../.claude/skills/acdr/references/acdr.schema.json",
+ "no": "ACDR 0104",
+ "title": "platform-advisor を Well-Architected と非機能要求グレードから作り直す",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "platform-advisor を、システムの非機能の設計と、非機能要求をどの水準で求めるかの相談に、原典の頁ごとの根拠を示して答える助言型の Skill に作り直す。設計の判断基準は AWS Well-Architected フレームワーク（日本語版）の質問57件から、水準は IPA 非機能要求グレード2018 の中項目35件から作る。",
+ "why": "今の platform-advisor の判断基準6件は、Well-Architected の柱と Google SRE を柱の単位でまとめたものである。原典の頁ごとの出典と学習ノートを持たない（助言型の手順 ACDR 0061 ・ 0067 より前の形）。目的も「デプロイ単位の可用性 ・ スケーラビリティ ・ セキュリティ境界 ・ インフラ構成」に限られ、どの水準を求めるかには答えられなかった。ブレストボード platform-advisor-source で、目的を非機能の設計と水準に置いた（379b4c95、3つの論点とも利用者が承認）。主な原典を Well-Architected 日本語版、補いを非機能要求グレードの活用シートにし、質問1つと中項目1つを1件にすると決めた。usecase ・ ddd ・ qa と同じ手順で作り直し、助言型の作り直しをそろえる。",
+ "shift": [
+  {
+   "what": "platform-advisor が支える判断",
+   "from": "デプロイ単位の可用性 ・ スケーラビリティ ・ セキュリティ境界 ・ インフラ構成の判断相談だけ",
+   "to": "非機能の設計（6本の柱）と、非機能要求をどの水準で求めるか。概念相談 ・ 判断相談 ・ 設計相談の3つ"
+  },
+  {
+   "what": "判断基準",
+   "from": "6件。柱1つと SRE を1件にまとめ、出典は柱の単位",
+   "to": "57件。Well-Architected の質問1つが1件で、その質問のベストプラクティスが要素になる。要素ごとに頁の URL を出典に持つ"
+  },
+  {
+   "what": "水準",
+   "from": "無い",
+   "to": "35件（grades.json）。非機能要求グレードの中項目1つが1件で、小項目ごとのレベルの表と、重要項目のモデルシステムの選択レベルの表を持つ。表はシートの文字のまま移した"
+  },
+  {
+   "what": "回答の根拠",
+   "from": "判断基準だけを指す",
+   "to": "判断基準を指す grounds と、水準を指す grade_grounds の少なくとも一方を置く。どちらも id と引用を validate が照合する"
+  },
+  {
+   "what": "使用条件",
+   "from": "Skill 全体が MIT",
+   "to": "criteria.json は CC BY-SA 4.0、grades.json は IPA の使用条件。どちらも licenses.json に書く。ほかは MIT のまま"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "2つの原典から、それぞれ学習ノートを作り、判断基準57件と水準35件にする。回答の根拠は両方を指せる",
+ "how": "Well-Architected の質問の頁57件 ・ ベストプラクティスの頁307件 ・ 設計原則の頁と、非機能要求グレードの ZIP を取得し、platform-advisor の archive（git の外）に置いた。原典の記録は archive/NOTES.md にある。質問のまとまりごとに8人、水準に2人の担当を立て、質問1つに学習ノート1本と判断基準1件を作らせた。担当は要素ごとに原典の頁と照合し、条件の脱落 ・ 原典に無い因果 ・ 範囲の拡大を直した。BP の名前とリスクレベルは原文の文字列と機械で照らした。水準のレベルの表と選択レベルの表は、活用シートから機械で移し（全1178行がシートと一致）、概要と備考のまとめだけを担当が書いた。BP の名前と質問の題は、本文では「」で囲んで原典の名前として示す。スキーマは qa-advisor の現行の形にそろえ、水準の種類 grades と使用条件の種類 licenses を足した。受け入れの検査は機械の7件すべてに合格し、契約の検査（check --cases 1）も通った。試しの相談（受注システムの RPO とマルチ AZ）は validate とゲート1に合格した。判断基準 ・ 水準 ・ 試しの相談の頁は http://127.0.0.1:8749/platform/ で見られる。 criteria.schema.json は qa-advisor のものの写しで、違いは4か所（title ・ description ・ id と title の説明）だけである。機械で比べて確かめたので、差分の画面には載せない。",
+ "applies_to": "platform-advisor の SKILL.md と references が変わる。criteria.json と criteria.schema.json ・ answer.schema.json を書き換える。grades.schema.json と grades.json ・ licenses.schema.json と licenses.json を足す。figures の旧い図6枚を外す。道具のテスト（references.rs ・ cli.rs ・ 回答の例）も変わる。配線表の platform-advisor の行と、.gitignore の archive の行も変わる。criteria.json（57件）と grades.json（35件）は大きいので差分に載せず、頁で見る。",
+ "alternatives": [
+  {
+   "option": "今の6件を残し、出典だけを足す",
+   "why_not": "柱1つを1件にまとめた形では、要素ごとに頁の出典を持てない。水準の相談にも答えられない"
+  },
+  {
+   "option": "ベストプラクティス1つを1件にする（約300件）",
+   "why_not": "件数が多く、関係する件を探す手間が増える（ボードの論点3で比べた）"
+  },
+  {
+   "option": "水準を判断基準の要素に混ぜる",
+   "why_not": "CC BY-SA 4.0 と IPA の使用条件が1つのファイルに混じり、配るときの条件が決まらない"
+  },
+  {
+   "option": "BP の名前を「」で囲まず、受け入れの検査を直す",
+   "why_not": "検査はすでに「」の中を原典の名前として扱う決まりを持つ。検査を変えると、ほかの advisor の判定も変わる"
+  },
+  {
+   "option": "水準の備考を、小項目をまたいでまとめて要素を14個以下にする",
+   "why_not": "小項目ごとの備考がどの表の話かが分からなくなる。数が増えるのは、シートから移した表が多い中項目（c-5 ・ c-6）だけである"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "記憶の現在地を、platform の完了と ux の次の作業へ進める"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/platform-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "非機能の設計を組み立てる",
+     "before": "description: \"可用性・スケーラビリティ・セキュリティ境界・インフラ構成に関する判断相談を受けたときに使う。アプリケーション内部のレイヤー配置・依存方向が判定済みであれば、それを入力として受け取り、その外側（デプロイ単位がどう動かされ、どう外部と繋がるか）の判断精度を調整する。未判定でも単体で回答できる。判断結果はインフラ仕様書の記述として活用できる。\"\n# 可用性・スケーラビリティ・セキュリティ境界の判断を行うSkill：platform-advisor\n可用性・スケーラビリティ・セキュリティ境界・インフラ構成に関する判断相談を受けたときに使う。アプリケーション内部のレイヤー配置・依存方向が判定済みであれば、それを入力として受け取り、その外側（デプロイ単位がどう動かされ、どう外部と繋がるか）の判断精度を調整する。未判定でも単体で回答できる。判断結果はインフラ仕様書の記述として活用できる。\n- SRE/セキュリティ/クラウドアーキテクチャの専門家として、確立された知見（Google SRE等）に基づいて回答する\n- 可用性・スケーラビリティの目標（SLI/SLO/エラーバジェット）を、業務要件を根拠に設定・判断する\n- セキュリティ境界（アクセス制御・データ分類）を確立された原則に基づいて判断する\n- アンチパターンを見つけたときはリスクと代替案をセットで提示する",
+     "why": "目的 ・ 役割 ・ 相談種別 ・ 手順 ・ ガードレールを、決めた目的（非機能の設計と水準）と、qa-advisor と同じ助言型の現行の形に書き直した。旧版は判断相談1つだけで、SRE の知見を AI がまとめたものとして書いていた"
+    },
+    {
+     "find": "この領域での相談の例：「静的安定性とは何か」（概念）・「この業務にマルチリージョンの構成を採るべきか」（判断）・「この業務の RPO と RTO をどの水準で求めるべきか」（判断）・「障害からの復旧の手順をどう組み立てるか」（設計）",
+     "before": "| インフラ・可用性・セキュリティ境界の判断相談 | 「このサービスの可用性目標をどう決めるべきか」「このデータへのアクセス範囲はこれでよいか」等の可用性・スケーラビリティ・セキュリティ境界・インフラ構成に関する相談 | `judgment` | 前置き ・ 判断の道筋 |",
+     "why": "目的 ・ 役割 ・ 相談種別 ・ 手順 ・ ガードレールを、決めた目的（非機能の設計と水準）と、qa-advisor と同じ助言型の現行の形に書き直した。旧版は判断相談1つだけで、SRE の知見を AI がまとめたものとして書いていた"
+    },
+    {
+     "find": "水準を示すときは、メトリクスとレベルの番号と内容を組で書く",
+     "before": "| 判断対象のサービス・システムの状況 | 明示されなければ対象のサービス名・システム構成をユーザーに確認する。抽象論だけで判断を返さない。 |\n| アプリケーション内部のレイヤー配置判定結果（この関心事がアプリケーション内部かインフラ・運用側か） | 明示されなければ不明として扱い、可用性・スケーラビリティ・セキュリティ境界等のインフラ・運用側の判断のみ行う（アプリケーション内部の層配置は範囲外であり、platform-advisorが代わりに判定しない）。 |\n### Step 1: レイヤー配置の判定結果を確認する\nこの関心事がアプリケーション内部のレイヤー配置か、インフラ・運用・セキュリティ境界（platform-advisorの領域）かを切り分ける。\n- アプリケーション内部の層配置・依存方向の話であれば、その判定は範囲外であることを伝える\n- 可用性・スケーラビリティ・セキュリティ境界・インフラ構成の話であれば、この先の手順に進む\n### Step 2: 対応する判断基準を特定して必ず読む\n\n相談内容に関連するSRE/セキュリティ/クラウドアーキテクチャの概念を特定し、下の参照の一覧から判断基準の id を特定し、**道具で1件ずつ取り出して読む**。この手順を完了する前に回答を始めてはならない。\n- 可用性・スケーラビリティ目標の相談 → `reliability-t\n…",
+     "why": "目的 ・ 役割 ・ 相談種別 ・ 手順 ・ ガードレールを、決めた目的（非機能の設計と水準）と、qa-advisor と同じ助言型の現行の形に書き直した。旧版は判断相談1つだけで、SRE の知見を AI がまとめたものとして書いていた"
+    },
+    {
+     "find": "非機能の設計の判断基準（57件）",
+     "before": "| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（6件）。1件が1つの概念。本文は論点（主張と、定義 ・ 規則 ・ 移行 ・ 対比 ・ 図 ・ 手順 ・ 例 ・ 注意 ・ 補足の単位）で持つ。**どの欄の値も原典の書き起こしの一部であり、原典に無い文字列を保持しない** |\n| `references/figures/*.svg` | 判断基準の図。design-svg が宣言から組んだもの。宣言は図の単位の `declaration` が保持する |\n判断基準の id は次である。\n| id | 題 |\n|---|---|\n| `cost-optimization` | 「インフラ・システムのコスト管理の判断を対象とする概念」 |\n| `observability-design` | 「可観測性（ログ・メトリクス・トレース）の設計原則を対象とする概念」 |\n| `performance-efficiency` | 「パフォーマンス効率の設計判断を対象とする概念」 |\n| `reliability-targets-and-error-budgets` | 「信頼性目標とエラーバジェットの設定を対象とする概念」 |\n| `security-boundary-and-least-privilege` | 「セキュリ\n…",
+     "why": "目的 ・ 役割 ・ 相談種別 ・ 手順 ・ ガードレールを、決めた目的（非機能の設計と水準）と、qa-advisor と同じ助言型の現行の形に書き直した。旧版は判断相談1つだけで、SRE の知見を AI がまとめたものとして書いていた"
+    }
+   ]
+  },
+  {
+   "key": "ans",
+   "tab": "answer.schema.json",
+   "file": ".claude/skills/platform-advisor/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"platform-advisor が、システムの非機能の設計と、求める水準の相談に回答するときの形。人は描画した HTML で読む\",",
+     "before": "\"description\": \"platform-advisor が 可用性 ・ スケーラビリティ ・ セキュリティ境界 ・ インフラ構成の判断に回答するときの形。人は描画した HTML で読む\",",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"grounds\",",
+     "before": "\"grounds\",",
+     "why": "水準だけで答える相談もあるので、grounds を必須の欄から外した。代わりに、grounds と grade_grounds の少なくとも一方を置くことを anyOf で求める"
+    },
+    {
+     "find": "\"description\": \"全ての助言型に共通する3つ（ACDR 0061）。概念は「〜とは」、判断は「〜すべきか」「この案でよいか」、設計は「〜をどう組み立てるか」\"",
+     "before": "]",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"const\": \"sound\",",
+     "before": "（無い）",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"description\": \"図の SVG の置き場所（任意）。描く道具は問わない ── 回答の図は、節点と辺の宣言だけで成り立つ\"",
+     "before": "\"description\": \"design-svg が組んだ SVG の置き場所\"\n      },\n      \"$comment\": \"節点と辺で宣言する。SVG は design-svg が組み、Orchestrator が svg の欄に置く。閉じた流れは輪の配置で組む\"",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"title\": \"設計の手順\",",
+     "before": "\"title\": \"実装の手順\",",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"title\": \"水準の根拠\",",
+     "before": "\"type\": \"string\"\n            \"type\": \"string\"",
+     "why": "根拠の id と引用を validate が判断基準に照らせるよう、x-refers と x-quotes を付けた（qa-advisor と同じ）。あわせて、水準を指す grade_grounds を足し、同じ照合を水準にもかけた（ボードの論点3）"
+    },
+    {
+     "find": "\"$comment\": \"1件に1つの行為を書き、動詞で終わる文にする\"",
+     "before": "\"$comment\": \"動詞で始める\"",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"definition\",",
+     "before": "（無い）",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"$comment\": \"根拠は、判断基準（criteria）を指す grounds と、水準（grades）を指す grade_grounds の少なくとも一方を持つ\",",
+     "before": "\"premises\",\n  \"$comment\": \"人は HTML で読む。description は読み手に表示する説明、$comment は回答を書く側への指示で、描画しない。x-view は見せ方の指定である。回答は相談ごとの出力であり、references に置かない\",",
+     "why": "回答の形を qa-advisor の現行の形（相談種別3つ ・ 根拠の id と引用の照合）にそろえた。旧版は判断相談だけで、根拠の id を照合しなかった"
+    },
+    {
+     "find": "\"anyOf\": [",
+     "before": "}",
+     "why": "水準を根拠に引けるよう、grades を指す grade_grounds を足した（ボードの論点3）。水準だけで答える相談もあるので、grounds を必須から外し、grounds と grade_grounds の少なくとも一方を置く形にした"
+    },
+    {
+     "find": "\"title\": \"関係\",",
+     "before": "\"type\": \"string\"",
+     "why": "関連する基準の id も、validate が判断基準に照らせるよう x-refers を付けた（qa-advisor と同じ）"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/references.rs",
+   "file": ".claude/skills/platform-advisor/tool/business_logic/tests/references.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! platform-advisor の references を事例で検証する。**助言型の雛形の事例5件である**（ACDR 0061）。",
+     "before": "//! platform-advisor の references を事例で検証する。**判断基準と回答の形が、スキーマに合う。**",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id（observability-design）に依存していた。全件を id で取り出せることを、判断基準と水準の両方で確かめる"
+    },
+    {
+     "find": "fn fixture(name: &str) -> PathBuf {",
+     "before": "（無い）",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id（observability-design）に依存していた。全件を id で取り出せることを、判断基準と水準の両方で確かめる"
+    },
+    {
+     "find": "let found = refs::validate_file(&references(), \"answer\", &fixture(\"answer.example.json\"))",
+     "before": "fn a_criterion_is_taken_by_its_id() {\n    let one = refs::get(&references(), \"criteria\", Some(\"observability-design\")).expect(\"在る\");\n    assert!(one[\"title\"]\n        .as_str()\n        .unwrap_or_default()\n        .contains(\"可観測性\"));\n    assert!(\n        one[\"answers\"].as_array().is_some_and(|a| !a.is_empty()),\n        \"答える判断が在る\"\n    );\n    let fx = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"tests/fixtures/answer.judgment.json\");\n    let found = refs::validate_file(&references(), \"answer\", &fx).expect(\"読める\");",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id（observability-design）に依存していた。全件を id で取り出せることを、判断基準と水準の両方で確かめる"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "tests/cli.rs",
+   "file": ".claude/skills/platform-advisor/tool/cli/tests/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ── 契約のテストケースが、同じ名前で同じことを確かめる。",
+     "before": "//! ── 契約のテストケース（skills-creator の references/contract/cases/）が、同じ名前で同じことを確かめる。",
+     "why": "受け入れの検査6（他の Skill の名前が無い）に合わせ、コメントから skills-creator の名前を外した"
+    }
+   ]
+  },
+  {
+   "key": "wire",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"request\": \"非機能の設計（運用上の優秀性・セキュリティ・信頼性・パフォーマンス効率・コスト最適化・持続可能性）と、非機能要求をどの水準で求めるかを見てもらう\",",
+     "before": "\"request\": \"デプロイ単位の可用性・スケーラビリティ・セキュリティ境界・インフラ構成を見てもらう\",\n      \"when\": \"設計判断（デプロイ単位の動かし方・外部との接続を含むもの）\",",
+     "why": "platform-advisor に頼む内容を、決めた目的（6本の柱の非機能の設計と水準）に合わせた。旧い行は可用性 ・ スケーラビリティ ・ セキュリティ境界 ・ インフラ構成に限っていた。水準を決める設計判断でも呼ばれるよう、どの作業のときにも水準を足した"
+    }
+   ]
+  },
+  {
+   "key": "ign",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".claude/skills/platform-advisor/references/archive/",
+     "before": "（無い）",
+     "why": "platform-advisor の archive（原典の原文と学習ノート）を git の外に置く。ほかの advisor と同じ扱いである"
+    }
+   ]
+  },
+  {
+   "key": "gsch",
+   "tab": "grades.schema.json",
+   "file": ".claude/skills/platform-advisor/references/grades.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "非機能要求の水準",
+     "before": "（無い）",
+     "why": "水準の種類を足した。形は判断基準と同じで、1件が非機能要求グレードの中項目1つである。判断基準と別のファイルにしたのは、使用条件が違うためである（ボードの論点2）"
+    }
+   ]
+  },
+  {
+   "key": "lic",
+   "tab": "licenses.json",
+   "file": ".claude/skills/platform-advisor/references/licenses.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "判断基準（criteria.json）",
+     "before": "（無い）",
+     "why": "criteria.json は Well-Architected（CC BY-SA 4.0）の翻案なので、同じ条件で配り、出典を書く"
+    },
+    {
+     "find": "水準（grades.json）",
+     "before": "（無い）",
+     "why": "grades.json は活用シートの改変なので、IPA の使用条件を含め、二次利用時の著作権の表示「(c) 2010-公開年 独立行政法人情報処理推進機構,二次著作権者名」の形で書く。使用条件7.により、問い合わせ先は再配布元にする"
+    }
+   ]
+  },
+  {
+   "key": "fix",
+   "tab": "回答の例",
+   "file": ".claude/skills/platform-advisor/tool/business_logic/tests/fixtures/answer.example.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "judgment",
+     "before": "（無い）",
+     "why": "試しの相談（受注システムの RPO とマルチ AZ）を、道具の試験の回答の例にした。判断基準と水準の両方を根拠に引く"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "0a4d076b4af3b54da634b1acc4245b473f6f8d9f8d7fed9a237d1489478f6733",
+  "ans": "c79b9ed66067563cddde7175efb09895ae195d18f93cd372e85851572b964129",
+  "test": "2a56243beb0917701cc4833931912c0f430add89fe6243197eef997c6a9e97af",
+  "cli": "f2ed9f5091749f28f29456912d28cb0d1ba683b4b4afe175d578a9b4c1140e8a",
+  "wire": "7f9610a1037ce576d4537cae2e2a59fcd35f2438adf5759edc7d6a632579e414",
+  "ign": "6d530d792735489bb33f9960a6c14e2cc908854f0ee53e670fde469759f480c1",
+  "gsch": "adabe162d1da9f1299d4f388d2595576c6f35f7eef8fcd43d6260d2787fd3853",
+  "lic": "b8c1b52ed5206f55f49978d4754e69a8653c1ba0fd621f7ea87a12481304acfe",
+  "fix": "f0c98d160dea70effb87fa8495d12f5fcd26f67e323622a9ea816fef9533d798"
+ }
+}
