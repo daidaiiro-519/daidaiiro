@@ -1,0 +1,511 @@
+{
+ "round": 4,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点が、ほかの4つの論点の前提になる。何を契約に置くかで、正しさの検証の仕方も雛形の形も決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>契約を、次の3つの部分で持つ。どれも、道具を書く言語に依存しない</p><ol><li><b class=\"lead-s\">Skill の構成</b><div class=\"sub-s\">フォルダと置くファイル（SKILL.md ・ references ・ tool.json ・ mcp.json ・ 実装の置き場所 ・ 試験の置き場所）</div></li><li><b class=\"lead-s\">道具の外形</b><div class=\"sub-s\">命令 ・ 引数 ・ 終了コード ・ --json の出力の形 ・ 旗の扱いと、tool.json が持つ欄（起動 ・ 組み立て ・ 試験 ・ 整形のコマンド）</div></li><li><b class=\"lead-s\">正解の事例</b><div class=\"sub-s\">入力（references と回答）と呼び出しに対して、期待する出力（終了コード ・ JSON ・ HTML）を組で持つ。共通の道具の振る舞いは、この事例が決める</div></li></ol><p>振る舞いの見本として、Rust の実装を1組だけ持つ。見本は契約ではなく、正解の事例に合格する実装の1つである</p><p>Rust 以外の言語で Skill を作るときは、AI が見本からその言語の実装を書き起こし、正解の事例に合格したら渡す。書き起こした実装は skills-creator に保存しない</p><p>層の構成（4層と依存の向き）は、ACDR 0059 のとおり契約に入れず、見本が推奨の形として持つ</p>"
+    ]
+   ],
+   "answer": [
+    [
+     "契約は3つの部分を持つ。Skill の構成 ・ 道具の外形（tool.json の欄を含む）・ 正解の事例である。振る舞いの見本として Rust の実装を1組だけ持ち、ほかの言語の実装は、Skill を作るときに AI が見本から書き起こし、正解の事例に合格させる"
+    ]
+   ],
+   "figures": [
+    [
+     "契約と Rust の見本から、Go でも Python でも AI が Skill を書き起こし、正解の事例で同じ振る舞いかを検証する",
+     "c7efe7d027bd"
+    ]
+   ],
+   "example": [
+    [
+     "<p>契約の置き場所は skills-creator/references/contract/ である。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>中身</th><th>今の置き場所</th></tr></thead><tbody><tr><th>contract/structure.json</th><td><b class=\"lead-s\">Skill の構成</b><div class=\"sub-s\">置くファイルと、無くてよいもの</div></td><td>document.json の folder-structure と tool-contract に分散</td></tr><tr><th>contract/tools.json</th><td><b class=\"lead-s\">道具の外形</b><div class=\"sub-s\">命令 ・ 引数 ・ 終了コード ・ 出力の形 ・ tool.json の欄</div></td><td>document.json の tool-contract</td></tr><tr><th>contract/cases/</th><td><b class=\"lead-s\">正解の事例</b><div class=\"sub-s\">入力 ・ 呼び出し ・ 期待する出力</div></td><td>無し（各言語582件の突き合わせが、Rust の出力との比較で代用している）</td></tr><tr><th>reference/rust/</th><td><b class=\"lead-s\">振る舞いの見本</b><div class=\"sub-s\">Rust の実装1組（契約の外）</div></td><td>profiles/rust/ の雛形（5,106行）</td></tr><tr><th>（置かない）</th><td><b class=\"lead-s\">Go ・ Python ・ TypeScript ・ C# の実装</b><div class=\"sub-s\">Skill を作るときに AI が見本から書き起こす</div></td><td>profiles/<言語>/ の雛形（4言語で約14,000行）</td></tr></tbody></table></div><p>正解の事例の例（どの言語で書いた道具も、この出力を返せば合格）</p><pre><code><pre><code>{\n  \"case\": \"根拠の引用が判断基準に無い\",\n  \"references\": \"cases/grounds/references/\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"cases/grounds/answer.json\"],\n  \"expect\": {\n    \"exit\": 1,\n    \"findings\": [\"…: /grounds/3/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」\"]\n  }\n}</code></pre></code></pre><p>tool.json の例（Rust で書いた Skill。Go で書くなら、同じ欄に go build や go test を書く）</p><pre><code><pre><code>{\n  \"contract\": 3,\n  \"cli\":    { \"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/qa-advisor/bin/qa-advisor\", \"args\": [] },\n  \"build\":  [[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"]],\n  \"test\":   [[\"cargo\", \"test\", \"--manifest-path\", \"tool/Cargo.toml\"]],\n  \"format\": [[\"cargo\", \"fmt\", \"--manifest-path\", \"tool/Cargo.toml\", \"--\", \"--check\"]],\n  \"external\": []\n}</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "Rust の見本と正解の事例を持つ",
+     "契約に構成 ・ 外形 ・ 正解の事例を置き、振る舞いの見本として Rust の実装を1組だけ持つ。ほかの言語は AI が見本から書き起こす",
+     "正解の事例を、変わって困る振る舞いがすべて入るまで厚くする。事例に無い振る舞いは、言語ごとに変わってよいことになる"
+    ],
+    [
+     "擬似言語のコードを正本にする",
+     "契約に、言語を問わないコード（型 ・ 関数 ・ 制御の流れ）と基本操作の定義を置き、どの言語も AI がそこから書き起こす",
+     "擬似言語は実行できないので、誤りを試験で見つけられない。擬似言語 ・ 正解の事例 ・ 基本操作の定義の3つを保守する"
+    ]
+   ],
+   "dropped": [
+    [
+     "今のまま、5言語の実装の雛形を正本にする",
+     "振る舞いを1つ直すたびに、5言語を書き直す（ACDR 0090 では4人の担当で移植した）。Rust が事実上の正本になり、ACDR 0036 の「契約は呼ぶ側から観察できるものだけ」と食い違う"
+    ],
+    [
+     "外形（命令 ・ 引数 ・ 終了コード）だけを契約にし、振る舞いは Skill ごとに任せる",
+     "共通の道具の出力が Skill ごとに変わる。回答の HTML の形も、validate の引用の照合も一致しなくなる"
+    ],
+    [
+     "層の構成（4層と依存の向き）も契約に入れる",
+     "ACDR 0059 で、中身の設計は Skill が決めるとした。契約に入れると、ポートとアダプターを選ぶ Skill が契約に違反する"
+    ],
+    [
+     "言語ごとの決まり（組み立て ・ 試験 ・ 整形のコマンド）を skills-creator に置く",
+     "skills-creator が言語の一覧を持つことになり、新しい言語のたびに skills-creator を直す。コマンドはその Skill の動かし方なので、Skill の tool.json に置けば足りる"
+    ],
+    [
+     "擬似言語の手順（日本語の文で書いた手順）を正本にする",
+     "人が読んで理解するには足りても、そこから動くコードは書けない。分け方 ・ 入出力 ・ 文字の数え方などが文の行間に埋もれる"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>契約を5つの部分で持ち、5つ目に言語ごとの決まり（組み立て ・ 試験 ・ 整形 ・ 起動のコマンド）を置く</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">言語毎の決まりっているの？ 今回言語依存しないように擬似言語にするのでは？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>5つ目の部分（言語ごとの決まり）と、その置き場所 languages/*.json</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>コマンドは、その Skill をどう動かすかである。Skill の tool.json に書けば、skills-creator は言語を1つも知らずに済む。起動のコマンドは今も tool.json が持っている</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">B</span>擬似言語の手順の例を、手順だけの短い記述で示した</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">この擬似言語の内容では語彙も理解不能だけどあなたはこれ見てわかるの？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>手順だけの例（目的 ・ 語の定義 ・ 入力と出力 ・ 実例が無い）</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>書き手は Rust で実装したので読めたが、初めて読む人には「引用」「片」が何か、何のための手順かが分からない。擬似言語の手順は、目的 ・ 語 ・ 入力と出力 ・ 手順 ・ 実例の5つを必ず持つ</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">B</span>契約を4つの部分で持ち、共通の道具の振る舞いを擬似言語で書く</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"2\"><span class=\"kind k-given\">差し戻し</span><small>2件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">これなんか擬似げんごおもってたのとちがうわ。これだと動くものできなさそうだね</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">それかさ見本はrustにしてそれと同じ振る舞いのもを別の言語でaiに作らせる方がよっぽど擬似言語より筋がいいのでは？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>擬似言語で振る舞いを書く部分。振る舞いは正解の事例が決め、見本は Rust の実装1組が持つ</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>擬似言語は実行できないので、誤りを試験で見つけられない。Rust の見本は動き、正解の事例で検証できる。書き起こすのは AI なので、Go で書く人が Rust を読む負担は生じない</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "ACDR 0036 で、契約は呼ぶ側から観察できるものだけを規定すると決めた"
+    ],
+    [
+     "共通の道具（get ・ validate ・ view ・ import）の振る舞いは、契約の文書に無く、Rust の refs.rs（1,400行余り）の中にだけ在る"
+    ],
+    [
+     "5言語の実装の雛形は、合計で約19,000行ある（Rust 5,106 ・ Go 4,506 ・ C# 3,512 ・ TypeScript 3,010 ・ Python 2,980）"
+    ],
+    [
+     "ACDR 0090 の4点の修正では、5言語の雛形を書き直し、各言語582件の突き合わせで Rust と同じ出力かを検証した"
+    ],
+    [
+     "起動のコマンドは、今も各 Skill の tool.json が持っている（cli.command）。組み立て ・ 試験 ・ 整形のコマンドは、言語の組の定義（profiles/<言語>.profile.json と profile.rs）が持っている"
+    ],
+    [
+     "ACDR 0090 では、4言語の担当（AI）が Rust の実装から書き起こし、指定した5つの呼び出しの出力が1バイトも違わなかった"
+    ],
+    [
+     "擬似言語は、日本語の文の手順でも、コードの形でも、実行できない。誤りは書き起こした実装を動かすまで見つからない"
+    ]
+   ],
+   "costs": [
+    [
+     "skills-creator/references/contract/ を起こし、構成 ・ 外形 ・ 正解の事例を置く"
+    ],
+    [
+     "tool.json の契約に、組み立て ・ 試験 ・ 整形のコマンドの欄を足す"
+    ],
+    [
+     "今の Rust の出力と各言語582件の突き合わせの事例から、正解の事例を抽出する"
+    ],
+    [
+     "Rust の見本を1組に絞り、ほかの4言語の雛形を外す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "正しさを何に照らして検証するか（正解の事例の照らし方 ・ 検査の道具）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める。覆さない ── この論点は、正解の事例を契約に置くことだけを決める"
+    ],
+    [
+     "擬似言語の雛形の形",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない"
+    ],
+    [
+     "共通の道具を各 Skill に複製するか、共通の1つにするか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める。覆さない ── どちらでも、振る舞いは契約の擬似言語と正解の事例が持つ"
+    ],
+    [
+     "既存の11の Skill と5言語の雛形の移し方",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "Rust の見本と正解の事例を持つ",
+     "動く。試験で正しさを検証できる",
+     "Rust の見本と正解の事例を直す",
+     "AI が Rust から書き起こす（ACDR 0090 で4言語とも実際にできた）"
+    ],
+    [
+     "残った2つの案を比べる",
+     "擬似言語のコードを正本にする",
+     "動かない。誤りを実行して見つけられない",
+     "擬似言語 ・ 正解の事例 ・ 基本操作の定義を直す",
+     "AI が擬似言語から書き起こす"
+    ]
+   ],
+   "grounds": [
+    [
+     "契約は観察できるものだけを持つ",
+     "道具の契約は、呼ぶ側から観察できるものだけを規定し、道具を書く言語と配布の有無を利用者に委ねる",
+     "rule",
+     "ACDR 0036 の決定"
+    ],
+    [
+     "層を契約に入れない",
+     "道具の中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は契約で規定しない。中身の設計は Skill が決める",
+     "rule",
+     "ACDR 0059 ・ document.json の tool-contract「規定しないもの」"
+    ],
+    [
+     "利用者の要求",
+     "どんな言語でも作成される skills の契約として用意すべきものと、ディレクトリ構成が必要。Rust でも Go でも書きたい。見本は Rust にして、同じ振る舞いのものを別の言語で AI に作らせる方が筋がよい",
+     "rule",
+     "利用者の指摘（2026-10-02）"
+    ],
+    [
+     "振る舞いが実装の中にしか無い",
+     "4つの道具は「実体は言語の組の雛形が持ち、Skill ごとに書かない」とだけ書かれている",
+     "measured",
+     "document.json の tool-contract「references（契約の版2）」"
+    ],
+    [
+     "雛形の量",
+     "references/profiles の5言語の雛形の行数",
+     "measured",
+     "2026-10-02 に wc -l で数えた"
+    ],
+    [
+     "AI が見本から書き起こせる",
+     "Python ・ TypeScript ・ Go ・ C# の担当が Rust の雛形から移植し、5つの呼び出しで Rust と出力が一致した",
+     "measured",
+     "ACDR 0090 の作業（2026-10-02）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "論点1で、共通の道具の振る舞いは正解の事例が決めると決めた。この論点は、その事例の持ち方と照らし方を決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">正解の事例を、1件1ファイルの JSON で持つ</b><div class=\"sub-s\">呼び出し ・ 期待する終了コード ・ 期待する出力</div></li><li>事例が使う入力（references と回答）は、skills-creator が見本として同梱する。ほかの Skill の references に頼らない</li><li>照らすのは skills-creator の check である。検証する Skill の tool.json の起動のコマンドで道具を呼ぶので、どの言語で書いた Skill にも同じ検査が届く</li><li>出力の JSON は、読み込んだ値として比べる。文字の逃がし方の違いは問わない。HTML は文字列として比べる</li><li>事例は、今の Rust の refs の試験31件と、各言語582件の突き合わせの呼び出しから抽出する。期待する出力は、今の Rust の見本の出力である</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "正解の事例をファイルで持ち、skills-creator の check が、検証する Skill の tool.json の起動のコマンドで道具を呼んで照らす。出力の JSON は値として比べ、HTML は文字列として比べる。事例は、今の Rust の試験31件と各言語582件の突き合わせから抽出する"
+    ]
+   ],
+   "figures": [
+    [
+     "check が tool.json の起動のコマンドで道具を呼び、正解の事例の期待と比べる。Rust の見本も、AI が書き起こした実装も、同じ事例で照らす",
+     "5f48e4c3514a"
+    ]
+   ],
+   "example": [
+    [
+     "<p>事例の置き場所と、1件の事例の例</p><pre><code><pre><code>contract/cases/\n  fixtures/\n    advisor/references/       （判断基準 ・ 回答の形 ・ 原典の複製の見本。x-view と x-refers を全種類使う）\n    answers/                  （正しい回答 ・ 壊した回答 ・ 図を持つ回答）\n  validate-answer-quote.json  （1件の事例）\n  get-omit-source.json\n  view-figure-edge.json\n  …\n\nvalidate-answer-quote.json\n{\n  \"case\": \"根拠の引用が判断基準に無い\",\n  \"skill\": \"fixtures/advisor\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"fixtures/answers/quote-broken.json\"],\n  \"expect\": {\n    \"exit\": 1,\n    \"findings\": [\"fixtures/answers/quote-broken.json: /grounds/1/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」\"]\n  }\n}</code></pre></code></pre><p>Go で書いた Skill に事例を適用したときの出力の例</p><pre><code><pre><code>$ skills-creator check .claude/skills/my-advisor --cases 1\n  合格  get-omit-source\n  合格  validate-answer-quote\n  不合格 view-figure-edge ── data.html が期待と違う（42文字目から）\n  …\n正解の事例 N件 ／ 合格 N−1件 ／ 不合格 1件（件数は例）</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "事例をファイルで持ち、check が tool.json で呼んで照らす",
+     "事例と入力の見本を skills-creator が持ち、どの言語の Skill にも check が同じ事例を適用する",
+     "事例と入力の見本を抽出して保守する。Rust の見本を直したら、事例の期待も直す"
+    ],
+    [
+     "出力を文字列として1バイトまで比べる",
+     "JSON も HTML も、文字列として完全一致を求める",
+     "文字の逃がし方（全角空白を \\u3000 にするかなど）のように、意味の無い差でも不合格になる。言語ごとに出力の規則を一致させる作業が残る"
+    ]
+   ],
+   "dropped": [
+    [
+     "今の突き合わせ（Rust で生成した Skill と出力を比べる）を続ける",
+     "検証のたびに Rust の見本を組み立てて動かすことになり、Go だけで Skill を作る人にも Rust の組み立ての道具が必要になる。正解が事例ではなく Rust の実行結果に残る"
+    ],
+    [
+     "各言語の単体試験で検証する（言語ごとに試験を書く）",
+     "言語ごとに試験が分かれ、同じ振る舞いかを判定する共通の基準が無い"
+    ],
+    [
+     "事例の入力に、ほかの Skill の references を使う（今の突き合わせと同じ）",
+     "ほかの Skill の判断基準が変わるたびに、事例の期待が変わる。usecase の判断基準を直すと、qa の検証が不合格になる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "今の突き合わせは、リポジトリの Skill の references を入力にし、Rust で生成した Skill の出力を正解にしている"
+    ],
+    [
+     "Rust の refs の試験は31件で、それぞれが入力を自前で組み、振る舞いを1つずつ固定している"
+    ],
+    [
+     "ACDR 0090 で、Go は < > & を、C# は全角空白を \\u 形式に逃がしていた。JSON として読めば同じ値で、突き合わせは値の比較で一致としていた"
+    ]
+   ],
+   "costs": [
+    [
+     "contract/cases/ に事例と入力の見本を置く"
+    ],
+    [
+     "check に正解の事例を照らす段を足す（tool.json の起動のコマンドで呼ぶ）"
+    ],
+    [
+     "Rust の refs の試験31件と突き合わせの呼び出しから、事例を抽出する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "Skill 固有の命令（acdr の render など）の検証",
+     "<span class=\"kind k-rule\">対象外</span> ── 覆さない。共通の道具だけが契約の振る舞いを持つ。Skill 固有の命令は、その Skill の試験が持つ"
+    ],
+    [
+     "事例の件数の目標と、どの振る舞いまで事例に入れるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない ── この論点は、持ち方と照らし方だけを決める"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "事例をファイルで持ち、check が tool.json で呼んで照らす",
+     "問わない（値として比べる）",
+     "事例に合格させるだけ"
+    ],
+    [
+     "残った2つの案を比べる",
+     "出力を文字列として1バイトまで比べる",
+     "不合格にする",
+     "書き出しの規則まで Rust に合わせる"
+    ]
+   ],
+   "grounds": [
+    [
+     "振る舞いは事例が決める",
+     "契約は構成 ・ 道具の外形 ・ 正解の事例の3つで、共通の道具の振る舞いは事例が決める",
+     "rule",
+     "論点1の答え"
+    ],
+    [
+     "tool.json で呼べば言語を問わない",
+     "tool.json の cli.command で道具を起動する",
+     "rule",
+     "document.json の tool-contract ・ ACDR 0036"
+    ],
+    [
+     "抽出の材料",
+     "Rust の refs の試験31件 ・ 各言語582件の突き合わせ",
+     "measured",
+     "tool/business_logic/tests/refs.rs ・ ACDR 0090 の検証（2026-10-02）"
+    ],
+    [
+     "値として比べてよい",
+     "突き合わせは、JSON を読み込んでから比べ、逃がし方の違いを一致としていた",
+     "measured",
+     "tool/business_logic/src/conform.rs"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点2と論点4の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点2と論点4で、事例の持ち方と見本の置き場所が決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点2 ・ 論点4"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "論点1で、保守する実装は Rust の見本1組に絞った。この論点は、その見本を各 Skill がどう持つかを決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li>共通の道具は、今と同じく各 Skill が自分の実装として持つ。Skill は単体で動く</li><li>Rust の Skill は、見本の refs をそのまま複製する。見本を直したら、複製し直す</li><li>ほかの言語の Skill は、AI が見本から書き起こした実装を持つ。見本を直したら、正解の事例に不合格になった Skill だけを書き直す</li><li>ずれの検出は2段である。Rust の Skill は check が見本との差を検出する（今と同じ）。どの言語の Skill も、正解の事例が振る舞いの差を検出する</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "各 Skill に複製する。Rust の Skill は見本をそのまま複製し、ほかの言語の Skill は AI が見本から書き起こしたものを持つ。複製のずれは、Rust では check が見本との差で、どの言語でも正解の事例で検出する"
+    ]
+   ],
+   "figures": [
+    [
+     "各 Skill が共通の道具を自分で持つ。Rust の Skill は見本を複製し、ほかの言語の Skill は書き起こしたものを持つ。どれも正解の事例で照らす",
+     "601fd7a2c58f"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>持つ実装</th><th>見本を直したとき</th><th>ずれの検出</th></tr></thead><tbody><tr><th>Rust の Skill（いまの11件）</th><td>見本の refs の複製</td><td>複製し直す（機械的な複製）</td><td>check が見本との差 ・ 正解の事例</td></tr><tr><th>Go などで書いた Skill</th><td>AI が見本から書き起こした実装</td><td>正解の事例に不合格になったものだけ書き直す</td><td>正解の事例</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "各 Skill に複製する",
+     "共通の道具を各 Skill が自分の実装として持つ",
+     "見本を直すたびに、Rust の Skill へ複製し直し、事例に不合格になったほかの言語の Skill を書き直す"
+    ],
+    [
+     "共通の実行ファイル1つにする",
+     "共通の道具を1つの実行ファイルにして別に配り、各 Skill の tool.json から呼ぶ",
+     "Skill が単体で動かなくなる。1つの Skill を使う人も、共通の実行ファイルを別に入れる"
+    ]
+   ],
+   "dropped": [
+    [
+     "Rust の crate として共有し、各 Skill が依存する",
+     "Rust の Skill にしか効かない。Skill ごとに配る（ACDR 0042）とき、共有の crate も一緒に配ることになる"
+    ],
+    [
+     "共通の道具を保持しない（Skill ごとに自由に作る）",
+     "論点1で、共通の道具の振る舞いは正解の事例が決めるとした。Skill ごとに作ると、回答の HTML や validate の照合が一致しなくなる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "check は、Rust の Skill の refs.rs が雛形と違えば「雛形から複製し直す」と検出する"
+    ],
+    [
+     "ACDR 0042 で、公開の単位を Skill ごとにした"
+    ],
+    [
+     "受け入れ検査は、助言型が他の Skill の名前に依存していないかを検査する（助言型は単体で動く）"
+    ],
+    [
+     "複製し直す作業が重かったのは、5言語の雛形を書き直す必要があったからである。Rust の見本1組なら、複製は機械的に済む"
+    ]
+   ],
+   "costs": [
+    [
+     "見本を直したとき、Rust の Skill へ複製し直す手順（今と同じ）"
+    ],
+    [
+     "正解の事例に不合格になった Skill を一覧にする出力（論点2の check の段が出す）"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "共通の実行ファイルを、複製と別にオプションとして配ること",
+     "<span class=\"kind k-rule\">対象外</span> ── 覆さない。単体で動くことを崩さないので、必要になったときに足せる"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "各 Skill に複製する",
+     "動く",
+     "Skill ごとのまま",
+     "複製し直す ・ 事例に不合格になったものを書き直す"
+    ],
+    [
+     "残った2つの案を比べる",
+     "共通の実行ファイル1つにする",
+     "動かない（共通の実行ファイルが必要になる）",
+     "共通の実行ファイルを別に配る",
+     "共通の実行ファイルを1つ直す"
+    ]
+   ],
+   "grounds": [
+    [
+     "保守する実装は Rust の見本1組",
+     "Rust の見本を1組だけ持ち、ほかの言語は AI が書き起こす",
+     "rule",
+     "論点1の答え"
+    ],
+    [
+     "配布の単位",
+     "公開の単位を Skill ごとにする",
+     "rule",
+     "ACDR 0042"
+    ],
+    [
+     "ずれの検出が今も在る",
+     "refs.rs が雛形と違えば検出する",
+     "measured",
+     "tool/business_logic/src/check.rs の rust_refs"
+    ],
+    [
+     "単体で動く",
+     "他の Skill の名前に依存していないかを検査する",
+     "measured",
+     "tool/business_logic/src/accept.rs"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点2と論点4の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点2と論点4で、事例の持ち方と見本の置き場所が決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点2 ・ 論点4"
+    ]
+   ]
+  }
+ }
+}

@@ -1,0 +1,753 @@
+{
+ "round": 7,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "ほかの4つの論点の前提になる論点。契約に何を入れるかで、検証の方法もテンプレートの形も決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>契約は次の3つで構成する。どれも言語に依存しない</p><ol><li><b class=\"lead-s\">ディレクトリ構成</b><div class=\"sub-s\">置くファイル（SKILL.md ・ references ・ tool.json ・ mcp.json ・ 実装 ・ テスト）</div></li><li><b class=\"lead-s\">CLI のインターフェース</b><div class=\"sub-s\">サブコマンド ・ 引数 ・ 終了コード ・ --json の出力形式 ・ オプションの扱い。tool.json には実行 ・ ビルド ・ テスト ・ フォーマットのコマンドを書く</div></li><li><b class=\"lead-s\">テストケース</b><div class=\"sub-s\">入力（references と回答）と呼び出しに対する期待値（終了コード ・ JSON ・ HTML）。共通ツールの振る舞いはテストケースで決まる</div></li></ol><p>実装は Rust のリファレンス実装を1組だけ持つ。リファレンス実装は契約ではなく、テストケースに合格する実装の1つである</p><p>Rust 以外の言語で Skill を作るときは、AI がリファレンス実装を移植し、テストケースに合格したら完成とする。移植したコードは skills-creator に保存しない</p><p>層の構成（4層と依存の向き）は ACDR 0059 のとおり契約に入れない。リファレンス実装が推奨の形として示す</p>"
+    ]
+   ],
+   "answer": [
+    [
+     "契約は3つで構成する。ディレクトリ構成 ・ CLI のインターフェース（tool.json を含む）・ テストケースである。実装は Rust のリファレンス実装を1組だけ持ち、ほかの言語の実装は Skill を作るときに AI が移植して、テストケースに合格させる"
+    ]
+   ],
+   "figures": [
+    [
+     "契約と Rust のリファレンス実装から、Go でも Python でも AI が Skill を移植し、テストケースで同じ振る舞いかを検証する",
+     "4acaf7cfa75a"
+    ]
+   ],
+   "example": [
+    [
+     "<p>契約の置き場所は skills-creator/references/contract/ である。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>中身</th><th>今の置き場所</th></tr></thead><tbody><tr><th>contract/structure.json</th><td><b class=\"lead-s\">Skill の構成</b><div class=\"sub-s\">置くファイルと、無くてよいもの</div></td><td>document.json の folder-structure と tool-contract に分散</td></tr><tr><th>contract/tools.json</th><td><b class=\"lead-s\">CLI のインターフェース</b><div class=\"sub-s\">サブコマンド ・ 引数 ・ 終了コード ・ 出力の形 ・ tool.json の欄</div></td><td>document.json の tool-contract</td></tr><tr><th>contract/cases/</th><td><b class=\"lead-s\">テストケース</b><div class=\"sub-s\">入力 ・ 呼び出し ・ 期待値</div></td><td>無し（各言語582件の突き合わせが、Rust の出力との比較で代用している）</td></tr><tr><th>reference/rust/</th><td><b class=\"lead-s\">リファレンス実装</b><div class=\"sub-s\">Rust の実装1組（契約の外）</div></td><td>profiles/rust/ のテンプレート（5,106行）</td></tr><tr><th>（置かない）</th><td><b class=\"lead-s\">Go ・ Python ・ TypeScript ・ C# の実装</b><div class=\"sub-s\">Skill を作るときに AI がリファレンス実装から移植する</div></td><td>profiles/<言語>/ のテンプレート（4言語で約14,000行）</td></tr></tbody></table></div><p>テストケースの例（どの言語で書いた道具も、この出力を返せば合格）</p><pre><code><pre><code>{\n  \"case\": \"根拠の引用が判断基準に無い\",\n  \"references\": \"cases/grounds/references/\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"cases/grounds/answer.json\"],\n  \"expect\": {\n    \"exit\": 1,\n    \"findings\": [\"…: /grounds/3/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」\"]\n  }\n}</code></pre></code></pre><p>tool.json の例（Rust で書いた Skill。Go で書くなら、同じ欄に go build や go test を書く）</p><pre><code><pre><code>{\n  \"contract\": 3,\n  \"cli\":    { \"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/qa-advisor/bin/qa-advisor\", \"args\": [] },\n  \"build\":  [[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"]],\n  \"test\":   [[\"cargo\", \"test\", \"--manifest-path\", \"tool/Cargo.toml\"]],\n  \"format\": [[\"cargo\", \"fmt\", \"--manifest-path\", \"tool/Cargo.toml\", \"--\", \"--check\"]],\n  \"external\": []\n}</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "Rust のリファレンス実装とテストケースを持つ",
+     "契約に構成 ・ 外形 ・ テストケースを置き、リファレンス実装として Rust の実装を1組だけ持つ。ほかの言語は AI がリファレンス実装から移植する",
+     "テストケースを、変わって困る振る舞いがすべて入るまで厚くする。テストケースに無い振る舞いは、言語ごとに変わってよいことになる"
+    ],
+    [
+     "擬似言語のコードを正本にする",
+     "契約に、言語を問わないコード（型 ・ 関数 ・ 制御の流れ）と基本操作の定義を置き、どの言語も AI がそこから移植する",
+     "擬似言語は実行できないので、誤りをテストで見つけられない。擬似言語 ・ テストケース ・ 基本操作の定義の3つを保守する"
+    ]
+   ],
+   "dropped": [
+    [
+     "今のまま、5言語の実装のテンプレートを正本にする",
+     "振る舞いを1つ直すたびに、5言語を書き直す（ACDR 0090 では4人の担当で移植した）。Rust が事実上の正本になり、ACDR 0036 の「契約は呼ぶ側から観察できるものだけ」と食い違う"
+    ],
+    [
+     "外形（サブコマンド ・ 引数 ・ 終了コード）だけを契約にし、振る舞いは Skill ごとに任せる",
+     "共通ツールの出力が Skill ごとに変わる。回答の HTML の形も、validate の引用の照合も一致しなくなる"
+    ],
+    [
+     "層の構成（4層と依存の向き）も契約に入れる",
+     "ACDR 0059 で、中身の設計は Skill が決めるとした。契約に入れると、ポートとアダプターを選ぶ Skill が契約に違反する"
+    ],
+    [
+     "言語ごとの決まり（ビルド ・ テスト ・ フォーマットのコマンド）を skills-creator に置く",
+     "skills-creator が言語の一覧を持つことになり、新しい言語のたびに skills-creator を直す。コマンドはその Skill の動かし方なので、Skill の tool.json に置けば足りる"
+    ],
+    [
+     "擬似言語の手順（日本語の文で書いた手順）を正本にする",
+     "人が読んで理解するには足りても、そこから動くコードは書けない。分け方 ・ 入出力 ・ 文字の数え方などが文の行間に埋もれる"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>契約を5つの部分で持ち、5つ目に言語ごとの決まり（ビルド ・ テスト ・ フォーマット ・ 実行のコマンド）を置く</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">言語毎の決まりっているの？ 今回言語依存しないように擬似言語にするのでは？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>5つ目の部分（言語ごとの決まり）と、その置き場所 languages/*.json</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>コマンドは、その Skill をどう動かすかである。Skill の tool.json に書けば、skills-creator は言語を1つも知らずに済む。実行コマンドは今も tool.json が持っている</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">B</span>擬似言語の手順の例を、手順だけの短い記述で示した</div><table class=\"ev\"><tbody><tr class=\"g-returned g-end\"><th rowspan=\"1\"><span class=\"kind k-given\">差し戻し</span></th><td><span class=\"q-in\">この擬似言語の内容では語彙も理解不能だけどあなたはこれ見てわかるの？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>手順だけの例（目的 ・ 語の定義 ・ 入力と出力 ・ 実例が無い）</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>書き手は Rust で実装したので読めたが、初めて読む人には「引用」「片」が何か、何のための手順かが分からない。擬似言語の手順は、目的 ・ 語 ・ 入力と出力 ・ 手順 ・ 実例の5つを必ず持つ</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">B</span>契約を4つの部分で持ち、共通ツールの振る舞いを擬似言語で書く</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"2\"><span class=\"kind k-given\">差し戻し</span><small>2件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">これなんか擬似げんごおもってたのとちがうわ。これだと動くものできなさそうだね</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">それかさリファレンス実装はrustにしてそれと同じ振る舞いのもを別の言語でaiに作らせる方がよっぽど擬似言語より筋がいいのでは？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>擬似言語で振る舞いを書く部分。振る舞いはテストケースが決め、リファレンス実装は Rust の実装1組が持つ</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>擬似言語は実行できないので、誤りをテストで見つけられない。Rust のリファレンス実装は動き、テストケースで検証できる。移植するのは AI なので、Go で書く人が Rust を読む負担は生じない</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "ACDR 0036 で、契約は呼ぶ側から観察できるものだけを規定すると決めた"
+    ],
+    [
+     "共通ツール（get ・ validate ・ view ・ import）の振る舞いは、契約の文書に無く、Rust の refs.rs（1,400行余り）の中にだけ在る"
+    ],
+    [
+     "5言語の実装のテンプレートは、合計で約19,000行ある（Rust 5,106 ・ Go 4,506 ・ C# 3,512 ・ TypeScript 3,010 ・ Python 2,980）"
+    ],
+    [
+     "ACDR 0090 の4点の修正では、5言語のテンプレートを書き直し、各言語582件の突き合わせで Rust と同じ出力かを検証した"
+    ],
+    [
+     "実行コマンドは、今も各 Skill の tool.json が持っている（cli.command）。ビルド ・ テスト ・ フォーマットのコマンドは、言語の組の定義（profiles/<言語>.profile.json と profile.rs）が持っている"
+    ],
+    [
+     "ACDR 0090 では、4言語の担当（AI）が Rust の実装から移植し、指定した5つの呼び出しの出力が1バイトも違わなかった"
+    ],
+    [
+     "擬似言語は、日本語の文の手順でも、コードの形でも、実行できない。誤りは移植した実装を動かすまで見つからない"
+    ]
+   ],
+   "costs": [
+    [
+     "skills-creator/references/contract/ を起こし、構成 ・ 外形 ・ テストケースを置く"
+    ],
+    [
+     "tool.json の契約に、ビルド ・ テスト ・ フォーマットのコマンドの欄を足す"
+    ],
+    [
+     "今の Rust の出力と各言語582件の突き合わせのテストケースから、テストケースを抽出する"
+    ],
+    [
+     "Rust のリファレンス実装を1組に絞り、ほかの4言語のテンプレートを外す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "検証の方法（テストケースの実行の方法 ・ 検査の道具）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める。覆さない ── この論点は、テストケースを契約に置くことだけを決める"
+    ],
+    [
+     "擬似言語のテンプレートの形",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない"
+    ],
+    [
+     "共通ツールを各 Skill に複製するか、共通の1つにするか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める。覆さない ── どちらでも、振る舞いは契約の擬似言語とテストケースが持つ"
+    ],
+    [
+     "既存の11の Skill と5言語のテンプレートの移し方",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "Rust のリファレンス実装とテストケースを持つ",
+     "動く。テストで正しさを検証できる",
+     "Rust のリファレンス実装とテストケースを直す",
+     "AI が Rust から移植する（ACDR 0090 で4言語とも実際にできた）"
+    ],
+    [
+     "残った2つの案を比べる",
+     "擬似言語のコードを正本にする",
+     "動かない。誤りを実行して見つけられない",
+     "擬似言語 ・ テストケース ・ 基本操作の定義を直す",
+     "AI が擬似言語から移植する"
+    ]
+   ],
+   "grounds": [
+    [
+     "契約は観察できるものだけを持つ",
+     "ツールの契約は、呼ぶ側から観察できるものだけを規定し、ツールを書く言語と配布の有無を利用者に委ねる",
+     "rule",
+     "ACDR 0036 の決定"
+    ],
+    [
+     "層を契約に入れない",
+     "ツールの中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は契約で規定しない。中身の設計は Skill が決める",
+     "rule",
+     "ACDR 0059 ・ document.json の tool-contract「規定しないもの」"
+    ],
+    [
+     "利用者の要求",
+     "どんな言語でも作成される skills の契約として用意すべきものと、ディレクトリ構成が必要。Rust でも Go でも書きたい。リファレンス実装は Rust にして、同じ振る舞いのものを別の言語で AI に作らせる方が筋がよい",
+     "rule",
+     "利用者の指摘（2026-10-02）"
+    ],
+    [
+     "振る舞いが実装の中にしか無い",
+     "4つのツールは「実体は言語の組のテンプレートが持ち、Skill ごとに書かない」とだけ書かれている",
+     "measured",
+     "document.json の tool-contract「references（契約の版2）」"
+    ],
+    [
+     "テンプレートの量",
+     "references/profiles の5言語のテンプレートの行数",
+     "measured",
+     "2026-10-02 に wc -l で数えた"
+    ],
+    [
+     "AI がリファレンス実装から移植できる",
+     "Python ・ TypeScript ・ Go ・ C# の担当が Rust のテンプレートから移植し、5つの呼び出しで Rust と出力が一致した",
+     "measured",
+     "ACDR 0090 の作業（2026-10-02）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "論点1で、共通ツールの振る舞いはテストケースで決めることにした。この論点では、テストケースの持ち方と実行の方法を決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li><b class=\"lead-s\">テストケースは1件1ファイルの JSON で持つ</b><div class=\"sub-s\">呼び出し ・ 期待する終了コード ・ 期待値</div></li><li>テストケースが使う入力（references と回答）は、テスト用のフィクスチャとして skills-creator に同梱する。ほかの Skill の references は使わない</li><li>テストを実行するのは skills-creator の check である。Skill の tool.json の実行コマンドでツールを呼ぶので、どの言語の Skill にも同じテストを実行できる</li><li>JSON は値として比較し、文字のエスケープの違いは問わない。HTML は文字列として比較する</li><li>スキーマ検査のエラー文は比較しない。比較するのは、終了コードと、契約が文言を決めているエラー（引用の照合など）だけである</li><li>テストケースは、今の Rust の refs のテスト31件と、各言語582件の比較の呼び出しから作る。期待値は今のリファレンス実装の出力とする</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "テストケースを JSON ファイルで持ち、skills-creator の check が、Skill の tool.json の実行コマンドでツールを呼んで期待値と比較する。JSON は値として、HTML は文字列として比較する。スキーマ検査のエラー文はライブラリごとに違うので比較しない。テストケースは今の Rust のテスト31件と各言語582件の比較から作る"
+    ]
+   ],
+   "figures": [
+    [
+     "check が tool.json の実行コマンドでツールを呼び、テストケースの期待値と比較する。Rust のリファレンス実装も、AI が移植した実装も、同じテストケースで検証する",
+     "26a922fe7751"
+    ]
+   ],
+   "example": [
+    [
+     "<p>テストケースの置き場所と、1件のテストケースの例</p><pre><code><pre><code>contract/cases/\n  fixtures/\n    advisor/references/       （判断基準 ・ 回答の形 ・ 原典の複製のサンプル。x-view と x-refers を全種類使う）\n    answers/                  （正しい回答 ・ 壊した回答 ・ 図を持つ回答）\n  validate-answer-quote.json  （1件のテストケース）\n  get-omit-source.json\n  view-figure-edge.json\n  …\n\nvalidate-answer-quote.json\n{\n  \"case\": \"根拠の引用が判断基準に無い\",\n  \"skill\": \"fixtures/advisor\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"fixtures/answers/quote-broken.json\"],\n  \"expect\": {\n    \"exit\": 1,\n    \"findings\": [\"fixtures/answers/quote-broken.json: /grounds/1/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」\"]\n  }\n}</code></pre></code></pre><p>Go で書いた Skill にテストを実行したときの出力の例</p><pre><code><pre><code>$ skills-creator check .claude/skills/my-advisor --cases 1\n  合格  get-omit-source\n  合格  validate-answer-quote\n  不合格 view-figure-edge ── data.html が期待と違う（42文字目から）\n  …\nテストケース N件 ／ 合格 N−1件 ／ 不合格 1件（件数は例）</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "テストケースをファイルで持ち、check が tool.json で呼んで検証する",
+     "テストケースと入力のリファレンス実装を skills-creator が持ち、どの言語の Skill にも check が同じテストを実行する",
+     "テストケースと入力のリファレンス実装を抽出して保守する。Rust のリファレンス実装を直したら、テストケースの期待も直す"
+    ],
+    [
+     "出力を文字列として1バイトまで比べる",
+     "JSON も HTML も、文字列として完全一致を求める",
+     "文字のエスケープ（全角空白を \\u3000 にするかなど）のように、意味の無い差でも不合格になる。言語ごとに出力の規則を一致させる作業が残る"
+    ]
+   ],
+   "dropped": [
+    [
+     "今の突き合わせ（Rust で生成した Skill と出力を比べる）を続ける",
+     "検証のたびに Rust のリファレンス実装をビルドして動かすことになり、Go だけで Skill を作る人にも Rust のビルドのツールが必要になる。正解がテストケースではなく Rust の実行結果に残る"
+    ],
+    [
+     "各言語の単体テストで検証する（言語ごとにテストを書く）",
+     "言語ごとにテストが分かれ、同じ振る舞いかを判定する共通の基準が無い"
+    ],
+    [
+     "テストケースの入力に、ほかの Skill の references を使う（今の突き合わせと同じ）",
+     "ほかの Skill の判断基準が変わるたびに、テストケースの期待値が変わる。usecase の判断基準を直すと、qa のテストが不合格になる"
+    ]
+   ],
+   "path": [
+    [
+     "<p>試作（2026-10-02）：テストケース12件（入力のリファレンス実装を含めて244KB）とテストランナーを作り、4種類の実装でテストを実行した。置き場所はこのボードの trial/ である</p>"
+    ],
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>結果</th></tr></thead><tbody><tr><th>Rust のリファレンス実装（qa-advisor）</th><td>12件とも合格（期待値は、このリファレンス実装の出力から取った）</td></tr><tr><th>リファレンス実装を複製している3つの Skill（ddd ・ usecase ・ acdr）</th><td>3つとも12件合格</td></tr><tr><th>AI が Rust のリファレンス実装だけから移植した Go の Skill</th><td>12件とも合格。テストランナーの実行は1回で済んだ。Go は2,442行 ・ 8ファイル</td></tr><tr><th>古い複製を持つ Skill（platform-advisor）</th><td>12件中8件が不合格。サブコマンドの前のオプション ・ 出典を除く取り出し ・ 引用の照合 ・ 描画の変更をすべて検出した</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "今の突き合わせは、リポジトリの Skill の references を入力にし、Rust で生成した Skill の出力を正解にしている"
+    ],
+    [
+     "Rust の refs のテストは31件で、それぞれが入力を自前で組み、振る舞いを1つずつ固定している"
+    ],
+    [
+     "ACDR 0090 で、Go は < > & を、C# は全角空白を \\u 形式に逃がしていた。JSON として読めば同じ値で、突き合わせは値の比較で一致としていた"
+    ],
+    [
+     "試作で、テストケース12件が、Rust のリファレンス実装 ・ リファレンス実装の複製3つ ・ AI が移植した Go のどれにも同じ形で実行できた"
+    ],
+    [
+     "古い複製を持つ Skill は12件中8件で不合格になった。テストケースは、振る舞いの違いを検出できる"
+    ],
+    [
+     "スキーマ検査のエラー文は、Rust の jsonschema と Go のライブラリで違う。今のテストケースには形の違反を含む回答が無いので、差は表に出なかった"
+    ]
+   ],
+   "costs": [
+    [
+     "contract/cases/ にテストケースと入力のリファレンス実装を置く"
+    ],
+    [
+     "check にテストケースを検証する段を足す（tool.json の実行コマンドで呼ぶ）"
+    ],
+    [
+     "Rust の refs のテスト31件と突き合わせの呼び出しから、テストケースを抽出する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "Skill 固有のサブコマンド（acdr の render など）の検証",
+     "<span class=\"kind k-rule\">対象外</span> ── 覆さない。共通ツールだけが契約の振る舞いを持つ。Skill 固有のサブコマンドは、その Skill のテストが持つ"
+    ],
+    [
+     "テストケースの件数の目標と、どの振る舞いまでテストケースに入れるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない ── この論点は、持ち方と実行の方法だけを決める"
+    ],
+    [
+     "リファレンス実装からしか読み取れない前提の書き方と置き場所",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない ── この論点の答えは、前提を添えても変わらない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "テストケースをファイルで持ち、check が tool.json で呼んで検証する",
+     "問わない（値として比べる）",
+     "テストケースに合格させるだけ"
+    ],
+    [
+     "残った2つの案を比べる",
+     "出力を文字列として1バイトまで比べる",
+     "不合格にする",
+     "書き出しの規則まで Rust に合わせる"
+    ]
+   ],
+   "grounds": [
+    [
+     "振る舞いはテストケースが決める",
+     "契約は構成 ・ CLI のインターフェース ・ テストケースの3つで、共通ツールの振る舞いはテストケースが決める",
+     "rule",
+     "論点1の答え"
+    ],
+    [
+     "tool.json で呼べば言語を問わない",
+     "tool.json の cli.command でツールを起動する",
+     "rule",
+     "document.json の tool-contract ・ ACDR 0036"
+    ],
+    [
+     "抽出の材料",
+     "Rust の refs のテスト31件 ・ 各言語582件の突き合わせ",
+     "measured",
+     "tool/business_logic/tests/refs.rs ・ ACDR 0090 の検証（2026-10-02）"
+    ],
+    [
+     "値として比べてよい",
+     "突き合わせは、JSON を読み込んでから比べ、逃がし方の違いを一致としていた",
+     "measured",
+     "tool/business_logic/src/conform.rs"
+    ],
+    [
+     "テストケースが言語を問わず実行でき、違いを検出できる",
+     "テストケース12件を、Rust のリファレンス実装 ・ 複製3つ ・ Go の移植でテストを実行して全件合格し、古い複製では8件が不合格になった",
+     "measured",
+     "このボードの trial/run.py（2026-10-02）"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "論点2でテストケースの持ち方を、論点4でリファレンス実装を各 Skill に複製することを決めた。この論点では、リファレンス実装 ・ テストケース ・ 実装上の前提の置き場所と形式を決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li>リファレンス実装は、今の Rust のテンプレート1組（profiles/rust/）を sample/rust/ へ移したもの。プレースホルダー（{{接頭辞}} など）は今のまま残す</li><li>リファレンス実装が動くことは verify で確認する。テンプレートから Skill を生成し、ビルドしてテストを実行し、テストケースを実行する（今の verify と同じ流れ）</li><li>テストケースは contract/cases/ に1件1ファイルで置く。項目は、説明 ・ 対応するテストの名前 ・ 呼び出し ・ 期待値（終了コードと JSON）・ 比較から除外するパス（ignore）</li><li>リファレンス実装のテスト1件ごとに、同名のテストケースを置く。verify が対応を確認し、テストケースの無いテストを検出する。振る舞いを変えるときは、テストとテストケースを一緒に直す</li><li>比較から除外する箇所（スキーマ検査のエラー文など）は、ignore に JSON Pointer で書く</li><li>リファレンス実装から読み取りにくい前提（JSON のキー順 ・ 空白の定義 ・ 行の分割 ・ 上書き時の位置など）は、contract/assumptions.json に1件ずつ、ルール ・ 理由 ・ 確認するテストケースで書く</li><li>型ごとのテンプレート（SKILL.md ・ スキーマ ・ 判断基準）と見た目の正本は、もともと言語に依存しないので、今の types/ と view/ のまま置く</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "リファレンス実装は今の Rust のテンプレート1組を sample/rust/ へ移す。verify がそこから Skill を生成し、ビルドしてテストケースを実行する。テストケースは1件1ファイルで、リファレンス実装のテスト1件ごとに同名のテストケースを置く。比較から除外する箇所は JSON Pointer で書く。リファレンス実装から読み取りにくい前提は assumptions.json に書く"
+    ]
+   ],
+   "figures": [
+    [
+     "verify がリファレンス実装から Skill を生成し、テストとテストケースの対応を確認してから、テストケースを実行する。実装上の前提の一覧は、移植する AI がリファレンス実装と一緒に読む",
+     "433fec5f8732"
+    ]
+   ],
+   "example": [
+    [
+     "<p>置き場所</p><pre><code><pre><code>skills-creator/references/\n  contract/                         契約（言語に依存しない）\n    structure.json                  Skill の構成\n    tools.json                      CLI のインターフェースと tool.json の欄\n    assumptions.json                リファレンス実装からしか読み取れない実装上の前提の一覧\n    cases/                          テストケース（1件1ファイル）\n      fixtures/                     テストケースが使う入力データ（フィクスチャ）\n  types/                            型ごとのテンプレート（言語に依存しない。今と同じ）\n    advisor/  work/                 SKILL.md ・ スキーマ ・ 判断基準のテンプレート\n  sample/rust/                      リファレンス実装（Rust のテンプレート1組。今の profiles/rust/）\n  view/                             見た目の正本（今と同じ）</code></pre></code></pre><p>テストケースの例（スキーマ検査のエラー文は比較しない）</p><pre><code><pre><code>{\n  \"case\": \"形に違反した回答を検出する\",\n  \"test\": \"an_answer_is_checked_against_the_answer_schema\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"fixtures/answers/no-next.json\", \"--skill_root\", \"fixtures/advisor\"],\n  \"expect\": { \"exit\": 1, \"json\": { \"ok\": false, \"findings\": [\"…\"], \"data\": { \"checked\": \"…\" } } },\n  \"ignore\": [\"/findings\"]\n}</code></pre></code></pre><p>前提の例</p><pre><code><pre><code>{\n  \"id\": \"json-key-order\",\n  \"rule\": \"JSON の欄は、読んだ順を保つ。欄を上書きするときは、元の位置に置く\",\n  \"why\": \"描画はスキーマの properties の順に欄を並べる。順が変わると HTML が変わる\",\n  \"cases\": [\"view-criteria-id\", \"view-answer-figure\"]\n}</code></pre></code></pre><p>verify がテストとテストケースの対応を確認したときの出力の例</p><pre><code><pre><code>$ skills-creator verify\n  リファレンス実装のテスト 31件 ／ 対応するテストケース 31件\n  テストケースの無いテスト 0件\n  リファレンス実装に当てたテストケース 31件 ／ 合格 31件</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "リファレンス実装はテンプレートのまま置き、verify が生成して確認する",
+     "今の Rust のテンプレートを sample/rust/ へ移し、verify が生成 ・ ビルド ・ テスト ・ テストケースの実行を行う",
+     "リファレンス実装を直したら、検証を実行するまで動くかが分からない（今のテンプレートと同じ）"
+    ],
+    [
+     "リファレンス実装を、プレースホルダーを保持しない実体の Skill として置く",
+     "リファレンス実装を名前の決まった Skill（sample-advisor など）として置き、そのままビルドしてテストする。scaffold はそこから名前を置き換えて作る",
+     "scaffold が、crate の名前などを文字列の置き換えで変える。リファレンス実装の Skill の名前が生成物に残る危険がある"
+    ]
+   ],
+   "dropped": [
+    [
+     "リファレンス実装に、リポジトリの実在の Skill（qa-advisor など）を使う",
+     "その Skill の判断基準や固有の変更が、リファレンス実装とテストケースを動かす。論点2で、テストケースの入力をほかの Skill に頼らないと決めた"
+    ],
+    [
+     "テストケースの期待値を手で書く",
+     "描画の HTML は1件で数千字ある。手で書くと誤り、リファレンス実装の出力とも食い違う。期待値はリファレンス実装の出力から取り、差分を人が確認する"
+    ],
+    [
+     "前提をリファレンス実装のコードのコメントにだけ書く",
+     "試作で、Go の担当は Cargo.toml の preserve_order から欄の順の前提を読み取った。コメントに散らすと、移植する人が全部を探すことになる"
+    ],
+    [
+     "テストケースの件数に目標値を置く",
+     "件数は網羅を示さない。リファレンス実装のテスト1件ごとにテストケースを置けば、リファレンス実装が固定した振る舞いがすべてテストケースに入る"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "リファレンス実装の refs のテストは31件で、それぞれ1つの振る舞いを固定している"
+    ],
+    [
+     "今の検証は、テンプレートから Skill を生成してビルド、テストを実行している。リファレンス実装が動くことは、この流れで検証できる"
+    ],
+    [
+     "試作で、リファレンス実装だけでは読み取りにくい前提が4つ在った（JSON の欄の順 ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）"
+    ],
+    [
+     "型ごとのテンプレート（types/）と見た目の正本（view/）は、もともと JSON と HTML と CSS で、言語に依存しない"
+    ]
+   ],
+   "costs": [
+    [
+     "リファレンス実装のテスト31件それぞれに対応するテストケースを書く（試作の12件を出発点にする）"
+    ],
+    [
+     "contract/assumptions.json に前提を書き、確認するテストケースを添える"
+    ],
+    [
+     "検証に、テストとテストケースの対応を検証する段と、テストを実行する段を足す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "Skill 固有のサブコマンド（acdr の render など）のテストケース",
+     "<span class=\"kind k-rule\">対象外</span> ── 覆さない。論点2のとおり、共通ツールだけがテストケースを持つ"
+    ],
+    [
+     "今の5言語のテンプレートと11の Skill をいつ移すか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "リファレンス実装はテンプレートのまま置き、verify が生成して確認する",
+     "生成してから動かす",
+     "今と同じ（プレースホルダーを充填する）",
+     "置き場所を移すだけ"
+    ],
+    [
+     "残った2つの案を比べる",
+     "リファレンス実装を、プレースホルダーを保持しない実体の Skill として置く",
+     "そのまま動かせる",
+     "名前を文字列で置き換える",
+     "テンプレートを実体の Skill に書き直す"
+    ]
+   ],
+   "grounds": [
+    [
+     "テストケースの持ち方",
+     "テストケースを1件1ファイルで持ち、check が tool.json で呼んで検証する。スキーマの検査の文言は比べない",
+     "rule",
+     "論点2の答え"
+    ],
+    [
+     "リファレンス実装の役割",
+     "Rust のリファレンス実装1組を各 Skill へ複製し、ほかの言語は AI がリファレンス実装から移植する",
+     "rule",
+     "論点1 ・ 論点4の答え"
+    ],
+    [
+     "前提を明示する必要",
+     "Go の担当が、欄の順の前提を Cargo.toml の preserve_order と refs.rs の shift_remove から読み取った",
+     "measured",
+     "このボードの trial/go-skill/（2026-10-02）"
+    ],
+    [
+     "テストの件数",
+     "tests/refs.rs の #[test] は31件",
+     "measured",
+     "skills-creator/tool/business_logic/tests/refs.rs"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "論点1で、保守する実装を Rust のリファレンス実装1組に絞った。この論点では、各 Skill がそれをどう持つかを決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li>共通ツールは、今と同じく各 Skill が自分のコードとして持つ。Skill は単体で動く</li><li>Rust の Skill は、リファレンス実装の refs をそのまま複製する。リファレンス実装を直したら、複製し直す</li><li>ほかの言語の Skill は、AI が移植したコードを持つ。リファレンス実装を直したら、テストケースに不合格になった Skill だけを直す</li><li>ずれの検出は2段である。Rust の Skill は check がリファレンス実装との差分を検出する（今と同じ）。どの言語の Skill もテストケースが振る舞いの差を検出する</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "各 Skill に複製する。Rust の Skill はリファレンス実装をそのまま複製し、ほかの言語の Skill は AI が移植したコードを持つ。ずれは、Rust の Skill では check がリファレンス実装との差分で、どの言語でもテストケースで検出する"
+    ]
+   ],
+   "figures": [
+    [
+     "各 Skill が共通ツールを自分で持つ。Rust の Skill はリファレンス実装を複製し、ほかの言語の Skill は移植したものを持つ。どれもテストケースで検証する",
+     "13bf9b14ed32"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>持つ実装</th><th>リファレンス実装を直したとき</th><th>ずれの検出</th></tr></thead><tbody><tr><th>Rust の Skill（いまの11件）</th><td>リファレンス実装の refs の複製</td><td>複製し直す（機械的な複製）</td><td>check がリファレンス実装との差 ・ テストケース</td></tr><tr><th>Go などで書いた Skill</th><td>AI がリファレンス実装から移植した実装</td><td>テストケースに不合格になったものだけ書き直す</td><td>テストケース</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "各 Skill に複製する",
+     "共通ツールを各 Skill が自分の実装として持つ",
+     "リファレンス実装を直すたびに、Rust の Skill へ複製し直し、テストケースに不合格になったほかの言語の Skill を書き直す"
+    ],
+    [
+     "共通の実行ファイル1つにする",
+     "共通ツールを1つの実行ファイルにして別に配り、各 Skill の tool.json から呼ぶ",
+     "Skill が単体で動かなくなる。1つの Skill を使う人も、共通の実行ファイルを別に入れる"
+    ]
+   ],
+   "dropped": [
+    [
+     "Rust の crate として共有し、各 Skill が依存する",
+     "Rust の Skill にしか効かない。Skill ごとに配る（ACDR 0042）とき、共有の crate も一緒に配ることになる"
+    ],
+    [
+     "共通ツールを保持しない（Skill ごとに自由に作る）",
+     "論点1で、共通ツールの振る舞いはテストケースが決めるとした。Skill ごとに作ると、回答の HTML や validate の照合が一致しなくなる"
+    ]
+   ],
+   "path": [
+    [
+     "<p>試作（2026-10-02）：AI の担当に Rust のリファレンス実装（refs ・ ツールの一覧 ・ CLI の入口 ・ 契約の実体）とリファレンス実装のテストだけを渡し、既存の Go のテンプレートは見せずに、Go へ移植させた</p>"
+    ],
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>結果</th></tr></thead><tbody><tr><th>テストケース</th><td>12件とも合格。テストランナーの実行は1回で済んだ</td></tr><tr><th>量</th><td>Go で2,442行 ・ 8ファイル。うち385行は、JSON の欄の順を保つ値の型の自作である</td></tr><tr><th>リファレンス実装だけでは読み取りにくかった前提</th><td>JSON の欄の順を保つこと（Cargo.toml の preserve_order からしか分からない）・ 空白の定義（Unicode の White_Space）・ 行の分け方 ・ 欄を上書きするときに位置を保つこと</td></tr><tr><th>tool.json</th><td>ビルド ・ テスト ・ フォーマットのコマンドを書けた。ただし、実行する作業場所と、フォーマットが書き換えるか検査するかの規定が無かった</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "check は、Rust の Skill の refs.rs がテンプレートと違えば「テンプレートから複製し直す」と検出する"
+    ],
+    [
+     "ACDR 0042 で、公開の単位を Skill ごとにした"
+    ],
+    [
+     "受け入れ検査は、助言型が他の Skill の名前に依存していないかを検査する（助言型は単体で動く）"
+    ],
+    [
+     "複製し直す作業が重かったのは、5言語のテンプレートを書き直す必要があったからである。Rust のリファレンス実装1組なら、複製は機械的に済む"
+    ],
+    [
+     "試作で、AI は Rust のリファレンス実装だけから Go の Skill へ移植し、テストケース12件に1回で合格した"
+    ],
+    [
+     "リファレンス実装だけでは読み取りにくい前提が4つ在った（JSON の欄の順 ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）。リファレンス実装に、言語に依存しない前提として添える必要がある"
+    ],
+    [
+     "リファレンス実装を複製している Rust の Skill 3つは、同じテストケースに全件合格した"
+    ]
+   ],
+   "costs": [
+    [
+     "リファレンス実装を直したとき、Rust の Skill へ複製し直す手順（今と同じ）"
+    ],
+    [
+     "テストケースに不合格になった Skill を一覧にする出力（論点2の check の段が出す）"
+    ],
+    [
+     "リファレンス実装に、言語に依存しない前提（JSON の欄の順を保つ ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）を添える。論点3で置き場所を決める"
+    ],
+    [
+     "tool.json のビルド ・ テスト ・ フォーマットの欄に、実行する作業場所と、フォーマットは検査（書き換えない）であることを決める"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "共通の実行ファイルを、複製と別にオプションとして配ること",
+     "<span class=\"kind k-rule\">対象外</span> ── 覆さない。単体で動くことを崩さないので、必要になったときに足せる"
+    ],
+    [
+     "リファレンス実装からしか読み取れない前提の書き方と置き場所",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない ── この論点の答えは、前提を添えても変わらない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "各 Skill に複製する",
+     "動く",
+     "Skill ごとのまま",
+     "複製し直す ・ テストケースに不合格になったものを書き直す"
+    ],
+    [
+     "残った2つの案を比べる",
+     "共通の実行ファイル1つにする",
+     "動かない（共通の実行ファイルが必要になる）",
+     "共通の実行ファイルを別に配る",
+     "共通の実行ファイルを1つ直す"
+    ]
+   ],
+   "grounds": [
+    [
+     "保守する実装は Rust のリファレンス実装1組",
+     "Rust のリファレンス実装を1組だけ持ち、ほかの言語は AI が移植する",
+     "rule",
+     "論点1の答え"
+    ],
+    [
+     "配布の単位",
+     "公開の単位を Skill ごとにする",
+     "rule",
+     "ACDR 0042"
+    ],
+    [
+     "ずれの検出が今も在る",
+     "refs.rs がテンプレートと違えば検出する",
+     "measured",
+     "tool/business_logic/src/check.rs の rust_refs"
+    ],
+    [
+     "単体で動く",
+     "他の Skill の名前に依存していないかを検査する",
+     "measured",
+     "tool/business_logic/src/accept.rs"
+    ],
+    [
+     "AI がリファレンス実装から移植できる",
+     "Rust のリファレンス実装だけを渡した担当が、Go でテストケース12件に合格する Skill を移植した",
+     "measured",
+     "このボードの trial/go-skill/（2026-10-02）"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     "論点1〜4で決めた形へ、今の skills-creator と既存の Skill を移す順番を決める"
+    ]
+   ],
+   "pick": [
+    [
+     "<ol><li>A：契約とテストケースを追加する。今の動作は変えないので、今の Rust の Skill でテストケースを実行して全件合格を確認できる</li><li>B：テンプレートを Rust 1組（sample/rust/）に限定する。4言語のテンプレートと言語ごとの登録を削除し、verify の言語間比較をテストケースの実行に置き換える</li><li>C：既存の11の Skill の tool.json を contract 3 にし、document.json と SKILL.md を新しい形に書き直す</li></ol><p>順番の理由：テストケースが先に在れば、B と C で何かを壊したときにテストケースが検出する。4言語を先に消すと、その間は検証の手段が無くなる</p>"
+    ]
+   ],
+   "answer": [
+    [
+     "3つの ACDR に分けて移す。A で契約とテストケースを追加し、今の Rust の Skill で全件合格を確認する。B でテンプレートを Rust 1組に絞り、4言語のテンプレートと言語ごとの登録を削除する。C で既存の11の Skill の tool.json を contract 3 にし、文書を書き直す"
+    ]
+   ],
+   "figures": [
+    [
+     "A でテストケースを置いてから、B でテンプレートを絞り、C で既存の Skill に適用する。各段の終わりにテストケースで確認する",
+     "6033025a99c5"
+    ]
+   ],
+   "example": [
+    [
+     "<div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>すること</th><th>終わりに確認すること</th></tr></thead><tbody><tr><th>ACDR A：契約とテストケースを追加</th><td>1. contract/structure.json ・ tools.json を、今の document.json（tool-contract ・ folder-structure）から作る。<br>2. tool.json に build ・ test ・ format の欄を足す（contract 3。実行するディレクトリは Skill のフォルダ。format はチェックのみ）。<br>3. テストケース31件と fixtures を作る（試作の12件が出発点）。assumptions.json を書く。<br>4. check にテストケースを実行する段を、verify にテストとテストケースの対応の確認を足す。</td><td>今の Rust の Skill すべてで、テストケースが全件合格する。</td></tr><tr><th>ACDR B：テンプレートを Rust 1組に限定</th><td>5. profiles/rust/ を sample/rust/ へ移す。<br>6. Python ・ TypeScript ・ C# ・ Go のテンプレート（約14,000行）と言語ごとの登録（profile）を削除する。git の履歴には残る。<br>7. scaffold は、Rust ならリファレンス実装から生成する。ほかの言語なら、ディレクトリ構成 ・ SKILL.md ・ references ・ tool.json の枠を作り、移植の手順を案内する。<br>8. verify の言語間比較（582件 × 4言語）を、テストケースの実行に置き換える。</td><td>verify と check が通る。Go の試作（trial/go-skill）が新しい check に合格する。</td></tr><tr><th>ACDR C：既存の Skill に適用</th><td>9. 11の Skill の tool.json を contract 3 にする（build ・ test ・ format を書く）。<br>10. document.json（tool-contract ・ profile-*）と skills-creator の SKILL.md を新しい形に書き直す。</td><td>全 Skill で、テストケースを含む check が通る。</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "3つの ACDR に分け、テストケースを先に置く",
+     "契約とテストケースの追加 → テンプレートの整理 → 既存の Skill への適用の順に移す",
+     "ACDR が3件になる。A の段階では、4言語のテンプレートとテストケースが一時的に両方ある"
+    ],
+    [
+     "1つの ACDR でまとめて移す",
+     "契約 ・ テストケース ・ テンプレートの整理 ・ 既存の Skill への適用を1度に行う",
+     "差分が大きく（4言語のテンプレートの削除だけで約14,000行）、承認の前に確認しきれない。途中で壊れても、どの変更が原因か分からない"
+    ]
+   ],
+   "dropped": [
+    [
+     "4言語のテンプレートを削除せず、更新を止めて残す",
+     "古いテンプレートが残ると、scaffold で選べてしまい、テストケースに合格しない Skill ができる。必要になれば git の履歴から取り出せる"
+    ],
+    [
+     "先に4言語のテンプレートを削除し、あとでテストケースを作る",
+     "テストケースができるまで、Rust 以外の検証手段が無くなる。リファレンス実装を直したときに、壊れたことに気づけない"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "言語ごとの登録は profile.rs（268行）と profiles/<言語>.profile.json が持ち、scaffold と verify が使っている"
+    ],
+    [
+     "verify の言語間比較は conform.rs（392行）と provider.rs（251行）が持つ。テストケースの実行に置き換えると、この2つは小さくなるか不要になる"
+    ],
+    [
+     "今の Skill はすべて Rust で、Rust 以外のテンプレートを使っている Skill は無い"
+    ]
+   ],
+   "costs": [
+    [
+     "ACDR を3件（A ・ B ・ C）起こし、それぞれ承認を得てから適用する"
+    ],
+    [
+     "各段の終わりに、全 Skill でテストケースを実行する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "この答えを試す外の作業：ACDR A の適用（テストケースの追加と、全 Skill での実行）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 覆さない。A で全 Skill がテストケースに合格すれば、B と C へ進む。合格しなければ、手順を再検討する"
+    ],
+    [
+     "platform-advisor と ux-advisor の作り直し",
+     "<span class=\"kind k-given\">後続で決定</span> ── 覆さない。C の後に、新しい形で作り直す"
+    ],
+    [
+     "Rust 以外の言語で Skill を作る手順の細部（AI への指示の書き方）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 覆さない。B の scaffold の案内として ACDR B で決める"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "3つの ACDR に分け、テストケースを先に置く",
+     "段ごとに確認して承認できる",
+     "段ごとにテストケースを実行するので、どの段で壊れたか分かる"
+    ],
+    [
+     "残った2つの案を比べる",
+     "1つの ACDR でまとめて移す",
+     "1回で済むが、差分が大きい",
+     "原因の切り分けが難しい"
+    ]
+   ],
+   "grounds": [
+    [
+     "テンプレートを Rust 1組に限定する",
+     "リファレンス実装は Rust の1組だけ持ち、ほかの言語は AI が移植する",
+     "rule",
+     "論点1 ・ 論点3"
+    ],
+    [
+     "各 Skill に複製する",
+     "共通ツールは各 Skill が持ち、Rust の Skill はリファレンス実装を複製する",
+     "rule",
+     "論点4"
+    ],
+    [
+     "テストケースを先に置く",
+     "テストケースは、Rust のリファレンス実装 ・ 複製 ・ Go の移植に同じ形で実行でき、古い実装を検出できた",
+     "measured",
+     "論点2 ・ このボードの trial/（2026-10-02）"
+    ],
+    [
+     "影響する範囲",
+     "言語ごとの登録は profile.rs と profile.json が、言語間比較は conform.rs と provider.rs が持つ",
+     "measured",
+     "skills-creator/tool/business_logic/src/"
+    ]
+   ]
+  }
+ }
+}

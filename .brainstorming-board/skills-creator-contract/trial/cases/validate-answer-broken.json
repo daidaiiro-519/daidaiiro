@@ -1,0 +1,32 @@
+{
+ "case": "判断基準に無い引用 ・ 無い id を検出する",
+ "call": [
+  "validate",
+  "--kind",
+  "answer",
+  "--file",
+  "fixtures/answers/broken.json",
+  "--skill_root",
+  "fixtures/advisor"
+ ],
+ "compare_json": true,
+ "expect": {
+  "exit": 1,
+  "json": {
+   "ok": true,
+   "findings": [
+    "fixtures/answers/broken.json: /grounds/1/quote ── criteria の testing-principles の記述に無い ──「テストは常に全数で実施すべきである」",
+    "fixtures/answers/broken.json: /grounds/2/criterion ── criteria に id no-such-id が無い",
+    "fixtures/answers/broken.json: /related/1/criterion ── criteria に id missing-criterion が無い"
+   ],
+   "data": {
+    "kinds": [
+     "answer",
+     "criteria",
+     "document"
+    ],
+    "checked": "fixtures/answers/broken.json"
+   }
+  }
+ }
+}

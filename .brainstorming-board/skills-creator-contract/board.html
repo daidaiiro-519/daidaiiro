@@ -1,0 +1,476 @@
+<title>skills-creator を契約中心に作り直す</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="skills-creator-contract" data-round="8" data-theme-name="skills-creator を契約中心に作り直す"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　skills-creator を契約中心に作り直す　/　Round 8</p><h1>skills-creator を契約中心に作り直す</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false"><span class="tn">Q1</span>契約の正本に置くもの<span class="st done">決着</span></button><button data-t="p2" aria-selected="false"><span class="tn">Q2</span>検証の方法<span class="st done">決着</span></button><button data-t="p3" aria-selected="false"><span class="tn">Q3</span>リファレンス実装とテストケースの形<span class="st done">決着</span></button><button data-t="p4" aria-selected="false"><span class="tn">Q4</span>共通ツールの置き場所<span class="st done">決着</span></button><button data-t="p5" aria-selected="false"><span class="tn">Q5</span>移行の手順<span class="st done">決着</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}#p4 table:has(span.n.out){counter-reset:drop 0}#p5 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>skills-creator を、言語ごとのテンプレートを正本にする形から、どの言語の Skill も満たす契約を正本にする形へ作り直す。このボードでは、契約の中身 ・ 検証の方法 ・ リファレンス実装とテストケースの置き方 ・ 共通ツールの置き場所 ・ 移行の手順を決める。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>どの言語で書いた Skill も満たすべき契約として、skills-creator は何を正本に持つか</td><td><span class="st done">決着</span></td><td>契約は3つで構成する。ディレクトリ構成 ・ CLI のインターフェース（tool.json を含む）・ テストケースである。実装は Rust のリファレンス実装を1組だけ持ち、ほかの言語の実装は Skill を作るときに AI が移植して、テストケースに合格させる</td></tr><tr><td><span class="n">2</span></td><td>どの言語で書いたツールも契約を満たしていることを、どう検証するか</td><td><span class="st done">決着</span></td><td>テストケースを JSON ファイルで持ち、skills-creator の check が、Skill の tool.json の実行コマンドでツールを呼んで期待値と比較する。JSON は値として、HTML は文字列として比較する。スキーマ検査のエラー文はライブラリごとに違うので比較しない。テストケースは今の Rust のテスト31件と各言語582件の比較から作る</td></tr><tr><td><span class="n">3</span></td><td>Rust のリファレンス実装とテストケースを、どの形で持つか</td><td><span class="st done">決着</span></td><td>リファレンス実装は今の Rust のテンプレート1組を sample/rust/ へ移す。verify がそこから Skill を生成し、ビルドしてテストケースを実行する。テストケースは1件1ファイルで、リファレンス実装のテスト1件ごとに同名のテストケースを置く。比較から除外する箇所は JSON Pointer で書く。リファレンス実装から読み取りにくい前提は assumptions.json に書く</td></tr><tr><td><span class="n">4</span></td><td>get ・ validate ・ view ・ import を、各 Skill に複製するか、共通の1つにするか</td><td><span class="st done">決着</span></td><td>各 Skill に複製する。Rust の Skill はリファレンス実装をそのまま複製し、ほかの言語の Skill は AI が移植したコードを持つ。ずれは、Rust の Skill では check がリファレンス実装との差分で、どの言語でもテストケースで検出する</td></tr><tr><td><span class="n">5</span></td><td>今の5言語のテンプレートと既存の Skill を、どの順で新しい形へ移すか</td><td><span class="st done">決着</span></td><td>3つの ACDR に分けて移す。A で契約とテストケースを追加し、今の Rust の Skill で全件合格を確認する。B でテンプレートを Rust 1組に絞り、4言語のテンプレートと言語ごとの登録を削除する。C で既存の11の Skill の tool.json を contract 3 にし、文書を書き直す</td></tr></table></div><details><summary>この回で変わったところ（0 か所）</summary><div><p class="note-s">前の回から、中身は1つも変わっていない。</p></div></details><details><summary>次にすること</summary><div><ol><li>ACDR A：契約（ディレクトリ構成 ・ CLI のインターフェース）とテストケース31件を追加し、check にテストケースの実行を足す。今の Rust の Skill すべてで全件合格を確認する</li><li>ACDR B：テンプレートを Rust 1組（sample/rust/）に限定し、4言語のテンプレートと言語ごとの登録を削除する。verify の言語間比較をテストケースの実行に置き換える</li><li>ACDR C：既存の11の Skill の tool.json を contract 3 にし、契約の文書と skills-creator の SKILL.md を書き直す</li><li>そのあと、platform-advisor と ux-advisor を新しい形で作り直す</li></ol></div></details><details><summary>保留</summary><div><ul><li><b class="lead-s">Rust 以外の言語で Skill を作るときの、AI への指示の書き方</b><div class="sub-s">ACDR B の scaffold の案内で決める</div></li><li><b class="lead-s">brainstorming-board の固定の文言に残る廃語（代償 ・ 要る）と和語の述部</b><div class="sub-s">このボードとは別に直す</div></li></ul></div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>どの言語で書いた Skill も満たすべき契約として、skills-creator は何を正本に持つか</h2></div><div class="note">ほかの4つの論点の前提になる論点。契約に何を入れるかで、検証の方法もテンプレートの形も決まる</div><div class="ans"><span class="big">C</span><p>契約は次の3つで構成する。どれも言語に依存しない</p><ol><li><b class="lead-s">ディレクトリ構成</b><div class="sub-s">置くファイル（SKILL.md ・ references ・ tool.json ・ mcp.json ・ 実装 ・ テスト）</div></li><li><b class="lead-s">CLI のインターフェース</b><div class="sub-s">サブコマンド ・ 引数 ・ 終了コード ・ --json の出力形式 ・ オプションの扱い。tool.json には実行 ・ ビルド ・ テスト ・ フォーマットのコマンドを書く</div></li><li><b class="lead-s">テストケース</b><div class="sub-s">入力（references と回答）と呼び出しに対する期待値（終了コード ・ JSON ・ HTML）。共通ツールの振る舞いはテストケースで決まる</div></li></ol><p>実装は Rust のリファレンス実装を1組だけ持つ。リファレンス実装は契約ではなく、テストケースに合格する実装の1つである</p><p>Rust 以外の言語で Skill を作るときは、AI がリファレンス実装を移植し、テストケースに合格したら完成とする。移植したコードは skills-creator に保存しない</p><p>層の構成（4層と依存の向き）は ACDR 0059 のとおり契約に入れない。リファレンス実装が推奨の形として示す</p></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,506px)" class="wf-fig" viewBox="0 0 506 308" height="308" role="img"><g transform="translate(6.0,6.0)"><path d="M74.0,164.6 L270.9,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="270.9,245.4 263.7,245.1 265.6,240.6" fill="#C3CAD2"/><rect x="158.4" y="195.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="172.4" y="208.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">従う</text><path d="M270.4,32.6 L270.9,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="270.9,245.4 268.4,238.6 273.3,238.6" fill="#C3CAD2"/><rect x="246.6" y="129.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="270.6" y="142.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">移植する</text><path d="M443.8,155.6 L270.9,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="270.9,245.4 275.8,240.1 278.0,244.5" fill="#C3CAD2"/><rect x="328.4" y="190.5" width="58.0" height="16.0" fill="#F5F7F9"/><text x="357.4" y="204.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">テスト実行</text><path d="M443.8,122.4 L270.4,32.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="270.4,32.6 277.5,33.5 275.3,37.9" fill="#C3CAD2"/><rect x="328.1" y="67.5" width="58.0" height="16.0" fill="#F5F7F9"/><text x="357.1" y="81.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">テスト実行</text><g class="wf-node" transform="translate(0.0,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="148.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="74.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">契約（構成 ・ CLI </text><text x="74.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">のインターフェース）</text></g></g><g class="wf-node" transform="translate(183.4,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="175.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="87.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Rust のリファレンス実装</text></g></g><g class="wf-node" transform="translate(172.0,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="197.8" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="98.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Go ・ Python などで書いた</text><text x="98.9" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Skill（AI が移植する）</text></g></g><g class="wf-node" transform="translate(393.8,123.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストケース</text></g></g></g></svg><figcaption>契約と Rust のリファレンス実装から、Go でも Python でも AI が Skill を移植し、テストケースで同じ振る舞いかを検証する</figcaption></figure></div><div class="ex"><p>契約の置き場所は skills-creator/references/contract/ である。</p><div class="scroll"><table class="fact"><thead><tr><th></th><th>中身</th><th>今の置き場所</th></tr></thead><tbody><tr><th>contract/structure.json</th><td><b class="lead-s">Skill の構成</b><div class="sub-s">置くファイルと、無くてよいもの</div></td><td>document.json の folder-structure と tool-contract に分散</td></tr><tr><th>contract/tools.json</th><td><b class="lead-s">CLI のインターフェース</b><div class="sub-s">サブコマンド ・ 引数 ・ 終了コード ・ 出力の形 ・ tool.json の欄</div></td><td>document.json の tool-contract</td></tr><tr><th>contract/cases/</th><td><b class="lead-s">テストケース</b><div class="sub-s">入力 ・ 呼び出し ・ 期待値</div></td><td>無し（各言語582件の突き合わせが、Rust の出力との比較で代用している）</td></tr><tr><th>reference/rust/</th><td><b class="lead-s">リファレンス実装</b><div class="sub-s">Rust の実装1組（契約の外）</div></td><td>profiles/rust/ のテンプレート（5,106行）</td></tr><tr><th>（置かない）</th><td><b class="lead-s">Go ・ Python ・ TypeScript ・ C# の実装</b><div class="sub-s">Skill を作るときに AI がリファレンス実装から移植する</div></td><td>profiles/<言語>/ のテンプレート（4言語で約14,000行）</td></tr></tbody></table></div><p>テストケースの例（どの言語で書いた道具も、この出力を返せば合格）</p><pre><code><pre><code>{
+  "case": "根拠の引用が判断基準に無い",
+  "references": "cases/grounds/references/",
+  "call": ["validate", "--kind", "answer", "--file", "cases/grounds/answer.json"],
+  "expect": {
+    "exit": 1,
+    "findings": ["…: /grounds/3/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」"]
+  }
+}</code></pre></code></pre><p>tool.json の例（Rust で書いた Skill。Go で書くなら、同じ欄に go build や go test を書く）</p><pre><code><pre><code>{
+  "contract": 3,
+  "cli":    { "command": "${CLAUDE_PROJECT_DIR:-.}/.claude/skills/qa-advisor/bin/qa-advisor", "args": [] },
+  "build":  [["cargo", "install", "--path", "tool/cli", "--root", ".", "--target-dir", "tool/target"]],
+  "test":   [["cargo", "test", "--manifest-path", "tool/Cargo.toml"]],
+  "format": [["cargo", "fmt", "--manifest-path", "tool/Cargo.toml", "--", "--check"]],
+  "external": []
+}</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 5件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>Rust のリファレンス実装とテストケースを持つ</b></td><td>契約に構成 ・ 外形 ・ テストケースを置き、リファレンス実装として Rust の実装を1組だけ持つ。ほかの言語は AI がリファレンス実装から移植する</td><td><span class="cost">テストケースを、変わって困る振る舞いがすべて入るまで厚くする。テストケースに無い振る舞いは、言語ごとに変わってよいことになる</span></td></tr><tr><td><span class="n">B</span></td><td><b>擬似言語のコードを正本にする</b></td><td>契約に、言語を問わないコード（型 ・ 関数 ・ 制御の流れ）と基本操作の定義を置き、どの言語も AI がそこから移植する</td><td><span class="cost">擬似言語は実行できないので、誤りをテストで見つけられない。擬似言語 ・ テストケース ・ 基本操作の定義の3つを保守する</span></td></tr></table></div><p class="note-s">除外した案 5件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="振る舞いを1つ直すたびに、5言語を書き直す（ACDR 0090 では4人の担当で移植した）。Rust が事実上の正本になり、ACDR 0036 の「契約は呼ぶ側から観察できるものだけ」と食い違う"><b>今のまま、5言語の実装のテンプレートを正本にする</b></mark></td><td>振る舞いを1つ直すたびに、5言語を書き直す（ACDR 0090 では4人の担当で移植した）。Rust が事実上の正本になり、ACDR 0036 の「契約は呼ぶ側から観察できるものだけ」と食い違う</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="共通ツールの出力が Skill ごとに変わる。回答の HTML の形も、validate の引用の照合も一致しなくなる"><b>外形（サブコマンド ・ 引数 ・ 終了コード）だけを契約にし、振る舞いは Skill ごとに任せる</b></mark></td><td>共通ツールの出力が Skill ごとに変わる。回答の HTML の形も、validate の引用の照合も一致しなくなる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="ACDR 0059 で、中身の設計は Skill が決めるとした。契約に入れると、ポートとアダプターを選ぶ Skill が契約に違反する"><b>層の構成（4層と依存の向き）も契約に入れる</b></mark></td><td>ACDR 0059 で、中身の設計は Skill が決めるとした。契約に入れると、ポートとアダプターを選ぶ Skill が契約に違反する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="skills-creator が言語の一覧を持つことになり、新しい言語のたびに skills-creator を直す。コマンドはその Skill の動かし方なので、Skill の tool.json に置けば足りる"><b>言語ごとの決まり（ビルド ・ テスト ・ フォーマットのコマンド）を skills-creator に置く</b></mark></td><td>skills-creator が言語の一覧を持つことになり、新しい言語のたびに skills-creator を直す。コマンドはその Skill の動かし方なので、Skill の tool.json に置けば足りる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="人が読んで理解するには足りても、そこから動くコードは書けない。分け方 ・ 入出力 ・ 文字の数え方などが文の行間に埋もれる"><b>擬似言語の手順（日本語の文で書いた手順）を正本にする</b></mark></td><td>人が読んで理解するには足りても、そこから動くコードは書けない。分け方 ・ 入出力 ・ 文字の数え方などが文の行間に埋もれる</td></tr></table></div><p class="note-s"><b>残った2つの案を比べる</b></p><div class="scroll"><table><tr><th></th><th>リファレンス実装が動くか</th><th>振る舞いを直すとき</th><th>他の言語で作るとき</th></tr><tr><td><span class="n">Rust のリファレンス実装とテストケースを持つ</span></td><td>動く。テストで正しさを検証できる</td><td>Rust のリファレンス実装とテストケースを直す</td><td>AI が Rust から移植する（ACDR 0090 で4言語とも実際にできた）</td></tr><tr><td><span class="n">擬似言語のコードを正本にする</span></td><td>動かない。誤りを実行して見つけられない</td><td>擬似言語 ・ テストケース ・ 基本操作の定義を直す</td><td>AI が擬似言語から移植する</td></tr></table></div></div></details><details><summary>この答えの前提（6件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">契約は観察できるものだけを持つ</span></td><td>ツールの契約は、呼ぶ側から観察できるものだけを規定し、ツールを書く言語と配布の有無を利用者に委ねる</td><td><span class="kind k-rule">決まり</span><small>ACDR 0036 の決定</small></td></tr><tr><td><span class="part">層を契約に入れない</span></td><td>ツールの中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は契約で規定しない。中身の設計は Skill が決める</td><td><span class="kind k-rule">決まり</span><small>ACDR 0059 ・ document.json の tool-contract「規定しないもの」</small></td></tr><tr><td><span class="part">利用者の要求</span></td><td>どんな言語でも作成される skills の契約として用意すべきものと、ディレクトリ構成が必要。Rust でも Go でも書きたい。リファレンス実装は Rust にして、同じ振る舞いのものを別の言語で AI に作らせる方が筋がよい</td><td><span class="kind k-rule">決まり</span><small>利用者の指摘（2026-10-02）</small></td></tr><tr><td><span class="part">振る舞いが実装の中にしか無い</span></td><td>4つのツールは「実体は言語の組のテンプレートが持ち、Skill ごとに書かない」とだけ書かれている</td><td><span class="kind k-fact">実測</span><small>document.json の tool-contract「references（契約の版2）」</small></td></tr><tr><td><span class="part">テンプレートの量</span></td><td>references/profiles の5言語のテンプレートの行数</td><td><span class="kind k-fact">実測</span><small>2026-10-02 に wc -l で数えた</small></td></tr><tr><td><span class="part">AI がリファレンス実装から移植できる</span></td><td>Python ・ TypeScript ・ Go ・ C# の担当が Rust のテンプレートから移植し、5つの呼び出しで Rust と出力が一致した</td><td><span class="kind k-fact">実測</span><small>ACDR 0090 の作業（2026-10-02）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（4件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>検証の方法（テストケースの実行の方法 ・ 検査の道具）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点2で決める。覆さない ── この論点は、テストケースを契約に置くことだけを決める</div></td></tr><tr><td>擬似言語のテンプレートの形</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。覆さない</div></td></tr><tr><td>共通ツールを各 Skill に複製するか、共通の1つにするか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点4で決める。覆さない ── どちらでも、振る舞いは契約の擬似言語とテストケースが持つ</div></td></tr><tr><td>既存の11の Skill と5言語のテンプレートの移し方</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点5で決める。覆さない</div></td></tr></table></div></div></details><details><summary>この答えの履歴（3件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><div class="card"><div class="card-h"><span class="ver">A</span>契約を5つの部分で持ち、5つ目に言語ごとの決まり（ビルド ・ テスト ・ フォーマット ・ 実行のコマンド）を置く</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">言語毎の決まりっているの？ 今回言語依存しないように擬似言語にするのでは？</span></td></tr><tr class="g-obsolete g-end"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>5つ目の部分（言語ごとの決まり）と、その置き場所 languages/*.json</td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>コマンドは、その Skill をどう動かすかである。Skill の tool.json に書けば、skills-creator は言語を1つも知らずに済む。実行コマンドは今も tool.json が持っている</td></tr></tbody></table></div></li><li><div class="card"><div class="card-h"><span class="ver">B</span>擬似言語の手順の例を、手順だけの短い記述で示した</div><table class="ev"><tbody><tr class="g-returned g-end"><th rowspan="1"><span class="kind k-given">差し戻し</span></th><td><span class="q-in">この擬似言語の内容では語彙も理解不能だけどあなたはこれ見てわかるの？</span></td></tr><tr class="g-obsolete g-end"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>手順だけの例（目的 ・ 語の定義 ・ 入力と出力 ・ 実例が無い）</td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>書き手は Rust で実装したので読めたが、初めて読む人には「引用」「片」が何か、何のための手順かが分からない。擬似言語の手順は、目的 ・ 語 ・ 入力と出力 ・ 手順 ・ 実例の5つを必ず持つ</td></tr></tbody></table></div></li><li><div class="card"><div class="card-h"><span class="ver">B</span>契約を4つの部分で持ち、共通ツールの振る舞いを擬似言語で書く</div><table class="ev"><tbody><tr class="g-returned"><th rowspan="2"><span class="kind k-given">差し戻し</span><small>2件</small></th><td><span class="ev-n">1</span><span class="q-in">これなんか擬似げんごおもってたのとちがうわ。これだと動くものできなさそうだね</span></td></tr><tr class="g-returned g-end"><td><span class="ev-n">2</span><span class="q-in">それかさリファレンス実装はrustにしてそれと同じ振る舞いのもを別の言語でaiに作らせる方がよっぽど擬似言語より筋がいいのでは？</span></td></tr><tr class="g-obsolete g-end"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>擬似言語で振る舞いを書く部分。振る舞いはテストケースが決め、リファレンス実装は Rust の実装1組が持つ</td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>擬似言語は実行できないので、誤りをテストで見つけられない。Rust のリファレンス実装は動き、テストケースで検証できる。移植するのは AI なので、Go で書く人が Rust を読む負担は生じない</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（7件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>ACDR 0036 で、契約は呼ぶ側から観察できるものだけを規定すると決めた</b></td><td></td></tr><tr><td><b>共通ツール（get ・ validate ・ view ・ import）の振る舞いは、契約の文書に無く、Rust の refs.rs（1,400行余り）の中にだけ在る</b></td><td></td></tr><tr><td><b>5言語の実装のテンプレートは、合計で約19,000行ある（Rust 5,106 ・ Go 4,506 ・ C# 3,512 ・ TypeScript 3,010 ・ Python 2,980）</b></td><td></td></tr><tr><td><b>ACDR 0090 の4点の修正では、5言語のテンプレートを書き直し、各言語582件の突き合わせで Rust と同じ出力かを検証した</b></td><td></td></tr><tr><td><b>実行コマンドは、今も各 Skill の tool.json が持っている（cli.command）。ビルド ・ テスト ・ フォーマットのコマンドは、言語の組の定義（profiles/<言語>.profile.json と profile.rs）が持っている</b></td><td></td></tr><tr><td><b>ACDR 0090 では、4言語の担当（AI）が Rust の実装から移植し、指定した5つの呼び出しの出力が1バイトも違わなかった</b></td><td></td></tr><tr><td><b>擬似言語は、日本語の文の手順でも、コードの形でも、実行できない。誤りは移植した実装を動かすまで見つからない</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（4件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>skills-creator/references/contract/ を起こし、構成 ・ 外形 ・ テストケースを置く</b></td><td></td></tr><tr><td><b>tool.json の契約に、ビルド ・ テスト ・ フォーマットのコマンドの欄を足す</b></td><td></td></tr><tr><td><b>今の Rust の出力と各言語582件の突き合わせのテストケースから、テストケースを抽出する</b></td><td></td></tr><tr><td><b>Rust のリファレンス実装を1組に絞り、ほかの4言語のテンプレートを外す</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>どの言語で書いたツールも契約を満たしていることを、どう検証するか</h2></div><div class="note">論点1で、共通ツールの振る舞いはテストケースで決めることにした。この論点では、テストケースの持ち方と実行の方法を決める</div><div class="ans"><span class="big">A</span><ol><li><b class="lead-s">テストケースは1件1ファイルの JSON で持つ</b><div class="sub-s">呼び出し ・ 期待する終了コード ・ 期待値</div></li><li>テストケースが使う入力（references と回答）は、テスト用のフィクスチャとして skills-creator に同梱する。ほかの Skill の references は使わない</li><li>テストを実行するのは skills-creator の check である。Skill の tool.json の実行コマンドでツールを呼ぶので、どの言語の Skill にも同じテストを実行できる</li><li>JSON は値として比較し、文字のエスケープの違いは問わない。HTML は文字列として比較する</li><li>スキーマ検査のエラー文は比較しない。比較するのは、終了コードと、契約が文言を決めているエラー（引用の照合など）だけである</li><li>テストケースは、今の Rust の refs のテスト31件と、各言語582件の比較の呼び出しから作る。期待値は今のリファレンス実装の出力とする</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,248px)" class="wf-fig" viewBox="0 0 248 446" height="446" role="img"><g transform="translate(6.0,6.0)"><path d="M117.3,32.6 L117.3,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="117.3,95.4 114.8,88.6 119.7,88.6" fill="#C3CAD2"/><rect x="103.3" y="54.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="117.3" y="67.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">読む</text><path d="M118.3,128.6 L117.0,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="117.0,191.4 114.7,184.6 119.6,184.7" fill="#C3CAD2"/><rect x="103.7" y="150.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="117.7" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">実行</text><path d="M118.6,242.6 L117.8,305.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="117.8,305.4 115.4,298.6 120.3,298.7" fill="#C3CAD2"/><path d="M117.8,338.6 L117.3,401.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="117.3,401.4 114.9,394.6 119.8,394.7" fill="#C3CAD2"/><rect x="83.5" y="360.0" width="68.0" height="16.0" fill="#F5F7F9"/><text x="117.5" y="373.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">期待値と比較</text><g class="wf-node" transform="translate(0.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="235.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="117.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストケース（呼び出し ・ 期待値）</text></g></g><g class="wf-node" transform="translate(15.9,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="203.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">skills-creator の check</text></g></g><g class="wf-node" transform="translate(23.1,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="189.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="94.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">検証する Skill の tool.</text><text x="94.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">json（実行コマンド）</text></g></g><g class="wf-node" transform="translate(67.8,306.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ツールの出力</text></g></g><g class="wf-node" transform="translate(60.0,402.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="115.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="57.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">合格 ／ 不合格</text></g></g></g></svg><figcaption>check が tool.json の実行コマンドでツールを呼び、テストケースの期待値と比較する。Rust のリファレンス実装も、AI が移植した実装も、同じテストケースで検証する</figcaption></figure></div><div class="ex"><p>テストケースの置き場所と、1件のテストケースの例</p><pre><code><pre><code>contract/cases/
+  fixtures/
+    advisor/references/       （判断基準 ・ 回答の形 ・ 原典の複製のサンプル。x-view と x-refers を全種類使う）
+    answers/                  （正しい回答 ・ 壊した回答 ・ 図を持つ回答）
+  validate-answer-quote.json  （1件のテストケース）
+  get-omit-source.json
+  view-figure-edge.json
+  …
+
+validate-answer-quote.json
+{
+  "case": "根拠の引用が判断基準に無い",
+  "skill": "fixtures/advisor",
+  "call": ["validate", "--kind", "answer", "--file", "fixtures/answers/quote-broken.json"],
+  "expect": {
+    "exit": 1,
+    "findings": ["fixtures/answers/quote-broken.json: /grounds/1/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」"]
+  }
+}</code></pre></code></pre><p>Go で書いた Skill にテストを実行したときの出力の例</p><pre><code><pre><code>$ skills-creator check .claude/skills/my-advisor --cases 1
+  合格  get-omit-source
+  合格  validate-answer-quote
+  不合格 view-figure-edge ── data.html が期待と違う（42文字目から）
+  …
+テストケース N件 ／ 合格 N−1件 ／ 不合格 1件（件数は例）</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 3件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>テストケースをファイルで持ち、check が tool.json で呼んで検証する</b></td><td>テストケースと入力のリファレンス実装を skills-creator が持ち、どの言語の Skill にも check が同じテストを実行する</td><td><span class="cost">テストケースと入力のリファレンス実装を抽出して保守する。Rust のリファレンス実装を直したら、テストケースの期待も直す</span></td></tr><tr><td><span class="n">B</span></td><td><b>出力を文字列として1バイトまで比べる</b></td><td>JSON も HTML も、文字列として完全一致を求める</td><td><span class="cost">文字のエスケープ（全角空白を \u3000 にするかなど）のように、意味の無い差でも不合格になる。言語ごとに出力の規則を一致させる作業が残る</span></td></tr></table></div><p class="note-s">除外した案 3件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="検証のたびに Rust のリファレンス実装をビルドして動かすことになり、Go だけで Skill を作る人にも Rust のビルドのツールが必要になる。正解がテストケースではなく Rust の実行結果に残る"><b>今の突き合わせ（Rust で生成した Skill と出力を比べる）を続ける</b></mark></td><td>検証のたびに Rust のリファレンス実装をビルドして動かすことになり、Go だけで Skill を作る人にも Rust のビルドのツールが必要になる。正解がテストケースではなく Rust の実行結果に残る</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="言語ごとにテストが分かれ、同じ振る舞いかを判定する共通の基準が無い"><b>各言語の単体テストで検証する（言語ごとにテストを書く）</b></mark></td><td>言語ごとにテストが分かれ、同じ振る舞いかを判定する共通の基準が無い</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="ほかの Skill の判断基準が変わるたびに、テストケースの期待値が変わる。usecase の判断基準を直すと、qa のテストが不合格になる"><b>テストケースの入力に、ほかの Skill の references を使う（今の突き合わせと同じ）</b></mark></td><td>ほかの Skill の判断基準が変わるたびに、テストケースの期待値が変わる。usecase の判断基準を直すと、qa のテストが不合格になる</td></tr></table></div><p class="note-s"><b>残った2つの案を比べる</b></p><div class="scroll"><table><tr><th></th><th>JSON の文字のエスケープの差</th><th>言語ごとの作業</th></tr><tr><td><span class="n">テストケースをファイルで持ち、check が tool.json で呼んで検証する</span></td><td>問わない（値として比べる）</td><td>テストケースに合格させるだけ</td></tr><tr><td><span class="n">出力を文字列として1バイトまで比べる</span></td><td>不合格にする</td><td>書き出しの規則まで Rust に合わせる</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">振る舞いはテストケースが決める</span></td><td>契約は構成 ・ CLI のインターフェース ・ テストケースの3つで、共通ツールの振る舞いはテストケースが決める</td><td><span class="kind k-rule">決まり</span><small>論点1の答え</small></td></tr><tr><td><span class="part">tool.json で呼べば言語を問わない</span></td><td>tool.json の cli.command でツールを起動する</td><td><span class="kind k-rule">決まり</span><small>document.json の tool-contract ・ ACDR 0036</small></td></tr><tr><td><span class="part">抽出の材料</span></td><td>Rust の refs のテスト31件 ・ 各言語582件の突き合わせ</td><td><span class="kind k-fact">実測</span><small>tool/business_logic/tests/refs.rs ・ ACDR 0090 の検証（2026-10-02）</small></td></tr><tr><td><span class="part">値として比べてよい</span></td><td>突き合わせは、JSON を読み込んでから比べ、逃がし方の違いを一致としていた</td><td><span class="kind k-fact">実測</span><small>tool/business_logic/src/conform.rs</small></td></tr><tr><td><span class="part">テストケースが言語を問わず実行でき、違いを検出できる</span></td><td>テストケース12件を、Rust のリファレンス実装 ・ 複製3つ ・ Go の移植でテストを実行して全件合格し、古い複製では8件が不合格になった</td><td><span class="kind k-fact">実測</span><small>このボードの trial/run.py（2026-10-02）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>Skill 固有のサブコマンド（acdr の render など）の検証</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">覆さない。共通ツールだけが契約の振る舞いを持つ。Skill 固有のサブコマンドは、その Skill のテストが持つ</div></td></tr><tr><td>テストケースの件数の目標と、どの振る舞いまでテストケースに入れるか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。覆さない ── この論点は、持ち方と実行の方法だけを決める</div></td></tr><tr><td>リファレンス実装からしか読み取れない前提の書き方と置き場所</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。覆さない ── この論点の答えは、前提を添えても変わらない</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（2手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>試作（2026-10-02）：テストケース12件（入力のリファレンス実装を含めて244KB）とテストランナーを作り、4種類の実装でテストを実行した。置き場所はこのボードの trial/ である</p></li><li><div class="scroll"><table class="fact"><thead><tr><th></th><th>結果</th></tr></thead><tbody><tr><th>Rust のリファレンス実装（qa-advisor）</th><td>12件とも合格（期待値は、このリファレンス実装の出力から取った）</td></tr><tr><th>リファレンス実装を複製している3つの Skill（ddd ・ usecase ・ acdr）</th><td>3つとも12件合格</td></tr><tr><th>AI が Rust のリファレンス実装だけから移植した Go の Skill</th><td>12件とも合格。テストランナーの実行は1回で済んだ。Go は2,442行 ・ 8ファイル</td></tr><tr><th>古い複製を持つ Skill（platform-advisor）</th><td>12件中8件が不合格。サブコマンドの前のオプション ・ 出典を除く取り出し ・ 引用の照合 ・ 描画の変更をすべて検出した</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（6件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>今の突き合わせは、リポジトリの Skill の references を入力にし、Rust で生成した Skill の出力を正解にしている</b></td><td></td></tr><tr><td><b>Rust の refs のテストは31件で、それぞれが入力を自前で組み、振る舞いを1つずつ固定している</b></td><td></td></tr><tr><td><b>ACDR 0090 で、Go は < > & を、C# は全角空白を \u 形式に逃がしていた。JSON として読めば同じ値で、突き合わせは値の比較で一致としていた</b></td><td></td></tr><tr><td><b>試作で、テストケース12件が、Rust のリファレンス実装 ・ リファレンス実装の複製3つ ・ AI が移植した Go のどれにも同じ形で実行できた</b></td><td></td></tr><tr><td><b>古い複製を持つ Skill は12件中8件で不合格になった。テストケースは、振る舞いの違いを検出できる</b></td><td></td></tr><tr><td><b>スキーマ検査のエラー文は、Rust の jsonschema と Go のライブラリで違う。今のテストケースには形の違反を含む回答が無いので、差は表に出なかった</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>contract/cases/ にテストケースと入力のリファレンス実装を置く</b></td><td></td></tr><tr><td><b>check にテストケースを検証する段を足す（tool.json の実行コマンドで呼ぶ）</b></td><td></td></tr><tr><td><b>Rust の refs のテスト31件と突き合わせの呼び出しから、テストケースを抽出する</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>Rust のリファレンス実装とテストケースを、どの形で持つか</h2></div><div class="note">論点2でテストケースの持ち方を、論点4でリファレンス実装を各 Skill に複製することを決めた。この論点では、リファレンス実装 ・ テストケース ・ 実装上の前提の置き場所と形式を決める</div><div class="ans"><span class="big">A</span><ol><li>リファレンス実装は、今の Rust のテンプレート1組（profiles/rust/）を sample/rust/ へ移したもの。プレースホルダー（{{接頭辞}} など）は今のまま残す</li><li>リファレンス実装が動くことは verify で確認する。テンプレートから Skill を生成し、ビルドしてテストを実行し、テストケースを実行する（今の verify と同じ流れ）</li><li>テストケースは contract/cases/ に1件1ファイルで置く。項目は、説明 ・ 対応するテストの名前 ・ 呼び出し ・ 期待値（終了コードと JSON）・ 比較から除外するパス（ignore）</li><li>リファレンス実装のテスト1件ごとに、同名のテストケースを置く。verify が対応を確認し、テストケースの無いテストを検出する。振る舞いを変えるときは、テストとテストケースを一緒に直す</li><li>比較から除外する箇所（スキーマ検査のエラー文など）は、ignore に JSON Pointer で書く</li><li>リファレンス実装から読み取りにくい前提（JSON のキー順 ・ 空白の定義 ・ 行の分割 ・ 上書き時の位置など）は、contract/assumptions.json に1件ずつ、ルール ・ 理由 ・ 確認するテストケースで書く</li><li>型ごとのテンプレート（SKILL.md ・ スキーマ ・ 判断基準）と見た目の正本は、もともと言語に依存しないので、今の types/ と view/ のまま置く</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,724px)" class="wf-fig" viewBox="0 0 724 254" height="254" role="img"><g transform="translate(6.0,6.0)"><path d="M215.8,25.0 L296.8,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="296.8,25.0 290.0,27.5 290.0,22.5" fill="#C3CAD2"/><rect x="242.3" y="15.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="256.3" y="28.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">読む</text><path d="M420.8,25.0 L468.2,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="468.2,25.0 461.4,27.5 461.4,22.5" fill="#C3CAD2"/><rect x="430.5" y="15.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="444.5" y="28.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">生成</text><path d="M445.4,130.0 L539.6,130.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="539.6,130.0 532.8,132.5 532.8,127.5" fill="#C3CAD2"/><rect x="463.5" y="120.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="492.5" y="133.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">名前で対応</text><path d="M590.2,113.4 L590.2,41.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="590.2,41.6 592.7,48.4 587.7,48.4" fill="#C3CAD2"/><rect x="561.2" y="67.5" width="58.0" height="16.0" fill="#F5F7F9"/><text x="590.2" y="81.1" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">テスト実行</text><path d="M124.4,50.6 L358.3,209.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="358.3,209.4 351.3,207.6 354.1,203.6" fill="#C3CAD2"/><rect x="227.3" y="120.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="241.3" y="133.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">読む</text><path d="M249.4,226.0 L278.5,226.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="278.5,226.0 271.7,228.5 271.7,223.5" fill="#C3CAD2"/><rect x="249.9" y="216.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="263.9" y="229.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">読む</text><g class="wf-node" transform="translate(33.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="181.6" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="90.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sample/rust/（リファレ</text><text x="90.8" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ンス実装のテンプレート）</text></g></g><g class="wf-node" transform="translate(297.4,9.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="122.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="61.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">検証（verify）</text></g></g><g class="wf-node" transform="translate(468.8,9.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="242.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="121.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">リファレンス実装から生成した Skill</text></g></g><g class="wf-node" transform="translate(272.8,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="172.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="86.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">リファレンス実装のテスト</text></g></g><g class="wf-node" transform="translate(540.2,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストケース</text></g></g><g class="wf-node" transform="translate(0.0,210.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="248.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="124.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">assumptions.json（実装上の前提）</text></g></g><g class="wf-node" transform="translate(279.1,210.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="159.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="79.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">他の言語へ移植する AI</text></g></g></g></svg><figcaption>verify がリファレンス実装から Skill を生成し、テストとテストケースの対応を確認してから、テストケースを実行する。実装上の前提の一覧は、移植する AI がリファレンス実装と一緒に読む</figcaption></figure></div><div class="ex"><p>置き場所</p><pre><code><pre><code>skills-creator/references/
+  contract/                         契約（言語に依存しない）
+    structure.json                  Skill の構成
+    tools.json                      CLI のインターフェースと tool.json の欄
+    assumptions.json                リファレンス実装からしか読み取れない実装上の前提の一覧
+    cases/                          テストケース（1件1ファイル）
+      fixtures/                     テストケースが使う入力データ（フィクスチャ）
+  types/                            型ごとのテンプレート（言語に依存しない。今と同じ）
+    advisor/  work/                 SKILL.md ・ スキーマ ・ 判断基準のテンプレート
+  sample/rust/                      リファレンス実装（Rust のテンプレート1組。今の profiles/rust/）
+  view/                             見た目の正本（今と同じ）</code></pre></code></pre><p>テストケースの例（スキーマ検査のエラー文は比較しない）</p><pre><code><pre><code>{
+  "case": "形に違反した回答を検出する",
+  "test": "an_answer_is_checked_against_the_answer_schema",
+  "call": ["validate", "--kind", "answer", "--file", "fixtures/answers/no-next.json", "--skill_root", "fixtures/advisor"],
+  "expect": { "exit": 1, "json": { "ok": false, "findings": ["…"], "data": { "checked": "…" } } },
+  "ignore": ["/findings"]
+}</code></pre></code></pre><p>前提の例</p><pre><code><pre><code>{
+  "id": "json-key-order",
+  "rule": "JSON の欄は、読んだ順を保つ。欄を上書きするときは、元の位置に置く",
+  "why": "描画はスキーマの properties の順に欄を並べる。順が変わると HTML が変わる",
+  "cases": ["view-criteria-id", "view-answer-figure"]
+}</code></pre></code></pre><p>verify がテストとテストケースの対応を確認したときの出力の例</p><pre><code><pre><code>$ skills-creator verify
+  リファレンス実装のテスト 31件 ／ 対応するテストケース 31件
+  テストケースの無いテスト 0件
+  リファレンス実装に当てたテストケース 31件 ／ 合格 31件</code></pre></code></pre></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 4件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>リファレンス実装はテンプレートのまま置き、verify が生成して確認する</b></td><td>今の Rust のテンプレートを sample/rust/ へ移し、verify が生成 ・ ビルド ・ テスト ・ テストケースの実行を行う</td><td><span class="cost">リファレンス実装を直したら、検証を実行するまで動くかが分からない（今のテンプレートと同じ）</span></td></tr><tr><td><span class="n">B</span></td><td><b>リファレンス実装を、プレースホルダーを保持しない実体の Skill として置く</b></td><td>リファレンス実装を名前の決まった Skill（sample-advisor など）として置き、そのままビルドしてテストする。scaffold はそこから名前を置き換えて作る</td><td><span class="cost">scaffold が、crate の名前などを文字列の置き換えで変える。リファレンス実装の Skill の名前が生成物に残る危険がある</span></td></tr></table></div><p class="note-s">除外した案 4件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="その Skill の判断基準や固有の変更が、リファレンス実装とテストケースを動かす。論点2で、テストケースの入力をほかの Skill に頼らないと決めた"><b>リファレンス実装に、リポジトリの実在の Skill（qa-advisor など）を使う</b></mark></td><td>その Skill の判断基準や固有の変更が、リファレンス実装とテストケースを動かす。論点2で、テストケースの入力をほかの Skill に頼らないと決めた</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="描画の HTML は1件で数千字ある。手で書くと誤り、リファレンス実装の出力とも食い違う。期待値はリファレンス実装の出力から取り、差分を人が確認する"><b>テストケースの期待値を手で書く</b></mark></td><td>描画の HTML は1件で数千字ある。手で書くと誤り、リファレンス実装の出力とも食い違う。期待値はリファレンス実装の出力から取り、差分を人が確認する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="試作で、Go の担当は Cargo.toml の preserve_order から欄の順の前提を読み取った。コメントに散らすと、移植する人が全部を探すことになる"><b>前提をリファレンス実装のコードのコメントにだけ書く</b></mark></td><td>試作で、Go の担当は Cargo.toml の preserve_order から欄の順の前提を読み取った。コメントに散らすと、移植する人が全部を探すことになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="件数は網羅を示さない。リファレンス実装のテスト1件ごとにテストケースを置けば、リファレンス実装が固定した振る舞いがすべてテストケースに入る"><b>テストケースの件数に目標値を置く</b></mark></td><td>件数は網羅を示さない。リファレンス実装のテスト1件ごとにテストケースを置けば、リファレンス実装が固定した振る舞いがすべてテストケースに入る</td></tr></table></div><p class="note-s"><b>残った2つの案を比べる</b></p><div class="scroll"><table><tr><th></th><th>リファレンス実装をそのまま動かせるか</th><th>scaffold の作り方</th><th>今からの変更</th></tr><tr><td><span class="n">リファレンス実装はテンプレートのまま置き、verify が生成して確認する</span></td><td>生成してから動かす</td><td>今と同じ（プレースホルダーを充填する）</td><td>置き場所を移すだけ</td></tr><tr><td><span class="n">リファレンス実装を、プレースホルダーを保持しない実体の Skill として置く</span></td><td>そのまま動かせる</td><td>名前を文字列で置き換える</td><td>テンプレートを実体の Skill に書き直す</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">テストケースの持ち方</span></td><td>テストケースを1件1ファイルで持ち、check が tool.json で呼んで検証する。スキーマの検査の文言は比べない</td><td><span class="kind k-rule">決まり</span><small>論点2の答え</small></td></tr><tr><td><span class="part">リファレンス実装の役割</span></td><td>Rust のリファレンス実装1組を各 Skill へ複製し、ほかの言語は AI がリファレンス実装から移植する</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ 論点4の答え</small></td></tr><tr><td><span class="part">前提を明示する必要</span></td><td>Go の担当が、欄の順の前提を Cargo.toml の preserve_order と refs.rs の shift_remove から読み取った</td><td><span class="kind k-fact">実測</span><small>このボードの trial/go-skill/（2026-10-02）</small></td></tr><tr><td><span class="part">テストの件数</span></td><td>tests/refs.rs の #[test] は31件</td><td><span class="kind k-fact">実測</span><small>skills-creator/tool/business_logic/tests/refs.rs</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>Skill 固有のサブコマンド（acdr の render など）のテストケース</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">覆さない。論点2のとおり、共通ツールだけがテストケースを持つ</div></td></tr><tr><td>今の5言語のテンプレートと11の Skill をいつ移すか</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点5で決める。覆さない</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（4件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>リファレンス実装の refs のテストは31件で、それぞれ1つの振る舞いを固定している</b></td><td></td></tr><tr><td><b>今の検証は、テンプレートから Skill を生成してビルド、テストを実行している。リファレンス実装が動くことは、この流れで検証できる</b></td><td></td></tr><tr><td><b>試作で、リファレンス実装だけでは読み取りにくい前提が4つ在った（JSON の欄の順 ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）</b></td><td></td></tr><tr><td><b>型ごとのテンプレート（types/）と見た目の正本（view/）は、もともと JSON と HTML と CSS で、言語に依存しない</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（3件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>リファレンス実装のテスト31件それぞれに対応するテストケースを書く（試作の12件を出発点にする）</b></td><td></td></tr><tr><td><b>contract/assumptions.json に前提を書き、確認するテストケースを添える</b></td><td></td></tr><tr><td><b>検証に、テストとテストケースの対応を検証する段と、テストを実行する段を足す</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>get ・ validate ・ view ・ import を、各 Skill に複製するか、共通の1つにするか</h2></div><div class="note">論点1で、保守する実装を Rust のリファレンス実装1組に絞った。この論点では、各 Skill がそれをどう持つかを決める</div><div class="ans"><span class="big">A</span><ol><li>共通ツールは、今と同じく各 Skill が自分のコードとして持つ。Skill は単体で動く</li><li>Rust の Skill は、リファレンス実装の refs をそのまま複製する。リファレンス実装を直したら、複製し直す</li><li>ほかの言語の Skill は、AI が移植したコードを持つ。リファレンス実装を直したら、テストケースに不合格になった Skill だけを直す</li><li>ずれの検出は2段である。Rust の Skill は check がリファレンス実装との差分を検出する（今と同じ）。どの言語の Skill もテストケースが振る舞いの差を検出する</li></ol></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,554px)" class="wf-fig" viewBox="0 0 554 272" height="272" role="img"><g transform="translate(6.0,6.0)"><path d="M271.5,50.6 L80.0,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="80.0,113.4 85.7,109.0 87.2,113.6" fill="#C3CAD2"/><rect x="161.8" y="72.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="175.8" y="85.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">複製</text><path d="M271.5,50.6 L462.7,113.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="462.7,113.4 455.5,113.6 457.0,108.9" fill="#C3CAD2"/><rect x="343.1" y="72.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="367.1" y="85.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">移植する</text><path d="M271.5,227.4 L80.0,164.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="80.0,164.6 87.2,164.4 85.7,169.0" fill="#C3CAD2"/><rect x="146.8" y="186.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="175.8" y="199.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">テスト実行</text><path d="M271.5,227.4 L462.7,164.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="462.7,164.6 457.0,169.1 455.5,164.4" fill="#C3CAD2"/><rect x="338.1" y="186.0" width="58.0" height="16.0" fill="#F5F7F9"/><text x="367.1" y="199.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">テスト実行</text><g class="wf-node" transform="translate(184.0,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="175.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="87.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Rust のリファレンス実装</text><text x="87.5" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（skills-creator）</text></g></g><g class="wf-node" transform="translate(0.0,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="160.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="80.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Rust の Skill（リ</text><text x="80.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ファレンス実装の複製）</text></g></g><g class="wf-node" transform="translate(383.0,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="159.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="79.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">Go などの Skill</text><text x="79.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（AI が移植した実装）</text></g></g><g class="wf-node" transform="translate(221.5,228.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="100.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="50.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストケース</text></g></g></g></svg><figcaption>各 Skill が共通ツールを自分で持つ。Rust の Skill はリファレンス実装を複製し、ほかの言語の Skill は移植したものを持つ。どれもテストケースで検証する</figcaption></figure></div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>持つ実装</th><th>リファレンス実装を直したとき</th><th>ずれの検出</th></tr></thead><tbody><tr><th>Rust の Skill（いまの11件）</th><td>リファレンス実装の refs の複製</td><td>複製し直す（機械的な複製）</td><td>check がリファレンス実装との差 ・ テストケース</td></tr><tr><th>Go などで書いた Skill</th><td>AI がリファレンス実装から移植した実装</td><td>テストケースに不合格になったものだけ書き直す</td><td>テストケース</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>各 Skill に複製する</b></td><td>共通ツールを各 Skill が自分の実装として持つ</td><td><span class="cost">リファレンス実装を直すたびに、Rust の Skill へ複製し直し、テストケースに不合格になったほかの言語の Skill を書き直す</span></td></tr><tr><td><span class="n">B</span></td><td><b>共通の実行ファイル1つにする</b></td><td>共通ツールを1つの実行ファイルにして別に配り、各 Skill の tool.json から呼ぶ</td><td><span class="cost">Skill が単体で動かなくなる。1つの Skill を使う人も、共通の実行ファイルを別に入れる</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="Rust の Skill にしか効かない。Skill ごとに配る（ACDR 0042）とき、共有の crate も一緒に配ることになる"><b>Rust の crate として共有し、各 Skill が依存する</b></mark></td><td>Rust の Skill にしか効かない。Skill ごとに配る（ACDR 0042）とき、共有の crate も一緒に配ることになる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="論点1で、共通ツールの振る舞いはテストケースが決めるとした。Skill ごとに作ると、回答の HTML や validate の照合が一致しなくなる"><b>共通ツールを保持しない（Skill ごとに自由に作る）</b></mark></td><td>論点1で、共通ツールの振る舞いはテストケースが決めるとした。Skill ごとに作ると、回答の HTML や validate の照合が一致しなくなる</td></tr></table></div><p class="note-s"><b>残った2つの案を比べる</b></p><div class="scroll"><table><tr><th></th><th>Skill が単体で動くか</th><th>配布の単位（ACDR 0042）</th><th>リファレンス実装を直したときの作業</th></tr><tr><td><span class="n">各 Skill に複製する</span></td><td>動く</td><td>Skill ごとのまま</td><td>複製し直す ・ テストケースに不合格になったものを書き直す</td></tr><tr><td><span class="n">共通の実行ファイル1つにする</span></td><td>動かない（共通の実行ファイルが必要になる）</td><td>共通の実行ファイルを別に配る</td><td>共通の実行ファイルを1つ直す</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">保守する実装は Rust のリファレンス実装1組</span></td><td>Rust のリファレンス実装を1組だけ持ち、ほかの言語は AI が移植する</td><td><span class="kind k-rule">決まり</span><small>論点1の答え</small></td></tr><tr><td><span class="part">配布の単位</span></td><td>公開の単位を Skill ごとにする</td><td><span class="kind k-rule">決まり</span><small>ACDR 0042</small></td></tr><tr><td><span class="part">ずれの検出が今も在る</span></td><td>refs.rs がテンプレートと違えば検出する</td><td><span class="kind k-fact">実測</span><small>tool/business_logic/src/check.rs の rust_refs</small></td></tr><tr><td><span class="part">単体で動く</span></td><td>他の Skill の名前に依存していないかを検査する</td><td><span class="kind k-fact">実測</span><small>tool/business_logic/src/accept.rs</small></td></tr><tr><td><span class="part">AI がリファレンス実装から移植できる</span></td><td>Rust のリファレンス実装だけを渡した担当が、Go でテストケース12件に合格する Skill を移植した</td><td><span class="kind k-fact">実測</span><small>このボードの trial/go-skill/（2026-10-02）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>共通の実行ファイルを、複製と別にオプションとして配ること</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">覆さない。単体で動くことを崩さないので、必要になったときに足せる</div></td></tr><tr><td>リファレンス実装からしか読み取れない前提の書き方と置き場所</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">論点3で決める。覆さない ── この論点の答えは、前提を添えても変わらない</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（2手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>試作（2026-10-02）：AI の担当に Rust のリファレンス実装（refs ・ ツールの一覧 ・ CLI の入口 ・ 契約の実体）とリファレンス実装のテストだけを渡し、既存の Go のテンプレートは見せずに、Go へ移植させた</p></li><li><div class="scroll"><table class="fact"><thead><tr><th></th><th>結果</th></tr></thead><tbody><tr><th>テストケース</th><td>12件とも合格。テストランナーの実行は1回で済んだ</td></tr><tr><th>量</th><td>Go で2,442行 ・ 8ファイル。うち385行は、JSON の欄の順を保つ値の型の自作である</td></tr><tr><th>リファレンス実装だけでは読み取りにくかった前提</th><td>JSON の欄の順を保つこと（Cargo.toml の preserve_order からしか分からない）・ 空白の定義（Unicode の White_Space）・ 行の分け方 ・ 欄を上書きするときに位置を保つこと</td></tr><tr><th>tool.json</th><td>ビルド ・ テスト ・ フォーマットのコマンドを書けた。ただし、実行する作業場所と、フォーマットが書き換えるか検査するかの規定が無かった</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（7件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>check は、Rust の Skill の refs.rs がテンプレートと違えば「テンプレートから複製し直す」と検出する</b></td><td></td></tr><tr><td><b>ACDR 0042 で、公開の単位を Skill ごとにした</b></td><td></td></tr><tr><td><b>受け入れ検査は、助言型が他の Skill の名前に依存していないかを検査する（助言型は単体で動く）</b></td><td></td></tr><tr><td><b>複製し直す作業が重かったのは、5言語のテンプレートを書き直す必要があったからである。Rust のリファレンス実装1組なら、複製は機械的に済む</b></td><td></td></tr><tr><td><b>試作で、AI は Rust のリファレンス実装だけから Go の Skill へ移植し、テストケース12件に1回で合格した</b></td><td></td></tr><tr><td><b>リファレンス実装だけでは読み取りにくい前提が4つ在った（JSON の欄の順 ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）。リファレンス実装に、言語に依存しない前提として添える必要がある</b></td><td></td></tr><tr><td><b>リファレンス実装を複製している Rust の Skill 3つは、同じテストケースに全件合格した</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（4件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>リファレンス実装を直したとき、Rust の Skill へ複製し直す手順（今と同じ）</b></td><td></td></tr><tr><td><b>テストケースに不合格になった Skill を一覧にする出力（論点2の check の段が出す）</b></td><td></td></tr><tr><td><b>リファレンス実装に、言語に依存しない前提（JSON の欄の順を保つ ・ 空白の定義 ・ 行の分け方 ・ 上書きの位置）を添える。論点3で置き場所を決める</b></td><td></td></tr><tr><td><b>tool.json のビルド ・ テスト ・ フォーマットの欄に、実行する作業場所と、フォーマットは検査（書き換えない）であることを決める</b></td><td></td></tr></table></div></div></details></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q5</span><h2>今の5言語のテンプレートと既存の Skill を、どの順で新しい形へ移すか</h2></div><div class="note">論点1〜4で決めた形へ、今の skills-creator と既存の Skill を移す順番を決める</div><div class="ans"><span class="big">A</span><ol><li>A：契約とテストケースを追加する。今の動作は変えないので、今の Rust の Skill でテストケースを実行して全件合格を確認できる</li><li>B：テンプレートを Rust 1組（sample/rust/）に限定する。4言語のテンプレートと言語ごとの登録を削除し、verify の言語間比較をテストケースの実行に置き換える</li><li>C：既存の11の Skill の tool.json を contract 3 にし、document.json と SKILL.md を新しい形に書き直す</li></ol><p>順番の理由：テストケースが先に在れば、B と C で何かを壊したときにテストケースが検出する。4言語を先に消すと、その間は検証の手段が無くなる</p></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,478px)" class="wf-fig" viewBox="0 0 478 236" height="236" role="img"><g transform="translate(6.0,6.0)"><path d="M129.7,32.6 L129.2,95.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="129.2,95.4 126.8,88.6 131.7,88.7" fill="#C3CAD2"/><path d="M129.2,128.6 L129.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="129.2,191.4 126.7,184.6 131.7,184.6" fill="#C3CAD2"/><path d="M374.4,95.4 L129.7,32.6" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="129.7,32.6 136.9,31.9 135.7,36.7" fill="#C3CAD2"/><rect x="238.1" y="54.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="252.1" y="67.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">確認</text><path d="M281.8,112.0 L259.0,112.0" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="259.0,112.0 265.8,109.5 265.8,114.5" fill="#C3CAD2"/><rect x="256.4" y="102.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="270.4" y="115.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">確認</text><path d="M374.4,128.6 L129.2,191.4" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="129.2,191.4 135.1,187.3 136.4,192.1" fill="#C3CAD2"/><rect x="237.8" y="150.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="251.8" y="163.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">確認</text><g class="wf-node" transform="translate(33.3,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="191.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="95.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">A：契約とテストケースを追加</text></g></g><g class="wf-node" transform="translate(0.0,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="258.4" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="129.2" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">B：テンプレートを Rust 1組に限定する</text></g></g><g class="wf-node" transform="translate(28.2,192.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="202.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">C：既存の11の Skill に適用</text></g></g><g class="wf-node" transform="translate(282.4,96.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">テストケースを実行して確認</text></g></g></g></svg><figcaption>A でテストケースを置いてから、B でテンプレートを絞り、C で既存の Skill に適用する。各段の終わりにテストケースで確認する</figcaption></figure></div><div class="ex"><div class="scroll"><table class="fact"><thead><tr><th></th><th>すること</th><th>終わりに確認すること</th></tr></thead><tbody><tr><th>ACDR A：契約とテストケースを追加</th><td>1. contract/structure.json ・ tools.json を、今の document.json（tool-contract ・ folder-structure）から作る。<br>2. tool.json に build ・ test ・ format の欄を足す（contract 3。実行するディレクトリは Skill のフォルダ。format はチェックのみ）。<br>3. テストケース31件と fixtures を作る（試作の12件が出発点）。assumptions.json を書く。<br>4. check にテストケースを実行する段を、verify にテストとテストケースの対応の確認を足す。</td><td>今の Rust の Skill すべてで、テストケースが全件合格する。</td></tr><tr><th>ACDR B：テンプレートを Rust 1組に限定</th><td>5. profiles/rust/ を sample/rust/ へ移す。<br>6. Python ・ TypeScript ・ C# ・ Go のテンプレート（約14,000行）と言語ごとの登録（profile）を削除する。git の履歴には残る。<br>7. scaffold は、Rust ならリファレンス実装から生成する。ほかの言語なら、ディレクトリ構成 ・ SKILL.md ・ references ・ tool.json の枠を作り、移植の手順を案内する。<br>8. verify の言語間比較（582件 × 4言語）を、テストケースの実行に置き換える。</td><td>verify と check が通る。Go の試作（trial/go-skill）が新しい check に合格する。</td></tr><tr><th>ACDR C：既存の Skill に適用</th><td>9. 11の Skill の tool.json を contract 3 にする（build ・ test ・ format を書く）。<br>10. document.json（tool-contract ・ profile-*）と skills-creator の SKILL.md を新しい形に書き直す。</td><td>全 Skill で、テストケースを含む check が通る。</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は代償が重いか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>代償</th></tr><tr><td><span class="n">A</span></td><td><b>3つの ACDR に分け、テストケースを先に置く</b></td><td>契約とテストケースの追加 → テンプレートの整理 → 既存の Skill への適用の順に移す</td><td><span class="cost">ACDR が3件になる。A の段階では、4言語のテンプレートとテストケースが一時的に両方ある</span></td></tr><tr><td><span class="n">B</span></td><td><b>1つの ACDR でまとめて移す</b></td><td>契約 ・ テストケース ・ テンプレートの整理 ・ 既存の Skill への適用を1度に行う</td><td><span class="cost">差分が大きく（4言語のテンプレートの削除だけで約14,000行）、承認の前に確認しきれない。途中で壊れても、どの変更が原因か分からない</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="古いテンプレートが残ると、scaffold で選べてしまい、テストケースに合格しない Skill ができる。必要になれば git の履歴から取り出せる"><b>4言語のテンプレートを削除せず、更新を止めて残す</b></mark></td><td>古いテンプレートが残ると、scaffold で選べてしまい、テストケースに合格しない Skill ができる。必要になれば git の履歴から取り出せる</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="テストケースができるまで、Rust 以外の検証手段が無くなる。リファレンス実装を直したときに、壊れたことに気づけない"><b>先に4言語のテンプレートを削除し、あとでテストケースを作る</b></mark></td><td>テストケースができるまで、Rust 以外の検証手段が無くなる。リファレンス実装を直したときに、壊れたことに気づけない</td></tr></table></div><p class="note-s"><b>残った2つの案を比べる</b></p><div class="scroll"><table><tr><th></th><th>承認する単位</th><th>壊したときの切り分け</th></tr><tr><td><span class="n">3つの ACDR に分け、テストケースを先に置く</span></td><td>段ごとに確認して承認できる</td><td>段ごとにテストケースを実行するので、どの段で壊れたか分かる</td></tr><tr><td><span class="n">1つの ACDR でまとめて移す</span></td><td>1回で済むが、差分が大きい</td><td>原因の切り分けが難しい</td></tr></table></div></div></details><details><summary>この答えの前提（4件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">テンプレートを Rust 1組に限定する</span></td><td>リファレンス実装は Rust の1組だけ持ち、ほかの言語は AI が移植する</td><td><span class="kind k-rule">決まり</span><small>論点1 ・ 論点3</small></td></tr><tr><td><span class="part">各 Skill に複製する</span></td><td>共通ツールは各 Skill が持ち、Rust の Skill はリファレンス実装を複製する</td><td><span class="kind k-rule">決まり</span><small>論点4</small></td></tr><tr><td><span class="part">テストケースを先に置く</span></td><td>テストケースは、Rust のリファレンス実装 ・ 複製 ・ Go の移植に同じ形で実行でき、古い実装を検出できた</td><td><span class="kind k-fact">実測</span><small>論点2 ・ このボードの trial/（2026-10-02）</small></td></tr><tr><td><span class="part">影響する範囲</span></td><td>言語ごとの登録は profile.rs と profile.json が、言語間比較は conform.rs と provider.rs が持つ</td><td><span class="kind k-fact">実測</span><small>skills-creator/tool/business_logic/src/</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（3件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に要る）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>この答えを試す外の作業：ACDR A の適用（テストケースの追加と、全 Skill での実行）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">覆さない。A で全 Skill がテストケースに合格すれば、B と C へ進む。合格しなければ、手順を再検討する</div></td></tr><tr><td>platform-advisor と ux-advisor の作り直し</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">覆さない。C の後に、新しい形で作り直す</div></td></tr><tr><td>Rust 以外の言語で Skill を作る手順の細部（AI への指示の書き方）</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">覆さない。B の scaffold の案内として ACDR B で決める</div></td></tr></table></div></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b>言語ごとの登録は profile.rs（268行）と profiles/<言語>.profile.json が持ち、scaffold と verify が使っている</b></td><td></td></tr><tr><td><b>verify の言語間比較は conform.rs（392行）と provider.rs（251行）が持つ。テストケースの実行に置き換えると、この2つは小さくなるか不要になる</b></td><td></td></tr><tr><td><b>今の Skill はすべて Rust で、Rust 以外のテンプレートを使っている Skill は無い</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（2件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>ACDR を3件（A ・ B ・ C）起こし、それぞれ承認を得てから適用する</b></td><td></td></tr><tr><td><b>各段の終わりに、全 Skill でテストケースを実行する</b></td><td></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 0</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

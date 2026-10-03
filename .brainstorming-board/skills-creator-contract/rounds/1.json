@@ -1,0 +1,307 @@
+{
+ "round": 1,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点が、ほかの4つの論点の前提になる。何を契約に置くかで、正しさの検証の仕方も雛形の形も決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>契約を、次の5つの部分で持つ。どれも、道具を書く言語に依存しない</p><ol><li><b class=\"lead-s\">Skill の構成</b><div class=\"sub-s\">フォルダと置くファイル（SKILL.md ・ references ・ tool.json ・ mcp.json ・ 実装の置き場所 ・ 試験の置き場所）</div></li><li><b class=\"lead-s\">道具の外形</b><div class=\"sub-s\">命令 ・ 引数 ・ 終了コード ・ --json の出力の形 ・ 旗の扱い（今の tool-contract が持つもの）</div></li><li><b class=\"lead-s\">共通の道具の振る舞い</b><div class=\"sub-s\">get ・ validate ・ view ・ import の処理を、擬似言語の手順で書く</div></li><li><b class=\"lead-s\">正解の事例</b><div class=\"sub-s\">入力（references と回答）と呼び出しに対して、期待する出力（終了コード ・ JSON ・ HTML）を組で持つ</div></li><li><b class=\"lead-s\">言語ごとの決まり</b><div class=\"sub-s\">組み立て ・ 試験 ・ 整形 ・ 起動のコマンドだけを持つ。実装のコードは保持しない</div></li></ol><p>層の構成（4層と依存の向き）は、ACDR 0059 のとおり契約に入れず、推奨のまま擬似言語の雛形に置く</p>"
+    ]
+   ],
+   "answer": [
+    [
+     "契約は5つの部分を持つ。Skill の構成 ・ 道具の外形 ・ 共通の道具の振る舞い（擬似言語）・ 正解の事例 ・ 言語ごとの決まり（組み立て ・ 試験 ・ 整形のコマンドだけ）である。実装の雛形は契約に入れない"
+    ]
+   ],
+   "figures": [
+    [
+     "契約の5つの部分から、Rust でも Go でも Skill を書き起こし、正解の事例で同じ振る舞いかを検証する",
+     "5f97520a7e79"
+    ]
+   ],
+   "example": [
+    [
+     "<p>契約の置き場所は skills-creator/references/contract/ である。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>中身</th><th>今の置き場所</th></tr></thead><tbody><tr><th>structure.json</th><td><b class=\"lead-s\">Skill の構成</b><div class=\"sub-s\">置くファイルと、無くてよいもの</div></td><td>document.json の folder-structure と tool-contract に分散</td></tr><tr><th>tools.json</th><td><b class=\"lead-s\">道具の外形</b><div class=\"sub-s\">命令 ・ 引数 ・ 終了コード ・ 出力の形</div></td><td>document.json の tool-contract</td></tr><tr><th>behavior/*.json</th><td><b class=\"lead-s\">共通の道具の振る舞い</b><div class=\"sub-s\">擬似言語の手順</div></td><td>無し（Rust の refs.rs の中にだけ在る）</td></tr><tr><th>cases/</th><td><b class=\"lead-s\">正解の事例</b><div class=\"sub-s\">入力 ・ 呼び出し ・ 期待する出力</div></td><td>無し（Rust の出力との突き合わせで代用）</td></tr><tr><th>languages/*.json</th><td><b class=\"lead-s\">言語ごとの決まり</b><div class=\"sub-s\">コマンドだけ</div></td><td>profiles/<言語>/ の実装の雛形（5言語で約19,000行）</td></tr></tbody></table></div><p>擬似言語の手順の例（validate が引用を照らすときの、断片の分け方）</p><pre><code><pre><code>手順 引用を断片に分ける(引用):\n  片の並び ← 引用を「…」で切る\n  片の並び ← 各片を「 ・ 」で切る\n  各片について:\n    「：」が在れば、最初の「：」より後ろだけを残す\n    空白を除き、末尾の「。」を除く\n  2文字に満たない片を捨てる\n  片の並びを返す</code></pre></code></pre><p>正解の事例の例（どの言語で書いた道具も、この出力を返せば合格）</p><pre><code><pre><code>{\n  \"case\": \"根拠の引用が判断基準に無い\",\n  \"references\": \"cases/grounds/references/\",\n  \"call\": [\"validate\", \"--kind\", \"answer\", \"--file\", \"cases/grounds/answer.json\"],\n  \"expect\": {\n    \"exit\": 1,\n    \"findings\": [\"…: /grounds/3/quote ── criteria の aggregate の記述に無い ──「集約は複数の文脈にまたがる」\"]\n  }\n}</code></pre></code></pre>"
+    ]
+   ],
+   "kept": [
+    [
+     "外形 ・ 振る舞い ・ 正解の事例を契約に置く",
+     "契約に、道具の外形と、共通の道具の振る舞い（擬似言語）と、正解の事例を置く。言語ごとには、コマンドだけを置く",
+     "擬似言語の手順と正解の事例を、新しく書き起こす。今の振る舞いは Rust の refs.rs の中にしか無いので、そこから抽出する"
+    ],
+    [
+     "Rust の実装を参照実装として添える",
+     "契約に道具の外形と正解の事例を置き、振る舞いの説明には擬似言語の代わりに Rust の実装を添える",
+     "Go で書く人も Rust を読むことになる。振る舞いを直すときは、Rust の実装と正解の事例の両方を直す"
+    ]
+   ],
+   "dropped": [
+    [
+     "今のまま、5言語の実装の雛形を正本にする",
+     "振る舞いを1つ直すたびに、5言語を書き直す（ACDR 0090 では4人の担当で移植した）。Rust が事実上の正本になり、ACDR 0036 の「契約は呼ぶ側から観察できるものだけ」と食い違う"
+    ],
+    [
+     "Rust の実装だけを正本にし、ほかの言語は Rust を読んで書く",
+     "仕様と実装が分かれない。Rust の偶然の振る舞い（JSON の文字の逃がし方など）まで契約になり、Go で書く人も Rust を読むことになる"
+    ],
+    [
+     "外形（命令 ・ 引数 ・ 終了コード）だけを契約にし、振る舞いは Skill ごとに任せる",
+     "共通の道具の出力が Skill ごとに変わる。回答の HTML の形も、validate の引用の照合も一致しなくなる"
+    ],
+    [
+     "層の構成（4層と依存の向き）も契約に入れる",
+     "ACDR 0059 で、中身の設計は Skill が決めるとした。契約に入れると、ポートとアダプターを選ぶ Skill が契約に違反する"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "ACDR 0036 で、契約は呼ぶ側から観察できるものだけを規定すると決めた"
+    ],
+    [
+     "共通の道具（get ・ validate ・ view ・ import）の振る舞いは、契約の文書に無く、Rust の refs.rs（1,400行余り）の中にだけ在る"
+    ],
+    [
+     "5言語の実装の雛形は、合計で約19,000行ある（Rust 5,106 ・ Go 4,506 ・ C# 3,512 ・ TypeScript 3,010 ・ Python 2,980）"
+    ],
+    [
+     "ACDR 0090 の4点の修正では、5言語の雛形を書き直し、各言語582件の突き合わせで Rust と同じ出力かを検証した"
+    ]
+   ],
+   "costs": [
+    [
+     "skills-creator/references/contract/ を起こし、5つの部分を置く"
+    ],
+    [
+     "Rust の refs.rs から、共通の道具の振る舞いを擬似言語の手順へ変換する"
+    ],
+    [
+     "今の Rust の出力から、正解の事例を抽出する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "正しさを何に照らして検証するか（正解の事例の照らし方 ・ 検査の道具）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点2で決める。覆さない ── この論点は、正解の事例を契約に置くことだけを決める"
+    ],
+    [
+     "擬似言語の雛形の形と、言語ごとの決まりの書き方",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。覆さない"
+    ],
+    [
+     "共通の道具を各 Skill に複製するか、共通の1つにするか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める。覆さない ── どちらでも、振る舞いは契約の擬似言語と正解の事例が持つ"
+    ],
+    [
+     "既存の11の Skill と5言語の雛形の移し方",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "残った2つの案を比べる",
+     "外形 ・ 振る舞い ・ 正解の事例を契約に置く",
+     "擬似言語の手順と正解の事例",
+     "擬似言語の手順と正解の事例を直す",
+     "擬似言語を読んで Go で書く"
+    ],
+    [
+     "残った2つの案を比べる",
+     "Rust の実装を参照実装として添える",
+     "Rust の実装と正解の事例",
+     "Rust の実装と正解の事例を直す",
+     "Rust を読んで Go へ移す"
+    ]
+   ],
+   "grounds": [
+    [
+     "契約は観察できるものだけを持つ",
+     "道具の契約は、呼ぶ側から観察できるものだけを規定し、道具を書く言語と配布の有無を利用者に委ねる",
+     "rule",
+     "ACDR 0036 の決定"
+    ],
+    [
+     "層を契約に入れない",
+     "道具の中の構成（層 ・ 依存の向き ・ 入出力の置き場所）は契約で規定しない。中身の設計は Skill が決める",
+     "rule",
+     "ACDR 0059 ・ document.json の tool-contract「規定しないもの」"
+    ],
+    [
+     "利用者の要求",
+     "どんな言語でも作成される skills の契約として用意すべきものと、ディレクトリ構成が必要。テンプレートは擬似言語的な形でよい。Rust でも Go でも書きたい",
+     "rule",
+     "利用者の指摘（2026-10-02）"
+    ],
+    [
+     "振る舞いが実装の中にしか無い",
+     "4つの道具は「実体は言語の組の雛形が持ち、Skill ごとに書かない」とだけ書かれている",
+     "measured",
+     "document.json の tool-contract「references（契約の版2）」"
+    ],
+    [
+     "雛形の量",
+     "references/profiles の5言語の雛形の行数",
+     "measured",
+     "2026-10-02 に wc -l で数えた"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点1で、契約に何を置くかが決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点1"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点1で、契約に何を置くかが決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点1"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点1で、契約に何を置くかが決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点1"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     ""
+    ]
+   ],
+   "pick": [
+    [
+     ""
+    ]
+   ],
+   "answer": [
+    [
+     "論点1の決着後に開く"
+    ]
+   ],
+   "figures": [],
+   "example": [
+    [
+     ""
+    ]
+   ],
+   "kept": [],
+   "dropped": [],
+   "path": [],
+   "found": [],
+   "costs": [],
+   "weaknesses": [],
+   "tables": [],
+   "grounds": [
+    [
+     "開く時期",
+     "論点1で、契約に何を置くかが決まる。この論点の答えは、それによって変わる",
+     "rule",
+     "論点1"
+    ]
+   ]
+  }
+ }
+}

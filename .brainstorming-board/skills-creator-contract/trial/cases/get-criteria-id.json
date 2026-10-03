@@ -1,0 +1,126 @@
+{
+ "case": "判断基準を1件取り出す",
+ "call": [
+  "get",
+  "--kind",
+  "criteria",
+  "--id",
+  "boundary-value-analysis",
+  "--skill_root",
+  "fixtures/advisor"
+ ],
+ "compare_json": true,
+ "expect": {
+  "exit": 0,
+  "json": {
+   "ok": true,
+   "findings": [],
+   "data": {
+    "id": "boundary-value-analysis",
+    "title": "境界値分析",
+    "summary": "順序性のある同値パーティションの境界を確認するブラックボックステスト技法。2値 BVA と3値 BVA があり、境界ごとのカバレッジアイテムの数が異なる。",
+    "elements": {
+     "units": [
+      {
+       "kind": "definition",
+       "term": "境界値分析（BVA）",
+       "meaning": "同値パーティションの境界の確認に基づくテスト技法。このため、順序性のあるパーティションにだけ使用できる。",
+       "source": {
+        "origin": "『テスト技術者資格制度 Foundation Level シラバス』Version 2023V4.0.J02（ISTQB 著、JSTQB 訳）",
+        "section": "4章 4.2.2 境界値分析（40頁）",
+        "location": "jstqb.jp_dl_JSTQB-SyllabusFoundation_VersionV40.J02.pdf",
+        "fetched": "2026-10-02",
+        "method": "学習ノートを読み、原典の本文と照合してまとめた"
+       }
+      },
+      {
+       "kind": "definition",
+       "term": "境界値",
+       "meaning": "パーティションの最小値と最大値。BVA では、同じパーティションに属する2つの要素の間にある要素は、すべてそのパーティションに属していなければならない。",
+       "source": {
+        "origin": "『テスト技術者資格制度 Foundation Level シラバス』Version 2023V4.0.J02（ISTQB 著、JSTQB 訳）",
+        "section": "4章 4.2.2 境界値分析（40頁）",
+        "location": "jstqb.jp_dl_JSTQB-SyllabusFoundation_VersionV40.J02.pdf",
+        "fetched": "2026-10-02",
+        "method": "学習ノートを読み、原典の本文と照合してまとめた"
+       }
+      },
+      {
+       "kind": "note",
+       "heading": "境界値に着目する理由",
+       "text": [
+        "開発担当者は、境界値に関するエラーを起こしやすい。BVA で発見される代表的な欠陥は、実装された境界が意図した位置より上か下にずれているもの、または完全に省略されているものである。"
+       ],
+       "source": {
+        "origin": "『テスト技術者資格制度 Foundation Level シラバス』Version 2023V4.0.J02（ISTQB 著、JSTQB 訳）",
+        "section": "4章 4.2.2 境界値分析（40頁）",
+        "location": "jstqb.jp_dl_JSTQB-SyllabusFoundation_VersionV40.J02.pdf",
+        "fetched": "2026-10-02",
+        "method": "学習ノートを読み、原典の本文と照合してまとめた"
+       }
+      },
+      {
+       "kind": "comparison",
+       "heading": "2値 BVA と3値 BVA",
+       "purpose": "2つの版は、100%のカバレッジを達成するために通過する、境界ごとのカバレッジアイテムが異なる。",
+       "table": {
+        "head": [
+         "項目",
+         "2値 BVA",
+         "3値 BVA"
+        ],
+        "rows": [
+         [
+          "境界値ごとのカバレッジアイテム",
+          "2つ。境界値と、隣のパーティションに属する、境界値に最も近い隣接値",
+          "3つ。境界値と、その両方の隣接値。このため、一部のカバレッジアイテムは境界値にならない場合がある"
+         ],
+         [
+          "100%の条件",
+          "カバレッジアイテム、つまり識別した境界値のすべてを、テストケースで通過する",
+          "カバレッジアイテム、つまり識別した境界値と隣接値のすべてを、テストケースで通過する"
+         ],
+         [
+          "カバレッジの計算",
+          "識別した境界値の総数に対する、通過した境界値の数の割合（パーセンテージ）",
+          "識別した境界値と隣接値の合計数に対する、通過した境界値と隣接値の数の割合（パーセンテージ）"
+         ]
+        ]
+       },
+       "source": {
+        "origin": "『テスト技術者資格制度 Foundation Level シラバス』Version 2023V4.0.J02（ISTQB 著、JSTQB 訳）",
+        "section": "4章 4.2.2 境界値分析（40頁）",
+        "location": "jstqb.jp_dl_JSTQB-SyllabusFoundation_VersionV40.J02.pdf",
+        "fetched": "2026-10-02",
+        "method": "学習ノートを読み、原典の本文と照合してまとめた"
+       }
+      },
+      {
+       "kind": "example",
+       "heading": "2値 BVA で検出できない欠陥",
+       "purpose": "3値 BVA は、2値 BVA で検出できなかった欠陥を検出する可能性があるので、2値 BVA よりも厳密である。",
+       "explanation": [
+        "意図した判定を誤って実装した場合、2値 BVA から導出したテストデータでは、その欠陥を検出できない。3値 BVA から導出する x=9 は、それを検出する可能性がある。"
+       ],
+       "code": "意図した判定　　：if (x ≦ 10) …\n誤って実装した判定：if (x = 10) …\n\n2値 BVA のテストデータ：x = 10、x = 11　→ 検出できない\n3値 BVA が加えるテストデータ：x = 9　→ 検出する可能性がある",
+       "source": {
+        "origin": "『テスト技術者資格制度 Foundation Level シラバス』Version 2023V4.0.J02（ISTQB 著、JSTQB 訳）",
+        "section": "4章 4.2.2 境界値分析（41頁）",
+        "location": "jstqb.jp_dl_JSTQB-SyllabusFoundation_VersionV40.J02.pdf",
+        "fetched": "2026-10-02",
+        "method": "学習ノートを読み、原典の本文と照合してまとめた"
+       }
+      }
+     ]
+    },
+    "related": [
+     {
+      "criterion": "test-types",
+      "title": "テストタイプ",
+      "relation": "ブラックボックステストは仕様に基づいてテストを導出し、主な目的はシステムの動作を仕様に照らして確認することである"
+     }
+    ]
+   }
+  }
+ }
+}
