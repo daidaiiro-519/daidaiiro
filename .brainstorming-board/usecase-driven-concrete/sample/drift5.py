@@ -52,41 +52,6 @@ def conditions():
       for o in d['operations']:
         for p in o['postconditions']: add(f'{k}.{o["id"]}.{p["id"]}',p['id'],'domain_service','結果が事後条件を満たす',{"c":p['condition'],"in":o['inputs']},k,o['id'])
   return out
-def report(conds):
-  """見本の報告（テスト実装が出したものとして作る）。状態がひととおり出るように選んである"""
-  by={c['id']:c for c in conds}; r=[]
-  def put(cid,result,level=None,stale=False,reason=None):
-    c=by.get(cid); f=(c['hash'] if c else '00000000')
-    if stale: f='9f3a01c7'
-    x={"condition":cid,"hash":f,"test":"tests/"+cid.lower().replace('.','_')+".rs","level":level or (c['required_level'] if c else 'component'),"result":result}
-    if reason: x['reason']=reason
-    r.append(x)
-  for c in conds:
-    cid=c['id']
-    if cid in ('AGG-1.ST-3.MAX','AGG-1.CMD-3.OK-1'): continue
-    if cid=='UC-1.EXT-3': put(cid,'fail'); continue
-    if cid=='AGG-1.INV-2': put(cid,'pass',stale=True); continue
-    if cid=='AGG-1.CMD-1.PRE-2': put(cid,'skip',reason='明細の作り方が決まっていない'); continue
-    if cid.startswith('UC-1.STEP-5'): put(cid,'pass',level='component'); continue
-    put(cid,'pass')
-  put('AGG-1.INV-3','pass',level='component')
-  return {"schema":"report.schema.json","producer":"cargo test（来店前注文）","spec_revision":"3f2c9a1","results":r}
-def judge(conds,rep,exempt=()):
-  res={}
-  for c in conds:
-    rows=[x for x in rep['results'] if x['condition']==c['id']]
-    if c['id'] in exempt: st='免除'
-    elif not rows: st='欠け'
-    elif any(x['result']=='fail' for x in rows): st='不合格'
-    elif any(x['hash']!=c['hash'] for x in rows): st='古い'
-    elif all(x['result']=='skip' for x in rows): st='未実行'
-    elif not any(x['level']==c['required_level'] and x['result']=='pass' for x in rows): st='レベル違い'
-    else: st='合格'
-    res[c['id']]=st
-  known={c['id'] for c in conds}
-  extra=[x for x in rep['results'] if x['condition'] not in known]
-  return res,extra
 if __name__=='__main__':
   cs=conditions(); print(len(cs))
   for c in cs: print(c['id'],c['label'],c['checks'],c['required_level'])
-  j,e=judge(cs,report(cs)); import collections; print(collections.Counter(j.values()),[x['condition'] for x in e])

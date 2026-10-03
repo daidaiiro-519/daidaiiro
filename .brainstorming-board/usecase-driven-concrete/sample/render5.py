@@ -4,11 +4,9 @@ HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data5 import D,RETIRED
 import gen5 as g
 from desc3 import DESC
-import drift5 as drift, spec5 as spec_drift, sim5 as sim
-SIM=sim.simulate()
+import drift5 as drift, spec5 as spec_drift
 SPEC=spec_drift.checks()
-CONDS=drift.conditions(); REPORT=drift.report(CONDS); JUDGE,EXTRA=drift.judge(CONDS,REPORT)
-STONE={'合格':'t-success','不合格':'t-fail','欠け':'t-fail','古い':'t-fail','レベル違い':'t-fail','未実行':'t-caution','免除':''}
+CONDS=drift.conditions()
 OUT='/home/daidaiiro/workspace/daidaiiro/.brainstorming-board/usecase-driven-concrete/sample'
 DSB='/home/daidaiiro/workspace/daidaiiro/.claude/skills/design-svg/tool/target/release/design-svg'
 for sub in ('decls','figures'):
@@ -16,7 +14,6 @@ for sub in ('decls','figures'):
   for f in os.listdir(f'{OUT}/{sub}'): os.remove(f'{OUT}/{sub}/{f}')
 for k,v in D.items(): json.dump(v,open(f'{OUT}/decls/{k}.json','w'),ensure_ascii=False,indent=1)
 json.dump({"conditions":CONDS,"retired":RETIRED},open(f'{OUT}/conditions.json','w'),ensure_ascii=False,indent=1)
-json.dump(REPORT,open(f'{OUT}/report.json','w'),ensure_ascii=False,indent=1)
 E=html.escape; HC=[0]
 THEME={"color.box-fill":"var(--figure-box)","color.box-stroke":"var(--figure-box-stroke)","color.ink":"var(--figure-ink)","color.ink-soft":"var(--figure-soft)","color.ink-faint":"var(--figure-edge)",
  "color.line":"var(--figure-edge)","color.accent":"var(--figure-accent)","color.accent-bg":"var(--figure-accent-bg)","color.accent-fg":"var(--figure-accent)","color.warn":"var(--figure-warn)","color.warn-bg":"var(--figure-warn-bg)"}
@@ -55,12 +52,11 @@ def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{b
 def cards(xs): return '<div class="cards">'+''.join(xs)+'</div>'
 def item(name,text='',extra=''): return f'<div class="item"><b>{E(name)}</b>'+(f'<span class="txt">{E(text)}</span>' if text else '')+extra+'</div>'
 def tchip(cid):
-  st=JUDGE.get(cid,'')
-  return f'<span class="tc {STONE.get(st,"")}" title="{E(st)}">{E(cid)}</span>'
+  return f'<span class="tc">{E(cid)}</span>'
 def tblock(decl):
   cs=[c for c in CONDS if c['decl']==decl]
   if not cs: return ''
-  return block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値','状態'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>',pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in cs]))
+  return block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in cs]))
 def head(d,badges='',lead=''):
   return f'<header class="ph"><p class="kind">{KIND[d["kind"]]}{badges}</p><h1>{E(dname(d["id"]))}{idt(d["id"])}</h1></header>'+(f'<p class="lead">{E(lead)}</p>' if lead else '')
 def yn(v): return '<span class="yes">はい</span>' if v else '<span class="no-ans">いいえ</span>'
@@ -265,11 +261,7 @@ def p_uc(d):
   return b+raw(d)
 def p_drift():
   import collections
-  cnt=collections.Counter(JUDGE.values())
-  order=['合格','不合格','欠け','古い','未実行','レベル違い']
-  ok_all=all(v in('合格','免除') for v in JUDGE.values()) and not EXTRA and all(x['status']=='合格' for x in SPEC)
-  b='<header class="ph"><p class="kind">テスト</p><h1>突き合わせ</h1></header>'+f'<p class="lead">報告：{E(REPORT["producer"])} ・ 宣言の版 {E(REPORT["spec_revision"])}</p>'
-  b+=tiles([('終了基準',pill('満たしている','t-success') if ok_all else pill('満たしていない','t-fail')),('条件','宣言どうしのずれが0件で、テスト条件がすべて合格し、余りが0件')])
+  b='<header class="ph"><p class="kind">テスト</p><h1>テスト条件と宣言どうしの検査</h1></header><p class="lead">宣言から道具が出すもの。テストの合否はここに無い（テストの実行器が判定し、保存しない）。</p>'
   scnt=collections.Counter(x['status'] for x in SPEC)
   b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','対応の欠け','確かめ直し','レビュー','合格']])
   CAT={'structure':'構造で検査','link':'対応の欄で検査','change':'上流の変更','review':'人のレビュー'}
@@ -279,43 +271,15 @@ def p_drift():
     return ref(i.split('.')[0])+(f' <span class="no">{E(".".join(i.split(".")[1:]))}</span>' if '.' in i else '') if i and i.split('.')[0] in D else E(i)
   srow=[[pill(x['status'],SST[x['status']]),E(CAT[x['category']]),E(x['check']),at(x['from']),'、'.join(at(t) for t in x['to'].split('・')) if x['to'] else '',E(x['text'])] for x in sorted(SPEC,key=lambda x:(x['status']=='合格',list(CAT).index(x['category'])))]
   b+=block('宣言どうしの検査',tbl(['状態','分け方','検査','参照元','参照先','内容'],srow))
-  b+='<h2 class="sec">宣言とテスト実装</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{cnt.get(k,0)}</b>') for k in order]+[('余り',f'<b style="font-size:1.3rem">{len(EXTRA)}</b>')])
-  b+=block('ドリフトの種類','<p class="txt">状態ごとの意味は ❓ にある。合格以外はすべて、終了基準を満たさない。</p>')
-  rows=[[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),pill(JUDGE[c['id']],STONE[JUDGE[c['id']]])] for c in sorted(CONDS,key=lambda c:(order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9)*-1 if False else order.index(JUDGE[c['id']]) if JUDGE[c['id']] in order else 9,reverse=False)]
-  rows=sorted(rows,key=lambda r:0 if '合格' in r[5] and 't-success' in r[5] else -1)
-  b+=block('テスト条件',tbl(['ID','宣言','対象','確かめること','求めるレベル','状態'],rows))
-  if EXTRA: b+=block('余り（条件に無い報告）',tbl(['報告の条件 ID','テスト','理由'],[[f'<span class="tc t-fail">{E(x["condition"])}</span>',f'<span class="no">{E(x["test"])}</span>','廃止した条件' if x['condition'] in RETIRED else '不明な ID'] for x in EXTRA]))
-  b+=f'<details class="fold"><summary>報告の JSON（テスト実装が出したもの）</summary><div class="fbody"><pre class="code">{E(json.dumps(REPORT,ensure_ascii=False,indent=1))}</pre></div></details>'
-  return b
-def p_sim():
-  SST={'合格':'t-success','ずれ':'t-fail','対応の欠け':'t-fail','確かめ直し':'t-caution','レビュー':'t-caution'}
-  def ok(x): return not [s for s in x['spec'] if s['status']!='合格'] and all(v=='合格' for v in x['judge'].values()) and not x['extra']
-  def short(v):
-    t=json.dumps(v,ensure_ascii=False)
-    return E(t if len(t)<=90 else t[:88]+'…')
-  def nbad(x): return len([s for s in x['spec'] if s['status']!='合格'])
-  def tbad(x): return len([v for v in x['judge'].values() if v!='合格'])
-  b='<header class="ph"><p class="kind">テスト</p><h1>シミュレーション</h1></header><p class="lead">承認済みの宣言を JSON Patch で1手ずつ書き換え、そのたびに道具の2つの検査を流した結果。</p>'
-  rows=[[f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>',E(x['who']),f'<span class="txt">{E(x["what"])}</span>',pill(str(nbad(x)),'t-fail' if nbad(x) else 't-success'),pill(str(tbad(x)),'t-fail' if tbad(x) else 't-success'),pill('満たす','t-success') if ok(x) else pill('満たさない','t-fail')] for x in SIM]
-  b+=block('手の一覧',tbl(['手','誰が','何をしたか','宣言どうし','テスト','終了基準'],rows))
-  b+='<div class="stepper">'+''.join(f'<button class="sbtn" data-go="{x["no"]}">{x["no"]}</button>' for x in SIM)+'</div>'
-  for x in SIM:
-    d=f'<section class="simstep" data-no="{x["no"]}">'
-    d+=tiles([('手',f'<b style="font-size:1.3rem">{x["no"]}</b>'),('誰が',E(x['who']) or '―'),('終了基準',pill('満たす','t-success') if ok(x) else pill('満たさない','t-fail'))])
-    d+=f'<p class="lead" style="margin-top:.75rem">{E(x["what"])}</p>'
-    if x['ops']: d+=block('変更（JSON Patch）',tbl(['操作','場所（JSON Pointer）','値'],[[pill(o['op']),f'<span class="no">{E(o["path"])}</span>',short(o.get('value',o.get('removed','')))] for o in x['ops']]))
-    else: d+=block('変更（JSON Patch）','<p class="txt">宣言は変えていない</p>')
-    sb=[s for s in x['spec'] if s['status']!='合格']
-    d+=block('道具の検知：宣言どうし',tbl(['状態','検査','参照元','参照先','内容'],[[pill(s['status'],SST[s['status']]),E(s['check']),f'<span class="no">{E(s["from"])}</span>',f'<span class="no">{E(s["to"])}</span>',E(s['text'])] for s in sb]) if sb else pill('検知なし','t-success'))
-    cm={c['id']:c for c in x['conds']}
-    tb=[(k,v) for k,v in x['judge'].items() if v!='合格']
-    d+=block('道具の検知：宣言とテスト実装',tbl(['テスト条件','確かめること','報告のハッシュ値','今のハッシュ値','状態'],[[f'<span class="tc {STONE[v]}">{E(k)}</span>',E(cm[k]['checks']),f'<span class="no">{x["rep"][k]["hash"] if k in x["rep"] else "―"}</span>',f'<span class="no">{cm[k]["hash"]}</span>',pill(v,STONE[v])] for k,v in tb]) if tb else pill('検知なし','t-success'))
-    d+='<div class="snav">'+(f'<button class="sbtn" data-go="{x["no"]-1}">← 前の手</button>' if x['no']>0 else '<span></span>')+(f'<button class="sbtn" data-go="{x["no"]+1}">次の手 →</button>' if x['no']<len(SIM)-1 else '')+'</div>'
-    b+=d+'</section>'
+  b+='<h2 class="sec">宣言とテスト</h2>'
+  b+=block('テスト条件',tbl(['ID','宣言','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in CONDS]))
+  b+=block('突き合わせ',tbl(['何を','どこで見られるか'],[
+    ['テストは走ったときに、上の ID ・ ハッシュ値 ・ レベルを記録ファイルへ1行ずつ追記する（記録の契約）。道具は宣言と記録だけを照らし、欠け ・ 余り ・ 古い ・ レベル違いを出す','<a class="ref" href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">テスト条件 ID の突き合わせ</a>'],
+    ['Python と Go のテストを実際に実行し、9手のコミットごとに CI を流した記録','<a class="ref" href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録</a>']]))
   return b
 R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
-nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">突き合わせ</a><a href="#SIM" data-id="SIM">シミュレーション</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
-pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'+f'<article class="page" id="SIM">{p_sim()}</article>'
+nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
+pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'
 css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
 page=f'''<title>来店前注文の宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
