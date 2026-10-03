@@ -223,6 +223,10 @@ def p_uc(d):
     frm=s['actor']; to=s.get('to') or frm
     msgs.append({"from":frm,"to":to,"label":f"{nums[s['id']]} {g.step_short(s)}"})
     if s.get('reply'): msgs.append({"from":to,"to":frm,"label":g.reply_text(s),"kind":"return"})
+  for s in sc['steps']: add(s)
+  TH={"font.size-small":14,"font.size":15,"chart.exchange-col-w":220,"chart.pad":6,"chart.exchange-row-h":40}
+  seqm=chart('uc-'+k+'-main','exchange',{"participants":parts,"steps":list(msgs),"groups":[],"theme":TH})
+  msgs.clear()
   for s in sc['steps']:
     add(s)
     for x in s['extensions']:
@@ -242,6 +246,7 @@ def p_uc(d):
   rows=''.join(f'<tr><td class="num"><span>{nums[s["id"]]}</span></td><td>{act(s["actor"])}</td><td><b>{gen(g.step_text(s))}</b><span class="ln"><span class="no">{E(s["id"])}</span> ・ {E(s["kind"])}</span>{links(s)}</td><td>{whos(s.get("serves",[]))}</td><td>'+''.join(pill(nums[x['id']],'t-fail' if x['ending']=='失敗' else 't-return') for x in s['extensions'])+'</td></tr>' for s in sc['steps'])
   rows+=f'<tr class="end"><td></td><td></td><td colspan="3">→ 成功時保証が成り立つ {tchip(k+".M")}</td></tr>'
   b+=block('主成功シナリオ','<div class="tw"><table><thead><tr><th>#</th><th>アクター</th><th>手順（組んだ文）</th><th>守る利害関係者</th><th>拡張</th></tr></thead><tbody>'+rows+'</tbody></table></div>')
+  b+=f'<details class="fold near"><summary>主成功シナリオのシーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seqm}</div></details>'
   ex=[]
   for s in sc['steps']:
     for x in s['extensions']:
@@ -251,14 +256,13 @@ def p_uc(d):
       if x.get('fails'): body+=f'<span class="ln"><span class="k">fails</span>'+' '.join(f'<span class="no">{E(r)}</span>' for r in x['fails'])+'</span>'
       body+=''.join(f'<div class="hs"><span class="no">{E(nums[t["id"]])}</span>{act(t["actor"])}<span><b>{gen(g.step_text(t))}</b>{links(t)}</span></div>' for t in x['steps'])
       ex.append(card(f'<span class="no">{E(nums[x["id"]])}</span>{gen(g.ext_text(x))}'+pill(g.ending_text(x,nums),'t-fail' if fail else 't-return')+tchip(k+'.'+x['id']),body,'left-fail' if fail else 'left-return'))
-  b+=block('拡張',cards(ex))
+  b+=block('拡張',cards(ex))+f'<details class="fold near"><summary>拡張を含むシーケンス図</summary><div class="fbody">{seq}</div></details>'
   srows=[[f'<b>{E(who(i))}</b>',f'<span class="txt">{E(x["interest"])}</span>','、'.join(nums[s['id']] for s in sc['steps'] if i in s.get('serves',[])) or '<span class="missing">なし</span>',pills([m['name'] for m in gu['success'] if i in m['satisfies']],'t-success')+pills([m['name'] for m in gu['minimal'] if i in m['protects']],'t-minimal')] for i,x in sh.items()]
   b+=block('利害関係者と利益',tbl(['利害関係者','利益','守る手順','守る保証'],srows))
   vr=[[nums[s['id']],E(v['varies']),pills(v['values'])] for s in sc['steps'] for v in s.get('variations',[])]
   if vr: b+=block('技術およびデータのバリエーション',tbl(['手順','違い','値'],vr))
   if d.get('open_issues'): b+=block('未決定事項',tbl(['未決定事項'],[[E(x)] for x in d['open_issues']]))
   b+=tblock(k)
-  b+=f'<details class="fold"><summary>シーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seq}</div></details>'
   return b+raw(d)
 def p_drift():
   import collections
