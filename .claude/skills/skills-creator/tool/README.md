@@ -33,8 +33,8 @@
 直したら、公開の前に次を実行する。
 
 ```
-cargo install --path tool/cli --root . --target-dir tool/target
-cargo install --path tool/mcp --root . --target-dir tool/target
+cargo install --force --path tool/cli --root . --target-dir tool/target
+cargo install --force --path tool/mcp --root . --target-dir tool/target
 cargo run -q --release --manifest-path tool/Cargo.toml -p sc_cli --example provider -- verify --skill_root "$PWD" [--work <作業場所>] [--json]
 ```
 

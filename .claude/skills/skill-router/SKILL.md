@@ -121,3 +121,5 @@ description: "ある作業を1つのSkillだけでは終えられないとき、
 ## 参照
 
 - `references/skill-wiring.schema.json`: 配線表の形を検査するJSON Schema。4つの欄と、「結果をどれだけ当てにするか」に書ける3つの値を定める
+- `bin/skill-router` ・ `bin/skill-router-mcp`: references の4つの道具（get ・ validate ・ view ・ import）を持つ CLI と MCP サーバー（ACDR 0043）。配線表の検査は `skill-router validate --kind skill-wiring --file <配線表>` で行う。ソースは `tool/` に在り、skills-creator のリファレンス実装の複製である
+- `references/view.*`: 描画の見た目の写し（skills-creator の references/view/ の複製）

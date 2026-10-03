@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "templates.schema.json",
+  "title": "記録の雛形",
+  "description": "共有される記憶ストアへ書く記録1件の形。型ごとに1件",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "purpose",
+          "frontmatter",
+          "body"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "x-view": "hidden"
+          },
+          "title": {
+            "title": "型",
+            "type": "string",
+            "x-view": "heading"
+          },
+          "purpose": {
+            "title": "何を書くか",
+            "type": "string",
+            "x-view": "card"
+          },
+          "frontmatter": {
+            "title": "frontmatter",
+            "description": "ファイルの先頭の --- で囲んだ欄。上から順に書く",
+            "type": "array",
+            "x-view": "table",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key",
+                "value"
+              ],
+              "properties": {
+                "key": {
+                  "title": "欄",
+                  "type": "string"
+                },
+                "value": {
+                  "title": "書く値",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "body": {
+            "title": "本文",
+            "description": "frontmatter のあとに書く。上から順に置く",
+            "type": "array",
+            "x-view": "list",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

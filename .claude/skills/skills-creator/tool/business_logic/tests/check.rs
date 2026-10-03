@@ -141,13 +141,16 @@ fn a_skill_with_layers_as_crates_passes() {
 }
 
 #[test]
-fn a_skill_without_tools_needs_no_layers() {
+fn a_skill_without_tools_is_reported() {
+    // **道具を持たない Skill の免除は無い**（ACDR 0043 ・ 0099）── どの Skill も references の4つの道具を持つ
     let root = scratch("advice");
     write_document(&root);
     let found = found_all(&root);
     assert!(
-        found.is_empty(),
-        "助言だけの Skill に層を要求しない ── {found:?}"
+        found
+            .iter()
+            .any(|x| x.contains("tool.json が無いか読めない")),
+        "{found:?}"
     );
 }
 
@@ -830,14 +833,14 @@ fn markdown_that_the_test_cases_import_is_not_reported() {
 }
 
 #[test]
-fn markdown_in_references_of_a_skill_without_tools_is_allowed() {
-    // 道具を持たない Skill は契約の版2 の外である
+fn markdown_in_references_of_a_skill_without_tools_is_reported() {
+    // **道具の有無で免除しない** ── どの Skill も references を JSON Schema と JSON で持つ（ACDR 0043）
     let root = scratch("refs-md-notool");
     write_document(&root);
     std::fs::create_dir_all(root.join("references")).expect("作れる");
     std::fs::write(root.join("references/template.md"), "# 雛形\n").expect("書ける");
     let found = check::document(&root, &templates());
-    assert!(found.is_empty(), "{found:?}");
+    assert!(found.iter().any(|x| x.contains("Markdown")), "{found:?}");
 }
 
 #[test]

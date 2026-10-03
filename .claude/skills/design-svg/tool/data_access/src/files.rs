@@ -110,3 +110,12 @@ pub fn canonicalize(path: impl AsRef<Path>) -> io::Result<PathBuf> {
 pub fn temp_dir() -> PathBuf {
     std::env::temp_dir()
 }
+
+/// フォルダを中身ごと消す。
+///
+/// # Errors
+///
+/// 消せないときに返す。
+pub fn remove_dir_all(path: impl AsRef<Path>) -> io::Result<()> {
+    std::fs::remove_dir_all(path)
+}

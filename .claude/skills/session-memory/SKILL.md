@@ -9,7 +9,7 @@ description: "進行中の作業の現在地や、外部システムへのポイ
 
 進行中の作業の現在地や、外部システムへのポインタなど、**次のセッションが続きから始められるようにするためだけ**の一時的な事実を記録するときに使う。記録するのは project と reference の2種だけで、**恒久の決まり（次から遵守させる規則）は記録しない** ── それは、それが適用される Skill のガードレールか knowledge が持つ。
 
-**記憶は一時的なものだけを置く**。置いてよいのは、次のセッションが続きから始めるために要る現在地と、
+**記憶は一時的なものだけを置く**。置いてよいのは、次のセッションが続きから始めるために必要な現在地と、
 外を指すポインタである。**作業が終了した項目は削除する。**
 
 | 置くか | 何が該当するか | 置かないなら、どこへ |
@@ -59,7 +59,7 @@ description: "進行中の作業の現在地や、外部システムへのポイ
 
 ### Step 1: 記録すべき出来事かを判定する
 
-直前の会話に、**次のセッションが続きから始めるために要る事実**が現れたかを判定する。恒久の決まり・概念・利用者自身の性質は対象外で、行き先は上の表が決める。個人の伝え方・コミュニケーションスタイルへの指摘も対象外とする。
+直前の会話に、**次のセッションが続きから始めるために必要な事実**が現れたかを判定する。恒久の決まり・概念・利用者自身の性質は対象外で、行き先は上の表が決める。個人の伝え方・コミュニケーションスタイルへの指摘も対象外とする。
 
 ### Step 2: 記録する型を分類する
 
@@ -67,7 +67,7 @@ description: "進行中の作業の現在地や、外部システムへのポイ
 
 ### Step 3: テンプレートに沿って記録する
 
-分類した型に対応するテンプレート（references/配下）を使い、frontmatter（name/description/metadata.type）と本文を記述する。**project 型は、いまどこに居て次に何をするかだけを書く**。「How to apply」は書かない。
+分類した型に対応する雛形（`references/templates.json`。`session-memory get --kind templates --id <型>` で取り出す）に沿って、frontmatter（name/description/metadata.type）と本文を書く。**project 型は、いまどこに居て次に何をするかだけを書く**。「How to apply」は書かない。
 
 ### Step 4: 索引を更新する
 
@@ -95,5 +95,6 @@ description: "進行中の作業の現在地や、外部システムへのポイ
 
 ## 参照
 
-- `references/template-project.md`: project型メモリのテンプレート（進行中の作業の現在地と、次にすること）
-- `references/template-reference.md`: reference型メモリのテンプレート（外部システムへのポインタ）
+- `references/templates.json` ・ `references/templates.schema.json`: 記録の雛形。project 型（進行中の作業の現在地と、次にすること）と reference 型（外部システムへのポインタ）の2件。`session-memory view --kind templates` で描画して読む
+- `bin/session-memory` ・ `bin/session-memory-mcp`: references の4つの道具（get ・ validate ・ view ・ import）を持つ CLI と MCP サーバー（ACDR 0043）。ソースは `tool/` に在り、skills-creator のリファレンス実装の複製である
+- `references/view.*`: 描画の見た目の写し（skills-creator の references/view/ の複製）

@@ -264,16 +264,6 @@ pub fn placeholders(body: &str) -> usize {
     count
 }
 
-/// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**
-#[must_use]
-pub fn has_tools(root: &Path) -> bool {
-    files::is_file(root.join("tool.json"))
-        || files::is_file(root.join("mcp.json"))
-        || files::is_dir(root.join(TOOL))
-        || files::is_dir(root.join("rs"))
-        || files::is_dir(root.join("scripts"))
-}
-
 /// 検査の段。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -342,30 +332,29 @@ impl Report {
 #[must_use]
 pub fn check(root: &Path, templates: &Templates, layout: bool) -> Report {
     let mut report = Report::default();
-    // **道具を持たない Skill に、実行ファイルも層も要求しない。** 助言と手順だけの Skill が在る
-    if has_tools(root) {
-        for v in behavior::run(root) {
-            report.lines.push(match v {
-                Verdict::Pass(t) => Line::new(Stage::Behavior, State::Pass, t),
-                Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),
-            });
+    // **道具を持たない Skill の免除は無い**（ACDR 0043 ・ 0099）── どの Skill も references の4つの道具を持つ
+    for v in behavior::run(root) {
+        report.lines.push(match v {
+            Verdict::Pass(t) => Line::new(Stage::Behavior, State::Pass, t),
+            Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),
+        });
+    }
+    report.lines.extend(source(root, templates, layout));
+    if let Some(canon) = &templates.view {
+        let found = crate::view::findings(root, canon);
+        if found.is_empty() {
+            report.lines.push(Line::new(
+                Stage::Source,
+                State::Pass,
+                "見た目の写しが正本と一致し、色の直値と定まらない変数が無く、文字と地の比が足りる"
+                    .to_owned(),
+            ));
         }
-        report.lines.extend(source(root, templates, layout));
-        if let Some(canon) = &templates.view {
-            let found = crate::view::findings(root, canon);
-            if found.is_empty() {
-                report.lines.push(Line::new(
-                    Stage::Source,
-                    State::Pass,
-                    "見た目の写しが正本と一致し、色の直値と定まらない変数が無く、文字と地の比が足りる".to_owned(),
-                ));
-            }
-            report.lines.extend(
-                found
-                    .into_iter()
-                    .map(|t| Line::new(Stage::Source, State::Fail, t)),
-            );
-        }
+        report.lines.extend(
+            found
+                .into_iter()
+                .map(|t| Line::new(Stage::Source, State::Fail, t)),
+        );
     }
     let missing = document(root, templates);
     if missing.is_empty() {
@@ -524,9 +513,7 @@ pub fn rust_refs(root: &Path, templates: &Templates) -> Vec<String> {
 #[must_use]
 pub fn document(root: &Path, templates: &Templates) -> Vec<String> {
     let mut found = missing_sections(root, templates);
-    if files::is_file(root.join("tool.json")) {
-        found.extend(markdown_in_references(root));
-    }
+    found.extend(markdown_in_references(root));
     found.extend(missing_targets(root));
     found.extend(placeholders_in_references(root));
     found
@@ -566,7 +553,7 @@ fn placeholders_in_references(root: &Path) -> Vec<String> {
 /// references の内容ではなく、テストケースの入力である。
 const CASE_FIXTURES: &str = "references/contract/cases/fixtures";
 
-/// references に置いた Markdown。**道具を持つ Skill は、Markdown を SKILL.md だけにする**（契約の版2）──
+/// references に置いた Markdown。**どの Skill も、Markdown を SKILL.md だけにする**（契約の版2、ACDR 0043）──
 /// references に置くと、スキーマで検査できず、`view` でも描画できない。テストケースの入力データは除く。
 fn markdown_in_references(root: &Path) -> Vec<String> {
     let ignored = ignored_prefixes(root);

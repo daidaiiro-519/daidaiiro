@@ -1,0 +1,13 @@
+[package]
+name = "sm_business_logic"
+description = "業務ロジック層。入出力を持たず、データアクセス層だけを参照する"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# **同じ workspace の crate は、データアクセス層だけを参照する。** 上の層を参照した時点でコンパイルが通らない。
+# 外の crate は、references の実装（refs）が使う2つだけである
+[dependencies]
+sm_data_access = { path = "../data_access" }
+serde_json = { version = "1", features = ["preserve_order"] }
+jsonschema = { version = "0.34", default-features = false }

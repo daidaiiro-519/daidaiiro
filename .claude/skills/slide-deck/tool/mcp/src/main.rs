@@ -25,8 +25,10 @@ use rmcp::model::{
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::transport::stdio;
 use rmcp::{ErrorData as McpError, ServiceExt};
-use sd_service::{tools, Given};
 use serde_json::{json, Map, Value};
+
+// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする
+use sd_service::{tools, Given};
 
 /// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
 /// 呼ぶ側がどの引数を渡せばよいかを認知できない。

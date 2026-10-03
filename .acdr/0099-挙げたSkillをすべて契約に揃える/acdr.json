@@ -1,0 +1,594 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0099",
+ "title": "挙げた Skill をすべて契約に揃える",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "利用者が挙げた15の Skill を契約で見直し、どの Skill も references の4つの道具と共通の一式をリファレンス実装の複製で持つ形に揃える。",
+ "why": "ACDR 0043 で、すべての Skill が get ・ validate ・ view ・ import を持つと決め、5つの段で移す予定だった。段3（ACDR 0048）まで進み、skill-router と session-memory は道具を持たないまま残った。check と構成の契約も、道具を持たない Skill を検査から外していた。ACDR 0096〜0098 では、Rust の Skill は共通の一式をリファレンス実装の複製で持つと決めた。利用者から、挙げた15の Skill をこの契約で見直すよう頼まれた（2026-10-03）。",
+ "shift": [
+  {
+   "what": "session-memory と skill-router",
+   "from": "道具を持たない。session-memory は雛形を Markdown で持つ",
+   "to": "references の4つの道具を持つ。雛形は JSON Schema と JSON で持つ"
+  },
+  {
+   "what": "check と構成の契約",
+   "from": "道具を持たない Skill を検査から外す（tool.json ・ mcp.json ・ tool/ は道具を持つときだけ）",
+   "to": "外さない。どの Skill も tool.json ・ mcp.json ・ tool/ を持ち、references に Markdown を置かない"
+  },
+  {
+   "what": "platform-advisor と ux-advisor の道具",
+   "from": "ACDR 0090 より前の構成。データアクセス層が無く、テストケースは39件中11件だけ合格する",
+   "to": "リファレンス実装の助言型から置き直した構成。テストケースに全件合格する"
+  },
+  {
+   "what": "CLI の共通の決まりのテスト",
+   "from": "skills-creator だけが持つ",
+   "to": "道具を持つ15の Skill がすべて持つ"
+  },
+  {
+   "what": "共通の一式の小さな差",
+   "from": "contract.rs のコメント2行 ・ MCP の入口の import の並び ・ files.rs の関数1つが、リファレンス実装と違う",
+   "to": "リファレンス実装と同じ。MCP の説明文（instructions）だけは Skill ごとに書く"
+  },
+  {
+   "what": "tool.json の build",
+   "from": "cargo install を --force 無しで書く。2回目の組み立てが失敗する",
+   "to": "--force を付け、何度実行しても同じ結果になる"
+  },
+  {
+   "what": "session-memory の project 型の雛形",
+   "from": "本文に Why と How to apply の欄がある",
+   "to": "現在地 ・ 次にすること ・ 持ち越すことだけ。SKILL.md の「How to apply は書かない」に合わせた"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "挙げた15の Skill の道具と共通の一式を、リファレンス実装の複製に揃える",
+ "how": "15の Skill の共通の一式を、リファレンス実装と差分で比べた。session-memory と skill-router は、scaffold で同じ名前の作業型を生み、見本の道具 hello を外して tool/ を置いた。session-memory の Markdown の雛形2つは、templates.schema.json と templates.json にした。platform-advisor と ux-advisor は、同じ名前の助言型を生み、tool/ の下の契約にかかわるファイルを写した。判断基準の事例のテストは、今の判断基準に合わせて書かれているので残した。check は、道具を持たない Skill を検査から外す処理を消した。15件すべてで tool.json の build ・ test ・ format と check（テストケースを含む）を実行した。build ・ test ・ check は15件とも合格し、テストケースは15件とも39件すべてに合格した。format は14件が合格した。不合格の1件（doc-writing-skills）は、ほかのセッションが編集中のテストのファイルが整形されていないもので、この ACDR では触らない。提供者の検証（verify）も合格した。",
+ "applies_to": "15の Skill の tool/ ・ tool.json ・ mcp.json が変わる。session-memory と skill-router は道具と references と SKILL.md も変わる。skills-creator では check、リファレンス実装の雛形2つ、references の契約と document.json、SKILL.md、tool/README.md が変わる。",
+ "alternatives": [
+  {
+   "option": "道具を持たない Skill を例外として残す",
+   "why_not": "ACDR 0043 で、すべての Skill が references の4つの道具を持つと決めた。例外を残すと、check の合格が契約どおりであることを意味しなくなる"
+  },
+  {
+   "option": "platform-advisor と ux-advisor を、判断基準まで含めて作り直す",
+   "why_not": "判断基準の作り直しは、原典の選び直しから始める大きな作業で、Skill ごとにブレストボードを立てる規模である。契約を先に揃えれば、作り直しは判断基準だけに集中できる"
+  },
+  {
+   "option": "MCP の説明文もリファレンス実装と同じにする",
+   "why_not": "説明文は、MCP のホストがその Skill を選ぶための文で、Skill ごとに違うのが正しい"
+  },
+  {
+   "option": "session-memory の雛形を、記録のファイルの全文の形（Markdown の文字列）のまま JSON に入れる",
+   "why_not": "文字列のままだと、欄ごとに検査も描画もできない。frontmatter の欄は表、本文の並びは一覧として持つ"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "platform-advisor と ux-advisor は、それぞれブレストボードを立て、原典の選び直しから判断基準を作り直す（契約は 0099 で揃っている）",
+  "no-more-spaghetti を廃止する（ボード usecase-modeling-coding の次にすること）"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/src/check.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "#[derive(Debug, Clone, Copy, PartialEq, Eq)]",
+     "before": "/// 道具を持つ Skill かを返す。**助言と手順だけの Skill には、道具を要求しない。**\n#[must_use]\npub fn has_tools(root: &Path) -> bool {\n    files::is_file(root.join(\"tool.json\"))\n        || files::is_file(root.join(\"mcp.json\"))\n        || files::is_dir(root.join(TOOL))\n        || files::is_dir(root.join(\"rs\"))\n        || files::is_dir(root.join(\"scripts\"))\n}",
+     "why": "道具を持つかを判定する関数を消した。もう使わない"
+    },
+    {
+     "find": "// **道具を持たない Skill の免除は無い**（ACDR 0043 ・ 0099）── どの Skill も references の4つの道具を持つ",
+     "before": "// **道具を持たない Skill に、実行ファイルも層も要求しない。** 助言と手順だけの Skill が在る\n    if has_tools(root) {\n        for v in behavior::run(root) {\n            report.lines.push(match v {\n                Verdict::Pass(t) => Line::new(Stage::Behavior, State::Pass, t),\n                Verdict::Fail(t) => Line::new(Stage::Behavior, State::Fail, t),\n            });\n        report.lines.extend(source(root, templates, layout));\n        if let Some(canon) = &templates.view {\n            let found = crate::view::findings(root, canon);\n            if found.is_empty() {\n                report.lines.push(Line::new(\n              \n…",
+     "why": "道具を持たない Skill を検査から外す処理を消した（ACDR 0043）"
+    },
+    {
+     "find": "found.extend(markdown_in_references(root));",
+     "before": "if files::is_file(root.join(\"tool.json\")) {\n        found.extend(markdown_in_references(root));\n    }",
+     "why": "references の Markdown の検査を、道具の有無に関係なく当てる"
+    },
+    {
+     "find": "/// references に置いた Markdown。**どの Skill も、Markdown を SKILL.md だけにする**（契約の版2、ACDR 0043）──",
+     "before": "/// references に置いた Markdown。**道具を持つ Skill は、Markdown を SKILL.md だけにする**（契約の版2）──",
+     "why": "説明を、どの Skill も Markdown を SKILL.md だけにする形に改めた"
+    }
+   ]
+  },
+  {
+   "key": "tcheck",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/skills-creator/tool/business_logic/tests/check.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "// **道具を持たない Skill の免除は無い**（ACDR 0043 ・ 0099）── どの Skill も references の4つの道具を持つ",
+     "before": "fn a_skill_without_tools_needs_no_layers() {\n        found.is_empty(),\n        \"助言だけの Skill に層を要求しない ── {found:?}\"",
+     "why": "道具を持たない Skill を検出することを固定した"
+    },
+    {
+     "find": "// **道具の有無で免除しない** ── どの Skill も references を JSON Schema と JSON で持つ（ACDR 0043）",
+     "before": "fn markdown_in_references_of_a_skill_without_tools_is_allowed() {\n    // 道具を持たない Skill は契約の版2 の外である\n    assert!(found.is_empty(), \"{found:?}\");",
+     "why": "道具を持たない Skill の references の Markdown も検出することを固定した"
+    }
+   ]
+  },
+  {
+   "key": "struct",
+   "tab": "structure.json",
+   "file": ".claude/skills/skills-creator/references/contract/structure.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"note\": \"Rust のリファレンス実装は data_access ・ business_logic ・ service ・ cli ・ mcp の5つに分ける（推奨。契約ではない）\"",
+     "before": "\"need\": \"with-tool\",\n      \"need\": \"with-tool\",\n      \"need\": \"with-tool\",",
+     "why": "tool.json ・ mcp.json ・ tool/ ・ テスト ・ 見た目の写しを、どの Skill も持つものにした（ACDR 0043）"
+    },
+    {
+     "find": "\"purpose\": \"Skill 固有の振る舞いのテスト。共通ツールの振る舞いは契約のテストケースが決める\"",
+     "before": "\"need\": \"with-tool\",",
+     "why": "tool.json ・ mcp.json ・ tool/ ・ テスト ・ 見た目の写しを、どの Skill も持つものにした（ACDR 0043）"
+    },
+    {
+     "find": "\"purpose\": \"見た目の正本の写し（view.tokens.json ・ view.tokens.schema.json ・ view.css ・ view.template.html）\"",
+     "before": "\"need\": \"with-tool\",",
+     "why": "tool.json ・ mcp.json ・ tool/ ・ テスト ・ 見た目の写しを、どの Skill も持つものにした（ACDR 0043）"
+    },
+    {
+     "find": "\"purpose\": \"references に Markdown を置かない。どの Skill も、references を JSON Schema と JSON で持つ（ACDR 0043）\"",
+     "before": "\"purpose\": \"references に Markdown を置かない\"",
+     "why": "references に Markdown を置かない規則が、どの Skill にも当たることを書いた"
+    }
+   ]
+  },
+  {
+   "key": "structs",
+   "tab": "structure.schema.json",
+   "file": ".claude/skills/skills-creator/references/contract/structure.schema.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"title\": \"要否\",",
+     "before": "\"with-tool\",",
+     "why": "要否の値から with-tool を外した。使う項目が無くなった"
+    }
+   ]
+  },
+  {
+   "key": "smtpl",
+   "tab": "session-memory/templates.json",
+   "file": ".claude/skills/session-memory/references/templates.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"id\": \"project\",",
+     "before": "（無い）",
+     "why": "Markdown の雛形2つを JSON にした。project 型の本文は、SKILL.md の「いまどこに居て次に何をするかだけを書く」に合わせ、Why と How to apply を外した"
+    }
+   ]
+  },
+  {
+   "key": "smschema",
+   "tab": "session-memory/templates.schema.json",
+   "file": ".claude/skills/session-memory/references/templates.schema.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"x-view\": \"table\",",
+     "before": "（無い）",
+     "why": "frontmatter の欄は表、本文の並びは一覧で描く"
+    }
+   ]
+  },
+  {
+   "key": "smlib",
+   "tab": "session-memory/service lib.rs",
+   "file": ".claude/skills/session-memory/tool/service/src/lib.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "refs::tools()",
+     "before": "（無い）",
+     "why": "この Skill の道具は references の4つだけである。作業型の見本の道具 hello は外した"
+    }
+   ]
+  },
+  {
+   "key": "smskill",
+   "tab": "session-memory/SKILL.md",
+   "file": ".claude/skills/session-memory/SKILL.md",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "で取り出す）に沿って",
+     "before": "分類した型に対応するテンプレート（references/配下）を使い",
+     "why": "雛形の置き場所と取り出し方を、JSON と get に合わせた"
+    },
+    {
+     "find": "記録の雛形。project 型",
+     "before": "references/template-project.md: project型メモリのテンプレート（進行中の作業の現在地と、次にすること）",
+     "why": "参照の節を、JSON の雛形と道具に合わせた"
+    },
+    {
+     "find": "続きから始めるために必要な事実",
+     "before": "次のセッションが続きから始めるために要る事実",
+     "why": "ゲート1が検出した廃語を、ふだん使う言葉（必要な）に直した"
+    }
+   ]
+  },
+  {
+   "key": "srskill",
+   "tab": "skill-router/SKILL.md",
+   "file": ".claude/skills/skill-router/SKILL.md",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "配線表の検査は",
+     "before": "（無い）",
+     "why": "道具を持ったので、配線表を validate で検査できる。参照の節に道具と見た目の写しを足した"
+    }
+   ]
+  },
+  {
+   "key": "scskill",
+   "tab": "skills-creator/SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "references の4つの道具だけを持つ（どの Skill も道具を持つ。ACDR 0043）",
+     "before": "道具の要否 | 検査 ・ 生成 ・ 変換を道具にするなら必要とする。手順と知識だけの Skill なら不要である",
+     "why": "道具の要否を、固有の道具の要否に改めた。どの Skill も references の4つの道具を持つ"
+    },
+    {
+     "find": "固有の道具を持たないので",
+     "before": "道具を保持しない Skill は、references/skill-template.md.tmpl を .claude/skills/<名前>/SKILL.md として置くだけにする。",
+     "why": "手順と知識だけの Skill も scaffold で生む"
+    }
+   ]
+  },
+  {
+   "key": "ftmpl",
+   "tab": "files.rs.tmpl",
+   "file": ".claude/skills/skills-creator/references/sample/rust/common/files.rs.tmpl",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "pub fn remove_dir_all(path: impl AsRef<Path>) -> io::Result<()> {",
+     "before": "（無い）",
+     "why": "skills-creator のテストケースの実行が使う remove_dir_all を、リファレンス実装にも置いた。skills-creator の files.rs がリファレンス実装と違う状態をなくす"
+    }
+   ]
+  },
+  {
+   "key": "ttmpl",
+   "tab": "tool.json.tmpl",
+   "file": ".claude/skills/skills-creator/references/sample/rust/common/tool.json.tmpl",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--force\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],\n    [\"cargo\", \"install\", \"--path\", \"tool/mcp\", \"--root\", \".\", \"--target-dir\", \"tool/target\"]",
+     "why": "何度実行しても同じ結果になるように --force を足した。足さないと、実行ファイルが既に在るとき cargo install が「already exists」で失敗し、2回目から組み立てられない（13件で実行して見つけた）"
+    }
+   ]
+  },
+  {
+   "key": "doc",
+   "tab": "document.json",
+   "file": ".claude/skills/skills-creator/references/document.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "\"text\": \"{\\n  \\\"contract\\\": 3,\\n  \\\"cli\\\": {\\\"command\\\": \\\"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\\\", \\\"args\\\": []},\\n  \\\"build\\\":  [[\\\"cargo\\\", \\\"install\\\", \\\"--force\\\", \\\"--path\\\", \\\"tool/cli\\\", \\\"--root\\\", \\\".\\\", \\\"--target-dir\\\", \\\"tool/target\\\"]],\\n  \\\"test\\\":   [[\\\"cargo\\\", \\\"test\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"-q\\\"]],\\n  \\\"format\\\": [[\\\"cargo\\\", \\\"fmt\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"--all\\\", \\\"--\\\", \\\"--check\\\"]],\\n  \\\"external\\\": [\\n    {\\\"name\\\": \\\"git\\\", \\\"command\\\": \\\"git\\\", \\\"reason\\\": \\\"目的に不可欠である理由\\\"}\\n  ]\\n}\"",
+     "before": "\"text\": \"{\\n  \\\"contract\\\": 3,\\n  \\\"cli\\\": {\\\"command\\\": \\\"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/<名前>/bin/<名前>\\\", \\\"args\\\": []},\\n  \\\"build\\\":  [[\\\"cargo\\\", \\\"install\\\", \\\"--path\\\", \\\"tool/cli\\\", \\\"--root\\\", \\\".\\\", \\\"--target-dir\\\", \\\"tool/target\\\"]],\\n  \\\"test\\\":   [[\\\"cargo\\\", \\\"test\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"-q\\\"]],\\n  \\\"format\\\": [[\\\"cargo\\\", \\\"fmt\\\", \\\"--manifest-path\\\", \\\"tool/Cargo.toml\\\", \\\"--all\\\", \\\"--\\\", \\\"--check\\\"]],\\n  \\\"external\\\": [\\n    {\\\"name\\\": \\\"git\\\", \\\"command\\\": \\\"git\\\", \\\"reason\\\": \\\"目的に不可欠である理由\\\"}\\n  ]\\n}\"",
+     "why": "何度実行しても同じ結果になるように --force を足した"
+    },
+    {
+     "find": "\"text\": \".claude/skills/{{スキル名}}/\\n├── SKILL.md              # 必須・ルートに固定\\n├── README.md             # 任意・人間向け説明\\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\\n│   ├── skill-template.md\\n│   └── ...\\n├── examples/             # 使用例・サンプル出力\\n│   └── ...\\n├── tool/                 # 道具のソース（構成は言語ごとに決める。リファレンス実装の Rust は workspace）\\n├── bin/                  # 組み立てた実行ファイル（リファレンス実装の置き場所。git で追跡しない）\\n├── tool.json             # CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\\n│   └── ...\\n├── mcp.json              # 道具の MCP の登録（どの Skill も持つ）\\n├── agents/               # サブエージェント定義\\n│   └── ...\\n└── assets/               # HTML等の静的ファイル\\n    └── ...\"",
+     "before": "\"text\": \".claude/skills/{{スキル名}}/\\n├── SKILL.md              # 必須・ルートに固定\\n├── README.md             # 任意・人間向け説明\\n├── references/           # Claudeが読む参考ドキュメント・スケルトンテンプレート\\n│   ├── skill-template.md\\n│   └── ...\\n├── examples/             # 使用例・サンプル出力\\n│   └── ...\\n├── tool/                 # 道具のソース（構成は言語ごとに決める。リファレンス実装の Rust は workspace）\\n├── bin/                  # 組み立てた実行ファイル（リファレンス実装の置き場所。git で追跡しない）\\n├── tool.json             # CLI の起動のコマンド ・ 組み立て ・ テスト ・ フォーマットのコマンド ・ 外部の道具（契約の版3）\\n│   └── ...\\n├── mcp.json              # 道具の MCP の登録（道具を持つときだけ）\\n├── agents/               # サブエージェント定義\\n│  \n…",
+     "why": "フォルダ構成の図で、mcp.json をどの Skill も持つものにした"
+    },
+    {
+     "find": "\"text\": \"cargo install --force --path tool/cli --root . --target-dir tool/target\\ncargo install --force --path tool/mcp --root . --target-dir tool/target\"",
+     "before": "\"text\": \"cargo install --path tool/cli --root . --target-dir tool/target\\ncargo install --path tool/mcp --root . --target-dir tool/target\"",
+     "why": "何度実行しても同じ結果になるように --force を足した"
+    }
+   ]
+  },
+  {
+   "key": "acdrtool",
+   "tab": "acdr/tool.json（13件の例）",
+   "file": ".claude/skills/acdr/tool.json",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "[\"cargo\", \"install\", \"--force\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],",
+     "before": "[\"cargo\", \"install\", \"--path\", \"tool/cli\", \"--root\", \".\", \"--target-dir\", \"tool/target\"],\n    [\"cargo\", \"install\", \"--path\", \"tool/mcp\", \"--root\", \".\", \"--target-dir\", \"tool/target\"]",
+     "why": "何度実行しても同じ結果になるように --force を足した。足さないと、実行ファイルが既に在るとき cargo install が「already exists」で失敗し、2回目から組み立てられない（13件で実行して見つけた）。13件とも同じ"
+    }
+   ]
+  },
+  {
+   "key": "files",
+   "tab": "acdr/files.rs（10件の例）",
+   "file": ".claude/skills/acdr/tool/data_access/src/files.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "pub fn remove_dir_all(path: impl AsRef<Path>) -> io::Result<()> {",
+     "before": "（無い）",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。remove_dir_all が足される"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "acdr/contract.rs（7件の例）",
+   "file": ".claude/skills/acdr/tool/service/src/contract.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "/// `references/` を持たない Skill も在る（実測）。",
+     "before": "/// `references/` を持たない Skill も在る（実測 ── fact-check）。",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。コメントの中の他の Skill の名前が消える"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "acdr/mcp main.rs（10件の例）",
+   "file": ".claude/skills/acdr/tool/mcp/src/main.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,",
+     "before": "use acd_service::{tools, Given};",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。import の並びだけが変わる。説明文は Skill ごとのものを残した"
+    },
+    {
+     "find": "// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする",
+     "before": "（無い）",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。import の並びだけが変わる。説明文は Skill ごとのものを残した"
+    }
+   ]
+  },
+  {
+   "key": "clitest",
+   "tab": "acdr/cli/tests/cli.rs（14件の例）",
+   "file": ".claude/skills/acdr/tool/cli/tests/cli.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "fn options_can_come_before_the_subcommand() {",
+     "before": "（無い）",
+     "why": "CLI の共通の決まりのテストを、リファレンス実装から写して置いた。skills-creator 以外の Skill は持っていなかった"
+    }
+   ]
+  },
+  {
+   "key": "pcargo",
+   "tab": "platform/Cargo.toml",
+   "file": ".claude/skills/platform-advisor/tool/Cargo.toml",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "before": "members = [\"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "why": "データアクセス層の crate をワークスペースに足した（リファレンス実装と同じ5つの crate）"
+    }
+   ]
+  },
+  {
+   "key": "pdata",
+   "tab": "platform/data_access",
+   "file": ".claude/skills/platform-advisor/tool/data_access/src/lib.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "pub mod files;",
+     "before": "（無い）",
+     "why": "データアクセス層が無かった。ファイルと子プロセスの入出力はデータアクセス層だけが持つ（ACDR 0058）"
+    }
+   ]
+  },
+  {
+   "key": "pbl",
+   "tab": "platform/business_logic lib.rs",
+   "file": ".claude/skills/platform-advisor/tool/business_logic/src/lib.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "//! platform-advisor の業務ロジック層。**助言型は、references の実装（refs）だけを持つ**（ACDR 0061）。",
+     "before": "//! platform-advisor の業務ロジック層。**サービス層とプレゼンテーション層を参照しない。**\n//! 依存の向きは `Cargo.toml` が宣言する ── この crate は同じ workspace の crate を参照しないので、\n//! 外側の層を参照した時点でコンパイルが通らない。",
+     "why": "業務ロジック層を、リファレンス実装の助言型と同じ形にした"
+    }
+   ]
+  },
+  {
+   "key": "prefs",
+   "tab": "platform/refs.rs",
+   "file": ".claude/skills/platform-advisor/tool/business_logic/src/refs.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "/// 見た目の正本の複製（ボード view-design-tokens）。**描画は、Skill の references/ に置いた複製だけを読む**",
+     "before": "/// 見た目の値の既定。**描画は、この値かその差し替え（`view.tokens.json`）だけを使う。**\nconst DEFAULT_TOKENS: &[(&str, &str)] = &[\n    (\"ink\", \"#1f2328\"),\n    (\"muted\", \"#59636e\"),\n    (\"line\", \"#d1d9e0\"),\n    (\"paper\", \"#ffffff\"),\n    (\"band\", \"#f3f5f7\"),\n    (\"accent\", \"#0f6e5c\"),\n    (\"accent-soft\", \"#e3f1ed\"),\n    (\"warn\", \"#9a3412\"),\n    (\"warn-soft\", \"#fdeee6\"),\n    (\"radius\", \"10px\"),\n    (\"gap\", \"16px\"),\n];\n\n/// 既定の型。**差し込む場所は3つ** ── `{{title}}` ・ `{{style}}` ・ `{{body}}`。\n/// Skill は `references/view.template.html` で差し替えてよい。\nconst DEFAULT_TEMPLATE: &str = \"<!doctype html><html lang=\\\"ja\\\"><head><meta charset=\\\"utf\n…",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "// **見た目の正本の複製（view.*）は種類ではない** ── 中身ではなく見た目である。形は validate が検査する",
+     "before": "let entries =\n        std::fs::read_dir(refs).map_err(|e| format!(\"{} を読めない ── {e}\", refs.display()))?;\n    let mut names: Vec<String> = entries\n        .flatten()\n        .map(|e| e.file_name().to_string_lossy().into_owned())",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "data: data_access::files::is_file(&data).then_some(data),",
+     "before": "data: data.is_file().then_some(data),",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "data_access::files::write(out, html).map_err(|e| format!(\"{} に書けない ── {e}\", out.display()))",
+     "before": "let body = std::fs::read_to_string(path)",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "fn against(schema: &Value, instance: &Value, head: &str) -> Vec<String> {",
+     "before": "m.remove(\"$schema\");",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": ".map_err(|e| format!(\"{} を読めない ── {e}\", refs.display()))?,",
+     "before": "let mut files: Vec<String> = std::fs::read_dir(refs)\n        .map_err(|e| format!(\"{} を読めない ── {e}\", refs.display()))?\n        .flatten()\n        .map(|e| e.file_name().to_string_lossy().into_owned())\n        .collect();",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "Value::Array(a) => Value::Array(a.iter().map(|x| omit(x, keys)).collect()),",
+     "before": "Ok(against(&schema, &data, &file.display().to_string()))",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "let path = refs.join(format!(\"{kind}.json\"));",
+     "before": "m.remove(\"$schema\");",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "let mut all = if data_access::files::is_file(&path) {",
+     "before": "let mut all = if path.is_file() {",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "data_access::files::write(&path, text + \"\\n\")",
+     "before": "std::fs::write(&path, text + \"\\n\")",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "Value::Array(a) => Value::Array(a.iter().map(|x| merge_refs(x, root, depth)).collect()),",
+     "before": "（無い）",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "data_access::files::read_to_string(base.join(p)).unwrap_or_default()",
+     "before": "std::fs::read_to_string(base.join(p)).unwrap_or_default()",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "/// 描くのは呼ぶ側で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。",
+     "before": "/// 描くのは design-svg で、ここは描かない。`svg` はファイル名（references からの経路）か SVG そのもの。",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "data_access::files::read_to_string(base.join(p)).unwrap_or_default()",
+     "before": "std::fs::read_to_string(base.join(p)).unwrap_or_default()",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "format!(\"<section class=\\\"block\\\">{head}<figure><figcaption>{cap}</figcaption>{svg}</figure></section>\")",
+     "before": "std::fs::read_to_string(ctx.base.join(p)).unwrap_or_default()\n            format!(\"<section class=\\\"block\\\">{head}<figure>{svg}<figcaption>{cap}</figcaption></figure></section>\")",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "\"{selector}{{{light}}}@media (prefers-color-scheme:dark){{{selector}{{{dark}}}}}{css}{own}\"",
+     "before": "/// `.rv` の囲みの中だけに効く規則。**他の型の頁に埋め込むときに使う** ── トークンの変数\n/// （ink ・ muted ・ line ・ paper ・ band ・ accent ・ accent-soft ・ warn ・ warn-soft ・ radius ・ gap）は、\n/// 埋め込む側が定義する。\n#[must_use]\npub const fn scoped_style() -> &'static str {\n    STYLE\n}\n\n/// 見た目の値を読む。**差し替え（view.tokens.json）が在れば、その値で上書きする。**\nfn tokens(refs: &Path) -> String {\n    let mut vars: Vec<(String, String)> = DEFAULT_TOKENS\n        .iter()\n        .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))\n        .collect();\n    if let Ok(over) = read_json(&refs.join(\"view.tokens.json\")) {\n        for (k, v) in over.as_object().into_iter().fl\n…",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "let root = merge_refs(&root, &root, 0);",
+     "before": "（無い）",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    },
+    {
+     "find": "let item_schema = resolve(&root, &root).pointer(\"/properties/items/items\");",
+     "before": "m.remove(\"$schema\");\n            page_body(&root, &plain, &ctx)\n    let template = std::fs::read_to_string(refs.join(\"view.template.html\"))\n        .unwrap_or_else(|_| DEFAULT_TEMPLATE.to_owned());\n        .replace(\"{{style}}\", &tokens(refs))",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。ACDR 0090 の修正（omit ・ 引用の照合 ・ 辺の名前）と、データアクセス層を通す入出力が入る"
+    }
+   ]
+  },
+  {
+   "key": "psrefs",
+   "tab": "platform/service refs.rs",
+   "file": ".claude/skills/platform-advisor/tool/service/src/refs.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする",
+     "before": "use serde_json::json;",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "Outcome::found(Vec::new(), refs::omit(&got, &keys))",
+     "before": "Outcome::found(Vec::new(), got)",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "Outcome::found(found, json!({ \"kinds\": kinds, \"checked\": checked }))",
+     "before": "Outcome::found(found, json!({ \"kinds\": kinds }))",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "Some(out) => match refs::save(Path::new(out), &html) {",
+     "before": "Some(out) => match std::fs::write(out, &html) {\n            Err(e) => Outcome::misuse(format!(\"{out} に書けない ── {e}\")),",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "let text = or_misuse!(refs::read_text(Path::new(file)));",
+     "before": "let text =\n        or_misuse!(std::fs::read_to_string(file).map_err(|e| format!(\"{file} を読めない ── {e}\")));",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "args: vec![Arg::need(\"kind\", \"種類の名前\"), Arg::opt(\"id\", \"項目の id\", None), Arg::opt(\"omit\", \"除く欄の名前（, で区切る。例：source）\", None), root()],",
+     "before": "args: vec![Arg::need(\"kind\", \"種類の名前\"), Arg::opt(\"id\", \"項目の id\", None), root()],",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    },
+    {
+     "find": "human: human_validate,",
+     "before": "human,",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。get の omit が入る"
+    }
+   ]
+  },
+  {
+   "key": "pcli",
+   "tab": "platform/cli main.rs",
+   "file": ".claude/skills/platform-advisor/tool/cli/src/main.rs",
+   "rev": "6bc0164e21cd3ac81ed8f510a41c7a7365f538b1",
+   "marks": [
+    {
+     "find": "/// `--skill_root <場所> get …` の順でも、`get … --skill_root <場所>` と同じに読む。",
+     "before": "（無い）",
+     "why": "リファレンス実装の共通の一式をそのまま写した。Rust の Skill は共通の一式をリファレンス実装の複製で持つ（ボード skills-creator-contract の論点4）。オプションをサブコマンドの前に置ける"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "check": "edf30c14b752b8baff3ca514ec02373e20092cb6aa72462be7b557c582034f82",
+  "tcheck": "e0d26ea38126861c0c978d0e1140137901096b155fe00ec97711538a6bf818a2",
+  "struct": "a2cc908a6082748262f748ec6c970a9689c4ee9afc2e527f08ca62653a198536",
+  "structs": "aa2238f5e3383da8c7ae94c4aa6b8253a4363b53d9bb7caccc3e912565a4fd35",
+  "smtpl": "b543b475e7f4299a7976f32af92e578a4d4871d46dd918fd406582acbf3ac8f6",
+  "smschema": "ea4aeed20524107d5f313d197e95d263e128ae83364f0ab0dbacdcadcd24f310",
+  "smlib": "62065736fbba8170c1418ef48b417f503e6a7aac1e9a191361adac2be33cd70f",
+  "smskill": "618719f7221ed8f0381c5a13776390df9981b8dae7731183c3bafae94c603d52",
+  "srskill": "237d59d959ae64271eb38212bdc106352564e6875f28ec4eb63e9dc02a5632fc",
+  "scskill": "92e8a5016ebcaf6ae2ef31b11d9bdabac37778e8461b9b9b1877bcde4dcd3260",
+  "ftmpl": "dde9ffa05001fa805ba399f8c78bf69138f11b5157596504237efc295e3c779d",
+  "ttmpl": "6878264e1ba00ac9eec657a2721dbc52feb1825bd123ab1148a21d4accd2d538",
+  "doc": "604ac61d0cf4d079f9a93152f701092995e30c11afb208aeca9c2e14f76c9689",
+  "acdrtool": "5e8eaddd0dc3d2bb2a9d5008e9ed43931553c2bad887f73a74c78827f9081c06",
+  "files": "dde9ffa05001fa805ba399f8c78bf69138f11b5157596504237efc295e3c779d",
+  "contract": "13d61b6c46e492e5fcb3874fce6cf23af7901961b0c97734e59ed6c63db97b6e",
+  "mcp": "76b4705891232e09fce6f39b5d1f33c1589dd22219926c43168c8a667d720021",
+  "clitest": "bcd6aca002853c4d36cf447dd903a6be0631a8087516744ca29cc1eef328f545",
+  "pcargo": "ad29b67dedbdcdc614c7b7e893e6af1749ab6abf4a4e5b1b50f16521b07d838d",
+  "pdata": "51f6feb661220462b0e1cb42d0478998b95a1a0c8356c6178207794e8cadd012",
+  "pbl": "d14d1e38bd66af9a1b5a1f9b9adfef14f45fd62dfc199456a7b306b0388b3276",
+  "prefs": "995a42865cbca49be7ada6ac12c0bb2399d4e7211cc5a9510b54420c8245f8ec",
+  "psrefs": "01c9b473222bca18e2721119152307b07af77cacaf346f4d2bd61ba10b16241c",
+  "pcli": "2aa261f667434ce3b2da10061ef59a29e23c54931844248c6151bcb1d2ae4c9d"
+ }
+}
