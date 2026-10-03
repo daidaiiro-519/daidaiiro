@@ -8,37 +8,46 @@
    "context": "BC-1"
   },
   "primary_actor": "顧客",
-  "trigger": "顧客が注文の確定を依頼する"
+  "trigger_step": "STEP-1"
  },
  "preconditions": [
   {
    "id": "PRE-1",
-   "text": "顧客が識別されている",
+   "condition": {
+    "target": "AGG-1.ST-7",
+    "op": "not_empty"
+   },
    "established_by": "UC-8"
   },
   {
    "id": "PRE-2",
-   "text": "カートに1品以上の商品が入っている",
-   "established_by": "UC-2",
    "ensures": [
     "AGG-1.CMD-1.PRE-2"
-   ]
+   ],
+   "established_by": "UC-2"
+  },
+  {
+   "id": "PRE-3",
+   "ensures": [
+    "AGG-1.CMD-1.PRE-1"
+   ],
+   "established_by": "UC-2"
   }
  ],
  "stakeholders": [
   {
    "id": "SH-1",
-   "who": "顧客",
+   "who": "DOM-1.SH-1",
    "interest": "約束した時刻に受け取り、確定した合計額だけを支払う"
   },
   {
    "id": "SH-2",
-   "who": "店舗",
+   "who": "DOM-1.SH-2",
    "interest": "調理の空きを超えて注文を受けず、支払いの承認を得た注文だけを確定する"
   },
   {
    "id": "SH-3",
-   "who": "経理",
+   "who": "DOM-1.SH-3",
    "interest": "確定と請求の記録を、後から突き合わせられる"
   }
  ],
@@ -46,76 +55,104 @@
   "minimal": [
    {
     "id": "MG-1",
-    "text": "決済代行の承認を受けていない注文は、確定しない",
+    "name": "承認なしで確定しない",
+    "condition": {
+     "if": {
+      "target": "AGG-1.ST-2",
+      "op": "eq",
+      "value": "TERM-11"
+     },
+     "target": "AGG-1.ST-5",
+     "op": "not_empty"
+    },
     "protects": [
      "SH-2"
-    ],
-    "name": "承認なしで確定しない"
+    ]
    },
    {
     "id": "MG-2",
-    "text": "確定しなかった注文には、請求も調理枠の確保も残らない",
+    "name": "失敗したら調理枠を残さない",
+    "condition": {
+     "if": {
+      "target": "AGG-1.ST-2",
+      "op": "eq",
+      "value": "TERM-10"
+     },
+     "target": "AGG-1.ST-8",
+     "op": "empty"
+    },
     "protects": [
      "SH-1",
      "SH-2"
-    ],
-    "name": "失敗したら何も残さない"
+    ]
    },
    {
     "id": "MG-3",
-    "text": "確定の試みがどこまで進んだかが、注文の経過として残る",
+    "name": "どこまで進んだかを残す",
+    "condition": {
+     "target": "AGG-1.ST-6",
+     "agg": "count",
+     "op": "ge",
+     "value": 1
+    },
     "protects": [
      "SH-2",
      "SH-3"
-    ],
-    "name": "どこまで進んだかを残す"
+    ]
    }
   ],
   "success": [
    {
     "id": "SG-1",
-    "text": "注文が確定済になり、確定した合計額だけが顧客に請求される",
-    "satisfies": [
-     "SH-1"
-    ],
-    "name": "確定と請求",
+    "name": "確定",
     "established_by": [
      "AGG-1.CMD-1.POST-1"
+    ],
+    "satisfies": [
+     "SH-1"
     ]
    },
    {
     "id": "SG-2",
-    "text": "受け取り予定時刻が約束され、その時刻の調理枠が注文に確保されている",
-    "satisfies": [
-     "SH-1",
-     "SH-2"
-    ],
     "name": "受け取り時刻と調理枠の確保",
     "established_by": [
      "AGG-1.CMD-1.POST-2",
-     "AGG-2.CMD-1.POST-1"
+     "AGG-1.CMD-1.POST-4"
+    ],
+    "satisfies": [
+     "SH-1",
+     "SH-2"
     ]
    },
    {
     "id": "SG-3",
-    "text": "承認番号と確定した合計額が注文に記録される",
+    "name": "承認番号の記録",
+    "established_by": [
+     "AGG-1.CMD-1.POST-3"
+    ],
     "satisfies": [
      "SH-3"
-    ],
-    "name": "承認番号と合計額の記録"
+    ]
    }
   ]
  },
  "scenario": {
+  "supporting_actors": [
+   "決済代行"
+  ],
   "steps": [
    {
-    "no": 1,
-    "name": "確定を依頼する",
-    "actor": "顧客",
+    "id": "STEP-1",
     "kind": "相互作用",
+    "actor": "顧客",
     "to": "システム",
-    "text": "顧客は、支払い手段を添えて、注文の確定をシステムに依頼する",
-    "extensions": [],
+    "data": [
+     "TERM-33"
+    ],
+    "verb": "TERM-48",
+    "serves": [
+     "SH-1"
+    ],
     "variations": [
      {
       "varies": "支払い手段",
@@ -125,214 +162,205 @@
       ]
      }
     ],
-    "serves": [
-     "SH-1"
-    ],
-    "id": "STEP-1"
+    "extensions": []
    },
    {
-    "no": 2,
-    "name": "価格を確認する",
-    "actor": "システム",
+    "id": "STEP-2",
     "kind": "妥当性確認",
-    "text": "システムは、カートの商品の価格が提示した額から変わっていないことを確認する",
-    "extensions": [
-     {
-      "label": "2a",
-      "name": "価格が変わった",
-      "condition_kind": "確認の失敗",
-      "condition": "提示した額から価格が変わった商品があった：",
-      "ending": "2へ戻る",
-      "steps": [
-       {
-        "no": "2a1",
-        "name": "変わった価格を示す",
-        "actor": "システム",
-        "kind": "相互作用",
-        "to": "顧客",
-        "text": "システムは、顧客に変わった価格を示す",
-        "extensions": [],
-        "variations": []
-       },
-       {
-        "no": "2a2",
-        "name": "変わった価格を受け入れる",
-        "actor": "顧客",
-        "kind": "相互作用",
-        "to": "システム",
-        "text": "顧客は、変わった価格を受け入れる",
-        "extensions": [],
-        "variations": []
-       }
-      ],
-      "id": "EXT-1"
-     }
+    "actor": "システム",
+    "checks": [
+     "BC-1.BR-1"
     ],
-    "variations": [],
     "serves": [
      "SH-1",
      "SH-2"
     ],
-    "id": "STEP-2"
-   },
-   {
-    "no": 3,
-    "name": "調理枠を確保する",
-    "actor": "システム",
-    "kind": "内部の状態変化",
-    "text": "システムは、受け取り予定時刻を見積もり、その時刻の調理枠を確保する",
     "extensions": [
      {
-      "label": "3a",
-      "name": "調理の空きがない",
-      "condition_kind": "確認の失敗",
-      "condition": "希望の時間帯に調理の空きがなかった：",
-      "ending": "3へ戻る",
+      "id": "EXT-1",
+      "condition_kind": "妥当性確認の失敗",
+      "fails": [
+       "BC-1.BR-1"
+      ],
+      "ending": "STEP-2",
       "steps": [
        {
-        "no": "3a1",
-        "name": "空きのある時刻を示す",
-        "actor": "システム",
+        "id": "EXT-1.S-1",
         "kind": "相互作用",
+        "actor": "システム",
         "to": "顧客",
-        "text": "システムは、空きのある最も早い受け取り予定時刻を示す",
-        "extensions": [],
-        "variations": []
+        "data": [
+         "TERM-35"
+        ],
+        "verb": "TERM-49",
+        "extensions": []
        },
        {
-        "no": "3a2",
-        "name": "示された時刻を受け入れる",
-        "actor": "顧客",
+        "id": "EXT-1.S-2",
         "kind": "相互作用",
+        "actor": "顧客",
         "to": "システム",
-        "text": "顧客は、示された時刻を受け入れる",
-        "extensions": [],
-        "variations": []
+        "data": [
+         "TERM-36"
+        ],
+        "verb": "TERM-48",
+        "extensions": []
        }
-      ],
-      "id": "EXT-2",
-      "handles": [
-       "AGG-2.CMD-1.PRE-1"
       ]
      }
+    ]
+   },
+   {
+    "id": "STEP-7",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "invokes": "DS-1.OP-1",
+    "serves": [
+     "SH-1"
     ],
-    "variations": [],
+    "extensions": []
+   },
+   {
+    "id": "STEP-3",
+    "kind": "内部の状態変化",
+    "actor": "システム",
     "invokes": "AGG-2.CMD-1",
     "serves": [
      "SH-1",
      "SH-2"
     ],
-    "id": "STEP-3"
-   },
-   {
-    "no": 4,
-    "name": "支払いの承認を得る",
-    "actor": "システム",
-    "kind": "相互作用",
-    "to": "決済代行",
-    "reply": "承認番号",
-    "text": "システムは、決済代行に請求額の承認を依頼し、承認番号を受け取る",
     "extensions": [
      {
-      "label": "4a",
-      "name": "承認されない",
-      "condition_kind": "支援アクターの応答無しまたは誤り",
-      "condition": "決済代行が承認しなかった：",
-      "ending": "失敗",
+      "id": "EXT-2",
+      "condition_kind": "コマンドの拒否",
+      "handles": [
+       "AGG-2.CMD-1.PRE-1"
+      ],
+      "ending": "STEP-3",
       "steps": [
        {
-        "no": "4a1",
-        "name": "調理枠を戻す",
-        "actor": "システム",
-        "kind": "内部の状態変化",
-        "text": "システムは、確保した調理枠を戻す",
-        "extensions": [],
-        "variations": [],
-        "invokes": "AGG-2.CMD-2",
-        "keeps": [
-         "MG-2"
-        ]
-       },
-       {
-        "no": "4a2",
-        "name": "経過を記録する",
-        "actor": "システム",
-        "kind": "内部の状態変化",
-        "text": "システムは、確定しなかった理由と進んだ手順を注文の経過に記録する",
-        "extensions": [],
-        "variations": [],
-        "keeps": [
-         "MG-3"
-        ]
-       },
-       {
-        "no": "4a3",
-        "name": "承認されなかったと知らせる",
-        "actor": "システム",
+        "id": "EXT-2.S-1",
         "kind": "相互作用",
+        "actor": "システム",
         "to": "顧客",
-        "text": "システムは、顧客に支払いが承認されなかったことを知らせる",
-        "extensions": [],
-        "variations": []
+        "data": [
+         "TERM-45"
+        ],
+        "verb": "TERM-49",
+        "extensions": []
+       },
+       {
+        "id": "EXT-2.S-2",
+        "kind": "相互作用",
+        "actor": "顧客",
+        "to": "システム",
+        "data": [
+         "TERM-46"
+        ],
+        "verb": "TERM-48",
+        "extensions": []
        }
-      ],
-      "id": "EXT-3"
+      ]
      }
-    ],
-    "variations": [],
-    "serves": [
-     "SH-2"
-    ],
-    "id": "STEP-4",
-    "keeps": [
-     "MG-1"
     ]
    },
    {
-    "no": 5,
-    "name": "注文を確定する",
+    "id": "STEP-4",
+    "kind": "相互作用",
     "actor": "システム",
+    "to": "決済代行",
+    "data": [
+     "TERM-34"
+    ],
+    "verb": "TERM-48",
+    "reply": [
+     "TERM-21"
+    ],
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-2"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-3",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "決済代行",
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-3.S-1",
+        "kind": "内部の状態変化",
+        "actor": "システム",
+        "invokes": "AGG-2.CMD-2",
+        "keeps": [
+         "MG-2"
+        ],
+        "extensions": []
+       },
+       {
+        "id": "EXT-3.S-2",
+        "kind": "内部の状態変化",
+        "actor": "システム",
+        "invokes": "AGG-1.CMD-2",
+        "keeps": [
+         "MG-3"
+        ],
+        "extensions": []
+       },
+       {
+        "id": "EXT-3.S-3",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "顧客",
+        "data": [
+         "TERM-47"
+        ],
+        "verb": "TERM-50",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-5",
     "kind": "内部の状態変化",
-    "text": "システムは、注文を確定し、承認番号と確定した合計額を注文に記録する",
-    "extensions": [],
-    "variations": [],
+    "actor": "システム",
     "invokes": "AGG-1.CMD-1",
     "quality": [
-     "QR-1"
+     "BC-1.QR-1"
     ],
     "serves": [
      "SH-1",
      "SH-3"
     ],
-    "id": "STEP-5"
+    "extensions": []
    },
    {
-    "no": 6,
-    "name": "注文番号を知らせる",
-    "actor": "システム",
+    "id": "STEP-6",
     "kind": "相互作用",
+    "actor": "システム",
     "to": "顧客",
-    "text": "システムは、顧客に注文番号と受け取り予定時刻を知らせる",
-    "extensions": [],
-    "variations": [],
+    "data": [
+     "TERM-14",
+     "TERM-4"
+    ],
+    "verb": "TERM-50",
     "serves": [
      "SH-1"
     ],
-    "id": "STEP-6"
+    "extensions": []
    }
-  ],
-  "supporting_actors": [
-   "決済代行"
   ]
  },
  "contributes_to": [
   "SC-1",
   "SC-2"
  ],
- "links": {
-  "open_issues": [
-   "受け取り予定時刻を過ぎた注文の扱い"
-  ]
- },
+ "open_issues": [
+  "受け取り予定時刻を過ぎた注文の扱い"
+ ],
  "exemptions": []
 }

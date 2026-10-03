@@ -4,8 +4,7 @@
  "header": {
   "name": "TERM-8",
   "context": "BC-1",
-  "reason": "複数の集約にまたがる計算",
-  "reason_text": "注文の明細と調理枠の空きの両方を使うので、どちらの集約に置いても、もう一方の状態を持ち込むことになる"
+  "reason": "複数の集約にまたがる計算"
  },
  "reads": [
   "AGG-1",
@@ -14,15 +13,29 @@
  "operations": [
   {
    "id": "OP-1",
-   "name": "見積もる",
+   "name": "TERM-43",
    "inputs": [
     {
-     "name": "明細の数量の合計",
-     "type": "VO-1"
+     "id": "IN-1",
+     "from": {
+      "target": "AGG-1.ENT-1.ES-2",
+      "agg": "sum"
+     },
+     "type": "VO-5"
     },
     {
-     "name": "調理枠の空き",
-     "type": "VO-1"
+     "id": "IN-2",
+     "from": {
+      "target": "AGG-2.ST-2"
+     },
+     "type": "VO-5"
+    },
+    {
+     "id": "IN-3",
+     "from": {
+      "target": "AGG-2.ST-1"
+     },
+     "type": "VO-6"
     }
    ],
    "output": "VO-4",
@@ -30,16 +43,16 @@
     {
      "id": "POST-1",
      "condition": {
-      "target": "結果",
+      "target": "RESULT",
       "op": "not_empty"
      }
     },
     {
      "id": "POST-2",
      "condition": {
-      "target": "結果",
+      "target": "RESULT",
       "op": "ge",
-      "value": "調理枠の開始時刻"
+      "value": "AGG-2.ST-1"
      }
     }
    ]
