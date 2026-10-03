@@ -123,3 +123,11 @@ st[2]['invokes']='AGG-2.CMD-1'
 st[4]['invokes']='AGG-1.CMD-1'; st[4]['quality']=['QR-1']
 st[3]['extensions'][0]['steps'][0]['invokes']='AGG-2.CMD-2'
 D['UC-1']['links'].pop('quality',None)
+# 手順は守る利害関係者を持つ。失敗で終わる拡張は、成り立つ最低保証を持つ。主成功シナリオは成功時保証で終わる
+for s,sv in zip(D['UC-1']['scenario']['steps'],[["SH-1"],["SH-1","SH-2"],["SH-1","SH-2"],["SH-2"],["SH-1","SH-3"],["SH-1"]]): s['serves']=sv
+D['UC-1']['scenario']['steps'][3]['extensions'][0]['guarantees_hold']=["MG-1","MG-2","MG-3"]
+# 保証も、一覧の要素として短い名前を持つ
+for gid,n in {"MG-1":"承認なしで確定しない","MG-2":"失敗したら何も残さない","MG-3":"どこまで進んだかを残す"}.items():
+  [x for x in D['UC-1']['guarantees']['minimal'] if x['id']==gid][0]['name']=n
+for gid,n in {"SG-1":"確定と請求","SG-2":"受け取り時刻と調理枠の確保","SG-3":"承認番号と合計額の記録"}.items():
+  [x for x in D['UC-1']['guarantees']['success'] if x['id']==gid][0]['name']=n
