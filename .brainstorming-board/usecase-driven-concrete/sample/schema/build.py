@@ -285,6 +285,39 @@ ds = kind_schema("domain_service", "ドメインサービス", "複数の集約�
 
 ALL = {"common": common, "domain": domain, "glossary": glossary, "other_requirements": other, "use_case": use_case,
        "subdomain": subdomain, "context": context, "aggregate": agg, "value_object": vo, "domain_service": ds}
+
+# ── 宣言の外の3つのファイル（記録の契約 ・ 承認した時点の記録 ・ 移行の記録）
+record = {"$schema": S, "$id": "record.schema.json", "x-generates": "記録ファイル（環境変数 CONCRETE_TRACE が指す。1行1件の JSON）",
+  "title": "記録の1行", "description": "テストが走ったときに、記録ファイルへ1行ずつ追記する。「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。テストの合否は持たない（合否はテストの実行器が判定し、保存しない）",
+  "type": "object", "additionalProperties": False, "required": ["condition", "hash", "level"], "properties": {
+    "condition": F("テスト条件の ID", "道具が宣言から取り出したテスト条件のどれか", "道具が出したテスト条件の一覧から、そのテストが確かめる ID をそのまま書く。1つのテストが2つ以上を確かめるなら、1件ずつ行を分ける", pat("^[A-Z]+-[0-9]+(\\.[A-Z]+-?[0-9]*)+$")),
+    "hash": F("テスト条件のハッシュ値", "テストを書いたときに読んだ版", "テストを書いたときに、テスト条件の一覧で読んだハッシュ値を書く。宣言が変わると道具は「古い」と出す", pat("^[0-9a-f]{8}$")),
+    "level": F("テストレベル", "このテストがどのレベルで確かめたか", "component ・ component-integration ・ system のどれか。テスト条件が求めるレベルより低いと、道具は「レベル違い」と出す", {"enum": ["component", "component-integration", "system"]}),
+    "test": F("テストの名前", "どのテストが書いた行か", "テストの実行器が使う名前をそのまま書く（任意）", txt())}}
+approved = {"$schema": S, "$id": "approved.schema.json", "x-generates": "spec/approved-record.json",
+  "title": "承認した時点の記録", "description": "宣言の従属関係ごとに、承認した時点の参照先のハッシュ値を持つ。道具はいまのハッシュ値と比べ、違えば「確かめ直し」と出す。手で書かない ── 承認したときに道具が書く",
+  "type": "object", "propertyNames": {"pattern": "^[A-Z]+-[0-9]+[A-Z0-9.:-]*→[A-Z]+-[0-9]+[A-Z0-9.-]*$"},
+  "additionalProperties": pat("^[0-9a-f]{8}$")}
+SRC = ["document", "expert", "code", "decided"]
+migration = {"$schema": S, "$id": "migration.schema.json", "x-generates": "spec/migration.json",
+  "title": "移行の記録", "description": "既存のプロダクトを宣言へ移すとき、ユースケース1件ごとに1つ書く。項目ごとの出どころ ・ 既存のテストの assert ごとの当たり先 ・ 移す範囲を持つ。テストの欠けは書かない ── 道具が当たり先と宣言のテスト条件から数える",
+  "type": "object", "additionalProperties": False, "required": ["use_case", "from", "items", "tests", "scope"], "properties": {
+    "use_case": F("移すユースケース", "この記録が扱う範囲の単位", "UC の ID を1つ書く。同じデータを操作するユースケースは、同じ回に移す", ID("UC")),
+    "from": F("材料の置き場所", "どの文書 ・ コード ・ テストを読んだか", "読んだファイルの経路と、読んだ日を書く",
+              obj({"document": txt(), "code": arr(txt()), "tests": txt(), "read_at": pat("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")}, ["read_at"])),
+    "sources_rule": F("出どころの分け方", "この記録で使った分け方", "実行される振る舞いは code、書かれた説明（文書 ・ コードの説明文 ・ テストの名前と文言）は document。1件に両方が混ざるなら code", txt()),
+    "sources_note": F("出どころの注記", "出どころについての補足", "expert を使わなかった理由など、分け方の外のことだけを書く", txt()),
+    "items": F("項目ごとの出どころ", "宣言のどの項目を、どこから取ったか",
+               "宣言の項目ごとに1件書く。document は文書の該当箇所と突き合わせ、expert は業務エキスパートが業務の言葉で確かめ、code と decided は業務エキスパートが新しく決めるものとして承認する。元の位置はファイル:行で書く",
+               arr(obj({"item": txt(), "source": {"enum": SRC}, "at": {"type": "string"}, "note": txt()}, ["item", "source", "at"]))),
+    "tests": F("既存のテストの当たり先", "既存のテストの assert が、宣言のどのテスト条件を確かめているか",
+               "テストごとではなく、assert ごとに当たるテスト条件の ID を hits に書く。当たる条件が無い assert は hits を空にし、宣言に足りない条件か、移す範囲の外のテストかを人が決める。全部を回帰テストとして回し続ける",
+               arr(obj({"test": txt(), "at": txt(), "asserts": arr(obj({"line": {"type": "integer"}, "hits": arr(pat("^[A-Z]+-[0-9]+(\\.[A-Z]+-?[0-9]*)+$")), "note": txt()}, ["line", "hits"])),
+                        "kind": txt(), "decision": txt()}, ["test", "at", "asserts"]))),
+    "gaps_note": F("欠けの注記", "欠けをどう数えるか", "欠けは手で書かない。道具が数えることだけを書く", txt()),
+    "scope": F("移す範囲と移し終える条件", "どこまで移したか、何をもって移し終えるか", "範囲の単位 ・ まだ移していない部分 ・ 移し終える条件（その範囲で、宣言どうしのずれが0件、テストの欠けが0件）を書く",
+               obj({"unit": txt(), "not_yet": arr(txt()), "done_when": txt()}, ["unit", "done_when"]))}}
+ALL.update({"record": record, "approved": approved, "migration": migration})
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")

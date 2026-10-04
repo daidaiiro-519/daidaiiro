@@ -1,0 +1,55 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "record.schema.json",
+ "x-generates": "記録ファイル（環境変数 CONCRETE_TRACE が指す。1行1件の JSON）",
+ "title": "記録の1行",
+ "description": "テストが走ったときに、記録ファイルへ1行ずつ追記する。「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。テストの合否は持たない（合否はテストの実行器が判定し、保存しない）",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "condition",
+  "hash",
+  "level"
+ ],
+ "properties": {
+  "condition": {
+   "type": "string",
+   "pattern": "^[A-Z]+-[0-9]+(\\.[A-Z]+-?[0-9]*)+$",
+   "description": "テスト条件の ID",
+   "x-prompt": {
+    "read": "道具が宣言から取り出したテスト条件のどれか",
+    "write": "道具が出したテスト条件の一覧から、そのテストが確かめる ID をそのまま書く。1つのテストが2つ以上を確かめるなら、1件ずつ行を分ける"
+   }
+  },
+  "hash": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{8}$",
+   "description": "テスト条件のハッシュ値",
+   "x-prompt": {
+    "read": "テストを書いたときに読んだ版",
+    "write": "テストを書いたときに、テスト条件の一覧で読んだハッシュ値を書く。宣言が変わると道具は「古い」と出す"
+   }
+  },
+  "level": {
+   "enum": [
+    "component",
+    "component-integration",
+    "system"
+   ],
+   "description": "テストレベル",
+   "x-prompt": {
+    "read": "このテストがどのレベルで確かめたか",
+    "write": "component ・ component-integration ・ system のどれか。テスト条件が求めるレベルより低いと、道具は「レベル違い」と出す"
+   }
+  },
+  "test": {
+   "type": "string",
+   "minLength": 1,
+   "description": "テストの名前",
+   "x-prompt": {
+    "read": "どのテストが書いた行か",
+    "write": "テストの実行器が使う名前をそのまま書く（任意）"
+   }
+  }
+ }
+}

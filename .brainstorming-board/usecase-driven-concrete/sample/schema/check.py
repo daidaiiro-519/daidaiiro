@@ -20,4 +20,14 @@ for d in dirs:
     x=json.load(open(f,encoding='utf-8')); s=S.get(x['kind']+'.schema.json')
     if s is None: bad+=1; print('種類が無い',f); continue
     for e in Draft202012Validator(s,registry=reg).iter_errors(x): bad+=1; print('形',os.path.relpath(f,H),'/'.join(map(str,e.absolute_path)),e.message[:160])
+# 宣言の外の3つのファイル
+def one(sch,x,name):
+  global bad
+  for e in Draft202012Validator(S[sch],registry=reg).iter_errors(x): bad+=1; print('形',name,'/'.join(map(str,e.absolute_path)),e.message[:160])
+R=os.path.join(H,'..')
+if os.path.exists(os.path.join(R,'approved-record.json')): one('approved.schema.json',json.load(open(os.path.join(R,'approved-record.json'),encoding='utf-8')),'approved-record.json')
+for f in glob.glob(os.path.join(R,'migration-trial','*','spec','migration.json')): one('migration.schema.json',json.load(open(f,encoding='utf-8')),os.path.relpath(f,R))
+for f in glob.glob(os.path.join(R,'realsim','*.jsonl')):
+  for i,l in enumerate(open(f,encoding='utf-8'),1):
+    if l.strip(): one('record.schema.json',json.loads(l),f'{os.path.relpath(f,R)}:{i}')
 print('検出',bad); sys.exit(1 if bad else 0)

@@ -1,0 +1,217 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "migration.schema.json",
+ "x-generates": "spec/migration.json",
+ "title": "移行の記録",
+ "description": "既存のプロダクトを宣言へ移すとき、ユースケース1件ごとに1つ書く。項目ごとの出どころ ・ 既存のテストの assert ごとの当たり先 ・ 移す範囲を持つ。テストの欠けは書かない ── 道具が当たり先と宣言のテスト条件から数える",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "use_case",
+  "from",
+  "items",
+  "tests",
+  "scope"
+ ],
+ "properties": {
+  "use_case": {
+   "type": "string",
+   "pattern": "^UC-[0-9]+$",
+   "description": "移すユースケース",
+   "x-prompt": {
+    "read": "この記録が扱う範囲の単位",
+    "write": "UC の ID を1つ書く。同じデータを操作するユースケースは、同じ回に移す"
+   }
+  },
+  "from": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "document": {
+     "type": "string",
+     "minLength": 1
+    },
+    "code": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "tests": {
+     "type": "string",
+     "minLength": 1
+    },
+    "read_at": {
+     "type": "string",
+     "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+   },
+   "required": [
+    "read_at"
+   ],
+   "description": "材料の置き場所",
+   "x-prompt": {
+    "read": "どの文書 ・ コード ・ テストを読んだか",
+    "write": "読んだファイルの経路と、読んだ日を書く"
+   }
+  },
+  "sources_rule": {
+   "type": "string",
+   "minLength": 1,
+   "description": "出どころの分け方",
+   "x-prompt": {
+    "read": "この記録で使った分け方",
+    "write": "実行される振る舞いは code、書かれた説明（文書 ・ コードの説明文 ・ テストの名前と文言）は document。1件に両方が混ざるなら code"
+   }
+  },
+  "sources_note": {
+   "type": "string",
+   "minLength": 1,
+   "description": "出どころの注記",
+   "x-prompt": {
+    "read": "出どころについての補足",
+    "write": "expert を使わなかった理由など、分け方の外のことだけを書く"
+   }
+  },
+  "items": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "item": {
+      "type": "string",
+      "minLength": 1
+     },
+     "source": {
+      "enum": [
+       "document",
+       "expert",
+       "code",
+       "decided"
+      ]
+     },
+     "at": {
+      "type": "string"
+     },
+     "note": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "item",
+     "source",
+     "at"
+    ]
+   },
+   "description": "項目ごとの出どころ",
+   "x-prompt": {
+    "read": "宣言のどの項目を、どこから取ったか",
+    "write": "宣言の項目ごとに1件書く。document は文書の該当箇所と突き合わせ、expert は業務エキスパートが業務の言葉で確かめ、code と decided は業務エキスパートが新しく決めるものとして承認する。元の位置はファイル:行で書く"
+   }
+  },
+  "tests": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "test": {
+      "type": "string",
+      "minLength": 1
+     },
+     "at": {
+      "type": "string",
+      "minLength": 1
+     },
+     "asserts": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "line": {
+         "type": "integer"
+        },
+        "hits": {
+         "type": "array",
+         "items": {
+          "type": "string",
+          "pattern": "^[A-Z]+-[0-9]+(\\.[A-Z]+-?[0-9]*)+$"
+         }
+        },
+        "note": {
+         "type": "string",
+         "minLength": 1
+        }
+       },
+       "required": [
+        "line",
+        "hits"
+       ]
+      }
+     },
+     "kind": {
+      "type": "string",
+      "minLength": 1
+     },
+     "decision": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "test",
+     "at",
+     "asserts"
+    ]
+   },
+   "description": "既存のテストの当たり先",
+   "x-prompt": {
+    "read": "既存のテストの assert が、宣言のどのテスト条件を確かめているか",
+    "write": "テストごとではなく、assert ごとに当たるテスト条件の ID を hits に書く。当たる条件が無い assert は hits を空にし、宣言に足りない条件か、移す範囲の外のテストかを人が決める。全部を回帰テストとして回し続ける"
+   }
+  },
+  "gaps_note": {
+   "type": "string",
+   "minLength": 1,
+   "description": "欠けの注記",
+   "x-prompt": {
+    "read": "欠けをどう数えるか",
+    "write": "欠けは手で書かない。道具が数えることだけを書く"
+   }
+  },
+  "scope": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "unit": {
+     "type": "string",
+     "minLength": 1
+    },
+    "not_yet": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "done_when": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "unit",
+    "done_when"
+   ],
+   "description": "移す範囲と移し終える条件",
+   "x-prompt": {
+    "read": "どこまで移したか、何をもって移し終えるか",
+    "write": "範囲の単位 ・ まだ移していない部分 ・ 移し終える条件（その範囲で、宣言どうしのずれが0件、テストの欠けが0件）を書く"
+   }
+  }
+ }
+}
