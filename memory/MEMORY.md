@@ -5,7 +5,7 @@
 
 - [ユースケース抽象設計モデリングと抽象コーディングのボード](usecase-modeling-coding-board.md) ── 9月のスキーマ駆動のボードと合わせて考える。20回目。Q8 の名前は use-case-driven-modeling ・ coding ・ development で承認。土台の決め直しは use-case-driven-development のボードへ
 - [下期AI活用ワークショップ](ai-workshop.md) ── 企画書とオリエンテーションは承認 ・ push 済み。残りは動画の作り直し ・ 教材1の照合（L1-S3 まで）・ 教材2と3
-- [advisor の判断基準の漏れ](advisor-coverage-gaps.md) ── usecase ・ ddd の判断基準に、ノートから漏れていた中身の一覧（1回目の点検）。追加はまだ。2回目の点検のあとで直す
+- [advisor の判断基準の漏れ](advisor-coverage-gaps.md) ── usecase ・ ddd の判断基準に、ノートから漏れていた中身の一覧（2回の点検の結果）。追加はまだ
 - [advisor の作り直し](advisor-rebuild.md) ── usecase ・ ddd ・ qa ・ platform ・ ux の5つとも完了（ux は ACDR 0105 ・ 0106、push 済み）
 - [skills-creator を契約中心に作り直すボード](skills-creator-contract-board.md) ── ACDR 0096〜0100 まで承認・コミット済み（未 push）。次は platform ・ ux のブレストと qa の返事待ち3件
 - [スキーマ駆動の道具（抽象の基盤）のボード](schema-driven-base-board.md) ── 論点1決着。論点2は concrete のボードに合わせて組み直し、論点3は保留
