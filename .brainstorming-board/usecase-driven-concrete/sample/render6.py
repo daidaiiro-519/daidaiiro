@@ -341,7 +341,7 @@ def p_uc(d):
   trig=[s for s in sc['steps'] if s['id']==h['trigger_step']][0]
   sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
   b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a>（{E(sys_["level"])}）'+ctxl)
-  b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
+  b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors']) or '<span class="txt">なし</span>'),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' ・ '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs) or '<span class="txt">なし</span>')])
   sline=lambda x: ''
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')
   mgc=card(lab('最低保証'),''.join(item(x['name'],g.mg_text(x),f'<span class="ln">{whos(x["protects"])}</span>') for x in gu['minimal']),'top-minimal')
@@ -381,7 +381,7 @@ def p_uc(d):
   if lrows: b+=block('関連情報',tbl(['その他の要求','結ぶもの'],lrows))
   if h['level']!='要約':
     sds=g.subdomains_of(k); bcs=g.contexts_of(k)
-    b+=block('束ねる設計の側',(f'<p class="txt">このユースケースを束ねるサブドメイン：{" ".join(ref(x) for x in sds)}。そのサブドメインを対象とする区切られた文脈：{" ".join(ref(x) for x in bcs) or "なし"}。ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。</p>') if sds else '<p class="missing">このユースケースを束ねるサブドメインが無い</p>')
+    b+=block('束ねる設計の側',(tiles([('サブドメイン',' ・ '.join(ref(x) for x in sds)),('区切られた文脈',' ・ '.join(ref(x) for x in bcs) or '<span class="txt">なし</span>')])+'<p class="txt" style="margin-top:.4rem">ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。</p>') if sds else '<p class="missing">このユースケースを束ねるサブドメインが無い</p>')
   if d.get('open_issues'): b+=f'<details class="fold"><summary>未決定事項（{len(d["open_issues"])}件）{helpbtn("未決定事項")}</summary><div class="fbody">{tbl(["未決定事項"],[[E(x)] for x in d["open_issues"]])}</div></details>'
   b+=tblock(k)
   return b+raw(d)
