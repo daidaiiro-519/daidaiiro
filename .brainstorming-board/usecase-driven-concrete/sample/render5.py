@@ -91,6 +91,21 @@ def p_domain(d):
   b+=block('範囲',cards([card('作るもの（In）',''.join(item(x) for x in g.scope_in(d))+'<span class="ln"><span class="k">組んだ文</span>サブドメインから組む</span>','left-accent'),card('作らないもの（Out）',''.join(item(x) for x in d['scope']['out']),'left-neutral')]))
   sh={x['id']:x['who'] for x in d['stakeholders']}
   nm=lambda x: E(sh.get(x) or next((y['name'] for y in d['design_scopes'] if y['id']==x),x))
+  def realize(s):
+    bcs=[k for k,v in D.items() if v['kind']=='context' and s in v['header']['subdomains']]
+    ext=[(k,x) for k,v in D.items() if v['kind']=='context' for x in v['context_map']['relations'] if x.get('fulfills')==s]
+    where=' '.join(ref(b2) for b2 in bcs)+' '.join(f'{E(x["external"])}（{ref(k)}の文脈の地図）' for k,x in ext)
+    ucs=[]
+    for k,v in D.items():
+      if v['kind']!='use_case': continue
+      ctx=v['header']['scope'].get('context')
+      if (ctx and ctx in bcs) or any(t.get('via','').startswith(f'{kk}.{x["id"]}') for kk,x in ext for t in g.all_steps(v)): ucs.append(k)
+    return where,ucs
+  rows=[]
+  for s in d['subdomains']:
+    c=D[s]['classification']; w,u=realize(s)
+    rows.append([ref(s),pill(c['category'],CAT[c['category']]),E(c.get('sourcing','―')),w or '<span class="missing">なし</span>',E(g.impl_method(D[s]['business_logic'])),' '.join(ref(x) for x in u) or '―'])
+  b+=block('サブドメインの組み立て',tbl(['サブドメイン','カテゴリー','調達','どこで','実装方法（導く）','使うユースケース'],rows)+'<p class="txt">道具が、サブドメイン ・ 区切られた文脈 ・ 文脈の地図の欄から組む。宣言の重さは、カテゴリーではなく実装方法で決まる。</p>')
   b+=block('設計スコープ',tbl(['高さ','名前','内側','外側'],[[pill(x['level']),f'<b>{E(x["name"])}</b>','、'.join([nm(y) for y in x.get('inside',[])]+[ref(c) for c in x.get('contexts',[])]),'、'.join(nm(y) for y in x['outside'])] for x in d['design_scopes']])+'<p class="txt">ユースケースは、システムの高さのスコープを対象に書く。アプリ ・ 画面 ・ サービスへの分け方はスコープの内側のことで、実装の定義が持つ。</p>')
   b+=block('サブドメイン',cards([card(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]),f'<span class="txt">{E(D[s]["header"]["description"])}</span>') for s in d['subdomains']]))
   b+=block('利害関係者',tbl(['利害関係者','関心'],[[f'<b>{E(x["who"])}</b>',f'<span class="txt">{E(x["interest"])}</span>'] for x in d['stakeholders']]))
@@ -124,7 +139,12 @@ def p_bc(d):
       if rr.get('translates'): return '<br>'.join(f'<code>{E(t["theirs"])}</code> → {E(g.word(t["ours"]))}' for t in rr['translates'])
       if rr.get('uses'): return 'そのまま使う：'+'、'.join(E(g.word(t)) for t in rr['uses'])
       return '―'
-    b+=block('文脈の地図',f+tbl(['相手（このプロダクトの外）','持ち主','連係方法','この文脈の側','こちらでの変換'],[[f'<b>{E(rr["external"])}</b>',E(rr['owner']),pill(rr['pattern']),pill(rr['direction']),how(rr)] for rr in rel])+'<p class="txt">相手の中身は、このプロダクトでは決めず、管理もしない。書くのは、こちらの側でどう変換するか、どの語をそのまま使うかだけ。</p>')
+    ops=[]
+    for rr in rel:
+      for o in rr.get('operations',[]):
+        ops.append([f'<b>{E(rr["external"])}</b>',E(g.word(o['name'])),'、'.join(E(g.word(t)) for t in o['sends']),'、'.join(E(g.word(t)) for t in o['receives']),'<br>'.join(f'<span class="no">{E(f["id"])}</span> {E(g.word(f["name"]))}' for f in o['failures']),('してよい（'+E(g.word(o['retry']['key']))+'で同じ依頼と分かる）') if o['retry']['safe'] else 'してはいけない',ref(rr['fulfills']) if rr.get('fulfills') else '―'])
+    opt=block('外部の操作（こちらから見た約束）',tbl(['相手','使う操作','渡すもの','受け取るもの','失敗の種類','再実行','満たすサブドメイン'],ops)) if ops else ''
+    b+=block('文脈の地図',f+tbl(['相手（このプロダクトの外）','持ち主','連係方法','この文脈の側','こちらでの変換'],[[f'<b>{E(rr["external"])}</b>',E(rr['owner']),pill(rr['pattern']),pill(rr['direction']),how(rr)] for rr in rel])+'<p class="txt">相手の中身は、このプロダクトでは決めず、管理もしない。書くのは、こちらの側でどう変換するか、どの語をそのまま使うかだけ。</p>')+opt
   if d.get('business_rules'): b+=block('業務ルール',tbl(['ID','組んだ文'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.cond(x['condition']))] for x in d['business_rules']]))
   if d.get('quality'):
     b+=block('品質の要求',tbl(['ID','組んだ文','対象','閾値','割合','条件','非機能要求グレード','測り方'],[[f'<span class="no">{E(q["id"])}</span>',gen(g.qr_text(q)),E(g.cmd_label(q['target'])),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))
@@ -205,6 +225,7 @@ def p_ds(d):
   return b+raw(d)
 def p_uc(d):
   h=d['header']; sc=d['scenario']; ctx=h['scope'].get('context'); k=d['id']; nums=g.number(d)
+  ctxl=f' ・ 文脈 {ref(ctx)}' if ctx else ''
   role={h['primary_actor']:'primary','システム':'system'}; role.update({a:'supporting' for a in sc['supporting_actors']})
   RL={'primary':'主','supporting':'支援','system':''}
   act=lambda a: f'<span class="act {role.get(a,"system")}">'+(f'<span class="ar">{RL[role.get(a,"system")]}</span>' if RL[role.get(a,'system')] else '')+f'{E(a)}</span>'
@@ -220,13 +241,15 @@ def p_uc(d):
     if s.get('reply'): o+=f'<span class="ln"><span class="k">戻りメッセージ</span>{E(g.reply_text(s))}</span>'
     if s.get('invokes'):
       a=s['invokes'].split('.')[0]; o+=f'<span class="ln"><span class="k">invokes</span>{ref(a)} <span class="no">{E(s["invokes"])}</span></span>'
+    if s.get('via'): o+=f'<span class="ln"><span class="k">外部の操作</span><span class="no">{E(s["via"])}</span></span>'
+    if s.get('calls'): o+=f'<span class="ln"><span class="k">呼ぶユースケース</span>{ref(s["calls"])}</span>'
     if s.get('checks'): o+=f'<span class="ln"><span class="k">checks</span>'+' '.join(f'<span class="no">{E(r)}</span>' for r in s['checks'])+'</span>'
     if s.get('keeps'): o+=f'<span class="ln"><span class="k">守る最低保証</span>{pills([m["name"] for m in gu["minimal"] if m["id"] in s["keeps"]],"t-minimal")}</span>'
     if s.get('quality'): o+=f'<span class="ln"><span class="k">品質の要求</span>'+'、'.join(E(g.qr_text(g.item(q)[0])) for q in s['quality'])+' '+''.join(tchip(f'{k}.{s["id"]}.{q.split(".")[-1]}') for q in s['quality'])+'</span>'
     return o
-  parts=[h['primary_actor'],'システム']+sc['supporting_actors']; msgs=[]; groups=[]
+  parts=list(dict.fromkeys([h['primary_actor'],'システム']+sc['supporting_actors']+[t['actor'] for t in g.all_steps(d)])); msgs=[]; groups=[]
   def add(s):
-    frm=s['actor']; to=s.get('to') or frm
+    frm=s['actor']; to=s.get('to') or ('システム' if s.get('calls') else frm)
     msgs.append({"from":frm,"to":to,"label":f"{nums[s['id']]} {g.step_short(s)}"})
     if s.get('reply'): msgs.append({"from":to,"to":frm,"label":g.reply_text(s),"kind":"return"})
   for s in sc['steps']: add(s)
@@ -243,7 +266,7 @@ def p_uc(d):
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   trig=[s for s in sc['steps'] if s['id']==h['trigger_step']][0]
   sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
-  b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a> ・ 文脈 {ref(ctx)}')
+  b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a>（{E(sys_["level"])}）'+ctxl)
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
   sline=lambda x: f'<span class="ln"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')

@@ -17,8 +17,9 @@ def links():
       if s.get('invokes'): out.append((f'{uk}.{s["id"]}','invokes',s['invokes']))
       for r in s.get('checks',[]): out.append((f'{uk}.{s["id"]}','checks',r))
       for r in s.get('quality',[]): out.append((f'{uk}.{s["id"]}','quality',r))
+      if s.get('via'): out.append((f'{uk}.{s["id"]}','via',s['via']))
       for x in s.get('extensions',[]):
-        for f in ('handles','fails'):
+        for f in ('handles','fails','fails_external'):
           for r in x.get(f,[]): out.append((f'{uk}.{x["id"]}',f,r))
   return out
 def record(): return {f'{a}→{r}':fp(up(r)) for a,f,r in links() if f!='invokes'}
@@ -68,16 +69,18 @@ def checks(rec=None):
       c=d['classification']; dc=g.derived_category(c)
       put('structure','カテゴリーが判断基準の答えと合う',k,'',f'判断基準の答えから導いたカテゴリーは {dc}、宣言は {c["category"]}','合格' if dc==c['category'] else 'ずれ')
       bl=d['business_logic']
-      if c['category']=='一般' and (bl['needs_tracking'] or bl['complex_rules']): put('review','カテゴリーと業務ロジックの性質',k,'','一般のサブドメインなのに、業務ロジックが複雑とされている','レビュー')
+      m=g.impl_method(bl)
+      bad=(c['category']=='中核' and 'ドメインモデル' not in m) or (c['category']!='中核' and 'ドメインモデル' in m)
+      put('review' if bad else 'structure','カテゴリーと実装方法',k,'',f'{c["category"]}で、業務ロジックの性質から導いた実装方法は{m}'+('。判断を再検討する機会' if bad else ''),'レビュー' if bad else '合格')
     if d['kind']=='use_case':
-      ctx=d['header']['scope']['context']; nums=g.number(d)
+      ctx=d['header']['scope'].get('context'); nums=g.number(d)
       for s in g.all_steps(d):
         src=f'{k}.{s["id"]}'
         if s['kind']=='内部の状態変化' and not s.get('invokes'): put('structure','内部の状態変化は invokes を持つ',src,'',f'手順{nums[s["id"]]}が呼ぶコマンドを指していない','ずれ')
         if s['kind']=='相互作用':
           for t in s['data']: kind_is(t,('情報の別名','値オブジェクト'),src,'渡す情報')
           kind_is(s['verb'],'動作',src,'述語')
-        if s.get('invokes') and D[s['invokes'].split('.')[0]]['header']['context']!=ctx: put('structure','invokes が文脈の中',src,s['invokes'],'スコープの文脈の外を呼んでいる','ずれ')
+        if ctx and s.get('invokes') and D[s['invokes'].split('.')[0]]['header']['context']!=ctx: put('structure','invokes が文脈の中',src,s['invokes'],'スコープの文脈の外を呼んでいる','ずれ')
         if s['kind']=='妥当性確認':
           f=[r for x in s.get('extensions',[]) for r in x.get('fails',[])]
           for r in s['checks']:
@@ -94,6 +97,12 @@ def checks(rec=None):
         r=f'{a}.{c}.{p["id"]}'
         if r in ens|hd: put('link','コマンドの拒否を扱う',f'{uk}.{s["id"]}',r,'事前条件（ensures）か拡張（handles）が扱っている','合格')
         else: put('link','コマンドの拒否を扱う',f'{uk}.{s["id"]}',r,f'手順{nums[s["id"]]}が呼ぶコマンドの拒否「{g.word(p["reject"])}」を、事前条件も拡張も扱っていない','対応の欠け')
+    for s in U['scenario']['steps']:
+      if not s.get('via'): continue
+      op,_,_=g.item(s['via']); hd={r for x in s['extensions'] for r in x.get('fails_external',[])}
+      for f in op['failures']:
+        r=f'{s["via"]}.{f["id"]}'
+        put('link','外部の操作の失敗を扱う',f'{uk}.{s["id"]}',r,'拡張が扱っている' if r in hd else f'手順{nums[s["id"]]}が使う外部の操作の失敗「{g.word(f["name"])}」を、どの拡張も扱っていない','合格' if r in hd else '対応の欠け')
     for x in U['guarantees']['success']:
       ok=bool(x.get('established_by'))
       put('link','成功時保証を成り立たせる事後条件',f'{uk}.{x["id"]}','・'.join(x.get('established_by',[])),'事後条件が成り立たせている' if ok else f'「{x["name"]}」を成り立たせる事後条件が無い','合格' if ok else '対応の欠け')
@@ -102,7 +111,7 @@ def checks(rec=None):
       put('link','最低保証を守る手順',f'{uk}.{m["id"]}','','守る手順がある' if m['id'] in kept else f'「{m["name"]}」を守る手順が無い','合格' if m['id'] in kept else '対応の欠け')
   C=record() if rec is None else rec
   for a,f,r in links():
-    if f=='invokes': continue
+    if f in ('invokes',): continue
     key=f'{a}→{r}'; now=fp(up(r))
     if key not in C: put('change',f'上流の変更（{f}）',a,r,'まだ承認していない対応。PR の承認で記録する','確かめ直し')
     elif C[key]!=now: put('change',f'上流の変更（{f}）',a,r,'承認のあとで参照先が変わった。参照元を確かめ直す','確かめ直し')

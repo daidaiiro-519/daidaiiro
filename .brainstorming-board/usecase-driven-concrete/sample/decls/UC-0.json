@@ -1,0 +1,108 @@
+{
+ "kind": "use_case",
+ "id": "UC-0",
+ "header": {
+  "name": "来店前に注文して受け取る",
+  "level": "要約",
+  "scope": {
+   "system": "DOM-1.SCP-1"
+  },
+  "primary_actor": "顧客",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-1",
+   "interest": "待たずに、約束した時刻に受け取る"
+  },
+  {
+   "id": "SH-2",
+   "who": "DOM-1.SH-2",
+   "interest": "調理の空きを超えずに注文を受け、支払い済みの注文だけを渡す"
+  }
+ ],
+ "guarantees": {
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "承認の無い注文は渡さない",
+    "condition": {
+     "if": {
+      "target": "AGG-1.ST-2",
+      "op": "eq",
+      "value": "TERM-42"
+     },
+     "target": "AGG-1.ST-5",
+     "op": "not_empty"
+    },
+    "protects": [
+     "SH-2"
+    ]
+   }
+  ],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "受け取り",
+    "established_by": [
+     "AGG-1.CMD-3.POST-1"
+    ],
+    "satisfies": [
+     "SH-1",
+     "SH-2"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "サブユースケースの呼び出し",
+    "actor": "顧客",
+    "calls": "UC-1",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "相互作用",
+    "actor": "顧客",
+    "to": "店舗",
+    "data": [
+     "TERM-14"
+    ],
+    "verb": "TERM-49",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-3",
+    "kind": "サブユースケースの呼び出し",
+    "actor": "店舗",
+    "calls": "UC-3",
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-1",
+     "SH-2"
+    ],
+    "extensions": []
+   }
+  ]
+ },
+ "contributes_to": [
+  "SC-1",
+  "SC-2"
+ ],
+ "open_issues": [],
+ "exemptions": []
+}

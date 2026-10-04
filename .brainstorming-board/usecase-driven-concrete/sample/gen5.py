@@ -70,6 +70,12 @@ def item(ref):
     if len(p)==2: return c,p[0],None
     return find(c['preconditions']+c['postconditions'],p[2]),p[0],c
   if d['kind']=='context':
+    if p[1].startswith('X-'):
+      x=find(d['context_map']['relations'],p[1])
+      if len(p)==2: return x,p[0],None
+      o=find(x['operations'],p[2])
+      if len(p)==3: return o,p[0],x
+      return find(o['failures'],p[3]),p[0],o
     return find(d['business_rules'] if p[1].startswith('BR') else d['quality'],p[1]),p[0],None
   if d['kind']=='domain_service': return find(d['operations'],p[1]),p[0],None
   return None,p[0],None
@@ -97,6 +103,7 @@ def step_short(s):
   if s['kind']=='相互作用': return terms()[s['verb']].get('form','{data}を'+word(s['verb'])).replace('{to}に','').format(data=joinw(s['data']))
   if s['kind']=='妥当性確認': return '確かめる'
   if s['kind']=='内部の状態変化': return cmd_label(s['invokes'])
+  if s['kind']=='サブユースケースの呼び出し': return f'「{dname(s["calls"])}」を行う'
   return ''
 def reply_text(s): return joinw(s['reply']) if s.get('reply') else ''
 def ext_text(x):
@@ -104,7 +111,9 @@ def ext_text(x):
   if k=='コマンドの拒否':
     return '、'.join('「'+word(item(r)[0]['reject'])+'」' for r in x['handles'])+'で拒否された：'
   if k=='妥当性確認の失敗': return '、'.join(clause(g_item(r)) for r in x['fails'])+'でなかった：'
-  if k=='支援アクターの失敗': return f'{x["actor"]}が応答しなかった、または誤った応答を返した：'
+  if k=='支援アクターの失敗':
+    if x.get('fails_external'): return '、または'.join(word(item(r)[0]['name']) for r in x['fails_external'])+'：'
+    return f'{x["actor"]}が応答しなかった、または誤った応答を返した：'
   return ''
 def ending_text(x,nums): return '失敗' if x['ending']=='失敗' else f'{nums[x["ending"]]}へ戻る'
 def pre_text(p):
@@ -232,3 +241,10 @@ def competitor_text(c):
   vs=[find(D['DOM-1']['value_proposition']['values'],v)['name'] for v in c['lacks']]
   return '「'+'」「'.join(vs)+'」が無い'
 def scope_in(dom): return [D[s]['header']['name'] for s in dom['subdomains']]
+
+def impl_method(bl):
+  """業務ロジックの性質から実装方法を導く（判断基準 design-heuristics の順）"""
+  if bl['needs_tracking']: return 'イベント履歴式ドメインモデル'
+  if bl['complex_rules']: return 'ドメインモデル'
+  if bl['complex_data']: return 'アクティブレコード'
+  return 'トランザクションスクリプト'

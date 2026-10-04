@@ -12,10 +12,10 @@ LEVEL={"ドメインモデル":{"use_case":"system","quality":"system","aggregat
 def fp(obj): return hashlib.sha256(json.dumps(obj,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:8]
 def ctx_of(d): return d['header'].get('context') or (d['header'].get('scope') or {}).get('context')
 def up(ref):
-  x,_,_=g.item(ref); return {k:x[k] for k in ('condition','reject','example','threshold','ratio','measure') if k in x}
+  x,_,_=g.item(ref); return {k:x[k] for k in ('condition','reject','example','threshold','ratio','measure','name','sends','receives','failures','retry') if k in x}
 def sem(s):
   """手順の意味の欄（文は道具が組むので入れない）"""
-  return {k:s[k] for k in ('kind','actor','to','data','verb','checks','invokes','calls','reply') if k in s}
+  return {k:s[k] for k in ('kind','actor','to','data','verb','checks','invokes','calls','reply','via') if k in s}
 def conditions():
   out=[]
   def add(cid,label,kind,checks,expect,decl,anchor):
@@ -30,8 +30,8 @@ def conditions():
         for x in s['extensions']:
           fail=x['ending']=='失敗'
           add(f'{k}.{x["id"]}',nums[x['id']],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順に戻り、成功時保証が成り立つ',
-              {"kind":x['condition_kind'],"refs":{r:x.get(r) for r in ('handles','fails','actor')},"ending":x['ending'],"steps":[sem(t) for t in x['steps']],
-               "minimal":[m['condition'] for m in gu['minimal']] if fail else [],"up":[up(r) for r in x.get('handles',[])+x.get('fails',[])]},k,x['id'])
+              {"kind":x['condition_kind'],"refs":{r:x.get(r) for r in ('handles','fails','actor','fails_external')},"ending":x['ending'],"steps":[sem(t) for t in x['steps']],
+               "minimal":[m['condition'] for m in gu['minimal']] if fail else [],"up":[up(r) for r in x.get('handles',[])+x.get('fails',[])+x.get('fails_external',[])]},k,x['id'])
         for q in s.get('quality',[]):
           qt,_,_=g.item(q); qid=q.split('.')[-1]
           add(f'{k}.{s["id"]}.{qid}',f'手順{nums[s["id"]]}の品質の要求','quality',g.qr_text(qt),{"q":up(q),"step":sem(s)},k,s['id'])
