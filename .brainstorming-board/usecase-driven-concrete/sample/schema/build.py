@@ -408,6 +408,13 @@ ALL["aggregate"]["$defs"]["command"]["properties"]["emits"]["items"]["properties
 ALL["aggregate"]["properties"]["invariants"]["items"]["required"] = ["id", "condition", "via"]
 ALL["aggregate"]["properties"]["structure"]["properties"]["state"]["items"]["x-test-spec"] = {"id": "decl", "suffix": "MAX", "when": {"multiplicity/max": {"not": [None, 1]}}, "checks": "上限を超える操作が拒否される", "level": LV}
 ALL["subdomain"]["properties"]["classification"]["x-derive"]["declared"] = "category"
+DM = ["ドメインモデル", "イベント履歴式ドメインモデル"]
+# 判定に付ける条件：同じ宣言のほかの欄の値と、判定の組み合わせ（合わなければ人のレビュー）
+ALL["subdomain"]["properties"]["business_logic"]["x-derive"]["expect"] = [
+    {"name": "カテゴリーと実装方法", "when": {"classification/category": ["中核"]}, "in": DM},
+    {"name": "カテゴリーと実装方法", "when": {"classification/category": ["一般", "補完"]}, "not_in": DM}]
+# 指される数の条件を、指される側の判定で絞る：実装方法がドメインモデルのサブドメインを対象とする文脈には、集約が必要
+ALL["aggregate"]["properties"]["header"]["properties"]["context"]["x-ref"]["inverse"] = {"group": "ドメインモデルの文脈に集約がある", "min": 1, "where_derive": {"via": "header/subdomains", "derive": "business_logic", "in": DM}}
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")

@@ -140,6 +140,14 @@ def checks(rec=None):
         put("structure", "確かめた条件の失敗を扱う", l["src"], l["v"], "拡張が扱っている" if ok else "確かめる条件が成り立たないときの拡張が無い", "合格" if ok else "欠け")
     # 指される数
     groups = {}
+    def scan(o):
+        if isinstance(o, dict):
+            xr = o.get("x-ref")
+            if isinstance(xr, dict) and xr.get("inverse"): groups.setdefault(xr["inverse"]["group"], {"inv": xr["inverse"], "ann": xr, "refs": []})
+            for v in o.values(): scan(v)
+        elif isinstance(o, list):
+            for v in o: scan(v)
+    for sch in SCH.values(): scan(sch)  # 指す側が1つも無くても、指される側の数を確かめる
     for l in L:
         inv = l["ann"].get("inverse")
         if inv: groups.setdefault(inv["group"], {"inv": inv, "ann": l["ann"], "refs": []})["refs"].append(l)
@@ -155,6 +163,8 @@ def checks(rec=None):
         for key, obj in cands:
             wh = inv.get("where")
             if wh and any(get(obj, p) not in vs for p, vs in wh.items()): continue
+            wd = inv.get("where_derive")
+            if wd and not any(derived_of(t, wd["derive"]) in wd["in"] for t in (get(obj, wd["via"]) or [])): continue
             n = sum(1 for l in gr["refs"] if l["ref"] == key)
             st = "欠け" if n < inv.get("min", 0) else "ずれ" if "max" in inv and n > inv["max"] else "合格"
             who = "・".join(sorted({l["src"] for l in gr["refs"] if l["ref"] == key}))
@@ -167,6 +177,16 @@ def checks(rec=None):
             if dv and dv.get("declared") and isinstance(d.get(p), dict):
                 got = g.derive(p, d[p]); dec = d[p].get(dv["declared"])
                 put("structure", f'{dv["title"]}と宣言が合う', k, "", f'{dv["title"]}は {got}、宣言は {dec}', "合格" if got == dec else "ずれ")
+    # 判定に付けた条件（同じ宣言のほかの欄と、判定の組み合わせ）
+    for k, d in D.items():
+        for p, ps in SCH.get(d["kind"], {}).get("properties", {}).items():
+            dv = ps.get("x-derive")
+            if not (dv and dv.get("expect") and isinstance(d.get(p), dict)): continue
+            got = g.derive(p, d[p])
+            for e in dv["expect"]:
+                if any(get(d, q) not in vs for q, vs in e["when"].items()): continue
+                ok = (got in e["in"]) if "in" in e else (got not in e["not_in"])
+                put("review" if not ok else "structure", e["name"], k, "", f'{dv["title"]}は {got}' + ("" if ok else "。判断を見直す機会"), "合格" if ok else "レビュー")
     # 承認のあとの変化
     Cr = {} if rec is None else rec
     for l in L:
@@ -176,6 +196,11 @@ def checks(rec=None):
         put("change", "上流の変更", l["src"], l["ref"], ("まだ承認していない対応" if key not in Cr else "承認のあとで参照先が変わった" if Cr[key] != now else "承認した時点から変わっていない"), st)
     return R
 
+def derived_of(k, prop):
+    """宣言 k の欄 prop に x-derive があれば、その判定を返す"""
+    d = D.get(k)
+    if not d or not isinstance(d.get(prop), dict) or not SCH.get(d["kind"], {}).get("properties", {}).get(prop, {}).get("x-derive"): return None
+    return g.derive(prop, d[prop])
 def candidates(ann, refs):
     """指される側になりうるものの一覧（ID ・ 中身）"""
     to = ann["to"]
