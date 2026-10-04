@@ -23,8 +23,10 @@ import word_visuals as WV        # 2本目
 import scope_visuals as SV       # 3本目
 import rule_visuals as RV        # 4本目
 import fix_visuals as FV         # 5本目
-import height_visuals as HV      # 1本目と6本目で共有する、抽象の高さの並び
+import height_visuals as HV      # 1本目と6本目で共有する、抽象度の並び
 import end_visuals as EV         # 終わりに
+import bridge_visuals as BV      # 動画のつなぎ（導入とまとめ）
+import v1_visuals as V1          # 1本目（組み直した図）
 
 V.cover = DV.t_cover
 
@@ -34,9 +36,9 @@ FIG = {
  'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S3B': IV.i0_next2, 'I0-S3C': IV.i0_next3, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base, 'I0-SE': IV.i0_effect, 'I0-SP': IV.i0_flow, 'I0-SB': IV.i0_books,
  # 教材1のはじめに
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
- 'L1-S0': IV.i1_bridge, # 1本目　原因を知る
- 'L1-S1': DV.t1_symptoms, 'L1-S2': DV.t1_height,
- 'L1-S2B': HV.h1_axis, 'L1-S3': DV.t1_fit, 'L1-S4': V.l1_three, 'L1-S5': DV.t1_order,
+ 'L1-S0': V1.ask, # 1本目　原因を知る
+ 'L1-S1': V1.symptoms, 'L1-S2': V1.ends,
+ 'L1-S3': V1.fit, 'L1-S4': V1.three, 'L1-S5': V1.order,
  # 2本目　意味を決める
  'T2-S1': WV.t2_three_returns, 'T2-S2': WV.t2_sorting, 'T2-S3': WV.t2_ambiguous,
  'T2-S4': WV.t2_pick, 'T2-S5': WV.t2_after,
@@ -46,26 +48,29 @@ FIG = {
  # 4本目　条件を決める
  'L4-S1': DV.t4_missing, 'L4-S2': DV.t4_unwritten, 'L4-S3': DV.t4_layers,
  'L4-S4': RV.s4_effect, 'L4-S5': RV.s4_after,
- # 5本目　揺らぎを直す
+ # 5本目　出力のばらつきを直す
  'L5-S1': DV.t6_symptoms, 'L5-S2': FV.f5_order, 'L5-S3': DV.t6_one_at_a_time,
  'L5-S4': DV.t6_two_goals, 'L5-S5': V.l6_whole,
- # 6本目　抽象の高さを合わせる
- 'L6-S1': DV.t5_grown, 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
- 'L6-S4': DV.t5_three_and_height2, 'L6-S5': V.l5_fit, 'L6-S6': V.l6_reproducible,
+ # 6本目　目的レベルを確かめる
+ 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
+ 'L6-S4': DV.t5_three_and_height2, 'L6-S6': V.l6_reproducible,
  # 終わりに
  'E-S1': EV.e_recap, 'E-S3': EV.e_next,
+ # 動画のつなぎ（導入とまとめ）
+ 'L1-IN': BV.I['L1-IN'], 'T2-S0': BV.I['T2-S0'], 'T2-SE': BV.I['T2-SE'], 'L3-S0': BV.I['L3-S0'], 'L3-SE': BV.I['L3-SE'],
+ 'L4-S0': BV.I['L4-S0'], 'L4-SE': BV.I['L4-SE'], 'L5-S0': BV.I['L5-S0'], 'L6-S0': BV.I['L6-S0'],
 }
 
 # 本の題。表紙の大見出しは短い名前だけにし、扱う問いは副題（各 JSON の title の ── の後）に1行で書く。
-# 説明文を大見出しにしない ── 表紙に載せる情報の粒度は、教材の表紙「課題の把握」と揃える
+# 説明文を大見出しにしない ── 表紙に載せる情報の粒度は、教材の表紙「課題の把握」と安定させる
 # 本編6本の題。鍵は再生の順の番号で、本番号は これ - 1 である
 TITLES = {
  2: ('原因を知る', '原因を知る'),
  3: ('意味を決める', '意味を決める'),
  4: ('範囲を決める', '範囲を決める'),
  5: ('条件を決める', '条件を決める'),
- 6: ('揺らぎを直す', '揺らぎを直す'),
- 7: ('抽象の高さを合わせる', '抽象の高さを合わせる'),
+ 6: ('出力のばらつきを直す', '出力のばらつきを直す'),
+ 7: ('目的レベルを確かめる', '目的レベルを確かめる'),
 }
 # 本編ではない3本。0は3つの教材に共通する前置きで、1と8が教材1の前後である
 ENDS = {0: 'オリエンテーション', 1: 'はじめに', 8: '終わりに'}
@@ -141,7 +146,7 @@ def build(lesson_path):
     stem = f'lesson-{no:02d}-{d["key"]}'
     (SLIDES / f'{stem}.html').write_text(prefix + '\n'.join(out) + suffix)
 
-    # 読み上げ原稿（narration Skill へ渡す入力のもと）
+    # 読み上げ原稿（narration Skill へ入力する入力のもと）
     notes = [f'# {no}本目　{title}\n', f'枚数 {len(slides)}（表紙1・本編{len(slides)-1}）　'
              f'読み上げ {sum(len(x["notes"]) for x in slides[1:])}字\n']
     for i, s in enumerate(slides[1:], 1):
