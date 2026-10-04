@@ -56,6 +56,16 @@ def tbl(cols,rows):
     cols=cols[:-1]; rows=[[r[0]+' '+r[-1]]+list(r[1:-1]) for r in rows]
   lab_=[re.sub(r'<[^>]+>','',re.sub(r'<div class="pop".*?</div>','',c)).replace('?','').strip() for c in cols]
   return '<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for r in rows)+'</tbody></table></div>'
+TERM_GROUPS=[('モデル',['集約','エンティティ','値オブジェクト','識別子','状態','状態の値']),('振る舞い',['コマンド','業務イベント','ドメインサービス','操作','拒否の理由']),('文を組む語',['情報の別名','動作','失敗の種類'])]
+def ftbl(cols,rows,label='種類で絞る'):
+  """rows は (種類, 行) の並び。表の上に種類のタブを置き、押した種類の行だけを見せる"""
+  ks=list(dict.fromkeys(k for k,_ in rows))
+  btn=lambda k:f'<button type="button" aria-pressed="false" data-f="{E(k)}">{E(k)}<span class="n">{sum(1 for kk,_ in rows if kk==k)}</span></button>'
+  grp=[(gname,[k for k in gk if k in ks]) for gname,gk in TERM_GROUPS]+[('その他',[k for k in ks if not any(k in gk for _,gk in TERM_GROUPS)])]
+  bar=f'<div class="filt" role="group" aria-label="{E(label)}"><div class="fg"><button type="button" aria-pressed="true" data-f="*">すべて<span class="n">{len(rows)}</span></button></div>'+''.join(f'<div class="fg"><span class="fl">{E(gname)}</span>'+''.join(btn(k) for k in gk)+'</div>' for gname,gk in grp if gk)+'</div>'
+  lab_=[re.sub(r'<[^>]+>','',c) for c in cols]
+  body=''.join(f'<tr data-k="{E(k)}">'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for k,r in rows)
+  return '<div class="fwrap">'+bar+'<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div></div>'
 def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
 def tiles(pairs): return '<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{lab(k)}</div><div class="tv">{v}</div></div>' for k,v in pairs)+'</div>'
 def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{body}</div>'
@@ -162,10 +172,8 @@ def p_bc(d):
     return m['kind'],[f'<b>{E(t["word"])}</b>',f'<span class="txt">{E(m["definition"])}</span>',pill(m['kind']),' '.join(f'<span class="avoid">{E(a)}</span>' for a in t['avoid']) or '―']
   rs=[trow(u) for u in d['uses'] if u['term'] in T]
   if rs:
-    order=list(dict.fromkeys(k for k,_ in rs))
-    main=[r for k in order if k not in GEN for kk,r in rs if kk==k]; gen_=[r for k in order if k in GEN for kk,r in rs if kk==k]
-    cols=['語','意味','種類','使わない語']
-    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+tbl(cols,main)+(f'<details class="fold"><summary>文を組むための語（{len(gen_)}語）</summary><div class="fbody">{tbl(cols,gen_)}</div></details>' if gen_ else ''))
+    order=[k for _,gk in TERM_GROUPS for k in gk]+[k for k,_ in rs]; order=list(dict.fromkeys(order)); rs=[(k,r) for kk in order for k,r in rs if k==kk]
+    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+ftbl(['語','意味','種類','使わない語'],rs))
   rel=d['context_map']['relations']
   if rel:
     nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
@@ -377,13 +385,14 @@ def p_glossary(d):
     if v['kind']=='context':
       for u in v['uses']: users.setdefault((u['term'],u['meaning']),[]).append(k)
   GEN={'動作','情報の別名','失敗の種類'}
-  rows=[];grows=[]
+  rows=[]
   for t in d['terms']:
     for m in t['meanings']:
       r=[f'<b>{E(t["word"])}</b>'+(f' <span class="no">{E(m["id"])}</span>' if len(t['meanings'])>1 else ''),f'<span class="txt">{E(m["definition"])}</span>',pill(m['kind']),' '.join(ref(c) for c in users.get((t['id'],m['id']),[])) or '<span class="txt">使う文脈は無い</span>',' '.join(f'<span class="avoid">{E(a)}</span>' for a in t['avoid']) or '―']
-      (grows if m['kind'] in GEN else rows).append(r)
+      rows.append((m['kind'],r))
   cols=['語','意味','種類','使う文脈','使わない語']
-  b+=block('語と意味',tbl(cols,rows)+f'<details class="fold"><summary>文を組むための語（{len(grows)}語）</summary><div class="fbody">{tbl(cols,grows)}</div></details>')
+  order=list(dict.fromkeys([k for _,gk in TERM_GROUPS for k in gk]+[k for k,_ in rows])); rows=[(k,r) for kk in order for k,r in rows if k==kk]
+  b+=block('語と意味',ftbl(cols,rows))
   return b+raw(d)
 def p_req(d):
   b=head(d,'','ユースケースの外に書く要求。ユースケースから関連情報で結ぶ。')
@@ -443,6 +452,7 @@ page=f'''<title>モバイルオーダーの宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
+document.querySelectorAll('.filt').forEach(g=>g.addEventListener('click',e=>{{const b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));const f=b.dataset.f;g.parentNode.querySelectorAll('tbody tr').forEach(r=>r.hidden=!(f==='*'||r.dataset.k===f))}}));
 document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{{const o=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',o);document.querySelectorAll('tr[data-grp="'+b.getAttribute('aria-controls')+'"]').forEach(r=>r.hidden=!o)}}));
 if(innerWidth<=760){{const n=document.querySelector('.navd');if(n)n.open=false;document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{{n.open=false}}))}}
 const go=n=>{{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));const st=document.querySelector('.stepper');if(st&&window.scrollY>st.offsetTop)st.scrollIntoView();}};
