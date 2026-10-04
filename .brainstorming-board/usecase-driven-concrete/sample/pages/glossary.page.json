@@ -3,11 +3,12 @@
  "page": [
   {"head": {"lead": ["プロダクトで使う語と、その意味（", {"count": "terms"}, "語）。区切られた文脈は、ここからどの語のどの意味を使うかを指す。"]}},
   {"block": "語と意味", "body": {"ftable": {
-   "cols": ["語", "意味", "種類", "使う文脈", "使わない語"],
+   "cols": ["語", "出どころ", "意味", "種類", "使う文脈", "使わない語"],
    "groups": [["モデル", ["集約", "エンティティ", "値オブジェクト", "識別子", "状態", "状態の値"]], ["振る舞い", ["コマンド", "業務イベント", "ドメインサービス", "操作", "拒否の理由"]], ["文を組む語", ["情報の別名", "動作", "失敗の種類"]]],
    "label": "種類", "unit": "語",
    "rows": [{"each": "terms", "as": "t", "rows": [{"each": "meanings", "as": "m", "rows": [{"key": {"val": "kind"}, "cells": [
     [{"p": "b", "s": {"text": {"val": "$t/word"}}}, {"if": {"gt": ["$t/meanings/#", 1]}, "then": [" ", {"p": "no-id", "s": {"text": {"val": "id"}}}]}],
+    [{"pill": {"val": "$t/origin"}}, {"if": "$t/origin_ref", "then": [" ", {"p": "txt", "s": {"text": {"val": "$t/origin_ref"}}}]}],
     {"p": "txt", "s": {"text": {"val": "definition"}}},
     {"pill": {"val": "kind"}},
     {"each": {"decls": "context", "where": {"some": "uses", "where": {"all": [{"same": ["term", "$t/id"]}, {"same": ["meaning", "$m/id"]}]}}}, "do": {"ref": "id"}, "sep": " ", "empty": {"p": "txt", "s": {"text": "使う文脈は無い"}}},

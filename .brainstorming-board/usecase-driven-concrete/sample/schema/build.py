@@ -123,10 +123,15 @@ glossary = kind_schema("glossary", "用語集", "プロダクトに1つ。語ご
     "terms": F("語の一覧", "語 → 意味の一覧 → 意味ごとの種類の順に読む",
                "1つの語に意味が2つ以上あれば、意味を分けて書き、語の頭に文脈名を付けない。区切られた文脈は、どの意味を使うかを指す。"
                "意味の kind は、その語が宣言のどこで使われるか（集約 ・ 状態 ・ 状態の値 ・ 値オブジェクト ・ コマンド ・ 拒否の理由 ・ 情報の別名 ・ 動作 など）を書く。"
-               "避けたい言い換えは avoid に並べる。語を新しく作らない ── 業務の人がふだん使う語を書く",
-               arr(obj({"id": pat(TERM), "word": txt(),
+               "語を新しく作らない。語ごとに出どころ（origin）を書き、仕様の用語はその仕様の綴りのまま書く ── 訳さない。"
+               "避けたい言い換えは avoid に並べる。avoid に仕様の用語を入れない",
+               arr(dict(obj({"id": pat(TERM), "word": txt(),
+                        "origin": F("出どころ", "その語をどこから取ったか", "仕様の用語（JSON Schema ・ HTTP など、仕様が定める語）・ 業務の言葉（利用者や業務の人が使う語）・ 一般の言葉（辞書の意味のとおり）のどれか。どれにも当たらない語は、作った語なので使わない",
+                                     {"enum": ["仕様の用語", "業務の言葉", "一般の言葉"]}),
+                        "origin_ref": F("出どころの名前", "どの仕様か、誰の言葉か", "仕様の用語なら仕様の名前、業務の言葉なら使っている人を書く", txt()),
                         "meanings": arr(obj({"id": ID("M"), "definition": txt(), "kind": txt(), "form": txt(), "change": txt()}, ["id", "definition", "kind"]), minItems=1),
-                        "avoid": arr(txt())}, ["id", "word", "meanings", "avoid"])))},
+                        "avoid": arr(txt())}, ["id", "word", "origin", "meanings", "avoid"]),
+                        allOf=[{"if": {"properties": {"origin": {"enum": ["仕様の用語", "業務の言葉"]}}, "required": ["origin"]}, "then": {"required": ["origin_ref"]}}])))},
     ["header", "terms"], idpre="GLO")
 
 # ── その他の要求
@@ -438,7 +443,7 @@ ALL["aggregate"]["properties"]["header"]["properties"]["context"]["x-ref"]["inve
 LABELS = {"name": "名前", "type": "型", "multiplicity": "個数", "condition": "条件", "reject": "拒否の理由", "args": "引数",
           "state": "状態", "entities": "エンティティ", "via": "至る操作", "business_rules": "業務ルール", "state_changes": "状態の変更",
           "emits": "業務イベント", "accept_examples": "受け付ける例", "fields": "渡す状態", "implements": "実装するビジネスルール",
-          "word": "語", "meanings": "意味", "avoid": "使わない語", "definition": "定義", "kind": "種類", "who": "利害関係者", "interest": "利益",
+          "word": "語", "origin": "出どころ", "origin_ref": "出どころの名前", "meanings": "意味", "avoid": "使わない語", "definition": "定義", "kind": "種類", "who": "利害関係者", "interest": "利益",
           "problem": "課題", "values": "提供価値", "competitors": "競合", "success_criteria": "達成の基準", "text": "説明", "differentiator": "競合との違いになる",
           "lacks": "欠けている提供価値", "out": "作らないもの（Out）", "level": "高さ", "inside": "内側", "outside": "外側", "description": "説明",
           "purpose": "目的", "subdomains": "対象とするサブドメイン", "relations": "外の相手", "external": "相手", "owner": "持ち主", "pattern": "連係の方法",

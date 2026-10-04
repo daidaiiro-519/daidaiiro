@@ -11,7 +11,8 @@ for t in data5.D['BC-1']['ubiquitous_language']['terms']:
   m={"id":"M-1","definition":t['definition'],"kind":t['kind']}
   for k in ('form','change'):
     if k in t: m[k]=t[k]
-  GL_TERMS.append({"id":t['id'],"word":t['word'],"meanings":[m],"avoid":t['avoid']})
+  o={"origin":"一般の言葉"} if t['word'] in ('時刻','金額','数量') else {"origin":"業務の言葉","origin_ref":"店舗と顧客"}
+  GL_TERMS.append({"id":t['id'],"word":t['word'],**o,"meanings":[m],"avoid":t['avoid']})
 # 同じ語の別の意味（このプロダクトの文脈は使わない）。用語集の中で意味を分けて書く
 GL_TERMS[0]['meanings'].append({"id":"M-2","definition":"店舗が仕入先に出す発注","kind":"情報の別名"})
 D['GLO-1']={"kind":"glossary","id":"GLO-1","header":{"name":"用語集"},"terms":GL_TERMS}

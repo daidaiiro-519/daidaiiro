@@ -1,0 +1,225 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0117",
+ "title": "用語集の語に出どころを持たせ、仕様の用語を訳さない",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "用語集の語ごとに出どころ（仕様の用語 ・ 業務の言葉 ・ 一般の言葉）を必須で書き、仕様の用語は仕様の綴りのまま使う。どの出どころにも当たらない語は用語集に入れない",
+ "why": "CLAUDE.md と doc-writing-skills は「技術用語はそのまま使う」と決めている。それなのに、schema-driven の宣言とボード schema-driven-base には、インスタンスを「実体」、JMESPath 式を「取得の式」、JSON Patch を「更新の差分」と訳し直した語が並んだ。用語集では、インスタンス ・ フィールド ・ クエリ ・ パッチを「使わない語」に入れていた。作った語は、手本として読まれるたびに下流へ広がる（契約の文 → ボードの論点 → 宣言）。用語集のスキーマは語の出どころを持たず、書き方の説明も「業務の人がふだん使う語を書く」だけで、仕様の用語の扱いを決めていなかった。出どころを必須にすると、作った語は欄が埋まらず、検証で止まる",
+ "shift": [
+  {
+   "what": "用語集の語",
+   "from": "語 ・ 意味 ・ 使わない語だけを持つ。語がどこから来たかは書かない",
+   "to": "出どころ（仕様の用語 ・ 業務の言葉 ・ 一般の言葉）を必須で持ち、仕様の用語と業務の言葉はその名前も持つ"
+  },
+  {
+   "what": "仕様の用語",
+   "from": "ふだんの言葉へ訳し直してよいと読める（「業務の人がふだん使う語を書く」）",
+   "to": "仕様の綴りのまま書く。使わない語に仕様の用語を入れない"
+  },
+  {
+   "what": "schema-driven の宣言とボード schema-driven-base の語",
+   "from": "実体 ・ 取得の式 ・ 更新の差分 ・ 置き場所 ・ 案内 ・ 頁の型 ・ 部品",
+   "to": "インスタンス ・ JMESPath 式 ・ JSON Patch ・ パス ・ x-prompt ・ ページテンプレート ・ コンポーネント。複製と転写は利用者の言葉なので残す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "用語集に書く語は、3つの出どころのどれかを持つ。どれにも当たらない語は作った語で、出どころが書けないので用語集に入らない。",
+ "alternatives": [
+  {
+   "option": "CLAUDE.md の規則を強める",
+   "why_not": "規則はすでに「技術用語はそのまま使う」と書いている。規則が正しくても、作った語の手本が残っている限り、同じ語が書かれる"
+  },
+  {
+   "option": "決着したボードは現在地だけ直し、論点のタブは当時の文のまま残す（ACDR 0094 ・ 0108 ・ 0111 の形）",
+   "why_not": "タブの語は、次の作業の手本として読まれる。今回の作った語も、決着した論点1の文から宣言へ流れた"
+  },
+  {
+   "option": "作った語を廃語の一覧（retired-words.json）へ入れる",
+   "why_not": "「実体」「置き場所」「案内」は普通の語でもあり、部分一致で正しい使い方まで検出する。廃語の一覧は、ほかの意味を持たない語にしか使えない"
+  },
+  {
+   "option": "出どころを任意の欄にする",
+   "why_not": "任意の欄は書かずに済むので、作った語を止められない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "sch",
+   "tab": "用語集のスキーマ（見本）",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/schema/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "語を新しく作らない。語ごとに出どころ（origin）を書き",
+     "why": "書き方の説明が「業務の人がふだん使う語を書く」だけで、仕様の用語の扱いを決めていなかった。仕様の用語は綴りのまま書き、使わない語に入れないと書く",
+     "before": "\"避けたい言い換えは avoid に並べる。語を新しく作らない ── 業務の人がふだん使う語を書く\","
+    },
+    {
+     "find": "\"word\": \"語\", \"origin\": \"出どころ\"",
+     "why": "足した欄の見出しを、見本の頁が出せるようにする",
+     "before": "\"word\": \"語\", \"meanings\": \"意味\", \"avoid\": \"使わない語\", \"definition\": \"定義\", \"kind\": \"種類\", \"who\": \"利害関係者\", \"interest\": \"利益\","
+    }
+   ]
+  },
+  {
+   "key": "page",
+   "tab": "用語集の頁の型（見本）",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/pages/glossary.page.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"cols\": [\"語\", \"出どころ\"",
+     "why": "出どころを頁の表に出し、作った語が入っていないかを人が読んで確かめられるようにする",
+     "before": "\"cols\": [\"語\", \"意味\", \"種類\", \"使う文脈\", \"使わない語\"],"
+    }
+   ]
+  },
+  {
+   "key": "d6",
+   "tab": "見本の用語集",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/data6.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "o={\"origin\":\"一般の言葉\"}",
+     "why": "見本の語は店舗と顧客の業務の言葉で、時刻 ・ 金額 ・ 数量だけが一般の言葉である。必須にした欄を埋める",
+     "before": "GL_TERMS.append({\"id\":t['id'],\"word\":t['word'],\"meanings\":[m],\"avoid\":t['avoid']})"
+    }
+   ]
+  },
+  {
+   "key": "fc",
+   "tab": "fact-check の移行の試し",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/migration-trial/fact-check/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "o={\"origin\":\"仕様の用語\",\"origin_ref\":\"HTTP\"}",
+     "why": "移行の試しの語は fact-check の SKILL.md の言葉で、状態コードだけが HTTP の仕様の用語である。必須にした欄を埋める",
+     "before": "return {\"id\":f\"TERM-{i}\",\"word\":w,\"meanings\":[m],\"avoid\":list(avoid)}"
+    }
+   ]
+  },
+  {
+   "key": "prod",
+   "tab": "schema-driven の宣言",
+   "file": ".brainstorming-board/schema-driven-base/product/build.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "def T(i, w, kind, d, origin, ref=None, avoid=(), **kw):",
+     "why": "用語集を、出どころ付きで書き直した。インスタンス ・ プロパティ ・ JMESPath 式 ・ JSON Patch は仕様の綴りのまま書き、使わない語には作った語（実体 ・ 取得の式 ・ 更新の差分）を入れる。読む ・ 書くを動作の語にして、読み出す ・ 書き出すを外した",
+     "before": "def T(i, w, kind, d, avoid=(), **kw):"
+    },
+    {
+     "find": "どこに何が書いてあるかが決まらず",
+     "why": "Markdown の文書にはプロパティが無いので、「欄の場所」を置き換えずに言い直した",
+     "before": "\"problem\": \"AI が扱うデータを Markdown の文書で持つと、欄の場所が決まらず、AI は文字列を探して読むことになる。指す先が消えたことや、答えと宣言した値の食い違いに、書いた時点で気づけない。同じ読み書きの能力を道具ごとに書くので、道具どうしでずれる\","
+    },
+    {
+     "find": "READ = lambda i, who, data, reply, eid",
+     "why": "ファイルシステムとのやりとりの動作を、読む ・ 書くにした",
+     "before": "READ = lambda i, who, data, reply, eid, reasons=(\"TERM-40\", \"TERM-51\"), **kw: say(i, \"システム\", \"ファイルシステム\", data, verb=\"TERM-46\", reply=reply, extensions=[fail_fs(eid, list(reasons), who)] + kw.pop(\"ext\", []), **kw)"
+    },
+    {
+     "find": "承認した正本が、形と参照と導出値を満たす",
+     "before": "[SH_OWN(\"承認した正本が、形と参照と判定を満たす\", \"SH-1\"), dict(SH_AI(\"欄を式で指して読み書きし、書いたものをその場で確かめる\"), id=\"SH-2\")],",
+     "why": "利害関係者の利益の文を、用語集の語（導出値 ・ プロパティ）に合わせた"
+    },
+    {
+     "find": "D[\"UC-1\"] = UC(1, \"インスタンスを作成する\"",
+     "why": "ユースケースの名前と文を、用語集の語に合わせた",
+     "before": "D[\"UC-1\"] = UC(1, \"実体を作成する\", \"ユーザー目的\", AI,"
+    },
+    {
+     "find": "作成した直後のインスタンスは未記入のプロパティを持つ",
+     "why": "同上",
+     "before": "issues=[\"作成した直後の実体は未記入の欄を持つので、検証を通過しなくてよい（ボード schema-driven-base 論点1）\"])"
+    },
+    {
+     "find": "D[\"UC-3\"] = UC(3, \"インスタンスを更新する\"",
+     "why": "同上",
+     "before": "D[\"UC-3\"] = UC(3, \"実体を更新する\", \"ユーザー目的\", AI,"
+    },
+    {
+     "find": "remove の JSON Patch を渡すこのユースケースで扱う",
+     "why": "同上",
+     "before": "issues=[\"項目の削除は、remove の差分を渡すこのユースケースで扱う\", \"書く途中で失敗したときに、前の中身か新しい中身のどちらかが残ることを、最低保証に置くかを決めていない\"])"
+    },
+    {
+     "find": "remove の JSON Patch でインスタンスを更新して消す",
+     "why": "同上",
+     "before": "[\"SC-3\"], links=TECH, issues=[\"実体の中の項目を消すときは、remove の差分で実体を更新する（実体を更新する）\"])"
+    },
+    {
+     "find": "拒んだら前の承認記録のまま",
+     "why": "同上",
+     "before": "[SAME(\"MG-1\", \"拒んだら前の承認の記録のまま\", \"TERM-15.TERM-16\", [\"SH-1\"])],"
+    },
+    {
+     "find": "参照と導出値のずれが残っているディレクトリのインスタンスを承認してよいか",
+     "why": "同上",
+     "before": "[\"SC-3\"], links=TECH, issues=[\"参照と判定のずれが残っている実体の集合を承認してよいかを、まだ決めていない\"])"
+    },
+    {
+     "find": "D[\"UC-10\"] = UC(10, \"複製と正本の差分を検査する\"",
+     "why": "同上。複製は利用者の言葉なので残す",
+     "before": "D[\"UC-10\"] = UC(10, \"複製と正本の差を検査する\", \"ユーザー目的\", MK,"
+    },
+    {
+     "find": "D[\"SD-1\"] = SD(1, \"インスタンスの読み書き\"",
+     "why": "サブドメインと文脈の名前と説明を、用語集の語に合わせた",
+     "before": "D[\"SD-1\"] = SD(1, \"実体の読み書き\", \"スキーマから実体を作り、取得の式で読み、更新の差分で書き換え、消す。書き込む前に検証し、欄ごとの案内を返す\","
+    },
+    {
+     "find": "IO = [25, 26, 35, 36, 40, 41, 42, 48, 51]",
+     "why": "使わなくなった語（読み出す ・ 書き出す ・ ページの内容）を文脈の用語集から外した",
+     "before": "IO = [25, 26, 35, 36, 40, 41, 42, 46, 47, 48, 51]"
+    }
+   ]
+  },
+  {
+   "key": "board",
+   "tab": "ボード schema-driven-base（描画）",
+   "file": ".brainstorming-board/schema-driven-base/board.html",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "インスタンスを作成 ・ 取得",
+     "before": "実体の JSON を作成 ・ 取得 ・ 更新 ・ 削除する。",
+     "why": "論点1の契約の文の「実体」を、JSON Schema の語のインスタンスにした。この文から宣言へ「実体」が流れていた"
+    },
+    {
+     "find": "出力先のパスはスキーマの x-generates が決める",
+     "before": "置き場所はスキーマの x-generates が決める",
+     "why": "「置き場所」を、ふだん使う語の出力先のパスにした"
+    },
+    {
+     "find": "x-prompt の契約",
+     "before": "案内の契約",
+     "why": "x-prompt を「案内」と訳さず、注釈の名前で書く"
+    },
+    {
+     "find": "ページテンプレートを読んで組む道具",
+     "before": "頁の型を読んで組む道具",
+     "why": "論点3の「頁の型」「部品」を、UI で使う語のページテンプレートとコンポーネントにした。図 render3 ・ contracts3 ・ dist も同じ語で描き直した"
+    },
+    {
+     "find": "コンポーネントのテンプレート",
+     "before": "部品の雛形",
+     "why": "同上"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "sch": "b959586f932b817d5daf2ddd16d36a7e00ff7aef485574e26bc847d5a7dd0c17",
+  "page": "fc9df958e6dabb1c119bc8d8de84187426b60eac2c9366650dfd02ecb59f6fd5",
+  "d6": "30f0325c5e7750f82150855b87625dcac4e790ed8b669cf85db96d26ef1429ff",
+  "fc": "ddb153b76ebd3b58c0cc081db9d196b19e7a1169cdaad6072c5316b1aa18c2c3",
+  "prod": "4d5f93f859e7768eec054a3325be8da354b56dd7d36df71eb8d75408034edca5",
+  "board": "2d060bc914e6863c7fc979c6f4a146ccfc89bd2e04d7dd8eab3d23929ff9fa7f"
+ }
+}

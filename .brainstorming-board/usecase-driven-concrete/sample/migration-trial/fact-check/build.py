@@ -4,7 +4,8 @@ import json,os
 H=os.path.dirname(os.path.abspath(__file__))
 def T(i,w,kind,d,avoid=(),**kw):
   m={"id":"M-1","definition":d,"kind":kind}; m.update(kw)
-  return {"id":f"TERM-{i}","word":w,"meanings":[m],"avoid":list(avoid)}
+  o={"origin":"仕様の用語","origin_ref":"HTTP"} if w in ("状態コード",) else {"origin":"業務の言葉","origin_ref":"fact-check の SKILL.md"}
+  return {"id":f"TERM-{i}","word":w,**o,"meanings":[m],"avoid":list(avoid)}
 TERMS=[
  T(1,"取得の記録","集約","1回の取得で受け取った原文の、保存した場所 ・ 出どころ ・ 取得した日時 ・ 中身のハッシュ値 ・ 大きさ"),
  T(2,"出どころ","値オブジェクト","原文を取りに行く先の URL"),
