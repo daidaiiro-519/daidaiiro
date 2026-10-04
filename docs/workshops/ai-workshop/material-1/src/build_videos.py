@@ -7,9 +7,12 @@
   python3 build_videos.py 01-lead    1本だけ組む
 
 字幕は、音声を合成したときの文の時刻（marks）から WebVTT を組み、out/videos/<本>.vtt に置く。
-動画には切り替え式の字幕トラック（mov_text）として重ねる ── 映像へ焼き込まない。
+動画には字幕を焼き込む ── mp4 だけで、どのプレーヤーでも字幕が出るようにするためである。
+スライドの下に字幕専用の帯（BAND）を足し、スライドの中身を字幕で隠さない。
+書体は Noto Sans JP（スライドと同じ）。置き場は環境変数 SUB_FONTS（既定は ~/.local/share/fonts）。
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,13 +25,16 @@ WORK = HERE / 'work' / 'videos'
 NARR = HERE / 'narration'
 IMAGE = 'jrottenberg/ffmpeg:7.1-alpine'   # 版を固定した公開のイメージを使う
 SIZE = '1280x720'
+BAND = 96   # 字幕の帯の高さ。2行が収まる高さにする
+FONTS = Path(os.environ.get('SUB_FONTS', Path.home() / '.local' / 'share' / 'fonts'))
 LINE = 22   # 字幕の1行の文字数の目安。2行を超える文は、読点で2つの字幕に分ける
 FPS = 30
 
 
-def ffmpeg(args, workdir):
+def ffmpeg(args, workdir, fonts=False):
     """版を固定したイメージで実行する。端末へ導入しない ── 版の差が動画の差になる。"""
-    cmd = ['docker', 'run', '--rm', '-v', f'{workdir}:/w', '-w', '/w', IMAGE] + args
+    mounts = ['-v', f'{FONTS}:/fonts:ro'] if fonts else []
+    cmd = ['docker', 'run', '--rm', '-v', f'{workdir}:/w', '-w', '/w'] + mounts + [IMAGE] + args
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode:
         raise SystemExit(f'ffmpeg が失敗した\n{" ".join(args)}\n{r.stderr[-1500:]}')
@@ -120,13 +126,20 @@ def build(stem, no, ids, dur):
     lst.write_text(''.join(f"file '{p.name}'\n" for p in parts))
     vtt = OUT / f'{stem}.vtt'
     vtt.write_text(subtitles(ids, dur))
-    # 通しは再符号化して繋ぐ ── 無変換で繋ぐと、時刻の差が累積する。字幕は切り替え式のトラックとして重ねる
-    ffmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', str(lst.relative_to(ROOT)), '-i', str(vtt.relative_to(ROOT)),
-            '-map', '0:v', '-map', '0:a', '-map', '1:s',
+    if not any(FONTS.glob('NotoSansJP*')):
+        raise SystemExit(f'字幕の書体が無い: {FONTS} に Noto Sans JP を置くか、SUB_FONTS で場所を指定する')
+    sys.path.insert(0, str(HERE.parents[1] / 'proposal' / 'src'))
+    from theme import T   # 帯の色はテーマの文字色から取る
+    w, h = map(int, SIZE.split('x'))
+    style = ('FontName=Noto Sans JP,FontSize=11,PrimaryColour=&H00FFFFFF,'
+             'BorderStyle=1,Outline=0,Shadow=0,MarginV=4,Alignment=2')
+    vf = (f"pad={w}:{h + BAND}:0:0:color=0x{T['ink'].lstrip('#')},"
+          f"subtitles={vtt.relative_to(ROOT)}:original_size={w}x{h + BAND}:fontsdir=/fonts:force_style='{style}'")
+    # 通しは再符号化して繋ぐ ── 無変換で繋ぐと、時刻の差が累積する。字幕は帯へ焼き込む
+    ffmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', str(lst.relative_to(ROOT)), '-vf', vf,
             '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
             '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2',
-            '-c:s', 'mov_text', '-metadata:s:s:0', 'language=jpn',
-            str((OUT / f'{stem}.mp4').relative_to(ROOT))], ROOT)
+            str((OUT / f'{stem}.mp4').relative_to(ROOT))], ROOT, fonts=True)
     total = sum(dur[s]['durationMs'] for s in ids) / 1000
     print(f'{stem}.mp4　{len(ids)}枚　{int(total // 60)}分{int(total % 60):02d}秒')
     return total
