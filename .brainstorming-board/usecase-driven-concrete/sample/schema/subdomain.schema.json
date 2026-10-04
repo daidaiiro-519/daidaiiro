@@ -1,52 +1,226 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "subdomain.schema.json",
+ "x-generates": "decls/SD-<番号>.json",
  "title": "サブドメイン",
+ "description": "業務領域。ユースケースを、同じアクター ・ 外部システム ・ 密接なデータで束ねる。カテゴリーと実装方法は、問いへの答えから道具が導く",
  "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "classification",
+  "business_logic",
+  "serves_values",
+  "use_cases"
+ ],
  "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "subdomain",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "subdomain と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^SD-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "SD-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "description": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "name",
+    "description"
+   ],
+   "description": "名前と説明",
+   "x-prompt": {
+    "read": "業務領域の名前と、何をする領域か",
+    "write": "業務の言葉で名前を付け、説明を1文で書く"
+   }
+  },
   "classification": {
    "title": "カテゴリー",
    "type": "object",
-   "required": ["category", "competitive_advantage", "external_available", "cheaper_to_build"],
+   "required": [
+    "category",
+    "competitive_advantage",
+    "external_available",
+    "cheaper_to_build"
+   ],
    "properties": {
-    "category": {"title": "カテゴリー（宣言）", "enum": ["中核", "一般", "補完"]},
-    "competitive_advantage": {"type": "boolean", "title": "競合との違いになるか",
-     "x-prompt": {"write": "このサブドメインのやり方が、利用者が競合ではなくこのプロダクトを選ぶ理由になるなら true"}},
-    "external_available": {"type": "boolean", "title": "外部のサービスや製品があるか",
-     "x-prompt": {"write": "同じことを済ませる外部のサービスや製品が手に入るなら true"}},
-    "cheaper_to_build": {"type": "boolean", "title": "自分たちで作るほうが簡単で費用も少ないか",
-     "x-prompt": {"write": "外部のものを組み込むより、自分たちで作るほうが簡単で費用も少ないなら true"}},
-    "sourcing": {"type": "string", "title": "調達"}
+    "category": {
+     "title": "カテゴリー（宣言）",
+     "enum": [
+      "中核",
+      "一般",
+      "補完"
+     ]
+    },
+    "competitive_advantage": {
+     "type": "boolean",
+     "title": "競合との違いになるか",
+     "x-prompt": {
+      "write": "このサブドメインのやり方が、利用者が競合ではなくこのプロダクトを選ぶ理由になるなら true"
+     }
+    },
+    "external_available": {
+     "type": "boolean",
+     "title": "外部のサービスや製品があるか",
+     "x-prompt": {
+      "write": "同じことを済ませる外部のサービスや製品が手に入るなら true"
+     }
+    },
+    "cheaper_to_build": {
+     "type": "boolean",
+     "title": "自分たちで作るほうが簡単で費用も少ないか",
+     "x-prompt": {
+      "write": "外部のものを組み込むより、自分たちで作るほうが簡単で費用も少ないなら true"
+     }
+    },
+    "sourcing": {
+     "type": "string",
+     "title": "調達"
+    }
    },
    "x-derive": {
     "title": "答えから導いたカテゴリー",
     "rules": [
-     {"when": {"competitive_advantage": true}, "then": "中核"},
-     {"when": {"external_available": true, "cheaper_to_build": false}, "then": "一般"}
+     {
+      "when": {
+       "competitive_advantage": true
+      },
+      "then": "中核"
+     },
+     {
+      "when": {
+       "external_available": true,
+       "cheaper_to_build": false
+      },
+      "then": "一般"
+     }
     ],
     "otherwise": "補完"
+   },
+   "additionalProperties": false,
+   "description": "カテゴリー",
+   "x-prompt": {
+    "read": "答えから導いたカテゴリーと、宣言したカテゴリーを比べる",
+    "write": "問いはスキーマの各欄の title が持ち、どのサブドメインでも同じである。この宣言は答え（true ・ false）だけを書く。判定は x-derive の決まりで道具が出し、宣言したカテゴリーと違えば検査が止める"
    }
   },
   "business_logic": {
    "title": "業務ロジックの性質",
    "type": "object",
-   "required": ["needs_tracking", "complex_rules", "complex_data", "rule_conditions"],
+   "required": [
+    "needs_tracking",
+    "complex_rules",
+    "complex_data",
+    "rule_conditions"
+   ],
    "properties": {
-    "needs_tracking": {"type": "boolean", "title": "状態の変化をすべて記録として残す必要があるか",
-     "x-prompt": {"write": "お金の流れの追跡 ・ 監査 ・ 利用の分析のために、状態の変化を1件ずつ残す必要があるなら true"}},
-    "complex_rules": {"type": "boolean", "title": "業務ルールは複雑か",
-     "x-prompt": {"write": "集約の不変条件やドメインサービスの結果の条件が、状態の組み合わせで決まるなら true。根拠の条件を rule_conditions に並べる"}},
-    "complex_data": {"type": "boolean", "title": "データ構造は複雑か",
-     "x-prompt": {"write": "業務ルールは単純だが、扱うデータが入れ子や関連を多く持つなら true"}},
-    "rule_conditions": {"type": "array", "title": "業務ルールが複雑と答えた根拠", "items": {"type": "string"}}
+    "needs_tracking": {
+     "type": "boolean",
+     "title": "状態の変化をすべて記録として残す必要があるか",
+     "x-prompt": {
+      "write": "お金の流れの追跡 ・ 監査 ・ 利用の分析のために、状態の変化を1件ずつ残す必要があるなら true"
+     }
+    },
+    "complex_rules": {
+     "type": "boolean",
+     "title": "業務ルールは複雑か",
+     "x-prompt": {
+      "write": "集約の不変条件やドメインサービスの結果の条件が、状態の組み合わせで決まるなら true。根拠の条件を rule_conditions に並べる"
+     }
+    },
+    "complex_data": {
+     "type": "boolean",
+     "title": "データ構造は複雑か",
+     "x-prompt": {
+      "write": "業務ルールは単純だが、扱うデータが入れ子や関連を多く持つなら true"
+     }
+    },
+    "rule_conditions": {
+     "type": "array",
+     "title": "業務ルールが複雑と答えた根拠",
+     "items": {
+      "type": "string"
+     }
+    }
    },
    "x-derive": {
     "title": "答えから導いた実装方法",
     "rules": [
-     {"when": {"needs_tracking": true}, "then": "イベント履歴式ドメインモデル"},
-     {"when": {"complex_rules": true}, "then": "ドメインモデル"},
-     {"when": {"complex_data": true}, "then": "アクティブレコード"}
+     {
+      "when": {
+       "needs_tracking": true
+      },
+      "then": "イベント履歴式ドメインモデル"
+     },
+     {
+      "when": {
+       "complex_rules": true
+      },
+      "then": "ドメインモデル"
+     },
+     {
+      "when": {
+       "complex_data": true
+      },
+      "then": "アクティブレコード"
+     }
     ],
     "otherwise": "トランザクションスクリプト"
+   },
+   "additionalProperties": false,
+   "description": "業務ロジックの性質",
+   "x-prompt": {
+    "read": "答えから導いた実装方法で、設計の側の宣言の形が決まる",
+    "write": "問いには上から順に答える。業務ルールが複雑と答えたら、根拠の条件（集約の不変条件やドメインサービスの結果）の ID を rule_conditions に並べる。実装方法は書かない ── 道具が x-derive で導く"
+   }
+  },
+  "serves_values": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^VAL-[0-9]+$"
+   },
+   "description": "担う提供価値",
+   "x-prompt": {
+    "read": "ドメインのどの提供価値を担うか",
+    "write": "ドメインの提供価値の ID を書く"
+   }
+  },
+  "use_cases": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^UC-[0-9]+$"
+   },
+   "description": "束ねるユースケース",
+   "x-prompt": {
+    "read": "この業務領域に入るユースケース",
+    "write": "同じアクター ・ 外部システム ・ 密接なデータを持つユースケースを束ねる。外部のサービスで満たす領域は空にしてよい"
    }
   }
  }

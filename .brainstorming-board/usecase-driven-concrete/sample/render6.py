@@ -439,9 +439,24 @@ def p_drift():
     ['テストは走ったときに、上の ID ・ ハッシュ値 ・ レベルを記録ファイルへ1行ずつ追記する（記録の契約）。道具は宣言と記録だけを照らし、欠け ・ 余り ・ 古い ・ レベル違いを出す','<a class="ref" href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">テスト条件 ID の突き合わせ</a>'],
     ['Python と Go のテストを実際に実行し、9手のコミットごとに CI を流した記録','<a class="ref" href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録</a>']]))
   return b
+# ── 書き方（スキーマ）。各欄の description と x-prompt.write を、そのまま並べる
+SCH={os.path.basename(f)[:-12]:json.load(open(f,encoding='utf-8')) for f in __import__('glob').glob(os.path.join(HERE,'schema','*.schema.json'))}
+def sch_rows(props):
+  return [[f'<b>{E(v.get("description",""))}</b>',f'<code>{E(k)}</code>',f'<span class="txt">{E(v.get("x-prompt",{}).get("write",""))}</span>'] for k,v in props.items() if k not in ('$schema',)]
+def p_sch(k):
+  sc=SCH[k]; b=f'<header class="ph"><p class="kind">{pill("書き方")} スキーマ</p><h1>{E(sc["title"])}{idt(k+".schema.json")}</h1></header><p class="lead">{E(sc["description"])}</p>'
+  if k=='common':
+    return b+block('共通の形',tbl(['項目','名前','書くこと'],sch_rows(sc['$defs'])))
+  b+=block('欄と書くこと',tbl(['項目','キー','書くこと'],sch_rows(sc['properties'])))
+  for n,d in sc.get('$defs',{}).items():
+    if n=='sub_step': continue
+    b+=f'<section class="blk"><h2>{E(d["description"])}</h2><p class="txt">{E(d["x-prompt"]["write"])}</p>{tbl(["項目","キー","書くこと"],sch_rows(d.get("properties",{})))}</section>'
+  return b
 R={"domain":p_domain,"glossary":p_glossary,"other_requirements":p_req,"application_operation":p_app,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
-nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
-pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'
+SCH_ORDER=[k for k in ORDER+['value_object']]+['common']
+nav_sch='<div class="ng"><span class="nk">書き方（スキーマ）</span>'+''.join(f'<a href="#SCH-{k}" data-id="SCH-{k}">{E(SCH[k]["title"])}</a>' for k in SCH_ORDER)+'</div>'
+nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)+nav_sch
+pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'+''.join(f'<article class="page" id="SCH-{k}">{p_sch(k)}</article>' for k in SCH_ORDER)
 css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
 page=f'''<title>モバイルオーダーの宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

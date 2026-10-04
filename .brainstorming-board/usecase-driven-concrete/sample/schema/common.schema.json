@@ -1,0 +1,234 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "common.schema.json",
+ "title": "宣言の共通の形",
+ "description": "条件 ・ 閾値 ・ 参照の形。どの種類の宣言も、ここを参照する。キーは ASCII、画面へ出す語は道具が持つ",
+ "$defs": {
+  "term": {
+   "type": "string",
+   "pattern": "^TERM-[0-9]+$",
+   "description": "用語集の語の ID",
+   "x-prompt": {
+    "read": "用語集で語と意味を引く",
+    "write": "用語集に在る語の ID を書く。無ければ先に用語集へ足す"
+   }
+  },
+  "term_path": {
+   "type": "string",
+   "pattern": "^TERM-[0-9]+(\\.TERM-[0-9]+)*$",
+   "description": "用語集の語の並び（例 TERM-1.TERM-5）",
+   "x-prompt": {
+    "read": "左から順に、集約 → 状態 → エンティティの状態と読む",
+    "write": "ユースケースとその他の要求の条件はこの形で書く。内部の ID（AGG ・ ST など）を書かない"
+   }
+  },
+  "ref": {
+   "type": "string",
+   "pattern": "^[A-Z]+-[0-9]+(\\.[A-Z]+-[0-9]+)*$",
+   "description": "宣言や項目への参照（例 AGG-1.CMD-1.BR-2）",
+   "x-prompt": {
+    "read": "左から宣言 → 項目と読む",
+    "write": "指す先が在る ID を、宣言の ID から書く"
+   }
+  },
+  "local": {
+   "type": "string",
+   "pattern": "^[A-Z]+-[0-9]+(\\.[A-Z]+-[0-9]+)?$",
+   "description": "同じ宣言の中の項目の ID（例 ST-2 ・ ARG-1 ・ CMP-1）",
+   "x-prompt": {
+    "read": "同じ宣言の中で引く",
+    "write": "同じ宣言に在る ID を書く"
+   }
+  },
+  "value": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "string"
+    },
+    {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "before": {
+       "type": "string"
+      },
+      "agg": {
+       "enum": [
+        "count",
+        "sum"
+       ]
+      }
+     },
+     "required": [
+      "before"
+     ]
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "call": {
+       "type": "string",
+       "pattern": "^VO-[0-9]+\\.OP-[0-9]+$"
+      },
+      "args": {
+       "type": "array"
+      }
+     },
+     "required": [
+      "call",
+      "args"
+     ]
+    }
+   ],
+   "description": "条件の値",
+   "x-prompt": {
+    "read": "数 ・ 語 ・ 文字列 ・ 実行前の値 ・ 値オブジェクトの操作の結果のどれか",
+    "write": "語は用語集の ID、引数は ARG の ID で書く。式を書かない ── 計算は値オブジェクトの操作を1回呼ぶ形（call と args）にする"
+   }
+  },
+  "cond_one": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "type": "string"
+    },
+    "op": {
+     "enum": [
+      "eq",
+      "ne",
+      "ge",
+      "le",
+      "gt",
+      "not_empty",
+      "empty",
+      "ends_with"
+     ]
+    },
+    "value": {
+     "$ref": "#/$defs/value"
+    },
+    "agg": {
+     "enum": [
+      "count",
+      "sum"
+     ]
+    },
+    "measure": {
+     "enum": [
+      "length"
+     ]
+    }
+   },
+   "required": [
+    "target",
+    "op"
+   ],
+   "description": "条件1つ（if を持たない）",
+   "x-prompt": {
+    "read": "対象 ・ 比べ方 ・ 値の3つで読む",
+    "write": "下の condition と同じ書き方をする"
+   }
+  },
+  "condition": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "type": "string"
+    },
+    "op": {
+     "enum": [
+      "eq",
+      "ne",
+      "ge",
+      "le",
+      "gt",
+      "not_empty",
+      "empty",
+      "ends_with"
+     ]
+    },
+    "value": {
+     "$ref": "#/$defs/value"
+    },
+    "agg": {
+     "enum": [
+      "count",
+      "sum"
+     ]
+    },
+    "measure": {
+     "enum": [
+      "length"
+     ]
+    },
+    "if": {
+     "$ref": "#/$defs/cond_one"
+    }
+   },
+   "required": [
+    "target",
+    "op"
+   ],
+   "description": "条件。文は道具が組む",
+   "x-prompt": {
+    "read": "対象 ・ 比べ方 ・ 値と、在れば前提（if）で読む",
+    "write": "対象は、ユースケースとその他の要求では用語集の語の並び、設計の側では同じ宣言の中の ID で書く。比べ方は eq（同じ）・ ne（違う）・ ge（以上）・ le（以下）・ gt（より大きい）・ not_empty ・ empty ・ ends_with（どれかで終わる。値は文字列の並び）。件数と合計は agg（count ・ sum）に書く。1つの値の文字数は measure: length に書き、コードポイントで数える ── agg に入れない（agg は複数の値を1つにまとめる計算である）。「〜してはならない」は否定の文にせず、成り立つ状態を条件で書く"
+   }
+  },
+  "threshold": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "op": {
+     "enum": [
+      "le",
+      "ge",
+      "lt",
+      "gt"
+     ]
+    },
+    "value": {
+     "type": "number"
+    },
+    "unit": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "op",
+    "value",
+    "unit"
+   ],
+   "description": "閾値（op ・ value ・ unit）",
+   "x-prompt": {
+    "read": "比べ方と値と単位で読む",
+    "write": "単位を必ず書く。比べ方は le か ge"
+   }
+  },
+  "ids": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^[A-Z]+-[0-9]+(\\.[A-Z]+-[0-9]+)*$"
+   },
+   "description": "ID の並び",
+   "x-prompt": {
+    "read": "指す先を順に読む",
+    "write": "指す先が在る ID だけを書く"
+   }
+  }
+ }
+}

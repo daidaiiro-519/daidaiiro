@@ -1,0 +1,316 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "context.schema.json",
+ "x-generates": "decls/BC-<番号>.json",
+ "title": "区切られた文脈",
+ "description": "1つのモデルが通じる範囲。用語集のどの意味を使うかと、外の相手との関係を持つ",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "uses",
+  "context_map",
+  "boundary"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "context",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "context と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^BC-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "BC-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "purpose": {
+     "type": "string",
+     "minLength": 1
+    },
+    "subdomains": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^SD-[0-9]+$"
+     }
+    }
+   },
+   "required": [
+    "name",
+    "purpose",
+    "subdomains"
+   ],
+   "description": "名前 ・ 目的 ・ 含む業務領域",
+   "x-prompt": {
+    "read": "何を判定するモデルか",
+    "write": "目的は、このモデルが何を決めるかを1文で書き、モデルに入れないものも書く。含む業務領域を SD の ID で書く"
+   }
+  },
+  "uses": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "term": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "meaning": {
+      "type": "string",
+      "pattern": "^M-[0-9]+$"
+     }
+    },
+    "required": [
+     "term",
+     "meaning"
+    ]
+   },
+   "description": "使う意味",
+   "x-prompt": {
+    "read": "用語集のどの語のどの意味を使うか",
+    "write": "語と意味の ID を組で書く。1つの文脈で、同じ語の2つの意味を使わない"
+   }
+  },
+  "context_map": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "relations": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^X-[0-9]+$"
+       },
+       "external": {
+        "type": "string",
+        "minLength": 1
+       },
+       "owner": {
+        "type": "string",
+        "minLength": 1
+       },
+       "pattern": {
+        "type": "string",
+        "minLength": 1
+       },
+       "direction": {
+        "enum": [
+         "上流",
+         "下流"
+        ]
+       },
+       "fulfills": {
+        "type": "string",
+        "pattern": "^SD-[0-9]+$"
+       },
+       "case": {
+        "type": "string",
+        "minLength": 1
+       },
+       "uses": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "pattern": "^TERM-[0-9]+$"
+        }
+       },
+       "translates": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+          "theirs": {
+           "type": "string",
+           "minLength": 1
+          },
+          "ours": {
+           "type": "string",
+           "pattern": "^TERM-[0-9]+$"
+          }
+         },
+         "required": [
+          "theirs",
+          "ours"
+         ]
+        }
+       },
+       "operations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+          "id": {
+           "type": "string",
+           "pattern": "^OP-[0-9]+$"
+          },
+          "name": {
+           "type": "string",
+           "pattern": "^TERM-[0-9]+$"
+          },
+          "sends": {
+           "type": "array",
+           "items": {
+            "type": "string",
+            "pattern": "^TERM-[0-9]+$"
+           }
+          },
+          "receives": {
+           "type": "array",
+           "items": {
+            "type": "string",
+            "pattern": "^TERM-[0-9]+$"
+           }
+          },
+          "retry": {
+           "type": "object",
+           "additionalProperties": false,
+           "properties": {
+            "safe": {
+             "type": "boolean"
+            },
+            "key": {
+             "type": "string",
+             "pattern": "^TERM-[0-9]+$"
+            }
+           }
+          },
+          "failures": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+             "id": {
+              "type": "string",
+              "pattern": "^F-[0-9]+$"
+             },
+             "name": {
+              "type": "string",
+              "pattern": "^TERM-[0-9]+$"
+             }
+            },
+            "required": [
+             "id",
+             "name"
+            ]
+           }
+          }
+         },
+         "required": [
+          "id",
+          "name",
+          "failures"
+         ]
+        }
+       }
+      },
+      "required": [
+       "id",
+       "external",
+       "owner",
+       "pattern",
+       "direction"
+      ]
+     }
+    }
+   },
+   "required": [
+    "relations"
+   ],
+   "description": "文脈の地図",
+   "x-prompt": {
+    "read": "外の相手ごとの関係",
+    "write": "相手ごとに、パターン（従属 ・ モデル変換装置 など）・ 向き ・ 使う操作と失敗の種類を書く。中核を含む下流の文脈は、モデル変換装置を挟む。まだ移していない部分も、ここに外の相手として書く"
+   }
+  },
+  "business_rules": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^BR-[0-9]+$"
+     },
+     "condition": {
+      "$ref": "common.schema.json#/$defs/condition"
+     },
+     "implements": {
+      "$ref": "common.schema.json#/$defs/ref"
+     }
+    },
+    "required": [
+     "id",
+     "condition"
+    ]
+   },
+   "description": "文脈の業務ルール",
+   "x-prompt": {
+    "read": "集約に収まらない、この文脈の業務ルール",
+    "write": "その他の要求のビジネスルールを実装するなら implements で指す"
+   }
+  },
+  "boundary": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "kind": {
+     "type": "string",
+     "minLength": 1
+    },
+    "owner": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "kind",
+    "owner"
+   ],
+   "description": "境界",
+   "x-prompt": {
+    "read": "何として作り、誰が持つか",
+    "write": "作り方（自社で作るサービス など）と持ち主を書く"
+   }
+  },
+  "published_language": {
+   "type": "array",
+   "items": {
+    "type": "object"
+   },
+   "description": "公開された言語",
+   "x-prompt": {
+    "read": "外へ出す情報の形",
+    "write": "在るときだけ書く"
+   }
+  }
+ }
+}

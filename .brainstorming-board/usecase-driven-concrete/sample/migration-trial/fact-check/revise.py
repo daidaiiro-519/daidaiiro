@@ -42,3 +42,9 @@ B=rd('BC-1')
 for t in ("TERM-30","TERM-31","TERM-32"):
   if not [u for u in B['uses'] if u['term']==t]: B['uses'].append({"term":t,"meaning":"M-1"})
 wr('BC-1',B)
+# 4 の続き ── 値オブジェクトの不変条件の「文字数」も、note ではなく measure: length で書く
+V=rd('VO-3')
+for c in V['components']:
+  for i in c['invariants']:
+    if i.pop('note',None)=='文字数': i['condition']['measure']='length'
+wr('VO-3',V)

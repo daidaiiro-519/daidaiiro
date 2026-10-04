@@ -1,0 +1,202 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "value_object.schema.json",
+ "x-generates": "decls/VO-<番号>.json",
+ "title": "値オブジェクト",
+ "description": "値で同一性が決まり、変わらないもの。成分ごとの不変条件と操作を持つ",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "components",
+  "operations"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "value_object",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "value_object と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^VO-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "VO-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "$ref": "common.schema.json#/$defs/term",
+     "description": "名前。用語集の語の ID",
+     "x-prompt": {
+      "read": "用語集の語として読む",
+      "write": "用語集に語を足してから、その ID を書く。語を新しく作らない"
+     }
+    },
+    "context": {
+     "type": "string",
+     "pattern": "^BC-[0-9]+$",
+     "description": "所属する区切られた文脈",
+     "x-prompt": {
+      "read": "この宣言が属する区切られた文脈",
+      "write": "BC の ID を書く"
+     }
+    }
+   },
+   "required": [
+    "name",
+    "context"
+   ],
+   "description": "名前と、所属する区切られた文脈",
+   "x-prompt": {
+    "read": "名前は用語集の語、文脈は BC の ID である",
+    "write": "名前は用語集の語の ID、文脈は BC の ID で書く"
+   }
+  },
+  "components": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^CMP-[0-9]+$"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1
+     },
+     "kind": {
+      "type": "string",
+      "minLength": 1
+     },
+     "precision": {
+      "type": "string",
+      "minLength": 1
+     },
+     "unit": {
+      "type": "string",
+      "minLength": 1
+     },
+     "digits": {
+      "type": "integer"
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "minLength": 1
+      }
+     },
+     "invariants": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string",
+         "pattern": "^INV-[0-9]+$"
+        },
+        "condition": {
+         "$ref": "common.schema.json#/$defs/condition"
+        }
+       },
+       "required": [
+        "id",
+        "condition"
+       ]
+      }
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "invariants"
+    ]
+   },
+   "description": "成分",
+   "x-prompt": {
+    "read": "成分ごとの種類 ・ 精度 ・ 単位 ・ 不変条件",
+    "write": "妥当性の検証は不変条件として値オブジェクト自身に書く。業務の決まりでない技術の制限（ファイルの名前の長さなど）は、ここではなくデータ要求か、書き込む側に書く。文字数は measure: length"
+   }
+  },
+  "operations": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^OP-[0-9]+$"
+     },
+     "name": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "args": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "result": {
+      "type": "string"
+     },
+     "accept_examples": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string",
+         "pattern": "^OK-[0-9]+$"
+        },
+        "self": {},
+        "args": {
+         "type": "array"
+        },
+        "result": {}
+       },
+       "required": [
+        "id",
+        "self",
+        "args",
+        "result"
+       ]
+      }
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "args",
+     "result",
+     "accept_examples"
+    ]
+   },
+   "description": "操作",
+   "x-prompt": {
+    "read": "値から値を求める操作",
+    "write": "名前は用語集の語で書き、受け付ける例を1つ以上書く"
+   }
+  }
+ }
+}

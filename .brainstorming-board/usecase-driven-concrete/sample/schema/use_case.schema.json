@@ -1,0 +1,842 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "use_case.schema.json",
+ "x-generates": "decls/UC-<番号>.json",
+ "title": "ユースケース",
+ "description": "主アクターが目的を果たすまでの、システムとのやり取り。プロダクトの内部（集約 ・ 文脈 ・ 操作）を指さない。設計の側の操作が、このユースケースを指す",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "stakeholders",
+  "preconditions",
+  "guarantees",
+  "scenario",
+  "contributes_to",
+  "open_issues",
+  "links"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "use_case",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "use_case と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^UC-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "UC-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "level": {
+     "enum": [
+      "要約",
+      "ユーザー目的",
+      "サブ機能"
+     ]
+    },
+    "scope": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "system": {
+       "$ref": "common.schema.json#/$defs/ref"
+      }
+     },
+     "required": [
+      "system"
+     ]
+    },
+    "primary_actor": {
+     "type": "string",
+     "minLength": 1
+    },
+    "trigger_step": {
+     "type": "string",
+     "pattern": "^STEP-[0-9]+$"
+    }
+   },
+   "required": [
+    "name",
+    "level",
+    "scope",
+    "primary_actor",
+    "trigger_step"
+   ],
+   "description": "名前 ・ 目的レベル ・ スコープ ・ 主アクター ・ トリガー",
+   "x-prompt": {
+    "read": "目的レベルとスコープで、どこまでを書くかが決まる",
+    "write": "名前は主アクターの目的を「〜を〜する」の形で書く。目的レベルは要約 ・ ユーザー目的 ・ サブ機能のどれか。スコープは設計スコープのシステムの高さ（DOM-n.SCP-n）を指す。トリガーは最初の手順を指す"
+   }
+  },
+  "stakeholders": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^SH-[0-9]+$"
+     },
+     "who": {
+      "$ref": "common.schema.json#/$defs/ref"
+     },
+     "interest": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "id",
+     "who",
+     "interest"
+    ]
+   },
+   "description": "このユースケースの利害関係者と利益",
+   "x-prompt": {
+    "read": "誰の何をこのユースケースが守るか",
+    "write": "ドメインの利害関係者（DOM-n.SH-n）を who に指し、このユースケースで守る利益を1文で書く"
+   }
+  },
+  "preconditions": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^PRE-[0-9]+$"
+     },
+     "condition": {
+      "$ref": "common.schema.json#/$defs/condition"
+     },
+     "established_by": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^UC-[0-9]+$"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "id",
+     "condition"
+    ]
+   },
+   "description": "事前条件",
+   "x-prompt": {
+    "read": "始まる前に成り立っていること",
+    "write": "条件は用語集の語の並びで書く。どのユースケースが成り立たせるかを established_by に書く。事前条件で防いでいる拒否は、拡張に書かない"
+   }
+  },
+  "guarantees": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "minimal": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^MG-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1
+       },
+       "condition": {
+        "$ref": "common.schema.json#/$defs/condition"
+       },
+       "protects": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "pattern": "^SH-[0-9]+$"
+        }
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "condition",
+       "protects"
+      ]
+     }
+    },
+    "success": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^SG-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1
+       },
+       "condition": {
+        "$ref": "common.schema.json#/$defs/condition"
+       },
+       "satisfies": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "pattern": "^SH-[0-9]+$"
+        }
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "condition",
+       "satisfies"
+      ]
+     }
+    }
+   },
+   "required": [
+    "minimal",
+    "success"
+   ],
+   "description": "保証",
+   "x-prompt": {
+    "read": "成功時保証は主成功シナリオの行き着く先、最低保証はどの終わり方でも守ること",
+    "write": "成功時保証は「成功したのにこの利害関係者が不満を持つのはどんな場合か」の逆を条件で書く。「〜してはならない」も、成り立つ状態として成功時保証に書き、その状態を作る内部の状態変化の手順を主成功シナリオに置く。最低保証には、処理がどこまで進んだかを残すことを必ず候補に入れる"
+   }
+  },
+  "scenario": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "supporting_actors": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "steps": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/step"
+     },
+     "minItems": 1
+    }
+   },
+   "required": [
+    "supporting_actors",
+    "steps"
+   ],
+   "description": "主成功シナリオと拡張",
+   "x-prompt": {
+    "read": "手順を上から読み、各手順の拡張をその下で読む",
+    "write": "手順は4種類（相互作用 ・ 妥当性確認 ・ 内部の状態変化 ・ サブユースケースの呼び出し）で、文は道具が組む。相互作用は主語 ・ 相手 ・ 渡す情報（用語集の情報の別名）・ 動作の語で書く。妥当性確認は確かめるビジネスルールを指す。内部の状態変化は動作と対象の語で書く。画面の操作や集約の名前を書かない。手順ごとに、どの利害関係者の利益に役立つかを serves に書く"
+   }
+  },
+  "contributes_to": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^SC-[0-9]+$"
+   },
+   "description": "寄与する達成の基準",
+   "x-prompt": {
+    "read": "どの達成の基準に効くか",
+    "write": "ドメインの達成の基準の ID を書く"
+   }
+  },
+  "open_issues": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "minLength": 1
+   },
+   "description": "未決定事項",
+   "x-prompt": {
+    "read": "このユースケースで決めていないこと",
+    "write": "1件1文で書く。決めたら消す"
+   }
+  },
+  "links": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "business_rules": {
+     "$ref": "common.schema.json#/$defs/ids"
+    },
+    "quality": {
+     "$ref": "common.schema.json#/$defs/ids"
+    },
+    "technology": {
+     "$ref": "common.schema.json#/$defs/ids"
+    },
+    "data": {
+     "$ref": "common.schema.json#/$defs/ids"
+    }
+   },
+   "description": "関連情報",
+   "x-prompt": {
+    "read": "その他の要求のどの項目に結ぶか",
+    "write": "ビジネスルール ・ 品質 ・ 技術 ・ データ要求を、その他の要求の ID（REQ-n.BR-n など）で指す"
+   }
+  }
+ },
+ "$defs": {
+  "step": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^STEP-[0-9]+$",
+     "description": "手順の ID",
+     "x-prompt": {
+      "read": "番号は道具が並び順から振る",
+      "write": "STEP-番号で書く。並べ替えても ID は変えない"
+     }
+    },
+    "kind": {
+     "enum": [
+      "相互作用",
+      "妥当性確認",
+      "内部の状態変化",
+      "サブユースケースの呼び出し"
+     ],
+     "description": "手順の種類",
+     "x-prompt": {
+      "read": "種類で読む欄が決まる",
+      "write": "相互作用 ・ 妥当性確認 ・ 内部の状態変化 ・ サブユースケースの呼び出しのどれか"
+     }
+    },
+    "actor": {
+     "type": "string",
+     "minLength": 1,
+     "description": "主語",
+     "x-prompt": {
+      "read": "誰が動くか",
+      "write": "アクターの名前か「システム」を書く。主語を省かない"
+     }
+    },
+    "to": {
+     "type": "string",
+     "minLength": 1,
+     "description": "相手",
+     "x-prompt": {
+      "read": "相互作用の相手",
+      "write": "相互作用のときだけ書く"
+     }
+    },
+    "data": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "description": "渡す情報",
+     "x-prompt": {
+      "read": "相手に渡す情報の別名",
+      "write": "項目を並べず、用語集の情報の別名の語で書く。項目の一覧はデータ要求に書く"
+     }
+    },
+    "verb": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$",
+     "description": "動作",
+     "x-prompt": {
+      "read": "何をするか",
+      "write": "用語集の動作の語で書く。画面の操作（押す ・ 選ぶ）を書かない"
+     }
+    },
+    "object": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$",
+     "description": "対象",
+     "x-prompt": {
+      "read": "内部の状態変化で変わるもの",
+      "write": "内部の状態変化のときだけ、用語集の語で書く"
+     }
+    },
+    "reply": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "description": "返る情報",
+     "x-prompt": {
+      "read": "相手から返る情報の別名",
+      "write": "支援アクターとの相互作用で返るものを書く"
+     }
+    },
+    "checks": {
+     "$ref": "common.schema.json#/$defs/ids",
+     "description": "確かめるビジネスルール",
+     "x-prompt": {
+      "read": "妥当性確認で確かめること",
+      "write": "妥当性確認のときだけ、その他の要求のビジネスルールの ID を書く。条件の中身は手順に書かない"
+     }
+    },
+    "calls": {
+     "type": "string",
+     "pattern": "^UC-[0-9]+$",
+     "description": "呼ぶユースケース",
+     "x-prompt": {
+      "read": "サブユースケースの呼び出し先",
+      "write": "サブユースケースの呼び出しのときだけ、UC の ID を書く"
+     }
+    },
+    "keeps": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^MG-[0-9]+$"
+     },
+     "description": "守る最低保証",
+     "x-prompt": {
+      "read": "この手順が守る最低保証",
+      "write": "失敗しても守ることを作る手順に、MG の ID を書く"
+     }
+    },
+    "serves": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^SH-[0-9]+$"
+     },
+     "description": "役立つ利害関係者の利益",
+     "x-prompt": {
+      "read": "誰の利益のための手順か",
+      "write": "このユースケースの利害関係者の ID を書く。どの利益にも役立たない手順は書かない"
+     }
+    },
+    "variations": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "varies": {
+        "type": "string",
+        "minLength": 1
+       },
+       "values": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1
+        }
+       }
+      },
+      "required": [
+       "varies",
+       "values"
+      ]
+     },
+     "description": "技術およびデータのバリエーション",
+     "x-prompt": {
+      "read": "同じことを、どのように行うかの違い",
+      "write": "支払い手段のような、同じことのやり方の違いだけを書く。条件や「システムは…する」を持つものは拡張に書く"
+     }
+    },
+    "extensions": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/extension"
+     },
+     "description": "この手順の拡張",
+     "x-prompt": {
+      "read": "この手順で違う振る舞いになる状況",
+      "write": "拡張ごとに条件の種類と終わり方を書く。無ければ空にする"
+     }
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "actor",
+    "extensions"
+   ],
+   "description": "手順1つ",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "種類ごとに必要な欄だけを書く。1つの手順に動作を2つ入れない"
+   }
+  },
+  "sub_step": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^EXT-[0-9]+\\.S-[0-9]+$",
+     "description": "拡張の中の手順の ID",
+     "x-prompt": {
+      "read": "番号は道具が振る",
+      "write": "EXT-番号.S-番号 で書く"
+     }
+    },
+    "kind": {
+     "enum": [
+      "相互作用",
+      "妥当性確認",
+      "内部の状態変化",
+      "サブユースケースの呼び出し"
+     ],
+     "description": "手順の種類",
+     "x-prompt": {
+      "read": "種類で読む欄が決まる",
+      "write": "相互作用 ・ 妥当性確認 ・ 内部の状態変化 ・ サブユースケースの呼び出しのどれか"
+     }
+    },
+    "actor": {
+     "type": "string",
+     "minLength": 1,
+     "description": "主語",
+     "x-prompt": {
+      "read": "誰が動くか",
+      "write": "アクターの名前か「システム」を書く。主語を省かない"
+     }
+    },
+    "to": {
+     "type": "string",
+     "minLength": 1,
+     "description": "相手",
+     "x-prompt": {
+      "read": "相互作用の相手",
+      "write": "相互作用のときだけ書く"
+     }
+    },
+    "data": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "description": "渡す情報",
+     "x-prompt": {
+      "read": "相手に渡す情報の別名",
+      "write": "項目を並べず、用語集の情報の別名の語で書く。項目の一覧はデータ要求に書く"
+     }
+    },
+    "verb": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$",
+     "description": "動作",
+     "x-prompt": {
+      "read": "何をするか",
+      "write": "用語集の動作の語で書く。画面の操作（押す ・ 選ぶ）を書かない"
+     }
+    },
+    "object": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$",
+     "description": "対象",
+     "x-prompt": {
+      "read": "内部の状態変化で変わるもの",
+      "write": "内部の状態変化のときだけ、用語集の語で書く"
+     }
+    },
+    "reply": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "description": "返る情報",
+     "x-prompt": {
+      "read": "相手から返る情報の別名",
+      "write": "支援アクターとの相互作用で返るものを書く"
+     }
+    },
+    "checks": {
+     "$ref": "common.schema.json#/$defs/ids",
+     "description": "確かめるビジネスルール",
+     "x-prompt": {
+      "read": "妥当性確認で確かめること",
+      "write": "妥当性確認のときだけ、その他の要求のビジネスルールの ID を書く。条件の中身は手順に書かない"
+     }
+    },
+    "calls": {
+     "type": "string",
+     "pattern": "^UC-[0-9]+$",
+     "description": "呼ぶユースケース",
+     "x-prompt": {
+      "read": "サブユースケースの呼び出し先",
+      "write": "サブユースケースの呼び出しのときだけ、UC の ID を書く"
+     }
+    },
+    "keeps": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^MG-[0-9]+$"
+     },
+     "description": "守る最低保証",
+     "x-prompt": {
+      "read": "この手順が守る最低保証",
+      "write": "失敗しても守ることを作る手順に、MG の ID を書く"
+     }
+    },
+    "serves": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^SH-[0-9]+$"
+     },
+     "description": "役立つ利害関係者の利益",
+     "x-prompt": {
+      "read": "誰の利益のための手順か",
+      "write": "このユースケースの利害関係者の ID を書く。どの利益にも役立たない手順は書かない"
+     }
+    },
+    "variations": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "varies": {
+        "type": "string",
+        "minLength": 1
+       },
+       "values": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1
+        }
+       }
+      },
+      "required": [
+       "varies",
+       "values"
+      ]
+     },
+     "description": "技術およびデータのバリエーション",
+     "x-prompt": {
+      "read": "同じことを、どのように行うかの違い",
+      "write": "支払い手段のような、同じことのやり方の違いだけを書く。条件や「システムは…する」を持つものは拡張に書く"
+     }
+    },
+    "extensions": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/extension"
+     },
+     "description": "この手順の拡張",
+     "x-prompt": {
+      "read": "この手順で違う振る舞いになる状況",
+      "write": "拡張ごとに条件の種類と終わり方を書く。無ければ空にする"
+     }
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "actor",
+    "extensions"
+   ],
+   "description": "拡張の中の手順1つ",
+   "x-prompt": {
+    "read": "主成功シナリオの手順と同じ形",
+    "write": "主成功シナリオの手順と同じ書き方をする。ID は EXT-n.S-n"
+   }
+  },
+  "extension": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^EXT-[0-9]+$",
+     "description": "拡張の ID",
+     "x-prompt": {
+      "read": "ラベル（3a など）は道具が振る",
+      "write": "EXT-番号で書く"
+     }
+    },
+    "condition_kind": {
+     "enum": [
+      "妥当性確認の失敗",
+      "業務ルールの拒否",
+      "支援アクターの失敗",
+      "別の道筋での成功"
+     ],
+     "description": "条件の種類",
+     "x-prompt": {
+      "read": "どの種類の状況か",
+      "write": "妥当性確認の失敗 ・ 業務ルールの拒否 ・ 支援アクターの失敗 ・ 別の道筋での成功のどれか"
+     }
+    },
+    "fails": {
+     "$ref": "common.schema.json#/$defs/ids",
+     "description": "満たされなかったビジネスルール",
+     "x-prompt": {
+      "read": "妥当性確認の失敗の中身",
+      "write": "妥当性確認の失敗のときだけ、確かめたビジネスルールの ID を書く"
+     }
+    },
+    "reasons": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "description": "理由の語",
+     "x-prompt": {
+      "read": "拒否の理由か、失敗の種類",
+      "write": "業務ルールの拒否では拒否の理由の語、支援アクターの失敗では失敗の種類の語を書く"
+     }
+    },
+    "actor": {
+     "type": "string",
+     "minLength": 1,
+     "description": "失敗した支援アクター",
+     "x-prompt": {
+      "read": "誰の応答が無いか、誤っているか",
+      "write": "支援アクターの失敗のときだけ書く"
+     }
+    },
+    "condition": {
+     "$ref": "common.schema.json#/$defs/condition",
+     "description": "別の道筋になる条件",
+     "x-prompt": {
+      "read": "どんなときに別の道筋で成功するか",
+      "write": "別の道筋での成功のときだけ、用語集の語の並びの条件で書く"
+     }
+    },
+    "ending": {
+     "anyOf": [
+      {
+       "type": "string",
+       "pattern": "^STEP-[0-9]+$"
+      },
+      {
+       "enum": [
+        "成功",
+        "終了",
+        "失敗"
+       ]
+      }
+     ],
+     "description": "終わり方",
+     "x-prompt": {
+      "read": "拡張のあと、どうなるか",
+      "write": "STEP-n（その手順へ戻る）・ 成功（元の手順が成功した状態になる）・ 終了（ユースケースは終了する）・ 失敗 のどれか"
+     }
+    },
+    "steps": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/sub_step"
+     },
+     "description": "拡張の手順",
+     "x-prompt": {
+      "read": "拡張の中で、誰が何をするか",
+      "write": "主成功シナリオの手順と同じ書き方をする"
+     }
+    }
+   },
+   "required": [
+    "id",
+    "condition_kind",
+    "ending",
+    "steps"
+   ],
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "condition_kind": {
+        "const": "別の道筋での成功"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "condition"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "condition_kind": {
+        "const": "妥当性確認の失敗"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "fails"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "condition_kind": {
+        "const": "業務ルールの拒否"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "reasons"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "condition_kind": {
+        "const": "支援アクターの失敗"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "actor"
+      ]
+     }
+    }
+   ],
+   "description": "拡張1つ",
+   "x-prompt": {
+    "read": "条件の種類 → 条件 → 手順 → 終わり方の順に読む",
+    "write": "拡張は失敗だけでなく、別の道筋での成功も含む。条件の種類は、妥当性確認の失敗（fails に確かめたビジネスルール）・ 業務ルールの拒否（reasons に拒否の理由の語）・ 支援アクターの失敗（actor と、在れば reasons に失敗の種類の語）・ 別の道筋での成功（condition に用語集の語の並びの条件）。条件や「システムは…する」を持つものは、変化（variations）ではなく拡張に書く。終わり方（ending）は4つ ── STEP-n（その手順へ戻る）・ 成功（分岐した手順が直り、元の手順が成功した状態になる。拡張の最後には何も書かない）・ 終了（別の道筋で成功し、ユースケースは終了する）・ 失敗（最低保証が成り立って終わる）。だめなら次を試す順番は、先に試すものを主成功シナリオに書き、次に試すものを終わり方「成功」の拡張に書く"
+   }
+  }
+ }
+}

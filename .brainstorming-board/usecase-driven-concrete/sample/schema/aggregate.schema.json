@@ -1,0 +1,432 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "aggregate.schema.json",
+ "x-generates": "decls/AGG-<番号>.json",
+ "title": "集約",
+ "description": "一貫性を守る単位。状態 ・ 不変条件 ・ コマンド（業務ルール ・ 状態の変更 ・ 業務イベント ・ 受け付ける例）を持つ",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "structure",
+  "invariants",
+  "commands"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "aggregate",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "aggregate と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^AGG-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "AGG-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "$ref": "common.schema.json#/$defs/term",
+     "description": "名前。用語集の語の ID",
+     "x-prompt": {
+      "read": "用語集の語として読む",
+      "write": "用語集に語を足してから、その ID を書く。語を新しく作らない"
+     }
+    },
+    "context": {
+     "type": "string",
+     "pattern": "^BC-[0-9]+$",
+     "description": "所属する区切られた文脈",
+     "x-prompt": {
+      "read": "この宣言が属する区切られた文脈",
+      "write": "BC の ID を書く"
+     }
+    }
+   },
+   "required": [
+    "name",
+    "context"
+   ],
+   "description": "名前と、所属する区切られた文脈",
+   "x-prompt": {
+    "read": "名前は用語集の語、文脈は BC の ID である",
+    "write": "名前は用語集の語の ID、文脈は BC の ID で書く"
+   }
+  },
+  "structure": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^ST-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "type": {
+        "type": "string"
+       },
+       "multiplicity": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+         "min": {
+          "type": "integer"
+         },
+         "max": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         }
+        },
+        "required": [
+         "min",
+         "max"
+        ]
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "type",
+       "multiplicity"
+      ]
+     }
+    },
+    "entities": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^ENT-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "state": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+          "id": {
+           "type": "string",
+           "pattern": "^ES-[0-9]+$"
+          },
+          "name": {
+           "type": "string",
+           "pattern": "^TERM-[0-9]+$"
+          },
+          "type": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "id",
+          "name",
+          "type"
+         ]
+        }
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "state"
+      ]
+     }
+    }
+   },
+   "required": [
+    "state",
+    "entities"
+   ],
+   "description": "状態とエンティティ",
+   "x-prompt": {
+    "read": "集約が持つ状態と、その中のエンティティ",
+    "write": "状態ごとに名前（用語集の語）・ 型（VO-n か ID）・ 多重度を書く"
+   }
+  },
+  "invariants": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^INV-[0-9]+$"
+     },
+     "condition": {
+      "$ref": "common.schema.json#/$defs/condition"
+     },
+     "via": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "pattern": "^CMD-[0-9]+$"
+      }
+     }
+    },
+    "required": [
+     "id",
+     "condition"
+    ]
+   },
+   "description": "不変条件",
+   "x-prompt": {
+    "read": "コマンドのあとのどの状態でも成り立つ決まり",
+    "write": "条件は同じ集約の状態の ID で書く。破りうるコマンドを via に書く。1つの操作の入力と結果の関係は、不変条件ではなく保証に書く"
+   }
+  },
+  "commands": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/command"
+   },
+   "description": "コマンド",
+   "x-prompt": {
+    "read": "状態を変える操作",
+    "write": "業務ルール（BR-n）は、受け付ける条件と拒否の理由の語で書く。状態の変更（CHG-n）は、変わったあとの状態を条件で書く。業務イベントは、渡す状態を fields に書く。受け付ける例（OK-n）は、前の状態と引数を書く ── 後の状態は道具が状態の変更から導く。引数を対象にした業務ルールの拒否の例も道具が組むので、組めないときだけ example を書く"
+   }
+  }
+ },
+ "$defs": {
+  "command": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^CMD-[0-9]+$",
+     "description": "コマンドの ID",
+     "x-prompt": {
+      "read": "ほかの宣言は AGG-n.CMD-n で指す",
+      "write": "CMD-番号で書く"
+     }
+    },
+    "name": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$",
+     "description": "コマンドの名前",
+     "x-prompt": {
+      "read": "用語集のコマンドの語",
+      "write": "用語集のコマンドの語の ID を書く"
+     }
+    },
+    "args": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^ARG-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "type": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "type"
+      ]
+     },
+     "description": "引数",
+     "x-prompt": {
+      "read": "外から渡されるもの",
+      "write": "名前は用語集の語、型は VO-n か ID で書く"
+     }
+    },
+    "business_rules": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^BR-[0-9]+$"
+       },
+       "condition": {
+        "$ref": "common.schema.json#/$defs/condition"
+       },
+       "reject": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "implements": {
+        "$ref": "common.schema.json#/$defs/ref"
+       },
+       "example": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+         "before": {
+          "type": "object"
+         },
+         "args": {
+          "type": "object"
+         }
+        }
+       }
+      },
+      "required": [
+       "id",
+       "condition",
+       "reject"
+      ]
+     },
+     "description": "業務ルール",
+     "x-prompt": {
+      "read": "受け付ける条件と、拒否の理由",
+      "write": "受け付ける条件を書き、満たさないときの拒否の理由を用語集の語で書く。その他の要求のビジネスルールを実装するなら implements で指す"
+     }
+    },
+    "state_changes": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^CHG-[0-9]+$"
+       },
+       "condition": {
+        "$ref": "common.schema.json#/$defs/condition"
+       }
+      },
+      "required": [
+       "id",
+       "condition"
+      ]
+     },
+     "description": "状態の変更",
+     "x-prompt": {
+      "read": "コマンドのあとの状態",
+      "write": "変わったあとの状態を条件で書く。計算は値オブジェクトの操作を1回呼ぶ形にする"
+     }
+    },
+    "emits": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^EVT-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "fields": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+          "from": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "from"
+         ]
+        }
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "fields"
+      ]
+     },
+     "description": "業務イベント",
+     "x-prompt": {
+      "read": "コマンドのあとに起きたこととして外へ出すもの",
+      "write": "名前は用語集の業務イベントの語で書き、渡す状態を fields に書く"
+     }
+    },
+    "accept_examples": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^OK-[0-9]+$"
+       },
+       "before": {
+        "type": "object"
+       },
+       "args": {
+        "type": "object"
+       }
+      },
+      "required": [
+       "id",
+       "before",
+       "args"
+      ]
+     },
+     "description": "受け付ける例",
+     "x-prompt": {
+      "read": "業務ルールをすべて満たす入力の例",
+      "write": "前の状態と引数だけを書く。後の状態は道具が導く"
+     }
+    }
+   },
+   "required": [
+    "id",
+    "name",
+    "args",
+    "business_rules",
+    "state_changes",
+    "emits",
+    "accept_examples"
+   ],
+   "description": "コマンド1つ",
+   "x-prompt": {
+    "read": "引数 → 業務ルール → 状態の変更 → 業務イベントの順に読む",
+    "write": "名前は用語集のコマンドの語で書く"
+   }
+  }
+ }
+}

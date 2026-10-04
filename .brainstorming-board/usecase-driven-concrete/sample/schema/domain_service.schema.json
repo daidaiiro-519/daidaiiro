@@ -1,0 +1,170 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "domain_service.schema.json",
+ "x-generates": "decls/DS-<番号>.json",
+ "title": "ドメインサービス",
+ "description": "複数の集約にまたがる計算。どの集約も変えずに、読んで結果を返す",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "reads",
+  "operations"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "domain_service",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "domain_service と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^DS-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "DS-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^TERM-[0-9]+$"
+    },
+    "context": {
+     "type": "string",
+     "pattern": "^BC-[0-9]+$"
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "name",
+    "context",
+    "reason"
+   ],
+   "description": "名前 ・ 文脈 ・ 置く理由",
+   "x-prompt": {
+    "read": "なぜ集約に置かないか",
+    "write": "理由は「複数の集約にまたがる計算」など、どの集約にも置けない理由を書く"
+   }
+  },
+  "reads": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "pattern": "^AGG-[0-9]+$"
+   },
+   "minItems": 1,
+   "description": "読む集約",
+   "x-prompt": {
+    "read": "計算に使う集約",
+    "write": "AGG の ID を書く"
+   }
+  },
+  "operations": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^OP-[0-9]+$"
+     },
+     "name": {
+      "type": "string",
+      "pattern": "^TERM-[0-9]+$"
+     },
+     "output": {
+      "type": "string"
+     },
+     "inputs": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string",
+         "pattern": "^IN-[0-9]+$"
+        },
+        "type": {
+         "type": "string"
+        },
+        "from": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+          "target": {
+           "type": "string"
+          },
+          "agg": {
+           "enum": [
+            "sum",
+            "count"
+           ]
+          }
+         },
+         "required": [
+          "target"
+         ]
+        }
+       },
+       "required": [
+        "id",
+        "type",
+        "from"
+       ]
+      }
+     },
+     "results": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string",
+         "pattern": "^RES-[0-9]+$"
+        },
+        "condition": {
+         "$ref": "common.schema.json#/$defs/condition"
+        }
+       },
+       "required": [
+        "id",
+        "condition"
+       ]
+      }
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "output",
+     "inputs",
+     "results"
+    ]
+   },
+   "description": "操作",
+   "x-prompt": {
+    "read": "入力 → 結果の条件で読む",
+    "write": "入力はどの集約のどの状態から取るか（合計なら agg: sum）を書き、結果は条件で書く"
+   }
+  }
+ }
+}

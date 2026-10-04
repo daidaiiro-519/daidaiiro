@@ -1,0 +1,296 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "domain.schema.json",
+ "x-generates": "decls/DOM-<番号>.json",
+ "title": "ドメイン",
+ "description": "作りたいプロダクト。ビジョン記述 ・ 利害関係者と利益 ・ スコープの外 ・ 設計スコープを持つ。業務領域の一覧と品質の要求は持たない（設計の側とその他の要求が持つ）",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "vision",
+  "scope",
+  "design_scopes",
+  "stakeholders"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "domain",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "domain と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^DOM-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "DOM-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "name"
+   ],
+   "description": "名前",
+   "x-prompt": {
+    "read": "プロダクトの名前",
+    "write": "利用者に通じるプロダクトの名前を書く"
+   }
+  },
+  "vision": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "problem": {
+     "type": "string",
+     "minLength": 1
+    },
+    "values": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^VAL-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1
+       },
+       "text": {
+        "type": "string",
+        "minLength": 1
+       },
+       "differentiator": {
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "text",
+       "differentiator"
+      ]
+     }
+    },
+    "competitors": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^CMP-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1
+       },
+       "lacks": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "pattern": "^VAL-[0-9]+$"
+        }
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "lacks"
+      ]
+     }
+    },
+    "success_criteria": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "pattern": "^SC-[0-9]+$"
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1
+       },
+       "source": {
+        "enum": [
+         "event",
+         "external"
+        ]
+       },
+       "target": {
+        "type": "string",
+        "pattern": "^TERM-[0-9]+$"
+       },
+       "measure": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+         "diff": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         }
+        }
+       },
+       "measure_text": {
+        "type": "string",
+        "minLength": 1
+       },
+       "threshold": {
+        "$ref": "common.schema.json#/$defs/threshold"
+       },
+       "ratio": {
+        "$ref": "common.schema.json#/$defs/threshold"
+       },
+       "window": {
+        "type": "string",
+        "minLength": 1
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "source",
+       "threshold",
+       "window"
+      ]
+     }
+    }
+   },
+   "required": [
+    "problem",
+    "values",
+    "competitors",
+    "success_criteria"
+   ],
+   "description": "ビジョン記述",
+   "x-prompt": {
+    "read": "課題 ・ 提供価値 ・ 競合 ・ 達成の基準を1か所で読む",
+    "write": "課題は誰が何に困っているかを1文で書く。提供価値は利用者が受け取る結果で書き、競合との違いになるものに differentiator: true を付ける。競合は、どの提供価値を欠くか（lacks）で書く。達成の基準は、測る対象 ・ 閾値 ・ 割合 ・ 期間を欄に分ける"
+   }
+  },
+  "scope": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "out": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   },
+   "required": [
+    "out"
+   ],
+   "description": "スコープの外（Out）",
+   "x-prompt": {
+    "read": "プロダクトが扱わないもの",
+    "write": "扱わないものを名詞で並べる。まだ移していないものとは分けて書く（移していないものは区切られた文脈の外の相手として書く）。In は道具がユーザー目的のユースケースから組むので書かない"
+   }
+  },
+  "design_scopes": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^SCP-[0-9]+$"
+     },
+     "level": {
+      "enum": [
+       "企業",
+       "システム"
+      ]
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1
+     },
+     "inside": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "outside": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "id",
+     "level",
+     "name",
+     "outside"
+    ]
+   },
+   "description": "設計スコープ",
+   "x-prompt": {
+    "read": "企業の高さとシステムの高さで、何が内で何が外かを読む",
+    "write": "システムの高さを1つ必ず書く。ユースケースのスコープはここを指す。内と外は利害関係者の ID かシステムの名前で書く"
+   }
+  },
+  "stakeholders": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^SH-[0-9]+$"
+     },
+     "who": {
+      "type": "string",
+      "minLength": 1
+     },
+     "interest": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "id",
+     "who",
+     "interest"
+    ]
+   },
+   "description": "利害関係者と利益",
+   "x-prompt": {
+    "read": "誰が何を守りたいか",
+    "write": "利益は、その人が守りたいことを1文で書く。ユースケースの手順と保証は、ここの ID を指す"
+   }
+  }
+ }
+}

@@ -1,0 +1,254 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "other_requirements.schema.json",
+ "x-generates": "decls/REQ-<番号>.json",
+ "title": "その他の要求",
+ "description": "ユースケースの外に書く要求。ユースケースは関連情報（links）で、ここの項目を指す",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "header",
+  "business_rules",
+  "quality",
+  "technology",
+  "data",
+  "open_issues"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "kind": {
+   "const": "other_requirements",
+   "description": "宣言の種類",
+   "x-prompt": {
+    "read": "種類で読む欄が決まる",
+    "write": "other_requirements と書く"
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^REQ-[0-9]+$",
+   "description": "宣言の ID",
+   "x-prompt": {
+    "read": "ほかの宣言はこの ID で指す",
+    "write": "REQ-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   }
+  },
+  "header": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "name"
+   ],
+   "description": "名前",
+   "x-prompt": {
+    "read": "名前",
+    "write": "「その他の要求」と書く"
+   }
+  },
+  "business_rules": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^BR-[0-9]+$"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1
+     },
+     "condition": {
+      "$ref": "common.schema.json#/$defs/condition"
+     },
+     "protects": {
+      "$ref": "common.schema.json#/$defs/ids"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "condition",
+     "protects"
+    ]
+   },
+   "description": "ビジネスルール",
+   "x-prompt": {
+    "read": "シナリオの形に収まらない業務の決まり",
+    "write": "条件は用語集の語の並びで書き、守る利害関係者の ID を protects に書く。集約の業務ルールが実装するときは、集約の側から implements で指す"
+   }
+  },
+  "quality": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^QR-[0-9]+$"
+     },
+     "target": {
+      "$ref": "common.schema.json#/$defs/ref"
+     },
+     "measure": {
+      "type": "string",
+      "minLength": 1
+     },
+     "threshold": {
+      "$ref": "common.schema.json#/$defs/threshold"
+     },
+     "ratio": {
+      "$ref": "common.schema.json#/$defs/threshold"
+     },
+     "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "period": {
+        "type": "string",
+        "minLength": 1
+       },
+       "load": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+         "value": {
+          "type": "number"
+         },
+         "unit": {
+          "type": "string",
+          "minLength": 1
+         }
+        },
+        "required": [
+         "value",
+         "unit"
+        ]
+       }
+      },
+      "required": [
+       "period",
+       "load"
+      ]
+     },
+     "grade": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string",
+        "minLength": 1
+       },
+       "level": {
+        "type": "integer"
+       }
+      }
+     },
+     "method": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "id",
+     "target",
+     "measure",
+     "threshold",
+     "ratio",
+     "condition",
+     "method"
+    ]
+   },
+   "description": "品質の要求",
+   "x-prompt": {
+    "read": "どの手順の、何を、どの条件で測るか",
+    "write": "対象の手順（UC-n.STEP-n）・ 測るもの ・ 閾値 ・ 割合 ・ 期間と負荷 ・ 測り方を欄に分ける"
+   }
+  },
+  "technology": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^TEC-[0-9]+$"
+     },
+     "system": {
+      "type": "string",
+      "minLength": 1
+     },
+     "text": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "required": [
+     "id",
+     "system",
+     "text"
+    ]
+   },
+   "description": "使われる技術",
+   "x-prompt": {
+    "read": "相互作用するシステムと、その要求",
+    "write": "相手のシステムの名前と、こちらに求められることを書く。製品名やコマンドの細部は書かない"
+   }
+  },
+  "data": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^DAT-[0-9]+$"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1
+     },
+     "condition": {
+      "$ref": "common.schema.json#/$defs/condition"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "condition"
+    ]
+   },
+   "description": "データ要求",
+   "x-prompt": {
+    "read": "項目ごとの長さ ・ 妥当性の制約",
+    "write": "何文字までか ・ どんな値なら受け付けるかを、条件で書く（文字数は measure: length）。ユースケースの手順には書かず、ユースケースの links.data から結ぶ"
+   }
+  },
+  "open_issues": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "minLength": 1
+   },
+   "description": "未決定事項",
+   "x-prompt": {
+    "read": "まだ決めていないこと",
+    "write": "決めていないことを1件1文で書く。決めたら消し、決めた欄へ移す"
+   }
+  }
+ }
+}
