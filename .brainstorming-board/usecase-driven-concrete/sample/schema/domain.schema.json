@@ -34,6 +34,9 @@
    "x-prompt": {
     "read": "ほかの宣言はこの ID で指す",
     "write": "DOM-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   },
+   "x-view": {
+    "hidden": true
    }
   },
   "header": {
@@ -42,7 +45,8 @@
    "properties": {
     "name": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "名前"
     }
    },
    "required": [
@@ -60,7 +64,8 @@
    "properties": {
     "problem": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "課題"
     },
     "values": {
      "type": "array",
@@ -70,18 +75,24 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^VAL-[0-9]+$"
+        "pattern": "^VAL-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "名前"
        },
        "text": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "説明"
        },
        "differentiator": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "競合との違いになる"
        }
       },
       "required": [
@@ -90,7 +101,8 @@
        "text",
        "differentiator"
       ]
-     }
+     },
+     "description": "提供価値"
     },
     "competitors": {
      "type": "array",
@@ -100,18 +112,23 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^CMP-[0-9]+$"
+        "pattern": "^CMP-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "名前"
        },
        "lacks": {
         "type": "array",
         "items": {
          "type": "string",
          "pattern": "^VAL-[0-9]+$"
-        }
+        },
+        "description": "欠けている提供価値"
        }
       },
       "required": [
@@ -119,7 +136,8 @@
        "name",
        "lacks"
       ]
-     }
+     },
+     "description": "競合"
     },
     "success_criteria": {
      "type": "array",
@@ -129,11 +147,15 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^SC-[0-9]+$"
+        "pattern": "^SC-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "名前"
        },
        "source": {
         "enum": [
@@ -143,7 +165,8 @@
        },
        "target": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "description": "対象"
        },
        "measure": {
         "type": "object",
@@ -155,17 +178,20 @@
            "type": "string"
           }
          }
-        }
+        },
+        "description": "測るもの"
        },
        "measure_text": {
         "type": "string",
         "minLength": 1
        },
        "threshold": {
-        "$ref": "common.schema.json#/$defs/threshold"
+        "$ref": "common.schema.json#/$defs/threshold",
+        "description": "閾値"
        },
        "ratio": {
-        "$ref": "common.schema.json#/$defs/threshold"
+        "$ref": "common.schema.json#/$defs/threshold",
+        "description": "割合"
        },
        "window": {
         "type": "string",
@@ -179,7 +205,8 @@
        "threshold",
        "window"
       ]
-     }
+     },
+     "description": "達成の基準"
     }
    },
    "required": [
@@ -203,7 +230,8 @@
      "items": {
       "type": "string",
       "minLength": 1
-     }
+     },
+     "description": "作らないもの（Out）"
     }
    },
    "required": [
@@ -223,29 +251,36 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^SCP-[0-9]+$"
+      "pattern": "^SCP-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "level": {
       "enum": [
        "企業",
        "システム"
-      ]
+      ],
+      "description": "高さ"
      },
      "name": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "名前"
      },
      "inside": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "内側"
      },
      "outside": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "外側"
      }
     },
     "required": [
@@ -269,15 +304,20 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^SH-[0-9]+$"
+      "pattern": "^SH-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "who": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "利害関係者"
      },
      "interest": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "利益"
      }
     },
     "required": [

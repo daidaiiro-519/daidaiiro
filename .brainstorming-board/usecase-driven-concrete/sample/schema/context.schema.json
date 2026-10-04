@@ -33,6 +33,9 @@
    "x-prompt": {
     "read": "ほかの宣言はこの ID で指す",
     "write": "BC-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   },
+   "x-view": {
+    "hidden": true
    }
   },
   "header": {
@@ -41,11 +44,13 @@
    "properties": {
     "name": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "名前"
     },
     "purpose": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "目的"
     },
     "subdomains": {
      "type": "array",
@@ -59,7 +64,8 @@
        "group": "サブドメインを担う文脈がある",
        "min": 1
       }
-     }
+     },
+     "description": "対象とするサブドメイン"
     }
    },
    "required": [
@@ -89,11 +95,13 @@
        "meaning_key": "kind",
        "label": "word",
        "unique": true
-      }
+      },
+      "description": "語"
      },
      "meaning": {
       "type": "string",
-      "pattern": "^M-[0-9]+$"
+      "pattern": "^M-[0-9]+$",
+      "description": "意味"
      }
     },
     "required": [
@@ -105,6 +113,9 @@
    "x-prompt": {
     "read": "この文脈で使う、用語集の語と意味",
     "write": "語と意味の ID を組で書く。1つの文脈で、同じ語の2つの意味を使わない"
+   },
+   "x-view": {
+    "hidden": true
    }
   },
   "context_map": {
@@ -119,25 +130,32 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^X-[0-9]+$"
+        "pattern": "^X-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "external": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "相手"
        },
        "owner": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "持ち主"
        },
        "pattern": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "連係の方法"
        },
        "direction": {
         "enum": [
          "上流",
          "下流"
-        ]
+        ],
+        "description": "向き"
        },
        "fulfills": {
         "type": "string",
@@ -159,6 +177,9 @@
         "items": {
          "type": "string",
          "pattern": "^TERM-[0-9]+$"
+        },
+        "x-view": {
+         "hidden": true
         }
        },
        "translates": {
@@ -180,6 +201,9 @@
           "theirs",
           "ours"
          ]
+        },
+        "x-view": {
+         "hidden": true
         }
        },
        "operations": {
@@ -190,25 +214,31 @@
          "properties": {
           "id": {
            "type": "string",
-           "pattern": "^OP-[0-9]+$"
+           "pattern": "^OP-[0-9]+$",
+           "x-view": {
+            "hidden": true
+           }
           },
           "name": {
            "type": "string",
-           "pattern": "^TERM-[0-9]+$"
+           "pattern": "^TERM-[0-9]+$",
+           "description": "名前"
           },
           "sends": {
            "type": "array",
            "items": {
             "type": "string",
             "pattern": "^TERM-[0-9]+$"
-           }
+           },
+           "description": "渡すもの"
           },
           "receives": {
            "type": "array",
            "items": {
             "type": "string",
             "pattern": "^TERM-[0-9]+$"
-           }
+           },
+           "description": "受け取るもの"
           },
           "retry": {
            "type": "object",
@@ -221,6 +251,9 @@
              "type": "string",
              "pattern": "^TERM-[0-9]+$"
             }
+           },
+           "x-view": {
+            "hidden": true
            }
           },
           "failures": {
@@ -231,18 +264,23 @@
             "properties": {
              "id": {
               "type": "string",
-              "pattern": "^F-[0-9]+$"
+              "pattern": "^F-[0-9]+$",
+              "x-view": {
+               "hidden": true
+              }
              },
              "name": {
               "type": "string",
-              "pattern": "^TERM-[0-9]+$"
+              "pattern": "^TERM-[0-9]+$",
+              "description": "名前"
              }
             },
             "required": [
              "id",
              "name"
             ]
-           }
+           },
+           "description": "失敗の種類"
           }
          },
          "required": [
@@ -250,7 +288,8 @@
           "name",
           "failures"
          ]
-        }
+        },
+        "description": "操作"
        }
       },
       "required": [
@@ -260,7 +299,8 @@
        "pattern",
        "direction"
       ]
-     }
+     },
+     "description": "外の相手"
     }
    },
    "required": [
@@ -280,10 +320,14 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^BR-[0-9]+$"
+      "pattern": "^BR-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "condition": {
-      "$ref": "common.schema.json#/$defs/condition"
+      "$ref": "common.schema.json#/$defs/condition",
+      "description": "条件"
      },
      "implements": {
       "allOf": [
@@ -300,7 +344,8 @@
         "min": 1,
         "max": 1
        }
-      }
+      },
+      "description": "実装するビジネスルール"
      }
     },
     "required": [
@@ -320,11 +365,13 @@
    "properties": {
     "kind": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "種類"
     },
     "owner": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "持ち主"
     }
    },
    "required": [

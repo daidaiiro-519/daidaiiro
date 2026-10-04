@@ -33,6 +33,9 @@
    "x-prompt": {
     "read": "ほかの宣言はこの ID で指す",
     "write": "AGG-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   },
+   "x-view": {
+    "hidden": true
    }
   },
   "header": {
@@ -108,7 +111,10 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^ST-[0-9]+$"
+        "pattern": "^ST-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
@@ -119,14 +125,16 @@
          "meanings": "meanings",
          "meaning_key": "kind",
          "label": "word"
-        }
+        },
+        "description": "名前"
        },
        "type": {
         "type": "string",
         "x-ref": {
          "to": "value_object",
          "only": "^VO-"
-        }
+        },
+        "description": "型"
        },
        "multiplicity": {
         "type": "object",
@@ -145,7 +153,33 @@
         "required": [
          "min",
          "max"
-        ]
+        ],
+        "description": "個数",
+        "x-view": {
+         "cases": [
+          {
+           "when": {
+            "min": 1,
+            "max": 1
+           },
+           "text": "1つ"
+          },
+          {
+           "when": {
+            "min": 0,
+            "max": 1
+           },
+           "text": "0か1つ"
+          },
+          {
+           "when": {
+            "max": null
+           },
+           "text": "{min}件以上"
+          }
+         ],
+         "text": "{min}〜{max}件"
+        }
        }
       },
       "required": [
@@ -176,7 +210,8 @@
         }
        }
       }
-     }
+     },
+     "description": "状態"
     },
     "entities": {
      "type": "array",
@@ -186,7 +221,10 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^ENT-[0-9]+$"
+        "pattern": "^ENT-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
@@ -200,7 +238,8 @@
          "meaning": [
           "エンティティ"
          ]
-        }
+        },
+        "description": "名前"
        },
        "state": {
         "type": "array",
@@ -210,14 +249,19 @@
          "properties": {
           "id": {
            "type": "string",
-           "pattern": "^ES-[0-9]+$"
+           "pattern": "^ES-[0-9]+$",
+           "x-view": {
+            "hidden": true
+           }
           },
           "name": {
            "type": "string",
-           "pattern": "^TERM-[0-9]+$"
+           "pattern": "^TERM-[0-9]+$",
+           "description": "名前"
           },
           "type": {
-           "type": "string"
+           "type": "string",
+           "description": "型"
           }
          },
          "required": [
@@ -225,7 +269,8 @@
           "name",
           "type"
          ]
-        }
+        },
+        "description": "状態"
        }
       },
       "required": [
@@ -233,7 +278,8 @@
        "name",
        "state"
       ]
-     }
+     },
+     "description": "エンティティ"
     }
    },
    "required": [
@@ -254,10 +300,14 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^INV-[0-9]+$"
+      "pattern": "^INV-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "condition": {
-      "$ref": "common.schema.json#/$defs/condition"
+      "$ref": "common.schema.json#/$defs/condition",
+      "description": "条件"
      },
      "via": {
       "type": "array",
@@ -268,7 +318,8 @@
       "x-ref": {
        "to": "self",
        "in": "commands"
-      }
+      },
+      "description": "至る操作"
      }
     },
     "required": [
@@ -320,6 +371,9 @@
      "x-prompt": {
       "read": "ほかの宣言は AGG-n.CMD-n で指す",
       "write": "CMD-番号で書く"
+     },
+     "x-view": {
+      "hidden": true
      }
     },
     "name": {
@@ -349,14 +403,23 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^ARG-[0-9]+$"
+        "pattern": "^ARG-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "description": "名前"
        },
        "type": {
-        "type": "string"
+        "type": "string",
+        "description": "型",
+        "x-ref": {
+         "to": "value_object",
+         "only": "^VO-"
+        }
        }
       },
       "required": [
@@ -379,10 +442,14 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^BR-[0-9]+$"
+        "pattern": "^BR-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "condition": {
-        "$ref": "common.schema.json#/$defs/condition"
+        "$ref": "common.schema.json#/$defs/condition",
+        "description": "条件"
        },
        "reject": {
         "type": "string",
@@ -400,7 +467,8 @@
           "group": "拒否の理由を1つの集約だけが使う",
           "max_decls": 1
          }
-        }
+        },
+        "description": "拒否の理由"
        },
        "implements": {
         "allOf": [
@@ -417,18 +485,26 @@
           "min": 1,
           "max": 1
          }
-        }
+        },
+        "description": "実装するビジネスルール"
        },
        "example": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
          "before": {
-          "type": "object"
+          "type": "object",
+          "x-view": {
+           "hidden": true
+          }
          },
          "args": {
-          "type": "object"
+          "type": "object",
+          "description": "引数"
          }
+        },
+        "x-view": {
+         "hidden": true
         }
        }
       },
@@ -465,10 +541,14 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^CHG-[0-9]+$"
+        "pattern": "^CHG-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "condition": {
-        "$ref": "common.schema.json#/$defs/condition"
+        "$ref": "common.schema.json#/$defs/condition",
+        "description": "条件"
        }
       },
       "required": [
@@ -490,7 +570,10 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^EVT-[0-9]+$"
+        "pattern": "^EVT-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
@@ -504,7 +587,8 @@
          "meaning": [
           "業務イベント"
          ]
-        }
+        },
+        "description": "名前"
        },
        "fields": {
         "type": "array",
@@ -513,13 +597,15 @@
          "additionalProperties": false,
          "properties": {
           "from": {
-           "type": "string"
+           "type": "string",
+           "description": "取り出す先"
           }
          },
          "required": [
           "from"
          ]
-        }
+        },
+        "description": "渡す状態"
        }
       },
       "required": [
@@ -542,13 +628,20 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^OK-[0-9]+$"
+        "pattern": "^OK-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "before": {
-        "type": "object"
+        "type": "object",
+        "x-view": {
+         "hidden": true
+        }
        },
        "args": {
-        "type": "object"
+        "type": "object",
+        "description": "引数"
        }
       },
       "required": [

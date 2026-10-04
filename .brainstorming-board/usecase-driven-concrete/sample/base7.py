@@ -75,7 +75,7 @@ def target(ann, decl, v):
         return v, None, True
     head = v.split(".")[0]; d = D.get(head)
     if d is None: return v, None, True
-    if d["kind"] != to: return v, d, False
+    if d["kind"] not in (to if isinstance(to, list) else [to]): return v, d, False
     cur = d
     for i in v.split(".")[1:]:
         cur = next((x for x in find_all(cur) if x.get("id") == i), None)
@@ -209,7 +209,7 @@ def candidates(ann, refs):
         for k in {l["decl"] for l in refs}:
             out += [(f'{k}.{x["id"]}', x) for x in (get(D[k], ann["in"]) or [])]
         return out
-    ds = [d for d in D.values() if d["kind"] == to]
+    ds = [d for d in D.values() if d["kind"] in (to if isinstance(to, list) else [to])]
     if ann.get("in"): return [(f'{d["id"]}.{x["id"]}', x) for d in ds for x in (get(d, ann["in"]) or [])]
     return [(d["id"], d) for d in ds]
 

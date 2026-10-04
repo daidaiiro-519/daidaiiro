@@ -26,17 +26,24 @@ def name_of(ref, ctx):
     if ref.startswith("TERM-"): return path(ref)
     if ref in SCH["common"].get("x-view-words", {}): return SCH["common"]["x-view-words"][ref]
     nm = SCH["common"]["x-view-name"]
-    def label(o):
+    def label(o, owner=None):
         for k in nm:
             v = base7.get(o, k)
             if isinstance(v, str): return word(v) if v.startswith("TERM-") else v
+        sm = SCH["common"].get("x-view-summary")
+        if sm and isinstance(o.get(sm["field"]), dict):
+            return text(o[sm["field"]], sm["as"], {"decl": owner or decl})
         return None
     decl, cmd = ctx.get("decl"), ctx.get("cmd")
     p = ref.split(".")
-    if p[0] in D() and len(p) == 1: return label(D()[p[0]]) or ref
+    if p[0] in D() and len(p) == 1: return label(D()[p[0]], D()[p[0]]) or ref
     other = None
     if p[0] in D():
         other = D()[p[0]]; decl, p = other, p[1:]
+    if other is None and len(p) == 1 and not (cmd or decl and any(x.get("id") == p[0] for x in base7.find_all(decl))):
+        for dd in D().values():
+            hit = next((x for x in base7.find_all(dd) if x.get("id") == p[0] and x is not dd), None)
+            if hit is not None: return label(hit, dd) or ref
     for pool in ([cmd] if cmd else []) + ([decl] if decl else []):
         cur = pool
         argp = SCH["common"].get("x-view-arg", "") if (cmd is not None and pool is cmd) else ""
@@ -44,7 +51,7 @@ def name_of(ref, ctx):
             cur = next((x for x in base7.find_all(cur) if x.get("id") == i), None)
             if cur is None: break
         if cur is not None:
-            n = label(cur)
+            n = label(cur, pool if pool is decl else decl)
             if n:
                 # 状態の型がエンティティなら、エンティティの名前を前に付ける（ENT-1.ES-3 → 明細の提示した価格）
                 if len(p) > 1:
@@ -104,4 +111,10 @@ def text(val, defname, ctx):
         return str(val)
     for k, t in view.get("by_key", {}).items():
         if k in val: return fill(t, val, view, ctx)
+    return fill(view["text"], val, view, ctx)
+
+def view_text(val, view, ctx):
+    """欄に直に付いた x-view（cases と text）で文にする"""
+    for c in view.get("cases", []):
+        if all(val.get(k) == v for k, v in c["when"].items()): return fill(c["text"], val, view, ctx)
     return fill(view["text"], val, view, ctx)

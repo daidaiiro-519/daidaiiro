@@ -37,6 +37,9 @@
    "x-prompt": {
     "read": "ほかの宣言はこの ID で指す",
     "write": "UC-番号 の形で書く。番号は増える一方にし、消した ID を再び使わない"
+   },
+   "x-view": {
+    "hidden": true
    }
   },
   "header": {
@@ -45,14 +48,16 @@
    "properties": {
     "name": {
      "type": "string",
-     "minLength": 1
+     "minLength": 1,
+     "description": "名前"
     },
     "level": {
      "enum": [
       "要約",
       "ユーザー目的",
       "サブ機能"
-     ]
+     ],
+     "description": "高さ"
     },
     "scope": {
      "type": "object",
@@ -67,7 +72,8 @@
        "x-ref": {
         "to": "domain",
         "item": true
-       }
+       },
+       "description": "相互作用するシステム"
       }
      },
      "required": [
@@ -104,7 +110,10 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^SH-[0-9]+$"
+      "pattern": "^SH-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "who": {
       "allOf": [
@@ -115,11 +124,13 @@
       "x-ref": {
        "to": "domain",
        "item": true
-      }
+      },
+      "description": "利害関係者"
      },
      "interest": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "利益"
      }
     },
     "required": [
@@ -142,10 +153,14 @@
     "properties": {
      "id": {
       "type": "string",
-      "pattern": "^PRE-[0-9]+$"
+      "pattern": "^PRE-[0-9]+$",
+      "x-view": {
+       "hidden": true
+      }
      },
      "condition": {
-      "$ref": "common.schema.json#/$defs/condition"
+      "$ref": "common.schema.json#/$defs/condition",
+      "description": "条件"
      },
      "established_by": {
       "anyOf": [
@@ -159,7 +174,8 @@
       ],
       "x-ref": {
        "to": "use_case"
-      }
+      },
+      "description": "成り立たせるユースケース"
      }
     },
     "required": [
@@ -185,14 +201,19 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^MG-[0-9]+$"
+        "pattern": "^MG-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "名前"
        },
        "condition": {
-        "$ref": "common.schema.json#/$defs/condition"
+        "$ref": "common.schema.json#/$defs/condition",
+        "description": "条件"
        },
        "protects": {
         "type": "array",
@@ -203,7 +224,8 @@
         "x-ref": {
          "to": "self",
          "in": "stakeholders"
-        }
+        },
+        "description": "守る利害関係者"
        }
       },
       "required": [
@@ -212,7 +234,8 @@
        "condition",
        "protects"
       ]
-     }
+     },
+     "description": "最低保証"
     },
     "success": {
      "type": "array",
@@ -222,14 +245,19 @@
       "properties": {
        "id": {
         "type": "string",
-        "pattern": "^SG-[0-9]+$"
+        "pattern": "^SG-[0-9]+$",
+        "x-view": {
+         "hidden": true
+        }
        },
        "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "名前"
        },
        "condition": {
-        "$ref": "common.schema.json#/$defs/condition"
+        "$ref": "common.schema.json#/$defs/condition",
+        "description": "条件"
        },
        "satisfies": {
         "type": "array",
@@ -240,7 +268,8 @@
         "x-ref": {
          "to": "self",
          "in": "stakeholders"
-        }
+        },
+        "description": "満たす利害関係者"
        }
       },
       "required": [
@@ -249,7 +278,8 @@
        "condition",
        "satisfies"
       ]
-     }
+     },
+     "description": "成功時保証"
     }
    },
    "required": [
@@ -271,14 +301,16 @@
      "items": {
       "type": "string",
       "minLength": 1
-     }
+     },
+     "description": "支援アクター"
     },
     "steps": {
      "type": "array",
      "items": {
       "$ref": "#/$defs/step"
      },
-     "minItems": 1
+     "minItems": 1,
+     "description": "手順"
     }
    },
    "required": [
@@ -340,7 +372,8 @@
      "x-ref": {
       "to": "other_requirements",
       "item": true
-     }
+     },
+     "description": "業務ルール"
     },
     "quality": {
      "allOf": [
@@ -395,6 +428,9 @@
      "x-prompt": {
       "read": "番号は道具が並び順から振る",
       "write": "STEP-番号で書く。並べ替えても ID は変えない"
+     },
+     "x-view": {
+      "hidden": true
      }
     },
     "kind": {
@@ -596,7 +632,8 @@
         "items": {
          "type": "string",
          "minLength": 1
-        }
+        },
+        "description": "提供価値"
        }
       },
       "required": [
@@ -645,6 +682,9 @@
      "x-prompt": {
       "read": "番号は道具が振る",
       "write": "EXT-番号.S-番号 で書く"
+     },
+     "x-view": {
+      "hidden": true
      }
     },
     "kind": {
@@ -846,7 +886,8 @@
         "items": {
          "type": "string",
          "minLength": 1
-        }
+        },
+        "description": "提供価値"
        }
       },
       "required": [
@@ -895,6 +936,9 @@
      "x-prompt": {
       "read": "ラベル（3a など）は道具が振る",
       "write": "EXT-番号で書く"
+     },
+     "x-view": {
+      "hidden": true
      }
     },
     "condition_kind": {

@@ -79,6 +79,7 @@ common = {"$schema": S, "$id": "common.schema.json", "title": "宣言の共通�
 
 # ── 文の型（ボード schema-driven-base の論点3を試す）。条件と値を、注釈 x-view の文の型だけで文にする
 common["x-view-name"] = ["word", "name", "header/name"]
+common["x-view-summary"] = {"field": "condition", "as": "condition"}  # 名前の無い項目は、この欄の文で指す
 common["x-view-arg"] = "指定された"  # コマンドの引数を指す名前の前に付ける
 common["x-view-words"] = {"RESULT": "結果"}  # 欄の値に書く決まった語
 common["x-view-glossary"] = {"kind": "glossary", "in": "terms", "label": "word", "meanings": "meanings", "meaning_key": "kind"}  # 語を引く先
@@ -432,6 +433,35 @@ ALL["subdomain"]["properties"]["business_logic"]["x-derive"]["expect"] = [
     {"name": "カテゴリーと実装方法", "when": {"classification/category": ["一般", "補完"]}, "not_in": DM}]
 # 指される数の条件を、指される側の判定で絞る：実装方法がドメインモデルのサブドメインを対象とする文脈には、集約が必要
 ALL["aggregate"]["properties"]["header"]["properties"]["context"]["x-ref"]["inverse"] = {"group": "ドメインモデルの文脈に集約がある", "min": 1, "where_derive": {"via": "header/subdomains", "derive": "business_logic", "in": DM}}
+
+# ── 描画の注釈（論点3 B′ の完成イメージ）。入れ子の欄の説明 ・ 個数の文の型 ・ 描かない欄
+LABELS = {"name": "名前", "type": "型", "multiplicity": "個数", "condition": "条件", "reject": "拒否の理由", "args": "引数",
+          "state": "状態", "entities": "エンティティ", "via": "至る操作", "business_rules": "業務ルール", "state_changes": "状態の変更",
+          "emits": "業務イベント", "accept_examples": "受け付ける例", "fields": "渡す状態", "implements": "実装するビジネスルール",
+          "word": "語", "meanings": "意味", "avoid": "使わない語", "definition": "定義", "kind": "種類", "who": "利害関係者", "interest": "利益",
+          "problem": "課題", "values": "提供価値", "competitors": "競合", "success_criteria": "達成の基準", "text": "説明", "differentiator": "競合との違いになる",
+          "lacks": "欠けている提供価値", "out": "作らないもの（Out）", "level": "高さ", "inside": "内側", "outside": "外側", "description": "説明",
+          "purpose": "目的", "subdomains": "対象とするサブドメイン", "relations": "外の相手", "external": "相手", "owner": "持ち主", "pattern": "連係の方法",
+          "direction": "向き", "operations": "操作", "sends": "渡すもの", "receives": "受け取るもの", "failures": "失敗の種類", "term": "語", "meaning": "意味",
+          "components": "成分", "invariants": "不変条件", "precision": "精度", "unit": "単位", "result": "結果", "reads": "読む集約", "inputs": "入力",
+          "results": "結果", "output": "出力", "from": "取り出す先", "target": "対象", "measure": "測るもの", "threshold": "閾値", "ratio": "割合",
+          "method": "測り方", "system": "相互作用するシステム", "protects": "守る利害関係者", "satisfies": "満たす利害関係者", "established_by": "成り立たせるユースケース",
+          "minimal": "最低保証", "success": "成功時保証", "supporting_actors": "支援アクター", "steps": "手順", "rule_conditions": "業務ルールが複雑と答えた根拠"}
+HIDE = {"example", "before", "retry", "translates", "grade", "uses", "id"}
+def label_all(o):
+    if isinstance(o, dict):
+        for k, v in (o.get("properties") or {}).items():
+            if isinstance(v, dict):
+                if not v.get("description") and not v.get("title") and k in LABELS: v["description"] = LABELS[k]
+                if k in HIDE: v.setdefault("x-view", {})["hidden"] = True
+        for v in o.values(): label_all(v)
+    elif isinstance(o, list):
+        for v in o: label_all(v)
+for sc in ALL.values(): label_all(sc)
+ms = ALL["aggregate"]["properties"]["structure"]["properties"]["state"]["items"]["properties"]["multiplicity"]
+ms["x-view"] = {"cases": [{"when": {"min": 1, "max": 1}, "text": "1つ"}, {"when": {"min": 0, "max": 1}, "text": "0か1つ"}, {"when": {"max": None}, "text": "{min}件以上"}], "text": "{min}〜{max}件"}
+ALL["aggregate"]["$defs"]["command"]["properties"]["args"]["items"]["properties"]["type"]["x-ref"] = {"to": "value_object", "only": "^VO-"}
+ALL["subdomain"]["properties"]["business_logic"]["properties"]["rule_conditions"]["x-ref"] = {"to": ["aggregate", "domain_service"], "item": True}
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")
