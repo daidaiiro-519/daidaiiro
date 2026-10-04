@@ -19,7 +19,22 @@
   }
  ],
  "guarantees": {
-  "minimal": [],
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "失敗したら前の複製のまま",
+    "condition": {
+     "target": "TERM-22.TERM-16",
+     "op": "eq",
+     "value": {
+      "before": "TERM-22.TERM-16"
+     }
+    },
+    "protects": [
+     "SH-1"
+    ]
+   }
+  ],
   "success": [
    {
     "id": "SG-1",
@@ -101,10 +116,35 @@
     "actor": "システム",
     "verb": "TERM-31",
     "object": "TERM-22",
+    "keeps": [
+     "MG-1"
+    ],
     "serves": [
      "SH-1"
     ],
-    "extensions": []
+    "extensions": [
+     {
+      "id": "EXT-3",
+      "condition_kind": "業務ルールの拒否",
+      "reasons": [
+       "TERM-54"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-3.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "道具の作り手",
+        "data": [
+         "TERM-23"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ]
    },
    {
     "id": "STEP-4",
@@ -139,6 +179,9 @@
       ]
      }
     ],
+    "keeps": [
+     "MG-1"
+    ],
     "serves": [
      "SH-1"
     ]
@@ -162,10 +205,7 @@
  "contributes_to": [
   "SC-4"
  ],
- "open_issues": [
-  "複製に手の変更があるときに、転写を拒むかを決めていない（転写すると、差の検査で見つけるはずの変更が消える）",
-  "書く途中で失敗したときに、複製が半端に残らないことを最低保証に置くかを決めていない"
- ],
+ "open_issues": [],
  "links": {
   "technology": [
    "REQ-1.TEC-1",

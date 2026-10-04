@@ -63,6 +63,8 @@ TERMS = [
  T(51, "JSON として読めない", "失敗の種類", "ファイルの内容が JSON の文法に沿わない", IT),
  T(52, "ほかの更新と競合した", "拒否の理由", "JSON Patch の test 操作が、いまのインスタンスと合わないので書かない", IT),
  T(53, "検証を通過しないインスタンスがある", "拒否の理由", "ディレクトリに検証を通過しないインスタンスがあるので、承認を記録しない", IT),
+ T(54, "複製に手の変更がある", "拒否の理由", "複製のファイルが、前に転写した時点のハッシュ値と違うので転写しない。正本を直してから転写し直す", IT),
+ T(55, "参照と導出値のずれがある", "拒否の理由", "検査結果にずれが残っているので、承認を記録しない", IT),
 ]
 
 D = {}
@@ -185,10 +187,10 @@ D["UC-3"] = UC(3, "インスタンスを更新する", "ユーザー目的", AI,
   step(4, "内部の状態変化", "システム", verb="TERM-28", object="TERM-1", keeps=["MG-1"], serves=["SH-1", "SH-2"],
        extensions=[reject("EXT-3", ["TERM-38", "TERM-52"], AI), reject("EXT-4", ["TERM-39"], AI, data="TERM-9"),
                    other("EXT-5", {"target": "TERM-1.TERM-16", "op": "eq", "value": {"before": "TERM-1.TERM-16"}}, AI, ["TERM-9"])]),
-  WRITE(5, AI, ["TERM-48"], "EXT-6", serves=["SH-1"]),
+  WRITE(5, AI, ["TERM-48"], "EXT-6", keeps=["MG-1"], serves=["SH-1"]),
   say(6, "システム", AI, ["TERM-9"], verb="TERM-26", serves=["SH-1"])],
  ["SC-2"], links={"business_rules": ["REQ-1.BR-2"], **TECH},
- issues=["項目の削除は、remove の JSON Patch を渡すこのユースケースで扱う", "書く途中で失敗したときに、前の内容か新しい内容のどちらかが残ることを、最低保証に置くかを決めていない"])
+ issues=["項目の削除は、remove の JSON Patch を渡すこのユースケースで扱う"])
 
 D["UC-4"] = UC(4, "インスタンスを削除する", "ユーザー目的", AI,
  [SH_AI("消したインスタンスを、まだ指している参照が分かる")],
@@ -244,24 +246,23 @@ D["UC-8"] = UC(8, "承認を記録する", "ユーザー目的", OWN,
  [say(1, OWN, "システム", ["TERM-7"], serves=["SH-1"]),
   step(2, "サブユースケースの呼び出し", OWN, calls="UC-5", serves=["SH-1"]),
   step(3, "内部の状態変化", "システム", verb="TERM-30", object="TERM-15", keeps=["MG-1"], serves=["SH-1"],
-       extensions=[reject("EXT-1", ["TERM-53"], OWN, data="TERM-9"),
+       extensions=[reject("EXT-1", ["TERM-53"], OWN, data="TERM-9"), reject("EXT-4", ["TERM-55"], OWN, data="TERM-14"),
                    other("EXT-2", {"target": "TERM-11.TERM-16", "op": "eq", "value": {"before": "TERM-15.TERM-16"}}, OWN, ["TERM-16"])]),
-  WRITE(4, OWN, ["TERM-48"], "EXT-3", serves=["SH-1"]),
+  WRITE(4, OWN, ["TERM-48"], "EXT-3", keeps=["MG-1"], serves=["SH-1"]),
   say(5, "システム", OWN, ["TERM-16"], verb="TERM-26", serves=["SH-1"])],
- ["SC-3"], links=TECH, issues=["参照と導出値のずれが残っているディレクトリのインスタンスを承認してよいかを、まだ決めていない"])
+ ["SC-3"], links=TECH)
 
 D["UC-9"] = UC(9, "基盤の複製を転写する", "ユーザー目的", MK,
  [SH_MK("基盤の能力を書き直さずに、作る道具の中で使える")],
- [],
+ [SAME("MG-1", "失敗したら前の複製のまま", "TERM-22.TERM-16", ["SH-1"])],
  [{"id": "SG-1", "name": "正本と同じ複製", "condition": {"target": "TERM-23", "agg": "count", "op": "le", "value": 0}, "satisfies": ["SH-1"]}],
  [say(1, MK, "システム", ["TERM-24"], serves=["SH-1"]),
   READ(2, MK, ["TERM-24"], ["TERM-50"], "EXT-1", reasons=("TERM-40",), serves=["SH-1"]),
-  step(3, "内部の状態変化", "システム", verb="TERM-31", object="TERM-22", serves=["SH-1"]),
-  WRITE(4, MK, ["TERM-50"], "EXT-2", serves=["SH-1"]),
+  step(3, "内部の状態変化", "システム", verb="TERM-31", object="TERM-22", keeps=["MG-1"], serves=["SH-1"],
+       extensions=[reject("EXT-3", ["TERM-54"], MK, data="TERM-23")]),
+  WRITE(4, MK, ["TERM-50"], "EXT-2", keeps=["MG-1"], serves=["SH-1"]),
   say(5, "システム", MK, ["TERM-24"], verb="TERM-26", serves=["SH-1"])],
- ["SC-4"], links=TECH,
- issues=["複製に手の変更があるときに、転写を拒むかを決めていない（転写すると、差の検査で見つけるはずの変更が消える）",
-         "書く途中で失敗したときに、複製が半端に残らないことを最低保証に置くかを決めていない"])
+ ["SC-4"], links=TECH)
 
 D["UC-10"] = UC(10, "複製と正本の差分を検査する", "ユーザー目的", MK,
  [SH_MK("正本が新しくなったことと、複製を手で書き換えたことに気づける")],
@@ -301,7 +302,7 @@ def BC(i, name, purpose, sds, rels, terms, brs=(), pl=()):
 IO = [25, 26, 35, 36, 40, 41, 42, 48, 51]
 D["BC-1"] = BC(1, "インスタンスの操作と検査", "インスタンスの作成 ・ 取得 ・ 更新 ・ 削除と、書き込む前の検証と x-prompt、ディレクトリのインスタンスの参照と導出値と承認のあとの変化を決める。読み書きと検査は同じインスタンスを扱うので1つの文脈に置き、内側を業務領域ごとのモジュールに分ける。ページの組み方は、このモデルに入れない",
  ["SD-1", "SD-2"], [FS(1, ["TERM-35", "TERM-36"])],
- sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53])),
+ sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53, 55])),
  [{"id": "BR-1", "condition": {"target": "TERM-5", "op": "not_empty"}, "implements": "REQ-1.BR-1"},
   {"id": "BR-2", "condition": {"target": "TERM-6", "op": "not_empty"}, "implements": "REQ-1.BR-2"},
   {"id": "BR-3", "condition": {"target": "TERM-2.TERM-4.TERM-10", "op": "not_empty"}, "implements": "REQ-1.BR-3"}],
@@ -312,7 +313,7 @@ D["BC-2"] = BC(2, "描画", "ページテンプレートの並びのとおりに
  sorted(set(IO + [1, 3, 7, 11, 12, 13, 17, 18, 19, 20, 33, 45])))
 D["BC-3"] = BC(3, "転写", "正本の複製を写し、複製と正本の差分を出す。インスタンスとページは、このモデルに入れない",
  ["SD-4"], [FS(1, ["TERM-35", "TERM-36"])],
- sorted(set(IO + [16, 21, 22, 23, 24, 31, 34, 50])))
+ sorted(set(IO + [16, 21, 22, 23, 24, 31, 34, 50, 54])))
 
 os.makedirs(os.path.join(H, "decls"), exist_ok=True)
 for f in os.listdir(os.path.join(H, "decls")): os.remove(os.path.join(H, "decls", f))
