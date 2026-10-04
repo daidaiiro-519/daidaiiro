@@ -72,7 +72,9 @@ def ftbl(cols,rows,groups=None,label='種類',unit='件'):
   body=''.join(f'<tr data-k="{E(k)}">'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for k,r in rows)
   return '<div class="fwrap"><div class="filt" role="group" aria-label="'+E(label)+'で絞る">'+head_+rowsh+'</div><div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div></div>'
 def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
-def tiles(pairs): return '<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{lab(k)}</div><div class="tv">{v}</div></div>' for k,v in pairs)+'</div>'
+def tiles(pairs):
+  """見出しと中身の組を、1枚の枠に1行ずつ並べる。欄の数や長さが違っても、折り返しや段落ちが起きない"""
+  return '<dl class="kv">'+''.join(f'<div class="kvr"><dt>{lab(k)}</dt><dd>{v}</dd></div>' for k,v in pairs)+'</dl>'
 def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{body}</div>'
 def cards(xs): return '<div class="cards">'+''.join(xs)+'</div>'
 def item(name,text='',extra=''): return f'<div class="item"><b>{E(name)}</b>'+(f'<span class="txt">{E(text)}</span>' if text else '')+extra+'</div>'
@@ -158,13 +160,13 @@ def p_sd(d):
     return E(r)
   b+=block('業務ロジックの性質',tiles([(SP['business_logic']['x-derive']['title'],f'<b>{E(g.impl_method(bl))}</b>')])+qa('business_logic',bl)+(('<h3 class="sub">'+E(SP['business_logic']['properties']['rule_conditions']['title'])+'</h3>'+tbl(['根拠の条件'],[[rule_text(r)+f'<span class="ln mx"><span class="no">{E(r)}</span></span>'] for r in bl['rule_conditions']])) if bl['rule_conditions'] else ''))
   if d['serves_values']: b+=block('担う提供価値',tbl(['提供価値','説明'],[[f'<b>{E(v["name"])}</b>',f'<span class="txt">{E(v["text"])}</span>'] for v in D['DOM-1']['vision']['values'] if v['id'] in d['serves_values']]))
-  b+=block('束ねるユースケース',(' '.join(ref(u) for u in d.get('use_cases',[])) or '<span class="txt">なし（外部のサービスで満たす。使うユースケースはドメインの頁の組み立てに出る）</span>'))
+  b+=block('束ねるユースケース',tbl(['ユースケース','目的レベル','主アクター'],[[ref(u),pill(D[u]['header']['level']),E(D[u]['header']['primary_actor'])] for u in d.get('use_cases',[])]) if d.get('use_cases') else '<p class="txt">なし（外部のサービスで満たす）</p>')
   return b+raw(d)
 def p_bc(d):
   h=d['header']; b=head(d)
   sds=' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']) or '<span class="txt">なし（このプロダクトの範囲の外）</span>'
   bd=d.get('boundary',{})
-  b+=tiles([('モデルの目的',E(h['purpose']))])+'<div style="height:.6rem"></div>'+tiles([('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('対象とするサブドメイン',sds)])
+  b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('対象とするサブドメイン',sds)])
   mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
   ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
   rows=[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)]
