@@ -110,9 +110,9 @@ def checks(rec=None):
     for u in v['uses']: by.setdefault(u['term'],set()).add(u['meaning'])
     two=[t for t,ms in by.items() if len(ms)>1]
     for t in two: put('structure','1つの文脈が1つの語に1つの意味',k,t,f'「{g.word(t)}」の意味を2つ使っている。語を2つに分ける','ずれ')
-    if not two: put('structure','1つの文脈が1つの語に1つの意味',k,'',f'{len(by)}語とも、使う意味は1つ','合格')
+    if not two: put('structure','1つの文脈が1つの語に1つの意味',k,'',f'{len(by)}語とも、意味は1つだけ使う','合格')
     unk=[u['term'] for u in v['uses'] if u['term'] not in T]
-    for t in unk: put('structure','使う意味が用語集にある',k,t,'用語集に無い語を指している','ずれ')
+    for t in unk: put('structure','用語集に在る語を使う',k,t,'用語集に無い語を指している','ずれ')
   # ── その他の要求：1件のビジネスルールを2つの文脈で実装しない
   impl={}
   for k,v in D.items():

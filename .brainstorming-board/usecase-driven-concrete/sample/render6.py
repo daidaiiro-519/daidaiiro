@@ -159,7 +159,7 @@ def p_bc(d):
     tcard=lambda xs,k: card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in xs if x['kind']==k))
     bk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] not in GEN)); gk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] in GEN))
     gn=len([x for x in ts if x['kind'] in GEN])
-    b+=block('使う意味',f'<p class="txt">用語集（{ref("GLO-1")}）のどの語のどの意味を使うか。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+cards([tcard(ts,k) for k in bk])+(f'<details class="fold"><summary>文を組むための語（{gn}語：{" ・ ".join(gk)}）</summary><div class="fbody">'+cards([tcard(ts,k) for k in gk])+'</div></details>' if gk else ''))
+    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+cards([tcard(ts,k) for k in bk])+(f'<details class="fold"><summary>文を組むための語（{gn}語：{" ・ ".join(gk)}）</summary><div class="fbody">'+cards([tcard(ts,k) for k in gk])+'</div></details>' if gk else ''))
   rel=d['context_map']['relations']
   if rel:
     nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
