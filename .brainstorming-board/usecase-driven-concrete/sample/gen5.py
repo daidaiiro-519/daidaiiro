@@ -256,7 +256,9 @@ def post_text(c,decl=None,cmd=None):
     vo,op=v['call'].split('.'); o=find(D[vo]['operations'],op); ch=terms()[o['name']].get('change')
     other=[a for a in v['args'] if not isinstance(a,dict)]
     if ch and other: return f'{t}が{qname(other[0],decl,cmd).replace("指定された","")}だけ{ch}'
-  if c['op']=='eq' and isinstance(v,str) and v.startswith('ARG-'): return f'{t}が、指定された値になる'
+  if c['op']=='eq' and isinstance(v,str) and v.startswith('ARG-'):
+    a=dname(decl) if decl else ''
+    return f'{a}に{t}が記録される' if a and not t.startswith(a) else f'{t}が記録される'
   if c['op']=='eq' and isinstance(v,str) and v.startswith('TERM-'): return f'{t}が{word(v)}になる'
   if c['op']=='gt' and isinstance(v,dict) and 'before' in v: return f'{t}が1件増える' if c.get('agg')=='count' else f'{t}が増える'
   return cond(c,decl,cmd)

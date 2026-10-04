@@ -97,6 +97,12 @@ D['BC-1']={"kind":"context","id":"BC-1",
   dict(T("TERM-49","示す","動作","相手に情報を見せる"),form="{to}に{data}を示す"),
   dict(T("TERM-50","知らせる","動作","相手に結果を伝える"),form="{to}に{data}を知らせる"),
   dict(T("TERM-54","受け入れる","動作","示されたものでよいと答える"),form="{data}を受け入れる"),
+  T("TERM-62","明細を足す","コマンド","下書きの注文に、商品と数量の明細を1件足す"),
+  T("TERM-63","明細は20件まで","拒否の理由","明細が20件ある注文に、さらに足そうとした"),
+  T("TERM-64","確定済の注文には足せない","拒否の理由","下書きでない注文に明細を足そうとした"),
+  T("TERM-65","商品の追加","情報の別名","足したい商品と、その数量"),
+  T("TERM-67","足せない理由","情報の別名","商品を注文に足せなかった拒否の理由"),
+  T("TERM-66","カートの中身","情報の別名","注文に入っている明細の一覧"),
   T("TERM-55","決済代行が承認しなかった","失敗の種類","決済代行が、請求額の承認を断った"),
   T("TERM-56","決済代行が応答しなかった","失敗の種類","決済代行から、決めた時間のうちに応答が無かった"),
   T("TERM-57","決済代行が誤った応答を返した","失敗の種類","決済代行の応答を、受注の語へ変換できなかった"),
@@ -113,7 +119,7 @@ D['BC-1']={"kind":"context","id":"BC-1",
 S=lambda i,kind,actor,**k:{"id":i,"kind":kind,"actor":actor,**k,"extensions":k.get("extensions",[])}
 D['UC-1']={"kind":"use_case","id":"UC-1",
  "header":{"name":"注文を確定する","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
- "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"UC-8"},
+ "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"BC-1.X-3"},
                   {"id":"PRE-2","ensures":["AGG-1.CMD-1.PRE-2"],"established_by":"UC-2"},
                   {"id":"PRE-3","ensures":["AGG-1.CMD-1.PRE-1"],"established_by":"UC-2"}],
  "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"約束した時刻に受け取り、確定した合計額だけを支払う"},
@@ -163,6 +169,20 @@ D['UC-0']={"kind":"use_case","id":"UC-0",
   S("STEP-2","相互作用","顧客",to="店舗",data=["TERM-14"],verb="TERM-49",serves=["SH-1"]),
   S("STEP-3","サブユースケースの呼び出し","店舗",calls="UC-3",keeps=["MG-1"],serves=["SH-1","SH-2"])]},
  "contributes_to":["SC-1","SC-2"],"open_issues":[],"exemptions":[]}
+D['UC-2']={"kind":"use_case","id":"UC-2",
+ "header":{"name":"注文に商品を入れる","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
+ "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"BC-1.X-3"},
+                  {"id":"PRE-2","ensures":["AGG-1.CMD-4.PRE-1"],"established_by":None}],
+ "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"食べたい商品を、必要な数だけ注文に入れる"},{"id":"SH-2","who":"DOM-1.SH-2","interest":"一度に受けきれない量の注文を受けない"}],
+ "guarantees":{"minimal":[{"id":"MG-1","name":"明細は20件まで","condition":C(target="AGG-1.ST-3",agg="count",op="le",value=20),"protects":["SH-2"]}],
+               "success":[{"id":"SG-1","name":"明細が増える","established_by":["AGG-1.CMD-4.POST-1"],"satisfies":["SH-1"]}]},
+ "scenario":{"supporting_actors":[],"steps":[
+  S("STEP-1","相互作用","顧客",to="システム",data=["TERM-65"],verb="TERM-48",serves=["SH-1"]),
+  S("STEP-2","内部の状態変化","システム",invokes="AGG-1.CMD-4",keeps=["MG-1"],serves=["SH-1","SH-2"],extensions=[
+    {"id":"EXT-1","condition_kind":"コマンドの拒否","handles":["AGG-1.CMD-4.PRE-2"],"ending":"失敗","steps":[
+      S("EXT-1.S-1","相互作用","システム",to="顧客",data=["TERM-67"],verb="TERM-50")]}]),
+  S("STEP-3","相互作用","システム",to="顧客",data=["TERM-66"],verb="TERM-49",serves=["SH-1"])]},
+ "contributes_to":["SC-2"],"open_issues":[],"exemptions":[]}
 D['UC-3']={"kind":"use_case","id":"UC-3",
  "header":{"name":"注文を渡す","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"店舗","trigger_step":"STEP-1"},
  "preconditions":[],
@@ -202,6 +222,11 @@ D['AGG-1']={"kind":"aggregate","id":"AGG-1",
                      {"id":"POST-4","condition":C(target="ST-8",op="eq",value="ARG-3")}],
    "emits":[{"id":"EVT-1","name":"TERM-7","fields":[{"from":"ST-1"},{"from":"ST-4"}]}],
    "accept_examples":[{"id":"OK-1","before":{"ST-2":"TERM-10","ST-3":{"count":2}},"args":{"ARG-1":"12:30","ARG-2":"A-1029","ARG-3":"調理枠 12:00"}}]},
+  {"id":"CMD-4","name":"TERM-62","args":[{"id":"ARG-1","name":"TERM-26","type":"ID"},{"id":"ARG-2","name":"TERM-3","type":"VO-1"}],
+   "preconditions":[{"id":"PRE-1","condition":C(target="ST-2",op="eq",value="TERM-10"),"reject":"TERM-64"},
+                    {"id":"PRE-2","condition":C(target="ST-3",agg="count",op="le",value=19),"reject":"TERM-63"}],
+   "postconditions":[{"id":"POST-1","condition":C(target="ST-3",agg="count",op="gt",value={"before":"ST-3","agg":"count"})}],
+   "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-2":"TERM-10","ST-3":{"count":1}},"args":{"ARG-1":"P-1","ARG-2":2}}]},
   {"id":"CMD-2","name":"TERM-23","args":[],"preconditions":[],
    "postconditions":[{"id":"POST-1","condition":C(target="ST-6",agg="count",op="gt",value={"before":"ST-6","agg":"count"})}],
    "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-6":{"count":0}},"args":{}}]},
@@ -250,7 +275,7 @@ D['DS-1']={"kind":"domain_service","id":"DS-1",
    "postconditions":[{"id":"POST-1","condition":C(target="RESULT",op="not_empty")},
                      {"id":"POST-2","condition":C(target="RESULT",op="ge",value="AGG-2.ST-1")}]}]}
 
-ORDER_IDS=['DOM-1','SD-1','SD-2','BC-1','UC-0','UC-1','UC-3','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
+ORDER_IDS=['DOM-1','SD-1','SD-2','BC-1','UC-0','UC-1','UC-2','UC-3','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
 D={k:D[k] for k in ORDER_IDS}
 IMPL={"BC-1":"ドメインモデル"}
 RETIRED=["AGG-1.INV-3","AGG-2.INV-1"]
