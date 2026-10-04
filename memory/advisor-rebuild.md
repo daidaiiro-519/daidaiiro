@@ -16,10 +16,10 @@ metadata:
 - **引き継ぎ**：テストを書くときに臭いを作らない規則（ガードレール）は、モデリング ・ コーディングの Skill が持つ（利用者の判断）。no-more-spaghetti に代わる Skill を設計するボード（usecase-modeling-coding）で、ガードレールに入れ、困ったときは qa-advisor の判断基準を引く形にする
 - 決着済み：配線表の qa→ddd の2行は消した（ACDR 0101）。回答のゲート1は SKILL.md に入れない（advisor は他の Skill の名前を書けない。CLAUDE.md の規則で Orchestrator が当てる）。ミューテーションテストは原文を取得できないので足さない
 
-**platform（2026-10-03 完了）**：ACDR 0104 で承認 ・ コミット済み（未 push）。判断基準57件（WAF の質問ごと）・ 水準35件（grades.json）・ licenses.json。原典 ・ ノート ・ 依頼書 ・ grades-gen.py は archive（git の外）。確認用の頁は 8749 の /platform/
+**platform（2026-10-03 完了）**：ACDR 0104 で承認 ・ コミット ・ push 済み（7704c847）。判断基準57件（WAF の質問ごと）・ 水準35件（grades.json）・ licenses.json。原典 ・ ノート ・ 依頼書 ・ grades-gen.py は archive（git の外）。確認用の頁は 8749 の /platform/
 - ACDR 0103（ブレストボードの組み込みの文言）も承認待ち・未コミット
 
-**次**：ux はブレストボードを立てて、原典の選び直しから判断基準を作り直す。
+**ux（2026-10-04 作業中）**：ボード ux-advisor-source（https://claude.ai/artifact/DinpoSiVFSa1NANiBZxpG3）は4論点とも決着（6回目）。目的＝新しく作るものの体験と完成イメージ。原典＝18F Methods（主、CC0）・ Nielsen 10 ・ WCAG 2.2 WAIC 訳 ・ GOV.UK の文言5頁 ・ Design Tokens Format Module 2025.10。判断基準67件、答えはデザイナーが案を生み出す6段の順、完成イメージはワイヤーフレームとデザインシステム（トークンの JSON）。今の3件と図は外す。次は原典の取得 → 学習ノート → 判断基準 → 受け入れ → ACDR。外したもの：デジタル庁 DS ・ トレンド ・ About Face（本が無い）・ Laws of UX ・ Apple HIG ・ frontend-design。「根拠」は研究ではなく一次の出典まで辿れること（利用者が明言）
 
 **未着手の欠陥**：図の role を描かない ・ ux-advisor の validate（CLI の `validate --kind answer --file` がファイルを検査しない ・ MCP が指摘のあるときも ok を返す）── ux は作り直しで扱う。usecase の以前の試しの回答3件（scratchpad）は、新しい validate で旧い引用と id の誤りが見つかる。
 
