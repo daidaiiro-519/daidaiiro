@@ -2,7 +2,7 @@
 # ユースケースの期待する結果は、ユースケースの欄と、それを満たすアプリケーション層の操作の対応から決まる
 import json,hashlib
 import gen6 as g
-from data6 import IMPL,RETIRED
+from data6 import RETIRED
 D=g.D
 def use(state):
   global D
@@ -11,6 +11,11 @@ LEVEL={"ドメインモデル":{"use_case":"system","quality":"system","aggregat
        "アクティブレコード":{"use_case":"system","quality":"system","aggregate":"component-integration","value_object":"component","domain_service":"component-integration"},
        "トランザクションスクリプト":{"use_case":"system","quality":"system","aggregate":"system","value_object":"component","domain_service":"system"}}
 def fp(obj): return hashlib.sha256(json.dumps(obj,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:8]
+def impl_of(ctx):
+  """区切られた文脈の実装方法を、それが含むサブドメインの答えから導く（固定の表から引かない）"""
+  bc=D.get(ctx) if ctx else None
+  sds=bc['header'].get('subdomains',[]) if bc else []
+  return g.impl_method(D[sds[0]]['business_logic']) if sds and sds[0] in D else 'ドメインモデル'
 def ctx_of(d):
   if d['kind']=='use_case':
     a=g.apps_of(d['id']); return a[0]['header']['context'] if a else None
@@ -31,7 +36,7 @@ def sem(s):
 def conditions():
   out=[]
   def add(cid,label,kind,checks,expect,decl,anchor):
-    lv=LEVEL[IMPL.get(ctx_of(D[decl]),'ドメインモデル')][kind]
+    lv=LEVEL[impl_of(ctx_of(D[decl]))][kind]
     out.append({"id":cid,"label":label,"kind":kind,"checks":checks,"hash":fp(expect),"required_level":lv,"decl":decl,"anchor":anchor})
   for k,d in D.items():
     if d['kind']=='use_case':
@@ -42,10 +47,13 @@ def conditions():
       for s in sc['steps']:
         for x in s['extensions']:
           fail=x['ending']=='失敗'
-          add(f'{k}.{x["id"]}',nums[x['id']],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順に戻り、成功時保証が成り立つ',
-              {"kind":x['condition_kind'],"refs":{r:x.get(r) for r in ('reasons','fails','actor')},"ending":x['ending'],"steps":[sem(t) for t in x['steps']],
+          add(f'{k}.{x["id"]}',nums[x['id']],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順が成功した状態で続き、成功時保証が成り立つ' if x['ending']=='成功' else '別の道筋で成功して終わる' if x['ending']=='終了' else '元の手順に戻り、成功時保証が成り立つ',
+              {"kind":x['condition_kind'],"refs":{r:x.get(r) for r in ('reasons','fails','actor','condition') if r!='condition' or r in x},"ending":x['ending'],"steps":[sem(t) for t in x['steps']],
                "minimal":[m['condition'] for m in gu['minimal']] if fail else [],"design":dz['ext'].get(f'{k}.{x["id"]}',[]),"up":[up(r) for r in x.get('fails',[])+dz['ext'].get(f'{k}.{x["id"]}',[])]},k,x['id'])
         pass
+      for q in d.get('links',{}).get('data',[]):
+        dt,_,_=g.item(q)
+        add(f'{k}.{q.split(".")[-1]}',dt['name'],'quality',g.cond(dt['condition']),{"d":dt['condition']},k,q.split('.')[-1])
       for q in d.get('links',{}).get('quality',[]):
         qt,_,_=g.item(q); qid=q.split('.')[-1]; sid=qt['target'].split('.',1)[1]; s=g.uc_part(d,sid)
         add(f'{k}.{sid}.{qid}',f'手順{nums[sid]}の品質の要求','quality',g.qr_text(qt),{"q":up(q),"step":sem(s)},k,sid)

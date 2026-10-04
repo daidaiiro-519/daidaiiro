@@ -53,8 +53,9 @@ def qname(ref,decl=None,cmd=None):
     if ref.startswith('ARG-') and cmd: return '指定された'+word(find(cmd['args'],ref)['name'])
   if decl and D[decl]['kind']=='value_object' and ref.startswith('CMP-'): return find(D[decl]['components'],ref)['name']
   return ref
-OPS={"eq":"は{v}","ne":"は{v}ではない","ge":"は{v}以上","le":"は{v}以下","gt":"は{v}より大きい","not_empty":"は空でない","empty":"は空"}
+OPS={"eq":"は{v}","ne":"は{v}ではない","ge":"は{v}以上","le":"は{v}以下","gt":"は{v}より大きい","not_empty":"は空でない","empty":"は空","ends_with":"は{v}のどれかで終わる"}
 def val(v,decl,cmd):
+  if isinstance(v,list): return ''.join(f'「{x}」' for x in v)
   if isinstance(v,dict) and 'before' in v: return '実行前の'+qname(v['before'],decl,cmd)+('の件数' if v.get('agg')=='count' else '')
   if isinstance(v,dict) and 'call' in v:
     vo,op=v['call'].split('.'); o=find(D[vo]['operations'],op)
@@ -62,11 +63,13 @@ def val(v,decl,cmd):
   return qname(v,decl,cmd)
 def cond(c,decl=None,cmd=None):
   def one(c,clause=False):
-    t=qname(c['target'],decl,cmd)+('の件数' if c.get('agg')=='count' else '')+('の合計' if c.get('agg')=='sum' else '')
+    t=qname(c['target'],decl,cmd)+('の件数' if c.get('agg')=='count' else '')+('の合計' if c.get('agg')=='sum' else '')+('の文字数' if c.get('measure')=='length' else '')
     v=c.get('value',''); op=OPS[c['op']]
     if c['op']=='eq' and (isinstance(v,dict) or (isinstance(v,str) and (not v.startswith('TERM-') or terms().get(v,{}).get('kind')!='状態の値'))): op='は{v}と同じ'
     if clause: op='が'+op[1:]
-    return t+op.format(v=val(v,decl,cmd) if v!='' else '')
+    vt=val(v,decl,cmd) if v!='' else ''
+    if c.get('measure')=='length' and isinstance(v,(int,float)): vt=f'{v}字'
+    return t+op.format(v=vt)
   s=one(c); return (one(c['if'],True)+'なら、'+s) if c.get('if') else s
 def clause(c,decl=None,cmd=None):
   """「XがYと同じ」の形の節（妥当性確認の文 ・ 拡張の条件に使う）"""
@@ -89,7 +92,7 @@ def item(ref):
     return find(d['business_rules'] if p[1].startswith('BR') else d['quality'],p[1]),p[0],None
   if d['kind']=='domain_service': return find(d['operations'],p[1]),p[0],None
   if d['kind']=='other_requirements':
-    return find(d['business_rules']+d['quality']+d['technology'],p[1]),p[0],None
+    return find(d['business_rules']+d['quality']+d['technology']+d.get('data',[]),p[1]),p[0],None
   if d['kind']=='use_case':
     if len(p)==1: return d,p[0],None
     return uc_part(d,'.'.join(p[1:])),p[0],None
@@ -122,7 +125,7 @@ def step_text(s):
   if s['kind']=='相互作用':
     f=terms()[s['verb']].get('form','{to}に{data}を'+word(s['verb']))
     return f'{a}は、'+f.format(to=s['to'],data=joinw(s['data']))
-  if s['kind']=='妥当性確認': return f'{a}は、'+'、'.join(clause(g_item(r)) for r in s['checks'])+'であることを確かめる'
+  if s['kind']=='妥当性確認': return f'{a}は、'+'、'.join(clause(g_item(r)) for r in s['checks'])+('ことを確かめる' if clause(g_item(s['checks'][-1])).endswith('ない') else 'であることを確かめる')
   if s['kind']=='内部の状態変化': return f'{a}は、{obj_verb(s["object"],s["verb"])}'
   if s['kind']=='サブユースケースの呼び出し': return f'{a}は、「{dname(s["calls"])}」を行う'
   return a
@@ -137,12 +140,20 @@ def ext_text(x):
   k=x['condition_kind']
   if k=='業務ルールの拒否':
     return '、'.join('「'+word(r)+'」' for r in x['reasons'])+'で受け付けられなかった：'
-  if k=='妥当性確認の失敗': return '、'.join(clause(g_item(r)) for r in x['fails'])+'でなかった：'
+  if k=='妥当性確認の失敗':
+    def neg(t): return t[:-3]+'だった' if t.endswith('でない') else t+'でなかった'
+    return '、'.join(neg(clause(g_item(r))) for r in x['fails'])+'：'
   if k=='支援アクターの失敗':
     if x.get('reasons'): return '、または'.join(word(r) for r in x['reasons'])+'：'
     return f'{x["actor"]}が応答しなかった、または誤った応答を返した：'
+  if k=='別の道筋での成功': return clause(x['condition'])+'：'
   return ''
-def ending_text(x,nums): return '失敗' if x['ending']=='失敗' else f'{nums[x["ending"]]}へ戻る'
+def ending_text(x,nums):
+  """拡張の終わり方。「成功」は元の手順が成功した状態になる終わり方で、拡張の最後には何も書かない"""
+  if x['ending']=='失敗': return '失敗'
+  if x['ending']=='成功': return ''
+  if x['ending']=='終了': return 'ユースケースは終了する'
+  return f'{nums[x["ending"]]}へ戻る'
 def pre_text(p): return cond(p['condition'])
 def sg_text(g): return post_text(g['condition'])
 def mg_text(g): return cond(g['condition'])
@@ -172,9 +183,10 @@ def other_value(state_type,v):
     vals=[x for c in vo['components'] for x in c.get('values',[])]
     for x in vals:
       if x!=v: return x
+  if isinstance(v,(int,float)) and not isinstance(v,bool): return v+1
   return '（別の値）'
-def violate(a,c):
-  t=c['target']; s=[x for x in a['structure']['state'] if x['id']==t]
+def violate(a,c,cmd=None):
+  t=c['target']; s=[x for x in (cmd['args'] if cmd and t.startswith('ARG-') else a['structure']['state']) if x['id']==t]
   ty=s[0]['type'] if s else None
   v=c.get('value')
   if c['op']=='eq': return other_value(ty,v)
@@ -193,12 +205,14 @@ def satisfy(c):
 def reject_example(a,cmd,p):
   """偽になる事前条件がちょうど1つになる、拒否の例。組めないときは宣言の例を使う"""
   if p.get('example'): return dict(p['example'],manual=True)
-  v=violate(a,p['condition'])
+  v=violate(a,p['condition'],cmd)
   if v is None: return None
-  before={p['condition']['target']:v}
+  ex={"before":{},"args":{}}
+  def put(t,x): ex['args' if t.startswith('ARG-') else 'before'][t]=x
+  put(p['condition']['target'],v)
   for q in cmd['business_rules']:
-    if q is not p: before[q['condition']['target']]=satisfy(q['condition'])
-  return {"before":before,"args":{}}
+    if q is not p: put(q['condition']['target'],satisfy(q['condition']))
+  return ex
 def violation_example(a,inv):
   c=inv['condition']; before={}
   if c.get('if'): before[c['if']['target']]=satisfy(c['if'])

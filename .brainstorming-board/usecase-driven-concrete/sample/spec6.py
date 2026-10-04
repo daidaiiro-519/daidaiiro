@@ -3,6 +3,8 @@
 import gen6 as g
 from drift6 import fp,up
 D=g.D
+import json,os
+APPROVED=os.path.join(os.path.dirname(os.path.abspath(__file__)),'approved-record.json')
 def use(state):
   global D
   D=state; g.use(state)
@@ -28,6 +30,7 @@ def links():
   return out
 def record(): return {f'{a}→{r}':fp(up(r)) for a,f,r in links() if f not in ('satisfies','calls')}
 def checks(rec=None):
+  """rec は承認した時点の記録。渡さなければ、どの対応もまだ承認していないものとして扱う（自分自身と比べない）"""
   R=[]
   def put(cat,name,src,dst,text,st): R.append({"category":cat,"check":name,"from":src,"to":dst,"text":text,"status":st})
   T=g.terms()
@@ -183,7 +186,7 @@ def checks(rec=None):
     for u in v.get('use_cases',[]):
       if u not in D: put('structure','束ねるユースケースがある',k,u,'指したユースケースが無い','ずれ')
   # ── 上流の変更（承認した時点のハッシュ値と比べる）
-  Cr=record() if rec is None else rec
+  Cr={} if rec is None else rec
   for a,f,r in links():
     if f in ('satisfies','calls'): continue
     key=f'{a}→{r}'; now=fp(up(r))
@@ -197,6 +200,6 @@ def cond_targets(c):
   return [t for t in out if isinstance(t,str) and t.startswith('TERM-')]
 if __name__=='__main__':
   import collections
-  r=checks(); print(collections.Counter(x['status'] for x in r))
+  r=checks(json.load(open(APPROVED,encoding='utf-8'))); print(collections.Counter(x['status'] for x in r))
   for x in r:
     if x['status']!='合格': print(x)

@@ -5,7 +5,7 @@ from data6 import D,RETIRED
 import gen6 as g
 from desc6 import DESC
 import drift6 as drift, spec6 as spec_drift
-SPEC=spec_drift.checks()
+SPEC=spec_drift.checks(json.load(open(spec_drift.APPROVED,encoding='utf-8')))
 CONDS=drift.conditions()
 OUT='/home/daidaiiro/workspace/daidaiiro/.brainstorming-board/usecase-driven-concrete/sample'
 DSB='/home/daidaiiro/workspace/daidaiiro/.claude/skills/design-svg/tool/target/release/design-svg'
@@ -317,7 +317,8 @@ def p_uc(d):
     for x in s['extensions']:
       st0=len(msgs)
       for t in x['steps']: add(t)
-      groups.append({"label":'break' if x['ending']=='失敗' else 'opt',"cases":[{"name":f"{nums[x['id']]} → {g.ending_text(x,nums)}","span":[st0,len(msgs)-1]}]})
+      et=g.ending_text(x,nums)
+      groups.append({"label":'break' if x['ending']=='失敗' else 'opt',"cases":[{"name":f"{nums[x['id']]} → {et}" if et else nums[x['id']],"span":[st0,len(msgs)-1]}]})
   seq=chart('uc-'+k,'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":14,"font.size":15,"chart.exchange-col-w":220,"chart.pad":6,"chart.exchange-row-h":40}})
   scs=[x for x in D['DOM-1']['vision']['success_criteria'] if x['id'] in d['contributes_to']]
   trig=[s for s in sc['steps'] if s['id']==h['trigger_step']][0]
@@ -345,6 +346,8 @@ def p_uc(d):
       fail=x['ending']=='失敗'
       sub=''.join(line(t,nums[t['id']],'sub') for t in x['steps'])
       end=(f'<li class="end fail"><span class="sn">✕</span><div class="sb"><b>失敗で終わる</b><span class="note">最低保証が成り立つ</span></div></li>' if fail
+           else '' if x['ending']=='成功'
+           else f'<li class="end back"><span class="sn">✓</span><div class="sb"><b>ユースケースは終了する</b></div></li>' if x['ending']=='終了'
            else f'<li class="end back"><span class="sn">↩</span><div class="sb"><b>手順{E(nums[x["ending"]])}へ戻る</b></div></li>')
       xm=f'<div class="meta"><span class="no">{E(x["id"])} ・ {E(x["condition_kind"])}</span>'+(f'<span class="ln mx"><span class="k">設計の側</span>{ref(M_EXT[x["id"]][0])}：{"、".join(pref(r) for r in M_EXT[x["id"]][1])}</span>' if x['id'] in M_EXT else '')+f'<span class="ln">{tchip(k+"."+x["id"])}</span></div>'
       fl+=f'<li class="ext"><div class="xh"><span class="xl">{E(nums[x["id"]])}</span><b>{gen(g.ext_text(x))}</b></div>{xm}<ol class="xs">{sub}{end}</ol></li>'
@@ -387,6 +390,7 @@ def p_req(d):
   b+=block('ビジネスルール',tbl(['ルール','組んだ文','守る利害関係者','結ぶユースケース','実装する文脈'],[[f'<b>{E(x["name"])}</b>',gen(g.cond(x['condition'])),pills([sh[p.split('.')[-1]] for p in x['protects']]),uses(f'{d["id"]}.{x["id"]}'),impl(f'{d["id"]}.{x["id"]}') or '<span class="missing">なし</span>'] for x in d['business_rules']]))
   b+=block('品質の要求',tbl(['組んだ文','閾値','割合','条件','非機能要求グレード','測り方'],[[gen(g.qr_text(q)),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))
   b+=block('使われる技術',tbl(['相互作用するシステム','要求'],[[f'<b>{E(x["system"])}</b>',f'<span class="txt">{E(x["text"])}</span>'] for x in d['technology']]))
+  if d.get('data'): b+=block('データ要求',tbl(['項目','組んだ文','結ぶユースケース'],[[f'<b>{E(x["name"])}</b>',gen(g.cond(x['condition'])),uses(f'{d["id"]}.{x["id"]}')] for x in d['data']]))
   if d['open_issues']: b+=block('未決定事項',tbl(['未決定事項'],[[E(x)] for x in d['open_issues']]))
   return b+raw(d)
 def p_app(d):
