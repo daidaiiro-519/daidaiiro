@@ -25,7 +25,7 @@ def svg(name,args,decl):
   return f'<figure class="fig">{open(OUT+f"/figures/{name}.svg").read()}</figure>'
 figure=lambda n,d: svg(n,['figure'],d)
 chart=lambda n,k,d: svg(n,['chart',k],d)
-KIND={"domain":"ドメイン","subdomain":"サブドメイン","context":"区切られた文脈","use_case":"ユースケース","aggregate":"集約","value_object":"値オブジェクト","domain_service":"ドメインサービス"}
+KIND={"domain":"ドメイン（プロダクト）","subdomain":"サブドメイン","context":"区切られた文脈","use_case":"ユースケース","aggregate":"集約","value_object":"値オブジェクト","domain_service":"ドメインサービス"}
 ORDER=["domain","subdomain","context","use_case","aggregate","value_object","domain_service"]
 CAT={"中核":"t-core","補完":"t-supporting","一般":"t-generic"}
 def ctx_of(d): return d['header'].get('context') or (d['header'].get('scope') or {}).get('context')
@@ -89,6 +89,9 @@ def p_domain(d):
     return [f'<b>{E(x["name"])}</b>',gen(g.sc_text(x)),pill(src),pill(g.thr(x['threshold'])),pill(g.thr(x['ratio'])) if x.get('ratio') else '―',E(x['window']),' '.join(ref(u) for u in uc.get(x['id'],[])) or '<span class="missing">なし</span>']
   b+=block('達成の基準',tbl(['基準','組んだ文','測る対象','閾値','割合','期間','寄与するユースケース'],[scrow(x) for x in d['success_criteria']])+'<p class="txt">運用で測る。テスト条件にはしない。</p>')
   b+=block('範囲',cards([card('作るもの（In）',''.join(item(x) for x in g.scope_in(d))+'<span class="ln"><span class="k">組んだ文</span>サブドメインから組む</span>','left-accent'),card('作らないもの（Out）',''.join(item(x) for x in d['scope']['out']),'left-neutral')]))
+  sh={x['id']:x['who'] for x in d['stakeholders']}
+  nm=lambda x: E(sh.get(x) or next((y['name'] for y in d['design_scopes'] if y['id']==x),x))
+  b+=block('設計スコープ',tbl(['高さ','名前','内側','外側'],[[pill(x['level']),f'<b>{E(x["name"])}</b>','、'.join([nm(y) for y in x.get('inside',[])]+[ref(c) for c in x.get('contexts',[])]),'、'.join(nm(y) for y in x['outside'])] for x in d['design_scopes']])+'<p class="txt">ユースケースは、システムの高さのスコープを対象に書く。アプリ ・ 画面 ・ サービスへの分け方はスコープの内側のことで、実装の定義が持つ。</p>')
   b+=block('サブドメイン',cards([card(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]),f'<span class="txt">{E(D[s]["header"]["description"])}</span>') for s in d['subdomains']]))
   b+=block('利害関係者',tbl(['利害関係者','関心'],[[f'<b>{E(x["who"])}</b>',f'<span class="txt">{E(x["interest"])}</span>'] for x in d['stakeholders']]))
   return b+raw(d)
@@ -113,6 +116,7 @@ def p_bc(d):
     b+=block('コンテキストマップ',f+tbl(['相手','連携のパターン','この文脈の側','使う場合'],[[ref(r['with']),pill(r['pattern'],'t-accent'),pill(r['direction']),E(r['case'])] for r in rel]))
   else:
     b+=block('対応するサブドメイン',' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']))
+  if d.get('boundary'): b+=block('物理的な境界',tiles([('配置の単位',E(d['boundary']['kind'])),('所有するチーム',E(d['boundary']['owner']))]))
   if d.get('business_rules'): b+=block('業務ルール',tbl(['ID','組んだ文'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.cond(x['condition']))] for x in d['business_rules']]))
   if d.get('quality'):
     b+=block('品質の要求',tbl(['ID','組んだ文','対象','閾値','割合','条件','非機能要求グレード','測り方'],[[f'<span class="no">{E(q["id"])}</span>',gen(g.qr_text(q)),E(g.cmd_label(q['target'])),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))
@@ -236,7 +240,8 @@ def p_uc(d):
   seq=chart('uc-'+k,'exchange',{"participants":parts,"steps":msgs,"groups":groups,"theme":{"font.size-small":14,"font.size":15,"chart.exchange-col-w":220,"chart.pad":6,"chart.exchange-row-h":40}})
   scs=[x for x in D['DOM-1']['success_criteria'] if x['id'] in d['contributes_to']]
   trig=[s for s in sc['steps'] if s['id']==h['trigger_step']][0]
-  b=head(d,' '+pill(h['level'])+f' ・ スコープ {ref(ctx)}')
+  sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
+  b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a> ・ 文脈 {ref(ctx)}')
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
   sline=lambda x: f'<span class="ln"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')
@@ -295,11 +300,11 @@ R={"domain":p_domain,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_ob
 nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)
 pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'
 css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
-page=f'''<title>来店前注文の宣言</title>
+page=f'''<title>モバイルオーダーの宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
 <style>{css}</style>
-<div class="shell"><aside class="side"><p class="brand">来店前注文</p><nav class="nav">{nav}</nav></aside>
+<div class="shell"><aside class="side"><p class="brand">{E(D["DOM-1"]["header"]["name"])}</p><nav class="nav">{nav}</nav></aside>
 <main class="main">{pages}</main></div>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};

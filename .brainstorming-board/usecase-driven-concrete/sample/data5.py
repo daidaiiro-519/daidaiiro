@@ -7,7 +7,7 @@ C=lambda **k:{("if" if a=="if_" else a):v for a,v in k.items()}
 MUL=lambda lo,hi:{"min":lo,"max":hi}
 
 D['DOM-1']={"kind":"domain","id":"DOM-1",
- "header":{"name":"来店前注文","problem":"昼の混雑時、店頭で注文と会計の列に並ぶ客が多く、受け取りまで15分以上かかって帰ってしまう客がいる"},
+ "header":{"name":"受け取り時刻を約束するモバイルオーダー","problem":"昼の混雑時、店頭で注文と会計の列に並ぶ客が多く、受け取りまで15分以上かかって帰ってしまう客がいる"},
  "value_proposition":{
   "values":[{"id":"VAL-1","name":"受け取り時刻の約束","text":"来店前に注文を確定でき、調理の空きに合わせた受け取り予定時刻を約束する","differentiator":True},
             {"id":"VAL-2","name":"現金を扱わない支払い","text":"店頭で現金を扱わずに支払える","differentiator":False}],
@@ -19,6 +19,9 @@ D['DOM-1']={"kind":"domain","id":"DOM-1",
   {"id":"SC-2","name":"列が短い","source":"external","measure_text":"昼の時間帯の店頭の待ち列の人数",
    "threshold":{"op":"le","value":5,"unit":"人"},"window":"昼の時間帯"}],
  "scope":{"out":["配達","ポイント","メニューの管理"]},
+ "design_scopes":[
+  {"id":"SCP-1","level":"企業","name":"店（飲食チェーン）","inside":["SH-2","SH-3","SCP-2"],"outside":["SH-1","決済代行"]},
+  {"id":"SCP-2","level":"システム","name":"受け取り時刻を約束するモバイルオーダー","contexts":["BC-1","BC-2"],"outside":["SH-1","SH-2","決済代行"]}],
  "subdomains":["SD-1","SD-2"],
  "stakeholders":[{"id":"SH-1","who":"顧客","interest":"待たずに、約束した時刻に受け取りたい"},
                  {"id":"SH-2","who":"店舗","interest":"調理の空きを超えて注文を受けたくない"},
@@ -38,6 +41,7 @@ D['SD-2']={"kind":"subdomain","id":"SD-2",
 D['BC-1']={"kind":"context","id":"BC-1",
  "header":{"name":"受注","purpose":"受け取り予定時刻を約束した注文を、調理の空きを超えずに受け付ける","subdomains":["SD-1"]},
  "context_map":{"relations":[{"with":"BC-2","pattern":"モデル変換装置","direction":"下流","case":"下流の文脈が中核の業務領域を含む"}]},
+ "boundary":{"kind":"自社で作るサービス","owner":"受注のチーム"},
  "ubiquitous_language":{"terms":[
   T("TERM-1","注文","集約","1人の顧客が1つの店舗で受け取る商品の一覧と、その受け取り予定時刻",["オーダー"]),
   T("TERM-9","調理枠","集約","店舗が一定の時間に調理できる量"),
@@ -93,12 +97,12 @@ D['BC-1']={"kind":"context","id":"BC-1",
    "condition":{"period":"ピーク時","load":{"value":600,"unit":"件/時"}},
    "grade":{"item":"B.2.1","level":3},"method":"非機能テスト"}],
  "published_language":[]}
-D['BC-2']={"kind":"context","id":"BC-2","header":{"name":"決済","purpose":"注文の代金を外部の決済サービスで受け取る","subdomains":["SD-2"]},
+D['BC-2']={"kind":"context","id":"BC-2","header":{"name":"決済","purpose":"注文の代金を外部の決済サービスで受け取る","subdomains":["SD-2"]},"boundary":{"kind":"外部のサービス（受注の側にモデル変換装置を作る）","owner":"決済代行"},
  "context_map":{"relations":[]},"ubiquitous_language":{"terms":[]},"business_rules":[],"quality":[],"published_language":[]}
 
 S=lambda i,kind,actor,**k:{"id":i,"kind":kind,"actor":actor,**k,"extensions":k.get("extensions",[])}
 D['UC-1']={"kind":"use_case","id":"UC-1",
- "header":{"name":"注文を確定する","level":"ユーザー目的","scope":{"context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
+ "header":{"name":"注文を確定する","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
  "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"UC-8"},
                   {"id":"PRE-2","ensures":["AGG-1.CMD-1.PRE-2"],"established_by":"UC-2"},
                   {"id":"PRE-3","ensures":["AGG-1.CMD-1.PRE-1"],"established_by":"UC-2"}],
