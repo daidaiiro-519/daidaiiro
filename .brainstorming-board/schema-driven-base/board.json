@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "スキーマ駆動の道具（抽象の基盤）",
  "board": "schema-driven-base",
- "round": 14,
+ "round": 15,
  "intro": [
   {
    "kind": "para",
@@ -15,7 +15,7 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1（B⁗）・ 論点2（B‴）・ 論点3（B″）が決着した。</b>基盤は AI の構造化データ管理の基盤で、7つの契約 ・ 注釈 x-ref と x-derive を読む道具 ・ 描画の部品と頁の型を読んで組む道具を持つ。concrete はスキーマと頁の型をデータで渡す。次は論点4（配り方と名前）を出す。"
+     "text": "<b>論点1〜3が決着した。いま見る論点は4（配り方と名前）。</b>前提は、利用者の言明「基盤をもとに作るものには、基盤の能力の複製を転写する」。"
     },
     {
      "kind": "grid",
@@ -61,7 +61,12 @@
    ]
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 4,
+   "why": "論点1〜3が決着し、基盤が持つものと concrete が渡すものが決まった。どの単位で配り、どう同じ能力を持ち続けるかを決める"
+  }
+ ],
  "topics": [
   {
    "no": 1,
@@ -1414,20 +1419,222 @@
   {
    "no": 4,
    "name": "配り方と名前",
-   "status": "waiting",
+   "status": "open",
    "question": "基盤と concrete を、どの単位で配り、何と呼ぶか",
-   "answer": "論点1〜3の決着後に出す",
+   "answer": "A ── <b>基盤は、1つの Skill「schema-driven」として配る。</b>この Skill が基盤の能力の正本（Rust の crate ・ 部品の雛形 ・ トークン）を持ち、単独でも使える。<b>基盤をもとに作るものには、作るときに正本の複製を転写し、基盤の差の検査が、複製と正本の違いを報告する。</b>concrete（ユースケース駆動）は基盤とは別に、use-case-driven-development の一式として配る",
    "grounds": [
     {
-     "supports": "この論点を待たせること",
-     "basis": "論点1〜3の決着後に出す",
+     "supports": "複製を転写すること",
+     "basis": "基盤をもとに作るものには、基盤の能力の複製を転写する（skills-creator の雛形の契約と同じ形）",
      "tag": "rule",
-     "source": "このボードの論点1 ・ 論点2 ・ 論点3"
+     "source": "利用者の言明（2026-10-04）"
+    },
+    {
+     "supports": "Skill ごとに配ること",
+     "basis": "Release の公開の単位を Skill ごとにし、全部の Skill をまとめて公開する形はオプションとして残す",
+     "tag": "rule",
+     "source": "ACDR 0042"
+    },
+    {
+     "supports": "基盤を単独で使える Skill にすること",
+     "basis": "基盤は、開発に限らない AI の構造化データ管理の基盤である",
+     "tag": "rule",
+     "source": "このボードの論点1（B⁗）"
+    },
+    {
+     "supports": "転写と差の検査の形",
+     "basis": "scaffold が各 Skill の references/ へ複製し、check が複製と正本の差を検査する",
+     "tag": "rule",
+     "source": "skills-creator の SKILL.md（references/view/ の項）"
     }
    ],
    "requirements": [
-    "基盤をもとに作るものには、基盤の能力の複製を転写する（skills-creator の雛形の契約と同じ形）── 利用者の言明（2026-10-04）"
-   ]
+    "schema-driven を、スキーマ駆動の道具のプロダクトとして宣言する（ユースケース ・ 用語集 ・ その他の要求 ・ 設計の側）。見本の試作で検査する",
+    "宣言に沿って、schema-driven を Rust で作る。テストは宣言から取り出したテスト条件を記録する",
+    "頁の型の形を基盤のスキーマ（page.schema.json）として決める（論点3の要求事項）"
+   ],
+   "intro": "ここで、基盤とそれをもとに作るものが、どの単位で配られ、どう同じ能力を持ち続けるかが決まる",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "決めること",
+       "決めた内容"
+      ],
+      "rows": [
+       [
+        "基盤の名前",
+        "schema-driven（スキーマ駆動）"
+       ],
+       [
+        "基盤の配り方",
+        "1つの Skill として配る。公開の単位は Skill ごと（ACDR 0042）"
+       ],
+       [
+        "正本",
+        "schema-driven が持つ。7つの契約 ・ x-ref と x-derive を読む道具 ・ 描画の部品と頁の型を読んで組む道具（Rust の crate）、部品の雛形、トークン"
+       ],
+       [
+        "転写",
+        "基盤をもとに作るものには、作るときに正本の複製を置く。作ったものは複製だけで動き、配ったあとに基盤が無くても動く"
+       ],
+       [
+        "差の検査",
+        "基盤の check が、複製と正本の違いを報告する。正本が新しくなったら、複製を転写し直す"
+       ],
+       [
+        "単独で使う形",
+        "schema-driven の CLI と MCP で、どのスキーマと実体にも7つの契約と注釈の道具を使える"
+       ],
+       [
+        "concrete",
+        "ユースケース駆動の concrete（宣言のスキーマ ・ 頁の型 ・ x-test-spec とテストとの突き合わせ）は、use-case-driven-development の一式として配る。どの Skill がどの部分を持つかは、ボード usecase-modeling-coding の役割の分担で決める"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>いまの Skill を schema-driven の上へ移すことは、この論点では決めない</b>（基盤ができたあとに決める。前提のとおり、いまの Skill は基盤の根拠にしない）。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>見本：schema-driven をもとに Skill を作るとき</b>（Skill の名前は例）"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>.claude/skills/schema-driven/          ← 正本\n  tool/  references/  bin/schema-driven\n\n.claude/skills/use-case-driven-modeling/\n  tool/base/        ← schema-driven から転写した複製（書き換えない）\n  references/schemas/*.schema.json   ← この Skill の宣言のスキーマ\n  references/pages/*.page.json       ← この Skill の頁の型\n\n$ schema-driven check .claude/skills/use-case-driven-modeling\n  複製と正本の違い：0件</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "複製が正本と違うとき",
+      "どうなるか"
+     ],
+     "rows": [
+      [
+       "正本が新しくなった",
+       "check が違いを報告する。転写し直すと0件に戻る"
+      ],
+      [
+       "複製を手で書き換えた",
+       "check が違いを報告する。正本を直してから転写し直す"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "dist",
+     "caption": "schema-driven が正本を持ち、基盤をもとに作るものへ複製を転写する。<b>差の検査が、複製と正本の違いを報告する。</b>右の2つの Skill の名前と持ち物は例で、役割の分担はボード usecase-modeling-coding で決める。"
+    }
+   ],
+   "passed": [
+    {
+     "name": "基盤を Skill「schema-driven」として配り、複製を転写する",
+     "body": "正本は1か所、作ったものは複製で単独に動き、差の検査で正本とそろえる",
+     "cost": "正本が新しくなるたびに、転写し直す"
+    },
+    {
+     "name": "基盤を共有の依存（cargo の依存）として使う",
+     "body": "作ったものは、基盤の crate を依存として参照する",
+     "cost": "作ったものが単独で動かない。前提の転写の契約に反する"
+    },
+    {
+     "name": "基盤を skills-creator の雛形の中に置く",
+     "body": "いまの skills-creator が基盤の正本も持つ",
+     "cost": "基盤は Skill を作るためだけの道具ではない。開発に限らない構造化データ管理の基盤（論点1）と合わない"
+    },
+    {
+     "name": "作るものごとに、基盤の能力を書く",
+     "body": "転写せず、それぞれが実装する",
+     "cost": "同じ能力が別々に書かれ、形がずれる"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "作ったものが単独で動くか",
+      "正本と同じ能力を持ち続けられるか",
+      "開発以外にも使えるか"
+     ],
+     "rows": [
+      [
+       "基盤を Skill「schema-driven」として配り、複製を転写する",
+       [
+        "<b>動く</b>",
+        "<b>持ち続けられる</b>（差の検査）",
+        "<b>使える</b>"
+       ]
+      ],
+      [
+       "基盤を共有の依存（cargo の依存）として使う",
+       [
+        "<b>動かない</b>",
+        "持ち続けられる",
+        "使える"
+       ]
+      ],
+      [
+       "基盤を skills-creator の雛形の中に置く",
+       [
+        "動く",
+        "持ち続けられる",
+        "<b>Skill を作るときだけ</b>"
+       ]
+      ],
+      [
+       "作るものごとに、基盤の能力を書く",
+       [
+        "動く",
+        "<b>ずれる</b>",
+        "使える"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "基盤を共有の依存（cargo の依存）として使う",
+     "reason": "作ったものが基盤なしでは動かない。基盤をもとに作るものへ能力の複製を転写する、という前提（利用者の言明）に反する"
+    },
+    {
+     "body": "基盤を skills-creator の雛形の中に置く",
+     "reason": "基盤は開発に限らない構造化データ管理の基盤である（論点1）。Skill を作る道具の中に置くと、単独で使う形が無くなる"
+    },
+    {
+     "body": "作るものごとに、基盤の能力を書く",
+     "reason": "同じ概念の仕組みが別々に書かれ、形がずれる"
+    }
+   ],
+   "findings": [
+    "いまの skills-creator も、正本を持ち、scaffold で複製を置き、check で複製と正本の差を報告している ── 転写の形は、利用者が指定したこの形を基盤に当てる"
+   ],
+   "out_of_scope": [
+    {
+     "item": "いまの Skill を schema-driven の上へ移すこと",
+     "treatment": "later",
+     "note": "基盤ができたあとに決める"
+    },
+    {
+     "item": "use-case-driven-development の一式のうち、どの Skill が concrete のどの部分を持つか",
+     "treatment": "later",
+     "note": "ボード usecase-modeling-coding の役割の分担で決める"
+    },
+    {
+     "item": "Rust 以外の言語での転写",
+     "treatment": "out",
+     "note": "道具は Rust で作る（利用者の言明）"
+    }
+   ],
+   "path": []
   }
  ]
 }
