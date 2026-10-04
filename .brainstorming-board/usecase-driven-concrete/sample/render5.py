@@ -103,29 +103,28 @@ def p_sd(d):
   if d['serves_values']: b+=block('担う提供価値',cards([card(E(v['name']),f'<span class="txt">{E(v["text"])}</span>','left-accent') for v in D['DOM-1']['value_proposition']['values'] if v['id'] in d['serves_values']]))
   return b+raw(d)
 def p_bc(d):
-  h=d['header']; b=head(d,'',h['purpose'])
-  rel=d['context_map']['relations']
-  if rel:
-    nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]; at={d['id']:["a","r1"]}
-    for s in h['subdomains']: nodes.append({"id":s,"label":f"{D[s]['header']['name']}（{D[s]['classification']['category']}）","role":"muted"}); at[s]=["a","r2"]; edges.append({"from":d['id'],"to":s,"label":"対応"})
-    for r in rel:
-      o=D[r['with']]; nodes.append({"id":o['id'],"label":o['header']['name']}); at[o['id']]=["b","r1"]; edges.append({"from":d['id'],"to":o['id'],"label":r['pattern']})
-      for s in o['header']['subdomains']:
-        if s not in at: nodes.append({"id":s,"label":f"{D[s]['header']['name']}（{D[s]['classification']['category']}）","role":"muted"}); at[s]=["b","r2"]; edges.append({"from":o['id'],"to":s,"label":"対応"})
-    f=figure('context-'+d['id'],{"layout":"grid","direction":"LR","nodes":nodes,"edges":edges,"grid":{"cols":["a","g","b"],"rows":["r1","r2"],"at":at}})
-    b+=block('コンテキストマップ',f+tbl(['相手','連携のパターン','この文脈の側','使う場合'],[[ref(r['with']),pill(r['pattern'],'t-accent'),pill(r['direction']),E(r['case'])] for r in rel]))
-  else:
-    b+=block('対応するサブドメイン',' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']))
-  if d.get('boundary'): b+=block('物理的な境界',tiles([('配置の単位',E(d['boundary']['kind'])),('所有するチーム',E(d['boundary']['owner']))]))
-  if d.get('business_rules'): b+=block('業務ルール',tbl(['ID','組んだ文'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.cond(x['condition']))] for x in d['business_rules']]))
-  if d.get('quality'):
-    b+=block('品質の要求',tbl(['ID','組んだ文','対象','閾値','割合','条件','非機能要求グレード','測り方'],[[f'<span class="no">{E(q["id"])}</span>',gen(g.qr_text(q)),E(g.cmd_label(q['target'])),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))
+  h=d['header']; b=head(d)
+  sds=' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']) or '<span class="txt">なし（このプロダクトの範囲の外）</span>'
+  bd=d.get('boundary',{})
+  b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('担うサブドメイン',sds)])
+  mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
+  ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
+  if mem: b+=block('この文脈のモデル',tbl(['種類','名前'],[[KIND[D[m]['kind']],ref(m)] for m in mem])+(f'<p class="ln"><span class="k">この文脈を使うユースケース</span>{" ".join(ref(u) for u in ucs)}</p>' if ucs else ''))
   ts=d['ubiquitous_language']['terms']
   if ts:
     kinds=list(dict.fromkeys(x['kind'] for x in ts))
-    b+=block('ユビキタス言語',cards([card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in ts if x['kind']==k)) for k in kinds]))
-  mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']!='context']
-  if mem: b+=block('この文脈の宣言',tbl(['種類','名前'],[[KIND[D[m]['kind']],ref(m)] for m in mem]))
+    b+=block('同じ言葉',cards([card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in ts if x['kind']==k)) for k in kinds]))
+  rel=d['context_map']['relations']
+  if rel:
+    nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]; at={d['id']:["a","r1"]}
+    for n,rr in enumerate(rel,1):
+      o=D[rr['with']]; nodes.append({"id":o['id'],"label":o['header']['name']}); at[o['id']]=["b" if rr['direction']=='下流' else "o",f"r{n}"]
+      edges.append({"from":d['id'],"to":o['id'],"label":rr['pattern']} if rr['direction']=='下流' else {"from":o['id'],"to":d['id'],"label":rr['pattern']})
+    f=figure('context-'+d['id'],{"direction":"LR","nodes":nodes,"edges":edges})
+    b+=block('文脈の地図',f+tbl(['相手','連係方法','この文脈の側','使う場合'],[[ref(rr['with']),pill(rr['pattern']),pill(rr['direction']),E(rr.get('case','―'))] for rr in rel]))
+  if d.get('business_rules'): b+=block('業務ルール',tbl(['ID','組んだ文'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.cond(x['condition']))] for x in d['business_rules']]))
+  if d.get('quality'):
+    b+=block('品質の要求',tbl(['ID','組んだ文','対象','閾値','割合','条件','非機能要求グレード','測り方'],[[f'<span class="no">{E(q["id"])}</span>',gen(g.qr_text(q)),E(g.cmd_label(q['target'])),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))
   return b+raw(d)
 def p_agg(d):
   h=d['header']; st=d['structure']; k=d['id']

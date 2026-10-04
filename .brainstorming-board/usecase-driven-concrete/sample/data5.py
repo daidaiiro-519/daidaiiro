@@ -39,8 +39,10 @@ D['SD-2']={"kind":"subdomain","id":"SD-2",
  "serves_values":["VAL-2"]}
 
 D['BC-1']={"kind":"context","id":"BC-1",
- "header":{"name":"受注","purpose":"受け取り予定時刻を約束した注文を、調理の空きを超えずに受け付ける","subdomains":["SD-1"]},
- "context_map":{"relations":[{"with":"BC-2","pattern":"モデル変換装置","direction":"下流","case":"下流の文脈が中核の業務領域を含む"}]},
+ "header":{"name":"受注","purpose":"受け取り予定時刻の約束が、調理枠の空きを超えないかを判定する。支払いの承認と商品の今の価格は、このモデルに入れず、決済 ・ メニューの文脈から受け取る","subdomains":["SD-1"]},
+ "context_map":{"relations":[{"with":"BC-2","pattern":"モデル変換装置","direction":"下流","case":"下流の文脈が中核の業務領域を含む"},
+                             {"with":"BC-3","pattern":"従属","direction":"下流"},
+                             {"with":"BC-4","pattern":"従属","direction":"下流"}]},
  "boundary":{"kind":"自社で作るサービス","owner":"受注のチーム"},
  "ubiquitous_language":{"terms":[
   T("TERM-1","注文","集約","1人の顧客が1つの店舗で受け取る商品の一覧と、その受け取り予定時刻",["オーダー"]),
@@ -83,7 +85,7 @@ D['BC-1']={"kind":"context","id":"BC-1",
   T("TERM-41","確定していない注文は渡せない","拒否の理由","確定済でない注文を渡そうとした"),
   T("TERM-33","注文の確定","情報の別名","確定してほしい注文と、支払い手段"),
   T("TERM-34","請求額の承認","情報の別名","請求額と、支払い手段"),
-  T("TERM-35","変わった価格","情報の別名","提示した単価から変わった商品と、その今の単価"),
+  T("TERM-35","変わった価格","情報の別名","提示した価格から変わった商品と、その今の価格"),
   T("TERM-45","空きのある時刻","情報の別名","空きのある最も早い受け取り予定時刻"),
   T("TERM-47","支払いが承認されなかったこと","情報の別名","決済代行が承認しなかったという結果"),
   T("TERM-40","今の価格","情報の別名","メニューの文脈が返す、商品の今の価格"),
@@ -97,8 +99,12 @@ D['BC-1']={"kind":"context","id":"BC-1",
    "condition":{"period":"ピーク時","load":{"value":600,"unit":"件/時"}},
    "grade":{"item":"B.2.1","level":3},"method":"非機能テスト"}],
  "published_language":[]}
-D['BC-2']={"kind":"context","id":"BC-2","header":{"name":"決済","purpose":"注文の代金を外部の決済サービスで受け取る","subdomains":["SD-2"]},"boundary":{"kind":"外部のサービス（受注の側にモデル変換装置を作る）","owner":"決済代行"},
+D['BC-3']={"kind":"context","id":"BC-3","header":{"name":"メニュー","purpose":"商品と今の価格を決める。このプロダクトの範囲の外","subdomains":[]},"boundary":{"kind":"他のチームのサービス","owner":"メニューのチーム"},
  "context_map":{"relations":[]},"ubiquitous_language":{"terms":[]},"business_rules":[],"quality":[],"published_language":[]}
+D['BC-4']={"kind":"context","id":"BC-4","header":{"name":"顧客","purpose":"顧客を識別する。このプロダクトの範囲の外","subdomains":[]},"boundary":{"kind":"他のチームのサービス","owner":"顧客のチーム"},
+ "context_map":{"relations":[]},"ubiquitous_language":{"terms":[]},"business_rules":[],"quality":[],"published_language":[]}
+D['BC-2']={"kind":"context","id":"BC-2","header":{"name":"決済","purpose":"請求額の承認を、外部の決済サービスのモデルのまま扱う","subdomains":["SD-2"]},"boundary":{"kind":"外部のサービス","owner":"決済代行"},
+ "context_map":{"relations":[{"with":"BC-1","pattern":"モデル変換装置","direction":"上流"}]},"ubiquitous_language":{"terms":[]},"business_rules":[],"quality":[],"published_language":[]}
 
 S=lambda i,kind,actor,**k:{"id":i,"kind":kind,"actor":actor,**k,"extensions":k.get("extensions",[])}
 D['UC-1']={"kind":"use_case","id":"UC-1",
@@ -212,7 +218,7 @@ D['DS-1']={"kind":"domain_service","id":"DS-1",
    "postconditions":[{"id":"POST-1","condition":C(target="RESULT",op="not_empty")},
                      {"id":"POST-2","condition":C(target="RESULT",op="ge",value="AGG-2.ST-1")}]}]}
 
-ORDER_IDS=['DOM-1','SD-1','SD-2','BC-1','BC-2','UC-1','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
+ORDER_IDS=['DOM-1','SD-1','SD-2','BC-1','BC-2','BC-3','BC-4','UC-1','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
 D={k:D[k] for k in ORDER_IDS}
 IMPL={"BC-1":"ドメインモデル"}
 RETIRED=["AGG-1.INV-3","AGG-2.INV-1"]
