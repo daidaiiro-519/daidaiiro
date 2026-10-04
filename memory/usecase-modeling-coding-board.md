@@ -16,10 +16,10 @@ metadata:
 シナリオという語はユースケースにだけ使う。集約は不変条件と事前 ・ 事後条件を、ドメインサービスは事前 ・ 事後条件を持ち、テストはその条件と結ぶ（2026-10-02、宣言の形も合わせて直す前提。9月の試作の ops[].nodes を外す改訂は、このボードの決着後に ACDR で提示する）。
 Q7 は12回目で、テストを10の種類（宣言から7つ、実装の定義から3つ）にした。宣言に値オブジェクトの種類と、保証 ・ 業務イベント ・ サーガ ・ 公開された言葉の欄を足す（9月の宣言の6種類の改訂を伴う）。
 
-現在地（2026-10-02、19回目）：
-- 7論点すべてに答えが付いた。Q1〜4 は決着、Q5〜7 は承認済み（外の作業で試した時点で決着）
-- Q8（名前：モデリングは domain-modeling、コーディングは model-driven-design、一式は use-case-driven-development）は承認済み。Q5〜8 は外の作業で試した時点で決着
-- 9月のボードの改訂は ACDR 0092 で承認 ・ コミット済み（741f0578）
-- 次にすること： ctxtrace で外の作業 → no-more-spaghetti を廃止する（言語の高さで組まれた失敗作。何も引き継がない、利用者の判断 2026-10-02）。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
+現在地（2026-10-04、20回目、未 push）：
+- Q1〜4 は決着、Q5〜7 は承認済み（外の作業で試した時点で決着）
+- ACDR 0109（助言役は作るあいだだけ使い、配るものに入れない）で、決まったことの表の論点4・5を改めた
+- Q8（名前）を開き直し、回答待ち。案 B′：モデリングは requirements-modeling（OOSE の Requirements Model）、コーディングは model-driven-design、一式は use-case-driven-development。原文は sources/names/
+- 次にすること： Q8 の承認 → ctxtrace で外の作業 → no-more-spaghetti を廃止する。一覧はボードの現在地「決まったこと ・ 次にすること ・ 保留」
 
-持ち越し：ACDR 0085 と ctxtrace の規則ファイル（どちらも no-more-spaghetti を前提にした未コミットの作業）は、2026-10-02 に取り下げて消した。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）は、このボードの決定（domain-modeling ・ model-driven-design）で外の作業として当てる。
+持ち越し：ACDR 0085 と ctxtrace の規則ファイル（どちらも no-more-spaghetti を前提にした未コミットの作業）は、2026-10-02 に取り下げて消した。brainstorming-board の定型文言（代償 ・ 要る ・ 持たない）と ux-advisor の validate の不備（CLI が検査しない ・ MCP が常に ok）は、別の ACDR で直す提案のみ。ctxtrace の是正（app 層の新設ほか）は、このボードの決定（Q8 の名前）で外の作業として当てる。
