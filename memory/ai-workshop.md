@@ -11,7 +11,7 @@ metadata:
 **企画書とオリエンテーション**：ACDR 0032 ・ 0034 ・ 0037 ・ 0078 ・ 0079 ・ 0080 ・ 0081（アンケートと配色）がすべて accepted で、push 済み（全枚の HTML と PDF の出力 9e734a4c まで）。関係するボード workshop-purpose ・ workshop-open-items ・ survey-redesign は全論点が決着。アンケートの設問の正本は `proposal/src/survey.json`、Forms のプロンプトは `proposal/out/forms-copilot-prompts.md`。
 
 **次にすること**
-- オリエンテーションの音声と動画の作り直し：`material-1/out/videos/00-start.mp4` は 2026-09-28 のままで、10-01 の改訂（0078〜0081）より古い
+- （済）オリエンテーションの音声と動画：2026-10-04 に作り直し、字幕を焼き込んだ（80ea3627 まで push 済み、22分30秒、1280×816、字幕は `out/videos/00-start.vtt` と同じ）。読みの辞書 `src/narration/lexicon.pls`。著者名は読み上げない
 - 教材1のスライドと原稿の照合の続き：`material-1/src/review-log.json` は教材1の L1-S3 まで（2026-09-29）。手順は slide-deck の review と `material-1/README.md`
 - 教材2（ドメイン駆動設計編、試作 `material-2/`）と教材3（道具編）：並びと題材はボード material-next で決着済み
 
