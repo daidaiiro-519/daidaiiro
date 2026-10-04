@@ -41,13 +41,13 @@ def checks(rec=None):
       posts=[]
       for c in d['commands']:
         kind_is(c['name'],'コマンド',f'{k}.{c["id"]}','コマンドの名前')
-        for p in c['preconditions']:
+        for p in c['business_rules']:
           kind_is(p['reject'],'拒否の理由',f'{k}.{c["id"]}.{p["id"]}','拒否の理由')
           rejects.setdefault(p['reject'],set()).add(k)
           ex=g.reject_example(d,c,p)
           if ex is None: put('structure','拒否の例が組める',f'{k}.{c["id"]}.{p["id"]}','','条件から拒否の例を組めず、宣言にも例が無い','ずれ')
         for e in c['emits']: kind_is(e['name'],'業務イベント',f'{k}.{c["id"]}.{e["id"]}','業務イベントの名前')
-        posts.append((c['id'],str(c['postconditions'])))
+        posts.append((c['id'],str(c['state_changes'])))
       for i,(a,pa) in enumerate(posts):
         for b,pb in posts[i+1:]:
           if pa==pb: put('structure','別のコマンドの状態の変更が同じ',f'{k}.{a}',f'{k}.{b}','名前の違うコマンドが同じ状態の変更を持つ','ずれ')
@@ -93,7 +93,7 @@ def checks(rec=None):
       if not s.get('invokes') or not s['invokes'].startswith('AGG'): continue
       a,c=s['invokes'].split('.'); cm=[x for x in D[a]['commands'] if x['id']==c][0]
       hd={r for x in s['extensions'] for r in x.get('handles',[])}
-      for p in cm['preconditions']:
+      for p in cm['business_rules']:
         r=f'{a}.{c}.{p["id"]}'
         if r in ens|hd: put('link','コマンドの拒否を扱う',f'{uk}.{s["id"]}',r,'事前条件（ensures）か拡張（handles）が扱っている','合格')
         else: put('link','コマンドの拒否を扱う',f'{uk}.{s["id"]}',r,f'手順{nums[s["id"]]}が呼ぶコマンドの拒否「{g.word(p["reject"])}」を、事前条件も拡張も扱っていない','対応の欠け')

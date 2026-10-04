@@ -174,18 +174,18 @@ def p_agg(d):
       ve=g.violation_example(d,i)
       ir.append([tchip(f'{k}.{i["id"]}'),gen(g.cond(i['condition'],k)),'、'.join(f'{E(g.qname(a,k))}＝{sv(v)}' for a,v in ve['before'].items()),' ・ '.join(E(g.word([c for c in d['commands'] if c['id']==x][0]['name'])) for x in ve['via']) or '<span class="missing">なし</span>'])
     b+=block('不変条件',tbl(['テスト条件','組んだ文','違反する状態（道具が組む）','至る操作'],ir))
-  crow=[[f'<b>{E(g.word(c["name"]))}</b>','<br>'.join(E(g.post_text(p['condition'],k,c)) for p in c['postconditions']),' '.join(pill(g.word(p['reject'])) for p in c['preconditions']) or '―',' '.join(pill(g.word(e['name']),'t-accent') for e in c['emits']) or '―'] for c in d['commands']]
+  crow=[[f'<b>{E(g.word(c["name"]))}</b>','<br>'.join(E(g.post_text(p['condition'],k,c)) for p in c['state_changes']),' '.join(pill(g.word(p['reject'])) for p in c['business_rules']) or '―',' '.join(pill(g.word(e['name']),'t-accent') for e in c['emits']) or '―'] for c in d['commands']]
   b+=block('コマンド',tbl(['コマンド','状態の変更'+helpbtn('状態の変更'),'拒否の理由','業務イベント'],crow)+'<p class="txt">コマンドごとの業務ルールと例は、下で開く。</p>')
   for c in d['commands']:
     cname=g.word(c['name'])
     args=' '.join(f'{E(g.word(x["name"]))}（{ref(x["type"])}）' for x in c['args']) or 'なし'
     evs=' '.join(pill(g.word(e['name']),'t-accent')+'<span class="txt">'+' ・ '.join(E(g.field_name(d,f)) for f in e['fields'])+'</span>' for e in c['emits'])
     pr=[]
-    for p in c['preconditions']:
+    for p in c['business_rules']:
       ex=g.reject_example(d,c,p)
       exs='、'.join(f'{E(g.qname(a,k,c))}＝{sv(v)}' for a,v in list(ex['before'].items())+list(ex.get('args',{}).items())) if ex else '<span class="missing">組めない</span>'
       pr.append([tchip(f'{k}.{c["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k,c)),pill(g.word(p['reject'])),exs+(' '+pill('手で書いた例') if ex and ex.get('manual') else ' '+pill('道具が組む'))])
-    pre=[p for p in c['preconditions'] if p['condition']['op']=='eq']; post=[p for p in c['postconditions'] if p['condition']['op']=='eq']
+    pre=[p for p in c['business_rules'] if p['condition']['op']=='eq']; post=[p for p in c['state_changes'] if p['condition']['op']=='eq']
     nodes=[];edges=[];seen=set()
     for a in pre:
       for z in post:
@@ -196,9 +196,9 @@ def p_agg(d):
           edges.append({"from":s1,"to":s2,"label":cname})
           for ev in c['emits']: nodes.append({"id":ev['id'],"label":g.word(ev['name']),"role":"muted"}); edges.append({"from":s2,"to":ev['id'],"label":"業務イベント","dashed":True})
     fig=figure('agg-'+k+'-'+c['id'],{"direction":"LR","nodes":nodes,"edges":edges}) if nodes else ''
-    sec=f'<details class="fold"><summary>コマンド「{E(cname)}」の業務ルールと例（業務ルール{len(c["preconditions"])} ・ 状態の変更{len(c["postconditions"])} ・ 例{len(c.get("accept_examples",[]))}）</summary><div class="fbody">'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
+    sec=f'<details class="fold"><summary>コマンド「{E(cname)}」の業務ルールと例（業務ルール{len(c["business_rules"])} ・ 状態の変更{len(c["state_changes"])} ・ 例{len(c.get("accept_examples",[]))}）</summary><div class="fbody">'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
     if pr: sec+=f'<h3 class="sub">業務ルールと拒否の例{helpbtn("業務ルール")}</h3>'+tbl(['テスト条件','業務ルール','拒否の理由','拒否の例'],pr)
-    sec+=f'<h3 class="sub">状態の変更</h3>'+tbl(['状態の変更'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
+    sec+=f'<h3 class="sub">状態の変更</h3>'+tbl(['状態の変更'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['state_changes']])
     if c.get('accept_examples'): sec+=f'<h3 class="sub">受け付ける例{helpbtn("例")}</h3>'+tbl(['テスト条件','前の状態','引数','後の状態（道具が導く）','業務イベント'],ex_rows(k,c,c['accept_examples']))
     b+=sec+'</div></details>'
   b+=tblock(k)
@@ -230,7 +230,7 @@ def p_ds(d):
     f=figure('ds-'+k+'-'+o['id'],{"layout":"grid","direction":"LR","nodes":nodes,"edges":edges,"grid":{"cols":["a","b","c"],"rows":sorted({v[1] for v in at.values()}),"at":at}})
     b+=f'<section class="blk"><h2>操作「{E(on)}」{helpbtn("操作")}</h2>{f}'
     b+='<h3 class="sub">入力</h3>'+tbl(['ID','組んだ名前','元にする状態','型'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.input_name(x)),f'<span class="no">{E(x["from"]["target"])}</span>'+(' '+pill('合計') if x['from'].get('agg')=='sum' else ''),ref(x['type'])] for x in o['inputs']])
-    b+='<h3 class="sub">結果</h3>'+tbl(['テスト条件','結果'],[[tchip(f'{k}.{o["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k))] for p in o['postconditions']])+'</section>'
+    b+='<h3 class="sub">結果</h3>'+tbl(['テスト条件','結果'],[[tchip(f'{k}.{o["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k))] for p in o['results']])+'</section>'
   b+=tblock(k)
   return b+raw(d)
 def estb(e):
@@ -250,7 +250,7 @@ def p_uc(d):
   whos=lambda ids: pills([who(i) for i in ids])
   def pref(rr):
     x,decl,cmd=g.item(rr); a=rr.split('.')[0]
-    return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"業務ルール" if x["id"].startswith("PRE") else "状態の変更"}<span class="no">{E(x["id"])}</span>'
+    return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"業務ルール" if x["id"].startswith("BR") else "状態の変更"}<span class="no">{E(x["id"])}</span>'
   def links(s):
     o=''
     if s.get('reply'): o+=f'<span class="ln"><span class="k">戻りメッセージ</span>{E(g.reply_text(s))}</span>'

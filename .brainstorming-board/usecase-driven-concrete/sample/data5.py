@@ -30,7 +30,7 @@ D['DOM-1']={"kind":"domain","id":"DOM-1",
 D['SD-1']={"kind":"subdomain","id":"SD-1",
  "header":{"name":"受注","description":"来店前の注文を受け付け、調理の空きに合わせて受け取り予定時刻を約束する"},
  "classification":{"category":"中核","competitive_advantage":True,"external_available":False,"cheaper_to_build":True,"sourcing":"自社で作る"},
- "business_logic":{"needs_tracking":False,"complex_rules":True,"complex_data":False,"rule_conditions":["AGG-1.INV-1","AGG-1.INV-2","DS-1.OP-1.POST-2"]},
+ "business_logic":{"needs_tracking":False,"complex_rules":True,"complex_data":False,"rule_conditions":["AGG-1.INV-1","AGG-1.INV-2","DS-1.OP-1.RES-2"]},
  "serves_values":["VAL-1"]}
 D['SD-2']={"kind":"subdomain","id":"SD-2",
  "header":{"name":"決済","description":"注文の代金を受け取る"},
@@ -120,17 +120,17 @@ S=lambda i,kind,actor,**k:{"id":i,"kind":kind,"actor":actor,**k,"extensions":k.g
 D['UC-1']={"kind":"use_case","id":"UC-1",
  "header":{"name":"注文を確定する","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
  "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"BC-1.X-3"},
-                  {"id":"PRE-2","ensures":["AGG-1.CMD-1.PRE-2"],"established_by":"UC-2"},
-                  {"id":"PRE-3","ensures":["AGG-1.CMD-1.PRE-1"],"established_by":"UC-2"}],
+                  {"id":"PRE-2","ensures":["AGG-1.CMD-1.BR-2"],"established_by":"UC-2"},
+                  {"id":"PRE-3","ensures":["AGG-1.CMD-1.BR-1"],"established_by":"UC-2"}],
  "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"約束した時刻に受け取り、確定した合計額だけを支払う"},
                  {"id":"SH-2","who":"DOM-1.SH-2","interest":"調理の空きを超えて注文を受けず、支払いの承認を得た注文だけを確定する"},
                  {"id":"SH-3","who":"DOM-1.SH-3","interest":"確定と請求の記録を、後から突き合わせられる"}],
  "guarantees":{"minimal":[{"id":"MG-1","name":"承認なしで確定しない","condition":C(if_=C(target="AGG-1.ST-2",op="eq",value="TERM-11"),target="AGG-1.ST-5",op="not_empty"),"protects":["SH-2"]},
                           {"id":"MG-2","name":"失敗したら調理枠を残さない","condition":C(if_=C(target="AGG-1.ST-2",op="eq",value="TERM-10"),target="AGG-1.ST-8",op="empty"),"protects":["SH-1","SH-2"]},
                           {"id":"MG-3","name":"どこまで進んだかを残す","condition":C(target="AGG-1.ST-6",agg="count",op="ge",value=1),"protects":["SH-2","SH-3"]}],
-               "success":[{"id":"SG-1","name":"確定","established_by":["AGG-1.CMD-1.POST-1"],"satisfies":["SH-1"]},
-                          {"id":"SG-2","name":"受け取り時刻と調理枠の確保","established_by":["AGG-1.CMD-1.POST-2","AGG-1.CMD-1.POST-4"],"satisfies":["SH-1","SH-2"]},
-                          {"id":"SG-3","name":"承認番号の記録","established_by":["AGG-1.CMD-1.POST-3"],"satisfies":["SH-3"]}]},
+               "success":[{"id":"SG-1","name":"確定","established_by":["AGG-1.CMD-1.CHG-1"],"satisfies":["SH-1"]},
+                          {"id":"SG-2","name":"受け取り時刻と調理枠の確保","established_by":["AGG-1.CMD-1.CHG-2","AGG-1.CMD-1.CHG-4"],"satisfies":["SH-1","SH-2"]},
+                          {"id":"SG-3","name":"承認番号の記録","established_by":["AGG-1.CMD-1.CHG-3"],"satisfies":["SH-3"]}]},
  "scenario":{"supporting_actors":["決済代行"],"steps":[
   S("STEP-1","相互作用","顧客",to="システム",data=["TERM-33"],verb="TERM-48",serves=["SH-1"],
     variations=[{"varies":"支払い手段","values":["クレジットカード","電子マネー"]}]),
@@ -140,7 +140,7 @@ D['UC-1']={"kind":"use_case","id":"UC-1",
       S("EXT-1.S-2","相互作用","顧客",to="システム",data=["TERM-35"],verb="TERM-54")]}]),
   S("STEP-7","内部の状態変化","システム",invokes="DS-1.OP-1",serves=["SH-1"]),
   S("STEP-3","内部の状態変化","システム",invokes="AGG-2.CMD-1",serves=["SH-1","SH-2"],extensions=[
-    {"id":"EXT-2","condition_kind":"コマンドの拒否","handles":["AGG-2.CMD-1.PRE-1"],"ending":"STEP-3","steps":[
+    {"id":"EXT-2","condition_kind":"コマンドの拒否","handles":["AGG-2.CMD-1.BR-1"],"ending":"STEP-3","steps":[
       S("EXT-2.S-1","相互作用","システム",to="顧客",data=["TERM-45"],verb="TERM-49"),
       S("EXT-2.S-2","相互作用","顧客",to="システム",data=["TERM-45"],verb="TERM-54")]}]),
   S("STEP-4","相互作用","システム",to="決済代行",data=["TERM-34"],verb="TERM-48",reply=["TERM-21"],via="BC-1.X-1.OP-1",keeps=["MG-1"],serves=["SH-2"],extensions=[
@@ -163,7 +163,7 @@ D['UC-0']={"kind":"use_case","id":"UC-0",
  "preconditions":[],
  "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"待たずに、約束した時刻に受け取る"},{"id":"SH-2","who":"DOM-1.SH-2","interest":"調理の空きを超えずに注文を受け、支払い済みの注文だけを渡す"}],
  "guarantees":{"minimal":[{"id":"MG-1","name":"承認の無い注文は渡さない","condition":C(if_=C(target="AGG-1.ST-2",op="eq",value="TERM-42"),target="AGG-1.ST-5",op="not_empty"),"protects":["SH-2"]}],
-               "success":[{"id":"SG-1","name":"受け取り","established_by":["AGG-1.CMD-3.POST-1"],"satisfies":["SH-1","SH-2"]}]},
+               "success":[{"id":"SG-1","name":"受け取り","established_by":["AGG-1.CMD-3.CHG-1"],"satisfies":["SH-1","SH-2"]}]},
  "scenario":{"supporting_actors":[],"steps":[
   S("STEP-1","サブユースケースの呼び出し","顧客",calls="UC-1",serves=["SH-1"]),
   S("STEP-2","相互作用","顧客",to="店舗",data=["TERM-14"],verb="TERM-49",serves=["SH-1"]),
@@ -172,14 +172,14 @@ D['UC-0']={"kind":"use_case","id":"UC-0",
 D['UC-2']={"kind":"use_case","id":"UC-2",
  "header":{"name":"注文に商品を入れる","level":"ユーザー目的","scope":{"system":"DOM-1.SCP-2","context":"BC-1"},"primary_actor":"顧客","trigger_step":"STEP-1"},
  "preconditions":[{"id":"PRE-1","condition":C(target="AGG-1.ST-7",op="not_empty"),"established_by":"BC-1.X-3"},
-                  {"id":"PRE-2","ensures":["AGG-1.CMD-4.PRE-1"],"established_by":None}],
+                  {"id":"PRE-2","ensures":["AGG-1.CMD-4.BR-1"],"established_by":None}],
  "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"食べたい商品を、必要な数だけ注文に入れる"},{"id":"SH-2","who":"DOM-1.SH-2","interest":"一度に受けきれない量の注文を受けない"}],
  "guarantees":{"minimal":[{"id":"MG-1","name":"明細は20件まで","condition":C(target="AGG-1.ST-3",agg="count",op="le",value=20),"protects":["SH-2"]}],
-               "success":[{"id":"SG-1","name":"明細が増える","established_by":["AGG-1.CMD-4.POST-1"],"satisfies":["SH-1"]}]},
+               "success":[{"id":"SG-1","name":"明細が増える","established_by":["AGG-1.CMD-4.CHG-1"],"satisfies":["SH-1"]}]},
  "scenario":{"supporting_actors":[],"steps":[
   S("STEP-1","相互作用","顧客",to="システム",data=["TERM-65"],verb="TERM-48",serves=["SH-1"]),
   S("STEP-2","内部の状態変化","システム",invokes="AGG-1.CMD-4",keeps=["MG-1"],serves=["SH-1","SH-2"],extensions=[
-    {"id":"EXT-1","condition_kind":"コマンドの拒否","handles":["AGG-1.CMD-4.PRE-2"],"ending":"失敗","steps":[
+    {"id":"EXT-1","condition_kind":"コマンドの拒否","handles":["AGG-1.CMD-4.BR-2"],"ending":"失敗","steps":[
       S("EXT-1.S-1","相互作用","システム",to="顧客",data=["TERM-67"],verb="TERM-50")]}]),
   S("STEP-3","相互作用","システム",to="顧客",data=["TERM-66"],verb="TERM-49",serves=["SH-1"])]},
  "contributes_to":["SC-2"],"open_issues":[],"exemptions":[]}
@@ -188,11 +188,11 @@ D['UC-3']={"kind":"use_case","id":"UC-3",
  "preconditions":[],
  "stakeholders":[{"id":"SH-1","who":"DOM-1.SH-1","interest":"約束した時刻に、自分の注文を受け取る"},{"id":"SH-2","who":"DOM-1.SH-2","interest":"支払いの承認を得た注文だけを渡す"}],
  "guarantees":{"minimal":[{"id":"MG-1","name":"承認の無い注文は渡さない","condition":C(if_=C(target="AGG-1.ST-2",op="eq",value="TERM-42"),target="AGG-1.ST-5",op="not_empty"),"protects":["SH-2"]}],
-               "success":[{"id":"SG-1","name":"受け渡し済","established_by":["AGG-1.CMD-3.POST-1"],"satisfies":["SH-1","SH-2"]}]},
+               "success":[{"id":"SG-1","name":"受け渡し済","established_by":["AGG-1.CMD-3.CHG-1"],"satisfies":["SH-1","SH-2"]}]},
  "scenario":{"supporting_actors":[],"steps":[
   S("STEP-1","相互作用","店舗",to="システム",data=["TERM-59"],verb="TERM-48",serves=["SH-2"]),
   S("STEP-2","内部の状態変化","システム",invokes="AGG-1.CMD-3",keeps=["MG-1"],serves=["SH-1","SH-2"],extensions=[
-    {"id":"EXT-1","condition_kind":"コマンドの拒否","handles":["AGG-1.CMD-3.PRE-1"],"ending":"失敗","steps":[
+    {"id":"EXT-1","condition_kind":"コマンドの拒否","handles":["AGG-1.CMD-3.BR-1"],"ending":"失敗","steps":[
       S("EXT-1.S-1","相互作用","システム",to="店舗",data=["TERM-60"],verb="TERM-50")]}]),
   S("STEP-3","相互作用","システム",to="店舗",data=["TERM-61"],verb="TERM-50",serves=["SH-2"])]},
  "contributes_to":["SC-1"],"open_issues":["受け取り予定時刻を過ぎて来た顧客への受け渡し","注文番号の注文が見つからないとき"],"exemptions":[]}
@@ -214,25 +214,25 @@ D['AGG-1']={"kind":"aggregate","id":"AGG-1",
   {"id":"INV-2","condition":C(if_=C(target="ST-2",op="eq",value="TERM-11"),target="ST-3",agg="count",op="ge",value=1),"via":["CMD-1"]}],
  "commands":[
   {"id":"CMD-1","name":"TERM-6","args":[{"id":"ARG-1","name":"TERM-4","type":"VO-4"},{"id":"ARG-2","name":"TERM-21","type":"VO-7"},{"id":"ARG-3","name":"TERM-38","type":"AGG-2"}],
-   "preconditions":[{"id":"PRE-1","condition":C(target="ST-2",op="eq",value="TERM-10"),"reject":"TERM-12"},
-                    {"id":"PRE-2","condition":C(target="ST-3",agg="count",op="ge",value=1),"reject":"TERM-13"}],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-2",op="eq",value="TERM-11")},
-                     {"id":"POST-2","condition":C(target="ST-4",op="eq",value="ARG-1")},
-                     {"id":"POST-3","condition":C(target="ST-5",op="eq",value="ARG-2")},
-                     {"id":"POST-4","condition":C(target="ST-8",op="eq",value="ARG-3")}],
+   "business_rules":[{"id":"BR-1","condition":C(target="ST-2",op="eq",value="TERM-10"),"reject":"TERM-12"},
+                    {"id":"BR-2","condition":C(target="ST-3",agg="count",op="ge",value=1),"reject":"TERM-13"}],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-2",op="eq",value="TERM-11")},
+                     {"id":"CHG-2","condition":C(target="ST-4",op="eq",value="ARG-1")},
+                     {"id":"CHG-3","condition":C(target="ST-5",op="eq",value="ARG-2")},
+                     {"id":"CHG-4","condition":C(target="ST-8",op="eq",value="ARG-3")}],
    "emits":[{"id":"EVT-1","name":"TERM-7","fields":[{"from":"ST-1"},{"from":"ST-4"}]}],
    "accept_examples":[{"id":"OK-1","before":{"ST-2":"TERM-10","ST-3":{"count":2}},"args":{"ARG-1":"12:30","ARG-2":"A-1029","ARG-3":"調理枠 12:00"}}]},
   {"id":"CMD-4","name":"TERM-62","args":[{"id":"ARG-1","name":"TERM-26","type":"ID"},{"id":"ARG-2","name":"TERM-3","type":"VO-1"}],
-   "preconditions":[{"id":"PRE-1","condition":C(target="ST-2",op="eq",value="TERM-10"),"reject":"TERM-64"},
-                    {"id":"PRE-2","condition":C(target="ST-3",agg="count",op="le",value=19),"reject":"TERM-63"}],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-3",agg="count",op="gt",value={"before":"ST-3","agg":"count"})}],
+   "business_rules":[{"id":"BR-1","condition":C(target="ST-2",op="eq",value="TERM-10"),"reject":"TERM-64"},
+                    {"id":"BR-2","condition":C(target="ST-3",agg="count",op="le",value=19),"reject":"TERM-63"}],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-3",agg="count",op="gt",value={"before":"ST-3","agg":"count"})}],
    "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-2":"TERM-10","ST-3":{"count":1}},"args":{"ARG-1":"P-1","ARG-2":2}}]},
-  {"id":"CMD-2","name":"TERM-23","args":[],"preconditions":[],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-6",agg="count",op="gt",value={"before":"ST-6","agg":"count"})}],
+  {"id":"CMD-2","name":"TERM-23","args":[],"business_rules":[],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-6",agg="count",op="gt",value={"before":"ST-6","agg":"count"})}],
    "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-6":{"count":0}},"args":{}}]},
   {"id":"CMD-3","name":"TERM-30","args":[],
-   "preconditions":[{"id":"PRE-1","condition":C(target="ST-2",op="eq",value="TERM-11"),"reject":"TERM-41"}],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-2",op="eq",value="TERM-42")}],
+   "business_rules":[{"id":"BR-1","condition":C(target="ST-2",op="eq",value="TERM-11"),"reject":"TERM-41"}],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-2",op="eq",value="TERM-42")}],
    "emits":[{"id":"EVT-2","name":"TERM-31","fields":[{"from":"ST-1"}]}],
    "accept_examples":[{"id":"OK-1","before":{"ST-2":"TERM-11"},"args":{}}]}]}
 D['AGG-2']={"kind":"aggregate","id":"AGG-2","header":{"name":"TERM-9","context":"BC-1"},
@@ -242,12 +242,12 @@ D['AGG-2']={"kind":"aggregate","id":"AGG-2","header":{"name":"TERM-9","context":
  "invariants":[],
  "commands":[
   {"id":"CMD-1","name":"TERM-15","args":[{"id":"ARG-1","name":"TERM-20","type":"VO-5"}],
-   "preconditions":[{"id":"PRE-1","condition":C(target="ST-2",op="ge",value="ARG-1"),"reject":"TERM-19",
+   "business_rules":[{"id":"BR-1","condition":C(target="ST-2",op="ge",value="ARG-1"),"reject":"TERM-19",
                      "example":{"before":{"ST-2":0},"args":{"ARG-1":1}}}],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-2",op="eq",value={"call":"VO-5.OP-2","args":[{"before":"ST-2"},"ARG-1"]})}],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-2",op="eq",value={"call":"VO-5.OP-2","args":[{"before":"ST-2"},"ARG-1"]})}],
    "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-2":5},"args":{"ARG-1":2}}]},
-  {"id":"CMD-2","name":"TERM-16","args":[{"id":"ARG-1","name":"TERM-20","type":"VO-5"}],"preconditions":[],
-   "postconditions":[{"id":"POST-1","condition":C(target="ST-2",op="eq",value={"call":"VO-5.OP-1","args":[{"before":"ST-2"},"ARG-1"]})}],
+  {"id":"CMD-2","name":"TERM-16","args":[{"id":"ARG-1","name":"TERM-20","type":"VO-5"}],"business_rules":[],
+   "state_changes":[{"id":"CHG-1","condition":C(target="ST-2",op="eq",value={"call":"VO-5.OP-1","args":[{"before":"ST-2"},"ARG-1"]})}],
    "emits":[],"accept_examples":[{"id":"OK-1","before":{"ST-2":3},"args":{"ARG-1":2}}]}]}
 
 V=lambda i,name,comps,ops=[]:{"kind":"value_object","id":i,"header":{"name":name,"context":"BC-1"},"components":comps,"operations":ops}
@@ -272,8 +272,8 @@ D['DS-1']={"kind":"domain_service","id":"DS-1",
              {"id":"IN-2","from":{"target":"AGG-2.ST-2"},"type":"VO-5"},
              {"id":"IN-3","from":{"target":"AGG-2.ST-1"},"type":"VO-6"}],
    "output":"VO-4",
-   "postconditions":[{"id":"POST-1","condition":C(target="RESULT",op="not_empty")},
-                     {"id":"POST-2","condition":C(target="RESULT",op="ge",value="AGG-2.ST-1")}]}]}
+   "results":[{"id":"RES-1","condition":C(target="RESULT",op="not_empty")},
+                     {"id":"RES-2","condition":C(target="RESULT",op="ge",value="AGG-2.ST-1")}]}]}
 
 ORDER_IDS=['DOM-1','SD-1','SD-2','BC-1','UC-0','UC-1','UC-2','UC-3','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
 D={k:D[k] for k in ORDER_IDS}

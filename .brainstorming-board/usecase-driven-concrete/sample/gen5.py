@@ -63,12 +63,12 @@ def clause(c,decl=None,cmd=None):
   t=cond(dict(c,**{}),decl,cmd)
   i=t.find('は'); return t[:i]+'が'+t[i+1:] if i>0 else t
 def item(ref):
-  """「AGG-1.CMD-1.PRE-2」「BC-1.BR-1」「BC-1.QR-1」などの項目と、その宣言 ・ コマンドを返す"""
+  """「AGG-1.CMD-1.BR-2」「BC-1.BR-1」「BC-1.QR-1」などの項目と、その宣言 ・ コマンドを返す"""
   p=ref.split('.'); d=D[p[0]]
   if d['kind']=='aggregate':
     c=find(d['commands'],p[1])
     if len(p)==2: return c,p[0],None
-    return find(c['preconditions']+c['postconditions'],p[2]),p[0],c
+    return find(c['business_rules']+c['state_changes'],p[2]),p[0],c
   if d['kind']=='context':
     if p[1].startswith('X-'):
       x=find(d['context_map']['relations'],p[1])
@@ -131,7 +131,7 @@ def agg_consistency(a):
   ids=[]
   for i in a['invariants']: ids+= [i['condition']['target']]+([i['condition']['if']['target']] if i['condition'].get('if') else [])
   for c in a['commands']:
-    for p in c['preconditions']: ids.append(p['condition']['target'])
+    for p in c['business_rules']: ids.append(p['condition']['target'])
   ids=[x for x in dict.fromkeys(ids) if x.startswith('ST-')]
   return ' ・ '.join(state_name(a['id'],x) for x in ids)+'の一貫性を守る'
 def field_name(a,f): return state_name(a['id'],f['from'])
@@ -171,7 +171,7 @@ def reject_example(a,cmd,p):
   v=violate(a,p['condition'])
   if v is None: return None
   before={p['condition']['target']:v}
-  for q in cmd['preconditions']:
+  for q in cmd['business_rules']:
     if q is not p: before[q['condition']['target']]=satisfy(q['condition'])
   return {"before":before,"args":{}}
 def violation_example(a,inv):
@@ -195,7 +195,7 @@ def call(v,before,args):
 def after(cmd,ex):
   """状態の変更から、後の状態を導く（Derived Values）"""
   out={}
-  for p in cmd['postconditions']:
+  for p in cmd['state_changes']:
     c=p['condition']; v=c.get('value')
     if c['op']=='eq':
       if isinstance(v,dict) and 'call' in v: out[c['target']]=call(v,ex['before'],ex['args'])

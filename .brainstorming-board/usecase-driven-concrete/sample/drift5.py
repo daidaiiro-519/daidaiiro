@@ -41,8 +41,8 @@ def conditions():
         hi=s['multiplicity']['max']
         if hi not in (None,1): add(f'{k}.{s["id"]}.MAX',f'{g.state_name(k,s["id"])}の上限','aggregate',f'{g.state_name(k,s["id"])}が{hi}件を超える操作が拒否される',{"max":hi},k,s['id'])
       for c in d['commands']:
-        for p in c['preconditions']: add(f'{k}.{c["id"]}.{p["id"]}',p['id'],'aggregate','その拒否の理由で拒否される',{"c":p['condition'],"r":p['reject'],"ex":g.reject_example(d,c,p)},k,c['id'])
-        for o in c.get('accept_examples',[]): add(f'{k}.{c["id"]}.{o["id"]}',o['id'],'aggregate','状態の変更と業務イベントが成り立つ',{"post":[p['condition'] for p in c['postconditions']],"emits":[e['id'] for e in c['emits']],"ex":{x:o[x] for x in ('before','args')}},k,c['id'])
+        for p in c['business_rules']: add(f'{k}.{c["id"]}.{p["id"]}',p['id'],'aggregate','その拒否の理由で拒否される',{"c":p['condition'],"r":p['reject'],"ex":g.reject_example(d,c,p)},k,c['id'])
+        for o in c.get('accept_examples',[]): add(f'{k}.{c["id"]}.{o["id"]}',o['id'],'aggregate','状態の変更と業務イベントが成り立つ',{"post":[p['condition'] for p in c['state_changes']],"emits":[e['id'] for e in c['emits']],"ex":{x:o[x] for x in ('before','args')}},k,c['id'])
     if d['kind']=='value_object':
       for cp in d['components']:
         for i in cp['invariants']: add(f'{k}.{i["id"]}',i['id'],'value_object','作れない値を拒む',{"c":i['condition']},k,i['id'])
@@ -50,7 +50,7 @@ def conditions():
         for x in o.get('accept_examples',[]): add(f'{k}.{o["id"]}.{x["id"]}',f'{g.word(o["name"])}の例','value_object','操作の結果が例と同じ',{"op":o['name'],"ex":x},k,o['id'])
     if d['kind']=='domain_service':
       for o in d['operations']:
-        for p in o['postconditions']: add(f'{k}.{o["id"]}.{p["id"]}',p['id'],'domain_service','計算の結果が宣言どおりである',{"c":p['condition'],"in":o['inputs']},k,o['id'])
+        for p in o['results']: add(f'{k}.{o["id"]}.{p["id"]}',p['id'],'domain_service','計算の結果が宣言どおりである',{"c":p['condition'],"in":o['inputs']},k,o['id'])
   return out
 if __name__=='__main__':
   cs=conditions(); print(len(cs))
