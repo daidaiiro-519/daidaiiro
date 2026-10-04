@@ -116,12 +116,15 @@ def p_bc(d):
     b+=block('同じ言葉',cards([card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in ts if x['kind']==k)) for k in kinds]))
   rel=d['context_map']['relations']
   if rel:
-    nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]; at={d['id']:["a","r1"]}
+    nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
     for n,rr in enumerate(rel,1):
-      o=D[rr['with']]; nodes.append({"id":o['id'],"label":o['header']['name']}); at[o['id']]=["b" if rr['direction']=='下流' else "o",f"r{n}"]
-      edges.append({"from":d['id'],"to":o['id'],"label":rr['pattern']} if rr['direction']=='下流' else {"from":o['id'],"to":d['id'],"label":rr['pattern']})
+      nodes.append({"id":f"x{n}","label":rr['external']}); edges.append({"from":d['id'],"to":f"x{n}","label":rr['pattern']})
     f=figure('context-'+d['id'],{"direction":"LR","nodes":nodes,"edges":edges})
-    b+=block('文脈の地図',f+tbl(['相手','連係方法','この文脈の側','使う場合'],[[ref(rr['with']),pill(rr['pattern']),pill(rr['direction']),E(rr.get('case','―'))] for rr in rel]))
+    def how(rr):
+      if rr.get('translates'): return '<br>'.join(f'<code>{E(t["theirs"])}</code> → {E(g.word(t["ours"]))}' for t in rr['translates'])
+      if rr.get('uses'): return 'そのまま使う：'+'、'.join(E(g.word(t)) for t in rr['uses'])
+      return '―'
+    b+=block('文脈の地図',f+tbl(['相手（このプロダクトの外）','持ち主','連係方法','この文脈の側','こちらでの変換'],[[f'<b>{E(rr["external"])}</b>',E(rr['owner']),pill(rr['pattern']),pill(rr['direction']),how(rr)] for rr in rel])+'<p class="txt">相手の中身は、このプロダクトでは決めず、管理もしない。書くのは、こちらの側でどう変換するか、どの語をそのまま使うかだけ。</p>')
   if d.get('business_rules'): b+=block('業務ルール',tbl(['ID','組んだ文'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.cond(x['condition']))] for x in d['business_rules']]))
   if d.get('quality'):
     b+=block('品質の要求',tbl(['ID','組んだ文','対象','閾値','割合','条件','非機能要求グレード','測り方'],[[f'<span class="no">{E(q["id"])}</span>',gen(g.qr_text(q)),E(g.cmd_label(q['target'])),pill(g.thr(q['threshold'])),pill(g.thr(q['ratio'])),E(q['condition']['period']+' ・ '+str(q['condition']['load']['value'])+q['condition']['load']['unit']),E(f'{q["grade"]["item"]} ・ レベル{q["grade"]["level"]}'),pill(q['method'])] for q in d['quality']]))

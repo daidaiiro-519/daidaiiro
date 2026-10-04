@@ -3,7 +3,7 @@
  "id": "BC-1",
  "header": {
   "name": "受注",
-  "purpose": "受け取り予定時刻の約束が、調理枠の空きを超えないかを判定する。支払いの承認と商品の今の価格は、このモデルに入れず、決済 ・ メニューの文脈から受け取る",
+  "purpose": "受け取り予定時刻の約束が、調理枠の空きを超えないかを判定する。支払いの承認と商品の今の価格は、このモデルに入れず、外のサービスから受け取る",
   "subdomains": [
    "SD-1"
   ]
@@ -11,20 +11,40 @@
  "context_map": {
   "relations": [
    {
-    "with": "BC-2",
+    "external": "決済代行の決済サービス",
+    "owner": "決済代行",
     "pattern": "モデル変換装置",
     "direction": "下流",
-    "case": "下流の文脈が中核の業務領域を含む"
+    "case": "下流の文脈が中核の業務領域を含む",
+    "translates": [
+     {
+      "theirs": "authorization_id",
+      "ours": "TERM-21"
+     },
+     {
+      "theirs": "amount",
+      "ours": "TERM-44"
+     }
+    ]
    },
    {
-    "with": "BC-3",
+    "external": "メニューのサービス",
+    "owner": "メニューのチーム",
     "pattern": "従属",
-    "direction": "下流"
+    "direction": "下流",
+    "uses": [
+     "TERM-26",
+     "TERM-40"
+    ]
    },
    {
-    "with": "BC-4",
+    "external": "顧客のサービス",
+    "owner": "顧客のチーム",
     "pattern": "従属",
-    "direction": "下流"
+    "direction": "下流",
+    "uses": [
+     "TERM-24"
+    ]
    }
   ]
  },
@@ -134,7 +154,7 @@
     "id": "TERM-24",
     "word": "顧客",
     "kind": "識別子",
-    "definition": "注文する人を指す、顧客の文脈の識別子",
+    "definition": "注文する人を指す、顧客のサービスが出す識別子",
     "avoid": []
    },
    {
@@ -351,7 +371,7 @@
     "id": "TERM-40",
     "word": "今の価格",
     "kind": "情報の別名",
-    "definition": "メニューの文脈が返す、商品の今の価格",
+    "definition": "メニューのサービスが返す、商品の今の価格",
     "avoid": []
    },
    {
