@@ -1,0 +1,204 @@
+{
+ "$schema": "../../.claude/skills/acdr/references/acdr.schema.json",
+ "no": "ACDR 0105",
+ "title": "ux-advisor を 18F Methods ほか5つの原典から作り直す",
+ "date": "2026-10-04",
+ "status": "accepted",
+ "decision": "ux-advisor を、新しく作るものの体験と完成イメージの相談に、原典の頁ごとの根拠を示して答える助言型の Skill に作り直す。判断基準は 18F Methods を主にした5つの原典の67件にし、完成イメージはワイヤーフレームとデザインシステムで渡す。",
+ "why": "今の ux-advisor の判断基準3件は、出典を示さない指示（Anthropic の frontend-design の Skill）とほぼ同じ中身で、一次の出典まで辿れない。利用者は、この advisor に聞きたいのは新しく作るものの完成イメージと体験だと言い、デザインシステムももらえると嬉しいと書き足した。ブレストボード ux-advisor-source で、目的 ・ 原典 ・ 単位 ・ 今の3件の扱いの4つの論点を決めた（c9abdc0e、利用者が承認）。",
+ "shift": [
+  {
+   "what": "ux-advisor が支える判断",
+   "from": "画面設計 ・ UI コンポーネント ・ デザイントークンの一貫性の判断相談だけ",
+   "to": "新しく作るものの体験と完成イメージ。概念相談 ・ 判断相談 ・ 設計相談の3つ"
+  },
+  {
+   "what": "判断基準",
+   "from": "3件。出典を示さない指示とほぼ同じ中身で、出典は辿れない",
+   "to": "67件。18F の方法34 ・ ヒューリスティクス10 ・ WCAG 2.2 のガイドライン13 ・ GOV.UK の文言の頁5 ・ Design Tokens の概念5。要素ごとに頁の URL を出典に持つ"
+  },
+  {
+   "what": "答えの組み立て",
+   "from": "判断基準を引いて判定するだけ",
+   "to": "デザイナーが案を生み出す6段の順（ゴール → 慣習と既存の型 → 案を広げる → 原則で絞る → 完成イメージ → 利用者で確かめる）"
+  },
+  {
+   "what": "完成イメージの渡し方",
+   "from": "無い",
+   "to": "回答の design_system の欄に、スタイルタイル ・ Design Tokens の形式のトークンの JSON ・ パターンの一覧を置く"
+  },
+  {
+   "what": "使用条件",
+   "from": "Skill 全体が MIT",
+   "to": "原典ごとの条件と出典の表示を licenses.json に書く（18F は CC0、GOV.UK は OGL v3、Design Tokens は FSA、Nielsen と WCAG は写さず出典を書く）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "5つの原典から学習ノートと判断基準を作り、答えは案を生み出す6段の流れの順に組み立てる",
+ "how": "5つの原典の原文を取得し、ux の archive（git の外）に置いた。取得したのは、18F の方法の頁39件 ・ Nielsen の頁 ・ WCAG 2.2 の英語の正本と日本語訳 ・ GOV.UK の5頁 ・ Design Tokens の2つの文書である。一覧は archive/items.tsv にある。原典ごとに5人の担当を立て、判断基準1件に学習ノート1本を作らせた。担当は要素ごとに原典と照合し、原典に無い「だけ」や因果、強さの変更、範囲の拡大を直した。試しの相談（経費精算の申請の設計）で、トークンの色の書き方が仕様に合わないことが分かった。色の値の書き方は本体ではなく Color Module にあるので、それを取得して判断基準 type の Color の要素を埋めた。原典の名前は「」で囲み、出典の節には頁の名前を書いた。criteria.schema.json と answer.schema.json は qa-advisor の写しで、違いは題 ・ 説明と、answer の design_system の欄だけである（機械で比べて確かめた）。受け入れの検査は機械の7件すべてに合格し、契約の検査も通った。試しの相談は validate とゲート1に合格した。判断基準と試しの相談の頁は http://127.0.0.1:8749/ux/ で見られる。",
+ "applies_to": "ux-advisor の SKILL.md と references が変わる。criteria.json と criteria.schema.json ・ answer.schema.json を書き換え、licenses.schema.json と licenses.json を足す。figures の旧い図3枚を外す。道具のテスト（references.rs ・ cli.rs ・ 回答の例）も変わる。配線表の ux-advisor の行と、.gitignore の archive の行も変わる。criteria.json（67件）は大きいので差分に載せず、頁で見る。",
+ "alternatives": [
+  {
+   "option": "今の3件を残し、出典を足す",
+   "why_not": "中身の多くに一次の出典が無く、出典を足せない"
+  },
+  {
+   "option": "About Face（目的志向の UX）を主な原典にする",
+   "why_not": "利用者は本を持っておらず、Web で全文を読めない"
+  },
+  {
+   "option": "研究 ・ 実測に基づく原典だけにする",
+   "why_not": "利用者は研究を条件にしていない。条件は一次の出典まで辿れることである"
+  },
+  {
+   "option": "WCAG の達成基準1つを1件にする",
+   "why_not": "件数が130を超え、判断基準の大半がアクセシビリティになる"
+  },
+  {
+   "option": "Design Tokens の Color Module を判断基準に入れない",
+   "why_not": "色の値の書き方が無いと、デザインシステムのトークンを仕様どおりに書けない（試しの相談で分かった）"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする",
+  "記憶の現在地を、advisor の作り直しの完了へ進める"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/ux-advisor/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "新しく作るものについて、どういう体験と、どういう完成イメージにするとよいかを、判断基準に照らして示す。",
+     "before": "画面設計・UIコンポーネント設計・デザインシステムの一貫性に関する判断相談を受けたときに使う。",
+     "why": "目的を、ボードの論点1で決めた「新しく作るものの体験と完成イメージ」に書き直した。旧版は一貫性の判断相談だけだった"
+    },
+    {
+     "find": "Step 3: 設計相談は、案を生み出す流れの順に組み立てる",
+     "before": "（無い）",
+     "why": "ボードの論点3で決めた、デザイナーが案を生み出す6段の流れを、手順に置いた。完成イメージはワイヤーフレームとデザインシステムで渡す"
+    },
+    {
+     "find": "完成イメージは仮の案である。",
+     "before": "このバックボーンは、Anthropic公式/frontend-designやMaterial Design/HIG等、複数の確立された実務知見の交差点としてAIが総合したものである。単一の権威ある出典として断定的に語らない",
+     "why": "出典を示さない指示に拠っていた旨の文を外した（ボードの論点4）。完成イメージは利用者調査の代わりにしないことを足した（論点1の扱わない範囲）"
+    },
+    {
+     "find": "判断基準の id は次である（題は原典の語のまま。WCAG は WAIC の日本語訳の題）。",
+     "before": "判断基準の id は次である。",
+     "why": "判断基準の一覧を、旧い3件から、原典ごとに分けた67件に置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/references.rs",
+   "file": ".claude/skills/ux-advisor/tool/business_logic/tests/references.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ux-advisor の references を事例で検証する。**助言型の雛形の事例5件である**（ACDR 0061）。",
+     "before": "//! ux-advisor の references を事例で検証する。**判断基準と回答の形が、スキーマに合う。**",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id に依存していた。全件を id で取り出せることと、回答の例がスキーマに合うことを確かめる"
+    },
+    {
+     "find": "fn fixture(name: &str) -> PathBuf {",
+     "before": "（無い）",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id に依存していた。全件を id で取り出せることと、回答の例がスキーマに合うことを確かめる"
+    },
+    {
+     "find": "let found = refs::validate_file(&references(), \"answer\", &fixture(\"answer.example.json\"))",
+     "before": "fn a_criterion_is_taken_by_its_id() {\n    let one = refs::get(&references(), \"criteria\", Some(\"ui-copywriting\")).expect(\"在る\");\n    assert!(one[\"title\"]\n        .as_str()\n        .unwrap_or_default()\n        .contains(\"コピーライティング\"));\n    assert!(\n        one[\"answers\"].as_array().is_some_and(|a| !a.is_empty()),\n        \"答える判断が在る\"\n    );\n    let fx = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"tests/fixtures/answer.judgment.json\");\n    let found = refs::validate_file(&references(), \"answer\", &fx).expect(\"読める\");",
+     "why": "試験を qa-advisor と同じ形にした。旧版は旧い判断基準の id に依存していた。全件を id で取り出せることと、回答の例がスキーマに合うことを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "tests/cli.rs",
+   "file": ".claude/skills/ux-advisor/tool/cli/tests/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ── 契約のテストケースが、同じ名前で同じことを確かめる。",
+     "before": "//! ── 契約のテストケース（skills-creator の references/contract/cases/）が、同じ名前で同じことを確かめる。",
+     "why": "受け入れの検査6（他の Skill の名前が無い）に合わせ、コメントから skills-creator の名前を外した"
+    }
+   ]
+  },
+  {
+   "key": "wire",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"request\": \"新しく作るものの体験と完成イメージ（ワイヤーフレーム・デザインシステム）を、原典に照らして組み立ててもらう\",",
+     "before": "\"request\": \"画面・コンポーネント構造・デザイントークンの一貫性を見てもらう\",\n      \"when\": \"設計判断（画面設計・UIコンポーネントを含むもの）\",",
+     "why": "ux-advisor に頼む内容を、決めた目的（新しく作るものの体験と完成イメージ）に合わせた。旧い行は画面 ・ コンポーネント ・ デザイントークンの一貫性に限っていた。体験の流れを含む設計判断でも呼ばれるよう、どの作業のときに体験の流れを足した"
+    }
+   ]
+  },
+  {
+   "key": "ign",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".claude/skills/ux-advisor/references/archive/",
+     "before": "（無い）",
+     "why": "ux-advisor の archive（原典の原文と学習ノート）を git の外に置く。ほかの advisor と同じ扱いである"
+    }
+   ]
+  },
+  {
+   "key": "lic",
+   "tab": "licenses.json",
+   "file": ".claude/skills/ux-advisor/references/licenses.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "18F Methods から作った判断基準",
+     "before": "（無い）",
+     "why": "18F は CC0 なので、条件は無いが、出典として頁の URL を書く"
+    },
+    {
+     "find": "GOV.UK の文言の規則から作った判断基準",
+     "before": "（無い）",
+     "why": "OGL v3 は出典の表示を求めるので、決まった文「Contains public sector information licensed under the Open Government Licence v3.0.」を書く"
+    },
+    {
+     "find": "Design Tokens Format Module から作った判断基準",
+     "before": "（無い）",
+     "why": "FSA は、改変した版に原典への出典の表示を求める"
+    }
+   ]
+  },
+  {
+   "key": "fix",
+   "tab": "回答の例",
+   "file": ".claude/skills/ux-advisor/tool/business_logic/tests/fixtures/answer.example.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "design_system",
+     "before": "（無い）",
+     "why": "試しの相談（経費精算の申請の設計）を、道具の試験の回答の例にした。完成イメージをデザインシステム（トークンの JSON を含む）で渡す形を確かめる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "d3a4ce790ce827302545c88c26c5bb36bf528970e7faf214c25394009fd0ae42",
+  "test": "c6338195b2ccec63fe37995684b1185505735ec358af17935b17f0f7411c5d51",
+  "cli": "5b9e2fc20962a88c8addbb5940d13474e493838caa19933aeed9c1d02579ea44",
+  "wire": "98012e552738d722a33ed2de8e71a5c381eaa92a3a618e25c5f86c2cbfd1ae78",
+  "ign": "107e801dee1024c09d4f8103ead4ba2bb03863010f011c4c1f78042e31b5f7f6",
+  "lic": "8f09de4cbfe643db7e8ccd0fbb7d973c6b15e6197224a6691ae9f5c9170f9233",
+  "fix": "7d24f9326d7021054ef37eda007cc93c5d5034b738678cc5bc3599fe842339c1"
+ }
+}

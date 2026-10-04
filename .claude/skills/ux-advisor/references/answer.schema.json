@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "answer.schema.json",
   "title": "ux-advisor の回答",
-  "description": "ux-advisor が 画面設計 ・ UI コンポーネント ・ デザイントークンの判断に回答するときの形。人は描画した HTML で読む",
+  "description": "ux-advisor が、新しく作るものの体験と完成イメージの相談に回答するときの形。人は描画した HTML で読む",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,10 +22,19 @@
       "x-view": "tag",
       "oneOf": [
         {
+          "const": "concept",
+          "title": "概念相談"
+        },
+        {
           "const": "judgment",
           "title": "判断相談"
+        },
+        {
+          "const": "design",
+          "title": "設計相談"
         }
-      ]
+      ],
+      "description": "全ての助言型に共通する3つ（ACDR 0061）。概念は「〜とは」、判断は「〜すべきか」「この案でよいか」、設計は「〜をどう組み立てるか」"
     },
     "question": {
       "title": "相談",
@@ -92,6 +101,14 @@
             {
               "const": "define",
               "title": "定義"
+            },
+            {
+              "const": "sound",
+              "title": "良好"
+            },
+            {
+              "const": "weak",
+              "title": "弱い"
             }
           ]
         },
@@ -192,10 +209,9 @@
         },
         "svg": {
           "type": "string",
-          "description": "design-svg が組んだ SVG の置き場所"
+          "description": "図の SVG の置き場所（任意）。描く道具は問わない ── 回答の図は、節点と辺の宣言だけで成り立つ"
         }
-      },
-      "$comment": "節点と辺で宣言する。SVG は design-svg が組み、Orchestrator が svg の欄に置く。閉じた流れは輪の配置で組む"
+      }
     },
     "comparison": {
       "title": "比較した案",
@@ -261,7 +277,7 @@
       }
     },
     "steps": {
-      "title": "実装の手順",
+      "title": "設計の手順",
       "x-view": "steps",
       "type": "array",
       "minItems": 1,
@@ -290,6 +306,12 @@
       "x-view": "blocks",
       "$ref": "#/$defs/blocks"
     },
+    "design_system": {
+      "title": "デザインシステム",
+      "description": "完成イメージとして渡すデザインシステム。見た目の方向（スタイルタイル）・トークン（Design Tokens Format Module の形式の JSON）・パターンの一覧（部品 ・ 振る舞い ・ 使う理由）を置く。新しく作るものの設計相談で置く",
+      "x-view": "blocks",
+      "$ref": "#/$defs/blocks"
+    },
     "examples": {
       "title": "具体例",
       "x-view": "list",
@@ -314,11 +336,15 @@
         "properties": {
           "criterion": {
             "title": "判断基準",
-            "type": "string"
+            "type": "string",
+            "x-refers": "criteria",
+            "description": "criteria の id。無い id は validate が検出する"
           },
           "quote": {
             "title": "引用",
-            "type": "string"
+            "type": "string",
+            "x-quotes": "criterion",
+            "description": "criterion が指す判断基準の記述。判断基準に無い文は validate が検出する"
           }
         }
       },
@@ -410,7 +436,7 @@
       "items": {
         "type": "string"
       },
-      "$comment": "動詞で始める"
+      "$comment": "1件に1つの行為を書き、動詞で終わる文にする"
     },
     "related": {
       "title": "関連する基準",
@@ -426,7 +452,8 @@
         "properties": {
           "criterion": {
             "title": "判断基準",
-            "type": "string"
+            "type": "string",
+            "x-refers": "criteria"
           },
           "relation": {
             "title": "関係",
@@ -467,14 +494,43 @@
       "if": {
         "properties": {
           "kind": {
+            "const": "concept"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "definition",
+          "examples"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
             "const": "judgment"
           }
         }
       },
       "then": {
         "required": [
-          "premises",
+          "comparison",
           "path"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "design"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "steps"
         ]
       }
     }
