@@ -314,7 +314,8 @@ fn pane(shop: &Shop, doc: &Value, made: &mut Made) -> Result<(String, usize), St
             ],
         )?
     };
-    let count = built.matches("mark class=\"chg\"").count();
+    // 対象の文書自身の印（同じ class）を数えない
+    let count = built.matches("data-acdr=\"1\"").count();
     Ok((built, count))
 }
 
@@ -392,8 +393,10 @@ pub fn check(out: &str, spec: &Value, made: &Made) -> Vec<(String, bool)> {
             .map(|r| r.find_iter(out).count())
             .unwrap_or(0)
     };
-    let nb = count(r#"<mark class="chg"[^>]*data-b=""#);
-    let nw = count(r#"<mark class="chg"[^>]*data-w=""#);
+    // **この道具が付けた印（data-acdr）だけを数える。** 対象の文書が、同じ class の印を
+    // 自分で持っていることがある（brainstorming-board のボード）
+    let nb = count(r#"<mark class="chg" data-acdr="1"[^>]*data-b=""#);
+    let nw = count(r#"<mark class="chg" data-acdr="1"[^>]*data-w=""#);
     ok.push((
         format!("印ごとに data-b と data-w（{nb}／{nw}）"),
         nb == nw && nb == made.total,

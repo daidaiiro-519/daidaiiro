@@ -1,0 +1,57 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0112",
+ "title": "ACDR の印だけを数える",
+ "date": "2026-10-04",
+ "status": "accepted",
+ "decision": "変更の件数と、印の検査（data-b と data-w の数）を、ACDR が付けた印（data-acdr）だけで数える。",
+ "why": "ACDR 0110 で、ACDR が付けた印に data-acdr を足し、画面の動きはその印だけを扱うようにした。数える側は class=\"chg\" のままだったので、ボードを描画した面を置いた ACDR 0111 で、ボード自身の印まで数えて「変更 202 件」と出た（正しくは10件）。印の検査も、ボード自身の印を数えて不合格になった。",
+ "shift": [
+  {
+   "what": "変更の件数",
+   "from": "class=\"chg\" の印をすべて数える",
+   "to": "data-acdr の付いた印だけを数える"
+  },
+  {
+   "what": "印の検査",
+   "from": "class=\"chg\" の印の data-b と data-w を数える",
+   "to": "data-acdr の付いた印だけで数える"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "対象の文書が同じ class の印を持っていても、ACDR が付けた印だけを数える。",
+ "alternatives": [
+  {
+   "option": "ボードの側で、印の class を変える",
+   "why_not": "対象の文書は ACDR を知らない。ACDR の側が自分の印を見分ければ、どの文書でも同じに動く（ACDR 0110 と同じ判断）"
+  },
+  {
+   "option": "件数の表示を外す",
+   "why_not": "件数は、理由の欠けを見つける検査にも使っている"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "rs",
+   "tab": "panes.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/panes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let count = built.matches(\"data-acdr=\\\"1\\\"\").count();",
+     "before": "    let count = built.matches(\"mark class=\\\"chg\\\"\").count();",
+     "why": "ボードを描画した面では、ボード自身の印（class=\"chg\"）まで数えて、変更の件数が202件と出た。ACDR が付けた印だけを数える"
+    },
+    {
+     "find": "let nb = count(r#\"<mark class=\"chg\" data-acdr=\"1\"[^>]*data-b=\"\"#);",
+     "before": "    let nb = count(r#\"<mark class=\"chg\"[^>]*data-b=\"\"#);",
+     "why": "印の検査も、ボード自身の印を数えて合計と合わず不合格になった。ACDR が付けた印だけで数える"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "rs": "561db1450095633984604c4bf87fdad012c3df9fca6c588d6f6df6b2ceb4bab8"
+ }
+}
