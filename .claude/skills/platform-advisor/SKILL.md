@@ -65,7 +65,6 @@ description: "システムの非機能の設計（運用上の優秀性 ・ セ�
 ```
 platform-advisor get criteria <id>        判断基準を1件取り出す（JSON）
 platform-advisor get grades <id>          水準を1件取り出す（JSON）
-platform-advisor get criteria <id> --omit source  要素ごとの出典を除いて取り出す
 platform-advisor view criteria --id <id>  人が読む形で描画する
 ```
 
@@ -130,7 +129,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | 非機能の設計の判断基準（57件）。1件が、AWS Well-Architected フレームワーク（日本語版）の質問1つで、その質問のベストプラクティスを要素に持つ。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った頁を出典として持つ** |
+| `references/criteria.schema.json` ・ `criteria.json` | 非機能の設計の判断基準（57件）。1件が、AWS Well-Architected フレームワーク（日本語版）の質問1つで、その質問のベストプラクティスを要素に持つ。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。判断基準だけで完結し、出典は持たない（原典と照合した記録は学習ノートが持つ）** |
 | `references/grades.schema.json` ・ `grades.json` | 非機能要求の水準（35件）。1件が、IPA 非機能要求グレード2018 の中項目1つで、小項目ごとのレベルの表と、重要項目のモデルシステムの選択レベルの表を要素に持つ |
 | `references/licenses.schema.json` ・ `licenses.json` | `criteria.json`（CC BY-SA 4.0）と `grades.json`（IPA の使用条件）の使用条件と著作権の表示。Skill のほかの部分は根の `LICENSE`（MIT）に従う |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |

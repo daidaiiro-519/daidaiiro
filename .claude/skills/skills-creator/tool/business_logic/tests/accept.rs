@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! 助言型の受け入れの検査2（複製 ・ 語彙 ・ 出典の頁）を事例で検証する。
+//! 助言型の受け入れの検査2（複製 ・ 語彙 ・ 本文の原典の番号）を事例で検証する。
 //!
 //!     cargo test -p sc_business_logic
 
@@ -16,8 +16,9 @@ fn notes() -> Vec<(PathBuf, String)> {
     )]
 }
 
-/// 判断基準1件。要素の中身と出典の節を差し替えて使う。
-fn item(meaning: &str, section: &str) -> Value {
+/// 判断基準1件。要素の中身を差し替えて使う。**要素は出典を持たない** ── 判断基準は、こちらの目的に
+/// 合わせてまとめた言葉で完結する。原典と照合した記録は学習ノートが持つ。
+fn item(meaning: &str, _section: &str) -> Value {
     json!({
         "id": "primary-actor",
         "title": "主アクター",
@@ -25,8 +26,7 @@ fn item(meaning: &str, section: &str) -> Value {
         "elements": {"units": [{
             "kind": "definition",
             "term": "主アクター",
-            "meaning": meaning,
-            "source": {"origin": "原典", "section": section, "location": "書誌", "fetched": "2026-09-29", "method": "学習ノートからまとめた"}
+            "meaning": meaning
         }]}
     })
 }
@@ -92,17 +92,14 @@ fn a_vocabulary_word_of_the_notes_passes() {
 }
 
 #[test]
-fn a_source_without_a_page_is_found() {
+fn an_element_without_a_source_passes() {
+    // 判断基準は出典を持たない。出典が無いことを検出にしない
     let items = [item(
         "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
-        "4.2",
+        "",
     )];
     let check = copied(&items, &notes());
-    assert!(
-        check.findings.iter().any(|f| f.contains("頁")),
-        "出典には頁を書く: {:?}",
-        check.findings
-    );
+    assert!(check.findings.is_empty(), "{:?}", check.findings);
 }
 
 #[test]
@@ -152,7 +149,7 @@ fn a_title_named_nowhere_is_found() {
 
 #[test]
 fn a_number_of_the_original_is_found() {
-    // 判断基準の頁に原典の表は無い ── 読み手は「表20.1」を辿れない。番号は出典の欄が持つ
+    // 判断基準の頁に原典の表は無い ── 読み手は「表20.1」を辿れない
     for text in [
         "合否基準（表20.1）の各項目で確認する。",
         "指針14のとおり、下に置く。",
@@ -169,16 +166,6 @@ fn a_number_of_the_original_is_found() {
             check.findings
         );
     }
-}
-
-#[test]
-fn a_number_in_the_source_is_not_found() {
-    let items = [item(
-        "目的をかなえてもらうために、システムを呼び出す側の利害関係者。",
-        "メモ11 表20.1（241頁）",
-    )];
-    let check = copied(&items, &notes());
-    assert!(check.findings.is_empty(), "{:?}", check.findings);
 }
 
 #[test]

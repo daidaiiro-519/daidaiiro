@@ -55,7 +55,6 @@ description: "ユースケースについての概念相談(「〜とは」)・�
 
 ```
 usecase-advisor get criteria <id>        判断基準を1件取り出す（JSON）
-usecase-advisor get criteria <id> --omit source  要素ごとの出典を除いて取り出す
 usecase-advisor view criteria --id <id>  人が読む形で描画する
 ```
 
@@ -117,43 +116,53 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | ユースケースの判断基準。1件が、原典が名前を付けて立てている1つの概念である。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った章と頁を出典として持つ** |
+| `references/criteria.schema.json` ・ `criteria.json` | ユースケースの判断基準。1件が、原典が名前を付けた概念1つか、原典が書く作業の進め方1つである。原典の内容を網羅する（入れないのは練習問題 ・ 参考文献 ・ 本の構成 ・ 余談だけ）。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。判断基準だけで完結し、出典は持たない（原典と照合した記録は学習ノートが持つ）** |
 | `references/figures/*.svg` | 判断基準の図。Skill の中に同梱する |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 
 判断基準の id は次である。
 
-| id | 題（原典の概念の名前） | 原典の節 |
-|---|---|---|
-| `use-case` | ユースケース | 第1章 ・ 1.1 ・ 1.4 ・ 第2章 ・ 2.1 ・ 2.3 ・ 第12章 ・ 第13章 ・ 第17章 ・ 17.1 ・ 17.2 ・ 17.3 ・ 17.4 ・ 17.5 ・ 17.6 ・ 第20章 ・ 第21章 ・ メモ14 ・ メモ15 ・ 第22章 ・ メモ16 ・ メモ18 ・ メモ19 ・ メモ25 ・ 付録C |
-| `usage-narrative` | 利用ストーリー | 第1章 ・ 1.6 |
-| `precision` | 精度 | 第1章 ・ 1.5 ・ 第13章 ・ 第21章 ・ 第22章 ・ メモ17 ・ メモ20 |
-| `stakeholder` | 利害関係者 | 第2章 ・ 2.2 ・ 第4章 ・ 4.1 ・ 第20章 ・ 付録C |
-| `actor` | アクター | 第4章 ・ 第22章 ・ メモ23 ・ 付録C |
-| `primary-actor` | 主アクター | 第4章 ・ 4.2 ・ 第12章 ・ 第19章 ・ 19.2 ・ メモ22 |
-| `supporting-actor` | 支援アクター | 4.3 |
-| `system-under-discussion` | 対象システム | 第4章 ・ 4.4 ・ 4.5 ・ 第21章 ・ 付録C |
-| `functional-scope` | 機能スコープ | 第3章 ・ 3.1 |
-| `use-case-brief` | ユースケース概要 | 3.1 ・ 第18章 ・ メモ26 ・ 付録C |
-| `design-scope` | 設計スコープ | 第3章 ・ 3.2 ・ 3.3 ・ 3.4 ・ メモ13 ・ 付録C |
-| `goal-level` | 目的レベル | 第5章 ・ 5.1 ・ 5.2 ・ 5.3 ・ 5.4 ・ 5.5 ・ 5.6 ・ 第12章 ・ 第19章 ・ 19.4 ・ 19.5 ・ 第20章 ・ 第21章 ・ メモ12 ・ 第22章 ・ 付録C |
-| `precondition` | 事前条件 | 第6章 ・ 6.1 ・ 第20章 |
-| `minimal-guarantee` | 最低保証 | 第6章 ・ 6.2 |
-| `success-guarantee` | 成功時保証 | 6.3 |
-| `trigger` | トリガー | 6.4 ・ 第12章 |
-| `main-success-scenario` | 主成功シナリオ | 第7章 ・ 7.1 ・ 第20章 ・ 第21章 ・ 付録C |
-| `action-step` | アクションステップ | 第7章 ・ 7.2 ・ 第19章 ・ 19.1 ・ 19.3 ・ 19.6 ・ 第20章 ・ 第21章 |
-| `extension` | 拡張 | 第1章 ・ 第2章 ・ 第8章 ・ 8.1 ・ 8.2 ・ 8.3 ・ 第20章 ・ 第22章 ・ メモ21 ・ 付録C |
-| `technology-data-variation` | 技術およびデータのバリエーション | 第9章 |
-| `sub-use-case` | サブユースケース | 第2章 ・ 第10章 ・ 10.1 ・ 第20章 ・ A.5 |
-| `extension-use-case` | 拡張ユースケース | 第10章 ・ 10.2 ・ 第20章 ・ 付録C |
-| `use-case-format` | ユースケースの書式 | 第1章 ・ 1.2 ・ 第11章 ・ 11.1 ・ 11.2 ・ 11.3 ・ 11.4 ・ 第20章 ・ 付録C |
-| `crud-use-case` | CRUDユースケース | 第14章 ・ 14.1 |
-| `parameterized-use-case` | パラメタライズドユースケース | 第14章 ・ 14.2 |
-| `business-and-system-use-case` | ビジネスユースケースとシステムユースケース | 第15章 ・ 15.1 ・ 15.2 ・ 第21章 ・ 付録C |
-| `data-requirement-precision` | データ要求の精度 | 第16章 ・ 16.1 |
-| `hub-and-spoke-model` | 要求のハブ-スポークモデル | 第1章 ・ 1.3 ・ 第16章 ・ 16.2 ・ 第22章 ・ 第16章冒頭 |
-| `use-case-diagram` | ユースケース図 | 11.1 ・ 第21章 ・ 第22章 ・ メモ24 ・ 付録A ・ A.1 ・ A.2 ・ A.3 ・ A.4 ・ A.6 ・ A.7 ・ 付録C |
+| id | 題（原典の概念の名前） |
+|---|---|
+| `use-case` | ユースケース |
+| `usage-narrative` | 利用ストーリー |
+| `precision` | 精度 |
+| `stakeholder` | 利害関係者 |
+| `actor` | アクター |
+| `primary-actor` | 主アクター |
+| `supporting-actor` | 支援アクター |
+| `system-under-discussion` | 対象システム |
+| `functional-scope` | 機能スコープ |
+| `use-case-brief` | ユースケース概要 |
+| `design-scope` | 設計スコープ |
+| `goal-level` | 目的レベル |
+| `precondition` | 事前条件 |
+| `minimal-guarantee` | 最低保証 |
+| `success-guarantee` | 成功時保証 |
+| `trigger` | トリガー |
+| `main-success-scenario` | 主成功シナリオ |
+| `action-step` | アクションステップ |
+| `extension` | 拡張 |
+| `technology-data-variation` | 技術およびデータのバリエーション |
+| `sub-use-case` | サブユースケース |
+| `extension-use-case` | 拡張ユースケース |
+| `use-case-format` | ユースケースの書式 |
+| `crud-use-case` | CRUDユースケース |
+| `parameterized-use-case` | パラメタライズドユースケース |
+| `business-and-system-use-case` | ビジネスユースケースとシステムユースケース |
+| `data-requirement-precision` | データ要求の精度 |
+| `hub-and-spoke-model` | 要求のハブ-スポークモデル |
+| `use-case-diagram` | ユースケース図 |
+| `scaling-up-use-cases` | ユースケースの数が膨大になったら |
+| `use-cases-in-project-organization` | プロジェクト組織におけるユースケース |
+| `use-case-to-task-list` | ユースケースからタスクまたは機能一覧へ |
+| `use-case-to-design` | ユースケースから設計へ |
+| `use-case-to-ui-design` | ユースケースからUI設計へ |
+| `use-case-to-test-case` | ユースケースからテストケースへ |
+| `fork-join-process` | 分岐-結合プロセス |
+| `large-group-use-case-gathering` | 大規模なグループからユースケースを集める |
+| `twelve-step-recipe` | 12ステップのレシピ |
+| `use-case-tools` | 主なツールについての考察 |
 
 学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。

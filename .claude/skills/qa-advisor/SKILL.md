@@ -64,7 +64,6 @@ description: "ソフトウェアテストについての概念相談(「〜と�
 
 ```
 qa-advisor get criteria <id>        判断基準を1件取り出す（JSON）
-qa-advisor get criteria <id> --omit source  要素ごとの出典を除いて取り出す
 qa-advisor view criteria --id <id>  人が読む形で描画する
 ```
 
@@ -126,70 +125,70 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | ソフトウェアテストの判断基準。1件が、原典が名前を付けて立てている1つの概念である。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った章と頁を出典として持つ** |
+| `references/criteria.schema.json` ・ `criteria.json` | ソフトウェアテストの判断基準。1件が、原典が名前を付けて立てている1つの概念である。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。判断基準だけで完結し、出典は持たない（原典と照合した記録は学習ノートが持つ）** |
 | `references/figures/*.svg` | 判断基準の図。Skill の中に同梱する |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |
 
 判断基準の id は次である。
 
-| id | 題（原典の概念の名前） | 原典の節（JSTQB のシラバスの節番号 ・ xunitpatterns.com の頁） |
-|---|---|---|
-| `testing` | テスト | 1.1 ・ 1.1.1 ・ 1.1.2 ・ 1.3 |
-| `quality-assurance` | 品質保証（QA） | 1.2 ・ 1.2.1 ・ 1.2.2 ・ 2.1.2 |
-| `error-defect-failure` | エラー、欠陥、故障、および根本原因 | 1.2.3 ・ 3.1.3 ・ 5.5 |
-| `testing-principles` | テストの原則 | 1.3 ・ 2.1.2 ・ 2.1.5 ・ 3.1.2 |
-| `test-process` | テストプロセス | 1.4 ・ 1.4.1 ・ 1.4.2 ・ 1.4.5 ・ 1.5 ・ 1.5.1 |
-| `testware` | テストウェア | 1.4.1 ・ 1.4.3 ・ 2.1.6 ・ 5.1.3 ・ 5.3 |
-| `traceability` | トレーサビリティ | 1.4.4 ・ 5.4 |
-| `whole-team-approach` | チーム全体アプローチ | 1.5.2 ・ 5.3.3 |
-| `independence-of-testing` | テストの独立性 | 1.5.2 ・ 1.5.3 ・ 5.1.1 ・ 5.2.4 |
-| `test-first-development` | テストが主導するソフトウェア開発 | 2.1 ・ 2.1.1 ・ 2.1.2 ・ 2.1.3 |
-| `devops-and-testing` | DevOps とテスト | 2.1.4 ・ 2.2.3 ・ 3.1 ・ 5.4 |
-| `shift-left` | シフトレフトアプローチ | 1.3 ・ 2.1.2 ・ 2.1.3 ・ 2.1.4 ・ 2.1.5 |
-| `retrospective` | ふりかえりとプロセス改善 | 1.4.1 ・ 2.1.6 ・ 5.3.2 |
-| `test-levels` | テストレベル | 2.2 ・ 2.2.1 |
-| `test-types` | テストタイプ | 2.2 ・ 2.2.2 |
-| `confirmation-and-regression-testing` | 確認テストとリグレッションテスト | 1.1.2 ・ 1.3 ・ 2.2.3 |
-| `maintenance-testing` | メンテナンス（保守）テスト | 2.3 |
-| `static-testing` | 静的テスト | 1.1 ・ 1.1.2 ・ 1.3 ・ 2.1.1 ・ 2.1.2 ・ 2.1.4 ・ 2.1.5 ・ 3.1 ・ 3.1.1 ・ 3.1.2 ・ 3.1.3 ・ 3.2.1 ・ 5.1.3 ・ 5.2.4 ・ 5.5 ・ 6.1 |
-| `review` | レビュー | 3.1 ・ 3.1.1 ・ 3.2.2 ・ 3.2.3 ・ 3.2.4 ・ 3.2.5 |
-| `equivalence-partitioning` | 同値分割法 | 4.1 ・ 4.2 ・ 4.2.1 ・ 4.4.2 |
-| `boundary-value-analysis` | 境界値分析 | 4.2.2 |
-| `decision-table-testing` | デシジョンテーブルテスト | 4.2.3 |
-| `state-transition-testing` | 状態遷移テスト | 4.2.4 |
-| `white-box-testing` | ホワイトボックステスト技法 | 2.2.2 ・ 4.1 ・ 4.3 ・ 4.3.1 ・ 4.3.2 ・ 4.3.3 ・ 5.1.5 |
-| `error-guessing` | エラー推測 | 2.1.1 ・ 4.1 ・ 4.4 ・ 4.4.1 |
-| `exploratory-testing` | 探索的テスト | 1.4.3 ・ 2.1.1 ・ 4.1 ・ 4.4 ・ 4.4.2 ・ 5.1.7 |
-| `checklist-based-testing` | チェックリストベースドテスト | 2.1.1 ・ 4.1 ・ 4.4 ・ 4.4.3 |
-| `user-story` | ユーザーストーリーの共同執筆 | 3.1 ・ 4.5 ・ 4.5.1 ・ 5.1.2 |
-| `acceptance-criteria` | 受け入れ基準 | 1.4.3 ・ 2.1.3 ・ 3.1 ・ 3.1.3 ・ 4.5.2 ・ 5.1.7 ・ 5.3 |
-| `atdd` | 受け入れテスト駆動開発（ATDD） | 2.1.3 ・ 4.5.3 |
-| `test-plan` | テスト計画書 | 1.4 ・ 1.4.1 ・ 1.4.3 ・ 5.1.1 ・ 5.1.2 ・ 5.3.2 |
-| `entry-exit-criteria` | 開始基準と終了基準 | 1.4.3 ・ 2.2.1 ・ 3.1 ・ 3.2.2 ・ 3.2.5 ・ 5.1.3 ・ 5.3 ・ 5.3.2 |
-| `test-estimation` | 見積り技法 | 4.5.1 ・ 4.5.2 ・ 5.1.2 ・ 5.1.4 ・ 5.2.3 |
-| `test-case-prioritization` | テストケースの優先順位付け | 1.3 ・ 1.4.1 ・ 1.4.3 ・ 5.1.5 ・ 5.2.3 ・ 5.3 |
-| `test-pyramid` | テストピラミッド | 5.1.6 |
-| `testing-quadrants` | テストの四象限 | 5.1.7 |
-| `risk-management` | リスクマネジメント | 1.3 ・ 1.4.1 ・ 1.4.3 ・ 1.4.4 ・ 5.1.5 ・ 5.2 ・ 5.2.1 ・ 5.2.2 ・ 5.2.3 ・ 5.2.4 |
-| `test-monitoring-and-control` | テストモニタリング、テストコントロールとテスト完了 | 1.4.1 ・ 1.4.3 ・ 1.4.4 ・ 1.4.5 ・ 2.1.6 ・ 5.3 ・ 5.3.1 ・ 5.3.2 ・ 5.3.3 |
-| `configuration-management` | 構成管理 | 1.4.3 ・ 5.4 ・ 6.1 |
-| `defect-management` | 欠陥マネジメント | 1.4.1 ・ 1.4.3 ・ 3.2.2 ・ 5.5 |
-| `test-automation` | テスト自動化 | 1.1 ・ 1.3 ・ 1.4.2 ・ 2.1.1 ・ 2.1.4 ・ 2.2.3 ・ 3.1 ・ 4.5.3 ・ 5.1.6 ・ 5.1.7 ・ 6.1 ・ 6.2 |
-| `obscure-test` | Obscure Test | Test Smells の Code Smells ・ Obscure Test の頁 |
-| `conditional-test-logic` | Conditional Test Logic | Test Smells の Code Smells ・ Conditional Test Logic の頁 |
-| `hard-to-test-code` | Hard-to-Test Code | Test Smells の Code Smells ・ Hard-to-Test Code の頁 |
-| `test-code-duplication` | Test Code Duplication | Test Smells の Code Smells ・ Test Code Duplication の頁 |
-| `test-logic-in-production` | Test Logic in Production | Test Smells の Code Smells ・ Test Logic in Production の頁 |
-| `assertion-roulette` | Assertion Roulette | Test Smells の Behavior Smells ・ Assertion Roulette の頁 |
-| `erratic-test` | Erratic Test | Test Smells の Behavior Smells ・ Erratic Test の頁 |
-| `fragile-test` | Fragile Test | Test Smells の Behavior Smells ・ Fragile Test の頁 |
-| `frequent-debugging` | Frequent Debugging | Test Smells の Behavior Smells ・ Frequent Debugging の頁 |
-| `manual-intervention` | Manual Intervention | Test Smells の Behavior Smells ・ Manual Intervention の頁 |
-| `slow-tests` | Slow Tests | Test Smells の Behavior Smells ・ Slow Tests の頁 |
-| `buggy-tests` | Buggy Tests | Test Smells の Project Smells ・ Buggy Tests の頁 |
-| `developers-not-writing-tests` | Developers Not Writing Tests | Test Smells の Project Smells ・ Developers Not Writing Tests の頁 |
-| `high-test-maintenance-cost` | High Test Maintenance Cost | Test Smells の Project Smells ・ High Test Maintenance Cost の頁 |
-| `production-bugs` | Production Bugs | Test Smells の Project Smells ・ Production Bugs の頁 |
+| id | 題（原典の概念の名前） |
+|---|---|
+| `testing` | テスト |
+| `quality-assurance` | 品質保証（QA） |
+| `error-defect-failure` | エラー、欠陥、故障、および根本原因 |
+| `testing-principles` | テストの原則 |
+| `test-process` | テストプロセス |
+| `testware` | テストウェア |
+| `traceability` | トレーサビリティ |
+| `whole-team-approach` | チーム全体アプローチ |
+| `independence-of-testing` | テストの独立性 |
+| `test-first-development` | テストが主導するソフトウェア開発 |
+| `devops-and-testing` | DevOps とテスト |
+| `shift-left` | シフトレフトアプローチ |
+| `retrospective` | ふりかえりとプロセス改善 |
+| `test-levels` | テストレベル |
+| `test-types` | テストタイプ |
+| `confirmation-and-regression-testing` | 確認テストとリグレッションテスト |
+| `maintenance-testing` | メンテナンス（保守）テスト |
+| `static-testing` | 静的テスト |
+| `review` | レビュー |
+| `equivalence-partitioning` | 同値分割法 |
+| `boundary-value-analysis` | 境界値分析 |
+| `decision-table-testing` | デシジョンテーブルテスト |
+| `state-transition-testing` | 状態遷移テスト |
+| `white-box-testing` | ホワイトボックステスト技法 |
+| `error-guessing` | エラー推測 |
+| `exploratory-testing` | 探索的テスト |
+| `checklist-based-testing` | チェックリストベースドテスト |
+| `user-story` | ユーザーストーリーの共同執筆 |
+| `acceptance-criteria` | 受け入れ基準 |
+| `atdd` | 受け入れテスト駆動開発（ATDD） |
+| `test-plan` | テスト計画書 |
+| `entry-exit-criteria` | 開始基準と終了基準 |
+| `test-estimation` | 見積り技法 |
+| `test-case-prioritization` | テストケースの優先順位付け |
+| `test-pyramid` | テストピラミッド |
+| `testing-quadrants` | テストの四象限 |
+| `risk-management` | リスクマネジメント |
+| `test-monitoring-and-control` | テストモニタリング、テストコントロールとテスト完了 |
+| `configuration-management` | 構成管理 |
+| `defect-management` | 欠陥マネジメント |
+| `test-automation` | テスト自動化 |
+| `obscure-test` | Obscure Test |
+| `conditional-test-logic` | Conditional Test Logic |
+| `hard-to-test-code` | Hard-to-Test Code |
+| `test-code-duplication` | Test Code Duplication |
+| `test-logic-in-production` | Test Logic in Production |
+| `assertion-roulette` | Assertion Roulette |
+| `erratic-test` | Erratic Test |
+| `fragile-test` | Fragile Test |
+| `frequent-debugging` | Frequent Debugging |
+| `manual-intervention` | Manual Intervention |
+| `slow-tests` | Slow Tests |
+| `buggy-tests` | Buggy Tests |
+| `developers-not-writing-tests` | Developers Not Writing Tests |
+| `high-test-maintenance-cost` | High Test Maintenance Cost |
+| `production-bugs` | Production Bugs |
 
 学習ノートと原典の原文は references の下の archive フォルダに置く ── 原典の複製を含むため、git の管理の外である。

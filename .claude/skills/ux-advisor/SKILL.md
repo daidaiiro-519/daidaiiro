@@ -65,7 +65,6 @@ description: "新しく作るものの体験と完成イメージについての
 
 ```
 ux-advisor get criteria <id>        判断基準を1件取り出す（JSON）
-ux-advisor get criteria <id> --omit source  要素ごとの出典を除いて取り出す
 ux-advisor view criteria --id <id>  人が読む形で描画する
 ```
 
@@ -148,7 +147,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 
 | ファイル | 中身 |
 |---|---|
-| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（67件）。1件が、原典が名前を付けた単位1つである（18F の方法 ・ Nielsen のヒューリスティクス ・ WCAG 2.2 のガイドライン ・ GOV.UK の文言の頁 ・ Design Tokens の概念）。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。要素ごとに、拠った頁を出典として持つ** |
+| `references/criteria.schema.json` ・ `criteria.json` | 判断基準（67件）。1件が、原典が名前を付けた単位1つである（18F の方法 ・ Nielsen のヒューリスティクス ・ WCAG 2.2 のガイドライン ・ GOV.UK の文言の頁 ・ Design Tokens の概念）。**語彙は原典の語のまま、説明は学習ノートを読んでまとめた言葉で書き、ノートの文を複製しない。判断基準だけで完結し、出典は持たない（原典と照合した記録は学習ノートが持つ）** |
 | `references/licenses.schema.json` ・ `licenses.json` | 原典ごとの使用条件と出典の表示。Skill のほかの部分は根の `LICENSE`（MIT）に従う |
 | `references/answer.schema.json` | 回答の形。相談種別ごとに必須の欄が変わる。完成イメージのデザインシステムは `design_system` に置く |
 | `references/document.schema.json` | 原典の複製の形（import が使う） |

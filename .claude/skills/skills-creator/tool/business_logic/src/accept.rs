@@ -253,38 +253,11 @@ fn numbers_of_original(s: &str) -> Vec<String> {
     found
 }
 
-/// 出典の節に頁が書かれているか。**頁を書けば、学習ノートとスキャンに戻れる。**
-fn pages_missing(item: &Value, id: &str, findings: &mut Vec<String>) {
-    let mut check = |at: String, v: &Value| {
-        let section = v["source"]["section"].as_str().unwrap_or_default();
-        if !section.contains('頁') {
-            findings.push(format!(
-                "{id}{at}: 出典に頁が無い ──「{section}」── 章 ・ 節と頁を書く"
-            ));
-        }
-    };
-    for (i, u) in item["elements"]["units"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .enumerate()
-    {
-        check(format!("/elements/units/{i}"), u);
-    }
-    for (i, a) in item["antipatterns"]["items"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .enumerate()
-    {
-        check(format!("/antipatterns/items/{i}"), a);
-    }
-}
-
-/// 2 複製と語彙と出典 ── 判断基準は学習ノートを読んでまとめた言葉で書く（ACDR 0067）。
+/// 2 複製と語彙 ── 判断基準は学習ノートを読んでまとめた言葉で書く（ACDR 0067）。
 ///
 /// **見るのは3つである。** ノートと長く一致する文字列が無いこと（複製していない）。カタカナ語が
-/// ノートに在ること（原典の語彙を言い換えていない）。要素とアンチパターンの出典に頁が在ること。
+/// ノートに在ること（原典の語彙を言い換えていない）。本文に原典の番号が無いこと。**出典は見ない** ──
+/// 判断基準は出典を持たず、こちらの目的に合わせてまとめた言葉で完結する。
 #[must_use]
 pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
     let mut findings = Vec::new();
@@ -333,12 +306,11 @@ pub fn copied(items: &[Value], notes: &[(PathBuf, String)]) -> Check {
                     }
                 }
             }
-            pages_missing(item, id, &mut findings);
         }
     }
     Check {
         no: 2,
-        what: "複製と語彙と出典 ── ノートの文を複製せず、原典に無い語と原典の番号を本文に書かず、要素ごとに頁つきの出典を持つ",
+        what: "複製と語彙 ── ノートの文を複製せず、原典に無い語と原典の番号を本文に書かない",
         findings,
     }
 }
