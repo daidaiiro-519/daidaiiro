@@ -7,7 +7,9 @@ metadata:
 
 `.brainstorming-board/usecase-driven-concrete/`（Artifact https://claude.ai/artifact/RCzv1XstzQ3Y5PHtFsT5Gr ）。宣言の種類ごとの欄と、AI が書いても出力が安定する書き方を、ddd-advisor と usecase-advisor の回答（`advice/` に保存）から決める。試作（trial）は根拠にしない。
 
-現在地（2026-10-04、ボード16回目。ACDR 0111 で、use-case-driven-development の決着に合わせて論点1・3・5 を改めることにした。宣言の欄（アプリケーション層の操作・用語集、ユースケースから invokes 等を外す）を論点として決め直すのが次、e43779c6、未 push）：
+現在地（2026-10-04、ボード17回目、未 push）：
+- 論点7（宣言の欄の決め直し）を開き、承認待ち。用語集 ・ その他の要求（要求の側）とアプリケーション層の操作（設計の側）を足し、ユースケースから内部の識別子を外す。回答は advice/q7/
+- 承認されたら：論点1 ・ 3 ・ 5 の欄の表を ACDR で書き直し、見本の宣言と道具の検査を作り直し、論点6 を出し直す
 - 論点1〜5 は決着。ACDR 0107 ・ 0108 は承認 ・ 適用済み。集約のキーは business_rules（BR-n）・ state_changes（CHG-n）・ results（RES-n）に改めた（a4ba8124）
 - 論点6（セマンティックマイグレーション）は A′ で承認待ち：移す作業＝既存の材料から、スキーマの x-prompt.write（このやり方で書くための基準）どおりに欄を埋める。移すときだけ足すのは出どころ（spec/migration.json）・既存のテストの扱い・移す範囲の3つ。回答は advice/mig/
 - 論点6の要求事項に「x-prompt.write は助言役なしで足りる」を足した（ACDR 0109）。承認されたら：要求事項（論点3の欄をスキーマのファイルに起こし x-prompt.write を書く、migration.json の形、出どころごとの承認画面）を ACDR へ。共通 view トークンの不足は ux-advisor の修正後に ACDR で直す
