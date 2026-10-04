@@ -94,8 +94,21 @@ def fill(tmpl, val, view, ctx):
         for k in f.split("."):
             if k == "": continue
             v = (v[int(k)] if isinstance(v, list) and k.isdigit() and int(k) < len(v) else None) if isinstance(v, list) else (v.get(k) if isinstance(v, dict) else None)
-        if v is None or v == "": return ""
+        if v is None or v == "" or v == []: return ""
         for fl in flt:
+            if isinstance(v, list) and fl in ("word", "name", "cond", "clause", "neg", "quote1"):
+                v = [apply1(x, fl, ctx) for x in v]; continue
+            if fl.startswith("join:"): v = fl[5:].join(v); continue
+            if fl.startswith("contains:"):
+                _, x, a, b = fl.split(":"); v = a if x in v else b; continue
+            if fl.startswith("endswith:"):
+                _, x, a, b = fl.split(":"); v = v + (a if v.endswith(x) else b); continue
+            if fl in ("cond", "neg", "quote1"): v = apply1(v, fl, ctx); continue
+            if fl == "form":
+                gl = SCH["common"]["x-view-glossary"]; x = terms().get(v)
+                frm = next((m.get(gl["form"]) for m in (x or {}).get(gl["meanings"], []) if m.get(gl["form"])), None) or view.get("form_default")
+                item = {k: (gl["form_join"].join(word(y) for y in w) if isinstance(w, list) and all(isinstance(y, str) for y in w) else w) for k, w in val.items()}
+                v = fill(frm, item, view, ctx); continue
             if fl == "word": v = word(v)
             elif fl == "path": v = path(v)
             elif fl == "name": v = name_of(v, ctx)
@@ -114,6 +127,36 @@ def fill(tmpl, val, view, ctx):
         return str(v)
     out = re.sub(r"\{([^{}]+)\}", rep, tmpl)
     return out
+
+def apply1(x, fl, ctx):
+    if fl == "word": return word(x)
+    if fl == "name": return name_of(x, ctx)
+    if fl == "quote1": return f"「{x}」"
+    if fl == "clause": return re.sub("は", "が", x, count=1)
+    if fl == "neg": return x[:-3] + "だった" if x.endswith("でない") else x + "でなかった"
+    if fl == "cond":  # 参照の先の項目の条件（x-view-summary）を文にする
+        sm = SCH["common"]["x-view-summary"]
+        for d in D().values():
+            p = x.split(".")
+            if p[0] == d["id"]:
+                cur = d
+                for i in p[1:]: cur = next((y for y in base7.find_all(cur) if y.get("id") == i), None)
+                if cur is not None: return text(cur[sm["field"]], sm["as"], {})
+        return x
+    return x
+
+def view_any(val, view, ctx):
+    """x-view の by_value ・ cases ・ text のどれかで文にする"""
+    bv = view.get("by_value")
+    if bv:
+        t = bv["map"].get(val.get(bv["field"]))
+        if t is None: return ""
+        if isinstance(t, dict):
+            for c in t.get("cases", []):
+                if c.get("when_empty") and not val.get(c["when_empty"]): return fill(c["text"], val, view, ctx)
+            t = t["text"]
+        return fill(t, val, view, ctx)
+    return view_text(val, view, ctx)
 
 def text(val, defname, ctx):
     """共通の形の値を、その形の x-view の文の型で文にする"""

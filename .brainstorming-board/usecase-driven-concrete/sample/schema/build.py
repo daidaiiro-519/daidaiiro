@@ -462,6 +462,22 @@ ms = ALL["aggregate"]["properties"]["structure"]["properties"]["state"]["items"]
 ms["x-view"] = {"cases": [{"when": {"min": 1, "max": 1}, "text": "1つ"}, {"when": {"min": 0, "max": 1}, "text": "0か1つ"}, {"when": {"max": None}, "text": "{min}件以上"}], "text": "{min}〜{max}件"}
 ALL["aggregate"]["$defs"]["command"]["properties"]["args"]["items"]["properties"]["type"]["x-ref"] = {"to": "value_object", "only": "^VO-"}
 ALL["subdomain"]["properties"]["business_logic"]["properties"]["rule_conditions"]["x-ref"] = {"to": ["aggregate", "domain_service"], "item": True}
+
+# ── 手順と拡張の文の型（論点3を試す）
+ALL["use_case"]["$defs"]["step"]["x-view"] = {"by_value": {"field": "kind", "map": {
+    "相互作用": "{actor}は、{verb|form}",
+    "妥当性確認": "{actor}は、{checks|cond|clause|join:、|endswith:ない:ことを確かめる:であることを確かめる}",
+    "内部の状態変化": "{actor}は、{object|word}{verb|word|contains:を:の:を}{verb|word}",
+    "サブユースケースの呼び出し": "{actor}は、「{calls|name}」を行う"}},
+    "form_default": "{to}に{data}を{verb|word}"}
+ALL["use_case"]["$defs"]["sub_step"]["x-view"] = ALL["use_case"]["$defs"]["step"]["x-view"]
+ALL["use_case"]["$defs"]["extension"]["x-view"] = {"by_value": {"field": "condition_kind", "map": {
+    "業務ルールの拒否": "{reasons|word|quote1|join:、}で受け付けられなかった：",
+    "妥当性確認の失敗": "{fails|cond|clause|neg|join:、}：",
+    "支援アクターの失敗": {"cases": [{"when_empty": "reasons", "text": "{actor}が応答しなかった、または誤った応答を返した："}], "text": "{reasons|word|join:、または}："},
+    "別の道筋での成功": "{condition|text:condition|clause}："}}}
+common["x-view-glossary"]["form"] = "form"
+common["x-view-glossary"]["form_join"] = "と"
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")
