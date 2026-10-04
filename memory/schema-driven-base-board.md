@@ -10,6 +10,6 @@ metadata:
 
 現在地（2026-10-04、8回目、未 push）：
 - 論点1（基盤の7つの契約）は決着。ACDR 0093 は適用済み
-- 論点2を開き直し、B′ を承認待ち：concrete のスキーマの注釈 x-ref ・ x-test-spec の値の形と、3つ目の注釈 x-derive。usecase-driven-concrete の見本（sample/concrete7.py ・ sample/schema/）で試し、道具が持つ名前は id と kind だけになった
+- 9回目：論点1を B‴（基盤は開発で使う道具で、ドリフト検知も持つ）、論点2を B″（x-ref ・ x-test-spec ・ x-derive は基盤の注釈。concrete に残るのは頁の組み立てだけ）に開き直し、承認待ち。usecase-driven-concrete の見本（sample/concrete7.py ・ sample/schema/）で試し、道具が持つ名前は id と kind だけになった
 - 注釈で書けない検査4つと、文を組む処理 ・ 頁の組み立ては論点3（描画の持ち方）で扱う。論点3は論点2のあとに出し直す
 - 試作 `trial/spike/` は契約の動作確認だけに使う
