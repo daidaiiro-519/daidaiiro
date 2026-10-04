@@ -206,7 +206,7 @@ def candidates(ann, refs):
     to = ann["to"]
     if to == "self":
         out = []
-        for k in {l["decl"] for l in refs}:
+        for k in sorted({l["decl"] for l in refs}):
             out += [(f'{k}.{x["id"]}', x) for x in (get(D[k], ann["in"]) or [])]
         return out
     ds = [d for d in D.values() if d["kind"] in (to if isinstance(to, list) else [to])]

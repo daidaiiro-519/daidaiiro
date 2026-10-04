@@ -3,6 +3,7 @@ import json,html,sys,os,subprocess,itertools,re
 HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data6 import D,RETIRED
 import gen6 as g
+sys.path.insert(0,os.path.join(HERE,'design')); from parts import P
 from desc6 import DESC
 import concrete7
 SPEC=concrete7.checks(json.load(open(os.path.join(HERE,'approved-record.json'),encoding='utf-8')))
@@ -38,15 +39,15 @@ def dname(i):
   d=D.get(i)
   if not d: return None
   n=d['header']['name']; return g.word(n)
-def idt(i): return f'<span class="id">{E(i)}</span>'
+def idt(i): return P('id',id=E(i))
 def ref(i):
-  n=dname(i); return f'<span class="missing">{E(i)}（未作成）</span>' if n is None else f'<a class="ref" href="#{E(i)}">{E(n)}</a>'
+  n=dname(i); return P('ref-missing',id=E(i)) if n is None else P('ref',id=E(i),name=E(n))
 def helpbtn(t):
   if t not in DESC: return ''
   HC[0]+=1; i=f'h{HC[0]}'
-  return f'<button class="help" popovertarget="{i}" aria-label="{E(t)}の説明">?</button><div class="pop" id="{i}" popover><b>{E(t)}</b><p>{E(DESC[t])}</p></div>'
+  return P('help',hid=i,title=E(t),text=E(DESC[t]))
 def lab(t): return f'{E(t)}{helpbtn(t)}'
-def pill(t,tone=''): return f'<span class="pill {tone}">{E(t)}</span>'
+def pill(t,tone=''): return P('pill',tone=tone,text=E(t))
 def pills(ts,tone=''): return ''.join(pill(t,tone) for t in ts)
 def tbl(cols,rows):
   # テスト条件の列は表に出さず、隣の欄の後ろに付ける（宣言の欄を表示したときだけ見える）
@@ -55,41 +56,41 @@ def tbl(cols,rows):
   elif cols and cols[-1]=='テスト条件':
     cols=cols[:-1]; rows=[[r[0]+' '+r[-1]]+list(r[1:-1]) for r in rows]
   lab_=[re.sub(r'<[^>]+>','',re.sub(r'<div class="pop".*?</div>','',c)).replace('?','').strip() for c in cols]
-  return '<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for r in rows)+'</tbody></table></div>'
+  return P('table',head=''.join(P('th',text=c) for c in cols),body=''.join(P('tr',cells=''.join(P('td',label=E(lab_[i]),text=c) for i,c in enumerate(r))) for r in rows))
 TERM_GROUPS=[('モデル',['集約','エンティティ','値オブジェクト','識別子','状態','状態の値']),('振る舞い',['コマンド','業務イベント','ドメインサービス','操作','拒否の理由']),('文を組む語',['情報の別名','動作','失敗の種類'])]
 def ftbl(cols,rows,groups=None,label='種類',unit='件'):
   """rows は (値, 行) の並び。表の上に絞り込みを置く。値の札は複数選べ、何も選ばなければ全部を見せる"""
   ks=list(dict.fromkeys(k for k,_ in rows))
   if len(ks)<2: return tbl(cols,[r for _,r in rows])
   n=lambda k:sum(1 for kk,_ in rows if kk==k)
-  btn=lambda k:f'<button type="button" aria-pressed="false" data-f="{E(k)}">{E(k)}<span class="n">{n(k)}</span></button>'
+  btn=lambda k:P('ftable-button',key=E(k),n=n(k))
   if groups:
     grp=[(gname,[k for k in gk if k in ks]) for gname,gk in groups]+[('その他',[k for k in ks if not any(k in gk for _,gk in groups)])]
   else: grp=[('',ks)]
-  rowsh=''.join(f'<div class="fg">'+(f'<span class="fl">{E(gname)}</span>' if gname else '')+'<div class="fb">'+''.join(btn(k) for k in gk)+'</div></div>' for gname,gk in grp if gk)
-  head_=f'<div class="fh"><span class="ft">{E(label)}で絞る<span class="fs">複数選べる</span></span><span class="fc" aria-live="polite" data-unit="{E(unit)}">{len(rows)}{E(unit)}</span><button type="button" class="fclear" hidden>絞り込みを外す</button></div>'
+  rowsh=''.join(P('ftable-group',name=P('ftable-group-name',name=E(gname)) if gname else '',buttons=''.join(btn(k) for k in gk)) for gname,gk in grp if gk)
+  head_=P('ftable-head',label=E(label),unit=E(unit),count=f'{len(rows)}{E(unit)}')
   lab_=[re.sub(r'<[^>]+>','',c) for c in cols]
-  body=''.join(f'<tr data-k="{E(k)}">'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for k,r in rows)
-  return '<div class="fwrap"><div class="filt" role="group" aria-label="'+E(label)+'で絞る">'+head_+rowsh+'</div><div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div></div>'
-def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
+  body=''.join(P('ftr',key=E(k),cells=''.join(P('td',label=E(lab_[i]),text=c) for i,c in enumerate(r))) for k,r in rows)
+  return P('ftable',label=E(label),head=head_,groups=rowsh,cols=''.join(P('th',text=c) for c in cols),body=body)
+def block(title,body): return P('block',title=E(title),help=helpbtn(title),body=body)
 def tiles(pairs):
   """見出しと中身の組を、1枚の枠に1行ずつ並べる。欄の数や長さが違っても、折り返しや段落ちが起きない"""
-  return '<dl class="kv">'+''.join(f'<div class="kvr"><dt>{lab(k)}</dt><dd>{v}</dd></div>' for k,v in pairs)+'</dl>'
-def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{body}</div>'
-def cards(xs): return '<div class="cards">'+''.join(xs)+'</div>'
-def item(name,text='',extra=''): return f'<div class="item"><b>{E(name)}</b>'+(f'<span class="txt">{E(text)}</span>' if text else '')+extra+'</div>'
+  return P('kv',rows=''.join(P('kv-row',label=lab(k),value=v) for k,v in pairs))
+def card(title,body,cls=''): return P('card',cls=cls,title=title,body=body)
+def cards(xs): return P('cards',items=''.join(xs))
+def item(name,text='',extra=''): return P('item',name=E(name),text=P('item-text',text=E(text)) if text else '',extra=extra)
 def tchip(cid):
-  return f'<span class="tc">{E(cid)}</span>'
+  return P('tchip',id=E(cid))
 def tblock(decl):
   cs=[c for c in CONDS if c['decl']==decl]
   if not cs: return ''
-  return '<div class="mx">'+block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in cs]))+'</div>'
+  return P('design-only',body=block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in cs])))
 def head(d,badges='',lead=''):
   side=SIDE.get(d['kind'],'設計の側')
-  return f'<label class="mt top"><input type="checkbox" class="mtog"> 宣言の欄を表示（ID ・ 参照 ・ テスト条件 ・ JSON）</label><header class="ph"><p class="kind">{pill(side)} {KIND[d["kind"]]}{badges}</p><h1>{E(dname(d["id"]))}{idt(d["id"])}</h1></header>'+(f'<p class="lead">{E(lead)}</p>' if lead else '')
-def yn(v): return '<span class="yes">はい</span>' if v else '<span class="no-ans">いいえ</span>'
+  return P('page-head',side=pill(side),kind=KIND[d["kind"]],badges=badges,title=E(dname(d["id"])),id=idt(d["id"]),lead=P('lead',text=E(lead)) if lead else '')
+def yn(v): return P('yes') if v else P('no')
 def gen(t): return f'{E(t)}'
-def raw(d): return f'<details class="fold mx"><summary>{lab("宣言の JSON")}</summary><div class="fbody"><pre class="code">{E(json.dumps(d,ensure_ascii=False,indent=1))}</pre></div></details>'
+def raw(d): return P('json',label=lab("宣言の JSON"),json=E(json.dumps(d,ensure_ascii=False,indent=1)))
 def sv(x): return E(g.show(x))
 def ex_rows(decl,cmd,exs):
   """例を、前の状態 ・ 引数 ・ 後の状態 ・ 業務イベントの表にする"""
@@ -457,7 +458,7 @@ SCH_ORDER=[k for k in ORDER+['value_object']]+['common','trace','approved','migr
 nav_sch='<div class="ng"><span class="nk">書き方（スキーマ）</span>'+''.join(f'<a href="#SCH-{k}" data-id="SCH-{k}">{E(SCH[k]["title"])}</a>' for k in SCH_ORDER)+'</div>'
 nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)+nav_sch
 pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'+''.join(f'<article class="page" id="SCH-{k}">{p_sch(k)}</article>' for k in SCH_ORDER)
-css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
+css=open(os.path.join(HERE,'tokens.css')).read()+open(os.path.join(HERE,'design','tokens.css')).read()+open(os.path.join(HERE,'sample4.css')).read()
 page=f'''<title>モバイルオーダーの宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
