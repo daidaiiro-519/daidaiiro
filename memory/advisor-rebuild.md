@@ -1,6 +1,6 @@
 ---
 name: advisor-rebuild
-description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd ・ qa は完了。platform ・ ux も完了（ACDR 0104 ・ 0105）
+description: 助言型の Skill（advisor）を原典の頁と照合して作り直す作業の現在地。usecase ・ ddd ・ qa は完了。platform ・ ux も完了（ACDR 0104 ・ 0105、push 済み）
 metadata:
   node_type: memory
   type: project
@@ -19,7 +19,7 @@ metadata:
 **platform（2026-10-03 完了）**：ACDR 0104 で承認 ・ コミット ・ push 済み（7704c847）。判断基準57件（WAF の質問ごと）・ 水準35件（grades.json）・ licenses.json。原典 ・ ノート ・ 依頼書 ・ grades-gen.py は archive（git の外）。確認用の頁は 8749 の /platform/
 - ACDR 0103（ブレストボードの組み込みの文言）も承認待ち・未コミット
 
-**ux（2026-10-04 完了）**：ACDR 0105 で承認 ・ コミット済み（未 push）。判断基準67件（18F 34 ・ Nielsen 10 ・ WCAG 13 ・ GOV.UK 5 ・ Design Tokens 5）、答えは案を生み出す6段の順、完成イメージはワイヤーフレームとデザインシステム。原典 ・ ノート ・ 依頼書は archive（git の外）。確認用の頁は 8749 の /ux/。未決：qualitative-data-analysis の「共有前に PII を取り除く」を判断基準に入れるか（いまはノートだけ）外したもの：デジタル庁 DS ・ トレンド ・ About Face（本が無い）・ Laws of UX ・ Apple HIG ・ frontend-design。「根拠」は研究ではなく一次の出典まで辿れること（利用者が明言）
+**ux（2026-10-04 完了）**：ACDR 0105 で承認 ・ コミット済み（未 push）。判断基準67件（18F 34 ・ Nielsen 10 ・ WCAG 13 ・ GOV.UK 5 ・ Design Tokens 5）、答えは案を生み出す6段の順、完成イメージはワイヤーフレームとデザインシステム。原典 ・ ノート ・ 依頼書は archive（git の外）。確認用の頁は 8749 の /ux/。PII の注意も ACDR 0106 で足した外したもの：デジタル庁 DS ・ トレンド ・ About Face（本が無い）・ Laws of UX ・ Apple HIG ・ frontend-design。「根拠」は研究ではなく一次の出典まで辿れること（利用者が明言）
 
 **未着手の欠陥**：図の role を描かない ・ ux-advisor の validate（CLI の `validate --kind answer --file` がファイルを検査しない ・ MCP が指摘のあるときも ok を返す）── ux は作り直しで扱う。usecase の以前の試しの回答3件（scratchpad）は、新しい validate で旧い引用と id の誤りが見つかる。
 
