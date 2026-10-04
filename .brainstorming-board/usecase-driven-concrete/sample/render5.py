@@ -174,7 +174,7 @@ def p_agg(d):
       ir.append([tchip(f'{k}.{i["id"]}'),gen(g.cond(i['condition'],k)),'、'.join(f'{E(g.qname(a,k))}＝{sv(v)}' for a,v in ve['before'].items()),' ・ '.join(E(g.word([c for c in d['commands'] if c['id']==x][0]['name'])) for x in ve['via']) or '<span class="missing">なし</span>'])
     b+=block('不変条件',tbl(['テスト条件','組んだ文','違反する状態（道具が組む）','至る操作'],ir))
   crow=[[f'<b>{E(g.word(c["name"]))}</b>','<br>'.join(E(g.post_text(p['condition'],k,c)) for p in c['postconditions']),' '.join(pill(g.word(p['reject'])) for p in c['preconditions']) or '―',' '.join(pill(g.word(e['name']),'t-accent') for e in c['emits']) or '―'] for c in d['commands']]
-  b+=block('コマンド',tbl(['コマンド','実行したあと','拒否の理由','業務イベント'],crow)+'<p class="txt">コマンドごとの条件と例は、下で開く。</p>')
+  b+=block('コマンド',tbl(['コマンド','事後条件'+helpbtn('事後条件'),'拒否の理由','業務イベント'],crow)+'<p class="txt">コマンドごとの条件と例は、下で開く。</p>')
   for c in d['commands']:
     cname=g.word(c['name'])
     args=' '.join(f'{E(g.word(x["name"]))}（{ref(x["type"])}）' for x in c['args']) or 'なし'
@@ -197,7 +197,7 @@ def p_agg(d):
     fig=figure('agg-'+k+'-'+c['id'],{"direction":"LR","nodes":nodes,"edges":edges}) if nodes else ''
     sec=f'<details class="fold"><summary>コマンド「{E(cname)}」の条件と例（事前条件{len(c["preconditions"])} ・ 事後条件{len(c["postconditions"])} ・ 例{len(c.get("accept_examples",[]))}）</summary><div class="fbody">'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
     if pr: sec+=f'<h3 class="sub">事前条件と拒否の例</h3>'+tbl(['テスト条件','組んだ文','拒否の理由','拒否の例'],pr)
-    sec+=f'<h3 class="sub">事後条件</h3>'+tbl(['実行したあと'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
+    sec+=f'<h3 class="sub">事後条件</h3>'+tbl(['事後条件'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
     if c.get('accept_examples'): sec+=f'<h3 class="sub">受け付ける例{helpbtn("例")}</h3>'+tbl(['テスト条件','前の状態','引数','後の状態（道具が導く）','業務イベント'],ex_rows(k,c,c['accept_examples']))
     b+=sec+'</div></details>'
   b+=tblock(k)
