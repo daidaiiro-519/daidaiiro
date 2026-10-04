@@ -9,4 +9,4 @@
 - [skills-creator を契約中心に作り直すボード](skills-creator-contract-board.md) ── ACDR 0096〜0100 まで承認・コミット済み（未 push）。次は platform ・ ux のブレストと qa の返事待ち3件
 - [スキーマ駆動の道具（抽象の基盤）のボード](schema-driven-base-board.md) ── 論点1決着。論点2は concrete のボードに合わせて組み直し、論点3は保留
 - [ユースケース駆動の concrete の宣言のボード](usecase-driven-concrete-board.md) ── 論点1〜5決着、論点6（セマンティックマイグレーション）承認待ち。土台の決め直しの結果で改める
-- [ユースケース駆動開発の手法の構成のボード](use-case-driven-development-board.md) ── プロダクトを最上位のドメインに置く構成と、2冊の概念の置き場所。論点1 決着、論点2 承認待ち
+- [ユースケース駆動開発の手法の構成のボード](use-case-driven-development-board.md) ── プロダクトを最上位のドメインに置く構成と、2冊の概念の置き場所。論点1・2 決着、論点3 承認待ち
