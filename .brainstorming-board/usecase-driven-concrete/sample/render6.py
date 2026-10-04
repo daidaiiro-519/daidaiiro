@@ -93,9 +93,9 @@ def p_domain(d):
     for sc in v.get('contributes_to',[]): uc.setdefault(sc,[]).append(k)
   SDS=[k for k,v in D.items() if v['kind']=='subdomain']
   b=head(d)+f'<section class="blk"><h2>{lab("ビジョン記述")}</h2>'+tiles([('課題',E(vp['problem']))])
-  vals=[card(E(v['name'])+(pill('★ 競合との違い','t-accent') if v['differentiator'] else ''),f'<span class="txt">{E(v["text"])}</span>'+''.join(f'<span class="ln"><span class="k">担う</span>{ref(s)} {pill(D[s]["classification"]["category"],CAT[D[s]["classification"]["category"]])}</span>' for s in SDS if v['id'] in D[s]['serves_values']),'left-accent' if v['differentiator'] else 'left-neutral') for v in vp['values']]
-  vals+=[card('競合 ・ '+E(c['name']),f'<span class="txt">{gen(g.competitor_text(c))}</span>','left-neutral') for c in vp['competitors']]
-  b+=f'<h3 class="sub">{lab("提供価値")}</h3>'+cards(vals)
+  sd_of_val=lambda v:' '.join(f'{ref(x)} {pill(D[x]["classification"]["category"],CAT[D[x]["classification"]["category"]])}' for x in SDS if v['id'] in D[x]['serves_values']) or '―'
+  b+=f'<h3 class="sub">{lab("提供価値")}</h3>'+tbl(['提供価値','説明','競合との違い','担うサブドメイン'],[[f'<b>{E(v["name"])}</b>',f'<span class="txt">{E(v["text"])}</span>',pill('★ 違いになる','t-accent') if v['differentiator'] else '―',sd_of_val(v)] for v in vp['values']])
+  if vp['competitors']: b+=f'<h3 class="sub">競合</h3>'+tbl(['競合','欠けている提供価値'],[[f'<b>{E(c["name"])}</b>',gen(g.competitor_text(c))] for c in vp['competitors']])
   def scrow(x):
     src='業務イベント' if x['source']=='event' else 'システムの外'
     return [f'<b>{E(x["name"])}</b>',gen(g.sc_text(x)),pill(src),pill(g.thr(x['threshold'])),pill(g.thr(x['ratio'])) if x.get('ratio') else '―',E(x['window']),' '.join(ref(u) for u in uc.get(x['id'],[])) or '<span class="missing">なし</span>']
@@ -142,7 +142,7 @@ def p_sd(d):
       return E(dname(p[0])+'の結果：'+g.cond(res['condition'],p[0]))
     return E(r)
   b+=block('業務ロジックの性質',tiles([(SP['business_logic']['x-derive']['title'],f'<b>{E(g.impl_method(bl))}</b>')])+qa('business_logic',bl)+(('<h3 class="sub">'+E(SP['business_logic']['properties']['rule_conditions']['title'])+'</h3>'+tbl(['根拠の条件'],[[rule_text(r)+f'<span class="ln mx"><span class="no">{E(r)}</span></span>'] for r in bl['rule_conditions']])) if bl['rule_conditions'] else ''))
-  if d['serves_values']: b+=block('担う提供価値',cards([card(E(v['name']),f'<span class="txt">{E(v["text"])}</span>','left-accent') for v in D['DOM-1']['vision']['values'] if v['id'] in d['serves_values']]))
+  if d['serves_values']: b+=block('担う提供価値',tbl(['提供価値','説明'],[[f'<b>{E(v["name"])}</b>',f'<span class="txt">{E(v["text"])}</span>'] for v in D['DOM-1']['vision']['values'] if v['id'] in d['serves_values']]))
   b+=block('束ねるユースケース',(' '.join(ref(u) for u in d.get('use_cases',[])) or '<span class="txt">なし（外部のサービスで満たす。使うユースケースはドメインの頁の組み立てに出る）</span>'))
   return b+raw(d)
 def p_bc(d):
@@ -152,14 +152,20 @@ def p_bc(d):
   b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('担うサブドメイン',sds)])
   mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
   ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
-  if mem: b+=block('この文脈のモデル',tbl(['種類','名前'],[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)])+(f'<p class="ln"><span class="k">この文脈を使うユースケース</span>{" ".join(ref(u) for u in ucs)}</p>' if ucs else ''))
-  T=g.terms(); ts=[dict(T[u['term']],**{"definition":[m for m in T[u['term']]['meanings'] if m['id']==u['meaning']][0]['definition'],"kind":[m for m in T[u['term']]['meanings'] if m['id']==u['meaning']][0]['kind']}) for u in d['uses'] if u['term'] in T]
-  if ts:
-    GEN={'動作','情報の別名','失敗の種類'}
-    tcard=lambda xs,k: card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in xs if x['kind']==k))
-    bk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] not in GEN)); gk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] in GEN))
-    gn=len([x for x in ts if x['kind'] in GEN])
-    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+cards([tcard(ts,k) for k in bk])+(f'<details class="fold"><summary>文を組むための語（{gn}語：{" ・ ".join(gk)}）</summary><div class="fbody">'+cards([tcard(ts,k) for k in gk])+'</div></details>' if gk else ''))
+  rows=[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)]
+  if ucs: rows.append(['ユースケース<span class="what">対象とするサブドメインが束ねる</span>',' ・ '.join(ref(u) for u in ucs)])
+  if rows: b+=block('この文脈の宣言',tbl(['種類','名前'],rows))
+  T=g.terms()
+  GEN={'動作','情報の別名','失敗の種類'}
+  def trow(u):
+    t=T[u['term']]; m=[x for x in t['meanings'] if x['id']==u['meaning']][0]
+    return m['kind'],[f'<b>{E(t["word"])}</b>',f'<span class="txt">{E(m["definition"])}</span>',pill(m['kind']),' '.join(f'<span class="avoid">{E(a)}</span>' for a in t['avoid']) or '―']
+  rs=[trow(u) for u in d['uses'] if u['term'] in T]
+  if rs:
+    order=list(dict.fromkeys(k for k,_ in rs))
+    main=[r for k in order if k not in GEN for kk,r in rs if kk==k]; gen_=[r for k in order if k in GEN for kk,r in rs if kk==k]
+    cols=['語','意味','種類','使わない語']
+    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+tbl(cols,main)+(f'<details class="fold"><summary>文を組むための語（{len(gen_)}語）</summary><div class="fbody">{tbl(cols,gen_)}</div></details>' if gen_ else ''))
   rel=d['context_map']['relations']
   if rel:
     nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
