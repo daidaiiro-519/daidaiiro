@@ -26,7 +26,7 @@ TERMS = [
  T(11, "ディレクトリ", "情報の別名", "インスタンスを置くディレクトリ。参照と導出値は、その下のインスタンスすべてに対して確かめる", IT, avoid=["実体の集合"]),
  T(12, "参照", "値オブジェクト", "x-ref を付けたプロパティの値。ほかのインスタンスか、その中の項目を指す", IT),
  T(13, "導出値", "値オブジェクト", "x-derive の決まりに従って、同じインスタンスの答えのプロパティから導いた値", BIZ, "schema-driven の注釈", avoid=["判定"]),
- T(14, "検査結果", "情報の別名", "参照と導出値の検査ごとの、合格 ・ ずれ ・ 確かめ直しの一覧", IT),
+ T(14, "検査結果", "値オブジェクト", "参照と導出値の検査1件ごとの結果。合格 ・ ずれ ・ 確かめ直しのどれか", IT),
  T(15, "承認記録", "集約", "承認した時点の、インスタンスごとのハッシュ値", BIZ, US),
  T(16, "ハッシュ値", "値オブジェクト", "ファイルの内容の sha256", IT),
  T(17, "ページ", "情報の別名", "ディレクトリのインスタンスから描画した HTML または Markdown", IT, avoid=["頁"]),
@@ -42,7 +42,7 @@ TERMS = [
  T(27, "作成する", "コマンド", "スキーマから、未記入のプロパティを持つインスタンスを作る", IT),
  T(28, "更新する", "コマンド", "インスタンスへ JSON Patch を適用する。適用したあとのインスタンスが検証を通過したときだけ書く", IT),
  T(29, "削除する", "コマンド", "インスタンスのファイルを消す。インスタンスの中の項目は、remove の JSON Patch で更新して消す", IT),
- T(30, "承認を記録する", "コマンド", "ディレクトリのインスタンスの、いまのハッシュ値を承認記録へ書く", BIZ, US),
+ T(30, "承認を記録する", "コマンド", "検査で使ったインスタンスのパスとハッシュ値の並びを、そのまま承認記録へ書く", BIZ, US),
  T(31, "転写する", "コマンド", "正本を、利用側の Skill の中へ写す", BIZ, US),
  T(32, "検査する", "ドメインサービス", "ディレクトリのインスタンスについて、指す先がある ・ 指される数 ・ 導出値と宣言した値 ・ 承認のあとの変化を確かめる", IT),
  T(33, "描画する", "ドメインサービス", "ページテンプレートとコンポーネントとデザイントークンで、ディレクトリのインスタンスからページを組む。ページテンプレートが無い種類は、注釈だけから組む", IT),
@@ -61,10 +61,18 @@ TERMS = [
  T(48, "ファイルの内容", "情報の別名", "インスタンス ・ スキーマ ・ 承認記録 ・ ページテンプレート ・ コンポーネント ・ デザイントークン ・ ページのファイルを、文字列にしたもの", IT),
  T(50, "複製のファイル", "情報の別名", "複製を作るファイルと、その内容", IT),
  T(51, "JSON として読めない", "失敗の種類", "ファイルの内容が JSON の文法に沿わない", IT),
- T(52, "ほかの更新と競合した", "拒否の理由", "JSON Patch の test 操作が、いまのインスタンスと合わないので書かない", IT),
+ T(52, "ほかの更新と競合した", "拒否の理由", "読んだ時点のハッシュ値が、いまのインスタンスのハッシュ値と違うので書かない", IT),
  T(53, "検証を通過しないインスタンスがある", "拒否の理由", "ディレクトリに検証を通過しないインスタンスがあるので、承認を記録しない", IT),
  T(54, "複製に手の変更がある", "拒否の理由", "複製のファイルが、前に転写した時点のハッシュ値と違うので転写しない。正本を直してから転写し直す", IT),
  T(55, "参照と導出値のずれがある", "拒否の理由", "検査結果にずれが残っているので、承認を記録しない", IT),
+ T(56, "承認したインスタンス", "値オブジェクト", "承認記録の中の、1つのインスタンスのパスとハッシュ値の組", IT),
+ T(57, "参照を確かめる", "操作", "参照ごとに、指す先があるか ・ 指す先の種類が合うか ・ 指される数が決まりの範囲かを確かめる", IT),
+ T(58, "導出値を確かめる", "操作", "x-derive の決まりで導いた値と、宣言した値が同じかを確かめる", IT),
+ T(59, "変化を確かめる", "操作", "インスタンスのハッシュ値と、承認記録のハッシュ値が同じかを確かめる", IT),
+ T(61, "JSON の値", "値オブジェクト", "インスタンスのファイルに書いてある JSON", SPEC, "JSON（RFC 8259）"),
+ T(62, "ハッシュ値を求める", "操作", "JSON の値の sha256 を求める", IT),
+ T(63, "適用する", "操作", "JSON Patch を JSON の値に当てて、新しい値を求める", SPEC, JP),
+ T(60, "ずれ", "値オブジェクト", "ずれと出た検査の名前と、その指す先", IT),
 ]
 
 D = {}
@@ -104,7 +112,7 @@ D["REQ-1"] = {"kind": "other_requirements", "id": "REQ-1", "header": {"name": "�
   {"id": "TEC-1", "system": "ファイルシステム", "text": "インスタンス ・ スキーマ ・ ページ ・ 承認記録 ・ 複製は、利用者の環境のファイルとして読み書きする"},
   {"id": "TEC-2", "system": "AI エージェントの実行環境", "text": "CLI と MCP のどちらからも、同じ道具の一覧を呼べる"}],
  "data": [],
- "open_issues": ["JMESPath 式が文法に沿うことを、条件で書けない", "同じ入力から同じページが出ることを、品質の要求の形で書けない"]}
+ "open_issues": ["JMESPath 式が文法に沿うことを、条件で書けない", "適用したあとのインスタンスで決まる拒否（JSON Patch を適用できない ・ 検証を通過しない）を、集約の業務ルールの条件で書けない。検証を通過しないことは、更新の状態の変更（検証エラーが0件）で書いた。条件が適用したあとの状態を指す書き方（before の対）があれば、更新の業務ルールに書ける", "承認したインスタンスのパスが重ならないことを、承認記録の不変条件の条件で書けない", "条件に「含まれる」の比べ方が無いので、検査するの結果（指す先が無い ・ 種類が違う）を「違う」で近い形に書いた", "同じ入力から同じページが出ることを、品質の要求の形で書けない"]}
 
 def step(i, kind, actor, **kw):
     s = {"id": f"STEP-{i}", "kind": kind, "actor": actor}; s.update(kw); s.setdefault("extensions", []); return s
@@ -284,7 +292,7 @@ D["SD-1"] = SD(1, "インスタンスの読み書き", "スキーマからイン
  BL(), ["VAL-1"], ["UC-1", "UC-2", "UC-3", "UC-4", "UC-7"])
 D["SD-2"] = SD(2, "参照と導出値", "スキーマの注釈 x-ref と x-derive だけを読んで、ディレクトリのインスタンスの参照と導出値を確かめ、承認のあとの変化を見つける",
  {"category": "中核", "competitive_advantage": True, "external_available": False, "cheaper_to_build": True, "sourcing": "自分たちで作る"},
- BL(rules=True), ["VAL-2"], ["UC-5", "UC-8"])
+ BL(rules=True, cond=["DS-1.OP-1.RES-3", "DS-1.OP-1.RES-4", "DS-1.OP-3.RES-2", "AGG-1.INV-1", "AGG-2.CMD-1.BR-2"]), ["VAL-2"], ["UC-5", "UC-8"])
 D["SD-3"] = SD(3, "描画", "ページテンプレートとコンポーネントとトークンで、ディレクトリのインスタンスから人が読むページを組む",
  {"category": "補完", "competitive_advantage": False, "external_available": False, "cheaper_to_build": True, "sourcing": "自分たちで作る"},
  BL(), ["VAL-3"], ["UC-6"])
@@ -302,7 +310,7 @@ def BC(i, name, purpose, sds, rels, terms, brs=(), pl=()):
 IO = [25, 26, 35, 36, 40, 41, 42, 48, 51]
 D["BC-1"] = BC(1, "インスタンスの操作と検査", "インスタンスの作成 ・ 取得 ・ 更新 ・ 削除と、書き込む前の検証と x-prompt、ディレクトリのインスタンスの参照と導出値と承認のあとの変化を決める。読み書きと検査は同じインスタンスを扱うので1つの文脈に置き、内側を業務領域ごとのモジュールに分ける。ページの組み方は、このモデルに入れない",
  ["SD-1", "SD-2"], [FS(1, ["TERM-35", "TERM-36"])],
- sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53, 55])),
+ sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53, 55, 56, 57, 58, 59, 60, 61, 62, 63])),
  [{"id": "BR-1", "condition": {"target": "TERM-5", "op": "not_empty"}, "implements": "REQ-1.BR-1"},
   {"id": "BR-2", "condition": {"target": "TERM-6", "op": "not_empty"}, "implements": "REQ-1.BR-2"},
   {"id": "BR-3", "condition": {"target": "TERM-2.TERM-4.TERM-10", "op": "not_empty"}, "implements": "REQ-1.BR-3"}],
@@ -314,6 +322,92 @@ D["BC-2"] = BC(2, "描画", "ページテンプレートの並びのとおりに
 D["BC-3"] = BC(3, "転写", "正本の複製を写し、複製と正本の差分を出す。インスタンスとページは、このモデルに入れない",
  ["SD-4"], [FS(1, ["TERM-35", "TERM-36"])],
  sorted(set(IO + [16, 21, 22, 23, 24, 31, 34, 50, 54])))
+
+# ── 設計の側（次にすること2）：中核のサブドメイン「参照と導出値」を担う文脈 BC-1 の集約 ・ ドメインサービス ・ 値オブジェクト
+one, many = {"min": 1, "max": 1}, {"min": 0, "max": None}
+H0 = "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"  # sha256("{}")
+H1 = "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862"  # sha256('{"a":1}')
+PATCH = '[{"op":"add","path":"/a","value":1}]'
+D["AGG-1"] = {"kind": "aggregate", "id": "AGG-1", "header": {"name": "TERM-1", "context": "BC-1"},
+ "structure": {"state": [
+   {"id": "ST-1", "name": "TERM-7", "type": "VO-1", "multiplicity": one},
+   {"id": "ST-2", "name": "TERM-2", "type": "VO-2", "multiplicity": one},
+   {"id": "ST-7", "name": "TERM-61", "type": "VO-10", "multiplicity": one},
+   {"id": "ST-3", "name": "TERM-16", "type": "VO-6", "multiplicity": one},
+   {"id": "ST-4", "name": "TERM-12", "type": "VO-3", "multiplicity": many},
+   {"id": "ST-5", "name": "TERM-13", "type": "VO-4", "multiplicity": many},
+   {"id": "ST-6", "name": "TERM-8", "type": "VO-5", "multiplicity": many}], "entities": []},
+ "invariants": [{"id": "INV-1", "condition": {"target": "ST-3", "op": "eq", "value": {"call": "VO-10.OP-1", "args": ["ST-7"]}}, "via": ["CMD-1", "CMD-2"]}],
+ "commands": [
+  {"id": "CMD-1", "name": "TERM-27", "args": [{"id": "ARG-1", "name": "TERM-7", "type": "VO-1"}, {"id": "ARG-2", "name": "TERM-2", "type": "VO-2"}],
+   "business_rules": [{"id": "BR-1", "condition": {"target": "ST-1", "op": "empty"}, "reject": "TERM-37",
+                       "example": {"before": {"ST-1": "decls/UC-1.json"}, "args": {"ARG-1": "decls/UC-1.json", "ARG-2": "use_case.schema.json"}}}],
+   "state_changes": [{"id": "CHG-1", "condition": {"target": "ST-1", "op": "eq", "value": "ARG-1"}},
+                     {"id": "CHG-2", "condition": {"target": "ST-2", "op": "eq", "value": "ARG-2"}}],
+   "emits": [], "accept_examples": [{"id": "OK-1", "before": {}, "args": {"ARG-1": "decls/UC-1.json", "ARG-2": "use_case.schema.json"}}]},
+  {"id": "CMD-2", "name": "TERM-28", "args": [{"id": "ARG-1", "name": "TERM-6", "type": "VO-7"}, {"id": "ARG-2", "name": "TERM-16", "type": "VO-6"}],
+   "business_rules": [{"id": "BR-1", "condition": {"target": "ST-3", "op": "eq", "value": "ARG-2"}, "reject": "TERM-52",
+                       "example": {"before": {"ST-7": "{}", "ST-3": H0}, "args": {"ARG-1": PATCH, "ARG-2": H1}}}],
+   "state_changes": [{"id": "CHG-3", "condition": {"target": "ST-7", "op": "eq", "value": {"call": "VO-7.OP-1", "args": ["ARG-1", {"before": "ST-7"}]}}},
+                     {"id": "CHG-2", "condition": {"target": "ST-6", "agg": "count", "op": "le", "value": 0}}],
+   "emits": [], "accept_examples": [{"id": "OK-1", "before": {"ST-7": "{}", "ST-3": H0}, "args": {"ARG-1": PATCH, "ARG-2": H0}}]},
+  {"id": "CMD-3", "name": "TERM-29", "args": [], "business_rules": [],
+   "state_changes": [{"id": "CHG-1", "condition": {"target": "ST-1", "op": "empty"}}],
+   "emits": [], "accept_examples": [{"id": "OK-1", "before": {"ST-1": "decls/UC-1.json"}, "args": {}}]}]}
+
+D["AGG-2"] = {"kind": "aggregate", "id": "AGG-2", "header": {"name": "TERM-15", "context": "BC-1"},
+ "structure": {"state": [{"id": "ST-2", "name": "TERM-11", "type": "VO-1", "multiplicity": one},
+                         {"id": "ST-1", "name": "TERM-56", "type": "VO-11", "multiplicity": many}], "entities": []},
+ "invariants": [{"id": "INV-1", "condition": {"target": "ST-1", "agg": "count", "op": "ge", "value": 1}, "via": ["CMD-1"]}],
+ "commands": [
+  {"id": "CMD-1", "name": "TERM-30",
+   "args": [{"id": "ARG-1", "name": "TERM-8", "type": "VO-5"}, {"id": "ARG-2", "name": "TERM-60", "type": "VO-8"}, {"id": "ARG-3", "name": "TERM-56", "type": "VO-11"}],
+   "business_rules": [
+    {"id": "BR-1", "condition": {"target": "ARG-1", "agg": "count", "op": "le", "value": 0}, "reject": "TERM-53",
+     "example": {"before": {}, "args": {"ARG-1": {"count": 1}, "ARG-2": {"count": 0}, "ARG-3": {"count": 3}}}},
+    {"id": "BR-2", "condition": {"target": "ARG-2", "agg": "count", "op": "le", "value": 0}, "reject": "TERM-55",
+     "example": {"before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 2}, "ARG-3": {"count": 3}}}}],
+   "state_changes": [{"id": "CHG-2", "condition": {"target": "ST-1", "op": "eq", "value": "ARG-3"}}],
+   "emits": [], "accept_examples": [{"id": "OK-1", "before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 0}, "ARG-3": {"count": 3}}}]}]}
+
+D["DS-1"] = {"kind": "domain_service", "id": "DS-1", "header": {"name": "TERM-32", "context": "BC-1", "reason": "複数の集約にまたがる計算"},
+ "reads": ["AGG-1", "AGG-2"],
+ "operations": [
+  {"id": "OP-1", "name": "TERM-57",
+   "inputs": [{"id": "IN-1", "from": {"target": "AGG-1.ST-4"}, "type": "VO-3"}, {"id": "IN-2", "from": {"target": "AGG-1.ST-1"}, "type": "VO-1"},
+              {"id": "IN-3", "from": {"target": "AGG-1.ST-2"}, "type": "VO-2"}],
+   "output": "VO-9", "results": [
+    {"id": "RES-3", "condition": {"if": {"target": "AGG-1.ST-4", "op": "ne", "value": "AGG-1.ST-1"}, "target": "RESULT", "op": "eq", "value": "ずれ"}},
+    {"id": "RES-4", "condition": {"if": {"target": "AGG-1.ST-4", "op": "ne", "value": "AGG-1.ST-2"}, "target": "RESULT", "op": "eq", "value": "ずれ"}}]},
+  {"id": "OP-3", "name": "TERM-59",
+   "inputs": [{"id": "IN-1", "from": {"target": "AGG-1.ST-3"}, "type": "VO-6"}, {"id": "IN-3", "from": {"target": "AGG-1.ST-1"}, "type": "VO-1"},
+              {"id": "IN-2", "from": {"target": "AGG-2.ST-1"}, "type": "VO-11"}],
+   "output": "VO-9", "results": [
+    {"id": "RES-2", "condition": {"if": {"target": "AGG-2.ST-1", "op": "ne", "value": "AGG-1.ST-3"}, "target": "RESULT", "op": "eq", "value": "確かめ直し"}},
+    {"id": "RES-3", "condition": {"if": {"target": "AGG-2.ST-1", "op": "eq", "value": "AGG-1.ST-3"}, "target": "RESULT", "op": "eq", "value": "合格"}}]}]}
+
+def VO(i, name, comps, ops=()):
+    return {"kind": "value_object", "id": f"VO-{i}", "header": {"name": name, "context": "BC-1"},
+            "components": [dict(c, id=f"CMP-{n+1}", invariants=c.get("invariants", [])) for n, c in enumerate(comps)], "operations": list(ops)}
+NE = lambda: [{"id": "INV-1", "condition": {"target": "CMP-1", "measure": "length", "op": "ge", "value": 1}}]
+D["VO-1"] = VO(1, "TERM-7", [{"name": "ファイルのパス", "kind": "文字列", "invariants": NE()}])
+D["VO-2"] = VO(2, "TERM-2", [{"name": "スキーマのファイルのパス", "kind": "文字列", "invariants": NE()}])
+D["VO-3"] = VO(3, "TERM-12", [{"name": "指す先", "kind": "文字列", "invariants": NE()}, {"name": "x-ref の値", "kind": "文字列"}, {"name": "指す先の種類", "kind": "文字列"}])
+D["VO-4"] = VO(4, "TERM-13", [{"name": "導いた値", "kind": "文字列"}, {"name": "宣言した値", "kind": "文字列"}],
+ [{"id": "OP-1", "name": "TERM-58", "args": [], "result": "VO-9",
+   "accept_examples": [{"id": "OK-1", "self": {"導いた値": "中核", "宣言した値": "中核"}, "args": [], "result": "合格"},
+                       {"id": "OK-2", "self": {"導いた値": "中核", "宣言した値": "補完"}, "args": [], "result": "ずれ"}]}])
+D["VO-5"] = VO(5, "TERM-8", [{"name": "プロパティ", "kind": "文字列"}, {"name": "理由", "kind": "文字列", "invariants": NE()}])
+D["VO-6"] = VO(6, "TERM-16", [{"name": "16進の文字列", "kind": "文字列", "invariants": [{"id": "INV-1", "condition": {"target": "CMP-1", "measure": "length", "op": "eq", "value": 64}}]}])
+D["VO-7"] = VO(7, "TERM-6", [{"name": "操作の並び", "kind": "文字列", "invariants": NE()}],
+ [{"id": "OP-1", "name": "TERM-63", "args": ["VO-10"], "result": "VO-10",
+   "accept_examples": [{"id": "OK-1", "self": PATCH, "args": ["{}"], "result": '{"a":1}'}]}])
+D["VO-8"] = VO(8, "TERM-60", [{"name": "検査の名前", "kind": "文字列"}, {"name": "指す先", "kind": "文字列"}])
+D["VO-9"] = VO(9, "TERM-14", [{"name": "検査の名前", "kind": "文字列"}, {"name": "状態", "kind": "列挙", "values": ["合格", "ずれ", "確かめ直し"]}])
+D["VO-10"] = VO(10, "TERM-61", [{"name": "JSON の値", "kind": "文字列"}],
+ [{"id": "OP-1", "name": "TERM-62", "args": [], "result": "VO-6",
+   "accept_examples": [{"id": "OK-1", "self": "{}", "args": [], "result": H0}]}])
+D["VO-11"] = VO(11, "TERM-56", [{"name": "パス", "kind": "文字列", "invariants": NE()}, {"name": "ハッシュ値", "kind": "文字列"}])
 
 os.makedirs(os.path.join(H, "decls"), exist_ok=True)
 for f in os.listdir(os.path.join(H, "decls")): os.remove(os.path.join(H, "decls", f))
