@@ -26,7 +26,7 @@ def svg(name,args,decl):
 figure=lambda n,d: svg(n,['figure'],d)
 chart=lambda n,k,d: svg(n,['chart',k],d)
 KIND={"domain":"ドメイン（プロダクト）","subdomain":"サブドメイン","context":"区切られた文脈","use_case":"ユースケース","aggregate":"集約","value_object":"値オブジェクト","domain_service":"ドメインサービス"}
-ORDER=["domain","subdomain","context","use_case","aggregate","value_object","domain_service"]
+ORDER=["domain","subdomain","context","use_case","aggregate","domain_service"]
 CAT={"中核":"t-core","補完":"t-supporting","一般":"t-generic"}
 def ctx_of(d): return d['header'].get('context') or (d['header'].get('scope') or {}).get('context')
 def term(ctx,t): return g.word(t)
@@ -45,6 +45,11 @@ def lab(t): return f'{E(t)}{helpbtn(t)}'
 def pill(t,tone=''): return f'<span class="pill {tone}">{E(t)}</span>'
 def pills(ts,tone=''): return ''.join(pill(t,tone) for t in ts)
 def tbl(cols,rows):
+  # テスト条件の列は表に出さず、隣の欄の後ろに付ける（宣言の欄を表示したときだけ見える）
+  if cols and cols[0]=='テスト条件':
+    cols=cols[1:]; rows=[[r[1]+' '+r[0]]+list(r[2:]) for r in rows]
+  elif cols and cols[-1]=='テスト条件':
+    cols=cols[:-1]; rows=[[r[0]+' '+r[-1]]+list(r[1:-1]) for r in rows]
   return '<div class="tw"><table><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td>{c}</td>' for c in r)+'</tr>' for r in rows)+'</tbody></table></div>'
 def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
 def tiles(pairs): return '<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{lab(k)}</div><div class="tv">{v}</div></div>' for k,v in pairs)+'</div>'
@@ -56,12 +61,12 @@ def tchip(cid):
 def tblock(decl):
   cs=[c for c in CONDS if c['decl']==decl]
   if not cs: return ''
-  return block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in cs]))
+  return '<div class="mx">'+block('テスト条件',tbl(['ID','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in cs]))+'</div>'
 def head(d,badges='',lead=''):
-  return f'<header class="ph"><p class="kind">{KIND[d["kind"]]}{badges}</p><h1>{E(dname(d["id"]))}{idt(d["id"])}</h1></header>'+(f'<p class="lead">{E(lead)}</p>' if lead else '')
+  return f'<label class="mt top"><input type="checkbox" class="mtog"> 宣言の欄を表示（ID ・ 参照 ・ テスト条件 ・ JSON）</label><header class="ph"><p class="kind">{KIND[d["kind"]]}{badges}</p><h1>{E(dname(d["id"]))}{idt(d["id"])}</h1></header>'+(f'<p class="lead">{E(lead)}</p>' if lead else '')
 def yn(v): return '<span class="yes">はい</span>' if v else '<span class="no-ans">いいえ</span>'
 def gen(t): return f'{E(t)}'
-def raw(d): return f'<details class="fold"><summary>{lab("宣言の JSON")}</summary><div class="fbody"><pre class="code">{E(json.dumps(d,ensure_ascii=False,indent=1))}</pre></div></details>'
+def raw(d): return f'<details class="fold mx"><summary>{lab("宣言の JSON")}</summary><div class="fbody"><pre class="code">{E(json.dumps(d,ensure_ascii=False,indent=1))}</pre></div></details>'
 def sv(x): return E(g.show(x))
 def ex_rows(decl,cmd,exs):
   """例を、前の状態 ・ 引数 ・ 後の状態 ・ 業務イベントの表にする"""
@@ -88,7 +93,7 @@ def p_domain(d):
     src='業務イベント' if x['source']=='event' else 'システムの外'
     return [f'<b>{E(x["name"])}</b>',gen(g.sc_text(x)),pill(src),pill(g.thr(x['threshold'])),pill(g.thr(x['ratio'])) if x.get('ratio') else '―',E(x['window']),' '.join(ref(u) for u in uc.get(x['id'],[])) or '<span class="missing">なし</span>']
   b+=block('達成の基準',tbl(['基準','組んだ文','測る対象','閾値','割合','期間','寄与するユースケース'],[scrow(x) for x in d['success_criteria']])+'<p class="txt">運用で測る。テスト条件にはしない。</p>')
-  b+=block('範囲',cards([card('作るもの（In）',''.join(item(x) for x in g.scope_in(d))+'<span class="ln"><span class="k">組んだ文</span>サブドメインから組む</span>','left-accent'),card('作らないもの（Out）',''.join(item(x) for x in d['scope']['out']),'left-neutral')]))
+  b+=block('範囲',tbl(['作らないもの'],[[E(x)] for x in d['scope']['out']])+'<p class="txt">作るものは、下のサブドメインの組み立てに並ぶ。</p>')
   sh={x['id']:x['who'] for x in d['stakeholders']}
   nm=lambda x: E(sh.get(x) or next((y['name'] for y in d['design_scopes'] if y['id']==x),x))
   def realize(s):
@@ -104,10 +109,9 @@ def p_domain(d):
   rows=[]
   for s in d['subdomains']:
     c=D[s]['classification']; w,u=realize(s)
-    rows.append([ref(s),pill(c['category'],CAT[c['category']]),E(c.get('sourcing','―')),w or '<span class="missing">なし</span>',E(g.impl_method(D[s]['business_logic'])),' '.join(ref(x) for x in u) or '―'])
-  b+=block('サブドメインの組み立て',tbl(['サブドメイン','カテゴリー','調達','どこで','実装方法（導く）','使うユースケース'],rows)+'<p class="txt">道具が、サブドメイン ・ 区切られた文脈 ・ 文脈の地図の欄から組む。宣言の重さは、カテゴリーではなく実装方法で決まる。</p>')
+    rows.append([ref(s)+f'<span class="what">{E(D[s]["header"]["description"])}</span>',pill(c['category'],CAT[c['category']]),E(c.get('sourcing','―')),w or '<span class="missing">なし</span>',E(g.impl_method(D[s]['business_logic'])),' '.join(ref(x) for x in u) or '―'])
+  b+=block('サブドメインの組み立て（作るもの）',tbl(['サブドメイン','カテゴリー','調達','どこで','実装方法（導く）','使うユースケース'],rows)+'<p class="txt">道具が、サブドメイン ・ 区切られた文脈 ・ 文脈の地図の欄から組む。宣言の重さは、カテゴリーではなく実装方法で決まる。</p>')
   b+=block('設計スコープ',tbl(['高さ','名前','内側','外側'],[[pill(x['level']),f'<b>{E(x["name"])}</b>','、'.join([nm(y) for y in x.get('inside',[])]+[ref(c) for c in x.get('contexts',[])]),'、'.join(nm(y) for y in x['outside'])] for x in d['design_scopes']])+'<p class="txt">ユースケースは、システムの高さのスコープを対象に書く。アプリ ・ 画面 ・ サービスへの分け方はスコープの内側のことで、実装の定義が持つ。</p>')
-  b+=block('サブドメイン',cards([card(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]),f'<span class="txt">{E(D[s]["header"]["description"])}</span>') for s in d['subdomains']]))
   b+=block('利害関係者',tbl(['利害関係者','関心'],[[f'<b>{E(x["who"])}</b>',f'<span class="txt">{E(x["interest"])}</span>'] for x in d['stakeholders']]))
   return b+raw(d)
 def p_sd(d):
@@ -124,11 +128,14 @@ def p_bc(d):
   b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('担うサブドメイン',sds)])
   mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
   ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
-  if mem: b+=block('この文脈のモデル',tbl(['種類','名前'],[[KIND[D[m]['kind']],ref(m)] for m in mem])+(f'<p class="ln"><span class="k">この文脈を使うユースケース</span>{" ".join(ref(u) for u in ucs)}</p>' if ucs else ''))
+  if mem: b+=block('この文脈のモデル',tbl(['種類','名前'],[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)])+(f'<p class="ln"><span class="k">この文脈を使うユースケース</span>{" ".join(ref(u) for u in ucs)}</p>' if ucs else ''))
   ts=d['ubiquitous_language']['terms']
   if ts:
-    kinds=list(dict.fromkeys(x['kind'] for x in ts))
-    b+=block('同じ言葉',cards([card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in ts if x['kind']==k)) for k in kinds]))
+    GEN={'動作','情報の別名','失敗の種類'}
+    tcard=lambda xs,k: card(E(k),''.join(item(x['word'],x['definition'],(f'<span class="ln"><span class="k">使わない語</span>{" ".join(f"<span class=avoid>{E(a)}</span>" for a in x["avoid"])}</span>' if x['avoid'] else '')) for x in xs if x['kind']==k))
+    bk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] not in GEN)); gk=list(dict.fromkeys(x['kind'] for x in ts if x['kind'] in GEN))
+    gn=len([x for x in ts if x['kind'] in GEN])
+    b+=block('同じ言葉',cards([tcard(ts,k) for k in bk])+(f'<details class="fold"><summary>文を組むための語（{gn}語：{" ・ ".join(gk)}）</summary><div class="fbody">'+cards([tcard(ts,k) for k in gk])+'</div></details>' if gk else ''))
   rel=d['context_map']['relations']
   if rel:
     nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
@@ -188,7 +195,7 @@ def p_agg(d):
     fig=figure('agg-'+k+'-'+c['id'],{"direction":"LR","nodes":nodes,"edges":edges}) if nodes else ''
     sec=f'<section class="blk"><h2>コマンド「{E(cname)}」{helpbtn("コマンド")}</h2>'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
     if pr: sec+=f'<h3 class="sub">事前条件と拒否の例</h3>'+tbl(['テスト条件','組んだ文','拒否の理由','拒否の例'],pr)
-    sec+=f'<h3 class="sub">事後条件</h3>'+tbl(['ID','組んだ文'],[[f'<span class="no">{E(p["id"])}</span>',gen(g.cond(p['condition'],k,c))] for p in c['postconditions']])
+    sec+=f'<h3 class="sub">事後条件</h3>'+tbl(['実行したあと'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
     if c.get('accept_examples'): sec+=f'<h3 class="sub">受け付ける例{helpbtn("例")}</h3>'+tbl(['テスト条件','前の状態','引数','後の状態（道具が導く）','業務イベント'],ex_rows(k,c,c['accept_examples']))
     b+=sec+'</section>'
   b+=tblock(k)
@@ -268,11 +275,11 @@ def p_uc(d):
   sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
   b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a>（{E(sys_["level"])}）'+ctxl)
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
-  sline=lambda x: f'<span class="ln"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
+  sline=lambda x: f'<span class="ln mx"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')
   mgc=card(lab('最低保証'),''.join(item(x['name'],g.mg_text(x),f'<span class="ln">{whos(x["protects"])}</span>') for x in gu['minimal']),'top-minimal')
   b+='<div style="height:.75rem"></div>'+cards([sgc,mgc])
-  b+=block('事前条件',tbl(['組んだ文','成り立たせるユースケース','これで起こらない拒否'],[[gen(g.pre_text(x)),ref(x['established_by']),'、'.join(pref(r) for r in x.get('ensures',[])) or '―'] for x in d['preconditions']]))
+  if d['preconditions']: b+=block('事前条件',tbl(['事前条件','成り立たせるユースケース'],[[gen(g.pre_text(x))+(f'<span class="ln mx"><span class="k">これで起こらない拒否</span>{"、".join(pref(r) for r in x["ensures"])}</span>' if x.get('ensures') else ''),ref(x['established_by'])] for x in d['preconditions']]))
   def who_to(t): return act(t['actor'])
   def body(t):
     s=g.step_text(t); p=t['actor']+'は、'
@@ -293,14 +300,14 @@ def p_uc(d):
       xm=f'<div class="meta"><span class="no">{E(x["id"])} ・ {E(x["condition_kind"])}</span>'+(f'<span class="ln"><span class="k">扱う拒否</span>{"、".join(pref(r) for r in x["handles"])}</span>' if x.get('handles') else '')+(f'<span class="ln"><span class="k">fails</span>{" ".join(E(r) for r in x["fails"])}</span>' if x.get('fails') else '')+f'<span class="ln">{tchip(k+"."+x["id"])}</span></div>'
       fl+=f'<li class="ext"><div class="xh"><span class="xl">{E(nums[x["id"]])}</span><b>{gen(g.ext_text(x))}</b></div>{xm}<ol class="xs">{sub}{end}</ol></li>'
   fl+=f'<li class="end ok"><span class="sn">✓</span><div class="sb"><b>成功で終わる</b><span class="note">成功時保証が成り立つ</span><div class="meta">{tchip(k+".M")}</div></div></li>'
-  b+=f'<section class="blk"><h2>主成功シナリオと拡張{helpbtn("主成功シナリオ")}</h2><label class="mt"><input type="checkbox" id="mt-{k}" class="mtog"> 宣言の欄を表示（ID ・ invokes ・ テスト条件）</label><ol class="flow">{fl}</ol></section>'
+  b+=f'<section class="blk"><h2>主成功シナリオと拡張{helpbtn("主成功シナリオ")}</h2><ol class="flow">{fl}</ol></section>'
   b+=f'<details class="fold near"><summary>主成功シナリオのシーケンス図{helpbtn("シーケンス図")}</summary><div class="fbody">{seqm}</div></details>'
   b+=f'<details class="fold near"><summary>拡張を含むシーケンス図</summary><div class="fbody">{seq}</div></details>'
   srows=[[f'<b>{E(who(i))}</b>',f'<span class="txt">{E(x["interest"])}</span>','、'.join(nums[s['id']] for s in sc['steps'] if i in s.get('serves',[])) or '<span class="missing">なし</span>',pills([m['name'] for m in gu['success'] if i in m['satisfies']],'t-success')+pills([m['name'] for m in gu['minimal'] if i in m['protects']],'t-minimal')] for i,x in sh.items()]
   b+=block('利害関係者と利益',tbl(['利害関係者','利益','守る手順','守る保証'],srows))
   vr=[[nums[s['id']],E(v['varies']),pills(v['values'])] for s in sc['steps'] for v in s.get('variations',[])]
-  if vr: b+=block('技術およびデータのバリエーション',tbl(['手順','違い','値'],vr))
-  if d.get('open_issues'): b+=block('未決定事項',tbl(['未決定事項'],[[E(x)] for x in d['open_issues']]))
+  if vr: b+=f'<details class="fold"><summary>技術およびデータのバリエーション（{len(vr)}件）{helpbtn("技術およびデータのバリエーション")}</summary><div class="fbody">{tbl(["手順","違い","値"],vr)}</div></details>'
+  if d.get('open_issues'): b+=f'<details class="fold"><summary>未決定事項（{len(d["open_issues"])}件）{helpbtn("未決定事項")}</summary><div class="fbody">{tbl(["未決定事項"],[[E(x)] for x in d["open_issues"]])}</div></details>'
   b+=tblock(k)
   return b+raw(d)
 def p_drift():

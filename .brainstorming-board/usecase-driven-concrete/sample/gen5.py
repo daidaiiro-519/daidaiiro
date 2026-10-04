@@ -119,7 +119,7 @@ def ending_text(x,nums): return '失敗' if x['ending']=='失敗' else f'{nums[x
 def pre_text(p):
   if p.get('ensures'): return '、'.join(item_cond(r) for r in p['ensures'])
   return cond(p['condition'])
-def sg_text(g): return '、'.join(item_cond(r) for r in g.get('established_by',[]))
+def sg_text(g): return '。'.join(item_post(r) for r in g.get('established_by',[]))
 def mg_text(g): return cond(g['condition'])
 def all_steps(uc):
   for s in uc['scenario']['steps']:
@@ -248,3 +248,17 @@ def impl_method(bl):
   if bl['complex_rules']: return 'ドメインモデル'
   if bl['complex_data']: return 'アクティブレコード'
   return 'トランザクションスクリプト'
+
+def post_text(c,decl=None,cmd=None):
+  """事後条件を「どうなるか」の文にする。比較の文（XはYと同じ）にしない"""
+  t=qname(c['target'],decl,cmd); v=c.get('value')
+  if c['op']=='eq' and isinstance(v,dict) and 'call' in v:
+    vo,op=v['call'].split('.'); o=find(D[vo]['operations'],op); ch=terms()[o['name']].get('change')
+    other=[a for a in v['args'] if not isinstance(a,dict)]
+    if ch and other: return f'{t}が{qname(other[0],decl,cmd).replace("指定された","")}だけ{ch}'
+  if c['op']=='eq' and isinstance(v,str) and v.startswith('ARG-'): return f'{t}が、指定された値になる'
+  if c['op']=='eq' and isinstance(v,str) and v.startswith('TERM-'): return f'{t}が{word(v)}になる'
+  if c['op']=='gt' and isinstance(v,dict) and 'before' in v: return f'{t}が1件増える' if c.get('agg')=='count' else f'{t}が増える'
+  return cond(c,decl,cmd)
+def item_post(ref):
+  x,decl,cmd=item(ref); return post_text(x['condition'],decl,cmd)
