@@ -1,0 +1,232 @@
+{
+ "kind": "use_case",
+ "id": "UC-1",
+ "header": {
+  "name": "実体を作成する",
+  "level": "ユーザー目的",
+  "scope": {
+   "system": "DOM-1.SCP-1"
+  },
+  "primary_actor": "AI エージェント",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-1",
+   "interest": "未記入の欄と、そこへ何を書くかが分かる"
+  },
+  {
+   "id": "SH-2",
+   "who": "DOM-1.SH-2",
+   "interest": "置き場所にある実体を上書きしない"
+  }
+ ],
+ "guarantees": {
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "既にある実体を書き換えない",
+    "condition": {
+     "target": "TERM-1.TERM-16",
+     "op": "eq",
+     "value": {
+      "before": "TERM-1.TERM-16"
+     }
+    },
+    "protects": [
+     "SH-2"
+    ]
+   }
+  ],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "置き場所の実体",
+    "condition": {
+     "target": "TERM-1.TERM-7",
+     "op": "not_empty"
+    },
+    "satisfies": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "SG-2",
+    "name": "未記入の欄の案内",
+    "condition": {
+     "target": "TERM-10",
+     "op": "not_empty"
+    },
+    "satisfies": [
+     "SH-1"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [
+   "ファイルシステム"
+  ],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "相互作用",
+    "actor": "AI エージェント",
+    "to": "システム",
+    "data": [
+     "TERM-2",
+     "TERM-7"
+    ],
+    "verb": "TERM-25",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-2"
+    ],
+    "verb": "TERM-46",
+    "reply": [
+     "TERM-48"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-1",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-40",
+       "TERM-51"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-1.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-3",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "verb": "TERM-27",
+    "object": "TERM-1",
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-1",
+     "SH-2"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-2",
+      "condition_kind": "業務ルールの拒否",
+      "reasons": [
+       "TERM-37"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-2.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-4",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-48"
+    ],
+    "verb": "TERM-47",
+    "extensions": [
+     {
+      "id": "EXT-3",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-41"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-3.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-5",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "AI エージェント",
+    "data": [
+     "TERM-7",
+     "TERM-10"
+    ],
+    "verb": "TERM-26",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   }
+  ]
+ },
+ "contributes_to": [
+  "SC-1"
+ ],
+ "open_issues": [
+  "作成した直後の実体は未記入の欄を持つので、検証を通過しなくてよい（ボード schema-driven-base 論点1）"
+ ],
+ "links": {
+  "technology": [
+   "REQ-1.TEC-1",
+   "REQ-1.TEC-2"
+  ]
+ }
+}

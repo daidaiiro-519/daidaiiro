@@ -1,0 +1,202 @@
+{
+ "kind": "use_case",
+ "id": "UC-2",
+ "header": {
+  "name": "欄の値を取得する",
+  "level": "サブ機能",
+  "scope": {
+   "system": "DOM-1.SCP-1"
+  },
+  "primary_actor": "AI エージェント",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-1",
+   "interest": "文字列を探さずに、欄の値だけを受け取る"
+  }
+ ],
+ "guarantees": {
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "実体を書き換えない",
+    "condition": {
+     "target": "TERM-1.TERM-16",
+     "op": "eq",
+     "value": {
+      "before": "TERM-1.TERM-16"
+     }
+    },
+    "protects": [
+     "SH-1"
+    ]
+   }
+  ],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "取得した値",
+    "condition": {
+     "target": "TERM-43",
+     "op": "not_empty"
+    },
+    "satisfies": [
+     "SH-1"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [
+   "ファイルシステム"
+  ],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "相互作用",
+    "actor": "AI エージェント",
+    "to": "システム",
+    "data": [
+     "TERM-7",
+     "TERM-5"
+    ],
+    "verb": "TERM-25",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "妥当性確認",
+    "actor": "システム",
+    "checks": [
+     "REQ-1.BR-1"
+    ],
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-1",
+      "condition_kind": "妥当性確認の失敗",
+      "fails": [
+       "REQ-1.BR-1"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-1.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "STEP-3",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-7"
+    ],
+    "verb": "TERM-46",
+    "reply": [
+     "TERM-48"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-2",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-40",
+       "TERM-51"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-2.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-4",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "AI エージェント",
+    "data": [
+     "TERM-43"
+    ],
+    "verb": "TERM-26",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-3",
+      "condition_kind": "別の道筋での成功",
+      "condition": {
+       "target": "TERM-43",
+       "op": "empty"
+      },
+      "ending": "終了",
+      "steps": [
+       {
+        "id": "EXT-3.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "AI エージェント",
+        "data": [
+         "TERM-43"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "contributes_to": [
+  "SC-1"
+ ],
+ "open_issues": [],
+ "links": {
+  "business_rules": [
+   "REQ-1.BR-1"
+  ],
+  "technology": [
+   "REQ-1.TEC-1",
+   "REQ-1.TEC-2"
+  ]
+ }
+}

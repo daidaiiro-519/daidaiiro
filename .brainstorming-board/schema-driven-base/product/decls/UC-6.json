@@ -1,0 +1,201 @@
+{
+ "kind": "use_case",
+ "id": "UC-6",
+ "header": {
+  "name": "頁を描画する",
+  "level": "ユーザー目的",
+  "scope": {
+   "system": "DOM-1.SCP-1"
+  },
+  "primary_actor": "データの持ち主",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-2",
+   "interest": "正本を、種類ごとに設計した頁で読める"
+  }
+ ],
+ "guarantees": {
+  "minimal": [
+   {
+    "id": "MG-1",
+    "name": "実体を書き換えない",
+    "condition": {
+     "target": "TERM-11.TERM-16",
+     "op": "eq",
+     "value": {
+      "before": "TERM-11.TERM-16"
+     }
+    },
+    "protects": [
+     "SH-1"
+    ]
+   }
+  ],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "描画した頁",
+    "condition": {
+     "target": "TERM-45",
+     "op": "not_empty"
+    },
+    "satisfies": [
+     "SH-1"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [
+   "ファイルシステム"
+  ],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "相互作用",
+    "actor": "データの持ち主",
+    "to": "システム",
+    "data": [
+     "TERM-7"
+    ],
+    "verb": "TERM-25",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-7"
+    ],
+    "verb": "TERM-46",
+    "reply": [
+     "TERM-48",
+     "TERM-18",
+     "TERM-19",
+     "TERM-20"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-1",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-40",
+       "TERM-51"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-1.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "データの持ち主",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "keeps": [
+     "MG-1"
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-3",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "verb": "TERM-33",
+    "object": "TERM-17",
+    "serves": [
+     "SH-1"
+    ],
+    "variations": [
+     {
+      "varies": "組み方",
+      "values": [
+       "頁の型がある種類は、頁の型と部品で組む",
+       "頁の型が無い種類は、注釈だけから組む"
+      ]
+     }
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-4",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-49"
+    ],
+    "verb": "TERM-47",
+    "extensions": [
+     {
+      "id": "EXT-2",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-41"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-2.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "データの持ち主",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-5",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "データの持ち主",
+    "data": [
+     "TERM-45"
+    ],
+    "verb": "TERM-26",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   }
+  ]
+ },
+ "contributes_to": [],
+ "open_issues": [
+  "頁の型が指す欄が実体に無いときは「なし」と描く。拡張にするかを決めていない"
+ ],
+ "links": {
+  "technology": [
+   "REQ-1.TEC-1",
+   "REQ-1.TEC-2"
+  ]
+ }
+}

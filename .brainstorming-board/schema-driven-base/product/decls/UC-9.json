@@ -1,0 +1,175 @@
+{
+ "kind": "use_case",
+ "id": "UC-9",
+ "header": {
+  "name": "基盤の複製を転写する",
+  "level": "ユーザー目的",
+  "scope": {
+   "system": "DOM-1.SCP-1"
+  },
+  "primary_actor": "道具の作り手",
+  "trigger_step": "STEP-1"
+ },
+ "preconditions": [],
+ "stakeholders": [
+  {
+   "id": "SH-1",
+   "who": "DOM-1.SH-3",
+   "interest": "基盤の能力を書き直さずに、作る道具の中で使える"
+  }
+ ],
+ "guarantees": {
+  "minimal": [],
+  "success": [
+   {
+    "id": "SG-1",
+    "name": "正本と同じ複製",
+    "condition": {
+     "target": "TERM-23",
+     "agg": "count",
+     "op": "le",
+     "value": 0
+    },
+    "satisfies": [
+     "SH-1"
+    ]
+   }
+  ]
+ },
+ "scenario": {
+  "supporting_actors": [
+   "ファイルシステム"
+  ],
+  "steps": [
+   {
+    "id": "STEP-1",
+    "kind": "相互作用",
+    "actor": "道具の作り手",
+    "to": "システム",
+    "data": [
+     "TERM-24"
+    ],
+    "verb": "TERM-25",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-2",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-24"
+    ],
+    "verb": "TERM-46",
+    "reply": [
+     "TERM-50"
+    ],
+    "extensions": [
+     {
+      "id": "EXT-1",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-40"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-1.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "道具の作り手",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-3",
+    "kind": "内部の状態変化",
+    "actor": "システム",
+    "verb": "TERM-31",
+    "object": "TERM-22",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   },
+   {
+    "id": "STEP-4",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "ファイルシステム",
+    "data": [
+     "TERM-50"
+    ],
+    "verb": "TERM-47",
+    "extensions": [
+     {
+      "id": "EXT-2",
+      "condition_kind": "支援アクターの失敗",
+      "actor": "ファイルシステム",
+      "reasons": [
+       "TERM-41"
+      ],
+      "ending": "失敗",
+      "steps": [
+       {
+        "id": "EXT-2.S-1",
+        "kind": "相互作用",
+        "actor": "システム",
+        "to": "道具の作り手",
+        "data": [
+         "TERM-42"
+        ],
+        "verb": "TERM-26",
+        "extensions": []
+       }
+      ]
+     }
+    ],
+    "serves": [
+     "SH-1"
+    ]
+   },
+   {
+    "id": "STEP-5",
+    "kind": "相互作用",
+    "actor": "システム",
+    "to": "道具の作り手",
+    "data": [
+     "TERM-24"
+    ],
+    "verb": "TERM-26",
+    "serves": [
+     "SH-1"
+    ],
+    "extensions": []
+   }
+  ]
+ },
+ "contributes_to": [
+  "SC-4"
+ ],
+ "open_issues": [
+  "複製に手の変更があるときに、転写を拒むかを決めていない（転写すると、差の検査で見つけるはずの変更が消える）",
+  "書く途中で失敗したときに、複製が半端に残らないことを最低保証に置くかを決めていない"
+ ],
+ "links": {
+  "technology": [
+   "REQ-1.TEC-1",
+   "REQ-1.TEC-2"
+  ]
+ }
+}
