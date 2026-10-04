@@ -7,7 +7,7 @@
 /* 部品の見た目。色は tokens.css の変数だけを使い、直値を書かない */
 body{background:var(--surface);color:var(--ink);font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;font-size:15px;line-height:1.7}
 .shell{display:grid;grid-template-columns:11rem minmax(0,1fr);gap:1.25rem;max-width:84rem;margin:0 auto;padding-inline:16px;padding-block:24px 64px}
-.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 48px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:.4rem;padding-bottom:.5rem;scroll-padding-block:1.5rem}
 .brand{margin:0 0 .75rem;font-weight:700}
 .nav{display:flex;flex-direction:column;gap:.6rem}
 .ng{display:flex;flex-direction:column}
@@ -84,7 +84,7 @@ tr.end td{color:var(--accent);font-size:.82rem;border-bottom:0}
 .fold summary{cursor:pointer;font-size:.88rem;color:var(--muted)}
 .fold summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fbody{padding:.5rem 0 .25rem}
-@media (max-width:760px){.shell{grid-template-columns:minmax(0,1fr)}.side{position:static}.nav{flex-direction:row;flex-wrap:wrap;gap:.5rem 1rem}.page{padding:1rem}}
+@media (max-width:760px){.shell{grid-template-columns:minmax(0,1fr)}.side{position:static;max-height:none;overflow:visible}.nav{flex-direction:row;flex-wrap:wrap;gap:.5rem 1rem}.page{padding:1rem}}
 
 .pill.t-caution{background:var(--band);color:var(--muted)}
 .tc{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;padding:0 .4rem;border-radius:4px;border:1px solid var(--line);color:var(--muted);margin-left:.35rem;white-space:nowrap;vertical-align:.1em}
@@ -3268,6 +3268,7 @@ dl.kv dd{margin:0;line-height:1.7;padding:.6rem .9rem}
 <script>
 const show=()=>{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)};
 addEventListener('hashchange',show);show();
+const keep=()=>{const a=document.querySelector('.nav a.on');if(a&&innerWidth>760)a.scrollIntoView({block:'nearest'})};addEventListener('hashchange',keep);keep();
 document.querySelectorAll('.fwrap').forEach(w=>{const g=w.querySelector('.filt'),c=w.querySelector('.fc'),x=w.querySelector('.fclear'),rows=[...w.querySelectorAll('tbody tr')];const apply=()=>{const on=[...g.querySelectorAll('button[data-f][aria-pressed="true"]')].map(b=>b.dataset.f);let n=0;rows.forEach(r=>{const v=!on.length||on.includes(r.dataset.k);r.hidden=!v;if(v)n++});const u=c.dataset.unit;c.textContent=on.length?`${rows.length}${u}のうち ${n}${u}`:`${rows.length}${u}`;x.hidden=!on.length};g.addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');apply()});x.addEventListener('click',()=>{g.querySelectorAll('button[data-f]').forEach(b=>b.setAttribute('aria-pressed','false'));apply()})});
 document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{const o=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',o);document.querySelectorAll('tr[data-grp="'+b.getAttribute('aria-controls')+'"]').forEach(r=>r.hidden=!o)}));
 if(innerWidth<=760){const n=document.querySelector('.navd');if(n)n.open=false;document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{n.open=false}))}
