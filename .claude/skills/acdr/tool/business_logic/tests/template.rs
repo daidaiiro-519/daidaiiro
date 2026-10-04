@@ -114,7 +114,7 @@ fn the_mark_has_one_shape() {
                 ]
             )
             .expect("組める"),
-        "<mark class=\"chg\" tabindex=\"0\" role=\"button\" aria-expanded=\"false\"\
+        "<mark class=\"chg\" data-acdr=\"1\" tabindex=\"0\" role=\"button\" aria-expanded=\"false\"\
          \u{20}data-b=\"前\" data-w=\"なぜ\">後</mark>"
     );
 }

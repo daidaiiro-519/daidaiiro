@@ -2,11 +2,22 @@
 (function(){
   var MARKCSS = document.getElementById("markcss").textContent;
 
-  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く */
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
   function wire(root, doc){
-    root.querySelectorAll("mark.chg[data-w]").forEach(function(m){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
       var p = doc.createElement("div");
-      p.className = "pop"; p.hidden = true;
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
       var b1 = doc.createElement("b"); b1.textContent = "変更前";
       var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
       var b2 = doc.createElement("b"); b2.textContent = "なぜ";
@@ -25,9 +36,14 @@
         if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
         else row.parentNode.appendChild(tr);
       } else {
-        var host = m.closest("td") || m.closest("li") || m.parentNode;
-        if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
-        else host.parentNode.appendChild(p);
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
       }
       function tg(){
         var opening = p.hidden;
@@ -35,10 +51,18 @@
         m.setAttribute("aria-expanded", opening ? "true" : "false");
         resizeAll();
       }
-      m.addEventListener("click", tg);
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
       m.addEventListener("keydown", function(e){
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
       });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
     });
   }
 
@@ -114,8 +138,15 @@
      設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
      JS で切り替える作りもある。**どちらでも動くように、
      切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
   function reveal(m){
-    if (m.offsetParent) return true;
+    if (shown(m)) return true;
     var n = m;
     while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
     /* **印が住んでいる根から探す。**
@@ -124,15 +155,15 @@
     for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
       if (e.tagName === "DETAILS") e.open = true;
     }
-    if (m.offsetParent) return true;
+    if (shown(m)) return true;
     var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
     for (var i = 0; i < ins.length; i++) {
       var was = ins[i].checked;
       ins[i].checked = true;
-      if (m.offsetParent) return true;
+      if (shown(m)) return true;
       ins[i].checked = was;
     }
-    return !!m.offsetParent;
+    return shown(m);
   }
 
   /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
@@ -147,7 +178,7 @@
           function(x){ return x.shadowRoot; });
         root = h ? h.shadowRoot : pane;
       }
-      var m = root.querySelectorAll("mark.chg")[i];
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
       if (!m) return;
       var shown = reveal(m);
       if (m.getAttribute("aria-expanded") !== "true") m.click();

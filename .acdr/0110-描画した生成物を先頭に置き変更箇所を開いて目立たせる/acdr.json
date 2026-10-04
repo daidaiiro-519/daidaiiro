@@ -1,0 +1,176 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0110",
+ "title": "ACDR の面で、描画した生成物を先頭に置き、変更箇所を初めから開いて目立たせる",
+ "date": "2026-10-04",
+ "status": "accepted",
+ "decision": "正本から組まれる生成物（ボードの board.html など）を対象にする記録では、描画した生成物を先頭の面に置き、正本の差分を2つ目の面に残す。変更箇所は初めから開いた状態で出し、印に色を付けて、どこが変わったかがひと目で分かるようにする。",
+ "why": "利用者は「HTML の変更前と変更後を見せてほしいのに、いつもそのもとになる JSON だよね」とした。ACDR 0109 で描画したボードを面に置くと、変更箇所は畳まれた節の中にあり、「その箇所へ移動」を押しても開かなかった。見えているかの判定に使う offsetParent は、閉じた details の中でも値を返すためである。さらにボードは ACDR と同じ class の印を自分でも持つので、1つの印に変更前の欄が2つ開き、ボード自身の印にも ACDR の欄が付いた。そのうえで利用者は、変更箇所が分かりにくいので、初めから全部を開き、変更箇所がひと目で分かるようにしてほしいとした。ボードは --move という同じ名前の変数も持つので、印の色がボードの色に置き換わっていた。",
+ "shift": [
+  {
+   "what": "生成物を持つ文書の面",
+   "from": "正本（JSON）の差分だけを置く",
+   "to": "描画した生成物を先頭に置き、正本の差分を2つ目に置く"
+  },
+  {
+   "what": "変更箇所の出し方",
+   "from": "変更前となぜは閉じて出し、印は破線の下線だけ",
+   "to": "初めから開いて出し、印に地の色と実線の下線を付ける。印を囲む畳まれた節も開く"
+  },
+  {
+   "what": "畳まれた節の中の印",
+   "from": "「その箇所へ移動」で開かない",
+   "to": "開いて、その印まで運ぶ"
+  },
+  {
+   "what": "対象の文書が自分の印を持つとき",
+   "from": "ACDR の印とボードの印の両方に、両方の開閉が付く",
+   "to": "ACDR は自分の印（data-acdr）だけを扱い、開閉もそれだけを動かす"
+  },
+  {
+   "what": "表のセルの中の印の、変更前の欄",
+   "from": "セルの隣に置かれ、列が1つ増えて見える",
+   "to": "セルの中に置く"
+  },
+  {
+   "what": "対象の文書が同じ名前の変数を持つとき",
+   "from": "印の色が、対象の文書の値に置き換わる",
+   "to": "印と欄にだけ、ACDR の値を直に持たせる。対象の文書の見た目は変えない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "正本から生成物を組む文書では、描画した生成物を先頭の面に置き、印を押すと変更前となぜが開く。正本の差分は2つ目の面に残す。",
+ "alternatives": [
+  {
+   "option": "正本の差分だけを置く（いまのまま）",
+   "why_not": "読み手は、JSON の差分から画面でどう変わるかを頭の中で組み立てることになる"
+  },
+  {
+   "option": "描画した生成物だけを置き、正本の差分を外す",
+   "why_not": "正本に入った変更の全部が、画面に出るとは限らない。画面に出ない欄の変更が見えなくなる"
+  },
+  {
+   "option": "ボードの側で、ACDR の印と別の class を使う",
+   "why_not": "対象の文書は ACDR を知らない。ACDR の側が自分の印を見分ければ、どの文書を対象にしても同じに動く"
+  },
+  {
+   "option": "初めは閉じたまま出し、「すべて開く」を押してもらう",
+   "why_not": "どこが変わったかを探すために、毎回押すことになる。閉じたい人は「すべて閉じる」で閉じられる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/acdr/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "正本から組まれる生成物があるときは、描画した生成物を先頭の面に置く。",
+     "before": "（この行は無かった）",
+     "why": "利用者が、JSON の差分ではなく描画した画面の変化を見たいとした。正本の差分は、画面に出ない欄の変更を見るために2つ目に残す"
+    },
+    {
+     "find": "変更箇所は、初めから開いて出す。",
+     "before": "（この行は無かった）",
+     "why": "利用者が、変更箇所が分かりにくいので初めから全部を開き、ひと目で分かるようにしてほしいとした"
+    },
+    {
+     "find": "畳まれた節の中の印も、一覧から開ける形にする。",
+     "before": "（この行は無かった）",
+     "why": "描画した生成物は節を畳んでいることが多い。offsetParent は閉じた details の中でも値を返すので、判定に使うと開かないまま止まる"
+    }
+   ]
+  },
+  {
+   "key": "js",
+   "tab": "acdr.js",
+   "file": ".claude/skills/acdr/references/acdr.js",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "root.querySelectorAll(\"mark.chg[data-acdr]\").forEach",
+     "before": "    root.querySelectorAll(\"mark.chg[data-w]\").forEach(function(m){",
+     "why": "ボードは ACDR と同じ class の印を自分でも持つ。ACDR が付けた印だけを扱い、ボード自身の印に欄を足さない。同じ塊で、変更前となぜの欄を初めから開いて出す。閉じて出すと、どこが変わったかを1件ずつ押して探すことになる。対象の文書と同じ名前の変数を見分けるため、ACDR の変数の名前も読んでおく"
+    },
+    {
+     "find": "var cell = m.closest(\"td,th\");",
+     "before": "        var host = m.closest(\"td\") || m.closest(\"li\") || m.parentNode;",
+     "why": "セルの隣に欄を置くと、表の列が1つ増えて見えた。セルの中に置く"
+    },
+    {
+     "find": "e.stopImmediatePropagation(); tg();",
+     "before": "      m.addEventListener(\"click\", tg);",
+     "why": "ボードの script も同じ印に開閉を付けるので、1つの印に変更前の欄が2つ開いた。捕捉の段で受けて止め、ACDR の開閉だけを動かす。同じ塊で、印を囲む畳まれた節を初めから開き、印と欄に ACDR の変数の値を直に持たせる（ボードの --move が印の色を置き換えていた）"
+    },
+    {
+     "find": "function shown(m){",
+     "before": "    if (m.offsetParent) return true;",
+     "why": "閉じた details の中でも offsetParent は値を返すので、印が見えていると判定して節を開かなかった。checkVisibility で判定する"
+    },
+    {
+     "find": "    return shown(m);",
+     "before": "    return !!m.offsetParent;",
+     "why": "節を開いたあとの判定と、内側のタブを切り替えたあとの判定も、同じ理由で checkVisibility に揃える"
+    },
+    {
+     "find": "var m = root.querySelectorAll(\"mark.chg[data-acdr]\")[i];",
+     "before": "      var m = root.querySelectorAll(\"mark.chg\")[i];",
+     "why": "一覧の番号は ACDR の印だけを数えている。ボード自身の印を含めて数えると、別の印へ運ぶ"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "acdr.css",
+   "file": ".claude/skills/acdr/references/acdr.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "mark.chg[data-acdr]{background:var(--mark-bg)",
+     "before": "mark.chg{background:transparent;color:inherit;border-bottom:var(--bw-2) dashed var(--move);",
+     "why": "破線の下線だけでは、どこが変わったかがひと目で分からなかった。地の色と実線の下線を付ける。ACDR が付けた印だけに当て、対象の文書自身の印の見た目は変えない"
+    }
+   ]
+  },
+  {
+   "key": "tok",
+   "tab": "tokens.json",
+   "file": ".claude/skills/acdr/references/tokens.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"wash-mark\": \"rgba(154,91,44,.22)\"",
+     "before": "   \"wash-quiet\": \"rgba(128,128,128,.12)\"",
+     "why": "印の地の色を、直に書かずトークンに置く。差し色（amber-700）と同じ色相で、欄の地（wash-move）より濃くする"
+    },
+    {
+     "find": "\"mark-bg\": \"wash-mark\"",
+     "before": "  \"index-bg\": \"wash-move\"",
+     "why": "部品の層に、印の地の色を置く。CSS はこの名前だけを参照する"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "tests/template.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/tests/template.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "data-acdr=\\\"1\\\"",
+     "before": "        \"<mark class=\\\"chg\\\" tabindex=\\\"0\\\" role=\\\"button\\\" aria-expanded=\\\"false\\\"\\",
+     "why": "型（references/acdr.template.html）の印に data-acdr=\"1\" を足した。印の形を固定している事例も合わせる。型そのものは <template> の中なので、描画しても見えず面に置けない"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "45d5a4aade25a272d86c6a32f870409823cb9a6be9e92167bb2e4682cb5f1b31",
+  "js": "1497f16c69f09f67c737dc1b223b78199446401f2c10b6a0fbecabfe90f8ee3c",
+  "css": "a2af9358536efb23d4b7b2fbd68ece967182b955c33c6c50f954fb0e8a09da4a",
+  "tok": "731998864199f7ab4832e564d90ef4aba9110731bbb3a7f47a2f9e5a504d8ded",
+  "test": "41e430ddef47d332e69c8dc5f6be580bbc1d5bbfa7ab91d58164c33208e31b80"
+ }
+}
