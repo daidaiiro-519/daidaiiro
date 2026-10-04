@@ -44,7 +44,7 @@
    "name": "アーキテクチャ",
    "status": "open",
    "question": "schema-driven の道具を、どの層とモジュールに分けて組むか",
-   "answer": "A ── <b>外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える。</b>中核の check はドメインモデルとしてドメインの crate に置き、readwrite ・ render ・ transcribe はトランザクションスクリプトとしてアプリケーションの crate に置く。ポートはアプリケーションの側が決め、アダプタがそれを実装する。向きは crate の依存で止める",
+   "answer": "A ── <b>ヘキサゴナル（ポートとアダプタ）で組む。</b>core に domain ・ application ・ ports を置き、adapters に入ってくる側（CLI ・ MCP の受け口）と出ていく側（ファイルシステム ・ jmespath）を置く。業務の分け方は、domain と application の中の名前に出るだけである。中核の参照と導出値は domain のドメインモデル、ほかの3つは application のトランザクションスクリプトになる",
    "intro": "ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる",
    "decision": {
     "letter": "A",
@@ -52,63 +52,50 @@
      {
       "kind": "grid",
       "cols": [
-       "crate",
+       "フォルダ（crate）",
        "中身",
-       "実装の型",
        "依存してよい先"
       ],
       "rows": [
        [
-        "sd_domain",
-        "check（参照と導出値の集約 ・ ドメインサービス ・ 値オブジェクト）",
-        "ドメインモデル",
+        "core/domain（schema-driven-core）",
+        "集約 インスタンス ・ 承認記録、ドメインサービス 検査する、値オブジェクト。参照と導出値のドメインモデル",
         "無し"
        ],
        [
-        "sd_published",
-        "描画へ渡す読み取り専用の型",
-        "―",
-        "sd_domain"
+        "core/application",
+        "ユースケース。読み書き ・ 描画 ・ 転写は、出ていく側のポートを直接使うトランザクションスクリプト",
+        "domain ・ ports"
        ],
        [
-        "sd_instances",
-        "readwrite。インスタンスの置き場所と取得のポートを決める",
-        "トランザクションスクリプト",
-        "sd_domain"
+        "core/ports",
+        "入ってくる側（ユースケースの trait）と出ていく側（インスタンスの置き場所 ・ 取得 ・ ページの書き出し ・ 複製の読み書き）",
+        "domain"
        ],
        [
-        "sd_render",
-        "描画。ページの書き出しのポートを決める",
-        "トランザクションスクリプト",
-        "sd_published"
+        "adapters/inbound（schema-driven-adapters）",
+        "CLI と MCP の受け口。入ってくる側のポートを呼ぶ",
+        "core"
        ],
        [
-        "sd_transcribe",
-        "転写。複製の読み書きのポートを決める",
-        "トランザクションスクリプト",
-        "無し"
+        "adapters/outbound",
+        "ファイルシステムと jmespath。出ていく側のポートを実装する",
+        "core"
        ],
        [
-        "sd_fs ・ sd_jmespath",
-        "駆動される側のアダプタ。ポートを実装する",
-        "―",
-        "ポートを決めた crate"
-       ],
-       [
-        "sd_cli ・ sd_mcp",
-        "駆動する側のアダプタ。アダプタを組み立てる",
-        "―",
-        "すべて"
+        "cli ・ mcp（schema-driven-cli ・ schema-driven-mcp）",
+        "実行ファイル。アダプタを組み立てる",
+        "core ・ adapters"
        ]
       ]
      },
      {
       "kind": "para",
-      "text": "<b>向きは Rust と Cargo そのものの仕組みで止める。</b>crate の依存は Cargo が止める。sd_render は sd_published だけに依存するので、check の型を使えない。"
+      "text": "<b>向きは Rust と Cargo そのものの仕組みで止める。</b>adapters から core への一方向は、crate の依存で Cargo が止める。core ではファイルを直接読まないことを、clippy の disallowed-methods で std::fs を禁じて止める。"
      },
      {
       "kind": "para",
-      "text": "<b>ドメインとアプリケーションの crate では、ファイルを直接読まない。</b>clippy の disallowed-methods で std::fs を禁じる。"
+      "text": "<b>crate の名前にだけ製品名を付ける。</b>schema-driven の crate は、ほかの Skill の workspace へ転写されるので、写した先の crate と名前がぶつからないようにする。フォルダの名前は役割だけにする。"
      }
     ]
    },
@@ -119,26 +106,46 @@
     },
     {
      "kind": "html",
-     "text": "<pre><code>.claude/skills/schema-driven/tool/\n  domain/        sd_domain      ドメインモデル（入出力なし）\n  published/     sd_published   描画へ渡す型\n  instances/     sd_instances   readwrite とそのポート\n  render/        sd_render      描画とそのポート\n  transcribe/    sd_transcribe  転写とそのポート\n  fs/            sd_fs          ファイルシステムのアダプタ\n  jmespath/      sd_jmespath    取得のアダプタ\n  cli/  mcp/     駆動する側のアダプタ</code></pre>"
+     "text": "<pre><code>.claude/skills/schema-driven/tool/\n  core/              schema-driven-core\n    src/domain/        集約 ・ ドメインサービス ・ 値オブジェクト（入出力なし）\n    src/application/   ユースケース\n    src/ports/         入ってくる側と出ていく側の trait\n  adapters/          schema-driven-adapters\n    src/inbound/       CLI と MCP の受け口\n    src/outbound/      ファイルシステム ・ jmespath\n  cli/  mcp/         実行ファイルと組み立て</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "サブドメイン",
+      "実装の型",
+      "置き場所"
+     ],
+     "rows": [
+      [
+       "参照と導出値",
+       "ドメインモデル",
+       "core/domain"
+      ],
+      [
+       "インスタンスの読み書き ・ 描画 ・ 転写",
+       "トランザクションスクリプト",
+       "core/application"
+      ]
+     ]
     },
     {
      "kind": "grid",
      "cols": [
       "テストの形",
-      "どの crate"
+      "どこ"
      ],
      "rows": [
       [
        "単体テスト（値を渡して結果を見る）",
-       "sd_domain"
+       "core/domain"
       ],
       [
-       "ポートに手元の偽物を差して、ユースケースを通す",
-       "sd_instances ・ sd_render ・ sd_transcribe"
+       "出ていく側のポートに手元の偽物を差して、ユースケースを通す",
+       "core/application"
       ],
       [
        "ポートの契約の試験（どの実装にも同じ試験を当てる）",
-       "sd_fs ・ sd_jmespath"
+       "adapters/outbound"
       ]
      ]
     }
@@ -147,24 +154,24 @@
     {
      "kind": "figure",
      "name": "layers",
-     "caption": "外側はポートとアダプタ。<b>中核の sd_domain はどこにも依存せず、アダプタがアプリケーションのポートを実装する。</b>"
+     "caption": "ヘキサゴナル。<b>core は何にも依存せず、adapters が core のポートを呼び、実装する。</b>業務の分け方は core の中の名前に出るだけである。"
     }
    ],
    "passed": [
     {
-     "name": "外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える",
-     "body": "ドメイン ・ アプリケーション ・ アダプタを crate に分け、向きを Cargo で止める",
-     "cost": "crate が9つになる。雛形の4層の規則（ACDR 0071）と構成の検査に合わない"
+     "name": "ヘキサゴナルで組み、業務の分け方は core の中の名前に出す",
+     "body": "core（domain ・ application ・ ports）と adapters に分け、向きを Cargo で止める",
+     "cost": "雛形の4層の規則（ACDR 0071）と構成の検査に合わない"
+    },
+    {
+     "name": "業務の分け方ごとに crate を分ける",
+     "body": "サブドメインや文脈ごとに crate にし、向きを Cargo で止める",
+     "cost": "問題の側の分け方を、コンパイルの単位に対応させてしまう"
     },
     {
      "name": "skills-creator の雛形の4層（レイヤード）に合わせる",
      "body": "business_logic の中をモジュールに分け、data_access を直接呼ぶ",
      "cost": "中核のドメインモデルをレイヤードに載せる。ポートとアダプタの考え方が崩れる"
-    },
-    {
-     "name": "業務領域ごとに技術方式を分ける",
-     "body": "BC-1 だけポートとアダプタ、描画と転写はレイヤード",
-     "cost": "1つの道具の中に2つの組み立て方が並び、駆動する側のアダプタの組み立てが2通りになる"
     }
    ],
    "tables": [
@@ -177,11 +184,19 @@
      ],
      "rows": [
       [
-       "外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える",
+       "ヘキサゴナルで組み、業務の分け方は core の中の名前に出す",
        [
         "<b>離れる</b>",
-        "<b>Cargo とコンパイラで止める</b>",
+        "<b>Cargo と clippy で止める</b>",
         "合わない（ACDR で決める）"
+       ]
+      ],
+      [
+       "業務の分け方ごとに crate を分ける",
+       [
+        "離れる",
+        "Cargo で止める",
+        "合わない"
        ]
       ],
       [
@@ -191,26 +206,18 @@
         "規則の持ち主がいない",
         "合う"
        ]
-      ],
-      [
-       "業務領域ごとに技術方式を分ける",
-       [
-        "離れる",
-        "Cargo で止める",
-        "合わない"
-       ]
       ]
      ]
     }
    ],
    "dropped": [
     {
-     "body": "skills-creator の雛形の4層（レイヤード）に合わせる",
-     "reason": "雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない。ドメインモデルをレイヤードに載せると、業務ロジックが入出力の層に依存する"
+     "body": "業務の分け方ごとに crate を分ける",
+     "reason": "サブドメインは問題の側の分け方で、crate はコンパイルの単位である。対応させる理由が無い。向きを機械で止めたいという手段の都合で、構造を変えることになる"
     },
     {
-     "body": "業務領域ごとに技術方式を分ける",
-     "reason": "描画と転写もアプリケーションのポートを通してファイルを扱えば、入出力は分かれる。レイヤードを別に置くと、組み立てが2通りになるだけで得るものが無い"
+     "body": "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "reason": "雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない"
     }
    ],
    "path": [
@@ -236,12 +243,40 @@
        "text": "雛形がレイヤードなのは、道具を手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）"
       }
      ]
+    },
+    {
+     "kind": "card",
+     "letter": "A",
+     "heading": "前の答え：業務の分け方ごとに crate を9つに分ける",
+     "events": [
+      {
+       "tag": "returned",
+       "text": "サブドメインをクレートにするのは気持ち悪い。。そんなことやらないでしょ。。どういう理解なんだ？"
+      },
+      {
+       "tag": "returned",
+       "text": "そのサブドメインが先行するのは何でなの？私は普通にヘキサゴナルになると思ってたけどな？"
+      },
+      {
+       "tag": "returned",
+       "text": "その前にsdつけるのやめてくれない？別にそれsdじゃないでしょ？"
+      },
+      {
+       "tag": "obsolete",
+       "text": "業務の分け方ごとの crate。sd_ の名前（slide-deck の接頭辞と同じだった）"
+      },
+      {
+       "tag": "finding",
+       "text": "宣言の「サブドメイン → 実装の型」の並びを、そのままコードの置き場所にしていた。ヘキサゴナルでは、実装の型の違いは domain に置くか application に置くかで自然に分かれる"
+      }
+     ]
     }
    ],
    "findings": [
-    "実装の型が決まれば、技術方式も決まる ── ドメインモデルにはポートとアダプタ、トランザクションスクリプトにはレイヤードが対応する",
-    "トランザクションスクリプトの3つも、アプリケーションのポートを通せば入出力から離れる ── 別にレイヤードを組まなくてよい",
-    "no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる ── どちらも Rust の側が持つ道具である"
+    "実装の型が決まれば、技術方式も決まる ── ドメインモデルにはポートとアダプタが対応する",
+    "業務の分け方は、ヘキサゴナルの各部分の中の名前に出るだけである ── サブドメインを先に立てると、問題の側の分け方がコンパイルの単位になる",
+    "no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる ── どちらも Rust の側が持つ道具である",
+    "skills-creator も、アーキテクチャとしてはヘキサゴナルの見込みがある ── 雛形がレイヤードなのは、道具を手続き的な変換と見た判断による"
    ],
    "grounds": [
     {
@@ -273,13 +308,19 @@
      "basis": "no-more-spaghetti を廃止し、.coding-rules には持ち主がいない",
      "tag": "rule",
      "source": "利用者の言明（2026-10-05）"
+    },
+    {
+     "supports": "sd_ を使わないこと",
+     "basis": "slide-deck の crate が sd_service ・ sd_cli などの名前を使っている",
+     "tag": "measured",
+     "source": "slide-deck の tool/*/Cargo.toml（2026-10-05 に読んだ）"
     }
    ],
    "requirements": [
-    "雛形の4層を手続き的な変換の Skill に当て、中核がドメインモデルの Skill はポートとアダプタで組む、という決定を ACDR で起こす。skills-creator に、ポートとアダプタの組を足すかもそこで決める",
+    "雛形の4層の当て方を ACDR で決め直す。中核がドメインモデルの Skill はヘキサゴナルで組み、skills-creator にヘキサゴナルの組を足すかもそこで決める",
+    "skills-creator 自身を宣言し、業務ロジックの性質から実装の型を導いて、ヘキサゴナルかを確かめる",
     "skills-creator の構成の検査（check --layout）が、schema-driven の構成をどう扱うかを試す",
-    "clippy の disallowed-methods で、sd_domain ・ sd_instances ・ sd_render ・ sd_transcribe の std::fs を禁じられるかを試す",
-    "宣言の BC-1 の公開された言葉を、描画が使う語（インスタンスの値と x-view）に絞る"
+    "clippy の disallowed-methods で、core の std::fs を禁じられるかを試す"
    ],
    "out_of_scope": [
     {
@@ -329,7 +370,7 @@
         "取得",
         "jmespath",
         "0.5.0",
-        "sd_jmespath に置き、取得のポートを実装する。どの実装にも同じ契約の試験を当てる"
+        "adapters/outbound に置き、取得のポートを実装する。どの実装にも同じ契約の試験を当てる"
        ],
        [
         "更新",
@@ -374,11 +415,11 @@
    "example": [
     {
      "kind": "para",
-     "text": "<b>見本：sd_instances の Cargo.toml</b>"
+     "text": "<b>見本：core の Cargo.toml</b>"
     },
     {
      "kind": "html",
-     "text": "<pre><code>[dependencies]\nsd_domain  = { path = \"../domain\" }\nserde_json = { version = \"1.0.151\", features = [\"preserve_order\"] }\njsonschema = { version = \"0.58.5\", default-features = false }\njson-patch = \"4.2.0\"</code></pre>"
+     "text": "<pre><code>[package]\nname = \"schema-driven-core\"\n\n[dependencies]\nserde_json = { version = \"1.0.151\", features = [\"preserve_order\"] }\njsonschema = { version = \"0.58.5\", default-features = false }\njson-patch = \"4.2.0\"\nsha2       = \"0.11.0\"</code></pre>"
     },
     {
      "kind": "grid",
@@ -405,7 +446,7 @@
     {
      "kind": "figure",
      "name": "crates",
-     "caption": "crate ごとに使う外の crate。<b>ネットワークに出る機能は外し、JMESPath の crate はアダプタの crate に閉じ込める。</b>"
+     "caption": "crate ごとに使う外の crate。<b>ネットワークに出る機能は外し、JMESPath の crate は出ていく側のアダプタに閉じ込める。</b>"
     }
    ],
    "passed": [

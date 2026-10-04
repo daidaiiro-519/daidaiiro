@@ -1,123 +1,86 @@
 {
  "direction": "TB",
- "layout": "grid",
  "nodes": [
   {
-   "id": "cli",
-   "label": "sd_cli ・ sd_mcp（駆動する側のアダプタ。組み立てもここ）"
+   "id": "run",
+   "label": "cli ・ mcp（実行ファイル。アダプタを組み立てる）"
   },
   {
-   "id": "fs",
-   "label": "sd_fs（ファイルシステムのアダプタ。3つのアプリケーションのポートを実装する）"
+   "id": "in",
+   "label": "adapters/inbound（CLI と MCP の受け口）"
   },
   {
-   "id": "jm",
-   "label": "sd_jmespath（取得のアダプタ）"
+   "id": "out",
+   "label": "adapters/outbound（ファイルシステム ・ jmespath）"
   },
   {
-   "id": "ins",
-   "label": "sd_instances（readwrite。トランザクションスクリプト。ポートを決める）"
+   "id": "pin",
+   "label": "ports（入ってくる側：ユースケースの trait）"
   },
   {
-   "id": "rd",
-   "label": "sd_render（描画。トランザクションスクリプト。ポートを決める）"
+   "id": "app",
+   "label": "application（ユースケース。読み書き ・ 描画 ・ 転写はトランザクションスクリプト）"
   },
   {
-   "id": "tr",
-   "label": "sd_transcribe（転写。トランザクションスクリプト。ポートを決める）"
-  },
-  {
-   "id": "pub",
-   "label": "sd_published（描画へ渡す型）"
+   "id": "pout",
+   "label": "ports（出ていく側：置き場所 ・ 取得 ・ 書き出し）"
   },
   {
    "id": "dom",
-   "label": "sd_domain（check。参照と導出値のドメインモデル）",
+   "label": "domain（参照と導出値のドメインモデル。集約 ・ ドメインサービス ・ 値オブジェクト）",
    "role": "focus"
   }
  ],
  "edges": [
   {
-   "from": "cli",
-   "to": "ins"
+   "from": "run",
+   "to": "in"
   },
   {
-   "from": "cli",
-   "to": "rd"
+   "from": "run",
+   "to": "out"
   },
   {
-   "from": "cli",
-   "to": "tr"
+   "from": "in",
+   "to": "pin",
+   "label": "呼ぶ"
   },
   {
-   "from": "fs",
-   "to": "ins",
+   "from": "app",
+   "to": "pin",
    "label": "実装する"
   },
   {
-   "from": "jm",
-   "to": "ins",
+   "from": "app",
+   "to": "dom"
+  },
+  {
+   "from": "app",
+   "to": "pout",
+   "label": "使う"
+  },
+  {
+   "from": "out",
+   "to": "pout",
    "label": "実装する"
-  },
-  {
-   "from": "ins",
-   "to": "dom"
-  },
-  {
-   "from": "rd",
-   "to": "pub"
-  },
-  {
-   "from": "pub",
-   "to": "dom"
   }
  ],
- "grid": {
-  "at": {
-   "cli": [
-    "c2",
-    "r1"
-   ],
-   "fs": [
-    "c1",
-    "r2"
-   ],
-   "jm": [
-    "c3",
-    "r2"
-   ],
-   "ins": [
-    "c2",
-    "r3"
-   ],
-   "rd": [
-    "c1",
-    "r3"
-   ],
-   "tr": [
-    "c3",
-    "r3"
-   ],
-   "pub": [
-    "c1",
-    "r4"
-   ],
-   "dom": [
-    "c2",
-    "r5"
+ "groups": [
+  {
+   "label": "core（schema-driven-core）",
+   "members": [
+    "pin",
+    "app",
+    "pout",
+    "dom"
    ]
   },
-  "cols": [
-   "c1",
-   "c2",
-   "c3"
-  ],
-  "rows": [
-   "r1",
-   "r2",
-   "r3",
-   "r4",
-   "r5"
-  ]
- }
+  {
+   "label": "adapters（schema-driven-adapters）",
+   "members": [
+    "in",
+    "out"
+   ]
+  }
+ ]
 }
