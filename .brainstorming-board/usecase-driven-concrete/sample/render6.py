@@ -185,17 +185,23 @@ def p_agg(d):
   h=d['header']; st=d['structure']; k=d['id']
   ents={e['id']:e for e in st['entities']}
   b=head(d,f' ・ {ref(h["context"])}')+tiles([('守る一貫性',gen(g.agg_consistency(d)))])
-  rows=[]
+  # 構造の表。エンティティの中の状態は、同じ表の行として親の行の下に並べ、親の行のボタンで開閉する（列をそろえる）
+  cols=['状態','型','個数']
+  def tr(cells,cls='',attr=''):
+    return f'<tr class="{cls}"{attr}>'+''.join(f'<td data-label="{E(cols[i])}">{c}</td>' for i,c in enumerate(cells))+'</tr>'
+  body=''
   for s in st['state']:
-    t=s['type']; ty=ref(t) if t in D else (E(g.word(ents[t]['name'])) if t in ents else E(t))
-    name=f'<b>{E(g.word(s["name"]))}</b>'
+    t=s['type']; mx=tchip(f'{k}.{s["id"]}.MAX') if s['multiplicity']['max'] not in (None,1) else ''
     if t in ents:
-      inner=ents[t]['state']
-      sub='<table class="entin">'+''.join(f'<tr><td>{E(g.word(x["name"]))}</td><td>{ref(x["type"]) if x["type"] in D else E(x["type"])}</td><td>{pill("1つ")}</td></tr>' for x in inner)+'</table>'
-      name=f'<details class="ent"><summary>{name}<span class="txt">　中の状態 {len(inner)}つ</span></summary>{sub}</details>'
-      ty=pill('エンティティ')
-    rows.append([name,ty,pill(g.mul_text(s['multiplicity'])),tchip(f'{k}.{s["id"]}.MAX') if s['multiplicity']['max'] not in (None,1) else ''])
-  b+=block('構造',tbl(['状態','型','個数','テスト条件'],rows))
+      inner=ents[t]['state']; gid=f'{k}-{s["id"]}'
+      btn=f'<button type="button" class="tg" aria-expanded="false" aria-controls="{gid}"><b>{E(g.word(s["name"]))}</b><span class="txt">中の状態 {len(inner)}つ</span></button>'
+      body+=tr([btn+' '+mx,pill('エンティティ'),pill(g.mul_text(s['multiplicity']))],'ent-row')
+      for x in inner:
+        body+=tr([E(g.word(x['name'])),ref(x['type']) if x['type'] in D else E(x['type']),pill('1つ')],'ent-sub',f' data-grp="{gid}" hidden')
+    else:
+      ty=ref(t) if t in D else E(t)
+      body+=tr([f'<b>{E(g.word(s["name"]))}</b> '+mx,ty,pill(g.mul_text(s['multiplicity']))])
+  b+=block('構造','<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div>')
   if d['invariants']:
     ir=[]
     for i in d['invariants']:
@@ -467,6 +473,7 @@ page=f'''<title>モバイルオーダーの宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
+document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{{const o=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',o);document.querySelectorAll('tr[data-grp="'+b.getAttribute('aria-controls')+'"]').forEach(r=>r.hidden=!o)}}));
 if(innerWidth<=760){{const n=document.querySelector('.navd');if(n)n.open=false;document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{{n.open=false}}))}}
 const go=n=>{{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));const st=document.querySelector('.stepper');if(st&&window.scrollY>st.offsetTop)st.scrollIntoView();}};
 document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{{go(b.dataset.go);document.querySelector('.stepper').scrollIntoView({{behavior:'smooth'}})}}));go('0');
