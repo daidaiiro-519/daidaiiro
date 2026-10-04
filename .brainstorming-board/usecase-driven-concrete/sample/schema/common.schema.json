@@ -94,6 +94,23 @@
    "x-prompt": {
     "read": "数 ・ 語 ・ 文字列 ・ 実行前の値 ・ 値オブジェクトの操作の結果のどれか",
     "write": "語は用語集の ID、引数は ARG の ID で書く。式を書かない ── 計算は値オブジェクトの操作を1回呼ぶ形（call と args）にする"
+   },
+   "x-view": {
+    "by_type": {
+     "number": "{v}",
+     "list": "{v|quote}",
+     "string": "{v|name}"
+    },
+    "by_key": {
+     "before": "実行前の{before|name}{agg|map:agg}",
+     "call": "{args.0|text:value}と{args.1|text:value}を「{call|bare}」で求めた値"
+    },
+    "maps": {
+     "agg": {
+      "count": "の件数",
+      "sum": "の合計"
+     }
+    }
    }
   },
   "cond_one": {
@@ -138,6 +155,40 @@
    "x-prompt": {
     "read": "対象 ・ 比べ方 ・ 値の3つで読む",
     "write": "下の condition と同じ書き方をする"
+   },
+   "x-view": {
+    "text": "{target|name}{agg|map:agg}{measure|map:measure}{op|ops}",
+    "ops": {
+     "eq": {
+      "then_if": {
+       "number": true,
+       "meaning": [
+        "状態の値"
+       ]
+      },
+      "then": "は{value|text:value}{measure|map:unit}",
+      "else": "は{value|text:value}と同じ"
+     },
+     "ne": "は{value|text:value}ではない",
+     "ge": "は{value|text:value}{measure|map:unit}以上",
+     "le": "は{value|text:value}{measure|map:unit}以下",
+     "gt": "は{value|text:value}より大きい",
+     "not_empty": "は空でない",
+     "empty": "は空",
+     "ends_with": "は{value|text:value}のどれかで終わる"
+    },
+    "maps": {
+     "agg": {
+      "count": "の件数",
+      "sum": "の合計"
+     },
+     "measure": {
+      "length": "の文字数"
+     },
+     "unit": {
+      "length": "字"
+     }
+    }
    }
   },
   "condition": {
@@ -185,6 +236,40 @@
    "x-prompt": {
     "read": "対象 ・ 比べ方 ・ 値と、在れば前提（if）で読む",
     "write": "対象は、ユースケースとその他の要求では用語集の語の並び、設計の側では同じ宣言の中の ID で書く。比べ方は eq（同じ）・ ne（違う）・ ge（以上）・ le（以下）・ gt（より大きい）・ not_empty ・ empty ・ ends_with（どれかで終わる。値は文字列の並び）。件数と合計は agg（count ・ sum）に書く。1つの値の文字数は measure: length に書き、コードポイントで数える ── agg に入れない（agg は複数の値を1つにまとめる計算である）。「〜してはならない」は否定の文にせず、成り立つ状態を条件で書く"
+   },
+   "x-view": {
+    "text": "{if|text:cond_one|clause|suffix:なら、}{target|name}{agg|map:agg}{measure|map:measure}{op|ops}",
+    "ops": {
+     "eq": {
+      "then_if": {
+       "number": true,
+       "meaning": [
+        "状態の値"
+       ]
+      },
+      "then": "は{value|text:value}{measure|map:unit}",
+      "else": "は{value|text:value}と同じ"
+     },
+     "ne": "は{value|text:value}ではない",
+     "ge": "は{value|text:value}{measure|map:unit}以上",
+     "le": "は{value|text:value}{measure|map:unit}以下",
+     "gt": "は{value|text:value}より大きい",
+     "not_empty": "は空でない",
+     "empty": "は空",
+     "ends_with": "は{value|text:value}のどれかで終わる"
+    },
+    "maps": {
+     "agg": {
+      "count": "の件数",
+      "sum": "の合計"
+     },
+     "measure": {
+      "length": "の文字数"
+     },
+     "unit": {
+      "length": "字"
+     }
+    }
    }
   },
   "threshold": {
@@ -230,5 +315,21 @@
     "write": "指す先が在る ID だけを書く"
    }
   }
+ },
+ "x-view-name": [
+  "word",
+  "name",
+  "header/name"
+ ],
+ "x-view-arg": "指定された",
+ "x-view-words": {
+  "RESULT": "結果"
+ },
+ "x-view-glossary": {
+  "kind": "glossary",
+  "in": "terms",
+  "label": "word",
+  "meanings": "meanings",
+  "meaning_key": "kind"
  }
 }

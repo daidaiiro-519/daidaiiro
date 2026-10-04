@@ -76,6 +76,23 @@ common = {"$schema": S, "$id": "common.schema.json", "title": "宣言の共通�
     "ids": F("ID の並び", "指す先を順に読む", "指す先が在る ID だけを書く", arr(pat(REF))),
 }}
 
+
+# ── 文の型（ボード schema-driven-base の論点3を試す）。条件と値を、注釈 x-view の文の型だけで文にする
+common["x-view-name"] = ["word", "name", "header/name"]
+common["x-view-arg"] = "指定された"  # コマンドの引数を指す名前の前に付ける
+common["x-view-words"] = {"RESULT": "結果"}  # 欄の値に書く決まった語
+common["x-view-glossary"] = {"kind": "glossary", "in": "terms", "label": "word", "meanings": "meanings", "meaning_key": "kind"}  # 語を引く先
+OPS = {"eq": {"then_if": {"number": True, "meaning": ["状態の値"]}, "then": "は{value|text:value}{measure|map:unit}", "else": "は{value|text:value}と同じ"},
+       "ne": "は{value|text:value}ではない", "ge": "は{value|text:value}{measure|map:unit}以上", "le": "は{value|text:value}{measure|map:unit}以下",
+       "gt": "は{value|text:value}より大きい", "not_empty": "は空でない", "empty": "は空", "ends_with": "は{value|text:value}のどれかで終わる"}
+VIEW_ONE = {"text": "{target|name}{agg|map:agg}{measure|map:measure}{op|ops}", "ops": OPS,
+            "maps": {"agg": {"count": "の件数", "sum": "の合計"}, "measure": {"length": "の文字数"}, "unit": {"length": "字"}}}
+common["$defs"]["cond_one"]["x-view"] = VIEW_ONE
+common["$defs"]["condition"]["x-view"] = dict(VIEW_ONE, text="{if|text:cond_one|clause|suffix:なら、}" + VIEW_ONE["text"])
+common["$defs"]["value"]["x-view"] = {"by_type": {"number": "{v}", "list": "{v|quote}", "string": "{v|name}"},
+    "by_key": {"before": "実行前の{before|name}{agg|map:agg}", "call": "{args.0|text:value}と{args.1|text:value}を「{call|bare}」で求めた値"},
+    "maps": {"agg": {"count": "の件数", "sum": "の合計"}}}
+
 # ── ドメイン（作りたいプロダクト）
 domain = kind_schema("domain", "ドメイン", "作りたいプロダクト。ビジョン記述 ・ 利害関係者と利益 ・ スコープの外 ・ 設計スコープを持つ。業務領域の一覧と品質の要求は持たない（設計の側とその他の要求が持つ）", {
     "header": F("名前", "プロダクトの名前", "利用者に通じるプロダクトの名前を書く", obj({"name": txt()}, ["name"])),
