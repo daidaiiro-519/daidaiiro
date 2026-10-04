@@ -29,5 +29,5 @@ if os.path.exists(os.path.join(R,'approved-record.json')): one('approved.schema.
 for f in glob.glob(os.path.join(R,'migration-trial','*','spec','migration.json')): one('migration.schema.json',json.load(open(f,encoding='utf-8')),os.path.relpath(f,R))
 for f in glob.glob(os.path.join(R,'realsim','*.jsonl')):
   for i,l in enumerate(open(f,encoding='utf-8'),1):
-    if l.strip(): one('record.schema.json',json.loads(l),f'{os.path.relpath(f,R)}:{i}')
+    if l.strip(): one('trace.schema.json',json.loads(l),f'{os.path.relpath(f,R)}:{i}')
 print('検出',bad); sys.exit(1 if bad else 0)

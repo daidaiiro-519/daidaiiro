@@ -4,9 +4,9 @@ HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data6 import D,RETIRED
 import gen6 as g
 from desc6 import DESC
-import drift6 as drift, spec6 as spec_drift
-SPEC=spec_drift.checks(json.load(open(spec_drift.APPROVED,encoding='utf-8')))
-CONDS=drift.conditions()
+import concrete7
+SPEC=concrete7.checks(json.load(open(os.path.join(HERE,'approved-record.json'),encoding='utf-8')))
+CONDS=concrete7.conditions()
 OUT='/home/daidaiiro/workspace/daidaiiro/.brainstorming-board/usecase-driven-concrete/sample'
 DSB='/home/daidaiiro/workspace/daidaiiro/.claude/skills/design-svg/tool/target/release/design-svg'
 for sub in ('decls','figures'):
@@ -427,7 +427,7 @@ def p_drift():
   srow=[(ck(x),[pill(x['status'],SST[x['status']]),E(CAT[x['category']]),E(x['check']),at(x['from']),'、'.join(at(t) for t in x['to'].split('・')) if x['to'] else '',E(x['text'])]) for x in sorted(SPEC,key=lambda x:(x['status']=='合格',list(CAT).index(x['category'])))]
   b+=block('検査ごとの結果',ftbl(['状態','分け方','検査','参照元','参照先','内容'],srow,[(v,list(dict.fromkeys(ck(x) for x in SPEC if CAT[x['category']]==v))) for v in CAT.values()],'検査','件'))
   b+='<h2 class="sec">宣言とテスト</h2>'
-  KN={'use_case':'ユースケース','aggregate':'集約','value_object':'値オブジェクト','domain_service':'ドメインサービス','quality':'その他の要求'}
+  KN={'use_case':'ユースケース','aggregate':'集約','value_object':'値オブジェクト','domain_service':'ドメインサービス','other_requirements':'その他の要求'}
   b+=block('テスト条件',ftbl(['ID','宣言','対象','確かめること','求めるレベル','ハッシュ値'],[(KN.get(c['kind'],c['kind']),[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>']) for c in CONDS],None,'宣言の種類','件'))
   b+=block('突き合わせ',tbl(['何を','どこで見られるか'],[
     ['テストは走ったときに、上の ID ・ ハッシュ値 ・ レベルを記録ファイルへ1行ずつ追記する（記録の契約）。道具は宣言と記録だけを照らし、欠け ・ 余り ・ 古い ・ レベル違いを出す','<a class="ref" href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">テスト条件 ID の突き合わせ</a>'],
@@ -449,7 +449,7 @@ def p_sch(k):
     b+=f'<section class="blk"><h2>{E(d["description"])}</h2><p class="txt">{E(d["x-prompt"]["write"])}</p>{tbl(["項目","キー","書くこと"],sch_rows(d.get("properties",{})))}</section>'
   return b
 R={"domain":p_domain,"glossary":p_glossary,"other_requirements":p_req,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
-SCH_ORDER=[k for k in ORDER+['value_object']]+['common','record','approved','migration']
+SCH_ORDER=[k for k in ORDER+['value_object']]+['common','trace','approved','migration']
 nav_sch='<div class="ng"><span class="nk">書き方（スキーマ）</span>'+''.join(f'<a href="#SCH-{k}" data-id="SCH-{k}">{E(SCH[k]["title"])}</a>' for k in SCH_ORDER)+'</div>'
 nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)+nav_sch
 pages=''.join(f'<article class="page" id="{i}">{R[v["kind"]](v)}</article>' for i,v in D.items())+f'<article class="page" id="DRIFT">{p_drift()}</article>'+''.join(f'<article class="page" id="SCH-{k}">{p_sch(k)}</article>' for k in SCH_ORDER)

@@ -40,11 +40,25 @@
    "additionalProperties": false,
    "properties": {
     "name": {
-     "$ref": "common.schema.json#/$defs/term",
      "description": "名前。用語集の語の ID",
      "x-prompt": {
       "read": "用語集の語として読む",
       "write": "用語集に語を足してから、その ID を書く。語を新しく作らない"
+     },
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/term"
+      }
+     ],
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "集約"
+      ]
      }
     },
     "context": {
@@ -54,6 +68,9 @@
      "x-prompt": {
       "read": "この宣言が属する区切られた文脈",
       "write": "BC の ID を書く"
+     },
+     "x-ref": {
+      "to": "context"
      }
     }
    },
@@ -83,10 +100,21 @@
        },
        "name": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "x-ref": {
+         "to": "glossary",
+         "in": "terms",
+         "meanings": "meanings",
+         "meaning_key": "kind",
+         "label": "word"
+        }
        },
        "type": {
-        "type": "string"
+        "type": "string",
+        "x-ref": {
+         "to": "value_object",
+         "only": "^VO-"
+        }
        },
        "multiplicity": {
         "type": "object",
@@ -113,7 +141,29 @@
        "name",
        "type",
        "multiplicity"
-      ]
+      ],
+      "x-test-spec": {
+       "id": "decl",
+       "suffix": "MAX",
+       "when": {
+        "multiplicity/max": {
+         "not": [
+          null,
+          1
+         ]
+        }
+       },
+       "checks": "上限を超える操作が拒否される",
+       "level": {
+        "derive": "business_logic",
+        "map": {
+         "イベント履歴式ドメインモデル": "component",
+         "ドメインモデル": "component",
+         "アクティブレコード": "component-integration",
+         "トランザクションスクリプト": "system"
+        }
+       }
+      }
      }
     },
     "entities": {
@@ -128,7 +178,17 @@
        },
        "name": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "x-ref": {
+         "to": "glossary",
+         "in": "terms",
+         "meanings": "meanings",
+         "meaning_key": "kind",
+         "label": "word",
+         "meaning": [
+          "エンティティ"
+         ]
+        }
        },
        "state": {
         "type": "array",
@@ -192,13 +252,31 @@
       "items": {
        "type": "string",
        "pattern": "^CMD-[0-9]+$"
+      },
+      "x-ref": {
+       "to": "self",
+       "in": "commands"
       }
      }
     },
     "required": [
      "id",
-     "condition"
-    ]
+     "condition",
+     "via"
+    ],
+    "x-test-spec": {
+     "id": "decl",
+     "checks": "違反する操作が拒否される",
+     "level": {
+      "derive": "business_logic",
+      "map": {
+       "イベント履歴式ドメインモデル": "component",
+       "ドメインモデル": "component",
+       "アクティブレコード": "component-integration",
+       "トランザクションスクリプト": "system"
+      }
+     }
+    }
    },
    "description": "不変条件",
    "x-prompt": {
@@ -239,6 +317,16 @@
      "x-prompt": {
       "read": "用語集のコマンドの語",
       "write": "用語集のコマンドの語の ID を書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "コマンド"
+      ]
      }
     },
     "args": {
@@ -286,10 +374,38 @@
        },
        "reject": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "x-ref": {
+         "to": "glossary",
+         "in": "terms",
+         "meanings": "meanings",
+         "meaning_key": "kind",
+         "label": "word",
+         "meaning": [
+          "拒否の理由"
+         ],
+         "inverse": {
+          "group": "拒否の理由を1つの集約だけが使う",
+          "max_decls": 1
+         }
+        }
        },
        "implements": {
-        "$ref": "common.schema.json#/$defs/ref"
+        "allOf": [
+         {
+          "$ref": "common.schema.json#/$defs/ref"
+         }
+        ],
+        "x-ref": {
+         "to": "other_requirements",
+         "item": true,
+         "in": "business_rules",
+         "inverse": {
+          "group": "ビジネスルールを実装する文脈は1つ",
+          "min": 1,
+          "max": 1
+         }
+        }
        },
        "example": {
         "type": "object",
@@ -308,7 +424,20 @@
        "id",
        "condition",
        "reject"
-      ]
+      ],
+      "x-test-spec": {
+       "id": "parent",
+       "checks": "その拒否の理由で拒否される",
+       "level": {
+        "derive": "business_logic",
+        "map": {
+         "イベント履歴式ドメインモデル": "component",
+         "ドメインモデル": "component",
+         "アクティブレコード": "component-integration",
+         "トランザクションスクリプト": "system"
+        }
+       }
+      }
      },
      "description": "業務ルール",
      "x-prompt": {
@@ -353,7 +482,17 @@
        },
        "name": {
         "type": "string",
-        "pattern": "^TERM-[0-9]+$"
+        "pattern": "^TERM-[0-9]+$",
+        "x-ref": {
+         "to": "glossary",
+         "in": "terms",
+         "meanings": "meanings",
+         "meaning_key": "kind",
+         "label": "word",
+         "meaning": [
+          "業務イベント"
+         ]
+        }
        },
        "fields": {
         "type": "array",
@@ -404,7 +543,24 @@
        "id",
        "before",
        "args"
-      ]
+      ],
+      "x-test-spec": {
+       "id": "parent",
+       "checks": "状態の変更と業務イベントが成り立つ",
+       "level": {
+        "derive": "business_logic",
+        "map": {
+         "イベント履歴式ドメインモデル": "component",
+         "ドメインモデル": "component",
+         "アクティブレコード": "component-integration",
+         "トランザクションスクリプト": "system"
+        }
+       },
+       "with_parent": [
+        "state_changes",
+        "emits"
+       ]
+      }
      },
      "description": "受け付ける例",
      "x-prompt": {

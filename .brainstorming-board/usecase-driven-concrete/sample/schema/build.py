@@ -287,7 +287,7 @@ ALL = {"common": common, "domain": domain, "glossary": glossary, "other_requirem
        "subdomain": subdomain, "context": context, "aggregate": agg, "value_object": vo, "domain_service": ds}
 
 # ── 宣言の外の3つのファイル（記録の契約 ・ 承認した時点の記録 ・ 移行の記録）
-record = {"$schema": S, "$id": "record.schema.json", "x-generates": "記録ファイル（環境変数 CONCRETE_TRACE が指す。1行1件の JSON）",
+record = {"$schema": S, "$id": "trace.schema.json", "x-generates": "記録ファイル（環境変数 CONCRETE_TRACE が指す。1行1件の JSON）",
   "title": "記録の1行", "description": "テストが走ったときに、記録ファイルへ1行ずつ追記する。「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。テストの合否は持たない（合否はテストの実行器が判定し、保存しない）",
   "type": "object", "additionalProperties": False, "required": ["condition", "hash", "level"], "properties": {
     "condition": F("テスト条件の ID", "道具が宣言から取り出したテスト条件のどれか", "道具が出したテスト条件の一覧から、そのテストが確かめる ID をそのまま書く。1つのテストが2つ以上を確かめるなら、1件ずつ行を分ける", pat("^[A-Z]+-[0-9]+(\\.[A-Z]+-?[0-9]*)+$")),
@@ -317,7 +317,97 @@ migration = {"$schema": S, "$id": "migration.schema.json", "x-generates": "spec/
     "gaps_note": F("欠けの注記", "欠けをどう数えるか", "欠けは手で書かない。道具が数えることだけを書く", txt()),
     "scope": F("移す範囲と移し終える条件", "どこまで移したか、何をもって移し終えるか", "範囲の単位 ・ まだ移していない部分 ・ 移し終える条件（その範囲で、宣言どうしのずれが0件、テストの欠けが0件）を書く",
                obj({"unit": txt(), "not_yet": arr(txt()), "done_when": txt()}, ["unit", "done_when"]))}}
-ALL.update({"record": record, "approved": approved, "migration": migration})
+ALL.update({"trace": record, "approved": approved, "migration": migration})
+
+# ── concrete の注釈（ボード schema-driven-base の論点2）。道具は欄の名前を持たず、この注釈だけを読む
+#   x-ref：この欄が指す先。to＝種類（self は同じ宣言）・ item＝「宣言.項目」の形 ・ bare＝宣言の ID を付けない項目の ID ・ in＝指す先の集まりの場所
+#          meaning＝用語集の語の意味の種類 ・ when＝同じ項目の欄がこの値のときだけ ・ inverse＝指される側の数（group ・ min ・ max ・ where ・ max_decls）
+#          unique＝同じ並びの中で重ねない ・ covered_by＝同じ項目の中で、この値を扱う欄
+#   x-test-spec：この項目がテスト条件であること。id＝decl（宣言.項目）か parent（宣言.親.項目）・ checks ・ level ・ with（期待する結果に含める同じ宣言の欄）
+import copy
+LV = {"derive": "business_logic", "map": {"イベント履歴式ドメインモデル": "component", "ドメインモデル": "component", "アクティブレコード": "component-integration", "トランザクションスクリプト": "system"}}
+def at(sc, path):
+    o = sc
+    for k in path.split("/"):
+        o = o[k] if k else o
+        if isinstance(o, dict) and "$ref" in o and o["$ref"].startswith("#/$defs/") and k != path.split("/")[-1]:
+            o = sc["$defs"][o["$ref"].split("/")[-1]]
+    return o
+def put(sc, path, key, val):
+    o = at(sc, path)
+    if "$ref" in o and len(o) <= 3:  # 共通の形を指す欄は、その場に写して注釈を付ける
+        o.setdefault("allOf", [{"$ref": o.pop("$ref")}])
+    o[key] = val
+G = {"to": "glossary", "in": "terms", "meanings": "meanings", "meaning_key": "kind", "label": "word"}
+T = lambda *k: dict(G, meaning=list(k)) if k else dict(G)
+for k in ("aggregate", "value_object"):
+    ALL[k]["properties"]["header"] = copy.deepcopy(ALL[k]["properties"]["header"])
+A = [
+ ("other_requirements", "properties/business_rules/items/properties/protects", "x-ref", {"to": "domain", "item": True}),
+ ("other_requirements", "properties/quality/items/properties/target", "x-ref", {"to": "use_case", "item": True}),
+ ("other_requirements", "properties/quality/items", "x-test-spec", {"id": "decl", "checks": "閾値と割合を満たす", "level": "system"}),
+ ("other_requirements", "properties/data/items", "x-test-spec", {"id": "decl", "checks": "条件を満たさない値を受け付けない", "level": "system"}),
+ ("use_case", "properties/header/properties/scope/properties/system", "x-ref", {"to": "domain", "item": True}),
+ ("use_case", "properties/stakeholders/items/properties/who", "x-ref", {"to": "domain", "item": True}),
+ ("use_case", "properties/preconditions/items/properties/established_by", "x-ref", {"to": "use_case"}),
+ ("use_case", "properties/guarantees/properties/minimal/items/properties/protects", "x-ref", {"to": "self", "in": "stakeholders"}),
+ ("use_case", "properties/guarantees/properties/success/items/properties/satisfies", "x-ref", {"to": "self", "in": "stakeholders"}),
+ ("use_case", "properties/contributes_to", "x-ref", {"to": "domain", "bare": True}),
+ ("use_case", "properties/links/properties/business_rules", "x-ref", {"to": "other_requirements", "item": True}),
+ ("use_case", "properties/links/properties/quality", "x-ref", {"to": "other_requirements", "item": True}),
+ ("use_case", "properties/links/properties/technology", "x-ref", {"to": "other_requirements", "item": True}),
+ ("use_case", "properties/links/properties/data", "x-ref", {"to": "other_requirements", "item": True}),
+ ("use_case", "properties/scenario", "x-test-spec", {"id": "M", "checks": "成功時保証がすべて成り立つ", "level": "system", "with": ["guarantees/success"]}),
+ ("use_case", "$defs/step/properties/data", "x-ref", dict(T("情報の別名", "値オブジェクト", "識別子"), when={"kind": ["相互作用"]})),
+ ("use_case", "$defs/step/properties/verb", "x-ref", dict(T("動作"), when={"kind": ["相互作用"]})),
+ ("use_case", "$defs/step/properties/object", "x-ref", T()),
+ ("use_case", "$defs/step/properties/reply", "x-ref", T()),
+ ("use_case", "$defs/step/properties/checks", "x-ref", {"to": "other_requirements", "item": True, "covered_by": "extensions/fails"}),
+ ("use_case", "$defs/step/properties/calls", "x-ref", {"to": "use_case"}),
+ ("use_case", "$defs/step/properties/keeps", "x-ref", {"to": "self", "in": "guarantees/minimal", "inverse": {"group": "最低保証を守る手順", "min": 1}}),
+ ("use_case", "$defs/step/properties/serves", "x-ref", {"to": "self", "in": "stakeholders"}),
+ ("use_case", "$defs/extension/properties/fails", "x-ref", {"to": "other_requirements", "item": True}),
+ ("use_case", "$defs/extension/properties/reasons", "x-ref", T("拒否の理由", "失敗の種類")),
+ ("use_case", "$defs/extension", "x-test-spec", {"id": "decl", "level": "system", "checks_by": {"field": "ending", "map": {"失敗": "最低保証がすべて成り立ち、成功時保証は成り立たない", "成功": "元の手順が成功した状態で続き、成功時保証が成り立つ", "終了": "別の道筋で成功して終わる", "*": "元の手順に戻り、成功時保証が成り立つ"}}, "with_by": {"field": "ending", "map": {"失敗": ["guarantees/minimal"]}}}),
+ ("subdomain", "properties/use_cases", "x-ref", {"to": "use_case", "inverse": {"group": "ユースケースを束ねるサブドメインは1つ", "min": 1, "max": 1, "where": {"header/level": ["ユーザー目的", "サブ機能"]}}}),
+ ("subdomain", "properties/serves_values", "x-ref", {"to": "domain", "bare": True}),
+ ("context", "properties/header/properties/subdomains", "x-ref", {"to": "subdomain", "inverse": {"group": "サブドメインを担う文脈がある", "min": 1}}),
+ ("context", "properties/context_map/properties/relations/items/properties/fulfills", "x-ref", {"to": "subdomain", "inverse": {"group": "サブドメインを担う文脈がある", "min": 1}}),
+ ("context", "properties/business_rules/items/properties/implements", "x-ref", {"to": "other_requirements", "item": True, "in": "business_rules", "inverse": {"group": "ビジネスルールを実装する文脈は1つ", "min": 1, "max": 1}}),
+ ("context", "properties/uses/items/properties/term", "x-ref", dict(T(), unique=True)),
+ ("aggregate", "properties/header/properties/name", "x-ref", T("集約")),
+ ("aggregate", "properties/header/properties/context", "x-ref", {"to": "context"}),
+ ("aggregate", "properties/structure/properties/state/items/properties/name", "x-ref", T()),
+ ("aggregate", "properties/structure/properties/state/items/properties/type", "x-ref", {"to": "value_object", "only": "^VO-"}),
+ ("aggregate", "properties/structure/properties/entities/items/properties/name", "x-ref", T("エンティティ")),
+ ("aggregate", "properties/invariants/items/properties/via", "x-ref", {"to": "self", "in": "commands"}),
+ ("aggregate", "properties/invariants/items", "x-test-spec", {"id": "decl", "checks": "違反する操作が拒否される", "level": LV}),
+ ("aggregate", "$defs/command/properties/name", "x-ref", T("コマンド")),
+ ("aggregate", "$defs/command/properties/business_rules", "x-test-spec-items", {"id": "parent", "checks": "その拒否の理由で拒否される", "level": LV}),
+ ("aggregate", "$defs/command/properties/accept_examples", "x-test-spec-items", {"id": "parent", "checks": "状態の変更と業務イベントが成り立つ", "level": LV, "with_parent": ["state_changes", "emits"]}),
+ ("value_object", "properties/header/properties/name", "x-ref", T("値オブジェクト")),
+ ("value_object", "properties/header/properties/context", "x-ref", {"to": "context"}),
+ ("value_object", "properties/components/items/properties/invariants", "x-test-spec-items", {"id": "decl", "checks": "作れない値を拒む", "level": "component"}),
+ ("value_object", "properties/operations/items/properties/accept_examples", "x-test-spec-items", {"id": "parent", "checks": "操作の結果が例と同じ", "level": "component"}),
+ ("domain_service", "properties/header/properties/name", "x-ref", T("ドメインサービス")),
+ ("domain_service", "properties/header/properties/context", "x-ref", {"to": "context"}),
+ ("domain_service", "properties/reads", "x-ref", {"to": "aggregate"}),
+ ("domain_service", "properties/operations/items/properties/results", "x-test-spec-items", {"id": "parent", "checks": "計算の結果が宣言どおりである", "level": LV}),
+]
+for k, path, key, val in A:
+    if key == "x-test-spec-items":
+        o = at(ALL[k], path); o["items"]["x-test-spec"] = val
+    else:
+        put(ALL[k], path, key, val)
+# 業務ルールの拒否の理由と実装するビジネスルールは、コマンドの業務ルールの項目の中にある
+br = ALL["aggregate"]["$defs"]["command"]["properties"]["business_rules"]["items"]["properties"]
+br["reject"]["x-ref"] = T("拒否の理由"); br["reject"]["x-ref"]["inverse"] = {"group": "拒否の理由を1つの集約だけが使う", "max_decls": 1}
+br["implements"].setdefault("allOf", [{"$ref": br["implements"].pop("$ref")}]) if "$ref" in br["implements"] else None
+br["implements"]["x-ref"] = {"to": "other_requirements", "item": True, "in": "business_rules", "inverse": {"group": "ビジネスルールを実装する文脈は1つ", "min": 1, "max": 1}}
+ALL["aggregate"]["$defs"]["command"]["properties"]["emits"]["items"]["properties"]["name"]["x-ref"] = T("業務イベント")
+ALL["aggregate"]["properties"]["invariants"]["items"]["required"] = ["id", "condition", "via"]
+ALL["aggregate"]["properties"]["structure"]["properties"]["state"]["items"]["x-test-spec"] = {"id": "decl", "suffix": "MAX", "when": {"multiplicity/max": {"not": [None, 1]}}, "checks": "上限を超える操作が拒否される", "level": LV}
+ALL["subdomain"]["properties"]["classification"]["x-derive"]["declared"] = "category"
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")

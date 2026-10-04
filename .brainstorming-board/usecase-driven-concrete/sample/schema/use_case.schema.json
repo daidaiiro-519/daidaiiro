@@ -59,7 +59,15 @@
      "additionalProperties": false,
      "properties": {
       "system": {
-       "$ref": "common.schema.json#/$defs/ref"
+       "allOf": [
+        {
+         "$ref": "common.schema.json#/$defs/ref"
+        }
+       ],
+       "x-ref": {
+        "to": "domain",
+        "item": true
+       }
       }
      },
      "required": [
@@ -99,7 +107,15 @@
       "pattern": "^SH-[0-9]+$"
      },
      "who": {
-      "$ref": "common.schema.json#/$defs/ref"
+      "allOf": [
+       {
+        "$ref": "common.schema.json#/$defs/ref"
+       }
+      ],
+      "x-ref": {
+       "to": "domain",
+       "item": true
+      }
      },
      "interest": {
       "type": "string",
@@ -140,7 +156,10 @@
        {
         "type": "null"
        }
-      ]
+      ],
+      "x-ref": {
+       "to": "use_case"
+      }
      }
     },
     "required": [
@@ -180,6 +199,10 @@
         "items": {
          "type": "string",
          "pattern": "^SH-[0-9]+$"
+        },
+        "x-ref": {
+         "to": "self",
+         "in": "stakeholders"
         }
        }
       },
@@ -213,6 +236,10 @@
         "items": {
          "type": "string",
          "pattern": "^SH-[0-9]+$"
+        },
+        "x-ref": {
+         "to": "self",
+         "in": "stakeholders"
         }
        }
       },
@@ -262,6 +289,14 @@
    "x-prompt": {
     "read": "手順を上から読み、各手順の拡張をその下で読む",
     "write": "手順は4種類（相互作用 ・ 妥当性確認 ・ 内部の状態変化 ・ サブユースケースの呼び出し）で、文は道具が組む。相互作用は主語 ・ 相手 ・ 渡す情報（用語集の情報の別名）・ 動作の語で書く。妥当性確認は確かめるビジネスルールを指す。内部の状態変化は動作と対象の語で書く。画面の操作や集約の名前を書かない。手順ごとに、どの利害関係者の利益に役立つかを serves に書く"
+   },
+   "x-test-spec": {
+    "id": "M",
+    "checks": "成功時保証がすべて成り立つ",
+    "level": "system",
+    "with": [
+     "guarantees/success"
+    ]
    }
   },
   "contributes_to": {
@@ -274,6 +309,10 @@
    "x-prompt": {
     "read": "どの達成の基準に効くか",
     "write": "ドメインの達成の基準の ID を書く"
+   },
+   "x-ref": {
+    "to": "domain",
+    "bare": true
    }
   },
   "open_issues": {
@@ -293,16 +332,48 @@
    "additionalProperties": false,
    "properties": {
     "business_rules": {
-     "$ref": "common.schema.json#/$defs/ids"
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true
+     }
     },
     "quality": {
-     "$ref": "common.schema.json#/$defs/ids"
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true
+     }
     },
     "technology": {
-     "$ref": "common.schema.json#/$defs/ids"
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true
+     }
     },
     "data": {
-     "$ref": "common.schema.json#/$defs/ids"
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true
+     }
     }
    },
    "description": "関連情報",
@@ -367,6 +438,23 @@
      "x-prompt": {
       "read": "相手に渡す情報の別名",
       "write": "項目を並べず、用語集の情報の別名の語で書く。項目の一覧はデータ要求に書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "情報の別名",
+       "値オブジェクト",
+       "識別子"
+      ],
+      "when": {
+       "kind": [
+        "相互作用"
+       ]
+      }
      }
     },
     "verb": {
@@ -376,6 +464,21 @@
      "x-prompt": {
       "read": "何をするか",
       "write": "用語集の動作の語で書く。画面の操作（押す ・ 選ぶ）を書かない"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "動作"
+      ],
+      "when": {
+       "kind": [
+        "相互作用"
+       ]
+      }
      }
     },
     "object": {
@@ -385,6 +488,13 @@
      "x-prompt": {
       "read": "内部の状態変化で変わるもの",
       "write": "内部の状態変化のときだけ、用語集の語で書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word"
      }
     },
     "reply": {
@@ -397,14 +507,30 @@
      "x-prompt": {
       "read": "相手から返る情報の別名",
       "write": "支援アクターとの相互作用で返るものを書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word"
      }
     },
     "checks": {
-     "$ref": "common.schema.json#/$defs/ids",
      "description": "確かめるビジネスルール",
      "x-prompt": {
       "read": "妥当性確認で確かめること",
       "write": "妥当性確認のときだけ、その他の要求のビジネスルールの ID を書く。条件の中身は手順に書かない"
+     },
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true,
+      "covered_by": "extensions/fails"
      }
     },
     "calls": {
@@ -414,6 +540,9 @@
      "x-prompt": {
       "read": "サブユースケースの呼び出し先",
       "write": "サブユースケースの呼び出しのときだけ、UC の ID を書く"
+     },
+     "x-ref": {
+      "to": "use_case"
      }
     },
     "keeps": {
@@ -426,6 +555,14 @@
      "x-prompt": {
       "read": "この手順が守る最低保証",
       "write": "失敗しても守ることを作る手順に、MG の ID を書く"
+     },
+     "x-ref": {
+      "to": "self",
+      "in": "guarantees/minimal",
+      "inverse": {
+       "group": "最低保証を守る手順",
+       "min": 1
+      }
      }
     },
     "serves": {
@@ -438,6 +575,10 @@
      "x-prompt": {
       "read": "誰の利益のための手順か",
       "write": "このユースケースの利害関係者の ID を書く。どの利益にも役立たない手順は書かない"
+     },
+     "x-ref": {
+      "to": "self",
+      "in": "stakeholders"
      }
     },
     "variations": {
@@ -547,6 +688,23 @@
      "x-prompt": {
       "read": "相手に渡す情報の別名",
       "write": "項目を並べず、用語集の情報の別名の語で書く。項目の一覧はデータ要求に書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "情報の別名",
+       "値オブジェクト",
+       "識別子"
+      ],
+      "when": {
+       "kind": [
+        "相互作用"
+       ]
+      }
      }
     },
     "verb": {
@@ -556,6 +714,21 @@
      "x-prompt": {
       "read": "何をするか",
       "write": "用語集の動作の語で書く。画面の操作（押す ・ 選ぶ）を書かない"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "動作"
+      ],
+      "when": {
+       "kind": [
+        "相互作用"
+       ]
+      }
      }
     },
     "object": {
@@ -565,6 +738,13 @@
      "x-prompt": {
       "read": "内部の状態変化で変わるもの",
       "write": "内部の状態変化のときだけ、用語集の語で書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word"
      }
     },
     "reply": {
@@ -577,14 +757,30 @@
      "x-prompt": {
       "read": "相手から返る情報の別名",
       "write": "支援アクターとの相互作用で返るものを書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word"
      }
     },
     "checks": {
-     "$ref": "common.schema.json#/$defs/ids",
      "description": "確かめるビジネスルール",
      "x-prompt": {
       "read": "妥当性確認で確かめること",
       "write": "妥当性確認のときだけ、その他の要求のビジネスルールの ID を書く。条件の中身は手順に書かない"
+     },
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true,
+      "covered_by": "extensions/fails"
      }
     },
     "calls": {
@@ -594,6 +790,9 @@
      "x-prompt": {
       "read": "サブユースケースの呼び出し先",
       "write": "サブユースケースの呼び出しのときだけ、UC の ID を書く"
+     },
+     "x-ref": {
+      "to": "use_case"
      }
     },
     "keeps": {
@@ -606,6 +805,14 @@
      "x-prompt": {
       "read": "この手順が守る最低保証",
       "write": "失敗しても守ることを作る手順に、MG の ID を書く"
+     },
+     "x-ref": {
+      "to": "self",
+      "in": "guarantees/minimal",
+      "inverse": {
+       "group": "最低保証を守る手順",
+       "min": 1
+      }
      }
     },
     "serves": {
@@ -618,6 +825,10 @@
      "x-prompt": {
       "read": "誰の利益のための手順か",
       "write": "このユースケースの利害関係者の ID を書く。どの利益にも役立たない手順は書かない"
+     },
+     "x-ref": {
+      "to": "self",
+      "in": "stakeholders"
      }
     },
     "variations": {
@@ -700,11 +911,19 @@
      }
     },
     "fails": {
-     "$ref": "common.schema.json#/$defs/ids",
      "description": "満たされなかったビジネスルール",
      "x-prompt": {
       "read": "妥当性確認の失敗の中身",
       "write": "妥当性確認の失敗のときだけ、確かめたビジネスルールの ID を書く"
+     },
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/ids"
+      }
+     ],
+     "x-ref": {
+      "to": "other_requirements",
+      "item": true
      }
     },
     "reasons": {
@@ -717,6 +936,17 @@
      "x-prompt": {
       "read": "拒否の理由か、失敗の種類",
       "write": "業務ルールの拒否では拒否の理由の語、支援アクターの失敗では失敗の種類の語を書く"
+     },
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "拒否の理由",
+       "失敗の種類"
+      ]
      }
     },
     "actor": {
@@ -836,6 +1066,27 @@
    "x-prompt": {
     "read": "条件の種類 → 条件 → 手順 → 終わり方の順に読む",
     "write": "拡張は失敗だけでなく、別の道筋での成功も含む。条件の種類は、妥当性確認の失敗（fails に確かめたビジネスルール）・ 業務ルールの拒否（reasons に拒否の理由の語）・ 支援アクターの失敗（actor と、在れば reasons に失敗の種類の語）・ 別の道筋での成功（condition に用語集の語の並びの条件）。条件や「システムは…する」を持つものは、変化（variations）ではなく拡張に書く。終わり方（ending）は4つ ── STEP-n（その手順へ戻る）・ 成功（分岐した手順が直り、元の手順が成功した状態になる。拡張の最後には何も書かない）・ 終了（別の道筋で成功し、ユースケースは終了する）・ 失敗（最低保証が成り立って終わる）。だめなら次を試す順番は、先に試すものを主成功シナリオに書き、次に試すものを終わり方「成功」の拡張に書く"
+   },
+   "x-test-spec": {
+    "id": "decl",
+    "level": "system",
+    "checks_by": {
+     "field": "ending",
+     "map": {
+      "失敗": "最低保証がすべて成り立ち、成功時保証は成り立たない",
+      "成功": "元の手順が成功した状態で続き、成功時保証が成り立つ",
+      "終了": "別の道筋で成功して終わる",
+      "*": "元の手順に戻り、成功時保証が成り立つ"
+     }
+    },
+    "with_by": {
+     "field": "ending",
+     "map": {
+      "失敗": [
+       "guarantees/minimal"
+      ]
+     }
+    }
    }
   }
  }

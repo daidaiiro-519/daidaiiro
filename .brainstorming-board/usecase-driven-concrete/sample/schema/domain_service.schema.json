@@ -40,11 +40,24 @@
    "properties": {
     "name": {
      "type": "string",
-     "pattern": "^TERM-[0-9]+$"
+     "pattern": "^TERM-[0-9]+$",
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "ドメインサービス"
+      ]
+     }
     },
     "context": {
      "type": "string",
-     "pattern": "^BC-[0-9]+$"
+     "pattern": "^BC-[0-9]+$",
+     "x-ref": {
+      "to": "context"
+     }
     },
     "reason": {
      "type": "string",
@@ -73,6 +86,9 @@
    "x-prompt": {
     "read": "計算に使う集約",
     "write": "AGG の ID を書く"
+   },
+   "x-ref": {
+    "to": "aggregate"
    }
   },
   "operations": {
@@ -148,7 +164,20 @@
        "required": [
         "id",
         "condition"
-       ]
+       ],
+       "x-test-spec": {
+        "id": "parent",
+        "checks": "計算の結果が宣言どおりである",
+        "level": {
+         "derive": "business_logic",
+         "map": {
+          "イベント履歴式ドメインモデル": "component",
+          "ドメインモデル": "component",
+          "アクティブレコード": "component-integration",
+          "トランザクションスクリプト": "system"
+         }
+        }
+       }
       }
      }
     },

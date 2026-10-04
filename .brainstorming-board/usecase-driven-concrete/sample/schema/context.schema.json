@@ -52,6 +52,13 @@
      "items": {
       "type": "string",
       "pattern": "^SD-[0-9]+$"
+     },
+     "x-ref": {
+      "to": "subdomain",
+      "inverse": {
+       "group": "サブドメインを担う文脈がある",
+       "min": 1
+      }
      }
     }
    },
@@ -74,7 +81,15 @@
     "properties": {
      "term": {
       "type": "string",
-      "pattern": "^TERM-[0-9]+$"
+      "pattern": "^TERM-[0-9]+$",
+      "x-ref": {
+       "to": "glossary",
+       "in": "terms",
+       "meanings": "meanings",
+       "meaning_key": "kind",
+       "label": "word",
+       "unique": true
+      }
      },
      "meaning": {
       "type": "string",
@@ -126,7 +141,14 @@
        },
        "fulfills": {
         "type": "string",
-        "pattern": "^SD-[0-9]+$"
+        "pattern": "^SD-[0-9]+$",
+        "x-ref": {
+         "to": "subdomain",
+         "inverse": {
+          "group": "サブドメインを担う文脈がある",
+          "min": 1
+         }
+        }
        },
        "case": {
         "type": "string",
@@ -264,7 +286,21 @@
       "$ref": "common.schema.json#/$defs/condition"
      },
      "implements": {
-      "$ref": "common.schema.json#/$defs/ref"
+      "allOf": [
+       {
+        "$ref": "common.schema.json#/$defs/ref"
+       }
+      ],
+      "x-ref": {
+       "to": "other_requirements",
+       "item": true,
+       "in": "business_rules",
+       "inverse": {
+        "group": "ビジネスルールを実装する文脈は1つ",
+        "min": 1,
+        "max": 1
+       }
+      }
      }
     },
     "required": [

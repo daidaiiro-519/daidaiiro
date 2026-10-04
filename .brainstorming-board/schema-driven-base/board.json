@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "スキーマ駆動の道具（抽象の基盤）",
  "board": "schema-driven-base",
- "round": 7,
+ "round": 8,
  "intro": [
   {
    "kind": "para",
@@ -13,6 +13,10 @@
   {
    "heading": "いま見る論点",
    "body": [
+    {
+     "kind": "para",
+     "text": "<b>論点2を開き直した。</b>ボード usecase-driven-concrete が決着し、その宣言で注釈を使って試した。<b>いま見る論点は2</b>。論点3は、論点2のあとに出し直す。"
+    },
     {
      "kind": "para",
      "text": "<b>論点3を開いた。</b>人の頁と AI ツールが読む形を、基盤と concrete のどちらが持つかを決める。論点1の試作で出た「違反の文が英語」も、この論点で決定する。"
@@ -31,8 +35,8 @@
  ],
  "queue": [
   {
-   "no": 3,
-   "why": "論点2が決着し、concrete が渡すもの（注釈の付いた Schema）が決まった。ACDR 0093 も承認された"
+   "no": 2,
+   "why": "concrete（ボード usecase-driven-concrete）が決着したので、その宣言で注釈を実際に使って試した。注釈の値の形と、3つ目の注釈 x-derive を足した B′ を出す"
   }
  ],
  "topics": [
@@ -523,147 +527,142 @@
   {
    "no": 2,
    "name": "concrete の契約",
-   "status": "settled",
+   "status": "open",
    "question": "ユースケース駆動の concrete は、7つの契約とドリフト検知を、どの形で満たすか",
-   "answer": "B ── <b>concrete は、宣言の種類ごとの Schema に2つの注釈（x-test-spec ・ x-ref）を付けて渡す。</b>検証は宣言の集合に対して行い、参照されている宣言は削除しない。テスト仕様の ID は「宣言の ID.項目の ID」、テストの報告は concrete が Schema を持つ JSON で受ける",
+   "answer": "B′ ── <b>concrete は、宣言の種類ごとの Schema に注釈を付けて渡し、concrete の道具は注釈だけを読む。</b>x-ref（従属関係）と x-test-spec（テスト条件）は、値に決まった形を持つ。道具はこの2つから、指す先 ・ 指す先の種類 ・ 語の種類 ・ 指される数 ・ 承認のあとの変化と、テスト条件とそのハッシュ値を出す。<b>問いの答えからの判定は、3つ目の注釈 x-derive で持つ</b>",
    "intro": "この論点が、concrete が基盤に何を渡し、テスト実装と何で接続するかを決める。<b>論点3（描画の持ち方）は、この形を前提にする</b>",
    "decision": {
-    "letter": "B",
+    "letter": "B′",
     "text": [
      {
       "kind": "para",
-      "text": "<b>concrete が渡すものは、宣言の種類ごとの JSON Schema だけである。</b>基盤の注釈（title ・ x-view ・ x-prompt ・ x-generates）に、concrete の注釈を2つ足す。"
+      "text": "<b>concrete が渡すものは、宣言の種類ごとの JSON Schema だけである。</b>基盤の注釈（title ・ x-view ・ x-prompt ・ x-generates）に、concrete の注釈を3つ足す。欄の名前は Schema にだけ現れ、concrete の道具が持つ名前は id と kind だけである。"
      },
      {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>x-test-spec</b> ── この欄の項目がテスト仕様である。ユースケースのシナリオと、集約 ・ ドメインサービスの条件に付ける"
-       },
-       {
-        "text": "<b>x-ref</b> ── この欄の値が、指定した種類の宣言の ID を指す"
-       }
+      "kind": "grid",
+      "cols": [
+       "x-ref の値",
+       "意味"
+      ],
+      "rows": [
+       [
+        "to",
+        "指す先の種類。self は同じ宣言の中"
+       ],
+       [
+        "item ／ bare ／ in",
+        "値の形。「宣言.項目」・ 宣言の ID を付けない項目の ID ・ 指す先の集まりの場所"
+       ],
+       [
+        "meaning（と meanings ・ meaning_key ・ label）",
+        "用語集の語を指すとき、許す意味の種類"
+       ],
+       [
+        "when",
+        "同じ項目の欄がこの値のときだけ、語の種類を確かめる"
+       ],
+       [
+        "unique ／ covered_by",
+        "同じ並びに重ねない ／ 同じ項目の中で、この値を扱う欄"
+       ],
+       [
+        "inverse（group ・ min ・ max ・ where ・ max_decls）",
+        "指される側の数。束ねられていない ・ 担われていない ・ 2つの文脈で実装している、を出す"
+       ]
+      ]
+     },
+     {
+      "kind": "grid",
+      "cols": [
+       "x-test-spec の値",
+       "意味"
+      ],
+      "rows": [
+       [
+        "id",
+        "テスト条件の ID。decl（宣言.項目）・ parent（宣言.親.項目）・ 決まった文字（主成功シナリオの M）"
+       ],
+       [
+        "checks ／ checks_by",
+        "確かめること。終わり方のような欄の値で変わるときは checks_by"
+       ],
+       [
+        "level",
+        "求めるレベル。決まった値か、x-derive の判定から引く表（derive ・ map）"
+       ],
+       [
+        "with ／ with_by ／ with_parent",
+        "期待する結果のハッシュ値に含める、同じ宣言のほかの欄"
+       ],
+       [
+        "when ／ suffix",
+        "この値のときだけテスト条件にする ／ ID の後ろに付ける文字（個数の上限の MAX）"
+       ]
+      ]
+     },
+     {
+      "kind": "grid",
+      "cols": [
+       "x-derive の値",
+       "意味"
+      ],
+      "rows": [
+       [
+        "rules ／ otherwise",
+        "上から当てる決まりと、どれにも当たらないときの判定"
+       ],
+       [
+        "declared",
+        "判定と突き合わせる、宣言した欄"
+       ]
       ]
      },
      {
       "kind": "para",
-      "text": "<b>欄の名前は Schema にだけ現れる。</b>concrete のコードは注釈を読み、欄の名前を保持しない。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>検証は、宣言の集合に対して行う。</b>"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>Schema</b> ── 宣言ごとに、$schema が指す Schema で検証する"
-       },
-       {
-        "text": "<b>ID の一意</b> ── 宣言の ID は集合の中で、項目の ID は宣言の中で一意である"
-       },
-       {
-        "text": "<b>参照の解決</b> ── x-ref の先の宣言が在り、種類が一致する"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>更新と削除は、適用したあとの集合が検証を通過したときだけ書き込む。</b>論点1の規則を、集合へ広げたものである。参照されている宣言の削除は、参照の解決に違反するので拒否される。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>テスト仕様の ID は「宣言の ID.項目の ID」とする。</b>例は UC-1.S-2 と AGG-1.INV-1 である。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>テストの記録は JSON で受ける。</b>concrete が Schema（trace.schema.json）と記録の契約を持ち、1行は condition ・ hash ・ level（任意で test）である。合否は持たない（ACDR 0107）。記録を書く補助の関数は、各言語の標準ライブラリでコーディングの側が持つ。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>ドリフトは4種を報告する。</b>欠け（記録が無い）・ 余り（記録の ID が仕様に無い）・ 古い（ハッシュ値が違う）・ レベル違い（求めるレベルの記録が無い）である。合否はテストの実行器が判定する（ACDR 0107）。"
+      "text": "<b>検証は、宣言の集合に対して行う。</b>テスト条件の ID は「宣言の ID.項目の ID」で、項目が別の項目の中に在るときは親の ID を挟む（AGG-1.CMD-1.BR-1）。テストの記録は concrete が Schema（trace.schema.json）と記録の契約を持つ。"
      }
     ]
    },
    "example": [
     {
      "kind": "para",
-     "text": "ユースケースの Schema の2つの欄。<b>注釈は、欄の定義の隣に1行ずつ付く。</b>"
+     "text": "<b>見本：サブドメインの「束ねるユースケース」</b>（注釈は、欄の定義の隣に付く）"
     },
     {
      "kind": "html",
-     "text": "<pre><code>\"writes\": {\n  \"type\": \"array\", \"items\": {\"type\": \"string\", \"pattern\": \"^AGG-[0-9]+$\"},\n  \"title\": \"書き換える集約\", \"x-view\": \"list\", \"x-prompt\": {…},\n  \"x-ref\": \"aggregate\"\n},\n\"scenarios\": {\n  \"type\": \"array\", \"minItems\": 1, \"title\": \"シナリオ\", \"x-view\": \"table\", \"x-prompt\": {…},\n  \"x-test-spec\": true,\n  \"items\": {\"required\": [\"id\", \"name\"], …}\n}</code></pre>"
+     "text": "<pre><code>\"use_cases\": {\n  \"type\": \"array\", \"items\": {\"pattern\": \"^UC-[0-9]+$\"},\n  \"description\": \"束ねるユースケース\", \"x-prompt\": {…},\n  \"x-ref\": {\"to\": \"use_case\",\n            \"inverse\": {\"group\": \"ユースケースを束ねるサブドメインは1つ\", \"min\": 1, \"max\": 1,\n                        \"where\": {\"header/level\": [\"ユーザー目的\", \"サブ機能\"]}}}\n}</code></pre>"
     },
     {
      "kind": "para",
-     "text": "テストの報告。テスト実装が出し、concrete の Schema で検証してから突き合わせる。"
+     "text": "<b>見本：集約のコマンドの業務ルール</b>"
     },
     {
      "kind": "html",
-     "text": "<pre><code>{\"results\": [\n  {\"id\": \"UC-1.S-1\",    \"result\": \"pass\"},\n  {\"id\": \"UC-1.S-2\",    \"result\": \"fail\"},\n  {\"id\": \"AGG-1.INV-1\", \"result\": \"skip\"},\n  {\"id\": \"UC-1.S-3\",    \"result\": \"pass\"}]}</code></pre>"
-    },
-    {
-     "kind": "heading",
-     "level": 3,
-     "text": "シミュレーション：論点2の形を、試作で7つの手順として実行した"
-    },
-    {
-     "kind": "para",
-     "text": "試作の <code>cargo run -- q2</code> で実行した。concrete のコード（usecase_q2.rs）は欄の名前を保持せず、注釈だけを参照する。下の値はすべて実行した出力である。"
+     "text": "<pre><code>\"business_rules\": {\"items\": {\n  \"x-test-spec\": {\"id\": \"parent\", \"checks\": \"その拒否の理由で拒否される\",\n                  \"level\": {\"derive\": \"business_logic\",\n                            \"map\": {\"ドメインモデル\": \"component\", \"トランザクションスクリプト\": \"system\", …}}},\n  \"properties\": {\"reject\": {\"x-ref\": {\"to\": \"glossary\", \"meaning\": [\"拒否の理由\"], …,\n                                    \"inverse\": {\"group\": \"拒否の理由を1つの集約だけが使う\", \"max_decls\": 1}}}}}}</code></pre>"
     },
     {
      "kind": "grid",
      "cols": [
-      "手順",
-      "何をしたか",
-      "結果"
+      "試した結果（ボード usecase-driven-concrete の見本）",
+      "件数"
      ],
      "rows": [
       [
-       "1",
-       "注釈の付いた Schema から UC-1 と AGG-1 を作成し、記入した",
-       "集合の検証の違反は0件"
+       "注釈を付けた欄",
+       "x-ref 51か所 ・ x-test-spec 11か所 ・ x-derive 2か所"
       ],
       [
-       "2",
-       "注釈からテスト仕様と参照を読んだ",
-       "テスト仕様は4件。UC-1 は AGG-1（aggregate）を指す"
+       "取り出したテスト条件",
+       "36件。注釈なしの道具と同じ ID ・ 同じレベル（品質の要求だけ UC-1.STEP-5.QR-1 から REQ-1.QR-1 になった）"
       ],
       [
-       "3",
-       "S-1 と同じ ID のシナリオを足す Patch を適用した",
-       "「項目の ID が重複している: UC-1.S-1」で拒否した"
+       "宣言どうしの検査",
+       "81件。わざと入れた6種類のずれ（束ねられていないユースケース ・ 要求の側が集約を指す ・ 無い文脈を指す ・ 担われていないサブドメイン ・ 動作でない述語 ・ 2つの集約が同じ拒否の理由を使う）はすべて出た"
       ],
       [
-       "4",
-       "無い AGG-9 を指す Patch を適用した",
-       "「UC-1 が指す AGG-9 が無い」で拒否した"
-      ],
-      [
-       "5",
-       "result が ok の報告を渡した",
-       "報告の Schema に違反したので、突き合わせなかった"
-      ],
-      [
-       "6",
-       "報告の4件と仕様の4件を突き合わせた",
-       "テストが無い AGG-1.PRE-1 ／ 仕様に無い UC-1.S-3 ／ pass でない AGG-1.INV-1（skip）と UC-1.S-2（fail）"
-      ],
-      [
-       "7",
-       "AGG-1 を削除した",
-       "「UC-1 が指す AGG-1 が無い」で拒否し、ファイルは残った"
+       "移行の試し（fact-check）",
+       "ずれ0件 ・ 欠け8件。古い ID を指す記録の当たり先も出した"
       ]
-     ]
-    },
-    {
-     "kind": "fold",
-     "heading": "実行の全出力（trial/spike/output-q2.txt）",
-     "body": [
-      {
-       "kind": "html",
-       "text": "<pre><code>━━ 1. 作成と記入 ── $schema で種類を指し、注釈の付いた Schema から作る\n結果: Ok(())\n{\n  \"id\": \"UC-1\",\n  \"name\": \"注文を確定する\",\n  \"goal\": \"注文が確定済になり、在庫が引き当てられている\",\n  \"writes\": [\n    \"AGG-1\"\n  ],\n  \"scenarios\": [\n    {\n      \"id\": \"S-1\",\n      \"name\": \"在庫があり、注文が確定する\"\n    },\n    {\n      \"id\": \"S-2\",\n      \"name\": \"在庫が足りず、確定を断る\"\n    }\n  ],\n  \"$schema\": \"../../schemas/use-case.q2.schema.json\"\n}\n\n━━ 2. 注釈から読む ── x-test-spec と x-ref\nテスト仕様（x-test-spec）: [\"AGG-1.INV-1\", \"AGG-1.PRE-1\", \"UC-1.S-1\", \"UC-1.S-2\"]\naggregate の参照（x-ref）: []\nuse-case の参照（x-ref）: [(\"AGG-1\", \"aggregate\")]\n集合の検証: []\n\n━━ 3. 更新 ── 項目の ID が重複する Patch は書き込まない\n結果: Err([\"項目の ID が重複している: UC-1.S-1\"])\n\n━━ 4. 更新 ── 無い宣言を指す Patch は書き込まない\n結果: Err([\"UC-1 が指す AGG-9 が無い\"])\n\n━━ 5. ドリフト検知 ── 報告の形が誤っていれば突き合わせない\n報告: {\"results\":[{\"id\":\"UC-1.S-1\",\"result\":\"ok\"}]}\n結果: Some([\"/results/0/result : \\\"ok\\\" is not one of \\\"pass\\\", \\\"fail\\\" or \\\"skip\\\"\"])\n\n━━ 6. ドリフト検知 ── 報告（test-report.json）とテスト仕様を突き合わせる\n{\n  \"results\": [\n    {\n      \"id\": \"UC-1.S-1\",\n      \"result\": \"pass\"\n    },\n    {\n      \"id\": \"UC-1.S-2\",\n      \"result\": \"fail\"\n    },\n    {\n      \"id\": \"AGG-1.INV-1\",\n      \"result\": \"skip\"\n    },\n    {\n      \"id\": \"UC-1.S-3\",\n      \"result\": \"pass\"\n    }\n  ]\n}\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-3\"]\n通っていない:             [(\"AGG-1.INV-1\", \"skip\"), (\"UC-1.S-2\", \"fail\")]\n\n━━ 7. 削除（実体）── 参照されている宣言は削除しない\n結果: Err([\"UC-1 が指す AGG-1 が無い\"])\nAGG-1 のファイルは残っている: true</code></pre>"
-      }
      ]
     }
    ],
@@ -883,11 +882,22 @@
    ],
    "path": [
     {
+     "kind": "previous",
+     "letter": "B",
+     "body": "B ── <b>concrete は、宣言の種類ごとの Schema に2つの注釈（x-test-spec ・ x-ref）を付けて渡す。</b>検証は宣言の集合に対して行い、参照されている宣言は削除しない。テスト仕様の ID は「宣言の ID.項目の ID」、テストの報告は concrete が Schema を持つ JSON で受ける",
+     "why": "試作を起点に組んでいた。concrete（ボード usecase-driven-concrete）が決着したので、その宣言で注釈を実際に使って試した。注釈の値の形が決まっておらず、見本の道具は欄の名前をコードに持っていた",
+     "user_words": "スキーマ駆動に関してはこれ別の道具の認識でした。\nべつに私はこれをユースケース駆動専用のスキーマの道具としてはとらえてないですね。"
+    },
+    {
      "kind": "para",
      "text": "論点1の試作で、3件が未決のまま残った。削除で残った参照の扱い ・ テスト仕様の ID の組み方 ・ テストの報告の形である。論点1が決着したので、この論点を開いた。"
     }
    ],
    "findings": [
+    "x-ref と x-test-spec は、値に決まった形を持たせる ── 指す先の値の形（item ・ bare ・ self）、指される数（inverse）、テスト条件の ID の付き方とレベルの引き方",
+    "問いの答えからの判定（カテゴリー ・ 実装方法）は、x-ref でも x-test-spec でも書けない ── 3つ目の注釈 x-derive にした。テスト条件のレベルも、この判定から引く",
+    "注釈で書けなかった検査が4つ残る（カテゴリーと実装方法の組み合わせ ・ ドメインモデルの文脈に集約があるか ・ 拒否の例が組めるか ・ 別のコマンドが同じ状態の変更を持つか）。前の2つは x-derive の判定に条件を付ける形、後の2つは例を組む処理なので論点3の描画の側で扱う",
+    "欄から文を組む処理と頁の組み立ては、まだ欄の名前を持つ ── 論点3の「値の見せ方を concrete が注入する口」で扱う",
     "試作で、concrete のコードから欄の名前を除き、注釈だけで7つの手順を完了した ── 欄の名前は Schema にだけ在ればよい",
     "集合の検証を更新と削除の前に置くと、参照されている宣言の削除は、規則を足さずに拒否される ── 論点1の「検証を通過したときだけ書き込む」を集合へ広げれば済む",
     "基盤の更新に、concrete の検証を注入する口が1つ必要だった ── 9月の論点10が残した Rust の注入点に該当する",
@@ -942,6 +952,18 @@
      "basis": "7つの手順を実行し、終了コード0で終わった。usecase_q2.rs は scenarios ・ writes ・ conditions の語を保持しない",
      "tag": "measured",
      "source": "trial/spike/output-q2.txt（2026-10-03）"
+    },
+    {
+     "supports": "注釈だけで検査とテスト条件を出せること",
+     "basis": "見本で、注釈を読む道具がテスト条件36件を同じ ID で出し、わざと入れた6種類のずれをすべて出した。道具が持つ名前は id と kind だけ",
+     "tag": "measured",
+     "source": "ボード usecase-driven-concrete の sample/concrete7.py ・ sample/schema/"
+    },
+    {
+     "supports": "concrete のコードは欄の名前を保持しないこと",
+     "basis": "欄の名前は Schema にだけ現れる。concrete のコードは注釈を読み、欄の名前を保持しない",
+     "tag": "rule",
+     "source": "このボードの論点2（前の答え B）"
     }
    ],
    "requirements": [
@@ -964,6 +986,16 @@
      "item": "描画で参照をたどれるようにするか",
      "treatment": "later",
      "note": "論点3で決める"
+    },
+    {
+     "item": "注釈で書けなかった検査4つ",
+     "treatment": "later",
+     "note": "x-derive の判定に条件を付ける2つは、この答えの承認のあと見本で試す。例を組む2つは論点3で扱う"
+    },
+    {
+     "item": "欄から文を組む処理と頁の組み立て",
+     "treatment": "later",
+     "note": "論点3（描画の持ち方）で扱う。いまは見本の gen6 ・ render6 が欄の名前を持つ"
     }
    ]
   },

@@ -39,11 +39,25 @@
    "additionalProperties": false,
    "properties": {
     "name": {
-     "$ref": "common.schema.json#/$defs/term",
      "description": "名前。用語集の語の ID",
      "x-prompt": {
       "read": "用語集の語として読む",
       "write": "用語集に語を足してから、その ID を書く。語を新しく作らない"
+     },
+     "allOf": [
+      {
+       "$ref": "common.schema.json#/$defs/term"
+      }
+     ],
+     "x-ref": {
+      "to": "glossary",
+      "in": "terms",
+      "meanings": "meanings",
+      "meaning_key": "kind",
+      "label": "word",
+      "meaning": [
+       "値オブジェクト"
+      ]
      }
     },
     "context": {
@@ -53,6 +67,9 @@
      "x-prompt": {
       "read": "この宣言が属する区切られた文脈",
       "write": "BC の ID を書く"
+     },
+     "x-ref": {
+      "to": "context"
      }
     }
    },
@@ -119,7 +136,12 @@
        "required": [
         "id",
         "condition"
-       ]
+       ],
+       "x-test-spec": {
+        "id": "decl",
+        "checks": "作れない値を拒む",
+        "level": "component"
+       }
       }
      }
     },
@@ -180,7 +202,12 @@
         "self",
         "args",
         "result"
-       ]
+       ],
+       "x-test-spec": {
+        "id": "parent",
+        "checks": "操作の結果が例と同じ",
+        "level": "component"
+       }
       }
      }
     },
