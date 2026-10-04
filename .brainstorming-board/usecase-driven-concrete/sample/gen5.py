@@ -193,7 +193,7 @@ def call(v,before,args):
   if None in xs or not all(isinstance(x,(int,float)) for x in xs): return None
   return xs[0]+xs[1] if w=='足す' else xs[0]-xs[1] if w=='引く' else None
 def after(cmd,ex):
-  """事後条件から、後の状態を導く（Derived Values）"""
+  """状態の変更から、後の状態を導く（Derived Values）"""
   out={}
   for p in cmd['postconditions']:
     c=p['condition']; v=c.get('value')
@@ -250,7 +250,7 @@ def impl_method(bl):
   return 'トランザクションスクリプト'
 
 def post_text(c,decl=None,cmd=None):
-  """事後条件を「どうなるか」の文にする。比較の文（XはYと同じ）にしない"""
+  """状態の変更を「どうなるか」の文にする。比較の文（XはYと同じ）にしない"""
   t=qname(c['target'],decl,cmd); v=c.get('value')
   if c['op']=='eq' and isinstance(v,dict) and 'call' in v:
     vo,op=v['call'].split('.'); o=find(D[vo]['operations'],op); ch=terms()[o['name']].get('change')

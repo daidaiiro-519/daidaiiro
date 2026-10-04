@@ -50,7 +50,7 @@ def checks(rec=None):
         posts.append((c['id'],str(c['postconditions'])))
       for i,(a,pa) in enumerate(posts):
         for b,pb in posts[i+1:]:
-          if pa==pb: put('structure','別のコマンドの事後条件が同じ',f'{k}.{a}',f'{k}.{b}','名前の違うコマンドが同じ事後条件を持つ','ずれ')
+          if pa==pb: put('structure','別のコマンドの状態の変更が同じ',f'{k}.{a}',f'{k}.{b}','名前の違うコマンドが同じ状態の変更を持つ','ずれ')
       for inv in d['invariants']:
         if not inv.get('via'): put('structure','違反する例に至る操作がある',f'{k}.{inv["id"]}','','違反する状態に至る操作（via）が無い','ずれ')
     if d['kind']=='domain_service':
@@ -105,7 +105,7 @@ def checks(rec=None):
         put('link','外部の操作の失敗を扱う',f'{uk}.{s["id"]}',r,'拡張が扱っている' if r in hd else f'手順{nums[s["id"]]}が使う外部の操作の失敗「{g.word(f["name"])}」を、どの拡張も扱っていない','合格' if r in hd else '対応の欠け')
     for x in U['guarantees']['success']:
       ok=bool(x.get('established_by'))
-      put('link','成功時保証を成り立たせる事後条件',f'{uk}.{x["id"]}','・'.join(x.get('established_by',[])),'事後条件が成り立たせている' if ok else f'「{x["name"]}」を成り立たせる事後条件が無い','合格' if ok else '対応の欠け')
+      put('link','成功時保証を成り立たせる状態の変更',f'{uk}.{x["id"]}','・'.join(x.get('established_by',[])),'状態の変更が成り立たせている' if ok else f'「{x["name"]}」を成り立たせる状態の変更が無い','合格' if ok else '対応の欠け')
     kept={m for t in g.all_steps(U) for m in t.get('keeps',[])}
     for m in U['guarantees']['minimal']:
       put('link','最低保証を守る手順',f'{uk}.{m["id"]}','','守る手順がある' if m['id'] in kept else f'「{m["name"]}」を守る手順が無い','合格' if m['id'] in kept else '対応の欠け')

@@ -174,7 +174,7 @@ def p_agg(d):
       ir.append([tchip(f'{k}.{i["id"]}'),gen(g.cond(i['condition'],k)),'、'.join(f'{E(g.qname(a,k))}＝{sv(v)}' for a,v in ve['before'].items()),' ・ '.join(E(g.word([c for c in d['commands'] if c['id']==x][0]['name'])) for x in ve['via']) or '<span class="missing">なし</span>'])
     b+=block('不変条件',tbl(['テスト条件','組んだ文','違反する状態（道具が組む）','至る操作'],ir))
   crow=[[f'<b>{E(g.word(c["name"]))}</b>','<br>'.join(E(g.post_text(p['condition'],k,c)) for p in c['postconditions']),' '.join(pill(g.word(p['reject'])) for p in c['preconditions']) or '―',' '.join(pill(g.word(e['name']),'t-accent') for e in c['emits']) or '―'] for c in d['commands']]
-  b+=block('コマンド',tbl(['コマンド','事後条件'+helpbtn('事後条件'),'拒否の理由','業務イベント'],crow)+'<p class="txt">コマンドごとの条件と例は、下で開く。</p>')
+  b+=block('コマンド',tbl(['コマンド','状態の変更'+helpbtn('状態の変更'),'検証する業務ルールの拒否の理由','業務イベント'],crow)+'<p class="txt">コマンドごとの業務ルールと例は、下で開く。</p>')
   for c in d['commands']:
     cname=g.word(c['name'])
     args=' '.join(f'{E(g.word(x["name"]))}（{ref(x["type"])}）' for x in c['args']) or 'なし'
@@ -195,9 +195,9 @@ def p_agg(d):
           edges.append({"from":s1,"to":s2,"label":cname})
           for ev in c['emits']: nodes.append({"id":ev['id'],"label":g.word(ev['name']),"role":"muted"}); edges.append({"from":s2,"to":ev['id'],"label":"業務イベント","dashed":True})
     fig=figure('agg-'+k+'-'+c['id'],{"direction":"LR","nodes":nodes,"edges":edges}) if nodes else ''
-    sec=f'<details class="fold"><summary>コマンド「{E(cname)}」の条件と例（事前条件{len(c["preconditions"])} ・ 事後条件{len(c["postconditions"])} ・ 例{len(c.get("accept_examples",[]))}）</summary><div class="fbody">'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
-    if pr: sec+=f'<h3 class="sub">事前条件と拒否の例</h3>'+tbl(['テスト条件','組んだ文','拒否の理由','拒否の例'],pr)
-    sec+=f'<h3 class="sub">事後条件</h3>'+tbl(['事後条件'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
+    sec=f'<details class="fold"><summary>コマンド「{E(cname)}」の業務ルールと例（検証する業務ルール{len(c["preconditions"])} ・ 状態の変更{len(c["postconditions"])} ・ 例{len(c.get("accept_examples",[]))}）</summary><div class="fbody">'+fig+tiles([('引数',args)]+([('業務イベント（項目は from から組む）',evs)] if evs else []))
+    if pr: sec+=f'<h3 class="sub">検証する業務ルールと拒否の例</h3>'+tbl(['テスト条件','業務ルール','拒否の理由','拒否の例'],pr)
+    sec+=f'<h3 class="sub">状態の変更</h3>'+tbl(['状態の変更'],[[gen(g.post_text(p['condition'],k,c))+f'<span class="ln mx"><span class="no">{E(p["id"])}</span></span>'] for p in c['postconditions']])
     if c.get('accept_examples'): sec+=f'<h3 class="sub">受け付ける例{helpbtn("例")}</h3>'+tbl(['テスト条件','前の状態','引数','後の状態（道具が導く）','業務イベント'],ex_rows(k,c,c['accept_examples']))
     b+=sec+'</div></details>'
   b+=tblock(k)
@@ -229,7 +229,7 @@ def p_ds(d):
     f=figure('ds-'+k+'-'+o['id'],{"layout":"grid","direction":"LR","nodes":nodes,"edges":edges,"grid":{"cols":["a","b","c"],"rows":sorted({v[1] for v in at.values()}),"at":at}})
     b+=f'<section class="blk"><h2>操作「{E(on)}」{helpbtn("操作")}</h2>{f}'
     b+='<h3 class="sub">入力</h3>'+tbl(['ID','組んだ名前','元にする状態','型'],[[f'<span class="no">{E(x["id"])}</span>',gen(g.input_name(x)),f'<span class="no">{E(x["from"]["target"])}</span>'+(' '+pill('合計') if x['from'].get('agg')=='sum' else ''),ref(x['type'])] for x in o['inputs']])
-    b+='<h3 class="sub">事後条件</h3>'+tbl(['テスト条件','組んだ文'],[[tchip(f'{k}.{o["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k))] for p in o['postconditions']])+'</section>'
+    b+='<h3 class="sub">結果</h3>'+tbl(['テスト条件','結果'],[[tchip(f'{k}.{o["id"]}.{p["id"]}'),gen(g.cond(p['condition'],k))] for p in o['postconditions']])+'</section>'
   b+=tblock(k)
   return b+raw(d)
 def estb(e):
@@ -249,7 +249,7 @@ def p_uc(d):
   whos=lambda ids: pills([who(i) for i in ids])
   def pref(rr):
     x,decl,cmd=g.item(rr); a=rr.split('.')[0]
-    return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"事前条件" if x["id"].startswith("PRE") else "事後条件"}<span class="no">{E(x["id"])}</span>'
+    return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"検証する業務ルール" if x["id"].startswith("PRE") else "状態の変更"}<span class="no">{E(x["id"])}</span>'
   def links(s):
     o=''
     if s.get('reply'): o+=f'<span class="ln"><span class="k">戻りメッセージ</span>{E(g.reply_text(s))}</span>'
@@ -282,7 +282,7 @@ def p_uc(d):
   sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
   b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a>（{E(sys_["level"])}）'+ctxl)
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
-  sline=lambda x: f'<span class="ln mx"><span class="k">成り立たせる事後条件</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
+  sline=lambda x: f'<span class="ln mx"><span class="k">成り立たせる状態の変更</span>{"、".join(pref(r) for r in x.get("established_by",[])) or "<span class=missing>なし</span>"}</span>'
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')
   mgc=card(lab('最低保証'),''.join(item(x['name'],g.mg_text(x),f'<span class="ln">{whos(x["protects"])}</span>') for x in gu['minimal']),'top-minimal')
   b+='<div style="height:.75rem"></div>'+cards([sgc,mgc])
