@@ -57,15 +57,20 @@ def tbl(cols,rows):
   lab_=[re.sub(r'<[^>]+>','',re.sub(r'<div class="pop".*?</div>','',c)).replace('?','').strip() for c in cols]
   return '<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for r in rows)+'</tbody></table></div>'
 TERM_GROUPS=[('モデル',['集約','エンティティ','値オブジェクト','識別子','状態','状態の値']),('振る舞い',['コマンド','業務イベント','ドメインサービス','操作','拒否の理由']),('文を組む語',['情報の別名','動作','失敗の種類'])]
-def ftbl(cols,rows,label='種類で絞る'):
-  """rows は (種類, 行) の並び。表の上に種類のタブを置き、押した種類の行だけを見せる"""
+def ftbl(cols,rows,groups=None,label='種類',unit='件'):
+  """rows は (値, 行) の並び。表の上に絞り込みを置く。値の札は複数選べ、何も選ばなければ全部を見せる"""
   ks=list(dict.fromkeys(k for k,_ in rows))
-  btn=lambda k:f'<button type="button" aria-pressed="false" data-f="{E(k)}">{E(k)}<span class="n">{sum(1 for kk,_ in rows if kk==k)}</span></button>'
-  grp=[(gname,[k for k in gk if k in ks]) for gname,gk in TERM_GROUPS]+[('その他',[k for k in ks if not any(k in gk for _,gk in TERM_GROUPS)])]
-  bar=f'<div class="filt" role="group" aria-label="{E(label)}"><div class="fg"><button type="button" aria-pressed="true" data-f="*">すべて<span class="n">{len(rows)}</span></button></div>'+''.join(f'<div class="fg"><span class="fl">{E(gname)}</span>'+''.join(btn(k) for k in gk)+'</div>' for gname,gk in grp if gk)+'</div>'
+  if len(ks)<2: return tbl(cols,[r for _,r in rows])
+  n=lambda k:sum(1 for kk,_ in rows if kk==k)
+  btn=lambda k:f'<button type="button" aria-pressed="false" data-f="{E(k)}">{E(k)}<span class="n">{n(k)}</span></button>'
+  if groups:
+    grp=[(gname,[k for k in gk if k in ks]) for gname,gk in groups]+[('その他',[k for k in ks if not any(k in gk for _,gk in groups)])]
+  else: grp=[('',ks)]
+  rowsh=''.join(f'<div class="fg">'+(f'<span class="fl">{E(gname)}</span>' if gname else '')+'<div class="fb">'+''.join(btn(k) for k in gk)+'</div></div>' for gname,gk in grp if gk)
+  head_=f'<div class="fh"><span class="ft">{E(label)}で絞る<span class="fs">複数選べる</span></span><span class="fc" aria-live="polite" data-unit="{E(unit)}">{len(rows)}{E(unit)}</span><button type="button" class="fclear" hidden>絞り込みを外す</button></div>'
   lab_=[re.sub(r'<[^>]+>','',c) for c in cols]
   body=''.join(f'<tr data-k="{E(k)}">'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for k,r in rows)
-  return '<div class="fwrap">'+bar+'<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div></div>'
+  return '<div class="fwrap"><div class="filt" role="group" aria-label="'+E(label)+'で絞る">'+head_+rowsh+'</div><div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+body+'</tbody></table></div></div>'
 def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
 def tiles(pairs): return '<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{lab(k)}</div><div class="tv">{v}</div></div>' for k,v in pairs)+'</div>'
 def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{body}</div>'
@@ -159,7 +164,7 @@ def p_bc(d):
   h=d['header']; b=head(d)
   sds=' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']) or '<span class="txt">なし（このプロダクトの範囲の外）</span>'
   bd=d.get('boundary',{})
-  b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('担うサブドメイン',sds)])
+  b+=tiles([('モデルの目的',E(h['purpose']))])+'<div style="height:.6rem"></div>'+tiles([('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('対象とするサブドメイン',sds)])
   mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
   ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
   rows=[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)]
@@ -173,7 +178,7 @@ def p_bc(d):
   rs=[trow(u) for u in d['uses'] if u['term'] in T]
   if rs:
     order=[k for _,gk in TERM_GROUPS for k in gk]+[k for k,_ in rs]; order=list(dict.fromkeys(order)); rs=[(k,r) for kk in order for k,r in rs if k==kk]
-    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+ftbl(['語','意味','種類','使わない語'],rs))
+    b+=block('用語集',f'<p class="txt">この文脈で使う、{ref("GLO-1")}の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。</p>'+ftbl(['語','意味','種類','使わない語'],rs,TERM_GROUPS,'種類','語'))
   rel=d['context_map']['relations']
   if rel:
     nodes=[{"id":d['id'],"label":h['name'],"role":"focus"}]; edges=[]
@@ -392,7 +397,7 @@ def p_glossary(d):
       rows.append((m['kind'],r))
   cols=['語','意味','種類','使う文脈','使わない語']
   order=list(dict.fromkeys([k for _,gk in TERM_GROUPS for k in gk]+[k for k,_ in rows])); rows=[(k,r) for kk in order for k,r in rows if k==kk]
-  b+=block('語と意味',ftbl(cols,rows))
+  b+=block('語と意味',ftbl(cols,rows,TERM_GROUPS,'種類','語'))
   return b+raw(d)
 def p_req(d):
   b=head(d,'','ユースケースの外に書く要求。ユースケースから関連情報で結ぶ。')
@@ -409,17 +414,19 @@ def p_drift():
   import collections
   b='<header class="ph"><p class="kind">テスト</p><h1>テスト条件と宣言どうしの検査</h1></header><p class="lead">宣言から道具が出すもの。テストの合否はここに無い（テストの実行器が判定し、保存しない）。</p>'
   scnt=collections.Counter(x['status'] for x in SPEC)
-  b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','欠け','確かめ直し','レビュー','合格']])
+  b+='<h2 class="sec">宣言どうし</h2><p class="stat">'+' ・ '.join(f'{k} <b>{scnt.get(k,0)}</b>' for k in ['ずれ','欠け','確かめ直し','レビュー','合格'])+'</p>'
   CAT={'structure':'構造で検査','change':'上流の変更','review':'人のレビュー'}
   SST={'合格':'','ずれ':'t-warn','欠け':'t-warn','確かめ直し':'','レビュー':''}
   def at(i):
     if ':' in i: a,r=i.split(':',1); return ref(a)+' → '+at(r)
     if i.startswith('TERM-'): return f'「{E(g.word(i))}」'
     return ref(i.split('.')[0])+(f' <span class="no">{E(".".join(i.split(".")[1:]))}</span>' if '.' in i else '') if i and i.split('.')[0] in D else E(i)
-  srow=[[pill(x['status'],SST[x['status']]),E(CAT[x['category']]),E(x['check']),at(x['from']),'、'.join(at(t) for t in x['to'].split('・')) if x['to'] else '',E(x['text'])] for x in sorted(SPEC,key=lambda x:(x['status']=='合格',list(CAT).index(x['category'])))]
-  b+=block('宣言どうしの検査',tbl(['状態','分け方','検査','参照元','参照先','内容'],srow))
+  ck=lambda x:'上流の変更' if x['category']=='change' else x['check']
+  srow=[(ck(x),[pill(x['status'],SST[x['status']]),E(CAT[x['category']]),E(x['check']),at(x['from']),'、'.join(at(t) for t in x['to'].split('・')) if x['to'] else '',E(x['text'])]) for x in sorted(SPEC,key=lambda x:(x['status']=='合格',list(CAT).index(x['category'])))]
+  b+=block('検査ごとの結果',ftbl(['状態','分け方','検査','参照元','参照先','内容'],srow,[(v,list(dict.fromkeys(ck(x) for x in SPEC if CAT[x['category']]==v))) for v in CAT.values()],'検査','件'))
   b+='<h2 class="sec">宣言とテスト</h2>'
-  b+=block('テスト条件',tbl(['ID','宣言','対象','確かめること','求めるレベル','ハッシュ値'],[[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>'] for c in CONDS]))
+  KN={'use_case':'ユースケース','aggregate':'集約','value_object':'値オブジェクト','domain_service':'ドメインサービス','quality':'その他の要求'}
+  b+=block('テスト条件',ftbl(['ID','宣言','対象','確かめること','求めるレベル','ハッシュ値'],[(KN.get(c['kind'],c['kind']),[tchip(c['id']),ref(c['decl']),E(c['label']),E(c['checks']),pill(c['required_level']),f'<span class="no">{c["hash"]}</span>']) for c in CONDS],None,'宣言の種類','件'))
   b+=block('突き合わせ',tbl(['何を','どこで見られるか'],[
     ['テストは走ったときに、上の ID ・ ハッシュ値 ・ レベルを記録ファイルへ1行ずつ追記する（記録の契約）。道具は宣言と記録だけを照らし、欠け ・ 余り ・ 古い ・ レベル違いを出す','<a class="ref" href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">テスト条件 ID の突き合わせ</a>'],
     ['Python と Go のテストを実際に実行し、9手のコミットごとに CI を流した記録','<a class="ref" href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録</a>']]))
@@ -452,7 +459,7 @@ page=f'''<title>モバイルオーダーの宣言</title>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
-document.querySelectorAll('.filt').forEach(g=>g.addEventListener('click',e=>{{const b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));const f=b.dataset.f;g.parentNode.querySelectorAll('tbody tr').forEach(r=>r.hidden=!(f==='*'||r.dataset.k===f))}}));
+document.querySelectorAll('.fwrap').forEach(w=>{{const g=w.querySelector('.filt'),c=w.querySelector('.fc'),x=w.querySelector('.fclear'),rows=[...w.querySelectorAll('tbody tr')];const apply=()=>{{const on=[...g.querySelectorAll('button[data-f][aria-pressed="true"]')].map(b=>b.dataset.f);let n=0;rows.forEach(r=>{{const v=!on.length||on.includes(r.dataset.k);r.hidden=!v;if(v)n++}});const u=c.dataset.unit;c.textContent=on.length?`${{rows.length}}${{u}}のうち ${{n}}${{u}}`:`${{rows.length}}${{u}}`;x.hidden=!on.length}};g.addEventListener('click',e=>{{const b=e.target.closest('button[data-f]');if(!b)return;b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');apply()}});x.addEventListener('click',()=>{{g.querySelectorAll('button[data-f]').forEach(b=>b.setAttribute('aria-pressed','false'));apply()}})}});
 document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{{const o=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',o);document.querySelectorAll('tr[data-grp="'+b.getAttribute('aria-controls')+'"]').forEach(r=>r.hidden=!o)}}));
 if(innerWidth<=760){{const n=document.querySelector('.navd');if(n)n.open=false;document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{{n.open=false}}))}}
 const go=n=>{{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));const st=document.querySelector('.stepper');if(st&&window.scrollY>st.offsetTop)st.scrollIntoView();}};
