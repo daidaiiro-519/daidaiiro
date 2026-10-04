@@ -14,7 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 NARR = HERE / 'narration'
-HEAD = {'voice': 'Takumi', 'engine': 'neural', 'format': 'mp3', 'cache': 'cache'}
+HEAD = {'voice': 'Takumi', 'engine': 'neural', 'format': 'mp3', 'cache': 'cache', 'lexicons': ['aiworkshop']}  # 辞書は narration/lexicon.pls
 
 
 def items_of(path):
