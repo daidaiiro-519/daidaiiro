@@ -1,0 +1,426 @@
+<title>schema-driven を Rust で作る ── アーキテクチャと技術スタック</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--sunk:#dae1df;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;--line:#ccd8d4;--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--src-o:#7a3b6d;--move:#7a3b6d;--pop:#f8f3e8;--popline:#d9b77e;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--sub:#3c4a46;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--fs-3xs:.66rem;--fs-2xs:.72rem;--fs-xs:.8rem;--fs-sm:.88rem;--tr-wide:.04em;--rd-lg:.6rem;--bw-hair:1px;--bw-solid:2px;--bw-accent:3px;--tl-node:var(--sp-7);--tl-rail:var(--bw-solid);--tl-inset:calc(var(--tl-node) * 1.34);--ev-label:7.4rem;--nest-guide:var(--bw-accent);--card-radius:var(--rd-lg);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}}:root[data-theme="dark"]{--paper:#0e1614;--card:#16211e;--panel:#22302d;--sunk:#080d0c;--ink:#e6eeeb;--muted:#93a29d;--dim:#9dada8;--rule:#354642;--rule-soft:#22302d;--line:#2a3936;--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--src-o:#d094c2;--move:#d094c2;--pop:#241d14;--popline:#6e5738;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sub:#c2cec9;}/* ブレストボードの見た目。**ここが見た目の正本である。**
+   `scripts/lib/` は値を差し込むだけで、構造を作る文字列を保持しない ──
+   保持すると、型（board.template.html）とトークン（tokens.json）を直すべき
+   変更が、Python の中の文字列を直す作業になる。
+
+   色・寸法・字寸・字送り・角丸・枠は、直値を書かずトークンを参照する。
+   トークンの定義は tokens.json が単独で持ち、tokens.py が組む。 */
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--accent-bg,#d5e6e3);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--ink-soft,#5b6b66);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ol.path{margin:.4rem 0;padding-left:1.3rem;font-size:.88rem}
+ol.path li{margin:.3rem 0}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.vb.ret[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+
+/* ── この回の変更の引き出し ── */
+#dtoggle{position:fixed;right:0;top:35vh;z-index:40;font:inherit;font-size:.8rem;font-weight:700;
+writing-mode:vertical-rl;padding:.9rem .45rem;border:1px solid var(--warn);border-right:0;
+border-radius:.4rem 0 0 .4rem;background:var(--warn-soft);color:var(--warn);cursor:pointer;
+box-shadow:var(--shadow);display:flex;align-items:center;gap:.4rem}
+#dtoggle .dn{writing-mode:horizontal-tb}
+.dn{display:inline-block;min-width:1.4em;text-align:center;font-family:"JetBrains Mono",monospace;
+font-size:.7rem;background:var(--warn);color:var(--paper);border-radius:1rem;padding:.05em .45em;
+margin-left:.35em}
+/* 引き出しは、**見出しが止まり、一覧だけが動く**形にする。
+   見出しを sticky で止めると、内側の余白の分だけ中身が上へ抜けて透ける（実際に透けた）。 */
+#drawer{position:fixed;right:0;top:0;bottom:0;width:min(26rem,92vw);z-index:41;
+display:flex;flex-direction:column;overflow:hidden;padding:0;
+background:var(--card);border-left:1px solid var(--rule);box-shadow:var(--shadow)}
+#drawer[hidden]{display:none}
+.dhead{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:.5rem;
+background:var(--card);padding:1rem 1rem .65rem;border-bottom:1px solid var(--rule)}
+.dbody{flex:1 1 auto;overflow:auto;padding:.7rem 1rem 3rem}
+#dclose{font:inherit;font-size:.78rem;padding:.25rem .7rem;border-radius:.3rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.dlist{list-style:none;margin:.6rem 0 0;padding:0;display:flex;flex-direction:column;gap:.2rem}
+.dlist .dq{font-size:.78rem;font-weight:700;color:var(--key);margin-top:.7rem;
+border-bottom:1px solid var(--rule-soft);padding-bottom:.2rem}
+.dgo{font:inherit;font-size:.82rem;text-align:left;width:100%;cursor:pointer;
+border:1px solid transparent;border-radius:.3rem;background:none;color:var(--ink);
+padding:.35rem .4rem;line-height:1.6}
+.dgo:hover,.dgo:focus{border-color:var(--warn);background:var(--warn-soft)}
+.dw{display:inline-block;font-size:.66rem;font-weight:700;color:var(--warn);
+border:1px solid var(--warn);border-radius:.2rem;padding:0 .35em;margin-right:.45em}
+mark.chg.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+/* ── 変更の印 ── */
+mark.chg{background:var(--warn-soft);color:var(--ink);border-radius:.15em;cursor:pointer;
+box-shadow:-.2em 0 0 var(--warn-soft),.2em 0 0 var(--warn-soft);border-bottom:2px solid var(--warn)}
+mark.chg::after{content:"▸";font-size:.72em;color:var(--warn);margin-left:.3em;font-weight:700}
+mark.chg[aria-expanded="true"]::after{content:"▾"}
+mark.chg.del{background:none;box-shadow:none;color:var(--dim);border-bottom:1px dashed var(--dim)}
+mark.chg.del b{text-decoration:line-through}
+.pop[hidden]{display:none}
+.pop{display:block;background:var(--pop);border:1px solid var(--popline);border-left:3px solid var(--warn);
+border-radius:.3rem;padding:.7rem .9rem;margin:.6rem 0 .2rem;font-size:.82rem;line-height:1.75;font-weight:400}
+.pop b{display:block;font-size:.66rem;letter-spacing:.14em;color:var(--warn);margin-bottom:.3rem}
+[hidden]{display:none!important}
+/* ── 経過のタイムライン ───────────────────────────── */
+ol.path{list-style:none;counter-reset:st;margin:var(--sp-3) 0 var(--sp-1);
+padding:0 0 0 var(--tl-inset);position:relative}
+ol.path::before{content:"";position:absolute;left:calc(var(--tl-node) / 3);
+top:var(--sp-3);bottom:var(--sp-3);width:var(--tl-rail);background:var(--rule)}
+ol.path>li{counter-increment:st;position:relative;margin:0 0 var(--sp-5);
+padding:0 0 0 var(--sp-1)}
+ol.path>li:last-child{margin-bottom:0}
+ol.path>li::before{content:counter(st);position:absolute;
+left:calc(-1 * var(--tl-inset));top:0;width:var(--tl-node);height:var(--tl-node);
+border-radius:50%;background:var(--card);border:var(--tl-rail) solid var(--rule);
+color:var(--muted);font-size:var(--fs-3xs);font-weight:700;
+line-height:calc(var(--tl-node) - var(--tl-rail) * 2);text-align:center}
+ol.path>li:last-child::before{background:var(--key-soft);border-color:var(--key);
+color:var(--key)}
+
+/* ── 意味の単位には境界が要る ── 答え1つを、枠を持つカードにする ── */
+ol.path .card{border:var(--bw-hair) solid var(--rule);border-radius:var(--card-radius);
+background:var(--card);overflow:hidden}
+ol.path .card-h{padding:var(--sp-2) var(--sp-5);background:var(--panel);
+font-weight:700;border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path .ver{display:inline-block;min-width:1.5rem;font-size:var(--fs-2xs);
+color:var(--move)}
+
+/* ── 出来事は種別ごとに束ねる ── 行ごとに繰り返すと、
+      いくつ在るのかも、どこまでが同じ種別かも読めない ── */
+ol.path table.ev{margin:0;width:100%;font-size:var(--fs-sm);table-layout:fixed}
+ol.path table.ev th{width:var(--ev-label);text-align:left;vertical-align:top;
+background:transparent;border:0;border-right:var(--bw-hair) solid var(--rule-soft);
+border-bottom:var(--bw-hair) solid var(--rule-soft);padding:var(--sp-3) var(--sp-5);
+font-weight:400}
+ol.path table.ev th small{display:block;color:var(--muted);font-size:var(--fs-3xs);
+margin-top:var(--sp-1);letter-spacing:var(--tr-wide)}
+ol.path table.ev td{border:0;border-bottom:var(--bw-hair) solid var(--rule-soft);
+padding:var(--sp-3) var(--sp-5)}
+ol.path table.ev tr:last-child th,ol.path table.ev tr:last-child td{border-bottom:0}
+ol.path table.ev tr.g-end>td{border-bottom:var(--bw-hair) solid var(--rule)}
+ol.path tr.g-finding td{background:var(--key-soft)}
+ol.path .ev-n{display:inline-block;min-width:1.1rem;
+font-family:"JetBrains Mono",monospace;font-size:var(--fs-3xs);font-weight:700;
+color:var(--key);vertical-align:.08em}
+ol.path .q-in{color:var(--ink)}
+ol.path .q-in::before{content:"「"}
+ol.path .q-in::after{content:"」"}
+
+/* ── 図と生成物が、周りの背景に沈む ── 段差と枠を付ける。
+      図の中の箱は薄い色なので台を濃くし、文字を読む生成物は淡くする。
+      **この向きの逆転は、図が暗配色で反転しないことの埋め合わせである** ──
+      design-svg が箱の色をトークン参照で出力した時点で取り消す ── */
+/* 生成物を、周りから1つ浮かせる。
+   **専用のトークンを作らない** ── 浮いた面は --card が既に在る。
+   図の台は道具の側の figure が --sunk で持つので、ここでは触らない */
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+details details>div{padding:0 0 var(--sp-2) var(--sp-4)}
+
+/* ── 除外した案の記号は、空欄だった1列目へ出す ── 列が空なら、その列は要らない ── */
+td > span.n.out{font-size:0!important;border:0!important;background:none!important;
+box-shadow:none!important;padding:0!important}
+td > span.n.out::after{content:counter(drop, upper-alpha);font-size:var(--fs-xs);
+font-weight:700;color:var(--move)}
+table:has(span.n.out) tr:has(span.n.out){counter-increment:drop}
+/* 除外した案の表の見出しが、列と合っていない ── 通過した案の表と揃える */
+table:has(span.n.out) tr:first-child th{font-size:0}
+table:has(span.n.out) tr:first-child th::after{font-size:var(--fs-xs);
+font-weight:700;color:var(--ink)}
+table:has(span.n.out) tr:first-child th:nth-child(1)::after{content:"案"}
+table:has(span.n.out) tr:first-child th:nth-child(2)::after{content:"中身"}
+table:has(span.n.out) tr:first-child th:nth-child(3)::after{content:"除外した理由"}
+/* 「×」は、押して消す操作に見える ── 箱を外し、除外を示す帯に替える */
+td:has(> span.n.out){width:2rem;min-width:2rem;text-align:center;
+background:var(--warn-soft)}
+tr:has(span.n.out) td:nth-child(2){opacity:.72}
+tr:has(span.n.out) td:nth-child(2) b{font-weight:600}
+tr:has(span.n.out) td:nth-child(2) mark.chg.del{text-decoration-color:var(--line)}
+/* 通過した案の表に、案の列が2つ在る ── 道具が振る連番を消し、記号だけを残す */
+table td:has(> span.n:not(.out)){display:none}
+table tr:has(span.n:not(.out)) th:first-child,
+table:has(span.n:not(.out)) tr>th:first-child{display:none}
+
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+  #dtoggle{font-size:var(--fs-2xs);top:auto;bottom:1rem}
+  #drawer{width:100vw}
+}
+</style><div id="root" data-board="schema-driven-build" data-round="1" data-theme-name="schema-driven を Rust で作る ── アーキテクチャと技術スタック"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　schema-driven を Rust で作る ── アーキテクチャと技術スタック　/　Round 1</p><h1>schema-driven を Rust で作る ── アーキテクチャと技術スタック</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>アーキテクチャ<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>技術スタック<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="wait"><span class="tn">Q3</span>どこに書くか<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><style>#p1 table:has(span.n.out){counter-reset:drop 0}#p2 table:has(span.n.out){counter-reset:drop 0}#p3 table:has(span.n.out){counter-reset:drop 0}</style><div class="note"><p>schema-driven を Rust で作るときの、アーキテクチャと技術スタックと、それをどこに書くかを決める。宣言は schema-driven-base/product/ にあり、実装の型はそこから導いた。</p></div><div class="front"><h3>いま見るのは 2 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　アーキテクチャ</button><br><span class="why">宣言から実装の型が導けた（参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト）ので、コードのどこに置くかを決められる</span></li><li><button class="jump" data-go="p2">Q2　技術スタック</button><br><span class="why">使う crate の原文を crates.io から取得し、版とライセンスを照合した</span></li></ol><p class="waiting">残り 1 件は、上流が決まるまで動く。回答欄は無い。</p></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">1</span></td><td>schema-driven の道具を、どの層とモジュールに分けて組むか</td><td><span class="st now">いま見る</span></td><td><b class="lead-s">A</b><div class="sub-s"><b>外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える。</b>中核の check はドメインモデルとしてドメインの crate に置き、readwrite ・ render ・ transcribe はトランザクションスクリプトとしてアプリケーションの crate に置く。ポートはアプリケーションの側が決め、アダプタがそれを実装する。向きは crate の依存で止める</div></td></tr><tr><td><span class="n">2</span></td><td>Rust で使う crate と、その版と設定をどうするか</td><td><span class="st now">いま見る</span></td><td><b class="lead-s">A</b><div class="sub-s"><b>各 crate の最新の版を使い、ネットワークに出る機能を外す。</b>版は正本の Cargo.lock の1か所で決め、転写した複製は lock ごと写す。JMESPath の crate は保守が細いので、取得の操作をポートの後ろに置き、契約の試験を当てる</div></td></tr><tr><td><span class="n">3</span></td><td>アーキテクチャと技術スタックを、宣言 ・ 規則 ・ Cargo のどこに書くか</td><td><span class="st wait">待ち</span></td><td><b class="lead-s">A</b><div class="sub-s"><b>宣言には書かない。</b>構成と向きは Cargo.toml の crate の依存が持ち、版は Cargo.lock が持つ。なぜその構成とその crate かは ACDR が持つ。実装から宣言の文脈を指す場所は、no-more-spaghetti に代わるコーディングの Skill の形として決める</div></td></tr></table></div><details><summary>いま見る論点</summary><div><b>論点1（アーキテクチャ）と論点2（技術スタック）を同時に開いた。</b>2つは互いに依存しない。論点3（どこに書くか）は、1と2の答えを置く場所なので、そのあとに開く。<b>論点1の前提：</b>skills-creator の雛形がレイヤードなのは、「Skill の道具は手続き的な変換である」という前提で決めたからである（ACDR 0056 ・ 0058）。schema-driven は中核がドメインモデルなので、この前提に当たらない。<b>no-more-spaghetti は廃止した。</b>.coding-rules と inward には持ち主がいないので、向きは Rust と Cargo そのものの仕組みで止める。</div></details></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>schema-driven の道具を、どの層とモジュールに分けて組むか</h2></div><div class="note">ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる</div><div class="ans"><span class="big">A</span><div class="scroll"><table><thead><tr><th>crate</th><th>中身</th><th>実装の型</th><th>依存してよい先</th></tr></thead><tbody><tr><td>sd_domain</td><td>check（参照と導出値の集約 ・ ドメインサービス ・ 値オブジェクト）</td><td>ドメインモデル</td><td>無し</td></tr><tr><td>sd_published</td><td>描画へ渡す読み取り専用の型</td><td>―</td><td>sd_domain</td></tr><tr><td>sd_instances</td><td>readwrite。インスタンスの置き場所と取得のポートを決める</td><td>トランザクションスクリプト</td><td>sd_domain</td></tr><tr><td>sd_render</td><td>描画。ページの書き出しのポートを決める</td><td>トランザクションスクリプト</td><td>sd_published</td></tr><tr><td>sd_transcribe</td><td>転写。複製の読み書きのポートを決める</td><td>トランザクションスクリプト</td><td>無し</td></tr><tr><td>sd_fs ・ sd_jmespath</td><td>駆動される側のアダプタ。ポートを実装する</td><td>―</td><td>ポートを決めた crate</td></tr><tr><td>sd_cli ・ sd_mcp</td><td>駆動する側のアダプタ。アダプタを組み立てる</td><td>―</td><td>すべて</td></tr></tbody></table></div><b>向きは Rust と Cargo そのものの仕組みで止める。</b>crate の依存は Cargo が止める。sd_render は sd_published だけに依存するので、check の型を使えない。<b>ドメインとアプリケーションの crate では、ファイルを直接読まない。</b>clippy の disallowed-methods で std::fs を禁じる。</div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,773px)" class="wf-fig" viewBox="0 0 773 518" height="518" role="img"><g transform="translate(6.0,6.0)"><path d="M372.8,50.6 L371.2,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="371.2,245.4 368.8,238.6 373.7,238.7" fill="#C3CAD2"/><path d="M266.8,25.0 Q210.7,25.0 210.7,37.8 Q210.7,50.6 210.7,148.0 Q210.7,245.4 160.4,245.4 L110.0,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="110.0,245.4 116.8,242.9 116.8,247.9" fill="#C3CAD2"/><path d="M372.8,50.6 L643.5,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="643.5,245.4 636.6,243.4 639.5,239.4" fill="#C3CAD2"/><path d="M110.0,182.6 L371.2,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="371.2,245.4 364.0,246.2 365.2,241.4" fill="#C3CAD2"/><rect x="216.6" y="204.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="240.6" y="217.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">実装する</text><path d="M642.2,164.6 L371.2,245.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="371.2,245.4 377.0,241.1 378.4,245.8" fill="#C3CAD2"/><rect x="482.7" y="195.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="506.7" y="208.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">実装する</text><path d="M372.8,296.6 L372.0,455.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="372.0,455.2 369.6,448.4 374.5,448.4" fill="#C3CAD2"/><path d="M110.0,296.6 L110.5,359.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="110.5,359.4 108.0,352.7 112.9,352.6" fill="#C3CAD2"/><path d="M110.5,392.6 L372.0,455.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="372.0,455.2 364.8,456.0 366.0,451.2" fill="#C3CAD2"/><g class="wf-node" transform="translate(267.4,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="209.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_cli ・ sd_mcp（駆動する</text><text x="104.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">側のアダプタ。組み立てもここ）</text></g></g><g class="wf-node" transform="translate(14.1,114.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="191.8" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="95.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_fs（ファイルシステムの</text><text x="95.9" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">アダプタ。3つのアプリケーシ</text><text x="95.9" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ョンのポートを実装する）</text></g></g><g class="wf-node" transform="translate(531.8,132.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="221.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_jmespath（取得のアダプタ）</text></g></g><g class="wf-node" transform="translate(244.0,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="256.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="128.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_instances（readwrite。トラン</text><text x="128.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ザクションスクリプト。ポートを決める）</text></g></g><g class="wf-node" transform="translate(0.0,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="220.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="110.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_render（描画。トランザクシ</text><text x="110.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ョンスクリプト。ポートを決める）</text></g></g><g class="wf-node" transform="translate(524.0,246.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="237.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="118.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_transcribe（転写。トランザク</text><text x="118.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ションスクリプト。ポートを決める）</text></g></g><g class="wf-node" transform="translate(1.2,360.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="217.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="108.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_published（描画へ渡す型）</text></g></g><g class="wf-node" transform="translate(279.4,456.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="185.2" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="92.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">sd_domain（check。参照</text><text x="92.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">と導出値のドメインモデル）</text></g></g></g></svg><figcaption>外側はポートとアダプタ。<b>中核の sd_domain はどこにも依存せず、アダプタがアプリケーションのポートを実装する。</b></figcaption></figure></div><div class="ex"><b>見本：tool/ の並び</b><pre><code><pre><code>.claude/skills/schema-driven/tool/
+  domain/        sd_domain      ドメインモデル（入出力なし）
+  published/     sd_published   描画へ渡す型
+  instances/     sd_instances   readwrite とそのポート
+  render/        sd_render      描画とそのポート
+  transcribe/    sd_transcribe  転写とそのポート
+  fs/            sd_fs          ファイルシステムのアダプタ
+  jmespath/      sd_jmespath    取得のアダプタ
+  cli/  mcp/     駆動する側のアダプタ</code></pre></code></pre><div class="scroll"><table><thead><tr><th>テストの形</th><th>どの crate</th></tr></thead><tbody><tr><td>単体テスト（値を渡して結果を見る）</td><td>sd_domain</td></tr><tr><td>ポートに手元の偽物を差して、ユースケースを通す</td><td>sd_instances ・ sd_render ・ sd_transcribe</td></tr><tr><td>ポートの契約の試験（どの実装にも同じ試験を当てる）</td><td>sd_fs ・ sd_jmespath</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 3件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 3件。このうち1つを残し、他は負担が大きいか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>採ると負担すること</th></tr><tr><td><span class="n">A</span></td><td><b>外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える</b></td><td>ドメイン ・ アプリケーション ・ アダプタを crate に分け、向きを Cargo で止める</td><td><span class="cost">crate が9つになる。雛形の4層の規則（ACDR 0071）と構成の検査に合わない</span></td></tr><tr><td><span class="n">B</span></td><td><b>skills-creator の雛形の4層（レイヤード）に合わせる</b></td><td>business_logic の中をモジュールに分け、data_access を直接呼ぶ</td><td><span class="cost">中核のドメインモデルをレイヤードに載せる。ポートとアダプタの考え方が崩れる</span></td></tr><tr><td><span class="n">C</span></td><td><b>業務領域ごとに技術方式を分ける</b></td><td>BC-1 だけポートとアダプタ、描画と転写はレイヤード</td><td><span class="cost">1つの道具の中に2つの組み立て方が並び、駆動する側のアダプタの組み立てが2通りになる</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない。ドメインモデルをレイヤードに載せると、業務ロジックが入出力の層に依存する"><b>skills-creator の雛形の4層（レイヤード）に合わせる</b></mark></td><td>雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない。ドメインモデルをレイヤードに載せると、業務ロジックが入出力の層に依存する</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="描画と転写もアプリケーションのポートを通してファイルを扱えば、入出力は分かれる。レイヤードを別に置くと、組み立てが2通りになるだけで得るものが無い"><b>業務領域ごとに技術方式を分ける</b></mark></td><td>描画と転写もアプリケーションのポートを通してファイルを扱えば、入出力は分かれる。レイヤードを別に置くと、組み立てが2通りになるだけで得るものが無い</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>中核が入出力から離れるか</th><th>向きを機械で止められるか</th><th>雛形の規則と合うか</th></tr><tr><td><span class="n">外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える</span></td><td><b>離れる</b></td><td><b>Cargo とコンパイラで止める</b></td><td>合わない（ACDR で決める）</td></tr><tr><td><span class="n">skills-creator の雛形の4層（レイヤード）に合わせる</span></td><td><b>離れない</b></td><td>規則の持ち主がいない</td><td>合う</td></tr><tr><td><span class="n">業務領域ごとに技術方式を分ける</span></td><td>離れる</td><td>Cargo で止める</td><td>合わない</td></tr></table></div></div></details><details><summary>この答えの前提（5件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">雛形がレイヤードになった理由</span></td><td>道具の処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける</td><td><span class="kind k-rule">決まり</span><small>ACDR 0058（あわせて 0056）</small></td></tr><tr><td><span class="part">実装の型から技術方式を決めること</span></td><td>業務ロジックの実装方法が決定すれば、技術方式も決定する</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の判断基準 design-heuristics</small></td></tr><tr><td><span class="part">中核をポートとアダプタにすること</span></td><td>判断の要は、業務ロジックをドメインモデルで実装するときに選択することである</td><td><span class="kind k-rule">決まり</span><small>ddd-advisor の判断基準 ports-and-adapters</small></td></tr><tr><td><span class="part">中核と、それ以外で実装の型を分けること</span></td><td>参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト</td><td><span class="kind k-rule">決まり</span><small>schema-driven の宣言（x-derive で導いた値）</small></td></tr><tr><td><span class="part">no-more-spaghetti の規則を使わないこと</span></td><td>no-more-spaghetti を廃止し、.coding-rules には持ち主がいない</td><td><span class="kind k-rule">決まり</span><small>利用者の言明（2026-10-05）</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に必要である）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>いまの Skill の構成</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">この論点は schema-driven の構成だけを決める</div></td></tr><tr><td>skill-wiring.json に残る no-more-spaghetti の3行と、.coding-rules の片付け</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">no-more-spaghetti を廃止する作業（ボード usecase-modeling-coding）で片付ける</div></td></tr></table></div></div></details><details><summary>この答えの履歴（1件） ── 差し戻しで何が失効し、何へ変更したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><div class="card"><div class="card-h"><span class="ver">A</span>前の答え：雛形の4層の中をモジュールに分け、規則と inward で向きを測る</div><table class="ev"><tbody><tr class="g-returned"><th rowspan="2"><span class="kind k-given">差し戻し</span><small>2件</small></th><td><span class="ev-n">1</span><span class="q-in">まってね、もうノーモアスパゲッティは廃止したんだけどまだそのcoding ruleは使うの？誰も所有してないんだよなあ</span></td></tr><tr class="g-returned g-end"><td><span class="ev-n">2</span><span class="q-in">あとそのビジネスロジックとデータアクセスというのはかなりレイヤードに引っ張られた表現でおそらくスキルクリエーターに引っ張られてると思うんですけど、それをこのスキーマ駆動でも表現してしまうとポートとアダプターの概念が崩れます。</span></td></tr><tr class="g-obsolete g-end"><th rowspan="1"><span class="kind k-open">失効した点</span></th><td>rules.json と inward で向きを測ること。business_logic と data_access の語</td></tr><tr class="g-finding"><th rowspan="1"><span class="kind k-fact">判明事項</span></th><td>雛形がレイヤードなのは、道具を手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）</td></tr></tbody></table></div></li></ol></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">実装の型が決まれば、技術方式も決まる</b><div class="sub-s">ドメインモデルにはポートとアダプタ、トランザクションスクリプトにはレイヤードが対応する</div></b></td><td></td></tr><tr><td><b><b class="lead-s">トランザクションスクリプトの3つも、アプリケーションのポートを通せば入出力から離れる</b><div class="sub-s">別にレイヤードを組まなくてよい</div></b></td><td></td></tr><tr><td><b><b class="lead-s">no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる</b><div class="sub-s">どちらも Rust の側が持つ道具である</div></b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（4件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>雛形の4層を手続き的な変換の Skill に当て、中核がドメインモデルの Skill はポートとアダプタで組む、という決定を ACDR で起こす。skills-creator に、ポートとアダプタの組を足すかもそこで決める</b></td><td></td></tr><tr><td><b>skills-creator の構成の検査（check --layout）が、schema-driven の構成をどう扱うかを試す</b></td><td></td></tr><tr><td><b>clippy の disallowed-methods で、sd_domain ・ sd_instances ・ sd_render ・ sd_transcribe の std::fs を禁じられるかを試す</b></td><td></td></tr><tr><td><b>宣言の BC-1 の公開された言葉を、描画が使う語（インスタンスの値と x-view）に絞る</b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q1" data-title="schema-driven の道具を、どの層とモジュールに分けて組むか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>Rust で使う crate と、その版と設定をどうするか</h2></div><div class="note">ここで、schema-driven と、そこから転写した複製が、どの crate のどの版で動くかが決まる</div><div class="ans"><span class="big">A</span><div class="scroll"><table><thead><tr><th>用途</th><th>crate</th><th>版</th><th>設定</th></tr></thead><tbody><tr><td>JSON</td><td>serde_json</td><td>1.0.151</td><td>preserve_order（キーの順を保ち、ハッシュ値と差分を安定させる）</td></tr><tr><td>JSON Schema の検証</td><td>jsonschema</td><td>0.58.5</td><td>default-features = false。手元のスキーマを道具が読み、$ref の先として登録する</td></tr><tr><td>取得</td><td>jmespath</td><td>0.5.0</td><td>sd_jmespath に置き、取得のポートを実装する。どの実装にも同じ契約の試験を当てる</td></tr><tr><td>更新</td><td>json-patch</td><td>4.2.0</td><td>―</td></tr><tr><td>ハッシュ値</td><td>sha2</td><td>0.11.0</td><td>―</td></tr><tr><td>MCP</td><td>rmcp</td><td>3.5.0</td><td>default-features = false、features は server ・ macros ・ transport-io</td></tr><tr><td>非同期の実行</td><td>tokio</td><td>1.53.2</td><td>net を入れない</td></tr></tbody></table></div><b>版は正本の Cargo.lock だけで決める。</b>複製の側では cargo update をしない。複製の lock のハッシュ値を正本と比べ、差分の検査に含める。<b>ネットワークに出ないことを、設定と検査の両方で保つ。</b>CI で cargo tree -i reqwest（hyper ・ rustls ・ native-tls も）が何も出さないことを確かめる。通信を断った環境で cargo test --offline --locked を走らせる。<b>見直すきっかけを決めておく。</b>保守を止める知らせ ・ 脆弱性 ・ 12か月リリースが無いこと、のどれかが起きたら jmespath を見直す。rmcp は出るたびには追わない。</div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,425px)" class="wf-fig" viewBox="0 0 425 302" height="302" role="img"><g transform="translate(6.0,6.0)"><path d="M98.8,25.0 L185.0,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="185.0,25.0 178.2,27.5 178.2,22.5" fill="#C3CAD2"/><path d="M122.2,108.0 L185.0,108.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="185.0,108.0 178.2,110.5 178.2,105.5" fill="#C3CAD2"/><path d="M114.4,191.0 L184.8,191.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="184.8,191.0 178.0,193.5 178.0,188.5" fill="#C3CAD2"/><path d="M75.4,265.0 L185.0,265.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="185.0,265.0 178.2,267.5 178.2,262.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,9.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="98.2" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="49.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_domain</text></g></g><g class="wf-node" transform="translate(0.0,92.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="121.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="60.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_instances</text></g></g><g class="wf-node" transform="translate(0.0,175.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="113.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="56.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_jmespath</text></g></g><g class="wf-node" transform="translate(0.0,249.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="74.8" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="37.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sd_mcp</text></g></g><g class="wf-node" transform="translate(185.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="227.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="113.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sha2 0.11.0 ・ serde_json </text><text x="113.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">1.0.151（preserve_order）</text></g></g><g class="wf-node" transform="translate(185.6,74.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="223.6" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="111.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">jsonschema 0.58.5</text><text x="111.8" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（default-features = </text><text x="111.8" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">false）・ json-patch 4.2.0</text></g></g><g class="wf-node" transform="translate(185.6,166.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="161.2" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="80.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">jmespath 0.5.0（取</text><text x="80.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">得のポートの実装）</text></g></g><g class="wf-node" transform="translate(185.6,240.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="219.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="109.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">rmcp 3.5.0 ・ tokio 1.53.</text><text x="109.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">2（ネットワークの機能を外す）</text></g></g></g></svg><figcaption>crate ごとに使う外の crate。<b>ネットワークに出る機能は外し、JMESPath の crate はアダプタの crate に閉じ込める。</b></figcaption></figure></div><div class="ex"><b>見本：sd_instances の Cargo.toml</b><pre><code><pre><code>[dependencies]
+sd_domain  = { path = "../domain" }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+jsonschema = { version = "0.58.5", default-features = false }
+json-patch = "4.2.0"</code></pre></code></pre><div class="scroll"><table><thead><tr><th>crate</th><th>既定の features（原文）</th><th>外す理由</th></tr></thead><tbody><tr><td>jsonschema 0.58.5</td><td>resolve-http ・ resolve-file ・ tls-aws-lc-rs ・ idna</td><td>resolve-http が $ref の先をネットワークから取りに行く</td></tr><tr><td>rmcp 3.5.0</td><td>base64 ・ macros ・ server</td><td>使う機能だけを明示し、増えた既定の機能を勝手に入れない</td></tr></tbody></table></div></div></div></details><details><summary>この答えが残った理由 ── 通過 3件 ／ 除外 2件</summary><div><p class="note-s">反証を通過した案 3件。このうち1つを残し、他は負担が大きいか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>採ると負担すること</th></tr><tr><td><span class="n">A</span></td><td><b>最新の版を使い、ネットワークに出る機能を外す</b></td><td>版は正本の lock で決め、複製は lock ごと写す</td><td><span class="cost">いまの18件の Skill と版がそろわない（jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10）</span></td></tr><tr><td><span class="n">B</span></td><td><b>いまの Skill と同じ版にそろえる</b></td><td>jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10 を使う</td><td><span class="cost">Skill ごとに workspace が分かれているので、そろえても共有されるものが無い。古い版の費用が増える</span></td></tr><tr><td><span class="n">C</span></td><td><b>JMESPath をやめて JSONPath（RFC 9535）の crate にする</b></td><td>取得の式の仕様を替える</td><td><span class="cost">基盤の論点1の決定を変えることになり、その crate の保守が太いという材料も無い</span></td></tr></table></div><p class="note-s">除外した案 2件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="依存は最新のパッチを当てた版に保つ。古いものを残すなら、技術との差が広がったときの費用も比べる。Skill ごとに workspace が分かれているので、そろえても得るものが無い"><b>いまの Skill と同じ版にそろえる</b></mark></td><td>依存は最新のパッチを当てた版に保つ。古いものを残すなら、技術との差が広がったときの費用も比べる。Skill ごとに workspace が分かれているので、そろえても得るものが無い</td></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="基盤の論点1の決定を先に変えることになる。JSONPath の crate のほうが保守が太いという材料が無い"><b>JMESPath をやめて JSONPath（RFC 9535）の crate にする</b></mark></td><td>基盤の論点1の決定を先に変えることになる。JSONPath の crate のほうが保守が太いという材料が無い</td></tr></table></div><p class="note-s"><b>案ごとの帰結</b></p><div class="scroll"><table><tr><th></th><th>依存を最新に保てるか</th><th>決まったことを変えるか</th></tr><tr><td><span class="n">最新の版を使い、ネットワークに出る機能を外す</span></td><td><b>保てる</b></td><td>変えない</td></tr><tr><td><span class="n">いまの Skill と同じ版にそろえる</span></td><td><b>保てない</b></td><td>変えない</td></tr><tr><td><span class="n">JMESPath をやめて JSONPath（RFC 9535）の crate にする</span></td><td>保てる</td><td><b>変える</b>（基盤の論点1）</td></tr></table></div></div></details><details><summary>この答えの前提（6件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">各 crate の最新の版と更新日</span></td><td>max_version と updated_at</td><td><span class="kind k-src">原典</span><small>crates.io の API（https://crates.io/api/v1/crates/<名前>、2026-10-05 取得。sources/ に原文）</small></td></tr><tr><td><span class="part">各 crate のライセンス</span></td><td>license の値（MIT ・ MIT OR Apache-2.0 ・ MIT/Apache-2.0 ・ Apache-2.0）</td><td><span class="kind k-src">原典</span><small>同上。版とライセンスの14件を、原文の文字列で照合した</small></td></tr><tr><td><span class="part">jsonschema と rmcp の既定の features</span></td><td>features の default の値</td><td><span class="kind k-src">原典</span><small>crates.io の API の版ごとの記録（jsonschema/0.58.5 ・ rmcp/3.5.0、2026-10-05 取得）</small></td></tr><tr><td><span class="part">依存を最新に保つことと、見直すきっかけを決めること</span></td><td>platform-advisor の判断（ops-05 ・ cost-10 ・ rel-08 ・ sec-05 ・ sec-06 の基準）</td><td><span class="kind k-rule">決まり</span><small>platform-advisor の回答（2026-10-05）</small></td></tr><tr><td><span class="part">試作で動いた組み合わせ</span></td><td>jsonschema 0.58 ・ jmespath 0.5 ・ json-patch 4.2 ・ serde_json（preserve_order）</td><td><span class="kind k-fact">実測</span><small>schema-driven-base の trial/spike の Cargo.toml</small></td></tr><tr><td><span class="part">手元の Rust で rmcp の最低の版を満たすこと</span></td><td>rustc 1.98.1。rmcp 3.5.0 の rust_version は 1.88</td><td><span class="kind k-fact">実測</span><small>rustc --version と crates.io の API</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（2件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に必要である）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>いまの18件の Skill の版と設定を、この案にそろえること</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">いまの Skill を schema-driven の上へ移すとき（基盤の論点4で後続とした）に合わせて決める</div></td></tr><tr><td>CLI の引数の解析の crate</td><td><b class="lead-s"><span class="kind k-rule">対象外</span></b><div class="sub-s">雛形のとおり、service の道具の一覧から CLI を組む</div></td></tr></table></div></div></details><details><summary>この答えに至る経過（1手） ── 何を問い、そこで何が判明したか</summary><div><p class="note-s">古い順</p><ol class="path"><li><p>初めの案は「ポートの後ろに置き、lock で固定する」だけだった。platform-advisor の点検で、差し替え ・ 複製の版 ・ ネットワークの遮断のどれも検査で確かめる形になっていないと分かり、契約の試験 ・ lock の照合 ・ CI の検査を足した。</p></li></ol></div></details><details><summary>反証で分かったこと（3件）</summary><div><div class="scroll"><table><tr><th>何が分かったか</th><th>だから何が決まったか</th></tr><tr><td><b><b class="lead-s">jsonschema の既定の features は resolve-http と resolve-file を含む</b><div class="sub-s">外すとファイルの $ref も解けないので、手元のスキーマを道具の側で登録する</div></b></td><td></td></tr><tr><td><b>sha256 の承認記録は、承認したあとに内容が変わっていないことだけを示し、誰が承認したかは示さない</b></td><td></td></tr><tr><td><b>jmespath の版の間は 0.3.0（2022-02）から 0.4.0（2025-07）まで3年あった</b></td><td></td></tr></table></div></div></details><details><summary>この答えが要求する事項（4件）</summary><div><div class="scroll"><table><tr><th>要求する事項</th><th>理由</th></tr><tr><td><b>CI に、cargo tree -i で通信の crate が無いことの検査と、通信を断った cargo test --offline --locked を置く</b></td><td></td></tr><tr><td><b>取得のポートに契約の試験を置き、jmespath の実装に当てる</b></td><td></td></tr><tr><td><b>転写の差分の検査に、複製の Cargo.lock のハッシュ値を含める</b></td><td></td></tr><tr><td><b>承認記録が「誰が承認したか」を示さないことを、宣言のその他の要求に書く</b></td><td></td></tr></table></div></div></details></div><div class="form" data-q="Q2" data-title="Rust で使う crate と、その版と設定をどうするか"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb ret" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンは差し込み。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>アーキテクチャと技術スタックを、宣言 ・ 規則 ・ Cargo のどこに書くか</h2></div><div class="note">ここで、仕様（宣言）と実装の決まりが、どちらを向いてつながるかが決まる</div><div class="ans"><span class="big">A</span><div class="scroll"><table><thead><tr><th>何を</th><th>どこに</th><th>理由</th></tr></thead><tbody><tr><td>構成と向き</td><td>Cargo.toml の crate の依存</td><td>Cargo が止める。持ち主は Rust の側にある</td></tr><tr><td>crate と版</td><td>Cargo.toml ・ Cargo.lock</td><td>正本を2か所に持たない</td></tr><tr><td>なぜそうしたか</td><td>ACDR</td><td>決定と理由を残す</td></tr><tr><td>実装から文脈を指すこと</td><td>後続（コーディングの Skill の形）</td><td>仕様に実装の対応を書かない（ACDR 0114）。指すのは実装の側から</td></tr></tbody></table></div></div><div><details class="image" open><summary>この答えの完成イメージ ── 図と、実例</summary><div><div class="figs"><figure><svg style="max-width:min(100%,594px)" class="wf-fig" viewBox="0 0 594 143" height="143" role="img"><g transform="translate(6.0,6.0)"><path d="M234.6,41.2 L325.0,25.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="325.0,25.0 318.8,28.6 317.9,23.8" fill="#C3CAD2"/><rect x="250.8" y="23.1" width="58.0" height="16.0" fill="#F5F7F9"/><text x="279.8" y="36.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">理由を持つ</text><path d="M234.6,41.2 L325.2,90.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="325.2,90.0 318.1,89.0 320.4,84.6" fill="#C3CAD2"/><rect x="250.9" y="55.6" width="58.0" height="16.0" fill="#F5F7F9"/><text x="279.9" y="69.2" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">根拠にする</text><path d="M215.2,106.2 L325.2,90.0" fill="none" stroke="#C3CAD2" stroke-width="1.2" stroke-dasharray="4 3"/><polygon points="325.2,90.0 318.9,93.4 318.1,88.6" fill="#C3CAD2"/><rect x="236.2" y="88.1" width="68.0" height="16.0" fill="#F5F7F9"/><text x="270.2" y="101.7" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">指す（後続）</text><g class="wf-node" transform="translate(325.8,74.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="256.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="128.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">宣言の区切られた文脈と、導いた実装の型</text></g></g><g class="wf-node" transform="translate(325.8,0.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="224.8" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="112.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">Cargo.toml（crate の依存で向</text><text x="112.4" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">きを持つ）・ Cargo.lock（版）</text></g></g><g class="wf-node" transform="translate(0.0,25.2)"><g class="svg-box" role="focus"><rect x="0" y="0" width="233.8" height="32.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="116.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">ACDR（なぜその構成と crate か）</text></g></g><g class="wf-node" transform="translate(0.0,81.2)"><g class="svg-box" role="plain"><rect x="0" y="0" width="214.6" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="107.3" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">実装から文脈を指す場所（コーデ</text><text x="107.3" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ィングの Skill の形で決める）</text></g></g></g></svg><figcaption>実装の決まりは、実装の側（Cargo と ACDR）に置く。<b>宣言には実装の決まりを書かない。</b>実装から文脈を指す場所は後で決める。</figcaption></figure></div><div class="ex"><p>論点1と2が決着したら、ここに Cargo の workspace の見本と、ACDR の見出しを置く。</p></div></div></details><details><summary>この答えが残った理由 ── 通過 2件 ／ 除外 1件</summary><div><p class="note-s">反証を通過した案 2件。このうち1つを残し、他は負担が大きいか、前提を壊す。</p><div class="scroll"><table><tr><th></th><th>案</th><th>中身</th><th>採ると負担すること</th></tr><tr><td><span class="n">A</span></td><td><b>実装の側に置き、仕様を指す</b></td><td>Cargo と ACDR に分けて置き、文脈を指す場所は後で決める</td><td><span class="cost">いまは、実装と文脈のつながりが ACDR の文にしか無い</span></td></tr><tr><td><span class="n">B</span></td><td><b>宣言に実装の方針の種類を足す</b></td><td>文脈ごとに構成と crate を宣言に書く</td><td><span class="cost">Cargo.lock と同じことを2か所に持ち、ずれる</span></td></tr></table></div><p class="note-s">除外した案 1件 ── 何が壊れるか。</p><div class="scroll"><table><tr><th></th><th>除外した案</th><th>何が壊れるか</th></tr><tr><td><span class="n out">×</span></td><td><mark class="chg del" tabindex="0" role="button" aria-expanded="false" data-b="この案は残っていた" data-w="仕様に実装の対応を細かく書くと、実装とずれやすい（利用者の言明、ACDR 0114）。crate の版は Cargo.lock と2か所になる"><b>宣言に実装の方針の種類を足す</b></mark></td><td>仕様に実装の対応を細かく書くと、実装とずれやすい（利用者の言明、ACDR 0114）。crate の版は Cargo.lock と2か所になる</td></tr></table></div></div></details><details><summary>この答えの前提（1件） ── 何に依拠しているか</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">仕様に実装の対応を書かないこと</span></td><td>仕様に実装の対応を書かず、つながりを従属関係で持つ</td><td><span class="kind k-rule">決まり</span><small>ACDR 0114</small></td></tr></table></div></div></details><details><summary>この答えが扱わない範囲（1件）</summary><div><p class="note-s"><b>いずれも、この答えを覆さない。</b>覆しうるものは反証で除外済みであり、ここには残存しない ── <b>承認を保留する理由にはならない。</b></p><p class="note-s">扱いは3種である ── <b>対象外</b>（この答えでは解決しない。解決する手段が別に必要である）／ <b>後続で決定</b>（この答えの内側で、どこで決めるかが定まっている）／ <b>解消済</b>（既に解決した）。</p><div class="scroll"><table><tr><th>事項</th><th>扱い</th></tr><tr><td>実装から宣言の文脈を指す場所の形</td><td><b class="lead-s"><span class="kind k-given">後続で決定</span></b><div class="sub-s">ボード usecase-modeling-coding の、コーディングの Skill の形で決める</div></td></tr></table></div></div></details></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 2</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。ローカルサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>
+(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      /* **選んだタブを、横の並びの中央へ送る** ── 携帯ではタブが横1行なので、
+         跳んだ先のタブが画面の外に残る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ跳ぶ */
+  document.querySelectorAll(".front .jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 変更の印 ── 押すと、変更前と理由が開く */
+  document.querySelectorAll("mark.chg").forEach(function(m){
+    m.addEventListener("click",function(){
+      var open=m.getAttribute("aria-expanded")==="true";
+      var nx=m.nextElementSibling;
+      if(open){ if(nx&&nx.classList.contains("pop")) nx.hidden=true; }
+      else{
+        if(!nx||!nx.classList.contains("pop")){
+          nx=document.createElement("span"); nx.className="pop";
+          nx.innerHTML="<b>変更前</b>"+m.dataset.b+"<b style='margin-top:.5rem'>なぜ変えたか</b>"+m.dataset.w;
+          m.parentNode.insertBefore(nx,m.nextSibling);
+        }
+        nx.hidden=false;
+      }
+      m.setAttribute("aria-expanded",open?"false":"true");
+    });
+    m.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}
+    });
+  });
+
+  /* この回の変更の引き出し ── どの画面からでも開ける */
+  var dt=document.getElementById("dtoggle"), dw=document.getElementById("drawer");
+  function drawer(open){
+    if(!dt||!dw) return;
+    dw.hidden=!open; dt.setAttribute("aria-expanded",open?"true":"false");
+  }
+  if(dt){
+    dt.addEventListener("click",function(){ drawer(dw.hidden); });
+    document.getElementById("dclose").addEventListener("click",function(){ drawer(false); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") drawer(false); });
+    document.querySelectorAll(".dgo").forEach(function(b){
+      b.addEventListener("click",function(){
+        var tb=document.querySelector('#tabs button[data-t="'+b.dataset.go+'"]');
+        if(tb) tb.click();
+        var m=document.getElementById(b.dataset.cid);
+        if(m){
+          var d=m.closest("details"); if(d) d.open=true;
+          m.scrollIntoView({block:"center",behavior:"smooth"});
+          m.classList.add("hit"); setTimeout(function(){ m.classList.remove("hit"); },1800);
+        }
+        if(window.matchMedia("(max-width:48rem)").matches) drawer(false);
+      });
+    });
+  }
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var qid=f.dataset.q;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[qid]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var qid=f.dataset.q;
+      if(!state[qid]) return;
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      answers.push({questionId:qid, topic:ROOT.dataset.themeName,
+        title:f.dataset.title, verdict:state[qid],
+        returnReason:(state[qid]==="returned"&&r)?r:null, note:nt||null});
+    });
+    var sheet={board:ROOT.dataset.board, round:Number(ROOT.dataset.round),
+      answeredAt:new Date().toISOString(), answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* サーバーが無ければ、貼る形へ切り替わる */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

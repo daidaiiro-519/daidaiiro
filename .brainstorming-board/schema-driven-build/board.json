@@ -1,0 +1,631 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "title": "schema-driven を Rust で作る ── アーキテクチャと技術スタック",
+ "board": "schema-driven-build",
+ "round": 1,
+ "intro": [
+  {
+   "kind": "para",
+   "text": "schema-driven を Rust で作るときの、アーキテクチャと技術スタックと、それをどこに書くかを決める。宣言は schema-driven-base/product/ にあり、実装の型はそこから導いた。"
+  }
+ ],
+ "panels": [
+  {
+   "heading": "いま見る論点",
+   "body": [
+    {
+     "kind": "para",
+     "text": "<b>論点1（アーキテクチャ）と論点2（技術スタック）を同時に開いた。</b>2つは互いに依存しない。論点3（どこに書くか）は、1と2の答えを置く場所なので、そのあとに開く。"
+    },
+    {
+     "kind": "para",
+     "text": "<b>論点1の前提：</b>skills-creator の雛形がレイヤードなのは、「Skill の道具は手続き的な変換である」という前提で決めたからである（ACDR 0056 ・ 0058）。schema-driven は中核がドメインモデルなので、この前提に当たらない。"
+    },
+    {
+     "kind": "para",
+     "text": "<b>no-more-spaghetti は廃止した。</b>.coding-rules と inward には持ち主がいないので、向きは Rust と Cargo そのものの仕組みで止める。"
+    }
+   ]
+  }
+ ],
+ "queue": [
+  {
+   "no": 1,
+   "why": "宣言から実装の型が導けた（参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト）ので、コードのどこに置くかを決められる"
+  },
+  {
+   "no": 2,
+   "why": "使う crate の原文を crates.io から取得し、版とライセンスを照合した"
+  }
+ ],
+ "topics": [
+  {
+   "no": 1,
+   "name": "アーキテクチャ",
+   "status": "open",
+   "question": "schema-driven の道具を、どの層とモジュールに分けて組むか",
+   "answer": "A ── <b>外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える。</b>中核の check はドメインモデルとしてドメインの crate に置き、readwrite ・ render ・ transcribe はトランザクションスクリプトとしてアプリケーションの crate に置く。ポートはアプリケーションの側が決め、アダプタがそれを実装する。向きは crate の依存で止める",
+   "intro": "ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "crate",
+       "中身",
+       "実装の型",
+       "依存してよい先"
+      ],
+      "rows": [
+       [
+        "sd_domain",
+        "check（参照と導出値の集約 ・ ドメインサービス ・ 値オブジェクト）",
+        "ドメインモデル",
+        "無し"
+       ],
+       [
+        "sd_published",
+        "描画へ渡す読み取り専用の型",
+        "―",
+        "sd_domain"
+       ],
+       [
+        "sd_instances",
+        "readwrite。インスタンスの置き場所と取得のポートを決める",
+        "トランザクションスクリプト",
+        "sd_domain"
+       ],
+       [
+        "sd_render",
+        "描画。ページの書き出しのポートを決める",
+        "トランザクションスクリプト",
+        "sd_published"
+       ],
+       [
+        "sd_transcribe",
+        "転写。複製の読み書きのポートを決める",
+        "トランザクションスクリプト",
+        "無し"
+       ],
+       [
+        "sd_fs ・ sd_jmespath",
+        "駆動される側のアダプタ。ポートを実装する",
+        "―",
+        "ポートを決めた crate"
+       ],
+       [
+        "sd_cli ・ sd_mcp",
+        "駆動する側のアダプタ。アダプタを組み立てる",
+        "―",
+        "すべて"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>向きは Rust と Cargo そのものの仕組みで止める。</b>crate の依存は Cargo が止める。sd_render は sd_published だけに依存するので、check の型を使えない。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>ドメインとアプリケーションの crate では、ファイルを直接読まない。</b>clippy の disallowed-methods で std::fs を禁じる。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>見本：tool/ の並び</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>.claude/skills/schema-driven/tool/\n  domain/        sd_domain      ドメインモデル（入出力なし）\n  published/     sd_published   描画へ渡す型\n  instances/     sd_instances   readwrite とそのポート\n  render/        sd_render      描画とそのポート\n  transcribe/    sd_transcribe  転写とそのポート\n  fs/            sd_fs          ファイルシステムのアダプタ\n  jmespath/      sd_jmespath    取得のアダプタ\n  cli/  mcp/     駆動する側のアダプタ</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "テストの形",
+      "どの crate"
+     ],
+     "rows": [
+      [
+       "単体テスト（値を渡して結果を見る）",
+       "sd_domain"
+      ],
+      [
+       "ポートに手元の偽物を差して、ユースケースを通す",
+       "sd_instances ・ sd_render ・ sd_transcribe"
+      ],
+      [
+       "ポートの契約の試験（どの実装にも同じ試験を当てる）",
+       "sd_fs ・ sd_jmespath"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "layers",
+     "caption": "外側はポートとアダプタ。<b>中核の sd_domain はどこにも依存せず、アダプタがアプリケーションのポートを実装する。</b>"
+    }
+   ],
+   "passed": [
+    {
+     "name": "外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える",
+     "body": "ドメイン ・ アプリケーション ・ アダプタを crate に分け、向きを Cargo で止める",
+     "cost": "crate が9つになる。雛形の4層の規則（ACDR 0071）と構成の検査に合わない"
+    },
+    {
+     "name": "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "body": "business_logic の中をモジュールに分け、data_access を直接呼ぶ",
+     "cost": "中核のドメインモデルをレイヤードに載せる。ポートとアダプタの考え方が崩れる"
+    },
+    {
+     "name": "業務領域ごとに技術方式を分ける",
+     "body": "BC-1 だけポートとアダプタ、描画と転写はレイヤード",
+     "cost": "1つの道具の中に2つの組み立て方が並び、駆動する側のアダプタの組み立てが2通りになる"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "中核が入出力から離れるか",
+      "向きを機械で止められるか",
+      "雛形の規則と合うか"
+     ],
+     "rows": [
+      [
+       "外側をポートとアダプタにし、中の実装の型を業務領域ごとに変える",
+       [
+        "<b>離れる</b>",
+        "<b>Cargo とコンパイラで止める</b>",
+        "合わない（ACDR で決める）"
+       ]
+      ],
+      [
+       "skills-creator の雛形の4層（レイヤード）に合わせる",
+       [
+        "<b>離れない</b>",
+        "規則の持ち主がいない",
+        "合う"
+       ]
+      ],
+      [
+       "業務領域ごとに技術方式を分ける",
+       [
+        "離れる",
+        "Cargo で止める",
+        "合わない"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "reason": "雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない。ドメインモデルをレイヤードに載せると、業務ロジックが入出力の層に依存する"
+    },
+    {
+     "body": "業務領域ごとに技術方式を分ける",
+     "reason": "描画と転写もアプリケーションのポートを通してファイルを扱えば、入出力は分かれる。レイヤードを別に置くと、組み立てが2通りになるだけで得るものが無い"
+    }
+   ],
+   "path": [
+    {
+     "kind": "card",
+     "letter": "A",
+     "heading": "前の答え：雛形の4層の中をモジュールに分け、規則と inward で向きを測る",
+     "events": [
+      {
+       "tag": "returned",
+       "text": "まってね、もうノーモアスパゲッティは廃止したんだけどまだそのcoding ruleは使うの？誰も所有してないんだよなあ"
+      },
+      {
+       "tag": "returned",
+       "text": "あとそのビジネスロジックとデータアクセスというのはかなりレイヤードに引っ張られた表現でおそらくスキルクリエーターに引っ張られてると思うんですけど、それをこのスキーマ駆動でも表現してしまうとポートとアダプターの概念が崩れます。"
+      },
+      {
+       "tag": "obsolete",
+       "text": "rules.json と inward で向きを測ること。business_logic と data_access の語"
+      },
+      {
+       "tag": "finding",
+       "text": "雛形がレイヤードなのは、道具を手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）"
+      }
+     ]
+    }
+   ],
+   "findings": [
+    "実装の型が決まれば、技術方式も決まる ── ドメインモデルにはポートとアダプタ、トランザクションスクリプトにはレイヤードが対応する",
+    "トランザクションスクリプトの3つも、アプリケーションのポートを通せば入出力から離れる ── 別にレイヤードを組まなくてよい",
+    "no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる ── どちらも Rust の側が持つ道具である"
+   ],
+   "grounds": [
+    {
+     "supports": "雛形がレイヤードになった理由",
+     "basis": "道具の処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける",
+     "tag": "rule",
+     "source": "ACDR 0058（あわせて 0056）"
+    },
+    {
+     "supports": "実装の型から技術方式を決めること",
+     "basis": "業務ロジックの実装方法が決定すれば、技術方式も決定する",
+     "tag": "rule",
+     "source": "ddd-advisor の判断基準 design-heuristics"
+    },
+    {
+     "supports": "中核をポートとアダプタにすること",
+     "basis": "判断の要は、業務ロジックをドメインモデルで実装するときに選択することである",
+     "tag": "rule",
+     "source": "ddd-advisor の判断基準 ports-and-adapters"
+    },
+    {
+     "supports": "中核と、それ以外で実装の型を分けること",
+     "basis": "参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト",
+     "tag": "rule",
+     "source": "schema-driven の宣言（x-derive で導いた値）"
+    },
+    {
+     "supports": "no-more-spaghetti の規則を使わないこと",
+     "basis": "no-more-spaghetti を廃止し、.coding-rules には持ち主がいない",
+     "tag": "rule",
+     "source": "利用者の言明（2026-10-05）"
+    }
+   ],
+   "requirements": [
+    "雛形の4層を手続き的な変換の Skill に当て、中核がドメインモデルの Skill はポートとアダプタで組む、という決定を ACDR で起こす。skills-creator に、ポートとアダプタの組を足すかもそこで決める",
+    "skills-creator の構成の検査（check --layout）が、schema-driven の構成をどう扱うかを試す",
+    "clippy の disallowed-methods で、sd_domain ・ sd_instances ・ sd_render ・ sd_transcribe の std::fs を禁じられるかを試す",
+    "宣言の BC-1 の公開された言葉を、描画が使う語（インスタンスの値と x-view）に絞る"
+   ],
+   "out_of_scope": [
+    {
+     "item": "いまの Skill の構成",
+     "treatment": "out",
+     "note": "この論点は schema-driven の構成だけを決める"
+    },
+    {
+     "item": "skill-wiring.json に残る no-more-spaghetti の3行と、.coding-rules の片付け",
+     "treatment": "later",
+     "note": "no-more-spaghetti を廃止する作業（ボード usecase-modeling-coding）で片付ける"
+    }
+   ]
+  },
+  {
+   "no": 2,
+   "name": "技術スタック",
+   "status": "open",
+   "question": "Rust で使う crate と、その版と設定をどうするか",
+   "answer": "A ── <b>各 crate の最新の版を使い、ネットワークに出る機能を外す。</b>版は正本の Cargo.lock の1か所で決め、転写した複製は lock ごと写す。JMESPath の crate は保守が細いので、取得の操作をポートの後ろに置き、契約の試験を当てる",
+   "intro": "ここで、schema-driven と、そこから転写した複製が、どの crate のどの版で動くかが決まる",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "用途",
+       "crate",
+       "版",
+       "設定"
+      ],
+      "rows": [
+       [
+        "JSON",
+        "serde_json",
+        "1.0.151",
+        "preserve_order（キーの順を保ち、ハッシュ値と差分を安定させる）"
+       ],
+       [
+        "JSON Schema の検証",
+        "jsonschema",
+        "0.58.5",
+        "default-features = false。手元のスキーマを道具が読み、$ref の先として登録する"
+       ],
+       [
+        "取得",
+        "jmespath",
+        "0.5.0",
+        "sd_jmespath に置き、取得のポートを実装する。どの実装にも同じ契約の試験を当てる"
+       ],
+       [
+        "更新",
+        "json-patch",
+        "4.2.0",
+        "―"
+       ],
+       [
+        "ハッシュ値",
+        "sha2",
+        "0.11.0",
+        "―"
+       ],
+       [
+        "MCP",
+        "rmcp",
+        "3.5.0",
+        "default-features = false、features は server ・ macros ・ transport-io"
+       ],
+       [
+        "非同期の実行",
+        "tokio",
+        "1.53.2",
+        "net を入れない"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>版は正本の Cargo.lock だけで決める。</b>複製の側では cargo update をしない。複製の lock のハッシュ値を正本と比べ、差分の検査に含める。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>ネットワークに出ないことを、設定と検査の両方で保つ。</b>CI で cargo tree -i reqwest（hyper ・ rustls ・ native-tls も）が何も出さないことを確かめる。通信を断った環境で cargo test --offline --locked を走らせる。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>見直すきっかけを決めておく。</b>保守を止める知らせ ・ 脆弱性 ・ 12か月リリースが無いこと、のどれかが起きたら jmespath を見直す。rmcp は出るたびには追わない。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>見本：sd_instances の Cargo.toml</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>[dependencies]\nsd_domain  = { path = \"../domain\" }\nserde_json = { version = \"1.0.151\", features = [\"preserve_order\"] }\njsonschema = { version = \"0.58.5\", default-features = false }\njson-patch = \"4.2.0\"</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "crate",
+      "既定の features（原文）",
+      "外す理由"
+     ],
+     "rows": [
+      [
+       "jsonschema 0.58.5",
+       "resolve-http ・ resolve-file ・ tls-aws-lc-rs ・ idna",
+       "resolve-http が $ref の先をネットワークから取りに行く"
+      ],
+      [
+       "rmcp 3.5.0",
+       "base64 ・ macros ・ server",
+       "使う機能だけを明示し、増えた既定の機能を勝手に入れない"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "crates",
+     "caption": "crate ごとに使う外の crate。<b>ネットワークに出る機能は外し、JMESPath の crate はアダプタの crate に閉じ込める。</b>"
+    }
+   ],
+   "passed": [
+    {
+     "name": "最新の版を使い、ネットワークに出る機能を外す",
+     "body": "版は正本の lock で決め、複製は lock ごと写す",
+     "cost": "いまの18件の Skill と版がそろわない（jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10）"
+    },
+    {
+     "name": "いまの Skill と同じ版にそろえる",
+     "body": "jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10 を使う",
+     "cost": "Skill ごとに workspace が分かれているので、そろえても共有されるものが無い。古い版の費用が増える"
+    },
+    {
+     "name": "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+     "body": "取得の式の仕様を替える",
+     "cost": "基盤の論点1の決定を変えることになり、その crate の保守が太いという材料も無い"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "依存を最新に保てるか",
+      "決まったことを変えるか"
+     ],
+     "rows": [
+      [
+       "最新の版を使い、ネットワークに出る機能を外す",
+       [
+        "<b>保てる</b>",
+        "変えない"
+       ]
+      ],
+      [
+       "いまの Skill と同じ版にそろえる",
+       [
+        "<b>保てない</b>",
+        "変えない"
+       ]
+      ],
+      [
+       "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+       [
+        "保てる",
+        "<b>変える</b>（基盤の論点1）"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "いまの Skill と同じ版にそろえる",
+     "reason": "依存は最新のパッチを当てた版に保つ。古いものを残すなら、技術との差が広がったときの費用も比べる。Skill ごとに workspace が分かれているので、そろえても得るものが無い"
+    },
+    {
+     "body": "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+     "reason": "基盤の論点1の決定を先に変えることになる。JSONPath の crate のほうが保守が太いという材料が無い"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "初めの案は「ポートの後ろに置き、lock で固定する」だけだった。platform-advisor の点検で、差し替え ・ 複製の版 ・ ネットワークの遮断のどれも検査で確かめる形になっていないと分かり、契約の試験 ・ lock の照合 ・ CI の検査を足した。"
+    }
+   ],
+   "findings": [
+    "jsonschema の既定の features は resolve-http と resolve-file を含む ── 外すとファイルの $ref も解けないので、手元のスキーマを道具の側で登録する",
+    "sha256 の承認記録は、承認したあとに内容が変わっていないことだけを示し、誰が承認したかは示さない",
+    "jmespath の版の間は 0.3.0（2022-02）から 0.4.0（2025-07）まで3年あった"
+   ],
+   "grounds": [
+    {
+     "supports": "各 crate の最新の版と更新日",
+     "basis": "max_version と updated_at",
+     "tag": "primary",
+     "source": "crates.io の API（https://crates.io/api/v1/crates/<名前>、2026-10-05 取得。sources/ に原文）"
+    },
+    {
+     "supports": "各 crate のライセンス",
+     "basis": "license の値（MIT ・ MIT OR Apache-2.0 ・ MIT/Apache-2.0 ・ Apache-2.0）",
+     "tag": "primary",
+     "source": "同上。版とライセンスの14件を、原文の文字列で照合した"
+    },
+    {
+     "supports": "jsonschema と rmcp の既定の features",
+     "basis": "features の default の値",
+     "tag": "primary",
+     "source": "crates.io の API の版ごとの記録（jsonschema/0.58.5 ・ rmcp/3.5.0、2026-10-05 取得）"
+    },
+    {
+     "supports": "試作で動いた組み合わせ",
+     "basis": "jsonschema 0.58 ・ jmespath 0.5 ・ json-patch 4.2 ・ serde_json（preserve_order）",
+     "tag": "measured",
+     "source": "schema-driven-base の trial/spike の Cargo.toml"
+    },
+    {
+     "supports": "手元の Rust で rmcp の最低の版を満たすこと",
+     "basis": "rustc 1.98.1。rmcp 3.5.0 の rust_version は 1.88",
+     "tag": "measured",
+     "source": "rustc --version と crates.io の API"
+    },
+    {
+     "supports": "依存を最新に保つことと、見直すきっかけを決めること",
+     "basis": "platform-advisor の判断（ops-05 ・ cost-10 ・ rel-08 ・ sec-05 ・ sec-06 の基準）",
+     "tag": "rule",
+     "source": "platform-advisor の回答（2026-10-05）"
+    }
+   ],
+   "requirements": [
+    "CI に、cargo tree -i で通信の crate が無いことの検査と、通信を断った cargo test --offline --locked を置く",
+    "取得のポートに契約の試験を置き、jmespath の実装に当てる",
+    "転写の差分の検査に、複製の Cargo.lock のハッシュ値を含める",
+    "承認記録が「誰が承認したか」を示さないことを、宣言のその他の要求に書く"
+   ],
+   "out_of_scope": [
+    {
+     "item": "いまの18件の Skill の版と設定を、この案にそろえること",
+     "treatment": "later",
+     "note": "いまの Skill を schema-driven の上へ移すとき（基盤の論点4で後続とした）に合わせて決める"
+    },
+    {
+     "item": "CLI の引数の解析の crate",
+     "treatment": "out",
+     "note": "雛形のとおり、service の道具の一覧から CLI を組む"
+    }
+   ]
+  },
+  {
+   "no": 3,
+   "name": "どこに書くか",
+   "status": "waiting",
+   "question": "アーキテクチャと技術スタックを、宣言 ・ 規則 ・ Cargo のどこに書くか",
+   "answer": "A ── <b>宣言には書かない。</b>構成と向きは Cargo.toml の crate の依存が持ち、版は Cargo.lock が持つ。なぜその構成とその crate かは ACDR が持つ。実装から宣言の文脈を指す場所は、no-more-spaghetti に代わるコーディングの Skill の形として決める",
+   "intro": "ここで、仕様（宣言）と実装の決まりが、どちらを向いてつながるかが決まる",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "何を",
+       "どこに",
+       "理由"
+      ],
+      "rows": [
+       [
+        "構成と向き",
+        "Cargo.toml の crate の依存",
+        "Cargo が止める。持ち主は Rust の側にある"
+       ],
+       [
+        "crate と版",
+        "Cargo.toml ・ Cargo.lock",
+        "正本を2か所に持たない"
+       ],
+       [
+        "なぜそうしたか",
+        "ACDR",
+        "決定と理由を残す"
+       ],
+       [
+        "実装から文脈を指すこと",
+        "後続（コーディングの Skill の形）",
+        "仕様に実装の対応を書かない（ACDR 0114）。指すのは実装の側から"
+       ]
+      ]
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "論点1と2が決着したら、ここに Cargo の workspace の見本と、ACDR の見出しを置く。"
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "place",
+     "caption": "実装の決まりは、実装の側（Cargo と ACDR）に置く。<b>宣言には実装の決まりを書かない。</b>実装から文脈を指す場所は後で決める。"
+    }
+   ],
+   "passed": [
+    {
+     "name": "実装の側に置き、仕様を指す",
+     "body": "Cargo と ACDR に分けて置き、文脈を指す場所は後で決める",
+     "cost": "いまは、実装と文脈のつながりが ACDR の文にしか無い"
+    },
+    {
+     "name": "宣言に実装の方針の種類を足す",
+     "body": "文脈ごとに構成と crate を宣言に書く",
+     "cost": "Cargo.lock と同じことを2か所に持ち、ずれる"
+    }
+   ],
+   "dropped": [
+    {
+     "body": "宣言に実装の方針の種類を足す",
+     "reason": "仕様に実装の対応を細かく書くと、実装とずれやすい（利用者の言明、ACDR 0114）。crate の版は Cargo.lock と2か所になる"
+    }
+   ],
+   "path": [],
+   "findings": [],
+   "grounds": [
+    {
+     "supports": "仕様に実装の対応を書かないこと",
+     "basis": "仕様に実装の対応を書かず、つながりを従属関係で持つ",
+     "tag": "rule",
+     "source": "ACDR 0114"
+    }
+   ],
+   "requirements": [],
+   "out_of_scope": [
+    {
+     "item": "実装から宣言の文脈を指す場所の形",
+     "treatment": "later",
+     "note": "ボード usecase-modeling-coding の、コーディングの Skill の形で決める"
+    }
+   ]
+  }
+ ]
+}
