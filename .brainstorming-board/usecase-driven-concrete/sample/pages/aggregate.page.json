@@ -1,0 +1,64 @@
+{
+ "kind": "aggregate",
+ "page": [
+  {"head": {"badges": [" ・ ", {"ref": "header/context"}]}},
+  {"kv": [{"k": "守る一貫性", "v": {"v": "aggregate:consistency"}}]},
+  {"block": "構造", "body": {"p": "table", "s": {
+   "head": [{"p": "th", "s": {"text": "状態"}}, {"p": "th", "s": {"text": "型"}}, {"p": "th", "s": {"text": "個数"}}],
+   "body": {"each": "structure/state", "as": "s", "do": [
+    {"if": {"some": "^/structure/entities", "where": {"same": ["id", "$s/type"]}},
+     "then": [
+      {"p": "tr-c", "s": {"cls": "ent-row", "cells": [
+       {"p": "td", "s": {"label": "状態", "text": [
+        {"p": "tg", "s": {"grp": {"val": {"join": ["^/id", "id"], "sep": "-"}}, "name": {"t": "{name|word}"}, "text": ["中の状態 ", {"count": "type/@ref/state"}, "つ"]}},
+        " ", {"if": {"not": {"any": [{"eq": ["multiplicity/max", null]}, {"eq": ["multiplicity/max", 1]}]}}, "then": {"dev": "tchip", "args": [{"join": ["^/id", "id", {"lit": "MAX"}]}]}}]}},
+       {"p": "td", "s": {"label": "型", "text": {"pill": "エンティティ"}}},
+       {"p": "td", "s": {"label": "個数", "text": {"pill": {"v": "aggregate.structure.state.multiplicity", "on": "multiplicity"}}}}]}},
+      {"each": "type/@ref/state", "do": {"p": "tr-grp", "s": {"cls": "ent-sub", "grp": {"val": {"join": ["^/id", "$s/id"], "sep": "-"}}, "cells": [
+       {"p": "td", "s": {"label": "状態", "text": {"t": "{name|word}"}}},
+       {"p": "td", "s": {"label": "型", "text": {"if": "type/@ref/kind", "then": {"ref": "type"}, "else": {"val": "type"}}}},
+       {"p": "td", "s": {"label": "個数", "text": {"pill": "1つ"}}}]}}}],
+     "else": {"p": "tr-c", "s": {"cls": "", "cells": [
+      {"p": "td", "s": {"label": "状態", "text": [
+       {"p": "b", "s": {"text": {"t": "{name|word}"}}}, " ",
+       {"if": {"not": {"any": [{"eq": ["multiplicity/max", null]}, {"eq": ["multiplicity/max", 1]}]}}, "then": {"dev": "tchip", "args": [{"join": ["^/id", "id", {"lit": "MAX"}]}]}}]}},
+      {"p": "td", "s": {"label": "型", "text": {"if": "type/@ref/kind", "then": {"ref": "type"}, "else": {"val": "type"}}}},
+      {"p": "td", "s": {"label": "個数", "text": {"pill": {"v": "aggregate.structure.state.multiplicity", "on": "multiplicity"}}}}]}}}]}}}},
+  {"if": "invariants", "then": {"block": "不変条件", "body": {"table": {"cols": ["テスト条件", "組んだ文", "違反する状態（道具が組む）", "至る操作"], "rows": [{"each": "invariants", "rows": [{"cells": [
+   {"dev": "tchip", "args": [{"join": ["^/id", "id"]}]},
+   {"v": "common.condition", "on": "condition"},
+   {"dev": "violation_state", "args": ["^", "."]},
+   {"dev": "violation_via", "args": ["^", "."]}]}]}]}}}},
+  {"block": "コマンド", "body": [
+   {"table": {"cols": ["コマンド", ["状態の変更", {"help": "状態の変更"}], "拒否の理由", "業務イベント"], "rows": [{"each": "commands", "as": "cmd", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"t": "{name|word}"}}},
+    {"each": "state_changes", "sep": {"p": "br"}, "do": {"v": "common.condition:post", "on": "condition"}},
+    {"each": "business_rules", "sep": " ", "empty": "―", "do": {"pill": {"t": "{reject|word}"}}},
+    {"each": "emits", "sep": " ", "empty": "―", "do": {"pill": {"t": "{name|word}"}, "tone": "t-accent"}}]}]}]}},
+   {"p": "p-txt", "s": {"text": "コマンドごとの業務ルールと例は、下で開く。"}}]},
+  {"each": "commands", "as": "cmd", "do": {"p": "fold", "s": {
+   "summary": ["コマンド「", {"t": "{name|word}"}, "」の業務ルールと例（業務ルール", {"count": "business_rules"}, " ・ 状態の変更", {"count": "state_changes"}, " ・ 例", {"count": "accept_examples"}, "）"],
+   "body": [
+    {"fig": "agg_command"},
+    {"kv": [
+     {"k": "引数", "v": {"each": "args", "sep": " ", "empty": "なし", "do": [{"t": "{name|word}"}, "（", {"ref": "type"}, "）"]}},
+     {"k": "業務イベント（項目は from から組む）", "if": "emits", "v": {"each": "emits", "sep": " ", "do": [
+      {"pill": {"t": "{name|word}"}, "tone": "t-accent"},
+      {"p": "txt", "s": {"text": {"each": "fields", "sep": " ・ ", "do": {"v": "aggregate.commands.emits.fields"}}}}]}}]},
+    {"if": "business_rules", "then": [
+     {"p": "sub", "s": {"text": ["業務ルールと拒否の例", {"help": "業務ルール"}]}},
+     {"table": {"cols": ["テスト条件", "業務ルール", "拒否の理由", "拒否の例"], "rows": [{"each": "business_rules", "rows": [{"cells": [
+      {"dev": "tchip", "args": [{"join": ["^/id", "$cmd/id", "id"]}]},
+      {"v": "common.condition", "on": "condition"},
+      {"pill": {"t": "{reject|word}"}},
+      {"dev": "reject_example", "args": ["^", "$cmd", "."]}]}]}]}}]},
+    {"p": "sub", "s": {"text": "状態の変更"}},
+    {"table": {"cols": ["状態の変更"], "rows": [{"each": "state_changes", "rows": [{"cells": [
+     [{"v": "common.condition:post", "on": "condition"}, {"p": "ln-id", "s": {"id": {"val": "id"}}}]]}]}]}},
+    {"if": "accept_examples", "then": [
+     {"p": "sub", "s": {"text": ["受け付ける例", {"help": "例"}]}},
+     {"table": {"cols": ["テスト条件", "前の状態", "引数", "後の状態（道具が導く）", "業務イベント"], "rows": [{"dev": "accept_rows", "args": ["^", "$cmd"]}]}}]}]}}},
+  {"dev": "tblock", "args": ["^/id"]},
+  {"json": true}
+ ]
+}

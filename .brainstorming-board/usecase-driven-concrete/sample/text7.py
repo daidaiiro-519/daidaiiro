@@ -56,7 +56,8 @@ def name_of(ref, ctx):
             if hit is not None: return label(hit, dd) or ref
     for pool in ([cmd] if cmd else []) + ([decl] if decl else []):
         cur = pool
-        argp = SCH["common"].get("x-view-arg", "") if (cmd is not None and pool is cmd) else ""
+        xa = SCH["common"].get("x-view-arg") or {}
+        argp = xa.get("prefix", "") if (cmd is not None and pool is cmd) else ""
         for i in p:
             cur = next((x for x in base7.find_all(cur) if x.get("id") == i), None)
             if cur is None: break
@@ -72,7 +73,7 @@ def name_of(ref, ctx):
                     head = next((x for x in base7.find_all(pool) if x.get("id") == p[0]), None)
                     hn = label(head) if head else None
                     if hn and not n.startswith(hn): n = f"{hn}の{n}"
-                if argp and cur in (cmd.get("args") or []): n = argp + n
+                if argp and cur in (cmd.get(xa["in"]) or []): n = argp + n
                 if other is not None and not ctx.get("bare"):
                     dn = label(other)
                     if dn and not n.startswith(dn): n = f"{dn}の{n}"
@@ -87,13 +88,61 @@ def path(ref):
     for w in ws[1:]: out = w if w.startswith(out) else f"{out}の{w}"
     return out
 
+def getp(val, f):
+    """「a.b.0」の道で値を引く"""
+    v = val
+    for k in f.split("."):
+        if k == "": continue
+        v = (v[int(k)] if k.isdigit() and int(k) < len(v) else None) if isinstance(v, list) else (v.get(k) if isinstance(v, dict) else None)
+    return v
+
+def collect(val, paths):
+    """「a.*.b」の道（* は並びの全部）で値を集める。「x+y>z」は、同じ項目の中で x と y.z を順に集める"""
+    out = []
+    def go(v, ks):
+        if v is None: return
+        if not ks:
+            out.extend(v if isinstance(v, list) else [v]); return
+        k, rest = ks[0], ks[1:]
+        if "+" in k:
+            for alt in k.split("+"): go(v, alt.split(">") + rest)
+        elif k == "*":
+            for x in (v if isinstance(v, list) else []): go(x, rest)
+        else: go(v.get(k) if isinstance(v, dict) else None, rest)
+    for p in paths: go(val, p.split("."))
+    return out
+
+def numbering(decl):
+    """注釈 x-view-number に従って、並び順から番号（num）と記号（alpha）を振る。ID は変えない"""
+    nb = SCH.get(decl.get("kind"), {}).get("x-view-number")
+    out = {}
+    if not nb: return out
+    mark = lambda style, i: str(i) if style == "num" else "abcdefghij"[i - 1]
+    def go(items, prefix, style, levels):
+        for i, x in enumerate(items or [], 1):
+            lab = prefix + mark(style, i); out[x["id"]] = lab
+            if levels: go(x.get(levels[0][0]), lab, levels[0][1], levels[1:])
+    go(getp(decl, nb["list"]), "", "num", nb.get("levels", []))
+    return out
+
+def view_of(spec):
+    """文の型の場所（種類.欄.欄:変わり型 ・ 種類:変わり型）から、x-view を引く"""
+    head, _, var = spec.partition(":")
+    kind, *ps = head.split(".")
+    o, root = SCH[kind], SCH[kind]
+    for k in ps:
+        o, root = base7.deref(o, root)
+        while "items" in o: o, root = base7.deref(o["items"], root)
+        o = o["$defs"][k] if k in o.get("$defs", {}) and k not in o.get("properties", {}) else o["properties"][k]
+    o, root = base7.deref(o, root)
+    while "items" in o: o, root = base7.deref(o["items"], root)
+    vw = o["x-view"]
+    return vw[var] if var else vw
+
 def fill(tmpl, val, view, ctx):
     def rep(m):
         f, *flt = m.group(1).split("|")
-        v = val
-        for k in f.split("."):
-            if k == "": continue
-            v = (v[int(k)] if isinstance(v, list) and k.isdigit() and int(k) < len(v) else None) if isinstance(v, list) else (v.get(k) if isinstance(v, dict) else None)
+        v = getp(val, f)
         if v is None or v == "" or v == []: return ""
         for fl in flt:
             if isinstance(v, list) and fl in ("word", "name", "cond", "clause", "neg", "quote1"):
@@ -104,6 +153,37 @@ def fill(tmpl, val, view, ctx):
             if fl.startswith("endswith:"):
                 _, x, a, b = fl.split(":"); v = v + (a if v.endswith(x) else b); continue
             if fl in ("cond", "neg", "quote1"): v = apply1(v, fl, ctx); continue
+            if fl == "strs": v = [x for x in v if isinstance(x, str)]; continue
+            if fl == "first": v = v[0] if v else ""; continue
+            if fl == "uniq": v = list(dict.fromkeys(v)); continue
+            if fl.startswith("only:"): v = [x for x in v if isinstance(x, str) and x.startswith(fl[5:])]; continue
+            if fl.startswith("collect:"): v = collect(v, fl[8:].split(",")); continue
+            if fl.startswith("strip:"): v = v.replace(fl[6:], ""); continue
+            if fl == "head": v = v.split(".")[0]; continue
+            if fl == "rest": v = v.split(".", 1)[1] if "." in v else v; continue
+            if fl == "num":
+                dk = v.split(".")[0]
+                if dk in D(): v = numbering(D()[dk]).get(v.split(".", 1)[1], v)
+                else: v = numbering(ctx.get("decl") or {}).get(v, v)
+                continue
+            if fl == "resolve": v = resolve_ref(v, ctx); continue
+            if fl == "nameterm":
+                x = resolve_ref(v, ctx); v = next((base7.get(x, k) for k in SCH["common"]["x-view-name"] if isinstance(base7.get(x, k), str)), "") if isinstance(x, dict) else ""; continue
+            if fl.startswith("gl:"):
+                gl = SCH["common"]["x-view-glossary"]; x = terms().get(v)
+                v = next((m.get(fl[3:]) for m in (x or {}).get(gl["meanings"], []) if m.get(fl[3:])), "") or ""; continue
+            if fl.startswith("owner:"):
+                dn = name_of(ctx["decl"]["id"], {}) if ctx.get("decl") else ""
+                v = f"{dn}{fl[6:]}{v}" if dn and not v.startswith(dn) else v; continue
+            if fl.startswith("sv:"):
+                _, kind, dfn, key = fl.split(":"); vw = SCH[kind]["$defs"][dfn]["x-view"]; vw = vw.get(key, vw) if key else vw
+                v = view_any(v, vw, ctx); continue
+            if fl == "formshort":
+                gl = SCH["common"]["x-view-glossary"]; x = terms().get(v)
+                frm = next((m.get(gl["form"]) for m in (x or {}).get(gl["meanings"], []) if m.get(gl["form"])), None) or view.get("form_short_default")
+                frm = frm.replace("{to}に", "")
+                item = {k: (gl["form_join"].join(word(y) for y in w) if isinstance(w, list) and all(isinstance(y, str) for y in w) else w) for k, w in val.items()}
+                v = fill(frm, item, view, ctx); continue
             if fl == "form":
                 gl = SCH["common"]["x-view-glossary"]; x = terms().get(v)
                 frm = next((m.get(gl["form"]) for m in (x or {}).get(gl["meanings"], []) if m.get(gl["form"])), None) or view.get("form_default")
@@ -121,12 +201,41 @@ def fill(tmpl, val, view, ctx):
             elif fl == "ops":
                 o = view["ops"][v]
                 if isinstance(o, dict):
-                    x = val.get("value"); ti = o["then_if"]
+                    ti = o["then_if"]; x = val.get(ti["field"])
                     o = o["then"] if ((ti.get("number") and isinstance(x, (int, float))) or (isinstance(x, str) and meaning(x) & set(ti.get("meaning", [])))) else o["else"]
                 v = fill(o, val, view, ctx)
         return str(v)
     out = re.sub(r"\{([^{}]+)\}", rep, tmpl)
     return out
+
+def resolve_ref(v, ctx):
+    """参照を指す先の項目にする（宣言の ID ・ 宣言.項目 ・ 同じ宣言の項目の ID）"""
+    if not isinstance(v, str): return v
+    p = v.split(".")
+    if p[0] in D():
+        cur = D()[p[0]]
+        for i in p[1:]: cur = next((y for y in base7.find_all(cur) if y.get("id") == i), None) if cur is not None else None
+        return cur
+    for pool in [ctx.get("cmd"), ctx.get("decl")]:
+        if pool:
+            hit = next((y for y in base7.find_all(pool) if y.get("id") == v), None)
+            if hit is not None: return hit
+    return None
+
+def ok_case(val, c, view, ctx):
+    """場合分けの条件が全部当てはまるか"""
+    for k, want in (c.get("when") or {}).items():
+        got = getp(val, k)
+        if (got not in want) if isinstance(want, list) else (got != want): return False
+    if c.get("when_empty") and getp(val, c["when_empty"]): return False
+    for k in ([c["has"]] if isinstance(c.get("has"), str) else c.get("has", [])):
+        if not getp(val, k): return False
+    for k, pre in (c.get("prefix") or {}).items():
+        x = getp(val, k)
+        if not (isinstance(x, str) and x.startswith(pre)): return False
+    for tm in c.get("nonempty", []):
+        if not fill(tm, val, view, ctx): return False
+    return True
 
 def apply1(x, fl, ctx):
     if fl == "word": return word(x)
@@ -147,13 +256,14 @@ def apply1(x, fl, ctx):
 
 def view_any(val, view, ctx):
     """x-view の by_value ・ cases ・ text のどれかで文にする"""
+    if isinstance(view, str): return fill(view, val, {}, ctx)
     bv = view.get("by_value")
     if bv:
-        t = bv["map"].get(val.get(bv["field"]))
+        t = bv["map"].get(getp(val, bv["field"]), bv["map"].get("*"))
         if t is None: return ""
         if isinstance(t, dict):
             for c in t.get("cases", []):
-                if c.get("when_empty") and not val.get(c["when_empty"]): return fill(c["text"], val, view, ctx)
+                if ok_case(val, c, view, ctx): return fill(c["text"], val, view, ctx)
             t = t["text"]
         return fill(t, val, view, ctx)
     return view_text(val, view, ctx)
@@ -173,7 +283,7 @@ def text(val, defname, ctx):
 def view_text(val, view, ctx):
     """欄に直に付いた x-view（cases と text）で文にする"""
     for c in view.get("cases", []):
-        if all(val.get(k) == v for k, v in c["when"].items()): return fill(c["text"], val, view, ctx)
+        if ok_case(val, c, view, ctx): return fill(c["text"], val, view, ctx)
     return fill(view["text"], val, view, ctx)
 
 def desc_of(kind, key):

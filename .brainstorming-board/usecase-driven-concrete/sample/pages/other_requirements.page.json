@@ -1,0 +1,30 @@
+{
+ "kind": "other_requirements",
+ "page": [
+  {"head": {"lead": "ユースケースの外に書く要求。ユースケースから関連情報で結ぶ。"}},
+  {"block": "ビジネスルール", "body": {"table": {"cols": ["ルール", "組んだ文", "守る利害関係者", "結ぶユースケース", "実装する文脈"], "rows": [
+   {"each": "business_rules", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"v": "common.condition", "on": "condition"},
+    {"each": "protects", "do": {"pill": {"val": "./@ref/who"}}},
+    {"bind": {"rid": {"join": ["^/id", "id"]}}, "do": {"each": {"decls": "use_case", "where": {"in": ["$rid", "links/*"]}}, "do": {"ref": "id"}, "sep": " "}},
+    {"bind": {"rid": {"join": ["^/id", "id"]}}, "do": {"each": {"decls": "context", "where": {"some": "business_rules", "where": {"same": ["implements", "$rid"]}}}, "do": {"ref": "id"}, "sep": " ", "empty": {"p": "missing", "s": {"text": "なし"}}}}]}]}]}}},
+  {"block": "品質の要求", "body": {"table": {"cols": ["組んだ文", "閾値", "割合", "条件", "非機能要求グレード", "測り方"], "rows": [
+   {"each": "quality", "rows": [{"cells": [
+    {"v": "other_requirements.quality"},
+    {"pill": {"v": "common.threshold", "on": "threshold"}},
+    {"pill": {"v": "common.threshold", "on": "ratio"}},
+    {"t": "{condition.period} ・ {condition.load.value}{condition.load.unit}"},
+    {"t": "{grade.item} ・ レベル{grade.level}"},
+    {"pill": {"val": "method"}}]}]}]}}},
+  {"block": "使われる技術", "body": {"table": {"cols": ["相互作用するシステム", "要求"], "rows": [
+   {"each": "technology", "rows": [{"cells": [{"p": "b", "s": {"text": {"val": "system"}}}, {"p": "txt", "s": {"text": {"val": "text"}}}]}]}]}}},
+  {"if": "data", "then": {"block": "データ要求", "body": {"table": {"cols": ["項目", "組んだ文", "結ぶユースケース"], "rows": [
+   {"each": "data", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"v": "common.condition", "on": "condition"},
+    {"bind": {"rid": {"join": ["^/id", "id"]}}, "do": {"each": {"decls": "use_case", "where": {"in": ["$rid", "links/*"]}}, "do": {"ref": "id"}, "sep": " "}}]}]}]}}}},
+  {"if": "open_issues", "then": {"block": "未決定事項", "body": {"table": {"cols": ["未決定事項"], "rows": [{"each": "open_issues", "rows": [{"cells": [{"val": "."}]}]}]}}}},
+  {"json": true}
+ ]
+}

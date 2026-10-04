@@ -1,0 +1,63 @@
+{
+ "kind": "domain",
+ "page": [
+  {"head": {}},
+  {"block": "ビジョン記述", "body": [
+   {"kv": [{"k": "課題", "v": {"val": "vision/problem"}}]},
+   {"p": "sub", "s": {"text": {"lab": "提供価値"}}},
+   {"table": {"cols": ["提供価値", "説明", "競合との違い", "担うサブドメイン"], "rows": [{"each": "vision/values", "as": "v", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"p": "txt", "s": {"text": {"val": "text"}}},
+    {"if": "differentiator", "then": {"pill": "★ 違いになる", "tone": "t-accent"}, "else": "―"},
+    {"each": {"decls": "subdomain", "where": {"in": ["$v/id", "serves_values"]}}, "sep": " ", "empty": "―",
+     "do": [{"ref": "id"}, " ", {"pill": {"val": "classification/category"}, "tone": {"map": "category", "on": "classification/category"}}]}]}]}]}},
+   {"if": "vision/competitors", "then": [
+    {"p": "sub", "s": {"text": "競合"}},
+    {"table": {"cols": ["競合", "欠けている提供価値"], "rows": [{"each": "vision/competitors", "rows": [{"cells": [
+     {"p": "b", "s": {"text": {"val": "name"}}},
+     {"v": "domain.vision.competitors"}]}]}]}}]},
+   {"p": "sub", "s": {"text": {"lab": "達成の基準"}}},
+   {"table": {"cols": ["基準", "組んだ文", "測る対象", "閾値", "割合", "期間", "寄与するユースケース"], "rows": [{"each": "vision/success_criteria", "as": "x", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"v": "domain.vision.success_criteria"},
+    {"if": {"eq": ["source", "event"]}, "then": {"pill": "業務イベント"}, "else": {"pill": "システムの外"}},
+    {"pill": {"v": "common.threshold", "on": "threshold"}},
+    {"if": "ratio", "then": {"pill": {"v": "common.threshold", "on": "ratio"}}, "else": "―"},
+    {"val": "window"},
+    {"each": {"decls": "use_case", "where": {"in": ["$x/id", "contributes_to"]}}, "do": {"ref": "id"}, "sep": " ", "empty": {"p": "missing", "s": {"text": "なし"}}}]}]}]}},
+   {"p": "p-txt", "s": {"text": "運用で測る。テスト条件にはしない。"}}]},
+  {"block": "範囲", "body": [
+   {"p": "cards", "s": {"items": [
+    {"p": "card", "s": {"cls": "left-accent", "title": "作るもの（In）", "body": [
+     {"each": {"decls": "use_case", "where": {"eq": ["header/level", "ユーザー目的"]}}, "do": {"p": "item", "s": {"name": {"ref": "id"}, "text": {"p": "item-text", "s": {"text": {"t": "{header.primary_actor}の目的 ・ {header.level}"}}}, "extra": ""}}},
+     {"if": {"some": {"decls": "use_case"}, "where": {"eq": ["header/level", "要約"]}}, "then": {"p": "ln-k", "s": {"k": "まとめる要約", "text":
+      {"each": {"decls": "use_case", "where": {"eq": ["header/level", "要約"]}}, "do": {"ref": "id"}, "sep": " "}}}}]}},
+    {"p": "card", "s": {"cls": "left-neutral", "title": "作らないもの（Out）", "body":
+     {"each": "scope/out", "do": {"p": "item", "s": {"name": {"val": "."}, "text": "", "extra": ""}}}}}]}},
+   {"p": "p-txt", "s": {"text": "作るものは、ユーザー目的のユースケースの一覧から道具が組む（どのユースケースがあるかを決めることが、作るものを決めることになる）。"}}]},
+  {"block": "サブドメインの組み立て（設計の側。道具が組む）", "body": [
+   {"table": {"cols": ["サブドメイン", "カテゴリー", "調達", "どこで", "実装方法（導く）", "使うユースケース"], "rows": [{"each": {"decls": "subdomain"}, "as": "s", "rows": [{"cells": [
+    [{"ref": "id"}, {"p": "what", "s": {"text": {"val": "header/description"}}}],
+    {"pill": {"val": "classification/category"}, "tone": {"map": "category", "on": "classification/category"}},
+    {"or": [{"val": "classification/sourcing"}, "―"]},
+    {"or": [[
+      {"each": {"decls": "context", "where": {"in": ["$s/id", "header/subdomains"]}}, "do": {"ref": "id"}, "sep": " "},
+      {"each": {"decls": "context"}, "as": "c", "sep": " ", "do": {"each": "context_map/relations", "where": {"same": ["fulfills", "$s/id"]}, "sep": " ",
+       "do": [{"val": "external"}, "（", {"ref": "$c/id"}, "の文脈の地図）"]}}],
+     {"p": "missing", "s": {"text": "なし"}}]},
+    {"derive": "business_logic", "of": "."},
+    {"or": [{"ref": "use_cases"}, "―"]}]}]}]}},
+   {"p": "p-txt", "s": {"text": "道具が、サブドメイン ・ 区切られた文脈 ・ 文脈の地図の欄から組む。宣言の重さは、カテゴリーではなく実装方法で決まる。"}}]},
+  {"block": "設計スコープ", "body": [
+   {"table": {"cols": ["高さ", "名前", "内側", "外側"], "rows": [{"each": "design_scopes", "rows": [{"cells": [
+    {"pill": {"val": "level"}},
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"each": "inside", "sep": "、", "empty": "―", "do": {"or": [{"val": "./@ref/who"}, {"val": "./@ref/name"}, {"val": "."}]}},
+    {"each": "outside", "sep": "、", "do": {"or": [{"val": "./@ref/who"}, {"val": "./@ref/name"}, {"val": "."}]}}]}]}]}},
+   {"p": "p-txt", "s": {"text": "ユースケースは、システムの高さのスコープを対象に書く。アプリ ・ 画面 ・ サービスへの分け方はスコープの内側のことで、実装の定義が持つ。"}}]},
+  {"block": "利害関係者", "body": {"table": {"cols": ["利害関係者", "関心"], "rows": [{"each": "stakeholders", "rows": [{"cells": [
+   {"p": "b", "s": {"text": {"val": "who"}}},
+   {"p": "txt", "s": {"text": {"val": "interest"}}}]}]}]}}},
+  {"json": true}
+ ]
+}

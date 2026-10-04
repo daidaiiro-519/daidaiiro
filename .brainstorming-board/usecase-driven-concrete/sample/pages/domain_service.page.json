@@ -1,0 +1,25 @@
+{
+ "kind": "domain_service",
+ "page": [
+  {"head": {"badges": [" ", {"pill": {"val": "header/reason"}, "tone": "t-accent"}, " ・ ", {"ref": "header/context"}]}},
+  {"kv": [
+   {"k": "置く理由（組んだ文）", "v": {"v": "domain_service:reason"}},
+   {"k": "参照する集約（変更しない）", "v": {"ref": "reads", "sep": " ・ "}}]},
+  {"each": "operations", "as": "o", "do": {"p": "block", "s": {
+   "title": ["操作「", {"t": "{name|word}"}, "」"], "help": {"help": "操作"},
+   "body": [
+    {"fig": "ds_operation"},
+    {"p": "sub", "s": {"text": "入力"}},
+    {"table": {"cols": ["ID", "組んだ名前", "元にする状態", "型"], "rows": [{"each": "inputs", "rows": [{"cells": [
+     {"p": "no-id", "s": {"text": {"val": "id"}}},
+     {"v": "domain_service.operations.inputs"},
+     [{"p": "no-id", "s": {"text": {"val": "from/target"}}}, {"if": {"eq": ["from/agg", "sum"]}, "then": [" ", {"pill": "合計"}]}],
+     {"ref": "type"}]}]}]}},
+    {"p": "sub", "s": {"text": "結果"}},
+    {"table": {"cols": ["テスト条件", "結果"], "rows": [{"each": "results", "rows": [{"cells": [
+     {"dev": "tchip", "args": [{"join": ["^/id", "$o/id", "id"]}]},
+     {"v": "common.condition", "on": "condition"}]}]}]}}]}}},
+  {"dev": "tblock", "args": ["^/id"]},
+  {"json": true}
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "kind": "value_object",
+ "page": [
+  {"head": {"badges": [" ・ ", {"ref": "header/context"}], "lead": {"t": "{header.name|gl:definition}"}}},
+  {"block": "構成する値", "body": {"table": {"cols": ["名前", "値の種類", "桁 ・ 精度 ・ 値", "単位"], "rows": [
+   {"each": "components", "rows": [{"cells": [
+    {"p": "b", "s": {"text": {"val": "name"}}},
+    {"pill": {"val": "kind"}},
+    {"if": "values", "then": {"t": "値の一覧：{values|word|join: ・ }"}, "else": {"or": [[{"t": "{digits|suffix:桁}"}, {"if": {"all": ["digits", "precision"]}, "then": " ・ "}, {"val": "precision"}], "―"]}},
+    {"or": [{"val": "unit"}, "―"]}]}]}]}}},
+  {"if": "components/invariants", "then": {"block": "不変条件", "body": {"table": {"cols": ["テスト条件", "組んだ文", "作れない値（道具が組む）", "境界値（道具が導く）"], "rows": [
+   {"each": "components/invariants", "rows": [{"cells": [
+    {"dev": "tchip", "args": [{"join": ["^/id", "id"]}]},
+    {"v": "common.condition", "on": "condition"},
+    {"pill": {"dev": "impossible", "args": ["condition"]}},
+    {"dev": "bounds", "args": ["condition"]}]}]}]}}}},
+  {"if": "operations", "then": {"block": "操作", "body": {"table": {"cols": ["テスト条件", "操作", "引数", "結果", "例"], "rows": [
+   {"each": "operations", "as": "o", "rows": [{"each": "accept_examples", "rows": [{"cells": [
+    {"dev": "tchip", "args": [{"join": ["^/id", "$o/id", "id"]}]},
+    {"p": "b", "s": {"text": {"t": "{name|word}", "on": "$o"}}},
+    {"ref": "$o/args", "sep": " ・ "},
+    {"ref": "$o/result"},
+    [{"val": "self"}, " を ", {"val": "args/0"}, " で「", {"t": "{name|word}", "on": "$o"}, "」→ ", {"val": "result"}]]}]}]}]}}}},
+  {"dev": "tblock", "args": ["^/id"]},
+  {"json": true}
+ ]
+}

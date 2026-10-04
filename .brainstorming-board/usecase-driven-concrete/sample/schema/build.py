@@ -80,10 +80,10 @@ common = {"$schema": S, "$id": "common.schema.json", "title": "宣言の共通�
 # ── 文の型（ボード schema-driven-base の論点3を試す）。条件と値を、注釈 x-view の文の型だけで文にする
 common["x-view-name"] = ["word", "name", "header/name"]
 common["x-view-summary"] = {"field": "condition", "as": "condition"}  # 名前の無い項目は、この欄の文で指す
-common["x-view-arg"] = "指定された"  # コマンドの引数を指す名前の前に付ける
+common["x-view-arg"] = {"in": "args", "prefix": "指定された"}  # コマンドの引数（コマンドの欄 in の項目）を指す名前の前に付ける
 common["x-view-words"] = {"RESULT": "結果"}  # 欄の値に書く決まった語
 common["x-view-glossary"] = {"kind": "glossary", "in": "terms", "label": "word", "meanings": "meanings", "meaning_key": "kind"}  # 語を引く先
-OPS = {"eq": {"then_if": {"number": True, "meaning": ["状態の値"]}, "then": "は{value|text:value}{measure|map:unit}", "else": "は{value|text:value}と同じ"},
+OPS = {"eq": {"then_if": {"field": "value", "number": True, "meaning": ["状態の値"]}, "then": "は{value|text:value}{measure|map:unit}", "else": "は{value|text:value}と同じ"},
        "ne": "は{value|text:value}ではない", "ge": "は{value|text:value}{measure|map:unit}以上", "le": "は{value|text:value}{measure|map:unit}以下",
        "gt": "は{value|text:value}より大きい", "not_empty": "は空でない", "empty": "は空", "ends_with": "は{value|text:value}のどれかで終わる"}
 VIEW_ONE = {"text": "{target|name}{agg|map:agg}{measure|map:measure}{op|ops}", "ops": OPS,
@@ -478,6 +478,45 @@ ALL["use_case"]["$defs"]["extension"]["x-view"] = {"by_value": {"field": "condit
     "別の道筋での成功": "{condition|text:condition|clause}："}}}
 common["x-view-glossary"]["form"] = "form"
 common["x-view-glossary"]["form_join"] = "と"
+# ── 残りの文の型（論点3 B″ を見本で最後までやる）
+def at(kind, path):
+    """欄の道（a/b/c）をたどり、並びなら項目の形を返す"""
+    o = ALL[kind]
+    def down(o):
+        while True:
+            if "items" in o: o = o["items"]; continue
+            if "$ref" in o and o["$ref"].startswith("#/$defs/"): o = ALL[kind]["$defs"][o["$ref"].split("/")[-1]]; continue
+            return o
+    for k in path.split("/"): o = down(down(o)["properties"][k])
+    return down(o)
+AGG_MAP = {"agg": {"sum": "の合計"}}
+common["$defs"]["threshold"]["x-view"] = {"text": "{value}{unit}{op|map:opw}", "maps": {"opw": {"le": "以下", "ge": "以上", "lt": "未満", "gt": "より大きい"}}}
+common["$defs"]["condition"]["x-view"]["post"] = {"cases": [
+    {"when": {"op": "eq"}, "has": "value.call", "nonempty": ["{value.call|nameterm|gl:change}", "{value.args|strs|first}"],
+     "text": "{target|name}が{value.args|strs|first|name|strip:指定された}だけ{value.call|nameterm|gl:change}"},
+    {"when": {"op": "eq"}, "prefix": {"value": "ARG-"}, "text": "{target|name|owner:に}が記録される"},
+    {"when": {"op": "eq"}, "prefix": {"value": "TERM-"}, "text": "{target|name}が{value|word}になる"},
+    {"when": {"op": "gt", "agg": "count"}, "has": "value.before", "text": "{target|name}が1件増える"},
+    {"when": {"op": "gt"}, "has": "value.before", "text": "{target|name}が増える"}],
+    "text": "{|text:condition}"}
+at("domain", "vision/success_criteria")["x-view"] = {"by_value": {"field": "source", "map": {
+    "event": "{measure.diff.0|word}の時刻と{measure.diff.1|name}の差が{threshold|text:threshold}の割合が、{window}ごとに{ratio|text:threshold}",
+    "external": "{measure_text}が{threshold|text:threshold}（{window}）"}}}
+at("domain", "vision/competitors")["x-view"] = {"text": "{lacks|name|quote1|join:}が無い"}
+at("other_requirements", "quality")["x-view"] = {"text": "「{target|head|name}」の手順{target|num}（{target|resolve|sv:use_case:step:short}）の{measure}が{threshold|text:threshold}の割合が{ratio|text:threshold}（{condition.period} ・ {condition.load.value}{condition.load.unit}）"}
+ALL["domain_service"]["x-view"] = {"reason": {"cases": [{"when": {"header.reason": "複数の集約にまたがる計算"},
+    "text": "{reads|name|join:・}の状態を両方読む計算なので、どちらか1つの集約に置くと、もう一方の状態を持ち込む"}], "text": "{header.reason}"}}
+at("domain_service", "operations/inputs")["x-view"] = {"text": "{from.target|name}{from.agg|map:agg}", "maps": AGG_MAP}
+ALL["aggregate"]["x-view"] = {"consistency": {"text": "{|collect:invariants.*.condition.target+if>target,commands.*.business_rules.*.condition.target|uniq|only:ST-|name|join: ・ }の一貫性を守る"}}
+at("aggregate", "commands/emits/fields")["x-view"] = {"text": "{from|name}"}
+ALL["use_case"]["x-view-number"] = {"list": "scenario.steps", "levels": [["extensions", "alpha"], ["steps", "num"]]}
+for dn in ("step", "sub_step"):
+    ALL["use_case"]["$defs"][dn]["x-view"]["short"] = {"by_value": {"field": "kind", "map": {
+        "相互作用": "{verb|formshort}", "妥当性確認": "確かめる",
+        "内部の状態変化": "{object|word}{verb|word|contains:を:の:を}{verb|word}", "サブユースケースの呼び出し": "「{calls|name}」を行う", "*": ""}},
+        "form_short_default": "{data}を{verb|word}"}
+    ALL["use_case"]["$defs"][dn]["x-view"]["reply"] = {"text": "{reply|word|join:と}"}
+ALL["use_case"]["$defs"]["extension"]["x-view"]["ending"] = {"by_value": {"field": "ending", "map": {"失敗": "失敗", "成功": "", "終了": "ユースケースは終了する", "*": "{ending|num}へ戻る"}}}
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")

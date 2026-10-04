@@ -159,7 +159,15 @@
         "id",
         "type",
         "from"
-       ]
+       ],
+       "x-view": {
+        "text": "{from.target|name}{from.agg|map:agg}",
+        "maps": {
+         "agg": {
+          "sum": "の合計"
+         }
+        }
+       }
       },
       "description": "入力"
      },
@@ -215,6 +223,19 @@
     "read": "入力 → 結果の条件で読む",
     "write": "入力はどの集約のどの状態から取るか（合計なら agg: sum）を書き、結果は条件で書く"
    }
+  }
+ },
+ "x-view": {
+  "reason": {
+   "cases": [
+    {
+     "when": {
+      "header.reason": "複数の集約にまたがる計算"
+     },
+     "text": "{reads|name|join:・}の状態を両方読む計算なので、どちらか1つの集約に置くと、もう一方の状態を持ち込む"
+    }
+   ],
+   "text": "{header.reason}"
   }
  }
 }

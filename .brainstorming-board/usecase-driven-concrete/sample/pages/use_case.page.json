@@ -1,0 +1,91 @@
+{
+ "kind": "use_case",
+ "defs": {
+  "act": {"if": {"in": [".", "^/scenario/supporting_actors"]},
+   "then": {"p": "act", "s": {"role": "supporting", "mark": {"p": "act-mark", "s": {"text": "支援"}}, "name": {"val": "."}}},
+   "else": {"if": {"eq": [".", "システム"]},
+    "then": {"p": "act", "s": {"role": "system", "mark": "", "name": {"val": "."}}},
+    "else": {"if": {"same": [".", "^/header/primary_actor"]},
+     "then": {"p": "act", "s": {"role": "primary", "mark": {"p": "act-mark", "s": {"text": "主"}}, "name": {"val": "."}}},
+     "else": {"p": "act", "s": {"role": "system", "mark": "", "name": {"val": "."}}}}}},
+  "links": [
+   {"if": "reply", "then": {"p": "ln-k", "s": {"k": "戻りメッセージ", "text": {"v": "use_case.step:reply"}}}},
+   {"if": "calls", "then": {"p": "ln-k", "s": {"k": "呼ぶユースケース", "text": {"ref": "calls"}}}},
+   {"if": "checks", "then": {"p": "ln-k", "s": {"k": "確かめるビジネスルール", "text": {"each": "checks", "sep": " ", "do": [{"ref": "./@decl"}, "「", {"t": "{.|bare}"}, "」"]}}}},
+   {"if": "keeps", "then": {"p": "ln-k", "s": {"k": "守る最低保証", "text": {"each": "^/guarantees/minimal", "where": {"in": ["id", "$s/keeps"]}, "do": {"pill": {"val": "name"}, "tone": "t-minimal"}}}}},
+   {"each": "^/links/quality", "as": "q", "where": {"same": ["./@ref/target", {"join": ["^/id", "$s/id"]}]}, "do": {"p": "ln-k", "s": {"k": "品質の要求", "text": [
+    {"v": "other_requirements.quality", "on": "./@ref"}, " ", {"dev": "tchip", "args": [{"join": ["^/id", "$s/id", "$q/@tail"]}]}]}}}],
+  "line": {"bind": {"s": "."}, "do": {"p": "step-li", "s": {
+   "cls": {"val": "$cls"}, "no": {"t": "{id|num}"},
+   "actor": {"use": "act", "on": "actor"},
+   "text": {"v": "use_case.step", "drop_head": "{actor}は、"},
+   "reply": {"if": "reply", "then": {"p": "reply", "s": {"text": {"v": "use_case.step:reply"}}}},
+   "meta": {"p": "meta", "s": {"id": {"t": "{id} ・ {kind}"}, "links": {"use": "links"}}}}}},
+  "other_req": [{"ref": "./@decl"}, "「", {"or": [{"val": "./@ref/name"}, {"val": "./@ref/system"}, {"val": "./@ref/measure"}]}, "」"]
+ },
+ "page": [
+  {"head": {"badges": [" ", {"pill": {"val": "header/level"}}, " ・ スコープ ",
+   {"p": "ref", "s": {"id": {"val": "header/scope/system/@decl"}, "name": {"val": "header/scope/system/@ref/name"}}}, "（", {"val": "header/scope/system/@ref/level"}, "）"]}},
+  {"kv": [
+   {"k": "主アクター", "v": {"use": "act", "on": "header/primary_actor"}},
+   {"k": "支援アクター", "v": {"each": "scenario/supporting_actors", "do": {"use": "act"}, "empty": {"p": "txt", "s": {"text": "なし"}}}},
+   {"k": "トリガー", "v": {"each": "scenario/steps", "where": {"same": ["id", "^/header/trigger_step"]}, "do": {"v": "use_case.step"}}},
+   {"k": "寄与する達成の基準", "v": {"each": "%domain/vision/success_criteria", "where": {"in": ["id", "^/contributes_to"]}, "sep": " ・ ",
+    "do": {"p": "ref", "s": {"id": {"val": "%domain/id"}, "name": {"val": "name"}}}, "empty": {"p": "txt", "s": {"text": "なし"}}}}]},
+  {"p": "gap"},
+  {"p": "cards", "s": {"items": [
+   {"p": "card", "s": {"cls": "top-success", "title": {"lab": "成功時保証"}, "body": {"each": "guarantees/success", "do": {"p": "item", "s": {
+    "name": {"val": "name"}, "text": {"p": "item-text", "s": {"text": {"v": "common.condition:post", "on": "condition"}}},
+    "extra": {"p": "ln", "s": {"text": {"each": "satisfies", "do": {"pill": {"val": "./@ref/who/@ref/who"}}}}}}}}}},
+   {"p": "card", "s": {"cls": "top-minimal", "title": {"lab": "最低保証"}, "body": {"each": "guarantees/minimal", "do": {"p": "item", "s": {
+    "name": {"val": "name"}, "text": {"p": "item-text", "s": {"text": {"v": "common.condition", "on": "condition"}}},
+    "extra": {"p": "ln", "s": {"text": {"each": "protects", "do": {"pill": {"val": "./@ref/who/@ref/who"}}}}}}}}}}]}},
+  {"if": "preconditions", "then": {"block": "事前条件", "body": {"table": {"cols": ["事前条件", "成り立たせるもの"], "rows": [{"each": "preconditions", "rows": [{"cells": [
+   {"v": "common.condition", "on": "condition"},
+   {"if": {"not": "established_by"}, "then": {"p": "txt", "s": {"text": "注文を作ったときから成り立つ"}},
+    "else": {"if": {"contains": ["established_by", ".X-"]}, "then": [{"val": "established_by/@ref/external"}, {"p": "txt", "s": {"text": "（このプロダクトの外）"}}],
+     "else": {"ref": "established_by"}}}]}]}]}}}},
+  {"p": "block", "s": {"title": "主成功シナリオと拡張", "help": {"help": "主成功シナリオ"}, "body": {"p": "flow", "s": {"items": [
+   {"each": "scenario/steps", "do": [
+    {"bind": {"cls": {"lit": "step"}}, "do": {"use": "line"}},
+    {"each": "extensions", "do": {"p": "ext-li", "s": {
+     "no": {"t": "{id|num}"},
+     "text": {"v": "use_case.extension"},
+     "meta": {"p": "meta", "s": {"id": {"t": "{id} ・ {condition_kind}"}, "links": {"p": "ln", "s": {"text": {"dev": "tchip", "args": [{"join": ["^/id", "id"]}]}}}}},
+     "steps": {"each": "steps", "do": {"bind": {"cls": {"lit": "sub"}}, "do": {"use": "line"}}},
+     "end": {"if": {"eq": ["ending", "失敗"]}, "then": {"p": "end-li", "s": {"cls": "fail", "mark": "✕", "text": "失敗で終わる", "note": {"p": "note", "s": {"text": "最低保証が成り立つ"}}}},
+      "else": {"if": {"eq": ["ending", "成功"]}, "then": "",
+       "else": {"if": {"eq": ["ending", "終了"]}, "then": {"p": "end-li", "s": {"cls": "back", "mark": "✓", "text": "ユースケースは終了する", "note": ""}},
+        "else": {"p": "end-li", "s": {"cls": "back", "mark": "↩", "text": ["手順", {"t": "{ending|num}"}, "へ戻る"], "note": ""}}}}}}}}]},
+   {"p": "end-li", "s": {"cls": "ok", "mark": "✓", "text": "成功で終わる", "note": [
+    {"p": "note", "s": {"text": "成功時保証が成り立つ"}}, {"p": "meta-only", "s": {"text": {"dev": "tchip", "args": [{"join": ["^/id", {"lit": "M"}]}]}}}]}}]}}}},
+  {"p": "fold-near", "s": {"summary": ["主成功シナリオのシーケンス図", {"help": "シーケンス図"}], "body": {"fig": "uc_main"}}},
+  {"p": "fold-near", "s": {"summary": "拡張を含むシーケンス図", "body": {"fig": "uc_all"}}},
+  {"block": "利害関係者と利益", "body": {"table": {"cols": ["利害関係者", "利益", "守る手順", "守る保証"], "rows": [{"each": "stakeholders", "as": "x", "rows": [{"cells": [
+   {"p": "b", "s": {"text": {"val": "who/@ref/who"}}},
+   {"p": "txt", "s": {"text": {"val": "interest"}}},
+   {"each": "^/scenario/steps", "where": {"in": ["$x/id", "serves"]}, "sep": "、", "do": {"t": "{id|num}"}, "empty": {"p": "missing", "s": {"text": "なし"}}},
+   [{"each": "^/guarantees/success", "where": {"in": ["$x/id", "satisfies"]}, "do": {"pill": {"val": "name"}, "tone": "t-success"}},
+    {"each": "^/guarantees/minimal", "where": {"in": ["$x/id", "protects"]}, "do": {"pill": {"val": "name"}, "tone": "t-minimal"}}]]}]}]}}},
+  {"if": "scenario/steps/variations", "then": {"p": "fold", "s": {
+   "summary": ["技術およびデータのバリエーション（", {"count": "scenario/steps/variations"}, "件）", {"help": "技術およびデータのバリエーション"}],
+   "body": {"table": {"cols": ["手順", "違い", "値"], "rows": [{"each": "scenario/steps", "as": "s", "rows": [{"each": "variations", "rows": [{"cells": [
+    {"t": "{id|num}", "on": "$s"}, {"val": "varies"}, {"each": "values", "do": {"pill": {"val": "."}}}]}]}]}]}}}}},
+  {"if": {"any": ["links/business_rules", "links/quality", "links/technology", "links/data"]}, "then": {"block": "関連情報", "body": {"table": {"cols": ["その他の要求", "結ぶもの"], "rows": [
+   {"if": "links/business_rules", "cells": ["ビジネスルール", {"each": "links/business_rules", "sep": "、", "do": {"use": "other_req"}}]},
+   {"if": "links/quality", "cells": ["品質の要求", {"each": "links/quality", "sep": "、", "do": {"use": "other_req"}}]},
+   {"if": "links/technology", "cells": ["使われる技術", {"each": "links/technology", "sep": "、", "do": {"use": "other_req"}}]},
+   {"if": "links/data", "cells": ["データ要求", {"each": "links/data", "sep": "、", "do": {"use": "other_req"}}]}]}}}},
+  {"if": {"ne": ["header/level", "要約"]}, "then": {"block": "束ねる設計の側", "body": {"if": {"some": {"decls": "subdomain"}, "where": {"in": ["^/id", "use_cases"]}},
+   "then": [
+    {"kv": [
+     {"k": "サブドメイン", "v": {"each": {"decls": "subdomain", "where": {"in": ["^/id", "use_cases"]}}, "sep": " ・ ", "do": {"ref": "id"}}},
+     {"k": "区切られた文脈", "v": {"each": {"decls": "context", "where": {"meet": ["header/subdomains", {"pick": "id", "from": {"decls": "subdomain", "where": {"in": ["^/id", "use_cases"]}}}]}}, "sep": " ・ ", "do": {"ref": "id"}, "empty": {"p": "txt", "s": {"text": "なし"}}}}]},
+    {"p": "p-txt-gap", "s": {"text": "ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。"}}],
+   "else": {"p": "p-missing", "s": {"text": "このユースケースを束ねるサブドメインが無い"}}}}},
+  {"if": "open_issues", "then": {"p": "fold", "s": {"summary": ["未決定事項（", {"count": "open_issues"}, "件）", {"help": "未決定事項"}],
+   "body": {"table": {"cols": ["未決定事項"], "rows": [{"each": "open_issues", "rows": [{"cells": [{"val": "."}]}]}]}}}}},
+  {"dev": "tblock", "args": ["^/id"]},
+  {"json": true}
+ ]
+}

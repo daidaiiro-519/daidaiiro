@@ -167,6 +167,7 @@
     "ops": {
      "eq": {
       "then_if": {
+       "field": "value",
        "number": true,
        "meaning": [
         "状態の値"
@@ -250,6 +251,7 @@
     "ops": {
      "eq": {
       "then_if": {
+       "field": "value",
        "number": true,
        "meaning": [
         "状態の値"
@@ -277,6 +279,55 @@
      "unit": {
       "length": "字"
      }
+    },
+    "post": {
+     "cases": [
+      {
+       "when": {
+        "op": "eq"
+       },
+       "has": "value.call",
+       "nonempty": [
+        "{value.call|nameterm|gl:change}",
+        "{value.args|strs|first}"
+       ],
+       "text": "{target|name}が{value.args|strs|first|name|strip:指定された}だけ{value.call|nameterm|gl:change}"
+      },
+      {
+       "when": {
+        "op": "eq"
+       },
+       "prefix": {
+        "value": "ARG-"
+       },
+       "text": "{target|name|owner:に}が記録される"
+      },
+      {
+       "when": {
+        "op": "eq"
+       },
+       "prefix": {
+        "value": "TERM-"
+       },
+       "text": "{target|name}が{value|word}になる"
+      },
+      {
+       "when": {
+        "op": "gt",
+        "agg": "count"
+       },
+       "has": "value.before",
+       "text": "{target|name}が1件増える"
+      },
+      {
+       "when": {
+        "op": "gt"
+       },
+       "has": "value.before",
+       "text": "{target|name}が増える"
+      }
+     ],
+     "text": "{|text:condition}"
     }
    }
   },
@@ -310,6 +361,17 @@
    "x-prompt": {
     "read": "比べ方と値と単位で読む",
     "write": "単位を必ず書く。比べ方は le か ge"
+   },
+   "x-view": {
+    "text": "{value}{unit}{op|map:opw}",
+    "maps": {
+     "opw": {
+      "le": "以下",
+      "ge": "以上",
+      "lt": "未満",
+      "gt": "より大きい"
+     }
+    }
    }
   },
   "ids": {
@@ -334,7 +396,10 @@
   "field": "condition",
   "as": "condition"
  },
- "x-view-arg": "指定された",
+ "x-view-arg": {
+  "in": "args",
+  "prefix": "指定された"
+ },
  "x-view-words": {
   "RESULT": "結果"
  },

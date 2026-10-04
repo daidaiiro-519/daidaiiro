@@ -1,0 +1,56 @@
+{
+ "kind": "context",
+ "page": [
+  {"head": {}},
+  {"kv": [
+   {"k": "モデルの目的", "v": {"val": "header/purpose"}},
+   {"k": "配置の単位", "v": {"or": [{"val": "boundary/kind"}, "―"]}},
+   {"k": "所有するチーム", "v": {"or": [{"val": "boundary/owner"}, "―"]}},
+   {"k": "対象とするサブドメイン", "v": {"each": "header/subdomains", "sep": " ", "empty": {"p": "txt", "s": {"text": "なし（このプロダクトの範囲の外）"}},
+    "do": [{"ref": "."}, {"pill": {"val": "./@ref/classification/category"}, "tone": {"map": "category", "on": "./@ref/classification/category"}}]}}]},
+  {"block": "この文脈の宣言", "body": {"table": {"cols": ["種類", "名前"], "empty": "", "rows": [
+   {"if": {"some": {"decls": "aggregate"}, "where": {"same": ["header/context", "^/id"]}}, "cells": ["集約", {"each": {"decls": "aggregate", "where": {"same": ["header/context", "^/id"]}}, "do": {"ref": "id"}, "sep": " ・ "}]},
+   {"if": {"some": {"decls": "value_object"}, "where": {"same": ["header/context", "^/id"]}}, "cells": ["値オブジェクト", {"each": {"decls": "value_object", "where": {"same": ["header/context", "^/id"]}}, "do": {"ref": "id"}, "sep": " ・ "}]},
+   {"if": {"some": {"decls": "domain_service"}, "where": {"same": ["header/context", "^/id"]}}, "cells": ["ドメインサービス", {"each": {"decls": "domain_service", "where": {"same": ["header/context", "^/id"]}}, "do": {"ref": "id"}, "sep": " ・ "}]},
+   {"if": {"some": {"decls": "use_case"}, "as": "u", "where": {"meet": ["^/header/subdomains", {"pick": "id", "from": {"decls": "subdomain", "where": {"in": ["$u/id", "use_cases"]}}}]}},
+    "cells": [["ユースケース", {"p": "what", "s": {"text": "対象とするサブドメインが束ねる"}}],
+     {"each": {"decls": "use_case", "as": "u", "where": {"meet": ["^/header/subdomains", {"pick": "id", "from": {"decls": "subdomain", "where": {"in": ["$u/id", "use_cases"]}}}]}}, "do": {"ref": "id"}, "sep": " ・ "}]}]}}},
+  {"if": {"some": "uses", "where": "term/@ref"}, "then": {"block": "用語集", "body": [
+   {"p": "p-txt", "s": {"text": ["この文脈で使う、", {"ref": "%glossary/id"}, "の語と意味。同じ言葉が通用するのは、この文脈の内側だけ。"]}},
+   {"ftable": {
+    "cols": ["語", "意味", "種類", "使わない語"],
+    "groups": [["モデル", ["集約", "エンティティ", "値オブジェクト", "識別子", "状態", "状態の値"]], ["振る舞い", ["コマンド", "業務イベント", "ドメインサービス", "操作", "拒否の理由"]], ["文を組む語", ["情報の別名", "動作", "失敗の種類"]]],
+    "label": "種類", "unit": "語",
+    "rows": [{"each": "uses", "as": "u", "rows": [{"each": "term/@ref", "as": "t", "rows": [{"each": "meanings", "where": {"same": ["id", "$u/meaning"]}, "rows": [{"key": {"val": "kind"}, "cells": [
+     {"p": "b", "s": {"text": {"val": "$t/word"}}},
+     {"p": "txt", "s": {"text": {"val": "definition"}}},
+     {"pill": {"val": "kind"}},
+     {"each": "$t/avoid", "do": {"p": "avoid", "s": {"text": {"val": "."}}}, "sep": " ", "empty": "―"}]}]}]}]}]}}]}},
+  {"if": "context_map/relations", "then": [
+   {"block": "文脈の地図", "body": [
+    {"fig": "context_map"},
+    {"table": {"cols": ["相手（このプロダクトの外）", "持ち主", "連係方法", "この文脈の側", "こちらでの変換"], "rows": [{"each": "context_map/relations", "rows": [{"cells": [
+     {"p": "b", "s": {"text": {"val": "external"}}},
+     {"val": "owner"},
+     {"pill": {"val": "pattern"}},
+     {"pill": {"val": "direction"}},
+     {"if": "translates", "then": {"each": "translates", "sep": {"p": "br"}, "do": [{"p": "code", "s": {"text": {"val": "theirs"}}}, " → ", {"t": "{ours|word}"}]},
+      "else": {"if": "uses", "then": ["そのまま使う：", {"t": "{uses|word|join:、}"}], "else": "―"}}]}]}]}},
+    {"p": "p-txt", "s": {"text": "相手の中身は、このプロダクトでは決めず、管理もしない。書くのは、こちらの側でどう変換するか、どの語をそのまま使うかだけ。"}}]},
+   {"if": "context_map/relations/operations", "then": {"block": "外部の操作（こちらから見た約束）", "body": {"table": {
+    "cols": ["相手", "使う操作", "渡すもの", "受け取るもの", "失敗の種類", "再実行", "満たすサブドメイン"],
+    "rows": [{"each": "context_map/relations", "as": "rr", "rows": [{"each": "operations", "rows": [{"cells": [
+     {"p": "b", "s": {"text": {"val": "$rr/external"}}},
+     {"t": "{name|word}"},
+     {"t": "{sends|word|join:、}"},
+     {"t": "{receives|word|join:、}"},
+     {"each": "failures", "sep": {"p": "br"}, "do": [{"p": "no-id", "s": {"text": {"val": "id"}}}, " ", {"t": "{name|word}"}]},
+     {"if": "retry/safe", "then": ["してよい（", {"t": "{retry.key|word}"}, "で同じ依頼と分かる）"], "else": "してはいけない"},
+     {"if": "$rr/fulfills", "then": {"ref": "$rr/fulfills"}, "else": "―"}]}]}]}]}}}}]},
+  {"if": "business_rules", "then": {"block": "業務ルール", "body": {"table": {"cols": ["ID", "組んだ文", {"lab": "実装するビジネスルール"}], "rows": [{"each": "business_rules", "rows": [{"cells": [
+   {"p": "no-id", "s": {"text": {"val": "id"}}},
+   {"v": "common.condition", "on": "condition"},
+   {"if": "implements", "then": [{"ref": "implements/@decl"}, "「", {"t": "{implements|bare}"}, "」"], "else": "―"}]}]}]}}}},
+  {"json": true}
+ ]
+}
