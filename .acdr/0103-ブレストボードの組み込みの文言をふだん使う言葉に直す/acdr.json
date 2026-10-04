@@ -1,0 +1,110 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0103",
+ "title": "ブレストボードの組み込みの文言を、ふだん使う言葉に直す",
+ "date": "2026-10-03",
+ "status": "accepted",
+ "decision": "brainstorming-board が組み込みで出す文言から廃語を外し、廃語の一覧に「つの面」を足す。",
+ "why": "platform-advisor のブレストボードを組んだとき、ゲート1が、道具の組み込みの文言にある廃語を3か所検出した。ボードの書き手が直せない文言なので、どのボードを組んでもゲート1が通らない。この3か所と「回答欄は持たない」は、前から直す予定に挙がっていた。また、利用者から「面ごとっていう表現なに？」と指摘を受け（2026-10-03）、「6つの面」のような書き方を廃語にした。",
+ "shift": [
+  {
+   "what": "除外した案の見出し",
+   "from": "負担を表す廃語を使い、他の案が負担の大きさか前提で外れたことを示していた",
+   "to": "他は負担が大きいか、前提を壊す"
+  },
+  {
+   "what": "通過した案の列の名前",
+   "from": "負担を表す廃語の1語",
+   "to": "採ると負担すること"
+  },
+  {
+   "what": "扱わない範囲の注記",
+   "from": "「必要である」の意味の廃語（和語の述部）を使っていた",
+   "to": "解決する手段が別に必要である"
+  },
+  {
+   "what": "待ちの論点の注記",
+   "from": "回答欄は持たない",
+   "to": "回答欄は無い"
+  },
+  {
+   "what": "廃語の一覧",
+   "from": "「この面」まで",
+   "to": "「つの面」を足す（「面ごと」は「局面ごと」のような正しい語を巻き込むので足さない）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "道具の組み込みの文言を直すと、どのボードでもゲート1が通る",
+ "how": "panel.rs と deck.rs の文言を4か所直した。テストは文言に頼っていないので、そのまま通った（テストの中の「代償」は事例のデータで、出力の文言ではない）。組み直した道具で platform-advisor のボードを組み、ゲート1が通ることを確かめた。",
+ "applies_to": "brainstorming-board の panel.rs ・ deck.rs と、リポジトリの廃語の一覧（.doc-writing/retired-words.json）が変わる。",
+ "alternatives": [
+  {
+   "option": "組み込みの文言を、ボードの入力で上書きできるようにする",
+   "why_not": "文言は道具がどのボードにも同じに出すもので、ボードごとに変える理由が無い。直すのは道具の側である"
+  },
+  {
+   "option": "「面ごと」も廃語に足す",
+   "why_not": "部分一致で「局面ごと」を検出する（usecase-advisor の判断基準に在る）"
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして組み直し、対象のファイルと記録をコミットする"
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "panel",
+   "tab": "panel.rs",
+   "file": ".claude/skills/brainstorming-board/tool/business_logic/src/panel.rs",
+   "rev": "379b4c9560150df7f844ef54aa7d689512aa7088",
+   "marks": [
+    {
+     "find": "\"反証を通過した案 {}件。このうち1つを残し、他は負担が大きいか、前提を壊す。\",",
+     "before": "\"反証を通過した案 {}件。このうち1つを残し、他は代償が重いか、前提を壊す。\",",
+     "why": "除外した案の見出しの「代償」を「負担」に直した"
+    },
+    {
+     "find": "\"採ると負担すること\".to_owned(),",
+     "before": "\"代償\".to_owned(),",
+     "why": "通過した案の列の名前を「採ると負担すること」にした（雛形の案の欄の説明「採ると何を負担するか」に揃えた）"
+    },
+    {
+     "find": "+ \"（この答えでは解決しない。解決する手段が別に必要である）／ \"",
+     "before": "+ \"（この答えでは解決しない。解決する手段が別に要る）／ \"",
+     "why": "「要る」を「必要である」に直した"
+    }
+   ]
+  },
+  {
+   "key": "deck",
+   "tab": "deck.rs",
+   "file": ".claude/skills/brainstorming-board/tool/business_logic/src/deck.rs",
+   "rev": "379b4c9560150df7f844ef54aa7d689512aa7088",
+   "marks": [
+    {
+     "find": "format!(\"残り {waiting} 件は、上流が決まるまで動く。回答欄は無い。\"),",
+     "before": "format!(\"残り {waiting} 件は、上流が決まるまで動く。回答欄は持たない。\"),",
+     "why": "待ちの論点の注記を「回答欄は無い」にした"
+    }
+   ]
+  },
+  {
+   "key": "retired",
+   "tab": "retired-words.json",
+   "file": ".doc-writing/retired-words.json",
+   "rev": "379b4c9560150df7f844ef54aa7d689512aa7088",
+   "marks": [
+    {
+     "find": "\"use_instead\": \"指しているものの名前（原典の語。例：Well-Architected の柱）\",",
+     "before": "（無い）",
+     "why": "「つの面」を廃語にした。何を指すか分からない語である（利用者の指摘）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "panel": "b0b38ce47f7f03e5ed289b1be9ecb395f017c0f8e862339cdec10bde91d05e5e",
+  "deck": "80f28806724de13d21ec7ad32339a0e8faf56f859e4ab99abfc4aa3bbcc21b99",
+  "retired": "d40c3f83cf445a75e6f1335b2cbd5e2f341f07aa132ff350d34fe6649cacdc35"
+ }
+}

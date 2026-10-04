@@ -178,7 +178,7 @@ pub fn panel(
             &[(
                 "body",
                 format!(
-                    "反証を通過した案 {}件。このうち1つを残し、他は代償が重いか、前提を壊す。",
+                    "反証を通過した案 {}件。このうち1つを残し、他は負担が大きいか、前提を壊す。",
                     t.kept.len()
                 ),
             )],
@@ -189,7 +189,7 @@ pub fn panel(
                 String::new(),
                 "案".to_owned(),
                 "中身".to_owned(),
-                "代償".to_owned(),
+                "採ると負担すること".to_owned(),
             ],
             &rows,
         )?);
@@ -322,7 +322,7 @@ pub fn panel(
             )?;
         let kinds = "扱いは3種である ── ".to_owned()
             + &parts.part("lead", &[("text", "対象外".to_owned())])?
-            + "（この答えでは解決しない。解決する手段が別に要る）／ "
+            + "（この答えでは解決しない。解決する手段が別に必要である）／ "
             + &parts.part("lead", &[("text", "後続で決定".to_owned())])?
             + "（この答えの内側で、どこで決めるかが定まっている）／ "
             + &parts.part("lead", &[("text", "解消済".to_owned())])?

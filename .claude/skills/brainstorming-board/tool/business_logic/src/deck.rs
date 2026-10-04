@@ -168,7 +168,7 @@ pub fn build(parts: &Parts, topics: &[Topic], deck: &Deck) -> Result<Made, Strin
                 "waiting",
                 &[(
                     "body",
-                    format!("残り {waiting} 件は、上流が決まるまで動く。回答欄は持たない。"),
+                    format!("残り {waiting} 件は、上流が決まるまで動く。回答欄は無い。"),
                 )],
             )?
         } else {
