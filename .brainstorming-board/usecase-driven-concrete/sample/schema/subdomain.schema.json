@@ -1,0 +1,53 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "サブドメイン",
+ "type": "object",
+ "properties": {
+  "classification": {
+   "title": "カテゴリー",
+   "type": "object",
+   "required": ["category", "competitive_advantage", "external_available", "cheaper_to_build"],
+   "properties": {
+    "category": {"title": "カテゴリー（宣言）", "enum": ["中核", "一般", "補完"]},
+    "competitive_advantage": {"type": "boolean", "title": "競合との違いになるか",
+     "x-prompt": {"write": "このサブドメインのやり方が、利用者が競合ではなくこのプロダクトを選ぶ理由になるなら true"}},
+    "external_available": {"type": "boolean", "title": "外部のサービスや製品があるか",
+     "x-prompt": {"write": "同じことを済ませる外部のサービスや製品が手に入るなら true"}},
+    "cheaper_to_build": {"type": "boolean", "title": "自分たちで作るほうが簡単で費用も少ないか",
+     "x-prompt": {"write": "外部のものを組み込むより、自分たちで作るほうが簡単で費用も少ないなら true"}},
+    "sourcing": {"type": "string", "title": "調達"}
+   },
+   "x-derive": {
+    "title": "答えから導いたカテゴリー",
+    "rules": [
+     {"when": {"competitive_advantage": true}, "then": "中核"},
+     {"when": {"external_available": true, "cheaper_to_build": false}, "then": "一般"}
+    ],
+    "otherwise": "補完"
+   }
+  },
+  "business_logic": {
+   "title": "業務ロジックの性質",
+   "type": "object",
+   "required": ["needs_tracking", "complex_rules", "complex_data", "rule_conditions"],
+   "properties": {
+    "needs_tracking": {"type": "boolean", "title": "状態の変化をすべて記録として残す必要があるか",
+     "x-prompt": {"write": "お金の流れの追跡 ・ 監査 ・ 利用の分析のために、状態の変化を1件ずつ残す必要があるなら true"}},
+    "complex_rules": {"type": "boolean", "title": "業務ルールは複雑か",
+     "x-prompt": {"write": "集約の不変条件やドメインサービスの結果の条件が、状態の組み合わせで決まるなら true。根拠の条件を rule_conditions に並べる"}},
+    "complex_data": {"type": "boolean", "title": "データ構造は複雑か",
+     "x-prompt": {"write": "業務ルールは単純だが、扱うデータが入れ子や関連を多く持つなら true"}},
+    "rule_conditions": {"type": "array", "title": "業務ルールが複雑と答えた根拠", "items": {"type": "string"}}
+   },
+   "x-derive": {
+    "title": "答えから導いた実装方法",
+    "rules": [
+     {"when": {"needs_tracking": true}, "then": "イベント履歴式ドメインモデル"},
+     {"when": {"complex_rules": true}, "then": "ドメインモデル"},
+     {"when": {"complex_data": true}, "then": "アクティブレコード"}
+    ],
+    "otherwise": "トランザクションスクリプト"
+   }
+  }
+ }
+}

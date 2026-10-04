@@ -100,7 +100,11 @@ def p_domain(d):
     src='業務イベント' if x['source']=='event' else 'システムの外'
     return [f'<b>{E(x["name"])}</b>',gen(g.sc_text(x)),pill(src),pill(g.thr(x['threshold'])),pill(g.thr(x['ratio'])) if x.get('ratio') else '―',E(x['window']),' '.join(ref(u) for u in uc.get(x['id'],[])) or '<span class="missing">なし</span>']
   b+=f'<h3 class="sub">{lab("達成の基準")}</h3>'+tbl(['基準','組んだ文','測る対象','閾値','割合','期間','寄与するユースケース'],[scrow(x) for x in vp['success_criteria']])+'<p class="txt">運用で測る。テスト条件にはしない。</p></section>'
-  b+=block('範囲',tbl(['作らないもの'],[[E(x)] for x in d['scope']['out']])+'<p class="txt">作るものは、ユースケース（要求の側）と、下のサブドメインの組み立て（設計の側。道具が組む）に並ぶ。</p>')
+  ucs=[(k,v) for k,v in D.items() if v['kind']=='use_case']
+  inc=''.join(f'<div class="item"><b>{ref(k)}</b><span class="txt">{E(v["header"]["primary_actor"])}の目的 ・ {E(v["header"]["level"])}</span></div>' for k,v in ucs if v['header']['level']=='ユーザー目的')
+  summ=' '.join(ref(k) for k,v in ucs if v['header']['level']=='要約')
+  outc=''.join(f'<div class="item"><b>{E(x)}</b></div>' for x in d['scope']['out'])
+  b+=block('範囲',cards([card('作るもの（In）',inc+(f'<span class="ln"><span class="k">まとめる要約</span>{summ}</span>' if summ else ''),'left-accent'),card('作らないもの（Out）',outc,'left-neutral')])+'<p class="txt">作るものは、ユーザー目的のユースケースの一覧から道具が組む（どのユースケースがあるかを決めることが、作るものを決めることになる）。</p>')
   sh={x['id']:x['who'] for x in d['stakeholders']}
   nm=lambda x: E(sh.get(x) or next((y['name'] for y in d['design_scopes'] if y['id']==x),x))
   def realize(s):
@@ -123,8 +127,24 @@ def p_domain(d):
 def p_sd(d):
   c=d['classification']; bl=d['business_logic']; dc=g.derived_category(c)
   b=head(d,' '+pill(c['category'],CAT[c['category']]),d['header']['description'])
-  b+=block('カテゴリー',tiles([('カテゴリー（宣言）',pill(c['category'],CAT[c['category']])),('判断基準の答えから導いたカテゴリー',pill(dc,CAT[dc])),('競合との違いになるか',yn(c['competitive_advantage'])),('外部のサービスや製品があるか',yn(c['external_available'])),('自分たちで作るほうが簡単で費用も少ないか',yn(c['cheaper_to_build']))]+([('調達',E(c['sourcing']))] if c.get('sourcing') else [])))
-  b+=block('業務ロジックの性質',tiles([('経緯を追う必要があるか',yn(bl['needs_tracking'])),('業務ルールが複雑か',yn(bl['complex_rules'])),('データの構造が複雑か',yn(bl['complex_data']))])+(f'<p class="ln"><span class="k">根拠の条件</span>{" ".join(pill(x) for x in bl["rule_conditions"])}</p>' if bl['rule_conditions'] else ''))
+  SP=g.SD_SCHEMA['properties']
+  def qa(group,ans):
+    pr=SP[group]['properties']; ks=[k for r in SP[group]['x-derive']['rules'] for k in r['when']]
+    ks=list(dict.fromkeys(ks))
+    return tbl(['問い（どのサブドメインでも同じ）','このサブドメインの答え'],[[E(pr[k]['title']),yn(ans[k])] for k in ks])
+  ok=c['category']==dc
+  b+=block('カテゴリー',tiles([(SP['classification']['x-derive']['title'],pill(dc,CAT[dc])),('カテゴリー（宣言）',pill(c['category'],CAT[c['category']])+('' if ok else ' <span class="missing">導いたカテゴリーと違う</span>'))]+([('調達',E(c['sourcing']))] if c.get('sourcing') else []))+qa('classification',c))
+  def rule_text(r):
+    p=r.split('.'); dd=D.get(p[0])
+    if dd is None: return E(r)
+    if dd['kind']=='aggregate':
+      inv=[x for x in dd['invariants'] if x['id']==p[1]]
+      return E(g.cond(inv[0]['condition'],p[0])) if inv else E(r)
+    if dd['kind']=='domain_service':
+      op=[o for o in dd['operations'] if o['id']==p[1]][0]; res=[x for x in op['results'] if x['id']==p[2]][0]
+      return E(dname(p[0])+'の結果：'+g.cond(res['condition'],p[0]))
+    return E(r)
+  b+=block('業務ロジックの性質',tiles([(SP['business_logic']['x-derive']['title'],f'<b>{E(g.impl_method(bl))}</b>')])+qa('business_logic',bl)+(('<h3 class="sub">'+E(SP['business_logic']['properties']['rule_conditions']['title'])+'</h3>'+tbl(['根拠の条件'],[[rule_text(r)+f'<span class="ln mx"><span class="no">{E(r)}</span></span>'] for r in bl['rule_conditions']])) if bl['rule_conditions'] else ''))
   if d['serves_values']: b+=block('担う提供価値',cards([card(E(v['name']),f'<span class="txt">{E(v["text"])}</span>','left-accent') for v in D['DOM-1']['vision']['values'] if v['id'] in d['serves_values']]))
   b+=block('束ねるユースケース',(' '.join(ref(u) for u in d.get('use_cases',[])) or '<span class="txt">なし（外部のサービスで満たす。使うユースケースはドメインの頁の組み立てに出る）</span>'))
   return b+raw(d)
@@ -168,9 +188,13 @@ def p_agg(d):
   rows=[]
   for s in st['state']:
     t=s['type']; ty=ref(t) if t in D else (E(g.word(ents[t]['name'])) if t in ents else E(t))
-    rows.append([f'<b>{E(g.word(s["name"]))}</b>',ty,pill(g.mul_text(s['multiplicity'])),tchip(f'{k}.{s["id"]}.MAX') if s['multiplicity']['max'] not in (None,1) else ''])
+    name=f'<b>{E(g.word(s["name"]))}</b>'
     if t in ents:
-      rows+=[[f'<span class="txt">└ {E(g.word(x["name"]))}</span>',ref(x['type']) if x['type'] in D else E(x['type']),pill('1つ'),''] for x in ents[t]['state']]
+      inner=ents[t]['state']
+      sub='<table class="entin">'+''.join(f'<tr><td>{E(g.word(x["name"]))}</td><td>{ref(x["type"]) if x["type"] in D else E(x["type"])}</td><td>{pill("1つ")}</td></tr>' for x in inner)+'</table>'
+      name=f'<details class="ent"><summary>{name}<span class="txt">　中の状態 {len(inner)}つ</span></summary>{sub}</details>'
+      ty=pill('エンティティ')
+    rows.append([name,ty,pill(g.mul_text(s['multiplicity'])),tchip(f'{k}.{s["id"]}.MAX') if s['multiplicity']['max'] not in (None,1) else ''])
   b+=block('構造',tbl(['状態','型','個数','テスト条件'],rows))
   if d['invariants']:
     ir=[]

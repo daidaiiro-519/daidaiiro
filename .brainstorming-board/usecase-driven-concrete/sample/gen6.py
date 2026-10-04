@@ -1,3 +1,4 @@
+import json,os
 # 欄から文を組み、例と境界値を導く（論点7の形）。宣言の自由文は読まない（説明として画面に出すだけ）。
 # 語は用語集から引く。ユースケースは用語集の語だけで書かれ、内部の ID を持たない。
 import data6
@@ -251,10 +252,14 @@ def event_word(ref):
 def qr_text(q):
   c=q['condition']; u,sid=q['target'].split('.',1); s=uc_part(D[u],sid)
   return f'「{dname(u)}」の手順{number(D[u])[sid]}（{step_short(s)}）の{q["measure"]}が{thr(q["threshold"])}の割合が{thr(q["ratio"])}（{c["period"]} ・ {c["load"]["value"]}{c["load"]["unit"]}）'
-def derived_category(c):
-  if c['competitive_advantage']: return '中核'
-  if c['external_available'] and not c['cheaper_to_build']: return '一般'
-  return '補完'
+SD_SCHEMA=json.load(open(os.path.join(os.path.dirname(__file__),'schema','subdomain.schema.json'),encoding='utf-8'))
+def derive(group,ans):
+  """スキーマの x-derive の決まりを上から当て、最初に当たった判定を返す"""
+  dv=SD_SCHEMA['properties'][group]['x-derive']
+  for r in dv['rules']:
+    if all(ans[k]==v for k,v in r['when'].items()): return r['then']
+  return dv['otherwise']
+def derived_category(c): return derive('classification',c)
 def ds_reason(d):
   if d['header']['reason']=='複数の集約にまたがる計算':
     return '・'.join(dname(x) for x in d['reads'])+'の状態を両方読む計算なので、どちらか1つの集約に置くと、もう一方の状態を持ち込む'
@@ -282,12 +287,7 @@ def resolve_term_path(path):
       return f'{k}.{ent[0]["id"]}.{es[0]["id"]}' if es else None
   return None
 
-def impl_method(bl):
-  """業務ロジックの性質から実装方法を導く（判断基準 design-heuristics の順）"""
-  if bl['needs_tracking']: return 'イベント履歴式ドメインモデル'
-  if bl['complex_rules']: return 'ドメインモデル'
-  if bl['complex_data']: return 'アクティブレコード'
-  return 'トランザクションスクリプト'
+def impl_method(bl): return derive('business_logic',bl)
 
 def post_text(c,decl=None,cmd=None):
   """状態の変更を「どうなるか」の文にする。比較の文（XはYと同じ）にしない"""
