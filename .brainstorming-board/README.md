@@ -33,3 +33,4 @@
 | `schema-driven-base/` | スキーマ駆動の道具（抽象の基盤） | `https://claude.ai/artifact/2SFURsbhMHgDHg9Vj5oLgG` | （未複製） |
 | `usecase-driven-concrete/` | ユースケース駆動の concrete の宣言 | `https://claude.ai/artifact/RCzv1XstzQ3Y5PHtFsT5Gr` | （未複製） |
 | `platform-advisor-source/` | platform-advisor を原典から作り直す | `https://claude.ai/artifact/8MfkSrXF9TGpzjaCsgQpEY` | （未複製） |
+| `ux-advisor-source/` | ux-advisor の判断基準を原典から作り直す | `https://claude.ai/artifact/DinpoSiVFSa1NANiBZxpG3` | （未複製） |
