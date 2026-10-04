@@ -40,6 +40,16 @@ def name_of(ref, ctx):
     other = None
     if p[0] in D():
         other = D()[p[0]]; decl, p = other, p[1:]
+    def nested_label(owner, item):
+        """名前の無い項目が別の項目の中に在るときは「宣言の名前の欄の説明：条件の文」にする"""
+        for parent in base7.find_all(owner):
+            if parent is owner: continue
+            for k, v in parent.items():
+                if isinstance(v, list) and any(x is item for x in v):
+                    dsc = desc_of(owner["kind"], k)
+                    sm = label(item, owner)
+                    return f'{label(owner, owner)}の{dsc}：{sm}' if dsc and sm else None
+        return None
     if other is None and len(p) == 1 and not (cmd or decl and any(x.get("id") == p[0] for x in base7.find_all(decl))):
         for dd in D().values():
             hit = next((x for x in base7.find_all(dd) if x.get("id") == p[0] and x is not dd), None)
@@ -51,7 +61,11 @@ def name_of(ref, ctx):
             cur = next((x for x in base7.find_all(cur) if x.get("id") == i), None)
             if cur is None: break
         if cur is not None:
-            n = label(cur, pool if pool is decl else decl)
+            owner = pool if pool is decl else decl
+            if other is not None and not any(base7.get(cur, k) for k in nm):
+                nl = nested_label(owner, cur)
+                if nl: return nl
+            n = label(cur, owner)
             if n:
                 # 状態の型がエンティティなら、エンティティの名前を前に付ける（ENT-1.ES-3 → 明細の提示した価格）
                 if len(p) > 1:
@@ -118,3 +132,21 @@ def view_text(val, view, ctx):
     for c in view.get("cases", []):
         if all(val.get(k) == v for k, v in c["when"].items()): return fill(c["text"], val, view, ctx)
     return fill(view["text"], val, view, ctx)
+
+def desc_of(kind, key):
+    """スキーマの中で、欄 key の説明を探す"""
+    def scan(o):
+        if isinstance(o, dict):
+            pr = o.get("properties") or {}
+            if key in pr and isinstance(pr[key], dict):
+                d = pr[key].get("description") or pr[key].get("title")
+                if d: return d
+            for v in o.values():
+                r = scan(v)
+                if r: return r
+        elif isinstance(o, list):
+            for v in o:
+                r = scan(v)
+                if r: return r
+        return None
+    return scan(SCH.get(kind, {}))

@@ -448,6 +448,10 @@ def p_sch(k):
     if n=='sub_step': continue
     b+=f'<section class="blk"><h2>{E(d["description"])}</h2><p class="txt">{E(d["x-prompt"]["write"])}</p>{tbl(["項目","キー","書くこと"],sch_rows(d.get("properties",{})))}</section>'
   return b
+import compose7
+PARTS={"head":head,"block":block,"kv":tiles,"table":tbl,"pill":pill,"yn":yn,"raw":raw,"ref":ref,"link":lambda i,n:f'<a class="ref" href="#{E(i.split(".")[0])}">{E(n)}</a>',"tones":{"category":CAT}}
+p_sd_old=p_sd
+p_sd=lambda d: compose7.page(d,PARTS)
 R={"domain":p_domain,"glossary":p_glossary,"other_requirements":p_req,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
 SCH_ORDER=[k for k in ORDER+['value_object']]+['common','trace','approved','migration']
 nav_sch='<div class="ng"><span class="nk">書き方（スキーマ）</span>'+''.join(f'<a href="#SCH-{k}" data-id="SCH-{k}">{E(SCH[k]["title"])}</a>' for k in SCH_ORDER)+'</div>'
