@@ -50,7 +50,26 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
     let fs = style.num("font.size")?;
     let fs_small = style.num("font.size-small")?;
     let box_w = text::column(&who, fs, style.num("chart.gap")? * 2.0);
-    let w = pad * 2.0 + colw * who.len() as f64;
+    let mut w = pad * 2.0 + colw * who.len() as f64;
+    // 自分への矢印の注記は、ライフラインの右へ出る ── 右端の参加者でも収まるように画布を広げる
+    let gap0 = style.num("chart.gap")?;
+    for s in steps {
+        let from = s.get("from").map(props::text).unwrap_or_default();
+        let to = s.get("to").map(props::text).unwrap_or_default();
+        if from != to {
+            continue;
+        }
+        if let Some(i) = who.iter().position(|x| *x == from) {
+            let label = s.get("label").map(props::text).unwrap_or_default();
+            let right = pad
+                + colw * i as f64
+                + colw / 2.0
+                + gap0 * 2.0
+                + gap0 / 2.0
+                + text::width(&label, fs_small);
+            w = w.max(right + pad);
+        }
+    }
 
     // 層ごとの縦位置を、分かれの見出し行ぶんも織り込んで先に確定させる
     let mut case_header_at: BTreeMap<i64, Vec<String>> = BTreeMap::new();
@@ -103,8 +122,9 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
         };
         let s = spans.iter().map(|x| x.0).min().unwrap_or(0);
         let e = spans.iter().map(|x| x.1).max().unwrap_or(0);
+        // 札は囲みの線の内側に置く。線に跨がらせると、札と見出しが線に詰まって読みにくい
         let top = match header_top.get(&s) {
-            Some(slots) => slots[0].0 - tab_h / 2.0,
+            Some(slots) => slots[0].0,
             None => row_top.get(&s).copied().ok_or("層が無い")? - tab_h,
         };
         let bottom = row_top.get(&e).copied().ok_or("層が無い")? + row_h - gap;
@@ -140,6 +160,12 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
                     .and_then(|slots| slots.iter().find(|(_, n)| *n == name))
                     .map(|(y, _)| *y)
                     .ok_or("見出しが無い")?;
+                // 1つ目の見出しは札の右の同じ行に、2つ目からは区切りの破線の下に置く
+                let (tx, ty) = if i == 0 {
+                    (pad + tab_w + gap, top + tab_h / 2.0 + fs * base)
+                } else {
+                    (pad + fs_small, head_y + case_head_h / 2.0 + fs * base)
+                };
                 if i > 0 {
                     body.push(format!(
                         "<line x1=\"{}\" y1=\"{head_y:.1}\" x2=\"{}\" y2=\"{head_y:.1}\" stroke=\"{}\" stroke-dasharray=\"5 4\"/>",
@@ -149,9 +175,9 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
                     ));
                 }
                 body.push(format!(
-                    "<text x=\"{}\" y=\"{:.1}\" font-weight=\"{}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
-                    f(pad + fs_small),
-                    head_y + case_head_h / 2.0 + fs_small * base,
+                    "<text x=\"{:.1}\" y=\"{:.1}\" font-weight=\"{}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                    tx,
+                    ty,
                     style.text("font.weight-medium")?,
                     f(fs),
                     style.text("color.ink")?,
@@ -206,6 +232,32 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             .position(|x| *x == to)
             .ok_or_else(|| format!("{} is not in list", crate::py::quote(&to)))?;
         let (xa, xb) = (x_of(a), x_of(b));
+        // 自分への矢印 ── 送り手と受け手が同じなら、ライフラインの右に折り返す線を描く
+        if a == b {
+            let loop_w = gap * 2.0;
+            let (y1, y2) = (
+                y - row_h * style.num("chart.exchange-self-rise")?,
+                y + row_h * style.num("chart.exchange-self-drop")?,
+            );
+            let ink = style.text("color.ink-faint")?;
+            body.push(format!(
+                "<path d=\"M{xa:.1},{y1:.1} H{:.1} V{y2:.1} H{xa:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{}\"/>",
+                xa + loop_w,
+                f(style.num("size.stroke-width")?)
+            ));
+            body.push(arrow_head((xa, y2), std::f64::consts::PI, style, Some(&ink), "solid")?);
+            if s.get("label").is_some_and(props::truthy) {
+                body.push(format!(
+                    "<text x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                    xa + loop_w + gap / 2.0,
+                    y + fs_small * base,
+                    f(fs_small),
+                    style.text("color.ink-soft")?,
+                    esc(&s.get("label").map(props::text).unwrap_or_default())
+                ));
+            }
+            continue;
+        }
         let dashed = s.get("kind").and_then(|x| x.as_str()) == Some("return");
         let dash_attr = if dashed {
             " stroke-dasharray=\"4 3\""
