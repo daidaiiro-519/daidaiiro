@@ -14,10 +14,6 @@ for t in data5.D['BC-1']['ubiquitous_language']['terms']:
   GL_TERMS.append({"id":t['id'],"word":t['word'],"meanings":[m],"avoid":t['avoid']})
 # 同じ語の別の意味（このプロダクトの文脈は使わない）。用語集の中で意味を分けて書く
 GL_TERMS[0]['meanings'].append({"id":"M-2","definition":"店舗が仕入先に出す発注","kind":"情報の別名"})
-for i,w,d in [("TERM-70","注文を確定する","顧客が、下書きの注文を受け取り予定時刻つきで確定させる"),
-              ("TERM-71","注文に商品を入れる","顧客が、下書きの注文に商品を1件足す"),
-              ("TERM-72","注文を渡す","店舗が、確定済の注文を顧客に渡す")]:
-  GL_TERMS.append({"id":i,"word":w,"meanings":[{"id":"M-1","definition":d,"kind":"アプリケーション層の操作"}],"avoid":[]})
 D['GLO-1']={"kind":"glossary","id":"GLO-1","header":{"name":"用語集"},"terms":GL_TERMS}
 
 # ── ドメイン（作りたいプロダクト）。ビジョン記述にまとめる。サブドメインの一覧と品質の要求は持たない
@@ -138,37 +134,10 @@ D['BC-1']={"kind":"context","id":"BC-1","header":b5['header'],"context_map":b5['
  "uses":[{"term":t['id'],"meaning":"M-1"} for t in GL_TERMS],
  "business_rules":[{"id":"BR-1","condition":C(target="AGG-1.ENT-1.ES-3",op="eq",value="TERM-40"),"implements":"REQ-1.BR-1"}],
  "published_language":[]}
-# アプリケーション層の操作（業務ロジックはドメインモデルなので、集約のコマンドを呼び、対応だけを持つ）
-D['APP-1']={"kind":"application_operation","id":"APP-1","header":{"name":"TERM-70","context":"BC-1"},
- "satisfies":["UC-1"],
- "steps":[{"step":"UC-1.STEP-7","calls":"DS-1.OP-1"},{"step":"UC-1.STEP-3","calls":"AGG-2.CMD-1"},
-          {"step":"UC-1.STEP-4","calls":"BC-1.X-1.OP-1"},{"step":"UC-1.STEP-5","calls":"AGG-1.CMD-1"},
-          {"step":"UC-1.EXT-3.S-1","calls":"AGG-2.CMD-2"},{"step":"UC-1.EXT-3.S-2","calls":"AGG-1.CMD-2"},
-          {"step":"UC-1.EXT-4.S-1","calls":"AGG-2.CMD-2"},{"step":"UC-1.EXT-4.S-2","calls":"AGG-1.CMD-2"}],
- "extensions":[{"extension":"UC-1.EXT-2","raised_by":["AGG-2.CMD-1.BR-1"]},
-               {"extension":"UC-1.EXT-3","raised_by":["BC-1.X-1.OP-1.F-1"]},
-               {"extension":"UC-1.EXT-4","raised_by":["BC-1.X-1.OP-1.F-2","BC-1.X-1.OP-1.F-3"]}],
- "preconditions":[{"precondition":"UC-1.PRE-2","prevents":["AGG-1.CMD-1.BR-2"]},
-                  {"precondition":"UC-1.PRE-3","prevents":["AGG-1.CMD-1.BR-1"]}],
- "guarantees":[{"guarantee":"UC-1.SG-1","established_by":["AGG-1.CMD-1.CHG-1"]},
-               {"guarantee":"UC-1.SG-2","established_by":["AGG-1.CMD-1.CHG-2","AGG-1.CMD-1.CHG-4"]},
-               {"guarantee":"UC-1.SG-3","established_by":["AGG-1.CMD-1.CHG-3"]}]}
-D['APP-2']={"kind":"application_operation","id":"APP-2","header":{"name":"TERM-71","context":"BC-1"},
- "satisfies":["UC-2"],
- "steps":[{"step":"UC-2.STEP-2","calls":"AGG-1.CMD-4"}],
- "extensions":[{"extension":"UC-2.EXT-1","raised_by":["AGG-1.CMD-4.BR-2"]}],
- "preconditions":[{"precondition":"UC-2.PRE-2","prevents":["AGG-1.CMD-4.BR-1"]}],
- "guarantees":[{"guarantee":"UC-2.SG-1","established_by":["AGG-1.CMD-4.CHG-1"]}]}
-D['APP-3']={"kind":"application_operation","id":"APP-3","header":{"name":"TERM-72","context":"BC-1"},
- "satisfies":["UC-3"],
- "steps":[{"step":"UC-3.STEP-2","calls":"AGG-1.CMD-3"}],
- "extensions":[{"extension":"UC-3.EXT-1","raised_by":["AGG-1.CMD-3.BR-1"]}],
- "preconditions":[],
- "guarantees":[{"guarantee":"UC-3.SG-1","established_by":["AGG-1.CMD-3.CHG-1"]}]}
 for k in ('AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1'):
   D[k]=copy.deepcopy(data5.D[k])
 
-ORDER_IDS=['DOM-1','GLO-1','REQ-1','UC-0','UC-1','UC-2','UC-3','SD-1','SD-2','BC-1','APP-1','APP-2','APP-3','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
+ORDER_IDS=['DOM-1','GLO-1','REQ-1','UC-0','UC-1','UC-2','UC-3','SD-1','SD-2','BC-1','AGG-1','AGG-2','VO-1','VO-2','VO-3','VO-4','VO-5','VO-6','VO-7','VO-9','DS-1']
 D={k:D[k] for k in ORDER_IDS}
 IMPL=data5.IMPL
 RETIRED=data5.RETIRED

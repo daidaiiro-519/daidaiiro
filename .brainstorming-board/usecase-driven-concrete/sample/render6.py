@@ -25,13 +25,13 @@ def svg(name,args,decl):
   return f'<figure class="fig">{open(OUT+f"/figures/{name}.svg").read()}</figure>'
 figure=lambda n,d: svg(n,['figure'],d)
 chart=lambda n,k,d: svg(n,['chart',k],d)
-KIND={"domain":"ドメイン（プロダクト）","glossary":"用語集","other_requirements":"その他の要求","subdomain":"サブドメイン","context":"区切られた文脈","use_case":"ユースケース","application_operation":"アプリケーション層の操作","aggregate":"集約","value_object":"値オブジェクト","domain_service":"ドメインサービス"}
-ORDER=["domain","glossary","other_requirements","use_case","subdomain","context","application_operation","aggregate","domain_service"]
+KIND={"domain":"ドメイン（プロダクト）","glossary":"用語集","other_requirements":"その他の要求","subdomain":"サブドメイン","context":"区切られた文脈","use_case":"ユースケース","aggregate":"集約","value_object":"値オブジェクト","domain_service":"ドメインサービス"}
+ORDER=["domain","glossary","other_requirements","use_case","subdomain","context","aggregate","domain_service"]
 SIDE={"domain":"要求の側","glossary":"要求の側","other_requirements":"要求の側","use_case":"要求の側"}
 CAT={"中核":"t-core","補完":"t-supporting","一般":"t-generic"}
 def ctx_of(d):
   if d['kind']=='use_case':
-    a=g.apps_of(d['id']); return a[0]['header']['context'] if a else None
+    c=g.contexts_of(d['id']); return c[0] if c else None
   return d['header'].get('context')
 def term(ctx,t): return g.word(t)
 def dname(i):
@@ -112,9 +112,6 @@ def p_domain(d):
     ext=[(k,x) for k,v in D.items() if v['kind']=='context' for x in v['context_map']['relations'] if x.get('fulfills')==s]
     where=' '.join(ref(b2) for b2 in bcs)+' '.join(f'{E(x["external"])}（{ref(k)}の文脈の地図）' for k,x in ext)
     ucs=list(D[s].get('use_cases',[]))
-    for k,x in ext:
-      for a in g.apps():
-        if any(st['calls'].startswith(f'{k}.{x["id"]}') for st in a['steps']): ucs+= [u for u in a['satisfies'] if u not in ucs]
     return where,ucs
   rows=[]
   for s in SDS:
@@ -153,7 +150,7 @@ def p_bc(d):
   sds=' '.join(ref(s)+pill(D[s]['classification']['category'],CAT[D[s]['classification']['category']]) for s in h['subdomains']) or '<span class="txt">なし（このプロダクトの範囲の外）</span>'
   bd=d.get('boundary',{})
   b+=tiles([('モデルの目的',E(h['purpose'])),('配置の単位',E(bd.get('kind','―'))),('所有するチーム',E(bd.get('owner','―'))),('担うサブドメイン',sds)])
-  mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('application_operation','aggregate','value_object','domain_service')]
+  mem=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind'] in ('aggregate','value_object','domain_service')]
   ucs=[k for k,v in D.items() if ctx_of(v)==d['id'] and v['kind']=='use_case']
   if mem: b+=block('この文脈のモデル',tbl(['種類','名前'],[[KIND[kk],' ・ '.join(ref(m) for m in mem if D[m]['kind']==kk)] for kk in dict.fromkeys(D[m]['kind'] for m in mem)])+(f'<p class="ln"><span class="k">この文脈を使うユースケース</span>{" ".join(ref(u) for u in ucs)}</p>' if ucs else ''))
   T=g.terms(); ts=[dict(T[u['term']],**{"definition":[m for m in T[u['term']]['meanings'] if m['id']==u['meaning']][0]['definition'],"kind":[m for m in T[u['term']]['meanings'] if m['id']==u['meaning']][0]['kind']}) for u in d['uses'] if u['term'] in T]
@@ -287,11 +284,6 @@ def p_uc(d):
     if D[a]['kind']=='context':
       return f'{ref(a)}の外部の操作の失敗「{E(g.word(x["name"]))}」<span class="no">{E(rr)}</span>'
     return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"業務ルール" if x["id"].startswith("BR") else "状態の変更"}<span class="no">{E(x["id"])}</span>'
-  APPS=g.apps_of(k)
-  M_STEP={st['step'].split('.',1)[1]:(a['id'],st['calls']) for a in APPS for st in a['steps']}
-  M_EXT={x['extension'].split('.',1)[1]:(a['id'],x['raised_by']) for a in APPS for x in a['extensions']}
-  M_PRE={x['precondition'].split('.',1)[1]:(a['id'],x['prevents']) for a in APPS for x in a['preconditions']}
-  M_SG={x['guarantee'].split('.',1)[1]:(a['id'],x['established_by']) for a in APPS for x in a['guarantees']}
   QS={g.item(q)[0]['target'].split('.',1)[1]:q for q in d.get('links',{}).get('quality',[])}
   def calls_label(c):
     h=c.split('.')[0]
@@ -306,8 +298,6 @@ def p_uc(d):
     if s.get('keeps'): o+=f'<span class="ln"><span class="k">守る最低保証</span>{pills([m["name"] for m in gu["minimal"] if m["id"] in s["keeps"]],"t-minimal")}</span>'
     if s['id'] in QS:
       q=QS[s['id']]; o+=f'<span class="ln"><span class="k">品質の要求</span>{E(g.qr_text(g.item(q)[0]))} {tchip(f"{k}.{s[chr(105)+chr(100)]}.{q.split(chr(46))[-1]}")}</span>'
-    if s['id'] in M_STEP:
-      a,c=M_STEP[s['id']]; o+=f'<span class="ln mx"><span class="k">設計の側</span>{ref(a)}が {calls_label(c)} を呼ぶ</span>'
     return o
   parts=list(dict.fromkeys([h['primary_actor'],'システム']+sc['supporting_actors']+[t['actor'] for t in g.all_steps(d)])); msgs=[]; groups=[]
   def add(s):
@@ -331,11 +321,11 @@ def p_uc(d):
   sys_=[x for x in D['DOM-1']['design_scopes'] if 'DOM-1.'+x['id']==h['scope']['system']][0]
   b=head(d,' '+pill(h['level'])+f' ・ スコープ <a class="ref" href="#DOM-1">{E(sys_["name"])}</a>（{E(sys_["level"])}）'+ctxl)
   b+=tiles([('主アクター',act(h['primary_actor'])),('支援アクター',''.join(act(a) for a in sc['supporting_actors'])),('トリガー',gen(g.step_text(trig))),('寄与する達成の基準',' '.join(f'<a class="ref" href="#DOM-1">{E(x["name"])}</a>' for x in scs))])
-  sline=lambda x: f'<span class="ln mx"><span class="k">設計の側</span>{(ref(M_SG[x["id"]][0])+"："+"、".join(pref(r) for r in M_SG[x["id"]][1])) if x["id"] in M_SG else "<span class=missing>成り立たせる状態の変更が無い</span>"}</span>'
+  sline=lambda x: ''
   sgc=card(lab('成功時保証'),''.join(item(x['name'],g.sg_text(x),f'<span class="ln">{whos(x["satisfies"])}</span>'+sline(x)) for x in gu['success']),'top-success')
   mgc=card(lab('最低保証'),''.join(item(x['name'],g.mg_text(x),f'<span class="ln">{whos(x["protects"])}</span>') for x in gu['minimal']),'top-minimal')
   b+='<div style="height:.75rem"></div>'+cards([sgc,mgc])
-  if d['preconditions']: b+=block('事前条件',tbl(['事前条件','成り立たせるもの'],[[gen(g.pre_text(x))+(f'<span class="ln mx"><span class="k">設計の側</span>{ref(M_PRE[x["id"]][0])}：これで起こらない拒否 {"、".join(pref(r) for r in M_PRE[x["id"]][1])}</span>' if x['id'] in M_PRE else ''),estb(x.get('established_by'))] for x in d['preconditions']]))
+  if d['preconditions']: b+=block('事前条件',tbl(['事前条件','成り立たせるもの'],[[gen(g.pre_text(x)),estb(x.get('established_by'))] for x in d['preconditions']]))
   def who_to(t): return act(t['actor'])
   def body(t):
     s=g.step_text(t); p=t['actor']+'は、'
@@ -355,7 +345,7 @@ def p_uc(d):
            else '' if x['ending']=='成功'
            else f'<li class="end back"><span class="sn">✓</span><div class="sb"><b>ユースケースは終了する</b></div></li>' if x['ending']=='終了'
            else f'<li class="end back"><span class="sn">↩</span><div class="sb"><b>手順{E(nums[x["ending"]])}へ戻る</b></div></li>')
-      xm=f'<div class="meta"><span class="no">{E(x["id"])} ・ {E(x["condition_kind"])}</span>'+(f'<span class="ln mx"><span class="k">設計の側</span>{ref(M_EXT[x["id"]][0])}：{"、".join(pref(r) for r in M_EXT[x["id"]][1])}</span>' if x['id'] in M_EXT else '')+f'<span class="ln">{tchip(k+"."+x["id"])}</span></div>'
+      xm=f'<div class="meta"><span class="no">{E(x["id"])} ・ {E(x["condition_kind"])}</span>'+f'<span class="ln">{tchip(k+"."+x["id"])}</span></div>'
       fl+=f'<li class="ext"><div class="xh"><span class="xl">{E(nums[x["id"]])}</span><b>{gen(g.ext_text(x))}</b></div>{xm}<ol class="xs">{sub}{end}</ol></li>'
   fl+=f'<li class="end ok"><span class="sn">✓</span><div class="sb"><b>成功で終わる</b><span class="note">成功時保証が成り立つ</span><div class="meta">{tchip(k+".M")}</div></div></li>'
   b+=f'<section class="blk"><h2>主成功シナリオと拡張{helpbtn("主成功シナリオ")}</h2><ol class="flow">{fl}</ol></section>'
@@ -366,10 +356,11 @@ def p_uc(d):
   vr=[[nums[s['id']],E(v['varies']),pills(v['values'])] for s in sc['steps'] for v in s.get('variations',[])]
   if vr: b+=f'<details class="fold"><summary>技術およびデータのバリエーション（{len(vr)}件）{helpbtn("技術およびデータのバリエーション")}</summary><div class="fbody">{tbl(["手順","違い","値"],vr)}</div></details>'
   lk=d.get('links',{})
-  lrows=[[E({'business_rules':'ビジネスルール','quality':'品質の要求','technology':'使われる技術'}[kk]),'、'.join(ref(r.split('.')[0])+'「'+E(g.item(r)[0].get('name') or g.item(r)[0].get('system') or g.item(r)[0].get('measure'))+'」' for r in v)] for kk,v in lk.items() if v]
+  lrows=[[E({'business_rules':'ビジネスルール','quality':'品質の要求','technology':'使われる技術','data':'データ要求'}[kk]),'、'.join(ref(r.split('.')[0])+'「'+E(g.item(r)[0].get('name') or g.item(r)[0].get('system') or g.item(r)[0].get('measure'))+'」' for r in v)] for kk,v in lk.items() if v]
   if lrows: b+=block('関連情報',tbl(['その他の要求','結ぶもの'],lrows))
-  if APPS or h['level']!='要約':
-    b+=block('設計の側の対応',('<p class="txt">このユースケースを満たすアプリケーション層の操作：'+' '.join(ref(a['id']) for a in APPS)+'。ユースケースは内部を指さないので、対応は道具が設計の側から逆向きに計算して見せる（宣言の欄を表示すると、手順 ・ 拡張 ・ 保証の横にも出る）。</p>') if APPS else '<p class="missing">このユースケースを満たす操作が無い</p>')
+  if h['level']!='要約':
+    sds=g.subdomains_of(k); bcs=g.contexts_of(k)
+    b+=block('束ねる設計の側',(f'<p class="txt">このユースケースを束ねるサブドメイン：{" ".join(ref(x) for x in sds)}。そのサブドメインを含む区切られた文脈：{" ".join(ref(x) for x in bcs) or "なし"}。ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。</p>') if sds else '<p class="missing">このユースケースを束ねるサブドメインが無い</p>')
   if d.get('open_issues'): b+=f'<details class="fold"><summary>未決定事項（{len(d["open_issues"])}件）{helpbtn("未決定事項")}</summary><div class="fbody">{tbl(["未決定事項"],[[E(x)] for x in d["open_issues"]])}</div></details>'
   b+=tblock(k)
   return b+raw(d)
@@ -399,40 +390,13 @@ def p_req(d):
   if d.get('data'): b+=block('データ要求',tbl(['項目','組んだ文','結ぶユースケース'],[[f'<b>{E(x["name"])}</b>',gen(g.cond(x['condition'])),uses(f'{d["id"]}.{x["id"]}')] for x in d['data']]))
   if d['open_issues']: b+=block('未決定事項',tbl(['未決定事項'],[[E(x)] for x in d['open_issues']]))
   return b+raw(d)
-def p_app(d):
-  h=d['header']; k=d['id']
-  b=head(d,f' ・ {ref(h["context"])}',f'満たすユースケース：'+' ・ '.join(dname(u) for u in d['satisfies']))
-  def pr(rr):
-    x,decl,cmd=g.item(rr); a=rr.split('.')[0]
-    if D[a]['kind']=='context': return f'外部の操作の失敗「{E(g.word(x["name"]))}」'
-    return f'{ref(a)}「{E(g.word(cmd["name"]))}」の{"拒否「"+E(g.word(x["reject"]))+"」" if x["id"].startswith("BR") else E(g.post_text(x["condition"],a,cmd))}'
-  def cl(c):
-    hh=c.split('.')[0]
-    if D[hh]['kind']=='context':
-      x,_,rel=g.item(c); return f'{E(rel["external"])}の「{E(g.word(x["name"]))}」'
-    return f'{ref(hh)}：{E(g.cmd_label(c))}'
-  def stepname(r):
-    u,sid=r.split('.',1); n=g.number(D[u]); return f'{ref(u)} 手順{n[sid]}「{E(g.step_short(g.uc_part(D[u],sid)))}」'
-  def extname(r):
-    u,eid=r.split('.',1); n=g.number(D[u]); return f'{ref(u)} 拡張{n[eid]}「{E(g.ext_text(g.uc_part(D[u],eid)))}」'
-  def prename(r):
-    u,pid=r.split('.',1); return f'{ref(u)} 事前条件「{E(g.pre_text(g.uc_part(D[u],pid)))}」'
-  def sgname(r):
-    u,sid=r.split('.',1); return f'{ref(u)} 成功時保証「{E(g.uc_part(D[u],sid)["name"])}」'
-  b+=block('呼ぶもの（手順ごと）',tbl(['ユースケースの手順','呼ぶもの'],[[stepname(x['step']),cl(x['calls'])] for x in d['steps']]))
-  b+=block('拡張を起こす拒否 ・ 失敗',tbl(['ユースケースの拡張','起こすもの'],[[extname(x['extension']),'<br>'.join(pr(r) for r in x['raised_by'])] for x in d['extensions']]))
-  if d['preconditions']: b+=block('事前条件で起こらない拒否',tbl(['ユースケースの事前条件','起こらない拒否'],[[prename(x['precondition']),'<br>'.join(pr(r) for r in x['prevents'])] for x in d['preconditions']]))
-  b+=block('成功時保証を成り立たせる状態の変更',tbl(['ユースケースの成功時保証','状態の変更'],[[sgname(x['guarantee']),'<br>'.join(pr(r) for r in x['established_by'])] for x in d['guarantees']]))
-  rv=[x for x in SPEC if x['from']==k and x['category']=='review']
-  if rv: b+=block('人のレビュー',tbl(['検査','内容'],[[E(x['check']),E(x['text'])] for x in rv]))
-  return b+raw(d)
 def p_drift():
   import collections
   b='<header class="ph"><p class="kind">テスト</p><h1>テスト条件と宣言どうしの検査</h1></header><p class="lead">宣言から道具が出すもの。テストの合否はここに無い（テストの実行器が判定し、保存しない）。</p>'
   scnt=collections.Counter(x['status'] for x in SPEC)
-  b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','対応の欠け','確かめ直し','レビュー','合格']])
-  CAT={'structure':'構造で検査','link':'対応の欄で検査','change':'上流の変更','review':'人のレビュー'}
-  SST={'合格':'','ずれ':'t-warn','対応の欠け':'t-warn','確かめ直し':'','レビュー':''}
+  b+='<h2 class="sec">宣言どうし</h2>'+tiles([(k,f'<b style="font-size:1.3rem">{scnt.get(k,0)}</b>') for k in ['ずれ','欠け','確かめ直し','レビュー','合格']])
+  CAT={'structure':'構造で検査','change':'上流の変更','review':'人のレビュー'}
+  SST={'合格':'','ずれ':'t-warn','欠け':'t-warn','確かめ直し':'','レビュー':''}
   def at(i):
     if ':' in i: a,r=i.split(':',1); return ref(a)+' → '+at(r)
     if i.startswith('TERM-'): return f'「{E(g.word(i))}」'
@@ -458,7 +422,7 @@ def p_sch(k):
     if n=='sub_step': continue
     b+=f'<section class="blk"><h2>{E(d["description"])}</h2><p class="txt">{E(d["x-prompt"]["write"])}</p>{tbl(["項目","キー","書くこと"],sch_rows(d.get("properties",{})))}</section>'
   return b
-R={"domain":p_domain,"glossary":p_glossary,"other_requirements":p_req,"application_operation":p_app,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
+R={"domain":p_domain,"glossary":p_glossary,"other_requirements":p_req,"subdomain":p_sd,"context":p_bc,"aggregate":p_agg,"value_object":p_vo,"domain_service":p_ds,"use_case":p_uc}
 SCH_ORDER=[k for k in ORDER+['value_object']]+['common']
 nav_sch='<div class="ng"><span class="nk">書き方（スキーマ）</span>'+''.join(f'<a href="#SCH-{k}" data-id="SCH-{k}">{E(SCH[k]["title"])}</a>' for k in SCH_ORDER)+'</div>'
 nav='<div class="ng"><span class="nk">テスト</span><a href="#DRIFT" data-id="DRIFT">テスト条件と検査</a><a href="https://claude.ai/artifact/MGX9MpSk6MtnCF8QpWqDdh" target="_blank" rel="noopener">突き合わせ ↗</a><a href="https://claude.ai/artifact/HwxXEHAKFcGig7f7UamAxY" target="_blank" rel="noopener">実行の記録 ↗</a></div>'+''.join(f'<div class="ng"><span class="nk">{KIND[k]}</span>'+''.join(f'<a href="#{i}" data-id="{i}">{E(dname(i))}</a>' for i,v in D.items() if v['kind']==k)+'</div>' for k in ORDER)+nav_sch

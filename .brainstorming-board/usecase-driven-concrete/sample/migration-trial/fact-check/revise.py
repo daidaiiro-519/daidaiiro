@@ -34,10 +34,6 @@ wr('VO-8',{"kind":"value_object","id":"VO-8","header":{"name":"TERM-32","context
 V=rd('VO-5'); V['components'][0]['invariants']=[]; wr('VO-5',V)
 R=rd('REQ-1'); R['data']=[{"id":"DAT-1","name":"保存する名前","condition":{"target":"TERM-11","measure":"length","op":"le","value":120}}]
 R['open_issues']=[x for x in R['open_issues'] if '変換しない' not in x]; wr('REQ-1',R)
-P=rd('APP-1')
-P['extensions']=[x for x in P['extensions'] if x['extension']!='UC-1.EXT-5']+[{"extension":"UC-1.EXT-5","raised_by":["AGG-1.CMD-1.BR-1","AGG-1.CMD-1.BR-2"]}]
-P['guarantees']=[x for x in P['guarantees'] if x['guarantee']!='UC-1.SG-4']+[{"guarantee":"UC-1.SG-4","established_by":["AGG-1.CMD-1.CHG-9"]}]
-wr('APP-1',P)
 B=rd('BC-1')
 for t in ("TERM-30","TERM-31","TERM-32"):
   if not [u for u in B['uses'] if u['term']==t]: B['uses'].append({"term":t,"meaning":"M-1"})
@@ -48,3 +44,7 @@ for c in V['components']:
   for i in c['invariants']:
     if i.pop('note',None)=='文字数': i['condition']['measure']='length'
 wr('VO-3',V)
+# 論点7の直し（7″）── アプリケーション層の操作を宣言の種類から外す。手順と集約のコマンドの対応は、仕様に書かない
+if os.path.exists(os.path.join(H,'decls','APP-1.json')): os.remove(os.path.join(H,'decls','APP-1.json'))
+G=rd('GLO-1'); G['terms']=[t for t in G['terms'] if t['meanings'][0]['kind']!='アプリケーション層の操作']; wr('GLO-1',G)
+B=rd('BC-1'); B['uses']=[u for u in B['uses'] if u['term'] in {t['id'] for t in G['terms']}]; wr('BC-1',B)

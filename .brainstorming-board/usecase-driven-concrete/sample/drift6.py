@@ -18,18 +18,10 @@ def impl_of(ctx):
   return g.impl_method(D[sds[0]]['business_logic']) if sds and sds[0] in D else 'ドメインモデル'
 def ctx_of(d):
   if d['kind']=='use_case':
-    a=g.apps_of(d['id']); return a[0]['header']['context'] if a else None
+    c=g.contexts_of(d['id']); return c[0] if c else None
   return d['header'].get('context')
 def up(ref):
   x,_,_=g.item(ref); return {k:x[k] for k in ('condition','reject','example','threshold','ratio','measure','name','sends','receives','failures','retry') if k in x}
-def design(uc):
-  """ユースケースを満たす操作の対応（期待する結果を決める部分だけ）"""
-  out={"ext":{},"pre":{},"sg":{}}
-  for a in g.apps_of(uc):
-    for x in a['extensions']: out['ext'][x['extension']]=x['raised_by']
-    for p in a['preconditions']: out['pre'][p['precondition']]=p['prevents']
-    for q in a['guarantees']: out['sg'][q['guarantee']]=q['established_by']
-  return out
 def sem(s):
   """手順の意味の欄（文は道具が組むので入れない）"""
   return {k:s[k] for k in ('kind','actor','to','data','verb','object','checks','calls','reply') if k in s}
@@ -40,16 +32,15 @@ def conditions():
     out.append({"id":cid,"label":label,"kind":kind,"checks":checks,"hash":fp(expect),"required_level":lv,"decl":decl,"anchor":anchor})
   for k,d in D.items():
     if d['kind']=='use_case':
-      sc=d['scenario']; gu=d['guarantees']; nums=g.number(d); dz=design(k)
-      est=[dz['sg'].get(f'{k}.{x["id"]}',[]) for x in gu['success']]
+      sc=d['scenario']; gu=d['guarantees']; nums=g.number(d)
       add(f'{k}.M','主成功シナリオ','use_case','成功時保証がすべて成り立つ',
-          {"steps":[sem(s) for s in sc['steps']],"success":[x['condition'] for x in gu['success']],"design":est,"up":[up(r) for e in est for r in e]},k,'M')
+          {"steps":[sem(s) for s in sc['steps']],"success":[x['condition'] for x in gu['success']]},k,'M')
       for s in sc['steps']:
         for x in s['extensions']:
           fail=x['ending']=='失敗'
           add(f'{k}.{x["id"]}',nums[x['id']],'use_case','最低保証がすべて成り立ち、成功時保証は成り立たない' if fail else '元の手順が成功した状態で続き、成功時保証が成り立つ' if x['ending']=='成功' else '別の道筋で成功して終わる' if x['ending']=='終了' else '元の手順に戻り、成功時保証が成り立つ',
               {"kind":x['condition_kind'],"refs":{r:x.get(r) for r in ('reasons','fails','actor','condition') if r!='condition' or r in x},"ending":x['ending'],"steps":[sem(t) for t in x['steps']],
-               "minimal":[m['condition'] for m in gu['minimal']] if fail else [],"design":dz['ext'].get(f'{k}.{x["id"]}',[]),"up":[up(r) for r in x.get('fails',[])+dz['ext'].get(f'{k}.{x["id"]}',[])]},k,x['id'])
+               "minimal":[m['condition'] for m in gu['minimal']] if fail else [],"up":[up(r) for r in x.get('fails',[])]},k,x['id'])
         pass
       for q in d.get('links',{}).get('data',[]):
         dt,_,_=g.item(q)

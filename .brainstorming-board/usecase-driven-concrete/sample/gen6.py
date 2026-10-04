@@ -285,8 +285,8 @@ def competitor_text(c):
   return '「'+'」「'.join(vs)+'」が無い'
 def scope_in(dom): return [v['header']['name'] for v in D.values() if v['kind']=='subdomain']
 # ── 設計の側から要求の側への対応
-def apps(): return [v for v in D.values() if v['kind']=='application_operation']
-def apps_of(uc): return [a for a in apps() if uc in a['satisfies']]
+def subdomains_of(uc): return [k for k,v in D.items() if v['kind']=='subdomain' and uc in v.get('use_cases',[])]
+def contexts_of(uc): return [k for k,v in D.items() if v['kind']=='context' and set(v['header']['subdomains'])&set(subdomains_of(uc))]
 def resolve_term_path(path):
   """用語集の語の並び（TERM-1.TERM-5）を、集約の状態の参照（AGG-1.ST-2）へ解く。解けなければ None"""
   ws=path.split('.')

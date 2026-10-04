@@ -152,7 +152,7 @@ STEP_GUIDE = {
     "extensions": ("この手順の拡張", "この手順で違う振る舞いになる状況", "拡張ごとに条件の種類と終わり方を書く。無ければ空にする")}
 for k, v in list(step_props.items()): step_props[k] = F(*STEP_GUIDE[k], v)
 sub_props = dict(step_props); sub_props["id"] = F("拡張の中の手順の ID", "番号は道具が振る", "EXT-番号.S-番号 で書く", pat("^EXT-[0-9]+\\.S-[0-9]+$"))
-use_case = kind_schema("use_case", "ユースケース", "主アクターが目的を果たすまでの、システムとのやり取り。プロダクトの内部（集約 ・ 文脈 ・ 操作）を指さない。設計の側の操作が、このユースケースを指す", {
+use_case = kind_schema("use_case", "ユースケース", "主アクターが目的を果たすまでの、システムとのやり取り。プロダクトの内部（集約 ・ 文脈）を指さない。設計の側のサブドメインが、このユースケースを束ねる", {
     "header": F("名前 ・ 目的レベル ・ スコープ ・ 主アクター ・ トリガー", "目的レベルとスコープで、どこまでを書くかが決まる",
                 "名前は主アクターの目的を「〜を〜する」の形で書く。目的レベルは要約 ・ ユーザー目的 ・ サブ機能のどれか。スコープは設計スコープのシステムの高さ（DOM-n.SCP-n）を指す。トリガーは最初の手順を指す",
                 obj({"name": txt(), "level": {"enum": ["要約", "ユーザー目的", "サブ機能"]}, "scope": obj({"system": ref("ref")}, ["system"]),
@@ -234,20 +234,6 @@ context = kind_schema("context", "区切られた文脈", "1つのモデルが�
     "published_language": F("公開された言語", "外へ出す情報の形", "在るときだけ書く", arr({"type": "object"}))},
     ["header", "uses", "context_map", "boundary"], idpre="BC")
 
-# ── アプリケーション層の操作
-app = kind_schema("application_operation", "アプリケーション層の操作", "要求の側と設計の側をつなぐ唯一の宣言。どのユースケースを満たし、各手順で何を呼び、各拡張がどの拒否 ・ 失敗で起きるかを持つ", {
-    "header": F(*HEADER_IN_CONTEXT_DESC, HEADER_IN_CONTEXT),
-    "satisfies": F("満たすユースケース", "この操作が実現するユースケース", "UC の ID を書く。ユースケースと一対一に固定しない", arr(ID("UC"), minItems=1)),
-    "steps": F("手順の対応", "ユースケースのどの手順で何を呼ぶか", "内部の状態変化の手順と、支援アクターとの相互作用の手順ごとに、呼ぶ集約のコマンド ・ ドメインサービスの操作 ・ 文脈の地図の操作を書く。トランザクションスクリプトとアクティブレコードでは書かない",
-               arr(obj({"step": ref("ref"), "calls": ref("ref")}, ["step", "calls"]))),
-    "extensions": F("拡張の対応", "どの拒否 ・ 失敗で、どの拡張が起きるか", "業務ルールの拒否と支援アクターの失敗の拡張ごとに、起こす業務ルールか失敗の種類を raised_by に書く。別の道筋での成功と妥当性確認の失敗は書かない",
-                    arr(obj({"extension": ref("ref"), "raised_by": ref("ids")}, ["extension", "raised_by"]))),
-    "preconditions": F("事前条件の対応", "どの事前条件が、どの拒否を防いでいるか", "防いでいる業務ルールを prevents に書く。ここに書いた拒否は、拡張の欠けとして数えない",
-                       arr(obj({"precondition": ref("ref"), "prevents": ref("ids")}, ["precondition", "prevents"]))),
-    "guarantees": F("成功時保証の対応", "どの状態の変更が、どの成功時保証を成り立たせるか", "保証の条件の語と同じ状態を変える状態の変更を書く",
-                    arr(obj({"guarantee": ref("ref"), "established_by": ref("ids")}, ["guarantee", "established_by"])))},
-    ["header", "satisfies", "steps", "extensions", "preconditions", "guarantees"], idpre="APP")
-
 # ── 集約
 agg = kind_schema("aggregate", "集約", "一貫性を守る単位。状態 ・ 不変条件 ・ コマンド（業務ルール ・ 状態の変更 ・ 業務イベント ・ 受け付ける例）を持つ", {
     "header": F(*HEADER_IN_CONTEXT_DESC, HEADER_IN_CONTEXT),
@@ -298,7 +284,7 @@ ds = kind_schema("domain_service", "ドメインサービス", "複数の集約�
     ["header", "reads", "operations"], idpre="DS")
 
 ALL = {"common": common, "domain": domain, "glossary": glossary, "other_requirements": other, "use_case": use_case,
-       "subdomain": subdomain, "context": context, "application_operation": app, "aggregate": agg, "value_object": vo, "domain_service": ds}
+       "subdomain": subdomain, "context": context, "aggregate": agg, "value_object": vo, "domain_service": ds}
 for k, s in ALL.items():
     json.dump(s, open(os.path.join(H, f"{k}.schema.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(ALL), "files")
