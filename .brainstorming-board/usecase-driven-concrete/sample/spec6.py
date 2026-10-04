@@ -168,7 +168,7 @@ def checks(rec=None):
     if v['kind']!='subdomain': continue
     inn=[c for c,x in D.items() if x['kind']=='context' and k in x['header']['subdomains']]
     ful=[f'{c}.{r["id"]}' for c,x in D.items() if x['kind']=='context' for r in x['context_map']['relations'] if r.get('fulfills')==k]
-    put('structure','サブドメインを担う文脈がある',k,'・'.join(inn+ful),('区切られた文脈が含む' if inn else '文脈の地図の外の相手が担う' if ful else 'どの区切られた文脈にも、外の相手にも担われていない'),'合格' if inn or ful else '欠け')
+    put('structure','サブドメインを担う文脈がある',k,'・'.join(inn+ful),('区切られた文脈が対象とする' if inn else '文脈の地図の外の相手が担う' if ful else 'どの区切られた文脈にも、外の相手にも担われていない'),'合格' if inn or ful else '欠け')
     m=g.impl_method(v['business_logic'])
     if 'ドメインモデル' in m and inn:
       aggs=[a for a,x in D.items() if x['kind']=='aggregate' and x['header']['context'] in inn]

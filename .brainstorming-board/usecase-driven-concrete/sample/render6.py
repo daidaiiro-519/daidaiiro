@@ -360,7 +360,7 @@ def p_uc(d):
   if lrows: b+=block('関連情報',tbl(['その他の要求','結ぶもの'],lrows))
   if h['level']!='要約':
     sds=g.subdomains_of(k); bcs=g.contexts_of(k)
-    b+=block('束ねる設計の側',(f'<p class="txt">このユースケースを束ねるサブドメイン：{" ".join(ref(x) for x in sds)}。そのサブドメインを含む区切られた文脈：{" ".join(ref(x) for x in bcs) or "なし"}。ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。</p>') if sds else '<p class="missing">このユースケースを束ねるサブドメインが無い</p>')
+    b+=block('束ねる設計の側',(f'<p class="txt">このユースケースを束ねるサブドメイン：{" ".join(ref(x) for x in sds)}。そのサブドメインを対象とする区切られた文脈：{" ".join(ref(x) for x in bcs) or "なし"}。ユースケースは設計の側を指さないので、道具が設計の側の従属関係から逆向きに引いて見せる。</p>') if sds else '<p class="missing">このユースケースを束ねるサブドメインが無い</p>')
   if d.get('open_issues'): b+=f'<details class="fold"><summary>未決定事項（{len(d["open_issues"])}件）{helpbtn("未決定事項")}</summary><div class="fbody">{tbl(["未決定事項"],[[E(x)] for x in d["open_issues"]])}</div></details>'
   b+=tblock(k)
   return b+raw(d)
