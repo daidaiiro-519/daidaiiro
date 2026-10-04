@@ -6,7 +6,7 @@
 
 | フォルダ | 中身 |
 |---|---|
-| `out/videos/` | 本ごとの動画（mp4）。枚ごとの画像と読み上げの音声を結合したもの |
+| `out/videos/` | 本ごとの動画（mp4）と字幕（WebVTT）。動画は枚ごとの画像と読み上げの音声を結合し、字幕を切り替え式のトラックとして持つ |
 | `out/slides/` | 本ごとのスライド（HTML）。ブラウザで開き、矢印キーでめくる |
 | `out/scripts/` | 本ごとの読み上げの原稿（Markdown） |
 | `out/pdf/` | 全枚を縦に並べたスライド（HTML）と、そのPDF。配る・印刷するときに使う |
@@ -45,7 +45,7 @@
 | 3b. PDFにする | `python3 export_pdf.py --browser <ブラウザ> [本の番号…]`（既定は 00） | `out/pdf/` |
 | 4. 読み上げの入力を組む | `python3 build_narration.py [00-start …]` | `narration/narration.json` |
 | 5. 音声を合成する | `slide-deck-speech synth narration`（slide-deck-speech Skill、`AWS_PROFILE=dev`）。読みの辞書 `narration/lexicon.pls` は、変えたときに `slide-deck-speech lexicon narration/lexicon.pls aiworkshop` で登録し直す | `narration/narration.out.json` と音声 |
-| 6. 動画にする | `python3 build_videos.py [00-start …]` | `out/videos/` |
+| 6. 動画にする | `python3 build_videos.py [00-start …]` | `out/videos/` の動画と字幕。字幕は、音声の文の時刻から組む |
 
 原稿を持つデッキを1枚ずつ照合するときは、slide-deck Skill の照合の工程に従う。
 `python3 review_input.py build <変更前> <review.json> --log review-log.json` で照合の入力を組み、
