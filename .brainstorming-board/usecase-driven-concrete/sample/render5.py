@@ -1,5 +1,5 @@
 # 宣言を、共通の部品（タイル ・ カード ・ 札 ・ 表 ・ 図）とデザイントークンで描画する
-import json,html,sys,os,subprocess,itertools
+import json,html,sys,os,subprocess,itertools,re
 HERE=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,HERE)
 from data5 import D,RETIRED
 import gen5 as g
@@ -50,7 +50,8 @@ def tbl(cols,rows):
     cols=cols[1:]; rows=[[r[1]+' '+r[0]]+list(r[2:]) for r in rows]
   elif cols and cols[-1]=='テスト条件':
     cols=cols[:-1]; rows=[[r[0]+' '+r[-1]]+list(r[1:-1]) for r in rows]
-  return '<div class="tw"><table><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td>{c}</td>' for c in r)+'</tr>' for r in rows)+'</tbody></table></div>'
+  lab_=[re.sub(r'<[^>]+>','',re.sub(r'<div class="pop".*?</div>','',c)).replace('?','').strip() for c in cols]
+  return '<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td data-label="{E(lab_[i])}">{c}</td>' for i,c in enumerate(r))+'</tr>' for r in rows)+'</tbody></table></div>'
 def block(title,body): return f'<section class="blk"><h2>{E(title)}{helpbtn(title)}</h2>{body}</section>'
 def tiles(pairs): return '<div class="tiles">'+''.join(f'<div class="tile"><div class="tl">{lab(k)}</div><div class="tv">{v}</div></div>' for k,v in pairs)+'</div>'
 def card(title,body,cls=''): return f'<div class="card {cls}"><h3>{title}</h3>{body}</div>'
@@ -343,11 +344,12 @@ page=f'''<title>モバイルオーダーの宣言</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
 <style>{css}</style>
-<div class="shell"><aside class="side"><p class="brand">{E(D["DOM-1"]["header"]["name"])}</p><nav class="nav">{nav}</nav></aside>
+<div class="shell"><aside class="side"><p class="brand">{E(D["DOM-1"]["header"]["name"])}</p><details class="navd" open><summary>目次を開く ・ 閉じる</summary><nav class="nav">{nav}</nav></details></aside>
 <main class="main">{pages}</main></div>
 <script>
 const show=()=>{{const id=(location.hash||'#DOM-1').slice(1);const hit=[...document.querySelectorAll('.page')].some(p=>p.id===id);const cur=hit?id:'DOM-1';document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==cur);document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===cur));window.scrollTo(0,0)}};
 addEventListener('hashchange',show);show();
+if(innerWidth<=760){{const n=document.querySelector('.navd');if(n)n.open=false;document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{{n.open=false}}))}}
 const go=n=>{{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));const st=document.querySelector('.stepper');if(st&&window.scrollY>st.offsetTop)st.scrollIntoView();}};
 document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{{go(b.dataset.go);document.querySelector('.stepper').scrollIntoView({{behavior:'smooth'}})}}));go('0');
 </script>'''

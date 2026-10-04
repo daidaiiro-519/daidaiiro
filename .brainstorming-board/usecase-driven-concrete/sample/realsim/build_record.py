@@ -4,7 +4,7 @@ H=os.path.dirname(os.path.abspath(__file__)); E=html.escape
 L=json.load(open(f'{H}/sim.json')); R=f'{H}/repo'
 css=open(f'{H}/../tokens.css').read()+open(f'{H}/../sample4.css').read()
 def pill(t,c=''): return f'<span class="pill {c}">{E(t)}</span>'
-def tbl(cols,rows): return '<div class="tw"><table><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td>{c}</td>' for c in r)+'</tr>' for r in rows)+'</tbody></table></div>'
+def tbl(cols,rows): return '<div class="tw"><table class="st"><thead><tr>'+''.join(f'<th>{c}</th>' for c in cols)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td data-label="{E(re.sub("<[^>]+>","",cols[i]))}">{c}</td>' for i,c in enumerate(r))+'</tr>' for r in rows)+'</tbody></table></div>'
 def blk(t,b): return f'<section class="blk"><h2>{E(t)}</h2>{b}</section>'
 def code(s): return f'<pre class="code">{E(s)}</pre>'
 def part(ci,head):

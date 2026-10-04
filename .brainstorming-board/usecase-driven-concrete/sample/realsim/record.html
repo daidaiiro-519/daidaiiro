@@ -39,12 +39,12 @@ body{background:var(--surface);color:var(--ink);font-family:"Noto Sans JP","Hira
 .act.supporting{color:var(--ink);background:var(--paper);border:1px dashed var(--muted)}
 .k{font-size:.68rem;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 .3rem;margin-right:.35rem}
 /* タイル */
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.6rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(11rem,100%),1fr));gap:.6rem}
 .tile{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;background:var(--paper)}
 .tl{font-size:.75rem;color:var(--muted);margin-bottom:.15rem;display:flex;align-items:center}
 .tv{font-size:.95rem}
 /* カード */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:.75rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(19rem,100%),1fr));gap:.75rem}
 .card{border:1px solid var(--line);border-radius:8px;padding:.7rem .9rem;background:var(--paper)}
 .card.top-success{border-top:3px solid var(--accent)}
 .card.top-minimal{border-top:3px solid var(--ink)}
@@ -83,7 +83,7 @@ tr.end td{color:var(--accent);font-size:.82rem;border-bottom:0}
 .fold summary{cursor:pointer;font-size:.88rem;color:var(--muted)}
 .fold summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fbody{padding:.5rem 0 .25rem}
-@media (max-width:760px){.shell{grid-template-columns:1fr}.side{position:static}.nav{flex-direction:row;flex-wrap:wrap;gap:.5rem 1rem}.page{padding:1rem}}
+@media (max-width:760px){.shell{grid-template-columns:minmax(0,1fr)}.side{position:static}.nav{flex-direction:row;flex-wrap:wrap;gap:.5rem 1rem}.page{padding:1rem}}
 
 .pill.t-caution{background:var(--band);color:var(--muted)}
 .tc{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.68rem;padding:0 .4rem;border-radius:4px;border:1px solid var(--line);color:var(--muted);margin-left:.35rem;white-space:nowrap;vertical-align:.1em}
@@ -104,7 +104,78 @@ h3.sub{font-size:.85rem;font-weight:600;color:var(--muted);margin:1rem 0 .4rem}
 .act .ar{font-weight:400;color:var(--muted);margin-right:.3em;font-size:.68rem}
 .ref:focus-visible,.help:focus-visible,.sbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tc.t-fail{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
- .main{max-width:1100px;margin:0 auto} body{background:var(--surface-page)}</style></head><body><main class="main" style="padding:1.5rem 16px"><header class="ph"><p class="kind">シミュレーション</p><h1>実行の記録</h1></header><p class="lead">実際のリポジトリで、Python（集約などの component テスト）と Go（ユースケースの system テスト）の2つの言語のテストを流し、道具 concrete と突き合わせた記録。</p><section class="blk"><h2>仕組み</h2><div class="tw"><table><thead><tr><th></th><th>道具（concrete）</th><th>テストの実行器（pytest ・ go test）</th></tr></thead><tbody><tr><td>読むもの</td><td>宣言（spec/）と、記録ファイル（build/trace.jsonl）だけ</td><td>テストのソース</td></tr><tr><td>読まないもの</td><td>テストのソース、テストの合否</td><td>宣言</td></tr><tr><td>判定すること</td><td>欠け ・ 余り ・ 古い ・ レベル違い（仕様とテストの対応）</td><td>テストが通るか</td></tr><tr><td>言語に依存するか</td><td>しない</td><td>する（その言語のもの）</td></tr><tr><td>結果の置き場所</td><td>標準出力だけ。保存しない</td><td>標準出力だけ。保存しない</td></tr></tbody></table></div><p class="txt">CI は、両方が通ったときだけ通る。2つをつなぐのは、テストが走ったときに1行ずつ追記する記録ファイルだけである。</p></section><section class="blk"><h2>記録の契約（concrete contract の出力）</h2><pre class="code">記録の契約（concrete。言語によらない）
+.fold.near{margin-top:-.5rem;margin-bottom:1.25rem}
+/* 主成功シナリオと拡張を1本の縦の並びで見せる */
+.flow,.xs{list-style:none;margin:0;padding:0}
+.flow{display:grid;gap:0;border-left:2px solid var(--line);margin-left:14px}
+.flow>li{position:relative;padding:.55rem 0 .55rem 1.6rem}
+.flow .sn{position:absolute;left:-14px;top:.6rem;width:26px;height:26px;border-radius:50%;background:var(--paper);border:2px solid var(--line);display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--ink)}
+.sh{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}
+.sh b{font-weight:600}
+.to{color:var(--muted);font-size:.8rem}
+.reply{font-size:.8rem;color:var(--muted)}
+.meta{display:none;margin-top:.25rem}
+
+.mt{display:inline-flex;gap:.4rem;align-items:center;font-size:.8rem;color:var(--muted);margin:0 0 .6rem;cursor:pointer}
+.flow>li.ext{padding:.2rem 0 .5rem 1.6rem}
+.ext{margin-left:1.2rem}
+.ext .xh{display:flex;gap:.5rem;align-items:baseline;padding:.45rem .7rem;background:var(--band);border:1px solid var(--line);border-radius:8px 8px 0 0}
+.ext .xl{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:700}
+.ext>.meta{padding:.2rem .7rem}
+.xs{border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;padding:.3rem .7rem .4rem}
+.xs li{display:flex;gap:.6rem;padding:.35rem 0;align-items:flex-start}
+.xs .sn{font-family:"JetBrains Mono",monospace;font-size:.75rem;color:var(--muted);min-width:2.2rem;padding-top:.15rem}
+.xs .sb{min-width:0}
+.end .sb{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.end .note{font-size:.8rem;color:var(--muted)}
+.xs .end .sn{font-family:inherit;font-weight:700;color:var(--ink)}
+.flow>li.end.ok .sn{border-color:var(--accent);color:var(--accent)}
+.flow>li.end.ok b{color:var(--accent)}
+
+/* 宣言の欄は、頁の切り替えを入れたときだけ出す */
+.mx{display:none}
+.page:has(.mtog:checked) .mx{display:block}
+.page:has(.mtog:checked) span.mx{display:inline-flex}
+.page:has(.mtog:checked) .meta{display:block}
+.mt.top{display:flex;justify-content:flex-end;margin:0 0 .25rem}
+td .what{display:block;font-size:.78rem;color:var(--muted)}
+.tc{display:none}
+.page:has(.mtog:checked) .tc{display:inline-block}
+
+/* 小さい画面：枠からはみ出さない */
+.page *{min-width:0}
+.page table td,.page table th{min-width:auto}
+.tile,.card{min-width:0;overflow-wrap:anywhere}
+.hs{grid-template-columns:2.6rem auto minmax(0,1fr)}
+@media (max-width:760px){
+ th{white-space:normal}
+ .page{padding:.9rem .8rem}
+ .flow{margin-left:12px}
+ .flow>li{padding-left:1.3rem}
+ .ext{margin-left:.2rem}
+ .sh{gap:.3rem}
+ .hs{grid-template-columns:2.2rem minmax(0,1fr)}
+ .hs>:nth-child(3){grid-column:2}
+ .mt.top{justify-content:flex-start}
+ .side{border-bottom:1px solid var(--line);padding-bottom:.5rem}
+ .nav .ng{display:flex;flex-wrap:wrap;gap:.2rem .8rem;align-items:baseline}
+}
+
+/* スマホ：表の1行を「見出し：値」のカードにする */
+@media (max-width:600px){
+ table.st,table.st tbody,table.st tr,table.st td{display:block;width:100%}
+ table.st thead{display:none}
+ table.st tr{box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:.45rem .7rem;margin:0 0 .5rem}
+ .tw{overflow-x:visible}
+ table.st td{box-sizing:border-box}
+ table.st td{border:0;padding:.2rem 0}
+ table.st td[data-label]:not([data-label=""])::before{content:attr(data-label);display:block;font-size:.72rem;color:var(--muted);font-weight:600}
+}
+
+.navd>summary{list-style:none;cursor:pointer;font-size:.8rem;color:var(--muted);margin:.2rem 0 .4rem}
+.navd>summary::-webkit-details-marker{display:none}
+@media (min-width:761px){.navd>summary{display:none}}
+ .main{max-width:1100px;margin:0 auto} body{background:var(--surface-page)}</style></head><body><main class="main" style="padding:1.5rem 16px"><header class="ph"><p class="kind">シミュレーション</p><h1>実行の記録</h1></header><p class="lead">実際のリポジトリで、Python（集約などの component テスト）と Go（ユースケースの system テスト）の2つの言語のテストを流し、道具 concrete と突き合わせた記録。</p><section class="blk"><h2>仕組み</h2><div class="tw"><table class="st"><thead><tr><th></th><th>道具（concrete）</th><th>テストの実行器（pytest ・ go test）</th></tr></thead><tbody><tr><td data-label="">読むもの</td><td data-label="道具（concrete）">宣言（spec/）と、記録ファイル（build/trace.jsonl）だけ</td><td data-label="テストの実行器（pytest ・ go test）">テストのソース</td></tr><tr><td data-label="">読まないもの</td><td data-label="道具（concrete）">テストのソース、テストの合否</td><td data-label="テストの実行器（pytest ・ go test）">宣言</td></tr><tr><td data-label="">判定すること</td><td data-label="道具（concrete）">欠け ・ 余り ・ 古い ・ レベル違い（仕様とテストの対応）</td><td data-label="テストの実行器（pytest ・ go test）">テストが通るか</td></tr><tr><td data-label="">言語に依存するか</td><td data-label="道具（concrete）">しない</td><td data-label="テストの実行器（pytest ・ go test）">する（その言語のもの）</td></tr><tr><td data-label="">結果の置き場所</td><td data-label="道具（concrete）">標準出力だけ。保存しない</td><td data-label="テストの実行器（pytest ・ go test）">標準出力だけ。保存しない</td></tr></tbody></table></div><p class="txt">CI は、両方が通ったときだけ通る。2つをつなぐのは、テストが走ったときに1行ずつ追記する記録ファイルだけである。</p></section><section class="blk"><h2>記録の契約（concrete contract の出力）</h2><pre class="code">記録の契約（concrete。言語によらない）
 1. テストを始めるときに、環境変数 CONCRETE_TRACE を読む。設定されていなければ何もしない。
 2. 設定されていれば、そのファイルの末尾へ、JSON を1行追記する（改行で終える）。
    {&quot;condition&quot;: テスト条件の ID, &quot;hash&quot;: テスト条件のハッシュ値, &quot;level&quot;: テストレベル, &quot;test&quot;: テストの名前（任意）}
@@ -160,7 +231,7 @@ func trace(t *testing.T, condition, hash, level string) {
 …
 {&quot;condition&quot;:&quot;UC-1.EXT-3&quot;,&quot;hash&quot;:&quot;8a16eb95&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestPaymentDeclined&quot;}
 {&quot;condition&quot;:&quot;UC-1.STEP-5.QR-1&quot;,&quot;hash&quot;:&quot;903cbb3d&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestConfirmResponseTime&quot;}
-{&quot;condition&quot;:&quot;UC-1.EXT-4&quot;,&quot;hash&quot;:&quot;9acfca23&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestOverLimit&quot;}</pre><p class="txt">書いたのは pytest と go test で、道具は書いていない。1行が「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。合否は書かない。</p></section><section class="blk"><h2>リポジトリに残るもの ／ 残らないもの</h2><div class="tw"><table><thead><tr><th>場所</th><th>中身</th><th>git で管理するか</th></tr></thead><tbody><tr><td>spec/decls/</td><td>宣言（17件）</td><td>する</td></tr><tr><td>spec/confirmed.json</td><td>宣言どうしの対応を承認した時点のハッシュ値（承認者が concrete approve で書く）</td><td>する</td></tr><tr><td>src/ ・ tests/ ・ systemtest/</td><td>実装と、2つの言語のテスト（テスト条件の ID とハッシュ値はテストのソースの中にある）</td><td>する</td></tr><tr><td>tool/ ・ ci.sh</td><td>道具と、CI の手順</td><td>する</td></tr><tr><td>build/trace.jsonl</td><td>記録ファイル（テストを流すたびに作り直す）</td><td>しない（.gitignore）</td></tr><tr><td>テストの合否</td><td>実行器の標準出力</td><td>しない（どこにも残さない）</td></tr></tbody></table></div><p class="txt">最後の手のあとの <code>git status --ignored</code>：</p><pre class="code">!! .pytest_cache/
+{&quot;condition&quot;:&quot;UC-1.EXT-4&quot;,&quot;hash&quot;:&quot;9acfca23&quot;,&quot;level&quot;:&quot;system&quot;,&quot;test&quot;:&quot;TestOverLimit&quot;}</pre><p class="txt">書いたのは pytest と go test で、道具は書いていない。1行が「このテストは、このテスト条件を、このハッシュ値の版で、このレベルで確かめた」を表す。合否は書かない。</p></section><section class="blk"><h2>リポジトリに残るもの ／ 残らないもの</h2><div class="tw"><table class="st"><thead><tr><th>場所</th><th>中身</th><th>git で管理するか</th></tr></thead><tbody><tr><td data-label="場所">spec/decls/</td><td data-label="中身">宣言（17件）</td><td data-label="git で管理するか">する</td></tr><tr><td data-label="場所">spec/confirmed.json</td><td data-label="中身">宣言どうしの対応を承認した時点のハッシュ値（承認者が concrete approve で書く）</td><td data-label="git で管理するか">する</td></tr><tr><td data-label="場所">src/ ・ tests/ ・ systemtest/</td><td data-label="中身">実装と、2つの言語のテスト（テスト条件の ID とハッシュ値はテストのソースの中にある）</td><td data-label="git で管理するか">する</td></tr><tr><td data-label="場所">tool/ ・ ci.sh</td><td data-label="中身">道具と、CI の手順</td><td data-label="git で管理するか">する</td></tr><tr><td data-label="場所">build/trace.jsonl</td><td data-label="中身">記録ファイル（テストを流すたびに作り直す）</td><td data-label="git で管理するか">しない（.gitignore）</td></tr><tr><td data-label="場所">テストの合否</td><td data-label="中身">実行器の標準出力</td><td data-label="git で管理するか">しない（どこにも残さない）</td></tr></tbody></table></div><p class="txt">最後の手のあとの <code>git status --ignored</code>：</p><pre class="code">!! .pytest_cache/
 !! base/
 !! build/
 !! run_sim.py
@@ -168,7 +239,7 @@ func trace(t *testing.T, condition, hash, level string) {
 !! src/order/__pycache__/
 !! tests/__pycache__/
 !! tool/__pycache__/
-</pre></section><section class="blk"><h2>手の一覧（手ごとに git でコミットし、CI を流した）</h2><div class="tw"><table><thead><tr><th>手</th><th>誰が</th><th>何をしたか</th><th>concrete check</th><th>pytest</th><th>go test</th><th>concrete match</th><th>CI</th></tr></thead><tbody><tr><td><button class="sbtn" data-go="0">0</button></td><td>人（承認者）</td><td><span class="txt">承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td></tr><tr><td><button class="sbtn" data-go="1">1</button></td><td>人（業務エキスパート）</td><td><span class="txt">業務の変更：1回に確保できる調理の量は10食まで。調理枠の「確保する」に事前条件を足す</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill t-warn">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="2">2</button></td><td>AI</td><td><span class="txt">拡張 4b を足して新しい拒否を扱い、実装とテスト（Python ・ Go）を足す</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill t-warn">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="3">3</button></td><td>人（承認者）</td><td><span class="txt">PR を承認する。宣言どうしの対応を記録する</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td></tr><tr><td><button class="sbtn" data-go="4">4</button></td><td>人（業務エキスパート）</td><td><span class="txt">業務の変更：調理枠は予備の1食を残す。「確保する」の事前条件1の比較する値を書き換える</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill t-warn">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="5">5</button></td><td>AI</td><td><span class="txt">concrete match の「古い」を受けて、予備の1食を実装し、テストとハッシュ値を直す</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill t-warn">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="6">6</button></td><td>人（承認者）</td><td><span class="txt">確かめ直しになった拡張 4a を読み、扱う拒否が今も正しいことを確かめて承認する</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td></tr><tr><td><button class="sbtn" data-go="7">7</button></td><td>AI</td><td><span class="txt">手順を整理しようとして、拡張 5a の手順 5a1（調理枠を戻す）を宣言と実装から消す</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill ">通った</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill t-warn">落ちた</span></td><td><span class="pill t-warn">落ちた</span></td></tr><tr><td><button class="sbtn" data-go="8">8</button></td><td>人（承認者）</td><td><span class="txt">CI が落ちたので PR を差し戻し、変更を戻す</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td><td><span class="pill ">通った</span></td></tr></tbody></table></div></section><div class="stepper"><button class="sbtn" data-go="0">0</button><button class="sbtn" data-go="1">1</button><button class="sbtn" data-go="2">2</button><button class="sbtn" data-go="3">3</button><button class="sbtn" data-go="4">4</button><button class="sbtn" data-go="5">5</button><button class="sbtn" data-go="6">6</button><button class="sbtn" data-go="7">7</button><button class="sbtn" data-go="8">8</button></div><section class="simstep" data-no="0"><p class="lead"><b>手0　人（承認者）</b>　承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する　<span class="no">commit 96f2ac0</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">（最初のコミット）</pre></section><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
+</pre></section><section class="blk"><h2>手の一覧（手ごとに git でコミットし、CI を流した）</h2><div class="tw"><table class="st"><thead><tr><th>手</th><th>誰が</th><th>何をしたか</th><th>concrete check</th><th>pytest</th><th>go test</th><th>concrete match</th><th>CI</th></tr></thead><tbody><tr><td data-label="手"><button class="sbtn" data-go="0">0</button></td><td data-label="誰が">人（承認者）</td><td data-label="何をしたか"><span class="txt">承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する</span></td><td data-label="concrete check"><span class="pill ">通った</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill ">通った</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="1">1</button></td><td data-label="誰が">人（業務エキスパート）</td><td data-label="何をしたか"><span class="txt">業務の変更：1回に確保できる調理の量は10食まで。調理枠の「確保する」に事前条件を足す</span></td><td data-label="concrete check"><span class="pill t-warn">落ちた</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill t-warn">落ちた</span></td><td data-label="CI"><span class="pill t-warn">落ちた</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="2">2</button></td><td data-label="誰が">AI</td><td data-label="何をしたか"><span class="txt">拡張 4b を足して新しい拒否を扱い、実装とテスト（Python ・ Go）を足す</span></td><td data-label="concrete check"><span class="pill t-warn">落ちた</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill t-warn">落ちた</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="3">3</button></td><td data-label="誰が">人（承認者）</td><td data-label="何をしたか"><span class="txt">PR を承認する。宣言どうしの対応を記録する</span></td><td data-label="concrete check"><span class="pill ">通った</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill ">通った</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="4">4</button></td><td data-label="誰が">人（業務エキスパート）</td><td data-label="何をしたか"><span class="txt">業務の変更：調理枠は予備の1食を残す。「確保する」の事前条件1の比較する値を書き換える</span></td><td data-label="concrete check"><span class="pill t-warn">落ちた</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill t-warn">落ちた</span></td><td data-label="CI"><span class="pill t-warn">落ちた</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="5">5</button></td><td data-label="誰が">AI</td><td data-label="何をしたか"><span class="txt">concrete match の「古い」を受けて、予備の1食を実装し、テストとハッシュ値を直す</span></td><td data-label="concrete check"><span class="pill t-warn">落ちた</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill t-warn">落ちた</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="6">6</button></td><td data-label="誰が">人（承認者）</td><td data-label="何をしたか"><span class="txt">確かめ直しになった拡張 4a を読み、扱う拒否が今も正しいことを確かめて承認する</span></td><td data-label="concrete check"><span class="pill ">通った</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill ">通った</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="7">7</button></td><td data-label="誰が">AI</td><td data-label="何をしたか"><span class="txt">手順を整理しようとして、拡張 5a の手順 5a1（調理枠を戻す）を宣言と実装から消す</span></td><td data-label="concrete check"><span class="pill t-warn">落ちた</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill t-warn">落ちた</span></td><td data-label="concrete match"><span class="pill t-warn">落ちた</span></td><td data-label="CI"><span class="pill t-warn">落ちた</span></td></tr><tr><td data-label="手"><button class="sbtn" data-go="8">8</button></td><td data-label="誰が">人（承認者）</td><td data-label="何をしたか"><span class="txt">CI が落ちたので PR を差し戻し、変更を戻す</span></td><td data-label="concrete check"><span class="pill ">通った</span></td><td data-label="pytest"><span class="pill ">通った</span></td><td data-label="go test"><span class="pill ">通った</span></td><td data-label="concrete match"><span class="pill ">通った</span></td><td data-label="CI"><span class="pill ">通った</span></td></tr></tbody></table></div></section><div class="stepper"><button class="sbtn" data-go="0">0</button><button class="sbtn" data-go="1">1</button><button class="sbtn" data-go="2">2</button><button class="sbtn" data-go="3">3</button><button class="sbtn" data-go="4">4</button><button class="sbtn" data-go="5">5</button><button class="sbtn" data-go="6">6</button><button class="sbtn" data-go="7">7</button><button class="sbtn" data-go="8">8</button></div><section class="simstep" data-no="0"><p class="lead"><b>手0　人（承認者）</b>　承認済みの宣言と、実装と、テスト。宣言どうしの対応を承認して記録する　<span class="no">commit 96f2ac0</span></p><section class="blk"><h2>変更したファイル（git diff --stat）</h2><pre class="code">（最初のコミット）</pre></section><section class="blk"><h2>CI の出力（./ci.sh。合否と検知は標準出力にだけ出る）</h2><pre class="code">$ concrete check
 宣言どうし：合格 23
 
 $ pytest -q tests
@@ -586,7 +657,7 @@ ok  	systemtest	0.531s
 $ concrete match build/trace.jsonl
 突き合わせ：テスト条件 29 件 ・ 記録 29 行
 
-CI：通った</pre></section><div class="snav"><button class="sbtn" data-go="7">← 前の手</button></div></section><section class="blk"><h2>実行して分かったこと</h2><div class="tw"><table><thead><tr><th>分かったこと</th><th>どうしたか</th></tr></thead><tbody><tr><td>手4：業務の変更で条件が変わっても、テストは Python も Go もすべて通った。実行器だけでは気づけない</td><td>道具が「古い」を2件出して CI を止めた。ハッシュ値が、仕様の版とテストを結んでいる</td></tr><tr><td>手7：最低保証を守る手順を消すと、道具は「対応の欠け」、Go のテストは最低保証の破れで落ちた</td><td>2つの判定は独立に落ち、どちらか片方だけでも CI は止まる</td></tr><tr><td>Go のテストは、前回と同じ入力だと結果をキャッシュから返し、テストを実行しない。記録が書かれず、道具は system の5件を「欠け」と出した</td><td>契約に「キャッシュを切って流す」を足し、CI は go test -count=1 で流す</td></tr><tr><td>シミュレーションの途中で、AI 役のスクリプトが Python のテストのハッシュ値を書き換え損ねた</td><td>道具がその条件を「古い」として出し続けた。直してから流し直した</td></tr></tbody></table></div></section></main>
+CI：通った</pre></section><div class="snav"><button class="sbtn" data-go="7">← 前の手</button></div></section><section class="blk"><h2>実行して分かったこと</h2><div class="tw"><table class="st"><thead><tr><th>分かったこと</th><th>どうしたか</th></tr></thead><tbody><tr><td data-label="分かったこと">手4：業務の変更で条件が変わっても、テストは Python も Go もすべて通った。実行器だけでは気づけない</td><td data-label="どうしたか">道具が「古い」を2件出して CI を止めた。ハッシュ値が、仕様の版とテストを結んでいる</td></tr><tr><td data-label="分かったこと">手7：最低保証を守る手順を消すと、道具は「対応の欠け」、Go のテストは最低保証の破れで落ちた</td><td data-label="どうしたか">2つの判定は独立に落ち、どちらか片方だけでも CI は止まる</td></tr><tr><td data-label="分かったこと">Go のテストは、前回と同じ入力だと結果をキャッシュから返し、テストを実行しない。記録が書かれず、道具は system の5件を「欠け」と出した</td><td data-label="どうしたか">契約に「キャッシュを切って流す」を足し、CI は go test -count=1 で流す</td></tr><tr><td data-label="分かったこと">シミュレーションの途中で、AI 役のスクリプトが Python のテストのハッシュ値を書き換え損ねた</td><td data-label="どうしたか">道具がその条件を「古い」として出し続けた。直してから流し直した</td></tr></tbody></table></div></section></main>
 <script>
 const go=n=>{document.querySelectorAll('.simstep').forEach(s=>s.hidden=s.dataset.no!=n);document.querySelectorAll('.stepper .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.go==n));};
 document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{go(b.dataset.go);document.querySelector('.stepper').scrollIntoView({behavior:'smooth'})}));go('0');
