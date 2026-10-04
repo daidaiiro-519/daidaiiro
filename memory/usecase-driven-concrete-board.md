@@ -9,8 +9,8 @@ metadata:
 
 現在地（2026-10-04、ボード22回目、未 push）：
 - 論点1〜7 すべて決着。論点7 A″：アプリケーション層の操作を外し、要求と設計は宣言の要素どうしの従属関係でつなぐ（文脈はサブドメインを「対象とする」。包含ではない）。手順とコードの対応は仕様に書かず、宣言の各種類から取り出したテスト条件をテストが確かめる。ACDR 0114 承認済み
-- 見本のスキーマ sample/schema/（build.py で組み、check.py で検査）：宣言9種類 ＋ 共通の形 ＋ 記録の1行 ・ 承認した時点の記録 ・ 移行の記録。見本と fact-check の試しはどれも検出0件
-- 次にすること（ボードの現在地の表が正本）：欠けを数える道具（mig6）と入れ子の拡張の番号を道具へ ・ 出どころごとの承認画面 ・ スキーマと道具を正本の Skill へ入れる ACDR
+- 見本のスキーマ sample/schema/（build.py で組み、check.py で検査）：宣言9種類 ＋ 共通の形 ＋ 記録の1行（trace.schema.json） ・ 承認した時点の記録 ・ 移行の記録。見本と fact-check の試しはどれも検出0件
+- 次にすること（ボードの現在地の表が正本）：スキーマ駆動の道具（基盤）と concrete の線引きは [[schema-driven-base-board]] の論点2 B′ で決める。見本の道具は注釈だけを読む concrete7.py に作り直した（spec6 ・ drift6 は消した）
 - 保留：役割の分担（どちらの Skill が設計の側の宣言を書くか）は usecase-modeling-coding で決める
 - 完成イメージ sample/（Artifact https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ ）と実行の記録 sample/realsim/
 - 関連：[[schema-driven-base-board]] の論点3は保留
