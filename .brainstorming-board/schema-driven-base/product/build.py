@@ -20,7 +20,7 @@ TERMS = [
  T(5, "JMESPath 式", "値オブジェクト", "インスタンスから値を取り出す式", SPEC, JM, avoid=["取得の式"]),
  T(6, "JSON Patch", "値オブジェクト", "インスタンスへ適用する操作の並び", SPEC, JP, avoid=["更新の差分"]),
  T(7, "パス", "値オブジェクト", "インスタンスのファイルの場所。スキーマの x-generates が決める", IT, avoid=["置き場所"]),
- T(8, "検証エラー", "値オブジェクト", "インスタンスがスキーマを満たさないプロパティと、その理由", IT, avoid=["違反"]),
+ T(8, "検証エラー", "値オブジェクト", "インスタンスがスキーマを満たさないプロパティと、その理由。未記入は含めない", IT, avoid=["違反"]),
  T(9, "検証結果", "情報の別名", "インスタンスごとの検証エラーの一覧", IT),
  T(10, "x-prompt", "情報の別名", "プロパティごとの書き方。読むときの read と、値を書くときの write を持つ", BIZ, "schema-driven の注釈", avoid=["案内"]),
  T(11, "ディレクトリ", "情報の別名", "インスタンスを置くディレクトリ。参照と導出値は、その下のインスタンスすべてに対して確かめる", IT, avoid=["実体の集合"]),
@@ -39,7 +39,7 @@ TERMS = [
  T(24, "利用側の Skill", "情報の別名", "schema-driven の複製を持ち、それで動く Skill", IT, avoid=["基盤を使う道具"]),
  T(25, "依頼する", "動作", "相手に何かを頼む", IT, form="{to}に{data}を依頼する"),
  T(26, "知らせる", "動作", "相手に結果を伝える", IT, form="{to}に{data}を知らせる"),
- T(27, "作成する", "コマンド", "スキーマから、未記入のプロパティを持つインスタンスを作る", IT),
+ T(27, "作成する", "コマンド", "スキーマから、必須のプロパティを持たないインスタンスを作る。足りない必須のプロパティは未記入として返す", IT),
  T(28, "更新する", "コマンド", "インスタンスへ JSON Patch を適用する。適用したあとのインスタンスが検証を通過したときだけ書く", IT),
  T(29, "削除する", "コマンド", "インスタンスのファイルを消す。インスタンスの中の項目は、remove の JSON Patch で更新して消す", IT),
  T(30, "承認を記録する", "コマンド", "検査で使ったインスタンスのパスとハッシュ値の並びを、そのまま承認記録へ書く", BIZ, US),
@@ -51,7 +51,7 @@ TERMS = [
  T(36, "書く", "動作", "相手へファイルの内容を渡して置かせる", IT, form="{to}へ{data}を書く"),
  T(37, "パスにインスタンスが既にある", "拒否の理由", "作成しようとしたパスに、インスタンスが既にあるので作らない", IT),
  T(38, "JSON Patch を適用できない", "拒否の理由", "JSON Patch が指すプロパティがインスタンスに無いなど、適用できないので書かない", IT),
- T(39, "検証を通過しない", "拒否の理由", "JSON Patch を適用したあとのインスタンスが検証を通過しないので、書かない", IT),
+ T(39, "検証を通過しない", "拒否の理由", "JSON Patch を適用したあとのインスタンスに、未記入以外の検証エラーがあるので書かない", IT),
  T(40, "読めない", "失敗の種類", "ファイルが無いか、読む権限が無い", IT),
  T(41, "書けない", "失敗の種類", "書く権限が無いか、ディスクに空きが無い", IT),
  T(42, "エラーメッセージ", "情報の別名", "依頼を受け付けなかった理由", IT, avoid=["誤りの理由"]),
@@ -69,6 +69,8 @@ TERMS = [
  T(57, "参照を確かめる", "操作", "参照ごとに、指す先があるか ・ 指す先の種類が合うか ・ 指される数が決まりの範囲かを確かめる", IT),
  T(58, "導出値を確かめる", "操作", "x-derive の決まりで導いた値と、宣言した値が同じかを確かめる", IT),
  T(59, "変化を確かめる", "操作", "インスタンスのハッシュ値と、承認記録のハッシュ値が同じかを確かめる", IT),
+ T(64, "未記入", "値オブジェクト", "スキーマの必須のプロパティが、インスタンスに無いこと。JSON Schema の required の違反で、検証エラーとは分けて返す", IT),
+ T(65, "未記入のプロパティがある", "拒否の理由", "未記入のプロパティが残っているので、承認を記録しない", IT),
  T(61, "JSON の値", "値オブジェクト", "インスタンスのファイルに書いてある JSON", SPEC, "JSON（RFC 8259）"),
  T(62, "ハッシュ値を求める", "操作", "JSON の値の sha256 を求める", IT),
  T(63, "適用する", "操作", "JSON Patch を JSON の値に当てて、新しい値を求める", SPEC, JP),
@@ -91,7 +93,7 @@ D["DOM-1"] = {"kind": "domain", "id": "DOM-1", "header": {"name": "schema-driven
    {"id": "CMP-2", "name": "JSON Schema の検証器だけを使うやり方", "lacks": ["VAL-2", "VAL-3"]}],
   "success_criteria": [
    {"id": "SC-1", "name": "文字列を探さずに読める", "source": "external", "measure_text": "AI エージェントが正本を読むときに、文字列の検索を使った回数", "threshold": {"op": "le", "value": 0, "unit": "回"}, "window": "作業1件"},
-   {"id": "SC-2", "name": "検証を通過しない更新が書き込まれない", "source": "external", "measure_text": "更新で書き込んだインスタンスのうち、検証を通過しないものの件数", "threshold": {"op": "le", "value": 0, "unit": "件"}, "window": "更新のたび"},
+   {"id": "SC-2", "name": "検証を通過しない更新が書き込まれない", "source": "external", "measure_text": "更新で書き込んだインスタンスのうち、未記入以外の検証エラーがあるものの件数", "threshold": {"op": "le", "value": 0, "unit": "件"}, "window": "更新のたび"},
    {"id": "SC-3", "name": "ずれを承認の前に見つける", "source": "external", "measure_text": "承認したあとに見つかった、参照と導出値のずれの件数", "threshold": {"op": "le", "value": 0, "unit": "件"}, "window": "承認1回"},
    {"id": "SC-4", "name": "複製が正本と同じ", "source": "external", "measure_text": "転写し直したあとの、複製と正本の差分の件数", "threshold": {"op": "le", "value": 0, "unit": "件"}, "window": "転写1回"}]},
  "scope": {"out": ["宣言の種類（ドメイン ・ ユースケースなど）の形", "テスト条件とテストの記録の突き合わせ", "図の描画"]},
@@ -170,9 +172,9 @@ D["UC-1"] = UC(1, "インスタンスを作成する", "ユーザー目的", AI,
   step(3, "内部の状態変化", "システム", verb="TERM-27", object="TERM-1", keeps=["MG-1"], serves=["SH-1", "SH-2"],
        extensions=[reject("EXT-2", ["TERM-37"], AI)]),
   WRITE(4, AI, ["TERM-48"], "EXT-3", serves=["SH-1"]),
-  say(5, "システム", AI, ["TERM-7", "TERM-10"], verb="TERM-26", serves=["SH-1"])],
+  say(5, "システム", AI, ["TERM-7", "TERM-64", "TERM-10"], verb="TERM-26", serves=["SH-1"])],
  ["SC-1"], links=TECH,
- issues=["作成した直後のインスタンスは未記入のプロパティを持つので、検証を通過しなくてよい（ボード schema-driven-base 論点1）"])
+ issues=["作成した直後のインスタンスには未記入が残る。未記入は検証エラーと分けて返すので、少しずつ埋めてよい（ACDR 0118）"])
 
 D["UC-2"] = UC(2, "値を取得する", "サブ機能", AI,
  [SH_AI("文字列を探さずに、プロパティの値だけを受け取る")],
@@ -196,7 +198,7 @@ D["UC-3"] = UC(3, "インスタンスを更新する", "ユーザー目的", AI,
        extensions=[reject("EXT-3", ["TERM-38", "TERM-52"], AI), reject("EXT-4", ["TERM-39"], AI, data="TERM-9"),
                    other("EXT-5", {"target": "TERM-1.TERM-16", "op": "eq", "value": {"before": "TERM-1.TERM-16"}}, AI, ["TERM-9"])]),
   WRITE(5, AI, ["TERM-48"], "EXT-6", keeps=["MG-1"], serves=["SH-1"]),
-  say(6, "システム", AI, ["TERM-9"], verb="TERM-26", serves=["SH-1"])],
+  say(6, "システム", AI, ["TERM-9", "TERM-64"], verb="TERM-26", serves=["SH-1"])],
  ["SC-2"], links={"business_rules": ["REQ-1.BR-2"], **TECH},
  issues=["項目の削除は、remove の JSON Patch を渡すこのユースケースで扱う"])
 
@@ -254,7 +256,7 @@ D["UC-8"] = UC(8, "承認を記録する", "ユーザー目的", OWN,
  [say(1, OWN, "システム", ["TERM-7"], serves=["SH-1"]),
   step(2, "サブユースケースの呼び出し", OWN, calls="UC-5", serves=["SH-1"]),
   step(3, "内部の状態変化", "システム", verb="TERM-30", object="TERM-15", keeps=["MG-1"], serves=["SH-1"],
-       extensions=[reject("EXT-1", ["TERM-53"], OWN, data="TERM-9"), reject("EXT-4", ["TERM-55"], OWN, data="TERM-14"),
+       extensions=[reject("EXT-1", ["TERM-53"], OWN, data="TERM-9"), reject("EXT-4", ["TERM-55"], OWN, data="TERM-14"), reject("EXT-5", ["TERM-65"], OWN, data="TERM-64"),
                    other("EXT-2", {"target": "TERM-11.TERM-16", "op": "eq", "value": {"before": "TERM-15.TERM-16"}}, OWN, ["TERM-16"])]),
   WRITE(4, OWN, ["TERM-48"], "EXT-3", keeps=["MG-1"], serves=["SH-1"]),
   say(5, "システム", OWN, ["TERM-16"], verb="TERM-26", serves=["SH-1"])],
@@ -310,7 +312,7 @@ def BC(i, name, purpose, sds, rels, terms, brs=(), pl=()):
 IO = [25, 26, 35, 36, 40, 41, 42, 48, 51]
 D["BC-1"] = BC(1, "インスタンスの操作と検査", "インスタンスの作成 ・ 取得 ・ 更新 ・ 削除と、書き込む前の検証と x-prompt、ディレクトリのインスタンスの参照と導出値と承認のあとの変化を決める。読み書きと検査は同じインスタンスを扱うので1つの文脈に置き、内側を業務領域ごとのモジュールに分ける。ページの組み方は、このモデルに入れない",
  ["SD-1", "SD-2"], [FS(1, ["TERM-35", "TERM-36"])],
- sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53, 55, 56, 57, 58, 59, 60, 61, 62, 63])),
+ sorted(set(IO + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 27, 28, 29, 30, 32, 37, 38, 39, 43, 44, 52, 53, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65])),
  [{"id": "BR-1", "condition": {"target": "TERM-5", "op": "not_empty"}, "implements": "REQ-1.BR-1"},
   {"id": "BR-2", "condition": {"target": "TERM-6", "op": "not_empty"}, "implements": "REQ-1.BR-2"},
   {"id": "BR-3", "condition": {"target": "TERM-2.TERM-4.TERM-10", "op": "not_empty"}, "implements": "REQ-1.BR-3"}],
@@ -336,7 +338,8 @@ D["AGG-1"] = {"kind": "aggregate", "id": "AGG-1", "header": {"name": "TERM-1", "
    {"id": "ST-3", "name": "TERM-16", "type": "VO-6", "multiplicity": one},
    {"id": "ST-4", "name": "TERM-12", "type": "VO-3", "multiplicity": many},
    {"id": "ST-5", "name": "TERM-13", "type": "VO-4", "multiplicity": many},
-   {"id": "ST-6", "name": "TERM-8", "type": "VO-5", "multiplicity": many}], "entities": []},
+   {"id": "ST-6", "name": "TERM-8", "type": "VO-5", "multiplicity": many},
+   {"id": "ST-8", "name": "TERM-64", "type": "VO-12", "multiplicity": many}], "entities": []},
  "invariants": [{"id": "INV-1", "condition": {"target": "ST-3", "op": "eq", "value": {"call": "VO-10.OP-1", "args": ["ST-7"]}}, "via": ["CMD-1", "CMD-2"]}],
  "commands": [
   {"id": "CMD-1", "name": "TERM-27", "args": [{"id": "ARG-1", "name": "TERM-7", "type": "VO-1"}, {"id": "ARG-2", "name": "TERM-2", "type": "VO-2"}],
@@ -361,12 +364,14 @@ D["AGG-2"] = {"kind": "aggregate", "id": "AGG-2", "header": {"name": "TERM-15", 
  "invariants": [{"id": "INV-1", "condition": {"target": "ST-1", "agg": "count", "op": "ge", "value": 1}, "via": ["CMD-1"]}],
  "commands": [
   {"id": "CMD-1", "name": "TERM-30",
-   "args": [{"id": "ARG-1", "name": "TERM-8", "type": "VO-5"}, {"id": "ARG-2", "name": "TERM-60", "type": "VO-8"}, {"id": "ARG-3", "name": "TERM-56", "type": "VO-11"}],
+   "args": [{"id": "ARG-1", "name": "TERM-8", "type": "VO-5"}, {"id": "ARG-2", "name": "TERM-60", "type": "VO-8"}, {"id": "ARG-3", "name": "TERM-56", "type": "VO-11"}, {"id": "ARG-4", "name": "TERM-64", "type": "VO-12"}],
    "business_rules": [
     {"id": "BR-1", "condition": {"target": "ARG-1", "agg": "count", "op": "le", "value": 0}, "reject": "TERM-53",
      "example": {"before": {}, "args": {"ARG-1": {"count": 1}, "ARG-2": {"count": 0}, "ARG-3": {"count": 3}}}},
     {"id": "BR-2", "condition": {"target": "ARG-2", "agg": "count", "op": "le", "value": 0}, "reject": "TERM-55",
-     "example": {"before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 2}, "ARG-3": {"count": 3}}}}],
+     "example": {"before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 2}, "ARG-3": {"count": 3}}}},
+    {"id": "BR-3", "condition": {"target": "ARG-4", "agg": "count", "op": "le", "value": 0}, "reject": "TERM-65",
+     "example": {"before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 0}, "ARG-3": {"count": 3}, "ARG-4": {"count": 1}}}}],
    "state_changes": [{"id": "CHG-2", "condition": {"target": "ST-1", "op": "eq", "value": "ARG-3"}}],
    "emits": [], "accept_examples": [{"id": "OK-1", "before": {}, "args": {"ARG-1": {"count": 0}, "ARG-2": {"count": 0}, "ARG-3": {"count": 3}}}]}]}
 
@@ -407,6 +412,7 @@ D["VO-9"] = VO(9, "TERM-14", [{"name": "検査の名前", "kind": "文字列"}, 
 D["VO-10"] = VO(10, "TERM-61", [{"name": "JSON の値", "kind": "文字列"}],
  [{"id": "OP-1", "name": "TERM-62", "args": [], "result": "VO-6",
    "accept_examples": [{"id": "OK-1", "self": "{}", "args": [], "result": H0}]}])
+D["VO-12"] = VO(12, "TERM-64", [{"name": "プロパティ", "kind": "文字列", "invariants": NE()}])
 D["VO-11"] = VO(11, "TERM-56", [{"name": "パス", "kind": "文字列", "invariants": NE()}, {"name": "ハッシュ値", "kind": "文字列"}])
 
 os.makedirs(os.path.join(H, "decls"), exist_ok=True)
