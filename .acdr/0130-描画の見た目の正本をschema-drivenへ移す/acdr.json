@@ -1,0 +1,99 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0130",
+ "title": "描画の見た目の正本を schema-driven へ移す",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "描画の見た目の正本（デザイントークン ・ CSS ・ 部品の HTML）を schema-driven の references/design に置く。見本の design を見た目を変えずに移し、テスト条件の札は持たない",
+ "why": "基盤の論点3で、描画の部品とトークンは基盤が持つと決めたが、まだボードの見本の中にあった。3回目（描画）を Rust で実装するには、19のコンポーネント（ACDR 0128）が使う部品と見た目の置き場所が必要になる。見本の色は view.tokens.json（skills-creator の references/view が正本）から、寸法 ・ 余白などは design/tokens.json から来ていて、2か所に分かれていた。これを schema-driven の tokens.json の1つにまとめる。テスト条件の札（tchip ・ design-only）は開発の concrete の機能なので、基盤には置かない。移したあとの CSS で見本のページを描き直し、テスト条件の札を除いて、5つのページの画像が移す前とバイト単位で同じことを確かめた",
+ "shift": [
+  {
+   "what": "見た目の正本の置き場所",
+   "from": "ボード usecase-driven-concrete の sample/design と sample4.css",
+   "to": "schema-driven の references/design（tokens.json ・ view.css ・ parts.html）"
+  },
+  {
+   "what": "デザイントークン",
+   "from": "2つのファイル（色は view.tokens.json、寸法 ・ 余白 ・ 文字 ・ 角 ・ 線は design/tokens.json）",
+   "to": "tokens.json の1つ（palette ・ palettes ・ base ・ semantic ・ breakpoints）"
+  },
+  {
+   "what": "部品",
+   "from": "60（テスト条件の札 tchip ・ design-only を含む）",
+   "to": "58。19のコンポーネントが内側で使う"
+  },
+  {
+   "what": "skills-creator の references/view",
+   "from": "いまの Skill の references の描画の色の正本",
+   "to": "当面はそのまま。いまの Skill を schema-driven の転写へ移すときに、schema-driven の design の転写に置き換える"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "見本の design を、見た目を変えずに schema-driven へ移す。skills-creator の references/view は、後で schema-driven の転写に置き換える。",
+ "alternatives": [
+  {
+   "option": "見本の design をボードに置いたまま、Rust の描画から読む",
+   "why_not": "基盤の正本がボードの見本の中にあることになり、転写の元が決まらない"
+  },
+  {
+   "option": "色の正本を skills-creator の references/view のままにする",
+   "why_not": "描画は schema-driven の機能で、skills-creator の view はその先行の試しである（refs.rs と同じ）。正本を schema-driven に置き、skills-creator の側を後で転写に置き換える"
+  },
+  {
+   "option": "移すときに見た目も作り直す",
+   "why_not": "描画の決まりは「いまの見本の水準を下回らない」である。移すことと作り直すことを同時にすると、見た目の違いがどちらから来たか分からない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tokens",
+   "tab": "tokens.json",
+   "file": ".claude/skills/schema-driven/references/design/tokens.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"palette\": \"amber\"",
+     "before": "（新しいファイル）",
+     "why": "見本が使っている amber の配色を既定にした。palettes には teal ・ indigo ・ amber の3つを持つ"
+    },
+    {
+     "find": "\"base\": {",
+     "before": "（新しいファイル）",
+     "why": "寸法 ・ 余白 ・ 文字 ・ 角 ・ 線の基礎の値。見本の design/tokens.json のまま"
+    }
+   ]
+  },
+  {
+   "key": "css",
+   "tab": "view.css",
+   "file": ".claude/skills/schema-driven/references/design/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/* コンポーネントとページの枠の見た目。",
+     "before": "（新しいファイル）",
+     "why": "見本の sample4.css を移した。テスト条件の札（.tc）の規則だけを外した"
+    }
+   ]
+  },
+  {
+   "key": "parts",
+   "tab": "parts.html",
+   "file": ".claude/skills/schema-driven/references/design/parts.html",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "19のコンポーネントが内側で使う部品の HTML の雛形。",
+     "before": "（新しいファイル）",
+     "why": "見本の60の部品から、テスト条件の札（tchip ・ design-only）を除いた58を移した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "tokens": "239bf3f1d8c36cd242eb31f8a1b429eb684f9b14343f73e7dec1a7113c2c0cbe",
+  "css": "e3e370397af4dd87defa1794943b8fdc5e58ee9f240ec7c24c548222f6c1b5c6",
+  "parts": "b161b10a374411548d5e2bafd255544b70a6d198a89aa82e6a8a50281a028f9f"
+ }
+}
