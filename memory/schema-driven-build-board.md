@@ -13,4 +13,4 @@ metadata:
 - 論点3 どこに書くか：待ち（宣言に書かない。Cargo と ACDR。実装から文脈を指す場所は usecase-modeling-coding で）
 - 要求：雛形の4層は手続き的な変換の Skill に当て、ドメインモデルの Skill はポートとアダプタ、を ACDR で起こす
 - `.brainstorming-board/README.md` に init が1行足した（ほかのセッションの変更と同居しているのでコミットしていない）
-- ACDR 0124（述部を和語にも置き換えない。doc-writing-skills の SKILL.md 175行目）を承認待ち（作業ツリーにあり未コミット）
+- ACDR 0124（述部を和語にも置き換えない）承認 ・ コミット済み
