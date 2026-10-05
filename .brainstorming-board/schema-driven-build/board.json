@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "schema-driven を Rust で作る ── アーキテクチャと技術スタック",
  "board": "schema-driven-build",
- "round": 1,
+ "round": 2,
  "intro": [
   {
    "kind": "para",
@@ -15,11 +15,24 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1（アーキテクチャ）と論点2（技術スタック）を同時に開いた。</b>2つは互いに依存しない。論点3（どこに書くか）は、1と2の答えを置く場所なので、そのあとに開く。"
+     "text": "<b>論点1と2が決着した。いま見る論点は3（どこに書くか）。</b>"
     },
     {
-     "kind": "para",
-     "text": "<b>論点1の前提：</b>skills-creator の雛形がレイヤードなのは、「Skill の道具は手続き的な変換である」という前提で決めたからである（ACDR 0056 ・ 0058）。schema-driven は中核がドメインモデルなので、この前提に当たらない。"
+     "kind": "grid",
+     "cols": [
+      "論点",
+      "決まったこと"
+     ],
+     "rows": [
+      [
+       "1 アーキテクチャ",
+       "ヘキサゴナル。core（domain ・ application ・ ports）と adapters（inbound ・ outbound）と cli ・ mcp。向きは Cargo と clippy で止める"
+      ],
+      [
+       "2 技術スタック",
+       "各 crate の最新の版。ネットワークに出る機能を外す。版は正本の Cargo.lock で決める"
+      ]
+     ]
     },
     {
      "kind": "para",
@@ -30,19 +43,15 @@
  ],
  "queue": [
   {
-   "no": 1,
-   "why": "宣言から実装の型が導けた（参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト）ので、コードのどこに置くかを決められる"
-  },
-  {
-   "no": 2,
-   "why": "使う crate の原文を crates.io から取得し、版とライセンスを照合した"
+   "no": 3,
+   "why": "論点1（ヘキサゴナル）と論点2（crate と版）が決着したので、それをどこに書くかを決められる"
   }
  ],
  "topics": [
   {
    "no": 1,
    "name": "アーキテクチャ",
-   "status": "open",
+   "status": "settled",
    "question": "schema-driven の道具を、どの層とモジュールに分けて組むか",
    "answer": "A ── <b>ヘキサゴナル（ポートとアダプタ）で組む。</b>core に domain ・ application ・ ports を置き、adapters に入ってくる側（CLI ・ MCP の受け口）と出ていく側（ファイルシステム ・ jmespath）を置く。業務の分け方は、domain と application の中の名前に出るだけである。中核の参照と導出値は domain のドメインモデル、ほかの3つは application のトランザクションスクリプトになる",
    "intro": "ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる",
@@ -338,7 +347,7 @@
   {
    "no": 2,
    "name": "技術スタック",
-   "status": "open",
+   "status": "settled",
    "question": "Rust で使う crate と、その版と設定をどうするか",
    "answer": "A ── <b>各 crate の最新の版を使い、ネットワークに出る機能を外す。</b>版は正本の Cargo.lock の1か所で決め、転写した複製は lock ごと写す。JMESPath の crate は保守が細いので、取得の操作をポートの後ろに置き、契約の試験を当てる",
    "intro": "ここで、schema-driven と、そこから転写した複製が、どの crate のどの版で動くかが決まる",
@@ -579,7 +588,7 @@
   {
    "no": 3,
    "name": "どこに書くか",
-   "status": "waiting",
+   "status": "open",
    "question": "アーキテクチャと技術スタックを、宣言 ・ 規則 ・ Cargo のどこに書くか",
    "answer": "A ── <b>宣言には書かない。</b>構成と向きは Cargo.toml の crate の依存が持ち、版は Cargo.lock が持つ。なぜその構成とその crate かは ACDR が持つ。実装から宣言の文脈を指す場所は、no-more-spaghetti に代わるコーディングの Skill の形として決める",
    "intro": "ここで、仕様（宣言）と実装の決まりが、どちらを向いてつながるかが決まる",
@@ -621,7 +630,28 @@
    "example": [
     {
      "kind": "para",
-     "text": "論点1と2が決着したら、ここに Cargo の workspace の見本と、ACDR の見出しを置く。"
+     "text": "<b>見本：構成と版を持つ場所</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code># tool/Cargo.toml（workspace）── 構成は crate の並びと依存が持つ\n[workspace]\nmembers = [\"core\", \"adapters\", \"cli\", \"mcp\"]\n\n# tool/adapters/Cargo.toml ── adapters から core への一方向\n[dependencies]\nschema-driven-core = { path = \"../core\" }\njmespath = \"0.5.0\"\n\n# tool/core/clippy.toml ── core ではファイルを直接読まない\ndisallowed-methods = [\"std::fs::read\", \"std::fs::write\", …]</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "ACDR の見出し（例）",
+      "中身"
+     ],
+     "rows": [
+      [
+       "schema-driven をヘキサゴナルで組む",
+       "このボードの論点1の答えと、比べた案"
+      ],
+      [
+       "schema-driven の crate と版",
+       "このボードの論点2の答えと、原文の照合"
+      ]
+     ]
     }
    ],
    "figures": [
@@ -650,13 +680,21 @@
     }
    ],
    "path": [],
-   "findings": [],
+   "findings": [
+    "構成の正本は Cargo.toml にある ── 宣言や別の規則ファイルに書くと、同じことを2か所に持つ"
+   ],
    "grounds": [
     {
      "supports": "仕様に実装の対応を書かないこと",
      "basis": "仕様に実装の対応を書かず、つながりを従属関係で持つ",
      "tag": "rule",
      "source": "ACDR 0114"
+    },
+    {
+     "supports": "構成を Cargo で持つこと",
+     "basis": "このボードの論点1 ── 向きは crate の依存と clippy で止める",
+     "tag": "rule",
+     "source": "このボードの論点1（A）"
     }
    ],
    "requirements": [],
@@ -665,6 +703,11 @@
      "item": "実装から宣言の文脈を指す場所の形",
      "treatment": "later",
      "note": "ボード usecase-modeling-coding の、コーディングの Skill の形で決める"
+    },
+    {
+     "item": "この答えを試す相手",
+     "treatment": "later",
+     "note": "外の作業で試す。schema-driven を Rust で作り、Cargo.toml ・ clippy.toml ・ ACDR だけで構成と版と理由が読めるかを確かめる"
     }
    ]
   }
