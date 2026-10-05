@@ -232,7 +232,7 @@ def t4_after():
             a += text(x + 190, y, who, 15, DIM)
             a += text(x + 262, y, when, 15, DIM)
     a += band(234, '件数も書き方も違う。それでも、同じ列が在り、期限の順に並ぶ')
-    return svg('件数は違うが、どの項目にも決める担当と期限が入っている', a, 302)
+    return svg('件数は違うが、どの項目にも誰が決めるかと期限が入っている', a, 302)
 
 
 def t4_layers():
@@ -257,7 +257,7 @@ def t4_layers():
     a += rect(400, 0, 712, 340, PAPER, 12, LINE)
     a += text(424, 36, '出力される課題管理表', 18, INK, 700)
     a += text(424, 72, '課題', 15, DIM, 700)
-    a += text(660, 72, '決める担当', 15, ACCENT, 700) + text(800, 72, '期限', 15, ACCENT, 700)
+    a += text(660, 72, '誰が決めるか', 15, ACCENT, 700) + text(800, 72, '期限', 15, ACCENT, 700)
     a += path('M424 84 H1088', LINE, 1)
     rows = [('承認の経路', '経理と開発', '9/30'), ('申請の締め日', '経理', '9/30'), ('旧システムの停止日', 'PM', '10/7')]
     for k, (name, who, when) in enumerate(rows):
@@ -293,7 +293,7 @@ def t4_missing():
         a += _doc(x, 0, 352, 300)
         a += text(x + 18, 28, f'出力　{i + 1}回目', 13, DIM, 700)
         a += text(x + 18, 54, what, 15, ACCENT, 700)
-        a += text(x + 18, 88, '課題', 12, DIM, 700) + text(x + 178, 88, '決める担当', 12, DIM, 700) + text(x + 284, 88, '期限', 12, DIM, 700)
+        a += text(x + 18, 88, '課題', 12, DIM, 700) + text(x + 178, 88, '誰が決めるか', 12, DIM, 700) + text(x + 284, 88, '期限', 12, DIM, 700)
         a += path(f'M{x + 18} 98 H{x + 334}', LINE, 1)
         for j, (item, who, due) in enumerate(rows):
             y = 126 + j * 32
@@ -382,28 +382,33 @@ def t5_grown():
 
 
 def t5_swap():
-    """プロンプトを固定して、材料のほうを替える。"""
-    a = text(0, 24, 'プロンプトは固定', 18, DIM)
-    a += rect(0, 100, 268, 84, ACCENT, 12, ACCENT)
-    a += text(134, 136, 'いまのプロンプト', 20, PAPER, 700, 'middle')
-    a += text(134, 162, '3つを追記したもの', 15, PAPER, anchor='middle')
-    a += text(310, 24, '替えたのは入力するもの', 18, DIM)
-    for i, (mat, n, body) in enumerate([('今週の議事録', '5件', '承認の経路ほか'),
-                                        ('来週の議事録', '6件', '移行の範囲ほか'),
-                                        ('別の案件の議事録', '9件', '連携の方式ほか')]):
-        y = 40 + i * 84
-        a += path(f'M268 142 H296 V{y + 30} H328', LINE, 2 if i == 1 else 2)
-        a += path(f'M319 {y + 24} l9 6 -9 6', LINE, 2)
-        a += rect(328, y, 246, 60, PAPER, 10, LINE)
-        a += icon(348, y + 16, 'doc', DIM, .45)
-        a += text(386, y + 36, mat, 18, INK, 700)
-        a += arrow(584, y + 30, 620, y + 30)
-        a += rect(630, y, 482, 60, PANEL, 10)
-        a += text(654, y + 36, n, 20, ACCENT, 700)
-        a += text(700, y + 36, '期限の順に並び、決める担当と期限が付いている', 16, INK)
-        a += text(1088, y + 36, '', 15, DIM, anchor='end')
-    a += band(300, '中身も件数も違う。出力の形は、どれも同じである')
-    return svg('プロンプトを固定して入力する議事録を替えても、出力の形は同じになる', a, 368)
+    """L6-S2　プロンプトはそのままで、入力する議事録を替える。中身は違っても、出力の列はどれも同じ。主役は3つの出力にそろう列。"""
+    from v1_visuals import _ray
+    from intro_visuals import _robot_at
+    ins = [('今週の議事録', '申請の締め日', '経理', '9/30', 'ほか4件'),
+           ('翌週の議事録', '旧システムの停止日', 'PM', '未定', 'ほか4件'),
+           ('別の案件の議事録', '受注データの連携方式', '開発と営業', '10/14', 'ほか8件')]
+    # 真ん中：変えないプロンプトとAI
+    a = rect(300, 96, 220, 132, PAPER, 12, LINE)
+    a += _robot_at(386, 112, INK)
+    a += text(410, 192, 'いまのプロンプト', 16, INK, 700, 'middle') + text(410, 214, '変えない', 14, DIM, 700, 'middle')
+    for k, (src, name, who, when, more) in enumerate(ins):
+        y = k * 112
+        cy = y + 44
+        # 左：入力する議事録
+        a += rect(0, y, 240, 88, PAPER, 12, LINE)
+        a += icon(20, y + 28, 'doc', DIM, .5) + text(60, y + 52, src, 16, INK, 700)
+        a += _ray(240, cy, 300, 162)
+        a += _ray(520, 162, 580, cy)
+        # 右：出力された課題管理表
+        a += rect(580, y, 532, 88, PAPER, 12, LINE)
+        a += text(604, y + 28, '課題', 13, ACCENT, 700) + text(812, y + 28, '誰が決めるか', 13, ACCENT, 700) + text(964, y + 28, '期限', 13, ACCENT, 700)
+        a += text(1088, y + 28, more, 13, DIM, anchor='end')
+        a += path(f'M604 {y + 40} H1088', LINE, 1)
+        a += text(604, y + 68, name, 16, INK) + text(812, y + 68, who, 16, INK) + text(964, y + 68, when, 16, INK)
+    a += rect(0, 352, W, 52, PAPER, 12, LINE)
+    a += text(W / 2, 385, '中身は議事録ごとに違う。それでも、出力の列はどれも同じ', 19, INK, 700, 'middle')
+    return svg('プロンプトはそのままで、今週・翌週・別の案件の議事録を入力すると、中身は違っても、出力の列はどれも同じになる', a, 408)
 
 
 def t5_three_and_height():
@@ -433,83 +438,119 @@ def t5_three_and_height():
 
 
 def t5_three_and_height2():
-    """3つを決める作業が、目的レベルを合わせる作業だった。"""
-    a = text(0, 24, 'ここまでの3本の動画で、やってきたこと', 18, DIM)
-    for i, (name, did, effect) in enumerate([
-            ('意味', '何を並べるか', '並ぶものの種類が安定する'),
-            ('範囲', 'どこから抽出するか', '抽出する量が安定する'),
-            ('条件', '入れるもの・落とすもの・並べる順', '各項目の内容が安定する')]):
-        y = 44 + i * 66
-        a += rect(0, y, 120, 52, ACCENT, 10, ACCENT)
-        a += text(60, y + 33, name, 19, PAPER, 700, 'middle')
-        a += rect(132, y, 340, 52, PAPER, 10, LINE)
-        a += text(154, y + 33, did, 17, INK)
-        a += arrow(482, y + 26, 518, y + 26)
-        a += rect(528, y, 300, 52, PANEL, 10)
-        a += text(678, y + 33, effect, 17, INK, anchor='middle')
-    a += path('M838 70 H876 M838 136 H876 M838 202 H876', ACCENT)
-    a += path('M876 70 V202', ACCENT)
-    a += path('M876 136 H902', ACCENT)
-    a += path('M893 130 l9 6 -9 6', ACCENT, 2)
-    a += rect(902, 108, 210, 76, ACCENT, 12, ACCENT)
-    a += text(1007, 146, '抽象度が合う', 20, PAPER, 700, 'middle')
-    a += text(1007, 172, '目的に対して', 15, PAPER, anchor='middle')
-    a += band(254, '抽象度を上げ下げする、では何をするかが決まらない。この3つなら書ける')
-    return svg('言葉・範囲・条件を決める作業が、目的レベルを合わせる作業だった', a, 322)
+    """L6-S4　意味 ・ 範囲 ・ 条件を書くことは、AIが回ごとに決めていたところを目的から決めて書くことであり、作業に合った目的レベルを明確にすることだった。主役は右の言い切り。"""
+    a = rect(0, 0, 760, 250, PAPER, 12, LINE)
+    a += text(24, 36, '書いたこと', 13, DIM, 700) + text(140, 36, 'AIが回ごとに決めていたこと', 13, DIM, 700) + text(520, 36, '安定したこと', 13, DIM, 700)
+    a += path('M24 50 H736', LINE, 1)
+    for k, (name, did, eff) in enumerate([('意味', '何を並べるか', '並ぶものの種類'),
+                                          ('範囲', 'どこから抽出するか', '抽出する場所'),
+                                          ('条件', '何を入れ、何を落とし、どう並べるか', '各項目の中身と並び順')]):
+        y = 92 + k * 56
+        a += rect(24, y - 22, 80, 32, PAPER, 8, LINE) + text(64, y, name, 16, INK, 700, 'middle')
+        a += text(140, y, did, 16, INK) + text(520, y, eff, 16, INK)
+        if k < 2:
+            a += path(f'M24 {y + 22} H736', LINE, 1)
+    a += arrow(760, 125, 800, 125)
+    a += rect(800, 30, 312, 190, PAPER, 12, ACCENT)
+    a += text(824, 64, 'つまり', 14, DIM, 700)
+    a += text(824, 104, '作業に合った目的レベルを、', 19, ACCENT, 700) + text(824, 134, '明確にしていた', 19, ACCENT, 700)
+    a += text(824, 174, 'AIが決めていたところを、', 14, DIM) + text(824, 196, '目的から決めて書いた', 14, DIM)
+    a += rect(0, 270, W, 52, PAPER, 12, LINE)
+    a += text(W / 2, 303, '「目的レベルを明確にして」では、何を書くかが決まらない。意味 ・ 範囲 ・ 条件なら書ける', 18, INK, 700, 'middle')
+    return svg('意味 ・ 範囲 ・ 条件を書くことは、AIが回ごとに決めていたところを目的から決めて書くことで、作業に合った目的レベルを明確にすることだった', a, 326)
 
 
 def t6_one_at_a_time():
-    """1文だけ変えて、3回で確かめる。"""
-    a = text(0, 24, '直し方', 18, DIM)
-    a += rect(0, 44, 268, 92, ACCENT, 12, ACCENT)
-    a += text(134, 84, '1か所だけ直す', 20, PAPER, 700, 'middle')
-    a += text(134, 110, '2つ同時に直さない', 15, PAPER, anchor='middle')
-    a += arrow(278, 90, 318, 90)
-    a += rect(328, 44, 268, 92, PAPER, 12, LINE)
-    a += text(462, 84, '同じものを入力して3回', 20, INK, 700, 'middle')
-    a += text(462, 110, '1回では分からない', 15, DIM, anchor='middle')
-    a += arrow(606, 90, 646, 90)
-    a += rect(656, 44, 456, 92, PANEL, 12)
-    a += check(692, 78)
-    a += text(716, 85, '安定した　　効いている', 18, INK, 700)
-    a += cross(692, 114, DIM, .7)
-    a += text(716, 121, '安定しない　その文を戻して、別の場所を見る', 17, DIM)
-    a += band(176, '1回出力だけでは、ばらついているかどうかを見分けられない')
-    return svg('1文だけ変え、同じものを入力して3回試して安定し方を見る', a, 252)
+    """L5-S3　目的から導いた決まりは、抽象と具体のあいだにある。だから、どの週にも使えて、目的から外れない。L1-S2 と同じ形で、真ん中を主役にする。"""
+    from v1_visuals import _axis
+    from lesson_visuals import check, cross
+    a = _axis(0, 372)
+    rows = [('決まりを書いていない', '期限の書き方も、期限が無いときの扱いも、AIが回ごとに決める', (True, 'どの週にも使える'), (False, '書き方が混ざる'), False),
+            ('目的から導いた決まり', '期限は、日付で書く ／ 期限が無いものは「未定」と書く', (True, 'どの週にも使える'), (True, '目的から外れない'), True),
+            ('「今月中」は「9/30」と書いて', 'その週の言葉を名指しして直している', (False, 'この週だけ'), (True, 'この週は直る'), False)]
+    for i, (head, sub, use, ret, hot) in enumerate(rows):
+        y = 10 + i * 124
+        cy = y + 48
+        a += circle(80, cy, 9 if hot else 7, ACCENT if hot else PAPER, ACCENT if hot else LINE) + path(f'M89 {cy} H100', LINE, 1)
+        box = rect(100, y, 560, 96, PAPER, 12, ACCENT if hot else LINE)
+        a += box.replace('stroke-width="2"', 'stroke-width="2.5" stroke-dasharray="7 5"') if hot else box
+        a += text(124, y + 42, head, 19, ACCENT if hot else INK, 700) + text(124, y + 72, sub, 15, INK if hot else DIM, 700 if hot else 400)
+        a += rect(676, y, 436, 96, PAPER, 12, LINE) + path(f'M894 {y + 16} V{y + 80}', LINE, 1)
+        for x, label, (ok, t) in ((676, '使える議事録', use), (894, '出力', ret)):
+            a += text(x + 20, y + 30, label, 12, DIM, 700)
+            a += (check(x + 30, y + 62, ACCENT, .6) if ok else cross(x + 30, y + 62, DIM, .7))
+            a += text(x + 54, y + 69, t, 16, INK if ok else DIM, 700 if ok else 400)
+    return svg('目的から導いた決まりは、抽象と具体のあいだにある。上の端は書き方をAIが決めて混ざり、下の端はその週にしか使えない。あいだにある決まりは、どの週にも使えて、目的から外れない', a, 376)
 
 
 def t6_symptoms():
-    """3つを足しても残る、3つの症状。"""
-    a = ''
-    # 並びは、次の枚の 意味 ・ 範囲 ・ 条件 の順と1対1にする
-    items = [('種類が変わる', '課題管理表に、', '相談したいだけの項目が混じった'),
-             ('量が変わる', '前の週には出てきた項目が、', '今週は出てこない'),
-             ('書き方が安定しない', '期限が「今月中」と', '「9月30日」で混ざった')]
-    for i, (name, l1, l2) in enumerate(items):
-        x = i * 384
-        a += rect(x, 16, 344, 148, PAPER, 12, LINE)
-        a += text(x + 24, 60, name, 21, ACCENT, 700)
-        a += path(f'M{x + 24} 78 H{x + 320}', LINE, 1)
-        a += text(x + 24, 114, [l1, l2], 17, INK, gap=28)
-    a += band(186, 'プロンプトの全体を書き直すと、効いていた文まで一緒に消える')
-    return svg('3つを足しても残る、3つの症状', a, 254)
+    """L5-S1　3つを書いても、議事録の書き方がそのまま出力に入り、ばらつく。左に議事録、真ん中にAI、右に出力。入った書き方だけを赤にする。"""
+    from v1_visuals import _sheet
+    from intro_visuals import _robot_at
+    # 左：翌週の定例の議事録
+    a = _sheet(0, 0, 420, 250)
+    a += text(24, 36, '翌週の定例の議事録', 16, INK, 700)
+    a += path('M24 52 H380', LINE, 1)
+    a += text(24, 92, '承認の経路：9/30までに、経理と開発で決める', 15, INK)
+    a += text(24, 136, '申請の締め日：', 15, INK) + text(129, 136, '今月中に', 15, ACCENT, 700) + text(189, 136, '、経理が決めたい', 15, INK)
+    a += text(24, 180, '旧システムの停止日：PMが決める。', 15, INK) + text(279, 180, '時期は未定', 15, ACCENT, 700)
+    a += arrow(420, 125, 460, 125)
+    # 真ん中：AI
+    a += rect(460, 60, 192, 130, PAPER, 12, LINE)
+    a += _robot_at(532, 76, INK)
+    a += text(556, 152, '議事録の書き方を', 15, INK, 700, 'middle') + text(556, 176, 'そのまま使う', 15, INK, 700, 'middle')
+    a += arrow(652, 125, 692, 125)
+    # 右：出力された課題管理表
+    a += rect(692, 0, 420, 250, PAPER, 12, LINE)
+    a += text(716, 36, '出力された課題管理表', 16, INK, 700)
+    a += text(716, 76, '課題', 13, DIM, 700) + text(882, 76, '誰が決めるか', 13, DIM, 700) + text(1012, 76, '期限', 13, DIM, 700)
+    a += path('M716 86 H1088', LINE, 1)
+    for r, (name, who, when, hot) in enumerate([('承認の経路', '経理と開発', '9/30', ''),
+                                                ('申請の締め日', '経理', '今月中', 'when'),
+                                                ('旧システムの停止日', 'PM', '10/31', 'when')]):
+        y = 120 + r * 36
+        a += text(716, y, name, 16, INK) + text(882, y, who, 16, ACCENT if hot == 'who' else INK, 700 if hot == 'who' else 400)
+        a += text(1012, y, when, 16, ACCENT if hot == 'when' else INK, 700 if hot == 'when' else 400)
+    a += path('M716 212 H1088', LINE, 1)
+    a += text(716, 238, '期限の書き方が混ざり、議事録に無い期限が入る', 14, DIM)
+    return svg('3つを書いても、議事録の「今月中に」「時期は未定」という書き方から、期限の書き方が混ざり、議事録に無い期限が入る', a, 254)
 
 
 def t6_two_goals():
-    """目的が2つ入ったプロンプトは、逆向きの作業へ引かれる。"""
-    a = rect(340, 24, 432, 68, ACCENT, 12, ACCENT)
-    a += text(556, 66, '「課題を整理して、打ち手も考えて」', 20, PAPER, 700, 'middle')
-    a += path('M470 92 V126 H286 V158', ACCENT)
-    a += path('M280 152 l6 6 6 -6', ACCENT, 2)
-    a += path('M642 92 V126 H826 V158', ACCENT)
-    a += path('M820 152 l6 6 6 -6', ACCENT, 2)
-    for x, name, sub in [(0, '課題を整理する', '漏れなく並べる'), (572, '打ち手を考える', '絞り込んで深く考える')]:
-        a += rect(x, 164, 540, 92, PAPER, 12, LINE)
-        a += text(x + 270, 204, name, 21, INK, 700, 'middle')
-        a += text(x + 270, 234, sub, 17, DIM, anchor='middle')
-    a += band(278, '目的が2つなら、プロンプトも2つに分ける')
-    a += text(0, 370, '見分け方　何のためにするのかを1文で書く。「と」「そして」でつながれば、目的は2つ', 16, DIM)
-    return svg('目的が2つ入ったプロンプトは、逆向きの作業へ引かれる', a, 390)
+    """L5-S4　導いた決まりは、意味と条件に書き入れる。新しい種類の決まりは必要ない。主役は書き入れた2文。"""
+    from v1_visuals import _sheet
+    # 左：直したあとのプロンプト
+    a = _sheet(0, 0, 640, 300)
+    a += text(24, 34, '直したあとのプロンプト', 14, DIM, 700)
+    rows = [('＋意味', '決定しないと案件の進行が止まるもの', []),
+            ('＋範囲', '今回の案件、12月末の切り替えまで', []),
+            ('＋条件', '担当と期限を入れ、決まったものは落とし、期限の早い順に並べる',
+             ['期限は、日付で書いてください。', '期限が議事録に無いものは、「未定」と書いてください。'])]
+    y = 54
+    for tag, body, add in rows:
+        a += rect(24, y, 88, 28, PAPER, 8, LINE) + text(68, y + 19, tag, 14, INK, 700, 'middle')
+        a += text(128, y + 19, body, 15, DIM)
+        y += 40
+        for ad in add:
+            a += rect(128, y - 6, 496, 36, PAPER, 8, ACCENT)
+            a += text(144, y + 18, ad, 16, INK, 700)
+            y += 46
+        y += 8
+    # 右：書き入れる先
+    a += rect(680, 0, 432, 300, PAPER, 12, LINE)
+    a += text(704, 34, '書き入れる先', 14, DIM, 700)
+    for k, (rule, dest, what) in enumerate([('期限は、日付で書く', '条件', '期限をどう書くか'),
+                                            ('期限が無いものは「未定」と書く', '条件', '期限が無いときの書き方')]):
+        yy = 48 + k * 84
+        a += text(704, yy + 26, rule, 17, INK, 700)
+        a += rect(704, yy + 42, 64, 28, PAPER, 8, LINE) + text(736, yy + 61, dest, 14, INK, 700, 'middle')
+        a += text(780, yy + 61, what, 15, DIM)
+        if k == 0:
+            a += path(f'M704 {yy + 78} H1088', LINE, 1)
+    a += path('M704 222 H1088', LINE, 1)
+    a += text(704, 254, '新しい種類の決まりは必要ない', 17, INK, 700)
+    a += text(704, 282, '意味 ・ 範囲 ・ 条件の3つで足りる', 15, DIM)
+    return svg('導いた決まり（期限は日付で書く、期限が無いものは未定と書く）は、どちらも条件に書き入れる。新しい種類の決まりは必要ない', a, 304)
 
 
 def t6_where():

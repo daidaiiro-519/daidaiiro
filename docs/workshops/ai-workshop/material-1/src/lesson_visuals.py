@@ -370,7 +370,7 @@ def l3_after():
 
 def l4_missing():
     """項目は合っているのに、各項目の内容が安定しない。"""
-    head = ['項目', '決める担当', 'いつまでに', '決まったもの']
+    head = ['項目', '誰が決めるか', 'いつまでに', '決まったもの']
     rows = [('1回目', ['合っている', 'ない', 'ない', 'なし']),
             ('2回目', ['合っている', 'ある', 'ない', 'なし']),
             ('3回目', ['合っている', 'ある', 'ある', '1件入った'])]
@@ -394,7 +394,7 @@ def l4_unwritten():
     """頭の中に在った約束が、プロンプトには書かれていない。"""
     a = text(0, 24, '頭の中にあった約束', 18, DIM)
     a += rect(0, 40, 520, 214, PAPER, 12, LINE)
-    for i, (what, why) in enumerate([('決める担当', '誰に確認するかが決まらない'),
+    for i, (what, why) in enumerate([('誰が決めるか', '誰に確認するかが決まらない'),
                                      ('いつまでに決めるか', 'どれを先に決めるか比べられない'),
                                      ('決まったものは入れない', '各項目確認し直すことになる')]):
         y = 74 + i * 62
@@ -434,7 +434,7 @@ def l4_layers():
         y = 44 + i * 58
         a += rect(696, y, 416, 44, PAPER, 8, LINE)
         a += text(716, y + 28, ['通知の方式', '締めを流す日', '兼務の権限'][i], 17, INK)
-        a += text(900, y + 28, '決める担当', 15, ACCENT)
+        a += text(900, y + 28, '誰が決めるか', 15, ACCENT)
         a += text(1010, y + 28, 'いつまでに', 15, ACCENT)
     a += rect(696, 218, 416, 56, ACCENT, 10, ACCENT)
     a += text(904, 244, '条件', 19, PAPER, 700, 'middle')
@@ -453,8 +453,8 @@ def l4_scope_rule():
     a += path('M268 124 V148 M262 142 l6 6 6 -6', LINE, 2)
     a += rect(24, 152, 488, 46, PAPER, 10, ACCENT)
     a += check(56, 175)
-    a += text(84, 182, '決める担当を、必ず書ける', 18, INK, 700)
-    a += text(0, 246, '出席者の中に、決める担当がいる', 16, DIM)
+    a += text(84, 182, '誰が決めるかを、必ず書ける', 18, INK, 700)
+    a += text(0, 246, '出席者の中に、誰が決めるかがいる', 16, DIM)
 
     a += text(576, 24, '範囲を広げると', 18, DIM)
     a += rect(576, 40, 536, 176, PAPER, 12, LINE)
@@ -754,22 +754,22 @@ def l1_ladder():
 
 
 def l6_reproducible():
-    """抽象度が合っていないと出力は散り、合っていると毎回目的の中に収まる。"""
-    def target(cx, label, pts, hot):
-        a = circle(cx, 150, 104, PAPER, ACCENT if hot else LINE)
-        a += text(cx, 76, label, 17, ACCENT if hot else DIM, 700, 'middle')
-        for dx, dy in pts:
-            a += circle(cx + dx, 150 + dy, 22, ACCENT if hot else DIM, ACCENT if hot else DIM)
-        return a
-
-    a = text(0, 24, '抽象度が合っていないプロンプト', 18, DIM)
-    a += target(246, '目的', [(-30, -20), (-150, 60), (140, -70)], False)
-    a += text(246, 290, '目的の外へ出る回がある', 17, DIM, anchor='middle')
-
-    a += path('M556 20 V300', LINE, 1)
-
-    a += text(612, 24, 'ちょうどいい抽象度のプロンプト', 18, ACCENT, 700)
-    a += target(866, '目的', [(-40, -30), (20, 40), (50, -20)], True)
-    a += text(866, 290, '中身は毎回違う。それでも、どれも目的の中', 17, DIM, anchor='middle')
-    a += band(322, '同じ文章が返ることではない。目的に対して毎回外さないこと ── これを再現性と呼びます')
-    return svg('抽象度が合っていないと目的の外へ出る回があり、合っていると毎回目的の中に収まる', a, 390)
+    """L6-S6　目的レベルが明確でないプロンプトは、目的の外の出力が混じる。明確なプロンプトは、中身が毎回違っても、どれも目的の中に入る。主役は右の枠。"""
+    def chip(x, y, t, hot=False):
+        return rect(x, y, 150, 40, PAPER, 10, ACCENT if hot else LINE) + text(x + 75, y + 26, t, 14, INK, 700, 'middle')
+    a = rect(0, 0, 536, 36, PAPER, 18, LINE) + text(268, 24, '「課題を整理して」だけのプロンプト', 15, INK, 700, 'middle')
+    a += rect(576, 0, 536, 36, PAPER, 18, ACCENT) + text(844, 24, '意味 ・ 範囲 ・ 条件を追記したプロンプト', 15, ACCENT, 700, 'middle')
+    # 左：目的の外の出力が混じる
+    box = rect(162, 60, 212, 216, PAPER, 14, LINE)
+    a += box.replace('stroke-width="2"', 'stroke-width="2" stroke-dasharray="7 5"')
+    a += text(268, 84, '目的に合う出力', 13, DIM, 700, 'middle')
+    a += chip(0, 100, '精算の担当者向け') + chip(193, 156, 'PMが使う表') + chip(386, 212, '開発者向け')
+    # 右：どれも目的の中に入る
+    box = rect(738, 60, 212, 216, PAPER, 14, ACCENT)
+    a += box.replace('stroke-width="2"', 'stroke-width="2.5" stroke-dasharray="7 5"')
+    a += text(844, 84, '目的に合う出力', 13, ACCENT, 700, 'middle')
+    a += chip(769, 100, '今週の表') + chip(769, 156, '翌週の表') + chip(769, 212, '別の案件の表')
+    # 下：それぞれの結果
+    a += rect(0, 296, 536, 52, PAPER, 12, LINE) + text(268, 328, '回によって、目的の外の出力が混じる', 16, INK, 700, 'middle')
+    a += rect(576, 296, 536, 52, PAPER, 12, LINE) + text(844, 328, '中身は毎回違う。それでも、どれも目的の中', 16, INK, 700, 'middle')
+    return svg('「課題を整理して」だけのプロンプトは、回によって目的の外の出力が混じる。意味 ・ 範囲 ・ 条件を追記したプロンプトは、中身が毎回違っても、どれも目的の中に入る', a, 352)

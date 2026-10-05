@@ -50,7 +50,7 @@ FIG = {
  'L4-S4': RV.s4_effect, 'L4-S5': RV.s4_after,
  # 5本目　出力のばらつきを直す
  'L5-S1': DV.t6_symptoms, 'L5-S2': FV.f5_order, 'L5-S3': DV.t6_one_at_a_time,
- 'L5-S4': DV.t6_two_goals, 'L5-S5': V.l6_whole,
+ 'L5-S4': DV.t6_two_goals, 'L5-SE': BV.I['L5-SE'],
  # 6本目　目的レベルを確かめる
  'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
  'L6-S4': DV.t5_three_and_height2, 'L6-S6': V.l6_reproducible,

@@ -66,14 +66,22 @@ def h1_axis():
 
 
 def h5_axis():
-    """5本目 ── 真ん中が埋まった。"""
-    return axis([
-        ('「課題を整理して」', 'どの議事録にも使える',
-         '高すぎる', '何が出力されるか決まらない', False),
-        ('いまのプロンプト', '意味・範囲・条件の3つを書いた', 'ちょうどいい抽象度',
-         '入力する議事録を替えても目的の中に収まる', True),
-        ('「1行目に承認の経路、2行目に申請の締め日」', 'この議事録の、この1回だけ',
-         '低すぎる', '来週の議事録には使えない', False),
-    ], '高すぎる側と低すぎる側の間に、いまのプロンプトがある',
-       '個別の項目は書いていない。決まりごとだけを書いている',
-       (('決めていない', 'ことが多い'), ('細かく', '決めてある')))
+    """L6-S3　1本目の L1-S2 で「？」だった真ん中に、いまのプロンプトが入る。L1-S2 と同じ形にそろえる。"""
+    from v1_visuals import _axis
+    from lesson_visuals import check, cross
+    a = _axis(0, 372)
+    rows = [('「課題を整理して」', '何のための整理かが書かれていない', (True, 'どの週にも使える'), (False, '毎回変わる'), False),
+            ('いまのプロンプト', '意味 ・ 範囲 ・ 条件の3つを追記した', (True, 'どの週にも使える'), (True, '目的から外れない'), True),
+            ('「1行目に承認の経路、2行目に申請の締め日」', '具体に寄りすぎている', (False, 'この議事録だけ'), (True, '1つに決まる'), False)]
+    for i, (head, sub, use, ret, hot) in enumerate(rows):
+        y = 10 + i * 124
+        cy = y + 48
+        a += circle(80, cy, 9 if hot else 7, ACCENT if hot else PAPER, ACCENT if hot else LINE) + path(f'M89 {cy} H100', LINE, 1)
+        a += rect(100, y, 560, 96, PAPER, 12, ACCENT if hot else LINE)
+        a += text(124, y + 42, head, 19 if len(head) < 18 else 17, ACCENT if hot else INK, 700) + text(124, y + 72, sub, 15, INK if hot else DIM, 700 if hot else 400)
+        a += rect(676, y, 436, 96, PAPER, 12, LINE) + path(f'M894 {y + 16} V{y + 80}', LINE, 1)
+        for x, label, (ok, t) in ((676, '使える議事録', use), (894, '出力', ret)):
+            a += text(x + 20, y + 30, label, 12, DIM, 700)
+            a += (check(x + 30, y + 62, ACCENT, .6) if ok else cross(x + 30, y + 62, DIM, .7))
+            a += text(x + 54, y + 69, t, 16, INK if ok else DIM, 700 if ok else 400)
+    return svg('原因を知る動画で「？」だった、抽象と具体のあいだに、意味 ・ 範囲 ・ 条件の3つを追記したいまのプロンプトが入る。どの週にも使えて、目的から外れない', a, 376)
