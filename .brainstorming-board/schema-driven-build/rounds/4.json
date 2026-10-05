@@ -1,0 +1,559 @@
+{
+ "round": 4,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<div class=\"scroll\"><table><thead><tr><th>フォルダ（crate）</th><th>中身</th><th>依存してよい先</th></tr></thead><tbody><tr><td>core/domain（schema-driven-core）</td><td>集約 インスタンス ・ 承認記録、ドメインサービス 検査する、値オブジェクト。参照と導出値のドメインモデル</td><td>無し</td></tr><tr><td>core/application</td><td>ユースケース。読み書き ・ 描画 ・ 転写は、出ていく側のポートを直接使うトランザクションスクリプト</td><td>domain ・ ports</td></tr><tr><td>core/ports</td><td>入ってくる側（ユースケースの trait）と出ていく側（インスタンスの置き場所 ・ 取得 ・ ページの書き出し ・ 複製の読み書き）</td><td>domain</td></tr><tr><td>adapters/inbound（schema-driven-adapters）</td><td>CLI と MCP の受け口。入ってくる側のポートを呼ぶ</td><td>core</td></tr><tr><td>adapters/outbound</td><td>ファイルシステムと jmespath。出ていく側のポートを実装する</td><td>core</td></tr><tr><td>cli ・ mcp（schema-driven-cli ・ schema-driven-mcp）</td><td>実行ファイル。アダプタを組み立てる</td><td>core ・ adapters</td></tr></tbody></table></div><b>向きは Rust と Cargo そのものの仕組みで止める。</b>adapters から core への一方向は、crate の依存で Cargo が止める。core ではファイルを直接読まないことを、clippy の disallowed-methods で std::fs を禁じて止める。<b>crate の名前にだけ製品名を付ける。</b>schema-driven の crate は、ほかの Skill の workspace へ転写されるので、写した先の crate と名前がぶつからないようにする。フォルダの名前は役割だけにする。"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">A</b><div class=\"sub-s\"><b>ヘキサゴナル（ポートとアダプタ）で組む。</b>core に domain ・ application ・ ports を置き、adapters に入ってくる側（CLI ・ MCP の受け口）と出ていく側（ファイルシステム ・ jmespath）を置く。業務の分け方は、domain と application の中の名前に出るだけである。中核の参照と導出値は domain のドメインモデル、ほかの3つは application のトランザクションスクリプトになる</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "ヘキサゴナル。<b>core は何にも依存せず、adapters が core のポートを呼び、実装する。</b>業務の分け方は core の中の名前に出るだけである。",
+     "953fff430a60"
+    ]
+   ],
+   "example": [
+    [
+     "<b>見本：tool/ の並び</b><pre><code><pre><code>.claude/skills/schema-driven/tool/\n  core/              schema-driven-core\n    src/domain/        集約 ・ ドメインサービス ・ 値オブジェクト（入出力なし）\n    src/application/   ユースケース\n    src/ports/         入ってくる側と出ていく側の trait\n  adapters/          schema-driven-adapters\n    src/inbound/       CLI と MCP の受け口\n    src/outbound/      ファイルシステム ・ jmespath\n  cli/  mcp/         実行ファイルと組み立て</code></pre></code></pre><div class=\"scroll\"><table><thead><tr><th>サブドメイン</th><th>実装の型</th><th>置き場所</th></tr></thead><tbody><tr><td>参照と導出値</td><td>ドメインモデル</td><td>core/domain</td></tr><tr><td>インスタンスの読み書き ・ 描画 ・ 転写</td><td>トランザクションスクリプト</td><td>core/application</td></tr></tbody></table></div><div class=\"scroll\"><table><thead><tr><th>テストの形</th><th>どこ</th></tr></thead><tbody><tr><td>単体テスト（値を渡して結果を見る）</td><td>core/domain</td></tr><tr><td>出ていく側のポートに手元の偽物を差して、ユースケースを通す</td><td>core/application</td></tr><tr><td>ポートの契約の試験（どの実装にも同じ試験を当てる）</td><td>adapters/outbound</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "ヘキサゴナルで組み、業務の分け方は core の中の名前に出す",
+     "core（domain ・ application ・ ports）と adapters に分け、向きを Cargo で止める",
+     "雛形の4層の規則（ACDR 0071）と構成の検査に合わない"
+    ],
+    [
+     "業務の分け方ごとに crate を分ける",
+     "サブドメインや文脈ごとに crate にし、向きを Cargo で止める",
+     "問題の側の分け方を、コンパイルの単位に対応させてしまう"
+    ],
+    [
+     "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "business_logic の中をモジュールに分け、data_access を直接呼ぶ",
+     "中核のドメインモデルをレイヤードに載せる。ポートとアダプタの考え方が崩れる"
+    ]
+   ],
+   "dropped": [
+    [
+     "業務の分け方ごとに crate を分ける",
+     "サブドメインは問題の側の分け方で、crate はコンパイルの単位である。対応させる理由が無い。向きを機械で止めたいという手段の都合で、構造を変えることになる"
+    ],
+    [
+     "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない"
+    ]
+   ],
+   "path": [
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>前の答え：雛形の4層の中をモジュールに分け、規則と inward で向きを測る</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"2\"><span class=\"kind k-given\">差し戻し</span><small>2件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">まってね、もうノーモアスパゲッティは廃止したんだけどまだそのcoding ruleは使うの？誰も所有してないんだよなあ</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">あとそのビジネスロジックとデータアクセスというのはかなりレイヤードに引っ張られた表現でおそらくスキルクリエーターに引っ張られてると思うんですけど、それをこのスキーマ駆動でも表現してしまうとポートとアダプターの概念が崩れます。</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>rules.json と inward で向きを測ること。business_logic と data_access の語</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>雛形がレイヤードなのは、道具を手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）</td></tr></tbody></table></div>"
+    ],
+    [
+     "<div class=\"card\"><div class=\"card-h\"><span class=\"ver\">A</span>前の答え：業務の分け方ごとに crate を9つに分ける</div><table class=\"ev\"><tbody><tr class=\"g-returned\"><th rowspan=\"3\"><span class=\"kind k-given\">差し戻し</span><small>3件</small></th><td><span class=\"ev-n\">1</span><span class=\"q-in\">サブドメインをcrateにするのは気持ち悪い。。そんなことやらないでしょ。。どういう理解なんだ？</span></td></tr><tr class=\"g-returned\"><td><span class=\"ev-n\">2</span><span class=\"q-in\">そのサブドメインが先行するのは何でなの？私は普通にヘキサゴナルになると思ってたけどな？</span></td></tr><tr class=\"g-returned g-end\"><td><span class=\"ev-n\">3</span><span class=\"q-in\">その前にsdつけるのやめてくれない？別にそれsdじゃないでしょ？</span></td></tr><tr class=\"g-obsolete g-end\"><th rowspan=\"1\"><span class=\"kind k-open\">失効した点</span></th><td>業務の分け方ごとの crate。sd_ の名前（slide-deck の接頭辞と同じだった）</td></tr><tr class=\"g-finding\"><th rowspan=\"1\"><span class=\"kind k-fact\">判明事項</span></th><td>宣言の「サブドメイン → 実装の型」の並びを、そのままコードの置き場所にしていた。ヘキサゴナルでは、実装の型の違いは domain に置くか application に置くかで自然に分かれる</td></tr></tbody></table></div>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">実装の型が決まれば、技術方式も決まる</b><div class=\"sub-s\">ドメインモデルにはポートとアダプタが対応する</div>"
+    ],
+    [
+     "<b class=\"lead-s\">業務の分け方は、ヘキサゴナルの各部分の中の名前に出るだけである</b><div class=\"sub-s\">サブドメインを先に立てると、問題の側の分け方がコンパイルの単位になる</div>"
+    ],
+    [
+     "<b class=\"lead-s\">no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる</b><div class=\"sub-s\">どちらも Rust の側が持つ道具である</div>"
+    ],
+    [
+     "<b class=\"lead-s\">skills-creator も、アーキテクチャとしてはヘキサゴナルの見込みがある</b><div class=\"sub-s\">雛形がレイヤードなのは、道具を手続き的な変換と見た判断による</div>"
+    ]
+   ],
+   "costs": [
+    [
+     "雛形の4層の当て方を ACDR で決め直す。中核がドメインモデルの Skill はヘキサゴナルで組み、skills-creator にヘキサゴナルの組を足すかもそこで決める"
+    ],
+    [
+     "skills-creator 自身を宣言し、業務ロジックの性質から実装の型を導いて、ヘキサゴナルかを確かめる"
+    ],
+    [
+     "skills-creator の構成の検査（check --layout）が、schema-driven の構成をどう扱うかを試す"
+    ],
+    [
+     "clippy の disallowed-methods で、core の std::fs を禁じられるかを試す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "いまの Skill の構成",
+     "<span class=\"kind k-rule\">対象外</span> ── この論点は schema-driven の構成だけを決める"
+    ],
+    [
+     "skill-wiring.json に残る no-more-spaghetti の3行と、.coding-rules の片付け",
+     "<span class=\"kind k-given\">後続で決定</span> ── no-more-spaghetti を廃止する作業（ボード usecase-modeling-coding）で片付ける"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "ヘキサゴナルで組み、業務の分け方は core の中の名前に出す",
+     "<b>離れる</b>",
+     "<b>Cargo と clippy で止める</b>",
+     "合わない（ACDR で決める）"
+    ],
+    [
+     "案ごとの帰結",
+     "業務の分け方ごとに crate を分ける",
+     "離れる",
+     "Cargo で止める",
+     "合わない"
+    ],
+    [
+     "案ごとの帰結",
+     "skills-creator の雛形の4層（レイヤード）に合わせる",
+     "<b>離れない</b>",
+     "規則の持ち主がいない",
+     "合う"
+    ]
+   ],
+   "grounds": [
+    [
+     "雛形がレイヤードになった理由",
+     "道具の処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける",
+     "rule",
+     "ACDR 0058（あわせて 0056）"
+    ],
+    [
+     "実装の型から技術方式を決めること",
+     "業務ロジックの実装方法が決定すれば、技術方式も決定する",
+     "rule",
+     "ddd-advisor の判断基準 design-heuristics"
+    ],
+    [
+     "中核をポートとアダプタにすること",
+     "判断の要は、業務ロジックをドメインモデルで実装するときに選択することである",
+     "rule",
+     "ddd-advisor の判断基準 ports-and-adapters"
+    ],
+    [
+     "中核と、それ以外で実装の型を分けること",
+     "参照と導出値＝ドメインモデル、ほか3つ＝トランザクションスクリプト",
+     "rule",
+     "schema-driven の宣言（x-derive で導いた値）"
+    ],
+    [
+     "no-more-spaghetti の規則を使わないこと",
+     "no-more-spaghetti を廃止し、.coding-rules には持ち主がいない",
+     "rule",
+     "利用者の言明（2026-10-05）"
+    ],
+    [
+     "sd_ を使わないこと",
+     "slide-deck の crate が sd_service ・ sd_cli などの名前を使っている",
+     "measured",
+     "slide-deck の tool/*/Cargo.toml（2026-10-05 に読んだ）"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "ここで、schema-driven と、そこから転写した複製が、どの crate のどの版で動くかが決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<div class=\"scroll\"><table><thead><tr><th>用途</th><th>crate</th><th>版</th><th>設定</th></tr></thead><tbody><tr><td>JSON</td><td>serde_json</td><td>1.0.151</td><td>preserve_order（キーの順を保ち、ハッシュ値と差分を安定させる）</td></tr><tr><td>JSON Schema の検証</td><td>jsonschema</td><td>0.58.5</td><td>default-features = false。手元のスキーマを道具が読み、$ref の先として登録する</td></tr><tr><td>取得</td><td>jmespath</td><td>0.5.0</td><td>adapters/outbound に置き、取得のポートを実装する。どの実装にも同じ契約の試験を当てる</td></tr><tr><td>更新</td><td>json-patch</td><td>4.2.0</td><td>―</td></tr><tr><td>ハッシュ値</td><td>sha2</td><td>0.11.0</td><td>―</td></tr><tr><td>MCP</td><td>rmcp</td><td>3.5.0</td><td>default-features = false、features は server ・ macros ・ transport-io</td></tr><tr><td>非同期の実行</td><td>tokio</td><td>1.53.2</td><td>net を入れない</td></tr></tbody></table></div><b>版は正本の Cargo.lock だけで決める。</b>複製の側では cargo update をしない。複製の lock のハッシュ値を正本と比べ、差分の検査に含める。<b>ネットワークに出ないことを、設定と検査の両方で保つ。</b>CI で cargo tree -i reqwest（hyper ・ rustls ・ native-tls も）が何も出さないことを確かめる。通信を断った環境で cargo test --offline --locked を走らせる。<b>見直すきっかけを決めておく。</b>保守を止める知らせ ・ 脆弱性 ・ 12か月リリースが無いこと、のどれかが起きたら jmespath を見直す。rmcp は出るたびには追わない。"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">A</b><div class=\"sub-s\"><b>各 crate の最新の版を使い、ネットワークに出る機能を外す。</b>版は正本の Cargo.lock の1か所で決め、転写した複製は lock ごと写す。JMESPath の crate は保守が細いので、取得の操作をポートの後ろに置き、契約の試験を当てる</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "crate ごとに使う外の crate。<b>ネットワークに出る機能は外し、JMESPath の crate は出ていく側のアダプタに閉じ込める。</b>",
+     "b4a6045d0c77"
+    ]
+   ],
+   "example": [
+    [
+     "<b>見本：core の Cargo.toml</b><pre><code><pre><code>[package]\nname = \"schema-driven-core\"\n\n[dependencies]\nserde_json = { version = \"1.0.151\", features = [\"preserve_order\"] }\njsonschema = { version = \"0.58.5\", default-features = false }\njson-patch = \"4.2.0\"\nsha2       = \"0.11.0\"</code></pre></code></pre><div class=\"scroll\"><table><thead><tr><th>crate</th><th>既定の features（原文）</th><th>外す理由</th></tr></thead><tbody><tr><td>jsonschema 0.58.5</td><td>resolve-http ・ resolve-file ・ tls-aws-lc-rs ・ idna</td><td>resolve-http が $ref の先をネットワークから取りに行く</td></tr><tr><td>rmcp 3.5.0</td><td>base64 ・ macros ・ server</td><td>使う機能だけを明示し、増えた既定の機能を勝手に入れない</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "最新の版を使い、ネットワークに出る機能を外す",
+     "版は正本の lock で決め、複製は lock ごと写す",
+     "いまの18件の Skill と版がそろわない（jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10）"
+    ],
+    [
+     "いまの Skill と同じ版にそろえる",
+     "jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10 を使う",
+     "Skill ごとに workspace が分かれているので、そろえても共有されるものが無い。古い版の費用が増える"
+    ],
+    [
+     "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+     "取得の式の仕様を替える",
+     "基盤の論点1の決定を変えることになり、その crate の保守が太いという材料も無い"
+    ]
+   ],
+   "dropped": [
+    [
+     "いまの Skill と同じ版にそろえる",
+     "依存は最新のパッチを当てた版に保つ。古いものを残すなら、技術との差が広がったときの費用も比べる。Skill ごとに workspace が分かれているので、そろえても得るものが無い"
+    ],
+    [
+     "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+     "基盤の論点1の決定を先に変えることになる。JSONPath の crate のほうが保守が太いという材料が無い"
+    ]
+   ],
+   "path": [
+    [
+     "<p>初めの案は「ポートの後ろに置き、lock で固定する」だけだった。platform-advisor の点検で、差し替え ・ 複製の版 ・ ネットワークの遮断のどれも検査で確かめる形になっていないと分かり、契約の試験 ・ lock の照合 ・ CI の検査を足した。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">jsonschema の既定の features は resolve-http と resolve-file を含む</b><div class=\"sub-s\">外すとファイルの $ref も解けないので、手元のスキーマを道具の側で登録する</div>"
+    ],
+    [
+     "sha256 の承認記録は、承認したあとに内容が変わっていないことだけを示し、誰が承認したかは示さない"
+    ],
+    [
+     "jmespath の版の間は 0.3.0（2022-02）から 0.4.0（2025-07）まで3年あった"
+    ]
+   ],
+   "costs": [
+    [
+     "CI に、cargo tree -i で通信の crate が無いことの検査と、通信を断った cargo test --offline --locked を置く"
+    ],
+    [
+     "取得のポートに契約の試験を置き、jmespath の実装に当てる"
+    ],
+    [
+     "転写の差分の検査に、複製の Cargo.lock のハッシュ値を含める"
+    ],
+    [
+     "承認記録が「誰が承認したか」を示さないことを、宣言のその他の要求に書く"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "いまの18件の Skill の版と設定を、この案にそろえること",
+     "<span class=\"kind k-given\">後続で決定</span> ── いまの Skill を schema-driven の上へ移すとき（基盤の論点4で後続とした）に合わせて決める"
+    ],
+    [
+     "CLI の引数の解析の crate",
+     "<span class=\"kind k-rule\">対象外</span> ── 雛形のとおり、service の道具の一覧から CLI を組む"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "最新の版を使い、ネットワークに出る機能を外す",
+     "<b>保てる</b>",
+     "変えない"
+    ],
+    [
+     "案ごとの帰結",
+     "いまの Skill と同じ版にそろえる",
+     "<b>保てない</b>",
+     "変えない"
+    ],
+    [
+     "案ごとの帰結",
+     "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+     "保てる",
+     "<b>変える</b>（基盤の論点1）"
+    ]
+   ],
+   "grounds": [
+    [
+     "各 crate の最新の版と更新日",
+     "max_version と updated_at",
+     "primary",
+     "crates.io の API（https://crates.io/api/v1/crates/<名前>、2026-10-05 取得。sources/ に原文）"
+    ],
+    [
+     "各 crate のライセンス",
+     "license の値（MIT ・ MIT OR Apache-2.0 ・ MIT/Apache-2.0 ・ Apache-2.0）",
+     "primary",
+     "同上。版とライセンスの14件を、原文の文字列で照合した"
+    ],
+    [
+     "jsonschema と rmcp の既定の features",
+     "features の default の値",
+     "primary",
+     "crates.io の API の版ごとの記録（jsonschema/0.58.5 ・ rmcp/3.5.0、2026-10-05 取得）"
+    ],
+    [
+     "依存を最新に保つことと、見直すきっかけを決めること",
+     "platform-advisor の判断（ops-05 ・ cost-10 ・ rel-08 ・ sec-05 ・ sec-06 の基準）",
+     "rule",
+     "platform-advisor の回答（2026-10-05）"
+    ],
+    [
+     "試作で動いた組み合わせ",
+     "jsonschema 0.58 ・ jmespath 0.5 ・ json-patch 4.2 ・ serde_json（preserve_order）",
+     "measured",
+     "schema-driven-base の trial/spike の Cargo.toml"
+    ],
+    [
+     "手元の Rust で rmcp の最低の版を満たすこと",
+     "rustc 1.98.1。rmcp 3.5.0 の rust_version は 1.88",
+     "measured",
+     "rustc --version と crates.io の API"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "ここで、仕様（宣言）と実装の決まりが、どちらを向いてつながるかが決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<div class=\"scroll\"><table><thead><tr><th>何を</th><th>どこに</th><th>理由</th></tr></thead><tbody><tr><td>構成と向き</td><td>Cargo.toml の crate の依存</td><td>Cargo が止める。持ち主は Rust の側にある</td></tr><tr><td>crate と版</td><td>Cargo.toml ・ Cargo.lock</td><td>正本を2か所に持たない</td></tr><tr><td>なぜそうしたか</td><td>ACDR</td><td>決定と理由を残す</td></tr><tr><td>実装から文脈を指すこと</td><td>後続（コーディングの Skill の形）</td><td>仕様に実装の対応を書かない（ACDR 0114）。指すのは実装の側から</td></tr></tbody></table></div>"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">A</b><div class=\"sub-s\"><b>宣言には書かない。</b>構成と向きは Cargo.toml の crate の依存が持ち、版は Cargo.lock が持つ。なぜその構成とその crate かは ACDR が持つ。実装から宣言の文脈を指す場所は、no-more-spaghetti に代わるコーディングの Skill の形として決める</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "実装の決まりは、実装の側（Cargo と ACDR）に置く。<b>宣言には実装の決まりを書かない。</b>実装から文脈を指す場所は後で決める。",
+     "428d77954e09"
+    ]
+   ],
+   "example": [
+    [
+     "<b>見本：構成と版を持つ場所</b><pre><code><pre><code># tool/Cargo.toml（workspace）── 構成は crate の並びと依存が持つ\n[workspace]\nmembers = [\"core\", \"adapters\", \"cli\", \"mcp\"]\n\n# tool/adapters/Cargo.toml ── adapters から core への一方向\n[dependencies]\nschema-driven-core = { path = \"../core\" }\njmespath = \"0.5.0\"\n\n# tool/core/clippy.toml ── core ではファイルを直接読まない\ndisallowed-methods = [\"std::fs::read\", \"std::fs::write\", …]</code></pre></code></pre><div class=\"scroll\"><table><thead><tr><th>ACDR の見出し（例）</th><th>中身</th></tr></thead><tbody><tr><td>schema-driven をヘキサゴナルで組む</td><td>このボードの論点1の答えと、比べた案</td></tr><tr><td>schema-driven の crate と版</td><td>このボードの論点2の答えと、原文の照合</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "実装の側に置き、仕様を指す",
+     "Cargo と ACDR に分けて置き、文脈を指す場所は後で決める",
+     "いまは、実装と文脈のつながりが ACDR の文にしか無い"
+    ],
+    [
+     "宣言に実装の方針の種類を足す",
+     "文脈ごとに構成と crate を宣言に書く",
+     "Cargo.lock と同じことを2か所に持ち、ずれる"
+    ]
+   ],
+   "dropped": [
+    [
+     "宣言に実装の方針の種類を足す",
+     "仕様に実装の対応を細かく書くと、実装とずれやすい（利用者の言明、ACDR 0114）。crate の版は Cargo.lock と2か所になる"
+    ]
+   ],
+   "path": [],
+   "found": [
+    [
+     "<b class=\"lead-s\">構成の正本は Cargo.toml にある</b><div class=\"sub-s\">宣言や別の規則ファイルに書くと、同じことを2か所に持つ</div>"
+    ]
+   ],
+   "costs": [],
+   "weaknesses": [
+    [
+     "実装から宣言の文脈を指す場所の形",
+     "<span class=\"kind k-given\">後続で決定</span> ── ボード usecase-modeling-coding の、コーディングの Skill の形で決める"
+    ],
+    [
+     "この答えを試す相手",
+     "<span class=\"kind k-given\">後続で決定</span> ── 外の作業で試す。schema-driven を Rust で作り、Cargo.toml ・ clippy.toml ・ ACDR だけで構成と版と理由が読めるかを確かめる"
+    ]
+   ],
+   "tables": [],
+   "grounds": [
+    [
+     "仕様に実装の対応を書かないこと",
+     "仕様に実装の対応を書かず、つながりを従属関係で持つ",
+     "rule",
+     "ACDR 0114"
+    ],
+    [
+     "構成を Cargo で持つこと",
+     "<b class=\"lead-s\">このボードの論点1</b><div class=\"sub-s\">向きは crate の依存と clippy で止める</div>",
+     "rule",
+     "このボードの論点1（A）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "ここで、ユースケース駆動などの concrete が、ページをどんなデータで宣言するかが決まる"
+    ]
+   ],
+   "pick": [
+    [
+     "<div class=\"scroll\"><table><thead><tr><th>ページテンプレートのキー</th><th>中身</th></tr></thead><tbody><tr><td>kind</td><td>どの kind のインスタンスのページか</td></tr><tr><td>head</td><td>見出しの札（badges）と前置き（lead）</td></tr><tr><td>sections</td><td>節の並び。節は heading（見出し）・ show（出す条件）・ body（並べるもの）を持つ</td></tr><tr><td>body の要素</td><td>文字列なら JMESPath 式で、値を出す。オブジェクトなら component（コンポーネントの名前）と、そのコンポーネントが受け付ける差し込みの値</td></tr><tr><td>show</td><td>JMESPath 式。結果が空 ・ false ・ null なら出さない</td></tr><tr><td>each</td><td>JMESPath 式。結果の配列の要素ごとに、同じ要素を繰り返す（要素は @ で指す）</td></tr></tbody></table></div><div class=\"scroll\"><table><thead><tr><th>描画の文脈（基盤が用意する値）</th><th>中身</th></tr></thead><tbody><tr><td>this</td><td>このページのインスタンス</td></tr><tr><td>schema</td><td>このインスタンスのスキーマ（title ・ description ・ x-view を引く）</td></tr><tr><td>derived</td><td>x-derive を持つプロパティごとの導出値 ・ 見出し ・ 問いと答え</td></tr><tr><td>links</td><td>このインスタンスが指す参照。場所（at）・ 値 ・ 指す先（target）を持つ</td></tr><tr><td>referrers</td><td>このインスタンスを指す参照。指しているインスタンスと場所を持つ</td></tr><tr><td>instances</td><td>ディレクトリのインスタンスすべて</td></tr></tbody></table></div><b>コンポーネントの一覧と、それぞれが受け付ける差し込みの値は、基盤が持つ。</b>ページテンプレートは名前で選ぶだけで、HTML を書かない。<b>page.schema.json は、schema-driven 自身のスキーマとして置く。</b>ページテンプレートもインスタンスなので、schema-driven の検証 ・ x-prompt ・ 取得がそのまま使える。"
+    ]
+   ],
+   "answer": [
+    [
+     "<b class=\"lead-s\">A</b><div class=\"sub-s\"><b>ページテンプレートは、節の並びと、節ごとのコンポーネントと、値を取る JMESPath 式だけを書く。</b>値の選び方 ・ 繰り返し ・ 絞り込み ・ 条件は、取得の契約と同じ JMESPath で書く。文にするのは x-view、見た目はコンポーネントが持つ。基盤は描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を用意する</div>"
+    ]
+   ],
+   "figures": [
+    [
+     "ページテンプレートは、描画の文脈から JMESPath で値を取り、コンポーネントを名前で選び、x-view で文にする。<b>HTML も独自の式も書かない。</b>",
+     "ef5355e5027c"
+    ]
+   ],
+   "example": [
+    [
+     "<b>見本：サブドメインのページテンプレート</b>（見本の pages/subdomain.page.json を、この形で書き直したもの）<pre><code><pre><code>{\n \"kind\": \"subdomain\",\n \"head\": {\"badges\": [{\"component\": \"pill\", \"value\": \"this.classification.category\", \"tone\": \"category\"}],\n          \"lead\": \"this.header.description\"},\n \"sections\": [\n  {\"heading\": \"カテゴリー\", \"body\": [\n   {\"component\": \"kv\", \"rows\": [\n    {\"label\": \"derived.classification.title\", \"value\": {\"component\": \"pill\", \"value\": \"derived.classification.value\", \"tone\": \"category\"}},\n    {\"label\": \"'カテゴリー（宣言）'\", \"value\": {\"component\": \"pill\", \"value\": \"this.classification.category\", \"tone\": \"category\"},\n     \"note\": {\"show\": \"derived.classification.value != this.classification.category\", \"component\": \"missing\", \"text\": \"導いたカテゴリーと違う\"}},\n    {\"show\": \"this.classification.sourcing\", \"label\": \"'調達'\", \"value\": \"this.classification.sourcing\"}]},\n   {\"component\": \"table\", \"cols\": [{\"head\": \"問い（どのサブドメインでも同じ）\", \"value\": \"title\"}, {\"head\": \"このサブドメインの答え\", \"value\": {\"component\": \"yes-no\", \"value\": \"answer\"}}],\n    \"rows\": \"derived.classification.questions\"}]},\n  {\"heading\": \"束ねるユースケース\", \"body\": [\n   {\"component\": \"table\", \"rows\": \"links[?at=='/use_cases'].target\",\n    \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"component\": \"ref\", \"value\": \"@\"}}, {\"head\": \"目的レベル\", \"value\": {\"component\": \"pill\", \"value\": \"header.level\"}}, {\"head\": \"主アクター\", \"value\": \"header.primary_actor\"}],\n    \"empty\": \"なし（外部のサービスで満たす）\"}]}\n ]\n}</code></pre></code></pre><div class=\"scroll\"><table><thead><tr><th>見本の書き方（今）</th><th>この形での書き方</th></tr></thead><tbody><tr><td>^/a ・ %domain/a ・ ./@ref/header/level などの独自の道</td><td>JMESPath 式（this.a ・ links[?at=='/use_cases'].target）</td></tr><tr><td>each ・ where ・ some ・ meet ・ pick ・ flat</td><td>JMESPath の射影と絞り込み（[*] ・ [?…]）</td></tr><tr><td>if ・ not ・ same ・ eq ・ in ・ or</td><td>show と JMESPath の比較（==  ・ != ・ &amp;&amp; ・ ||）</td></tr><tr><td>p と s（部品の名前と差し込み）</td><td>component と、コンポーネントが受け付ける差し込みの値</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "値の選び方を JMESPath で書く",
+     "ページテンプレートはコンポーネントと JMESPath 式だけを持つ",
+     "JMESPath は外側の変数を使えないので、参照をたどる値（指す先 ・ 指してくるもの）を、基盤が文脈として先に計算しておく"
+    ],
+    [
+     "見本の独自の書き方を、キーを減らして残す",
+     "92 のキーを、使う頻度の高いものに絞る",
+     "道 ・ 条件 ・ 繰り返しの独自の文法が残り、AI も人も、取得の JMESPath と別にもう1つ覚えることになる"
+    ],
+    [
+     "テンプレートエンジン（Jinja の系統）で書く",
+     "ページを、条件と繰り返しを持つ HTML のテンプレートで書く",
+     "HTML をページごとに書くので、コンポーネントの見た目がページごとにずれる。JSON でないので、schema-driven の検証も取得も使えない。crate が増える"
+    ],
+    [
+     "concrete がページを組むコードを書く",
+     "kind ごとに Rust で組む",
+     "基盤の論点3の決定（concrete はデータだけを書く）に反する"
+    ]
+   ],
+   "dropped": [
+    [
+     "見本の独自の書き方を、キーを減らして残す",
+     "減らしても、道 ・ 条件 ・ 繰り返しの独自の文法が残る。取得の契約ですでに JMESPath を使っているので、2つ目の式の言語になる"
+    ],
+    [
+     "テンプレートエンジン（Jinja の系統）で書く",
+     "ページごとに HTML を書くので、コンポーネントでそろえた見た目が崩れうる。JSON でないので、ページテンプレート自身を検証できない"
+    ],
+    [
+     "concrete がページを組むコードを書く",
+     "基盤の論点3で、concrete はデータだけを書くと決めた"
+    ]
+   ],
+   "path": [
+    [
+     "<p>見本のページテンプレート9件を数えると、キーは 92 種類あり、独自の道 ・ 条件 ・ 繰り返し ・ 結合を持つ小さな言語になっていた。これを減らすのではなく、基盤がすでに持つ JMESPath（取得の契約）と x-view（文の型）に寄せた。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "<b class=\"lead-s\">見本のページテンプレートは 92 種類のキーを使い、そのうち値の選び方 ・ 繰り返し ・ 条件が大半を占める</b><div class=\"sub-s\">どれも JMESPath で書ける</div>"
+    ],
+    [
+     "<b class=\"lead-s\">JMESPath だけでは、参照をたどった先の値と、このインスタンスを指してくるものを引けない</b><div class=\"sub-s\">基盤が links と referrers を文脈として先に計算する</div>"
+    ],
+    [
+     "ページテンプレートも JSON のインスタンスなので、schema-driven 自身の検証 ・ x-prompt ・ 取得が使える"
+    ]
+   ],
+   "costs": [
+    [
+     "page.schema.json と、コンポーネントの一覧（名前と、受け付ける差し込みの値）を schema-driven に置く（ACDR を通す）"
+    ],
+    [
+     "3回目の実装で、見本の9件のページテンプレートをこの形に書き直し、35ページがいまの見本の水準を下回らないことを確かめる"
+    ],
+    [
+     "描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を、検査する（DS-1）の結果から組む"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "コンポーネントの一覧の中身（どのコンポーネントを持つか）",
+     "<span class=\"kind k-given\">後続で決定</span> ── いまの見本の60の部品を出発点にし、page.schema.json と一緒に ACDR で決める"
+    ],
+    [
+     "余白のデザイントークンの意味の層",
+     "<span class=\"kind k-given\">後続で決定</span> ── ux-advisor の修理を待つ"
+    ],
+    [
+     "この答えを試す相手",
+     "<span class=\"kind k-given\">後続で決定</span> ── 3回目の実装で、見本の9件をこの形に書き直して試す"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの帰結",
+     "値の選び方を JMESPath で書く",
+     "<b>JMESPath だけ</b>",
+     "<b>そろう</b>（コンポーネントだけ）",
+     "<b>扱える</b>（JSON のインスタンス）"
+    ],
+    [
+     "案ごとの帰結",
+     "見本の独自の書き方を、キーを減らして残す",
+     "<b>独自の文法</b>",
+     "そろう",
+     "扱える"
+    ],
+    [
+     "案ごとの帰結",
+     "テンプレートエンジン（Jinja の系統）で書く",
+     "テンプレートの文法",
+     "<b>ずれうる</b>",
+     "<b>扱えない</b>"
+    ],
+    [
+     "案ごとの帰結",
+     "concrete がページを組むコードを書く",
+     "Rust",
+     "ずれうる",
+     "扱えない"
+    ]
+   ],
+   "grounds": [
+    [
+     "concrete はページテンプレートをデータで書くこと",
+     "基盤は描画の部品と、ページテンプレートを読んで組む道具を持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く",
+     "rule",
+     "ボード schema-driven-base の論点3（B″）"
+    ],
+    [
+     "キーを page.schema.json で絞ること",
+     "ページテンプレートのキーが約50に増えたので、page.schema.json で絞る",
+     "rule",
+     "ボード schema-driven-base の論点3の要求事項"
+    ],
+    [
+     "値の選び方を JMESPath にすること",
+     "<b class=\"lead-s\">取得の契約</b><div class=\"sub-s\">インスタンスから、JMESPath の式で値を取得する</div>",
+     "rule",
+     "ボード schema-driven-base の論点1"
+    ],
+    [
+     "見本のページテンプレートの書き方",
+     "pages/*.page.json 9件で 92 種類のキー、403 行",
+     "measured",
+     "ボード usecase-driven-concrete の sample/pages（2026-10-06 に数えた）"
+    ]
+   ]
+  }
+ }
+}
