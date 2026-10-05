@@ -7,7 +7,7 @@ use schema_driven_core::application::instances::Instances;
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let (files, query) = (FileSystem, Jmespath);
-    let use_cases = Instances::new(&files, &query);
+    let use_cases = Instances::new(&files, &files, &query);
     let (code, out) = cli::run(&args, &use_cases);
     println!("{out}");
     std::process::exit(code);

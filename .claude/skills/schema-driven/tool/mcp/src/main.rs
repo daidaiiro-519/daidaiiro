@@ -39,7 +39,7 @@ impl ServerHandler for Server {
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<CallToolResponse, ErrorData>> + MaybeSendFuture + '_ {
         let (files, query) = (FileSystem, Jmespath);
-        let use_cases = Instances::new(&files, &query);
+        let use_cases = Instances::new(&files, &files, &query);
         let args = request.arguments.unwrap_or_default();
         let (code, out) = tools::dispatch(&request.name, &args, &use_cases);
         let content = vec![ContentBlock::text(out.to_string())];

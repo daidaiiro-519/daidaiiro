@@ -26,10 +26,15 @@ pub enum WriteIf {
 pub trait Files {
     fn exists(&self, path: &str) -> bool;
     fn read(&self, path: &str) -> Result<String, ReadError>;
-    /// 同じディレクトリの `*.schema.json` を、ファイル名と内容の組で返す（`$ref` の先として登録する）。
-    fn sibling_schemas(&self, path: &str) -> Result<Vec<(String, String)>, ReadError>;
     fn write(&self, path: &str, content: &str, cond: WriteIf) -> Result<(), WriteError>;
     fn remove(&self, path: &str) -> Result<(), WriteError>;
+}
+
+/// スキーマの供給元。スキーマが `$ref` で指す先のスキーマを、ファイル名と内容の組で返す。
+/// 基盤のアダプタは同じディレクトリから読む。外のスキーマを使いたい Skill は、自分のアダプタで取得して渡す
+/// （基盤はネットワークに出ない。ACDR 0122）。
+pub trait Schemas {
+    fn referenced(&self, schema_path: &str) -> Result<Vec<(String, String)>, ReadError>;
 }
 
 /// JMESPath 式が読めない。

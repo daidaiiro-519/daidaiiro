@@ -1,7 +1,7 @@
 //! ファイルシステムのアダプタ（ポート Files の実装）。
 
 use schema_driven_core::domain::values::JsonValue;
-use schema_driven_core::ports::outbound::{Files, ReadError, WriteError, WriteIf};
+use schema_driven_core::ports::outbound::{Files, ReadError, Schemas, WriteError, WriteIf};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -19,25 +19,6 @@ impl Files for FileSystem {
 
     fn read(&self, path: &str) -> Result<String, ReadError> {
         fs::read_to_string(path).map_err(|e| ReadError(format!("{path}: {e}")))
-    }
-
-    fn sibling_schemas(&self, path: &str) -> Result<Vec<(String, String)>, ReadError> {
-        let dir = Path::new(path)
-            .parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new("."));
-        let mut out = Vec::new();
-        for entry in fs::read_dir(dir).map_err(|e| ReadError(e.to_string()))? {
-            let entry = entry.map_err(|e| ReadError(e.to_string()))?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.ends_with(".schema.json") {
-                if let Ok(text) = fs::read_to_string(entry.path()) {
-                    out.push((name, text));
-                }
-            }
-        }
-        out.sort();
-        Ok(out)
     }
 
     /// 作成は、まだ無いときだけ書く。更新は、読んだ時点のハッシュ値のままのときだけ、
@@ -88,5 +69,27 @@ impl Files for FileSystem {
 
     fn remove(&self, path: &str) -> Result<(), WriteError> {
         fs::remove_file(path).map_err(unwritable)
+    }
+}
+
+/// スキーマの供給元。同じディレクトリの `*.schema.json` を返す（ネットワークには出ない）。
+impl Schemas for FileSystem {
+    fn referenced(&self, path: &str) -> Result<Vec<(String, String)>, ReadError> {
+        let dir = Path::new(path)
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        let mut out = Vec::new();
+        for entry in fs::read_dir(dir).map_err(|e| ReadError(e.to_string()))? {
+            let entry = entry.map_err(|e| ReadError(e.to_string()))?;
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.ends_with(".schema.json") {
+                if let Ok(text) = fs::read_to_string(entry.path()) {
+                    out.push((name, text));
+                }
+            }
+        }
+        out.sort();
+        Ok(out)
     }
 }

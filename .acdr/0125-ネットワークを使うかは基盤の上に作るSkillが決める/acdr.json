@@ -1,0 +1,133 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0125",
+ "title": "ネットワークを使うかは、基盤の上に作る Skill が決める",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "ネットワークに出ない決まりは schema-driven の crate にだけ当て、ネットワークを使うかは、基盤の上に作る Skill が自分のアダプタで決める。スキーマの供給元を出ていく側のポートに分ける",
+ "why": "ACDR 0122 は「ネットワークに出る機能を外す」と決めたが、それがどの crate に当たるかを書いていなかった。schema-driven は基盤なので、その上に作る Skill へ転写される。fact-check のように原文を取得する Skill はネットワークを使う。決まりを製品全体に当てると、その Skill が作れない。ヘキサゴナル（ACDR 0121）では、入出力の違いは出ていく側のポートとアダプタに寄せる。そこで、基盤はポートを定義するだけにし、ネットワークを使う実装はその Skill のアダプタに置く。外のスキーマを $ref で使いたい場合も、基盤は取りに行かず、Skill のアダプタが取得して渡す。そのために、これまで Files の中にあった「$ref の先のスキーマを返す」処理を、スキーマの供給元（Schemas）のポートに分けた",
+ "shift": [
+  {
+   "what": "ネットワークに出ない決まりの範囲",
+   "from": "schema-driven（範囲を書いていない）",
+   "to": "schema-driven の crate（転写される部分）。検査は crate を指定して行う（cargo tree -p schema-driven-core -i reqwest など）"
+  },
+  {
+   "what": "ネットワークを使う Skill",
+   "from": "決めていない",
+   "to": "その Skill の adapters/outbound が、core のポートを実装するときに使う"
+  },
+  {
+   "what": "$ref の先のスキーマ",
+   "from": "ポート Files の sibling_schemas が返す",
+   "to": "ポート Schemas の referenced が返す。基盤のアダプタは同じディレクトリから読み、外のスキーマは Skill のアダプタが取得して渡す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "基盤はポートを定義するだけで、ネットワークに出ない。ネットワークを使う実装は、それを必要とする Skill のアダプタに置く。",
+ "alternatives": [
+  {
+   "option": "ネットワークに出ない決まりを、基盤の上に作る Skill すべてに当てる",
+   "why_not": "fact-check のように原文を取得する Skill が作れない"
+  },
+  {
+   "option": "基盤に、ネットワークを使う機能を入れておく（jsonschema の resolve-http など）",
+   "why_not": "使わない Skill にも、黙って外へ取りに行ける経路が入る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "port",
+   "tab": "ポート",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// スキーマの供給元。スキーマが `$ref` で指す先のスキーマを、ファイル名と内容の組で返す。",
+     "why": "$ref の先のスキーマを渡す口を、ファイルとは別のポートにする。外のスキーマを使いたい Skill が、自分のアダプタで取得して渡せるようにするため",
+     "before": "（この行は無かった）"
+    }
+   ]
+  },
+  {
+   "key": "app",
+   "tab": "ユースケース",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::ports::outbound::{Files, Query, Schemas, WriteError, WriteI",
+     "why": "新しいポート Schemas を使う",
+     "before": "use crate::ports::outbound::{Files, Query, WriteError, WriteIf};"
+    },
+    {
+     "find": "/// インスタンスの読み書きのユースケースの実装。ファイル ・ スキーマの供給元 ・ 取得は、ポートで受け取る。",
+     "why": "ユースケースが、スキーマの供給元をポートとして受け取る",
+     "before": "/// インスタンスの読み書きのユースケースの実装。ファイルと取得は、ポートで受け取る。"
+    },
+    {
+     "find": ".schemas",
+     "why": "$ref の先のスキーマを、Files ではなく Schemas から受け取る",
+     "before": ".files"
+    }
+   ]
+  },
+  {
+   "key": "fs",
+   "tab": "ファイルシステムのアダプタ",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/fs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::ports::outbound::{Files, ReadError, Schemas, W",
+     "why": "ファイルシステムのアダプタが、Schemas も実装する",
+     "before": "use schema_driven_core::ports::outbound::{Files, ReadError, WriteError, WriteIf};"
+    },
+    {
+     "find": "fn sibling_schemas(&self, path: &str)",
+     "before": "fn sibling_schemas(&self, path: &str) -> Result<Vec<(String, String)>, ReadError>",
+     "why": "Files から外し、Schemas の実装へ移した"
+    },
+    {
+     "find": "/// スキーマの供給元。同じディレクトリの `*.schema.json` を返す（ネットワークには出ない）。",
+     "why": "基盤のアダプタは、同じディレクトリのスキーマだけを読む",
+     "before": "（この行は無かった）"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "CLI の組み立て",
+   "file": ".claude/skills/schema-driven/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let use_cases = Instances::new(&files, &files, &query);",
+     "why": "ファイルシステムのアダプタを、Files と Schemas の両方として渡す",
+     "before": "let use_cases = Instances::new(&files, &query);"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "MCP の組み立て",
+   "file": ".claude/skills/schema-driven/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let use_cases = Instances::new(&files, &files, &query);",
+     "why": "同上",
+     "before": "let use_cases = Instances::new(&files, &query);"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "port": "13ec4af68d8c24f520d0e68b4c3e079f6d6e63310f3edd2cbd806a55d02de698",
+  "app": "4f841ffcf16da940732df45d60729430c82500349ad70449de41260e569118f8",
+  "fs": "e570fb6148b08bc35f4008bb87e69de4a9469d926c16203e65fb6000a1e2b5ed",
+  "cli": "44f644fd21714296eb6446c4899f50d43973a3b45805fb1c8ebd50902d6f2ee6",
+  "mcp": "c273f59a8d057ce7aa55f696b3b5af2435c1e042c25e61a1e8f44b15330bac95"
+ }
+}

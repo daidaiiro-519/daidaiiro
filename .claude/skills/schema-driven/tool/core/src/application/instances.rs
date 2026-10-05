@@ -7,7 +7,7 @@ use crate::domain::values::{
     Hash, InstancePath, JsonPatch, JsonValue, SchemaPath, ValidationError,
 };
 use crate::ports::inbound::InstanceUseCases;
-use crate::ports::outbound::{Files, Query, WriteError, WriteIf};
+use crate::ports::outbound::{Files, Query, Schemas, WriteError, WriteIf};
 use serde_json::Value;
 
 /// ユースケースが失敗した理由。`reason` は用語集の語（拒否の理由 ・ 失敗の種類）で書く。
@@ -61,15 +61,20 @@ pub struct Prompted {
     pub prompt: Value,
 }
 
-/// インスタンスの読み書きのユースケースの実装。ファイルと取得は、ポートで受け取る。
+/// インスタンスの読み書きのユースケースの実装。ファイル ・ スキーマの供給元 ・ 取得は、ポートで受け取る。
 pub struct Instances<'a> {
     files: &'a dyn Files,
+    schemas: &'a dyn Schemas,
     query: &'a dyn Query,
 }
 
 impl<'a> Instances<'a> {
-    pub fn new(files: &'a dyn Files, query: &'a dyn Query) -> Self {
-        Self { files, query }
+    pub fn new(files: &'a dyn Files, schemas: &'a dyn Schemas, query: &'a dyn Query) -> Self {
+        Self {
+            files,
+            schemas,
+            query,
+        }
     }
 
     fn read_json(&self, path: &str) -> Result<(String, Value), UseCaseError> {
@@ -86,8 +91,8 @@ impl<'a> Instances<'a> {
         let (_, root) = self.read_json(path)?;
         let name = path.rsplit('/').next().unwrap_or(path);
         let siblings = self
-            .files
-            .sibling_schemas(path)
+            .schemas
+            .referenced(path)
             .unwrap_or_default()
             .into_iter()
             .filter_map(|(n, text)| serde_json::from_str(&text).ok().map(|v| (n, v)))
