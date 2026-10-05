@@ -7,7 +7,7 @@ metadata:
 
 `.brainstorming-board/schema-driven-build/`（Artifact 未公開。2026-10-05 は公開の日次上限に達した。次の公開で出す）。schema-driven-base の次にすること3。
 
-現在地（2026-10-05、2回目、未 push）：論点1 ・ 2 は決着。論点3 を承認待ち
+現在地（2026-10-05、2回目、未 push）：論点1〜3 決着（739a19db）。ACDR 0121（ヘキサゴナルで組む）・ 0122（crate と版）を承認待ち（作業ツリーにあり未コミット）。番号 0119 ・ 0120 はほかのセッションが使っている（0119 の index.html をこちらの glob で一度組み直してしまった）。次は Rust で作る
 - 論点1 アーキテクチャ A（組み直し2回目）：ヘキサゴナル。core（schema-driven-core：domain ・ application ・ ports）と adapters（schema-driven-adapters：inbound ・ outbound）と cli ・ mcp。業務の分け方は core の中の名前に出す。向きは Cargo の依存と clippy（core で std::fs を禁じる）。sd_ は slide-deck の接頭辞なので使わない。no-more-spaghetti は廃止、.coding-rules は持ち主なし。要求：skills-creator 自身もヘキサゴナルか確かめる
 - 論点2 技術スタック A：最新の版（serde_json 1.0.151 ・ jsonschema 0.58.5 ・ jmespath 0.5.0 ・ json-patch 4.2.0 ・ sha2 0.11.0 ・ rmcp 3.5.0 ・ tokio 1.53.2）、ネットワークの機能を外す、版は正本の Cargo.lock。原文は sources/（fact-check で14件照合）
 - 論点3 どこに書くか：待ち（宣言に書かない。Cargo と ACDR。実装から文脈を指す場所は usecase-modeling-coding で）
