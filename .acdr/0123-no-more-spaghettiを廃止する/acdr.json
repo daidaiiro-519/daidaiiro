@@ -1,0 +1,76 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0123",
+ "title": "no-more-spaghetti を廃止する",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "no-more-spaghetti を廃止し、Skill の本体 ・ 規則ファイル .coding-rules ・ 配線表の3行 ・ MCP の登録を消す",
+ "why": "no-more-spaghetti の廃止は、ボード usecase-modeling-coding で決めてあった（代わりは、ユースケース駆動のコーディングの Skill）。名前はすでに廃止していたが、本体と規則と配線は残っていた。そのため配線表は「コードを書くとき」に、持ち主のいない Skill を required で呼ぶ形のままだった。.coding-rules と inward にも持ち主がいない。schema-driven を Rust で作る前に、利用者から先に消すよう頼まれた。schema-driven の依存の向きは、ACDR 0121 のとおり Cargo の依存と clippy で止めるので、no-more-spaghetti を使わない",
+ "shift": [
+  {
+   "what": "Skill の本体",
+   "from": ".claude/skills/no-more-spaghetti/（追跡しているファイル130件と、組み立ての出力）",
+   "to": "無い"
+  },
+  {
+   "what": "規則ファイル",
+   "from": ".coding-rules/rules.json と sources/（Go と Rust の原文）",
+   "to": "無い"
+  },
+  {
+   "what": "配線表",
+   "from": "「コードを書くとき」「実装を書き終えたとき」が no-more-spaghetti を required で呼び、「no-more-spaghetti でモデルを起こすとき」が ddd-advisor を呼ぶ",
+   "to": "3行とも無い。コードを書くときの配線は、コーディングの Skill ができたときに足す"
+  },
+  {
+   "what": "MCP の登録",
+   "from": ".mcp.json と .claude/settings.local.json に no-more-spaghetti がある",
+   "to": "無い"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "no-more-spaghetti の本体 ・ 規則 ・ 配線 ・ MCP の登録を消す。依存の向きは作る道具ごとに Cargo と clippy で止め、代わりの Skill は後で足す。",
+ "alternatives": [
+  {
+   "option": "コーディングの Skill ができるまで残す",
+   "why_not": "配線表が持ち主のいない Skill を required で呼び続け、Rust で作るたびに呼ぶか呼ばないかを決めることになる"
+  },
+  {
+   "option": "配線表の3行だけを消し、本体と規則は残す",
+   "why_not": "本体と規則が残ると、手本として読まれ、使われる。持ち主のいない規則は、変えたときに誰も確かめない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "wiring",
+   "tab": "配線表",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "アーキテクチャを決め・保ち・測りながら実装してもらう",
+     "before": "no-more-spaghetti を呼ぶ2行と、no-more-spaghetti でモデルを起こすときに ddd-advisor を呼ぶ1行",
+     "why": "廃止した Skill を required で呼ぶ行を消す。コードを書くときの配線は、コーディングの Skill ができたときに足す"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "MCP の登録",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "no-more-spaghetti-mcp",
+     "before": "\"no-more-spaghetti\": { \"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/no-more-spaghetti/bin/no-more-spaghetti-mcp\", \"args\": [] }",
+     "why": "消した Skill の MCP サーバーの登録を外す。残すと、起動のたびに見つからない実行ファイルを探す"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "wiring": "16ba46013026c6f943b445535d9b932c6a03195829a5acc40e762c7f531b8c7c",
+  "mcp": "5be41b528b06f2442f06a76c6ae4d4cbd2f7fe8c7ad3e9311be51d3ea827b982"
+ }
+}
