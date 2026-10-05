@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "schema-driven を Rust で作る ── アーキテクチャと技術スタック",
  "board": "schema-driven-build",
- "round": 3,
+ "round": 4,
  "intro": [
   {
    "kind": "para",
@@ -15,37 +15,17 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1〜3が決着した。このボードで答えられる問いは尽きた。</b>次は外の作業で、Rust で作って答えを試す。"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "順",
-      "次にすること"
-     ],
-     "rows": [
-      [
-       "1",
-       "論点1と2の答えを ACDR に起こす（ヘキサゴナルで組む ・ crate と版）"
-      ],
-      [
-       "2",
-       "雛形の4層の当て方を決め直す ACDR を起こす（中核がドメインモデルの Skill はヘキサゴナル）"
-      ],
-      [
-       "3",
-       "schema-driven を Rust で作る。テストは宣言から取り出したテスト条件を記録する"
-      ],
-      [
-       "4",
-       "Cargo.toml ・ clippy.toml ・ ACDR だけで、構成と版と理由が読めるかを確かめる（論点3の試し）"
-      ]
-     ]
+     "text": "<b>論点4（ページテンプレートの形）を開いた。</b>論点1〜3は決着していて、schema-driven の1回目と2回目の実装が済んだ。3回目の描画に入る前に、ページテンプレートの書き方を決める。"
     }
    ]
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 4,
+   "why": "2回目（検査と承認）ができ、3回目の描画に入る前に、ページテンプレートの形を決める必要がある"
+  }
+ ],
  "topics": [
   {
    "no": 1,
@@ -707,6 +687,274 @@
      "item": "この答えを試す相手",
      "treatment": "later",
      "note": "外の作業で試す。schema-driven を Rust で作り、Cargo.toml ・ clippy.toml ・ ACDR だけで構成と版と理由が読めるかを確かめる"
+    }
+   ]
+  },
+  {
+   "no": 4,
+   "name": "ページテンプレートの形",
+   "status": "open",
+   "question": "描画のページテンプレート（kind ごとに、どの値をどのコンポーネントで並べるか）を、どんな形で書くか",
+   "answer": "A ── <b>ページテンプレートは、節の並びと、節ごとのコンポーネントと、値を取る JMESPath 式だけを書く。</b>値の選び方 ・ 繰り返し ・ 絞り込み ・ 条件は、取得の契約と同じ JMESPath で書く。文にするのは x-view、見た目はコンポーネントが持つ。基盤は描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を用意する",
+   "intro": "ここで、ユースケース駆動などの concrete が、ページをどんなデータで宣言するかが決まる",
+   "decision": {
+    "letter": "A",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "ページテンプレートのキー",
+       "中身"
+      ],
+      "rows": [
+       [
+        "kind",
+        "どの kind のインスタンスのページか"
+       ],
+       [
+        "head",
+        "見出しの札（badges）と前置き（lead）"
+       ],
+       [
+        "sections",
+        "節の並び。節は heading（見出し）・ show（出す条件）・ body（並べるもの）を持つ"
+       ],
+       [
+        "body の要素",
+        "文字列なら JMESPath 式で、値を出す。オブジェクトなら component（コンポーネントの名前）と、そのコンポーネントが受け付ける差し込みの値"
+       ],
+       [
+        "show",
+        "JMESPath 式。結果が空 ・ false ・ null なら出さない"
+       ],
+       [
+        "each",
+        "JMESPath 式。結果の配列の要素ごとに、同じ要素を繰り返す（要素は @ で指す）"
+       ]
+      ]
+     },
+     {
+      "kind": "grid",
+      "cols": [
+       "描画の文脈（基盤が用意する値）",
+       "中身"
+      ],
+      "rows": [
+       [
+        "this",
+        "このページのインスタンス"
+       ],
+       [
+        "schema",
+        "このインスタンスのスキーマ（title ・ description ・ x-view を引く）"
+       ],
+       [
+        "derived",
+        "x-derive を持つプロパティごとの導出値 ・ 見出し ・ 問いと答え"
+       ],
+       [
+        "links",
+        "このインスタンスが指す参照。場所（at）・ 値 ・ 指す先（target）を持つ"
+       ],
+       [
+        "referrers",
+        "このインスタンスを指す参照。指しているインスタンスと場所を持つ"
+       ],
+       [
+        "instances",
+        "ディレクトリのインスタンスすべて"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>コンポーネントの一覧と、それぞれが受け付ける差し込みの値は、基盤が持つ。</b>ページテンプレートは名前で選ぶだけで、HTML を書かない。"
+     },
+     {
+      "kind": "para",
+      "text": "<b>page.schema.json は、schema-driven 自身のスキーマとして置く。</b>ページテンプレートもインスタンスなので、schema-driven の検証 ・ x-prompt ・ 取得がそのまま使える。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>見本：サブドメインのページテンプレート</b>（見本の pages/subdomain.page.json を、この形で書き直したもの）"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>{\n \"kind\": \"subdomain\",\n \"head\": {\"badges\": [{\"component\": \"pill\", \"value\": \"this.classification.category\", \"tone\": \"category\"}],\n          \"lead\": \"this.header.description\"},\n \"sections\": [\n  {\"heading\": \"カテゴリー\", \"body\": [\n   {\"component\": \"kv\", \"rows\": [\n    {\"label\": \"derived.classification.title\", \"value\": {\"component\": \"pill\", \"value\": \"derived.classification.value\", \"tone\": \"category\"}},\n    {\"label\": \"'カテゴリー（宣言）'\", \"value\": {\"component\": \"pill\", \"value\": \"this.classification.category\", \"tone\": \"category\"},\n     \"note\": {\"show\": \"derived.classification.value != this.classification.category\", \"component\": \"missing\", \"text\": \"導いたカテゴリーと違う\"}},\n    {\"show\": \"this.classification.sourcing\", \"label\": \"'調達'\", \"value\": \"this.classification.sourcing\"}]},\n   {\"component\": \"table\", \"cols\": [{\"head\": \"問い（どのサブドメインでも同じ）\", \"value\": \"title\"}, {\"head\": \"このサブドメインの答え\", \"value\": {\"component\": \"yes-no\", \"value\": \"answer\"}}],\n    \"rows\": \"derived.classification.questions\"}]},\n  {\"heading\": \"束ねるユースケース\", \"body\": [\n   {\"component\": \"table\", \"rows\": \"links[?at=='/use_cases'].target\",\n    \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"component\": \"ref\", \"value\": \"@\"}}, {\"head\": \"目的レベル\", \"value\": {\"component\": \"pill\", \"value\": \"header.level\"}}, {\"head\": \"主アクター\", \"value\": \"header.primary_actor\"}],\n    \"empty\": \"なし（外部のサービスで満たす）\"}]}\n ]\n}</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "見本の書き方（今）",
+      "この形での書き方"
+     ],
+     "rows": [
+      [
+       "^/a ・ %domain/a ・ ./@ref/header/level などの独自の道",
+       "JMESPath 式（this.a ・ links[?at=='/use_cases'].target）"
+      ],
+      [
+       "each ・ where ・ some ・ meet ・ pick ・ flat",
+       "JMESPath の射影と絞り込み（[*] ・ [?…]）"
+      ],
+      [
+       "if ・ not ・ same ・ eq ・ in ・ or",
+       "show と JMESPath の比較（==  ・ != ・ &amp;&amp; ・ ||）"
+      ],
+      [
+       "p と s（部品の名前と差し込み）",
+       "component と、コンポーネントが受け付ける差し込みの値"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "page",
+     "caption": "ページテンプレートは、描画の文脈から JMESPath で値を取り、コンポーネントを名前で選び、x-view で文にする。<b>HTML も独自の式も書かない。</b>"
+    }
+   ],
+   "passed": [
+    {
+     "name": "値の選び方を JMESPath で書く",
+     "body": "ページテンプレートはコンポーネントと JMESPath 式だけを持つ",
+     "cost": "JMESPath は外側の変数を使えないので、参照をたどる値（指す先 ・ 指してくるもの）を、基盤が文脈として先に計算しておく"
+    },
+    {
+     "name": "見本の独自の書き方を、キーを減らして残す",
+     "body": "92 のキーを、使う頻度の高いものに絞る",
+     "cost": "道 ・ 条件 ・ 繰り返しの独自の文法が残り、AI も人も、取得の JMESPath と別にもう1つ覚えることになる"
+    },
+    {
+     "name": "テンプレートエンジン（Jinja の系統）で書く",
+     "body": "ページを、条件と繰り返しを持つ HTML のテンプレートで書く",
+     "cost": "HTML をページごとに書くので、コンポーネントの見た目がページごとにずれる。JSON でないので、schema-driven の検証も取得も使えない。crate が増える"
+    },
+    {
+     "name": "concrete がページを組むコードを書く",
+     "body": "kind ごとに Rust で組む",
+     "cost": "基盤の論点3の決定（concrete はデータだけを書く）に反する"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "覚える書き方",
+      "見た目がそろうか",
+      "schema-driven で扱えるか"
+     ],
+     "rows": [
+      [
+       "値の選び方を JMESPath で書く",
+       [
+        "<b>JMESPath だけ</b>",
+        "<b>そろう</b>（コンポーネントだけ）",
+        "<b>扱える</b>（JSON のインスタンス）"
+       ]
+      ],
+      [
+       "見本の独自の書き方を、キーを減らして残す",
+       [
+        "<b>独自の文法</b>",
+        "そろう",
+        "扱える"
+       ]
+      ],
+      [
+       "テンプレートエンジン（Jinja の系統）で書く",
+       [
+        "テンプレートの文法",
+        "<b>ずれうる</b>",
+        "<b>扱えない</b>"
+       ]
+      ],
+      [
+       "concrete がページを組むコードを書く",
+       [
+        "Rust",
+        "ずれうる",
+        "扱えない"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "見本の独自の書き方を、キーを減らして残す",
+     "reason": "減らしても、道 ・ 条件 ・ 繰り返しの独自の文法が残る。取得の契約ですでに JMESPath を使っているので、2つ目の式の言語になる"
+    },
+    {
+     "body": "テンプレートエンジン（Jinja の系統）で書く",
+     "reason": "ページごとに HTML を書くので、コンポーネントでそろえた見た目が崩れうる。JSON でないので、ページテンプレート自身を検証できない"
+    },
+    {
+     "body": "concrete がページを組むコードを書く",
+     "reason": "基盤の論点3で、concrete はデータだけを書くと決めた"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "見本のページテンプレート9件を数えると、キーは 92 種類あり、独自の道 ・ 条件 ・ 繰り返し ・ 結合を持つ小さな言語になっていた。これを減らすのではなく、基盤がすでに持つ JMESPath（取得の契約）と x-view（文の型）に寄せた。"
+    }
+   ],
+   "findings": [
+    "見本のページテンプレートは 92 種類のキーを使い、そのうち値の選び方 ・ 繰り返し ・ 条件が大半を占める ── どれも JMESPath で書ける",
+    "JMESPath だけでは、参照をたどった先の値と、このインスタンスを指してくるものを引けない ── 基盤が links と referrers を文脈として先に計算する",
+    "ページテンプレートも JSON のインスタンスなので、schema-driven 自身の検証 ・ x-prompt ・ 取得が使える"
+   ],
+   "grounds": [
+    {
+     "supports": "concrete はページテンプレートをデータで書くこと",
+     "basis": "基盤は描画の部品と、ページテンプレートを読んで組む道具を持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点3（B″）"
+    },
+    {
+     "supports": "キーを page.schema.json で絞ること",
+     "basis": "ページテンプレートのキーが約50に増えたので、page.schema.json で絞る",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点3の要求事項"
+    },
+    {
+     "supports": "値の選び方を JMESPath にすること",
+     "basis": "取得の契約 ── インスタンスから、JMESPath の式で値を取得する",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点1"
+    },
+    {
+     "supports": "見本のページテンプレートの書き方",
+     "basis": "pages/*.page.json 9件で 92 種類のキー、403 行",
+     "tag": "measured",
+     "source": "ボード usecase-driven-concrete の sample/pages（2026-10-06 に数えた）"
+    }
+   ],
+   "requirements": [
+    "page.schema.json と、コンポーネントの一覧（名前と、受け付ける差し込みの値）を schema-driven に置く（ACDR を通す）",
+    "3回目の実装で、見本の9件のページテンプレートをこの形に書き直し、35ページがいまの見本の水準を下回らないことを確かめる",
+    "描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を、検査する（DS-1）の結果から組む"
+   ],
+   "out_of_scope": [
+    {
+     "item": "コンポーネントの一覧の中身（どのコンポーネントを持つか）",
+     "treatment": "later",
+     "note": "いまの見本の60の部品を出発点にし、page.schema.json と一緒に ACDR で決める"
+    },
+    {
+     "item": "余白のデザイントークンの意味の層",
+     "treatment": "later",
+     "note": "ux-advisor の修理を待つ"
+    },
+    {
+     "item": "この答えを試す相手",
+     "treatment": "later",
+     "note": "3回目の実装で、見本の9件をこの形に書き直して試す"
     }
    ]
   }
