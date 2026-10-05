@@ -3,3 +3,4 @@
 pub mod checks;
 pub mod instances;
 pub mod paths;
+pub mod view;

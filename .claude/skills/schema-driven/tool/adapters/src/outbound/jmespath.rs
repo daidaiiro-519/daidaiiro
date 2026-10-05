@@ -1,14 +1,48 @@
 //! 取得のアダプタ（ポート Query の実装）。jmespath の crate はここにだけ現れる（ACDR 0122）。
 
-use schema_driven_core::ports::outbound::{Query, QueryError};
+use jmespath::{ErrorReason, JmespathError, Rcvar, Runtime, Variable};
+use schema_driven_core::ports::outbound::{Functions, Query, QueryError, FUNCTIONS};
 use serde_json::Value;
+use std::sync::Arc;
 
 pub struct Jmespath;
+
+fn to_json(v: &Rcvar) -> Value {
+    serde_json::to_value(&**v).unwrap_or(Value::Null)
+}
 
 impl Query for Jmespath {
     fn search(&self, expression: &str, json: &Value) -> Result<Value, QueryError> {
         let expr = jmespath::compile(expression).map_err(|e| QueryError(e.to_string()))?;
         let found = expr.search(json).map_err(|e| QueryError(e.to_string()))?;
-        serde_json::to_value(&*found).map_err(|e| QueryError(e.to_string()))
+        Ok(to_json(&found))
+    }
+
+    fn evaluate(
+        &self,
+        expression: &str,
+        json: &Value,
+        functions: Arc<dyn Functions>,
+    ) -> Result<Value, QueryError> {
+        let mut rt = Runtime::new();
+        rt.register_builtin_functions();
+        for name in FUNCTIONS {
+            let host = functions.clone();
+            rt.register_function(
+                name,
+                Box::new(move |args: &[Rcvar], ctx: &mut jmespath::Context<'_>| {
+                    let values: Vec<Value> = args.iter().map(to_json).collect();
+                    let out = host.call(name, &values).map_err(|e| {
+                        JmespathError::from_ctx(ctx, ErrorReason::Parse(format!("{name}: {e}")))
+                    })?;
+                    Variable::from_serializable(out).map(Rcvar::new)
+                }),
+            );
+        }
+        let expr = rt
+            .compile(expression)
+            .map_err(|e| QueryError(e.to_string()))?;
+        let found = expr.search(json).map_err(|e| QueryError(e.to_string()))?;
+        Ok(to_json(&found))
     }
 }

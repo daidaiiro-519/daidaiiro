@@ -43,12 +43,29 @@ pub trait Schemas {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryError(pub String);
 
+/// JMESPath に足す基盤の関数（view.schema.json の functions、ACDR 0129）。
+pub const FUNCTIONS: [&str; 9] = [
+    "name", "label", "map", "view", "part", "quote", "clause", "neg", "fill",
+];
+
+/// 基盤の関数の中身。core が持ち、Query のアダプタは呼び出しを渡すだけにする。
+pub trait Functions: Send + Sync {
+    fn call(&self, name: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, String>;
+}
+
 /// 取得（JMESPath 式で値を取り出す）。差し替えられるように trait にする（ACDR 0122）。
-pub trait Query {
-    /// 式を JSON の値に当て、結果を JSON の文字列で返す。何も指さなければ `null` を返す。
+pub trait Query: Send + Sync {
+    /// 式を JSON の値に当て、結果を JSON の値で返す。何も指さなければ `null` を返す。
     fn search(
         &self,
         expression: &str,
         json: &serde_json::Value,
+    ) -> Result<serde_json::Value, QueryError>;
+    /// 基盤の関数（FUNCTIONS）を足して、式を JSON の値に当てる。
+    fn evaluate(
+        &self,
+        expression: &str,
+        json: &serde_json::Value,
+        functions: std::sync::Arc<dyn Functions>,
     ) -> Result<serde_json::Value, QueryError>;
 }
