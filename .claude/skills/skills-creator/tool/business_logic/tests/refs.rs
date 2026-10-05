@@ -715,3 +715,56 @@ fn an_edge_without_a_name_is_a_plain_arrow() {
     let html = refs::view(&dir, "answer", None, Some(&file)).expect("描ける");
     assert!(html.contains("<li>A → B</li>"), "{html}");
 }
+
+#[test]
+fn a_figure_unit_draws_its_related_figures_in_order() {
+    // **図の要素は、関係する図を並べて持てる** ── 同じ話題の図を1つの要素にまとめ、要素の数を増やさない。
+    // 並びの1枚ずつに、何を示すか ・ SVG ・ 読み方を描き、SVG の経路を文字で出さない
+    let dir = scratch("figures");
+    std::fs::create_dir_all(dir.join("figures")).expect("作れる");
+    std::fs::write(dir.join("figures/a.svg"), "<svg id=\"a\"></svg>").expect("書ける");
+    std::fs::write(dir.join("figures/b.svg"), "<svg id=\"b\"></svg>").expect("書ける");
+    write(
+        &dir,
+        "fig.schema.json",
+        &json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "図の覚え書き",
+            "type": "object", "required": ["items"],
+            "properties": {"items": {"type": "array", "items": {
+                "type": "object", "required": ["id", "title", "elements"],
+                "properties": {
+                    "id": {"type": "string", "x-view": "hidden"},
+                    "title": {"type": "string", "x-view": "heading"},
+                    "elements": {"title": "構成要素", "x-view": "group", "type": "object", "properties": {
+                    "units": {"title": "単位", "x-view": "units", "type": "array", "items": {"oneOf": [
+                        {"title": "図", "type": "object", "required": ["kind", "svg"],
+                         "properties": {"kind": {"const": "figure"},
+                            "purpose": {"type": "string", "x-view": "lead"},
+                            "svg": {"type": "string", "x-view": "svg"},
+                            "more_figures": {"title": "関係する図", "type": "array", "x-view": "figures", "items": {
+                                "type": "object", "required": ["caption", "svg"],
+                                "properties": {
+                                    "caption": {"title": "何を示すか", "type": "string", "x-view": "subhead"},
+                                    "svg": {"title": "SVG", "type": "string", "x-view": "svg"},
+                                    "explanation": {"title": "読み方", "type": "array", "x-view": "paras", "items": {"type": "string"}}}}}}}
+                    ]}}}}
+                }}}}
+        }),
+    );
+    write(
+        &dir,
+        "fig.json",
+        &json!({"$schema": "fig.schema.json", "items": [{"id": "f", "title": "図の件", "elements": {"units": [
+            {"kind": "figure", "purpose": "1枚目の目的", "svg": "figures/a.svg",
+             "more_figures": [{"caption": "2枚目が示すこと", "svg": "figures/b.svg", "explanation": ["2枚目の読み方。"]}]}
+        ]}}]}),
+    );
+    assert!(refs::validate(&dir).expect("読める").is_empty());
+    let html = refs::view(&dir, "fig", Some("f"), None).expect("描ける");
+    assert!(html.contains("<svg id=\"a\">") && html.contains("<svg id=\"b\">"), "{html}");
+    assert!(html.contains("<h3>2枚目が示すこと</h3>"), "{html}");
+    assert!(html.contains("<p>2枚目の読み方。</p>"), "{html}");
+    assert!(!html.contains("figures/b.svg"), "SVG の経路を文字で出さない：{html}");
+    assert!(html.find("<svg id=\"a\">") < html.find("<svg id=\"b\">"), "並びの順に描く：{html}");
+}

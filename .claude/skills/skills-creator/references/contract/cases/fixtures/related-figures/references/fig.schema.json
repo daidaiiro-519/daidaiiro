@@ -1,0 +1,100 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "図の覚え書き",
+ "type": "object",
+ "required": [
+  "items"
+ ],
+ "properties": {
+  "items": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "elements"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "x-view": "hidden"
+     },
+     "title": {
+      "type": "string",
+      "x-view": "heading"
+     },
+     "elements": {
+      "title": "構成要素",
+      "x-view": "group",
+      "type": "object",
+      "properties": {
+       "units": {
+        "title": "単位",
+        "x-view": "units",
+        "type": "array",
+        "items": {
+         "oneOf": [
+          {
+           "title": "図",
+           "type": "object",
+           "required": [
+            "kind",
+            "svg"
+           ],
+           "properties": {
+            "kind": {
+             "const": "figure"
+            },
+            "purpose": {
+             "type": "string",
+             "x-view": "lead"
+            },
+            "svg": {
+             "type": "string",
+             "x-view": "svg"
+            },
+            "more_figures": {
+             "title": "関係する図",
+             "type": "array",
+             "x-view": "figures",
+             "items": {
+              "type": "object",
+              "required": [
+               "caption",
+               "svg"
+              ],
+              "properties": {
+               "caption": {
+                "title": "何を示すか",
+                "type": "string",
+                "x-view": "subhead"
+               },
+               "svg": {
+                "title": "SVG",
+                "type": "string",
+                "x-view": "svg"
+               },
+               "explanation": {
+                "title": "読み方",
+                "type": "array",
+                "x-view": "paras",
+                "items": {
+                 "type": "string"
+                }
+               }
+              }
+             }
+            }
+           }
+          }
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

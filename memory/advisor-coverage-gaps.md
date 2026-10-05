@@ -1,21 +1,14 @@
 ---
 name: advisor-coverage-gaps
-description: usecase-advisor と ddd-advisor の判断基準を、学習ノートを網羅するまで直している作業の現在地（2026-10-04）
+description: advisor の判断基準を、原典の全頁から作り直す作業の現在地（usecase ・ ddd ・ meta-thinking は完了、qa ・ platform ・ ux が残り）
 metadata:
-  node_type: memory
   type: project
 ---
 
-2026-10-04、利用者の問い（「Note から大事なことを漏らさず criteria にできているか」）で、学習ノートと判断基準を突き合わせた（4人の担当、ファイルは書き換えていない）。**追加はまだしていない。** 利用者の「本当に他に漏れがないかはもう一度確認」を受け、2回目の点検（ノートの箇条書き ・ 表の行 ・ 段落の1文を1行ずつ判断基準の要素へ対応づける）をかけた。2回目の結果は下の「2回目で足したもの」と、1回目の項目への注記にある。
+2026-10-06：usecase ・ ddd ・ meta-thinking の3つは完了し、ACDR 0115 ・ 0119 ・ 0127 を承認 ・ コミットした（0118 は 0119 で差し替え済み）。作り方は手順の正本（skills-creator の document.json の段1 ・ 段2、「網羅」「詳しさ」の行）と、索引のスキーマ（references/types/advisor/index.schema.json）にある：頁の画像 → 学習ノートに中身の全部 → 索引 → ノートと同じ詳しさの判断基準 → 図は宣言 JSON から SVG（図の要素は more_figures で関係する図を並べて持てる）。確かめ方は、ノートの抜き取り（30頁を別の担当が画像から読み直す）と、ノートの全行を判断基準に対応づける割り当て。
 
-**種類1の追加は完了（2026-10-04）**：ddd の11件は ACDR 0107、usecase の12件は ACDR 0108 で承認 ・ コミット済み（未 push）。続けて、判断基準から要素ごとの出典を外す ACDR 0109（https://claude.ai/artifact/HHb8FEMQKWWaZb3yJ9U3jx）が承認待ち・未コミット（利用者の指摘：判断基準で完結するので章や頁は要らない）。ddd ・ usecase ・ qa の cli.rs のコメントから他の Skill の名前も外した。usecase の学習ノート 11章の誤り（使用法と要求が逆）も直した（ノートは git の外）。残りは種類2（受け皿が無いもの）と「判断に迷う」で、判断基準の単位の決まりをブレストボードで決める。
+次：qa-advisor ・ platform-advisor ・ ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
 
-直し方の案（利用者の承認はまだ）：種類1（既にある判断基準に要素を足す）は advisor ごとに ACDR を1つ。種類2（受け皿が無い）は、判断基準の単位の決まり（原典が名前を付けた概念1つ＝1件）を広げるかを、ブレストボードで決める（qa ・ platform ・ ux にも同じ問題があり得る）。
+作業に使った指示書と出力は、このセッションの scratchpad にあった（NOTEPASS ・ CRITPASS ・ LINEMAP ・ SPOT2 ・ FIGS ・ MOREFIG）。セッションが変わると消える。
 
-
-**利用者の基準（2026-10-04）**：「原典に書かれてる内容は網羅的にまとめられてるものでないとアドバイザーとしては全く意味ない」。入れなくてよいのは相談の根拠にならないもの（練習問題 ・ 参考文献 ・ 本の構成 ・ 余談など）だけ。網羅の決まりは skills-creator の書き方の正本（document.json）に1行足した（未コミット）。
-
-**現在地（2026-10-04 夜）**：ノート→判断基準の点検（3回）は終わったが、利用者の指摘で「原典の PDF → ノート」が未確認と分かった。0115（https://claude.ai/artifact/HHb8FEMQKWWaZb3yJ9U3jx、出典を外す ・ 網羅）は承認を止めている。
-- 頁の画像：`<skill>/references/archive/scan/p-NNN.jpg`（PDF の頁番号。usecase 298枚 ・ ddd 342枚、git の外）
-- 頁の索引：`<skill>/references/archive/index/p-<開始>-<終了>.json`（頁ごとに 見出し ・ 中身の項目 ・ ノートの行 ・ 判断基準の id ・ 入っているか）。10人で作成中（指示は scratchpad/INDEX.md）。以後の点検はこの索引で頁を引き、その画像だけを開く（利用者：「毎回全部読むとか頭悪すぎ」）
-- 次：索引の missing ・ partial を判断基準へ入れる → 0115 を作り直し、頁の画像と索引を作ることを skills-creator の手順（段1）に足す → 承認 → コミット。refs/acdr-base/0115 は承認後に消す。そのあと qa ・ platform ・ ux も同じく画像と索引を作る
+関連：[[concrete-abstract-advisor]]

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "index.schema.json",
+  "title": "原典の頁の索引",
+  "description": "原典（スキャン）の頁ごとに、何が書いてあるかの概要と、その中身を整理して持つ学習ノートの行を指す。中身そのものは学習ノートが持つ。索引は頁を引くためのもので、画像を開かずにノートへ辿れるようにする。",
+  "$comment": "置き場所は references/archive/index/*.json（git の外）。1ファイルが頁の範囲を持ち、全ファイルを合わせて原典の全頁を1回ずつ持つ。",
+  "type": "object",
+  "required": ["skill", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "skill": { "type": "string", "description": "advisor の名前" },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "required": ["pdf", "book", "image", "chapter", "headings", "summary", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "pdf": { "type": "integer", "minimum": 1, "description": "PDF の頁番号" },
+        "book": { "type": ["string", "null"], "description": "画像の柱で確かめた書籍の頁番号。柱が無ければ null" },
+        "book_guess": { "type": "string", "description": "柱が無いときに推した書籍の頁番号と、その根拠" },
+        "image": { "type": "string", "description": "頁の画像（scan/p-NNN.jpg）" },
+        "alt_images": { "type": "array", "items": { "type": "string" }, "description": "撮り直しの写真など、同じ頁の別の画像" },
+        "duplicate_of_pdf": { "type": "integer", "description": "同じ書籍の頁を2回撮った画像のとき、中身を採ったほうの PDF の頁" },
+        "chapter": { "type": "string", "description": "章の題（原典の文字のまま）" },
+        "headings": { "type": "array", "items": { "type": "string" }, "description": "その頁に出てくる節 ・ 項 ・ コラム ・ 図 ・ 表の見出し（原典の文字のまま）" },
+        "summary": { "type": "string", "description": "その頁に何が書いてあるかの概要（1〜3文）" },
+        "blank": { "type": "boolean" },
+        "unreadable": { "type": ["string", "null"], "description": "読めない部分と、その理由" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/item" }, "description": "頁の中身の目録。1つの中身が1項目。表は行ごと、手順はステップごと、一覧は項目ごとに分ける" },
+        "not_in_source": {
+          "type": "array",
+          "description": "判断基準 ・ ノートの行のうち、この頁に結びつけてあるのに頁に無い中身",
+          "items": {
+            "type": "object",
+            "required": ["where", "text", "why"],
+            "additionalProperties": false,
+            "properties": {
+              "where": { "type": "string", "description": "判断基準の pointer か、ノートの ファイル:行" },
+              "text": { "type": "string" },
+              "why": { "type": "string", "description": "原典はどう書いているか" }
+            }
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["kind", "text", "note"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["definition", "claim", "rule", "condition", "list", "contrast", "steps", "example", "figure", "table", "number", "caveat", "question", "exercise", "structure", "reference"],
+          "description": "中身の種類"
+        },
+        "text": { "type": "string", "description": "何が書いてあるかの見出し程度の要約。中身の全部はノートが持つ" },
+        "note": { "type": ["string", "null"], "description": "その中身を整理して持つ学習ノートの ファイル:開始行-終了行。structure と reference は null でよい" },
+        "criteria": { "type": "array", "items": { "type": "string" }, "description": "その中身を持つ判断基準の id" },
+        "status": { "enum": ["covered", "partial", "missing", "skip"], "description": "判断基準に入っているか" },
+        "gap": { "type": "string", "description": "partial ・ missing のとき、判断基準で落ちているもの" },
+        "skip": { "type": "string", "description": "skip のときの理由（練習問題の解答の細部 ・ 参考文献 ・ 本の構成 ・ 余談 ・ 例の全文の細部）" }
+      }
+    }
+  }
+}

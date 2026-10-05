@@ -1,0 +1,646 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "answer.schema.json",
+  "title": "meta-thinking-advisor の回答",
+  "description": "meta-thinking-advisor が 具体と抽象の相談に回答するときの形。人は描画した HTML で読む",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "question",
+    "conclusion",
+    "grounds",
+    "next"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "x-view": "hidden"
+    },
+    "kind": {
+      "title": "相談種別",
+      "x-view": "tag",
+      "oneOf": [
+        {
+          "const": "concept",
+          "title": "概念相談"
+        },
+        {
+          "const": "judgment",
+          "title": "判断相談"
+        },
+        {
+          "const": "design",
+          "title": "設計相談"
+        }
+      ],
+      "description": "全ての助言型に共通する3つ（ACDR 0061）。概念は「〜とは」、判断は「〜すべきか」「この案でよいか」、設計は「〜をどう組み立てるか」"
+    },
+    "question": {
+      "title": "相談",
+      "description": "相談された対象と問い",
+      "type": "string",
+      "x-view": "heading"
+    },
+    "premises": {
+      "title": "前置き",
+      "description": "判定の前に確定させた前提と、その出所",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "前提"
+          },
+          "value": {
+            "type": "string",
+            "title": "内容"
+          },
+          "source": {
+            "type": "string",
+            "title": "出所"
+          }
+        }
+      },
+      "$comment": "未判定の前提は、未判定であることを内容に書く"
+    },
+    "conclusion": {
+      "title": "結論",
+      "x-view": "card",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "stance"
+      ],
+      "properties": {
+        "stance": {
+          "title": "判定",
+          "x-view": "tag",
+          "oneOf": [
+            {
+              "const": "adopt",
+              "title": "採る"
+            },
+            {
+              "const": "reject",
+              "title": "採らない"
+            },
+            {
+              "const": "conditional",
+              "title": "条件付きで採る"
+            },
+            {
+              "const": "define",
+              "title": "定義"
+            },
+            {
+              "const": "sound",
+              "title": "良好"
+            },
+            {
+              "const": "weak",
+              "title": "弱い"
+            }
+          ]
+        },
+        "headline": {
+          "title": "結論",
+          "type": "string",
+          "$comment": "1文で言い切る"
+        },
+        "because": {
+          "title": "なぜ",
+          "description": "判断基準に基づく理由",
+          "type": "string",
+          "$comment": "1〜2文で書く"
+        }
+      }
+    },
+    "definition": {
+      "title": "定義",
+      "x-view": "card",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "term",
+        "meaning"
+      ],
+      "properties": {
+        "term": {
+          "title": "用語",
+          "x-view": "tag",
+          "type": "string"
+        },
+        "meaning": {
+          "title": "意味",
+          "type": "string"
+        }
+      }
+    },
+    "figure": {
+      "title": "図で確認する",
+      "x-view": "figure",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caption",
+        "nodes",
+        "edges"
+      ],
+      "description": "結論の構造を図で示す",
+      "properties": {
+        "caption": {
+          "title": "図が示すこと",
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "dashed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "svg": {
+          "type": "string",
+          "description": "図の SVG の置き場所（任意）。描く道具は問わない ── 回答の図は、節点と辺の宣言だけで成り立つ"
+        }
+      }
+    },
+    "comparison": {
+      "title": "比較した案",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "option",
+          "effect",
+          "chosen"
+        ],
+        "properties": {
+          "option": {
+            "title": "案",
+            "type": "string"
+          },
+          "effect": {
+            "title": "何が起きるか",
+            "type": "string"
+          },
+          "chosen": {
+            "title": "採否",
+            "x-view": "tag",
+            "oneOf": [
+              {
+                "const": true,
+                "title": "採る"
+              },
+              {
+                "const": false,
+                "title": "採らない"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "path": {
+      "title": "判断の道筋",
+      "x-view": "steps",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ask",
+          "answer"
+        ],
+        "properties": {
+          "ask": {
+            "title": "問い",
+            "type": "string"
+          },
+          "answer": {
+            "title": "答え",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "steps": {
+      "title": "設計の手順",
+      "x-view": "steps",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "do",
+          "detail"
+        ],
+        "properties": {
+          "do": {
+            "title": "すること",
+            "type": "string"
+          },
+          "detail": {
+            "title": "詳細",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "code": {
+      "title": "コードの例",
+      "description": "良い例と、避ける例",
+      "x-view": "blocks",
+      "$ref": "#/$defs/blocks"
+    },
+    "examples": {
+      "title": "具体例",
+      "x-view": "list",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "grounds": {
+      "title": "根拠",
+      "description": "判定の拠りどころにした判断基準の記述",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion",
+          "quote"
+        ],
+        "properties": {
+          "criterion": {
+            "title": "判断基準",
+            "type": "string",
+            "x-refers": "criteria",
+            "description": "criteria の id。無い id は validate が検出する"
+          },
+          "quote": {
+            "title": "引用",
+            "type": "string",
+            "x-quotes": "criterion",
+            "description": "criterion が指す判断基準の記述。判断基準に無い文は validate が検出する"
+          }
+        }
+      },
+      "$comment": "criteria の記述を言い換えずに引く"
+    },
+    "cautions": {
+      "title": "注意",
+      "x-view": "table",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "risk",
+          "alternative"
+        ],
+        "properties": {
+          "name": {
+            "title": "アンチパターン",
+            "type": "string"
+          },
+          "risk": {
+            "title": "リスク",
+            "type": "string"
+          },
+          "alternative": {
+            "title": "代替案",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "records": {
+      "title": "記録案",
+      "description": "仕様書などへ記録すべき内容。該当しない相談では置かない",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "content"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "title": "記録先"
+          },
+          "content": {
+            "type": "string",
+            "title": "記録する内容"
+          }
+        }
+      }
+    },
+    "referrals": {
+      "title": "差し戻し",
+      "description": "原因が上流の判断に在る疑い。断定せず、疑いとして示す",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "suspect",
+          "why"
+        ],
+        "properties": {
+          "suspect": {
+            "type": "string",
+            "title": "疑われる上流（advisor ・ 判断）"
+          },
+          "why": {
+            "type": "string",
+            "title": "疑う理由"
+          }
+        }
+      }
+    },
+    "next": {
+      "title": "次にすること",
+      "x-view": "list",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "$comment": "1件に1つの行為を書き、動詞で終わる文にする"
+    },
+    "related": {
+      "title": "関連する基準",
+      "x-view": "table",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion",
+          "relation"
+        ],
+        "properties": {
+          "criterion": {
+            "title": "判断基準",
+            "type": "string",
+            "x-refers": "criteria"
+          },
+          "relation": {
+            "title": "関係",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ai_cautions": {
+      "title": "AI が作業するときの注意",
+      "description": "この回答の結論に、AI の作業が違反しやすい点と、それを検査する方法。工程を問わない",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "$comment": "任意の欄。置くかどうかは advisor ごとに SKILL.md が決める。設計 ・ 実装 ・ 試験 ・ 文書のどの工程でもよい。一般論ではなく、機械で検査できる形で書く",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "breaks",
+          "check"
+        ],
+        "properties": {
+          "breaks": {
+            "title": "違反しやすい点",
+            "type": "string"
+          },
+          "check": {
+            "title": "検査する方法",
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "concept"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "definition",
+          "examples"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "judgment"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "comparison",
+          "path"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "design"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "steps"
+        ]
+      }
+    }
+  ],
+  "$comment": "人は HTML で読む。description は読み手に表示する説明、$comment は回答を書く側への指示で、描画しない。x-view は見せ方の指定である。回答は相談ごとの出力であり、references に置かない",
+  "$defs": {
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "oneOf": [
+          {
+            "properties": {
+              "kind": {
+                "const": "para"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "kind": {
+                "const": "list"
+              },
+              "ordered": {
+                "type": "boolean"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "kind": {
+                "const": "table"
+              },
+              "head": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "head",
+              "rows"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "kind": {
+                "const": "code"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "kind": {
+                "const": "figure"
+              },
+              "svg": {
+                "type": "string"
+              },
+              "caption": {
+                "type": "string"
+              },
+              "declaration": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "kind",
+              "svg"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  }
+}
