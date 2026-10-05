@@ -386,12 +386,12 @@ def t5_swap():
     from v1_visuals import _ray
     from intro_visuals import _robot_at
     ins = [('今週の議事録', '申請の締め日', '経理', '9/30', 'ほか4件'),
-           ('翌週の議事録', '旧システムの停止日', 'PM', '未定', 'ほか4件'),
+           ('翌週の議事録', '差し戻しの扱い', '経理', '未定', 'ほか4件'),
            ('別の案件の議事録', '受注データの連携方式', '開発と営業', '10/14', 'ほか8件')]
     # 真ん中：変えないプロンプトとAI
     a = rect(300, 96, 220, 132, PAPER, 12, LINE)
     a += _robot_at(386, 112, INK)
-    a += text(410, 192, 'いまのプロンプト', 16, INK, 700, 'middle') + text(410, 214, '変えない', 14, DIM, 700, 'middle')
+    a += text(410, 192, 'いまのプロンプト', 16, INK, 700, 'middle') + text(410, 214, '決まりは変えない', 14, DIM, 700, 'middle')
     for k, (src, name, who, when, more) in enumerate(ins):
         y = k * 112
         cy = y + 44
@@ -493,7 +493,7 @@ def t6_symptoms():
     a += path('M24 52 H380', LINE, 1)
     a += text(24, 92, '承認の経路：9/30までに、経理と開発で決める', 15, INK)
     a += text(24, 136, '申請の締め日：', 15, INK) + text(129, 136, '今月中に', 15, ACCENT, 700) + text(189, 136, '、経理が決めたい', 15, INK)
-    a += text(24, 180, '旧システムの停止日：PMが決める。', 15, INK) + text(279, 180, '時期は未定', 15, ACCENT, 700)
+    a += text(24, 180, '差し戻しの扱い：経理が決める。', 15, INK) + text(249, 180, '時期は未定', 15, ACCENT, 700)
     a += arrow(420, 125, 460, 125)
     # 真ん中：AI
     a += rect(460, 60, 192, 130, PAPER, 12, LINE)
@@ -507,7 +507,7 @@ def t6_symptoms():
     a += path('M716 86 H1088', LINE, 1)
     for r, (name, who, when, hot) in enumerate([('承認の経路', '経理と開発', '9/30', ''),
                                                 ('申請の締め日', '経理', '今月中', 'when'),
-                                                ('旧システムの停止日', 'PM', '10/31', 'when')]):
+                                                ('差し戻しの扱い', '経理', '10/31', 'when')]):
         y = 120 + r * 36
         a += text(716, y, name, 16, INK) + text(882, y, who, 16, ACCENT if hot == 'who' else INK, 700 if hot == 'who' else 400)
         a += text(1012, y, when, 16, ACCENT if hot == 'when' else INK, 700 if hot == 'when' else 400)
@@ -610,7 +610,7 @@ def t_cover(no):
                 a += arrow(x + 348, 90, x + 378, 90)
         return svg('3つの教材の道筋', a, 190)
     # 本編は、6本の名前を順に並べ、いまの1本だけを塗る。はじめにの「6本の動画で、この順に進みます」と同じ名前と順である
-    names = ['原因を知る', '意味を決める', '範囲を決める', '条件を決める', '出力のばらつきを直す', '目的レベルを合わせる']
+    names = ['原因を知る', '意味を決める', '範囲を決める', '条件を決める', '出力のばらつきを直す', '目的レベルを確かめる']
     a = ''
     for i, name in enumerate(names):
         x = i * 188

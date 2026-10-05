@@ -94,7 +94,7 @@ def t2_ambiguous():
     a += text(512, 84, '書いたプロンプト', 14, DIM, 700) + text(512, 128, '「課題を整理して」', 24, INK, 700)
     box = rect(492, 168, 320, 52, PAPER, 10, LINE)
     a += box.replace('stroke-width="2"', 'stroke-width="2" stroke-dasharray="6 5"')
-    a += cross(514, 194, DIM, .55) + text(536, 200, '何のための整理かは、無い', 15, DIM)
+    a += cross(514, 194, DIM, .55) + text(536, 200, '何のための整理かが、書かれていない', 15, DIM)
     a += arrow(812, 116, 856, 116)
     # 右：AIに届くのは、書いたプロンプトだけ
     a += rect(864, 40, 248, 152, PAPER, 14, ACCENT)
