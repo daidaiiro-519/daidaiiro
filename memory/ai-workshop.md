@@ -1,6 +1,6 @@
 ---
 name: ai-workshop
-description: 下期AI活用ワークショップ（docs/workshops/ai-workshop/）の現在地。企画書とオリエンテーションは承認 ・ push 済み、残りは動画 ・ 教材1の照合 ・ 教材2と3
+description: 下期AI活用ワークショップ（docs/workshops/ai-workshop/）の現在地。企画書 ・ オリエンテーション ・ 教材1の照合は済み、残りは音声と動画 ・ 教材2と3
 metadata:
   node_type: memory
   type: project
@@ -12,7 +12,9 @@ metadata:
 
 **次にすること**
 - （済）オリエンテーションの音声と動画：2026-10-04 に作り直し、字幕を焼き込んだ（80ea3627 まで push 済み、22分30秒、1280×816、字幕は `out/videos/00-start.vtt` と同じ）。読みの辞書 `src/narration/lexicon.pls`。著者名は読み上げない
-- 教材1のスライドと原稿の照合の続き：`material-1/src/review-log.json` は教材1の L1-S3 まで（2026-09-29）。手順は slide-deck の review と `material-1/README.md`
+- （済）教材1のスライドと原稿の照合：2026-10-05 に全枚が済んだ（ACDR 0116 ・ 0117 承認、b686e3f3 まで push 済み）。比較ページ https://claude.ai/artifact/G4bymyMaveTrsGnarAzFxc 、ストーリーの一覧 https://claude.ai/artifact/QvQAFuc1QRt6eeAakVSeZs
+- オリエンテーション（照合で文を直した）と教材1の、音声と動画の作り直し。字幕つき
+- 教材2の試作（material-2 の D0-S1）を、教材1の終わり（課題どうしのつながりが見えない）に合わせる
 - 教材2（ドメイン駆動設計編、試作 `material-2/`）と教材3（道具編）：並びと題材はボード material-next で決着済み
 
 **未解決**
