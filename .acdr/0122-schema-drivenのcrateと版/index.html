@@ -1,0 +1,114 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>schema-driven の crate と版</title><style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style><div class="wrap"><style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0122 ・ 2026-10-05 ・ <span class="tag">承認</span></p><h1>schema-driven の crate と版</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">schema-driven は各 crate の最新の版を使い、ネットワークに出る機能を外し、版を正本の Cargo.lock の1か所で決める</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>crates.io の原文を 2026-10-05 に取得し、版とライセンスと既定の features を原文の文字列で照合した（ボード schema-driven-build の sources/）。いまの Skill は jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10 を使うが、Skill ごとに workspace が分かれているので、そろえても共有されるものが無い。platform-advisor の判断基準は、依存を最新のパッチを当てた版に保つことと、見直すきっかけを決めることを求める。schema-driven は手元のファイルだけを扱うので、ネットワークに出る機能は使わない。転写した複製が正本と同じ版で動くように、版を決める場所を1か所にする。決めた過程はボード schema-driven-build の論点2にある</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>crate ごとに使う外の crate。ネットワークに出る機能は外し、JMESPath の crate は出ていく側のアダプタに閉じ込める。</figcaption><svg class="wf-fig" viewBox="0 0 460 320" width="460" height="320" role="img"><g transform="translate(6.0,6.0)"><path d="M60.6,80.0 L224.0,34.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="224.0,34.0 218.2,38.2 216.8,33.5" fill="#C3CAD2"/><path d="M60.6,80.0 L224.0,126.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="224.0,126.0 216.8,126.5 218.2,121.8" fill="#C3CAD2"/><path d="M161.2,209.0 L223.8,209.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="223.8,209.0 217.0,211.5 217.0,206.5" fill="#C3CAD2"/><path d="M60.6,283.0 L224.0,283.0" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="224.0,283.0 217.2,285.5 217.2,280.5" fill="#C3CAD2"/><g class="wf-node" transform="translate(0.0,64.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">core</text></g></g><g class="wf-node" transform="translate(0.0,193.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="160.6" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="80.3" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">adapters/outbound</text></g></g><g class="wf-node" transform="translate(0.0,267.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="60.0" height="32.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="30.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">mcp</text></g></g><g class="wf-node" transform="translate(224.6,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="173.2" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="86.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">serde_json 1.0.151</text><text x="86.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（preserve_order）・</text><text x="86.6" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">sha2 0.11.0</text></g></g><g class="wf-node" transform="translate(224.6,92.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="223.6" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="111.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">jsonschema 0.58.5</text><text x="111.8" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">（default-features = </text><text x="111.8" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">false）・ json-patch 4.2.0</text></g></g><g class="wf-node" transform="translate(224.6,184.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="161.2" height="50.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="80.6" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">jmespath 0.5.0（取</text><text x="80.6" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">得のポートを実装する）</text></g></g><g class="wf-node" transform="translate(224.6,258.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="219.4" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="109.7" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">rmcp 3.5.0 ・ tokio 1.53.</text><text x="109.7" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">2（ネットワークの機能を外す）</text></g></g></g></svg></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>版</td><td>Skill ごとに決める（jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10）</td><td>serde_json 1.0.151 ・ jsonschema 0.58.5 ・ jmespath 0.5.0 ・ json-patch 4.2.0 ・ sha2 0.11.0 ・ rmcp 3.5.0 ・ tokio 1.53.2</td></tr><tr><td>ネットワークに出る機能</td><td>既定の features のまま</td><td>jsonschema ・ rmcp は default-features = false。tokio に net を入れない。CI の cargo tree の検査と、通信を断ったテストで確かめる</td></tr><tr><td>複製の版</td><td>決めていない</td><td>正本の Cargo.lock ごと写し、複製の側では cargo update をしない。差分の検査に lock のハッシュ値を含める</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>いまの Skill と同じ版にそろえる</td><td>Skill ごとに workspace が分かれているので、そろえても得るものが無い。古い版を残す費用が増える</td></tr><tr><td>JMESPath をやめて JSONPath（RFC 9535）の crate にする</td><td>基盤の論点1の決定を変えることになり、その crate の保守が太いという材料も無い</td></tr></tbody></table></div></section></div><p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p></div>

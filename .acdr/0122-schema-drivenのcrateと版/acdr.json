@@ -1,0 +1,41 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0122",
+ "title": "schema-driven の crate と版",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "schema-driven は各 crate の最新の版を使い、ネットワークに出る機能を外し、版を正本の Cargo.lock の1か所で決める",
+ "why": "crates.io の原文を 2026-10-05 に取得し、版とライセンスと既定の features を原文の文字列で照合した（ボード schema-driven-build の sources/）。いまの Skill は jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10 を使うが、Skill ごとに workspace が分かれているので、そろえても共有されるものが無い。platform-advisor の判断基準は、依存を最新のパッチを当てた版に保つことと、見直すきっかけを決めることを求める。schema-driven は手元のファイルだけを扱うので、ネットワークに出る機能は使わない。転写した複製が正本と同じ版で動くように、版を決める場所を1か所にする。決めた過程はボード schema-driven-build の論点2にある",
+ "shift": [
+  {
+   "what": "版",
+   "from": "Skill ごとに決める（jsonschema 0.34 ・ rmcp 0.9 ・ sha2 0.10）",
+   "to": "serde_json 1.0.151 ・ jsonschema 0.58.5 ・ jmespath 0.5.0 ・ json-patch 4.2.0 ・ sha2 0.11.0 ・ rmcp 3.5.0 ・ tokio 1.53.2"
+  },
+  {
+   "what": "ネットワークに出る機能",
+   "from": "既定の features のまま",
+   "to": "jsonschema ・ rmcp は default-features = false。tokio に net を入れない。CI の cargo tree の検査と、通信を断ったテストで確かめる"
+  },
+  {
+   "what": "複製の版",
+   "from": "決めていない",
+   "to": "正本の Cargo.lock ごと写し、複製の側では cargo update をしない。差分の検査に lock のハッシュ値を含める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "crate ごとに使う外の crate。ネットワークに出る機能は外し、JMESPath の crate は出ていく側のアダプタに閉じ込める。",
+ "alternatives": [
+  {
+   "option": "いまの Skill と同じ版にそろえる",
+   "why_not": "Skill ごとに workspace が分かれているので、そろえても得るものが無い。古い版を残す費用が増える"
+  },
+  {
+   "option": "JMESPath をやめて JSONPath（RFC 9535）の crate にする",
+   "why_not": "基盤の論点1の決定を変えることになり、その crate の保守が太いという材料も無い"
+  }
+ ],
+ "supersedes": "",
+ "docs": [],
+ "seal": {}
+}

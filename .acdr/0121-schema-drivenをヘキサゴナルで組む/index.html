@@ -1,0 +1,114 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>schema-driven をヘキサゴナルで組む</title><style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style><div class="wrap"><style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0121 ・ 2026-10-05 ・ <span class="tag">承認</span></p><h1>schema-driven をヘキサゴナルで組む</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">schema-driven の道具を、ヘキサゴナル（ポートとアダプタ）で組む。core（domain ・ application ・ ports）と adapters（inbound ・ outbound）と cli ・ mcp に分け、業務の分け方は core の中の名前に出す</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>schema-driven の宣言から導いた実装の型は、中核の参照と導出値がドメインモデル、ほかの3つがトランザクションスクリプトである。ddd-advisor の判断基準は、ドメインモデルにポートとアダプタを対応づける。skills-creator の雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）ので、schema-driven には当たらない。道具の中の構成は契約で強制せず、Skill ごとの設計である（ACDR 0059）。雛形の4層を保っていた規則（ACDR 0071）は no-more-spaghetti の .coding-rules にあり、no-more-spaghetti の廃止で持ち主がいない。そこで向きは、crate の依存（Cargo）と clippy の std::fs の禁止で止める。決めた過程はボード schema-driven-build の論点1にある</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>ヘキサゴナル。core は何にも依存せず、adapters が core のポートを呼び、実装する。業務の分け方は core の中の名前に出るだけである。</figcaption><svg class="wf-fig" viewBox="0 0 645 528" width="645" height="528" role="img"><g transform="translate(6.0,6.0)"><rect x="0.0" y="288.0" width="633.4" height="228.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><rect x="95.6" y="130.0" width="442.2" height="78.0" rx="8.0" fill="none" stroke="#16636B" stroke-width="1.1" stroke-dasharray="5 4" opacity="0.75"/><path d="M317.5,50.6 L203.7,143.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="203.7,143.4 207.4,137.2 210.5,141.0" fill="#C3CAD2"/><path d="M317.5,50.6 L422.0,143.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="422.0,143.4 415.3,140.7 418.6,137.1" fill="#C3CAD2"/><path d="M203.7,194.6 L98.6,433.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="98.6,433.4 99.1,426.2 103.6,428.2" fill="#C3CAD2"/><rect x="137.1" y="304.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="151.1" y="317.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">呼ぶ</text><path d="M311.3,370.6 L98.6,433.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="98.6,433.4 104.4,429.1 105.8,433.8" fill="#C3CAD2"/><rect x="180.9" y="392.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="204.9" y="405.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">実装する</text><path d="M311.3,370.6 L309.7,433.2" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="309.7,433.2 307.4,426.4 312.3,426.5" fill="#C3CAD2"/><path d="M311.3,370.6 L526.7,433.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="526.7,433.4 519.5,433.9 520.9,429.1" fill="#C3CAD2"/><rect x="405.0" y="392.0" width="28.0" height="16.0" fill="#F5F7F9"/><text x="419.0" y="405.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">使う</text><path d="M423.6,194.6 L526.7,433.4" fill="none" stroke="#C3CAD2" stroke-width="1.2"/><polygon points="526.7,433.4 521.8,428.2 526.3,426.2" fill="#C3CAD2"/><rect x="451.2" y="304.0" width="48.0" height="16.0" fill="#F5F7F9"/><text x="475.2" y="317.6" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#79828F">実装する</text><rect x="167.6" y="279.0" width="171.0" height="15.0" fill="#F5F7F9"/><text x="253.1" y="290.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">core（schema-driven-core）</text><rect x="103.6" y="121.0" width="223.0" height="15.0" fill="#F5F7F9"/><text x="215.1" y="132.0" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10.0" fill="#16636B">adapters（schema-driven-adapters）</text><g class="wf-node" transform="translate(224.7,0.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="184.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="92.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">cli ・ mcp（実行ファイ</text><text x="92.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ル。アダプタを組み立てる）</text></g></g><g class="wf-node" transform="translate(109.6,144.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="188.2" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="94.1" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">adapters/inbound（CLI</text><text x="94.1" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">と MCP の受け口）</text></g></g><g class="wf-node" transform="translate(321.8,144.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="202.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="101.0" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">adapters/outbound（ファ</text><text x="101.0" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">イルシステム ・ jmespath）</text></g></g><g class="wf-node" transform="translate(14.0,434.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="170.8" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="85.4" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ports（入ってくる側：</text><text x="85.4" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ユースケースの trait）</text></g></g><g class="wf-node" transform="translate(206.4,302.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="209.8" height="68.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="104.9" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">application（ユースケース。</text><text x="104.9" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">読み書き ・ 描画 ・ 転写はト</text><text x="104.9" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ランザクションスクリプト）</text></g></g><g class="wf-node" transform="translate(432.4,434.0)"><g class="svg-box" role="plain"><rect x="0" y="0" width="187.0" height="50.0" rx="5.0" fill="#F5F7F9" stroke="#C3CAD2" stroke-width="1.2"/><text x="93.5" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">ports（出ていく側：置き場</text><text x="93.5" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="400" fill="#171B23">所 ・ 取得 ・ 書き出し）</text></g></g><g class="wf-node" transform="translate(208.8,434.0)"><g class="svg-box" role="focus"><rect x="0" y="0" width="199.6" height="68.0" rx="5.0" fill="#E2EFF0" stroke="#16636B" stroke-width="1.6"/><text x="99.8" y="20.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">domain（参照と導出値のドメ</text><text x="99.8" y="38.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">インモデル。集約 ・ ドメイン</text><text x="99.8" y="56.3" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12.0" font-weight="600" fill="#16636B">サービス ・ 値オブジェクト）</text></g></g></g></svg></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>道具の構成</td><td>skills-creator の雛形の4層（data_access ・ business_logic ・ service ・ cli と mcp）</td><td>core（domain ・ application ・ ports）・ adapters（inbound ・ outbound）・ cli ・ mcp</td></tr><tr><td>依存の向きを止める仕組み</td><td>.coding-rules/rules.json の層の並びを、no-more-spaghetti の inward が測る</td><td>crate の依存（Cargo）と、core の clippy.toml の disallowed-methods（std::fs）</td></tr><tr><td>crate の名前</td><td>略した接頭辞（例：ds_ ・ sd_）</td><td>製品名を付けた名前（schema-driven-core ・ schema-driven-adapters ・ schema-driven-cli ・ schema-driven-mcp）</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>skills-creator の雛形の4層（レイヤード）に合わせる</td><td>中核のドメインモデルをレイヤードに載せることになり、業務ロジックが入出力の層に依存する</td></tr><tr><td>業務の分け方ごとに crate を分ける</td><td>サブドメインは問題の側の分け方で、crate はコンパイルの単位である。対応させる理由が無い</td></tr><tr><td>描画と転写だけレイヤードにする</td><td>2つもポートを通せば入出力から離れる。組み立てが2通りになるだけである</td></tr></tbody></table></div></section></div><p class="none">対象の文書に変更が無い決定である ── 差分は出ない。</p></div>

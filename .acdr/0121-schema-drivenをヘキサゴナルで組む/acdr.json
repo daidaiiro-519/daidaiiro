@@ -1,0 +1,45 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0121",
+ "title": "schema-driven をヘキサゴナルで組む",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "schema-driven の道具を、ヘキサゴナル（ポートとアダプタ）で組む。core（domain ・ application ・ ports）と adapters（inbound ・ outbound）と cli ・ mcp に分け、業務の分け方は core の中の名前に出す",
+ "why": "schema-driven の宣言から導いた実装の型は、中核の参照と導出値がドメインモデル、ほかの3つがトランザクションスクリプトである。ddd-advisor の判断基準は、ドメインモデルにポートとアダプタを対応づける。skills-creator の雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）ので、schema-driven には当たらない。道具の中の構成は契約で強制せず、Skill ごとの設計である（ACDR 0059）。雛形の4層を保っていた規則（ACDR 0071）は no-more-spaghetti の .coding-rules にあり、no-more-spaghetti の廃止で持ち主がいない。そこで向きは、crate の依存（Cargo）と clippy の std::fs の禁止で止める。決めた過程はボード schema-driven-build の論点1にある",
+ "shift": [
+  {
+   "what": "道具の構成",
+   "from": "skills-creator の雛形の4層（data_access ・ business_logic ・ service ・ cli と mcp）",
+   "to": "core（domain ・ application ・ ports）・ adapters（inbound ・ outbound）・ cli ・ mcp"
+  },
+  {
+   "what": "依存の向きを止める仕組み",
+   "from": ".coding-rules/rules.json の層の並びを、no-more-spaghetti の inward が測る",
+   "to": "crate の依存（Cargo）と、core の clippy.toml の disallowed-methods（std::fs）"
+  },
+  {
+   "what": "crate の名前",
+   "from": "略した接頭辞（例：ds_ ・ sd_）",
+   "to": "製品名を付けた名前（schema-driven-core ・ schema-driven-adapters ・ schema-driven-cli ・ schema-driven-mcp）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ヘキサゴナル。core は何にも依存せず、adapters が core のポートを呼び、実装する。業務の分け方は core の中の名前に出るだけである。",
+ "alternatives": [
+  {
+   "option": "skills-creator の雛形の4層（レイヤード）に合わせる",
+   "why_not": "中核のドメインモデルをレイヤードに載せることになり、業務ロジックが入出力の層に依存する"
+  },
+  {
+   "option": "業務の分け方ごとに crate を分ける",
+   "why_not": "サブドメインは問題の側の分け方で、crate はコンパイルの単位である。対応させる理由が無い"
+  },
+  {
+   "option": "描画と転写だけレイヤードにする",
+   "why_not": "2つもポートを通せば入出力から離れる。組み立てが2通りになるだけである"
+  }
+ ],
+ "supersedes": "",
+ "docs": [],
+ "seal": {}
+}
