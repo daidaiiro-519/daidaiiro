@@ -402,7 +402,7 @@ D["VO-4"] = VO(4, "TERM-13", [{"name": "導いた値", "kind": "文字列"}, {"n
  [{"id": "OP-1", "name": "TERM-58", "args": [], "result": "VO-9",
    "accept_examples": [{"id": "OK-1", "self": {"導いた値": "中核", "宣言した値": "中核"}, "args": [], "result": "合格"},
                        {"id": "OK-2", "self": {"導いた値": "中核", "宣言した値": "補完"}, "args": [], "result": "ずれ"}]}])
-D["VO-5"] = VO(5, "TERM-8", [{"name": "プロパティ", "kind": "文字列"}, {"name": "理由", "kind": "文字列", "invariants": NE()}])
+D["VO-5"] = VO(5, "TERM-8", [{"name": "プロパティ", "kind": "文字列"}, {"name": "理由", "kind": "文字列", "invariants": [{"id": "INV-1", "condition": {"target": "CMP-2", "measure": "length", "op": "ge", "value": 1}}]}])
 D["VO-6"] = VO(6, "TERM-16", [{"name": "16進の文字列", "kind": "文字列", "invariants": [{"id": "INV-1", "condition": {"target": "CMP-1", "measure": "length", "op": "eq", "value": 64}}]}])
 D["VO-7"] = VO(7, "TERM-6", [{"name": "操作の並び", "kind": "文字列", "invariants": NE()}],
  [{"id": "OP-1", "name": "TERM-63", "args": ["VO-10"], "result": "VO-10",
