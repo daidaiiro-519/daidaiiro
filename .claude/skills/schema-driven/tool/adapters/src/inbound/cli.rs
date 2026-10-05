@@ -1,11 +1,11 @@
 //! CLI の受け口。`<道具> --引数 値 …` を道具の一覧の呼び出しへ直す。
 
 use crate::inbound::tools;
-use schema_driven_core::ports::inbound::InstanceUseCases;
+use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases};
 use serde_json::{Map, Value};
 
 /// 引数を読み、道具を呼んで、終了コードと出力を返す。
-pub fn run(args: &[String], uc: &dyn InstanceUseCases) -> (i32, Value) {
+pub fn run(args: &[String], uc: &dyn InstanceUseCases, cc: &dyn CheckUseCases) -> (i32, Value) {
     let Some((command, rest)) = args.split_first() else {
         return tools::misuse("道具の名前が無い");
     };
@@ -20,5 +20,5 @@ pub fn run(args: &[String], uc: &dyn InstanceUseCases) -> (i32, Value) {
         };
         map.insert(name.to_owned(), Value::String(value.clone()));
     }
-    tools::dispatch(command, &map, uc)
+    tools::dispatch(command, &map, uc, cc)
 }

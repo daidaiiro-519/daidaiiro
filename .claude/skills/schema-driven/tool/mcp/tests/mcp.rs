@@ -56,7 +56,10 @@ fn mcp_lists_tools_and_creates_instance() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names, vec!["create", "get", "update", "delete", "prompt"]);
+    assert_eq!(
+        names,
+        vec!["create", "get", "update", "delete", "prompt", "check", "approve"]
+    );
     let result = &answers[2]["result"];
     assert_eq!(result["isError"], false, "{result}");
     let body: Value = serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();

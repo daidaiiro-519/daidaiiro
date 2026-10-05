@@ -9,6 +9,7 @@ use rmcp::service::{MaybeSendFuture, RequestContext};
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
 use schema_driven_adapters::inbound::tools;
 use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
+use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
 use std::future::Future;
 
@@ -41,7 +42,8 @@ impl ServerHandler for Server {
         let (files, query) = (FileSystem, Jmespath);
         let use_cases = Instances::new(&files, &files, &query);
         let args = request.arguments.unwrap_or_default();
-        let (code, out) = tools::dispatch(&request.name, &args, &use_cases);
+        let checks = Checks::new(&files, &files, &query);
+        let (code, out) = tools::dispatch(&request.name, &args, &use_cases, &checks);
         let content = vec![ContentBlock::text(out.to_string())];
         let result = if code == 0 {
             CallToolResult::success(content)

@@ -21,6 +21,22 @@ impl Files for FileSystem {
         fs::read_to_string(path).map_err(|e| ReadError(format!("{path}: {e}")))
     }
 
+    fn list(&self, dir: &str) -> Result<Vec<String>, ReadError> {
+        let mut out = Vec::new();
+        for entry in fs::read_dir(dir).map_err(|e| ReadError(format!("{dir}: {e}")))? {
+            let entry = entry.map_err(|e| ReadError(e.to_string()))?;
+            if entry.path().is_file() {
+                out.push(format!(
+                    "{}/{}",
+                    dir.trim_end_matches('/'),
+                    entry.file_name().to_string_lossy()
+                ));
+            }
+        }
+        out.sort();
+        Ok(out)
+    }
+
     /// 作成は、まだ無いときだけ書く。更新は、読んだ時点のハッシュ値のままのときだけ、
     /// 一時ファイルへ書いてから置き換える（書く途中で失敗しても、前の内容が残る）。
     fn write(&self, path: &str, content: &str, cond: WriteIf) -> Result<(), WriteError> {

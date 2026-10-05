@@ -20,7 +20,7 @@ pub struct UseCaseError {
 }
 
 impl UseCaseError {
-    fn new(reason: &str, detail: impl Into<String>) -> Self {
+    pub(crate) fn new(reason: &str, detail: impl Into<String>) -> Self {
         Self {
             reason: reason.to_owned(),
             detail: detail.into(),
@@ -78,7 +78,7 @@ impl<'a> Instances<'a> {
         }
     }
 
-    fn read_json(&self, path: &str) -> Result<(String, Value), UseCaseError> {
+    pub(crate) fn read_json(&self, path: &str) -> Result<(String, Value), UseCaseError> {
         let text = self
             .files
             .read(path)
@@ -88,7 +88,7 @@ impl<'a> Instances<'a> {
         Ok((text, value))
     }
 
-    fn load_schema(&self, path: &str) -> Result<Schema, UseCaseError> {
+    pub(crate) fn load_schema(&self, path: &str) -> Result<Schema, UseCaseError> {
         let (_, root) = self.read_json(path)?;
         let name = path.rsplit('/').next().unwrap_or(path);
         let siblings = self
@@ -114,7 +114,7 @@ impl<'a> Instances<'a> {
             .collect()
     }
 
-    fn write_error(e: WriteError) -> UseCaseError {
+    pub(crate) fn write_error(e: WriteError) -> UseCaseError {
         match e {
             WriteError::Conflict => UseCaseError::new("ほかの更新と競合した", ""),
             WriteError::Unwritable(d) => UseCaseError::new("書けない", d),
@@ -223,14 +223,6 @@ impl InstanceUseCases for Instances<'_> {
             errors: validation.errors.clone(),
             unfilled: Self::with_prompts(&loaded, &validation.unfilled),
         })
-    }
-
-    fn delete(&self, path: &str) -> Result<(), UseCaseError> {
-        InstancePath::new(path).map_err(invalid)?;
-        if !self.files.exists(path) {
-            return Err(UseCaseError::new("読めない", "インスタンスが無い"));
-        }
-        self.files.remove(path).map_err(Self::write_error)
     }
 
     fn prompt(&self, schema: &str, property: &str) -> Result<Prompted, UseCaseError> {

@@ -26,6 +26,8 @@ pub enum WriteIf {
 pub trait Files {
     fn exists(&self, path: &str) -> bool;
     fn read(&self, path: &str) -> Result<String, ReadError>;
+    /// ディレクトリの直下のファイルのパスを、名前の順に返す。
+    fn list(&self, dir: &str) -> Result<Vec<String>, ReadError>;
     fn write(&self, path: &str, content: &str, cond: WriteIf) -> Result<(), WriteError>;
     fn remove(&self, path: &str) -> Result<(), WriteError>;
 }

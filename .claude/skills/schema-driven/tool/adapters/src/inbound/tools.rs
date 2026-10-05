@@ -1,8 +1,10 @@
 //! 道具の一覧。CLI と MCP は、この一覧と `dispatch` から組む（呼び出し方を2か所に書かない）。
 
 use schema_driven_core::application::instances::{UnfilledWithPrompt, UseCaseError};
+use schema_driven_core::domain::check::Finding;
+use schema_driven_core::domain::values::Unfilled;
 use schema_driven_core::domain::values::ValidationError;
-use schema_driven_core::ports::inbound::InstanceUseCases;
+use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases};
 use serde_json::{json, Map, Value};
 
 /// 道具1つ：名前 ・ 説明 ・ 引数（名前 ・ 説明 ・ 必須か）。
@@ -32,11 +34,25 @@ pub const TOOLS: &[ToolDef] = &[
             ("hash", "読んだ時点のハッシュ値。違えば「ほかの更新と競合した」で拒む", false),
         ],
     },
-    ToolDef { name: "delete", description: "インスタンスのファイルを削除する", args: &[("path", "インスタンスのパス", true)] },
+    ToolDef {
+        name: "delete",
+        description: "インスタンスのファイルを削除し、まだそれを指している参照を返す（UC-4）",
+        args: &[("path", "インスタンスのパス", true)],
+    },
     ToolDef {
         name: "prompt",
         description: "プロパティ（JSON Pointer）の x-prompt を返す（UC-7）",
         args: &[("schema", "スキーマのファイルのパス", true), ("property", "プロパティの JSON Pointer", true)],
+    },
+    ToolDef {
+        name: "check",
+        description: "ディレクトリのインスタンスを検証し、x-ref と x-derive の検査をする（UC-5）",
+        args: &[("dir", "インスタンスのディレクトリ", true)],
+    },
+    ToolDef {
+        name: "approve",
+        description: "検査を通ったディレクトリのインスタンスのパスとハッシュ値を、承認記録（approval.json）へ書く（UC-8）",
+        args: &[("dir", "インスタンスのディレクトリ", true)],
     },
 ];
 
@@ -66,6 +82,18 @@ fn unfilled(list: &[UnfilledWithPrompt]) -> Value {
         .collect()
 }
 
+fn findings(list: &[Finding]) -> Value {
+    list.iter()
+        .map(|f| json!({"status": f.status.label(), "check": f.check, "from": f.from, "to": f.to, "message": f.message}))
+        .collect()
+}
+
+fn unfilled_only(list: &[Unfilled]) -> Value {
+    list.iter()
+        .map(|u| json!({"property": u.property()}))
+        .collect()
+}
+
 fn failed(e: UseCaseError) -> (i32, Value) {
     (
         1,
@@ -83,7 +111,12 @@ pub fn misuse(detail: &str) -> (i32, Value) {
 }
 
 /// 道具の名前と引数から、ユースケースを呼ぶ。返すのは終了コード（0 成功 ／ 1 失敗 ／ 2 使い方の誤り）と結果の JSON。
-pub fn dispatch(name: &str, args: &Map<String, Value>, uc: &dyn InstanceUseCases) -> (i32, Value) {
+pub fn dispatch(
+    name: &str,
+    args: &Map<String, Value>,
+    uc: &dyn InstanceUseCases,
+    cc: &dyn CheckUseCases,
+) -> (i32, Value) {
     let Some(tool) = TOOLS.iter().find(|t| t.name == name) else {
         return misuse(&format!("知らない道具: {name}"));
     };
@@ -110,7 +143,19 @@ pub fn dispatch(name: &str, args: &Map<String, Value>, uc: &dyn InstanceUseCases
         "update" => uc.update(s("path"), s("patch"), args.get("hash").and_then(Value::as_str)).map(|u| {
             json!({"ok": true, "hash": u.hash, "changed": u.changed, "errors": errors(&u.errors), "unfilled": unfilled(&u.unfilled)})
         }),
-        "delete" => uc.delete(s("path")).map(|()| json!({"ok": true})),
+        "delete" => cc.delete(s("path")).map(|d| json!({"ok": true, "remaining": findings(&d.remaining)})),
+        "check" => cc.check(s("dir")).map(|c| {
+            let instances: Vec<Value> = c
+                .instances
+                .iter()
+                .map(|i| json!({"path": i.path, "hash": i.hash, "errors": errors(&i.errors), "unfilled": unfilled_only(&i.unfilled)}))
+                .collect();
+            json!({"ok": true, "instances": instances, "findings": findings(&c.findings)})
+        }),
+        "approve" => cc.approve(s("dir")).map(|a| {
+            let list: Vec<Value> = a.instances.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect();
+            json!({"ok": true, "changed": a.changed, "instances": list})
+        }),
         "prompt" => uc.prompt(s("schema"), s("property")).map(|p| json!({"ok": true, "prompt": p.prompt})),
         _ => return misuse(&format!("知らない道具: {name}")),
     };
