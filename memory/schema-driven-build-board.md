@@ -15,4 +15,4 @@ metadata:
 - `.brainstorming-board/README.md` に init が1行足した（ほかのセッションの変更と同居しているのでコミットしていない）
 - ACDR 0124（述部を和語にも置き換えない）承認 ・ コミット済み
 
-- 2026-10-05 1回目の実装：値オブジェクト7件（39cb3321）、集約 インスタンスと UC-1 ・ 2 ・ 3 ・ 7 と CLI（a602c2da）。テスト32件すべて合格（component 8 ・ system 24）。clippy ・ fmt ・ ネットワーク系 crate なし ・ --offline --locked も合格。実行記録の書き出しは、テスト条件の取り出しを Rust にする段3で入れる。残り：MCP の受け口、tool.json の build で bin/ を作り .mcp.json に登録、2回目（UC-4 ・ 5 ・ 8、承認記録、検査する）
+- 2026-10-05 1回目の実装：値オブジェクト7件（39cb3321）、集約 インスタンスと UC-1 ・ 2 ・ 3 ・ 7 と CLI（a602c2da）。テスト32件すべて合格（component 8 ・ system 24）。clippy ・ fmt ・ ネットワーク系 crate なし ・ --offline --locked も合格。実行記録の書き出しは、テスト条件の取り出しを Rust にする段3で入れる。MCP の受け口も済み（16a0b28e。CLI と MCP は adapters の tools から組む。テスト計33件）。bin/ はビルド済みだが .mcp.json には未登録（SKILL.md は作成中のまま）。次は2回目（UC-4 ・ 5 ・ 8、承認記録、検査する）
