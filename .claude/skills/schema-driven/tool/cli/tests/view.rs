@@ -4,6 +4,7 @@
 use schema_driven_adapters::outbound::jmespath::Jmespath;
 use schema_driven_core::application::view::{Instance, ViewEngine};
 use schema_driven_core::domain::schema::Schema;
+use schema_driven_core::ports::outbound::Functions;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -79,38 +80,83 @@ fn parts_and_maps() {
 }
 
 #[test]
-fn quote_clause_neg_fill() {
+fn quote_wraps_each_element() {
     let e = engine(
-        json!({"$defs": {"q": {"x-view": {"text": "{names | quote(@) | join('', @)}が無い"}},
-                         "c": {"x-view": {"text": "{clause(s)}なら、"}},
-                         "n": {"x-view": {"text": "{neg(a)} / {neg(b)}"}},
-                         "f": {"x-view": {"text": "{fill(form, @)}"}}}}),
+        json!({"$defs": {"q": {"x-view": {"text": "{names | quote(@) | join('', @)}が無い"}}}}),
         vec![],
     );
     assert_eq!(
         render(&e, "/$defs/q", json!({"names": ["甲", "乙"]})),
         "「甲」「乙」が無い"
     );
-    assert_eq!(
-        render(&e, "/$defs/c", json!({"s": "ハッシュ値は空でない"})),
-        "ハッシュ値が空でないなら、"
-    );
+}
+
+/// 具体が足す関数の例（ACDR 0132）。基盤は中身を知らない。
+struct Concrete;
+
+impl Functions for Concrete {
+    fn names(&self) -> Vec<String> {
+        vec!["shout".into()]
+    }
+    fn call(&self, name: &str, args: &[Value]) -> Result<Value, String> {
+        match (name, args.first()) {
+            ("shout", Some(Value::String(s))) => Ok(Value::String(format!("{s}!"))),
+            ("shout", Some(Value::Array(a))) => Ok(Value::Array(
+                a.iter()
+                    .map(|v| json!(format!("{}!", v.as_str().unwrap_or_default())))
+                    .collect(),
+            )),
+            _ => Err(format!("{name} に渡せない値")),
+        }
+    }
+}
+
+#[test]
+fn function_outside_base_is_error_until_concrete_adds_it() {
+    let schema = json!({"$defs": {"c": {"x-view": {"text": "{clause(s)}"}}}});
+    let e = engine(schema, vec![]);
+    assert!(e
+        .render("t.schema.json", "/$defs/c", &json!({"s": "値は空"}))
+        .is_err());
+}
+
+#[test]
+fn concrete_functions_work_in_text_parts_and_nested_view() {
+    let e = engine(
+        json!({"$defs": {
+            "inner": {"x-view": {"text": "{shout(a)}"}},
+            "outer": {"x-view": {
+                "parts": {"p": "{shout(b)}"},
+                "text": "{view('/$defs/inner', @)} {part('p', @)} {tags | shout(@) | join('', @)}"}}}}),
+        vec![],
+    )
+    .with_functions(Arc::new(Concrete))
+    .unwrap();
     assert_eq!(
         render(
             &e,
-            "/$defs/n",
-            json!({"a": "値は空でない", "b": "件数は0以下"})
+            "/$defs/outer",
+            json!({"a": "甲", "b": "乙", "tags": ["x", "y"]})
         ),
-        "値は空だった / 件数は0以下でなかった"
+        "甲! 乙! x!y!"
     );
-    assert_eq!(
-        render(
-            &e,
-            "/$defs/f",
-            json!({"form": "{to}に{data}を依頼する", "to": "システム", "data": ["パス", "スキーマ"]})
-        ),
-        "システムにパス、スキーマを依頼する"
-    );
+}
+
+struct Collides;
+
+impl Functions for Collides {
+    fn names(&self) -> Vec<String> {
+        vec!["name".into()]
+    }
+    fn call(&self, _: &str, _: &[Value]) -> Result<Value, String> {
+        Ok(Value::Null)
+    }
+}
+
+#[test]
+fn concrete_cannot_replace_base_function() {
+    let e = engine(json!({}), vec![]);
+    assert!(e.with_functions(Arc::new(Collides)).is_err());
 }
 
 #[test]
@@ -140,12 +186,12 @@ fn view_renders_value_with_another_x_view() {
     let e = engine(
         json!({"$defs": {
             "inner": {"x-view": {"text": "{a}は{b}"}},
-            "outer": {"x-view": {"text": "{clause(view('/$defs/inner', cond))}なら、終わる"}}}}),
+            "outer": {"x-view": {"text": "{view('/$defs/inner', cond)}なら、終わる"}}}}),
         vec![],
     );
     assert_eq!(
         render(&e, "/$defs/outer", json!({"cond": {"a": "値", "b": "空"}})),
-        "値が空なら、終わる"
+        "値は空なら、終わる"
     );
 }
 

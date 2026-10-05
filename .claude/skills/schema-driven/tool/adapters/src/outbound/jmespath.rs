@@ -1,7 +1,7 @@
 //! 取得のアダプタ（ポート Query の実装）。jmespath の crate はここにだけ現れる（ACDR 0122）。
 
 use jmespath::{ErrorReason, JmespathError, Rcvar, Runtime, Variable};
-use schema_driven_core::ports::outbound::{Functions, Query, QueryError, FUNCTIONS};
+use schema_driven_core::ports::outbound::{Functions, Query, QueryError};
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -26,13 +26,14 @@ impl Query for Jmespath {
     ) -> Result<Value, QueryError> {
         let mut rt = Runtime::new();
         rt.register_builtin_functions();
-        for name in FUNCTIONS {
+        for name in functions.names() {
             let host = functions.clone();
+            let key = name.clone();
             rt.register_function(
-                name,
+                &key,
                 Box::new(move |args: &[Rcvar], ctx: &mut jmespath::Context<'_>| {
                     let values: Vec<Value> = args.iter().map(to_json).collect();
-                    let out = host.call(name, &values).map_err(|e| {
+                    let out = host.call(&name, &values).map_err(|e| {
                         JmespathError::from_ctx(ctx, ErrorReason::Parse(format!("{name}: {e}")))
                     })?;
                     Variable::from_serializable(out).map(Rcvar::new)

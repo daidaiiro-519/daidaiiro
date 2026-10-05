@@ -2,7 +2,7 @@
 //! {…} の中は普通の JMESPath で、出ていく側のポート Query に基盤の9つの関数を渡して評価する。
 
 use crate::domain::schema::Schema;
-use crate::ports::outbound::{Functions, Query};
+use crate::ports::outbound::{Functions, Query, FUNCTIONS};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -28,6 +28,8 @@ struct Inner {
 #[derive(Clone)]
 pub struct ViewEngine {
     inner: Arc<Inner>,
+    /// 具体が足した関数（ACDR 0132）。
+    extra: Option<Arc<dyn Functions>>,
 }
 
 /// 値を文字にする。null は空、配列は「 ・ 」でつなぐ。
@@ -124,7 +126,23 @@ impl ViewEngine {
                 schemas: schemas.into_iter().collect(),
                 instances,
             }),
+            extra: None,
         }
+    }
+
+    /// 具体の関数を足す（ACDR 0132）。基盤の関数と同じ名前は足せない。
+    pub fn with_functions(self, extra: Arc<dyn Functions>) -> Result<Self, ViewError> {
+        if let Some(n) = extra
+            .names()
+            .into_iter()
+            .find(|n| FUNCTIONS.contains(&n.as_str()))
+        {
+            return Err(ViewError(format!("基盤の関数と同じ名前は足せない: {n}")));
+        }
+        Ok(Self {
+            extra: Some(extra),
+            ..self
+        })
     }
 
     /// スキーマの場所（JSON Pointer）にある x-view で、値を文にする。x-view が無ければ値をそのまま文字にする。
@@ -296,7 +314,7 @@ fn find_item(v: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String
     }
 }
 
-/// 基盤の9つの関数。1つの x-view（maps と parts）を文脈に持つ。
+/// 基盤の6つの関数と、具体が足した関数。1つの x-view（maps と parts）を文脈に持つ。
 struct Host {
     engine: ViewEngine,
     schema: String,
@@ -320,6 +338,14 @@ fn arg(args: &[Value], i: usize) -> &Value {
 }
 
 impl Functions for Host {
+    fn names(&self) -> Vec<String> {
+        let mut names: Vec<String> = FUNCTIONS.iter().map(|n| n.to_string()).collect();
+        if let Some(extra) = &self.engine.extra {
+            names.extend(extra.names());
+        }
+        names
+    }
+
     fn call(&self, name: &str, args: &[Value]) -> Result<Value, String> {
         let s = |v: &Value| to_text(v);
         match name {
@@ -393,30 +419,10 @@ impl Functions for Host {
             "quote" => each(arg(args, 0), &|v| {
                 Ok(Value::String(format!("「{}」", s(v))))
             }),
-            "clause" => each(arg(args, 0), &|v| {
-                Ok(Value::String(s(v).replacen('は', "が", 1)))
-            }),
-            "neg" => each(arg(args, 0), &|v| {
-                let t = s(v);
-                Ok(Value::String(match t.strip_suffix("でない") {
-                    Some(head) => format!("{head}だった"),
-                    None => format!("{t}でなかった"),
-                }))
-            }),
-            "fill" => {
-                let mut out = s(arg(args, 0));
-                if let Some(obj) = arg(args, 1).as_object() {
-                    for (k, v) in obj {
-                        let text = match v {
-                            Value::Array(a) => a.iter().map(to_text).collect::<Vec<_>>().join("、"),
-                            other => to_text(other),
-                        };
-                        out = out.replace(&format!("{{{k}}}"), &text);
-                    }
-                }
-                Ok(Value::String(out))
-            }
-            other => Err(format!("知らない関数: {other}")),
+            other => match &self.engine.extra {
+                Some(extra) => extra.call(other, args),
+                None => Err(format!("知らない関数: {other}")),
+            },
         }
     }
 }

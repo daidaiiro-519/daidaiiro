@@ -43,13 +43,13 @@ pub trait Schemas {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryError(pub String);
 
-/// JMESPath に足す基盤の関数（view.schema.json の functions、ACDR 0129）。
-pub const FUNCTIONS: [&str; 9] = [
-    "name", "label", "map", "view", "part", "quote", "clause", "neg", "fill",
-];
+/// JMESPath に足す基盤の関数（view.schema.json の functions、ACDR 0129 ・ 0132）。
+pub const FUNCTIONS: [&str; 6] = ["name", "label", "map", "view", "part", "quote"];
 
-/// 基盤の関数の中身。core が持ち、Query のアダプタは呼び出しを渡すだけにする。
+/// JMESPath に足す関数の名前と中身。基盤の6つは core が持ち、具体はこれを実装して自分の関数を足す（ACDR 0132）。
+/// Query のアダプタは、names() の名前を登録して呼び出しを渡すだけにする。
 pub trait Functions: Send + Sync {
+    fn names(&self) -> Vec<String>;
     fn call(&self, name: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, String>;
 }
 
@@ -61,7 +61,7 @@ pub trait Query: Send + Sync {
         expression: &str,
         json: &serde_json::Value,
     ) -> Result<serde_json::Value, QueryError>;
-    /// 基盤の関数（FUNCTIONS）を足して、式を JSON の値に当てる。
+    /// functions の関数（基盤の関数と、具体が足した関数）を足して、式を JSON の値に当てる。
     fn evaluate(
         &self,
         expression: &str,
