@@ -1,6 +1,7 @@
 //! インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
 //! トランザクションスクリプトとして、出ていく側のポートを直接使う。
 
+use crate::application::paths;
 use crate::domain::instance::{Instance, Reject};
 use crate::domain::schema::Schema;
 use crate::domain::values::{
@@ -143,8 +144,11 @@ impl InstanceUseCases for Instances<'_> {
         let schema_path = SchemaPath::new(schema).map_err(invalid)?;
         let instance_path = InstancePath::new(path).map_err(invalid)?;
         let loaded = self.load_schema(schema)?;
-        let instance = Instance::create(instance_path, schema_path, self.files.exists(path))
-            .map_err(reject)?;
+        // インスタンスの $schema には、インスタンスのファイルからの相対パスを書く
+        let stored = SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str()))
+            .map_err(invalid)?;
+        let instance =
+            Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;
         self.files
             .write(path, instance.value().as_str(), WriteIf::Absent)
             .map_err(|e| match e {
@@ -190,8 +194,8 @@ impl InstanceUseCases for Instances<'_> {
             .and_then(Value::as_str)
             .ok_or_else(|| {
                 UseCaseError::new("スキーマが分からない", "インスタンスに $schema が無い")
-            })?
-            .to_owned();
+            })?;
+        let schema = paths::join(paths::parent(path), schema);
         let loaded = self.load_schema(&schema)?;
         let instance = Instance::load(
             instance_path,

@@ -110,7 +110,10 @@ fn agg_1_cmd_1_ok_1_create_records_path_and_schema() {
     let (code, out) = create(&dir);
     assert_eq!(code, 0, "{out}");
     let saved: Value = serde_json::from_str(&read(&dir)).unwrap();
-    assert_eq!(saved["$schema"], "schema/thing.schema.json");
+    assert_eq!(
+        saved["$schema"], "../schema/thing.schema.json",
+        "インスタンスのファイルからの相対パス"
+    );
     assert_eq!(out["path"], "data/a.json");
 }
 
@@ -431,4 +434,17 @@ fn uc_7_ext_2_property_without_prompt_fails() {
         assert_eq!(code, 1, "{p}");
         assert_eq!(out["reason"], "x-prompt を持つプロパティがスキーマに無い");
     }
+}
+
+// インスタンスの $schema はファイルからの相対パスなので、別のディレクトリから実行しても更新できる
+#[test]
+fn schema_path_is_relative_to_instance_file() {
+    let dir = workdir("schema-relative");
+    create(&dir);
+    let patch = json!([{"op": "add", "path": "/name", "value": "a"}]).to_string();
+    let (code, out) = run(
+        &dir.join("data"),
+        &["update", "--path", "a.json", "--patch", &patch],
+    );
+    assert_eq!(code, 0, "{out}");
 }
