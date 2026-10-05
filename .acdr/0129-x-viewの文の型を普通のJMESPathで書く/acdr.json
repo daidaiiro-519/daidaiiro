@@ -1,0 +1,86 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0129",
+ "title": "x-view の文の型を普通の JMESPath で書く",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "x-view の文の型を schema-driven の references/view.schema.json として持ち、{…} の中は普通の JMESPath と基盤の9つの関数で書く。キーは text ・ cases ・ parts ・ maps ・ label ・ hidden の6つにする",
+ "why": "3回目（描画）で x-view を Rust で実装する。見本の x-view は、15種類のキーと30種類の絞り（|name ・ |map: ・ |clause など）を持つ独自の書き方で、仕様が無かった。このまま実装すると、試作を仕様の代わりに読むことになる。取得の契約とページテンプレートはすでに JMESPath で書くと決めた（ボード schema-driven-build の論点4、ACDR 0128）。x-view も同じ JMESPath に寄せれば、書き方は1つで済む。省略の書き方（パイプの後ろの関数で @ を省く）も比べたが、方言になり、誤りの文が書いた式と食い違い、外の道具で確かめられないので、採らなかった（利用者と合意した）",
+ "shift": [
+  {
+   "what": "x-view のキー",
+   "from": "15種類（text ・ cases ・ ops ・ by_value ・ by_key ・ by_type ・ post ・ maps ・ hidden ・ form_default ・ short ・ reply など）",
+   "to": "6つ（text ・ cases ・ parts ・ maps ・ label ・ hidden）"
+  },
+  {
+   "what": "文の型の {…} の中",
+   "from": "独自の道と30種類の絞り（{lacks|name|quote1|join:}）",
+   "to": "普通の JMESPath（{lacks | name(@) | quote(@) | join('', @)}）"
+  },
+  {
+   "what": "基盤が足す関数",
+   "from": "無い（絞りが見本の道具の中にあった）",
+   "to": "name ・ label ・ map ・ view ・ part ・ quote ・ clause ・ neg ・ fill の9つ。配列は要素ごとに処理する"
+  },
+  {
+   "what": "参照の名前",
+   "from": "x-ref の label と、見本の道具の中の決まり",
+   "to": "参照される側の形の x-view の label（JMESPath 式）。name() はそれで名前を返す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "x-view は、インスタンスの値に文の型を当てて文にする。{…} の中は普通の JMESPath と基盤の9つの関数で書く。",
+ "alternatives": [
+  {
+   "option": "見本の独自の書き方を、キーと絞りを減らして残す",
+   "why_not": "取得とページテンプレートの JMESPath とは別に、2つ目の式の書き方が残る"
+  },
+  {
+   "option": "パイプの後ろの関数で @ を省略できる方言にする",
+   "why_not": "書く量は関数ごとに3文字減るだけで、省略してよい関数を覚える規則 ・ 誤りの文と書いた式の食い違い ・ 外の道具で確かめられないこと、の費用が毎回かかる"
+  },
+  {
+   "option": "日本語の言い回しの関数（clause ・ neg ・ fill）を基盤に置かない",
+   "why_not": "条件の文の「なら、」、拡張の条件の否定、用語集の動詞の型（「〜に〜を依頼する」）が組めない。基盤は日本語の文を組むことを前提にする"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "view",
+   "tab": "view.schema.json",
+   "file": ".claude/skills/schema-driven/references/view.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"template\": {",
+     "before": "（新しいファイル）",
+     "why": "{…} の中を普通の JMESPath にした。関数に渡す値は @ で書き、省略しない"
+    },
+    {
+     "find": "\"parts\": {",
+     "before": "（新しいファイル）",
+     "why": "同じ断片を複数の場所で使うときに名前を付けて1か所に置く。呼び方も JMESPath の関数 part() にして、独自の書き方を作らない"
+    },
+    {
+     "find": "\"label\": {",
+     "before": "（新しいファイル）",
+     "why": "参照の名前を、参照される側の形が持つ。どこから参照しても同じ名前になる"
+    },
+    {
+     "find": "\"functions\": {",
+     "before": "（新しいファイル）",
+     "why": "見本の30種類の絞りのうち、JMESPath の組み込みで書けないものだけを9つの関数にした"
+    },
+    {
+     "find": "\"neg\": {",
+     "before": "（新しいファイル）",
+     "why": "完成イメージのページでは関数を6つと書いたが、見本の拡張の条件で使っている否定の言い方（neg）と、parts を呼ぶ part と、label を足して9つになった"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "view": "b4f6b0aa45210ec7475fade085eb35587a6f5f5988238de9a98f6e37a9d59b92"
+ }
+}

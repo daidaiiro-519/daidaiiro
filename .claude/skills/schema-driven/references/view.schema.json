@@ -1,0 +1,119 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "view.schema.json",
+ "title": "注釈 x-view（文の型）",
+ "description": "スキーマのプロパティや $defs に付ける注釈 x-view の形と意味。x-view は、インスタンスの値を人が読む文にする型を持つ。文の型の {…} の中は普通の JMESPath 式で、基盤が足す9つの関数（name ・ label ・ map ・ view ・ part ・ quote ・ clause ・ neg ・ fill）を使える",
+ "x-prompt": {
+  "read": "x-view があるプロパティの値は、描画で text（または当たった cases の text）の文になる。文の型の {…} は JMESPath 式で、その場所の値（@）に当てた結果を文字にして埋める。結果が null なら空、配列なら「 ・ 」でつなぐ、数ならそのまま、文字ならそのまま埋める。",
+  "write": "値を表のセルや札ではなく文として読ませたい形に付ける。手順：(1) よく出る言い方を text に書く。{…} の中には、値のプロパティを指す JMESPath 式を書く。(2) 値によって言い方が変わるなら、cases に「当てる条件と、そのときの文の型」を上から並べる。(3) 同じ断片を2か所以上で使うなら parts に名前を付けて置き、part('名前', @) で呼ぶ。(4) 値の語を言い換える表が要るなら maps に置き、map('表の名前', 値) で引く。(5) このプロパティを描画に出さないなら hidden: true だけを書く。誤り：文の型の中に、JMESPath でない独自の書き方（|name のような絞り）を書かない。決まった文字は {…} の外にそのまま書く。"
+ },
+ "$defs": {
+  "template": {
+   "type": "string",
+   "description": "文の型。{…} の外は決まった文字、{…} の中は JMESPath 式",
+   "examples": ["{min}件以上", "{lacks | name(@) | quote(@) | join('', @)}が無い", "{if | view('condition', @) | clause(@)}なら、{part('subject', @)}{part('predicate', @)}"],
+   "x-prompt": {
+    "read": "{…} を左から順に、JMESPath 式としてその場所の値に当て、結果で置き換える。{ と } そのものを文字として出したいときは {{ と }} と書かれている。",
+    "write": "文として読める並びに、値を埋める位置だけ {…} にする。式は普通の JMESPath で書き、値を左から右へ渡したいときはパイプ | を使う（例：{lacks | name(@) | join('、', @)}）。関数に渡す値は @ で書く ── 省略しない。"
+   }
+  },
+  "x-view": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "文の型。text ・ cases ・ parts ・ maps ・ label ・ hidden の6つのキーを持つ",
+   "examples": [
+    {"cases": [{"when": "min == `1` && max == `1`", "text": "1つ"}, {"when": "max == null", "text": "{min}件以上"}], "text": "{min}〜{max}件"},
+    {"label": "word"},
+    {"hidden": true}
+   ],
+   "x-prompt": {
+    "read": "hidden が true なら描画しない。そうでなければ、cases を上から当てて最初に当たった text を、どれにも当たらなければ text を使って文にする。label は、この形の値がほかから参照されたときに名前として出す場所を表す。",
+    "write": "必要なキーだけを書く。文にしないで名前だけを決めたい形（用語集の語、ユースケースなど、ほかから参照されるもの）には label だけを書けばよい。"
+   },
+   "properties": {
+    "text": {
+     "$ref": "#/$defs/template",
+     "description": "どの cases にも当たらないときの文の型"
+    },
+    "cases": {
+     "type": "array",
+     "minItems": 1,
+     "description": "値によって言い方を変える。上から当て、最初に当たった text を使う",
+     "x-prompt": {
+      "read": "上から1件ずつ when の JMESPath 式を値に当て、結果が真（null ・ false ・ 空でない）なら、その text を使う。",
+      "write": "特別な言い方を先に、一般的な言い方を後に並べる。when には値のプロパティどうしの比較を JMESPath で書く（例：op == 'le'、min == `0` && max == `1`。数は ` で囲む）。どれにも当たらないときの文は、cases ではなく text に書く。"
+     },
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "text"],
+      "properties": {
+       "when": {"type": "string", "minLength": 1, "description": "当てる条件（JMESPath 式）"},
+       "text": {"$ref": "#/$defs/template"}
+      }
+     }
+    },
+    "parts": {
+     "type": "object",
+     "description": "名前を付けた部分の文の型。文字列か、cases と同じ形の配列で書き、part('名前', 値) で呼ぶ",
+     "additionalProperties": {
+      "oneOf": [
+       {"$ref": "#/$defs/template"},
+       {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["when", "text"],
+        "properties": {"when": {"type": "string", "minLength": 1}, "text": {"$ref": "#/$defs/template"}}}}
+      ]
+     },
+     "examples": [{"subject": "{target | name(@)}{map('agg', agg)}", "predicate": [{"when": "op == 'le'", "text": "は{view('value', value)}以下"}, {"when": "op == 'not_empty'", "text": "は空でない"}]}],
+     "x-prompt": {
+      "read": "part('名前', 値) が呼ばれたら、その名前の文の型を値に当てて文にする。配列なら cases と同じく、最初に当たった text を使う（どれにも当たらなければ空）。",
+      "write": "主語の部分と述語の部分のように、同じ断片を text と cases の複数の場所で使うときに、名前を付けて1か所に置く。名前は、値のプロパティの名前と重ならない語にする（読み手が取り違えないため）。"
+     }
+    },
+    "maps": {
+     "type": "object",
+     "description": "値 → 語の表。表の名前ごとに置き、map('表の名前', 値) で引く",
+     "additionalProperties": {"type": "object", "additionalProperties": {"type": "string"}},
+     "examples": [{"agg": {"count": "の件数", "sum": "の合計"}}],
+     "x-prompt": {
+      "read": "map('表の名前', 値) で、その表を値で引いた語を返す。表に無い値は空を返す。",
+      "write": "インスタンスに書かれる値（英字の記号など）を、文の中の語に言い換えるときに書く。キーはインスタンスに書かれる値と同じ綴りにする。"
+     }
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "description": "この形の値が参照されたときに、名前として出す JMESPath 式",
+     "examples": ["word", "header.name"],
+     "x-prompt": {
+      "read": "ほかのインスタンスがこの形の項目（またはインスタンス）を参照したとき、name() はこの式を参照先に当てた結果を名前として返す。無ければ id を返す。",
+      "write": "ほかから参照される形（インスタンスの根、または id を持つ項目の形）に、人が読む名前が入っているプロパティを JMESPath で書く。"
+     }
+    },
+    "hidden": {
+     "const": true,
+     "description": "描画に出さない",
+     "x-prompt": {"read": "このプロパティを描画に出さない。", "write": "id のように、読み手が読む必要のないプロパティにだけ書く。ほかのキーと一緒に書かない。"}
+    }
+   }
+  },
+  "functions": {
+   "description": "文の型と、ページテンプレートの JMESPath 式で使える、基盤が足す関数。どれも、配列を受け取ったら要素ごとに当てて配列を返す",
+   "x-prompt": {
+    "read": "JMESPath の組み込みの関数（join ・ length ・ contains など）に加えて、次の関数を使える。",
+    "write": "値は @ やプロパティの式で渡す。関数どうしはパイプ | で左から右へつなぐ。"
+   },
+   "type": "object",
+   "properties": {
+    "name": {"description": "name(参照)：参照（インスタンスの id、「インスタンスの id.項目の id」、項目の id）の指す先を探し、その形の x-view の label で名前を返す。label が無ければ id、指す先が無ければ参照の値そのものを返す"},
+    "label": {"description": "label(値)：値（インスタンスか項目）の形の x-view の label で名前を返す。参照ではなく、指す先そのものを持っているときに使う"},
+    "map": {"description": "map('表の名前', 値)：この x-view の maps の表を値で引いた語を返す。表に無ければ空"},
+    "view": {"description": "view('場所', 値)：値を、スキーマの場所（同じファイルなら JSON Pointer、別のファイルなら「ファイル名#JSON Pointer」）にある x-view で文にする"},
+    "part": {"description": "part('名前', 値)：この x-view の parts の文の型で、値を文にする"},
+    "quote": {"description": "quote(文字)：「」で囲む"},
+    "clause": {"description": "clause(文)：文を従属節にする。最初の「は」を「が」にする（例：「ハッシュ値は空でない」→「ハッシュ値が空でない」）"},
+    "neg": {"description": "neg(文)：文を否定の過去形にする。「でない」で終われば「だった」に、それ以外は末尾に「でなかった」を付ける（例：「件数は0以下」→「件数は0以下でなかった」）"},
+    "fill": {"description": "fill(型, 値)：型（「{to}に{data}を依頼する」のような、用語集の語が持つ動詞の型）の {キー} に、値（オブジェクト）の同じキーの値を埋める。値が配列なら「、」でつなぐ"}
+   }
+  }
+ }
+}
