@@ -175,6 +175,7 @@ references は JSON Schema と JSON で持つ（契約の版2）。Markdown は 
 | `configuration-management` | 構成管理 |
 | `defect-management` | 欠陥マネジメント |
 | `test-automation` | テスト自動化 |
+| `test-smells` | Test Smells |
 | `obscure-test` | Obscure Test |
 | `conditional-test-logic` | Conditional Test Logic |
 | `hard-to-test-code` | Hard-to-Test Code |
