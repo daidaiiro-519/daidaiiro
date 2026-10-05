@@ -8,7 +8,7 @@ reg=Registry().with_resources([(k,Resource.from_contents(v)) for k,v in S.items(
 bad=0
 for k,v in S.items(): Draft202012Validator.check_schema(v)
 # 案内の契約：x-generates を持つスキーマは、最上位と $defs の項目に description と x-prompt（read ・ write）を持つ
-meta=json.load(open(os.path.join(H,'..','..','..','..','.claude','skills','no-more-spaghetti','references','schema-meta.schema.json'),encoding='utf-8'))
+meta=json.load(open(os.path.join(H,'schema-meta.schema.json'),encoding='utf-8'))  # 案内の契約。no-more-spaghetti の廃止（ACDR 0123）でここへ写した
 for k,v in S.items():
   for e in Draft202012Validator(meta).iter_errors(v): bad+=1; print('案内',k,'/'.join(map(str,e.path)),e.message[:120])
   if k=='common.schema.json':
