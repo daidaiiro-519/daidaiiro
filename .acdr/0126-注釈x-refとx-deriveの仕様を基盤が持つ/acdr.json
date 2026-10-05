@@ -1,0 +1,91 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0126",
+ "title": "注釈 x-ref と x-derive の仕様を基盤が持つ",
+ "date": "2026-10-05",
+ "status": "accepted",
+ "decision": "注釈 x-ref と x-derive の形と意味を、schema-driven が references/annotations.schema.json として持ち、検査はこの仕様だけに従って実装する",
+ "why": "2回目で、x-ref と x-derive による検査を Rust で実装する。仕様はボード schema-driven-base の論点2の表にあったが、要約だった。ユースケース駆動のスキーマが実際に使うキーと比べると、only ・ label ・ where_derive ・ expect ・ title が表に無く、意味が決まっていないキーもあった。さらに、meaning ・ meanings ・ meaning_key は用語集の語を指すための作りで、「基盤は宣言の形を認知しない」（論点1）と食い違っていた。このまま実装すると、意味を推測で埋めるか、試作のコードを仕様の代わりに読むことになる。そこで、キーごとの型と意味を JSON Schema として基盤に置き、用語集に寄ったキーは、指す先の任意の場所を確かめる accept にまとめる",
+ "shift": [
+  {
+   "what": "x-ref と x-derive の仕様",
+   "from": "ボードの論点2の表（要約）と、試作のコード",
+   "to": "schema-driven の references/annotations.schema.json。キーごとに型 ・ 説明 ・ x-prompt を持つ"
+  },
+  {
+   "what": "各キーの x-prompt",
+   "from": "キーが何かを一言で書く",
+   "to": "指示として書く。read は値の解釈の仕方と、道具が何を検査して何を出すか。write はいつ書くか ・ 値の形 ・ 決め方の手順 ・ 例 ・ よくある誤り。各キーに examples も持つ"
+  },
+  {
+   "what": "指す先の種類を確かめるキー",
+   "from": "meaning ・ meanings ・ meaning_key（用語集の形を前提にする）",
+   "to": "accept（at：指す先の項目の中の場所、in：許す値）"
+  },
+  {
+   "what": "ユースケース駆動のスキーマ",
+   "from": "meaning ・ meanings ・ meaning_key を使う",
+   "to": "段3（concrete を本物の基盤の上に作り直す）で accept に書き直す。それまでは今のまま"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "注釈の仕様は基盤が持ち、基盤の検査はそれを実装する。ユースケース駆動とほかの Skill のスキーマは、その仕様に従う。",
+ "alternatives": [
+  {
+   "option": "ボードの論点2の表を仕様として、そのまま実装する",
+   "why_not": "表が要約で、実際に使うキーの一部と、各キーの細かい意味が無い。実装の側で推測することになる"
+  },
+  {
+   "option": "試作（Python の base7.py）の振る舞いを仕様にする",
+   "why_not": "試作は検討のための見本で、仕様ではない。試作の誤りもそのまま写る"
+  },
+  {
+   "option": "meaning ・ meanings ・ meaning_key をそのまま基盤のキーにする",
+   "why_not": "用語集の形（語が意味の一覧を持ち、意味が種類を持つ）を基盤が前提にすることになり、論点1と食い違う"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "spec",
+   "tab": "注釈の仕様",
+   "file": ".claude/skills/schema-driven/references/annotations.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"accept\": {",
+     "before": "（新しいファイル）",
+     "why": "用語集に寄った meaning ・ meanings ・ meaning_key を、指す先の任意の場所を確かめる形にまとめた"
+    },
+    {
+     "find": "\"only\": {",
+     "before": "（新しいファイル）",
+     "why": "ユースケース駆動のスキーマで使っているが、論点2の表に無かったキー"
+    },
+    {
+     "find": "\"where_derive\": {",
+     "before": "（新しいファイル）",
+     "why": "同上。指される側から参照をたどった先の導出値で、数える対象を絞る"
+    },
+    {
+     "find": "\"expect\": {",
+     "before": "（新しいファイル）",
+     "why": "同上。導出値と、インスタンスのほかの場所の値との組み合わせを確かめる"
+    },
+    {
+     "find": "\"max_decls\": {",
+     "before": "（新しいファイル）",
+     "why": "max（参照の数）と max_decls（指すインスタンスの数）の違いを書き分けた"
+    },
+    {
+     "find": "\"write\": \"プロパティの値がほかのインスタンスや項目の id を書く欄なら、この注釈を付ける。",
+     "before": "（新しいファイル）",
+     "why": "x-prompt を、読んだ AI がそのまま従える指示にした。一言の説明では、読み方も書き方も決められない"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "spec": "b2e696343b2380437323eb2934043f160a4788da13f2f258f11148336df53561"
+ }
+}
