@@ -1,0 +1,139 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0132",
+ "title": "描画の具体の表現は基盤の上に作るものが持つ",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "描画の具体の表現（コンポーネントの一覧 ・ 見た目 ・ 言語や具体に寄った関数）は基盤の上に作るものが持ち、schema-driven は描画の抽象だけを持つ",
+ "why": "基盤のボードの論点 B″ と配り方で、基盤が描画のコンポーネントとデザイントークンを持つと決めた。それに従い、ACDR 0128 で19のコンポーネントを、ACDR 0130 で見た目の正本を schema-driven に置いた。しかし、どちらもユースケース駆動の見本から作ったもので、ユースケース駆動に必要な表現である。acdr は自分のページの見た目を持っていて、求める表現がユースケース駆動と違う。共通なのは、スキーマからエンティティを作り、テンプレートに従って描画するという抽象の層だけである。そこで、抽象の層だけを基盤に残し、具体の表現を基盤の上に作るものへ戻す。",
+ "shift": [
+  {
+   "what": "描画の持ち主",
+   "from": "基盤がコンポーネント ・ 見た目 ・ 9つの関数を持つ（基盤のボードの論点 B″ と配り方、ACDR 0128 ・ 0130）",
+   "to": "基盤は抽象（ページテンプレートの形 ・ x-view と6つの関数 ・ コンポーネントを登録する形）を持ち、具体の表現は基盤の上に作るものが持つ"
+  },
+  {
+   "what": "コンポーネント",
+   "from": "page.schema.json が19種類の入力の形を oneOf で持つ",
+   "to": "page.schema.json は名前と show ・ each だけを決める。19種類は見本の components.schema.json へ移す"
+  },
+  {
+   "what": "見た目",
+   "from": "schema-driven の references/design（tokens.json ・ view.css ・ parts.html）",
+   "to": "schema-driven は持たない（承認のあとに削除する）。見本の sample/design が元のまま残っている"
+  },
+  {
+   "what": "基盤の関数",
+   "from": "9つ（name ・ label ・ map ・ view ・ part ・ quote ・ clause ・ neg ・ fill）",
+   "to": "6つ。clause ・ neg ・ fill は具体が足す"
+  },
+  {
+   "what": "3回目の実装の段",
+   "from": "3c で19のコンポーネントを作り、3e で試作の35ページと突き合わせる",
+   "to": "3c でコンポーネントを登録する仕組みを作り、テスト用の小さなデザインで確かめる。35ページの突き合わせは手順3（具体を基盤に載せ直す）へ移す。登録する形は 3c の前に決める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は schema-driven がユースケース駆動の表現まで持っていた。変更後は抽象だけを持ち、具体の表現は具体へ移す。",
+ "alternatives": [
+  {
+   "option": "基盤が既定のデザインを持ち、具体がそれを上書きする",
+   "why_not": "既定の見た目がユースケース駆動のものになり、ほかの具体はそれを打ち消すところから始めることになる。抽象と具体の境目も、また見えなくなる"
+  },
+  {
+   "option": "19のコンポーネントは基盤に残し、見た目だけを具体へ移す",
+   "why_not": "steps ・ filter-table ・ missing などは見本の必要から作ったもので、acdr のページ（節 ・ 差分 ・ 印）は組めない。どのコンポーネントを必要とするかも、具体の表現の一部である"
+  },
+  {
+   "option": "clause ・ neg ・ fill を基盤に残す",
+   "why_not": "日本語の文法と、用語集の動詞の型に寄っている。基盤の上に作るものすべてが使うものではない"
+  }
+ ],
+ "supersedes": "ACDR 0130",
+ "docs": [
+  {
+   "key": "page",
+   "tab": "page.schema.json",
+   "file": ".claude/skills/schema-driven/references/page.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"値 → 色の役割の表。表の名前ごとに書き、コンポーネントが表の名前で引く\"",
+     "before": "\"description\": \"札（pill）の色分けの表。表の名前ごとに、値 → 色の役割を書く\",\n\"additionalProperties\": {\"type\": \"object\", \"additionalProperties\": {\"enum\": [\"accent\", \"warn\", \"muted\", \"plain\"]}},",
+     "why": "札（pill）は具体のコンポーネントなので、表はコンポーネント一般が引くものとして書き直した。色の役割の名前も具体のトークンが決めるので、4つの値に固定しない"
+    },
+    {
+     "find": "行を自分で持つコンポーネント（表など）では",
+     "before": "表の行の繰り返しは、each ではなく table の rows に書く。",
+     "why": "table は具体のコンポーネントなので、名前を出さずに書いた"
+    },
+    {
+     "find": "each や、行を持つコンポーネントの行の中では",
+     "before": "each や table の行の中では",
+     "why": "同じく、table の名前を出さない"
+    },
+    {
+     "find": "最初に知るべき分類の札を置く",
+     "before": "最初に知るべき分類（pill）を置く",
+     "why": "pill の名前を出さない"
+    },
+    {
+     "find": "\"component\": {\"type\": \"object\", \"required\": [\"component\"]",
+     "before": "\"oneOf\": [\n {\"$ref\": \"#/$defs/c-text\"}, … {\"$ref\": \"#/$defs/c-json\"}\n],\n\"x-prompt\": {\"read\": \"component の名前で、組み方と受け付ける入力が決まる。\", \"write\": \"…一覧に無い見た目は作れない ── 足りなければ、基盤のコンポーネントを足す。\"}\nと、c-text 〜 c-json の19の定義",
+     "why": "基盤は名前と show ・ each だけを決め、入力の形と見た目は具体のデザインが登録する。19種類の定義（c-text 〜 c-json）は見本の components.schema.json へ移した"
+    }
+   ]
+  },
+  {
+   "key": "view",
+   "tab": "view.schema.json",
+   "file": ".claude/skills/schema-driven/references/view.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "基盤が足す6つの関数",
+     "before": "基盤が足す9つの関数（name ・ label ・ map ・ view ・ part ・ quote ・ clause ・ neg ・ fill）を使える",
+     "why": "clause ・ neg ・ fill を基盤から外し、具体が関数を足せることを書いた"
+    },
+    {
+     "find": "のとき、{part('subject', @)}",
+     "before": "{if | view('condition', @) | clause(@)}なら、{part('subject', @)}{part('predicate', @)}",
+     "why": "例が clause を使っていたので、基盤の関数だけで書ける例にした"
+    },
+    {
+     "find": "特定の言語の文法や、特定の具体の語に寄った関数",
+     "before": "\"description\": \"文の型と、ページテンプレートの JMESPath 式で使える、基盤が足す関数。どれも、配列を受け取ったら要素ごとに当てて配列を返す\"",
+     "why": "基盤に置く関数と置かない関数の分け方を、関数の説明に書いた"
+    },
+    {
+     "find": "次の6つの関数を使える。具体が足した関数も",
+     "before": "JMESPath の組み込みの関数（join ・ length ・ contains など）に加えて、次の関数を使える。",
+     "why": "読む側（AI）が、具体の関数を名前で呼べることを知るため"
+    },
+    {
+     "find": "\"quote\": {\"description\": \"quote(文字)：「」で囲む\"}",
+     "before": "\"clause\": {…}, \"neg\": {…}, \"fill\": {…} の3つの説明",
+     "why": "clause ・ neg ・ fill の3つの説明を外した"
+    }
+   ]
+  },
+  {
+   "key": "components",
+   "tab": "見本の components.schema.json",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/components.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"見本のコンポーネント（19）\"",
+     "before": "（新しいファイル）",
+     "why": "page.schema.json の19の定義を、行のまま具体の見本へ移した。消すと、手順3で具体を基盤に載せ直すときの元が無くなる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "page": "b686a5388cab89f08ab72f7196e51726a43e7f25ceb329dcf1c897d93e3c6d35",
+  "view": "2acd535141aeaf1e2f28c39935dac7c4a87a5abc79796dca63958b570fb6d03b",
+  "components": "ba93b68b8e46fa7323da40e11ef48b8fa8fb0adf2f572cf3dd6362b7137db2d9"
+ }
+}

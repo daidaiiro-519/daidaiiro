@@ -2,7 +2,7 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "$id": "view.schema.json",
  "title": "注釈 x-view（文の型）",
- "description": "スキーマのプロパティや $defs に付ける注釈 x-view の形と意味。x-view は、インスタンスの値を人が読む文にする型を持つ。文の型の {…} の中は普通の JMESPath 式で、基盤が足す9つの関数（name ・ label ・ map ・ view ・ part ・ quote ・ clause ・ neg ・ fill）を使える",
+ "description": "スキーマのプロパティや $defs に付ける注釈 x-view の形と意味。x-view は、インスタンスの値を人が読む文にする型を持つ。文の型の {…} の中は普通の JMESPath 式で、基盤が足す6つの関数（name ・ label ・ map ・ view ・ part ・ quote）と、基盤の上に作るもの（具体）が足す関数を使える",
  "x-prompt": {
   "read": "x-view があるプロパティの値は、描画で text（または当たった cases の text）の文になる。文の型の {…} は JMESPath 式で、その場所の値（@）に当てた結果を文字にして埋める。結果が null なら空、配列なら「 ・ 」でつなぐ、数ならそのまま、文字ならそのまま埋める。",
   "write": "値を表のセルや札ではなく文として読ませたい形に付ける。手順：(1) よく出る言い方を text に書く。{…} の中には、値のプロパティを指す JMESPath 式を書く。(2) 値によって言い方が変わるなら、cases に「当てる条件と、そのときの文の型」を上から並べる。(3) 同じ断片を2か所以上で使うなら parts に名前を付けて置き、part('名前', @) で呼ぶ。(4) 値の語を言い換える表が要るなら maps に置き、map('表の名前', 値) で引く。(5) このプロパティを描画に出さないなら hidden: true だけを書く。誤り：文の型の中に、JMESPath でない独自の書き方（|name のような絞り）を書かない。決まった文字は {…} の外にそのまま書く。"
@@ -11,7 +11,7 @@
   "template": {
    "type": "string",
    "description": "文の型。{…} の外は決まった文字、{…} の中は JMESPath 式",
-   "examples": ["{min}件以上", "{lacks | name(@) | quote(@) | join('', @)}が無い", "{if | view('condition', @) | clause(@)}なら、{part('subject', @)}{part('predicate', @)}"],
+   "examples": ["{min}件以上", "{lacks | name(@) | quote(@) | join('', @)}が無い", "{if | view('condition', @)}のとき、{part('subject', @)}{part('predicate', @)}"],
    "x-prompt": {
     "read": "{…} を左から順に、JMESPath 式としてその場所の値に当て、結果で置き換える。{ と } そのものを文字として出したいときは {{ と }} と書かれている。",
     "write": "文として読める並びに、値を埋める位置だけ {…} にする。式は普通の JMESPath で書き、値を左から右へ渡したいときはパイプ | を使う（例：{lacks | name(@) | join('、', @)}）。関数に渡す値は @ で書く ── 省略しない。"
@@ -97,9 +97,9 @@
    }
   },
   "functions": {
-   "description": "文の型と、ページテンプレートの JMESPath 式で使える、基盤が足す関数。どれも、配列を受け取ったら要素ごとに当てて配列を返す",
+   "description": "文の型と、ページテンプレートの JMESPath 式で使える、基盤が足す関数。どれも、配列を受け取ったら要素ごとに当てて配列を返す。特定の言語の文法や、特定の具体の語に寄った関数（例：日本語の従属節にする、用語集の動詞の型に埋める）は基盤に置かず、具体が足す",
    "x-prompt": {
-    "read": "JMESPath の組み込みの関数（join ・ length ・ contains など）に加えて、次の関数を使える。",
+    "read": "JMESPath の組み込みの関数（join ・ length ・ contains など）に加えて、次の6つの関数を使える。具体が足した関数も、同じように名前で呼べる。",
     "write": "値は @ やプロパティの式で渡す。関数どうしはパイプ | で左から右へつなぐ。"
    },
    "type": "object",
@@ -109,10 +109,7 @@
     "map": {"description": "map('表の名前', 値)：この x-view の maps の表を値で引いた語を返す。表に無ければ空"},
     "view": {"description": "view('場所', 値)：値を、スキーマの場所（同じファイルなら JSON Pointer、別のファイルなら「ファイル名#JSON Pointer」）にある x-view で文にする"},
     "part": {"description": "part('名前', 値)：この x-view の parts の文の型で、値を文にする"},
-    "quote": {"description": "quote(文字)：「」で囲む"},
-    "clause": {"description": "clause(文)：文を従属節にする。最初の「は」を「が」にする（例：「ハッシュ値は空でない」→「ハッシュ値が空でない」）"},
-    "neg": {"description": "neg(文)：文を否定の過去形にする。「でない」で終われば「だった」に、それ以外は末尾に「でなかった」を付ける（例：「件数は0以下」→「件数は0以下でなかった」）"},
-    "fill": {"description": "fill(型, 値)：型（「{to}に{data}を依頼する」のような、用語集の語が持つ動詞の型）の {キー} に、値（オブジェクト）の同じキーの値を埋める。値が配列なら「、」でつなぐ"}
+    "quote": {"description": "quote(文字)：「」で囲む"}
    }
   }
  }
