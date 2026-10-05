@@ -2,30 +2,11 @@
 //! references/annotations.schema.json の仕様どおりに当てる。読むのは注釈と、インスタンスの id と kind だけ。
 
 use crate::domain::schema::Schema;
-use crate::domain::values::Hash;
+use crate::domain::values::{Derived as DerivedValue, Hash};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// 検査結果の状態（VO-9）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Status {
-    /// 合格
-    Pass,
-    /// ずれ（直すべき食い違い）
-    Drift,
-    /// 確かめ直し（承認のあとに指す先が変わった、またはまだ承認していない）
-    Recheck,
-}
-
-impl Status {
-    pub fn label(self) -> &'static str {
-        match self {
-            Status::Pass => "合格",
-            Status::Drift => "ずれ",
-            Status::Recheck => "確かめ直し",
-        }
-    }
-}
+pub use crate::domain::values::Status;
 
 /// 検査結果1件（VO-9）。
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -302,7 +283,7 @@ impl<'a> Checker<'a> {
         let from = format!("{}{at}", self.label(doc));
         if let Some(name) = d.get("declared").and_then(Value::as_str) {
             if let Some(declared) = value.get(name) {
-                if declared == &got {
+                if DerivedValue::new(got.clone(), declared.clone()).compare() == Status::Pass {
                     self.push(
                         Status::Pass,
                         "導出値と宣言した値",

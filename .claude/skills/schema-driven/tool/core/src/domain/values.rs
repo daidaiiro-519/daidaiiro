@@ -162,3 +162,115 @@ impl Unfilled {
         &self.0
     }
 }
+
+/// 検査結果の状態（VO-9 検査結果の成分「状態」）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Status {
+    /// 合格
+    Pass,
+    /// ずれ（直すべき食い違い）
+    Drift,
+    /// 確かめ直し（承認のあとに指す先が変わった、またはまだ承認していない）
+    Recheck,
+}
+
+impl Status {
+    pub fn label(self) -> &'static str {
+        match self {
+            Status::Pass => "合格",
+            Status::Drift => "ずれ",
+            Status::Recheck => "確かめ直し",
+        }
+    }
+}
+
+/// VO-3 参照。指す先 ・ x-ref の値 ・ 指す先の種類。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Reference {
+    target: String,
+    value: String,
+    kind: String,
+}
+
+impl Reference {
+    pub fn new(target: &str, value: &str, kind: &str) -> Result<Self, InvalidValue> {
+        let target = non_empty(target, "VO-3.INV-1", "指す先")?;
+        Ok(Self {
+            target,
+            value: value.to_owned(),
+            kind: kind.to_owned(),
+        })
+    }
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+}
+
+/// VO-4 導出値。導いた値と宣言した値。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Derived {
+    derived: serde_json::Value,
+    declared: serde_json::Value,
+}
+
+impl Derived {
+    pub fn new(derived: serde_json::Value, declared: serde_json::Value) -> Self {
+        Self { derived, declared }
+    }
+    /// OP-1 導出値を確かめる。同じなら合格、違えばずれ。
+    pub fn compare(&self) -> Status {
+        if self.derived == self.declared {
+            Status::Pass
+        } else {
+            Status::Drift
+        }
+    }
+}
+
+/// VO-8 ずれ。ずれと出た検査の名前と、その指す先。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Drift {
+    check: String,
+    target: String,
+}
+
+impl Drift {
+    pub fn new(check: &str, target: &str) -> Self {
+        Self {
+            check: check.to_owned(),
+            target: target.to_owned(),
+        }
+    }
+    pub fn check(&self) -> &str {
+        &self.check
+    }
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+}
+
+/// VO-11 承認したインスタンス。パスとハッシュ値の組。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApprovedInstance {
+    path: String,
+    hash: Hash,
+}
+
+impl ApprovedInstance {
+    pub fn new(path: &str, hash: Hash) -> Result<Self, InvalidValue> {
+        let path = non_empty(path, "VO-11.INV-1", "パス")?;
+        Ok(Self { path, hash })
+    }
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+}
