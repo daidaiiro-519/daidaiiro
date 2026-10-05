@@ -1,0 +1,77 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0128",
+ "title": "ページテンプレートの形とコンポーネントの一覧",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "ページテンプレートの形を schema-driven の references/page.schema.json として持ち、ページテンプレートは節 ・ コンポーネント ・ JMESPath 式だけで書く。コンポーネントは19種類にし、見本の60の部品はその内側で使う",
+ "why": "ボード schema-driven-build の論点4で、ページテンプレートは節の並び ・ コンポーネント ・ JMESPath 式だけを書くと決めた。その要求事項として、page.schema.json とコンポーネントの一覧を ACDR で決める。見本の60の部品には、th ・ tr ・ td ・ kv-row のように、書き手が選ぶ必要のない細かい部品が多い。書き手が選ぶものを意味の単位のコンポーネントにまとめると、同じ意味のものが同じ見た目になる。ページテンプレートも JSON のインスタンスなので、schema-driven 自身の作成 ・ 検証 ・ x-prompt で書ける（実際に作成と更新を試し、未記入と x-prompt が返り、誤った入力が拒まれた）",
+ "shift": [
+  {
+   "what": "ページテンプレートの形",
+   "from": "見本の独自の書き方（92 種類のキー。独自の道 ・ 条件 ・ 繰り返し）",
+   "to": "kind ・ tones ・ head ・ sections と、要素ごとの component ・ show ・ each。値は JMESPath 式、決まった文字は {\"text\": …}"
+  },
+  {
+   "what": "書き手が選ぶもの",
+   "from": "60の部品（p と s で HTML の部品を直接選ぶ）",
+   "to": "19のコンポーネントから選び、部品はその内側で使う。文の中に置くものは text ・ strong ・ sentence ・ pill ・ ref ・ missing ・ yes-no ・ code ・ note。ブロックとして置くものは paragraph ・ subheading ・ kv ・ table ・ filter-table ・ cards ・ list ・ fold ・ steps ・ json"
+  },
+  {
+   "what": "基盤に置かないもの",
+   "from": "見本の tchip ・ design-only（テスト条件の札）と図",
+   "to": "開発の concrete の側（テスト条件と、図の入力の組み立ては開発の側の機能）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ページテンプレートは、描画の文脈から JMESPath で値を取り、コンポーネントを名前で選び、x-view で文にする。HTML も独自の式も書かない。",
+ "alternatives": [
+  {
+   "option": "60の部品をそのまま書き手に選ばせる",
+   "why_not": "th ・ td のような細かい部品まで書き手が組むことになり、同じ意味のものがページごとに違う組み方になる"
+  },
+  {
+   "option": "コンポーネントを kind ごとに作る（ユースケースの手順用 ・ 用語集用など）",
+   "why_not": "基盤が宣言の形を知ることになる。steps のように、意味の単位（手順と分かれ道）で一般的に作る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "page",
+   "tab": "page.schema.json",
+   "file": ".claude/skills/schema-driven/references/page.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"tones\": {",
+     "before": "（新しいファイル）",
+     "why": "色は値を書かず、色の役割（accent ・ warn ・ muted ・ plain）だけを書く。実際の色はデザイントークンが決める"
+    },
+    {
+     "find": "\"expr\": {",
+     "before": "（新しいファイル）",
+     "why": "値の選び方 ・ 繰り返し ・ 条件を、取得の契約と同じ JMESPath で書く（論点4）"
+    },
+    {
+     "find": "\"node\": {",
+     "before": "（新しいファイル）",
+     "why": "文字列は式、{\"text\": …} は決まった文字、と区別する。決まった文字を式に書くと JMESPath として読まれるため"
+    },
+    {
+     "find": "\"component\": {",
+     "before": "（新しいファイル）",
+     "why": "書き手が選ぶものを19のコンポーネントに限る。一覧に無い見た目は作れず、足りなければ基盤に足す"
+    },
+    {
+     "find": "\"c-steps\": {",
+     "before": "（新しいファイル）",
+     "why": "ユースケースのシナリオと拡張を、宣言の形を知らずに描けるよう、手順と分かれ道という意味の単位で作る"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "page": "8a17524f480d87255ac36d4d36f36fb98038f7054a4388465d0850d99b960ba2"
+ }
+}
