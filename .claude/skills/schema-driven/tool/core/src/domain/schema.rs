@@ -33,6 +33,14 @@ impl Schema {
         }
     }
 
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn root(&self) -> &Value {
+        &self.root
+    }
+
     /// インスタンスを検証する。必須のプロパティが無いことは未記入として分ける。
     pub fn validate(&self, instance: &Value) -> Result<Validation, SchemaError> {
         let mut registry = jsonschema::Registry::new();
@@ -94,7 +102,11 @@ impl Schema {
     }
 
     /// `$ref` をたどる。同じファイル（`#/…`）と、同じディレクトリのスキーマ（`名前#/…`）だけを解く。
-    fn resolve<'a>(&'a self, mut node: &'a Value, mut doc: &'a Value) -> (&'a Value, &'a Value) {
+    pub(crate) fn resolve<'a>(
+        &'a self,
+        mut node: &'a Value,
+        mut doc: &'a Value,
+    ) -> (&'a Value, &'a Value) {
         for _ in 0..16 {
             let Some(r) = node.get("$ref").and_then(Value::as_str) else {
                 break;
