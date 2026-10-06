@@ -1287,45 +1287,65 @@
     },
     {
      "kind": "para",
-     "text": "<b>完成イメージ4：この決まりで、いまの具体のスキーマ13件を検査した結果</b>（基盤の check で、決まりの案をメタスキーマにして検査した。2026-10-06）"
+     "text": "<b>完成イメージ4：承認済みの契約（annotations.schema.json ・ view.schema.json）で、いまの具体のスキーマ14件を、すべての深さまで測った結果</b>（2026-10-06。測るためだけの Rust のツールで、x-view の文の型が JMESPath として読めるかと、古い絞りの書き方も数えた）"
     },
     {
      "kind": "grid",
      "cols": [
       "具体のスキーマ",
-      "結果",
-      "違反の中身"
+      "違反",
+      "主な中身"
      ],
      "rows": [
       [
-       "ユースケース駆動の context ・ domain ・ glossary ・ other_requirements ・ subdomain ・ value_object",
-       "違反0件",
+       "glossary",
+       "0件",
        "──"
       ],
       [
+       "approved ・ trace ・ migration",
+       "0件",
+       "注釈をほとんど使っていない（kind が無いことは、決まり2で別に出る）"
+      ],
+      [
        "use_case",
-       "12件",
-       "x-ref に仕様に無い meaning ・ meanings ・ meaning_key、x-view に試しで足したキー"
+       "15件",
+       "x-ref に仕様に無い meaning ・ meanings ・ meaning_key（9件）、x-view に試しのキー、x-test-spec"
       ],
       [
-       "aggregate ・ domain_service",
-       "2件 ・ 1件",
-       "同上"
+       "common",
+       "18件",
+       "古い絞りの書き方（例「{agg|map:agg}」、10件）、試しの注釈 x-view-name など5種類"
       ],
       [
-       "記録（approved ・ trace ・ migration）",
-       "kind ・ id が無い",
-       "記録の種類も kind を持つ必要がある"
+       "aggregate",
+       "13件",
+       "x-ref の meaning 系、x-view の形、x-test-spec"
+      ],
+      [
+       "other_requirements",
+       "7件",
+       "古い絞りの書き方（例「{target|head|name}」、5件）"
+      ],
+      [
+       "subdomain",
+       "6件",
+       "x-prompt に read ・ write が無い"
+      ],
+      [
+       "domain ・ domain_service ・ context ・ value_object",
+       "2〜5件",
+       "同じ種類"
       ],
       [
        "acdr",
-       "46件",
-       "x-prompt と description が無い（28件）。x-view が古い形（文字列 card ・ tag など、18件）"
+       "19件",
+       "x-view が文字列（card ・ tag など）で、schema-driven の x-view ではない"
       ],
       [
-       "仕様に無い注釈（全体）",
-       "7種類",
-       "x-test-spec（具体の注釈。申告すれば通る）と、x-view-name などの試しの注釈6種類"
+       "合計",
+       "89件（見本は70件）",
+       "見本は ACDR 0126 ・ 0129 より前に Python の試作に合わせて書いたもので、新しい契約への書き直しが残っている"
       ]
      ]
     }
@@ -1341,7 +1361,7 @@
     {
      "name": "基盤が書き方の決まりをメタスキーマで持ち、ツールで検査する",
      "body": "中身は具体、書き方は基盤。メタスキーマで書ける決まりはメタスキーマで、書けない決まり（申告していない注釈 ・ 参照される種類の id）はツールの処理で検査する",
-     "cost": "いまの具体のスキーマは、直す箇所がある（ユースケース駆動の見本で15件と記録3種類、acdr で46件）"
+     "cost": "いまの具体のスキーマは、直す箇所がある（ユースケース駆動の見本で70件と記録3種類の kind、acdr で19件と x-prompt）"
     },
     {
      "name": "決まりを持たず、具体に任せる",
@@ -1421,11 +1441,20 @@
     {
      "kind": "para",
      "text": "利用者から「スキーマも具体が持つ。基盤はどうやって共通の契約にさせるのか」と問われた。基盤の references には、注釈の仕様（x-ref ・ x-derive ・ x-view）とページテンプレートの形はあった。しかし、x-prompt ・ x-generates ・ kind と id の決まりと、具体のスキーマを検査するものが無かった。見本には no-more-spaghetti から写した schema-meta.schema.json があり、x-prompt の決まりを持っていた。これを出発点に決まりの案を書き、基盤の check で13件を検査した。"
+    },
+    {
+     "kind": "para",
+     "text": "最初の測り方は循環していた。決まりの案は見本の schema-meta.schema.json から作っていたので、見本から作った判定の基準で見本を測っていた。しかも案のメタスキーマは、最上位と $defs の直下しか見ていなかった。利用者に「既存のスキーマはスキーマ駆動の契約に合っているのか」と問われ、承認済みの契約（annotations ・ view）ですべての深さを測り直した。"
+    },
+    {
+     "kind": "para",
+     "text": "x-prompt を書く単位（最上位のプロパティと、$defs の各形のプロパティ）は、見本の schema-meta から借りたものである。基盤の契約として採る根拠は、x-prompt の read と write が値を書く単位ごとの案内であること（基盤のボードの論点1の x-prompt の契約）と、入れ子の奥まで求めると案内が同じ文の繰り返しになることである。"
     }
    ],
    "findings": [
     "基盤の references には、具体のスキーマ全体の書き方の決まりが無かった ── 注釈ごとの仕様だけがあった",
-    "決まりの案で検査すると、ユースケース駆動の見本は6種類が違反0件、acdr は46件だった ── acdr は schema-driven より前に作ったので、x-prompt を持たない",
+    "承認済みの契約ですべての深さまで測ると、見本の宣言9種類のうち契約に合うのは glossary だけだった ── 見本は 0126 ・ 0129 より前の書き方のままである",
+    "古い絞りの書き方（{lacks|name} など）は JMESPath としても文として読めてしまう ── 構文の検査だけでは検出できず、決まりとして「パイプの右は関数の呼び出し」を検査する必要がある",
     "申告していない注釈は、JSON Schema では書けない ── 「x- で始まるキーのうち、x-annotations に書いたものだけ」は、ツールの処理で見る"
    ],
    "grounds": [
@@ -1455,13 +1484,14 @@
     },
     {
      "supports": "検査の結果",
-     "basis": "決まりの案をメタスキーマにして、基盤の check で具体のスキーマ13件を検査した",
+     "basis": "承認済みの契約（annotations.schema.json ・ view.schema.json）で、具体のスキーマ14件をすべての深さまで測った。x-view の文の型は JMESPath として読めるかと、古い絞りの書き方も数えた",
      "tag": "measured",
-     "source": "schema-driven の check（2026-10-06）"
+     "source": "測るためだけの Rust のツール（schema-driven-core の Schema と jmespath 0.5.0。2026-10-06）"
     }
    ],
    "requirements": [
     "references/schema.schema.json を ACDR で置く",
+    "決まりに「x-view の文の型の {…} は普通の JMESPath で、パイプの右は関数の呼び出し」を入れ、ツールで検査する（ACDR 0129 の書き方を、構文の検査で止められない分まで見る）",
     "基盤に、具体のスキーマを検査するツールを置く（メタスキーマでの検証、申告していない注釈の検出、参照される種類の id の確認）",
     "ユースケース駆動の見本のスキーマを決まりに合わせる（meaning 系のキーを accept と bare へ、試しの x-view-* を x-view か具体の注釈へ、記録の種類に kind を足す）── 手順3で行う"
    ],
