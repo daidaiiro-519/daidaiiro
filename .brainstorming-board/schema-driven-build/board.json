@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "schema-driven を Rust で作る ── アーキテクチャと技術スタック",
  "board": "schema-driven-build",
- "round": 6,
+ "round": 7,
  "intro": [
   {
    "kind": "para",
@@ -15,23 +15,24 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1〜5が決着した。</b>次は外の作業で、3c の実装でテスト用の小さな具体（Rust）を作り、基盤の crate を呼ぶこと ・ Design と Functions を差し込むこと ・ 道具の一覧に自分の道具を足すことを試す。Design と Renderer の形と、基盤の crate の公開の形は、試したあとに ACDR で決める。"
-    },
-    {
-     "kind": "para",
-     "text": "論点4の「コンポーネントの一覧は基盤が持つ」は、ACDR 0132 で「具体が持つ」に改めた。ページテンプレートの形（論点4の残り）は変わらない。"
+     "text": "<b>論点6 を開いた。</b>論点1〜5は決着している。3d（描画のツール）は、この論点のあとに進める。"
     }
    ]
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 6,
+   "why": "利用者から「スキーマも具体が持つ。基盤はどうやって様々な具体を共通のスキーマ契約に従わせるのか」と問われた。確かめると、基盤には具体のスキーマ全体の決まりと、その検査が無かった。描画（3d）より前に決める"
+  }
+ ],
  "topics": [
   {
    "no": 1,
    "name": "アーキテクチャ",
    "status": "settled",
-   "question": "schema-driven の道具を、どの層とモジュールに分けて組むか",
-   "answer": "A ── <b>ヘキサゴナル（ポートとアダプタ）で組む。</b>core に domain ・ application ・ ports を置き、adapters に入ってくる側（CLI ・ MCP の受け口）と出ていく側（ファイルシステム ・ jmespath）を置く。業務の分け方は、domain と application の中の名前に出るだけである。中核の参照と導出値は domain のドメインモデル、ほかの3つは application のトランザクションスクリプトになる",
+   "question": "schema-driven のツールを、どの層とモジュールに分けて作るか",
+   "answer": "A ── <b>ヘキサゴナル（ポートとアダプタ）で作る。</b>core に domain ・ application ・ ports を置き、adapters に入ってくる側（CLI ・ MCP の受け口）と出ていく側（ファイルシステム ・ jmespath）を置く。業務の分け方は、domain と application の中の名前に出るだけである。中核の参照と導出値は domain のドメインモデル、ほかの3つは application のトランザクションスクリプトになる",
    "intro": "ここで、宣言から導いた実装の型が、コードのどこに置かれるかが決まる",
    "decision": {
     "letter": "A",
@@ -71,7 +72,7 @@
        ],
        [
         "cli ・ mcp（schema-driven-cli ・ schema-driven-mcp）",
-        "実行ファイル。アダプタを組み立てる",
+        "実行ファイル。アダプタを作る",
         "core ・ adapters"
        ]
       ]
@@ -93,7 +94,7 @@
     },
     {
      "kind": "html",
-     "text": "<pre><code>.claude/skills/schema-driven/tool/\n  core/              schema-driven-core\n    src/domain/        集約 ・ ドメインサービス ・ 値オブジェクト（入出力なし）\n    src/application/   ユースケース\n    src/ports/         入ってくる側と出ていく側の trait\n  adapters/          schema-driven-adapters\n    src/inbound/       CLI と MCP の受け口\n    src/outbound/      ファイルシステム ・ jmespath\n  cli/  mcp/         実行ファイルと組み立て</code></pre>"
+     "text": "<pre><code>.claude/skills/schema-driven/tool/\n  core/              schema-driven-core\n    src/domain/        集約 ・ ドメインサービス ・ 値オブジェクト（入出力なし）\n    src/application/   ユースケース\n    src/ports/         入ってくる側と出ていく側の trait\n  adapters/          schema-driven-adapters\n    src/inbound/       CLI と MCP の受け口\n    src/outbound/      ファイルシステム ・ jmespath\n  cli/  mcp/         実行ファイルと生成</code></pre>"
     },
     {
      "kind": "grid",
@@ -204,7 +205,7 @@
     },
     {
      "body": "skills-creator の雛形の4層（レイヤード）に合わせる",
-     "reason": "雛形がレイヤードなのは「道具は手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない"
+     "reason": "雛形がレイヤードなのは「ツールは手続き的な変換である」という前提による（ACDR 0058）。中核がドメインモデルの schema-driven はこの前提に当たらない"
     }
    ],
    "path": [
@@ -227,7 +228,7 @@
       },
       {
        "tag": "finding",
-       "text": "雛形がレイヤードなのは、道具を手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）"
+       "text": "雛形がレイヤードなのは、ツールを手続き的な変換と見た判断による（ACDR 0056 ・ 0058）。実装の型が決まれば技術方式も決まる（ddd-advisor の design-heuristics）"
       }
      ]
     },
@@ -262,13 +263,13 @@
    "findings": [
     "実装の型が決まれば、技術方式も決まる ── ドメインモデルにはポートとアダプタが対応する",
     "業務の分け方は、ヘキサゴナルの各部分の中の名前に出るだけである ── サブドメインを先に立てると、問題の側の分け方がコンパイルの単位になる",
-    "no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる ── どちらも Rust の側が持つ道具である",
-    "skills-creator も、アーキテクチャとしてはヘキサゴナルの見込みがある ── 雛形がレイヤードなのは、道具を手続き的な変換と見た判断による"
+    "no-more-spaghetti が無くても、crate の依存と clippy で向きを止められる ── どちらも Rust の側が持つツールである",
+    "skills-creator も、アーキテクチャとしてはヘキサゴナルの見込みがある ── 雛形がレイヤードなのは、ツールを手続き的な変換と見た判断による"
    ],
    "grounds": [
     {
      "supports": "雛形がレイヤードになった理由",
-     "basis": "道具の処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける",
+     "basis": "ツールの処理は手続き的な変換であり、判断基準はこれにレイヤードを対応づける",
      "tag": "rule",
      "source": "ACDR 0058（あわせて 0056）"
     },
@@ -351,7 +352,7 @@
         "JSON Schema の検証",
         "jsonschema",
         "0.58.5",
-        "default-features = false。手元のスキーマを道具が読み、$ref の先として登録する"
+        "default-features = false。手元のスキーマをツールが読み、$ref の先として登録する"
        ],
        [
         "取得",
@@ -502,7 +503,7 @@
     }
    ],
    "findings": [
-    "jsonschema の既定の features は resolve-http と resolve-file を含む ── 外すとファイルの $ref も解けないので、手元のスキーマを道具の側で登録する",
+    "jsonschema の既定の features は resolve-http と resolve-file を含む ── 外すとファイルの $ref も解けないので、手元のスキーマをツールの側で登録する",
     "sha256 の承認記録は、承認したあとに内容が変わっていないことだけを示し、誰が承認したかは示さない",
     "jmespath の版の間は 0.3.0（2022-02）から 0.4.0（2025-07）まで3年あった"
    ],
@@ -546,7 +547,7 @@
    ],
    "requirements": [
     "CI に、cargo tree -i で通信の crate が無いことの検査と、通信を断った cargo test --offline --locked を置く",
-    "取得のポートに契約の試験を置き、jmespath の実装に当てる",
+    "取得のポートに契約の試験を置き、jmespath の実装に適用する",
     "転写の差分の検査に、複製の Cargo.lock のハッシュ値を含める",
     "承認記録が「誰が承認したか」を示さないことを、宣言のその他の要求に書く"
    ],
@@ -559,7 +560,7 @@
     {
      "item": "CLI の引数の解析の crate",
      "treatment": "out",
-     "note": "雛形のとおり、service の道具の一覧から CLI を組む"
+     "note": "雛形のとおり、service のツールの一覧から CLI を作る"
     }
    ]
   },
@@ -622,7 +623,7 @@
      ],
      "rows": [
       [
-       "schema-driven をヘキサゴナルで組む",
+       "schema-driven をヘキサゴナルで作る",
        "このボードの論点1の答えと、比べた案"
       ],
       [
@@ -712,7 +713,7 @@
        ],
        [
         "head",
-        "見出しの札（badges）と前置き（lead）"
+        "見出しのバッジ（badges）と前置き（lead）"
        ],
        [
         "sections",
@@ -720,7 +721,7 @@
        ],
        [
         "body の要素",
-        "文字列なら JMESPath 式で、値を出す。オブジェクトなら component（コンポーネントの名前）と、そのコンポーネントが受け付ける差し込みの値"
+        "文字列なら JMESPath 式で、値を出す。オブジェクトなら component（コンポーネントの名前）と、そのコンポーネントが受け付ける入力の値"
        ],
        [
         "show",
@@ -767,7 +768,7 @@
      },
      {
       "kind": "para",
-      "text": "<b>コンポーネントの一覧と、それぞれが受け付ける差し込みの値は、基盤が持つ。</b>ページテンプレートは名前で選ぶだけで、HTML を書かない。"
+      "text": "<b>コンポーネントの一覧と、それぞれが受け付ける入力の値は、基盤が持つ。</b>ページテンプレートは名前で選ぶだけで、HTML を書かない。"
      },
      {
       "kind": "para",
@@ -804,8 +805,8 @@
        "show と JMESPath の比較（==  ・ != ・ &amp;&amp; ・ ||）"
       ],
       [
-       "p と s（部品の名前と差し込み）",
-       "component と、コンポーネントが受け付ける差し込みの値"
+       "p と s（部品の名前とプレースホルダー）",
+       "component と、コンポーネントが受け付ける入力の値"
       ]
      ]
     }
@@ -834,8 +835,8 @@
      "cost": "HTML をページごとに書くので、コンポーネントの見た目がページごとにずれる。JSON でないので、schema-driven の検証も取得も使えない。crate が増える"
     },
     {
-     "name": "concrete がページを組むコードを書く",
-     "body": "kind ごとに Rust で組む",
+     "name": "concrete がページを生成するコードを書く",
+     "body": "kind ごとに Rust で作る",
      "cost": "基盤の論点3の決定（concrete はデータだけを書く）に反する"
     }
    ],
@@ -873,7 +874,7 @@
        ]
       ],
       [
-       "concrete がページを組むコードを書く",
+       "concrete がページを生成するコードを書く",
        [
         "Rust",
         "ずれうる",
@@ -893,7 +894,7 @@
      "reason": "ページごとに HTML を書くので、コンポーネントでそろえた見た目が崩れうる。JSON でないので、ページテンプレート自身を検証できない"
     },
     {
-     "body": "concrete がページを組むコードを書く",
+     "body": "concrete がページを生成するコードを書く",
      "reason": "基盤の論点3で、concrete はデータだけを書くと決めた"
     }
    ],
@@ -911,7 +912,7 @@
    "grounds": [
     {
      "supports": "concrete はページテンプレートをデータで書くこと",
-     "basis": "基盤は描画の部品と、ページテンプレートを読んで組む道具を持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く",
+     "basis": "基盤は描画の部品と、ページテンプレートを読んで描画するツールを持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く",
      "tag": "rule",
      "source": "ボード schema-driven-base の論点3（B″）"
     },
@@ -935,9 +936,9 @@
     }
    ],
    "requirements": [
-    "page.schema.json と、コンポーネントの一覧（名前と、受け付ける差し込みの値）を schema-driven に置く（ACDR を通す）",
+    "page.schema.json と、コンポーネントの一覧（名前と、受け付ける入力の値）を schema-driven に置く（ACDR を通す）",
     "3回目の実装で、見本の9件のページテンプレートをこの形に書き直し、35ページがいまの見本の水準を下回らないことを確かめる",
-    "描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を、検査する（DS-1）の結果から組む"
+    "描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）を、検査する（DS-1）の結果から作る"
    ],
    "out_of_scope": [
     {
@@ -962,7 +963,7 @@
    "name": "基盤の上に作る Skill の形",
    "status": "settled",
    "question": "基盤の上に作る Skill（具体）は、基盤の能力をどう使い、自分に固有の能力と契約をどこに持つか",
-   "answer": "C ── <b>具体は、自分のヘキサゴナル（契約 ・ ユースケース ・ アダプタ ・ CLI と MCP）を持ち、基盤の crate を転写して部品として呼ぶ。</b>基盤のポートは、基盤のユースケースのうち具体ごとに変わるところにだけ置き、具体はそこへ実装を差し込む（Functions ・ Design）。<b>具体に固有の能力は具体の core に置き、基盤へ戻さない</b>",
+   "answer": "C ── <b>具体は、自分のヘキサゴナル（契約 ・ ユースケース ・ アダプタ ・ CLI と MCP）を持ち、基盤の crate を転写して部品として呼ぶ。</b>基盤のポートは、基盤のユースケースのうち具体ごとに変わるところにだけ置き、具体はそこへ実装を渡す（Functions ・ Design）。<b>具体に固有の能力は具体の core に置き、基盤へ戻さない</b>",
    "intro": "ACDR 0132 で、描画の具体の表現を具体へ移した。ここでは、具体が持つものの全体（固有の能力と契約）と、基盤との境目を決める。3回目の 3c と、4回目（転写）は、この答えで作る",
    "decision": {
     "letter": "C",
@@ -980,7 +981,7 @@
        ],
        [
         "基盤の crate（転写した複製）",
-        "具体が部品として呼ぶもの。読み書き ・ 検証 ・ 検査と参照の解決（graph）・ 描画の文脈 ・ x-view ・ ページの組み立て ・ 道具の一覧"
+        "具体が部品として呼ぶもの。読み書き ・ 検証 ・ 検査と参照の解決（graph）・ 描画の文脈 ・ x-view ・ ページの生成 ・ ツールの一覧"
        ],
        [
         "基盤のポート",
@@ -990,14 +991,14 @@
      },
      {
       "kind": "para",
-      "text": "<b>向きは「具体が基盤を使う」である。</b>基盤は具体を知らない。具体の道具の一覧は、基盤の道具（get ・ validate ・ check ・ render など）に具体の道具を足したものになる。"
+      "text": "<b>向きは「具体が基盤を使う」である。</b>基盤は具体を知らない。具体のツールの一覧は、基盤のツール（get ・ validate ・ check ・ render など）に具体のツールを足したものになる。"
      }
     ]
    },
    "example": [
     {
      "kind": "para",
-     "text": "<b>完成イメージ：2つの具体を、この形に当てたもの</b>"
+     "text": "<b>完成イメージ：2つの具体を、この形に適用したもの</b>"
     },
     {
      "kind": "grid",
@@ -1015,7 +1016,7 @@
       [
        "具体に固有の能力（具体の core）",
        "git から変更前を取って差分にする。印を付ける。承認時点のハッシュで封印する。状態を変える",
-       "テスト条件を取り出す。テストの記録と突き合わせる。例を導く（拒否の例 ・ 境界値）。図の入力を組む"
+       "テスト条件を取り出す。テストの記録と突き合わせる。例を導く（拒否の例 ・ 境界値）。図の入力を作る"
       ],
       [
        "具体のアダプタ",
@@ -1024,13 +1025,13 @@
       ],
       [
        "基盤から呼ぶもの",
-       "読み書き ・ 検証 ・ 描画の文脈 ・ ページの組み立て",
-       "読み書き ・ 検証 ・ 検査と graph ・ 描画の文脈 ・ ページの組み立て"
+       "読み書き ・ 検証 ・ 描画の文脈 ・ ページの生成",
+       "読み書き ・ 検証 ・ 検査と graph ・ 描画の文脈 ・ ページの生成"
       ],
       [
-       "基盤のポートへ差し込むもの",
-       "Design（記録の節 ・ 差分の枠 ・ 印の部品）",
-       "Design（表 ・ 手順 ・ 札などの部品）と Functions（clause ・ neg ・ fill）"
+       "基盤のポートへ渡す実装",
+       "Design（記録の節 ・ 差分のレイアウト ・ 印の部品）",
+       "Design（表 ・ 手順 ・ バッジなどの部品）と Functions（clause ・ neg ・ fill）"
       ]
      ]
     },
@@ -1040,35 +1041,35 @@
     },
     {
      "kind": "html",
-     "text": "<pre><code>.claude/skills/acdr/                  ← 具体（例。いまの acdr をこの形へ移すかは後で決める）\n  references/acdr.schema.json         ← 具体の契約\n  tool/\n    schema-driven-core/               ← 基盤の crate の転写（差分の検査が正本と比べる）\n    schema-driven-adapters/           ← 同上\n    core/                             ← 具体のヘキサゴナル\n      domain/       記録 ・ 変更の3つ組 ・ 封印\n      application/  組む ・ 封印する ・ 状態を変える（基盤の読み書き ・ 検証 ・ 描画を呼ぶ）\n      ports/        Git（変更前を取る）\n    adapters/\n      outbound/     git ・ Design（部品の HTML に差し込む）・ Functions\n      inbound/      道具の一覧 ＝ 基盤の道具（get ・ validate ・ check ・ render）＋ 具体の道具（new ・ inspect ・ seal）\n    cli/ mcp/                         ← 1つの CLI と1つの MCP</code></pre>"
+     "text": "<pre><code>.claude/skills/acdr/                  ← 具体（例。いまの acdr をこの形へ移すかは後で決める）\n  references/acdr.schema.json         ← 具体の契約\n  tool/\n    schema-driven-core/               ← 基盤の crate の転写（差分の検査が正本と比べる）\n    schema-driven-adapters/           ← 同上\n    core/                             ← 具体のヘキサゴナル\n      domain/       記録 ・ 変更の3つ組 ・ 封印\n      application/  生成する ・ 封印する ・ 状態を変える（基盤の読み書き ・ 検証 ・ 描画を呼ぶ）\n      ports/        Git（変更前を取る）\n    adapters/\n      outbound/     git ・ Design（部品の HTML のプレースホルダーを置換する）・ Functions\n      inbound/      ツールの一覧 ＝ 基盤のツール（get ・ validate ・ check ・ render）＋ 具体のツール（new ・ inspect ・ seal）\n    cli/ mcp/                         ← 1つの CLI と1つの MCP</code></pre>"
     }
    ],
    "figures": [
     {
      "kind": "figure",
      "name": "concrete",
-     "caption": "具体はそれぞれ自分の道具を持ち、基盤の crate を呼び、変わるところだけを基盤のポートへ差し込む。<b>差分 ・ 封印 ・ テスト条件のような固有の能力は、具体の側にだけある。</b>"
+     "caption": "具体はそれぞれ自分のツールを持ち、基盤の crate を呼び、変わるところだけを基盤のポートへ実装を渡す。<b>差分 ・ 封印 ・ テスト条件のような固有の能力は、具体の側にだけある。</b>"
     }
    ],
    "passed": [
     {
      "name": "具体が自分のヘキサゴナルを持ち、基盤の crate を呼ぶ",
      "body": "具体は契約 ・ ユースケース ・ アダプタ ・ CLI と MCP を持ち、基盤の crate を転写して部品として呼ぶ。基盤のポートは、変わるところにだけ置く",
-     "cost": "具体ごとに Rust の道具をビルドする。基盤の crate は、具体から呼ばれる公開の形（関数と型）を保つ必要がある"
+     "cost": "具体ごとに Rust のツールをビルドする。基盤の crate は、具体から呼ばれる公開の形（関数と型）を保つ必要がある"
     },
     {
-     "name": "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
-     "body": "具体は自分の道具を持たず、基盤の道具が具体の差し込みを読み込む",
-     "cost": "具体の固有の能力ごとに、基盤に差し込み口が増える（差分の取得 ・ 封印 ・ テストの記録の読み込み）。基盤が具体の能力の形を知ることになり、0132 の逆戻りになる"
+     "name": "基盤に拡張ポイントを並べ、具体はすべて拡張ポイントへの実装で書く",
+     "body": "具体は自分のツールを持たず、基盤のツールが具体の実装を読み込む",
+     "cost": "具体の固有の能力ごとに、基盤に拡張ポイントが増える（差分の取得 ・ 封印 ・ テストの記録の読み込み）。基盤が具体の能力の形を知ることになり、0132 の逆戻りになる"
     },
     {
-     "name": "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
+     "name": "具体は基盤のツールを外から呼び、固有の能力だけを別のツールで持つ",
      "body": "基盤の CLI ・ MCP と、具体の CLI ・ MCP を2つ並べる",
-     "cost": "描画の中で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を必要とする。AI と人は、1つの Skill に2つの道具を使い分けることになる"
+     "cost": "描画の中で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を必要とする。AI と人は、1つの Skill に2つのツールを使い分けることになる"
     },
     {
      "name": "具体はデータだけを持つ",
-     "body": "具体はスキーマ ・ ページテンプレート ・ 部品だけを書き、基盤の道具をそのまま使う",
+     "body": "具体はスキーマ ・ ページテンプレート ・ 部品だけを書き、基盤のツールをそのまま使う",
      "cost": "差分 ・ 封印 ・ テスト条件の突き合わせは、データでは書けない"
     }
    ],
@@ -1078,7 +1079,7 @@
      "cols": [
       "固有の能力の置き場所",
       "基盤が具体を知るか",
-      "AI が使う道具"
+      "AI が使うツール"
      ],
      "rows": [
       [
@@ -1090,17 +1091,17 @@
        ]
       ],
       [
-       "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
+       "基盤に拡張ポイントを並べ、具体はすべて拡張ポイントへの実装で書く",
        [
-        "基盤の差し込み口",
-        "<b>知る</b>（差し込み口の形）",
+        "基盤の拡張ポイント",
+        "<b>知る</b>（拡張ポイントの形）",
         "1つ"
        ]
       ],
       [
-       "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
+       "具体は基盤のツールを外から呼び、固有の能力だけを別のツールで持つ",
        [
-        "具体の道具",
+        "具体のツール",
         "知らない",
         "<b>2つ</b>"
        ]
@@ -1118,40 +1119,40 @@
    ],
    "dropped": [
     {
-     "body": "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
-     "reason": "acdr の差分や封印のような固有の能力ごとに、基盤に差し込み口が増える。基盤が具体を知ることになり、ACDR 0132 で決めた境目が崩れる"
+     "body": "基盤に拡張ポイントを並べ、具体はすべて拡張ポイントへの実装で書く",
+     "reason": "acdr の差分や封印のような固有の能力ごとに、基盤に拡張ポイントが増える。基盤が具体を知ることになり、ACDR 0132 で決めた境目が崩れる"
     },
     {
-     "body": "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
-     "reason": "描画で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を新しく作ることになる。1つの Skill に道具が2つ並ぶ"
+     "body": "具体は基盤のツールを外から呼び、固有の能力だけを別のツールで持つ",
+     "reason": "描画で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を新しく作ることになる。1つの Skill にツールが2つ並ぶ"
     },
     {
      "body": "具体はデータだけを持つ",
-     "reason": "差分 ・ 封印 ・ テスト条件の突き合わせは、データの宣言では書けない。基盤のボードの論点2も、具体の道具がテスト条件と突き合わせを持つと決めている"
+     "reason": "差分 ・ 封印 ・ テスト条件の突き合わせは、データの宣言では書けない。基盤のボードの論点2も、具体のツールがテスト条件と突き合わせを持つと決めている"
     }
    ],
    "path": [
     {
      "kind": "previous",
      "letter": "B",
-     "body": "B ── <b>具体は、ポート Design を Rust で実装してコンポーネントを登録する。</b>見た目は具体のデータ（部品の HTML ・ CSS ・ JS）が持ち、コンポーネントの Rust は部品の差し込み口に値を入れるだけにする。基盤は、ページテンプレートを読んで組む流れ ・ 式の評価 ・ 文字の逃がし ・ 差し込み口の過不足の検査 ・ 入力の形でのページテンプレートの検査を持つ",
+     "body": "B ── <b>具体は、ポート Design を Rust で実装してコンポーネントを登録する。</b>見た目は具体のデータ（部品の HTML ・ CSS ・ JS）が持ち、コンポーネントの Rust は部品のプレースホルダーに値を入れるだけにする。基盤は、ページテンプレートを読んで描画する流れ ・ 式の評価 ・ エスケープ ・ プレースホルダーの過不足の検査 ・ 入力の形でのページテンプレートの検査を持つ",
      "why": "問いを「コンポーネントと見た目をどう登録するか」に絞っていた。具体が持つのはそれだけではなく、固有の能力と契約（acdr の差分 ・ 封印、ユースケース駆動のテスト条件 ・ 突き合わせ）である。この問いのままだと、具体の能力をコンポーネントの形に押し込むか、基盤に戻すことになる。扱わない範囲に置いた「具体のバイナリの作り方」が、実は問いの中心だった",
      "user_words": "具体（ユースケース駆動 ・ acdr など）は、自分のコンポーネントと見た目を、どんな形で基盤に登録するか\nこの抽象の仕方はちょっと危険か？\n別に具体の表現はこれだけではないよね？\nconcrateとして定義する内容にはその具体の特有の能力や契約があるはずでしょ？\n必ずしもそれがコンポーネントや見た目の話だけではないはずだよ。ユースケース駆動なんてそれが顕著だよね？\nそれこそacdrもそうだよ？\n変更差分を出すなんてスキーマ駆動にはないよね？"
     },
     {
      "kind": "para",
-     "text": "前の答えは、具体が基盤へ渡すものを「コンポーネントと見た目」に絞っていた。acdr の実物（tool の下の差分 ・ 印 ・ 封印）と、ユースケース駆動の見本（dev7 の例とテスト条件、fig7 の図の入力）を並べると、具体の中心は固有の能力と契約で、見た目はその一部だった。基盤のボードの論点2（具体の道具が突き合わせを持つ）と論点4（基盤の正本を転写する）も、具体が自分の道具を持つことを前提にしていた。"
+     "text": "前の答えは、具体が基盤へ渡すものを「コンポーネントと見た目」に絞っていた。acdr の実物（tool の下の差分 ・ 印 ・ 封印）と、ユースケース駆動の見本（dev7 の例とテスト条件、fig7 の図の入力）を並べると、具体の中心は固有の能力と契約で、見た目はその一部だった。基盤のボードの論点2（具体のツールが突き合わせを持つ）と論点4（基盤の正本を転写する）も、具体が自分のツールを持つことを前提にしていた。"
     }
    ],
    "findings": [
     "acdr は自分の CLI と MCP を持ち、差分 ・ 印 ・ 封印を自分の業務ロジックに置いている ── 基盤の能力ではない",
-    "ユースケース駆動の見本は、例を導く（dev7）・ 図の入力を組む（fig7）・ テスト条件（conditions.json）を基盤の外に置いている",
+    "ユースケース駆動の見本は、例を導く（dev7）・ 図の入力を作る（fig7）・ テスト条件（conditions.json）を基盤の外に置いている",
     "コンポーネントと見た目（前の答え B）は、基盤のポート Design として、この答えの中に残る"
    ],
    "grounds": [
     {
-     "supports": "具体が自分の道具を持つこと",
-     "basis": "concrete の道具も注釈だけを読み、テスト条件と、テストの記録との突き合わせと、ページの組み立てを持つ",
+     "supports": "具体が自分のツールを持つこと",
+     "basis": "concrete のツールも注釈だけを読み、テスト条件と、テストの記録との突き合わせと、ページの生成を持つ",
      "tag": "rule",
      "source": "ボード schema-driven-base の論点2（B‴）"
     },
@@ -1175,21 +1176,21 @@
     },
     {
      "supports": "acdr の固有の能力",
-     "basis": "tool/business_logic に code.rs（差分）・ markdown.rs（印）・ record.rs（封印と組み立て）があり、CLI は new ・ inspect ・ render ・ tokens を持つ",
+     "basis": "tool/business_logic に code.rs（差分）・ markdown.rs（印）・ record.rs（封印と生成）があり、CLI は new ・ inspect ・ render ・ tokens を持つ",
      "tag": "measured",
      "source": ".claude/skills/acdr/tool（2026-10-06 に読んだ）"
     },
     {
      "supports": "ユースケース駆動の固有の能力",
-     "basis": "dev7.py が例を導く関数とテスト条件の札を、fig7.py が図の入力を持ち、どちらも冒頭に「基盤は持たない」と書いている",
+     "basis": "dev7.py が例を導く関数とテスト条件のバッジを、fig7.py が図の入力を持ち、どちらも冒頭に「基盤は持たない」と書いている",
      "tag": "measured",
      "source": "ボード usecase-driven-concrete の sample（2026-10-06 に読んだ）"
     }
    ],
    "requirements": [
     "基盤の crate の公開の形（具体から呼ぶ関数と型）を決め、core の application と domain のどれを公開するかを ACDR で決める",
-    "基盤の道具の一覧（adapters の inbound の tools）を、具体が自分の道具を足して組めるようにする",
-    "3c で、テスト用の小さな具体（Rust）を作り、基盤の crate を呼ぶこと ・ Design と Functions を差し込むこと ・ 道具の一覧に自分の道具を足すことを確かめる"
+    "基盤のツールの一覧（adapters の inbound の tools）を、具体が自分のツールを追加して作れるようにする",
+    "3c で、テスト用の小さな具体（Rust）を作り、基盤の crate を呼ぶこと ・ Design と Functions の実装を渡すこと ・ ツールの一覧に自分のツールを足すことを確かめる"
    ],
    "out_of_scope": [
     {
@@ -1206,6 +1207,279 @@
      "item": "この答えを試す相手",
      "treatment": "later",
      "note": "外の作業（3c の実装）で、テスト用の小さな具体に使って試す"
+    }
+   ]
+  },
+  {
+   "no": 6,
+   "name": "具体のスキーマが従う決まり",
+   "status": "open",
+   "question": "スキーマは具体が持つ。基盤は、さまざまな具体のスキーマを、どんな共通の決まりに従わせ、それを誰がどう検査するか",
+   "answer": "D ── <b>基盤は、スキーマの中身ではなく書き方の決まりを、メタスキーマ references/schema.schema.json として持つ。</b>決まりは4つ（説明と案内 ・ kind と id ・ 基盤の注釈の形 ・ 具体の注釈の申告）で、<b>基盤のツールが具体のスキーマを検査する。</b>プロパティの名前と意味は具体が決め、基盤は知らない",
+   "intro": "論点5で、具体は自分の契約（スキーマ）を持つと決めた。ここでは、具体ごとに違うスキーマに、基盤のツール（検証 ・ 案内 ・ 検査 ・ 描画）が同じように使えるための決まりを決める",
+   "decision": {
+    "letter": "D",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "決まり",
+       "中身",
+       "誰が検査するか"
+      ],
+      "rows": [
+       [
+        "説明と案内",
+        "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt（read ・ write）を持つ。スキーマ自身は title と description を持つ",
+        "メタスキーマ"
+       ],
+       [
+        "kind と id",
+        "インスタンスを作るスキーマ（x-generates を持つ）は、根に kind（const）を持つ。ほかのスキーマの x-ref が指す種類は、id も持つ",
+        "kind はメタスキーマ、id は具体のスキーマの集まりを見るツールの処理"
+       ],
+       [
+        "基盤の注釈の形",
+        "x-view ・ x-ref ・ x-derive は、基盤の仕様（view.schema.json ・ annotations.schema.json）の形に従う",
+        "メタスキーマ"
+       ],
+       [
+        "具体の注釈の申告",
+        "具体が足す注釈（例：x-test-spec）は、根の x-annotations に名前と仕様のスキーマを書く。申告していない x- で始まるキーは違反にする",
+        "ツールの処理（JSON Schema だけでは書けない）"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>共通なのは書き方だけである。</b>OpenAPI の仕様に従う API が、中身は違っても同じ検証ツールや文書の生成ツールで扱えるのと同じ関係である。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>完成イメージ1：基盤の抽象スキーマ（決まり）</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// 基盤（抽象）：references/schema.schema.json（案）── 具体のスキーマが従う決まり\n{\n &quot;title&quot;: &quot;具体のスキーマの決まり&quot;,\n &quot;required&quot;: [&quot;title&quot;, &quot;description&quot;],\n &quot;properties&quot;: {\n  &quot;x-generates&quot;:  {&quot;type&quot;: &quot;string&quot;},              // インスタンスの置き場所\n  &quot;x-annotations&quot;: {&quot;propertyNames&quot;: {&quot;pattern&quot;: &quot;^x-&quot;}},  // 具体が足す注釈と、その仕様\n  &quot;x-view&quot;:       {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n  &quot;properties&quot;:   {&quot;$ref&quot;: &quot;#/$defs/fields&quot;},\n  &quot;$defs&quot;:        {&quot;additionalProperties&quot;: {&quot;$ref&quot;: &quot;#/$defs/shape&quot;}}\n },\n &quot;if&quot;:   {&quot;required&quot;: [&quot;x-generates&quot;]},             // インスタンスを作るスキーマは\n &quot;then&quot;: {&quot;properties&quot;: {&quot;properties&quot;: {&quot;required&quot;: [&quot;kind&quot;]}}},   // kind を持つ\n &quot;$defs&quot;: {\n  &quot;field&quot;: {&quot;required&quot;: [&quot;description&quot;, &quot;x-prompt&quot;],   // 書く単位ごとに説明と案内\n   &quot;properties&quot;: {\n    &quot;x-prompt&quot;: {&quot;required&quot;: [&quot;read&quot;, &quot;write&quot;]},\n    &quot;x-view&quot;:   {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n    &quot;x-ref&quot;:    {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-ref&quot;},\n    &quot;x-derive&quot;: {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-derive&quot;}}}\n }\n}</code></pre>"
+    },
+    {
+     "kind": "para",
+     "text": "<b>完成イメージ2：具体のスキーマ ── ユースケース駆動</b>（決まりに従っている例）"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// 具体：ユースケース駆動の use_case.schema.json（いまの見本から抜き出し）\n{\n &quot;$id&quot;: &quot;use_case.schema.json&quot;,\n &quot;x-generates&quot;: &quot;decls/UC-&lt;番号&gt;.json&quot;,\n &quot;title&quot;: &quot;ユースケース&quot;,\n &quot;properties&quot;: {\n  &quot;kind&quot;: {&quot;const&quot;: &quot;use_case&quot;, &quot;description&quot;: &quot;宣言の種類&quot;,\n           &quot;x-prompt&quot;: {&quot;read&quot;: &quot;種類で読む欄が決まる&quot;, &quot;write&quot;: &quot;use_case と書く&quot;}},\n  &quot;id&quot;:   {&quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;^UC-[0-9]+$&quot;, &quot;description&quot;: &quot;宣言の ID&quot;,\n           &quot;x-prompt&quot;: {&quot;read&quot;: &quot;ほかの宣言はこの ID で指す&quot;, &quot;write&quot;: &quot;UC-番号 の形で書く&quot;},\n           &quot;x-view&quot;: {&quot;hidden&quot;: true}},\n  &quot;contributes_to&quot;: {&quot;type&quot;: &quot;array&quot;, &quot;items&quot;: {&quot;pattern&quot;: &quot;^SC-[0-9]+$&quot;},\n           &quot;description&quot;: &quot;寄与する達成の基準&quot;,\n           &quot;x-prompt&quot;: {&quot;read&quot;: &quot;どの達成の基準に効くか&quot;, &quot;write&quot;: &quot;ドメインの達成の基準の ID を書く&quot;},\n           &quot;x-ref&quot;: {&quot;to&quot;: &quot;domain&quot;, &quot;bare&quot;: true}}\n }\n}</code></pre>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// インスタンス：ユースケース駆動の UC-0.json（いまの見本から抜き出し）── use_case.schema.json に従う\n{&quot;kind&quot;: &quot;use_case&quot;, &quot;id&quot;: &quot;UC-0&quot;,\n &quot;header&quot;: {&quot;name&quot;: &quot;来店前に注文して受け取る&quot;, &quot;level&quot;: &quot;要約&quot;, &quot;scope&quot;: {&quot;system&quot;: &quot;DOM-1.SCP-1&quot;}, …}}</code></pre>"
+    },
+    {
+     "kind": "para",
+     "text": "<b>完成イメージ3：具体のスキーマ ── acdr</b>（いまの姿と、決まりに合わせた姿）"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// 具体：acdr の acdr.schema.json（いまの姿から抜き出し）\n{\n &quot;title&quot;: &quot;意思決定の記録&quot;,\n &quot;properties&quot;: {\n  &quot;decision&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;title&quot;: &quot;決めたこと&quot;, &quot;x-view&quot;: &quot;card&quot;}\n }\n}\n// 決まりに合わせたときの姿（案）\n{\n &quot;x-generates&quot;: &quot;.acdr/&lt;番号&gt;-&lt;名詞句&gt;/acdr.json&quot;,\n &quot;title&quot;: &quot;意思決定の記録&quot;,\n &quot;properties&quot;: {\n  &quot;kind&quot;: {&quot;const&quot;: &quot;acdr&quot;, &quot;description&quot;: &quot;記録の種類&quot;, &quot;x-prompt&quot;: {&quot;read&quot;: &quot;…&quot;, &quot;write&quot;: &quot;acdr と書く&quot;}},\n  &quot;decision&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;title&quot;: &quot;決めたこと&quot;, &quot;description&quot;: &quot;決めてほしいこと1件&quot;,\n               &quot;x-prompt&quot;: {&quot;read&quot;: &quot;何を採るかを1文で読む&quot;, &quot;write&quot;: &quot;手段ではなく、何を採るかを能動態の1文で書く&quot;}}\n }\n}</code></pre>"
+    },
+    {
+     "kind": "para",
+     "text": "<b>完成イメージ4：この決まりで、いまの具体のスキーマ13件を検査した結果</b>（基盤の check で、決まりの案をメタスキーマにして検査した。2026-10-06）"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "具体のスキーマ",
+      "結果",
+      "違反の中身"
+     ],
+     "rows": [
+      [
+       "ユースケース駆動の context ・ domain ・ glossary ・ other_requirements ・ subdomain ・ value_object",
+       "違反0件",
+       "──"
+      ],
+      [
+       "use_case",
+       "12件",
+       "x-ref に仕様に無い meaning ・ meanings ・ meaning_key、x-view に試しで足したキー"
+      ],
+      [
+       "aggregate ・ domain_service",
+       "2件 ・ 1件",
+       "同上"
+      ],
+      [
+       "記録（approved ・ trace ・ migration）",
+       "kind ・ id が無い",
+       "記録の種類も kind を持つ必要がある"
+      ],
+      [
+       "acdr",
+       "46件",
+       "x-prompt と description が無い（28件）。x-view が古い形（文字列 card ・ tag など、18件）"
+      ],
+      [
+       "仕様に無い注釈（全体）",
+       "7種類",
+       "x-test-spec（具体の注釈。申告すれば通る）と、x-view-name などの試しの注釈6種類"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "schemas",
+     "caption": "基盤が持つのは、具体のスキーマが従う決まり（抽象スキーマ）と注釈の仕様だけである。<b>スキーマの中身は具体が持ち、インスタンスは具体のスキーマに従う。</b>"
+    }
+   ],
+   "passed": [
+    {
+     "name": "基盤が書き方の決まりをメタスキーマで持ち、ツールで検査する",
+     "body": "中身は具体、書き方は基盤。メタスキーマで書ける決まりはメタスキーマで、書けない決まり（申告していない注釈 ・ 参照される種類の id）はツールの処理で検査する",
+     "cost": "いまの具体のスキーマは、直す箇所がある（ユースケース駆動の見本で15件と記録3種類、acdr で46件）"
+    },
+    {
+     "name": "決まりを持たず、具体に任せる",
+     "body": "基盤は注釈を読むだけで、具体のスキーマの書き方は検査しない",
+     "cost": "違反は、検査や描画の誤動作として後から出る。実測で、use_case の x-ref の meaning 系のキーは、基盤の検査に黙って無視されていた"
+    },
+    {
+     "name": "基盤が共通の中身を持つ",
+     "body": "どの具体のスキーマも、基盤が決めたプロパティ（名前 ・ 要約など）を持つ",
+     "cost": "acdr の記録とユースケースは、中身が違う。共通にできるのは書き方だけである"
+    },
+    {
+     "name": "具体の注釈を禁じる",
+     "body": "基盤の注釈だけを使わせる",
+     "cost": "ユースケース駆動の x-test-spec が書けない。基盤のボードの論点2は、開発の具体が x-test-spec を足すと決めている"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "中身を具体が決められるか",
+      "違反を出せるか",
+      "具体の注釈"
+     ],
+     "rows": [
+      [
+       "基盤が書き方の決まりをメタスキーマで持ち、ツールで検査する",
+       [
+        "<b>決められる</b>",
+        "<b>出せる</b>",
+        "<b>申告すれば使える</b>"
+       ]
+      ],
+      [
+       "決まりを持たず、具体に任せる",
+       [
+        "決められる",
+        "<b>出せない</b>",
+        "何でも使える"
+       ]
+      ],
+      [
+       "基盤が共通の中身を持つ",
+       [
+        "<b>決められない</b>",
+        "出せる",
+        "──"
+       ]
+      ],
+      [
+       "具体の注釈を禁じる",
+       [
+        "決められる",
+        "出せる",
+        "<b>使えない</b>"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "決まりを持たず、具体に任せる",
+     "reason": "具体のスキーマが基盤の契約に従っているかを、誰も確かめられない。実測で、仕様に無い x-ref のキーが基盤の検査に無視されていた"
+    },
+    {
+     "body": "基盤が共通の中身を持つ",
+     "reason": "具体ごとに中身は違う（acdr の記録とユースケース）。利用者の指摘のとおり、スキーマは具体が持つ"
+    },
+    {
+     "body": "具体の注釈を禁じる",
+     "reason": "基盤のボードの論点2で、開発の具体が x-test-spec を足すと決めている"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "利用者から「スキーマも具体が持つ。基盤はどうやって共通の契約にさせるのか」と問われた。基盤の references には、注釈の仕様（x-ref ・ x-derive ・ x-view）とページテンプレートの形はあった。しかし、x-prompt ・ x-generates ・ kind と id の決まりと、具体のスキーマを検査するものが無かった。見本には no-more-spaghetti から写した schema-meta.schema.json があり、x-prompt の決まりを持っていた。これを出発点に決まりの案を書き、基盤の check で13件を検査した。"
+    }
+   ],
+   "findings": [
+    "基盤の references には、具体のスキーマ全体の書き方の決まりが無かった ── 注釈ごとの仕様だけがあった",
+    "決まりの案で検査すると、ユースケース駆動の見本は6種類が違反0件、acdr は46件だった ── acdr は schema-driven より前に作ったので、x-prompt を持たない",
+    "申告していない注釈は、JSON Schema では書けない ── 「x- で始まるキーのうち、x-annotations に書いたものだけ」は、ツールの処理で見る"
+   ],
+   "grounds": [
+    {
+     "supports": "基盤が注釈の決まりを持つこと",
+     "basis": "基盤は7つの契約（作成 ・ 取得 ・ 更新 ・ 削除 ・ 検証 ・ 描画 ・ x-prompt）と、注釈 x-ref ・ x-derive を読むツールを持つ",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点1"
+    },
+    {
+     "supports": "具体が注釈を足せること",
+     "basis": "基盤の注釈は title ・ x-view ・ x-prompt ・ x-generates ・ x-ref ・ x-derive の6つで、開発の concrete は x-test-spec を足す",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点2"
+    },
+    {
+     "supports": "具体の注釈も検査すること",
+     "basis": "concrete の注釈2つを、concrete のメタスキーマで検査する",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点2の要求事項"
+    },
+    {
+     "supports": "x-prompt の決まりの形",
+     "basis": "案内を要求するのは、実体を生成するスキーマだけである（x-generates を持つもの）。案内は、値を書く単位ごとに持つ",
+     "tag": "measured",
+     "source": "ボード usecase-driven-concrete の sample/schema/schema-meta.schema.json（2026-10-06 に読んだ）"
+    },
+    {
+     "supports": "検査の結果",
+     "basis": "決まりの案をメタスキーマにして、基盤の check で具体のスキーマ13件を検査した",
+     "tag": "measured",
+     "source": "schema-driven の check（2026-10-06）"
+    }
+   ],
+   "requirements": [
+    "references/schema.schema.json を ACDR で置く",
+    "基盤に、具体のスキーマを検査するツールを置く（メタスキーマでの検証、申告していない注釈の検出、参照される種類の id の確認）",
+    "ユースケース駆動の見本のスキーマを決まりに合わせる（meaning 系のキーを accept と bare へ、試しの x-view-* を x-view か具体の注釈へ、記録の種類に kind を足す）── 手順3で行う"
+   ],
+   "out_of_scope": [
+    {
+     "item": "x-test-spec の中身",
+     "treatment": "out",
+     "note": "ユースケース駆動の具体が決める。基盤は申告の形だけを決める"
+    },
+    {
+     "item": "acdr などいまの Skill のスキーマを決まりに合わせること",
+     "treatment": "later",
+     "note": "いまの Skill を基盤の上へ移す作業で行う。この答えを覆さない ── 合わせる先を、この答えが決める"
+    },
+    {
+     "item": "この答えを試す相手",
+     "treatment": "later",
+     "note": "外の作業で、具体のスキーマを検査するツールを作り、見本の13件と acdr に適用して試す"
     }
    ]
   }
