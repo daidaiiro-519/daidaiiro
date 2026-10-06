@@ -51,6 +51,42 @@ struct Derived {
     doc: usize,
     at: String,
     value: Value,
+    title: Value,
+    declared: Value,
+    questions: Vec<Value>,
+}
+
+/// 参照1件と、その指す先（描画の文脈の links ・ referrers の元）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphLink {
+    /// 参照を書いたインスタンスの番号
+    pub doc: usize,
+    /// 参照を書いた場所（インスタンスの根から）
+    pub at: String,
+    /// 書いた値
+    pub value: String,
+    /// 指す先のインスタンスの番号と、項目の id。決まらなければ None
+    pub target: Option<(usize, Option<String>)>,
+    /// 指す先の名前（「インスタンスの id」か「インスタンスの id.項目の id」）
+    pub label: Option<String>,
+}
+
+/// x-derive を持つオブジェクト1つの導出値（描画の文脈の derived の元）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphDerived {
+    pub doc: usize,
+    pub at: String,
+    pub value: Value,
+    pub title: Value,
+    pub declared: Value,
+    pub questions: Vec<Value>,
+}
+
+/// インスタンスの集まりの参照と導出値。検査と描画が同じ解決を使う。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Graph {
+    pub links: Vec<GraphLink>,
+    pub derived: Vec<GraphDerived>,
 }
 
 /// 場所（path）の値を集める。配列は要素すべてに広げる。
@@ -225,7 +261,7 @@ impl<'a> Checker<'a> {
             }
         }
         if let (Some(d), Some(_)) = (derive, value.as_object()) {
-            self.derive(doc, &d, value, &at);
+            self.derive(doc, &d, value, &at, node, sdoc);
         }
         if let (Some(props), Some(obj)) = (
             node.get("properties").and_then(Value::as_object),
@@ -278,8 +314,59 @@ impl<'a> Checker<'a> {
         rules.get("otherwise").cloned().unwrap_or(Value::Null)
     }
 
-    fn derive(&mut self, doc: usize, d: &Value, value: &Value, at: &str) {
+    #[allow(clippy::too_many_arguments)]
+    fn derive(
+        &mut self,
+        doc: usize,
+        d: &Value,
+        value: &Value,
+        at: &str,
+        node: &Value,
+        sdoc: &Value,
+    ) {
         let got = Self::derive_value(d, value);
+        let schema = self.docs[doc].schema;
+        // 問い：決まりの when に出てくるプロパティを、出てきた順に1回ずつ
+        let mut keys: Vec<String> = Vec::new();
+        for rule in d
+            .get("rules")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            for k in rule
+                .get("when")
+                .and_then(Value::as_object)
+                .into_iter()
+                .flatten()
+                .map(|(k, _)| k)
+            {
+                if !keys.contains(k) {
+                    keys.push(k.clone());
+                }
+            }
+        }
+        let questions = keys
+            .iter()
+            .map(|k| {
+                let title = node
+                    .get("properties")
+                    .and_then(|p| p.get(k))
+                    .and_then(|sub| {
+                        sub.get("title")
+                            .or_else(|| schema.resolve(sub, sdoc).0.get("title"))
+                            .cloned()
+                    })
+                    .unwrap_or_else(|| Value::String(k.clone()));
+                json!({"key": k, "title": title, "answer": value.get(k).cloned().unwrap_or(Value::Null)})
+            })
+            .collect();
+        let declared_value = d
+            .get("declared")
+            .and_then(Value::as_str)
+            .and_then(|n| value.get(n))
+            .cloned()
+            .unwrap_or(Value::Null);
         let from = format!("{}{at}", self.label(doc));
         if let Some(name) = d.get("declared").and_then(Value::as_str) {
             if let Some(declared) = value.get(name) {
@@ -338,6 +425,9 @@ impl<'a> Checker<'a> {
             doc,
             at: at.to_owned(),
             value: got,
+            title: d.get("title").cloned().unwrap_or(Value::Null),
+            declared: declared_value,
+            questions,
         });
     }
 
@@ -635,6 +725,50 @@ impl<'a> Checker<'a> {
 
 /// インスタンスの集まりを検査する。approved があれば、承認のあとの変化も出す。
 pub fn check(docs: &[Doc], approved: Option<&Approved>) -> Vec<Finding> {
+    let mut c = collect_all(docs);
+    c.check_links(approved);
+    c.check_inverse();
+    let mut out = c.findings;
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// インスタンスの集まりの参照（指す先を解決したもの）と導出値を返す。検査と同じ解決を使う。
+pub fn graph(docs: &[Doc]) -> Graph {
+    let mut c = collect_all(docs);
+    c.check_links(None);
+    let links = c
+        .links
+        .iter()
+        .map(|l| {
+            let target = l.targets.first().cloned();
+            GraphLink {
+                doc: l.doc,
+                at: l.at.clone(),
+                value: l.value.clone(),
+                label: target.as_ref().map(|t| c.target_label(t)),
+                target: target.map(|t| (t.doc, t.item)),
+            }
+        })
+        .collect();
+    let derived = c
+        .derived
+        .iter()
+        .map(|d| GraphDerived {
+            doc: d.doc,
+            at: d.at.clone(),
+            value: d.value.clone(),
+            title: d.title.clone(),
+            declared: d.declared.clone(),
+            questions: d.questions.clone(),
+        })
+        .collect();
+    Graph { links, derived }
+}
+
+/// スキーマとインスタンスを一緒にたどり、参照と導出値を集める（指す先はまだ解決しない）。
+fn collect_all<'a>(docs: &'a [Doc<'a>]) -> Checker<'a> {
     let mut c = Checker {
         docs,
         links: Vec::new(),
@@ -667,12 +801,7 @@ pub fn check(docs: &[Doc], approved: Option<&Approved>) -> Vec<Finding> {
             0,
         );
     }
-    c.check_links(approved);
-    c.check_inverse();
-    let mut out = c.findings;
-    out.sort();
-    out.dedup();
-    out
+    c
 }
 
 fn register(

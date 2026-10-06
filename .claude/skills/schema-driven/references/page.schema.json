@@ -44,10 +44,37 @@
    "description": "JMESPath 式。描画の文脈に当てて値を取る",
    "examples": ["this.header.description", "links[?at=='/use_cases'].target", "derived.classification.value"],
    "x-prompt": {
-    "read": "描画の文脈（今の位置の値）に、この JMESPath 式を当てた結果を値とする。each や、行を持つコンポーネントの行の中では、今の位置は繰り返しの要素で、@ で指す。文脈の値は次のとおり：this（このページのインスタンス）・ schema（そのスキーマ）・ derived（x-derive を持つプロパティごとの value ・ title ・ declared ・ questions）・ links（このインスタンスが指す参照。at ・ value ・ target）・ referrers（このインスタンスを指す参照。at ・ from）・ instances（ディレクトリのインスタンスすべて）。",
+    "read": "描画の文脈（今の位置の値）に、この JMESPath 式を当てた結果を値とする。each や、行を持つコンポーネントの行の中では、今の位置は繰り返しの要素で、@ で指す。文脈の値は this ・ schema ・ derived ・ links ・ referrers ・ instances の6つで、形は #/$defs/context が決める。",
     "write": "JMESPath の文法で書く。このインスタンスの値は this. から、繰り返しの中の要素の値は @ やその要素のプロパティの名前から書く。参照の指す先が必要なら links から、指してくるものが必要なら referrers から取る（JMESPath だけでは参照をたどれない）。決まった文字を書きたいときは、式ではなく {\"text\": \"…\"} を使う。"
    }
   },
+  "context": {"type": "object", "additionalProperties": false, "required": ["this", "schema", "derived", "links", "referrers", "instances"],
+   "description": "描画の文脈。ページのインスタンス1件ごとに基盤が組み、ページテンプレートの JMESPath 式はこれに当てる。参照の解決と導出値は、検査と同じものを使う",
+   "x-prompt": {"read": "this から値を取り、参照の指す先の名前は links の target、指されている先は referrers、x-derive の導出値は derived から取る。ほかのインスタンスを並べたいときは instances から JMESPath で絞る。", "write": "書かない（基盤が組む）。ページテンプレートの式で、ここに在るキーだけを使う。"},
+   "properties": {
+    "this": {"description": "このページのインスタンス"},
+    "schema": {"description": "このインスタンスのスキーマ（根）"},
+    "derived": {"type": "object", "description": "x-derive を持つオブジェクトごとの導出値。キーはそのオブジェクトの場所（インスタンスの根からの JSON Pointer の先頭の / を除いたもの。例：classification、parts/0/c）",
+     "examples": [{"classification": {"value": "中核", "title": "答えから導いたカテゴリー", "declared": "中核", "questions": [{"key": "competitive_advantage", "title": "競争上の優位になるか", "answer": true}]}}],
+     "additionalProperties": {"type": "object", "additionalProperties": false, "required": ["value", "title", "declared", "questions"],
+      "properties": {
+       "value": {"description": "導出値（rules で当たった then、無ければ otherwise）"},
+       "title": {"description": "x-derive の title。無ければ null"},
+       "declared": {"description": "declared の名前のプロパティに書かれた値。declared が無いか、値が無ければ null"},
+       "questions": {"type": "array", "description": "rules の when に出てくるプロパティを、出てきた順に1回ずつ。key はプロパティの名前、title はスキーマの title（無ければ名前）、answer はインスタンスの値（無ければ null）",
+        "items": {"type": "object", "additionalProperties": false, "required": ["key", "title", "answer"], "properties": {"key": {"type": "string"}, "title": {}, "answer": {}}}}}}},
+    "links": {"type": "array", "description": "このインスタンスが x-ref で指す参照。書いた値1つにつき1件、スキーマのプロパティの順",
+     "items": {"type": "object", "additionalProperties": false, "required": ["at", "value", "target"], "properties": {
+      "at": {"type": "string", "description": "参照を書いたプロパティの場所（例：/use_cases）。配列の値は、配列のプロパティの場所になる"},
+      "value": {"type": "string", "description": "書いた値"},
+      "target": {"type": ["string", "null"], "description": "指す先（「インスタンスの id」か「インスタンスの id.項目の id」）。決まらなければ null"}}}},
+    "referrers": {"type": "array", "description": "ほかのインスタンス（と自分）の x-ref のうち、このインスタンスかその中の項目を指すもの",
+     "items": {"type": "object", "additionalProperties": false, "required": ["at", "from", "item"], "properties": {
+      "at": {"type": "string", "description": "指している側の、参照を書いた場所"},
+      "from": {"description": "指している側のインスタンスの id"},
+      "item": {"type": ["string", "null"], "description": "指されている項目の id。インスタンスそのものが指されていれば null"}}}},
+    "instances": {"type": "array", "description": "ディレクトリのインスタンスすべて"}
+   }},
   "node": {
    "description": "body や入力に置く要素。文字列は JMESPath 式、{\"text\": …} は決まった文字、component を持つオブジェクトはコンポーネント",
    "anyOf": [

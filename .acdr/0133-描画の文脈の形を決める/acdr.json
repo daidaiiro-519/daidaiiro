@@ -1,0 +1,133 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0133",
+ "title": "描画の文脈の形を決める",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "描画の文脈の6つの値の形を page.schema.json の context に書き、参照の解決と導出値は検査と同じものを使う",
+ "why": "ACDR 0128 で文脈の6つの名前は決めたが、形は決めていなかった。questions は page.schema.json にしか出てこず、注釈の仕様に定義が無い。derived のキー、links の target、referrers が項目を指されたときの表し方も決まっていない。形が決まらないと、ページテンプレートを書く人も AI も、式で何を取れるかが分からない。そこで、3b の実装で形を試し、使えた形を仕様に書く。",
+ "shift": [
+  {
+   "what": "文脈の形",
+   "from": "6つの名前と、括弧の中の短い説明だけ（page.schema.json の expr）",
+   "to": "#/$defs/context に、6つの値の形を JSON Schema で書く。組んだ文脈がこの形に合うことを、テストが確かめる"
+  },
+  {
+   "what": "derived",
+   "from": "「x-derive を持つプロパティごとの value ・ title ・ declared ・ questions」。キーと questions の中身が決まっていない",
+   "to": "キーはインスタンスの根からの場所（先頭の / を除く。例：classification、parts/0/c）。questions は rules の when に出てくるプロパティを出てきた順に1回ずつ並べ、key ・ title ・ answer を持つ"
+  },
+  {
+   "what": "links ・ referrers",
+   "from": "links は at ・ value ・ target、referrers は at ・ from。target の形と、項目が指されたときの表し方が決まっていない",
+   "to": "target は「インスタンスの id」か「インスタンスの id.項目の id」で、決まらなければ null。referrers は item を足し、指された項目の id（インスタンスそのものなら null）を持つ"
+  },
+  {
+   "what": "参照の解決",
+   "from": "検査（check.rs）の中にだけある",
+   "to": "check.rs の graph が解決して、検査と描画の文脈の両方が使う"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "参照の解決と導出値を1か所（graph）で求め、検査と描画の文脈が同じものを使う。",
+ "alternatives": [
+  {
+   "option": "描画の側で参照を解決し直す",
+   "why_not": "同じ参照が、検査では見つかり描画では見つからない、ということが起こりうる。解決の決まり（to ・ item ・ bare ・ in ・ only）を2か所で持つことになる"
+  },
+  {
+   "option": "derived のキーをプロパティの名前だけにする",
+   "why_not": "配列の中のオブジェクトが x-derive を持つと、同じ名前が何度も出てキーが重なる"
+  },
+  {
+   "option": "links の target を指す先の値（インスタンスや項目そのもの）にする",
+   "why_not": "文脈が大きくなり、同じ値が何度も入る。名前は name() で、値は instances から引ける"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "page",
+   "tab": "page.schema.json",
+   "file": ".claude/skills/schema-driven/references/page.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"context\": {\"type\": \"object\"",
+     "before": "（無かった）",
+     "why": "6つの値の形を JSON Schema で書いた。実装が組んだ文脈は、テストでこの形に照らす。expr の説明は、6つの名前を残して形はここを指す"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Graph {",
+     "before": "（無かった）",
+     "why": "参照（指す先を解決したもの）と導出値を、検査の外へ渡す形"
+    },
+    {
+     "find": "// 問い：決まりの when に出てくるプロパティを、出てきた順に1回ずつ",
+     "before": "（無かった）",
+     "why": "derived の title ・ declared ・ questions を、導出値を求めるときに一緒に集める"
+    },
+    {
+     "find": "pub fn graph(docs: &[Doc]) -> Graph {",
+     "before": "（無かった）",
+     "why": "検査と同じたどり方と解決で、参照と導出値を返す。check と graph は collect_all を共有する"
+    },
+    {
+     "find": "self.derive(doc, &d, value, &at, node, sdoc);",
+     "before": "self.derive(doc, &d, value, &at);",
+     "why": "問いの title をスキーマから引くため、導出値を求める場所にスキーマの節点を渡す"
+    },
+    {
+     "find": "            title: d.get(\"title\").cloned().unwrap_or(Value::Null),",
+     "before": "（無かった）",
+     "why": "導出値と一緒に title ・ declared ・ questions を残し、graph が外へ渡す"
+    },
+    {
+     "find": "    c",
+     "before": "    c.check_links(approved);\n    c.check_inverse();\n    let mut out = c.findings; …",
+     "why": "たどる処理を collect_all に切り出し、check と graph が共有する。ここは collect_all の終わり。check の結果は変わらない（既存の検査のテスト13件が合格）"
+    }
+   ]
+  },
+  {
+   "key": "context",
+   "tab": "context.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/context.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn contexts(docs: &[Doc]) -> Vec<Value> {",
+     "before": "（新しいファイル）",
+     "why": "graph から、インスタンスごとの描画の文脈を組む"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "テスト context.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/context.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn contexts_match_the_context_shape_in_page_schema() {",
+     "before": "（新しいファイル）",
+     "why": "組んだ文脈が仕様の形に合うことを確かめる。仕様に無いキーを足すと落ちることも確かめた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "page": "965c51f7a74b9d67c907a7850b482a1d93990cd1572a1e06282d0715aee15c92",
+  "check": "4833e355ecf08f81179cf569516436e523e70b40481c397965f44be8ac6e4fd7",
+  "context": "55496ddbd6d5e9dc86cc60b3582ce2bb38e9840dd791991fafcdadd534881f7d",
+  "test": "11921b53f9e30657816b8accb7644e07f6a8dbf08b86be5cc2912d48d843d24e"
+ }
+}
