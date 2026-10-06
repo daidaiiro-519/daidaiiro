@@ -51,6 +51,11 @@ pub const TOOLS: &[ToolDef] = &[
         args: &[("dir", "インスタンスのディレクトリ", true)],
     },
     ToolDef {
+        name: "check-schemas",
+        description: "ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマ（references/meta-schema.json）と注釈の仕様で、すべての深さまで検査する",
+        args: &[("dir", "スキーマのディレクトリ", true)],
+    },
+    ToolDef {
         name: "approve",
         description: "検査を通ったディレクトリのインスタンスのパスとハッシュ値を、承認記録（approval.json）へ書く（UC-8）",
         args: &[("dir", "インスタンスのディレクトリ", true)],
@@ -227,6 +232,14 @@ fn call_base(
                 .map(|i| json!({"path": i.path, "hash": i.hash, "errors": errors(&i.errors), "unfilled": unfilled_only(&i.unfilled)}))
                 .collect();
             json!({"ok": true, "instances": instances, "findings": findings(&c.findings)})
+        }),
+        "check-schemas" => cc.check_schemas(s("dir")).map(|c| {
+            let list: Vec<Value> = c
+                .findings
+                .iter()
+                .map(|f| json!({"schema": f.schema, "at": f.at, "rule": f.rule, "message": f.message}))
+                .collect();
+            json!({"ok": true, "schemas": c.schemas, "findings": list})
         }),
         "approve" => cc.approve(s("dir")).map(|a| {
             let list: Vec<Value> = a.instances.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect();

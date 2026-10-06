@@ -1,0 +1,217 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0138",
+ "title": "具体のスキーマをメタスキーマで検査する",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "基盤が具体のスキーマに求める契約を references/meta-schema.json に置き、基盤のツール check-schemas で、具体のスキーマをすべての深さまで検査する",
+ "why": "ボード schema-driven-build の論点6（D）で、基盤はスキーマの中身ではなく書き方の契約を持ち、ツールで検査すると決めた。それまで基盤には注釈ごとの仕様しかなく、具体のスキーマが基盤の契約に従っているかを確かめられなかった。実際に、見本のスキーマには ACDR 0129 で捨てた古い絞りの書き方が19件残り、仕様に無い x-ref のキーは基盤の検査に黙って無視されていた。",
+ "shift": [
+  {
+   "what": "基盤が具体のスキーマに求める契約",
+   "from": "注釈ごとの仕様（annotations ・ view）だけ",
+   "to": "references/meta-schema.json。説明と案内（書く単位ごとの description と x-prompt）・ x-generates を持つスキーマの kind ・ 具体の注釈の申告（x-annotations）の形"
+  },
+  {
+   "what": "検査",
+   "from": "無い",
+   "to": "基盤のツール check-schemas（引数 dir）。メタスキーマに加えて、注釈の形をすべての深さで、文の型が JMESPath として読めるか、パイプの右が関数の呼び出しか、申告していない注釈、x-ref が指す種類の id を検査する"
+  },
+  {
+   "what": "契約の版",
+   "from": "──",
+   "to": "メタスキーマと注釈の仕様は、ビルドのときにツールへ取り込む。同じ版のツールなら、同じスキーマに同じ結果を返す"
+  },
+  {
+   "what": "ポート Query",
+   "from": "search と evaluate",
+   "to": "parse を追加する（式が JMESPath として読めるかだけを見る）。jmespath の crate はアダプタにだけ置く（ACDR 0122）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "基盤が持つのは、基盤が具体のスキーマに求める契約（メタスキーマ）と注釈の仕様だけである。スキーマの中身は具体が持つ。",
+ "alternatives": [
+  {
+   "option": "注釈の形もメタスキーマに書く",
+   "why_not": "JSON Schema で全部の深さの注釈を書くと、入れ子の形ごとに定義が必要になり、同じ違反が2回出る。メタスキーマは構造の契約だけを持ち、注釈はツールの処理ですべての深さを見る"
+  },
+  {
+   "option": "メタスキーマを実行のときにファイルから読む",
+   "why_not": "ツールの版とメタスキーマの版がずれうる。core はファイルを読まない決まりもある"
+  },
+  {
+   "option": "x-generates を持つスキーマだけに x-prompt を求める（見本の schema-meta の契約）",
+   "why_not": "部品のスキーマ（共通の $defs）のプロパティも、$ref を通してインスタンスに書かれる。x-prompt を求めないと、そこを書く人と AI に案内が無い"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "meta",
+   "tab": "meta-schema.json",
+   "file": ".claude/skills/schema-driven/references/meta-schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"メタスキーマ（基盤が具体のスキーマに求める契約）\",",
+     "before": "（新しいファイル）",
+     "why": "論点6の4つの契約のうち、構造の契約を JSON Schema で書いた。注釈の形 ・ 文の型 ・ 申告していない注釈 ・ id は、ツールの処理が見る"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": "domain/schema_rules.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn check_schemas(",
+     "before": "（新しいファイル）",
+     "why": "メタスキーマで構造を、すべての深さで注釈 ・ 文の型 ・ 申告を、スキーマの集まりで id を見る。結果は渡したスキーマの順に並ぶ"
+    }
+   ]
+  },
+  {
+   "key": "dmod",
+   "tab": "domain/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod schema_rules;",
+     "before": "（無かった）",
+     "why": "ドメインサービスとして置く"
+    }
+   ]
+  },
+  {
+   "key": "checks",
+   "tab": "application/checks.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::schema_rules::{check_schemas, SchemaFinding};",
+     "before": "（無かった）",
+     "why": "ユースケースからドメインサービスを呼び出す"
+    },
+    {
+     "find": "pub struct SchemasChecked {",
+     "before": "（無かった）",
+     "why": "検査したスキーマの名前と結果を返す。query を持たせ、式の構文の確認をポート経由で行う"
+    },
+    {
+     "find": "fn check_schemas(&self, dir: &str) -> Result<SchemasChecked, UseCaseError> {",
+     "before": "（無かった）",
+     "why": "ディレクトリの *.schema.json を読み、ドメインサービスへ渡す"
+    },
+    {
+     "find": "            query,",
+     "before": "（無かった）",
+     "why": "Checks が受け取った query を持ち、文の型の構文の確認に使う"
+    }
+   ]
+  },
+  {
+   "key": "inbound",
+   "tab": "ports/inbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/inbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "Checked, Deleted, SchemasChecked};",
+     "before": "Checked, Deleted};",
+     "why": "検査のユースケースに、具体のスキーマの検査を足す"
+    },
+    {
+     "find": "fn check_schemas(&self, dir: &str) -> Result<SchemasChecked, UseCaseError>;",
+     "before": "（無かった）",
+     "why": "CLI と MCP は、この trait だけを呼び出す"
+    }
+   ]
+  },
+  {
+   "key": "outbound",
+   "tab": "ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn parse(&self, expression: &str) -> Result<(), QueryError>;",
+     "before": "（無かった）",
+     "why": "文の型の式が JMESPath として読めるかを、評価せずに確かめる"
+    }
+   ]
+  },
+  {
+   "key": "jp",
+   "tab": "outbound/jmespath.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/jmespath.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn parse(&self, expression: &str) -> Result<(), QueryError> {",
+     "before": "（無かった）",
+     "why": "jmespath の compile で構文だけを見る"
+    }
+   ]
+  },
+  {
+   "key": "tools",
+   "tab": "inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "name: \"check-schemas\",",
+     "before": "（無かった）",
+     "why": "基盤のツールとして出す。引数はスキーマのディレクトリ"
+    },
+    {
+     "find": "\"check-schemas\" => cc.check_schemas(s(\"dir\")).map(|c| {",
+     "before": "（無かった）",
+     "why": "結果は schema ・ at ・ rule ・ message の並びで返す"
+    }
+   ]
+  },
+  {
+   "key": "tmcp",
+   "tab": "テスト mcp.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/tests/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"check-schemas\",",
+     "before": "vec![\"create\", \"get\", \"update\", \"delete\", \"prompt\", \"check\", \"approve\"]",
+     "why": "基盤のツールの一覧が1つ増えた"
+    }
+   ]
+  },
+  {
+   "key": "trules",
+   "tab": "テスト schema_rules.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn conforming_schema_has_no_findings() {",
+     "before": "（新しいファイル）",
+     "why": "7件で、契約に従うスキーマは0件 ・ 説明と案内と kind ・ すべての深さの注釈の形 ・ 文の型と古い絞り ・ 申告 ・ id ・ ツールとしての呼び出しを確認する。実装を6か所わざと変えると、どれもテストが失敗する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "meta": "c6b0e412a5a6df9c5d2f51c60e9acd6baa2a210f051fd0bf1064e8a624a4bd26",
+  "rules": "cc76c076182a3aef841286000d4cc005da34ba4e37cbf01de1d8c1dda6d7b362",
+  "dmod": "36db9713dc09b638d35917fc0c5bd8536d2fcb3f9857117a54dd816c6d063358",
+  "checks": "19ce7cc0bdc26df435770b7b08a4ac5a4252d0aa012dd7f8e900d0958dd9b2e4",
+  "inbound": "cce0b7d6017d1b0db25f51d45f733b41dfa1bc19d40d029489c226f38f24aae4",
+  "outbound": "6797db36d1cc3bbc3b417e518cfb93460e2b4cea35ee4385a1ee0503c95180a9",
+  "jp": "d9299acafe532b0330b0f574031d66673d7736ddcbc0f884883baf22dd3e8874",
+  "tools": "d187b2719ec93e79960e3d51db96ce6de60405156cfdb2ba792eb788ebf2e314",
+  "tmcp": "780dd9d6569f603da89b214a59b96764d1cb1a102f01a39eb11ffa581cb446a9",
+  "trules": "f03c5f171645d48c588c8b307ab02e557358b7e4a6165d9fb23309c02c74ce17"
+ }
+}

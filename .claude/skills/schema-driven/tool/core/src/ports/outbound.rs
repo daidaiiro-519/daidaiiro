@@ -61,6 +61,8 @@ pub trait Query: Send + Sync {
         expression: &str,
         json: &serde_json::Value,
     ) -> Result<serde_json::Value, QueryError>;
+    /// 式が JMESPath として読めるかだけを見る（評価はしない）。
+    fn parse(&self, expression: &str) -> Result<(), QueryError>;
     /// functions の関数（基盤の関数と、具体が足した関数）を追加して、式を JSON の値で評価する。
     fn evaluate(
         &self,

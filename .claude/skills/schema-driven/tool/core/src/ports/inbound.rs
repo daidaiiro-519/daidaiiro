@@ -1,6 +1,6 @@
 //! 入ってくる側のポート。CLI と MCP の受け口は、この trait だけを呼ぶ。
 
-use crate::application::checks::{Approved as ApprovedOutcome, Checked, Deleted};
+use crate::application::checks::{Approved as ApprovedOutcome, Checked, Deleted, SchemasChecked};
 use crate::application::instances::{Created, Got, Prompted, Updated, UseCaseError};
 
 /// インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
@@ -19,6 +19,8 @@ pub trait InstanceUseCases {
 pub trait CheckUseCases {
     /// UC-5 ディレクトリのインスタンスを検査する
     fn check(&self, dir: &str) -> Result<Checked, UseCaseError>;
+    /// ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマと注釈の仕様で検査する（ボード schema-driven-build の論点6 D）
+    fn check_schemas(&self, dir: &str) -> Result<SchemasChecked, UseCaseError>;
     /// UC-8 承認を記録する
     fn approve(&self, dir: &str) -> Result<ApprovedOutcome, UseCaseError>;
     /// UC-4 インスタンスを削除する（消したインスタンスを、まだ指している参照を返す）

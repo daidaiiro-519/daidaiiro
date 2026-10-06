@@ -18,6 +18,12 @@ impl Query for Jmespath {
         Ok(to_json(&found))
     }
 
+    fn parse(&self, expression: &str) -> Result<(), QueryError> {
+        jmespath::compile(expression)
+            .map(|_| ())
+            .map_err(|e| QueryError(e.to_string()))
+    }
+
     fn evaluate(
         &self,
         expression: &str,

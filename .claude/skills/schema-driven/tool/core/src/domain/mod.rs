@@ -4,4 +4,5 @@ pub mod approval;
 pub mod check;
 pub mod instance;
 pub mod schema;
+pub mod schema_rules;
 pub mod values;

@@ -6,6 +6,7 @@ use crate::application::paths;
 use crate::domain::approval::ApprovalRecord;
 use crate::domain::check::{check, Doc, Finding};
 use crate::domain::schema::Schema;
+use crate::domain::schema_rules::{check_schemas, SchemaFinding};
 use crate::domain::values::{
     ApprovedInstance, Drift, InstancePath, JsonValue, Status, Unfilled, ValidationError,
 };
@@ -43,8 +44,17 @@ pub struct Deleted {
     pub remaining: Vec<Finding>,
 }
 
+/// 具体のスキーマの検査の結果（ボード schema-driven-build の論点6 D）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct SchemasChecked {
+    /// 検査したスキーマのファイルの名前
+    pub schemas: Vec<String>,
+    pub findings: Vec<SchemaFinding>,
+}
+
 pub struct Checks<'a> {
     files: &'a dyn Files,
+    query: &'a dyn Query,
     instances: Instances<'a>,
 }
 
@@ -59,6 +69,7 @@ impl<'a> Checks<'a> {
     pub fn new(files: &'a dyn Files, schemas: &'a dyn Schemas, query: &'a dyn Query) -> Self {
         Self {
             files,
+            query,
             instances: Instances::new(files, schemas, query),
         }
     }
@@ -154,6 +165,27 @@ impl<'a> Checks<'a> {
 impl CheckUseCases for Checks<'_> {
     fn check(&self, dir: &str) -> Result<Checked, UseCaseError> {
         self.run(dir).map(|(c, _)| c)
+    }
+
+    fn check_schemas(&self, dir: &str) -> Result<SchemasChecked, UseCaseError> {
+        let list = self
+            .files
+            .list(dir)
+            .map_err(|e| UseCaseError::new("読めない", e.0))?;
+        let mut schemas = Vec::new();
+        for path in list {
+            let name = path.rsplit('/').next().unwrap_or(&path).to_owned();
+            if !name.ends_with(".schema.json") {
+                continue;
+            }
+            let (_, value) = self.instances.read_json(&path)?;
+            schemas.push((name, value));
+        }
+        let findings = check_schemas(&schemas, &|e: &str| self.query.parse(e).map_err(|x| x.0));
+        Ok(SchemasChecked {
+            schemas: schemas.into_iter().map(|(n, _)| n).collect(),
+            findings,
+        })
     }
 
     fn approve(&self, dir: &str) -> Result<Approved, UseCaseError> {

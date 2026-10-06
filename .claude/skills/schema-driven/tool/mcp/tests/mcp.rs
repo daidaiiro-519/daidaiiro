@@ -58,7 +58,16 @@ fn mcp_lists_tools_and_creates_instance() {
         .collect();
     assert_eq!(
         names,
-        vec!["create", "get", "update", "delete", "prompt", "check", "approve"]
+        vec![
+            "create",
+            "get",
+            "update",
+            "delete",
+            "prompt",
+            "check",
+            "check-schemas",
+            "approve"
+        ]
     );
     let result = &answers[2]["result"];
     assert_eq!(result["isError"], false, "{result}");
