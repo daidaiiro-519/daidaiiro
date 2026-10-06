@@ -59,7 +59,7 @@ Orchestratorである。作業を受け取ったら、skill-router に配線表�
 | 場所 | 中身 |
 |---|---|
 | `.claude/skills/` | 16のSkillの実体。ここが正本である |
-| `skill-wiring.json` | 配線表。20行と、このプロジェクトの決め事を持つ |
+| `skill-wiring.json` | 配線表。19行と、このプロジェクトの決め事を持つ |
 | `.claude/skills/skill-router/references/skill-wiring.schema.json` | 配線表の形を検査するJSON Schema |
 | `.acdr/` | 意思決定の記録。1件がフォルダ1つで、`acdr.json` が正本である |
 | `.brainstorming-board/` | ブレストボード。1枚がフォルダ1つである |

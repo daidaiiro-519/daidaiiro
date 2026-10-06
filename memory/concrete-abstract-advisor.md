@@ -9,4 +9,4 @@ metadata:
 
 利用者の決め（2026-10-05）：範囲は原典の全章をそのまま網羅する。本質は「目的のレベルを正しく見極める」ことで、その表れが具体と抽象に出ている（Skill の名前と説明はこれに合わせる。名前は meta-thinking-advisor（書名の「思考のメタ化」から、2026-10-05 決定）。雛形を置き、archive/ に book.pdf ・ scan/ ・ manifest ・ sources を写した（git の外）。頁の索引の指示は scratchpad/INDEX-MT.md（usecase ・ ddd の直しが終わってから起こす。同時に多く起こすと利用の上限に当たる）。
 
-2026-10-06：判断基準65件 ・ 図29件で完成し、ACDR 0127 を承認 ・ コミットした。原典は利用者が全262頁を撮り直した（archive/retake/）。残り：配線表に、この advisor を呼ぶ行を足すかを決める。関連：[[advisor-coverage-gaps]]
+2026-10-06：判断基準65件 ・ 図29件で完成し、ACDR 0127 を承認 ・ コミットした。原典は利用者が全262頁を撮り直した（archive/retake/）。配線表に2行を足した（ACDR 0135、advisory）。関連：[[advisor-coverage-gaps]]

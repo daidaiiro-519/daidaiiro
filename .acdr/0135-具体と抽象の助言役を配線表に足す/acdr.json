@@ -1,0 +1,84 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0135",
+ "title": "具体と抽象の助言役を配線表に足す",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "meta-thinking-advisor を配線表に載せ、論点の目的を立てるときと、依頼を作業 ・ 要件 ・ 仕様に落とすときに、目的の高さを見てもらう。",
+ "why": "ACDR 0127 で meta-thinking-advisor を作ったが、配線表に行が無かった。配線表に行が無い作業は1つの Skill で終えるものとして扱われるので、この advisor はどの作業からも呼ばれない。利用者は「配線表には出すでしょ」と指摘した。また、CLAUDE.md は配線表を「20行」と書いていたが、実際は17行だった。",
+ "shift": [
+  {
+   "what": "meta-thinking-advisor を呼ぶ場面",
+   "from": "配線表に無く、どの作業からも呼ばれない",
+   "to": "論点の目的を立てるときと、依頼を作業 ・ 要件 ・ 仕様に落とすときに呼ぶ"
+  },
+  {
+   "what": "結果の当てにし方",
+   "from": "無い",
+   "to": "advisory（待たずに進め、返った時点で渡す）"
+  },
+  {
+   "what": "CLAUDE.md の配線表の行数",
+   "from": "20行（実際は17行）",
+   "to": "19行"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "依頼から、論点を立てる作業と、作業 ・ 要件 ・ 仕様に落とす作業の2つの場面で、meta-thinking-advisor に目的の高さを見てもらう",
+ "alternatives": [
+  {
+   "option": "required にして、結果が返るまで作業を止める",
+   "why_not": "目的の高さの見直しは、設計 ・ 品質の判定と違い、なくても作業は進められる。ほかの領域の advisor との重なりもあるので、待たせると全部の依頼が遅くなる"
+  },
+  {
+   "option": "ユースケースを書くときの行に、usecase-advisor と並べて入れる",
+   "why_not": "ユースケースの目的レベルと、この advisor の目的の高さは別の概念で、混同しやすい（利用者が以前に心配した点）。依頼を作業に落とす手前の場面に分けた"
+  },
+  {
+   "option": "設計判断のすべての行に足す",
+   "why_not": "設計判断はすでに領域ごとの advisor が受け持つ。目的の高さを見るのは、何を作るかを決める手前で足りる"
+  }
+ ],
+ "docs": [
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "論点の目的が正しい高さか",
+     "before": "（無い）",
+     "why": "meta-thinking-advisor が配線表に無く、どの作業からも呼ばれなかった。論点を立てる場面で、目的の高さと、問題発見へ戻るべきかを見てもらう"
+    },
+    {
+     "find": "依頼の背後にある目的を見極め",
+     "before": "（無い）",
+     "why": "依頼を作業 ・ 要件 ・ 仕様に落とす手前で、手段が目的にすり替わっていないかを見てもらう。ユースケースの目的レベルとは別の場面に置いた"
+    }
+   ]
+  },
+  {
+   "key": "claude",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "19行",
+     "before": "配線表。20行と、このプロジェクトの決め事を持つ",
+     "why": "実際の行数は17行で食い違っていた。2行を足した後の19行に合わせた"
+    }
+   ]
+  }
+ ],
+ "how": "skill-wiring.json に2行を足した。1行目は brainstorming-board の論点の行の後ろに置き、論点で何を目指すかを立てるときに、目的が具体すぎるか抽象すぎるかと、問題発見へ戻るべきかを見てもらう。2行目はユースケースの行の前に置き、依頼を作業に落とすときに、手段が目的にすり替わっていないかを見てもらう。どちらも advisory にした。skill-router の validate に合格した。",
+ "applies_to": "配線表 skill-wiring.json と、CLAUDE.md の「置いてあるもの」の表の行数が変わる。",
+ "after_approval": [
+  "状態を accepted にして組み直し、配線表と CLAUDE.md と記録をコミットする"
+ ],
+ "seal": {
+  "wiring": "3d92d493eeb4f5991463abef2b65cd7b1af8ea12281870a09cc598ba0c2ba465",
+  "claude": "df8cc559e9be0a009b1964c7430cc755502dcee99104c79e389e336d422874be"
+ }
+}

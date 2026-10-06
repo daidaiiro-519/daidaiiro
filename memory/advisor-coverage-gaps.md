@@ -1,6 +1,6 @@
 ---
 name: advisor-coverage-gaps
-description: advisor の判断基準を、原典の全頁から作り直す作業の現在地（usecase ・ ddd ・ meta-thinking ・ qa は完了、platform ・ ux が残り）
+description: advisor の判断基準を、原典の全頁から作り直す作業の現在地（usecase ・ ddd ・ meta-thinking ・ qa ・ platform は完了、ux が残り）
 metadata:
   type: project
 ---
@@ -9,7 +9,11 @@ metadata:
 
 2026-10-06：qa-advisor も完了（ACDR 0131 承認 ・ コミット 4afcedfd、未 push）。Web の原典（xunitpatterns）は、取得した HTML を chrome で PDF に印刷して頁の画像にした。
 
-次：platform-advisor ・ ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
+2026-10-06：platform-advisor も完了（ACDR 0134 承認）。WAF の柱の件6つとフレームワークの件を足して64件、図38枚。meta-thinking-advisor を配線表に2行足した（ACDR 0135）。
+
+既知の欠陥（未着手）：ゲート1が advisor の判断基準の頁（view の HTML）で廃語を検出しなかった（platform で「要る」約300か所を見逃した）。
+
+次：ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
 
 作業に使った指示書と出力は、このセッションの scratchpad にあった（NOTEPASS ・ CRITPASS ・ LINEMAP ・ SPOT2 ・ FIGS ・ MOREFIG）。セッションが変わると消える。
 
