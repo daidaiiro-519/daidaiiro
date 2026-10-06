@@ -1,0 +1,145 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0137",
+ "title": "技術用語を和語に訳し直した語を廃語にする",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "技術用語を和語に訳し直した11の語を廃語の一覧に入れ、応答と文書の両方で機械が検出するようにする",
+ "why": "応答と文書で、エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ バッジ ・ ツールのような技術用語を、和語に訳し直して使い続けた。利用者は何度も指摘している。規則（CLAUDE.md の「ふだん使う言葉で書く」と ACDR 0124）は散文なので、書き手が破っても止まらない。応答の検査（Stop の hook）と文書の検査（ゲート1）はすでに動いているが、どちらも廃語の一覧に入った語しか見ない。そこで一覧に入れて、機械で止める。",
+ "shift": [
+  {
+   "what": "止め方",
+   "from": "散文の規則だけ。応答の検査とゲート1は、今回の語を通していた",
+   "to": "廃語の一覧に入れる。応答は Stop の hook が、文書はゲート1が検出する"
+  },
+  {
+   "what": "語",
+   "from": "「逃がす」「差し込み口」「差し込む」「に当てる」「当て直す」「組む ・ 組み立て ・ 組み直す」「札」「見分ける」「頼む」「ページの枠」「道具」",
+   "to": "エスケープする ・ プレースホルダー ・ 置換する（実装を渡す）・ 評価する（適用する）・ 評価し直す ・ 生成する（描画する）・ バッジ ・ 検出する ・ 呼び出す ・ レイアウト ・ ツール"
+  },
+  {
+   "what": "schema-driven のコード",
+   "from": "コメントとメッセージに、今回の語が91件あった（廃語の正規表現で数えた）",
+   "to": "0件。3c の変更と同じファイルのものは ACDR 0136 の差分に、それ以外の5つのファイルはこの差分に載せた"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "応答も文書も、廃語の一覧1つで検査する。",
+ "alternatives": [
+  {
+   "option": "CLAUDE.md の規則の文を強くする",
+   "why_not": "規則はすでに在り、それでも破られた。散文の規則は、書き手が見落とせば止まらない"
+  },
+  {
+   "option": "記憶に書く",
+   "why_not": "記憶は一時的なものを置く場所で、恒久の決まりを置かない（session-memory のガードレール）。しかも記憶は検査をしない"
+  },
+  {
+   "option": "活用形を見ずに、終止形の文字列だけで探す",
+   "why_not": "「組みます」「逃がして」のような形が通る。動詞には活用語尾まで含めた正規表現を付けた"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "retired",
+   "tab": "retired-words.json",
+   "file": ".doc-writing/retired-words.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"use_instead\": \"エスケープする\",",
+     "before": "（無かった）",
+     "why": "11の語を足した。動詞は活用語尾まで含めた正規表現（pattern）で探す。「に当てる」は「当てはまる」を、「組む」は「組み合わせ」を検出しない形にした"
+    }
+   ]
+  },
+  {
+   "key": "main",
+   "tab": "cli/src/main.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! CLI の実行ファイル。アダプタを作り、",
+     "before": "（語の置き換えの前の文）",
+     "why": "コメントの語を、廃語の一覧に合わせて置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "context",
+   "tab": "application/context.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/context.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "この値で評価する。",
+     "before": "（語の置き換えの前の文）",
+     "why": "コメントの語を、廃語の一覧に合わせて置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "instance",
+   "tab": "domain/instance.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/instance.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 読み込んだ内容からインスタンスを作る。",
+     "before": "（語の置き換えの前の文）",
+     "why": "コメントの語を、廃語の一覧に合わせて置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "check",
+   "tab": "domain/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の仕様どおりに適用する。",
+     "before": "（語の置き換えの前の文）",
+     "why": "コメントの語を、廃語の一覧に合わせて置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "inmod",
+   "tab": "inbound/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "ツールの一覧（tools）を通して",
+     "before": "（語の置き換えの前の文）",
+     "why": "コメントの語を、廃語の一覧に合わせて置き換えた"
+    }
+   ]
+  },
+  {
+   "key": "bbblocks",
+   "tab": "brainstorming-board の blocks.rs",
+   "file": ".claude/skills/brainstorming-board/tool/business_logic/src/blocks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"なぜ作り直したか\".to_owned(),",
+     "before": "\"なぜ組み直したか\".to_owned(),",
+     "why": "ブレストボードのツールが、閉じた前の答えの表に出す見出しの語。廃語の一覧に入れたので、ツールの出す文がゲート1に当たる。SKILL.md の同じ語は、Skill の文書をまとめて直す ACDR で直す"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "retired": "376fcf3ac41e138554aab057cced07aa66f48aa84d92044168df5a614340817f",
+  "main": "a0139b09635b02d3e6a6837cc26ccc1364d01cb63c2cf2b2eec320f3c5ae8891",
+  "context": "026f1375c79c00ee0420ac0bdfe2b3504a2a926ae74f94b6c8315f622b535889",
+  "instance": "42c4929cde5ce566b7bb662739c8a2dcc3a85919b16dea4d4f855e22cf199724",
+  "check": "5378c226cffa763e2a585655e1bbea3cb09af430e14812534c9b76a29b3fc174",
+  "inmod": "3310562b996c45a64bff3b010591809cce4b19a2258fda1771846cf813b97b4b",
+  "bbblocks": "1d58365adc9688c5686ce55d03ea8559a6dab3d5ef3716cb7529c4244e61c3ae"
+ }
+}

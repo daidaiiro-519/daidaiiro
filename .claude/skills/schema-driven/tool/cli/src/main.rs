@@ -1,4 +1,4 @@
-//! CLI の実行ファイル。アダプタを組み立て、入ってくる側の受け口へ渡す。
+//! CLI の実行ファイル。アダプタを作り、入ってくる側の受け口へ渡す。
 
 use schema_driven_adapters::inbound::cli;
 use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};

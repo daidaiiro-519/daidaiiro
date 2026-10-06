@@ -305,7 +305,7 @@ pub fn build(parts: &Parts, blocks: &[Value], figures: &Path) -> Result<String, 
                             + &text_of(b, "body"),
                     ),
                     (
-                        "なぜ組み直したか".to_owned(),
+                        "なぜ作り直したか".to_owned(),
                         cell(parts, &text_of(b, "why"))?,
                     ),
                 ];

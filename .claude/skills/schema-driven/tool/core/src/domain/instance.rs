@@ -30,7 +30,7 @@ pub struct Instance {
 }
 
 impl Instance {
-    /// 読み込んだ内容からインスタンスを組む。ハッシュ値は内容から求める（INV-1）。
+    /// 読み込んだ内容からインスタンスを作る。ハッシュ値は内容から求める（INV-1）。
     pub fn load(path: InstancePath, schema: SchemaPath, value: JsonValue) -> Self {
         let hash = value.hash();
         Self {

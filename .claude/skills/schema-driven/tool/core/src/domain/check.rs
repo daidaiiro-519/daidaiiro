@@ -1,5 +1,5 @@
 //! ドメインサービス 検査する（DS-1）。インスタンスの集まりについて、注釈 x-ref と x-derive を
-//! references/annotations.schema.json の仕様どおりに当てる。読むのは注釈と、インスタンスの id と kind だけ。
+//! references/annotations.schema.json の仕様どおりに適用する。読むのは注釈と、インスタンスの id と kind だけ。
 
 use crate::domain::schema::Schema;
 use crate::domain::values::{Derived as DerivedValue, Hash};
