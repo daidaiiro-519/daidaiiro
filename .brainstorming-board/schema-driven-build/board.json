@@ -15,7 +15,7 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1〜6が決着した。</b>次は外の作業で、具体のスキーマの決まり（references/schema.schema.json）を ACDR で置き、具体のスキーマを検査するツールを作り、見本の13件と acdr に適用して試す。そのあと 3d（render のツール）に進む。"
+     "text": "<b>論点1〜6が決着した。</b>次は外の作業で、具体のスキーマの決まり（references/meta-schema.json）を ACDR で置き、具体のスキーマを検査するツールを作り、見本の13件と acdr に適用して試す。そのあと 3d（render のツール）に進む。"
     },
     {
      "kind": "para",
@@ -1214,7 +1214,7 @@
    "name": "具体のスキーマが従う決まり",
    "status": "settled",
    "question": "スキーマは具体が持つ。基盤は、さまざまな具体のスキーマを、どんな共通の決まりに従わせ、それを誰がどう検査するか",
-   "answer": "D ── <b>基盤は、スキーマの中身ではなく書き方の決まりを、メタスキーマ references/schema.schema.json として持つ。</b>決まりは4つ（説明と案内 ・ kind と id ・ 基盤の注釈の形 ・ 具体の注釈の申告）で、<b>基盤のツールが具体のスキーマを検査する。</b>プロパティの名前と意味は具体が決め、基盤は知らない",
+   "answer": "D ── <b>基盤は、スキーマの中身ではなく書き方の決まりを、メタスキーマ references/meta-schema.json として持つ。</b>決まりは4つ（説明と案内 ・ kind と id ・ 基盤の注釈の形 ・ 具体の注釈の申告）で、<b>基盤のツールが具体のスキーマを検査する。</b>プロパティの名前と意味は具体が決め、基盤は知らない",
    "intro": "論点5で、具体は自分の契約（スキーマ）を持つと決めた。ここでは、具体ごとに違うスキーマに、基盤のツール（検証 ・ 案内 ・ 検査 ・ 描画）が同じように使えるための決まりを決める",
    "decision": {
     "letter": "D",
@@ -1262,7 +1262,7 @@
     },
     {
      "kind": "html",
-     "text": "<pre><code>// 基盤（抽象）：references/schema.schema.json（案）── 具体のスキーマが従う決まり\n{\n &quot;title&quot;: &quot;具体のスキーマの決まり&quot;,\n &quot;required&quot;: [&quot;title&quot;, &quot;description&quot;],\n &quot;properties&quot;: {\n  &quot;x-generates&quot;:  {&quot;type&quot;: &quot;string&quot;},              // インスタンスの置き場所\n  &quot;x-annotations&quot;: {&quot;propertyNames&quot;: {&quot;pattern&quot;: &quot;^x-&quot;}},  // 具体が足す注釈と、その仕様\n  &quot;x-view&quot;:       {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n  &quot;properties&quot;:   {&quot;$ref&quot;: &quot;#/$defs/fields&quot;},\n  &quot;$defs&quot;:        {&quot;additionalProperties&quot;: {&quot;$ref&quot;: &quot;#/$defs/shape&quot;}}\n },\n &quot;if&quot;:   {&quot;required&quot;: [&quot;x-generates&quot;]},             // インスタンスを作るスキーマは\n &quot;then&quot;: {&quot;properties&quot;: {&quot;properties&quot;: {&quot;required&quot;: [&quot;kind&quot;]}}},   // kind を持つ\n &quot;$defs&quot;: {\n  &quot;field&quot;: {&quot;required&quot;: [&quot;description&quot;, &quot;x-prompt&quot;],   // 書く単位ごとに説明と案内\n   &quot;properties&quot;: {\n    &quot;x-prompt&quot;: {&quot;required&quot;: [&quot;read&quot;, &quot;write&quot;]},\n    &quot;x-view&quot;:   {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n    &quot;x-ref&quot;:    {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-ref&quot;},\n    &quot;x-derive&quot;: {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-derive&quot;}}}\n }\n}</code></pre>"
+     "text": "<pre><code>// 基盤（抽象）：references/meta-schema.json（案）── 具体のスキーマが従う決まり\n{\n &quot;title&quot;: &quot;具体のスキーマの決まり&quot;,\n &quot;required&quot;: [&quot;title&quot;, &quot;description&quot;],\n &quot;properties&quot;: {\n  &quot;x-generates&quot;:  {&quot;type&quot;: &quot;string&quot;},              // インスタンスの置き場所\n  &quot;x-annotations&quot;: {&quot;propertyNames&quot;: {&quot;pattern&quot;: &quot;^x-&quot;}},  // 具体が足す注釈と、その仕様\n  &quot;x-view&quot;:       {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n  &quot;properties&quot;:   {&quot;$ref&quot;: &quot;#/$defs/fields&quot;},\n  &quot;$defs&quot;:        {&quot;additionalProperties&quot;: {&quot;$ref&quot;: &quot;#/$defs/shape&quot;}}\n },\n &quot;if&quot;:   {&quot;required&quot;: [&quot;x-generates&quot;]},             // インスタンスを作るスキーマは\n &quot;then&quot;: {&quot;properties&quot;: {&quot;properties&quot;: {&quot;required&quot;: [&quot;kind&quot;]}}},   // kind を持つ\n &quot;$defs&quot;: {\n  &quot;field&quot;: {&quot;required&quot;: [&quot;description&quot;, &quot;x-prompt&quot;],   // 書く単位ごとに説明と案内\n   &quot;properties&quot;: {\n    &quot;x-prompt&quot;: {&quot;required&quot;: [&quot;read&quot;, &quot;write&quot;]},\n    &quot;x-view&quot;:   {&quot;$ref&quot;: &quot;view.schema.json#/$defs/x-view&quot;},\n    &quot;x-ref&quot;:    {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-ref&quot;},\n    &quot;x-derive&quot;: {&quot;$ref&quot;: &quot;annotations.schema.json#/$defs/x-derive&quot;}}}\n }\n}</code></pre>"
     },
     {
      "kind": "para",
@@ -1486,10 +1486,16 @@
      "basis": "承認済みの契約（annotations.schema.json ・ view.schema.json）で、具体のスキーマ14件をすべての深さまで測った。x-view の文の型は JMESPath として読めるかと、古い絞りの書き方も数えた",
      "tag": "measured",
      "source": "測るためだけの Rust のツール（schema-driven-core の Schema と jmespath 0.5.0。2026-10-06）"
+    },
+    {
+     "supports": "名前 meta-schema.json",
+     "basis": "A schema that itself describes a schema is called a meta-schema.",
+     "tag": "primary",
+     "source": "JSON Schema Core（draft 2020-12）json-schema-core:2057（https://json-schema.org/draft/2020-12/json-schema-core、2026-10-07 に取得し、fact-check で引用を照合）"
     }
    ],
    "requirements": [
-    "references/schema.schema.json を ACDR で置く",
+    "references/meta-schema.json を ACDR で置く",
     "決まりに「x-view の文の型の {…} は普通の JMESPath で、パイプの右は関数の呼び出し」を入れ、ツールで検査する（ACDR 0129 の書き方を、構文の検査で止められない分まで見る）",
     "基盤に、具体のスキーマを検査するツールを置く（メタスキーマでの検証、申告していない注釈の検出、参照される種類の id の確認）",
     "ユースケース駆動の見本のスキーマを決まりに合わせる（meaning 系のキーを accept と bare へ、試しの x-view-* を x-view か具体の注釈へ、記録の種類に kind を足す）── 手順3で行う"
