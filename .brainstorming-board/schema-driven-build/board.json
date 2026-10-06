@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "schema-driven を Rust で作る ── アーキテクチャと技術スタック",
  "board": "schema-driven-build",
- "round": 5,
+ "round": 6,
  "intro": [
   {
    "kind": "para",
@@ -15,12 +15,17 @@
    "body": [
     {
      "kind": "para",
-     "text": "<b>論点1〜4が決着した。</b>次は外の作業で、page.schema.json とコンポーネントの一覧を ACDR で決め、3回目の実装で見本の9件のページテンプレートを書き直して試す。"
+     "text": "<b>論点5 を開いた。</b>論点4の「コンポーネントの一覧は基盤が持つ」は、ACDR 0132 で「具体が持つ」に改めた。ページテンプレートの形（論点4の残り）は変わらない。"
     }
    ]
   }
  ],
- "queue": [],
+ "queue": [
+  {
+   "no": 5,
+   "why": "ACDR 0132 で、コンポーネントの一覧と見た目を具体へ移した。3c（コンポーネントの仕組み）を作る前に、具体がそれを基盤へ渡す形を決める"
+  }
+ ],
  "topics": [
   {
    "no": 1,
@@ -950,6 +955,218 @@
      "item": "この答えを試す相手",
      "treatment": "later",
      "note": "3回目の実装で、見本の9件をこの形に書き直して試す"
+    }
+   ]
+  },
+  {
+   "no": 5,
+   "name": "コンポーネントを登録する形",
+   "status": "open",
+   "question": "具体（ユースケース駆動 ・ acdr など）は、自分のコンポーネントと見た目を、どんな形で基盤に登録するか",
+   "answer": "B ── <b>具体は、ポート Design を Rust で実装してコンポーネントを登録する。</b>見た目は具体のデータ（部品の HTML ・ CSS ・ JS）が持ち、コンポーネントの Rust は部品の差し込み口に値を入れるだけにする。基盤は、ページテンプレートを読んで組む流れ ・ 式の評価 ・ 文字の逃がし ・ 差し込み口の過不足の検査 ・ 入力の形でのページテンプレートの検査を持つ",
+   "intro": "ACDR 0132 で、コンポーネントの一覧と見た目は具体が持つと決めた。ここでは、それを基盤へ渡す形を決める。3回目の実装の 3c は、この答えで作る",
+   "decision": {
+    "letter": "B",
+    "text": [
+     {
+      "kind": "grid",
+      "cols": [
+       "持ち主",
+       "持つもの"
+      ],
+      "rows": [
+       [
+        "schema-driven（抽象）",
+        "ポート Design と Renderer。ページテンプレートを読んで節を並べ、show ・ each を当て、コンポーネントを名前で呼ぶ流れ。式の評価、文字の逃がし、部品の差し込み口の過不足の検査、登録された入力の形でのページテンプレートの検査"
+       ],
+       [
+        "具体（Rust）",
+        "Design の実装。コンポーネントごとに、入力の値を部品の差し込み口へ入れる処理だけを書く。ページと節の枠も、名前 page と section のコンポーネントとして書く"
+       ],
+       [
+        "具体（データ）",
+        "部品の HTML（&lt;template id&gt; と {{差し込み口}}）・ CSS ・ JS ・ 各コンポーネントの入力の形（JSON Schema）・ ページテンプレート"
+       ]
+      ]
+     },
+     {
+      "kind": "para",
+      "text": "<b>データの書き方は、ページテンプレート（JMESPath）と部品の HTML の2つだけである。</b>コンポーネントの中の繰り返しや入れ子は Rust で書くので、3つ目の小さな言語を作らない。"
+     }
+    ]
+   },
+   "example": [
+    {
+     "kind": "para",
+     "text": "<b>完成イメージ：表のコンポーネント</b>（ページテンプレートの要素 → 具体の Rust → 具体の部品の HTML）"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// ページテンプレート（データ）の要素。ここは論点4のまま\n{\"component\": \"table\", \"rows\": \"links[?at=='/use_cases'].target\",\n \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"component\": \"ref\", \"value\": \"@\"}},\n          {\"head\": \"主アクター\", \"value\": \"header.primary_actor\"}]}</code></pre>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>// schema-driven（抽象）が持つポート\npub trait Design: Send + Sync {\n    fn components(&amp;self) -&gt; Vec&lt;(String, Value)&gt;;  // 名前と入力の形（JSON Schema）\n    fn parts(&amp;self) -&gt; &amp;str;                         // 部品の HTML（&lt;template id&gt; の並び）\n    fn assets(&amp;self) -&gt; Assets;                      // CSS と JS\n    fn render(&amp;self, name: &amp;str, input: &amp;Value, r: &amp;mut dyn Renderer) -&gt; Result&lt;Html, String&gt;;\n}\n// 基盤が組み立ての中で渡す道具。文字は必ず逃がし、差し込み口の過不足は誤りにする\npub trait Renderer {\n    fn value(&amp;mut self, expr: &amp;Value) -&gt; Result&lt;Value, String&gt;;            // 今の位置に式を当てる\n    fn node_at(&amp;mut self, node: &amp;Value, at: &amp;Value) -&gt; Result&lt;Html, String&gt;; // 要素を、別の値を今の位置にして組む\n    fn part(&amp;self, id: &amp;str, slots: &amp;[(&amp;str, Html)]) -&gt; Result&lt;Html, String&gt;;\n    fn text(&amp;self, s: &amp;str) -&gt; Html;\n}\n\n// 具体（ユースケース駆動）が書くコンポーネント table ── 部品に値を差し込むだけ\n\"table\" =&gt; {\n    let rows = r.value(&amp;input[\"rows\"])?;\n    let cols = input[\"cols\"].as_array().unwrap();\n    let head = join(cols.iter().map(|c| r.part(\"th\", &amp;[(\"text\", r.text(str_of(&amp;c[\"head\"])))])))?;\n    let body = join(each(&amp;rows).map(|row| {\n        let cells = join(cols.iter().map(|c| {\n            let v = r.node_at(&amp;c[\"value\"], row)?;   // 列の値を、この行に当てる\n            r.part(\"td\", &amp;[(\"label\", r.text(str_of(&amp;c[\"head\"]))), (\"text\", v)])\n        }))?;\n        r.part(\"tr\", &amp;[(\"cells\", cells)])\n    }))?;\n    r.part(\"table\", &amp;[(\"head\", head), (\"body\", body)])\n}</code></pre>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>&lt;!-- 具体の parts.html（データ。いまの見本のまま） --&gt;\n&lt;template id=\"table\"&gt;&lt;div class=\"tw\"&gt;&lt;table class=\"st\"&gt;&lt;thead&gt;&lt;tr&gt;{{head}}&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{{body}}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/template&gt;\n&lt;template id=\"th\"&gt;&lt;th&gt;{{text}}&lt;/th&gt;&lt;/template&gt;\n&lt;template id=\"tr\"&gt;&lt;tr&gt;{{cells}}&lt;/tr&gt;&lt;/template&gt;\n&lt;template id=\"td\"&gt;&lt;td data-label=\"{{label}}\"&gt;{{text}}&lt;/td&gt;&lt;/template&gt;</code></pre>"
+    },
+    {
+     "kind": "grid",
+     "cols": [
+      "誰が",
+      "この例で何をするか"
+     ],
+     "rows": [
+      [
+       "基盤",
+       "rows の式を文脈に当てる。cols の各 value（ページテンプレートの要素）を、行ごとに今の位置を替えて組む。{{…}} に入る文字はすべて逃がし、部品に無い差し込み口を渡したら誤りにする"
+      ],
+      [
+       "具体の Rust",
+       "どの部品をどう並べるかだけを書く。HTML の文字列を自分で組まない"
+      ],
+      [
+       "具体のデータ",
+       "部品の HTML ・ CSS は、いまの見本の parts.html と view.css をそのまま使える"
+      ]
+     ]
+    }
+   ],
+   "figures": [
+    {
+     "kind": "figure",
+     "name": "design",
+     "caption": "具体は Design（コンポーネント）と Functions（関数）を Rust で実装し、見た目はデータで持つ。基盤は組み立ての流れと検査を持つ。"
+    }
+   ],
+   "passed": [
+    {
+     "name": "具体が Design を Rust で実装する",
+     "body": "コンポーネントは部品の差し込み口に値を入れる Rust の処理で、見た目は部品の HTML ・ CSS ・ JS のデータ",
+     "cost": "具体は Rust でビルドする。ただし ACDR 0132 で、具体はすでに Rust で関数を足す側になっている"
+    },
+    {
+     "name": "コンポーネントもデータで定義する",
+     "body": "部品の差し込み口ごとに、何を入れるかを JSON で書く（each ・ as ・ part ・ fill ・ place ・ with）",
+     "cost": "表の行の中で列の値をその行に当て直すには、名前を付けた繰り返しと、別の値に当て直す書き方を必要とする。ページテンプレートと別の、3つ目の小さな言語になる"
+    },
+    {
+     "name": "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
+     "body": "コンポーネントごとに、条件と繰り返しを持つ HTML のテンプレートを書く",
+     "cost": "JMESPath と別のテンプレートの文法を覚える。crate が増える。入力の形と、テンプレートが読む値のずれを検査できない"
+    }
+   ],
+   "tables": [
+    {
+     "caption": "案ごとの帰結",
+     "cols": [
+      "データで覚える書き方",
+      "表の中の入れ子",
+      "具体に Rust を必要とするか"
+     ],
+     "rows": [
+      [
+       "具体が Design を Rust で実装する",
+       [
+        "<b>JMESPath と部品の HTML</b>",
+        "<b>Rust で素直に書ける</b>",
+        "必要とする（0132 ですでに必要としている）"
+       ]
+      ],
+      [
+       "コンポーネントもデータで定義する",
+       [
+        "<b>3つ目の小さな言語</b>",
+        "名前付きの繰り返しと当て直しを必要とする",
+        "<b>必要としない</b>"
+       ]
+      ],
+      [
+       "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
+       [
+        "テンプレートの文法",
+        "テンプレートの文法で書ける",
+        "必要としない（crate が増える）"
+       ]
+      ]
+     ]
+    }
+   ],
+   "dropped": [
+    {
+     "body": "コンポーネントもデータで定義する",
+     "reason": "ACDR 0128 で見本の92種類のキー（独自の道 ・ 条件 ・ 繰り返し）を捨て、0129 で JMESPath を包む書き方もやめた。データの定義は、同じ形の言語を3つ目として作り直すことになる"
+    },
+    {
+     "body": "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
+     "reason": "論点4で、ページテンプレートについて同じ理由（別の文法 ・ 検査できない ・ crate が増える）で除外した。コンポーネントでも同じことが起きる"
+    }
+   ],
+   "path": [
+    {
+     "kind": "para",
+     "text": "見本の parts.html は58の部品を &lt;template id&gt; と {{差し込み口}} で持ち、どの部品をどう並べるかは試作のコード（compose7.py）が持っていた。acdr と brainstorming-board も、型の HTML と「値を差し込むだけの組み立て」で同じ分け方をしている。これを基盤と具体の境目にそのまま当てた。"
+    }
+   ],
+   "findings": [
+    "見本の表は th ・ tr ・ td の部品を入れ子で並べ、列の値を行ごとに当て直す ── JMESPath は外側の変数を使えないので、データで書くと当て直しの書き方を別に必要とする",
+    "acdr と brainstorming-board は、型（&lt;template&gt; と {{差し込み口}}）を正本にし、組み立ては値を差し込むだけにしている ── 具体のコンポーネントも同じ形にできる",
+    "ページテンプレートの要素は論点4のまま変わらない ── 変わるのは、コンポーネントの中身を誰が持つかだけである"
+   ],
+   "grounds": [
+    {
+     "supports": "具体の見た目と、コンポーネントの一覧を具体が持つこと",
+     "basis": "描画の具体の表現（コンポーネントの一覧 ・ 見た目 ・ 言語や具体に寄った関数）は基盤の上に作るものが持ち、schema-driven は描画の抽象だけを持つ",
+     "tag": "rule",
+     "source": "ACDR 0132"
+    },
+    {
+     "supports": "具体が Rust で実装すること",
+     "basis": "基盤の関数は6つ。clause ・ neg ・ fill は具体が足す（ポート Functions を実装する）",
+     "tag": "rule",
+     "source": "ACDR 0132"
+    },
+    {
+     "supports": "部品と、値を差し込むだけの組み立てに分けること",
+     "basis": "組み立ては値を差し込むだけである ── 形をコードの中の文字列に散らさない",
+     "tag": "rule",
+     "source": ".claude/skills/acdr/SKILL.md の参照（acdr.template.html）"
+    },
+    {
+     "supports": "3つ目の書き方を作らないこと",
+     "basis": "見本の独自の書き方を減らして残す案を除外し、JMESPath に寄せた",
+     "tag": "rule",
+     "source": "ボード schema-driven-build の論点4、ACDR 0128 ・ 0129"
+    },
+    {
+     "supports": "いまの部品がそのまま使えること",
+     "basis": "parts.html の58の部品は、どれも &lt;template id&gt; と {{差し込み口}} で書かれている",
+     "tag": "measured",
+     "source": "ボード usecase-driven-concrete の sample/design/parts.html（2026-10-06 に読んだ）"
+    }
+   ],
+   "requirements": [
+    "3c で、テスト用の小さなデザイン（Rust）を作り、文字の逃がし ・ 差し込み口の過不足 ・ 行ごとの当て直し ・ show と each ・ 入力の形でのページテンプレートの検査 ・ 知らない名前の誤りを確かめる",
+    "Design と Renderer の形は、3c の実装で試してから ACDR で決める",
+    "ページと節の枠は、具体の page と section のコンポーネントにする（基盤は枠の見た目を持たない）"
+   ],
+   "out_of_scope": [
+    {
+     "item": "具体のバイナリの作り方（基盤の crate を使って、具体の CLI と MCP を組む）",
+     "treatment": "later",
+     "note": "4回目（転写）で決める。この答えを覆さない ── Design を実装したものを組み込む方法の話である"
+    },
+    {
+     "item": "デザイントークンの形",
+     "treatment": "out",
+     "note": "ACDR 0132 で具体が持つと決めた。基盤は CSS と JS をページに入れるだけである"
+    },
+    {
+     "item": "この答えを試す相手",
+     "treatment": "later",
+     "note": "外の作業（3c の実装）で、テスト用の小さなデザインに使って試す"
     }
    ]
   }
