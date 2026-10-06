@@ -24,7 +24,7 @@ struct Inner {
     instances: Vec<Instance>,
 }
 
-/// x-view の文の型を当てる道具。
+/// x-view の文の型を適用するエンジン。
 #[derive(Clone)]
 pub struct ViewEngine {
     inner: Arc<Inner>,
@@ -145,6 +145,24 @@ impl ViewEngine {
         })
     }
 
+    /// 基盤の関数（と具体が足した関数）を使って、式を値で評価する。ページテンプレートの式に使う。
+    pub fn evaluate(&self, schema: &str, expr: &str, value: &Value) -> Result<Value, ViewError> {
+        let host = Arc::new(Host {
+            engine: self.clone(),
+            schema: schema.to_owned(),
+            xv: Value::Null,
+        });
+        self.inner
+            .query
+            .evaluate(expr, value, host)
+            .map_err(|e| ViewError(e.0))
+    }
+
+    /// 参照の指す先の名前（name() と同じ）。
+    pub fn name(&self, reference: &str) -> String {
+        self.name_of(reference)
+    }
+
     /// スキーマの場所（JSON Pointer）にある x-view で、値を文にする。x-view が無ければ値をそのまま文字にする。
     pub fn render(&self, schema: &str, pointer: &str, value: &Value) -> Result<String, ViewError> {
         let s = self
@@ -246,7 +264,7 @@ impl ViewEngine {
         reference.to_owned()
     }
 
-    /// インスタンスの中の場所 path にある値の形の x-view の label を、その値に当てた名前。
+    /// インスタンスの中の場所 path にある値の形の x-view の label を、その値で評価した名前。
     fn label_at(&self, inst: &Instance, path: &[String]) -> Option<String> {
         let schema = self.inner.schemas.get(&inst.schema)?;
         let mut node = schema.root();
@@ -321,7 +339,7 @@ struct Host {
     xv: Value,
 }
 
-/// 配列なら要素ごとに当てる。
+/// 配列なら要素ごとに適用する。
 fn each(v: &Value, f: &dyn Fn(&Value) -> Result<Value, String>) -> Result<Value, String> {
     match v {
         Value::Array(a) => a

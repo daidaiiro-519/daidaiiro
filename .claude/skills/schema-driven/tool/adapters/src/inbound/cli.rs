@@ -1,13 +1,23 @@
-//! CLI の受け口。`<道具> --引数 値 …` を道具の一覧の呼び出しへ直す。
+//! CLI の受け口。`<ツール> --引数 値 …` をツールの一覧の呼び出しへ変換する。
 
-use crate::inbound::tools;
+use crate::inbound::tools::{self, Toolbox};
 use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases};
 use serde_json::{Map, Value};
 
-/// 引数を読み、道具を呼んで、終了コードと出力を返す。
+/// 引数を読み、基盤のツールを呼び出して、終了コードと出力を返す。
 pub fn run(args: &[String], uc: &dyn InstanceUseCases, cc: &dyn CheckUseCases) -> (i32, Value) {
+    run_in(&Toolbox::base(), args, uc, cc)
+}
+
+/// 引数を読み、ツールの一覧（具体のツールを追加したものでもよい）から呼び出す。
+pub fn run_in(
+    tb: &Toolbox,
+    args: &[String],
+    uc: &dyn InstanceUseCases,
+    cc: &dyn CheckUseCases,
+) -> (i32, Value) {
     let Some((command, rest)) = args.split_first() else {
-        return tools::misuse("道具の名前が無い");
+        return tools::misuse("ツールの名前が無い");
     };
     let mut map = Map::new();
     let mut it = rest.iter();
@@ -20,5 +30,5 @@ pub fn run(args: &[String], uc: &dyn InstanceUseCases, cc: &dyn CheckUseCases) -
         };
         map.insert(name.to_owned(), Value::String(value.clone()));
     }
-    tools::dispatch(command, &map, uc, cc)
+    tb.dispatch(command, &map, uc, cc)
 }

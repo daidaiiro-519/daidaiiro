@@ -61,11 +61,69 @@ pub trait Query: Send + Sync {
         expression: &str,
         json: &serde_json::Value,
     ) -> Result<serde_json::Value, QueryError>;
-    /// functions の関数（基盤の関数と、具体が足した関数）を足して、式を JSON の値に当てる。
+    /// functions の関数（基盤の関数と、具体が足した関数）を追加して、式を JSON の値で評価する。
     fn evaluate(
         &self,
         expression: &str,
         json: &serde_json::Value,
         functions: std::sync::Arc<dyn Functions>,
     ) -> Result<serde_json::Value, QueryError>;
+}
+
+/// ページのレイアウトに渡すもの（3c）。題は文字、ほかは基盤が生成した HTML。
+#[derive(Debug, Clone, Default)]
+pub struct Frame {
+    pub title: String,
+    pub badges: crate::domain::values::Html,
+    pub lead: crate::domain::values::Html,
+    pub sections: crate::domain::values::Html,
+}
+
+/// 基盤がコンポーネントに渡す API（3c）。式の評価 ・ 要素の描画 ・ プレースホルダーの置換 ・ エスケープを持つ。
+pub trait Renderer {
+    /// 今の位置に式を当てた値。{"text": …} なら、その文字。
+    fn value(&mut self, expr: &serde_json::Value) -> Result<serde_json::Value, String>;
+    /// ページテンプレートの要素を、今の位置で描画する。
+    fn node(&mut self, node: &serde_json::Value) -> Result<crate::domain::values::Html, String>;
+    /// ページテンプレートの要素を、at を今の位置にして描画する（表の列を行ごとに評価するときなど）。
+    fn node_at(
+        &mut self,
+        node: &serde_json::Value,
+        at: &serde_json::Value,
+    ) -> Result<crate::domain::values::Html, String>;
+    /// 部品のプレースホルダーを置換する。プレースホルダーと、渡した名前が1つでも合わなければエラー。
+    fn part(
+        &self,
+        id: &str,
+        slots: &[(&str, crate::domain::values::Html)],
+    ) -> Result<crate::domain::values::Html, String>;
+    /// 文字をエスケープする。
+    fn text(&self, text: &str) -> crate::domain::values::Html;
+    /// ページテンプレートの tones の表を引く。
+    fn tone(&self, table: &str, value: &serde_json::Value) -> Option<String>;
+}
+
+/// 具体が実装を渡すデザイン（3c。ボード schema-driven-build の論点5、ACDR 0132）。
+/// コンポーネントの一覧 ・ 部品の HTML ・ ページと節のレイアウトを具体が持ち、基盤は中身を知らない。
+pub trait Design: Send + Sync {
+    /// コンポーネントの名前と、入力の形（JSON Schema）。
+    fn components(&self) -> Vec<(String, serde_json::Value)>;
+    /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）。
+    fn parts(&self) -> &str;
+    /// ページのレイアウト。
+    fn page(&self, frame: &Frame, r: &dyn Renderer) -> Result<crate::domain::values::Html, String>;
+    /// 節のレイアウト。
+    fn section(
+        &self,
+        heading: &str,
+        body: crate::domain::values::Html,
+        r: &dyn Renderer,
+    ) -> Result<crate::domain::values::Html, String>;
+    /// コンポーネント1つを描画する。show と each は基盤が適用してから呼び出す。
+    fn render(
+        &self,
+        name: &str,
+        input: &serde_json::Value,
+        r: &mut dyn Renderer,
+    ) -> Result<crate::domain::values::Html, String>;
 }

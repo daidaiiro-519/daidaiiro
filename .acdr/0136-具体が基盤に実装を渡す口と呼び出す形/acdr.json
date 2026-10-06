@@ -1,0 +1,272 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0136",
+ "title": "具体が基盤に実装を渡す口と、基盤を呼び出す形",
+ "date": "2026-10-06",
+ "status": "accepted",
+ "decision": "具体は、コンポーネントの実装をポート Design に、固有のツールを ExtraTools に渡し、基盤の crate の公開の関数と型を呼び出して自分のツールを作る",
+ "why": "ボード schema-driven-build の論点5（C）で、具体は自分のヘキサゴナルを持ち、基盤の crate を転写して呼び出すと決めた。要求事項は、実装を渡す口の形と、具体から呼び出す公開の形を、3c で試してから ACDR で決めることだった。テスト用の小さな具体（部品 page ・ section ・ pill ・ table と、ツール seal）で試し、基盤の側に具体の名前を1つも置かずに作れた。",
+ "shift": [
+  {
+   "what": "コンポーネントの実装を渡す口",
+   "from": "無い（ACDR 0128 の19種類を基盤が描画する予定だった）",
+   "to": "ポート Design（components ・ parts ・ page ・ section ・ render）。基盤は Renderer（value ・ node ・ node_at ・ part ・ text ・ tone）を渡す"
+  },
+  {
+   "what": "HTML の作り方",
+   "from": "文字列を作る",
+   "to": "型 Html。作れるのは、文字をエスケープするか、部品のプレースホルダーを置換するかだけで、具体は HTML の文字列を作れない。プレースホルダーと渡した名前が1つでも合わなければエラー"
+  },
+  {
+   "what": "ページのレイアウト",
+   "from": "page と section を予約したコンポーネントの名前にする（論点5の前の答え）",
+   "to": "Design のメソッド page と section にする。具体のコンポーネントの名前と重ならない"
+  },
+  {
+   "what": "ツールの一覧",
+   "from": "基盤の7つで固定（TOOLS と dispatch）",
+   "to": "Toolbox。基盤のツールのあとに具体の ExtraTools を追加する。引数の検査は基盤が行い、基盤のツールと同じ名前は追加できない。CLI と MCP は Toolbox から作る"
+  },
+  {
+   "what": "具体から呼び出す公開の形",
+   "from": "決まっていない",
+   "to": "core は application（Instances ・ Checks ・ contexts ・ ViewEngine ・ PageRenderer ・ page_errors）と domain と ports を公開する。adapters は inbound の Toolbox ・ ExtraTools ・ cli::run_in と、outbound の fs ・ jmespath を公開する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "描画では、基盤が具体の Design を呼び出し、Design は基盤の Renderer を呼び出す。ツールでは、基盤の Toolbox が引数を検査してから具体のツールを呼び出す。",
+ "alternatives": [
+  {
+   "option": "Design が HTML の文字列を返す",
+   "why_not": "エスケープ漏れを、具体ごとに探すことになる。型で防げば、具体はエスケープしていない文字を入れられない"
+  },
+  {
+   "option": "page と section を予約したコンポーネントの名前にする",
+   "why_not": "具体が同じ名前のコンポーネントを作れなくなり、予約の名前の一覧を基盤が持ち続けることになる"
+  },
+  {
+   "option": "具体のツールの引数を、具体が自分で検査する",
+   "why_not": "知らない引数 ・ 必須 ・ 文字列かの検査が具体ごとに書かれ、基盤のツールと振る舞いがずれる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "outbound",
+   "tab": "ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub trait Design: Send + Sync {",
+     "before": "（無かった）",
+     "why": "具体がコンポーネント ・ 部品 ・ ページと節のレイアウトの実装を渡す口。Frame と Renderer も同じまとまりに置いた"
+    },
+    {
+     "find": "を追加して、式を JSON の値で評価する。",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    }
+   ]
+  },
+  {
+   "key": "values",
+   "tab": "domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Html(String);",
+     "before": "（無かった）",
+     "why": "作れるのはエスケープした文字と、基盤がプレースホルダーを置換した部品だけにする。具体の側でエスケープ漏れが起きない"
+    },
+    {
+     "find": "JSON Patch を JSON の値に適用して、新しい値を求める。",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    }
+   ]
+  },
+  {
+   "key": "page",
+   "tab": "application/page.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct PageRenderer {",
+     "before": "（新しいファイル）",
+     "why": "節を並べ、show ・ each を適用し、式を描画の文脈で評価し、コンポーネントの描画を Design に任せる。部品のプレースホルダーの過不足はエラーにする"
+    }
+   ]
+  },
+  {
+   "key": "mod",
+   "tab": "application/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod page;",
+     "before": "（無かった）",
+     "why": "ページの生成をユースケースの層に置く"
+    }
+   ]
+  },
+  {
+   "key": "view",
+   "tab": "application/view.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn evaluate(&self, schema: &str, expr: &str, value: &Value) -> Result<Value, ViewError> {",
+     "before": "（無かった）",
+     "why": "ページテンプレートの式も、x-view と同じ関数（基盤の6つと具体が追加したもの）で評価する。題に使う name も公開した"
+    },
+    {
+     "find": "/// x-view の文の型を適用するエンジン。",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    },
+    {
+     "find": "の label を、その値で評価した名前。",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    },
+    {
+     "find": "/// 配列なら要素ごとに適用する。",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    }
+   ]
+  },
+  {
+   "key": "tools",
+   "tab": "inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[derive(Debug, Clone, Copy)]",
+     "before": "pub struct ToolDef {",
+     "why": "基盤の一覧を複製して、具体のツールを追加できるようにする"
+    },
+    {
+     "find": "pub trait ExtraTools {",
+     "before": "pub fn dispatch(…) の中で、基盤の7つだけを検査して呼び出していた",
+     "why": "具体のツールを受ける口と、基盤のツールに追加した一覧（Toolbox）。引数の検査は具体のツールにも基盤が行う。dispatch は基盤だけの Toolbox を呼び出す形で残した"
+    },
+    {
+     "find": "/// 使い方の誤り（終了コード 2）。基盤のツールだけを並べる。",
+     "before": "/// 使い方の誤り（終了コード 2）。",
+     "why": "使い方の誤りで並べる名前を、Toolbox の一覧から出せるようにした（misuse_in）。基盤だけのときは misuse のまま"
+    },
+    {
+     "find": "fn call_base(",
+     "before": "pub fn dispatch(…) の後半で、ツールの名前ごとにユースケースを呼び出していた",
+     "why": "引数の検査を Toolbox に移し、基盤のユースケースを呼び出す部分だけを残した"
+    },
+    {
+     "find": "//! ツールの一覧。CLI と MCP は",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    },
+    {
+     "find": "/// ツール1つ：",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    },
+    {
+     "find": "/// ツールの引数を JSON Schema で表す",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    },
+    {
+     "find": "知らないツール: {name}\")),",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "inbound/cli.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::inbound::tools::{self, Toolbox};",
+     "before": "use crate::inbound::tools;",
+     "why": "CLI の受け口も Toolbox から呼び出す"
+    },
+    {
+     "find": "    tb.dispatch(command, &map, uc, cc)",
+     "before": "    tools::dispatch(command, &map, uc, cc)",
+     "why": "渡された Toolbox から呼び出す。具体は自分の Toolbox を渡して、同じ CLI の受け口を使う（run は基盤だけの Toolbox を渡す）"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "mcp/main.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let list = tools::Toolbox::base()",
+     "before": "let list = tools::TOOLS",
+     "why": "MCP のツールの一覧も Toolbox から作る"
+    },
+    {
+     "find": "tools::Toolbox::base().dispatch(",
+     "before": "tools::dispatch(&request.name, &args, &use_cases, &checks)",
+     "why": "呼び出しも Toolbox から"
+    },
+    {
+     "find": "//! MCP の実行ファイル。アダプタを作り",
+     "before": "（語の置き換えの前の文）",
+     "why": "ACDR 0137 に合わせ、既存のコメントとメッセージの語を置き換えた（エスケープ ・ プレースホルダー ・ 評価 ・ 生成 ・ ツール）"
+    }
+   ]
+  },
+  {
+   "key": "tpage",
+   "tab": "テスト page.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "struct MiniDesign {",
+     "before": "（新しいファイル）",
+     "why": "テスト用の小さな具体。8件で、題 ・ 節の show ・ エスケープ ・ each と show ・ 行ごとの評価 ・ 具体の関数 ・ プレースホルダーの過不足 ・ 知らないコンポーネント ・ 入力の形の検査を確認する。実装を6か所わざと変えると、どれもテストが失敗する"
+    }
+   ]
+  },
+  {
+   "key": "ttool",
+   "tab": "テスト toolbox.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/toolbox.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "struct Seal;",
+     "before": "（新しいファイル）",
+     "why": "テスト用の具体のツール。追加したツールが一覧の後ろに並んで呼び出されること、引数の検査を基盤が行うこと、同じ名前を追加できないことを確認する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "outbound": "8294c32e37eafb01ffdd9b262205926eff08ad914dd3ca5cc49b03491efca817",
+  "values": "e0a44f3e758565698c092f4c20a8c4260487082dacbe375457a7e369c4146221",
+  "page": "dd2b892c27b10ee2dbd6d7e0413a23784226e614623cacd7037b42ee12c775e5",
+  "mod": "d2766280fef169b0259b8e8a4e22c2c15c9f80175053e489163beb45be35d7eb",
+  "view": "63f4bf859eddcbf76c727a3d22e3a8e0dbcff9ba0c3e62cfff77157934ee0f6c",
+  "tools": "f643817dab146fb0f9305211f3827af2ca28c977c76b59765e158aa121530b6d",
+  "cli": "0cf559107c7c13a679eab445be95d32f55e3caa1aef8eaae52aedd13544da8b6",
+  "mcp": "0997e4d0e0bcc9c9d733d199f2962918840dc4ee82326360e696cb67cc1f867d",
+  "tpage": "86a2167eee4aa5c67914dfbc9b2db9a0067043387251f4e56c176b4ef4082cce",
+  "ttool": "df8f47bd9ebdfd843e379f113367b95aeada322a28704534d93650f5c05163dd"
+ }
+}

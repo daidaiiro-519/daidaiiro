@@ -118,7 +118,7 @@ impl JsonPatch {
         &self.0
     }
 
-    /// OP-1 適用する。JSON Patch を JSON の値に当てて、新しい値を求める。
+    /// OP-1 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。
     pub fn apply(&self, target: &JsonValue) -> Result<JsonValue, PatchError> {
         let patch: json_patch::Patch = serde_json::from_str(&self.0)
             .map_err(|e| PatchError(format!("JSON Patch として読めない: {e}")))?;
@@ -272,5 +272,42 @@ impl ApprovedInstance {
     }
     pub fn hash(&self) -> &Hash {
         &self.hash
+    }
+}
+
+/// 生成した HTML の断片（3c）。作れるのは、文字をエスケープするか、部品のプレースホルダーを置換するかだけである。
+/// 具体は HTML の文字列を自分で作らない ── エスケープ漏れを型で防ぐ。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Html(String);
+
+impl Html {
+    /// 文字をエスケープして HTML にする。
+    pub fn escape(text: &str) -> Self {
+        let mut s = String::with_capacity(text.len());
+        for c in text.chars() {
+            match c {
+                '&' => s.push_str("&amp;"),
+                '<' => s.push_str("&lt;"),
+                '>' => s.push_str("&gt;"),
+                '"' => s.push_str("&quot;"),
+                '\'' => s.push_str("&#39;"),
+                other => s.push(other),
+            }
+        }
+        Self(s)
+    }
+
+    /// 部品のプレースホルダーを置換した結果など、基盤の中で生成したものだけを包む。
+    pub(crate) fn trusted(html: String) -> Self {
+        Self(html)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// 後ろにつなぐ。
+    pub fn push(&mut self, other: Html) {
+        self.0.push_str(&other.0);
     }
 }

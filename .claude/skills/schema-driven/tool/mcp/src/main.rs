@@ -1,4 +1,4 @@
-//! MCP の実行ファイル。アダプタを組み立て、道具の一覧（adapters の tools）を MCP の道具として出す。
+//! MCP の実行ファイル。アダプタを作り、ツールの一覧（adapters の tools）を MCP のツールとして出す。
 //! rmcp と tokio はこの crate にだけ現れる（ACDR 0122）。
 
 use rmcp::model::{
@@ -27,7 +27,8 @@ impl ServerHandler for Server {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + MaybeSendFuture + '_ {
-        let list = tools::TOOLS
+        let list = tools::Toolbox::base()
+            .list()
             .iter()
             .map(|t| Tool::new(t.name, t.description, tools::input_schema(t)))
             .collect();
@@ -43,7 +44,8 @@ impl ServerHandler for Server {
         let use_cases = Instances::new(&files, &files, &query);
         let args = request.arguments.unwrap_or_default();
         let checks = Checks::new(&files, &files, &query);
-        let (code, out) = tools::dispatch(&request.name, &args, &use_cases, &checks);
+        let (code, out) =
+            tools::Toolbox::base().dispatch(&request.name, &args, &use_cases, &checks);
         let content = vec![ContentBlock::text(out.to_string())];
         let result = if code == 0 {
             CallToolResult::success(content)

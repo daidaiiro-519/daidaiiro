@@ -3,5 +3,6 @@
 pub mod checks;
 pub mod context;
 pub mod instances;
+pub mod page;
 pub mod paths;
 pub mod view;
