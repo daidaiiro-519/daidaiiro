@@ -23,7 +23,7 @@
  "queue": [
   {
    "no": 5,
-   "why": "ACDR 0132 で、コンポーネントの一覧と見た目を具体へ移した。3c（コンポーネントの仕組み）を作る前に、具体がそれを基盤へ渡す形を決める"
+   "why": "利用者の差し戻しで、問いを「コンポーネントと見た目の登録」から「基盤の上に作る Skill の形」へ立て直した。3c と4回目は、この答えで作る"
   }
  ],
  "topics": [
@@ -960,135 +960,158 @@
   },
   {
    "no": 5,
-   "name": "コンポーネントを登録する形",
+   "name": "基盤の上に作る Skill の形",
    "status": "open",
-   "question": "具体（ユースケース駆動 ・ acdr など）は、自分のコンポーネントと見た目を、どんな形で基盤に登録するか",
-   "answer": "B ── <b>具体は、ポート Design を Rust で実装してコンポーネントを登録する。</b>見た目は具体のデータ（部品の HTML ・ CSS ・ JS）が持ち、コンポーネントの Rust は部品の差し込み口に値を入れるだけにする。基盤は、ページテンプレートを読んで組む流れ ・ 式の評価 ・ 文字の逃がし ・ 差し込み口の過不足の検査 ・ 入力の形でのページテンプレートの検査を持つ",
-   "intro": "ACDR 0132 で、コンポーネントの一覧と見た目は具体が持つと決めた。ここでは、それを基盤へ渡す形を決める。3回目の実装の 3c は、この答えで作る",
+   "question": "基盤の上に作る Skill（具体）は、基盤の能力をどう使い、自分に固有の能力と契約をどこに持つか",
+   "answer": "C ── <b>具体は、自分のヘキサゴナル（契約 ・ ユースケース ・ アダプタ ・ CLI と MCP）を持ち、基盤の crate を転写して部品として呼ぶ。</b>基盤のポートは、基盤のユースケースのうち具体ごとに変わるところにだけ置き、具体はそこへ実装を差し込む（Functions ・ Design）。<b>具体に固有の能力は具体の core に置き、基盤へ戻さない</b>",
+   "intro": "ACDR 0132 で、描画の具体の表現を具体へ移した。ここでは、具体が持つものの全体（固有の能力と契約）と、基盤との境目を決める。3回目の 3c と、4回目（転写）は、この答えで作る",
    "decision": {
-    "letter": "B",
+    "letter": "C",
     "text": [
      {
       "kind": "grid",
       "cols": [
-       "持ち主",
+       "置き場所",
        "持つもの"
       ],
       "rows": [
        [
-        "schema-driven（抽象）",
-        "ポート Design と Renderer。ページテンプレートを読んで節を並べ、show ・ each を当て、コンポーネントを名前で呼ぶ流れ。式の評価、文字の逃がし、部品の差し込み口の過不足の検査、登録された入力の形でのページテンプレートの検査"
+        "具体のヘキサゴナル",
+        "具体の契約（references のスキーマと注釈）。具体のユースケースとドメイン（固有の能力）。具体のアダプタ（git ・ テストの記録など）。1つの CLI と1つの MCP"
        ],
        [
-        "具体（Rust）",
-        "Design の実装。コンポーネントごとに、入力の値を部品の差し込み口へ入れる処理だけを書く。ページと節の枠も、名前 page と section のコンポーネントとして書く"
+        "基盤の crate（転写した複製）",
+        "具体が部品として呼ぶもの。読み書き ・ 検証 ・ 検査と参照の解決（graph）・ 描画の文脈 ・ x-view ・ ページの組み立て ・ 道具の一覧"
        ],
        [
-        "具体（データ）",
-        "部品の HTML（&lt;template id&gt; と {{差し込み口}}）・ CSS ・ JS ・ 各コンポーネントの入力の形（JSON Schema）・ ページテンプレート"
+        "基盤のポート",
+        "基盤のユースケースのうち、具体ごとに変わるところにだけ置く。いまは Functions（文の型の関数）と Design（コンポーネントと部品）"
        ]
       ]
      },
      {
       "kind": "para",
-      "text": "<b>データの書き方は、ページテンプレート（JMESPath）と部品の HTML の2つだけである。</b>コンポーネントの中の繰り返しや入れ子は Rust で書くので、3つ目の小さな言語を作らない。"
+      "text": "<b>向きは「具体が基盤を使う」である。</b>基盤は具体を知らない。具体の道具の一覧は、基盤の道具（get ・ validate ・ check ・ render など）に具体の道具を足したものになる。"
      }
     ]
    },
    "example": [
     {
      "kind": "para",
-     "text": "<b>完成イメージ：表のコンポーネント</b>（ページテンプレートの要素 → 具体の Rust → 具体の部品の HTML）"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>// ページテンプレート（データ）の要素。ここは論点4のまま\n{\"component\": \"table\", \"rows\": \"links[?at=='/use_cases'].target\",\n \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"component\": \"ref\", \"value\": \"@\"}},\n          {\"head\": \"主アクター\", \"value\": \"header.primary_actor\"}]}</code></pre>"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>// schema-driven（抽象）が持つポート\npub trait Design: Send + Sync {\n    fn components(&amp;self) -&gt; Vec&lt;(String, Value)&gt;;  // 名前と入力の形（JSON Schema）\n    fn parts(&amp;self) -&gt; &amp;str;                         // 部品の HTML（&lt;template id&gt; の並び）\n    fn assets(&amp;self) -&gt; Assets;                      // CSS と JS\n    fn render(&amp;self, name: &amp;str, input: &amp;Value, r: &amp;mut dyn Renderer) -&gt; Result&lt;Html, String&gt;;\n}\n// 基盤が組み立ての中で渡す道具。文字は必ず逃がし、差し込み口の過不足は誤りにする\npub trait Renderer {\n    fn value(&amp;mut self, expr: &amp;Value) -&gt; Result&lt;Value, String&gt;;            // 今の位置に式を当てる\n    fn node_at(&amp;mut self, node: &amp;Value, at: &amp;Value) -&gt; Result&lt;Html, String&gt;; // 要素を、別の値を今の位置にして組む\n    fn part(&amp;self, id: &amp;str, slots: &amp;[(&amp;str, Html)]) -&gt; Result&lt;Html, String&gt;;\n    fn text(&amp;self, s: &amp;str) -&gt; Html;\n}\n\n// 具体（ユースケース駆動）が書くコンポーネント table ── 部品に値を差し込むだけ\n\"table\" =&gt; {\n    let rows = r.value(&amp;input[\"rows\"])?;\n    let cols = input[\"cols\"].as_array().unwrap();\n    let head = join(cols.iter().map(|c| r.part(\"th\", &amp;[(\"text\", r.text(str_of(&amp;c[\"head\"])))])))?;\n    let body = join(each(&amp;rows).map(|row| {\n        let cells = join(cols.iter().map(|c| {\n            let v = r.node_at(&amp;c[\"value\"], row)?;   // 列の値を、この行に当てる\n            r.part(\"td\", &amp;[(\"label\", r.text(str_of(&amp;c[\"head\"]))), (\"text\", v)])\n        }))?;\n        r.part(\"tr\", &amp;[(\"cells\", cells)])\n    }))?;\n    r.part(\"table\", &amp;[(\"head\", head), (\"body\", body)])\n}</code></pre>"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>&lt;!-- 具体の parts.html（データ。いまの見本のまま） --&gt;\n&lt;template id=\"table\"&gt;&lt;div class=\"tw\"&gt;&lt;table class=\"st\"&gt;&lt;thead&gt;&lt;tr&gt;{{head}}&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{{body}}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/template&gt;\n&lt;template id=\"th\"&gt;&lt;th&gt;{{text}}&lt;/th&gt;&lt;/template&gt;\n&lt;template id=\"tr\"&gt;&lt;tr&gt;{{cells}}&lt;/tr&gt;&lt;/template&gt;\n&lt;template id=\"td\"&gt;&lt;td data-label=\"{{label}}\"&gt;{{text}}&lt;/td&gt;&lt;/template&gt;</code></pre>"
+     "text": "<b>完成イメージ：2つの具体を、この形に当てたもの</b>"
     },
     {
      "kind": "grid",
      "cols": [
-      "誰が",
-      "この例で何をするか"
+      "",
+      "acdr",
+      "ユースケース駆動"
      ],
      "rows": [
       [
-       "基盤",
-       "rows の式を文脈に当てる。cols の各 value（ページテンプレートの要素）を、行ごとに今の位置を替えて組む。{{…}} に入る文字はすべて逃がし、部品に無い差し込み口を渡したら誤りにする"
+       "具体の契約",
+       "acdr.schema.json（決めたこと ・ なぜ ・ 比較した案 ・ 変更の3つ組 ・ 状態）",
+       "宣言の6種類のスキーマと、注釈 x-test-spec"
       ],
       [
-       "具体の Rust",
-       "どの部品をどう並べるかだけを書く。HTML の文字列を自分で組まない"
+       "具体に固有の能力（具体の core）",
+       "git から変更前を取って差分にする。印を付ける。承認時点のハッシュで封印する。状態を変える",
+       "テスト条件を取り出す。テストの記録と突き合わせる。例を導く（拒否の例 ・ 境界値）。図の入力を組む"
       ],
       [
-       "具体のデータ",
-       "部品の HTML ・ CSS は、いまの見本の parts.html と view.css をそのまま使える"
+       "具体のアダプタ",
+       "git",
+       "テストの記録を読む。design-svg を呼ぶ"
+      ],
+      [
+       "基盤から呼ぶもの",
+       "読み書き ・ 検証 ・ 描画の文脈 ・ ページの組み立て",
+       "読み書き ・ 検証 ・ 検査と graph ・ 描画の文脈 ・ ページの組み立て"
+      ],
+      [
+       "基盤のポートへ差し込むもの",
+       "Design（記録の節 ・ 差分の枠 ・ 印の部品）",
+       "Design（表 ・ 手順 ・ 札などの部品）と Functions（clause ・ neg ・ fill）"
       ]
      ]
+    },
+    {
+     "kind": "para",
+     "text": "<b>置き方の例：acdr をこの形にしたとき</b>"
+    },
+    {
+     "kind": "html",
+     "text": "<pre><code>.claude/skills/acdr/                  ← 具体（例。いまの acdr をこの形へ移すかは後で決める）\n  references/acdr.schema.json         ← 具体の契約\n  tool/\n    schema-driven-core/               ← 基盤の crate の転写（差分の検査が正本と比べる）\n    schema-driven-adapters/           ← 同上\n    core/                             ← 具体のヘキサゴナル\n      domain/       記録 ・ 変更の3つ組 ・ 封印\n      application/  組む ・ 封印する ・ 状態を変える（基盤の読み書き ・ 検証 ・ 描画を呼ぶ）\n      ports/        Git（変更前を取る）\n    adapters/\n      outbound/     git ・ Design（部品の HTML に差し込む）・ Functions\n      inbound/      道具の一覧 ＝ 基盤の道具（get ・ validate ・ check ・ render）＋ 具体の道具（new ・ inspect ・ seal）\n    cli/ mcp/                         ← 1つの CLI と1つの MCP</code></pre>"
     }
    ],
    "figures": [
     {
      "kind": "figure",
-     "name": "design",
-     "caption": "具体は Design（コンポーネント）と Functions（関数）を Rust で実装し、見た目はデータで持つ。基盤は組み立ての流れと検査を持つ。"
+     "name": "concrete",
+     "caption": "具体はそれぞれ自分の道具を持ち、基盤の crate を呼び、変わるところだけを基盤のポートへ差し込む。<b>差分 ・ 封印 ・ テスト条件のような固有の能力は、具体の側にだけある。</b>"
     }
    ],
    "passed": [
     {
-     "name": "具体が Design を Rust で実装する",
-     "body": "コンポーネントは部品の差し込み口に値を入れる Rust の処理で、見た目は部品の HTML ・ CSS ・ JS のデータ",
-     "cost": "具体は Rust でビルドする。ただし ACDR 0132 で、具体はすでに Rust で関数を足す側になっている"
+     "name": "具体が自分のヘキサゴナルを持ち、基盤の crate を呼ぶ",
+     "body": "具体は契約 ・ ユースケース ・ アダプタ ・ CLI と MCP を持ち、基盤の crate を転写して部品として呼ぶ。基盤のポートは、変わるところにだけ置く",
+     "cost": "具体ごとに Rust の道具をビルドする。基盤の crate は、具体から呼ばれる公開の形（関数と型）を保つ必要がある"
     },
     {
-     "name": "コンポーネントもデータで定義する",
-     "body": "部品の差し込み口ごとに、何を入れるかを JSON で書く（each ・ as ・ part ・ fill ・ place ・ with）",
-     "cost": "表の行の中で列の値をその行に当て直すには、名前を付けた繰り返しと、別の値に当て直す書き方を必要とする。ページテンプレートと別の、3つ目の小さな言語になる"
+     "name": "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
+     "body": "具体は自分の道具を持たず、基盤の道具が具体の差し込みを読み込む",
+     "cost": "具体の固有の能力ごとに、基盤に差し込み口が増える（差分の取得 ・ 封印 ・ テストの記録の読み込み）。基盤が具体の能力の形を知ることになり、0132 の逆戻りになる"
     },
     {
-     "name": "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
-     "body": "コンポーネントごとに、条件と繰り返しを持つ HTML のテンプレートを書く",
-     "cost": "JMESPath と別のテンプレートの文法を覚える。crate が増える。入力の形と、テンプレートが読む値のずれを検査できない"
+     "name": "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
+     "body": "基盤の CLI ・ MCP と、具体の CLI ・ MCP を2つ並べる",
+     "cost": "描画の中で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を必要とする。AI と人は、1つの Skill に2つの道具を使い分けることになる"
+    },
+    {
+     "name": "具体はデータだけを持つ",
+     "body": "具体はスキーマ ・ ページテンプレート ・ 部品だけを書き、基盤の道具をそのまま使う",
+     "cost": "差分 ・ 封印 ・ テスト条件の突き合わせは、データでは書けない"
     }
    ],
    "tables": [
     {
      "caption": "案ごとの帰結",
      "cols": [
-      "データで覚える書き方",
-      "表の中の入れ子",
-      "具体に Rust を必要とするか"
+      "固有の能力の置き場所",
+      "基盤が具体を知るか",
+      "AI が使う道具"
      ],
      "rows": [
       [
-       "具体が Design を Rust で実装する",
+       "具体が自分のヘキサゴナルを持ち、基盤の crate を呼ぶ",
        [
-        "<b>JMESPath と部品の HTML</b>",
-        "<b>Rust で素直に書ける</b>",
-        "必要とする（0132 ですでに必要としている）"
+        "<b>具体の core</b>",
+        "<b>知らない</b>",
+        "<b>1つ</b>"
        ]
       ],
       [
-       "コンポーネントもデータで定義する",
+       "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
        [
-        "<b>3つ目の小さな言語</b>",
-        "名前付きの繰り返しと当て直しを必要とする",
-        "<b>必要としない</b>"
+        "基盤の差し込み口",
+        "<b>知る</b>（差し込み口の形）",
+        "1つ"
        ]
       ],
       [
-       "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
+       "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
        [
-        "テンプレートの文法",
-        "テンプレートの文法で書ける",
-        "必要としない（crate が増える）"
+        "具体の道具",
+        "知らない",
+        "<b>2つ</b>"
+       ]
+      ],
+      [
+       "具体はデータだけを持つ",
+       [
+        "<b>置けない</b>",
+        "知らない",
+        "1つ"
        ]
       ]
      ]
@@ -1096,77 +1119,94 @@
    ],
    "dropped": [
     {
-     "body": "コンポーネントもデータで定義する",
-     "reason": "ACDR 0128 で見本の92種類のキー（独自の道 ・ 条件 ・ 繰り返し）を捨て、0129 で JMESPath を包む書き方もやめた。データの定義は、同じ形の言語を3つ目として作り直すことになる"
+     "body": "基盤に差し込み口を並べ、具体はすべて差し込みで書く",
+     "reason": "acdr の差分や封印のような固有の能力ごとに、基盤に差し込み口が増える。基盤が具体を知ることになり、ACDR 0132 で決めた境目が崩れる"
     },
     {
-     "body": "コンポーネントをテンプレートエンジン（Jinja の系統）で書く",
-     "reason": "論点4で、ページテンプレートについて同じ理由（別の文法 ・ 検査できない ・ crate が増える）で除外した。コンポーネントでも同じことが起きる"
+     "body": "具体は基盤の道具を外から呼び、固有の能力だけを別の道具で持つ",
+     "reason": "描画で具体の Design と Functions を使うには、プロセスをまたぐ受け渡しの約束を新しく作ることになる。1つの Skill に道具が2つ並ぶ"
+    },
+    {
+     "body": "具体はデータだけを持つ",
+     "reason": "差分 ・ 封印 ・ テスト条件の突き合わせは、データの宣言では書けない。基盤のボードの論点2も、具体の道具がテスト条件と突き合わせを持つと決めている"
     }
    ],
    "path": [
     {
+     "kind": "previous",
+     "letter": "B",
+     "body": "B ── <b>具体は、ポート Design を Rust で実装してコンポーネントを登録する。</b>見た目は具体のデータ（部品の HTML ・ CSS ・ JS）が持ち、コンポーネントの Rust は部品の差し込み口に値を入れるだけにする。基盤は、ページテンプレートを読んで組む流れ ・ 式の評価 ・ 文字の逃がし ・ 差し込み口の過不足の検査 ・ 入力の形でのページテンプレートの検査を持つ",
+     "why": "問いを「コンポーネントと見た目をどう登録するか」に絞っていた。具体が持つのはそれだけではなく、固有の能力と契約（acdr の差分 ・ 封印、ユースケース駆動のテスト条件 ・ 突き合わせ）である。この問いのままだと、具体の能力をコンポーネントの形に押し込むか、基盤に戻すことになる。扱わない範囲に置いた「具体のバイナリの作り方」が、実は問いの中心だった",
+     "user_words": "具体（ユースケース駆動 ・ acdr など）は、自分のコンポーネントと見た目を、どんな形で基盤に登録するか\nこの抽象の仕方はちょっと危険か？\n別に具体の表現はこれだけではないよね？\nconcrateとして定義する内容にはその具体の特有の能力や契約があるはずでしょ？\n必ずしもそれがコンポーネントや見た目の話だけではないはずだよ。ユースケース駆動なんてそれが顕著だよね？\nそれこそacdrもそうだよ？\n変更差分を出すなんてスキーマ駆動にはないよね？"
+    },
+    {
      "kind": "para",
-     "text": "見本の parts.html は58の部品を &lt;template id&gt; と {{差し込み口}} で持ち、どの部品をどう並べるかは試作のコード（compose7.py）が持っていた。acdr と brainstorming-board も、型の HTML と「値を差し込むだけの組み立て」で同じ分け方をしている。これを基盤と具体の境目にそのまま当てた。"
+     "text": "前の答えは、具体が基盤へ渡すものを「コンポーネントと見た目」に絞っていた。acdr の実物（tool の下の差分 ・ 印 ・ 封印）と、ユースケース駆動の見本（dev7 の例とテスト条件、fig7 の図の入力）を並べると、具体の中心は固有の能力と契約で、見た目はその一部だった。基盤のボードの論点2（具体の道具が突き合わせを持つ）と論点4（基盤の正本を転写する）も、具体が自分の道具を持つことを前提にしていた。"
     }
    ],
    "findings": [
-    "見本の表は th ・ tr ・ td の部品を入れ子で並べ、列の値を行ごとに当て直す ── JMESPath は外側の変数を使えないので、データで書くと当て直しの書き方を別に必要とする",
-    "acdr と brainstorming-board は、型（&lt;template&gt; と {{差し込み口}}）を正本にし、組み立ては値を差し込むだけにしている ── 具体のコンポーネントも同じ形にできる",
-    "ページテンプレートの要素は論点4のまま変わらない ── 変わるのは、コンポーネントの中身を誰が持つかだけである"
+    "acdr は自分の CLI と MCP を持ち、差分 ・ 印 ・ 封印を自分の業務ロジックに置いている ── 基盤の能力ではない",
+    "ユースケース駆動の見本は、例を導く（dev7）・ 図の入力を組む（fig7）・ テスト条件（conditions.json）を基盤の外に置いている",
+    "コンポーネントと見た目（前の答え B）は、基盤のポート Design として、この答えの中に残る"
    ],
    "grounds": [
     {
-     "supports": "具体の見た目と、コンポーネントの一覧を具体が持つこと",
+     "supports": "具体が自分の道具を持つこと",
+     "basis": "concrete の道具も注釈だけを読み、テスト条件と、テストの記録との突き合わせと、ページの組み立てを持つ",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点2（B‴）"
+    },
+    {
+     "supports": "基盤の crate を転写すること",
+     "basis": "基盤をもとに作るものには、作るときに正本の複製を転写し、基盤の差分の検査が、複製と正本の違いを報告する",
+     "tag": "rule",
+     "source": "ボード schema-driven-base の論点4"
+    },
+    {
+     "supports": "具体の表現を基盤に置かないこと",
      "basis": "描画の具体の表現（コンポーネントの一覧 ・ 見た目 ・ 言語や具体に寄った関数）は基盤の上に作るものが持ち、schema-driven は描画の抽象だけを持つ",
      "tag": "rule",
      "source": "ACDR 0132"
     },
     {
-     "supports": "具体が Rust で実装すること",
-     "basis": "基盤の関数は6つ。clause ・ neg ・ fill は具体が足す（ポート Functions を実装する）",
+     "supports": "ネットワークのような能力を具体が決めること",
+     "basis": "ネットワークを使うかは、基盤の上に作る Skill が決める",
      "tag": "rule",
-     "source": "ACDR 0132"
+     "source": "ACDR 0125"
     },
     {
-     "supports": "部品と、値を差し込むだけの組み立てに分けること",
-     "basis": "組み立ては値を差し込むだけである ── 形をコードの中の文字列に散らさない",
-     "tag": "rule",
-     "source": ".claude/skills/acdr/SKILL.md の参照（acdr.template.html）"
-    },
-    {
-     "supports": "3つ目の書き方を作らないこと",
-     "basis": "見本の独自の書き方を減らして残す案を除外し、JMESPath に寄せた",
-     "tag": "rule",
-     "source": "ボード schema-driven-build の論点4、ACDR 0128 ・ 0129"
-    },
-    {
-     "supports": "いまの部品がそのまま使えること",
-     "basis": "parts.html の58の部品は、どれも &lt;template id&gt; と {{差し込み口}} で書かれている",
+     "supports": "acdr の固有の能力",
+     "basis": "tool/business_logic に code.rs（差分）・ markdown.rs（印）・ record.rs（封印と組み立て）があり、CLI は new ・ inspect ・ render ・ tokens を持つ",
      "tag": "measured",
-     "source": "ボード usecase-driven-concrete の sample/design/parts.html（2026-10-06 に読んだ）"
+     "source": ".claude/skills/acdr/tool（2026-10-06 に読んだ）"
+    },
+    {
+     "supports": "ユースケース駆動の固有の能力",
+     "basis": "dev7.py が例を導く関数とテスト条件の札を、fig7.py が図の入力を持ち、どちらも冒頭に「基盤は持たない」と書いている",
+     "tag": "measured",
+     "source": "ボード usecase-driven-concrete の sample（2026-10-06 に読んだ）"
     }
    ],
    "requirements": [
-    "3c で、テスト用の小さなデザイン（Rust）を作り、文字の逃がし ・ 差し込み口の過不足 ・ 行ごとの当て直し ・ show と each ・ 入力の形でのページテンプレートの検査 ・ 知らない名前の誤りを確かめる",
-    "Design と Renderer の形は、3c の実装で試してから ACDR で決める",
-    "ページと節の枠は、具体の page と section のコンポーネントにする（基盤は枠の見た目を持たない）"
+    "基盤の crate の公開の形（具体から呼ぶ関数と型）を決め、core の application と domain のどれを公開するかを ACDR で決める",
+    "基盤の道具の一覧（adapters の inbound の tools）を、具体が自分の道具を足して組めるようにする",
+    "3c で、テスト用の小さな具体（Rust）を作り、基盤の crate を呼ぶこと ・ Design と Functions を差し込むこと ・ 道具の一覧に自分の道具を足すことを確かめる"
    ],
    "out_of_scope": [
     {
-     "item": "具体のバイナリの作り方（基盤の crate を使って、具体の CLI と MCP を組む）",
+     "item": "いまの acdr ・ brainstorming-board などを、この形へ移すこと",
      "treatment": "later",
-     "note": "4回目（転写）で決める。この答えを覆さない ── Design を実装したものを組み込む方法の話である"
+     "note": "基盤ができたあとに決める（基盤のボードの論点1 ・ 4 の範囲外のまま）。この答えを覆さない ── 移す先の形を、この答えが決める"
     },
     {
-     "item": "デザイントークンの形",
-     "treatment": "out",
-     "note": "ACDR 0132 で具体が持つと決めた。基盤は CSS と JS をページに入れるだけである"
+     "item": "転写の仕組み（複製の置き方と、差分の検査）",
+     "treatment": "later",
+     "note": "4回目で作る。置き方は完成イメージの形を出発点にする。この答えを覆さない ── 転写するものの範囲は、この答えが決める"
     },
     {
      "item": "この答えを試す相手",
      "treatment": "later",
-     "note": "外の作業（3c の実装）で、テスト用の小さなデザインに使って試す"
+     "note": "外の作業（3c の実装）で、テスト用の小さな具体に使って試す"
     }
    ]
   }
