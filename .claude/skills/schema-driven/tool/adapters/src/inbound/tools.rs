@@ -4,7 +4,9 @@ use schema_driven_core::application::instances::{UnfilledWithPrompt, UseCaseErro
 use schema_driven_core::domain::check::Finding;
 use schema_driven_core::domain::values::Unfilled;
 use schema_driven_core::domain::values::ValidationError;
-use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases, RenderUseCases};
+use schema_driven_core::ports::inbound::{
+    CheckUseCases, InstanceUseCases, RenderUseCases, TranscriptionUseCases,
+};
 use serde_json::{json, Map, Value};
 use std::sync::Arc;
 
@@ -69,6 +71,16 @@ pub const TOOLS: &[ToolDef] = &[
             ("pages", "ページテンプレートのディレクトリ。無ければ、すべての種類を基盤の既定のページで描画する", false),
             ("out", "ページを書き出すディレクトリ", true),
         ],
+    },
+    ToolDef {
+        name: "transcribe",
+        description: "基盤の正本（core ・ adapters ・ references）を、利用側の Skill の tool/schema-driven/ へ転写する（UC-9）。2回目からは基盤の新しい版へ更新する。具体が変えたファイルは上書きせず、基盤も変えていたら新しい版を隣（.schema-driven-new）に置く",
+        args: &[("to", "利用側の Skill のディレクトリ", true)],
+    },
+    ToolDef {
+        name: "check-copy",
+        description: "利用側の Skill の複製と、基盤の正本の差分を検査する（UC-10）。基盤の版の差と、ファイルごとの差（正本が新しくなった ・ 具体が変えた ・ 衝突 など）を返す。複製は書き換えない",
+        args: &[("to", "利用側の Skill のディレクトリ", true)],
     },
 ];
 
@@ -147,6 +159,7 @@ pub struct Toolbox {
     list: Vec<ToolDef>,
     extra: Option<Arc<dyn ExtraTools>>,
     render: Option<Arc<dyn RenderUseCases>>,
+    transcriptions: Option<Arc<dyn TranscriptionUseCases>>,
 }
 
 impl Toolbox {
@@ -156,7 +169,14 @@ impl Toolbox {
             list: TOOLS.to_vec(),
             extra: None,
             render: None,
+            transcriptions: None,
         }
+    }
+
+    /// 転写と差分の検査のユースケースを渡す。正本の場所は、渡す側（実行ファイル）が決める。
+    pub fn with_transcriptions(mut self, transcriptions: Arc<dyn TranscriptionUseCases>) -> Self {
+        self.transcriptions = Some(transcriptions);
+        self
     }
 
     /// 描画のユースケース（具体のデザインを持つもの）を渡す。渡さなければ、render は理由を返して失敗する。
@@ -181,6 +201,7 @@ impl Toolbox {
             list,
             extra: Some(extra),
             render: None,
+            transcriptions: None,
         })
     }
 
@@ -215,6 +236,39 @@ impl Toolbox {
                 }
                 _ => {}
             }
+        }
+        if name == "transcribe" || name == "check-copy" {
+            let Some(transcriptions) = &self.transcriptions else {
+                return (
+                    1,
+                    json!({"ok": false, "reason": "転写のユースケースが渡されていない", "detail": "transcribe と check-copy は、Toolbox に転写のユースケース（Transcriptions）を渡したツールで使う"}),
+                );
+            };
+            let to = args.get("to").and_then(Value::as_str).unwrap_or_default();
+            return if name == "transcribe" {
+                match transcriptions.transcribe(to) {
+                    Ok(done) => (
+                        0,
+                        json!({"ok": true, "from_version": done.from_version, "to_version": done.to_version, "written": done.written, "removed": done.removed, "kept": done.kept, "conflicts": done.conflicts}),
+                    ),
+                    Err(error) => failed(error),
+                }
+            } else {
+                match transcriptions.check_copy(to) {
+                    Ok(report) => {
+                        let differences: Vec<Value> = report
+                            .differences
+                            .iter()
+                            .map(|difference| json!({"path": difference.path, "kind": difference.kind}))
+                            .collect();
+                        (
+                            0,
+                            json!({"ok": true, "copy_version": report.copy_version, "master_version": report.master_version, "differences": differences}),
+                        )
+                    }
+                    Err(error) => failed(error),
+                }
+            };
         }
         if name == "render" {
             let arg = |key: &str| args.get(key).and_then(Value::as_str).unwrap_or_default();

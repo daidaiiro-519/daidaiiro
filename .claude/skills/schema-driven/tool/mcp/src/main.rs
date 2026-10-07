@@ -9,10 +9,12 @@ use rmcp::service::{MaybeSendFuture, RequestContext};
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
 use schema_driven_adapters::inbound::tools;
 use schema_driven_adapters::outbound::document_design::DocumentDesign;
-use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
+use schema_driven_adapters::outbound::fs::{master_root, FileSystem};
+use schema_driven_adapters::outbound::jmespath::Jmespath;
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
 use schema_driven_core::application::renders::Renders;
+use schema_driven_core::application::transcriptions::Transcriptions;
 use std::future::Future;
 use std::sync::Arc;
 
@@ -50,14 +52,16 @@ impl ServerHandler for Server {
         // 基盤だけで使うときは、具体のデザインが無いので、基盤の文書だけを描画する
         let renders = Renders::new(
             files.clone(),
-            files,
+            files.clone(),
             query,
             Arc::new(DocumentDesign),
             None,
             None,
         );
+        let transcriptions = Transcriptions::new(files, master_root());
         let (code, out) = tools::Toolbox::base()
             .with_render(Arc::new(renders))
+            .with_transcriptions(Arc::new(transcriptions))
             .dispatch(&request.name, &args, &use_cases, &checks);
         let content = vec![ContentBlock::text(out.to_string())];
         let result = if code == 0 {

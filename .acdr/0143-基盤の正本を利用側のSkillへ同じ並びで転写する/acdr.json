@@ -1,0 +1,331 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0143",
+ "title": "基盤の正本を、利用側の Skill へ同じ並びで転写する",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "基盤の正本を利用側の Skill の tool/schema-driven/ の下へ同じ並びで転写し、基盤の新しい版へも更新できるようにする。転写した複製は具体の持ち物で、基盤は具体の変更を上書きしない",
+ "why": "ボードの論点5（C）で、具体は基盤の crate を転写して呼ぶと決め、宣言の UC-9 ・ 10 が転写と差分の検査を求めている。宣言は、何を写すか ・ どこへ写すか ・ 転写した時点のハッシュ値をどこに記録するかを決めていなかった。用語集の TERM-21（正本）も、0132 より前の「crate ・ コンポーネント ・ デザイントークン」のままである。実際に本物の基盤を写して利用側でビルドし、写した crate を1文字も書き換えずに動く並びを確かめた。 利用者は、転写した段階でその能力は具体の持ち物になる想定である。転写したあとの具体は基盤とつながらず、基盤の更新を取り込むかは具体が決める。 さらに、基盤の版が上がったときに、具体が更新できる必要がある。",
+ "shift": [
+  {
+   "what": "転写した複製",
+   "from": "宣言の TERM-54：複製に手の変更があれば転写しない。正本を直してから転写し直す",
+   "to": "具体の持ち物。具体は自由に変えてよく、基盤は具体が変えたファイルを一度も上書きしない"
+  },
+  {
+   "what": "基盤の新しい版への更新",
+   "from": "無い（具体が1つでも変えていると、転写が丸ごと止まる）",
+   "to": "transcribe の2回目からは更新になる。基盤だけが変えたファイルは新しい版にし、具体だけが変えたファイルは残し、両方が変えたファイルは具体のものを残して、新しい版を隣（<ファイル名>.schema-driven-new）に置く。具体が見比べて合わせ、終わったら消す"
+  },
+  {
+   "what": "転写した時点の記録",
+   "from": "決めていない",
+   "to": "tool/schema-driven/transcription.json に、基盤の版（tool/core/Cargo.toml の version）と、ファイルごとの sha256 を書く。更新のたびに新しい版へそろえる"
+  },
+  {
+   "what": "差分の種類",
+   "from": "「差分：複製のうち、正本と内容が違うファイル」だけ",
+   "to": "基盤の版の差（例：0.1.0 → 0.2.0）と、ファイルごとの8種類（正本が新しくなった ・ 具体が変えた ・ 衝突 ・ 正本に増えた ・ 正本から消えた ・ 具体が足した ・ 具体が消した ・ 衝突の新しい版が残っている）"
+  },
+  {
+   "what": "正本（写すもの）",
+   "from": "用語集 TERM-21：Rust の crate ・ コンポーネント ・ デザイントークン",
+   "to": "tool/core ・ tool/adapters ・ references。tests と target（ビルドの出力）は写さない。cli と mcp は、利用側が自分の CLI と MCP を作るので写さない"
+  },
+  {
+   "what": "写す先",
+   "from": "決めていない",
+   "to": "利用側の Skill の tool/schema-driven/ の下に、正本と同じ並びで置く。crate が取り込むファイルの相対パス（../../../../references/…）が正本と同じになり、複製を書き換えずにビルドできる"
+  },
+  {
+   "what": "crate の Cargo.toml",
+   "from": "ワークスペースの設定を受け継ぐ（version.workspace など）",
+   "to": "版 ・ edition ・ license を直接書く。利用側のワークスペースに同じ設定を求めない"
+  },
+  {
+   "what": "正本の場所",
+   "from": "決めていない",
+   "to": "実行ファイルの場所（<Skill>/bin/ の1つ上）から求める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "正本の3つのディレクトリを、利用側の Skill の tool/schema-driven/ の下へ同じ並びで写し、転写した時点のハッシュ値を記録する。",
+ "alternatives": [
+  {
+   "option": "写す先を tool/schema-driven/core のように1段浅くする",
+   "why_not": "crate が取り込むファイルの相対パスが、正本と複製で合わなくなる。実際に写して利用側でビルドすると、references が見つからずに失敗した"
+  },
+  {
+   "option": "写すときに、取り込むファイルのパスを書き換える",
+   "why_not": "複製が正本と1文字違うので、ハッシュ値でそのまま比べられなくなる"
+  },
+  {
+   "option": "取り込むファイルを crate の中に複製して持つ",
+   "why_not": "references の仕様が正本の中で2か所になり、どちらが正しいかを毎回確かめることになる"
+  },
+  {
+   "option": "リポジトリの中では、具体が正本を直接参照する（Cargo の path 依存）",
+   "why_not": "基盤の変更が具体へそのまま流れ込み、能力が具体の持ち物にならない。転写したあとは基盤とつながらない、という利用者の想定に合わない"
+  },
+  {
+   "option": "転写の記録を持たず、正本とだけ比べる",
+   "why_not": "基盤が変えたのか、具体が変えたのかを区別できない。具体の変更を上書きしてしまう"
+  },
+  {
+   "option": "具体が1つでもファイルを変えていたら、更新を丸ごと止める（この ACDR の最初の形）",
+   "why_not": "具体が自分の持ち物を直すと、基盤の新しい版を一切取り込めなくなる"
+  },
+  {
+   "option": "衝突したファイルを、基盤と具体の変更を混ぜて自動で合わせる",
+   "why_not": "合わせ方を誤ると、具体の変更が黙って壊れる。具体が見比べて合わせる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "adapters_Cargo_toml",
+   "tab": "adapters/Cargo.toml",
+   "file": ".claude/skills/schema-driven/tool/adapters/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 利用側の Skill へそのまま転写して使うので、ワークスペースの設定を受け継がない（UC-9）",
+     "before": "version.workspace = true",
+     "why": "同上"
+    }
+   ]
+  },
+  {
+   "key": "adapters_src_inbound_tools_rs",
+   "tab": "adapters/src/inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::ports::inbound::{",
+     "before": "use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases, RenderUseCases};",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "name: \"transcribe\",",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "transcriptions: Option<Arc<dyn TranscriptionUseCases>>,",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "list: TOOLS.to_vec(),",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "/// 転写と差分の検査のユースケースを渡す。正本の場所は、渡す側（実行ファイル）が決める。",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "extra: Some(extra),",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    },
+    {
+     "find": "if name == \"transcribe\" || name == \"check-copy\" {",
+     "before": "（無かった）",
+     "why": "transcribe と check-copy を基盤のツールとして出す。引数は利用側の Skill のディレクトリ（to）。結果は基盤の版と、書いた ・ 消した ・ 残した ・ 衝突したファイル"
+    }
+   ]
+  },
+  {
+   "key": "adapters_src_outbound_fs_rs",
+   "tab": "adapters/src/outbound/fs.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/fs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn list_tree(&self, dir: &str) -> Result<Vec<String>, ReadError> {",
+     "before": "（無かった）",
+     "why": "list_tree の実装と、正本の場所（実行ファイルの1つ上のディレクトリ）を求める master_root"
+    },
+    {
+     "find": "/// 正本（schema-driven の Skill）のディレクトリ。実行ファイルは <Skill>/bin/ に置かれるので、その1つ上。",
+     "before": "（無かった）",
+     "why": "list_tree の実装と、正本の場所（実行ファイルの1つ上のディレクトリ）を求める master_root"
+    }
+   ]
+  },
+  {
+   "key": "cli_src_main_rs",
+   "tab": "cli/src/main.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_adapters::outbound::fs::{master_root, FileSystem};",
+     "before": "use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};",
+     "why": "CLI から転写のユースケースを使えるようにする。正本の場所は実行ファイルの場所から求める"
+    },
+    {
+     "find": "use schema_driven_core::application::transcriptions::Transcriptions;",
+     "before": "（無かった）",
+     "why": "CLI から転写のユースケースを使えるようにする。正本の場所は実行ファイルの場所から求める"
+    },
+    {
+     "find": "// 基盤だけで使うときは、具体のデザインが無いので、基盤の文書だけを描画する",
+     "before": "files,",
+     "why": "CLI から転写のユースケースを使えるようにする。正本の場所は実行ファイルの場所から求める"
+    },
+    {
+     "find": "let transcriptions = Transcriptions::new(files, master_root());",
+     "before": "let toolbox = Toolbox::base().with_render(Arc::new(renders));",
+     "why": "CLI から転写のユースケースを使えるようにする。正本の場所は実行ファイルの場所から求める"
+    }
+   ]
+  },
+  {
+   "key": "core_Cargo_toml",
+   "tab": "core/Cargo.toml",
+   "file": ".claude/skills/schema-driven/tool/core/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 利用側の Skill へそのまま転写して使うので、ワークスペースの設定を受け継がない（UC-9）",
+     "before": "version.workspace = true",
+     "why": "利用側の Skill へそのまま写して使うので、ワークスペースの設定（version.workspace など）を受け継がない"
+    }
+   ]
+  },
+  {
+   "key": "core_src_application_mod_rs",
+   "tab": "core/src/application/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod transcriptions;",
+     "before": "（無かった）",
+     "why": "転写のユースケースを置く"
+    }
+   ]
+  },
+  {
+   "key": "core_src_ports_inbound_rs",
+   "tab": "core/src/ports/inbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/inbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::application::transcriptions::{CopyReport, Transcribed};",
+     "before": "（無かった）",
+     "why": "転写と差分の検査のユースケース（TranscriptionUseCases）"
+    },
+    {
+     "find": "/// 転写と差分の検査のユースケース（UC-9 ・ 10）。skill は利用側の Skill のディレクトリ。",
+     "before": "（無かった）",
+     "why": "転写と差分の検査のユースケース（TranscriptionUseCases）"
+    }
+   ]
+  },
+  {
+   "key": "core_src_ports_outbound_rs",
+   "tab": "core/src/ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// ディレクトリの下のすべてのファイルのパス（下のディレクトリも含む）を、パスの順に返す。ディレクトリが無ければ空。",
+     "before": "（無かった）",
+     "why": "正本と複製のファイルを、下のディレクトリまで並べる口（list_tree）"
+    }
+   ]
+  },
+  {
+   "key": "mcp_src_main_rs",
+   "tab": "mcp/src/main.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_adapters::outbound::fs::{master_root, FileSystem};",
+     "before": "use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};",
+     "why": "同上（MCP）"
+    },
+    {
+     "find": "use schema_driven_core::application::transcriptions::Transcriptions;",
+     "before": "（無かった）",
+     "why": "同上（MCP）"
+    },
+    {
+     "find": "// 基盤だけで使うときは、具体のデザインが無いので、基盤の文書だけを描画する",
+     "before": "files,",
+     "why": "同上（MCP）"
+    },
+    {
+     "find": "let transcriptions = Transcriptions::new(files, master_root());",
+     "before": "（無かった）",
+     "why": "同上（MCP）"
+    },
+    {
+     "find": ".with_transcriptions(Arc::new(transcriptions))",
+     "before": "（無かった）",
+     "why": "同上（MCP）"
+    }
+   ]
+  },
+  {
+   "key": "mcp_tests_mcp_rs",
+   "tab": "mcp/tests/mcp.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/tests/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"render\",",
+     "before": "\"render\"",
+     "why": "基盤のツールの一覧に transcribe と check-copy が増えた"
+    }
+   ]
+  },
+  {
+   "key": "transcriptions_rs",
+   "tab": "core/src/application/transcriptions.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/transcriptions.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "impl TranscriptionUseCases for Transcriptions {",
+     "before": "（新しいファイル）",
+     "why": "転写と更新：ファイルごとに、基盤が変えたか ・ 具体が変えたかで扱いを決める。具体の変更は上書きせず、両方が変えたら新しい版を隣に置く。記録を新しい版にそろえる。差分の検査：基盤の版の差と、8種類の差を返す。複製は書き換えない"
+    }
+   ]
+  },
+  {
+   "key": "transcribe_rs",
+   "tab": "cli/tests/transcribe.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/transcribe.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn updating_to_a_new_version_never_overwrites_what_the_concrete_changed() {",
+     "before": "（新しいファイル）",
+     "why": "5件で、写す範囲と版の記録 ・ 写した直後は差分0件 ・ 基盤の変更と具体の変更と衝突の区別 ・ 新しい版への更新で具体の変更を上書きしないこと ・ 基盤が消しても具体が変えたファイルは残すことを確かめる。実装を4か所わざと変えると、どれもテストが失敗する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "adapters_Cargo_toml": "83457c4fb33ccba8f1702eabe4b6e6c35216982dd9e7923707d15a64bca33756",
+  "adapters_src_inbound_tools_rs": "48cc918ce243a990042b5a10a49e6cbcd8e9a552226fd0b01c2106d9b8fd5580",
+  "adapters_src_outbound_fs_rs": "a2329febd9a5b0d21a3644ef1ae6f46e0694ea4d8e496ca357bfdf947ce5c6cf",
+  "cli_src_main_rs": "d22b7f040ed8489a09c23168e7c8d6ab0611f1fae70bb110cceb5eebf69fde70",
+  "core_Cargo_toml": "71c10469904dbf1252ed0e65f476ee152da7cb94f8c0583dcd953ba5f15b4402",
+  "core_src_application_mod_rs": "73f812bcab62a2cbb6df600786bcb8ec254e7d7c6c2c2e50c45165d2c63e5939",
+  "core_src_ports_inbound_rs": "24c0170755397f2eb79c1a760e2848dd7cf5616cab129194e07c1b9768559635",
+  "core_src_ports_outbound_rs": "70114e98465e4b28acf96caae9d281313e63863f3ad591ec8934ab8c7f93fa89",
+  "mcp_src_main_rs": "f677c1f1d417460ac2ada0e1d38f63bff26f69558ae3a12f350f41762d546891",
+  "mcp_tests_mcp_rs": "adc5f5e1d5bb897a32c0e7d24795fbece2e52dd1521107ad72b7291fe346f575",
+  "transcriptions_rs": "1cd47d55db9f949176741590c22b8dfd6e648433c2fd48a894c7d5875a7b177b",
+  "transcribe_rs": "c1fe2475f3fc0fada14f73f4f05a1dcb6b0f9692cd4485fea219fdb3b0103499"
+ }
+}

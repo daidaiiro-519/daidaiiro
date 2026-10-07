@@ -3,6 +3,7 @@
 use crate::application::checks::{Approved as ApprovedOutcome, Checked, Deleted, SchemasChecked};
 use crate::application::instances::{Created, Got, Prompted, Updated, UseCaseError};
 use crate::application::renders::Rendered;
+use crate::application::transcriptions::{CopyReport, Transcribed};
 
 /// インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
 pub trait InstanceUseCases {
@@ -32,4 +33,12 @@ pub trait CheckUseCases {
 pub trait RenderUseCases {
     /// UC-6 ページを描画する。dir のインスタンスを、pages のページテンプレートで、out へ描画する
     fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError>;
+}
+
+/// 転写と差分の検査のユースケース（UC-9 ・ 10）。skill は利用側の Skill のディレクトリ。
+pub trait TranscriptionUseCases {
+    /// UC-9 基盤の複製を転写する
+    fn transcribe(&self, skill: &str) -> Result<Transcribed, UseCaseError>;
+    /// UC-10 複製と正本の差分を検査する（複製は書き換えない）
+    fn check_copy(&self, skill: &str) -> Result<CopyReport, UseCaseError>;
 }

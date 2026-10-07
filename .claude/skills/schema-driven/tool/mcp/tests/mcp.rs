@@ -67,7 +67,9 @@ fn mcp_lists_tools_and_creates_instance() {
             "check",
             "check-schemas",
             "approve",
-            "render"
+            "render",
+            "transcribe",
+            "check-copy"
         ]
     );
     let result = &answers[2]["result"];

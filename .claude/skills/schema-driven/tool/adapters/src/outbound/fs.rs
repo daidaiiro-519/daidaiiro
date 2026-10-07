@@ -37,6 +37,30 @@ impl Files for FileSystem {
         Ok(out)
     }
 
+    fn list_tree(&self, dir: &str) -> Result<Vec<String>, ReadError> {
+        fn walk(dir: &Path, out: &mut Vec<String>) -> Result<(), ReadError> {
+            for entry in fs::read_dir(dir)
+                .map_err(|error| ReadError(format!("{}: {error}", dir.display())))?
+            {
+                let path = entry.map_err(|error| ReadError(error.to_string()))?.path();
+                if path.is_dir() {
+                    walk(&path, out)?;
+                } else if path.is_file() {
+                    out.push(path.to_string_lossy().into_owned());
+                }
+            }
+            Ok(())
+        }
+        let root = Path::new(dir);
+        if !root.is_dir() {
+            return Ok(Vec::new());
+        }
+        let mut out = Vec::new();
+        walk(root, &mut out)?;
+        out.sort();
+        Ok(out)
+    }
+
     /// 作成は、まだ無いときだけ書く。更新は、読んだ時点のハッシュ値のままのときだけ、
     /// 一時ファイルへ書いてから置き換える（書く途中で失敗しても、前の内容が残る）。
     fn write(&self, path: &str, content: &str, cond: WriteIf) -> Result<(), WriteError> {
@@ -111,4 +135,13 @@ impl Schemas for FileSystem {
         out.sort();
         Ok(out)
     }
+}
+
+/// 正本（schema-driven の Skill）のディレクトリ。実行ファイルは <Skill>/bin/ に置かれるので、その1つ上。
+pub fn master_root() -> String {
+    std::env::current_exe()
+        .ok()
+        .and_then(|executable| executable.parent()?.parent().map(Path::to_path_buf))
+        .map(|root| root.to_string_lossy().into_owned())
+        .unwrap_or_else(|| ".".to_owned())
 }

@@ -28,6 +28,8 @@ pub trait Files: Send + Sync {
     fn read(&self, path: &str) -> Result<String, ReadError>;
     /// ディレクトリの直下のファイルのパスを、名前の順に返す。
     fn list(&self, dir: &str) -> Result<Vec<String>, ReadError>;
+    /// ディレクトリの下のすべてのファイルのパス（下のディレクトリも含む）を、パスの順に返す。ディレクトリが無ければ空。
+    fn list_tree(&self, dir: &str) -> Result<Vec<String>, ReadError>;
     fn write(&self, path: &str, content: &str, cond: WriteIf) -> Result<(), WriteError>;
     fn remove(&self, path: &str) -> Result<(), WriteError>;
 }

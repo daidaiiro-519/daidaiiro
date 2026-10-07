@@ -6,4 +6,5 @@ pub mod instances;
 pub mod page;
 pub mod paths;
 pub mod renders;
+pub mod transcriptions;
 pub mod view;
