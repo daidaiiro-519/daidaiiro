@@ -23,7 +23,7 @@ fn vo_2_inv_1_rejects_empty_schema_path() {
 #[test]
 fn vo_5_inv_1_rejects_empty_reason() {
     assert!(ValidationError::new("/name", "").is_err());
-    assert!(ValidationError::new("", "\"x\" is not of type \"object\"").is_ok());
+    assert!(ValidationError::new("", "型が object でない（値：\"x\"）").is_ok());
 }
 
 // VO-6 ハッシュ値：INV-1 16進の文字列の文字数は64

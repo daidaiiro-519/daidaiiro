@@ -56,6 +56,7 @@ impl SchemaPath {
 }
 
 /// VO-5 検証エラー。スキーマを満たさないプロパティと、その理由。未記入は含めない。
+/// 処理の失敗を表す Rust のエラー型ではなく、検証の結果として返すデータである（std::error::Error を実装しない）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationError {
     property: String,

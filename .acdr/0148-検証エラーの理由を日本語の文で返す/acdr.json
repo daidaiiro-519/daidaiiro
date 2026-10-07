@@ -1,0 +1,117 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0148",
+ "title": "検証エラーの理由を、日本語の文で返す",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "検証エラーの理由を、jsonschema の英語の文ではなく、キーワードとスキーマが決めた値を残した日本語の文で返す",
+ "why": "update ・ check ・ render が返す検証エラーの理由は、jsonschema の英語の文のままだった。例は Additional properties are not allowed ('body' was unexpected) である。ほかの結果（拒否の理由 ・ 検査の結果 ・ 未記入）は日本語なので、1つの出力の中で言語が混ざる。この文を読んで直すのは、AI エージェントとデータの持ち主である。",
+ "shift": [
+  {
+   "what": "検証エラーの理由",
+   "from": "jsonschema の英語の文",
+   "to": "エラーの種類ごとの日本語の文。キーワードと、上限 ・ 候補 ・ 型などの値はそのまま残す"
+  },
+  {
+   "what": "文を決める範囲",
+   "from": "jsonschema が決める",
+   "to": "基盤が、エラーの種類36種類のすべてに文を持つ。種類が増えたらコンパイルが止まる"
+  },
+  {
+   "what": "エラーの場所",
+   "from": "JSON Pointer",
+   "to": "変えない（JSON Pointer のまま）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "同じ検証エラーの、変更前と変更後の文。キーワードと値は残す。",
+ "alternatives": [
+  {
+   "option": "英語の文のまま残す",
+   "why_not": "1つの出力の中で、拒否の理由や検査の結果は日本語、検証エラーだけ英語になる。直す人が2つの言語を読み分けることになる"
+  },
+  {
+   "option": "よく出る種類だけ日本語にし、ほかは英語の文に戻す",
+   "why_not": "どの種類が英語で返るかを、読む側が知らない。種類を全部並べれば、版が上がって種類が増えたときもコンパイルで気づける"
+  },
+  {
+   "option": "oneOf と anyOf では、いちばん近いスキーマのエラーまで文に入れる",
+   "why_not": "変更前の英語の文も、その情報を持っていない。今回は言語をそろえることに絞り、足すかどうかは使ってみてから決める"
+  },
+  {
+   "option": "VO-5 の理由の文を、Rust のエラー型の Display として持たせる",
+   "why_not": "VO-5 は、インスタンスのどこがスキーマに合わないかを返すデータで、処理の失敗ではない。Display にすると、Rust のエラー型の決まり（C-GOOD-ERR）の対象と取り違える"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "domain_schema_rs",
+   "tab": "core/src/domain/schema.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 値を、JSON の書き方のまま短い文字にする。",
+     "before": "（無かった）",
+     "why": "エラーの種類（ValidationErrorKind）は36種類すべてを並べ、どれにも当てはまらないときの英語の文を残さない。jsonschema の版が上がって種類が増えたら、コンパイルが止まって、ここに文を足すことになる"
+    },
+    {
+     "find": "} else if let Ok(validation_error) = ValidationError::new(&at, &reason_of(&error)) {",
+     "before": "} else if let Ok(validation_error) = ValidationError::new(&at, &error.to_string()) {",
+     "why": "検証エラーの理由を、jsonschema の英語の文（error.to_string()）から、エラーの種類ごとの日本語の文へ変える。キーワード（minLength ・ additionalProperties など）と、スキーマが決めた値（上限 ・ 候補 ・ 型）はそのまま残すので、スキーマのどこを見ればよいかが分かる"
+    }
+   ]
+  },
+  {
+   "key": "tests_validation_messages_rs",
+   "tab": "core/tests/validation_messages.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/validation_messages.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn type_names_the_expected_type_and_the_value() {",
+     "before": "（無かった）",
+     "why": "型 ・ 候補 ・ 長さと数 ・ 知らないプロパティ ・ pattern ・ oneOf と anyOf の文を、実装の前に書いた（7件とも失敗することを確かめた）"
+    },
+    {
+     "find": "fn the_place_stays_a_json_pointer() {",
+     "before": "（無かった）",
+     "why": "文を変えても、エラーの場所は JSON Pointer のまま変わらないことを確かめる。update と check の結果の property は、この場所を返す"
+    }
+   ]
+  },
+  {
+   "key": "tests_values_rs",
+   "tab": "core/tests/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert!(ValidationError::new(\"\", \"型が object でない（値：\\\"x\\\"）\").is_ok());",
+     "before": "assert!(ValidationError::new(\"\", \"\\\"x\\\" is not of type \\\"object\\\"\").is_ok());",
+     "why": "値オブジェクトの例に使っていた英語の文を、実際に返す日本語の文に合わせる"
+    }
+   ]
+  },
+  {
+   "key": "domain_values_rs",
+   "tab": "core/src/domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 処理の失敗を表す Rust のエラー型ではなく、検証の結果として返すデータである（std::error::Error を実装しない）。",
+     "before": "（無かった）",
+     "why": "Rust API Guidelines の C-GOOD-ERR が決めるのはエラー型の Display の文で、VO-5 はそれに当たらない。名前は宣言の「検証エラー」のまま残し（ACDR 0141）、Rust のエラー型と取り違えないように型の説明に書く"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "domain_schema_rs": "c0f95d27e1d633eb5b051991633940ea3e6f541ab77197818d2d4052cb484230",
+  "tests_validation_messages_rs": "cef2e85c8c11c796b4c39e01da3c9562e6cb56076360a0af1f9d443f4ae43fe2",
+  "tests_values_rs": "03fe6b135b5aa5b8d2484c6958d35ce1a237506db4ed42456d01bc88526a7944",
+  "domain_values_rs": "a3124c1daad5b99985fcd1b1714a1dddaf998b6ee3d72132f024c7b6d67b3599"
+ }
+}
