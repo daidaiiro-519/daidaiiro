@@ -25,3 +25,5 @@
 | `platform-advisor-source/` | platform-advisor を原典から作り直す | `https://claude.ai/artifact/8MfkSrXF9TGpzjaCsgQpEY` | （未複製） |
 | `ux-advisor-source/` | ux-advisor の判断基準を原典から作り直す | `https://claude.ai/artifact/DinpoSiVFSa1NANiBZxpG3` | （未複製） |
 | `use-case-driven-development/` | ユースケース駆動開発の、手法の構成と原典の概念の置き場所 | （未発行） | （未複製） |
+| `schema-driven-build/` | schema-driven を Rust で作る ── アーキテクチャと技術スタック | （未発行） | （未複製） |
+| `board-on-schema-driven/` | ブレストボードを schema-driven の上に定義し直す | （未発行） | （未複製） |
