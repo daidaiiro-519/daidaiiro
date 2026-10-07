@@ -1,0 +1,209 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0149",
+ "title": "基盤のエラー型に、Display と std::error::Error を実装する",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "基盤のエラー型すべてに Display と std::error::Error を実装し、Display の文は短く句点で終えない形にする",
+ "why": "Rust API Guidelines の C-GOOD-ERR は「Error types should always implement the std::error::Error trait」とし、Display の文を短く句点なしにするよう求めている（interoperability.html:367、2026-10-07 取得）。基盤のエラー型のうち、これを満たしていたのは InvalidValue だけだった。ACDR 0144 で外へ出した ReadError ・ WriteError ・ QueryError ・ UseCaseError も実装していないので、具体はこれらを ? で自分のエラーへ渡せない。",
+ "shift": [
+  {
+   "what": "外へ出すエラー型（4つ）",
+   "from": "Debug だけ",
+   "to": "Display と std::error::Error を実装する"
+  },
+  {
+   "what": "基盤の中のエラー型（5つ）",
+   "from": "Debug だけ（ApprovalReject は reason() を持つ）",
+   "to": "同じ形で Display と std::error::Error を実装する"
+  },
+  {
+   "what": "Display の文",
+   "from": "無い",
+   "to": "短く、句点で終えない日本語の文（例：読めない：a.json が無い）"
+  },
+  {
+   "what": "新しい crate",
+   "from": "──",
+   "to": "足さない。手で実装する（版は Cargo.lock で決める。ACDR 0122）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "基盤のエラー型が Display と std::error::Error を持ち、具体はそれを ? で受け取れる。",
+ "alternatives": [
+  {
+   "option": "thiserror で #[error(\"…\")] を付けて実装する",
+   "why_not": "依存の crate が1つ増える。9つの型は数行ずつで書けるので、足すほどの量ではない"
+  },
+  {
+   "option": "外へ出すエラー型だけに実装する",
+   "why_not": "基盤の中でエラーの書き方が2通りになる。どちらの書き方に合わせるかを、型を足すたびに決めることになる"
+  },
+  {
+   "option": "UseCaseError の Display に、検証エラーの一覧も並べる",
+   "why_not": "一覧は errors の欄が持ち、CLI と MCP は JSON で返している。Display は短くする決まりに合わせ、理由と説明だけにする"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "core_src_ports_outbound_rs",
+   "tab": "core/src/ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "impl fmt::Display for ReadError {",
+     "before": "（無かった）",
+     "why": "外へ出すエラー型（ACDR 0144 の面）に Display と std::error::Error を実装する。具体は、基盤のエラーを ? で Box<dyn Error> や自分のエラー型へ渡せる。Display の文は、短く句点で終えない（C-GOOD-ERR）"
+    },
+    {
+     "find": "impl fmt::Display for WriteError {",
+     "before": "（無かった）",
+     "why": "外へ出すエラー型（ACDR 0144 の面）に Display と std::error::Error を実装する。具体は、基盤のエラーを ? で Box<dyn Error> や自分のエラー型へ渡せる。Display の文は、短く句点で終えない（C-GOOD-ERR）"
+    },
+    {
+     "find": "impl fmt::Display for QueryError {",
+     "before": "（無かった）",
+     "why": "外へ出すエラー型（ACDR 0144 の面）に Display と std::error::Error を実装する。具体は、基盤のエラーを ? で Box<dyn Error> や自分のエラー型へ渡せる。Display の文は、短く句点で終えない（C-GOOD-ERR）"
+    }
+   ]
+  },
+  {
+   "key": "core_src_application_instances_rs",
+   "tab": "core/src/application/instances.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "/// 理由を先に置き、詳しい説明があれば「：」のあとに続ける。",
+     "before": "（無かった）",
+     "why": "UseCaseError は、理由を先に置き、詳しい説明があれば「：」のあとに続ける。説明が空なら理由だけにする（「ほかの更新と競合した」など）"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_schema_rs",
+   "tab": "core/src/domain/schema.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "impl fmt::Display for SchemaError {",
+     "before": "（無かった）",
+     "why": "基盤の中だけで使うエラー型も、同じ形でそろえる。外から見えなくても、基盤の中でエラーの書き方が2通りになるのを避けるため"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_values_rs",
+   "tab": "core/src/domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "impl fmt::Display for PatchError {",
+     "before": "（無かった）",
+     "why": "基盤の中だけで使うエラー型も、同じ形でそろえる。外から見えなくても、基盤の中でエラーの書き方が2通りになるのを避けるため"
+    }
+   ]
+  },
+  {
+   "key": "core_src_application_view_rs",
+   "tab": "core/src/application/view.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "impl fmt::Display for ViewError {",
+     "before": "（無かった）",
+     "why": "基盤の中だけで使うエラー型も、同じ形でそろえる。外から見えなくても、基盤の中でエラーの書き方が2通りになるのを避けるため"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_instance_rs",
+   "tab": "core/src/domain/instance.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/instance.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "impl fmt::Display for Reject {",
+     "before": "（無かった）",
+     "why": "基盤の中だけで使うエラー型も、同じ形でそろえる。外から見えなくても、基盤の中でエラーの書き方が2通りになるのを避けるため"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_approval_rs",
+   "tab": "core/src/domain/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::fmt;",
+     "before": "（無かった）",
+     "why": "Display の実装に std::fmt を使う"
+    },
+    {
+     "find": "impl fmt::Display for ApprovalReject {",
+     "before": "（無かった）",
+     "why": "基盤の中だけで使うエラー型も、同じ形でそろえる。外から見えなくても、基盤の中でエラーの書き方が2通りになるのを避けるため"
+    }
+   ]
+  },
+  {
+   "key": "tests_error_types_rs",
+   "tab": "core/tests/error_types.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/error_types.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn pass_on<E: Error + 'static>(error: E) -> Result<(), Box<dyn Error>> {",
+     "before": "（無かった）",
+     "why": "? で Box<dyn Error> へ渡せることを、コンパイルで確かめる。実装の前に書き、9つの型すべてでコンパイルが止まることを確かめた"
+    },
+    {
+     "find": "fn messages_do_not_end_with_punctuation() {",
+     "before": "（無かった）",
+     "why": "Display の文が句点で終わらないことを確かめる（C-GOOD-ERR と std::error::Error の説明）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "core_src_ports_outbound_rs": "646665162e3d6ef0f8043d63c69980b92f01b579faf579dd481cb8f8abbd3305",
+  "core_src_application_instances_rs": "84d624da6db8029d7a5417137c5f13eca8a1019e9281ad6f74d36e71471accc6",
+  "core_src_domain_schema_rs": "b3b5720b89db5190bedbe6341c935b1631ac57983e4e5637e0009e565ecfd6aa",
+  "core_src_domain_values_rs": "1ab3769e4758fec6acad8875205584fd9feab395d93135c00ff1c7737f41e0dc",
+  "core_src_application_view_rs": "c16f64bfc7900d50f88426ab464ba2a170a2c679840aa60723a0d69dae983a50",
+  "core_src_domain_instance_rs": "9b1ed2931a4530f8878075a2ace8b97f006bd4a85bb5a6d1d067795471f52255",
+  "core_src_domain_approval_rs": "bc6b207f31f85334094d99ca02f363388303cea2cf91fd3c1fe3329a92144d10",
+  "tests_error_types_rs": "2b1f5d1c3fff1d7afcd989508e142621621c04ee3b3674608117ef019c4e111c"
+ }
+}

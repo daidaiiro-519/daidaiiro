@@ -2,6 +2,7 @@
 
 use crate::domain::values::{Unfilled, ValidationError};
 use serde_json::Value;
+use std::fmt;
 
 /// 検証結果（情報の別名 TERM-9）。未記入は検証エラーと分けて返す（ACDR 0118）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -13,6 +14,14 @@ pub struct Validation {
 /// スキーマそのものが壊れていて、検証器を作れない。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SchemaError(pub String);
+
+impl fmt::Display for SchemaError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "スキーマが壊れている：{}", self.0)
+    }
+}
+
+impl std::error::Error for SchemaError {}
 
 /// 読み込んだスキーマ。本体と、`$ref` の先になる同じディレクトリのスキーマを持つ。
 pub struct Schema {

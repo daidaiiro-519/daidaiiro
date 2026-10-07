@@ -5,6 +5,7 @@ use crate::domain::schema::Schema;
 use crate::ports::outbound::{Functions, Query, FUNCTIONS};
 use serde_json::Value;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::sync::Arc;
 
 /// 文にする対象のインスタンス1件と、そのスキーマの名前。
@@ -17,6 +18,14 @@ pub struct Instance {
 /// 文にできなかった理由。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ViewError(pub String);
+
+impl fmt::Display for ViewError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "x-view を文にできない：{}", self.0)
+    }
+}
+
+impl std::error::Error for ViewError {}
 
 struct Inner {
     query: Arc<dyn Query>,

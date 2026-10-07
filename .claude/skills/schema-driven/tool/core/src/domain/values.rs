@@ -111,6 +111,14 @@ pub struct JsonPatch(String);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchError(pub String);
 
+impl fmt::Display for PatchError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "JSON Patch を適用できない：{}", self.0)
+    }
+}
+
+impl std::error::Error for PatchError {}
+
 impl JsonPatch {
     pub fn new(value: &str) -> Result<Self, InvalidValue> {
         non_empty(value, "VO-7.INV-1", "操作の並び").map(Self)

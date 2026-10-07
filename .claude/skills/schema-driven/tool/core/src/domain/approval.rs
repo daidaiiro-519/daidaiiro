@@ -6,6 +6,7 @@ use crate::domain::values::{
     ApprovedInstance, Drift, Hash, InstancePath, Unfilled, ValidationError,
 };
 use serde_json::{json, Value};
+use std::fmt;
 
 /// 承認を拒んだ理由。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +31,14 @@ impl ApprovalReject {
         }
     }
 }
+
+impl fmt::Display for ApprovalReject {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.reason())
+    }
+}
+
+impl std::error::Error for ApprovalReject {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApprovalRecord {

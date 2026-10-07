@@ -10,6 +10,7 @@ use crate::domain::values::{
 use crate::ports::inbound::InstanceUseCases;
 use crate::ports::outbound::{Files, Query, Schemas, WriteError, WriteIf};
 use serde_json::Value;
+use std::fmt;
 use std::sync::Arc;
 
 /// ユースケースが失敗した理由。`reason` は用語集の語（拒否の理由 ・ 失敗の種類）で書く。
@@ -29,6 +30,19 @@ impl UseCaseError {
         }
     }
 }
+
+/// 理由を先に置き、詳しい説明があれば「：」のあとに続ける。
+impl fmt::Display for UseCaseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.detail.is_empty() {
+            formatter.write_str(&self.reason)
+        } else {
+            write!(formatter, "{}：{}", self.reason, self.detail)
+        }
+    }
+}
+
+impl std::error::Error for UseCaseError {}
 
 /// 未記入のプロパティと、その x-prompt。
 #[derive(Debug, Clone, PartialEq)]

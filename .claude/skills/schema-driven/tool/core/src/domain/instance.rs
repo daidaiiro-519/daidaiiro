@@ -5,6 +5,7 @@ use crate::domain::schema::{Schema, SchemaError, Validation};
 use crate::domain::values::{
     Hash, InstancePath, JsonPatch, JsonValue, SchemaPath, ValidationError,
 };
+use std::fmt;
 
 /// コマンドを拒んだ理由（宣言の拒否の理由）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +21,20 @@ pub enum Reject {
     /// スキーマから検証器を作れない
     BrokenSchema(String),
 }
+
+impl fmt::Display for Reject {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Reject::AlreadyExists => formatter.write_str("パスにインスタンスが既にある"),
+            Reject::CannotApply(detail) => write!(formatter, "JSON Patch を適用できない：{detail}"),
+            Reject::Conflict => formatter.write_str("ほかの更新と競合した"),
+            Reject::Invalid(_) => formatter.write_str("検証を通過しない"),
+            Reject::BrokenSchema(detail) => write!(formatter, "スキーマが壊れている：{detail}"),
+        }
+    }
+}
+
+impl std::error::Error for Reject {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {

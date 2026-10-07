@@ -1,10 +1,19 @@
 //! 出ていく側のポート。core はファイルにも JMESPath の実装にも直接触れず、この trait を通す。
 
 use crate::domain::values::Hash;
+use std::fmt;
 
 /// ファイルを読めなかった理由（失敗の種類「読めない」）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadError(pub String);
+
+impl fmt::Display for ReadError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "読めない：{}", self.0)
+    }
+}
+
+impl std::error::Error for ReadError {}
 
 /// ファイルを書けなかった理由。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +23,17 @@ pub enum WriteError {
     /// 失敗の種類「書けない」
     Unwritable(String),
 }
+
+impl fmt::Display for WriteError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WriteError::Conflict => formatter.write_str("ほかの更新と競合した"),
+            WriteError::Unwritable(detail) => write!(formatter, "書けない：{detail}"),
+        }
+    }
+}
+
+impl std::error::Error for WriteError {}
 
 /// 書く条件。作成は「まだ無いこと」、更新は「読んだ時点のハッシュ値のままであること」を求める。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +64,14 @@ pub trait Schemas: Send + Sync {
 /// JMESPath 式が読めない。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryError(pub String);
+
+impl fmt::Display for QueryError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "JMESPath 式を読めない：{}", self.0)
+    }
+}
+
+impl std::error::Error for QueryError {}
 
 /// JMESPath に足す基盤の関数（view.schema.json の functions、ACDR 0129 ・ 0132）。
 pub const FUNCTIONS: [&str; 6] = ["name", "label", "map", "view", "part", "quote"];
