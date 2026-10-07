@@ -70,7 +70,7 @@ version: 1.0.0
 
 | # | 概念 | 規則 | 判定 |
 |---|---|---|---|
-| 1 | 読み手が組み立て直す作業を、書き手が負担する | 1文の中で、読み手に計算をさせない。**名詞句には、指し先を文書の中に置く** | **名詞句を1つずつ抜き出し、「何の」「どこの」「どっちの」「誰が」を問う。文書の中の文字列で答えられない名詞句が1つでもあれば、その文は書けていない**。**「読み返して不自然か」で判定しない**——書き手は指し先を知っているので、不自然に見えない |
+| 1 | 読み手が意味を復元する作業を、書き手が負担する | 1文の中で、読み手に計算をさせない。**名詞句には、指し先を文書の中に置く** | **名詞句を1つずつ抜き出し、「何の」「どこの」「どっちの」「誰が」を問う。文書の中の文字列で答えられない名詞句が1つでもあれば、その文は書けていない**。**「読み返して不自然か」で判定しない**——書き手は指し先を知っているので、不自然に見えない |
 | 2 | 情報の型が、置く形を決める | 対比・条件・手順・分岐を、散文に置かない | **その段落を、表か図に置き直せるかを試す** |
 | 3 | 数が増えたら、形を変える | 並べるものが3つ以上なら、箇条書きか表にする | **数える** |
 | 4 | 見出しは、本文を読まずに全体を掴ませる | 見出しの階層を飛ばさない。**見出しを追えば全体の内容がつかめるようにし、見出しを目立たせる**。**番号は付けても付けなくてもよい** ── 統一されているかだけを確認する | **見出しだけを抜き出して、順に読む。そのうえで、どの本文がどの見出しに属すかが見た目で分かるかを確認する** |
@@ -133,7 +133,7 @@ doc-writing-skills reply                    # Claude Code の Stop フックの�
 **語の単位で判定できない不自然さは、`review` でモデルに審査させる。**
 造語 ・ 比喩 ・ 主述の不整合 ・ 含意の不一致 ・ 幼い語り口 ・ 回りくどさは、語彙表では検出できない。
 `review` は、判定基準（`references/review-criteria.json`）・手順（`references/document.json` の `review-instruction`）・
-事例（プロジェクトの `.doc-writing/review-examples.json`）を1つの依頼文へ組む。判定はモデルが実施する。
+事例（プロジェクトの `.doc-writing/review-examples.json`）を1つの依頼文にまとめる。判定はモデルが実施する。
 
 ```
 doc-writing-skills review --message <本文>                 # 文書（全部の基準を適用する）
@@ -318,17 +318,17 @@ HTML の頁は書き換えられ、PDF は版が上がる。
 
 ## 参照
 
-- `tool/cli/`: 唯一の CLI。`check` ・ `checks` ・ `reply` ・ `review` と、references の4つの道具 `get` ・ `validate` ・ `view` ・ `import` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**道具の一覧に無い旗は断る**
-- `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/cli/`: 唯一の CLI。`check` ・ `checks` ・ `reply` ・ `review` と、references の4つのツール `get` ・ `validate` ・ `view` ・ `import` を持つ ── **どれも `--json` で機械が読む形が出る**。終了コードは `0` 指摘なし ／ `1` 指摘あり ／ `2` 誤用。**ツールの一覧に無い旗は断る**
+- `tool/service/src/lib.rs`: サービス層のツールの一覧。**能力の正本**であり、CLI と MCP はここから作る
 - `tool/business_logic/src/gate.rs`: ゲート1の実行。**拠って立つものは `checks` で見られる**
 - `tool/business_logic/src/checks.rs`: 7つの判定の実体
 - `tool/business_logic/src/unit.rs`: 本文を判定の単位へ割る。**引用と記号で囲んだ中を、書き手の文として数えない**。**HTML の頁は要素で割る**（`split_html`）── タグを本文として読まず、コードの要素（`pre` ・ `code`）の中は記号で囲んだ中と同じ扱いにする。Markdown として読むと、閉じの `**` の直後のタグを文字と数え、表に並べたコードの行を本文として判定する
 - `tool/business_logic/src/input.rs`: `reply` ・ `review` が読む入力（フックの入力 ・ 判定基準 ・ 事例）。サービス層は入出力を保持しないので、ここが読み込む
 - `tool/data_access/`: データアクセス層。**ファイルと標準入力の入出力だけを持つ** ── 業務ロジック層はここを経由して読み込む。`files.rs` ・ `process.rs` は skills-creator の雛形の複製、`stdin.rs` はこの Skill に固有である
 - `tool/business_logic/tests/`: 事例（38件）。7つの判定と、単位の割り方（HTML の頁を含む）と、手順の変換を固定してある
-- `references/review-criteria.json`: `review` が依頼文へ組む判定基準（8件）。形は `references/review-criteria.schema.json` が定義する
+- `references/review-criteria.json`: `review` が依頼文に入れる判定基準（8件）。形は `references/review-criteria.schema.json` が定義する
 - `references/document.json`: `review` の手順（`review-instruction`）。形は `references/document.schema.json` が定義する
 - `references/source.json`: 外部の原典の複製（git で追跡しない）。形は `references/source.schema.json` が定義する。取得し直すときは `sources/MANIFEST.json` の URL から原文を取得し、`import` で取り込んだ項目を source.json へ移す
-- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の4つの道具の実体。skills-creator の雛形の複製である
+- `tool/business_logic/src/refs.rs` ・ `tool/service/src/refs.rs`: references の4つのツールの実体。skills-creator の雛形の複製である
 - `tool/business_logic/src/instruction.rs`: document の1件を、`review` の依頼文へ入れる本文へ変換する
-- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
+- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じツールの一覧から作る** ── 能力を1行も複製しない

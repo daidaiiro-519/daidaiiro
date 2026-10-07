@@ -119,22 +119,22 @@ slide-deck-speech lexicon <辞書のファイル> <辞書の名前>
 - **スライドの並び・画像の場所・動画の条件を、このSkillが保持してはならない。** 保持すると、スライドを保持する側と同じ知識が2か所に存在し、片方の変更がもう片方へ波及する
 - **声を枚ごとに変えてはならない。** 聞き手は、声の変化を話者の交代として解釈する。教材の話者は1人である
 - **環境を先に作ってはならない。同時に、環境の作り方を保持しない状態にしてもならない。** 既定は手元で実行し、AWS側で実行するための構成はテンプレートとして同梱する ── 先に作ると使っていない設備を保守することになり、作り方が無いと端末の状態に依存し続ける
-- **結合の道具を、端末へ直接導入してはならない。** 版の差が動画の差になる。版を固定した公開のイメージを使う
-- **道具に印字させてはならない。** 戻り値は `{ok, findings, data}` とし、印字と終了コードはプレゼンテーション層が持つ ── 道具が印字すると、MCP から呼んだときに戻り値が空になる
+- **結合のツールを、端末へ直接導入してはならない。** 版の差が動画の差になる。版を固定した公開のイメージを使う
+- **ツールに印字させてはならない。** 戻り値は `{ok, findings, data}` とし、印字と終了コードはプレゼンテーション層が持つ ── ツールが印字すると、MCP から呼んだときに戻り値が空になる
 
 ---
 
 ## 参照
 
-- `tool/cli/`: 唯一の CLI。`plan` ・ `synth` ・ `lexicon` ・ `measure` と、references の `get` ・ `validate` ・ `view` ・ `import` を持つ ── **道具の一覧に無い旗は断る**
-- `tool/service/src/lib.rs`: サービス層の道具の一覧。**能力の正本**であり、CLI と MCP はここから組む
+- `tool/cli/`: 唯一の CLI。`plan` ・ `synth` ・ `lexicon` ・ `measure` と、references の `get` ・ `validate` ・ `view` ・ `import` を持つ ── **ツールの一覧に無い旗は断る**
+- `tool/service/src/lib.rs`: サービス層のツールの一覧。**能力の正本**であり、CLI と MCP はここから作る
 - `tool/business_logic/src/voice.rs`: 合成の実行と、キーによる作り直しの判定
-- `tool/data_access/`: データアクセス層。ファイルと外部の道具の入出力（`files` ・ `process`）だけを持つ ── 業務ロジック層はここを経由して読み書きし、合成の CLI を起動する
+- `tool/data_access/`: データアクセス層。ファイルと外部のツールの入出力（`files` ・ `process`）だけを持つ ── 業務ロジック層はここを経由して読み書きし、合成の CLI を起動する
 - `tool/business_logic/src/refs.rs`: references の実装（取り出し ・ 検査 ・ 描画 ・ 取り込み）。skills-creator の雛形の複製であり、書き換えない
-- `tool/service/src/refs.rs`: references の4つの道具を、道具の一覧へ登録する
-- `tool/business_logic/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部の道具に依存しない
+- `tool/service/src/refs.rs`: references の4つのツールを、ツールの一覧へ登録する
+- `tool/business_logic/src/mp3.rs`: 音声の長さを、フレームの並びから測る。外部のツールに依存しない
 - `tool/business_logic/tests/mp3.rs`: 長さの測定を、実物の音声で検証する
-- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じ道具の一覧から組む** ── 能力を1行も複製しない
+- `tool/mcp/`: MCP の面（プレゼンテーション層）。**同じツールの一覧から作る** ── 能力を1行も複製しない
 - `references/narration.schema.json`: 入力の契約
 - `references/narration.out.schema.json`: 出力の契約。`durationMs` の定義を含む
 - `infra/slide-deck-speech.yml`: AWS側で実行するための構成。`aws cloudformation deploy` で作る。CodeBuild は `bin/slide-deck-speech synth` を呼ぶ

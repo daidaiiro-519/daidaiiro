@@ -96,5 +96,5 @@ description: "進行中の作業の現在地や、外部システムへのポイ
 ## 参照
 
 - `references/templates.json` ・ `references/templates.schema.json`: 記録の雛形。project 型（進行中の作業の現在地と、次にすること）と reference 型（外部システムへのポインタ）の2件。`session-memory view --kind templates` で描画して読む
-- `bin/session-memory` ・ `bin/session-memory-mcp`: references の4つの道具（get ・ validate ・ view ・ import）を持つ CLI と MCP サーバー（ACDR 0043）。ソースは `tool/` に在り、skills-creator のリファレンス実装の複製である
+- `bin/session-memory` ・ `bin/session-memory-mcp`: references の4つのツール（get ・ validate ・ view ・ import）を持つ CLI と MCP サーバー（ACDR 0043）。ソースは `tool/` に在り、skills-creator のリファレンス実装の複製である
 - `references/view.*`: 描画の見た目の写し（skills-creator の references/view/ の複製）
