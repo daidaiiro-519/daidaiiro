@@ -2,7 +2,7 @@
  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
  "title": "design-svg を、AI が自由に記述した SVG を統一する Skill に作り直す",
  "board": "design-svg-rework",
- "round": 6,
+ "round": 7,
  "intro": [
   {
    "kind": "para",
@@ -96,6 +96,12 @@
        [
         "論点5 の承認"
        ]
+      ],
+      [
+       "「おｋ」（7回目のボードへの返事、2026-10-08）",
+       [
+        "論点3（追加した2つの境目）の承認"
+       ]
       ]
      ]
     }
@@ -137,6 +143,9 @@
       },
       {
        "text": "論点5 は最後の論点である。承認されたら、まとめの「次にすること」の ACDR 1 から始める"
+      },
+      {
+       "text": "論点3 は、7回目に開き直した。承認済みの内容はすべて残し、検査の境目の2つを足した。論点4 と論点5 の答えはこの追加で変わらない"
       }
      ]
     }
@@ -169,7 +178,7 @@
    ]
   },
   {
-   "heading": "まとめ（論点5の承認を待つ間の見込み）",
+   "heading": "まとめ（論点3の開き直しの承認を待つ間の見込み）",
    "body": [
     {
      "kind": "heading",
@@ -187,7 +196,7 @@
        "text": "論点2：作成者が SVG を座標まで記述し、スタイルは class で指定する。design-svg が class を値へ解決し、検査を通して返す"
       },
       {
-       "text": "論点3：class の一覧とデザイントークンを theme.json に固定し、検査1〜4（class ・ 値 ・ 禁止した組み合わせ ・ レイアウト）を通す"
+       "text": "論点3（7回目に開き直し、承認待ち）：class の一覧とデザイントークンを theme.json に固定し、検査1〜4を通す。円グラフの輪は円弧のパスにし、サイズの上書きを認めない。検査1と2の対象の範囲を決めた"
       },
       {
        "text": "論点4：ギャラリーの21個を13種類のテンプレートとして design-svg の references に保存し、新しい種類は ACDR で追加する"
@@ -207,16 +216,42 @@
      "ordered": true,
      "items": [
       {
-       "text": "ACDR 1：design-svg の theme.json ・ class の解決 ・ 検査1〜4 ・ ダークモードの style を追加する。figure と chart の class 出力 ・ canvas の削除 ・ SKILL.md の目的も含める"
+       "text": "ACDR 1：design-svg の theme.json ・ class の解決 ・ 検査1〜4 ・ ダークモードの style を追加する。figure と chart の class 出力、canvas の削除、SKILL.md の目的も含める"
       },
       {
-       "text": "ACDR 2：21個を class の記述へ変換し、exemplars.json と13種類のテンプレートを保存する。start と入力欄の class を追加する"
+       "text": "ACDR 1 の中で、ギャラリーの21個を class の記述へ変換し、受け入れテストの事例にする。ACDR 2 から移した作業である"
+      },
+      {
+       "text": "ACDR 2：ACDR 1 で変換した21個を references/exemplars へ移し、exemplars.json と13種類のテンプレートを保存する。start と入力欄の class を追加する"
       },
       {
        "text": "ACDR 3：配線表の design-svg の3行と、CLAUDE.md の図の運用ルールを修正する"
       },
       {
        "text": "ACDR 4：ACDR と advisor のページの CSS に横スクロールを追加し、brainstorming-board の figures を削除する"
+      }
+     ]
+    },
+    {
+     "kind": "heading",
+     "level": 3,
+     "text": "ACDR 1 の終了基準（qa-advisor の回答）"
+    },
+    {
+     "kind": "list",
+     "ordered": false,
+     "items": [
+      {
+       "text": "コンポーネント：theme.json の契約テストが全件合格。検査1と2のパーティションのカバレッジ100%（無効を含む）。検査3のデシジョンテーブルの列のカバレッジ100%。検査4の境界値と隣接値のカバレッジ100%"
+      },
+      {
+       "text": "コンポーネント統合：figure 9組と chart 20組が段A（class だけを追加）で旧 golden と一致する。段B（値をトークンへ変換）の差分一覧が承認済みで、全件が検査1〜4で0件"
+      },
+      {
+       "text": "システム：CLI と MCP の終了コード 0 ・ 1 ・ 2 の事例と、canvas が無いことの3件が合格"
+      },
+      {
+       "text": "受け入れ：21個が検査0件で、class の一覧の全 class を使う。利用者が目視で承認し、しきい値を theme.json に記録する"
       }
      ]
     },
@@ -251,8 +286,12 @@
  ],
  "queue": [
   {
+   "no": 3,
+   "why": "論点3（追加した2つの境目）と論点5は承認済みである。外の作業（ACDR 1）がこの答えを使った時点で決着にする"
+  },
+  {
    "no": 5,
-   "why": "論点5は承認済みである。外の作業（ACDR 1）がこの答えを使った時点で決着にする"
+   "why": "承認済み。ACDR 1 で使った時点で決着にする"
   }
  ],
  "topics": [
@@ -887,12 +926,12 @@
   {
    "no": 3,
    "name": "何を固定し、どう検査するか",
-   "status": "settled",
+   "status": "open",
    "question": "論点1で統一すると決めたものを、トークン ・ 図の表記法 ・ レイアウトの検査のどれで固定し、作成者が記述した SVG をどう機械で検査するか",
-   "answer": "class の一覧（図の表記法）と、5種類のデザイントークン（セマンティックカラー ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン）を theme.json に固定する。検査は、class を指定しているか ・ トークンに無い値が無いか ・ 禁止した組み合わせが無いかと、レイアウトの4つ（重なり ・ はみ出し ・ 複数行のラベル ・ スマホ幅のフォントサイズ）にする。class の選択の誤りは機械では検査できないので、検査は class ごとのラベルの一覧を出力し、描画して目視で確認する。design-svg はライトモードとダークモードの2組の値を出力する",
+   "answer": "class の一覧（図の表記法）と、5種類のデザイントークン（セマンティックカラー ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン）を theme.json に固定する。検査は、class を指定しているか ・ トークンに無い値が無いか ・ 禁止した組み合わせが無いかと、レイアウトの4つ（重なり ・ はみ出し ・ 複数行のラベル ・ スマホ幅のフォントサイズ）にする。class の選択の誤りは機械では検査できないので、検査は class ごとのラベルの一覧を出力し、描画して目視で確認する。design-svg はライトモードとダークモードの2組の値を出力する。追加1：chart の円グラフの輪は塗りつぶした円弧のパス（class series-1〜3）で描き、ストローク幅をトークンに収める。呼び出し元はサイズのトークンを上書きしない。追加2：検査1の対象は rect ・ circle ・ ellipse ・ line ・ polyline ・ polygon ・ path ・ text ・ image と、作成者が記述した marker である。親の g の class は子を満たさない。swatch の例外は、その要素自身の fill ・ stroke ・ stop-color だけである",
    "intro": "この論点は、図のデザインシステムの内容と、design-svg が返す前に通す検査を決める。",
    "decision": {
-    "letter": "A",
+    "letter": "B",
     "text": [
      {
       "kind": "para",
@@ -903,7 +942,13 @@
       "ordered": true,
       "items": [
        {
-        "text": "class の一覧（図の表記法）：box ・ focus ・ warn ・ kind-1〜3 ・ boundary ・ area ・ flow ・ async ・ link ・ badge ・ label ・ note ・ swatch。class ごとに意味を1つ定義する"
+        "text": "class の一覧（図の表記法）の図形：box ・ focus ・ warn ・ kind-1〜3 ・ boundary ・ area ・ badge ・ swatch ・ series-1〜3"
+       },
+       {
+        "text": "class の一覧（図の表記法）の線とテキスト：flow ・ async ・ link ・ label ・ note"
+       },
+       {
+        "text": "class ごとに意味を1つ定義する"
        },
        {
         "text": "デザイントークン1：セマンティックカラーは ink ・ ink-soft ・ line ・ box-fill ・ accent ・ accent-bg ・ warn ・ warn-bg と、kind-1〜3 とその背景色である"
@@ -931,6 +976,33 @@
        },
        {
         "text": "design-svg は、ライトモードの値を属性に出力し、ダークモードの値を class ごとの CSS ルールとして SVG 内の style 要素に出力する"
+       },
+       {
+        "text": "追加1-1：円グラフ（ドーナツ）の輪は、太いストロークではなく、塗りつぶした円弧のパス（class series-1〜3）で描く。ストローク幅は 1 ・ 1.5 ・ 2 のままにする"
+       },
+       {
+        "text": "追加1-2：表示用のフォントサイズのトークンは追加しない。円グラフの中央の数値は、いまもフォントサイズ 12（太字）で描かれている"
+       },
+       {
+        "text": "追加1-3：呼び出し元が上書きしてよいのは色のトークンだけで、サイズのトークンは上書きしない。図を大きく表示するときは、SVG の表示幅を広げて viewBox ごと拡大する"
+       },
+       {
+        "text": "追加2-1：検査1の対象は rect ・ circle ・ ellipse ・ line ・ polyline ・ polygon ・ path ・ text ・ image である。tspan は親の text の class に従う"
+       },
+       {
+        "text": "追加2-2：矢印の marker は design-svg が flow ・ async の class から生成する。作成者は defs と marker を記述せず、記述した marker は検査1で検出する"
+       },
+       {
+        "text": "追加2-3：親の g の class は子を満たさない。g に記述した値は検査2で検出する"
+       },
+       {
+        "text": "追加2-4：swatch の例外は、swatch の class を持つ要素自身の fill ・ stroke ・ stop-color だけである。子の要素には及ばず、swatch の要素の font-size などは検出する"
+       },
+       {
+        "text": "追加2-5：fill=\"none\" と stroke=\"none\" は値ではないので、どの要素にも記述してよい"
+       },
+       {
+        "text": "追加2-6：検査1と2は、design-svg が解決する前の SVG（作成者が記述したもの）に適用する"
        }
       ]
      }
@@ -1035,6 +1107,14 @@
         "ラベルと注記",
         "ink 12 ・ ink-soft 10〜11",
         "すべてのパネル"
+       ]
+      ],
+      [
+       "series-1〜3",
+       [
+        "chart の系列（円グラフの輪の円弧など）",
+        "fill はカテゴリ色 kind-1〜3",
+        "円グラフ（chart の pie）"
        ]
       ],
       [
@@ -1183,6 +1263,137 @@
     {
      "kind": "para",
      "text": "機械では検査できず、描画して目視で確認するものは、class の選択の誤り ・ 配置の良し悪し ・ 強調の偏り ・ カテゴリ色どうしの差が十分か ・ 単語の途中の改行である。"
+    },
+    {
+     "kind": "para",
+     "text": "追加1と追加2の根拠にした計測である。"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "計測の結果",
+      "この答えでの扱い"
+     ],
+     "rows": [
+      [
+       "円グラフの輪のストローク幅 24",
+       [
+        "chart の pie（既定のテーマ）",
+        "塗りつぶした円弧のパスにする"
+       ]
+      ],
+      [
+       "フォントサイズ 25 ・ 30、ストローク幅 60",
+       [
+        "golden のうち、サイズのトークンを2.5倍に上書きした事例",
+        "サイズのトークンの上書きを認めないので、事例を作り直す"
+       ]
+      ],
+      [
+       "フォントサイズ 16 ・ 19.2",
+       [
+        "golden のうち、サイズのトークンを1.6倍に上書きした事例",
+        "同上"
+       ]
+      ],
+      [
+       "フォントサイズ 8 ・ 9 ・ 9.6、ストローク幅 1.1 ・ 1.0975 ・ 1.2、破線 3 4 ・ 5 4",
+       [
+        "figure の入れ子と chart の注記",
+        "最も近いトークンへ変換し、変換の一覧を ACDR 1 で承認する"
+       ]
+      ],
+      [
+       "ギャラリーの tspan ・ g ・ image",
+       [
+        "21個とも0件",
+        "規則は作るが、21個の変換には影響しない"
+       ]
+      ],
+      [
+       "ギャラリーの marker",
+       [
+        "17個の defs に31個。形はすべて同じ（M0,0 L10,5 L0,10 z）で、違いは色と orient だけ",
+        "design-svg が class から生成しても、表現は失われない"
+       ]
+      ],
+      [
+       "ギャラリーの fill=\"none\" ・ stroke=\"none\"",
+       [
+        "75件",
+        "値ではないので許可する"
+       ]
+      ]
+     ]
+    },
+    {
+     "kind": "para",
+     "text": "検査1と2の対象の範囲である。"
+    },
+    {
+     "kind": "table",
+     "cols": [
+      "検査1（class が必要か）",
+      "検査2（値を検出するか）"
+     ],
+     "rows": [
+      [
+       "rect ・ circle ・ ellipse ・ line ・ polyline ・ polygon ・ path ・ text ・ image",
+       [
+        "必要",
+        "検出する"
+       ]
+      ],
+      [
+       "tspan",
+       [
+        "親の text の class に従う",
+        "検出する"
+       ]
+      ],
+      [
+       "g",
+       [
+        "不要（子を満たさない）",
+        "検出する"
+       ]
+      ],
+      [
+       "作成者が記述した marker",
+       [
+        "記述すること自体を検出する",
+        "検出する"
+       ]
+      ],
+      [
+       "design-svg が生成した defs と marker",
+       [
+        "対象外（解決の前の SVG に存在しない）",
+        "対象外"
+       ]
+      ],
+      [
+       "swatch の要素の fill ・ stroke ・ stop-color",
+       [
+        "必要（swatch）",
+        "検出しない"
+       ]
+      ],
+      [
+       "swatch の要素の font-size などと、swatch の子",
+       [
+        "必要",
+        "検出する"
+       ]
+      ],
+      [
+       "fill=\"none\" ・ stroke=\"none\"",
+       [
+        "—",
+        "検出しない"
+       ]
+      ]
+     ]
     }
    ],
    "figures": [
@@ -1194,52 +1405,52 @@
    ],
    "passed": [
     {
-     "name": "class の一覧とデザイントークンを固定し、それを守っているかだけを検査する",
-     "body": "図の表記法と5種類のデザイントークンを theme.json に定義し、class ・ 値 ・ 組み合わせ ・ レイアウトを検査する",
-     "cost": "theme.json にカテゴリ色とダークモードの値を追加し、design-svg に class の解決と検査を追加することになる"
+     "name": "輪は塗りつぶした円弧のパスにし、サイズの上書きを認めない",
+     "body": "円グラフの輪を class series-1〜3 のパスで描き、サイズのトークンの上書きを認めない。marker は design-svg が生成する",
+     "cost": "chart の pie の描画と、サイズを上書きした golden の事例を作り直すことになる"
     },
     {
-     "name": "デザイントークンだけを固定し、値を検査する",
-     "body": "class を持たせず、値がトークンの中にあるかだけを検査する",
-     "cost": "意味の統一を検査できない"
+     "name": "表示用のフォントサイズのトークンと class metric を追加する",
+     "body": "数値の見出しのために、フォントサイズ 28 のトークンと class metric を追加する",
+     "cost": "既定のテーマの chart は見出しに 12 を使っており、28 を使う図が無い"
     },
     {
-     "name": "レイアウトの検査だけにする",
-     "body": "いまの verify と figures を、作成者が記述した SVG に適用する",
-     "cost": "論点1の2つのどちらも検査しない"
+     "name": "chart の出力だけを、トークンの検査の例外にする",
+     "body": "chart が出力した値は検査2の対象外にする",
+     "cost": "chart の出力だけ、統一の外になる"
     }
    ],
    "tables": [
     {
      "caption": "案ごとの比較",
      "cols": [
-      "ddd-3 の warn",
-      "platform-1 の誤検出",
-      "検査するもの"
+      "ストローク幅 24 ・ 60",
+      "フォントサイズ 25 ・ 30",
+      "検査の例外"
      ],
      "rows": [
       [
-       "class の一覧とデザイントークンを固定し、それを守っているかだけを検査する",
+       "輪は塗りつぶした円弧のパスにし、サイズの上書きを認めない",
        [
-        "class ごとのラベルの一覧に表示される",
-        "出ない",
-        "論点1の2つとレイアウト"
+        "パスの塗りになり、検出されない",
+        "上書きを認めないので出力されない",
+        "swatch だけ"
        ]
       ],
       [
-       "デザイントークンだけを固定し、値を検査する",
+       "表示用のフォントサイズのトークンと class metric を追加する",
        [
-        "通る",
-        "出る",
-        "値だけ"
+        "別に決める必要がある",
+        "28 へ変換される",
+        "swatch だけ"
        ]
       ],
       [
-       "レイアウトの検査だけにする",
+       "chart の出力だけを、トークンの検査の例外にする",
        [
-        "通る",
-        "出る",
-        "レイアウトだけ"
+        "検出されない",
+        "検出されない",
+        "chart の出力の全部"
        ]
       ]
      ]
@@ -1273,6 +1484,30 @@
     {
      "body": "コンテンツとしての色を、ファイルごとの許可リストで通す",
      "reason": "1つの図の中にスタイルの色とコンテンツの色が混在すると、どれが許可されたものか区別できない。要素に swatch の class を指定すれば、要素ごとに決まる"
+    },
+    {
+     "body": "表示用のフォントサイズのトークンと class metric を追加する",
+     "reason": "25 と 30 は、golden の事例がサイズのトークンを2.5倍に上書きしたときの 10 と 12 である。既定のテーマの円グラフの中央の数値は 12 で、表示用のサイズを使う図は無い"
+    },
+    {
+     "body": "表示用のフォントサイズを複数追加する",
+     "reason": "同上。使う図が無いトークンを固定することになる"
+    },
+    {
+     "body": "chart の出力だけを、トークンの検査の例外にする",
+     "reason": "論点2で、figure と chart は作成者が記述した SVG と同じ検査を通すと決めた。例外にすると chart の出力だけが統一の外になる"
+    },
+    {
+     "body": "作成者が marker を記述し、marker に class arrowhead を付ける",
+     "reason": "marker の中の path の fill を作成者が記述することになり、検査2の対象外の場所に値が残る。21個の marker は31個とも同じ形で、design-svg が生成しても表現は失われない"
+    },
+    {
+     "body": "親の g の class で、子の class を満たす",
+     "reason": "g に class を1つ付けるだけで、中の図形がどの class でも検査1を通る。class の選択の誤りが隠れる"
+    },
+    {
+     "body": "swatch の例外を、swatch の要素の子にも及ぼす",
+     "reason": "swatch の g の中に、スタイルの図形を値ごと記述できるようになる"
     }
    ],
    "findings": [
@@ -1281,7 +1516,11 @@
     "ギャラリーのページは、すべての色にダークモードの値を持っていた。theme.json にはダークモードの値が無い",
     "theme.json の chart.tones は、4つのうち2つが accent と warn と同じ値である",
     "幅の広い12個の図は、作成者が min-width（560〜620px）を指定していた。指定が無いまま 358px で描画すると、最小のフォントサイズは 4.6〜6.2px になる",
-    "brainstorming-board の figures の誤検出（ddd-1 の8件 ・ platform-1 の2件）は、どれも badge か area にあたる要素だった"
+    "brainstorming-board の figures の誤検出（ddd-1 の8件 ・ platform-1 の2件）は、どれも badge か area にあたる要素だった",
+    "chart のトークンに無い値のうち、25 ・ 30 ・ 60 ・ 16 ・ 19.2 は、golden の事例がサイズのトークンを上書きしたときだけに出る",
+    "既定のテーマの円グラフは、輪にストローク幅 24 を使い、中央の数値にフォントサイズ 12 を使う",
+    "ギャラリーの21個には tspan ・ g ・ image が無く、marker は31個とも同じ形だった",
+    "ブレストボードの図の宣言で theme を持つ3件は、どれも色の役割だけを上書きしていた"
    ],
    "grounds": [
     {
@@ -1343,12 +1582,56 @@
      "basis": "ボックスからはみ出すテキストを置いた SVG を、verify はテキストの重なりとキャンバスの外だけで判定し、ボックスからのはみ出しを報告しなかった",
      "tag": "measured",
      "source": "design-svg verify の実行（2026-10-07）"
+    },
+    {
+     "supports": "検査の境目を決めてから事例を書くこと",
+     "basis": "対応：開始基準と終了基準を、テストレベルごとに定義するべきである",
+     "tag": "primary",
+     "source": "qa-advisor の回答（criteria.json の entry-exit-criteria）"
+    },
+    {
+     "supports": "検査1と2の対象を同値分割で決めること",
+     "basis": "項目：100%の条件 ・ 内容：無効パーティションも含め、識別したパーティションのすべてを、テストケースで少なくとも1回通過する",
+     "tag": "primary",
+     "source": "qa-advisor の回答（criteria.json の equivalence-partitioning）"
+    },
+    {
+     "supports": "25 ・ 30 ・ 60 がどこから出るか",
+     "basis": "font.size 30.0 ・ font.size-small 25.0 を上書きした事例で、円グラフの輪は stroke-width 60.0 になる",
+     "tag": "measured",
+     "source": ".claude/skills/design-svg/tool/business_logic/tests/golden/chart-43edcb758937e38a.json と .svg"
+    },
+    {
+     "supports": "既定のテーマの円グラフ",
+     "basis": "輪は stroke-width 24.0、中央の数値は font-size 12.0（font-weight 600）",
+     "tag": "measured",
+     "source": ".claude/skills/design-svg/tool/business_logic/tests/golden/chart-3f8352c6c909f143.svg"
+    },
+    {
+     "supports": "marker を design-svg が生成すること",
+     "basis": "marker は31個とも path d=\"M0,0 L10,5 L0,10 z\" で、違いは fill と orient だけ",
+     "tag": "measured",
+     "source": "ギャラリーの21個の SVG の計測（2026-10-08）"
+    },
+    {
+     "supports": "呼び出し元が上書きするのは色だけであること",
+     "basis": "スライドの6色をセマンティックカラーへ対応させる",
+     "tag": "rule",
+     "source": "論点5（承認済み）"
+    },
+    {
+     "supports": "qa-advisor の指摘",
+     "basis": "検査1が対象にする要素：未判定。swatch の例外の範囲：未判定",
+     "tag": "primary",
+     "source": "qa-advisor の回答の premises"
     }
    ],
    "requirements": [
     "theme.json に、カテゴリ色 kind-1〜3 と背景色 ・ ダークモードの値 ・ フォントサイズ 11 と 13 ・ ストローク幅 1 と 1.5 ・ 破線のパターンを追加する",
     "design-svg に、class の解決 ・ 検査1〜4 ・ class ごとのラベルの一覧 ・ ダークモードの style を追加する",
-    "論点4のテンプレートは、この class の一覧で記述する"
+    "論点4のテンプレートは、この class の一覧で記述する",
+    "ACDR 1 で、chart の pie を円弧のパスで描き、サイズのトークンを上書きした golden の事例を作り直す",
+    "ACDR 1 で、検査1と2の対象の表を事例の表として固定する"
    ],
    "out_of_scope": [
     {
@@ -1388,6 +1671,16 @@
     {
      "kind": "para",
      "text": "スマホ幅のフォントサイズを計測したところ、幅の広い図はどれも min-width を指定していたので、検査が使う幅を「358px か、図が指定した min-width」にした。"
+    },
+    {
+     "kind": "previous",
+     "letter": "A",
+     "body": "A ── class の一覧（図の表記法）と、5種類のデザイントークン（セマンティックカラー ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン）を theme.json に固定する。検査は、class を指定しているか ・ トークンに無い値が無いか ・ 禁止した組み合わせが無いかと、レイアウトの4つ（重なり ・ はみ出し ・ 複数行のラベル ・ スマホ幅のフォントサイズ）にする。class の選択の誤りは機械では検査できないので、検査は class ごとのラベルの一覧を出力し、描画して目視で確認する。design-svg はライトモードとダークモードの2組の値を出力する",
+     "why": "qa-advisor が、検査の事例を書く前に決める境目が2つ未決だと指摘した"
+    },
+    {
+     "kind": "para",
+     "text": "7回目は、chart の golden とギャラリーの21個を計測してから、依頼主の案を反証した。25 ・ 30 ・ 60 はサイズを上書きした事例だけに出ると分かったので、表示用のフォントサイズのトークンは追加しないことにした。marker は21個とも同じ形だったので、作成者が記述する案を除外し、design-svg が生成することにした。"
     }
    ]
   },
