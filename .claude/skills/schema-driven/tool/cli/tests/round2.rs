@@ -8,12 +8,12 @@ use std::process::Command;
 
 const BIN: &str = env!("CARGO_BIN_EXE_schema-driven");
 
-/// スキーマ（thing）と、インスタンスを置くディレクトリ decls を用意する。
+/// スキーマ（thing）と、インスタンスを置くディレクトリ declarations を用意する。
 fn workdir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("schema-driven-r2-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("schema")).unwrap();
-    fs::create_dir_all(dir.join("decls")).unwrap();
+    fs::create_dir_all(dir.join("declarations")).unwrap();
     fs::write(
         dir.join("schema/thing.schema.json"),
         json!({
@@ -39,7 +39,11 @@ fn put(dir: &Path, id: &str, extra: Value) {
     if instance["name"].is_null() {
         instance.as_object_mut().unwrap().remove("name");
     }
-    fs::write(dir.join(format!("decls/{id}.json")), instance.to_string()).unwrap();
+    fs::write(
+        dir.join(format!("declarations/{id}.json")),
+        instance.to_string(),
+    )
+    .unwrap();
 }
 
 fn run(dir: &Path, args: &[&str]) -> (i32, Value) {
@@ -53,15 +57,15 @@ fn run(dir: &Path, args: &[&str]) -> (i32, Value) {
 }
 
 fn check(dir: &Path) -> (i32, Value) {
-    run(dir, &["check", "--dir", "decls"])
+    run(dir, &["check", "--dir", "declarations"])
 }
 
 fn approve(dir: &Path) -> (i32, Value) {
-    run(dir, &["approve", "--dir", "decls"])
+    run(dir, &["approve", "--dir", "declarations"])
 }
 
 fn approval(dir: &Path) -> Option<String> {
-    fs::read_to_string(dir.join("decls/approval.json")).ok()
+    fs::read_to_string(dir.join("declarations/approval.json")).ok()
 }
 
 fn set_readonly(path: &Path, readonly: bool) {
@@ -87,7 +91,7 @@ fn uc_5_m_check_returns_validation_and_findings() {
     let dir = workdir("uc5-m");
     put(&dir, "A", json!({"refs": ["B"]}));
     put(&dir, "B", json!({}));
-    let before = fs::read_to_string(dir.join("decls/A.json")).unwrap();
+    let before = fs::read_to_string(dir.join("declarations/A.json")).unwrap();
     let (code, out) = check(&dir);
     assert_eq!(code, 0, "{out}");
     assert_eq!(out["instances"].as_array().unwrap().len(), 2);
@@ -98,7 +102,7 @@ fn uc_5_m_check_returns_validation_and_findings() {
         .iter()
         .any(|finding| finding["check"] == "指す先がある" && finding["to"] == "B"));
     assert_eq!(
-        fs::read_to_string(dir.join("decls/A.json")).unwrap(),
+        fs::read_to_string(dir.join("declarations/A.json")).unwrap(),
         before,
         "インスタンスを書き換えない"
     );
@@ -108,7 +112,7 @@ fn uc_5_m_check_returns_validation_and_findings() {
 fn uc_5_ext_1_unreadable_instance_fails() {
     let dir = workdir("uc5-ext1");
     put(&dir, "A", json!({}));
-    fs::write(dir.join("decls/broken.json"), "{").unwrap();
+    fs::write(dir.join("declarations/broken.json"), "{").unwrap();
     let (code, out) = check(&dir);
     assert_eq!(code, 1);
     assert_eq!(out["reason"], "JSON として読めない");
@@ -168,9 +172,9 @@ fn uc_8_ext_2_no_change_since_last_approval_ends() {
 fn uc_8_ext_3_unwritable_directory_fails() {
     let dir = workdir("uc8-ext3");
     put(&dir, "A", json!({}));
-    set_readonly(&dir.join("decls"), true);
+    set_readonly(&dir.join("declarations"), true);
     let (code, out) = approve(&dir);
-    set_readonly(&dir.join("decls"), false);
+    set_readonly(&dir.join("declarations"), false);
     assert_eq!(code, 1);
     assert_eq!(out["reason"], "書けない");
 }
@@ -204,9 +208,9 @@ fn uc_4_m_delete_reports_remaining_references() {
     let dir = workdir("uc4-m");
     put(&dir, "A", json!({"refs": ["B"]}));
     put(&dir, "B", json!({}));
-    let (code, out) = run(&dir, &["delete", "--path", "decls/B.json"]);
+    let (code, out) = run(&dir, &["delete", "--path", "declarations/B.json"]);
     assert_eq!(code, 0, "{out}");
-    assert!(!dir.join("decls/B.json").exists());
+    assert!(!dir.join("declarations/B.json").exists());
     let remaining = out["remaining"].as_array().unwrap();
     assert_eq!(remaining.len(), 1, "{out}");
     assert_eq!(remaining[0]["from"], "A/refs");
@@ -215,7 +219,7 @@ fn uc_4_m_delete_reports_remaining_references() {
 #[test]
 fn uc_4_ext_1_missing_instance_fails() {
     let dir = workdir("uc4-ext1");
-    let (code, out) = run(&dir, &["delete", "--path", "decls/none.json"]);
+    let (code, out) = run(&dir, &["delete", "--path", "declarations/none.json"]);
     assert_eq!(code, 1);
     assert_eq!(out["reason"], "読めない");
 }
@@ -224,20 +228,20 @@ fn uc_4_ext_1_missing_instance_fails() {
 fn uc_4_ext_2_unwritable_directory_fails() {
     let dir = workdir("uc4-ext2");
     put(&dir, "B", json!({}));
-    set_readonly(&dir.join("decls"), true);
-    let (code, out) = run(&dir, &["delete", "--path", "decls/B.json"]);
-    set_readonly(&dir.join("decls"), false);
+    set_readonly(&dir.join("declarations"), true);
+    let (code, out) = run(&dir, &["delete", "--path", "declarations/B.json"]);
+    set_readonly(&dir.join("declarations"), false);
     assert_eq!(code, 1);
     assert_eq!(out["reason"], "書けない");
-    assert!(dir.join("decls/B.json").exists());
+    assert!(dir.join("declarations/B.json").exists());
 }
 
 #[test]
 fn uc_4_ext_3_unreadable_directory_after_delete_fails() {
     let dir = workdir("uc4-ext3");
     put(&dir, "B", json!({}));
-    fs::write(dir.join("decls/broken.json"), "{").unwrap();
-    let (code, out) = run(&dir, &["delete", "--path", "decls/B.json"]);
+    fs::write(dir.join("declarations/broken.json"), "{").unwrap();
+    let (code, out) = run(&dir, &["delete", "--path", "declarations/B.json"]);
     assert_eq!(code, 1);
     assert_eq!(out["reason"], "JSON として読めない");
 }

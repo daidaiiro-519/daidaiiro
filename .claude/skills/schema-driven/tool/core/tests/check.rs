@@ -302,11 +302,11 @@ fn inverse_counts_min_max_and_shared_group_including_unreferenced() {
 }
 
 #[test]
-fn inverse_max_decls_counts_instances_not_references() {
+fn inverse_max_instances_counts_instances_not_references() {
     let referring_schema = schema(
         "agg.schema.json",
         json!({"properties": {"rejects": {"x-ref": {"to": "glossary", "bare": true, "in": "terms",
-        "inverse": {"group": "拒否の理由を使う集約は1つ", "max_decls": 1}}}}}),
+        "inverse": {"group": "拒否の理由を使う集約は1つ", "max_instances": 1}}}}}),
     );
     let glossary_schema = glossary();
     let docs = vec![

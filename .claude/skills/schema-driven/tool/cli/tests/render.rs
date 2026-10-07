@@ -53,12 +53,16 @@ impl Design for Mini {
 fn setup(name: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("sd-render-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("decls")).unwrap();
+    fs::create_dir_all(root.join("declarations")).unwrap();
     fs::create_dir_all(root.join("pages")).unwrap();
     let schema = json!({"x-view": {"label": "name"}, "type": "object", "required": ["kind", "id", "name"],
         "properties": {"$schema": {}, "kind": {"type": "string"}, "id": {"type": "string"},
                        "name": {"type": "string"}, "tags": {"type": "array", "title": "タグの一覧", "items": {"type": "string"}}}});
-    fs::write(root.join("decls/thing.schema.json"), schema.to_string()).unwrap();
+    fs::write(
+        root.join("declarations/thing.schema.json"),
+        schema.to_string(),
+    )
+    .unwrap();
     let write = |file: &str, instance: Value| {
         fs::write(
             root.join(file),
@@ -67,16 +71,16 @@ fn setup(name: &str) -> PathBuf {
         .unwrap()
     };
     write(
-        "decls/T-1.json",
+        "declarations/T-1.json",
         json!({"$schema": "thing.schema.json", "kind": "thing", "id": "T-1", "name": "<甲>", "tags": ["a", "b"]}),
     );
     fs::write(
-        root.join("decls/document.schema.json"),
+        root.join("declarations/document.schema.json"),
         include_str!("../../../references/document.schema.json"),
     )
     .unwrap();
     write(
-        "decls/D-1.json",
+        "declarations/D-1.json",
         json!({"$schema": "document.schema.json", "kind": "document", "id": "D-1", "title": "乙の報告",
                "sections": [{"heading": "結論", "blocks": [{"type": "paragraph", "text": "乙で進める", "strong": true}]}]}),
     );
@@ -90,7 +94,7 @@ fn setup(name: &str) -> PathBuf {
 
 fn args(root: &Path) -> Map<String, Value> {
     let path = |dir: &str| root.join(dir).to_string_lossy().into_owned();
-    json!({"dir": path("decls"), "pages": path("pages"), "out": path("out")})
+    json!({"dir": path("declarations"), "pages": path("pages"), "out": path("out")})
         .as_object()
         .cloned()
         .unwrap()
@@ -186,7 +190,7 @@ fn concrete_kinds_use_the_concrete_design_and_documents_the_fixed_design() {
 fn kinds_without_a_template_stop_rendering_and_nothing_is_written() {
     let root = setup("missing");
     fs::write(
-        root.join("decls/O-1.json"),
+        root.join("declarations/O-1.json"),
         json!({"$schema": "thing.schema.json", "kind": "other", "id": "O-1", "name": "乙"})
             .to_string(),
     )
@@ -206,11 +210,11 @@ fn kinds_without_a_template_stop_rendering_and_nothing_is_written() {
 fn same_input_gives_same_pages_and_inputs_are_untouched() {
     let root = setup("same");
     render(&root);
-    let first = snapshot(&root, &["decls", "pages", "out"]);
+    let first = snapshot(&root, &["declarations", "pages", "out"]);
     let (code, out) = render(&root);
     assert_eq!(code, 0, "{out}");
     assert_eq!(out["pages"][0]["changed"], false);
-    assert_eq!(snapshot(&root, &["decls", "pages", "out"]), first);
+    assert_eq!(snapshot(&root, &["declarations", "pages", "out"]), first);
     fs::remove_dir_all(&root).unwrap();
 }
 
@@ -218,7 +222,7 @@ fn same_input_gives_same_pages_and_inputs_are_untouched() {
 fn validation_errors_stop_rendering_and_nothing_is_written() {
     let root = setup("invalid");
     fs::write(
-        root.join("decls/T-1.json"),
+        root.join("declarations/T-1.json"),
         json!({"$schema": "thing.schema.json", "kind": "thing", "id": "T-1", "name": 1})
             .to_string(),
     )
@@ -238,7 +242,7 @@ fn validation_errors_stop_rendering_and_nothing_is_written() {
 fn unfilled_properties_do_not_stop_rendering() {
     let root = setup("unfilled");
     fs::write(
-        root.join("decls/T-1.json"),
+        root.join("declarations/T-1.json"),
         json!({"$schema": "thing.schema.json", "kind": "thing", "id": "T-1"}).to_string(),
     )
     .unwrap();
@@ -269,7 +273,7 @@ fn page_template_violations_stop_rendering() {
 #[test]
 fn without_any_concrete_design_documents_still_render() {
     let root = setup("document-only");
-    fs::remove_file(root.join("decls/T-1.json")).unwrap();
+    fs::remove_file(root.join("declarations/T-1.json")).unwrap();
     let (code, out) = render_with(&root, None);
     assert_eq!(code, 0, "{out}");
     assert!(root.join("out/D-1.html").exists());
@@ -279,7 +283,7 @@ fn without_any_concrete_design_documents_still_render() {
 #[test]
 fn document_blocks_render_by_information_type_and_escape_text() {
     let root = setup("blocks");
-    fs::remove_file(root.join("decls/T-1.json")).unwrap();
+    fs::remove_file(root.join("declarations/T-1.json")).unwrap();
     let document = json!({"$schema": "document.schema.json", "kind": "document", "title": "<比較>", "lead": "前置き",
         "badges": ["2026-10-07"],
         "sections": [{"heading": "案", "blocks": [
@@ -290,7 +294,7 @@ fn document_blocks_render_by_information_type_and_escape_text() {
             {"type": "change", "rows": [{"what": "名前", "before": "l", "after": "instance"}]},
             {"type": "quote", "text": "A schema", "source": "json-schema-core:2057"},
             {"type": "bars", "items": [{"label": "甲", "value": 2}, {"label": "乙", "value": 4}]}]}]});
-    fs::write(root.join("decls/D-1.json"), document.to_string()).unwrap();
+    fs::write(root.join("declarations/D-1.json"), document.to_string()).unwrap();
     let (code, out) = render_with(&root, None);
     assert_eq!(code, 0, "{out}");
     let page = fs::read_to_string(root.join("out/D-1.html")).unwrap();
@@ -340,8 +344,8 @@ fn toolbox_without_a_render_use_case_says_why() {
 /// 文書を1件だけ置いて描画し、ページを返す（失敗なら Err に結果の JSON）。
 fn render_document(name: &str, document: Value) -> Result<String, Value> {
     let root = setup(name);
-    fs::remove_file(root.join("decls/T-1.json")).unwrap();
-    fs::write(root.join("decls/D-1.json"), document.to_string()).unwrap();
+    fs::remove_file(root.join("declarations/T-1.json")).unwrap();
+    fs::write(root.join("declarations/D-1.json"), document.to_string()).unwrap();
     let (code, out) = render_with(&root, None);
     let result = if code == 0 {
         Ok(fs::read_to_string(root.join("out/D-1.html")).unwrap())

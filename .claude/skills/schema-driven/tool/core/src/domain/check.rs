@@ -718,7 +718,7 @@ impl Checker<'_> {
                     })
                     .collect();
                 let count = refs.len() as u64;
-                let decls = refs
+                let referring_instances = refs
                     .iter()
                     .map(|link| link.doc)
                     .collect::<BTreeSet<_>>()
@@ -735,10 +735,10 @@ impl Checker<'_> {
                         problems.push(format!("指されすぎ（{count} 件、上限 {max}）"));
                     }
                 }
-                if let Some(max_decls) = inverse.get("max_decls").and_then(Value::as_u64) {
-                    if decls > max_decls {
+                if let Some(max_instances) = inverse.get("max_instances").and_then(Value::as_u64) {
+                    if referring_instances > max_instances {
                         problems.push(format!(
-                            "指すインスタンスが多すぎる（{decls} 件、上限 {max_decls}）"
+                            "指すインスタンスが多すぎる（{referring_instances} 件、上限 {max_instances}）"
                         ));
                     }
                 }

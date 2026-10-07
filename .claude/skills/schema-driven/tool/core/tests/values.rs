@@ -9,7 +9,7 @@ use schema_driven_core::domain::values::{
 #[test]
 fn vo_1_inv_1_rejects_empty_path() {
     assert!(InstancePath::new("").is_err());
-    assert!(InstancePath::new("decls/UC-1.json").is_ok());
+    assert!(InstancePath::new("declarations/UC-1.json").is_ok());
 }
 
 // VO-2 スキーマ：INV-1 スキーマのファイルのパスの文字数は1以上

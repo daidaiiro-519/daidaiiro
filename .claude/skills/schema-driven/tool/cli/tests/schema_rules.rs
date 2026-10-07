@@ -33,7 +33,7 @@ fn field(extra: Value) -> Value {
 
 /// 決まりに従っている具体のスキーマ。
 fn good() -> Value {
-    json!({"title": "用語集", "description": "語の一覧", "x-generates": "decls/GLO-<番号>.json",
+    json!({"title": "用語集", "description": "語の一覧", "x-generates": "declarations/GLO-<番号>.json",
            "x-view": {"label": "header.name"},
            "properties": {
                "kind": field(json!({"const": "glossary"})),
@@ -112,7 +112,7 @@ fn undeclared_annotations_are_findings_and_declared_ones_pass() {
 fn referenced_kinds_must_have_id() {
     let mut glossary = good();
     glossary["properties"].as_object_mut().unwrap().remove("id");
-    let use_case = json!({"title": "ユースケース", "description": "やり取り", "x-generates": "decls/UC-<番号>.json",
+    let use_case = json!({"title": "ユースケース", "description": "やり取り", "x-generates": "declarations/UC-<番号>.json",
                     "properties": {
                         "kind": field(json!({"const": "use_case"})),
                         "id": field(json!({})),

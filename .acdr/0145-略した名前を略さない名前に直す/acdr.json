@@ -1,0 +1,383 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0145",
+ "title": "略した名前を、略さない名前に直す",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "注釈のキー max_decls を max_instances に、検査の変数 decls を referring_instances に、テストのディレクトリ decls を declarations に直す",
+ "why": "ACDR 0141 で、実装の名前に略語を使わないと決めた。ところが declarations を略した decls が、注釈のキー ・ 検査の変数 ・ テストのディレクトリの名前に残っていた。注釈のキーは具体のスキーマが書く契約なので、略語のままだと具体のスキーマにも略語が広がる。",
+ "shift": [
+  {
+   "what": "注釈 x-inverse のキー",
+   "from": "max_decls",
+   "to": "max_instances（参照してくるインスタンスの数の上限）"
+  },
+  {
+   "what": "検査の中の変数",
+   "from": "decls",
+   "to": "referring_instances"
+  },
+  {
+   "what": "テストのディレクトリ",
+   "from": "decls/",
+   "to": "declarations/"
+  },
+  {
+   "what": "具体のスキーマの見本",
+   "from": "max_decls で書いている",
+   "to": "max_instances で書く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "略語の3か所を、中身を指す略さない名前に直す。注釈のキーは契約なので、具体のスキーマの見本も一緒に直す。",
+ "alternatives": [
+  {
+   "option": "注釈のキーは max_decls のまま残し、テストと変数だけ直す",
+   "why_not": "具体のスキーマが書くキーに略語が残る。具体が増えるほど、直すときに書き直すスキーマが増える"
+  },
+  {
+   "option": "古いキー max_decls も読めるようにして、新しいキーと両方を受ける",
+   "why_not": "まだ具体のスキーマは見本だけで、移行を待つ利用者がいない。同じ意味のキーが2つあると、どちらを書くかを毎回決めることになる"
+  },
+  {
+   "option": "キーを max_declarations にする",
+   "why_not": "略語は消えるが、数えるのは宣言ではなくインスタンスである。中身を指す名前にならない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "references_annotations_schema_json",
+   "tab": "references/annotations.schema.json",
+   "file": ".claude/skills/schema-driven/references/annotations.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "{\"group\": \"拒否の理由を1つの集約だけが使う\", \"max_instances\": 1}",
+     "before": "{\"group\": \"拒否の理由を1つの集約だけが使う\", \"max_decls\": 1}",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    },
+    {
+     "find": "\"read\": \"to と in で決まる指す先の候補（インスタンス、または項目）のそれぞれについて、group の名前が同じ x-ref すべてからの参照を数える。where ・ where_derive があれば、当たる候補だけを数える対象にする。参照の数が min より少なければ「ずれ（指されていない）」、max より多ければ「ずれ（指されすぎ）」、指しているインスタンスの数が max_instances より多ければ「ずれ（指すインスタンスが多すぎる）」と読む。結果には group の名前が出る。\",",
+     "before": "\"read\": \"to と in で決まる指す先の候補（インスタンス、または項目）のそれぞれについて、group の名前が同じ x-ref すべてからの参照を数える。where ・ where_derive があれば、当たる候補だけを数える対象にする。参照の数が min より少なければ「ずれ（指されていない）」、max より多ければ「ずれ（指されすぎ）」、指しているインスタンスの数が max_decls より多ければ「ずれ（指すインスタンスが多すぎる）」と読む。結果には group の名前が出る。\",",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    },
+    {
+     "find": "\"max_instances\": {\"type\": \"integer\", \"minimum\": 1, \"description\": \"指すインスタンスの数の上限（同じインスタンスが何度指しても1と数える）\"},",
+     "before": "\"max_decls\": {\"type\": \"integer\", \"minimum\": 1, \"description\": \"指すインスタンスの数の上限（同じインスタンスが何度指しても1と数える）\"},",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    }
+   ]
+  },
+  {
+   "key": "domain_check_rs",
+   "tab": "core/src/domain/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let referring_instances = refs",
+     "before": "let decls = refs",
+     "why": "検査の中の変数 decls を referring_instances にする。数えているのは、参照してくるインスタンスの数である"
+    },
+    {
+     "find": "if let Some(max_instances) = inverse.get(\"max_instances\").and_then(Value::as_u64) {",
+     "before": "if let Some(max_decls) = inverse.get(\"max_decls\").and_then(Value::as_u64) {",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    },
+    {
+     "find": "\"指すインスタンスが多すぎる（{referring_instances} 件、上限 {max_instances}）\"",
+     "before": "\"指すインスタンスが多すぎる（{decls} 件、上限 {max_decls}）\"",
+     "why": "検査の中の変数 decls を referring_instances にする。数えているのは、参照してくるインスタンスの数である"
+    }
+   ]
+  },
+  {
+   "key": "schema_aggregate_schema_json",
+   "tab": ".brainstorming-board/usecase-driven-concrete/sample/schema/aggregate.schema.json",
+   "file": ".brainstorming-board/usecase-driven-concrete/sample/schema/aggregate.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"max_instances\": 1",
+     "before": "\"max_decls\": 1",
+     "why": "具体のスキーマの見本も、新しいキーで書き直す。古いキーのままだとメタスキーマの検査で知らないキーになる"
+    }
+   ]
+  },
+  {
+   "key": "tests_check_rs",
+   "tab": "core/tests/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn inverse_max_instances_counts_instances_not_references() {",
+     "before": "fn inverse_max_decls_counts_instances_not_references() {",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    },
+    {
+     "find": "\"inverse\": {\"group\": \"拒否の理由を使う集約は1つ\", \"max_instances\": 1}}}}}),",
+     "before": "\"inverse\": {\"group\": \"拒否の理由を使う集約は1つ\", \"max_decls\": 1}}}}}),",
+     "why": "注釈のキーを max_decls から max_instances にする。中身は「参照してくるインスタンスの数の上限」で、declarations（宣言）を略した名前は中身を指していなかった"
+    }
+   ]
+  },
+  {
+   "key": "tests_approval_rs",
+   "tab": "core/tests/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "InstancePath::new(\"declarations\").unwrap()",
+     "before": "InstancePath::new(\"decls\").unwrap()",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "assert!(record.same_as(&[approved(\"declarations/a.json\")]));",
+     "before": "assert!(record.same_as(&[approved(\"decls/a.json\")]));",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "&errors,",
+     "before": "let recorded = ApprovalRecord::record(dir(), &errors, &[], &[], vec![approved(\"decls/a.json\")]);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "&drifts,",
+     "before": "let recorded = ApprovalRecord::record(dir(), &[], &drifts, &[], vec![approved(\"decls/a.json\")]);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "&unfilled,",
+     "before": "let recorded =",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn approval_record_round_trips_as_json() {",
+     "before": "ApprovalRecord::record(dir(), &[], &[], &[], vec![approved(\"decls/a.json\")]).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "assert!(map.contains_key(\"declarations/a.json\"));",
+     "before": "assert!(map.contains_key(\"decls/a.json\"));",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    }
+   ]
+  },
+  {
+   "key": "tests_values_rs",
+   "tab": "core/tests/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert!(InstancePath::new(\"declarations/UC-1.json\").is_ok());",
+     "before": "assert!(InstancePath::new(\"decls/UC-1.json\").is_ok());",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    }
+   ]
+  },
+  {
+   "key": "tests_round2_rs",
+   "tab": "cli/tests/round2.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/round2.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// スキーマ（thing）と、インスタンスを置くディレクトリ declarations を用意する。",
+     "before": "/// スキーマ（thing）と、インスタンスを置くディレクトリ decls を用意する。",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fs::create_dir_all(dir.join(\"declarations\")).unwrap();",
+     "before": "fs::create_dir_all(dir.join(\"decls\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "dir.join(format!(\"declarations/{id}.json\")),",
+     "before": "fs::write(dir.join(format!(\"decls/{id}.json\")), instance.to_string()).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "run(dir, &[\"check\", \"--dir\", \"declarations\"])",
+     "before": "run(dir, &[\"check\", \"--dir\", \"decls\"])",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "run(dir, &[\"approve\", \"--dir\", \"declarations\"])",
+     "before": "run(dir, &[\"approve\", \"--dir\", \"decls\"])",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fs::read_to_string(dir.join(\"declarations/approval.json\")).ok()",
+     "before": "fs::read_to_string(dir.join(\"decls/approval.json\")).ok()",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "let before = fs::read_to_string(dir.join(\"declarations/A.json\")).unwrap();",
+     "before": "let before = fs::read_to_string(dir.join(\"decls/A.json\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fs::read_to_string(dir.join(\"declarations/A.json\")).unwrap(),",
+     "before": "fs::read_to_string(dir.join(\"decls/A.json\")).unwrap(),",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn uc_5_ext_1_unreadable_instance_fails() {",
+     "before": "fs::write(dir.join(\"decls/broken.json\"), \"{\").unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn uc_8_ext_3_unwritable_directory_fails() {",
+     "before": "set_readonly(&dir.join(\"decls\"), true);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "let dir = workdir(\"uc4-m\");",
+     "before": "let (code, out) = run(&dir, &[\"delete\", \"--path\", \"decls/B.json\"]);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "assert!(!dir.join(\"declarations/B.json\").exists());",
+     "before": "assert!(!dir.join(\"decls/B.json\").exists());",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "let (code, out) = run(&dir, &[\"delete\", \"--path\", \"declarations/none.json\"]);",
+     "before": "let (code, out) = run(&dir, &[\"delete\", \"--path\", \"decls/none.json\"]);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn uc_4_ext_2_unwritable_directory_fails() {",
+     "before": "set_readonly(&dir.join(\"decls\"), true);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "assert!(dir.join(\"declarations/B.json\").exists());",
+     "before": "assert!(dir.join(\"decls/B.json\").exists());",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn uc_4_ext_3_unreadable_directory_after_delete_fails() {",
+     "before": "fs::write(dir.join(\"decls/broken.json\"), \"{\").unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    }
+   ]
+  },
+  {
+   "key": "tests_render_rs",
+   "tab": "cli/tests/render.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/render.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fs::create_dir_all(root.join(\"declarations\")).unwrap();",
+     "before": "fs::create_dir_all(root.join(\"decls\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "root.join(\"declarations/thing.schema.json\"),",
+     "before": "fs::write(root.join(\"decls/thing.schema.json\"), schema.to_string()).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "\"declarations/T-1.json\",",
+     "before": "\"decls/T-1.json\",",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "root.join(\"declarations/document.schema.json\"),",
+     "before": "root.join(\"decls/document.schema.json\"),",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "\"declarations/D-1.json\",",
+     "before": "\"decls/D-1.json\",",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "json!({\"dir\": path(\"declarations\"), \"pages\": path(\"pages\"), \"out\": path(\"out\")})",
+     "before": "json!({\"dir\": path(\"decls\"), \"pages\": path(\"pages\"), \"out\": path(\"out\")})",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "root.join(\"declarations/O-1.json\"),",
+     "before": "root.join(\"decls/O-1.json\"),",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "let first = snapshot(&root, &[\"declarations\", \"pages\", \"out\"]);",
+     "before": "let first = snapshot(&root, &[\"decls\", \"pages\", \"out\"]);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "assert_eq!(snapshot(&root, &[\"declarations\", \"pages\", \"out\"]), first);",
+     "before": "assert_eq!(snapshot(&root, &[\"decls\", \"pages\", \"out\"]), first);",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn validation_errors_stop_rendering_and_nothing_is_written() {",
+     "before": "root.join(\"decls/T-1.json\"),",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn unfilled_properties_do_not_stop_rendering() {",
+     "before": "root.join(\"decls/T-1.json\"),",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn without_any_concrete_design_documents_still_render() {",
+     "before": "fs::remove_file(root.join(\"decls/T-1.json\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "fn document_blocks_render_by_information_type_and_escape_text() {",
+     "before": "fs::remove_file(root.join(\"decls/T-1.json\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "{\"type\": \"change\", \"rows\": [{\"what\": \"名前\", \"before\": \"l\", \"after\": \"instance\"}]},",
+     "before": "fs::write(root.join(\"decls/D-1.json\"), document.to_string()).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "/// 文書を1件だけ置いて描画し、ページを返す（失敗なら Err に結果の JSON）。",
+     "before": "fs::remove_file(root.join(\"decls/T-1.json\")).unwrap();",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    }
+   ]
+  },
+  {
+   "key": "tests_schema_rules_rs",
+   "tab": "cli/tests/schema_rules.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "json!({\"title\": \"用語集\", \"description\": \"語の一覧\", \"x-generates\": \"declarations/GLO-<番号>.json\",",
+     "before": "json!({\"title\": \"用語集\", \"description\": \"語の一覧\", \"x-generates\": \"decls/GLO-<番号>.json\",",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    },
+    {
+     "find": "let use_case = json!({\"title\": \"ユースケース\", \"description\": \"やり取り\", \"x-generates\": \"declarations/UC-<番号>.json\",",
+     "before": "let use_case = json!({\"title\": \"ユースケース\", \"description\": \"やり取り\", \"x-generates\": \"decls/UC-<番号>.json\",",
+     "why": "テストで使うディレクトリの名前 decls を、略さない declarations にする（ACDR 0141：実装の名前に略語を使わない）"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "references_annotations_schema_json": "a7c2a90ae3c92cc785f63cc1dfe140db8ceba0e3b82ced215dda39bfce4703ec",
+  "domain_check_rs": "8702f0ef0aab9fd482c3eb8de73583c176fbc85f53ef534650e2b93ec75f65cf",
+  "schema_aggregate_schema_json": "9630c3c5b24319d4a18eb3115d9700bcbb880ded0d89d77964a1e9b719211d18",
+  "tests_check_rs": "19199ae1c28637bb5fd8a01ffbf705518dc67b690a61b68575a0532b691e51e2",
+  "tests_approval_rs": "204e9de06d2f2b826befa56710b009225ebc484e00d53fe15d355ac126958bd4",
+  "tests_values_rs": "e529a702ea2a8ab263eff056e7a4c1d4201687da4dc02f5a955a8638b0da095a",
+  "tests_round2_rs": "d89e8d6ef69bd5e59d89e7888aaaadc8eee35ae0ac903f4ae7d8e5f01736e540",
+  "tests_render_rs": "a78c626aed604434dfe2efdc55f7ceccc120fd1e442a5d23ebd4624fe0839e13",
+  "tests_schema_rules_rs": "9005f62f480b32ac173cf67d6eb4808f92050abe73ce1d5df1b8f11042fe64fc"
+ }
+}
