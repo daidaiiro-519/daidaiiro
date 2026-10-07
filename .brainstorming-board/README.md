@@ -26,4 +26,7 @@
 | `ux-advisor-source/` | ux-advisor の判断基準を原典から作り直す | `https://claude.ai/artifact/DinpoSiVFSa1NANiBZxpG3` | （未複製） |
 | `use-case-driven-development/` | ユースケース駆動開発の、手法の構成と原典の概念の置き場所 | （未発行） | （未複製） |
 | `schema-driven-build/` | schema-driven を Rust で作る ── アーキテクチャと技術スタック | （未発行） | （未複製） |
+| `ux-advisor-purpose/` | ux-advisor の目的と、原典 ・ アウトプット | `https://claude.ai/artifact/SoHwGKqhexbi19MMmTjnKp` | （未複製） |
+| `advisor-answer/` | advisor が返すものと届け方 | `https://claude.ai/artifact/9ek8LMJvRsQs1PHk9jWVWB` | （未複製） |
 | `board-on-schema-driven/` | ブレストボードを schema-driven の上に定義し直す | （未発行） | （未複製） |
+| `design-svg-rework/` | design-svg を、AI が自由に記述した SVG を統一する Skill に作り直す | `https://claude.ai/artifact/5mCtXMcgxntcrtUTjx5rKn` | （未複製） |

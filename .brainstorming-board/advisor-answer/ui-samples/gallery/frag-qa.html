@@ -1,0 +1,227 @@
+<section class="panel" id="p-qa-1" data-p="qa-1" data-kind="表" data-label="同値分割と境界値" hidden>
+<div class="smp"><span class="kd">表</span><span>qa-advisor ・ 完成イメージ 1 / 6</span></div><h2>テスト設計（同値分割と境界値）</h2>
+<p class="note">出す相談：ネットショップの決済画面で、数量と割引コードをどのテストケースで確かめるか（設計相談）</p>
+<h3>同値パーティション</h3>
+<div class="tw"><table class="t"><thead><tr><th>入力</th><th>有効なパーティション</th><th>無効なパーティション</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">数量</td><td style="white-space:nowrap">1〜10 の整数</td><td>0 以下 ／ 11 以上 ／ 整数でない値（1.5、空欄）</td></tr>
+<tr><td class="lead" style="white-space:nowrap">商品の合計金額</td><td>3,000円以上（割引コードを使える）</td><td>3,000円未満（割引コードを使えない）</td></tr>
+<tr><td class="lead" style="white-space:nowrap">割引コード</td><td>登録済みで、有効期限内のコード</td><td>未登録 ／ 有効期限切れ ／ 使用済み</td></tr>
+</tbody></table></div>
+<h3>境界値（2値 BVA）</h3>
+<div class="tw"><table class="t"><thead><tr><th>境界</th><th>確かめる値</th><th>期待する結果</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">数量の下限</td><td style="white-space:nowrap"><code>0</code> ／ <code>1</code></td><td>0 は「1個以上を選んでください」と出す。1 はカートに入る</td></tr>
+<tr><td class="lead" style="white-space:nowrap">数量の上限</td><td style="white-space:nowrap"><code>10</code> ／ <code>11</code></td><td>10 はカートに入る。11 は「1回の注文で買えるのは10個までです」と出す</td></tr>
+<tr><td class="lead" style="white-space:nowrap">合計金額</td><td><code>2,999円</code> ／ <code>3,000円</code></td><td>2,999円 では割引しない。3,000円 では 10% 割引する</td></tr>
+<tr><td class="lead" style="white-space:nowrap">有効期限</td><td><code>10/31 23:59:59</code> ／ <code>11/01 00:00:00</code></td><td>10/31 中は割引する。11/01 0時からは「有効期限が切れています」と出す</td></tr>
+</tbody></table></div>
+<h3>デシジョンテーブル（割引コードを使えるか）</h3>
+<div class="tw"><table class="t"><thead><tr><th>条件 ・ アクション</th><th>規則1</th><th>規則2</th><th>規則3</th><th>規則4</th></tr></thead><tbody>
+<tr><td class="lead">コードが登録済みで有効期限内</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">N</td></tr>
+<tr><td class="lead" style="white-space:nowrap">合計金額が3,000円以上</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">N</td><td style="white-space:nowrap">－</td></tr>
+<tr><td class="lead" style="white-space:nowrap">この会員がまだ使っていない</td><td style="white-space:nowrap">Y</td><td style="white-space:nowrap">N</td><td style="white-space:nowrap">－</td><td style="white-space:nowrap">－</td></tr>
+<tr><td class="lead" style="white-space:nowrap">10% 割引する</td><td style="white-space:nowrap">X</td><td></td><td></td><td></td></tr>
+<tr><td class="lead" style="white-space:nowrap">エラーを出す</td><td></td><td style="white-space:nowrap">使用済み</td><td style="white-space:nowrap">金額不足</td><td style="white-space:nowrap">無効なコード</td></tr>
+</tbody></table></div>
+<p class="note">「－」は、その条件の値が結果を変えないことを表す。規則4本で、条件の組み合わせ8通りをすべて確かめられる。</p>
+<p class="gr">拠る判断基準：equivalence-partitioning ・ boundary-value-analysis ・ decision-table-testing</p>
+</section>
+
+<section class="panel" id="p-qa-2" data-p="qa-2" data-kind="図" data-label="状態遷移" hidden>
+<div class="smp"><span class="kd">図</span><span>qa-advisor ・ 完成イメージ 2 / 6</span></div><h2>注文の状態遷移</h2>
+<p class="note">出す相談：注文のキャンセルと支払い期限切れを、どこまでテストすればよいか（設計相談）</p>
+<figure class="fig"><div style="width:100%;overflow-x:auto"><svg viewBox="0 0 640 270" width="100%" style="min-width:560px;max-width:680px;display:block;margin:0 auto" role="img" aria-label="注文の状態遷移図：支払い待ちから配達完了まで、およびキャンセル済みへの遷移">
+<defs><marker id="qa2-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--dim)"/></marker></defs>
+<circle cx="22" cy="60" r="8" fill="var(--ink)"/>
+<line x1="30" y1="60" x2="64" y2="60" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/>
+<text x="22" y="34" font-size="11" fill="var(--dim)">注文を確定</text>
+<rect x="66" y="38" width="110" height="44" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/><text x="121" y="65" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">支払い待ち</text>
+<rect x="222" y="38" width="110" height="44" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/><text x="277" y="65" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">支払い済み</text>
+<rect x="378" y="38" width="110" height="44" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/><text x="433" y="65" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">発送済み</text>
+<rect x="534" y="38" width="96" height="44" rx="10" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/><text x="582" y="65" font-size="13" font-weight="700" fill="var(--accent)" text-anchor="middle">配達完了</text>
+<line x1="176" y1="60" x2="220" y2="60" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/><text x="199" y="30" font-size="11" fill="var(--dim)" text-anchor="middle">決済が</text><text x="199" y="44" font-size="11" fill="var(--dim)" text-anchor="middle">成功</text>
+<line x1="332" y1="60" x2="376" y2="60" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/><text x="355" y="30" font-size="11" fill="var(--dim)" text-anchor="middle">出荷</text>
+<line x1="488" y1="60" x2="532" y2="60" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/><text x="511" y="30" font-size="11" fill="var(--dim)" text-anchor="middle">受け取り</text>
+<rect x="150" y="210" width="140" height="44" rx="10" fill="var(--warn-bg)" stroke="var(--warn)" stroke-width="1.5"/><text x="220" y="237" font-size="13" font-weight="700" fill="var(--warn)" text-anchor="middle">キャンセル済み</text>
+<path d="M100,82 L100,232 L148,232" fill="none" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/>
+<text x="92" y="160" font-size="11" fill="var(--dim)" text-anchor="end">キャンセル</text>
+<path d="M142,82 L190,208" fill="none" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/>
+<text x="166" y="120" font-size="11" fill="var(--dim)">支払い期限</text><text x="166" y="136" font-size="11" fill="var(--dim)">（48時間）切れ</text>
+<path d="M300,82 L262,208" fill="none" stroke="var(--dim)" stroke-width="1.3" marker-end="url(#qa2-ar)"/>
+<text x="296" y="150" font-size="11" fill="var(--dim)">キャンセル（返金する）</text>
+<line x1="433" y1="82" x2="433" y2="180" stroke="var(--warn)" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="443" y="150" font-size="11" fill="var(--warn)">キャンセル → 拒否する</text><text x="443" y="166" font-size="11" fill="var(--warn)">（無効な遷移）</text>
+</svg></div></figure>
+<h3>状態遷移表（有効な遷移5本 ＋ 無効な遷移2本）</h3>
+<div class="tw"><table class="t"><thead><tr><th>今の状態</th><th>イベント</th><th>次の状態</th><th>確かめること</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">支払い待ち</td><td style="white-space:nowrap">決済が成功</td><td style="white-space:nowrap">支払い済み</td><td>在庫を引き当て、確認メールを送る</td></tr>
+<tr><td class="lead" style="white-space:nowrap">支払い待ち</td><td style="white-space:nowrap">キャンセル</td><td style="white-space:nowrap">キャンセル済み</td><td>在庫の仮押さえを戻す</td></tr>
+<tr><td class="lead" style="white-space:nowrap">支払い待ち</td><td style="white-space:nowrap">支払い期限切れ</td><td style="white-space:nowrap">キャンセル済み</td><td>確定から48時間0分で切れ、47時間59分では切れない</td></tr>
+<tr><td class="lead" style="white-space:nowrap">支払い済み</td><td style="white-space:nowrap">キャンセル</td><td style="white-space:nowrap">キャンセル済み</td><td>全額を返金し、割引コードを未使用に戻す</td></tr>
+<tr><td class="lead" style="white-space:nowrap">支払い済み</td><td style="white-space:nowrap">出荷</td><td style="white-space:nowrap">発送済み</td><td>追跡番号を注文に記録する</td></tr>
+<tr><td class="lead" style="white-space:nowrap">発送済み</td><td style="white-space:nowrap">キャンセル</td><td style="white-space:nowrap">（変わらない）</td><td>「発送後はキャンセルできません」と出し、状態を変えない</td></tr>
+<tr><td class="lead" style="white-space:nowrap">配達完了</td><td>決済が成功（二重通知）</td><td style="white-space:nowrap">（変わらない）</td><td>決済代行からの重複通知を無視する</td></tr>
+</tbody></table></div>
+<p class="gr">拠る判断基準：state-transition-testing</p>
+</section>
+
+<section class="panel" id="p-qa-3" data-p="qa-3" data-kind="図" data-label="テスト戦略" hidden>
+<div class="smp"><span class="kd">図</span><span>qa-advisor ・ 完成イメージ 3 / 6</span></div><h2>テスト戦略（ピラミッドと四象限）</h2>
+<p class="note">出す相談：決済機能のテストを、どのレベルに何件ずつ置くか（判断相談）</p>
+<div class="grid2">
+<figure class="fig"><figcaption class="ph after">テストピラミッド（件数と1回の実行時間）</figcaption>
+<svg viewBox="0 0 320 250" width="100%" style="max-width:380px" role="img" aria-label="テストピラミッド：コンポーネントテスト180件、コンポーネント統合テスト40件、エンドツーエンドテスト12件">
+<polygon points="160,14 206,84 114,84" fill="var(--warn-bg)" stroke="var(--warn)" stroke-width="1.5"/>
+<text x="160" y="62" font-size="13" font-weight="700" fill="var(--warn)" text-anchor="middle">12件</text>
+<polygon points="114,90 206,90 250,156 70,156" fill="var(--sel-bg)" stroke="var(--sel)" stroke-width="1.5"/>
+<text x="160" y="118" font-size="13" font-weight="700" fill="var(--sel)" text-anchor="middle">40件</text>
+<text x="160" y="136" font-size="12" fill="var(--sel)" text-anchor="middle">約2分</text>
+<polygon points="66,162 254,162 300,232 20,232" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="160" y="192" font-size="13" font-weight="700" fill="var(--accent)" text-anchor="middle">180件</text>
+<text x="160" y="210" font-size="12" fill="var(--accent)" text-anchor="middle">約20秒</text>
+</svg>
+</figure>
+<figure class="fig"><figcaption class="ph after">テストの四象限</figcaption>
+<svg viewBox="0 0 320 300" width="100%" style="max-width:380px" role="img" aria-label="テストの四象限に、決済機能のテストを置いた図">
+<text x="160" y="14" font-size="11" font-weight="700" fill="var(--dim)" text-anchor="middle">ビジネス指向</text>
+<text x="160" y="296" font-size="11" font-weight="700" fill="var(--dim)" text-anchor="middle">テクノロジー指向</text>
+<rect x="10" y="24" width="148" height="122" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+<rect x="162" y="24" width="148" height="122" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+<rect x="10" y="150" width="148" height="122" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+<rect x="162" y="150" width="148" height="122" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+<text x="20" y="44" font-size="13" font-weight="700" fill="var(--accent)">第二象限</text>
+<text x="20" y="62" font-size="11" fill="var(--dim)">チームを支援する</text>
+<text x="20" y="86" font-size="12" fill="var(--ink)">受け入れ基準の</text><text x="20" y="102" font-size="12" fill="var(--ink)">シナリオ（自動）</text>
+<text x="20" y="124" font-size="12" fill="var(--ink)">決済 API のテスト</text>
+<text x="172" y="44" font-size="13" font-weight="700" fill="var(--sel)">第三象限</text>
+<text x="172" y="62" font-size="11" fill="var(--dim)">プロダクトを批評する</text>
+<text x="172" y="86" font-size="12" fill="var(--ink)">決済画面の</text><text x="172" y="102" font-size="12" fill="var(--ink)">探索的テスト</text>
+<text x="172" y="124" font-size="12" fill="var(--ink)">使用性テスト</text>
+<text x="20" y="170" font-size="13" font-weight="700" fill="var(--accent)">第一象限</text>
+<text x="20" y="188" font-size="11" fill="var(--dim)">チームを支援する</text>
+<text x="20" y="212" font-size="12" fill="var(--ink)">コンポーネント</text><text x="20" y="228" font-size="12" fill="var(--ink)">テスト（CI）</text>
+<text x="20" y="250" font-size="12" fill="var(--ink)">統合テスト（CI）</text>
+<text x="172" y="170" font-size="13" font-weight="700" fill="var(--sel)">第四象限</text>
+<text x="172" y="188" font-size="11" fill="var(--dim)">プロダクトを批評する</text>
+<text x="172" y="212" font-size="12" fill="var(--ink)">セール時の性能</text><text x="172" y="228" font-size="12" fill="var(--ink)">テスト</text>
+<text x="172" y="250" font-size="12" fill="var(--ink)">スモークテスト</text>
+</svg>
+</figure>
+</div>
+<h3>レイヤーごとの件数</h3>
+<div class="tw"><table class="t"><thead><tr><th>レイヤー</th><th>件数</th><th>確かめること</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">エンドツーエンドテスト</td><td style="white-space:nowrap">12</td><td>画面から注文を確定し、確認メールまで届くか（約8分）</td></tr>
+<tr><td class="lead" style="white-space:nowrap">コンポーネント統合テスト</td><td style="white-space:nowrap">40</td><td>決済代行の API ・ 在庫 DB と正しくやりとりするか</td></tr>
+<tr><td class="lead" style="white-space:nowrap">コンポーネントテスト</td><td style="white-space:nowrap">180</td><td>金額の計算 ・ 割引の判定 ・ 数量の上限</td></tr>
+</tbody></table></div>
+<h3>テストタイプと象限</h3>
+<div class="tw"><table class="t"><thead><tr><th>テストタイプ</th><th>どの象限か</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">機能テスト</td><td style="white-space:nowrap">第一 ・ 第二</td></tr>
+<tr><td class="lead" style="white-space:nowrap">非機能テスト（性能）</td><td style="white-space:nowrap">第四</td></tr>
+<tr><td class="lead" style="white-space:nowrap">非機能テスト（使用性）</td><td style="white-space:nowrap">第三</td></tr>
+</tbody></table></div>
+<p class="gr">拠る判断基準：test-pyramid ・ testing-quadrants ・ test-levels ・ test-types</p>
+</section>
+
+<section class="panel" id="p-qa-4" data-p="qa-4" data-kind="文書" data-label="テスト計画" hidden>
+<div class="smp"><span class="kd">文書</span><span>qa-advisor ・ 完成イメージ 4 / 6</span></div><h2>テスト計画書（割引コード機能）</h2>
+<p class="note">出す相談：割引コード機能のリリースに向けて、テスト計画をどう書くか（設計相談）</p>
+<div class="tw" style="padding:14px 16px">
+<h3 style="margin-top:0">1. 範囲</h3>
+<div class="tw"><table class="t kvt"><tbody>
+<tr><th scope="row">対象</th><td>割引コードの入力 ・ 判定 ・ 金額への反映 ・ キャンセル時の未使用への戻し</td></tr>
+<tr><th scope="row">対象外</th><td>ポイント払い（変更なし。リグレッションテストだけ実行する）・ 管理画面でのコード発行</td></tr>
+<tr><th scope="row">テストレベル</th><td>コンポーネントテスト ・ コンポーネント統合テスト ・ システムテスト ・ 受け入れテスト</td></tr>
+</tbody></table></div>
+<h3>2. プロダクトリスク</h3>
+<div class="tw"><table class="t"><thead><tr><th>リスク</th><th>可能性</th><th>影響</th><th>対応</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">割引が二重にかかる</td><td style="white-space:nowrap">中</td><td style="white-space:nowrap">高</td><td>同じコードを2つのタブで同時に送るテストを、システムテストに入れる</td></tr>
+<tr><td class="lead" style="white-space:nowrap">期限の判定が時差でずれる</td><td style="white-space:nowrap">高</td><td style="white-space:nowrap">中</td><td>日本時間の 23:59:59 と 0:00:00 を境界値として確かめる</td></tr>
+<tr><td class="lead" style="white-space:nowrap">返金額が割引前の額になる</td><td style="white-space:nowrap">低</td><td style="white-space:nowrap">高</td><td>決済代行のテスト環境で、返金額を全件照合する</td></tr>
+<tr><td class="lead" style="white-space:nowrap">セール開始時に応答が遅れる</td><td style="white-space:nowrap">中</td><td style="white-space:nowrap">中</td><td>毎分 3,000 件の注文で性能テストを行う</td></tr>
+</tbody></table></div>
+<h3>3. 開始基準と終了基準</h3>
+<div class="grid2">
+<div class="tw" style="padding:10px 14px;margin:0"><b>開始基準</b><ol class="flow"><li>受け入れ基準がストーリーごとに書かれ、レビューを終えている</li><li>テスト環境に決済代行のテスト用アカウントがある</li><li>コンポーネントテストがすべて成功している</li></ol></div>
+<div class="tw" style="padding:10px 14px;margin:0"><b>終了基準</b><ol class="flow"><li>リスク「高」の項目に対するテストがすべて成功している</li><li>重大度「高」の未解決の欠陥が0件</li><li>境界値のカバレッジが 100%</li></ol></div>
+</div>
+<h3>4. 見積り（三点見積り）</h3>
+<div class="tw"><table class="t"><thead><tr><th>楽観値 a</th><th>最頻値 m</th><th>悲観値 b</th><th>見積り E ＝ (a ＋ 4m ＋ b) ÷ 6</th></tr></thead><tbody>
+<tr><td class="lead" style="white-space:nowrap">6 人日</td><td style="white-space:nowrap">9 人日</td><td style="white-space:nowrap">18 人日</td><td>10 人日（標準偏差 SD ＝ (b − a) ÷ 6 ＝ 2 人日）</td></tr>
+</tbody></table></div>
+<p class="note" style="margin-bottom:0">見積りは仮定に基づくので、10 ± 2 人日として関係者へ伝える。</p>
+</div>
+<p class="gr">拠る判断基準：test-plan ・ entry-exit-criteria ・ risk-management ・ test-estimation</p>
+</section>
+
+<section class="panel" id="p-qa-5" data-p="qa-5" data-kind="文書" data-label="受け入れ基準" hidden>
+<div class="smp"><span class="kd">文書</span><span>qa-advisor ・ 完成イメージ 5 / 6</span></div><h2>ユーザーストーリーと受け入れ基準</h2>
+<p class="note">出す相談：割引コードのストーリーに、どんな受け入れ基準を書くか（設計相談）</p>
+<div class="tw" style="padding:14px 16px">
+<h3 style="margin-top:0">ユーザーストーリー</h3>
+<p class="concl">会員として、決済画面で割引コードを使いたい。それは、キャンペーン中の商品を安く買うためだ。</p>
+<h3>受け入れ基準（ATDD の順：ポジティブ → ネガティブ → 非機能）</h3>
+<pre class="code"><code>シナリオ: 有効なコードで 10% 割引される
+  Given 会員「佐藤」のカートに 3,000円 の商品がある
+    And 割引コード「AUTUMN10」は 10/31 まで有効である
+  When  10/31 12:00 に「AUTUMN10」を入力して適用を押す
+  Then  合計金額は 2,700円 と表示される
+
+シナリオ: 合計が 3,000円 未満なら割引しない
+  Given 会員「佐藤」のカートに 2,999円 の商品がある
+  When  「AUTUMN10」を入力して適用を押す
+  Then  「3,000円以上のご注文で使えます」と表示される
+    And 合計金額は 2,999円 のままである
+
+シナリオ: 使用済みのコードは使えない
+  Given 会員「佐藤」は「AUTUMN10」で注文を確定したことがある
+  When  次の注文で「AUTUMN10」を入力して適用を押す
+  Then  「このコードは使用済みです」と表示される
+
+シナリオ: 適用の結果が 1 秒以内に返る
+  Given 毎分 3,000 件の注文が入っている
+  When  「AUTUMN10」を入力して適用を押す
+  Then  95% の操作で 1 秒以内に合計金額が更新される</code></pre>
+<h3>ATDD の進め方</h3>
+<ol class="flow"><li>仕様化のワークショップで、営業 ・ 開発 ・ テストの3人がストーリーと上の基準を話し合って決める</li><li>基準ごとにテストケースを書き、自動テストとして先に失敗させておく</li><li>実装してテストを成功させ、ストーリーの範囲を越えるテストは足さない</li></ol>
+</div>
+<p class="gr">拠る判断基準：user-story ・ acceptance-criteria ・ atdd</p>
+</section>
+
+<section class="panel" id="p-qa-6" data-p="qa-6" data-kind="表" data-label="テストの臭い" hidden>
+<div class="smp"><span class="kd">表</span><span>qa-advisor ・ 完成イメージ 6 / 6</span></div><h2>テストの臭いの直し方</h2>
+<p class="note">出す相談：決済のテストが、画面の文言を変えるたびに失敗する。どう直すか（判断相談）</p>
+<div class="tw"><table class="t"><thead><tr><th>臭い</th><th>見つけた箇所</th><th>原因</th><th>直し方</th></tr></thead><tbody>
+<tr><td class="lead">Assertion Roulette</td><td><code>test_checkout</code> に検証が5つ</td><td>1つのテストで多くの振る舞いを確かめている（Eager Test）</td><td>振る舞いごとにテストを分け、検証にメッセージを付ける</td></tr>
+<tr><td class="lead" style="white-space:nowrap">Fragile Test</td><td>HTML の文字列で合計金額を探す</td><td>画面の表示に結合している（Interface Sensitivity）</td><td>画面ではなく、注文の計算結果を確かめる</td></tr>
+<tr><td class="lead" style="white-space:nowrap">Obscure Test</td><td><code>big_cart.json</code> を読み込む</td><td>テストの外のデータに結果が依存する（Mystery Guest）</td><td>結果に関わる値だけをテストの中で作る</td></tr>
+</tbody></table></div>
+<div class="grid2" style="margin-top:16px">
+<figure class="fig"><figcaption class="ph before">直す前</figcaption>
+<pre class="code" style="width:100%;box-sizing:border-box"><code>def test_checkout():
+    cart = load_fixture("big_cart.json")
+    r = checkout(cart, "AUTUMN10")
+    assert r.total == 2700
+    assert r.discount == 300
+    assert r.status == "PENDING"
+    assert len(r.items) == 3
+    assert "合計 2,700円" in r.html</code></pre></figure>
+<figure class="fig"><figcaption class="ph after">直したあと</figcaption>
+<pre class="code" style="width:100%;box-sizing:border-box"><code>CODE = "AUTUMN10"
+
+def cart_of(yen):
+    return Cart([Item("靴下", yen)])
+
+def test_割引する_3000円():
+    r = checkout(cart_of(3000), CODE)
+    assert r.total == 2700, "割引後の合計"
+
+def test_割引しない_2999円():
+    r = checkout(cart_of(2999), CODE)
+    assert r.total == 2999, "割引なしの合計"
+
+def test_確定前は支払い待ち():
+    r = checkout(cart_of(3000), None)
+    assert r.status == "PENDING"</code></pre></figure>
+</div>
+<p class="gr">拠る判断基準：test-smells ・ assertion-roulette ・ fragile-test ・ obscure-test</p>
+</section>

@@ -1,0 +1,1107 @@
+{
+ "round": 6,
+ "snap": {
+  "1": {
+   "note": [
+    [
+     "この論点は、論点2〜5が何を守ればよいかの基準を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>図のデザインシステムを1つにし、ほかは作成者に任せる。</p><ol><li>図のデザインシステムが持つもの1：色 ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターンのデザイントークン。トークンに無い値を使わない</li><li>図のデザインシステムが持つもの2：スタイルごとの意味。同じ色 ・ 同じ線種 ・ 同じ枠線を、どの図でも同じ意味で使う。たとえば warn の色を、ある図では失敗に、別の図ではカテゴリに使わない</li><li>作成者に任せるもの：配置（座標）・ 図の種類 ・ 図形の組み合わせ ・ 図のサイズと縦横比</li><li>この答えは、advisor の完成イメージのギャラリー（Artifact EWrHCJe3RLBy3Hg3QtDcKH）の19枚のパネルの図（SVG 21個）と、その仕様書（SPEC.md）から導いた</li><li>利用者は、19枚のパネルの図を統一されていると判定した。統一されていないパネルの番号は挙がらなかった</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "図のデザインシステムを1つにし、すべての図がそれを使う状態を「統一されている」とする。図のデザインシステムは、デザイントークン（色 ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン）と、スタイルごとの意味の2つを持つ。配置 ・ 図の種類 ・ 図形の組み合わせ ・ 図のサイズは、作成者に任せる"
+    ]
+   ],
+   "figures": [
+    [
+     "図のデザインシステムが持つものと、作成者に任せるもの。左の3つはすべての図で共通にし、右の3つは図ごとに作成者が決める",
+     "2f7a3a013c15"
+    ],
+    [
+     "スタイルの意味が統一されていない例。ddd-3 と qa-2 は、同じ warn の色を別の意味で使った。値がトークンの中にあるかだけを見る検査では、どちらも通る",
+     "5ddcbf276f92"
+    ]
+   ],
+   "example": [
+    [
+     "<p>advisor の完成イメージのギャラリーの37枚のパネルのうち、図を持つのは19枚（SVG は21個）である。仕様書は図のデザインシステムの一部だけを決めていた。決めたものと決めなかったものを、21個で計測した。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>仕様書の規定</th><th>21個の SVG の計測結果</th></tr></thead><tbody><tr><th>フォントサイズ</th><td>10〜13</td><td>4種（10 ・ 11 ・ 12 ・ 13）。範囲外は0件</td></tr><tr><th>色</th><td>10個の CSS 変数だけを使う</td><td>4つのパネルが CSS 変数以外の値を使った（ddd-1 の inset、meta-thinking-1 ・ 3 と ux-2 の #ffffff、ux-2 の wf）</td></tr><tr><th>ストローク幅</th><td>規定なし</td><td>9種（1〜2.5）</td></tr><tr><th>角丸の半径</th><td>規定なし</td><td>11種</td></tr><tr><th>破線のパターン</th><td>規定なし</td><td>6種</td></tr><tr><th>warn の色の意味</th><td>規定なし</td><td>ddd-3 はイベントのカテゴリに使い、qa-2 ・ ddd-8 ・ platform-4 ・ platform-6 は失敗や障害に使った</td></tr><tr><th>配置</th><td>規定なし</td><td>21個とも、作成者が座標を直接記述した（transform は0件）</td></tr></tbody></table></div><p>この答えを採ると、表の「規定なし」の行のうち、ストローク幅 ・ 角丸の半径 ・ 破線のパターン ・ warn の色の意味が図のデザインシステムに入る。配置の行は、作成者に任せたまま変わらない。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "デザイントークンと、スタイルの意味の両方を統一する",
+     "値をトークンから選び、同じスタイルをどの図でも同じ意味で使う",
+     "スタイルと意味の対応を1か所に定義し、保守することになる（論点3）"
+    ],
+    [
+     "デザイントークンだけを統一する",
+     "色やストロークの値がトークンの中にあれば、統一されているとする",
+     "同じ色が図ごとに別の意味になっても検出しない"
+    ]
+   ],
+   "dropped": [
+    [
+     "デザイントークンだけを統一する",
+     "ddd-3 は仕様書の CSS 変数だけを使ったので、値の検査は通る。それでも warn をイベントのカテゴリに使い、qa-2 は同じ色を失敗に使ったので、読み手は同じ色を別の意味で読む"
+    ],
+    [
+     "同じ配置戦略と同じ部品で生成した図を、統一されているとする（いまの design-svg）",
+     "利用者の考え「自由に作成できるSVG作成」と食い違う。advisor-answer の rounds.svg では、ボックスの幅で自動改行したラベルが「書」と「き溜め」のように単語の途中で改行された"
+    ],
+    [
+     "種類ごとのテンプレートと同じスタイルを、統一されているとする",
+     "テンプレートは統一するための手段の1つで、何を統一するかを決めない。新しい種類にはテンプレートが無く、テンプレートどうしが統一されているかを判定する基準が別に必要になる"
+    ],
+    [
+     "色も図ごとに作成者が決める",
+     "利用者の「あまりにも統一感がない図ばかり量産されても困るんだけどね・」に反する"
+    ],
+    [
+     "呼び出し元（ブレストボード ・ スライド ・ advisor ・ ACDR）ごとの要望を集めて、統一する内容を決める",
+     "代表を集めて全体の構想を作る進め方で、始める前から統一されないことが決まる。上位概念を1つ先に決めてから、各呼び出し元へ適用する"
+    ],
+    [
+     "19枚のパネルの図を並べて、統一されている図を利用者に選んでもらってから答えを出す",
+     "案を並べて選ばせることになる。答えを出したうえで、承認のときに統一されていない図の番号を受け取る"
+    ]
+   ],
+   "path": [
+    [
+     "<p>最初は、依頼主が利用者と合意した4層の提案から、目的と役割 ・ トークンと図の表記法 ・ テンプレート ・ 検査 ・ 移行の5つの論点を立てた。</p>"
+    ],
+    [
+     "<p>meta-thinking-advisor に論点の粒度を確認してもらい、5つとも「4層で統一する」という手段を決めたあとの問題解決の側にある、という回答を受けた。</p>"
+    ],
+    [
+     "<p>そこで論点の軸が変わった。何を統一するかを問う論点を最初に追加し、目的はこの論点へ移した。役割の論点は誰が座標を決めるかだけにし、トークンと図の表記法の検査と、検査の論点を1つにまとめ、移行を最後に置いた。</p>"
+    ],
+    [
+     "<p>ギャラリーの仕様書を読み、21個の SVG の属性を数えてから、案を6つ出して反証した。デザイントークンだけを統一する案は、ddd-3 と qa-2 の warn の使い方で否定された。</p>"
+    ],
+    [
+     "<p>1回目の答えを見た利用者が、19枚のパネルの図を統一されていると判定し、使用するデザインシステムが同じなら統一される、と答えた。統一するものと作成者に任せるものは1回目と同じなので、答えを作り直さず、利用者の言い方に合わせて「図のデザインシステム」と呼ぶことにし、未判定を解除した。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "仕様書が決めたフォントサイズ（10〜13）は、21個の SVG のすべてで範囲内だった"
+    ],
+    [
+     "仕様書が決めなかったストローク幅は9種、角丸の半径は11種、破線のパターンは6種に分かれた"
+    ],
+    [
+     "仕様書の CSS 変数以外の値を、4つのパネルが使った"
+    ],
+    [
+     "warn の色の意味は仕様書に無く、図ごとに分かれた"
+    ],
+    [
+     "21個の SVG は、どれも transform を使わず、座標を直接記述した"
+    ],
+    [
+     "ブレストボードの図の宣言31件は、すべて figure で、canvas は0件だった"
+    ],
+    [
+     "design-svg の verify は21個をすべて通した。brainstorming-board の figures は、意図して線の上に置いた文字を ddd-1 で8件、platform-1 で2件指摘した"
+    ]
+   ],
+   "costs": [
+    [
+     "論点3では、図のデザインシステムの2つ（デザイントークン ・ スタイルの意味）を守っているかを検査するものだけを選ぶ。検査しやすいものから決めない"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "どう守るか（トークン ・ 図の表記法 ・ テンプレート ・ レイアウトの検査の4層か、ほかの手段か）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3と論点4で決める。この答えは何を統一するかだけを決めるので、手段の選択はこの答えを覆さない"
+    ],
+    [
+     "トークンの値（どの色を何個、ストローク幅を何種）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。値が変わっても、トークンから選ぶという答えは覆らない"
+    ],
+    [
+     "figure ・ chart ・ canvas を残すか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。配置戦略を使うかどうかは作成者に任せた範囲にあるので、この答えを覆さない"
+    ],
+    [
+     "表 ・ 文書 ・ 画面の完成イメージ（SVG を持たない18枚のパネル）",
+     "<span class=\"kind k-rule\">対象外</span> ── design-svg が扱うのは SVG だけである。この答えを覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの比較",
+     "デザイントークンと、スタイルの意味の両方を統一する",
+     "統一されていないと判定する",
+     "残る"
+    ],
+    [
+     "案ごとの比較",
+     "デザイントークンだけを統一する",
+     "統一されていると判定する",
+     "残る"
+    ]
+   ],
+   "grounds": [
+    [
+     "統一されている状態を、上位概念が1つ在ることとして定義すること",
+     "統一感：複数のものを抽象化した1つの概念（上位概念）が在ること。全体感のことでもあり、抽象度の高い、全体を見渡す考え方が求められる。",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の sense-of-unity）"
+    ],
+    [
+     "上位概念を仕様書から導くこと",
+     "やり方：コンセプトから具体化する ・ 進め方：仕様書全体の構想としてのコンセプトを先に打ち出し、それをもとに各章の担当者に具体化してもらう",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の sense-of-unity）"
+    ],
+    [
+     "4層を手段の1つとして扱い、論点3で比較すること",
+     "対応：手段だけでなく、その目的を考える ・ 理由：N対1 の関係があるので、目的を考えると複数の手段が見えてきて、視野を広げて選択肢を増やす考え方につながる",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の means-and-ends）"
+    ],
+    [
+     "この論点を最初に開くこと",
+     "対応：何から作るかの優先順位を、上位目的を指針にして付ける ・ 理由：上位目的を考えないと、優先順位が適切に付かないまま進み、余計なコストや工数がかかるから",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の is-it-really-the-goal）"
+    ],
+    [
+     "最初の5つの論点が、問題解決の側にあったこと",
+     "観点：問題への態度 ・ 問題発見（白紙に枠を定義）：問題そのものを疑う ・ 問題解決（枠内の最適化）：問題のよしあしは疑わない",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の problem-finding-and-solving）"
+    ],
+    [
+     "作り直しの前に、問題を定義し直すこと",
+     "対応：問題がもう与えられているように見えても、一度話を上流に戻し、問題を定義し直してから解決に向かう ・ 理由：どんな仕事にも問題発見と問題解決の側面がある",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の matryoshka）"
+    ],
+    [
+     "承認のときに、統一されていない図の番号を受け取ること",
+     "対応：時間をかけて完成度を上げるのではなく、未完成の具体（プロトタイプ）をあえて早くぶつけ、相手の拒絶反応を引き出す ・ 理由：拒絶反応から、相手が言葉にできなかった基準が見えてくるから",
+     "primary",
+     "meta-thinking-advisor の回答（criteria.json の anything-becomes-not-this）"
+    ],
+    [
+     "呼び出し元ごとの要望から決めないこと",
+     "多部門が関わる大きなシステムの構想を、各部門の代表を集めて作ると、始まる前から、統一感のないシステムができることが決まってしまう",
+     "primary",
+     "meta-thinking-advisor の回答の cautions"
+    ],
+    [
+     "配置を作成者に任せること",
+     "コンセプトとしては自由に作成できるSVG作成なんだけどね・",
+     "rule",
+     "利用者の発言（2026-10-07）"
+    ],
+    [
+     "統一するものを持つこと",
+     "あまりにも統一感がない図ばかり量産されても困るんだけどね・",
+     "rule",
+     "利用者の発言（2026-10-07）"
+    ],
+    [
+     "19枚のパネルの図が統一されていること ・ 図のデザインシステムを1つにすれば統一されること",
+     "まあ、図を見た感覚では正直使用するデザインシステムが同じならたぶんそろうと思うよ。",
+     "rule",
+     "利用者の判定（2026-10-07、advisor の完成イメージのギャラリーの19枚のパネルの図を見て）"
+    ],
+    [
+     "仕様書が決めたフォントサイズと表示の規定",
+     "文字は font-size 10〜13。文字が箱からはみ出さない・重ならない・語の途中で折れない",
+     "measured",
+     ".brainstorming-board/advisor-answer/ui-samples/gallery/SPEC.md の「中身の書き方」"
+    ],
+    [
+     "値と意味の分かれ方（例の表）",
+     "21個の SVG の属性を数えた",
+     "measured",
+     "gallery の frag-*.html から SVG を抽出して数えた（2026-10-07）"
+    ],
+    [
+     "単語の途中で改行されたラベル",
+     "「利用者：頁で問いを書」「き溜め、まとめて送る」のように、ラベルが2行に割れている",
+     "measured",
+     ".brainstorming-board/advisor-answer/figures/rounds.svg の text 要素"
+    ],
+    [
+     "いまの design-svg の目的",
+     "図を、手で座標を置くのではなく構造化データの宣言から生成するときに使う。座標は配置戦略に解かせる",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md の「目的」"
+    ]
+   ]
+  },
+  "2": {
+   "note": [
+    [
+     "この論点は、作成者と design-svg の役割分担と、作成者が記述する SVG の形式を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>座標は作成者が決め、design-svg は class の解決と検査を担当する。</p><ol><li>作成者（AI）が、SVG を座標まで直接記述する。何をどこに置くかは作成者が決める</li><li>スタイルは、色やストローク幅の値ではなく class 名で指定する。class が意味を持つ（たとえば focus は強調、external は外部 ・ 境界、flow は処理の流れ）</li><li>design-svg は、class を図のデザインシステムの値へ解決し、値を属性に出力した SVG を返す。class は削除せずに残す</li><li>design-svg は、返す前に検査を通す</li><li>出力された SVG は値を持つので、ブレストボード ・ ACDR ・ スライド ・ advisor のページ ・ 単独の .svg ファイルのどこに埋め込んでも同じに表示される</li><li>figure（宣言から配置）と chart（量のグラフ）は、作成者が選べる手段の1つとして残す。辺の多い関係図や量のグラフは、こちらで生成してよい</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "作成者（AI）が SVG を座標まで直接記述し、スタイルは値ではなく class 名（box ・ focus ・ external ・ flow など）で指定する。design-svg は、class を図のデザインシステムの値へ解決して属性に出力し、検査を通した SVG を返す。figure と chart は、作成者が選べる手段の1つとして残す"
+    ]
+   ],
+   "figures": [
+    [
+     "呼び出し元の手順の変更前と変更後。いまは宣言から配置戦略が座標を決め、作り直したあとは作成者が座標を記述し、design-svg が値へ解決して検査する",
+     "a0ed7e555956"
+    ]
+   ],
+   "example": [
+    [
+     "<p>作成者が記述する SVG の例である。座標は作成者が決め、スタイルは class だけで指定する。色 ・ ストローク幅 ・ 角丸の半径の値は記述しない。class 名と定義は、この例では仮のものである。</p><pre><code><pre><code>&lt;svg viewBox=&quot;0 0 360 100&quot; class=&quot;dsvg&quot;&gt;\n  &lt;rect class=&quot;box focus&quot; x=&quot;10&quot; y=&quot;30&quot; width=&quot;130&quot; height=&quot;40&quot;/&gt;\n  &lt;text class=&quot;label focus&quot; x=&quot;75&quot; y=&quot;54&quot;&gt;注文を確定する&lt;/text&gt;\n  &lt;rect class=&quot;box external&quot; x=&quot;220&quot; y=&quot;30&quot; width=&quot;130&quot; height=&quot;40&quot;/&gt;\n  &lt;text class=&quot;label&quot; x=&quot;285&quot; y=&quot;54&quot;&gt;決済代行（外部）&lt;/text&gt;\n  &lt;path class=&quot;flow&quot; d=&quot;M140,50 H220&quot;/&gt;\n&lt;/svg&gt;</code></pre></code></pre><p>design-svg は、class を図のデザインシステムの値へ解決する。値はいまの references/theme.json のものである。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>意味</th><th>解決後の値</th></tr></thead><tbody><tr><th>box</th><td>システム内の要素</td><td>fill #F5F7F9 ・ stroke #C3CAD2 ・ 角丸の半径 5</td></tr><tr><th>box focus</th><td>強調する要素</td><td>fill #E2EFF0 ・ stroke #16636B ・ ストローク幅 1.6</td></tr><tr><th>box external</th><td>外部 ・ 境界</td><td>stroke を破線（4 3）にする</td></tr><tr><th>flow</th><td>処理の流れ</td><td>stroke #C3CAD2 ・ ストローク幅 1.2 ・ 矢印</td></tr><tr><th>warn</th><td>変更前の状態 ・ 問題</td><td>fill #F7EAE2 ・ stroke #9A4A21</td></tr></tbody></table></div><p>呼び出し元の手順は、上の図のように変わる。宣言の JSON を記述する手順が無くなり、作成者が SVG を記述して design-svg に渡す。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "class で指定し、design-svg が値へ解決する",
+     "作成者はスタイルを class で指定し、design-svg が値を属性に出力して返す",
+     "design-svg に、class を解決する処理と、class の一覧を追加することになる"
+    ],
+    [
+     "値を直接記述し、design-svg がトークンの中にあるかを検査する",
+     "作成者が図のデザインシステムの値（#16636B など）を属性に記述する",
+     "同じ値が別の意味で使われても検出しない"
+    ],
+    [
+     "CSS 変数（var(--accent) など）で記述する",
+     "作成者が、埋め込み先のページの CSS 変数を属性に記述する",
+     "埋め込み先のページごとに、変数の名前と定義が一致していることが前提になる"
+    ]
+   ],
+   "dropped": [
+    [
+     "値を直接記述し、design-svg がトークンの中にあるかを検査する",
+     "論点1で、スタイルごとの意味を統一すると決めた。値だけでは、ddd-3 と qa-2 の warn の色のように、同じ値を別の意味で使っても通る"
+    ],
+    [
+     "CSS 変数（var(--accent) など）で記述する",
+     "埋め込み先によって表示が変わる。単独の .svg を描画すると fill が黒になり、文字が見えなかった。ブレストボードのページは --accent ・ --accent-bg を定義していない"
+    ],
+    [
+     "design-svg が独自の属性（data-role など）を読んで解決する",
+     "class と同じことができるが、埋め込み先のページの CSS のセレクタで指定しにくい。class なら、ページ側でライトモードとダークモードを上書きできる"
+    ],
+    [
+     "canvas のレイヤーの JSON（panel ・ text ・ icon ・ path）で座標を記述する",
+     "作成者は座標を記述するのに、SVG の要素（marker ・ tspan ・ g など）を直接使えない。SVG の上に JSON の層が1つ増えるだけで、ギャラリーの21個の SVG はこの形式に移行できない"
+    ],
+    [
+     "これまでどおり、宣言から配置戦略が座標を決める",
+     "論点1で、配置は作成者に任せると決めた。rounds.svg では、ボックスの幅で自動改行したラベルが単語の途中で改行された"
+    ],
+    [
+     "テンプレートの座標をそのまま使って、新しい図を作成する",
+     "テンプレートが決めるのは図の種類ごとのスタイルの出発点で、要素の数や関係は図ごとに違う。座標までテンプレートに従わせると、論点1の配置の自由に反する"
+    ]
+   ],
+   "path": [
+    [
+     "<p>論点1が「おｋ」で承認されたので開いた。21個の SVG の記述と、design-svg の figure ・ chart ・ canvas ・ verify ・ lint を読み、埋め込み先のページが定義する CSS 変数を数えた。</p>"
+    ],
+    [
+     "<p>案を6つ出して反証した。最初は CSS 変数で記述する案を有力と見ていたが、単独の .svg で黒くなり、ブレストボードのページにも変数が無いと分かったので除外した。値を直接記述する案は、論点1の warn の例で否定された。</p>"
+    ],
+    [
+     "<p>反証の途中で、論点の軸が「誰が座標を決めるか」から「作成者がデザインシステムをどの形式で参照するか」へ広がった。座標を作成者が決めることは論点1でほぼ決まっており、残る違いは参照の形式だけだったためである。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "ギャラリーの21個の SVG は、どれも作成者が座標を直接記述し、design-svg の verify をすべて通った"
+    ],
+    [
+     "21個は、ページの CSS 変数（var(--accent) など）で色を指定していた"
+    ],
+    [
+     "var(--accent) で記述した SVG を単独の .svg として描画すると、fill が黒になり、文字が見えなかった"
+    ],
+    [
+     "ブレストボードのページが定義する CSS 変数に、--accent ・ --accent-bg ・ --sel は無い。ACDR のページにも --accent-bg ・ --sel は無い"
+    ],
+    [
+     "いまの design-svg の出力は、色を値（#C3CAD2 など）で属性に出力している"
+    ],
+    [
+     "ブレストボード ・ ACDR は、figures の SVG の文字列をページにそのまま埋め込む"
+    ]
+   ],
+   "costs": [
+    [
+     "論点3で、class の一覧（名前と意味）と、解決したあとに通す検査を決める"
+    ],
+    [
+     "design-svg に、class を値へ解決して属性に出力する処理を追加する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "class 名と定義（例の box ・ focus ・ external ・ flow ・ warn）",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点3で決める。名前が変わっても、class で指定して解決するという役割分担は覆らない"
+    ],
+    [
+     "ページのライトモードとダークモードに合わせて色を切り替えるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── いまの design-svg も値を出力しており、ダークモードには切り替わらない。class を残すので、ページの CSS で上書きできる。役割分担は覆らない"
+    ],
+    [
+     "canvas を残すか、figure と chart をどう移行するか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。手段として残すか削除するかは、作成者が座標を決めるという答えを覆さない"
+    ],
+    [
+     "テンプレートの保存先",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で決める。テンプレートは作成の出発点で、座標を決めるのは作成者のままである"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの比較",
+     "class で指定し、design-svg が値へ解決する",
+     "同じに表示される",
+     "同じに表示される",
+     "class から意味が読めるので検査できる"
+    ],
+    [
+     "案ごとの比較",
+     "値を直接記述し、design-svg がトークンの中にあるかを検査する",
+     "同じに表示される",
+     "同じに表示される",
+     "値がトークンの中にあるかだけを検査できる"
+    ],
+    [
+     "案ごとの比較",
+     "CSS 変数（var(--accent) など）で記述する",
+     "fill が黒になり、文字が見えない",
+     "--accent と --accent-bg が定義されていないので、同じく黒になる",
+     "変数名から意味が読めるので検査できる"
+    ]
+   ],
+   "grounds": [
+    [
+     "作成者が座標を決めること",
+     "配置（座標）・ 図の種類 ・ 図形の組み合わせ ・ 図のサイズは、作成者に任せる",
+     "rule",
+     "論点1（決着）"
+    ],
+    [
+     "スタイルを図のデザインシステムで統一すること",
+     "図のデザインシステムは、デザイントークンと、スタイルごとの意味の2つを持つ",
+     "rule",
+     "論点1（決着）"
+    ],
+    [
+     "値だけでは意味を統一できないこと",
+     "ddd-3 は warn をイベントのカテゴリに使い、qa-2 は失敗に使った",
+     "measured",
+     "論点1の計測（ギャラリーの21個の SVG）"
+    ],
+    [
+     "作成者が座標を記述して、検査を通せること",
+     "21個の SVG は transform を使わずに座標を直接記述し、design-svg verify をすべて通った",
+     "measured",
+     "論点1の計測と verify の実行（2026-10-07）"
+    ],
+    [
+     "CSS 変数の案を除外すること",
+     "var(--accent-bg) と var(--accent) で記述した SVG を単独で描画すると、黒い矩形だけが表示された",
+     "measured",
+     "chrome-headless-shell で単独の .svg を描画した（2026-10-07）"
+    ],
+    [
+     "ブレストボードのページで CSS 変数が解決しないこと",
+     "ブレストボードのページの CSS 変数は --key ・ --ink ・ --warn などで、--accent ・ --accent-bg は無い",
+     "measured",
+     "design-svg-rework/board.html の CSS 変数の定義"
+    ],
+    [
+     "どこに埋め込んでも同じに表示されること",
+     "単体で完結するインラインSVG文字列。外部ホストにも実行時のライブラリにも依存しない",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md の「成果物」"
+    ],
+    [
+     "figure と chart を手段として残すこと",
+     "既定は選べるうちの1つであって、能力の上限ではない",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md のガードレール"
+    ],
+    [
+     "canvas の層で座標を書けること",
+     "path は SVG のパスの文法をそのまま受ける。座標は書き換えない",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md の Step 2"
+    ],
+    [
+     "呼び出し元が値を記述しないこと",
+     "色・寸法・書体を直接書かない。必ずトークンから引く",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md のガードレール"
+    ]
+   ]
+  },
+  "3": {
+   "note": [
+    [
+     "この論点は、図のデザインシステムの内容と、design-svg が返す前に通す検査を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>class の一覧とデザイントークンを theme.json に固定し、それを守っているかだけを検査する。</p><ol><li>class の一覧（図の表記法）：box ・ focus ・ warn ・ kind-1〜3 ・ boundary ・ area ・ flow ・ async ・ link ・ badge ・ label ・ note ・ swatch。class ごとに意味を1つ定義する</li><li>デザイントークン1：セマンティックカラーは ink ・ ink-soft ・ line ・ box-fill ・ accent ・ accent-bg ・ warn ・ warn-bg と、kind-1〜3 とその背景色である</li><li>デザイントークン2：フォントサイズは 10 ・ 11 ・ 12 ・ 13、ストローク幅は 1 ・ 1.5 ・ 2、角丸の半径は 3 ・ 5 ・ 8、破線のパターンは 4 3 の1つである</li><li>カテゴリ色 kind-1〜3 を新しく追加する。種類を分けたいときに focus や warn を流用しないためである</li><li>検査1：すべての図形とテキストが、一覧にある class を持つ</li><li>検査2：作成者が色 ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン ・ フォントサイズの値を記述していない。swatch の class を持つ要素だけは、コンテンツとしての色の値を記述してよい</li><li>検査3：禁止した組み合わせが無い。たとえば focus と boundary（破線の枠線で強調）、warn と focus、box に指定した flow</li><li>検査4：レイアウトの4つ。テキストどうしの重なり ・ キャンバスやボックスからのはみ出し ・ 複数行のラベルの一覧 ・ スマホ幅で描画したときの最小のフォントサイズ</li><li>class の選択の誤り（イベントに warn を指定するなど）は機械では検査できない。検査は class ごとのラベルの一覧を出力し、描画して目視で確認する</li><li>design-svg は、ライトモードの値を属性に出力し、ダークモードの値を class ごとの CSS ルールとして SVG 内の style 要素に出力する</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "class の一覧（図の表記法）と、5種類のデザイントークン（セマンティックカラー ・ フォントサイズ ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン）を theme.json に固定する。検査は、class を指定しているか ・ トークンに無い値が無いか ・ 禁止した組み合わせが無いかと、レイアウトの4つ（重なり ・ はみ出し ・ 複数行のラベル ・ スマホ幅のフォントサイズ）にする。class の選択の誤りは機械では検査できないので、検査は class ごとのラベルの一覧を出力し、描画して目視で確認する。design-svg はライトモードとダークモードの2組の値を出力する"
+    ]
+   ],
+   "figures": [
+    [
+     "ddd-3 のカテゴリ色の変換前と変換後。いまは作成者が accent ・ warn ・ sel を選び、変換後はカテゴリの class で指定する。カテゴリ色の値は未定なので、右はグレーで描いた",
+     "f86e3cf2d835"
+    ]
+   ],
+   "example": [
+    [
+     "<p>図の表記法（class の一覧）である。21個の SVG で使われた図形と色の組み合わせから導いた。例の列は、その使い方をしていたパネルである。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>意味</th><th>値</th><th>例</th></tr></thead><tbody><tr><th>box</th><td>システム内の要素</td><td>fill box-fill ・ stroke line ・ ストローク幅 1.5 ・ 角丸の半径 5</td><td>在庫（ddd-1）</td></tr><tr><th>box focus</th><td>強調する要素</td><td>fill accent-bg ・ stroke accent</td><td>注文（ddd-1 の中核）</td></tr><tr><th>box warn</th><td>問題 ・ 失敗 ・ 変更前</td><td>fill warn-bg ・ stroke warn</td><td>キャンセル済み（qa-2）</td></tr><tr><th>box kind-1〜3</th><td>同じ図の中のカテゴリ。凡例を付ける</td><td>カテゴリ色と、その背景色</td><td>コマンド ・ イベント ・ ポリシー（ddd-3）</td></tr><tr><th>boundary</th><td>外部 ・ 境界</td><td>fill なし ・ stroke ink-soft ・ 破線 4 3</td><td>決済代行（ddd-1 の外部）</td></tr><tr><th>area</th><td>グループの領域</td><td>fill なし ・ stroke line ・ ストローク幅 1</td><td>VPC ・ AZ（platform-1）</td></tr><tr><th>flow</th><td>処理の流れ</td><td>stroke ink-soft ・ ストローク幅 1.5 ・ 矢印</td><td>体験の流れ（ux-1）</td></tr><tr><th>flow async</th><td>非同期 ・ レプリケーション</td><td>flow に破線 4 3</td><td>DB のレプリケーション（platform-1）</td></tr><tr><th>link</th><td>向きの無い関連線</td><td>stroke ink-soft ・ ストローク幅 1</td><td>コンテキスト間の関係（ddd-1）</td></tr><tr><th>badge</th><td>線や枠線の上に置くバッジ</td><td>fill box-fill ・ stroke ink</td><td>U と D（ddd-1）</td></tr><tr><th>label ・ note</th><td>ラベルと注記</td><td>ink 12 ・ ink-soft 10〜11</td><td>すべてのパネル</td></tr><tr><th>swatch</th><td>コンテンツとしての色（図のスタイルではない）</td><td>作成者が記述した値のまま</td><td>デザインシステムの色見本</td></tr></tbody></table></div><p>いまの theme.json と比較すると、不足しているものがある。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>いまの theme.json</th></tr></thead><tbody><tr><th>色 ink ・ ink-soft ・ line ・ box-fill ・ accent ・ accent-bg ・ warn ・ warn-bg</th><td>在る</td></tr><tr><th>カテゴリ色 kind-1〜3 と背景色</th><td>無い。chart.tones に #7A4368 の値だけが在り、ほかの3つは accent ・ warn ・ グレーと同じ値である</td></tr><tr><th>ダークモードの値</th><td>無い。ギャラリーのページは、すべての色にダークモードの値を持っていた</td></tr><tr><th>フォントサイズ 10 ・ 11 ・ 12 ・ 13</th><td>10 と 12 だけ在る（ほかに 29）</td></tr><tr><th>ストローク幅 1 ・ 1.5 ・ 2</th><td>2 だけ在る（ほかに 1.1 ・ 1.2 ・ 1.6 ・ 2.4）</td></tr><tr><th>角丸の半径 3 ・ 5 ・ 8</th><td>在る</td></tr><tr><th>破線のパターン 4 3</th><td>role.muted の中にだけ在る</td></tr></tbody></table></div><p>ddd-3 のボックス1つを、いまの記述から class の記述へ変換した例である。いまは warn の色をイベントのカテゴリに使っている。</p><p>いまの記述：</p><pre><code><pre><code>&lt;rect x=&quot;95&quot; y=&quot;120&quot; width=&quot;110&quot; height=&quot;50&quot; rx=&quot;3&quot;\n      fill=&quot;var(--warn-bg)&quot; stroke=&quot;var(--warn)&quot; stroke-width=&quot;1.5&quot;/&gt;\n&lt;text x=&quot;150&quot; y=&quot;140&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;注文が&lt;/text&gt;\n&lt;text x=&quot;150&quot; y=&quot;157&quot; font-size=&quot;12&quot; fill=&quot;var(--ink)&quot;&gt;確定された&lt;/text&gt;</code></pre></code></pre><p>変換後の記述：</p><pre><code><pre><code>&lt;rect class=&quot;box kind-2&quot; x=&quot;95&quot; y=&quot;120&quot; width=&quot;110&quot; height=&quot;50&quot;/&gt;\n&lt;text class=&quot;label&quot; x=&quot;150&quot; y=&quot;140&quot;&gt;注文が&lt;/text&gt;\n&lt;text class=&quot;label&quot; x=&quot;150&quot; y=&quot;157&quot;&gt;確定された&lt;/text&gt;</code></pre></code></pre><p>変換後は、イベントのボックスが warn ではなく kind-2 になる。作成者が warn を選んだままでも、検査が出力する class ごとのラベルの一覧に「warn：注文が確定された」と表示されるので、目視で検出できる。</p><p>検査の一覧と、それぞれが検出するものである。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>検出するもの</th><th>21個に適用したときの例</th></tr></thead><tbody><tr><th>1 class を持つか</th><td>一覧に無い図形 ・ 色</td><td>ddd-1 の inset の背景色、ux-2 の wf の stroke</td></tr><tr><th>2 値を記述していないか</th><td>作成者が記述した色 ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン ・ フォントサイズ</td><td>meta-thinking-1 ・ 3 と ux-2 の #ffffff。ストローク幅9種 ・ 角丸の半径11種 ・ 破線のパターン6種</td></tr><tr><th>3 禁止した組み合わせ</th><td>破線の枠線で強調、warn と focus の併用など</td><td>platform-1 の破線の枠線に sel の色（boundary と kind の併用）</td></tr><tr><th>4 重なり ・ はみ出し</th><td>テキストどうしの重なり、キャンバスやボックスからのはみ出し</td><td>area と badge を class で区別するので、ddd-1 の8件と platform-1 の2件の誤検出は出ない</td></tr><tr><th>4 複数行のラベル</th><td>同じボックス内の行を連結して一覧にする。単語の途中の改行は目視で確認する</td><td>rounds.svg の「書｜き溜め」のような改行</td></tr><tr><th>4 スマホ幅のフォントサイズ</th><td>幅 358px か、図が指定した min-width で描画したときの最小のフォントサイズ</td><td>min-width の指定が無いと、12個の図でフォントサイズが 4.6〜6.2px になる</td></tr></tbody></table></div><p>機械では検査できず、描画して目視で確認するものは、class の選択の誤り ・ 配置の良し悪し ・ 強調の偏り ・ カテゴリ色どうしの差が十分か ・ 単語の途中の改行である。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "class の一覧とデザイントークンを固定し、それを守っているかだけを検査する",
+     "図の表記法と5種類のデザイントークンを theme.json に定義し、class ・ 値 ・ 組み合わせ ・ レイアウトを検査する",
+     "theme.json にカテゴリ色とダークモードの値を追加し、design-svg に class の解決と検査を追加することになる"
+    ],
+    [
+     "デザイントークンだけを固定し、値を検査する",
+     "class を持たせず、値がトークンの中にあるかだけを検査する",
+     "意味の統一を検査できない"
+    ],
+    [
+     "レイアウトの検査だけにする",
+     "いまの verify と figures を、作成者が記述した SVG に適用する",
+     "論点1の2つのどちらも検査しない"
+    ]
+   ],
+   "dropped": [
+    [
+     "デザイントークンだけを固定し、値を検査する",
+     "論点1で、スタイルごとの意味を統一すると決めた。値だけでは ddd-3 の warn のように意味の違う使い方が通る"
+    ],
+    [
+     "レイアウトの検査だけにする",
+     "論点1で統一すると決めた2つ（デザイントークン ・ スタイルの意味）のどちらも検査しない"
+    ],
+    [
+     "配置の規則（グリッドに合わせる ・ 間隔を決めた値にする）も検査に入れる",
+     "検査しやすいが、論点1で作成者に任せると決めた配置を制限する。meta-thinking-advisor の注意（検査できるものから決めると、表現力まで削る）にあたる"
+    ],
+    [
+     "class の選択の誤りを、ラベルの語（「失敗」「拒否」など）から機械で推定する",
+     "ddd-3 の「注文が確定された」のように、語からはカテゴリか失敗かが決まらない。誤検出か見逃しのどちらかが必ず出る"
+    ],
+    [
+     "カテゴリ色に accent と warn を流用する（いまの chart.tones の並び）",
+     "同じ色が、ある図では強調や問題、別の図ではカテゴリになる。論点1のスタイルの意味の統一に反する"
+    ],
+    [
+     "ライトモードの値だけを出力し、ダークモードは埋め込み先のページが class で上書きする",
+     "ブレストボード ・ ACDR ・ スライド ・ advisor のページがそれぞれ同じ CSS ルールを持つことになり、どれか1つが一致しなくなる。単独の .svg にはページが無い"
+    ],
+    [
+     "コンテンツとしての色を、ファイルごとの許可リストで通す",
+     "1つの図の中にスタイルの色とコンテンツの色が混在すると、どれが許可されたものか区別できない。要素に swatch の class を指定すれば、要素ごとに決まる"
+    ]
+   ],
+   "path": [
+    [
+     "<p>論点2が「おｋ」で承認されたので開いた。21個の SVG の図形と色の組み合わせを要素ごとに数え、theme.json ・ ギャラリーのページの CSS ・ いまの2つの検査の結果と照合した。</p>"
+    ],
+    [
+     "<p>残った3つの案と、除外した7つの案を反証した。配置の規則を検査に入れる案は、検査しやすいが論点1の配置の自由を制限するので除外した。</p>"
+    ],
+    [
+     "<p>反証の途中で、class の選択の誤りは機械で検査できないと分かった。そこで、検査が class ごとのラベルの一覧を出力し、目視で確認する形にした。</p>"
+    ],
+    [
+     "<p>スマホ幅のフォントサイズを計測したところ、幅の広い図はどれも min-width を指定していたので、検査が使う幅を「358px か、図が指定した min-width」にした。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "21個で使われた fill と stroke の色の組は、accent-bg と accent が35 ・ warn-bg と warn が24 ・ sel-bg と sel が23 だった"
+    ],
+    [
+     "通常のボックスの stroke の色が、accent（33）・ line（16）・ dim（9）に分かれていた"
+    ],
+    [
+     "ギャラリーのページは、すべての色にダークモードの値を持っていた。theme.json にはダークモードの値が無い"
+    ],
+    [
+     "theme.json の chart.tones は、4つのうち2つが accent と warn と同じ値である"
+    ],
+    [
+     "幅の広い12個の図は、作成者が min-width（560〜620px）を指定していた。指定が無いまま 358px で描画すると、最小のフォントサイズは 4.6〜6.2px になる"
+    ],
+    [
+     "brainstorming-board の figures の誤検出（ddd-1 の8件 ・ platform-1 の2件）は、どれも badge か area にあたる要素だった"
+    ]
+   ],
+   "costs": [
+    [
+     "theme.json に、カテゴリ色 kind-1〜3 と背景色 ・ ダークモードの値 ・ フォントサイズ 11 と 13 ・ ストローク幅 1 と 1.5 ・ 破線のパターンを追加する"
+    ],
+    [
+     "design-svg に、class の解決 ・ 検査1〜4 ・ class ごとのラベルの一覧 ・ ダークモードの style を追加する"
+    ],
+    [
+     "論点4のテンプレートは、この class の一覧で記述する"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "カテゴリ色 kind-1〜3 の値",
+     "<span class=\"kind k-given\">後続で決定</span> ── 作り直しの ACDR で、ライトモードとダークモードの両方でコントラスト比を計測して決める。値が決まっても、カテゴリの class を追加するという答えは覆らない"
+    ],
+    [
+     "スマホ幅の最小のフォントサイズのしきい値",
+     "<span class=\"kind k-given\">後続で決定</span> ── 作り直しの ACDR で、21個を描画して目視で確認して決める。検査を追加するという答えは覆らない"
+    ],
+    [
+     "min-width を指定した図を、埋め込み先のページが横スクロールさせるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で、埋め込み先ごとに決める。検査が使う幅の決め方は覆らない"
+    ],
+    [
+     "class の一覧に無い図形が必要になったとき",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点4で、新しい種類のテンプレートと一緒に class を追加する手順を決める。いまの一覧を固定する答えは覆らない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの比較",
+     "class の一覧とデザイントークンを固定し、それを守っているかだけを検査する",
+     "class ごとのラベルの一覧に表示される",
+     "出ない",
+     "論点1の2つとレイアウト"
+    ],
+    [
+     "案ごとの比較",
+     "デザイントークンだけを固定し、値を検査する",
+     "通る",
+     "出る",
+     "値だけ"
+    ],
+    [
+     "案ごとの比較",
+     "レイアウトの検査だけにする",
+     "通る",
+     "出る",
+     "レイアウトだけ"
+    ]
+   ],
+   "grounds": [
+    [
+     "検査しやすいものから検査を決めないこと",
+     "上位概念が決まらないまま論点4の「測れる検査」を決めると、色の値や余白のような測りやすいものだけが固定され、利用者が37枚に見た表現力（配置や形の自由）まで検査で削られる。",
+     "primary",
+     "meta-thinking-advisor の回答の cautions"
+    ],
+    [
+     "class で指定し、design-svg が値へ解決すること",
+     "作成者はスタイルを class で指定し、design-svg が値を属性に出力して返す。class は削除せずに残す",
+     "rule",
+     "論点2（決着）"
+    ],
+    [
+     "検査を論点1の2つに絞ること",
+     "図のデザインシステムは、デザイントークンと、スタイルごとの意味の2つを持つ。配置は作成者に任せる",
+     "rule",
+     "論点1（決着）"
+    ],
+    [
+     "class の一覧とデザイントークン",
+     "21個の SVG の要素ごとに、図形 ・ fill ・ stroke ・ 破線 ・ 矢印の組を数えた",
+     "measured",
+     "gallery の frag-*.html から SVG を抽出して数えた（2026-10-07）"
+    ],
+    [
+     "フォントサイズのトークン",
+     "仕様書はフォントサイズを 10〜13 と決め、21個はすべてその範囲内だった",
+     "measured",
+     "論点1の計測と SPEC.md"
+    ],
+    [
+     "theme.json に不足しているもの",
+     "トークンに kind の色 ・ ダークモードの値 ・ フォントサイズ 11 と 13 ・ ストローク幅 1 と 1.5 が無い",
+     "measured",
+     ".claude/skills/design-svg/references/theme.json"
+    ],
+    [
+     "ダークモードの値を出力すること",
+     "--bg:#0e1614 --panel:#16211e --ink:#e6eeeb … のように、すべての色にダークモードの値がある",
+     "measured",
+     "advisor-answer/ui-samples/gallery/head.html"
+    ],
+    [
+     "スマホ幅のフォントサイズの検査",
+     "12個の図が style に min-width（560〜620px）を持ち、持たない9個は幅 300〜400 である",
+     "measured",
+     "21個の SVG の viewBox と style"
+    ],
+    [
+     "いまの検査の誤検出",
+     "箱の横の枠が「U」を横切っている（ddd-1 で8件）。箱の縦の枠が「ALB（パブリックサブネット 2つ）」を横切っている（platform-1 で2件）",
+     "measured",
+     "brainstorming-board figures の実行（2026-10-07）"
+    ],
+    [
+     "いまの verify が、作成者が記述したボックスからのはみ出しを検出しないこと",
+     "ボックスからはみ出すテキストを置いた SVG を、verify はテキストの重なりとキャンバスの外だけで判定し、ボックスからのはみ出しを報告しなかった",
+     "measured",
+     "design-svg verify の実行（2026-10-07）"
+    ]
+   ]
+  },
+  "4": {
+   "note": [
+    [
+     "この論点は、テンプレートの保存先 ・ 選択方法 ・ 追加方法と、advisor との関係を決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>テンプレートは design-svg の references の1か所に保存し、索引から選択する。</p><ol><li>元にする SVG：ギャラリーの21個の SVG を、論点3の class の記述へ変換する。21個は13種類の図に分かれる</li><li>保存先：design-svg の references/exemplars/ に SVG を保存し、索引 exemplars.json とそのスキーマ exemplars.schema.json を references に保存する</li><li>索引は、種類ごとに id ・ 名前 ・ 用途（1行）・ ファイル ・ 使う class ・ 元のパネルを持つ。名前は一般に使われる図の種類名（シーケンス図 ・ 状態遷移図など）にし、呼び出し元の分野の語（文脈の地図など）を使わない</li><li>選択方法：作成者は索引の用途を読み、近いテンプレートを1つ選んで、その SVG を複製して編集する。選ぶのは作成者で、機械は選ばない</li><li>新しい種類の追加方法：近いテンプレートが無いときは、class の一覧でテンプレートを作成し、検査1〜4を通して描画し、目視で確認する。ACDR で承認を得てから references へ追加する</li><li>class の一覧に無い図形が必要なときは、新しい種類と同じ ACDR で class を追加する</li><li>advisor の完成イメージの一覧は、テンプレートを参照しない。advisor はほかの Skill を知らない。テンプレートを使うのは図を作成する側で、配線表の依頼の文がそれを伝える</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "ギャラリーの21個の SVG を class の記述へ変換し、13種類の図のテンプレートとして design-svg の references に保存する。索引 exemplars.json が、種類ごとに名前と用途（1行）を持つ。作成者は索引から用途が近いテンプレートを選び、その SVG を複製して編集する。新しい種類は、class の一覧で作成して検査と目視確認を通し、ACDR で承認を得てから追加する。advisor の完成イメージの一覧は、テンプレートを参照しない"
+    ]
+   ],
+   "figures": [
+    [
+     "テンプレートの使い方と追加方法。近いテンプレートが在るときは複製して編集し、無いときは作成して検査と目視確認を通し、ACDR で承認を得てから追加する",
+     "b87d1ef8a3d6"
+    ]
+   ],
+   "example": [
+    [
+     "<p>テンプレートの索引である。名前は一般に使われる図の種類名で、元のパネルはギャラリーのパネルである。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>名前</th><th>用途</th><th>元のパネル</th></tr></thead><tbody><tr><th>hub</th><td>ハブアンドスポーク図</td><td>1つの中心と、それにつながる要素の関係を示す</td><td>ddd-1</td></tr><tr><th>lanes-over-time</th><td>スイムレーン図</td><td>種類ごとのレーンに、出来事を時系列で並べる</td><td>ddd-3</td></tr><tr><th>message-sequence</th><td>シーケンス図</td><td>参加者の間のメッセージの送受信を、時系列で示す</td><td>ddd-8</td></tr><tr><th>nested-areas</th><td>構成図</td><td>要素がどの領域（ネットワーク ・ グループ）に含まれるかを示す</td><td>platform-1 ・ ddd-6 ・ ddd-7 ・ platform-5（1つ目）・ meta-thinking-3</td></tr><tr><th>layer-stack</th><td>レイヤー図</td><td>上下の順に意味がある層を示す（抽象度 ・ ネットワークの層）</td><td>meta-thinking-1 ・ platform-5（2つ目）</td></tr><tr><th>tree</th><td>ツリー図</td><td>1つの親が複数の子に分かれる階層を示す</td><td>meta-thinking-2 ・ usecase-3</td></tr><tr><th>flow-steps</th><td>フロー図</td><td>手順や画面の遷移を、1本の順序で示す</td><td>ux-1 ・ platform-6</td></tr><tr><th>state-transition</th><td>状態遷移図</td><td>1つの対象の状態と、状態を変えるイベントを示す</td><td>qa-2</td></tr><tr><th>row-column-grid</th><td>マトリクス</td><td>行と列の組み合わせごとに値や状態を示す</td><td>ddd-9 ・ platform-4</td></tr><tr><th>quadrant</th><td>4象限図</td><td>2つの軸で4つの象限に分類する</td><td>qa-3（2つ目）</td></tr><tr><th>quantity-pyramid</th><td>ピラミッド図</td><td>段ごとの量の大小を、上から下へ示す</td><td>qa-3（1つ目）</td></tr><tr><th>system-boundary</th><td>ユースケース図</td><td>システムの境界と、その外のアクターを示す</td><td>usecase-4</td></tr><tr><th>wireframe</th><td>ワイヤーフレーム</td><td>画面の UI 部品の配置を示す</td><td>ux-2</td></tr></tbody></table></div><p>索引の1件と、そのテンプレートの SVG の全文である。状態遷移図（元のパネルは qa-2）である。</p><pre><code><pre><code>{&quot;id&quot;: &quot;state-transition&quot;,\n &quot;name&quot;: &quot;状態遷移図&quot;,\n &quot;use_when&quot;: &quot;1つの対象の状態と、状態を変えるイベントを示す&quot;,\n &quot;file&quot;: &quot;exemplars/state-transition.svg&quot;,\n &quot;classes&quot;: [&quot;start&quot;, &quot;box&quot;, &quot;box focus&quot;, &quot;box warn&quot;,\n             &quot;flow&quot;, &quot;link warn&quot;, &quot;label&quot;, &quot;note&quot;],\n &quot;from&quot;: &quot;qa-2&quot;,\n &quot;same_kind&quot;: []}</code></pre></code></pre><pre><code><pre><code>&lt;svg viewBox=&quot;0 0 640 270&quot; class=&quot;dsvg&quot; style=&quot;min-width:560px&quot;&gt;\n &lt;circle class=&quot;start&quot; cx=&quot;22&quot; cy=&quot;60&quot; r=&quot;8&quot;/&gt;\n &lt;line class=&quot;flow&quot; x1=&quot;30&quot; y1=&quot;60&quot; x2=&quot;64&quot; y2=&quot;60&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;22&quot; y=&quot;34&quot;&gt;注文を確定&lt;/text&gt;\n &lt;rect class=&quot;box&quot; x=&quot;66&quot; y=&quot;38&quot; width=&quot;110&quot; height=&quot;44&quot;/&gt;\n &lt;text class=&quot;label&quot; x=&quot;121&quot; y=&quot;65&quot; text-anchor=&quot;middle&quot;&gt;支払い待ち&lt;/text&gt;\n &lt;rect class=&quot;box&quot; x=&quot;222&quot; y=&quot;38&quot; width=&quot;110&quot; height=&quot;44&quot;/&gt;\n &lt;text class=&quot;label&quot; x=&quot;277&quot; y=&quot;65&quot; text-anchor=&quot;middle&quot;&gt;支払い済み&lt;/text&gt;\n &lt;rect class=&quot;box&quot; x=&quot;378&quot; y=&quot;38&quot; width=&quot;110&quot; height=&quot;44&quot;/&gt;\n &lt;text class=&quot;label&quot; x=&quot;433&quot; y=&quot;65&quot; text-anchor=&quot;middle&quot;&gt;発送済み&lt;/text&gt;\n &lt;rect class=&quot;box focus&quot; x=&quot;534&quot; y=&quot;38&quot; width=&quot;96&quot; height=&quot;44&quot;/&gt;\n &lt;text class=&quot;label focus&quot; x=&quot;582&quot; y=&quot;65&quot; text-anchor=&quot;middle&quot;&gt;配達完了&lt;/text&gt;\n &lt;line class=&quot;flow&quot; x1=&quot;176&quot; y1=&quot;60&quot; x2=&quot;220&quot; y2=&quot;60&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;199&quot; y=&quot;30&quot; text-anchor=&quot;middle&quot;&gt;決済が&lt;/text&gt;\n &lt;text class=&quot;note&quot; x=&quot;199&quot; y=&quot;44&quot; text-anchor=&quot;middle&quot;&gt;成功&lt;/text&gt;\n &lt;line class=&quot;flow&quot; x1=&quot;332&quot; y1=&quot;60&quot; x2=&quot;376&quot; y2=&quot;60&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;355&quot; y=&quot;30&quot; text-anchor=&quot;middle&quot;&gt;出荷&lt;/text&gt;\n &lt;line class=&quot;flow&quot; x1=&quot;488&quot; y1=&quot;60&quot; x2=&quot;532&quot; y2=&quot;60&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;511&quot; y=&quot;30&quot; text-anchor=&quot;middle&quot;&gt;受け取り&lt;/text&gt;\n &lt;rect class=&quot;box warn&quot; x=&quot;150&quot; y=&quot;210&quot; width=&quot;140&quot; height=&quot;44&quot;/&gt;\n &lt;text class=&quot;label warn&quot; x=&quot;220&quot; y=&quot;237&quot; text-anchor=&quot;middle&quot;&gt;キャンセル済み&lt;/text&gt;\n &lt;path class=&quot;flow&quot; d=&quot;M100,82 L100,232 L148,232&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;92&quot; y=&quot;160&quot; text-anchor=&quot;end&quot;&gt;キャンセル&lt;/text&gt;\n &lt;path class=&quot;flow&quot; d=&quot;M142,82 L190,208&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;166&quot; y=&quot;120&quot;&gt;支払い期限&lt;/text&gt;\n &lt;text class=&quot;note&quot; x=&quot;166&quot; y=&quot;136&quot;&gt;（48時間）切れ&lt;/text&gt;\n &lt;path class=&quot;flow&quot; d=&quot;M300,82 L262,208&quot;/&gt;\n &lt;text class=&quot;note&quot; x=&quot;296&quot; y=&quot;150&quot;&gt;キャンセル（返金する）&lt;/text&gt;\n &lt;line class=&quot;link warn&quot; x1=&quot;433&quot; y1=&quot;82&quot; x2=&quot;433&quot; y2=&quot;180&quot;/&gt;\n &lt;text class=&quot;note warn&quot; x=&quot;443&quot; y=&quot;150&quot;&gt;キャンセル → 拒否する&lt;/text&gt;\n &lt;text class=&quot;note warn&quot; x=&quot;443&quot; y=&quot;166&quot;&gt;（無効な遷移）&lt;/text&gt;\n&lt;/svg&gt;</code></pre></code></pre><p>変換して2つのことが分かった。開始状態を表す class が一覧に無いので、このテンプレートの ACDR で start を追加する。無効な遷移の線は破線で描かれていたが、破線は非同期と境界の意味なので、link warn（実線）に変換した。</p>"
+    ]
+   ],
+   "kept": [
+    [
+     "design-svg の references に保存し、ACDR で追加する",
+     "テンプレートと索引を design-svg の references の1か所に保存し、新しい種類は ACDR で承認を得て追加する",
+     "新しい種類ごとに ACDR を1件作成することになる"
+    ],
+    [
+     "design-svg の references に保存し、ボードの承認で追加する",
+     "保存先は同じで、新しい種類はブレストボードの承認だけで追加する",
+     "Skill の正本を ACDR を経ずに変更する"
+    ]
+   ],
+   "dropped": [
+    [
+     "design-svg の references に保存し、ボードの承認で追加する",
+     "references は Skill の正本である。CLAUDE.md は、正本へ適用する前に acdr で決定と差分を示して承認を得ると決めている"
+    ],
+    [
+     "呼び出し元ごと（ブレストボード ・ advisor ・ ACDR）にテンプレートを保存する",
+     "同じ種類のテンプレートが複数の場所にでき、片方だけが修正されたときに誰も気づけない。呼び出し元ごとの要望から図の形式を決める進め方にもなる"
+    ],
+    [
+     "種類の名前を呼び出し元の分野の語（文脈の地図 ・ イベントストーミングなど）で付ける",
+     "design-svg のガードレール（利用側の語彙をエンジンへ持ち込まない）に反する。同じ形式の図が、呼び出し元ごとに別の名前の種類になる"
+    ],
+    [
+     "要素の数や関係から、近いテンプレートを機械で選ぶ",
+     "機械で選ぶには、作成の前に節点と辺の宣言を記述することになり、論点2で除外した宣言からの生成へ戻る"
+    ],
+    [
+     "作成者が、承認を経ずに新しい種類を追加してよい",
+     "テンプレートどうしが統一されているかを誰も確認せず、論点1の「統一感がない図ばかり量産」をテンプレートの側で起こす"
+    ],
+    [
+     "advisor の完成イメージの一覧から、テンプレートの id を参照する",
+     "advisor はほかの Skill を知らない（advisor-answer の論点2で決着）。skills-creator の accept の検査6が、SKILL.md にほかの Skill の名前が在ることを検出する"
+    ]
+   ],
+   "path": [
+    [
+     "<p>論点3が「おｋ」で承認されたので開いた。21個の SVG を1ページに並べて描画し、図の種類で13種類に分類した。</p>"
+    ],
+    [
+     "<p>qa-2 を1つ、class の記述へ実際に変換した。一覧に無い class（開始状態）と、破線の意味の違い（無効な遷移）が見つかったので、一覧に無い図形を追加する手順もこの論点に入れた。</p>"
+    ],
+    [
+     "<p>案を8つ出して反証した。ボードの承認だけで追加する案は CLAUDE.md の運用ルールに、advisor からテンプレートを参照する案は accept の検査6に反したので除外した。</p>"
+    ],
+    [
+     "<p>5回目のボードに対して、利用者が語彙の違反を指摘した。すべての論点で、図の種類を一般に使われる名前（シーケンス図など）にし、和語の言い換えや作った語を技術用語へ修正した。答えの内容は変えていない。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "21個の SVG は、図の種類で13種類に分かれた。最も多いのは構成図の5個である"
+    ],
+    [
+     "qa-2 を class の記述へ変換すると、開始状態の class が一覧に無いことが分かった"
+    ],
+    [
+     "qa-2 の無効な遷移の線は破線だった。破線は論点3で非同期と境界の意味に決めたので、変換で実線になった"
+    ],
+    [
+     "ux-2（ワイヤーフレーム）は、入力欄の stroke と fill に仕様書に無い色（wf ・ wf-fill）を使っていた。このテンプレートの ACDR で、入力欄の class を追加することになる"
+    ]
+   ],
+   "costs": [
+    [
+     "作り直しの ACDR で、21個を class の記述へ変換し、exemplars.json ・ exemplars.schema.json ・ exemplars/*.svg を design-svg の references に保存する"
+    ],
+    [
+     "同じ ACDR で、class の一覧に start と入力欄の class を追加する"
+    ],
+    [
+     "配線表の design-svg の行の依頼の文に、「索引から近いテンプレートを選んで作成する」を記述する（論点5で行ごとに決める）"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "いまの呼び出し元の図（ブレストボード 208個 ・ ACDR 156個 ・ advisor の references 190個）を作り直すか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 論点5で決める。テンプレートの保存先と追加方法は、移行方法によらず覆らない"
+    ],
+    [
+     "テンプレートを一覧のページとして描画するか",
+     "<span class=\"kind k-given\">後続で決定</span> ── references の view で描画できるかを、作り直しの ACDR で確認する。保存先は覆らない"
+    ],
+    [
+     "21個の内容（ネットショップの注文など）をテンプレートに残すか、一般的な語に置き換えるか",
+     "<span class=\"kind k-given\">後続で決定</span> ── 作り直しの ACDR で決める。内容の語は図の種類を決めないので、この答えは覆らない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの比較",
+     "design-svg の references に保存し、ACDR で追加する",
+     "満たす",
+     "ACDR に残る"
+    ],
+    [
+     "案ごとの比較",
+     "design-svg の references に保存し、ボードの承認で追加する",
+     "違反する（正本へ適用する前に acdr で承認を得る）",
+     "ボードにだけ残る"
+    ]
+   ],
+   "grounds": [
+    [
+     "呼び出し元ごとに保存しないこと",
+     "この相談では、利用先（ブレストボード・スライド・advisor・ACDR）ごとの要望を集めて図の文法を決めるのではなく、上位概念を1つ先に決めてから各利用先へ当てはめる。",
+     "primary",
+     "meta-thinking-advisor の回答の cautions"
+    ],
+    [
+     "class の一覧と検査1〜4でテンプレートを記述すること",
+     "class の一覧（図の表記法）とデザイントークンを theme.json に固定し、検査は class ・ 値 ・ 禁止した組み合わせ ・ レイアウトを検査する",
+     "rule",
+     "論点3（決着）"
+    ],
+    [
+     "一覧に無い図形の扱いをこの論点で決めること",
+     "class の一覧に無い図形が必要になったときは、論点4で、新しい種類のテンプレートと一緒に class を追加する手順を決める",
+     "rule",
+     "論点3の扱わない範囲"
+    ],
+    [
+     "作成者が複製して編集すること",
+     "作成者（AI）が、SVG を座標まで直接記述する",
+     "rule",
+     "論点2（決着）"
+    ],
+    [
+     "新しい種類を ACDR で追加すること",
+     "文書・コード・設計を正本へ適用する前に、acdr で決定と差分を提示して承認を得る",
+     "rule",
+     "CLAUDE.md の運用ルール"
+    ],
+    [
+     "advisor がテンプレートを参照しないこと",
+     "advisor は場面を知らず、場面によらず同じ形の回答を1つ返す",
+     "rule",
+     "advisor-answer の論点2（決着）"
+    ],
+    [
+     "種類の名前に呼び出し元の分野の語を使わないこと",
+     "利用側の語彙をエンジンへ持ち込まない。このSkillが知ってよいのは節点・辺・囲みという一般名詞と、部品・トークン・配置戦略だけである",
+     "measured",
+     ".claude/skills/design-svg/SKILL.md のガードレール"
+    ],
+    [
+     "索引を JSON で保存すること",
+     "SKILL.md だけ。references に Markdown を置かない",
+     "measured",
+     ".claude/skills/skills-creator/references/document.json"
+    ],
+    [
+     "advisor がテンプレートを参照しないこと",
+     "<b class=\"lead-s\">6 他の Skill の名前</b><div class=\"sub-s\">SKILL.md ・ スキーマ ・ ツールに、同じ置き場所の他の Skill の名前が無い</div>",
+     "measured",
+     ".claude/skills/skills-creator/tool/business_logic/src/accept.rs"
+    ],
+    [
+     "13種類の図",
+     "21個の SVG を1ページに並べて描画し、図の種類で分類した",
+     "measured",
+     "gallery の frag-*.html から抽出した21個の描画（2026-10-07）"
+    ],
+    [
+     "状態遷移図のテンプレートの内容",
+     "qa-2 の SVG の要素を、class の一覧へ1つずつ変換した",
+     "measured",
+     "gallery の frag-qa.html の qa-2"
+    ]
+   ]
+  },
+  "5": {
+   "note": [
+    [
+     "この論点は、いまの呼び出し元をいつ、どの順で移行するかと、design-svg の生成モードの扱いを決める。"
+    ]
+   ],
+   "pick": [
+    [
+     "<p>既存の SVG は変換せず、design-svg を先に作り直してから、呼び出し元を移行する。</p><ol><li>既存の SVG：ブレストボード ・ ACDR ・ advisor の references の図は変換しない。ACDR は封印されており、ブレストボードの過去の回はその図を前提にしている</li><li>advisor の references の図は、その advisor の判断基準を改訂するときに、その図だけテンプレートから作成し直す</li><li>新しい図：ACDR 3 の承認後は、索引から用途が近いテンプレートを選んで SVG を記述し、design-svg で解決と検査を通す</li><li>figure と chart：任意の手段として残す。出力に class の一覧を使い、作成者が記述した SVG と同じ検査1〜4を通す</li><li>canvas：削除する。作成者が SVG を直接記述するので、同じ目的の手段が2つになる</li><li>design-svg の SKILL.md の目的：「作成者が記述した SVG を、図のデザインシステムで統一し、検査して返す」にする</li><li>slide-deck の行：スライドの6色（ink ・ dim ・ line ・ paper ・ surface ・ accent）をセマンティックカラーへ対応させる。warn と kind は design-svg の既定値を使う</li><li>呼び出し元がトークンを上書きしたときは、design-svg はダークモードの style を出力しない。配色は呼び出し元のテーマが決める</li><li>検査の担当：重なりとはみ出しの検査は design-svg が出力の前に1回だけ行い、brainstorming-board の figures は削除する</li><li>ACDR の順：ACDR 1（トークン ・ class ・ 検査）→ ACDR 2（テンプレート）→ ACDR 3（配線表と CLAUDE.md）→ ACDR 4（埋め込み先のページ）</li></ol>"
+    ]
+   ],
+   "answer": [
+    [
+     "既存の SVG（ブレストボード 208個 ・ ACDR 156個 ・ advisor の references 190個）は変換せず、ACDR 3 の承認後の新しい図から新しい方法で作成する。figure と chart は class を出力する任意の手段として残し、canvas は削除する。ACDR は design-svg（トークン ・ class ・ 検査、テンプレート）を先に2件、呼び出し元（配線表と CLAUDE.md、埋め込み先のページ）を後に2件の順で出す"
+    ]
+   ],
+   "figures": [
+    [
+     "ACDR の順。design-svg の2件を先に承認し、そのあとに呼び出し元の2件を出す",
+     "f7ccc6bbf797"
+    ]
+   ],
+   "example": [
+    [
+     "<p>呼び出し元ごとの移行である。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>いま</th><th>作り直したあと</th><th>時期</th></tr></thead><tbody><tr><th>ブレストボードの図（208個）</th><td>figure の宣言（31件）と、宣言の残っていない SVG</td><td>変換しない。新しい図はテンプレートから記述し、design-svg で解決と検査を通す</td><td>ACDR 3 の承認後の新しい図から</td></tr><tr><th>ACDR の図（156個）</th><td>承認済みの記録は sha256 で封印されている</td><td>変換しない。新しい ACDR の図から新しい方法で作成する</td><td>ACDR 3 の承認後の新しい ACDR から</td></tr><tr><th>advisor の references の図（190個）</th><td>criteria.json が参照する判断基準の図</td><td>変換しない。判断基準を改訂するときに、その図だけテンプレートから作成し直す</td><td>各 advisor の判断基準の改訂時</td></tr><tr><th>配線表：brainstorming-board の行（required）</th><td>構造化データの宣言から図を生成して SVG を返す依頼</td><td>索引から用途が近いテンプレートを選んで SVG を記述し、解決と検査を通した SVG を返す依頼</td><td>ACDR 3</td></tr><tr><th>配線表：ddd-advisor の行（optional）</th><td>同上</td><td>同上</td><td>ACDR 3</td></tr><tr><th>配線表：slide-deck の行（required）</th><td>スライドの8色を design-svg のトークンへ対応させる</td><td>6色をセマンティックカラーへ対応させる。faint と on-accent は外し、warn と kind は design-svg の既定値を使う</td><td>ACDR 3</td></tr><tr><th>design-svg の figure と chart</th><td>宣言から生成し、独自の class（svg-box など）を出力する</td><td>任意の手段として残す。出力に class の一覧を使い、同じ検査1〜4を通す</td><td>ACDR 1</td></tr><tr><th>design-svg の canvas</th><td>31件の宣言のうち使用は0件</td><td>削除する</td><td>ACDR 1</td></tr><tr><th>design-svg の SKILL.md の目的</th><td>宣言から生成し、座標は配置戦略が決める</td><td>作成者が記述した SVG を、図のデザインシステムで統一し、検査して返す</td><td>ACDR 1</td></tr><tr><th>ACDR と advisor のページの CSS</th><td>figure svg に max-width:100% だけ</td><td>figure に overflow-x:auto を追加し、min-width を持つ図を横スクロールさせる</td><td>ACDR 4</td></tr><tr><th>brainstorming-board の figures</th><td>受け取った SVG の重なりとはみ出しを検査する</td><td>削除する。検査は design-svg が出力の前に1回だけ行う</td><td>ACDR 4</td></tr></tbody></table></div><p>slide-deck の行の色の対応は、次のように変わる。</p><div class=\"scroll\"><table class=\"fact\"><thead><tr><th></th><th>いまの対応</th><th>作り直したあとの対応</th></tr></thead><tbody><tr><th>ink</th><td>color.ink</td><td>color.ink</td></tr><tr><th>dim</th><td>color.ink-soft</td><td>color.ink-soft</td></tr><tr><th>faint</th><td>color.ink-faint</td><td>外す（class が使わない）</td></tr><tr><th>line</th><td>color.line と color.box-stroke</td><td>color.line</td></tr><tr><th>paper</th><td>color.box-fill</td><td>color.box-fill</td></tr><tr><th>surface</th><td>color.accent-bg</td><td>color.accent-bg</td></tr><tr><th>accent</th><td>color.accent</td><td>color.accent</td></tr><tr><th>on-accent</th><td>color.accent-fg</td><td>外す（class が使わない）</td></tr></tbody></table></div>"
+    ]
+   ],
+   "kept": [
+    [
+     "既存の SVG は変換せず、design-svg を先に作り直す",
+     "新しい図から新しい方法で作成し、ACDR は design-svg の2件のあとに呼び出し元の2件を出す",
+     "古い方法の図と新しい方法の図が、しばらく混在する"
+    ],
+    [
+     "既存の SVG もすべて変換する",
+     "554個の SVG をテンプレートと class の記述へ変換する",
+     "承認済みの ACDR の封印を --force で解除することになる"
+    ]
+   ],
+   "dropped": [
+    [
+     "既存の SVG もすべて変換する",
+     "承認済みの ACDR は対象の sha256 で封印されており、生成し直すには --force が必要になる。承認時点の姿が失われる"
+    ],
+    [
+     "呼び出し元を先に移行する",
+     "design-svg に class の解決が無いうちに class だけの SVG を作成すると、値が無いので fill が黒になる"
+    ],
+    [
+     "canvas を残す",
+     "31件の宣言で使用は0件である。作成者が SVG を直接記述する方法と、同じ目的の手段が2つになる"
+    ],
+    [
+     "figure と chart を削除する",
+     "論点2で、辺の多い関係図と量のグラフのために任意の手段として残すと決めた"
+    ],
+    [
+     "figure と chart の出力をいまのまま（独自の class）にする",
+     "検査1（class の一覧）を通らず、同じ design-svg から2種類の出力が出る"
+    ],
+    [
+     "brainstorming-board の figures を残す",
+     "重なりとはみ出しの検査が2か所に在り、ギャラリーでは figures だけが10件の誤検出を出した。同じものを2か所に置かない"
+    ],
+    [
+     "slide-deck の8色をすべて対応させる",
+     "faint と on-accent に対応するトークンを使う class が無く、使われない対応が残る"
+    ],
+    [
+     "スライドにもダークモードの style を出力する",
+     "スライドのテーマが配色を決めているのに、閲覧者の OS がダークモードだと SVG だけが切り替わる"
+    ]
+   ],
+   "path": [
+    [
+     "<p>論点4が「おｋ」で承認されたので開いた。acdr の封印 ・ advisor の references の図 ・ 埋め込み先のページの CSS ・ 配線表の3行を読み、呼び出し元の数を数えた。</p>"
+    ],
+    [
+     "<p>案を2つと、除外した8つを反証した。呼び出し元を先に移行する案は、class の解決が無いと fill が黒になることで否定された。</p>"
+    ],
+    [
+     "<p>反証の途中で、slide-deck がトークンを上書きするときにダークモードの style が衝突すると分かった。そこで、トークンを上書きしたときは style を出力しないことにした。</p>"
+    ]
+   ],
+   "found": [
+    [
+     "承認済みの ACDR は、対象の文書が変化した状態での生成し直しを拒否し、--force のときだけ生成し直す"
+    ],
+    [
+     "advisor の references の図は、criteria.json が figures/*.svg で参照する判断基準の図である"
+    ],
+    [
+     "ddd-advisor の95個の図は、すべて design-svg figure の出力（wf-fig）だった"
+    ],
+    [
+     "ブレストボードの CSS は figure に overflow-x:auto と min-width 26rem を持つ。ACDR と advisor の view.css は figure svg に max-width:100% だけを持つ"
+    ],
+    [
+     "ACDR の中で layers を持つ JSON は rules.after.json の2件で、図の宣言ではない。canvas の使用は見つからなかった"
+    ]
+   ],
+   "costs": [
+    [
+     "ACDR 1〜4 を順に作成し、それぞれ承認を得てから正本へ適用する"
+    ],
+    [
+     "ACDR 1 の design-svg の検査を、ギャラリーの21個を変換した SVG で試す"
+    ]
+   ],
+   "weaknesses": [
+    [
+     "古い方法の図と新しい方法の図が、同じブレストボードに混在すること",
+     "<span class=\"kind k-fact\">解消済</span> ── どちらも値を属性に持つので、表示は崩れない。移行の方針は覆らない"
+    ],
+    [
+     "canvas の icon（person ・ doc など）の移行先",
+     "<span class=\"kind k-given\">後続で決定</span> ── ACDR 1 で、テンプレートの部品にするかを決める。canvas を削除する答えは覆らない"
+    ],
+    [
+     "slide-deck のスライドの中での min-width の扱い",
+     "<span class=\"kind k-rule\">対象外</span> ── スライドは固定サイズで図を縮小して表示するので、横スクロールの対象ではない。この答えを覆さない"
+    ]
+   ],
+   "tables": [
+    [
+     "案ごとの比較",
+     "既存の SVG は変換せず、design-svg を先に作り直す",
+     "変わらない",
+     "変わらない",
+     "新しい図だけ"
+    ],
+    [
+     "案ごとの比較",
+     "既存の SVG もすべて変換する",
+     "封印を解除して生成し直す",
+     "承認時点の図が変わる",
+     "554個"
+    ]
+   ],
+   "grounds": [
+    [
+     "既存の SVG を変換しないこと",
+     "テンプレートの保存先と追加方法は、移行方法によらず覆らない",
+     "rule",
+     "論点4（決着）の扱わない範囲"
+    ],
+    [
+     "新しい図をテンプレートから作成すること",
+     "作成者は索引から用途が近いテンプレートを選び、その SVG を複製して編集する",
+     "rule",
+     "論点4（決着）"
+    ],
+    [
+     "figure と chart の出力に class を使うこと",
+     "検査1：すべての図形とテキストが、一覧にある class を持つ",
+     "rule",
+     "論点3（決着）"
+    ],
+    [
+     "figure と chart を残すこと",
+     "figure と chart は、作成者が選べる手段の1つとして残す",
+     "rule",
+     "論点2（決着）"
+    ],
+    [
+     "正本へ適用する前に ACDR を出すこと",
+     "文書・コード・設計を正本へ適用する前に、acdr で決定と差分を提示して承認を得る",
+     "rule",
+     "CLAUDE.md の運用ルール"
+    ],
+    [
+     "ACDR を変換しないこと",
+     "承認後の最初の組成で、対象の文書の `sha256` が `acdr.json` へ保存される。以降、対象の文書が変化した状態で生成し直そうとすると**拒否する**",
+     "measured",
+     ".claude/skills/acdr/SKILL.md"
+    ],
+    [
+     "advisor の図を改訂時に作成し直すこと",
+     "`references/figures/*.svg` | 判断基準の図。Skill の中に同梱する",
+     "measured",
+     ".claude/skills/ddd-advisor/SKILL.md"
+    ],
+    [
+     "slide-deck の行の対応",
+     "ink→color.ink ／ dim→color.ink-soft ／ faint→color.ink-faint ／ line→color.line と color.box-stroke",
+     "measured",
+     "skill-wiring.json の slide-deck の行"
+    ],
+    [
+     "slide-deck の行の対応",
+     "paper→color.box-fill ／ surface→color.accent-bg ／ accent→color.accent ／ on-accent→color.accent-fg",
+     "measured",
+     "skill-wiring.json の slide-deck の行"
+    ],
+    [
+     "埋め込み先のページの CSS",
+     "figure{overflow-x:auto} figure svg{min-width:26rem}",
+     "measured",
+     ".claude/skills/brainstorming-board/references/board.css"
+    ],
+    [
+     "埋め込み先のページの CSS",
+     ".rv figure svg{max-width:100%;height:auto}",
+     "measured",
+     ".claude/skills/acdr/references/view.css と .claude/skills/ddd-advisor/references/view.css"
+    ],
+    [
+     "検査を2か所に置かないこと",
+     "<b class=\"lead-s\">置き場所の重複</b><div class=\"sub-s\">同じものを2か所へ置いていないか</div>",
+     "measured",
+     ".claude/skills/brainstorming-board/SKILL.md の Step 4"
+    ],
+    [
+     "呼び出し元の数",
+     "ブレストボードの図 208個 ・ ACDR の図 156個 ・ advisor の references の図 190個 ・ 配線表の design-svg の行3つ",
+     "measured",
+     "ファイル数と skill-wiring.json の計測（2026-10-07）"
+    ],
+    [
+     "advisor の図の内訳",
+     "ddd 95 ・ platform 38 ・ meta-thinking 28 ・ usecase 27 ・ qa 2",
+     "measured",
+     ".claude/skills/*/references/figures のファイル数（2026-10-07）"
+    ]
+   ]
+  }
+ }
+}
