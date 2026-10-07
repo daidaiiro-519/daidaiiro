@@ -1,0 +1,95 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0146",
+ "title": "UC-0 を、基盤の CLI だけで通すテストで確かめる",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "要約レベルの UC-0「構造化データを正本として持つ」を、基盤の CLI だけで作成から承認まで順に呼ぶテストで確かめ、render の説明を ACDR 0140 の動きに合わせる",
+ "why": "宣言は4回目の完了の条件に UC-0 を入れている。UC-1〜10 はそれぞれテストがあるが、5つのユースケースを1つの正本に順に使って、保証が成り立つかを見るテストは無かった。通しで呼ぶと、ユースケースどうしの受け渡し（create が返す未記入、update が返す検証エラー、render と approve が同じ検証を使うこと）を確かめられる。書いている途中で、render の説明が 0140 より前のままであることも分かった。",
+ "shift": [
+  {
+   "what": "UC-0 の確かめ方",
+   "from": "無い（部品ごとのユースケースのテストだけ）",
+   "to": "基盤の CLI で UC-1 → UC-7 → UC-3 → UC-6 → UC-8 を順に呼ぶ system のテスト2件"
+  },
+  {
+   "what": "成功保証 SG-1",
+   "from": "確かめていない",
+   "to": "承認記録に、作成した正本が入る"
+  },
+  {
+   "what": "最小保証 MG-1",
+   "from": "UC-8 の単体のテストだけ",
+   "to": "検証エラーのある正本は、描画も承認記録も書かれない"
+  },
+  {
+   "what": "render の説明（MCP のツールの一覧に出る）",
+   "from": "無い種類は基盤の既定のページで描画する",
+   "to": "document は基盤の文書、具体の種類は具体のデザインで描画する。どちらでもなければ1ページも書かずに失敗する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "UC-0 の5つの手順を、1つの正本に順に使う。検証エラーのある正本は、描画も承認もされない。",
+ "alternatives": [
+  {
+   "option": "UC-0 は要約レベルなので、部品のユースケースのテストで足りるとする",
+   "why_not": "部品ごとのテストは、それぞれ自分で用意したデータを使う。create が返した未記入を prompt と update が受け、その結果を render と approve が同じ検証で読む、という受け渡しは確かめていない"
+  },
+  {
+   "option": "具体のデザインを持つテスト用の具体で通す",
+   "why_not": "基盤だけで使う人（具体のデザインを持たない人）の道を確かめられない。基盤の文書の契約なら、基盤の CLI だけで描画まで通る"
+  },
+  {
+   "option": "render の説明は SKILL.md を書くときにまとめて直す",
+   "why_not": "説明は MCP のツールの一覧に出るので、SKILL.md より先に AI エージェントが読む。誤った説明のまま残す理由が無い"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tests_structured_data_as_master_rs",
+   "tab": "cli/tests/structured_data_as_master.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/structured_data_as_master.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn uc_0_sg_1_the_owner_approves_a_master_written_from_prompts() {",
+     "before": "（無かった）",
+     "why": "UC-0 の基本シナリオ（STEP-1〜5）を、基盤の CLI だけで順に呼ぶ。成功保証 SG-1（承認記録が空でない）を、approve の結果と approval.json で確かめる"
+    },
+    {
+     "find": "fn uc_0_mg_1_a_master_with_validation_errors_is_neither_rendered_nor_approved() {",
+     "before": "（無かった）",
+     "why": "最小保証 MG-1（承認した正本は検証を通過している）を確かめる。更新の道を通らずに形の違う値を書き、描画も承認記録も書かれないことを見る"
+    },
+    {
+     "find": "const SCHEMA: &str = \"declarations/document.schema.json\";",
+     "before": "（無かった）",
+     "why": "具体のデザインが無くても描画まで通せるように、基盤の文書の契約で書く（ACDR 0140）"
+    }
+   ]
+  },
+  {
+   "key": "inbound_tools_rs",
+   "tab": "adapters/src/inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "description: \"ディレクトリのインスタンスをページへ描画する（UC-6）。kind が document なら基盤の文書の契約と決まったデザインで、具体の種類なら具体のページテンプレートとデザインで描画する。どちらでもない種類があれば、1ページも書かずに失敗する。検証エラーがあれば描画しない。同じ入力からは同じページを書く\",",
+     "before": "description: \"ディレクトリのインスタンスをページへ描画する（UC-6）。具体のページテンプレートとデザインがあればそれで、無い種類は基盤の既定のページで描画する。検証エラーがあれば描画しない。同じ入力からは同じページを書く\",",
+     "why": "render の説明を、ACDR 0140 で決めた動きに合わせる。説明は「無い種類は基盤の既定のページで描画する」のままだったが、実際には文書でも具体の種類でもないインスタンスがあると、1ページも書かずに失敗する（試して確かめた）。説明は MCP のツールの一覧にそのまま出るので、AI エージェントが誤った前提で呼ぶ"
+    },
+    {
+     "find": "(\"pages\", \"具体のページテンプレートのディレクトリ。無ければ、kind が document のインスタンスだけを描画できる\", false),",
+     "before": "(\"pages\", \"ページテンプレートのディレクトリ。無ければ、すべての種類を基盤の既定のページで描画する\", false),",
+     "why": "render の説明を、ACDR 0140 で決めた動きに合わせる。説明は「無い種類は基盤の既定のページで描画する」のままだったが、実際には文書でも具体の種類でもないインスタンスがあると、1ページも書かずに失敗する（試して確かめた）。説明は MCP のツールの一覧にそのまま出るので、AI エージェントが誤った前提で呼ぶ"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "tests_structured_data_as_master_rs": "0cce8ad4b057833cc2ce09ddecb75aadc1db9e7e0cecbdb3c8075bee73e89686",
+  "inbound_tools_rs": "190d143fe256286116d0642e29d08cfc91c5eaded95b8e097d49bba48de6a83a"
+ }
+}
