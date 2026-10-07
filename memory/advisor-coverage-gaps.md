@@ -17,7 +17,8 @@ metadata:
 - ACDR 0150（全 advisor 共通の samples と共通の描画）は利用者が「前の方が百倍よかった」と差し戻し、採らずに作業ツリーを戻した（控えは消えるので無い）。教訓は brainstorming-board / Skill 側に置く
 - UI の見本：ux 設計相談 5upZ4JUY45p9XauQU2HuKS ・ ddd 判断相談 EMW8bu9L88cXeYRDa7g1EM ・ 6つの advisor の完成イメージ37種類 EWrHCJe3RLBy3Hg3QtDcKH（利用者「いいね。これ図がいいね」）。ソースはボードの ui-samples/ に写した（gallery は assemble.py で組む）
 - ux-advisor-purpose のボード（9回目）：論点1〜4決着。論点2の「共通の欄 samples」という言い方は UI の合意のあとで直す
-- いまは止めてある：今日の図が手描き SVG で design-svg より表現力が高かったので、先に design-svg の作り直し（自由に書いた SVG をトークン・図の文法・手本・検査で揃える）をボードで決める。それが済んだら advisor-answer の論点1の承認から再開する
+- design-svg の作り直しは 2026-10-08 に完了（ボード design-svg-rework 論点1〜5 決着、ACDR 0157〜0160 承認・コミット）。作成者が class で SVG を書き、design-svg が解決と検査をする。テンプレート17種類は design-svg の references/exemplars。残り：8つの Skill の refs.rs の写し直しの ACDR（準備中）、ブレストボード側の figures の検査の削除はその作り直しの担当へ申し送り
+- 次：advisor-answer の論点1（UI の合意）の承認から再開する
 
 次（段1〜5のあと）：ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
 
