@@ -1,0 +1,458 @@
+<title>skills-creator と schema-driven の立ち位置を決める</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="skill-roles" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　skills-creator と schema-driven の立ち位置を決める　/　Round 1</p><h1>skills-creator と schema-driven の立ち位置を決める</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>達成すること<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>責務の分け方<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q3</span>新しい Skill のツールの生み方<span class="st now">いま見る</span></button><button data-t="p4" aria-selected="false" class="now"><span class="tn">Q4</span>共通ツールと check<span class="st now">いま見る</span></button><button data-t="p5" aria-selected="false" class="wait"><span class="tn">Q5</span>既存の Skill を移す順<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>skills-creator と schema-driven が、Skill のツールとデータの持ち方を別々に決めていて、作り直したブレストボードに skills-creator の check が9件の検出を出す。何を達成するかを決めてから、2つの Skill がそれぞれ何を持つかを決める。</p></div><div class="front"><h3>いま見るのは 4 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　達成すること</button><br><span class="why">何を達成するか。論点2〜4はこれを前提にする</span></li><li><button class="jump" data-go="p2">Q2　責務の分け方</button><br><span class="why">責務の分け方。論点3 ・ 4はこれを前提にする</span></li><li><button class="jump" data-go="p3">Q3　新しい Skill のツールの生み方</button><br><span class="why">新しい Skill を生むときに、どちらの実装を写すか</span></li><li><button class="jump" data-go="p4">Q4　共通ツールと check</button><br><span class="why">すべての Skill に求める共通ツールと check が、2つの間で食い違っている</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q1</span></td><td>skills-creator と schema-driven の立ち位置を決め直して、何を達成するか</td><td><span class="st now">いま見る</span></td><td><b>データとツールの決まりの正本を schema-driven の1つにし、skills-creator はそれを使って Skill を生み、検査する状態にする。</b></td></tr><tr><td><span class="n">Q2</span></td><td>2つの Skill の責務を、どこで分けるか</td><td><span class="st now">いま見る</span></td><td><b>skills-creator は Skill という単位の外側の形を持ち、データとツールの中身は schema-driven が持つ。</b></td></tr><tr><td><span class="n">Q3</span></td><td>scaffold は、新しい Skill のツールをどう生むか。いまの4層のリファレンス実装をどうするか</td><td><span class="st now">いま見る</span></td><td><b>scaffold は schema-driven を転写し、具体の crate（Design と ExtraTools の雛形）と cli ・ mcp を置く。4層のリファレンス実装は、すべての Skill を移し終えたら消す。</b></td></tr><tr><td><span class="n">Q4</span></td><td>すべての Skill に求める共通ツール（get ・ validate ・ view ・ import）と check の2段目を、schema-driven の上の Skill に合わせてどう変えるか</td><td><span class="st now">いま見る</span></td><td><b>共通ツールを schema-driven のツールの一覧に置き換えて契約の版4 とし、check は tool.json の contract が 4 の Skill に、転写の記録 ・ 基盤との差 ・ スキーマの契約を検査する。</b></td></tr><tr><td><span class="n">Q5</span></td><td>版3 で動いている15の Skill を、どの順で schema-driven の上へ移すか</td><td><span class="st wait">待ち</span></td><td><b>論点3 ・ 4の決着のあとに出す。助言型は、ボード advisor-answer の決着も待つ</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>skills-creator と schema-driven の立ち位置を決め直して、何を達成するか</h2></div><div class="ans"><span class="lead">データとツールの決まりの正本を schema-driven の1つにし、skills-creator はそれを使って Skill を生み、検査する状態にする。</span><ul><li>決まりの正本：いまは skills-creator の契約の版3 と schema-driven の2つ。これを schema-driven の1つにする</li><li>基盤の上へ移した Skill に skills-creator の check で検査して、検出が0件になる</li><li>確かめ方：新しい型や言語の組を足すときに、直す Skill が skills-creator の1つで済むか</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI</summary><div><div class="ex"><div data-g="1" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!-- ui --&gt;&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;
+:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;
+--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;
+--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}
+.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}
+h2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}
+.count{font-size:.8rem;color:var(--muted)}
+.count b{color:var(--ink);font-variant-numeric:tabular-nums}
+.shifts{display:grid;gap:1rem;counter-reset:s}
+.shift{counter-increment:s}
+.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}
+.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;
+ border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}
+.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}
+.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}
+.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}
+.side .lab::before{content:&quot;&quot;;width:.5rem;height:.5rem;border-radius:999px;background:currentColor}
+.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.before .lab{color:var(--gone)}
+.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}
+.after .lab{color:var(--key)}
+.arrow{display:grid;place-items:center}
+.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}
+del{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}
+ins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}
+code{font-family:&quot;JetBrains Mono&quot;,ui-monospace,monospace;font-size:.86em}
+
+.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}
+.repl .n{justify-self:end}
+.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}
+.repl .old{background:var(--del-bg);color:var(--gone)}
+.repl .new{background:var(--add-bg);color:var(--ink)}
+.n:empty{display:none}
+.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}
+.chip{font:600 .82rem/1.6 &quot;JetBrains Mono&quot;,ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}
+.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}
+.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}
+.single{display:grid;grid-template-columns:1fr}
+.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}
+.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}
+@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}
+:root{--key:#4a6741;--add-bg:rgba(74,103,65,.22)}@media (prefers-color-scheme:dark){:root{--key:#9fbf8f;--add-bg:rgba(159,191,143,.22)}}
+.uni{display:grid;gap:.9rem}
+.cols{display:grid;grid-template-columns:1fr 2.2rem 1fr;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 -.4rem;padding-left:.15rem}
+.cols span:first-child{color:var(--gone)} .cols span:last-child{color:var(--key)}
+.u-what{display:flex;align-items:center;gap:.55rem;margin:0 0 .35rem;font-weight:700;font-size:.95rem}
+.u-what i{font-style:normal;display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;border:1.5px solid var(--move);color:var(--move);font-size:.75rem}
+.u-rows{display:grid;gap:.35rem}
+.u-row{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}
+.u-cell{border:1px solid var(--line);border-radius:.35rem;padding:.5rem .8rem;font-size:.9rem;line-height:1.7;min-height:2.75rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.u-cell.b{background:linear-gradient(var(--del-bg),var(--del-bg)),var(--panel);border-left:3px solid var(--gone);color:var(--ink)}
+.u-cell.a{background:linear-gradient(var(--add-bg),var(--add-bg)),var(--paper);border-left:3px solid var(--key);color:var(--ink)}
+.u-cell.none{background:none;border-style:dashed;color:var(--muted);font-size:.8rem}
+.u-cell .word{font-size:1rem;font-weight:700}
+.u-cell .chip,.u-cell .chip.gone,.u-cell .chip.added{color:var(--ink);font-weight:600}
+.u-cell .chip.gone{text-decoration-color:var(--gone)}
+.u-cell .chip.added{border-width:1.5px}
+.u-cell .n{color:var(--ink)}
+.u-note{font-size:.84rem;color:var(--muted);margin:.35rem 0 0}
+@media (max-width:640px){.u-rows{gap:.9rem}.u-row{grid-template-columns:1fr}.cols{display:none}.u-row .arrow{height:1.6rem}.u-row .arrow span{transform:rotate(90deg)}}
+&lt;/style&gt;&lt;section class=&quot;block&quot;&gt;&lt;div class=&quot;bh&quot;&gt;&lt;h2&gt;いまの姿 → あるべき姿&lt;/h2&gt;&lt;span class=&quot;count&quot;&gt;変わること &lt;b&gt;3&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;uni&quot;&gt;&lt;div class=&quot;cols&quot;&gt;&lt;span&gt;変更前&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;変更後&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;1&lt;/i&gt;データとツールの決まりの正本&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span&gt;2つ（skills-creator の契約の版3 ・ schema-driven）&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;span&gt;1つ（schema-driven）。skills-creator はそれを使って生み、検査する&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;2&lt;/i&gt;基盤の上へ移した Skill への check&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span class=&quot;word&quot;&gt;9件の検出&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;span class=&quot;word&quot;&gt;0件&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;3&lt;/i&gt;新しい型や言語の組を足すとき、直す Skill&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;div class=&quot;chips&quot;&gt;&lt;span class=&quot;chip&quot;&gt;skills-creator&lt;/span&gt;&lt;span class=&quot;chip gone&quot;&gt;schema-driven&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;div class=&quot;chips&quot;&gt;&lt;span class=&quot;chip&quot;&gt;skills-creator&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;"></iframe><p class="note-s">いまの姿と、あるべき姿</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">立ち位置を決め直すこと</span></td><td>「そうなるとこれskillcreatorの立ち位置はどうなるんだ？」「そう考えるとそっちもブレストいるね」</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-08）</small></td></tr><tr><td><span class="part">いまの姿</span></td><td>作り直したブレストボードに skills-creator の check で検査すると、共通ツールが無い ・ refs.rs の複製が無い ・ 見た目の正本の複製が無いなど9件が出た</td><td><span class="kind k-fact">実測</span><small>skills-creator check .claude/skills/brainstorming-board（2026-10-08）</small></td></tr><tr><td><span class="part">あるべき姿を先に決めること</span></td><td>どう分けるか ・ どう移すかを決める前に、何と何のずれを解くのか（あるべき姿と現状の差）を決める</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-08）── 判断基準 matryoshka ・ explicit-and-latent-problems</small></td></tr><tr><td><span class="part">確かめ方</span></td><td>新しい型や6つ目の言語の組が加わったとき、どちらの Skill を直せば済むかで、責務の分け方を確かめる</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-08）── 判断基準 object-orientation</small></td></tr></table></div></div></details><details open><summary>採らなかった案（2件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>check の9件を0件にすることを目的にする</b></td><td>検出は2つの決まりが並んでいることの結果で、check だけを直しても決まりは2つのまま残る</td></tr><tr><td><b>skills-creator を小さくすることを目的にする</b></td><td>小さくするのは手段で、何を持たせないかの基準にならない</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>2つの Skill の責務を、どこで分けるか</h2></div><div class="ans"><span class="lead">skills-creator は Skill という単位の外側の形を持ち、データとツールの中身は schema-driven が持つ。</span><ul><li>skills-creator：要件の確認 ・ 型（作業型 ・ 生成型 ・ 助言型）・ SKILL.md の雛形 ・ フォルダの構成</li><li>skills-creator：CLI と MCP の呼び方（tool.json ・ mcp.json）・ check と accept ・ 配布</li><li>schema-driven：スキーマの契約（meta-schema）・ インスタンスの作成 ・ 取得 ・ 更新 ・ 検査 ・ 描画 ・ 承認 ・ 転写</li><li>具体の Skill：自分のスキーマ ・ Design とデザインシステム ・ 固有のツール（ExtraTools）</li><li>skills-creator はツールの中身を自分では持たず、Skill を生むときに schema-driven を転写する</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="ex"><div data-g="2" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 640 300" style="min-width:560px" class="dsvg"><style data-dsvg="dark">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style>
+  <rect class="box" x="10" y="10" width="620" height="80" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+  <text class="label" x="320" y="36" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">skills-creator（外側：Skill という単位の形）</text>
+  <text class="note" x="320" y="58" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">要件 ・ 型 ・ SKILL.md の雛形 ・ フォルダ ・ tool.json と mcp.json</text>
+  <text class="note" x="320" y="76" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">check と accept ・ 配布</text>
+  <rect class="box focus" x="10" y="110" width="620" height="80" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+  <text class="label focus" x="320" y="136" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">schema-driven（中身：データとツールの基盤）</text>
+  <text class="note" x="320" y="158" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">スキーマの契約 ・ 作成 ・ 取得 ・ 更新 ・ 検査 ・ 描画 ・ 承認</text>
+  <text class="note" x="320" y="176" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">転写（具体の Skill が複製を持つ）</text>
+  <rect class="box" x="10" y="210" width="620" height="80" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+  <text class="label" x="320" y="236" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">具体の Skill（acdr ・ ブレストボード ・ advisor など）</text>
+  <text class="note" x="320" y="258" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">自分のスキーマ ・ Design とデザインシステム</text>
+  <text class="note" x="320" y="276" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">固有のツール（ExtraTools）</text>
+</svg></figure><p class="note-s">外側の形は skills-creator、中身は schema-driven、具体の Skill はその上に自分のものだけを足す</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">正本を1つにすること</span></td><td>データとツールの決まりの正本を schema-driven の1つにする</td><td><span class="kind k-rule">決まり</span><small>論点1</small></td></tr><tr><td><span class="part">skills-creator が外側を持つこと</span></td><td>skills-creator の役割は、要件の確認 ・ scaffold ・ SKILL.md の記入 ・ check と accept ・ 使い方を伝えることである</td><td><span class="kind k-rule">決まり</span><small>skills-creator の SKILL.md の役割</small></td></tr><tr><td><span class="part">schema-driven が中身を持つこと</span></td><td>具体の Skill は、この基盤の crate を転写して、自分のスキーマとデザインで使う</td><td><span class="kind k-rule">決まり</span><small>schema-driven の SKILL.md の description</small></td></tr><tr><td><span class="part">分けた結果を確かめること</span></td><td>型を足すときは skills-creator の雛形だけ、データの操作を足すときは schema-driven だけを直す</td><td><span class="kind k-rule">決まり</span><small>論点1</small></td></tr></table></div></div></details><details open><summary>採らなかった案（2件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>schema-driven を skills-creator に入れる</b></td><td>基盤は具体の Skill へ転写して配るもので、Skill を生むツールの一部にすると、生んだあとの更新（transcribe）の持ち主が分かれる</td></tr><tr><td><b>skills-creator を schema-driven に入れる</b></td><td>型 ・ SKILL.md の雛形 ・ 受け入れ ・ 配布は、データの基盤とは別の理由で変わる</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>scaffold は、新しい Skill のツールをどう生むか。いまの4層のリファレンス実装をどうするか</h2></div><div class="ans"><span class="lead">scaffold は schema-driven を転写し、具体の crate（Design と ExtraTools の雛形）と cli ・ mcp を置く。4層のリファレンス実装は、すべての Skill を移し終えたら消す。</span><ul><li>Rust の Skill：schema-driven transcribe で tool/schema-driven/ を置き、具体の crate に Design と ExtraTools の雛形を置く</li><li>ほかの言語の Skill：いまと同じく枠だけを置き、schema-driven のツールの振る舞いを、契約のテストケースに合わせて移植する</li><li>助言型の雛形は、ボード advisor-answer で回答の形が決まってから、schema-driven の上の形に作り直す</li><li>4層のリファレンス実装（data_access ・ business_logic ・ service と refs.rs）は、移し終えるまで残す。新しく生む Skill には使わない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="3" data-ixp="0"><pre><code>skills-creator scaffold &lt;名前&gt; --type work
+
+.claude/skills/&lt;名前&gt;/
+  SKILL.md                 雛形（いまと同じ）
+  tool.json  mcp.json      呼び方の契約（contract 4）
+  references/
+    &lt;名前&gt;.schema.json     具体のスキーマ（meta-schema に従う）
+    pages/  design/        ページテンプレートと Design の部品 ・ デザインシステム
+  tool/
+    Cargo.toml             schema-driven/tool/core ・ adapters と、具体 ・ cli ・ mcp
+    schema-driven/         transcribe で写した基盤（transcription.json つき）
+    &lt;名前&gt;/                具体の crate：design.rs ・ tools.rs（ExtraTools）
+    cli/  mcp/             Toolbox::with(具体のツール).with_render(…)</code></pre><p class="note-s">Rust の作業型を生んだときの並び</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">schema-driven を転写すること</span></td><td>基盤の tool/core ・ tool/adapters ・ references を、具体の Skill の tool/schema-driven/ の下へ同じ並びで写す。写した複製は具体の持ち物である</td><td><span class="kind k-rule">決まり</span><small>schema-driven の SKILL.md の Step 7</small></td></tr><tr><td><span class="part">具体の crate の形</span></td><td>ブレストボードは、転写した基盤の上に board crate（design.rs ・ tools.rs）と cli ・ mcp を置いて動いている</td><td><span class="kind k-fact">実測</span><small>.claude/skills/brainstorming-board/tool/</small></td></tr><tr><td><span class="part">ほかの言語は振る舞いで合わせること</span></td><td>契約が規定するのは、呼ぶ側から観察できるものだけである。ツールを書く言語は、利用者に委ねる</td><td><span class="kind k-rule">決まり</span><small>skills-creator の SKILL.md の「ツールを伴う Skill」</small></td></tr><tr><td><span class="part">責務の分け方</span></td><td>skills-creator はツールの中身を自分では持たず、schema-driven を転写する</td><td><span class="kind k-rule">決まり</span><small>論点2</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>2つの基盤（4層のリファレンス実装と schema-driven）を両方残し、Skill ごとに選ばせる</b></td><td>決まりの正本が2つのまま残り、論点1の達成することに反する</td></tr><tr><td><b>データを持たない Skill のために、4層のリファレンス実装を残し続ける</b></td><td>契約の版2で、どの Skill も references を JSON Schema と JSON で持つ。データを持たない Skill が無い</td></tr><tr><td><b>skills-creator が schema-driven のコードを自分の雛形として複製して持つ</b></td><td>基盤の正本が2つになり、基盤を直すたびに雛形も直すことになる</td></tr></table></div></div></details><div class="form" data-topic="Q3"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>すべての Skill に求める共通ツール（get ・ validate ・ view ・ import）と check の2段目を、schema-driven の上の Skill に合わせてどう変えるか</h2></div><div class="ans"><span class="lead">共通ツールを schema-driven のツールの一覧に置き換えて契約の版4 とし、check は tool.json の contract が 4 の Skill に、転写の記録 ・ 基盤との差 ・ スキーマの契約を検査する。</span><ul><li>get &lt;kind&gt; [id] → get（ファイルと JMESPath の式）。validate → check と check-schemas。view → render（ページテンプレートと具体の Design）</li><li>import は共通から外し、Markdown の原文を取り込む Skill（fact-check と助言型）だけが ExtraTools で持つ</li><li>基盤にだけあるもの（create ・ update ・ delete ・ prompt ・ approve ・ transcribe ・ check-copy）も、共通ツールとして契約のテストケースで振る舞いを決める</li><li>版4 の check の2段目：transcription.json がある ・ check-copy の差が0件 ・ references の具体のスキーマが check-schemas を通る。refs.rs と見た目の正本の複製は求めない</li><li>版3 の Skill には、移し終えるまでいまの check を当てる。移した Skill は tool.json を 4 にする</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="4" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="4" data-ix="1">コード</button></div><div data-g="4" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!-- ui --&gt;&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;
+:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;
+--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;
+--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}
+.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}
+h2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}
+.count{font-size:.8rem;color:var(--muted)}
+.count b{color:var(--ink);font-variant-numeric:tabular-nums}
+.shifts{display:grid;gap:1rem;counter-reset:s}
+.shift{counter-increment:s}
+.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}
+.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;
+ border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}
+.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}
+.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}
+.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}
+.side .lab::before{content:&quot;&quot;;width:.5rem;height:.5rem;border-radius:999px;background:currentColor}
+.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.before .lab{color:var(--gone)}
+.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}
+.after .lab{color:var(--key)}
+.arrow{display:grid;place-items:center}
+.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}
+del{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}
+ins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}
+code{font-family:&quot;JetBrains Mono&quot;,ui-monospace,monospace;font-size:.86em}
+
+.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}
+.repl .n{justify-self:end}
+.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}
+.repl .old{background:var(--del-bg);color:var(--gone)}
+.repl .new{background:var(--add-bg);color:var(--ink)}
+.n:empty{display:none}
+.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}
+.chip{font:600 .82rem/1.6 &quot;JetBrains Mono&quot;,ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}
+.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}
+.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}
+.single{display:grid;grid-template-columns:1fr}
+.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}
+.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}
+@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}
+:root{--key:#4a6741;--add-bg:rgba(74,103,65,.22)}@media (prefers-color-scheme:dark){:root{--key:#9fbf8f;--add-bg:rgba(159,191,143,.22)}}
+.uni{display:grid;gap:.9rem}
+.cols{display:grid;grid-template-columns:1fr 2.2rem 1fr;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 -.4rem;padding-left:.15rem}
+.cols span:first-child{color:var(--gone)} .cols span:last-child{color:var(--key)}
+.u-what{display:flex;align-items:center;gap:.55rem;margin:0 0 .35rem;font-weight:700;font-size:.95rem}
+.u-what i{font-style:normal;display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;border:1.5px solid var(--move);color:var(--move);font-size:.75rem}
+.u-rows{display:grid;gap:.35rem}
+.u-row{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}
+.u-cell{border:1px solid var(--line);border-radius:.35rem;padding:.5rem .8rem;font-size:.9rem;line-height:1.7;min-height:2.75rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.u-cell.b{background:linear-gradient(var(--del-bg),var(--del-bg)),var(--panel);border-left:3px solid var(--gone);color:var(--ink)}
+.u-cell.a{background:linear-gradient(var(--add-bg),var(--add-bg)),var(--paper);border-left:3px solid var(--key);color:var(--ink)}
+.u-cell.none{background:none;border-style:dashed;color:var(--muted);font-size:.8rem}
+.u-cell .word{font-size:1rem;font-weight:700}
+.u-cell .chip,.u-cell .chip.gone,.u-cell .chip.added{color:var(--ink);font-weight:600}
+.u-cell .chip.gone{text-decoration-color:var(--gone)}
+.u-cell .chip.added{border-width:1.5px}
+.u-cell .n{color:var(--ink)}
+.u-note{font-size:.84rem;color:var(--muted);margin:.35rem 0 0}
+@media (max-width:640px){.u-rows{gap:.9rem}.u-row{grid-template-columns:1fr}.cols{display:none}.u-row .arrow{height:1.6rem}.u-row .arrow span{transform:rotate(90deg)}}
+&lt;/style&gt;&lt;section class=&quot;block&quot;&gt;&lt;div class=&quot;bh&quot;&gt;&lt;h2&gt;共通ツールがどう変わるか&lt;/h2&gt;&lt;span class=&quot;count&quot;&gt;変わること &lt;b&gt;5&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;uni&quot;&gt;&lt;div class=&quot;cols&quot;&gt;&lt;span&gt;変更前&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;変更後&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;1&lt;/i&gt;1件を取り出す&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span class=&quot;word&quot;&gt;get &amp;lt;kind&amp;gt; [id]&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;span&gt;get --path --query（JMESPath）&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;2&lt;/i&gt;スキーマで検査する&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span class=&quot;word&quot;&gt;validate&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;div class=&quot;chips&quot;&gt;&lt;span class=&quot;chip added&quot;&gt;check&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;check-schemas&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;3&lt;/i&gt;HTML に描画する&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span class=&quot;word&quot;&gt;view（見た目の正本の複製で描く）&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;span&gt;render（ページテンプレートと具体の Design で描く）&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;4&lt;/i&gt;Markdown を取り込む&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell b&quot;&gt;&lt;span&gt;import（どの Skill も持つ）&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;span&gt;使う Skill（fact-check ・ advisor）だけが ExtraTools で持つ&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;u-what&quot;&gt;&lt;i&gt;5&lt;/i&gt;基盤にだけあるもの&lt;/div&gt;&lt;div class=&quot;u-rows&quot;&gt;&lt;div class=&quot;u-row&quot;&gt;&lt;div class=&quot;u-cell none&quot;&gt;（無かった）&lt;/div&gt;&lt;div class=&quot;arrow&quot;&gt;&lt;span&gt;→&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;u-cell a&quot;&gt;&lt;div class=&quot;chips&quot;&gt;&lt;span class=&quot;chip added&quot;&gt;create&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;update&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;delete&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;prompt&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;approve&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;transcribe&lt;/span&gt;&lt;span class=&quot;chip added&quot;&gt;check-copy&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;"></iframe><p class="note-s">共通ツールが、版3 から版4 でどう変わるか</p></div><div data-g="4" data-ixp="1" hidden><pre><code>skills-creator check .claude/skills/brainstorming-board
+
+契約の版 4（tool.json）
+1段目（振る舞い）
+  OK  動詞なしの --json でツールの一覧を返す（ツール 15件）
+  OK  共通ツールのテストケース（create ・ get ・ update ・ check ・ render …）
+  OK  MCP の tools/list が、CLI のツールの一覧と一致する
+2段目（ソース）
+  OK  tool/schema-driven/transcription.json がある
+  OK  check-copy：基盤との差 0件
+  OK  check-schemas：references の具体のスキーマ 2件、指摘 0件
+文書
+  OK  節の構成が雛形を満たす</code></pre><p class="note-s">版4 の check を、作り直したブレストボードを検査したときの出力（見本）</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">共通ツールを置き換えること</span></td><td>契約の版2 は、どの Skill にも get ・ validate ・ view ・ import を求める。ブレストボードはそれを持たず、check が validate ・ view ・ import の3つが無いことを検出した</td><td><span class="kind k-fact">実測</span><small>skills-creator check .claude/skills/brainstorming-board（2026-10-08）</small></td></tr><tr><td><span class="part">import を共通から外すこと</span></td><td>import は Markdown の原文を、出典 ・ sha256 ・ 節の入れ子を持つ document の JSON へ取り込む。使うのは、原典を取り込む fact-check と助言型である</td><td><span class="kind k-fact">実測</span><small>fact-check の SKILL.md ・ skills-creator の references/document.json</small></td></tr><tr><td><span class="part">版で検査を切り替えること</span></td><td>17 の Skill のうち15 が refs.rs と共通ツール（版3）で動いていて、一度には移せない</td><td><span class="kind k-fact">実測</span><small>各 Skill の tool.json と tool/（2026-10-08）</small></td></tr><tr><td><span class="part">版4 の2段目に転写の記録と差を見ること</span></td><td>schema-driven transcribe は transcription.json に版とハッシュ値を書き、check-copy が基盤との差を出す</td><td><span class="kind k-rule">決まり</span><small>schema-driven の SKILL.md の Step 7</small></td></tr><tr><td><span class="part">見た目の複製を求めないこと</span></td><td>デザインテンプレートを持つものは、デザインシステムを持つ。基盤の render は、デザインシステムが契約を満たさなければ1ページも書かない</td><td><span class="kind k-rule">決まり</span><small>ACDR 0153</small></td></tr><tr><td><span class="part">インスタンスの操作を基盤に寄せること</span></td><td>データとツールの中身は schema-driven が持つ</td><td><span class="kind k-rule">決まり</span><small>論点2</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>版3 の共通ツールを残し、schema-driven の上の Skill にも get ・ validate ・ view ・ import を足す</b></td><td>同じ操作（取り出す ・ 検査する ・ 描画する）を2通りの名前で持つことになる</td></tr><tr><td><b>import も共通ツールに残す</b></td><td>Markdown を取り込まない Skill（ブレストボード ・ acdr）にも、使わないツールを持たせることになる</td></tr><tr><td><b>すべての Skill を一度に版4 へ移してから check を変える</b></td><td>移すあいだ、移した Skill がずっと check に落ち続ける</td></tr></table></div></div></details><div class="form" data-topic="Q4"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q5</span><h2>版3 で動いている15の Skill を、どの順で schema-driven の上へ移すか</h2></div><p class="waiting">論点3 ・ 4の決着のあとに出す。助言型は、ボード advisor-answer の決着も待つ</p></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 4</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
