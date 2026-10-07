@@ -1,0 +1,403 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0155",
+ "title": "ブレストボードを、転写した基盤の上で描画する",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "ブレストボードは schema-driven を転写して持ち、ボードのインスタンスを、基盤の render とボードの Design（部品 ・ CSS ・ JS ・ デザインシステム）で描画する",
+ "why": "ボード board-on-schema-driven の論点3で、形の検査 ・ 描画 ・ 冪等性は基盤に任せると決めた。論点2で完成イメージの切り替えを、論点5でデザインシステムを決めた。いまのボードは、テンプレート ・ 検査 ・ トークンの CSS をすべて自分で持っている。作り直すときに、基盤の側の見落としが2つ表に出た（基礎の層を変数にしていない、CSS のコメントまで検査していた）。",
+ "shift": [
+  {
+   "what": "描画",
+   "from": "ボードの render.rs が board.json から HTML を作る",
+   "to": "転写した schema-driven の render が、ページテンプレート pages/board.json とボードの Design で描画する"
+  },
+  {
+   "what": "見た目",
+   "from": "board.template.html ・ board.css ・ board.js ・ tokens.json（ボードの tokens.rs が CSS の変数を作る）",
+   "to": "design/ の parts.html ・ board.css ・ board.js ・ design-system.json。CSS の変数は基盤が作る。見た目はいまのボードと同じ"
+  },
+  {
+   "what": "画面から外した機能",
+   "from": "変更の引き出し ・ 変更の印 ・ 経過のタイムライン",
+   "to": "外した（論点1 ・ 4 で画面に出さないと決めたもの）"
+  },
+  {
+   "what": "押した状態 ・ 焦点",
+   "from": "押した「差し戻す」だけ茶色。焦点の表示が無い",
+   "to": "押した状態はどのボタンも key。焦点は key の外枠"
+  },
+  {
+   "what": "基盤（schema-driven）",
+   "from": "意味と部品の層だけを変数にする。CSS のコメントも検査する",
+   "to": "基礎の層も変数にする。コメントを除いて検査する（テスト2件を先に足した）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ボードのインスタンスを、転写した基盤の render が、ボードのページテンプレートと Design で描画する。",
+ "alternatives": [
+  {
+   "option": "いまの描画（render.rs）を残し、検査だけ基盤に任せる",
+   "why_not": "テンプレートと CSS の変数を、ボードと基盤の2か所で持つことになる"
+  },
+  {
+   "option": "論点ごとにページテンプレートの節で描画する（タブを部品にしない）",
+   "why_not": "基盤のページテンプレートは節を上から並べる形で、タブで切り替える面を作れない。ボード全体を1つの部品にした"
+  },
+  {
+   "option": "変更の印と引き出しを残す",
+   "why_not": "Design が受け取るのはいまのインスタンスだけで、前の回と比べられない。承認者の画面の量を減らす決定にも合わない"
+  },
+  {
+   "option": "旗を動詞の前に書ける CLI を残す",
+   "why_not": "基盤の CLI は動詞が先頭の形で、ボードだけ別の形にすると、ツールの呼び方が Skill ごとに分かれる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "schema_driven_core_src_domain_design_system_rs",
+   "tab": "schema-driven/core/src/domain/design_system.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/design_system.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// CSS のコメント（/* … */）を除く。コメントの中の色や変数の名前は、検査の相手ではない。",
+     "before": "/// テンプレートの中の CSS（style 要素の中身と style 属性の値）。",
+     "why": "CSS のコメント（/* … */）を除いてから、色の直値と変数を探す。ボードの CSS の先頭のコメントに書いた「var(--名前)」を、名前の無い変数として拾っていた"
+    },
+    {
+     "find": "out.push(without_comments(&body[..close]));",
+     "before": "out.push(body[..close].to_owned());",
+     "why": "CSS のコメント（/* … */）を除いてから、色の直値と変数を探す。ボードの CSS の先頭のコメントに書いた「var(--名前)」を、名前の無い変数として拾っていた"
+    },
+    {
+     "find": "out.push(without_comments(&tail[..close]));",
+     "before": "out.push(tail[..close].to_owned());",
+     "why": "CSS のコメント（/* … */）を除いてから、色の直値と変数を探す。ボードの CSS の先頭のコメントに書いた「var(--名前)」を、名前の無い変数として拾っていた"
+    },
+    {
+     "find": "// 基礎の層（余白 ・ 字の大きさ ・ 角の丸みなど）も変数にする。テンプレートが基礎の名前を使っても、変数が在る",
+     "before": "（無かった）",
+     "why": "基礎の層（余白 ・ 字の大きさ ・ 角の丸みなど）も CSS の変数にする。検査は基礎の名前を「定義されている」として通すのに、変数としては出していなかった。ボードの CSS が var(--sp-3) のように基礎を直接使うので、ここで表に出た"
+    },
+    {
+     "find": "\"{}{{{base}{}{}}}\\n@media (prefers-color-scheme: dark){{{dark_auto}{{{dark}}}}}\\n{dark_set}{{{dark}}}\",",
+     "before": "\"{}{{{}{}}}\\n@media (prefers-color-scheme: dark){{{dark_auto}{{{dark}}}}}\\n{dark_set}{{{dark}}}\",",
+     "why": "基礎の層（余白 ・ 字の大きさ ・ 角の丸みなど）も CSS の変数にする。検査は基礎の名前を「定義されている」として通すのに、変数としては出していなかった。ボードの CSS が var(--sp-3) のように基礎を直接使うので、ここで表に出た"
+    }
+   ]
+  },
+  {
+   "key": "schema_driven_cli_tests_design_system_rs",
+   "tab": "schema-driven/cli/tests/design_system.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/design_system.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\":root{--night-900:#0e1614;--paper-100:#eef1ef;--teal-300:#6cc9b8;--teal-700:#0d5c55;--bg:#eef1ef;--key:#0d5c55;--pill-bg:var(--key)}\",",
+     "before": "\":root{--bg:#eef1ef;--key:#0d5c55;--pill-bg:var(--key)}\",",
+     "why": "基礎の層（余白 ・ 字の大きさ ・ 角の丸みなど）も CSS の変数にする。検査は基礎の名前を「定義されている」として通すのに、変数としては出していなかった。ボードの CSS が var(--sp-3) のように基礎を直接使うので、ここで表に出た"
+    },
+    {
+     "find": "fn a_template_may_use_base_tokens_such_as_spacing() {",
+     "before": "（無かった）",
+     "why": "CSS のコメント（/* … */）を除いてから、色の直値と変数を探す。ボードの CSS の先頭のコメントに書いた「var(--名前)」を、名前の無い変数として拾っていた"
+    }
+   ]
+  },
+  {
+   "key": "tool_Cargo_toml",
+   "tab": "tool/Cargo.toml",
+   "file": ".claude/skills/brainstorming-board/tool/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# ブレストボード。schema-driven を転写して持ち（tool/schema-driven/）、その上にボードの Design を置く",
+     "before": "（無かった）",
+     "why": "ワークスペースを、転写した schema-driven の core ・ adapters と、ボードの Design（board）・ cli ・ mcp にする。いまの business_logic ・ service ・ data_access は外す（段4で消す）。版は 0.2.0 にする"
+    },
+    {
+     "find": "members = [\"schema-driven/tool/core\", \"schema-driven/tool/adapters\", \"board\", \"cli\", \"mcp\"]",
+     "before": "members = [\"data_access\", \"business_logic\", \"service\", \"cli\", \"mcp\"]",
+     "why": "ワークスペースを、転写した schema-driven の core ・ adapters と、ボードの Design（board）・ cli ・ mcp にする。いまの business_logic ・ service ・ data_access は外す（段4で消す）。版は 0.2.0 にする"
+    },
+    {
+     "find": "version = \"0.2.0\"",
+     "before": "version = \"0.1.0\"",
+     "why": "ワークスペースを、転写した schema-driven の core ・ adapters と、ボードの Design（board）・ cli ・ mcp にする。いまの business_logic ・ service ・ data_access は外す（段4で消す）。版は 0.2.0 にする"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_src_design_rs",
+   "tab": "tool/board/src/design.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/src/design.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct BoardDesign;",
+     "before": "（無かった）",
+     "why": "ボードの Design。部品 board が、論点ごとに問い ・ 答え ・ 完成イメージ ・ 根拠 ・ 採らなかった案だけを描画する（論点1）。verification は描画しない（論点4）。回答欄は開いている論点にだけ置く"
+    },
+    {
+     "find": "fn images(&self, topic: &Value, group: usize, renderer: &dyn Renderer) -> Result<Html, String> {",
+     "before": "（無かった）",
+     "why": "完成イメージを、図 ・ コード ・ UI ・ 差分の切り替えで描画する（論点2）。図は基盤の Renderer.svg が検査してから埋め込み、UI はボードと見た目が混ざらないよう iframe の srcdoc に入れる"
+    },
+    {
+     "find": "fn design_system(&self) -> &str {",
+     "before": "（無かった）",
+     "why": "デザインシステム（design/design-system.json）を渡す。基盤が検査し、トークンから CSS の変数を作る（ACDR 0153、論点5）"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_tests_board_design_rs",
+   "tab": "tool/board/tests/board_design.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/tests/board_design.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn each_topic_shows_question_answer_images_grounds_and_rejected_options_only() {",
+     "before": "（無かった）",
+     "why": "実装の前に書き、Design が無いためにコンパイルが止まることを確かめた。5件で、描画する欄と描画しない verification ・ 回答欄 ・ 完成イメージの切り替え ・ script を含む SVG を断ること ・ デザインシステムを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "references_design_design_system_json",
+   "tab": "references/design/design-system.json",
+   "file": ".claude/skills/brainstorming-board/references/design/design-system.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"name\": \"verdict-button\",",
+     "before": "references/tokens.json（トークンだけ。状態の決まりは CSS の中に散っていた）",
+     "why": "いまの tokens.json の3層と明暗を引き継ぎ、部品ごとの状態を足した。押した状態は、どのボタンも key（論点5）"
+    }
+   ]
+  },
+  {
+   "key": "references_design_board_css",
+   "tab": "references/design/board.css",
+   "file": ".claude/skills/brainstorming-board/references/design/board.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}",
+     "before": "references/board.css",
+     "why": "いまの board.css から、タブ ・ 論点 ・ 表 ・ 回答 ・ 送る ・ 入れ子の折り畳み ・ 携帯の幅を引き継いだ。変更の引き出し ・ 変更の印 ・ 経過のタイムライン ・ 除外した案の表の補正は、画面から外したので消した。直値の予備で出ていた --accent-bg ・ --ink-soft を意味のトークンに直し、押した「差し戻す」を茶色にする規則を消し、焦点の外枠と完成イメージの切り替えを足した"
+    }
+   ]
+  },
+  {
+   "key": "references_design_board_js",
+   "tab": "references/design/board.js",
+   "file": ".claude/skills/brainstorming-board/references/design/board.js",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */",
+     "before": "references/board.js",
+     "why": "タブ ・ いま見る論点から移る ・ 回答 ・ 送るを引き継ぎ、完成イメージの切り替えを足した。変更の印と引き出しは消した。送る回答は answer.schema.json の形にした"
+    }
+   ]
+  },
+  {
+   "key": "references_pages_board_json",
+   "tab": "references/pages/board.json",
+   "file": ".claude/skills/brainstorming-board/references/pages/board.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"component\": \"board\"",
+     "before": "（無かった）",
+     "why": "ボードのページテンプレート。部品 board が、ボードのインスタンス（this）全体を描画する"
+    }
+   ]
+  },
+  {
+   "key": "tool_cli_src_main_rs",
+   "tab": "tool/cli/src/main.rs",
+   "file": ".claude/skills/brainstorming-board/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ブレストボードの CLI。転写した schema-driven のツール（作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画）を、",
+     "before": "// SPDX-License-Identifier: MIT",
+     "why": "CLI は、転写した schema-driven のツールの一覧を、ボードの Design で使う。いまの CLI の init ・ inspect ・ freeze などは段4で扱う"
+    }
+   ]
+  },
+  {
+   "key": "tool_cli_tests_cli_rs",
+   "tab": "tool/cli/tests/cli.rs",
+   "file": ".claude/skills/brainstorming-board/tool/cli/tests/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ブレストボードの CLI。転写した schema-driven のツールを、ボードの Design で使う。",
+     "before": "// SPDX-License-Identifier: MIT",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "use serde_json::Value;",
+     "before": "use std::path::PathBuf;",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "const BIN: &str = env!(\"CARGO_BIN_EXE_brainstorming-board\");",
+     "before": "use serde_json::Value;",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "fn run(args: &[&str]) -> (i32, Value) {",
+     "before": "fn root() -> String {",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "let value = serde_json::from_slice(&out.stdout).unwrap_or(Value::Null);",
+     "before": ".expect(\"起動できる\");",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "fn json_without_a_tool_name_lists_the_tools() {",
+     "before": "fn options_can_come_before_the_subcommand() {",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "let (code, _) = run(&[\"check\", \"--nope\", \"x\"]);",
+     "before": "// **道具の一覧に無いオプションは断る** ── 黙って無視すると、書き誤りに気づけない",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "fn render_draws_a_board_with_the_board_design() {",
+     "before": "fn without_a_subcommand_json_lists_the_tools() {",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    },
+    {
+     "find": "assert_eq!(out[\"pages\"][0][\"design\"], \"concrete\");",
+     "before": "let doc: Value = serde_json::from_str(&out).expect(\"JSON である\");",
+     "why": "CLI のテストを新しい形に置き換えた。動詞なしの --json ・ 知らない旗を断る ・ ボードを描画する、の3件。旗を動詞の前に書ける決まりは、基盤の CLI の形（動詞が先頭）に無いので外した"
+    }
+   ]
+  },
+  {
+   "key": "tool_mcp_src_main_rs",
+   "tab": "tool/mcp/src/main.rs",
+   "file": ".claude/skills/brainstorming-board/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ブレストボードの MCP。転写した schema-driven のツールの一覧を、ボードの Design で使う。",
+     "before": "// SPDX-License-Identifier: MIT",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "use brainstorming_board::design::BoardDesign;",
+     "before": "use std::borrow::Cow;",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,",
+     "before": "CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "use rmcp::service::{MaybeSendFuture, RequestContext};",
+     "before": "use rmcp::service::{RequestContext, RoleServer};",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "struct Server;",
+     "before": "#[derive(Clone, Debug)]",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "impl ServerHandler for Server {",
+     "before": "impl ServerHandler for Handler {",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "fn list_tools(",
+     "before": "async fn list_tools(",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "_request: Option<PaginatedRequestParams>,",
+     "before": "_request: Option<PaginatedRequestParam>,",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": ") -> impl Future<Output = Result<ListToolsResult, ErrorData>> + MaybeSendFuture + '_ {",
+     "before": ") -> Result<ListToolsResult, McpError> {",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": ".map(|tool| Tool::new(tool.name, tool.description, tools::input_schema(tool)))",
+     "before": ".map(|t| Tool {",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "std::future::ready(Ok(ListToolsResult::with_all_items(list)))",
+     "before": "Ok(ListToolsResult {",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "fn call_tool(",
+     "before": "async fn call_tool(",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "request: CallToolRequestParams,",
+     "before": "request: CallToolRequestParam,",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": ") -> impl Future<Output = Result<CallToolResponse, ErrorData>> + MaybeSendFuture + '_ {",
+     "before": ") -> Result<CallToolResult, McpError> {",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "std::future::ready(Ok(result.into()))",
+     "before": "let mut given = Given::default();",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    },
+    {
+     "find": "#[tokio::main(flavor = \"current_thread\")]",
+     "before": "#[tokio::main]",
+     "why": "MCP も、転写した schema-driven のツールの一覧を、ボードの Design で使う"
+    }
+   ]
+  },
+  {
+   "key": "tool_schema_driven_transcription_json",
+   "tab": "tool/schema-driven/transcription.json",
+   "file": ".claude/skills/brainstorming-board/tool/schema-driven/transcription.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"source\": \"schema-driven\",",
+     "before": "（無かった）",
+     "why": "schema-driven の tool/core ・ tool/adapters ・ references を、ボードの tool/schema-driven/ に転写した（41ファイル。ACDR 0143）。転写した複製はボードの持ち物で、基盤の新しい版へは transcribe で更新する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "schema_driven_core_src_domain_design_system_rs": "ce34438c29ab4f131794f95841182ad07268e666e9dee709a404d32230f78e42",
+  "schema_driven_cli_tests_design_system_rs": "fa176d4096a85ab9f86aea8ccd03d6091f1040991774464b41f1008d2bf6461b",
+  "tool_Cargo_toml": "a787783e0a975cf65b6e51fb53246b72f93bfcceba18c97a894598ad50d7fcbd",
+  "tool_board_src_design_rs": "3847ff43ffe74cf91a7da47b129d9975ed902578fe23b65e76259ab298bae589",
+  "tool_board_tests_board_design_rs": "a41d2e055b574fc572b26bf8c6152c55b47939a62d593bd9e3409e800c3ea760",
+  "references_design_design_system_json": "7900562b035fa05a03d9741163849e47f3a80ba6f4a34607905284ad3e7892ca",
+  "references_design_board_css": "d737f9e948d3322175dee39cd3af22d91bf615c316ca3b3fe44ce03f4dee637d",
+  "references_design_board_js": "dbb222761424717211511db116d42112f8d025ade66e31e14f5dc551912a4cd3",
+  "references_pages_board_json": "f432c3ecaf873912ae8657c1b56f3bf7c3aca0653d17746157228a457f9dcec6",
+  "tool_cli_src_main_rs": "ce394710ba32aec3843f974c9a8fe99c30de1d4eb00ccc550dbdef5939c2f716",
+  "tool_cli_tests_cli_rs": "9573ed8d2d0abc21d08d37ea8e44667b3845cda47fb713873950faefe6263a3a",
+  "tool_mcp_src_main_rs": "2e00f7eca3958814a086ad81c2793398aac9b2e706c696e3fb823cc04c88c88a",
+  "tool_schema_driven_transcription_json": "87db52f85a71ee1ace0e3237c9a894f17823457d71f84f5632346fe48a0afcd4"
+ }
+}

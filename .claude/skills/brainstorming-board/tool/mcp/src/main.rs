@@ -1,163 +1,98 @@
-// SPDX-License-Identifier: MIT
-//! brainstorming-board の MCP の面。**同じ道具の一覧から組む** ── 能力は1行も複製しない。
-//!
-//! **`#[tool]` マクロを使わない。** マクロは道具をその場で宣言するので、能力の正本が
-//! 2か所になる。代わりに `ServerHandler` を手で実装し、`list_tools` と `call_tool` を
-//! 道具の一覧から組む。
-//!
-//! **標準出力へ1バイトも書かない。** 原典が禁じている ── `The server MUST NOT
-//! write anything to its stdout that is not a valid MCP message.`
-//! （modelcontextprotocol.io/specification/2025-06-18/basic/transports:33、2026-09-24 取得）。
-//! ログは標準エラーへ書く（同 31行が許す）。
-//!
-//! **`ok` が偽なら `is_error` を立てる。** 原典が2つを分けている ──
-//! `Tool Execution Errors: Reported in tool results with isError: true`
-//! （同 server/tools:389）。**検出（findings）は誤りではない**ので、通常の結果で返す。
+//! ブレストボードの MCP。転写した schema-driven のツールの一覧を、ボードの Design で使う。
+//! rmcp と tokio はこの crate にだけ現れる（ACDR 0122）。
 
-use std::borrow::Cow;
+use brainstorming_board::design::BoardDesign;
+use brainstorming_board::tools::BoardTools;
+use rmcp::model::{
+    CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
+    ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerConfig, Tool,
+};
+use rmcp::service::{MaybeSendFuture, RequestContext};
+use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
+use schema_driven_adapters::inbound::tools;
+use schema_driven_adapters::outbound::document_design::DocumentDesign;
+use schema_driven_adapters::outbound::fs::{master_root, FileSystem};
+use schema_driven_adapters::outbound::jmespath::Jmespath;
+use schema_driven_core::application::checks::Checks;
+use schema_driven_core::application::instances::Instances;
+use schema_driven_core::application::renders::Renders;
+use std::future::Future;
 use std::sync::Arc;
 
-use rmcp::handler::server::ServerHandler;
-use rmcp::model::{
-    CallToolRequestParam, CallToolResult, Content, Implementation, ListToolsResult,
-    PaginatedRequestParam, ProtocolVersion, ServerCapabilities, ServerInfo, Tool,
-};
-use rmcp::service::{RequestContext, RoleServer};
-use rmcp::transport::stdio;
-use rmcp::{ErrorData as McpError, ServiceExt};
-use serde_json::{json, Map, Value};
+struct Server;
 
-// **この Skill の層は、外部の crate と別の組に置く** ── 接頭辞で並びが変わらないようにする
-use bb_service::{tools, Given};
-
-/// 道具の一覧から、入力の形を組む。**引数を1つずつ公開する** ── まとめて受けると、
-/// 呼ぶ側がどの引数を渡せばよいかを認知できない。
-fn input_schema(tool: &bb_service::Tool) -> Arc<Map<String, Value>> {
-    let mut properties = Map::new();
-    let mut required = Vec::new();
-    for a in &tool.args {
-        // **まとめて受ける引数は、並びとして公開する** ── 文字列1本にすると、呼ぶ側が
-        // 区切りを推測することになる（実測 ── 配列がそのまま1つの値になった）
-        let shape = if a.many {
-            json!({ "type": "array", "items": { "type": "string" }, "description": a.summary })
-        } else {
-            json!({ "type": "string", "description": a.summary })
-        };
-        properties.insert(a.name.to_owned(), shape);
-        if a.required {
-            required.push(Value::String(a.name.to_owned()));
-        }
-    }
-    let mut schema = Map::new();
-    schema.insert("type".to_owned(), Value::String("object".to_owned()));
-    schema.insert("properties".to_owned(), Value::Object(properties));
-    schema.insert("required".to_owned(), Value::Array(required));
-    Arc::new(schema)
+/// 基盤のツールに、ボードに固有のツールを足した一覧。名前は重ならない（重なれば起動の時点で止まる）。
+fn toolbox() -> tools::Toolbox {
+    tools::Toolbox::with(Arc::new(BoardTools::new(master_root()))).unwrap_or_else(|error| {
+        eprintln!("brainstorming-board-mcp: {error}");
+        std::process::exit(1)
+    })
 }
 
-#[derive(Clone, Debug)]
-struct Handler;
-
-impl ServerHandler for Handler {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            server_info: Implementation {
-                name: "brainstorming-board".to_owned(),
-                version: env!("CARGO_PKG_VERSION").to_owned(),
-                title: None,
-                icons: None,
-                website_url: None,
-            },
-            instructions: Some("論点を、承認だけで決められる1枚へ組む".to_owned()),
-        }
+impl ServerHandler for Server {
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build()).with_server_info(
+            Implementation::new("brainstorming-board", env!("CARGO_PKG_VERSION")),
+        )
     }
 
-    async fn list_tools(
+    fn list_tools(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
-    ) -> Result<ListToolsResult, McpError> {
-        let listed = tools()
+    ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + MaybeSendFuture + '_ {
+        let list = toolbox()
+            .list()
             .iter()
-            .map(|t| Tool {
-                name: Cow::Owned(t.name.to_owned()),
-                title: None,
-                description: Some(Cow::Owned(t.summary.to_owned())),
-                input_schema: input_schema(t),
-                output_schema: None,
-                annotations: None,
-                icons: None,
-                meta: None,
-            })
+            .map(|tool| Tool::new(tool.name, tool.description, tools::input_schema(tool)))
             .collect();
-        Ok(ListToolsResult {
-            tools: listed,
-            next_cursor: None,
-        })
+        std::future::ready(Ok(ListToolsResult::with_all_items(list)))
     }
 
-    async fn call_tool(
+    fn call_tool(
         &self,
-        request: CallToolRequestParam,
+        request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
-        let all = tools();
-        let Some(tool) = all.iter().find(|t| t.name == request.name.as_ref()) else {
-            return Err(McpError::invalid_params(
-                format!("その道具は無い: {}", request.name),
-                None,
-            ));
+    ) -> impl Future<Output = Result<CallToolResponse, ErrorData>> + MaybeSendFuture + '_ {
+        let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
+        let use_cases = Instances::new(files.clone(), files.clone(), query.clone());
+        let args = request.arguments.unwrap_or_default();
+        let checks = Checks::new(files.clone(), files.clone(), query.clone());
+        let renders = Renders::new(
+            files.clone(),
+            files,
+            query,
+            Arc::new(DocumentDesign),
+            Some(Arc::new(BoardDesign)),
+            None,
+        );
+        let (code, out) = toolbox().with_render(Arc::new(renders)).dispatch(
+            &request.name,
+            &args,
+            &use_cases,
+            &checks,
+        );
+        let content = vec![ContentBlock::text(out.to_string())];
+        let result = if code == 0 {
+            CallToolResult::success(content)
+        } else {
+            CallToolResult::error(content)
         };
-        let mut given = Given::default();
-        for (key, value) in request.arguments.unwrap_or_default() {
-            // **型は緩く受ける** ── 呼ぶ側は JSON の値を渡すので、数を文字列で
-            // 包むことを強制しない。**並びは1件ずつ足す** ── まとめると区切りが消える
-            match value {
-                Value::Array(items) => {
-                    for item in items {
-                        let text = match item {
-                            Value::String(s) => s,
-                            other => other.to_string(),
-                        };
-                        given.push(&key, text);
-                    }
-                }
-                Value::String(s) => given.push(&key, s),
-                other => given.push(&key, other.to_string()),
-            }
-        }
-        for a in &tool.args {
-            if !given.has(a.name) {
-                if let Some(d) = a.default {
-                    given.push(a.name, d.to_owned());
-                } else if a.required {
-                    return Err(McpError::invalid_params(
-                        format!("引数が足りない: {} は {} を要する", tool.name, a.name),
-                        None,
-                    ));
-                }
-            }
-        }
-        let out = (tool.run)(&given);
-        let body = out.to_json();
-        let text = serde_json::to_string(&body).unwrap_or_default();
-        Ok(CallToolResult {
-            content: vec![Content::text(text)],
-            structured_content: Some(body),
-            is_error: Some(!out.ok),
-            meta: None,
-        })
+        std::future::ready(Ok(result.into()))
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let service = Handler.serve(stdio()).await.inspect_err(|e| {
-        // **標準エラーへ書く。** 標準出力は JSON-RPC の専用である
-        eprintln!("立てられない: {e}");
-    })?;
-    service.waiting().await?;
-    Ok(())
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    let service = match Server.serve(rmcp::transport::stdio()).await {
+        Ok(service) => service,
+        Err(error) => {
+            eprintln!("brainstorming-board-mcp: 起動できない: {error}");
+            std::process::exit(1);
+        }
+    };
+    if let Err(error) = service.waiting().await {
+        eprintln!("brainstorming-board-mcp: {error}");
+        std::process::exit(1);
+    }
 }

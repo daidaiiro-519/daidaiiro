@@ -1,0 +1,268 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "annotations.schema.json",
+ "title": "注釈 x-ref と x-derive",
+ "description": "スキーマのプロパティに付ける注釈 x-ref（参照）と x-derive（導出値）の形と意味。schema-driven の検査は、この2つの注釈と、インスタンスの id と kind だけを読む。宣言の形（どのプロパティが何を意味するか）は、注釈を付けるスキーマの側が持つ",
+ "x-prompt": {
+  "read": "この仕様は、スキーマに付いた x-ref と x-derive を読み解くための辞書として使う。スキーマのプロパティに x-ref があれば、そのプロパティの値はほかのインスタンスかその中の項目を指す参照である。x-derive があれば、そのプロパティ（オブジェクト）の答えから値が導かれ、宣言した値と比べられる。検査の結果は、検査ごとに「合格」「ずれ」「確かめ直し」のどれかで返る。ずれは直すべき食い違い、確かめ直しは承認のあとに指す先が変わったので人が見直すべきもの、という意味で読む。",
+  "write": "スキーマを書くとき、ツールに確かめさせたい関係があるプロパティにだけ注釈を付ける。手順：(1) そのプロパティの値がほかのものを指すなら x-ref を付け、to から書き始める。(2) 指す先の数に決まりがあるなら（例：必ず1つから指される）、x-ref に inverse を足す。(3) オブジェクトの答えから値を決める決まりがあるなら（例：問いの答えからカテゴリーを決める）、そのオブジェクトに x-derive を付ける。注釈は検査のためのものなので、描画や説明のための情報は title ・ description ・ x-view に書き、注釈に混ぜない。"
+ },
+ "$defs": {
+  "path": {
+   "type": "string",
+   "description": "インスタンスの中の場所。プロパティの名前を / でつなぐ。途中に配列があれば、その要素すべてを順に見る",
+   "examples": ["header/subdomains", "commands", "meanings/kind"],
+   "x-prompt": {
+    "read": "先頭から / で区切った名前を順にたどる。たどる途中で配列に当たったら、その要素すべてに同じ残りの名前を当て、得られた値をすべて集める。途中の名前が無い要素は、何も返さない（誤りにはしない）。例：commands/business_rules は、commands の各要素の business_rules をすべて集める。",
+    "write": "JSON Pointer ではなく、プロパティの名前だけを / でつなぐ。先頭に / を付けない。配列の位置（0 や 1）は書かない ── 配列は要素すべてに広がるので、特定の要素を指したいときは注釈では書けない。基準の位置（インスタンスの根か、項目か）は、この型を使うキーの説明に従う。"
+   }
+  },
+  "values": {
+   "type": "array",
+   "items": {"type": ["string", "number", "boolean", "null"]},
+   "minItems": 1,
+   "description": "許す値の一覧",
+   "examples": [["中核"], ["ドメインモデル", "イベント履歴式ドメインモデル"]],
+   "x-prompt": {
+    "read": "比べる値が、この一覧のどれかと型も含めて同じなら「当たる」と読む。文字列の \"1\" と数の 1 は別の値として扱う。",
+    "write": "許す値を1つ以上並べる。値は、インスタンスに実際に書かれる値と同じ綴り ・ 同じ型で書く（表示用の言い換えを書かない）。1つしか許さないときも配列で書く。"
+   }
+  },
+  "field_condition": {
+   "type": "object",
+   "additionalProperties": {"$ref": "#/$defs/values"},
+   "minProperties": 1,
+   "description": "キーが場所（path）、値が許す値の一覧。すべてのキーが当たるときだけ当たる",
+   "examples": [{"kind": ["相互作用"]}, {"classification/category": ["一般", "補完"]}],
+   "x-prompt": {
+    "read": "キーごとに場所の値を取り出し、それが一覧のどれかと同じかを見る。すべてのキーが当たるときだけ、条件全体が当たる。場所の値が配列に広がった場合は、そのどれか1つが一覧に入れば当たる。場所に値が無ければ、そのキーは当たらない。",
+    "write": "当てたい場所を path の形でキーに書き、許す値を配列で書く。複数のキーは「かつ」で結ばれる ── 「または」にしたいときは、1つのキーの許す値に並べる。場所の基準（項目からか、インスタンスの根からか）は、この型を使うキーの説明に従う。"
+   }
+  },
+  "x-ref": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["to"],
+   "description": "このプロパティの値（文字列、または文字列の配列）が、ほかのインスタンスか、その中の項目を指す。検査は、指す先がある ・ 指す先が受け付ける値か ・ 指される数 ・ 承認のあとの変化を出す。承認のあとの変化は、指す先のインスタンスのハッシュ値が、承認記録にあるハッシュ値と違うときに「確かめ直し」として出す",
+   "examples": [
+    {"to": "use_case"},
+    {"to": "other_requirements", "item": true, "in": "business_rules"},
+    {"to": "self", "in": "commands"},
+    {"to": "glossary", "in": "terms", "accept": {"at": "meanings/kind", "in": ["集約"]}, "label": "word"}
+   ],
+   "x-prompt": {
+    "read": "このプロパティの値の1つ1つを、指す先を表す文字列として読む。to ・ item ・ bare ・ in の組み合わせで、どこを探すかが決まる：(a) item も bare も無い：値はインスタンスの id で、kind が to のインスタンスを探す。(b) item：値は「インスタンスの id.項目の id」で、そのインスタンスの in の場所（無ければ中のどこでも）から、id がその項目の id のオブジェクトを探す。(c) bare：値は項目の id だけで、kind が to のインスタンスすべての in の場所から探す。(d) to が self：同じインスタンスの in の場所から、値と同じ id の項目を探す。見つからなければ「ずれ（指す先が無い）」、見つかれば accept ・ unique ・ covered_by ・ inverse の検査が続く。",
+    "write": "プロパティの値がほかのインスタンスや項目の id を書く欄なら、この注釈を付ける。手順：(1) 指す先のインスタンスの kind を to に書く。同じインスタンスの中なら self。(2) インスタンスそのものを指すなら、ここで終わり。(3) インスタンスの中の項目を指すなら、値の形を決める。「インスタンスの id.項目の id」と書かせるなら item: true、項目の id だけなら bare: true（項目の id が to の kind の中で重ならないときだけ使える）。(4) 項目がある場所を in に書く（探す範囲を狭め、同じ id の別の項目を拾わないため）。(5) 指す先の種類まで確かめたいなら accept、指される数に決まりがあるなら inverse を足す。誤り：値を説明の文で書かせる欄に付けない。参照と組み込みの値が混ざる欄では only を付けないと、組み込みの値が「指す先が無い」になる。"
+   },
+   "properties": {
+    "to": {
+     "oneOf": [{"type": "string", "minLength": 1}, {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1}],
+     "description": "指す先のインスタンスの kind。self は同じインスタンスの中を指す。配列なら、そのどれかの kind を指す",
+     "examples": ["context", "self", ["aggregate", "domain_service"]],
+     "x-prompt": {
+      "read": "指す先を探すインスタンスの範囲。インスタンスの kind プロパティの値がこれと同じものだけを探す。配列なら、どれかの kind に当たるものを探す。self なら、このプロパティを持つインスタンス自身の中だけを探す。",
+      "write": "指す先のインスタンスの kind の値を、インスタンスに書かれている綴りのまま書く。2種類以上のどれかを指しうるなら配列で書く。同じインスタンスの中の項目を指すなら self と書き、in で場所を必ず書く。"
+     }
+    },
+    "item": {
+     "const": true,
+     "description": "値が「インスタンスの id.項目の id」の形で、指す先のインスタンスの中の項目を指す",
+     "examples": [true],
+     "x-prompt": {
+      "read": "値を最初の . で2つに分け、前をインスタンスの id、後ろを項目の id として読む。項目は、そのインスタンスの in の場所にある、id が同じオブジェクトである。in が無ければ、インスタンスの中のどこにあってもよい。. が無い値は「ずれ（形が違う）」。",
+      "write": "別のインスタンスの中の項目を指させたいときに true と書く。そのとき in も書くと、探す範囲を決められる。インスタンスそのものを指すなら書かない。bare と一緒に書かない。"
+     }
+    },
+    "bare": {
+     "const": true,
+     "description": "値が項目の id だけの形で、to の kind のインスタンスのどれかの中の項目を指す",
+     "examples": [true],
+     "x-prompt": {
+      "read": "値を項目の id として読み、kind が to のインスタンスすべての in の場所（無ければ中のどこでも）から、id が同じオブジェクトを探す。2つ以上見つかれば「ずれ（指す先が1つに決まらない）」。",
+      "write": "項目の id が to の kind のインスタンス全体で重ならないと決まっていて、書き手にインスタンスの id を書かせたくないときにだけ true と書く。重なりうるなら item を使う。item と一緒に書かない。"
+     }
+    },
+    "in": {
+     "$ref": "#/$defs/path",
+     "description": "指す先の項目がある場所（指す先のインスタンスの根からの path）。to が self なら、同じインスタンスの根からの場所",
+     "examples": ["terms", "guarantees/minimal", "business_rules"],
+     "x-prompt": {
+      "read": "指す先のインスタンスの根から、この path をたどって得られたオブジェクトだけを、項目の候補として読む。候補のうち id が値と同じものが、指す先である。",
+      "write": "指す先の項目が並ぶ配列（またはオブジェクト）の場所を、インスタンスの根からの path で書く。to が self のときは必ず書く。項目を指すときは、同じ id が別の場所にもありうるなら書く（例：手順の id と拡張の id が同じ形でも、場所で区別できる）。"
+     }
+    },
+    "only": {
+     "type": "string",
+     "format": "regex",
+     "description": "値がこの正規表現に当たるときだけ、参照として扱う",
+     "examples": ["^VO-"],
+     "x-prompt": {
+      "read": "値がこの正規表現に当たれば参照として検査し、当たらなければ参照ではない値として飛ばす（検査結果に出さない）。",
+      "write": "同じプロパティに、参照と、参照でない値（組み込みの型の名前など）の両方が入るときにだけ書く。参照の値の形に当たる正規表現を書く（例：値オブジェクトの id だけを参照にするなら ^VO-）。参照しか入らないプロパティには書かない ── 書くと、形を誤った参照が検査から漏れる。"
+     }
+    },
+    "accept": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": ["at", "in"],
+     "description": "指す先の項目が受け付ける値か。指す先の項目の中の場所 at の値のどれかが、in の一覧のどれかと同じなら合格",
+     "examples": [{"at": "meanings/kind", "in": ["集約"]}, {"at": "category", "in": ["中核"]}],
+     "x-prompt": {
+      "read": "指す先が見つかったあと、指す先の項目から at の path をたどって値を集め、そのどれか1つでも in に入っていれば合格、1つも入っていなければ「ずれ（指す先の種類が違う）」と読む。when があれば、when が当たるときだけこの検査をする。",
+      "write": "指す先があるだけでなく、指す先が特定の種類のものでなければならないときに書く。at には、指す先の項目の中で種類を表す値の場所を、指す先の項目からの path で書く。in には、許す種類の値を並べる。例：用語集の語を指し、その語の意味のどれかが「集約」でなければならないなら、at は meanings/kind、in は [\"集約\"]。種類を問わないなら書かない。"
+     },
+     "properties": {
+      "at": {"$ref": "#/$defs/path", "description": "指す先の項目からの path"},
+      "in": {"$ref": "#/$defs/values"}
+     }
+    },
+    "when": {
+     "$ref": "#/$defs/field_condition",
+     "description": "accept の検査を、このプロパティを持つ項目の値が当たるときだけ行う。場所は、このプロパティを持つ項目からの path",
+     "examples": [{"kind": ["相互作用"]}],
+     "x-prompt": {
+      "read": "このプロパティを持つ項目（同じオブジェクト）の、キーの場所の値を見る。当たれば accept の検査をし、当たらなければ accept の検査を飛ばす（指す先があるかの検査は、when に関係なく行う）。",
+      "write": "同じプロパティでも、項目の種類によって許す指す先が変わるときに書く。キーには同じ項目の中の場所を、値には accept を当てたい種類の値を書く。例：手順の種類が「相互作用」のときだけ、渡す情報が情報の別名であることを確かめるなら {\"kind\": [\"相互作用\"]}。accept と一緒に書く ── accept が無いと何も変わらない。"
+     }
+    },
+    "label": {
+     "$ref": "#/$defs/path",
+     "description": "指す先の項目を描画するときに名前として出す場所（指す先の項目からの path）。検査には使わない",
+     "examples": ["word", "header/name"],
+     "x-prompt": {
+      "read": "描画で、参照の値（id）の代わりに、指す先の項目のこの場所の値を名前として出す。検査では読まない。",
+      "write": "指す先の id より、人が読む名前を出したいときに、名前が書いてある場所を指す先の項目からの path で書く。無ければ、描画は id をそのまま出す。"
+     }
+    },
+    "unique": {
+     "const": true,
+     "description": "このプロパティを持つ項目が配列に並ぶとき、同じ値を2回指さない",
+     "examples": [true],
+     "x-prompt": {
+      "read": "このプロパティを持つ項目が並ぶ配列の中で、同じ値が2回以上現れたら「ずれ（重ねて指している）」と読む。",
+      "write": "同じものを2回指すことが誤りのときにだけ true と書く（例：文脈が使う用語の一覧に、同じ語を2回並べない）。同じものを何度指してもよい欄には書かない。"
+     }
+    },
+    "covered_by": {
+     "$ref": "#/$defs/path",
+     "description": "このプロパティの値のそれぞれが、同じ項目の中の場所 covered_by の値のどれかに現れること",
+     "examples": ["extensions/fails"],
+     "x-prompt": {
+      "read": "このプロパティの値の1つ1つについて、同じ項目（このプロパティを持つオブジェクト）から covered_by の path をたどって集めた値の中に、同じ値があるかを見る。無ければ「ずれ（扱われていない）」と読む。",
+      "write": "「ここに挙げたものは、それぞれ同じ項目の別の場所で扱われていなければならない」という決まりがあるときに書く。例：手順が確かめるルールのそれぞれに、失敗したときの拡張がある、なら extensions/fails。path は同じ項目からの場所で書く。"
+     }
+    },
+    "inverse": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": ["group"],
+     "description": "指される側から見た数の決まり。指す先になりうる項目（to と in で決まる）のそれぞれについて、group が同じ x-ref すべてから指された数を数える",
+     "examples": [
+      {"group": "ユースケースを束ねるサブドメインは1つ", "min": 1, "max": 1, "where": {"header/level": ["ユーザー目的", "サブ機能"]}},
+      {"group": "拒否の理由を1つの集約だけが使う", "max_instances": 1}
+     ],
+     "x-prompt": {
+      "read": "to と in で決まる指す先の候補（インスタンス、または項目）のそれぞれについて、group の名前が同じ x-ref すべてからの参照を数える。where ・ where_derive があれば、当たる候補だけを数える対象にする。参照の数が min より少なければ「ずれ（指されていない）」、max より多ければ「ずれ（指されすぎ）」、指しているインスタンスの数が max_instances より多ければ「ずれ（指すインスタンスが多すぎる）」と読む。結果には group の名前が出る。",
+      "write": "指される側に数の決まりがあるときに書く。手順：(1) 決まりを1文にして group に書く（結果にそのまま出るので、読んで分かる文にする）。(2) 同じ決まりを別のプロパティの参照でも満たせるなら、そちらの x-ref にも同じ group を書く（合わせて数える）。(3) 参照の数の下限を min、上限を max に書く。同じインスタンスから何度指されても1つと数えたいなら、max ではなく max_instances を書く。(4) 決まりが一部の候補にだけ当たるなら、候補の値で絞るときは where、候補から参照をたどった先の導出値で絞るときは where_derive を書く。"
+     },
+     "properties": {
+      "group": {"type": "string", "minLength": 1, "description": "決まりの名前。同じ group の x-ref の参照を合わせて数える"},
+      "min": {"type": "integer", "minimum": 0, "description": "指す参照の数の下限"},
+      "max": {"type": "integer", "minimum": 0, "description": "指す参照の数の上限"},
+      "max_instances": {"type": "integer", "minimum": 1, "description": "指すインスタンスの数の上限（同じインスタンスが何度指しても1と数える）"},
+      "where": {"$ref": "#/$defs/field_condition", "description": "数える対象を、指される側の候補の値で絞る。場所は候補からの path"},
+      "where_derive": {
+       "type": "object",
+       "additionalProperties": false,
+       "required": ["via", "derive", "in"],
+       "description": "数える対象を、指される側の候補から via の参照をたどった先のインスタンスの導出値で絞る",
+       "examples": [{"via": "header/subdomains", "derive": "business_logic", "in": ["ドメインモデル"]}],
+       "x-prompt": {
+        "read": "候補の via の場所にある参照をたどり、たどった先のインスタンスの derive のプロパティから導いた値を求める。そのどれか1つでも in に入れば、その候補を数える対象にする。",
+        "write": "数の決まりが、候補そのものの値ではなく、候補が指す先の性質で決まるときに書く。via には候補の中の参照の場所、derive にはたどった先で x-derive を持つプロパティの名前、in には数える対象にする導出値を書く。"
+       },
+       "properties": {
+        "via": {"$ref": "#/$defs/path", "description": "指される側の候補の中の、参照を持つ場所"},
+        "derive": {"type": "string", "minLength": 1, "description": "たどった先のインスタンスの、x-derive を持つプロパティの名前"},
+        "in": {"$ref": "#/$defs/values", "description": "導出値がこのどれかなら数える"}
+       }
+      }
+     }
+    }
+   }
+  },
+  "x-derive": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["rules", "otherwise"],
+   "description": "このプロパティ（オブジェクト）の答えから、決まりに従って値を導く。declared があれば宣言した値と比べ、expect があればインスタンスのほかの場所との組み合わせを確かめる。食い違えば「ずれ」",
+   "examples": [{
+    "title": "答えから導いたカテゴリー",
+    "rules": [{"when": {"competitive_advantage": true}, "then": "中核"}, {"when": {"external_available": true, "cheaper_to_build": false}, "then": "一般"}],
+    "otherwise": "補完",
+    "declared": "category"
+   }],
+   "x-prompt": {
+    "read": "このプロパティの値（オブジェクト）に rules を上から順に当て、最初に当たった決まりの then を導出値とする。どれにも当たらなければ otherwise が導出値になる。declared があれば、同じオブジェクトの declared のプロパティの値と導出値を比べ、違えば「ずれ（宣言と導出値が違う）」と読む。expect があれば、各決まりの when が当たるときに導出値が in に入るか（not_in なら入らないか）を見て、外れれば「ずれ（組み合わせが違う）」と読む。",
+    "write": "オブジェクトの中の答え（真偽や選択）から、別の値を機械的に決める決まりがあるときに書く。手順：(1) 答えのプロパティの組み合わせと、そのときの値を、当てたい順に rules に並べる（先に書いたものが優先される）。(2) どれにも当たらないときの値を otherwise に書く。(3) 書き手が値を自分でも宣言する欄があるなら、その名前を declared に書く（道具が食い違いを出す）。(4) 導出値が、インスタンスのほかの場所の値と組み合わせで決まりを持つなら expect に書く。誤り：rules の when に、このオブジェクトの外の場所を書かない（外の場所は expect の when に書く）。"
+   },
+   "properties": {
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "description": "導出値を描画するときの見出し。検査には使わない",
+     "x-prompt": {"read": "描画で導出値の見出しとして出す。検査では読まない。", "write": "導出値が何かを、読み手が一目で分かる名詞句で書く（例：答えから導いたカテゴリー）。"}
+    },
+    "rules": {
+     "type": "array",
+     "minItems": 1,
+     "description": "上から順に当て、最初に当たった決まりの then が導出値になる",
+     "x-prompt": {
+      "read": "上から1件ずつ、when のプロパティがすべて同じ値かを見る。最初に当たった決まりで止まり、その then を導出値とする。",
+      "write": "優先する決まりから順に並べる。when には、このオブジェクトの中のプロパティの名前と、当たる値を書く（すべて「かつ」で結ばれる）。then には導出値を書く。"
+     },
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "then"],
+      "properties": {
+       "when": {"type": "object", "minProperties": 1, "description": "このオブジェクトのプロパティの名前と値。すべてが同じ値なら当たる"},
+       "then": {"type": ["string", "number", "boolean"], "description": "当たったときの導出値"}
+      }
+     }
+    },
+    "otherwise": {
+     "type": ["string", "number", "boolean"],
+     "description": "どの決まりにも当たらないときの導出値",
+     "x-prompt": {"read": "rules のどれにも当たらなかったときの導出値として読む。", "write": "rules のどれにも当たらない答えの組み合わせのときに導く値を書く。必ず書く。"}
+    },
+    "declared": {
+     "type": "string",
+     "minLength": 1,
+     "description": "導出値と比べる、このオブジェクトの中のプロパティの名前",
+     "x-prompt": {"read": "同じオブジェクトのこの名前のプロパティの値を、導出値と比べる。値が無ければ比べない。", "write": "書き手が自分でも値を宣言する欄があり、それを導出値と突き合わせたいときに、その欄の名前を書く。"}
+    },
+    "expect": {
+     "type": "array",
+     "description": "インスタンスのほかの場所の値との組み合わせの決まり",
+     "x-prompt": {
+      "read": "各決まりについて、when の場所の値（インスタンスの根からの path）が当たるときだけ、導出値が in のどれかか（not_in ならどれでもないか）を見る。外れたら、name を付けて「ずれ（組み合わせが違う）」と読む。",
+      "write": "導出値が、同じインスタンスのほかの場所の値と組み合わせで決まりを持つときに書く。name には決まりの名前、when にはインスタンスの根からの場所と当たる値、in か not_in のどちらか一方に、許す（または許さない）導出値を書く。例：カテゴリーが中核なら、実装方法はドメインモデルかイベント履歴式ドメインモデルでなければならない。"
+     },
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "when"],
+      "oneOf": [{"required": ["in"]}, {"required": ["not_in"]}],
+      "properties": {
+       "name": {"type": "string", "minLength": 1, "description": "決まりの名前。ずれのときに出す"},
+       "when": {"$ref": "#/$defs/field_condition", "description": "インスタンスの根からの場所の値で当てる"},
+       "in": {"$ref": "#/$defs/values"},
+       "not_in": {"$ref": "#/$defs/values"}
+      }
+     }
+    }
+   }
+  }
+ }
+}

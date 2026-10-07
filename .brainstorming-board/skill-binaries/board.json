@@ -1,749 +1,487 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "Skill をバイナリで配布する",
- "board": "skill-binaries",
- "round": 10,
- "intro": [
-  {
-   "kind": "para",
-   "text": "skills-creator の道具の契約に従うすべての Skill を、利用者の環境に Rust が無くても動く形で配布する。配布の形は、契約 ・ テンプレート ・ 検査として skills-creator が保持する。対象の環境は Windows ・ WSL ・ macOS である。"
-  }
- ],
- "panels": [
-  {
-   "heading": "決まりの一覧 ── 5件とも決着（2026-09-28）",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "skill-binaries",
+  "title": "Skill をバイナリで配布する",
+  "round": 10,
+  "queue": [],
+  "topics": [
     {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "<b>配布の形</b> ── 利用者はシェルに合った1行を実行するだけにする。導入スクリプトが OS と CPU を判別する"
+      "id": "Q1",
+      "name": "配布の形",
+      "status": "settled",
+      "question": "契約に従う Skill を、利用者がどういう操作で導入するか",
+      "answer": {
+        "text": "利用者はシェルに合った1行のコマンドを実行するだけにする。導入スクリプトが OS と CPU を判別し、Release から合う実行ファイルを取得して .claude/skills/ に置く。利用者はどのバイナリかを選ばない",
+        "details": [
+          "導入スクリプトは、OS と CPU を判別し、Release から合う環境の配布物を取得して、リポジトリの .claude/skills/ に展開する",
+          "取得した配布物は、SHA-256 を照合してから展開する",
+          "更新も同じ1行を実行し直す",
+          "Release には環境ごとの配布物を置く ── 利用者はこれを直接選ばない"
+        ]
       },
-      {
-       "text": "<b>配布の単位</b> ── 配布物は Skill ごと × 環境ごと（Linux ・ macOS は tar.gz、Windows は zip）。導入スクリプトと CI の定義は配布元に1つずつ置き、テンプレートは skills-creator が持つ"
-      },
-      {
-       "text": "<b>Skill のフォルダの構成</b> ── 道具のソースは tool/（いまの rs/）、実行ファイルは bin/。Skill のフォルダは bin/ の1つ上として求める"
-      },
-      {
-       "text": "<b>組み立て</b> ── GitHub Actions の3つの OS のランナー。Linux は musl、macOS は universal2。2か所で起動を試験してから公開する"
-      },
-      {
-       "text": "<b>外部コマンド</b> ── OS によって無いコマンドを呼ばない。呼んでよい道具は宣言に列挙し、check が照合する。Windows ネイティブにも初回から対応する"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 479 428\" width=\"479\" height=\"428\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M132.2,32.6 L132.2,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"132.2,95.4 129.7,88.6 134.7,88.6\" fill=\"#C3CAD2\"/><path d=\"M132.2,128.6 L132.2,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"132.2,191.4 129.7,184.6 134.7,184.6\" fill=\"#C3CAD2\"/><path d=\"M358.9,224.6 L245.8,287.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"245.8,287.2 250.5,281.8 252.9,286.1\" fill=\"#C3CAD2\"/><path d=\"M132.2,224.6 L245.8,287.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"245.8,287.2 238.7,286.1 241.1,281.8\" fill=\"#C3CAD2\"/><rect x=\"151.8\" y=\"245.9\" width=\"74.5\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"189.0\" y=\"259.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">合う1つを取得</text><path d=\"M245.8,320.8 L245.8,383.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"245.8,383.4 243.3,376.6 248.3,376.6\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(58.2,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"148.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"74.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">リポジトリ（ソース）</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"264.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"132.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">GitHub Actions：各 OS で組み立てる</text></g></g><g class=\"wf-node\" transform=\"translate(36.9,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"190.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"95.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Release：環境ごとの配布物</text></g></g><g class=\"wf-node\" transform=\"translate(251.5,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"215.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"107.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">利用者：1行のコマンドを実行する</text></g></g><g class=\"wf-node\" transform=\"translate(116.6,288.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"258.4\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"129.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">導入スクリプト：OS と CPU を判別する</text></g></g><g class=\"wf-node\" transform=\"translate(139.4,384.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"212.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"106.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">.claude/skills/ に展開する</text></g></g></g></svg>",
+          "caption": "利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合う配布物だけを展開する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "プラグインでは Skill の呼び名が変わるという判定",
+          "basis": "plugin skills are namespaced as `/plugin-name:skill-name`",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/skills（170行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "プラグインの bin/ が PATH に載るという事実",
+          "basis": "Files in `bin/` at the plugin root are on the `PATH` of the Bash tool's shell while the plugin is enabled",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/plugins/components（876行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "プラグインは一部の面で導入されないという事実",
+          "basis": "claude.ai and Cowork don't install a plugin that has a top-level `bin/` directory",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/plugins/components（887行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "いまの配布物に実行ファイルが無いという事実",
+          "basis": "skills.zip と qa-advisor.zip は git archive で HEAD のソースを固めたもので、rs/target/ は .gitignore で除外されている",
+          "tag": "measured",
+          "source": "コミット 585385c ・ .gitignore の21行目"
+        },
+        {
+          "supports": "1行のコマンドで導入する形",
+          "basis": "curl -fsSL https://claude.ai/install.sh | bash",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/setup（42行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "Windows でも1行で導入できる形",
+          "basis": "irm https://claude.ai/install.ps1 | iex",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/setup（48行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "利用者がバイナリを選ばないという条件",
+          "basis": "どのバイナリで使用するかは、利用者が意識しなくても使える方がよい",
+          "tag": "assumption",
+          "source": "利用者の発言（2026-09-28）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "ソースの zip を渡し、利用者が cargo build する（いまの形）",
+          "reason": "利用者の環境に Rust があるとは限らないという条件に違反する"
+        },
+        {
+          "option": "全環境の実行ファイルを1つの配布物に入れ、実行時に選ぶ",
+          "reason": "実行時に選ぶ仕組みが、Windows の PowerShell と bash の両方で動く必要がある。MCP の設定は1つの経路しか書けないので、実行時の選択では対応できない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "B ── 導入スクリプトが環境を判別する",
+            "cost": "導入スクリプトを2つ（sh と PowerShell）保守する"
+          },
+          {
+            "option": "A ── 環境ごとの zip を利用者が選ぶ（前の答え）",
+            "cost": "利用者が自分の環境を知り、正しい zip を選ぶ必要がある"
+          },
+          {
+            "option": "C ── Claude Code のプラグイン",
+            "cost": "Skill の呼び名が /プラグイン名:skill名 に変わる。bin/ は1つのフォルダなので、環境の選択は別に必要になる"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "プラグインでの配布",
+            "treatment": "later",
+            "note": "Skill の呼び名の変更を受け入れるかは、別の論点で決める"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "次にすること",
-   "body": [
+    },
     {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "済 ── 決めた5件を ACDR 0029 に記録した。Linux の1環境で試作し、成立を確認した（trial/README.md）"
+      "id": "Q2",
+      "name": "配布の単位",
+      "status": "settled",
+      "question": "何を1つの配布物にし、導入スクリプトと組み立ての定義を誰が持つか",
+      "answer": {
+        "text": "配布物は Skill ごと × 環境ごとに作る（Linux ・ macOS は tar.gz、Windows は zip）。導入スクリプトと組み立ての定義は、配布元のリポジトリに1つずつ置き、skills-creator がそのテンプレートを持つ。利用者は Skill の名前を並べて導入し、省略すると全部を導入する",
+        "details": [
+          "配布物 ── Skill ごと × 環境ごと。Linux ・ macOS は tar.gz、Windows は zip（例：acdr-x86_64-unknown-linux-musl.tar.gz）。道具を保持しない Skill は、環境に依存しない tar.gz と zip を1つずつ作る",
+          "導入スクリプト ── 配布元のリポジトリに1つ（install.sh と install.ps1）。Skill の名前を引数に並べ、省略すると Release にある全部を導入する",
+          "組み立ての定義 ── 配布元のリポジトリに1つ（GitHub Actions の workflow）。道具を持つ Skill を探して、すべて組み立てる",
+          "持ち主 ── 導入スクリプトと workflow のテンプレートは skills-creator が保持し、配布元のリポジトリへ置く操作を持つ"
+        ]
       },
-      {
-       "text": "skills-creator の契約 ・ テンプレート ・ check を改訂し、9つの Skill へ適用する"
-      },
-      {
-       "text": "導入スクリプト（install.sh ・ install.ps1）と CI の定義のテンプレートを作り、このリポジトリへ置く"
-      },
-      {
-       "text": "済 ── 未確認の2点を原文で照合した。どちらも、推測が外れても決定した設計のまま動く（trial/README.md）"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 833 332\" width=\"833\" height=\"332\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M400.7,32.6 L281.4,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"281.4,95.4 286.2,90.1 288.5,94.4\" fill=\"#C3CAD2\"/><path d=\"M400.7,32.6 L84.0,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"84.0,95.4 90.1,91.7 91.1,96.5\" fill=\"#C3CAD2\"/><path d=\"M400.7,32.6 L732.2,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"732.2,95.4 725.1,96.6 726.0,91.7\" fill=\"#C3CAD2\"/><path d=\"M400.7,32.6 L506.8,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"506.8,95.4 499.7,94.1 502.2,89.8\" fill=\"#C3CAD2\"/><path d=\"M281.4,128.6 L394.1,191.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"394.1,191.2 387.0,190.1 389.4,185.8\" fill=\"#C3CAD2\"/><rect x=\"315.5\" y=\"149.9\" width=\"44.5\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"337.8\" y=\"163.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">合う1つ</text><path d=\"M506.8,128.6 L394.1,191.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"394.1,191.2 398.8,185.8 401.2,190.1\" fill=\"#C3CAD2\"/><path d=\"M394.1,224.8 L394.1,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"394.1,287.4 391.6,280.6 396.6,280.6\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(286.7,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"229.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"114.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Release：Skill × 環境の配布物</text></g></g><g class=\"wf-node\" transform=\"translate(193.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"176.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"88.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">acdr-linux（tar.gz）</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"169.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"84.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">acdr-windows（zip）</text></g></g><g class=\"wf-node\" transform=\"translate(643.8,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"176.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"88.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">acdr-macos（tar.gz）</text></g></g><g class=\"wf-node\" transform=\"translate(393.8,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"226.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"113.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">qa-advisor（環境に依存しない）</text></g></g><g class=\"wf-node\" transform=\"translate(240.9,192.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"306.4\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"153.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">導入スクリプト：Skill の名前 ＋ 利用者の環境</text></g></g><g class=\"wf-node\" transform=\"translate(293.7,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"200.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"100.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">利用者の .claude/skills/</text></g></g></g></svg>",
+          "caption": "1つの Release に Skill × 環境の配布物が並び、導入スクリプトが指定の Skill と利用者の環境に合うものだけを取得する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "まとめた形と1つだけの形の両方が実在するという事実",
+          "basis": "リポジトリの直下に skills.zip と qa-advisor.zip がある",
+          "tag": "measured",
+          "source": "コミット f1d0647 ・ 585385c"
+        },
+        {
+          "supports": "利用者が配布物を選ばないという条件",
+          "basis": "導入スクリプトが OS と CPU を判別し、合う配布物を取得する",
+          "tag": "rule",
+          "source": "論点1"
+        },
+        {
+          "supports": "Linux ・ macOS を tar.gz にするという判定",
+          "basis": "試作の環境で zip コマンドが見つからなかった（/bin/bash: zip: command not found）",
+          "tag": "measured",
+          "source": ".brainstorming-board/skill-binaries/trial/README.md（2026-09-29）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "導入スクリプトを skills-creator 自身の Release から配る",
+          "reason": "配布元のリポジトリの Release の場所を、skills-creator が知ることになる。配布元ごとに違う場所を指せない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── Skill ごとの配布物 ＋ リポジトリに1つの導入スクリプト",
+            "cost": "配布物 の数が Skill × 環境になる（このリポジトリでは 9 × 3 ＋ 8）"
+          },
+          {
+            "option": "B ── 複数の Skill を1つの配布物にまとめる（いまの skills.zip）",
+            "cost": "一部の Skill だけを導入できない。1つの Skill を直しても、全部を取得し直す"
+          },
+          {
+            "option": "C ── scaffold が Skill ごとに導入スクリプトと workflow を生成する",
+            "cost": "同じスクリプトが Skill の数だけ複製される。導入スクリプトを1か所直しても、既存の Skill には反映されない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "配布元のリポジトリが複数あるときに、1つの導入スクリプトで複数の配布元から導入するか",
+            "treatment": "later",
+            "note": "配布元が2つ以上になった時点で決める"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "決まっている条件",
-   "body": [
+    },
     {
-     "kind": "list",
-     "items": [
-      {
-       "text": "配布は、組み立て済みの実行ファイルを渡す ── 利用者の環境に Rust があるとは限らない（利用者の指定、2026-09-28）"
+      "id": "Q3",
+      "name": "Skill のフォルダの構成と、Skill のフォルダの求め方",
+      "status": "settled",
+      "question": "道具のソースと実行ファイルを Skill のフォルダのどこに置き、実行ファイルは Skill のフォルダ（references/）をどう見つけるか",
+      "answer": {
+        "text": "道具のソースは tool/（いまの rs/）、組み立てた実行ファイルは bin/ に置く（CLI は 名前、MCP は 名前-mcp）。Skill のフォルダは実行ファイルの位置から求める（bin/ の1つ上）。道具の契約の規定（--skill_root で受け取る）と mcp.json.tmpl を改訂する",
+        "details": [
+          "道具のソース ── rs/ を tool/ へ改名する。tool/ は配布しない。名前は、道具の契約が使う語（tool-contract ・ 道具を持つ Skill）から取る",
+          "置き場所 ── .claude/skills/<名前>/bin/<名前> と bin/<名前>-mcp。Windows だけ .exe が付く",
+          "Skill のフォルダの求め方 ── 引数 --skill_root があればそれを使う。無ければ、実行ファイルの1つ上に references/ があるかを確認して使う。どちらも無ければ、試した経路を示して停止する",
+          "開発時 ── 組み立てた実行ファイルを bin/ へ置く手順に統一する。SKILL.md ・ CLAUDE.md ・ 規則ファイル ・ .mcp.json の rs/target/release/ の記述は、bin/ へ一律に置き換える。開発時の bin/ は .gitignore に入れ、git で追跡しない。実行ファイルは Release の配布物だけが持つ",
+          "道具の契約を改訂する ── tool-contract.md の「実行ファイルからの相対で数えない」を、「bin/ の1つ上を Skill のフォルダとする」へ変更する。mcp.json.tmpl の絶対パスをやめる。ACDR 0019 も改訂する"
+        ]
       },
-      {
-       "text": "対象の環境は Windows ・ WSL ・ macOS である（利用者の指定、2026-09-28）"
-      },
-      {
-       "text": "利用者は、どのバイナリを使うかを意識しない（利用者の指定、2026-09-28）"
-      },
-      {
-       "text": "配布の形は、この9つに限らず、skills-creator の道具の契約に従うすべての Skill に共通する（利用者の指定、2026-09-28）"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 409 332\" width=\"409\" height=\"332\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M279.4,32.6 L174.6,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"174.6,95.2 179.1,89.6 181.6,93.8\" fill=\"#C3CAD2\"/><rect x=\"198.0\" y=\"53.9\" width=\"58.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"227.0\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">組み立てる</text><path d=\"M69.2,32.6 L174.6,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"174.6,95.2 167.5,93.9 170.0,89.6\" fill=\"#C3CAD2\"/><rect x=\"107.9\" y=\"53.9\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"121.9\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">呼ぶ</text><path d=\"M174.6,128.8 L175.1,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"175.1,191.4 172.6,184.7 177.5,184.6\" fill=\"#C3CAD2\"/><rect x=\"135.8\" y=\"150.1\" width=\"78.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"174.8\" y=\"163.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">位置から求める</text><path d=\"M175.1,224.6 L175.1,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"175.1,287.4 172.6,280.6 177.5,280.6\" fill=\"#C3CAD2\"/><rect x=\"161.1\" y=\"246.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"175.1\" y=\"259.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">読む</text><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"138.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"69.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">SKILL.md（手順）</text></g></g><g class=\"wf-node\" transform=\"translate(162.4,0.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"235.0\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"117.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">tool/：道具のソース（配布しない）</text></g></g><g class=\"wf-node\" transform=\"translate(26.1,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"296.8\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"148.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">bin/&lt;名前&gt;・bin/&lt;名前&gt;-mcp：実行ファイル</text></g></g><g class=\"wf-node\" transform=\"translate(59.7,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"229.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"114.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Skill のフォルダ：bin/ の1つ上</text></g></g><g class=\"wf-node\" transform=\"translate(93.6,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"161.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"80.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/（契約）</text></g></g></g></svg>",
+          "caption": "SKILL.md は bin/ の実行ファイルを呼び、実行ファイルは自分の1つ上を Skill のフォルダとして references/ を読む"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "位置の決め方が2通りに分かれているという事実",
+          "basis": "acdr と doc-writing-skills の declare/src/lib.rs が SKILL_ROOT に concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\") を持つ",
+          "tag": "measured",
+          "source": "grep（2026-09-28）"
+        },
+        {
+          "supports": "位置の確定を起動処理の1か所へ集約するという判定",
+          "basis": "配線はシステムで最も外側の1か所に集約する",
+          "tag": "rule",
+          "source": "tech-lead-advisor の knowledge（architecture-composition-root）"
+        },
+        {
+          "supports": "ACDR 0019 の退けた理由が成り立たないという判定",
+          "basis": "ACDR 0019 は「実行ファイルの置き場所は build の設定で変わる」を理由に、実行ファイルの位置からの探索を退けた",
+          "tag": "primary",
+          "source": ".acdr/0019-道具の既定の置き場所をbuild時に確定する/acdr.json"
+        },
+        {
+          "supports": "bin/ に1つの経路で置けるという判定",
+          "basis": "配布物は Skill ごと × 環境ごとなので、bin/ には1つの環境の実行ファイルだけが入る",
+          "tag": "rule",
+          "source": "論点2"
+        },
+        {
+          "supports": "道具の契約の規定と食い違うという事実",
+          "basis": "部品は、置き場所を階層の数で数えない。実行ファイルからの相対で数えると、置き場所を動かすたびに狂う",
+          "tag": "primary",
+          "source": ".claude/skills/skills-creator/references/tool-contract.md（132行目）"
+        },
+        {
+          "supports": "rs/ の名前に理由の記録が無いという事実",
+          "basis": "rs/ は deaf8ae（acdr を Rust へ移し、Python を消す）などの移行のコミットで追加された",
+          "tag": "measured",
+          "source": "git log（2026-09-28）"
+        },
+        {
+          "supports": "src/ を2回続けないという条件",
+          "basis": "src のところは2回続くのは少しきもい",
+          "tag": "assumption",
+          "source": "利用者の発言（2026-09-28）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "build 時に絶対パスを埋め込む（いまの acdr ・ doc-writing-skills）",
+          "reason": "CI の組み立て機のパスが残り、配布先では存在しない場所を指す"
+        },
+        {
+          "option": "references/ を実行ファイルへ埋め込む",
+          "reason": "ACDR 0019 が退けた理由がそのまま成り立つ ── 契約を1行直すたびに再ビルドが必要になる"
+        },
+        {
+          "option": "環境ごとのサブフォルダ（bin/<環境>/）に置く",
+          "reason": "呼ぶ側の経路に環境の分岐が入る"
+        },
+        {
+          "option": "道具の契約の規定のまま、--skill_root を必ず渡す",
+          "reason": "導入スクリプトが書く MCP の設定と hook の設定のすべてに、Skill のフォルダの経路を書くことになる。渡し忘れた呼び出しは停止する"
+        },
+        {
+          "option": "道具のソースを crates/ にする",
+          "reason": "crate は Rust の用語で、言語を名前にしている rs/ と同じ問題が残る"
+        },
+        {
+          "option": "src/ のまま、crate の中の src/ をやめる",
+          "reason": "Cargo.toml の既定の置き場所（src/lib.rs）から外れ、4つの crate すべてに経路の指定を書き足す"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── bin/ に置き、実行ファイルの位置から求める",
+            "cost": "rs/ を tool/ へ改名し、rs/target/release/ の記述（35か所以上）を bin/ へ書き換える。ACDR 0019 と道具の契約を改訂する"
+          },
+          {
+            "option": "B ── rs/target/release/ を維持する",
+            "cost": "ソースを含まない配布物に、rs/target/release/ という開発の経路だけが残る。環境を指定して組み立てると出力は target/<環境>/release/ になり、結局は梱包で置き直す"
+          },
+          {
+            "option": "道具のソースを src/ にする",
+            "cost": "中の crate も src/ を持つので、src/parts/src/lib.rs のように src が2回続く"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Windows で、拡張子の無い経路から .exe を起動できるか",
+            "treatment": "later",
+            "note": "論点5で、windows のランナーで確認する"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "助言の結果",
-   "body": [
+    },
     {
-     "kind": "list",
-     "items": [
-      {
-       "text": "tech-lead-advisor ── 実行ファイルは Skill ごとの bin/ に置き、実行ファイルの位置から Skill のフォルダを求める。配布物は環境ごとの zip にする"
+      "id": "Q4",
+      "name": "組み立てる場所と、対象の環境",
+      "status": "settled",
+      "question": "どこで、どの環境向けに組み立て、配る前に何を確認するか",
+      "answer": {
+        "text": "GitHub Actions の各 OS のランナーで組み立てる。対象は Linux（x86_64 ・ musl）・ Windows（x86_64）・ macOS（universal2）の3つ。組み立てた場所と、展開した先の2か所で起動を試験してから Release に置く。workflow のテンプレートは skills-creator が保持する",
+        "details": [
+          "組み立てる場所 ── GitHub Actions の ubuntu ・ windows ・ macOS（arm64）のランナー。tag を push したときだけ実行する。workflow は skills-creator のテンプレートから置く",
+          "Linux ── x86_64-unknown-linux-musl。静的に組み、利用者の glibc の版に依存しない（WSL の distro は利用者ごとに異なる）",
+          "macOS ── Apple Silicon と Intel の2つを1本にまとめる（universal2）",
+          "macOS の Gatekeeper ── 署名 ・ 公証はしない。導入スクリプトが端末で取得して展開するので、ブラウザを経由しない。ブラウザで取得した利用者向けには、SHA-256 を照合してから隔離の属性を外す手順を書く",
+          "試験 ── 道具を持つ Skill のすべての実行ファイルで、CLI の使い方の表示と、MCP の initialize への応答を検証する。組み立てた場所と、展開した先の2か所で実行する"
+        ]
       },
-      {
-       "text": "platform-advisor ── GitHub Actions の各 OS のランナーで組み立て、Linux は musl、macOS は universal2 にする。外部コマンド（date ・ timeout）への依存があるので、Windows ネイティブは当面未対応とする"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 788 524\" width=\"788\" height=\"524\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M111.5,32.6 L112.0,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"112.0,95.4 109.5,88.7 114.4,88.6\" fill=\"#C3CAD2\"/><path d=\"M346.8,32.6 L347.3,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"347.3,95.4 344.8,88.7 349.7,88.6\" fill=\"#C3CAD2\"/><path d=\"M623.5,32.6 L623.0,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"623.0,95.4 620.6,88.6 625.5,88.7\" fill=\"#C3CAD2\"/><path d=\"M112.0,128.6 L346.8,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,191.4 339.6,192.0 340.9,187.3\" fill=\"#C3CAD2\"/><path d=\"M347.3,128.6 L346.8,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,191.4 344.4,184.6 349.3,184.7\" fill=\"#C3CAD2\"/><path d=\"M623.0,128.6 L346.8,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,191.4 352.9,187.5 353.9,192.3\" fill=\"#C3CAD2\"/><path d=\"M346.8,224.6 L346.8,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,287.4 344.3,280.6 349.3,280.6\" fill=\"#C3CAD2\"/><path d=\"M346.8,320.6 L346.8,383.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,383.4 344.3,376.6 349.3,376.6\" fill=\"#C3CAD2\"/><path d=\"M346.8,416.6 L346.8,479.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.8,479.2 344.3,472.4 349.3,472.4\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(74.1,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"74.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"37.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ubuntu</text></g></g><g class=\"wf-node\" transform=\"translate(305.5,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"82.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"41.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">windows</text></g></g><g class=\"wf-node\" transform=\"translate(558.5,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"130.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"65.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">macOS（arm64）</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"223.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"111.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">x86_64-unknown-linux-musl</text></g></g><g class=\"wf-node\" transform=\"translate(247.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"199.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"99.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">x86_64-pc-windows-msvc</text></g></g><g class=\"wf-node\" transform=\"translate(470.6,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"305.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"152.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">universal2 （Apple Silicon ＋ Intel）</text></g></g><g class=\"wf-node\" transform=\"translate(248.8,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"196.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"98.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">試験（組み立てた場所で起動）</text></g></g><g class=\"wf-node\" transform=\"translate(218.8,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"256.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"128.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">梱包（tar.gz ・ zip ・ SHA-256）</text></g></g><g class=\"wf-node\" transform=\"translate(260.8,384.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"172.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"86.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">試験（展開した先で起動）</text></g></g><g class=\"wf-node\" transform=\"translate(281.5,480.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"130.6\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"65.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">公開（Release）</text></g></g></g></svg>",
+          "caption": "3つのランナーがそれぞれの環境向けに組み立て、2回の試験を通ったものだけを公開する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "C のコードを含むのが no-more-spaghetti だけという事実",
+          "basis": "他の8つの Cargo.lock の cc は、Haiku OS 向けだけの依存（iana-time-zone-haiku）から来ている",
+          "tag": "measured",
+          "source": "platform-advisor の調査（各 Cargo.lock、2026-09-28）"
+        },
+        {
+          "supports": "組み立てを外部の実行環境へ任せるという判定",
+          "basis": "差別化に繋がらない運用作業は、管理された実行環境へ任せる",
+          "tag": "rule",
+          "source": "platform-advisor の knowledge（cost-optimization ・ performance-efficiency）"
+        },
+        {
+          "supports": "Gatekeeper の挙動",
+          "basis": "ブラウザで取得した配布物の中身に隔離の属性が付き、未公証の実行ファイルの起動が拒否される",
+          "tag": "unverified",
+          "source": "platform-advisor の推測。Apple の原文で未照合"
+        },
+        {
+          "supports": "3つの環境向けに組み立てるという判定",
+          "basis": "配布物は Skill ごと × 環境ごとで、workflow は配布元のリポジトリに1つである",
+          "tag": "rule",
+          "source": "論点2"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "Linux を gnu で組む",
+          "reason": "開発機より古い glibc の distro で起動に失敗する"
+        },
+        {
+          "option": "ARM の Linux と Windows をいまから含める",
+          "reason": "必要とする利用者が確認されていない。現れたときに行列へ追加する"
+        },
+        {
+          "option": "macOS の署名 ・ 公証をいまから導入する",
+          "reason": "Apple の開発者登録と認証情報の管理が必要になる。端末から導入する開発者が相手なら、隔離の属性を外す手順で足りる"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 各 OS のランナーで組み立てる",
+            "cost": "macOS のランナーの実行時間が長い（tag のときだけに限定する）"
+          },
+          {
+            "option": "B ── 開発機から他の OS 向けに組み立てる（cross ・ zig）",
+            "cost": "macOS 向けには macOS の SDK が必要で、Linux 上での運用は負担が大きい。対象の OS で起動を確認できない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Gatekeeper と隔離の属性の挙動の原文での照合",
+            "treatment": "later",
+            "note": "手順書に書く前に照合する"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q5",
+      "name": "外部コマンドへの依存と、Windows ネイティブ",
+      "status": "settled",
+      "question": "契約に従う Skill が呼ぶ外部コマンドをどう扱い、Windows ネイティブ（WSL を使わない）に対応するか",
+      "answer": {
+        "text": "OS によって無い外部コマンド（date ・ timeout）は呼ばない規則を道具の契約に加え、既存の4か所は Rust の処理へ置き換える。呼んでよい外部の道具は、Skill の宣言に列挙させ、skills-creator の check が宣言と実装の一致を検査する。Windows ネイティブにも初回から対応する",
+        "details": [
+          "契約の規則 ── OS によって無い外部コマンドを呼ばない。日付の計算と時間の制限は Rust の中で実行する",
+          "宣言 ── 呼んでよい外部の道具（curl ・ git ・ aws ・ ヘッドレスのブラウザなど）は、Skill の宣言に列挙する。SKILL.md の前提条件は、その宣言から書く",
+          "検査 ── skills-creator の check が、部品の中の Command::new に文字列で書かれた道具の名前と、宣言の一覧を照合する",
+          "名前が変数で渡される道具 ── 規則に書かれた道具（no-more-spaghetti）や、利用者が指定するブラウザ（slide-deck）は、名前を静的に照合できない。宣言に「利用者が指定する道具」として書き、check はその呼び出しを照合の対象から外す",
+          "既存の置き換え ── date（acdr ・ fact-check ・ brainstorming-board）と timeout（narration）",
+          "Windows ネイティブ ── 初回から対応する。MCP の設定と hook の設定は、導入スクリプトが環境に合わせて書き、Windows 版は経路に .exe を書く"
+        ]
       },
-      {
-       "text": "2つの助言が食い違う点が1つある ── 実行ファイルの置き場所（tech-lead は bin/ へ移す、platform は rs/target/release/ を維持する）。論点2で決める"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 602 428\" width=\"602\" height=\"428\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M336.5,112.0 L404.7,112.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"404.7,112.0 397.9,114.5 397.9,109.5\" fill=\"#C3CAD2\"/><path d=\"M348.2,208.0 L398.7,208.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"398.7,208.0 391.9,210.5 391.9,205.5\" fill=\"#C3CAD2\"/><path d=\"M335.0,304.0 L400.2,304.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"400.2,304.0 393.4,306.5 393.4,301.5\" fill=\"#C3CAD2\"/><path d=\"M311.0,400.0 L370.8,400.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"370.8,400.0 364.0,402.5 364.0,397.5\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(234.4,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"64.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"32.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">変更前</text></g></g><g class=\"wf-node\" transform=\"translate(449.0,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"64.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"32.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">変更後</text></g></g><g class=\"wf-node\" transform=\"translate(36.6,96.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"88.0\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"44.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">日付の取得</text></g></g><g class=\"wf-node\" transform=\"translate(196.9,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"139.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"69.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">外部コマンド date</text></g></g><g class=\"wf-node\" transform=\"translate(405.5,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"151.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"75.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">Rust の中で計算する</text></g></g><g class=\"wf-node\" transform=\"translate(42.6,192.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"76.0\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"38.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">制限時間</text></g></g><g class=\"wf-node\" transform=\"translate(185.2,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"162.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"81.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">外部コマンド timeout</text></g></g><g class=\"wf-node\" transform=\"translate(399.5,192.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"163.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"81.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">Rust でプロセスを待つ</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,288.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"161.2\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"80.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">curl ・ git ・ aws</text></g></g><g class=\"wf-node\" transform=\"translate(198.4,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"136.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"68.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">前提と書いていない</text></g></g><g class=\"wf-node\" transform=\"translate(401.0,288.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"160.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"80.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">前提条件として明記する</text></g></g><g class=\"wf-node\" transform=\"translate(24.6,384.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"112.0\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"56.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">呼んでよい道具</text></g></g><g class=\"wf-node\" transform=\"translate(222.4,384.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"88.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"44.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">一覧が無い</text></g></g><g class=\"wf-node\" transform=\"translate(371.6,384.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"218.8\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"109.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">宣言に列挙し、check が照合する</text></g></g></g></svg>",
+          "caption": "環境によって無い外部コマンドは Rust の中へ移し、どこにでもある道具は前提条件として書く"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "外部コマンドへの依存の一覧",
+          "basis": "date を呼ぶのは acdr の record.rs:506 ・ fact-check の source.rs:314 ・ brainstorming-board の serve.rs:215 である。timeout を呼ぶのは narration の voice.rs:147 である",
+          "tag": "measured",
+          "source": "platform-advisor の調査（2026-09-28）"
+        },
+        {
+          "supports": "Windows ネイティブでは bash が無い場合があるという事実",
+          "basis": "If Git for Windows is not installed, Claude Code uses PowerShell as the shell tool instead.",
+          "tag": "primary",
+          "source": "code.claude.com/docs/en/setup（64行目、2026-09-28 取得）"
+        },
+        {
+          "supports": "Windows を対象に含めるという判定",
+          "basis": "対象の環境は Windows ・ WSL ・ macOS である",
+          "tag": "assumption",
+          "source": "利用者の発言（2026-09-28）"
+        },
+        {
+          "supports": "Windows に curl があるか",
+          "basis": "Windows 10 以降は curl.exe を標準で含む",
+          "tag": "unverified",
+          "source": "未照合"
+        },
+        {
+          "supports": "Windows 版の経路に .exe を書くという判定",
+          "basis": "実行ファイルは bin/ に置き、Windows だけ .exe が付く",
+          "tag": "rule",
+          "source": "論点3"
+        },
+        {
+          "supports": "Windows ネイティブの動作を確認する場所",
+          "basis": "windows のランナーで、組み立てた場所と展開した先の2回、起動を試験する",
+          "tag": "rule",
+          "source": "論点4"
+        },
+        {
+          "supports": "設定を導入スクリプトが書くという判定",
+          "basis": "導入スクリプトが OS と CPU を判別して展開する",
+          "tag": "rule",
+          "source": "論点1"
+        },
+        {
+          "supports": "外部の道具の一覧",
+          "basis": "部品の Command::new を数えた ── date 3件 ・ timeout 2件 ・ curl 1件 ・ git 1件 ・ ブラウザ 1件 ・ 規則の道具 1件",
+          "tag": "measured",
+          "source": "grep（.claude/skills/*/rs/parts/src、2026-09-28）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "外部コマンドをすべて Rust へ置き換える（curl ・ git ・ aws を含む）",
+          "reason": "git と aws は、その Skill の目的そのものが外部の道具を使うことである。置き換えると、道具を自作することになる"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 契約の規則にし、宣言と検査で守らせる",
+            "cost": "skills-creator の宣言の形と check を変更し、既存の4か所を書き換える"
+          },
+          {
+            "option": "C ── 既存の4か所だけを置き換える",
+            "cost": "次に生成する Skill が、また date を呼んでも検出されない"
+          },
+          {
+            "option": "B ── Windows ネイティブは当面未対応にし、WSL を案内する（platform-advisor の判定）",
+            "cost": "利用者が指定した Windows を外すことになる。timeout は macOS にも無いので、narration の問題は残る"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Windows で拡張子の無い経路から .exe を起動できるか",
+            "treatment": "later",
+            "note": "windows のランナーで起動の試験を実行して確認する"
+          },
+          {
+            "item": "5つの論点の答えを、外の作業で試す",
+            "treatment": "later",
+            "note": "外の作業 ── Linux の1環境だけで、bin/ への出力 ・ 実行ファイルの位置からの探索 ・ zip の作成を試作し、成立を確認してから CI の行列へ広げる"
+          }
+        ]
       }
-     ]
     }
-   ]
-  },
-  {
-   "heading": "skills-creator で確認した事実",
-   "body": [
-    {
-     "kind": "list",
-     "items": [
-      {
-       "text": "各 Skill の mcp.json にある開発機の絶対パスは、テンプレート mcp.json.tmpl の {{Skillの絶対パス}}/rs/target/release/… から来ている"
-      },
-      {
-       "text": "道具の契約（tool-contract.md の132行目）は「実行ファイルからの相対で数えると、置き場所を動かすたびに狂う」として、--skill_root で受け取ると規定している"
-      },
-      {
-       "text": "このリポジトリの17の Skill のうち、道具を持つのは9つ、持たないのは8つである"
-      }
-     ]
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "配布の形",
-   "status": "settled",
-   "question": "契約に従う Skill を、利用者がどういう操作で導入するか",
-   "intro": "<b>承認された（2026-09-28）。</b>この論点が、残りの4つの論点の前提になる。",
-   "answer": "利用者はシェルに合った1行のコマンドを実行するだけにする。導入スクリプトが OS と CPU を判別し、Release から合う実行ファイルを取得して .claude/skills/ に置く。利用者はどのバイナリかを選ばない",
-   "decision": {
-    "letter": "B",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>導入スクリプトが環境を判別する</b>。Claude Code 自身の導入と同じ形で、利用者はシェルに合った1行だけを実行する。"
-     },
-     {
-      "kind": "html",
-      "text": "macOS ・ Linux ・ WSL:  curl -fsSL https://…/install.sh | bash\nWindows PowerShell:    irm https://…/install.ps1 | iex"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "導入スクリプトは、OS と CPU を判別し、Release から合う環境の配布物を取得して、リポジトリの .claude/skills/ に展開する"
-       },
-       {
-        "text": "取得した配布物は、SHA-256 を照合してから展開する"
-       },
-       {
-        "text": "更新も同じ1行を実行し直す"
-       },
-       {
-        "text": "Release には環境ごとの配布物を置く ── 利用者はこれを直接選ばない"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "flow",
-     "caption": "利用者は1行を実行するだけで、導入スクリプトが環境を判別して、合う配布物だけを展開する"
-    }
-   ],
-   "passed": [
-    {
-     "name": "B ── 導入スクリプトが環境を判別する",
-     "body": "利用者は1行を実行する。どの実行ファイルかを意識しない",
-     "cost": "導入スクリプトを2つ（sh と PowerShell）保守する"
-    },
-    {
-     "name": "A ── 環境ごとの zip を利用者が選ぶ（前の答え）",
-     "body": "Release に3つの zip を置き、利用者が自分の環境の zip を展開する",
-     "cost": "<b>利用者が自分の環境を知り、正しい zip を選ぶ必要がある</b>"
-    },
-    {
-     "name": "C ── Claude Code のプラグイン",
-     "body": "GitHub のリポジトリをマーケットプレイスにし、プラグインとして導入する。bin/ が PATH に載る",
-     "cost": "<b>Skill の呼び名が /プラグイン名:skill名 に変わる</b>。bin/ は1つのフォルダなので、環境の選択は別に必要になる"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "ソースの zip を渡し、利用者が cargo build する（いまの形）",
-     "reason": "利用者の環境に Rust があるとは限らないという条件に違反する"
-    },
-    {
-     "body": "全環境の実行ファイルを1つの配布物に入れ、実行時に選ぶ",
-     "reason": "実行時に選ぶ仕組みが、Windows の PowerShell と bash の両方で動く必要がある。MCP の設定は1つの経路しか書けないので、実行時の選択では対応できない"
-    }
-   ],
-   "findings": [
-    "いまの配布物（skills.zip ・ qa-advisor.zip）は、ソースを git archive で固めたもので、実行ファイルを1つも含まない",
-    "各 Skill の mcp.json は、開発機の絶対パス（/home/daidaiiro/…）を保持している ── そのまま配ると、配布先で起動に失敗する"
-   ],
-   "grounds": [
-    {
-     "supports": "プラグインでは Skill の呼び名が変わるという判定",
-     "basis": "plugin skills are namespaced as `/plugin-name:skill-name`",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/skills（170行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "プラグインの bin/ が PATH に載るという事実",
-     "basis": "Files in `bin/` at the plugin root are on the `PATH` of the Bash tool's shell while the plugin is enabled",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/plugins/components（876行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "プラグインは一部の面で導入されないという事実",
-     "basis": "claude.ai and Cowork don't install a plugin that has a top-level `bin/` directory",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/plugins/components（887行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "いまの配布物に実行ファイルが無いという事実",
-     "basis": "skills.zip と qa-advisor.zip は git archive で HEAD のソースを固めたもので、rs/target/ は .gitignore で除外されている",
-     "tag": "measured",
-     "source": "コミット 585385c ・ .gitignore の21行目"
-    },
-    {
-     "supports": "1行のコマンドで導入する形",
-     "basis": "curl -fsSL https://claude.ai/install.sh | bash",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/setup（42行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "Windows でも1行で導入できる形",
-     "basis": "irm https://claude.ai/install.ps1 | iex",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/setup（48行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "利用者がバイナリを選ばないという条件",
-     "basis": "どのバイナリで使用するかは、利用者が意識しなくても使える方がよい",
-     "tag": "assumption",
-     "source": "利用者の発言（2026-09-28）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "プラグインでの配布",
-     "treatment": "later",
-     "note": "Skill の呼び名の変更を受け入れるかは、別の論点で決める"
-    }
-   ],
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 1件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "環境ごとの zip を GitHub の Release に置く。利用者は自分の環境の zip を展開し、リポジトリの .claude/skills/ に置く",
-       "why": "<b>利用者が自分の環境を知り、正しい zip を選ぶ必要があった</b> ── 選び間違えると起動しない。どのバイナリかを利用者に意識させている",
-       "user_words": "まぁ、どのバイナリで使用するかはあまり利用者は意識しなく使える方がいいね"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 2,
-   "name": "配布の単位",
-   "status": "settled",
-   "question": "何を1つの配布物にし、導入スクリプトと組み立ての定義を誰が持つか",
-   "answer": "配布物は Skill ごと × 環境ごとに作る（Linux ・ macOS は tar.gz、Windows は zip）。導入スクリプトと組み立ての定義は、配布元のリポジトリに1つずつ置き、skills-creator がそのテンプレートを持つ。利用者は Skill の名前を並べて導入し、省略すると全部を導入する",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>配布物</b> ── Skill ごと × 環境ごと。Linux ・ macOS は tar.gz、Windows は zip（例：acdr-x86_64-unknown-linux-musl.tar.gz）。道具を保持しない Skill は、環境に依存しない tar.gz と zip を1つずつ作る"
-       },
-       {
-        "text": "<b>導入スクリプト</b> ── 配布元のリポジトリに1つ（install.sh と install.ps1）。Skill の名前を引数に並べ、省略すると Release にある全部を導入する"
-       },
-       {
-        "text": "<b>組み立ての定義</b> ── 配布元のリポジトリに1つ（GitHub Actions の workflow）。道具を持つ Skill を探して、すべて組み立てる"
-       },
-       {
-        "text": "<b>持ち主</b> ── 導入スクリプトと workflow のテンプレートは skills-creator が保持し、配布元のリポジトリへ置く操作を持つ"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "unit",
-     "caption": "1つの Release に Skill × 環境の配布物が並び、導入スクリプトが指定の Skill と利用者の環境に合うものだけを取得する"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── Skill ごとの配布物 ＋ リポジトリに1つの導入スクリプト",
-     "body": "Skill を1つでも、まとめてでも導入できる",
-     "cost": "配布物 の数が Skill × 環境になる（このリポジトリでは 9 × 3 ＋ 8）"
-    },
-    {
-     "name": "B ── 複数の Skill を1つの配布物にまとめる（いまの skills.zip）",
-     "body": "配布物が環境ごとに1つで済む",
-     "cost": "<b>一部の Skill だけを導入できない</b>。1つの Skill を直しても、全部を取得し直す"
-    },
-    {
-     "name": "C ── scaffold が Skill ごとに導入スクリプトと workflow を生成する",
-     "body": "Skill ごとに独立したリポジトリで配れる",
-     "cost": "<b>同じスクリプトが Skill の数だけ複製される</b>。導入スクリプトを1か所直しても、既存の Skill には反映されない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "導入スクリプトを skills-creator 自身の Release から配る",
-     "reason": "配布元のリポジトリの Release の場所を、skills-creator が知ることになる。配布元ごとに違う場所を指せない"
-    }
-   ],
-   "findings": [
-    "いまの配布には、複数の Skill をまとめた形（skills.zip）と、1つだけの形（qa-advisor.zip）の両方が実在する",
-    "道具を保持しない Skill（advisor など）も、同じ導入スクリプトで導入できる ── 環境に依存しない配布物を1つ作れば足りる",
-    "試作の環境（Linux）には zip コマンドが無かった。tar.gz なら実行ファイルの実行権限も保持される"
-   ],
-   "grounds": [
-    {
-     "supports": "まとめた形と1つだけの形の両方が実在するという事実",
-     "basis": "リポジトリの直下に skills.zip と qa-advisor.zip がある",
-     "tag": "measured",
-     "source": "コミット f1d0647 ・ 585385c"
-    },
-    {
-     "supports": "利用者が配布物を選ばないという条件",
-     "basis": "導入スクリプトが OS と CPU を判別し、合う配布物を取得する",
-     "tag": "rule",
-     "source": "論点1"
-    },
-    {
-     "supports": "Linux ・ macOS を tar.gz にするという判定",
-     "basis": "試作の環境で zip コマンドが見つからなかった（/bin/bash: zip: command not found）",
-     "tag": "measured",
-     "source": ".brainstorming-board/skill-binaries/trial/README.md（2026-09-29）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "配布元のリポジトリが複数あるときに、1つの導入スクリプトで複数の配布元から導入するか",
-     "treatment": "later",
-     "note": "配布元が2つ以上になった時点で決める"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-28）。</b>配布物の形式は、試作の結果を受けて2026-09-29に改めた（ACDR 0031）。",
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 1件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "配布用の zip は Skill ごと × 環境ごとに作る。導入スクリプトと組み立ての定義は、配布元のリポジトリに1つずつ置き、skills-creator がそのテンプレートを持つ。利用者は Skill の名前を並べて導入し、省略すると全部を導入する",
-       "why": "<b>Linux では zip ・ unzip が標準で入っていないことがある</b> ── 試作の環境にも zip コマンドが無かった。導入スクリプトが unzip に頼ると、その環境で導入できない。tar は Linux と macOS に標準で入っている",
-       "user_words": "おｋ（配布物の形式を、Linux ・ macOS は tar.gz、Windows は zip に改める提案への承認）"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "Skill のフォルダの構成と、Skill のフォルダの求め方",
-   "status": "settled",
-   "question": "道具のソースと実行ファイルを Skill のフォルダのどこに置き、実行ファイルは Skill のフォルダ（references/）をどう見つけるか",
-   "answer": "道具のソースは tool/（いまの rs/）、組み立てた実行ファイルは bin/ に置く（CLI は 名前、MCP は 名前-mcp）。Skill のフォルダは実行ファイルの位置から求める（bin/ の1つ上）。道具の契約の規定（--skill_root で受け取る）と mcp.json.tmpl を改訂する",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "<b>道具のソース</b> ── <code>rs/</code> を <code>tool/</code> へ改名する。<code>tool/</code> は配布しない。名前は、道具の契約が使う語（tool-contract ・ 道具を持つ Skill）から取る"
-       },
-       {
-        "text": "<b>置き場所</b> ── <code>.claude/skills/&lt;名前&gt;/bin/&lt;名前&gt;</code> と <code>bin/&lt;名前&gt;-mcp</code>。Windows だけ <code>.exe</code> が付く"
-       },
-       {
-        "text": "<b>Skill のフォルダの求め方</b> ── 引数 <code>--skill_root</code> があればそれを使う。無ければ、実行ファイルの1つ上に references/ があるかを確認して使う。どちらも無ければ、試した経路を示して停止する"
-       },
-       {
-        "text": "<b>開発時</b> ── 組み立てた実行ファイルを bin/ へ置く手順に統一する。SKILL.md ・ CLAUDE.md ・ 規則ファイル ・ .mcp.json の <code>rs/target/release/</code> の記述は、<code>bin/</code> へ一律に置き換える。開発時の bin/ は .gitignore に入れ、git で追跡しない。実行ファイルは Release の配布物だけが持つ"
-       },
-       {
-        "text": "<b>道具の契約を改訂する</b> ── tool-contract.md の「実行ファイルからの相対で数えない」を、「bin/ の1つ上を Skill のフォルダとする」へ変更する。mcp.json.tmpl の絶対パスをやめる。ACDR 0019 も改訂する"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "layout",
-     "caption": "SKILL.md は bin/ の実行ファイルを呼び、実行ファイルは自分の1つ上を Skill のフォルダとして references/ を読む"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── bin/ に置き、実行ファイルの位置から求める",
-     "body": "開発時と配布後で、経路の記述が1種類になる",
-     "cost": "rs/ を tool/ へ改名し、rs/target/release/ の記述（35か所以上）を bin/ へ書き換える。ACDR 0019 と道具の契約を改訂する"
-    },
-    {
-     "name": "B ── rs/target/release/ を維持する",
-     "body": "記述を書き換えない",
-     "cost": "<b>ソースを含まない配布物に、rs/target/release/ という開発の経路だけが残る</b>。環境を指定して組み立てると出力は target/&lt;環境&gt;/release/ になり、結局は梱包で置き直す"
-    },
-    {
-     "name": "道具のソースを src/ にする",
-     "body": "一般的な名前である",
-     "cost": "<b>中の crate も src/ を持つので、src/parts/src/lib.rs のように src が2回続く</b>"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "build 時に絶対パスを埋め込む（いまの acdr ・ doc-writing-skills）",
-     "reason": "CI の組み立て機のパスが残り、配布先では存在しない場所を指す"
-    },
-    {
-     "body": "references/ を実行ファイルへ埋め込む",
-     "reason": "ACDR 0019 が退けた理由がそのまま成り立つ ── 契約を1行直すたびに再ビルドが必要になる"
-    },
-    {
-     "body": "環境ごとのサブフォルダ（bin/&lt;環境&gt;/）に置く",
-     "reason": "呼ぶ側の経路に環境の分岐が入る"
-    },
-    {
-     "body": "道具の契約の規定のまま、--skill_root を必ず渡す",
-     "reason": "導入スクリプトが書く MCP の設定と hook の設定のすべてに、Skill のフォルダの経路を書くことになる。渡し忘れた呼び出しは停止する"
-    },
-    {
-     "body": "道具のソースを crates/ にする",
-     "reason": "crate は Rust の用語で、言語を名前にしている rs/ と同じ問題が残る"
-    },
-    {
-     "body": "src/ のまま、crate の中の src/ をやめる",
-     "reason": "Cargo.toml の既定の置き場所（src/lib.rs）から外れ、4つの crate すべてに経路の指定を書き足す"
-    }
-   ],
-   "findings": [
-    "Skill のフォルダの場所の決め方が、Skill ごとに2通りに分かれている。acdr と doc-writing-skills は build 時の絶対パスを使う。brainstorming-board ・ design-svg ・ slide-deck ・ skills-creator ・ no-more-spaghetti は、実行した場所（\".\"）を使う",
-    "ACDR 0019 が退けた理由「実行ファイルの置き場所は build の設定で変わる」は、配布物で bin/ を固定すると成り立たない",
-    "道具の契約が退けた理由（置き場所を変更するたびに、実行ファイルからの相対の経路が合わなくなる）は、bin/ を契約で固定すると成り立たない ── 置き場所は契約が決め、変更されない",
-    "rs/ は、9つの Skill を Python から Rust へ移したとき（2026-09-26〜27）に作られた。名前の理由は、契約 ・ ACDR ・ コミットのどこにも記録されていない"
-   ],
-   "grounds": [
-    {
-     "supports": "位置の決め方が2通りに分かれているという事実",
-     "basis": "acdr と doc-writing-skills の declare/src/lib.rs が SKILL_ROOT に concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../..\") を持つ",
-     "tag": "measured",
-     "source": "grep（2026-09-28）"
-    },
-    {
-     "supports": "位置の確定を起動処理の1か所へ集約するという判定",
-     "basis": "配線はシステムで最も外側の1か所に集約する",
-     "tag": "rule",
-     "source": "tech-lead-advisor の knowledge（architecture-composition-root）"
-    },
-    {
-     "supports": "ACDR 0019 の退けた理由が成り立たないという判定",
-     "basis": "ACDR 0019 は「実行ファイルの置き場所は build の設定で変わる」を理由に、実行ファイルの位置からの探索を退けた",
-     "tag": "primary",
-     "source": ".acdr/0019-道具の既定の置き場所をbuild時に確定する/acdr.json"
-    },
-    {
-     "supports": "bin/ に1つの経路で置けるという判定",
-     "basis": "配布物は Skill ごと × 環境ごとなので、bin/ には1つの環境の実行ファイルだけが入る",
-     "tag": "rule",
-     "source": "論点2"
-    },
-    {
-     "supports": "道具の契約の規定と食い違うという事実",
-     "basis": "部品は、置き場所を階層の数で数えない。実行ファイルからの相対で数えると、置き場所を動かすたびに狂う",
-     "tag": "primary",
-     "source": ".claude/skills/skills-creator/references/tool-contract.md（132行目）"
-    },
-    {
-     "supports": "rs/ の名前に理由の記録が無いという事実",
-     "basis": "rs/ は deaf8ae（acdr を Rust へ移し、Python を消す）などの移行のコミットで追加された",
-     "tag": "measured",
-     "source": "git log（2026-09-28）"
-    },
-    {
-     "supports": "src/ を2回続けないという条件",
-     "basis": "src のところは2回続くのは少しきもい",
-     "tag": "assumption",
-     "source": "利用者の発言（2026-09-28）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "Windows で、拡張子の無い経路から .exe を起動できるか",
-     "treatment": "later",
-     "note": "論点5で、windows のランナーで確認する"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-28）。</b>"
-  },
-  {
-   "no": 4,
-   "name": "組み立てる場所と、対象の環境",
-   "status": "settled",
-   "question": "どこで、どの環境向けに組み立て、配る前に何を確認するか",
-   "answer": "GitHub Actions の各 OS のランナーで組み立てる。対象は Linux（x86_64 ・ musl）・ Windows（x86_64）・ macOS（universal2）の3つ。組み立てた場所と、展開した先の2か所で起動を試験してから Release に置く。workflow のテンプレートは skills-creator が保持する",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>組み立てる場所</b> ── GitHub Actions の ubuntu ・ windows ・ macOS（arm64）のランナー。tag を push したときだけ実行する。workflow は skills-creator のテンプレートから置く"
-       },
-       {
-        "text": "<b>Linux</b> ── x86_64-unknown-linux-musl。静的に組み、利用者の glibc の版に依存しない（WSL の distro は利用者ごとに異なる）"
-       },
-       {
-        "text": "<b>macOS</b> ── Apple Silicon と Intel の2つを1本にまとめる（universal2）"
-       },
-       {
-        "text": "<b>macOS の Gatekeeper</b> ── 署名 ・ 公証はしない。導入スクリプトが端末で取得して展開するので、ブラウザを経由しない。ブラウザで取得した利用者向けには、SHA-256 を照合してから隔離の属性を外す手順を書く"
-       },
-       {
-        "text": "<b>試験</b> ── 道具を持つ Skill のすべての実行ファイルで、CLI の使い方の表示と、MCP の initialize への応答を検証する。組み立てた場所と、展開した先の2か所で実行する"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "matrix",
-     "caption": "3つのランナーがそれぞれの環境向けに組み立て、2回の試験を通ったものだけを公開する"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 各 OS のランナーで組み立てる",
-     "body": "それぞれの OS の標準の C コンパイラで組み立て、その場で起動を試験できる",
-     "cost": "macOS のランナーの実行時間が長い（tag のときだけに限定する）"
-    },
-    {
-     "name": "B ── 開発機から他の OS 向けに組み立てる（cross ・ zig）",
-     "body": "CI を使わない",
-     "cost": "<b>macOS 向けには macOS の SDK が必要</b>で、Linux 上での運用は負担が大きい。対象の OS で起動を確認できない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "Linux を gnu で組む",
-     "reason": "開発機より古い glibc の distro で起動に失敗する"
-    },
-    {
-     "body": "ARM の Linux と Windows をいまから含める",
-     "reason": "必要とする利用者が確認されていない。現れたときに行列へ追加する"
-    },
-    {
-     "body": "macOS の署名 ・ 公証をいまから導入する",
-     "reason": "Apple の開発者登録と認証情報の管理が必要になる。端末から導入する開発者が相手なら、隔離の属性を外す手順で足りる"
-    }
-   ],
-   "findings": [
-    "いまの Skill では、no-more-spaghetti だけが C のコード（tree-sitter の文法）を含む。契約に従う Skill が C のコードを含んでも、各 OS のランナーならその OS の C コンパイラで組み立てられる",
-    "開発機の Rust は Linux x86_64 向けだけで、他の OS 向けの道具は無い"
-   ],
-   "grounds": [
-    {
-     "supports": "C のコードを含むのが no-more-spaghetti だけという事実",
-     "basis": "他の8つの Cargo.lock の cc は、Haiku OS 向けだけの依存（iana-time-zone-haiku）から来ている",
-     "tag": "measured",
-     "source": "platform-advisor の調査（各 Cargo.lock、2026-09-28）"
-    },
-    {
-     "supports": "組み立てを外部の実行環境へ任せるという判定",
-     "basis": "差別化に繋がらない運用作業は、管理された実行環境へ任せる",
-     "tag": "rule",
-     "source": "platform-advisor の knowledge（cost-optimization ・ performance-efficiency）"
-    },
-    {
-     "supports": "Gatekeeper の挙動",
-     "basis": "ブラウザで取得した配布物の中身に隔離の属性が付き、未公証の実行ファイルの起動が拒否される",
-     "tag": "unverified",
-     "source": "platform-advisor の推測。Apple の原文で未照合"
-    },
-    {
-     "supports": "3つの環境向けに組み立てるという判定",
-     "basis": "配布物は Skill ごと × 環境ごとで、workflow は配布元のリポジトリに1つである",
-     "tag": "rule",
-     "source": "論点2"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "Gatekeeper と隔離の属性の挙動の原文での照合",
-     "treatment": "later",
-     "note": "手順書に書く前に照合する"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-28）。</b>"
-  },
-  {
-   "no": 5,
-   "name": "外部コマンドへの依存と、Windows ネイティブ",
-   "status": "settled",
-   "question": "契約に従う Skill が呼ぶ外部コマンドをどう扱い、Windows ネイティブ（WSL を使わない）に対応するか",
-   "answer": "OS によって無い外部コマンド（date ・ timeout）は呼ばない規則を道具の契約に加え、既存の4か所は Rust の処理へ置き換える。呼んでよい外部の道具は、Skill の宣言に列挙させ、skills-creator の check が宣言と実装の一致を検査する。Windows ネイティブにも初回から対応する",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>契約の規則</b> ── OS によって無い外部コマンドを呼ばない。日付の計算と時間の制限は Rust の中で実行する"
-       },
-       {
-        "text": "<b>宣言</b> ── 呼んでよい外部の道具（curl ・ git ・ aws ・ ヘッドレスのブラウザなど）は、Skill の宣言に列挙する。SKILL.md の前提条件は、その宣言から書く"
-       },
-       {
-        "text": "<b>検査</b> ── skills-creator の check が、部品の中の Command::new に文字列で書かれた道具の名前と、宣言の一覧を照合する"
-       },
-       {
-        "text": "<b>名前が変数で渡される道具</b> ── 規則に書かれた道具（no-more-spaghetti）や、利用者が指定するブラウザ（slide-deck）は、名前を静的に照合できない。宣言に「利用者が指定する道具」として書き、check はその呼び出しを照合の対象から外す"
-       },
-       {
-        "text": "<b>既存の置き換え</b> ── date（acdr ・ fact-check ・ brainstorming-board）と timeout（narration）"
-       },
-       {
-        "text": "<b>Windows ネイティブ</b> ── 初回から対応する。MCP の設定と hook の設定は、導入スクリプトが環境に合わせて書き、Windows 版は経路に .exe を書く"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "external",
-     "caption": "環境によって無い外部コマンドは Rust の中へ移し、どこにでもある道具は前提条件として書く"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 契約の規則にし、宣言と検査で守らせる",
-     "body": "次に生成する Skill も、同じ規則で検査される",
-     "cost": "skills-creator の宣言の形と check を変更し、既存の4か所を書き換える"
-    },
-    {
-     "name": "C ── 既存の4か所だけを置き換える",
-     "body": "契約を変更しない",
-     "cost": "<b>次に生成する Skill が、また date を呼んでも検出されない</b>"
-    },
-    {
-     "name": "B ── Windows ネイティブは当面未対応にし、WSL を案内する（platform-advisor の判定）",
-     "body": "コードを変更しない",
-     "cost": "<b>利用者が指定した Windows を外すことになる</b>。timeout は macOS にも無いので、narration の問題は残る"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "外部コマンドをすべて Rust へ置き換える（curl ・ git ・ aws を含む）",
-     "reason": "git と aws は、その Skill の目的そのものが外部の道具を使うことである。置き換えると、道具を自作することになる"
-    }
-   ],
-   "findings": [
-    "部品が呼ぶ外部の道具は6種類ある。date（3つの Skill）・ timeout（narration）・ curl（fact-check）・ git（acdr）・ ブラウザ（slide-deck）・ 規則に書かれた道具（no-more-spaghetti）である",
-    "Windows ネイティブでは、Git for Windows が無ければ Bash の道具が使えず、PowerShell で実行される"
-   ],
-   "grounds": [
-    {
-     "supports": "外部コマンドへの依存の一覧",
-     "basis": "date を呼ぶのは acdr の record.rs:506 ・ fact-check の source.rs:314 ・ brainstorming-board の serve.rs:215 である。timeout を呼ぶのは narration の voice.rs:147 である",
-     "tag": "measured",
-     "source": "platform-advisor の調査（2026-09-28）"
-    },
-    {
-     "supports": "Windows ネイティブでは bash が無い場合があるという事実",
-     "basis": "If Git for Windows is not installed, Claude Code uses PowerShell as the shell tool instead.",
-     "tag": "primary",
-     "source": "code.claude.com/docs/en/setup（64行目、2026-09-28 取得）"
-    },
-    {
-     "supports": "Windows を対象に含めるという判定",
-     "basis": "対象の環境は Windows ・ WSL ・ macOS である",
-     "tag": "assumption",
-     "source": "利用者の発言（2026-09-28）"
-    },
-    {
-     "supports": "Windows に curl があるか",
-     "basis": "Windows 10 以降は curl.exe を標準で含む",
-     "tag": "unverified",
-     "source": "未照合"
-    },
-    {
-     "supports": "Windows 版の経路に .exe を書くという判定",
-     "basis": "実行ファイルは bin/<名前> に置き、Windows だけ .exe が付く",
-     "tag": "rule",
-     "source": "論点3"
-    },
-    {
-     "supports": "Windows ネイティブの動作を確認する場所",
-     "basis": "windows のランナーで、組み立てた場所と展開した先の2回、起動を試験する",
-     "tag": "rule",
-     "source": "論点4"
-    },
-    {
-     "supports": "設定を導入スクリプトが書くという判定",
-     "basis": "導入スクリプトが OS と CPU を判別して展開する",
-     "tag": "rule",
-     "source": "論点1"
-    },
-    {
-     "supports": "外部の道具の一覧",
-     "basis": "部品の Command::new を数えた ── date 3件 ・ timeout 2件 ・ curl 1件 ・ git 1件 ・ ブラウザ 1件 ・ 規則の道具 1件",
-     "tag": "measured",
-     "source": "grep（.claude/skills/*/rs/parts/src、2026-09-28）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "Windows で拡張子の無い経路から .exe を起動できるか",
-     "treatment": "later",
-     "note": "windows のランナーで起動の試験を実行して確認する"
-    },
-    {
-     "item": "5つの論点の答えを、外の作業で試す",
-     "treatment": "later",
-     "note": "外の作業 ── Linux の1環境だけで、bin/ への出力 ・ 実行ファイルの位置からの探索 ・ zip の作成を試作し、成立を確認してから CI の行列へ広げる"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-28）。</b>下流の論点が無いので、外の作業（試作）で試す。"
-  }
- ]
+  ],
+  "intro": "skills-creator の道具の契約に従うすべての Skill を、利用者の環境に Rust が無くても動く形で配布する。配布の形は、契約 ・ テンプレート ・ 検査として skills-creator が保持する。対象の環境は Windows ・ WSL ・ macOS である。"
 }

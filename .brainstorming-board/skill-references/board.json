@@ -1,767 +1,435 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "Skill の references を、JSON Schema と JSON を正本にする形へ移す",
- "board": "skill-references",
- "round": 7,
- "intro": [
-  {
-   "kind": "para",
-   "text": "SKILL.md 以外の中身（references。knowledge もここへ統合する）は、JSON Schema と、それに従う JSON を正本にする。人が見るときは、JSON から導出した HTML で確認する。構造があらかじめ分離されていれば、読み手は構造を解釈せずに内容に集中できる ── 人にとっても AI にとっても同じである。この方針を、道具を持つ Skill と、アドバイザー系 ・ skill-router ・ memory-cultivator を含む16の Skill へ適用する形を決める。"
-  }
- ],
- "panels": [
-  {
-   "heading": "決まりの一覧 ── 5件とも決着（2026-09-29）",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "skill-references",
+  "title": "Skill の references を、JSON Schema と JSON を正本にする形へ移す",
+  "round": 7,
+  "queue": [],
+  "topics": [
     {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "<b>references の形</b> ── references は Skill の目的を達成するために参照する情報である。種類ごとに JSON Schema 1つと JSON 1つを置き、種類は中身で名付ける（criteria ・ answer ・ document）。外部の原典は document（出典と sha256 を付けた構造化した複製）で持ち、Skill 自身の知見は種類固有のスキーマで持つ。既存の文書は import で取り込む。Markdown は SKILL.md だけ"
+      "id": "Q1",
+      "name": "references の形",
+      "status": "settled",
+      "question": "SKILL.md 以外の中身を、どの単位の JSON Schema と JSON で持つか",
+      "answer": {
+        "text": "references には、種類ごとに JSON Schema を1つと、それに従う JSON を1つ置く。使い分けは「内容の正本を誰が持つか」で決める。外部の原典（公式文書 ・ 規格 ・ 書籍）は原典が正本で、Skill は出典と sha256 を付けた構造化した複製（document）を持つ。Skill 自身の知見（advisor の判断基準など）は Skill が正本で、その種類のスキーマで持ち、出典の欄は document の節を指す。種類の名前は中身で付け（例：criteria＝判断基準、answer＝回答の形、document＝原典の複製）、knowledge という区分は設けない。Markdown は SKILL.md だけにする",
+        "details": [
+          "取得のたびに原典を読みに行かない ── 原典は変わり、取得できないこともある。取り込んだ時点の複製を使い、取り直して sha256 が変われば差分として検知する（fact-check と同じ扱い）",
+          "取り込みの入口 import を雛形が持つ ── Markdown ・ HTML は見出しから節へ機械で変換し、PDF などはモデルが節に分けて書き、validate で検査する",
+          "種類の名前は中身で付ける ── 例：criteria（判断基準。いまの knowledge）・ answer（回答の形。いまのテンプレート）・ document（原典の複製）。knowledge という区分は設けない。references の中に特別な区分があると読めるためである。Markdown は SKILL.md だけにする"
+        ]
       },
-      {
-       "text": "<b>描画</b> ── 契約が1つだけ持つ。入力はスキーマ ・ JSON ・ トークン ・ 型で、見せ方はスキーマの x-view が指定する。Skill ごとに描画のコードを書かない"
-      },
-      {
-       "text": "<b>回答の形</b> ── HTML で読む前提で定義し直す。結論のカードを先頭に置き、図 ・ 比較した案 ・ 判断の道筋 ・ 根拠 ・ 注意 ・ 次にすること ・ AI が作業するときの注意（任意）を別の構造にする。description は読み手に、$comment は書く側に。回答はチャットに流さず、描画した HTML で渡す"
-      },
-      {
-       "text": "<b>モデルが読む経路</b> ── references を持つ Skill はすべて道具を持ち、get ・ validate ・ view（と import）を契約の雛形が持つ"
-      },
-      {
-       "text": "<b>移行の順番</b> ── 5段で移す。skills-creator の契約と雛形、ddd-advisor での試行、残りの advisor と advisor-creator、skill-router と memory-cultivator、道具を持つ Skill の順である。段ごとに ACDR で提示してから適用する"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "次にすること",
-   "body": [
-    {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "決めた5件を ACDR へ記録する"
-      },
-      {
-       "text": "段1 ── skills-creator の契約 ・ 雛形に、document のスキーマ ・ import ・ get ・ validate ・ view ・ 汎用の描画（x-view）・ 既定の型とトークンを加え、ACDR で提示する"
-      },
-      {
-       "text": "段2 ── ddd-advisor を移し、criteria と answer の欄を決める（試作は trial/ に在る）"
-      },
-      {
-       "text": "段5 で、ブレストボードの型のコードの枠のはみ出しを直す"
-      }
-     ]
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "references の形",
-   "status": "settled",
-   "question": "SKILL.md 以外の中身を、どの単位の JSON Schema と JSON で持つか",
-   "intro": "<b>承認された（2026-09-29、Round 3）。</b>残りの論点の前提になる。references は、Skill の目的を達成するために参照する情報である。knowledge ・ テンプレート ・ 定義票を別の区分にせず、中身で名前を付けた種類として持つ。",
-   "answer": "references には、種類ごとに JSON Schema を1つと、それに従う JSON を1つ置く。使い分けは「内容の正本を誰が持つか」で決める。外部の原典（公式文書 ・ 規格 ・ 書籍）は原典が正本で、Skill は出典と sha256 を付けた構造化した複製（document）を持つ。Skill 自身の知見（advisor の判断基準など）は Skill が正本で、その種類のスキーマで持ち、出典の欄は document の節を指す。種類の名前は中身で付け（例：criteria＝判断基準、answer＝回答の形、document＝原典の複製）、knowledge という区分は設けない。Markdown は SKILL.md だけにする",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "table",
-      "cols": [
-       "内容の正本",
-       "Skill が持つもの ／ 形"
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 777 236\" width=\"777\" height=\"236\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M173.3,32.6 L371.0,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"371.0,95.2 363.8,95.5 365.3,90.8\" fill=\"#C3CAD2\"/><rect x=\"248.6\" y=\"53.9\" width=\"47.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"272.1\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">import</text><path d=\"M371.0,128.8 L370.5,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"370.5,191.4 368.0,184.6 373.0,184.7\" fill=\"#C3CAD2\"/><path d=\"M567.6,32.8 L371.0,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"371.0,95.2 376.7,90.8 378.2,95.5\" fill=\"#C3CAD2\"/><rect x=\"420.3\" y=\"54.0\" width=\"98.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"469.3\" y=\"67.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">出典の欄が節を指す</text><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"346.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"173.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">外部の原典（公式文書 ・ 規格 ・ 書籍）── 原典が正本</text></g></g><g class=\"wf-node\" transform=\"translate(175.0,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"391.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"195.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">document.json ── 出典と sha256 を付けた構造化した複製</text></g></g><g class=\"wf-node\" transform=\"translate(370.6,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"394.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"197.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">criteria.json など ── Skill 自身の知見。Skill が正本</text></g></g><g class=\"wf-node\" transform=\"translate(205.3,192.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"330.4\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"165.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">取り直して sha256 が変われば、差分として検知する</text></g></g></g></svg>",
+          "caption": "外部の原典は構造化した複製で持ち、Skill 自身の知見はその出典として複製の節を指す"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 1189 388\" width=\"1189\" height=\"388\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M567.1,187.2 L630.1,184.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"630.1,184.0 623.4,186.8 623.2,181.9\" fill=\"#C3CAD2\"/><rect x=\"584.6\" y=\"175.6\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"598.6\" y=\"189.2\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">移す</text><g class=\"wf-node\" transform=\"translate(0.0,48.0)\"><rect x=\"0.0\" y=\"16.0\" width=\"566.6\" height=\"264.0\" rx=\"8.0\" fill=\"none\" stroke=\"#16636B\" stroke-width=\"1.1\" stroke-dasharray=\"5 4\" opacity=\"0.75\"/><g transform=\"translate(14.0,30.0)\"><g transform=\"translate(6.0,6.0)\"><path d=\"M263.3,32.6 L263.3,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"263.3,95.4 260.8,88.6 265.8,88.6\" fill=\"#C3CAD2\"/><path d=\"M263.3,128.6 L262.8,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"262.8,191.4 260.4,184.6 265.3,184.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(218.1,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"90.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"45.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">SKILL.md</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"526.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"263.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/knowledge/*.md（22件・frontmatter の形は v5 と v6 が混在）</text></g></g><g class=\"wf-node\" transform=\"translate(133.8,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"259.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"129.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/template-*.md（3件）</text></g></g></g></g><rect x=\"8.0\" y=\"7.0\" width=\"135.5\" height=\"15.0\" fill=\"#F5F7F9\"/><text x=\"75.8\" y=\"18.0\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#16636B\">変更前 ── ddd-advisor</text></g><g class=\"wf-node\" transform=\"translate(630.6,0.0)\"><rect x=\"0.0\" y=\"16.0\" width=\"546.2\" height=\"360.0\" rx=\"8.0\" fill=\"none\" stroke=\"#16636B\" stroke-width=\"1.1\" stroke-dasharray=\"5 4\" opacity=\"0.75\"/><g transform=\"translate(14.0,30.0)\"><g transform=\"translate(6.0,6.0)\"><path d=\"M253.1,32.6 L253.1,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"253.1,95.4 250.6,88.6 255.6,88.6\" fill=\"#C3CAD2\"/><path d=\"M253.1,128.6 L253.6,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"253.6,191.4 251.1,184.7 256.0,184.6\" fill=\"#C3CAD2\"/><path d=\"M253.6,224.6 L252.6,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"252.6,287.4 250.2,280.6 255.2,280.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(171.9,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"162.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"81.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">SKILL.md（手順だけ）</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"506.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"253.1\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/criteria.schema.json ＋ criteria.json（判断基準 22件）</text></g></g><g class=\"wf-node\" transform=\"translate(19.5,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"467.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"233.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/answer.schema.json ＋ answer.json（回答の形 3件）</text></g></g><g class=\"wf-node\" transform=\"translate(106.2,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"293.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"146.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">HTML は JSON から導出する（手で書かない）</text></g></g></g></g><rect x=\"8.0\" y=\"7.0\" width=\"135.5\" height=\"15.0\" fill=\"#F5F7F9\"/><text x=\"75.8\" y=\"18.0\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#16636B\">変更後 ── ddd-advisor</text></g></g></svg>",
+          "caption": "ddd-advisor の references を、種類ごとのスキーマと JSON に移す"
+        }
       ],
-      "rows": [
-       [
-        "外部の原典（公式文書 ・ 規格 ・ 書籍）",
-        [
-         "原典が正本。Skill は構造化した複製（document）を持つ。形は雛形の共通の document のスキーマ（出典 ・ sha256 ・ 取り込んだ日 ・ 節の入れ子）"
-        ]
-       ],
-       [
-        "Skill 自身の知見（判断基準 ・ 手順の定義 ・ 回答の形）",
-        [
-         "Skill が正本。形はその種類のスキーマ（例 criteria.schema.json）。出典の欄は document の節を指す"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<mark><b>取得のたびに原典を読みに行かない</b></mark> ── 原典は変わり、取得できないこともある。取り込んだ時点の複製を使い、取り直して sha256 が変われば差分として検知する（fact-check と同じ扱い）"
-       },
-       {
-        "text": "<b>取り込みの入口 import を雛形が持つ</b> ── Markdown ・ HTML は見出しから節へ機械で変換し、PDF などはモデルが節に分けて書き、validate で検査する"
-       },
-       {
-        "text": "<mark><b>種類の名前は中身で付ける</b></mark> ── 例：criteria（判断基準。いまの knowledge）・ answer（回答の形。いまのテンプレート）・ document（原典の複製）。knowledge という区分は設けない。references の中に特別な区分があると読めるためである。Markdown は SKILL.md だけにする"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "owner",
-     "caption": "外部の原典は構造化した複製で持ち、Skill 自身の知見はその出典として複製の節を指す"
-    },
-    {
-     "kind": "figure",
-     "name": "shape",
-     "caption": "ddd-advisor の references を、種類ごとのスキーマと JSON に移す"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 内容の正本で使い分ける（原典の複製は document、Skill の知見は固有のスキーマ）",
-     "body": "外の原典と Skill の知見を別の形で持ち、知見から原典の節をたどれる",
-     "cost": "雛形に document のスキーマと import を加える。advisor の判断基準（いまの knowledge）の出典の欄を、document の節への参照に書き換える"
-    },
-    {
-     "name": "B ── 項目ごとに JSON 1つ（knowledge/<id>.json）",
-     "body": "1項目1ファイルで、差分が小さい",
-     "cost": "ファイルが多い（アドバイザー系で約90）。一覧を得るには全ファイルを読む"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "取得のたびに原典を読み、必要な情報だけを契約の形にそろえる",
-     "reason": "原典は変わり、取得できないこともある。同じ問いに、日によって違う答えが返る"
-    },
-    {
-     "body": "種類ごとのスキーマと JSON だけにする（Round 1 の答え）",
-     "reason": "契約に合う形に書き直した文書しか knowledge にできず、既存の文書を使いたい場面で使えない"
-    },
-    {
-     "body": "Markdown と frontmatter のまま、frontmatter だけにスキーマを付ける",
-     "reason": "本文の構造（見出しと、その下の中身の範囲）が散文のままで、読み手が構造を解釈することになる。利用者の方針に反する"
-    },
-    {
-     "body": "全部の Skill で共通の knowledge のスキーマを1つ、skills-creator に置く",
-     "reason": "Skill を単独で配布したときに、スキーマが手元に無い。形を Skill の外に依存させることになる"
-    },
-    {
-     "body": "既存の文書を Markdown のまま references に置くことを許す",
-     "reason": "構造が散文のまま残り、一元管理できない。取り込む時点で構造化すれば、同じ入口（get ・ validate ・ view）で扱える"
-    }
-   ],
-   "findings": [
-    "アドバイザー系の knowledge 62件は、frontmatter で KnowledgeSchema/v5（39件）か v6（23件）を記録しているが、どちらのスキーマの実体もリポジトリに無い",
-    "acdr ・ brainstorming-board ・ slide-deck ・ no-more-spaghetti は、すでに JSON Schema と JSON を正本にし、HTML を導出している"
-   ],
-   "grounds": [
-    {
-     "supports": "Markdown が必須なのは SKILL.md だけであること",
-     "basis": "Every skill needs a `SKILL.md` file with two parts",
-     "tag": "primary",
-     "source": "sources/docs.claude.com_en_docs_claude-code_skills.md:71（2026-09-21 取得）"
-    },
-    {
-     "supports": "補足のファイルは、必要なときだけ読まれること",
-     "basis": "letting Claude access detailed reference material only when needed",
-     "tag": "primary",
-     "source": "sources/docs.claude.com_en_docs_claude-code_skills.md の Add supporting files の節（2026-09-21 取得）。例のファイルは .md だが、形式を規定する記述は無い"
-    },
-    {
-     "supports": "JSON を正本にする方針",
-     "basis": "SKILL.md以外をmd形式で持つメリットは正直ないと思ってます。もし見たいのであればJsonSchemaで構造化されたものから生成される実体Json構造データをHTMLに描画するような契約でいいと思ってる。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29）"
-    },
-    {
-     "supports": "スキーマの実体が無いこと",
-     "basis": "schemaRef: \"KnowledgeSchema/v5\" が39件、v6 が23件。定義の実体はリポジトリに無い",
-     "tag": "measured",
-     "source": "2026-09-29 に検索した"
-    },
-    {
-     "supports": "取り込む時点で構造化する方針",
-     "basis": "ここで悩ましいのは構造化した契約ものしかこれだとknowledgeにできないところだよね。 既存のドキュメントを利活用したいユースケースの場合に契約があってないと使用できないは少し片手落ちだが、私は既存のドキュメントを扱いやすいようにそのタイミングで構造化データにするってのも悪くないと思ってる。 ナレッジの管理の仕方を契約で縛ることで一元管理できるメリットもあるのでね。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、Round 1 の差し戻し）"
-    },
-    {
-     "supports": "雛形が get ・ validate ・ view を持つこと",
-     "basis": "3つの動詞は契約の雛形が持つ",
-     "tag": "rule",
-     "source": "論点4（Round 1 で承認）"
-    },
-    {
-     "supports": "使い分けの問い",
-     "basis": "自前ではknowledgeとしてのスキーマはもたない？そのSkillsで扱う新規のknowledgeならそのknowledgeのスキーマ契約でまとめるのかな？これはどういう使い分けになるんだろう。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、Round 2 の差し戻し）"
-    },
-    {
-     "supports": "references の位置づけと、種類の名前",
-     "basis": "Skillの目的を達成するために参照情報という位置づけ（種類の名前を中身で付ける提案に「それでいいよ」）",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、チャット）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "判断基準（criteria）の欄の中身（いまの knowledge の v5 と v6 のどちらを基にするか）",
-     "treatment": "later",
-     "note": "論点5の試行（1つの Skill での移行）で決める"
-    }
-   ],
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 2件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "references には、種類ごとに JSON Schema を1つと、それに従う JSON を1つ置く。既存の文書は、どの Skill でも使える共通の最小の形（document：出典と、見出し ・ 本文 ・ 下位の節の入れ子）で取り込み、取り込んだ時点で構造化データにする。種類固有の形が必要になったら、その種類のスキーマへ移す。Markdown は SKILL.md だけにし、knowledge は references の中の1つの種類とする",
-       "why": "<b>原典と Skill 自身の知見の使い分けが書かれていなかった</b> ── document と種類固有の形のどちらで持つかを、読み手が判定できなかった",
-       "user_words": "なるほど原典があるものはそれをSSOTにするようなイメージか。それをこちらの構造の契約で取得のたびに必要な情報だけをそろえるって感じか？？自前ではknowledgeとしてのスキーマはもたない？そのSkillsで扱う新規のknowledgeならそのknowledgeのスキーマ契約でまとめるのかな？これはどういう使い分けになるんだろう。"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "references には、種類ごとに JSON Schema を1つと、それに従う JSON を1つ置く（<種類>.schema.json と <種類>.json。JSON は同じ種類の項目の配列）。Markdown は SKILL.md だけにする。knowledge は references の中の1つの種類であり、別の区分にしない。スキーマは Skill の中に置き、JSON は $schema でそれを指す",
-       "why": "<b>契約に合う形に書き直した文書しか扱えなかった</b> ── 既存の文書を取り込む入口が無い",
-       "user_words": "ここで悩ましいのは構造化した契約ものしかこれだとknowledgeにできないところだよね。\n既存のドキュメントを利活用したいユースケースの場合に契約があってないと使用できないは少し片手落ちだが、私は既存のドキュメントを扱いやすいようにそのタイミングで構造化データにするってのも悪くないと思ってる。\nナレッジの管理の仕方を契約で縛ることで一元管理できるメリットもあるのでね。"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 2,
-   "name": "描画の置き場所",
-   "status": "settled",
-   "question": "JSON から HTML への描画を、どこが持つか",
-   "answer": "JSON から HTML への描画は、契約が1つだけ持つ。描画は、スキーマと JSON に、トークン（見た目の値）と型（HTML の雛形）を合わせて HTML を組む。既定の型は雛形が持ち、独自の見た目が必要な Skill は型とトークンを差し替える。Skill ごとに描画のコードを書かない",
-   "grounds": [
-    {
-     "supports": "雛形が view を持つこと",
-     "basis": "3つの動詞は契約の雛形が持つ",
-     "tag": "rule",
-     "source": "論点4（Round 1 で承認）"
-    },
-    {
-     "supports": "構造化した見た目で確認する方針",
-     "basis": "結局人間はmdよりも構造化されたものを視覚的に好みます。それがHTMLとCSSで見やすくなったページの典型です。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29）"
-    },
-    {
-     "supports": "描画を同じ契約にし、見た目をトークンが持つこと",
-     "basis": "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、Round 2 の差し戻し）"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-29、Round 3）。</b>論点4で、すべての Skill が道具を持ち、view を雛形が持つことが決まった。その描画の中身を決める。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>描画は契約が1つだけ持つ</b> ── 入力はスキーマ ・ JSON ・ トークン ・ 型の4つ"
-       },
-       {
-        "text": "<b>見た目はトークンが持つ</b> ── 色と寸法を直書きしない"
-       },
-       {
-        "text": "<mark><b>独自の見た目は、型とトークンの差し替えで表す</b></mark> ── acdr ・ ブレストボードは、すでに型とトークンから組んでいる。描画のコードを Skill ごとに書かない"
-       },
-       {
-        "text": "<b>既定の型</b> ── オブジェクトは節、同じ形の配列は表、文字列の配列は一覧、長い文字列は段落。見出しはスキーマの title、説明は description"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "render",
-     "caption": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
-     "body": "描画の仕組みは1つで、見た目の違いは型とトークンに閉じる",
-     "cost": "acdr ・ ブレストボードの独自の描画を、この契約の形へ移す作業が生じる"
-    },
-    {
-     "name": "B ── 雛形に汎用の描画を置き、必要な Skill だけがコードで上書きする（Round 2 の答え）",
-     "body": "独自の描画をそのまま残せる",
-     "cost": "描画の仕組みが Skill ごとに分かれ、1つを直しても他に反映されない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "描画を1つの Skill（または共通の道具）に置き、全部の Skill がそれを呼ぶ",
-     "reason": "Skill が他の Skill に依存し、単独で配布できなくなる"
-    },
-    {
-     "body": "描画を保持せず、JSON をそのまま読む",
-     "reason": "利用者の方針（構造化した見た目で確認する）に反する"
-    }
-   ],
-   "findings": [
-    "acdr ・ brainstorming-board は、JSON と型（HTML の雛形）とトークンから描画する仕組みを、それぞれ独自に持っている"
-   ],
-   "out_of_scope": [
-    {
-     "item": "汎用の描画の具体的な見た目",
-     "treatment": "later",
-     "note": "外の作業で試す ── 論点5の試行（ddd-advisor）で、実物の JSON を描画して確認する"
-    }
-   ],
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 1件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "契約の雛形に、汎用の描画を置く。スキーマの title を見出しに、description を説明に使い、JSON の形（オブジェクト ・ 配列 ・ 文字列）から HTML の形（節 ・ 表か一覧 ・ 段落）を決める。acdr やブレストボードのように独自の見た目が必要な Skill は、view を上書きしてよい",
-       "why": "<b>Skill ごとにコードで描画を上書きすることを許していた</b> ── 描画は同じ契約で考え、見た目はトークンで管理する",
-       "user_words": "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "回答の形",
-   "status": "settled",
-   "question": "アドバイザーの回答の形を、HTML で人が読む前提でどう定義し、回答をどう組んで検査するか",
-   "answer": "回答の形は、HTML で読む前提で定義し直し、answer.schema.json に置く。結論（判定と1文の結論）を先頭のカードに置き、図 ・ 比較した案 ・ 判断の道筋 ・ 根拠 ・ 注意 ・ 次にすることを、それぞれ別の構造にする。AI が作業するときの注意（違反しやすい点と検査する方法の組）は任意の欄とする。相談種別ごとに必須の欄を切り替える。見せ方は x-view で指定し、読み手への説明は description、書く側への指示は $comment に分ける。advisor は回答の JSON を組んで validate で検査し、人は view で描画した HTML で読む",
-   "grounds": [
-    {
-     "supports": "回答の形を references の種類にすること",
-     "basis": "種類の名前は中身で付ける ── 例：criteria（判断基準）・ answer（回答の形）・ document（原典の複製）",
-     "tag": "rule",
-     "source": "論点1（Round 3 で承認）"
-    },
-    {
-     "supports": "検査と描画を同じ入口で行うこと",
-     "basis": "get ・ validate ・ view を契約の雛形が持つ",
-     "tag": "rule",
-     "source": "論点4（Round 1 で承認）"
-    },
-    {
-     "supports": "いまは手で確認していること",
-     "basis": "各回答が指定したテンプレートの見出し構造を実際に踏襲しているかを確認してから統合する",
-     "tag": "rule",
-     "source": "CLAUDE.md の委譲パターン（助言専門の Skill の行）"
-    },
-    {
-     "supports": "根拠の引用が原文どおりであること",
-     "basis": "複数の集約にまたがるトランザクションを実行してはいけない——そうしたくなったなら、集約の境界がまちがっている。",
-     "tag": "primary",
-     "source": ".claude/skills/ddd-advisor/references/knowledge/domain-model.md:163"
-    },
-    {
-     "supports": "描画の規則",
-     "basis": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
-     "tag": "rule",
-     "source": "論点2（Round 3 で承認）"
-    },
-    {
-     "supports": "HTML で読む前提で定義し直すこと",
-     "basis": "画面見ましたが、はみ出している個所ありますね。あとは今既存のものをベースにして回答の形式を出していると思いますが、これずいぶん前に考えたものなので、今回のスキーマ契約に合うように新しく再定義してほしいです。アンサーの形も人間が見るときはHTMLです。HTMLで人間が確認しやすいように認知負荷が低くなるように構造化された内容ならOKです。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、Round 5 のあとのチャット）"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-29、Round 6）。</b>回答の形を、HTML で人が読む前提で定義し直した。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "table",
-      "cols": [
-       "欄",
-       "見せ方（x-view）と、読み手にとっての役割"
+      "grounds": [
+        {
+          "supports": "Markdown が必須なのは SKILL.md だけであること",
+          "basis": "Every skill needs a `SKILL.md` file with two parts",
+          "tag": "primary",
+          "source": "sources/docs.claude.com_en_docs_claude-code_skills.md:71（2026-09-21 取得）"
+        },
+        {
+          "supports": "補足のファイルは、必要なときだけ読まれること",
+          "basis": "letting Claude access detailed reference material only when needed",
+          "tag": "primary",
+          "source": "sources/docs.claude.com_en_docs_claude-code_skills.md の Add supporting files の節（2026-09-21 取得）。例のファイルは .md だが、形式を規定する記述は無い"
+        },
+        {
+          "supports": "JSON を正本にする方針",
+          "basis": "SKILL.md以外をmd形式で持つメリットは正直ないと思ってます。もし見たいのであればJsonSchemaで構造化されたものから生成される実体Json構造データをHTMLに描画するような契約でいいと思ってる。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29）"
+        },
+        {
+          "supports": "スキーマの実体が無いこと",
+          "basis": "schemaRef: \"KnowledgeSchema/v5\" が39件、v6 が23件。定義の実体はリポジトリに無い",
+          "tag": "measured",
+          "source": "2026-09-29 に検索した"
+        },
+        {
+          "supports": "取り込む時点で構造化する方針",
+          "basis": "ここで悩ましいのは構造化した契約ものしかこれだとknowledgeにできないところだよね。 既存のドキュメントを利活用したいユースケースの場合に契約があってないと使用できないは少し片手落ちだが、私は既存のドキュメントを扱いやすいようにそのタイミングで構造化データにするってのも悪くないと思ってる。 ナレッジの管理の仕方を契約で縛ることで一元管理できるメリットもあるのでね。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、Round 1 の差し戻し）"
+        },
+        {
+          "supports": "雛形が get ・ validate ・ view を持つこと",
+          "basis": "3つの動詞は契約の雛形が持つ",
+          "tag": "rule",
+          "source": "論点4（Round 1 で承認）"
+        },
+        {
+          "supports": "使い分けの問い",
+          "basis": "自前ではknowledgeとしてのスキーマはもたない？そのSkillsで扱う新規のknowledgeならそのknowledgeのスキーマ契約でまとめるのかな？これはどういう使い分けになるんだろう。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、Round 2 の差し戻し）"
+        },
+        {
+          "supports": "references の位置づけと、種類の名前",
+          "basis": "Skillの目的を達成するために参照情報という位置づけ（種類の名前を中身で付ける提案に「それでいいよ」）",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、チャット）"
+        }
       ],
-      "rows": [
-       [
-        "結論",
-        [
-         "card ── 判定（採る ・ 採らない ・ 条件付き ・ 定義）と1文の結論と理由。最初に読む"
-        ]
-       ],
-       [
-        "図で確認する",
-        [
-         "figure ── 節点と辺で宣言し、design-svg が組む。結論の構造を目で確認する"
-        ]
-       ],
-       [
-        "比較した案",
-        [
-         "table ── 案 ・ 何が起きるか ・ 採否。選ばなかった案も並べる"
-        ]
-       ],
-       [
-        "判断の道筋",
-        [
-         "steps ── 番号付きの問いと答え。結論に至った順番"
-        ]
-       ],
-       [
-        "根拠",
-        [
-         "table ── 判断基準と、その記述の引用"
-        ]
-       ],
-       [
-        "注意",
-        [
-         "table ── アンチパターン ・ リスク ・ 代替案を組で"
-        ]
-       ],
-       [
-        "次にすること",
-        [
-         "list ── 動詞で始まる行動"
-        ]
-       ],
-       [
-        "定義 ／ 実装の手順",
-        [
-         "card ／ steps ── 概念質問 ／ 実装相談のときに必須"
-        ]
-       ],
-       [
-        "AI が作業するときの注意",
-        [
-         "table ── この回答の結論に AI の作業が違反しやすい点と、それを検査する方法の組。工程（設計 ・ 実装 ・ 試験 ・ 文書）を問わない。任意の欄で、置くかどうかは advisor ごとに SKILL.md が決める。一般論ではなく、機械で検査できる形で書く"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<mark><b>読み手への説明と、書く側への指示を分ける</b></mark> ── description は描画して読み手に表示し、$comment（「1文で言い切る」など）は描画しない"
-       },
-       {
-        "text": "<mark><b>見せ方はスキーマの x-view が持つ</b></mark> ── 汎用の描画は x-view を読んで組み、回答の形を参照しない。論点2（描画は契約が1つだけ持つ）の中で、見せ方の指定をスキーマに置く形である"
-       },
-       {
-        "text": "<b>回答はチャットに流さない</b> ── advisor は回答の JSON を組んで validate で検査し、Orchestrator が view で描画した HTML を人に渡す"
-       }
-      ]
-     },
-     {
-      "kind": "heading",
-      "level": 3,
-      "text": "完成イメージ ── ddd-advisor の判断相談"
-     },
-     {
-      "kind": "para",
-      "text": "<a href=\"trial/answer.example.html\" target=\"_blank\"><b>描画した回答を開く（trial/answer.example.html）</b></a> ── 問いは「受注と在庫を1つの集約にすべきか」。根拠の引用は ddd-advisor の domain-model.md の原文である。"
-     },
-     {
-      "kind": "para",
-      "text": "スキーマの全文は <a href=\"trial/answer.schema.json\" target=\"_blank\">trial/answer.schema.json</a>、回答の JSON は <a href=\"trial/answer.example.json\" target=\"_blank\">trial/answer.example.json</a>。回答の例はスキーマの検査に合格する。"
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "answer",
-     "caption": "advisor は回答を JSON で組み、機械で検査してから Orchestrator へ渡す"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── HTML で読む前提で定義し直し、x-view と description ・ $comment を分ける",
-     "body": "結論が先頭に来て、図 ・ 比較 ・ 道筋が構造として分かれる。描画は回答の形を参照しない",
-     "cost": "いまの3つのテンプレートは土台にせず、移行の段2で相談種別ごとの必須の欄を決め直す"
-    },
-    {
-     "name": "B ── いまのテンプレートの見出しをそのまま欄にする（Round 5 の答え）",
-     "body": "いまの回答と同じ並びになる",
-     "cost": "Markdown で書く前提の並びのままで、結論が先頭に来ない。図と比較の欄が無い"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "回答の形を Markdown のテンプレートのまま残す",
-     "reason": "論点1（Markdown は SKILL.md だけ）に反する。テンプレートを踏襲したかを機械で検査できない"
-    },
-    {
-     "body": "回答の JSON も references に保存する",
-     "reason": "回答は相談ごとの出力であり、Skill の目的を達成するために参照する情報ではない"
-    }
-   ],
-   "findings": [
-    "Round 5 の完成イメージで、ボードの論点のタブにある長いコードの枠がはみ出した。ボードの型に、長い行を折り返すか枠の中で横に送る指定が無い（移行の段5で直す）",
-    "定義し直した回答の例はスキーマの検査に合格し、描画した HTML は 1200px と 390px の幅で、はみ出しが0件だった",
-    "閉じた流れの図は、横一列の配置だと戻りの辺が大回りした。輪の配置で組むと読めた",
-    "いまの ddd-advisor だけが「AI 時代の考察」を回答に求めている。推測が根拠と同じ見た目で並ぶと根拠として読まれるので、違反しやすい点と検査する方法の組に定義し直した（チャットで合意）"
-   ],
-   "out_of_scope": [
-    {
-     "item": "概念相談と実装相談の欄の中身",
-     "treatment": "later",
-     "note": "外の作業で試す ── 論点5の段2（ddd-advisor の試行）で、残りの2つのテンプレートから欄を起こす"
-    }
-   ],
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 2件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "回答の形は、references の answer.schema.json に置く（相談種別ごとの形を、1つのスキーマの中で種別の欄で分ける）。advisor はその形で回答の JSON を組み、validate answer で見出しの構造を機械で検査する。Orchestrator は合格した回答だけを受け取り、欄ごとに突き合わせてから、view で人が読む形に描画する。回答そのものは出力であり、references に置かない",
-       "why": "<b>ずいぶん前に考えた Markdown のテンプレートを土台にしていた</b> ── 回答も人は HTML で読む。認知負荷が低くなる構造で定義し直す",
-       "user_words": "画面見ましたが、はみ出している個所ありますね。あとは今既存のものをベースにして回答の形式を出していると思いますが、これずいぶん前に考えたものなので、今回のスキーマ契約に合うように新しく再定義してほしいです。アンサーの形も人間が見るときはHTMLです。HTMLで人間が確認しやすいように認知負荷が低くなるように構造化された内容ならOKです。"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "回答の形は、references の answer.schema.json に置く（相談種別ごとの形を、1つのスキーマの中で種別の欄で分ける）。advisor はその形で回答の JSON を組み、validate answer で見出しの構造を機械で検査する。Orchestrator は合格した回答だけを受け取り、欄ごとに突き合わせてから、view で人が読む形に描画する。回答そのものは出力であり、references に置かない",
-       "why": "<b>完成イメージが無かった</b> ── 具体的なスキーマと描画した姿が無いと、承認を判断できない",
-       "user_words": "これは具体的なschemaのイメージと実際のレンダリングイメージをもらえないと承認できないかもな。 結局承認するためには私は完成イメージがないとダメだね。"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 4,
-   "name": "モデルが読む経路",
-   "status": "settled",
-   "question": "モデルが references の中身を読むとき、ファイルを直接読むか、Skill の道具で必要な部分だけを取り出すか",
-   "intro": "<b>承認された（2026-09-29、Round 1）。</b>references を持つ Skill はすべて道具を持ち、get ・ validate ・ view を契約の雛形が持つ。",
-   "answer": "references を持つ Skill は、すべて道具を持つ。道具は references の種類と項目を指定して、必要な部分だけの JSON を返す（get）。スキーマで検査し（validate）、HTML に描画する（view）。この3つの動詞は Skill ごとに書かず、契約の雛形が持つ",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>get</b> ── 種類と項目の id を指定し、その1件の JSON だけを返す。モデルはファイル全体を読まない"
-       },
-       {
-        "text": "<b>validate</b> ── references の JSON を、指しているスキーマで検査する"
-       },
-       {
-        "text": "<b>view</b> ── references の JSON を HTML に描画する（論点2で置き場所を決める）"
-       },
-       {
-        "text": "<b>3つの動詞は契約の雛形が持つ</b> ── references しか持たない Skill（アドバイザー系など）は、固有のコードを書かずに道具を持てる"
-       }
-      ]
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "path",
-     "caption": "モデルは道具を呼び、必要な1件の JSON だけを受け取る"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── すべての Skill が道具を持ち、get ・ validate ・ view を雛形が持つ",
-     "body": "モデルは必要な部分だけを読み、検査と描画も同じ入口から行う",
-     "cost": "道具を保持しない8つの Skill に、道具（Rust の組なら組み立て）が加わる。配布物も OS ごとになる"
-    },
-    {
-     "name": "B ── モデルは JSON のファイルを直接読み、検査と描画だけを道具にする",
-     "body": "道具を保持しない Skill はそのままにできる",
-     "cost": "モデルは種類のファイル全体を読む。JSON は Markdown より記号が多いので、読む量が増える"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "references を読む道具を1つだけ作り、全部の Skill がそれを呼ぶ",
-     "reason": "Skill が他の Skill（または共通の道具）に依存し、単独で配布できなくなる"
-    },
-    {
-     "body": "道具を持たせず、SKILL.md の手順で読み方を指示するだけにする",
-     "reason": "検査も描画もできない。スキーマを置いても、誰も照合しない（いまの narration と doc-writing-skills と同じ状態になる）"
-    }
-   ],
-   "findings": [
-    "道具を保持しないのは、5つの advisor ・ advisor-creator ・ skill-router ・ memory-cultivator の8つである。このうち advisor-creator は生成する側である",
-    "narration と doc-writing-skills は、スキーマを置いているが、道具が検査に使っていない"
-   ],
-   "grounds": [
-    {
-     "supports": "JSON を正本にする方針",
-     "basis": "私が作成するSkillsは基本そのような構造で作成します。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29）"
-    },
-    {
-     "supports": "スキーマを置いても照合されない実例",
-     "basis": "narration ・ doc-writing-skills の道具のソースに、スキーマで検査する処理が無い",
-     "tag": "measured",
-     "source": "2026-09-29 に検索した"
-    },
-    {
-     "supports": "言語の組が雛形を持つこと",
-     "basis": "組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである",
-     "tag": "rule",
-     "source": "ACDR 0036"
-    },
-    {
-     "supports": "view の描画の置き場所",
-     "basis": "描画を、どこが持つかは論点2で決める",
-     "tag": "assumption",
-     "source": "論点2（未決）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "各 Skill 固有の道具（acdr の render など）",
-     "treatment": "out",
-     "note": "get ・ validate ・ view に加えて、Skill ごとに持ってよい"
-    }
-   ]
-  },
-  {
-   "no": 5,
-   "name": "移行の順番",
-   "status": "settled",
-   "question": "16の Skill を、どの順で移すか",
-   "answer": "5つの段で移す。1. skills-creator の契約と雛形（document ・ import ・ get ・ validate ・ view ・ 描画）。2. ddd-advisor で試し、criteria ・ answer ・ document の欄を決める。3. 残りの4つの advisor と advisor-creator。4. skill-router と memory-cultivator。5. 道具を持つ Skill の欠けたスキーマと検査、acdr とブレストボードの描画の契約への移行。段ごとに ACDR で提示してから適用する",
-   "grounds": [
-    {
-     "supports": "移す先の形",
-     "basis": "種類ごとにスキーマ1つと JSON 1つ",
-     "tag": "rule",
-     "source": "論点1（Round 3 で承認）"
-    },
-    {
-     "supports": "描画を契約へ移すこと",
-     "basis": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
-     "tag": "rule",
-     "source": "論点2（Round 3 で承認）"
-    },
-    {
-     "supports": "雛形が道具を持つこと",
-     "basis": "get ・ validate ・ view を契約の雛形が持つ",
-     "tag": "rule",
-     "source": "論点4（Round 1 で承認）"
-    },
-    {
-     "supports": "回答の形を answer に移すこと",
-     "basis": "回答の形は answer.schema.json に置く",
-     "tag": "assumption",
-     "source": "論点3（未決）"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-29、Round 4）。</b>論点1〜4で決めた形へ、16の Skill を移す順番を決めた。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "table",
-      "cols": [
-       "段",
-       "対象と作業"
+      "rejected": [
+        {
+          "option": "取得のたびに原典を読み、必要な情報だけを契約の形にそろえる",
+          "reason": "原典は変わり、取得できないこともある。同じ問いに、日によって違う答えが返る"
+        },
+        {
+          "option": "種類ごとのスキーマと JSON だけにする（Round 1 の答え）",
+          "reason": "契約に合う形に書き直した文書しか knowledge にできず、既存の文書を使いたい場面で使えない"
+        },
+        {
+          "option": "Markdown と frontmatter のまま、frontmatter だけにスキーマを付ける",
+          "reason": "本文の構造（見出しと、その下の中身の範囲）が散文のままで、読み手が構造を解釈することになる。利用者の方針に反する"
+        },
+        {
+          "option": "全部の Skill で共通の knowledge のスキーマを1つ、skills-creator に置く",
+          "reason": "Skill を単独で配布したときに、スキーマが手元に無い。形を Skill の外に依存させることになる"
+        },
+        {
+          "option": "既存の文書を Markdown のまま references に置くことを許す",
+          "reason": "構造が散文のまま残り、一元管理できない。取り込む時点で構造化すれば、同じ入口（get ・ validate ・ view）で扱える"
+        }
       ],
-      "rows": [
-       [
-        "1",
-        [
-         "skills-creator ── 契約の文書 ・ 雛形に、document のスキーマ ・ import ・ get ・ validate ・ view ・ 汎用の描画 ・ 既定の型とトークンを加える"
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 内容の正本で使い分ける（原典の複製は document、Skill の知見は固有のスキーマ）",
+            "cost": "雛形に document のスキーマと import を加える。advisor の判断基準（いまの knowledge）の出典の欄を、document の節への参照に書き換える"
+          },
+          {
+            "option": "B ── 項目ごとに JSON 1つ（knowledge/.json）",
+            "cost": "ファイルが多い（アドバイザー系で約90）。一覧を得るには全ファイルを読む"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "判断基準（criteria）の欄の中身（いまの knowledge の v5 と v6 のどちらを基にするか）",
+            "treatment": "later",
+            "note": "論点5の試行（1つの Skill での移行）で決める"
+          }
         ]
-       ],
-       [
-        "2",
-        [
-         "ddd-advisor ── 試行。criteria（判断基準 22件）・ answer（回答の形）・ document を移し、欄を決める。存在しない参照（mermaid-guide ・ 定義票）もここで解消する"
-        ]
-       ],
-       [
-        "3",
-        [
-         "残りの4つの advisor と advisor-creator ── 2で決めた欄で移す。advisor-creator は新しい形を生成する。重複している3件の判断基準と、qa-advisor の名前の混入もここで直す"
-        ]
-       ],
-       [
-        "4",
-        [
-         "skill-router（配線表の読み取り ・ 検査）と memory-cultivator（記憶の形のスキーマ ・ 雛形の矛盾）"
-        ]
-       ],
-       [
-        "5",
-        [
-         "道具を持つ Skill ── 欠けたスキーマを置く（design-svg ・ fact-check ・ doc-writing-skills ・ skills-creator）。スキーマで検査する（narration ・ doc-writing-skills）。acdr とブレストボードの描画を、契約の描画へ移す"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>段ごとに ACDR で提示してから適用する。</b>2の試行で欄が決まるまで、3以降の形は固定しない。"
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "order",
-     "caption": "契約と雛形を先に作り、1つの advisor で試してから広げる"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 契約と雛形を先に作り、ddd-advisor で試してから広げる",
-     "body": "雛形が先に在るので、各 Skill は雛形を使って移せる。欄は実物で決める",
-     "cost": "段が5つあり、記録も5件以上になる。3以降は、2の結果によって作業量が変わる"
+      }
     },
     {
-     "name": "B ── ddd-advisor を先に手で移し、そこから契約と雛形を起こす",
-     "body": "実物から形を起こせる",
-     "cost": "試行の段階では get ・ validate ・ view が無く、移した結果を機械で検査できない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "16の Skill を一度に移す",
-     "reason": "欄が決まる前に全部を移すと、欄を直すたびに全部を直すことになる"
+      "id": "Q2",
+      "name": "描画の置き場所",
+      "status": "settled",
+      "question": "JSON から HTML への描画を、どこが持つか",
+      "answer": {
+        "text": "JSON から HTML への描画は、契約が1つだけ持つ。描画は、スキーマと JSON に、トークン（見た目の値）と型（HTML の雛形）を合わせて HTML を組む。既定の型は雛形が持ち、独自の見た目が必要な Skill は型とトークンを差し替える。Skill ごとに描画のコードを書かない",
+        "details": [
+          "描画は契約が1つだけ持つ ── 入力はスキーマ ・ JSON ・ トークン ・ 型の4つ",
+          "見た目はトークンが持つ ── 色と寸法を直書きしない",
+          "独自の見た目は、型とトークンの差し替えで表す ── acdr ・ ブレストボードは、すでに型とトークンから組んでいる。描画のコードを Skill ごとに書かない",
+          "既定の型 ── オブジェクトは節、同じ形の配列は表、文字列の配列は一覧、長い文字列は段落。見出しはスキーマの title、説明は description"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 792 236\" width=\"792\" height=\"236\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M67.4,32.6 L238.3,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"238.3,95.2 231.1,95.2 232.8,90.6\" fill=\"#C3CAD2\"/><path d=\"M238.8,32.6 L238.3,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"238.3,95.2 235.9,88.4 240.8,88.5\" fill=\"#C3CAD2\"/><path d=\"M561.9,32.6 L238.3,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"238.3,95.2 244.4,91.5 245.4,96.3\" fill=\"#C3CAD2\"/><path d=\"M239.3,128.8 L238.8,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"238.8,191.4 236.4,184.6 241.3,184.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"134.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"67.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">スキーマ ＋ JSON</text></g></g><g class=\"wf-node\" transform=\"translate(158.8,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"160.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"80.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">トークン（見た目の値）</text></g></g><g class=\"wf-node\" transform=\"translate(342.8,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"437.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"218.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">型（HTML の雛形）── 既定は雛形が持つ。Skill は型を差し替えてよい</text></g></g><g class=\"wf-node\" transform=\"translate(148.9,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"179.8\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"89.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">描画（契約が1つだけ持つ）</text></g></g><g class=\"wf-node\" transform=\"translate(208.8,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"60.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"30.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">HTML</text></g></g></g></svg>",
+          "caption": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "雛形が view を持つこと",
+          "basis": "3つの動詞は契約の雛形が持つ",
+          "tag": "rule",
+          "source": "論点4（Round 1 で承認）"
+        },
+        {
+          "supports": "構造化した見た目で確認する方針",
+          "basis": "結局人間はmdよりも構造化されたものを視覚的に好みます。それがHTMLとCSSで見やすくなったページの典型です。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29）"
+        },
+        {
+          "supports": "描画を同じ契約にし、見た目をトークンが持つこと",
+          "basis": "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、Round 2 の差し戻し）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "描画を1つの Skill（または共通の道具）に置き、全部の Skill がそれを呼ぶ",
+          "reason": "Skill が他の Skill に依存し、単独で配布できなくなる"
+        },
+        {
+          "option": "描画を保持せず、JSON をそのまま読む",
+          "reason": "利用者の方針（構造化した見た目で確認する）に反する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
+            "cost": "acdr ・ ブレストボードの独自の描画を、この契約の形へ移す作業が生じる"
+          },
+          {
+            "option": "B ── 雛形に汎用の描画を置き、必要な Skill だけがコードで上書きする（Round 2 の答え）",
+            "cost": "描画の仕組みが Skill ごとに分かれ、1つを直しても他に反映されない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "汎用の描画の具体的な見た目",
+            "treatment": "later",
+            "note": "外の作業で試す ── 論点5の試行（ddd-advisor）で、実物の JSON を描画して確認する"
+          }
+        ]
+      }
     },
     {
-     "body": "道具を持つ Skill から先に移す",
-     "reason": "道具を持つ Skill は、すでに JSON と Schema を持つものが多く、変更が小さい。形を決める試行には向かない"
-    }
-   ],
-   "findings": [
-    "存在しない参照は4件：ddd-advisor の mermaid-guide と定義票、ux-advisor の design-md-conventions、tech-lead-advisor の関連概念",
-    "同じ判断基準の3ファイルが、ddd-advisor と tech-lead-advisor に重複している（中身は同一）"
-   ],
-   "out_of_scope": [
+      "id": "Q3",
+      "name": "回答の形",
+      "status": "settled",
+      "question": "アドバイザーの回答の形を、HTML で人が読む前提でどう定義し、回答をどう組んで検査するか",
+      "answer": {
+        "text": "回答の形は、HTML で読む前提で定義し直し、answer.schema.json に置く。結論（判定と1文の結論）を先頭のカードに置き、図 ・ 比較した案 ・ 判断の道筋 ・ 根拠 ・ 注意 ・ 次にすることを、それぞれ別の構造にする。AI が作業するときの注意（違反しやすい点と検査する方法の組）は任意の欄とする。相談種別ごとに必須の欄を切り替える。見せ方は x-view で指定し、読み手への説明は description、書く側への指示は $comment に分ける。advisor は回答の JSON を組んで validate で検査し、人は view で描画した HTML で読む",
+        "details": [
+          "読み手への説明と、書く側への指示を分ける ── description は描画して読み手に表示し、$comment（「1文で言い切る」など）は描画しない",
+          "見せ方はスキーマの x-view が持つ ── 汎用の描画は x-view を読んで組み、回答の形を参照しない。論点2（描画は契約が1つだけ持つ）の中で、見せ方の指定をスキーマに置く形である",
+          "回答はチャットに流さない ── advisor は回答の JSON を組んで validate で検査し、Orchestrator が view で描画した HTML を人に渡す"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 410 428\" width=\"410\" height=\"428\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M199.3,32.6 L198.3,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"198.3,95.2 195.9,88.4 200.8,88.5\" fill=\"#C3CAD2\"/><rect x=\"174.8\" y=\"53.9\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"198.8\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">相談する</text><path d=\"M199.3,128.8 L199.3,191.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"199.3,191.2 196.9,184.4 201.8,184.4\" fill=\"#C3CAD2\"/><path d=\"M198.3,224.8 L199.3,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"199.3,287.4 196.7,280.7 201.7,280.6\" fill=\"#C3CAD2\"/><rect x=\"154.8\" y=\"246.1\" width=\"88.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"198.8\" y=\"259.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">合格した回答だけ</text><path d=\"M199.3,320.6 L198.3,383.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"198.3,383.4 195.9,376.6 200.9,376.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(138.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"121.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"60.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Orchestrator</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"397.6\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"198.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">advisor：answer.schema.json の形で回答の JSON を組む</text></g></g><g class=\"wf-node\" transform=\"translate(36.3,192.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"325.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"162.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">validate answer：見出しの構造を機械で検査する</text></g></g><g class=\"wf-node\" transform=\"translate(32.1,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"333.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"166.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Orchestrator が複数の回答を欄ごとに突き合わせる</text></g></g><g class=\"wf-node\" transform=\"translate(103.2,384.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"191.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"95.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">view：人が読む形に描画する</text></g></g></g></svg>",
+          "caption": "advisor は回答を JSON で組み、機械で検査してから Orchestrator へ渡す"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "回答の形を references の種類にすること",
+          "basis": "種類の名前は中身で付ける ── 例：criteria（判断基準）・ answer（回答の形）・ document（原典の複製）",
+          "tag": "rule",
+          "source": "論点1（Round 3 で承認）"
+        },
+        {
+          "supports": "検査と描画を同じ入口で行うこと",
+          "basis": "get ・ validate ・ view を契約の雛形が持つ",
+          "tag": "rule",
+          "source": "論点4（Round 1 で承認）"
+        },
+        {
+          "supports": "いまは手で確認していること",
+          "basis": "各回答が指定したテンプレートの見出し構造を実際に踏襲しているかを確認してから統合する",
+          "tag": "rule",
+          "source": "CLAUDE.md の委譲パターン（助言専門の Skill の行）"
+        },
+        {
+          "supports": "根拠の引用が原文どおりであること",
+          "basis": "複数の集約にまたがるトランザクションを実行してはいけない——そうしたくなったなら、集約の境界がまちがっている。",
+          "tag": "primary",
+          "source": ".claude/skills/ddd-advisor/references/knowledge/domain-model.md:163"
+        },
+        {
+          "supports": "描画の規則",
+          "basis": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
+          "tag": "rule",
+          "source": "論点2（Round 3 で承認）"
+        },
+        {
+          "supports": "HTML で読む前提で定義し直すこと",
+          "basis": "画面見ましたが、はみ出している個所ありますね。あとは今既存のものをベースにして回答の形式を出していると思いますが、これずいぶん前に考えたものなので、今回のスキーマ契約に合うように新しく再定義してほしいです。アンサーの形も人間が見るときはHTMLです。HTMLで人間が確認しやすいように認知負荷が低くなるように構造化された内容ならOKです。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、Round 5 のあとのチャット）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "回答の形を Markdown のテンプレートのまま残す",
+          "reason": "論点1（Markdown は SKILL.md だけ）に反する。テンプレートを踏襲したかを機械で検査できない"
+        },
+        {
+          "option": "回答の JSON も references に保存する",
+          "reason": "回答は相談ごとの出力であり、Skill の目的を達成するために参照する情報ではない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── HTML で読む前提で定義し直し、x-view と description ・ $comment を分ける",
+            "cost": "いまの3つのテンプレートは土台にせず、移行の段2で相談種別ごとの必須の欄を決め直す"
+          },
+          {
+            "option": "B ── いまのテンプレートの見出しをそのまま欄にする（Round 5 の答え）",
+            "cost": "Markdown で書く前提の並びのままで、結論が先頭に来ない。図と比較の欄が無い"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "概念相談と実装相談の欄の中身",
+            "treatment": "later",
+            "note": "外の作業で試す ── 論点5の段2（ddd-advisor の試行）で、残りの2つのテンプレートから欄を起こす"
+          }
+        ]
+      }
+    },
     {
-     "item": "各段の具体的な差分",
-     "treatment": "later",
-     "note": "外の作業で試す ── 段ごとに ACDR で提示する"
+      "id": "Q4",
+      "name": "モデルが読む経路",
+      "status": "settled",
+      "question": "モデルが references の中身を読むとき、ファイルを直接読むか、Skill の道具で必要な部分だけを取り出すか",
+      "answer": {
+        "text": "references を持つ Skill は、すべて道具を持つ。道具は references の種類と項目を指定して、必要な部分だけの JSON を返す（get）。スキーマで検査し（validate）、HTML に描画する（view）。この3つの動詞は Skill ごとに書かず、契約の雛形が持つ",
+        "details": [
+          "get ── 種類と項目の id を指定し、その1件の JSON だけを返す。モデルはファイル全体を読まない",
+          "validate ── references の JSON を、指しているスキーマで検査する",
+          "view ── references の JSON を HTML に描画する（論点2で置き場所を決める）",
+          "3つの動詞は契約の雛形が持つ ── references しか持たない Skill（アドバイザー系など）は、固有のコードを書かずに道具を持てる"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 662 236\" width=\"662\" height=\"236\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M329.1,32.6 L328.6,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"328.6,95.2 326.2,88.4 331.1,88.5\" fill=\"#C3CAD2\"/><rect x=\"314.8\" y=\"53.9\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"328.8\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">呼ぶ</text><path d=\"M329.6,128.8 L108.1,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"108.1,191.4 114.0,187.2 115.3,191.9\" fill=\"#C3CAD2\"/><rect x=\"204.9\" y=\"150.1\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"218.9\" y=\"163.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">読む</text><path d=\"M329.6,128.8 L331.2,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"331.2,191.4 328.6,184.7 333.5,184.6\" fill=\"#C3CAD2\"/><rect x=\"306.4\" y=\"150.1\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"330.4\" y=\"163.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">検査する</text><path d=\"M329.6,128.8 L548.5,191.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"548.5,191.2 541.3,191.7 542.7,187.0\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(297.1,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"64.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"32.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">モデル</text></g></g><g class=\"wf-node\" transform=\"translate(158.5,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"341.2\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"170.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">Skill の道具：get criteria bounded-context</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"215.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"107.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">references/criteria.json</text></g></g><g class=\"wf-node\" transform=\"translate(239.2,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"184.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"92.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">criteria.schema.json</text></g></g><g class=\"wf-node\" transform=\"translate(447.2,192.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"202.6\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"101.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">必要な1件の JSON だけが返る</text></g></g></g></svg>",
+          "caption": "モデルは道具を呼び、必要な1件の JSON だけを受け取る"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "JSON を正本にする方針",
+          "basis": "私が作成するSkillsは基本そのような構造で作成します。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29）"
+        },
+        {
+          "supports": "スキーマを置いても照合されない実例",
+          "basis": "narration ・ doc-writing-skills の道具のソースに、スキーマで検査する処理が無い",
+          "tag": "measured",
+          "source": "2026-09-29 に検索した"
+        },
+        {
+          "supports": "言語の組が雛形を持つこと",
+          "basis": "組が持つのは、雛形 ・ 組み立てのコマンド ・ ソースの検査の3つである",
+          "tag": "rule",
+          "source": "ACDR 0036"
+        },
+        {
+          "supports": "view の描画の置き場所",
+          "basis": "描画を、どこが持つかは論点2で決める",
+          "tag": "assumption",
+          "source": "論点2（未決）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "references を読む道具を1つだけ作り、全部の Skill がそれを呼ぶ",
+          "reason": "Skill が他の Skill（または共通の道具）に依存し、単独で配布できなくなる"
+        },
+        {
+          "option": "道具を持たせず、SKILL.md の手順で読み方を指示するだけにする",
+          "reason": "検査も描画もできない。スキーマを置いても、誰も照合しない（いまの narration と doc-writing-skills と同じ状態になる）"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── すべての Skill が道具を持ち、get ・ validate ・ view を雛形が持つ",
+            "cost": "道具を保持しない8つの Skill に、道具（Rust の組なら組み立て）が加わる。配布物も OS ごとになる"
+          },
+          {
+            "option": "B ── モデルは JSON のファイルを直接読み、検査と描画だけを道具にする",
+            "cost": "モデルは種類のファイル全体を読む。JSON は Markdown より記号が多いので、読む量が増える"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "各 Skill 固有の道具（acdr の render など）",
+            "treatment": "out",
+            "note": "get ・ validate ・ view に加えて、Skill ごとに持ってよい"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q5",
+      "name": "移行の順番",
+      "status": "settled",
+      "question": "16の Skill を、どの順で移すか",
+      "answer": {
+        "text": "5つの段で移す。1. skills-creator の契約と雛形（document ・ import ・ get ・ validate ・ view ・ 描画）。2. ddd-advisor で試し、criteria ・ answer ・ document の欄を決める。3. 残りの4つの advisor と advisor-creator。4. skill-router と memory-cultivator。5. 道具を持つ Skill の欠けたスキーマと検査、acdr とブレストボードの描画の契約への移行。段ごとに ACDR で提示してから適用する"
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 657 428\" width=\"657\" height=\"428\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M322.4,32.8 L322.9,95.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"322.9,95.4 320.4,88.7 325.3,88.6\" fill=\"#C3CAD2\"/><path d=\"M321.9,128.6 L322.4,191.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"322.4,191.4 319.9,184.7 324.8,184.6\" fill=\"#C3CAD2\"/><path d=\"M322.4,224.6 L322.9,287.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"322.9,287.4 320.4,280.7 325.3,280.6\" fill=\"#C3CAD2\"/><path d=\"M322.9,320.6 L321.9,383.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"321.9,383.4 319.5,376.6 324.5,376.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"644.8\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"322.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">1. skills-creator：契約と雛形（document ・ import ・ get ・ validate ・ view ・ 描画）</text></g></g><g class=\"wf-node\" transform=\"translate(72.6,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"499.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"249.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">2. ddd-advisor で試す：criteria ・ answer ・ document の欄を決める</text></g></g><g class=\"wf-node\" transform=\"translate(81.3,192.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"482.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"241.1\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">3. 残りの4つの advisor と advisor-creator（生成する形を新しくする）</text></g></g><g class=\"wf-node\" transform=\"translate(169.8,288.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"305.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"152.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">4. skill-router ・ memory-cultivator</text></g></g><g class=\"wf-node\" transform=\"translate(57.9,384.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"529.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"264.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">5. 道具を持つ Skill：欠けたスキーマと検査、acdr ・ ブレストボードの描画を契約へ</text></g></g></g></svg>",
+          "caption": "契約と雛形を先に作り、1つの advisor で試してから広げる"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "移す先の形",
+          "basis": "種類ごとにスキーマ1つと JSON 1つ",
+          "tag": "rule",
+          "source": "論点1（Round 3 で承認）"
+        },
+        {
+          "supports": "描画を契約へ移すこと",
+          "basis": "描画は契約が1つだけ持ち、Skill は型とトークンを差し替える",
+          "tag": "rule",
+          "source": "論点2（Round 3 で承認）"
+        },
+        {
+          "supports": "雛形が道具を持つこと",
+          "basis": "get ・ validate ・ view を契約の雛形が持つ",
+          "tag": "rule",
+          "source": "論点4（Round 1 で承認）"
+        },
+        {
+          "supports": "回答の形を answer に移すこと",
+          "basis": "回答の形は answer.schema.json に置く",
+          "tag": "assumption",
+          "source": "論点3（未決）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "16の Skill を一度に移す",
+          "reason": "欄が決まる前に全部を移すと、欄を直すたびに全部を直すことになる"
+        },
+        {
+          "option": "道具を持つ Skill から先に移す",
+          "reason": "道具を持つ Skill は、すでに JSON と Schema を持つものが多く、変更が小さい。形を決める試行には向かない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 契約と雛形を先に作り、ddd-advisor で試してから広げる",
+            "cost": "段が5つあり、記録も5件以上になる。3以降は、2の結果によって作業量が変わる"
+          },
+          {
+            "option": "B ── ddd-advisor を先に手で移し、そこから契約と雛形を起こす",
+            "cost": "試行の段階では get ・ validate ・ view が無く、移した結果を機械で検査できない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "各段の具体的な差分",
+            "treatment": "later",
+            "note": "外の作業で試す ── 段ごとに ACDR で提示する"
+          }
+        ]
+      }
     }
-   ]
-  }
- ]
+  ],
+  "intro": "SKILL.md 以外の中身（references。knowledge もここへ統合する）は、JSON Schema と、それに従う JSON を正本にする。人が見るときは、JSON から導出した HTML で確認する。構造があらかじめ分離されていれば、読み手は構造を解釈せずに内容に集中できる ── 人にとっても AI にとっても同じである。この方針を、道具を持つ Skill と、アドバイザー系 ・ skill-router ・ memory-cultivator を含む16の Skill へ適用する形を決める。"
 }

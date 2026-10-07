@@ -1,0 +1,31 @@
+<!-- ブレストボードの部品。{{名前}} はプレースホルダー。/*STYLE*/ は board.css に、/*SCRIPT*/ は board.js に置き換わる。
+     {{tokens}} は design-system.json のトークンから schema-driven の基盤が作る CSS の変数 -->
+<template id="page"><title>{{title}}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>{{tokens}}</style><style>/*STYLE*/</style>{{sections}}<script>/*SCRIPT*/</script></template>
+<template id="board"><div id="root" data-board="{{board}}" data-round="{{round}}"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　{{title}}　/　Round {{round}}</p><h1>{{title}}</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button>{{tabs}}</div><div id="p0">{{front}}</div>{{panes}}{{send}}<footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div></template>
+<template id="tab"><button data-t="p{{at}}" aria-selected="false" class="{{class}}"><span class="tn">{{id}}</span>{{name}}<span class="st {{status_class}}">{{status}}</span></button></template>
+<template id="pane"><div id="p{{at}}" hidden>{{body}}</div></template>
+<template id="front"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div>{{intro}}{{queue}}<div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr>{{rows}}</table></div></section></template>
+<template id="intro"><div class="note"><p>{{text}}</p></div></template>
+<template id="queue"><div class="front"><h3>いま見るのは {{count}} 件だけである</h3><ol>{{items}}</ol></div></template>
+<template id="queue-item"><li><button class="jump" data-go="p{{at}}">{{id}}　{{name}}</button><br><span class="why">{{why}}</span></li></template>
+<template id="front-row"><tr><td><span class="n">{{id}}</span></td><td>{{question}}</td><td><span class="st {{status_class}}">{{status}}</span></td><td><b>{{answer}}</b></td></tr></template>
+<template id="topic"><section class="q"><div class="qh"><span class="qid">{{id}}</span><h2>{{question}}</h2></div>{{body}}</section></template>
+<template id="answer"><div class="ans"><span class="lead">{{text}}</span>{{details}}</div></template>
+<template id="details"><ul>{{items}}</ul></template>
+<template id="item"><li>{{text}}</li></template>
+<template id="waiting"><p class="waiting">{{text}}</p></template>
+<template id="images"><details class="image" open><summary>この答えの完成イメージ ── {{kinds}}</summary><div><div class="ex">{{tabs}}{{panes}}</div></div></details></template>
+<template id="image-tabs"><div class="ix-tabs" role="tablist">{{buttons}}</div></template>
+<template id="image-tab"><button class="ix-tab" role="tab" aria-selected="{{selected}}" data-g="{{group}}" data-ix="{{index}}">{{label}}</button></template>
+<template id="image-pane"><div data-g="{{group}}" data-ixp="{{index}}"{{hidden}}>{{body}}{{caption}}</div></template>
+<template id="caption"><p class="note-s">{{text}}</p></template>
+<template id="figure"><figure class="fig-top">{{svg}}</figure></template>
+<template id="code"><pre><code>{{text}}</code></pre></template>
+<template id="ui"><iframe class="ix-ui" title="描画した UI" srcdoc="{{html}}"></iframe></template>
+<template id="diff"><div class="diff"><div><h4>変更前</h4><pre><code>{{before}}</code></pre></div><div><h4>変更後</h4><pre><code>{{after}}</code></pre></div></div></template>
+<template id="grounds"><details open><summary>根拠（{{count}}件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr>{{rows}}</table></div></div></details></template>
+<template id="ground"><tr><td><span class="part">{{supports}}</span></td><td>{{basis}}</td><td><span class="kind {{tag_class}}">{{tag}}</span><small>{{source}}</small></td></tr></template>
+<template id="rejected"><details open><summary>採らなかった案（{{count}}件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr>{{rows}}</table></div></div></details></template>
+<template id="rejection"><tr><td><b>{{option}}</b></td><td>{{reason}}</td></tr></template>
+<template id="form"><div class="form" data-topic="{{id}}"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></template>
+<template id="send"><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / {{open}}</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section></template>

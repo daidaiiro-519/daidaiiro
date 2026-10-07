@@ -1,1974 +1,591 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "skills-creator の助言型の手順と契約を決め、advisor の形を揃える",
- "board": "advisor-creator",
- "round": 5,
- "intro": [
-  {
-   "kind": "para",
-   "text": "advisor の出来がばらついたのは、advisor を作る手順と契約が決まっていないためである。何を advisor にしてよいか ・ どう作るか ・ どんな形で持つか ・ 何を満たせば完成か ・ 既存の advisor をどう扱うか、の5つをここで決める。作る手順と雛形の持ち主は、skill-types のボードの決着により skills-creator の助言型である。"
-  }
- ],
- "panels": [
-  {
-   "heading": "現在地",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "advisor-creator",
+  "title": "skills-creator の助言型の手順と契約を決め、advisor の形を揃える",
+  "round": 5,
+  "queue": [],
+  "topics": [
     {
-     "kind": "para",
-     "text": "5つの論点がすべて決着した。作る手順と雛形は skills-creator の助言型が持つ（skill-types の論点4）。"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "次にすること"
-     ],
-     "rows": [
-      [
-       "1",
-       [
-        "別のセッションの skills-creator の変更（7言語の組）と、助言型を足す順を決める（skill-types の論点3）"
-       ]
-      ],
-      [
-       "2",
-       [
-        "skills-creator に助言型の手順 ・ 雛形 ・ 受け入れの検査（機械の7件）を置き、ACDR で提示する。advisor-creator を廃止する"
-       ]
-      ],
-      [
-       "3",
-       [
-        "usecase を概念ごとの27件へ組み直す"
-       ]
-      ],
-      [
-       "4",
-       [
-        "『ドメイン駆動設計をはじめよう』のスキャンを用意してもらい、ddd の学習ノートを書き直して32件へ作り直す"
-       ]
-      ],
-      [
-       "5",
-       [
-        "qa ・ platform ・ ux の原典を fact-check で取り直し、学習ノートから概念ごとに作り直す"
-       ]
-      ]
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "Round 2 からの組み直し",
-   "body": [
-    {
-     "kind": "table",
-     "cols": [
-      "Round 3 の行き先"
-     ],
-     "rows": [
-      [
-       "論点1 原典の条件（差し戻し）",
-       [
-        "論点1 advisor の条件"
-       ]
-      ],
-      [
-       "論点2 雛形の正本（承認済み）",
-       [
-        "論点3 advisor の契約に取り込む"
-       ]
-      ],
-      [
-       "論点3 ・ 論点4 ・ 論点5（待ち）",
-       [
-        "論点2 ・ 論点4 ・ 論点5"
-       ]
-      ],
-      [
-       "論点6 tech-lead-advisor（差し戻し）",
-       [
-        "論点5 既存の advisor の扱い（tech-lead-advisor は ACDR 0054 で削除済み）"
-       ]
-      ]
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "advisor の現状（2026-09-30 実測）",
-   "body": [
-    {
-     "kind": "table",
-     "cols": [
-      "原典",
-      "本文の出どころ",
-      "件数"
-     ],
-     "rows": [
-      [
-       "usecase",
-       [
-        "『ユースケース実践ガイド』",
-        "章ごとの学習ノート",
-        "24"
-       ]
-      ],
-      [
-       "ddd",
-       [
-        "『ドメイン駆動設計をはじめよう』",
-        "章ごとの学習ノート",
-        "19"
-       ]
-      ],
-      [
-       "qa",
-       [
-        "別々の著者の公開文書9種",
-        "原典ごとの学習ノート（ACDR 0055）",
-        "9"
-       ]
-      ],
-      [
-       "platform",
-       [
-        "AWS Well-Architected ・ Google SRE",
-        "AI の要約（本文の直接引用ではない）",
-        "6"
-       ]
-      ],
-      [
-       "ux",
-       [
-        "Anthropic の frontend-design skill",
-        "AI の要約",
-        "3"
-       ]
-      ]
-     ]
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "advisor の条件",
-   "status": "settled",
-   "question": "何を advisor にしてよいか。1つの advisor は、どの範囲の原典を持つか",
-   "intro": "決着していたが、差し戻しを受けて開き直した。1つの advisor の括りを、体系から領域の概念へ直す。論点3 ・ 論点5がこの答えに従う。",
-   "answer": "advisor は、1つの領域（QA ・ DDD ・ ユースケースなど）の概念で括り、その概念を立てた確立された原典から作る。原典は1つに限らない。確立された原典とは、概念を名付けた人や団体の一次文献、標準化団体や公的機関の文書（ISTQB ・ IPA など）、公式の枠組み、分野で定着した書籍のうち、原文を取得できるものである。原典ごとに学習ノートを書き、判断基準は領域の概念を1件の単位にする。1件の中では原典ごとに節を分け、原典どうしを総合した文を書かない。原文を読まずに書いたまとめ、道具の説明書や個人の意見の記事、このリポジトリ独自の内容は採らない。",
-   "example": [
-    {
-     "kind": "table",
-     "cols": [
-      "原典の種類",
-      "判定"
-     ],
-     "rows": [
-      [
-       "QA ・ ISTQB Foundation Level シラバス v4.0.1",
-       [
-        "標準化団体の文書",
-        "qa の原典にしてよい"
-       ]
-      ],
-      [
-       "QA ・ IPA 非機能要求グレード ・ 機能要件の合意形成ガイド ・ 高信頼化ガイドブック ・ STAMP/STPA",
-       [
-        "公的機関の文書",
-        "qa の原典にしてよい（非機能要求グレードの PDF は使用条件を確認する）"
-       ]
-      ],
-      [
-       "QA ・ Kent Beck「Canon TDD」 ・ Gerard Meszaros『xUnit Test Patterns』",
-       [
-        "概念を名付けた人の一次文献",
-        "qa の原典にしてよい"
-       ]
-      ],
-      [
-       "QA ・ Stryker Mutator の公式文書",
-       [
-        "道具の説明書",
-        "採らない（概念を名付けた一次文献に置き換える）"
-       ]
-      ],
-      [
-       "QA ・ DHH「TDD is dead」などの記事",
-       [
-        "個人の意見の記事",
-        "採らない"
-       ]
-      ],
-      [
-       "platform ・ AWS Well-Architected ・ Google『Site Reliability Engineering』",
-       [
-        "公式の枠組み ・ 分野で定着した書籍",
-        "platform の原典にしてよい"
-       ]
-      ],
-      [
-       "AI が複数の原則を総合した文（削除した tech-lead）",
-       [
-        "原典ではない",
-        "採らない"
-       ]
-      ],
-      [
-       "書名だけが分かる書籍 ・ 有料の論文",
-       [
-        "原文を取得できない",
-        "採らない"
-       ]
-      ]
-     ]
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 領域の概念で括り、確立された原典を複数持ってよい",
-     "body": "QA のような領域を、概念ごとの判断基準で持つ。原典は概念ごとに選ぶ",
-     "cost": "原典どうしで判断が違うことがある。1件の中で原典ごとに節を分け、総合しないことで、どの原典の判断かを回答で示せるようにする"
-    },
-    {
-     "name": "B ── 1つの体系＝1つの advisor",
-     "body": "範囲と中身を1つの体系が決める（前の答え）",
-     "cost": "QA のように概念ごとに原典が違う領域は、advisor が体系の数だけ分かれ、呼ぶ側が束ねることになる"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "原典を選ばず、分野の材料を集める（Round 2 までの作り方）",
-     "reason": "AI の総合 ・ リポジトリの事例 ・ 寄せ集めが入った（tech-lead 14件 ・ ddd 3件 ・ ux 4件 ・ platform 2件を ACDR 0054 で削除）"
-    },
-    {
-     "body": "原典の名前だけを出典に書き、原文は取得しない",
-     "reason": "本文が原典のどこに基づくかを後から確かめられない（qa の Web 調査の結果で実際に起きた）"
-    },
-    {
-     "body": "1件の判断基準の中で、複数の原典の記述を1つの文にまとめる",
-     "reason": "どの原典の判断かが消え、原典どうしの違いが見えなくなる。Round 2 で避けた「ブレ」がここで起きる"
-    }
-   ],
-   "grounds": [
-    {
-     "supports": "1つの体系の advisor が使えること",
-     "basis": "usecase と ddd は、判断基準の1件ごとに原典の章を示せる",
-     "tag": "measured",
-     "source": "usecase-advisor ・ ddd-advisor の criteria.json の source.origin"
-    },
-    {
-     "supports": "寄せ集めでは判断の軸が決まらないこと",
-     "basis": "qa の判断基準9件は、9つの別々の原典から作られている",
-     "tag": "measured",
-     "source": "ACDR 0055 の原典の一覧"
-    },
-    {
-     "supports": "独自の内容を採らないこと",
-     "basis": "「ここはrepository独自の内容は採用しないです。あくまで原典ベースです。」",
-     "tag": "rule",
-     "source": "利用者の回答（Round 1 の論点1）"
-    },
-    {
-     "supports": "原文を取得できる原典に限ること",
-     "basis": "「本文が取れないものはやめようか。」",
-     "tag": "rule",
-     "source": "利用者の指示（2026-09-29）"
-    },
-    {
-     "supports": "原典を元にしたまとめを採ること",
-     "basis": "「原典のままではなくて、それを元にしたまとめをknowledgeにするのは別に悪くない気がしてきました。」",
-     "tag": "rule",
-     "source": "利用者の発言（2026-09-30）"
-    },
-    {
-     "supports": "1つの体系の範囲を決めること",
-     "basis": "「じゃないとブレちゃうよね。」",
-     "tag": "rule",
-     "source": "利用者の発言（2026-09-30）"
-    },
-    {
-     "supports": "寄せ集めで語の意味がずれること",
-     "basis": "xunitpatterns.com の Erratic Test と Buggy Tests で、false negative の使い方が食い違う",
-     "tag": "measured",
-     "source": "qa-advisor の学習ノート test-smells.md"
-    },
-    {
-     "supports": "領域の概念で括ること",
-     "basis": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。 必ず一つの原点ということではないです。",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "今の qa の原典",
-     "basis": "9件は概念ごとである。原典は ISTQB ・ Kent Beck ・ Martin Fowler ・ Gerard Meszaros ・ James Bach と Cem Kaner ・ Scrum Guide などである。Stryker Mutator の文書と DHH の記事も含む",
-     "tag": "measured",
-     "source": "qa-advisor の criteria.json の出典の欄（2026-09-30）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "どの体系で、どの advisor を作るか",
-     "treatment": "later",
-     "note": "論点5で決める。この答えを覆さない ── 論点5は、この条件に当てはまる体系から選ぶ"
-    }
-   ],
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 3件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor は、確立された1つの体系を原典とし、その原文を取得できるときだけ作る。1つの体系とは、同じ著者か同じ発行元が1つの枠組みとして出したもの（1冊の書籍、ISTQB のシラバスと用語集、AWS Well-Architected の各 Pillar など）である。1つの advisor は1つの体系だけを持ち、扱う範囲はその体系が名前を付けて立てている概念で決まる。判断基準は、取得した原文を元に章ごとに作ったまとめ（学習ノート）から作ってよい。原文を読まずに書いたまとめ、複数の体系を総合したまとめ、このリポジトリ独自の内容は採らない。別の体系の視点が要るときは、advisor を体系ごとに分けて並列で呼ぶ。",
-       "why": "<b>1つの advisor は1つの体系だけを持つとしていた</b> ── QA のように、概念ごとに確立された原典が違う領域を1つの advisor にできなかった",
-       "user_words": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。\n必ず一つの原点ということではないです。"
+      "id": "Q1",
+      "name": "advisor の条件",
+      "status": "settled",
+      "question": "何を advisor にしてよいか。1つの advisor は、どの範囲の原典を持つか",
+      "answer": {
+        "text": "advisor は、1つの領域（QA ・ DDD ・ ユースケースなど）の概念で括り、その概念を立てた確立された原典から作る。原典は1つに限らない。確立された原典とは、概念を名付けた人や団体の一次文献、標準化団体や公的機関の文書（ISTQB ・ IPA など）、公式の枠組み、分野で定着した書籍のうち、原文を取得できるものである。原典ごとに学習ノートを書き、判断基準は領域の概念を1件の単位にする。1件の中では原典ごとに節を分け、原典どうしを総合した文を書かない。原文を読まずに書いたまとめ、道具の説明書や個人の意見の記事、このリポジトリ独自の内容は採らない。"
       },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "判断基準は、原典の内容だけで構成する。このリポジトリ独自の内容（事例からの一般化 ・ AI による総合）は、形を変えても採用しない。原典の種類を書籍 ・ 公式文書 ・ 論文の3つに限定し、出典の欄に種類 ・ 書誌 ・ 所在 ・ 導き方を必須の欄として記録する。確立された方法論は、その一次文献を原典として記録する。公開された原典は原文を document に取り込み、判断基準の文字列が原文の一部であることを照合する。",
-       "why": "<b>原典の種類の決め方だけで、1つの advisor が持つ範囲を決めていなかった</b> ── 分野から材料を集める作り方が残った",
-       "user_words": "ここはrepository独自の内容は採用しないです。\nあくまで原典ベースです。\nここに独自の概念を入れると陳腐化が加速します。"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "tech-lead-advisor を廃止し、software-architecture-advisor に置き換える。範囲は答える問いで決め、構造をどこで切るか ・ どのパターンが合うか ・ この設計は原則に反しているかの3つとする。判断基準は0件から始め、相談で必要になった時点で原典を取得 ・ レビュー ・ 照合して1件ずつ足す。no-more-spaghetti と重なる概念は、外の原典を正本とし、各 Skill が自分の用途の分だけ持つ。",
-       "why": "<b>tech-lead-advisor は ACDR 0054 で削除した</b> ── 範囲を答える問いで決める案は、1つの体系＝1つの advisor の条件に置き換えた",
-       "user_words": "これは他にもアーキテクチャパターンとして採用できそうなものはファクトチェックしたいね。"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>原典の種類</th><th>判定</th></tr><tr><td>QA ・ ISTQB Foundation Level シラバス v4.0.1</td><td>標準化団体の文書</td><td>qa の原典にしてよい</td></tr><tr><td>QA ・ IPA 非機能要求グレード ・ 機能要件の合意形成ガイド ・ 高信頼化ガイドブック ・ STAMP/STPA</td><td>公的機関の文書</td><td>qa の原典にしてよい（非機能要求グレードの PDF は使用条件を確認する）</td></tr><tr><td>QA ・ Kent Beck「Canon TDD」 ・ Gerard Meszaros『xUnit Test Patterns』</td><td>概念を名付けた人の一次文献</td><td>qa の原典にしてよい</td></tr><tr><td>QA ・ Stryker Mutator の公式文書</td><td>道具の説明書</td><td>採らない（概念を名付けた一次文献に置き換える）</td></tr><tr><td>QA ・ DHH「TDD is dead」などの記事</td><td>個人の意見の記事</td><td>採らない</td></tr><tr><td>platform ・ AWS Well-Architected ・ Google『Site Reliability Engineering』</td><td>公式の枠組み ・ 分野で定着した書籍</td><td>platform の原典にしてよい</td></tr><tr><td>AI が複数の原則を総合した文（削除した tech-lead）</td><td>原典ではない</td><td>採らない</td></tr><tr><td>書名だけが分かる書籍 ・ 有料の論文</td><td>原文を取得できない</td><td>採らない</td></tr></table>"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "1つの体系の advisor が使えること",
+          "basis": "usecase と ddd は、判断基準の1件ごとに原典の章を示せる",
+          "tag": "measured",
+          "source": "usecase-advisor ・ ddd-advisor の criteria.json の source.origin"
+        },
+        {
+          "supports": "寄せ集めでは判断の軸が決まらないこと",
+          "basis": "qa の判断基準9件は、9つの別々の原典から作られている",
+          "tag": "measured",
+          "source": "ACDR 0055 の原典の一覧"
+        },
+        {
+          "supports": "独自の内容を採らないこと",
+          "basis": "「ここはrepository独自の内容は採用しないです。あくまで原典ベースです。」",
+          "tag": "rule",
+          "source": "利用者の回答（Round 1 の論点1）"
+        },
+        {
+          "supports": "原文を取得できる原典に限ること",
+          "basis": "「本文が取れないものはやめようか。」",
+          "tag": "rule",
+          "source": "利用者の指示（2026-09-29）"
+        },
+        {
+          "supports": "原典を元にしたまとめを採ること",
+          "basis": "「原典のままではなくて、それを元にしたまとめをknowledgeにするのは別に悪くない気がしてきました。」",
+          "tag": "rule",
+          "source": "利用者の発言（2026-09-30）"
+        },
+        {
+          "supports": "1つの体系の範囲を決めること",
+          "basis": "「じゃないとブレちゃうよね。」",
+          "tag": "rule",
+          "source": "利用者の発言（2026-09-30）"
+        },
+        {
+          "supports": "寄せ集めで語の意味がずれること",
+          "basis": "xunitpatterns.com の Erratic Test と Buggy Tests で、false negative の使い方が食い違う",
+          "tag": "measured",
+          "source": "qa-advisor の学習ノート test-smells.md"
+        },
+        {
+          "supports": "領域の概念で括ること",
+          "basis": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。 必ず一つの原点ということではないです。",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "今の qa の原典",
+          "basis": "9件は概念ごとである。原典は ISTQB ・ Kent Beck ・ Martin Fowler ・ Gerard Meszaros ・ James Bach と Cem Kaner ・ Scrum Guide などである。Stryker Mutator の文書と DHH の記事も含む",
+          "tag": "measured",
+          "source": "qa-advisor の criteria.json の出典の欄（2026-09-30）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "原典を選ばず、分野の材料を集める（Round 2 までの作り方）",
+          "reason": "AI の総合 ・ リポジトリの事例 ・ 寄せ集めが入った（tech-lead 14件 ・ ddd 3件 ・ ux 4件 ・ platform 2件を ACDR 0054 で削除）"
+        },
+        {
+          "option": "原典の名前だけを出典に書き、原文は取得しない",
+          "reason": "本文が原典のどこに基づくかを後から確かめられない（qa の Web 調査の結果で実際に起きた）"
+        },
+        {
+          "option": "1件の判断基準の中で、複数の原典の記述を1つの文にまとめる",
+          "reason": "どの原典の判断かが消え、原典どうしの違いが見えなくなる。Round 2 で避けた「ブレ」がここで起きる"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 領域の概念で括り、確立された原典を複数持ってよい",
+            "cost": "原典どうしで判断が違うことがある。1件の中で原典ごとに節を分け、総合しないことで、どの原典の判断かを回答で示せるようにする"
+          },
+          {
+            "option": "B ── 1つの体系＝1つの advisor",
+            "cost": "QA のように概念ごとに原典が違う領域は、advisor が体系の数だけ分かれ、呼ぶ側が束ねることになる"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "どの体系で、どの advisor を作るか",
+            "treatment": "later",
+            "note": "論点5で決める。この答えを覆さない ── 論点5は、この条件に当てはまる体系から選ぶ"
+          }
+        ]
       }
-     ]
-    }
-   ],
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "advisor は、1つの領域（QA ・ DDD ・ ユースケースなど）の概念で括り、その概念を立てた確立された原典から作る。原典は1つに限らない。確立された原典とは、概念を名付けた人や団体の一次文献、標準化団体や公的機関の文書（ISTQB ・ IPA など）、公式の枠組み、分野で定着した書籍のうち、原文を取得できるものである。原典ごとに学習ノートを書き、判断基準は領域の概念を1件の単位にする。1件の中では原典ごとに節を分け、原典どうしを総合した文を書かない。原文を読まずに書いたまとめ、道具の説明書や個人の意見の記事、このリポジトリ独自の内容は採らない。"
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "扱い"
+    },
+    {
+      "id": "Q2",
+      "name": "作る手順",
+      "status": "settled",
+      "question": "条件に当てはまる原典から、advisor をどの手順で作るか。手順の道具をどこに置くか",
+      "answer": {
+        "text": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は skills-creator の助言型が持ち、他の Skill を名指しで呼ばない。原文の取得は skills-creator の外で行い、skills-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。"
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 255 938\" width=\"255\" height=\"938\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M122.8,68.6 L120.9,131.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"120.9,131.4 118.6,124.6 123.6,124.7\" fill=\"#C3CAD2\"/><path d=\"M122.5,182.6 L120.9,245.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"120.9,245.2 118.6,238.4 123.5,238.5\" fill=\"#C3CAD2\"/><path d=\"M122.5,296.8 L121.2,359.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"121.2,359.4 118.9,352.6 123.8,352.7\" fill=\"#C3CAD2\"/><path d=\"M122.2,392.6 L120.9,455.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"120.9,455.4 118.6,448.6 123.5,448.7\" fill=\"#C3CAD2\"/><path d=\"M122.5,506.6 L121.7,569.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"121.7,569.4 119.3,562.6 124.2,562.7\" fill=\"#C3CAD2\"/><path d=\"M121.7,620.6 L120.9,683.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"120.9,683.4 118.5,676.6 123.4,676.7\" fill=\"#C3CAD2\"/><path d=\"M122.5,734.6 L121.7,797.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"121.7,797.4 119.3,790.6 124.2,790.7\" fill=\"#C3CAD2\"/><path d=\"M121.7,830.6 L121.2,893.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"121.2,893.4 118.8,886.6 123.7,886.7\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(9.9,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"223.6\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"111.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">1. 原典の原文のファイルを受け取</text><text x=\"111.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">る（取得は外で行う。所在 ・ 取得</text><text x=\"111.8\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">した日 ・ sha256 を記録する）</text></g></g><g class=\"wf-node\" transform=\"translate(24.0,132.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"195.4\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"97.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">2. 章（文書）ごとの学習ノー</text><text x=\"97.7\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">トを書く（手元だけに置く）</text></g></g><g class=\"wf-node\" transform=\"translate(24.0,246.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"195.4\" height=\"50.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"97.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">3. ノートの節を、原典が立て</text><text x=\"97.7\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">ている概念ごとに振り分ける</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,360.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"243.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"121.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">4. 概念ごとに、変換前の形へ取り込む</text></g></g><g class=\"wf-node\" transform=\"translate(31.8,456.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"179.8\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"89.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">5. 判断基準へ変換する</text><text x=\"89.9\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">（ノートに無い文字列0件）</text></g></g><g class=\"wf-node\" transform=\"translate(4.5,570.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"234.4\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"117.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">6. 図を SVG のファイルにして、判</text><text x=\"117.2\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">断基準に置く（描く道具は問わない）</text></g></g><g class=\"wf-node\" transform=\"translate(45.9,684.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"151.6\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"75.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">7. 形の後処理（繰り</text><text x=\"75.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">返し ・ 崩れを外す）</text></g></g><g class=\"wf-node\" transform=\"translate(2.4,798.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"238.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"119.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">8. 回答の形 ・ 道具 ・ 試験を置く</text></g></g><g class=\"wf-node\" transform=\"translate(26.1,894.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"191.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"95.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">9. 受け入れの検査（論点4）</text></g></g></g></svg>",
+          "caption": "原文のファイルを受け取ってから受け入れの検査までの9段。3段目の振り分けで、判断基準の単位（概念）が決まる。1段目と6段目は受け渡すファイルだけを決め、使う道具を名指ししない"
+        }
       ],
-      "rows": [
-       [
-        "原典ごとの学習ノートから、領域の概念ごとに判断基準を作る",
-        [
-         "採る ── どの原典の、どの節のまとめかを辿れる"
+      "grounds": [
+        {
+          "supports": "この手順で作れること",
+          "basis": "usecase（24件、図24枚）と qa（9件、図6枚）を、ノートに無い文字列0件で作った",
+          "tag": "measured",
+          "source": "ACDR 0050 ・ ACDR 0055"
+        },
+        {
+          "supports": "道具を正本にする必要",
+          "basis": "段2で作った照合の道具は会話をまたがず、段3で作り直した",
+          "tag": "measured",
+          "source": "記憶 skill-references-board（段2の道具は scratchpad にある）"
+        },
+        {
+          "supports": "原典の条件",
+          "basis": "原文を取得できる1つの体系を原典にする",
+          "tag": "rule",
+          "source": "論点1"
+        },
+        {
+          "supports": "振り分けの段を置くこと",
+          "basis": "判断基準の単位は、原典が立てている概念である",
+          "tag": "rule",
+          "source": "論点3"
+        },
+        {
+          "supports": "他の Skill を名指しで呼ばないこと",
+          "basis": "「skillは他のskillに依存してまとめないほうがいい」",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "原文の取得を外で行うこと",
+          "basis": "論点2・3を「単体で動く」に合わせたときに見つかった2点の案に、利用者が同意した",
+          "tag": "rule",
+          "source": "利用者の回答（2026-09-30）"
+        },
+        {
+          "supports": "持ち主を skills-creator の助言型にすること",
+          "basis": "利用者が skill-types の論点4を承認した",
+          "tag": "rule",
+          "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "原典の要約から、判断基準を直接書く",
+          "reason": "判断基準の文字列を原典と照合できない（platform ・ ux の今の形）"
+        },
+        {
+          "option": "原典を一言一句書き写してから、判断基準を作る",
+          "reason": "利用者の決まりは構造化したノートであり、書き写しは求められていない。著作物の全文の複製にもなる"
+        },
+        {
+          "option": "skills-creator の助言型が原文を取得する機能を持つ",
+          "reason": "fact-check の取得の機能を複製することになる。書籍のスキャンは道具で取得できないので、どのみち外から受け取る経路が要る"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 手順と道具を skills-creator の助言型が持つ",
+            "cost": "作業用の置き場にある道具（prep ・ check ・ reshape ・ refig ・ dedup）を、試験つきの道具へ作り直す"
+          },
+          {
+            "option": "B ── 手順だけを文書にし、道具は作業ごとに作る",
+            "cost": "道具は会話をまたいで残らない。段3（advisor 4つの移行）で、段2の道具を作り直すことになった"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "道具の動詞と引数",
+            "treatment": "later",
+            "note": "論点4（受け入れの検査）と一緒に決める。この答えを覆さない"
+          },
+          {
+            "item": "このリポジトリで、作った advisor を ACDR で提示してから正本へ適用すること",
+            "treatment": "out",
+            "note": "リポジトリの運用（CLAUDE.md）が決める。skills-creator の助言型の手順には含めない。この答えを覆さない"
+          }
         ]
-       ],
-       [
-        "1件の中で、原典ごとに節を分ける",
-        [
-         "採る ── 原典どうしの違いを、そのまま見せる"
-        ]
-       ],
-       [
-        "原典どうしを総合した文",
-        [
-         "採らない ── どの原典の判断かが消える"
-        ]
-       ],
-       [
-        "原文を読まずに書いたまとめ（今の platform ・ ux）",
-        [
-         "採らない ── 原典のどこに基づくかを確かめられない"
-        ]
-       ]
-      ]
-     }
-    ]
-   }
-  },
-  {
-   "no": 2,
-   "name": "作る手順",
-   "status": "settled",
-   "question": "条件に当てはまる原典から、advisor をどの手順で作るか。手順の道具をどこに置くか",
-   "intro": "論点1の答え（1つの体系を、原文を取得して使う）を前提にする。usecase-advisor（ACDR 0050）と qa-advisor（ACDR 0055）で、同じ手順を2回通した。",
-   "answer": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は skills-creator の助言型が持ち、他の Skill を名指しで呼ばない。原文の取得は skills-creator の外で行い、skills-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。",
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "procedure",
-     "caption": "原文のファイルを受け取ってから受け入れの検査までの9段。3段目の振り分けで、判断基準の単位（概念）が決まる。1段目と6段目は受け渡すファイルだけを決め、使う道具を名指ししない"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 手順と道具を skills-creator の助言型が持つ",
-     "body": "取り込み ・ 照合 ・ 図 ・ 後処理を skills-creator の助言型の道具にする",
-     "cost": "作業用の置き場にある道具（prep ・ check ・ reshape ・ refig ・ dedup）を、試験つきの道具へ作り直す"
-    },
-    {
-     "name": "B ── 手順だけを文書にし、道具は作業ごとに作る",
-     "body": "SKILL.md に手順を書く",
-     "cost": "道具は会話をまたいで残らない。段3（advisor 4つの移行）で、段2の道具を作り直すことになった"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "原典の要約から、判断基準を直接書く",
-     "reason": "判断基準の文字列を原典と照合できない（platform ・ ux の今の形）"
-    },
-    {
-     "body": "原典を一言一句書き写してから、判断基準を作る",
-     "reason": "利用者の決まりは構造化したノートであり、書き写しは求められていない。著作物の全文の複製にもなる"
-    },
-    {
-     "body": "skills-creator の助言型が原文を取得する機能を持つ",
-     "reason": "fact-check の取得の機能を複製することになる。書籍のスキャンは道具で取得できないので、どのみち外から受け取る経路が要る"
-    }
-   ],
-   "grounds": [
-    {
-     "supports": "この手順で作れること",
-     "basis": "usecase（24件、図24枚）と qa（9件、図6枚）を、ノートに無い文字列0件で作った",
-     "tag": "measured",
-     "source": "ACDR 0050 ・ ACDR 0055"
-    },
-    {
-     "supports": "道具を正本にする必要",
-     "basis": "段2で作った照合の道具は会話をまたがず、段3で作り直した",
-     "tag": "measured",
-     "source": "記憶 skill-references-board（段2の道具は scratchpad にある）"
-    },
-    {
-     "supports": "原典の条件",
-     "basis": "原文を取得できる1つの体系を原典にする",
-     "tag": "rule",
-     "source": "論点1"
-    },
-    {
-     "supports": "振り分けの段を置くこと",
-     "basis": "判断基準の単位は、原典が立てている概念である",
-     "tag": "rule",
-     "source": "論点3"
-    },
-    {
-     "supports": "他の Skill を名指しで呼ばないこと",
-     "basis": "「skillは他のskillに依存してまとめないほうがいい」",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "原文の取得を外で行うこと",
-     "basis": "論点2・3を「単体で動く」に合わせたときに見つかった2点の案に、利用者が同意した",
-     "tag": "rule",
-     "source": "利用者の回答（2026-09-30）"
-    },
-    {
-     "supports": "持ち主を skills-creator の助言型にすること",
-     "basis": "利用者が skill-types の論点4を承認した",
-     "tag": "rule",
-     "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
-    }
-   ],
-   "requirements": [
-    "作業用の置き場の道具（prep ・ check ・ reshape ・ refig ・ dedup）を、skills-creator の助言型の道具として作り直す",
-    "学習ノートの書き方（NOTES.md）を skills-creator の references の助言型の雛形に置く",
-    "skills-creator の助言型の手順と道具に、他の Skill の名前を置かない。原文の取得と図の描画は、段の出力（原文のファイル ・ SVG のファイル）だけを決める",
-    "skills-creator の助言型の入力に、原文のファイルと、その所在 ・ 取得した日を受け取る形を定める。sha256 は skills-creator の助言型が計算する"
-   ],
-   "out_of_scope": [
-    {
-     "item": "道具の動詞と引数",
-     "treatment": "later",
-     "note": "論点4（受け入れの検査）と一緒に決める。この答えを覆さない"
-    },
-    {
-     "item": "このリポジトリで、作った advisor を ACDR で提示してから正本へ適用すること",
-     "treatment": "out",
-     "note": "リポジトリの運用（CLAUDE.md）が決める。skills-creator の助言型の手順には含めない。この答えを覆さない"
-    }
-   ],
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は skills-creator の助言型が持ち、他の Skill を名指しで呼ばない。原文の取得は skills-creator の外で行い、skills-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。"
-     }
-    ]
-   },
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 3件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor は9段の手順で作る。原典の原文のファイルを受け取り、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。原文の取得は advisor-creator の外で行い、advisor-creator は受け取ったファイルの所在 ・ 取得した日 ・ sha256 を記録する。",
-       "why": "<b>手順と道具の持ち主を advisor-creator としていた</b> ── advisor-creator は廃止となり、skills-creator の助言型が持つ",
-       "user_words": "おけ"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor は9段の手順で作る。原典を取得し、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を SVG のファイルにして判断基準に置き、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通す。手順の文書と各段の道具は advisor-creator が持ち、他の Skill を名指しで呼ばない。",
-       "why": "<b>1段目で原典を取得するとしていた</b> ── fact-check を名指ししないなら、advisor-creator が取得の機能を持つか、外から受け取るかを決める必要があった",
-       "user_words": "おけです！"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor は9段の手順で作る。原典を取得し、章（文書）ごとの学習ノートを書き、ノートの節を原典が立てている概念ごとに振り分ける。次に判断基準へ変換し、図を design-svg で組み、形の後処理を当てる。最後に回答の形 ・ 道具 ・ 試験を置き、受け入れの検査を通して ACDR で提示する。各段の道具は、今は作業用の置き場にあるものを advisor-creator の道具として正本にする。",
-       "why": "<b>手順の中で、図を design-svg で組み、ACDR で提示すると決めていた</b> ── advisor-creator が2つの Skill を前提にするので、それらを持たない人は advisor を作れない",
-       "user_words": "一つだけ大事なことをいうね。skillは他のskillに依存してまとめないほうがいい。いま、DesignSVGやacdrを使用する前提なのは依存度と結合度が高すぎて、他の人が使えない"
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "advisor の契約",
-   "status": "settled",
-   "question": "advisor の判断基準と回答を、どの形で持つか。advisor ごとに違ってよいのはどこまでか",
-   "intro": "Round 2 の論点2（雛形の正本、承認済み）を取り込み、論点1の答え（1つの体系の章を単位にする）を前提にした。",
-   "answer": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、領域の原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章と原典をまたいでノートから集めて作る。複数の原典が同じ概念を扱うときは、1件の中で原典ごとに節を分ける。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
-   "example": [
-    {
-     "kind": "note",
-     "text": "<b>揃えた後の ddd と usecase の判断基準の一覧（案）と、1件ずつの見本である。</b>概念の名前はノートの見出しにある原典の語で、どの節を集めるかは作り直しで確定する。"
     },
     {
-     "kind": "note",
-     "text": "<b>usecase ── 今の24件（章ごと）→ 揃えた後の27件（概念ごと）</b>"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "集める節"
-     ],
-     "rows": [
-      [
-       "ユースケース",
-       [
-        "1.1 ・ 2.1 ・ 2.2 ・ 2.3"
-       ]
-      ],
-      [
-       "利用ストーリー",
-       [
-        "1.6"
-       ]
-      ],
-      [
-       "精度",
-       [
-        "1.5 ・ 第13章"
-       ]
-      ],
-      [
-       "利害関係者",
-       [
-        "2.2 ・ 4.1"
-       ]
-      ],
-      [
-       "主アクター",
-       [
-        "4.2 ・ 第12章 ・ 19.2"
-       ]
-      ],
-      [
-       "支援アクター",
-       [
-        "4.3"
-       ]
-      ],
-      [
-       "対象システム",
-       [
-        "4.4 ・ 4.5"
-       ]
-      ],
-      [
-       "機能スコープ",
-       [
-        "3.1（In/Outリスト ・ アクター-目的リスト ・ ユースケース概要）"
-       ]
-      ],
-      [
-       "設計スコープ",
-       [
-        "3.2 ・ 3.3 ・ 3.4"
-       ]
-      ],
-      [
-       "目的レベル",
-       [
-        "5.1〜5.7（ユーザー目的 ・ 要約レベル ・ サブ機能）"
-       ]
-      ],
-      [
-       "事前条件",
-       [
-        "6.1"
-       ]
-      ],
-      [
-       "最低保証",
-       [
-        "6.2"
-       ]
-      ],
-      [
-       "成功時保証",
-       [
-        "6.3"
-       ]
-      ],
-      [
-       "トリガー",
-       [
-        "2.3 ・ 6.4 ・ 第12章"
-       ]
-      ],
-      [
-       "主成功シナリオ",
-       [
-        "7.1"
-       ]
-      ],
-      [
-       "アクションステップ",
-       [
-        "7.2 ・ 第19章"
-       ]
-      ],
-      [
-       "拡張",
-       [
-        "8.1〜8.3（拡張条件 ・ 拡張処理）"
-       ]
-      ],
-      [
-       "技術およびデータのバリエーション",
-       [
-        "第9章"
-       ]
-      ],
-      [
-       "サブユースケース",
-       [
-        "10.1"
-       ]
-      ],
-      [
-       "拡張ユースケース",
-       [
-        "10.2"
-       ]
-      ],
-      [
-       "ユースケースの書式",
-       [
-        "第11章（完全形式 ・ 略式 ・ 表 ・ RUPスタイルなど）"
-       ]
-      ],
-      [
-       "CRUDユースケース",
-       [
-        "14.1"
-       ]
-      ],
-      [
-       "パラメタライズドユースケース",
-       [
-        "14.2"
-       ]
-      ],
-      [
-       "ビジネスユースケースとシステムユースケース",
-       [
-        "15.1 ・ 15.2"
-       ]
-      ],
-      [
-       "データ要求の精度",
-       [
-        "16.1"
-       ]
-      ],
-      [
-       "要求のハブ-スポークモデル",
-       [
-        "1.3 ・ 16.2"
-       ]
-      ],
-      [
-       "ユースケース図",
-       [
-        "11.1 ・ 付録A"
-       ]
-      ],
-      [
-       "（判断基準にしない）",
-       [
-        "第17 ・ 18 ・ 20 ・ 21 ・ 22章の節は、上の概念へ振り分ける。付録C（用語集）は各概念の定義に使う"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "note",
-     "text": "<b>ddd ── 今の19件（まとまりごと）→ 揃えた後の32件（概念ごと）</b>"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "集める節"
-     ],
-     "rows": [
-      [
-       "事業領域",
-       [
-        "第1章"
-       ]
-      ],
-      [
-       "業務領域",
-       [
-        "第1章（中核 ・ 一般的 ・ 補完的）"
-       ]
-      ],
-      [
-       "業務エキスパート",
-       [
-        "第1章"
-       ]
-      ],
-      [
-       "同じ言葉",
-       [
-        "第2章"
-       ]
-      ],
-      [
-       "区切られた文脈",
-       [
-        "第3章"
-       ]
-      ],
-      [
-       "良きパートナー",
-       [
-        "4.1.1"
-       ]
-      ],
-      [
-       "モデルの共有",
-       [
-        "4.1.2"
-       ]
-      ],
-      [
-       "従属する関係",
-       [
-        "4.2.1"
-       ]
-      ],
-      [
-       "モデル変換装置",
-       [
-        "4.2.2"
-       ]
-      ],
-      [
-       "共用サービス",
-       [
-        "4.2.3"
-       ]
-      ],
-      [
-       "互いに独立",
-       [
-        "4.3"
-       ]
-      ],
-      [
-       "文脈の地図",
-       [
-        "4.4"
-       ]
-      ],
-      [
-       "トランザクションスクリプト",
-       [
-        "5.1"
-       ]
-      ],
-      [
-       "アクティブレコード",
-       [
-        "5.2"
-       ]
-      ],
-      [
-       "ドメインモデル",
-       [
-        "第6章（6.2.2 の4つの部品を除く）"
-       ]
-      ],
-      [
-       "値オブジェクト",
-       [
-        "6.2.2.1"
-       ]
-      ],
-      [
-       "エンティティ",
-       [
-        "6.2.2.2"
-       ]
-      ],
-      [
-       "集約",
-       [
-        "6.2.2.3 ・ 9.2 ・ 11.6.3 ・ 12.4 ・ 14.3.2"
-       ]
-      ],
-      [
-       "業務サービス",
-       [
-        "6.2.2.4"
-       ]
-      ],
-      [
-       "イベントソーシング",
-       [
-        "7.1"
-       ]
-      ],
-      [
-       "イベント履歴式ドメインモデル",
-       [
-        "7.2 ・ 7.3"
-       ]
-      ],
-      [
-       "レイヤードアーキテクチャ",
-       [
-        "8.2"
-       ]
-      ],
-      [
-       "ポートとアダプター",
-       [
-        "8.3"
-       ]
-      ],
-      [
-       "CQRS",
-       [
-        "8.4"
-       ]
-      ],
-      [
-       "モデルの変換",
-       [
-        "9.1"
-       ]
-      ],
-      [
-       "送信箱",
-       [
-        "9.2.1"
-       ]
-      ],
-      [
-       "サーガ",
-       [
-        "9.2.2"
-       ]
-      ],
-      [
-       "プロセスマネージャー",
-       [
-        "9.2.3"
-       ]
-      ],
-      [
-       "イベントストーミング",
-       [
-        "第12章"
-       ]
-      ],
-      [
-       "マイクロサービス",
-       [
-        "第14章"
-       ]
-      ],
-      [
-       "イベント駆動型アーキテクチャ",
-       [
-        "第15章"
-       ]
-      ],
-      [
-       "データメッシュ",
-       [
-        "第16章"
-       ]
-      ],
-      [
-       "（判断基準にしない）",
-       [
-        "第10 ・ 11 ・ 13章と結びの言葉 ・ 付録Aの節は、上の概念へ振り分ける"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "note",
-     "text": "<b>見本1 ── usecase の「主アクター」</b>"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "今（usecase）",
-      "揃えた後"
-     ],
-     "rows": [
-      [
-       "id",
-       [
-        "stakeholders-actors（第4章の1件）",
-        "primary-actor"
-       ]
-      ],
-      [
-       "題",
-       [
-        "利害関係者とアクター（章の題）",
-        "主アクター（原典の概念の名前）"
-       ]
-      ],
-      [
-       "概要",
-       [
-        "利害関係者とは、約束事としてのユースケースに参加する人のことです。（第4章の1文目）",
-        "主アクターはシステムに関する目的（システムが動くことによって満たされる目的）を持つ（ノートの言葉）"
-       ]
-      ],
-      [
-       "扱う節",
-       [
-        "第4章の6節（利害関係者 ・ 主アクター ・ 支援アクター…）",
-        "4.2 主アクター ・ 第12章 すべての主アクターとそのユーザー目的 ・ 19.2 主アクターが書かれていない"
-       ]
-      ],
-      [
-       "節の中身",
-       [
-        "第4章の中だけ",
-        "3つの章の節を集める。第12章は「終える条件」、第19章は「よくある誤りと直し方」として同じ概念に並ぶ"
-       ]
-      ],
-      [
-       "定義の引用",
-       [
-        "ノートの引用（> の行）をそのまま持つ",
-        "持たない。ノートの言葉だけで書く"
-       ]
-      ],
-      [
-       "原典の事例",
-       [
-        "ATM の例を構造と要点で持つ",
-        "同じく構造と要点だけ（「現金を引き出す」の直し方の要点）"
-       ]
-      ],
-      [
-       "出典",
-       [
-        "原典と第4章",
-        "節ごとに、原典と節の番号"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "note",
-     "text": "<b>見本2 ── ddd の「集約」</b>"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "今（ddd）",
-      "揃えた後"
-     ],
-     "rows": [
-      [
-       "id",
-       [
-        "domain-model（第6章の1件）",
-        "aggregate"
-       ]
-      ],
-      [
-       "題",
-       [
-        "ドメインモデルの定義を対象とする概念：domain-model（書籍の文ではない）",
-        "集約（原典の概念の名前）"
-       ]
-      ],
-      [
-       "概要",
-       [
-        "以前の knowledge から移した文",
-        "ドメインモデルの中心的な部品。エンティティの階層構造で、データの一貫性を保証する境界（ノートの言葉）"
-       ]
-      ],
-      [
-       "扱う節",
-       [
-        "問いの文5つ（書籍の文ではない）",
-        "6.2.2.3 集約 ・ 9.2 集約どうしの連係 ・ 11.6.3 集約の見直し ・ 12.4 ステップ9 集約を見つける ・ 14.3.2 集約"
-       ]
-      ],
-      [
-       "節の中身",
-       [
-        "第6章の中の「集約」の1節",
-        "5つの章の節を集める。一貫性の境界（6章）・ 業務イベントの発行（9章）・ 小さく保つ（11章）・ 見つけ方（12章）・ サービスの単位（14章）"
-       ]
-      ],
-      [
-       "コードの例",
-       [
-        "架空の業務（配送の依頼）へ置き換えたコード",
-        "持たない。コマンドの2つの実装方法を、構造と要点だけで書く"
-       ]
-      ],
-      [
-       "関連する基準",
-       [
-        "4件（書籍の文ではない）",
-        "原典が章どうしの参照を書いているときだけ"
-       ]
-      ],
-      [
-       "出典",
-       [
-        "原典と第6章、留保事項2文",
-        "節ごとに、原典と節の番号"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "note",
-     "text": "<b>ddd の書き起こしノートにも、書籍と照らせない節がある。</b>19本のうち多くが、章の番号の無い「判断基準」「具体例」「関連概念」の節を持つ（例：ドメインモデルの Q&A 形式の判断基準、企業名を並べた具体例）。書籍のスキャンが手元に無いので、原典の内容かを確かめられない。"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 原典が立てている概念を単位にし、節を章をまたいで集める",
-     "body": "advisor は確立された概念に照らして答えるので、相談の単位と判断基準の単位が一致する",
-     "cost": "usecase の判断基準24件を、概念ごとに組み直す。概念でない章の節の振り分け先を決める"
-    },
-    {
-     "name": "B ── 原典の章を単位にする",
-     "body": "usecase の今の形。章の区切りをそのまま使う",
-     "cost": "相談は概念で来るので、1つの相談に複数の章の判断基準を読むことになる。概念でない章（メモの章など）が判断基準になる"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "advisor ごとに形を決める",
-     "reason": "ddd と usecase は同じ手順で作ったのに、書き方と保管の形が違った。呼ぶ側が advisor ごとに扱いを変えることになる"
-    },
-    {
-     "body": "作る側が名前を付けた概念を単位にする",
-     "reason": "原典に無い概念の区切りが入る。論点1（独自の内容を採らない）に反する"
-    },
-    {
-     "body": "相談種別に「実装」を置く",
-     "reason": "原典（書籍 ・ 枠組み）が扱うのは概念と設計までで、実装は範囲の外である"
-    }
-   ],
-   "grounds": [
-    {
-     "supports": "スキーマの正本を skills-creator の助言型が持つこと",
-     "basis": "Round 2 の論点2で承認された",
-     "tag": "rule",
-     "source": "利用者の承認（2026-09-29）"
-    },
-    {
-     "supports": "原典に無い文字列を置かないこと",
-     "basis": "「原文にないものを追加しないでください」",
-     "tag": "rule",
-     "source": "利用者の指示（ACDR 0046 の作業中）"
-    },
-    {
-     "supports": "章を単位にすること",
-     "basis": "1つの advisor は1つの体系を持ち、範囲は体系の章立てで決まる",
-     "tag": "rule",
-     "source": "論点1"
-    },
-    {
-     "supports": "骨組みが一致していること",
-     "basis": "追跡しているファイルの並び（図 ・ 事例を除く）は差0件。道具は MCP の説明文だけが違う。スキーマの差は題 ・ 説明 ・ 扱う範囲の欄名 ・ 相談種別の3つ目だけ",
-     "tag": "measured",
-     "source": "ddd-advisor と usecase-advisor の突き合わせ（2026-09-30）"
-    },
-    {
-     "supports": "判断基準の書き方の違い",
-     "basis": "ddd は題 ・ 扱う範囲 ・ 関連を以前の knowledge から移し、主張は131論点のうち123に持つ。usecase は章の題 ・ 節の見出しで、主張は140論点のうち51",
-     "tag": "measured",
-     "source": "両 advisor の criteria.json の集計（2026-09-30）"
-    },
-    {
-     "supports": "概念を単位にすること",
-     "basis": "「アドバイザーとしては、確立された概念の元回答してほしいから、できれば原典の章ごとではなく概念ごとが好ましい」",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "相談種別から実装を外すこと",
-     "basis": "「実装があるのは違和感だな。設計ならわかりますが。。」",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "確立された語彙を変えないこと",
-     "basis": "「原典の語彙を変えてはいけない箇所もある。それは確立された語彙だからです。」",
-     "tag": "rule",
-     "source": "利用者の発言（2026-09-30）"
-    },
-    {
-     "supports": "事例を丸ごと書かないこと",
-     "basis": "「出てくる事例などを丸々かくのは問題だと思うけどね」",
-     "tag": "rule",
-     "source": "利用者の発言（2026-09-30）"
-    },
-    {
-     "supports": "配布の範囲を決める必要",
-     "basis": "このリポジトリは GitHub で公開されており、ddd ・ usecase の criteria.json はプッシュ済みである",
-     "tag": "measured",
-     "source": "gh repo view（visibility: PUBLIC、2026-09-30）"
-    },
-    {
-     "supports": "配布する判断基準に引用を置かないこと",
-     "basis": "「ノートには引用を書かないといけないけど配布するスキルには引用はいらないでしょ？だって、こちらで解釈した内容ですよ？」",
-     "tag": "rule",
-     "source": "利用者の発言（2026-09-30）"
-    },
-    {
-     "supports": "advisor を単体で動かすこと",
-     "basis": "「DesignSVGやacdrを使用する前提なのは依存度と結合度が高すぎて、他の人が使えない」",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "依存が在る場所",
-     "basis": "5つの advisor とも、SKILL.md の回答の手順と answer.schema.json が「design-svg が組んだ SVG」を前提にする。criteria.schema.json は図の説明で design-svg を名指しする。道具のコードでは注記の中だけに現れる",
-     "tag": "measured",
-     "source": "5つの advisor の grep（2026-09-30）"
-    },
-    {
-     "supports": "骨組みの持ち主",
-     "basis": "refs.rs と道具は全 Skill の共通の骨組みで skills-creator が持つ。advisor-creator は廃止し、助言型の雛形と手順として skills-creator へ統合する",
-     "tag": "rule",
-     "source": "skill-types の論点1 ・ 論点4"
-    },
-    {
-     "supports": "持ち主を skills-creator の助言型にすること",
-     "basis": "利用者が skill-types の論点4を承認した",
-     "tag": "rule",
-     "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
-    },
-    {
-     "supports": "原典ごとに節を分けること",
-     "basis": "領域の概念で括り、原典を複数持ってよい。原典どうしを総合しない",
-     "tag": "rule",
-     "source": "論点1"
-    }
-   ],
-   "requirements": [
-    "skills-creator の references の助言型の雛形に、criteria.schema.json と answer.schema.json の正本を置く（Round 2 の論点2）",
-    "answer.schema.json の相談種別を、概念 ・ 判断 ・ 設計の3つにする",
-    "usecase-advisor を概念ごとに組み直し、ddd-advisor の題 ・ 概要 ・ 扱う範囲 ・ 関連を原典の文字列へ差し替える（論点5）",
-    "学習ノートの書き方（NOTES.md）に、事例は構造と要点だけ ・ 定義の引用は短く区別して出典を付ける、を明記する",
-    "変換の段で、学習ノートの引用（原文のままの文）を判断基準へ持ち込まない。照合の道具で、引用の文字列が判断基準に無いことを検査する",
-    "SKILL.md ・ answer.schema.json ・ criteria.schema.json から、他の Skill の名前（design-svg ・ Orchestrator など）を外す",
-    "回答の view は、SVG が無いときに図の宣言（節点と辺）を表で描く。SVG が在ればそれを置く"
-   ],
-   "out_of_scope": [
-    {
-     "item": "どの節をどの概念へ振り分けるかの判断",
-     "treatment": "later",
-     "note": "論点2（作る手順）に、振り分けの段を加えて決める。この答えを覆さない"
-    },
-    {
-     "item": "公開済みの ddd ・ usecase の判断基準を、この扱いに照らして点検するか",
-     "treatment": "later",
-     "note": "論点5で決める。この答えを覆さない"
-    },
-    {
-     "item": "著作権の法的な判断",
-     "treatment": "out",
-     "note": "この論点は作り方の決まりを決める。公開して配布するときの法的な確認は、出版社か専門家に委ねる"
-    },
-    {
-     "item": "図の宣言を置く手元の置き場を、git で管理するか",
-     "treatment": "later",
-     "note": "論点5（既存の advisor の扱い）で、archive の管理と一緒に決める。この答えを覆さない"
-    }
-   ],
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、領域の原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章と原典をまたいでノートから集めて作る。複数の原典が同じ概念を扱うときは、1件の中で原典ごとに節を分ける。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。"
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "ddd（今）",
-       "usecase（今）",
-       "契約"
-      ],
-      "rows": [
-       [
-        "ファイルの並び",
-        [
-         "SKILL.md ・ tool.json ・ mcp.json と、references/ ・ tool/ の中身",
-         "同じ",
-         "固定（skills-creator の助言型の雛形）"
-        ]
-       ],
-       [
-        "道具",
-        [
-         "get ・ validate ・ view ・ import（契約の版2）。refs.rs は skills-creator の雛形から写したもの",
-         "同じ（MCP の説明文だけ違う）",
-         "固定。道具と refs.rs は skills-creator の共通の骨組みから写す。MCP の説明文だけ advisor ごと"
-        ]
-       ],
-       [
-        "判断基準のスキーマ",
-        [
-         "題 ・ 説明 ・ 扱う範囲の欄名が違う",
-         "同上",
-         "正本を固定。題 ・ 説明だけ advisor ごと"
-        ]
-       ],
-       [
-        "回答の形",
-        [
-         "16欄。相談種別は概念 ・ 判断 ・ 実装",
-         "16欄。概念 ・ 判断 ・ 記述",
-         "正本の欄を固定。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計"
-        ]
-       ],
-       [
-        "判断基準の単位と id",
-        [
-         "概念ごと（architecture-patterns など）",
-         "章ごと（introduction など）",
-         "領域の原典が名前を付けて立てている概念ごと。節を章と原典をまたいで集め、原典ごとに節を分ける。id は概念の英語の短い名前"
-        ]
-       ],
-       [
-        "題",
-        [
-         "「…を対象とする概念：id」（書籍の文ではない）",
-         "章の題",
-         "概念の名前（原典の語）"
-        ]
-       ],
-       [
-        "概要（summary）",
-        [
-         "以前の knowledge から移した文",
-         "ノートの概要の1段落目",
-         "その概念を定義 ・ 導入するノートの段落"
-        ]
-       ],
-       [
-        "扱う節（answers）",
-        [
-         "問いの文（書籍の文ではない）",
-         "節の見出し",
-         "集めた節の見出し（章の番号つき）"
-        ]
-       ],
-       [
-        "関連する基準（related）",
-        [
-         "19件とも持つ（書籍の文ではない）",
-         "持たない",
-         "原典が章どうしの参照を書いているときだけ"
-        ]
-       ],
-       [
-        "論点の主張（claim）",
-        [
-         "131論点のうち123",
-         "140論点のうち51",
-         "ノートに結論の1文があるときだけ（任意）"
-        ]
-       ],
-       [
-        "出典（source）",
-        [
-         "原典と章、移し方「書き起こし」、留保事項2文",
-         "原典と章、移し方「学習ノート」、書誌 ・ 注記",
-         "節ごとに、原典と章 ・ 所在（書誌か URL）・ 取得した日 ・ 移し方を必須の欄にする"
-        ]
-       ],
-       [
-        "手元の保管",
-        [
-         "knowledge-v1-book-transcription/（概念ごとの md。手順書 ・ 原典なし）",
-         "NOTES.md ・ book.pdf ・ notes/（章ごと）",
-         "references/archive/ に NOTES.md ・ 原典 ・ notes/<章>.md。git の管理の外"
-        ]
-       ],
-       [
-        "手順書（SKILL.md）",
-        [
-         "見出しは同じ。本文が81行違う（「バックボーン knowledge」の古い語が残る）",
-         "同上",
-         "雛形から生成し、advisor ごとに埋めるのは目的の対象 ・ 相談種別の3行目 ・ 判断基準の一覧だけ"
-        ]
-       ],
-       [
-        "他の Skill への依存",
-        [
-         "回答の図を design-svg が組む前提（SKILL.md ・ answer.schema.json）",
-         "同じ",
-         "持たない。判断基準の図は SVG のファイルを同梱する。回答の図は宣言だけで成り立ち、SVG は任意の欄にする（描く道具を名指ししない）"
-        ]
-       ],
-       [
-        "図の宣言（declaration）",
-        [
-         "判断基準の図ごとに、design-svg の宣言を持つ",
-         "同じ",
-         "配布する判断基準に置かない。図を描き直すための材料として、学習ノートと同じ手元の置き場に置く"
-        ]
-       ],
-       [
-        "試験",
-        [
-         "3件（形 ・ id で取り出せる ・ 回答の例）",
-         "5件（上に加えて章の数 ・ 3つ目の相談種別の必須の欄）",
-         "5件を雛形にする"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "判定の条件",
-       "例"
-      ],
-      "rows": [
-       [
-        "概念相談",
-        [
-         "「〜とは」「〜の違いは」",
-         "集約とは何か"
-        ]
-       ],
-       [
-        "判断相談",
-        [
-         "「〜すべきか」「この案でよいか」",
-         "このユースケースは目的レベルが低すぎないか"
-        ]
-       ],
-       [
-        "設計相談",
-        [
-         "「〜をどう組み立てるか」",
-         "受注の文脈をどう区切るか。このユースケースをどう書き分けるか"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "扱い",
-       "例"
-      ],
-      "rows": [
-       [
-        "確立された語彙（概念の名前 ・ 用語）",
-        [
-         "原典の語のまま使う。言い換えない（分野で広く使われ、検索しても出てくる語である）",
-         "集約 ・ 区切られた文脈 ・ 目的レベル ・ 拡張条件"
-        ]
-       ],
-       [
-        "概念の要点",
-        [
-         "学習ノート（自分の言葉のまとめ）から作る。原典の文の並びをなぞらない",
-         "目的レベルの3段と、それぞれの見分け方"
-        ]
-       ],
-       [
-        "原文のままの文（定義の引用など）",
-        [
-         "学習ノートにだけ置き、引用として区別して出どころを残す。配布する判断基準には持ち込まない（こちらで解釈した言葉だけで書くので、引用は要らない）",
-         "ノートの英語の定義文"
-        ]
-       ],
-       [
-        "原典の事例",
-        [
-         "丸ごと書かない。何を示す例かと、その構造 ・ 要点だけを書く",
-         "書籍のユースケースの記述例、企業の事例、コード例"
-        ]
-       ],
-       [
-        "作る側が作った例",
-        [
-         "置かない（原典に無い内容である）",
-         "ddd の「架空の業務へ置き換えた実例」"
-        ]
-       ],
-       [
-        "出典（どの原典の、どの概念か）",
-        [
-         "配布する判断基準にも持つ。引用ではなく、判断の根拠を辿るための記録である",
-         "『ユースケース実践ガイド』の目的レベル"
-        ]
-       ]
-      ]
-     }
-    ]
-   },
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 4件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
-       "why": "<b>判断基準は1つの原典の概念だけを扱っていた</b> ── 論点1で原典を複数持てるようにしたので、1件の中の節を原典ごとに分ける形を足した",
-       "user_words": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。\n必ず一つの原点ということではないです。"
+      "id": "Q3",
+      "name": "advisor の契約",
+      "status": "settled",
+      "question": "advisor の判断基準と回答を、どの形で持つか。advisor ごとに違ってよいのはどこまでか",
+      "answer": {
+        "text": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、skills-creator が持つ。道具と refs.rs は共通の骨組みとして、判断基準と回答のスキーマは助言型の雛形として、正本を固定する。判断基準は、領域の原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章と原典をまたいでノートから集めて作る。複数の原典が同じ概念を扱うときは、1件の中で原典ごとに節を分ける。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。"
       },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が自分の雛形として正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
-       "why": "<b>骨組みの正本を advisor-creator が持つとしていた</b> ── advisor-creator は廃止となり、道具と refs.rs は skills-creator の共通の骨組み、スキーマは助言型の雛形が持つ",
-       "user_words": "おけ"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。advisor は単体で動く。他の Skill の有無に左右されないよう、判断基準の図は SVG のファイルとして同梱し、回答の図は節点と辺の宣言だけで成り立たせる。",
-       "why": "<b>骨組みの正本の出どころを決めていなかった</b> ── refs.rs は skills-creator の雛形から写しており、作る側に skills-creator への依存が残っていた",
-       "user_words": "おけです！"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ ・ 回答の形）は、advisor-creator が正本を持って固定する。判断基準は、原典が名前を付けて立てている概念を1件の単位にし、その概念を扱う節を章をまたいでノートから集めて作る。相談種別は全 advisor 共通の概念 ・ 判断 ・ 設計の3つとし、advisor ごとに違ってよいのは題 ・ 説明 ・ 判断基準の一覧だけとする。配布する判断基準では、確立された語彙（概念の名前 ・ 用語）を原典の語のまま使い、要点は学習ノートの言葉（こちらの解釈）で書いて原文のままの文を持ち込まず、原典の事例は丸ごと書かずに構造と要点だけを持つ。",
-       "why": "<b>他の Skill への依存を決めていなかった</b> ── 回答の図が design-svg を前提にしており、design-svg を持たない人は advisor の回答を完成させられない",
-       "user_words": "一つだけ大事なことをいうね。skillは他のskillに依存してまとめないほうがいい。いま、DesignSVGやacdrを使用する前提なのは依存度と結合度が高すぎて、他の人が使えない"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "advisor の契約を、ddd と usecase の突き合わせから3層で決める。骨組み（ファイルの並び ・ 道具 ・ スキーマ）は、advisor-creator が正本を持って固定する。判断基準の書き方（単位 ・ 題 ・ 扱う節 ・ 関連 ・ 出典）は、usecase の形に揃える。advisor ごとに違ってよいのは、題 ・ 説明 ・ 相談種別の3つ目 ・ 判断基準の一覧だけとする。",
-       "why": "<b>判断基準の単位を章にしていた</b> ── advisor は概念に照らして答えるので、相談の単位と合わない。相談種別の3つ目も advisor ごとにしていた",
-       "user_words": "これアドバイザーとしては、確立された概念の元回答してほしいから、できれば原典の章ごとではなく概念ごとが好ましい\n\n相談種別は少し見直しかも。\n実装があるのは違和感だな。設計ならわかりますが。。"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p class=\"note\"><b>揃えた後の ddd と usecase の判断基準の一覧（案）と、1件ずつの見本である。</b>概念の名前はノートの見出しにある原典の語で、どの節を集めるかは作り直しで確定する。</p><p class=\"note\"><b>usecase ── 今の24件（章ごと）→ 揃えた後の27件（概念ごと）</b></p><table><tr><th></th><th>集める節</th></tr><tr><td>ユースケース</td><td>1.1 ・ 2.1 ・ 2.2 ・ 2.3</td></tr><tr><td>利用ストーリー</td><td>1.6</td></tr><tr><td>精度</td><td>1.5 ・ 第13章</td></tr><tr><td>利害関係者</td><td>2.2 ・ 4.1</td></tr><tr><td>主アクター</td><td>4.2 ・ 第12章 ・ 19.2</td></tr><tr><td>支援アクター</td><td>4.3</td></tr><tr><td>対象システム</td><td>4.4 ・ 4.5</td></tr><tr><td>機能スコープ</td><td>3.1（In/Outリスト ・ アクター-目的リスト ・ ユースケース概要）</td></tr><tr><td>設計スコープ</td><td>3.2 ・ 3.3 ・ 3.4</td></tr><tr><td>目的レベル</td><td>5.1〜5.7（ユーザー目的 ・ 要約レベル ・ サブ機能）</td></tr><tr><td>事前条件</td><td>6.1</td></tr><tr><td>最低保証</td><td>6.2</td></tr><tr><td>成功時保証</td><td>6.3</td></tr><tr><td>トリガー</td><td>2.3 ・ 6.4 ・ 第12章</td></tr><tr><td>主成功シナリオ</td><td>7.1</td></tr><tr><td>アクションステップ</td><td>7.2 ・ 第19章</td></tr><tr><td>拡張</td><td>8.1〜8.3（拡張条件 ・ 拡張処理）</td></tr><tr><td>技術およびデータのバリエーション</td><td>第9章</td></tr><tr><td>サブユースケース</td><td>10.1</td></tr><tr><td>拡張ユースケース</td><td>10.2</td></tr><tr><td>ユースケースの書式</td><td>第11章（完全形式 ・ 略式 ・ 表 ・ RUPスタイルなど）</td></tr><tr><td>CRUDユースケース</td><td>14.1</td></tr><tr><td>パラメタライズドユースケース</td><td>14.2</td></tr><tr><td>ビジネスユースケースとシステムユースケース</td><td>15.1 ・ 15.2</td></tr><tr><td>データ要求の精度</td><td>16.1</td></tr><tr><td>要求のハブ-スポークモデル</td><td>1.3 ・ 16.2</td></tr><tr><td>ユースケース図</td><td>11.1 ・ 付録A</td></tr><tr><td>（判断基準にしない）</td><td>第17 ・ 18 ・ 20 ・ 21 ・ 22章の節は、上の概念へ振り分ける。付録C（用語集）は各概念の定義に使う</td></tr></table><p class=\"note\"><b>ddd ── 今の19件（まとまりごと）→ 揃えた後の32件（概念ごと）</b></p><table><tr><th></th><th>集める節</th></tr><tr><td>事業領域</td><td>第1章</td></tr><tr><td>業務領域</td><td>第1章（中核 ・ 一般的 ・ 補完的）</td></tr><tr><td>業務エキスパート</td><td>第1章</td></tr><tr><td>同じ言葉</td><td>第2章</td></tr><tr><td>区切られた文脈</td><td>第3章</td></tr><tr><td>良きパートナー</td><td>4.1.1</td></tr><tr><td>モデルの共有</td><td>4.1.2</td></tr><tr><td>従属する関係</td><td>4.2.1</td></tr><tr><td>モデル変換装置</td><td>4.2.2</td></tr><tr><td>共用サービス</td><td>4.2.3</td></tr><tr><td>互いに独立</td><td>4.3</td></tr><tr><td>文脈の地図</td><td>4.4</td></tr><tr><td>トランザクションスクリプト</td><td>5.1</td></tr><tr><td>アクティブレコード</td><td>5.2</td></tr><tr><td>ドメインモデル</td><td>第6章（6.2.2 の4つの部品を除く）</td></tr><tr><td>値オブジェクト</td><td>6.2.2.1</td></tr><tr><td>エンティティ</td><td>6.2.2.2</td></tr><tr><td>集約</td><td>6.2.2.3 ・ 9.2 ・ 11.6.3 ・ 12.4 ・ 14.3.2</td></tr><tr><td>業務サービス</td><td>6.2.2.4</td></tr><tr><td>イベントソーシング</td><td>7.1</td></tr><tr><td>イベント履歴式ドメインモデル</td><td>7.2 ・ 7.3</td></tr><tr><td>レイヤードアーキテクチャ</td><td>8.2</td></tr><tr><td>ポートとアダプター</td><td>8.3</td></tr><tr><td>CQRS</td><td>8.4</td></tr><tr><td>モデルの変換</td><td>9.1</td></tr><tr><td>送信箱</td><td>9.2.1</td></tr><tr><td>サーガ</td><td>9.2.2</td></tr><tr><td>プロセスマネージャー</td><td>9.2.3</td></tr><tr><td>イベントストーミング</td><td>第12章</td></tr><tr><td>マイクロサービス</td><td>第14章</td></tr><tr><td>イベント駆動型アーキテクチャ</td><td>第15章</td></tr><tr><td>データメッシュ</td><td>第16章</td></tr><tr><td>（判断基準にしない）</td><td>第10 ・ 11 ・ 13章と結びの言葉 ・ 付録Aの節は、上の概念へ振り分ける</td></tr></table><p class=\"note\"><b>見本1 ── usecase の「主アクター」</b></p><table><tr><th></th><th>今（usecase）</th><th>揃えた後</th></tr><tr><td>id</td><td>stakeholders-actors（第4章の1件）</td><td>primary-actor</td></tr><tr><td>題</td><td>利害関係者とアクター（章の題）</td><td>主アクター（原典の概念の名前）</td></tr><tr><td>概要</td><td>利害関係者とは、約束事としてのユースケースに参加する人のことです。（第4章の1文目）</td><td>主アクターはシステムに関する目的（システムが動くことによって満たされる目的）を持つ（ノートの言葉）</td></tr><tr><td>扱う節</td><td>第4章の6節（利害関係者 ・ 主アクター ・ 支援アクター…）</td><td>4.2 主アクター ・ 第12章 すべての主アクターとそのユーザー目的 ・ 19.2 主アクターが書かれていない</td></tr><tr><td>節の中身</td><td>第4章の中だけ</td><td>3つの章の節を集める。第12章は「終える条件」、第19章は「よくある誤りと直し方」として同じ概念に並ぶ</td></tr><tr><td>定義の引用</td><td>ノートの引用（> の行）をそのまま持つ</td><td>持たない。ノートの言葉だけで書く</td></tr><tr><td>原典の事例</td><td>ATM の例を構造と要点で持つ</td><td>同じく構造と要点だけ（「現金を引き出す」の直し方の要点）</td></tr><tr><td>出典</td><td>原典と第4章</td><td>節ごとに、原典と節の番号</td></tr></table><p class=\"note\"><b>見本2 ── ddd の「集約」</b></p><table><tr><th></th><th>今（ddd）</th><th>揃えた後</th></tr><tr><td>id</td><td>domain-model（第6章の1件）</td><td>aggregate</td></tr><tr><td>題</td><td>ドメインモデルの定義を対象とする概念：domain-model（書籍の文ではない）</td><td>集約（原典の概念の名前）</td></tr><tr><td>概要</td><td>以前の knowledge から移した文</td><td>ドメインモデルの中心的な部品。エンティティの階層構造で、データの一貫性を保証する境界（ノートの言葉）</td></tr><tr><td>扱う節</td><td>問いの文5つ（書籍の文ではない）</td><td>6.2.2.3 集約 ・ 9.2 集約どうしの連係 ・ 11.6.3 集約の見直し ・ 12.4 ステップ9 集約を見つける ・ 14.3.2 集約</td></tr><tr><td>節の中身</td><td>第6章の中の「集約」の1節</td><td>5つの章の節を集める。一貫性の境界（6章）・ 業務イベントの発行（9章）・ 小さく保つ（11章）・ 見つけ方（12章）・ サービスの単位（14章）</td></tr><tr><td>コードの例</td><td>架空の業務（配送の依頼）へ置き換えたコード</td><td>持たない。コマンドの2つの実装方法を、構造と要点だけで書く</td></tr><tr><td>関連する基準</td><td>4件（書籍の文ではない）</td><td>原典が章どうしの参照を書いているときだけ</td></tr><tr><td>出典</td><td>原典と第6章、留保事項2文</td><td>節ごとに、原典と節の番号</td></tr></table><p class=\"note\"><b>ddd の書き起こしノートにも、書籍と照らせない節がある。</b>19本のうち多くが、章の番号の無い「判断基準」「具体例」「関連概念」の節を持つ（例：ドメインモデルの Q&A 形式の判断基準、企業名を並べた具体例）。書籍のスキャンが手元に無いので、原典の内容かを確かめられない。</p>"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "スキーマの正本を skills-creator の助言型が持つこと",
+          "basis": "Round 2 の論点2で承認された",
+          "tag": "rule",
+          "source": "利用者の承認（2026-09-29）"
+        },
+        {
+          "supports": "原典に無い文字列を置かないこと",
+          "basis": "「原文にないものを追加しないでください」",
+          "tag": "rule",
+          "source": "利用者の指示（ACDR 0046 の作業中）"
+        },
+        {
+          "supports": "章を単位にすること",
+          "basis": "1つの advisor は1つの体系を持ち、範囲は体系の章立てで決まる",
+          "tag": "rule",
+          "source": "論点1"
+        },
+        {
+          "supports": "骨組みが一致していること",
+          "basis": "追跡しているファイルの並び（図 ・ 事例を除く）は差0件。道具は MCP の説明文だけが違う。スキーマの差は題 ・ 説明 ・ 扱う範囲の欄名 ・ 相談種別の3つ目だけ",
+          "tag": "measured",
+          "source": "ddd-advisor と usecase-advisor の突き合わせ（2026-09-30）"
+        },
+        {
+          "supports": "判断基準の書き方の違い",
+          "basis": "ddd は題 ・ 扱う範囲 ・ 関連を以前の knowledge から移し、主張は131論点のうち123に持つ。usecase は章の題 ・ 節の見出しで、主張は140論点のうち51",
+          "tag": "measured",
+          "source": "両 advisor の criteria.json の集計（2026-09-30）"
+        },
+        {
+          "supports": "概念を単位にすること",
+          "basis": "「アドバイザーとしては、確立された概念の元回答してほしいから、できれば原典の章ごとではなく概念ごとが好ましい」",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "相談種別から実装を外すこと",
+          "basis": "「実装があるのは違和感だな。設計ならわかりますが。。」",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "確立された語彙を変えないこと",
+          "basis": "「原典の語彙を変えてはいけない箇所もある。それは確立された語彙だからです。」",
+          "tag": "rule",
+          "source": "利用者の発言（2026-09-30）"
+        },
+        {
+          "supports": "事例を丸ごと書かないこと",
+          "basis": "「出てくる事例などを丸々かくのは問題だと思うけどね」",
+          "tag": "rule",
+          "source": "利用者の発言（2026-09-30）"
+        },
+        {
+          "supports": "配布の範囲を決める必要",
+          "basis": "このリポジトリは GitHub で公開されており、ddd ・ usecase の criteria.json はプッシュ済みである",
+          "tag": "measured",
+          "source": "gh repo view（visibility: PUBLIC、2026-09-30）"
+        },
+        {
+          "supports": "配布する判断基準に引用を置かないこと",
+          "basis": "「ノートには引用を書かないといけないけど配布するスキルには引用はいらないでしょ？だって、こちらで解釈した内容ですよ？」",
+          "tag": "rule",
+          "source": "利用者の発言（2026-09-30）"
+        },
+        {
+          "supports": "advisor を単体で動かすこと",
+          "basis": "「DesignSVGやacdrを使用する前提なのは依存度と結合度が高すぎて、他の人が使えない」",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "依存が在る場所",
+          "basis": "5つの advisor とも、SKILL.md の回答の手順と answer.schema.json が「design-svg が組んだ SVG」を前提にする。criteria.schema.json は図の説明で design-svg を名指しする。道具のコードでは注記の中だけに現れる",
+          "tag": "measured",
+          "source": "5つの advisor の grep（2026-09-30）"
+        },
+        {
+          "supports": "骨組みの持ち主",
+          "basis": "refs.rs と道具は全 Skill の共通の骨組みで skills-creator が持つ。advisor-creator は廃止し、助言型の雛形と手順として skills-creator へ統合する",
+          "tag": "rule",
+          "source": "skill-types の論点1 ・ 論点4"
+        },
+        {
+          "supports": "持ち主を skills-creator の助言型にすること",
+          "basis": "利用者が skill-types の論点4を承認した",
+          "tag": "rule",
+          "source": "skill-types の論点4（advisor-creator を廃止し、skills-creator の助言型へ統合する）"
+        },
+        {
+          "supports": "原典ごとに節を分けること",
+          "basis": "領域の概念で括り、原典を複数持ってよい。原典どうしを総合しない",
+          "tag": "rule",
+          "source": "論点1"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "advisor ごとに形を決める",
+          "reason": "ddd と usecase は同じ手順で作ったのに、書き方と保管の形が違った。呼ぶ側が advisor ごとに扱いを変えることになる"
+        },
+        {
+          "option": "作る側が名前を付けた概念を単位にする",
+          "reason": "原典に無い概念の区切りが入る。論点1（独自の内容を採らない）に反する"
+        },
+        {
+          "option": "相談種別に「実装」を置く",
+          "reason": "原典（書籍 ・ 枠組み）が扱うのは概念と設計までで、実装は範囲の外である"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 原典が立てている概念を単位にし、節を章をまたいで集める",
+            "cost": "usecase の判断基準24件を、概念ごとに組み直す。概念でない章の節の振り分け先を決める"
+          },
+          {
+            "option": "B ── 原典の章を単位にする",
+            "cost": "相談は概念で来るので、1つの相談に複数の章の判断基準を読むことになる。概念でない章（メモの章など）が判断基準になる"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "どの節をどの概念へ振り分けるかの判断",
+            "treatment": "later",
+            "note": "論点2（作る手順）に、振り分けの段を加えて決める。この答えを覆さない"
+          },
+          {
+            "item": "公開済みの ddd ・ usecase の判断基準を、この扱いに照らして点検するか",
+            "treatment": "later",
+            "note": "論点5で決める。この答えを覆さない"
+          },
+          {
+            "item": "著作権の法的な判断",
+            "treatment": "out",
+            "note": "この論点は作り方の決まりを決める。公開して配布するときの法的な確認は、出版社か専門家に委ねる"
+          },
+          {
+            "item": "図の宣言を置く手元の置き場を、git で管理するか",
+            "treatment": "later",
+            "note": "論点5（既存の advisor の扱い）で、archive の管理と一緒に決める。この答えを覆さない"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 4,
-   "name": "受け入れの検査",
-   "status": "settled",
-   "question": "advisor が契約を満たし、完成したと判定する検査は何か",
-   "intro": "論点2（作る手順の9段目）と論点3（advisor の契約）が決着したので開いた。",
-   "answer": "advisor の完成は、skills-creator の助言型の検査（機械）7件がすべて合格し、人が判断基準と回答の頁を2つの幅で目視したときとする。機械の7件は、形 ・ ノートに無い文字列 ・ 持ち込んだ引用 ・ 概念の単位 ・ 図の同梱 ・ 他の Skill の名前 ・ 試験である。",
-   "example": [
-    {
-     "kind": "table",
-     "cols": [
-      "何を見るか",
-      "合格の条件"
-     ],
-     "rows": [
-      [
-       "1 形",
-       [
-        "判断基準と回答の例が、スキーマの検査に合格する",
-        "validate の検出0件"
-       ]
-      ],
-      [
-       "2 ノートに無い文字列",
-       [
-        "判断基準のすべての文字列が、学習ノートの本文の一部である",
-        "0件（id ・ kind ・ svg ・ code と出典の欄は除く）"
-       ]
-      ],
-      [
-       "3 持ち込んだ引用",
-       [
-        "学習ノートの引用（原文のままの文）が、判断基準に無い",
-        "0件"
-       ]
-      ],
-      [
-       "4 概念の単位",
-       [
-        "各判断基準の題が、学習ノートの見出しに原典の概念の名前として在る",
-        "不一致0件"
-       ]
-      ],
-      [
-       "5 図の同梱",
-       [
-        "判断基準が指す SVG が Skill の中に在り、SVG として読める",
-        "欠け0件"
-       ]
-      ],
-      [
-       "6 他の Skill の名前",
-       [
-        "SKILL.md ・ スキーマ ・ 道具に、同じ置き場所の他の Skill の名前が無い",
-        "0件"
-       ]
-      ],
-      [
-       "7 試験",
-       [
-        "雛形の試験5件が通る",
-        "失敗0件"
-       ]
-      ],
-      [
-       "8 目視（人）",
-       [
-        "判断基準と回答の頁を、1200px と 390px で描画して読む",
-        "崩れ ・ 重複が無い"
-       ]
-      ]
-     ]
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 機械の7件と、人の目視1件",
-     "body": "文字列で照合できるものは道具が見て、描画の崩れだけを人が見る",
-     "cost": "検査2 ・ 3 ・ 4の道具を、作業用の置き場から skills-creator の助言型の道具へ作り直す"
     },
     {
-     "name": "B ── スキーマの検査と試験だけにする",
-     "body": "今の advisor の validate と試験5件をそのまま使う",
-     "cost": "ノートに無い文字列と持ち込んだ引用を検出できない。ddd の 2126件、usecase の引用51件を見逃す"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "人が全文を読み合わせて判定する",
-     "reason": "usecase は4434、ddd は2790の文字列を持つ。人の読み合わせでは抜けが出る"
-    }
-   ],
-   "grounds": [
-    {
-     "supports": "検査2が要ること",
-     "basis": "ddd の判断基準は2790の文字列のうち2126が、書籍の書き起こしノートに無い",
-     "tag": "measured",
-     "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
-    },
-    {
-     "supports": "検査3が要ること",
-     "basis": "usecase はノートの引用93のうち51、qa は60のうち54を判断基準へ持ち込んでいる",
-     "tag": "measured",
-     "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
-    },
-    {
-     "supports": "検査2で出典の欄を除くこと",
-     "basis": "usecase の72件 ・ qa の51件は、すべて出典の欄（origin ・ reservations）である",
-     "tag": "measured",
-     "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
-    },
-    {
-     "supports": "検査6が要ること",
-     "basis": "advisor は単体で動き、他の Skill の名前を持たない",
-     "tag": "rule",
-     "source": "論点3"
-    },
-    {
-     "supports": "目視が要ること",
-     "basis": "判断基準の頁で、同じ内容の繰り返しと表の崩れを人が見つけた",
-     "tag": "measured",
-     "source": "ACDR 0052"
-    }
-   ],
-   "requirements": [
-    "検査2 ・ 3 ・ 4 ・ 5 ・ 6を、skills-creator の助言型の check の検出として実装する"
-   ],
-   "out_of_scope": [
-    {
-     "item": "判断基準の要点が、原典の意味を正しく捉えているか",
-     "treatment": "out",
-     "note": "文字列の照合では見られない。学習ノートを書く段で、原文を読んだ人が負う。この答えを覆さない"
-    }
-   ],
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "advisor の完成は、skills-creator の助言型の検査（機械）7件がすべて合格し、人が判断基準と回答の頁を2つの幅で目視したときとする。機械の7件は、形 ・ ノートに無い文字列 ・ 持ち込んだ引用 ・ 概念の単位 ・ 図の同梱 ・ 他の Skill の名前 ・ 試験である。"
-     }
-    ]
-   }
-  },
-  {
-   "no": 5,
-   "name": "既存の advisor の扱い",
-   "status": "settled",
-   "question": "ddd ・ usecase ・ qa ・ platform ・ ux を、論点1 ・ 論点3の条件に照らしてどう扱うか",
-   "intro": "論点1 ・ 論点3が決着し、論点4の検査で今の5つを測った結果をもとにする。",
-   "answer": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍のスキャンから学習ノートを書き直して作り直す。qa は概念ごとの形を保ち、原典を1本ずつ判定し直したうえで、ISTQB と IPA の4つの文書から QA の概念を足す。platform は AWS Well-Architected と Google SRE を原典にして、概念ごとに作り直す。ux は今の判断基準（AI の要約）を捨て、UX の確立された原典から概念ごとに作り直す。",
-   "example": [
-    {
-     "kind": "table",
-     "cols": [
-      "今の原典",
-      "測った結果",
-      "扱い"
-     ],
-     "rows": [
-      [
-       "usecase",
-       [
-        "『ユースケース実践ガイド』（1冊）",
-        "検査2は出典の欄だけ。検査3で引用51件",
-        "概念ごとに組み直し、引用を外す"
-       ]
-      ],
-      [
-       "ddd",
-       [
-        "『ドメイン駆動設計をはじめよう』（1冊）",
-        "判断基準は書き換えた knowledge から作られ、書き起こしノートと照らすと2126件が無い",
-        "書籍のスキャンを用意し、学習ノートを書き直してから作り直す。今の書き起こしノートは、章の番号の無い節（判断基準 ・ 具体例 ・ 関連概念）を書籍と照らせない"
-       ]
-      ],
-      [
-       "qa",
-       [
-        "概念ごとに、概念を立てた人や団体の文書（9件）",
-        "検査3で引用54件。道具の説明書（Stryker）と意見の記事（DHH）を含む",
-        "原典を判定し直し、引用を外す。ISTQB と IPA の4つから概念を足す"
-       ]
-      ],
-      [
-       "platform",
-       [
-        "AWS Well-Architected と Google SRE の2体系を AI が要約",
-        "ノートが無く、検査2ができない",
-        "AWS Well-Architected と Google SRE を原典に、学習ノートから概念ごとに作り直す"
-       ]
-      ],
-      [
-       "ux",
-       [
-        "Anthropic の frontend-design skill を AI が要約",
-        "原典が確立された文書ではなく、ノートも無い",
-        "今の判断基準を捨て、下の原典から概念ごとに作り直す"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "観点",
-      "原文",
-      "利用の条件",
-      "扱い"
-     ],
-     "rows": [
-      [
-       "IPA 非機能要求グレード2018",
-       [
-        "非機能要件（可用性 ・ 性能 ・ 運用 ・ 移行 ・ セキュリティ ・ 環境）",
-        "無償で公開（本体 ・ 利用ガイド ・ グレード表）",
-        "PDF は許諾なく改変 ・ 翻案できない。Excel（グレード表）は改変 ・ 再配布を許諾し、使用条件の添付を求める",
-        "qa の原典に加える"
-       ]
-      ],
-      [
-       "IPA 機能要件の合意形成ガイド",
-       [
-        "機能要件（画面 ・ システム振舞い ・ データモデル ・ 帳票 ・ バッチ ・ 外部インタフェース）",
-        "無償で公開（概要編と6分冊）",
-        "未確認",
-        "qa の原典に加える"
-       ]
-      ],
-      [
-       "IPA 高信頼化ソフトウェアのための開発手法ガイドブック",
-       [
-        "品質保証の予防と検知の手法（追跡性 ・ 再発防止 ・ テスト技法）",
-        "取得済み（PDF、2010年）",
-        "未確認",
-        "qa の原典に加える。第2部は各社の事例集なので、構造と要点だけを扱う"
-       ]
-      ],
-      [
-       "IPA はじめての STAMP/STPA",
-       [
-        "安全分析の手法",
-        "取得済み（PDF）",
-        "未確認",
-        "qa の原典に加える"
-       ]
-      ]
-     ]
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "種類",
-      "取得の結果",
-      "扱い"
-     ],
-     "rows": [
-      [
-       "W3C Web Content Accessibility Guidelines 2.2",
-       [
-        "標準化団体の勧告",
-        "本文を取得済み（達成基準を含む）",
-        "ux の原典にする"
-       ]
-      ],
-      [
-       "Nielsen Norman Group「10 Usability Heuristics for User Interface Design」",
-       [
-        "概念を名付けた人の一次文献",
-        "本文を取得済み",
-        "ux の原典にする"
-       ]
-      ],
-      [
-       "デジタル庁デザインシステム",
-       [
-        "公的機関の文書",
-        "トップの頁を取得済み。各頁は未取得",
-        "ux の原典にする（各頁を取得してから）"
-       ]
-      ],
-      [
-       "W3C ARIA Authoring Practices Guide",
-       [
-        "標準化団体の文書",
-        "トップの頁を取得済み。各頁は未取得",
-        "ux の原典の候補"
-       ]
-      ],
-      [
-       "Material Design 3",
-       [
-        "公式の枠組み",
-        "本文が script で描かれ、取得した原文に本文が無い",
-        "採らない（原文を取得できない）"
-       ]
-      ]
-     ]
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 条件を満たす体系で作り直し、満たせないものは廃止する",
-     "body": "usecase ・ ddd ・ qa ・ platform を作り直し、ux を廃止する",
-     "cost": "4つを作り直す。platform と qa に足す IPA の分は、原典から学習ノートを書くところから始める"
-    },
-    {
-     "name": "B ── 今の5つを残し、検査に合格するよう直す",
-     "body": "引用を外し、ノートに無い文字列を消す",
-     "cost": "qa ・ platform ・ ux は論点1の条件（1つの体系 ・ 原文から作る）を満たさないまま残る"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "IPA の文書を、体系ごとに別の advisor にする",
-     "reason": "QA の概念が advisor ごとに分かれ、呼ぶ側が束ねることになる。論点1（領域の概念で括る）に反する"
-    },
-    {
-     "body": "ux を廃止する（前の答え）",
-     "reason": "UX の判断に原典の根拠が無くなる。確立された原典は在り、原文も取得できる"
-    },
-    {
-     "body": "ddd を今の書き起こしノートから作り直す",
-     "reason": "ノートは章の番号の無い節（判断基準 ・ 具体例 ・ 関連概念）を持ち、書籍と照らせない"
-    }
-   ],
-   "grounds": [
-    {
-     "supports": "ddd の判断基準の出どころ",
-     "basis": "判断基準の文字列は、移行前の knowledge（22本）と照らすとノートに無い文字列が4件で、書き起こしノート（19本）と照らすと2126件である",
-     "tag": "measured",
-     "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
-    },
-    {
-     "supports": "qa の今の原典",
-     "basis": "別々の著者の公開文書9種から作った",
-     "tag": "measured",
-     "source": "ACDR 0055"
-    },
-    {
-     "supports": "qa の作り直し先",
-     "basis": "ISTQB Foundation Level シラバス v4.0.1 の PDF を取得済みである",
-     "tag": "measured",
-     "source": "sources/istqb.org_…_Syllabus_v4.0.1.pdf.meta.json"
-    },
-    {
-     "supports": "platform ・ ux の今の原典",
-     "basis": "AI の要約で、本文の直接引用ではない。学習ノートが無い",
-     "tag": "measured",
-     "source": "現在地の表（advisor の現状）"
-    },
-    {
-     "supports": "条件",
-     "basis": "1つの体系を、原文を取得して使う",
-     "tag": "rule",
-     "source": "論点1"
-    },
-    {
-     "supports": "IPA の文書を原典にできること",
-     "basis": "QAの部分はIPAが出すしているものでもいいとおもうぞ。機能と非機能の観点などでも整理していたり、品質という面では分析手法などその辺りの標準もあると思うしね",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "非機能要求グレードの利用の条件",
-     "basis": "「本資料の全部または一部を項番3に定める場合を除き、独立行政法人情報処理推進機構の許諾なく無断で改変、公衆送信、販売、出版、翻訳/翻案することは営利目的、非営利目的に関わらず禁じられています。」（PDF 形式）",
-     "tag": "primary",
-     "source": "IPA 非機能要求グレード本体（日本語版）使用条件（2026-09-30 取得、sources/）"
-    },
-    {
-     "supports": "グレード表（Excel）の利用の条件",
-     "basis": "「本資料の全部又は一部を複製、改変、公衆送信、又は翻訳/翻案し、第三者に有償又は無償で再配布すること」を許諾します。",
-     "tag": "primary",
-     "source": "同上（Excel 形式のドキュメント類）"
-    },
-    {
-     "supports": "機能要件の合意形成ガイドの構成",
-     "basis": "機能要件の合意形成ガイドは、「概要編」 と次の6つの技術領域のコツをまとめた各分冊からなります。",
-     "tag": "primary",
-     "source": "IPA 機能要件の合意形成技法の頁（2026-09-30 取得、sources/）"
-    },
-    {
-     "supports": "高信頼化ガイドブックの範囲",
-     "basis": "ソフトウェアの品質保証活動にかかわる予防活動および検知活動での各種手法や技法を中心に",
-     "tag": "primary",
-     "source": "IPA 高信頼化ソフトウェアのための開発手法ガイドブック はじめに（2026-09-30 取得、sources/）"
-    },
-    {
-     "supports": "qa に IPA の文書を加えること",
-     "basis": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。 必ず一つの原点ということではないです。",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "ux を作り直すこと",
-     "basis": "UXに関しては別にアドバイザーなんかなくてもあなたが全知全能ってこと？",
-     "tag": "rule",
-     "source": "利用者の差し戻し（2026-09-30）"
-    },
-    {
-     "supports": "UX の原典の取得",
-     "basis": "WCAG 2.2 は達成基準の見出しを含む本文、Nielsen の頁は「Visibility of System Status」などの本文を持つ。Material Design 3 の頁は題だけで本文が無い",
-     "tag": "measured",
-     "source": "fact-check fetch（2026-09-30、sources/）"
-    },
-    {
-     "supports": "原文を取り直すこと",
-     "basis": "原典に関しては取り直しの方がいいよ？それ随分と前にファクトチェックがない時に取得したものだから。。",
-     "tag": "rule",
-     "source": "利用者の指示（2026-09-30）"
-    },
-    {
-     "supports": "ddd の書き起こしノートの節",
-     "basis": "domain-model.md の「判断基準」は Q&A 形式で章の番号を持たない。business-domain.md の「具体例」は企業名の表で章の番号を持たない",
-     "tag": "measured",
-     "source": "knowledge-v1-book-transcription の見出し（2026-09-30）"
-    }
-   ],
-   "requirements": [
-    "作り直しは、skills-creator の助言型が出来てから、その手順と検査で行う",
-    "Web で公開されている原典は、作り直すときに fact-check で原文を取り直し、取得した日と sha256 を記録してから学習ノートを書く。以前に取得した原文と、それから書いたノートは使わない（書籍のスキャンは除く）",
-    "作り直す順は usecase → ddd → qa → platform → ux とし、1つずつ ACDR で提示する",
-    "ddd の作り直しの前に、『ドメイン駆動設計をはじめよう』のスキャンを references/archive/ に置く（利用者が用意する）"
-   ],
-   "out_of_scope": [
-    {
-     "item": "公開済みの ddd ・ usecase の判断基準を、作り直すまでのあいだ公開したままにするか",
-     "treatment": "later",
-     "note": "作り直しの ACDR で差し替える。この答えを覆さない"
-    },
-    {
-     "item": "IPA の PDF をまとめた判断基準を配布することが、使用条件の「翻案」に当たるか",
-     "treatment": "out",
-     "note": "法的な判断は IPA か専門家に委ねる（論点3と同じ扱い）。候補を作る前に確認する。この答えを覆さない"
-    }
-   ],
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍のスキャンから学習ノートを書き直して作り直す。qa は概念ごとの形を保ち、原典を1本ずつ判定し直したうえで、ISTQB と IPA の4つの文書から QA の概念を足す。platform は AWS Well-Architected と Google SRE を原典にして、概念ごとに作り直す。ux は今の判断基準（AI の要約）を捨て、UX の確立された原典から概念ごとに作り直す。"
-     }
-    ]
-   },
-   "panels": [
-    {
-     "heading": "この答えの履歴 ── 3件",
-     "body": [
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍の書き起こしノートから作り直す。qa は概念ごとの形を保ち、原典を1本ずつ判定し直したうえで、ISTQB と IPA の4つの文書から QA の概念を足す。platform は AWS Well-Architected と Google SRE を原典にして、概念ごとに作り直す。ux は確立された原典が無いので廃止する。",
-       "why": "<b>ux を廃止するとしていた</b> ── 今の中身に原典が無いことと、UX に原典が無いことを取り違えていた",
-       "user_words": "UXに関しては別にアドバイザーなんかなくてもあなたが全知全能ってこと？"
+      "id": "Q4",
+      "name": "受け入れの検査",
+      "status": "settled",
+      "question": "advisor が契約を満たし、完成したと判定する検査は何か",
+      "answer": {
+        "text": "advisor の完成は、skills-creator の助言型の検査（機械）7件がすべて合格し、人が判断基準と回答の頁を2つの幅で目視したときとする。機械の7件は、形 ・ ノートに無い文字列 ・ 持ち込んだ引用 ・ 概念の単位 ・ 図の同梱 ・ 他の Skill の名前 ・ 試験である。"
       },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍の書き起こしノートから作り直す。qa はテストの体系である ISTQB のシラバスから作り直す。platform は AWS Well-Architected だけを原典にして作り直す。ux は原典に当たる体系が無いので廃止する。品質の他の観点は、IPA の4つの体系（非機能要求グレード ・ 機能要件の合意形成ガイド ・ 高信頼化ソフトウェアのための開発手法ガイドブック ・ はじめての STAMP/STPA）を、体系ごとに新しい advisor の候補にする。",
-       "why": "<b>IPA の文書を体系ごとに別の advisor の候補にしていた</b> ── 論点1を、領域の概念で括る形に直した",
-       "user_words": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。\n必ず一つの原点ということではないです。"
-      },
-      {
-       "kind": "previous",
-       "letter": "A",
-       "body": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍の書き起こしノートから作り直す。qa は ISTQB のシラバスから作り直す。platform は AWS Well-Architected だけを原典にして作り直す。ux は原典に当たる体系が無いので廃止する。",
-       "why": "<b>qa の作り直し先を ISTQB だけにしていた</b> ── 品質の観点（機能 ・ 非機能 ・ 分析手法）で、IPA が公開している体系を見ていなかった",
-       "user_words": "QAの部分はIPAが出すしているものでもいいとおもうぞ。機能と非機能の観点などでも整理していたり、品質という面では分析手法などその辺りの標準もあると思うしね"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>何を見るか</th><th>合格の条件</th></tr><tr><td>1 形</td><td>判断基準と回答の例が、スキーマの検査に合格する</td><td>validate の検出0件</td></tr><tr><td>2 ノートに無い文字列</td><td>判断基準のすべての文字列が、学習ノートの本文の一部である</td><td>0件（id ・ kind ・ svg ・ code と出典の欄は除く）</td></tr><tr><td>3 持ち込んだ引用</td><td>学習ノートの引用（原文のままの文）が、判断基準に無い</td><td>0件</td></tr><tr><td>4 概念の単位</td><td>各判断基準の題が、学習ノートの見出しに原典の概念の名前として在る</td><td>不一致0件</td></tr><tr><td>5 図の同梱</td><td>判断基準が指す SVG が Skill の中に在り、SVG として読める</td><td>欠け0件</td></tr><tr><td>6 他の Skill の名前</td><td>SKILL.md ・ スキーマ ・ 道具に、同じ置き場所の他の Skill の名前が無い</td><td>0件</td></tr><tr><td>7 試験</td><td>雛形の試験5件が通る</td><td>失敗0件</td></tr><tr><td>8 目視（人）</td><td>判断基準と回答の頁を、1200px と 390px で描画して読む</td><td>崩れ ・ 重複が無い</td></tr></table>"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "検査2が要ること",
+          "basis": "ddd の判断基準は2790の文字列のうち2126が、書籍の書き起こしノートに無い",
+          "tag": "measured",
+          "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
+        },
+        {
+          "supports": "検査3が要ること",
+          "basis": "usecase はノートの引用93のうち51、qa は60のうち54を判断基準へ持ち込んでいる",
+          "tag": "measured",
+          "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
+        },
+        {
+          "supports": "検査2で出典の欄を除くこと",
+          "basis": "usecase の72件 ・ qa の51件は、すべて出典の欄（origin ・ reservations）である",
+          "tag": "measured",
+          "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
+        },
+        {
+          "supports": "検査6が要ること",
+          "basis": "advisor は単体で動き、他の Skill の名前を持たない",
+          "tag": "rule",
+          "source": "論点3"
+        },
+        {
+          "supports": "目視が要ること",
+          "basis": "判断基準の頁で、同じ内容の繰り返しと表の崩れを人が見つけた",
+          "tag": "measured",
+          "source": "ACDR 0052"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "人が全文を読み合わせて判定する",
+          "reason": "usecase は4434、ddd は2790の文字列を持つ。人の読み合わせでは抜けが出る"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 機械の7件と、人の目視1件",
+            "cost": "検査2 ・ 3 ・ 4の道具を、作業用の置き場から skills-creator の助言型の道具へ作り直す"
+          },
+          {
+            "option": "B ── スキーマの検査と試験だけにする",
+            "cost": "ノートに無い文字列と持ち込んだ引用を検出できない。ddd の 2126件、usecase の引用51件を見逃す"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "判断基準の要点が、原典の意味を正しく捉えているか",
+            "treatment": "out",
+            "note": "文字列の照合では見られない。学習ノートを書く段で、原文を読んだ人が負う。この答えを覆さない"
+          }
+        ]
       }
-     ]
+    },
+    {
+      "id": "Q5",
+      "name": "既存の advisor の扱い",
+      "status": "settled",
+      "question": "ddd ・ usecase ・ qa ・ platform ・ ux を、論点1 ・ 論点3の条件に照らしてどう扱うか",
+      "answer": {
+        "text": "既存の5つは、論点1の条件と論点4の検査に照らして、次のように扱う。usecase は概念ごとに組み直す。ddd は書籍のスキャンから学習ノートを書き直して作り直す。qa は概念ごとの形を保ち、原典を1本ずつ判定し直したうえで、ISTQB と IPA の4つの文書から QA の概念を足す。platform は AWS Well-Architected と Google SRE を原典にして、概念ごとに作り直す。ux は今の判断基準（AI の要約）を捨て、UX の確立された原典から概念ごとに作り直す。"
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>今の原典</th><th>測った結果</th><th>扱い</th></tr><tr><td>usecase</td><td>『ユースケース実践ガイド』（1冊）</td><td>検査2は出典の欄だけ。検査3で引用51件</td><td>概念ごとに組み直し、引用を外す</td></tr><tr><td>ddd</td><td>『ドメイン駆動設計をはじめよう』（1冊）</td><td>判断基準は書き換えた knowledge から作られ、書き起こしノートと照らすと2126件が無い</td><td>書籍のスキャンを用意し、学習ノートを書き直してから作り直す。今の書き起こしノートは、章の番号の無い節（判断基準 ・ 具体例 ・ 関連概念）を書籍と照らせない</td></tr><tr><td>qa</td><td>概念ごとに、概念を立てた人や団体の文書（9件）</td><td>検査3で引用54件。道具の説明書（Stryker）と意見の記事（DHH）を含む</td><td>原典を判定し直し、引用を外す。ISTQB と IPA の4つから概念を足す</td></tr><tr><td>platform</td><td>AWS Well-Architected と Google SRE の2体系を AI が要約</td><td>ノートが無く、検査2ができない</td><td>AWS Well-Architected と Google SRE を原典に、学習ノートから概念ごとに作り直す</td></tr><tr><td>ux</td><td>Anthropic の frontend-design skill を AI が要約</td><td>原典が確立された文書ではなく、ノートも無い</td><td>今の判断基準を捨て、下の原典から概念ごとに作り直す</td></tr></table><table><tr><th></th><th>観点</th><th>原文</th><th>利用の条件</th><th>扱い</th></tr><tr><td>IPA 非機能要求グレード2018</td><td>非機能要件（可用性 ・ 性能 ・ 運用 ・ 移行 ・ セキュリティ ・ 環境）</td><td>無償で公開（本体 ・ 利用ガイド ・ グレード表）</td><td>PDF は許諾なく改変 ・ 翻案できない。Excel（グレード表）は改変 ・ 再配布を許諾し、使用条件の添付を求める</td><td>qa の原典に加える</td></tr><tr><td>IPA 機能要件の合意形成ガイド</td><td>機能要件（画面 ・ システム振舞い ・ データモデル ・ 帳票 ・ バッチ ・ 外部インタフェース）</td><td>無償で公開（概要編と6分冊）</td><td>未確認</td><td>qa の原典に加える</td></tr><tr><td>IPA 高信頼化ソフトウェアのための開発手法ガイドブック</td><td>品質保証の予防と検知の手法（追跡性 ・ 再発防止 ・ テスト技法）</td><td>取得済み（PDF、2010年）</td><td>未確認</td><td>qa の原典に加える。第2部は各社の事例集なので、構造と要点だけを扱う</td></tr><tr><td>IPA はじめての STAMP/STPA</td><td>安全分析の手法</td><td>取得済み（PDF）</td><td>未確認</td><td>qa の原典に加える</td></tr></table><table><tr><th></th><th>種類</th><th>取得の結果</th><th>扱い</th></tr><tr><td>W3C Web Content Accessibility Guidelines 2.2</td><td>標準化団体の勧告</td><td>本文を取得済み（達成基準を含む）</td><td>ux の原典にする</td></tr><tr><td>Nielsen Norman Group「10 Usability Heuristics for User Interface Design」</td><td>概念を名付けた人の一次文献</td><td>本文を取得済み</td><td>ux の原典にする</td></tr><tr><td>デジタル庁デザインシステム</td><td>公的機関の文書</td><td>トップの頁を取得済み。各頁は未取得</td><td>ux の原典にする（各頁を取得してから）</td></tr><tr><td>W3C ARIA Authoring Practices Guide</td><td>標準化団体の文書</td><td>トップの頁を取得済み。各頁は未取得</td><td>ux の原典の候補</td></tr><tr><td>Material Design 3</td><td>公式の枠組み</td><td>本文が script で描かれ、取得した原文に本文が無い</td><td>採らない（原文を取得できない）</td></tr></table>"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "ddd の判断基準の出どころ",
+          "basis": "判断基準の文字列は、移行前の knowledge（22本）と照らすとノートに無い文字列が4件で、書き起こしノート（19本）と照らすと2126件である",
+          "tag": "measured",
+          "source": "照合の測定（2026-09-30。判断基準の全文字列を、学習ノートの本文に部分一致で探した）"
+        },
+        {
+          "supports": "qa の今の原典",
+          "basis": "別々の著者の公開文書9種から作った",
+          "tag": "measured",
+          "source": "ACDR 0055"
+        },
+        {
+          "supports": "qa の作り直し先",
+          "basis": "ISTQB Foundation Level シラバス v4.0.1 の PDF を取得済みである",
+          "tag": "measured",
+          "source": "sources/istqb.org_…_Syllabus_v4.0.1.pdf.meta.json"
+        },
+        {
+          "supports": "platform ・ ux の今の原典",
+          "basis": "AI の要約で、本文の直接引用ではない。学習ノートが無い",
+          "tag": "measured",
+          "source": "現在地の表（advisor の現状）"
+        },
+        {
+          "supports": "条件",
+          "basis": "1つの体系を、原文を取得して使う",
+          "tag": "rule",
+          "source": "論点1"
+        },
+        {
+          "supports": "IPA の文書を原典にできること",
+          "basis": "QAの部分はIPAが出すしているものでもいいとおもうぞ。機能と非機能の観点などでも整理していたり、品質という面では分析手法などその辺りの標準もあると思うしね",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "非機能要求グレードの利用の条件",
+          "basis": "「本資料の全部または一部を項番3に定める場合を除き、独立行政法人情報処理推進機構の許諾なく無断で改変、公衆送信、販売、出版、翻訳/翻案することは営利目的、非営利目的に関わらず禁じられています。」（PDF 形式）",
+          "tag": "primary",
+          "source": "IPA 非機能要求グレード本体（日本語版）使用条件（2026-09-30 取得、sources/）"
+        },
+        {
+          "supports": "グレード表（Excel）の利用の条件",
+          "basis": "「本資料の全部又は一部を複製、改変、公衆送信、又は翻訳/翻案し、第三者に有償又は無償で再配布すること」を許諾します。",
+          "tag": "primary",
+          "source": "同上（Excel 形式のドキュメント類）"
+        },
+        {
+          "supports": "機能要件の合意形成ガイドの構成",
+          "basis": "機能要件の合意形成ガイドは、「概要編」 と次の6つの技術領域のコツをまとめた各分冊からなります。",
+          "tag": "primary",
+          "source": "IPA 機能要件の合意形成技法の頁（2026-09-30 取得、sources/）"
+        },
+        {
+          "supports": "高信頼化ガイドブックの範囲",
+          "basis": "ソフトウェアの品質保証活動にかかわる予防活動および検知活動での各種手法や技法を中心に",
+          "tag": "primary",
+          "source": "IPA 高信頼化ソフトウェアのための開発手法ガイドブック はじめに（2026-09-30 取得、sources/）"
+        },
+        {
+          "supports": "qa に IPA の文書を加えること",
+          "basis": "いや、これは体系で分けるというよりQAに関する概念で括るのが正しい。 必ず一つの原点ということではないです。",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "ux を作り直すこと",
+          "basis": "UXに関しては別にアドバイザーなんかなくてもあなたが全知全能ってこと？",
+          "tag": "rule",
+          "source": "利用者の差し戻し（2026-09-30）"
+        },
+        {
+          "supports": "UX の原典の取得",
+          "basis": "WCAG 2.2 は達成基準の見出しを含む本文、Nielsen の頁は「Visibility of System Status」などの本文を持つ。Material Design 3 の頁は題だけで本文が無い",
+          "tag": "measured",
+          "source": "fact-check fetch（2026-09-30、sources/）"
+        },
+        {
+          "supports": "原文を取り直すこと",
+          "basis": "原典に関しては取り直しの方がいいよ？それ随分と前にファクトチェックがない時に取得したものだから。。",
+          "tag": "rule",
+          "source": "利用者の指示（2026-09-30）"
+        },
+        {
+          "supports": "ddd の書き起こしノートの節",
+          "basis": "domain-model.md の「判断基準」は Q&A 形式で章の番号を持たない。business-domain.md の「具体例」は企業名の表で章の番号を持たない",
+          "tag": "measured",
+          "source": "knowledge-v1-book-transcription の見出し（2026-09-30）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "IPA の文書を、体系ごとに別の advisor にする",
+          "reason": "QA の概念が advisor ごとに分かれ、呼ぶ側が束ねることになる。論点1（領域の概念で括る）に反する"
+        },
+        {
+          "option": "ux を廃止する（前の答え）",
+          "reason": "UX の判断に原典の根拠が無くなる。確立された原典は在り、原文も取得できる"
+        },
+        {
+          "option": "ddd を今の書き起こしノートから作り直す",
+          "reason": "ノートは章の番号の無い節（判断基準 ・ 具体例 ・ 関連概念）を持ち、書籍と照らせない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 条件を満たす体系で作り直し、満たせないものは廃止する",
+            "cost": "4つを作り直す。platform と qa に足す IPA の分は、原典から学習ノートを書くところから始める"
+          },
+          {
+            "option": "B ── 今の5つを残し、検査に合格するよう直す",
+            "cost": "qa ・ platform ・ ux は論点1の条件（1つの体系 ・ 原文から作る）を満たさないまま残る"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "公開済みの ddd ・ usecase の判断基準を、作り直すまでのあいだ公開したままにするか",
+            "treatment": "later",
+            "note": "作り直しの ACDR で差し替える。この答えを覆さない"
+          },
+          {
+            "item": "IPA の PDF をまとめた判断基準を配布することが、使用条件の「翻案」に当たるか",
+            "treatment": "out",
+            "note": "法的な判断は IPA か専門家に委ねる（論点3と同じ扱い）。候補を作る前に確認する。この答えを覆さない"
+          }
+        ]
+      }
     }
-   ]
-  }
- ]
+  ],
+  "intro": "advisor の出来がばらついたのは、advisor を作る手順と契約が決まっていないためである。何を advisor にしてよいか ・ どう作るか ・ どんな形で持つか ・ 何を満たせば完成か ・ 既存の advisor をどう扱うか、の5つをここで決める。作る手順と雛形の持ち主は、skill-types のボードの決着により skills-creator の助言型である。"
 }

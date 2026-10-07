@@ -1,0 +1,90 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0154",
+ "title": "ブレストボードのスキーマを、基盤の契約に従う形へ書き直す",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "ブレストボードと回答を、基盤の契約に従う board.schema.json と answer.schema.json のインスタンスにし、論点は承認者に見せる5つと、書き手だけが使う verification で持つ",
+ "why": "ボード board-on-schema-driven で、論点の形（論点1）・ 完成イメージの形（論点2）・ 書き手の検証の記録の置き場所（論点4）を決めた。いまの board.schema.json は18の欄を持ち、x-prompt も x-generates も kind も無いので、基盤の check と render に渡せない。回答の answer-sheet.schema.json も同じである。",
+ "shift": [
+  {
+   "what": "論点の欄",
+   "from": "18の欄（answer ・ decision ・ example ・ passed ・ tables ・ dropped ・ path ・ findings ・ requirements ・ out_of_scope など）",
+   "to": "問い ・ 答え（text と details）・ 完成イメージ ・ 根拠 ・ 採らなかった案と、書き手だけが使う verification"
+  },
+  {
+   "what": "完成イメージ",
+   "from": "ブロックの並び（para ・ html ・ figure など）。図は figures/ のファイル名で指す",
+   "to": "figure（SVG の文字列）・ code ・ ui ・ diff の4種類"
+  },
+  {
+   "what": "論点の指し方",
+   "from": "番号（no）",
+   "to": "id（Q1 など）。いま見る論点と回答は、注釈 x-ref でこの id を指し、基盤の check が解決を確かめる"
+  },
+  {
+   "what": "基盤の契約",
+   "from": "満たしていない（x-prompt ・ x-generates ・ kind が無い）",
+   "to": "満たす（check-schemas の指摘0件）"
+  },
+  {
+   "what": "回答",
+   "from": "answer-sheet.schema.json",
+   "to": "answer.schema.json のインスタンス（kind が answer）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "いまの18の欄を、承認者に見せる5つと、書き手だけが使う verification に分ける。回答は論点を id で指す。",
+ "alternatives": [
+  {
+   "option": "いまの18の欄を残し、ページテンプレートで5つだけを描画する",
+   "why_not": "書く側が18の欄を埋め続けることになる。どれが承認者のためかを、スキーマから読めない"
+  },
+  {
+   "option": "図を figures/ のファイル名で指したまま持つ",
+   "why_not": "描画のときにファイルを読む処理が具体の側に必要になる。インスタンスに SVG を持てば、基盤の Renderer がそのまま検査して埋め込める"
+  },
+  {
+   "option": "論点を番号のまま指す",
+   "why_not": "注釈 x-ref は、項目を id の文字列で探す。番号では基盤の参照の検査が使えない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "board_schema",
+   "tab": "references/board.schema.json",
+   "file": ".claude/skills/brainstorming-board/references/board.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"x-generates\": \".brainstorming-board/<名前>/board.json\",",
+     "before": "18の欄を持つ論点（x-prompt ・ x-generates ・ kind が無い）",
+     "why": "全体を書き直した。基盤の契約に従い、インスタンスの置き場所を x-generates で、種類を根の kind（board）で示す。ボードの名前は id に置く。 いま見る論点は、論点の id（Q3 など）で指し、注釈 x-ref（to: self、in: topics）を付ける。存在しない論点を指すと、基盤の check が「指す先が無い」を出す。 完成イメージは、figure（SVG）・ code ・ ui（描画した HTML）・ diff の4種類から選ぶ（論点2）。図は SVG の文字列で持ち、何で描いたかを問わない。種類ごとに必要な欄は if と then で決める。 採らなかった案は、案と採らなかった理由で持つ。描画で取り消し線を付けない。 書き手の検証の記録を1つの欄にまとめ、ページテンプレートは描画しない（論点4）。前の答えも previous に残し、差し戻しで戻れるようにする。"
+    }
+   ]
+  },
+  {
+   "key": "answer_schema",
+   "tab": "references/answer.schema.json",
+   "file": ".claude/skills/brainstorming-board/references/answer.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"ブレストボードへの回答\",",
+     "before": "answer-sheet.schema.json（基盤の契約に従わない形）",
+     "why": "回答を、基盤の契約に従うインスタンスにする。回答の受け取り（serve）が、基盤の create で書く"
+    },
+    {
+     "find": "\"topic\": {",
+     "before": "questionId（文字列）",
+     "why": "答えた論点を「ボードの id.論点の id」で指し、注釈 x-ref（to: board、item、in: topics）を付ける。ボードに無い論点への回答を、基盤の check が出す"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "board_schema": "d87d979a53b5272ab265b3a952b79d0dbebde4566cb1a7f098282c9147c4950b",
+  "answer_schema": "164980bbd5b6fd6ac456dbe6cb19ea2b9cca885f1ef7559d2f4ea1046caccc6a"
+ }
+}

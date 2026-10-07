@@ -1,720 +1,625 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ブレストボードの入力",
-  "description": "JSON が正本で、HTML は生成物である。**この入力は宣言だけを保持し、生成した HTML 断片を保持しない** ── 断片を入れると、散文の検査が当たらなくなり（区切りが消えるため）、整形を重ねた結果が入力へ戻る。",
-  "type": "object",
-  "required": [
-    "title",
-    "board",
-    "round",
-    "topics"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "$schema": {
-      "type": "string"
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "board.schema.json",
+ "title": "ブレストボード",
+ "description": "決めることがある問いを論点に分け、反証で残った答えを、承認者が承認だけで決められる形で持つ。回答（承認 ・ 差し戻し）は answer.schema.json のインスタンスが持ち、ここには書かない。",
+ "x-prompt": {
+  "read": "論点ごとに、問い ・ 答え ・ 完成イメージ ・ 根拠 ・ 採らなかった案を読む。verification は書き手の検証の記録で、承認者の画面には出ない。",
+  "write": "承認者が読むのは5つだけになるように書く。反証の過程 ・ 覆しうる前提 ・ 扱わない範囲 ・ 経過は verification に書く。"
+ },
+ "x-generates": ".brainstorming-board/<名前>/board.json",
+ "x-view": {
+  "label": "title"
+ },
+ "type": "object",
+ "required": [
+  "kind",
+  "id",
+  "title",
+  "round",
+  "topics"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "description": "このインスタンスが従うスキーマ",
+   "x-prompt": {
+    "read": "スキーマのファイルへの相対パスとして読む。",
+    "write": "board.json から見た board.schema.json の相対パスを書く。"
+   },
+   "type": "string"
+  },
+  "kind": {
+   "description": "インスタンスの種類",
+   "x-prompt": {
+    "read": "ブレストボードであることを示す。",
+    "write": "board と書く。"
+   },
+   "const": "board"
+  },
+  "id": {
+   "description": "ブレストボードの名前（置き場所のフォルダ名と同じ）",
+   "x-prompt": {
+    "read": "ブレストボードを指すときの名前として読む。",
+    "write": "置き場所のフォルダ名と同じ、小文字と - の名前を書く。"
+   },
+   "type": "string",
+   "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+  },
+  "title": {
+   "description": "ブレストボードが決めることの題",
+   "x-prompt": {
+    "read": "ページの見出しとして読む。",
+    "write": "何を決めるボードかを名詞句で書く。"
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "round": {
+   "description": "何回目の提示か",
+   "x-prompt": {
+    "read": "回が進むたびに1つ増える。前の回との差を見る基準になる。",
+    "write": "回を進めるときに1つ増やす。組み直すだけなら変えない。"
+   },
+   "type": "integer",
+   "minimum": 1
+  },
+  "intro": {
+   "description": "ボードが何を決めるかの1文",
+   "x-prompt": {
+    "read": "現在地の先頭に出る。",
+    "write": "決まったことの一覧を書かない ── 論点の一覧と重なる。"
+   },
+   "type": "string"
+  },
+  "queue": {
+   "description": "いま見る論点と、なぜいま開いたか",
+   "x-prompt": {
+    "read": "並びの順に見る。",
+    "write": "前提が片付いた論点だけを並べ、なぜいま開いたかを1文で書く。"
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/queued"
+   }
+  },
+  "topics": {
+   "description": "論点の並び",
+   "x-prompt": {
+    "read": "番号の順にタブになる。",
+    "write": "3〜5件から始める。依存の順は書き手が持ち、queue で示す。"
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/topic"
+   }
+  }
+ },
+ "$defs": {
+  "queued": {
+   "type": "object",
+   "required": [
+    "topic",
+    "why"
+   ],
+   "additionalProperties": false,
+   "description": "いま見る論点1件",
+   "x-prompt": {
+    "read": "指す論点と、いま開いた理由を読む。",
+    "write": "論点の id と、何が確定したので開いたかを書く。"
+   },
+   "properties": {
+    "topic": {
+     "description": "いま見る論点の id",
+     "x-prompt": {
+      "read": "同じボードの topics の中の論点を指す。",
+      "write": "論点の id（例：Q3）を書く。"
+     },
+     "type": "string",
+     "x-ref": {
+      "to": "self",
+      "in": "topics"
+     }
     },
-    "title": {
+    "why": {
+     "description": "なぜいま開いたか",
+     "x-prompt": {
+      "read": "この論点の前提が何で片付いたかを読む。",
+      "write": "何が確定したので開いたかを1文で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "topic": {
+   "type": "object",
+   "required": [
+    "id",
+    "name",
+    "status",
+    "question",
+    "answer"
+   ],
+   "additionalProperties": false,
+   "description": "論点1件。承認者に見せるのは問い ・ 答え ・ 完成イメージ ・ 根拠 ・ 採らなかった案の5つ",
+   "x-prompt": {
+    "read": "問い → 答え → 完成イメージ → 根拠 → 採らなかった案の順に読み、最後に回答する。",
+    "write": "承認者が「この決定を覆すか」に答えられるだけを書く。書き手の検証の記録は verification へ。"
+   },
+   "properties": {
+    "id": {
+     "description": "論点の id",
+     "x-prompt": {
+      "read": "Q と番号。タブの番号になる。",
+      "write": "Q1 から順に振る。"
+     },
+     "type": "string",
+     "pattern": "^Q[0-9]+$"
+    },
+    "name": {
+     "description": "論点の短い名前",
+     "x-prompt": {
+      "read": "タブに出る。",
+      "write": "名詞句で10字前後に書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "status": {
+     "description": "論点の状態",
+     "x-prompt": {
+      "read": "waiting は前提待ち、open は回答待ち、settled は決着。",
+      "write": "承認されたら settled にする。決着にしてよいのは、答えが下流の論点か外の作業で使われたときだけである。"
+     },
+     "enum": [
+      "waiting",
+      "open",
+      "settled"
+     ]
+    },
+    "question": {
+     "description": "何を決めるか",
+     "x-prompt": {
+      "read": "論点の最上段に出る。",
+      "write": "決めることを疑問文で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "answer": {
+     "description": "反証で残った答え",
+     "x-prompt": {
+      "read": "1文の決定と、下位の決定を読む。",
+      "write": "waiting の論点は、何が決着したら出すかを text に書き、details を空にする。"
+     },
+     "$ref": "#/$defs/answer"
+    },
+    "images": {
+     "description": "完成イメージ（1つ以上）",
+     "x-prompt": {
+      "read": "答えで何ができあがるかを、図 ・ コード ・ UI ・ 差分で見る。2つ以上なら切り替えで見る。",
+      "write": "open と settled の論点には1つ以上置く。決める内容に合う形を選ぶ：構造は図、スキーマや実装はコード、画面は UI、既存を変えるなら差分。"
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/image"
+     }
+    },
+    "grounds": {
+     "description": "根拠",
+     "x-prompt": {
+      "read": "答えのどこを、何が支えているかを読む。",
+      "write": "答えを支えるものを1行に1つ書く。利用者の言葉はそのまま引く。"
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/ground"
+     }
+    },
+    "rejected": {
+     "description": "採らなかった案",
+     "x-prompt": {
+      "read": "なぜ他の案ではないのかを読む。",
+      "write": "反証で除外した案と、採らなかった理由（何が壊れるか）を書く。"
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/rejection"
+     }
+    },
+    "verification": {
+     "description": "書き手の検証の記録（承認者の画面には出ない）",
+     "x-prompt": {
+      "read": "書き手が反証で確かめたことを読む。差し戻しで前の答えへ戻るときに使う。",
+      "write": "通過した案 ・ 覆しうる前提 ・ 扱わない範囲 ・ 前の答えを書く。決定を適用するときは、ここから ACDR の「なぜ」と「比較した案」へ写す。"
+     },
+     "$ref": "#/$defs/verification"
+    }
+   }
+  },
+  "answer": {
+   "type": "object",
+   "required": [
+    "text"
+   ],
+   "additionalProperties": false,
+   "description": "答え",
+   "x-prompt": {
+    "read": "1文の決定と、下位の決定を読む。",
+    "write": "text に1文で言い切り、details に1文ずつ下位の決定を書く。"
+   },
+   "properties": {
+    "text": {
+     "description": "1文の決定",
+     "x-prompt": {
+      "read": "答えの見出しとして太字で出る。",
+      "write": "手段ではなく、何を採るかを1文で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "details": {
+     "description": "下位の決定",
+     "x-prompt": {
+      "read": "箇条で出る。",
+      "write": "1文に1つずつ書く。"
+     },
+     "type": "array",
+     "items": {
       "type": "string",
       "minLength": 1
-    },
-    "board": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-    },
-    "round": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "intro": {
-      "$ref": "#/$defs/blocks"
-    },
-    "panels": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/panel"
-      }
-    },
-    "queue": {
-      "description": "いま見る論点と、なぜいま開いたか。",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "no",
-          "why"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "no": {
-            "type": "integer"
-          },
-          "why": {
-            "$ref": "#/$defs/cell"
-          }
-        }
-      }
-    },
-    "section_names": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string"
-      },
-      "description": "道筋の節の名前。{n} が件数に置き換わる。"
-    },
-    "topics": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/topic"
-      }
+     }
     }
+   }
   },
-  "$defs": {
-    "cell": {
-      "description": "人が読む1つの欄。生の文字列を保持する ── 整形はレンダラが当てる。",
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 2000
+  "image": {
+   "type": "object",
+   "required": [
+    "kind"
+   ],
+   "description": "完成イメージ1つ",
+   "x-prompt": {
+    "read": "kind で形を読む。",
+    "write": "kind に合わせて必要な欄を書く。"
+   },
+   "properties": {
+    "kind": {
+     "description": "完成イメージの形",
+     "x-prompt": {
+      "read": "figure は図、code はコード、ui は描画した HTML、diff は変更前と変更後。",
+      "write": "決める内容に合う形を選ぶ。"
+     },
+     "enum": [
+      "figure",
+      "code",
+      "ui",
+      "diff"
+     ]
     },
-    "panel": {
-      "type": "object",
-      "required": [
-        "heading",
-        "body"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "heading": {
-          "type": "string",
-          "minLength": 1
-        },
-        "body": {
-          "$ref": "#/$defs/blocks"
-        }
-      }
+    "caption": {
+     "description": "何を示すかの1文",
+     "x-prompt": {
+      "read": "完成イメージの下に出る。",
+      "write": "この完成イメージが何を示すかを1文で書く。"
+     },
+     "type": "string"
     },
-    "blocks": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/block"
-      }
+    "svg": {
+     "description": "図の SVG（figure のとき）",
+     "x-prompt": {
+      "read": "ページにそのまま埋め込まれる。script とイベントの属性を含むものは、基盤が断る。",
+      "write": "SVG の文字列を書く。どのツールで描いたかは問わない。"
+     },
+     "type": "string",
+     "minLength": 1
     },
-    "block": {
-      "type": "object",
-      "required": [
-        "kind"
-      ],
-      "properties": {
-        "kind": {
-          "enum": [
-            "para",
-            "note",
-            "heading",
-            "html",
-            "list",
-            "fold",
-            "card",
-            "table",
-            "grid",
-            "previous",
-            "figure"
-          ]
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "para"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "text"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "text": {
-                "$ref": "#/$defs/cell"
-              },
-              "nested": {
-                "$ref": "#/$defs/blocks"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "note"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "text"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "text": {
-                "$ref": "#/$defs/cell"
-              },
-              "nested": {
-                "$ref": "#/$defs/blocks"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "heading"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "level",
-              "text"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "level": {
-                "enum": [
-                  3,
-                  4
-                ]
-              },
-              "text": {
-                "$ref": "#/$defs/cell"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "html"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "text"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "text": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "list"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "items"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "ordered": {
-                "type": "boolean"
-              },
-              "items": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "$ref": "#/$defs/item"
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "fold"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "heading",
-              "body"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "heading": {
-                "type": "string"
-              },
-              "body": {
-                "$ref": "#/$defs/blocks"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "card"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "heading"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "letter": {
-                "$ref": "#/$defs/letter"
-              },
-              "heading": {
-                "$ref": "#/$defs/cell"
-              },
-              "events": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/event"
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "table"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "cols",
-              "rows"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "cols": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              },
-              "rows": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
-                  "prefixItems": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "array"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "grid"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "cols",
-              "rows"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "cols": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "rows": {
-                "type": "array",
-                "items": {
-                  "type": "array"
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "previous"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "letter",
-              "body",
-              "why"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "letter": {
-                "$ref": "#/$defs/letter"
-              },
-              "body": {
-                "$ref": "#/$defs/cell"
-              },
-              "why": {
-                "$ref": "#/$defs/cell"
-              },
-              "user_words": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "figure"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "name"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "kind": true,
-              "name": {
-                "type": "string",
-                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-              },
-              "caption": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      ]
+    "language": {
+     "description": "コードの言語（code と diff のとき）",
+     "x-prompt": {
+      "read": "表示の手がかりとして読む。",
+      "write": "json ・ rust などの名前を書く。"
+     },
+     "type": "string",
+     "minLength": 1
     },
-    "item": {
-      "type": "object",
-      "required": [
-        "text"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "text": {
-          "$ref": "#/$defs/cell"
-        },
-        "nested": {
-          "$ref": "#/$defs/blocks"
-        }
-      }
+    "text": {
+     "description": "コードの本文（code のとき）",
+     "x-prompt": {
+      "read": "そのまま等幅で出る。",
+      "write": "見せたい部分だけを書く。"
+     },
+     "type": "string",
+     "minLength": 1
     },
-    "letter": {
-      "type": "string",
-      "pattern": "^[A-Z][′″‴⁗⁵⁶⁷⁸⁹]*$",
-      "description": "案の記号。大文字1つに、版を重ねた印が0個以上付く"
+    "html": {
+     "description": "描画した HTML（ui のとき）",
+     "x-prompt": {
+      "read": "ボードと見た目が混ざらないように、分けた枠の中に描画される。",
+      "write": "1枚で完結する HTML を書く。"
+     },
+     "type": "string",
+     "minLength": 1
     },
-    "event": {
-      "description": "種別は4値に限る。利用者の言葉は「内容」ではなく「差し戻し」である。",
-      "type": "object",
-      "required": [
-        "tag",
-        "text"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "tag": {
-          "enum": [
-            "returned",
-            "obsolete",
-            "finding",
-            "content"
-          ]
-        },
-        "text": {
-          "$ref": "#/$defs/cell"
-        }
-      }
+    "before": {
+     "description": "変更前（diff のとき）",
+     "x-prompt": {
+      "read": "変更後と並べて出る。",
+      "write": "変更前の原文をそのまま書く。"
+     },
+     "type": "string"
     },
-    "topic": {
-      "type": "object",
-      "required": [
-        "no",
-        "name",
-        "status",
-        "question",
-        "answer"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "no": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "status": {
-          "enum": [
-            "waiting",
-            "open",
-            "settled"
-          ]
-        },
-        "question": {
-          "type": "string",
-          "minLength": 1
-        },
-        "answer": {
-          "$ref": "#/$defs/cell"
-        },
-        "intro": {
-          "$ref": "#/$defs/cell"
-        },
-        "decision": {
-          "type": "object",
-          "required": [
-            "letter",
-            "text"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "letter": {
-              "$ref": "#/$defs/letter"
-            },
-            "text": {
-              "$ref": "#/$defs/blocks"
-            }
-          }
-        },
-        "example": {
-          "$ref": "#/$defs/blocks"
-        },
-        "figures": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/block"
-          }
-        },
-        "passed": {
-          "description": "1件だけの状態は、選択ではない ── 2件以上を要する。",
-          "type": "array",
-          "minItems": 2,
-          "items": {
-            "type": "object",
-            "required": [
-              "name",
-              "body",
-              "cost"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "$ref": "#/$defs/cell"
-              },
-              "body": {
-                "$ref": "#/$defs/cell"
-              },
-              "cost": {
-                "$ref": "#/$defs/cell"
-              }
-            }
-          }
-        },
-        "dropped": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "body",
-              "reason"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/$defs/cell"
-              },
-              "reason": {
-                "$ref": "#/$defs/cell"
-              }
-            }
-          }
-        },
-        "path": {
-          "$ref": "#/$defs/blocks"
-        },
-        "findings": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/cell"
-          }
-        },
-        "grounds": {
-          "description": "支える先・もとにしたこと・種別・出どころの4欄で、欠けを許さない。",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "supports",
-              "basis",
-              "tag",
-              "source"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "supports": {
-                "$ref": "#/$defs/cell"
-              },
-              "basis": {
-                "$ref": "#/$defs/cell"
-              },
-              "tag": {
-                "enum": [
-                  "measured",
-                  "primary",
-                  "rule",
-                  "assumption",
-                  "unverified"
-                ]
-              },
-              "source": {
-                "$ref": "#/$defs/cell"
-              }
-            }
-          }
-        },
-        "requirements": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/cell"
-          }
-        },
-        "out_of_scope": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "item"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "item": {
-                "$ref": "#/$defs/cell"
-              },
-              "treatment": {
-                "enum": [
-                  "out",
-                  "later",
-                  "resolved"
-                ],
-                "description": "対象外 ／ 後続で決定 ／ 解消済。**種別の語は組み立て側が保持する**"
-              },
-              "note": {
-                "$ref": "#/$defs/cell"
-              }
-            }
-          }
-        },
-        "panels": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/panel"
-          }
-        },
-        "tables": {
-          "description": "案ごとの帰結を並べる表。行の見出しは案の名前（plain なら層の名前など）。",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "caption",
-              "cols",
-              "rows"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "caption": {
-                "type": "string",
-                "minLength": 1
-              },
-              "lead": {
-                "$ref": "#/$defs/cell"
-              },
-              "plain": {
-                "type": "boolean",
-                "description": "行の見出しが案の記号でないとき（層の名前など）"
-              },
-              "cols": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              },
-              "rows": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
-                  "prefixItems": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "array"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
+    "after": {
+     "description": "変更後（diff のとき）",
+     "x-prompt": {
+      "read": "変更前と並べて出る。",
+      "write": "変更後の原文をそのまま書く。"
+     },
+     "type": "string"
     }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "figure"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "svg"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "code"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "text"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "ui"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "html"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "diff"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "before",
+       "after"
+      ]
+     }
+    }
+   ],
+   "additionalProperties": false
+  },
+  "ground": {
+   "type": "object",
+   "required": [
+    "supports",
+    "basis",
+    "tag",
+    "source"
+   ],
+   "additionalProperties": false,
+   "description": "根拠1件",
+   "x-prompt": {
+    "read": "答えのどこを支えるか ・ もとにしたこと ・ 種別 ・ 出どころを読む。",
+    "write": "4つとも書く。欠けた根拠は根拠にならない。"
+   },
+   "properties": {
+    "supports": {
+     "description": "答えのどこを支えるか",
+     "x-prompt": {
+      "read": "根拠の表の1列目に出る。",
+      "write": "答えの中の、支える部分を名詞句で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "basis": {
+     "description": "もとにしたこと",
+     "x-prompt": {
+      "read": "根拠の中身として読む。",
+      "write": "原文や利用者の言葉は、言い換えずに引く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "tag": {
+     "description": "種別",
+     "x-prompt": {
+      "read": "実測 ・ 原典 ・ 決まり ・ 前提 ・ 未確認の印として出る。",
+      "write": "原典は、原文を取得したときだけ付ける。"
+     },
+     "enum": [
+      "measured",
+      "primary",
+      "rule",
+      "assumption",
+      "unverified"
+     ]
+    },
+    "source": {
+     "description": "出どころ",
+     "x-prompt": {
+      "read": "根拠の表の最後の列に出る。",
+      "write": "ファイルと行 ・ ACDR の番号 ・ 利用者と日付などを書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "rejection": {
+   "type": "object",
+   "required": [
+    "option",
+    "reason"
+   ],
+   "additionalProperties": false,
+   "description": "採らなかった案1件",
+   "x-prompt": {
+    "read": "案と、採らなかった理由を読む。",
+    "write": "反証で除外した案を消さずに書く。"
+   },
+   "properties": {
+    "option": {
+     "description": "採らなかった案",
+     "x-prompt": {
+      "read": "表の1列目に出る。取り消し線は付かない。",
+      "write": "案の名前を書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "reason": {
+     "description": "採らなかった理由",
+     "x-prompt": {
+      "read": "表の2列目に出る。",
+      "write": "その案を採ると何が壊れるかを書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "verification": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "書き手の検証の記録",
+   "x-prompt": {
+    "read": "書き手だけが読む。ページには出ない。",
+    "write": "反証で確かめたことを、消さずに残す。"
+   },
+   "properties": {
+    "passed": {
+     "description": "反証を通過した案と、採ると負担すること",
+     "x-prompt": {
+      "read": "書き手が案を比べた記録として読む。",
+      "write": "残った案も含めて、通過した案を書く。"
+     },
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "option",
+       "cost"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "option": {
+        "type": "string",
+        "minLength": 1
+       },
+       "cost": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    },
+    "assumptions": {
+     "description": "覆しうる前提",
+     "x-prompt": {
+      "read": "崩れたら答えが覆る前提として読む。",
+      "write": "試してから決める項目もここに書く。"
+     },
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "out_of_scope": {
+     "description": "扱わない範囲",
+     "x-prompt": {
+      "read": "この答えが扱わないことと、その扱い（対象外 ・ 後続で決定 ・ 解消済）を読む。",
+      "write": "外の作業で試す行き先もここに書く。"
+     },
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "item",
+       "treatment"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string",
+        "minLength": 1
+       },
+       "treatment": {
+        "enum": [
+         "out",
+         "later",
+         "resolved"
+        ]
+       },
+       "note": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "previous": {
+     "description": "差し戻された前の答え",
+     "x-prompt": {
+      "read": "前の答えへ戻るときに読む。",
+      "write": "前の答えと、差し戻しの理由（利用者の言葉のまま）と、そこで分かったことを書く。"
+     },
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "answer",
+       "returned"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "answer": {
+        "type": "string",
+        "minLength": 1
+       },
+       "returned": {
+        "type": "string",
+        "minLength": 1
+       },
+       "finding": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   }
   }
+ }
 }

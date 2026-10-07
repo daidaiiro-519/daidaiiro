@@ -1,696 +1,370 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "描画の契約にデザイントークンを持たせる",
- "board": "view-design-tokens",
- "round": 5,
- "intro": [
-  {
-   "kind": "para",
-   "text": "skills-creator の描画の契約に、デザイントークンの仕組み（正本 ・ 配り方 ・ 検査）を持たせ、判断基準の頁の表とコードブロックを見やすくする。4つの論点はすべて決着した。"
-  }
- ],
- "panels": [
-  {
-   "heading": "次にすること",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "view-design-tokens",
+  "title": "描画の契約にデザイントークンを持たせる",
+  "round": 5,
+  "queue": [],
+  "topics": [
     {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "段1 ── skills-creator の references/view/ に正本を置き、5言語の描画の雛形 ・ scaffold ・ check を直し、雛形から作った14の Skill へ写す。ACDR で提示する"
+      "id": "Q1",
+      "name": "見た目の正本と検査",
+      "status": "settled",
+      "question": "描画の契約は、見た目について何を正本として持ち、何を検査するか",
+      "answer": {
+        "text": "見た目はトークン（3層）と CSS（直値を持たない）の2つの正本で持ち、描画の道具は値を差し込むだけにする。トークンと CSS は validate が検査する",
+        "details": [
+          "view.tokens.json ── 共通のトークンは色だけにする。色味の違う数パターン（パレット）を、明暗の両方で持つ。字の大きさ ・ 余白は、共通の view.css が固定の値で持つ",
+          "view.css ── セレクタと規則だけを持つ。色 ・ 寸法 ・ 字の大きさは、トークンの変数だけを参照する",
+          "描画の道具（view） ── 3つの正本を読み、値を差し込むだけにする。雛形のコードに見た目の文字列を持たない",
+          "検査（validate） ── トークンの形、CSS に色の直値が無いこと、CSS が参照する変数がすべてトークンに在ること、文字と地の色の比、の4つを検査する"
+        ]
       },
-      {
-       "text": "段2 ── acdr の記録の頁の見た目を、共通の写しと固有の2つへ分け直す。ACDR で提示する"
-      },
-      {
-       "text": "段3 ── ブレストボードの見た目を、共通の写しと固有の2つへ分け直す。ACDR で提示する"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>今</th><th>決めたあと</th></tr><tr><td>字の大きさ</td><td>CSS の文字列に直書き（.rv h3{font-size:16px} など）</td><td>トークン（例：意味の層の text-heading が基礎の size-5 を指す）を、CSS が var(--text-heading) で参照する</td></tr><tr><td>表の見た目</td><td>CSS の文字列に直書き。5言語の雛形と7つの道具の12か所に同じ文字列</td><td>view.css の1か所。値はトークンが持つ</td></tr><tr><td>見た目を直す作業</td><td>12か所の文字列を書き換える</td><td>トークンか view.css の1か所を書き換える</td></tr><tr><td>直値の混入</td><td>検出する仕組みが無い</td><td>validate が検出する</td></tr></table>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 899 272\" width=\"899\" height=\"272\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M97.4,50.8 L462.4,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"462.4,113.4 455.3,114.7 456.1,109.8\" fill=\"#C3CAD2\"/><path d=\"M299.2,50.8 L462.4,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"462.4,113.4 455.2,113.3 456.9,108.7\" fill=\"#C3CAD2\"/><path d=\"M513.4,32.6 L462.4,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"462.4,113.4 463.9,106.4 468.0,109.0\" fill=\"#C3CAD2\"/><path d=\"M766.6,32.6 L462.4,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"462.4,113.4 468.3,109.3 469.5,114.0\" fill=\"#C3CAD2\"/><path d=\"M462.4,146.6 L462.4,227.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"462.4,227.4 459.9,220.6 464.8,220.6\" fill=\"#C3CAD2\"/><path d=\"M97.4,50.8 L241.3,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"241.3,113.4 234.1,113.0 236.1,108.4\" fill=\"#C3CAD2\"/><path d=\"M299.2,50.8 L241.3,113.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"241.3,113.4 244.1,106.8 247.7,110.1\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"194.8\" height=\"50.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"97.4\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">view.tokens.json：トー</text><text x=\"97.4\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">クン（基礎 → 意味 → 部品）</text></g></g><g class=\"wf-node\" transform=\"translate(218.8,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"162.4\" height=\"50.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"81.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">view.css：規則だけ。</text><text x=\"81.2\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">値はトークンの変数</text></g></g><g class=\"wf-node\" transform=\"translate(405.2,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"216.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"108.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">view.template.html：頁の型</text></g></g><g class=\"wf-node\" transform=\"translate(645.6,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"241.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"120.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">criteria.json と スキーマ：中身</text></g></g><g class=\"wf-node\" transform=\"translate(378.2,114.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"167.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"83.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">view：値を差し込むだけ</text></g></g><g class=\"wf-node\" transform=\"translate(384.2,228.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"155.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"77.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">判断基準の頁（HTML）</text></g></g><g class=\"wf-node\" transform=\"translate(134.3,114.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"214.0\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"107.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">validate：トークンの形 ・ 直</text><text x=\"107.0\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">値 ・ 未定義の変数 ・ 色の比</text></g></g></g></svg>",
+          "caption": "描画の道具は、トークン ・ CSS ・ 型 ・ 中身の4つを読んで頁を組むだけにする。トークンと CSS は validate が検査する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "見た目をトークンが持つこと",
+          "basis": "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-29、skill-references Round 2 の差し戻し）"
+        },
+        {
+          "supports": "見た目をトークンが持つこと",
+          "basis": "見た目はトークンが持つ ── 色と寸法を直書きしない",
+          "tag": "rule",
+          "source": "skill-references 論点2（2026-09-29 Round 3 で承認）"
+        },
+        {
+          "supports": "描画する契約はトークンを持つこと",
+          "basis": "描画する契約の場合はデザイントークンを用意するはずです",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-10-01）"
+        },
+        {
+          "supports": "12か所の複製",
+          "basis": "CSS の同じ文字列が、5言語の雛形 refs.* と、7つの道具の refs.rs に在る",
+          "tag": "measured",
+          "source": "grep（2026-10-01）"
+        },
+        {
+          "supports": "3層と検査の形",
+          "basis": "acdr とブレストボードは、基礎 ・ 意味 ・ 部品の3層、明暗、トークンの検査（文字と地の比）を持つ",
+          "tag": "measured",
+          "source": ".claude/skills/acdr/references/tokens.json ・ brainstorming-board/references/tokens.json"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "B ── 今の形のまま、足りない値をトークンへ足していく",
+          "reason": "CSS の文字列が12か所に残り、見た目を1つ直すたびに12か所を書き換える。直値が混ざっても検出できない"
+        },
+        {
+          "option": "C ── acdr のトークンの仕組み（tokens.rs とスキーマ）をそのまま契約へ持ち上げる",
+          "reason": "acdr の字の大きさは17段（fs-1〜fs-17）で、段階として設計した値ではない。ブレストボードのスキーマと食い違い、どちらを正にするかが決まらない"
+        },
+        {
+          "option": "D ── トークンだけを契約にし、CSS は各 Skill が書く",
+          "reason": "助言型の5つの Skill が、同じ CSS をそれぞれ書くことになる。描画を契約が1つだけ持つという決定（skill-references 論点2）に反する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── トークンと CSS の2つの正本を契約が持つ",
+            "cost": "5言語の描画の雛形から CSS の文字列を外し、ファイルを読む形へ直す作業が生じる"
+          },
+          {
+            "option": "A2 ── A と同じ2つの正本を持ち、トークンを2層（基礎と意味）にする",
+            "cost": "部品ごとの値が意味の層に混ざって層が膨らみ、どの値が役割でどの値が部品かを区別できなくなる。acdr とブレストボードの3層とも揃わない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "トークンと CSS の置き場所と、5言語 ・ 各 Skill への配り方",
+            "treatment": "later",
+            "note": "論点2で決める"
+          },
+          {
+            "item": "表 ・ コードブロックなど部品の具体的な値",
+            "treatment": "later",
+            "note": "論点3で決める"
+          },
+          {
+            "item": "acdr とブレストボードの独自のトークンの扱い",
+            "treatment": "later",
+            "note": "論点4で決める"
+          },
+          {
+            "item": "design-svg の図の見た目（theme.json）",
+            "treatment": "out",
+            "note": "図の見た目は SVG の中で閉じ、頁の CSS を使わない。この決定を覆さない"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "見た目の正本と検査",
-   "status": "settled",
-   "question": "描画の契約は、見た目について何を正本として持ち、何を検査するか",
-   "answer": "見た目はトークン（3層）と CSS（直値を持たない）の2つの正本で持ち、描画の道具は値を差し込むだけにする。トークンと CSS は validate が検査する",
-   "intro": "描画の雛形のコードから、色 ・ 寸法 ・ 規則の文字列をすべて外すかを決める。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "描画の契約は、見た目を次の2つの正本で持つ。頁の型（view.template.html）と合わせて3つになる。"
-     },
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "<b>view.tokens.json</b> ── 共通のトークンは色だけにする。色味の違う数パターン（パレット）を、明暗の両方で持つ。字の大きさ ・ 余白は、共通の view.css が固定の値で持つ"
-       },
-       {
-        "text": "<b>view.css</b> ── セレクタと規則だけを持つ。色 ・ 寸法 ・ 字の大きさは、トークンの変数だけを参照する"
-       },
-       {
-        "text": "<b>描画の道具（view）</b> ── 3つの正本を読み、値を差し込むだけにする。雛形のコードに見た目の文字列を持たない"
-       },
-       {
-        "text": "<b>検査（validate）</b> ── トークンの形、CSS に色の直値が無いこと、CSS が参照する変数がすべてトークンに在ること、文字と地の色の比、の4つを検査する"
-       }
-      ]
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "table",
-     "cols": [
-      "今",
-      "決めたあと"
-     ],
-     "rows": [
-      [
-       "字の大きさ",
-       [
-        "CSS の文字列に直書き（.rv h3{font-size:16px} など）",
-        "トークン（例：意味の層の text-heading が基礎の size-5 を指す）を、CSS が var(--text-heading) で参照する"
-       ]
-      ],
-      [
-       "表の見た目",
-       [
-        "CSS の文字列に直書き。5言語の雛形と7つの道具の12か所に同じ文字列",
-        "view.css の1か所。値はトークンが持つ"
-       ]
-      ],
-      [
-       "見た目を直す作業",
-       [
-        "12か所の文字列を書き換える",
-        "トークンか view.css の1か所を書き換える"
-       ]
-      ],
-      [
-       "直値の混入",
-       [
-        "検出する仕組みが無い",
-        "validate が検出する"
-       ]
-      ]
-     ]
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "contract",
-     "caption": "描画の道具は、トークン ・ CSS ・ 型 ・ 中身の4つを読んで頁を組むだけにする。トークンと CSS は validate が検査する"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── トークンと CSS の2つの正本を契約が持つ",
-     "body": "見た目の値はトークン、規則は CSS に置き、描画の道具は値を差し込むだけにする",
-     "cost": "5言語の描画の雛形から CSS の文字列を外し、ファイルを読む形へ直す作業が生じる"
     },
     {
-     "name": "A2 ── A と同じ2つの正本を持ち、トークンを2層（基礎と意味）にする",
-     "body": "部品の層を置かず、表の見出しの地のような部品ごとの値も意味の層に置く",
-     "cost": "部品ごとの値が意味の層に混ざって層が膨らみ、どの値が役割でどの値が部品かを区別できなくなる。acdr とブレストボードの3層とも揃わない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "B ── 今の形のまま、足りない値をトークンへ足していく",
-     "reason": "CSS の文字列が12か所に残り、見た目を1つ直すたびに12か所を書き換える。直値が混ざっても検出できない"
-    },
-    {
-     "body": "C ── acdr のトークンの仕組み（tokens.rs とスキーマ）をそのまま契約へ持ち上げる",
-     "reason": "acdr の字の大きさは17段（fs-1〜fs-17）で、段階として設計した値ではない。ブレストボードのスキーマと食い違い、どちらを正にするかが決まらない"
-    },
-    {
-     "body": "D ── トークンだけを契約にし、CSS は各 Skill が書く",
-     "reason": "助言型の5つの Skill が、同じ CSS をそれぞれ書くことになる。描画を契約が1つだけ持つという決定（skill-references 論点2）に反する"
-    }
-   ],
-   "findings": [
-    "skill-references の論点2で「見た目はトークンが持つ ── 色と寸法を直書きしない」と決めたが、ACDR 0044 は色など11個だけをトークンにした",
-    "描画の雛形の CSS は、「値は直書きせず、トークンの変数だけを参照する」という注記に反して、字の大きさと余白を直書きしている",
-    "同じ CSS の文字列が、5言語の描画の雛形と、雛形から作った7つの道具の12か所に在る",
-    "acdr とブレストボードは、トークンの正本 ・ スキーマ ・ 検査を別々に実装している（tokens.rs は268行と363行）"
-   ],
-   "grounds": [
-    {
-     "supports": "見た目をトークンが持つこと",
-     "basis": "見た目はトークンだと思うね。 その方が管理しやすい。JsonからHTMLにレンダリングするという処理は同じ契約で考えるのがいいね。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-29、skill-references Round 2 の差し戻し）"
-    },
-    {
-     "supports": "見た目をトークンが持つこと",
-     "basis": "見た目はトークンが持つ ── 色と寸法を直書きしない",
-     "tag": "rule",
-     "source": "skill-references 論点2（2026-09-29 Round 3 で承認）"
-    },
-    {
-     "supports": "描画する契約はトークンを持つこと",
-     "basis": "描画する契約の場合はデザイントークンを用意するはずです",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-10-01）"
-    },
-    {
-     "supports": "12か所の複製",
-     "basis": "CSS の同じ文字列が、5言語の雛形 refs.* と、7つの道具の refs.rs に在る",
-     "tag": "measured",
-     "source": "grep（2026-10-01）"
-    },
-    {
-     "supports": "3層と検査の形",
-     "basis": "acdr とブレストボードは、基礎 ・ 意味 ・ 部品の3層、明暗、トークンの検査（文字と地の比）を持つ",
-     "tag": "measured",
-     "source": ".claude/skills/acdr/references/tokens.json ・ brainstorming-board/references/tokens.json"
-    }
-   ],
-   "requirements": [
-    "5言語の描画の雛形が、トークンと CSS をファイルから読む形になる",
-    "validate に、トークンと CSS の4つの検査が加わる"
-   ],
-   "out_of_scope": [
-    {
-     "item": "トークンと CSS の置き場所と、5言語 ・ 各 Skill への配り方",
-     "treatment": "later",
-     "note": "論点2で決める"
-    },
-    {
-     "item": "表 ・ コードブロックなど部品の具体的な値",
-     "treatment": "later",
-     "note": "論点3で決める"
-    },
-    {
-     "item": "acdr とブレストボードの独自のトークンの扱い",
-     "treatment": "later",
-     "note": "論点4で決める"
-    },
-    {
-     "item": "design-svg の図の見た目（theme.json）",
-     "treatment": "out",
-     "note": "図の見た目は SVG の中で閉じ、頁の CSS を使わない。この決定を覆さない"
-    }
-   ],
-   "path": [
-    {
-     "kind": "para",
-     "text": "Round 1 で承認された（2026-10-01、利用者の言葉「おｋ」）。論点2が、この答えの正本の種類を前提に置き場所を決める"
-    },
-    {
-     "kind": "card",
-     "letter": "A",
-     "heading": "Round 2 の書き足しで、共通のトークンを色だけに絞った",
-     "events": [
-      {
-       "tag": "returned",
-       "text": "色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。"
+      "id": "Q2",
+      "name": "置き場所と配り方",
+      "status": "settled",
+      "question": "トークンと CSS の正本をどこに1つ置き、5言語の描画と各 Skill へどう行き渡らせるか",
+      "answer": {
+        "text": "正本は skills-creator の references/view/ に1つ置き、scaffold が各 Skill の references/ へ写す。描画の道具は Skill 自身の写しを読み、コードに見た目の既定値を持たない。check が写しと正本の差を報告する",
+        "details": [
+          "正本 ── skills-creator の references/view/ に1組だけ置く。中身は、トークン ・ トークンのスキーマ ・ CSS ・ 頁の型の4つである",
+          "配り方 ── scaffold が、Skill を作るときに4つを Skill の references/ へ写す。判断基準のスキーマを写すのと同じ扱いにする",
+          "描画 ── 5言語の view は、Skill 自身の references/ から4つを読むだけにする。コードに見た目の既定値を持たない。4つが無ければ、描かずに理由を返す",
+          "同期 ── check が、Skill の写しと正本の差を報告する。正本を直したら、報告に従って各 Skill の写しを直す"
+        ]
       },
-      {
-       "tag": "finding",
-       "text": "共通のトークンは色だけにし、字の大きさ ・ 余白はトークンにしない。CSS の検査は色の直値に限る。Skill 固有の見た目は、Skill 固有のトークンで持つ（論点4）"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>何を置くか</th></tr><tr><td>skills-creator/references/view/</td><td>正本の4つ（トークン ・ トークンのスキーマ ・ CSS ・ 頁の型）</td></tr><tr><td>usecase-advisor/references/</td><td>scaffold が写した4つ。描画の道具はここから読む</td></tr><tr><td>5言語の描画の雛形（refs.*）</td><td>見た目の文字列を持たない。読むファイルの名前だけを持つ</td></tr><tr><td>skills-creator check の報告</td><td>例：「view.css が正本と違う（12行目）」</td></tr></table>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 481 482\" width=\"481\" height=\"482\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M295.7,68.8 L222.7,131.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"222.7,131.4 226.2,125.1 229.4,128.9\" fill=\"#C3CAD2\"/><path d=\"M222.7,164.6 L224.4,227.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"224.4,227.2 221.8,220.5 226.7,220.4\" fill=\"#C3CAD2\"/><path d=\"M295.7,68.8 Q369.2,132.0 369.2,148.0 Q369.2,164.0 368.1,196.0 Q367.0,228.0 367.0,244.0 Q367.0,260.0 362.4,291.7 L357.8,323.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"357.8,323.4 356.4,316.4 361.2,317.1\" fill=\"#C3CAD2\"/><path d=\"M224.4,260.8 L357.8,323.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"357.8,323.4 350.6,322.8 352.7,318.3\" fill=\"#C3CAD2\"/><path d=\"M224.4,260.8 L111.7,323.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"111.7,323.4 116.4,318.0 118.8,322.3\" fill=\"#C3CAD2\"/><path d=\"M110.1,374.6 L110.4,437.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"110.4,437.4 107.9,430.6 112.8,430.6\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(180.6,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"230.2\" height=\"68.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"115.1\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">skills-creator の </text><text x=\"115.1\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">references/view/：正本（トー</text><text x=\"115.1\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">クン ・ スキーマ ・ CSS ・ 型）</text></g></g><g class=\"wf-node\" transform=\"translate(99.5,132.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"245.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"122.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">scaffold：Skill を作るときに写す</text></g></g><g class=\"wf-node\" transform=\"translate(245.8,324.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"223.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"111.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">check：写しと正本の差を報告する</text></g></g><g class=\"wf-node\" transform=\"translate(106.3,228.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"236.2\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"118.1\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">各 Skill の references/：写し</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,324.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"221.8\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"110.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">view（5言語とも同じ）：Skill </text><text x=\"110.9\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">自身の references/ から読む</text></g></g><g class=\"wf-node\" transform=\"translate(63.3,438.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"95.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"47.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">頁（HTML）</text></g></g></g></svg>",
+          "caption": "正本は skills-creator に1つ置き、scaffold が各 Skill へ写す。描画の道具は Skill 自身の写しを読み、check が写しと正本の差を報告する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "コードに見た目を持たないこと",
+          "basis": "見た目の正本はトークン ・ CSS ・ 型の3つで、描画の道具は値を差し込むだけにする",
+          "tag": "rule",
+          "source": "論点1（Round 1 で承認）"
+        },
+        {
+          "supports": "Skill を単独で配れること",
+          "basis": "Skill は他の Skill に依存しない",
+          "tag": "rule",
+          "source": "skills-creator の決まり（ACDR 0066）"
+        },
+        {
+          "supports": "実行時に Skill の references/ から読めること",
+          "basis": "tokens() は refs.join(\"view.tokens.json\") を、view() は refs.join(\"view.template.html\") を読む",
+          "tag": "measured",
+          "source": "skills-creator/references/profiles/rust/common/refs.rs.tmpl"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "B ── 各言語の道具に、正本をビルドのときに取り込む",
+          "reason": "取り込み方が5言語で違い、生成の手順が5つ要る。Python と TypeScript は組み立ての手順を持たない"
+        },
+        {
+          "option": "C ── 描画の道具が、実行時に skills-creator のフォルダから読む",
+          "reason": "Skill が他の Skill に依存し、単独で配れない。skill-references で除外した案と同じ理由である"
+        },
+        {
+          "option": "D ── 既定値をコードに残し、Skill の references/ で上書きする（今の形）",
+          "reason": "コードに見た目の文字列が残り、論点1に反する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 正本を1つ置き、scaffold が写し、check が差を報告する",
+            "cost": "Skill の数だけ写しができる。正本を直したら、check の報告に従って写しを直す作業が生じる"
+          },
+          {
+            "option": "A2 ── A と同じく写すが、check は差を報告しない",
+            "cost": "正本を直しても古い写しが残り、どの Skill が古いかを誰も検出できない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "トークンと CSS の具体的な値",
+            "treatment": "later",
+            "note": "論点3で決める"
+          },
+          {
+            "item": "acdr とブレストボードの独自の見た目の扱い",
+            "treatment": "later",
+            "note": "論点4で決める"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 2,
-   "name": "置き場所と配り方",
-   "status": "settled",
-   "question": "トークンと CSS の正本をどこに1つ置き、5言語の描画と各 Skill へどう行き渡らせるか",
-   "answer": "正本は skills-creator の references/view/ に1つ置き、scaffold が各 Skill の references/ へ写す。描画の道具は Skill 自身の写しを読み、コードに見た目の既定値を持たない。check が写しと正本の差を報告する",
-   "intro": "見た目の正本を、コードではなくデータとして各 Skill に持たせるかを決める。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "<b>正本</b> ── skills-creator の references/view/ に1組だけ置く。中身は、トークン ・ トークンのスキーマ ・ CSS ・ 頁の型の4つである"
-       },
-       {
-        "text": "<b>配り方</b> ── scaffold が、Skill を作るときに4つを Skill の references/ へ写す。判断基準のスキーマを写すのと同じ扱いにする"
-       },
-       {
-        "text": "<b>描画</b> ── 5言語の view は、Skill 自身の references/ から4つを読むだけにする。コードに見た目の既定値を持たない。4つが無ければ、描かずに理由を返す"
-       },
-       {
-        "text": "<b>同期</b> ── check が、Skill の写しと正本の差を報告する。正本を直したら、報告に従って各 Skill の写しを直す"
-       }
-      ]
-     }
-    ]
-   },
-   "example": [
+    },
     {
-     "kind": "table",
-     "cols": [
-      "何を置くか"
-     ],
-     "rows": [
-      [
-       "skills-creator/references/view/",
-       [
-        "正本の4つ（トークン ・ トークンのスキーマ ・ CSS ・ 頁の型）"
-       ]
+      "id": "Q3",
+      "name": "色のトークンと表 ・ コードブロック",
+      "status": "settled",
+      "question": "共通の色のトークンを何パターン持ち、表とコードブロックをどの規則で描くか",
+      "answer": {
+        "text": "差し色の違う3つのパレット（緑 ・ 藍 ・ 橙）を明暗つきで持ち、Skill はそのうち1つを選ぶ。表は見出しの行に面の色を敷いて太字にし、行ごとに面の色を交互に敷いて枠で囲む。コードブロックは等幅の書体にし、枠と差し色の縦線で本文と分ける",
+        "details": [
+          "パレット ── 差し色の違う3つ（緑 ・ 藍 ・ 橙）を、明と暗の両方で持つ。Skill は写しの palette の欄で1つを選ぶ",
+          "色の役割 ── どのパレットも同じ10の役割を持つ。頁の地 ・ 面 ・ 帯 ・ 文字 ・ 薄い文字 ・ 線 ・ 差し色 ・ 差し色の淡い地 ・ 注意 ・ 注意の淡い地である",
+          "表 ── 見出しの行は面の色の地に太字で書き、下に太い線を引く。行ごとに面の色を交互に敷き、表全体を角の丸い枠で囲む",
+          "コードブロック ── 等幅の書体にし、面の色の地と枠を付け、左に差し色の縦線を引いて本文と分ける"
+        ]
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>試作の頁：https://claude.ai/artifact/Vi3FyQ9nhphC9YMwSPDaxi （上の帯でパレットと明暗を切り替えられる）</p><table><tr><th></th><th>何に使うか</th></tr><tr><td>頁の地（paper）</td><td>カードと表の地</td></tr><tr><td>面（surface）</td><td>表の見出しの行 ・ 交互の行 ・ コードブロックの地</td></tr><tr><td>帯（band）</td><td>頁の外側の地</td></tr><tr><td>文字（ink）</td><td>本文</td></tr><tr><td>薄い文字（muted）</td><td>補足の文字</td></tr><tr><td>線（line）</td><td>枠と行の区切り</td></tr><tr><td>差し色（accent）</td><td>要素の種類の見出し ・ 概要の枠 ・ コードブロックの縦線</td></tr><tr><td>差し色の淡い地（accent-soft）</td><td>要素の種類の札</td></tr><tr><td>注意（warn）と注意の淡い地（warn-soft）</td><td>否定の札</td></tr></table>"
+        }
       ],
-      [
-       "usecase-advisor/references/",
-       [
-        "scaffold が写した4つ。描画の道具はここから読む"
-       ]
+      "grounds": [
+        {
+          "supports": "共通のトークンを色だけにすること",
+          "basis": "色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-10-01、Round 2 への書き足し）"
+        },
+        {
+          "supports": "表とコードブロックを直すこと",
+          "basis": "表テーブルのデザインが結構見にくいね。あとはコードブロックの部分とかかな。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-10-01）"
+        },
+        {
+          "supports": "見た目の正本と配り方",
+          "basis": "トークン ・ CSS ・ 型を skills-creator に1組置き、scaffold が写す",
+          "tag": "rule",
+          "source": "論点1 ・ 2（Round 1 ・ 2 で承認）"
+        }
       ],
-      [
-       "5言語の描画の雛形（refs.*）",
-       [
-        "見た目の文字列を持たない。読むファイルの名前だけを持つ"
-       ]
+      "rejected": [
+        {
+          "option": "B ── 字の大きさ ・ 余白もトークンにする",
+          "reason": "利用者の方針（色以外の共通のトークンは要らない）に反する。段階として設計しないまま値だけが増える（acdr の字の大きさは17段）"
+        },
+        {
+          "option": "C ── 表の1列目を太字にする",
+          "reason": "試作で、長い文の列が重くなり読みにくかった"
+        },
+        {
+          "option": "D ── 行の区切りを細い線1本にする（今の形）",
+          "reason": "見出しの行と中身の区別がつかず、利用者に「見にくい」と指摘された"
+        }
       ],
-      [
-       "skills-creator check の報告",
-       [
-        "例：「view.css が正本と違う（12行目）」"
-       ]
-      ]
-     ]
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "place",
-     "caption": "正本は skills-creator に1つ置き、scaffold が各 Skill へ写す。描画の道具は Skill 自身の写しを読み、check が写しと正本の差を報告する"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 正本を1つ置き、scaffold が写し、check が差を報告する",
-     "body": "見た目をデータとして各 Skill に持たせ、コードからは外す",
-     "cost": "Skill の数だけ写しができる。正本を直したら、check の報告に従って写しを直す作業が生じる"
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 3つのパレットを持ち、Skill が1つを選ぶ",
+            "cost": "パレットごとに10の役割 × 明暗の値を用意し、文字と地の比を検査する"
+          },
+          {
+            "option": "A2 ── 3つのパレットを持ち、頁を読む人が切り替える",
+            "cost": "描画が切り替えの script を持つことになり、頁の中に見た目の選択が混ざる"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "図（SVG）の暗の表示",
+            "treatment": "out",
+            "note": "図の色は design-svg が持ち、頁のトークンを使わない。この決定を覆さない"
+          },
+          {
+            "item": "Skill 固有の見た目のトークン",
+            "treatment": "later",
+            "note": "論点4で決める"
+          }
+        ]
+      }
     },
     {
-     "name": "A2 ── A と同じく写すが、check は差を報告しない",
-     "body": "写したあとの見た目は、各 Skill に任せる",
-     "cost": "正本を直しても古い写しが残り、どの Skill が古いかを誰も検出できない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "B ── 各言語の道具に、正本をビルドのときに取り込む",
-     "reason": "取り込み方が5言語で違い、生成の手順が5つ要る。Python と TypeScript は組み立ての手順を持たない"
-    },
-    {
-     "body": "C ── 描画の道具が、実行時に skills-creator のフォルダから読む",
-     "reason": "Skill が他の Skill に依存し、単独で配れない。skill-references で除外した案と同じ理由である"
-    },
-    {
-     "body": "D ── 既定値をコードに残し、Skill の references/ で上書きする（今の形）",
-     "reason": "コードに見た目の文字列が残り、論点1に反する"
-    }
-   ],
-   "findings": [
-    "描画の道具は、すでに Skill 自身の references/ から view.tokens.json と view.template.html を実行時に読んでいる",
-    "既定値はコードの中の定数（DEFAULT_TOKENS ・ STYLE）にあり、これが12か所の複製になっている"
-   ],
-   "grounds": [
-    {
-     "supports": "コードに見た目を持たないこと",
-     "basis": "見た目の正本はトークン ・ CSS ・ 型の3つで、描画の道具は値を差し込むだけにする",
-     "tag": "rule",
-     "source": "論点1（Round 1 で承認）"
-    },
-    {
-     "supports": "Skill を単独で配れること",
-     "basis": "Skill は他の Skill に依存しない",
-     "tag": "rule",
-     "source": "skills-creator の決まり（ACDR 0066）"
-    },
-    {
-     "supports": "実行時に Skill の references/ から読めること",
-     "basis": "tokens() は refs.join(\"view.tokens.json\") を、view() は refs.join(\"view.template.html\") を読む",
-     "tag": "measured",
-     "source": "skills-creator/references/profiles/rust/common/refs.rs.tmpl"
-    }
-   ],
-   "requirements": [
-    "scaffold が4つを写す",
-    "5言語の描画の雛形から DEFAULT_TOKENS ・ PAGE_STYLE ・ STYLE を外し、ファイルを読む形にする",
-    "check に、写しと正本の差の報告を加える"
-   ],
-   "out_of_scope": [
-    {
-     "item": "トークンと CSS の具体的な値",
-     "treatment": "later",
-     "note": "論点3で決める"
-    },
-    {
-     "item": "acdr とブレストボードの独自の見た目の扱い",
-     "treatment": "later",
-     "note": "論点4で決める"
-    }
-   ],
-   "path": [
-    {
-     "kind": "para",
-     "text": "Round 2 で承認された（2026-10-01、利用者の言葉「OKです」）"
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "色のトークンと表 ・ コードブロック",
-   "status": "settled",
-   "question": "共通の色のトークンを何パターン持ち、表とコードブロックをどの規則で描くか",
-   "answer": "差し色の違う3つのパレット（緑 ・ 藍 ・ 橙）を明暗つきで持ち、Skill はそのうち1つを選ぶ。表は見出しの行に面の色を敷いて太字にし、行ごとに面の色を交互に敷いて枠で囲む。コードブロックは等幅の書体にし、枠と差し色の縦線で本文と分ける",
-   "intro": "判断基準の頁で「見にくい」と指摘された表とコードブロックを、色のトークンと固定の規則で描き直す。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "<b>パレット</b> ── 差し色の違う3つ（緑 ・ 藍 ・ 橙）を、明と暗の両方で持つ。Skill は写しの palette の欄で1つを選ぶ"
-       },
-       {
-        "text": "<b>色の役割</b> ── どのパレットも同じ10の役割を持つ。頁の地 ・ 面 ・ 帯 ・ 文字 ・ 薄い文字 ・ 線 ・ 差し色 ・ 差し色の淡い地 ・ 注意 ・ 注意の淡い地である"
-       },
-       {
-        "text": "<b>表</b> ── 見出しの行は面の色の地に太字で書き、下に太い線を引く。行ごとに面の色を交互に敷き、表全体を角の丸い枠で囲む"
-       },
-       {
-        "text": "<b>コードブロック</b> ── 等幅の書体にし、面の色の地と枠を付け、左に差し色の縦線を引いて本文と分ける"
-       }
-      ]
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "試作の頁：https://claude.ai/artifact/Vi3FyQ9nhphC9YMwSPDaxi （上の帯でパレットと明暗を切り替えられる）"
-    },
-    {
-     "kind": "table",
-     "cols": [
-      "何に使うか"
-     ],
-     "rows": [
-      [
-       "頁の地（paper）",
-       [
-        "カードと表の地"
-       ]
+      "id": "Q4",
+      "name": "Skill 固有のトークンと既存の Skill",
+      "status": "settled",
+      "question": "Skill 固有の見た目をどう持たせ、acdr ・ ブレストボードと雛形から作った Skill を契約の形へどう移すか",
+      "answer": {
+        "text": "Skill 固有の見た目は、共通の写しとは別の2つのファイル（view.skill.tokens.json ・ view.skill.css）に持ち、描画は共通の後ろに重ねる。移すのは3段で、skills-creator と14の Skill の描画を先に、acdr とブレストボードの独自の出力をそれぞれ後に移す",
+        "details": [
+          "Skill 固有の見た目 ── 要る Skill だけが、view.skill.tokens.json（固有のトークン）と view.skill.css（固有の規則）を references/ に置く。固有の規則も色の直値を持たず、共通の色の役割か固有のトークンを参照する",
+          "描画 ── 共通の3つを読み、固有の2つが在れば後ろに重ねる",
+          "check ── 共通の写しだけを正本と比べる。固有の2つは比べない",
+          "移す順 ── 段1で skills-creator（正本 ・ 雛形 ・ scaffold ・ check）と、雛形から作った14の Skill の描画を移す。段2で acdr、段3でブレストボードの独自の出力（記録 ・ ボード）を移す。段ごとに ACDR を1件起こす"
+        ]
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th></th><th>何を持つか</th></tr><tr><td>usecase-advisor</td><td>共通の写しだけ。固有のファイルは無い</td></tr><tr><td>acdr（段2）</td><td>共通の写し ＋ 固有：差分の追加 ・ 削除の地の色（add-bg ・ del-bg）、変更の印の色。記録の頁の規則は view.skill.css に移す</td></tr><tr><td>ブレストボード（段3）</td><td>共通の写し ＋ 固有：時系列の線と節（tl-node ・ tl-rail）など。ボードの規則は view.skill.css に移す</td></tr><tr><td>design-svg</td><td>移さない。図の色は design-svg の theme.json が持つ</td></tr></table>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 548 272\" width=\"548\" height=\"272\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M193.9,68.8 L381.0,131.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"381.0,131.4 373.8,131.6 375.4,126.9\" fill=\"#C3CAD2\"/><path d=\"M437.4,68.8 L381.0,131.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"381.0,131.4 383.7,124.7 387.4,128.0\" fill=\"#C3CAD2\"/><path d=\"M381.0,164.6 L381.5,227.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"381.5,227.4 379.0,220.7 383.9,220.6\" fill=\"#C3CAD2\"/><path d=\"M193.9,68.8 L118.0,131.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><polygon points=\"118.0,131.4 121.7,125.2 124.8,129.0\" fill=\"#C3CAD2\"/><g class=\"wf-node\" transform=\"translate(70.5,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"244.6\" height=\"68.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"122.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">共通の写し：view.tokens.json ・</text><text x=\"122.3\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">view.css ・ view.template.</text><text x=\"122.3\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">html（正本と一致させる）</text></g></g><g class=\"wf-node\" transform=\"translate(339.1,0.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"196.6\" height=\"68.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"98.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">Skill 固有：view.skill.</text><text x=\"98.3\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">tokens.json ・ view.</text><text x=\"98.3\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">skill.css（在るときだけ）</text></g></g><g class=\"wf-node\" transform=\"translate(259.0,132.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"244.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"122.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">描画：共通を読み、固有を後ろに重ねる</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,132.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"235.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"117.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">check：共通の写しだけ正本と比べる</text></g></g><g class=\"wf-node\" transform=\"translate(333.4,228.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"95.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"47.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">頁（HTML）</text></g></g></g></svg>",
+          "caption": "共通の写しは正本と一致させ、Skill 固有の見た目は別の2つのファイルで後ろに重ねる。check は共通の写しだけを比べる"
+        }
       ],
-      [
-       "面（surface）",
-       [
-        "表の見出しの行 ・ 交互の行 ・ コードブロックの地"
-       ]
+      "grounds": [
+        {
+          "supports": "Skill 固有のトークンを持つこと",
+          "basis": "Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-10-01）"
+        },
+        {
+          "supports": "共通の写しを正本と一致させること",
+          "basis": "scaffold が写し、check が写しと正本の差を報告する",
+          "tag": "rule",
+          "source": "論点2（Round 2 で承認）"
+        },
+        {
+          "supports": "共通のトークンは色だけ",
+          "basis": "色の3つのパレットと10の役割",
+          "tag": "rule",
+          "source": "論点1 ・ 3（Round 2 ・ 3 で承認）"
+        },
+        {
+          "supports": "acdr とブレストボードの部品の層",
+          "basis": "部品の層の鍵は、acdr が4つ（pop-bg ・ add-bg など）、ブレストボードが6つ（tl-node ・ tl-rail など）である",
+          "tag": "measured",
+          "source": "acdr ・ brainstorming-board の references/tokens.json"
+        }
       ],
-      [
-       "帯（band）",
-       [
-        "頁の外側の地"
-       ]
+      "rejected": [
+        {
+          "option": "B ── 固有の見た目を、共通の写しに直接書き足す",
+          "reason": "check が正本との差として報告し続ける。正本を直して写し直すと、書き足した分が消える"
+        },
+        {
+          "option": "C ── acdr とブレストボードは今のまま残す",
+          "reason": "トークンの仕組みが3つ並び続け（共通 ・ acdr ・ ブレストボード）、共通の色の役割とも揃わない"
+        },
+        {
+          "option": "D ── 字の大きさや余白も、Skill 固有のトークンとして持つ",
+          "reason": "色以外の共通のトークンは要らないという方針（論点1の書き足し）と同じ理由で、固有でも要るものだけにする。acdr の字の大きさの17段は、固有の規則の中の固定の値へ移す"
+        }
       ],
-      [
-       "文字（ink）",
-       [
-        "本文"
-       ]
-      ],
-      [
-       "薄い文字（muted）",
-       [
-        "補足の文字"
-       ]
-      ],
-      [
-       "線（line）",
-       [
-        "枠と行の区切り"
-       ]
-      ],
-      [
-       "差し色（accent）",
-       [
-        "要素の種類の見出し ・ 概要の枠 ・ コードブロックの縦線"
-       ]
-      ],
-      [
-       "差し色の淡い地（accent-soft）",
-       [
-        "要素の種類の札"
-       ]
-      ],
-      [
-       "注意（warn）と注意の淡い地（warn-soft）",
-       [
-        "否定の札"
-       ]
-      ]
-     ]
+      "verification": {
+        "passed": [
+          {
+            "option": "A ── 固有の見た目を別の2つのファイルに持ち、3段で移す",
+            "cost": "Skill によって references/ のファイルが2つ増える。acdr とブレストボードは、今の見た目の正本を共通と固有へ分け直す"
+          },
+          {
+            "option": "A2 ── A と同じく分け、14の Skill と acdr ・ ブレストボードを一度に移す",
+            "cost": "1件の ACDR の変更が大きくなり、承認するときに差分を追えない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "design-svg の図の色",
+            "treatment": "out",
+            "note": "図は SVG の中で閉じ、頁のトークンを使わない。この決定を覆さない"
+          },
+          {
+            "item": "段2 ・ 段3 の具体的な差分",
+            "treatment": "later",
+            "note": "段ごとの ACDR で示す"
+          }
+        ]
+      }
     }
-   ],
-   "passed": [
-    {
-     "name": "A ── 3つのパレットを持ち、Skill が1つを選ぶ",
-     "body": "色味の違いだけを共通のトークンにし、規則は共通の view.css が持つ",
-     "cost": "パレットごとに10の役割 × 明暗の値を用意し、文字と地の比を検査する"
-    },
-    {
-     "name": "A2 ── 3つのパレットを持ち、頁を読む人が切り替える",
-     "body": "試作の頁のように、頁の中で切り替える",
-     "cost": "描画が切り替えの script を持つことになり、頁の中に見た目の選択が混ざる"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "B ── 字の大きさ ・ 余白もトークンにする",
-     "reason": "利用者の方針（色以外の共通のトークンは要らない）に反する。段階として設計しないまま値だけが増える（acdr の字の大きさは17段）"
-    },
-    {
-     "body": "C ── 表の1列目を太字にする",
-     "reason": "試作で、長い文の列が重くなり読みにくかった"
-    },
-    {
-     "body": "D ── 行の区切りを細い線1本にする（今の形）",
-     "reason": "見出しの行と中身の区別がつかず、利用者に「見にくい」と指摘された"
-    }
-   ],
-   "findings": [
-    "試作では、見出しの行の地と交互の行の地で、表の行を追いやすくなった",
-    "コードブロックに等幅の書体が指定されておらず、本文と同じ書体だった",
-    "図（design-svg）は頁のトークンを使わないので、暗の表示でも明るい地のままになる"
-   ],
-   "grounds": [
-    {
-     "supports": "共通のトークンを色だけにすること",
-     "basis": "色味の違いだけでいいです、別に色味以外の固有のデザイントークンはなくてもいいと思ってるけど、Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-10-01、Round 2 への書き足し）"
-    },
-    {
-     "supports": "表とコードブロックを直すこと",
-     "basis": "表テーブルのデザインが結構見にくいね。あとはコードブロックの部分とかかな。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-10-01）"
-    },
-    {
-     "supports": "見た目の正本と配り方",
-     "basis": "トークン ・ CSS ・ 型を skills-creator に1組置き、scaffold が写す",
-     "tag": "rule",
-     "source": "論点1 ・ 2（Round 1 ・ 2 で承認）"
-    }
-   ],
-   "requirements": [
-    "3つのパレットの値を明暗で用意し、文字と地の比を検査に通す",
-    "共通の view.css に、表とコードブロックの規則を書く"
-   ],
-   "out_of_scope": [
-    {
-     "item": "図（SVG）の暗の表示",
-     "treatment": "out",
-     "note": "図の色は design-svg が持ち、頁のトークンを使わない。この決定を覆さない"
-    },
-    {
-     "item": "Skill 固有の見た目のトークン",
-     "treatment": "later",
-     "note": "論点4で決める"
-    }
-   ],
-   "path": [
-    {
-     "kind": "para",
-     "text": "Round 3 で承認された（2026-10-01）"
-    }
-   ]
-  },
-  {
-   "no": 4,
-   "name": "Skill 固有のトークンと既存の Skill",
-   "status": "settled",
-   "question": "Skill 固有の見た目をどう持たせ、acdr ・ ブレストボードと雛形から作った Skill を契約の形へどう移すか",
-   "answer": "Skill 固有の見た目は、共通の写しとは別の2つのファイル（view.skill.tokens.json ・ view.skill.css）に持ち、描画は共通の後ろに重ねる。移すのは3段で、skills-creator と14の Skill の描画を先に、acdr とブレストボードの独自の出力をそれぞれ後に移す",
-   "intro": "共通の写しと Skill 固有の見た目を、ファイルで分けるかを決める。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "<b>Skill 固有の見た目</b> ── 要る Skill だけが、view.skill.tokens.json（固有のトークン）と view.skill.css（固有の規則）を references/ に置く。固有の規則も色の直値を持たず、共通の色の役割か固有のトークンを参照する"
-       },
-       {
-        "text": "<b>描画</b> ── 共通の3つを読み、固有の2つが在れば後ろに重ねる"
-       },
-       {
-        "text": "<b>check</b> ── 共通の写しだけを正本と比べる。固有の2つは比べない"
-       },
-       {
-        "text": "<b>移す順</b> ── 段1で skills-creator（正本 ・ 雛形 ・ scaffold ・ check）と、雛形から作った14の Skill の描画を移す。段2で acdr、段3でブレストボードの独自の出力（記録 ・ ボード）を移す。段ごとに ACDR を1件起こす"
-       }
-      ]
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "table",
-     "cols": [
-      "何を持つか"
-     ],
-     "rows": [
-      [
-       "usecase-advisor",
-       [
-        "共通の写しだけ。固有のファイルは無い"
-       ]
-      ],
-      [
-       "acdr（段2）",
-       [
-        "共通の写し ＋ 固有：差分の追加 ・ 削除の地の色（add-bg ・ del-bg）、変更の印の色。記録の頁の規則は view.skill.css に移す"
-       ]
-      ],
-      [
-       "ブレストボード（段3）",
-       [
-        "共通の写し ＋ 固有：時系列の線と節（tl-node ・ tl-rail）など。ボードの規則は view.skill.css に移す"
-       ]
-      ],
-      [
-       "design-svg",
-       [
-        "移さない。図の色は design-svg の theme.json が持つ"
-       ]
-      ]
-     ]
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "skill",
-     "caption": "共通の写しは正本と一致させ、Skill 固有の見た目は別の2つのファイルで後ろに重ねる。check は共通の写しだけを比べる"
-    }
-   ],
-   "passed": [
-    {
-     "name": "A ── 固有の見た目を別の2つのファイルに持ち、3段で移す",
-     "body": "共通と固有をファイルで分け、共通の写しは正本と一致させる",
-     "cost": "Skill によって references/ のファイルが2つ増える。acdr とブレストボードは、今の見た目の正本を共通と固有へ分け直す"
-    },
-    {
-     "name": "A2 ── A と同じく分け、14の Skill と acdr ・ ブレストボードを一度に移す",
-     "body": "移す作業を1回で終える",
-     "cost": "1件の ACDR の変更が大きくなり、承認するときに差分を追えない"
-    }
-   ],
-   "dropped": [
-    {
-     "body": "B ── 固有の見た目を、共通の写しに直接書き足す",
-     "reason": "check が正本との差として報告し続ける。正本を直して写し直すと、書き足した分が消える"
-    },
-    {
-     "body": "C ── acdr とブレストボードは今のまま残す",
-     "reason": "トークンの仕組みが3つ並び続け（共通 ・ acdr ・ ブレストボード）、共通の色の役割とも揃わない"
-    },
-    {
-     "body": "D ── 字の大きさや余白も、Skill 固有のトークンとして持つ",
-     "reason": "色以外の共通のトークンは要らないという方針（論点1の書き足し）と同じ理由で、固有でも要るものだけにする。acdr の字の大きさの17段は、固有の規則の中の固定の値へ移す"
-    }
-   ],
-   "findings": [
-    "acdr とブレストボードの部品の層は、acdr が4つ（pop-bg ・ pre-bg ・ add-bg ・ del-bg）、ブレストボードが6つ（tl-node ・ tl-rail など）で、どちらも Skill の出力に固有の値である",
-    "雛形から作った14の Skill の描画は、同じ雛形の複製なので、段1で一度に移せる"
-   ],
-   "grounds": [
-    {
-     "supports": "Skill 固有のトークンを持つこと",
-     "basis": "Skillsによって描画する際のデザイン的に必要なCSSがある場合はそのSkills固有のデザイントークンとして持つのがいいと思う。",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-10-01）"
-    },
-    {
-     "supports": "共通の写しを正本と一致させること",
-     "basis": "scaffold が写し、check が写しと正本の差を報告する",
-     "tag": "rule",
-     "source": "論点2（Round 2 で承認）"
-    },
-    {
-     "supports": "共通のトークンは色だけ",
-     "basis": "色の3つのパレットと10の役割",
-     "tag": "rule",
-     "source": "論点1 ・ 3（Round 2 ・ 3 で承認）"
-    },
-    {
-     "supports": "acdr とブレストボードの部品の層",
-     "basis": "部品の層の鍵は、acdr が4つ（pop-bg ・ add-bg など）、ブレストボードが6つ（tl-node ・ tl-rail など）である",
-     "tag": "measured",
-     "source": "acdr ・ brainstorming-board の references/tokens.json"
-    }
-   ],
-   "requirements": [
-    "段1：skills-creator の references/view/ の正本、5言語の描画の雛形、scaffold、check、トークンの検査。雛形から作った14の Skill への写し",
-    "段2 ・ 段3：acdr とブレストボードの見た目の正本を、共通の写しと固有の2つへ分け直す"
-   ],
-   "out_of_scope": [
-    {
-     "item": "design-svg の図の色",
-     "treatment": "out",
-     "note": "図は SVG の中で閉じ、頁のトークンを使わない。この決定を覆さない"
-    },
-    {
-     "item": "段2 ・ 段3 の具体的な差分",
-     "treatment": "later",
-     "note": "段ごとの ACDR で示す"
-    }
-   ],
-   "path": [
-    {
-     "kind": "para",
-     "text": "Round 4 で承認された（2026-10-01）"
-    }
-   ]
-  }
- ]
+  ],
+  "intro": "skills-creator の描画の契約に、デザイントークンの仕組み（正本 ・ 配り方 ・ 検査）を持たせ、判断基準の頁の表とコードブロックを見やすくする。4つの論点はすべて決着した。"
 }

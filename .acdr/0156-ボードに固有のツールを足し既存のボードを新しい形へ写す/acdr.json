@@ -1,0 +1,213 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0156",
+ "title": "ボードに固有のツールを基盤のツールの一覧へ足し、既存のボードを新しい形へ写す",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "ブレストボードに固有のツールは init ・ inspect ・ migrate ・ serve の4つだけにし、転写した schema-driven のツールの一覧のあとに足す。既存のボードは migrate で新しい形へ写し、古いファイルを board.json.v1 として残す",
+ "why": "ボード board-on-schema-driven の論点3で、形の検査 ・ 描画 ・ 冪等性は基盤に任せ、ボードはボードに固有のことだけを持つと決めた。段3（ACDR 0155）で描画を基盤へ移したが、雛形を置く ・ 決まりを検査する ・ 回答を受け取るの3つは、古い実装（business_logic ・ service ・ data_access）にしか無かった。古い形の board.json は新しい board.schema.json に合わないので、写さないと基盤の check と render が断る。",
+ "shift": [
+  {
+   "what": "ボードに固有のツール",
+   "from": "init ・ inspect ・ render ・ tokens ・ freeze ・ figures ・ serve を、ボードの CLI が自分の一覧で持つ",
+   "to": "init ・ inspect ・ migrate ・ serve の4つを ExtraTools として、基盤のツールの一覧のあとに足す。描画 ・ 形の検査 ・ 承認は基盤のツールを使う"
+  },
+  {
+   "what": "出す前の検査（inspect）",
+   "from": "audit.rs の6件と validate.rs の4系統（形 ・ 見出し ・ 散文 ・ 参照）",
+   "to": "機械で見られる決まりの6件（開いている論点は5件まで ・ いま見る論点 ・ 完成イメージ ・ 宣言されていない依存 ・ 試す相手 ・ 1文は120字まで）。形と参照は基盤の check が見る"
+  },
+  {
+   "what": "回答",
+   "from": "answer-sheet.schema.json の形で answers/ に溜める",
+   "to": "answer.schema.json のインスタンスとして answers/<回答の id>.json に書く。論点を「ボードの id.論点の id」で指す"
+  },
+  {
+   "what": "既存のボード（board.json を持つ28枚）",
+   "from": "論点の18の欄を持つ古い形",
+   "to": "migrate で論点の5つの欄と verification へ写す。図は SVG の文字列として入れ、図とコード以外のブロック（段落 ・ 表など）は1枚の UI にまとめる。別のセッションが書いている design-svg-rework ・ workshop-story-base ・ advisor-answer は、そのセッションが終わってから写す"
+  },
+  {
+   "what": "UI の完成イメージの高さ",
+   "from": "36rem で固定（中身が短いと下が空く）",
+   "to": "見えたときに中身の高さへ合わせる"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "古い board.json は migrate で、新しいボードは init で board.json になる。check と inspect を通してから基盤の render で描画し、serve が配って回答を answers/ に書く。色の付いた4つが、ボードに固有のツールである。",
+ "alternatives": [
+  {
+   "option": "古い形の board.json を読める描画を残す",
+   "why_not": "同じボードの形を2つ持つことになり、基盤の check が古い形を断る。写すほうが、1回で済む"
+  },
+  {
+   "option": "freeze ・ figures ・ tokens も ExtraTools に移す",
+   "why_not": "freeze は変更の印のためのもので、画面から外した（論点1 ・ 4）。figures は図を描く側の検査で、ボードは SVG の文字列を受け取るだけである。tokens は基盤のデザインシステムが持つ"
+  },
+  {
+   "option": "migrate で、図とコード以外のブロックを捨てる",
+   "why_not": "移したあと「完成イメージが無い」論点が出て、決着した答えの見本が消える。1枚の UI にまとめれば中身が残る"
+  },
+  {
+   "option": "inspect に形の検査（散文 ・ 見出しの混入）も残す",
+   "why_not": "形は基盤の check が見る。1つの欄に主張が同居しているかは、5つの欄へ分けたことで欄の形が持つ"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "tool_board_src_tools_rs",
+   "tab": "tool/board/src/tools.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/src/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "impl ExtraTools for BoardTools {",
+     "before": "（無かった）",
+     "why": "ボードに固有のツールを ExtraTools として足す。引数の検査は基盤の Toolbox が行ってから call を呼ぶので、ここは名前ごとに振り分けるだけにする"
+    },
+    {
+     "find": "name: \"migrate\",",
+     "before": "（無かった）",
+     "why": "古い形の board.json を新しい形へ写すツール。古い描画を残さず、1回写して済ませる"
+    },
+    {
+     "find": "fn init(&self, name: &str, title: &str, dir: &str) -> (i32, Value) {",
+     "before": "tool/business_logic/src/init.rs（雛形は references/board.example.json と init-files.json）",
+     "why": "雛形の board.json を、references の雛形ファイルを置かずにここで作る。$schema は board.schema.json への相対パスにして、作った直後に基盤の check を通る形にする"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_src_inspect_rs",
+   "tab": "tool/board/src/inspect.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/src/inspect.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn inspect(board: &Value) -> Vec<String> {",
+     "before": "tool/business_logic/src/audit.rs ・ validate.rs",
+     "why": "機械で見られる決まりの6件だけを見る。形 ・ 参照は基盤の check が見るので、ここで見ない"
+    },
+    {
+     "find": "if status != \"waiting\" && list(topic, \"images\").is_empty() {",
+     "before": "（無かった）",
+     "why": "開いている論点と決着した論点には、完成イメージを1つ以上置く（論点2）"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_src_migrate_rs",
+   "tab": "tool/board/src/migrate.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/src/migrate.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn migrate(path: &Path, schema: &str) -> Result<Value, String> {",
+     "before": "（無かった）",
+     "why": "古い形を新しい形へ写す。古いファイルは board.json.v1 として残す。拡張子を .json にしないのは、基盤の check がディレクトリの .json をすべてインスタンスとして読むため"
+    },
+    {
+     "find": "fn ui_image(body: &str) -> Value {",
+     "before": "（無かった）",
+     "why": "図とコード以外のブロック（段落 ・ 表 ・ 格子など）を1枚の UI にまとめる。捨てると、23枚の写しで「完成イメージが無い」論点が出た"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_src_serve_rs",
+   "tab": "tool/board/src/serve.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/src/serve.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn accept(dir: &Path, body: &Value) -> Result<Value, (u16, Value)> {",
+     "before": "tool/business_logic/src/serve.rs（answer-sheet.schema.json の形で溜める）",
+     "why": "回答を answer.schema.json のインスタンスとして書く。$schema を足し、基盤の check が回答 → 論点の参照まで見られるようにする"
+    },
+    {
+     "find": "if body.get(\"board\").and_then(Value::as_str) != Some(board) {",
+     "before": "（無かった）",
+     "why": "配っているボードと違うボードへの回答を断る。論点を「ボードの id.論点の id」で指すので、ボードが違うと参照が解けない"
+    }
+   ]
+  },
+  {
+   "key": "tool_board_tests_board_tools_rs",
+   "tab": "tool/board/tests/board_tools.rs",
+   "file": ".claude/skills/brainstorming-board/tool/board/tests/board_tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn migrate_turns_an_old_board_into_the_new_shape_and_keeps_the_old_file() {",
+     "before": "（無かった）",
+     "why": "実装の前に書いた8件のうちの1件。写したボードが基盤の check を通ること、古いファイルが残ること、段落と格子が UI に残ることを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "tool_cli_src_main_rs",
+   "tab": "tool/cli/src/main.rs",
+   "file": ".claude/skills/brainstorming-board/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let toolbox = match Toolbox::with(Arc::new(BoardTools::new(master_root()))) {",
+     "before": "（無かった）",
+     "why": "基盤のツールの一覧に、ボードに固有の4つを足す。MCP も同じ形で足す"
+    }
+   ]
+  },
+  {
+   "key": "references_design_board_js",
+   "tab": "references/design/board.js",
+   "file": ".claude/skills/brainstorming-board/references/design/board.js",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "function fit(){",
+     "before": "（無かった）",
+     "why": "UI の完成イメージを、見えたときに中身の高さへ合わせる。36rem で固定すると、表が短い論点で下が大きく空いた"
+    }
+   ]
+  },
+  {
+   "key": "SKILL_md",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/brainstorming-board/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "ボードはその1問に答えられる量だけを見せる",
+     "before": "（無かった）",
+     "why": "承認者の画面に出すのは、論点ごとの5つの欄だけにした（論点1）"
+    },
+    {
+     "find": "から、同じ名前と引数で呼べる。",
+     "before": "**雛形は、契約の全部の欄を持って出る。**",
+     "why": "ツールの呼び方を、基盤のツールとボードに固有の4つに書き直した"
+    },
+    {
+     "find": "答えで何ができあがるかを、決める内容に合う形で見せる。",
+     "before": "答えの直下に**完成イメージ**（図、実例、または変更前後の差分）を置く。",
+     "why": "完成イメージの4つの形（図 ・ コード ・ UI ・ 差分）を表にした"
+    },
+    {
+     "find": "で新しい形へ写す。古いファイルは",
+     "before": "（無かった）",
+     "why": "古い形のボードを写す手順を足した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "tool_board_src_tools_rs": "f50a15873537c1c2a9584422202c32c33fd461f0209381e5a156771268267493",
+  "tool_board_src_inspect_rs": "3a516bc03f9c966338cd716a7efd70cb0e7dfa3239d94bf77753c70d3f2110f9",
+  "tool_board_src_migrate_rs": "7918571f9611709aed5e1dd6e995da04edd29fadb3ffa5b997ee0c8b3c0a0fc7",
+  "tool_board_src_serve_rs": "849f3b6c15d746ba895e7c29061b5676f81550afd5df11da5e4190a57daa7c89",
+  "tool_board_tests_board_tools_rs": "b975f9accc76d11d05d6ad705dbd7272ba0a34385a474bee8eb610a6853a83a6",
+  "tool_cli_src_main_rs": "ce394710ba32aec3843f974c9a8fe99c30de1d4eb00ccc550dbdef5939c2f716",
+  "references_design_board_js": "dbb222761424717211511db116d42112f8d025ade66e31e14f5dc551912a4cd3",
+  "SKILL_md": "bd9ee45dbe1722c4f7fd13666a24b8c42a22129b2006d0b84c2b6acf6334ad6a"
+ }
+}

@@ -148,12 +148,39 @@ fn tokens_become_css_variables_for_light_and_both_dark_settings() {
     assert_eq!(code, 0, "{out}");
     let page = fs::read_to_string(root.join("out/T-1.html")).unwrap();
     for expected in [
-        ":root{--bg:#eef1ef;--key:#0d5c55;--pill-bg:var(--key)}",
+        ":root{--night-900:#0e1614;--paper-100:#eef1ef;--teal-300:#6cc9b8;--teal-700:#0d5c55;--bg:#eef1ef;--key:#0d5c55;--pill-bg:var(--key)}",
         r#"@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0e1614;--key:#6cc9b8;color-scheme:dark}}"#,
         r#":root[data-theme="dark"]{--bg:#0e1614;--key:#6cc9b8;color-scheme:dark}"#,
     ] {
         assert!(page.contains(expected), "{expected}\n---\n{page}");
     }
+}
+
+#[test]
+fn a_template_may_use_base_tokens_such_as_spacing() {
+    let mut system = system();
+    system["tokens"]["base"]["space"] = json!({"sp-3": ".45rem"});
+    let root = setup("base");
+    let (code, out) = render(
+        &root,
+        probe("padding:var(--sp-3);background:var(--pill-bg)", system),
+    );
+    assert_eq!(code, 0, "{out}");
+    let page = fs::read_to_string(root.join("out/T-1.html")).unwrap();
+    assert!(page.contains("--sp-3:.45rem"), "{page}");
+}
+
+#[test]
+fn comments_in_the_css_are_not_checked() {
+    let root = setup("comment");
+    let (code, out) = render(
+        &root,
+        probe(
+            "/* var(--名前) で引き、#ff0000 のような直値を書かない */background:var(--pill-bg)",
+            system(),
+        ),
+    );
+    assert_eq!(code, 0, "{out}");
 }
 
 #[test]

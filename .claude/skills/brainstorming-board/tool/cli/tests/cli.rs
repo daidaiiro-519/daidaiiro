@@ -1,87 +1,70 @@
-// SPDX-License-Identifier: MIT
-//! brainstorming-board の CLI の共通の決まりを、実行ファイルを起動して確かめる。**どの Skill の CLI も同じ決まりに従う**
-//! ── 契約のテストケース（skills-creator の references/contract/cases/）が、同じ名前で同じことを確かめる。
-//!
-//!     cargo test -p bb_cli
-
-use std::path::PathBuf;
-use std::process::Command;
+//! ブレストボードの CLI。転写した schema-driven のツールを、ボードの Design で使う。
 
 use serde_json::Value;
+use std::process::Command;
 
-fn root() -> String {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .display()
-        .to_string()
-}
+const BIN: &str = env!("CARGO_BIN_EXE_brainstorming-board");
+const REFERENCES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../references");
 
-fn run(args: &[&str]) -> (i32, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_brainstorming-board"))
+fn run(args: &[&str]) -> (i32, Value) {
+    let out = Command::new(BIN)
+        .current_dir(std::env::temp_dir())
         .args(args)
         .output()
-        .expect("起動できる");
-    (
-        out.status.code().unwrap_or(-1),
-        String::from_utf8_lossy(&out.stdout).into_owned(),
-    )
+        .unwrap();
+    let value = serde_json::from_slice(&out.stdout).unwrap_or(Value::Null);
+    (out.status.code().unwrap_or(-1), value)
 }
 
 #[test]
-fn options_can_come_before_the_subcommand() {
-    // **オプションはサブコマンドの前にも後ろにも置ける** ── 呼ぶ側が書き方を覚えなくてよい
-    let root = root();
-    let after = run(&[
-        "get",
-        "--kind",
-        "view.tokens",
-        "--skill_root",
-        &root,
-        "--json",
-    ]);
-    let before = run(&[
-        "--kind",
-        "view.tokens",
-        "--skill_root",
-        &root,
-        "get",
-        "--json",
-    ]);
-    assert_eq!(after.0, 0, "{}", after.1);
-    assert_eq!(before, after);
+fn json_without_a_tool_name_lists_the_tools() {
+    let (code, out) = run(&["--json"]);
+    assert_eq!(code, 0, "{out}");
+    let names: Vec<&str> = out["data"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect();
+    for name in [
+        "create", "update", "check", "approve", "render", "init", "inspect", "migrate", "serve",
+    ] {
+        assert!(names.contains(&name), "{name} が無い：{names:?}");
+    }
 }
 
 #[test]
 fn an_unknown_option_is_refused_with_exit_code_2() {
-    // **道具の一覧に無いオプションは断る** ── 黙って無視すると、書き誤りに気づけない
-    let root = root();
-    let (code, _) = run(&[
-        "get",
-        "--kind",
-        "view.tokens",
-        "--no-such-option",
-        "1",
-        "--skill_root",
-        &root,
-        "--json",
-    ]);
+    let (code, _) = run(&["check", "--nope", "x"]);
     assert_eq!(code, 2);
 }
 
 #[test]
-fn without_a_subcommand_json_lists_the_tools() {
-    // **サブコマンドを付けずに --json を付けると、ツールの一覧を返す** ── 検査はこれを読む
-    let (code, out) = run(&["--json"]);
+fn render_draws_a_board_with_the_board_design() {
+    let dir = std::env::temp_dir().join(format!("bb-cli-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::copy(
+        format!("{REFERENCES}/board.schema.json"),
+        dir.join("board.schema.json"),
+    )
+    .unwrap();
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../board/tests/fixtures/board.json"
+        ),
+        dir.join("board.json"),
+    )
+    .unwrap();
+    let dir_text = dir.to_string_lossy().into_owned();
+    let out_text = dir.join("out").to_string_lossy().into_owned();
+    let pages = format!("{REFERENCES}/pages");
+    let (code, out) = run(&[
+        "render", "--dir", &dir_text, "--pages", &pages, "--out", &out_text,
+    ]);
     assert_eq!(code, 0, "{out}");
-    let doc: Value = serde_json::from_str(&out).expect("JSON である");
-    assert_eq!(doc["ok"], Value::Bool(true));
-    let names: Vec<&str> = doc["data"]["tools"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|t| t["name"].as_str())
-        .collect();
-    for need in ["get", "validate", "view", "import"] {
-        assert!(names.contains(&need), "{names:?}");
-    }
+    assert_eq!(out["pages"][0]["design"], "concrete");
+    let page = std::fs::read_to_string(dir.join("out/board.html")).unwrap();
+    assert!(page.contains("id=\"tabs\""));
 }

@@ -1,0 +1,142 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "answer.schema.json",
+ "title": "ブレストボードへの回答",
+ "description": "1回の回答が1件。論点ごとの承認 ・ 差し戻し ・ 書き足しを持つ。論点の中身は board.schema.json のインスタンスが持ち、ここには書かない。",
+ "x-prompt": {
+  "read": "論点ごとの判定と、差し戻しの理由 ・ 書き足しを読む。",
+  "write": "画面で押された回答を、そのまま書く。理由と書き足しを言い換えない。"
+ },
+ "x-generates": ".brainstorming-board/<名前>/answers/<回>-<連番>.json",
+ "x-view": {
+  "label": "board"
+ },
+ "type": "object",
+ "required": [
+  "kind",
+  "id",
+  "board",
+  "round",
+  "answers"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "description": "このインスタンスが従うスキーマ",
+   "x-prompt": {
+    "read": "スキーマのファイルへの相対パスとして読む。",
+    "write": "回答のファイルから見た answer.schema.json の相対パスを書く。"
+   },
+   "type": "string"
+  },
+  "kind": {
+   "description": "インスタンスの種類",
+   "x-prompt": {
+    "read": "回答であることを示す。",
+    "write": "answer と書く。"
+   },
+   "const": "answer"
+  },
+  "id": {
+   "description": "回答の id",
+   "x-prompt": {
+    "read": "回と連番で回答を指す。",
+    "write": "<回>-<連番> の形で書く。"
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "board": {
+   "description": "回答したブレストボード",
+   "x-prompt": {
+    "read": "ボードの id を指す。",
+    "write": "ボードの id を書く。"
+   },
+   "type": "string",
+   "minLength": 1,
+   "x-ref": {
+    "to": "board"
+   }
+  },
+  "round": {
+   "description": "回答した回",
+   "x-prompt": {
+    "read": "どの回の論点に答えたかを読む。",
+    "write": "画面に出ていた回を書く。"
+   },
+   "type": "integer",
+   "minimum": 1
+  },
+  "answers": {
+   "description": "論点ごとの回答",
+   "x-prompt": {
+    "read": "論点ごとの判定を読む。答えなかった論点も unanswered として残る。",
+    "write": "論点ごとに1件だけ書く。"
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/verdict"
+   }
+  }
+ },
+ "$defs": {
+  "verdict": {
+   "type": "object",
+   "required": [
+    "topic",
+    "verdict"
+   ],
+   "additionalProperties": false,
+   "description": "論点1件への回答",
+   "x-prompt": {
+    "read": "指す論点と判定を読む。",
+    "write": "画面で押された判定を書く。"
+   },
+   "properties": {
+    "topic": {
+     "description": "答えた論点",
+     "x-prompt": {
+      "read": "「ボードの id.論点の id」で論点を指す。",
+      "write": "例：board-on-schema-driven.Q3"
+     },
+     "type": "string",
+     "minLength": 1,
+     "x-ref": {
+      "to": "board",
+      "item": true,
+      "in": "topics"
+     }
+    },
+    "verdict": {
+     "description": "判定",
+     "x-prompt": {
+      "read": "承認 ・ 差し戻し ・ まだ答えないのどれか。",
+      "write": "押されたボタンの判定を書く。"
+     },
+     "enum": [
+      "approved",
+      "returned",
+      "unanswered"
+     ]
+    },
+    "reason": {
+     "description": "差し戻しの理由",
+     "x-prompt": {
+      "read": "利用者の言葉のまま読む。",
+      "write": "差し戻しのときだけ書く。言い換えない。"
+     },
+     "type": "string"
+    },
+    "note": {
+     "description": "書き足し",
+     "x-prompt": {
+      "read": "承認でも差し戻しでも書ける。",
+      "write": "書かれたときだけ、そのまま書く。"
+     },
+     "type": "string"
+    }
+   }
+  }
+ }
+}

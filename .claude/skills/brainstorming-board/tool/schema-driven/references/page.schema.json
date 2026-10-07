@@ -1,0 +1,134 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "page.schema.json",
+ "title": "ページテンプレート",
+ "description": "ある kind のインスタンスを、人が読むページにするときの並び。ページテンプレートは、節の並びと、節ごとのコンポーネントと、値を取る JMESPath 式だけを書く。HTML は書かない（見た目はコンポーネントが持つ）。値は、基盤が用意する描画の文脈から取る",
+ "x-prompt": {
+  "read": "ページの上から順に、head（見出しの札と前置き）、sections（節）の順に読む。各節の body の要素は、上から順にページに並ぶ。文字列は JMESPath 式で、描画の文脈に当てた値を出す。オブジェクトは component の名前のコンポーネントで、そのコンポーネントの入力に値を渡す。",
+  "write": "kind ごとに1つ書く。手順：(1) kind に、ページにするインスタンスの kind を書く。(2) head にページの先頭に出す札と前置きを書く。(3) 読み手が上から読む順に sections を並べ、節ごとに見出しと body を書く。(4) body には、値を出したい場所ごとに要素を置く。値は描画の文脈（this ・ schema ・ derived ・ links ・ referrers ・ instances）から JMESPath で取る。(5) 見た目の違いはコンポーネントの選び方で出し、HTML や色の値を書かない。誤り：決まった文字を式の文字列で書かない（JMESPath として読まれる）── 決まった文字は {\"text\": \"…\"} で書く。"
+ },
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["kind", "sections"],
+ "properties": {
+  "$schema": {"type": "string"},
+  "kind": {
+   "type": "string",
+   "minLength": 1,
+   "description": "このページテンプレートを当てるインスタンスの kind",
+   "x-prompt": {"read": "インスタンスの kind がこれと同じとき、このページテンプレートで描画する。", "write": "インスタンスに書かれている kind の値を、そのまま書く。1つの kind に1つのページテンプレートを書く。"}
+  },
+  "tones": {
+   "type": "object",
+   "description": "値 → 色の役割の表。表の名前ごとに書き、コンポーネントが表の名前で引く",
+   "additionalProperties": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+   "examples": [{"category": {"中核": "accent", "一般": "muted", "補完": "plain"}}],
+   "x-prompt": {
+    "read": "コンポーネントが表の名前を指していれば、値でこの表を引き、色の役割を決める。表に無い値のときの役割は、具体のデザインが決める。",
+    "write": "札の値によって色を変えたいときにだけ書く。色の値（#… など）は書かず、色の役割の名前を書く。どの役割があり、実際の色が何かは、具体のデザインのトークンが決める。"
+   }
+  },
+  "head": {"$ref": "#/$defs/head"},
+  "sections": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/section"},
+   "description": "節の並び",
+   "x-prompt": {"read": "上から順に節として並べる。", "write": "読み手が知りたい順に並べる。ページの先頭に近い節ほど、判断に効く内容にする。"}
+  }
+ },
+ "$defs": {
+  "expr": {
+   "type": "string",
+   "minLength": 1,
+   "description": "JMESPath 式。描画の文脈に当てて値を取る",
+   "examples": ["this.header.description", "links[?at=='/use_cases'].target", "derived.classification.value"],
+   "x-prompt": {
+    "read": "描画の文脈（今の位置の値）に、この JMESPath 式を当てた結果を値とする。each や、行を持つコンポーネントの行の中では、今の位置は繰り返しの要素で、@ で指す。文脈の値は this ・ schema ・ derived ・ links ・ referrers ・ instances の6つで、形は #/$defs/context が決める。",
+    "write": "JMESPath の文法で書く。このインスタンスの値は this. から、繰り返しの中の要素の値は @ やその要素のプロパティの名前から書く。参照の指す先が必要なら links から、指してくるものが必要なら referrers から取る（JMESPath だけでは参照をたどれない）。決まった文字を書きたいときは、式ではなく {\"text\": \"…\"} を使う。"
+   }
+  },
+  "context": {"type": "object", "additionalProperties": false, "required": ["this", "schema", "derived", "links", "referrers", "instances"],
+   "description": "描画の文脈。ページのインスタンス1件ごとに基盤が組み、ページテンプレートの JMESPath 式はこれに当てる。参照の解決と導出値は、検査と同じものを使う",
+   "x-prompt": {"read": "this から値を取り、参照の指す先の名前は links の target、指されている先は referrers、x-derive の導出値は derived から取る。ほかのインスタンスを並べたいときは instances から JMESPath で絞る。", "write": "書かない（基盤が組む）。ページテンプレートの式で、ここに在るキーだけを使う。"},
+   "properties": {
+    "this": {"description": "このページのインスタンス"},
+    "schema": {"description": "このインスタンスのスキーマ（根）"},
+    "derived": {"type": "object", "description": "x-derive を持つオブジェクトごとの導出値。キーはそのオブジェクトの場所（インスタンスの根からの JSON Pointer の先頭の / を除いたもの。例：classification、parts/0/c）",
+     "examples": [{"classification": {"value": "中核", "title": "答えから導いたカテゴリー", "declared": "中核", "questions": [{"key": "competitive_advantage", "title": "競争上の優位になるか", "answer": true}]}}],
+     "additionalProperties": {"type": "object", "additionalProperties": false, "required": ["value", "title", "declared", "questions"],
+      "properties": {
+       "value": {"description": "導出値（rules で当たった then、無ければ otherwise）"},
+       "title": {"description": "x-derive の title。無ければ null"},
+       "declared": {"description": "declared の名前のプロパティに書かれた値。declared が無いか、値が無ければ null"},
+       "questions": {"type": "array", "description": "rules の when に出てくるプロパティを、出てきた順に1回ずつ。key はプロパティの名前、title はスキーマの title（無ければ名前）、answer はインスタンスの値（無ければ null）",
+        "items": {"type": "object", "additionalProperties": false, "required": ["key", "title", "answer"], "properties": {"key": {"type": "string"}, "title": {}, "answer": {}}}}}}},
+    "links": {"type": "array", "description": "このインスタンスが x-ref で指す参照。書いた値1つにつき1件、スキーマのプロパティの順",
+     "items": {"type": "object", "additionalProperties": false, "required": ["at", "value", "target"], "properties": {
+      "at": {"type": "string", "description": "参照を書いたプロパティの場所（例：/use_cases）。配列の値は、配列のプロパティの場所になる"},
+      "value": {"type": "string", "description": "書いた値"},
+      "target": {"type": ["string", "null"], "description": "指す先（「インスタンスの id」か「インスタンスの id.項目の id」）。決まらなければ null"}}}},
+    "referrers": {"type": "array", "description": "ほかのインスタンス（と自分）の x-ref のうち、このインスタンスかその中の項目を指すもの",
+     "items": {"type": "object", "additionalProperties": false, "required": ["at", "from", "item"], "properties": {
+      "at": {"type": "string", "description": "指している側の、参照を書いた場所"},
+      "from": {"description": "指している側のインスタンスの id"},
+      "item": {"type": ["string", "null"], "description": "指されている項目の id。インスタンスそのものが指されていれば null"}}}},
+    "instances": {"type": "array", "description": "ディレクトリのインスタンスすべて"}
+   }},
+  "node": {
+   "description": "body や入力に置く要素。文字列は JMESPath 式、{\"text\": …} は決まった文字、component を持つオブジェクトはコンポーネント",
+   "anyOf": [
+    {"$ref": "#/$defs/expr"},
+    {"type": "object", "additionalProperties": false, "required": ["text"], "properties": {"text": {"type": "string"}}},
+    {"$ref": "#/$defs/component"}
+   ],
+   "x-prompt": {
+    "read": "文字列なら式の結果を文字として出す（配列なら「 ・ 」でつなぐ。null や空なら何も出さない）。{\"text\": …} なら、その文字をそのまま出す。component を持つなら、そのコンポーネントで組む。",
+    "write": "値を出すだけなら式の文字列、決まった文字なら {\"text\": …}、見た目に意味を持たせたい（札 ・ 表 ・ リンクなど）ならコンポーネントを書く。"
+   }
+  },
+  "control": {
+   "description": "どの要素にも付けられる、出す条件と繰り返し",
+   "type": "object",
+   "properties": {
+    "show": {
+     "$ref": "#/$defs/expr",
+     "description": "出す条件。結果が null ・ false ・ 空の文字 ・ 空の配列 ・ 空のオブジェクトなら出さない",
+     "x-prompt": {"read": "式の結果が空なら、この要素を出さない。", "write": "値が無いときに節や行ごと出したくない場合に書く。条件は JMESPath の比較（== ・ != ・ && ・ ||）で書ける。"}
+    },
+    "each": {
+     "$ref": "#/$defs/expr",
+     "description": "繰り返し。結果の配列の要素ごとに、この要素を出す。要素の中では @ が繰り返しの要素を指す",
+     "x-prompt": {"read": "式の結果の配列の要素ごとに、この要素を1回ずつ出す。要素の中の式は、繰り返しの要素を今の位置として当てる。", "write": "同じ形のものを並べたいときに書く。行を自分で持つコンポーネント（表など）では、繰り返しはそのコンポーネントの入力に書く。"}
+    }
+   }
+  },
+  "head": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "ページの先頭。題はインスタンスの名前（スキーマの x-view が決める）で、ここでは札と前置きを書く",
+   "properties": {
+    "badges": {"type": "array", "items": {"$ref": "#/$defs/node"}, "description": "題の横に並べる札"},
+    "lead": {"$ref": "#/$defs/node", "description": "題の下の前置き"}
+   },
+   "x-prompt": {"read": "題の横に badges、題の下に lead を出す。", "write": "badges には、読み手が最初に知るべき分類の札を置く。lead には、このインスタンスが何かを1〜2文で表す値を置く。"}
+  },
+  "section": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["heading", "body"],
+   "description": "節。見出しと、並べる要素を持つ",
+   "properties": {
+    "heading": {"type": "string", "minLength": 1, "description": "節の見出し（決まった文字）"},
+    "help": {"type": "string", "description": "見出しの横の ? で開く説明"},
+    "show": {"$ref": "#/$defs/expr"},
+    "body": {"type": "array", "items": {"$ref": "#/$defs/node"}, "minItems": 1}
+   },
+   "x-prompt": {"read": "heading を見出しに、body の要素を上から並べる。show があり結果が空なら、節ごと出さない。", "write": "heading には節の中身を表す名詞句を書く（「〜について」のような言い回しにしない）。説明が要るときは help に書き、見出しに詰めない。"}
+  },
+  "component": {"type": "object", "required": ["component"], "allOf": [{"$ref": "#/$defs/control"}],
+   "properties": {"component": {"type": "string", "minLength": 1, "description": "コンポーネントの名前。基盤の上に作るもの（具体）のデザインが登録した名前"}, "show": true, "each": true},
+   "description": "コンポーネント。名前で選び、そのコンポーネントの入力を書く。どの名前があり、どんな入力を受け付け、どう見えるかは、具体のデザインが登録する。基盤はコンポーネントの一覧を持たない",
+   "x-prompt": {"read": "component の名前で、具体のデザインが登録したコンポーネントを選ぶ。受け付ける入力の形と見た目は、そのコンポーネントの登録が決める。", "write": "具体のデザインが登録したコンポーネントの中から、出したいものの意味に合うものを選ぶ。登録に無い名前は書けない ── 足りなければ、具体のデザインにコンポーネントを足す。"}}
+ }
+}

@@ -1,934 +1,407 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "skills-creator に4言語の組を足す",
- "board": "skills-creator-profiles",
- "round": 8,
- "intro": [
-  {
-   "kind": "para",
-   "text": "skills-creator の道具の契約に、Rust と同じ水準の言語の組を足す。対象は、作成済みの Rust に加えて Go ・ Python ・ TypeScript ・ C# の4言語である。<b>完成の条件は、配布した skills-creator から、利用者がこれらの言語の組を選んで Skill を作れることである</b>（利用者の言葉、2026-09-30）。このブレストボードは、2段目の検査 ・ 共通の実装の同等性 ・ 配布 ・ 試験 ・ 起こす順を決める。"
-  }
- ],
- "panels": [
-  {
-   "heading": "決まりの一覧 ── 5件とも決着（2026-09-30、論点2は Round 8 で型の軸を入れて決着）",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "skills-creator-profiles",
+  "title": "skills-creator に4言語の組を足す",
+  "round": 8,
+  "queue": [],
+  "topics": [
     {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "<b>2段目の検査</b> ── 4つの組の2段目は、契約に関わる検査（外部の道具の名前の直書き）だけを持つ。雛形の構成の検査は Rust の組だけが持つ"
+      "id": "Q1",
+      "name": "言語の組の2段目が持つ検査",
+      "status": "settled",
+      "question": "Go ・ Python ・ TypeScript ・ C# の組の2段目（ソースを読む検査）に、何を持たせるか",
+      "answer": {
+        "text": "4つの組の2段目は、契約に関わる検査だけを持つ ── 外部の道具の名前を直書きしていないこと（tool.json に宣言し、そこから読んで渡す）。雛形の構成の検査（--layout 1）は、Rust 以外の組では当面持たない。--layout 1 を渡されたら「実行しない」と出し、合格とは扱わない"
       },
-      {
-       "text": "<b>共通の実装と型の雛形</b> ── 型の定義 ・ スキーマ ・ SKILL.md の雛形は references/types/<型>/ に置く。道具のコードは references/profiles/<言語>/（common ・ types/<型> ・ parts/<部品>）に置く。scaffold は --type と --language を受け、型が要る部品を持たない組では断る。同じ振る舞いは共通の事例で保証する"
-      },
-      {
-       "text": "<b>作った Skill の配布</b> ── Rust の組だけ。4つの組は dist が理由を示して断る"
-      },
-      {
-       "text": "<b>試験</b> ── CI で、5つの組を毎回、生むところから試験する。雛形は生んだ直後に組み立てられる形にする"
-      },
-      {
-       "text": "<b>順</b> ── Python → TypeScript → C# → Go。最初の Python の組で、契約と scaffold の Rust の前提を洗い出して直す"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "次にすること",
-   "body": [
-    {
-     "kind": "list",
-     "ordered": true,
-     "items": [
-      {
-       "text": "Python の組を ACDR で起こす ── scaffold に言語の引数を足し、契約と check に残る Rust の前提を直す"
-      },
-      {
-       "text": "Rust の雛形を、生んだ直後に組み立てられる形（見本の道具 hello）へ直す"
-      },
-      {
-       "text": "CI に組の試験を足す"
-      },
-      {
-       "text": "TypeScript ・ C# ・ Go の組を、この順に ACDR で起こす"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "skill-types の論点3への申し送り",
-   "body": [
-    {
-     "kind": "list",
-     "ordered": false,
-     "items": [
-      {
-       "text": "型の定義 ・ スキーマ（criteria.schema.json ・ answer.schema.json など）・ 型ごとの SKILL.md の雛形は、言語に依存しないので references/types/<型>/ に1か所だけ置く"
-      },
-      {
-       "text": "道具のコードは references/profiles/<言語>/ に置き、中を common/（共通の一式：refs ・ tool.json ・ CLI と MCP の入口）・ types/<型>/（型ごとのコード。助言型なら事例）・ parts/<部品>/（作業型が選ぶ部品）に分ける"
-      },
-      {
-       "text": "型の定義（types/<型>/type.json）は要る部品と契約の版を持ち、言語の組の定義（profiles/<言語>.profile.json）は対応する型と部品を持つ。scaffold --type --language は、要る部品を組が持たなければ断る"
-      },
-      {
-       "text": "助言型は refs（契約の版2）を要する。新しい言語の組は版1から始めるので、助言型を生めるのは当面 Rust の組だけである"
-      },
-      {
-       "text": "置き場所の一式は、このセッションが ACDR 0060 で skills-creator に足す。助言型の中身（手順 ・ 雛形 ・ 検査7件）は、その後に先方の ACDR で types/advisor/ と profiles/rust/types/advisor/ へ置く"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "heading": "道具の構成（ACDR 0056 ・ 0058 ・ 0059 で決定）",
-   "body": [
-    {
-     "kind": "para",
-     "text": "<b>契約が規定するのは、呼ぶ側から観察できるもの（呼び方と成果物の形）だけである</b>（ACDR 0059）。道具の中の構成は Skill ごとの設計なので、契約に置かない。"
-    },
-    {
-     "kind": "para",
-     "text": "<b>雛形は、サービス層を挟んだレイヤードアーキテクチャの4層を推奨の構成として採る</b>（0056 ・ 0058）。生んだ直後から動く出発点であり、利用者は変更してよい。check は既定ではこの構成を検査せず、--layout 1 を渡したときだけ検査する。"
-    }
-   ]
-  },
-  {
-   "heading": "このブレストボードの前提",
-   "body": [
-    {
-     "kind": "list",
-     "ordered": false,
-     "items": [
-      {
-       "text": "<b>対象は Go ・ Python ・ TypeScript ・ C# の4言語である</b>（Rust は作成済み）。利用者が決めた（2026-09-30）。基準は、MCP の公式 SDK が在ることと、利用率が高いことである（Stack Overflow の開発者調査 2025、全回答者。sources/survey.stackoverflow.co_2025_technology、2026-09-30 取得）"
-      },
-      {
-       "text": "<b>Ruby と Java は除く。</b>Ruby は利用率が 6.4% で低い。Java は利用率 29.4% だが、MCP の SDK が Tier 2 で、配布に JDK の同梱が要る。必要になったら、この理由がまだ有効かを確かめて足す"
-      },
-      {
-       "text": "<b>JavaScript（68.8%）は、TypeScript の組で兼ねる。</b>TypeScript の SDK は JavaScript からも使える"
-      },
-      {
-       "text": "<b>既存の決定を1件覆す。</b>skills-creator-language の論点1で「主要な言語の組を、いま全部 skills-creator に持たせる」を除外した。理由は「使わない言語の雛形を、試験できないまま保守することになる」である。論点4が、この理由に答える"
-      }
-     ]
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "言語の組の2段目が持つ検査",
-   "status": "settled",
-   "question": "Go ・ Python ・ TypeScript ・ C# の組の2段目（ソースを読む検査）に、何を持たせるか",
-   "intro": "<b>承認された（2026-09-30、Round 5）。</b>契約は道具の中の構成を規定しない（ACDR 0059）。この論点は、それでも2段目に残る検査を決める。論点4の試験は、この答えの検出を試す。",
-   "answer": "4つの組の2段目は、契約に関わる検査だけを持つ ── 外部の道具の名前を直書きしていないこと（tool.json に宣言し、そこから読んで渡す）。雛形の構成の検査（--layout 1）は、Rust 以外の組では当面持たない。--layout 1 を渡されたら「実行しない」と出し、合格とは扱わない",
-   "decision": {
-    "letter": "B",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>2段目は、契約に関わる検査だけを持つ。</b>外部の道具を起動する書き方は言語ごとに違うので、直書きの検出は組ごとに持つ。"
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "外部の道具を起動する書き方（直書きを探す場所）"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>Go の組で、外部の道具の名前を直書きしたときの検出の実例である。</p>"
+        },
+        {
+          "kind": "code",
+          "text": "$ skills-creator check .claude/skills/sample-go\n2段目（ソース）\n  ×  外部の道具の名前を直書きしている: tool/.../run.go ── \"git\"（tool.json の external に宣言し、読んで渡す）"
+        }
       ],
-      "rows": [
-       [
-        "Rust",
-        [
-         "Command::new(\"…\")（実装済み）"
-        ]
-       ],
-       [
-        "Go",
-        [
-         "exec.Command(\"…\")"
-        ]
-       ],
-       [
-        "C#",
-        [
-         "Process.Start(\"…\") と ProcessStartInfo の FileName"
-        ]
-       ],
-       [
-        "TypeScript",
-        [
-         "child_process の spawn ・ exec ・ execFile の第1引数"
-        ]
-       ],
-       [
-        "Python",
-        [
-         "subprocess の run ・ Popen ・ call の第1引数"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>雛形の構成の検査は、Rust の組だけが持つ。</b>他の組で雛形の構成を保ちたい利用者が現れたら、その組に足す。"
-     }
-    ]
-   },
-   "figures": [],
-   "example": [
-    {
-     "kind": "para",
-     "text": "Go の組で、外部の道具の名前を直書きしたときの検出の実例である。"
-    },
-    {
-     "kind": "html",
-     "text": "<pre>$ skills-creator check .claude/skills/sample-go\n2段目（ソース）\n  ×  外部の道具の名前を直書きしている: tool/.../run.go ── \"git\"（tool.json の external に宣言し、読んで渡す）</pre>"
-    }
-   ],
-   "passed": [
-    {
-     "name": "契約に関わる検査（外部の道具の直書き）だけを持つ",
-     "body": "言語ごとに、外部の道具を起動する書き方を探す",
-     "cost": "組ごとに、起動する書き方の一覧を持つ"
-    },
-    {
-     "name": "2段目を持たず、1段目だけにする",
-     "body": "ソースを読む検査を組に持たせない",
-     "cost": "外部の道具を tool.json に宣言する契約を、どの言語でも検査できない"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "契約に関わる検査（外部の道具の直書き）だけを持つ",
-       [
-        "利用者が tool.json を書き換えて呼ぶコマンドを差し替えられることを、どの言語でも保証できる"
-       ]
+      "grounds": [
+        {
+          "supports": "中身の設計を指定しないこと",
+          "basis": "だってskillsによって実現したいことは違うから業務ロジックは同じにはならないでしょ？契約は同じでも中身まではこちらで指定はしないよ？",
+          "tag": "rule",
+          "source": "利用者の言葉（2026-09-30）・ ACDR 0059"
+        },
+        {
+          "supports": "外部の道具の直書きを契約として検査すること",
+          "basis": "道具のソースは名前を直書きしない ── tool.json から読み、起動する処理へ引数として渡す。",
+          "tag": "rule",
+          "source": ".claude/skills/skills-creator/references/tool-contract.md（規定するもの ・ 外部の道具）"
+        },
+        {
+          "supports": "表の起動の書き方の識別子",
+          "basis": "表の識別子10件を、識別子として照合した。すべて原文に在った。Go は Command、Node.js は spawn ・ exec ・ execFile である。Python は run ・ Popen ・ call、.NET は Process.Start ・ ProcessStartInfo ・ FileName である",
+          "tag": "primary",
+          "source": "sources/pkg.go.dev_os_exec ・ nodejs.org_api_child_process.html ・ docs.python.org_3_library_subprocess.html ・ learn.microsoft.com の Process.Start と ProcessStartInfo.FileName（2026-09-30 取得）"
+        }
       ],
-      [
-       "2段目を持たず、1段目だけにする",
-       [
-        "tool.json の external が空でも、道具が git を直書きで呼べる。利用者は差し替えられない"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "4層の依存の向きと入出力の禁止を、言語ごとに守らせる（Round 2 の答え）",
-     "reason": "Skill ごとに業務ロジックが違うのに、中身の設計まで指定することになる。ACDR 0059 で契約から外した"
-    },
-    {
-     "body": "雛形の構成の検査も、4つの組すべてに持たせる",
-     "reason": "使うかどうか分からない検査を、4言語ぶん保守することになる。使う利用者が現れた組から足す"
-    }
-   ],
-   "findings": [
-    "外部の道具の直書きの検出は、Rust の組では既定の検査に含まれる（ACDR 0059）。契約の「外部の道具は tool.json に宣言する」を、ソースから確かめる唯一の検査である"
-   ],
-   "grounds": [
-    {
-     "supports": "中身の設計を指定しないこと",
-     "basis": "だってskillsによって実現したいことは違うから業務ロジックは同じにはならないでしょ？契約は同じでも中身まではこちらで指定はしないよ？",
-     "tag": "rule",
-     "source": "利用者の言葉（2026-09-30）・ ACDR 0059"
-    },
-    {
-     "supports": "外部の道具の直書きを契約として検査すること",
-     "basis": "道具のソースは名前を直書きしない ── tool.json から読み、起動する処理へ引数として渡す。",
-     "tag": "rule",
-     "source": ".claude/skills/skills-creator/references/tool-contract.md（規定するもの ・ 外部の道具）"
-    },
-    {
-     "supports": "表の起動の書き方の識別子",
-     "basis": "表の識別子10件を、識別子として照合した。すべて原文に在った。Go は Command、Node.js は spawn ・ exec ・ execFile である。Python は run ・ Popen ・ call、.NET は Process.Start ・ ProcessStartInfo ・ FileName である",
-     "tag": "primary",
-     "source": "sources/pkg.go.dev_os_exec ・ nodejs.org_api_child_process.html ・ docs.python.org_3_library_subprocess.html ・ learn.microsoft.com の Process.Start と ProcessStartInfo.FileName（2026-09-30 取得）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "言語ごとの、外部の道具を起動する書き方の完全な一覧",
-     "treatment": "later",
-     "note": "組を起こすときに、各言語の標準ライブラリの原典で照合して決める。この答えを覆さない ── どの一覧でも、検査の範囲は外部の道具の直書きだけである"
-    },
-    {
-     "item": "Rust 以外の組の雛形の構成",
-     "treatment": "later",
-     "note": "雛形は各言語の慣習に合わせて組を起こすときに決める。契約ではないので、この答えを覆さない"
-    }
-   ],
-   "path": [
-    {
-     "kind": "card",
-     "letter": "A",
-     "heading": "依存の向きは、組み立てる処理系が拒否できる言語ではその仕組みで守らせる（Rust ・ Go ・ C# は全辺、TypeScript は下から上の辺だけ）。拒否できない辺（TypeScript の層を飛ばす辺、Python の全辺）は、skills-creator の2段目が import 文を読んで検出する。入出力の禁止は、全言語で2段目が検出する。業務ロジック層とサービス層が、入出力の標準ライブラリを import していないかを見る。禁じる import の一覧は言語の組が持つ",
-     "events": [
-      {
-       "tag": "returned",
-       "text": "「そもそもskillcreatorが依存の向きを強制するような能力を持とうとしているのがびっくりした。私が他言語にしたい理由はユーザが利用しやすい言語でskillcreatorから作成されるskillsの道具や成果物構成の契約が守られていることなんだよね？だってskillsによって実現したいことは違うから業務ロジックは同じにはならないでしょ？契約は同じでも中身まではこちらで指定はしないよ？」"
-      },
-      {
-       "tag": "obsolete",
-       "text": "層と依存の向き ・ 入出力の置き場所を、言語ごとに守らせるという前提が失効した（ACDR 0059）"
-      },
-      {
-       "tag": "finding",
-       "text": "2段目に残る契約の検査は、外部の道具の直書きの検出だけである"
+      "rejected": [
+        {
+          "option": "4層の依存の向きと入出力の禁止を、言語ごとに守らせる（Round 2 の答え）",
+          "reason": "Skill ごとに業務ロジックが違うのに、中身の設計まで指定することになる。ACDR 0059 で契約から外した"
+        },
+        {
+          "option": "雛形の構成の検査も、4つの組すべてに持たせる",
+          "reason": "使うかどうか分からない検査を、4言語ぶん保守することになる。使う利用者が現れた組から足す"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "契約に関わる検査（外部の道具の直書き）だけを持つ",
+            "cost": "組ごとに、起動する書き方の一覧を持つ"
+          },
+          {
+            "option": "2段目を持たず、1段目だけにする",
+            "cost": "外部の道具を tool.json に宣言する契約を、どの言語でも検査できない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "言語ごとの、外部の道具を起動する書き方の完全な一覧",
+            "treatment": "later",
+            "note": "組を起こすときに、各言語の標準ライブラリの原典で照合して決める。この答えを覆さない ── どの一覧でも、検査の範囲は外部の道具の直書きだけである"
+          },
+          {
+            "item": "Rust 以外の組の雛形の構成",
+            "treatment": "later",
+            "note": "雛形は各言語の慣習に合わせて組を起こすときに決める。契約ではないので、この答えを覆さない"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 2,
-   "name": "共通の実装と型の雛形の置き場所 ・ 同等性",
-   "status": "settled",
-   "question": "共通の一式 ・ 型の雛形（助言型 ・ 生成型）・ 作業型が選ぶ部品を、5つの組でどこに置き、同じ振る舞いをどう保証するか",
-   "intro": "<b>承認された（2026-09-30、Round 8）。</b>Round 7 で型の軸を入れて答え直した。別のボード skill-types が、Skill の型（助言型 ・ 作業型 ・ 生成型）を決めたためである。skill-types の論点3（型と言語の組の関係）は、この答えを待っている。",
-   "answer": "言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types/<型>/ に置き、言語に依存するもの（道具のコード）は references/profiles/<言語>/ に置く。言語の組の中は、共通の一式（common/）・ 型ごとのコード（types/<型>/）・ 作業型が選ぶ部品（parts/<部品>/）に分ける。scaffold は型と言語を受け取り、型が要る部品をその言語の組が持たなければ断る。同じ振る舞いは、共通の事例（CLI の出力）で組をまたいで保証する",
-   "decision": {
-    "letter": "B",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>言語に依存しないものは型の側、道具のコードは言語の組の側に置く。</b>"
-     },
-     {
-      "kind": "html",
-      "text": "<pre>references/\n  types/                         言語に依存しない（型の側）\n    advisor/\n      type.json                  要る部品 ・ 契約の版 ・ SKILL.md の雛形の名前\n      criteria.schema.json       判断基準のスキーマ\n      answer.schema.json         回答のスキーマ\n      skill-template.md          助言型の SKILL.md の雛形\n    generate/\n      type.json\n      input.schema.json          入力のスキーマの見本\n      skill-template.md\n    work/\n      type.json\n      skill-template.md\n  profiles/                      言語に依存する（道具のコード）\n    rust.profile.json            一式の一式 ・ 対応する型と部品 ・ 組み立てのコマンド\n    rust/\n      common/                  共通の一式（contract ・ cli ・ mcp ・ refs ・ tool.json ・ 見本の道具）\n      types/advisor/             助言型の道具のコード（事例 5件）\n      types/generate/            生成型の組む道具のコード\n      parts/check/ ・ parts/render/   作業型が選ぶ部品\n    python.profile.json\n    python/ …                    同じ並び\n  conformance/                   共通の事例（組をまたいで同じ入力と期待する出力）</pre>"
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "置き場所",
-       "言語に依存するか"
-      ],
-      "rows": [
-       [
-        "型の定義 ・ スキーマ ・ SKILL.md の雛形",
-        [
-         "references/types/<型>/",
-         "しない"
-        ]
-       ],
-       [
-        "共通の一式（refs ・ tool.json ・ CLI と MCP の入口）",
-        [
-         "references/profiles/<言語>/common/",
-         "する"
-        ]
-       ],
-       [
-        "型ごとの道具のコード",
-        [
-         "references/profiles/<言語>/types/<型>/",
-         "する"
-        ]
-       ],
-       [
-        "作業型が選ぶ部品（検査 ・ 生成）",
-        [
-         "references/profiles/<言語>/parts/<部品>/",
-         "する"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>scaffold は型と言語を受け取る</b>（scaffold &lt;名前&gt; --type &lt;型&gt; --language &lt;言語&gt;）。型の定義が要る部品を、言語の組の定義が持たなければ、理由を示して断る。例：助言型は版2の一式（refs）を要するので、版1の組（最初の Python）では断る。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>同じ振る舞いは、共通の事例で保証する。</b>比べるのは CLI の出力だけで、validate の検出はファイルと位置で比べる（Round 5 の答えのまま）。"
-     }
-    ]
-   },
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "conformance",
-     "caption": "共通の事例を、5つの組で生んだ Skill の CLI へ同じ入力として与え、出力を期待する出力と照合する"
-    }
-   ],
-   "example": [
-    {
-     "kind": "para",
-     "text": "scaffold が型と言語の組み合わせを断るときの出力の実例である。"
     },
     {
-     "kind": "html",
-     "text": "<pre>$ skills-creator scaffold qa-advisor --type advisor --language python\n誤用: python の組は助言型に対応しない ── 助言型は refs（契約の版2）を要する。対応している組は rust</pre>"
-    }
-   ],
-   "passed": [
-    {
-     "name": "型の側に言語非依存、言語の組の側にコード（profiles/<言語>/types/<型>/）",
-     "body": "スキーマ ・ SKILL.md の雛形は1か所、道具のコードは言語ごと",
-     "cost": "型を足すと、型の側に1か所、対応する言語の組ごとにコードを足す"
-    },
-    {
-     "name": "型の側に言語を持たせる（types/<型>/<言語>/）",
-     "body": "型ごとにフォルダを切り、その中に言語ごとのコードを置く",
-     "cost": "共通の一式は型に属さないので、別の置き場所が要る。言語の組が1か所にまとまらない"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "型の側に言語非依存、言語の組の側にコード（profiles/<言語>/types/<型>/）",
-       [
-        "言語の組を足す作業が profiles/<言語>/ の1か所で閉じる。スキーマを直すと全言語に効く"
-       ]
-      ],
-      [
-       "型の側に言語を持たせる（types/<型>/<言語>/）",
-       [
-        "言語の組を足すたびに、型の数だけ別のフォルダを触る。組の定義と中身が離れる"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "Rust で組んだ共通の実装の実行ファイルを、他の言語の Skill から呼ぶ",
-     "reason": "他の言語の Skill が Rust の実行ファイルへ依存する。組を言語ごとに用意する目的（利用者が自分の言語だけで道具を作る）と矛盾する"
-    },
-    {
-     "body": "validate の検出を文言まで一致させる",
-     "reason": "検出の文言は JSON Schema のライブラリが出す（Rust は jsonschema の crate）。5言語で同じライブラリは無いので、一致させられない"
-    },
-    {
-     "body": "事例を持たず、各組の雛形の単体の試験だけにする",
-     "reason": "組の中で閉じた試験は、組どうしの食い違いを検出しない"
-    }
-   ],
-   "findings": [
-    "版2 の references の実装は、Rust で 1120 行ある（get ・ validate ・ view ・ import）",
-    "Rust の組の validate は、検出の文言に jsonschema の crate の誤りの文言をそのまま含む",
-    "Rust の組でも、JSON Schema の検証は第三者の crate（jsonschema 0.34）に依存している"
-   ],
-   "grounds": [
-    {
-     "supports": "validate の検出が、ライブラリの文言を含むこと",
-     "basis": "format!(\"{head}: {} ── {e}\", at.trim_start_matches('/'))",
-     "tag": "measured",
-     "source": ".claude/skills/skills-creator/tool/parts/src/refs.rs:132（2026-09-30 に読んだ）"
-    },
-    {
-     "supports": "共通の実装の正本を組に置く現行の形",
-     "basis": "`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である",
-     "tag": "rule",
-     "source": ".claude/skills/skills-creator/references/profiles/rust.md（雛形の節）"
-    },
-    {
-     "supports": "閲覧側で描画する案の除外",
-     "basis": "節の構造は生成の時点で確定させる",
-     "tag": "rule",
-     "source": ".claude/skills/brainstorming-board/SKILL.md（参照の節、render.rs）"
-    },
-    {
-     "supports": "同じ概念を同じ形にする要求",
-     "basis": "同じ概念の仕組みは、同じ実装の形にさせる",
-     "tag": "rule",
-     "source": ".claude/skills/skills-creator/SKILL.md（ガードレール）"
-    },
-    {
-     "supports": "型の軸",
-     "basis": "skills-creator が生む Skill の型は、助言型 ・ 作業型 ・ 生成型の3つ。refs.rs ・ tool.json ・ CLI と MCP の入口は、全 Skill 共通の一式として skills-creator が持つ（型には数えない）",
-     "tag": "rule",
-     "source": ".brainstorming-board/skill-types/（論点1 ・ 2 ・ 4、コミット 8d8e21c ・ 5c69aee）"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "助言型の手順 ・ 雛形の中身 ・ 検査7件",
-     "treatment": "out",
-     "note": "別のセッション（advisor-creator のボード）が決着させ、ACDR で skills-creator に足す。この答えは置き場所だけを決める"
-    },
-    {
-     "item": "各言語で使う JSON Schema のライブラリ",
-     "treatment": "later",
-     "note": "組を起こすときに決める。この答えを覆さない"
-    }
-   ],
-   "path": [
-    {
-     "kind": "card",
-     "letter": "A",
-     "heading": "共通の実装の正本は、組ごとに references/profiles/<言語>/ へ1組ずつ置く。同じ振る舞いは、言語に依存しない共通の事例（入力と期待する出力）で保証する。事例は references/conformance/ に置き、各組の雛形で生んだ Skill の CLI に同じ入力を与えて、出力を比べる。validate の検出は「ファイルと位置」で比べ、JSON Schema のライブラリが出す文言は比べない",
-     "events": [
-      {
-       "tag": "returned",
-       "text": "別のセッションの依頼：「skills-creator-profiles の論点2（共通部品の正本と同等性）を決めるときに、型の軸も入れてほしい」"
+      "id": "Q2",
+      "name": "共通の実装と型の雛形の置き場所 ・ 同等性",
+      "status": "settled",
+      "question": "共通の一式 ・ 型の雛形（助言型 ・ 生成型）・ 作業型が選ぶ部品を、5つの組でどこに置き、同じ振る舞いをどう保証するか",
+      "answer": {
+        "text": "言語に依存しないもの（型の定義 ・ スキーマ ・ SKILL.md の雛形）は references/types// に置き、言語に依存するもの（道具のコード）は references/profiles// に置く。言語の組の中は、共通の一式（common/）・ 型ごとのコード（types//）・ 作業型が選ぶ部品（parts//）に分ける。scaffold は型と言語を受け取り、型が要る部品をその言語の組が持たなければ断る。同じ振る舞いは、共通の事例（CLI の出力）で組をまたいで保証する"
       },
-      {
-       "tag": "obsolete",
-       "text": "共通の実装の置き場所を、言語の組の中の1つの並びとして決めていた。型ごとの雛形と部品の置き場所が無かった"
-      },
-      {
-       "tag": "finding",
-       "text": "助言型のスキーマ（criteria.schema.json ・ answer.schema.json）は言語に依存しない。言語に依存するのは道具のコードだけである"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>scaffold が型と言語の組み合わせを断るときの出力の実例である。</p>"
+        },
+        {
+          "kind": "code",
+          "text": "$ skills-creator scaffold qa-advisor --type advisor --language python\n誤用: python の組は助言型に対応しない ── 助言型は refs（契約の版2）を要する。対応している組は rust"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 769 156\" width=\"769\" height=\"156\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M220.8,72.0 L307.4,16.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"307.4,16.0 303.1,21.7 300.4,17.6\" fill=\"#C3CAD2\"/><rect x=\"240.1\" y=\"34.0\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"264.1\" y=\"47.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">同じ入力</text><path d=\"M220.8,72.0 L307.4,72.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"307.4,72.0 300.6,74.5 300.6,69.5\" fill=\"#C3CAD2\"/><rect x=\"240.1\" y=\"62.0\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"264.1\" y=\"75.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">同じ入力</text><path d=\"M220.8,72.0 L307.4,128.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"307.4,128.0 300.4,126.4 303.1,122.3\" fill=\"#C3CAD2\"/><rect x=\"240.1\" y=\"90.0\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"264.1\" y=\"103.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">同じ入力</text><path d=\"M494.4,16.0 L596.6,72.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"596.6,72.0 589.5,70.9 591.8,66.6\" fill=\"#C3CAD2\"/><rect x=\"513.5\" y=\"34.0\" width=\"64.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"545.5\" y=\"47.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">CLI の出力</text><path d=\"M510.0,72.0 L596.6,72.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"596.6,72.0 589.8,74.5 589.8,69.5\" fill=\"#C3CAD2\"/><rect x=\"521.3\" y=\"62.0\" width=\"64.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"553.3\" y=\"75.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">CLI の出力</text><path d=\"M499.2,128.0 L596.6,72.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"596.6,72.0 592.0,77.5 589.5,73.2\" fill=\"#C3CAD2\"/><rect x=\"515.9\" y=\"90.0\" width=\"64.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"547.9\" y=\"103.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">CLI の出力</text><g class=\"wf-node\" transform=\"translate(0.0,56.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"220.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"110.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">共通の事例（入力と期待する出力）</text></g></g><g class=\"wf-node\" transform=\"translate(308.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"185.8\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"92.9\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Rust の組で生んだ Skill</text></g></g><g class=\"wf-node\" transform=\"translate(308.0,56.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"201.4\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"100.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Python の組で生んだ Skill</text></g></g><g class=\"wf-node\" transform=\"translate(308.0,112.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"190.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"95.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ほか3つの組で生んだ Skill</text></g></g><g class=\"wf-node\" transform=\"translate(597.4,56.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"160.0\" height=\"32.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"80.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">期待する出力と照合する</text></g></g></g></svg>",
+          "caption": "共通の事例を、5つの組で生んだ Skill の CLI へ同じ入力として与え、出力を期待する出力と照合する"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "validate の検出が、ライブラリの文言を含むこと",
+          "basis": "format!(\"{head}: {} ── {e}\", at.trim_start_matches('/'))",
+          "tag": "measured",
+          "source": ".claude/skills/skills-creator/tool/parts/src/refs.rs:132（2026-09-30 に読んだ）"
+        },
+        {
+          "supports": "共通の実装の正本を組に置く現行の形",
+          "basis": "`contract.rs` ・ `cli` ・ `mcp` は Skill をまたいで同一である",
+          "tag": "rule",
+          "source": ".claude/skills/skills-creator/references/profiles/rust.md（雛形の節）"
+        },
+        {
+          "supports": "閲覧側で描画する案の除外",
+          "basis": "節の構造は生成の時点で確定させる",
+          "tag": "rule",
+          "source": ".claude/skills/brainstorming-board/SKILL.md（参照の節、render.rs）"
+        },
+        {
+          "supports": "同じ概念を同じ形にする要求",
+          "basis": "同じ概念の仕組みは、同じ実装の形にさせる",
+          "tag": "rule",
+          "source": ".claude/skills/skills-creator/SKILL.md（ガードレール）"
+        },
+        {
+          "supports": "型の軸",
+          "basis": "skills-creator が生む Skill の型は、助言型 ・ 作業型 ・ 生成型の3つ。refs.rs ・ tool.json ・ CLI と MCP の入口は、全 Skill 共通の一式として skills-creator が持つ（型には数えない）",
+          "tag": "rule",
+          "source": ".brainstorming-board/skill-types/（論点1 ・ 2 ・ 4、コミット 8d8e21c ・ 5c69aee）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "Rust で組んだ共通の実装の実行ファイルを、他の言語の Skill から呼ぶ",
+          "reason": "他の言語の Skill が Rust の実行ファイルへ依存する。組を言語ごとに用意する目的（利用者が自分の言語だけで道具を作る）と矛盾する"
+        },
+        {
+          "option": "validate の検出を文言まで一致させる",
+          "reason": "検出の文言は JSON Schema のライブラリが出す（Rust は jsonschema の crate）。5言語で同じライブラリは無いので、一致させられない"
+        },
+        {
+          "option": "事例を持たず、各組の雛形の単体の試験だけにする",
+          "reason": "組の中で閉じた試験は、組どうしの食い違いを検出しない"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "型の側に言語非依存、言語の組の側にコード（profiles//types//）",
+            "cost": "型を足すと、型の側に1か所、対応する言語の組ごとにコードを足す"
+          },
+          {
+            "option": "型の側に言語を持たせる（types///）",
+            "cost": "共通の一式は型に属さないので、別の置き場所が要る。言語の組が1か所にまとまらない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "助言型の手順 ・ 雛形の中身 ・ 検査7件",
+            "treatment": "out",
+            "note": "別のセッション（advisor-creator のボード）が決着させ、ACDR で skills-creator に足す。この答えは置き場所だけを決める"
+          },
+          {
+            "item": "各言語で使う JSON Schema のライブラリ",
+            "treatment": "later",
+            "note": "組を起こすときに決める。この答えを覆さない"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "作った Skill の配布",
-   "status": "settled",
-   "question": "skills-creator で作った Skill の配布（dist）に、4つの組を対応させるか",
-   "intro": "<b>承認された（2026-09-30、Round 4）。</b>配布は契約の外の任意の機能であり、利用者があまり気にしない。組を足すときの作業から、配布を外す。",
-   "answer": "作った Skill の配布は、いま対応している Rust の組だけとする。Go ・ Python ・ TypeScript ・ C# の組には、dist が理由を示して断る。必要になったら、その組に足す",
-   "decision": {
-    "letter": "B",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>作った Skill の配布は Rust の組だけとし、4つの組は対応しない。</b>組を足すときに要るのは、雛形 ・ 組み立てのコマンド ・ 1段目の検査と外部の道具の直書きの検出に合格することの3つだけになる。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>skills-creator そのものの配布は、これと別である。</b>配布する skills-creator は、5つの組の雛形を references/profiles/ に持ち、利用者はそこから Skill を作る。"
-     }
-    ]
-   },
-   "figures": [],
-   "example": [
-    {
-     "kind": "para",
-     "text": "TypeScript の組の Skill で dist を実行したときの出力の実例である。"
     },
     {
-     "kind": "html",
-     "text": "<pre>$ skills-creator dist --repo owner/repo\n誤用: この組は配布に対応しない ── 配布に対応しているのは Rust の組だけである\n終了コード 2</pre>"
-    }
-   ],
-   "passed": [
-    {
-     "name": "配布は Rust の組だけにする",
-     "body": "4つの組は dist に対応しない",
-     "cost": "Go や C# で作った Skill を配布したい利用者は、組に配布を足すまで待つ"
-    },
-    {
-     "name": "公式の手段を持つ組（Go ・ C#）も対応させる",
-     "body": "Round 3 までの答え",
-     "cost": "Go と C# の単体の実行ファイル化と、各 OS での試験を、組を足すたびに行う"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "配布は Rust の組だけにする",
-       [
-        "組を足す作業が、雛形 ・ 組み立て ・ 検査の3つで済む"
-       ]
+      "id": "Q3",
+      "name": "作った Skill の配布",
+      "status": "settled",
+      "question": "skills-creator で作った Skill の配布（dist）に、4つの組を対応させるか",
+      "answer": {
+        "text": "作った Skill の配布は、いま対応している Rust の組だけとする。Go ・ Python ・ TypeScript ・ C# の組には、dist が理由を示して断る。必要になったら、その組に足す"
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>TypeScript の組の Skill で dist を実行したときの出力の実例である。</p>"
+        },
+        {
+          "kind": "code",
+          "text": "$ skills-creator dist --repo owner/repo\n誤用: この組は配布に対応しない ── 配布に対応しているのは Rust の組だけである\n終了コード 2"
+        }
       ],
-      [
-       "公式の手段を持つ組（Go ・ C#）も対応させる",
-       [
-        "利用者があまり気にしない機能のために、組ごとの作業が増える"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "処理系を要求する形で配り、導入スクリプトで処理系の有無を確かめる",
-     "reason": "「利用者の環境に処理系が無くても動く形で配る」と「利用者はどの実行ファイルかを選ばない」（ACDR 0029 ・ 0031）に違反する"
-    }
-   ],
-   "findings": [
-    "C# の Native AOT は、別の OS 向けに組めない。現行の release.yml は各 OS のランナーで組むので、この制約に収まる"
-   ],
-   "grounds": [
-    {
-     "supports": "Go が処理系を不要にすること",
-     "basis": "creates statically-linked binaries by default.",
-     "tag": "primary",
-     "source": "sources/go.dev_doc_faq.md:2036（2026-09-30 取得）"
-    },
-    {
-     "supports": "Go が別の OS 向けに組めること",
-     "basis": "In effect, you are always cross-compiling.",
-     "tag": "primary",
-     "source": "sources/go.dev_doc_install_source.md:1220（2026-09-30 取得）"
-    },
-    {
-     "supports": "C# の Native AOT が処理系を不要にすること",
-     "basis": "These apps can run on machines that don't have the .NET runtime installed.",
-     "tag": "primary",
-     "source": "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot:741（2026-09-30 取得）"
-    },
-    {
-     "supports": "C# の Native AOT が OS をまたげないこと",
-     "basis": "Cross-OS compilation with Native AOT requires some form of emulation, like a virtual machine or Windows WSL.",
-     "tag": "primary",
-     "source": "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot_cross-compile:752（2026-09-30 取得）"
-    },
-    {
-     "supports": "TypeScript の SEA を採らないこと",
-     "basis": "Use of the feature is not recommended in production environments.",
-     "tag": "primary",
-     "source": "sources/nodejs.org_api_documentation.html:225（2026-09-30 取得。SEA は同 single-executable-applications.html:321 で Stability: 1.1）"
-    },
-    {
-     "supports": "Python の公式の手段が freeze だけであること",
-     "basis": "One is to use the freeze tool, which is included in the Python source tree as",
-     "tag": "primary",
-     "source": "sources/docs.python.org_3_faq_programming.html:378（2026-09-30 取得）"
-    },
-    {
-     "supports": "PyInstaller が別の OS 向けに組めないこと",
-     "basis": "However, it is not a cross-compiler; to make a Windows app you run PyInstaller on Windows,",
-     "tag": "primary",
-     "source": "sources/pyinstaller.org_en_stable:128（2026-09-30 取得。第三者）"
-    },
-    {
-     "supports": "配布の規定",
-     "basis": "利用者の環境に Rust が無くても動く形で配る。",
-     "tag": "rule",
-     "source": ".claude/skills/skills-creator/references/distribution.md（規定の節）・ ACDR 0029 ・ 0031"
-    }
-   ],
-   "out_of_scope": [
-    {
-     "item": "Go と C# の組の配布（Native AOT ・ go build）",
-     "treatment": "later",
-     "note": "必要になったときに、その組に足す。調べた内容（原典の引用）は、この論点の前提に残してある"
-    }
-   ],
-   "path": [
-    {
-     "kind": "card",
-     "letter": "A",
-     "heading": "配布の規定は変えない。dist は、処理系を同梱するか不要にする公式の手段（Experimental でないもの）を持つ組だけを受け付ける。Rust ・ Go ・ C#（Native AOT）が該当する。TypeScript と Python の組には、dist が理由を示して断る。Skill そのものは、処理系を入れた環境で動く",
-     "events": [
-      {
-       "tag": "returned",
-       "text": "「これ配布に関しては正直ユーザはあまり気にするところではないよね？」"
-      },
-      {
-       "tag": "obsolete",
-       "text": "組ごとに配布の手段を決める必要が失効した"
-      },
-      {
-       "tag": "finding",
-       "text": "完成の条件は、配布した skills-creator から、利用者が言語の組を選んで Skill を作れることである"
+      "grounds": [
+        {
+          "supports": "Go が処理系を不要にすること",
+          "basis": "creates statically-linked binaries by default.",
+          "tag": "primary",
+          "source": "sources/go.dev_doc_faq.md:2036（2026-09-30 取得）"
+        },
+        {
+          "supports": "Go が別の OS 向けに組めること",
+          "basis": "In effect, you are always cross-compiling.",
+          "tag": "primary",
+          "source": "sources/go.dev_doc_install_source.md:1220（2026-09-30 取得）"
+        },
+        {
+          "supports": "C# の Native AOT が処理系を不要にすること",
+          "basis": "These apps can run on machines that don't have the .NET runtime installed.",
+          "tag": "primary",
+          "source": "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot:741（2026-09-30 取得）"
+        },
+        {
+          "supports": "C# の Native AOT が OS をまたげないこと",
+          "basis": "Cross-OS compilation with Native AOT requires some form of emulation, like a virtual machine or Windows WSL.",
+          "tag": "primary",
+          "source": "sources/learn.microsoft.com_en-us_dotnet_core_deploying_native-aot_cross-compile:752（2026-09-30 取得）"
+        },
+        {
+          "supports": "TypeScript の SEA を採らないこと",
+          "basis": "Use of the feature is not recommended in production environments.",
+          "tag": "primary",
+          "source": "sources/nodejs.org_api_documentation.html:225（2026-09-30 取得。SEA は同 single-executable-applications.html:321 で Stability: 1.1）"
+        },
+        {
+          "supports": "Python の公式の手段が freeze だけであること",
+          "basis": "One is to use the freeze tool, which is included in the Python source tree as",
+          "tag": "primary",
+          "source": "sources/docs.python.org_3_faq_programming.html:378（2026-09-30 取得）"
+        },
+        {
+          "supports": "PyInstaller が別の OS 向けに組めないこと",
+          "basis": "However, it is not a cross-compiler; to make a Windows app you run PyInstaller on Windows,",
+          "tag": "primary",
+          "source": "sources/pyinstaller.org_en_stable:128（2026-09-30 取得。第三者）"
+        },
+        {
+          "supports": "配布の規定",
+          "basis": "利用者の環境に Rust が無くても動く形で配る。",
+          "tag": "rule",
+          "source": ".claude/skills/skills-creator/references/distribution.md（規定の節）・ ACDR 0029 ・ 0031"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "処理系を要求する形で配り、導入スクリプトで処理系の有無を確かめる",
+          "reason": "「利用者の環境に処理系が無くても動く形で配る」と「利用者はどの実行ファイルかを選ばない」（ACDR 0029 ・ 0031）に違反する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "配布は Rust の組だけにする",
+            "cost": "Go や C# で作った Skill を配布したい利用者は、組に配布を足すまで待つ"
+          },
+          {
+            "option": "公式の手段を持つ組（Go ・ C#）も対応させる",
+            "cost": "Go と C# の単体の実行ファイル化と、各 OS での試験を、組を足すたびに行う"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "Go と C# の組の配布（Native AOT ・ go build）",
+            "treatment": "later",
+            "note": "必要になったときに、その組に足す。調べた内容（原典の引用）は、この論点の前提に残してある"
+          }
+        ]
       }
-     ]
-    }
-   ]
-  },
-  {
-   "no": 4,
-   "name": "組の試験",
-   "status": "settled",
-   "question": "5つの組の雛形が、契約を満たし続けることを、どこでどう試験するか",
-   "answer": "このリポジトリの CI で、skills-creator が変わるたびに5つの組すべてを試験する。組ごとに、雛形から Skill を生み、そのまま組み立て、check（1段目と外部の道具の直書きの検出）と共通の事例（論点2）に合格することを確かめる。そのために、雛形は差し込み場所を埋めなくても組み立てられる形（動く見本の道具を1つ持つ形）にする",
-   "grounds": [
-    {
-     "supports": "雛形を、生んだ直後に組み立てられる形にすること",
-     "basis": "雛形から sample-tool を生み、{{道具の名前}} などを仮の値で埋めてから cargo install した",
-     "tag": "measured",
-     "source": "実測（2026-09-30、ACDR 0058 の試験）"
     },
     {
-     "supports": "処理系が無いことを合格と扱わないこと",
-     "basis": "古いものを黙って返さないのは、「検査していないのに合格と出る」と同じ型の欠陥である。",
-     "tag": "rule",
-     "source": ".claude/skills/skills-creator/references/tool-contract.md（経路 ・ 大きい出力 ・ 保持）"
-    },
-    {
-     "supports": "組を全部持たせる案を除外した理由",
-     "basis": "使わない言語の雛形を、試験できないまま保守することになる。",
-     "tag": "rule",
-     "source": "skills-creator-language の論点1（除外した案）"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-30、Round 6）。</b>前のボードで、組を全部持たせる案を「試験できないまま保守することになる」として除外した。この論点が、その理由に答える。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>CI で、5つの組を毎回、生むところから試験する。</b>"
-     },
-     {
-      "kind": "list",
-      "ordered": true,
-      "items": [
-       {
-        "text": "skills-creator を組み立てる"
-       },
-       {
-        "text": "組ごとに、雛形から見本の Skill を生む（scaffold に言語を渡す）"
-       },
-       {
-        "text": "生んだ Skill を、手を加えずに組み立てる"
-       },
-       {
-        "text": "check に合格することを確かめる（1段目と、外部の道具の直書きの検出）"
-       },
-       {
-        "text": "共通の事例（論点2）を当て、CLI の出力が期待どおりであることを確かめる"
-       },
-       {
-        "text": "外部の道具の名前を直書きした行を足し、check が検出することを確かめる（検査が効いていることの確認）"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>雛形は、生んだ直後に組み立てられる形にする。</b>差し込み場所をコードの識別子に置かず、動く見本の道具（例：受け取った名前を返す hello）を1つ持たせる。利用者は、それを書き換えて自分の道具にする。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>手元の cargo test は、処理系に依存しない検査だけを持つ。</b>処理系が必要な試験は CI だけで行い、手元に処理系が無いことを合格とは扱わない。"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "CI の1つの組の試験の流れの実例である（Python の組）。"
-    },
-    {
-     "kind": "html",
-     "text": "<pre>skills-creator scaffold sample-py --language python --path work/\ncd work/sample-py && （組の組み立てのコマンド）\nskills-creator check work/sample-py              → 不合格 0 件\nskills-creator conform work/sample-py            → 共通の事例 すべて一致\n（外部の道具の直書きを1行足す）\nskills-creator check work/sample-py              → 「外部の道具の名前を直書きしている」を検出</pre>"
-    }
-   ],
-   "passed": [
-    {
-     "name": "CI で、5つの組を毎回、生むところから試験する",
-     "body": "skills-creator が変わるたびに、組ごとに生む ・ 組み立てる ・ 検査する",
-     "cost": "CI に4言語の処理系の準備が要る。雛形を、生んだ直後に組み立てられる形へ直す"
-    },
-    {
-     "name": "手元の試験だけにし、処理系が無ければ飛ばす",
-     "body": "cargo test の中で各言語の処理系を呼び、無ければ試験を飛ばす",
-     "cost": "処理系の無い手元では、何も試験されないまま合格と表示される"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "CI で、5つの組を毎回、生むところから試験する",
-       [
-        "使わない言語の雛形も、変更のたびに試験される。前のボードの除外の理由（試験できないまま保守する）が解消する"
-       ]
-      ],
-      [
-       "手元の試験だけにし、処理系が無ければ飛ばす",
-       [
-        "「検査していないのに合格と出る」状態になる。契約の文書が禁じている欠陥の型と同じである"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "雛形の形（ファイルの在り処）だけを静的に試験する",
-     "reason": "生んだものが組み立てられるかを確かめない。実際に、いまの Rust の雛形は差し込み場所を埋めないと組み立てられない"
-    },
-    {
-     "body": "見本の Skill を組ごとにリポジトリへ置いて試験する",
-     "reason": "雛形と見本が2か所になり、雛形を直しても見本が古いまま合格する"
-    }
-   ],
-   "findings": [
-    "いまの Rust の雛形は、生んだ直後には組み立てられない。道具の名前などの差し込み場所がコードの識別子の位置に在り、仮の値で埋めてから組み立てた（2026-09-30 の試験）",
-    "契約の文書は「古いものを黙って返さないのは、検査していないのに合格と出るのと同じ型の欠陥である」と書いている"
-   ],
-   "out_of_scope": [
-    {
-     "item": "CI で各言語の処理系を準備する手順（どの action を使うか）",
-     "treatment": "later",
-     "note": "組を起こすときに、原典で照合して決める。この答えを覆さない"
-    },
-    {
-     "item": "共通の事例を当てる道具の名前（例では conform）",
-     "treatment": "later",
-     "note": "論点2の事例を実装するときに決める。この答えを覆さない"
-    }
-   ]
-  },
-  {
-   "no": 5,
-   "name": "組を起こす順",
-   "status": "settled",
-   "question": "Go ・ Python ・ TypeScript ・ C# の組を、どの順で起こすか",
-   "answer": "Python ・ TypeScript ・ C# ・ Go の順に起こす。利用率の高い順であり、同時に Rust から最も遠い組（処理系が要り、実行ファイルを持たない Python）から始める順である。最初の Python の組で、契約と scaffold に残る Rust の前提（bin/ に実行ファイルが在る、など）を洗い出して直す",
-   "grounds": [
-    {
-     "supports": "利用率の順",
-     "basis": "Python 57.9% ・ TypeScript 43.6% ・ C# 27.8% ・ Go 16.4%",
-     "tag": "primary",
-     "source": "sources/survey.stackoverflow.co_2025_technology（2026-09-30 取得、全回答者）"
-    },
-    {
-     "supports": "Rust の前提が契約と scaffold に残っていること",
-     "basis": "scaffold は references/profiles/rust の雛形だけを読む。check の2段目は tool/Cargo.toml の有無で組を判定する",
-     "tag": "measured",
-     "source": ".claude/skills/skills-creator/tool/service/src/lib.rs ・ tool/business_logic/src/check.rs（2026-09-30 に読んだ）"
-    }
-   ],
-   "intro": "<b>承認された（2026-09-30、Round 6）。</b>組を起こすたびに、雛形 ・ 組み立てのコマンド ・ 外部の道具の直書きの検出 ・ CI の試験が1組ずつ増える。最初の組で、契約の側の不足（Rust にしか無い前提）を洗い出す。",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>Python → TypeScript → C# → Go の順に起こす。</b>"
-     },
-     {
-      "kind": "table",
-      "cols": [
-       "利用率",
-       "Rust との距離"
-      ],
-      "rows": [
-       [
-        "Python",
-        [
-         "57.9%",
-         "遠い ── 処理系が要り、実行ファイルを持たない。入口は処理系にスクリプトを渡す形になる"
+      "id": "Q4",
+      "name": "組の試験",
+      "status": "settled",
+      "question": "5つの組の雛形が、契約を満たし続けることを、どこでどう試験するか",
+      "answer": {
+        "text": "このリポジトリの CI で、skills-creator が変わるたびに5つの組すべてを試験する。組ごとに、雛形から Skill を生み、そのまま組み立て、check（1段目と外部の道具の直書きの検出）と共通の事例（論点2）に合格することを確かめる。そのために、雛形は差し込み場所を埋めなくても組み立てられる形（動く見本の道具を1つ持つ形）にする",
+        "details": [
+          "skills-creator を組み立てる",
+          "組ごとに、雛形から見本の Skill を生む（scaffold に言語を渡す）",
+          "生んだ Skill を、手を加えずに組み立てる",
+          "check に合格することを確かめる（1段目と、外部の道具の直書きの検出）",
+          "共通の事例（論点2）を当て、CLI の出力が期待どおりであることを確かめる",
+          "外部の道具の名前を直書きした行を足し、check が検出することを確かめる（検査が効いていることの確認）"
         ]
-       ],
-       [
-        "TypeScript",
-        [
-         "43.6%",
-         "遠い ── 処理系（Node.js）が要る。Python で直した前提をそのまま使える"
-        ]
-       ],
-       [
-        "C#",
-        [
-         "27.8%",
-         "中 ── 組み立てて実行ファイルを作る"
-        ]
-       ],
-       [
-        "Go",
-        [
-         "16.4%",
-         "近い ── Rust と同じく単体の実行ファイルになる"
-        ]
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>組を1つ起こすごとに ACDR を1件起こし、CI の試験（論点4）を足してから次へ進む。</b>"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "最初の Python の組で洗い出す、Rust の前提の例である。"
-    },
-    {
-     "kind": "list",
-     "ordered": false,
-     "items": [
-      {
-       "text": "scaffold が Rust の雛形しか置けない（言語を選ぶ引数が無い）"
       },
-      {
-       "text": "check の2段目の組の判定が tool/Cargo.toml の有無で決まる"
-      },
-      {
-       "text": "tool.json の cli.command が、bin/ の実行ファイルを指す前提で書かれている"
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>CI の1つの組の試験の流れの実例である（Python の組）。</p>"
+        },
+        {
+          "kind": "code",
+          "text": "skills-creator scaffold sample-py --language python --path work/\ncd work/sample-py && （組の組み立てのコマンド）\nskills-creator check work/sample-py              → 不合格 0 件\nskills-creator conform work/sample-py            → 共通の事例 すべて一致\n（外部の道具の直書きを1行足す）\nskills-creator check work/sample-py              → 「外部の道具の名前を直書きしている」を検出"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "雛形を、生んだ直後に組み立てられる形にすること",
+          "basis": "雛形から sample-tool を生み、{{道具の名前}} などを仮の値で埋めてから cargo install した",
+          "tag": "measured",
+          "source": "実測（2026-09-30、ACDR 0058 の試験）"
+        },
+        {
+          "supports": "処理系が無いことを合格と扱わないこと",
+          "basis": "古いものを黙って返さないのは、「検査していないのに合格と出る」と同じ型の欠陥である。",
+          "tag": "rule",
+          "source": ".claude/skills/skills-creator/references/tool-contract.md（経路 ・ 大きい出力 ・ 保持）"
+        },
+        {
+          "supports": "組を全部持たせる案を除外した理由",
+          "basis": "使わない言語の雛形を、試験できないまま保守することになる。",
+          "tag": "rule",
+          "source": "skills-creator-language の論点1（除外した案）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "雛形の形（ファイルの在り処）だけを静的に試験する",
+          "reason": "生んだものが組み立てられるかを確かめない。実際に、いまの Rust の雛形は差し込み場所を埋めないと組み立てられない"
+        },
+        {
+          "option": "見本の Skill を組ごとにリポジトリへ置いて試験する",
+          "reason": "雛形と見本が2か所になり、雛形を直しても見本が古いまま合格する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "CI で、5つの組を毎回、生むところから試験する",
+            "cost": "CI に4言語の処理系の準備が要る。雛形を、生んだ直後に組み立てられる形へ直す"
+          },
+          {
+            "option": "手元の試験だけにし、処理系が無ければ飛ばす",
+            "cost": "処理系の無い手元では、何も試験されないまま合格と表示される"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "CI で各言語の処理系を準備する手順（どの action を使うか）",
+            "treatment": "later",
+            "note": "組を起こすときに、原典で照合して決める。この答えを覆さない"
+          },
+          {
+            "item": "共通の事例を当てる道具の名前（例では conform）",
+            "treatment": "later",
+            "note": "論点2の事例を実装するときに決める。この答えを覆さない"
+          }
+        ]
       }
-     ]
-    }
-   ],
-   "passed": [
-    {
-     "name": "利用率の高い順（Rust から遠い順と一致する）",
-     "body": "Python → TypeScript → C# → Go",
-     "cost": "最初の組で、契約の側の直しが最も多く出る"
     },
     {
-     "name": "Rust に近い順",
-     "body": "Go → C# → TypeScript → Python",
-     "cost": "利用者の多い言語が最後になる。Rust の前提が、Go と C# では表に出ないまま残る"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "利用率の高い順（Rust から遠い順と一致する）",
-       [
-        "契約の Rust の前提を、最初に洗い出せる。以降の組は、直した契約の上に起こせる"
-       ]
+      "id": "Q5",
+      "name": "組を起こす順",
+      "status": "settled",
+      "question": "Go ・ Python ・ TypeScript ・ C# の組を、どの順で起こすか",
+      "answer": {
+        "text": "Python ・ TypeScript ・ C# ・ Go の順に起こす。利用率の高い順であり、同時に Rust から最も遠い組（処理系が要り、実行ファイルを持たない Python）から始める順である。最初の Python の組で、契約と scaffold に残る Rust の前提（bin/ に実行ファイルが在る、など）を洗い出して直す"
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>最初の Python の組で洗い出す、Rust の前提の例である。</p><ul><li>scaffold が Rust の雛形しか置けない（言語を選ぶ引数が無い）</li><li>check の2段目の組の判定が tool/Cargo.toml の有無で決まる</li><li>tool.json の cli.command が、bin/ の実行ファイルを指す前提で書かれている</li></ul>"
+        }
       ],
-      [
-       "Rust に近い順",
-       [
-        "最初の2組は楽に起こせるが、Python で契約の直しが出ると、先に起こした組も直すことになる"
-       ]
-      ]
-     ]
+      "grounds": [
+        {
+          "supports": "利用率の順",
+          "basis": "Python 57.9% ・ TypeScript 43.6% ・ C# 27.8% ・ Go 16.4%",
+          "tag": "primary",
+          "source": "sources/survey.stackoverflow.co_2025_technology（2026-09-30 取得、全回答者）"
+        },
+        {
+          "supports": "Rust の前提が契約と scaffold に残っていること",
+          "basis": "scaffold は references/profiles/rust の雛形だけを読む。check の2段目は tool/Cargo.toml の有無で組を判定する",
+          "tag": "measured",
+          "source": ".claude/skills/skills-creator/tool/service/src/lib.rs ・ tool/business_logic/src/check.rs（2026-09-30 に読んだ）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "4つの組を並行して起こす",
+          "reason": "契約の側の直しが組ごとにばらばらに出て、4組ぶん同時に食い違う"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "利用率の高い順（Rust から遠い順と一致する）",
+            "cost": "最初の組で、契約の側の直しが最も多く出る"
+          },
+          {
+            "option": "Rust に近い順",
+            "cost": "利用者の多い言語が最後になる。Rust の前提が、Go と C# では表に出ないまま残る"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "各組の雛形の中の構成（フォルダの名前 ・ 層の分け方）",
+            "treatment": "later",
+            "note": "組を起こす ACDR で、その言語の慣習に合わせて決める。契約ではないので、この答えを覆さない"
+          }
+        ]
+      }
     }
-   ],
-   "dropped": [
-    {
-     "body": "4つの組を並行して起こす",
-     "reason": "契約の側の直しが組ごとにばらばらに出て、4組ぶん同時に食い違う"
-    }
-   ],
-   "findings": [
-    "Python と TypeScript は、実行ファイルではなく、処理系にスクリプトを渡して起動する。tool.json の cli.command と mcp.json の command に、処理系とスクリプトの経路を書く形になる"
-   ],
-   "out_of_scope": [
-    {
-     "item": "各組の雛形の中の構成（フォルダの名前 ・ 層の分け方）",
-     "treatment": "later",
-     "note": "組を起こす ACDR で、その言語の慣習に合わせて決める。契約ではないので、この答えを覆さない"
-    }
-   ]
-  }
- ]
+  ],
+  "intro": "skills-creator の道具の契約に、Rust と同じ水準の言語の組を足す。対象は、作成済みの Rust に加えて Go ・ Python ・ TypeScript ・ C# の4言語である。完成の条件は、配布した skills-creator から、利用者がこれらの言語の組を選んで Skill を作れることである（利用者の言葉、2026-09-30）。このブレストボードは、2段目の検査 ・ 共通の実装の同等性 ・ 配布 ・ 試験 ・ 起こす順を決める。"
 }

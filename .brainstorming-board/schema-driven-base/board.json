@@ -1,1651 +1,694 @@
 {
- "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
- "title": "スキーマ駆動の道具（抽象の基盤）",
- "board": "schema-driven-base",
- "round": 16,
- "intro": [
-  {
-   "kind": "para",
-   "text": "スキーマ駆動の道具を、AI が扱うデータを構造化して持つための基盤として形を決める。ユースケース駆動は、その上に載る concrete の1つである。"
-  }
- ],
- "panels": [
-  {
-   "heading": "いま見る論点",
-   "body": [
+  "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+  "kind": "board",
+  "id": "schema-driven-base",
+  "title": "スキーマ駆動の道具（抽象の基盤）",
+  "round": 16,
+  "queue": [],
+  "topics": [
     {
-     "kind": "para",
-     "text": "<b>論点1〜4が決着した。このボードで答えられる問いは尽きた。</b>次は外の作業で、論点4の答えを試す。"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "順",
-      "次にすること",
-      "何を決めるか"
-     ],
-     "rows": [
-      [
-       "1",
-       "schema-driven を、プロダクトとして宣言する",
-       "ドメイン ・ サブドメイン ・ 区切られた文脈 ・ ユースケース ・ 用語集 ・ その他の要求。見本の試作で検査する"
+      "id": "Q1",
+      "name": "基盤が持つ契約",
+      "status": "settled",
+      "question": "抽象の基盤は、何を契約として持つか",
+      "answer": {
+        "text": "B⁗ ── 抽象の基盤は、AI が扱うデータを構造化して持つための基盤である。正本は構造化データ（JSON とスキーマ）で、Markdown と HTML は描画した結果である。基盤は7つの契約（作成 ・ 取得 ・ 更新 ・ 削除 ・ 検証 ・ 描画 ・ x-prompt）と、注釈 x-ref ・ x-derive を読む道具を持つ。テスト条件とドリフト検知は、開発の concrete が持つ",
+        "details": [
+          "作成の契約 ── スキーマからインスタンスを作成する。出力先のパスはスキーマの x-generates が決める",
+          "取得の契約 ── インスタンスから、JMESPath の式で値を取得する",
+          "更新の契約 ── インスタンスを、JSON Patch（RFC 6902）で更新する。位置は JSON Pointer で指す",
+          "削除の契約 ── インスタンスの項目を JSON Patch の remove で削除し、インスタンスそのものはファイル単位で削除する",
+          "スキーマ検証の契約 ── インスタンスを JSON Schema で検証する",
+          "描画の契約 ── インスタンスを Markdown と HTML へ描画する。見出しはスキーマの title、見せ方は x-view が決める",
+          "x-prompt の契約 ── 項目ごとに x-prompt の read（読み取るとき）と write（値を書くとき）を持つ",
+          "x-ref ── 指す先がある ・ 指す先の種類 ・ 指される数 ・ 承認のあとで指す先が変わった、を出す",
+          "x-derive ── 決まりに従って、答えから判定を出し、宣言した値と突き合わせる",
+          "開発の concrete ── x-test-spec でテスト条件を申告し、テストの記録との突き合わせ（欠け ・ 余り ・ 古い ・ レベル違い）を持つ"
+        ]
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p>契約ごとに、抽象の基盤が持つものと、ユースケース駆動の concrete が持つものを並べた。</p><table><tr><th>契約</th><th>抽象の基盤</th><th>ユースケース駆動の concrete</th></tr><tr><td>作成</td><td>スキーマからインスタンスを作成し、x-generates の場所へ置く</td><td>宣言の種類の Schema から、未記入の宣言を作成する</td></tr><tr><td>取得</td><td>JMESPath の式で値を取得する</td><td>例：<code>scenarios[].id</code> でユースケースのシナリオ ID の一覧を取得する</td></tr><tr><td>更新</td><td>JSON Patch を適用し、検証を通過したときだけ書き込む</td><td>宣言の項目を更新する。例：<code>{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"…\"}</code></td></tr><tr><td>削除</td><td>JSON Patch の remove と、ファイル単位の削除</td><td>宣言を削除し、その宣言を指す参照が残っていれば報告する</td></tr><tr><td>スキーマ検証</td><td>任意のインスタンスを、それが指す JSON Schema で検証する</td><td>宣言の種類ごとの Schema（ドメイン ・ ユースケース ・ 集約 ・ ドメインサービスなど）で検証する</td></tr><tr><td>描画</td><td>title と x-view に従い、Markdown と HTML へ描画する</td><td>ビジョンを先頭に、下の要素が上位の目的を指す連鎖として描画する</td></tr><tr><td>x-prompt</td><td>項目ごとに x-prompt の read と write を要求する</td><td>宣言の項目ごとに、何を読み何を書くかを x-prompt で示す</td></tr><tr><td>ドリフト検知</td><td>x-ref の指す先と、承認のあとの変化を出す（テストとの突き合わせは持たない）</td><td>x-test-spec でテスト条件を申告し、テストの記録との突き合わせ（欠け ・ 余り ・ 古い ・ レベル違い）を持つ</td></tr></table><p>Rust には、どちらも crate がある。<code>jmespath</code>（0.5.0、2026-01-19 更新）と <code>json-patch</code>（4.2.0、2026-04-30 更新）である。</p><h3>シミュレーション：ユースケース1件と集約1件で、10の手順を実行した</h3><p>試作は <code>trial/spike/</code> に在る。<b>基盤の base.rs は宣言の語を1つも持たず</b>、concrete の usecase.rs がドリフト検知を持つ。下の値はすべて実行した出力である。</p><table><tr><th>手順</th><th>呼んだ契約</th><th>何をしたか</th><th>結果</th></tr><tr><td>1</td><td>作成</td><td>UC-1 と AGG-1 をスキーマから作成した</td><td>未記入の4項目で検証は不合格。作成の直後なので正常である</td></tr><tr><td>2</td><td>x-prompt（write）</td><td>未記入の項目に何を書くかを出した</td><td>/name に「「〜を〜する」の形で、主アクターの目的を書く」など4件</td></tr><tr><td>3</td><td>更新</td><td>名前 ・ 目的 ・ 書き換える集約 ・ シナリオ2件を Patch で記入した</td><td>検証を通過し、書き込んだ</td></tr><tr><td>4</td><td>更新</td><td>シナリオを空の配列へ置換する Patch を適用した</td><td>「[] has less than 1 item」で拒否した。ファイルのシナリオは2件のまま</td></tr><tr><td>5</td><td>取得</td><td><code>scenarios[].id</code> など3つの式で取得した</td><td><code>[\"S-1\",\"S-2\"]</code> ／ 件数を組み替えた値 ／ S-2 の名前</td></tr><tr><td>6</td><td>描画</td><td>title と x-view に従って Markdown へ描画した</td><td>見出し ・ 目的 ・ 一覧 ・ 表の Markdown</td></tr><tr><td>7</td><td>x-prompt（read）</td><td>読む側への x-prompt を出した</td><td>/scenarios に「テスト仕様として読む。1件が1つのテストに対応する」など5件</td></tr><tr><td>8</td><td>ドリフト検知</td><td>仕様の4件と、テストの報告の4行を突き合わせた</td><td>テストが無い AGG-1.PRE-1 ／ 仕様に無い UC-1.S-3 ／ 失敗した UC-1.S-2</td></tr><tr><td>9</td><td>削除（項目）</td><td>シナリオ S-2 を remove で削除した</td><td>失敗は0件になり、UC-1.S-2 のテストが「仕様に無い」へ移った</td></tr><tr><td>10</td><td>削除（インスタンス）</td><td>AGG-1 のファイルを削除した</td><td>UC-1 が AGG-1 を指したまま残っていることを検出した</td></tr></table><p><b>手順8の実際の出力。</b>テストの報告は、テストの実装が1行に ID と結果を出す形を仮に置いた。</p>"
+        },
+        {
+          "kind": "code",
+          "text": "━━ 8. ドリフト検知（concrete だけの契約）── テスト仕様とテスト実装を突き合わせる\nテスト実装の報告（test-report.txt）:\nUC-1.S-1\tpass\nUC-1.S-2\tfail\nAGG-1.INV-1\tpass\nUC-1.S-3\tpass\n\nテスト仕様: [\"UC-1.S-1\", \"UC-1.S-2\", \"AGG-1.INV-1\", \"AGG-1.PRE-1\"]\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-3\"]\nテストが通っていない:     [\"UC-1.S-2\"]"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><details open><summary>実行の全出力（trial/spike/output.txt）</summary><pre><code>━━ 1. 作成 ── スキーマから実体を作る\n作成した: work/decls/UC-1.json と work/decls/AGG-1.json\n{\n  \"id\": \"UC-1\",\n  \"name\": \"\",\n  \"goal\": \"\",\n  \"writes\": [],\n  \"scenarios\": []\n}\n検証: [\"/name : \\\"\\\" is shorter than 1 character\", \"/goal : \\\"\\\" is shorter than 1 character\", \"/writes : [] has less than 1 item\", \"/scenarios : [] has less than 1 item\"]\n\n━━ 2. 案内 ── 未記入の項目に、何を書くかを示す（x-prompt.write）\n/name\t「〜を〜する」の形で、主アクターの目的を書く\n/goal\t成功したとき何が成り立っているかを1文で書く\n/writes\t書き換える集約の ID を並べる\n/scenarios\t主成功シナリオを1件目に、拡張を2件目以降に書く\n\n━━ 3. 更新 ── JSON Patch で書き込む（検証を通過したので書き込む）\n適用する Patch:\n[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/name\",\n    \"value\": \"注文を確定する\"\n  },\n  {\n    \"op\": \"replace\",\n    \"path\": \"/goal\",\n    \"value\": \"注文が確定済になり、在庫が引き当てられている\"\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/writes/-\",\n    \"value\": \"AGG-1\"\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/scenarios/-\",\n    \"value\": {\n      \"id\": \"S-1\",\n      \"name\": \"在庫があり、注文が確定する\"\n    }\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/scenarios/-\",\n    \"value\": {\n      \"id\": \"S-2\",\n      \"name\": \"在庫が足りず、確定を断る\"\n    }\n  }\n]\n結果: Ok(())\n集約の結果: Ok(())\n\n━━ 4. 更新 ── 検証に通らない Patch は書き込まない\n[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/scenarios\",\n    \"value\": []\n  }\n]\n結果: Err([\"/scenarios : [] has less than 1 item\"])\nファイルのシナリオ数（変わっていない）: 2\n\n━━ 5. 取得 ── JMESPath の式で取り出す\n式  scenarios[].id\n値  [\"S-1\",\"S-2\"]\n式  {name: name, scenarios: length(scenarios), writes: writes}\n値  {\"name\":\"注文を確定する\",\"scenarios\":2,\"writes\":[\"AGG-1\"]}\n式  scenarios[?id == 'S-2'].name | [0]\n値  \"在庫が足りず、確定を断る\"\n\n━━ 6. 描画 ── title と x-view に従って Markdown へ\n# 注文を確定する（ユースケース）\n\n## 目的\n\n注文が確定済になり、在庫が引き当てられている\n\n## 書き換える集約\n\n- AGG-1\n\n## シナリオ\n\n| ID | シナリオ |\n|---|---|\n| S-1 | 在庫があり、注文が確定する |\n| S-2 | 在庫が足りず、確定を断る |\n\n\n━━ 7. 案内 ── 読む側への案内（x-prompt.read）\n/id\tテストと結ぶときの接頭辞として読む\n/name\tこのユースケースが何を達成するかとして読む\n/goal\t成功の保証として読む\n/writes\tトランザクションの範囲として読む\n/scenarios\tテスト仕様として読む。1件が1つのテストに対応する\n\n━━ 8. ドリフト検知（concrete だけの契約）── テスト仕様とテスト実装を突き合わせる\nテスト実装の報告（test-report.txt）:\nUC-1.S-1\tpass\nUC-1.S-2\tfail\nAGG-1.INV-1\tpass\nUC-1.S-3\tpass\n\nテスト仕様: [\"UC-1.S-1\", \"UC-1.S-2\", \"AGG-1.INV-1\", \"AGG-1.PRE-1\"]\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-3\"]\nテストが通っていない:     [\"UC-1.S-2\"]\n\n━━ 9. 削除（項目）── シナリオ S-2 を JSON Patch の remove で消す\n結果: Ok(())\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-2\", \"UC-1.S-3\"]\nテストが通っていない:     []\n\n━━ 10. 削除（実体）── 集約 AGG-1 を消し、残った参照を探す\nAGG-1 を指したまま残っている宣言: [\"UC-1\"]</code></pre></details>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 662 432\" width=\"662\" height=\"432\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><rect x=\"0.0\" y=\"192.0\" width=\"650.2\" height=\"228.0\" rx=\"8.0\" fill=\"none\" stroke=\"#16636B\" stroke-width=\"1.1\" stroke-dasharray=\"5 4\" opacity=\"0.75\"/><rect x=\"88.4\" y=\"16.0\" width=\"473.4\" height=\"96.0\" rx=\"8.0\" fill=\"none\" stroke=\"#16636B\" stroke-width=\"1.1\" stroke-dasharray=\"5 4\" opacity=\"0.75\"/><path d=\"M256.3,256.8 L126.7,337.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"126.7,337.4 131.1,331.7 133.7,335.9\" fill=\"#C3CAD2\"/><rect x=\"177.5\" y=\"287.1\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"191.5\" y=\"300.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">扱う</text><path d=\"M256.3,256.8 L386.5,337.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"386.5,337.4 379.5,335.9 382.1,331.7\" fill=\"#C3CAD2\"/><rect x=\"297.4\" y=\"287.1\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"321.4\" y=\"300.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">描画する</text><path d=\"M190.3,80.6 L522.6,205.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"522.6,205.4 515.4,205.3 517.1,200.7\" fill=\"#C3CAD2\"/><rect x=\"342.4\" y=\"133.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"356.4\" y=\"146.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">使う</text><path d=\"M425.8,98.6 L522.6,205.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"522.6,205.4 516.2,202.0 519.8,198.7\" fill=\"#C3CAD2\"/><rect x=\"460.2\" y=\"142.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"474.2\" y=\"155.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">使う</text><rect x=\"8.0\" y=\"183.0\" width=\"157.5\" height=\"15.0\" fill=\"#F5F7F9\"/><text x=\"86.8\" y=\"194.0\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#16636B\">基盤（AI の構造化データ管理）</text><rect x=\"96.4\" y=\"7.0\" width=\"60.0\" height=\"15.0\" fill=\"#F5F7F9\"/><text x=\"126.4\" y=\"18.0\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#16636B\">concrete</text><g class=\"wf-node\" transform=\"translate(127.7,206.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"257.2\" height=\"50.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"128.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">7つの契約（作成 ・ 取得 ・ 更新 ・ </text><text x=\"128.6\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">削除 ・ 検証 ・ 描画 ・ x-prompt）</text></g></g><g class=\"wf-node\" transform=\"translate(14.0,338.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"225.4\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"112.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">正本：構造化データ（JSON ＋ ス</text><text x=\"112.7\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">キーマ）。AI は JMESPath 式で</text><text x=\"112.7\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">プロパティを指して問い合わせる</text></g></g><g class=\"wf-node\" transform=\"translate(263.4,338.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"245.2\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"122.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Markdown ・ HTML（描画した結果）</text></g></g><g class=\"wf-node\" transform=\"translate(409.0,206.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"227.2\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"113.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">x-ref ・ x-derive（指す先 ・</text><text x=\"113.6\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">種類 ・ 指される数 ・ 承認のあと</text><text x=\"113.6\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">の変化 ・ 答えから導いた値）</text></g></g><g class=\"wf-node\" transform=\"translate(102.4,30.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"177.4\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"88.7\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ほかの concrete（ACDR</text><text x=\"88.7\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">・ ブレストボードなど）</text></g></g><g class=\"wf-node\" transform=\"translate(303.8,30.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"244.0\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"122.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">開発の concrete：x-test-spec </text><text x=\"122.0\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">と、テストの記録との突き合わせ（欠け</text><text x=\"122.0\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">・ 余り ・ 古い ・ レベル違い）</text></g></g></g></svg>",
+          "caption": "基盤は AI の構造化データ管理の基盤で、正本は構造化データ、Markdown と HTML は描画した結果である。テスト条件とテストの記録との突き合わせは、開発の concrete が基盤の注釈の上に持つ。"
+        }
       ],
-      [
-       "2",
-       "サブドメインごとに、実装の型を導く",
-       "宣言の business_logic の答えから、道具がトランザクションスクリプト ・ ドメインモデルなどを導く"
+      "grounds": [
+        {
+          "supports": "操作の4つを基盤の契約にすること",
+          "basis": "「あと大事な契約を忘れてました。取得と更新、削除はありますね。あとはスキーマからも実体jsonを作成するのもいるね。取得ではJMESを使うんじゃないか？」",
+          "tag": "assumption",
+          "source": "利用者の言明（2026-10-03）"
+        },
+        {
+          "supports": "形の3つを基盤の契約にすること",
+          "basis": "「abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です」",
+          "tag": "assumption",
+          "source": "利用者の言明（2026-10-03）"
+        },
+        {
+          "supports": "concrete がドリフト検知の契約を持つこと",
+          "basis": "「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
+          "tag": "assumption",
+          "source": "利用者の言明（2026-10-03）"
+        },
+        {
+          "supports": "取得を JMESPath で受けること",
+          "basis": "「The result of applying a JMESPath expression against a JSON document will always result in valid JSON, provided there are no errors during the evaluation process.  Structured data in, structured data out.」",
+          "tag": "primary",
+          "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得） 本文の86〜88行"
+        },
+        {
+          "supports": "JMESPath が位置を返さないこと",
+          "basis": "仕様の全文に location と JSON Pointer の語が0件である",
+          "tag": "measured",
+          "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得）"
+        },
+        {
+          "supports": "更新と削除を JSON Patch で受けること",
+          "basis": "「Its value MUST be one of \"add\", \"remove\", \"replace\", \"move\", \"copy\", or \"test\"; other values are errors.」",
+          "tag": "primary",
+          "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 185〜187行"
+        },
+        {
+          "supports": "位置を JSON Pointer で指すこと",
+          "basis": "「Additionally, operation objects MUST have exactly one \"path\" member.」",
+          "tag": "primary",
+          "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 189行"
+        },
+        {
+          "supports": "作成の出力先のパスを x-generates が決めること",
+          "basis": "x-generates は「このスキーマが生成する実体の置き場所」である",
+          "tag": "measured",
+          "source": "no-more-spaghetti の references/schema-meta.schema.json"
+        },
+        {
+          "supports": "作成した直後のインスタンスが検証を通過しなくてよいこと",
+          "basis": "「雛形は、契約に対して不合格で出る ── 道具と出典が空だからである。」",
+          "tag": "rule",
+          "source": "no-more-spaghetti の SKILL.md の Step 2"
+        },
+        {
+          "supports": "検証と描画がすでに実装されていること",
+          "basis": "どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）",
+          "tag": "rule",
+          "source": "skills-creator の references/document.json「references（契約の版2）」"
+        },
+        {
+          "supports": "ドリフト検知の中身",
+          "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
+          "tag": "rule",
+          "source": "ボード usecase-schema-driven 論点11の決着"
+        },
+        {
+          "supports": "Rust の実装があること",
+          "basis": "jmespath 0.5.0 の説明は「Rust implementation of JMESPath, a query language for JSON」、json-patch 4.2.0 の説明は「RFC 6902, JavaScript Object Notation (JSON) Patch」",
+          "tag": "measured",
+          "source": "crates.io の API（2026-10-03 取得）"
+        },
+        {
+          "supports": "7つの契約とドリフト検知が成立すること",
+          "basis": "10の手順を1回実行し、終了コード0で終わった。base.rs の本体に宣言の語は0件である",
+          "tag": "measured",
+          "source": "trial/spike/output.txt（2026-10-03、jmespath 0.5.0 ・ json-patch 4.2.0 ・ jsonschema 0.58.4）"
+        },
+        {
+          "supports": "x-ref と x-derive を基盤が読めること",
+          "basis": "見本で、注釈だけを読む道具を基盤の側（base7）と開発の側（concrete7）に分けても、テスト条件36件と宣言どうしの検査81件は変わらなかった。基盤の側はテストを知らない",
+          "tag": "measured",
+          "source": "ボード usecase-driven-concrete の sample/base7.py ・ sample/concrete7.py"
+        }
       ],
-      [
-       "3",
-       "アーキテクチャと技術スタックを決める",
-       "外枠はポートとアダプタ。中の型は2の結果で文脈ごとに変わる。Rust で使う crate を決める"
+      "rejected": [
+        {
+          "option": "形の3つだけ（2回目の答え）",
+          "reason": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作ると、インスタンスの扱いが concrete ごとに分かれる。利用者が、この4つも基盤の契約だと示した"
+        },
+        {
+          "option": "取得も更新も JMESPath",
+          "reason": "JMESPath の結果は JSON の値で、元の位置を返さない。書き込む先を指せないので、更新と削除には使えない"
+        },
+        {
+          "option": "全部を JSONPath",
+          "reason": "取得の結果は節の一覧で、読み手に合わせて形を組み替えられない。更新の規格も JSONPath には無いので、結局 JSON Patch が必要になる"
+        },
+        {
+          "option": "全部を JSON Pointer",
+          "reason": "1つの位置しか指せないので、x-prompt の read が必要とする「条件で絞った一覧」を取得できない"
+        }
       ],
-      [
-       "4",
-       "Rust で作る",
-       "テストは宣言から取り出したテスト条件を記録する"
-      ],
-      [
-       "5",
-       "use-case-driven の Skill へ複製を転写する",
-       "差の検査が0件になること、正本を変えたら違いが報告されることを確かめる（論点4の試し）"
-      ]
-     ]
-    },
-    {
-     "kind": "para",
-     "text": "<b>3は、いまの宣言の種類に置き場所が無い。</b>その他の要求の「使われる技術」は外部のシステムとのやりとりを書く欄で、使う言語や crate を書く欄ではない。どこに書くかは、ボード usecase-modeling-coding の実装の側の決定として扱う。"
-    }
-   ]
-  },
-  {
-   "heading": "このボードの前提",
-   "body": [
-    {
-     "kind": "para",
-     "text": "<b>スキーマ駆動は、新しく定義する概念である。</b>すべての基盤として一から構築する。いまの Skill（雛形の refs.rs の複製など）は、基盤を作る前に先行して試したもので、基盤になるように構成したものではない。<b>基盤の設計の根拠にしない。</b>"
-    },
-    {
-     "kind": "para",
-     "text": "ボード usecase-schema-driven（9月）の決定のうち、基盤の仕組みに該当するもの（道具の範囲 ・ 方法論の注入 ・ 宣言が変わったときの扱い ・ concrete の注入形式 ・ 仕様の取り方と引き算）を土台にする。ボード usecase-modeling-coding と ACDR 0092 の決定は、ユースケース駆動の concrete の側の決定として扱う。"
-    }
-   ]
-  }
- ],
- "queue": [],
- "topics": [
-  {
-   "no": 1,
-   "name": "基盤が持つ契約",
-   "status": "settled",
-   "question": "抽象の基盤は、何を契約として持つか",
-   "answer": "B⁗ ── <b>抽象の基盤は、AI が扱うデータを構造化して持つための基盤である。</b>正本は構造化データ（JSON とスキーマ）で、Markdown と HTML は描画した結果である。基盤は7つの契約（作成 ・ 取得 ・ 更新 ・ 削除 ・ 検証 ・ 描画 ・ x-prompt）と、注釈 x-ref ・ x-derive を読む道具を持つ。<b>テスト条件とドリフト検知は、開発の concrete が持つ</b>",
-   "intro": "この論点が、基盤と concrete の境目を決める。<b>論点2〜4は、この線を前提にする</b>",
-   "decision": {
-    "letter": "B⁗",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>操作の契約は4つである。</b>インスタンスを作成 ・ 取得 ・ 更新 ・ 削除する。"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>作成の契約</b> ── スキーマからインスタンスを作成する。出力先のパスはスキーマの x-generates が決める"
-       },
-       {
-        "text": "<b>取得の契約</b> ── インスタンスから、JMESPath の式で値を取得する"
-       },
-       {
-        "text": "<b>更新の契約</b> ── インスタンスを、JSON Patch（RFC 6902）で更新する。位置は JSON Pointer で指す"
-       },
-       {
-        "text": "<b>削除の契約</b> ── インスタンスの項目を JSON Patch の remove で削除し、インスタンスそのものはファイル単位で削除する"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>形の契約は3つである。</b>どのインスタンスにも同じ3つを課す。"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>スキーマ検証の契約</b> ── インスタンスを JSON Schema で検証する"
-       },
-       {
-        "text": "<b>描画の契約</b> ── インスタンスを Markdown と HTML へ描画する。見出しはスキーマの title、見せ方は x-view が決める"
-       },
-       {
-        "text": "<b>x-prompt の契約</b> ── 項目ごとに x-prompt の read（読み取るとき）と write（値を書くとき）を持つ"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>更新と削除は、適用したあとのインスタンスに、未記入以外の検証エラーが無いときだけ書き込む。</b>未記入は、スキーマの必須のプロパティがインスタンスに無いこと（JSON Schema の required の違反）で、検証エラーとは分けて返す。作成した直後のインスタンスは必須のプロパティを持たないので、未記入を残したまま少しずつ埋めてよい。承認は、未記入が0件のときだけ受ける。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>基盤は、開発に限らない。</b>正本を構造化データで持ち、Markdown と HTML へ描画する。AI は、取得の契約（JMESPath）で欄を指して問い合わせる。参照と判定は、どんな構造化データにも在るので、注釈 x-ref と x-derive を読む道具を基盤が持つ。"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>x-ref</b> ── 指す先がある ・ 指す先の種類 ・ 指される数 ・ 承認のあとで指す先が変わった、を出す"
-       },
-       {
-        "text": "<b>x-derive</b> ── 決まりに従って、答えから判定を出し、宣言した値と突き合わせる"
-       },
-       {
-        "text": "<b>開発の concrete</b> ── x-test-spec でテスト条件を申告し、テストの記録との突き合わせ（欠け ・ 余り ・ 古い ・ レベル違い）を持つ"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>基盤は、宣言の形を認知しない。</b>種類 ・ ID ・ 参照のような宣言の構造は、concrete のスキーマにだけ現れる。"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "契約ごとに、抽象の基盤が持つものと、ユースケース駆動の concrete が持つものを並べた。"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "契約",
-      "抽象の基盤",
-      "ユースケース駆動の concrete"
-     ],
-     "rows": [
-      [
-       "作成",
-       "スキーマからインスタンスを作成し、x-generates の場所へ置く",
-       "宣言の種類の Schema から、未記入の宣言を作成する"
-      ],
-      [
-       "取得",
-       "JMESPath の式で値を取得する",
-       "例：<code>scenarios[].id</code> でユースケースのシナリオ ID の一覧を取得する"
-      ],
-      [
-       "更新",
-       "JSON Patch を適用し、検証を通過したときだけ書き込む",
-       "宣言の項目を更新する。例：<code>{\"op\":\"replace\",\"path\":\"/goal\",\"value\":\"…\"}</code>"
-      ],
-      [
-       "削除",
-       "JSON Patch の remove と、ファイル単位の削除",
-       "宣言を削除し、その宣言を指す参照が残っていれば報告する"
-      ],
-      [
-       "スキーマ検証",
-       "任意のインスタンスを、それが指す JSON Schema で検証する",
-       "宣言の種類ごとの Schema（ドメイン ・ ユースケース ・ 集約 ・ ドメインサービスなど）で検証する"
-      ],
-      [
-       "描画",
-       "title と x-view に従い、Markdown と HTML へ描画する",
-       "ビジョンを先頭に、下の要素が上位の目的を指す連鎖として描画する"
-      ],
-      [
-       "x-prompt",
-       "項目ごとに x-prompt の read と write を要求する",
-       "宣言の項目ごとに、何を読み何を書くかを x-prompt で示す"
-      ],
-      [
-       "ドリフト検知",
-       "x-ref の指す先と、承認のあとの変化を出す（テストとの突き合わせは持たない）",
-       "x-test-spec でテスト条件を申告し、テストの記録との突き合わせ（欠け ・ 余り ・ 古い ・ レベル違い）を持つ"
-      ]
-     ]
-    },
-    {
-     "kind": "para",
-     "text": "Rust には、どちらも crate がある。<code>jmespath</code>（0.5.0、2026-01-19 更新）と <code>json-patch</code>（4.2.0、2026-04-30 更新）である。"
-    },
-    {
-     "kind": "heading",
-     "level": 3,
-     "text": "シミュレーション：ユースケース1件と集約1件で、10の手順を実行した"
-    },
-    {
-     "kind": "para",
-     "text": "試作は <code>trial/spike/</code> に在る。<b>基盤の base.rs は宣言の語を1つも持たず</b>、concrete の usecase.rs がドリフト検知を持つ。下の値はすべて実行した出力である。"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "手順",
-      "呼んだ契約",
-      "何をしたか",
-      "結果"
-     ],
-     "rows": [
-      [
-       "1",
-       "作成",
-       "UC-1 と AGG-1 をスキーマから作成した",
-       "未記入の4項目で検証は不合格。作成の直後なので正常である"
-      ],
-      [
-       "2",
-       "x-prompt（write）",
-       "未記入の項目に何を書くかを出した",
-       "/name に「「〜を〜する」の形で、主アクターの目的を書く」など4件"
-      ],
-      [
-       "3",
-       "更新",
-       "名前 ・ 目的 ・ 書き換える集約 ・ シナリオ2件を Patch で記入した",
-       "検証を通過し、書き込んだ"
-      ],
-      [
-       "4",
-       "更新",
-       "シナリオを空の配列へ置換する Patch を適用した",
-       "「[] has less than 1 item」で拒否した。ファイルのシナリオは2件のまま"
-      ],
-      [
-       "5",
-       "取得",
-       "<code>scenarios[].id</code> など3つの式で取得した",
-       "<code>[\"S-1\",\"S-2\"]</code> ／ 件数を組み替えた値 ／ S-2 の名前"
-      ],
-      [
-       "6",
-       "描画",
-       "title と x-view に従って Markdown へ描画した",
-       "見出し ・ 目的 ・ 一覧 ・ 表の Markdown"
-      ],
-      [
-       "7",
-       "x-prompt（read）",
-       "読む側への x-prompt を出した",
-       "/scenarios に「テスト仕様として読む。1件が1つのテストに対応する」など5件"
-      ],
-      [
-       "8",
-       "ドリフト検知",
-       "仕様の4件と、テストの報告の4行を突き合わせた",
-       "テストが無い AGG-1.PRE-1 ／ 仕様に無い UC-1.S-3 ／ 失敗した UC-1.S-2"
-      ],
-      [
-       "9",
-       "削除（項目）",
-       "シナリオ S-2 を remove で削除した",
-       "失敗は0件になり、UC-1.S-2 のテストが「仕様に無い」へ移った"
-      ],
-      [
-       "10",
-       "削除（インスタンス）",
-       "AGG-1 のファイルを削除した",
-       "UC-1 が AGG-1 を指したまま残っていることを検出した"
-      ]
-     ]
-    },
-    {
-     "kind": "para",
-     "text": "<b>手順8の実際の出力。</b>テストの報告は、テストの実装が1行に ID と結果を出す形を仮に置いた。"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>━━ 8. ドリフト検知（concrete だけの契約）── テスト仕様とテスト実装を突き合わせる\nテスト実装の報告（test-report.txt）:\nUC-1.S-1\tpass\nUC-1.S-2\tfail\nAGG-1.INV-1\tpass\nUC-1.S-3\tpass\n\nテスト仕様: [\"UC-1.S-1\", \"UC-1.S-2\", \"AGG-1.INV-1\", \"AGG-1.PRE-1\"]\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-3\"]\nテストが通っていない:     [\"UC-1.S-2\"]</code></pre>"
-    },
-    {
-     "kind": "fold",
-     "heading": "実行の全出力（trial/spike/output.txt）",
-     "body": [
-      {
-       "kind": "html",
-       "text": "<pre><code>━━ 1. 作成 ── スキーマから実体を作る\n作成した: work/decls/UC-1.json と work/decls/AGG-1.json\n{\n  \"id\": \"UC-1\",\n  \"name\": \"\",\n  \"goal\": \"\",\n  \"writes\": [],\n  \"scenarios\": []\n}\n検証: [\"/name : \\\"\\\" is shorter than 1 character\", \"/goal : \\\"\\\" is shorter than 1 character\", \"/writes : [] has less than 1 item\", \"/scenarios : [] has less than 1 item\"]\n\n━━ 2. 案内 ── 未記入の項目に、何を書くかを示す（x-prompt.write）\n/name\t「〜を〜する」の形で、主アクターの目的を書く\n/goal\t成功したとき何が成り立っているかを1文で書く\n/writes\t書き換える集約の ID を並べる\n/scenarios\t主成功シナリオを1件目に、拡張を2件目以降に書く\n\n━━ 3. 更新 ── JSON Patch で書き込む（検証を通過したので書き込む）\n適用する Patch:\n[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/name\",\n    \"value\": \"注文を確定する\"\n  },\n  {\n    \"op\": \"replace\",\n    \"path\": \"/goal\",\n    \"value\": \"注文が確定済になり、在庫が引き当てられている\"\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/writes/-\",\n    \"value\": \"AGG-1\"\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/scenarios/-\",\n    \"value\": {\n      \"id\": \"S-1\",\n      \"name\": \"在庫があり、注文が確定する\"\n    }\n  },\n  {\n    \"op\": \"add\",\n    \"path\": \"/scenarios/-\",\n    \"value\": {\n      \"id\": \"S-2\",\n      \"name\": \"在庫が足りず、確定を断る\"\n    }\n  }\n]\n結果: Ok(())\n集約の結果: Ok(())\n\n━━ 4. 更新 ── 検証に通らない Patch は書き込まない\n[\n  {\n    \"op\": \"replace\",\n    \"path\": \"/scenarios\",\n    \"value\": []\n  }\n]\n結果: Err([\"/scenarios : [] has less than 1 item\"])\nファイルのシナリオ数（変わっていない）: 2\n\n━━ 5. 取得 ── JMESPath の式で取り出す\n式  scenarios[].id\n値  [\"S-1\",\"S-2\"]\n式  {name: name, scenarios: length(scenarios), writes: writes}\n値  {\"name\":\"注文を確定する\",\"scenarios\":2,\"writes\":[\"AGG-1\"]}\n式  scenarios[?id == 'S-2'].name | [0]\n値  \"在庫が足りず、確定を断る\"\n\n━━ 6. 描画 ── title と x-view に従って Markdown へ\n# 注文を確定する（ユースケース）\n\n## 目的\n\n注文が確定済になり、在庫が引き当てられている\n\n## 書き換える集約\n\n- AGG-1\n\n## シナリオ\n\n| ID | シナリオ |\n|---|---|\n| S-1 | 在庫があり、注文が確定する |\n| S-2 | 在庫が足りず、確定を断る |\n\n\n━━ 7. 案内 ── 読む側への案内（x-prompt.read）\n/id\tテストと結ぶときの接頭辞として読む\n/name\tこのユースケースが何を達成するかとして読む\n/goal\t成功の保証として読む\n/writes\tトランザクションの範囲として読む\n/scenarios\tテスト仕様として読む。1件が1つのテストに対応する\n\n━━ 8. ドリフト検知（concrete だけの契約）── テスト仕様とテスト実装を突き合わせる\nテスト実装の報告（test-report.txt）:\nUC-1.S-1\tpass\nUC-1.S-2\tfail\nAGG-1.INV-1\tpass\nUC-1.S-3\tpass\n\nテスト仕様: [\"UC-1.S-1\", \"UC-1.S-2\", \"AGG-1.INV-1\", \"AGG-1.PRE-1\"]\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-3\"]\nテストが通っていない:     [\"UC-1.S-2\"]\n\n━━ 9. 削除（項目）── シナリオ S-2 を JSON Patch の remove で消す\n結果: Ok(())\n仕様に在ってテストに無い: [\"AGG-1.PRE-1\"]\nテストに在って仕様に無い: [\"UC-1.S-2\", \"UC-1.S-3\"]\nテストが通っていない:     []\n\n━━ 10. 削除（実体）── 集約 AGG-1 を消し、残った参照を探す\nAGG-1 を指したまま残っている宣言: [\"UC-1\"]</code></pre>"
+      "verification": {
+        "passed": [
+          {
+            "option": "7つの契約と、注釈 x-ref ・ x-derive（取得は JMESPath、更新と削除は JSON Patch）",
+            "cost": "開発の concrete が、テスト条件とテストの記録の契約を持つ"
+          },
+          {
+            "option": "ドリフト検知まで基盤が持つ（B‴）",
+            "cost": "開発に限らない用途（ACDR ・ ブレストボードなど）に、テストという概念を持ち込む"
+          },
+          {
+            "option": "形の3つだけ（2回目の答え）",
+            "cost": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作る"
+          },
+          {
+            "option": "取得も更新も JMESPath",
+            "cost": "書き込む位置を指せない"
+          },
+          {
+            "option": "全部を JSONPath",
+            "cost": "取得の結果を組み替えられない"
+          },
+          {
+            "option": "全部を JSON Pointer",
+            "cost": "条件で絞った一覧を取得できない"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "concrete が基盤に何をどの形で渡すか",
+            "treatment": "later",
+            "note": "論点2で決める"
+          },
+          {
+            "item": "複数のインスタンスをまたぐ取得（宣言の一覧からの絞り込み）",
+            "treatment": "later",
+            "note": "論点2で決める。基盤の取得はインスタンス1件を対象にする"
+          },
+          {
+            "item": "ドリフト検知でテストの一覧をどう受け取るか",
+            "treatment": "later",
+            "note": "論点2で決める。9月の論点11は1行1ID の一覧と決めている"
+          },
+          {
+            "item": "インスタンスを削除したときに残る参照の扱い",
+            "treatment": "later",
+            "note": "論点2で決める。試作は報告だけを行った"
+          },
+          {
+            "item": "検証の違反の文が英語で出ること",
+            "treatment": "later",
+            "note": "論点3で決める。違反を人へ描画する形の一部である"
+          },
+          {
+            "item": "いまの Skill を基盤の上へ移すこと",
+            "treatment": "later",
+            "note": "基盤ができたあとに決める。いまの Skill は基盤より前の試しで、基盤の設計の根拠にしない"
+          }
+        ]
       }
-     ]
+    },
+    {
+      "id": "Q2",
+      "name": "concrete の契約",
+      "status": "settled",
+      "question": "ユースケース駆動の concrete は、7つの契約とドリフト検知を、どの形で満たすか",
+      "answer": {
+        "text": "B‴ ── concrete は、宣言の種類ごとの Schema に注釈を付けて渡す。基盤の注釈は title ・ x-view ・ x-prompt ・ x-generates ・ x-ref ・ x-derive の6つで、開発の concrete は x-test-spec を足す。concrete の道具も注釈だけを読み、テスト条件と、テストの記録との突き合わせと、ページの組み立てを持つ"
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p><b>見本：サブドメインの「束ねるユースケース」</b>（注釈は、欄の定義の隣に付く）</p>"
+        },
+        {
+          "kind": "code",
+          "text": "\"use_cases\": {\n  \"type\": \"array\", \"items\": {\"pattern\": \"^UC-[0-9]+$\"},\n  \"description\": \"束ねるユースケース\", \"x-prompt\": {…},\n  \"x-ref\": {\"to\": \"use_case\",\n            \"inverse\": {\"group\": \"ユースケースを束ねるサブドメインは1つ\", \"min\": 1, \"max\": 1,\n                        \"where\": {\"header/level\": [\"ユーザー目的\", \"サブ機能\"]}}}\n}"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p><b>見本：集約のコマンドの業務ルール</b></p>"
+        },
+        {
+          "kind": "code",
+          "text": "\"business_rules\": {\"items\": {\n  \"x-test-spec\": {\"id\": \"parent\", \"checks\": \"その拒否の理由で拒否される\",\n                  \"level\": {\"derive\": \"business_logic\",\n                            \"map\": {\"ドメインモデル\": \"component\", \"トランザクションスクリプト\": \"system\", …}}},\n  \"properties\": {\"reject\": {\"x-ref\": {\"to\": \"glossary\", \"meaning\": [\"拒否の理由\"], …,\n                                    \"inverse\": {\"group\": \"拒否の理由を1つの集約だけが使う\", \"max_decls\": 1}}}}}}"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th>試した結果（ボード usecase-driven-concrete の見本）</th><th>件数</th></tr><tr><td>注釈を付けた欄</td><td>x-ref 51か所 ・ x-test-spec 11か所 ・ x-derive 2か所</td></tr><tr><td>取り出したテスト条件</td><td>36件。注釈なしの道具と同じ ID ・ 同じレベル（品質の要求だけ UC-1.STEP-5.QR-1 から REQ-1.QR-1 になった）</td></tr><tr><td>宣言どうしの検査</td><td>81件。わざと入れた6種類のずれ（束ねられていないユースケース ・ 要求の側が集約を指す ・ 無い文脈を指す ・ 担われていないサブドメイン ・ 動作でない述語 ・ 2つの集約が同じ拒否の理由を使う）はすべて出た</td></tr><tr><td>移行の試し（fact-check）</td><td>ずれ0件 ・ 欠け8件。古い ID を指す記録の当たり先も出した</td></tr></table>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 705 290\" width=\"705\" height=\"290\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M217.0,25.0 L315.1,25.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"315.1,25.0 308.3,27.5 308.3,22.5\" fill=\"#C3CAD2\"/><rect x=\"237.0\" y=\"15.0\" width=\"58.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"266.0\" y=\"28.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">形を決める</text><path d=\"M404.3,25.0 L502.4,25.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"502.4,25.0 495.6,27.5 495.6,22.5\" fill=\"#C3CAD2\"/><rect x=\"402.8\" y=\"15.0\" width=\"101.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"453.3\" y=\"28.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">更新 ・ 削除の前に</text><path d=\"M359.7,41.6 L359.7,122.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"359.7,122.4 357.2,115.6 362.2,115.6\" fill=\"#C3CAD2\"/><rect x=\"306.7\" y=\"72.0\" width=\"106.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"359.7\" y=\"85.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">x-test-spec から</text><path d=\"M479.6,139.0 L515.4,139.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"515.4,139.0 508.6,141.5 508.6,136.5\" fill=\"#C3CAD2\"/><path d=\"M464.3,253.0 L521.9,253.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"521.9,253.0 515.1,255.5 515.1,250.5\" fill=\"#C3CAD2\"/><rect x=\"479.1\" y=\"243.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"493.1\" y=\"256.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">出す</text><path d=\"M598.0,227.4 L598.0,164.8\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"598.0,164.8 600.5,171.6 595.5,171.6\" fill=\"#C3CAD2\"/><rect x=\"564.0\" y=\"186.1\" width=\"68.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"598.0\" y=\"199.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">検証してから</text><g class=\"wf-node\" transform=\"translate(0.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"216.4\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"108.2\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">宣言の Schema（x-test-spec</text><text x=\"108.2\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">・ x-ref の注釈）</text></g></g><g class=\"wf-node\" transform=\"translate(315.7,9.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"88.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"44.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">宣言の集合</text></g></g><g class=\"wf-node\" transform=\"translate(503.0,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"190.0\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"95.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">集合の検証（Schema ・ ID</text><text x=\"95.0\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">の一意 ・ 参照の解決）</text></g></g><g class=\"wf-node\" transform=\"translate(240.4,123.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"238.6\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"119.3\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">テスト仕様（宣言の ID.項目の ID）</text></g></g><g class=\"wf-node\" transform=\"translate(255.7,237.0)\"><g class=\"svg-box\" role=\"muted\"><rect x=\"0\" y=\"0\" width=\"208.0\" height=\"32.0\" rx=\"5.0\" fill=\"none\" stroke=\"#79828F\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/><text x=\"104.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#79828F\">テスト実装（コーディングの側）</text></g></g><g class=\"wf-node\" transform=\"translate(522.5,228.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"151.0\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"75.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">テストの報告（JSON </text><text x=\"75.5\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">と、その Schema）</text></g></g><g class=\"wf-node\" transform=\"translate(516.2,114.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"163.6\" height=\"50.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"81.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">ドリフト検知（欠け ・ </text><text x=\"81.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">余り ・ 通っていない）</text></g></g></g></svg>",
+          "caption": "Schema の注釈が、テスト仕様と参照の在りかを決める。更新と削除の前に集合を検証し、テストの報告は Schema で検証してからテスト仕様と突き合わせる。テスト実装はコーディングの側に在る。"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "在りかを Schema の注釈で申告すること",
+          "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
+          "tag": "rule",
+          "source": "ボード usecase-schema-driven 論点10の決着"
+        },
+        {
+          "supports": "集合の検証で削除を止めること",
+          "basis": "更新と削除は、適用したあとの実体が検証の契約を通過したときだけ書き込む",
+          "tag": "rule",
+          "source": "このボードの論点1の決着"
+        },
+        {
+          "supports": "テストの報告に結果を持たせること",
+          "basis": "「これが実装側のテストに存在して正しくテストが通ってることを実装の品質として担保できるような仕組みとする」",
+          "tag": "assumption",
+          "source": "利用者の言明（2026-10-03）"
+        },
+        {
+          "supports": "報告を作る手段をコーディングの側に置くこと",
+          "basis": "規則はプロダクトに属し、アーキテクチャと技術スタックから作る。シナリオの管理はコーディングの規則に含めない",
+          "tag": "rule",
+          "source": "ボード usecase-modeling-coding 論点3の決着"
+        },
+        {
+          "supports": "条件に ID を持たせること",
+          "basis": "集約とドメインサービスの操作の下には、シナリオではなく条件を ID 付きで置く",
+          "tag": "rule",
+          "source": "ACDR 0092（9月のボードの論点12の改訂）"
+        },
+        {
+          "supports": "改訂する9月の決定",
+          "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
+          "tag": "rule",
+          "source": "ボード usecase-schema-driven 論点11の決着"
+        },
+        {
+          "supports": "位置を ID にすると変わること",
+          "basis": "「making the new referenced value the array element with the zero-based index identified by the token」",
+          "tag": "primary",
+          "source": "RFC 6901 JSON Pointer（sources/www.rfc-editor.org_rfc_rfc6901.txt:180）"
+        },
+        {
+          "supports": "この答えの形が成立すること",
+          "basis": "7つの手順を実行し、終了コード0で終わった。usecase_q2.rs は scenarios ・ writes ・ conditions の語を保持しない",
+          "tag": "measured",
+          "source": "trial/spike/output-q2.txt（2026-10-03）"
+        },
+        {
+          "supports": "注釈だけで検査とテスト条件を出せること",
+          "basis": "見本で、注釈を読む道具がテスト条件36件を同じ ID で出し、わざと入れた6種類のずれをすべて出した。道具が持つ名前は id と kind だけ",
+          "tag": "measured",
+          "source": "ボード usecase-driven-concrete の sample/concrete7.py ・ sample/schema/"
+        },
+        {
+          "supports": "concrete のコードは欄の名前を保持しないこと",
+          "basis": "欄の名前は Schema にだけ現れる。concrete のコードは注釈を読み、欄の名前を保持しない",
+          "tag": "rule",
+          "source": "このボードの論点2（前の答え B）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "コードが欄の名前を持つ",
+          "reason": "欄の名前が Schema とコードの2か所に在り、Schema で名前を変えると、コードの取得は黙って空を返す。論点1の試作は、この形だった"
+        },
+        {
+          "option": "在りかを別の申告ファイルに書く",
+          "reason": "欄の名前が2か所に在ることは変化しない。注釈なら、欄の定義の隣の1か所で済む"
+        },
+        {
+          "option": "削除して報告だけ",
+          "reason": "削除のあとの集合が参照の解決に違反したまま残り、承認された構造化データが不整合の状態になる"
+        },
+        {
+          "option": "参照ごと連鎖して削除",
+          "reason": "人が確認して承認した別の宣言を、削除の操作が書き換えることになる"
+        },
+        {
+          "option": "報告は1行1ID",
+          "reason": "結果を保持しないので、テストが通っているかを判定できない。テキストなので、基盤の検証の契約も適用できない"
+        },
+        {
+          "option": "実行器の出力を直接読む",
+          "reason": "テストの実行器は技術スタックの選択であり、コーディングの側が持つ。concrete が実行器ごとの形を知ると、技術スタックの語が concrete に入る"
+        },
+        {
+          "option": "ID を位置にする",
+          "reason": "JSON Pointer は配列の要素を添字で指すので、前の項目を削除すると、後ろの項目の ID が変わり、テストとの対応が切れる"
+        },
+        {
+          "option": "項目の ID を全体で一意にする",
+          "reason": "宣言をまたいで番号を調整する必要がある。「宣言の ID.項目の ID」なら、採番は宣言の中で完結する"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "注釈 ・ 集合の検証 ・ JSON の報告",
+            "cost": "concrete のメタスキーマに、注釈2つの検査を足す"
+          },
+          {
+            "option": "コードが欄の名前を持つ",
+            "cost": "欄の名前が Schema とコードの2か所に在る"
+          },
+          {
+            "option": "在りかを別の申告ファイルに書く",
+            "cost": "欄の名前が Schema と申告ファイルの2か所に在る"
+          },
+          {
+            "option": "削除して報告だけ",
+            "cost": "削除のあとの集合が、参照の解決に違反したまま残る"
+          },
+          {
+            "option": "参照ごと連鎖して削除",
+            "cost": "人が承認した別の宣言を書き換える"
+          },
+          {
+            "option": "報告は1行1ID",
+            "cost": "結果を保持しない"
+          },
+          {
+            "option": "実行器の出力を直接読む",
+            "cost": "実行器ごとの形を concrete が知る"
+          },
+          {
+            "option": "ID を位置にする",
+            "cost": "前の項目を削除すると、後ろの項目の ID が変わる"
+          },
+          {
+            "option": "項目の ID を全体で一意にする",
+            "cost": "宣言をまたいで番号を調整する"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "宣言の種類の一覧と、各 Schema の欄",
+            "treatment": "out",
+            "note": "ボード usecase-modeling-coding の論点2 ・ 論点7と ACDR 0092 が決めている"
+          },
+          {
+            "item": "テストの ID を、テストのどこに書くか（名前 ・ 属性）",
+            "treatment": "out",
+            "note": "技術スタックごとに、コーディングの側が決める"
+          },
+          {
+            "item": "描画で参照をたどれるようにするか",
+            "treatment": "later",
+            "note": "論点3で決める"
+          },
+          {
+            "item": "欄から文を組む処理とページの組み立て",
+            "treatment": "later",
+            "note": "論点3（描画の持ち方）で扱う。いまは見本の gen6 ・ render6 が欄の名前を持つ"
+          },
+          {
+            "item": "注釈で書けなかった検査4つ",
+            "treatment": "later",
+            "note": "x-derive の判定に条件を付ける2つは、承認のあと見本で試す。例を組む2つは論点3で扱う"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q3",
+      "name": "描画の持ち方",
+      "status": "settled",
+      "question": "人が読む描画と、AI ツールが読む形を、基盤と concrete のどちらが持つか",
+      "answer": {
+        "text": "B″ ── 基盤は描画のコンポーネントと、ページテンプレートを読んで組む道具を持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く。コンポーネントは、いまの見本の見せ方（見出しと中身の枠 ・ 絞り込みの表 ・ 開く行 ・ 対の枠 ・ 手順の流れ ・ 図）である。concrete のページの UI ・ UX は、いまの見本の水準を下回らない。文の組み方は x-view の文の型に書き、AI はx-prompt と取得で正本を読む",
+        "details": [
+          "描画のコンポーネント ── 見出しと中身の枠 ・ 種類で絞る表（複数選べる）・ 同じ表の中で開く行 ・ 見比べる対の枠 ・ 手順と拡張の流れ ・ 図（シーケンス図など）・ 札 ・ 参照のリンク ・ 宣言の JSON の折り畳み。どれも、いまの見本で作ったもの",
+          "ページテンプレートを読んで組む道具 ── ページテンプレートに書かれた並びのとおりに、コンポーネントへ値を差し込む。欄の名前は持たない"
+        ]
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p><b>見本：サブドメインのページテンプレート</b>（concrete が書くデータ。節の並びと、節ごとのコンポーネントと差し込む欄）</p>"
+        },
+        {
+          "kind": "code",
+          "text": "{\"kind\": \"subdomain\",\n \"head\": {\"badge\": {\"field\": \"classification/category\", \"as\": \"pill\"}, \"lead\": {\"field\": \"header/description\"}},\n \"sections\": [\n  {\"title\": \"カテゴリー\", \"parts\": [\n    {\"part\": \"kv\", \"rows\": [{\"label\": {\"derive_title\": \"classification\"}, \"value\": {\"derive\": \"classification\", \"as\": \"pill\"}}, …]},\n    {\"part\": \"questions\", \"group\": \"classification\", \"heads\": [\"問い（どのサブドメインでも同じ）\", \"このサブドメインの答え\"]}]},\n  {\"title\": \"束ねるユースケース\", \"parts\": [\n    {\"part\": \"table\", \"items\": {\"field\": \"use_cases\", \"resolve\": true},\n     \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"self\": \"link\"}}, {\"head\": \"目的レベル\", \"value\": {\"field\": \"header/level\", \"as\": \"pill\"}}, …]}]}, …]}"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th>試した結果（ボード usecase-driven-concrete の見本）</th><th>結果</th></tr><tr><td>見本の全部のページ（9種類 ・ 35ページ）を、ページテンプレート（pages/*.page.json）と基盤のコンポーネントだけで組み直した</td><td>35ページすべてが、いまの見本と同じ HTML になった（説明のボタンの番号だけが違う）。コンポーネントのテンプレートは60個</td></tr><tr><td>文の型から組んだ文</td><td>条件 ・ 手順 ・ 拡張 ・ 品質の要求 ・ 状態の変更 ・ 保証 ・ 達成の基準 ・ 競合 ・ 個数 ・ 手順の番号など、256件すべてが前の文と一致した</td></tr><tr><td>組む道具が持つ名前</td><td>ページテンプレートのキー ・ 注釈のキー ・ id ・ kind だけ。欄の名前はページテンプレートとスキーマにだけ在る</td></tr><tr><td>見本の見た目のデザイントークン</td><td>寸法 ・ 余白 ・ 角 ・ 線 ・ 文字をデザイントークン（基礎と意味の層）へ移し、CSS の直値は0件（画面幅の切り替わり3つを除く）</td></tr><tr><td>開発の concrete の側に置いたもの</td><td>例を導く処理（拒否の例 ・ 境界値 ・ 後の状態など）とテスト条件の札（dev7.py）、図の入力の組み立て（fig7.py。描画は design-svg）</td></tr><tr><td>ページテンプレートが無いときの下限のページ</td><td>注釈だけから組んだページ（<a href=\"https://claude.ai/artifact/1r6jVZDR159eS4cugGDFPJ\">page7.html</a>）</td></tr></table><p>いまの見本のページ：<a href=\"https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ\">viewer.html</a>（サブドメインのページは、すでにこの形で組んでいる）</p>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 797 254\" width=\"797\" height=\"254\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><rect x=\"0.0\" y=\"16.0\" width=\"237.2\" height=\"226.0\" rx=\"8.0\" fill=\"none\" stroke=\"#16636B\" stroke-width=\"1.1\" stroke-dasharray=\"5 4\" opacity=\"0.75\"/><path d=\"M198.6,46.0 L300.4,121.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"300.4,121.0 293.5,119.0 296.4,115.0\" fill=\"#C3CAD2\"/><rect x=\"258.0\" y=\"90.1\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"272.0\" y=\"103.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">渡す</text><path d=\"M223.8,111.0 L300.4,121.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"300.4,121.0 293.4,122.6 294.0,117.7\" fill=\"#C3CAD2\"/><rect x=\"248.1\" y=\"106.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"262.1\" y=\"119.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">渡す</text><path d=\"M210.6,194.0 L300.4,121.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"300.4,121.0 296.7,127.2 293.6,123.4\" fill=\"#C3CAD2\"/><rect x=\"241.5\" y=\"147.5\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"255.5\" y=\"161.1\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">渡す</text><path d=\"M537.0,121.0 L599.6,121.0\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"599.6,121.0 592.8,123.5 592.8,118.5\" fill=\"#C3CAD2\"/><rect x=\"554.3\" y=\"111.0\" width=\"28.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"568.3\" y=\"124.6\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">組む</text><rect x=\"8.0\" y=\"7.0\" width=\"166.5\" height=\"15.0\" fill=\"#F5F7F9\"/><text x=\"91.2\" y=\"18.0\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#16636B\">concrete が書くもの（データ）</text><g class=\"wf-node\" transform=\"translate(14.0,30.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"184.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"92.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">正本：宣言（構造化データ）</text></g></g><g class=\"wf-node\" transform=\"translate(14.0,86.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"209.2\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"104.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">スキーマ（プロパティ ・ </text><text x=\"104.6\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">x-ref ・ x-view の文の型）</text></g></g><g class=\"wf-node\" transform=\"translate(14.0,160.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"196.0\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"98.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ページテンプレート（種類ごと</text><text x=\"98.0\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">に、どのプロパティをどのコン</text><text x=\"98.0\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ポーネントでどう並べるか）</text></g></g><g class=\"wf-node\" transform=\"translate(301.2,78.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"235.0\" height=\"86.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"117.5\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">基盤：コンポーネント（見出しと中身</text><text x=\"117.5\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">の枠 ・ 絞り込みの表 ・ 開く行 ・</text><text x=\"117.5\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">対の枠 ・ 手順の流れ ・ 図）と、</text><text x=\"117.5\" y=\"74.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">ページテンプレートを読んで組む道具</text></g></g><g class=\"wf-node\" transform=\"translate(600.2,96.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"185.2\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"92.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">Markdown ・ HTML（いま</text><text x=\"92.6\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">の見本の水準を下回らない）</text></g></g></g></svg>",
+          "caption": "concrete は正本 ・ スキーマ ・ ページテンプレートをデータで渡し、基盤がコンポーネントで組む。concrete は描画のコードを持たず、ページの UI ・ UX はいまの見本の水準を下回らない。"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "上位の目的を保持しない要素を検出すること",
+          "basis": "下の要素は、すべて寄与する上位の目的を持つ。…上位の目的を指さない要素は、検出する",
+          "tag": "rule",
+          "source": "ボード usecase-modeling-coding 論点6の決着"
+        },
+        {
+          "supports": "射影と逆参照をスキーマ駆動の道具が持つこと",
+          "basis": "宣言の形（スキーマ）・ 射影（HTML の生成）・ 逆参照の導出 ・ git の版との差分 ・ ドリフトの引き算は、スキーマ駆動の道具が担当する",
+          "tag": "rule",
+          "source": "ボード usecase-modeling-coding 論点6の決着"
+        },
+        {
+          "supports": "インスタンス1件の描画を基盤に置くこと",
+          "basis": "描画の契約 ── 実体を Markdown と HTML へ描画する。見出しはスキーマの title、見せ方は x-view が決める",
+          "tag": "rule",
+          "source": "このボードの論点1の決着"
+        },
+        {
+          "supports": "HTML を版2 の view で組むこと",
+          "basis": "「見た目は正本の写し（view.tokens.json ・ view.tokens.schema.json ・ view.css ・ view.template.html）だけから描き、コードに見た目の値を持たない」",
+          "tag": "rule",
+          "source": "skills-creator の references/document.json「references（契約の版2）」"
+        },
+        {
+          "supports": "注入の口を足すこと",
+          "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
+          "tag": "rule",
+          "source": "ボード usecase-schema-driven 論点10の決着"
+        },
+        {
+          "supports": "改訂する9月の決定",
+          "basis": "射影の契約2本 ── 承認の形（HTML）と、実行の道具の形",
+          "tag": "rule",
+          "source": "ボード usecase-schema-driven 論点2の決着"
+        },
+        {
+          "supports": "AI ツールが MCP で読めること",
+          "basis": "Codex ・ Cursor ・ Kiro ・ GitHub Copilot のどれにも、MCP の設定を出す",
+          "tag": "rule",
+          "source": "ボード usecase-modeling-coding 論点5の決着"
+        },
+        {
+          "supports": "この答えの形が成立すること",
+          "basis": "5つの手順を実行し、終了コード0で終わった。base.rs の本体と usecase_q3.rs に、欄の名前は0件である",
+          "tag": "measured",
+          "source": "trial/spike/output-q3.txt（2026-10-03）"
+        },
+        {
+          "supports": "基盤が参照と目的を読めること",
+          "basis": "x-ref と x-derive は基盤の注釈である",
+          "tag": "rule",
+          "source": "このボードの論点2（B‴）"
+        },
+        {
+          "supports": "ページテンプレートとコンポーネントで見本と同じページを組めること",
+          "basis": "見本の全部の頁（35頁）が、頁の型と基盤の部品だけで、前と同じ HTML になった。組む道具が持つ名前は、頁の型と注釈のキーと id ・ kind だけ",
+          "tag": "measured",
+          "source": "ボード usecase-driven-concrete の sample/compose7.py"
+        },
+        {
+          "supports": "文の組み方を x-view に書けること",
+          "basis": "注釈の文の型だけを読む道具が、条件64件すべてを、欄の名前を持つ道具と同じ文にした",
+          "tag": "measured",
+          "source": "ボード usecase-driven-concrete の sample/text7.py"
+        },
+        {
+          "supports": "見本の水準を下限にすること",
+          "basis": "上記のUIUXの方が断然いいよ？？？",
+          "tag": "rule",
+          "source": "利用者の言明（2026-10-05）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "描画は基盤がすべて持ち、注釈だけから組む（前の案 B′）",
+          "reason": "注釈から汎用に組むと、種類ごとに何をどう見せるかの設計が無くなり、いまの見本の水準に届かない（試した page7.html）"
+        },
+        {
+          "option": "concrete が描画のコードを持つ（いまの見本の render6）",
+          "reason": "コードが欄の名前を持ち、論点2の決まりに反する。コンポーネントも concrete ごとに書かれ、見た目がそろわない"
+        },
+        {
+          "option": "上位の目的を Schema の required だけで表す",
+          "reason": "集約の上位の目的は、集約の中ではなく、それを書き換えるユースケースの側に在る。集約の Schema の required では表せず、試作の AGG-2 は集合を見て初めて検出できた"
+        },
+        {
+          "option": "AI ツールごとの形へ変換する",
+          "reason": "宣言の複製がツールの数だけ増え、複製と宣言のずれを管理することになる。x-prompt と取得で読めば、複製を作らずに必要な欄だけを読める"
+        },
+        {
+          "option": "違反は検証器の文のまま出す",
+          "reason": "検証器の文は英語で、欄の名前も書き方も示さない。欄の title と x-prompt.write は Schema に既に在る"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "基盤はコンポーネントと組む道具、concrete はページテンプレートをデータで書く",
+            "cost": "ページテンプレートの書き方を、基盤が決めて x-prompt で示す"
+          },
+          {
+            "option": "描画は基盤がすべて持ち、注釈だけから組む（前の案 B′）",
+            "cost": "どの種類も同じ並びになり、見本の水準に届かない"
+          },
+          {
+            "option": "concrete が描画のコードを持つ（いまの見本の render6）",
+            "cost": "コードが欄の名前を持つ。描画が concrete ごとに書かれる"
+          },
+          {
+            "option": "AI ツールごとの形へ変換する",
+            "cost": "宣言の複製がツールの数だけ増える"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "git の版との差分の描画（印を押すと開く）",
+            "treatment": "later",
+            "note": "試作を正本へ起こす作業で決める。見せ方は ボード usecase-modeling-coding の論点6が決めている"
+          },
+          {
+            "item": "達成の基準ごとの裏付けの件数",
+            "treatment": "out",
+            "note": "ボード usecase-modeling-coding の論点6が決めた見せ方であり、同じ逆参照から数える"
+          },
+          {
+            "item": "AI ツールごとに Skill ・ エージェント ・ MCP の設定を置くこと",
+            "treatment": "out",
+            "note": "ボード usecase-modeling-coding の論点5のインストーラが担当する。宣言の描画ではない"
+          },
+          {
+            "item": "例を組む処理（拒否の例 ・ 後の状態）と、それを使う検査2つ",
+            "treatment": "later",
+            "note": "例はテストの入力なので、開発の concrete（x-test-spec の側）で扱う。描画ではない"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q4",
+      "name": "配り方と名前",
+      "status": "settled",
+      "question": "基盤と concrete を、どの単位で配り、何と呼ぶか",
+      "answer": {
+        "text": "A ── 基盤は、1つの Skill「schema-driven」として配る。この Skill が基盤の能力の正本（Rust の crate ・ コンポーネントのテンプレート ・ デザイントークン）を持ち、単独でも使える。基盤をもとに作るものには、作るときに正本の複製を転写し、基盤の差分の検査が、複製と正本の違いを報告する。concrete（ユースケース駆動）は基盤とは別に、use-case-driven-development の一式として配る"
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><p><b>見本：schema-driven をもとに Skill を作るとき</b>（Skill の名前は例）</p>"
+        },
+        {
+          "kind": "code",
+          "text": ".claude/skills/schema-driven/          ← 正本\n  tool/  references/  bin/schema-driven\n\n.claude/skills/use-case-driven-modeling/\n  tool/base/        ← schema-driven から転写した複製（書き換えない）\n  references/schemas/*.schema.json   ← この Skill の宣言のスキーマ\n  references/pages/*.page.json       ← この Skill の頁の型\n\n$ schema-driven check .claude/skills/use-case-driven-modeling\n  複製と正本の違い：0件"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=\"utf-8\"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.8;margin:12px;color:#111d1a;background:#f8faf9}table{border-collapse:collapse;margin:8px 0}th,td{border:1px solid #ccd8d4;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eef1ef}.note{color:#5b6b66}pre{background:#eef1ef;padding:8px;overflow-x:auto}</style><table><tr><th>複製が正本と違うとき</th><th>どうなるか</th></tr><tr><td>正本が新しくなった</td><td>check が違いを報告する。転写し直すと0件に戻る</td></tr><tr><td>複製を手で書き換えた</td><td>check が違いを報告する。正本を直してから転写し直す</td></tr></table>"
+        },
+        {
+          "kind": "figure",
+          "svg": "<svg class=\"wf-fig\" viewBox=\"0 0 686 326\" width=\"686\" height=\"326\" role=\"img\"><g transform=\"translate(6.0,6.0)\"><path d=\"M346.4,182.8 L108.7,245.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"108.7,245.4 114.6,241.3 115.9,246.1\" fill=\"#C3CAD2\"/><rect x=\"203.5\" y=\"204.1\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"227.5\" y=\"217.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">転写する</text><path d=\"M346.4,182.8 L352.1,245.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"352.1,245.4 349.0,238.9 353.9,238.4\" fill=\"#C3CAD2\"/><rect x=\"325.2\" y=\"204.1\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"349.2\" y=\"217.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">転写する</text><path d=\"M346.4,182.8 L580.6,245.4\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"580.6,245.4 573.4,246.0 574.7,241.3\" fill=\"#C3CAD2\"/><rect x=\"439.5\" y=\"204.1\" width=\"48.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"463.5\" y=\"217.7\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">転写する</text><path d=\"M346.4,32.6 L346.4,95.2\" fill=\"none\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><polygon points=\"346.4,95.2 343.9,88.4 348.9,88.4\" fill=\"#C3CAD2\"/><rect x=\"312.4\" y=\"53.9\" width=\"68.0\" height=\"16.0\" fill=\"#F5F7F9\"/><text x=\"346.4\" y=\"67.5\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"10.0\" fill=\"#79828F\">正本と比べる</text><g class=\"wf-node\" transform=\"translate(216.6,96.0)\"><g class=\"svg-box\" role=\"focus\"><rect x=\"0\" y=\"0\" width=\"259.6\" height=\"86.0\" rx=\"5.0\" fill=\"#E2EFF0\" stroke=\"#16636B\" stroke-width=\"1.6\"/><text x=\"129.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">Skill「schema-driven」：基盤の能</text><text x=\"129.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">力の正本（Rust の crate ・ コン</text><text x=\"129.8\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">ポーネントのテンプレート ・ デザイン</text><text x=\"129.8\" y=\"74.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"600\" fill=\"#16636B\">トークン）と、転写 ・ 差分の検査の道具</text></g></g><g class=\"wf-node\" transform=\"translate(0.0,246.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"215.2\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"107.6\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">use-case-driven-modeling</text><text x=\"107.6\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">（転写した複製 ＋ 宣言のスキー</text><text x=\"107.6\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">マ ・ ページテンプレート）</text></g></g><g class=\"wf-node\" transform=\"translate(239.2,246.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"223.6\" height=\"68.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"111.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">use-case-driven-coding（転</text><text x=\"111.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">写した複製 ＋ x-test-spec と</text><text x=\"111.8\" y=\"56.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">テストとの突き合わせ）</text></g></g><g class=\"wf-node\" transform=\"translate(486.8,246.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"187.6\" height=\"50.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"93.8\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">ほかの Skill（転写した複</text><text x=\"93.8\" y=\"38.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">製 ＋ それぞれのスキーマ）</text></g></g><g class=\"wf-node\" transform=\"translate(218.4,0.0)\"><g class=\"svg-box\" role=\"plain\"><rect x=\"0\" y=\"0\" width=\"256.0\" height=\"32.0\" rx=\"5.0\" fill=\"#F5F7F9\" stroke=\"#C3CAD2\" stroke-width=\"1.2\"/><text x=\"128.0\" y=\"20.3\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12.0\" font-weight=\"400\" fill=\"#171B23\">差分の検査：複製が正本と違えば報告する</text></g></g></g></svg>",
+          "caption": "schema-driven が正本を持ち、基盤をもとに作るものへ複製を転写する。差分の検査が、複製と正本の違いを報告する。右の2つの Skill の名前と持ち物は例で、役割の分担はボード usecase-modeling-coding で決める。"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "複製を転写すること",
+          "basis": "基盤をもとに作るものには、基盤の能力の複製を転写する（skills-creator の雛形の契約と同じ形）",
+          "tag": "rule",
+          "source": "利用者の言明（2026-10-04）"
+        },
+        {
+          "supports": "Skill ごとに配ること",
+          "basis": "Release の公開の単位を Skill ごとにし、全部の Skill をまとめて公開する形はオプションとして残す",
+          "tag": "rule",
+          "source": "ACDR 0042"
+        },
+        {
+          "supports": "基盤を単独で使える Skill にすること",
+          "basis": "基盤は、開発に限らない AI の構造化データ管理の基盤である",
+          "tag": "rule",
+          "source": "このボードの論点1（B⁗）"
+        },
+        {
+          "supports": "転写と差分の検査の形",
+          "basis": "scaffold が各 Skill の references/ へ複製し、check が複製と正本の差を検査する",
+          "tag": "rule",
+          "source": "skills-creator の SKILL.md（references/view/ の項）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "基盤を共有の依存（cargo の依存）として使う",
+          "reason": "作ったものが基盤なしでは動かない。基盤をもとに作るものへ能力の複製を転写する、という前提（利用者の言明）に反する"
+        },
+        {
+          "option": "基盤を skills-creator の雛形の中に置く",
+          "reason": "基盤は開発に限らない構造化データ管理の基盤である（論点1）。Skill を作る道具の中に置くと、単独で使う形が無くなる"
+        },
+        {
+          "option": "作るものごとに、基盤の能力を書く",
+          "reason": "同じ概念の仕組みが別々に書かれ、形がずれる"
+        }
+      ],
+      "verification": {
+        "passed": [
+          {
+            "option": "基盤を Skill「schema-driven」として配り、複製を転写する",
+            "cost": "正本が新しくなるたびに、転写し直す"
+          },
+          {
+            "option": "基盤を共有の依存（cargo の依存）として使う",
+            "cost": "作ったものが単独で動かない。前提の転写の契約に反する"
+          },
+          {
+            "option": "基盤を skills-creator の雛形の中に置く",
+            "cost": "基盤は Skill を作るためだけの道具ではない。開発に限らない構造化データ管理の基盤（論点1）と合わない"
+          },
+          {
+            "option": "作るものごとに、基盤の能力を書く",
+            "cost": "同じ能力が別々に書かれ、形がずれる"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "item": "いまの Skill を schema-driven の上へ移すこと",
+            "treatment": "later",
+            "note": "基盤ができたあとに決める"
+          },
+          {
+            "item": "use-case-driven-development の一式のうち、どの Skill が concrete のどの部分を持つか",
+            "treatment": "later",
+            "note": "ボード usecase-modeling-coding の役割の分担で決める"
+          },
+          {
+            "item": "Rust 以外の言語での転写",
+            "treatment": "out",
+            "note": "道具は Rust で作る（利用者の言明）"
+          },
+          {
+            "item": "この答えを試す相手",
+            "treatment": "later",
+            "note": "外の作業で試す。schema-driven を Rust で作り、use-case-driven の Skill へ複製を転写して、差分の検査が0件になることと、正本を変えたときに違いを報告することを確かめる"
+          }
+        ]
+      }
     }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "contracts3",
-     "caption": "基盤は AI の構造化データ管理の基盤で、<b>正本は構造化データ</b>、Markdown と HTML は描画した結果である。テスト条件とテストの記録との突き合わせは、開発の concrete が基盤の注釈の上に持つ。"
-    }
-   ],
-   "passed": [
-    {
-     "name": "7つの契約と、注釈 x-ref ・ x-derive（取得は JMESPath、更新と削除は JSON Patch）",
-     "body": "基盤は開発に限らない構造化データ管理の基盤で、テストとの突き合わせは開発の concrete が持つ",
-     "cost": "開発の concrete が、テスト条件とテストの記録の契約を持つ"
-    },
-    {
-     "name": "ドリフト検知まで基盤が持つ（B‴）",
-     "body": "基盤を開発で使う道具と位置づける",
-     "cost": "開発に限らない用途（ACDR ・ ブレストボードなど）に、テストという概念を持ち込む"
-    },
-    {
-     "name": "形の3つだけ（2回目の答え）",
-     "body": "基盤は検証 ・ 描画 ・ x-promptだけを持つ",
-     "cost": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作る"
-    },
-    {
-     "name": "取得も更新も JMESPath",
-     "body": "1つの文法で、読むことと書くことを受ける",
-     "cost": "書き込む位置を指せない"
-    },
-    {
-     "name": "全部を JSONPath",
-     "body": "取得は JSONPath で行い、結果の位置（Normalized Path）を更新と削除に使う",
-     "cost": "取得の結果を組み替えられない"
-    },
-    {
-     "name": "全部を JSON Pointer",
-     "body": "取得も更新も削除も、1つの位置を指す JSON Pointer で受ける",
-     "cost": "条件で絞った一覧を取得できない"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "基盤に宣言の構造が入るか",
-      "取得で一覧を絞って組み替えられるか",
-      "書き込む位置を規格で指せるか"
-     ],
-     "rows": [
-      [
-       "7つの契約（取得は JMESPath、更新と削除は JSON Patch）",
-       [
-        "<b>入らない</b>",
-        "<b>できる</b>（JMESPath）",
-        "<b>指せる</b>（JSON Patch の path）"
-       ]
-      ],
-      [
-       "形の3つだけ（2回目の答え）",
-       [
-        "入らない",
-        "基盤では扱わない",
-        "基盤では扱わない"
-       ]
-      ],
-      [
-       "取得も更新も JMESPath",
-       [
-        "入らない",
-        "できる",
-        "<b>指せない</b>（結果は値だけ）"
-       ]
-      ],
-      [
-       "全部を JSONPath",
-       [
-        "入らない",
-        "絞れるが、組み替えられない",
-        "指せる（Normalized Path）が、書き込みの規格は別に必要"
-       ]
-      ],
-      [
-       "全部を JSON Pointer",
-       [
-        "入らない",
-        "<b>できない</b>（1つの値だけを指す）",
-        "指せる"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "形の3つだけ（2回目の答え）",
-     "reason": "作成 ・ 取得 ・ 更新 ・ 削除を concrete ごとに作ると、インスタンスの扱いが concrete ごとに分かれる。利用者が、この4つも基盤の契約だと示した"
-    },
-    {
-     "body": "取得も更新も JMESPath",
-     "reason": "JMESPath の結果は JSON の値で、元の位置を返さない。書き込む先を指せないので、更新と削除には使えない"
-    },
-    {
-     "body": "全部を JSONPath",
-     "reason": "取得の結果は節の一覧で、読み手に合わせて形を組み替えられない。更新の規格も JSONPath には無いので、結局 JSON Patch が必要になる"
-    },
-    {
-     "body": "全部を JSON Pointer",
-     "reason": "1つの位置しか指せないので、x-prompt の read が必要とする「条件で絞った一覧」を取得できない"
-    }
-   ],
-   "path": [
-    {
-     "kind": "previous",
-     "letter": "B‴",
-     "body": "B‴ ── <b>抽象の基盤は開発で使う道具で、7つの契約とドリフト検知を持つ。</b>操作の4つ（作成 ・ 取得 ・ 更新 ・ 削除）、形の3つ（検証 ・ 描画 ・ x-prompt）、ドリフト検知である。取得は JMESPath、更新と削除は JSON Patch で受ける。<b>どの欄が何を指し、どの項目がテスト条件かは、concrete がスキーマの注釈で申告する</b>",
-     "why": "基盤を開発で使う道具と位置づけ、ドリフト検知まで基盤に入れていた。利用者の意図は、開発に限らない AI の構造化データ管理の基盤である。テストは開発に固有の概念なので、基盤の中心に置かない",
-     "user_words": "私ね、このスキーマ駆動ってai自体の構造化データ管理の基盤だと思ってんだよね。\nそれこそさ、もはやこれでデータをモテるなら別にマークダウンいらねえんだよなーって。"
-    },
-    {
-     "kind": "previous",
-     "letter": "B″",
-     "body": "B″ ── <b>抽象の基盤は7つの契約を持つ。</b>操作の4つ（作成 ・ 取得 ・ 更新 ・ 削除）と、形の3つ（検証 ・ 描画 ・ x-prompt）である。<b>取得は JMESPath、更新と削除は JSON Patch</b> で受ける。ユースケース駆動の concrete は同じ7つを特化した表現で持ち、ドリフト検知の契約を足す",
-     "why": "ドリフト検知を concrete が足す契約としていた。見本で試すと、x-ref と x-test-spec を読む道具に、ユースケースに固有の部分がほとんど残らなかった。基盤を開発で使う道具と位置づけるなら、テスト条件とドリフト検知も基盤が持つのが自然である",
-     "user_words": "そうですね、基盤自体をあくまで開発で使用するものだと目的レベルを合わせるならx-test-specがある分には不自然ではないね"
-    },
-    {
-     "kind": "previous",
-     "letter": "B′",
-     "body": "抽象の基盤は3つの契約（スキーマ検証 ・ Markdown と HTML への描画 ・ 項目ごとの x-prompt の read と write）だけを持つ。ユースケース駆動の concrete は同じ3つを特化した表現で持ち、ドリフト検知の契約を足す",
-     "why": "操作の契約（作成 ・ 取得 ・ 更新 ・ 削除）が欠けていた。取得は JMESPath、更新と削除は JSON Patch で受ける形にした",
-     "user_words": "あと大事な契約を忘れてました。取得と更新、削除はありますね。あとはスキーマからも実体jsonを作成するのもいるね。取得ではJMESを使うんじゃないか？"
-    },
-    {
-     "kind": "previous",
-     "letter": "B",
-     "body": "<b>基盤が知る宣言の形は、kind ・ id ・ name ・ body の4つだけにする。</b>body の形は concrete の JSON Schema が決め、ID を持つ節と参照の在りかは concrete が JSONPath で申告する",
-     "why": "基盤が宣言の構造（kind ・ id ・ 節 ・ 参照）を知る形は、抽象の高さに合わない。基盤の契約を検証 ・ 描画 ・ x-promptの3つにし、ドリフト検知をユースケース駆動の concrete の契約にした",
-     "user_words": "これスキーマ駆動自体も考え方的には抽象モデリングの考え方ですよ。concrateとしてのユースケース駆動に関するモデリングはおそらくですが、人間が確認承認できる構造化データになります。ここでイメージして欲しいのは、abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です。concrateスキーマ自体も同じ契約を持ちますが、ユースケース駆動に特化した表現になるところがabstructを具体した表現になってると思ってください。そしてこのconcrateはシナリオ仕様とテスト実装の乖離で抽象と具体の対応を関連付け、このユースケースのシナリオ仕様とドメイン側の条件などを品質を担保する際の要素とし、これが実装側のテストに存在して正しくテストが通ってることを実装の品質として担保できるような仕組みとする。つまりconcrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ"
-    },
-    {
-     "kind": "para",
-     "text": "利用者が、スキーマ駆動の道具は抽象の基盤で、ユースケース駆動はその concrete の1つにすぎないと述べた。1回目は、試作の基盤のコードから宣言の形を削る方向で答えた。"
-    }
-   ],
-   "findings": [
-    "スキーマ駆動は、開発に限らない AI の構造化データ管理の基盤である（利用者の意図）── 正本を Markdown にする利点は無く、構造化データなら検証 ・ 描画 ・ 欄を指す問い合わせができる",
-    "参照と判定は開発に固有ではない ── x-ref と x-derive を読む道具は基盤、x-test-spec とテストの記録の突き合わせは開発の concrete に分けた。見本の道具も base7（基盤）と concrete7（開発）に分け、結果は変わらなかった",
-    "見本で x-ref と x-test-spec を読む道具を作ると、ユースケースに固有の部分がほとんど残らなかった ── ドリフト検知を基盤へ移す",
-    "利用者が、作成 ・ 取得 ・ 更新 ・ 削除も基盤の契約だと示した ── 基盤の契約は、操作の4つと形の3つの7つになる",
-    "JMESPath は、構造化データを受けて構造化データを返す ── 取得の結果を、読み手に合わせた形へ組み替えられる",
-    "JMESPath の仕様には、結果の位置を返す規定が無い ── 書き込む位置を指せないので、更新と削除は別の規格で受ける",
-    "JSON Patch は、操作ごとに JSON Pointer で位置を指す ── 更新と削除の契約は、この形で受けられる",
-    "no-more-spaghetti の init は、契約に対して不合格の雛形を出す ── 作成した直後のインスタンスは、検証を通過しなくてよい",
-    "9月のボードの論点11は、仕様の ID の集合とテストが申告する ID の集合を引き算すると決めた ── これはドリフト検知であり、ユースケース駆動の concrete の契約へ移す",
-    "試作で、基盤の本体に宣言の語が0件のまま10の手順を完了した ── 基盤が宣言の形を認知しない線は成立する",
-    "描画の順序は、スキーマの項目の順に依存する ── 基盤は JSON の項目の順を保持する必要がある",
-    "インスタンスを削除しても、基盤は参照を検査しない ── 残った参照を拒否するか報告するかは、論点2で決める",
-    "テスト仕様の ID を「宣言の ID.項目の ID」で一意にした ── ID の組み方とテストの報告の形は、論点2で決める"
-   ],
-   "grounds": [
-    {
-     "supports": "操作の4つを基盤の契約にすること",
-     "basis": "「あと大事な契約を忘れてました。取得と更新、削除はありますね。あとはスキーマからも実体jsonを作成するのもいるね。取得ではJMESを使うんじゃないか？」",
-     "tag": "assumption",
-     "source": "利用者の言明（2026-10-03）"
-    },
-    {
-     "supports": "形の3つを基盤の契約にすること",
-     "basis": "「abstructスキーマに関しての契約は、構造化データをスキーマバリデーションできる契約と構造化データをmdやhtmlにレンダリングできる契約、あとは項目にx–promptとしてreadとwriteを持つ契約です」",
-     "tag": "assumption",
-     "source": "利用者の言明（2026-10-03）"
-    },
-    {
-     "supports": "concrete がドリフト検知の契約を持つこと",
-     "basis": "「concrateはこのテスト仕様とテスト実装のドリフトを検知できるという契約を持つ」",
-     "tag": "assumption",
-     "source": "利用者の言明（2026-10-03）"
-    },
-    {
-     "supports": "取得を JMESPath で受けること",
-     "basis": "「The result of applying a JMESPath expression against a JSON document will always result in valid JSON, provided there are no errors during the evaluation process.  Structured data in, structured data out.」",
-     "tag": "primary",
-     "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得） 本文の86〜88行"
-    },
-    {
-     "supports": "JMESPath が位置を返さないこと",
-     "basis": "仕様の全文に location と JSON Pointer の語が0件である",
-     "tag": "measured",
-     "source": "JMESPath Specification（sources/jmespath.org_specification.html、2026-10-03 取得）"
-    },
-    {
-     "supports": "更新と削除を JSON Patch で受けること",
-     "basis": "「Its value MUST be one of \"add\", \"remove\", \"replace\", \"move\", \"copy\", or \"test\"; other values are errors.」",
-     "tag": "primary",
-     "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 185〜187行"
-    },
-    {
-     "supports": "位置を JSON Pointer で指すこと",
-     "basis": "「Additionally, operation objects MUST have exactly one \"path\" member.」",
-     "tag": "primary",
-     "source": "RFC 6902 JSON Patch（sources/www.rfc-editor.org_rfc_rfc6902.txt、2026-10-03 取得） 189行"
-    },
-    {
-     "supports": "作成の出力先のパスを x-generates が決めること",
-     "basis": "x-generates は「このスキーマが生成する実体の置き場所」である",
-     "tag": "measured",
-     "source": "no-more-spaghetti の references/schema-meta.schema.json"
-    },
-    {
-     "supports": "作成した直後のインスタンスが検証を通過しなくてよいこと",
-     "basis": "「雛形は、契約に対して不合格で出る ── 道具と出典が空だからである。」",
-     "tag": "rule",
-     "source": "no-more-spaghetti の SKILL.md の Step 2"
-    },
-    {
-     "supports": "検証と描画がすでに実装されていること",
-     "basis": "どの Skill も持つ ── get（1件を取り出す）・ validate（スキーマで検査する）・ view（HTML に描画する）・ import（Markdown を document へ取り込む）",
-     "tag": "rule",
-     "source": "skills-creator の references/document.json「references（契約の版2）」"
-    },
-    {
-     "supports": "ドリフト検知の中身",
-     "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点11の決着"
-    },
-    {
-     "supports": "Rust の実装があること",
-     "basis": "jmespath 0.5.0 の説明は「Rust implementation of JMESPath, a query language for JSON」、json-patch 4.2.0 の説明は「RFC 6902, JavaScript Object Notation (JSON) Patch」",
-     "tag": "measured",
-     "source": "crates.io の API（2026-10-03 取得）"
-    },
-    {
-     "supports": "7つの契約とドリフト検知が成立すること",
-     "basis": "10の手順を1回実行し、終了コード0で終わった。base.rs の本体に宣言の語は0件である",
-     "tag": "measured",
-     "source": "trial/spike/output.txt（2026-10-03、jmespath 0.5.0 ・ json-patch 4.2.0 ・ jsonschema 0.58.4）"
-    },
-    {
-     "supports": "x-ref と x-derive を基盤が読めること",
-     "basis": "見本で、注釈だけを読む道具を基盤の側（base7）と開発の側（concrete7）に分けても、テスト条件36件と宣言どうしの検査81件は変わらなかった。基盤の側はテストを知らない",
-     "tag": "measured",
-     "source": "ボード usecase-driven-concrete の sample/base7.py ・ sample/concrete7.py"
-    }
-   ],
-   "requirements": [
-    "ユースケース駆動の concrete に、宣言の Schema と、ドリフト検知の契約を用意する ── 試作の基盤が持つ宣言の形の受け皿になる",
-    "抽象の7つの契約を、1つの基盤にする ── Skill ごとに複製されている get ・ validate ・ view のインスタンスを寄せ、作成 ・ 更新 ・ 削除を足す",
-    "jmespath と json-patch の crate を、原文と試験で確認してから採用する ── 仕様への準拠の範囲を、まだ照合していない"
-   ],
-   "out_of_scope": [
-    {
-     "item": "concrete が基盤に何をどの形で渡すか",
-     "treatment": "later",
-     "note": "論点2で決める"
-    },
-    {
-     "item": "複数のインスタンスをまたぐ取得（宣言の一覧からの絞り込み）",
-     "treatment": "later",
-     "note": "論点2で決める。基盤の取得はインスタンス1件を対象にする"
-    },
-    {
-     "item": "ドリフト検知でテストの一覧をどう受け取るか",
-     "treatment": "later",
-     "note": "論点2で決める。9月の論点11は1行1ID の一覧と決めている"
-    },
-    {
-     "item": "インスタンスを削除したときに残る参照の扱い",
-     "treatment": "later",
-     "note": "論点2で決める。試作は報告だけを行った"
-    },
-    {
-     "item": "検証の違反の文が英語で出ること",
-     "treatment": "later",
-     "note": "論点3で決める。違反を人へ描画する形の一部である"
-    },
-    {
-     "item": "いまの Skill を基盤の上へ移すこと",
-     "treatment": "later",
-     "note": "基盤ができたあとに決める。いまの Skill は基盤より前の試しで、基盤の設計の根拠にしない"
-    }
-   ]
-  },
-  {
-   "no": 2,
-   "name": "concrete の契約",
-   "status": "settled",
-   "question": "ユースケース駆動の concrete は、7つの契約とドリフト検知を、どの形で満たすか",
-   "answer": "B‴ ── <b>concrete は、宣言の種類ごとの Schema に注釈を付けて渡す。</b>基盤の注釈は title ・ x-view ・ x-prompt ・ x-generates ・ x-ref ・ x-derive の6つで、開発の concrete は x-test-spec を足す。<b>concrete の道具も注釈だけを読み、テスト条件と、テストの記録との突き合わせと、ページの組み立てを持つ</b>",
-   "intro": "この論点が、concrete が基盤に何を渡し、テスト実装と何で接続するかを決める。<b>論点3（描画の持ち方）は、この形を前提にする</b>",
-   "decision": {
-    "letter": "B‴",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>concrete が渡すものは、宣言の種類ごとの JSON Schema だけである。</b>欄の名前は Schema にだけ現れる。基盤の注釈のうち x-ref と x-derive、開発の concrete の注釈 x-test-spec の値の形を、次の表で決める。どちらの道具も、持つ名前は id と kind だけである。"
-     },
-     {
-      "kind": "grid",
-      "cols": [
-       "x-ref の値",
-       "意味"
-      ],
-      "rows": [
-       [
-        "to",
-        "指す先の種類。self は同じ宣言の中"
-       ],
-       [
-        "item ／ bare ／ in",
-        "値の形。「宣言.項目」・ 宣言の ID を付けない項目の ID ・ 指す先の集まりの場所"
-       ],
-       [
-        "meaning（と meanings ・ meaning_key ・ label）",
-        "用語集の語を指すとき、許す意味の種類"
-       ],
-       [
-        "when",
-        "同じ項目の欄がこの値のときだけ、語の種類を確かめる"
-       ],
-       [
-        "unique ／ covered_by",
-        "同じ並びに重ねない ／ 同じ項目の中で、この値を扱う欄"
-       ],
-       [
-        "inverse（group ・ min ・ max ・ where ・ max_decls）",
-        "指される側の数。束ねられていない ・ 担われていない ・ 2つの文脈で実装している、を出す"
-       ]
-      ]
-     },
-     {
-      "kind": "grid",
-      "cols": [
-       "x-test-spec の値",
-       "意味"
-      ],
-      "rows": [
-       [
-        "id",
-        "テスト条件の ID。decl（宣言.項目）・ parent（宣言.親.項目）・ 決まった文字（主成功シナリオの M）"
-       ],
-       [
-        "checks ／ checks_by",
-        "確かめること。終わり方のような欄の値で変わるときは checks_by"
-       ],
-       [
-        "level",
-        "求めるレベル。決まった値か、x-derive の判定から引く表（derive ・ map）"
-       ],
-       [
-        "with ／ with_by ／ with_parent",
-        "期待する結果のハッシュ値に含める、同じ宣言のほかの欄"
-       ],
-       [
-        "when ／ suffix",
-        "この値のときだけテスト条件にする ／ ID の後ろに付ける文字（個数の上限の MAX）"
-       ]
-      ]
-     },
-     {
-      "kind": "grid",
-      "cols": [
-       "x-derive の値",
-       "意味"
-      ],
-      "rows": [
-       [
-        "rules ／ otherwise",
-        "上から当てる決まりと、どれにも当たらないときの判定"
-       ],
-       [
-        "declared",
-        "判定と突き合わせる、宣言した欄"
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>検証は、宣言の集合に対して行う。</b>テスト条件の ID は「宣言の ID.項目の ID」で、項目が別の項目の中に在るときは親の ID を挟む（AGG-1.CMD-1.BR-1）。テストの記録の Schema（trace.schema.json）と記録の契約は、開発の concrete が持つ。"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "<b>見本：サブドメインの「束ねるユースケース」</b>（注釈は、欄の定義の隣に付く）"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>\"use_cases\": {\n  \"type\": \"array\", \"items\": {\"pattern\": \"^UC-[0-9]+$\"},\n  \"description\": \"束ねるユースケース\", \"x-prompt\": {…},\n  \"x-ref\": {\"to\": \"use_case\",\n            \"inverse\": {\"group\": \"ユースケースを束ねるサブドメインは1つ\", \"min\": 1, \"max\": 1,\n                        \"where\": {\"header/level\": [\"ユーザー目的\", \"サブ機能\"]}}}\n}</code></pre>"
-    },
-    {
-     "kind": "para",
-     "text": "<b>見本：集約のコマンドの業務ルール</b>"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>\"business_rules\": {\"items\": {\n  \"x-test-spec\": {\"id\": \"parent\", \"checks\": \"その拒否の理由で拒否される\",\n                  \"level\": {\"derive\": \"business_logic\",\n                            \"map\": {\"ドメインモデル\": \"component\", \"トランザクションスクリプト\": \"system\", …}}},\n  \"properties\": {\"reject\": {\"x-ref\": {\"to\": \"glossary\", \"meaning\": [\"拒否の理由\"], …,\n                                    \"inverse\": {\"group\": \"拒否の理由を1つの集約だけが使う\", \"max_decls\": 1}}}}}}</code></pre>"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "試した結果（ボード usecase-driven-concrete の見本）",
-      "件数"
-     ],
-     "rows": [
-      [
-       "注釈を付けた欄",
-       "x-ref 51か所 ・ x-test-spec 11か所 ・ x-derive 2か所"
-      ],
-      [
-       "取り出したテスト条件",
-       "36件。注釈なしの道具と同じ ID ・ 同じレベル（品質の要求だけ UC-1.STEP-5.QR-1 から REQ-1.QR-1 になった）"
-      ],
-      [
-       "宣言どうしの検査",
-       "81件。わざと入れた6種類のずれ（束ねられていないユースケース ・ 要求の側が集約を指す ・ 無い文脈を指す ・ 担われていないサブドメイン ・ 動作でない述語 ・ 2つの集約が同じ拒否の理由を使う）はすべて出た"
-      ],
-      [
-       "移行の試し（fact-check）",
-       "ずれ0件 ・ 欠け8件。古い ID を指す記録の当たり先も出した"
-      ]
-     ]
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "concrete",
-     "caption": "Schema の注釈が、テスト仕様と参照の在りかを決める。<b>更新と削除の前に集合を検証し</b>、テストの報告は Schema で検証してからテスト仕様と突き合わせる。テスト実装はコーディングの側に在る。"
-    }
-   ],
-   "passed": [
-    {
-     "name": "注釈 ・ 集合の検証 ・ JSON の報告",
-     "body": "Schema の注釈で在りかを申告し、集合を検証し、報告を JSON と Schema で受ける",
-     "cost": "concrete のメタスキーマに、注釈2つの検査を足す"
-    },
-    {
-     "name": "コードが欄の名前を持つ",
-     "body": "concrete のコードが、scenarios ・ writes のような欄の名前を JMESPath の式で持つ",
-     "cost": "欄の名前が Schema とコードの2か所に在る"
-    },
-    {
-     "name": "在りかを別の申告ファイルに書く",
-     "body": "欄の在りかを、Schema と別のファイルに JMESPath で書く",
-     "cost": "欄の名前が Schema と申告ファイルの2か所に在る"
-    },
-    {
-     "name": "削除して報告だけ",
-     "body": "参照されている宣言も削除し、残った参照を報告する",
-     "cost": "削除のあとの集合が、参照の解決に違反したまま残る"
-    },
-    {
-     "name": "参照ごと連鎖して削除",
-     "body": "削除した宣言を指す参照も、参照元から除く",
-     "cost": "人が承認した別の宣言を書き換える"
-    },
-    {
-     "name": "報告は1行1ID",
-     "body": "9月の論点11のとおり、網羅した ID を1行1ID で受ける",
-     "cost": "結果を保持しない"
-    },
-    {
-     "name": "実行器の出力を直接読む",
-     "body": "テストの実行器が出す形（JUnit XML など）を concrete が読む",
-     "cost": "実行器ごとの形を concrete が知る"
-    },
-    {
-     "name": "ID を位置にする",
-     "body": "テスト仕様の ID を、宣言の中の JSON Pointer（/scenarios/1 など）にする",
-     "cost": "前の項目を削除すると、後ろの項目の ID が変わる"
-    },
-    {
-     "name": "項目の ID を全体で一意にする",
-     "body": "項目の ID を、宣言をまたいで一意な番号にする",
-     "cost": "宣言をまたいで番号を調整する"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "在りかの申告",
-     "cols": [
-      "欄の名前を書く場所",
-      "別の concrete で同じコードを使えるか"
-     ],
-     "rows": [
-      [
-       "注釈 ・ 集合の検証 ・ JSON の報告",
-       [
-        "<b>Schema だけ</b>",
-        "<b>使える</b>（注釈を読むだけ）"
-       ]
-      ],
-      [
-       "コードが欄の名前を持つ",
-       [
-        "Schema とコード",
-        "使えない"
-       ]
-      ],
-      [
-       "在りかを別の申告ファイルに書く",
-       [
-        "Schema と申告ファイル",
-        "使える"
-       ]
-      ]
-     ]
-    },
-    {
-     "caption": "削除と参照",
-     "cols": [
-      "削除のあとの集合",
-      "人が承認した宣言の扱い"
-     ],
-     "rows": [
-      [
-       "注釈 ・ 集合の検証 ・ JSON の報告",
-       [
-        "<b>検証を通過したまま</b>",
-        "<b>変えない</b>"
-       ]
-      ],
-      [
-       "削除して報告だけ",
-       [
-        "参照の解決に違反したまま残る",
-        "変えない"
-       ]
-      ],
-      [
-       "参照ごと連鎖して削除",
-       [
-        "検証を通過する",
-        "<b>書き換える</b>"
-       ]
-      ]
-     ]
-    },
-    {
-     "caption": "テストの報告",
-     "cols": [
-      "結果（pass ・ fail ・ skip）を保持するか",
-      "基盤の検証で形を検査できるか",
-      "誰が実行器を知るか"
-     ],
-     "rows": [
-      [
-       "注釈 ・ 集合の検証 ・ JSON の報告",
-       [
-        "<b>保持する</b>",
-        "<b>できる</b>",
-        "コーディングの側"
-       ]
-      ],
-      [
-       "報告は1行1ID",
-       [
-        "保持しない",
-        "できない（テキスト）",
-        "コーディングの側"
-       ]
-      ],
-      [
-       "実行器の出力を直接読む",
-       [
-        "保持する",
-        "できない（実行器ごとの形）",
-        "<b>concrete</b>"
-       ]
-      ]
-     ]
-    },
-    {
-     "caption": "テスト仕様の ID",
-     "cols": [
-      "削除や並べ替えで ID が変わるか",
-      "採番が宣言の中で完結するか"
-     ],
-     "rows": [
-      [
-       "注釈 ・ 集合の検証 ・ JSON の報告",
-       [
-        "<b>変わらない</b>",
-        "<b>完結する</b>"
-       ]
-      ],
-      [
-       "ID を位置にする",
-       [
-        "<b>変わる</b>",
-        "完結する"
-       ]
-      ],
-      [
-       "項目の ID を全体で一意にする",
-       [
-        "変わらない",
-        "<b>完結しない</b>"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "コードが欄の名前を持つ",
-     "reason": "欄の名前が Schema とコードの2か所に在り、Schema で名前を変えると、コードの取得は黙って空を返す。論点1の試作は、この形だった"
-    },
-    {
-     "body": "在りかを別の申告ファイルに書く",
-     "reason": "欄の名前が2か所に在ることは変化しない。注釈なら、欄の定義の隣の1か所で済む"
-    },
-    {
-     "body": "削除して報告だけ",
-     "reason": "削除のあとの集合が参照の解決に違反したまま残り、承認された構造化データが不整合の状態になる"
-    },
-    {
-     "body": "参照ごと連鎖して削除",
-     "reason": "人が確認して承認した別の宣言を、削除の操作が書き換えることになる"
-    },
-    {
-     "body": "報告は1行1ID",
-     "reason": "結果を保持しないので、テストが通っているかを判定できない。テキストなので、基盤の検証の契約も適用できない"
-    },
-    {
-     "body": "実行器の出力を直接読む",
-     "reason": "テストの実行器は技術スタックの選択であり、コーディングの側が持つ。concrete が実行器ごとの形を知ると、技術スタックの語が concrete に入る"
-    },
-    {
-     "body": "ID を位置にする",
-     "reason": "JSON Pointer は配列の要素を添字で指すので、前の項目を削除すると、後ろの項目の ID が変わり、テストとの対応が切れる"
-    },
-    {
-     "body": "項目の ID を全体で一意にする",
-     "reason": "宣言をまたいで番号を調整する必要がある。「宣言の ID.項目の ID」なら、採番は宣言の中で完結する"
-    }
-   ],
-   "path": [
-    {
-     "kind": "previous",
-     "letter": "B″",
-     "body": "B″ ── <b>concrete は、宣言の種類ごとの Schema に基盤の注釈を付けて渡す。</b>基盤の注釈は、title ・ x-view ・ x-prompt ・ x-generates に、x-ref（従属関係）・ x-test-spec（テスト条件）・ x-derive（問いの答えからの判定）を加えた7つである。<b>concrete に残る道具は、宣言の集合をページに組むこと（論点3）だけである</b>",
-     "why": "x-test-spec まで基盤の注釈にしていた。論点1で基盤を開発に限らない形にしたので、x-test-spec は開発の concrete の注釈に戻す",
-     "user_words": "私ね、このスキーマ駆動ってai自体の構造化データ管理の基盤だと思ってんだよね。\nそれこそさ、もはやこれでデータをモテるなら別にマークダウンいらねえんだよなーって。"
-    },
-    {
-     "kind": "previous",
-     "letter": "B′",
-     "body": "B′ ── <b>concrete は、宣言の種類ごとの Schema に注釈を付けて渡し、concrete の道具は注釈だけを読む。</b>x-ref（従属関係）と x-test-spec（テスト条件）は、値に決まった形を持つ。道具はこの2つから、指す先 ・ 指す先の種類 ・ 語の種類 ・ 指される数 ・ 承認のあとの変化と、テスト条件とそのハッシュ値を出す。<b>問いの答えからの判定は、3つ目の注釈 x-derive で持つ</b>",
-     "why": "x-ref ・ x-test-spec ・ x-derive を concrete の注釈としていた。論点1でドリフト検知を基盤へ移すので、注釈も基盤のものになる",
-     "user_words": "そうですね、基盤自体をあくまで開発で使用するものだと目的レベルを合わせるならx-test-specがある分には不自然ではないね"
-    },
-    {
-     "kind": "previous",
-     "letter": "B",
-     "body": "B ── <b>concrete は、宣言の種類ごとの Schema に2つの注釈（x-test-spec ・ x-ref）を付けて渡す。</b>検証は宣言の集合に対して行い、参照されている宣言は削除しない。テスト仕様の ID は「宣言の ID.項目の ID」、テストの報告は concrete が Schema を持つ JSON で受ける",
-     "why": "試作を起点に組んでいた。concrete（ボード usecase-driven-concrete）が決着したので、その宣言で注釈を実際に使って試した。注釈の値の形が決まっておらず、見本の道具は欄の名前をコードに持っていた",
-     "user_words": "スキーマ駆動に関してはこれ別の道具の認識でした。\nべつに私はこれをユースケース駆動専用のスキーマの道具としてはとらえてないですね。"
-    },
-    {
-     "kind": "para",
-     "text": "論点1の試作で、3件が未決のまま残った。削除で残った参照の扱い ・ テスト仕様の ID の組み方 ・ テストの報告の形である。論点1が決着したので、この論点を開いた。"
-    }
-   ],
-   "findings": [
-    "基盤を開発に限らない形にしたので、x-test-spec は開発の concrete の注釈になる ── x-ref と x-derive は基盤の注釈のまま",
-    "x-ref と x-test-spec は、値に決まった形を持たせる ── 指す先の値の形（item ・ bare ・ self）、指される数（inverse）、テスト条件の ID の付き方とレベルの引き方",
-    "問いの答えからの判定（カテゴリー ・ 実装方法）は、x-ref でも x-test-spec でも書けない ── 3つ目の注釈 x-derive にした。テスト条件のレベルも、この判定から引く",
-    "注釈で書けなかった検査が4つ残る（カテゴリーと実装方法の組み合わせ ・ ドメインモデルの文脈に集約があるか ・ 拒否の例が組めるか ・ 別のコマンドが同じ状態の変更を持つか）。前の2つは x-derive の判定に条件を付ける形、後の2つは例を組む処理なので論点3の描画の側で扱う",
-    "欄から文を組む処理とページの組み立ては、まだ欄の名前を持つ ── 論点3の「値の見せ方を concrete が注入する口」で扱う",
-    "試作で、concrete のコードから欄の名前を除き、注釈だけで7つの手順を完了した ── 欄の名前は Schema にだけ在ればよい",
-    "集合の検証を更新と削除の前に置くと、参照されている宣言の削除は、規則を足さずに拒否される ── 論点1の「検証を通過したときだけ書き込む」を集合へ広げれば済む",
-    "基盤の更新に、concrete の検証を注入する口が1つ必要だった ── 9月の論点10が残した Rust の注入点に該当する",
-    "報告を JSON にすると、報告そのものに基盤の検証の契約を適用できる ── 形の誤った報告は、突き合わせる前に止まった",
-    "9月の論点11は、1行1ID で網羅した ID だけを受けると決めていた ── 結果を受けるには、この決定の改訂が必要である"
-   ],
-   "grounds": [
-    {
-     "supports": "在りかを Schema の注釈で申告すること",
-     "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点10の決着"
-    },
-    {
-     "supports": "集合の検証で削除を止めること",
-     "basis": "更新と削除は、適用したあとの実体が検証の契約を通過したときだけ書き込む",
-     "tag": "rule",
-     "source": "このボードの論点1の決着"
-    },
-    {
-     "supports": "テストの報告に結果を持たせること",
-     "basis": "「これが実装側のテストに存在して正しくテストが通ってることを実装の品質として担保できるような仕組みとする」",
-     "tag": "assumption",
-     "source": "利用者の言明（2026-10-03）"
-    },
-    {
-     "supports": "報告を作る手段をコーディングの側に置くこと",
-     "basis": "規則はプロダクトに属し、アーキテクチャと技術スタックから作る。シナリオの管理はコーディングの規則に含めない",
-     "tag": "rule",
-     "source": "ボード usecase-modeling-coding 論点3の決着"
-    },
-    {
-     "supports": "条件に ID を持たせること",
-     "basis": "集約とドメインサービスの操作の下には、シナリオではなく条件を ID 付きで置く",
-     "tag": "rule",
-     "source": "ACDR 0092（9月のボードの論点12の改訂）"
-    },
-    {
-     "supports": "改訂する9月の決定",
-     "basis": "テストの側からは網羅したシナリオID の集合を1行1ID で受け取る。道具は2つの集合を引き算するだけである",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点11の決着"
-    },
-    {
-     "supports": "位置を ID にすると変わること",
-     "basis": "「making the new referenced value the array element with the zero-based index identified by the token」",
-     "tag": "primary",
-     "source": "RFC 6901 JSON Pointer（sources/www.rfc-editor.org_rfc_rfc6901.txt:180）"
-    },
-    {
-     "supports": "この答えの形が成立すること",
-     "basis": "7つの手順を実行し、終了コード0で終わった。usecase_q2.rs は scenarios ・ writes ・ conditions の語を保持しない",
-     "tag": "measured",
-     "source": "trial/spike/output-q2.txt（2026-10-03）"
-    },
-    {
-     "supports": "注釈だけで検査とテスト条件を出せること",
-     "basis": "見本で、注釈を読む道具がテスト条件36件を同じ ID で出し、わざと入れた6種類のずれをすべて出した。道具が持つ名前は id と kind だけ",
-     "tag": "measured",
-     "source": "ボード usecase-driven-concrete の sample/concrete7.py ・ sample/schema/"
-    },
-    {
-     "supports": "concrete のコードは欄の名前を保持しないこと",
-     "basis": "欄の名前は Schema にだけ現れる。concrete のコードは注釈を読み、欄の名前を保持しない",
-     "tag": "rule",
-     "source": "このボードの論点2（前の答え B）"
-    }
-   ],
-   "requirements": [
-    "9月の論点11（1行1ID）を、結果を持つ JSON の報告へ改訂する ── ACDR で提示してから適用する",
-    "コーディングの側に、技術スタックごとに報告を作る規則を置く ── ボード usecase-modeling-coding の論点3と論点7の範囲で決定する",
-    "concrete の注釈2つを、concrete のメタスキーマで検査する ── 基盤のx-prompt の契約（schema-meta）と同じ形にする"
-   ],
-   "out_of_scope": [
-    {
-     "item": "宣言の種類の一覧と、各 Schema の欄",
-     "treatment": "out",
-     "note": "ボード usecase-modeling-coding の論点2 ・ 論点7と ACDR 0092 が決めている"
-    },
-    {
-     "item": "テストの ID を、テストのどこに書くか（名前 ・ 属性）",
-     "treatment": "out",
-     "note": "技術スタックごとに、コーディングの側が決める"
-    },
-    {
-     "item": "描画で参照をたどれるようにするか",
-     "treatment": "later",
-     "note": "論点3で決める"
-    },
-    {
-     "item": "欄から文を組む処理とページの組み立て",
-     "treatment": "later",
-     "note": "論点3（描画の持ち方）で扱う。いまは見本の gen6 ・ render6 が欄の名前を持つ"
-    },
-    {
-     "item": "注釈で書けなかった検査4つ",
-     "treatment": "later",
-     "note": "x-derive の判定に条件を付ける2つは、承認のあと見本で試す。例を組む2つは論点3で扱う"
-    }
-   ]
-  },
-  {
-   "no": 3,
-   "name": "描画の持ち方",
-   "status": "settled",
-   "question": "人が読む描画と、AI ツールが読む形を、基盤と concrete のどちらが持つか",
-   "answer": "B″ ── <b>基盤は描画のコンポーネントと、ページテンプレートを読んで組む道具を持つ。concrete は、宣言の種類ごとのページテンプレートをデータで書く。</b>コンポーネントは、いまの見本の見せ方（見出しと中身の枠 ・ 絞り込みの表 ・ 開く行 ・ 対の枠 ・ 手順の流れ ・ 図）である。<b>concrete のページの UI ・ UX は、いまの見本の水準を下回らない。</b>文の組み方は x-view の文の型に書き、AI はx-prompt と取得で正本を読む",
-   "intro": "この論点が、人と AI ツールがそれぞれ何を読むかを決める。<b>論点4（配り方と名前）は、この分担を前提にする</b>",
-   "decision": {
-    "letter": "B″",
-    "text": [
-     {
-      "kind": "para",
-      "text": "<b>基盤が持つものは2つである。</b>"
-     },
-     {
-      "kind": "list",
-      "items": [
-       {
-        "text": "<b>描画のコンポーネント</b> ── 見出しと中身の枠 ・ 種類で絞る表（複数選べる）・ 同じ表の中で開く行 ・ 見比べる対の枠 ・ 手順と拡張の流れ ・ 図（シーケンス図など）・ 札 ・ 参照のリンク ・ 宣言の JSON の折り畳み。どれも、いまの見本で作ったもの"
-       },
-       {
-        "text": "<b>ページテンプレートを読んで組む道具</b> ── ページテンプレートに書かれた並びのとおりに、コンポーネントへ値を差し込む。欄の名前は持たない"
-       }
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>concrete が書くものは、データだけである。</b>"
-     },
-     {
-      "kind": "grid",
-      "cols": [
-       "concrete が書くもの",
-       "中身"
-      ],
-      "rows": [
-       [
-        "ページテンプレート（pages/<種類>.page.json）",
-        "ページの見出しの札と前置き、節の並び、節ごとのコンポーネントと、コンポーネントに差し込む欄（場所 ・ 見せ方 ・ 出す条件）"
-       ],
-       [
-        "スキーマの注釈",
-        "x-ref（参照と目的の向き）・ x-view（文の型）・ x-derive（判定）・ title（問い）・ description（欄の説明）"
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>ページテンプレートが無い種類は、基盤が注釈だけから組むページで描く</b>（下限の見せ方）。ページテンプレートを書くと、種類ごとに設計した見せ方になる。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>決まり：concrete のページの UI ・ UX は、いまの見本（ボード usecase-driven-concrete の sample/viewer.html）の水準を下回らない。</b>コンポーネントを足すときは、見本で作ってから基盤へ移す。"
-     },
-     {
-      "kind": "para",
-      "text": "<b>AI ツールの形へは変換しない。</b>描画した Markdown と HTML は人が読むためのもので、AI はx-prompt.readと取得（JMESPath）で正本を読む。"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "<b>見本：サブドメインのページテンプレート</b>（concrete が書くデータ。節の並びと、節ごとのコンポーネントと差し込む欄）"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>{\"kind\": \"subdomain\",\n \"head\": {\"badge\": {\"field\": \"classification/category\", \"as\": \"pill\"}, \"lead\": {\"field\": \"header/description\"}},\n \"sections\": [\n  {\"title\": \"カテゴリー\", \"parts\": [\n    {\"part\": \"kv\", \"rows\": [{\"label\": {\"derive_title\": \"classification\"}, \"value\": {\"derive\": \"classification\", \"as\": \"pill\"}}, …]},\n    {\"part\": \"questions\", \"group\": \"classification\", \"heads\": [\"問い（どのサブドメインでも同じ）\", \"このサブドメインの答え\"]}]},\n  {\"title\": \"束ねるユースケース\", \"parts\": [\n    {\"part\": \"table\", \"items\": {\"field\": \"use_cases\", \"resolve\": true},\n     \"cols\": [{\"head\": \"ユースケース\", \"value\": {\"self\": \"link\"}}, {\"head\": \"目的レベル\", \"value\": {\"field\": \"header/level\", \"as\": \"pill\"}}, …]}]}, …]}</code></pre>"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "試した結果（ボード usecase-driven-concrete の見本）",
-      "結果"
-     ],
-     "rows": [
-      [
-       "見本の全部のページ（9種類 ・ 35ページ）を、ページテンプレート（pages/*.page.json）と基盤のコンポーネントだけで組み直した",
-       "35ページすべてが、いまの見本と同じ HTML になった（説明のボタンの番号だけが違う）。コンポーネントのテンプレートは60個"
-      ],
-      [
-       "文の型から組んだ文",
-       "条件 ・ 手順 ・ 拡張 ・ 品質の要求 ・ 状態の変更 ・ 保証 ・ 達成の基準 ・ 競合 ・ 個数 ・ 手順の番号など、256件すべてが前の文と一致した"
-      ],
-      [
-       "組む道具が持つ名前",
-       "ページテンプレートのキー ・ 注釈のキー ・ id ・ kind だけ。欄の名前はページテンプレートとスキーマにだけ在る"
-      ],
-      [
-       "見本の見た目のデザイントークン",
-       "寸法 ・ 余白 ・ 角 ・ 線 ・ 文字をデザイントークン（基礎と意味の層）へ移し、CSS の直値は0件（画面幅の切り替わり3つを除く）"
-      ],
-      [
-       "開発の concrete の側に置いたもの",
-       "例を導く処理（拒否の例 ・ 境界値 ・ 後の状態など）とテスト条件の札（dev7.py）、図の入力の組み立て（fig7.py。描画は design-svg）"
-      ],
-      [
-       "ページテンプレートが無いときの下限のページ",
-       "注釈だけから組んだページ（<a href=\"https://claude.ai/artifact/1r6jVZDR159eS4cugGDFPJ\">page7.html</a>）"
-      ]
-     ]
-    },
-    {
-     "kind": "para",
-     "text": "いまの見本のページ：<a href=\"https://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ\">viewer.html</a>（サブドメインのページは、すでにこの形で組んでいる）"
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "render3",
-     "caption": "concrete は正本 ・ スキーマ ・ <b>ページテンプレート</b>をデータで渡し、基盤がコンポーネントで組む。concrete は描画のコードを持たず、ページの UI ・ UX はいまの見本の水準を下回らない。"
-    }
-   ],
-   "passed": [
-    {
-     "name": "基盤はコンポーネントと組む道具、concrete はページテンプレートをデータで書く",
-     "body": "いまの見本の見せ方を基盤のコンポーネントにし、concrete は種類ごとの並びを宣言する",
-     "cost": "ページテンプレートの書き方を、基盤が決めて x-prompt で示す"
-    },
-    {
-     "name": "描画は基盤がすべて持ち、注釈だけから組む（前の案 B′）",
-     "body": "基盤が注釈から汎用にページを組む",
-     "cost": "どの種類も同じ並びになり、見本の水準に届かない"
-    },
-    {
-     "name": "concrete が描画のコードを持つ（いまの見本の render6）",
-     "body": "種類ごとのページを、concrete のコードで組む",
-     "cost": "コードが欄の名前を持つ。描画が concrete ごとに書かれる"
-    },
-    {
-     "name": "AI ツールごとの形へ変換する",
-     "body": "変換機が AI ツールごとの形を宣言から出す",
-     "cost": "宣言の複製がツールの数だけ増える"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "ページの UI ・ UX",
-      "concrete が描画のコードを持つか",
-      "コンポーネントが concrete をまたいでそろうか"
-     ],
-     "rows": [
-      [
-       "基盤はコンポーネントと組む道具、concrete はページテンプレートをデータで書く",
-       [
-        "<b>見本の水準</b>（同じ HTML になった）",
-        "<b>持たない</b>",
-        "<b>そろう</b>"
-       ]
-      ],
-      [
-       "描画は基盤がすべて持ち、注釈だけから組む（前の案 B′）",
-       [
-        "<b>見本に届かない</b>",
-        "持たない",
-        "そろう"
-       ]
-      ],
-      [
-       "concrete が描画のコードを持つ（いまの見本の render6）",
-       [
-        "見本の水準",
-        "<b>持つ</b>",
-        "<b>そろわない</b>"
-       ]
-      ],
-      [
-       "AI ツールごとの形へ変換する",
-       [
-        "―",
-        "―",
-        "―"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "描画は基盤がすべて持ち、注釈だけから組む（前の案 B′）",
-     "reason": "注釈から汎用に組むと、種類ごとに何をどう見せるかの設計が無くなり、いまの見本の水準に届かない（試した page7.html）"
-    },
-    {
-     "body": "concrete が描画のコードを持つ（いまの見本の render6）",
-     "reason": "コードが欄の名前を持ち、論点2の決まりに反する。コンポーネントも concrete ごとに書かれ、見た目がそろわない"
-    },
-    {
-     "body": "上位の目的を Schema の required だけで表す",
-     "reason": "集約の上位の目的は、集約の中ではなく、それを書き換えるユースケースの側に在る。集約の Schema の required では表せず、試作の AGG-2 は集合を見て初めて検出できた"
-    },
-    {
-     "body": "AI ツールごとの形へ変換する",
-     "reason": "宣言の複製がツールの数だけ増え、複製と宣言のずれを管理することになる。x-prompt と取得で読めば、複製を作らずに必要な欄だけを読める"
-    },
-    {
-     "body": "違反は検証器の文のまま出す",
-     "reason": "検証器の文は英語で、欄の名前も書き方も示さない。欄の title と x-prompt.write は Schema に既に在る"
-    }
-   ],
-   "path": [
-    {
-     "kind": "previous",
-     "letter": "B′",
-     "body": "B′ ── <b>描画は基盤がすべて持ち、concrete は描画のコードを持たない。</b>基盤はインスタンス1件 ・ 違反 ・ 宣言の集合のページ（並び ・ 参照の名前 ・ 逆参照 ・ 目的の連鎖）を描く。<b>文の組み方は注釈 x-view の文の型に書き、目的の向きは x-ref の値に書く。</b>AI ツールの形へは変換しない。AI はx-prompt.readと取得（JMESPath）で正本を読む",
-     "why": "注釈だけから汎用に組む描画器で試すと、どの種類も同じような枠と表の並びになり、種類ごとに見せ方を設計したいまの見本の水準に届かなかった",
-     "user_words": "ちょっとまって。。。。前の方が断然よかったけど。。\nhttps://claude.ai/artifact/NdRwdgjvW1DJrV9RaDFFTJ\n上記のUIUXの方が断然いいよ？？？何で変わったってしまったの？？今回新しくまた定義しなおしたの？？"
-    },
-    {
-     "kind": "previous",
-     "letter": "B",
-     "body": "B ── <b>基盤はインスタンス1件と違反を描画し、concrete は宣言の集合を目的の連鎖としてページに組む。</b>上位の目的は、x-ref に付ける注釈 x-purpose で申告する。<b>AI ツールの形へは変換しない。</b>AI ツールはx-prompt.readと取得（JMESPath）で読む",
-     "why": "論点1 ・ 2の決着で x-ref は基盤の注釈になった。「基盤が集合のページまで組む」を外した理由（参照は concrete の注釈）が成り立たない。値の見せ方を concrete がコードで注入する形は、道具が欄の名前を持たない決まりにも反する",
-     "user_words": "お願いします。"
-    },
-    {
-     "kind": "para",
-     "text": "論点1で描画の契約を基盤に置き、論点2で concrete の注釈を決めた。論点1の試作で、検証の違反の文が英語で出ることが分かり、この論点へ渡していた。"
-    }
-   ],
-   "findings": [
-    "見本の全部のページが、ページテンプレートとコンポーネントで同じ HTML になった ── 種類ごとの見せ方は、データとして書ける",
-    "ページテンプレートを書く言葉（each ・ where ・ if ・ join などのキー）が、試しのうちに50ほどに増えた ── Rust で作る前に、ページテンプレートの形を基盤のスキーマとして決めて絞る",
-    "図の入力の組み立て（シーケンス図のメッセージ、状態の移り変わり、文脈の地図）はページテンプレートの節では書けず、開発の側の処理に置いた",
-    "注釈だけから汎用に組むと、見本の水準に届かない ── 見本の良さは、種類ごとに何をどう見せるかを設計したところにある（利用者の指摘）",
-    "名前の無い項目が別の項目の中に在るときの呼び方（「宣言の欄の説明：条件の文」）も、スキーマの説明から組めた",
-    "文の型には、参照を名前にする手がかり（名前の欄 ・ 語を引く先 ・ 引数の前に付ける語 ・ 決まった語）が必要だった ── 共通の形のスキーマに1回だけ書く",
-    "x-ref が基盤の注釈になったので、目的の向き（x-purpose）も x-ref の値（purpose）に入れられる",
-    "試作で、基盤の本体にも concrete にも欄の名前を書かずに、目的の連鎖を組めた ── 連鎖は注釈（x-ref ・ x-purpose）だけから導ける",
-    "集約の上位の目的は、集約の中ではなく、それを書き換えるユースケースの側に在る ── 参照元を目的とする向き（downward）が必要だった",
-    "基盤の描画は、参照の値を ID のまま描いた ── 名前で描くには、concrete が見せ方を注入する口が必要だった",
-    "検証器の文は英語で、欄の名前も書き方も示さない ── 違反の描画は、欄の title と x-prompt.write から組める",
-    "x-prompt.readと取得（JMESPath）だけで、AI ツールが読む欄を取り出せた ── ツールごとの複製を必要としない",
-    "9月の論点2は、射影の契約を承認の HTML と実行の道具の形の2本にしていた ── 後者を置かないので、この決定の改訂が必要である"
-   ],
-   "grounds": [
-    {
-     "supports": "上位の目的を保持しない要素を検出すること",
-     "basis": "下の要素は、すべて寄与する上位の目的を持つ。…上位の目的を指さない要素は、検出する",
-     "tag": "rule",
-     "source": "ボード usecase-modeling-coding 論点6の決着"
-    },
-    {
-     "supports": "射影と逆参照をスキーマ駆動の道具が持つこと",
-     "basis": "宣言の形（スキーマ）・ 射影（HTML の生成）・ 逆参照の導出 ・ git の版との差分 ・ ドリフトの引き算は、スキーマ駆動の道具が担当する",
-     "tag": "rule",
-     "source": "ボード usecase-modeling-coding 論点6の決着"
-    },
-    {
-     "supports": "インスタンス1件の描画を基盤に置くこと",
-     "basis": "描画の契約 ── 実体を Markdown と HTML へ描画する。見出しはスキーマの title、見せ方は x-view が決める",
-     "tag": "rule",
-     "source": "このボードの論点1の決着"
-    },
-    {
-     "supports": "HTML を版2 の view で組むこと",
-     "basis": "「見た目は正本の写し（view.tokens.json ・ view.tokens.schema.json ・ view.css ・ view.template.html）だけから描き、コードに見た目の値を持たない」",
-     "tag": "rule",
-     "source": "skills-creator の references/document.json「references（契約の版2）」"
-    },
-    {
-     "supports": "注入の口を足すこと",
-     "basis": "既定は宣言での注入（JSON Schema ・ 雛形 ・ 射影の宣言）で、Rust の注入点も残す",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点10の決着"
-    },
-    {
-     "supports": "改訂する9月の決定",
-     "basis": "射影の契約2本 ── 承認の形（HTML）と、実行の道具の形",
-     "tag": "rule",
-     "source": "ボード usecase-schema-driven 論点2の決着"
-    },
-    {
-     "supports": "AI ツールが MCP で読めること",
-     "basis": "Codex ・ Cursor ・ Kiro ・ GitHub Copilot のどれにも、MCP の設定を出す",
-     "tag": "rule",
-     "source": "ボード usecase-modeling-coding 論点5の決着"
-    },
-    {
-     "supports": "この答えの形が成立すること",
-     "basis": "5つの手順を実行し、終了コード0で終わった。base.rs の本体と usecase_q3.rs に、欄の名前は0件である",
-     "tag": "measured",
-     "source": "trial/spike/output-q3.txt（2026-10-03）"
-    },
-    {
-     "supports": "基盤が参照と目的を読めること",
-     "basis": "x-ref と x-derive は基盤の注釈である",
-     "tag": "rule",
-     "source": "このボードの論点2（B‴）"
-    },
-    {
-     "supports": "ページテンプレートとコンポーネントで見本と同じページを組めること",
-     "basis": "見本の全部の頁（35頁）が、頁の型と基盤の部品だけで、前と同じ HTML になった。組む道具が持つ名前は、頁の型と注釈のキーと id ・ kind だけ",
-     "tag": "measured",
-     "source": "ボード usecase-driven-concrete の sample/compose7.py"
-    },
-    {
-     "supports": "文の組み方を x-view に書けること",
-     "basis": "注釈の文の型だけを読む道具が、条件64件すべてを、欄の名前を持つ道具と同じ文にした",
-     "tag": "measured",
-     "source": "ボード usecase-driven-concrete の sample/text7.py"
-    },
-    {
-     "supports": "見本の水準を下限にすること",
-     "basis": "上記のUIUXの方が断然いいよ？？？",
-     "tag": "rule",
-     "source": "利用者の言明（2026-10-05）"
-    }
-   ],
-   "requirements": [
-    "ページテンプレートの形を、基盤のスキーマ（page.schema.json）として決める。試しで増えた約50のキーを絞る",
-    "図の入力を、ページテンプレートか注釈で書けるようにするかを決める（いまは開発の側の処理）",
-    "書き方のページと、テスト条件と検査のページも、ページテンプレートにする",
-    "x-ref の値に purpose（up ・ down）を足し、上位の目的を持たない宣言を集合の検証で検出する",
-    "9月の論点2（射影の契約2本）を、AI ツールの形を置かない形へ改訂する ── ACDR で提示してから適用する"
-   ],
-   "out_of_scope": [
-    {
-     "item": "git の版との差分の描画（印を押すと開く）",
-     "treatment": "later",
-     "note": "試作を正本へ起こす作業で決める。見せ方は ボード usecase-modeling-coding の論点6が決めている"
-    },
-    {
-     "item": "達成の基準ごとの裏付けの件数",
-     "treatment": "out",
-     "note": "ボード usecase-modeling-coding の論点6が決めた見せ方であり、同じ逆参照から数える"
-    },
-    {
-     "item": "AI ツールごとに Skill ・ エージェント ・ MCP の設定を置くこと",
-     "treatment": "out",
-     "note": "ボード usecase-modeling-coding の論点5のインストーラが担当する。宣言の描画ではない"
-    },
-    {
-     "item": "例を組む処理（拒否の例 ・ 後の状態）と、それを使う検査2つ",
-     "treatment": "later",
-     "note": "例はテストの入力なので、開発の concrete（x-test-spec の側）で扱う。描画ではない"
-    }
-   ]
-  },
-  {
-   "no": 4,
-   "name": "配り方と名前",
-   "status": "settled",
-   "question": "基盤と concrete を、どの単位で配り、何と呼ぶか",
-   "answer": "A ── <b>基盤は、1つの Skill「schema-driven」として配る。</b>この Skill が基盤の能力の正本（Rust の crate ・ コンポーネントのテンプレート ・ デザイントークン）を持ち、単独でも使える。<b>基盤をもとに作るものには、作るときに正本の複製を転写し、基盤の差分の検査が、複製と正本の違いを報告する。</b>concrete（ユースケース駆動）は基盤とは別に、use-case-driven-development の一式として配る",
-   "grounds": [
-    {
-     "supports": "複製を転写すること",
-     "basis": "基盤をもとに作るものには、基盤の能力の複製を転写する（skills-creator の雛形の契約と同じ形）",
-     "tag": "rule",
-     "source": "利用者の言明（2026-10-04）"
-    },
-    {
-     "supports": "Skill ごとに配ること",
-     "basis": "Release の公開の単位を Skill ごとにし、全部の Skill をまとめて公開する形はオプションとして残す",
-     "tag": "rule",
-     "source": "ACDR 0042"
-    },
-    {
-     "supports": "基盤を単独で使える Skill にすること",
-     "basis": "基盤は、開発に限らない AI の構造化データ管理の基盤である",
-     "tag": "rule",
-     "source": "このボードの論点1（B⁗）"
-    },
-    {
-     "supports": "転写と差分の検査の形",
-     "basis": "scaffold が各 Skill の references/ へ複製し、check が複製と正本の差を検査する",
-     "tag": "rule",
-     "source": "skills-creator の SKILL.md（references/view/ の項）"
-    }
-   ],
-   "requirements": [
-    "schema-driven を、スキーマ駆動の道具のプロダクトとして宣言する（ユースケース ・ 用語集 ・ その他の要求 ・ 設計の側）。見本の試作で検査する",
-    "宣言に沿って、schema-driven を Rust で作る。テストは宣言から取り出したテスト条件を記録する",
-    "ページテンプレートの形を基盤のスキーマ（page.schema.json）として決める（論点3の要求事項）"
-   ],
-   "intro": "ここで、基盤とそれをもとに作るものが、どの単位で配られ、どう同じ能力を持ち続けるかが決まる",
-   "decision": {
-    "letter": "A",
-    "text": [
-     {
-      "kind": "grid",
-      "cols": [
-       "決めること",
-       "決めた内容"
-      ],
-      "rows": [
-       [
-        "基盤の名前",
-        "schema-driven（スキーマ駆動）"
-       ],
-       [
-        "基盤の配り方",
-        "1つの Skill として配る。公開の単位は Skill ごと（ACDR 0042）"
-       ],
-       [
-        "正本",
-        "schema-driven が持つ。7つの契約 ・ x-ref と x-derive を読む道具 ・ 描画のコンポーネントとページテンプレートを読んで組む道具（Rust の crate）、コンポーネントのテンプレート、デザイントークン"
-       ],
-       [
-        "転写",
-        "基盤をもとに作るものには、作るときに正本の複製を置く。作ったものは複製だけで動き、配ったあとに基盤が無くても動く"
-       ],
-       [
-        "差分の検査",
-        "基盤の check が、複製と正本の違いを報告する。正本が新しくなったら、複製を転写し直す"
-       ],
-       [
-        "単独で使う形",
-        "schema-driven の CLI と MCP で、どのスキーマとインスタンスにも7つの契約と注釈の道具を使える"
-       ],
-       [
-        "concrete",
-        "ユースケース駆動の concrete（宣言のスキーマ ・ ページテンプレート ・ x-test-spec とテストとの突き合わせ）は、use-case-driven-development の一式として配る。どの Skill がどの部分を持つかは、ボード usecase-modeling-coding の役割の分担で決める"
-       ]
-      ]
-     },
-     {
-      "kind": "para",
-      "text": "<b>いまの Skill を schema-driven の上へ移すことは、この論点では決めない</b>（基盤ができたあとに決める。前提のとおり、いまの Skill は基盤の根拠にしない）。"
-     }
-    ]
-   },
-   "example": [
-    {
-     "kind": "para",
-     "text": "<b>見本：schema-driven をもとに Skill を作るとき</b>（Skill の名前は例）"
-    },
-    {
-     "kind": "html",
-     "text": "<pre><code>.claude/skills/schema-driven/          ← 正本\n  tool/  references/  bin/schema-driven\n\n.claude/skills/use-case-driven-modeling/\n  tool/base/        ← schema-driven から転写した複製（書き換えない）\n  references/schemas/*.schema.json   ← この Skill の宣言のスキーマ\n  references/pages/*.page.json       ← この Skill の頁の型\n\n$ schema-driven check .claude/skills/use-case-driven-modeling\n  複製と正本の違い：0件</code></pre>"
-    },
-    {
-     "kind": "grid",
-     "cols": [
-      "複製が正本と違うとき",
-      "どうなるか"
-     ],
-     "rows": [
-      [
-       "正本が新しくなった",
-       "check が違いを報告する。転写し直すと0件に戻る"
-      ],
-      [
-       "複製を手で書き換えた",
-       "check が違いを報告する。正本を直してから転写し直す"
-      ]
-     ]
-    }
-   ],
-   "figures": [
-    {
-     "kind": "figure",
-     "name": "dist",
-     "caption": "schema-driven が正本を持ち、基盤をもとに作るものへ複製を転写する。<b>差分の検査が、複製と正本の違いを報告する。</b>右の2つの Skill の名前と持ち物は例で、役割の分担はボード usecase-modeling-coding で決める。"
-    }
-   ],
-   "passed": [
-    {
-     "name": "基盤を Skill「schema-driven」として配り、複製を転写する",
-     "body": "正本は1か所、作ったものは複製で単独に動き、差分の検査で正本とそろえる",
-     "cost": "正本が新しくなるたびに、転写し直す"
-    },
-    {
-     "name": "基盤を共有の依存（cargo の依存）として使う",
-     "body": "作ったものは、基盤の crate を依存として参照する",
-     "cost": "作ったものが単独で動かない。前提の転写の契約に反する"
-    },
-    {
-     "name": "基盤を skills-creator の雛形の中に置く",
-     "body": "いまの skills-creator が基盤の正本も持つ",
-     "cost": "基盤は Skill を作るためだけの道具ではない。開発に限らない構造化データ管理の基盤（論点1）と合わない"
-    },
-    {
-     "name": "作るものごとに、基盤の能力を書く",
-     "body": "転写せず、それぞれが実装する",
-     "cost": "同じ能力が別々に書かれ、形がずれる"
-    }
-   ],
-   "tables": [
-    {
-     "caption": "案ごとの帰結",
-     "cols": [
-      "作ったものが単独で動くか",
-      "正本と同じ能力を持ち続けられるか",
-      "開発以外にも使えるか"
-     ],
-     "rows": [
-      [
-       "基盤を Skill「schema-driven」として配り、複製を転写する",
-       [
-        "<b>動く</b>",
-        "<b>持ち続けられる</b>（差分の検査）",
-        "<b>使える</b>"
-       ]
-      ],
-      [
-       "基盤を共有の依存（cargo の依存）として使う",
-       [
-        "<b>動かない</b>",
-        "持ち続けられる",
-        "使える"
-       ]
-      ],
-      [
-       "基盤を skills-creator の雛形の中に置く",
-       [
-        "動く",
-        "持ち続けられる",
-        "<b>Skill を作るときだけ</b>"
-       ]
-      ],
-      [
-       "作るものごとに、基盤の能力を書く",
-       [
-        "動く",
-        "<b>ずれる</b>",
-        "使える"
-       ]
-      ]
-     ]
-    }
-   ],
-   "dropped": [
-    {
-     "body": "基盤を共有の依存（cargo の依存）として使う",
-     "reason": "作ったものが基盤なしでは動かない。基盤をもとに作るものへ能力の複製を転写する、という前提（利用者の言明）に反する"
-    },
-    {
-     "body": "基盤を skills-creator の雛形の中に置く",
-     "reason": "基盤は開発に限らない構造化データ管理の基盤である（論点1）。Skill を作る道具の中に置くと、単独で使う形が無くなる"
-    },
-    {
-     "body": "作るものごとに、基盤の能力を書く",
-     "reason": "同じ概念の仕組みが別々に書かれ、形がずれる"
-    }
-   ],
-   "findings": [
-    "いまの skills-creator も、正本を持ち、scaffold で複製を置き、check で複製と正本の差を報告している ── 転写の形は、利用者が指定したこの形を基盤に当てる"
-   ],
-   "out_of_scope": [
-    {
-     "item": "いまの Skill を schema-driven の上へ移すこと",
-     "treatment": "later",
-     "note": "基盤ができたあとに決める"
-    },
-    {
-     "item": "use-case-driven-development の一式のうち、どの Skill が concrete のどの部分を持つか",
-     "treatment": "later",
-     "note": "ボード usecase-modeling-coding の役割の分担で決める"
-    },
-    {
-     "item": "Rust 以外の言語での転写",
-     "treatment": "out",
-     "note": "道具は Rust で作る（利用者の言明）"
-    },
-    {
-     "item": "この答えを試す相手",
-     "treatment": "later",
-     "note": "外の作業で試す。schema-driven を Rust で作り、use-case-driven の Skill へ複製を転写して、差分の検査が0件になることと、正本を変えたときに違いを報告することを確かめる"
-    }
-   ],
-   "path": []
-  }
- ]
+  ],
+  "intro": "スキーマ駆動の道具を、AI が扱うデータを構造化して持つための基盤として形を決める。ユースケース駆動は、その上に載る concrete の1つである。"
 }

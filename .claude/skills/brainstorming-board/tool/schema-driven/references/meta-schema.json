@@ -1,0 +1,44 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "meta-schema.json",
+ "title": "メタスキーマ（基盤が具体のスキーマに求める契約）",
+ "description": "基盤の上に作るもの（具体）が書くスキーマを検査するスキーマ。スキーマの中身（プロパティの名前と意味）は具体が決め、基盤はこの契約と注釈だけを読む。ここで見るのは構造の契約（説明と案内 ・ kind ・ 具体の注釈の申告の形）で、注釈の形（すべての深さ）・ 文の型 ・ 申告していない注釈 ・ 参照される種類の id は、基盤のツール check-schemas の処理が見る",
+ "x-prompt": {
+  "read": "具体のスキーマは、このメタスキーマに従う。従っていれば、基盤のツール（検証 ・ x-prompt ・ 検査 ・ 描画）が、中身を知らないまま使える。",
+  "write": "具体のスキーマを書くときに、次を守る。(1) スキーマに title と description を書く。(2) インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。(3) 書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt（read と write）を書く。(4) 基盤に無い注釈を使うなら、根の x-annotations に名前と仕様のスキーマを書く。誤り：x-prompt を入れ子の奥の葉ごとに書かない（親の x-prompt が覆う）。"
+ },
+ "type": "object",
+ "required": ["title", "description"],
+ "properties": {
+  "title": {"type": "string", "minLength": 1, "description": "スキーマの名前",
+   "x-prompt": {"read": "このスキーマが表すものの名前として読む。", "write": "インスタンスが何であるかを、名詞で書く（例：ユースケース、意思決定の記録）。"}},
+  "description": {"type": "string", "minLength": 1, "description": "スキーマの説明",
+   "x-prompt": {"read": "インスタンスが何で、何を書かないかを読む。", "write": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を1〜3文で書く。"}},
+  "x-generates": {"type": "string", "minLength": 1, "description": "このスキーマが作るインスタンスの置き場所",
+   "x-prompt": {"read": "このスキーマのインスタンスは、この置き場所に作られる。これを持つスキーマは、根に kind を持つ。", "write": "インスタンスのファイルの置き場所を、番号や名前の部分を <…> にして書く（例：decls/UC-<番号>.json）。インスタンスを作らない部品のスキーマ（共通の $defs だけを持つものなど）には書かない。"}},
+  "x-annotations": {"type": "object", "description": "具体が足す注釈の名前と、その仕様のスキーマ",
+   "propertyNames": {"pattern": "^x-"},
+   "additionalProperties": {"type": "string", "minLength": 1},
+   "examples": [{"x-test-spec": "test-spec.schema.json"}],
+   "x-prompt": {"read": "ここに書かれた注釈は、具体が足したもので、基盤は形を検査しない（仕様のスキーマが検査する）。ここに無い x- で始まるキーは、基盤の検査で違反になる。", "write": "基盤の注釈（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-generates）に無い注釈を使うときだけ書く。キーに注釈の名前、値にその仕様のスキーマのファイル名を書く。"}},
+  "properties": {"$ref": "#/$defs/fields"},
+  "$defs": {"type": "object", "additionalProperties": {"$ref": "#/$defs/shape"}}
+ },
+ "if": {"required": ["x-generates"]},
+ "then": {
+  "required": ["properties"],
+  "properties": {"properties": {"required": ["kind"], "properties": {"kind": {"required": ["const"]}}}}
+ },
+ "$defs": {
+  "shape": {"type": "object", "description": "$defs の形1つ。プロパティを持つなら、その書く単位に説明と案内を求める",
+   "properties": {"properties": {"$ref": "#/$defs/fields"}}},
+  "fields": {"type": "object", "description": "書く単位の並び",
+   "properties": {"$schema": true},
+   "additionalProperties": {"$ref": "#/$defs/field"}},
+  "field": {"type": "object", "description": "書く単位1つ", "required": ["description", "x-prompt"],
+   "properties": {
+    "description": {"type": "string", "minLength": 1},
+    "x-prompt": {"type": "object", "required": ["read", "write"], "additionalProperties": false,
+     "properties": {"read": {"type": "string", "minLength": 1}, "write": {"type": "string", "minLength": 1}}}}}
+ }
+}
