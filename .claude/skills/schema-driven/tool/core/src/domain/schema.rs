@@ -47,32 +47,35 @@ impl Schema {
         for (name, value) in &self.siblings {
             registry = registry
                 .add(format!("{BASE}{name}"), value.clone())
-                .map_err(|e| SchemaError(e.to_string()))?;
+                .map_err(|error| SchemaError(error.to_string()))?;
         }
-        let registry = registry.prepare().map_err(|e| SchemaError(e.to_string()))?;
+        let registry = registry
+            .prepare()
+            .map_err(|error| SchemaError(error.to_string()))?;
         let validator = jsonschema::options()
             .offline()
             .with_registry(&registry)
             .with_base_uri(format!("{BASE}{}", self.name))
             .build(&self.root)
-            .map_err(|e| SchemaError(e.to_string()))?;
+            .map_err(|error| SchemaError(error.to_string()))?;
         let mut out = Validation::default();
-        for err in validator.iter_errors(instance) {
-            let at = err.instance_path().to_string();
-            if let jsonschema::error::ValidationErrorKind::Required { property } = err.kind() {
+        for error in validator.iter_errors(instance) {
+            let at = error.instance_path().to_string();
+            if let jsonschema::error::ValidationErrorKind::Required { property } = error.kind() {
                 let name = property
                     .as_str()
                     .map(str::to_owned)
                     .unwrap_or_else(|| property.to_string());
                 let pointer = format!("{at}/{}", name.replace('~', "~0").replace('/', "~1"));
-                if let Ok(u) = Unfilled::new(&pointer) {
-                    out.unfilled.push(u);
+                if let Ok(unfilled) = Unfilled::new(&pointer) {
+                    out.unfilled.push(unfilled);
                 }
-            } else if let Ok(e) = ValidationError::new(&at, &err.to_string()) {
-                out.errors.push(e);
+            } else if let Ok(validation_error) = ValidationError::new(&at, &error.to_string()) {
+                out.errors.push(validation_error);
             }
         }
-        out.unfilled.sort_by(|a, b| a.property().cmp(b.property()));
+        out.unfilled
+            .sort_by(|left, right| left.property().cmp(right.property()));
         Ok(out)
     }
 
@@ -81,45 +84,51 @@ impl Schema {
         let mut node = &self.root;
         let mut doc = &self.root;
         for raw in pointer.split('/').skip(1) {
-            let seg = raw.replace("~1", "/").replace("~0", "~");
-            let (n, d) = self.resolve(node, doc);
-            node = n;
-            doc = d;
-            node = if seg.chars().all(|c| c.is_ascii_digit()) && node.get("items").is_some() {
+            let segment = raw.replace("~1", "/").replace("~0", "~");
+            let (resolved_node, resolved_doc) = self.resolve(node, doc);
+            node = resolved_node;
+            doc = resolved_doc;
+            node = if segment.chars().all(|character| character.is_ascii_digit())
+                && node.get("items").is_some()
+            {
                 node.get("items")?
             } else {
-                node.get("properties")?.get(&seg)?
+                node.get("properties")?.get(&segment)?
             };
         }
         if pointer.is_empty() {
             return None;
         }
-        if let Some(p) = node.get("x-prompt") {
-            return Some(p.clone());
+        if let Some(prompt) = node.get("x-prompt") {
+            return Some(prompt.clone());
         }
-        let (n, _) = self.resolve(node, doc);
-        n.get("x-prompt").cloned()
+        let (resolved_node, _) = self.resolve(node, doc);
+        resolved_node.get("x-prompt").cloned()
     }
 
     /// `$ref` をたどる。同じファイル（`#/…`）と、同じディレクトリのスキーマ（`名前#/…`）だけを解く。
-    pub(crate) fn resolve<'a>(
-        &'a self,
-        mut node: &'a Value,
-        mut doc: &'a Value,
-    ) -> (&'a Value, &'a Value) {
+    pub(crate) fn resolve<'schema>(
+        &'schema self,
+        mut node: &'schema Value,
+        mut doc: &'schema Value,
+    ) -> (&'schema Value, &'schema Value) {
         for _ in 0..16 {
-            let Some(r) = node.get("$ref").and_then(Value::as_str) else {
+            let Some(reference) = node.get("$ref").and_then(Value::as_str) else {
                 break;
             };
-            let (file, frag) = r.split_once('#').unwrap_or((r, ""));
+            let (file, frag) = reference.split_once('#').unwrap_or((reference, ""));
             if !file.is_empty() {
-                match self.siblings.iter().find(|(n, _)| n == file) {
-                    Some((_, v)) => doc = v,
+                match self
+                    .siblings
+                    .iter()
+                    .find(|(file_name, _)| file_name == file)
+                {
+                    Some((_, sibling)) => doc = sibling,
                     None => break,
                 }
             }
             match doc.pointer(frag) {
-                Some(v) => node = v,
+                Some(target) => node = target,
                 None => break,
             }
         }

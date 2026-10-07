@@ -54,57 +54,68 @@ impl Design for MiniDesign {
         self.parts
     }
 
-    fn page(&self, f: &Frame, r: &dyn Renderer) -> Result<Html, String> {
-        let lead = if f.lead.as_str().is_empty() {
+    fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {
+        let lead = if frame.lead.as_str().is_empty() {
             Html::default()
         } else {
-            r.part("lead", &[("text", f.lead.clone())])?
+            renderer.part("lead", &[("text", frame.lead.clone())])?
         };
-        r.part(
+        renderer.part(
             "page",
             &[
-                ("title", r.text(&f.title)),
-                ("badges", f.badges.clone()),
+                ("title", renderer.text(&frame.title)),
+                ("badges", frame.badges.clone()),
                 ("lead", lead),
-                ("sections", f.sections.clone()),
+                ("sections", frame.sections.clone()),
             ],
         )
     }
 
-    fn section(&self, heading: &str, body: Html, r: &dyn Renderer) -> Result<Html, String> {
-        r.part("section", &[("heading", r.text(heading)), ("body", body)])
+    fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String> {
+        renderer.part(
+            "section",
+            &[("heading", renderer.text(heading)), ("body", body)],
+        )
     }
 
-    fn render(&self, name: &str, input: &Value, r: &mut dyn Renderer) -> Result<Html, String> {
+    fn render(
+        &self,
+        name: &str,
+        input: &Value,
+        renderer: &mut dyn Renderer,
+    ) -> Result<Html, String> {
         match name {
             "pill" => {
-                let v = r.node(&input["value"])?;
+                let text = renderer.node(&input["value"])?;
                 let tone = match input.get("tone").and_then(Value::as_str) {
                     Some(table) => {
-                        let raw = r.value(&input["value"])?;
-                        r.tone(table, &raw).unwrap_or_else(|| "plain".into())
+                        let raw = renderer.value(&input["value"])?;
+                        renderer.tone(table, &raw).unwrap_or_else(|| "plain".into())
                     }
                     None => "plain".into(),
                 };
-                r.part("pill", &[("tone", r.text(&tone)), ("text", v)])
+                renderer.part("pill", &[("tone", renderer.text(&tone)), ("text", text)])
             }
             "table" => {
-                let rows = r.value(&input["rows"])?;
+                let rows = renderer.value(&input["rows"])?;
                 let cols = input["cols"].as_array().cloned().unwrap_or_default();
                 let mut head = Html::default();
-                for c in &cols {
-                    head.push(r.part("th", &[("text", r.text(c["head"].as_str().unwrap_or("")))])?);
+                for column in &cols {
+                    head.push(renderer.part(
+                        "th",
+                        &[("text", renderer.text(column["head"].as_str().unwrap_or("")))],
+                    )?);
                 }
                 let mut body = Html::default();
                 for row in rows.as_array().cloned().unwrap_or_default() {
                     let mut cells = Html::default();
-                    for c in &cols {
-                        let v = r.node_at(&c["value"], &row)?;
-                        cells.push(r.part("td", &[("text", v)])?);
+                    for column in &cols {
+                        let cell = renderer.node_at(&column["value"], &row)?;
+                        cells.push(renderer.part("td", &[("text", cell)])?);
                     }
-                    body.push(r.part("tr", &[("cells", cells)])?);
+                    body.push(renderer.part("tr", &[("cells", cells)])?);
                 }
-                r.part("table", &[("head", head), ("body", body)])
+                renderer.part("table", &[("head", head), ("body", body)])
             }
             other => Err(format!("MiniDesign は {other} を描画できない")),
         }
@@ -152,22 +163,22 @@ fn render_uc(
     let values = instances();
     let docs: Vec<Doc> = values
         .iter()
-        .map(|v| {
-            let s = if v["kind"] == "uc" { &uc } else { &rule };
+        .map(|value| {
+            let schema = if value["kind"] == "uc" { &uc } else { &rule };
             Doc {
-                path: format!("{}.json", v["id"].as_str().unwrap()),
-                value: v.clone(),
-                hash: JsonValue::new(&v.to_string()).hash(),
-                schema: s,
+                path: format!("{}.json", value["id"].as_str().unwrap()),
+                value: value.clone(),
+                hash: JsonValue::new(&value.to_string()).hash(),
+                schema,
             }
         })
         .collect();
     let ctx = contexts(&docs).remove(0);
     let list = values
         .iter()
-        .map(|v| Instance {
-            value: v.clone(),
-            schema: if v["kind"] == "uc" {
+        .map(|value| Instance {
+            value: value.clone(),
+            schema: if value["kind"] == "uc" {
                 "uc.schema.json".into()
             } else {
                 "rule.schema.json".into()
@@ -188,14 +199,14 @@ fn render_uc(
         ],
         list,
     );
-    if let Some(f) = extra {
-        engine = engine.with_functions(f).map_err(|e| e.0)?;
+    if let Some(functions) = extra {
+        engine = engine.with_functions(functions).map_err(|error| error.0)?;
     }
-    let renderer = PageRenderer::new(engine, Arc::new(design)).map_err(|e| e.0)?;
+    let renderer = PageRenderer::new(engine, Arc::new(design)).map_err(|error| error.0)?;
     renderer
         .render(&page, &ctx, "uc.schema.json")
-        .map(|h| h.as_str().to_owned())
-        .map_err(|e| e.0)
+        .map(|html| html.as_str().to_owned())
+        .map_err(|error| error.0)
 }
 
 #[test]

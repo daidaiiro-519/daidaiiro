@@ -8,8 +8,8 @@ use std::path::Path;
 
 pub struct FileSystem;
 
-fn unwritable(e: std::io::Error) -> WriteError {
-    WriteError::Unwritable(e.to_string())
+fn unwritable(error: std::io::Error) -> WriteError {
+    WriteError::Unwritable(error.to_string())
 }
 
 impl Files for FileSystem {
@@ -18,13 +18,13 @@ impl Files for FileSystem {
     }
 
     fn read(&self, path: &str) -> Result<String, ReadError> {
-        fs::read_to_string(path).map_err(|e| ReadError(format!("{path}: {e}")))
+        fs::read_to_string(path).map_err(|error| ReadError(format!("{path}: {error}")))
     }
 
     fn list(&self, dir: &str) -> Result<Vec<String>, ReadError> {
         let mut out = Vec::new();
-        for entry in fs::read_dir(dir).map_err(|e| ReadError(format!("{dir}: {e}")))? {
-            let entry = entry.map_err(|e| ReadError(e.to_string()))?;
+        for entry in fs::read_dir(dir).map_err(|error| ReadError(format!("{dir}: {error}")))? {
+            let entry = entry.map_err(|error| ReadError(error.to_string()))?;
             if entry.path().is_file() {
                 out.push(format!(
                     "{}/{}",
@@ -43,18 +43,21 @@ impl Files for FileSystem {
         let target = Path::new(path);
         match cond {
             WriteIf::Absent => {
-                if let Some(parent) = target.parent().filter(|p| !p.as_os_str().is_empty()) {
+                if let Some(parent) = target
+                    .parent()
+                    .filter(|parent_dir| !parent_dir.as_os_str().is_empty())
+                {
                     fs::create_dir_all(parent).map_err(unwritable)?;
                 }
                 let mut file = fs::OpenOptions::new()
                     .write(true)
                     .create_new(true)
                     .open(target)
-                    .map_err(|e| {
-                        if e.kind() == std::io::ErrorKind::AlreadyExists {
+                    .map_err(|error| {
+                        if error.kind() == std::io::ErrorKind::AlreadyExists {
                             WriteError::Conflict
                         } else {
-                            unwritable(e)
+                            unwritable(error)
                         }
                     })?;
                 file.write_all(content.as_bytes()).map_err(unwritable)
@@ -75,9 +78,9 @@ impl Files for FileSystem {
                 }
                 let tmp = target.with_extension("json.tmp");
                 fs::write(&tmp, content).map_err(unwritable)?;
-                fs::rename(&tmp, target).map_err(|e| {
+                fs::rename(&tmp, target).map_err(|error| {
                     let _ = fs::remove_file(&tmp);
-                    unwritable(e)
+                    unwritable(error)
                 })
             }
         }
@@ -93,11 +96,11 @@ impl Schemas for FileSystem {
     fn referenced(&self, path: &str) -> Result<Vec<(String, String)>, ReadError> {
         let dir = Path::new(path)
             .parent()
-            .filter(|p| !p.as_os_str().is_empty())
+            .filter(|parent_dir| !parent_dir.as_os_str().is_empty())
             .unwrap_or(Path::new("."));
         let mut out = Vec::new();
-        for entry in fs::read_dir(dir).map_err(|e| ReadError(e.to_string()))? {
-            let entry = entry.map_err(|e| ReadError(e.to_string()))?;
+        for entry in fs::read_dir(dir).map_err(|error| ReadError(error.to_string()))? {
+            let entry = entry.map_err(|error| ReadError(error.to_string()))?;
             let name = entry.file_name().to_string_lossy().into_owned();
             if name.ends_with(".schema.json") {
                 if let Ok(text) = fs::read_to_string(entry.path()) {

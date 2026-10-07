@@ -33,14 +33,14 @@ pub struct ViewEngine {
 }
 
 /// 値を文字にする。null は空、配列は「 ・ 」でつなぐ。
-pub fn to_text(v: &Value) -> String {
-    match v {
+pub fn to_text(value: &Value) -> String {
+    match value {
         Value::Null => String::new(),
-        Value::String(s) => s.clone(),
-        Value::Array(a) => a
+        Value::String(text) => text.clone(),
+        Value::Array(elements) => elements
             .iter()
             .map(to_text)
-            .filter(|s| !s.is_empty())
+            .filter(|text| !text.is_empty())
             .collect::<Vec<_>>()
             .join(" ・ "),
         other => other.to_string(),
@@ -48,12 +48,12 @@ pub fn to_text(v: &Value) -> String {
 }
 
 /// JMESPath の真偽（null ・ false ・ 空の文字 ・ 空の配列 ・ 空のオブジェクトは偽）。
-pub fn truthy(v: &Value) -> bool {
-    match v {
+pub fn truthy(value: &Value) -> bool {
+    match value {
         Value::Null | Value::Bool(false) => false,
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(elements) => !elements.is_empty(),
+        Value::Object(object) => !object.is_empty(),
         _ => true,
     }
 }
@@ -65,14 +65,14 @@ fn split(template: &str) -> Result<Vec<(bool, String)>, ViewError> {
     let mut text = String::new();
     let mut i = 0;
     while i < chars.len() {
-        let c = chars[i];
-        if c == '{' && chars.get(i + 1) == Some(&'{') {
+        let character = chars[i];
+        if character == '{' && chars.get(i + 1) == Some(&'{') {
             text.push('{');
             i += 2;
-        } else if c == '}' && chars.get(i + 1) == Some(&'}') {
+        } else if character == '}' && chars.get(i + 1) == Some(&'}') {
             text.push('}');
             i += 2;
-        } else if c == '{' {
+        } else if character == '{' {
             if !text.is_empty() {
                 out.push((false, std::mem::take(&mut text)));
             }
@@ -81,13 +81,13 @@ fn split(template: &str) -> Result<Vec<(bool, String)>, ViewError> {
             let mut expr = String::new();
             i += 1;
             while i < chars.len() {
-                let d = chars[i];
+                let inner = chars[i];
                 match quote {
-                    Some(q) if d == q => quote = None,
+                    Some(open_quote) if inner == open_quote => quote = None,
                     Some(_) => {}
-                    None if d == '\'' || d == '`' || d == '"' => quote = Some(d),
-                    None if d == '{' => depth += 1,
-                    None if d == '}' => {
+                    None if inner == '\'' || inner == '`' || inner == '"' => quote = Some(inner),
+                    None if inner == '{' => depth += 1,
+                    None if inner == '}' => {
                         depth -= 1;
                         if depth == 0 {
                             break;
@@ -95,7 +95,7 @@ fn split(template: &str) -> Result<Vec<(bool, String)>, ViewError> {
                     }
                     None => {}
                 }
-                expr.push(d);
+                expr.push(inner);
                 i += 1;
             }
             if depth != 0 {
@@ -104,7 +104,7 @@ fn split(template: &str) -> Result<Vec<(bool, String)>, ViewError> {
             out.push((true, expr.trim().to_owned()));
             i += 1;
         } else {
-            text.push(c);
+            text.push(character);
             i += 1;
         }
     }
@@ -132,12 +132,12 @@ impl ViewEngine {
 
     /// 具体の関数を足す（ACDR 0132）。基盤の関数と同じ名前は足せない。
     pub fn with_functions(self, extra: Arc<dyn Functions>) -> Result<Self, ViewError> {
-        if let Some(n) = extra
+        if let Some(name) = extra
             .names()
             .into_iter()
-            .find(|n| FUNCTIONS.contains(&n.as_str()))
+            .find(|name| FUNCTIONS.contains(&name.as_str()))
         {
-            return Err(ViewError(format!("基盤の関数と同じ名前は足せない: {n}")));
+            return Err(ViewError(format!("基盤の関数と同じ名前は足せない: {name}")));
         }
         Ok(Self {
             extra: Some(extra),
@@ -150,12 +150,21 @@ impl ViewEngine {
         let host = Arc::new(Host {
             engine: self.clone(),
             schema: schema.to_owned(),
-            xv: Value::Null,
+            x_view: Value::Null,
         });
         self.inner
             .query
             .evaluate(expr, value, host)
-            .map_err(|e| ViewError(e.0))
+            .map_err(|error| ViewError(error.0))
+    }
+
+    /// インスタンスの題。スキーマの根の x-view の label をインスタンスに当てた名前。label が無いか、空なら None。
+    pub fn title(&self, schema: &str, value: &Value) -> Option<String> {
+        let instance = Instance {
+            value: value.clone(),
+            schema: schema.to_owned(),
+        };
+        self.label_at(&instance, &[])
     }
 
     /// 参照の指す先の名前（name() と同じ）。
@@ -165,34 +174,39 @@ impl ViewEngine {
 
     /// スキーマの場所（JSON Pointer）にある x-view で、値を文にする。x-view が無ければ値をそのまま文字にする。
     pub fn render(&self, schema: &str, pointer: &str, value: &Value) -> Result<String, ViewError> {
-        let s = self
+        let loaded = self
             .inner
             .schemas
             .get(schema)
             .ok_or_else(|| ViewError(format!("スキーマが無い: {schema}")))?;
-        let node = s
+        let node = loaded
             .root()
             .pointer(pointer)
             .ok_or_else(|| ViewError(format!("{schema}#{pointer} が無い")))?;
         match node.get("x-view") {
-            Some(xv) => self.render_view(schema, xv, value),
+            Some(x_view) => self.render_view(schema, x_view, value),
             None => Ok(to_text(value)),
         }
     }
 
-    fn render_view(&self, schema: &str, xv: &Value, value: &Value) -> Result<String, ViewError> {
-        if xv.get("hidden") == Some(&Value::Bool(true)) {
+    fn render_view(
+        &self,
+        schema: &str,
+        x_view: &Value,
+        value: &Value,
+    ) -> Result<String, ViewError> {
+        if x_view.get("hidden") == Some(&Value::Bool(true)) {
             return Ok(String::new());
         }
         let host = Arc::new(Host {
             engine: self.clone(),
             schema: schema.to_owned(),
-            xv: xv.clone(),
+            x_view: x_view.clone(),
         });
-        let template = match self.pick(xv.get("cases"), value, &host)? {
-            Some(t) => t,
-            None => match xv.get("text").and_then(Value::as_str) {
-                Some(t) => t.to_owned(),
+        let template = match self.pick(x_view.get("cases"), value, &host)? {
+            Some(template) => template,
+            None => match x_view.get("text").and_then(Value::as_str) {
+                Some(template) => template.to_owned(),
                 None => return Ok(to_text(value)),
             },
         };
@@ -212,7 +226,7 @@ impl ViewEngine {
                 .inner
                 .query
                 .evaluate(when, value, host.clone())
-                .map_err(|e| ViewError(e.0))?;
+                .map_err(|error| ViewError(error.0))?;
             if truthy(&hit) {
                 return Ok(case.get("text").and_then(Value::as_str).map(str::to_owned));
             }
@@ -224,12 +238,12 @@ impl ViewEngine {
         let mut out = String::new();
         for (is_expr, part) in split(template)? {
             if is_expr {
-                let v = self
+                let evaluated = self
                     .inner
                     .query
                     .evaluate(&part, value, host.clone())
-                    .map_err(|e| ViewError(e.0))?;
-                out.push_str(&to_text(&v));
+                    .map_err(|error| ViewError(error.0))?;
+                out.push_str(&to_text(&evaluated));
             } else {
                 out.push_str(&part);
             }
@@ -239,90 +253,92 @@ impl ViewEngine {
 
     /// 参照の指す先を探し、その形の x-view の label で名前を返す。見つからなければ参照の値そのもの。
     fn name_of(&self, reference: &str) -> String {
-        let inst = &self.inner.instances;
-        let id_of = |v: &Value| v.get("id").and_then(Value::as_str).map(str::to_owned);
-        if let Some(i) = inst
+        let instances = &self.inner.instances;
+        let id_of = |value: &Value| value.get("id").and_then(Value::as_str).map(str::to_owned);
+        if let Some(instance) = instances
             .iter()
-            .find(|i| id_of(&i.value).as_deref() == Some(reference))
+            .find(|instance| id_of(&instance.value).as_deref() == Some(reference))
         {
             return self
-                .label_at(i, &[])
+                .label_at(instance, &[])
                 .unwrap_or_else(|| reference.to_owned());
         }
         let (owner, item) = match reference.split_once('.') {
-            Some((o, it)) => (Some(o), it),
+            Some((owner_id, item_id)) => (Some(owner_id), item_id),
             None => (None, reference),
         };
-        for i in inst {
-            if owner.is_some_and(|o| id_of(&i.value).as_deref() != Some(o)) {
+        for instance in instances {
+            if owner.is_some_and(|owner_id| id_of(&instance.value).as_deref() != Some(owner_id)) {
                 continue;
             }
-            if let Some(path) = find_item(&i.value, item, &mut Vec::new()) {
-                return self.label_at(i, &path).unwrap_or_else(|| item.to_owned());
+            if let Some(path) = find_item(&instance.value, item, &mut Vec::new()) {
+                return self
+                    .label_at(instance, &path)
+                    .unwrap_or_else(|| item.to_owned());
             }
         }
         reference.to_owned()
     }
 
     /// インスタンスの中の場所 path にある値の形の x-view の label を、その値で評価した名前。
-    fn label_at(&self, inst: &Instance, path: &[String]) -> Option<String> {
-        let schema = self.inner.schemas.get(&inst.schema)?;
+    fn label_at(&self, instance: &Instance, path: &[String]) -> Option<String> {
+        let schema = self.inner.schemas.get(&instance.schema)?;
         let mut node = schema.root();
         let mut doc = schema.root();
-        let mut value = &inst.value;
-        for seg in path {
-            let (n, d) = schema.resolve(node, doc);
-            doc = d;
-            node = match seg.parse::<usize>() {
-                Ok(i) => {
-                    value = value.get(i)?;
-                    n.get("items")?
+        let mut value = &instance.value;
+        for segment in path {
+            let (resolved_node, resolved_doc) = schema.resolve(node, doc);
+            doc = resolved_doc;
+            node = match segment.parse::<usize>() {
+                Ok(position) => {
+                    value = value.get(position)?;
+                    resolved_node.get("items")?
                 }
                 Err(_) => {
-                    value = value.get(seg)?;
-                    n.get("properties")?.get(seg)?
+                    value = value.get(segment)?;
+                    resolved_node.get("properties")?.get(segment)?
                 }
             };
         }
         let label = node
             .get("x-view")
-            .and_then(|x| x.get("label"))
+            .and_then(|view| view.get("label"))
             .or_else(|| {
                 schema
                     .resolve(node, doc)
                     .0
                     .get("x-view")
-                    .and_then(|x| x.get("label"))
+                    .and_then(|view| view.get("label"))
             })?
             .as_str()?
             .to_owned();
-        let v = self.inner.query.search(&label, value).ok()?;
-        let text = to_text(&v);
+        let found = self.inner.query.search(&label, value).ok()?;
+        let text = to_text(&found);
         (!text.is_empty()).then_some(text)
     }
 }
 
 /// インスタンスの中で、id が item のオブジェクトの場所を探す。
-fn find_item(v: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String>> {
-    match v {
-        Value::Object(m) => {
-            if !path.is_empty() && m.get("id").and_then(Value::as_str) == Some(item) {
+fn find_item(value: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String>> {
+    match value {
+        Value::Object(object) => {
+            if !path.is_empty() && object.get("id").and_then(Value::as_str) == Some(item) {
                 return Some(path.clone());
             }
-            for (k, c) in m {
-                path.push(k.clone());
-                if let Some(p) = find_item(c, item, path) {
-                    return Some(p);
+            for (key, child) in object {
+                path.push(key.clone());
+                if let Some(found) = find_item(child, item, path) {
+                    return Some(found);
                 }
                 path.pop();
             }
             None
         }
-        Value::Array(a) => {
-            for (i, c) in a.iter().enumerate() {
-                path.push(i.to_string());
-                if let Some(p) = find_item(c, item, path) {
-                    return Some(p);
+        Value::Array(elements) => {
+            for (position, child) in elements.iter().enumerate() {
+                path.push(position.to_string());
+                if let Some(found) = find_item(child, item, path) {
+                    return Some(found);
                 }
                 path.pop();
             }
@@ -336,28 +352,28 @@ fn find_item(v: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String
 struct Host {
     engine: ViewEngine,
     schema: String,
-    xv: Value,
+    x_view: Value,
 }
 
 /// 配列なら要素ごとに適用する。
-fn each(v: &Value, f: &dyn Fn(&Value) -> Result<Value, String>) -> Result<Value, String> {
-    match v {
-        Value::Array(a) => a
+fn each(value: &Value, apply: &dyn Fn(&Value) -> Result<Value, String>) -> Result<Value, String> {
+    match value {
+        Value::Array(elements) => elements
             .iter()
-            .map(f)
+            .map(apply)
             .collect::<Result<Vec<_>, _>>()
             .map(Value::Array),
-        other => f(other),
+        other => apply(other),
     }
 }
 
-fn arg(args: &[Value], i: usize) -> &Value {
-    args.get(i).unwrap_or(&Value::Null)
+fn arg(args: &[Value], position: usize) -> &Value {
+    args.get(position).unwrap_or(&Value::Null)
 }
 
 impl Functions for Host {
     fn names(&self) -> Vec<String> {
-        let mut names: Vec<String> = FUNCTIONS.iter().map(|n| n.to_string()).collect();
+        let mut names: Vec<String> = FUNCTIONS.iter().map(|name| name.to_string()).collect();
         if let Some(extra) = &self.engine.extra {
             names.extend(extra.names());
         }
@@ -365,13 +381,13 @@ impl Functions for Host {
     }
 
     fn call(&self, name: &str, args: &[Value]) -> Result<Value, String> {
-        let s = |v: &Value| to_text(v);
+        let text_of = |value: &Value| to_text(value);
         match name {
-            "name" => each(arg(args, 0), &|v| {
-                Ok(Value::String(self.engine.name_of(&s(v))))
+            "name" => each(arg(args, 0), &|value| {
+                Ok(Value::String(self.engine.name_of(&text_of(value))))
             }),
-            "label" => each(arg(args, 0), &|v| {
-                let id = v.get("id").map(to_text).unwrap_or_default();
+            "label" => each(arg(args, 0), &|value| {
+                let id = value.get("id").map(to_text).unwrap_or_default();
                 Ok(Value::String(if id.is_empty() {
                     String::new()
                 } else {
@@ -379,63 +395,69 @@ impl Functions for Host {
                 }))
             }),
             "map" => {
-                let table = s(arg(args, 0));
-                let t = self
-                    .xv
+                let table = text_of(arg(args, 0));
+                let table_entries = self
+                    .x_view
                     .get("maps")
-                    .and_then(|m| m.get(&table))
+                    .and_then(|maps| maps.get(&table))
                     .cloned()
                     .unwrap_or_default();
-                each(arg(args, 1), &|v| {
-                    Ok(t.get(s(v)).cloned().unwrap_or(Value::String(String::new())))
+                each(arg(args, 1), &|value| {
+                    Ok(table_entries
+                        .get(text_of(value))
+                        .cloned()
+                        .unwrap_or(Value::String(String::new())))
                 })
             }
             "view" => {
-                let loc = s(arg(args, 0));
-                let (file, pointer) = match loc.split_once('#') {
-                    Some((f, p)) if !f.is_empty() => (f.to_owned(), p.to_owned()),
-                    Some((_, p)) => (self.schema.clone(), p.to_owned()),
-                    None => (self.schema.clone(), loc.clone()),
+                let location = text_of(arg(args, 0));
+                let (file, pointer) = match location.split_once('#') {
+                    Some((file_name, fragment)) if !file_name.is_empty() => {
+                        (file_name.to_owned(), fragment.to_owned())
+                    }
+                    Some((_, fragment)) => (self.schema.clone(), fragment.to_owned()),
+                    None => (self.schema.clone(), location.clone()),
                 };
-                each(arg(args, 1), &|v| {
+                each(arg(args, 1), &|value| {
                     self.engine
-                        .render(&file, &pointer, v)
+                        .render(&file, &pointer, value)
                         .map(Value::String)
-                        .map_err(|e| e.0)
+                        .map_err(|error| error.0)
                 })
             }
             "part" => {
-                let pname = s(arg(args, 0));
+                let part_name = text_of(arg(args, 0));
                 let part = self
-                    .xv
+                    .x_view
                     .get("parts")
-                    .and_then(|p| p.get(&pname))
+                    .and_then(|parts| parts.get(&part_name))
                     .cloned()
-                    .ok_or(format!("parts に {pname} が無い"))?;
+                    .ok_or(format!("parts に {part_name} が無い"))?;
                 let host = Arc::new(Host {
                     engine: self.engine.clone(),
                     schema: self.schema.clone(),
-                    xv: self.xv.clone(),
+                    x_view: self.x_view.clone(),
                 });
                 let value = arg(args, 1);
                 let template = match &part {
-                    Value::String(t) => Some(t.clone()),
-                    arr @ Value::Array(_) => {
-                        self.engine.pick(Some(arr), value, &host).map_err(|e| e.0)?
-                    }
+                    Value::String(text) => Some(text.clone()),
+                    array @ Value::Array(_) => self
+                        .engine
+                        .pick(Some(array), value, &host)
+                        .map_err(|error| error.0)?,
                     _ => None,
                 };
                 match template {
-                    Some(t) => self
+                    Some(template) => self
                         .engine
-                        .fill(&t, value, &host)
+                        .fill(&template, value, &host)
                         .map(Value::String)
-                        .map_err(|e| e.0),
+                        .map_err(|error| error.0),
                     None => Ok(Value::String(String::new())),
                 }
             }
-            "quote" => each(arg(args, 0), &|v| {
-                Ok(Value::String(format!("「{}」", s(v))))
+            "quote" => each(arg(args, 0), &|value| {
+                Ok(Value::String(format!("「{}」", text_of(value))))
             }),
             other => match &self.engine.extra {
                 Some(extra) => extra.call(other, args),

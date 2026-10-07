@@ -97,9 +97,9 @@ fn fill(dir: &Path) {
 }
 
 fn set_readonly(path: &Path, readonly: bool) {
-    let mut p = fs::metadata(path).unwrap().permissions();
-    p.set_readonly(readonly);
-    fs::set_permissions(path, p).unwrap();
+    let mut permissions = fs::metadata(path).unwrap().permissions();
+    permissions.set_readonly(readonly);
+    fs::set_permissions(path, permissions).unwrap();
 }
 
 // ── 集約 インスタンス（AGG-1）
@@ -185,11 +185,11 @@ fn uc_1_m_create_returns_unfilled_with_prompt() {
     assert_eq!(code, 0, "{out}");
     assert!(dir.join("data/a.json").exists());
     let unfilled = out["unfilled"].as_array().unwrap();
-    let props: Vec<&str> = unfilled
+    let properties: Vec<&str> = unfilled
         .iter()
-        .map(|u| u["property"].as_str().unwrap())
+        .map(|unfilled| unfilled["property"].as_str().unwrap())
         .collect();
-    assert_eq!(props, vec!["/items", "/name"]);
+    assert_eq!(properties, vec!["/items", "/name"]);
     assert_eq!(unfilled[1]["prompt"]["write"], "名前を1語で書く");
 }
 
@@ -266,9 +266,9 @@ fn uc_2_m_get_returns_value() {
 fn uc_2_ext_1_invalid_query_fails() {
     let dir = workdir("uc2-ext1");
     create(&dir);
-    for q in ["", "items[0"] {
-        let (code, out) = run(&dir, &["get", "--path", "data/a.json", "--query", q]);
-        assert_eq!(code, 1, "{q}");
+    for query in ["", "items[0"] {
+        let (code, out) = run(&dir, &["get", "--path", "data/a.json", "--query", query]);
+        assert_eq!(code, 1, "{query}");
         assert_eq!(out["reason"], "JMESPath 式が読めない");
     }
 }
@@ -420,7 +420,7 @@ fn uc_7_ext_1_unreadable_schema_fails() {
 #[test]
 fn uc_7_ext_2_property_without_prompt_fails() {
     let dir = workdir("uc7-ext2");
-    for p in ["/note", "/missing"] {
+    for property in ["/note", "/missing"] {
         let (code, out) = run(
             &dir,
             &[
@@ -428,10 +428,10 @@ fn uc_7_ext_2_property_without_prompt_fails() {
                 "--schema",
                 "schema/thing.schema.json",
                 "--property",
-                p,
+                property,
             ],
         );
-        assert_eq!(code, 1, "{p}");
+        assert_eq!(code, 1, "{property}");
         assert_eq!(out["reason"], "x-prompt を持つプロパティがスキーマに無い");
     }
 }

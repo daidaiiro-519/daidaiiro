@@ -1,0 +1,740 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "document.schema.json",
+ "title": "文書",
+ "description": "何も指定が無いときに使う、基盤の文書の契約。文書は、節の並びで、節は情報の種類ごとのブロックの並びである。この契約に合うインスタンスは、基盤の決まったデザインで描画する。具体がスキーマとデザインテンプレートを持つときは、そちらを使う",
+ "x-generates": "<文書の名前>.json",
+ "x-view": {
+  "label": "title"
+ },
+ "x-prompt": {
+  "read": "上から、題 ・ 前置き ・ 節の順に読む。節の中のブロックは、上から順にページに並ぶ。ブロックの type が、その情報の種類と見せ方を決める。",
+  "write": "伝えたいことを、読み手が上から読む順の節に分け、節ごとに情報の種類に合うブロックを選んで並べる。手順：(1) title に文書の名前を書く。(2) lead に、この文書で何が分かるかを1〜2文で書く。(3) sections に節を並べ、heading に節の中身を表す名詞句を書く。(4) blocks には、情報の種類からブロックを選ぶ ── 結論と理由は paragraph、項目と値は properties、比べるものは table、前と後は change、順序は steps、状態は status、量は bars、原文は quote、注意は note、詳細は fold、図は figure、コードは code。文の中では、読み手に必ず見てほしい数や語だけを **強調** にし、コマンド ・ 識別子は `コード` にする。出どころは sources に並べ、文の中から [文字](#source-ID) で指す。誤り：見た目で選ばない（表にしたいから table、ではなく、比べるものだから table）。1つのブロックに2つの種類を混ぜない。"
+ },
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "title",
+  "sections"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string",
+   "description": "このスキーマへの相対パス",
+   "x-prompt": {
+    "read": "文書の契約の場所。",
+    "write": "document.schema.json への相対パスを書く。"
+   }
+  },
+  "kind": {
+   "const": "document",
+   "description": "インスタンスの種類",
+   "x-prompt": {
+    "read": "基盤の文書であることを表す。",
+    "write": "document と書く。"
+   }
+  },
+  "id": {
+   "type": "string",
+   "minLength": 1,
+   "description": "文書の ID。ほかから指すときに使う",
+   "x-view": {
+    "hidden": true
+   },
+   "x-prompt": {
+    "read": "ほかの文書はこの ID で指す。",
+    "write": "ほかから指すときだけ書く。英数とハイフンで書く。"
+   }
+  },
+  "title": {
+   "type": "string",
+   "minLength": 1,
+   "description": "文書の題",
+   "x-prompt": {
+    "read": "ページの題になる。",
+    "write": "文書の中身を表す名詞句を書く。「〜について」のような言い回しにしない。"
+   }
+  },
+  "lead": {
+   "type": "string",
+   "minLength": 1,
+   "description": "前置き",
+   "x-prompt": {
+    "read": "題の下に出る。この文書で何が分かるか。",
+    "write": "読み手が最初に知るべきことを1〜2文で書く。"
+   }
+  },
+  "badges": {
+   "type": "array",
+   "items": {
+    "type": "string",
+    "minLength": 1
+   },
+   "description": "題の上に並べる短い分類",
+   "x-prompt": {
+    "read": "文書の分類や日付として読む。",
+    "write": "日付 ・ 種類のような短い語だけを書く。文は書かない。"
+   }
+  },
+  "sections": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/section"
+   },
+   "description": "節の並び",
+   "x-prompt": {
+    "read": "上から順に節として並べる。節が4つ以上なら、題の下に目次が出る。",
+    "write": "読み手が判断に使う順に並べる。結論の節を先に置く。"
+   }
+  },
+  "sources": {
+   "type": "array",
+   "description": "出どころの一覧。文書の末尾に出る",
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "id",
+     "label"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+     },
+     "label": {
+      "$ref": "#/$defs/text"
+     },
+     "url": {
+      "type": "string",
+      "pattern": "^https?://"
+     }
+    }
+   },
+   "x-prompt": {
+    "read": "文書の末尾の出どころの一覧。文の中の [文字](#source-ID) が、ここの項目を指す。",
+    "write": "引用 ・ 数値 ・ 判断の根拠にしたものを1件ずつ書く。id は英数で付け、文の中から [文字](#source-ID) で指す。"
+   }
+  }
+ },
+ "$defs": {
+  "section": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "heading",
+    "blocks"
+   ],
+   "description": "節。見出しとブロックの並び",
+   "properties": {
+    "heading": {
+     "type": "string",
+     "minLength": 1,
+     "description": "節の見出し",
+     "x-prompt": {
+      "read": "節の見出し。",
+      "write": "節の中身を表す名詞句を書く。"
+     }
+    },
+    "blocks": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/block"
+     },
+     "description": "ブロックの並び",
+     "x-prompt": {
+      "read": "上から順に並べる。",
+      "write": "情報の種類ごとに、1つずつブロックにする。"
+     }
+    }
+   }
+  },
+  "text": {
+   "type": "string",
+   "minLength": 1,
+   "description": "文字。文の中で **強調**、`コード`、[文字](URL) が書ける。URL は http(s) と、文書の中の場所（#source-ID ・ #section-番号）だけ。HTML は書けない（すべて文字として出る）"
+  },
+  "block": {
+   "description": "ブロック。type が情報の種類を表す",
+   "oneOf": [
+    {
+     "$ref": "#/$defs/paragraph"
+    },
+    {
+     "$ref": "#/$defs/properties"
+    },
+    {
+     "$ref": "#/$defs/table"
+    },
+    {
+     "$ref": "#/$defs/change"
+    },
+    {
+     "$ref": "#/$defs/steps"
+    },
+    {
+     "$ref": "#/$defs/status"
+    },
+    {
+     "$ref": "#/$defs/bars"
+    },
+    {
+     "$ref": "#/$defs/quote"
+    },
+    {
+     "$ref": "#/$defs/note"
+    },
+    {
+     "$ref": "#/$defs/fold"
+    },
+    {
+     "$ref": "#/$defs/figure"
+    },
+    {
+     "$ref": "#/$defs/code"
+    },
+    {
+     "$ref": "#/$defs/list"
+    },
+    {
+     "$ref": "#/$defs/timeline"
+    }
+   ]
+  },
+  "paragraph": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "text"
+   ],
+   "description": "結論と理由。段落",
+   "properties": {
+    "type": {
+     "const": "paragraph"
+    },
+    "text": {
+     "$ref": "#/$defs/text"
+    },
+    "strong": {
+     "type": "boolean",
+     "description": "結論として強く出す"
+    }
+   }
+  },
+  "properties": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "rows"
+   ],
+   "description": "属性。1つのものの項目と値",
+   "properties": {
+    "type": {
+     "const": "properties"
+    },
+    "rows": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "label",
+       "value"
+      ],
+      "properties": {
+       "label": {
+        "$ref": "#/$defs/text"
+       },
+       "value": {
+        "$ref": "#/$defs/text"
+       }
+      }
+     }
+    }
+   }
+  },
+  "table": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "columns",
+    "rows"
+   ],
+   "description": "比べるもの。行が比べる対象、列が比べる観点",
+   "properties": {
+    "type": {
+     "const": "table"
+    },
+    "caption": {
+     "$ref": "#/$defs/text"
+    },
+    "columns": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "oneOf": [
+       {
+        "$ref": "#/$defs/text"
+       },
+       {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "label"
+        ],
+        "properties": {
+         "label": {
+          "$ref": "#/$defs/text"
+         },
+         "align": {
+          "enum": [
+           "left",
+           "right"
+          ]
+         }
+        }
+       }
+      ]
+     },
+     "description": "列。文字か、{label, align}。数の列は align: right"
+    },
+    "rows": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/$defs/cell"
+      }
+     }
+    },
+    "emphasis": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "強調する行の番号（0から）。推す案など"
+    }
+   }
+  },
+  "change": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "rows"
+   ],
+   "description": "変化。何が、前から後へどう変わるか",
+   "properties": {
+    "type": {
+     "const": "change"
+    },
+    "rows": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "what",
+       "before",
+       "after"
+      ],
+      "properties": {
+       "what": {
+        "$ref": "#/$defs/text"
+       },
+       "before": {
+        "$ref": "#/$defs/text"
+       },
+       "after": {
+        "$ref": "#/$defs/text"
+       }
+      }
+     }
+    }
+   }
+  },
+  "steps": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "items"
+   ],
+   "description": "順序。番号の付いた手順と、途中の分かれ道",
+   "properties": {
+    "type": {
+     "const": "steps"
+    },
+    "items": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/step"
+     }
+    }
+   }
+  },
+  "step": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "text"
+   ],
+   "properties": {
+    "actor": {
+     "$ref": "#/$defs/text"
+    },
+    "text": {
+     "$ref": "#/$defs/text"
+    },
+    "branches": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "condition",
+       "steps"
+      ],
+      "properties": {
+       "condition": {
+        "$ref": "#/$defs/text"
+       },
+       "steps": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+         "$ref": "#/$defs/step"
+        }
+       },
+       "ending": {
+        "$ref": "#/$defs/text"
+       }
+      }
+     }
+    }
+   }
+  },
+  "status": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "items"
+   ],
+   "description": "状態。項目ごとの進み具合",
+   "properties": {
+    "type": {
+     "const": "status"
+    },
+    "items": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "label",
+       "state"
+      ],
+      "properties": {
+       "label": {
+        "$ref": "#/$defs/text"
+       },
+       "state": {
+        "enum": [
+         "done",
+         "doing",
+         "todo",
+         "blocked"
+        ]
+       },
+       "note": {
+        "$ref": "#/$defs/text"
+       }
+      }
+     }
+    }
+   }
+  },
+  "bars": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "items"
+   ],
+   "description": "量。項目ごとの数を棒で比べる",
+   "properties": {
+    "type": {
+     "const": "bars"
+    },
+    "unit": {
+     "$ref": "#/$defs/text"
+    },
+    "items": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "label",
+       "value"
+      ],
+      "properties": {
+       "label": {
+        "$ref": "#/$defs/text"
+       },
+       "value": {
+        "type": "number",
+        "minimum": 0
+       }
+      }
+     }
+    },
+    "target": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "label",
+      "value"
+     ],
+     "description": "目標などの基準線",
+     "properties": {
+      "label": {
+       "$ref": "#/$defs/text"
+      },
+      "value": {
+       "type": "number",
+       "minimum": 0
+      }
+     }
+    }
+   }
+  },
+  "quote": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "text",
+    "source"
+   ],
+   "description": "根拠。原文の引用と出どころ",
+   "properties": {
+    "type": {
+     "const": "quote"
+    },
+    "text": {
+     "$ref": "#/$defs/text"
+    },
+    "source": {
+     "$ref": "#/$defs/text"
+    }
+   }
+  },
+  "note": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "text"
+   ],
+   "description": "注意。読み手が見落とすと困ること",
+   "properties": {
+    "type": {
+     "const": "note"
+    },
+    "level": {
+     "enum": [
+      "info",
+      "warning"
+     ]
+    },
+    "text": {
+     "$ref": "#/$defs/text"
+    }
+   }
+  },
+  "fold": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "summary",
+    "blocks"
+   ],
+   "description": "詳細。畳んでおき、開くと読める",
+   "properties": {
+    "type": {
+     "const": "fold"
+    },
+    "summary": {
+     "$ref": "#/$defs/text"
+    },
+    "blocks": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/block"
+     }
+    }
+   }
+  },
+  "figure": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "caption"
+   ],
+   "description": "図。つながり ・ 包含 ・ 流れ。src で SVG のファイルを指すか、svg に SVG の文字列（design-svg の出力など）を入れる",
+   "oneOf": [
+    {
+     "required": [
+      "src"
+     ]
+    },
+    {
+     "required": [
+      "svg"
+     ]
+    }
+   ],
+   "properties": {
+    "type": {
+     "const": "figure"
+    },
+    "src": {
+     "type": "string",
+     "pattern": "\\.svg$",
+     "description": "SVG のファイルへの相対パス"
+    },
+    "svg": {
+     "type": "string",
+     "pattern": "^\\s*<svg",
+     "description": "SVG の文字列。script やイベントの属性（on…）は書けない"
+    },
+    "caption": {
+     "$ref": "#/$defs/text"
+    }
+   }
+  },
+  "code": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "text"
+   ],
+   "description": "コード ・ JSON ・ コマンド",
+   "properties": {
+    "type": {
+     "const": "code"
+    },
+    "language": {
+     "type": "string"
+    },
+    "text": {
+     "type": "string"
+    }
+   }
+  },
+  "list": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "items"
+   ],
+   "description": "順序の無い項目の並び",
+   "properties": {
+    "type": {
+     "const": "list"
+    },
+    "items": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/text"
+     }
+    }
+   }
+  },
+  "cell": {
+   "description": "表のセル。文字か、バッジ（判断 ・ 状態のような分類の値）",
+   "oneOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "text",
+      "tone"
+     ],
+     "properties": {
+      "text": {
+       "$ref": "#/$defs/text"
+      },
+      "tone": {
+       "enum": [
+        "good",
+        "bad",
+        "warn",
+        "neutral"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "timeline": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "type",
+    "items"
+   ],
+   "description": "時系列。時刻と出来事。途中の分かれ道（外れた見立てなど）も書ける",
+   "properties": {
+    "type": {
+     "const": "timeline"
+    },
+    "items": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "time",
+       "text"
+      ],
+      "properties": {
+       "time": {
+        "type": "string",
+        "minLength": 1
+       },
+       "text": {
+        "$ref": "#/$defs/text"
+       },
+       "branches": {
+        "$ref": "#/$defs/step/properties/branches"
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

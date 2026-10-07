@@ -6,6 +6,7 @@ use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
 use serde_json::{json, Map, Value};
+use std::sync::Arc;
 
 /// テスト用の具体のツール（acdr の seal のようなもの）。
 struct Seal;
@@ -38,30 +39,29 @@ impl ExtraTools for Clash {
     }
 }
 
-fn args(v: Value) -> Map<String, Value> {
-    v.as_object().cloned().unwrap()
+fn args(value: Value) -> Map<String, Value> {
+    value.as_object().cloned().unwrap()
 }
 
 #[test]
 fn concrete_tools_follow_base_tools_and_are_dispatched() {
-    let (files, query) = (FileSystem, Jmespath);
-    let (uc, cc) = (
-        Instances::new(&files, &files, &query),
-        Checks::new(&files, &files, &query),
+    let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
+    let (instances, checks) = (
+        Instances::new(files.clone(), files.clone(), query.clone()),
+        Checks::new(files.clone(), files, query),
     );
-    let seal = Seal;
-    let tb = Toolbox::with(&seal).unwrap();
-    let names: Vec<&str> = tb.list().iter().map(|t| t.name).collect();
-    let mut want: Vec<&str> = TOOLS.iter().map(|t| t.name).collect();
+    let toolbox = Toolbox::with(Arc::new(Seal)).unwrap();
+    let names: Vec<&str> = toolbox.list().iter().map(|tool| tool.name).collect();
+    let mut want: Vec<&str> = TOOLS.iter().map(|tool| tool.name).collect();
     want.push("seal");
     assert_eq!(names, want);
-    let (code, out) = tb.dispatch("seal", &args(json!({"dir": "d"})), &uc, &cc);
+    let (code, out) = toolbox.dispatch("seal", &args(json!({"dir": "d"})), &instances, &checks);
     assert_eq!(
         (code, out),
         (0, json!({"ok": true, "tool": "seal", "dir": "d"}))
     );
     // 基盤のツールは、基盤がそのまま処理する
-    let (code, out) = tb.dispatch("get", &args(json!({})), &uc, &cc);
+    let (code, out) = toolbox.dispatch("get", &args(json!({})), &instances, &checks);
     assert_eq!(code, 2);
     assert!(out["detail"]
         .as_str()
@@ -71,28 +71,31 @@ fn concrete_tools_follow_base_tools_and_are_dispatched() {
 
 #[test]
 fn base_checks_arguments_of_concrete_tools() {
-    let (files, query) = (FileSystem, Jmespath);
-    let (uc, cc) = (
-        Instances::new(&files, &files, &query),
-        Checks::new(&files, &files, &query),
+    let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
+    let (instances, checks) = (
+        Instances::new(files.clone(), files.clone(), query.clone()),
+        Checks::new(files.clone(), files, query),
     );
-    let seal = Seal;
-    let tb = Toolbox::with(&seal).unwrap();
-    let (code, out) = tb.dispatch("seal", &args(json!({"dir": "d", "x": "1"})), &uc, &cc);
+    let toolbox = Toolbox::with(Arc::new(Seal)).unwrap();
+    let (code, out) = toolbox.dispatch(
+        "seal",
+        &args(json!({"dir": "d", "x": "1"})),
+        &instances,
+        &checks,
+    );
     assert_eq!(code, 2);
     assert!(out["detail"]
         .as_str()
         .unwrap()
         .contains("seal は引数 x を受け付けない"));
-    let (code, _) = tb.dispatch("seal", &args(json!({})), &uc, &cc);
+    let (code, _) = toolbox.dispatch("seal", &args(json!({})), &instances, &checks);
     assert_eq!(code, 2);
-    let (code, out) = tb.dispatch("nope", &args(json!({})), &uc, &cc);
+    let (code, out) = toolbox.dispatch("nope", &args(json!({})), &instances, &checks);
     assert_eq!(code, 2);
     assert!(out["tools"].as_array().unwrap().contains(&json!("seal")));
 }
 
 #[test]
 fn concrete_cannot_reuse_a_base_tool_name() {
-    let clash = Clash;
-    assert!(Toolbox::with(&clash).is_err());
+    assert!(Toolbox::with(Arc::new(Clash)).is_err());
 }

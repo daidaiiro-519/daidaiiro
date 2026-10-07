@@ -8,10 +8,13 @@ use rmcp::model::{
 use rmcp::service::{MaybeSendFuture, RequestContext};
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
 use schema_driven_adapters::inbound::tools;
+use schema_driven_adapters::outbound::document_design::DocumentDesign;
 use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
+use schema_driven_core::application::renders::Renders;
 use std::future::Future;
+use std::sync::Arc;
 
 struct Server;
 
@@ -30,7 +33,7 @@ impl ServerHandler for Server {
         let list = tools::Toolbox::base()
             .list()
             .iter()
-            .map(|t| Tool::new(t.name, t.description, tools::input_schema(t)))
+            .map(|tool| Tool::new(tool.name, tool.description, tools::input_schema(tool)))
             .collect();
         std::future::ready(Ok(ListToolsResult::with_all_items(list)))
     }
@@ -40,12 +43,22 @@ impl ServerHandler for Server {
         request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<CallToolResponse, ErrorData>> + MaybeSendFuture + '_ {
-        let (files, query) = (FileSystem, Jmespath);
-        let use_cases = Instances::new(&files, &files, &query);
+        let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
+        let use_cases = Instances::new(files.clone(), files.clone(), query.clone());
         let args = request.arguments.unwrap_or_default();
-        let checks = Checks::new(&files, &files, &query);
-        let (code, out) =
-            tools::Toolbox::base().dispatch(&request.name, &args, &use_cases, &checks);
+        let checks = Checks::new(files.clone(), files.clone(), query.clone());
+        // 基盤だけで使うときは、具体のデザインが無いので、基盤の文書だけを描画する
+        let renders = Renders::new(
+            files.clone(),
+            files,
+            query,
+            Arc::new(DocumentDesign),
+            None,
+            None,
+        );
+        let (code, out) = tools::Toolbox::base()
+            .with_render(Arc::new(renders))
+            .dispatch(&request.name, &args, &use_cases, &checks);
         let content = vec![ContentBlock::text(out.to_string())];
         let result = if code == 0 {
             CallToolResult::success(content)
@@ -59,14 +72,14 @@ impl ServerHandler for Server {
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let service = match Server.serve(rmcp::transport::stdio()).await {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("schema-driven-mcp: 起動できない: {e}");
+        Ok(service) => service,
+        Err(error) => {
+            eprintln!("schema-driven-mcp: 起動できない: {error}");
             std::process::exit(1);
         }
     };
-    if let Err(e) = service.waiting().await {
-        eprintln!("schema-driven-mcp: {e}");
+    if let Err(error) = service.waiting().await {
+        eprintln!("schema-driven-mcp: {error}");
         std::process::exit(1);
     }
 }

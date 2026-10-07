@@ -8,20 +8,25 @@ use serde_json::{json, Value};
 fn run(schemas: Vec<(&str, Value)>) -> Vec<SchemaFinding> {
     let list: Vec<(String, Value)> = schemas
         .into_iter()
-        .map(|(n, v)| (n.to_owned(), v))
+        .map(|(file_name, schema)| (file_name.to_owned(), schema))
         .collect();
-    check_schemas(&list, &|e: &str| Jmespath.parse(e).map_err(|x| x.0))
+    check_schemas(&list, &|expression: &str| {
+        Jmespath.parse(expression).map_err(|error| error.0)
+    })
 }
 
-fn rules(f: &[SchemaFinding]) -> Vec<&str> {
-    f.iter().map(|x| x.rule.as_str()).collect()
+fn rules(findings: &[SchemaFinding]) -> Vec<&str> {
+    findings
+        .iter()
+        .map(|finding| finding.rule.as_str())
+        .collect()
 }
 
 fn field(extra: Value) -> Value {
     let mut base =
         json!({"type": "string", "description": "説明", "x-prompt": {"read": "r", "write": "w"}});
-    for (k, v) in extra.as_object().unwrap() {
-        base[k] = v.clone();
+    for (key, value) in extra.as_object().unwrap() {
+        base[key] = value.clone();
     }
     base
 }
@@ -44,69 +49,86 @@ fn conforming_schema_has_no_findings() {
 
 #[test]
 fn meta_schema_requires_prompt_per_field_and_kind_for_generating_schemas() {
-    let mut s = good();
-    s["properties"]["terms"]
+    let mut schema = good();
+    schema["properties"]["terms"]
         .as_object_mut()
         .unwrap()
         .remove("x-prompt");
-    s["properties"].as_object_mut().unwrap().remove("kind");
-    let f = run(vec![("glossary.schema.json", s)]);
-    assert_eq!(rules(&f), vec!["メタスキーマ", "メタスキーマ"], "{f:?}");
-    assert!(f.iter().any(|x| x.at.contains("/properties/kind")));
-    assert!(f
+    schema["properties"].as_object_mut().unwrap().remove("kind");
+    let findings = run(vec![("glossary.schema.json", schema)]);
+    assert_eq!(
+        rules(&findings),
+        vec!["メタスキーマ", "メタスキーマ"],
+        "{findings:?}"
+    );
+    assert!(findings
         .iter()
-        .any(|x| x.at.contains("/properties/terms/x-prompt")));
+        .any(|finding| finding.at.contains("/properties/kind")));
+    assert!(findings
+        .iter()
+        .any(|finding| finding.at.contains("/properties/terms/x-prompt")));
 }
 
 #[test]
 fn annotation_shapes_are_checked_at_every_depth() {
-    let mut s = good();
-    s["properties"]["terms"]["items"]["properties"]["word"]["x-ref"] =
+    let mut schema = good();
+    schema["properties"]["terms"]["items"]["properties"]["word"]["x-ref"] =
         json!({"to": "glossary", "meaning": "語"});
-    let f = run(vec![("glossary.schema.json", s)]);
-    assert_eq!(rules(&f), vec!["注釈の形"], "{f:?}");
-    assert_eq!(f[0].at, "/properties/terms/items/properties/word/x-ref");
+    let findings = run(vec![("glossary.schema.json", schema)]);
+    assert_eq!(rules(&findings), vec!["注釈の形"], "{findings:?}");
+    assert_eq!(
+        findings[0].at,
+        "/properties/terms/items/properties/word/x-ref"
+    );
 }
 
 #[test]
 fn templates_must_be_jmespath_and_pipes_must_call_functions() {
-    let mut s = good();
-    let w = &mut s["properties"]["terms"]["items"]["properties"]["word"];
-    w["x-view"] = json!({"text": "{word|name} と {word[} と {word | name(@)}"});
-    let f = run(vec![("glossary.schema.json", s)]);
-    assert_eq!(rules(&f), vec!["古い絞りの書き方", "文の型"], "{f:?}");
-    assert!(f[0].message.contains("{word|name}"));
+    let mut schema = good();
+    let word = &mut schema["properties"]["terms"]["items"]["properties"]["word"];
+    word["x-view"] = json!({"text": "{word|name} と {word[} と {word | name(@)}"});
+    let findings = run(vec![("glossary.schema.json", schema)]);
+    assert_eq!(
+        rules(&findings),
+        vec!["古い絞りの書き方", "文の型"],
+        "{findings:?}"
+    );
+    assert!(findings[0].message.contains("{word|name}"));
 }
 
 #[test]
 fn undeclared_annotations_are_findings_and_declared_ones_pass() {
-    let mut s = good();
-    s["properties"]["terms"]["x-test-spec"] = json!({"checks": "x"});
+    let mut schema = good();
+    schema["properties"]["terms"]["x-test-spec"] = json!({"checks": "x"});
     assert_eq!(
-        rules(&run(vec![("glossary.schema.json", s.clone())])),
+        rules(&run(vec![("glossary.schema.json", schema.clone())])),
         vec!["申告していない注釈"]
     );
-    s["x-annotations"] = json!({"x-test-spec": "test-spec.schema.json"});
-    assert_eq!(run(vec![("glossary.schema.json", s)]), vec![]);
+    schema["x-annotations"] = json!({"x-test-spec": "test-spec.schema.json"});
+    assert_eq!(run(vec![("glossary.schema.json", schema)]), vec![]);
 }
 
 #[test]
 fn referenced_kinds_must_have_id() {
-    let mut glo = good();
-    glo["properties"].as_object_mut().unwrap().remove("id");
-    let uc = json!({"title": "ユースケース", "description": "やり取り", "x-generates": "decls/UC-<番号>.json",
+    let mut glossary = good();
+    glossary["properties"].as_object_mut().unwrap().remove("id");
+    let use_case = json!({"title": "ユースケース", "description": "やり取り", "x-generates": "decls/UC-<番号>.json",
                     "properties": {
                         "kind": field(json!({"const": "use_case"})),
                         "id": field(json!({})),
                         "terms": field(json!({"x-ref": {"to": "glossary", "item": true}}))}});
-    let f = run(vec![
-        ("glossary.schema.json", glo.clone()),
-        ("use_case.schema.json", uc.clone()),
+    let findings = run(vec![
+        ("glossary.schema.json", glossary.clone()),
+        ("use_case.schema.json", use_case.clone()),
     ]);
-    assert_eq!(rules(&f), vec!["参照される種類の id"], "{f:?}");
-    assert_eq!(f[0].schema, "glossary.schema.json");
+    assert_eq!(
+        rules(&findings),
+        vec!["参照される種類の id"],
+        "{findings:?}"
+    );
+    assert_eq!(findings[0].schema, "glossary.schema.json");
     // 指されていなければ、id は求めない
-    assert_eq!(run(vec![("glossary.schema.json", glo)]), vec![]);
+    assert_eq!(run(vec![("glossary.schema.json", glossary)]), vec![]);
 }
 
 #[test]
@@ -115,22 +137,23 @@ fn check_schemas_tool_reads_a_directory_of_schemas() {
     use schema_driven_adapters::outbound::fs::FileSystem;
     use schema_driven_core::application::checks::Checks;
     use schema_driven_core::application::instances::Instances;
+    use std::sync::Arc;
     let dir = std::env::temp_dir().join(format!("sd-check-schemas-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let mut bad = good();
     bad["properties"]["terms"]["x-foo"] = json!(1);
     std::fs::write(dir.join("glossary.schema.json"), bad.to_string()).unwrap();
     std::fs::write(dir.join("GLO-1.json"), "{}").unwrap();
-    let (files, query) = (FileSystem, Jmespath);
-    let (uc, cc) = (
-        Instances::new(&files, &files, &query),
-        Checks::new(&files, &files, &query),
+    let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
+    let (instances, checks) = (
+        Instances::new(files.clone(), files.clone(), query.clone()),
+        Checks::new(files.clone(), files, query),
     );
     let args = json!({"dir": dir.to_str().unwrap()})
         .as_object()
         .cloned()
         .unwrap();
-    let (code, out) = Toolbox::base().dispatch("check-schemas", &args, &uc, &cc);
+    let (code, out) = Toolbox::base().dispatch("check-schemas", &args, &instances, &checks);
     std::fs::remove_dir_all(&dir).unwrap();
     assert_eq!(code, 0);
     assert_eq!(out["schemas"], json!(["glossary.schema.json"]));

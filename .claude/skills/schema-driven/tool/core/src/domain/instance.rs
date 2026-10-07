@@ -64,12 +64,12 @@ impl Instance {
         }
         let value = patch
             .apply(&self.value)
-            .map_err(|e| Reject::CannotApply(e.0))?;
-        let parsed: serde_json::Value =
-            serde_json::from_str(value.as_str()).map_err(|e| Reject::CannotApply(e.to_string()))?;
+            .map_err(|error| Reject::CannotApply(error.0))?;
+        let parsed: serde_json::Value = serde_json::from_str(value.as_str())
+            .map_err(|error| Reject::CannotApply(error.to_string()))?;
         let validation = schema
             .validate(&parsed)
-            .map_err(|SchemaError(e)| Reject::BrokenSchema(e))?;
+            .map_err(|SchemaError(error)| Reject::BrokenSchema(error))?;
         if !validation.errors.is_empty() {
             return Err(Reject::Invalid(validation.errors));
         }

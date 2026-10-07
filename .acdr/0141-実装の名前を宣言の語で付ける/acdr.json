@@ -1,0 +1,3636 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0141",
+ "title": "実装の名前を宣言の語で付ける",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "schema-driven の実装は宣言の語で名前を付け、1文字の名前と省略形とライフタイム 'a を使わない。ユースケースと Toolbox は、受け取るものを Arc で共有して持つ",
+ "why": "利用者は、この実装をモデリング（宣言）の具体として捉えていて、分かりにくい実装は許容できないと言った。1文字の名前（l ・ t ・ r など）とライフタイム 'a は Rust の慣習だが、何を指すかの情報を持たない。宣言の語で名前を付ければ、実装を読むときに宣言と突き合わせられる。また、ユースケースは Files を参照で、Query を Arc で持つ混ざった形だった。具体は基盤の crate を呼んで非同期の MCP サーバーでも使う（ACDR 0136）ので、共有して持つ Arc に揃えた。",
+ "shift": [
+  {
+   "what": "名前",
+   "from": "1文字の名前と省略形（l ・ t ・ r ・ v ・ xv ・ sdoc ・ uc ・ cc など）が約300か所",
+   "to": "宣言の語（instance ・ page_template ・ renderer ・ validation ・ x_view ・ schema_document ・ instances ・ checks など）。残すのは、文字を走査するカウンタ i の2か所だけ"
+  },
+  {
+   "what": "ユースケースの持ち方",
+   "from": "Instances<'a> ・ Checks<'a> ・ Renders<'a> が &'a dyn Files などを借りる。Toolbox<'a> も同じ",
+   "to": "Instances ・ Checks ・ Renders ・ Toolbox。受け取るものを Arc で共有して持ち、公開の型にライフタイムが無い"
+  },
+  {
+   "what": "必要な借用",
+   "from": "'a",
+   "to": "何を借りるかの名前（Doc<'schema> ・ Checker<'docs> ・ Run<'renderer> など）"
+  },
+  {
+   "what": "ポート Files と Schemas",
+   "from": "Send と Sync を求めない",
+   "to": "求める（Arc で共有して持つため）。実装は FileSystem だけで、ほかは変わらない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "所有の形は Arc に揃えてライフタイムを型から消し、名前は宣言の語にした。振る舞いは変えていない（テスト115件が同じく合格）。",
+ "alternatives": [
+  {
+   "option": "Rust の慣習のまま 'a と1文字の名前を使う",
+   "why_not": "慣習は、何を指すかの情報を持たない。実装を宣言の具体として読むときに、毎回たどることになる"
+  },
+  {
+   "option": "ライフタイムに名前を付けて参照のまま持つ",
+   "why_not": "Query と関数はすでに Arc でしか持てない（ViewEngine が共有する）。参照と Arc が混ざったままになり、具体の作り手がライフタイムを考えることになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "inbound_cli",
+   "tab": "inbound/cli.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn run(",
+     "before": "pub fn run(args: &[String], uc: &dyn InstanceUseCases, cc: &dyn CheckUseCases) -> (i32, Value) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "toolbox: &Toolbox,",
+     "before": "tb: &Toolbox,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub fn run_in(",
+     "before": "uc: &dyn InstanceUseCases,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut words = rest.iter();",
+     "before": "let mut it = rest.iter();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let Some(value) = words.next() else {",
+     "before": "let Some(value) = it.next() else {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "toolbox.dispatch(command, &map, instances, checks)",
+     "before": "tb.dispatch(command, &map, uc, cc)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "inbound_tools",
+   "tab": "inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases, RenderUseCases};",
+     "before": "use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases};",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "name: \"render\",",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let mut properties = Map::new();",
+     "before": "let mut props = Map::new();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "properties.insert(",
+     "before": "props.insert(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let required: Vec<&str> = tool",
+     "before": "let required: Vec<&str> = tool.args.iter().filter(|a| a.2).map(|a| a.0).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|error| json!({\"property\": error.property(), \"reason\": error.reason()}))",
+     "before": ".map(|e| json!({\"property\": e.property(), \"reason\": e.reason()}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|unfilled| json!({\"property\": unfilled.property, \"prompt\": unfilled.prompt}))",
+     "before": ".map(|u| json!({\"property\": u.property, \"prompt\": u.prompt}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|finding| json!({\"status\": finding.status.label(), \"check\": finding.check, \"from\": finding.from, \"to\": finding.to, \"message\": finding.message}))",
+     "before": ".map(|f| json!({\"status\": f.status.label(), \"check\": f.check, \"from\": f.from, \"to\": f.to, \"message\": f.message}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|unfilled| json!({\"property\": unfilled.property()}))",
+     "before": ".map(|u| json!({\"property\": u.property()}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn failed(error: UseCaseError) -> (i32, Value) {",
+     "before": "fn failed(e: UseCaseError) -> (i32, Value) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"ok\": false, \"reason\": error.reason, \"detail\": error.detail, \"errors\": errors(&error.errors)}),",
+     "before": "json!({\"ok\": false, \"reason\": e.reason, \"detail\": e.detail, \"errors\": errors(&e.errors)}),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let names: Vec<&str> = list.iter().map(|tool| tool.name).collect();",
+     "before": "let names: Vec<&str> = list.iter().map(|t| t.name).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub struct Toolbox {",
+     "before": "pub struct Toolbox<'a> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "extra: Option<Arc<dyn ExtraTools>>,",
+     "before": "extra: Option<&'a dyn ExtraTools>,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "impl Toolbox {",
+     "before": "impl<'a> Toolbox<'a> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "list: TOOLS.to_vec(),",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "/// 描画のユースケース（具体のデザインを持つもの）を渡す。渡さなければ、render は理由を返して失敗する。",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "pub fn with(extra: Arc<dyn ExtraTools>) -> Result<Self, String> {",
+     "before": "pub fn with(extra: &'a dyn ExtraTools) -> Result<Self, String> {",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "for tool in extra.tools() {",
+     "before": "for t in extra.tools() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "list.push(tool);",
+     "before": "list.push(t);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Ok(Self {",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let Some(tool) = self.list.iter().find(|tool| tool.name == name) else {",
+     "before": "uc: &dyn InstanceUseCases,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let Some(tool) = self.list.iter().find(|tool| tool.name == name) else {",
+     "before": "let Some(tool) = self.list.iter().find(|t| t.name == name) else {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if !tool.args.iter().any(|arg| arg.0 == key) {",
+     "before": "if !tool.args.iter().any(|a| a.0 == key) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(value) if !value.is_string() => {",
+     "before": "Some(v) if !v.is_string() => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if name == \"render\" {",
+     "before": "if !TOOLS.iter().any(|t| t.name == name) {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "call_base(name, args, instances, checks)",
+     "before": "call_base(name, args, uc, cc)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Toolbox::base().dispatch(name, args, instances, checks)",
+     "before": "uc: &dyn InstanceUseCases,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Toolbox::base().dispatch(name, args, instances, checks)",
+     "before": "Toolbox::base().dispatch(name, args, uc, cc)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn call_base(",
+     "before": "uc: &dyn InstanceUseCases,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let result = match name {",
+     "before": "let s = |k: &str| args.get(k).and_then(Value::as_str).unwrap_or_default();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"create\" => instances.create(arg(\"schema\"), arg(\"path\")).map(|created| {",
+     "before": "\"create\" => uc.create(s(\"schema\"), s(\"path\")).map(|c| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"get\" => instances.get(arg(\"path\"), arg(\"query\")).map(|got| json!({\"ok\": true, \"value\": got.value, \"found\": got.found})),",
+     "before": "\"get\" => uc.get(s(\"path\"), s(\"query\")).map(|g| json!({\"ok\": true, \"value\": g.value, \"found\": g.found})),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"delete\" => checks.delete(arg(\"path\")).map(|deleted| json!({\"ok\": true, \"remaining\": findings(&deleted.remaining)})),",
+     "before": "\"delete\" => cc.delete(s(\"path\")).map(|d| json!({\"ok\": true, \"remaining\": findings(&d.remaining)})),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|instance| json!({\"path\": instance.path, \"hash\": instance.hash, \"errors\": errors(&instance.errors), \"unfilled\": unfilled_only(&instance.unfilled)}))",
+     "before": ".map(|i| json!({\"path\": i.path, \"hash\": i.hash, \"errors\": errors(&i.errors), \"unfilled\": unfilled_only(&i.unfilled)}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"ok\": true, \"instances\": validated, \"findings\": findings(&checked.findings)})",
+     "before": "json!({\"ok\": true, \"instances\": instances, \"findings\": findings(&c.findings)})",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"check-schemas\" => checks.check_schemas(arg(\"dir\")).map(|checked| {",
+     "before": "\"check-schemas\" => cc.check_schemas(s(\"dir\")).map(|c| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|finding| json!({\"schema\": finding.schema, \"at\": finding.at, \"rule\": finding.rule, \"message\": finding.message}))",
+     "before": ".map(|f| json!({\"schema\": f.schema, \"at\": f.at, \"rule\": f.rule, \"message\": f.message}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"ok\": true, \"schemas\": checked.schemas, \"findings\": list})",
+     "before": "json!({\"ok\": true, \"schemas\": c.schemas, \"findings\": list})",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"approve\" => checks.approve(arg(\"dir\")).map(|approved| {",
+     "before": "\"approve\" => cc.approve(s(\"dir\")).map(|a| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"prompt\" => instances.prompt(arg(\"schema\"), arg(\"property\")).map(|prompted| json!({\"ok\": true, \"prompt\": prompted.prompt})),",
+     "before": "\"prompt\" => uc.prompt(s(\"schema\"), s(\"property\")).map(|p| json!({\"ok\": true, \"prompt\": p.prompt})),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Ok(value) => (0, value),",
+     "before": "Ok(v) => (0, v),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "outbound_fs",
+   "tab": "outbound/fs.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/fs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn unwritable(error: std::io::Error) -> WriteError {",
+     "before": "fn unwritable(e: std::io::Error) -> WriteError {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fs::read_to_string(path).map_err(|error| ReadError(format!(\"{path}: {error}\")))",
+     "before": "fs::read_to_string(path).map_err(|e| ReadError(format!(\"{path}: {e}\")))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for entry in fs::read_dir(dir).map_err(|error| ReadError(format!(\"{dir}: {error}\")))? {",
+     "before": "for entry in fs::read_dir(dir).map_err(|e| ReadError(format!(\"{dir}: {e}\")))? {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(parent) = target",
+     "before": "if let Some(parent) = target.parent().filter(|p| !p.as_os_str().is_empty()) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if error.kind() == std::io::ErrorKind::AlreadyExists {",
+     "before": ".map_err(|e| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if error.kind() == std::io::ErrorKind::AlreadyExists {",
+     "before": "unwritable(e)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fs::rename(&tmp, target).map_err(|error| {",
+     "before": "fs::rename(&tmp, target).map_err(|e| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fs::write(&tmp, content).map_err(unwritable)?;",
+     "before": "unwritable(e)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn referenced(&self, path: &str) -> Result<Vec<(String, String)>, ReadError> {",
+     "before": ".filter(|p| !p.as_os_str().is_empty())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for entry in fs::read_dir(dir).map_err(|error| ReadError(error.to_string()))? {",
+     "before": "for entry in fs::read_dir(dir).map_err(|e| ReadError(e.to_string()))? {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "outbound_jmespath",
+   "tab": "outbound/jmespath.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/jmespath.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn to_json(variable: &Rcvar) -> Value {",
+     "before": "fn to_json(v: &Rcvar) -> Value {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let expr = jmespath::compile(expression).map_err(|error| QueryError(error.to_string()))?;",
+     "before": "let expr = jmespath::compile(expression).map_err(|e| QueryError(e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn parse(&self, expression: &str) -> Result<(), QueryError> {",
+     "before": ".map_err(|e| QueryError(e.to_string()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut runtime = Runtime::new();",
+     "before": "let mut rt = Runtime::new();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "runtime.register_function(",
+     "before": "rt.register_function(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let out = host.call(&name, &values).map_err(|error| {",
+     "before": "let out = host.call(&name, &values).map_err(|e| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let expr = runtime",
+     "before": "let expr = rt",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let expr = runtime",
+     "before": ".map_err(|e| QueryError(e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "src_main",
+   "tab": "src/main.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_adapters::inbound::{cli, tools::Toolbox};",
+     "before": "use schema_driven_adapters::inbound::cli;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "use schema_driven_core::application::renders::Renders;",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));",
+     "before": "let (files, query) = (FileSystem, Jmespath);",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "tests_page",
+   "tab": "tests/page.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {",
+     "before": "fn page(&self, f: &Frame, r: &dyn Renderer) -> Result<Html, String> {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "renderer.part(\"lead\", &[(\"text\", frame.lead.clone())])?",
+     "before": "r.part(\"lead\", &[(\"text\", f.lead.clone())])?",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "renderer.part(\"lead\", &[(\"text\", frame.lead.clone())])?",
+     "before": "r.part(",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "(\"title\", renderer.text(&frame.title)),",
+     "before": "(\"title\", r.text(&f.title)),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "(\"sections\", frame.sections.clone()),",
+     "before": "(\"sections\", f.sections.clone()),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String> {",
+     "before": "fn section(&self, heading: &str, body: Html, r: &dyn Renderer) -> Result<Html, String> {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn render(",
+     "before": "fn render(&self, name: &str, input: &Value, r: &mut dyn Renderer) -> Result<Html, String> {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let text = renderer.node(&input[\"value\"])?;",
+     "before": "let v = r.node(&input[\"value\"])?;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let raw = renderer.value(&input[\"value\"])?;",
+     "before": "let raw = r.value(&input[\"value\"])?;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "renderer.part(\"pill\", &[(\"tone\", renderer.text(&tone)), (\"text\", text)])",
+     "before": "r.part(\"pill\", &[(\"tone\", r.text(&tone)), (\"text\", v)])",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let rows = renderer.value(&input[\"rows\"])?;",
+     "before": "let rows = r.value(&input[\"rows\"])?;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "head.push(renderer.part(",
+     "before": "for c in &cols {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let cell = renderer.node_at(&column[\"value\"], &row)?;",
+     "before": "for c in &cols {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "body.push(renderer.part(\"tr\", &[(\"cells\", cells)])?);",
+     "before": "body.push(r.part(\"tr\", &[(\"cells\", cells)])?);",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "renderer.part(\"table\", &[(\"head\", head), (\"body\", body)])",
+     "before": "r.part(\"table\", &[(\"head\", head), (\"body\", body)])",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".map(|value| {",
+     "before": ".map(|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "path: format!(\"{}.json\", value[\"id\"].as_str().unwrap()),",
+     "before": "path: format!(\"{}.json\", v[\"id\"].as_str().unwrap()),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|value| Instance {",
+     "before": ".map(|v| Instance {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(functions) = extra {",
+     "before": "if let Some(f) = extra {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let renderer = PageRenderer::new(engine, Arc::new(design)).map_err(|error| error.0)?;",
+     "before": "let renderer = PageRenderer::new(engine, Arc::new(design)).map_err(|e| e.0)?;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".map(|html| html.as_str().to_owned())",
+     "before": ".map(|h| h.as_str().to_owned())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_round1",
+   "tab": "tests/round1.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/round1.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let mut permissions = fs::metadata(path).unwrap().permissions();",
+     "before": "let mut p = fs::metadata(path).unwrap().permissions();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let properties: Vec<&str> = unfilled",
+     "before": "let props: Vec<&str> = unfilled",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|unfilled| unfilled[\"property\"].as_str().unwrap())",
+     "before": ".map(|u| u[\"property\"].as_str().unwrap())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(properties, vec![\"/items\", \"/name\"]);",
+     "before": "assert_eq!(props, vec![\"/items\", \"/name\"]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for query in [\"\", \"items[0\"] {",
+     "before": "for q in [\"\", \"items[0\"] {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for property in [\"/note\", \"/missing\"] {",
+     "before": "for p in [\"/note\", \"/missing\"] {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "property,",
+     "before": "p,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(code, 1, \"{property}\");",
+     "before": "assert_eq!(code, 1, \"{p}\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_round2",
+   "tab": "tests/round2.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/round2.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let mut instance =",
+     "before": "let mut v =",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (key, value) in extra.as_object().unwrap() {",
+     "before": "for (k, x) in extra.as_object().unwrap() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if instance[\"name\"].is_null() {",
+     "before": "if v[\"name\"].is_null() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fs::write(dir.join(format!(\"decls/{id}.json\")), instance.to_string()).unwrap();",
+     "before": "fs::write(dir.join(format!(\"decls/{id}.json\")), v.to_string()).unwrap();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut permissions = fs::metadata(path).unwrap().permissions();",
+     "before": "let mut p = fs::metadata(path).unwrap().permissions();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|finding| finding[\"status\"] == \"ずれ\")",
+     "before": ".filter(|f| f[\"status\"] == \"ずれ\")",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding[\"check\"] == \"指す先がある\" && finding[\"to\"] == \"B\"));",
+     "before": ".any(|f| f[\"check\"] == \"指す先がある\" && f[\"to\"] == \"B\"));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding[\"check\"] == \"承認のあとの変化\" && finding[\"status\"] == \"合格\"));",
+     "before": ".any(|f| f[\"check\"] == \"承認のあとの変化\" && f[\"status\"] == \"合格\"));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_schema_rules",
+   "tab": "tests/schema_rules.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map(|(file_name, schema)| (file_name.to_owned(), schema))",
+     "before": ".map(|(n, v)| (n.to_owned(), v))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "check_schemas(&list, &|expression: &str| {",
+     "before": "check_schemas(&list, &|e: &str| Jmespath.parse(e).map_err(|x| x.0))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn rules(findings: &[SchemaFinding]) -> Vec<&str> {",
+     "before": "fn rules(f: &[SchemaFinding]) -> Vec<&str> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (key, value) in extra.as_object().unwrap() {",
+     "before": "for (k, v) in extra.as_object().unwrap() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn meta_schema_requires_prompt_per_field_and_kind_for_generating_schemas() {",
+     "before": "let mut s = good();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "schema[\"properties\"].as_object_mut().unwrap().remove(\"kind\");",
+     "before": "s[\"properties\"].as_object_mut().unwrap().remove(\"kind\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding.at.contains(\"/properties/kind\")));",
+     "before": ".any(|x| x.at.contains(\"/properties/terms/x-prompt\")));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "schema[\"properties\"][\"terms\"][\"items\"][\"properties\"][\"word\"][\"x-ref\"] =",
+     "before": "let mut s = good();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(rules(&findings), vec![\"注釈の形\"], \"{findings:?}\");",
+     "before": "let f = run(vec![(\"glossary.schema.json\", s)]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let word = &mut schema[\"properties\"][\"terms\"][\"items\"][\"properties\"][\"word\"];",
+     "before": "let mut s = good();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "schema[\"properties\"][\"terms\"][\"x-test-spec\"] = json!({\"checks\": \"x\"});",
+     "before": "let mut s = good();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "rules(&run(vec![(\"glossary.schema.json\", schema.clone())])),",
+     "before": "rules(&run(vec![(\"glossary.schema.json\", s.clone())])),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "schema[\"x-annotations\"] = json!({\"x-test-spec\": \"test-spec.schema.json\"});",
+     "before": "s[\"x-annotations\"] = json!({\"x-test-spec\": \"test-spec.schema.json\"});",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut glossary = good();",
+     "before": "let mut glo = good();",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "(\"glossary.schema.json\", glossary.clone()),",
+     "before": "let f = run(vec![",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "vec![\"参照される種類の id\"],",
+     "before": "assert_eq!(rules(&f), vec![\"参照される種類の id\"], \"{f:?}\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(run(vec![(\"glossary.schema.json\", glossary)]), vec![]);",
+     "before": "assert_eq!(run(vec![(\"glossary.schema.json\", glo)]), vec![]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));",
+     "before": "let (files, query) = (FileSystem, Jmespath);",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let (code, out) = Toolbox::base().dispatch(\"check-schemas\", &args, &instances, &checks);",
+     "before": "let (code, out) = Toolbox::base().dispatch(\"check-schemas\", &args, &uc, &cc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_toolbox",
+   "tab": "tests/toolbox.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/toolbox.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "fn args(value: Value) -> Map<String, Value> {",
+     "before": "fn args(v: Value) -> Map<String, Value> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn concrete_tools_follow_base_tools_and_are_dispatched() {",
+     "before": "let (files, query) = (FileSystem, Jmespath);",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let names: Vec<&str> = toolbox.list().iter().map(|tool| tool.name).collect();",
+     "before": "let seal = Seal;",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let (code, out) = toolbox.dispatch(\"seal\", &args(json!({\"dir\": \"d\"})), &instances, &checks);",
+     "before": "let (code, out) = tb.dispatch(\"seal\", &args(json!({\"dir\": \"d\"})), &uc, &cc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (code, out) = toolbox.dispatch(\"get\", &args(json!({})), &instances, &checks);",
+     "before": "let (code, out) = tb.dispatch(\"get\", &args(json!({})), &uc, &cc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&args(json!({\"dir\": \"d\", \"x\": \"1\"})),",
+     "before": "let (files, query) = (FileSystem, Jmespath);",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "&args(json!({\"dir\": \"d\", \"x\": \"1\"})),",
+     "before": "let seal = Seal;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (code, _) = toolbox.dispatch(\"seal\", &args(json!({})), &instances, &checks);",
+     "before": "let (code, _) = tb.dispatch(\"seal\", &args(json!({})), &uc, &cc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (code, out) = toolbox.dispatch(\"nope\", &args(json!({})), &instances, &checks);",
+     "before": "let (code, out) = tb.dispatch(\"nope\", &args(json!({})), &uc, &cc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert!(Toolbox::with(Arc::new(Clash)).is_err());",
+     "before": "let clash = Clash;",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    }
+   ]
+  },
+  {
+   "key": "tests_view",
+   "tab": "tests/view.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let test_schema = Schema::new(\"t.schema.json\", schema, vec![]);",
+     "before": "let s = Schema::new(\"t.schema.json\", schema, vec![]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|value| Instance {",
+     "before": ".map(|v| Instance {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "ViewEngine::new(",
+     "before": "ViewEngine::new(Arc::new(Jmespath), vec![(\"t.schema.json\".into(), s)], list)",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "fn render(view_engine: &ViewEngine, pointer: &str, value: Value) -> String {",
+     "before": "fn render(e: &ViewEngine, pointer: &str, value: Value) -> String {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn text_fills_jmespath_and_formats_null_and_arrays() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"min\": 0, \"tags\": [\"a\", \"b\"]})",
+     "before": "render(&e, \"/$defs/m\", json!({\"min\": 0, \"tags\": [\"a\", \"b\"]})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn cases_pick_first_matching_when() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "{\"when\": \"min == `1` && max == `1`\", \"text\": \"1つ\"},",
+     "before": "assert_eq!(render(&e, \"/$defs/m\", json!({\"min\": 1, \"max\": 1})), \"1つ\");",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "render(&view_engine, \"/$defs/m\", json!({\"min\": 1, \"max\": 1})),",
+     "before": "render(&e, \"/$defs/m\", json!({\"min\": 0, \"max\": null})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "render(&view_engine, \"/$defs/m\", json!({\"min\": 2, \"max\": 5})),",
+     "before": "render(&e, \"/$defs/m\", json!({\"min\": 2, \"max\": 5})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn parts_and_maps() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"target\": \"エラー\", \"agg\": \"count\", \"op\": \"le\", \"value\": 0})",
+     "before": "&e,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"target\": \"値\", \"op\": \"not_empty\"})",
+     "before": "render(&e, \"/$defs/c\", json!({\"target\": \"値\", \"op\": \"not_empty\"})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn quote_wraps_each_element() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "render(&view_engine, \"/$defs/q\", json!({\"names\": [\"甲\", \"乙\"]})),",
+     "before": "render(&e, \"/$defs/q\", json!({\"names\": [\"甲\", \"乙\"]})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "(\"shout\", Some(Value::String(text))) => Ok(Value::String(format!(\"{text}!\"))),",
+     "before": "(\"shout\", Some(Value::String(s))) => Ok(Value::String(format!(\"{s}!\"))),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let view_engine = engine(schema, vec![]);",
+     "before": "let e = engine(schema, vec![]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn concrete_functions_work_in_text_parts_and_nested_view() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".unwrap();",
+     "before": "&e,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let view_engine = engine(json!({}), vec![]);",
+     "before": "let e = engine(json!({}), vec![]);",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let view_engine = engine(schema, instances);",
+     "before": "let e = engine(schema, instances);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let view_engine = engine(schema, instances);",
+     "before": "&e,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn view_renders_value_with_another_x_view() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"cond\": {\"a\": \"値\", \"b\": \"空\"}})",
+     "before": "render(&e, \"/$defs/outer\", json!({\"cond\": {\"a\": \"値\", \"b\": \"空\"}})),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn hidden_renders_nothing_and_invalid_expression_is_error() {",
+     "before": "let e = engine(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(render(&view_engine, \"/$defs/h\", json!({\"a\": 1})), \"\");",
+     "before": "assert_eq!(render(&e, \"/$defs/h\", json!({\"a\": 1})), \"\");",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "application_checks",
+   "tab": "application/checks.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "pub struct Checks {",
+     "before": "pub struct Checks<'a> {",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "pub(crate) struct Loaded {",
+     "before": "struct Loaded {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "impl Checks {",
+     "before": "impl<'a> Checks<'a> {",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "instances: Instances::new(files.clone(), schemas, query.clone()),",
+     "before": "（無かった）",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "instances: Instances::new(files.clone(), schemas, query.clone()),",
+     "before": "instances: Instances::new(files, schemas, query),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub(crate) fn load_dir(",
+     "before": "fn load_dir(&self, dir: &str) -> Result<(Vec<Loaded>, BTreeMap<String, Schema>), UseCaseError> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut loaded = Vec::new();",
+     "before": ".map_err(|e| UseCaseError::new(\"読めない\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let relative = value",
+     "before": "let rel = value",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let schema = paths::join(paths::parent(&path), relative);",
+     "before": "let schema = paths::join(paths::parent(&path), rel);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let loaded_schema = self.instances.load_schema(&schema)?;",
+     "before": "let s = self.instances.load_schema(&schema)?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let text = self",
+     "before": ".map_err(|e| UseCaseError::new(\"読めない\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for instance in &loaded {",
+     "before": "for l in &loaded {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "hash: JsonValue::new(&instance.text).hash().as_str().to_owned(),",
+     "before": "path: l.path.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|instance| Doc {",
+     "before": ".map(|l| Doc {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let map = approval.as_ref().map(|(record, _)| record.as_map());",
+     "before": "let map = approval.as_ref().map(|(r, _)| r.as_map());",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "impl CheckUseCases for Checks {",
+     "before": "impl CheckUseCases for Checks<'_> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "self.run(dir).map(|(checked, _)| checked)",
+     "before": "self.run(dir).map(|(c, _)| c)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut schemas = Vec::new();",
+     "before": ".map_err(|e| UseCaseError::new(\"読めない\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let findings = check_schemas(&schemas, &|expression: &str| {",
+     "before": "let findings = check_schemas(&schemas, &|e: &str| self.query.parse(e).map_err(|x| x.0));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "schemas: schemas.into_iter().map(|(name, _)| name).collect(),",
+     "before": "schemas: schemas.into_iter().map(|(n, _)| n).collect(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn approve(&self, dir: &str) -> Result<Approved, UseCaseError> {",
+     "before": ".map_err(|e| UseCaseError::new(\"値が不正である\", e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".flat_map(|instance| instance.errors.clone())",
+     "before": ".flat_map(|i| i.errors.clone())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".flat_map(|instance| instance.unfilled.clone())",
+     "before": ".flat_map(|i| i.unfilled.clone())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|finding| finding.status == Status::Drift)",
+     "before": ".filter(|f| f.status == Status::Drift)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for instance in &checked.instances {",
+     "before": "for i in &checked.instances {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "ApprovedInstance::new(&instance.path, hash)",
+     "before": "ApprovedInstance::new(&i.path, hash)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|approved| {",
+     "before": ".map(|i| (i.path().to_owned(), i.hash().as_str().to_owned()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let record = ApprovalRecord::record(directory, &errors, &drifts, &unfilled, list).map_err(",
+     "before": "let record =",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|drift| format!(\"{}：{}\", drift.check(), drift.target()))",
+     "before": ".map(|d| format!(\"{}：{}\", d.check(), d.target()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "UseCaseError::new(reject.reason(), detail)",
+     "before": "UseCaseError::new(r.reason(), detail)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "InstancePath::new(path)",
+     "before": "InstancePath::new(path).map_err(|e| UseCaseError::new(\"値が不正である\", e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|finding| {",
+     "before": ".filter(|f| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "application_context",
+   "tab": "application/context.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/context.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn id_of(value: &Value) -> Value {",
+     "before": "fn id_of(v: &Value) -> Value {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let resolved = graph(docs);",
+     "before": "let g = graph(docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|doc_index| {",
+     "before": ".map(|i| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for derived_value in resolved.derived.iter().filter(|derived_value| derived_value.doc == doc_index) {",
+     "before": "for d in g.derived.iter().filter(|d| d.doc == i) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "derived_value.at.trim_start_matches('/').to_owned(),",
+     "before": "d.at.trim_start_matches('/').to_owned(),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let links: Vec<Value> = resolved",
+     "before": "let links: Vec<Value> = g",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|link| link.doc == doc_index)",
+     "before": ".filter(|l| l.doc == i)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let referrers: Vec<Value> = resolved",
+     "before": "let referrers: Vec<Value> = g",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|link| match &link.target {",
+     "before": ".filter_map(|l| match &l.target {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"this\": docs[doc_index].value,",
+     "before": "\"this\": docs[i].value,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "application_instances",
+   "tab": "application/instances.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "pub struct Instances {",
+     "before": "pub struct Instances<'a> {",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "impl Instances {",
+     "before": "impl<'a> Instances<'a> {",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": ".map_err(|error| UseCaseError::new(\"読めない\", error.0))?;",
+     "before": ".map_err(|e| UseCaseError::new(\"読めない\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| UseCaseError::new(\"JSON として読めない\", error.to_string()))?;",
+     "before": ".map_err(|e| UseCaseError::new(\"JSON として読めない\", e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|(file_name, text)| {",
+     "before": ".filter_map(|(n, text)| serde_json::from_str(&text).ok().map(|v| (n, v)))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|unfilled| UnfilledWithPrompt {",
+     "before": ".map(|u| UnfilledWithPrompt {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub(crate) fn write_error(error: WriteError) -> UseCaseError {",
+     "before": "pub(crate) fn write_error(e: WriteError) -> UseCaseError {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "WriteError::Unwritable(detail) => UseCaseError::new(\"書けない\", detail),",
+     "before": "WriteError::Unwritable(d) => UseCaseError::new(\"書けない\", d),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn reject(reject: Reject) -> UseCaseError {",
+     "before": "fn reject(r: Reject) -> UseCaseError {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Reject::CannotApply(detail) => UseCaseError::new(\"JSON Patch を適用できない\", detail),",
+     "before": "Reject::CannotApply(d) => UseCaseError::new(\"JSON Patch を適用できない\", d),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Reject::BrokenSchema(detail) => UseCaseError::new(\"スキーマが壊れている\", detail),",
+     "before": "Reject::BrokenSchema(d) => UseCaseError::new(\"スキーマが壊れている\", d),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn invalid(error: crate::domain::values::InvalidValue) -> UseCaseError {",
+     "before": "fn invalid(e: crate::domain::values::InvalidValue) -> UseCaseError {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "impl InstanceUseCases for Instances {",
+     "before": "impl InstanceUseCases for Instances<'_> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| match error {",
+     "before": ".map_err(|e| match e {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| UseCaseError::new(\"スキーマが壊れている\", error.0))?;",
+     "before": ".map_err(|e| UseCaseError::new(\"スキーマが壊れている\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| UseCaseError::new(\"JMESPath 式が読めない\", error.0))?;",
+     "before": ".map_err(|e| UseCaseError::new(\"JMESPath 式が読めない\", e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(hash) => Hash::new(hash).map_err(invalid)?,",
+     "before": "Some(h) => Hash::new(h).map_err(invalid)?,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "application_mod",
+   "tab": "application/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod renders;",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "application_page",
+   "tab": "application/page.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let id_end = after.find('\"').ok_or(\"部品の id が閉じていない\")?;",
+     "before": "let q = after.find('\"').ok_or(\"部品の id が閉じていない\")?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "while let Some(open) = rest.find(\"{{\") {",
+     "before": "while let Some(i) = rest.find(\"{{\") {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(close) => {",
+     "before": "Some(j) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let components = design",
+     "before": "let components = design.components().into_iter().map(|(n, _)| n).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut run = Run {",
+     "before": "let mut r = Run {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "for badge in head",
+     "before": "for b in head",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "badges.push(run.node(badge).map_err(err)?);",
+     "before": "badges.push(r.node(b).map_err(err)?);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(node) => run.node(node).map_err(err)?,",
+     "before": "Some(n) => r.node(n).map_err(err)?,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for section in page",
+     "before": "for s in page",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(show) = section.get(\"show\").and_then(Value::as_str) {",
+     "before": "if let Some(show) = s.get(\"show\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for node in section",
+     "before": "for n in s",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "body.push(run.node(node).map_err(err)?);",
+     "before": "body.push(r.node(n).map_err(err)?);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let heading = section.get(\"heading\").and_then(Value::as_str).unwrap_or(\"\");",
+     "before": "let heading = s.get(\"heading\").and_then(Value::as_str).unwrap_or(\"\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "// 題は、スキーマの根の x-view の label。無ければ id。",
+     "before": "let title = context",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "self.design.page(&frame, &run).map_err(err)",
+     "before": "self.design.page(&frame, &r).map_err(err)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "struct Run<'renderer> {",
+     "before": "struct Run<'a> {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "impl Run<'_> {",
+     "before": "self.pr",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".map_err(|error| format!(\"式 {expr}: {}\", error.0))",
+     "before": ".map_err(|e| format!(\"式 {expr}: {}\", e.0))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(object) = once.as_object_mut() {",
+     "before": "if let Some(m) = once.as_object_mut() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if !self.page_renderer.components.contains(name) {",
+     "before": "if !self.pr.components.contains(name) {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let design = self.page_renderer.design.clone();",
+     "before": "let design = self.pr.design.clone();",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "Value::String(expr_text) => self.eval(expr_text),",
+     "before": "Value::String(e) => self.eval(e),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::String(expr_text) => Ok(Html::escape(&to_text(&self.eval(expr_text)?))),",
+     "before": "Value::String(e) => Ok(Html::escape(&to_text(&self.eval(e)?))),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn part(&self, id: &str, slots: &[(&str, Html)]) -> Result<Html, String> {",
+     "before": ".pr",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let given: BTreeSet<String> = slots.iter().map(|(name, _)| (*name).to_owned()).collect();",
+     "before": "let given: BTreeSet<String> = slots.iter().map(|(n, _)| (*n).to_owned()).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (name, html) in slots {",
+     "before": "for (n, h) in slots {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn svg(&self, svg: &str) -> Result<Html, String> {",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".and_then(|tones| tones.get(to_text(value)))",
+     "before": ".and_then(|t| t.get(to_text(value)))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn walk(value: &Value, at: &str, shapes: &BTreeMap<String, Value>, out: &mut Vec<String>) {",
+     "before": "fn walk(v: &Value, at: &str, shapes: &BTreeMap<String, Value>, out: &mut Vec<String>) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(shape) => match Schema::new(name, shape.clone(), vec![]).validate(value) {",
+     "before": "Some(shape) => match Schema::new(name, shape.clone(), vec![]).validate(v) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for error in &validation.errors {",
+     "before": "for e in &res.errors {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "error.property(),",
+     "before": "e.property(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Err(error) => out.push(format!(",
+     "before": "Err(e) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (key, child) in object {",
+     "before": "for (k, c) in m {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::Array(elements) => {",
+     "before": "Value::Array(a) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "/// 基盤の文書（references/document.schema.json）の決まったページテンプレート。何も指定が無いときに使う（UC-6）。",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "application_paths",
+   "tab": "application/paths.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/paths.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "path.rsplit_once('/').map(|(dir, _)| dir).unwrap_or(\"\")",
+     "before": "path.rsplit_once('/').map(|(d, _)| d).unwrap_or(\"\")",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for segment in path.split('/') {",
+     "before": "for seg in path.split('/') {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"..\" if out.last().is_some_and(|part| *part != \"..\") => {",
+     "before": "\"..\" if out.last().is_some_and(|s| *s != \"..\") => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "part => out.push(part),",
+     "before": "s => out.push(s),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let from_parts: Vec<&str> = from.split('/').filter(|part| !part.is_empty()).collect();",
+     "before": "let f: Vec<&str> = from.split('/').filter(|s| !s.is_empty()).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut parts: Vec<&str> = vec![\"..\"; from_parts.len() - common];",
+     "before": "let mut parts: Vec<&str> = vec![\"..\"; f.len() - common];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "application_view",
+   "tab": "application/view.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn to_text(value: &Value) -> String {",
+     "before": "pub fn to_text(v: &Value) -> String {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::String(text) => text.clone(),",
+     "before": "Value::String(s) => s.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|text| !text.is_empty())",
+     "before": ".filter(|s| !s.is_empty())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub fn truthy(value: &Value) -> bool {",
+     "before": "pub fn truthy(v: &Value) -> bool {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::String(text) => !text.is_empty(),",
+     "before": "Value::String(s) => !s.is_empty(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let character = chars[i];",
+     "before": "let c = chars[i];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "} else if character == '}' && chars.get(i + 1) == Some(&'}') {",
+     "before": "} else if c == '}' && chars.get(i + 1) == Some(&'}') {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "} else if character == '{' {",
+     "before": "} else if c == '{' {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let inner = chars[i];",
+     "before": "let d = chars[i];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(open_quote) if inner == open_quote => quote = None,",
+     "before": "Some(q) if d == q => quote = None,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "None if inner == '\\'' || inner == '`' || inner == '\"' => quote = Some(inner),",
+     "before": "None if d == '\\'' || d == '`' || d == '\"' => quote = Some(d),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "expr.push(inner);",
+     "before": "expr.push(d);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "text.push(character);",
+     "before": "text.push(c);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(name) = extra",
+     "before": "if let Some(n) = extra",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".find(|name| FUNCTIONS.contains(&name.as_str()))",
+     "before": ".find(|n| FUNCTIONS.contains(&n.as_str()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "return Err(ViewError(format!(\"基盤の関数と同じ名前は足せない: {name}\")));",
+     "before": "return Err(ViewError(format!(\"基盤の関数と同じ名前は足せない: {n}\")));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "x_view: Value::Null,",
+     "before": "xv: Value::Null,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "/// インスタンスの題。スキーマの根の x-view の label をインスタンスに当てた名前。label が無いか、空なら None。",
+     "before": ".map_err(|e| ViewError(e.0))",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let loaded = self",
+     "before": "let s = self",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let node = loaded",
+     "before": "let node = s",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(x_view) => self.render_view(schema, x_view, value),",
+     "before": "Some(xv) => self.render_view(schema, xv, value),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn render_view(",
+     "before": "fn render_view(&self, schema: &str, xv: &Value, value: &Value) -> Result<String, ViewError> {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "x_view: x_view.clone(),",
+     "before": "xv: xv.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let template = match self.pick(x_view.get(\"cases\"), value, &host)? {",
+     "before": "let template = match self.pick(xv.get(\"cases\"), value, &host)? {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".evaluate(when, value, host.clone())",
+     "before": ".map_err(|e| ViewError(e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let evaluated = self",
+     "before": "let v = self",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "out.push_str(&to_text(&evaluated));",
+     "before": ".map_err(|e| ViewError(e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let instances = &self.inner.instances;",
+     "before": "let inst = &self.inner.instances;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".find(|instance| id_of(&instance.value).as_deref() == Some(reference))",
+     "before": ".find(|i| id_of(&i.value).as_deref() == Some(reference))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".label_at(instance, &[])",
+     "before": ".label_at(i, &[])",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some((owner_id, item_id)) => (Some(owner_id), item_id),",
+     "before": "Some((o, it)) => (Some(o), it),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for instance in instances {",
+     "before": "for i in inst {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(path) = find_item(&instance.value, item, &mut Vec::new()) {",
+     "before": "if let Some(path) = find_item(&i.value, item, &mut Vec::new()) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn label_at(&self, instance: &Instance, path: &[String]) -> Option<String> {",
+     "before": "fn label_at(&self, inst: &Instance, path: &[String]) -> Option<String> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut value = &instance.value;",
+     "before": "let mut value = &inst.value;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "value = value.get(segment)?;",
+     "before": "value = value.get(seg)?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let label = node",
+     "before": ".and_then(|x| x.get(\"label\"))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".as_str()?",
+     "before": ".and_then(|x| x.get(\"label\"))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let found = self.inner.query.search(&label, value).ok()?;",
+     "before": "let v = self.inner.query.search(&label, value).ok()?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn find_item(value: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String>> {",
+     "before": "fn find_item(v: &Value, item: &str, path: &mut Vec<String>) -> Option<Vec<String>> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (key, child) in object {",
+     "before": "for (k, c) in m {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::Array(elements) => {",
+     "before": "Value::Array(a) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "x_view: Value,",
+     "before": "xv: Value,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn each(value: &Value, apply: &dyn Fn(&Value) -> Result<Value, String>) -> Result<Value, String> {",
+     "before": "fn each(v: &Value, f: &dyn Fn(&Value) -> Result<Value, String>) -> Result<Value, String> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(apply)",
+     "before": ".map(f)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "other => apply(other),",
+     "before": "other => f(other),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn arg(args: &[Value], position: usize) -> &Value {",
+     "before": "fn arg(args: &[Value], i: usize) -> &Value {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut names: Vec<String> = FUNCTIONS.iter().map(|name| name.to_string()).collect();",
+     "before": "let mut names: Vec<String> = FUNCTIONS.iter().map(|n| n.to_string()).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let text_of = |value: &Value| to_text(value);",
+     "before": "let s = |v: &Value| to_text(v);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"name\" => each(arg(args, 0), &|value| {",
+     "before": "\"name\" => each(arg(args, 0), &|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"label\" => each(arg(args, 0), &|value| {",
+     "before": "\"label\" => each(arg(args, 0), &|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let table = text_of(arg(args, 0));",
+     "before": "let table = s(arg(args, 0));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".and_then(|maps| maps.get(&table))",
+     "before": ".and_then(|m| m.get(&table))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Ok(table_entries",
+     "before": "each(arg(args, 1), &|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let location = text_of(arg(args, 0));",
+     "before": "let loc = s(arg(args, 0));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some((_, fragment)) => (self.schema.clone(), fragment.to_owned()),",
+     "before": "each(arg(args, 1), &|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".render(&file, &pointer, value)",
+     "before": ".render(&file, &pointer, v)",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".render(&file, &pointer, value)",
+     "before": ".map_err(|e| e.0)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let part_name = text_of(arg(args, 0));",
+     "before": "let pname = s(arg(args, 0));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"part\" => {",
+     "before": ".xv",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".and_then(|parts| parts.get(&part_name))",
+     "before": ".and_then(|p| p.get(&pname))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".ok_or(format!(\"parts に {part_name} が無い\"))?;",
+     "before": ".ok_or(format!(\"parts に {pname} が無い\"))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "x_view: self.x_view.clone(),",
+     "before": "xv: self.xv.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::String(text) => Some(text.clone()),",
+     "before": "Value::String(t) => Some(t.clone()),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(template) => self",
+     "before": "Some(t) => self",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "match template {",
+     "before": ".fill(&t, value, &host)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| error.0),",
+     "before": ".map_err(|e| e.0),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"quote\" => each(arg(args, 0), &|value| {",
+     "before": "\"quote\" => each(arg(args, 0), &|v| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "domain_approval",
+   "tab": "domain/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map(|instance| (instance.path().to_owned(), instance.hash().clone()))",
+     "before": ".map(|i| (i.path().to_owned(), i.hash().clone()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|instance| json!({\"path\": instance.path(), \"hash\": instance.hash().as_str()}))",
+     "before": ".map(|i| json!({\"path\": i.path(), \"hash\": i.hash().as_str()}))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let record: Value = serde_json::from_str(text).ok()?;",
+     "before": "let v: Value = serde_json::from_str(text).ok()?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for entry in record.get(\"instances\")?.as_array()? {",
+     "before": "for i in v.get(\"instances\")?.as_array()? {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "domain_check",
+   "tab": "domain/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub struct Doc<'schema> {",
+     "before": "pub struct Doc<'a> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "pub schema: &'schema Schema,",
+     "before": "pub schema: &'a Schema,",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "pub(crate) fn collect<'value>(value: &'value Value, path: &str) -> Vec<&'value Value> {",
+     "before": "pub(crate) fn collect<'a>(value: &'a Value, path: &str) -> Vec<&'a Value> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "fn flatten(list: Vec<&Value>) -> Vec<&Value> {",
+     "before": "cur",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for value in list {",
+     "before": "for v in list {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "collect(base, path)",
+     "before": "collect(base, path).iter().any(|v| allowed.contains(v))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn id_of(value: &Value) -> Option<&str> {",
+     "before": "fn id_of(v: &Value) -> Option<&str> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(Value::String(kind)) => vec![kind.clone()],",
+     "before": "Some(Value::String(s)) => vec![s.clone()],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|kind| kind.as_str().map(str::to_owned))",
+     "before": ".filter_map(|v| v.as_str().map(str::to_owned))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "kinds(xref).iter().any(|kind| kind == \"self\")",
+     "before": "kinds(xref).iter().any(|k| k == \"self\")",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn items<'value>(doc: &'value Value, within: Option<&str>) -> Vec<&'value Value> {",
+     "before": "fn items<'a>(doc: &'a Value, within: Option<&str>) -> Vec<&'a Value> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": ".filter(|item| id_of(item).is_some())",
+     "before": ".filter(|v| id_of(v).is_some())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn walk<'value>(value: &'value Value, out: &mut Vec<&'value Value>, root: bool) {",
+     "before": "fn walk<'a>(v: &'a Value, out: &mut Vec<&'a Value>, root: bool) {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "object.values().for_each(|child| walk(child, out, false));",
+     "before": "m.values().for_each(|c| walk(c, out, false));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::Array(elements) => {",
+     "before": "Value::Array(a) => a.iter().for_each(|c| walk(c, out, false)),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub struct Checker<'docs> {",
+     "before": "pub struct Checker<'a> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "impl Checker<'_> {",
+     "before": "impl<'a> Checker<'a> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn target_label(&self, target: &Target) -> String {",
+     "before": "fn target_label(&self, t: &Target) -> String {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "owner: &Value,",
+     "before": "sdoc: &Value,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let annot_xref = node.get(\"x-ref\").cloned();",
+     "before": "let (node, sdoc) = schema.resolve(node, sdoc);",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "if let Some(xref) = xref {",
+     "before": "if let Some(x) = xref {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let written: Vec<String> = match value {",
+     "before": ".or_insert_with(|| (schema.name().to_owned(), x.clone()));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|element| element.as_str().map(str::to_owned))",
+     "before": ".filter_map(|v| v.as_str().map(str::to_owned))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for written_value in written {",
+     "before": "for v in values {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "xref: xref.clone(),",
+     "before": "xref: x.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let (Some(derive), Some(_)) = (derive, value.as_object()) {",
+     "before": "if let (Some(d), Some(_)) = (derive, value.as_object()) {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "if let (Some(properties), Some(object)) = (",
+     "before": "if let (Some(props), Some(obj)) = (",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(property_value) = object.get(key) {",
+     "before": "for (k, sub) in props {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "property_value,",
+     "before": "sdoc,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "if let (Some(items), Some(array)) = (node.get(\"items\"), value.as_array()) {",
+     "before": "if let (Some(items), Some(arr)) = (node.get(\"items\"), value.as_array()) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "format!(\"{pointer}/items\"),",
+     "before": "sdoc,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "format!(\"{pointer}/items\"),",
+     "before": "v,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if when.is_some_and(|when| {",
+     "before": "if when.is_some_and(|w| w.iter().all(|(k, v)| value.get(k) == Some(v))) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "derive: &Value,",
+     "before": "d: &Value,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let got = Self::derive_value(derive, value);",
+     "before": "sdoc: &Value,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let got = Self::derive_value(derive, value);",
+     "before": "let got = Self::derive_value(d, value);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for rule in derive",
+     "before": "for rule in d",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for key in rule",
+     "before": "for k in rule",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|(key, _)| key)",
+     "before": ".map(|(k, _)| k)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if !keys.contains(key) {",
+     "before": "if !keys.contains(k) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|key| {",
+     "before": ".map(|k| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".and_then(|properties| properties.get(key))",
+     "before": ".and_then(|p| p.get(k))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".or_else(|| schema.resolve(sub, schema_document).0.get(\"title\"))",
+     "before": ".or_else(|| schema.resolve(sub, sdoc).0.get(\"title\"))",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": ".unwrap_or_else(|| Value::String(key.clone()));",
+     "before": ".unwrap_or_else(|| Value::String(k.clone()));",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "let declared_value = derive",
+     "before": "let declared_value = d",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".and_then(|name| value.get(name))",
+     "before": ".and_then(|n| value.get(n))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(name) = derive.get(\"declared\").and_then(Value::as_str) {",
+     "before": "if let Some(name) = d.get(\"declared\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for expect in derive",
+     "before": "for e in d",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if !condition_holds(root, expect.get(\"when\").unwrap_or(&Value::Null)) {",
+     "before": "if !condition_holds(root, e.get(\"when\").unwrap_or(&Value::Null)) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let name = expect",
+     "before": "let name = e",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "expect.get(\"in\").and_then(Value::as_array),",
+     "before": "e.get(\"in\").and_then(Value::as_array),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "title: derive.get(\"title\").cloned().unwrap_or(Value::Null),",
+     "before": "title: d.get(\"title\").cloned().unwrap_or(Value::Null),",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn resolve_link(&self, link: &Link) -> Result<Vec<Target>, String> {",
+     "before": "fn resolve_link(&self, l: &Link) -> Result<Vec<Target>, String> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".is_some_and(|kind| target_kinds.iter().any(|target_kind| target_kind == kind))",
+     "before": ".is_some_and(|k| ks.iter().any(|x| x == k))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|item| id_of(item) == Some(id))",
+     "before": ".filter(|v| id_of(v) == Some(id))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let found: Vec<Target> = if is_self(xref) {",
+     "before": "let found: Vec<Target> = if is_self(x) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&& id_of(&self.docs[doc_index].value) == Some(instance_id)",
+     "before": ".filter(|&i| of_kind(&self.docs[i]) && id_of(&self.docs[i].value) == Some(inst))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "} else if xref.get(\"bare\") == Some(&Value::Bool(true)) {",
+     "before": "} else if x.get(\"bare\") == Some(&Value::Bool(true)) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|&doc_index| of_kind(&self.docs[doc_index]))",
+     "before": ".filter(|&i| of_kind(&self.docs[i]))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&& id_of(&self.docs[doc_index].value) == Some(link.value.as_str())",
+     "before": ".filter(|&i| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|doc_index| Target {",
+     "before": ".map(|i| Target { doc: i, item: None })",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "_ if xref.get(\"bare\") == Some(&Value::Bool(true)) => {",
+     "before": "_ if x.get(\"bare\") == Some(&Value::Bool(true)) => Err(\"指す先が1つに決まらない\".into()),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn target_value(&self, target: &Target, within: Option<&str>) -> Value {",
+     "before": "fn target_value(&self, t: &Target, within: Option<&str>) -> Value {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".find(|item| id_of(item) == Some(id))",
+     "before": ".find(|v| id_of(v) == Some(id))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for link in &mut links {",
+     "before": "for l in &mut links {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "link.targets = targets.clone();",
+     "before": "l.targets = targets.clone();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(accept) = link.xref.get(\"accept\") {",
+     "before": "if let Some(acc) = l.xref.get(\"accept\") {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".is_none_or(|when| condition_holds(&link.owner, when));",
+     "before": ".is_none_or(|w| condition_holds(&l.owner, w));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let within = link.xref.get(\"in\").and_then(Value::as_str);",
+     "before": "let within = l.xref.get(\"in\").and_then(Value::as_str);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let ok = collect(&target_value, at)",
+     "before": "let ok = collect(&tv, at).iter().any(|v| allowed.contains(v));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(covered_by) = link.xref.get(\"covered_by\").and_then(Value::as_str) {",
+     "before": "if let Some(cov) = l.xref.get(\"covered_by\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|value| value.as_str() == Some(link.value.as_str()));",
+     "before": ".any(|v| v.as_str() == Some(l.value.as_str()));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "format!(\"{covered_by} で扱われていない\")",
+     "before": "format!(\"{cov} で扱われていない\")",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(approved) = approved {",
+     "before": "if let Some(appr) = approved {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for link in links",
+     "before": "for l in links",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|link| link.xref.get(\"unique\") == Some(&Value::Bool(true)))",
+     "before": ".filter(|l| l.xref.get(\"unique\") == Some(&Value::Bool(true)))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let array_at = link",
+     "before": "let array_at = l",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|(array_at, _)| array_at.to_owned())",
+     "before": ".map(|(a, _)| a.to_owned())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "seen.entry((link.annot.clone(), link.doc, array_at))",
+     "before": "seen.entry((l.annot.clone(), l.doc, array_at))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".push(link);",
+     "before": ".push(l);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for ((_, doc, _), same_array_links) in &seen {",
+     "before": "for ((_, doc, _), ls) in &seen {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for link in same_array_links {",
+     "before": "for l in ls {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"重ねて指さない\",",
+     "before": "l.value.clone(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (key, (_, xref)) in &self.annots {",
+     "before": "for (key, (_, x)) in &self.annots {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let entry = groups",
+     "before": "let e = groups.entry(g).or_insert_with(|| (x.clone(), Vec::new()));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (group, (xref, keys)) in groups {",
+     "before": "for (group, (x, keys)) in groups {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|key| self.annots.get(key).map(|annot| annot.0.clone()))",
+     "before": ".filter_map(|k| self.annots.get(k).map(|a| a.0.clone()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (doc_index, doc) in self.docs.iter().enumerate() {",
+     "before": "for (i, d) in self.docs.iter().enumerate() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let take = if is_self(&xref) {",
+     "before": "d.value",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".is_some_and(|kind| {",
+     "before": ".is_some_and(|k| ks.iter().any(|x| x == k))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let item_level = is_self(&xref)",
+     "before": "let item_level = is_self(&x)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for item in items(&doc.value, within) {",
+     "before": "for v in items(&d.value, within) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "item: id_of(item).map(str::to_owned),",
+     "before": "doc: i,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for candidate in candidates {",
+     "before": "candidates.push(Target { doc: i, item: None });",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for candidate in candidates {",
+     "before": "for c in candidates {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(where_derive) = inverse.get(\"where_derive\") {",
+     "before": "if let Some(wd) = inv.get(\"where_derive\") {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let hit = collect(&candidate_value, via)",
+     "before": "let hit = collect(&cv, via)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter_map(|value| value.as_str())",
+     "before": ".filter_map(|v| v.as_str())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "self.derived.iter().any(|derived| {",
+     "before": "self.derived.iter().any(|dv| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".filter(|link| {",
+     "before": ".filter(|l| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let decls = refs",
+     "before": "let decls = refs.iter().map(|l| l.doc).collect::<BTreeSet<_>>().len() as u64;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(min) = inverse.get(\"min\").and_then(Value::as_u64) {",
+     "before": "if let Some(min) = inv.get(\"min\").and_then(Value::as_u64) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(max) = inverse.get(\"max\").and_then(Value::as_u64) {",
+     "before": "if let Some(max) = inv.get(\"max\").and_then(Value::as_u64) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(max_decls) = inverse.get(\"max_decls\").and_then(Value::as_u64) {",
+     "before": "if let Some(maxd) = inv.get(\"max_decls\").and_then(Value::as_u64) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"指すインスタンスが多すぎる（{decls} 件、上限 {max_decls}）\"",
+     "before": "\"指すインスタンスが多すぎる（{decls} 件、上限 {maxd}）\"",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "checker.check_links(approved);",
+     "before": "let mut c = collect_all(docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "checker.check_links(None);",
+     "before": "let mut c = collect_all(docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|link| {",
+     "before": ".map(|l| {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "doc: link.doc,",
+     "before": "doc: l.doc,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let derived = checker",
+     "before": "let derived = c",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|derived| GraphDerived {",
+     "before": ".map(|d| GraphDerived {",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn collect_all<'docs>(docs: &'docs [Doc<'docs>]) -> Checker<'docs> {",
+     "before": "fn collect_all<'a>(docs: &'a [Doc<'a>]) -> Checker<'a> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "for (doc_index, doc) in docs.iter().enumerate() {",
+     "before": "for (i, d) in docs.iter().enumerate() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for doc in docs {",
+     "before": "for d in docs {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&mut checker.annots,",
+     "before": "&mut c.annots,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn register(",
+     "before": "c",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "annots: &mut BTreeMap<String, (String, Value)>,",
+     "before": "sdoc: &Value,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "if depth > 32 {",
+     "before": "if let Some(x) = node.get(\"x-ref\") {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(properties) = node.get(\"properties\").and_then(Value::as_object) {",
+     "before": ".entry(format!(\"{}#{ptr}\", schema.name()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(properties) = node.get(\"properties\").and_then(Value::as_object) {",
+     "before": "if let Some(props) = node.get(\"properties\").and_then(Value::as_object) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let items_pointer = format!(\"{pointer}/items\");",
+     "before": "（無かった）",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "items_pointer,",
+     "before": "sdoc,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "domain_instance",
+   "tab": "domain/instance.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/instance.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map_err(|error| Reject::CannotApply(error.0))?;",
+     "before": ".map_err(|e| Reject::CannotApply(e.0))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|SchemaError(error)| Reject::BrokenSchema(error))?;",
+     "before": ".map_err(|SchemaError(e)| Reject::BrokenSchema(e))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "domain_schema",
+   "tab": "domain/schema.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "for (name, value) in &self.siblings {",
+     "before": ".map_err(|e| SchemaError(e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let registry = registry",
+     "before": "let registry = registry.prepare().map_err(|e| SchemaError(e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".with_registry(&registry)",
+     "before": ".map_err(|e| SchemaError(e.to_string()))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for error in validator.iter_errors(instance) {",
+     "before": "for err in validator.iter_errors(instance) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Ok(unfilled) = Unfilled::new(&pointer) {",
+     "before": "if let Ok(u) = Unfilled::new(&pointer) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "} else if let Ok(validation_error) = ValidationError::new(&at, &error.to_string()) {",
+     "before": "} else if let Ok(e) = ValidationError::new(&at, &err.to_string()) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".sort_by(|left, right| left.property().cmp(right.property()));",
+     "before": "out.unfilled.sort_by(|a, b| a.property().cmp(b.property()));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let segment = raw.replace(\"~1\", \"/\").replace(\"~0\", \"~\");",
+     "before": "let seg = raw.replace(\"~1\", \"/\").replace(\"~0\", \"~\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "node.get(\"properties\")?.get(&segment)?",
+     "before": "node.get(\"properties\")?.get(&seg)?",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(prompt) = node.get(\"x-prompt\") {",
+     "before": "if let Some(p) = node.get(\"x-prompt\") {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (resolved_node, _) = self.resolve(node, doc);",
+     "before": "let (n, _) = self.resolve(node, doc);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "pub(crate) fn resolve<'schema>(",
+     "before": "pub(crate) fn resolve<'a>(",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "let Some(reference) = node.get(\"$ref\").and_then(Value::as_str) else {",
+     "before": "let Some(r) = node.get(\"$ref\").and_then(Value::as_str) else {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (file, frag) = reference.split_once('#').unwrap_or((reference, \"\"));",
+     "before": "let (file, frag) = r.split_once('#').unwrap_or((r, \"\"));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "match self",
+     "before": "match self.siblings.iter().find(|(n, _)| n == file) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(target) => node = target,",
+     "before": "Some(v) => node = v,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "domain_schema_rules",
+   "tab": "domain/schema_rules.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn parse_json(text: &str) -> Value {",
+     "before": "fn parse_json(s: &str) -> Value {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn pointer_part(key: &str) -> String {",
+     "before": "fn pointer_part(k: &str) -> String {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let character = chars[i];",
+     "before": "let c = chars[i];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if character != '{' {",
+     "before": "if c != '{' {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let inner = chars[i];",
+     "before": "let d = chars[i];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(open_quote) if inner == open_quote => quote = None,",
+     "before": "Some(q) if d == q => quote = None,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "None if \"'`\\\"\".contains(inner) => quote = Some(inner),",
+     "before": "None if \"'`\\\"\".contains(d) => quote = Some(d),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "expr.push(inner);",
+     "before": "expr.push(d);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn templates(view: &Value) -> Vec<String> {",
+     "before": "fn templates(xv: &Value) -> Vec<String> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(when) = case.get(\"when\").and_then(Value::as_str) {",
+     "before": "if let Some(s) = c.get(\"when\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(text) = view.get(\"text\").and_then(Value::as_str) {",
+     "before": "if let Some(s) = xv.get(\"text\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for each_case in view",
+     "before": "for c in xv",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "case(each_case, &mut found);",
+     "before": "case(c, &mut t);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (_, part) in view",
+     "before": "for (_, p) in xv",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "match part {",
+     "before": "match p {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(label) = view.get(\"label\").and_then(Value::as_str) {",
+     "before": "if let Some(s) = xv.get(\"label\").and_then(Value::as_str) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(label) = view.get(\"label\").and_then(Value::as_str) {",
+     "before": "t",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "while let Some(pipe) = rest.find('|') {",
+     "before": "while let Some(p) = rest.find('|') {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".take_while(|character| character.is_ascii_alphanumeric() || *character == '_')",
+     "before": ".take_while(|c| c.is_ascii_alphanumeric() || *c == '_')",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "rest = &rest[pipe + 1..];",
+     "before": "rest = &rest[p + 1..];",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn first_error(shape: &Schema, annotation: &Value) -> Option<String> {",
+     "before": "fn first_error(s: &Schema, v: &Value) -> Option<String> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|error| {",
+     "before": ".map(|e| format!(\"{} {}\", e.property(), e.reason()).trim().to_owned())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".or_else(|| {",
+     "before": "r.unfilled",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|unfilled| format!(\"{} が無い\", unfilled.property()))",
+     "before": ".map(|u| format!(\"{} が無い\", u.property()))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "#[allow(clippy::too_many_arguments)]",
+     "before": "v: &Value,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "message,",
+     "before": "match v {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let here = format!(\"{at}/{}\", pointer_part(key));",
+     "before": "for (k, c) in m {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let shape = match key.as_str() {",
+     "before": "let shape = match k.as_str() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Some(shape) = shape {",
+     "before": "if let Some(s) = shape {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if key == \"x-prompt\" {",
+     "before": "if k == \"x-prompt\" {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".is_some_and(|text| !text.is_empty())",
+     "before": ".is_some_and(|s| !s.is_empty())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if key == \"x-view\" && child.is_object() {",
+     "before": "if k == \"x-view\" && c.is_object() {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "format!(\"{{{expr}}} ── {}\", error.lines().next().unwrap_or(\"\")),",
+     "before": "format!(\"{{{e}}} ── {}\", err.lines().next().unwrap_or(\"\")),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if !BASE_ANNOTATIONS.contains(&key.as_str()) && !declared.contains(key) {",
+     "before": "if !BASE_ANNOTATIONS.contains(&k.as_str()) && !declared.contains(k) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "format!(\"{key} は基盤の注釈でなく、x-annotations にも無い\"),",
+     "before": "format!(\"{k} は基盤の注釈でなく、x-annotations にも無い\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (here, child) in children {",
+     "before": "for (here, c) in children {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::Array(elements) => {",
+     "before": "Value::Array(a) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn referenced_kinds(value: &Value, out: &mut BTreeSet<String>) {",
+     "before": "fn referenced_kinds(v: &Value, out: &mut BTreeSet<String>) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Some(Value::Array(kinds)) => {",
+     "before": "Some(Value::Array(a)) => {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "} else if !OPAQUE.contains(&key.as_str()) {",
+     "before": "} else if !OPAQUE.contains(&k.as_str()) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Value::Array(elements) => elements",
+     "before": "Value::Array(a) => a.iter().for_each(|c| referenced_kinds(c, out)),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "|reference: &str| Schema::new(\"shape.json\", json!({\"$ref\": reference}), sib.clone());",
+     "before": "let shape = |r: &str| Schema::new(\"shape.json\", json!({\"$ref\": r}), sib.clone());",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (_, schema) in schemas {",
+     "before": "for (_, s) in schemas {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for (name, schema) in schemas {",
+     "before": "for (name, s) in schemas {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "at: unfilled.property().to_owned(),",
+     "before": "at: u.property().to_owned(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "message: format!(\"{} が無い\", unfilled.property()),",
+     "before": "message: format!(\"{} が無い\", u.property()),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for error in &validation.errors {",
+     "before": "for e in &r.errors {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "at: error.property().to_owned(),",
+     "before": "at: e.property().to_owned(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "message: error.reason().to_owned(),",
+     "before": "message: e.reason().to_owned(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Err(error) => out.push(SchemaFinding {",
+     "before": "Err(e) => out.push(SchemaFinding {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "message: format!(\"検査できない（{}）\", error.0),",
+     "before": "message: format!(\"検査できない（{}）\", e.0),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let declared: BTreeSet<String> = schema",
+     "before": "let declared: BTreeSet<String> = s",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map(|annotations| annotations.keys().cloned().collect())",
+     "before": ".map(|m| m.keys().cloned().collect())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "walk(schema, \"\", name, &declared, &shapes, parse, &mut out);",
+     "before": "walk(s, \"\", name, &declared, &shapes, parse, &mut out);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "message: format!(\"{kind} はほかのスキーマの x-ref が指すので、id を持つ\"),",
+     "before": "message: format!(\"{k} はほかのスキーマの x-ref が指すので、id を持つ\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "domain_values",
+   "tab": "domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+     "before": "fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| PatchError(format!(\"JSON Patch として読めない: {error}\")))?;",
+     "before": ".map_err(|e| PatchError(format!(\"JSON Patch として読めない: {e}\")))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| PatchError(format!(\"JSON の値として読めない: {error}\")))?;",
+     "before": ".map_err(|e| PatchError(format!(\"JSON の値として読めない: {e}\")))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".map_err(|error| PatchError(format!(\"適用できない: {error}\")))?;",
+     "before": ".map_err(|e| PatchError(format!(\"適用できない: {e}\")))?;",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let hex: String = digest.iter().map(|byte| format!(\"{byte:02x}\")).collect();",
+     "before": "let hex: String = digest.iter().map(|b| format!(\"{b:02x}\")).collect();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let mut escaped = String::with_capacity(text.len());",
+     "before": "let mut s = String::with_capacity(text.len());",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "Self(escaped)",
+     "before": "Self(s)",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "ports_inbound",
+   "tab": "ports/inbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/inbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::application::renders::Rendered;",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "/// 描画のユースケース（UC-6）。具体のデザインを持つものだけが実装する。",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "ports_outbound",
+   "tab": "ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub trait Files: Send + Sync {",
+     "before": "pub trait Files {",
+     "why": "ユースケースが Arc で共有して持つので、ポートに Send と Sync を求めた（clippy の arc_with_non_send_sync）"
+    },
+    {
+     "find": "pub trait Schemas: Send + Sync {",
+     "before": "pub trait Schemas {",
+     "why": "ユースケースが Arc で共有して持つので、ポートに Send と Sync を求めた（clippy の arc_with_non_send_sync）"
+    },
+    {
+     "find": "/// SVG の文字列をページに埋め込む。script ・ イベントの属性（on…）・ javascript: を含むなら断る。",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "fn page(",
+     "before": "fn page(&self, frame: &Frame, r: &dyn Renderer) -> Result<crate::domain::values::Html, String>;",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "heading: &str,",
+     "before": "r: &dyn Renderer,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "renderer: &mut dyn Renderer,",
+     "before": "r: &mut dyn Renderer,",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  },
+  {
+   "key": "tests_approval",
+   "tab": "tests/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let recorded = ApprovalRecord::record(dir(), &errors, &[], &[], vec![approved(\"decls/a.json\")]);",
+     "before": "let r = ApprovalRecord::record(dir(), &errors, &[], &[], vec![approved(\"decls/a.json\")]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let recorded = ApprovalRecord::record(dir(), &[], &drifts, &[], vec![approved(\"decls/a.json\")]);",
+     "before": "let r = ApprovalRecord::record(dir(), &[], &drifts, &[], vec![approved(\"decls/a.json\")]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "ApprovalRecord::record(dir(), &[], &[], &unfilled, vec![approved(\"decls/a.json\")]);",
+     "before": "let r = ApprovalRecord::record(dir(), &[], &[], &unfilled, vec![approved(\"decls/a.json\")]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let recorded = ApprovalRecord::record(dir(), &[], &[], &[], vec![]);",
+     "before": "let r = ApprovalRecord::record(dir(), &[], &[], &[], vec![]);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn docs_with<'schema>(",
+     "before": "fn docs_with<'a>(s: &'a Schema, t: &'a Schema, refs: Value) -> Vec<Doc<'a>> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "hash: JsonValue::new(&referring_value.to_string()).hash(),",
+     "before": "hash: JsonValue::new(&a.to_string()).hash(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "hash: JsonValue::new(&target_value.to_string()).hash(),",
+     "before": "hash: JsonValue::new(&b.to_string()).hash(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&docs_with(&referring_schema, &target_schema, json!([\"B-9\"])),",
+     "before": "let (s, t) = schemas();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding.check == \"指す先がある\" && finding.status == Status::Drift));",
+     "before": ".any(|x| x.check == \"指す先がある\" && x.status == Status::Drift));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (_, target_schema) = schemas();",
+     "before": "let (_, t) = schemas();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&docs_with(&referring_schema, &target_schema, json!([\"B-1\"])),",
+     "before": "let f = check(&docs_with(&s, &t, json!([\"B-1\"])), None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding.check == \"指す先が受け付ける値\" && finding.status == Status::Drift));",
+     "before": ".any(|x| x.check == \"指す先が受け付ける値\" && x.status == Status::Drift));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "approved_hashes.insert(\"b.json\".into(), JsonValue::new(\"{}\").hash());",
+     "before": "let (s, t) = schemas();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding.check == \"承認のあとの変化\" && finding.status == Status::Recheck));",
+     "before": ".any(|x| x.check == \"承認のあとの変化\" && x.status == Status::Recheck));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "approved_hashes.insert(\"b.json\".into(), docs[1].hash.clone());",
+     "before": "let (s, t) = schemas();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".any(|finding| finding.check == \"承認のあとの変化\" && finding.status == Status::Pass));",
+     "before": ".any(|x| x.check == \"承認のあとの変化\" && x.status == Status::Pass));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_check",
+   "tab": "tests/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn doc<'schema>(path: &str, value: Value, schema: &'schema Schema) -> Doc<'schema> {",
+     "before": "fn doc<'a>(path: &str, value: Value, schema: &'a Schema) -> Doc<'a> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "fn of<'findings>(findings: &'findings [Finding], check: &str) -> Vec<&'findings Finding> {",
+     "before": "fn of<'a>(f: &'a [Finding], check: &str) -> Vec<&'a Finding> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "fn statuses(findings: &[Finding], check: &str) -> Vec<Status> {",
+     "before": "fn statuses(f: &[Finding], check: &str) -> Vec<Status> {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn to_finds_instance_by_id_and_reports_missing() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"uses\": [\"R-1\", \"R-9\"]}),",
+     "before": "let r = schema(\"rule.schema.json\", json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"uses\": [\"R-1\", \"R-9\"]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(of(&findings, \"指す先がある\")[1].message, \"指す先が無い\");",
+     "before": "statuses(&f, \"指す先がある\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(of(&findings, \"指す先がある\")[1].message, \"指す先が無い\");",
+     "before": "assert_eq!(of(&f, \"指す先がある\")[1].message, \"指す先が無い\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn item_finds_item_inside_instance() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"properties\": {\"impl\": {\"x-ref\": {\"to\": \"req\", \"item\": true, \"in\": \"rules\"}}}}),",
+     "before": "let r = schema(\"req.schema.json\", json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"impl\": [\"REQ-1.BR-1\", \"REQ-1.BR-2\", \"REQ-1\"]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"REQ-1\", \"kind\": \"req\", \"rules\": [{\"id\": \"BR-1\"}]}),",
+     "before": "&r,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let get = |to: &str| found.iter().find(|finding| finding.to == to).unwrap();",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn bare_rejects_ambiguous_item() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let target_schema = schema(\"dom.schema.json\", json!({}));",
+     "before": "let d = schema(\"dom.schema.json\", json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"v\": [\"VAL-1\", \"VAL-2\"]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"d1.json\",",
+     "before": "&d,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"d2.json\",",
+     "before": "&d,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": ".collect::<Vec<_>>(),",
+     "before": "found.iter().map(|x| x.status).collect::<Vec<_>>(),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn self_looks_inside_same_instance() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"commands\": [{\"id\": \"CMD-1\"}], \"invariants\": [{\"id\": \"INV-1\", \"via\": [\"CMD-1\", \"CMD-2\"]}]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"commands\": [{\"id\": \"CMD-1\"}], \"invariants\": [{\"id\": \"INV-1\", \"via\": [\"CMD-1\", \"CMD-2\"]}]}),",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn only_skips_values_that_are_not_references() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"type\": \"ID\"}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn accept_with_when_checks_target_kind() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"properties\": {\"steps\": {\"items\": {\"properties\": {\"data\": {\"x-ref\": {",
+     "before": "let g = glossary();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "{\"id\": \"S-1\", \"kind\": \"相互作用\", \"data\": [\"T-1\"]},",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "{\"id\": \"T-1\", \"meanings\": [{\"kind\": \"情報\"}]},",
+     "before": "&g,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "statuses(&findings, \"指す先が受け付ける値\"),",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "statuses(&findings, \"指す先が受け付ける値\"),",
+     "before": "statuses(&f, \"指す先が受け付ける値\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn unique_rejects_repeated_value_in_same_array() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"properties\": {\"uses\": {\"items\": {\"properties\": {\"term\": {\"x-ref\": {\"to\": \"glossary\", \"bare\": true, \"in\": \"terms\", \"unique\": true}}}}}}}),",
+     "before": "let g = glossary();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"uses\": [{\"term\": \"T-1\"}, {\"term\": \"T-1\"}]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"G-1\", \"kind\": \"glossary\", \"terms\": [{\"id\": \"T-1\"}]}),",
+     "before": "&g,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn covered_by_requires_each_value_to_be_handled() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"properties\": {\"steps\": {\"items\": {\"properties\": {\"checks\": {\"x-ref\": {\"to\": \"req\", \"item\": true, \"covered_by\": \"extensions/fails\"}}}}}}}),",
+     "before": "let r = schema(\"req.schema.json\", json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"steps\": [{\"id\": \"S-1\", \"checks\": [\"R-1.B-1\", \"R-1.B-2\"], \"extensions\": [{\"fails\": [\"R-1.B-1\"]}]}]}),",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"R-1\", \"kind\": \"req\", \"b\": [{\"id\": \"B-1\"}, {\"id\": \"B-2\"}]}),",
+     "before": "&r,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let group = of(&findings, \"ユースケースを束ねるのは1つ\");",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "!by.iter().any(|(target, _)| *target == \"UC-0\"),",
+     "before": "assert!(!by.iter().any(|(t, _)| *t == \"UC-0\"), \"where で外す\");",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn inverse_max_decls_counts_instances_not_references() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"properties\": {\"rejects\": {\"x-ref\": {\"to\": \"glossary\", \"bare\": true, \"in\": \"terms\",",
+     "before": "let g = glossary();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"a1.json\",",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"a2.json\",",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"a3.json\",",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"G-1\", \"kind\": \"glossary\", \"terms\": [{\"id\": \"T-1\"}, {\"id\": \"T-2\"}]}),",
+     "before": "&g,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let by: Vec<(&str, Status)> = of(&findings, \"拒否の理由を使う集約は1つ\")",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let by: Vec<(&str, Status)> = of(&findings, \"拒否の理由を使う集約は1つ\")",
+     "before": ".map(|x| (x.to.as_str(), x.status))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "statuses(&findings, \"導出値と宣言した値\"),",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "statuses(&findings, \"導出値と宣言した値\"),",
+     "before": "statuses(&f, \"導出値と宣言した値\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "statuses(&findings, \"カテゴリーと実装方法\"),",
+     "before": "statuses(&f, \"カテゴリーと実装方法\"),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let by: Vec<(&str, Status)> = of(&findings, \"ドメインモデルの文脈に集約がある\")",
+     "before": "let f = check(&docs, None);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let by: Vec<(&str, Status)> = of(&findings, \"ドメインモデルの文脈に集約がある\")",
+     "before": ".map(|x| (x.to.as_str(), x.status))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn approval_reports_change_and_unapproved() {",
+     "before": "let s = schema(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"A-1\", \"kind\": \"a\", \"uses\": [\"R-1\", \"R-2\"]}),",
+     "before": "let r = schema(\"rule.schema.json\", json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"r1.json\",",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"r2.json\",",
+     "before": "doc(\"r1.json\", json!({\"id\": \"R-1\", \"kind\": \"rule\"}), &r),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let findings = check(&docs, Some(&approved));",
+     "before": "let f = check(&docs, Some(&approved));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let findings = check(&docs, Some(&changed));",
+     "before": "let f = check(&docs, Some(&changed));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "of(&findings, \"承認のあとの変化\")[0].message,",
+     "before": "of(&f, \"承認のあとの変化\")[0].message,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_context",
+   "tab": "tests/context.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/context.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn doc<'schema>(path: &str, value: Value, schema: &'schema Schema) -> Doc<'schema> {",
+     "before": "fn doc<'a>(path: &str, value: Value, schema: &'a Schema) -> Doc<'a> {",
+     "why": "必要な借用のライフタイムに、何を借りるかの名前を付けた"
+    },
+    {
+     "find": "fn this_schema_and_instances() {",
+     "before": "let f = fixture();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "doc(\"uc.json\", uc.clone(), &schemas.uc),",
+     "before": "doc(\"uc.json\", uc.clone(), &f.uc),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(page_contexts.len(), 3);",
+     "before": "let c = contexts(&docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn derived_has_value_title_declared_and_questions_in_rule_order() {",
+     "before": "let f = fixture();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"classification\": {",
+     "before": "let c = contexts(&docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"classification\": {",
+     "before": "c[0][\"derived\"],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(page_contexts[1][\"derived\"], json!({}));",
+     "before": "assert_eq!(c[1][\"derived\"], json!({}));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn links_list_each_written_reference_with_resolved_target_or_null() {",
+     "before": "let f = fixture();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[0][\"links\"],",
+     "before": "doc(\"uc.json\", uc, &f.uc),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[0][\"links\"],",
+     "before": "let c = contexts(&docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[0][\"links\"],",
+     "before": "c[0][\"links\"],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(page_contexts[2][\"links\"], json!([]));",
+     "before": "assert_eq!(c[2][\"links\"], json!([]));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "fn referrers_list_who_points_here_and_which_item() {",
+     "before": "let f = fixture();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[1][\"referrers\"],",
+     "before": "doc(\"uc.json\", uc, &f.uc),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[1][\"referrers\"],",
+     "before": "let c = contexts(&docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[1][\"referrers\"],",
+     "before": "c[1][\"referrers\"],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "page_contexts[2][\"referrers\"],",
+     "before": "c[2][\"referrers\"],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "assert_eq!(page_contexts[0][\"referrers\"], json!([]));",
+     "before": "assert_eq!(c[0][\"referrers\"], json!([]));",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let nested_schema = Schema::new(",
+     "before": "let s = Schema::new(",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "&nested_schema,",
+     "before": "&s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"id\": \"N-1\", \"kind\": \"n\", \"parts\": [{\"c\": {\"a\": true}}]}),",
+     "before": "let c = contexts(&docs);",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"parts/0/c\": {\"value\": 1, \"title\": null, \"declared\": null,",
+     "before": "c[0][\"derived\"],",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "json!({\"$ref\": \"page.schema.json#/$defs/context\"}),",
+     "before": "let f = fixture();",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for context in contexts(&docs) {",
+     "before": "doc(\"uc.json\", uc, &f.uc),",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "for context in contexts(&docs) {",
+     "before": "for c in contexts(&docs) {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "src_main",
+   "tab": "src/main.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_adapters::outbound::document_design::DocumentDesign;",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "use schema_driven_core::application::renders::Renders;",
+     "before": "（無かった）",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "use std::sync::Arc;",
+     "before": "（無かった）",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": ".map(|tool| Tool::new(tool.name, tool.description, tools::input_schema(tool)))",
+     "before": ".map(|t| Tool::new(t.name, t.description, tools::input_schema(t)))",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));",
+     "before": "let (files, query) = (FileSystem, Jmespath);",
+     "why": "受け取るものを Arc で共有して持つ形にして、型からライフタイム 'a を消した"
+    },
+    {
+     "find": "let checks = Checks::new(files.clone(), files.clone(), query.clone());",
+     "before": "let checks = Checks::new(&files, &files, &query);",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    },
+    {
+     "find": "Ok(service) => service,",
+     "before": "Ok(s) => s,",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "if let Err(error) = service.waiting().await {",
+     "before": "if let Err(e) = service.waiting().await {",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    }
+   ]
+  },
+  {
+   "key": "tests_mcp",
+   "tab": "tests/mcp.rs",
+   "file": ".claude/skills/schema-driven/tool/mcp/tests/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map(|tool| tool[\"name\"].as_str().unwrap())",
+     "before": ".map(|t| t[\"name\"].as_str().unwrap())",
+     "why": "1文字の名前と省略形を、宣言の語（instance ・ schema ・ page_template ・ renderer など）にした"
+    },
+    {
+     "find": "\"approve\",",
+     "before": "\"approve\"",
+     "why": "render と文書の契約の変更。理由は ACDR 0140"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "inbound_cli": "c0daada1678fdf6768862346c3c2ece4f4fad2e0866c619cc04832ef55e8ce30",
+  "inbound_tools": "a79c9963de8c8284a0aadd051fa3bb8fe49effac8d87a9f2650a041c99a39f2e",
+  "outbound_fs": "6b49f4f6cc1a0fb2b9ea566a54d78378d543465336a65003d7c1cd88cfc1d4bc",
+  "outbound_jmespath": "d57aaea27d08694bd629be436edba811024dea85135ba0add30d721a2f6f5cca",
+  "src_main": "2a6b2a4a6483f735a10eb856e35d0f12f95d464533cc2c99ad889c14965f1330",
+  "tests_page": "554c67428a8052ca9eeb38221f0d28d8c7b72e2832ad36976879a734ddedbea4",
+  "tests_round1": "ba49e1a9efec13a723524a5eccaa6eb966d9a410119c8706e03e03c61201d020",
+  "tests_round2": "2f62f96a9a679d9368f1f7aadd6420e853e2648f8c8f89cd9abdd8647905c46d",
+  "tests_schema_rules": "f93f289360367453cebbd80a5a45df03934554973333422cc1b3986dbad44c9e",
+  "tests_toolbox": "e62e8451ac03e2782a15005cc30b5a60b5c209ebcdacc1ddfd4cb0321765fb2f",
+  "tests_view": "502cb8b3c05d1954f464368b0a791d36ca9697efab8fbcbacad38773f969a8fe",
+  "application_checks": "7441c93728ed5910c09dc716d93291e3b0e1036502ca9ea057fbabd2d336d449",
+  "application_context": "a4a81cdeacc0000101568bb2a3e569fa8d0d07ac6b24e859e6001bb3a7d8b050",
+  "application_instances": "2ae94f004ae99e5dd04edf688448188a8207f8b3e13ff29186109f75312072e3",
+  "application_mod": "8d2fc8a68a09f48175deef93fd1758394791ce93f0fde6040e95d831e69be762",
+  "application_page": "a55af85a3df447fd752fd6fc073b91c1a1f5db4676e34193215c546c6da571c3",
+  "application_paths": "e9a913c5a6c3b23d727a7cf5989b7b47a5cba7646c9fe288e18cebe192b21c5b",
+  "application_view": "bf843abe246ec1e05dc7bfdddd776972daeab41406d662f4b814f742991b7c59",
+  "domain_approval": "92bfcb9bf762e456f6398de3c4664f689c210343f26292fa8cb5c394389293cf",
+  "domain_check": "2bf95b82a7d13ddca60dd9bc9c87685bfc5b3c81c7853c33e3e88076940cc17b",
+  "domain_instance": "c919ff94272a9f328c6f34e937bf35a45fcbb84fafbb88088244ff76f93a27e8",
+  "domain_schema": "03f429fcc4d27280b926a48d53b1a3dd13c24fd0cff89930089c92fee8bc6f47",
+  "domain_schema_rules": "34d0c03084a9f79d4149e6b6d1d740a2799aea88c47180e8f6e5c57fb6bf569f",
+  "domain_values": "864ae8d08ca425e6e4b0267cecb8d0cf3eff92a6c87eed929b5af5120fa225d8",
+  "ports_inbound": "8c833b6f1b048b5409d638d0d60a1aeec236947cd798d8a01e0b0bbf6b447579",
+  "ports_outbound": "a39dd694d7c61e5bcb166055cd1f270d14622e60e652370ed43c93ed9a28487f",
+  "tests_approval": "704409e76f2592f5226777f734a596e4a40e6ef42e8377110a4f104779a660cc",
+  "tests_check": "b27f922875086f5050b181efd870ca286469625f993dbe1c9b26b8b5df0d4df2",
+  "tests_context": "6707a349942494d3cbf345673c90fdcc882664ffee65076108a380e93936d513",
+  "tests_mcp": "b29be7f17b15630c91cd6bc191f99c4232b58ddb8846f8888db1401c0dcd79dd"
+ }
+}

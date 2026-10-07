@@ -23,7 +23,7 @@ pub enum WriteIf {
 }
 
 /// ファイルシステム（支援アクター）。
-pub trait Files {
+pub trait Files: Send + Sync {
     fn exists(&self, path: &str) -> bool;
     fn read(&self, path: &str) -> Result<String, ReadError>;
     /// ディレクトリの直下のファイルのパスを、名前の順に返す。
@@ -35,7 +35,7 @@ pub trait Files {
 /// スキーマの供給元。スキーマが `$ref` で指す先のスキーマを、ファイル名と内容の組で返す。
 /// 基盤のアダプタは同じディレクトリから読む。外のスキーマを使いたい Skill は、自分のアダプタで取得して渡す
 /// （基盤はネットワークに出ない。ACDR 0122）。
-pub trait Schemas {
+pub trait Schemas: Send + Sync {
     fn referenced(&self, schema_path: &str) -> Result<Vec<(String, String)>, ReadError>;
 }
 
@@ -101,6 +101,8 @@ pub trait Renderer {
     ) -> Result<crate::domain::values::Html, String>;
     /// 文字をエスケープする。
     fn text(&self, text: &str) -> crate::domain::values::Html;
+    /// SVG の文字列をページに埋め込む。script ・ イベントの属性（on…）・ javascript: を含むなら断る。
+    fn svg(&self, svg: &str) -> Result<crate::domain::values::Html, String>;
     /// ページテンプレートの tones の表を引く。
     fn tone(&self, table: &str, value: &serde_json::Value) -> Option<String>;
 }
@@ -113,19 +115,23 @@ pub trait Design: Send + Sync {
     /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）。
     fn parts(&self) -> &str;
     /// ページのレイアウト。
-    fn page(&self, frame: &Frame, r: &dyn Renderer) -> Result<crate::domain::values::Html, String>;
+    fn page(
+        &self,
+        frame: &Frame,
+        renderer: &dyn Renderer,
+    ) -> Result<crate::domain::values::Html, String>;
     /// 節のレイアウト。
     fn section(
         &self,
         heading: &str,
         body: crate::domain::values::Html,
-        r: &dyn Renderer,
+        renderer: &dyn Renderer,
     ) -> Result<crate::domain::values::Html, String>;
     /// コンポーネント1つを描画する。show と each は基盤が適用してから呼び出す。
     fn render(
         &self,
         name: &str,
         input: &serde_json::Value,
-        r: &mut dyn Renderer,
+        renderer: &mut dyn Renderer,
     ) -> Result<crate::domain::values::Html, String>;
 }

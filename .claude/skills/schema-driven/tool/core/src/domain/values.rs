@@ -11,8 +11,8 @@ pub struct InvalidValue {
 }
 
 impl fmt::Display for InvalidValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.invariant, self.message)
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}: {}", self.invariant, self.message)
     }
 }
 
@@ -121,11 +121,11 @@ impl JsonPatch {
     /// OP-1 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。
     pub fn apply(&self, target: &JsonValue) -> Result<JsonValue, PatchError> {
         let patch: json_patch::Patch = serde_json::from_str(&self.0)
-            .map_err(|e| PatchError(format!("JSON Patch として読めない: {e}")))?;
+            .map_err(|error| PatchError(format!("JSON Patch として読めない: {error}")))?;
         let mut doc: serde_json::Value = serde_json::from_str(target.as_str())
-            .map_err(|e| PatchError(format!("JSON の値として読めない: {e}")))?;
+            .map_err(|error| PatchError(format!("JSON の値として読めない: {error}")))?;
         json_patch::patch(&mut doc, &patch)
-            .map_err(|e| PatchError(format!("適用できない: {e}")))?;
+            .map_err(|error| PatchError(format!("適用できない: {error}")))?;
         Ok(JsonValue::new(&doc.to_string()))
     }
 }
@@ -145,7 +145,7 @@ impl JsonValue {
     /// OP-1 ハッシュ値を求める。JSON の値の sha256。
     pub fn hash(&self) -> Hash {
         let digest = Sha256::digest(self.0.as_bytes());
-        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
         Hash(hex)
     }
 }
@@ -283,18 +283,18 @@ pub struct Html(String);
 impl Html {
     /// 文字をエスケープして HTML にする。
     pub fn escape(text: &str) -> Self {
-        let mut s = String::with_capacity(text.len());
-        for c in text.chars() {
-            match c {
-                '&' => s.push_str("&amp;"),
-                '<' => s.push_str("&lt;"),
-                '>' => s.push_str("&gt;"),
-                '"' => s.push_str("&quot;"),
-                '\'' => s.push_str("&#39;"),
-                other => s.push(other),
+        let mut escaped = String::with_capacity(text.len());
+        for character in text.chars() {
+            match character {
+                '&' => escaped.push_str("&amp;"),
+                '<' => escaped.push_str("&lt;"),
+                '>' => escaped.push_str("&gt;"),
+                '"' => escaped.push_str("&quot;"),
+                '\'' => escaped.push_str("&#39;"),
+                other => escaped.push(other),
             }
         }
-        Self(s)
+        Self(escaped)
     }
 
     /// 部品のプレースホルダーを置換した結果など、基盤の中で生成したものだけを包む。

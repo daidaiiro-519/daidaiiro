@@ -5,4 +5,5 @@ pub mod context;
 pub mod instances;
 pub mod page;
 pub mod paths;
+pub mod renders;
 pub mod view;

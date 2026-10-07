@@ -6,7 +6,7 @@ use schema_driven_core::domain::schema::Schema;
 use schema_driven_core::domain::values::JsonValue;
 use serde_json::{json, Value};
 
-fn doc<'a>(path: &str, value: Value, schema: &'a Schema) -> Doc<'a> {
+fn doc<'schema>(path: &str, value: Value, schema: &'schema Schema) -> Doc<'schema> {
     let hash = JsonValue::new(&value.to_string()).hash();
     Doc {
         path: path.to_owned(),
@@ -20,12 +20,18 @@ fn schema(name: &str, root: Value) -> Schema {
     Schema::new(name, root, Vec::new())
 }
 
-fn of<'a>(f: &'a [Finding], check: &str) -> Vec<&'a Finding> {
-    f.iter().filter(|x| x.check == check).collect()
+fn of<'findings>(findings: &'findings [Finding], check: &str) -> Vec<&'findings Finding> {
+    findings
+        .iter()
+        .filter(|finding| finding.check == check)
+        .collect()
 }
 
-fn statuses(f: &[Finding], check: &str) -> Vec<Status> {
-    of(f, check).iter().map(|x| x.status).collect()
+fn statuses(findings: &[Finding], check: &str) -> Vec<Status> {
+    of(findings, check)
+        .iter()
+        .map(|finding| finding.status)
+        .collect()
 }
 
 // 指す先のスキーマ：kind が term の用語集（項目 terms）と、kind が rule のルール
@@ -35,49 +41,53 @@ fn glossary() -> Schema {
 
 #[test]
 fn to_finds_instance_by_id_and_reports_missing() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"uses": {"x-ref": {"to": "rule"}}}}),
     );
-    let r = schema("rule.schema.json", json!({}));
+    let target_schema = schema("rule.schema.json", json!({}));
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "uses": ["R-1", "R-9"]}),
-            &s,
+            &referring_schema,
         ),
-        doc("r.json", json!({"id": "R-1", "kind": "rule"}), &r),
+        doc(
+            "r.json",
+            json!({"id": "R-1", "kind": "rule"}),
+            &target_schema,
+        ),
     ];
-    let f = check(&docs, None);
+    let findings = check(&docs, None);
     assert_eq!(
-        statuses(&f, "指す先がある"),
+        statuses(&findings, "指す先がある"),
         vec![Status::Pass, Status::Drift]
     );
-    assert_eq!(of(&f, "指す先がある")[1].message, "指す先が無い");
+    assert_eq!(of(&findings, "指す先がある")[1].message, "指す先が無い");
 }
 
 #[test]
 fn item_finds_item_inside_instance() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"impl": {"x-ref": {"to": "req", "item": true, "in": "rules"}}}}),
     );
-    let r = schema("req.schema.json", json!({}));
+    let target_schema = schema("req.schema.json", json!({}));
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "impl": ["REQ-1.BR-1", "REQ-1.BR-2", "REQ-1"]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "r.json",
             json!({"id": "REQ-1", "kind": "req", "rules": [{"id": "BR-1"}]}),
-            &r,
+            &target_schema,
         ),
     ];
-    let f = check(&docs, None);
-    let found = of(&f, "指す先がある");
-    let get = |to: &str| found.iter().find(|x| x.to == to).unwrap();
+    let findings = check(&docs, None);
+    let found = of(&findings, "指す先がある");
+    let get = |to: &str| found.iter().find(|finding| finding.to == to).unwrap();
     assert_eq!(get("REQ-1.BR-1").status, Status::Pass);
     assert_eq!(get("REQ-1.BR-2").message, "指す先が無い");
     assert!(get("REQ-1").message.contains("形が違う"));
@@ -85,32 +95,35 @@ fn item_finds_item_inside_instance() {
 
 #[test]
 fn bare_rejects_ambiguous_item() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"v": {"x-ref": {"to": "dom", "bare": true, "in": "values"}}}}),
     );
-    let d = schema("dom.schema.json", json!({}));
+    let target_schema = schema("dom.schema.json", json!({}));
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "v": ["VAL-1", "VAL-2"]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "d1.json",
             json!({"id": "D-1", "kind": "dom", "values": [{"id": "VAL-1"}, {"id": "VAL-2"}]}),
-            &d,
+            &target_schema,
         ),
         doc(
             "d2.json",
             json!({"id": "D-2", "kind": "dom", "values": [{"id": "VAL-2"}]}),
-            &d,
+            &target_schema,
         ),
     ];
-    let f = check(&docs, None);
-    let found = of(&f, "指す先がある");
+    let findings = check(&docs, None);
+    let found = of(&findings, "指す先がある");
     assert_eq!(
-        found.iter().map(|x| x.status).collect::<Vec<_>>(),
+        found
+            .iter()
+            .map(|finding| finding.status)
+            .collect::<Vec<_>>(),
         vec![Status::Pass, Status::Drift]
     );
     assert_eq!(found[1].message, "指す先が1つに決まらない");
@@ -118,44 +131,44 @@ fn bare_rejects_ambiguous_item() {
 
 #[test]
 fn self_looks_inside_same_instance() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"invariants": {"items": {"properties": {"via": {"x-ref": {"to": "self", "in": "commands"}}}}}}}),
     );
     let docs = vec![doc(
         "a.json",
         json!({"id": "A-1", "kind": "a", "commands": [{"id": "CMD-1"}], "invariants": [{"id": "INV-1", "via": ["CMD-1", "CMD-2"]}]}),
-        &s,
+        &referring_schema,
     )];
-    let f = check(&docs, None);
+    let findings = check(&docs, None);
     assert_eq!(
-        statuses(&f, "指す先がある"),
+        statuses(&findings, "指す先がある"),
         vec![Status::Pass, Status::Drift]
     );
 }
 
 #[test]
 fn only_skips_values_that_are_not_references() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"type": {"x-ref": {"to": "vo", "only": "^VO-"}}}}),
     );
     let docs = vec![doc(
         "a.json",
         json!({"id": "A-1", "kind": "a", "type": "ID"}),
-        &s,
+        &referring_schema,
     )];
     assert!(of(&check(&docs, None), "指す先がある").is_empty());
 }
 
 #[test]
 fn accept_with_when_checks_target_kind() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"steps": {"items": {"properties": {"data": {"x-ref": {
             "to": "glossary", "bare": true, "in": "terms", "accept": {"at": "meanings/kind", "in": ["情報"]}, "when": {"kind": ["相互作用"]}}}}}}}}),
     );
-    let g = glossary();
+    let glossary_schema = glossary();
     let docs = vec![
         doc(
             "a.json",
@@ -163,40 +176,40 @@ fn accept_with_when_checks_target_kind() {
                 {"id": "S-1", "kind": "相互作用", "data": ["T-1"]},
                 {"id": "S-2", "kind": "相互作用", "data": ["T-2"]},
                 {"id": "S-3", "kind": "内部", "data": ["T-2"]}]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "g.json",
             json!({"id": "G-1", "kind": "glossary", "terms": [
                 {"id": "T-1", "meanings": [{"kind": "情報"}]},
                 {"id": "T-2", "meanings": [{"kind": "動作"}]}]}),
-            &g,
+            &glossary_schema,
         ),
     ];
-    let f = check(&docs, None);
+    let findings = check(&docs, None);
     assert_eq!(
-        statuses(&f, "指す先が受け付ける値"),
+        statuses(&findings, "指す先が受け付ける値"),
         vec![Status::Pass, Status::Drift]
     );
 }
 
 #[test]
 fn unique_rejects_repeated_value_in_same_array() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"uses": {"items": {"properties": {"term": {"x-ref": {"to": "glossary", "bare": true, "in": "terms", "unique": true}}}}}}}),
     );
-    let g = glossary();
+    let glossary_schema = glossary();
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "uses": [{"term": "T-1"}, {"term": "T-1"}]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "g.json",
             json!({"id": "G-1", "kind": "glossary", "terms": [{"id": "T-1"}]}),
-            &g,
+            &glossary_schema,
         ),
     ];
     assert_eq!(
@@ -207,21 +220,21 @@ fn unique_rejects_repeated_value_in_same_array() {
 
 #[test]
 fn covered_by_requires_each_value_to_be_handled() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"steps": {"items": {"properties": {"checks": {"x-ref": {"to": "req", "item": true, "covered_by": "extensions/fails"}}}}}}}),
     );
-    let r = schema("req.schema.json", json!({}));
+    let target_schema = schema("req.schema.json", json!({}));
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "steps": [{"id": "S-1", "checks": ["R-1.B-1", "R-1.B-2"], "extensions": [{"fails": ["R-1.B-1"]}]}]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "r.json",
             json!({"id": "R-1", "kind": "req", "b": [{"id": "B-1"}, {"id": "B-2"}]}),
-            &r,
+            &target_schema,
         ),
     ];
     assert_eq!(
@@ -270,52 +283,58 @@ fn inverse_counts_min_max_and_shared_group_including_unreferenced() {
             &uc,
         ),
     ];
-    let f = check(&docs, None);
-    let g = of(&f, "ユースケースを束ねるのは1つ");
-    let by: Vec<(&str, Status)> = g.iter().map(|x| (x.to.as_str(), x.status)).collect();
+    let findings = check(&docs, None);
+    let group = of(&findings, "ユースケースを束ねるのは1つ");
+    let by: Vec<(&str, Status)> = group
+        .iter()
+        .map(|finding| (finding.to.as_str(), finding.status))
+        .collect();
     assert!(by.contains(&("UC-1", Status::Drift)), "{by:?}");
     assert!(by.contains(&("UC-2", Status::Pass)));
     assert!(
         by.contains(&("UC-3", Status::Drift)),
         "参照が0件の候補も数える"
     );
-    assert!(!by.iter().any(|(t, _)| *t == "UC-0"), "where で外す");
+    assert!(
+        !by.iter().any(|(target, _)| *target == "UC-0"),
+        "where で外す"
+    );
 }
 
 #[test]
 fn inverse_max_decls_counts_instances_not_references() {
-    let s = schema(
+    let referring_schema = schema(
         "agg.schema.json",
         json!({"properties": {"rejects": {"x-ref": {"to": "glossary", "bare": true, "in": "terms",
         "inverse": {"group": "拒否の理由を使う集約は1つ", "max_decls": 1}}}}}),
     );
-    let g = glossary();
+    let glossary_schema = glossary();
     let docs = vec![
         doc(
             "a1.json",
             json!({"id": "AGG-1", "kind": "agg", "rejects": ["T-1", "T-1"]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "a2.json",
             json!({"id": "AGG-2", "kind": "agg", "rejects": ["T-2"]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "a3.json",
             json!({"id": "AGG-3", "kind": "agg", "rejects": ["T-2"]}),
-            &s,
+            &referring_schema,
         ),
         doc(
             "g.json",
             json!({"id": "G-1", "kind": "glossary", "terms": [{"id": "T-1"}, {"id": "T-2"}]}),
-            &g,
+            &glossary_schema,
         ),
     ];
-    let f = check(&docs, None);
-    let by: Vec<(&str, Status)> = of(&f, "拒否の理由を使う集約は1つ")
+    let findings = check(&docs, None);
+    let by: Vec<(&str, Status)> = of(&findings, "拒否の理由を使う集約は1つ")
         .iter()
-        .map(|x| (x.to.as_str(), x.status))
+        .map(|finding| (finding.to.as_str(), finding.status))
         .collect();
     assert!(by.contains(&("G-1.T-1", Status::Pass)), "{by:?}");
     assert!(by.contains(&("G-1.T-2", Status::Drift)));
@@ -342,13 +361,13 @@ fn x_derive_compares_with_declared_and_expect() {
             &sd,
         ),
     ];
-    let f = check(&docs, None);
+    let findings = check(&docs, None);
     assert_eq!(
-        statuses(&f, "導出値と宣言した値"),
+        statuses(&findings, "導出値と宣言した値"),
         vec![Status::Pass, Status::Drift]
     );
     assert_eq!(
-        statuses(&f, "カテゴリーと実装方法"),
+        statuses(&findings, "カテゴリーと実装方法"),
         vec![Status::Pass, Status::Drift]
     );
 }
@@ -388,10 +407,10 @@ fn inverse_where_derive_filters_by_derived_value_of_referenced_instance() {
         ),
         doc("a.json", json!({"id": "AGG-0", "kind": "agg"}), &agg),
     ];
-    let f = check(&docs, None);
-    let by: Vec<(&str, Status)> = of(&f, "ドメインモデルの文脈に集約がある")
+    let findings = check(&docs, None);
+    let by: Vec<(&str, Status)> = of(&findings, "ドメインモデルの文脈に集約がある")
         .iter()
-        .map(|x| (x.to.as_str(), x.status))
+        .map(|finding| (finding.to.as_str(), finding.status))
         .collect();
     assert_eq!(
         by,
@@ -402,32 +421,40 @@ fn inverse_where_derive_filters_by_derived_value_of_referenced_instance() {
 
 #[test]
 fn approval_reports_change_and_unapproved() {
-    let s = schema(
+    let referring_schema = schema(
         "a.schema.json",
         json!({"properties": {"uses": {"x-ref": {"to": "rule"}}}}),
     );
-    let r = schema("rule.schema.json", json!({}));
+    let target_schema = schema("rule.schema.json", json!({}));
     let docs = vec![
         doc(
             "a.json",
             json!({"id": "A-1", "kind": "a", "uses": ["R-1", "R-2"]}),
-            &s,
+            &referring_schema,
         ),
-        doc("r1.json", json!({"id": "R-1", "kind": "rule"}), &r),
-        doc("r2.json", json!({"id": "R-2", "kind": "rule", "x": 1}), &r),
+        doc(
+            "r1.json",
+            json!({"id": "R-1", "kind": "rule"}),
+            &target_schema,
+        ),
+        doc(
+            "r2.json",
+            json!({"id": "R-2", "kind": "rule", "x": 1}),
+            &target_schema,
+        ),
     ];
     let mut approved = Approved::new();
     approved.insert("r1.json".into(), docs[1].hash.clone());
-    let f = check(&docs, Some(&approved));
-    let changes = of(&f, "承認のあとの変化");
+    let findings = check(&docs, Some(&approved));
+    let changes = of(&findings, "承認のあとの変化");
     assert_eq!(changes[0].status, Status::Pass);
     assert_eq!(changes[1].status, Status::Recheck);
     assert_eq!(changes[1].message, "まだ承認していない");
     let mut changed = approved.clone();
     changed.insert("r1.json".into(), JsonValue::new("{}").hash());
-    let f = check(&docs, Some(&changed));
+    let findings = check(&docs, Some(&changed));
     assert_eq!(
-        of(&f, "承認のあとの変化")[0].message,
+        of(&findings, "承認のあとの変化")[0].message,
         "承認のあとで指す先が変わった"
     );
 }

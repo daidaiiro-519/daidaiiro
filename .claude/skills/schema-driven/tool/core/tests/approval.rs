@@ -60,8 +60,8 @@ fn agg_2_cmd_1_ok_1_records_given_instances() {
 #[test]
 fn agg_2_cmd_1_br_1_rejects_validation_errors() {
     let errors = vec![ValidationError::new("/name", "空である").unwrap()];
-    let r = ApprovalRecord::record(dir(), &errors, &[], &[], vec![approved("decls/a.json")]);
-    assert_eq!(r.unwrap_err(), ApprovalReject::InvalidInstances);
+    let recorded = ApprovalRecord::record(dir(), &errors, &[], &[], vec![approved("decls/a.json")]);
+    assert_eq!(recorded.unwrap_err(), ApprovalReject::InvalidInstances);
     assert_eq!(
         ApprovalReject::InvalidInstances.reason(),
         "検証を通過しないインスタンスがある"
@@ -71,16 +71,17 @@ fn agg_2_cmd_1_br_1_rejects_validation_errors() {
 #[test]
 fn agg_2_cmd_1_br_2_rejects_drift() {
     let drifts = vec![Drift::new("指す先がある", "UC-9")];
-    let r = ApprovalRecord::record(dir(), &[], &drifts, &[], vec![approved("decls/a.json")]);
-    assert_eq!(r.unwrap_err(), ApprovalReject::Drift);
+    let recorded = ApprovalRecord::record(dir(), &[], &drifts, &[], vec![approved("decls/a.json")]);
+    assert_eq!(recorded.unwrap_err(), ApprovalReject::Drift);
     assert_eq!(ApprovalReject::Drift.reason(), "参照と導出値のずれがある");
 }
 
 #[test]
 fn agg_2_cmd_1_br_3_rejects_unfilled() {
     let unfilled = vec![Unfilled::new("/name").unwrap()];
-    let r = ApprovalRecord::record(dir(), &[], &[], &unfilled, vec![approved("decls/a.json")]);
-    assert_eq!(r.unwrap_err(), ApprovalReject::Unfilled);
+    let recorded =
+        ApprovalRecord::record(dir(), &[], &[], &unfilled, vec![approved("decls/a.json")]);
+    assert_eq!(recorded.unwrap_err(), ApprovalReject::Unfilled);
     assert_eq!(
         ApprovalReject::Unfilled.reason(),
         "未記入のプロパティがある"
@@ -89,8 +90,8 @@ fn agg_2_cmd_1_br_3_rejects_unfilled() {
 
 #[test]
 fn agg_2_inv_1_needs_at_least_one_instance() {
-    let r = ApprovalRecord::record(dir(), &[], &[], &[], vec![]);
-    assert_eq!(r.unwrap_err(), ApprovalReject::Empty);
+    let recorded = ApprovalRecord::record(dir(), &[], &[], &[], vec![]);
+    assert_eq!(recorded.unwrap_err(), ApprovalReject::Empty);
 }
 
 #[test]
@@ -105,21 +106,25 @@ fn approval_record_round_trips_as_json() {
 
 // ── ドメインサービス 検査する
 
-fn docs_with<'a>(s: &'a Schema, t: &'a Schema, refs: Value) -> Vec<Doc<'a>> {
-    let a = json!({"id": "A-1", "kind": "a", "refs": refs});
-    let b = json!({"id": "B-1", "kind": "b", "tag": "x"});
+fn docs_with<'schema>(
+    referring_schema: &'schema Schema,
+    target_schema: &'schema Schema,
+    refs: Value,
+) -> Vec<Doc<'schema>> {
+    let referring_value = json!({"id": "A-1", "kind": "a", "refs": refs});
+    let target_value = json!({"id": "B-1", "kind": "b", "tag": "x"});
     vec![
         Doc {
             path: "a.json".into(),
-            hash: JsonValue::new(&a.to_string()).hash(),
-            value: a,
-            schema: s,
+            hash: JsonValue::new(&referring_value.to_string()).hash(),
+            value: referring_value,
+            schema: referring_schema,
         },
         Doc {
             path: "b.json".into(),
-            hash: JsonValue::new(&b.to_string()).hash(),
-            value: b,
-            schema: t,
+            hash: JsonValue::new(&target_value.to_string()).hash(),
+            value: target_value,
+            schema: target_schema,
         },
     ]
 }
@@ -137,47 +142,53 @@ fn schemas() -> (Schema, Schema) {
 
 #[test]
 fn ds_1_op_1_res_3_missing_target_is_drift() {
-    let (s, t) = schemas();
-    let f = check(&docs_with(&s, &t, json!(["B-9"])), None);
-    assert!(f
+    let (referring_schema, target_schema) = schemas();
+    let findings = check(
+        &docs_with(&referring_schema, &target_schema, json!(["B-9"])),
+        None,
+    );
+    assert!(findings
         .iter()
-        .any(|x| x.check == "指す先がある" && x.status == Status::Drift));
+        .any(|finding| finding.check == "指す先がある" && finding.status == Status::Drift));
 }
 
 #[test]
 fn ds_1_op_1_res_4_wrong_target_kind_is_drift() {
-    let (_, t) = schemas();
-    let s = Schema::new(
+    let (_, target_schema) = schemas();
+    let referring_schema = Schema::new(
         "a.schema.json",
         json!({"properties": {"refs": {"x-ref": {"to": "b", "accept": {"at": "tag", "in": ["y"]}}}}}),
         vec![],
     );
-    let f = check(&docs_with(&s, &t, json!(["B-1"])), None);
-    assert!(f
+    let findings = check(
+        &docs_with(&referring_schema, &target_schema, json!(["B-1"])),
+        None,
+    );
+    assert!(findings
         .iter()
-        .any(|x| x.check == "指す先が受け付ける値" && x.status == Status::Drift));
+        .any(|finding| finding.check == "指す先が受け付ける値" && finding.status == Status::Drift));
 }
 
 #[test]
 fn ds_1_op_3_res_2_changed_since_approval_is_recheck() {
-    let (s, t) = schemas();
-    let docs = docs_with(&s, &t, json!(["B-1"]));
-    let mut a = Approved::new();
-    a.insert("b.json".into(), JsonValue::new("{}").hash());
-    let f = check(&docs, Some(&a));
-    assert!(f
+    let (referring_schema, target_schema) = schemas();
+    let docs = docs_with(&referring_schema, &target_schema, json!(["B-1"]));
+    let mut approved_hashes = Approved::new();
+    approved_hashes.insert("b.json".into(), JsonValue::new("{}").hash());
+    let findings = check(&docs, Some(&approved_hashes));
+    assert!(findings
         .iter()
-        .any(|x| x.check == "承認のあとの変化" && x.status == Status::Recheck));
+        .any(|finding| finding.check == "承認のあとの変化" && finding.status == Status::Recheck));
 }
 
 #[test]
 fn ds_1_op_3_res_3_unchanged_since_approval_passes() {
-    let (s, t) = schemas();
-    let docs = docs_with(&s, &t, json!(["B-1"]));
-    let mut a = Approved::new();
-    a.insert("b.json".into(), docs[1].hash.clone());
-    let f = check(&docs, Some(&a));
-    assert!(f
+    let (referring_schema, target_schema) = schemas();
+    let docs = docs_with(&referring_schema, &target_schema, json!(["B-1"]));
+    let mut approved_hashes = Approved::new();
+    approved_hashes.insert("b.json".into(), docs[1].hash.clone());
+    let findings = check(&docs, Some(&approved_hashes));
+    assert!(findings
         .iter()
-        .any(|x| x.check == "承認のあとの変化" && x.status == Status::Pass));
+        .any(|finding| finding.check == "承認のあとの変化" && finding.status == Status::Pass));
 }

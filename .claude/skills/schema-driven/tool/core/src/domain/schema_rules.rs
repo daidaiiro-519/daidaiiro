@@ -35,12 +35,12 @@ pub struct SchemaFinding {
     pub message: String,
 }
 
-fn parse_json(s: &str) -> Value {
-    serde_json::from_str(s).unwrap_or(Value::Null)
+fn parse_json(text: &str) -> Value {
+    serde_json::from_str(text).unwrap_or(Value::Null)
 }
 
-fn pointer_part(k: &str) -> String {
-    k.replace('~', "~0").replace('/', "~1")
+fn pointer_part(key: &str) -> String {
+    key.replace('~', "~0").replace('/', "~1")
 }
 
 /// 文の型から {…} の式を取り出す。{{ と }} は文字。
@@ -48,25 +48,25 @@ fn expressions(template: &str) -> Vec<String> {
     let chars: Vec<char> = template.chars().collect();
     let (mut out, mut i) = (Vec::new(), 0);
     while i < chars.len() {
-        let c = chars[i];
-        if (c == '{' || c == '}') && chars.get(i + 1) == Some(&c) {
+        let character = chars[i];
+        if (character == '{' || character == '}') && chars.get(i + 1) == Some(&character) {
             i += 2;
             continue;
         }
-        if c != '{' {
+        if character != '{' {
             i += 1;
             continue;
         }
         let (mut depth, mut quote, mut expr) = (1, None::<char>, String::new());
         i += 1;
         while i < chars.len() {
-            let d = chars[i];
+            let inner = chars[i];
             match quote {
-                Some(q) if d == q => quote = None,
+                Some(open_quote) if inner == open_quote => quote = None,
                 Some(_) => {}
-                None if "'`\"".contains(d) => quote = Some(d),
-                None if d == '{' => depth += 1,
-                None if d == '}' => {
+                None if "'`\"".contains(inner) => quote = Some(inner),
+                None if inner == '{' => depth += 1,
+                None if inner == '}' => {
                     depth -= 1;
                     if depth == 0 {
                         break;
@@ -74,7 +74,7 @@ fn expressions(template: &str) -> Vec<String> {
                 }
                 None => {}
             }
-            expr.push(d);
+            expr.push(inner);
             i += 1;
         }
         out.push(expr.trim().to_owned());
@@ -84,50 +84,52 @@ fn expressions(template: &str) -> Vec<String> {
 }
 
 /// x-view が持つ文の型と式（text ・ cases ・ parts ・ label）。式はそのまま {…} で包んで返す。
-fn templates(xv: &Value) -> Vec<String> {
-    let mut t = Vec::new();
-    let case = |c: &Value, t: &mut Vec<String>| {
-        if let Some(s) = c.get("text").and_then(Value::as_str) {
-            t.push(s.to_owned());
+fn templates(view: &Value) -> Vec<String> {
+    let mut found = Vec::new();
+    let case = |case: &Value, found: &mut Vec<String>| {
+        if let Some(text) = case.get("text").and_then(Value::as_str) {
+            found.push(text.to_owned());
         }
-        if let Some(s) = c.get("when").and_then(Value::as_str) {
-            t.push(format!("{{{s}}}"));
+        if let Some(when) = case.get("when").and_then(Value::as_str) {
+            found.push(format!("{{{when}}}"));
         }
     };
-    if let Some(s) = xv.get("text").and_then(Value::as_str) {
-        t.push(s.to_owned());
+    if let Some(text) = view.get("text").and_then(Value::as_str) {
+        found.push(text.to_owned());
     }
-    for c in xv
+    for each_case in view
         .get("cases")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
     {
-        case(c, &mut t);
+        case(each_case, &mut found);
     }
-    for (_, p) in xv
+    for (_, part) in view
         .get("parts")
         .and_then(Value::as_object)
         .into_iter()
         .flatten()
     {
-        match p {
-            Value::String(s) => t.push(s.clone()),
-            Value::Array(a) => a.iter().for_each(|c| case(c, &mut t)),
+        match part {
+            Value::String(template) => found.push(template.clone()),
+            Value::Array(cases) => cases
+                .iter()
+                .for_each(|each_case| case(each_case, &mut found)),
             _ => {}
         }
     }
-    if let Some(s) = xv.get("label").and_then(Value::as_str) {
-        t.push(format!("{{{s}}}"));
+    if let Some(label) = view.get("label").and_then(Value::as_str) {
+        found.push(format!("{{{label}}}"));
     }
-    t
+    found
 }
 
 /// パイプの右が関数の呼び出しでない（|name のような古い絞りの書き方）。
 fn old_filter(expr: &str) -> bool {
     let mut rest = expr;
-    while let Some(p) = rest.find('|') {
-        let right = rest[p + 1..].trim_start();
+    while let Some(pipe) = rest.find('|') {
+        let right = rest[pipe + 1..].trim_start();
         if let Some(after_or) = right.strip_prefix('|') {
             // || は「または」
             rest = after_or;
@@ -135,7 +137,7 @@ fn old_filter(expr: &str) -> bool {
         }
         let id: String = right
             .chars()
-            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+            .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
             .collect();
         if !id.is_empty() {
             let after = right[id.len()..].trim_start();
@@ -143,7 +145,7 @@ fn old_filter(expr: &str) -> bool {
                 return true;
             }
         }
-        rest = &rest[p + 1..];
+        rest = &rest[pipe + 1..];
     }
     false
 }
@@ -154,21 +156,27 @@ struct Shapes {
     derive: Schema,
 }
 
-fn first_error(s: &Schema, v: &Value) -> Option<String> {
-    let r = s.validate(v).ok()?;
-    r.errors
+fn first_error(shape: &Schema, annotation: &Value) -> Option<String> {
+    let validation = shape.validate(annotation).ok()?;
+    validation
+        .errors
         .first()
-        .map(|e| format!("{} {}", e.property(), e.reason()).trim().to_owned())
+        .map(|error| {
+            format!("{} {}", error.property(), error.reason())
+                .trim()
+                .to_owned()
+        })
         .or_else(|| {
-            r.unfilled
+            validation
+                .unfilled
                 .first()
-                .map(|u| format!("{} が無い", u.property()))
+                .map(|unfilled| format!("{} が無い", unfilled.property()))
         })
 }
 
 #[allow(clippy::too_many_arguments)]
 fn walk(
-    v: &Value,
+    value: &Value,
     at: &str,
     name: &str,
     declared: &BTreeSet<String>,
@@ -184,68 +192,77 @@ fn walk(
             message,
         })
     };
-    match v {
-        Value::Object(m) => {
+    match value {
+        Value::Object(object) => {
             let mut children = Vec::new();
-            for (k, c) in m {
-                let here = format!("{at}/{}", pointer_part(k));
-                if !k.starts_with("x-") {
-                    if !OPAQUE.contains(&k.as_str()) {
-                        children.push((here, c));
+            for (key, child) in object {
+                let here = format!("{at}/{}", pointer_part(key));
+                if !key.starts_with("x-") {
+                    if !OPAQUE.contains(&key.as_str()) {
+                        children.push((here, child));
                     }
                     continue;
                 }
-                let shape = match k.as_str() {
+                let shape = match key.as_str() {
                     "x-view" => Some(&shapes.view),
                     "x-ref" => Some(&shapes.xref),
                     "x-derive" => Some(&shapes.derive),
                     _ => None,
                 };
-                if let Some(s) = shape {
-                    if let Some(e) = first_error(s, c) {
-                        push(here.clone(), "注釈の形", e);
+                if let Some(shape) = shape {
+                    if let Some(error) = first_error(shape, child) {
+                        push(here.clone(), "注釈の形", error);
                     }
                 }
-                if k == "x-prompt" {
-                    let ok = ["read", "write"].iter().all(|f| {
-                        c.get(*f)
+                if key == "x-prompt" {
+                    let ok = ["read", "write"].iter().all(|field| {
+                        child
+                            .get(*field)
                             .and_then(Value::as_str)
-                            .is_some_and(|s| !s.is_empty())
+                            .is_some_and(|text| !text.is_empty())
                     });
                     if !ok {
                         push(here.clone(), "注釈の形", "read と write が無い".into());
                     }
                 }
-                if k == "x-view" && c.is_object() {
-                    for t in templates(c) {
-                        for e in expressions(&t) {
-                            if old_filter(&e) {
-                                push(here.clone(), "古い絞りの書き方", format!("{{{e}}} ── パイプの右は関数の呼び出しにする（例：name(@)）"));
-                            } else if let Err(err) = parse(&e) {
+                if key == "x-view" && child.is_object() {
+                    for template in templates(child) {
+                        for expr in expressions(&template) {
+                            if old_filter(&expr) {
+                                push(here.clone(), "古い絞りの書き方", format!("{{{expr}}} ── パイプの右は関数の呼び出しにする（例：name(@)）"));
+                            } else if let Err(error) = parse(&expr) {
                                 push(
                                     here.clone(),
                                     "文の型",
-                                    format!("{{{e}}} ── {}", err.lines().next().unwrap_or("")),
+                                    format!("{{{expr}}} ── {}", error.lines().next().unwrap_or("")),
                                 );
                             }
                         }
                     }
                 }
-                if !BASE_ANNOTATIONS.contains(&k.as_str()) && !declared.contains(k) {
+                if !BASE_ANNOTATIONS.contains(&key.as_str()) && !declared.contains(key) {
                     push(
                         here,
                         "申告していない注釈",
-                        format!("{k} は基盤の注釈でなく、x-annotations にも無い"),
+                        format!("{key} は基盤の注釈でなく、x-annotations にも無い"),
                     );
                 }
             }
-            for (here, c) in children {
-                walk(c, &here, name, declared, shapes, parse, out);
+            for (here, child) in children {
+                walk(child, &here, name, declared, shapes, parse, out);
             }
         }
-        Value::Array(a) => {
-            for (i, c) in a.iter().enumerate() {
-                walk(c, &format!("{at}/{i}"), name, declared, shapes, parse, out);
+        Value::Array(elements) => {
+            for (position, element) in elements.iter().enumerate() {
+                walk(
+                    element,
+                    &format!("{at}/{position}"),
+                    name,
+                    declared,
+                    shapes,
+                    parse,
+                    out,
+                );
             }
         }
         _ => {}
@@ -253,26 +270,28 @@ fn walk(
 }
 
 /// x-ref が指す種類を集める。
-fn referenced_kinds(v: &Value, out: &mut BTreeSet<String>) {
-    match v {
-        Value::Object(m) => {
-            for (k, c) in m {
-                if k == "x-ref" {
-                    match c.get("to") {
-                        Some(Value::String(s)) => {
-                            out.insert(s.clone());
+fn referenced_kinds(value: &Value, out: &mut BTreeSet<String>) {
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                if key == "x-ref" {
+                    match child.get("to") {
+                        Some(Value::String(kind)) => {
+                            out.insert(kind.clone());
                         }
-                        Some(Value::Array(a)) => {
-                            out.extend(a.iter().filter_map(Value::as_str).map(str::to_owned))
+                        Some(Value::Array(kinds)) => {
+                            out.extend(kinds.iter().filter_map(Value::as_str).map(str::to_owned))
                         }
                         _ => {}
                     }
-                } else if !OPAQUE.contains(&k.as_str()) {
-                    referenced_kinds(c, out);
+                } else if !OPAQUE.contains(&key.as_str()) {
+                    referenced_kinds(child, out);
                 }
             }
         }
-        Value::Array(a) => a.iter().for_each(|c| referenced_kinds(c, out)),
+        Value::Array(elements) => elements
+            .iter()
+            .for_each(|element| referenced_kinds(element, out)),
         _ => {}
     }
 }
@@ -291,62 +310,65 @@ pub fn check_schemas(
         ),
         ("view.schema.json".to_owned(), parse_json(VIEW)),
     ];
-    let shape = |r: &str| Schema::new("shape.json", json!({"$ref": r}), sib.clone());
+    let shape =
+        |reference: &str| Schema::new("shape.json", json!({"$ref": reference}), sib.clone());
     let shapes = Shapes {
         view: shape("view.schema.json#/$defs/x-view"),
         xref: shape("annotations.schema.json#/$defs/x-ref"),
         derive: shape("annotations.schema.json#/$defs/x-derive"),
     };
     let mut referenced = BTreeSet::new();
-    for (_, s) in schemas {
-        referenced_kinds(s, &mut referenced);
+    for (_, schema) in schemas {
+        referenced_kinds(schema, &mut referenced);
     }
     referenced.remove("self");
     let mut out = Vec::new();
-    for (name, s) in schemas {
-        match meta.validate(s) {
-            Ok(r) => {
-                for u in &r.unfilled {
+    for (name, schema) in schemas {
+        match meta.validate(schema) {
+            Ok(validation) => {
+                for unfilled in &validation.unfilled {
                     out.push(SchemaFinding {
                         schema: name.clone(),
-                        at: u.property().to_owned(),
+                        at: unfilled.property().to_owned(),
                         rule: "メタスキーマ".into(),
-                        message: format!("{} が無い", u.property()),
+                        message: format!("{} が無い", unfilled.property()),
                     });
                 }
-                for e in &r.errors {
+                for error in &validation.errors {
                     out.push(SchemaFinding {
                         schema: name.clone(),
-                        at: e.property().to_owned(),
+                        at: error.property().to_owned(),
                         rule: "メタスキーマ".into(),
-                        message: e.reason().to_owned(),
+                        message: error.reason().to_owned(),
                     });
                 }
             }
-            Err(e) => out.push(SchemaFinding {
+            Err(error) => out.push(SchemaFinding {
                 schema: name.clone(),
                 at: String::new(),
                 rule: "メタスキーマ".into(),
-                message: format!("検査できない（{}）", e.0),
+                message: format!("検査できない（{}）", error.0),
             }),
         }
-        let declared: BTreeSet<String> = s
+        let declared: BTreeSet<String> = schema
             .get("x-annotations")
             .and_then(Value::as_object)
-            .map(|m| m.keys().cloned().collect())
+            .map(|annotations| annotations.keys().cloned().collect())
             .unwrap_or_default();
-        walk(s, "", name, &declared, &shapes, parse, &mut out);
-        let kind = s.pointer("/properties/kind/const").and_then(Value::as_str);
-        if let Some(k) = kind {
-            if s.get("x-generates").is_some()
-                && referenced.contains(k)
-                && s.pointer("/properties/id").is_none()
+        walk(schema, "", name, &declared, &shapes, parse, &mut out);
+        let kind = schema
+            .pointer("/properties/kind/const")
+            .and_then(Value::as_str);
+        if let Some(kind) = kind {
+            if schema.get("x-generates").is_some()
+                && referenced.contains(kind)
+                && schema.pointer("/properties/id").is_none()
             {
                 out.push(SchemaFinding {
                     schema: name.clone(),
                     at: "/properties/id".into(),
                     rule: "参照される種類の id".into(),
-                    message: format!("{k} はほかのスキーマの x-ref が指すので、id を持つ"),
+                    message: format!("{kind} はほかのスキーマの x-ref が指すので、id を持つ"),
                 });
             }
         }

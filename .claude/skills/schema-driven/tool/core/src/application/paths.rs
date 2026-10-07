@@ -2,21 +2,21 @@
 
 /// パスのディレクトリの部分（最後の / より前）。/ が無ければ空。
 pub fn parent(path: &str) -> &str {
-    path.rsplit_once('/').map(|(d, _)| d).unwrap_or("")
+    path.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("")
 }
 
 /// . と .. を字面で解く。根より上へ出る .. は残す。
 pub fn normalize(path: &str) -> String {
     let absolute = path.starts_with('/');
     let mut out: Vec<&str> = Vec::new();
-    for seg in path.split('/') {
-        match seg {
+    for segment in path.split('/') {
+        match segment {
             "" | "." => {}
-            ".." if out.last().is_some_and(|s| *s != "..") => {
+            ".." if out.last().is_some_and(|part| *part != "..") => {
                 out.pop();
             }
             ".." if absolute => {}
-            s => out.push(s),
+            part => out.push(part),
         }
     }
     let joined = out.join("/");
@@ -43,14 +43,18 @@ pub fn relative(from: &str, target: &str) -> String {
     }
     let from = normalize(from);
     let target = normalize(target);
-    let f: Vec<&str> = from.split('/').filter(|s| !s.is_empty()).collect();
-    let t: Vec<&str> = target.split('/').filter(|s| !s.is_empty()).collect();
-    let common = f.iter().zip(&t).take_while(|(a, b)| a == b).count();
-    if f[common..].contains(&"..") {
+    let from_parts: Vec<&str> = from.split('/').filter(|part| !part.is_empty()).collect();
+    let target_parts: Vec<&str> = target.split('/').filter(|part| !part.is_empty()).collect();
+    let common = from_parts
+        .iter()
+        .zip(&target_parts)
+        .take_while(|(from_part, target_part)| from_part == target_part)
+        .count();
+    if from_parts[common..].contains(&"..") {
         return target;
     }
-    let mut parts: Vec<&str> = vec![".."; f.len() - common];
-    parts.extend(&t[common..]);
+    let mut parts: Vec<&str> = vec![".."; from_parts.len() - common];
+    parts.extend(&target_parts[common..]);
     parts.join("/")
 }
 

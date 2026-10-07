@@ -2,6 +2,7 @@
 
 use crate::application::checks::{Approved as ApprovedOutcome, Checked, Deleted, SchemasChecked};
 use crate::application::instances::{Created, Got, Prompted, Updated, UseCaseError};
+use crate::application::renders::Rendered;
 
 /// インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
 pub trait InstanceUseCases {
@@ -25,4 +26,10 @@ pub trait CheckUseCases {
     fn approve(&self, dir: &str) -> Result<ApprovedOutcome, UseCaseError>;
     /// UC-4 インスタンスを削除する（消したインスタンスを、まだ指している参照を返す）
     fn delete(&self, path: &str) -> Result<Deleted, UseCaseError>;
+}
+
+/// 描画のユースケース（UC-6）。具体のデザインを持つものだけが実装する。
+pub trait RenderUseCases {
+    /// UC-6 ページを描画する。dir のインスタンスを、pages のページテンプレートで、out へ描画する
+    fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError>;
 }

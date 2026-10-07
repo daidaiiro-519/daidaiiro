@@ -54,7 +54,7 @@ fn mcp_lists_tools_and_creates_instance() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|t| t["name"].as_str().unwrap())
+        .map(|tool| tool["name"].as_str().unwrap())
         .collect();
     assert_eq!(
         names,
@@ -66,7 +66,8 @@ fn mcp_lists_tools_and_creates_instance() {
             "prompt",
             "check",
             "check-schemas",
-            "approve"
+            "approve",
+            "render"
         ]
     );
     let result = &answers[2]["result"];

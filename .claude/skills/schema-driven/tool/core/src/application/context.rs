@@ -3,44 +3,44 @@
 use crate::domain::check::{graph, Doc};
 use serde_json::{json, Map, Value};
 
-fn id_of(v: &Value) -> Value {
-    v.get("id").cloned().unwrap_or(Value::Null)
+fn id_of(value: &Value) -> Value {
+    value.get("id").cloned().unwrap_or(Value::Null)
 }
 
 /// インスタンスごとの描画の文脈を、docs と同じ順に返す。
 pub fn contexts(docs: &[Doc]) -> Vec<Value> {
-    let g = graph(docs);
-    let instances: Vec<Value> = docs.iter().map(|d| d.value.clone()).collect();
+    let resolved = graph(docs);
+    let instances: Vec<Value> = docs.iter().map(|doc| doc.value.clone()).collect();
     (0..docs.len())
-        .map(|i| {
+        .map(|doc_index| {
             let mut derived = Map::new();
-            for d in g.derived.iter().filter(|d| d.doc == i) {
+            for derived_value in resolved.derived.iter().filter(|derived_value| derived_value.doc == doc_index) {
                 derived.insert(
-                    d.at.trim_start_matches('/').to_owned(),
-                    json!({"value": d.value, "title": d.title, "declared": d.declared, "questions": d.questions}),
+                    derived_value.at.trim_start_matches('/').to_owned(),
+                    json!({"value": derived_value.value, "title": derived_value.title, "declared": derived_value.declared, "questions": derived_value.questions}),
                 );
             }
-            let links: Vec<Value> = g
+            let links: Vec<Value> = resolved
                 .links
                 .iter()
-                .filter(|l| l.doc == i)
-                .map(|l| json!({"at": l.at, "value": l.value, "target": l.label}))
+                .filter(|link| link.doc == doc_index)
+                .map(|link| json!({"at": link.at, "value": link.value, "target": link.label}))
                 .collect();
-            let referrers: Vec<Value> = g
+            let referrers: Vec<Value> = resolved
                 .links
                 .iter()
-                .filter_map(|l| match &l.target {
-                    Some((t, item)) if *t == i => Some(json!({
-                        "at": l.at,
-                        "from": id_of(&docs[l.doc].value),
+                .filter_map(|link| match &link.target {
+                    Some((target_doc, item)) if *target_doc == doc_index => Some(json!({
+                        "at": link.at,
+                        "from": id_of(&docs[link.doc].value),
                         "item": item,
                     })),
                     _ => None,
                 })
                 .collect();
             json!({
-                "this": docs[i].value,
-                "schema": docs[i].schema.root(),
+                "this": docs[doc_index].value,
+                "schema": docs[doc_index].schema.root(),
                 "derived": derived,
                 "links": links,
                 "referrers": referrers,

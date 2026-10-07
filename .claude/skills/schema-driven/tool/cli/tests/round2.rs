@@ -31,15 +31,15 @@ fn workdir(name: &str) -> PathBuf {
 }
 
 fn put(dir: &Path, id: &str, extra: Value) {
-    let mut v =
+    let mut instance =
         json!({"$schema": "../schema/thing.schema.json", "id": id, "kind": "thing", "name": id});
-    for (k, x) in extra.as_object().unwrap() {
-        v[k] = x.clone();
+    for (key, value) in extra.as_object().unwrap() {
+        instance[key] = value.clone();
     }
-    if v["name"].is_null() {
-        v.as_object_mut().unwrap().remove("name");
+    if instance["name"].is_null() {
+        instance.as_object_mut().unwrap().remove("name");
     }
-    fs::write(dir.join(format!("decls/{id}.json")), v.to_string()).unwrap();
+    fs::write(dir.join(format!("decls/{id}.json")), instance.to_string()).unwrap();
 }
 
 fn run(dir: &Path, args: &[&str]) -> (i32, Value) {
@@ -65,9 +65,9 @@ fn approval(dir: &Path) -> Option<String> {
 }
 
 fn set_readonly(path: &Path, readonly: bool) {
-    let mut p = fs::metadata(path).unwrap().permissions();
-    p.set_readonly(readonly);
-    fs::set_permissions(path, p).unwrap();
+    let mut permissions = fs::metadata(path).unwrap().permissions();
+    permissions.set_readonly(readonly);
+    fs::set_permissions(path, permissions).unwrap();
 }
 
 fn drifts(out: &Value) -> Vec<Value> {
@@ -75,7 +75,7 @@ fn drifts(out: &Value) -> Vec<Value> {
         .as_array()
         .unwrap()
         .iter()
-        .filter(|f| f["status"] == "ずれ")
+        .filter(|finding| finding["status"] == "ずれ")
         .cloned()
         .collect()
 }
@@ -96,7 +96,7 @@ fn uc_5_m_check_returns_validation_and_findings() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|f| f["check"] == "指す先がある" && f["to"] == "B"));
+        .any(|finding| finding["check"] == "指す先がある" && finding["to"] == "B"));
     assert_eq!(
         fs::read_to_string(dir.join("decls/A.json")).unwrap(),
         before,
@@ -139,7 +139,7 @@ fn uc_8_m_approve_records_paths_and_hashes() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|f| f["check"] == "承認のあとの変化" && f["status"] == "合格"));
+        .any(|finding| finding["check"] == "承認のあとの変化" && finding["status"] == "合格"));
 }
 
 #[test]

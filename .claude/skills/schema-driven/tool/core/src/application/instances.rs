@@ -10,6 +10,7 @@ use crate::domain::values::{
 use crate::ports::inbound::InstanceUseCases;
 use crate::ports::outbound::{Files, Query, Schemas, WriteError, WriteIf};
 use serde_json::Value;
+use std::sync::Arc;
 
 /// ユースケースが失敗した理由。`reason` は用語集の語（拒否の理由 ・ 失敗の種類）で書く。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,14 +64,14 @@ pub struct Prompted {
 }
 
 /// インスタンスの読み書きのユースケースの実装。ファイル ・ スキーマの供給元 ・ 取得は、ポートで受け取る。
-pub struct Instances<'a> {
-    files: &'a dyn Files,
-    schemas: &'a dyn Schemas,
-    query: &'a dyn Query,
+pub struct Instances {
+    files: Arc<dyn Files>,
+    schemas: Arc<dyn Schemas>,
+    query: Arc<dyn Query>,
 }
 
-impl<'a> Instances<'a> {
-    pub fn new(files: &'a dyn Files, schemas: &'a dyn Schemas, query: &'a dyn Query) -> Self {
+impl Instances {
+    pub fn new(files: Arc<dyn Files>, schemas: Arc<dyn Schemas>, query: Arc<dyn Query>) -> Self {
         Self {
             files,
             schemas,
@@ -82,9 +83,9 @@ impl<'a> Instances<'a> {
         let text = self
             .files
             .read(path)
-            .map_err(|e| UseCaseError::new("読めない", e.0))?;
+            .map_err(|error| UseCaseError::new("読めない", error.0))?;
         let value = serde_json::from_str(&text)
-            .map_err(|e| UseCaseError::new("JSON として読めない", e.to_string()))?;
+            .map_err(|error| UseCaseError::new("JSON として読めない", error.to_string()))?;
         Ok((text, value))
     }
 
@@ -96,7 +97,11 @@ impl<'a> Instances<'a> {
             .referenced(path)
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|(n, text)| serde_json::from_str(&text).ok().map(|v| (n, v)))
+            .filter_map(|(file_name, text)| {
+                serde_json::from_str(&text)
+                    .ok()
+                    .map(|schema| (file_name, schema))
+            })
             .collect();
         Ok(Schema::new(name, root, siblings))
     }
@@ -107,39 +112,39 @@ impl<'a> Instances<'a> {
     ) -> Vec<UnfilledWithPrompt> {
         unfilled
             .iter()
-            .map(|u| UnfilledWithPrompt {
-                property: u.property().to_owned(),
-                prompt: schema.prompt(u.property()),
+            .map(|unfilled| UnfilledWithPrompt {
+                property: unfilled.property().to_owned(),
+                prompt: schema.prompt(unfilled.property()),
             })
             .collect()
     }
 
-    pub(crate) fn write_error(e: WriteError) -> UseCaseError {
-        match e {
+    pub(crate) fn write_error(error: WriteError) -> UseCaseError {
+        match error {
             WriteError::Conflict => UseCaseError::new("ほかの更新と競合した", ""),
-            WriteError::Unwritable(d) => UseCaseError::new("書けない", d),
+            WriteError::Unwritable(detail) => UseCaseError::new("書けない", detail),
         }
     }
 }
 
-fn reject(r: Reject) -> UseCaseError {
-    match r {
+fn reject(reject: Reject) -> UseCaseError {
+    match reject {
         Reject::AlreadyExists => UseCaseError::new("パスにインスタンスが既にある", ""),
-        Reject::CannotApply(d) => UseCaseError::new("JSON Patch を適用できない", d),
+        Reject::CannotApply(detail) => UseCaseError::new("JSON Patch を適用できない", detail),
         Reject::Conflict => UseCaseError::new("ほかの更新と競合した", ""),
         Reject::Invalid(errors) => UseCaseError {
             errors,
             ..UseCaseError::new("検証を通過しない", "")
         },
-        Reject::BrokenSchema(d) => UseCaseError::new("スキーマが壊れている", d),
+        Reject::BrokenSchema(detail) => UseCaseError::new("スキーマが壊れている", detail),
     }
 }
 
-fn invalid(e: crate::domain::values::InvalidValue) -> UseCaseError {
-    UseCaseError::new("値が不正である", e.to_string())
+fn invalid(error: crate::domain::values::InvalidValue) -> UseCaseError {
+    UseCaseError::new("値が不正である", error.to_string())
 }
 
-impl InstanceUseCases for Instances<'_> {
+impl InstanceUseCases for Instances {
     fn create(&self, schema: &str, path: &str) -> Result<Created, UseCaseError> {
         let schema_path = SchemaPath::new(schema).map_err(invalid)?;
         let instance_path = InstancePath::new(path).map_err(invalid)?;
@@ -151,14 +156,14 @@ impl InstanceUseCases for Instances<'_> {
             Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;
         self.files
             .write(path, instance.value().as_str(), WriteIf::Absent)
-            .map_err(|e| match e {
+            .map_err(|error| match error {
                 WriteError::Conflict => reject(Reject::AlreadyExists),
                 other => Self::write_error(other),
             })?;
         let parsed: Value = serde_json::from_str(instance.value().as_str()).unwrap_or(Value::Null);
         let validation = loaded
             .validate(&parsed)
-            .map_err(|e| UseCaseError::new("スキーマが壊れている", e.0))?;
+            .map_err(|error| UseCaseError::new("スキーマが壊れている", error.0))?;
         Ok(Created {
             path: path.to_owned(),
             hash: instance.hash().as_str().to_owned(),
@@ -177,7 +182,7 @@ impl InstanceUseCases for Instances<'_> {
         let found = self
             .query
             .search(query, &value)
-            .map_err(|e| UseCaseError::new("JMESPath 式が読めない", e.0))?;
+            .map_err(|error| UseCaseError::new("JMESPath 式が読めない", error.0))?;
         Ok(Got {
             found: !found.is_null(),
             value: found,
@@ -203,7 +208,7 @@ impl InstanceUseCases for Instances<'_> {
             JsonValue::new(&text),
         );
         let read = match hash {
-            Some(h) => Hash::new(h).map_err(invalid)?,
+            Some(hash) => Hash::new(hash).map_err(invalid)?,
             None => instance.hash().clone(),
         };
         let (next, validation) = instance.update(&patch, &read, &loaded).map_err(reject)?;

@@ -4,8 +4,9 @@ use schema_driven_core::application::instances::{UnfilledWithPrompt, UseCaseErro
 use schema_driven_core::domain::check::Finding;
 use schema_driven_core::domain::values::Unfilled;
 use schema_driven_core::domain::values::ValidationError;
-use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases};
+use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases, RenderUseCases};
 use serde_json::{json, Map, Value};
+use std::sync::Arc;
 
 /// ツール1つ：名前 ・ 説明 ・ 引数（名前 ・ 説明 ・ 必須か）。
 #[derive(Debug, Clone, Copy)]
@@ -60,50 +61,64 @@ pub const TOOLS: &[ToolDef] = &[
         description: "検査を通ったディレクトリのインスタンスのパスとハッシュ値を、承認記録（approval.json）へ書く（UC-8）",
         args: &[("dir", "インスタンスのディレクトリ", true)],
     },
+    ToolDef {
+        name: "render",
+        description: "ディレクトリのインスタンスをページへ描画する（UC-6）。具体のページテンプレートとデザインがあればそれで、無い種類は基盤の既定のページで描画する。検証エラーがあれば描画しない。同じ入力からは同じページを書く",
+        args: &[
+            ("dir", "インスタンスのディレクトリ", true),
+            ("pages", "ページテンプレートのディレクトリ。無ければ、すべての種類を基盤の既定のページで描画する", false),
+            ("out", "ページを書き出すディレクトリ", true),
+        ],
+    },
 ];
 
 /// ツールの引数を JSON Schema で表す（MCP の inputSchema）。
 pub fn input_schema(tool: &ToolDef) -> Map<String, Value> {
-    let mut props = Map::new();
+    let mut properties = Map::new();
     for (name, desc, _) in tool.args {
-        props.insert(
+        properties.insert(
             (*name).to_owned(),
             json!({"type": "string", "description": desc}),
         );
     }
-    let required: Vec<&str> = tool.args.iter().filter(|a| a.2).map(|a| a.0).collect();
-    let schema = json!({"type": "object", "properties": props, "required": required, "additionalProperties": false});
+    let required: Vec<&str> = tool
+        .args
+        .iter()
+        .filter(|arg| arg.2)
+        .map(|arg| arg.0)
+        .collect();
+    let schema = json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false});
     schema.as_object().cloned().unwrap_or_default()
 }
 
 fn errors(list: &[ValidationError]) -> Value {
     list.iter()
-        .map(|e| json!({"property": e.property(), "reason": e.reason()}))
+        .map(|error| json!({"property": error.property(), "reason": error.reason()}))
         .collect()
 }
 
 fn unfilled(list: &[UnfilledWithPrompt]) -> Value {
     list.iter()
-        .map(|u| json!({"property": u.property, "prompt": u.prompt}))
+        .map(|unfilled| json!({"property": unfilled.property, "prompt": unfilled.prompt}))
         .collect()
 }
 
 fn findings(list: &[Finding]) -> Value {
     list.iter()
-        .map(|f| json!({"status": f.status.label(), "check": f.check, "from": f.from, "to": f.to, "message": f.message}))
+        .map(|finding| json!({"status": finding.status.label(), "check": finding.check, "from": finding.from, "to": finding.to, "message": finding.message}))
         .collect()
 }
 
 fn unfilled_only(list: &[Unfilled]) -> Value {
     list.iter()
-        .map(|u| json!({"property": u.property()}))
+        .map(|unfilled| json!({"property": unfilled.property()}))
         .collect()
 }
 
-fn failed(e: UseCaseError) -> (i32, Value) {
+fn failed(error: UseCaseError) -> (i32, Value) {
     (
         1,
-        json!({"ok": false, "reason": e.reason, "detail": e.detail, "errors": errors(&e.errors)}),
+        json!({"ok": false, "reason": error.reason, "detail": error.detail, "errors": errors(&error.errors)}),
     )
 }
 
@@ -113,7 +128,7 @@ pub fn misuse(detail: &str) -> (i32, Value) {
 }
 
 fn misuse_in(list: &[ToolDef], detail: &str) -> (i32, Value) {
-    let names: Vec<&str> = list.iter().map(|t| t.name).collect();
+    let names: Vec<&str> = list.iter().map(|tool| tool.name).collect();
     (
         2,
         json!({"ok": false, "reason": "使い方が違う", "detail": detail, "tools": names}),
@@ -128,32 +143,44 @@ pub trait ExtraTools {
 }
 
 /// 基盤のツールの一覧に、具体のツールを追加したもの。CLI と MCP はこれから作る。
-pub struct Toolbox<'a> {
+pub struct Toolbox {
     list: Vec<ToolDef>,
-    extra: Option<&'a dyn ExtraTools>,
+    extra: Option<Arc<dyn ExtraTools>>,
+    render: Option<Arc<dyn RenderUseCases>>,
 }
 
-impl<'a> Toolbox<'a> {
+impl Toolbox {
     /// 基盤のツールだけ。
     pub fn base() -> Self {
         Self {
             list: TOOLS.to_vec(),
             extra: None,
+            render: None,
         }
     }
 
+    /// 描画のユースケース（具体のデザインを持つもの）を渡す。渡さなければ、render は理由を返して失敗する。
+    pub fn with_render(mut self, render: Arc<dyn RenderUseCases>) -> Self {
+        self.render = Some(render);
+        self
+    }
+
     /// 具体のツールを、基盤のツールのあとに追加する。基盤のツールと同じ名前は追加できない。
-    pub fn with(extra: &'a dyn ExtraTools) -> Result<Self, String> {
+    pub fn with(extra: Arc<dyn ExtraTools>) -> Result<Self, String> {
         let mut list = TOOLS.to_vec();
-        for t in extra.tools() {
-            if list.iter().any(|b| b.name == t.name) {
-                return Err(format!("基盤のツールと同じ名前は追加できない: {}", t.name));
+        for tool in extra.tools() {
+            if list.iter().any(|base| base.name == tool.name) {
+                return Err(format!(
+                    "基盤のツールと同じ名前は追加できない: {}",
+                    tool.name
+                ));
             }
-            list.push(t);
+            list.push(tool);
         }
         Ok(Self {
             list,
             extra: Some(extra),
+            render: None,
         })
     }
 
@@ -167,14 +194,14 @@ impl<'a> Toolbox<'a> {
         &self,
         name: &str,
         args: &Map<String, Value>,
-        uc: &dyn InstanceUseCases,
-        cc: &dyn CheckUseCases,
+        instances: &dyn InstanceUseCases,
+        checks: &dyn CheckUseCases,
     ) -> (i32, Value) {
-        let Some(tool) = self.list.iter().find(|t| t.name == name) else {
+        let Some(tool) = self.list.iter().find(|tool| tool.name == name) else {
             return misuse_in(&self.list, &format!("知らないツール: {name}"));
         };
         for key in args.keys() {
-            if !tool.args.iter().any(|a| a.0 == key) {
+            if !tool.args.iter().any(|arg| arg.0 == key) {
                 return misuse_in(&self.list, &format!("{name} は引数 {key} を受け付けない"));
             }
         }
@@ -183,18 +210,38 @@ impl<'a> Toolbox<'a> {
                 None if *required => {
                     return misuse_in(&self.list, &format!("{name} の引数 {key} が無い"))
                 }
-                Some(v) if !v.is_string() => {
+                Some(value) if !value.is_string() => {
                     return misuse_in(&self.list, &format!("{name} の引数 {key} は文字列で渡す"))
                 }
                 _ => {}
             }
         }
-        if !TOOLS.iter().any(|t| t.name == name) {
-            if let Some(extra) = self.extra {
+        if name == "render" {
+            let arg = |key: &str| args.get(key).and_then(Value::as_str).unwrap_or_default();
+            let Some(render) = &self.render else {
+                return (
+                    1,
+                    json!({"ok": false, "reason": "描画のユースケースが渡されていない", "detail": "render は、Toolbox に描画のユースケース（Renders）を渡したツールで使う"}),
+                );
+            };
+            return match render.render(arg("dir"), arg("pages"), arg("out")) {
+                Ok(done) => {
+                    let pages: Vec<Value> = done
+                        .pages
+                        .iter()
+                        .map(|page| json!({"path": page.path, "changed": page.changed, "design": page.design}))
+                        .collect();
+                    (0, json!({"ok": true, "pages": pages}))
+                }
+                Err(error) => failed(error),
+            };
+        }
+        if !TOOLS.iter().any(|tool| tool.name == name) {
+            if let Some(extra) = &self.extra {
                 return extra.call(name, args);
             }
         }
-        call_base(name, args, uc, cc)
+        call_base(name, args, instances, checks)
     }
 }
 
@@ -202,54 +249,54 @@ impl<'a> Toolbox<'a> {
 pub fn dispatch(
     name: &str,
     args: &Map<String, Value>,
-    uc: &dyn InstanceUseCases,
-    cc: &dyn CheckUseCases,
+    instances: &dyn InstanceUseCases,
+    checks: &dyn CheckUseCases,
 ) -> (i32, Value) {
-    Toolbox::base().dispatch(name, args, uc, cc)
+    Toolbox::base().dispatch(name, args, instances, checks)
 }
 
 /// 引数を検査したあとで、基盤のユースケースを呼ぶ。
 fn call_base(
     name: &str,
     args: &Map<String, Value>,
-    uc: &dyn InstanceUseCases,
-    cc: &dyn CheckUseCases,
+    instances: &dyn InstanceUseCases,
+    checks: &dyn CheckUseCases,
 ) -> (i32, Value) {
-    let s = |k: &str| args.get(k).and_then(Value::as_str).unwrap_or_default();
+    let arg = |key: &str| args.get(key).and_then(Value::as_str).unwrap_or_default();
     let result = match name {
-        "create" => uc.create(s("schema"), s("path")).map(|c| {
-            json!({"ok": true, "path": c.path, "hash": c.hash, "unfilled": unfilled(&c.unfilled)})
+        "create" => instances.create(arg("schema"), arg("path")).map(|created| {
+            json!({"ok": true, "path": created.path, "hash": created.hash, "unfilled": unfilled(&created.unfilled)})
         }),
-        "get" => uc.get(s("path"), s("query")).map(|g| json!({"ok": true, "value": g.value, "found": g.found})),
-        "update" => uc.update(s("path"), s("patch"), args.get("hash").and_then(Value::as_str)).map(|u| {
-            json!({"ok": true, "hash": u.hash, "changed": u.changed, "errors": errors(&u.errors), "unfilled": unfilled(&u.unfilled)})
+        "get" => instances.get(arg("path"), arg("query")).map(|got| json!({"ok": true, "value": got.value, "found": got.found})),
+        "update" => instances.update(arg("path"), arg("patch"), args.get("hash").and_then(Value::as_str)).map(|updated| {
+            json!({"ok": true, "hash": updated.hash, "changed": updated.changed, "errors": errors(&updated.errors), "unfilled": unfilled(&updated.unfilled)})
         }),
-        "delete" => cc.delete(s("path")).map(|d| json!({"ok": true, "remaining": findings(&d.remaining)})),
-        "check" => cc.check(s("dir")).map(|c| {
-            let instances: Vec<Value> = c
+        "delete" => checks.delete(arg("path")).map(|deleted| json!({"ok": true, "remaining": findings(&deleted.remaining)})),
+        "check" => checks.check(arg("dir")).map(|checked| {
+            let validated: Vec<Value> = checked
                 .instances
                 .iter()
-                .map(|i| json!({"path": i.path, "hash": i.hash, "errors": errors(&i.errors), "unfilled": unfilled_only(&i.unfilled)}))
+                .map(|instance| json!({"path": instance.path, "hash": instance.hash, "errors": errors(&instance.errors), "unfilled": unfilled_only(&instance.unfilled)}))
                 .collect();
-            json!({"ok": true, "instances": instances, "findings": findings(&c.findings)})
+            json!({"ok": true, "instances": validated, "findings": findings(&checked.findings)})
         }),
-        "check-schemas" => cc.check_schemas(s("dir")).map(|c| {
-            let list: Vec<Value> = c
+        "check-schemas" => checks.check_schemas(arg("dir")).map(|checked| {
+            let list: Vec<Value> = checked
                 .findings
                 .iter()
-                .map(|f| json!({"schema": f.schema, "at": f.at, "rule": f.rule, "message": f.message}))
+                .map(|finding| json!({"schema": finding.schema, "at": finding.at, "rule": finding.rule, "message": finding.message}))
                 .collect();
-            json!({"ok": true, "schemas": c.schemas, "findings": list})
+            json!({"ok": true, "schemas": checked.schemas, "findings": list})
         }),
-        "approve" => cc.approve(s("dir")).map(|a| {
-            let list: Vec<Value> = a.instances.iter().map(|(p, h)| json!({"path": p, "hash": h})).collect();
-            json!({"ok": true, "changed": a.changed, "instances": list})
+        "approve" => checks.approve(arg("dir")).map(|approved| {
+            let list: Vec<Value> = approved.instances.iter().map(|(path, hash)| json!({"path": path, "hash": hash})).collect();
+            json!({"ok": true, "changed": approved.changed, "instances": list})
         }),
-        "prompt" => uc.prompt(s("schema"), s("property")).map(|p| json!({"ok": true, "prompt": p.prompt})),
+        "prompt" => instances.prompt(arg("schema"), arg("property")).map(|prompted| json!({"ok": true, "prompt": prompted.prompt})),
         _ => return misuse(&format!("知らないツール: {name}")),
     };
     match result {
-        Ok(v) => (0, v),
-        Err(e) => failed(e),
+        Ok(value) => (0, value),
+        Err(error) => failed(error),
     }
 }

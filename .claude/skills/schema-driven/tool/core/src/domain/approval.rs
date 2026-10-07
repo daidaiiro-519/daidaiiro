@@ -75,7 +75,7 @@ impl ApprovalRecord {
     pub fn as_map(&self) -> Approved {
         self.instances
             .iter()
-            .map(|i| (i.path().to_owned(), i.hash().clone()))
+            .map(|instance| (instance.path().to_owned(), instance.hash().clone()))
             .collect()
     }
 
@@ -88,18 +88,18 @@ impl ApprovalRecord {
         let list: Vec<Value> = self
             .instances
             .iter()
-            .map(|i| json!({"path": i.path(), "hash": i.hash().as_str()}))
+            .map(|instance| json!({"path": instance.path(), "hash": instance.hash().as_str()}))
             .collect();
         json!({"directory": self.directory.as_str(), "instances": list}).to_string()
     }
 
     pub fn from_json(text: &str) -> Option<Self> {
-        let v: Value = serde_json::from_str(text).ok()?;
-        let directory = InstancePath::new(v.get("directory")?.as_str()?).ok()?;
+        let record: Value = serde_json::from_str(text).ok()?;
+        let directory = InstancePath::new(record.get("directory")?.as_str()?).ok()?;
         let mut instances = Vec::new();
-        for i in v.get("instances")?.as_array()? {
-            let hash = Hash::new(i.get("hash")?.as_str()?).ok()?;
-            instances.push(ApprovedInstance::new(i.get("path")?.as_str()?, hash).ok()?);
+        for entry in record.get("instances")?.as_array()? {
+            let hash = Hash::new(entry.get("hash")?.as_str()?).ok()?;
+            instances.push(ApprovedInstance::new(entry.get("path")?.as_str()?, hash).ok()?);
         }
         Some(Self {
             directory,
