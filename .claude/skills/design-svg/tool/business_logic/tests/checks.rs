@@ -289,8 +289,14 @@ fn expected_conflict(a: &classes::Class, b: &classes::Class) -> bool {
     }
     match (a.kind, b.kind) {
         (Kind::Modifier, Kind::Modifier) => false,
-        (Kind::Modifier, _) => !b.modifiers || !a.values.contains_key(b.kind.slot()),
-        (_, Kind::Modifier) => !a.modifiers || !b.values.contains_key(a.kind.slot()),
+        (Kind::Modifier, _) => {
+            !b.modifiers
+                || !(a.values.contains_key(b.kind.slot()) || a.values.contains_key(&b.name))
+        }
+        (_, Kind::Modifier) => {
+            !a.modifiers
+                || !(b.values.contains_key(a.kind.slot()) || b.values.contains_key(&a.name))
+        }
         _ => true,
     }
 }
@@ -492,4 +498,66 @@ fn labels_are_listed_by_class() {
         Some(&vec!["注文が確定された".to_owned()])
     );
     assert_eq!(l.by_class.get("warn"), Some(&vec!["拒否する".to_owned()]));
+}
+
+// ── 検査4 ── 線の上の文字（境界値）
+
+/// 縦線 x=100 の左に、右端が x=100+dx の文字を置く。
+fn text_by_line(dx: f64) -> String {
+    let fs = 12.0;
+    let w = ds_business_logic::text::width("七月中旬", fs);
+    let x = 100.0 + dx - w;
+    svg(&format!(
+        r#"<line class="grid" x1="100" y1="0" x2="100" y2="200"/><text class="label" x="{x}" y="100" font-size="{fs}">七月中旬</text>"#
+    ))
+}
+
+fn over_stroke(s: &str) -> usize {
+    let s = resolve(s, None, true).expect("解決できる");
+    check_layout(&s)
+        .expect("読める")
+        .iter()
+        .filter(|f| f.contains("線の上に文字"))
+        .count()
+}
+
+#[test]
+fn check4_text_crossing_a_stroke_has_its_boundary_at_the_line() {
+    assert_eq!(over_stroke(&text_by_line(-1.0)), 0, "線の手前で終わる");
+    assert_eq!(over_stroke(&text_by_line(0.0)), 0, "線にちょうど接する");
+    assert_eq!(over_stroke(&text_by_line(1.0)), 1, "線を1単位越える");
+}
+
+#[test]
+fn check4_text_over_a_circle_outline_is_found() {
+    let s = svg(
+        r#"<circle class="area" cx="200" cy="150" r="100"/><text class="title" x="200" y="54" text-anchor="middle">設計</text>"#,
+    );
+    assert_eq!(over_stroke(&s), 1);
+}
+
+#[test]
+fn check4_a_badge_on_a_line_and_a_label_in_a_box_are_allowed() {
+    let badge = svg(
+        r#"<path class="link" d="M0,100 H300"/><rect class="badge" x="100" y="90" width="80" height="20"/><text class="note small" x="140" y="104" text-anchor="middle">共用</text>"#,
+    );
+    assert_eq!(over_stroke(&badge), 0, "線の上のバッジ");
+    let boxed = svg(
+        r#"<rect class="box" x="10" y="10" width="200" height="40"/><text class="label" x="20" y="34">箱の中の名前</text>"#,
+    );
+    assert_eq!(over_stroke(&boxed), 0, "箱の中のラベル");
+}
+
+#[test]
+fn check4_a_line_hidden_under_a_filled_box_is_allowed() {
+    // 2つの領域にまたがる箱の名前 ── 箱の塗りが、先に描かれた領域の線を隠す
+    let s = svg(
+        r#"<rect class="area" x="10" y="10" width="150" height="200"/><rect class="area" x="160" y="10" width="150" height="200"/><rect class="box" x="60" y="80" width="200" height="40"/><text class="label" x="160" y="104" text-anchor="middle">2つの領域の振り分け</text>"#,
+    );
+    assert_eq!(over_stroke(&s), 0);
+    // 線が箱より後に描かれると、箱の中の名前の上を通る
+    let late = svg(
+        r#"<rect class="box" x="60" y="80" width="200" height="40"/><text class="label" x="160" y="104" text-anchor="middle">2つの領域の振り分け</text><line class="grid" x1="160" y1="10" x2="160" y2="200"/>"#,
+    );
+    assert_eq!(over_stroke(&late), 1);
 }

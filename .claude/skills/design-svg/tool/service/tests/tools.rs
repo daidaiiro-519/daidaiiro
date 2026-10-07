@@ -464,5 +464,25 @@ fn the_references_pass_their_schemas() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let out = call("validate", &[("skill_root", &root.display().to_string())]);
     assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
-    assert_eq!(out.data["kinds"], serde_json::json!(["document", "theme"]));
+    assert_eq!(
+        out.data["kinds"],
+        serde_json::json!(["document", "exemplars", "theme"])
+    );
+}
+
+#[test]
+fn the_templates_are_listed_by_get_and_the_catalog() {
+    // **テンプレートは references の種類 exemplars として、get で1件ずつ取り出せる**
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let out = call(
+        "get",
+        &[
+            ("kind", "exemplars"),
+            ("id", "state-transition"),
+            ("skill_root", &root.display().to_string()),
+        ],
+    );
+    assert!(out.ok, "{:?}", out.findings);
+    let cat = call("catalog", &[]);
+    assert_eq!(cat.data["exemplars"].as_array().map(Vec::len), Some(17));
 }

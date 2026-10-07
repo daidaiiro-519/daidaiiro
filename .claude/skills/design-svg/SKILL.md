@@ -69,14 +69,28 @@ design-svg get --kind theme
 
 | 種類 | class |
 |---|---|
-| 図形 | `box` ・ `boundary` ・ `area` ・ `badge` ・ `swatch` ・ `series-1`〜`3` |
+| 図形 | `box` ・ `boundary` ・ `area` ・ `badge` ・ `start` ・ `field` ・ `set` ・ `swatch` ・ `series-1`〜`3` |
 | 線 | `flow` ・ `link` ・ `grid` |
 | テキスト | `title` ・ `label` ・ `note` |
 | 修飾 | `focus` ・ `warn` ・ `kind-1`〜`3` ・ `async` ・ `small` |
 
 1つの要素は、図形 ・ 線 ・ テキストの class を1つだけ持ち、修飾を0個以上持つ。カテゴリを分けたいときは `kind-1`〜`3` を使い、`focus` や `warn` を流用しない。
 
-### Step 2: SVG を記述する
+### Step 2: 近いテンプレートを選んで複製する
+
+図の種類ごとのテンプレートが17種類ある。索引で用途を読み、描きたい図に近いものを1つ選んで、その SVG を複製して編集する。
+
+```
+design-svg get --kind exemplars                      # 索引（id ・ 名前 ・ 用途 ・ ファイル ・ 使う class）
+design-svg get --kind exemplars --id state-transition  # 1件だけ
+```
+
+SVG は `references/exemplars/<id>.svg` にある。中身は一般の語（要素A ・ 状態1 など）で書いてあるので、座標 ・ 図形 ・ 文字を描きたい内容に合わせて変える。
+
+- テンプレートは出発点であって、使うことを求めない。近いものが無ければ、class の一覧から直接記述してよい
+- 新しい種類をテンプレートとして足すときは、検査1〜4と目視を通し、ACDR で承認を得てから references へ置く
+
+### Step 3: SVG を記述する
 
 座標は作成者が決める。スタイルは class で指定し、値を記述しない。
 
@@ -93,11 +107,12 @@ design-svg get --kind theme
 - 色 ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン ・ フォントサイズを記述しない。`fill="none"` と `stroke="none"` は値ではないので記述してよい
 - コンテンツとしての色（色見本など）だけは、`swatch` の要素自身の `fill` ・ `stroke` ・ `stop-color` に記述してよい
 - 矢じりの `marker` を記述しない。`flow` の線に design-svg が付ける
+- 集合（`set`）は `kind-1`〜`3` と一緒に指定し、重なりの上の文字は `label` で書く。`note` の色は重なりの上でコントラスト比が足りない
 - `style` 要素を記述しない
 - 親の `g` の class は子を満たさない。図形とテキストに1つずつ class を指定する
 - 横に長い図は、ルートの `style` に `min-width` を書く。スマホ幅で縮小されると、検査4が最小のフォントサイズを検出する
 
-### Step 3: 解決して検査する
+### Step 4: 解決して検査する
 
 ```
 design-svg resolve 図.svg --out 出力.svg
@@ -111,19 +126,21 @@ design-svg resolve 図.svg --theme 色.json --out 出力.svg   # 色のトーク
 | 検査1 | class を持たない図形とテキスト ・ 一覧に無い class ・ 作成者が記述した `marker` |
 | 検査2 | 作成者が記述した値（表示属性 ・ `style` 属性 ・ `style` 要素） |
 | 検査3 | 禁止した組み合わせ ・ 図形 ・ 線 ・ テキストの class を2つ持つ要素 ・ 要素の種類と合わない class |
-| 検査4 | テキストどうしの重なり ・ キャンバスやボックスからのはみ出し ・ スマホ幅で描画したときの最小のフォントサイズ |
+| 検査4 | テキストどうしの重なり ・ 線の上の文字 ・ キャンバスやボックスからのはみ出し ・ スマホ幅で描画したときの最小のフォントサイズ |
+
+検査4の「線の上の文字」は、線 ・ 枠線 ・ 円の輪郭が文字の上を通るものを検出する。線の上に置いたバッジ（`badge`）の中の文字と、塗りのある図形の中の文字（図形より先に描いた線は塗りに隠れる）は検出しない。
 
 終了コードは `0` 検出なし ／ `1` 検出あり ／ `2` 誤用（読めない SVG ・ 知らないトークン ・ 上書きできないトークン）である。
 
-### Step 4: 一覧で class の選択を確かめる
+### Step 5: 一覧で class の選択を確かめる
 
 class の選択の誤り（イベントに `warn` を指定するなど）は機械では検査できない。`resolve` は class ごとのラベルの一覧を返すので、`warn：注文が確定された` のように意味と合わない行が無いかを読む。複数行のラベルの一覧では、単語の途中で改行していないかを読む。
 
-### Step 5: 描画して目視で確認する
+### Step 6: 描画して目視で確認する
 
 ライトモード ・ ダークモード ・ 幅 358px の3通りで描画して目視で確認する。検査が見ないもの（配置の良し悪し ・ 強調の偏り ・ カテゴリ色どうしの差 ・ 単語の途中の改行）は、目視でしか分からない。
 
-### Step 6: figure と chart を使うとき
+### Step 7: figure と chart を使うとき
 
 辺の多い関係図と量のグラフは、宣言から生成してもよい。どちらも class を出力し、作成者が記述した SVG と同じ解決と検査1〜4を通す。
 
@@ -145,7 +162,7 @@ design-svg chart bars データ.json --out 図.svg    # 量のグラフを1つ�
 - 宣言の `theme` で上書きしてよいのは色のトークンだけである
 - 縮小するとしきい値を下回る図には、design-svg が `min-width` を足す
 
-### Step 7: 部品が足りなければ足す
+### Step 8: 部品が足りなければ足す
 
 量のグラフの部品は、`tool/business_logic/src/shapes*.rs` の関数1つと、そのファイルの `register()` への1行で増える。部品は値と class の両方を出力し、解決の前に class が持つ値が外れる。class が持たない値を出力すると、検査2が検出する。足すときの規約は `references/document.json` の `svg-engine-discipline` にある（`design-svg get --kind document --id svg-engine-discipline`）。目録の表（`catalog.rs` の `PARTS`）にも1行足す。
 
@@ -184,6 +201,7 @@ design-svg chart bars データ.json --out 図.svg    # 量のグラフを1つ�
 
 - `README.md`: エンジンの入口（使い方 ・ 目録 ・ 配置 ・ 開発）
 - `references/theme.json`: 図のデザインシステムの正本 ── トークン ・ 段階 ・ class の一覧 ・ 禁止した組み合わせ ・ ダークモードの値 ・ 矢じり ・ 検査のしきい値。形は `references/theme.schema.json` が規定し、`design-svg validate` が検査する
+- `references/exemplars.json` ・ `references/exemplars/*.svg`: 図の種類ごとのテンプレート17種類と、その索引。形は `references/exemplars.schema.json` が規定する
 - `references/document.json`: 手引きの文書。`svg-engine-discipline`（エンジンが遵守する規律）と `svg-engine-layout-algorithms`（配置アルゴリズム）を持つ
 - `tool/cli/`: 唯一の CLI `design-svg`。`catalog` ・ `figure` ・ `chart` ・ `resolve` ・ `verify` ・ `lint` と、references のツール `get` ・ `validate` ・ `view` ・ `import` を持つ。どれも `--json` で機械が読む形が出る
 - `tool/service/`: サービス層のツールの一覧。能力の正本であり、CLI と MCP はここから作る

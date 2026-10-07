@@ -323,7 +323,8 @@ fn modifier_on(modifier: &Class, base: &Class) -> Option<String> {
             base.name, modifier.name
         ));
     }
-    if !modifier.values.contains_key(base.kind.slot()) {
+    if !modifier.values.contains_key(base.kind.slot()) && !modifier.values.contains_key(&base.name)
+    {
         return Some(format!(
             "{} は {} の種類（{}）に値を持たない",
             modifier.name,
@@ -345,7 +346,15 @@ pub fn values_of(names: &[&str]) -> Vec<(String, String)> {
     let slot = base.kind.slot();
     let mut out: Vec<(String, String)> = Vec::new();
     for c in &list {
-        for (k, v) in c.values.get(slot).map_or(&[][..], Vec::as_slice) {
+        // **修飾は、重ねる先の class の名前の欄を先に見る**（例：set に重ねる kind-1 はカテゴリ色で塗る）
+        let own = c
+            .values
+            .get(&base.name)
+            .filter(|_| c.kind == Kind::Modifier);
+        for (k, v) in own
+            .or_else(|| c.values.get(slot))
+            .map_or(&[][..], Vec::as_slice)
+        {
             match out.iter_mut().find(|(a, _)| a == k) {
                 Some(slot) => slot.1.clone_from(v),
                 None => out.push((k.clone(), v.clone())),

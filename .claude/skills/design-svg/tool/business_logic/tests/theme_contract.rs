@@ -184,3 +184,44 @@ fn the_thresholds_live_in_the_theme() {
     let m = &classes::notation().marker;
     assert!(!m.d.is_empty() && m.width > 0.0, "矢じりの形が無い");
 }
+
+#[test]
+fn the_template_classes_are_in_the_vocabulary() {
+    // テンプレート（ACDR 2）が要る class ── 開始状態 ・ 入力欄 ・ 集合
+    for n in ["start", "field", "set"] {
+        assert!(classes::known(n), "一覧に無い: {n}");
+    }
+}
+
+#[test]
+fn a_set_takes_its_category_colour_at_the_set_opacity() {
+    let v = classes::values_of(&["set", "kind-2"]);
+    let get = |a: &str| v.iter().find(|(k, _)| k == a).map(|(_, t)| t.clone());
+    assert_eq!(
+        get("fill").as_deref(),
+        Some("color.kind-2"),
+        "背景色ではなくカテゴリ色で塗る"
+    );
+    assert_eq!(get("fill-opacity").as_deref(), Some("opacity.set"));
+    assert!(value("opacity.set")
+        .and_then(|x| x.as_f64())
+        .is_some_and(|o| o > 0.0 && o < 1.0));
+}
+
+#[test]
+fn the_template_classes_refuse_the_wrong_modifiers() {
+    for (a, b) in [
+        ("start", "focus"),
+        ("set", "warn"),
+        ("set", "focus"),
+        ("field", "kind-1"),
+    ] {
+        assert!(
+            classes::conflict(a, b).is_some(),
+            "{a} × {b} が禁止されていない"
+        );
+    }
+    for (a, b) in [("set", "kind-1"), ("field", "warn"), ("field", "focus")] {
+        assert!(classes::conflict(a, b).is_none(), "{a} × {b} は使える");
+    }
+}

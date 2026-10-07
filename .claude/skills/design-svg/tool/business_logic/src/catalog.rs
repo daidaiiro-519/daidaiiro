@@ -440,5 +440,26 @@ pub fn catalog() -> Result<Value, String> {
         "tokens": tokens(),
         "roles": roles(),
         "strategies": strategies(),
+        "exemplars": exemplars(),
     }))
+}
+
+/// テンプレートの索引の正本。**組み立ての時点で埋め込む。**
+const EXEMPLARS: &str = include_str!("../../../references/exemplars.json");
+
+/// 図のテンプレートの一覧 ── id ・ 名前 ・ 用途 ・ ファイル。**作成者は用途から近いものを選ぶ。**
+/// 中身は `design-svg get --kind exemplars --id <id>` と、references の SVG が持つ。
+#[must_use]
+pub fn exemplars() -> Value {
+    let whole: Value = serde_json::from_str(EXEMPLARS).unwrap_or(Value::Null);
+    Value::Array(
+        whole["items"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|x| json!({"id": x["id"], "name": x["name"], "use": x["use"], "file": x["file"]}))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    )
 }

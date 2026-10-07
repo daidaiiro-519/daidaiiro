@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 
 use crate::classes::{self, Kind};
-use crate::geometry::apply_transform;
+use crate::geometry::{apply_transform, sample_path, segment_hits_rect, Point};
 use crate::py::{parse_float, quote};
 use crate::resolve::GENERATED;
 use crate::text;
@@ -39,12 +39,14 @@ const CONTAINERS: [&str; 6] = [
     "linearGradient",
 ];
 /// 作成者が記述してはならない値の属性。
-const VALUE_ATTRS: [&str; 5] = [
+const VALUE_ATTRS: [&str; 6] = [
     "fill",
     "stroke",
     "stroke-width",
     "stroke-dasharray",
     "font-size",
+    // 集合（set）の塗りの不透明度もトークンである
+    "fill-opacity",
 ];
 /// 角丸の半径。**矩形のときだけ値である**（楕円の rx は形そのもの）。
 const RADIUS_ATTRS: [&str; 2] = ["rx", "ry"];
@@ -274,6 +276,31 @@ struct Label {
 struct Shape {
     rect: Rect,
     classes: Vec<String>,
+    /// 文書の中で描かれる順。
+    order: usize,
+    /// 塗りを持つか。**塗りを持つ図形は、先に描かれた線を隠す。**
+    filled: bool,
+}
+
+/// 要素の、文書の中で描かれる順。**要素の場所で引く** ── 同じ木を歩く2つの関数が、同じ順を使う。
+fn draw_order(root: &Element) -> std::collections::HashMap<usize, usize> {
+    fn go(el: &Element, out: &mut std::collections::HashMap<usize, usize>) {
+        let n = out.len();
+        out.insert(std::ptr::from_ref(el) as usize, n);
+        for ch in el.elements() {
+            go(ch, out);
+        }
+    }
+    let mut out = std::collections::HashMap::new();
+    go(root, &mut out);
+    out
+}
+
+fn order_of(el: &Element, orders: &std::collections::HashMap<usize, usize>) -> usize {
+    orders
+        .get(&(std::ptr::from_ref(el) as usize))
+        .copied()
+        .unwrap_or_default()
 }
 
 fn theme_num(key: &str) -> f64 {
@@ -286,6 +313,7 @@ fn num(el: &Element, k: &str) -> f64 {
 
 /// 解決したあとの SVG から、テキストと図形を絶対座標で集める。**回転したテキストは除く。**
 fn gather(root: &Element) -> (Vec<Label>, Vec<Shape>) {
+    let orders = draw_order(root);
     let cap = theme_num("font.cap-ratio");
     let desc = theme_num("font.descender-ratio");
     let default_fs = theme_num("font.size");
@@ -297,6 +325,7 @@ fn gather(root: &Element) -> (Vec<Label>, Vec<Shape>) {
         ratios: (f64, f64, f64),
         labels: &mut Vec<Label>,
         shapes: &mut Vec<Shape>,
+        orders: &std::collections::HashMap<usize, usize>,
     ) {
         if is_generated(el) || CONTAINERS.contains(&el.tag.as_str()) {
             return;
@@ -356,12 +385,21 @@ fn gather(root: &Element) -> (Vec<Label>, Vec<Shape>) {
                 shapes.push(Shape {
                     rect,
                     classes: names.clone(),
+                    order: order_of(el, orders),
+                    // 半透明の塗り（set）は下の線を隠さない
+                    filled: el
+                        .get("fill")
+                        .is_some_and(|f| !f.is_empty() && f != NOT_A_VALUE)
+                        && el
+                            .get("fill-opacity")
+                            .and_then(parse_float)
+                            .is_none_or(|o| o >= 1.0),
                 });
             }
             _ => {}
         }
         for ch in el.elements() {
-            go(ch, (dx, dy, sc), ratios, labels, shapes);
+            go(ch, (dx, dy, sc), ratios, labels, shapes, orders);
         }
     }
     go(
@@ -370,6 +408,7 @@ fn gather(root: &Element) -> (Vec<Label>, Vec<Shape>) {
         (cap, desc, default_fs),
         &mut labels,
         &mut shapes,
+        &orders,
     );
     (labels, shapes)
 }
@@ -388,6 +427,166 @@ fn container<'a>(label: &Label, shapes: &'a [Shape]) -> Option<&'a Shape> {
         .iter()
         .filter(|s| s.rect.0 < cx && cx < s.rect.2 && s.rect.1 < cy && cy < s.rect.3)
         .min_by(|a, b| area(a.rect).total_cmp(&area(b.rect)))
+}
+
+/// 線を点列にするときの刻み。**文字の高さ（10 以上）より十分に細かい。**
+const STROKE_STEP: f64 = 2.0;
+/// 円と楕円を多角形にするときの頂点の数。
+const OUTLINE_POINTS: usize = 72;
+
+/// 線1本 ── 通る点と、それが図形の輪郭なら、その図形の外接矩形。
+struct Stroke {
+    points: Vec<Point>,
+    outline_of: Option<Rect>,
+    order: usize,
+}
+
+/// 解決したあとの SVG から、線を描く要素（line ・ polyline ・ polygon ・ path ・ 枠線を持つ図形）を
+/// 絶対座標の点列で集める。**線の無い塗りだけの図形は除く。**
+fn strokes(root: &Element) -> Vec<Stroke> {
+    let orders = draw_order(root);
+    fn go(
+        el: &Element,
+        (dx, dy, sc): (f64, f64, f64),
+        orders: &std::collections::HashMap<usize, usize>,
+        out: &mut Vec<Stroke>,
+    ) {
+        if is_generated(el) || CONTAINERS.contains(&el.tag.as_str()) {
+            return;
+        }
+        let t = el.get("transform").unwrap_or("");
+        if t.contains("rotate") {
+            return;
+        }
+        let (dx, dy, sc) = apply_transform(t, dx, dy, sc);
+        let at = |x: f64, y: f64| (x * sc + dx, y * sc + dy);
+        let stroked = el
+            .get("stroke")
+            .is_some_and(|s| !s.is_empty() && s != NOT_A_VALUE);
+        if stroked {
+            let pts: Vec<Point> = match el.tag.as_str() {
+                "line" => vec![
+                    at(num(el, "x1"), num(el, "y1")),
+                    at(num(el, "x2"), num(el, "y2")),
+                ],
+                "polyline" | "polygon" => {
+                    let v: Vec<f64> = el
+                        .get("points")
+                        .unwrap_or("")
+                        .split(|c: char| c.is_whitespace() || c == ',')
+                        .filter_map(parse_float)
+                        .collect();
+                    let mut p: Vec<Point> = v
+                        .chunks(2)
+                        .filter(|c| c.len() == 2)
+                        .map(|c| at(c[0], c[1]))
+                        .collect();
+                    if el.tag == "polygon" {
+                        if let Some(first) = p.first().copied() {
+                            p.push(first);
+                        }
+                    }
+                    p
+                }
+                "path" => sample_path(el.get("d").unwrap_or(""), STROKE_STEP)
+                    .into_iter()
+                    .map(|(x, y)| at(x, y))
+                    .collect(),
+                "rect" => {
+                    let (x, y) = (num(el, "x"), num(el, "y"));
+                    let (w, h) = (num(el, "width"), num(el, "height"));
+                    [(x, y), (x + w, y), (x + w, y + h), (x, y + h), (x, y)]
+                        .iter()
+                        .map(|(a, b)| at(*a, *b))
+                        .collect()
+                }
+                "circle" | "ellipse" => {
+                    let (cx, cy) = (num(el, "cx"), num(el, "cy"));
+                    let (rx, ry) = if el.tag == "circle" {
+                        (num(el, "r"), num(el, "r"))
+                    } else {
+                        (num(el, "rx"), num(el, "ry"))
+                    };
+                    (0..=OUTLINE_POINTS)
+                        .map(|k| {
+                            let a = std::f64::consts::TAU * k as f64 / OUTLINE_POINTS as f64;
+                            at(cx + rx * a.cos(), cy + ry * a.sin())
+                        })
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
+            // **矩形の輪郭だけを、中の文字の容れ物として除く** ── 円と楕円は外接矩形の角が輪郭の外なので、
+            // 外接矩形の中に在っても輪郭をまたぐ文字が在る
+            let outline_of = (el.tag == "rect").then(|| {
+                let xs = pts.iter().map(|p| p.0);
+                let ys = pts.iter().map(|p| p.1);
+                (
+                    xs.clone().fold(f64::INFINITY, f64::min),
+                    ys.clone().fold(f64::INFINITY, f64::min),
+                    xs.fold(f64::NEG_INFINITY, f64::max),
+                    ys.fold(f64::NEG_INFINITY, f64::max),
+                )
+            });
+            if pts.len() > 1 {
+                out.push(Stroke {
+                    points: pts,
+                    outline_of,
+                    order: order_of(el, orders),
+                });
+            }
+        }
+        for ch in el.elements() {
+            go(ch, (dx, dy, sc), orders, out);
+        }
+    }
+    let mut out = Vec::new();
+    go(root, (0.0, 0.0, 1.0), &orders, &mut out);
+    out
+}
+
+/// 2つの外接矩形が同じか。**精度の刻みで比べる。**
+fn same_rect(a: Rect, b: Rect, precision: f64) -> bool {
+    [(a.0, b.0), (a.1, b.1), (a.2, b.2), (a.3, b.3)]
+        .iter()
+        .all(|(p, q)| (p - q).abs() <= precision)
+}
+
+/// 線の上に置かれた文字。**文法が認めるものは除く** ── 線の上のバッジの中の文字（バッジが線を隠す）・
+/// 文字を含む図形自身の輪郭（はみ出しは別に検出する）・ 文字を含む塗りのある図形より先に描かれた線
+/// （図形の塗りが線を隠す。複数の領域にまたがる箱の中の名前など）。
+fn text_over_strokes(
+    labels: &[Label],
+    shapes: &[Shape],
+    strokes: &[Stroke],
+    precision: f64,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    for l in labels {
+        let holder = container(l, shapes);
+        if holder.is_some_and(|h| h.classes.iter().any(|c| c == "badge")) {
+            continue;
+        }
+        let crossed = strokes.iter().any(|s| {
+            if let Some(h) = holder {
+                if h.filled && s.order < h.order {
+                    return false;
+                }
+                if s.outline_of
+                    .is_some_and(|o| same_rect(o, h.rect, precision))
+                {
+                    return false;
+                }
+            }
+            s.points
+                .windows(2)
+                .any(|w| segment_hits_rect(w[0], w[1], l.rect, 0.0))
+        });
+        if crossed {
+            out.push(format!("検査4 線の上に文字が在る: {}", quote(&l.text)));
+        }
+    }
+    out
 }
 
 /// 値を精度の刻みへ丸める。**境目の比較が、浮動小数の誤差で揺れないようにする。**
@@ -490,6 +689,12 @@ pub fn check_layout(svg: &str) -> Result<Vec<String>, String> {
             ));
         }
     }
+    out.extend(text_over_strokes(
+        &labels,
+        &shapes,
+        &strokes(&root),
+        precision,
+    ));
     let threshold = classes::notation().checks.min_font_px;
     if let Some(least) = min_font_px(svg) {
         if least < threshold {

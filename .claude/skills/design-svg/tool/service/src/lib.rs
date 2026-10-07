@@ -194,6 +194,7 @@ fn run_catalog(given: &Given) -> Outcome {
             "parts": keys("parts"),
             "strategies": keys("strategies"),
             "tokens": d["tokens"].as_object().map_or(0, Map::len),
+            "exemplars": d["exemplars"].as_array().map_or_else(Vec::new, |a| a.iter().filter_map(|x| x["id"].as_str().map(str::to_owned)).collect::<Vec<_>>()),
             "body": if out.is_empty() { body } else { String::new() },
         }),
     )
@@ -210,11 +211,12 @@ fn human_catalog(out: &Outcome) -> String {
     }
     let count = |k: &str| d[k].as_array().map_or(0, Vec::len);
     format!(
-        "目録を書き出した: {}　／　部品 {} ・ 配置戦略 {} ・ トークン {}",
+        "目録を書き出した: {}　／　部品 {} ・ 配置戦略 {} ・ トークン {} ・ テンプレート {}",
         d["path"].as_str().unwrap_or_default(),
         count("parts"),
         count("strategies"),
-        d["tokens"]
+        d["tokens"],
+        count("exemplars")
     )
 }
 
@@ -518,7 +520,7 @@ pub fn tools() -> Vec<Tool> {
     let mut all = vec![
         Tool {
             name: "catalog",
-            summary: "目録を出す（部品・トークン・役割・配置戦略）",
+            summary: "目録を出す（部品・トークン・役割・配置戦略・図のテンプレート）",
             args: vec![Arg::opt("out", "書き出し先。省くとそのまま出す", None)],
             run: run_catalog,
             human: human_catalog,

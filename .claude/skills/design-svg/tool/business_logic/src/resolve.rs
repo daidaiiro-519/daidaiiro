@@ -55,11 +55,17 @@ const STABLE_ATTRS: [&str; 18] = [
 const ARROW: &str = "arrow";
 /// ダークモードの値を持つ属性。**色だけである。**
 const COLOR_ATTRS: [&str; 2] = ["fill", "stroke"];
+/// 埋め込み先のページの CSS に負けないよう、style にも書く文字の値。**ページの `.note{font-size:…}` の
+/// ような同じ名前の class の規則は、属性より強い**（実測 ── ギャラリーのページで注記が 13px になった）。
+const GUARDED_ATTRS: [&str; 2] = ["font-size", "font-weight"];
 /// 角丸の半径を持てる要素。**楕円の rx は形そのものなので、解決しない。**
 const ROUNDED: &str = "rect";
 
 /// ダークモードの規則1つの宣言 ── `(属性, 色のトークン, ライトの値)`
 type Colour = (String, String, String);
+
+/// ダークモードの規則1つ ── `(セレクタ, 色, ページの CSS に負けないよう書く文字の値)`
+type Rule = (String, Vec<Colour>, Vec<(String, String)>);
 
 /// 解決のときに集めたもの。
 #[derive(Default)]
@@ -67,7 +73,7 @@ struct Gathered {
     /// 矢じり ── `(id, 色の値, 色のトークン)`
     arrows: Vec<(String, String, String)>,
     /// ダークモードの規則 ── `(セレクタ, [(属性, 色のトークン, ライトの値)])`
-    rules: Vec<(String, Vec<Colour>)>,
+    rules: Vec<Rule>,
 }
 
 /// トークンの名前から値を引く。**値がトークン名を指していたら、1層だけたどる。**
@@ -202,6 +208,7 @@ fn resolve_element(
     if list.iter().any(|c| c.kind != Kind::Modifier) {
         let values = classes::values_of(&refs);
         let mut colors = Vec::new();
+        let mut guards = Vec::new();
         let stroke_token = values
             .iter()
             .find(|(k, _)| k == "stroke")
@@ -226,14 +233,17 @@ fn resolve_element(
                 continue;
             }
             let value = token(theme, v).ok_or_else(|| format!("トークン '{v}' がテーマに無い"))?;
+            if GUARDED_ATTRS.contains(&attr.as_str()) {
+                guards.push((attr.clone(), value.clone()));
+            }
             if COLOR_ATTRS.contains(&attr.as_str()) {
                 colors.push((attr.clone(), v.clone(), value.clone()));
             }
             el.set(attr, &value);
         }
         let selector: String = list.iter().map(|c| format!(".{}", c.name)).collect();
-        if !colors.is_empty() && !got.rules.iter().any(|(s, _)| *s == selector) {
-            got.rules.push((selector, colors));
+        if !colors.is_empty() && !got.rules.iter().any(|(s, ..)| *s == selector) {
+            got.rules.push((selector, colors, guards));
         }
     }
     for ch in el.elements_mut() {
@@ -308,11 +318,18 @@ fn dark_style(got: &Gathered) -> Option<Element> {
         }
         Some(format!("{attr}:var({},{light})", var_name(tok)))
     };
-    for (selector, colors) in &got.rules {
-        let body: Vec<String> = colors
+    for (selector, colors, guards) in &got.rules {
+        let mut body: Vec<String> = colors
             .iter()
             .filter_map(|(a, t, l)| decl(a, t, l, &mut used))
             .collect();
+        body.extend(guards.iter().map(|(a, v)| {
+            if a == "font-size" {
+                format!("{a}:{v}px")
+            } else {
+                format!("{a}:{v}")
+            }
+        }));
         if !body.is_empty() {
             css.push_str(&format!(".{ROOT_CLASS} {selector}{{{}}}", body.join(";")));
         }

@@ -1,0 +1,497 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0158",
+ "title": "図のテンプレートを17種類置き、線の上の文字を検査する",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "design-svg は、図の種類ごとのテンプレート17種類を references/exemplars に置き、作成者は索引から近いものを選んで複製して編集する。テンプレートに必要な class（start ・ field ・ set）を足し、検査4で線の上の文字も検出する",
+ "why": "ブレストボード design-svg-rework の論点4で、ギャラリーの21個を13種類のテンプレートとして design-svg の references に置き、新しい種類は ACDR で足すと決めた。下見のページを見た利用者が、比較の図 ・ ガントチャート ・ ER 図 ・ ベン図を足すことと、その出来を承認した（「完璧です」）。下見では、ガントチャートとベン図の文字が線に重なっていたのに、検査4が検出しなかった。",
+ "shift": [
+  {
+   "what": "図の作り始め",
+   "from": "class の一覧から白紙で記述する",
+   "to": "索引（exemplars.json）から用途の近いテンプレートを選び、複製して編集する。使うことは求めない"
+  },
+  {
+   "what": "テンプレート",
+   "from": "無い",
+   "to": "17種類。13種類はギャラリーから作った（ハブアンドスポーク図からワイヤーフレームまで、論点4の索引のとおり）。追加の4種類は比較の図 ・ ガントチャート ・ ER 図 ・ ベン図"
+  },
+  {
+   "what": "class の一覧",
+   "from": "21個",
+   "to": "24個。start は開始状態で、塗りは ink。field は入力欄で、塗り box-fill ・ 線 ink-soft ・ 幅 1 ・ 角丸 3。set は集合で、kind の色を opacity.set（0.18）で塗り、線は kind の色 ・ 幅 1"
+  },
+  {
+   "what": "禁止した組み合わせ",
+   "from": "16組と種類の規則",
+   "to": "set と focus ・ warn、field と kind-1〜3 を足す。start は修飾を受けない"
+  },
+  {
+   "what": "検査4",
+   "from": "重なり ・ はみ出し ・ スマホ幅のフォントサイズ",
+   "to": "それに加えて、線 ・ 枠線 ・ 円の輪郭が文字の上を通るもの。線の上のバッジの中の文字と、塗りのある図形の中の文字（先に描かれた線は隠れる）は除く"
+  },
+  {
+   "what": "ページの CSS との衝突",
+   "from": "同じ名前の class の規則（.note{font-size} など）が、属性の値より強い",
+   "to": "ダークモードの style に font-size と font-weight も書き、ページの規則に負けない"
+  },
+  {
+   "what": "テンプレートの取り出し方",
+   "from": "—",
+   "to": "design-svg get --kind exemplars（--id で1件）と、catalog の exemplars。CLI と MCP は同じツールの一覧から作る"
+  },
+  {
+   "what": "検査4で直した図",
+   "from": "ddd-8 のラベル2つがライフラインの上、やり取りの図の2つ目の見出しがライフラインの上",
+   "to": "ddd-8 はラベルを横へずらし、やり取りの図は見出しをバッジの上に置く（golden 2件が変わる）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "作成者は索引から近いテンプレートを複製して直し、resolve を通す。近いものが無ければ class から記述し、新しい種類は ACDR で足す",
+ "alternatives": [
+  {
+   "option": "テンプレートを呼び出し元ごと（ブレストボード ・ advisor ・ ACDR）に置く",
+   "why_not": "論点4で除外した。同じ種類のテンプレートが複数の場所にでき、片方だけが直される"
+  },
+  {
+   "option": "要素の数や関係から、近いテンプレートを機械で選ぶ",
+   "why_not": "論点4で除外した。宣言を記述することになり、論点2で除外した宣言からの生成へ戻る"
+  },
+  {
+   "option": "テンプレートの取り出しに、専用のコマンド exemplars を足す",
+   "why_not": "references の種類にすれば、既存の get ・ validate ・ view がそのまま扱え、CLI と MCP にも同じ形で出る。ツールを増やさない"
+  },
+  {
+   "option": "ベン図の集合を、色付きの輪郭だけで描く（下見の形）",
+   "why_not": "重なりが塗りで見えず、両方に属する要素の範囲が読みにくい。半透明の塗りの class set を足した"
+  },
+  {
+   "option": "集合の塗りを、作成者が fill-opacity で記述する",
+   "why_not": "検査2の外に値が残る。不透明度もトークン opacity.set にし、class が決める"
+  },
+  {
+   "option": "線の上の文字を、文字と線の位置関係を問わず全部検出する",
+   "why_not": "線の上に置いたバッジ（文法が認める形）と、複数の領域にまたがる箱の中の名前（箱の塗りが線を隠す）まで検出し、誤検出になる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "_claude_skills_design_svg_SKILL_md",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "| 図形 | `box` ・ `boundary` ・ `area` ・ `badge` ・ `start` ・ `field` ・ `set` ・ `swatch` ・ `series-1`〜`3` |",
+     "before": "| 図形 | `box` ・ `boundary` ・ `area` ・ `badge` ・ `swatch` ・ `series-1`〜`3` |",
+     "why": "class の一覧に start ・ field ・ set を足す"
+    },
+    {
+     "find": "- 集合（`set`）は `kind-1`〜`3` と一緒に指定し、重なりの上の文字は `label` で書く。`note` の色は重なりの上でコントラスト比が足りない",
+     "before": "### Step 3: 解決して検査する",
+     "why": "手順に「近いテンプレートを選んで複製する」を足し、set の重なりの上の文字を label で書くことを書く。テンプレートは使うことを求めない"
+    },
+    {
+     "find": "| 検査4 | テキストどうしの重なり ・ 線の上の文字 ・ キャンバスやボックスからのはみ出し ・ スマホ幅で描画したときの最小のフォントサイズ |",
+     "before": "| 検査4 | テキストどうしの重なり ・ キャンバスやボックスからのはみ出し ・ スマホ幅で描画したときの最小のフォントサイズ |",
+     "why": "検査4に「線の上の文字」を足し、検出しないもの（バッジの中、塗りのある図形の中）を書く"
+    },
+    {
+     "find": "### Step 8: 部品が足りなければ足す",
+     "before": "### Step 7: 部品が足りなければ足す",
+     "why": "Step の番号を、テンプレートの手順を足した分だけずらす"
+    },
+    {
+     "find": "- `references/exemplars.json` ・ `references/exemplars/*.svg`: 図の種類ごとのテンプレート17種類と、その索引。形は `references/exemplars.schema.json` が規定する",
+     "before": "（無かった）",
+     "why": "参照にテンプレートの索引と SVG を足す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_theme_json",
+   "tab": "references/theme.json",
+   "file": ".claude/skills/design-svg/references/theme.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"role.kind-3.color.text\": \"color.kind-3\",",
+     "before": "\"role.kind-3.color.text\": \"color.kind-3\"",
+     "why": "集合の塗りの不透明度のトークン opacity.set（0.18）を足す"
+    },
+    {
+     "find": "0.05,",
+     "before": "（無かった）",
+     "why": "opacity.set の値の範囲と、重なりの上の文字のコントラスト比を注記に残す"
+    },
+    {
+     "find": "\"start\": {",
+     "before": "（無かった）",
+     "why": "テンプレートに必要な class を足す：start（開始状態）・ field（入力欄）・ set（集合）。ux-2 は入力欄に仕様外の色を使い、qa-2 は開始状態を ink の点で描いていた"
+    },
+    {
+     "find": "\"fill\": \"color.kind-1\",",
+     "before": "（無かった）",
+     "why": "kind-1〜3 を set に重ねたときは、背景色ではなくカテゴリ色で半透明に塗る"
+    },
+    {
+     "find": "\"fill\": \"color.kind-2\",",
+     "before": "（無かった）",
+     "why": "kind-1〜3 を set に重ねたときは、背景色ではなくカテゴリ色で半透明に塗る"
+    },
+    {
+     "find": "\"fill\": \"color.kind-3\",",
+     "before": "（無かった）",
+     "why": "kind-1〜3 を set に重ねたときは、背景色ではなくカテゴリ色で半透明に塗る"
+    },
+    {
+     "find": "\"classes\": [",
+     "before": "（無かった）",
+     "why": "kind-1〜3 を set に重ねたときは、背景色ではなくカテゴリ色で半透明に塗る"
+    },
+    {
+     "find": "\"集合（class set）の塗りの不透明度。重なった部分が濃くなり、両方に属する要素が読める\",",
+     "before": "（無かった）",
+     "why": "opacity.set の値の範囲と、重なりの上の文字のコントラスト比を注記に残す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_theme_schema_json",
+   "tab": "references/theme.schema.json",
+   "file": ".claude/skills/design-svg/references/theme.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"additionalProperties\": {",
+     "before": "\"additionalProperties\": false,",
+     "why": "修飾が、特定の class に重ねるときの値をその class の名前の欄に持てるようにする（kind-1 の set）"
+    },
+    {
+     "find": "\"description\": \"要素の種類（shape ・ line ・ text）ごとの値。修飾は、特定の class に重ねるときの値をその class の名前の欄に持てる（例：kind-1 の set）\"",
+     "before": "}",
+     "why": "修飾が、特定の class に重ねるときの値をその class の名前の欄に持てるようにする（kind-1 の set）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_catalog_rs",
+   "tab": "tool/business_logic/src/catalog.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/catalog.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"exemplars\": exemplars(),",
+     "before": "（無かった）",
+     "why": "目録にテンプレートの一覧（id ・ 名前 ・ 用途 ・ ファイル）を足す。中身は get --kind exemplars が返す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_checks_rs",
+   "tab": "tool/business_logic/src/checks.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::geometry::{apply_transform, sample_path, segment_hits_rect, Point};",
+     "before": "use crate::geometry::apply_transform;",
+     "why": "線の上の文字の検査に使う、線分と矩形の交差を読み込む"
+    },
+    {
+     "find": "const VALUE_ATTRS: [&str; 6] = [",
+     "before": "const VALUE_ATTRS: [&str; 5] = [",
+     "why": "集合の fill-opacity もトークンなので、作成者が記述した値として検出する"
+    },
+    {
+     "find": "/// 文書の中で描かれる順。",
+     "before": "（無かった）",
+     "why": "塗りのある図形が、それより先に描かれた線を隠すことを判定するために、要素の描かれる順を引けるようにする"
+    },
+    {
+     "find": "let orders = draw_order(root);",
+     "before": "（無かった）",
+     "why": "塗りのある図形が、それより先に描かれた線を隠すことを判定するために、要素の描かれる順を引けるようにする"
+    },
+    {
+     "find": "orders: &std::collections::HashMap<usize, usize>,",
+     "before": "（無かった）",
+     "why": "図形に描かれる順と塗りの有無を持たせる"
+    },
+    {
+     "find": "// 半透明の塗り（set）は下の線を隠さない",
+     "before": "go(ch, (dx, dy, sc), ratios, labels, shapes);",
+     "why": "図形に描かれる順と塗りの有無を持たせる"
+    },
+    {
+     "find": "&orders,",
+     "before": "（無かった）",
+     "why": "図形に描かれる順と塗りの有無を持たせる"
+    },
+    {
+     "find": "/// 線を点列にするときの刻み。**文字の高さ（10 以上）より十分に細かい。**",
+     "before": "（無かった）",
+     "why": "線の上の文字の検査に使う、線分と矩形の交差を読み込む"
+    },
+    {
+     "find": "out.extend(text_over_strokes(",
+     "before": "（無かった）",
+     "why": "線の上の文字の検出を検査4に加える"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_classes_rs",
+   "tab": "tool/business_logic/src/classes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/classes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "if !modifier.values.contains_key(base.kind.slot()) && !modifier.values.contains_key(&base.name)",
+     "before": "if !modifier.values.contains_key(base.kind.slot()) {",
+     "why": "修飾が重ねる先の class の名前の欄を持つとき、その値を使う（set に重ねる kind-1〜3）。禁止の判定もその欄を見る"
+    },
+    {
+     "find": "// **修飾は、重ねる先の class の名前の欄を先に見る**（例：set に重ねる kind-1 はカテゴリ色で塗る）",
+     "before": "for (k, v) in c.values.get(slot).map_or(&[][..], Vec::as_slice) {",
+     "why": "修飾が重ねる先の class の名前の欄を持つとき、その値を使う（set に重ねる kind-1〜3）。禁止の判定もその欄を見る"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_resolve_rs",
+   "tab": "tool/business_logic/src/resolve.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/resolve.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 埋め込み先のページの CSS に負けないよう、style にも書く文字の値。**ページの `.note{font-size:…}` の",
+     "before": "rules: Vec<(String, Vec<Colour>)>,",
+     "why": "ダークモードの style に、文字の font-size と font-weight も書く。ギャラリーのページの .note{font-size:.82rem} が属性より強く、注記が 13px になっていた"
+    },
+    {
+     "find": "let mut guards = Vec::new();",
+     "before": "（無かった）",
+     "why": "ダークモードの style に、文字の font-size と font-weight も書く。ギャラリーのページの .note{font-size:.82rem} が属性より強く、注記が 13px になっていた"
+    },
+    {
+     "find": "if GUARDED_ATTRS.contains(&attr.as_str()) {",
+     "before": "if !colors.is_empty() && !got.rules.iter().any(|(s, _)| *s == selector) {",
+     "why": "ダークモードの style に、文字の font-size と font-weight も書く。ギャラリーのページの .note{font-size:.82rem} が属性より強く、注記が 13px になっていた"
+    },
+    {
+     "find": "for (selector, colors, guards) in &got.rules {",
+     "before": "for (selector, colors) in &got.rules {",
+     "why": "ダークモードの style に、文字の font-size と font-weight も書く。ギャラリーのページの .note{font-size:.82rem} が属性より強く、注記が 13px になっていた"
+    },
+    {
+     "find": "rules: Vec<Rule>,",
+     "before": "rules: Vec<(String, Vec<Colour>)>,",
+     "why": "規則に、ページの CSS に負けないよう書く文字の値を持たせる"
+    },
+    {
+     "find": "got.rules.push((selector, colors, guards));",
+     "before": "got.rules.push((selector, colors));",
+     "why": "class ごとの規則に、font-size と font-weight の値を加える"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_interaction_rs",
+   "tab": "tool/business_logic/src/shapes_interaction.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_interaction.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// ライフラインより後に描くもの（ライフラインをまたぐ見出し）",
+     "before": "（無かった）",
+     "why": "やり取りの図の2つ目からの場合の見出しは、ライフラインをまたぐ。ライフラインより後に、線を隠すバッジの上へ置き、新しい検査を通す"
+    },
+    {
+     "find": "let heading = format!(",
+     "before": "body.push(format!(",
+     "why": "やり取りの図の2つ目からの場合の見出しは、ライフラインをまたぐ。ライフラインより後に、線を隠すバッジの上へ置き、新しい検査を通す"
+    },
+    {
+     "find": "if i == 0 {",
+     "before": "));",
+     "why": "やり取りの図の2つ目からの場合の見出しは、ライフラインをまたぐ。ライフラインより後に、線を隠すバッジの上へ置き、新しい検査を通す"
+    },
+    {
+     "find": "body.append(&mut late);",
+     "before": "（無かった）",
+     "why": "やり取りの図の2つ目からの場合の見出しは、ライフラインをまたぐ。ライフラインより後に、線を隠すバッジの上へ置き、新しい検査を通す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_checks_rs",
+   "tab": "tool/business_logic/tests/checks.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "(Kind::Modifier, _) => {",
+     "before": "(Kind::Modifier, _) => !b.modifiers || !a.values.contains_key(b.kind.slot()),",
+     "why": "図形に描かれる順と塗りの有無を持たせる"
+    },
+    {
+     "find": "// ── 検査4 ── 線の上の文字（境界値）",
+     "before": "（無かった）",
+     "why": "図形に描かれる順と塗りの有無を持たせる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_gallery_rs",
+   "tab": "tool/business_logic/tests/gallery.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/gallery.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// テンプレート（references/exemplars）も、class の一覧を使う事例である",
+     "before": "（無かった）",
+     "why": "全 class を使うことの事例に、テンプレートを含める"
+    },
+    {
+     "find": "// 21個が使わないのは、コンテンツとしての色（swatch）・ 量のグラフの系列（series）・ ベン図の集合（set）だけである",
+     "before": "// 21個が使わないのは、コンテンツとしての色（swatch）と量のグラフの系列（series）だけである",
+     "why": "21個が使わない class に set を足す"
+    },
+    {
+     "find": "assert_eq!(",
+     "before": "assert_eq!(unused, [\"swatch\", \"series-1\", \"series-2\", \"series-3\"]);",
+     "why": "同上"
+    },
+    {
+     "find": "if c1 != c2 && name != \"meta-thinking-1\" && name != \"ddd-8\" {",
+     "before": "if c1 != c2 && name != \"meta-thinking-1\" {",
+     "why": "ddd-8 は、ライフラインをまたいでいた2つのラベルを横へずらしたので、座標の比較の例外にする"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_resolve_rs",
+   "tab": "tool/business_logic/tests/resolve.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/resolve.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無かった）",
+     "why": "ダークモードの style に、文字の font-size と font-weight も書く。ギャラリーのページの .note{font-size:.82rem} が属性より強く、注記が 13px になっていた"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_theme_contract_rs",
+   "tab": "tool/business_logic/tests/theme_contract.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/theme_contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#[test]",
+     "before": "（無かった）",
+     "why": "start ・ field ・ set が一覧に在ること、set と kind の値、禁止した組み合わせを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_service_src_lib_rs",
+   "tab": "tool/service/src/lib.rs",
+   "file": ".claude/skills/design-svg/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"exemplars\": d[\"exemplars\"].as_array().map_or_else(Vec::new, |a| a.iter().filter_map(|x| x[\"id\"].as_str().map(str::to_owned)).collect::<Vec<_>>()),",
+     "before": "（無かった）",
+     "why": "目録の結果にテンプレートの id の一覧と件数を足す"
+    },
+    {
+     "find": "\"目録を書き出した: {}　／　部品 {} ・ 配置戦略 {} ・ トークン {} ・ テンプレート {}\",",
+     "before": "\"目録を書き出した: {}　／　部品 {} ・ 配置戦略 {} ・ トークン {}\",",
+     "why": "目録の結果にテンプレートの id の一覧と件数を足す"
+    },
+    {
+     "find": "summary: \"目録を出す（部品・トークン・役割・配置戦略・図のテンプレート）\",",
+     "before": "summary: \"目録を出す（部品・トークン・役割・配置戦略）\",",
+     "why": "目録の結果にテンプレートの id の一覧と件数を足す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_service_tests_tools_rs",
+   "tab": "tool/service/tests/tools.rs",
+   "file": ".claude/skills/design-svg/tool/service/tests/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert_eq!(",
+     "before": "assert_eq!(out.data[\"kinds\"], serde_json::json!([\"document\", \"theme\"]));",
+     "why": "references の種類に exemplars が加わったこと、get で1件取り出せること、目録が17件を返すことを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_exemplars_json",
+   "tab": "references/exemplars.json",
+   "file": ".claude/skills/design-svg/references/exemplars.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"state-transition\",",
+     "before": "（無かった）",
+     "why": "論点4の決定：ギャラリーの21個から13種類と、追加の4種類（比較の図 ・ ガントチャート ・ ER 図 ・ ベン図）の索引を置く。名前は一般の図の種類名、中身は一般の語で書く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_exemplars_schema_json",
+   "tab": "references/exemplars.schema.json",
+   "file": ".claude/skills/design-svg/references/exemplars.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"図のテンプレートの索引\",",
+     "before": "（無かった）",
+     "why": "索引の形（id ・ name ・ use ・ file ・ classes ・ from ・ added）をスキーマで決め、design-svg validate と get --kind exemplars が扱えるようにする"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_exemplars_rs",
+   "tab": "tool/business_logic/tests/exemplars.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/exemplars.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn every_template_passes_checks_1_to_4() {",
+     "before": "（無かった）",
+     "why": "17種類がそのまま検査1〜4を通ること、索引の classes が SVG と一致すること、目録が17件を返すことを確かめる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "_claude_skills_design_svg_SKILL_md": "097f222ee3599c82e691558fc457cf9af3c47eca067acfe76a8f7bcd99b9e7d4",
+  "_claude_skills_design_svg_references_theme_json": "152e6a9abaaa31e76f610192f9cd42d288d0b5d296849200e35a54d99065207b",
+  "_claude_skills_design_svg_references_theme_schema_json": "9f91c35e6a628d35492423a7169d1f7bce0bd2ed0521e3dc9edd3079daaddf06",
+  "_claude_skills_design_svg_tool_business_logic_src_catalog_rs": "6f73776db714c83bf15f08bf68e918eb52b2a99be9c559d775f1b323ed97bad9",
+  "_claude_skills_design_svg_tool_business_logic_src_checks_rs": "6405a621be9447ac7b7f03cd937e25fffc8ea9a58a5a9d025e36d5f6ba5b2c09",
+  "_claude_skills_design_svg_tool_business_logic_src_classes_rs": "e942826232296dfb0db39b7373babae8a710630544ddbb9a6516ff7e197a5b7d",
+  "_claude_skills_design_svg_tool_business_logic_src_resolve_rs": "743d0a178924b3e0bb0b4c7968e210c36118d872e6e9ae9d23e53944f2bf77fa",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_interaction_rs": "606d6582b75be7921c95bc5f86acd2b1d002e18715a5d8cbc7441c36e9ac1df1",
+  "_claude_skills_design_svg_tool_business_logic_tests_checks_rs": "926905da49191225b0055310f27da63de4edd40b148cdd8cff1c0ed18925d3dd",
+  "_claude_skills_design_svg_tool_business_logic_tests_gallery_rs": "2ff3268e5a4e34aee101b06f6ea94339bcbd0cdc2f70fa68c1b213230b51ce71",
+  "_claude_skills_design_svg_tool_business_logic_tests_resolve_rs": "aa62ee7141110ed9fc5b353d77c96916bcdb06e7b88e70020a452952fab21bcd",
+  "_claude_skills_design_svg_tool_business_logic_tests_theme_contract_rs": "5fc0667f468ba72e26d53469d1d828c2ac682a94b5ceee62ca2d530efb8b14ae",
+  "_claude_skills_design_svg_tool_service_src_lib_rs": "0b23719aed9da42c4fac6b21ba5c152229ab7ae2344ffd9f605f73440780dc81",
+  "_claude_skills_design_svg_tool_service_tests_tools_rs": "c23dd486c9dcb5914f1221d54c340accc46d644efbc138f90f56c3f30bbff319",
+  "_claude_skills_design_svg_references_exemplars_json": "4ac724159dc1ccea3c683330ae3a7ab918bee976028e6e3a51ed4357fd939058",
+  "_claude_skills_design_svg_references_exemplars_schema_json": "77835d8bc0e567d9cf65d05deb0817bdf959d221a3826e539d569836cf5c7e9a",
+  "_claude_skills_design_svg_tool_business_logic_tests_exemplars_rs": "cf8ec5fdc92a3142a450ae1f42cd6ac8c8267b4a248934da472fd2be2c74c695"
+ }
+}

@@ -84,6 +84,14 @@ fn used(list: &[(String, String)]) -> BTreeSet<String> {
 fn every_class_is_used_by_some_figure() {
     let mut all = svgs("class");
     all.extend(svgs("added"));
+    // テンプレート（references/exemplars）も、class の一覧を使う事例である
+    let ex = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../references/exemplars");
+    for e in std::fs::read_dir(ex).expect("テンプレートが在る").flatten() {
+        all.push((
+            e.file_name().to_string_lossy().into_owned(),
+            std::fs::read_to_string(e.path()).expect("読める"),
+        ));
+    }
     let seen = used(&all);
     let unused: Vec<&str> = classes::notation()
         .classes
@@ -96,7 +104,7 @@ fn every_class_is_used_by_some_figure() {
 
 #[test]
 fn the_21_figures_alone_leave_only_content_colours_unused() {
-    // 21個が使わないのは、コンテンツとしての色（swatch）と量のグラフの系列（series）だけである
+    // 21個が使わないのは、コンテンツとしての色（swatch）・ 量のグラフの系列（series）・ ベン図の集合（set）だけである
     let seen = used(&svgs("class"));
     let unused: Vec<&str> = classes::notation()
         .classes
@@ -104,14 +112,18 @@ fn the_21_figures_alone_leave_only_content_colours_unused() {
         .map(|c| c.name.as_str())
         .filter(|n| !seen.contains(*n))
         .collect();
-    assert_eq!(unused, ["swatch", "series-1", "series-2", "series-3"]);
+    assert_eq!(
+        unused,
+        ["set", "swatch", "series-1", "series-2", "series-3"]
+    );
 }
 
 #[test]
 fn the_converted_figures_keep_their_coordinates() {
     // **検査を通すために配置を変えていない** ── 座標 ・ 図形の数 ・ テキストは手書きと同じ。
-    // 例外は、矢じりの marker を外したこと（design-svg が生成する）と、変換の一覧に書いた3つ
-    // （meta-thinking-1 の両向きの軸 ・ ddd-8 の min-width ・ platform-5-1 の文字の大きさ）である
+    // 例外は、矢じりの marker を外したこと（design-svg が生成する）と、変換の一覧に書いたもの
+    // （meta-thinking-1 の両向きの軸 ・ ddd-8 の min-width と、ライフラインをまたいでいた2つのラベルの位置 ・
+    // platform-5-1 の文字の大きさ）である
     let coords =
         Regex::new(r#" (x|y|x1|y1|x2|y2|cx|cy|r|width|height|d|points)="([^"]*)""#).expect("式");
     let texts = Regex::new(r">([^<]+)</text>").expect("式");
@@ -139,7 +151,7 @@ fn the_converted_figures_keep_their_coordinates() {
         if t1 != t2 {
             bad.push(format!("{name}: テキストが違う"));
         }
-        if c1 != c2 && name != "meta-thinking-1" {
+        if c1 != c2 && name != "meta-thinking-1" && name != "ddd-8" {
             bad.push(format!("{name}: 座標が違う"));
         }
     }

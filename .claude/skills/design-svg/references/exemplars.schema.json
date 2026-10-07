@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "exemplars.schema.json",
+  "title": "図のテンプレートの索引",
+  "description": "図の種類ごとに、名前 ・ 用途 ・ SVG のファイル ・ 使う class ・ 元にした図を持つ。作成者は用途を読んで近いテンプレートを選ぶ",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "why": {
+      "title": "この形を採る理由",
+      "x-view": "list",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "items": {
+      "title": "テンプレート",
+      "x-view": "table",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "use",
+          "file",
+          "classes",
+          "from",
+          "added"
+        ],
+        "properties": {
+          "id": {
+            "title": "id",
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "title": "名前",
+            "description": "一般に使われる図の種類名。呼び出し元の分野の語を使わない",
+            "type": "string",
+            "minLength": 1
+          },
+          "use": {
+            "title": "用途",
+            "description": "どんな図に使うかを1行で",
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "title": "ファイル",
+            "description": "references からの相対パス",
+            "type": "string",
+            "pattern": "^exemplars/[a-z0-9-]+\\.svg$"
+          },
+          "classes": {
+            "title": "使う class",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "from": {
+            "title": "元にした図",
+            "description": "advisor のギャラリーのパネル。新しく描いたものは空",
+            "type": "string"
+          },
+          "added": {
+            "title": "ギャラリーの外から足したか",
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

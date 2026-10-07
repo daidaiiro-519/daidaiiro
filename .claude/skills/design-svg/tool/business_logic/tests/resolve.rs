@@ -242,3 +242,15 @@ fn author_ids_get_the_prefix_and_references_follow() {
         "2回解決しても同じ"
     );
 }
+
+#[test]
+fn the_style_also_holds_the_text_size_against_page_css() {
+    // 埋め込み先のページに .note{font-size:…} が在っても、注記の大きさが変わらない
+    let svg = r#"<svg viewBox="0 0 100 60"><text class="note" x="0" y="20">注記</text></svg>"#;
+    let out = resolve(svg, None, true).expect("解決できる");
+    assert!(
+        out.contains(".dsvg .note{fill:var(--dsvg-ink-soft,"),
+        "{out}"
+    );
+    assert!(out.contains(";font-size:11px}"), "{out}");
+}

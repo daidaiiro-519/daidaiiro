@@ -105,6 +105,8 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
     let x_of = |i: usize| pad + colw * i as f64 + colw / 2.0;
 
     let mut body = Vec::new();
+    // ライフラインより後に描くもの（ライフラインをまたぐ見出し）
+    let mut late: Vec<String> = Vec::new();
     let family = style.text("font.family")?;
     let tab_h = style.num("chart.exchange-tab-h")?;
     let base = style.num("font.baseline-ratio")?;
@@ -174,7 +176,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
                         style.text("color.accent")?
                     ));
                 }
-                body.push(format!(
+                let heading = format!(
                     "<text class=\"label\" x=\"{:.1}\" y=\"{:.1}\" font-weight=\"{}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
                     tx,
                     ty,
@@ -182,7 +184,25 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
                     f(fs),
                     style.text("color.ink")?,
                     esc(&name)
-                ));
+                );
+                if i == 0 {
+                    body.push(heading);
+                } else {
+                    // **2つ目からの見出しはライフラインをまたぐ** ── ライフラインより後に、線を隠すバッジの上へ置く
+                    let (cap, desc) = (
+                        style.num("font.cap-ratio")?,
+                        style.num("font.descender-ratio")?,
+                    );
+                    let half = gap / 2.0;
+                    late.push(format!(
+                        "<rect class=\"badge\" x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"{}\"/>{heading}",
+                        tx - half,
+                        ty - fs * cap - half / 2.0,
+                        text::width(&name, fs) + gap,
+                        fs * (cap + desc) + half,
+                        style.text("color.box-fill")?
+                    ));
+                }
             }
         }
     }
@@ -217,6 +237,8 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             esc(name)
         ));
     }
+
+    body.append(&mut late);
 
     // メッセージ ── 一番手前
     for (r, s) in steps.iter().enumerate() {
