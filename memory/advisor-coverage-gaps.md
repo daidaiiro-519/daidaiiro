@@ -13,7 +13,13 @@ metadata:
 
 既知の欠陥（未着手）：ゲート1が advisor の判断基準の頁（view の HTML）で廃語を検出しなかった（platform で「要る」約300か所を見逃した）。
 
-次：ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
+2026-10-07（現在地）：ux の作り直しの前に、advisor 全体の回答の形をボード .brainstorming-board/advisor-answer/（Artifact 9ek8LMJvRsQs1PHk9jWVWB、4回目）で決めている。論点2・3決着。論点1は4回目の答え（共通にするのは Orchestrator が読む欄＝結論・根拠・ai_cautions と、頁の構造と表示の部品だけ。完成イメージの中身は advisor ごとに SKILL.md）で、承認＝UI の合意、まだ承認されていない。論点4（雛形への入れ方の5段）は待ち。
+- ACDR 0150（全 advisor 共通の samples と共通の描画）は利用者が「前の方が百倍よかった」と差し戻し、採らずに作業ツリーを戻した（控えは消えるので無い）。教訓は brainstorming-board / Skill 側に置く
+- UI の見本：ux 設計相談 5upZ4JUY45p9XauQU2HuKS ・ ddd 判断相談 EMW8bu9L88cXeYRDa7g1EM ・ 6つの advisor の完成イメージ37種類 EWrHCJe3RLBy3Hg3QtDcKH（利用者「いいね。これ図がいいね」）。ソースはボードの ui-samples/ に写した（gallery は assemble.py で組む）
+- ux-advisor-purpose のボード（9回目）：論点1〜4決着。論点2の「共通の欄 samples」という言い方は UI の合意のあとで直す
+- いまは止めてある：今日の図が手描き SVG で design-svg より表現力が高かったので、先に design-svg の作り直し（自由に書いた SVG をトークン・図の文法・手本・検査で揃える）をボードで決める。それが済んだら advisor-answer の論点1の承認から再開する
+
+次（段1〜5のあと）：ux-advisor を同じやり方で作り直す（原典が書籍のスキャンでないもの（Web の原文など）は、頁の画像の代わりに取得した原文で同じ段を踏む）。push はまだしていない（利用者に聞く）。
 
 作業に使った指示書と出力は、このセッションの scratchpad にあった（NOTEPASS ・ CRITPASS ・ LINEMAP ・ SPOT2 ・ FIGS ・ MOREFIG）。セッションが変わると消える。
 
