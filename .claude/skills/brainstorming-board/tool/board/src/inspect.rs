@@ -110,8 +110,20 @@ pub fn inspect(board: &Value) -> Vec<String> {
             .iter()
             .flat_map(|ground| referred(text(ground, "source")))
             .collect();
+        // 根拠でこの論点を前提にしている論点は下流であり、答えの中で指しても依存ではない（任せる先である）
+        let downstream: Vec<String> = topics
+            .iter()
+            .filter(|other| {
+                list(other, "grounds").iter().any(|ground| {
+                    referred(text(ground, "source"))
+                        .iter()
+                        .any(|number| number == own)
+                })
+            })
+            .map(|other| text(other, "id").trim_start_matches('Q').to_owned())
+            .collect();
         for number in referred(&body) {
-            if number != own && !declared.contains(&number) {
+            if number != own && !declared.contains(&number) && !downstream.contains(&number) {
                 out.push(format!(
                     "{id}：答えが論点{number}を前提にしているが、根拠の出どころに出てこない"
                 ));

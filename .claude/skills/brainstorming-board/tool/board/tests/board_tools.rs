@@ -145,6 +145,24 @@ fn inspect_finds_a_dependency_the_grounds_do_not_declare() {
 }
 
 #[test]
+fn inspect_does_not_count_a_downstream_topic_as_a_dependency() {
+    // 下流の論点（根拠でこの論点を前提にしている論点）を答えの中で指すのは、依存ではなく任せる先である
+    let mut board = fixture();
+    board["topics"][0]["answer"]["text"] = json!("直す所は論点2で決める。");
+    board["topics"][0]["grounds"] =
+        json!([{"supports": "s", "basis": "b", "tag": "rule", "source": "利用者"}]);
+    board["topics"][1]["grounds"] =
+        json!([{"supports": "開く順", "basis": "b", "tag": "rule", "source": "論点1"}]);
+    let (_, findings) = inspect("downstream", board);
+    assert!(
+        !findings
+            .iter()
+            .any(|f| f.contains("Q1") && f.contains("論点2")),
+        "{findings:?}"
+    );
+}
+
+#[test]
 fn migrate_turns_an_old_board_into_the_new_shape_and_keeps_the_old_file() {
     let root = temp("migrate");
     let board_dir = root.join("old-board");
