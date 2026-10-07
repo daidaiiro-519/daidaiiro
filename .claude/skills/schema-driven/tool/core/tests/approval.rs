@@ -53,8 +53,8 @@ fn vo_11_inv_1_rejects_empty_path() {
 fn agg_2_cmd_1_ok_1_records_given_instances() {
     let record =
         ApprovalRecord::record(dir(), &[], &[], &[], vec![approved("decls/a.json")]).unwrap();
-    assert_eq!(record.instances().len(), 1);
-    assert_eq!(record.instances()[0].path(), "decls/a.json");
+    assert!(record.same_as(&[approved("decls/a.json")]));
+    assert!(!record.same_as(&[]));
 }
 
 #[test]

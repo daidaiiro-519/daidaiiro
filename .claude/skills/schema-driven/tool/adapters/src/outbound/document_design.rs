@@ -2,7 +2,7 @@
 //! 何も指定が無いときに、文書のインスタンスを描画する（UC-6）。ブロックの type ごとに部品を選び、
 //! プレースホルダーに値を入れるだけで、表現を推し量らない。部品の HTML と CSS は references/document-design が持つ。
 
-use schema_driven_core::domain::values::Html;
+use schema_driven_core::domain::Html;
 use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
 use serde_json::{json, Value};
 use std::sync::OnceLock;

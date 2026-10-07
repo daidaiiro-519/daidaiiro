@@ -167,11 +167,6 @@ impl ViewEngine {
         self.label_at(&instance, &[])
     }
 
-    /// 参照の指す先の名前（name() と同じ）。
-    pub fn name(&self, reference: &str) -> String {
-        self.name_of(reference)
-    }
-
     /// スキーマの場所（JSON Pointer）にある x-view で、値を文にする。x-view が無ければ値をそのまま文字にする。
     pub fn render(&self, schema: &str, pointer: &str, value: &Value) -> Result<String, ViewError> {
         let loaded = self

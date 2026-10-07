@@ -1,9 +1,9 @@
 //! ツールの一覧。CLI と MCP は、この一覧と `dispatch` から作る（呼び出し方を2か所に書かない）。
 
 use schema_driven_core::application::instances::{UnfilledWithPrompt, UseCaseError};
-use schema_driven_core::domain::check::Finding;
-use schema_driven_core::domain::values::Unfilled;
-use schema_driven_core::domain::values::ValidationError;
+use schema_driven_core::domain::Finding;
+use schema_driven_core::domain::Unfilled;
+use schema_driven_core::domain::ValidationError;
 use schema_driven_core::ports::inbound::{
     CheckUseCases, InstanceUseCases, RenderUseCases, TranscriptionUseCases,
 };

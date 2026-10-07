@@ -79,12 +79,6 @@ impl Instance {
         ))
     }
 
-    pub fn path(&self) -> &InstancePath {
-        &self.path
-    }
-    pub fn schema(&self) -> &SchemaPath {
-        &self.schema
-    }
     pub fn value(&self) -> &JsonValue {
         &self.value
     }

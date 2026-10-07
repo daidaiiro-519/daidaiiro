@@ -114,9 +114,6 @@ impl JsonPatch {
     pub fn new(value: &str) -> Result<Self, InvalidValue> {
         non_empty(value, "VO-7.INV-1", "操作の並び").map(Self)
     }
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
 
     /// OP-1 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。
     pub fn apply(&self, target: &JsonValue) -> Result<JsonValue, PatchError> {
@@ -185,6 +182,8 @@ impl Status {
 }
 
 /// VO-3 参照。指す先 ・ x-ref の値 ・ 指す先の種類。
+/// 宣言にはあるが、検査はまだ使っていない（参照は check.rs の GraphLink が持つ）。どちらへ合わせるかは別に決める
+#[cfg_attr(not(feature = "internals"), allow(dead_code))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reference {
     target: String,
@@ -192,6 +191,7 @@ pub struct Reference {
     kind: String,
 }
 
+#[cfg_attr(not(feature = "internals"), allow(dead_code))]
 impl Reference {
     pub fn new(target: &str, value: &str, kind: &str) -> Result<Self, InvalidValue> {
         let target = non_empty(target, "VO-3.INV-1", "指す先")?;

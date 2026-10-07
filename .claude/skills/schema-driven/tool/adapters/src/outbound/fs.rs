@@ -1,6 +1,6 @@
 //! ファイルシステムのアダプタ（ポート Files の実装）。
 
-use schema_driven_core::domain::values::JsonValue;
+use schema_driven_core::domain::JsonValue;
 use schema_driven_core::ports::outbound::{Files, ReadError, Schemas, WriteError, WriteIf};
 use std::fs;
 use std::io::Write;

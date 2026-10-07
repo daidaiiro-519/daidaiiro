@@ -1,0 +1,298 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0144",
+ "title": "具体が使ってよい面だけを、基盤の crate の外へ出す",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "基盤の crate は、具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする",
+ "why": "ACDR 0143 で、転写した複製は具体の持ち物になり、基盤の新しい版へ更新できるようになった。ところが基盤の crate はすべてのモジュールが pub で、具体は内部（検査の graph ・ ViewEngine ・ Schema など）も import できた。実際に試しの具体から内部を import すると、ビルドが通った。具体が内部を使っていると、基盤が内部を直した版へ更新したときに、具体のビルドが壊れる。更新しても壊れないと約束できるのは、具体が使ってよい面を決めて、それ以外をコンパイラが止める場合だけである。",
+ "shift": [
+  {
+   "what": "具体から見える基盤の crate",
+   "from": "すべてのモジュール（domain の6つ ・ application の8つ ・ ports）",
+   "to": "ports と、application の4つのユースケース（instances ・ checks ・ renders ・ transcriptions）と結果"
+  },
+  {
+   "what": "具体から見える値",
+   "from": "domain::values の値オブジェクトすべてと、domain::check ・ schema_rules の型",
+   "to": "domain の直下の8つ（Finding ・ SchemaFinding ・ Hash ・ Html ・ JsonValue ・ Status ・ Unfilled ・ ValidationError）"
+  },
+  {
+   "what": "具体が内部を使ったとき",
+   "from": "ビルドが通り、基盤を更新したときに初めて壊れる",
+   "to": "コンパイラが止める（E0603：module is private）"
+  },
+  {
+   "what": "基盤のテスト",
+   "from": "内部をそのまま import する",
+   "to": "feature internals で内部を開く。core と cli のテストだけが有効にする"
+  },
+  {
+   "what": "アダプタ",
+   "from": "値を domain::values ・ domain::check から取る",
+   "to": "具体と同じ面（domain の直下）から取る"
+  },
+  {
+   "what": "テストからしか使っていないもの",
+   "from": "ViewEngine::name ・ ApprovalRecord::directory ・ instances ・ Instance::path ・ schema ・ JsonPatch::as_str",
+   "to": "消す。VO-3 参照だけは宣言にあるので残し、別に決める"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "具体の crate は、具体が使ってよい面だけを使える。基盤の内部は、基盤のテストが feature internals で開くときだけ見える。",
+ "alternatives": [
+  {
+   "option": "すべて pub のまま、使ってよい面を SKILL.md に書く",
+   "why_not": "具体が内部を使っても、ビルドは通る。破ったことが分かるのは、基盤を更新して具体のビルドが壊れたときである"
+  },
+  {
+   "option": "内部に #[doc(hidden)] を付ける",
+   "why_not": "文書から隠れるだけで、import はできる。コンパイラが止めない"
+  },
+  {
+   "option": "基盤のテストを、ユースケースを通すテストへ書き直す",
+   "why_not": "ドメインの部品を直接確かめる66件（値 ・ 検査 ・ 承認記録 ・ 描画の文脈 ・ x-view ・ ページ ・ スキーマの検査）を、ページ全体やディレクトリ全体を通す形へ書き直すことになる。どの部品で失敗したかが分からなくなる"
+  },
+  {
+   "option": "内部のテストを、モジュールの中の単体テスト（#[cfg(test)]）へ移す",
+   "why_not": "x-view とページのテストは jmespath のアダプタを使うので、core の中には置けない（core はアダプタに依存しない）"
+  },
+  {
+   "option": "crate の根に pub use で面を並べ、モジュールはすべて非公開にする",
+   "why_not": "基盤のテストが内部を見られなくなり、上の2つの案と同じことになる。面の入口はユースケースのモジュールのままにし、値だけを domain の直下から出す"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "core_Cargo_toml",
+   "tab": "core/Cargo.toml",
+   "file": ".claude/skills/schema-driven/tool/core/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 基盤の内部（ドメインと、ユースケースの中で使う部品）を開く。基盤のテストだけが使う。",
+     "before": "（無かった）",
+     "why": "基盤のテストはドメインの部品も直接確かめるので、feature internals で内部を開く。具体がこれを有効にすると、更新でビルドが壊れることを引き受けたことになる"
+    }
+   ]
+  },
+  {
+   "key": "cli_Cargo_toml",
+   "tab": "cli/Cargo.toml",
+   "file": ".claude/skills/schema-driven/tool/cli/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# テストは基盤の内部も確かめるので、内部を開く",
+     "before": "schema-driven-core = { path = \"../core\" }",
+     "why": "基盤のテストはドメインの部品も直接確かめるので、feature internals で内部を開く。具体がこれを有効にすると、更新でビルドが壊れることを引き受けたことになる"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_mod_rs",
+   "tab": "core/src/domain/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// 具体が使ってよいもの。ポートとユースケースの結果に出てくる値だけを出す",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod approval;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod check;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod instance;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod schema;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod schema_rules;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod values;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    }
+   ]
+  },
+  {
+   "key": "core_src_application_mod_rs",
+   "tab": "core/src/application/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "// 具体が使ってよいもの：ユースケースと、その結果",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "//! アプリケーション。ユースケースを置く。読み書き ・ 描画 ・ 転写は、出ていく側のポートを直接使うトランザクションスクリプトである。",
+     "before": "pub mod context;",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "// 具体が使ってよいもの：ユースケースと、その結果",
+     "before": "pub mod page;",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "// 基盤の中だけで使うもの。具体からは見えない（基盤のテストは feature \"internals\" で開く）",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    },
+    {
+     "find": "pub(crate) mod view;",
+     "before": "（無かった）",
+     "why": "具体が使ってよいもの（ポート ・ ユースケースと結果 ・ 結果とポートに出てくる値）だけを crate の外へ出し、ドメインの部品とユースケースの中の部品は crate の中だけにする。具体が内部を使うと、コンパイラが止める"
+    }
+   ]
+  },
+  {
+   "key": "adapters_src_inbound_tools_rs",
+   "tab": "adapters/src/inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::domain::Finding;",
+     "before": "use schema_driven_core::domain::check::Finding;",
+     "why": "値はドメインの直下から出すようにしたので、アダプタも具体と同じ面（domain::Finding など）から取る。アダプタが面だけで書けることが、面が足りている確かめになる"
+    }
+   ]
+  },
+  {
+   "key": "adapters_src_outbound_fs_rs",
+   "tab": "adapters/src/outbound/fs.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/fs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::domain::JsonValue;",
+     "before": "use schema_driven_core::domain::values::JsonValue;",
+     "why": "値はドメインの直下から出すようにしたので、アダプタも具体と同じ面（domain::Finding など）から取る。アダプタが面だけで書けることが、面が足りている確かめになる"
+    }
+   ]
+  },
+  {
+   "key": "adapters_src_outbound_document_design_rs",
+   "tab": "adapters/src/outbound/document_design.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/document_design.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use schema_driven_core::domain::Html;",
+     "before": "use schema_driven_core::domain::values::Html;",
+     "why": "値はドメインの直下から出すようにしたので、アダプタも具体と同じ面（domain::Finding など）から取る。アダプタが面だけで書けることが、面が足りている確かめになる"
+    }
+   ]
+  },
+  {
+   "key": "core_src_application_view_rs",
+   "tab": "core/src/application/view.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/view.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "self.label_at(&instance, &[])",
+     "before": "/// 参照の指す先の名前（name() と同じ）。",
+     "why": "内部を隠すと、テストからしか使っていないものがコンパイラの警告に出た。誰も呼ばないので消す"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_approval_rs",
+   "tab": "core/src/domain/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 検査に渡す形（パス → ハッシュ値）。",
+     "before": "pub fn directory(&self) -> &InstancePath {",
+     "why": "内部を隠すと、テストからしか使っていないものがコンパイラの警告に出た。誰も呼ばないので消す"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_instance_rs",
+   "tab": "core/src/domain/instance.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/instance.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn value(&self) -> &JsonValue {",
+     "before": "pub fn path(&self) -> &InstancePath {",
+     "why": "内部を隠すと、テストからしか使っていないものがコンパイラの警告に出た。誰も呼ばないので消す"
+    }
+   ]
+  },
+  {
+   "key": "core_src_domain_values_rs",
+   "tab": "core/src/domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// OP-1 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。",
+     "before": "pub fn as_str(&self) -> &str {",
+     "why": "内部を隠すと、テストからしか使っていないものがコンパイラの警告に出た。誰も呼ばないので消す"
+    },
+    {
+     "find": "/// 宣言にはあるが、検査はまだ使っていない（参照は check.rs の GraphLink が持つ）。どちらへ合わせるかは別に決める",
+     "before": "（無かった）",
+     "why": "VO-3 参照は宣言にあるが、検査はまだ使っていない（参照は GraphLink が持つ）。消すと宣言から外れ、使うには検査を書き直すことになる。どちらへ合わせるかは別に決めるので、それまで警告を止めて理由を書く"
+    },
+    {
+     "find": "impl Reference {",
+     "before": "（無かった）",
+     "why": "VO-3 参照は宣言にあるが、検査はまだ使っていない（参照は GraphLink が持つ）。消すと宣言から外れ、使うには検査を書き直すことになる。どちらへ合わせるかは別に決めるので、それまで警告を止めて理由を書く"
+    }
+   ]
+  },
+  {
+   "key": "core_tests_approval_rs",
+   "tab": "core/tests/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "assert!(record.same_as(&[approved(\"decls/a.json\")]));",
+     "before": "assert_eq!(record.instances().len(), 1);",
+     "why": "承認記録の並びを読むためだけにあった instances() を消したので、テストは同じことを same_as（UC-8 EXT-2 の判定）で確かめる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "core_Cargo_toml": "fe15c30082d78a2eaeb3cb711f3cf60278dc8b90b592b598b1ce6e00a95d06c2",
+  "cli_Cargo_toml": "db1f33702327aaad57a21f5abb9bd16ea0f552db4655d2a71729f5612737886b",
+  "core_src_domain_mod_rs": "72cb59a1a257452a926c64c6dc7420343a25dba9469e92a0bc290e152ba71d8b",
+  "core_src_application_mod_rs": "3fa0254551dca3b8f1dff3ca1fcb6b6eec0e6026d56dcf2f89dce683247e05f5",
+  "adapters_src_inbound_tools_rs": "abaf4b9939354fb0b57f3ff4889b8bdb1cbb326801ed236bcb1efcc09be668be",
+  "adapters_src_outbound_fs_rs": "b5525d9c6dcd97e298c4700c229c040457069742a99970ce559024c6525620ec",
+  "adapters_src_outbound_document_design_rs": "ba184c43d952491c962d75c4f8cc3bfeebe10d01410e15e36527a314d12375f7",
+  "core_src_application_view_rs": "250ed9e30028b0de33f2e64b2dbd6a99fdb31adc04c15cb8dac01d936f01894c",
+  "core_src_domain_approval_rs": "37a12ce9f13ca064e5820107c7779585017e0ce1d92be43e44294e70fb49846b",
+  "core_src_domain_instance_rs": "e99edfb6ab500885bcc412d1fbed45a4e873fb8116f57b8e66da5a5b05d47bc9",
+  "core_src_domain_values_rs": "4e529e49977cfe47293fa4f939eadc15366ef90a440e61d6b47a3c23ec282db8",
+  "core_tests_approval_rs": "0b9d6322d1eef13233a8ba09fcb7178ef30e4b59f1084ad95b21157e84934df4"
+ }
+}

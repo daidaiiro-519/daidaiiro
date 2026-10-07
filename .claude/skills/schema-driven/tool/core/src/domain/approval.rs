@@ -64,13 +64,6 @@ impl ApprovalRecord {
         })
     }
 
-    pub fn directory(&self) -> &InstancePath {
-        &self.directory
-    }
-    pub fn instances(&self) -> &[ApprovedInstance] {
-        &self.instances
-    }
-
     /// 検査に渡す形（パス → ハッシュ値）。
     pub fn as_map(&self) -> Approved {
         self.instances
