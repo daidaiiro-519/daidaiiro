@@ -50,22 +50,8 @@ pub const PARTS: &[(&str, &[Prop], Option<&str>)] = &[
         None,
     ),
     (
-        "divider",
-        &[("kind", false, None), ("width", true, None)],
-        None,
-    ),
-    (
         "donut",
         &[("centre", false, None), ("slices", true, None)],
-        None,
-    ),
-    (
-        "dot",
-        &[
-            ("radius", false, Some("style.num('size.dot-radius')")),
-            ("stroke", false, None),
-            ("tone", false, None),
-        ],
         None,
     ),
     (
@@ -105,44 +91,13 @@ pub const PARTS: &[(&str, &[Prop], Option<&str>)] = &[
         &[("label", true, None), ("x", true, None), ("y", true, None)],
         None,
     ),
-    (
-        "gradient_rect",
-        &[
-            ("direction", false, Some("'v'")),
-            ("height", true, None),
-            ("radius", false, Some("0")),
-            ("stops", false, None),
-            ("width", true, None),
-        ],
-        None,
-    ),
     ("hex", &[("label", false, Some("''"))], None),
-    (
-        "icon",
-        &[
-            ("name", false, Some("'spark'")),
-            ("size", false, Some("style.num('size.decor-icon')")),
-            ("tone", false, None),
-        ],
-        None,
-    ),
     (
         "lanes",
         &[
             ("axis_label", false, None),
             ("rows", true, None),
             ("span", false, None),
-        ],
-        None,
-    ),
-    (
-        "panel",
-        &[
-            ("fill", false, Some("'fill'")),
-            ("height", true, None),
-            ("radius", false, Some("style.num('size.box-radius')")),
-            ("stroke", false, Some("'line'")),
-            ("width", true, None),
         ],
         None,
     ),
@@ -182,27 +137,6 @@ pub const PARTS: &[(&str, &[Prop], Option<&str>)] = &[
             ("axes", false, None),
             ("headers", true, None),
             ("rows", true, None),
-        ],
-        None,
-    ),
-    (
-        "text",
-        &[
-            ("align", false, Some("'start'")),
-            ("size", false, Some("style.num('font.size')")),
-            ("text", true, None),
-            ("tone", false, Some("'ink'")),
-            ("weight", false, Some("'normal'")),
-        ],
-        None,
-    ),
-    (
-        "title",
-        &[
-            ("align", false, Some("'start'")),
-            ("subtitle", false, None),
-            ("text", true, None),
-            ("width", false, Some("style.num('size.decor-title-w')")),
         ],
         None,
     ),
@@ -269,14 +203,11 @@ fn props_json(list: &[Prop]) -> Map<String, Value> {
 /// 見本の中身。**データであって、処理の数ではない** ── 名前に束ねて1か所に置く。
 /// 値の `"SLICES"` は [`SLICES`] に置き換え、`"BOOLEAN"` は円を多角形へ直して組む。
 const EXAMPLES: &str = r#"{
-        "box": {}, "hex": {}, "dot": {}, "icon": {"name": "check"},
+        "box": {}, "hex": {},
         "donut": {"slices": "SLICES", "centre": "18"},
         "pie": {"slices": "SLICES", "centre": "18"},
         "boolean": "BOOLEAN",
-        "gradient_rect": {"width": 90, "height": 48},
         "path": {"d": "M0,40 Q30,0 60,40 Q90,80 120,40"},
-        "text": {"text": ["1行目", "2行目"], "size": 16},
-        "panel": {"width": 120, "height": 60},
         "titled": {"of": "donut", "slices": "SLICES", "centre": "18"},
         "bars": {"bars": [{"name": "文書", "value": 13}, {"name": "図", "value": 5}]},
         "ranking": {"items": [{"name": "文書", "value": 13}, {"name": "図", "value": 5}]},
@@ -286,7 +217,6 @@ const EXAMPLES: &str = r#"{
         "spatial": {"items": [{"name": "領域", "depth": 2}], "cols": 1},
         "table": {"headers": ["部品", "数"], "rows": [["形", "7"]]},
         "exchange": {"participants": ["甲", "乙"], "steps": [{"from": "甲", "to": "乙", "label": "渡す"}]},
-        "title": {"text": "見出し"}, "divider": {"width": 120},
         "frame": {"x": 0, "y": 0, "width": 80, "height": 40},
         "frame_label": {"x": 0, "y": 20, "label": "ラベル"},
         "edge": {"points": [[0, 0], [60, 40]]}

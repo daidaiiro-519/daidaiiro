@@ -39,7 +39,7 @@ fn hexagon(p: &Props, style: &Style) -> Result<Fragment, String> {
         f(h / 2.0)
     );
     let svg = format!(
-        "<g class=\"svg-box\"><polygon points=\"{pts}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/><text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text></g>",
+        "<g class=\"svg-box\"><polygon class=\"box\" points=\"{pts}\" fill=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/><text class=\"label\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text></g>",
         style.text("color.box-fill")?,
         style.text("color.box-stroke")?,
         f(style.num("size.stroke-width")?),

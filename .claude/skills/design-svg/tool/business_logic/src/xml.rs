@@ -47,6 +47,35 @@ impl Element {
         })
     }
 
+    /// class 属性の名前を並べる。**無ければ空。**
+    #[must_use]
+    pub fn classes(&self) -> Vec<&str> {
+        self.get("class")
+            .map(|c| c.split_whitespace().collect())
+            .unwrap_or_default()
+    }
+
+    /// 属性を置く。**在ればその位置のまま値を替え、無ければ末尾へ足す** ── 置き直しても順が動かない。
+    pub fn set(&mut self, name: &str, value: &str) {
+        match self.attrs.iter_mut().find(|(k, _)| k == name) {
+            Some(slot) => value.clone_into(&mut slot.1),
+            None => self.attrs.push((name.to_owned(), value.to_owned())),
+        }
+    }
+
+    /// 属性を外す。
+    pub fn remove(&mut self, name: &str) {
+        self.attrs.retain(|(k, _)| k != name);
+    }
+
+    /// 子の要素を、書き換えられる形で並べる。
+    pub fn elements_mut(&mut self) -> impl Iterator<Item = &mut Element> {
+        self.children.iter_mut().filter_map(|n| match n {
+            Node::Element(e) => Some(e),
+            Node::Text(_) => None,
+        })
+    }
+
     /// 中の文字を、深さ優先で全部つなぐ。
     #[must_use]
     pub fn text(&self) -> String {
@@ -239,4 +268,54 @@ pub fn parse(src: &str) -> Option<Element> {
         return None;
     }
     Some(root)
+}
+
+/// 属性の値を実体参照にする。
+fn escape_attr(raw: &str) -> String {
+    raw.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// 文字を実体参照にする。
+fn escape_text(raw: &str) -> String {
+    raw.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// 書く。**読んだものを書き戻すと、注釈と宣言のほかは同じ木になる** ── 属性は二重引用符で囲み、
+/// 子を持たない要素は `/>` で閉じる。
+#[must_use]
+pub fn write(el: &Element) -> String {
+    let mut out = String::new();
+    write_into(el, &mut out);
+    out
+}
+
+fn write_into(el: &Element, out: &mut String) {
+    out.push('<');
+    out.push_str(&el.tag);
+    for (k, v) in &el.attrs {
+        out.push(' ');
+        out.push_str(k);
+        out.push_str("=\"");
+        out.push_str(&escape_attr(v));
+        out.push('"');
+    }
+    if el.children.is_empty() {
+        out.push_str("/>");
+        return;
+    }
+    out.push('>');
+    for n in &el.children {
+        match n {
+            Node::Element(e) => write_into(e, out),
+            Node::Text(t) => out.push_str(&escape_text(t)),
+        }
+    }
+    out.push_str("</");
+    out.push_str(&el.tag);
+    out.push('>');
 }

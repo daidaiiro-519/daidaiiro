@@ -49,12 +49,14 @@ fn t(
     size: Option<f64>,
     weight: &str,
 ) -> Result<String, String> {
+    let small = style.num("font.size-small")?;
     let fs = match size {
         Some(v) if v != 0.0 => v,
-        _ => style.num("font.size-small")?,
+        _ => small,
     };
+    let class = crate::classes::text_class(color, (fs - small).abs() < f64::EPSILON);
     Ok(format!(
-        "<text x=\"{x:.1}\" y=\"{y:.1}\" text-anchor=\"{anchor}\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{}\">{}</text>",
+        "<text class=\"{class}\" x=\"{x:.1}\" y=\"{y:.1}\" text-anchor=\"{anchor}\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{}\">{}</text>",
         style.text("font.family")?,
         f(fs),
         style.text(color)?,
@@ -103,26 +105,41 @@ fn donut(p: &Props, style: &Style) -> Result<Fragment, String> {
     }
     let size = (r + thickness / 2.0) * 2.0;
     let (cx, cy) = (size / 2.0, size / 2.0);
-    let arc = |a0: f64, a1: f64| -> String {
-        let pt = |a: f64| {
-            let rad = (a - 90.0).to_radians();
-            (cx + r * rad.cos(), cy + r * rad.sin())
+    // **輪は、太い線ではなく塗りつぶした円弧で描く** ── 線の太さはストローク幅の段階に収まらない
+    // （ブレストボード design-svg-rework の論点3の追加1-1）
+    let (outer, inner) = (r + thickness / 2.0, r - thickness / 2.0);
+    let sector = |a0: f64, a1: f64| -> String {
+        let pt = |a: f64, rad: f64| {
+            let t = (a - 90.0).to_radians();
+            (cx + rad * t.cos(), cy + rad * t.sin())
         };
-        let (x0, y0) = pt(a0);
-        let (x1, y1) = pt(a1);
+        let (ox0, oy0) = pt(a0, outer);
+        let (ox1, oy1) = pt(a1, outer);
+        let (ix1, iy1) = pt(a1, inner);
+        let (ix0, iy0) = pt(a0, inner);
         let large = i32::from(a1 - a0 > 180.0);
-        format!("M{x0:.1},{y0:.1} A{r:.1},{r:.1} 0 {large},1 {x1:.1},{y1:.1}")
+        format!(
+            "M{ox0:.1},{oy0:.1} A{outer:.1},{outer:.1} 0 {large},1 {ox1:.1},{oy1:.1} L{ix1:.1},{iy1:.1} A{inner:.1},{inner:.1} 0 {large},0 {ix0:.1},{iy0:.1} Z"
+        )
     };
     let mut body = Vec::new();
     let mut a = 0.0;
     for (i, s) in slices.iter().enumerate() {
         let a1 = a + fnum(s, "value")? / total * 360.0;
-        body.push(format!(
-            "<path d=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>",
-            arc(a, a1),
-            tone(style, i)?,
-            f(thickness)
-        ));
+        // 1周ぶんの円弧は始点と終点が重なって描けないので、半分ずつに分ける
+        let halves = if a1 - a >= 360.0 {
+            vec![(a, a + 180.0), (a + 180.0, a1)]
+        } else {
+            vec![(a, a1)]
+        };
+        for (h0, h1) in halves {
+            body.push(format!(
+                "<path class=\"{}\" d=\"{}\" fill=\"{}\"/>",
+                crate::classes::series(i),
+                sector(h0, h1),
+                tone(style, i)?,
+            ));
+        }
         a = a1;
     }
     if props::flag(p, "centre") {
@@ -183,12 +200,12 @@ fn pie(p: &Props, style: &Style) -> Result<Fragment, String> {
         let y = pad + row_h * i as f64 + (row_h + fs_small * cap) / 2.0;
         let sw = fs_small;
         body.push(format!(
-            "<rect x=\"{}\" y=\"{:.1}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"{}\"/>",
+            "<rect class=\"{}\" x=\"{}\" y=\"{:.1}\" width=\"{}\" height=\"{}\" fill=\"{}\"/>",
+            crate::classes::series(i),
             f(lx),
             y - sw * cap - (sw - sw * cap) / 2.0,
             f(sw),
             f(sw),
-            f(style.num("size.radius-small")?),
             tone(style, i)?
         ));
         body.push(t(
@@ -283,13 +300,13 @@ fn bars(p: &Props, style: &Style) -> Result<Fragment, String> {
     let axis = style.text("chart.axis")?;
     let mut body = vec![
         format!(
-            "<line x1=\"{}\" y1=\"{plot_top:.1}\" x2=\"{}\" y2=\"{:.1}\" stroke=\"{axis}\"/>",
+            "<line class=\"grid\" x1=\"{}\" y1=\"{plot_top:.1}\" x2=\"{}\" y2=\"{:.1}\" stroke=\"{axis}\"/>",
             f(x0),
             f(x0),
             plot_top + ph
         ),
         format!(
-            "<line x1=\"{}\" y1=\"{zero_y:.1}\" x2=\"{}\" y2=\"{zero_y:.1}\" stroke=\"{axis}\"/>",
+            "<line class=\"grid\" x1=\"{}\" y1=\"{zero_y:.1}\" x2=\"{}\" y2=\"{zero_y:.1}\" stroke=\"{axis}\"/>",
             f(x0),
             f(w - pad)
         ),
@@ -312,9 +329,9 @@ fn bars(p: &Props, style: &Style) -> Result<Fragment, String> {
         let bh = v.abs() * scale;
         let by = if v >= 0.0 { zero_y - bh } else { zero_y };
         body.push(format!(
-            "<rect x=\"{bx:.1}\" y=\"{by:.1}\" width=\"{}\" height=\"{bh:.1}\" rx=\"{}\" fill=\"{}\"/>",
+            "<rect class=\"{}\" x=\"{bx:.1}\" y=\"{by:.1}\" width=\"{}\" height=\"{bh:.1}\" fill=\"{}\"/>",
+            crate::classes::series(i),
             f(bw),
-            f(style.num("size.radius-small")?),
             tone(style, i)?
         ));
         let num_y = if v >= 0.0 {
@@ -420,14 +437,15 @@ fn ranking(p: &Props, style: &Style) -> Result<Fragment, String> {
         let track_x = pad + left_margin + name_w + gap;
         let track_y = y + (row_h - track_h) / 2.0;
         body.push(format!(
-            "<rect x=\"{}\" y=\"{track_y:.1}\" width=\"{}\" height=\"{track_h:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
+            "<rect class=\"box\" x=\"{}\" y=\"{track_y:.1}\" width=\"{}\" height=\"{track_h:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
             f(track_x),
             f(bar_w),
             style.text("chart.grid")?
         ));
         let fill_w = bar_w * v / top;
         body.push(format!(
-            "<rect x=\"{}\" y=\"{track_y:.1}\" width=\"{fill_w:.1}\" height=\"{track_h:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
+            "<rect class=\"{}\" x=\"{}\" y=\"{track_y:.1}\" width=\"{fill_w:.1}\" height=\"{track_h:.1}\" fill=\"{}\"/>",
+            crate::classes::series(0),
             f(track_x),
             tone(style, 0)?
         ));
@@ -505,7 +523,7 @@ fn lanes(p: &Props, style: &Style) -> Result<Fragment, String> {
             "400",
         )?);
         body.push(format!(
-            "<rect x=\"{}\" y=\"{:.1}\" width=\"{}\" height=\"{:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
+            "<rect class=\"box\" x=\"{}\" y=\"{:.1}\" width=\"{}\" height=\"{:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
             f(pad + lw),
             y + inset,
             f(tw),
@@ -523,7 +541,8 @@ fn lanes(p: &Props, style: &Style) -> Result<Fragment, String> {
             let bx = pad + lw + tw * from / span;
             let bwid = tw * (to - from) / span;
             body.push(format!(
-                "<rect x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bwid:.1}\" height=\"{:.1}\" rx=\"{radius}\" fill=\"{}\"/>",
+                "<rect class=\"{}\" x=\"{bx:.1}\" y=\"{:.1}\" width=\"{bwid:.1}\" height=\"{:.1}\" fill=\"{}\"/>",
+                crate::classes::series(j),
                 y + inset,
                 rh - inset * 2.0,
                 tone(style, j)?
@@ -545,7 +564,7 @@ fn lanes(p: &Props, style: &Style) -> Result<Fragment, String> {
     if props::flag(p, "axis_label") {
         let ay = pad + rh * rows.len() as f64 + gap / 2.0;
         body.push(format!(
-            "<line x1=\"{}\" y1=\"{ay:.1}\" x2=\"{}\" y2=\"{ay:.1}\" stroke=\"{}\"/>",
+            "<line class=\"grid\" x1=\"{}\" y1=\"{ay:.1}\" x2=\"{}\" y2=\"{ay:.1}\" stroke=\"{}\"/>",
             f(pad + lw),
             f(pad + lw + tw),
             style.text("chart.axis")?
@@ -588,14 +607,14 @@ fn scatter(p: &Props, style: &Style) -> Result<Fragment, String> {
     let axis = style.text("chart.axis")?;
     let mut body = vec![
         format!(
-            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{axis}\"/>",
+            "<line class=\"grid\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{axis}\"/>",
             f(x0),
             f(y0),
             f(x0),
             f(y1)
         ),
         format!(
-            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{axis}\"/>",
+            "<line class=\"grid\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{axis}\"/>",
             f(x0),
             f(y1),
             f(x1),
@@ -609,7 +628,8 @@ fn scatter(p: &Props, style: &Style) -> Result<Fragment, String> {
         let py = y1 - (y1 - y0) * (ys[i] / my);
         placed.push((px, py));
         body.push(format!(
-            "<circle cx=\"{px:.1}\" cy=\"{py:.1}\" r=\"{}\" fill=\"{}\"/>",
+            "<circle class=\"{}\" cx=\"{px:.1}\" cy=\"{py:.1}\" r=\"{}\" fill=\"{}\"/>",
+            crate::classes::series(0),
             f(r),
             tone(style, 0)?
         ));
@@ -680,7 +700,7 @@ fn scatter(p: &Props, style: &Style) -> Result<Fragment, String> {
         let label_x = f(style.num("chart.pad")?);
         let cy = (y0 + y1) / 2.0;
         body.push(format!(
-            "<text x=\"{label_x}\" y=\"{cy:.1}\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\" text-anchor=\"middle\" transform=\"rotate(-90 {label_x} {cy:.1})\">{}</text>",
+            "<text class=\"note small\" x=\"{label_x}\" y=\"{cy:.1}\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\" text-anchor=\"middle\" transform=\"rotate(-90 {label_x} {cy:.1})\">{}</text>",
             style.text("font.family")?,
             f(fs),
             style.text("color.ink-faint")?,
@@ -771,7 +791,8 @@ fn flow(p: &Props, style: &Style) -> Result<Fragment, String> {
         let m = (xl + xr) / 2.0;
         let (sx, sm, sr) = (f(xl + bw), f(m), f(xr));
         body.push(format!(
-            "<path d=\"M{sx},{a:.1} C{sm},{a:.1} {sm},{b:.1} {sr},{b:.1} L{sr},{:.1} C{sm},{:.1} {sm},{:.1} {sx},{:.1} Z\" fill=\"{}\" opacity=\"{opacity}\"/>",
+            "<path class=\"{}\" d=\"M{sx},{a:.1} C{sm},{a:.1} {sm},{b:.1} {sr},{b:.1} L{sr},{:.1} C{sm},{:.1} {sm},{:.1} {sx},{:.1} Z\" fill=\"{}\" opacity=\"{opacity}\"/>",
+            crate::classes::series(i),
             b + hgt,
             b + hgt,
             a + hgt,
@@ -782,7 +803,7 @@ fn flow(p: &Props, style: &Style) -> Result<Fragment, String> {
     let faint = style.text("color.ink-faint")?;
     for (k, [y0, y1]) in &pos_l {
         body.push(format!(
-            "<rect x=\"{}\" y=\"{y0:.1}\" width=\"{}\" height=\"{:.1}\" fill=\"{faint}\"/>",
+            "<rect class=\"box\" x=\"{}\" y=\"{y0:.1}\" width=\"{}\" height=\"{:.1}\" fill=\"{faint}\"/>",
             f(xl),
             f(bw),
             y1 - y0
@@ -800,7 +821,7 @@ fn flow(p: &Props, style: &Style) -> Result<Fragment, String> {
     }
     for (k, [y0, y1]) in &pos_r {
         body.push(format!(
-            "<rect x=\"{}\" y=\"{y0:.1}\" width=\"{}\" height=\"{:.1}\" fill=\"{faint}\"/>",
+            "<rect class=\"box\" x=\"{}\" y=\"{y0:.1}\" width=\"{}\" height=\"{:.1}\" fill=\"{faint}\"/>",
             f(xr - bw),
             f(bw),
             y1 - y0
@@ -899,7 +920,7 @@ fn spatial(p: &Props, style: &Style) -> Result<Fragment, String> {
     if props::flag(p, "ground") {
         // 地 ── 置いたものが何の上にあるか。**背に敷き、名前を左上へ置く**
         body.push(format!(
-            "<rect x=\"{left:.1}\" y=\"{topb:.1}\" width=\"{grid_w:.1}\" height=\"{grid_h:.1}\" rx=\"{}\" fill=\"{}\" opacity=\"{}\"/>",
+            "<rect class=\"area\" x=\"{left:.1}\" y=\"{topb:.1}\" width=\"{grid_w:.1}\" height=\"{grid_h:.1}\" rx=\"{}\" fill=\"{}\" opacity=\"{}\"/>",
             f(style.num("size.radius-small")?),
             style.text("chart.grid")?,
             f(style.num("opacity.faint")?)
@@ -919,7 +940,7 @@ fn spatial(p: &Props, style: &Style) -> Result<Fragment, String> {
         let cy = topb + grid_h / 2.0;
         let ax = band / 2.0 + fs_small * baseline - fs_small;
         body.push(format!(
-            "<text x=\"{ax:.1}\" y=\"{cy:.1}\" text-anchor=\"middle\" transform=\"rotate(-90 {ax:.1} {cy:.1})\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"note small\" x=\"{ax:.1}\" y=\"{cy:.1}\" text-anchor=\"middle\" transform=\"rotate(-90 {ax:.1} {cy:.1})\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             style.text("font.family")?,
             f(fs_small),
             style.text("color.ink-faint")?,
@@ -943,7 +964,8 @@ fn spatial(p: &Props, style: &Style) -> Result<Fragment, String> {
             "color.box-stroke"
         })?;
         body.push(format!(
-            "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\"/>",
+            "<rect class=\"{}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\"/>",
+            if focus { "box focus" } else { "box" },
             f(x),
             f(y),
             f(cw),

@@ -34,7 +34,7 @@ fn every_tool_is_declared_once() {
     assert_eq!(
         names,
         [
-            "catalog", "figure", "chart", "canvas", "verify", "lint", "get", "validate", "view",
+            "catalog", "figure", "chart", "resolve", "verify", "lint", "get", "validate", "view",
             "import"
         ]
     );
@@ -115,31 +115,65 @@ fn an_unknown_token_is_a_misuse() {
 }
 
 #[test]
-fn a_new_role_can_be_added_from_the_declaration() {
-    // **新しい役割はテーマへ行を足すだけで増える** ── 宣言の検査がそれを断ってはならない
+fn a_role_is_one_of_the_modifier_classes() {
+    // **役割は class の修飾と同じ名前である** ── 役割ごとに色を持たせると、図のデザインシステムの外に色が増える
     let ok = call(
         "figure",
         &[(
             "declaration",
             &file(
                 "role.json",
-                r#"{"nodes": [{"id": "a", "label": "停止", "role": "危険"}], "theme": {"role.危険.color.box-stroke": "color.warn", "role.危険.color.text": "color.warn"}}"#,
+                r#"{"nodes": [{"id": "a", "label": "停止", "role": "warn"}, {"id": "b", "label": "種類", "role": "kind-1"}], "edges": [{"from": "a", "to": "b"}]}"#,
             ),
         )],
     );
-    assert!(ok.ok, "{:?}", ok.findings);
-    // 役割の行でも、綴りの誤りは断る
+    assert!(ok.ok && ok.findings.is_empty(), "{:?}", ok.findings);
+    let svg = ok.data["svg"].as_str().expect("そのまま返る");
+    assert!(svg.contains("class=\"box warn\""), "{svg}");
+    // 役割の行をテーマで足すことはできない
     let bad = call(
         "figure",
         &[(
             "declaration",
             &file(
                 "role_bad.json",
-                r##"{"nodes": [{"id": "a"}], "theme": {"role.危険.color.nope": "#000"}}"##,
+                r##"{"nodes": [{"id": "a", "role": "危険"}], "theme": {"role.危険.color.box-stroke": "#000"}}"##,
             ),
         )],
     );
     assert!(!bad.ok);
+}
+
+#[test]
+fn a_size_token_cannot_be_overridden() {
+    // **上書きしてよいのは色だけ** ── サイズのトークンは段階の外の値を出す
+    let bad = call(
+        "figure",
+        &[(
+            "declaration",
+            &file(
+                "size.json",
+                r#"{"nodes": [{"id": "a"}], "theme": {"font.size": 30}}"#,
+            ),
+        )],
+    );
+    assert!(!bad.ok);
+    assert!(bad.findings[0].contains("font.size"), "{:?}", bad.findings);
+    // 色の上書きは受け、ダークモードの style を出さない
+    let ok = call(
+        "figure",
+        &[(
+            "declaration",
+            &file(
+                "colour.json",
+                r##"{"nodes": [{"id": "a", "label": "甲"}], "theme": {"color.ink": "#000000"}}"##,
+            ),
+        )],
+    );
+    assert!(ok.ok && ok.findings.is_empty(), "{:?}", ok.findings);
+    let svg = ok.data["svg"].as_str().expect("そのまま返る");
+    assert!(!svg.contains("<style"), "{svg}");
+    assert!(svg.contains("#000000"), "{svg}");
 }
 
 #[test]
@@ -158,20 +192,6 @@ fn an_unknown_layout_is_a_misuse() {
 }
 
 #[test]
-fn a_canvas_needs_its_size() {
-    let p = file(
-        "layers.json",
-        r#"[{"kind": "box", "x": 0, "y": 0, "props": {"label": "甲"}}]"#,
-    );
-    assert!(!call("canvas", &[("layers", &p)]).ok);
-    let out = call(
-        "canvas",
-        &[("layers", &p), ("width", "200"), ("height", "120")],
-    );
-    assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
-}
-
-#[test]
 fn a_chart_is_checked_after_drawing() {
     let p = file(
         "bars.json",
@@ -180,6 +200,81 @@ fn a_chart_is_checked_after_drawing() {
     let out = call("chart", &[("kind", "bars"), ("data", &p)]);
     assert!(out.ok && out.findings.is_empty(), "{:?}", out.findings);
     assert_eq!(out.data["kind"], "bars");
+}
+
+#[test]
+fn canvas_is_gone() {
+    // **canvas は削除した** ── 作成者が SVG を直接記述するので、同じ目的の手段が2つになる
+    assert!(tools().iter().all(|t| t.name != "canvas"));
+}
+
+/// 作成者が記述した SVG。
+const AUTHORED: &str = r#"<svg viewBox="0 0 300 100"><rect class="box focus" x="10" y="20" width="130" height="40"/><text class="label focus" x="75" y="44" text-anchor="middle">注文を確定する</text><path class="flow" d="M140,40 H200"/><rect class="boundary" x="200" y="20" width="90" height="40"/><text class="label" x="245" y="44" text-anchor="middle">決済代行</text></svg>"#;
+
+#[test]
+fn resolve_returns_values_and_nothing_found() {
+    let out = call("resolve", &[("svg", &file("ok.svg", AUTHORED))]);
+    assert!(out.ok, "{:?}", out.findings);
+    assert!(out.findings.is_empty(), "{:?}", out.findings);
+    assert_eq!(out.exit_code(), 0);
+    let svg = out.data["svg"].as_str().expect("そのまま返る");
+    assert!(svg.contains("class=\"box focus\""), "class が残る: {svg}");
+    assert!(svg.contains("<marker"), "矢じりが足される: {svg}");
+    assert!(
+        svg.contains("<style data-dsvg=\"dark\">"),
+        "ダークモードの style: {svg}"
+    );
+    assert_eq!(
+        out.data["labels"]["focus"],
+        serde_json::json!(["注文を確定する"])
+    );
+}
+
+#[test]
+fn resolve_reports_what_it_found() {
+    let bad = AUTHORED.replace(
+        r#"<rect class="boundary""#,
+        r##"<rect class="boundary" fill="#fff""##,
+    );
+    let out = call("resolve", &[("svg", &file("found.svg", &bad))]);
+    assert!(out.ok);
+    assert_eq!(out.exit_code(), 1, "{:?}", out.findings);
+    assert!(
+        out.findings.iter().any(|f| f.starts_with("検査2")),
+        "{:?}",
+        out.findings
+    );
+}
+
+#[test]
+fn resolve_refuses_misuse() {
+    let unreadable = call(
+        "resolve",
+        &[("svg", &file("broken.svg", "<svg><rect></svg>"))],
+    );
+    assert_eq!(unreadable.exit_code(), 2);
+    let size = call(
+        "resolve",
+        &[
+            ("svg", &file("ok2.svg", AUTHORED)),
+            (
+                "theme",
+                &file("size_theme.json", r#"{"size.stroke-width": 3}"#),
+            ),
+        ],
+    );
+    assert_eq!(size.exit_code(), 2, "{:?}", size.findings);
+    let unknown = call(
+        "resolve",
+        &[
+            ("svg", &file("ok3.svg", AUTHORED)),
+            (
+                "theme",
+                &file("unknown_theme.json", r##"{"color.nope": "#000"}"##),
+            ),
+        ],
+    );
+    assert_eq!(unknown.exit_code(), 2, "{:?}", unknown.findings);
 }
 
 #[test]
@@ -206,7 +301,29 @@ fn lint_refuses_a_missing_place() {
 fn the_catalog_lists_every_part() {
     let out = call("catalog", &[]);
     assert!(out.ok);
-    assert!(out.data["parts"].as_array().expect("並び").len() >= 25);
+    let mut known: Vec<&str> = ds_business_logic::registry::known_kinds();
+    known.sort_unstable();
+    let parts: Vec<&str> = out.data["parts"]
+        .as_array()
+        .expect("並び")
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert_eq!(parts, known, "台帳の部品がすべて目録に在る");
+    for gone in [
+        "icon",
+        "panel",
+        "text",
+        "title",
+        "divider",
+        "gradient_rect",
+        "dot",
+    ] {
+        assert!(
+            !parts.contains(&gone),
+            "canvas と一緒に消した部品が残っている: {gone}"
+        );
+    }
     assert!(out.data["body"].as_str().expect("本文").starts_with('{'));
 }
 

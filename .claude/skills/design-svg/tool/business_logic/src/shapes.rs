@@ -18,8 +18,6 @@ use crate::text;
 pub fn register() -> Vec<(&'static str, Component)> {
     vec![
         ("box", box_ as Component),
-        ("panel", panel),
-        ("dot", dot),
         ("edge", edge),
         ("frame_label", frame_label),
         ("frame", frame),
@@ -67,7 +65,7 @@ pub fn arrow_head(
     let sw = f(style.num("size.stroke-width")?);
     match shape {
         "open" => Ok(format!(
-            "<path class=\"wf-head\" d=\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+            "<g class=\"wf-head\"><path class=\"link\" d=\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"
         )),
         // **かぎ** ── 線の端を前へ曲げて折り返す半円。UML の図でユースケースの拡張を表す
         // コネクタに使う（コーバーン『ユースケース実践ガイド』図10.1 ・ 付録 A）
@@ -77,12 +75,11 @@ pub fn arrow_head(
             let (ex, ey) = (x2 + nx * 2.0 * r, y2 + ny * 2.0 * r);
             let (bx, by) = (ex - angle.cos() * r, ey - angle.sin() * r);
             Ok(format!(
-                "<path class=\"wf-head\" d=\"M{x2:.1},{y2:.1} A{r:.1},{r:.1} 0 0 1 {ex:.1},{ey:.1} L{bx:.1},{by:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\"/>"
+                "<g class=\"wf-head\"><path class=\"link\" d=\"M{x2:.1},{y2:.1} A{r:.1},{r:.1} 0 0 1 {ex:.1},{ey:.1} L{bx:.1},{by:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{sw}\" stroke-linecap=\"round\"/></g>"
             ))
         }
-        "solid" => Ok(format!(
-            "<polygon points=\"{x2:.1},{y2:.1} {hx1:.1},{hy1:.1} {hx2:.1},{hy2:.1}\" fill=\"{ink}\"/>"
-        )),
+        // **塗った矢じりは描かない** ── 解決が flow の class から marker として足す（どの図でも同じ形）
+        "solid" => Ok(String::new()),
         other => Err(format!("矢じりの形は solid ・ open ・ hook のどれか ── {other}")),
     }
 }
@@ -119,6 +116,7 @@ fn box_(p: &Props, style: &Style) -> Result<Fragment, String> {
     let text_color = style.text_or("color.text", &style.text("color.ink")?)?;
     let weight = style.text_or("font.weight", "400")?;
     let role = esc(&props::text_or(p, "role", "plain"));
+    let (box_class, text_class) = crate::classes::role_classes(&role);
     let first_y = h / 2.0 - extra / 2.0 + font_size * style.num("font.baseline-ratio")?;
     let family = style.text("font.family")?;
     let texts: String = lines
@@ -126,7 +124,7 @@ fn box_(p: &Props, style: &Style) -> Result<Fragment, String> {
         .enumerate()
         .map(|(i, l)| {
             format!(
-                "<text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{text_color}\">{}</text>",
+                "<text class=\"{text_class}\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{weight}\" fill=\"{text_color}\">{}</text>",
                 w / 2.0,
                 first_y + line_h * i as f64,
                 family,
@@ -136,61 +134,11 @@ fn box_(p: &Props, style: &Style) -> Result<Fragment, String> {
         })
         .collect();
     let svg = format!(
-        "<g class=\"svg-box\" role=\"{role}\"><rect x=\"0\" y=\"0\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"{dash}/>{texts}</g>",
+        "<g class=\"svg-box\" role=\"{role}\"><rect class=\"{box_class}\" x=\"0\" y=\"0\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"{dash}/>{texts}</g>",
         f(radius),
         f(sw),
     );
     Ok(Fragment::own(svg, w, h).labelled())
-}
-
-/// 素の面 ── 塗りと枠だけを持つ矩形。
-///
-/// **囲み（frame）とは別である** ── 囲みは「ここは領域の内側」を示す破線の注記で、面は意匠
-/// そのものである。同じ部品で兼ねると、どちらの意味で置いたかが読めない。
-fn panel(p: &Props, style: &Style) -> Result<Fragment, String> {
-    let w = props::need_num(p, "width")?;
-    let h = props::need_num(p, "height")?;
-    let r = match props::num(p, "radius") {
-        Some(r) => r,
-        None => style.num("size.box-radius")?,
-    };
-    let tone = |name: &str, fallback: &str| -> Result<String, String> {
-        if name == "none" {
-            return Ok("none".to_owned());
-        }
-        let key = crate::theme::tone(name).ok_or_else(|| crate::py::quote(name))?;
-        style.text_or(key, &style.text(fallback)?)
-    };
-    let fill = tone(&props::text_or(p, "fill", "fill"), "color.box-fill")?;
-    let stroke = tone(&props::text_or(p, "stroke", "line"), "color.line")?;
-    let sw = style.num("size.stroke-width")?;
-    let svg = format!(
-        "<rect x=\"0\" y=\"0\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{r:.1}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"/>",
-        f(sw)
-    );
-    Ok(Fragment::own(svg, w, h).ints(props::is_int(p, "width"), props::is_int(p, "height")))
-}
-
-/// 始点 ・ 終点の印などに使う、塗りつぶした円。
-fn dot(p: &Props, style: &Style) -> Result<Fragment, String> {
-    let r = match props::num(p, "radius") {
-        Some(r) => r,
-        None => style.num("size.dot-radius")?,
-    };
-    let fill = match p.get("tone").filter(|v| props::truthy(v)) {
-        Some(t) => tone_color(style, &props::text(t))?,
-        None => style.text_or("color.text", &style.text("color.ink")?)?,
-    };
-    let line = match p.get("stroke").filter(|v| props::truthy(v)) {
-        Some(e) => format!(
-            " stroke=\"{}\" stroke-width=\"{}\"",
-            tone_color(style, &props::text(e))?,
-            f(style.num("size.stroke-width")?)
-        ),
-        None => String::new(),
-    };
-    let svg = format!("<circle cx=\"{r:.1}\" cy=\"{r:.1}\" r=\"{r:.1}\" fill=\"{fill}\"{line}/>");
-    Ok(Fragment::own(svg, r * 2.0, r * 2.0))
 }
 
 /// 点列を、角を丸めたパスへ変換する。**2点なら直線のまま。**
@@ -230,6 +178,16 @@ fn edge(p: &Props, style: &Style) -> Result<Fragment, String> {
         ""
     };
     let path_d = smooth_path(&points);
+    // 塗った矢じりは flow の marker で描く。開いた矢じりとかぎは、向きの無い線に形を足して描く
+    let solid = props::text_or(p, "arrowhead", "solid") == "solid";
+    let mut line_class = if props::text_or(p, "arrow", "head") == "none" || !solid {
+        "link".to_owned()
+    } else {
+        "flow".to_owned()
+    };
+    if props::flag(p, "dashed") {
+        line_class.push_str(" async");
+    }
     let mut marker = String::new();
     if props::text_or(p, "arrow", "head") != "none" {
         // 矢じりの向きは、実際に終点へ入る最後の線分の傾きから決める
@@ -273,7 +231,7 @@ fn edge(p: &Props, style: &Style) -> Result<Fragment, String> {
         let text_w = text::width_with(&label, fs, style.num("font.latin-width-ratio")?)
             + style.num("size.label-pad-x")?;
         label_svg = format!(
-            "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{text_w:.1}\" height=\"{:.1}\" fill=\"{}\"/><text x=\"{mx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<rect class=\"badge\" x=\"{:.1}\" y=\"{:.1}\" width=\"{text_w:.1}\" height=\"{:.1}\" fill=\"{}\"/><text class=\"note small\" x=\"{mx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             mx - text_w / 2.0,
             my - fs,
             style.num("size.label-band-h")?,
@@ -286,7 +244,7 @@ fn edge(p: &Props, style: &Style) -> Result<Fragment, String> {
         );
     }
     let svg = format!(
-        "<path d=\"{path_d}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{}\"{dash}/>{marker}{label_svg}",
+        "<path class=\"{line_class}\" d=\"{path_d}\" fill=\"none\" stroke=\"{color}\" stroke-width=\"{}\"{dash}/>{marker}{label_svg}",
         f(sw)
     );
     // 点が全部整数で書かれていれば、広がりも整数のまま来る
@@ -321,7 +279,7 @@ fn frame_label(p: &Props, style: &Style) -> Result<Fragment, String> {
     let x = props::need_num(p, "x")?;
     let y = props::need_num(p, "y")?;
     let svg = format!(
-        "<rect x=\"{x:.1}\" y=\"{:.1}\" width=\"{text_w:.1}\" height=\"{card_h:.1}\" fill=\"{}\"/><text x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+        "<rect class=\"badge\" x=\"{x:.1}\" y=\"{:.1}\" width=\"{text_w:.1}\" height=\"{card_h:.1}\" fill=\"{}\"/><text class=\"label small focus\" x=\"{:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" fill=\"{}\">{}</text>",
         y - rise,
         style.text("color.box-fill")?,
         x + text_w / 2.0,
@@ -334,17 +292,16 @@ fn frame_label(p: &Props, style: &Style) -> Result<Fragment, String> {
     Ok(Fragment::absolute(svg, text_w, card_h))
 }
 
-/// 区画を示す破線の囲み。**ラベルは描かない** ── ラベルは線より後に描く必要があり、置き場所も
+/// 区画を示す囲み（class area）。**ラベルは描かない** ── ラベルは線より後に描く必要があり、置き場所も
 /// 線を避けて決まるので、`frame_label` が受け持つ。
 fn frame(p: &Props, style: &Style) -> Result<Fragment, String> {
     let (x, y) = (props::need_num(p, "x")?, props::need_num(p, "y")?);
     let (w, h) = (props::need_num(p, "width")?, props::need_num(p, "height")?);
     let svg = format!(
-        "<rect x=\"{x:.1}\" y=\"{y:.1}\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" stroke-dasharray=\"5 4\" opacity=\"{}\"/>",
+        "<rect class=\"area\" x=\"{x:.1}\" y=\"{y:.1}\" width=\"{w:.1}\" height=\"{h:.1}\" rx=\"{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\"/>",
         f(style.num("size.radius-large")?),
-        style.text("color.accent")?,
+        style.text("color.line")?,
         f(style.num("size.stroke-width-thin")?),
-        f(style.num("opacity.soft")?)
     );
     Ok(Fragment::absolute(svg, w, h).ints(props::is_int(p, "width"), props::is_int(p, "height")))
 }

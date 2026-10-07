@@ -28,6 +28,9 @@ pub struct Source {
     pub ranges: Vec<(String, f64, f64)>,
     /// 色の濃さの呼び名から、色のトークンへ。
     pub tones: Map<String, Value>,
+    /// 図の表記法 ── class の一覧 ・ 段階 ・ 禁止した組み合わせ ・ ダークモードの値 ・ 矢じり ・ 検査のしきい値。
+    /// **読むのは `classes` だけである** ── ここは欄を取り出すだけで、意味を持たない。
+    pub notation: Map<String, Value>,
 }
 
 fn load() -> Source {
@@ -55,10 +58,15 @@ fn load() -> Source {
         .and_then(|x| x.as_object())
         .cloned()
         .unwrap_or_default();
+    let notation = ["scale", "classes", "forbidden", "dark", "marker", "checks"]
+        .iter()
+        .filter_map(|k| whole.get(*k).map(|v| ((*k).to_owned(), v.clone())))
+        .collect();
     Source {
         tokens,
         ranges,
         tones,
+        notation,
     }
 }
 

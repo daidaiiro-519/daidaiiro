@@ -71,12 +71,12 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
     let baseline = style.num("font.baseline-ratio")?;
 
     let mut body = vec![format!(
-        "<g transform=\"translate({left:.1},{top:.1})\"><rect x=\"0\" y=\"0\" width=\"{grid_w:.1}\" height=\"{row_h:.1}\" fill=\"{}\"/>",
+        "<g transform=\"translate({left:.1},{top:.1})\"><rect class=\"box focus\" x=\"0\" y=\"0\" width=\"{grid_w:.1}\" height=\"{row_h:.1}\" fill=\"{}\"/>",
         style.text("color.accent-bg")?
     )];
     for (c, head) in headers.iter().enumerate() {
         body.push(format!(
-            "<text x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" font-weight=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"label small focus\" x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" font-weight=\"{}\" fill=\"{}\">{}</text>",
             col_x[c] + pad_x,
             row_h / 2.0 + fs_small * baseline,
             f(fs_small),
@@ -88,7 +88,7 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
     for (r_idx, row) in rows.iter().enumerate() {
         let y = row_h * (r_idx as f64 + 1.0);
         body.push(format!(
-            "<line x1=\"0\" y1=\"{y:.1}\" x2=\"{w:.1}\" y2=\"{y:.1}\" stroke=\"{}\"/>",
+            "<line class=\"grid\" x1=\"0\" y1=\"{y:.1}\" x2=\"{w:.1}\" y2=\"{y:.1}\" stroke=\"{}\"/>",
             style.text("chart.grid")?
         ));
         for (c, cell) in row.iter().enumerate() {
@@ -96,7 +96,7 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
                 .get(c)
                 .ok_or_else(|| "list index out of range".to_owned())?;
             body.push(format!(
-                "<text x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                "<text class=\"label\" x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
                 x + pad_x,
                 y + row_h / 2.0 + fs * baseline,
                 f(fs),
@@ -107,7 +107,7 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
     }
     let grid_h = row_h * (rows.len() as f64 + 1.0);
     body.push(format!(
-        "<rect x=\"0.5\" y=\"0.5\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"{}\"/></g>",
+        "<rect class=\"area\" x=\"0.5\" y=\"0.5\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"{}\"/></g>",
         grid_w - 1.0,
         grid_h - 1.0,
         style.text("color.box-stroke")?
@@ -116,7 +116,7 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
     if axes.len() > 1 {
         // 横が何を表すか ── 表の上、いちばん左の列と左端を揃える
         body.push(format!(
-            "<text x=\"{left:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"note small\" x=\"{left:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             band / 2.0 + base,
             f(fs_small),
             style.text("color.ink-faint")?,
@@ -128,7 +128,7 @@ fn table(p: &Props, style: &Style) -> Result<Fragment, String> {
         let cy = top + grid_h / 2.0;
         let x = band / 2.0 + base - fs_small;
         body.push(format!(
-            "<text x=\"{x:.1}\" y=\"{cy:.1}\" text-anchor=\"middle\" transform=\"rotate(-90 {x:.1} {cy:.1})\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"note small\" x=\"{x:.1}\" y=\"{cy:.1}\" text-anchor=\"middle\" transform=\"rotate(-90 {x:.1} {cy:.1})\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             f(fs_small),
             style.text("color.ink-faint")?,
             esc(&axes[0])

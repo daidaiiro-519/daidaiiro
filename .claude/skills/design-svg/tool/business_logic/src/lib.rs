@@ -14,8 +14,9 @@
 use ds_data_access as data_access;
 
 pub mod boolean;
-pub mod canvas;
 pub mod catalog;
+pub mod checks;
+pub mod classes;
 pub mod compose;
 pub mod files;
 pub mod geometry;
@@ -27,18 +28,18 @@ pub mod layout_contract;
 pub mod lint;
 pub mod nesting;
 pub mod props;
+pub mod publish;
 pub mod py;
 pub mod radial;
 pub mod refs;
 pub mod registry;
+pub mod resolve;
 pub mod shapes;
-pub mod shapes_decor;
 pub mod shapes_freeform;
 pub mod shapes_hex;
 pub mod shapes_interaction;
 pub mod shapes_quantity;
 pub mod shapes_table;
-pub mod shapes_text;
 pub mod shapes_titled;
 pub mod style;
 pub mod sugiyama;
@@ -56,13 +57,11 @@ pub mod xml;
 pub fn components() -> Vec<(&'static str, registry::Component)> {
     let mut all = Vec::new();
     all.extend(shapes::register());
-    all.extend(shapes_decor::register());
     all.extend(shapes_freeform::register());
     all.extend(shapes_hex::register());
     all.extend(shapes_interaction::register());
     all.extend(shapes_quantity::register());
     all.extend(shapes_table::register());
-    all.extend(shapes_text::register());
     all.extend(shapes_titled::register());
     all
 }

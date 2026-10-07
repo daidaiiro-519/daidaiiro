@@ -17,7 +17,9 @@ use std::path::PathBuf;
 
 use ds_business_logic::grid::{self, Grid, Key};
 use ds_business_logic::layout_contract::{LayoutResult, Sizes, Strategy, Unsupported};
-use ds_business_logic::{canvas, catalog, compose, files, lint, radial, theme, tree, verify};
+use ds_business_logic::{
+    catalog, checks, compose, files, lint, publish, radial, theme, tree, verify,
+};
 use serde::Serialize as _;
 use serde_json::{json, Map, Value};
 
@@ -125,12 +127,35 @@ fn write(svg: &str, out: &str, data: &mut Map<String, Value>) -> Result<(), Stri
     Ok(())
 }
 
-/// 描いた SVG を検査して、結果を組む。**幾何の検査を3種とも当てる。**
-fn drawn(svg: &str, out: &str, mut data: Map<String, Value>) -> Outcome {
-    if let Err(why) = write(svg, out, &mut data) {
+/// 描いた SVG を、作成者が記述した SVG と同じ道（解決と検査1〜4）に通して、結果を作る。
+///
+/// **トークンを上書きしたときは、ダークモードの style を出さない** ── 配色は呼び出し元のテーマが決める。
+fn drawn(
+    svg: &str,
+    out: &str,
+    theme_: Option<&Map<String, Value>>,
+    data: Map<String, Value>,
+) -> Outcome {
+    match publish::generated(svg, theme_, theme_.is_none()) {
+        Ok(done) => finished(&done, out, data),
+        Err(why) => Outcome::misuse(why),
+    }
+}
+
+/// 解決した SVG を書き出し、目視のための一覧を足して結果を作る。
+fn finished(done: &publish::Finished, out: &str, mut data: Map<String, Value>) -> Outcome {
+    if let Err(why) = write(&done.svg, out, &mut data) {
         return Outcome::misuse(why);
     }
-    Outcome::found(verify::all(svg), Value::Object(data))
+    if let Ok(l) = checks::labels(&done.svg) {
+        data.insert("labels".to_owned(), json!(l.by_class));
+        data.insert("lines".to_owned(), json!(l.lines));
+    }
+    data.insert(
+        "min_font_px".to_owned(),
+        checks::min_font_px(&done.svg).map_or(Value::Null, Value::from),
+    );
+    Outcome::found(done.findings.clone(), Value::Object(data))
 }
 
 fn run_catalog(given: &Given) -> Outcome {
@@ -193,49 +218,57 @@ fn human_catalog(out: &Outcome) -> String {
     )
 }
 
+/// 上書きしてよいトークンの接頭辞。**色と部品の選択だけである** ── サイズのトークンを上書きすると、
+/// 図のデザインシステムの段階の外の値が出る（ブレストボード design-svg-rework の論点3の追加1-3）。
+const OVERRIDABLE: [&str; 2] = ["color.", "parts."];
+
+/// 上書きの対応表を、既定のテーマへ重ねる。**知らない名前と、サイズ ・ 役割のトークンは断る。**
+fn merge_theme(over: &Map<String, Value>) -> Result<Map<String, Value>, String> {
+    let base = theme::default_theme();
+    let mut unknown: Vec<&str> = over
+        .keys()
+        .filter(|k| !base.contains_key(*k))
+        .map(String::as_str)
+        .collect();
+    unknown.sort_unstable();
+    if !unknown.is_empty() {
+        return Err(format!(
+            "知らないトークン: {} ── 目録（catalog）に在る名前だけを使う",
+            unknown.join(" ・ ")
+        ));
+    }
+    let mut fixed: Vec<&str> = over
+        .keys()
+        .filter(|k| !OVERRIDABLE.iter().any(|p| k.starts_with(p)))
+        .map(String::as_str)
+        .collect();
+    fixed.sort_unstable();
+    if !fixed.is_empty() {
+        return Err(format!(
+            "上書きできないトークン: {} ── 上書きしてよいのは色（color.）と部品の選択（parts.）だけである。図を大きく表示するときは、SVG の表示幅を広げて viewBox ごと拡大する",
+            fixed.join(" ・ ")
+        ));
+    }
+    let mut merged = base.clone();
+    for (k, v) in over {
+        merged.insert(k.clone(), v.clone());
+    }
+    Ok(merged)
+}
+
 /// 宣言の中の `theme` を、テーマの上書きとして受ける。**渡すのは差分だけでよい** ──
 /// 既定のテーマへ重ねる。
 ///
 /// **道具がテーマを通さないと、呼ぶ側は台本を書くことになる** ── そしてその台本は
 /// 呼ぶ側の作業場に残るだけで、成果物の隣には何も残らない。
-fn theme_of(d: &Value, strict: bool) -> Result<Option<Map<String, Value>>, String> {
+fn theme_of(d: &Value) -> Result<Option<Map<String, Value>>, String> {
     let Some(over) = d.get("theme").filter(|v| !is_empty(v)) else {
         return Ok(None);
     };
     let Some(over) = over.as_object() else {
         return Err("theme は名前と値の対でなければならない".to_owned());
     };
-    let base = theme::default_theme();
-    if strict {
-        // **役割の行は、指す先の名前で判定する** ── `role.<役割>.<名前>` の `<名前>` が、既定の
-        // トークンか、既存の役割の行が使っている名前なら受け付ける。断ると、新しい役割を宣言から
-        // 足せなくなる。**それ以外は綴りの誤りとして断る**
-        let role_target = |k: &str| -> Option<String> {
-            let (role, token) = k.strip_prefix(theme::ROLE_PREFIX)?.split_once('.')?;
-            (!role.is_empty() && !token.is_empty()).then(|| token.to_owned())
-        };
-        let readable: std::collections::BTreeSet<String> = base
-            .keys()
-            .filter_map(|k| role_target(k))
-            .chain(base.keys().cloned())
-            .collect();
-        let known =
-            |k: &str| base.contains_key(k) || role_target(k).is_some_and(|t| readable.contains(&t));
-        let mut unknown: Vec<&String> = over.keys().filter(|k| !known(k)).collect();
-        unknown.sort();
-        if !unknown.is_empty() {
-            let names: Vec<&str> = unknown.iter().map(|s| s.as_str()).collect();
-            return Err(format!(
-                "知らないトークン: {} ── 目録（catalog）に在る名前だけを使う",
-                names.join(" ・ ")
-            ));
-        }
-    }
-    let mut merged = base.clone();
-    for (k, v) in over {
-        merged.insert(k.clone(), v.clone());
-    }
-    Ok(Some(merged))
+    merge_theme(over).map(Some)
 }
 
 /// 値が「無い」と同じか ── 空の対応表 ・ 空の並び ・ 空の文字列 ・ null ・ 偽 ・ 0。
@@ -279,7 +312,7 @@ fn run_figure(given: &Given) -> Outcome {
             names.join("／")
         ));
     };
-    let theme_ = match theme_of(&d, true) {
+    let theme_ = match theme_of(&d) {
         Ok(t) => t,
         Err(why) => return Outcome::misuse(why),
     };
@@ -316,7 +349,7 @@ fn run_figure(given: &Given) -> Outcome {
     // **座標を残さない** ── 次の呼び出しが、前の図の格子を読むことになる
     GRID.with(|slot| *slot.borrow_mut() = Grid::default());
     match placed {
-        Ok(svg) => drawn(&svg, given.one("out", ""), Map::new()),
+        Ok(svg) => drawn(&svg, given.one("out", ""), theme_.as_ref(), Map::new()),
         Err(why) => Outcome::misuse(why),
     }
 }
@@ -330,7 +363,7 @@ fn run_chart(given: &Given) -> Outcome {
     let Some(props) = d.as_object() else {
         return Outcome::misuse("データは名前と値の対でなければならない".to_owned());
     };
-    let theme_ = match theme_of(&d, true) {
+    let theme_ = match theme_of(&d) {
         Ok(t) => t,
         Err(why) => return Outcome::misuse(why),
     };
@@ -338,56 +371,8 @@ fn run_chart(given: &Given) -> Outcome {
         Ok(svg) => {
             let mut data = Map::new();
             data.insert("kind".to_owned(), Value::from(kind));
-            drawn(&svg, given.one("out", ""), data)
+            drawn(&svg, given.one("out", ""), theme_.as_ref(), data)
         }
-        Err(why) => Outcome::misuse(why),
-    }
-}
-
-/// 画布の大きさを読む。**引数が宣言に勝つ。**
-fn side(given: &Given, d: &Value, key: &str) -> Result<f64, String> {
-    let arg = given.one(key, "");
-    if !arg.is_empty() {
-        return arg
-            .trim()
-            .parse()
-            .map_err(|_| format!("{key} が数でない: {arg}"));
-    }
-    Ok(d.get(key).and_then(Value::as_f64).unwrap_or(0.0))
-}
-
-fn run_canvas(given: &Given) -> Outcome {
-    let d = match read_json(given.one("layers", "")) {
-        Ok(d) => d,
-        Err(why) => return Outcome::misuse(why),
-    };
-    // **渡す JSON は `{"width", "height", "layers"}` か、層の並びだけ**
-    let body = match &d {
-        Value::Array(a) => a.clone(),
-        Value::Object(_) => match d.get("layers").and_then(Value::as_array) {
-            Some(a) => a.clone(),
-            None => return Outcome::misuse("layers が無い ── 層の並びを渡す".to_owned()),
-        },
-        _ => return Outcome::misuse("層は並びか、名前と値の対で渡す".to_owned()),
-    };
-    let (w, h) = match (side(given, &d, "width"), side(given, &d, "height")) {
-        (Ok(w), Ok(h)) => (w, h),
-        (Err(why), _) | (_, Err(why)) => return Outcome::misuse(why),
-    };
-    if w == 0.0 || h == 0.0 {
-        return Outcome::misuse("画布の大きさが無い ── width と height を渡す".to_owned());
-    }
-    // **画布のテーマは名前を検査しない** ── 移す前の振る舞いを保つ
-    let theme_ = match theme_of(&d, false) {
-        Ok(t) => t,
-        Err(why) => return Outcome::misuse(why),
-    };
-    let background = d
-        .get("background")
-        .and_then(Value::as_str)
-        .filter(|s| !s.is_empty());
-    match canvas::render_canvas(w, h, &body, theme_.as_ref(), background) {
-        Ok(svg) => drawn(&svg, given.one("out", ""), Map::new()),
         Err(why) => Outcome::misuse(why),
     }
 }
@@ -401,9 +386,9 @@ fn human_svg(out: &Outcome) -> String {
     let path = out.data["path"].as_str().unwrap_or_default();
     if !path.is_empty() {
         lines.push(if out.findings.is_empty() {
-            "幾何の検査　通った".to_owned()
+            "検査1〜4　通った".to_owned()
         } else {
-            format!("幾何の検査　通っていない（{} 件）", out.findings.len())
+            format!("検査1〜4　通っていない（{} 件）", out.findings.len())
         });
         lines.push(format!("書き出し: {path}　／　{} 字", out.data["bytes"]));
     } else {
@@ -411,6 +396,63 @@ fn human_svg(out: &Outcome) -> String {
         if !svg.is_empty() {
             lines.push(svg.to_owned());
         }
+    }
+    lines.join("\n")
+}
+
+fn run_resolve(given: &Given) -> Outcome {
+    let path = given.one("svg", "");
+    let body = match files::read_to_string(path) {
+        Ok(b) => b,
+        Err(e) => return Outcome::misuse(format!("読めない: {path} ── {e}")),
+    };
+    let theme_path = given.one("theme", "");
+    let theme_ = if theme_path.is_empty() {
+        None
+    } else {
+        let over = match read_json(theme_path) {
+            Ok(Value::Object(m)) => m,
+            Ok(_) => return Outcome::misuse("theme は名前と値の対でなければならない".to_owned()),
+            Err(why) => return Outcome::misuse(why),
+        };
+        match merge_theme(&over) {
+            Ok(t) => Some(t),
+            Err(why) => return Outcome::misuse(why),
+        }
+    };
+    match publish::authored(&body, theme_.as_ref(), theme_.is_none()) {
+        Ok(done) => finished(&done, given.one("out", ""), Map::new()),
+        Err(why) => Outcome::misuse(why),
+    }
+}
+
+/// 解決と検査の結果に、目視で確かめる一覧を添える。
+fn human_resolve(out: &Outcome) -> String {
+    if !out.ok {
+        return out.findings.join("\n");
+    }
+    let mut lines = vec![human_svg(out)];
+    if let Some(by) = out.data["labels"].as_object() {
+        lines.push("class ごとのラベル（class の選択の誤りを目視で確かめる）".to_owned());
+        for (k, v) in by {
+            let texts: Vec<&str> = v
+                .as_array()
+                .map_or_else(Vec::new, |a| a.iter().filter_map(Value::as_str).collect());
+            lines.push(format!("  {k}：{}", texts.join(" ・ ")));
+        }
+    }
+    if let Some(ml) = out.data["lines"].as_array().filter(|a| !a.is_empty()) {
+        lines.push("複数行のラベル（単語の途中で改行していないかを目視で確かめる）".to_owned());
+        lines.extend(
+            ml.iter()
+                .filter_map(Value::as_str)
+                .map(|l| format!("  {l}")),
+        );
+    }
+    if let Some(px) = out.data["min_font_px"].as_f64() {
+        lines.push(format!(
+            "スマホ幅で描画したときの最小のフォントサイズ: {px}px"
+        ));
     }
     lines.join("\n")
 }
@@ -503,22 +545,25 @@ pub fn tools() -> Vec<Tool> {
             args: vec![
                 Arg::need("kind", "部品の名前"),
                 Arg::need("data", "データの JSON"),
-                out.clone(),
+                out,
             ],
             run: run_chart,
             human: human_svg,
         },
         Tool {
-            name: "canvas",
-            summary: "画布へ部品を重ねて、意匠そのものを組む",
+            name: "resolve",
+            summary: "作成者が記述した SVG の class を値へ解決し、検査1〜4を通して返す",
             args: vec![
-                Arg::need("layers", "層の JSON"),
-                out,
-                Arg::opt("width", "画布の幅", None),
-                Arg::opt("height", "画布の高さ", None),
+                Arg::need("svg", "作成者が記述した SVG"),
+                Arg::opt("out", "書き出し先の SVG", None),
+                Arg::opt(
+                    "theme",
+                    "色のトークンの上書き（JSON）。渡すとダークモードの style を出さない",
+                    None,
+                ),
             ],
-            run: run_canvas,
-            human: human_svg,
+            run: run_resolve,
+            human: human_resolve,
         },
         Tool {
             name: "verify",

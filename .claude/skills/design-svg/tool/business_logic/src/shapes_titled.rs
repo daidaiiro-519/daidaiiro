@@ -41,7 +41,7 @@ fn titled(p: &Props, style: &Style) -> Result<Fragment, String> {
     let band_top = (lead - band_h) / 2.0;
     let base = band_top + size * style.num("font.cap-ratio")?;
     let svg = format!(
-        "<g><rect x=\"{:.1}\" y=\"{band_top:.1}\" width=\"{band_w:.1}\" height=\"{band_h:.1}\" fill=\"{}\"/><text x=\"{:.1}\" y=\"{base:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{}\" fill=\"{}\">{}</text><g transform=\"translate({dx:.1},{lead:.1})\">{}</g></g>",
+        "<g><rect class=\"badge\" x=\"{:.1}\" y=\"{band_top:.1}\" width=\"{band_w:.1}\" height=\"{band_h:.1}\" fill=\"{}\"/><text class=\"label small\" x=\"{:.1}\" y=\"{base:.1}\" text-anchor=\"middle\" font-family=\"{}\" font-size=\"{}\" font-weight=\"{}\" fill=\"{}\">{}</text><g transform=\"translate({dx:.1},{lead:.1})\">{}</g></g>",
         (w - band_w) / 2.0,
         style.text("color.box-fill")?,
         w / 2.0,

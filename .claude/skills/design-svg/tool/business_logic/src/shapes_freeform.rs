@@ -248,9 +248,10 @@ fn path(p: &Props, style: &Style) -> Result<Fragment, String> {
     let stroke = style.text_or("color.shape-stroke", &style.text("color.accent")?)?;
     let sw = style.num("size.stroke-width")?;
     let d = props::need_text(p, "d")?;
+    let class = if filled { "box focus" } else { "link focus" };
     let (x0, y0, w, h) = path_bounds(&d)?;
     let svg = format!(
-        "<g transform=\"translate({:.2},{:.2})\"><path d=\"{d}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"/></g>",
+        "<g transform=\"translate({:.2},{:.2})\"><path class=\"{class}\" d=\"{d}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"{}\"/></g>",
         -x0,
         -y0,
         f(sw)
@@ -288,7 +289,7 @@ fn boolean(p: &Props, style: &Style) -> Result<Fragment, String> {
         String::new()
     } else {
         format!(
-            "<path d=\"{}\" fill=\"{fill}\" fill-rule=\"evenodd\"/>",
+            "<path class=\"box focus\" d=\"{}\" fill=\"{fill}\" fill-rule=\"evenodd\"/>",
             subpaths.join(" ")
         )
     };

@@ -2,14 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "theme.schema.json",
   "title": "既定のテーマ",
-  "description": "トークンの名前と値の対応 ・ 値の範囲 ・ 色の濃さの呼び名。部品のコードは色 ・ 寸法 ・ 角丸 ・ 書体の値を持たず、ここを読む",
+  "description": "トークンの名前と値の対応 ・ 値の範囲 ・ 色の濃さの呼び名 ・ class の一覧（図の表記法）・ 禁止した組み合わせ ・ ダークモードの値 ・ 検査のしきい値。部品のコードと作成者の SVG は値を持たず、ここを読む",
   "$comment": "業務ロジック層の theme.rs と catalog.rs が、組み立ての時点で埋め込んで読む。項目を足したら、読む側のコードも確認する",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "tokens",
     "ranges",
-    "tones"
+    "tones",
+    "scale",
+    "classes",
+    "forbidden",
+    "dark",
+    "marker",
+    "checks"
   ],
   "properties": {
     "why": {
@@ -66,6 +72,218 @@
       "type": "object",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "scale": {
+      "title": "デザイントークンの段階",
+      "description": "class が使ってよい値の集合。作成者が記述した値ではなく、class の値がこのどれかになる",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "font-size",
+        "stroke-width",
+        "radius",
+        "dash"
+      ],
+      "properties": {
+        "font-size": {
+          "title": "フォントサイズ",
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "stroke-width": {
+          "title": "ストローク幅",
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "radius": {
+          "title": "角丸の半径",
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "dash": {
+          "title": "破線のパターン",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "classes": {
+      "title": "class の一覧（図の表記法）",
+      "description": "class の名前から、意味 ・ 種類 ・ 値へ。値は要素の種類（shape ・ line ・ text）ごとに持つ",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "meaning",
+          "kind",
+          "values"
+        ],
+        "properties": {
+          "meaning": {
+            "title": "意味",
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "title": "種類",
+            "type": "string",
+            "enum": [
+              "shape",
+              "line",
+              "text",
+              "modifier"
+            ]
+          },
+          "modifiers": {
+            "title": "修飾の class を受けるか",
+            "type": "boolean"
+          },
+          "values": {
+            "title": "値",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "shape": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "属性の名前から、トークンの名前（または none ・ arrow）へ"
+              },
+              "line": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "属性の名前から、トークンの名前（または none ・ arrow）へ"
+              },
+              "text": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "属性の名前から、トークンの名前（または none ・ arrow）へ"
+              }
+            }
+          }
+        }
+      }
+    },
+    "forbidden": {
+      "title": "禁止した組み合わせ",
+      "description": "1つの要素に同時に指定してはならない class の組",
+      "x-view": "table",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "classes",
+          "why"
+        ],
+        "properties": {
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "dark": {
+      "title": "ダークモードの値",
+      "description": "色のトークンの名前から、ダークモードの値へ。class が使う色はすべてここに在る",
+      "x-view": "table",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$"
+      }
+    },
+    "marker": {
+      "title": "矢印の marker",
+      "description": "flow の class から design-svg が生成する矢じりの形",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "d",
+        "view-box",
+        "ref-x",
+        "ref-y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "d": {
+          "type": "string"
+        },
+        "view-box": {
+          "type": "string"
+        },
+        "ref-x": {
+          "type": "number"
+        },
+        "ref-y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      }
+    },
+    "checks": {
+      "title": "検査のしきい値",
+      "description": "検査4が使う値。phone-width はスマホ幅、min-font-px は描画したときの最小のフォントサイズ、precision は比較の精度",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phone-width",
+        "min-font-px",
+        "precision"
+      ],
+      "properties": {
+        "phone-width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "min-font-px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "precision": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
       }
     },
     "notes": {

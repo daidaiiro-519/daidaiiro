@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-//! 形の演算と、自由な形 ・ 文字 ・ 絵記号。
+//! 形の演算と、自由な形。
 //!
 //! **受けると宣言した文法は、実際に受けられるかを機械で照合する** ── 宣言しただけの契約は
 //! 守られない。
@@ -7,9 +7,7 @@
 use ds_business_logic::boolean::{
     boolean_op, circle_polygon, point_in_polygon, rect_polygon, CIRCLE_FACETS,
 };
-use ds_business_logic::canvas::render_canvas;
 use ds_business_logic::registry::render;
-use ds_business_logic::shapes_decor::icon_names;
 use ds_business_logic::shapes_freeform::{path_bounds, path_points};
 use ds_business_logic::style::resolve;
 use ds_business_logic::theme::Style;
@@ -162,29 +160,13 @@ fn unparsable_path_is_refused() {
     }
 }
 
-fn canvas(w: f64, h: f64, layers: Value) -> String {
-    render_canvas(w, h, layers.as_array().expect("並び"), None, None).expect("描ける")
-}
-
 #[test]
 fn coordinates_are_not_rewritten() {
     let d = "M-24 28 v-6 c0 -27 48 -27 48 0 v6";
-    let svg = canvas(
-        200.0,
-        120.0,
-        json!([{"kind": "path", "x": 10, "y": 10, "props": {"d": d, "filled": false}}]),
-    );
+    let svg = render("path", &props(json!({"d": d, "filled": false})), &style())
+        .expect("描ける")
+        .svg;
     assert!(svg.contains(d));
-}
-
-#[test]
-fn text_accepts_a_sequence_of_lines() {
-    let svg = canvas(
-        300.0,
-        120.0,
-        json!([{"kind": "text", "x": 10, "y": 10, "props": {"text": ["1行目", "2行目"]}}]),
-    );
-    assert_eq!(svg.matches("<text").count(), 2);
 }
 
 fn style() -> Style {
@@ -193,74 +175,6 @@ fn style() -> Style {
 
 fn props(v: Value) -> Map<String, Value> {
     v.as_object().expect("対応表").clone()
-}
-
-#[test]
-fn alignment_does_not_move_the_bounding_box() {
-    let st = style();
-    let base = render("text", &props(json!({"text": "あいうえお"})), &st).expect("描ける");
-    for align in ["start", "middle", "end"] {
-        let other = render(
-            "text",
-            &props(json!({"text": "あいうえお", "align": align})),
-            &st,
-        )
-        .expect("描ける");
-        assert_eq!(
-            (base.width, base.height),
-            (other.width, other.height),
-            "{align}"
-        );
-    }
-}
-
-#[test]
-fn glyphs_share_their_size_and_come_from_the_registry() {
-    let st = style();
-    let person =
-        render("icon", &props(json!({"name": "person", "size": 40})), &st).expect("描ける");
-    let doc = render("icon", &props(json!({"name": "doc", "size": 40})), &st).expect("描ける");
-    assert_eq!((person.width, person.height), (40.0, 40.0));
-    assert_eq!((doc.width, doc.height), (40.0, 40.0));
-    for n in ["person", "doc", "spark"] {
-        assert!(icon_names().contains(&n), "{n}");
-    }
-}
-
-#[test]
-fn scaling_does_not_thicken_strokes() {
-    let st = style();
-    let effective = |size: i64| {
-        let svg = render("icon", &props(json!({"name": "doc", "size": size})), &st)
-            .expect("描ける")
-            .svg;
-        let grab = |pre: &str, stop: char| -> f64 {
-            let at = svg.find(pre).expect("在る") + pre.len();
-            svg[at..]
-                .split(stop)
-                .next()
-                .expect("在る")
-                .parse()
-                .expect("数")
-        };
-        (grab("scale(", ')') * grab("stroke-width=\"", '"') * 1000.0).round()
-    };
-    assert_eq!(effective(24), effective(96));
-}
-
-#[test]
-fn unknown_glyph_name_is_refused() {
-    assert!(render("icon", &props(json!({"name": "無い絵"})), &style()).is_err());
-}
-
-#[test]
-fn geometry_stays_sound_when_tiled() {
-    let mut layers: Vec<Value> = icon_names().iter().enumerate().map(|(i, n)| json!({"kind": "icon", "x": 10 + i * 40, "y": 10, "props": {"name": n, "size": 32}})).collect();
-    layers.push(json!({"kind": "icon", "x": 10, "y": 60, "props": {"name": "person", "size": 48}}));
-    layers.push(json!({"kind": "text", "x": 70, "y": 60, "props": {"text": "人と絵", "size": 16, "weight": "bold"}}));
-    let svg = canvas(560.0, 130.0, Value::Array(layers));
-    assert!(ds_business_logic::verify::check(&svg).is_empty());
-    assert!(ds_business_logic::verify::check_shapes(&svg).is_empty());
 }
 
 /// 辺1本を描く。

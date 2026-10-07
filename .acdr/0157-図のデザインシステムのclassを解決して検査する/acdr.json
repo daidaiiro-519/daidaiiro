@@ -1,0 +1,1203 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0157",
+ "title": "図のデザインシステムの class を解決して検査する",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "design-svg は、作成者が class で記述した SVG を、theme.json に固定した図のデザインシステムの値へ解決し、検査1〜4を通して返す。figure と chart の出力も同じ class と検査を通し、canvas は削除する",
+ "why": "ブレストボード design-svg-rework の論点1〜5で、図のデザインシステム（デザイントークンと class ごとの意味）を1つにし、座標は作成者に任せると決めた。いまの design-svg は宣言から配置戦略が座標を決め、部品ごとに値を出力していた。そのため、作成者が自由に記述した SVG を統一する手段が無く、同じ色が図ごとに別の意味で使われても検出できなかった。ACDR 1 として、theme.json ・ 解決 ・ 検査 ・ figure と chart の出力 ・ canvas の削除をまとめて変える。配色は、比較ページを見た利用者の判断で、ブレストボード ・ ACDR ・ ギャラリーと同じ系統に合わせた。",
+ "shift": [
+  {
+   "what": "design-svg の目的",
+   "from": "構造化データの宣言から SVG を生成する。座標は配置戦略が決める",
+   "to": "作成者が記述した SVG を、図のデザインシステムで統一し、検査して返す"
+  },
+  {
+   "what": "theme.json",
+   "from": "トークンと役割（plain ・ focus ・ muted）",
+   "to": "トークンに加えて、段階（フォントサイズ 10〜13 ・ ストローク幅 1/1.5/2 ・ 角丸 3/5/8 ・ 破線 4 3）・ class 21個 ・ 禁止した組み合わせ ・ ダークモードの値 ・ 矢じり ・ 検査のしきい値"
+  },
+  {
+   "what": "検査",
+   "from": "幾何の検査（重なり ・ はみ出し ・ 辺の突き抜け）",
+   "to": "検査1（class）・ 検査2（値）・ 検査3（組み合わせ）・ 検査4（重なり ・ はみ出し ・ スマホ幅のフォントサイズ）と、class ごとのラベルの一覧"
+  },
+  {
+   "what": "生成する id",
+   "from": "矢じりの id は色だけで決まり、図をまたいで同じ id になる",
+   "to": "すべての id に図ごとの接頭辞（dsvg-<要約8桁>-）を付け、参照も書き換える。隠れた節の中の図があっても矢じりが消えない"
+  },
+  {
+   "what": "スマホ幅の最小のフォントサイズのしきい値 T",
+   "from": "未定（論点3の保留）",
+   "to": "8px を提案する。手書きの21個の最小は 7.95px（ddd-8）で、それ以外は 8.08px 以上だった。9px にすると21個のうち9個が min-width を広げることになる"
+  },
+  {
+   "what": "カテゴリ色 kind-1〜3",
+   "from": "無い（chart.tones の4色のうち2色は accent と warn）",
+   "to": "kind-1 は plum #7A3B6D、kind-2 は slate blue #2F5B80、kind-3 は olive #566318（背景は #F1E3EE ・ #DCE7F1 ・ #E8ECD3）。teal の focus と amber の warn から色相を離した"
+  },
+  {
+   "what": "配色の系統",
+   "from": "#16636B ・ #9A4A21 などの独自の値（ダークの値は無い）",
+   "to": "ブレストボード ・ ACDR ・ ギャラリーと同じ teal ・ amber ・ plum の系統。ダークの値はギャラリーのダークのトークンから取った（利用者の判断：見やすくなるように変える）"
+  },
+  {
+   "what": "色の対応：文字（label ・ title）",
+   "from": "ライト #111D1A on #F8FAF9：16.50",
+   "to": "ダーク #E6EEEB on #16211E：14.01"
+  },
+  {
+   "what": "色の対応：注記（note）・ 線（flow ・ link）",
+   "from": "ライト #5B6B66 on #F8FAF9：5.36",
+   "to": "ダーク #9DADA8 on #16211E：7.07"
+  },
+  {
+   "what": "色の対応：focus",
+   "from": "ライト #0D5C55 on #D5E6E3：6.07（box の線としては #F8FAF9 に 7.48）",
+   "to": "ダーク #6CC9B8 on #173330：6.88"
+  },
+  {
+   "what": "色の対応：warn",
+   "from": "ライト #8F5410 on #F0E2CD：4.78",
+   "to": "ダーク #D9A35F on #33281A：6.41"
+  },
+  {
+   "what": "色の対応：kind-1（plum）",
+   "from": "ライト #7A3B6D on #F1E3EE：6.34",
+   "to": "ダーク #D094C2 on #2E1F2B：6.46"
+  },
+  {
+   "what": "色の対応：kind-2（slate blue）",
+   "from": "ライト #2F5B80 on #DCE7F1：5.72",
+   "to": "ダーク #8FB8DE on #182A3A：7.04"
+  },
+  {
+   "what": "色の対応：kind-3（olive）",
+   "from": "ライト #566318 on #E8ECD3：5.44",
+   "to": "ダーク #BACB78 on #262A18：8.34"
+  },
+  {
+   "what": "色の対応：補助線（area ・ grid）",
+   "from": "ライト #7C8C86 on #F8FAF9：3.37",
+   "to": "ダーク #62756F on #16211E：3.38"
+  },
+  {
+   "what": "box と focus の区別",
+   "from": "box は灰色の線、focus は accent の線と塗り",
+   "to": "手書きの図と同じく、box も teal の線（1.5）にする。focus は teal-100 の塗りと線 2 で区別する"
+  },
+  {
+   "what": "論点3にない class",
+   "from": "一覧は論点3の18個",
+   "to": "title（13 ・ 太字）・ small（10）・ grid（補助線）を足す。21個の文字が 10 と 13 を使い、グラフの軸と区切り線を flow ・ link と区別するため"
+  },
+  {
+   "what": "canvas と意匠の部品",
+   "from": "canvas と、icon ・ panel ・ text ・ title ・ divider ・ gradient_rect ・ dot の部品",
+   "to": "削除する。icon はテンプレートの部品にしない（21個は icon を使わない）"
+  },
+  {
+   "what": "テーマの上書き",
+   "from": "どのトークンも上書きでき、役割もテーマの行で足せる",
+   "to": "色（color.）と部品の選択（parts.）だけを受け、上書きしたときはダークモードの style を出さない。role は修飾の class の名前（focus ・ warn ・ kind-1〜3）か muted"
+  },
+  {
+   "what": "figure ・ chart の出力（段A）",
+   "from": "値だけを持つ",
+   "to": "class を足す。class とダークの style を外すと、figure 9組 ・ chart 20組が旧 golden と1バイト一致した"
+  },
+  {
+   "what": "段B：辺 ・ やり取りの矢印",
+   "from": "線 #C3CAD2（chart は #79828F）1.2 と、塗った三角の多角形",
+   "to": "flow：#5B6B66 ・ 1.5 と marker。破線の戻りは flow async（4 3）"
+  },
+  {
+   "what": "段B：箱",
+   "from": "線の幅 1.2（強調 1.6）・ 角丸 5.0",
+   "to": "box：teal の線 #0D5C55 ・ 1.5 ・ 塗り #F8FAF9。focus は塗り #D5E6E3 と線 2"
+  },
+  {
+   "what": "段B：囲み",
+   "from": "accent の破線（5 4）・ 幅 1.1 ・ 不透明度 0.75",
+   "to": "area：#7C8C86 の実線 ・ 幅 1 ・ 角丸 8"
+  },
+  {
+   "what": "段B：辺 ・ 囲み ・ 名前のラベルの帯",
+   "from": "線の無い #F5F7F9 の矩形",
+   "to": "badge：#F8FAF9 ・ 線 #111D1A ・ 幅 1 ・ 角丸 3"
+  },
+  {
+   "what": "段B：系列の色",
+   "from": "#16636B ・ #9A4A21 ・ #7A4368 ・ #8A8F98 と角丸 3",
+   "to": "series-1〜3（kind-1〜3）。角丸を外す"
+  },
+  {
+   "what": "段B：円グラフの輪",
+   "from": "ストローク幅 24 の円弧",
+   "to": "塗りつぶした円弧のパス（series-1〜3）"
+  },
+  {
+   "what": "段B：棒と帯の背景 ・ 流量の節点の棒",
+   "from": "#E4E9EE（流量の棒は #79828F）の塗り",
+   "to": "box"
+  },
+  {
+   "what": "段B：軸 ・ 罫線 ・ ライフライン",
+   "from": "#C3CAD2 か #E4E9EE、ライフラインは破線（3 4）",
+   "to": "grid：#7C8C86 ・ 幅 1 の実線"
+  },
+  {
+   "what": "段B：やり取りの場合の区切り",
+   "from": "accent の破線（5 4）",
+   "to": "link：#5B6B66 ・ 幅 1 の実線"
+  },
+  {
+   "what": "段B：表",
+   "from": "見出しの帯 #E2EFF0 ・ 外枠 #C3CAD2 ・ 罫線 #E4E9EE",
+   "to": "見出しの帯 box focus ・ 外枠 area ・ 罫線 grid"
+  },
+  {
+   "what": "段B：文字",
+   "from": "#79828F の 10 ・ バッジの 9 ・ 12.0",
+   "to": "note small（#5B6B66 の 10）・ バッジも 10 ・ 12。label は #111D1A"
+  },
+  {
+   "what": "段B：形の部品（path ・ boolean）",
+   "from": "accent の塗りと線 1.2",
+   "to": "box focus（accent-bg の塗り ・ accent の線 2）"
+  },
+  {
+   "what": "段B：サイズを上書きした golden",
+   "from": "13件（フォント 25 ・ 30 ・ 9.6 などの事例）",
+   "to": "色の上書きの事例に作り直した。横に長い図には min-width を足す"
+  },
+  {
+   "what": "終了基準（コンポーネント）",
+   "from": "—",
+   "to": "theme.json の契約テストが全件合格 ・ 検査1と2のパーティション（無効を含む）・ 検査3の全ての組 ・ 検査4の境界値と隣接値をすべて通過"
+  },
+  {
+   "what": "終了基準（コンポーネント統合）",
+   "from": "—",
+   "to": "段Aで figure 9組 ・ chart 20組が旧 golden と一致。段Bの値の一覧（この表）の承認と、全件の検査1〜4が0件"
+  },
+  {
+   "what": "終了基準（システム）",
+   "from": "—",
+   "to": "CLI と MCP の resolve の 0 ・ 1 ・ 2 と、canvas が無いことが合格"
+  },
+  {
+   "what": "終了基準（受け入れ）",
+   "from": "—",
+   "to": "変換した21個が検査0件で、足した1件と合わせて全 class を使う。利用者が目視で「統一されている」と判定し、T を theme.json に記録する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は宣言から部品ごとの値の SVG を作っていた。変更後は、作成者の SVG も figure ・ chart の出力も、検査1〜3 → 解決 → 検査4の同じ順に通る",
+ "alternatives": [
+  {
+   "option": "デザイントークンだけを固定し、値を検査する",
+   "why_not": "論点1で、スタイルごとの意味も統一すると決めた。値だけでは ddd-3 の warn のように、同じ色を別の意味で使っても通る"
+  },
+  {
+   "option": "値を直接記述させ、トークンの中にあるかを検査する",
+   "why_not": "論点2で除外した。同じ値が別の意味で使われても検出しない"
+  },
+  {
+   "option": "CSS 変数（var(--accent) など）で記述させる",
+   "why_not": "論点2で除外した。単独の .svg では fill が黒になり、ブレストボードのページには変数が無い"
+  },
+  {
+   "option": "ライトモードの値だけを出力し、ダークモードは埋め込み先のページが class で上書きする",
+   "why_not": "論点3で除外した。ページごとに同じ CSS ルールを持つことになり、単独の .svg にはページが無い"
+  },
+  {
+   "option": "chart の出力だけを検査の例外にする",
+   "why_not": "論点3で除外した。chart の出力だけが統一の外になる"
+  },
+  {
+   "option": "表示用のフォントサイズのトークンと class metric を足す",
+   "why_not": "論点3で除外した。25 と 30 はサイズを上書きした事例だけに出る"
+  },
+  {
+   "option": "作成者が marker を記述し、class arrowhead を付ける",
+   "why_not": "論点3で除外した。marker の中の値が検査2の外に残る。21個の marker は31個とも同じ形だった"
+  },
+  {
+   "option": "canvas を残す",
+   "why_not": "論点5で除外した。31件の宣言で使用は0件で、作成者が SVG を直接記述する方法と同じ目的になる"
+  },
+  {
+   "option": "figure と chart の出力をいまのまま（独自の class）にする",
+   "why_not": "論点5で除外した。検査1を通らず、同じ design-svg から2種類の出力が出る"
+  },
+  {
+   "option": "golden を1回で丸ごと差し替える",
+   "why_not": "qa-advisor の指摘。class の付与と値の変換が1つの差分に混ざり、退行を見落とす。段Aと段Bに分けた"
+  },
+  {
+   "option": "T を 9px にする",
+   "why_not": "21個のうち9個が min-width を広げることになり、利用者が統一されていると判定した図の横スクロールが増える"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "_claude_skills_design_svg_SKILL_md",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/design-svg/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "作成者が記述した SVG を、図のデザインシステムで統一し、検査して返す。",
+     "why": "論点5の決定：目的を「宣言から生成する」から「作成者が記述した SVG を、図のデザインシステムで統一し、検査して返す」へ変える",
+     "before": "（無かった）"
+    },
+    {
+     "find": "図のデザインシステムを確認する",
+     "why": "手順を、class の一覧の確認 → SVG の記述 → resolve → 一覧の目視 → 描画の目視にする。figure と chart は任意の手段として Step 6 に移す",
+     "before": "（無かった）"
+    },
+    {
+     "find": "色 ・ ストローク幅 ・ 角丸の半径 ・ 破線のパターン ・ フォントサイズの値を記述しない。class で指定する",
+     "why": "ガードレールを、値を書かない ・ 一覧に無い class を使わない ・ 同じ class を同じ意味で使う ・ サイズを上書きしないへ変える",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_README_md",
+   "tab": "README.md",
+   "file": ".claude/skills/design-svg/README.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "作成者が記述した SVG の class を、図のデザインシステムの値へ解決し、検査1〜4を通して返す描画エンジン。",
+     "why": "エンジンの入口の説明を、SKILL.md の新しい目的に合わせ、canvas と役割の説明を外す",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_theme_json",
+   "tab": "references/theme.json",
+   "file": ".claude/skills/design-svg/references/theme.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"整数と小数を書き分ける ── 素のまま SVG へ出す値は、書き方がそのまま出力に現れる。\",",
+     "before": "\"整数と小数を書き分ける ── 素のまま SVG へ出す値は、書き方がそのまま出力に現れる。\"",
+     "why": "class の一覧を theme.json に置く理由を why に足す（作成者は値を書かず class を指定し、design-svg が値へ解決する）"
+    },
+    {
+     "find": "\"size.stroke-width\": 1.5,",
+     "before": "\"size.stroke-width\": 1.2,",
+     "why": "配色を、ブレストボード ・ ACDR ・ ギャラリーと同じ teal ・ amber ・ plum の系統にする（利用者の判断）。カテゴリ色 kind-1〜3 を足し、ストローク幅を 1.5 と 2 の段階へ寄せる"
+    },
+    {
+     "find": "\"font.size-note\": 11,",
+     "before": "\"font.size-display\": 29,",
+     "why": "フォントサイズは 10 ・ 11 ・ 12 ・ 13 の4段階で、表示用のサイズ（29）は持たない（論点3の追加1-2）。注記の 11 と名前の 13 のトークンを足す"
+    },
+    {
+     "find": "\"size.stroke-width-thin\": 1,",
+     "before": "\"size.stroke-width-thin\": 1.1,",
+     "why": "補助の線を 1.1 から 1 へ寄せる。canvas と一緒に消した部品だけが使っていたトークンを外す"
+    },
+    {
+     "find": "\"role.muted.stroke-dasharray\": \"size.dash\",",
+     "before": "\"role.muted.stroke-dasharray\": \"4 3\"",
+     "why": "破線のパターンを size.dash の1つに集める。役割 warn ・ kind-1〜3 を class の修飾と同じ名前で足す"
+    },
+    {
+     "find": "400.0",
+     "before": "\"size.rule-width\": [",
+     "why": "消したトークンの値の範囲を外す"
+    },
+    {
+     "find": "\"scale\": {",
+     "before": "\"色 ── 役割(role)ごとの塗り・線\"",
+     "why": "論点3の決定の本体である。段階 ・ class の一覧 ・ 禁止した組み合わせ ・ ダークモードの値 ・ 矢じり ・ 検査4のしきい値を theme.json に固定する。box の線は teal にする"
+    },
+    {
+     "find": "\"font.size-display\": [",
+     "before": "\"font.size-display\": [",
+     "why": "消したトークンの値の範囲を外す"
+    },
+    {
+     "find": "\"量を描く部品（円・棒・散布図など）が使う色の並び。値はカテゴリ色 kind-1〜3 と同じで、出力では class series-1〜3 が色を決める。\",",
+     "before": "\"size.decor-title-w\": [",
+     "why": "chart.tones の注記を、出力では series-1〜3 が色を決めることに合わせる"
+    },
+    {
+     "find": "\"装飾の罫・下線\"",
+     "before": "\"size.rule-width\": [",
+     "why": "消したトークンの注記を外す"
+    },
+    {
+     "find": "\"color.kind-1\": [",
+     "before": "（無かった）",
+     "why": "足したトークンの注記を書く。カテゴリ色の選び方とコントラスト比の条件を残す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_theme_schema_json",
+   "tab": "references/theme.schema.json",
+   "file": ".claude/skills/design-svg/references/theme.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"description\": \"トークンの名前と値の対応 ・ 値の範囲 ・ 色の濃さの呼び名 ・ class の一覧（図の表記法）・ 禁止した組み合わせ ・ ダークモードの値 ・ 検査のしきい値。部品のコードと作成者の SVG は値を持たず、ここを読む\",",
+     "why": "足した6つの欄（scale ・ classes ・ forbidden ・ dark ・ marker ・ checks）の形をスキーマで決め、design-svg validate が検査できるようにする",
+     "before": "\"description\": \"トークンの名前と値の対応 ・ 値の範囲 ・ 色の濃さの呼び名。部品のコードは色 ・ 寸法 ・ 角丸 ・ 書体の値を持たず、ここを読む\","
+    },
+    {
+     "find": "\"scale\": {",
+     "why": "足した6つの欄（scale ・ classes ・ forbidden ・ dark ・ marker ・ checks）の形をスキーマで決め、design-svg validate が検査できるようにする",
+     "before": "（無かった）"
+    },
+    {
+     "find": "\"forbidden\",",
+     "before": "（無かった）",
+     "why": "足した6つの欄を必須にする ── 欠けた theme.json を design-svg validate が断る"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_catalog_rs",
+   "tab": "tool/business_logic/src/catalog.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/catalog.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"divider\",",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "("
+    },
+    {
+     "find": "\"gradient_rect\",",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "("
+    },
+    {
+     "find": "\"panel\",",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "("
+    },
+    {
+     "find": "\"text\",",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "("
+    },
+    {
+     "find": "\"box\": {}, \"hex\": {},",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "\"box\": {}, \"hex\": {}, \"dot\": {}, \"icon\": {\"name\": \"check\"},"
+    },
+    {
+     "find": "\"title\": {\"text\": \"見出し\"}, \"divider\": {\"width\": 120},",
+     "why": "論点5の決定で canvas を消す。canvas のためだけにあった意匠の部品（divider ・ dot ・ gradient_rect ・ icon ・ panel ・ text ・ title）を目録から外す",
+     "before": "\"title\": {\"text\": \"見出し\"}, \"divider\": {\"width\": 120},"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_lib_rs",
+   "tab": "tool/business_logic/src/lib.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod checks;",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "pub mod canvas;"
+    },
+    {
+     "find": "pub mod publish;",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "pub mod shapes_decor;"
+    },
+    {
+     "find": "all.extend(shapes_decor::register());",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "all.extend(shapes_decor::register());"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_rs",
+   "tab": "tool/business_logic/src/shapes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "(\"panel\", panel),",
+     "why": "canvas と一緒に、面（panel）と点（dot）の部品を外す",
+     "before": "(\"panel\", panel),"
+    },
+    {
+     "find": "\"<g class=\\\"wf-head\\\"><path class=\\\"link\\\" d=\\\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{sw}\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/></g>\"",
+     "why": "開いた矢じりは、向きの無い線（link）に形を足して描く。wf-head は g へ移す ── 検査1は図形の class が一覧に在ることを求める",
+     "before": "\"<path class=\\\"wf-head\\\" d=\\\"M{hx1:.1},{hy1:.1} L{x2:.1},{y2:.1} L{hx2:.1},{hy2:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{sw}\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"/>\""
+    },
+    {
+     "find": "\"<g class=\\\"wf-head\\\"><path class=\\\"link\\\" d=\\\"M{x2:.1},{y2:.1} A{r:.1},{r:.1} 0 0 1 {ex:.1},{ey:.1} L{bx:.1},{by:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{sw}\\\" stroke-linecap=\\\"round\\\"/></g>\"",
+     "why": "かぎも同じく link にし、wf-head を g へ移す",
+     "before": "\"<path class=\\\"wf-head\\\" d=\\\"M{x2:.1},{y2:.1} A{r:.1},{r:.1} 0 0 1 {ex:.1},{ey:.1} L{bx:.1},{by:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{sw}\\\" stroke-linecap=\\\"round\\\"/>\""
+    },
+    {
+     "find": "let (box_class, text_class) = crate::classes::role_classes(&role);",
+     "why": "節点の role から、箱とテキストの class を決める（muted は boundary）",
+     "before": "（無かった）"
+    },
+    {
+     "find": "\"<text class=\\\"{text_class}\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" font-weight=\\\"{weight}\\\" fill=\\\"{text_color}\\\">{}</text>\",",
+     "why": "箱のテキストに class を出力する（段A）",
+     "before": "\"<text x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" font-weight=\\\"{weight}\\\" fill=\\\"{text_color}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<g class=\\\"svg-box\\\" role=\\\"{role}\\\"><rect class=\\\"{box_class}\\\" x=\\\"0\\\" y=\\\"0\\\" width=\\\"{w:.1}\\\" height=\\\"{h:.1}\\\" rx=\\\"{}\\\" fill=\\\"{fill}\\\" stroke=\\\"{stroke}\\\" stroke-width=\\\"{}\\\"{dash}/>{texts}</g>\",",
+     "why": "箱の矩形に class を出力する（段A）",
+     "before": "\"<g class=\\\"svg-box\\\" role=\\\"{role}\\\"><rect x=\\\"0\\\" y=\\\"0\\\" width=\\\"{w:.1}\\\" height=\\\"{h:.1}\\\" rx=\\\"{}\\\" fill=\\\"{fill}\\\" stroke=\\\"{stroke}\\\" stroke-width=\\\"{}\\\"{dash}/>{texts}</g>\","
+    },
+    {
+     "find": "// 塗った矢じりは flow の marker で描く。開いた矢じりとかぎは、向きの無い線に形を足して描く",
+     "why": "塗った矢じりは描かず、解決が flow の class から marker を足す（段B）。辺は向きがあれば flow、無ければ link、破線は async",
+     "before": "（無かった）"
+    },
+    {
+     "find": "\"<rect class=\\\"badge\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{text_w:.1}\\\" height=\\\"{:.1}\\\" fill=\\\"{}\\\"/><text class=\\\"note small\\\" x=\\\"{mx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "辺のラベルの帯をバッジ（badge）にし、文字を note small にする",
+     "before": "\"<rect x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{text_w:.1}\\\" height=\\\"{:.1}\\\" fill=\\\"{}\\\"/><text x=\\\"{mx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<path class=\\\"{line_class}\\\" d=\\\"{path_d}\\\" fill=\\\"none\\\" stroke=\\\"{color}\\\" stroke-width=\\\"{}\\\"{dash}/>{marker}{label_svg}\",",
+     "why": "辺の線に class を出力する",
+     "before": "\"<path d=\\\"{path_d}\\\" fill=\\\"none\\\" stroke=\\\"{color}\\\" stroke-width=\\\"{}\\\"{dash}/>{marker}{label_svg}\","
+    },
+    {
+     "find": "\"<rect class=\\\"badge\\\" x=\\\"{x:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{text_w:.1}\\\" height=\\\"{card_h:.1}\\\" fill=\\\"{}\\\"/><text class=\\\"label small focus\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "囲みのラベルの帯をバッジにし、文字を label small focus にする",
+     "before": "\"<rect x=\\\"{x:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{text_w:.1}\\\" height=\\\"{card_h:.1}\\\" fill=\\\"{}\\\"/><text x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "/// 区画を示す囲み（class area）。**ラベルは描かない** ── ラベルは線より後に描く必要があり、置き場所も",
+     "why": "囲みは破線の accent から、グループの領域（area）にする。破線は外部 ・ 境界と非同期の意味なので使わない（段B）",
+     "before": "/// 区画を示す破線の囲み。**ラベルは描かない** ── ラベルは線より後に描く必要があり、置き場所も"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_freeform_rs",
+   "tab": "tool/business_logic/src/shapes_freeform.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_freeform.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let class = if filled { \"box focus\" } else { \"link focus\" };",
+     "why": "任意の形と形の演算の出力に class（塗りなら box focus、線なら link focus）を付ける",
+     "before": "\"<g transform=\\\"translate({:.2},{:.2})\\\"><path d=\\\"{d}\\\" fill=\\\"{fill}\\\" stroke=\\\"{stroke}\\\" stroke-width=\\\"{}\\\"/></g>\","
+    },
+    {
+     "find": "\"<path class=\\\"box focus\\\" d=\\\"{}\\\" fill=\\\"{fill}\\\" fill-rule=\\\"evenodd\\\"/>\",",
+     "why": "任意の形と形の演算の出力に class（塗りなら box focus、線なら link focus）を付ける",
+     "before": "\"<path d=\\\"{}\\\" fill=\\\"{fill}\\\" fill-rule=\\\"evenodd\\\"/>\","
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_hex_rs",
+   "tab": "tool/business_logic/src/shapes_hex.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_hex.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"<g class=\\\"svg-box\\\"><polygon class=\\\"box\\\" points=\\\"{pts}\\\" fill=\\\"{}\\\" stroke=\\\"{}\\\" stroke-width=\\\"{}\\\"/><text class=\\\"label\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text></g>\",",
+     "why": "六角形の箱とラベルに class を付ける",
+     "before": "\"<g class=\\\"svg-box\\\"><polygon points=\\\"{pts}\\\" fill=\\\"{}\\\" stroke=\\\"{}\\\" stroke-width=\\\"{}\\\"/><text x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text></g>\","
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_interaction_rs",
+   "tab": "tool/business_logic/src/shapes_interaction.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_interaction.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"<rect class=\\\"area\\\" x=\\\"{}\\\" y=\\\"{top:.1}\\\" width=\\\"{:.1}\\\" height=\\\"{:.1}\\\" rx=\\\"{}\\\" fill=\\\"none\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "やり取りの囲みをグループの領域（area）にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{top:.1}\\\" width=\\\"{:.1}\\\" height=\\\"{:.1}\\\" rx=\\\"{}\\\" fill=\\\"none\\\" stroke=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "let tab_w = (text::width(&label, fs_small) + fs_small).min(w - pad * 2.0);",
+     "why": "バッジの文字を 9 から 10（small）へ寄せ、幅も 10 で測る ── 9 はフォントサイズの段階に無い",
+     "before": "let tab_w = (text::width(&label, fs_small - 1.0) + fs_small).min(w - pad * 2.0);"
+    },
+    {
+     "find": "\"<line class=\\\"link\\\" x1=\\\"{}\\\" y1=\\\"{head_y:.1}\\\" x2=\\\"{}\\\" y2=\\\"{head_y:.1}\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "場合の区切りの線を link にし、破線（5 4）を外す。破線は非同期と外部 ・ 境界の意味である",
+     "before": "\"<line x1=\\\"{}\\\" y1=\\\"{head_y:.1}\\\" x2=\\\"{}\\\" y2=\\\"{head_y:.1}\\\" stroke=\\\"{}\\\" stroke-dasharray=\\\"5 4\\\"/>\","
+    },
+    {
+     "find": "\"<line class=\\\"grid\\\" x1=\\\"{cx:.1}\\\" y1=\\\"{:.1}\\\" x2=\\\"{cx:.1}\\\" y2=\\\"{:.1}\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "ライフラインを補助線（grid）にし、破線（3 4）を外す",
+     "before": "\"<line x1=\\\"{cx:.1}\\\" y1=\\\"{:.1}\\\" x2=\\\"{cx:.1}\\\" y2=\\\"{:.1}\\\" stroke=\\\"{}\\\" stroke-dasharray=\\\"3 4\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"box\\\" x=\\\"{:.1}\\\" y=\\\"{}\\\" width=\\\"{}\\\" height=\\\"{}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "参加者の箱を box にする",
+     "before": "\"<rect x=\\\"{:.1}\\\" y=\\\"{}\\\" width=\\\"{}\\\" height=\\\"{}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\" stroke=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<text class=\\\"label\\\" x=\\\"{cx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "参加者の名前を label にする",
+     "before": "\"<text x=\\\"{cx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<path class=\\\"flow\\\" d=\\\"M{xa:.1},{y1:.1} H{:.1} V{y2:.1} H{xa:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{}\\\"/>\",",
+     "why": "自分への矢印を flow にする。矢じりは解決が marker で足す",
+     "before": "\"<path d=\\\"M{xa:.1},{y1:.1} H{:.1} V{y2:.1} H{xa:.1}\\\" fill=\\\"none\\\" stroke=\\\"{ink}\\\" stroke-width=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "let line_class = if dashed { \"flow async\" } else { \"flow\" };",
+     "why": "メッセージは flow、戻りは flow async にする",
+     "before": "\"<line x1=\\\"{xa:.1}\\\" y1=\\\"{y:.1}\\\" x2=\\\"{xb:.1}\\\" y2=\\\"{y:.1}\\\" stroke=\\\"{}\\\" stroke-width=\\\"{}\\\"{dash_attr}/>\","
+    },
+    {
+     "find": "\"<text class=\\\"note small\\\" x=\\\"{mx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "メッセージのラベルを note small にする",
+     "before": "\"<text x=\\\"{mx:.1}\\\" y=\\\"{:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "<text class=\\\"label\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" font-weight",
+     "before": "（無かった）",
+     "why": "場合の見出しを label にする"
+    },
+    {
+     "find": "<line class=\\\"{line_class}\\\" x1=\\\"{xa:.1}\\\"",
+     "before": "（無かった）",
+     "why": "メッセージの線に class（flow ・ flow async）を出力する"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_quantity_rs",
+   "tab": "tool/business_logic/src/shapes_quantity.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_quantity.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let small = style.num(\"font.size-small\")?;",
+     "why": "量のグラフの文字の class を、色のトークンと小さい文字かどうかから決める（classes::text_class）",
+     "before": "_ => style.num(\"font.size-small\")?,"
+    },
+    {
+     "find": "// **輪は、太い線ではなく塗りつぶした円弧で描く** ── 線の太さはストローク幅の段階に収まらない",
+     "why": "論点3の追加1-1：円グラフの輪を、太いストローク（24）ではなく塗りつぶした円弧のパス（series-1〜3）で描く",
+     "before": "let arc = |a0: f64, a1: f64| -> String {"
+    },
+    {
+     "find": "\"<rect class=\\\"{}\\\" x=\\\"{}\\\" y=\\\"{:.1}\\\" width=\\\"{}\\\" height=\\\"{}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "系列の色を series-1〜3 にし、series が持たない角丸の半径（rx）を外す ── 外さないと検査2が検出する",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{:.1}\\\" width=\\\"{}\\\" height=\\\"{}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<line class=\\\"grid\\\" x1=\\\"{}\\\" y1=\\\"{plot_top:.1}\\\" x2=\\\"{}\\\" y2=\\\"{:.1}\\\" stroke=\\\"{axis}\\\"/>\",",
+     "why": "軸の線を補助線（grid）にする",
+     "before": "\"<line x1=\\\"{}\\\" y1=\\\"{plot_top:.1}\\\" x2=\\\"{}\\\" y2=\\\"{:.1}\\\" stroke=\\\"{axis}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"{}\\\" x=\\\"{bx:.1}\\\" y=\\\"{by:.1}\\\" width=\\\"{}\\\" height=\\\"{bh:.1}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "系列の色を series-1〜3 にし、series が持たない角丸の半径（rx）を外す ── 外さないと検査2が検出する",
+     "before": "\"<rect x=\\\"{bx:.1}\\\" y=\\\"{by:.1}\\\" width=\\\"{}\\\" height=\\\"{bh:.1}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"box\\\" x=\\\"{}\\\" y=\\\"{track_y:.1}\\\" width=\\\"{}\\\" height=\\\"{track_h:.1}\\\" rx=\\\"{radius}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "区間の帯の背景を box にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{track_y:.1}\\\" width=\\\"{}\\\" height=\\\"{track_h:.1}\\\" rx=\\\"{radius}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"box\\\" x=\\\"{}\\\" y=\\\"{:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" rx=\\\"{radius}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "区間の帯の背景を box にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" rx=\\\"{radius}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"{}\\\" x=\\\"{bx:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{bwid:.1}\\\" height=\\\"{:.1}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "系列の色を series-1〜3 にし、series が持たない角丸の半径（rx）を外す ── 外さないと検査2が検出する",
+     "before": "\"<rect x=\\\"{bx:.1}\\\" y=\\\"{:.1}\\\" width=\\\"{bwid:.1}\\\" height=\\\"{:.1}\\\" rx=\\\"{radius}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<line class=\\\"grid\\\" x1=\\\"{}\\\" y1=\\\"{ay:.1}\\\" x2=\\\"{}\\\" y2=\\\"{ay:.1}\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "軸の線を補助線（grid）にする",
+     "before": "\"<line x1=\\\"{}\\\" y1=\\\"{ay:.1}\\\" x2=\\\"{}\\\" y2=\\\"{ay:.1}\\\" stroke=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<line class=\\\"grid\\\" x1=\\\"{}\\\" y1=\\\"{}\\\" x2=\\\"{}\\\" y2=\\\"{}\\\" stroke=\\\"{axis}\\\"/>\",",
+     "why": "軸の線を補助線（grid）にする",
+     "before": "\"<line x1=\\\"{}\\\" y1=\\\"{}\\\" x2=\\\"{}\\\" y2=\\\"{}\\\" stroke=\\\"{axis}\\\"/>\","
+    },
+    {
+     "find": "\"<circle class=\\\"{}\\\" cx=\\\"{px:.1}\\\" cy=\\\"{py:.1}\\\" r=\\\"{}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "散布図の点を series-1 にする",
+     "before": "\"<circle cx=\\\"{px:.1}\\\" cy=\\\"{py:.1}\\\" r=\\\"{}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<text class=\\\"note small\\\" x=\\\"{label_x}\\\" y=\\\"{cy:.1}\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {label_x} {cy:.1})\\\">{}</text>\",",
+     "why": "回転した軸の名前を note small にする",
+     "before": "\"<text x=\\\"{label_x}\\\" y=\\\"{cy:.1}\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {label_x} {cy:.1})\\\">{}</text>\","
+    },
+    {
+     "find": "\"<path class=\\\"{}\\\" d=\\\"M{sx},{a:.1} C{sm},{a:.1} {sm},{b:.1} {sr},{b:.1} L{sr},{:.1} C{sm},{:.1} {sm},{:.1} {sx},{:.1} Z\\\" fill=\\\"{}\\\" opacity=\\\"{opacity}\\\"/>\",",
+     "why": "流量のリボンを series-1〜3 にする",
+     "before": "\"<path d=\\\"M{sx},{a:.1} C{sm},{a:.1} {sm},{b:.1} {sr},{b:.1} L{sr},{:.1} C{sm},{:.1} {sm},{:.1} {sx},{:.1} Z\\\" fill=\\\"{}\\\" opacity=\\\"{opacity}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"box\\\" x=\\\"{}\\\" y=\\\"{y0:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" fill=\\\"{faint}\\\"/>\",",
+     "why": "流量の図の節点の棒を box にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{y0:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" fill=\\\"{faint}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"box\\\" x=\\\"{}\\\" y=\\\"{y0:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" fill=\\\"{faint}\\\"/>\",",
+     "why": "流量の図の節点の棒を box にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{y0:.1}\\\" width=\\\"{}\\\" height=\\\"{:.1}\\\" fill=\\\"{faint}\\\"/>\","
+    },
+    {
+     "find": "\"<rect class=\\\"area\\\" x=\\\"{left:.1}\\\" y=\\\"{topb:.1}\\\" width=\\\"{grid_w:.1}\\\" height=\\\"{grid_h:.1}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\" opacity=\\\"{}\\\"/>\",",
+     "why": "空間の図の地をグループの領域（area）にする",
+     "before": "\"<rect x=\\\"{left:.1}\\\" y=\\\"{topb:.1}\\\" width=\\\"{grid_w:.1}\\\" height=\\\"{grid_h:.1}\\\" rx=\\\"{}\\\" fill=\\\"{}\\\" opacity=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<text class=\\\"note small\\\" x=\\\"{ax:.1}\\\" y=\\\"{cy:.1}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {ax:.1} {cy:.1})\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "回転した軸の名前を note small にする",
+     "before": "\"<text x=\\\"{ax:.1}\\\" y=\\\"{cy:.1}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {ax:.1} {cy:.1})\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<rect class=\\\"{}\\\" x=\\\"{}\\\" y=\\\"{}\\\" width=\\\"{}\\\" height=\\\"{}\\\" rx=\\\"{}\\\" fill=\\\"{fill}\\\" stroke=\\\"{stroke}\\\"/>\",",
+     "why": "空間の図の区画を box ・ box focus にする",
+     "before": "\"<rect x=\\\"{}\\\" y=\\\"{}\\\" width=\\\"{}\\\" height=\\\"{}\\\" rx=\\\"{}\\\" fill=\\\"{fill}\\\" stroke=\\\"{stroke}\\\"/>\","
+    },
+    {
+     "find": "width=\\\"{fill_w:.1}\\\"",
+     "before": "（無かった）",
+     "why": "順位の棒を series-1 にし、series が持たない角丸を外す。区間の帯の背景を box にする"
+    },
+    {
+     "find": "stroke=\\\"{axis}\\\"/>\",",
+     "before": "（無かった）",
+     "why": "散布図の軸を補助線（grid）にする"
+    },
+    {
+     "find": "stroke=\\\"{axis}\\\"/>\",",
+     "before": "（無かった）",
+     "why": "同上（もう1本の軸）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_table_rs",
+   "tab": "tool/business_logic/src/shapes_table.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_table.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"<g transform=\\\"translate({left:.1},{top:.1})\\\"><rect class=\\\"box focus\\\" x=\\\"0\\\" y=\\\"0\\\" width=\\\"{grid_w:.1}\\\" height=\\\"{row_h:.1}\\\" fill=\\\"{}\\\"/>\",",
+     "why": "表の見出しの行を box focus にし、見出しの文字を label small focus にする",
+     "before": "\"<g transform=\\\"translate({left:.1},{top:.1})\\\"><rect x=\\\"0\\\" y=\\\"0\\\" width=\\\"{grid_w:.1}\\\" height=\\\"{row_h:.1}\\\" fill=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<line class=\\\"grid\\\" x1=\\\"0\\\" y1=\\\"{y:.1}\\\" x2=\\\"{w:.1}\\\" y2=\\\"{y:.1}\\\" stroke=\\\"{}\\\"/>\",",
+     "why": "表の罫線（grid）・ 外枠（area）・ 文字（label ・ note small）に class を付ける",
+     "before": "\"<line x1=\\\"0\\\" y1=\\\"{y:.1}\\\" x2=\\\"{w:.1}\\\" y2=\\\"{y:.1}\\\" stroke=\\\"{}\\\"/>\","
+    },
+    {
+     "find": "\"<text class=\\\"label\\\" x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "表の罫線（grid）・ 外枠（area）・ 文字（label ・ note small）に class を付ける",
+     "before": "\"<text x=\\\"{:.1}\\\" y=\\\"{:.1}\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<rect class=\\\"area\\\" x=\\\"0.5\\\" y=\\\"0.5\\\" width=\\\"{:.1}\\\" height=\\\"{:.1}\\\" fill=\\\"none\\\" stroke=\\\"{}\\\"/></g>\",",
+     "why": "表の罫線（grid）・ 外枠（area）・ 文字（label ・ note small）に class を付ける",
+     "before": "\"<rect x=\\\"0.5\\\" y=\\\"0.5\\\" width=\\\"{:.1}\\\" height=\\\"{:.1}\\\" fill=\\\"none\\\" stroke=\\\"{}\\\"/></g>\","
+    },
+    {
+     "find": "\"<text class=\\\"note small\\\" x=\\\"{left:.1}\\\" y=\\\"{:.1}\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "表の罫線（grid）・ 外枠（area）・ 文字（label ・ note small）に class を付ける",
+     "before": "\"<text x=\\\"{left:.1}\\\" y=\\\"{:.1}\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    },
+    {
+     "find": "\"<text class=\\\"note small\\\" x=\\\"{x:.1}\\\" y=\\\"{cy:.1}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {x:.1} {cy:.1})\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\",",
+     "why": "表の罫線（grid）・ 外枠（area）・ 文字（label ・ note small）に class を付ける",
+     "before": "\"<text x=\\\"{x:.1}\\\" y=\\\"{cy:.1}\\\" text-anchor=\\\"middle\\\" transform=\\\"rotate(-90 {x:.1} {cy:.1})\\\" font-family=\\\"{family}\\\" font-size=\\\"{}\\\" fill=\\\"{}\\\">{}</text>\","
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_shapes_titled_rs",
+   "tab": "tool/business_logic/src/shapes_titled.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/shapes_titled.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"<g><rect class=\\\"badge\\\" x=\\\"{:.1}\\\" y=\\\"{band_top:.1}\\\" width=\\\"{band_w:.1}\\\" height=\\\"{band_h:.1}\\\" fill=\\\"{}\\\"/><text class=\\\"label small\\\" x=\\\"{:.1}\\\" y=\\\"{base:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" font-weight=\\\"{}\\\" fill=\\\"{}\\\">{}</text><g transform=\\\"translate({dx:.1},{lead:.1})\\\">{}</g></g>\",",
+     "why": "名前の帯をバッジにし、名前を label small にする",
+     "before": "\"<g><rect x=\\\"{:.1}\\\" y=\\\"{band_top:.1}\\\" width=\\\"{band_w:.1}\\\" height=\\\"{band_h:.1}\\\" fill=\\\"{}\\\"/><text x=\\\"{:.1}\\\" y=\\\"{base:.1}\\\" text-anchor=\\\"middle\\\" font-family=\\\"{}\\\" font-size=\\\"{}\\\" font-weight=\\\"{}\\\" fill=\\\"{}\\\">{}</text><g transform=\\\"translate({dx:.1},{lead:.1})\\\">{}</g></g>\","
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_theme_rs",
+   "tab": "tool/business_logic/src/theme.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/theme.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// 図の表記法 ── class の一覧 ・ 段階 ・ 禁止した組み合わせ ・ ダークモードの値 ・ 矢じり ・ 検査のしきい値。",
+     "why": "theme.json の新しい欄（図の表記法）を読み、classes.rs へ渡す",
+     "before": "（無かった）"
+    },
+    {
+     "find": "let notation = [\"scale\", \"classes\", \"forbidden\", \"dark\", \"marker\", \"checks\"]",
+     "why": "theme.json の新しい欄（図の表記法）を読み、classes.rs へ渡す",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_verify_rs",
+   "tab": "tool/business_logic/src/verify.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/verify.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "} else if el.classes().contains(&\"area\")",
+     "why": "囲みを、破線ではなく class area で検出する",
+     "before": "} else if el.get(\"stroke-dasharray\").is_some_and(|v| !v.is_empty())"
+    },
+    {
+     "find": "in_head: bool,",
+     "why": "開いた矢じりを g の wf-head へ移したので、子へ印を受け継ぐ",
+     "before": "（無かった）"
+    },
+    {
+     "find": "let head = in_head || el.get(\"class\").unwrap_or(\"\").contains(\"wf-head\");",
+     "why": "同上",
+     "before": "let head = el.get(\"class\").unwrap_or(\"\").contains(\"wf-head\");"
+    },
+    {
+     "find": "walk(ch, dx, dy, sc, inside_node, head, all_ink, seen, faults);",
+     "why": "同上",
+     "before": "walk(ch, dx, dy, sc, inside_node, all_ink, seen, faults);"
+    },
+    {
+     "find": "false,",
+     "why": "同上",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_xml_rs",
+   "tab": "tool/business_logic/src/xml.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/xml.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// class 属性の名前を並べる。**無ければ空。**",
+     "why": "class を並べる ・ 属性を置く ・ 外す処理を足す（解決が使う）",
+     "before": "（無かった）"
+    },
+    {
+     "find": "/// 属性の値を実体参照にする。",
+     "why": "解決した木を SVG の文字列へ書き戻す処理を足す",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_contracts_rs",
+   "tab": "tool/business_logic/tests/contracts.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/contracts.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const LAYER: [(&str, u8); 35] = [",
+     "why": "足したモジュールを層に配る（classes は層0、resolve は層1、publish は層3、checks は検査の軸）。消したモジュールを外す",
+     "before": "const LAYER: [(&str, u8); 34] = ["
+    },
+    {
+     "find": "// 図の表記法 ── class の一覧を theme.json から読むだけ",
+     "why": "足したモジュールを層に配る（classes は層0、resolve は層1、publish は層3、checks は検査の軸）。消したモジュールを外す",
+     "before": "（無かった）"
+    },
+    {
+     "find": "// class を値へ解決する",
+     "why": "足したモジュールを層に配る（classes は層0、resolve は層1、publish は層3、checks は検査の軸）。消したモジュールを外す",
+     "before": "(\"shapes_decor\", 2),"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_golden_rs",
+   "tab": "tool/business_logic/tests/golden.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/golden.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 固定した事例 ── **figure と chart の出力を、1バイトも変えずに保つ。**",
+     "why": "固定した出力が検査1〜4を通ることを縛る。検査1〜3は class が持つ値を外した中間の SVG に、検査4は解決のあとに適用する",
+     "before": "//! 固定した事例 ── **Python から移したときの出力を、1バイトも変えずに保つ。**"
+    },
+    {
+     "find": "\"canvas\" => ds_business_logic::canvas::render_canvas(",
+     "why": "canvas の事例を消す",
+     "before": "\"canvas\" => ds_business_logic::canvas::render_canvas("
+    },
+    {
+     "find": "Some(theme),",
+     "why": "figure と chart を、解決と検査1〜4を通した出力で固定する（段B）",
+     "before": "Some(&theme),"
+    },
+    {
+     "find": "fn cases() -> Vec<PathBuf> {",
+     "why": "figure と chart を、解決と検査1〜4を通した出力で固定する（段B）",
+     "before": "Some(&theme),"
+    },
+    {
+     "find": "fn stem(p: &std::path::Path) -> String {",
+     "why": "qa-advisor の指摘：合計の下限 50 では、ある種類が全部消えても気付かない。figure 9 ・ chart 20 の種類ごとの下限にする",
+     "before": "assert!(cases.len() >= 50, \"事例が減っている: {}\", cases.len());"
+    },
+    {
+     "find": "\"{} 件が固定した出力と違う:\\n{}\",",
+     "why": "figure と chart を、解決と検査1〜4を通した出力で固定する（段B）",
+     "before": "\"{} 件が移す前と違う:\\n{}\","
+    },
+    {
+     "find": "// 固定した出力が検査1〜4を通ることも縛る ── **壊れた出力を固定していないことの確認**。",
+     "why": "qa-advisor の指摘：合計の下限 50 では、ある種類が全部消えても気付かない。figure 9 ・ chart 20 の種類ごとの下限にする",
+     "before": "// 固定した出力が幾何の検査を通ることも縛る ── **壊れた出力を固定していないことの確認**"
+    },
+    {
+     "find": "fn render(kind: &str, d: &Value) -> Result<(String, Vec<String>), String> {",
+     "before": "（無かった）",
+     "why": "事例を描いたあと、publish::generated で解決と検査1〜4を通す。トークンを上書きした事例はダークモードの style を出さない"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_shapes_rs",
+   "tab": "tool/business_logic/tests/shapes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/shapes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 形の演算と、自由な形。",
+     "why": "canvas と、意匠の部品（text ・ icon）の事例を消す。座標を書き換えない事例は path の部品で確かめる",
+     "before": "//! 形の演算と、自由な形 ・ 文字 ・ 絵記号。"
+    },
+    {
+     "find": "use ds_business_logic::canvas::render_canvas;",
+     "why": "canvas と、意匠の部品（text ・ icon）の事例を消す。座標を書き換えない事例は path の部品で確かめる",
+     "before": "use ds_business_logic::canvas::render_canvas;"
+    },
+    {
+     "find": "let svg = render(\"path\", &props(json!({\"d\": d, \"filled\": false})), &style())",
+     "why": "canvas と、意匠の部品（text ・ icon）の事例を消す。座標を書き換えない事例は path の部品で確かめる",
+     "before": "fn canvas(w: f64, h: f64, layers: Value) -> String {"
+    },
+    {
+     "find": "fn alignment_does_not_move_the_bounding_box() {",
+     "why": "canvas と、意匠の部品（text ・ icon）の事例を消す。座標を書き換えない事例は path の部品で確かめる",
+     "before": "#[test]"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_cli_tests_cli_rs",
+   "tab": "tool/cli/tests/cli.rs",
+   "file": ".claude/skills/design-svg/tool/cli/tests/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn svg_file(name: &str, body: &str) -> String {",
+     "why": "システムテスト：resolve の終了コード 0 ・ 1 ・ 2 と、canvas が知らないサブコマンドになることを確かめる",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_service_src_lib_rs",
+   "tab": "tool/service/src/lib.rs",
+   "file": ".claude/skills/design-svg/tool/service/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use ds_business_logic::{",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "use ds_business_logic::{canvas, catalog, compose, files, lint, radial, theme, tree, verify};"
+    },
+    {
+     "find": "/// 描いた SVG を、作成者が記述した SVG と同じ道（解決と検査1〜4）に通して、結果を作る。",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "/// 描いた SVG を検査して、結果を組む。**幾何の検査を3種とも当てる。**"
+    },
+    {
+     "find": "/// 上書きしてよいトークンの接頭辞。**色と部品の選択だけである** ── サイズのトークンを上書きすると、",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "fn theme_of(d: &Value, strict: bool) -> Result<Option<Map<String, Value>>, String> {"
+    },
+    {
+     "find": "let theme_ = match theme_of(&d) {",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "let theme_ = match theme_of(&d, true) {"
+    },
+    {
+     "find": "Ok(svg) => drawn(&svg, given.one(\"out\", \"\"), theme_.as_ref(), Map::new()),",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "Ok(svg) => drawn(&svg, given.one(\"out\", \"\"), Map::new()),"
+    },
+    {
+     "find": "let theme_ = match theme_of(&d) {",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "let theme_ = match theme_of(&d, true) {"
+    },
+    {
+     "find": "drawn(&svg, given.one(\"out\", \"\"), theme_.as_ref(), data)",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "drawn(&svg, given.one(\"out\", \"\"), data)"
+    },
+    {
+     "find": "\"検査1〜4　通った\".to_owned()",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "\"幾何の検査　通った\".to_owned()"
+    },
+    {
+     "find": "fn run_resolve(given: &Given) -> Outcome {",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "（無かった）"
+    },
+    {
+     "find": "name: \"resolve\",",
+     "why": "解決（resolve）・ 検査1〜4（checks）・ class の一覧（classes）・ 返す前の道（publish）のモジュールを足し、canvas と意匠の部品のモジュールを外す",
+     "before": "out.clone(),"
+    },
+    {
+     "find": "if strict {",
+     "before": "（無かった）",
+     "why": "役割の行を名前で判定する処理を外す ── 役割は class の修飾と同じ名前に限り、テーマの行では足さない"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_service_tests_tools_rs",
+   "tab": "tool/service/tests/tools.rs",
+   "file": ".claude/skills/design-svg/tool/service/tests/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"catalog\", \"figure\", \"chart\", \"resolve\", \"verify\", \"lint\", \"get\", \"validate\", \"view\",",
+     "why": "ツールの一覧から canvas を外し、resolve を足す",
+     "before": "\"catalog\", \"figure\", \"chart\", \"canvas\", \"verify\", \"lint\", \"get\", \"validate\", \"view\","
+    },
+    {
+     "find": "fn a_role_is_one_of_the_modifier_classes() {",
+     "why": "役割は class の修飾と同じ名前にし、役割の行をテーマから足すことは断る",
+     "before": "fn a_new_role_can_be_added_from_the_declaration() {"
+    },
+    {
+     "find": "fn a_size_token_cannot_be_overridden() {",
+     "why": "サイズのトークンの上書きを断り、色の上書きではダークモードの style を出さないことを確かめる",
+     "before": "fn an_unknown_layout_is_a_misuse() {"
+    },
+    {
+     "find": "#[test]",
+     "why": "canvas が無いことと、resolve の 0 ・ 1 ・ 2 を確かめる",
+     "before": "（無かった）"
+    },
+    {
+     "find": "let mut known: Vec<&str> = ds_business_logic::registry::known_kinds();",
+     "why": "目録の部品が台帳と一致し、canvas と一緒に消した部品が残っていないことを確かめる",
+     "before": "assert!(out.data[\"parts\"].as_array().expect(\"並び\").len() >= 25);"
+    },
+    {
+     "find": "\"role\": \"warn\"}, {\"id\": \"b\"",
+     "before": "（無かった）",
+     "why": "役割 warn と kind-1 が class として出力されることを確かめる"
+    },
+    {
+     "find": "fn a_canvas_needs_its_size() {",
+     "before": "（無かった）",
+     "why": "canvas の事例を消す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_classes_rs",
+   "tab": "tool/business_logic/src/classes.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/classes.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn conflict(a: &str, b: &str) -> Option<String> {",
+     "why": "検査3の判定：表に在る組 ・ 図形 ・ 線 ・ テキストの class を2つ持つ組 ・ 修飾を受けない class（swatch ・ series）と修飾の組 ・ 重ねる先の種類の値を持たない修飾の組を禁止する",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_resolve_rs",
+   "tab": "tool/business_logic/src/resolve.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/resolve.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn resolve(",
+     "why": "論点2の決定：class を theme.json の値へ解決して属性に出力し、class は残す。flow の矢じり（marker）と、ダークモードの style を足す。トークンを上書きしたときは style を出さない（論点5）",
+     "before": "（無かった）"
+    },
+    {
+     "find": "pub const ID_HEAD: &str = \"dsvg-\";",
+     "before": "（無かった）",
+     "why": "生成する id（矢じり）と作成者の id に、図ごとの接頭辞 dsvg-<要約8桁>- を付け、url(#…) と href の参照も書き換える。要約は解決が変えない属性から求めるので、2回解決しても同じになる。テンプレートの下見のページで、隠れた節の中の marker を別の図が参照して矢じりが消えたため"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_checks_rs",
+   "tab": "tool/business_logic/src/checks.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn check_classes(svg: &str) -> Result<Vec<String>, String> {",
+     "why": "検査1〜4を、論点3の追加2の境目どおりに実装する。検査1の対象は9つの要素と作成者が記述した marker、tspan は親に従い、親の g の class は子を満たさない。検査2の例外は swatch の要素自身の色だけで、none は値ではない。検査4はスマホ幅の最小のフォントサイズを theme.json のしきい値と比べる",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_publish_rs",
+   "tab": "tool/business_logic/src/publish.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/publish.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn generated(",
+     "why": "figure と chart の出力も、作成者が記述した SVG と同じ順（検査1〜3 → 解決 → 検査4）に通す。部品が出力した値のうち class が持つものだけを外し、残った値は検査2が検出する。縮小でしきい値を下回る図には min-width を足す",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_theme_contract_rs",
+   "tab": "tool/business_logic/tests/theme_contract.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/theme_contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_font_sizes_are_exactly_the_decided_set() {",
+     "why": "theme.json の契約：段階は部分集合ではなく等しいことを1つずつ確かめる。class が指すトークンの存在 ・ 段階の値 ・ ライトとダークの色 ・ 禁止した組の名前 ・ しきい値も確かめる",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_resolve_rs",
+   "tab": "tool/business_logic/tests/resolve.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/resolve.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn every_class_resolves_to_its_light_values_and_keeps_the_class() {",
+     "why": "1 class ＝ 1事例の表で、値 ・ class が残ること ・ ダークの規則 ・ 座標が変わらないことを確かめる。冪等と、上書き × ダークの値のデシジョンテーブル（4列）も置く",
+     "before": "（無かった）"
+    },
+    {
+     "find": "fn two_resolved_figures_on_one_page_share_no_id() {",
+     "before": "（無かった）",
+     "why": "解決した2つの図を1つの HTML に並べても id が重ならないこと、作成者の id に接頭辞が付き参照が追従すること、2回解決しても同じことを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_checks_rs",
+   "tab": "tool/business_logic/tests/checks.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn check1_every_drawing_element_needs_a_class() {",
+     "why": "検査1と2は同値分割（イーチチョイス）、検査3は全ての組のデシジョンテーブル、検査4は T を theme.json から読む3値の境界値分析で事例を作る（qa-advisor の方針）",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_tests_gallery_rs",
+   "tab": "tool/business_logic/tests/gallery.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/tests/gallery.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn the_converted_figures_pass_checks_1_to_4() {",
+     "why": "受け入れテスト：class の記述へ変換した21個が検査1〜4で0件、全 class を使う、座標とテキストが手書きと同じことを確かめる。手書きの21個の検査1と2の検出を、ボードの計測（marker 31個 ・ ストローク幅9種 ・ 破線6種 ・ 仕様外の色4パネル）と照合する",
+     "before": "（無かった）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_mcp_tests_mcp_rs",
+   "tab": "tool/mcp/tests/mcp.rs",
+   "file": ".claude/skills/design-svg/tool/mcp/tests/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn resolve_answers_the_three_outcomes() {",
+     "why": "システムテスト：MCP でも resolve の3つの結果（検出なし ・ 検出あり ・ 誤用）を返し、ツールの一覧に canvas が無いことを確かめる",
+     "before": "（無かった）"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "状態を accepted にして生成し直し、design-svg の変更と .acdr/0157 をコミットする",
+  "段Aの証跡（scratchpad の acdr1/stageA）を、段Bより前のコミットとして残すかを決める",
+  "ACDR 2 で、class の記述へ変換した21個を references/exemplars へ移し、start と入力欄の class を足す"
+ ],
+ "seal": {
+  "_claude_skills_design_svg_SKILL_md": "6f48c3246fd64e6d699aea2461417b7751518990248ac28f7674042b56f1db61",
+  "_claude_skills_design_svg_README_md": "a3c6c219d3f2d2af48610689fe79af8e87ca93a82785dca3cd0de6b401e48c97",
+  "_claude_skills_design_svg_references_theme_json": "82845e31d5ee88d6641677d70c37635725196ddc384d8f0dee5cb66f26688eb8",
+  "_claude_skills_design_svg_references_theme_schema_json": "a361ddfba486b8dfd1b4e0e3ad810ecd48dd68d5f75970f78ed092d68c7bb994",
+  "_claude_skills_design_svg_tool_business_logic_src_catalog_rs": "10a2e187549a3f214154bda43ac3e70d03c2b0b78bd2b846bd7fac8bbc19d8ed",
+  "_claude_skills_design_svg_tool_business_logic_src_lib_rs": "ca192d87e42013b2149c3af06f5b46c2ad9d15dcf898859ded81a418af6cc305",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_rs": "b582b72864e97d1ed894e832f1d43c21200948e698b501f97fcf8a397aafd73c",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_freeform_rs": "60b751dc78e85a6a74b2453658762d37db369071402eb8eccdcb91cdac54cf13",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_hex_rs": "ad8029b00a93da3de3a2d7ec953ec9e5da8e4bb4ec8ddb699cf6c38199b4dfad",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_interaction_rs": "ad0da9308bfadcba6fc21733ea22d5834556ab04e782fde6be7966c2e52c6107",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_quantity_rs": "654f7a3be8cb6db4386ab2c7e6d8f5c724f14284d51b703501bec76ab0127540",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_table_rs": "f915ef0fd3c9d8328a3bf0f202620639cbea282e251f3462c36dcca86664735f",
+  "_claude_skills_design_svg_tool_business_logic_src_shapes_titled_rs": "cc0f021e3ba2b57b9c87f66d5b6d7b065fff8b8463d4cb50c1b9346198e7a07a",
+  "_claude_skills_design_svg_tool_business_logic_src_theme_rs": "06cf58209c16c57debefaf22acb0fa6536579264d54b8f0150d574ac09d867fa",
+  "_claude_skills_design_svg_tool_business_logic_src_verify_rs": "6dc42315ace946fba0e3a55d9ac1ef1ae33fdd97e28c62e14238fa2eda156d8c",
+  "_claude_skills_design_svg_tool_business_logic_src_xml_rs": "2d0005cdcd2c07e2c440b8ec128802bec3f651eada3d73dfd9ff4ca2e67f31e5",
+  "_claude_skills_design_svg_tool_business_logic_tests_contracts_rs": "21060bf564c80d6b14064ec63efc8d36f9637c576636a643893a7865fb3cff0b",
+  "_claude_skills_design_svg_tool_business_logic_tests_golden_rs": "3c53a136373864858f7bfb3b4507c75be1a2a603a53d72f003e155e5c0f45747",
+  "_claude_skills_design_svg_tool_business_logic_tests_shapes_rs": "febe0017b14906338cabe2b341b49351abd91d2d30c3aff04ab4519a865888ec",
+  "_claude_skills_design_svg_tool_cli_tests_cli_rs": "1ab9c22ead88a6d4d40ccbf4c9a062abc73ea1cc83e04e46abbab0ee8f354df8",
+  "_claude_skills_design_svg_tool_service_src_lib_rs": "08d2445641c3276e4212b55c2b3174680eb553e6d848249ce7f6478380e4a1ce",
+  "_claude_skills_design_svg_tool_service_tests_tools_rs": "f8c65083206b39cb9fc6749f8c463687d91399ac26ec1b6775ed261024837af1",
+  "_claude_skills_design_svg_tool_business_logic_src_classes_rs": "6f7a89c7851cafde8c25bcfd6efc27d30fbe397f67bf265018d95e4cdae9fb83",
+  "_claude_skills_design_svg_tool_business_logic_src_resolve_rs": "9b355e26fcb1752d238abbd0f6ed6d2cd40a696920441caaeb03a7272b9e362b",
+  "_claude_skills_design_svg_tool_business_logic_src_checks_rs": "c1de0c518442d1894f904310bcca915ce280802c307fe20c711f5dc1b4337765",
+  "_claude_skills_design_svg_tool_business_logic_src_publish_rs": "05cfb358a4f7bedf2d235190c0592386d57a96405c49ce843cf52d1f6c9af097",
+  "_claude_skills_design_svg_tool_business_logic_tests_theme_contract_rs": "bdec33911f40dea471a5b849b5789f95796018b861b5b428838c917d18822f54",
+  "_claude_skills_design_svg_tool_business_logic_tests_resolve_rs": "7e698fd1f595d4a94a8613183f13df7e3ffa49d74d9b39110cb2b4220965790b",
+  "_claude_skills_design_svg_tool_business_logic_tests_checks_rs": "879fdc9c96c8c8c7d31dd145c3d3ffdc56f0ce140f99fd80120b8f5cc0de5b9b",
+  "_claude_skills_design_svg_tool_business_logic_tests_gallery_rs": "7ebff36836b3d0ea3dd17ed8bb54b56224158d863f7a39030b4fa1244d5154fd",
+  "_claude_skills_design_svg_tool_mcp_tests_mcp_rs": "f3339d10e2591263ab989209ad8b124c487c92918478e702297bdcfa4cecfbc4"
+ }
+}

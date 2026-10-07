@@ -85,3 +85,47 @@ fn without_a_subcommand_json_lists_the_tools() {
         assert!(names.contains(&need), "{names:?}");
     }
 }
+
+fn svg_file(name: &str, body: &str) -> String {
+    let dir = std::env::temp_dir().join(format!("ds_cli_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("作れる");
+    let p = dir.join(name);
+    std::fs::write(&p, body).expect("書ける");
+    p.display().to_string()
+}
+
+const AUTHORED: &str = r#"<svg viewBox="0 0 300 100"><rect class="box" x="10" y="20" width="130" height="40"/><text class="label" x="75" y="44" text-anchor="middle">注文</text><path class="flow" d="M140,40 H200"/></svg>"#;
+
+#[test]
+fn resolve_exits_0_when_nothing_is_found() {
+    let (code, out) = run(&["resolve", &svg_file("ok.svg", AUTHORED), "--json"]);
+    assert_eq!(code, 0, "{out}");
+    let doc: Value = serde_json::from_str(&out).expect("JSON である");
+    assert!(doc["data"]["svg"]
+        .as_str()
+        .is_some_and(|s| s.contains("<marker")));
+}
+
+#[test]
+fn resolve_exits_1_when_something_is_found() {
+    let bad = AUTHORED.replace(r#"<rect class="box""#, "<rect");
+    let (code, out) = run(&["resolve", &svg_file("found.svg", &bad), "--json"]);
+    assert_eq!(code, 1, "{out}");
+}
+
+#[test]
+fn resolve_exits_2_on_misuse() {
+    let (code, _) = run(&[
+        "resolve",
+        &svg_file("broken.svg", "<svg><rect></svg>"),
+        "--json",
+    ]);
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn canvas_is_no_longer_a_subcommand() {
+    // **canvas は削除した** ── 知らないサブコマンドとして誤用（終了コード 2）になる
+    let (code, _) = run(&["canvas", "layers.json", "--json"]);
+    assert_eq!(code, 2);
+}

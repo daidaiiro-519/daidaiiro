@@ -129,7 +129,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
         };
         let bottom = row_top.get(&e).copied().ok_or("層が無い")? + row_h - gap;
         body.push(format!(
-            "<rect x=\"{}\" y=\"{top:.1}\" width=\"{:.1}\" height=\"{:.1}\" rx=\"{}\" fill=\"none\" stroke=\"{}\"/>",
+            "<rect class=\"area\" x=\"{}\" y=\"{top:.1}\" width=\"{:.1}\" height=\"{:.1}\" rx=\"{}\" fill=\"none\" stroke=\"{}\"/>",
             f(pad),
             w - pad * 2.0,
             bottom - top,
@@ -137,17 +137,17 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             style.text("color.accent")?
         ));
         let label = g.get("label").map(props::text).unwrap_or_default();
-        let tab_w = (text::width(&label, fs_small - 1.0) + fs_small).min(w - pad * 2.0);
+        let tab_w = (text::width(&label, fs_small) + fs_small).min(w - pad * 2.0);
         body.push(format!(
-            "<rect x=\"{}\" y=\"{top:.1}\" width=\"{tab_w:.1}\" height=\"{tab_h:.1}\" fill=\"{}\"/>",
+            "<rect class=\"badge\" x=\"{}\" y=\"{top:.1}\" width=\"{tab_w:.1}\" height=\"{tab_h:.1}\" fill=\"{}\"/>",
             f(pad),
             style.text("color.accent-bg")?
         ));
         body.push(format!(
-            "<text x=\"{}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"label small focus\" x=\"{}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             f(pad + gap / 2.0),
             top + tab_h / 2.0 + fs_small * base,
-            f(fs_small - 1.0),
+            f(fs_small),
             style.text("color.accent")?,
             esc(&label)
         ));
@@ -168,14 +168,14 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
                 };
                 if i > 0 {
                     body.push(format!(
-                        "<line x1=\"{}\" y1=\"{head_y:.1}\" x2=\"{}\" y2=\"{head_y:.1}\" stroke=\"{}\" stroke-dasharray=\"5 4\"/>",
+                        "<line class=\"link\" x1=\"{}\" y1=\"{head_y:.1}\" x2=\"{}\" y2=\"{head_y:.1}\" stroke=\"{}\"/>",
                         f(pad),
                         f(w - pad),
                         style.text("color.accent")?
                     ));
                 }
                 body.push(format!(
-                    "<text x=\"{:.1}\" y=\"{:.1}\" font-weight=\"{}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                    "<text class=\"label\" x=\"{:.1}\" y=\"{:.1}\" font-weight=\"{}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
                     tx,
                     ty,
                     style.text("font.weight-medium")?,
@@ -191,7 +191,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
     for i in 0..who.len() {
         let cx = x_of(i);
         body.push(format!(
-            "<line x1=\"{cx:.1}\" y1=\"{:.1}\" x2=\"{cx:.1}\" y2=\"{:.1}\" stroke=\"{}\" stroke-dasharray=\"3 4\"/>",
+            "<line class=\"grid\" x1=\"{cx:.1}\" y1=\"{:.1}\" x2=\"{cx:.1}\" y2=\"{:.1}\" stroke=\"{}\"/>",
             pad + box_h,
             h - pad / 2.0,
             style.text("color.box-stroke")?
@@ -200,7 +200,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
     for (i, name) in who.iter().enumerate() {
         let cx = x_of(i);
         body.push(format!(
-            "<rect x=\"{:.1}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"{}\" stroke=\"{}\"/>",
+            "<rect class=\"box\" x=\"{:.1}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"{}\" stroke=\"{}\"/>",
             cx - box_w / 2.0,
             f(pad),
             f(box_w),
@@ -210,7 +210,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             style.text("color.box-stroke")?
         ));
         body.push(format!(
-            "<text x=\"{cx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+            "<text class=\"label\" x=\"{cx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
             pad + box_h / 2.0 + fs_small * base,
             f(fs),
             style.text("color.ink")?,
@@ -241,14 +241,20 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             );
             let ink = style.text("color.ink-faint")?;
             body.push(format!(
-                "<path d=\"M{xa:.1},{y1:.1} H{:.1} V{y2:.1} H{xa:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{}\"/>",
+                "<path class=\"flow\" d=\"M{xa:.1},{y1:.1} H{:.1} V{y2:.1} H{xa:.1}\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"{}\"/>",
                 xa + loop_w,
                 f(style.num("size.stroke-width")?)
             ));
-            body.push(arrow_head((xa, y2), std::f64::consts::PI, style, Some(&ink), "solid")?);
+            body.push(arrow_head(
+                (xa, y2),
+                std::f64::consts::PI,
+                style,
+                Some(&ink),
+                "solid",
+            )?);
             if s.get("label").is_some_and(props::truthy) {
                 body.push(format!(
-                    "<text x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                    "<text class=\"note small\" x=\"{:.1}\" y=\"{:.1}\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
                     xa + loop_w + gap / 2.0,
                     y + fs_small * base,
                     f(fs_small),
@@ -259,13 +265,14 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
             continue;
         }
         let dashed = s.get("kind").and_then(|x| x.as_str()) == Some("return");
+        let line_class = if dashed { "flow async" } else { "flow" };
         let dash_attr = if dashed {
             " stroke-dasharray=\"4 3\""
         } else {
             ""
         };
         body.push(format!(
-            "<line x1=\"{xa:.1}\" y1=\"{y:.1}\" x2=\"{xb:.1}\" y2=\"{y:.1}\" stroke=\"{}\" stroke-width=\"{}\"{dash_attr}/>",
+            "<line class=\"{line_class}\" x1=\"{xa:.1}\" y1=\"{y:.1}\" x2=\"{xb:.1}\" y2=\"{y:.1}\" stroke=\"{}\" stroke-width=\"{}\"{dash_attr}/>",
             style.text("color.ink-faint")?,
             f(style.num("size.stroke-width")?)
         ));
@@ -282,7 +289,7 @@ fn exchange(p: &Props, style: &Style) -> Result<Fragment, String> {
         if s.get("label").is_some_and(props::truthy) {
             let mx = (xa + xb) / 2.0;
             body.push(format!(
-                "<text x=\"{mx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
+                "<text class=\"note small\" x=\"{mx:.1}\" y=\"{:.1}\" text-anchor=\"middle\" font-family=\"{family}\" font-size=\"{}\" fill=\"{}\">{}</text>",
                 y - gap / 2.0,
                 f(fs_small),
                 style.text("color.ink-soft")?,

@@ -143,8 +143,9 @@ fn shapes(svg: &str) -> (Vec<Rect4>, Vec<Frame>, Vec<Stroke>) {
                 if w != 0.0 {
                     if here_box {
                         boxes.push((x, y, x + w, y + h));
-                    } else if el.get("stroke-dasharray").is_some_and(|v| !v.is_empty())
-                        && el.get("fill") == Some("none")
+                    } else if el.classes().contains(&"area")
+                        || (el.get("stroke-dasharray").is_some_and(|v| !v.is_empty())
+                            && el.get("fill") == Some("none"))
                     {
                         let fsw = attr(el, "stroke-width", 1.0).map_or(1.0, |v| v * sc);
                         frames.push((x, y, x + w, y + h, fsw));
@@ -475,6 +476,7 @@ pub fn check_attachment(svg: &str) -> Vec<String> {
         dy: f64,
         sc: f64,
         inside_node: bool,
+        in_head: bool,
         all_ink: &[Segment],
         seen: &mut HashSet<(String, String)>,
         faults: &mut Vec<String>,
@@ -483,7 +485,7 @@ pub fn check_attachment(svg: &str) -> Vec<String> {
         let inside_node = inside_node || el.get("class").unwrap_or("").contains("wf-node");
         // 矢じり（wf-head）は辺の端の飾りであって辺ではない ── かぎ ・ 開いた矢じりの先は
         // 節点に着かなくてよい
-        let head = el.get("class").unwrap_or("").contains("wf-head");
+        let head = in_head || el.get("class").unwrap_or("").contains("wf-head");
         if !inside_node && !head && el.tag == "path" && el.get("fill") == Some("none") {
             if let Some(d) = el.get("d").filter(|d| !d.is_empty()) {
                 let pts: Vec<Point> = sample(d)
@@ -511,7 +513,7 @@ pub fn check_attachment(svg: &str) -> Vec<String> {
             }
         }
         for ch in el.elements() {
-            walk(ch, dx, dy, sc, inside_node, all_ink, seen, faults);
+            walk(ch, dx, dy, sc, inside_node, head, all_ink, seen, faults);
         }
     }
     walk(
@@ -519,6 +521,7 @@ pub fn check_attachment(svg: &str) -> Vec<String> {
         0.0,
         0.0,
         1.0,
+        false,
         false,
         &all_ink,
         &mut seen,

@@ -17,7 +17,7 @@ use ds_business_logic::style::resolve;
 ///
 /// 依存の深さ（`use` の連鎖）とは別物である ── 深さは「呼ぶ順序」と「型をどこから借りたか」を
 /// 映すだけなので、責務の側をここに明示し、揃い続けることを機械で検証する。
-const LAYER: [(&str, u8); 34] = [
+const LAYER: [(&str, u8); 35] = [
     // 0 語彙 ・ 台帳 ── 誰の都合も知らない。名前 ・ 数 ・ 形 ・ 登録簿
     ("theme", 0),
     ("text", 0),
@@ -31,6 +31,8 @@ const LAYER: [(&str, u8); 34] = [
     ("intset", 0),
     ("xml", 0),
     ("props", 0),
+    // 図の表記法 ── class の一覧を theme.json から読むだけ
+    ("classes", 0),
     // サービス層が読み書きするファイル ── データアクセス層へ渡すだけで、判定を持たない
     ("files", 0),
     // 1 方針 ・ 配置 ── 値の解決と、座標の解き方
@@ -41,22 +43,24 @@ const LAYER: [(&str, u8); 34] = [
     ("grid", 1),
     ("nesting", 1),
     ("labels", 1),
+    // class を値へ解決する
+    ("resolve", 1),
     // 2 部品 ── 1つの形を描く
     ("shapes", 2),
-    ("shapes_decor", 2),
     ("shapes_freeform", 2),
     ("shapes_hex", 2),
     ("shapes_interaction", 2),
     ("shapes_quantity", 2),
     ("shapes_table", 2),
-    ("shapes_text", 2),
     ("shapes_titled", 2),
     // 3 合成 ── 全部を知ってよい唯一の場所
     ("compose", 3),
-    ("canvas", 3),
     ("catalog", 3),
+    // 返す前の道 ── 解決と検査1〜4を、作成者の SVG と figure ・ chart の出力に同じ順で通す
+    ("publish", 3),
     // 層の数直線に載らないもの ── 生成物を外から検査する直交した軸
     ("verify", u8::MAX),
+    ("checks", u8::MAX),
     // references の実装 ── skills-creator の雛形の複製であり、描画エンジンの外に在る。
     // 同じ crate のモジュールを参照しない（参照すれば、雛形との一致が崩れる）
     ("refs", u8::MAX),
