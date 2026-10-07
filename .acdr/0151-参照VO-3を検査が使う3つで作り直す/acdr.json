@@ -1,0 +1,218 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0151",
+ "title": "参照 VO-3 を、検査が使う3つで作り直す",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "参照 VO-3 を、書いた値 ・ 注釈の場所 ・ 指す先の種類の並びの3つで作り直し、検査が参照を集めるときに VO-3 を作る。宣言の VO-3 は、宣言を移すときにこの形へ直す",
+ "why": "VO-3 の型は実装にあったが、検査は使わず、参照を Link の別々の欄で持っていた（ACDR 0144 で内部を隠したときに、使われていないと分かった）。宣言のとおりに当てはめると、「指す先」と「x-ref の値」はどちらも書いた値になる。また「指す先の種類」は文字列1つなので、注釈の to の配列を持てない。宣言の VO-3 は、注釈の仕様（ACDR 0126）が in ・ item ・ bare ・ self と to の配列を持つ前に書かれていた。",
+ "shift": [
+  {
+   "what": "VO-3 の成分",
+   "from": "指す先（空でない）・ x-ref の値 ・ 指す先の種類（文字列1つ）",
+   "to": "書いた値（空でない）・ 注釈の場所（スキーマ#JSON Pointer）・ 指す先の種類の並び（to）"
+  },
+  {
+   "what": "検査が参照を持つ形",
+   "from": "Link の別々の欄（value ・ annot）と、注釈から毎回引く to",
+   "to": "Link が VO-3 を持つ"
+  },
+  {
+   "what": "書いた値が空の参照",
+   "from": "空の文字列を id として探す（多くは「指す先が無い」）",
+   "to": "探さずに「指す先が空」のずれとして返す"
+  },
+  {
+   "what": "宣言の VO-3",
+   "from": "指す先 ・ x-ref の値 ・ 指す先の種類",
+   "to": "宣言を Python の試作から移すときに、この形へ直す。それまでは、この ACDR が VO-3 の改訂を持つ"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "検査がばらばらに持っていた3つを VO-3 にまとめ、参照を集めるときに作る。宣言は、移すときに同じ形へ直す。",
+ "alternatives": [
+  {
+   "option": "宣言のとおりに作る（指す先と x-ref の値に同じ書いた値を入れ、種類は1つ目だけ）",
+   "why_not": "同じ値を2つ持つことになる。to の2つ目以降を落とすので、指す先の種類を確かめる検査に使えない"
+  },
+  {
+   "option": "実装の VO-3 を消し、宣言からも外す",
+   "why_not": "集約 AGG-1 は、インスタンスが参照を0件以上持つと宣言している。参照という概念は必要で、検査も同じ3つを持っていた"
+  },
+  {
+   "option": "いま宣言の VO-3 も直す",
+   "why_not": "宣言はまだ Python の試作のスキーマの上にあり、移す作業が残っている。試作のスキーマを直すと、移す前の形を2か所で持つことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "domain_values_rs",
+   "tab": "core/src/domain/values.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/values.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// VO-3 参照。x-ref を付けたプロパティに書いた値 ・ どの注釈の参照か ・ 指す先の種類の並び（ACDR 0151）。",
+     "before": "/// VO-3 参照。指す先 ・ x-ref の値 ・ 指す先の種類。",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "written: String,",
+     "before": "target: String,",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "annotation: String,",
+     "before": "#[cfg_attr(not(feature = \"internals\"), allow(dead_code))]",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "/// `annotation` は注釈の場所（スキーマ#JSON Pointer）、`kinds` は注釈の `to` の並び。",
+     "before": "pub fn new(target: &str, value: &str, kind: &str) -> Result<Self, InvalidValue> {",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "annotation: annotation.to_owned(),",
+     "before": "target,",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "pub fn written(&self) -> &str {",
+     "before": "pub fn target(&self) -> &str {",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "pub fn annotation(&self) -> &str {",
+     "before": "pub fn value(&self) -> &str {",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    },
+    {
+     "find": "pub fn kinds(&self) -> &[String] {",
+     "before": "pub fn kind(&self) -> &str {",
+     "why": "VO-3 を、検査が参照ごとに実際に使う3つ（書いた値 ・ 注釈の場所 ・ 指す先の種類の並び）で作り直す。宣言の「指す先」と「x-ref の値」はどちらも書いた値になり、「指す先の種類」は文字列1つでは to の配列を持てない。どこからも使われていなかったので、dead_code の警告を止める属性も外す"
+    }
+   ]
+  },
+  {
+   "key": "domain_check_rs",
+   "tab": "core/src/domain/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::values::{Derived as DerivedValue, Hash, Reference};",
+     "before": "use crate::domain::values::{Derived as DerivedValue, Hash};",
+     "why": "検査の Link は、書いた値 ・ 注釈の場所を別々の欄（value ・ annot）で持っていた。それを VO-3 で持ち、種類は注釈から毎回引かずに VO-3 の kinds を使う"
+    },
+    {
+     "find": "owner: Value,",
+     "before": "annot: String,",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "/// VO-3 参照",
+     "before": "value: String,",
+     "why": "検査の Link は、書いた値 ・ 注釈の場所を別々の欄（value ・ annot）で持っていた。それを VO-3 で持ち、種類は注釈から毎回引かずに VO-3 の kinds を使う"
+    },
+    {
+     "find": "match Reference::new(&written_value, &key, kinds(&xref)) {",
+     "before": "self.links.push(Link {",
+     "why": "参照を集めるときに VO-3 を作る。書いた値が空なら VO-3.INV-1 に反するので、指す先を探さずに「指す先が空」のずれとして返す。これまでは空の文字列も id として探していた"
+    },
+    {
+     "find": "let target_kinds = link.reference.kinds();",
+     "before": "let target_kinds = kinds(xref);",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "find_items(link.doc, link.reference.written())",
+     "before": "find_items(link.doc, &link.value)",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "let Some((instance_id, item)) = link.reference.written().split_once('.') else {",
+     "before": "let Some((instance_id, item)) = link.value.split_once('.') else {",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": ".flat_map(|doc_index| find_items(doc_index, link.reference.written()))",
+     "before": ".flat_map(|doc_index| find_items(doc_index, &link.value))",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "&& id_of(&self.docs[doc_index].value) == Some(link.reference.written())",
+     "before": "&& id_of(&self.docs[doc_index].value) == Some(link.value.as_str())",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "Err(msg) => self.push(",
+     "before": "Err(msg) => self.push(Status::Drift, \"指す先がある\", from, link.value.clone(), msg),",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": ".any(|value| value.as_str() == Some(link.reference.written()));",
+     "before": ".any(|value| value.as_str() == Some(link.value.as_str()));",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "seen.entry((link.reference.annotation().to_owned(), link.doc, array_at))",
+     "before": "seen.entry((link.annot.clone(), link.doc, array_at))",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "if !values.insert(link.reference.written().to_owned()) {",
+     "before": "if !values.insert(link.value.clone()) {",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "\"重ねて指さない\",",
+     "before": "link.value.clone(),",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "keys.iter().any(|key| key == link.reference.annotation())",
+     "before": "keys.contains(&link.annot)",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    },
+    {
+     "find": "value: link.reference.written().to_owned(),",
+     "before": "value: link.value.clone(),",
+     "why": "書いた値と注釈の場所を、VO-3 から読む"
+    }
+   ]
+  },
+  {
+   "key": "tests_approval_rs",
+   "tab": "core/tests/approval.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/approval.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn vo_3_inv_1_rejects_an_empty_written_value() {",
+     "before": "fn vo_3_inv_1_rejects_empty_target() {",
+     "why": "VO-3 の新しい形のテスト。書いた値が空なら作れないこと（INV-1）と、to の並びをすべて持つことを確かめる。実装の前に書き、コンパイルが止まることを確かめた"
+    }
+   ]
+  },
+  {
+   "key": "tests_check_rs",
+   "tab": "core/tests/check.rs",
+   "file": ".claude/skills/schema-driven/tool/core/tests/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn an_empty_written_value_is_reported_as_an_empty_target() {",
+     "before": "（無かった）",
+     "why": "空の書いた値が「指す先が空」のずれになることを確かめる。id が空のインスタンスを置いて、これまでの実装では合格になることを確かめてから実装した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "domain_values_rs": "10d20c38f70d4378b64292290fe45157eaf21bd2482e9a111e433f27a14db735",
+  "domain_check_rs": "eb556e9a88b19d2ee41548432401947021f42aa2b1ab1a18d77f388147499d04",
+  "tests_approval_rs": "5e63efc3eb3d46e8bb7e17d0dfa874e78a23b837fbc5e8cdaa8846a6069c1493",
+  "tests_check_rs": "a0631154bd409194403105c56ad6c85caa6a6d7edb5ee682ac5f48f46f009b4d"
+ }
+}

@@ -21,9 +21,20 @@ fn dir() -> InstancePath {
 // ── 値オブジェクト
 
 #[test]
-fn vo_3_inv_1_rejects_empty_target() {
-    assert!(Reference::new("", "UC-1", "use_case").is_err());
-    assert!(Reference::new("UC-1", "UC-1", "use_case").is_ok());
+fn vo_3_inv_1_rejects_an_empty_written_value() {
+    let kinds = vec!["use_case".to_owned()];
+    assert!(Reference::new("", "a.schema.json#/properties/uses", kinds.clone()).is_err());
+    let reference = Reference::new("UC-1", "a.schema.json#/properties/uses", kinds).unwrap();
+    assert_eq!(reference.written(), "UC-1");
+    assert_eq!(reference.annotation(), "a.schema.json#/properties/uses");
+    assert_eq!(reference.kinds(), ["use_case".to_owned()]);
+}
+
+#[test]
+fn vo_3_keeps_every_kind_the_annotation_allows() {
+    let kinds = vec!["use_case".to_owned(), "aggregate".to_owned()];
+    let reference = Reference::new("UC-1", "a.schema.json#/properties/uses", kinds).unwrap();
+    assert_eq!(reference.kinds().len(), 2);
 }
 
 #[test]

@@ -458,3 +458,25 @@ fn approval_reports_change_and_unapproved() {
         "承認のあとで指す先が変わった"
     );
 }
+
+#[test]
+fn an_empty_written_value_is_reported_as_an_empty_target() {
+    let referring_schema = schema(
+        "a.schema.json",
+        json!({"properties": {"uses": {"x-ref": {"to": "rule"}}}}),
+    );
+    let target_schema = schema("rule.schema.json", json!({}));
+    let docs = vec![
+        doc(
+            "a.json",
+            json!({"id": "A-1", "kind": "a", "uses": [""]}),
+            &referring_schema,
+        ),
+        doc("r.json", json!({"id": "", "kind": "rule"}), &target_schema),
+    ];
+    let findings = check(&docs, None);
+    let found = of(&findings, "指す先がある");
+    assert_eq!(found.len(), 1, "{findings:?}");
+    assert_eq!(found[0].status, Status::Drift);
+    assert_eq!(found[0].message, "指す先が空");
+}

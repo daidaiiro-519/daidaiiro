@@ -190,34 +190,33 @@ impl Status {
     }
 }
 
-/// VO-3 参照。指す先 ・ x-ref の値 ・ 指す先の種類。
-/// 宣言にはあるが、検査はまだ使っていない（参照は check.rs の GraphLink が持つ）。どちらへ合わせるかは別に決める
-#[cfg_attr(not(feature = "internals"), allow(dead_code))]
+/// VO-3 参照。x-ref を付けたプロパティに書いた値 ・ どの注釈の参照か ・ 指す先の種類の並び（ACDR 0151）。
+/// 宣言の VO-3（指す先 ・ x-ref の値 ・ 指す先の種類）は、宣言を移すときにこの形へ直す。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reference {
-    target: String,
-    value: String,
-    kind: String,
+    written: String,
+    annotation: String,
+    kinds: Vec<String>,
 }
 
-#[cfg_attr(not(feature = "internals"), allow(dead_code))]
 impl Reference {
-    pub fn new(target: &str, value: &str, kind: &str) -> Result<Self, InvalidValue> {
-        let target = non_empty(target, "VO-3.INV-1", "指す先")?;
+    /// `annotation` は注釈の場所（スキーマ#JSON Pointer）、`kinds` は注釈の `to` の並び。
+    pub fn new(written: &str, annotation: &str, kinds: Vec<String>) -> Result<Self, InvalidValue> {
+        let written = non_empty(written, "VO-3.INV-1", "書いた値")?;
         Ok(Self {
-            target,
-            value: value.to_owned(),
-            kind: kind.to_owned(),
+            written,
+            annotation: annotation.to_owned(),
+            kinds,
         })
     }
-    pub fn target(&self) -> &str {
-        &self.target
+    pub fn written(&self) -> &str {
+        &self.written
     }
-    pub fn value(&self) -> &str {
-        &self.value
+    pub fn annotation(&self) -> &str {
+        &self.annotation
     }
-    pub fn kind(&self) -> &str {
-        &self.kind
+    pub fn kinds(&self) -> &[String] {
+        &self.kinds
     }
 }
 

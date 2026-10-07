@@ -2,7 +2,7 @@
 //! references/annotations.schema.json の仕様どおりに適用する。読むのは注釈と、インスタンスの id と kind だけ。
 
 use crate::domain::schema::Schema;
-use crate::domain::values::{Derived as DerivedValue, Hash};
+use crate::domain::values::{Derived as DerivedValue, Hash, Reference};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -41,9 +41,9 @@ struct Link {
     at: String,
     owner: Value,
     owner_at: String,
-    annot: String,
     xref: Value,
-    value: String,
+    /// VO-3 参照
+    reference: Reference,
     targets: Vec<Target>,
 }
 
@@ -257,16 +257,28 @@ impl Checker<'_> {
                         continue;
                     }
                 }
-                self.links.push(Link {
-                    doc,
-                    at: at.clone(),
-                    owner: owner.clone(),
-                    owner_at: owner_at.to_owned(),
-                    annot: key.clone(),
-                    xref: xref.clone(),
-                    value: written_value,
-                    targets: Vec::new(),
-                });
+                match Reference::new(&written_value, &key, kinds(&xref)) {
+                    Ok(reference) => self.links.push(Link {
+                        doc,
+                        at: at.clone(),
+                        owner: owner.clone(),
+                        owner_at: owner_at.to_owned(),
+                        xref: xref.clone(),
+                        reference,
+                        targets: Vec::new(),
+                    }),
+                    // VO-3.INV-1：書いた値が空の参照は、指す先を探さずにずれとして返す
+                    Err(_) => {
+                        let from = format!("{}{at}", self.label(doc));
+                        self.push(
+                            Status::Drift,
+                            "指す先がある",
+                            from,
+                            String::new(),
+                            "指す先が空",
+                        );
+                    }
+                }
             }
         }
         if let (Some(derive), Some(_)) = (derive, value.as_object()) {
@@ -446,7 +458,7 @@ impl Checker<'_> {
     fn resolve_link(&self, link: &Link) -> Result<Vec<Target>, String> {
         let xref = &link.xref;
         let within = xref.get("in").and_then(Value::as_str);
-        let target_kinds = kinds(xref);
+        let target_kinds = link.reference.kinds();
         let of_kind = |candidate: &Doc| {
             candidate
                 .value
@@ -465,9 +477,9 @@ impl Checker<'_> {
                 .collect()
         };
         let found: Vec<Target> = if is_self(xref) {
-            find_items(link.doc, &link.value)
+            find_items(link.doc, link.reference.written())
         } else if xref.get("item") == Some(&Value::Bool(true)) {
-            let Some((instance_id, item)) = link.value.split_once('.') else {
+            let Some((instance_id, item)) = link.reference.written().split_once('.') else {
                 return Err("形が違う（インスタンスの id.項目の id ではない）".into());
             };
             (0..self.docs.len())
@@ -480,13 +492,13 @@ impl Checker<'_> {
         } else if xref.get("bare") == Some(&Value::Bool(true)) {
             (0..self.docs.len())
                 .filter(|&doc_index| of_kind(&self.docs[doc_index]))
-                .flat_map(|doc_index| find_items(doc_index, &link.value))
+                .flat_map(|doc_index| find_items(doc_index, link.reference.written()))
                 .collect()
         } else {
             (0..self.docs.len())
                 .filter(|&doc_index| {
                     of_kind(&self.docs[doc_index])
-                        && id_of(&self.docs[doc_index].value) == Some(link.value.as_str())
+                        && id_of(&self.docs[doc_index].value) == Some(link.reference.written())
                 })
                 .map(|doc_index| Target {
                     doc: doc_index,
@@ -521,7 +533,13 @@ impl Checker<'_> {
         for link in &mut links {
             let from = format!("{}{}", self.label(link.doc), link.at);
             match self.resolve_link(link) {
-                Err(msg) => self.push(Status::Drift, "指す先がある", from, link.value.clone(), msg),
+                Err(msg) => self.push(
+                    Status::Drift,
+                    "指す先がある",
+                    from,
+                    link.reference.written().to_owned(),
+                    msg,
+                ),
                 Ok(targets) => {
                     link.targets = targets.clone();
                     let to = self.target_label(&targets[0]);
@@ -561,7 +579,7 @@ impl Checker<'_> {
                     if let Some(covered_by) = link.xref.get("covered_by").and_then(Value::as_str) {
                         let ok = collect(&link.owner, covered_by)
                             .iter()
-                            .any(|value| value.as_str() == Some(link.value.as_str()));
+                            .any(|value| value.as_str() == Some(link.reference.written()));
                         let status = if ok { Status::Pass } else { Status::Drift };
                         let msg = if ok {
                             String::new()
@@ -595,20 +613,20 @@ impl Checker<'_> {
                 .rsplit_once('/')
                 .map(|(array_at, _)| array_at.to_owned())
                 .unwrap_or_default();
-            seen.entry((link.annot.clone(), link.doc, array_at))
+            seen.entry((link.reference.annotation().to_owned(), link.doc, array_at))
                 .or_default()
                 .push(link);
         }
         for ((_, doc, _), same_array_links) in &seen {
             let mut values = BTreeSet::new();
             for link in same_array_links {
-                if !values.insert(link.value.clone()) {
+                if !values.insert(link.reference.written().to_owned()) {
                     let from = format!("{}{}", self.label(*doc), link.at);
                     self.push(
                         Status::Drift,
                         "重ねて指さない",
                         from,
-                        link.value.clone(),
+                        link.reference.written().to_owned(),
                         "同じ値を重ねて指している",
                     );
                 }
@@ -712,7 +730,7 @@ impl Checker<'_> {
                     .links
                     .iter()
                     .filter(|link| {
-                        keys.contains(&link.annot)
+                        keys.iter().any(|key| key == link.reference.annotation())
                             && link.targets.first() == Some(&candidate)
                             && (!is_self(&xref) || link.doc == candidate.doc)
                     })
@@ -787,7 +805,7 @@ pub fn graph(docs: &[Doc]) -> Graph {
             GraphLink {
                 doc: link.doc,
                 at: link.at.clone(),
-                value: link.value.clone(),
+                value: link.reference.written().to_owned(),
                 label: target.as_ref().map(|target| checker.target_label(target)),
                 target: target.map(|target| (target.doc, target.item)),
             }
