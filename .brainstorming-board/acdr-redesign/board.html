@@ -1,0 +1,531 @@
+<title>ACDR の1枚を、承認に必要な量へ作り直す</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="acdr-redesign" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　ACDR の1枚を、承認に必要な量へ作り直す　/　Round 1</p><h1>ACDR の1枚を、承認に必要な量へ作り直す</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>ACDR が答える問い<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>判定の面に置くもの<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q3</span>差分の面<span class="st now">いま見る</span></button><button data-t="p4" aria-selected="false" class="now"><span class="tn">Q4</span>デザインシステム<span class="st now">いま見る</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>acdr を schema-driven の上に作り直す前に、1枚の ACDR が承認者に何を見せ、何を見せないかを決める。具体と抽象のアドバイザーと ux-advisor の回答をもとにしている。</p></div><div class="front"><h3>いま見るのは 4 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　ACDR が答える問い</button><br><span class="why">ACDR が誰のどの問いに答えるか。論点2〜4はこれを前提にする</span></li><li><button class="jump" data-go="p2">Q2　判定の面に置くもの</button><br><span class="why">2つのアドバイザーの見立てがそろっているので、論点1と一緒に出す</span></li><li><button class="jump" data-go="p3">Q3　差分の面</button><br><span class="why">差分の量が、いまの ACDR でいちばん読む量を増やしている</span></li><li><button class="jump" data-go="p4">Q4　デザインシステム</button><br><span class="why">論点2 ・ 3 の見本の色は、この答えに従っている</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q1</span></td><td>1枚の ACDR は、承認者のどの問いに答えるか。承認の前と後で、見せるものを分けるか</td><td><span class="st now">いま見る</span></td><td><b>ACDR は「この決定を適用してよいか」に答える1枚にし、承認のあとに「改訂してよいか」を読むときも同じ判定の面で答える。</b></td></tr><tr><td><span class="n">Q2</span></td><td>判定の面に、どの欄をどの量で置くか。代表の具体と規模の数をどう置くか</td><td><span class="st now">いま見る</span></td><td><b>判定の面には、決めたこと（1件）・ なぜ ・ どう変わるか ・ 比較した案の4つと、状態の語と規模の数だけを置く。</b></td></tr><tr><td><span class="n">Q3</span></td><td>差分の面で、ファイル ・ 理由 ・ 差分をどう並べるか</td><td><span class="st now">いま見る</span></td><td><b>差分の面は、左にファイルの一覧、右に理由のまとまりごとの変更を並べ、理由は1回だけ書く。</b></td></tr><tr><td><span class="n">Q4</span></td><td>ACDR の見た目を、どのデザインシステムに従わせ、色をどう使い分けるか</td><td><span class="st now">いま見る</span></td><td><b>ACDR はブレストボードと同じ値の基礎と意味のトークンを自分の design-system.json に持ち、色は意味ごとに1つずつ使う。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>1枚の ACDR は、承認者のどの問いに答えるか。承認の前と後で、見せるものを分けるか</h2></div><div class="ans"><span class="lead">ACDR は「この決定を適用してよいか」に答える1枚にし、承認のあとに「改訂してよいか」を読むときも同じ判定の面で答える。</span><ul><li>判定の面：決めたこと ・ なぜ ・ どう変わるか ・ 比較した案。承認の前も後も、ここだけ読めば答えられる</li><li>差分の面：何をどう変えたかを確かめるときに開く。初めは閉じておく</li><li>承認の前と後で別のページを作らない。変わるのは状態の語（承認待ち ・ 承認済み ・ 差し替え済み）だけである</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="ex"><div data-g="1" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 660 250" style="min-width:560px" class="dsvg"><style data-dsvg="dark">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-31a60672-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-31a60672-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs>
+  <rect class="box" x="10" y="30" width="220" height="56" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+  <text class="note" x="120" y="52" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">承認の前</text>
+  <text class="label" x="120" y="73" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">この決定を適用してよいか</text>
+  <rect class="box" x="10" y="150" width="220" height="56" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+  <text class="note" x="120" y="172" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">承認のあと</text>
+  <text class="label" x="120" y="193" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">この決定を改訂してよいか</text>
+  <rect class="box focus" x="330" y="60" width="310" height="80" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+  <text class="label focus" x="485" y="88" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">判定の面（初めから見える）</text>
+  <text class="note" x="485" y="110" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">決めたこと ・ なぜ</text>
+  <text class="note" x="485" y="127" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">どう変わるか ・ 比較した案</text>
+  <rect class="box" x="330" y="180" width="310" height="50" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+  <text class="label" x="485" y="210" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">差分の面（初めは閉じる）</text>
+  <path class="flow" d="M230,58 H280 V90 H328" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-31a60672-arrow-5B6B66)"/>
+  <path class="flow" d="M230,178 H280 V110 H328" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-31a60672-arrow-5B6B66)"/>
+  <path class="flow" d="M485,140 V178" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-31a60672-arrow-5B6B66)"/>
+  <text class="note" x="495" y="164" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">確かめるときに開く</text>
+</svg></figure><p class="note-s">2つの問いは、どちらも判定の面で答える。差分の面は、確かめるときに開く</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">判定の面だけで、改訂してよいかにも答えられること</span></td><td>改訂してよいかの判断に使うのは、なぜと比較した案である。何を変えたかの細部は、確かめるときに開けば足りる</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-08） ── 判断基準 is-it-really-the-goal</small></td></tr><tr><td><span class="part">承認の前と後で同じ1枚にすること</span></td><td>承認の前と後で同じ1枚を残し、状態だけが変わる</td><td><span class="kind k-rule">決まり</span><small>acdr の SKILL.md の目的</small></td></tr><tr><td><span class="part">差分を初めは閉じること</span></td><td>「acdrを勧めたいんですが、こちらもブレストと同様、情報量が多すぎるのとUIデザインをもう少し改善して認知負荷を下げたい。。」</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-08）</small></td></tr><tr><td><span class="part">差分を消さないこと</span></td><td>人は具体を見て初めて判断できる。具体を全部消さず、往復できる位置に置く</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-08） ── 判断基準 anything-becomes-not-this ・ round-trip-thinking-os</small></td></tr></table></div></div></details><details open><summary>採らなかった案（2件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>承認の前と後で別のページを作る</b></td><td>同じ決定の中身が2か所になり、片方だけ直したときに食い違う</td></tr><tr><td><b>いまのまま、差分まで初めから開いて出す</b></td><td>0152 では188か所が開いて並び、決めたことを読む前に読む量が尽きる</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>判定の面に、どの欄をどの量で置くか。代表の具体と規模の数をどう置くか</h2></div><div class="ans"><span class="lead">判定の面には、決めたこと（1件）・ なぜ ・ どう変わるか ・ 比較した案の4つと、状態の語と規模の数だけを置く。</span><ul><li>決めたこと：決定を1件だけ1文で書き、手段を書かない。2件あるなら ACDR を分ける</li><li>なぜ：何と食い違っていて、何に合わせたかを4行まで</li><li>どう変わるか：使う側から見た変化を3行まで。図 ・ 表 ・ 代表の変更1件を切り替えで見せ、一度に1つだけ出す</li><li>比較した案：案と、採らなかった理由1文</li><li>状態は語で出し（承認待ち ・ 承認済み ・ 差し替え済み）、隣に規模の数（ファイル ・ 変更 ・ 理由のまとまり ・ 理由の欠け）を置く</li><li>描画しない古い欄（how ・ applies_to ・ after_approval ・ lede ・ intro）は、新しい記録では書けない形にする</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ 差分</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="2" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="2" data-ix="1">差分</button></div><div data-g="2" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!-- ui --&gt;&lt;!doctype html&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style&gt;
+:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;
+--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--move:#7a3b6d}
+@media (prefers-color-scheme: dark){:root{--paper:#0e1614;--card:#16211e;--panel:#22302d;--ink:#e6eeeb;--muted:#9dada8;--dim:#93a29d;--rule:#354642;--rule-soft:#2a3936;
+--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--move:#d094c2}}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:var(--paper);color:var(--ink);font:14px/1.75 &quot;Zen Kaku Gothic New&quot;,&quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+.eyebrow{font:.68rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+h1{font:600 1.25rem/1.4 &quot;Shippori Mincho&quot;,&quot;Yu Mincho&quot;,serif;margin:.2rem 0 .8rem}
+h2{font:600 .78rem/1 system-ui,sans-serif;letter-spacing:.08em;color:var(--muted);margin:0 0 .45rem}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.state{font-size:.75rem;font-weight:700;padding:.15rem .6rem;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.state.wait{color:var(--warn);background:var(--warn-soft)}
+.state.done{color:var(--key);background:var(--key-soft)}
+.state.old{color:var(--dim)}
+.scale{display:flex;gap:6px;flex-wrap:wrap;margin:-.3rem 0 .9rem}
+.scale span{font-size:.74rem;color:var(--muted);background:var(--card);border:1px solid var(--rule-soft);border-radius:6px;padding:.05rem .5rem}
+.scale b{color:var(--ink);font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.8rem 1rem;margin:0 0 .7rem}
+.decision{background:var(--key-soft);border-left:4px solid var(--key);font-weight:700;font-size:1rem;line-height:1.7}
+.tabs{display:flex;gap:4px;margin:0 0 .6rem}
+.tabs span{font-size:.75rem;padding:.12rem .7rem;border-radius:999px;border:1px solid var(--rule);color:var(--muted)}
+.tabs span.on{background:var(--key);border-color:var(--key);color:var(--card);font-weight:700}
+ul{margin:0;padding-left:1.1rem} li{margin:.1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.74rem;min-width:4em}
+.opt{font-weight:700;white-space:nowrap}
+.open-diff{display:flex;justify-content:space-between;align-items:center;border:1.5px dashed var(--rule);border-radius:.6rem;padding:.6rem 1rem;color:var(--muted);font-size:.84rem}
+.open-diff b{color:var(--key)}
+.layout{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start}
+.files{position:sticky;top:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem}
+.files div{display:flex;justify-content:space-between;font:.78rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;padding:.3rem .5rem;border-radius:6px;color:var(--ink)}
+.files div.on{background:var(--key-soft);outline:1.5px solid var(--key);font-weight:700}
+.files i{font-style:normal;color:var(--muted)}
+.toggle{font-size:.75rem;border:1px solid var(--rule);border-radius:999px;padding:.1rem .7rem;color:var(--ink)}
+.toggle b{color:var(--key)}
+.reason{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;margin:0 0 .7rem;overflow:hidden}
+.reason h3{font:700 .86rem/1.6 system-ui,sans-serif;margin:0;padding:.55rem .8rem;border-bottom:1px solid var(--rule-soft)}
+.reason h3 small{font-weight:400;color:var(--muted);margin-left:.4rem}
+pre{margin:0;font:.76rem/1.6 &quot;JetBrains Mono&quot;,ui-monospace,monospace;overflow-x:auto}
+.ln{display:block;padding:0 .8rem;white-space:pre}
+.ln.del{background:var(--warn-soft);color:var(--warn)}
+.ln.add{background:var(--key-soft)}
+.ln.ctx{color:var(--muted)}
+.fold{display:block;text-align:center;font-size:.72rem;color:var(--muted);border-top:1px dashed var(--rule);border-bottom:1px dashed var(--rule);padding:.15rem}
+.loc{font:.72rem &quot;JetBrains Mono&quot;,monospace;color:var(--muted);padding:.3rem .8rem 0}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw div{border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem .6rem;background:var(--card);font-size:.78rem}
+.sw i{display:block;height:28px;border-radius:6px;margin-bottom:.35rem}
+&lt;/style&gt;
+&lt;div class=&quot;head&quot;&gt;&lt;div&gt;&lt;div class=&quot;eyebrow&quot;&gt;ACDR 0156 ・ 2026-10-08&lt;/div&gt;
+&lt;h1&gt;ブレストボードに固有のツールを、基盤のツールの一覧へ足す&lt;/h1&gt;&lt;/div&gt;
+&lt;span class=&quot;state wait&quot;&gt;承認待ち&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;scale&quot;&gt;&lt;span&gt;ファイル &lt;b&gt;8&lt;/b&gt;&lt;/span&gt;&lt;span&gt;変更 &lt;b&gt;16&lt;/b&gt; か所&lt;/span&gt;&lt;span&gt;理由 &lt;b&gt;6&lt;/b&gt; まとまり&lt;/span&gt;&lt;span&gt;理由の欠け &lt;b&gt;0&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;card decision&quot;&gt;ボードに固有のツールは init ・ inspect ・ migrate ・ serve の4つだけにし、基盤のツールの一覧のあとに足す。&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;&lt;h2&gt;なぜ&lt;/h2&gt;雛形を置く ・ 決まりを検査する ・ 回答を受け取るの3つが、消す予定の古い実装にしか無かった。形の検査と描画は基盤に任せると決めたので、ボードはボードに固有のことだけを持つ。&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;&lt;h2&gt;どう変わるか&lt;/h2&gt;
+&lt;div class=&quot;tabs&quot;&gt;&lt;span&gt;図&lt;/span&gt;&lt;span class=&quot;on&quot;&gt;表&lt;/span&gt;&lt;span&gt;代表の変更&lt;/span&gt;&lt;/div&gt;
+&lt;table&gt;&lt;tr&gt;&lt;th&gt;使う側&lt;/th&gt;&lt;th&gt;変更前&lt;/th&gt;&lt;th&gt;変更後&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;ボードを作る&lt;/td&gt;&lt;td&gt;ボードの CLI だけが持つ init&lt;/td&gt;&lt;td&gt;基盤と同じ一覧から init を呼ぶ&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;出す前に確かめる&lt;/td&gt;&lt;td&gt;形と決まりを1つの inspect で見る&lt;/td&gt;&lt;td&gt;形は check、決まりは inspect&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;回答を受け取る&lt;/td&gt;&lt;td&gt;回答用紙の形で溜める&lt;/td&gt;&lt;td&gt;回答のインスタンスとして書く&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;&lt;h2&gt;比較した案&lt;/h2&gt;&lt;table&gt;
+&lt;tr&gt;&lt;td class=&quot;opt&quot;&gt;古い形を読める描画を残す&lt;/td&gt;&lt;td&gt;同じボードの形を2つ持ち、基盤の check が古い形を断る&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;opt&quot;&gt;freeze ・ figures も移す&lt;/td&gt;&lt;td&gt;どちらも画面から外した機能のためのもので、使う先が無い&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;
+&lt;div class=&quot;open-diff&quot;&gt;&lt;span&gt;差分の面 ── 8ファイル ・ 16か所 ・ 理由6まとまり&lt;/span&gt;&lt;b&gt;開く ▾&lt;/b&gt;&lt;/div&gt;
+"></iframe><p class="note-s">ACDR 0156 を新しい判定の面で書き直した見本。決定は1件にし、0156 の後半は別の ACDR に分けた</p></div><div data-g="2" data-ixp="1" hidden><div class="diff"><div><h4>変更前</h4><pre><code>ブレストボードに固有のツールは init ・ inspect ・ migrate ・ serve の4つだけにし、転写した schema-driven のツールの一覧のあとに足す。既存のボードは migrate で新しい形へ写し、古いファイルを board.json.v1 として残す</code></pre></div><div><h4>変更後</h4><pre><code>ACDR 0156：ボードに固有のツールは init ・ inspect ・ migrate ・ serve の4つだけにし、基盤のツールの一覧のあとに足す
+ACDR 0157：既存のボードを新しい形へ写し、古いファイルを board.json.v1 として残す</code></pre></div></div><p class="note-s">0156 の決めたことは2件を1文に持っていたので、2件に分ける</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">判定の面の4つの欄</span></td><td>判定の面だけで、適用してよいかと改訂してよいかに答える</td><td><span class="kind k-rule">決まり</span><small>論点1</small></td></tr><tr><td><span class="part">決定を1件にすること</span></td><td>0156 の決めたことは、ツールを4つにすることと既存のボードを写すことの2件を、1文に持っていた</td><td><span class="kind k-fact">実測</span><small>ACDR 0156 の acdr.json ・ meta-thinking-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">どう変わるかを、一度に1つだけ出すこと</span></td><td>同じ対応を、図 ・ 変更前と変更後の表 ・ 差分の3か所で見せていた</td><td><span class="kind k-fact">実測</span><small>ux-advisor の回答（2026-10-08） ── ACDR 0152 ・ 0156 の画面</small></td></tr><tr><td><span class="part">代表の変更1件を置くこと</span></td><td>人は具体を見て初めて判断できる</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-08） ── 判断基準 anything-becomes-not-this</small></td></tr><tr><td><span class="part">状態を語で出すこと</span></td><td>「承認」だけでは、待っているのか済んだのかが語から分からない</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">色</span></td><td>決めたことは key の地と太線、状態の語は意味ごとの色</td><td><span class="kind k-rule">決まり</span><small>論点4</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>いまの並びのまま、文を削って短くする</b></td><td>同じ対応を3か所で見せる重なりが残る</td></tr><tr><td><b>判定の面と差分の面を別のタブにする</b></td><td>差分を読むあいだに、決めたことが画面から消える</td></tr><tr><td><b>代表の変更を置かず、規模の数だけを置く</b></td><td>数では何が変わるかが分からず、承認者が差分を開きに行く</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>差分の面で、ファイル ・ 理由 ・ 差分をどう並べるか</h2></div><div class="ans"><span class="lead">差分の面は、左にファイルの一覧、右に理由のまとまりごとの変更を並べ、理由は1回だけ書く。</span><ul><li>ファイルの一覧は変更の多い順に縦に並べ、画面の上端に固定する</li><li>理由のまとまりごとに見出しを1つ置き、その下にまとまりの変更箇所を並べる。理由を変更箇所ごとに繰り返さない</li><li>差分は変更箇所の前後3行だけを出し、変更の無い行は「変更の無い N 行」として閉じる</li><li>新しく作ったファイルも全文を並べず、理由が付いた範囲だけを出す</li><li>記録の側でも理由は1回だけ書き、変更箇所はその理由を指す（reasons と marks）</li><li>「すべて開く ・ すべて閉じる」をやめ、状態を語で示す1つの切り替え（変更前を表示：オン ／ オフ）にする</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="3" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="3" data-ix="1">コード</button></div><div data-g="3" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!-- ui --&gt;&lt;!doctype html&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style&gt;
+:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;
+--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--move:#7a3b6d}
+@media (prefers-color-scheme: dark){:root{--paper:#0e1614;--card:#16211e;--panel:#22302d;--ink:#e6eeeb;--muted:#9dada8;--dim:#93a29d;--rule:#354642;--rule-soft:#2a3936;
+--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--move:#d094c2}}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:var(--paper);color:var(--ink);font:14px/1.75 &quot;Zen Kaku Gothic New&quot;,&quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+.eyebrow{font:.68rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+h1{font:600 1.25rem/1.4 &quot;Shippori Mincho&quot;,&quot;Yu Mincho&quot;,serif;margin:.2rem 0 .8rem}
+h2{font:600 .78rem/1 system-ui,sans-serif;letter-spacing:.08em;color:var(--muted);margin:0 0 .45rem}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.state{font-size:.75rem;font-weight:700;padding:.15rem .6rem;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.state.wait{color:var(--warn);background:var(--warn-soft)}
+.state.done{color:var(--key);background:var(--key-soft)}
+.state.old{color:var(--dim)}
+.scale{display:flex;gap:6px;flex-wrap:wrap;margin:-.3rem 0 .9rem}
+.scale span{font-size:.74rem;color:var(--muted);background:var(--card);border:1px solid var(--rule-soft);border-radius:6px;padding:.05rem .5rem}
+.scale b{color:var(--ink);font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.8rem 1rem;margin:0 0 .7rem}
+.decision{background:var(--key-soft);border-left:4px solid var(--key);font-weight:700;font-size:1rem;line-height:1.7}
+.tabs{display:flex;gap:4px;margin:0 0 .6rem}
+.tabs span{font-size:.75rem;padding:.12rem .7rem;border-radius:999px;border:1px solid var(--rule);color:var(--muted)}
+.tabs span.on{background:var(--key);border-color:var(--key);color:var(--card);font-weight:700}
+ul{margin:0;padding-left:1.1rem} li{margin:.1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.74rem;min-width:4em}
+.opt{font-weight:700;white-space:nowrap}
+.open-diff{display:flex;justify-content:space-between;align-items:center;border:1.5px dashed var(--rule);border-radius:.6rem;padding:.6rem 1rem;color:var(--muted);font-size:.84rem}
+.open-diff b{color:var(--key)}
+.layout{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start}
+.files{position:sticky;top:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem}
+.files div{display:flex;justify-content:space-between;font:.78rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;padding:.3rem .5rem;border-radius:6px;color:var(--ink)}
+.files div.on{background:var(--key-soft);outline:1.5px solid var(--key);font-weight:700}
+.files i{font-style:normal;color:var(--muted)}
+.toggle{font-size:.75rem;border:1px solid var(--rule);border-radius:999px;padding:.1rem .7rem;color:var(--ink)}
+.toggle b{color:var(--key)}
+.reason{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;margin:0 0 .7rem;overflow:hidden}
+.reason h3{font:700 .86rem/1.6 system-ui,sans-serif;margin:0;padding:.55rem .8rem;border-bottom:1px solid var(--rule-soft)}
+.reason h3 small{font-weight:400;color:var(--muted);margin-left:.4rem}
+pre{margin:0;font:.76rem/1.6 &quot;JetBrains Mono&quot;,ui-monospace,monospace;overflow-x:auto}
+.ln{display:block;padding:0 .8rem;white-space:pre}
+.ln.del{background:var(--warn-soft);color:var(--warn)}
+.ln.add{background:var(--key-soft)}
+.ln.ctx{color:var(--muted)}
+.fold{display:block;text-align:center;font-size:.72rem;color:var(--muted);border-top:1px dashed var(--rule);border-bottom:1px dashed var(--rule);padding:.15rem}
+.loc{font:.72rem &quot;JetBrains Mono&quot;,monospace;color:var(--muted);padding:.3rem .8rem 0}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw div{border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem .6rem;background:var(--card);font-size:.78rem}
+.sw i{display:block;height:28px;border-radius:6px;margin-bottom:.35rem}
+&lt;/style&gt;
+&lt;div class=&quot;head&quot;&gt;&lt;h2 style=&quot;margin:0&quot;&gt;差分の面 ── 変更 16 か所&lt;/h2&gt;&lt;span class=&quot;toggle&quot;&gt;変更前を表示：&lt;b&gt;オン&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;div style=&quot;height:10px&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;layout&quot;&gt;
+&lt;div class=&quot;files&quot;&gt;&lt;div class=&quot;on&quot;&gt;SKILL.md&lt;i&gt;4&lt;/i&gt;&lt;/div&gt;&lt;div&gt;tools.rs&lt;i&gt;3&lt;/i&gt;&lt;/div&gt;&lt;div&gt;inspect.rs&lt;i&gt;2&lt;/i&gt;&lt;/div&gt;&lt;div&gt;migrate.rs&lt;i&gt;2&lt;/i&gt;&lt;/div&gt;&lt;div&gt;serve.rs&lt;i&gt;2&lt;/i&gt;&lt;/div&gt;&lt;div&gt;board_tools.rs&lt;i&gt;1&lt;/i&gt;&lt;/div&gt;&lt;div&gt;main.rs&lt;i&gt;1&lt;/i&gt;&lt;/div&gt;&lt;div&gt;board.js&lt;i&gt;1&lt;/i&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div&gt;
+&lt;div class=&quot;reason&quot;&gt;&lt;h3&gt;ツールの呼び方を、基盤のツールとボードに固有の4つに書き直した&lt;small&gt;2か所&lt;/small&gt;&lt;/h3&gt;
+&lt;div class=&quot;loc&quot;&gt;実行手順 ・ 51〜54行&lt;/div&gt;
+&lt;pre&gt;&lt;span class=&quot;ln ctx&quot;&gt; ## 実行手順&lt;/span&gt;&lt;span class=&quot;ln del&quot;&gt;-雛形は、契約の全部の欄を持って出る。&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+ツールは CLI と MCP から、同じ名前と引数で呼べる。&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+ボードに固有のものは init ・ inspect ・ migrate ・ serve である。&lt;/span&gt;&lt;span class=&quot;ln ctx&quot;&gt; &lt;/span&gt;&lt;/pre&gt;
+&lt;span class=&quot;fold&quot;&gt;変更の無い 34 行&lt;/span&gt;
+&lt;div class=&quot;loc&quot;&gt;Step 6 ・ 103〜106行&lt;/div&gt;
+&lt;pre&gt;&lt;span class=&quot;ln del&quot;&gt;-brainstorming-board render &amp;lt;ボードのディレクトリ&amp;gt;&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+brainstorming-board render --dir … --pages … --out …&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;reason&quot;&gt;&lt;h3&gt;完成イメージの4つの形を表にした&lt;small&gt;1か所&lt;/small&gt;&lt;/h3&gt;
+&lt;div class=&quot;loc&quot;&gt;Step 4 ・ 79〜87行&lt;/div&gt;
+&lt;pre&gt;&lt;span class=&quot;ln ctx&quot;&gt; ### Step 4: 完成イメージを置く&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+| 構造 ・ 流れ ・ 関係 | figure |&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+| スキーマ ・ 設定 ・ 実装 | code |&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+| 画面 ・ ページの見た目 | ui |&lt;/span&gt;&lt;span class=&quot;ln add&quot;&gt;+| 既存のものを変える | diff |&lt;/span&gt;&lt;/pre&gt;
+&lt;span class=&quot;fold&quot;&gt;変更の無い 52 行&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;&lt;/div&gt;
+"></iframe><p class="note-s">ACDR 0156 の SKILL.md を、新しい差分の面で見せた見本</p></div><div data-g="3" data-ixp="1" hidden><pre><code>{
+  &quot;reasons&quot;: [
+    {&quot;id&quot;: &quot;tool-calls&quot;, &quot;why&quot;: &quot;ツールの呼び方を、基盤のツールとボードに固有の4つに書き直した&quot;},
+    {&quot;id&quot;: &quot;image-kinds&quot;, &quot;why&quot;: &quot;完成イメージの4つの形を表にした&quot;}
+  ],
+  &quot;docs&quot;: [
+    {&quot;file&quot;: &quot;.claude/skills/brainstorming-board/SKILL.md&quot;,
+     &quot;marks&quot;: [
+       {&quot;find&quot;: &quot;から、同じ名前と引数で呼べる。&quot;, &quot;reason&quot;: &quot;tool-calls&quot;},
+       {&quot;find&quot;: &quot;brainstorming-board render --dir&quot;, &quot;reason&quot;: &quot;tool-calls&quot;},
+       {&quot;find&quot;: &quot;答えで何ができあがるかを&quot;, &quot;reason&quot;: &quot;image-kinds&quot;}
+     ]}
+  ]
+}</code></pre><p class="note-s">acdr.json の新しい形。理由は reasons に1回だけ書き、変更箇所は理由の id を指す</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">差分の面を確かめるときに開くこと</span></td><td>判定の面だけで答え、差分は確かめるときに開く</td><td><span class="kind k-rule">決まり</span><small>論点1</small></td></tr><tr><td><span class="part">理由を1回だけ書くこと</span></td><td>0155 は変更箇所45か所に対して理由が15種類で、変更箇所の理由を合わせると3904字あり、上部の「なぜ」（197字）の約20倍だった</td><td><span class="kind k-fact">実測</span><small>ACDR 0155 の acdr.json ・ meta-thinking-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">ファイルを縦の一覧にすること</span></td><td>0152 ではファイルのタブ15個が4段に折り返し、44か所あるファイルが3段目にあった</td><td><span class="kind k-fact">実測</span><small>ux-advisor の回答（2026-10-08） ── ACDR 0152 の画面</small></td></tr><tr><td><span class="part">開閉を1つの切り替えにすること</span></td><td>「すべて開く」「すべて閉じる」は、いまどちらの状態かを示さない</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">変更前と変更後の色</span></td><td>変更前は warn、変更後は key-soft の地</td><td><span class="kind k-rule">決まり</span><small>論点4</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>いまのファイルごとのタブを残す</b></td><td>0152 で15個が4段に折り返し、変更の多いファイルが下の段に隠れた</td></tr><tr><td><b>記録には理由を変更箇所ごとに書き続け、画面でまとめる</b></td><td>同じ文を何度も書くので、1か所だけ直したときに食い違う</td></tr><tr><td><b>差分の面をやめる</b></td><td>何を変えたかを確かめる手段が無くなり、承認が文だけを根拠にする</td></tr></table></div></div></details><div class="form" data-topic="Q3"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>ACDR の見た目を、どのデザインシステムに従わせ、色をどう使い分けるか</h2></div><div class="ans"><span class="lead">ACDR はブレストボードと同じ値の基礎と意味のトークンを自分の design-system.json に持ち、色は意味ごとに1つずつ使う。</span><ul><li>key（緑）：決めたことと、選択中のもの（ファイル ・ 切り替え）、承認済み</li><li>変更前の行は warn（琥珀）、変更後の行は key-soft の地で示す。琥珀を見出し ・ ボタン ・ 印に使わない</li><li>状態の語の色：承認待ちは warn、承認済みは key、差し替え済みは dim。色だけでなく語でも示す</li><li>部品ごとに状態（default ・ hover ・ selected ・ pressed ・ focus ・ disabled）を持ち、区切り線の色だけで状態を示さない</li><li>ACDR は自分の design-system.json を持ち、ブレストボードのファイルを読まない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="4" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="4" data-ix="1">コード</button></div><div data-g="4" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!-- ui --&gt;&lt;!doctype html&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style&gt;
+:root{--paper:#eef1ef;--card:#f8faf9;--panel:#e7ecea;--ink:#111d1a;--muted:#5b6b66;--dim:#556561;--rule:#b9c7c2;--rule-soft:#dfe7e4;
+--key:#0d5c55;--key-soft:#d5e6e3;--warn:#8f5410;--warn-soft:#f0e2cd;--move:#7a3b6d}
+@media (prefers-color-scheme: dark){:root{--paper:#0e1614;--card:#16211e;--panel:#22302d;--ink:#e6eeeb;--muted:#9dada8;--dim:#93a29d;--rule:#354642;--rule-soft:#2a3936;
+--key:#6cc9b8;--key-soft:#173330;--warn:#d9a35f;--warn-soft:#33281a;--move:#d094c2}}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:var(--paper);color:var(--ink);font:14px/1.75 &quot;Zen Kaku Gothic New&quot;,&quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+.eyebrow{font:.68rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+h1{font:600 1.25rem/1.4 &quot;Shippori Mincho&quot;,&quot;Yu Mincho&quot;,serif;margin:.2rem 0 .8rem}
+h2{font:600 .78rem/1 system-ui,sans-serif;letter-spacing:.08em;color:var(--muted);margin:0 0 .45rem}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.state{font-size:.75rem;font-weight:700;padding:.15rem .6rem;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.state.wait{color:var(--warn);background:var(--warn-soft)}
+.state.done{color:var(--key);background:var(--key-soft)}
+.state.old{color:var(--dim)}
+.scale{display:flex;gap:6px;flex-wrap:wrap;margin:-.3rem 0 .9rem}
+.scale span{font-size:.74rem;color:var(--muted);background:var(--card);border:1px solid var(--rule-soft);border-radius:6px;padding:.05rem .5rem}
+.scale b{color:var(--ink);font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.8rem 1rem;margin:0 0 .7rem}
+.decision{background:var(--key-soft);border-left:4px solid var(--key);font-weight:700;font-size:1rem;line-height:1.7}
+.tabs{display:flex;gap:4px;margin:0 0 .6rem}
+.tabs span{font-size:.75rem;padding:.12rem .7rem;border-radius:999px;border:1px solid var(--rule);color:var(--muted)}
+.tabs span.on{background:var(--key);border-color:var(--key);color:var(--card);font-weight:700}
+ul{margin:0;padding-left:1.1rem} li{margin:.1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.74rem;min-width:4em}
+.opt{font-weight:700;white-space:nowrap}
+.open-diff{display:flex;justify-content:space-between;align-items:center;border:1.5px dashed var(--rule);border-radius:.6rem;padding:.6rem 1rem;color:var(--muted);font-size:.84rem}
+.open-diff b{color:var(--key)}
+.layout{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start}
+.files{position:sticky;top:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem}
+.files div{display:flex;justify-content:space-between;font:.78rem &quot;JetBrains Mono&quot;,ui-monospace,monospace;padding:.3rem .5rem;border-radius:6px;color:var(--ink)}
+.files div.on{background:var(--key-soft);outline:1.5px solid var(--key);font-weight:700}
+.files i{font-style:normal;color:var(--muted)}
+.toggle{font-size:.75rem;border:1px solid var(--rule);border-radius:999px;padding:.1rem .7rem;color:var(--ink)}
+.toggle b{color:var(--key)}
+.reason{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;margin:0 0 .7rem;overflow:hidden}
+.reason h3{font:700 .86rem/1.6 system-ui,sans-serif;margin:0;padding:.55rem .8rem;border-bottom:1px solid var(--rule-soft)}
+.reason h3 small{font-weight:400;color:var(--muted);margin-left:.4rem}
+pre{margin:0;font:.76rem/1.6 &quot;JetBrains Mono&quot;,ui-monospace,monospace;overflow-x:auto}
+.ln{display:block;padding:0 .8rem;white-space:pre}
+.ln.del{background:var(--warn-soft);color:var(--warn)}
+.ln.add{background:var(--key-soft)}
+.ln.ctx{color:var(--muted)}
+.fold{display:block;text-align:center;font-size:.72rem;color:var(--muted);border-top:1px dashed var(--rule);border-bottom:1px dashed var(--rule);padding:.15rem}
+.loc{font:.72rem &quot;JetBrains Mono&quot;,monospace;color:var(--muted);padding:.3rem .8rem 0}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw div{border:1px solid var(--rule-soft);border-radius:.6rem;padding:.5rem .6rem;background:var(--card);font-size:.78rem}
+.sw i{display:block;height:28px;border-radius:6px;margin-bottom:.35rem}
+&lt;/style&gt;
+&lt;h2&gt;色は意味ごとに1つ ── どこに使い、どこに使わないか&lt;/h2&gt;
+&lt;div class=&quot;sw&quot;&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--key)&quot;&gt;&lt;/i&gt;&lt;b&gt;key&lt;/b&gt;&lt;br&gt;決めたこと ・ 選択中のファイルと切り替え ・ 承認済み&lt;/div&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--key-soft)&quot;&gt;&lt;/i&gt;&lt;b&gt;key-soft&lt;/b&gt;&lt;br&gt;決めたことの地 ・ 変更後の行の地&lt;/div&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--warn)&quot;&gt;&lt;/i&gt;&lt;b&gt;warn&lt;/b&gt;&lt;br&gt;変更前の行 ・ 承認待ち&lt;/div&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--warn-soft)&quot;&gt;&lt;/i&gt;&lt;b&gt;warn-soft&lt;/b&gt;&lt;br&gt;変更前の行の地&lt;/div&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--dim)&quot;&gt;&lt;/i&gt;&lt;b&gt;dim&lt;/b&gt;&lt;br&gt;差し替え済み ・ 変更の無い行&lt;/div&gt;
+&lt;div&gt;&lt;i style=&quot;background:var(--rule)&quot;&gt;&lt;/i&gt;&lt;b&gt;rule&lt;/b&gt;&lt;br&gt;区切り線だけ。状態をこれだけで示さない&lt;/div&gt;
+&lt;/div&gt;
+&lt;div style=&quot;height:12px&quot;&gt;&lt;/div&gt;
+&lt;table&gt;&lt;tr&gt;&lt;th&gt;部品&lt;/th&gt;&lt;th&gt;default&lt;/th&gt;&lt;th&gt;hover&lt;/th&gt;&lt;th&gt;selected / pressed&lt;/th&gt;&lt;th&gt;focus&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;ファイルの一覧の行&lt;/td&gt;&lt;td&gt;地なし&lt;/td&gt;&lt;td&gt;panel の地&lt;/td&gt;&lt;td&gt;key-soft の地 ＋ key の枠&lt;/td&gt;&lt;td&gt;key の外枠&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;図 ・ 表 ・ 代表の変更の切り替え&lt;/td&gt;&lt;td&gt;rule の枠&lt;/td&gt;&lt;td&gt;panel の地&lt;/td&gt;&lt;td&gt;key の地 ＋ 白の文字&lt;/td&gt;&lt;td&gt;key の外枠&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;変更前を表示の切り替え&lt;/td&gt;&lt;td&gt;「オフ」の語&lt;/td&gt;&lt;td&gt;panel の地&lt;/td&gt;&lt;td&gt;「オン」の語 ＋ key の文字&lt;/td&gt;&lt;td&gt;key の外枠&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;状態の語&lt;/td&gt;&lt;td colspan=&quot;4&quot;&gt;承認待ち＝warn ・ 承認済み＝key ・ 差し替え済み＝dim。色だけでなく語で示す&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+"></iframe><p class="note-s">色の使い分けと、部品の状態</p></div><div data-g="4" data-ixp="1" hidden><pre><code>{
+  &quot;tokens&quot;: {
+    &quot;semantic&quot;: {
+      &quot;light&quot;: {&quot;key&quot;: &quot;teal-700&quot;, &quot;key-soft&quot;: &quot;teal-100&quot;,
+                &quot;warn&quot;: &quot;amber-700&quot;, &quot;warn-soft&quot;: &quot;amber-100&quot;, &quot;dim&quot;: &quot;ink-600&quot;}
+    }
+  },
+  &quot;components&quot;: [
+    {&quot;name&quot;: &quot;file-item&quot;, &quot;states&quot;: {&quot;default&quot;: {}, &quot;hover&quot;: {&quot;bg&quot;: &quot;panel&quot;},
+      &quot;selected&quot;: {&quot;bg&quot;: &quot;key-soft&quot;, &quot;outline&quot;: &quot;key&quot;}, &quot;focus&quot;: {&quot;outline&quot;: &quot;key&quot;}}},
+    {&quot;name&quot;: &quot;state-label&quot;, &quot;states&quot;: {&quot;waiting&quot;: {&quot;fg&quot;: &quot;warn&quot;},
+      &quot;accepted&quot;: {&quot;fg&quot;: &quot;key&quot;}, &quot;superseded&quot;: {&quot;fg&quot;: &quot;dim&quot;}}}
+  ]
+}</code></pre><p class="note-s">ACDR の design-system.json の一部</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">色を意味ごとに分けること</span></td><td>琥珀の差し色1つが、見出し ・ 状態 ・ 決めたことの枠 ・ ボタン ・ 印 ・ 件数のすべてに使われていた</td><td><span class="kind k-fact">実測</span><small>ux-advisor の回答（2026-10-08） ── ACDR 0152 ・ 0156 の画面</small></td></tr><tr><td><span class="part">区切り線だけで状態を示さないこと</span></td><td>区切り線（rule）と地のコントラスト比は1.67:1で、状態を示すには足りない</td><td><span class="kind k-fact">実測</span><small>ux-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">色だけで区別しないこと</span></td><td>図の説明が「色の付いた4つが…」と、色だけで区別を伝えていた（WCAG 1.4.1）</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-08）</small></td></tr><tr><td><span class="part">自分の design-system.json を持つこと</span></td><td>公開の単位は Skill ごとである</td><td><span class="kind k-rule">決まり</span><small>ACDR 0042</small></td></tr><tr><td><span class="part">デザインシステムを持つこと</span></td><td>デザインテンプレートを持つものは、デザインシステムを持つ</td><td><span class="kind k-rule">決まり</span><small>ACDR 0153</small></td></tr></table></div></div></details><details open><summary>採らなかった案（2件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>いまの tokens.json（琥珀の差し色1つ）を残す</b></td><td>決めたこと ・ 状態 ・ ボタン ・ 印が同じ色で、どれが強調かが分からない</td></tr><tr><td><b>ブレストボードの design-system.json を直接読む</b></td><td>ACDR の Skill を単独で配れなくなる</td></tr></table></div></div></details><div class="form" data-topic="Q4"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 4</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
