@@ -1,0 +1,177 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0147",
+ "title": "SKILL.md に使い方を書き、MCP に登録する",
+ "date": "2026-10-07",
+ "status": "accepted",
+ "decision": "schema-driven の SKILL.md に、基盤と具体の分け方 ・ 7つの手順 ・ 出力と終了コード ・ 具体が使ってよい面を書き、MCP をプロジェクトに登録して、ほかの作業から呼べる Skill にする",
+ "why": "SKILL.md は「作成中で、まだ道具を呼べない。ほかの作業から呼ばない」のままだった。宣言の UC-0〜10 はすべて実装とテストを持ち、UC-0 の流れも基盤の CLI だけで通った。それでも SKILL.md と MCP の登録が無いと、AI エージェントは使い方を知らず、ツールを呼べない。登録の前に skills-creator の検査を当てると、動詞なしの --json がツールの一覧を返さないことも分かった。ほかの Skill の CLI はこれでツールを調べられる。",
+ "shift": [
+  {
+   "what": "SKILL.md",
+   "from": "作成中。実行手順と出力形式は「道具ができてから書く」",
+   "to": "基盤と具体の分け方、スキーマを書く → 作成 → 更新 → 検査 → 描画 → 承認 → 転写の7つの手順、終了コードと出力の形、具体が使ってよい面"
+  },
+  {
+   "what": "MCP の登録",
+   "from": "Skill の mcp.json だけ（プロジェクトの .mcp.json に無い）",
+   "to": "プロジェクトの .mcp.json に schema-driven を足す"
+  },
+  {
+   "what": "動詞なしの --json",
+   "from": "使い方の誤り（終了コード 2）",
+   "to": "ツールの一覧（data.tools ・ data.skill_root）を終了コード 0 で返す"
+  },
+  {
+   "what": "動詞のあとの --json",
+   "from": "知らない引数として断る",
+   "to": "受け付けて取り除く（出力はもともと JSON）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "AI エージェントは SKILL.md で使い方を読み、--json でツールを調べ、MCP から11のツールを呼ぶ。",
+ "alternatives": [
+  {
+   "option": "SKILL.md だけ書き、MCP の登録は具体の Skill ができてからにする",
+   "why_not": "基盤だけでも文書の作成から描画と承認まで使える。登録しないと、その使い方を AI エージェントが呼べない"
+  },
+  {
+   "option": "skills-creator の契約にすべて合わせる（refs.rs ・ view.tokens.json などの複製と、references の4つのツールを置く）",
+   "why_not": "schema-driven はヘキサゴナルで作ると決め、skills-creator の雛形を使わない（ACDR 0121）。雛形の複製を置くと、同じ役割の仕組みが2つになる。食い違いは skills-creator の契約の側で扱う"
+  },
+  {
+   "option": "--json の一覧を、出力の形ごと ほかの Skill に合わせる（すべての出力を ok ・ findings ・ data で包む）",
+   "why_not": "11のツールの出力の形がすべて変わり、テストと具体の受け取り方も変わる。一覧を調べるのに必要なのは、動詞なしの --json の形だけである"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill_md",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "何のデータを持つかは決めない。",
+     "before": "いまは作成中で、道具はまだ無い。",
+     "why": "宣言の UC-0〜10 がすべて実装とテストを持ったので、「作成中 ・ 呼ばない」をやめ、基盤と具体の分け方を最初に書く。何のデータを持つかは具体が決める（ACDR 0132）"
+    },
+    {
+     "find": "具体のデザインが無くても、",
+     "before": "（無かった）",
+     "why": "基盤だけで使う人が描画できる範囲（文書だけ）を、目的の段で示す（ACDR 0140）"
+    },
+    {
+     "find": "の両方から、同じ名前と引数で呼べる。一覧は次で取れる。",
+     "before": "道具ができてから書く。作る順番は、ボード schema-driven-build の現在地が持つ。",
+     "why": "実行手順を、スキーマを書く → 作成 → 更新 → 検査 → 描画 → 承認 → 転写の7つの段にする。UC-0 の流れと同じ順で、各段にそのまま打てる CLI の例を置く"
+    },
+    {
+     "find": "合格かどうかは、",
+     "before": "（無かった）",
+     "why": "check は、ずれや検証エラーがあっても終了コード 0 で返す（検査を最後まで実行できたことだけを示す）。終了コードだけで合格と読む誤りを防ぐため、見る欄を書く"
+    },
+    {
+     "find": "具体のコードが使ってよいのは、crate が外へ出しているものだけである（ACDR 0144）。",
+     "before": "（無かった）",
+     "why": "具体の Skill を作る人が、転写した crate のどこを使ってよいかを、ACDR 0144 で決めた面のとおりに書く"
+    },
+    {
+     "find": "どのツールも、標準出力へ JSON を1つ書く。",
+     "before": "道具ができてから書く。",
+     "why": "終了コード 0 ・ 1 ・ 2 と、それぞれの出力の形を書く（tools.rs の ok ・ failed ・ misuse）"
+    },
+    {
+     "find": "check の終了コードだけで合格と判断しない",
+     "before": "道具ができるまで、ほかの作業から呼ばない",
+     "why": "呼んでよくなったので、呼ぶときに守ることへ置き換える。手で書き換えない ・ 終了コードだけで判断しない ・ 検証エラーを先へ進めない ・ 具体の種類を文書へ押し込まない ・ 内部を使わない"
+    }
+   ]
+  },
+  {
+   "key": "mcp_json",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"schema-driven\": {",
+     "before": "（無かった）",
+     "why": "schema-driven の MCP をプロジェクトに登録する。ほかの Skill と同じく、Skill の bin/ の実行ファイルを CLAUDE_PROJECT_DIR からの場所で指す（Skill の mcp.json と同じ中身）"
+    }
+   ]
+  },
+  {
+   "key": "inbound_cli_rs",
+   "tab": "adapters/src/inbound/cli.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::outbound::fs::master_root;",
+     "before": "（無かった）",
+     "why": "動詞なしの --json で、ツールの一覧を data.tools と data.skill_root の形で返す。ほかの Skill の CLI と同じ形で、AI エージェントと skills-creator の検査はこれでツールを調べる。出力はもともとすべて JSON なので、動詞のあとの --json は受け付けて取り除く"
+    },
+    {
+     "find": "// 出力はもともとすべて JSON なので、--json はどこにあっても受け付けて取り除く",
+     "before": "（無かった）",
+     "why": "動詞なしの --json で、ツールの一覧を data.tools と data.skill_root の形で返す。ほかの Skill の CLI と同じ形で、AI エージェントと skills-creator の検査はこれでツールを調べる。出力はもともとすべて JSON なので、動詞のあとの --json は受け付けて取り除く"
+    },
+    {
+     "find": "// 動詞なしの --json は、ツールの一覧を返す（ほかの Skill の CLI と同じ）",
+     "before": "（無かった）",
+     "why": "動詞なしの --json で、ツールの一覧を data.tools と data.skill_root の形で返す。ほかの Skill の CLI と同じ形で、AI エージェントと skills-creator の検査はこれでツールを調べる。出力はもともとすべて JSON なので、動詞のあとの --json は受け付けて取り除く"
+    },
+    {
+     "find": "map.insert(name.to_owned(), Value::String((*value).clone()));",
+     "before": "map.insert(name.to_owned(), Value::String(value.clone()));",
+     "why": "動詞なしの --json で、ツールの一覧を data.tools と data.skill_root の形で返す。ほかの Skill の CLI と同じ形で、AI エージェントと skills-creator の検査はこれでツールを調べる。出力はもともとすべて JSON なので、動詞のあとの --json は受け付けて取り除く"
+    }
+   ]
+  },
+  {
+   "key": "inbound_tools_rs",
+   "tab": "adapters/src/inbound/tools.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// ツールの一覧を、ほかの Skill の CLI と同じ形（data.tools ・ data.skill_root）で返す。",
+     "before": "（無かった）",
+     "why": "動詞なしの --json で、ツールの一覧を data.tools と data.skill_root の形で返す。ほかの Skill の CLI と同じ形で、AI エージェントと skills-creator の検査はこれでツールを調べる。出力はもともとすべて JSON なので、動詞のあとの --json は受け付けて取り除く"
+    }
+   ]
+  },
+  {
+   "key": "tests_tool_list_rs",
+   "tab": "cli/tests/tool_list.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/tool_list.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn json_without_a_tool_name_lists_every_tool_with_its_arguments() {",
+     "before": "（無かった）",
+     "why": "動詞なしの --json が、11のツールを名前 ・ 説明 ・ 引数（必須か）付きで返すことを確かめる。実装の前に書き、失敗することを確かめた"
+    },
+    {
+     "find": "fn json_after_a_tool_name_is_accepted_and_changes_nothing() {",
+     "before": "（無かった）",
+     "why": "動詞のあとの --json は、付けても付けなくても同じ結果になることを確かめる"
+    },
+    {
+     "find": "fn no_arguments_at_all_is_still_a_misuse() {",
+     "before": "（無かった）",
+     "why": "何も渡さないときは、これまでどおり使い方の誤り（終了コード 2）であることを確かめる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill_md": "3967200479feb077aada6f28ad3db2a3f7901553886eb6beacb8e97c7190e8eb",
+  "mcp_json": "2ccde16d422a936322b0b4be319c74358fc4d70a420c561f01bdda3926ba2056",
+  "inbound_cli_rs": "32a74fe8ca7945b49b4d7e1270b8af05c3cc9f2b883b98654e9938313b1152ae",
+  "inbound_tools_rs": "c54170341494b8bff131bacf4ff1ed3392693c275b62a646f95638a170b81504",
+  "tests_tool_list_rs": "844ed5a977a9816b143de0a4208e2578e19e40e2349ed8c7da6752f0c5caaa1a"
+ }
+}

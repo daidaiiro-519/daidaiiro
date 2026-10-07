@@ -209,6 +209,23 @@ impl Toolbox {
         &self.list
     }
 
+    /// ツールの一覧を、ほかの Skill の CLI と同じ形（data.tools ・ data.skill_root）で返す。
+    pub fn catalog(&self, skill_root: &str) -> Value {
+        let tools: Vec<Value> = self
+            .list
+            .iter()
+            .map(|tool| {
+                let args: Vec<Value> = tool
+                    .args
+                    .iter()
+                    .map(|(name, _, required)| json!({"name": name, "required": required}))
+                    .collect();
+                json!({"name": tool.name, "summary": tool.description, "args": args})
+            })
+            .collect();
+        json!({"ok": true, "findings": [], "data": {"tools": tools, "skill_root": skill_root}})
+    }
+
     /// ツールの名前と引数から、ユースケース（または具体のツール）を呼び出す。
     /// 返すのは終了コード（0 成功 ／ 1 失敗 ／ 2 使い方の誤り）と結果の JSON。
     pub fn dispatch(
