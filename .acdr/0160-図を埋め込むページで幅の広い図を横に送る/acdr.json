@@ -1,0 +1,509 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0160",
+ "title": "図を埋め込むページで、幅の広い図を横に送る",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "図を埋め込むページ（ACDR と、各 Skill の references の view）は、figure に overflow-x:auto を持ち、min-width を持つ図を図の中で横に送る",
+ "why": "ブレストボード design-svg-rework の論点3で、横に長い図は作成者が min-width を書き、論点5で、埋め込み先のページの CSS に横スクロールを足すと決めた（ACDR 4）。ACDR と advisor の view.css は figure svg に max-width:100% だけを持ち、min-width を持つ図が枠の外へはみ出していた。ブレストボードの CSS はすでに overflow-x:auto を持つ。",
+ "shift": [
+  {
+   "what": ".rv figure の規則",
+   "from": "余白 ・ 枠線 ・ 角丸 ・ 地の色",
+   "to": "それに加えて overflow-x:auto"
+  },
+  {
+   "what": "変える場所",
+   "from": "—",
+   "to": "skills-creator の見た目の正本（references/view/view.css）と、その複製31件（15の Skill と、契約のケースの部品）。view の出力を期待値に持つ契約のケース15件も同じ1行を変える"
+  },
+  {
+   "what": "skills-creator check --cases 1",
+   "from": "view.css を変えると、複製が正本と違うことと、view の出力が期待値と違うことを検出する",
+   "to": "advisor 6つ ・ skills-creator ・ ddd-advisor ほかは 0件。acdr など8つの Skill に残る2件は、この変更の前から在った refs.rs の差である"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は min-width の図が枠の外へはみ出した。変更後は図の中で横に送る",
+ "alternatives": [
+  {
+   "option": "図の側で幅を縮める（min-width を書かない）",
+   "why_not": "論点3で、スマホ幅で最小のフォントサイズが下がるので、横に長い図は min-width を書くと決めた"
+  },
+  {
+   "option": "acdr.css だけに足す",
+   "why_not": "ACDR のページの figure の規則は view.css の複製から来ており、advisor の view のページも同じ規則を使う。正本を1か所で変える"
+  },
+  {
+   "option": "brainstorming-board の CSS も同じ形に直す",
+   "why_not": "すでに overflow-x:auto を持つ。別のセッションが作り直している最中なので触らない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "_claude_skills_acdr_references_view_css",
+   "tab": "acdr/references/view.css",
+   "file": ".claude/skills/acdr/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_ddd_advisor_references_view_css",
+   "tab": "ddd-advisor/references/view.css",
+   "file": ".claude/skills/ddd-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_references_view_css",
+   "tab": "design-svg/references/view.css",
+   "file": ".claude/skills/design-svg/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_doc_writing_skills_references_view_css",
+   "tab": "doc-writing-skills/references/view.css",
+   "file": ".claude/skills/doc-writing-skills/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_fact_check_references_view_css",
+   "tab": "fact-check/references/view.css",
+   "file": ".claude/skills/fact-check/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_meta_thinking_advisor_references_view_css",
+   "tab": "meta-thinking-advisor/references/view.css",
+   "file": ".claude/skills/meta-thinking-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_platform_advisor_references_view_css",
+   "tab": "platform-advisor/references/view.css",
+   "file": ".claude/skills/platform-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_qa_advisor_references_view_css",
+   "tab": "qa-advisor/references/view.css",
+   "file": ".claude/skills/qa-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_session_memory_references_view_css",
+   "tab": "session-memory/references/view.css",
+   "file": ".claude/skills/session-memory/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skill_router_references_view_css",
+   "tab": "skill-router/references/view.css",
+   "file": ".claude/skills/skill-router/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_answer_figure_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/answer-figure/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/answer-figure/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_answer_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/answer/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/answer/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_broken_criteria_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/broken-criteria/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/broken-criteria/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_criteria_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/criteria/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/criteria/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_document_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/document/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/document/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_figure_block_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/figure-block/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/figure-block/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_grounds_empty_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/grounds-empty/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/grounds-empty/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_grounds_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/grounds/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/grounds/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_json_without_schema_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/json-without-schema/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/json-without-schema/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_markdown_in_references_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/markdown-in-references/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/markdown-in-references/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_omit_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/omit/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/omit/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_palette_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/palette/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/palette/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_related_figures_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/related-figures/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/related-figures/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_skill_tokens_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/skill-tokens/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/skill-tokens/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_template_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/template/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/template/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_fixtures_topics_references_view_css",
+   "tab": "skills-creator/references/contract/cases/fixtures/topics/references/view.css",
+   "file": ".claude/skills/skills-creator/references/contract/cases/fixtures/topics/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_view_css",
+   "tab": "skills-creator/references/view.css",
+   "file": ".claude/skills/skills-creator/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_view_view_css",
+   "tab": "skills-creator/references/view/view.css",
+   "file": ".claude/skills/skills-creator/references/view/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "見た目の正本である。figure に overflow-x:auto を足し、min-width を持つ図を図の中で横に送る"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_slide_deck_speech_references_view_css",
+   "tab": "slide-deck-speech/references/view.css",
+   "file": ".claude/skills/slide-deck-speech/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_slide_deck_references_view_css",
+   "tab": "slide-deck/references/view.css",
+   "file": ".claude/skills/slide-deck/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_usecase_advisor_references_view_css",
+   "tab": "usecase-advisor/references/view.css",
+   "file": ".claude/skills/usecase-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_ux_advisor_references_view_css",
+   "tab": "ux-advisor/references/view.css",
+   "file": ".claude/skills/ux-advisor/references/view.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": ".rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper)}",
+     "why": "skills-creator の正本（references/view/view.css）と同じに保つ。skills-creator check は複製を正本と比べる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skills_creator_references_contract_cases_a_figure_block_embeds_its_svg_json",
+   "tab": "contract/cases/a_figure_block_embeds_its_svg.json",
+   "file": ".claude/skills/skills-creator/references/contract/cases/a_figure_block_embeds_its_svg.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "background:var(--paper);overflow-x:auto}",
+     "before": "（変更前は overflow-x:auto が無い）",
+     "why": "view の出力の期待値は view.css を含むので、同じ1行を変える。ほかの14件の契約のケースも同じ変更である"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "_claude_skills_acdr_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_ddd_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_design_svg_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_doc_writing_skills_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_fact_check_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_meta_thinking_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_platform_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_qa_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_session_memory_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skill_router_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_answer_figure_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_answer_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_broken_criteria_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_criteria_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_document_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_figure_block_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_grounds_empty_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_grounds_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_json_without_schema_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_markdown_in_references_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_omit_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_palette_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_related_figures_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_skill_tokens_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_template_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_fixtures_topics_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_view_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_slide_deck_speech_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_slide_deck_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_usecase_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_ux_advisor_references_view_css": "31d88b308efaeccf13582f1230b7dc70352f5dbe1bc70a3f89011ebef4921848",
+  "_claude_skills_skills_creator_references_contract_cases_a_figure_block_embeds_its_svg_json": "61fc3906af7460bf3d189c04698efee03494f7a5791a98918c76a1f77705ea0c"
+ }
+}

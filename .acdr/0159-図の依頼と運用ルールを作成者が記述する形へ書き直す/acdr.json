@@ -1,0 +1,127 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0159",
+ "title": "図の依頼と運用ルールを、作成者が記述する形へ書き直す",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "design-svg を呼ぶ配線表の3行と CLAUDE.md の図の運用ルールを、作成者が SVG を class で記述し、design-svg が解決と検査をする役割分担に書き直す",
+ "why": "ブレストボード design-svg-rework の論点5で、呼び出し元の移行を ACDR 3 で行うと決めた。ACDR 0157 と 0158 で design-svg の役割が変わったのに、配線表の依頼の文は「構造化データから図を組む」のままで、slide-deck の行は使われない2色（faint と on-accent）を渡していた。CLAUDE.md の図のルールも、design-svg が描く前提の文だった。",
+ "shift": [
+  {
+   "what": "brainstorming-board と ddd-advisor の行の依頼",
+   "from": "構造化データの宣言を渡し、design-svg に図を作ってもらう",
+   "to": "索引から近いテンプレートを複製して class で記述した SVG を、解決して検査を通してもらう"
+  },
+  {
+   "what": "slide-deck の行の色",
+   "from": "8色（ink ・ dim ・ faint ・ line ・ paper ・ surface ・ accent ・ on-accent）",
+   "to": "6色。faint と on-accent は渡さず、warn と kind は design-svg の既定値を使う"
+  },
+  {
+   "what": "slide-deck の図のダークモード",
+   "from": "決めていない",
+   "to": "テーマを渡すとダークモードの style を出さない（ACDR 0157 で design-svg が実装済み）"
+  },
+  {
+   "what": "CLAUDE.md の図のルール",
+   "from": "図は design-svg が描き、呼ぶ側はそれを読むだけ",
+   "to": "作成者が class で記述し、design-svg に解決と検査を通させる。目視はライト ・ ダーク ・ 幅 358px の3通りと、class ごとのラベルの一覧で行う"
+  },
+  {
+   "what": "CLAUDE.md の廃語",
+   "from": "廃語が4件在る（ゲート1の検出）",
+   "to": "「依頼する」「作る」へ直し、ゲート1を 0件にする"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "変更前は呼び出し元が宣言を渡し、design-svg が配置して描いた。変更後は呼び出し元がテンプレートから記述し、design-svg が解決と検査をする",
+ "alternatives": [
+  {
+   "option": "既存の図をすべて新しい方法で書き直す",
+   "why_not": "論点5で除外した。承認済みの ACDR は封印されており、生成し直すと承認時点の姿が失われる。次にその図を変更するときに書き直す"
+  },
+  {
+   "option": "slide-deck の8色をすべて対応させる",
+   "why_not": "論点5で除外した。faint と on-accent を使う class が無く、使われない対応が残る"
+  },
+  {
+   "option": "スライドにもダークモードの style を出す",
+   "why_not": "論点5で除外した。スライドのテーマが配色を決めているのに、閲覧者の OS がダークモードだと図だけが切り替わる"
+  },
+  {
+   "option": "CLAUDE.md に3行の依頼の文を書き写す",
+   "why_not": "配線の行を CLAUDE.md へ複製しない運用ルールに反する。CLAUDE.md は役割分担だけを書く"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill_wiring_json",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "図の SVG を記述し、class を図のデザインシステムの値へ解決して検査を通した SVG を返してもらう",
+     "before": "構造化データから図を組み、SVGファイルとして返してもらう",
+     "why": "brainstorming-board の依頼を、作成者がテンプレートから記述し、design-svg が解決と検査をする役割分担に合わせる（論点5）"
+    },
+    {
+     "find": "説明に添える図の SVG を記述し",
+     "before": "構造化データから図を組んでもらう",
+     "why": "ddd-advisor の依頼も同じ役割分担にする"
+    },
+    {
+     "find": "スライドの6色を図のデザインシステムの色のトークンへ直したテーマ",
+     "before": "図の中の役割ごとの色（ink ・ dim ・ faint ・ line ・ paper ・ surface ・ accent ・ on-accent）と、何を描くかを渡して、SVG を返してもらう",
+     "why": "slide-deck は6色だけを色のトークンへ直して渡す。faint と on-accent を使う class が無いので外し、テーマを渡すとダークモードの style が出ないことを書く（論点5）"
+    }
+   ]
+  },
+  {
+   "key": "CLAUDE_md",
+   "tab": "CLAUDE.md",
+   "file": "CLAUDE.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "図は、作成者が SVG を class で記述し、design-svg に解決と検査を通させる",
+     "before": "図は design-svg に組ませ、返ったSVGをそのまま置く",
+     "why": "design-svg の役割が描くことから解決と検査に変わったので、ルールを役割分担に合わせる。廃語「組ませ」も使わない"
+    },
+    {
+     "find": "ライト ・ ダーク ・ 幅 358px の3通りを描画し",
+     "before": "ヘッドレスブラウザで描画し、画像を確認してから提示する。",
+     "why": "目視の対象を、検査1〜4が見ないもの（class の選択の誤り ・ 配置 ・ 強調の偏り ・ 単語の途中の改行）に合わせ、3通りの描画とラベルの一覧で確かめる"
+    },
+    {
+     "find": "何を依頼するか",
+     "before": "何を頼むか",
+     "why": "廃語「頼む」を「依頼する」へ直し、ゲート1を 0件にする"
+    },
+    {
+     "find": "受け入れ基準を作り",
+     "before": "受け入れ基準を組み立て",
+     "why": "廃語「組み立て」を直す"
+    },
+    {
+     "find": "記述して作る",
+     "before": "記述して組む",
+     "why": "廃語「組む」を直す"
+    },
+    {
+     "find": "覚えておくよう依頼されたとき",
+     "before": "覚えておくよう頼まれたとき",
+     "why": "廃語「頼まれた」を直す"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "brainstorming-board の figures（受け取った SVG の重なりとはみ出しの検査）を削除する。検査は design-svg が出力の前に1回だけ行う（論点5）。ブレストボードは別のセッションが作り直している最中（ACDR 0154〜0156）なので、そのボードの担当がその作り直しの中で行う"
+ ],
+ "seal": {
+  "skill_wiring_json": "3f4f2c64e59a2be70ea479307200257021e021c03fe9c84efce61303d39c819a",
+  "CLAUDE_md": "aeec35d7f82fd3d1290e6ed842dd1a0076f56f8a6413a0864d6779a8d16ba03c"
+ }
+}
