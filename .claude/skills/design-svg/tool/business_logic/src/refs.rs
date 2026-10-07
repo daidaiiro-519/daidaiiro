@@ -995,6 +995,16 @@ fn field(schema: &Value, value: &Value, ctx: &Ctx) -> String {
             svg_of(value.as_str().unwrap_or(""), ctx.base)
         ),
         "code" => format!("<pre class=\"code\">{}</pre>", esc(&text_of(value))),
+        // **図の並びは、1枚ずつ欄を描く** ── 並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）に、それぞれの見せ方を当てる
+        "figures" => {
+            let item = schema.get("items").map(|i| resolve(i, ctx.root)).unwrap_or(&Value::Null);
+            value
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|f| format!("<div class=\"figure-more\">{}</div>", fields(item, f, ctx)))
+                .collect()
+        }
         "units" => units_html(schema, value, ctx),
         "blocks" => blocks_html(value, ctx.base),
         "steps" => steps_html(schema, value, ctx),

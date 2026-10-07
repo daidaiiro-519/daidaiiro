@@ -1,0 +1,156 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0161",
+ "title": "8つの Skill の references の実装を、リファレンス実装へ合わせる",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "advisor 以外の8つの Skill の references の実装 refs.rs を、skills-creator のリファレンス実装 refs.rs.tmpl から複製し直す。対象は acdr ・ design-svg ・ doc-writing-skills ・ fact-check ・ session-memory ・ skill-router ・ slide-deck ・ slide-deck-speech",
+ "why": "2026-10-06 の ACDR 0115 ・ 0119 ・ 0127 の承認で、refs.rs.tmpl に図の並び（figures）の描画が入った。advisor 6つには複製したが、ほかの8つには複製していなかった。そのため skills-creator check --cases 1 が、8つの Skill で2件ずつを検出していた。1件は refs.rs がリファレンス実装と違うこと、もう1件はケース a_figure_unit_draws_its_related_figures_in_order の出力が期待値と違うことである。ACDR 0160 の作業で見つかった。",
+ "shift": [
+  {
+   "what": "8つの Skill の refs.rs",
+   "from": "refs.rs.tmpl の 2026-10-06 より前の形（図の並びを描かない）",
+   "to": "refs.rs.tmpl と同じ。図の並び（figures）を1枚ずつ欄で描く"
+  },
+  {
+   "what": "skills-creator check --cases 1",
+   "from": "15の Skill のうち8つが2件ずつ（計16件）",
+   "to": "15の Skill すべてで 0件"
+  },
+  {
+   "what": "8つの Skill のテストと実行ファイル",
+   "from": "—",
+   "to": "cargo test がすべて合格した。acdr 90件 ・ design-svg 214件 ・ doc-writing-skills 46件 ・ fact-check 28件である。session-memory 3件 ・ skill-router 3件 ・ slide-deck 60件 ・ slide-deck-speech 8件である。clippy は 0件で、tool.json の build で bin/ を作り直した"
+  }
+ ],
+ "alternatives": [
+  {
+   "option": "図の並びの処理だけを、各 Skill の refs.rs へ手で足す",
+   "why_not": "skills-creator は refs.rs をリファレンス実装の複製として扱い、一致しなければ複製し直すと決めている（document.json の契約）。手で足すと、次の変更で再び差が出る"
+  },
+  {
+   "option": "図の並びを使わない Skill は、古い refs.rs のままにする",
+   "why_not": "check が差を検出し続け、ほかの差が混ざっても気づけない。使わない処理を持っても、描画の結果は変わらない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "_claude_skills_acdr_tool_business_logic_src_refs_rs",
+   "tab": "acdr/refs.rs",
+   "file": ".claude/skills/acdr/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_design_svg_tool_business_logic_src_refs_rs",
+   "tab": "design-svg/refs.rs",
+   "file": ".claude/skills/design-svg/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_doc_writing_skills_tool_business_logic_src_refs_rs",
+   "tab": "doc-writing-skills/refs.rs",
+   "file": ".claude/skills/doc-writing-skills/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_fact_check_tool_business_logic_src_refs_rs",
+   "tab": "fact-check/refs.rs",
+   "file": ".claude/skills/fact-check/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_session_memory_tool_business_logic_src_refs_rs",
+   "tab": "session-memory/refs.rs",
+   "file": ".claude/skills/session-memory/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_skill_router_tool_business_logic_src_refs_rs",
+   "tab": "skill-router/refs.rs",
+   "file": ".claude/skills/skill-router/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_slide_deck_tool_business_logic_src_refs_rs",
+   "tab": "slide-deck/refs.rs",
+   "file": ".claude/skills/slide-deck/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_slide_deck_speech_tool_business_logic_src_refs_rs",
+   "tab": "slide-deck-speech/refs.rs",
+   "file": ".claude/skills/slide-deck-speech/tool/business_logic/src/refs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"figures\" => {",
+     "before": "（無かった）",
+     "why": "refs.rs.tmpl から複製し直した。図の並び（figures）は、並びの1枚が持つ欄（何を示すか ・ SVG ・ 読み方）をそれぞれの見せ方で描く"
+    }
+   ]
+  }
+ ],
+ "after_approval": [
+  "brainstorming-board は refs.rs を持たず、別のセッションが作り直している最中なので、この変更の対象にしていない"
+ ],
+ "seal": {
+  "_claude_skills_acdr_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_design_svg_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_doc_writing_skills_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_fact_check_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_session_memory_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_skill_router_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_slide_deck_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61",
+  "_claude_skills_slide_deck_speech_tool_business_logic_src_refs_rs": "221c4d1449a70a0c0f345c527049738a15324e493329016b8a8fa4f37239ab61"
+ }
+}
