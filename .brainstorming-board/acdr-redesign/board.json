@@ -3,30 +3,30 @@
   "kind": "board",
   "id": "acdr-redesign",
   "title": "ACDR の1枚を、承認に必要な量へ作り直す",
-  "round": 2,
+  "round": 3,
   "queue": [
     {
-      "topic": "Q2",
-      "why": "差し戻しを受けて、どう変わるかの見せ方を描き直した"
+      "topic": "Q5",
+      "why": "差分を見るたびに Rust を学びたい、という依頼で足した"
     },
     {
-      "topic": "Q3",
-      "why": "差し戻しを受けて、いまの差分の表現を引き継ぐ答えにした"
+      "topic": "Q6",
+      "why": "ACDR とコミットの単位を聞かれたので足した"
     },
     {
       "topic": "Q4",
-      "why": "差し戻しを受けて、いまの ACDR の見た目を引き継ぐ答えにした"
+      "why": "緑が浮いているという指摘で直した"
     },
     {
-      "topic": "Q1",
-      "why": "1回目のまま。回答を待っている"
+      "topic": "Q2",
+      "why": "毎回この見せ方で描けるかを、過去の ACDR で確かめた"
     }
   ],
   "topics": [
     {
       "id": "Q1",
       "name": "ACDR が答える問い",
-      "status": "open",
+      "status": "settled",
       "question": "1枚の ACDR は、承認者のどの問いに答えるか。承認の前と後で、見せるものを分けるか",
       "answer": {
         "text": "ACDR は「この決定を適用してよいか」に答える1枚にし、承認のあとに「改訂してよいか」を読むときも同じ判定の面で答える。",
@@ -100,9 +100,11 @@
           "並びの増減：項目をチップにして、なくなるものに取り消し線、新しく入るものに色を付ける",
           "文の変化：変更前（沈んだ地）と変更後（左に key の線）の2枚のカードを矢印でつなぐ。携帯の幅では縦に並べる",
           "足しただけ ・ なくしただけ：カードを1枚だけ出す",
-          "書き手は from と to に文か並び（配列）を書き、どの見せ方にするかは描画が決める",
+          "描画はどの行でもできる。合う形が無い行は、文の変化のカードで出す",
+          "チップと置き換えの行は、書き手が from と to を配列か短い組で書いたときだけ出す。文字列から自動で判定しない",
+          "書き方はスキーマの x-prompt が案内し、inspect は変更前と変更後がどちらも60字を超える行を指摘する",
           "決めたことは1件だけ1文で書く。比較した案は表をやめ、案ごとのカードにする",
-          "見た目は、いまの ACDR の配色と書体を引き継ぐ"
+          "見た目は、いまの ACDR の配色と書体を引き継ぐ（緑は論点4で直す）"
         ]
       },
       "images": [
@@ -115,6 +117,11 @@
           "kind": "ui",
           "html": "<!-- ui --><!doctype html><meta charset=utf-8><style>\n:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;\n--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}\n@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;\n--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}\n*{box-sizing:border-box}\nbody{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 \"Hiragino Kaku Gothic ProN\",\"Yu Gothic\",system-ui,sans-serif}\n.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}\n.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}\nh2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}\n.count{font-size:.8rem;color:var(--muted)}\n.count b{color:var(--ink);font-variant-numeric:tabular-nums}\n.shifts{display:grid;gap:1rem;counter-reset:s}\n.shift{counter-increment:s}\n.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}\n.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;\n border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}\n.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}\n.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}\n.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}\n.side .lab::before{content:\"\";width:.5rem;height:.5rem;border-radius:999px;background:currentColor}\n.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}\n.before .lab{color:var(--gone)}\n.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}\n.after .lab{color:var(--key)}\n.arrow{display:grid;place-items:center}\n.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}\ndel{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}\nins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}\ncode{font-family:\"JetBrains Mono\",ui-monospace,monospace;font-size:.86em}\n\n.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}\n.repl .n{justify-self:end}\n.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}\n.repl .old{background:var(--del-bg);color:var(--gone)}\n.repl .new{background:var(--add-bg);color:var(--ink)}\n.n:empty{display:none}\n.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}\n.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}\n.chip{font:600 .82rem/1.6 \"JetBrains Mono\",ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}\n.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}\n.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}\n.single{display:grid;grid-template-columns:1fr}\n.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}\n.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}\n@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}\n</style><section class=\"block\"><div class=\"bh\"><h2>どう変わるか</h2><span class=\"legend\"><span><i style=\"background:var(--del-bg)\"></i>なくなる</span><span><i style=\"background:var(--add-bg)\"></i>新しく入る</span></span></div>\n<div class=\"shifts\"><div class=\"shift\"><div class=\"what\">廃語を、ふだん使う語へ置き換える</div><div class=\"repl\"><span class=\"old\">「道具」</span><div class=\"arrow\"><span>→</span></div><span class=\"new\">ツール</span><span class=\"n\">92件</span><span class=\"old\">「組む」「組み立てる」</span><div class=\"arrow\"><span>→</span></div><span class=\"new\">生成する ・ 作る</span><span class=\"n\">110件</span><span class=\"old\">「差し込む」</span><div class=\"arrow\"><span>→</span></div><span class=\"new\">置換する ・ 挿入する</span><span class=\"n\">12件</span><span class=\"old\">「頼む」</span><div class=\"arrow\"><span>→</span></div><span class=\"new\">依頼する</span><span class=\"n\">10件</span></div><p class=\"note\">「組む」は文ごとに、生成する ・ 作る ・ 変換する ・ まとめる ・ 設計するから選ぶ</p></div><div class=\"shift\"><div class=\"what\">advisor の設計相談の言い方</div><div class=\"repl\"><span class=\"old\">「〜をどう組み立てるか」</span><div class=\"arrow\"><span>→</span></div><span class=\"new\">「〜をどう設計するか」</span><span class=\"n\">5件</span></div></div></div></section>",
           "caption": "語の置き換えが多い決定（ACDR 0152）は、1つの見出しの下に行を揃えて並べる"
+        },
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=utf-8><style>\n:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;\n--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}\n@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;\n--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}\n*{box-sizing:border-box}\nbody{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 \"Hiragino Kaku Gothic ProN\",\"Yu Gothic\",system-ui,sans-serif}\n.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}\n.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}\nh2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}\n.count{font-size:.8rem;color:var(--muted)}\n.count b{color:var(--ink);font-variant-numeric:tabular-nums}\n.shifts{display:grid;gap:1rem;counter-reset:s}\n.shift{counter-increment:s}\n.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}\n.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;\n border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}\n.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}\n.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}\n.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}\n.side .lab::before{content:\"\";width:.5rem;height:.5rem;border-radius:999px;background:currentColor}\n.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}\n.before .lab{color:var(--gone)}\n.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}\n.after .lab{color:var(--key)}\n.arrow{display:grid;place-items:center}\n.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}\ndel{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}\nins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}\ncode{font-family:\"JetBrains Mono\",ui-monospace,monospace;font-size:.86em}\n\n.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}\n.repl .n{justify-self:end}\n.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}\n.repl .old{background:var(--del-bg);color:var(--gone)}\n.repl .new{background:var(--add-bg);color:var(--ink)}\n.n:empty{display:none}\n.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}\n.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}\n.chip{font:600 .82rem/1.6 \"JetBrains Mono\",ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}\n.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}\n.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}\n.single{display:grid;grid-template-columns:1fr}\n.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}\n.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}\n@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}\n:root{--key:#4a6741;--add-bg:rgba(74,103,65,.13)}@media (prefers-color-scheme:dark){:root{--key:#9fbf8f;--add-bg:rgba(159,191,143,.16)}}</style><section class=\"block\"><div class=\"bh\"><h2>どう変わるか</h2><span class=\"legend\"><span><i style=\"background:var(--del-bg)\"></i>なくなる</span><span><i style=\"background:var(--add-bg)\"></i>新しく入る</span></span></div>\n<div class=\"shifts\"><div class=\"shift\"><div class=\"what\">描画</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div>ボードの render.rs が board.json から HTML を作る</div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div>転写した schema-driven の render が、ページテンプレート pages/board.json とボードの Design で描画する</div></div></div><div class=\"shift\"><div class=\"what\">見た目</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div>board.template.html ・ board.css ・ board.js ・ tokens.json（ボードの tokens.rs が CSS の変数を作る）</div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div>design/ の parts.html ・ board.css ・ board.js ・ design-system.json。CSS の変数は基盤が作る。見た目はいまのボードと同じ</div></div></div><div class=\"shift\"><div class=\"what\">画面から外した機能</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div>変更の引き出し ・ 変更の印 ・ 経過のタイムライン</div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div>外した（論点1 ・ 4 で画面に出さないと決めたもの）</div></div></div><div class=\"shift\"><div class=\"what\">押した状態 ・ 焦点</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div>押した「差し戻す」だけ茶色。焦点の表示が無い</div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div>押した状態はどのボタンも key。焦点は key の外枠</div></div></div><div class=\"shift\"><div class=\"what\">基盤（schema-driven）</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div>意味と部品の層だけを変数にする。CSS のコメントも検査する</div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div>基礎の層も変数にする。コメントを除いて検査する（テスト2件を先に足した）</div></div></div></div></section>",
+          "caption": "過去の ACDR 0155 を、書き直さずに新しい描画で出したもの。どの行も文の変化のカードで出る"
         },
         {
           "kind": "diff",
@@ -159,6 +166,24 @@
           "basis": "なくなるものは gone、新しく入るものは key の地",
           "tag": "rule",
           "source": "論点4"
+        },
+        {
+          "supports": "描画をどの行でもできるようにすること",
+          "basis": "過去の ACDR 168件の823行のうち、並びは21行、短い置き換えは56行、文の変化は739行（90%）だった",
+          "tag": "measured",
+          "source": "ACDR 0001〜0156 の acdr.json の shift"
+        },
+        {
+          "supports": "文字列から並びを自動で判定しないこと",
+          "basis": "「 ・ 」で区切った並びを自動で判定すると、0155 の「外した（論点1 ・ 4 で画面に出さないと決めたもの）」を2つの項目に割った",
+          "tag": "measured",
+          "source": "試して描いた（2026-10-08）"
+        },
+        {
+          "supports": "毎回できるかを確かめること",
+          "basis": "「そのデザイン表現で毎回差分表現をできるかどうかは気になりました。」",
+          "tag": "rule",
+          "source": "利用者（2026-10-08）"
         }
       ],
       "rejected": [
@@ -173,6 +198,10 @@
         {
           "option": "図 ・ 表 ・ 代表の変更を切り替えで1つずつ出す（前の答え）",
           "reason": "切り替えを押さないと見えないものが増え、表のままの見にくさも残る"
+        },
+        {
+          "option": "文字列の中の「 ・ 」区切りを、描画で自動的にチップにする",
+          "reason": "0155 の「論点1 ・ 4」を項目に割った。書き手が配列で書けば誤らない"
         }
       ],
       "verification": {
@@ -199,7 +228,7 @@
     {
       "id": "Q3",
       "name": "差分の面",
-      "status": "open",
+      "status": "settled",
       "question": "差分の面を、どの表現で見せるか",
       "answer": {
         "text": "差分の面は、いまの表現をそのまま引き継ぐ。",
@@ -268,16 +297,21 @@
       "status": "open",
       "question": "ACDR の見た目を、どのデザインシステムに従わせ、色をどう使い分けるか",
       "answer": {
-        "text": "ACDR はいまの見た目（配色 ・ 書体 ・ 差分の表現）を引き継ぎ、そのトークンを ACDR 自身の design-system.json へ移して部品ごとの状態を足す。",
+        "text": "ACDR はいまの見た目を引き継ぎ、緑だけを紙と琥珀に合う黄みのある深い緑へ直して、トークンを ACDR 自身の design-system.json へ移す。",
         "details": [
-          "色はいまの ACDR のもの：move（琥珀）・ key（緑）・ gone（赤）と、紙の地の paper ・ panel",
+          "key：#2f6f5e → #4a6741（暗い表示では #6fbfa4 → #9fbf8f）。紙の地とのコントラスト比は 5.66 → 6.08",
+          "ほかの色はいまの ACDR のもの：move（琥珀）・ gone（赤）と、紙の地の paper ・ panel",
           "どう変わるかの色：なくなるものは gone と del-bg、新しく入るものは key と add-bg",
           "部品ごとに状態（default ・ hover ・ selected ・ pressed ・ focus ・ disabled）を持つ",
-          "ブレストボードの design-system.json は読まない。Skill ごとに配るため",
-          "図の中の区別は、色だけでなく文字でも示す"
+          "ブレストボードの design-system.json は読まない。Skill ごとに配るため"
         ]
       },
       "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=utf-8><style>\n:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;\n--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}\n@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;\n--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}\n*{box-sizing:border-box}\nbody{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 \"Hiragino Kaku Gothic ProN\",\"Yu Gothic\",system-ui,sans-serif}\n.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}\n.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}\nh2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}\n.count{font-size:.8rem;color:var(--muted)}\n.count b{color:var(--ink);font-variant-numeric:tabular-nums}\n.shifts{display:grid;gap:1rem;counter-reset:s}\n.shift{counter-increment:s}\n.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}\n.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;\n border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}\n.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}\n.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}\n.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}\n.side .lab::before{content:\"\";width:.5rem;height:.5rem;border-radius:999px;background:currentColor}\n.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}\n.before .lab{color:var(--gone)}\n.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}\n.after .lab{color:var(--key)}\n.arrow{display:grid;place-items:center}\n.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}\ndel{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}\nins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}\ncode{font-family:\"JetBrains Mono\",ui-monospace,monospace;font-size:.86em}\n\n.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}\n.repl .n{justify-self:end}\n.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}\n.repl .old{background:var(--del-bg);color:var(--gone)}\n.repl .new{background:var(--add-bg);color:var(--ink)}\n.n:empty{display:none}\n.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}\n.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}\n.chip{font:600 .82rem/1.6 \"JetBrains Mono\",ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}\n.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}\n.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}\n.single{display:grid;grid-template-columns:1fr}\n.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}\n.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}\n@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}\n\n.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1rem}\n.cmp>div>p{margin:0 0 .4rem;font-size:.8rem;color:var(--muted)}\n.cmp>div>p b{font-family:\"JetBrains Mono\",monospace;color:var(--ink)}\n.new{--key:#4a6741;--add-bg:rgba(74,103,65,.13)}\n@media (prefers-color-scheme:dark){.new{--key:#9fbf8f;--add-bg:rgba(159,191,143,.16)}}</style>\n<div class=\"cmp\"><div><p>いまの緑 <b>#2f6f5e</b>（青みが強い）</p><section class=\"block\"><div class=\"bh\"><h2>どう変わるか</h2><span class=\"legend\"><span><i style=\"background:var(--del-bg)\"></i>なくなる</span><span><i style=\"background:var(--add-bg)\"></i>新しく入る</span></span></div>\n<div class=\"shifts\"><div class=\"shift\"><div class=\"what\">ボードに固有のツール</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div><div class=\"chips\"><span class=\"chip\">init</span><span class=\"chip\">inspect</span><span class=\"chip gone\">render</span><span class=\"chip gone\">tokens</span><span class=\"chip gone\">freeze</span><span class=\"chip gone\">figures</span><span class=\"chip\">serve</span></div></div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div><div class=\"chips\"><span class=\"chip\">init</span><span class=\"chip\">inspect</span><span class=\"chip added\">migrate</span><span class=\"chip\">serve</span></div><p class=\"note\">描画 ・ 形の検査 ・ 承認は、基盤のツールを使う</p></div></div></div></div></section></div>\n<div class=\"new\"><p>直した緑 <b>#4a6741</b>（黄みのある深い緑）</p><section class=\"block\"><div class=\"bh\"><h2>どう変わるか</h2><span class=\"legend\"><span><i style=\"background:var(--del-bg)\"></i>なくなる</span><span><i style=\"background:var(--add-bg)\"></i>新しく入る</span></span></div>\n<div class=\"shifts\"><div class=\"shift\"><div class=\"what\">ボードに固有のツール</div><div class=\"pair\"><div class=\"side before\"><div class=\"lab\">変更前</div><div class=\"chips\"><span class=\"chip\">init</span><span class=\"chip\">inspect</span><span class=\"chip gone\">render</span><span class=\"chip gone\">tokens</span><span class=\"chip gone\">freeze</span><span class=\"chip gone\">figures</span><span class=\"chip\">serve</span></div></div><div class=\"arrow\"><span>→</span></div><div class=\"side after\"><div class=\"lab\">変更後</div><div class=\"chips\"><span class=\"chip\">init</span><span class=\"chip\">inspect</span><span class=\"chip added\">migrate</span><span class=\"chip\">serve</span></div><p class=\"note\">描画 ・ 形の検査 ・ 承認は、基盤のツールを使う</p></div></div></div></div></section></div></div>",
+          "caption": "同じ行を、いまの緑と直した緑で描いたもの"
+        },
         {
           "kind": "ui",
           "html": "<!-- ui --><!doctype html><meta charset=utf-8><style>\n:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;\n--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}\n@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;\n--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}\n*{box-sizing:border-box}\nbody{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 \"Hiragino Kaku Gothic ProN\",\"Yu Gothic\",system-ui,sans-serif}\n.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}\n.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}\nh2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}\n.count{font-size:.8rem;color:var(--muted)}\n.count b{color:var(--ink);font-variant-numeric:tabular-nums}\n.shifts{display:grid;gap:1rem;counter-reset:s}\n.shift{counter-increment:s}\n.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}\n.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;\n border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}\n.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}\n.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}\n.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}\n.side .lab::before{content:\"\";width:.5rem;height:.5rem;border-radius:999px;background:currentColor}\n.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}\n.before .lab{color:var(--gone)}\n.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}\n.after .lab{color:var(--key)}\n.arrow{display:grid;place-items:center}\n.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}\ndel{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}\nins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}\ncode{font-family:\"JetBrains Mono\",ui-monospace,monospace;font-size:.86em}\n\n.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}\n.repl .n{justify-self:end}\n.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}\n.repl .old{background:var(--del-bg);color:var(--gone)}\n.repl .new{background:var(--add-bg);color:var(--ink)}\n.n:empty{display:none}\n.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}\n.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}\n.chip{font:600 .82rem/1.6 \"JetBrains Mono\",ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}\n.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}\n.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}\n.single{display:grid;grid-template-columns:1fr}\n.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}\n.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}\n@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}\n\n.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.6rem}\n.sw div{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:.55rem .7rem;font-size:.84rem;line-height:1.6}\n.sw i{display:block;height:2rem;border-radius:.25rem;margin:0 0 .4rem;border:1px solid var(--line)}\n.sw b{display:block;font-family:\"JetBrains Mono\",monospace;font-size:.8rem}\n.sw span{color:var(--muted)}</style>\n<section class=\"block\"><div class=\"bh\"><h2>いまの ACDR の色を、意味ごとに使う</h2></div><div class=\"sw\">\n<div><i style=\"background:var(--move)\"></i><b>move</b><span>節の見出し ・ 決めたことの枠 ・ 印 ・ 承認待ち</span></div>\n<div><i style=\"background:var(--key)\"></i><b>key</b><span>変更後のカードの線 ・ 新しく入るもの ・ 承認済み</span></div>\n<div><i style=\"background:var(--gone)\"></i><b>gone</b><span>変更前 ・ なくなるもの</span></div>\n<div><i style=\"background:var(--add-bg)\"></i><b>add-bg</b><span>新しく入るものの地</span></div>\n<div><i style=\"background:var(--del-bg)\"></i><b>del-bg</b><span>なくなるものの地</span></div>\n<div><i style=\"background:var(--panel)\"></i><b>panel</b><span>頁の地 ・ 変更前のカードの地</span></div>\n<div><i style=\"background:var(--paper)\"></i><b>paper</b><span>節の地 ・ 変更後のカードの地</span></div>\n<div><i style=\"background:var(--chipbg)\"></i><b>chipbg</b><span>矢印 ・ 件数</span></div>\n</div></section>",
@@ -286,11 +320,23 @@
         {
           "kind": "code",
           "language": "json",
-          "text": "{\n  \"scope\": \".rv\",\n  \"tokens\": {\n    \"base\": {\"color\": {\"amber-600\": \"#9a5b2c\", \"green-600\": \"#2f6f5e\", \"red-600\": \"#8a3a3a\",\n                       \"paper-050\": \"#fbfaf7\", \"paper-150\": \"#f2efe8\", \"line-300\": \"#d8d3c7\"}},\n    \"semantic\": {\n      \"light\": {\"move\": \"amber-600\", \"key\": \"green-600\", \"gone\": \"red-600\",\n                \"paper\": \"paper-050\", \"panel\": \"paper-150\", \"line\": \"line-300\"}\n    }\n  },\n  \"components\": [\n    {\"name\": \"shift-after\", \"states\": {\"default\": {\"border-left\": \"key\"}}},\n    {\"name\": \"chip\", \"states\": {\"default\": {\"border\": \"line\"},\n      \"removed\": {\"bg\": \"del-bg\", \"fg\": \"gone\"}, \"added\": {\"bg\": \"add-bg\", \"border\": \"key\"}}},\n    {\"name\": \"file-tab\", \"states\": {\"default\": {}, \"hover\": {\"bg\": \"panel\"},\n      \"selected\": {\"bg\": \"paper\", \"border-bottom\": \"move\"}, \"focus\": {\"outline\": \"move\"}}}\n  ]\n}",
+          "text": "{\n  \"scope\": \".rv\",\n  \"tokens\": {\n    \"base\": {\"color\": {\"amber-600\": \"#9a5b2c\", \"green-600\": \"#4a6741\", \"red-600\": \"#8a3a3a\",\n                       \"paper-050\": \"#fbfaf7\", \"paper-150\": \"#f2efe8\", \"line-300\": \"#d8d3c7\"}},\n    \"semantic\": {\n      \"light\": {\"move\": \"amber-600\", \"key\": \"green-600\", \"gone\": \"red-600\",\n                \"paper\": \"paper-050\", \"panel\": \"paper-150\", \"line\": \"line-300\"}\n    }\n  },\n  \"components\": [\n    {\"name\": \"shift-after\", \"states\": {\"default\": {\"border-left\": \"key\"}}},\n    {\"name\": \"chip\", \"states\": {\"default\": {\"border\": \"line\"},\n      \"removed\": {\"bg\": \"del-bg\", \"fg\": \"gone\"}, \"added\": {\"bg\": \"add-bg\", \"border\": \"key\"}}},\n    {\"name\": \"file-tab\", \"states\": {\"default\": {}, \"hover\": {\"bg\": \"panel\"},\n      \"selected\": {\"bg\": \"paper\", \"border-bottom\": \"move\"}, \"focus\": {\"outline\": \"move\"}}}\n  ]\n}",
           "caption": "ACDR の design-system.json の一部（いまの tokens.json の値を移す）"
         }
       ],
       "grounds": [
+        {
+          "supports": "緑を直すこと",
+          "basis": "「デザインシステムですが、色味だけグリーンが浮いている気がしましたね。。」",
+          "tag": "rule",
+          "source": "利用者（2026-10-08）"
+        },
+        {
+          "supports": "直した緑の値",
+          "basis": "紙の地 #fbfaf7 とのコントラスト比は、いまの緑が 5.66、直した緑が 6.08（WCAG の式で計算）。暗い表示の #9fbf8f は 8.99",
+          "tag": "measured",
+          "source": "計算（2026-10-08）"
+        },
         {
           "supports": "いまの見た目を引き継ぐこと",
           "basis": "「差分表示の部分の表現も今のデザインの数倍劣ってますよ。。。」",
@@ -318,6 +364,10 @@
       ],
       "rejected": [
         {
+          "option": "緑をやめ、新しく入るものも琥珀で示す",
+          "reason": "琥珀は見出し ・ 印 ・ 承認待ちに使っていて、新しく入るものと区別できなくなる"
+        },
+        {
           "option": "ブレストボードの緑の配色にそろえる（前の答え）",
           "reason": "いまの ACDR の見た目を捨てることになり、見本が劣った"
         },
@@ -338,6 +388,156 @@
             "answer": "ACDR はブレストボードと同じ値の基礎と意味のトークンを自分の design-system.json に持ち、色は意味ごとに1つずつ使う。",
             "returned": "「差分の表示の部分は今はコードとHTMLを描画した状態の差分、あとはマークダウンも描画したときの差分がでるのはそのまま引き継いでほしい。あとは私が直してほしかった差分表示の上の変更前と変更後を記載する部分のUIデザインが見にくいです。テーブルのCSSも嫌いだし、文字ばっかりで全くイメージわかないです。」",
             "finding": "見本をブレストボードの緑の配色で描き、いまの ACDR の見た目を捨てていた"
+          },
+          {
+            "answer": "ACDR はいまの見た目（配色 ・ 書体 ・ 差分の表現）を引き継ぎ、そのトークンを ACDR 自身の design-system.json へ移して部品ごとの状態を足す。",
+            "returned": "「デザインシステムですが、色味だけグリーンが浮いている気がしましたね。。」",
+            "finding": "緑（#2f6f5e）は青みが強く、紙の地と琥珀の暖かい配色の中で1つだけ冷たく見えた"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q5",
+      "name": "差分でコードを学ぶ",
+      "status": "open",
+      "question": "ファイルの差分がソースコードのとき、そのコードで使っている言語の仕組みを、差分を見るついでに学べるようにするか。学ぶ中身は誰が書くか",
+      "answer": {
+        "text": "コードの差分に「学ぶ」切り替えを足し、変更した行で使っている言語の仕組みを、原典の引用と確かめる問いと一緒に差分の下へ出す。",
+        "details": [
+          "ACDR は、ファイルごとに「学び」の欄（行 ・ 仕組みの名前 ・ 説明 ・ 原典の引用 ・ 出どころ ・ 確かめる問い ・ その答え）を持てるようにする。言語は問わない",
+          "差分の面の切り替えで「差分」と「学ぶ」を選ぶ。「学ぶ」では、行番号から学びのカードへつながる",
+          "引用は原典の原文のまま載せ、取得して照合したものだけにする",
+          "学びの中身を書くのは別の Skill（Rust の学習の Skill）。ACDR は描画するだけで、言語の知識を持たない",
+          "学びの欄が無いファイルは、いまの差分のまま出る"
+        ]
+      },
+      "images": [
+        {
+          "kind": "ui",
+          "html": "<!-- ui --><!doctype html><meta charset=utf-8><style>\n:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;\n--add-bg:rgba(47,111,94,.13);--del-bg:rgba(138,58,58,.11);--pop-bg:rgba(154,91,44,.07);--card-shadow:0 1px 2px rgba(60,50,30,.06),0 4px 14px rgba(60,50,30,.06)}\n@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;\n--add-bg:rgba(111,191,164,.16);--del-bg:rgba(217,123,123,.14);--pop-bg:rgba(217,155,98,.08);--card-shadow:none}}\n*{box-sizing:border-box}\nbody{margin:0;padding:20px;background:var(--panel);color:var(--ink);font:15px/1.85 \"Hiragino Kaku Gothic ProN\",\"Yu Gothic\",system-ui,sans-serif}\n.block{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1.1rem 1.3rem 1.3rem}\n.bh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 .9rem}\nh2{font-size:.95rem;color:var(--move);margin:0;letter-spacing:.02em}\n.count{font-size:.8rem;color:var(--muted)}\n.count b{color:var(--ink);font-variant-numeric:tabular-nums}\n.shifts{display:grid;gap:1rem;counter-reset:s}\n.shift{counter-increment:s}\n.what{display:flex;align-items:center;gap:.55rem;margin:0 0 .45rem;font-weight:700;font-size:.95rem}\n.what::before{content:counter(s);display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:999px;\n border:1.5px solid var(--move);color:var(--move);font-size:.75rem;font-variant-numeric:tabular-nums}\n.pair{display:grid;grid-template-columns:1fr 2.2rem 1fr;align-items:stretch}\n.side{border-radius:.35rem;padding:.6rem .85rem .7rem;font-size:.9rem;line-height:1.75}\n.side .lab{display:flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;letter-spacing:.1em;margin:0 0 .2rem}\n.side .lab::before{content:\"\";width:.5rem;height:.5rem;border-radius:999px;background:currentColor}\n.before{background:var(--panel);border:1px solid var(--line);color:var(--muted)}\n.before .lab{color:var(--gone)}\n.after{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--key);box-shadow:var(--card-shadow)}\n.after .lab{color:var(--key)}\n.arrow{display:grid;place-items:center}\n.arrow span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:999px;background:var(--chipbg);color:var(--move);font-size:.9rem}\ndel{text-decoration:none;background:var(--del-bg);color:var(--gone);border-radius:.2rem;padding:0 .1rem}\nins{text-decoration:none;background:var(--add-bg);color:var(--ink);border-radius:.2rem;padding:0 .1rem;font-weight:600}\ncode{font-family:\"JetBrains Mono\",ui-monospace,monospace;font-size:.86em}\n\n.repl{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem minmax(0,1fr) 4.2rem;align-items:center;gap:.4rem .3rem}\n.repl .n{justify-self:end}\n.repl .old,.repl .new{font-size:1.02rem;font-weight:700;padding:.35rem .7rem;border-radius:.35rem}\n.repl .old{background:var(--del-bg);color:var(--gone)}\n.repl .new{background:var(--add-bg);color:var(--ink)}\n.n:empty{display:none}\n.n{font-size:.75rem;color:var(--muted);background:var(--chipbg);border-radius:999px;padding:.05rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums}\n.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.15rem 0 0}\n.chip{font:600 .82rem/1.6 \"JetBrains Mono\",ui-monospace,monospace;padding:.1rem .55rem;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.chip.gone{border-color:transparent;background:var(--del-bg);color:var(--gone);text-decoration:line-through;text-decoration-thickness:1.5px}\n.chip.added{border-color:var(--key);background:var(--add-bg);color:var(--ink)}\n.note{font-size:.84rem;color:var(--muted);margin:.45rem 0 0}\n.single{display:grid;grid-template-columns:1fr}\n.legend{display:flex;gap:.8rem;font-size:.75rem;color:var(--muted)}\n.legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.25rem;vertical-align:-.05rem}\n@media (max-width:640px){.pair,.repl{grid-template-columns:1fr}.arrow{height:1.9rem}.arrow span{transform:rotate(90deg)}}\n:root{--key:#4a6741;--add-bg:rgba(74,103,65,.13)}@media (prefers-color-scheme:dark){:root{--key:#9fbf8f;--add-bg:rgba(159,191,143,.16)}}\n.bar{display:flex;justify-content:space-between;align-items:center;margin:0 0 .6rem}\n.bar b{font-size:.9rem}\n.sw{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:.78rem}\n.sw span{padding:.15rem .8rem;color:var(--muted)}\n.sw span.on{background:var(--move);color:var(--paper);font-weight:700}\n.code{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;overflow-x:auto;font:.8rem/1.75 \"JetBrains Mono\",ui-monospace,monospace}\n.row{display:grid;grid-template-columns:3rem 1fr;white-space:pre}\n.row .no{text-align:right;padding-right:.7rem;color:var(--muted);background:var(--panel);border-right:1px solid var(--line)}\n.row .src{padding-left:.8rem}\n.row.hit{background:var(--pop-bg)}\n.row.hit .no{color:var(--move);font-weight:700}\n.learns{display:grid;gap:.7rem;margin:.8rem 0 0}\n.learn{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--move);border-radius:.35rem;padding:.65rem .95rem}\n.lh{display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem}\n.lh .at{font:700 .72rem \"JetBrains Mono\",monospace;color:var(--move);background:var(--pop-bg);border-radius:.25rem;padding:0 .4rem}\n.lh code{font-size:.8rem;color:var(--muted)}\n.learn p{margin:.3rem 0;font-size:.9rem}\nblockquote{margin:.4rem 0;padding:.35rem .7rem;background:var(--panel);border-radius:.25rem;font:italic .84rem/1.6 Georgia,serif}\ncite{display:block;font:normal .74rem system-ui,sans-serif;margin-top:.2rem}\ncite a{color:var(--move)}\ndetails{font-size:.86rem}\nsummary{cursor:pointer;color:var(--key);font-weight:700}</style>\n<div class=\"bar\"><b>tool/board/src/tools.rs</b><span class=\"sw\"><span>差分</span><span class=\"on\">学ぶ</span></span></div>\n<div class=\"code\"><div class=\"row hit\"><span class=\"no\">83</span><span class=\"src\">impl ExtraTools for BoardTools {</span></div><div class=\"row\"><span class=\"no\">84</span><span class=\"src\">    fn tools(&amp;self) -&gt; Vec&lt;ToolDef&gt; {</span></div><div class=\"row\"><span class=\"no\">85</span><span class=\"src\">        TOOLS.to_vec()</span></div><div class=\"row\"><span class=\"no\">86</span><span class=\"src\">    }</span></div><div class=\"row\"><span class=\"no\">87</span><span class=\"src\">&nbsp;</span></div><div class=\"row\"><span class=\"no\">88</span><span class=\"src\">    fn call(&amp;self, name: &amp;str, args: &amp;Map&lt;String, Value&gt;) -&gt; (i32, Value) {</span></div><div class=\"row hit\"><span class=\"no\">89</span><span class=\"src\">        let arg = |key: &amp;str| args.get(key).and_then(Value::as_str).unwrap_or_default();</span></div><div class=\"row\"><span class=\"no\">90</span><span class=\"src\">        match name {</span></div></div><div class=\"learns\"><div class=\"learn\"><div class=\"lh\"><span class=\"at\">83行</span><b>traitを型に実装する</b><code>impl ExtraTools for BoardTools</code></div>\n<p>trait ExtraTools が決めたメソッド（tools と call）を、型 BoardTools に実装している。基盤の Toolbox は、ExtraTools を実装した型なら何でも受け取れる。</p>\n<blockquote>Implementing a trait on a type is similar to implementing regular methods.<cite><a href=\"https://doc.rust-lang.org/book/ch10-02-traits.html\">The Rust Programming Language 10.2「Implementing a Trait on a Type」</a></cite></blockquote>\n<details><summary>確かめる：call を書き忘れたら、どこで分かるか</summary><p>コンパイルのとき。traitが既定の実装を持たないメソッドを1つでも欠くと、impl ブロックがエラーになる。</p></details></div><div class=\"learn\"><div class=\"lh\"><span class=\"at\">89行</span><b>クロージャが外側の変数を借りる</b><code>|key: &amp;str| args.get(key)</code></div>\n<p>arg はクロージャで、外側の引数 args を本体の中で読んでいる。読むだけなので、args は不変の借用で捕捉される。</p>\n<blockquote>Closures can capture values from their environment in three ways, which directly map to the three ways a function can take a parameter: borrowing immutably, borrowing mutably, and taking ownership.<cite><a href=\"https://doc.rust-lang.org/book/ch13-01-closures.html\">The Rust Programming Language 13.1「Capturing References or Moving Ownership」</a></cite></blockquote>\n<details><summary>確かめる：arg を呼ぶとき、なぜ args を渡さなくてよいのか</summary><p>クロージャは、定義した場所から見える変数（ここでは args）を捕捉して持つから。</p></details></div><div class=\"learn\"><div class=\"lh\"><span class=\"at\">89行</span><b>Option をつなぐ</b><code>.and_then(Value::as_str).unwrap_or_default()</code></div>\n<p>get は Option&lt;&amp;Value&gt; を返す。and_then は None ならそのまま None、Some なら as_str を呼ぶ。unwrap_or_default は None のとき &amp;str の既定値を返す。</p>\n<blockquote>Some languages call this operation flatmap.<cite><a href=\"https://doc.rust-lang.org/std/option/enum.Option.html#method.and_then\">std::option::Option の and_then</a></cite></blockquote>\n<details><summary>確かめる：args に key が無いとき、arg は何を返すか</summary><p>空の文字列 &quot;&quot;。&amp;str の既定値である。</p></details></div></div>",
+          "caption": "ACDR 0156 の tools.rs を「学ぶ」で開いた見本。引用3件は原文を取得して照合した"
+        },
+        {
+          "kind": "code",
+          "language": "json",
+          "text": "{\n  \"docs\": [{\"file\": \".claude/skills/brainstorming-board/tool/board/src/tools.rs\",\n    \"marks\": [{\"find\": \"impl ExtraTools for BoardTools {\", \"why\": \"…\"}],\n    \"learning\": [\n      {\"line\": 83, \"concept\": \"traitを型に実装する\",\n       \"explanation\": \"trait ExtraTools が決めたメソッドを、型 BoardTools に実装している\",\n       \"quote\": \"Implementing a trait on a type is similar to implementing regular methods.\",\n       \"source\": \"https://doc.rust-lang.org/book/ch10-02-traits.html\",\n       \"question\": \"call を書き忘れたら、どこで分かるか\",\n       \"answer\": \"コンパイルのとき\"}]}]\n}",
+          "caption": "acdr.json の docs に足す learning の欄"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "差分で学べるようにすること",
+          "basis": "「ソースコードの時はできればそのソースコードに関する学習も兼ねてできるようにしたいんですよね。」「毎回そんな見てられないのでこのACDRでファイル差分が出る度に勉強できたらいいなーと思ってる」",
+          "tag": "rule",
+          "source": "利用者（2026-10-08）"
+        },
+        {
+          "supports": "差分の面に足すこと",
+          "basis": "差分の面は、いまの表現をそのまま引き継ぐ",
+          "tag": "rule",
+          "source": "論点3"
+        },
+        {
+          "supports": "学びの中身を別の Skill が書くこと",
+          "basis": "ACDR は、対象が何の仕事に属するかを認知しない",
+          "tag": "rule",
+          "source": "acdr の SKILL.md のガードレール"
+        },
+        {
+          "supports": "引用を原文のまま載せること",
+          "basis": "見本の引用3件（The Rust Programming Language 10.2 ・ 13.1、std の Option）を取得し、原文の文字列で照合した",
+          "tag": "primary",
+          "source": "fact-check（sources/ に原文）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "ACDR が Rust の知識を持ち、学びの中身も自分で書く",
+          "reason": "ACDR が特定の言語の語彙を持つことになり、ほかの言語の差分で使えなくなる"
+        },
+        {
+          "option": "学びを差分の行の間に挟んで出す",
+          "reason": "差分が長くなり、「差分」で見たいときの量が増える。切り替えで分けた"
+        },
+        {
+          "option": "学びを別のページにする",
+          "reason": "差分と学びが2か所になり、どの行の話かを読み手がつなぐことになる"
+        }
+      ],
+      "verification": {
+        "out_of_scope": [
+          {
+            "item": "外の作業：Rust の学習の Skill（原典は The Rust Programming Language ・ The Rust Reference ・ std のドキュメント）を、別のボードで決める",
+            "treatment": "later",
+            "note": "学んだ仕組みを記録し、同じ仕組みを毎回出さないようにするかも、そこで決める"
+          }
+        ]
+      }
+    },
+    {
+      "id": "Q6",
+      "name": "ACDR とコミットの単位",
+      "status": "open",
+      "question": "ACDR を起こす単位は、コミットの単位と同じにするか",
+      "answer": {
+        "text": "ACDR 1件をコミット1つにし、承認した ACDR とその適用の差分を同じコミットに入れる。",
+        "details": [
+          "決定1件 → ACDR 1件 → コミット1つ。コミットメッセージの先頭に ACDR の番号を書く",
+          "複数の ACDR をまとめて1つのコミットにしない（0154〜0156 のようにしない）",
+          "ACDR の差分は、そのコミットの親との差で取れる。承認したときにコミットを記録すれば、あとから同じ差分を描き直せる",
+          "1つの決定の適用が大きいときは、決定を分けて ACDR を分ける。ACDR を分けずにコミットだけ分けない",
+          "ACDR を起こさない変更（ボードの回 ・ 記憶の更新）は、いまのまま単独でコミットする"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "svg": "<svg viewBox=\"0 0 640 170\" style=\"min-width:540px\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-a45e06ac-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8}}:root[data-theme=\"dark\"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-a45e06ac-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n  <rect class=\"box\" x=\"10\" y=\"60\" width=\"120\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n  <text class=\"label\" x=\"70\" y=\"90\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ACDR を起こす</text>\n  <rect class=\"box\" x=\"175\" y=\"60\" width=\"120\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n  <text class=\"label\" x=\"235\" y=\"90\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">承認</text>\n  <rect class=\"box\" x=\"340\" y=\"60\" width=\"120\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n  <text class=\"label\" x=\"400\" y=\"90\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">正本へ適用</text>\n  <rect class=\"box focus\" x=\"505\" y=\"45\" width=\"125\" height=\"80\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n  <text class=\"label focus\" x=\"567\" y=\"77\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">コミット1つ</text>\n  <text class=\"note\" x=\"567\" y=\"97\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">ACDR と適用の差分</text>\n  <text class=\"note\" x=\"567\" y=\"113\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">を同じコミットに</text>\n  <path class=\"flow\" d=\"M130,85 H173\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-a45e06ac-arrow-5B6B66)\"/>\n  <path class=\"flow\" d=\"M295,85 H338\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-a45e06ac-arrow-5B6B66)\"/>\n  <path class=\"flow\" d=\"M460,85 H503\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-a45e06ac-arrow-5B6B66)\"/>\n  <text class=\"note\" x=\"235\" y=\"140\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">差し戻し → 直して出し直す</text>\n</svg>",
+          "caption": "1件の ACDR は、承認 ・ 適用 ・ コミット1つで終わる"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "コミットの単位を決めること",
+          "basis": "「ACDRのタイミングなんですけど、これってコミットする単位になるのかな？」",
+          "tag": "rule",
+          "source": "利用者（2026-10-08）"
+        },
+        {
+          "supports": "決定を1件にすること",
+          "basis": "決めたことは1件だけ1文で書く",
+          "tag": "rule",
+          "source": "論点2"
+        },
+        {
+          "supports": "同じコミットに入れること",
+          "basis": "いまの ACDR は変更前を git show <rev>:<パス> で取り、既定の rev は HEAD である。まとめてコミットすると、どの差分がどの決定のものかが分からなくなる",
+          "tag": "rule",
+          "source": "acdr の SKILL.md の Step 5"
+        },
+        {
+          "supports": "まとめてコミットした実例",
+          "basis": "0154 ・ 0155 ・ 0156 を1つのコミット 1b2cdb0c に入れた。0156 の差分は 0155 と同じファイルを含んでいた",
+          "tag": "measured",
+          "source": "git log（2026-10-08）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "ACDR とコミットを結びつけない（いま）",
+          "reason": "まとめたコミットの中で、どの差分がどの決定のものかを読み分けられない"
+        },
+        {
+          "option": "コミットごとに ACDR を起こす",
+          "reason": "決定の無い変更（ボードの回 ・ 記憶）にも記録が増え、承認の数が増える"
+        }
+      ],
+      "verification": {
+        "out_of_scope": [
+          {
+            "item": "外の作業：acdr を作り直したあとの最初の ACDR から、1件1コミットで進めて食い違いが出ないかを試す",
+            "treatment": "later"
           }
         ]
       }
