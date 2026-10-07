@@ -38,7 +38,7 @@ FIG = {
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
  'L1-S0': V1.ask, # 1本目　原因を知る
  'L1-S1': V1.symptoms, 'L1-S2': V1.ends,
- 'L1-S3': V1.fit, 'L1-S4': V1.three, 'L1-S5': V1.order,
+ 'L1-S3': V1.fit, 'T2-S3B': V1.goal_line, 'L1-S4': V1.three, 'L1-S5': V1.order,
  # 2本目　意味を決める
  'T2-S1': WV.t2_three_returns, 'T2-S2': WV.t2_sorting, 'T2-S3': WV.t2_ambiguous,
  'T2-S4': WV.t2_pick, 'T2-S5': WV.t2_after,

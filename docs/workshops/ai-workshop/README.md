@@ -8,8 +8,8 @@
 
 | もの | 中身 |
 |---|---|
-| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編10枚＋付録23枚。ブラウザで開き、矢印キーでめくる |
-| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編21枚＋付録12枚 |
+| [要点版のスライド](proposal/out/director-deck-brief.html) ・ [PDF](proposal/out/director-deck-brief.pdf) | 表紙1枚＋本編15枚＋付録28枚。ブラウザで開き、矢印キーでめくる |
+| [詳細版のスライド](proposal/out/director-deck.html) ・ [PDF](proposal/out/director-deck.pdf) | 表紙1枚＋本編29枚＋付録14枚 |
 | [要点版の1ページ版](proposal/out/director-deck-brief-all.html) ・ [詳細版の1ページ版](proposal/out/director-deck-all.html) | 全枚を縦に並べた版。通し読みに使う |
 | [要点版の発表原稿](proposal/out/speaker-notes-brief.md) ・ [詳細版の発表原稿](proposal/out/speaker-notes.md) | 各枚に対応する原稿 |
 | [運営案](proposal/out/workshop-plan.md) | テーマ ・ 教材 ・ 半年間の進行 ・ 支援 ・ 評価 ・ 工数 |
@@ -21,7 +21,8 @@
 
 | 版 | 置き場所 | 日付 | 内容 | 記録 |
 |---|---|---|---|---|
-| v2（最新） | `proposal/out/` | 2026-09-29 | 身につける力を目的をAIで達成する力へ、主KPIを目的の達成へ改め、次の期の扱いを目指す姿と組織への浸透へ置き換えた | [ACDR 0032](../../../.acdr/0032-企画書を目的の軸へ改める/) |
+| v3（最新） | `proposal/out/` | 2026-10-07 | ワークショップの目的を「目的を正しく言葉にしてAIに伝え、達成できるようになる」、期待する効果を「作業をAIに任せられる」にした。コースをやめて目的ごとに作った仕組みを誰が使うかを決める形にし、教材1〜3の進め方の枚と施策の区切りの枚を足し、順番を並べ替えた。主KPIの目的の明確化率を本人の実感で数える形にした | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
+| v2 | `proposal/out/versions/v2/` | 2026-09-29 | 身につける力を目的をAIで達成する力へ、主KPIを目的の達成へ改め、次の期の扱いを目指す姿と組織への浸透へ置き換えた | [ACDR 0032](../../../.acdr/0032-企画書を目的の軸へ改める/) |
 | v1 | `proposal/out/versions/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にした版 | ── |
 
 ### 教材1（オリエンテーション＋目的の把握）
@@ -36,7 +37,8 @@
 
 | 版 | 置き場所 | 日付 | 内容 | 記録 |
 |---|---|---|---|---|
-| v2（最新） | `material-1/out/` | 2026-09-29 | オリエンテーションを目的をAIで達成する力の軸へ改め、3つの教材の名前を目的の把握 ・ 言葉の定義 ・ 仕組みの構築にした。動画はまだ作り直していない | [ACDR 0034](../../../.acdr/0034-オリエンテーションを目的の軸へ改める/) |
+| v3（最新） | `material-1/out/` | 2026-10-07 | オリエンテーションを企画書と同じ言い方（言語化して伝える・作業をAIに任せられる・教材1〜3は方法を学ぶ）にそろえ、教材1は目的の1行を2本目に置く形にした。動画はまだ作り直していない | [ACDR 0142](../../../.acdr/0142-企画書とオリエンテーションを言語化の軸へ改める/) |
+| v2 | `material-1/out/versions/v2/` | 2026-09-29 | オリエンテーションを目的をAIで達成する力の軸へ改め、3つの教材の名前を目的の把握 ・ 言葉の定義 ・ 仕組みの構築にした。動画はまだ作り直していない | [ACDR 0034](../../../.acdr/0034-オリエンテーションを目的の軸へ改める/) |
 | v1 | `material-1/out/versions/v1/` | 2026-09-27 | 課題をAIで解決する力を軸にしたオリエンテーション（スライド ・ 原稿 ・ 動画）と、教材1のはじめに ・ まとめの表紙 | ── |
 
 教材1の中身と、作り直す手順は [material-1/README.md](material-1/README.md) にある。
@@ -52,6 +54,6 @@
 | 企画書 | `proposal/src/` | `python3 build_deck.py`。HTML を `proposal/out/` へ出す。PDF と一覧画像は別に描画して出す |
 | 教材1 | `material-1/src/` | [material-1/README.md](material-1/README.md) を参照 |
 
-企画書の組み立ては、同梱の Skill（`proposal/src/skills/ai-workshop-slide-deck/`）の型を使う。教材1の組み立ても、この型と `proposal/src/visuals.py` の部品を借りる。
+企画書の作成には、同梱の Skill（`proposal/src/skills/ai-workshop-slide-deck/`）の型を使う。教材1の作成も、この型と `proposal/src/visuals.py` の部品を借りる。
 
 変更の経緯は [.acdr](../../../.acdr/) の記録が保持する。

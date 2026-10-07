@@ -758,7 +758,7 @@ def l6_reproducible():
     def chip(x, y, t, hot=False):
         return rect(x, y, 150, 40, PAPER, 10, ACCENT if hot else LINE) + text(x + 75, y + 26, t, 14, INK, 700, 'middle')
     a = rect(0, 0, 536, 36, PAPER, 18, LINE) + text(268, 24, '「課題を整理して」だけのプロンプト', 15, INK, 700, 'middle')
-    a += rect(576, 0, 536, 36, PAPER, 18, ACCENT) + text(844, 24, '意味 ・ 範囲 ・ 条件を追記したプロンプト', 15, ACCENT, 700, 'middle')
+    a += rect(576, 0, 536, 36, PAPER, 18, ACCENT) + text(844, 24, '目的の1行と、意味 ・ 範囲 ・ 条件を書いたプロンプト', 15, ACCENT, 700, 'middle')
     # 左：目的の外の出力が混じる
     box = rect(162, 60, 212, 216, PAPER, 14, LINE)
     a += box.replace('stroke-width="2"', 'stroke-width="2" stroke-dasharray="7 5"')

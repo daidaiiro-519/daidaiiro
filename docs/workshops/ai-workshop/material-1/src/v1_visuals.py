@@ -103,25 +103,47 @@ def symptoms():
     return svg('困りごと1は、同じ議事録で3回実行すると、並び順・各項目の内容・混じった話が毎回違うこと。困りごと2は、細かく決めたプロンプトが来週の議事録には合わないこと', a, 334)
 
 
-def ends():
-    """L1-S2　2つのプロンプトは抽象と具体の両端にある。目指すのは、そのあいだの作業の目的。"""
-    a = _axis(0, 372)
-    rows = [('「課題を整理して」', '何のための整理かが書かれていない', (True, 'どの週にも使える'), (False, '毎回変わる'), False),
-            ('？　作業に合った目的レベル', '優先順位を付けるために、課題を整理する', (True, 'どの週にも使える'), (True, '目的から外れない'), True),
-            ('「1行目に承認の経路、2行目に申請の締め日」', '具体に寄りすぎている', (False, 'この議事録だけ'), (True, '1つに決まる'), False)]
-    for i, (head, sub, use, ret, hot) in enumerate(rows):
-        y = 10 + i * 124
-        cy = y + 48
+def _offaxis_row(y, head, sub_, use, ret, size=16):
+    """目的が書かれていないプロンプト。軸の外に置き、段が決まらないことを示す。"""
+    from lesson_visuals import check, cross
+    a = text(0, y + 44, '段が', 13, DIM, 700) + text(0, y + 62, '決まらない', 13, DIM, 700)
+    box = rect(100, y, 560, 84, PAPER, 12, LINE)
+    a += box.replace('stroke-width="2"', 'stroke-width="2" stroke-dasharray="6 5"')
+    a += text(124, y + 36, head, 19, INK, 700) + text(124, y + 64, sub_, 15, DIM)
+    a += rect(676, y, 436, 84, PAPER, 12, LINE) + path(f'M894 {y + 14} V{y + 70}', LINE, 1)
+    for x, label, (ok, t) in ((676, '使える議事録', use), (894, '出力', ret)):
+        a += text(x + 20, y + 28, label, 12, DIM, 700)
+        a += (check(x + 30, y + 56, ACCENT, .6) if ok else cross(x + 30, y + 56, DIM, .7))
+        a += text(x + 54, y + 63, t, size, INK if ok else DIM, 700 if ok else 400)
+    return a
+
+
+def _axis_rows(rows, top=110, step=128, size=17):
+    from lesson_visuals import check, cross
+    a = text(0, top + 18, '抽象', 20, INK, 700) + text(0, top + 40, 'なぜ', 14, DIM)
+    a += text(0, 346, '具体', 20, INK, 700) + text(0, 368, 'どのように', 14, DIM)
+    a += path(f'M80 372 V{top} m-7 8 l7 -8 7 8 M73 364 l7 8 7 -8', LINE, 2)
+    for i, (head, sub_, use, ret, hot, dashed) in enumerate(rows):
+        y = top + 12 + i * step
+        cy = y + 44
         a += circle(80, cy, 9 if hot else 7, ACCENT if hot else PAPER, ACCENT if hot else LINE) + path(f'M89 {cy} H100', LINE, 1)
-        box = rect(100, y, 560, 96, PAPER, 12, ACCENT if hot else LINE)
-        a += box.replace('stroke-width="2"', 'stroke-width="2.5" stroke-dasharray="7 5"') if hot else box
-        a += text(124, y + 42, head, 19 if len(head) < 18 else 17, ACCENT if hot else INK, 700) + text(124, y + 72, sub, 15, DIM)
-        a += rect(676, y, 436, 96, PAPER, 12, LINE) + path(f'M894 {y + 16} V{y + 80}', LINE, 1)
+        box = rect(100, y, 560, 88, PAPER, 12, ACCENT if hot else LINE)
+        a += box.replace('stroke-width="2"', 'stroke-width="2.5" stroke-dasharray="7 5"') if dashed else box
+        a += text(124, y + 38, head, 19 if len(head) < 18 else 16, ACCENT if hot else INK, 700) + text(124, y + 68, sub_, 15, INK if hot else DIM, 700 if hot else 400)
+        a += rect(676, y, 436, 88, PAPER, 12, LINE) + path(f'M894 {y + 14} V{y + 74}', LINE, 1)
         for x, label, (ok, t) in ((676, '使える議事録', use), (894, '出力', ret)):
-            a += text(x + 20, y + 30, label, 12, DIM, 700)
-            a += (check(x + 30, y + 62, ACCENT, .6) if ok else cross(x + 30, y + 62, DIM, .7))
-            a += text(x + 54, y + 69, t, 17, INK if ok else DIM, 700 if ok else 400)
-    return svg('2つのプロンプトは抽象と具体の両端にある。上は使えるが出力が決まらず、下は決まるがその議事録にしか使えない。目指すのは、そのあいだの作業に合った目的レベル', a, 376)
+            a += text(x + 20, y + 28, label, 12, DIM, 700)
+            a += (check(x + 30, y + 58, ACCENT, .6) if ok else cross(x + 30, y + 58, DIM, .7))
+            a += text(x + 54, y + 65, t, size, INK if ok else DIM, 700 if ok else 400)
+    return a
+
+
+def ends():
+    """L1-S2　「課題を整理して」は目的が書かれておらず段が決まらない。細かい指定は低すぎる目的。目指すのは作業の目的の段。"""
+    a = _offaxis_row(0, '「課題を整理して」', '誰が何のために整理するかが書かれていない', (True, 'どの週にも使える'), (False, '毎回変わる'))
+    a += _axis_rows([('？　作業の目的の段', '優先順位を付けるために、課題を整理する', (True, 'どの週にも使える'), (True, '目的から外れない'), True, True),
+                     ('「1行目に承認の経路、2行目に申請の締め日」', '低すぎる目的', (False, 'この議事録だけ'), (True, '1つに決まる'), False, False)])
+    return svg('「課題を整理して」は目的が書かれておらず、段が決まらない。細かい指定は低すぎる目的で、その議事録にしか使えない。目指すのは作業の目的の段', a, 376)
 
 
 def fit():
@@ -174,36 +196,52 @@ def three():
     a += rect(0, 336, 540, 52, PAPER, 10, ACCENT)
     a += text(20, 368, '書かないと、AIが回ごとに決めるので、出力がばらつく', 15, ACCENT, 700)
     a += rect(572, 336, 540, 52, PAPER, 10, LINE)
-    a += text(592, 368, '全部は書かない。項目を何行目に書くかまで決めると、具体に寄りすぎる', 15, INK)
-    return svg('出力の違い（種類 ・ 量 ・ 並び順と各項目の書き方）に1つずつ対応させて、意味 ・ 範囲 ・ 条件の3つを書く。書かないとAIが決めてばらつき、全部を書くと具体に寄りすぎる', a, 392)
+    a += text(592, 368, '全部は書かない。項目を何行目に書くかまで決めると、低すぎる目的になる', 15, INK)
+    return svg('出力の違い（種類 ・ 量 ・ 並び順と各項目の書き方）に1つずつ対応させて、意味 ・ 範囲 ・ 条件の3つを書く。書かないとAIが決めてばらつき、全部を書くと低すぎる目的になる', a, 392)
 
 
 def order():
-    """L1-S5　意味 ・ 範囲 ・ 条件の順に追記すると、プロンプトは作業の目的へ下りていく。前の1つが決まっていないと、次の1つを決められない。"""
-    rows = [(None, '「課題を整理して」', 'ここから始める'),
+    """L1-S5　1行目の目的に、意味 ・ 範囲 ・ 条件の順に追記する。段は変わらず、書き込む量が増える。前の1つが決まっていないと、次の1つを決められない。"""
+    rows = [('目的', '「PMが、優先順位を付けるために、課題を整理する」', '誰の何のための表かが決まる'),
             ('意味', '「課題とは、決定しないと案件の進行が止まるもの」', '何を抽出するかが決まる'),
             ('範囲', '「見るのは、今回の案件で12月末の切り替えまでに決めるもの」', '意味が通じるところまでを決める'),
             ('条件', '「どの項目にも、誰が決めるかと、いつまでかを入れる」', '範囲の中の各項目に入れる')]
-    a = _axis(0, 372)
+    a = text(0, 18, '書き込む量', 13, DIM, 700)
+    a += path('M40 30 V300 m-7 -8 l7 8 7 -8', LINE, 2)
     for i, (name, quote, why) in enumerate(rows):
         y = 10 + i * 76
         cy = y + 31
         last = i == len(rows) - 1
-        a += circle(80, cy, 8 if last else 6, ACCENT if last else PAPER, ACCENT if last else LINE) + path(f'M88 {cy} H100', LINE, 1)
         a += rect(100, y, 680, 62, PAPER, 10, ACCENT if last else LINE)
-        if name:
-            a += circle(126, cy, 15, ACCENT, ACCENT) + text(126, cy + 6, str(i), 16, PAPER, 700, 'middle')
-            a += text(154, cy + 7, '＋' + name, 18, ACCENT, 700) + text(222, cy + 7, quote, 16, INK, 700)
-        else:
-            a += text(124, cy + 8, quote, 18, INK, 700)
+        a += circle(126, cy, 15, ACCENT, ACCENT) + text(126, cy + 6, str(i + 1), 16, PAPER, 700, 'middle')
+        a += text(154, cy + 7, ('1行目 ' if i == 0 else '＋') + name, 18 if i else 16, ACCENT, 700) + text(238, cy + 7, quote, 16 if i != 2 else 15, INK, 700)
         a += rect(800, y, 312, 62, PAPER, 10, LINE)
         if i == 0:
             a += text(822, cy - 6, 'この順である理由', 11, DIM, 700) + text(822, cy + 14, why, 16, INK, 700)
         else:
             a += text(822, cy + 7, why, 16, INK, 700)
-    a += text(64, 279, '作業の目的', 13, ACCENT, 700, 'end')
     box = rect(100, 322, 1012, 44, PAPER, 10, LINE)
     a += box.replace('stroke-width="2"', 'stroke-width="2" stroke-dasharray="6 5"')
-    a += circle(80, 344, 6, PAPER, LINE) + path('M86 344 H100', LINE, 1)
-    a += text(124, 350, '具体に寄りすぎない', 16, DIM, 700)
-    return svg('意味・範囲・条件の順に追記すると、プロンプトの目的レベルが作業の目的に明確になる。前の1つが決まっていないと次の1つを決められない。具体に寄りすぎない', a, 376)
+    a += text(124, 350, '低すぎる目的にしない ── 4つ書いても、目的は作業の目的のまま', 16, DIM, 700)
+    return svg('1行目に作業の目的を書き、意味・範囲・条件の順に追記する。段は変わらず、書き込む量が増える。前の1つが決まっていないと次の1つを決められない', a, 376)
+
+
+def goal_line():
+    from lesson_visuals import W
+    """L1-S3B　目的の1行を、誰が ・ 何のために ・ 何をするかに分ける。この1行が無いと、AIは回ごとに誰かの目的を選ぶ。"""
+    a = _sheet(0, 0, W, 166)
+    a += text(24, 34, 'プロンプトの1行目', 14, DIM, 700)
+    parts = [('誰が', ['PMが、']), ('何のために', ['どれから決めるか', '優先順位を付けるために、']), ('何をする', ['課題を整理する'])]
+    for k, (label, body) in enumerate(parts):
+        x = 24 + k * 360
+        a += rect(x, 50, 344, 100, PAPER, 10, ACCENT)
+        a += text(x + 20, 76, label, 13, ACCENT, 700) + text(x + 20, 106, body, 18, INK, 700, gap=26)
+    a += text(0, 196, 'この1行が無かったときの、3回の表', 15, DIM, 700)
+    who = [('1回目　精算の担当者の表', '業務の流れの順'), ('2回目　PMの表', '決定の期限の順'), ('3回目　開発者の表', '機能ごと')]
+    for k, (t, s_) in enumerate(who):
+        x = k * 380
+        a += rect(x, 210, 352, 72, PAPER, 10, LINE) + _table_icon(x + 18, 226, DIM)
+        a += text(x + 64, 238, t, 16, INK, 700) + text(x + 64, 264, s_ + 'に並ぶ', 14, DIM)
+    a += rect(0, 304, W, 52, PAPER, 12, LINE)
+    a += text(W / 2, 337, 'どの目的で整理するかを、AIが回ごとに選んでいた。1行目に書けば、選ばなくてよくなる', 18, INK, 700, 'middle')
+    return svg('目的の1行を、誰が ・ 何のために ・ 何をするかに分けて書く。この1行が無いと、AIは実行するたびに誰かの目的を選ぶ', a, 360)
