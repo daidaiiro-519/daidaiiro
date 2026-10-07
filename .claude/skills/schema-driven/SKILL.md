@@ -15,7 +15,7 @@ AI が扱うデータを、**JSON Schema とそのインスタンスで持つ**�
 | 誰が | 何を持つか |
 |---|---|
 | 基盤（この Skill） | 作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画 ・ 転写の仕組みと、具体のスキーマが従う契約（`references/meta-schema.json` ・ `references/annotations.schema.json` ・ `references/view.schema.json`） |
-| 具体（基盤の上に作る Skill） | 自分のスキーマ ・ ページテンプレート ・ デザイン ・ 足したい関数とツール |
+| 具体（基盤の上に作る Skill） | 自分のスキーマ ・ ページテンプレート ・ デザインとそのデザインシステム ・ 足したい関数とツール |
 
 具体のデザインが無くても、**文書**だけは描画できる。基盤が文書の契約（`references/document.schema.json`）と決まったデザイン（`references/document-design/`）を持つからである。
 
@@ -124,6 +124,8 @@ schema-driven render --dir <インスタンスのディレクトリ> --out <出�
 
 検証エラーが1件でもあれば描画しない。内容が変わったページだけを書くので、同じ入力から何度描画しても結果は変わらない。
 
+デザイン（基盤の文書のデザインと具体のデザイン）がデザインシステムを満たさないときも、1ページも書かずに失敗する。基盤は、デザインシステムのトークンから CSS の変数（明 ・ OS の暗 ・ 明示の暗）を作り、ページに置く。
+
 ### Step 6: 承認を記録する
 
 ```
@@ -148,6 +150,8 @@ schema-driven check-copy --to <具体の Skill のディレクトリ>
 | `schema-driven-core` | `ports`（`Design` ・ `Renderer` ・ `Functions` ・ `Files` など）、`application` の4つのユースケース（`instances` ・ `checks` ・ `renders` ・ `transcriptions`）とその結果、`domain` の直下の値（`Finding` ・ `Html` ・ `Hash` など） |
 | `schema-driven-adapters` | `Toolbox` と `ExtraTools`（具体のツールを足す）、CLI の `run_in`、ファイルシステム ・ JMESPath ・ 文書のデザインの実装 |
 
+具体が `Design` を渡すときは、`design_system()` でデザインシステム（`references/design-system.schema.json` に従う JSON）も渡す。テンプレートの CSS は、色をすべてトークンの変数（`var(--名前)`）から引き、ページのテンプレートには `renderer.tokens()` が返す CSS の変数を置く。
+
 ---
 
 ## 出力形式
@@ -169,6 +173,7 @@ schema-driven check-copy --to <具体の Skill のディレクトリ>
 - **ファイルを手で書き換えて、update を通さずにインスタンスを直さない**。update を通さないと、書いたその場の検証が行われない。手で直したときは、check で確かめ直す
 - **check の終了コードだけで合格と判断しない**。0 は実行できたことだけを示す
 - **検証エラーのあるインスタンスを、描画や承認で先へ進めない**。基盤はどちらも止める
+- **デザインテンプレートを持つものは、デザインシステムを持つ**。トークン（基礎 → 意味 → 部品の3層と明暗）と、部品ごとの状態（通常 ・ 押した ・ 焦点 ・ 無効 など）の決まりを持ち、テンプレートの CSS に色の直値を書かない。状態の色は、部品をまたいで同じ意味のトークンを使う
 - **具体の種類を、基盤の文書の契約へ押し込まない**。決まったデザインがあるものは、具体がスキーマとページテンプレートとデザインを持つ
 - **具体のコードから、基盤の内部（feature `internals` で開くもの）を使わない**。基盤を更新したときに、具体のビルドが壊れる
 - **core ではファイルを直接扱わない**。入出力は ports の trait を通し、`tool/core/clippy.toml` が `std::fs` を禁じる（ACDR 0121）
@@ -185,7 +190,8 @@ schema-driven check-copy --to <具体の Skill のディレクトリ>
 | `references/view.schema.json` | x-view の書き方と、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote） |
 | `references/page.schema.json` | ページテンプレートの形と、描画の文脈 |
 | `references/document.schema.json` | 基盤の文書の契約（14種類のブロック） |
-| `references/document-design/` | 文書の決まったデザイン（`parts.html` ・ `document.css`） |
+| `references/design-system.schema.json` | デザインシステムの契約（トークンの3層と、部品ごとの状態）。描画の前に基盤が検査する |
+| `references/document-design/` | 文書の決まったデザイン（`parts.html` ・ `document.css` ・ `design-system.json`） |
 | `tool/core/` | domain ・ application ・ ports。何にも依存しない |
 | `tool/adapters/` | 入ってくる側（CLI と MCP の受け口、ツールの一覧）と、出ていく側（ファイルシステム ・ JMESPath ・ 文書のデザイン） |
 | `tool/cli/` ・ `tool/mcp/` | 実行ファイル。アダプタとユースケースをつなぐ |

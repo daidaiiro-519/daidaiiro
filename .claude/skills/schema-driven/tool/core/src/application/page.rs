@@ -3,6 +3,7 @@
 //! 文字は必ずエスケープし、部品のプレースホルダーと渡した名前が合わなければエラーにする。
 
 use crate::application::view::{to_text, truthy, ViewEngine, ViewError};
+use crate::domain::design_system;
 use crate::domain::schema::Schema;
 use crate::domain::values::Html;
 use crate::ports::outbound::{Design, Frame, Renderer};
@@ -61,6 +62,7 @@ pub struct PageRenderer {
     design: Arc<dyn Design>,
     parts: BTreeMap<String, String>,
     components: BTreeSet<String>,
+    tokens: String,
 }
 
 impl PageRenderer {
@@ -71,11 +73,13 @@ impl PageRenderer {
             .into_iter()
             .map(|(name, _)| name)
             .collect();
+        let tokens = design_system::css(design.design_system());
         Ok(Self {
             engine,
             design,
             parts,
             components,
+            tokens,
         })
     }
 
@@ -257,6 +261,10 @@ impl Renderer for Run<'_> {
             return Err("SVG に script ・ イベントの属性 ・ javascript: が含まれている".into());
         }
         Ok(Html::trusted(svg.to_owned()))
+    }
+
+    fn tokens(&self) -> Html {
+        Html::trusted(self.page_renderer.tokens.clone())
     }
 
     fn tone(&self, table: &str, value: &Value) -> Option<String> {

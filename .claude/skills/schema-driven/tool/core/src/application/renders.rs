@@ -8,6 +8,7 @@ use crate::application::instances::{Instances, UseCaseError};
 use crate::application::page::{document_page_template, page_errors, PageRenderer};
 use crate::application::view::{Instance, ViewEngine};
 use crate::domain::check::Doc;
+use crate::domain::design_system;
 use crate::domain::schema::Schema;
 use crate::domain::values::{JsonValue, ValidationError};
 use crate::ports::inbound::RenderUseCases;
@@ -128,6 +129,28 @@ impl Renders {
 
 impl RenderUseCases for Renders {
     fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError> {
+        // デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない
+        let mut findings = Vec::new();
+        for (label, design) in std::iter::once(("基盤の文書のデザイン", &self.document_design))
+            .chain(self.design.iter().map(|design| ("具体のデザイン", design)))
+        {
+            let names: Vec<String> = design
+                .components()
+                .into_iter()
+                .map(|(name, _)| name)
+                .collect();
+            findings.extend(
+                design_system::check(design.design_system(), design.parts(), &names)
+                    .into_iter()
+                    .map(|finding| format!("{label}：{finding}")),
+            );
+        }
+        if !findings.is_empty() {
+            return Err(UseCaseError::new(
+                "デザインシステムが契約を満たさない",
+                findings.join("\n"),
+            ));
+        }
         let checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());
         let (loaded, schemas) = checks.load_dir(dir)?;
         // 契約を通ったデータだけを描画する（未記入は止めない。ACDR 0118）

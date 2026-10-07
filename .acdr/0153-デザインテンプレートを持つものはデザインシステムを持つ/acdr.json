@@ -1,0 +1,333 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0153",
+ "title": "デザインテンプレートを持つものは、デザインシステムを持つ",
+ "date": "2026-10-08",
+ "status": "accepted",
+ "decision": "schema-driven は、Design にデザインテンプレートと一緒にデザインシステムを渡させ、それを検査してからトークンの CSS の変数を作って描画する。基盤の文書のデザインも、自分のデザインシステムに従う",
+ "why": "ボード board-on-schema-driven の論点5で、「デザインテンプレートを持つものは、デザインシステムを持つ」と決めた。いまの基盤の Design は、テンプレートだけを受け取っていた。そのため、色の直値や部品ごとの状態の食い違いを、基盤は止められなかった。基盤の文書のデザイン自身も、色を CSS の中に直値で持ち、明示の暗（data-theme）に効かなかった。ボードの描画で、押した状態の色が部品ごとに違っていたのと同じことが、基盤の上に作るどの具体でも起きうる。",
+ "shift": [
+  {
+   "what": "Design が渡すもの",
+   "from": "部品の一覧 ・ テンプレート ・ ページと節のレイアウト",
+   "to": "それに加えて、デザインシステム（references/design-system.schema.json に従う JSON）"
+  },
+  {
+   "what": "基盤が描画の前に確かめること",
+   "from": "ページテンプレートの形と、部品の名前",
+   "to": "それに加えて、デザインシステムの形 ・ 層の参照 ・ 明暗のキー ・ 部品の状態 ・ テンプレートの色の直値と未定義の変数"
+  },
+  {
+   "what": "CSS の変数",
+   "from": "具体がそれぞれ作る（acdr とボードは tokens.rs を持つ）",
+   "to": "基盤がトークンから作り、Renderer の tokens() で渡す（明 ・ OS の暗 ・ 明示の暗）"
+  },
+  {
+   "what": "基盤の文書のデザイン",
+   "from": "色を document.css に直値で持ち、暗は OS の設定にだけ従う",
+   "to": "色を design-system.json に移し、明示の暗にも従う。見た目は変わらない"
+  },
+  {
+   "what": "parts.html の page テンプレート",
+   "from": "<style>/*STYLE*/</style>",
+   "to": "<style>{{tokens}}</style><style>/*STYLE*/</style>（基盤が作る CSS の変数を先に置く）"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "Design はテンプレートとデザインシステムを渡し、基盤は検査を通ったものだけを、トークンの CSS の変数とともに描画する。",
+ "alternatives": [
+  {
+   "option": "デザインシステムを持つことを SKILL.md に書くだけにする",
+   "why_not": "書いても、テンプレートに色の直値があれば描画は通る。ボードで状態の色がずれたのは、決まりが CSS の中に散っていたからである"
+  },
+  {
+   "option": "デザインシステムの中身（色や部品）を基盤が持つ",
+   "why_not": "見た目は具体が持つと決めている（ACDR 0132）。基盤が求めるのは、デザインシステムを持つことと、その形までである"
+  },
+  {
+   "option": "色の直値の検査を、テンプレート全体の文字に掛ける",
+   "why_not": "HTML の id へのリンク（#source-s1 など）や、文書の中身に埋め込んだ SVG の色まで拾う。見るのは CSS（style 要素と style 属性）だけにした"
+  },
+  {
+   "option": "CSS の変数は、これまでどおり具体が作る",
+   "why_not": "acdr とボードが同じ仕事（tokens.rs）を別々に持ち、明暗の書き方もそれぞれになる。トークンの形を契約にしたので、基盤が1か所で作れる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "_claude_skills_schema_driven_SKILL_md",
+   "tab": "SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "1ページも書かずに失敗する。基盤は、デザインシステムのトークンから",
+     "before": "（無かった）",
+     "why": "描画の手順に、デザインシステムを満たさないと描画しないことと、基盤が CSS の変数を作ることを書く"
+    },
+    {
+     "find": "でデザインシステム（",
+     "before": "（無かった）",
+     "why": "具体が Design を渡すときに、何を一緒に渡し、テンプレートの CSS をどう書くかを書く"
+    },
+    {
+     "find": "デザインテンプレートを持つものは、デザインシステムを持つ",
+     "before": "（無かった）",
+     "why": "ボードの論点5で決めた決まりを、基盤のガードレールに置く（利用者：「デザインテンプレートを用意するようなものはデザインシステムがいることを理解してほしい」）"
+    },
+    {
+     "find": "デザインシステムの契約（トークンの3層と、部品ごとの状態）。描画の前に基盤が検査する",
+     "before": "（無かった）",
+     "why": "足した契約のファイルを、参照の表に載せる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_references_design_system_schema_json",
+   "tab": "references/design-system.schema.json",
+   "file": ".claude/skills/schema-driven/references/design-system.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"デザインシステム\",",
+     "before": "（無かった）",
+     "why": "デザインシステムの契約。トークンは、ブレストボードと acdr がすでに持つ3層（基礎 → 意味 → 部品、明暗）を一般化し、部品ごとの状態（default ・ hover ・ pressed ・ selected ・ focus ・ disabled）を足した"
+    },
+    {
+     "find": "\"scope\": {",
+     "before": "（無かった）",
+     "why": "CSS の変数を置くセレクタ。ページ全体なら :root、基盤の文書のようにページの一部だけを持つなら、その外側の要素"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_core_src_domain_design_system_rs",
+   "tab": "core/src/domain/design_system.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/design_system.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn check(system_text: &str, parts: &str, components: &[String]) -> Vec<String> {",
+     "before": "（無かった）",
+     "why": "検査は5つ：形 ・ 層の参照が解決する ・ 明と暗が同じ名前を持つ ・ 登録した部品がすべて状態を持つ ・ テンプレートの CSS に色の直値と未定義の変数が無い。正規表現の crate は core の依存に無いので、文字を順に見て探す"
+    },
+    {
+     "find": "pub fn css(system_text: &str) -> String {",
+     "before": "（無かった）",
+     "why": "トークンから CSS の変数を作る。明（scope）・ OS の暗（prefers-color-scheme の中で data-theme が light でないとき）・ 明示の暗（data-theme が dark）の3つのブロックにする。いま acdr とブレストボードがそれぞれ持つ tokens.rs の仕事を、基盤の1か所で持つ"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_core_src_domain_mod_rs",
+   "tab": "core/src/domain/mod.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod design_system;",
+     "before": "（無かった）",
+     "why": "デザインシステムの検査と CSS の変数の生成は基盤の中の部品なので、ほかのドメインの部品と同じく、具体からは見えないモジュールにする（ACDR 0144）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_core_src_ports_outbound_rs",
+   "tab": "core/src/ports/outbound.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/ports/outbound.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// デザインシステムのトークンから作った CSS の変数（明 ・ OS の暗 ・ 明示の暗）。ページの style に置く。",
+     "before": "（無かった）",
+     "why": "Design が、デザインテンプレートと一緒にデザインシステム（design-system.schema.json に従う JSON）を渡す。Renderer は、そのトークンから作った CSS の変数を返す（ページのテンプレートが style に置く）"
+    },
+    {
+     "find": "/// デザインシステム（references/design-system.schema.json に従う JSON）。",
+     "before": "（無かった）",
+     "why": "Design が、デザインテンプレートと一緒にデザインシステム（design-system.schema.json に従う JSON）を渡す。Renderer は、そのトークンから作った CSS の変数を返す（ページのテンプレートが style に置く）"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_core_src_application_page_rs",
+   "tab": "core/src/application/page.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::design_system;",
+     "before": "（無かった）",
+     "why": "PageRenderer は、作るときにデザインシステムから CSS の変数を1回だけ作り、Renderer の tokens() で返す"
+    },
+    {
+     "find": "tokens: String,",
+     "before": "（無かった）",
+     "why": "PageRenderer は、作るときにデザインシステムから CSS の変数を1回だけ作り、Renderer の tokens() で返す"
+    },
+    {
+     "find": "let tokens = design_system::css(design.design_system());",
+     "before": "（無かった）",
+     "why": "PageRenderer は、作るときにデザインシステムから CSS の変数を1回だけ作り、Renderer の tokens() で返す"
+    },
+    {
+     "find": "tokens,",
+     "before": "（無かった）",
+     "why": "PageRenderer は、作るときにデザインシステムから CSS の変数を1回だけ作り、Renderer の tokens() で返す"
+    },
+    {
+     "find": "fn tokens(&self) -> Html {",
+     "before": "（無かった）",
+     "why": "PageRenderer は、作るときにデザインシステムから CSS の変数を1回だけ作り、Renderer の tokens() で返す"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_core_src_application_renders_rs",
+   "tab": "core/src/application/renders.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/renders.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::design_system;",
+     "before": "（無かった）",
+     "why": "描画の前に、基盤の文書のデザインと具体のデザインの両方のデザインシステムを検査する。1件でも破れていれば、1ページも書かずに「デザインシステムが契約を満たさない」で失敗する"
+    },
+    {
+     "find": "// デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない",
+     "before": "（無かった）",
+     "why": "描画の前に、基盤の文書のデザインと具体のデザインの両方のデザインシステムを検査する。1件でも破れていれば、1ページも書かずに「デザインシステムが契約を満たさない」で失敗する"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_adapters_src_outbound_document_design_rs",
+   "tab": "adapters/src/outbound/document_design.rs",
+   "file": ".claude/skills/schema-driven/tool/adapters/src/outbound/document_design.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const DESIGN_SYSTEM: &str =",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザインも、自分のデザインシステムに従う。色の直値（明18色 ・ 暗18色）を CSS から design-system.json へ移し、ページのテンプレートにトークンの CSS の変数を置く"
+    },
+    {
+     "find": "fn design_system(&self) -> &str {",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザインも、自分のデザインシステムに従う。色の直値（明18色 ・ 暗18色）を CSS から design-system.json へ移し、ページのテンプレートにトークンの CSS の変数を置く"
+    },
+    {
+     "find": "(\"tokens\", renderer.tokens()),",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザインも、自分のデザインシステムに従う。色の直値（明18色 ・ 暗18色）を CSS から design-system.json へ移し、ページのテンプレートにトークンの CSS の変数を置く"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_references_document_design_document_css",
+   "tab": "references/document-design/document.css",
+   "file": ".claude/skills/schema-driven/references/document-design/document.css",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".sd-doc{font-family:\"Noto Sans JP\",\"Hiragino Sans\",\"Yu Gothic\",system-ui,sans-serif;font-size:15px;line-height:1.8;color:var(--sd-ink);background:var(--sd-bg);max-width:920px;margin:0 auto;padding:32px 16px 72px;display:grid;gap:24px}",
+     "before": ".sd-doc{--sd-bg:#f7f8f7;--sd-panel:#ffffff;--sd-ink:#1d2321;--sd-muted:#5c6763;--sd-line:#dde2df;--sd-accent:#1f6f63;--sd-accent-bg:#e2f0ed;--sd-soft:#eef1ef;",
+     "why": "色の直値の定義（明の .sd-doc と、OS の暗の @media）を外した。変数は design-system.json から基盤が作り、明示の暗（data-theme）にも効くようになった"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_references_document_design_design_system_json",
+   "tab": "references/document-design/design-system.json",
+   "file": ".claude/skills/schema-driven/references/document-design/design-system.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"scope\": \".sd-doc\",",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザインも、自分のデザインシステムに従う。色の直値（明18色 ・ 暗18色）を CSS から design-system.json へ移し、ページのテンプレートにトークンの CSS の変数を置く"
+    },
+    {
+     "find": "\"name\": \"inline\",",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザインが登録した3つの部品（document ・ badges ・ inline）に、状態の決まりを書く。文の中のリンクだけが焦点の状態を持つ"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_cli_tests_design_system_rs",
+   "tab": "cli/tests/design_system.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/design_system.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn tokens_become_css_variables_for_light_and_both_dark_settings() {",
+     "before": "（無かった）",
+     "why": "実装の前に書き、Design に design_system が無いためにコンパイルが止まることを確かめた。CSS の変数が明 ・ OS の暗 ・ 明示の暗の3つで出ることを確かめる"
+    },
+    {
+     "find": "fn a_literal_color_in_the_template_stops_rendering() {",
+     "before": "（無かった）",
+     "why": "破れたときに描画しない5つの場合（色の直値 ・ 未定義の変数 ・ 解決しない参照 ・ 明暗のキーの違い ・ 状態の無い部品）と、状態が使うトークンの未定義を、それぞれ確かめる"
+    },
+    {
+     "find": "fn the_base_document_design_follows_its_own_design_system() {",
+     "before": "（無かった）",
+     "why": "基盤の文書のデザイン自身が、デザインシステムを満たして描画できることを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_cli_tests_render_rs",
+   "tab": "cli/tests/render.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/render.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// Mini のデザインシステム。テンプレートは色を使わないので、トークンは最小にする。",
+     "before": "（無かった）",
+     "why": "既存のテスト用のデザインにも、デザインシステムを持たせる。テンプレートは色を使わないので、トークンは最小にした"
+    },
+    {
+     "find": "fn design_system(&self) -> &str {",
+     "before": "（無かった）",
+     "why": "既存のテスト用のデザインにも、デザインシステムを持たせる。テンプレートは色を使わないので、トークンは最小にした"
+    }
+   ]
+  },
+  {
+   "key": "_claude_skills_schema_driven_tool_cli_tests_page_rs",
+   "tab": "cli/tests/page.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/page.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// MiniDesign のデザインシステム。テンプレートは色を使わないので、トークンは最小にする。",
+     "before": "（無かった）",
+     "why": "既存のテスト用のデザインにも、デザインシステムを持たせる。テンプレートは色を使わないので、トークンは最小にした"
+    },
+    {
+     "find": "fn design_system(&self) -> &str {",
+     "before": "（無かった）",
+     "why": "既存のテスト用のデザインにも、デザインシステムを持たせる。テンプレートは色を使わないので、トークンは最小にした"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "_claude_skills_schema_driven_SKILL_md": "6bb8ca631b75892021325c3a8b74c43417d6cc632800d92ef442d1dff5ee276c",
+  "_claude_skills_schema_driven_references_design_system_schema_json": "685e425bf7982ec5a6cf042b1f89dec8ee9640c5926c9175b4ea09b2bb4e232a",
+  "_claude_skills_schema_driven_tool_core_src_domain_design_system_rs": "2afcb844bc12a5c47316b5971899fe3478bc174ea30d7e2a2df276c4c1dd6821",
+  "_claude_skills_schema_driven_tool_core_src_domain_mod_rs": "3e6ccc974c3632e78b89615832979e6322983c50d6c55b60110fdeacf2041004",
+  "_claude_skills_schema_driven_tool_core_src_ports_outbound_rs": "1bb43ab75ff4649ea1737d917b80c2194592483be3126643a7d467b747d09ba8",
+  "_claude_skills_schema_driven_tool_core_src_application_page_rs": "9d865a2803c635947b5eefb119072911412e9f2e3c80e6e2bd863b9d8512539e",
+  "_claude_skills_schema_driven_tool_core_src_application_renders_rs": "aa8f729885e560aed049f4b1fd3638de64557c5cb5a99e8d38400a916b75fd24",
+  "_claude_skills_schema_driven_tool_adapters_src_outbound_document_design_rs": "7845cf7c118f6e357d389cb2912c9017e1beff3905d9a5c08c08fb57f80ad78c",
+  "_claude_skills_schema_driven_references_document_design_document_css": "5bb75b3e50c2cfaff43d2a79bfba7b31d7db31d0f35d73731060611529f0413a",
+  "_claude_skills_schema_driven_references_document_design_design_system_json": "c4d9fab2fabcd02334c8058f5f0eb2456429d62f76e26323eb7b27c3b2857b5a",
+  "_claude_skills_schema_driven_tool_cli_tests_design_system_rs": "a4f9f72c4702f1b0cc7575bc7ceaee8cfd24cd5a03b12524c13adedab7f096ee",
+  "_claude_skills_schema_driven_tool_cli_tests_render_rs": "dd585324da6af1775f96b6879d9c14f473b71640b0a2187ed2c14b76848fdfea",
+  "_claude_skills_schema_driven_tool_cli_tests_page_rs": "d2bc3d9c3512d9afc8ceb801019a6adb80dbd730faa3033dfd993634be527e18"
+ }
+}

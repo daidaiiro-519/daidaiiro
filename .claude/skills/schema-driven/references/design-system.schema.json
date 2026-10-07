@@ -1,0 +1,84 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "design-system.schema.json",
+ "title": "デザインシステム",
+ "description": "デザインテンプレートが従うデザインシステム。具体が Design を渡すときは、これに従う JSON を一緒に渡す（ボード board-on-schema-driven の論点5）。基盤はこれを検査し、トークンから CSS の変数を作る。",
+ "x-prompt": {
+  "read": "トークンは基礎 → 意味 → 部品の3層で、意味は明と暗の両方を持つ。部品ごとの状態は、その状態で使うトークンの名前を持つ。",
+  "write": "色 ・ 寸法の生の値は基礎にだけ書く。意味は基礎の名前だけを、部品は意味か基礎の名前（または calc()）だけを指す。デザインテンプレートに出てくる部品は、すべて components に状態ごと書く。"
+ },
+ "type": "object",
+ "required": ["scope", "tokens", "components"],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {"type": "string"},
+  "scope": {
+   "type": "string",
+   "minLength": 1,
+   "description": "CSS の変数を置くセレクタ。ページ全体なら :root",
+   "x-prompt": {"read": "変数はこのセレクタの中で定義される。", "write": "デザインがページの一部だけを持つなら、その外側の要素のセレクタを書く。"}
+  },
+  "tokens": {
+   "type": "object",
+   "required": ["base", "semantic", "component"],
+   "additionalProperties": false,
+   "description": "トークンの3層",
+   "x-prompt": {"read": "基礎 → 意味 → 部品の順に参照する。", "write": "層を跨いで生の値を書かない。"},
+   "properties": {
+    "base": {
+     "type": "object",
+     "description": "生の値だけを持つ層。グループ（color ・ space など）ごとに、名前と値を持つ",
+     "x-prompt": {"read": "ここだけが生の値を持つ。", "write": "色は小文字の16進で書く。"},
+     "minProperties": 1,
+     "additionalProperties": {"type": "object", "minProperties": 1, "propertyNames": {"$ref": "#/$defs/key"}, "additionalProperties": {"type": "string", "minLength": 1}}
+    },
+    "semantic": {
+     "type": "object",
+     "required": ["light", "dark"],
+     "additionalProperties": false,
+     "description": "役割の名前に、基礎の名前を割り当てる層。明と暗は同じ名前の集まりを持つ",
+     "x-prompt": {"read": "テンプレートは主にこの層の名前を使う。", "write": "明と暗に同じ名前を書く。"},
+     "properties": {"light": {"$ref": "#/$defs/refs"}, "dark": {"$ref": "#/$defs/refs"}}
+    },
+    "component": {
+     "type": "object",
+     "description": "部品ごとの値。意味か基礎の名前、または calc() を持つ",
+     "x-prompt": {"read": "部品に固有の値。", "write": "生の値を書かない。"},
+     "propertyNames": {"$ref": "#/$defs/key"},
+     "additionalProperties": {"type": "string", "minLength": 1}
+    }
+   }
+  },
+  "components": {
+   "type": "array",
+   "description": "部品の一覧と、部品ごとの状態の決まり",
+   "x-prompt": {"read": "部品ごとに、状態とその状態で使うトークンを持つ。", "write": "同じ状態（押した ・ 焦点 など）は、部品をまたいで同じ意味のトークンを使う。"},
+   "items": {
+    "type": "object",
+    "required": ["name", "states"],
+    "additionalProperties": false,
+    "properties": {
+     "name": {"type": "string", "minLength": 1},
+     "states": {
+      "type": "object",
+      "required": ["default"],
+      "additionalProperties": false,
+      "properties": {
+       "default": {"$ref": "#/$defs/state"},
+       "hover": {"$ref": "#/$defs/state"},
+       "pressed": {"$ref": "#/$defs/state"},
+       "selected": {"$ref": "#/$defs/state"},
+       "focus": {"$ref": "#/$defs/state"},
+       "disabled": {"$ref": "#/$defs/state"}
+      }
+     }
+    }
+   }
+  }
+ },
+ "$defs": {
+  "key": {"type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "description": "CSS の変数の名前になる。先頭の -- は書かない"},
+  "refs": {"type": "object", "minProperties": 1, "propertyNames": {"$ref": "#/$defs/key"}, "additionalProperties": {"$ref": "#/$defs/key"}},
+  "state": {"type": "object", "minProperties": 1, "description": "見た目の性質（background ・ text ・ border ・ outline など）と、使うトークンの名前", "additionalProperties": {"$ref": "#/$defs/key"}}
+ }
+}

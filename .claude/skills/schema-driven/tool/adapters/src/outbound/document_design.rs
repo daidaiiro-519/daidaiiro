@@ -9,6 +9,8 @@ use std::sync::OnceLock;
 
 const PARTS: &str = include_str!("../../../../references/document-design/parts.html");
 const STYLE: &str = include_str!("../../../../references/document-design/document.css");
+const DESIGN_SYSTEM: &str =
+    include_str!("../../../../references/document-design/design-system.json");
 
 /// 節がこの数以上なら、題の下に目次を出す。
 const TABLE_OF_CONTENTS_FROM: usize = 4;
@@ -467,6 +469,10 @@ impl Design for DocumentDesign {
         parts_with_style()
     }
 
+    fn design_system(&self) -> &str {
+        DESIGN_SYSTEM
+    }
+
     fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {
         let lead = if frame.lead.as_str().is_empty() {
             Html::default()
@@ -476,6 +482,7 @@ impl Design for DocumentDesign {
         renderer.part(
             "page",
             &[
+                ("tokens", renderer.tokens()),
                 ("badges", frame.badges.clone()),
                 ("title", renderer.text(&frame.title)),
                 ("lead", lead),

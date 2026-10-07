@@ -135,6 +135,8 @@ pub trait Renderer {
     fn svg(&self, svg: &str) -> Result<crate::domain::values::Html, String>;
     /// ページテンプレートの tones の表を引く。
     fn tone(&self, table: &str, value: &serde_json::Value) -> Option<String>;
+    /// デザインシステムのトークンから作った CSS の変数（明 ・ OS の暗 ・ 明示の暗）。ページの style に置く。
+    fn tokens(&self) -> crate::domain::values::Html;
 }
 
 /// 具体が実装を渡すデザイン（3c。ボード schema-driven-build の論点5、ACDR 0132）。
@@ -144,6 +146,9 @@ pub trait Design: Send + Sync {
     fn components(&self) -> Vec<(String, serde_json::Value)>;
     /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）。
     fn parts(&self) -> &str;
+    /// デザインシステム（references/design-system.schema.json に従う JSON）。
+    /// デザインテンプレートを持つものは、デザインシステムを持つ（ボード board-on-schema-driven の論点5）。
+    fn design_system(&self) -> &str;
     /// ページのレイアウト。
     fn page(
         &self,

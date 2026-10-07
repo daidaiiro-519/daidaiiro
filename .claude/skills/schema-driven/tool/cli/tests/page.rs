@@ -31,7 +31,17 @@ fn mini() -> MiniDesign {
     MiniDesign { parts: PARTS }
 }
 
+/// MiniDesign のデザインシステム。テンプレートは色を使わないので、トークンは最小にする。
+const MINI_SYSTEM: &str = r##"{"scope": ":root",
+ "tokens": {"base": {"color": {"ink-900": "#111d1a", "mist-100": "#e6eeeb"}},
+            "semantic": {"light": {"ink": "ink-900"}, "dark": {"ink": "mist-100"}}, "component": {}},
+ "components": [{"name": "pill", "states": {"default": {"text": "ink"}}},
+                {"name": "table", "states": {"default": {"text": "ink"}}}]}"##;
+
 impl Design for MiniDesign {
+    fn design_system(&self) -> &str {
+        MINI_SYSTEM
+    }
     fn components(&self) -> Vec<(String, Value)> {
         vec![
             (

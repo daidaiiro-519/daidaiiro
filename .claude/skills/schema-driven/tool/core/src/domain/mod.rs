@@ -15,6 +15,10 @@ pub mod check;
 #[cfg(not(feature = "internals"))]
 pub(crate) mod check;
 #[cfg(feature = "internals")]
+pub mod design_system;
+#[cfg(not(feature = "internals"))]
+pub(crate) mod design_system;
+#[cfg(feature = "internals")]
 pub mod instance;
 #[cfg(not(feature = "internals"))]
 pub(crate) mod instance;

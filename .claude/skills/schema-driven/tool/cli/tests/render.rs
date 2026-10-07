@@ -16,7 +16,16 @@ use std::sync::Arc;
 /// テスト用の小さな具体のデザイン。
 struct Mini;
 
+/// Mini のデザインシステム。テンプレートは色を使わないので、トークンは最小にする。
+const MINI_SYSTEM: &str = r##"{"scope": ":root",
+ "tokens": {"base": {"color": {"ink-900": "#111d1a", "mist-100": "#e6eeeb"}},
+            "semantic": {"light": {"ink": "ink-900"}, "dark": {"ink": "mist-100"}}, "component": {}},
+ "components": [{"name": "pill", "states": {"default": {"text": "ink"}}}]}"##;
+
 impl Design for Mini {
+    fn design_system(&self) -> &str {
+        MINI_SYSTEM
+    }
     fn components(&self) -> Vec<(String, Value)> {
         vec![(
             "pill".into(),
