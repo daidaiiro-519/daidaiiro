@@ -1,0 +1,735 @@
+<title>qa-advisor 回答の見本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{--bg:#eef1ef;--panel:#f8faf9;--ink:#111d1a;--dim:#5b6b66;--line:#ccd8d4;--accent:#0d5c55;--accent-bg:#d5e6e3;--ok:#0d5c55;--ok-bg:#d5e6e3;--warn:#8f5410;--warn-bg:#f0e2cd;--sel:#7a3b6d;--sel-bg:#f1e3ee;--wf:#93a29d;--wf-fill:#e7ecea;--inset:#FFFFFF;--rule:#B9C7C2;--thead:#D5E6E3;--row:#CCD8D4;--shadow:0 1px 0 rgba(17,29,26,.05),0 6px 18px -12px rgba(17,29,26,.35)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1614;--panel:#16211e;--ink:#e6eeeb;--dim:#9dada8;--line:#2a3936;--accent:#6cc9b8;--accent-bg:#173330;--ok:#6cc9b8;--ok-bg:#173330;--warn:#d9a35f;--warn-bg:#33281a;--sel:#d094c2;--sel-bg:#2e1f2b;--wf:#556561;--wf-fill:#22302d;--inset:#16211E;--rule:#354642;--thead:#173330;--row:#2A3936;--shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -14px #000;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1614;--panel:#16211e;--ink:#e6eeeb;--dim:#9dada8;--line:#2a3936;--accent:#6cc9b8;--accent-bg:#173330;--ok:#6cc9b8;--ok-bg:#173330;--warn:#d9a35f;--warn-bg:#33281a;--sel:#d094c2;--sel-bg:#2e1f2b;--wf:#556561;--wf-fill:#22302d;--inset:#16211E;--rule:#354642;--thead:#173330;--row:#2A3936;--shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -14px #000;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.7;padding-inline:16px;padding-block:20px 48px;font-size:15px}
+
+main>*,.grid2>*{min-width:0}
+.sim{font-size:.78rem;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:6px 10px;justify-self:start}
+h1{font-size:1.3rem;margin:0;text-wrap:balance}
+h2{font-size:1.05rem;margin:0 0 8px;display:flex;gap:8px;align-items:baseline;text-wrap:balance}
+h2 .tag{white-space:nowrap;flex:none;font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--accent);background:var(--accent-bg);padding:1px 8px;border-radius:9px}
+h3{font-size:.95rem;margin:14px 0 6px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+p{margin:6px 0}
+.q{border-left:3px solid var(--line);padding-left:10px;color:var(--dim)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:520px}
+th,td{border-top:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:.8rem}
+.k{font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:9px;white-space:nowrap}
+.k.rule{color:var(--ok);background:var(--ok-bg)}
+.k.sel{color:var(--sel);background:var(--sel-bg)}
+.k.und{color:var(--warn);background:var(--warn-bg)}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.82rem}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid var(--line)}
+ol.flow{margin:6px 0;padding-left:1.4em}
+ol.flow li{margin:3px 0}
+.back{color:var(--dim)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mail{border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:.86rem;background:var(--wf-fill)}
+.mail .h{color:var(--dim);font-size:.78rem}
+svg text{font-family:"Noto Sans JP",sans-serif}
+.note{font-size:.82rem;color:var(--dim)}
+.none li{color:var(--dim)}
+.sws{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.swc{border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:2px;font-size:.8rem}
+.chip{height:52px;border-radius:6px;display:flex;align-items:center;padding-left:10px}
+.chip span{color:#fff;font-weight:700;font-size:1.1rem}
+.pass{color:var(--ok);font-size:.74rem}
+.type{display:grid;gap:6px;border:1px solid var(--line);border-radius:8px;padding:10px}
+.space{display:grid;gap:6px}
+.space div{display:flex;align-items:center;gap:10px}
+.space i{display:inline-block;height:14px;background:var(--accent);border-radius:2px}
+.states{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.states div{display:grid;gap:4px;justify-items:start}
+.states small{font-size:.74rem;color:var(--dim)}
+.states small.er{color:var(--warn)}
+.b{min-height:44px;padding:0 18px;border-radius:8px;border:0;background:#0D5C55;color:#fff;font:inherit;font-weight:700}
+.b.f{outline:3px solid #111D1A;outline-offset:2px}
+.b.d{background:#C9CDD2;color:#4A4F55}
+.in{display:inline-block;min-width:150px;min-height:40px;line-height:40px;padding:0 10px;border:1px solid #5B6B66;border-radius:8px;background:var(--panel);color:var(--dim)}
+.in.e{border:2px solid #B3261E}
+pre.code{background:var(--wf-fill);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;font-size:.78rem;line-height:1.5;margin:6px 0}
+
+body{padding-inline:0;padding-block:0}
+.app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;align-self:start;height:100vh;box-sizing:border-box;display:grid;align-content:start;gap:14px}
+.side .title{font-weight:700;font-size:.95rem;line-height:1.4}
+.side .sim{font-size:.7rem}
+.side nav{display:grid;gap:2px}
+.side nav a{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:7px;color:var(--ink);text-decoration:none;font-size:.92rem}
+.side nav a .n{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;background:var(--line);color:var(--dim);font-variant-numeric:tabular-nums}
+.side nav a[aria-current="page"]{background:var(--accent-bg);color:var(--accent);font-weight:700}
+.side nav a[aria-current="page"] .n{background:var(--accent);color:var(--inset)}
+.side nav a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.content{padding:24px 28px 56px;max-width:860px;display:grid;gap:16px;align-content:start}
+.content header{display:grid;gap:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.panel h2{font-size:1.1rem}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+.subnav{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px;position:sticky;top:0;background:var(--panel);padding:6px 0;z-index:1}
+.subnav a{font-size:.8rem;padding:4px 10px;border:1px solid var(--line);border-radius:14px;color:var(--ink);text-decoration:none}
+.subnav a:hover,.subnav a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+h3[id]{scroll-margin-top:52px}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
+.pager a{font-size:.85rem;color:var(--accent);text-decoration:none;padding:6px 0}
+@media (max-width:720px){
+ .app{grid-template-columns:minmax(0,1fr);align-content:start}
+ .side nav .grp{white-space:nowrap;align-self:center;padding:0 4px 0 10px;border-left:1px solid var(--line)}
+ .side{position:sticky;top:env(safe-area-inset-top,0px);height:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;gap:8px;z-index:5}
+ .side .sim{display:none}
+ .side nav{display:flex;overflow-x:auto;gap:4px}
+ .side nav a{white-space:nowrap;padding:7px 10px;font-size:.85rem}
+ .content{padding:16px 16px 48px}
+ .subnav{position:static}
+ table{min-width:0}
+ .content header h1{font-size:1.1rem}
+}
+h1,h2,.side .title{font-family:"Shippori Mincho","Hiragino Mincho ProN",serif}
+svg text{font-family:"Zen Kaku Gothic New",sans-serif}
+.files{border:1px solid var(--line);border-radius:8px;padding:8px}
+.ftabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px}
+.ft{font:inherit;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.8rem;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+.ft[aria-selected="true"]{background:var(--accent-bg);color:var(--accent);border-color:var(--accent);font-weight:700}
+.copy{font:inherit;font-size:.8rem;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;padding:5px 12px;cursor:pointer;min-height:32px}
+.copy:focus-visible,.ft:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+pre.code{max-height:420px}
+.concl{font-size:1rem;line-height:1.8;border-left:3px solid var(--accent);padding-left:12px;margin:8px 0}
+.panel table th{white-space:nowrap}
+.pts{display:grid;gap:8px}
+.pt{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.pt b{color:var(--accent)}
+.pt p{margin:4px 0}
+.gr{font-size:.78rem;color:var(--dim)}
+table.sem{min-width:760px}
+table.sem td{font-size:.84rem}
+@media (max-width:720px){table.sem{min-width:680px}}
+.bulk{display:grid;gap:4px;justify-items:start;border:1px solid var(--accent);background:var(--accent-bg);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.copy.big{font-size:.92rem;padding:8px 16px;min-height:40px}
+.pv{width:236px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair figure{margin:0;display:grid;gap:3px}
+.pair figcaption{font-size:.7rem;color:var(--dim)}
+table.semc{min-width:780px}
+.blk{height:64px;border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:space-between;padding:7px 9px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.25)}
+.blk span{font-size:.72rem;font-weight:700}
+.blk code{font-size:.78rem;color:inherit}
+.pw{border-radius:0 0 8px 8px;padding:8px;display:flex;justify-content:center;box-shadow:inset 0 0 0 1px rgba(127,127,127,.25)}
+.pc{display:inline-block;padding:4px 10px;border-radius:6px;font-size:.8rem;white-space:nowrap}
+.tks{display:grid;gap:12px}
+.tk{display:grid;grid-template-columns:236px minmax(0,1fr);gap:16px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel)}
+.tk-sw .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tk-sw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;min-width:0}
+.tk-sw figure{min-width:0;overflow:hidden}
+.tk-sw .pc{white-space:normal;text-align:center;font-size:.74rem}
+.tk-sw figure{margin:0}
+.tk-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tk-name{font-size:.95rem;font-weight:700;color:var(--ink)}
+.tk-role{margin:6px 0 8px}
+.tk dl{margin:0;display:grid;gap:6px}
+.tk dl div{display:grid;grid-template-columns:5.5em minmax(0,1fr);gap:8px;font-size:.86rem}
+.tk dt{color:var(--dim);font-size:.78rem;padding-top:2px}
+.tk dt.no{color:var(--warn);font-weight:700}
+.tk dd{margin:0}
+.cps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.cp{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.cp h4{margin:0 0 4px;font-size:.95rem;color:var(--accent)}
+.cp p{margin:4px 0;font-size:.86rem}
+.cp-not span{display:inline-block;font-size:.7rem;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:9px;padding:0 7px;margin-right:6px}
+@media (max-width:720px){.tk{grid-template-columns:minmax(0,1fr)}}
+.kv{margin:4px 0 0;display:grid;gap:8px}
+.kv div{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--panel)}
+.kv dt{color:var(--dim);font-size:.8rem;padding-top:2px}
+.kv dd{margin:0}
+.dcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:6px}
+.dc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel);display:grid;gap:6px;align-content:start}
+.dc h4{margin:0;font-size:.95rem;line-height:1.5}
+.dc p{margin:0;font-size:.86rem;display:grid;gap:2px}
+.dc p span{font-size:.72rem;color:var(--dim)}
+.dc-gr{color:var(--accent)}
+.dc.und{border-color:var(--warn);background:var(--warn-bg)}
+.dc.und h4{color:var(--warn)}
+/* 境界：画面の囲み（panel）の中の要素は inset の地と rule の線で分ける */
+.tk,.cp,.pt,.swc,.files,.type,.mail{background:var(--inset)!important;border:1px solid var(--rule)!important}
+.panel{border-color:var(--rule)}
+.tw{border:1px solid var(--rule);border-radius:10px;overflow:hidden;overflow-x:auto;background:var(--inset);margin-top:6px}
+table.t{border-collapse:separate;border-spacing:0;width:100%;min-width:0;font-size:.9rem}
+table.t th,table.t td{border:0;padding:10px 14px;text-align:left;vertical-align:top;line-height:1.6}
+table.t thead th{background:var(--thead);color:var(--dim);font-size:.78rem;font-weight:700;letter-spacing:.04em}
+table.t tbody tr+tr td,table.kvt tr+tr th,table.kvt tr+tr td{border-top:1px solid var(--line)}
+table.t td.lead{font-weight:700}
+table.t td.gr2{color:var(--accent);font-size:.84rem}
+table.kvt th{background:var(--thead);color:var(--dim);font-size:.8rem;width:6em;white-space:nowrap}
+@media (max-width:720px){table.t{min-width:560px}table.kvt{min-width:0}}
+/* 境界 v2：頁の地の上に、白い要素を線と影で浮かせる */
+.panel{background:transparent!important;border:0!important;padding:4px 0!important}
+.tk,.cp,.pt,.swc,.files,.type,.mail,.tw,.kvt{background:var(--inset)!important;border:1px solid var(--rule)!important;box-shadow:var(--shadow)}
+.tw{border-radius:10px}
+.blk{box-shadow:none!important;border:1px solid var(--rule);border-bottom:0}
+.pw{box-shadow:none!important;border:1px solid var(--rule)}
+table.t thead th,table.kvt th{background:var(--thead)!important;color:var(--ink)!important}
+table.t tbody tr+tr td,table.kvt tr+tr th,table.kvt tr+tr td{border-top:1px solid var(--row)!important}
+table.t td,table.kvt td{background:var(--inset)}
+.subnav{background:var(--bg)!important}
+.tk2{background:var(--inset);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.tk-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;background:var(--thead);border-bottom:1px solid var(--rule)}
+.tk-h code{font-size:.95rem;font-weight:700;color:var(--ink)}
+.tk-r{font-weight:700}
+.tk-b{display:grid;grid-template-columns:240px minmax(0,1fr)}
+.tk2 .tk-sw{display:grid;gap:6px;align-content:start;padding:12px 14px;border-right:1px solid var(--rule)}
+.tk2 .lab{font-size:.72rem;color:var(--dim);font-weight:700}
+.tk2 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.blk.solo{border-radius:8px!important;border:1px solid var(--rule)!important;height:58px}
+.pw.solo{border-radius:8px!important;min-height:40px;align-items:center}
+.tk-d{margin:0;display:grid;align-content:start}
+.tk-d div{display:grid;grid-template-columns:6em minmax(0,1fr);gap:10px;padding:9px 14px;border-top:1px solid var(--row)}
+.tk-d div:first-child{border-top:0}
+.tk-d dt{font-size:.78rem;color:var(--dim);font-weight:700;padding-top:2px}
+.tk-d dd{margin:0;font-size:.88rem}
+.tk-d div.no{background:var(--warn-bg)}
+.tk-d div.no dt{color:var(--warn)}
+@media (max-width:720px){.tk-b{grid-template-columns:minmax(0,1fr)}.tk2 .tk-sw{border-right:0;border-bottom:1px solid var(--rule)}}
+.content .tk2 .tk-h{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px}
+.tk2 .tk-h .k{flex:none}
+.tk2 .tk-sw{grid-template-columns:minmax(0,1fr)!important;min-width:0}
+.tk2 .two{min-width:0}
+.tk2 .two>*{min-width:0}
+.tk2 .pw.solo .pc{white-space:nowrap}
+.tk2 .tk-h .k{background:var(--inset);border:1px solid currentColor}
+
+/* ==== デザインシステムの画面（組み直し） ==== */
+.ds{display:grid;gap:40px;grid-template-columns:minmax(0,1fr)}
+.ds>*{min-width:0}
+.ds h2{margin:0 0 8px}
+.ds h3{font-size:1.02rem;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.ds-lead,.ds-desc{margin:0 0 14px;color:var(--dim);font-size:.9rem;line-height:1.7}
+.ds-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.84rem;color:var(--dim);margin-bottom:14px}
+.ds-badge{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid currentColor;background:var(--inset);line-height:1.5}
+.ds-badge.rule{color:var(--ok)} .ds-badge.sel{color:var(--sel)}
+.ds .subnav{position:static;background:none!important;padding:0;margin:0}
+.ds-cands{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.ds-cand{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.ds-cand-chip{height:84px;display:flex;align-items:flex-end;padding:12px 16px;color:#fff;font-size:1.3rem;font-weight:700}
+.ds-cand-txt{display:grid;gap:4px;padding:14px 16px 16px;font-size:.88rem}
+.ds-cand-txt span{color:var(--ok);font-size:.8rem}
+.ds-tokens{display:grid;gap:16px}
+.ds-token{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.ds-token header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--rule);background:var(--thead)}
+.ds-token header code{font-weight:700;font-size:.95rem}
+.ds-token-body{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;padding:20px}
+.ds-sws{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.ds-sw{border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.ds-chip{height:72px;display:flex;flex-direction:column;justify-content:space-between;padding:10px 12px}
+.ds-chip span{font-size:.72rem;font-weight:700} .ds-chip code{font-size:.8rem;color:inherit}
+.ds-exrow{display:flex;justify-content:center;padding:12px 8px;border-top:1px solid var(--rule)}
+.ds-ex{display:inline-block;padding:5px 12px;border-radius:6px;font-size:.8rem;white-space:nowrap}
+.ds-token dl{margin:0;display:grid;align-content:start}
+.ds-token dl div{display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:12px;padding:10px 0;border-top:1px solid var(--row)}
+.ds-token dl div:first-child{border-top:0;padding-top:2px}
+.ds-token dt{font-size:.8rem;color:var(--dim);font-weight:700}
+.ds-token dd{margin:0;font-size:.9rem;line-height:1.7}
+.ds-token dl div.no dt{color:var(--warn)}
+.ds-box{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:8px 20px}
+.ds-type-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 0;border-top:1px solid var(--row)}
+.ds-type-row:first-child{border-top:0}
+.ds-type-meta{display:grid;gap:2px;font-size:.84rem} .ds-type-meta span{color:var(--dim);font-size:.78rem}
+.ds-space-row{display:grid;grid-template-columns:110px 150px 56px minmax(0,1fr);align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--row);font-size:.86rem}
+.ds-space-row:first-child{border-top:0}
+.ds-bar{display:block;height:14px;background:var(--accent);border-radius:3px}
+.ds-space-v{font-variant-numeric:tabular-nums} .ds-space-k{color:var(--dim);font-size:.8rem}
+.ds-states{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+.ds-state{margin:0;background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.ds-state-view{min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px}
+.ds-state figcaption{padding:10px 16px;border-top:1px solid var(--rule);font-size:.8rem;color:var(--dim)}
+.ds-btn{min-height:44px;padding:0 22px;border:0;border-radius:8px;background:#0D5C55;color:#fff;font:inherit;font-weight:700}
+.ds-btn.focus{outline:3px solid #111D1A;outline-offset:3px}
+.ds-btn:disabled{background:#C9CDD2;color:#4A4F55}
+.ds-input{display:block;width:100%;max-width:160px;height:44px;line-height:44px;padding:0 12px;border:1px solid #5B6B66;border-radius:8px;background:#fff;color:#111D1A;box-sizing:border-box}
+.ds-input.err{border:2px solid #B3261E}
+.ds-errmsg{color:#B3261E;font-size:.78rem}
+.ds-uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.ds-use{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;display:grid;gap:8px;align-content:start}
+.ds-use h4{margin:0;font-size:.98rem;color:var(--accent)}
+.ds-use p{margin:0;font-size:.88rem;line-height:1.7}
+.ds-use-not span{display:inline-block;font-size:.7rem;font-weight:700;color:var(--warn);border:1px solid currentColor;border-radius:999px;padding:0 8px;margin-right:6px}
+.ds-use-gr{color:var(--dim);font-size:.8rem!important}
+.ds .bulk{margin:0 0 16px}
+@media (max-width:720px){.ds-token-body{grid-template-columns:minmax(0,1fr)}.ds-type-row{grid-template-columns:minmax(0,1fr);gap:6px}.ds-space-row{grid-template-columns:90px minmax(0,1fr) 48px;}.ds-space-k{grid-column:1/-1;margin-top:-8px}}
+/* ==== 文字は白い面の上だけに置く ==== */
+.content>header{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:18px 22px}
+.panel:not(.ds){background:var(--inset)!important;border:1px solid var(--rule)!important;border-radius:12px;box-shadow:var(--shadow);padding:20px 22px!important}
+.panel:not(.ds) .tk,.panel:not(.ds) .pt,.panel:not(.ds) .tw,.panel:not(.ds) .mail,.panel:not(.ds) .files{box-shadow:none!important}
+.ds-head{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:18px 22px}
+.ds-head .ds-legend{margin-bottom:12px}
+.ds-sec{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.ds-sec-h{padding:16px 22px;border-bottom:1px solid var(--rule);background:var(--thead)}
+.ds-sec-h .ds-desc{margin:4px 0 0;color:var(--ink);opacity:.8}
+.ds-sec-b{padding:20px 22px}
+.ds-sec-b .ds-cand,.ds-sec-b .ds-token,.ds-sec-b .ds-state,.ds-sec-b .ds-use,.ds-sec-b .ds-box,.ds-sec-b .files,.ds-sec-b .bulk{box-shadow:none!important}
+.ds-sec-b .ds-box{border:0!important;padding:0!important;background:transparent!important}
+.ds-sec-b .ds-token header{background:var(--bg)}
+.ds{gap:24px}
+[hidden]{display:none!important}
+.pager a{background:var(--inset);border:1px solid var(--rule);border-radius:8px;padding:8px 14px!important;box-shadow:var(--shadow)}
+.side nav .grp{font-size:.72rem;font-weight:700;color:var(--dim);letter-spacing:.06em;padding:12px 10px 4px}
+.side nav a .lb{flex:1;min-width:0}
+.side nav a .kd{min-width:44px;text-align:center;box-sizing:border-box}
+.side nav a[aria-current="page"] .kd{background:var(--accent);color:#fff}
+.panel .tw+.fig,.panel .tw+.mail{margin-top:16px}
+.kd{flex:none;font-size:.68rem;font-weight:700;color:var(--accent);background:var(--panel);border:1px solid var(--accent);padding:0 7px;border-radius:9px;line-height:1.6}
+.smp{display:flex;gap:10px;align-items:center;font-size:.78rem;color:var(--dim);margin-bottom:-4px}
+.smp .kd{font-size:.78rem;padding:1px 10px;background:var(--accent);color:#fff;border-color:var(--accent)}
+.fig{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;justify-items:center}
+.fig.wf svg{max-width:360px}
+
+/* ==== デザインシステム：見本を先に、使う所を次に、名前と値を最後に ==== */
+.dsx-lt{--m-bg:#EEF1EF;--m-sf:#F8FAF9;--m-tx:#111D1A;--m-mu:#5B6B66;--m-bd:#5B6B66;--m-pr:#0D5C55;--m-on:#FFFFFF;--m-er:#B3261E;--m-fo:#111D1A;--m-line:#CCD8D4;--m-mark:#6CC9B8}
+.dsx-dk{--m-bg:#0E1614;--m-sf:#16211E;--m-tx:#E6EEEB;--m-mu:#9DADA8;--m-bd:#9DADA8;--m-pr:#6CC9B8;--m-on:#0E1614;--m-er:#E8908A;--m-fo:#E6EEEB;--m-line:#2F403C;--m-mark:#0D5C55}
+.dsx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:20px}
+.dsx-grid.sm{grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr))}
+.dsx-card{background:var(--inset);border:1px solid var(--rule);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0;word-break:auto-phrase;container-type:inline-size}
+.dsx-demo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid var(--rule)}
+.dsx-demo.one{grid-template-columns:minmax(0,1fr)}
+.dsx-pane{min-width:0;padding:12px 16px 22px;background:var(--m-bg);display:grid;gap:10px;align-content:start}
+.dsx-pane+.dsx-pane{border-left:1px solid var(--rule)}
+.dsx-mode{justify-self:start;font-size:.68rem;font-weight:700;line-height:1.7;padding:0 8px;border-radius:999px;background:var(--m-sf);color:var(--m-mu);border:1px solid var(--m-line)}
+.dsx-pane.roomy{padding-inline:26px;padding-bottom:30px}
+.dsx-m{background:var(--m-sf);border:1px solid var(--m-line);border-radius:8px;padding:14px;display:grid;gap:8px;justify-items:start;color:var(--m-tx);font-family:"Zen Kaku Gothic New","Noto Sans JP",sans-serif;font-size:13px;line-height:1.6;min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+.dsx-m.tight{gap:0;justify-items:stretch}
+.dsx-m>*{max-width:100%}
+.dsx-ph{display:block;height:8px;border-radius:4px;background:var(--m-line);width:100%}
+.dsx-ph.s{width:55%}.dsx-ph.m{width:78%}
+.dsx-h{font-size:15px;font-weight:700;line-height:1.4}
+.dsx-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:8px;background:var(--m-pr);color:var(--m-on);font-weight:700;font-size:14px;white-space:nowrap}
+.dsx-btn.off{background:var(--m-bd);opacity:.55}
+.dsx-btn.fo{outline:3px solid var(--m-fo);outline-offset:2px}
+.dsx-lab{font-weight:700;font-size:12px;line-height:1.5}
+.dsx-in{display:block;width:100%;box-sizing:border-box;min-height:40px;border:1px solid var(--m-bd);border-radius:8px;background:var(--m-sf);color:var(--m-tx);padding:0 10px;line-height:38px;font-size:13px}
+.dsx-in.tall{min-height:44px;line-height:42px}
+.dsx-in.err{border:2px solid var(--m-er);line-height:36px}
+.dsx-er{color:var(--m-er);font-size:12px;font-weight:700;line-height:1.5}
+.dsx-mu{color:var(--m-mu);font-size:12px;line-height:1.5}
+.dsx-link{color:var(--m-pr);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.dsx-chipsel{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;border:2px solid var(--m-pr);color:var(--m-tx)}
+.dsx-gap{display:block;width:100%;background:var(--m-mark);border-radius:2px}
+.dsx-gap.v{width:auto;align-self:stretch}
+.dsx-row2{display:flex;gap:0;align-items:stretch;width:100%}
+.dsx-sub{background:var(--m-sf);border:1px solid var(--m-line);border-radius:8px;padding:10px;display:grid;gap:6px}
+.dsx-body{padding:16px 18px 16px;display:grid;gap:6px;align-content:start;flex:1}
+.dsx-name{margin:0;font-size:1rem;font-weight:700;line-height:1.5}
+.dsx-use{margin:0;font-size:.92rem;line-height:1.7}
+.dsx-not{margin:4px 0 0;font-size:.84rem;line-height:1.7;color:var(--dim)}
+.dsx-not b{display:inline-block;color:var(--warn);font-size:.7rem;margin-right:8px;border:1px solid currentColor;border-radius:999px;padding:0 8px;line-height:1.6;font-weight:700;vertical-align:1px}
+.dsx-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:10px 18px;border-top:1px solid var(--row);background:var(--panel);font-size:.75rem;color:var(--dim);line-height:1.6}
+.dsx-meta .ds-badge{font-size:.66rem;padding:0 8px}
+.dsx-meta code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.74rem;color:var(--ink);white-space:nowrap}
+.dsx-meta .it{display:inline-grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;column-gap:6px;max-width:100%}
+.dsx-meta .k{font-size:.68rem;font-weight:700;letter-spacing:.02em}
+.dsx-type{display:grid;gap:12px;justify-items:start}
+.dsx-styles{display:grid}
+.dsx-style{display:grid;gap:4px;padding:14px 18px;border-top:1px solid var(--row)}
+.dsx-style:first-child{border-top:0}
+.dsx-style .dsx-meta{padding:0;border:0;background:none}
+@container (max-width:300px){.dsx-demo{grid-template-columns:minmax(0,1fr)}.dsx-demo .dsx-pane+.dsx-pane{border-left:0;border-top:1px solid var(--rule)}}
+@media (max-width:640px){.ds-sec-b{padding:16px 14px}.dsx-pane{padding:10px 10px 16px}.dsx-pane.roomy{padding-inline:16px}.dsx-m{padding:10px}.dsx-btn{padding:0 14px}.dsx-demo.stack{grid-template-columns:minmax(0,1fr)}.dsx-demo.stack .dsx-pane+.dsx-pane{border-left:0;border-top:1px solid var(--rule)}}
+
+/* ==== デザインシステム（汎用）：見本 → 使い方 → 名前と値 ==== */
+.gk{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;color:var(--accent);border:1px solid currentColor;border-radius:999px;padding:0 8px;line-height:1.7;background:var(--inset);font-family:"Zen Kaku Gothic New",sans-serif}
+.gx-pts{margin:0 0 12px;padding-left:1.2em;font-size:.9rem;line-height:1.7}.gx-pts li{margin:2px 0}
+.gx-scale+.gx-scale{margin-top:22px}
+.gx-scale h4{margin:0 0 8px;font-size:.92rem}
+.gx-steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.gx-step{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--inset)}
+.gx-step i{display:block;height:80px;border-bottom:1px solid var(--rule)}
+.gx-step div{padding:6px 10px 8px;display:grid;line-height:1.5}
+.gx-step code{font-size:.74rem;color:var(--ink);font-weight:700}
+.gx-step span{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--dim)}
+.gx-two{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--rule)}
+.gx-two>div{height:96px;display:grid;place-items:center;position:relative}
+.gx-two>div+div{border-left:1px solid var(--rule)}
+.gx-two .md{position:absolute;left:8px;top:6px;font-size:.62rem;font-weight:700;padding:0 6px;border-radius:999px;background:var(--inset);color:var(--dim);border:1px solid var(--rule);line-height:1.6}
+.gx-aa{font-size:30px;font-weight:700;line-height:1}
+.gx-box{width:60px;height:34px;border-radius:8px;border:1px solid;box-sizing:border-box}
+.gx-ring{width:60px;height:34px;border-radius:8px;outline:3px solid;outline-offset:2px}
+.gx-row{display:grid;gap:6px;padding:18px 20px;border-top:1px solid var(--row)}
+.gx-row:first-child{border-top:0}
+.gx-spec{color:var(--ink);word-break:keep-all;overflow-wrap:anywhere}
+.gx-row .dsx-meta,.gx-sp .dsx-meta{padding:0;border:0;background:none}
+.gx-sp{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 16px;align-items:center;padding:14px 20px;border-top:1px solid var(--row)}
+.gx-sp:first-child{border-top:0}
+.gx-sp .bar{display:block;height:28px;background:var(--accent);border-radius:2px}
+.gx-sp .dsx-meta{grid-column:2}
+.gx-rad{display:flex;flex-wrap:wrap;gap:24px;padding:20px}
+.gx-rad figure{margin:0;display:grid;gap:8px;justify-items:start}
+.gx-rad i{display:block;width:132px;height:80px;background:var(--accent-bg);border:2px solid var(--accent);box-sizing:border-box}
+.gx-rad figcaption{display:grid;gap:2px;font-size:.88rem}
+.gx-mx{display:grid;gap:14px}
+.gx-mx-row{display:grid;gap:6px}
+.gx-mx-row>b{font-size:11px;color:var(--m-mu)}
+.gx-mx-st{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-start}
+.gx-mx-st>span{display:grid;gap:4px;justify-items:start}
+.gx-mx-st small{font-size:11px;color:var(--m-mu)}
+.gx-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;width:100%}
+.gx-f{display:grid;gap:4px;align-content:start;min-width:0}
+.gx-f>small{font-size:11px;color:var(--m-mu);font-weight:700}
+.dsx-btn.sec{background:var(--m-sf);color:var(--m-pr);box-shadow:inset 0 0 0 2px var(--m-pr)}
+.dsx-btn.lk{background:none;color:var(--m-pr);text-decoration:underline;text-underline-offset:3px;padding:0 8px}
+.dsx-btn.hv{text-decoration:underline;text-underline-offset:3px}
+.dsx-btn.lk.hv{text-decoration-thickness:2px}
+.dsx-btn.sec.off{background:var(--m-sf)}
+.dsx-btn.lk.off{background:none}
+.dsx-in.fo{outline:3px solid var(--m-fo);outline-offset:1px}
+.dsx-in.off{opacity:.55}
+.dsx-in.tall.fo{line-height:42px}
+.dsx-sel{display:flex!important;justify-content:space-between;align-items:center}
+.dsx-cb{display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px}
+.dsx-cb i{width:24px;height:24px;box-sizing:border-box;border:2px solid var(--m-bd);border-radius:4px;display:grid;place-items:center;font-style:normal;font-size:14px;font-weight:700;color:var(--m-on);flex:none}
+.dsx-cb i.on{background:var(--m-pr);border-color:var(--m-pr)}
+.dsx-crd{background:var(--m-sf);border-radius:8px;padding:16px;display:grid;gap:8px;justify-items:start;color:var(--m-tx);font-size:13px;line-height:1.6;width:100%;box-sizing:border-box}
+.dsx-alert{border:2px solid var(--m-er);border-radius:8px;padding:14px 16px;display:grid;gap:6px;background:var(--m-sf);color:var(--m-tx);font-size:13px;line-height:1.6;width:100%;box-sizing:border-box}
+.dsx-alert a{color:var(--m-er);text-decoration:underline;font-weight:700}
+.dsx-alert ul{margin:0;padding-left:1.2em}
+.gx-dd{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule)}
+.gx-dd>div{padding:12px 18px;display:grid;gap:4px;align-content:start;font-size:.88rem;line-height:1.6}
+.gx-dd>div+div{border-left:1px solid var(--rule)}
+.gx-dd b{justify-self:start;font-size:.68rem;padding:0 8px;border-radius:999px;border:1px solid currentColor;line-height:1.6}
+.gx-dd .do b{color:var(--ok)}.gx-dd .dont b{color:var(--warn)}
+@container (max-width:340px){.gx-dd{grid-template-columns:1fr}.gx-dd>div+div{border-left:0;border-top:1px solid var(--rule)}}
+.gx-rules .gx-dd{border-top:0}
+.gx-rules .dsx-card{display:block}
+@media (max-width:480px){table.stk{min-width:0!important}table.stk thead{display:none}table.stk,table.stk tbody,table.stk tr,table.stk td{display:block}table.stk td{border-top:0!important}table.stk tr+tr{border-top:1px solid var(--row)}table.stk td{padding:4px 14px!important}table.stk td:first-child{padding-top:12px!important}table.stk td:last-child{padding-bottom:12px!important}table.stk td:not(.lead)::before{content:attr(data-l);display:block;font-size:.72rem;font-weight:700;color:var(--dim)}}
+@media (max-width:480px){table.kvt,table.kvt tbody,table.kvt tr{display:block}table.kvt th,table.kvt td{display:block;width:auto!important;white-space:normal!important}table.kvt th{padding-bottom:6px!important}table.kvt tr+tr th{border-top:1px solid var(--row)!important}table.kvt tr+tr td{border-top:0!important}}
+.dsx-demo.col{grid-template-columns:minmax(0,1fr)}.dsx-demo.col .dsx-pane+.dsx-pane{border-left:0;border-top:1px solid var(--rule)}
+@media (max-width:640px){.gx-row,.gx-sp{padding:14px}.gx-rad{padding:14px}}
+@media (max-width:480px){
+.tw:has(table.stk){border:0;background:transparent;box-shadow:none;overflow:visible}
+table.stk tbody{display:grid!important;gap:14px}
+table.stk tr{border:1px solid var(--rule)!important;border-radius:10px;overflow:hidden;background:var(--inset);box-shadow:var(--shadow)}
+table.stk tr+tr{border-top:1px solid var(--rule)!important}
+table.stk td.lead{background:var(--thead);font-weight:700;padding:10px 14px!important;border-bottom:1px solid var(--rule)!important}
+table.stk td:not(.lead){padding:8px 14px!important}
+table.stk td:not(.lead)+td:not(.lead){border-top:1px dashed var(--row)!important}
+table.stk td:last-child{padding-bottom:12px!important}
+}
+
+/* ==== 根拠：番号を押すと、原典の名前 ・ 引用 ・ 出典が開く ==== */
+.gds{display:grid;gap:6px;min-width:0}
+details.gd{border:1px solid var(--rule);border-radius:8px;background:var(--inset);min-width:0;color:var(--ink);font-size:.8rem;line-height:1.55;font-weight:400}
+details.gd>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;column-gap:8px;row-gap:2px;align-items:center;padding:6px 26px 6px 10px;border-radius:7px;position:relative}
+details.gd>summary::-webkit-details-marker{display:none}
+details.gd>summary::after{content:"";position:absolute;right:10px;top:13px;width:6px;height:6px;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:translateY(-2px) rotate(45deg)}
+details.gd[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+details.gd>summary:hover{background:var(--panel)}
+details.gd>summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+details.gd[open]>summary{border-bottom:1px solid var(--row);border-radius:7px 7px 0 0}
+.gd-c{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;font-weight:700;color:var(--accent);background:var(--accent-bg);padding:1px 7px;border-radius:9px;white-space:nowrap;flex:none}
+.gd-n{flex:1 1 7em;min-width:0;font-weight:700;color:var(--ink);overflow-wrap:anywhere;word-break:auto-phrase}
+.gd-b{padding:8px 10px 10px;display:grid;gap:6px;font-size:.78rem;line-height:1.7}
+.gd-b blockquote{margin:0;padding:6px 10px;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 6px 6px 0;color:var(--ink)}
+.gd-more{color:var(--dim);font-size:.72rem;margin-top:-4px}
+.gd-b p{margin:0}
+.gd-a{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.gd-a>span{font-size:.7rem;font-weight:700;color:var(--dim);white-space:nowrap;padding-top:1px}
+.gd-s{color:var(--dim);font-size:.72rem;overflow-wrap:anywhere}
+.gd-s a{color:var(--accent);text-underline-offset:2px}
+.gd-x{display:block;margin-top:6px;font-size:.78rem;color:var(--dim)}
+.gd-x code{color:var(--ink)}
+table.t td.gr2{min-width:14em;font-size:.84rem}
+.dsx-meta .it.gd-it{flex:1 1 100%;grid-template-columns:3.2em minmax(0,1fr)}
+.dsx-meta .it.gd-it>.k{padding-top:6px}
+@media (max-width:480px){table.t td.gr2{min-width:0}.dsx-meta .it.gd-it{grid-template-columns:minmax(0,1fr);row-gap:4px}.dsx-meta .it.gd-it>.k{padding-top:0}}
+
+/* ==== 寸法の目印（レッドライン）：実際の画面には出ない注記。UI の色には使わないピンク ==== */
+:root{--rl:#C8187A;--rl-on:#FFFFFF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--rl:#FF7AC2;--rl-on:#0E1614}}
+:root[data-theme="dark"]{--rl:#FF7AC2;--rl-on:#0E1614}
+.rl-legend{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:.8rem;color:var(--ink)}
+.rl-key{position:relative;flex:none;width:22px;height:9px;border-left:1px solid var(--rl);border-right:1px solid var(--rl);box-sizing:border-box}
+.rl-key::before{content:"";position:absolute;left:0;right:0;top:4px;height:1px;background:var(--rl)}
+.rl-v{position:relative;display:block;width:100%;flex:none;background-image:repeating-linear-gradient(90deg,var(--rl) 0 3px,transparent 3px 6px),repeating-linear-gradient(90deg,var(--rl) 0 3px,transparent 3px 6px);background-size:100% 1px;background-repeat:no-repeat;background-position:0 0,0 100%}
+.rl-v::before{content:"";position:absolute;right:52px;top:0;bottom:0;width:1px;background:var(--rl)}
+.rl-v::after{content:"";position:absolute;right:48px;width:9px;top:0;bottom:0;border-top:1px solid var(--rl);border-bottom:1px solid var(--rl);box-sizing:border-box}
+.rl-v b,.rl-d b,.rl-w b{position:absolute;z-index:1;font:700 10px/1.2 "JetBrains Mono",ui-monospace,monospace;color:var(--rl-on);background:var(--rl);padding:1px 4px;border-radius:3px;white-space:nowrap}
+.rl-v b{right:4px;top:50%;transform:translateY(-50%)}
+.rl-row{align-items:stretch}
+.rl-d{position:relative;flex:none;width:46px;margin-right:6px}
+.rl-d::before{content:"";position:absolute;right:4px;top:0;bottom:0;width:1px;background:var(--rl)}
+.rl-d::after{content:"";position:absolute;right:0;width:9px;top:0;bottom:0;border-top:1px solid var(--rl);border-bottom:1px solid var(--rl);box-sizing:border-box}
+.rl-d b{right:10px;top:50%;transform:translateY(-50%)}
+.gx-sp{grid-template-columns:120px minmax(0,1fr)}
+.rl-pair{display:flex;align-items:center;padding-bottom:18px}
+.rl-pair>i{display:block;flex:none;width:18px;height:28px;background:var(--wf-fill);border:1px solid var(--wf);border-radius:3px;box-sizing:border-box}
+.rl-pair>i.tgt{width:56px;height:44px}
+.rl-pair .rl-d{align-self:stretch}
+.rl-w{position:relative;flex:none;align-self:stretch}
+.rl-w::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--rl)}
+.rl-w::after{content:"";position:absolute;left:0;right:0;top:calc(50% - 4px);height:9px;border-left:1px solid var(--rl);border-right:1px solid var(--rl);box-sizing:border-box}
+.rl-w b{left:50%;top:calc(100% + 4px);transform:translateX(-50%)}
+
+/* ==== 結論：体験のストーリーボードと、番号ごとの提案 ==== */
+.sb{margin:6px 0 0;border:1px solid var(--rule);border-radius:10px;background:var(--inset);padding:14px 12px 10px;container-type:inline-size;display:grid;gap:8px}
+.sb-w,.sb-n{overflow-x:auto}
+.sb-n{display:none}
+.sb-n svg{display:block;max-width:420px;margin:0 auto}
+.sb-w svg{display:block}
+@container (max-width:679px){.sb-w{display:none}.sb-n{display:block}}
+.sb figcaption{font-size:.78rem;color:var(--dim)}
+.panel .note a{color:var(--accent);text-underline-offset:2px}
+.mk{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;box-sizing:border-box;border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent);font-size:.76rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.sb-list{list-style:none;margin:6px 0 0;padding:0;display:grid;border:1px solid var(--rule);border-radius:10px;background:var(--inset);overflow:hidden}
+.sb-list li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 14px;border-top:1px solid var(--row)}
+.sb-list li:first-child{border-top:0}
+.sb-t{min-width:0;margin:0;display:flex;flex-wrap:wrap;gap:0 8px;font-size:.92rem;line-height:1.6}
+.sb-ar{color:var(--dim)}
+.sb-ef{font-weight:700;color:var(--accent)}
+details.sb-g{font-size:.76rem;justify-self:end}
+details.sb-g[open]{grid-column:2/-1;justify-self:stretch}
+details.sb-g>summary{column-gap:6px;padding:3px 26px 3px 8px}
+details.sb-g>summary::after{top:9px}
+.sb-gl{font-size:.72rem;font-weight:700;color:var(--dim)}
+.gd-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-weight:700;margin-top:6px!important}
+.gd-h:first-child{margin-top:0!important}
+table.t td .mk{vertical-align:middle}
+@media (max-width:600px){.sb{padding:12px 8px 8px}.sb-list li{grid-template-columns:22px minmax(0,1fr);padding:10px 12px;align-items:start}.sb-list li .mk{margin-top:1px}.sb-t{display:block;font-size:.9rem}.sb-t .sb-ar{margin:0 6px}details.sb-g{grid-column:2;justify-self:start}}
+
+/* ==== 確認の順番：結論の手順 ・ 決めること ・ 各パネルの「次」 ==== */
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.side nav a .n{flex:none;border:1px solid transparent;box-sizing:border-box}
+.side nav a{position:relative}
+.side nav a.seen .n{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.side nav a.seen .nn{display:none}
+.side nav a.seen .n::before{content:"✓";font-weight:700}
+.side nav a[aria-current="page"].seen .n{background:var(--accent);color:var(--inset)}
+.content [id]{scroll-margin-top:16px}
+@media (max-width:720px){.content [id]{scroll-margin-top:112px}}
+.steps{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.steps a{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--inset);color:var(--ink);text-decoration:none}
+.steps a:hover{border-color:var(--accent)}
+.steps a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.st-n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--inset);font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums}
+.st-b{display:grid;gap:2px;min-width:0}
+.st-t{font-weight:700;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.st-j{font-size:.88rem;line-height:1.6}
+.st-s{font-size:.74rem;color:var(--dim);white-space:nowrap;border:1px solid var(--rule);border-radius:999px;padding:0 9px;line-height:1.7}
+@media (max-width:520px){.steps a{grid-template-columns:30px minmax(0,1fr)}.st-s{grid-column:2;justify-self:start}}
+.dec{list-style:none;margin:6px 0 0;padding:0;display:grid;border:1px solid var(--rule);border-radius:10px;background:var(--inset);overflow:hidden}
+.dec li{display:grid;grid-template-columns:9em minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--row);font-size:.9rem}
+.dec li:first-child{border-top:0}
+.dec-w{font-weight:700}
+.dec-a{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:.84rem;text-underline-offset:3px;white-space:nowrap}
+@media (max-width:560px){.dec li{grid-template-columns:minmax(0,1fr)}}
+.nx-n{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--inset);font-size:.72rem;font-weight:700;font-variant-numeric:tabular-nums;text-decoration:none}
+.nx{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:20px;padding:14px 16px;background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow)}
+.panel:not(.ds) .nx{box-shadow:none;background:var(--accent-bg);border-color:var(--accent)}
+.ds>.nx{margin-top:0}
+.nx-go{display:grid;gap:2px;flex:1 1 260px;min-width:0;padding:10px 16px;border-radius:10px;background:var(--accent);color:var(--inset);text-decoration:none}
+.nx-go:hover{filter:brightness(1.08)}
+.nx-go:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.nx-k{font-size:.72rem;font-weight:700;letter-spacing:.08em;opacity:.9}
+.nx-t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem}
+.nx-go .nx-n{background:var(--inset);color:var(--accent)}
+.flow a{color:var(--accent);text-underline-offset:3px}
+.nx-why{font-size:.82rem;opacity:.95}
+.nx-back{font-size:.85rem;color:var(--accent);text-underline-offset:3px;padding:6px 2px}
+.rp{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:20px;padding-top:12px;border-top:1px solid var(--row);font-size:.85rem}
+.rp a{color:var(--accent);text-underline-offset:3px}
+.rp .rp-back{margin-left:auto}
+.rp-box{background:var(--inset);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:2px 18px 14px}
+.rp-box .rp{border-top:0}
+.panel:focus{outline:none}
+
+.grid2 .fig{align-content:start}.ph{font-size:.78rem;font-weight:700;justify-self:start;padding:2px 10px;border-radius:9px;margin-bottom:8px}.ph.before{color:var(--warn);background:var(--warn-bg)}.ph.after{color:var(--accent);background:var(--accent-bg)}
+.panel .fig+.tw,.panel .grid2+.tw,.panel .fig+h3{margin-top:16px}
+</style>
+<div class="app">
+<aside class="side">
+<div class="title">購入手続きのテスト設計</div>
+<span class="sim">見本（シミュレーション）── qa-advisor の回答の想定。根拠の id は qa-advisor の判断基準に実在するもの</span>
+<nav aria-label="回答の画面"><a href="#p-overview" data-p="overview"><span class="lb">結論</span></a><div class="grp">確認の手順（この順に見る）</div><a href="#p-s1" data-p="s1" data-step><span class="n" aria-hidden="true"><span class="nn">1</span></span><span class="lb">テスト戦略</span><span class="vh seen-t" hidden>（見た）</span></a><a href="#p-s2" data-p="s2" data-step><span class="n" aria-hidden="true"><span class="nn">2</span></span><span class="lb">テスト設計</span><span class="vh seen-t" hidden>（見た）</span></a><a href="#p-s3" data-p="s3" data-step><span class="n" aria-hidden="true"><span class="nn">3</span></span><span class="lb">状態遷移</span><span class="vh seen-t" hidden>（見た）</span></a><a href="#p-s4" data-p="s4" data-step><span class="n" aria-hidden="true"><span class="nn">4</span></span><span class="lb">受け入れ基準</span><span class="vh seen-t" hidden>（見た）</span></a><a href="#p-s5" data-p="s5" data-step><span class="n" aria-hidden="true"><span class="nn">5</span></span><span class="lb">テスト計画</span><span class="vh seen-t" hidden>（見た）</span></a><div class="grp">参照</div><a href="#p-premise" data-p="premise"><span class="lb">相談の前提</span></a><a href="#p-grounds" data-p="grounds"><span class="lb">提案と根拠</span></a></nav>
+</aside>
+<main class="content">
+<header>
+<h1>購入手続きのテスト設計</h1>
+<p class="q">相談：「ネットショップの購入手続き（割引コード ・ 数量の上限）のテストを、どう設計するか。」</p>
+</header>
+<section tabindex="-1" class="panel" id="p-overview" data-p="overview"><h2><span class="tag">結論</span>advisor の見解</h2>
+<p class="concl">割引コードと数量の上限の判定は、境界値とデシジョンテーブルから導いたテストケースでコンポーネントテストに置き、エンドツーエンドテストは購入の主な流れに絞る。</p>
+<h3 id="ov-steps">確認してほしいこと（この順に見る）</h3>
+<ol class="steps">
+<li><a href="#p-s1"><span class="st-n">1</span><span class="st-b"><span class="st-t">テスト戦略</span><span class="st-j">どのテストレベルに何件置くかの配分に、無理がないか</span></span><span class="st-s">図2枚 ・ 表2つ</span></a></li>
+<li><a href="#p-s2"><span class="st-n">2</span><span class="st-b"><span class="st-t">テスト設計</span><span class="st-j">数量 ・ 合計金額 ・ 割引コードのテストケースに、抜けた境界がないか</span></span><span class="st-s">表3つ</span></a></li>
+<li><a href="#p-s3"><span class="st-n">3</span><span class="st-b"><span class="st-t">状態遷移</span><span class="st-j">注文の状態と遷移が、実際の運用と合っているか</span></span><span class="st-s">図1枚 ・ 表1つ</span></a></li>
+<li><a href="#p-s4"><span class="st-n">4</span><span class="st-b"><span class="st-t">受け入れ基準</span><span class="st-j">4つのシナリオで、割引コードのストーリーを受け入れてよいか</span></span><span class="st-s">シナリオ4つ</span></a></li>
+<li><a href="#p-s5"><span class="st-n">5</span><span class="st-b"><span class="st-t">テスト計画</span><span class="st-j">範囲 ・ リスク ・ 開始基準と終了基準で、リリースを判定できるか</span></span><span class="st-s">文書1つ</span></a></li>
+</ol>
+<p class="note">提案ごとの根拠を確かめたいときは、参照の<a href="#p-grounds">提案と根拠</a>を開く。</p>
+<h3 id="ov-decide">決めてほしいこと</h3>
+<ul class="dec">
+<li><span class="dec-w">リスクの受容レベル</span><span class="dec-c">影響「高」のリスクだけ全件テストする ／ 影響「中」も全件テストする</span><a class="dec-a" href="#s5-decide"><span class="nx-n">5</span>テスト計画</a></li>
+<li><span class="dec-w">エンドツーエンドテストの自動化の範囲</span><span class="dec-c">主な流れの12件 ／ 状態遷移の8件を足した20件</span><a class="dec-a" href="#s1-decide"><span class="nx-n">1</span>テスト戦略</a></li>
+</ul>
+<p class="note">advisor がこの2つを決めない理由は、<a href="#g-decide">提案と根拠</a>にある。</p>
+<h3>次にすること</h3>
+<ol class="flow"><li>決めてほしいことの2つを決める</li><li>テスト設計のテストケースを、コンポーネントテストとして書く</li><li>受け入れ基準のシナリオを、実装の前に自動テストとして書き、失敗することを確かめておく</li></ol>
+<nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#p-s1"><span class="nx-k">次</span><span class="nx-t"><span class="nx-n">1</span>テスト戦略を見る</span><span class="nx-why">最初に、テストをどのテストレベルに置くかの配分を確かめる</span></a><a class="nx-back" href="#p-premise">相談の前提を見る（参照）</a></nav>
+</section>
+<section tabindex="-1" class="panel" id="p-s1" data-p="s1"><div class="smp"><span class="kd">図</span><span>確認の手順 1 / 5</span></div><h2>テスト戦略（ピラミッドと四象限）</h2><div class="tw"><table class="t kvt"><tr><th scope="row">置き方の方針</th><td>割引と数量の判定は下のレイヤーで多く確かめ、画面からの確認は上のレイヤーで少なくする</td></tr><tr id="s1-decide"><th scope="row">相談した人が決めること</th><td>エンドツーエンドテストをどこまで自動化するか。この見本は、主な流れの12件だけを自動化した形</td></tr></table></div><div class="grid2" style="margin-top:16px">
+<figure class="fig"><figcaption class="ph after">テストピラミッド（件数と1回の実行時間）</figcaption>
+<svg viewBox="0 0 320 250" width="100%" style="max-width:380px" role="img" aria-label="テストピラミッド：コンポーネントテスト180件、コンポーネント統合テスト40件、エンドツーエンドテスト12件" class="dsvg"><style data-dsvg="dark">.dsvg .box.kind-3{fill:var(--dsvg-kind-3-bg,#E8ECD3);stroke:var(--dsvg-kind-3,#566318)}.dsvg .title.kind-3{fill:var(--dsvg-kind-3,#566318);font-size:13px;font-weight:700}.dsvg .box.kind-2{fill:var(--dsvg-kind-2-bg,#DCE7F1);stroke:var(--dsvg-kind-2,#2F5B80)}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}.dsvg .label.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:12px}.dsvg .box.kind-1{fill:var(--dsvg-kind-1-bg,#F1E3EE);stroke:var(--dsvg-kind-1,#7A3B6D)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .label.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:12px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2}}:root[data-theme="dark"] .dsvg{--dsvg-kind-3-bg:#262A18;--dsvg-kind-3:#BACB78;--dsvg-kind-2-bg:#182A3A;--dsvg-kind-2:#8FB8DE;--dsvg-kind-1-bg:#2E1F2B;--dsvg-kind-1:#D094C2}</style>
+<polygon class="box kind-3" points="160,14 206,84 114,84" fill="#E8ECD3" stroke="#566318" stroke-width="1.5"/>
+<text class="title kind-3" x="160" y="62" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#566318">12件</text>
+<polygon class="box kind-2" points="114,90 206,90 250,156 70,156" fill="#DCE7F1" stroke="#2F5B80" stroke-width="1.5"/>
+<text class="title kind-2" x="160" y="118" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">40件</text>
+<text class="label kind-2" x="160" y="136" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#2F5B80">約2分</text>
+<polygon class="box kind-1" points="66,162 254,162 300,232 20,232" fill="#F1E3EE" stroke="#7A3B6D" stroke-width="1.5"/>
+<text class="title kind-1" x="160" y="192" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#7A3B6D">180件</text>
+<text class="label kind-1" x="160" y="210" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#7A3B6D">約20秒</text>
+</svg>
+</figure>
+<figure class="fig"><figcaption class="ph after">テストの四象限</figcaption>
+<svg viewBox="0 0 320 300" width="100%" style="max-width:380px" role="img" aria-label="テストの四象限に、決済機能のテストを置いた図" class="dsvg"><style data-dsvg="dark">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.kind-1{fill:var(--dsvg-kind-1,#7A3B6D);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .title.kind-2{fill:var(--dsvg-kind-2,#2F5B80);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-1:#D094C2;--dsvg-ink:#E6EEEB;--dsvg-kind-2:#8FB8DE}}:root[data-theme="dark"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-kind-1:#D094C2;--dsvg-ink:#E6EEEB;--dsvg-kind-2:#8FB8DE}</style>
+<text class="note" x="160" y="14" font-weight="700" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ビジネス指向</text>
+<text class="note" x="160" y="296" font-weight="700" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">テクノロジー指向</text>
+<rect class="box" x="10" y="24" width="148" height="122" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="box" x="162" y="24" width="148" height="122" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="box" x="10" y="150" width="148" height="122" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<rect class="box" x="162" y="150" width="148" height="122" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="title kind-1" x="20" y="44" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#7A3B6D">第二象限</text>
+<text class="note" x="20" y="62" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">チームを支援する</text>
+<text class="label" x="20" y="86" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">受け入れ基準の</text><text class="label" x="20" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">シナリオ（自動）</text>
+<text class="label" x="20" y="124" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">決済 API のテスト</text>
+<text class="title kind-2" x="172" y="44" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">第三象限</text>
+<text class="note" x="172" y="62" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">プロダクトを批評する</text>
+<text class="label" x="172" y="86" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">決済画面の</text><text class="label" x="172" y="102" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">探索的テスト</text>
+<text class="label" x="172" y="124" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">使用性テスト</text>
+<text class="title kind-1" x="20" y="170" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#7A3B6D">第一象限</text>
+<text class="note" x="20" y="188" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">チームを支援する</text>
+<text class="label" x="20" y="212" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">コンポーネント</text><text class="label" x="20" y="228" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">テスト（CI）</text>
+<text class="label" x="20" y="250" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">統合テスト（CI）</text>
+<text class="title kind-2" x="172" y="170" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#2F5B80">第四象限</text>
+<text class="note" x="172" y="188" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">プロダクトを批評する</text>
+<text class="label" x="172" y="212" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">セール時の性能</text><text class="label" x="172" y="228" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">テスト</text>
+<text class="label" x="172" y="250" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">スモークテスト</text>
+</svg>
+</figure>
+</div>
+<h3>レイヤーごとの件数</h3>
+<div class="tw"><table class="t stk"><thead><tr><th>レイヤー</th><th>件数</th><th>確かめること</th></tr></thead><tbody><tr><td class="lead" data-l="レイヤー">エンドツーエンドテスト</td><td data-l="件数">12</td><td data-l="確かめること">カートから注文を確定し、確認メールが届くまで（1回 約8分）</td></tr><tr><td class="lead" data-l="レイヤー">コンポーネント統合テスト</td><td data-l="件数">40</td><td data-l="確かめること">決済代行の API ・ 在庫 DB と正しくやりとりするか</td></tr><tr><td class="lead" data-l="レイヤー">コンポーネントテスト</td><td data-l="件数">180</td><td data-l="確かめること">金額の計算 ・ 割引の判定 ・ 数量の上限（テスト設計のテストケースはここに置く）</td></tr></tbody></table></div><h3>エンドツーエンドテストの自動化の候補</h3><div class="tw"><table class="t stk"><thead><tr><th>候補</th><th>自動化する件数</th><th>1回の実行時間</th><th>確かめられること</th></tr></thead><tbody><tr><td class="lead" data-l="候補">主な流れだけ</td><td data-l="自動化する件数">12</td><td data-l="1回の実行時間">約8分</td><td data-l="確かめられること">購入の主な流れが、画面から最後まで通る</td></tr><tr><td class="lead" data-l="候補">状態遷移まで足す</td><td data-l="自動化する件数">20（12 ＋ 状態遷移表の8）</td><td data-l="1回の実行時間">約13分</td><td data-l="確かめられること">キャンセル ・ 支払い期限切れ ・ 無効な遷移も、画面から確かめられる</td></tr></tbody></table></div><nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#p-s2"><span class="nx-k">次</span><span class="nx-t"><span class="nx-n">2</span>テスト設計を見る</span><span class="nx-why">コンポーネントテストに置く、割引と数量のテストケースを確かめる</span></a><a class="nx-back" href="#p-overview">結論に戻る</a></nav></section>
+<section tabindex="-1" class="panel" id="p-s2" data-p="s2"><div class="smp"><span class="kd">表</span><span>確認の手順 2 / 5</span></div><h2>テスト設計（同値分割 ・ 境界値 ・ デシジョンテーブル）</h2><h3 style="margin-top:4px">同値パーティション</h3><div class="tw"><table class="t stk"><thead><tr><th>入力</th><th>有効なパーティション</th><th>無効なパーティション</th></tr></thead><tbody><tr><td class="lead" data-l="入力">数量</td><td data-l="有効なパーティション">1〜10 の整数</td><td data-l="無効なパーティション">0 以下 ／ 11 以上 ／ 整数でない値（1.5、空欄）</td></tr><tr><td class="lead" data-l="入力">商品の合計金額</td><td data-l="有効なパーティション">3,000円以上（割引コードを使える）</td><td data-l="無効なパーティション">3,000円未満（割引コードを使えない）</td></tr><tr><td class="lead" data-l="入力">割引コード</td><td data-l="有効なパーティション">登録済みで、有効期限内のコード</td><td data-l="無効なパーティション">未登録 ／ 有効期限切れ ／ 使用済み</td></tr></tbody></table></div><h3>境界値（2値 BVA）</h3><div class="tw"><table class="t stk"><thead><tr><th>境界</th><th>確かめる値</th><th>期待する結果</th></tr></thead><tbody><tr><td class="lead" data-l="境界">数量の下限</td><td data-l="確かめる値"><code>0</code> ／ <code>1</code></td><td data-l="期待する結果">0 は「1個以上を選んでください」と出す。1 はカートに入る</td></tr><tr><td class="lead" data-l="境界">数量の上限</td><td data-l="確かめる値"><code>10</code> ／ <code>11</code></td><td data-l="期待する結果">10 はカートに入る。11 は「1回の注文で買えるのは10個までです」と出す</td></tr><tr><td class="lead" data-l="境界">合計金額</td><td data-l="確かめる値"><code>2,999円</code> ／ <code>3,000円</code></td><td data-l="期待する結果">2,999円 では割引しない。3,000円 では 10% 割引する</td></tr><tr><td class="lead" data-l="境界">有効期限</td><td data-l="確かめる値"><code>10/31 23:59:59</code> ／ <code>11/01 00:00:00</code></td><td data-l="期待する結果">10/31 中は割引する。11/01 0時からは「有効期限が切れています」と出す</td></tr></tbody></table></div><h3>デシジョンテーブル（割引コードを使えるか）</h3>
+<div class="tw"><table class="t"><thead><tr><th>条件 ・ アクション</th><th>規則1</th><th>規則2</th><th>規則3</th><th>規則4</th></tr></thead><tbody>
+<tr><td class="lead">コードが登録済みで有効期限内</td><td>Y</td><td>Y</td><td>Y</td><td>N</td></tr>
+<tr><td class="lead">合計金額が3,000円以上</td><td>Y</td><td>Y</td><td>N</td><td>－</td></tr>
+<tr><td class="lead">この会員がまだ使っていない</td><td>Y</td><td>N</td><td>－</td><td>－</td></tr>
+<tr><td class="lead">10% 割引する</td><td>X</td><td></td><td></td><td></td></tr>
+<tr><td class="lead">エラーを出す</td><td></td><td>使用済み</td><td>金額不足</td><td>無効なコード</td></tr>
+</tbody></table></div>
+<p class="note">「－」は、その条件の値が結果を変えないことを表す。規則4つで、条件の組み合わせ8通りをすべて確かめられる。</p>
+<nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#p-s3"><span class="nx-k">次</span><span class="nx-t"><span class="nx-n">3</span>状態遷移を見る</span><span class="nx-why">注文を確定したあとの、キャンセルと期限切れを確かめる</span></a><a class="nx-back" href="#p-overview">結論に戻る</a></nav></section>
+<section tabindex="-1" class="panel" id="p-s3" data-p="s3"><div class="smp"><span class="kd">図</span><span>確認の手順 3 / 5</span></div><h2>注文の状態遷移</h2><figure class="fig"><div style="width:100%;overflow-x:auto"><svg viewBox="0 0 640 270" width="100%" style="min-width:560px;max-width:680px;display:block;margin:0 auto" role="img" aria-label="注文の状態遷移図：支払い待ちから配達完了まで、およびキャンセル済みへの遷移" class="dsvg"><style data-dsvg="dark">.dsvg .start{fill:var(--dsvg-ink,#111D1A)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .title.warn{fill:var(--dsvg-warn,#8F5410);font-size:13px;font-weight:700}.dsvg .link.warn{stroke:var(--dsvg-warn,#8F5410)}.dsvg .note.warn{fill:var(--dsvg-warn,#8F5410);font-size:11px}.dsvg #dsvg-06d386f7-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}}:root[data-theme="dark"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F}</style><defs data-dsvg="marker"><marker id="dsvg-06d386f7-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs>
+
+<circle class="start" cx="22" cy="60" r="8" fill="#111D1A" stroke="none"/>
+<line class="flow" x1="30" y1="60" x2="64" y2="60" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/>
+<text class="note" x="22" y="34" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">注文を確定</text>
+<rect class="box" x="66" y="38" width="110" height="44" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="121" y="65" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">支払い待ち</text>
+<rect class="box" x="222" y="38" width="110" height="44" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="277" y="65" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">支払い済み</text>
+<rect class="box" x="378" y="38" width="110" height="44" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="433" y="65" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">発送済み</text>
+<rect class="box focus" x="534" y="38" width="96" height="44" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="title focus" x="582" y="65" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">配達完了</text>
+<line class="flow" x1="176" y1="60" x2="220" y2="60" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/><text class="note" x="199" y="30" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">決済が</text><text class="note" x="199" y="44" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">成功</text>
+<line class="flow" x1="332" y1="60" x2="376" y2="60" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/><text class="note" x="355" y="30" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">出荷</text>
+<line class="flow" x1="488" y1="60" x2="532" y2="60" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/><text class="note" x="511" y="30" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">受け取り</text>
+<rect class="box warn" x="150" y="210" width="140" height="44" fill="#F0E2CD" stroke="#8F5410" stroke-width="1.5" rx="5"/><text class="title warn" x="220" y="237" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#8F5410">キャンセル済み</text>
+<path class="flow" d="M100,82 L100,232 L148,232" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/>
+<text class="note" x="92" y="160" text-anchor="end" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">キャンセル</text>
+<path class="flow" d="M142,82 L190,208" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/>
+<text class="note" x="166" y="120" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">支払い期限</text><text class="note" x="166" y="136" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">（48時間）切れ</text>
+<path class="flow" d="M300,82 L262,208" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-06d386f7-arrow-5B6B66)"/>
+<text class="note" x="296" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">キャンセル（返金する）</text>
+<line class="link warn" x1="433" y1="82" x2="433" y2="180" fill="none" stroke="#8F5410" stroke-width="1"/>
+<text class="note warn" x="443" y="150" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#8F5410">キャンセル → 拒否する</text><text class="note warn" x="443" y="166" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#8F5410">（無効な遷移）</text>
+</svg></div></figure>
+<h3>状態遷移表（有効な遷移6本 ＋ 無効な遷移2本）</h3>
+<div class="tw"><table class="t stk"><thead><tr><th>今の状態</th><th>イベント</th><th>次の状態</th><th>確かめること</th></tr></thead><tbody><tr><td class="lead" data-l="今の状態">支払い待ち</td><td data-l="イベント">決済が成功</td><td data-l="次の状態">支払い済み</td><td data-l="確かめること">在庫を引き当て、確認メールを送る</td></tr><tr><td class="lead" data-l="今の状態">支払い待ち</td><td data-l="イベント">キャンセル</td><td data-l="次の状態">キャンセル済み</td><td data-l="確かめること">在庫の仮押さえを戻す</td></tr><tr><td class="lead" data-l="今の状態">支払い待ち</td><td data-l="イベント">支払い期限切れ</td><td data-l="次の状態">キャンセル済み</td><td data-l="確かめること">確定から48時間0分で切れ、47時間59分では切れない</td></tr><tr><td class="lead" data-l="今の状態">支払い済み</td><td data-l="イベント">キャンセル</td><td data-l="次の状態">キャンセル済み</td><td data-l="確かめること">全額を返金し、割引コードを未使用に戻す</td></tr><tr><td class="lead" data-l="今の状態">支払い済み</td><td data-l="イベント">出荷</td><td data-l="次の状態">発送済み</td><td data-l="確かめること">追跡番号を注文に記録する</td></tr><tr><td class="lead" data-l="今の状態">発送済み</td><td data-l="イベント">受け取り</td><td data-l="次の状態">配達完了</td><td data-l="確かめること">配達完了の日時を注文に記録する</td></tr><tr><td class="lead" data-l="今の状態">発送済み</td><td data-l="イベント">キャンセル</td><td data-l="次の状態">（変わらない）</td><td data-l="確かめること">「発送後はキャンセルできません」と出し、状態を変えない</td></tr><tr><td class="lead" data-l="今の状態">配達完了</td><td data-l="イベント">決済が成功（二重通知）</td><td data-l="次の状態">（変わらない）</td><td data-l="確かめること">決済代行からの重複通知を無視する</td></tr></tbody></table></div><p class="note">有効な遷移6本をすべて通す（有効遷移カバレッジ 100%）。無効な遷移は、起きると損失が出る2本を選んだ。</p><nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#p-s4"><span class="nx-k">次</span><span class="nx-t"><span class="nx-n">4</span>受け入れ基準を見る</span><span class="nx-why">割引コードのストーリーを、何をもって受け入れるかを確かめる</span></a><a class="nx-back" href="#p-overview">結論に戻る</a></nav></section>
+<section tabindex="-1" class="panel" id="p-s4" data-p="s4"><div class="smp"><span class="kd">文書</span><span>確認の手順 4 / 5</span></div><h2>ユーザーストーリーと受け入れ基準</h2><div class="tw"><table class="t kvt"><tr><th scope="row">ユーザーストーリー</th><td>会員として、決済画面で割引コードを使いたい。それは、キャンペーン中の商品を安く買うためだ</td></tr><tr><th scope="row">受け入れ基準の形式</th><td>シナリオ指向（Given / When / Then）</td></tr><tr><th scope="row">並べる順</th><td>ポジティブ → ネガティブ → 非機能</td></tr></table></div><pre class="code" style="margin-top:16px"><code>シナリオ: 有効なコードで 10% 割引される
+  Given 会員「佐藤」のカートに 3,000円 の商品がある
+    And 割引コード「AUTUMN10」は 10/31 まで有効である
+  When  10/31 12:00 に「AUTUMN10」を入力して適用を押す
+  Then  合計金額は 2,700円 と表示される
+
+シナリオ: 合計が 3,000円 未満なら割引しない
+  Given 会員「佐藤」のカートに 2,999円 の商品がある
+  When  「AUTUMN10」を入力して適用を押す
+  Then  「3,000円以上のご注文で使えます」と表示される
+    And 合計金額は 2,999円 のままである
+
+シナリオ: 使用済みのコードは使えない
+  Given 会員「佐藤」は「AUTUMN10」で注文を確定したことがある
+  When  次の注文で「AUTUMN10」を入力して適用を押す
+  Then  「このコードは使用済みです」と表示される
+
+シナリオ: 適用の結果が 1 秒以内に返る
+  Given 毎分 3,000 件の注文が入っている
+  When  「AUTUMN10」を入力して適用を押す
+  Then  95% の操作で 1 秒以内に合計金額が更新される</code></pre>
+<nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#p-s5"><span class="nx-k">次</span><span class="nx-t"><span class="nx-n">5</span>テスト計画を見る</span><span class="nx-why">ここまでのテストを、範囲 ・ リスク ・ 基準でまとめた計画を確かめる</span></a><a class="nx-back" href="#p-overview">結論に戻る</a></nav></section>
+<section tabindex="-1" class="panel" id="p-s5" data-p="s5"><div class="smp"><span class="kd">文書</span><span>確認の手順 5 / 5</span></div><h2>テスト計画書（割引コード機能）</h2><h3 style="margin-top:4px">1. 範囲</h3><div class="tw"><table class="t kvt"><tr><th scope="row">対象</th><td>割引コードの入力 ・ 判定 ・ 金額への反映 ・ キャンセル時の未使用への戻し ・ 数量の上限</td></tr><tr><th scope="row">対象外</th><td>ポイント払い（変更なし。リグレッションテストだけ実行する） ・ 管理画面でのコード発行</td></tr><tr><th scope="row">テストレベル</th><td>コンポーネントテスト ・ コンポーネント統合テスト ・ システムテスト ・ 受け入れテスト</td></tr></table></div><h3>2. プロダクトリスク</h3><div class="tw"><table class="t kvt"><tr id="s5-decide"><th scope="row">相談した人が決めること</th><td>リスクの受容レベル。この見本は、影響「高」のリスクだけを全件テストする形</td></tr></table></div><div class="tw"><table class="t stk"><thead><tr><th>リスク</th><th>可能性</th><th>影響</th><th>対応</th></tr></thead><tbody><tr><td class="lead" data-l="リスク">割引が二重にかかる</td><td data-l="可能性">中</td><td data-l="影響">高</td><td data-l="対応">同じコードを2つのタブで同時に送るテストを、システムテストに入れる</td></tr><tr><td class="lead" data-l="リスク">返金額が割引前の額になる</td><td data-l="可能性">低</td><td data-l="影響">高</td><td data-l="対応">決済代行のテスト環境で、返金額を全件照合する</td></tr><tr><td class="lead" data-l="リスク">期限の判定が時差でずれる</td><td data-l="可能性">高</td><td data-l="影響">中</td><td data-l="対応">日本時間の 23:59:59 と 0:00:00 を境界値として確かめる</td></tr><tr><td class="lead" data-l="リスク">セール開始時に応答が遅れる</td><td data-l="可能性">中</td><td data-l="影響">中</td><td data-l="対応">毎分 3,000 件の注文で性能テストを行う</td></tr></tbody></table></div><h3>3. 開始基準と終了基準</h3>
+<div class="grid2"><div class="tw" style="padding:10px 14px;margin:0"><b>開始基準</b><ol class="flow"><li>受け入れ基準がストーリーごとに書かれ、レビューを終えている</li><li>テスト環境に、決済代行のテスト用アカウントがある</li><li>コンポーネントテストが、すべて成功している</li></ol></div><div class="tw" style="padding:10px 14px;margin:0"><b>終了基準</b><ol class="flow"><li>影響「高」のリスクに対するテストが、すべて成功している（受容レベルの決定で変わる）</li><li>重大度「高」の未解決の欠陥が0件</li><li>境界値のカバレッジが 100%</li></ol></div></div><h3>4. 見積り（三点見積り）</h3><div class="tw"><table class="t stk"><thead><tr><th>楽観値 a</th><th>最頻値 m</th><th>悲観値 b</th><th>見積り E ＝ (a ＋ 4m ＋ b) ÷ 6</th></tr></thead><tbody><tr><td class="lead" data-l="楽観値 a">6 人日</td><td data-l="最頻値 m">9 人日</td><td data-l="悲観値 b">18 人日</td><td data-l="見積り E ＝ (a ＋ 4m ＋ b) ÷ 6">10 人日（標準偏差 SD ＝ (b − a) ÷ 6 ＝ 2 人日）</td></tr></tbody></table></div><p class="note">見積りは仮定に基づくので、10 ± 2 人日として関係者へ伝える。</p><nav class="nx" aria-label="次に見るもの"><a class="nx-go" href="#ov-decide"><span class="nx-k">次</span><span class="nx-t">結論に戻り、2つを決める</span><span class="nx-why">確認はここまで。決めてほしいことの2つを決めれば、テストを書き始められる</span></a><a class="nx-back" href="#p-premise">相談の前提を見る（参照）</a></nav></section>
+<section tabindex="-1" class="panel" id="p-premise" data-p="premise"><h2><span class="tag">相談の前提</span>advisor が受け取った前提</h2><div class="tw"><table class="t kvt"><tr><th scope="row">対象</th><td>ネットショップの購入手続き（カート → 割引コード → 注文の確定 → 決済）</td></tr><tr><th scope="row">数量の上限</th><td>1回の注文で、1商品につき1〜10個</td></tr><tr><th scope="row">割引コード</th><td>合計3,000円以上で 10% 割引。会員1人につき1回。有効期限がある</td></tr><tr><th scope="row">注文の状態</th><td>支払い待ち ・ 支払い済み ・ 発送済み ・ 配達完了 ・ キャンセル済み。支払い期限は確定から48時間</td></tr><tr><th scope="row">リリース</th><td>秋のキャンペーン（割引コード「AUTUMN10」は 10/31 まで有効）の前</td></tr><tr><th scope="row">体制</th><td>開発3人 ・ テスト担当1人。CI でテストを自動で実行している</td></tr><tr><th scope="row">既にあるもの</th><td>コンポーネントテストが一部。エンドツーエンドテストは手動</td></tr><tr><th scope="row">出所</th><td>数量の上限 ・ 割引の条件 ・ 支払い期限は、相談した人の仕様から転記した（advisor は仕様を決めない）</td></tr></table></div><nav class="rp" aria-label="参照の中の移動"><span></span><a href="#p-grounds">次へ：提案と根拠 →</a><a class="rp-back" href="#p-overview">結論に戻る</a></nav></section>
+<section tabindex="-1" class="panel" id="p-grounds" data-p="grounds"><h2><span class="tag">根拠</span>提案と、根拠にした判断基準</h2>
+<div class="tw"><table class="t stk"><thead><tr><th style="width:6.5em">対象</th><th>提案</th><th>効果</th><th>根拠</th></tr></thead><tbody>
+<tr><td class="lead" data-l="対象">テスト戦略</td><td data-l="提案">割引と数量の判定は、コンポーネントテストに180件置く</td><td data-l="効果">1回の実行が約20秒で、変更のたびに失敗に気づける</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">test-pyramid</span><span class="gd-n">テストピラミッド</span></summary><div class="gd-b"><blockquote lang="ja">テストによって粒度が異なる可能性を示すモデル。レイヤーが高いほど、テストの粒度は粗く、分離は少なく、実行時間は遅くなる。</blockquote><p class="gd-a"><span>ここでは</span>判定のロジックは粒度の細かい下のレイヤーで多く確かめる</p><p class="gd-s">出典：判断基準 <code>test-pyramid</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details><details class="gd"><summary><span class="gd-c">test-levels</span><span class="gd-n">テストレベル</span></summary><div class="gd-b"><blockquote lang="ja">系統的にまとめ、マネジメントするテスト活動のグループ。コンポーネントテストから受け入れテストまでの5つがある。判断の要は、代表的な属性で区別し、テスト活動の重複を避けることである。</blockquote><p class="gd-a"><span>ここでは</span>コンポーネントテストと統合テストで、同じことを二重に確かめない</p><p class="gd-s">出典：判断基準 <code>test-levels</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト戦略</td><td data-l="提案">性能と使用性のテストを、四象限の第三 ・ 第四象限に置く</td><td data-l="効果">機能のテストだけで終わらない</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">testing-quadrants</span><span class="gd-n">テストの四象限</span></summary><div class="gd-b"><blockquote lang="ja">Brian Marick のモデル。アジャイルソフトウェア開発で、テストレベルを適切なテストタイプ ・ 活動 ・ テスト技法 ・ 作業成果物へ分ける。2つの視点の組み合わせで4つの象限を決める。</blockquote><p class="gd-a"><span>ここでは</span>セール時の性能テストと、決済画面の探索的テストを象限に置く</p><p class="gd-s">出典：判断基準 <code>testing-quadrants</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details><details class="gd"><summary><span class="gd-c">test-types</span><span class="gd-n">テストタイプ</span></summary><div class="gd-b"><blockquote lang="ja">特定の品質特性に関連するテスト活動のグループ。機能 ・ 非機能 ・ ブラックボックス ・ ホワイトボックスの4つを取り上げる。判断の要は、どれもすべてのテストレベルに適用できることである。</blockquote><p class="gd-a"><span>ここでは</span>機能テストのほかに、非機能テストを計画に入れる</p><p class="gd-s">出典：判断基準 <code>test-types</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト設計</td><td data-l="提案">数量 ・ 合計金額 ・ 割引コードを、有効と無効のパーティションに分ける</td><td data-l="効果">同じ結果になる値を重ねてテストしない</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">equivalence-partitioning</span><span class="gd-n">同値分割法</span></summary><div class="gd-b"><blockquote lang="ja">テスト対象が同等に処理すると想定するデータの集まり（同値パーティション）にデータを分割し、各パーティションをテストするブラックボックステスト技法。</blockquote><p class="gd-a"><span>ここでは</span>数量は 1〜10 を有効、0 以下 ・ 11 以上 ・ 整数でない値を無効にする</p><p class="gd-s">出典：判断基準 <code>equivalence-partitioning</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト設計</td><td data-l="提案">数量 ・ 金額 ・ 有効期限の境界を、2値 BVA で確かめる</td><td data-l="効果">「以上」と「より大きい」の取り違えを見つけられる</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">boundary-value-analysis</span><span class="gd-n">境界値分析</span></summary><div class="gd-b"><blockquote lang="ja">順序性のある同値パーティションの境界を確認するブラックボックステスト技法。2値 BVA と3値 BVA があり、境界ごとのカバレッジアイテムの数が異なる。</blockquote><p class="gd-a"><span>ここでは</span>0 と 1、10 と 11、2,999円 と 3,000円 を確かめる</p><p class="gd-s">出典：判断基準 <code>boundary-value-analysis</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト設計</td><td data-l="提案">割引を使えるかを、規則4つのデシジョンテーブルにする</td><td data-l="効果">条件の組み合わせ8通りを、4件のテストで確かめられる</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">decision-table-testing</span><span class="gd-n">デシジョンテーブルテスト</span></summary><div class="gd-b"><blockquote lang="ja">条件の組み合わせと結果のアクションをデシジョンテーブルに記録し、実行可能な条件の組み合わせを含む列をテストケースで通過するブラックボックステスト技法。</blockquote><p class="gd-a"><span>ここでは</span>結果を変えない条件を「－」にして、列を4つにまとめる</p><p class="gd-s">出典：判断基準 <code>decision-table-testing</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">状態遷移</td><td data-l="提案">有効な遷移6本をすべて通し、無効な遷移2本を足す</td><td data-l="効果">キャンセルと期限切れの扱いの抜けが分かる</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">state-transition-testing</span><span class="gd-n">状態遷移テスト</span></summary><div class="gd-b"><blockquote lang="ja">状態遷移図や状態表でシステムの振る舞いをモデル化し、それに基づいてテストケースを導出するブラックボックステスト技法。全状態 ・ 有効遷移 ・ 全遷移のカバレッジ基準を説明する。</blockquote><p class="gd-a"><span>ここでは</span>有効遷移カバレッジを 100% にし、損失の出る無効な遷移を選んで足す</p><p class="gd-s">出典：判断基準 <code>state-transition-testing</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">受け入れ基準</td><td data-l="提案">シナリオ指向で、ポジティブ → ネガティブ → 非機能の順に書く</td><td data-l="効果">実装の前に、何を満たせば受け入れるかがそろう</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">acceptance-criteria</span><span class="gd-n">受け入れ基準</span></summary><div class="gd-b"><blockquote lang="ja">ステークホルダーがユーザーストーリーの実装を受け入れるために、満たす必要がある条件。テストケースで確認すべきテスト条件とみなせる。形式はシナリオ指向とルール指向が最も一般的である。</blockquote><p class="gd-a"><span>ここでは</span>割引コードのストーリーに、Given / When / Then のシナリオを4つ付ける</p><p class="gd-s">出典：判断基準 <code>acceptance-criteria</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details><details class="gd"><summary><span class="gd-c">atdd</span><span class="gd-n">受け入れテスト駆動開発（ATDD）</span></summary><div class="gd-b"><blockquote lang="ja">ユーザーストーリーを実装する前に、さまざまな視点を持つチームメンバーが、受け入れ基準に基づいてテストケースを作成するテストファーストのアプローチ。</blockquote><p class="gd-a"><span>ここでは</span>シナリオを実装の前にテストケースにする</p><p class="gd-s">出典：判断基準 <code>atdd</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト計画</td><td data-l="提案">リスクを可能性と影響で並べ、影響の高いものからテストする</td><td data-l="効果">時間が足りなくても、損失の大きい欠陥を先に見つけられる</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">risk-management</span><span class="gd-n">リスクマネジメント</span></summary><div class="gd-b"><blockquote lang="ja">組織の目的の達成が不確実であることに対し、リスク分析とリスクコントロールを行う活動。テストでは、その結果でテスト活動を選び、優先順位を付け、マネジメントする（リスクベースドテスト）。</blockquote><p class="gd-a"><span>ここでは</span>リスクの可能性と影響で、テストする順を決める</p><p class="gd-s">出典：判断基準 <code>risk-management</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details><details class="gd"><summary><span class="gd-c">test-case-prioritization</span><span class="gd-n">テストケースの優先順位付け</span></summary><div class="gd-b"><blockquote lang="ja">テストスイートにまとめたテストケースを、テスト実行スケジュールのどの順で実行するかを優先度で決めること。戦略で決めた順を、依存関係とリソースの可用性で調整する。</blockquote><p class="gd-a"><span>ここでは</span>影響「高」のリスクに対するテストを先に実行する</p><p class="gd-s">出典：判断基準 <code>test-case-prioritization</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト計画</td><td data-l="提案">開始基準と終了基準を、テストレベルごとに書く</td><td data-l="効果">いつ始めて、いつ終えてよいかで迷わない</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">entry-exit-criteria</span><span class="gd-n">開始基準と終了基準</span></summary><div class="gd-b"><blockquote lang="ja">開始基準は活動を始めるための事前条件を、終了基準は活動の完了を宣言するまでに達成することを決める。どちらもテストレベルごとに、テスト対象に合わせて決めるべきである。</blockquote><p class="gd-a"><span>ここでは</span>システムテストの開始基準と終了基準を、割引コード機能に合わせて書く</p><p class="gd-s">出典：判断基準 <code>entry-exit-criteria</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="対象">テスト計画</td><td data-l="提案">三点見積りで、10 ± 2 人日と伝える</td><td data-l="効果">見積りに誤差があることが、関係者に伝わる</td><td class="gr2" data-l="根拠"><span class="gds"><details class="gd"><summary><span class="gd-c">test-estimation</span><span class="gd-n">見積り技法</span></summary><div class="gd-b"><blockquote lang="ja">テストプロジェクトの目的の達成に必要なテスト関連作業の量を予測する技法。見積りは仮定に基づき誤差を含み得ることを関係者に明示し、大きなタスクは小さく分けて見積もる。</blockquote><p class="gd-a"><span>ここでは</span>楽観値 ・ 最頻値 ・ 悲観値から見積り、誤差を添える</p><p class="gd-s">出典：判断基準 <code>test-estimation</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+</tbody></table></div>
+<p class="note">根拠の id を押すと、判断基準の記述 ・ ここでの使い方 ・ 出典が開く。引用は qa-advisor の判断基準の記述で、原典の文そのものではない。</p>
+<h3 id="g-decide">advisor が決めないことと、その理由</h3>
+<div class="tw"><table class="t stk"><thead><tr><th>何を</th><th>候補</th><th>advisor が決めない理由</th><th>確かめた判断基準</th></tr></thead><tbody>
+<tr><td class="lead" data-l="何を">リスクの受容レベル</td><td data-l="候補">影響「高」だけ全件テスト ／ 影響「中」も全件テスト</td><td data-l="advisor が決めない理由">どちらもリスクベースドテストとして成り立つ。どのリスクを残して出すかは、割引の損失とリリースの日程を知っている人が決める</td><td class="gr2" data-l="確かめた判断基準"><span class="gds"><details class="gd"><summary><span class="gd-c">risk-management</span><span class="gd-n">リスクマネジメント</span></summary><div class="gd-b"><blockquote lang="ja">組織の目的の達成が不確実であることに対し、リスク分析とリスクコントロールを行う活動。テストでは、その結果でテスト活動を選び、優先順位を付け、マネジメントする（リスクベースドテスト）。</blockquote><p class="gd-a"><span>ここでは</span>テストの順は決めるが、どのリスクを受け入れるかは決めない</p><p class="gd-s">出典：判断基準 <code>risk-management</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+<tr><td class="lead" data-l="何を">エンドツーエンドテストの自動化の範囲</td><td data-l="候補">主な流れの12件 ／ 状態遷移を足した20件</td><td data-l="advisor が決めない理由">自動化には利点とリスクがあり、保守にかけられる手間はチームの体制で変わる。状態遷移はコンポーネントテストでも確かめるので、どちらでも抜けは出ない</td><td class="gr2" data-l="確かめた判断基準"><span class="gds"><details class="gd"><summary><span class="gd-c">test-automation</span><span class="gd-n">テスト自動化</span></summary><div class="gd-b"><blockquote lang="ja">テストツールによる支援と、テスト自動化の潜在的な利点とリスク。ツールの取得だけで成功は保証されず、利益を得る労力と、分析と軽減の必要なリスクがある。</blockquote><p class="gd-a"><span>ここでは</span>自動化の利点と、保守の手間というリスクを並べて示す</p><p class="gd-s">出典：判断基準 <code>test-automation</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details><details class="gd"><summary><span class="gd-c">test-pyramid</span><span class="gd-n">テストピラミッド</span></summary><div class="gd-b"><blockquote lang="ja">テストによって粒度が異なる可能性を示すモデル。レイヤーが高いほど、テストの粒度は粗く、分離は少なく、実行時間は遅くなる。</blockquote><p class="gd-a"><span>ここでは</span>上のレイヤーほど実行が遅いことは示すが、件数は決めない</p><p class="gd-s">出典：判断基準 <code>test-pyramid</code> ・ 『テスト技術者資格制度 Foundation Level シラバス』（JSTQB 日本語版）</p></div></details></span></td></tr>
+</tbody></table></div>
+<nav class="rp" aria-label="参照の中の移動"><a href="#p-premise">← 前へ：相談の前提</a><span></span><a class="rp-back" href="#p-overview">結論に戻る</a></nav></section>
+</main>
+</div>
+<script>
+(function(){
+ var panels=[].slice.call(document.querySelectorAll('.panel'));
+ var links=[].slice.call(document.querySelectorAll('.side nav a'));
+ var seen={};
+ try{ seen=JSON.parse(localStorage.getItem('qa-sim-seen')||'{}')||{}; }catch(e){ seen={}; }
+ function paint(){ links.forEach(function(a){ var on=!!seen[a.dataset.p]&&a.hasAttribute('data-step'); a.classList.toggle('seen',on); var t=a.querySelector('.seen-t'); if(t) t.hidden=!on; }); }
+ function route(hash,noScroll){
+  var id=(hash||'').replace(/^#/,'');
+  var t=id?document.getElementById(id):null;
+  if(!t&&id) t=document.getElementById('p-'+id);
+  if(!t) t=panels[0];
+  var p=t.classList.contains('panel')?t:t.closest('.panel');
+  if(!p){p=panels[0];t=p;}
+  panels.forEach(function(x){x.hidden=x!==p;});
+  links.forEach(function(a){ if(a.dataset.p===p.dataset.p) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  var cur=document.querySelector('.side nav a[aria-current]'), nv=cur&&cur.parentNode; if(nv&&nv.scrollWidth>nv.clientWidth){ nv.scrollLeft=Math.max(0,cur.offsetLeft-nv.offsetLeft-24); }
+  seen[p.dataset.p]=1; try{ localStorage.setItem('qa-sim-seen',JSON.stringify(seen)); }catch(e){}
+  paint();
+  if(noScroll) return;
+  if(t===p){ window.scrollTo(0,0); p.focus({preventScroll:true}); }
+  else { t.scrollIntoView({block:'start'}); }
+ }
+ document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('a[href^="#"]'); if(!a) return;
+  var h=a.getAttribute('href'); if(h.length<2||!document.getElementById(h.slice(1))) return;
+  e.preventDefault(); try{ history.pushState(null,'',h); }catch(x){}
+  route(h);
+ });
+ window.addEventListener('popstate',function(){ route(location.hash); });
+ route(location.hash,!location.hash);
+ window.addEventListener('load',function(){ if(location.hash) route(location.hash); });
+})();
+</script>
