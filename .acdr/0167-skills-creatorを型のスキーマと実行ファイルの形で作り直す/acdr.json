@@ -1,0 +1,296 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0167",
+ "title": "skills-creator を型のスキーマと実行ファイルの形で作り直す",
+ "date": "2026-10-11",
+ "status": "accepted",
+ "decision": "skills-creator を、型のスキーマと雛形だけを持つ Skill に作り直し、古い skills-creator は版3 の Skill を移し終えるまで凍結する。",
+ "why": "ボード skills-creator-rebuild の論点1〜4で、Skill の型 ・ scaffold が置くもの ・ check の検査項目 ・ 作りと移り方を決めた。いまの skills-creator は、契約の版3（Rust のソースの複製 ・ ${CLAUDE_PROJECT_DIR} で指す実行ファイル ・ 版3 の references）を作り、その形を検査していて、決めたことと食い違う。決めた形の Skill は、どの AI ツールでも読める SKILL.md と JSON だけを持ち、型の判定は基盤のエンジンが型のスキーマで行う。版3 の16の Skill はまだ移していないので、古い check を凍結して残し、移す試験で結果が変わらないことを確かめながら移す。",
+ "shift": [
+  {
+   "what": "skills-creator の Skill のフォルダが持つもの",
+   "from": "Rust のソース一式（tool/）・ 実行ファイル（bin/）・ mcp.json ・ 版3 の契約の references",
+   "to": "SKILL.md ・ tool.json ・ assets/ の型のスキーマ2つ ・ 雛形6つだけ"
+  },
+  {
+   "what": "型の判定",
+   "from": "Rust のコードの中に書いた規則",
+   "to": "型のスキーマ skills-creator/skill@v1 ・ tool@v1 を、基盤のエンジンが検査する。実行ファイルは SKILL.md を読み取るだけ"
+  },
+  {
+   "what": "check の結果",
+   "from": "検出の文の並び",
+   "to": "項目 id ごとの5つの結果（合格 ・ 不合格 ・ 警告 ・ 判定不能 ・ 対象外）。不合格0件かつ判定不能0件で合格"
+  },
+  {
+   "what": "scaffold と check の実行ファイル",
+   "from": "Skill のフォルダの中の tool/ からビルドし、bin/ に置く",
+   "to": "src/skills-creator/ のソースからビルドし、配布物を作る段で scripts/ に入れる"
+  },
+  {
+   "what": "古い skills-creator",
+   "from": ".claude/skills/skills-creator/",
+   "to": "src/skills-creator-v3/ に凍結し、移す試験だけが使う。版3 の Skill が0件になったら消す"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "skills-creator を、同じ観点の7行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "型の規則を、実行ファイルの Rust のコードに書く",
+   "why_not": "論点1で、型の判定は型のスキーマが持つと決めた。コードとスキーマの2か所に置くと、片方だけ直したときに結果が食い違う"
+  },
+  {
+   "option": "tools.json をいま置き、SHA-256 に仮の値を書く",
+   "why_not": "実行ファイルは OS ごとに別で、ソースには置かない。仮の値は正しくない値としてソースに残る。tools.json は、SHA-256 を書ける配布物の段で置く（論点4で配布の論点へ送った件）"
+  },
+  {
+   "option": "古い skills-creator の MCP の登録（.mcp.json）を残す",
+   "why_not": "指す実行ファイルが .claude/skills/skills-creator/bin/ から無くなる。MCP の登録は、論点1で決めたとおり導入のときにツールごとに扱う"
+  },
+  {
+   "option": "版3 の16の Skill を、新しい check だけで検査する",
+   "why_not": "16件とも tool.schema が不合格になり、移す前と後で壊れたかを検出できない。凍結した古い check で、移す前の基準と比べる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "skills-creator/SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "どの AI ツールに置いても、正しいときに呼ばれ、手順どおりに動く Skill を作る。",
+     "before": "新しいSkillsを作成したいとき、Skillのテンプレートが欲しいとき、「スキルを作って」「Skills作成」「新しいスキル」と言われたとき、またはベストプラクティスに従ったSkillフォルダ構成を生成したいときに使う。",
+     "why": "論点1で、型は AI エージェントが正しいときに Skill を呼び、手順どおりに動けることを確かめるためにあると決めた"
+    },
+    {
+     "find": "型の判定は、SKILL.md を読み取った結果を基盤のエンジンに型のスキーマで検査させて得る。",
+     "before": "- 道具を持つ Skill は、`skills-creator scaffold` で生む。Rust ならリファレンス実装から生成し、ほかの言語なら枠を置いてリファレンス実装を移植する",
+     "why": "論点1で、check は SKILL.md を読み取って型のスキーマで検査すると決めた。ソースの複製は、ボード skill-roles の Q3 でやめた"
+    },
+    {
+     "find": "置くのは SKILL.md ・ tool.json ・",
+     "before": "道具を持つ Skill は、`scaffold` で型の一式を置く。",
+     "why": "論点2で、scaffold が置くのは3つと、求められたものだけと決めた"
+    },
+    {
+     "find": "合格は、不合格が0件かつ判定不能が0件のときだけである。",
+     "before": "（無い。古い check は検出の文の並びだけを返していた）",
+     "why": "論点3で、5つの結果と合格の条件を決めた"
+    },
+    {
+     "find": "型の判定を、この Skill の中で書き直さない",
+     "before": "（無い）",
+     "why": "判定を2か所に置かないため。論点3で、qa-advisor が同じ判定を書き直さないよう求めた"
+    }
+   ]
+  },
+  {
+   "key": "tool-json",
+   "tab": "tool.json",
+   "file": ".claude/skills/skills-creator/tool.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": \"skills-creator/tool@v1\",",
+     "before": "\"contract\": 3,",
+     "why": "論点1で、tool.json は型 skills-creator/tool@v1 に従い、使う abstract の版を持つと決めた"
+    },
+    {
+     "find": "\"command\": \"scripts/schema-driven\"",
+     "before": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/skills-creator/bin/skills-creator\",",
+     "why": "ツール専用の変数をやめ、Skill のフォルダからの相対パスにした。どの AI ツールでも解決する"
+    }
+   ]
+  },
+  {
+   "key": "skill-schema-json",
+   "tab": "skill.schema.json",
+   "file": ".claude/skills/skills-creator/assets/skill.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$id\": \"skills-creator/skill@v1\",",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点1の型を、基盤が検査できるスキーマにした。先頭の欄 ・ 6つの節 ・ 500行未満 ・ 本文のパスを持つ"
+    }
+   ]
+  },
+  {
+   "key": "tool-schema-json",
+   "tab": "tool.schema.json",
+   "file": ".claude/skills/skills-creator/assets/tool.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$id\": \"skills-creator/tool@v1\",",
+     "before": "（無い。新しいファイルである）",
+     "why": "tool.json の3つの欄と、command を Skill のフォルダの中の相対パスに限る決まりを持つ"
+    }
+   ]
+  },
+  {
+   "key": "read-rs",
+   "tab": "read.rs",
+   "file": "src/skills-creator/src/read.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub const SECTIONS",
+     "before": "（無い。新しいファイルである）",
+     "why": "SKILL.md を型のインスタンスに読み取る。判定はせず、基盤に任せる。YAML は仕様が決めた先頭の欄を読むためだけに使う"
+    }
+   ]
+  },
+  {
+   "key": "check-rs",
+   "tab": "check.rs",
+   "file": "src/skills-creator/src/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub const ITEMS",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点3の項目 id と、基盤の検査の場所を項目 id に結びつける対応表を持つ"
+    }
+   ]
+  },
+  {
+   "key": "engine-rs",
+   "tab": "engine.rs",
+   "file": "src/skills-creator/src/engine.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn call(",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点4で、基盤はライブラリとして取り込まず、実行ファイルとして呼ぶと決めた"
+    }
+   ]
+  },
+  {
+   "key": "scaffold-rs",
+   "tab": "scaffold.rs",
+   "file": "src/skills-creator/src/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn scaffold(",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点2で決めたものだけを置く。雛形の中身は、Skill の assets/templates/ が持つ"
+    }
+   ]
+  },
+  {
+   "key": "main-rs",
+   "tab": "main.rs",
+   "file": "src/skills-creator/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "mod check;",
+     "before": "（無い。新しいファイルである）",
+     "why": "scaffold と check の2つだけを持つ。知らない旗は使い方の誤り（終了コード 2）にする"
+    }
+   ]
+  },
+  {
+   "key": "Cargo-toml",
+   "tab": "Cargo.toml",
+   "file": "src/skills-creator/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "name = \"skills-creator\"",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点4で、実行ファイルのソースは Skill のフォルダの外の src/ に置くと決めた"
+    }
+   ]
+  },
+  {
+   "key": "type_v1-rs",
+   "tab": "type_v1.rs",
+   "file": "src/skills-creator/tests/type_v1.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn every_case_fails_exactly_the_expected_items() {",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点3で、試験は終了コードと落ちた項目 id の集合の両方を照らすと決めた。型 v1 の試験データ40件を通す"
+    }
+   ]
+  },
+  {
+   "key": "gen_data-py",
+   "tab": "gen_data.py",
+   "file": "src/skills-creator/tests/gen_data.py",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "def case(",
+     "before": "（無い。新しいファイルである）",
+     "why": "合格例から1か所だけ変えた不合格例を、不合格になる場合ごとに作る。境界は両側（64と65文字など）を置く"
+    }
+   ]
+  },
+  {
+   "key": "migration-rs",
+   "tab": "migration.rs",
+   "file": "src/skills-creator/tests/migration.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn every_skill_keeps_passing_while_moving() {",
+     "before": "（無い。新しいファイルである）",
+     "why": "論点4の移す試験。版3 は凍結した古い check で基準と比べ、新しい型は新しい check で合格を見る"
+    }
+   ]
+  },
+  {
+   "key": "brainstorming-board-json",
+   "tab": "brainstorming-board.json",
+   "file": "src/skills-creator/tests/baseline-v3/brainstorming-board.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"skill\": \"brainstorming-board\",",
+     "before": "（無い。新しいファイルである）",
+     "why": "置き換えの前に、古い check で取った基準である。いまも不合格7件があり、全部の合格は条件にできない"
+    }
+   ]
+  },
+  {
+   "key": "-mcp-json",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"slide-deck\": {",
+     "before": "\"skills-creator\": {\n      \"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/skills-creator/bin/skills-creator-mcp\",\n      \"args\": []\n    },",
+     "why": "古い skills-creator の MCP の実行ファイルは、凍結したフォルダへ移る。指す先の無い登録を外した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "b3f3aa9f1ea680132ad481097363d7e89d5de973d1c1a53d711d10360e7fa96b",
+  "tool-json": "c119adf29bb90ed8c51318cd58d0f6d341ad2981321d3eeb0f7c21b976826c9d",
+  "skill-schema-json": "27e639d361723cb14438fbbe5e0c8993dc7c65796108bb4028c6f22963b17268",
+  "tool-schema-json": "62e682de354b73851075d4dedb8202e5242fc55f6023f6f0605873d7cbf74712",
+  "read-rs": "e8bcc814752c8eed3544073a23a50cec4c44f0d1b83c23a5fd1d81e97ccc608c",
+  "check-rs": "bc1c9826ba13671a6c9b84eddc24ca0bf88c42274f901bff0daffd84c7c72f95",
+  "engine-rs": "8eeaaf2ff1eb82156376742d6607493d1b7a074c1d0c62dd1fac295785394055",
+  "scaffold-rs": "750e6b8a853d465dba921d6d0667a7ead92153af6dd4682f18d6727d7a429a18",
+  "main-rs": "aef26f956926c7d807728825e2a00689ea89400683847ef63747f7495a6b469a",
+  "Cargo-toml": "228d57b35fba511dcf39996e6f41039b59c3984a87642e7ec081d4b134e21b87",
+  "type_v1-rs": "273f03b07fded5652baf87bb1ded15ad555bb52157d50ee5038af632c0b0d224",
+  "gen_data-py": "7d5518731186a535c1e5d35de03467712a69b6e3690baaa88c26606ac0115e47",
+  "migration-rs": "4892417dab1f04dcbd0b2a1647771fc37c167b2bb45d37f9655979a1715afb43",
+  "brainstorming-board-json": "0af1bc7a7edefce307d3f1496dc36ed0382879174455587fc73639cc9260867d",
+  "-mcp-json": "390ed3acb64e8a43dcd5c91cda5da7cd11ef2e752fb0ca4eedf56dee8b40a351"
+ }
+}

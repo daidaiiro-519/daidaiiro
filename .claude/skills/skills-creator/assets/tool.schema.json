@@ -1,0 +1,87 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "skills-creator/tool@v1",
+ "title": "Skill の実行の宣言",
+ "description": "Skill のフォルダの tool.json。使う abstract の版と、エンジンの実行ファイルを指す。",
+ "x-prompt": {
+  "read": {
+   "means": "Skill が使う基盤の版と、その実行ファイルの置き場所である。",
+   "when": "check と、配布物を作る段が読む。"
+  },
+  "write": [
+   {
+    "id": "three-keys",
+    "rule": "$schema ・ abstract ・ command の3つだけを書く。",
+    "why": "ビルドや試験の手順は Skill の中身ではない。",
+    "test": "check の tool.schema が合格かを見る。"
+   }
+  ]
+ },
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "$schema",
+  "abstract",
+  "command"
+ ],
+ "properties": {
+  "$schema": {
+   "description": "従うスキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "この tool.json が従う型の名前である。"
+    },
+    "write": [
+     {
+      "id": "this-name",
+      "rule": "skills-creator/tool@v1 と書く。",
+      "why": "エンジンは、この名前で型のスキーマを引く。",
+      "test": "値がこの文字列と同じかを見る。"
+     }
+    ]
+   },
+   "const": "skills-creator/tool@v1"
+  },
+  "abstract": {
+   "description": "使う abstract の版",
+   "x-prompt": {
+    "read": {
+     "means": "Skill のスキーマが従う abstract の版である。"
+    },
+    "write": [
+     {
+      "id": "engine-version",
+      "rule": "エンジンが扱う版の名前を書く。いまは schema-driven/abstract@v1 だけである。",
+      "why": "エンジンは、知らない版を扱わずに止める。",
+      "test": "check の tool.abstract が合格かを見る。"
+     }
+    ]
+   },
+   "enum": [
+    "schema-driven/abstract@v1"
+   ]
+  },
+  "command": {
+   "description": "エンジンの実行ファイル",
+   "x-prompt": {
+    "read": {
+     "means": "エンジンの実行ファイルを、Skill のフォルダからの相対パスで指す。"
+    },
+    "write": [
+     {
+      "id": "relative",
+      "rule": "scripts/schema-driven のように、Skill のフォルダの中の相対パスで書く。",
+      "why": "/ で始まるパス ・ .. ・ ${…} は、Skill を置いた場所やツールによって解決しない。",
+      "test": "check の tool.command が合格かを見る。"
+     }
+    ]
+   },
+   "type": "string",
+   "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+   "not": {
+    "pattern": "(^|/)\\.\\.?(/|$)"
+   }
+  }
+ }
+}

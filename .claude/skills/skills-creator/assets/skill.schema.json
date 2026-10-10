@@ -1,0 +1,342 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "skills-creator/skill@v1",
+ "title": "Skill の型",
+ "description": "SKILL.md を check が読み取った形。どの AI ツールでも呼ばれて手順どおりに動く Skill が、必ず持つものを決める。SKILL.md が正本で、このインスタンスは check がそのつど作る。",
+ "x-prompt": {
+  "read": {
+   "means": "Agent Skills の公開の仕様に従う SKILL.md を、check が欄と節に分けて読み取ったものである。",
+   "when": "check が SKILL.md を検査するときに読む。人は SKILL.md を書き、このインスタンスは書かない。"
+  },
+  "write": [
+   {
+    "id": "spec-fields-only",
+    "rule": "SKILL.md の先頭の欄には、Agent Skills の仕様の欄だけを書く。",
+    "why": "仕様に無い欄は、ほかの AI ツールで読まれないか、エラーになる。",
+    "test": "check の skill.fields が合格かを見る。"
+   },
+   {
+    "id": "six-sections",
+    "rule": "本文に、目的 ・ 役割 ・ 入力の想定 ・ 実行手順 ・ 出力形式 ・ ガードレールの6つの節を、この順に1つずつ書く。",
+    "why": "AI エージェントは、節の並びで何をいつするかを読む。",
+    "test": "check の skill.sections が合格かを見る。"
+   },
+   {
+    "id": "no-tool-specific",
+    "rule": "本文に、特定の AI ツールの置き場所 ・ ツール専用の変数 ・ 絶対パスを書かず、ファイルは Skill のフォルダからの相対パスで指す。",
+    "why": "置き場所と変数は AI ツールごとに違い、ほかのツールでは解決しない。",
+    "test": "check の skill.body.paths が合格かを見る。"
+   }
+  ]
+ },
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "$schema",
+  "frontmatter",
+  "folder",
+  "name_is_folder",
+  "lines",
+  "sections",
+  "placeholders",
+  "tool_paths",
+  "broken_links"
+ ],
+ "properties": {
+  "$schema": {
+   "description": "従うスキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "このインスタンスが従う型の名前である。"
+    },
+    "write": [
+     {
+      "id": "this-name",
+      "rule": "skills-creator/skill@v1 と書く。",
+      "why": "エンジンは、この名前で型のスキーマを引く。",
+      "test": "値がこの文字列と同じかを見る。"
+     }
+    ]
+   },
+   "const": "skills-creator/skill@v1"
+  },
+  "frontmatter": {
+   "description": "SKILL.md の先頭の欄",
+   "x-prompt": {
+    "read": {
+     "means": "SKILL.md の先頭の --- で囲んだ YAML を読み取ったものである。"
+    },
+    "write": [
+     {
+      "id": "name",
+      "rule": "name は64文字までの a-z ・ 0-9 ・ - で書き、- で始めず終えず、-- を続けない。",
+      "why": "Agent Skills の仕様の name の決まりである。",
+      "test": "check の skill.name が合格かを見る。"
+     },
+     {
+      "id": "description",
+      "rule": "description に、何をするかといつ使うかを1,024文字までで書く。",
+      "why": "AI エージェントは、description だけを読んで呼ぶかを決める。",
+      "test": "check の skill.description が合格かを見る。"
+     },
+     {
+      "id": "optional",
+      "rule": "license ・ compatibility（500文字まで）・ metadata ・ allowed-tools は、必要なときだけ書く。",
+      "why": "仕様の欄はこの6つだけで、ほかは読まれない。",
+      "test": "check の skill.fields と skill.compatibility が合格かを見る。"
+     }
+    ]
+   },
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "description"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 64,
+     "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+     "description": "Skill の名前"
+    },
+    "description": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 1024,
+     "pattern": "\\S",
+     "description": "何をするかと、いつ使うか"
+    },
+    "license": {
+     "type": "string",
+     "description": "ライセンス"
+    },
+    "compatibility": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 500,
+     "description": "動かす環境の条件"
+    },
+    "metadata": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     },
+     "description": "そのほかの情報"
+    },
+    "allowed-tools": {
+     "type": "string",
+     "description": "あらかじめ許すツール"
+    }
+   }
+  },
+  "folder": {
+   "description": "SKILL.md を置いたフォルダの名前",
+   "x-prompt": {
+    "read": {
+     "means": "Skill のフォルダの名前である。"
+    },
+    "write": [
+     {
+      "id": "read-only",
+      "rule": "check が書く。",
+      "why": "name と比べるために持つ。",
+      "test": "値が、検査したフォルダの名前かを見る。"
+     }
+    ]
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "name_is_folder": {
+   "description": "name とフォルダの名前が同じか",
+   "x-prompt": {
+    "read": {
+     "means": "先頭の欄の name と、フォルダの名前が同じかである。"
+    },
+    "write": [
+     {
+      "id": "same",
+      "rule": "フォルダの名前を name と同じにする。",
+      "why": "Agent Skills の仕様は、name がフォルダの名前と同じことを求める。",
+      "test": "値が true かを見る。"
+     }
+    ]
+   },
+   "const": true
+  },
+  "lines": {
+   "description": "SKILL.md の行数",
+   "x-prompt": {
+    "read": {
+     "means": "SKILL.md の行の数である。"
+    },
+    "write": [
+     {
+      "id": "under-500",
+      "rule": "SKILL.md を500行未満にし、詳しい中身は references/ の文書へ分ける。",
+      "why": "AI エージェントは、呼んだときに SKILL.md の全文を読む。",
+      "test": "値が499以下かを見る。"
+     }
+    ]
+   },
+   "type": "integer",
+   "minimum": 0,
+   "maximum": 499
+  },
+  "sections": {
+   "description": "必ず書く6つの節の並び",
+   "x-prompt": {
+    "read": {
+     "means": "本文の ## の見出しのうち、6つの節の名前のものを、出てきた順に並べたものである。"
+    },
+    "write": [
+     {
+      "id": "in-order",
+      "rule": "6つの節を、目的 ・ 役割 ・ 入力の想定 ・ 実行手順 ・ 出力形式 ・ ガードレールの順に1つずつ書く。ほかの節は足してよい。",
+      "why": "節の並びが同じなら、どの Skill も同じ順で読める。",
+      "test": "並びが6つの名前と同じかを見る。"
+     }
+    ]
+   },
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "const": [
+    "目的",
+    "役割",
+    "入力の想定",
+    "実行手順",
+    "出力形式",
+    "ガードレール"
+   ]
+  },
+  "placeholders": {
+   "description": "残っている記入欄",
+   "x-prompt": {
+    "read": {
+     "means": "本文に残っている {{…}} と、その行である。"
+    },
+    "write": [
+     {
+      "id": "fill-all",
+      "rule": "scaffold が置いた {{…}} を、全部書き換える。",
+      "why": "{{…}} が残ると、AI エージェントが記入欄を手順として読む。",
+      "test": "並びが空かを見る。"
+     }
+    ]
+   },
+   "type": "array",
+   "maxItems": 0,
+   "items": {
+    "$ref": "#/$defs/hit"
+   }
+  },
+  "tool_paths": {
+   "description": "本文のツール専用の書き方",
+   "x-prompt": {
+    "read": {
+     "means": "本文にある、AI ツールの置き場所（<ツールのフォルダ>/skills/）・ ツール専用の変数（${…}）・ 絶対パスと、その行である。"
+    },
+    "write": [
+     {
+      "id": "relative",
+      "rule": "ファイルは Skill のフォルダからの相対パスで書く。",
+      "why": "置き場所と変数はツールごとに違い、ほかのツールでは解決しない。",
+      "test": "並びが空かを見る。"
+     }
+    ]
+   },
+   "type": "array",
+   "maxItems": 0,
+   "items": {
+    "$ref": "#/$defs/hit"
+   }
+  },
+  "broken_links": {
+   "description": "指す先が無いリンク",
+   "x-prompt": {
+    "read": {
+     "means": "本文のリンクのうち、Skill のフォルダからの相対パスでファイルが無いものである。"
+    },
+    "write": [
+     {
+      "id": "exists",
+      "rule": "リンクは、Skill のフォルダに在るファイルを指す。",
+      "why": "指す先が無いと、AI エージェントは手順を続けられない。",
+      "test": "並びが空かを見る。"
+     }
+    ]
+   },
+   "type": "array",
+   "maxItems": 0,
+   "items": {
+    "$ref": "#/$defs/hit"
+   }
+  }
+ },
+ "$defs": {
+  "hit": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "line",
+    "text"
+   ],
+   "description": "本文で見つけた箇所",
+   "properties": {
+    "line": {
+     "description": "行番号",
+     "x-prompt": {
+      "read": {
+       "means": "SKILL.md の何行目かである。"
+      },
+      "write": [
+       {
+        "id": "one-based",
+        "rule": "1から数える。",
+        "why": "エディタの行番号と同じにする。",
+        "test": "値が1以上かを見る。"
+       }
+      ]
+     },
+     "type": "integer",
+     "minimum": 1
+    },
+    "text": {
+     "description": "見つけた文字列",
+     "x-prompt": {
+      "read": {
+       "means": "その行で見つけた文字列である。"
+      },
+      "write": [
+       {
+        "id": "as-is",
+        "rule": "SKILL.md の文字をそのまま書く。",
+        "why": "直す人が、どこを直すかを探せる。",
+        "test": "SKILL.md のその行に、同じ文字列があるかを見る。"
+       }
+      ]
+     },
+     "type": "string"
+    }
+   }
+  },
+  "ai-names": {
+   "description": "本文で照らす AI ・ ツールの名前の一覧。当たっても警告だけを返す",
+   "enum": [
+    "Claude",
+    "Codex",
+    "Copilot",
+    "Cursor",
+    "Gemini",
+    "OpenCode",
+    "Goose",
+    "Amp"
+   ]
+  }
+ }
+}
