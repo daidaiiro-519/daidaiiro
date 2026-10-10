@@ -1,5 +1,5 @@
 //! インスタンスは、スキーマを「<Skill の名前>/<種類>@<版>」の名前で指す。
-//! エンジンは --skill の Skill の references と、自分が持つ abstract だけから名前を引く。
+//! エンジンは --skill の Skill の assets と、自分が持つ abstract だけから名前を引く。
 
 mod common;
 
@@ -27,15 +27,15 @@ fn schema(id: &str) -> Value {
                           "text": field("語")}})
 }
 
-/// skills/<name>/references/word.schema.json と、プロジェクトの words/ を作る。
+/// skills/<name>/assets/word.schema.json と、プロジェクトの words/ を作る。
 fn setup(test: &str, name: &str) -> (common::Scratch, PathBuf) {
     let root = common::Scratch::new(&format!("sd-names-{test}"));
     let _ = fs::remove_dir_all(&root);
     let skill = root.join("skills").join(name);
-    fs::create_dir_all(skill.join("references")).unwrap();
+    fs::create_dir_all(skill.join("assets")).unwrap();
     fs::create_dir_all(root.join("project/words")).unwrap();
     fs::write(
-        skill.join("references/word.schema.json"),
+        skill.join("assets/word.schema.json"),
         schema(&format!("{name}/word@v1")).to_string(),
     )
     .unwrap();
@@ -62,7 +62,7 @@ fn write(path: PathBuf, value: Value) {
 #[test]
 fn create_writes_the_name_of_a_named_schema() {
     let (root, skill) = setup("create", "lexicon");
-    let schema_path = skill.join("references/word.schema.json");
+    let schema_path = skill.join("assets/word.schema.json");
     let (code, out) = run(
         &root.join("project"),
         Some(&skill),
@@ -168,7 +168,7 @@ fn an_unknown_name_in_the_skill_is_refused() {
 fn two_schemas_with_one_name_are_refused() {
     let (root, skill) = setup("duplicate", "lexicon");
     write(
-        skill.join("references/copy.schema.json"),
+        skill.join("assets/copy.schema.json"),
         schema("lexicon/word@v1"),
     );
     write(
@@ -233,9 +233,9 @@ fn a_schema_refers_to_another_by_its_name() {
     word["properties"]["text"] = json!({"$ref": "term@v1#/$defs/short", "description": "語",
         "x-prompt": {"read": {"means": "見本の欄である。"},
                      "write": [{"id": "one", "rule": "値を1つ書く。", "why": "見本である。", "test": "値があるかを見る。"}]}});
-    write(skill.join("references/word.schema.json"), word);
+    write(skill.join("assets/word.schema.json"), word);
     write(
-        skill.join("references/term.schema.json"),
+        skill.join("assets/term.schema.json"),
         json!({"$schema": DIALECT, "x-abstract": "schema-driven/abstract@v1", "$id": "lexicon/term@v1",
                "title": "語の決まり", "description": "見本", "$defs": {"short": {"type": "string", "maxLength": 3}}}),
     );
@@ -253,4 +253,27 @@ fn a_schema_refers_to_another_by_its_name() {
     assert_eq!(errors.len(), 1, "{out}");
     assert_eq!(errors[0]["property"], "/text", "{out}");
     let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_schema_left_in_references_is_not_found_by_name() {
+    let (root, skill) = setup("refs", "lexicon");
+    fs::create_dir_all(skill.join("references")).unwrap();
+    fs::rename(
+        skill.join("assets/word.schema.json"),
+        skill.join("references/word.schema.json"),
+    )
+    .unwrap();
+    write(
+        root.join("project/words/a.json"),
+        json!({"$schema": "lexicon/word@v1", "kind": "word", "text": "語"}),
+    );
+    let (code, out) = run(
+        &root.join("project"),
+        Some(&skill),
+        &["check", "--dir", "words"],
+    );
+    assert_eq!(code, 1, "{out}");
+    assert_eq!(out["reason"], "スキーマの名前を引けない", "{out}");
+    assert!(out["detail"].as_str().unwrap().contains("assets"), "{out}");
 }

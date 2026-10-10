@@ -1,0 +1,125 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0166",
+ "title": "schema-driven が名前を引く場所を assets にする",
+ "date": "2026-10-11",
+ "status": "accepted",
+ "decision": "エンジンは、インスタンスの $schema に書いたスキーマの名前（「<Skill の名前>/<種類>@<版>」）を、--skill の Skill の assets/ の下で $id が同じスキーマから引く。",
+ "why": "スキーマの名前は、ボード skill-roles の Q7 で決めた「<Skill の名前>/<種類>@<版>」の形の文字列で、スキーマの $id に書き、インスタンスは $schema に同じ名前を書いて指す。エンジンは、その名前と $id が同じスキーマのファイルを Skill のフォルダから探す。Agent Skills の仕様（agentskills.io/specification、2026-10-10 取得）は、Skill のフォルダを、中のファイルを誰がどう使うかで分けている。references/ は「Contains additional documentation that agents can read when needed」で、AI エージェントが必要なときに読む文書の置き場所である（:227）。仕様は続けて「Agents load these on demand, so smaller files mean less use of context.」と書き、ここに置いたものは AI の文脈に読み込まれる（:233）。assets/ は「Contains static resources」で、その例に「Data files (lookup tables, schemas)」とスキーマを名指ししている（:237、:241）。エンジンが名前で引くスキーマは、AI が読む文書ではなく、エンジンがインスタンスを検査するためのデータである。だから assets/ に当たり、ボード skills-creator-rebuild の論点2でもここに置くと決めた。ところがエンジンは references/ から名前を引くので、新しい skills-creator の型のスキーマを名前で引けない。いま Skill の名前で引いているインスタンスはリポジトリに無いので、移す期間を設けずに引く場所を替える。",
+ "shift": [
+  {
+   "what": "エンジンが、インスタンスの $schema の名前（例 glossary-keeper/term@v1）と $id が同じスキーマを探す場所",
+   "from": "--skill の Skill の references/ の下の *.schema.json",
+   "to": "--skill の Skill の assets/ の下の *.schema.json"
+  },
+  {
+   "what": "references/ に置いたスキーマ",
+   "from": "$schema の名前で引ける",
+   "to": "$schema の名前では引けない。見つからないと返し、assets/ を探したことを書く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "インスタンスの $schema の名前を、エンジンがどこから引くかの変更前と変更後。",
+ "alternatives": [
+  {
+   "option": "references/ のまま引き、スキーマを references/ に置く",
+   "why_not": "仕様の references/ は AI エージェントが必要なときに読む文書の置き場所で、置いたものは AI の文脈に読み込まれる。仕様は references/ の例に「FORMS.md - Form templates or structured data formats」も挙げるが、これは AI が読む Markdown の文書であり、エンジンが検査に使うスキーマの例は assets/ の「Data files (lookup tables, schemas)」である"
+  },
+  {
+   "option": "references/ と assets/ の両方から引く",
+   "why_not": "名前で引くインスタンスがまだ無いので、両方を読む期間は何も守らない。両方を読むと、同じ名前が2か所に置かれる形を許すことになる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "engine",
+   "tab": "instances.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の assets から引く",
+     "why": "引く場所を assets/ にしたので、欄の説明を合わせた",
+     "before": "/// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の references から引く"
+    },
+    {
+     "find": "/// 名前なら --skill の Skill の assets から $id で引き、名前でなければファイルからの相対パスとして読む。",
+     "why": "同じく、関数の説明を合わせた",
+     "before": "/// 名前なら --skill の Skill の references から $id で引き、名前でなければファイルからの相対パスとして読む。"
+    },
+    {
+     "find": "let assets = format!(\"{dir}/assets\");",
+     "why": "論点2でスキーマを assets/ に置くと決めた。引く場所をそこへ替えた",
+     "before": "let references = format!(\"{dir}/references\");"
+    },
+    {
+     "find": "\"{value} を $id に持つスキーマが、Skill {skill} の assets に無い\"",
+     "why": "見つからないときに、どこを探したかを正しく返す",
+     "before": "\"{value} を $id に持つスキーマが、Skill {skill} の references に無い\""
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "tab": "names.rs",
+   "file": ".claude/skills/schema-driven/tool/cli/tests/names.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! エンジンは --skill の Skill の assets と、自分が持つ abstract だけから名前を引く。",
+     "why": "試験の前提を、新しい引く場所に合わせた",
+     "before": "//! エンジンは --skill の Skill の references と、自分が持つ abstract だけから名前を引く。"
+    },
+    {
+     "find": "/// skills/<name>/assets/word.schema.json と、プロジェクトの words/ を作る。",
+     "why": "見本の Skill のスキーマを assets/ に置くようにした",
+     "before": "/// skills/<name>/references/word.schema.json と、プロジェクトの words/ を作る。"
+    },
+    {
+     "find": "fs::create_dir_all(skill.join(\"assets\")).unwrap();",
+     "why": "見本の Skill のスキーマを assets/ に置くようにした",
+     "before": "fs::create_dir_all(skill.join(\"references\")).unwrap();"
+    },
+    {
+     "find": "let schema_path = skill.join(\"assets/word.schema.json\");",
+     "why": "見本のスキーマの置き場所を assets/ に合わせた",
+     "before": "let schema_path = skill.join(\"references/word.schema.json\");"
+    },
+    {
+     "find": "skill.join(\"assets/copy.schema.json\"),",
+     "why": "同じ名前が2つあれば止めることを、assets/ の中で確かめる",
+     "before": "skill.join(\"references/copy.schema.json\"),"
+    },
+    {
+     "find": "write(skill.join(\"assets/word.schema.json\"), word);",
+     "why": "名前で別のスキーマを参照する試験も、assets/ で確かめる",
+     "before": "write(skill.join(\"references/word.schema.json\"), word);"
+    },
+    {
+     "find": "fn a_schema_left_in_references_is_not_found_by_name() {",
+     "why": "references/ に残したスキーマを名前で引かないことを固定する。直す前のエンジンでは、この試験を含む5件が落ちた",
+     "before": "（無い。足した行である）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "その Skill の assets の下の",
+     "before": "| `--skill` の Skill の名前で始まるもの | その Skill の `references` の下の `*.schema.json` のうち、`$id` が同じもの |",
+     "why": "エンジンが引く場所の説明を、実装に合わせた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "engine": "640a9994e95b11afc60e3e82f8e57c4cddc705fc2dd4bc8901ce32ed672b719b",
+  "test": "e10d8d1a59d6887b345acf13a02bf4629f23277963d1ebe518db34ea9133022c",
+  "skill": "fb44c3983b8dda4687cd8a57eb574ff6f1336f10a4140bbd4ee3fb2e5b671c86"
+ }
+}

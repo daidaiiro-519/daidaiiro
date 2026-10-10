@@ -84,7 +84,7 @@ pub struct Instances {
     files: Arc<dyn Files>,
     schemas: Arc<dyn Schemas>,
     query: Arc<dyn Query>,
-    /// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の references から引く
+    /// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の assets から引く
     skill: Option<String>,
 }
 
@@ -105,7 +105,7 @@ impl Instances {
     }
 
     /// インスタンスの $schema の値から、スキーマのファイルのパスを決める。
-    /// 名前なら --skill の Skill の references から $id で引き、名前でなければファイルからの相対パスとして読む。
+    /// 名前なら --skill の Skill の assets から $id で引き、名前でなければファイルからの相対パスとして読む。
     pub(crate) fn schema_path(&self, instance: &str, value: &str) -> Result<String, UseCaseError> {
         let Some(owner) = schema_name::owner(value) else {
             return Ok(paths::join(paths::parent(instance), value));
@@ -126,11 +126,11 @@ impl Instances {
                 "{value} は Skill {owner} のスキーマで、Skill {skill} のものではない。Skill {owner} を --skill に渡して検査する"
             )));
         }
-        let references = format!("{dir}/references");
+        let assets = format!("{dir}/assets");
         let mut found = Vec::new();
         for path in self
             .files
-            .list_tree(&references)
+            .list_tree(&assets)
             .map_err(|error| UseCaseError::new("読めない", error.0))?
         {
             if !path.ends_with(".schema.json") {
@@ -144,7 +144,7 @@ impl Instances {
         match found.len() {
             1 => Ok(found.remove(0)),
             0 => Err(refuse(format!(
-                "{value} を $id に持つスキーマが、Skill {skill} の references に無い"
+                "{value} を $id に持つスキーマが、Skill {skill} の assets に無い"
             ))),
             _ => {
                 let names: Vec<&str> = found
