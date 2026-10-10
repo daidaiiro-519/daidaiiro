@@ -1,0 +1,241 @@
+{
+  "$schema": "/home/daidaiiro/workspace/daidaiiro/.claude/skills/qa-advisor/references/answer.schema.json",
+  "kind": "design",
+  "question": "skills-creator の雛形に、合意した回答の頁の形を入れる（ACDR 1）。完了基準とテスト方針をどう決めるか",
+  "premises": [
+    {
+      "name": "ACDR 1 の範囲",
+      "value": "answer.schema の欄 ・ criteria.schema の「ふだんの言葉の説明」の欄 ・ references/view/ の頁の型と CSS ・ JS ・ refs.rs.tmpl ・ 回答の例。論点4は承認済みで、ACDR 1 が使った時点で決着にする（status は open）",
+      "source": "board.json の論点1 ・ 論点4"
+    },
+    {
+      "name": "refs.rs.tmpl を複製している Skill",
+      "value": "15個（advisor 6つと、acdr ・ design-svg ・ doc-writing-skills ・ fact-check ・ session-memory ・ skill-router ・ slide-deck ・ slide-deck-speech ・ skills-creator 自身）。どれも今は雛形と1文字も違わない。check の2段目（rust_refs）は、複製が雛形と違えば検出する",
+      "source": "cmp で照合した結果と skills-creator/tool/business_logic/src/check.rs"
+    },
+    {
+      "name": "view.* を複製している Skill",
+      "value": "同じ15個。check（view.rs の copies）は、view.css ・ view.template.html ・ view.tokens.* が正本と違えば検出する",
+      "source": "skills-creator/tool/business_logic/src/view.rs"
+    },
+    {
+      "name": "advisor 以外の8つの Skill の ACDR",
+      "value": "ACDR 2 と ACDR 3 は advisor だけを直す。advisor 以外の8つを複製し直す ACDR が無い（未判定）",
+      "source": "board.json の論点4"
+    },
+    {
+      "name": "比べる見本",
+      "value": "頁の構造は usecase-answer-sim-v2.html。ただし usecase の v2 のヘルプは説明だけの前の形で、qa の v2 は引用が先の形である。合意したヘルプ（説明が先、原典の全文は「原文を見る」）を持つのは meta-thinking-answer-sim-v2.html だけである",
+      "source": "ANSWER-PAGE-SPEC.md の v2 の決まりと、6枚の見本の HTML"
+    },
+    {
+      "name": "見本の頁の状態",
+      "value": "見た印（✓）を localStorage に残し、マウスを重ねるとヘルプが開く。キーは見本ごとに違う（usecase-sim-v2-seen など）",
+      "source": "見本の頁の script"
+    },
+    {
+      "name": "今の契約のケースの比べ方",
+      "value": "an_answer_is_drawn_by_x_view は、view の出力の HTML を style の中身まで文字列で比べる。refs のテスト1件ごとに契約のケースが要り、無ければ exempt.json に理由を書く（the_tests_of_the_reference_implementation_all_have_cases が検査する）",
+      "source": "skills-creator/references/contract/cases と tool/business_logic/tests/cases.rs"
+    },
+    {
+      "name": "画像を比べる道具と閾値",
+      "value": "Playwright ・ 画素の差の閾値 ・ DOM の正規化の仕方は、判断基準の範囲外である。下の手順の具体の値は、判断基準に基づかない提案である",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "終了基準は、テストレベルごとに測れる形で決め、見本との比較は「DOM の構造が同じ」と「隠す範囲の外で画素が同じ」の2段にし、15個の Skill の今の描画が変わらないことを ACDR 1 の中で確かめる",
+    "because": "判断基準は、開始基準と終了基準をテストレベルごとに定義するべきだとする。refs.rs.tmpl と view.* は15個の Skill が複製しているので、変更の影響は advisor の6つに留まらず、影響度分析を先に行う必要がある。"
+  },
+  "figure": {
+    "caption": "ACDR 1 のテストレベルと、それぞれが確かめるもの",
+    "nodes": [
+      {"id": "unit", "label": "コンポーネントテスト：refs の cargo test", "role": "level"},
+      {"id": "cases", "label": "コンポーネント統合テスト：契約のケース（check --cases 1）", "role": "level"},
+      {"id": "page", "label": "システムテスト：頁の DOM と画像の比較 ・ リンクの試験", "role": "level"},
+      {"id": "regress", "label": "リグレッションテスト：15個の Skill の今の描画", "role": "level"},
+      {"id": "accept", "label": "受け入れテスト：利用者が ACDR 1 を承認する", "role": "level"},
+      {"id": "exit", "label": "ACDR 1 の終了基準", "role": "goal"}
+    ],
+    "edges": [
+      {"from": "unit", "to": "cases", "label": "テスト1件ごとにケースを置く"},
+      {"from": "cases", "to": "page", "label": "view の出力を頁として撮る"},
+      {"from": "cases", "to": "regress", "label": "同じケースを15個に実行する"},
+      {"from": "page", "to": "accept", "label": "比べた画像を ACDR に貼る"},
+      {"from": "regress", "to": "accept", "label": "変わらないことを ACDR に書く"},
+      {"from": "accept", "to": "exit", "label": "承認"}
+    ]
+  },
+  "steps": [
+    {
+      "do": "影響度分析をして、ACDR 1 の範囲を15個の Skill に広げる",
+      "detail": "refs.rs.tmpl と view.* を変えると、複製を持つ15個の Skill の check が全部検出を出す。ACDR 2 ・ 3 を待つ advisor 6つだけでなく、後の ACDR が無い8つも含めて、ACDR 1 の中で複製し直す。複製し直しても今の描画が変わらないよう、新しい頁の形は、回答の JSON が新しい欄（承認のポイントなど）を持つときだけ描く。新しい欄が無い回答と、criteria ・ document ・ board などほかの種類は、今と同じ形で描く。"
+    },
+    {
+      "do": "変える前の出力を、リグレッションテストの期待値として保存する",
+      "detail": "ACDR 1 の変更の前に、15個の Skill それぞれで view の出力（advisor は view answer のテスト用の回答の例と view criteria、ほかは自分の種類）を HTML と画像（1200px ・ 390px、ライト ・ ダーク）で保存する。変更のあとに、body の DOM の構造と画像が同じであることを確かめる。style の中身は CSS を足すので変わってよい。差を style の中だけに限ることを、変更の前と後の HTML の diff で確かめる。"
+    },
+    {
+      "do": "コンポーネントテストを refs の cargo test に足す",
+      "detail": "skills-creator/tool/business_logic/tests/refs.rs に、ヘルプの解決 ・ 手順の番号 ・ 次の手順の案内のつながり ・ 根拠の開閉 ・ 狭い幅の表の印を、関数の単位で確かめるテストを足す。足したテスト1件ごとに契約のケースを置く。CLI から観察できないもの（JS の振る舞いなど）は exempt.json に理由を書く。"
+    },
+    {
+      "do": "ヘルプの解決を、同値パーティションと境界値で契約のケースにする",
+      "detail": "validate --kind answer と view --kind answer の2つで、次のパーティションに1件ずつケースを置く。有効：用語の id が判断基準に在り、その用語が「ふだんの言葉の説明」を持つ → 頁は説明を先に出し、原文と出典を「原文を見る」の中に出す。無効：id が判断基準に無い ／ id は在るが説明の欄が無い ／ 1件の判断基準に用語が2つ以上在るのに、どの用語かを指していない（entry-exit-criteria の開始基準と終了基準のような件）→ どれも validate が検出を出す。欄の名前のヘルプ：description を持つ欄 → ⓘ を出す ／ description が無い欄 → ⓘ を出さない ／ x-prompt と $comment → 頁に出さない。境界：説明の欄の長さ 0 文字（スキーマが検出）と 1 文字（通る）。同じパネルに同じ用語が 1 回 ・ 2 回 → ⓘ はどちらも 1 つ。2つのパネルに 1 回ずつ → ⓘ は各パネルに 1 つ。"
+    },
+    {
+      "do": "手順とサイドバーの描画を、同値パーティションと境界値で契約のケースにする",
+      "detail": "承認のポイントの数の境界：2件（validate が検出）・ 3件（通る）・ 5件（通る）・ 6件（検出）。3件と5件で、サイドバーの番号が 1〜n の順にパネルと一致し、結論の「次：①」→ ① → … → n のつながりと、最後の手順の「結論に戻る」を確かめる。相談種別のパーティション：概念相談で承認のポイントが無い → サイドバーは結論と参照だけで、番号の段を出さない ／ 設計相談で承認のポイントが無い → 検出。「これで決まること」の境界：0件（検出）・ 1件 ・ 3件（通る）・ 4件（検出）。参照の段：前提が無い回答 → 「相談の前提」のリンクを出さない。どのケースでも、頁の中の href が全部、頁の中の id に解決することを確かめる。"
+    },
+    {
+      "do": "見本との比較を、決まった手順で再現できる形にする",
+      "detail": "回答の例は、usecase の v2 の見本と同じ中身を JSON に書き写したものにする。ヘルプの部分は meta-thinking の v2 の見本の中身を足す。撮るパネル：結論 ・ 手順の4つ ・ 相談の前提 ・ advisor が決めないことの7枚に、ヘルプを開いた状態 ・ 「原文を見る」を開いた状態 ・ 根拠を開いた状態の3つを足す。それぞれ 1200px と 390px、ライトとダーク。撮る条件：Playwright の版を固定し、deviceScaleFactor を 1、フォントを入れて document.fonts.ready を待ち、prefers-reduced-motion を reduce、マウスの重なりを使わない。1枚ごとに新しいブラウザのコンテキストを作り、localStorage を空にして始める。見た印の状態は、見た手順を明示して作る。"
+    },
+    {
+      "do": "比べ方を2段に決め、中身の違いを許す範囲を先に書く",
+      "detail": "1段目は DOM の構造の比較である。要素の名前 ・ class ・ role と aria の属性 ・ data-p ・ data-help-src ・ href の行き先 ・ 並びの順を取り出し、本文の文字 ・ SVG の中身 ・ 連番の id（hp-1 など）を除いて比べ、完全に同じにする。2段目は画素の比較である。図の SVG のように、雛形が描き方を持たない範囲だけを隠す範囲として ACDR に列挙し、その外の画素の差を 0 にする（文字のアンチエイリアスだけを許す閾値を1つ決めて、ACDR に書く）。主な部品（サイドバー ・ パネル ・ 表）の位置と大きさは ±1px で比べる。差が出たら、描画を直すか、見本の側の誤りとして利用者に返す。期待値の画像を黙って撮り直さない。"
+    },
+    {
+      "do": "頁の振る舞いをシステムテストで確かめる",
+      "detail": "Playwright で、頁の中のリンクを全部押し、正しいパネルが開くこと、手順を開いたあとサイドバーに ✓ が付くこと、ⓘ を押すと開き Esc と外を押すと閉じること、「原文を見る」が開くことを確かめる。390px で横のスクロールが出ないこと、表が積み重なることも確かめる。"
+    },
+    {
+      "do": "終了基準を、数で判定できる形で ACDR 1 に書く",
+      "detail": "下の「記録案」の行を、ACDR 1 の終了基準として書く。時間切れを終了の理由にするときは、残すリスクを利用者がレビューして受け入れたことを記録する。"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "対応：開始基準と終了基準を、テストレベルごとに定義するべきである"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "区分：終了基準 ・ 基準：徹底度の測定 ・ 例：達成されたカバレッジレベル ・ 未解決欠陥の数 ・ 欠陥密度 ・ 不合格になったテストケースの数"
+    },
+    {
+      "criterion": "entry-exit-criteria",
+      "quote": "これらを妥当な終了基準とみなすことがある。他の終了基準が未達でも、追加のテストをせずに本稼働させるリスクを、ステークホルダーがレビューして受け入れたなら、テストの終了は許容される"
+    },
+    {
+      "criterion": "test-levels",
+      "quote": "系統的にまとめ、マネジメントするテスト活動のグループ。コンポーネントテストから受け入れテストまでの5つがある。判断の要は、代表的な属性で区別し、テスト活動の重複を避けることである。"
+    },
+    {
+      "criterion": "confirmation-and-regression-testing",
+      "quote": "対応：リグレッションテストでは、まず影響度分析を行うことが望ましい"
+    },
+    {
+      "criterion": "confirmation-and-regression-testing",
+      "quote": "変更したコンポーネントだけでなく、同じシステム内の他のコンポーネントや、接続している他システムにも及ぶ可能性がある。テスト対象だけでなく、環境に関わる場合もある"
+    },
+    {
+      "criterion": "equivalence-partitioning",
+      "quote": "項目：100%の条件 ・ 内容：無効パーティションも含め、識別したパーティションのすべてを、テストケースで少なくとも1回通過する"
+    },
+    {
+      "criterion": "boundary-value-analysis",
+      "quote": "開発担当者は、境界値に関するエラーを起こしやすい。BVA で発見される代表的な欠陥は、実装された境界が意図した位置より上か下にずれているもの、または完全に省略されているものである。"
+    },
+    {
+      "criterion": "erratic-test",
+      "quote": "同じテストが、いつ ・ 誰が ・ どの環境で実行したかによって、成功したり失敗したりする。"
+    },
+    {
+      "criterion": "fragile-test",
+      "quote": "テストが動かす部分に関係しない SUT の変更や、何も変えていないのに、以前は成功していたテストがコンパイルできないか、実行で失敗する。"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "advisor の6つだけを直し、ほかの8つの Skill の複製を古いまま残す",
+      "risk": "check の検出が8つの Skill に残り、「検出を0件にしてから渡す」に違反する。後で直す ACDR が無いので、検出が残ったままになる",
+      "alternative": "ACDR 1 の中で15個すべてに複製し直し、リグレッションテストで今の描画が変わらないことを確かめる"
+    },
+    {
+      "name": "新しい頁の形を、すべての回答に一律に当てる",
+      "risk": "ACDR 2 ・ 3 の前に、6つの advisor の今の回答の頁が変わる。テストの期待値も同時に変わり、変わったことに気付けない",
+      "alternative": "新しい欄を持つ回答だけを新しい形で描き、持たない回答は今の形で描く"
+    },
+    {
+      "name": "（推測）見本の頁の HTML を、文字列でそのまま期待値にする",
+      "risk": "中身の1文字や CSS の1行の違いで失敗し、どの部品が違うのかが分からない。fragile-test のアンチパターン（オブジェクトの文字列表現を期待する文字列と比べる）に当たる",
+      "alternative": "DOM の構造の比較と、隠す範囲を決めた画素の比較の2段にする。契約のケースの HTML の全文の比較は、小さな回答の例に限る"
+    },
+    {
+      "name": "見た印と開いたヘルプが残ったままの状態で、続けて撮る",
+      "risk": "撮る順によって、✓ や開いたヘルプが写ったり写らなかったりして、同じ頁でも結果が変わる（erratic-test の Interacting Tests）",
+      "alternative": "1枚ごとに新しいブラウザのコンテキストで、localStorage を空にして撮る。見た印の状態は、手順を明示して作る"
+    },
+    {
+      "name": "（推測）usecase の v2 の見本だけと比べる",
+      "risk": "usecase の v2 のヘルプは、説明だけを出す前の形である。合わせると、合意した形（説明が先、原典の全文は「原文を見る」）と違うものを合格にする",
+      "alternative": "ヘルプの部分は meta-thinking の v2 の見本と比べる。どの部品をどの見本と比べるかを ACDR 1 に表で書く"
+    }
+  ],
+  "records": [
+    {
+      "target": "ACDR 1 の終了基準（コンポーネントテスト）",
+      "content": "skills-creator の cargo test と cargo fmt --check が全部通る。refs のテストで、契約のケースか exempt.json の理由を持たないものが 0 件である"
+    },
+    {
+      "target": "ACDR 1 の終了基準（コンポーネント統合テスト）",
+      "content": "ヘルプの解決と手順の描画のパーティションと境界値（手順の4と5の表）のケースが全部在り、各境界の両側にケースが在る。15個の Skill で check と check --cases 1 の検出が 0 件である"
+    },
+    {
+      "target": "ACDR 1 の終了基準（システムテスト）",
+      "content": "回答の例の validate の検出が 0 件で、回答が指す用語がどれも説明の欄を持つ判断基準に解決する。10の状態 × 2つの幅 × 2つの配色で、DOM の構造が見本と同じで、隠す範囲の外の画素の差が 0 である。頁の中のリンクが全部正しいパネルを開き、390px で横のスクロールが出ない"
+    },
+    {
+      "target": "ACDR 1 の終了基準（リグレッションテスト）",
+      "content": "15個の Skill で、変更の前に保存した view の出力と比べて、body の DOM の構造と画像が同じである。HTML の差は style の中だけである"
+    },
+    {
+      "target": "ACDR 1 の比較の表",
+      "content": "部品ごとに、比べる見本（usecase の v2 または meta-thinking の v2）と、隠す範囲と、画素の閾値"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "論点4（ACDR の分け方）",
+      "why": "論点4は、雛形 → ux → ほかの5つの advisor → CLAUDE.md の順に決めたが、refs.rs.tmpl と view.* を複製している advisor 以外の8つの Skill をどの ACDR で直すかを決めていない疑いがある"
+    },
+    {
+      "suspect": "論点4の「承認のあとにすること」",
+      "why": "usecase の見本のヘルプを直すのを ACDR 3 の前としているが、ACDR 1 も usecase の見本と比べる。直す時期を ACDR 1 の前に移す必要がある疑いがある"
+    }
+  ],
+  "next": [
+    "15個の Skill の今の view の出力を、ACDR 1 の変更の前に保存する",
+    "用語の id の参照の形（id だけか、id と用語の組か）を決める",
+    "部品ごとの比べる見本と隠す範囲の表を、ACDR 1 に書く",
+    "ヘルプの解決と手順の描画の契約のケースを、パーティションと境界値ごとに足す",
+    "上の終了基準を ACDR 1 に書き、利用者の承認を得る"
+  ],
+  "related": [
+    {
+      "criterion": "test-automation",
+      "relation": "比べる手順を CI で自動で繰り返し、人の目で探す作業を減らす"
+    },
+    {
+      "criterion": "test-pyramid",
+      "relation": "画像の比較は遅く粒度が粗いので数を絞り、多くはコンポーネントテストと契約のケースで確かめる"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "AI が、比較で出た差を見て、見本ではなく期待値の画像を撮り直して合格にする",
+      "check": "期待値の画像と DOM の構造のファイルの差分が ACDR 1 の diff に在れば、その理由が ACDR に書いてあるかを照合する"
+    },
+    {
+      "breaks": "AI が、refs.rs.tmpl を直したあと、advisor の6つにだけ複製する",
+      "check": "15個の Skill の tool/business_logic/src/refs.rs と refs.rs.tmpl を cmp し、違うものが 0 件であることを確かめる"
+    },
+    {
+      "breaks": "AI が、境界の片側（3件だけ、5件だけ）にしかケースを置かない",
+      "check": "references/contract/cases の新しいケースを、ポイントの数 2 ・ 3 ・ 5 ・ 6 と「これで決まること」の数 0 ・ 1 ・ 3 ・ 4 の表と突き合わせ、欠けが 0 件であることを確かめる"
+    }
+  ]
+}
