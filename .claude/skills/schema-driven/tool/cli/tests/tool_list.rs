@@ -37,9 +37,7 @@ fn json_without_a_tool_name_lists_every_tool_with_its_arguments() {
             "check",
             "check-schemas",
             "approve",
-            "render",
-            "transcribe",
-            "check-copy"
+            "render"
         ]
     );
     let update = &tools[2];

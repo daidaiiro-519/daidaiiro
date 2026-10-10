@@ -1,6 +1,6 @@
 //! デザインシステム（references/design-system.schema.json）の検査と、トークンから CSS の変数を作ること。
-//! デザインテンプレートを持つものは、デザインシステムを持つ（ボード board-on-schema-driven の論点5）。
-//! 見た目そのものは具体が持ち、基盤は形と参照と直値の有無だけを見る（ACDR 0132）。
+//! 部品のカタログは、デザインシステムに従う。
+//! 見た目そのものは具体が持ち、基盤は形と参照と直値の有無だけを見る。
 
 use crate::domain::schema::Schema;
 use serde_json::Value;
@@ -155,7 +155,7 @@ fn literal_colors(css: &str) -> Vec<String> {
     out
 }
 
-/// デザインシステムを検査する。parts はデザインテンプレート（CSS を含む）、components は Design が登録した部品の名前。
+/// デザインシステムを検査する。parts は部品の HTML（CSS を含む）、components はカタログの部品の名前。
 /// 見つかったことを、見つけた順に返す。空なら契約を満たしている。
 pub fn check(system_text: &str, parts: &str, components: &[String]) -> Vec<String> {
     let mut out = Vec::new();

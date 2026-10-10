@@ -1,4 +1,4 @@
-//! x-view の文の型（references/view.schema.json、ACDR 0129）。インスタンスの値を文にする。
+//! x-view の文の型（references/view.schema.json）。インスタンスの値を文にする。
 //! {…} の中は普通の JMESPath で、出ていく側のポート Query に基盤の9つの関数を渡して評価する。
 
 use crate::domain::schema::Schema;
@@ -37,8 +37,6 @@ struct Inner {
 #[derive(Clone)]
 pub struct ViewEngine {
     inner: Arc<Inner>,
-    /// 具体が足した関数（ACDR 0132）。
-    extra: Option<Arc<dyn Functions>>,
 }
 
 /// 値を文字にする。null は空、配列は「 ・ 」でつなぐ。
@@ -135,26 +133,10 @@ impl ViewEngine {
                 schemas: schemas.into_iter().collect(),
                 instances,
             }),
-            extra: None,
         }
     }
 
-    /// 具体の関数を足す（ACDR 0132）。基盤の関数と同じ名前は足せない。
-    pub fn with_functions(self, extra: Arc<dyn Functions>) -> Result<Self, ViewError> {
-        if let Some(name) = extra
-            .names()
-            .into_iter()
-            .find(|name| FUNCTIONS.contains(&name.as_str()))
-        {
-            return Err(ViewError(format!("基盤の関数と同じ名前は足せない: {name}")));
-        }
-        Ok(Self {
-            extra: Some(extra),
-            ..self
-        })
-    }
-
-    /// 基盤の関数（と具体が足した関数）を使って、式を値で評価する。ページテンプレートの式に使う。
+    /// 基盤の関数を使って、式を値で評価する。ページテンプレートの式に使う。
     pub fn evaluate(&self, schema: &str, expr: &str, value: &Value) -> Result<Value, ViewError> {
         let host = Arc::new(Host {
             engine: self.clone(),
@@ -377,11 +359,7 @@ fn arg(args: &[Value], position: usize) -> &Value {
 
 impl Functions for Host {
     fn names(&self) -> Vec<String> {
-        let mut names: Vec<String> = FUNCTIONS.iter().map(|name| name.to_string()).collect();
-        if let Some(extra) = &self.engine.extra {
-            names.extend(extra.names());
-        }
-        names
+        FUNCTIONS.iter().map(|name| name.to_string()).collect()
     }
 
     fn call(&self, name: &str, args: &[Value]) -> Result<Value, String> {
@@ -463,10 +441,7 @@ impl Functions for Host {
             "quote" => each(arg(args, 0), &|value| {
                 Ok(Value::String(format!("「{}」", text_of(value))))
             }),
-            other => match &self.engine.extra {
-                Some(extra) => extra.call(other, args),
-                None => Err(format!("知らない関数: {other}")),
-            },
+            other => Err(format!("知らない関数: {other}")),
         }
     }
 }

@@ -1,9 +1,11 @@
-//! インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
+//! インスタンスの読み書きのユースケースと、削除のコマンド。
 //! トランザクションスクリプトとして、出ていく側のポートを直接使う。
 
 use crate::application::paths;
+use crate::domain::contract;
 use crate::domain::instance::{Instance, Reject};
 use crate::domain::schema::Schema;
+use crate::domain::schema_name;
 use crate::domain::values::{
     Hash, InstancePath, JsonPatch, JsonValue, SchemaPath, ValidationError,
 };
@@ -82,6 +84,8 @@ pub struct Instances {
     files: Arc<dyn Files>,
     schemas: Arc<dyn Schemas>,
     query: Arc<dyn Query>,
+    /// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の references から引く
+    skill: Option<String>,
 }
 
 impl Instances {
@@ -90,6 +94,68 @@ impl Instances {
             files,
             schemas,
             query,
+            skill: None,
+        }
+    }
+
+    /// スキーマの名前を引く Skill のフォルダを渡す。
+    pub fn with_skill(mut self, dir: &str) -> Self {
+        self.skill = Some(dir.trim_end_matches('/').to_owned());
+        self
+    }
+
+    /// インスタンスの $schema の値から、スキーマのファイルのパスを決める。
+    /// 名前なら --skill の Skill の references から $id で引き、名前でなければファイルからの相対パスとして読む。
+    pub(crate) fn schema_path(&self, instance: &str, value: &str) -> Result<String, UseCaseError> {
+        let Some(owner) = schema_name::owner(value) else {
+            return Ok(paths::join(paths::parent(instance), value));
+        };
+        // エンジンが持つスキーマは、--skill を渡さなくても引ける
+        if contract::builtin_file(value).is_some() {
+            return Ok(value.to_owned());
+        }
+        let refuse = |detail: String| UseCaseError::new("スキーマの名前を引けない", detail);
+        let Some(dir) = &self.skill else {
+            return Err(refuse(format!(
+                "{value} を引くには、--skill に Skill {owner} のフォルダを渡す"
+            )));
+        };
+        let skill = dir.rsplit('/').next().unwrap_or(dir);
+        if owner != skill {
+            return Err(refuse(format!(
+                "{value} は Skill {owner} のスキーマで、Skill {skill} のものではない。Skill {owner} を --skill に渡して検査する"
+            )));
+        }
+        let references = format!("{dir}/references");
+        let mut found = Vec::new();
+        for path in self
+            .files
+            .list_tree(&references)
+            .map_err(|error| UseCaseError::new("読めない", error.0))?
+        {
+            if !path.ends_with(".schema.json") {
+                continue;
+            }
+            let (_, schema) = self.read_json(&path)?;
+            if schema.get("$id").and_then(Value::as_str) == Some(value) {
+                found.push(path);
+            }
+        }
+        match found.len() {
+            1 => Ok(found.remove(0)),
+            0 => Err(refuse(format!(
+                "{value} を $id に持つスキーマが、Skill {skill} の references に無い"
+            ))),
+            _ => {
+                let names: Vec<&str> = found
+                    .iter()
+                    .map(|path| path.rsplit('/').next().unwrap_or(path))
+                    .collect();
+                Err(UseCaseError::new(
+                    "同じ名前のスキーマが2つ以上ある",
+                    format!("{value}：{}", names.join(" ・ ")),
+                ))
+            }
         }
     }
 
@@ -104,6 +170,12 @@ impl Instances {
     }
 
     pub(crate) fn load_schema(&self, path: &str) -> Result<Schema, UseCaseError> {
+        if let (Some(file), Some(root)) = (
+            contract::builtin_file(path),
+            contract::abstract_schema(path),
+        ) {
+            return Ok(Schema::new(file, root, contract::builtin_files()));
+        }
         let (_, root) = self.read_json(path)?;
         let name = path.rsplit('/').next().unwrap_or(path);
         let siblings = self
@@ -163,9 +235,12 @@ impl InstanceUseCases for Instances {
         let schema_path = SchemaPath::new(schema).map_err(invalid)?;
         let instance_path = InstancePath::new(path).map_err(invalid)?;
         let loaded = self.load_schema(schema)?;
-        // インスタンスの $schema には、インスタンスのファイルからの相対パスを書く
-        let stored = SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str()))
-            .map_err(invalid)?;
+        // スキーマが名前（$id）を持てば名前を、持たなければインスタンスのファイルからの相対パスを書く
+        let stored = match loaded.root().get("$id").and_then(Value::as_str) {
+            Some(name) if schema_name::is_name(name) => SchemaPath::new(name),
+            _ => SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str())),
+        }
+        .map_err(invalid)?;
         let instance =
             Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;
         self.files
@@ -214,7 +289,7 @@ impl InstanceUseCases for Instances {
             .ok_or_else(|| {
                 UseCaseError::new("スキーマが分からない", "インスタンスに $schema が無い")
             })?;
-        let schema = paths::join(paths::parent(path), schema);
+        let schema = self.schema_path(path, schema)?;
         let loaded = self.load_schema(&schema)?;
         let instance = Instance::load(
             instance_path,

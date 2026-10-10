@@ -1,6 +1,7 @@
-//! UC-6 ページを描画する（3d）。具体のデザインを受け取り、契約を通ったデータだけを、同じ入力から同じページへ描画する。
-//! 基盤の文書（kind が document）は、基盤の決まったデザインで描画する。何も指定が無いときに使う。
-//! 具体のスキーマの種類は、具体のページテンプレートとデザインで描画する。どちらでもない種類があれば、何も書かずに失敗する。
+//! ページを描画する。契約を通ったデータだけを、同じ入力から同じページへ描画する。
+//! 部品の見た目と操作は、基盤の部品のカタログ（ポート Design）だけが持つ。
+//! 基盤の文書（kind が document）は、決まったページテンプレートで描画する。何も指定が無いときに使う。
+//! 具体のスキーマの種類は、具体のページテンプレートがカタログの部品を並べて描画する。どちらでもない種類があれば、何も書かずに失敗する。
 
 use crate::application::checks::Checks;
 use crate::application::context::contexts;
@@ -12,7 +13,7 @@ use crate::domain::design_system;
 use crate::domain::schema::Schema;
 use crate::domain::values::{JsonValue, ValidationError};
 use crate::ports::inbound::RenderUseCases;
-use crate::ports::outbound::{Design, Files, Functions, Query, Schemas, WriteIf};
+use crate::ports::outbound::{Design, Files, Query, Schemas, WriteIf};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -25,7 +26,7 @@ pub struct RenderedPage {
     pub path: String,
     /// 内容が変わったか（変わっていなければ書いていない）
     pub changed: bool,
-    /// 使ったデザイン。具体のページテンプレートとデザインなら concrete、基盤の文書の決まったデザインなら document
+    /// 使ったページテンプレート。具体のページテンプレートなら catalog、基盤の文書の決まったページテンプレートなら document
     pub design: String,
 }
 
@@ -35,14 +36,14 @@ pub struct Rendered {
     pub pages: Vec<RenderedPage>,
 }
 
-/// 描画のユースケース。基盤の文書の決まったデザインと、具体のデザイン（あれば）と、具体が追加した関数を持つ。
+/// 描画のユースケース。部品のカタログを持つ。
 pub struct Renders {
     files: Arc<dyn Files>,
     schemas: Arc<dyn Schemas>,
     query: Arc<dyn Query>,
-    document_design: Arc<dyn Design>,
-    design: Option<Arc<dyn Design>>,
-    functions: Option<Arc<dyn Functions>>,
+    catalog: Arc<dyn Design>,
+    /// スキーマの名前を引く Skill のフォルダ
+    skill: Option<String>,
 }
 
 impl Renders {
@@ -50,30 +51,34 @@ impl Renders {
         files: Arc<dyn Files>,
         schemas: Arc<dyn Schemas>,
         query: Arc<dyn Query>,
-        document_design: Arc<dyn Design>,
-        design: Option<Arc<dyn Design>>,
-        functions: Option<Arc<dyn Functions>>,
+        catalog: Arc<dyn Design>,
     ) -> Self {
         Self {
             files,
             schemas,
             query,
-            document_design,
-            design,
-            functions,
+            catalog,
+            skill: None,
         }
     }
 
-    /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約に違反があれば失敗する。
-    /// ページテンプレートのコンポーネントは具体のデザインが持つので、具体のデザインが無ければ読まない。
+    /// スキーマの名前を引く Skill のフォルダを渡す。
+    pub fn with_skill(mut self, dir: &str) -> Self {
+        self.skill = Some(dir.to_owned());
+        self
+    }
+
+    /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約とカタログに違反があれば失敗する。
     fn templates(&self, dir: &str) -> Result<BTreeMap<String, Value>, UseCaseError> {
-        let Some(design) = &self.design else {
-            return Ok(BTreeMap::new());
-        };
+        let design = &self.catalog;
         if dir.is_empty() {
             return Ok(BTreeMap::new());
         }
-        let reader = Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());
+        let mut reader =
+            Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());
+        if let Some(dir) = &self.skill {
+            reader = reader.with_skill(dir);
+        }
         let shape = Schema::new(
             "page.schema.json",
             serde_json::from_str(PAGE_SCHEMA).unwrap_or(Value::Null),
@@ -129,31 +134,30 @@ impl Renders {
 
 impl RenderUseCases for Renders {
     fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError> {
-        // デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない
-        let mut findings = Vec::new();
-        for (label, design) in std::iter::once(("基盤の文書のデザイン", &self.document_design))
-            .chain(self.design.iter().map(|design| ("具体のデザイン", design)))
-        {
-            let names: Vec<String> = design
-                .components()
+        // カタログはデザインシステムに従う。満たさなければ1ページも書かない
+        let names: Vec<String> = self
+            .catalog
+            .components()
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect();
+        let findings: Vec<String> =
+            design_system::check(self.catalog.design_system(), self.catalog.parts(), &names)
                 .into_iter()
-                .map(|(name, _)| name)
+                .map(|finding| format!("部品のカタログ：{finding}"))
                 .collect();
-            findings.extend(
-                design_system::check(design.design_system(), design.parts(), &names)
-                    .into_iter()
-                    .map(|finding| format!("{label}：{finding}")),
-            );
-        }
         if !findings.is_empty() {
             return Err(UseCaseError::new(
                 "デザインシステムが契約を満たさない",
                 findings.join("\n"),
             ));
         }
-        let checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());
+        let mut checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());
+        if let Some(dir) = &self.skill {
+            checks = checks.with_skill(dir);
+        }
         let (loaded, schemas) = checks.load_dir(dir)?;
-        // 契約を通ったデータだけを描画する（未記入は止めない。ACDR 0118）
+        // 契約を通ったデータだけを描画する（未記入は止めない）
         let mut errors = Vec::new();
         for instance in &loaded {
             let validation = schemas[&instance.schema]
@@ -196,22 +200,10 @@ impl RenderUseCases for Renders {
                 schema: instance.schema.clone(),
             })
             .collect();
-        let mut engine = ViewEngine::new(self.query.clone(), schemas.into_iter().collect(), list);
-        if let Some(functions) = &self.functions {
-            engine = engine
-                .with_functions(functions.clone())
-                .map_err(|error| UseCaseError::new("関数を追加できない", error.0))?;
-        }
-        let document_renderer = PageRenderer::new(engine.clone(), self.document_design.clone())
-            .map_err(|error| UseCaseError::new("文書のデザインを読めない", error.0))?;
+        let engine = ViewEngine::new(self.query.clone(), schemas.into_iter().collect(), list);
+        let renderer = PageRenderer::new(engine, self.catalog.clone())
+            .map_err(|error| UseCaseError::new("部品のカタログを読めない", error.0))?;
         let document_template = document_page_template();
-        let concrete_renderer = match &self.design {
-            Some(design) => Some(
-                PageRenderer::new(engine.clone(), design.clone())
-                    .map_err(|error| UseCaseError::new("デザインを読めない", error.0))?,
-            ),
-            None => None,
-        };
         // すべて生成してから書く（途中で失敗したときに、一部だけ書いた状態を残さない）
         let (mut generated, mut missing) = (Vec::new(), Vec::new());
         for (doc_index, instance) in loaded.iter().enumerate() {
@@ -222,15 +214,13 @@ impl RenderUseCases for Renders {
                 .unwrap_or("");
             let (html, design) = if kind == "document" {
                 (
-                    document_renderer.render(&document_template, &ctx[doc_index], &instance.schema),
+                    renderer.render(&document_template, &ctx[doc_index], &instance.schema),
                     "document",
                 )
-            } else if let (Some(renderer), Some(page_template)) =
-                (&concrete_renderer, templates.get(kind))
-            {
+            } else if let Some(page_template) = templates.get(kind) {
                 (
                     renderer.render(page_template, &ctx[doc_index], &instance.schema),
-                    "concrete",
+                    "catalog",
                 )
             } else {
                 missing.push(format!("{}（kind {kind}）", instance.path));
@@ -249,9 +239,9 @@ impl RenderUseCases for Renders {
         }
         if !missing.is_empty() {
             return Err(UseCaseError::new(
-                "デザインテンプレートが無い種類がある",
+                "ページテンプレートが無い種類がある",
                 format!(
-                    "次のインスタンスは、基盤の文書でもなく、具体のページテンプレートとデザインも無い：{}",
+                    "次のインスタンスは、基盤の文書でもなく、その種類のページテンプレートも無い：{}",
                     missing.join("、")
                 ),
             ));

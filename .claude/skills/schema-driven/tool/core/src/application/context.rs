@@ -1,4 +1,4 @@
-//! 描画の文脈（page.schema.json の context、ACDR 0133）。ページテンプレートの JMESPath 式は、この値で評価する。
+//! 描画の文脈（page.schema.json の context）。ページテンプレートの JMESPath 式は、この値で評価する。
 
 use crate::domain::check::{graph, Doc};
 use serde_json::{json, Map, Value};

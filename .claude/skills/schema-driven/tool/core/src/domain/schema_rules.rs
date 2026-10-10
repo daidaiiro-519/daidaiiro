@@ -1,17 +1,18 @@
-//! ドメインサービス 具体のスキーマを検査する（ボード schema-driven-build の論点6 D）。
-//! 構造の契約は references/meta-schema.json で、注釈の形（すべての深さ）・ 文の型 ・ 申告していない注釈 ・
+//! ドメインサービス 具体のスキーマを検査する。
+//! 構造の契約は、スキーマの $schema が示す版のメタスキーマ（references/meta-schema.json）で、注釈の形（すべての深さ）・ 文の型 ・ 申告していない注釈 ・
 //! 参照される種類の id は、この処理で見る。契約はビルドのときに取り込むので、結果はツールの版で決まる。
 
+use crate::domain::contract::{self, Version};
 use crate::domain::schema::Schema;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
-const META_SCHEMA: &str = include_str!("../../../../references/meta-schema.json");
 const ANNOTATIONS: &str = include_str!("../../../../references/annotations.schema.json");
 const VIEW: &str = include_str!("../../../../references/view.schema.json");
 
 /// 基盤の注釈。これと、根の x-annotations に申告したもののほかは、違反にする。
-const BASE_ANNOTATIONS: [&str; 6] = [
+const BASE_ANNOTATIONS: [&str; 7] = [
+    "x-abstract",
     "x-prompt",
     "x-view",
     "x-ref",
@@ -22,6 +23,14 @@ const BASE_ANNOTATIONS: [&str; 6] = [
 
 /// 中を検査しないキー（値の例や定数で、スキーマの構造ではない）。
 const OPAQUE: [&str; 4] = ["examples", "const", "default", "enum"];
+
+/// 値が「名前 → スキーマ」の対応になるキー。この下のキーは名前で、注釈ではない。
+const NAME_MAPS: [&str; 4] = [
+    "$defs",
+    "properties",
+    "patternProperties",
+    "dependentSchemas",
+];
 
 /// 検査の結果1件。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -154,6 +163,8 @@ struct Shapes {
     view: Schema,
     xref: Schema,
     derive: Schema,
+    /// v1 の x-prompt の形
+    prompt: Schema,
 }
 
 fn first_error(shape: &Schema, annotation: &Value) -> Option<String> {
@@ -181,6 +192,7 @@ fn walk(
     name: &str,
     declared: &BTreeSet<String>,
     shapes: &Shapes,
+    names: bool,
     parse: &dyn Fn(&str) -> Result<(), String>,
     out: &mut Vec<SchemaFinding>,
 ) {
@@ -197,9 +209,13 @@ fn walk(
             let mut children = Vec::new();
             for (key, child) in object {
                 let here = format!("{at}/{}", pointer_part(key));
+                if names {
+                    children.push((here, child, false));
+                    continue;
+                }
                 if !key.starts_with("x-") {
                     if !OPAQUE.contains(&key.as_str()) {
-                        children.push((here, child));
+                        children.push((here, child, NAME_MAPS.contains(&key.as_str())));
                     }
                     continue;
                 }
@@ -215,14 +231,24 @@ fn walk(
                     }
                 }
                 if key == "x-prompt" {
-                    let ok = ["read", "write"].iter().all(|field| {
-                        child
-                            .get(*field)
-                            .and_then(Value::as_str)
-                            .is_some_and(|text| !text.is_empty())
-                    });
-                    if !ok {
-                        push(here.clone(), "注釈の形", "read と write が無い".into());
+                    if let Some(error) = first_error(&shapes.prompt, child) {
+                        push(here.clone(), "注釈の形", error);
+                    }
+                    let mut seen = BTreeSet::new();
+                    let ids = child
+                        .get("write")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|rule| rule.get("id").and_then(Value::as_str));
+                    for id in ids {
+                        if !seen.insert(id) {
+                            push(
+                                here.clone(),
+                                "決まりの id の重なり",
+                                format!("{id} が2回ある"),
+                            );
+                        }
                     }
                 }
                 if key == "x-view" && child.is_object() {
@@ -248,8 +274,8 @@ fn walk(
                     );
                 }
             }
-            for (here, child) in children {
-                walk(child, &here, name, declared, shapes, parse, out);
+            for (here, child, names) in children {
+                walk(child, &here, name, declared, shapes, names, parse, out);
             }
         }
         Value::Array(elements) => {
@@ -260,6 +286,7 @@ fn walk(
                     name,
                     declared,
                     shapes,
+                    false,
                     parse,
                     out,
                 );
@@ -302,7 +329,7 @@ pub fn check_schemas(
     schemas: &[(String, Value)],
     parse: &dyn Fn(&str) -> Result<(), String>,
 ) -> Vec<SchemaFinding> {
-    let meta = Schema::new("meta-schema.json", parse_json(META_SCHEMA), vec![]);
+    let meta_v1 = Schema::new("meta-schema.json", parse_json(contract::META_V1), vec![]);
     let sib = vec![
         (
             "annotations.schema.json".to_owned(),
@@ -313,9 +340,14 @@ pub fn check_schemas(
     let shape =
         |reference: &str| Schema::new("shape.json", json!({"$ref": reference}), sib.clone());
     let shapes = Shapes {
-        view: shape("view.schema.json#/$defs/x-view"),
-        xref: shape("annotations.schema.json#/$defs/x-ref"),
-        derive: shape("annotations.schema.json#/$defs/x-derive"),
+        view: shape("schema-driven/view@v1#/$defs/x-view"),
+        xref: shape("schema-driven/annotations@v1#/$defs/x-ref"),
+        derive: shape("schema-driven/annotations@v1#/$defs/x-derive"),
+        prompt: Schema::new(
+            "shape.json",
+            json!({"$ref": format!("{}#/$defs/prompt", contract::V1)}),
+            vec![],
+        ),
     };
     let mut referenced = BTreeSet::new();
     for (_, schema) in schemas {
@@ -324,6 +356,31 @@ pub fn check_schemas(
     referenced.remove("self");
     let mut out = Vec::new();
     for (name, schema) in schemas {
+        let version = contract::version_of(schema);
+        let meta = match &version {
+            Version::V1 => &meta_v1,
+            Version::Missing => {
+                out.push(SchemaFinding {
+                    schema: name.clone(),
+                    at: "/x-abstract".into(),
+                    rule: "版が無い".into(),
+                    message: format!("x-abstract に、従う版 {} を書く", contract::V1),
+                });
+                continue;
+            }
+            Version::Unknown(written) => {
+                out.push(SchemaFinding {
+                    schema: name.clone(),
+                    at: "/x-abstract".into(),
+                    rule: "知らない版".into(),
+                    message: format!(
+                        "{written} はこのエンジンが扱う版ではない（扱うのは {}）。新しい版なら、エンジンを新しくする",
+                        contract::V1
+                    ),
+                });
+                continue;
+            }
+        };
         match meta.validate(schema) {
             Ok(validation) => {
                 for unfilled in &validation.unfilled {
@@ -355,7 +412,7 @@ pub fn check_schemas(
             .and_then(Value::as_object)
             .map(|annotations| annotations.keys().cloned().collect())
             .unwrap_or_default();
-        walk(schema, "", name, &declared, &shapes, parse, &mut out);
+        walk(schema, "", name, &declared, &shapes, false, parse, &mut out);
         let kind = schema
             .pointer("/properties/kind/const")
             .and_then(Value::as_str);

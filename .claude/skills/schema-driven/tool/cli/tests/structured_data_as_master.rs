@@ -1,18 +1,20 @@
-//! UC-0 構造化データを正本として持つ（要約レベル。テストレベル system）。
-//! 基盤の CLI だけで、作成（UC-1）→ x-prompt を受け取る（UC-7）→ 更新（UC-3）→ 描画（UC-6）→ 承認（UC-8）を通す。
-//! 具体のデザインは無いので、基盤の文書の契約（references/document.schema.json）で書く。
+//! 構造化データを正本として持つ（要約レベル）。
+//! 基盤の CLI だけで、作成→ x-prompt を受け取る→ 更新→ 描画→ 承認を通す。
+//! ページテンプレートを持たないので、基盤の文書の契約（references/document.schema.json）で書く。
+
+mod common;
 
 use serde_json::{json, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 const BIN: &str = env!("CARGO_BIN_EXE_schema-driven");
 const SCHEMA: &str = "declarations/document.schema.json";
 const INSTANCE: &str = "declarations/D-1.json";
 
-fn workdir(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("schema-driven-uc0-{name}-{}", std::process::id()));
+fn workdir(name: &str) -> common::Scratch {
+    let dir = common::Scratch::new(&format!("schema-driven-uc0-{name}"));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("declarations")).unwrap();
     fs::write(
@@ -56,7 +58,7 @@ fn fill_patch() -> String {
 #[test]
 fn uc_0_sg_1_the_owner_approves_a_master_written_from_prompts() {
     let dir = workdir("success");
-    // STEP-1 UC-1 作成する：必須のプロパティは未記入として返る
+    // 作成する：必須のプロパティは未記入として返る
     let (code, created) = run(&dir, &["create", "--schema", SCHEMA, "--path", INSTANCE]);
     assert_eq!(code, 0, "{created}");
     let unfilled = properties(&created["unfilled"]);
@@ -64,14 +66,14 @@ fn uc_0_sg_1_the_owner_approves_a_master_written_from_prompts() {
         unfilled.contains(&"/title".to_owned()) && unfilled.contains(&"/sections".to_owned()),
         "{created}"
     );
-    // STEP-2 UC-7 未記入のプロパティの x-prompt を受け取る
+    // 未記入のプロパティの x-prompt を受け取る
     let (code, prompted) = run(
         &dir,
         &["prompt", "--schema", SCHEMA, "--property", "/sections"],
     );
     assert_eq!(code, 0, "{prompted}");
     assert!(!prompted["prompt"].is_null(), "{prompted}");
-    // STEP-3 UC-3 更新する：書いたものをその場で確かめ、未記入が無くなる
+    // 更新する：書いたものをその場で確かめ、未記入が無くなる
     let (code, updated) = run(
         &dir,
         &["update", "--path", INSTANCE, "--patch", &fill_patch()],
@@ -79,7 +81,7 @@ fn uc_0_sg_1_the_owner_approves_a_master_written_from_prompts() {
     assert_eq!(code, 0, "{updated}");
     assert_eq!(updated["errors"], json!([]), "{updated}");
     assert_eq!(updated["unfilled"], json!([]), "{updated}");
-    // STEP-4 UC-6 描画して、データの持ち主が読む
+    // 描画して、データの持ち主が読む
     let (code, rendered) = run(&dir, &["render", "--dir", "declarations", "--out", "out"]);
     assert_eq!(code, 0, "{rendered}");
     let page = fs::read_to_string(dir.join("out/D-1.html")).unwrap();
@@ -87,7 +89,7 @@ fn uc_0_sg_1_the_owner_approves_a_master_written_from_prompts() {
         page.contains("注文 API の応答遅延の調査報告") && page.contains("<strong>8.2 秒</strong>"),
         "{page}"
     );
-    // STEP-5 UC-8 承認する：承認記録が空でない（SG-1）
+    // 承認する：承認記録が空でない
     let (code, approved) = run(&dir, &["approve", "--dir", "declarations"]);
     assert_eq!(code, 0, "{approved}");
     let paths: Vec<&str> = approved["instances"]

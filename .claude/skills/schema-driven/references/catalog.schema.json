@@ -1,0 +1,844 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "schema-driven/catalog@v1",
+ "title": "部品のカタログ",
+ "description": "ページテンプレートが名前で呼ぶ部品の一覧。$defs のキーが部品の名前で、値がその部品の入力の形である。部品の見た目と操作はエンジンが持ち、Skill は持たない。",
+ "x-prompt": {
+  "read": {
+   "means": "ページテンプレートで使える部品の一覧である。"
+  },
+  "write": [
+   {
+    "id": "pick-by-meaning",
+    "rule": "出したいものの意味に合う部品を、説明を読んで選ぶ。",
+    "why": "見た目が近いだけの部品を選ぶと、操作が読み手の予想と違う。",
+    "test": "選んだ部品の説明が、出したいものの意味と合うかを見る。"
+   },
+   {
+    "id": "no-own-parts",
+    "rule": "足りない部品は Skill の側で作らず、基盤のカタログに足す依頼を出す。",
+    "why": "同じ働きの部品が Skill ごとに違う形になる。",
+    "test": "ページテンプレートが、カタログの名前だけを使っているかを見る。"
+   }
+  ]
+ },
+ "$defs": {
+  "document": {
+   "type": "object",
+   "description": "基盤の文書（document.schema.json）を描く",
+   "x-prompt": {
+    "read": {
+     "means": "文書の契約に従う値を、節 ・ ブロック ・ 目次 ・ 出どころまで描く部品である。"
+    },
+    "write": [
+     {
+      "id": "document-only",
+      "rule": "document.schema.json に従う値にだけ使う。",
+      "why": "ほかの形の値は、ブロックの種類が分からず描けない。",
+      "test": "値の kind が document かを見る。"
+     }
+    ]
+   },
+   "required": [
+    "value"
+   ],
+   "properties": {
+    "value": {
+     "type": "string",
+     "minLength": 1,
+     "description": "文書の値",
+     "x-prompt": {
+      "read": {
+       "means": "描く文書の値である。"
+      },
+      "write": [
+       {
+        "id": "points-to-value",
+        "rule": "描く値を指す式を書く。",
+        "why": "部品は、式が返した値だけを描く。",
+        "test": "式が、描きたい値を返すかを get で確かめる。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "badges": {
+   "type": "object",
+   "description": "文字の並びを、小さなバッジにして並べる",
+   "x-prompt": {
+    "read": {
+     "means": "短い文字の並びを、題の上などに並べる部品である。"
+    },
+    "write": [
+     {
+      "id": "short-words",
+      "rule": "1つが数語の文字の並びにだけ使う。",
+      "why": "長い文はバッジの中で折り返し、読みにくくなる。",
+      "test": "並びの要素が、どれも数語かを見る。"
+     }
+    ]
+   },
+   "required": [
+    "value"
+   ],
+   "properties": {
+    "value": {
+     "type": "string",
+     "minLength": 1,
+     "description": "文字の並び",
+     "x-prompt": {
+      "read": {
+       "means": "バッジにする文字の並びである。"
+      },
+      "write": [
+       {
+        "id": "points-to-value",
+        "rule": "描く値を指す式を書く。",
+        "why": "部品は、式が返した値だけを描く。",
+        "test": "式が、描きたい値を返すかを get で確かめる。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "inline": {
+   "type": "object",
+   "description": "強調 ・ コード ・ リンクの書き方を含む1文を描く",
+   "x-prompt": {
+    "read": {
+     "means": "**強調**、`コード`、[文字](URL) を含む1文を描く部品である。"
+    },
+    "write": [
+     {
+      "id": "one-sentence",
+      "rule": "1文か短い段落にだけ使う。",
+      "why": "ブロックの並びは document で描く。",
+      "test": "値が1つの文字列かを見る。"
+     }
+    ]
+   },
+   "required": [
+    "value"
+   ],
+   "properties": {
+    "value": {
+     "type": "string",
+     "minLength": 1,
+     "description": "文",
+     "x-prompt": {
+      "read": {
+       "means": "描く文である。"
+      },
+      "write": [
+       {
+        "id": "points-to-value",
+        "rule": "描く値を指す式を書く。",
+        "why": "部品は、式が返した値だけを描く。",
+        "test": "式が、描きたい値を返すかを get で確かめる。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "tabs": {
+   "type": "object",
+   "description": "並びの要素ごとにタブを1枚出し、押すと面を切り替える",
+   "x-prompt": {
+    "read": {
+     "means": "同じ種類のものを、1つずつ切り替えて見るための部品である。"
+    },
+    "write": [
+     {
+      "id": "same-kind",
+      "rule": "同じ形の要素の並びにだけ使う。",
+      "why": "形の違うものをタブに分けると、読み手は全部を開いて探すことになる。",
+      "test": "items の要素が、すべて同じ形かを見る。"
+     }
+    ]
+   },
+   "required": [
+    "items",
+    "label",
+    "body"
+   ],
+   "properties": {
+    "items": {
+     "type": "string",
+     "minLength": 1,
+     "description": "タブにする並び",
+     "x-prompt": {
+      "read": {
+       "means": "タブにする並びを返す式である。"
+      },
+      "write": [
+       {
+        "id": "array",
+        "rule": "配列を返す式を書く。",
+        "why": "要素1つがタブ1枚になる。",
+        "test": "式が配列を返すかを get で確かめる。"
+       }
+      ]
+     }
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "description": "タブの名前",
+     "x-prompt": {
+      "read": {
+       "means": "要素ごとに評価して、タブの名前にする式である。",
+       "when": "要素ごとに、その要素を今の位置にして評価する。"
+      },
+      "write": [
+       {
+        "id": "from-item",
+        "rule": "要素から取る式を書く。",
+        "why": "label は要素の位置で評価する。",
+        "test": "式が要素ごとに違う短い文字を返すかを見る。"
+       }
+      ]
+     }
+    },
+    "id": {
+     "type": "string",
+     "minLength": 1,
+     "description": "面の場所の名前",
+     "x-prompt": {
+      "read": {
+       "means": "要素ごとに評価して、面の場所の名前にする式である。jump の行き先になる。",
+       "when": "要素ごとに評価し、sd- を前に付けて id にする。"
+      },
+      "write": [
+       {
+        "id": "unique",
+        "rule": "要素ごとに違う値を返す式を書く。",
+        "why": "同じ名前が2つあると、jump が最初の1つにしか行けない。",
+        "test": "式が、要素ごとに違う値を返すかを見る。"
+       }
+      ]
+     }
+    },
+    "body": {
+     "type": "array",
+     "minItems": 1,
+     "items": {},
+     "description": "タブの中に置く要素",
+     "x-prompt": {
+      "read": {
+       "means": "中に置く要素の並びで、ページテンプレートの body と同じ書き方である。"
+      },
+      "write": [
+       {
+        "id": "same-as-body",
+        "rule": "節の body と同じ書き方で、式 ・ 決まった文字 ・ 部品を並べる。",
+        "why": "中の部品も、同じカタログで検査する。",
+        "test": "並びの要素が、節の body に置けるものかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "fold": {
+   "type": "object",
+   "description": "見出しを押すと開き、もう一度押すと閉じる",
+   "x-prompt": {
+    "read": {
+     "means": "初めは閉じておき、読みたい人だけが開く部品である。"
+    },
+    "write": [
+     {
+      "id": "supporting-only",
+      "rule": "裏づけや詳細のように、読まなくても判断できるものにだけ使う。",
+      "why": "判断に必要なものを閉じると、読み手が見落とす。",
+      "test": "中身を読まずに、節の結論が分かるかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "label",
+    "body"
+   ],
+   "properties": {
+    "label": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1
+      },
+      {
+       "type": "object",
+       "required": [
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     ],
+     "description": "開く見出し",
+     "x-prompt": {
+      "read": {
+       "means": "押して開く見出しである。",
+       "parse": "文字列なら JMESPath の式、{\"text\": …} なら決まった文字である。"
+      },
+      "write": [
+       {
+        "id": "say-what",
+        "rule": "中に何があるかを書く。",
+        "why": "読み手は見出しで、開くかどうかを決める。",
+        "test": "見出しから、中身の種類が分かるかを見る。"
+       }
+      ]
+     }
+    },
+    "body": {
+     "type": "array",
+     "minItems": 1,
+     "items": {},
+     "description": "開いたときに出す要素",
+     "x-prompt": {
+      "read": {
+       "means": "中に置く要素の並びで、ページテンプレートの body と同じ書き方である。"
+      },
+      "write": [
+       {
+        "id": "same-as-body",
+        "rule": "節の body と同じ書き方で、式 ・ 決まった文字 ・ 部品を並べる。",
+        "why": "中の部品も、同じカタログで検査する。",
+        "test": "並びの要素が、節の body に置けるものかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "mark": {
+   "type": "object",
+   "description": "変更後の文に印を付け、押すと変更前と理由が開く",
+   "x-prompt": {
+    "read": {
+     "means": "変更前と理由を開ける、変更の印である。初めは開いている。"
+    },
+    "write": [
+     {
+      "id": "with-why",
+      "rule": "why に、変更の理由の欄を渡す。",
+      "why": "理由の無い印は、押しても判断の材料にならない。",
+      "test": "why の式が、空でない値を返すかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "after",
+    "before",
+    "why"
+   ],
+   "properties": {
+    "after": {
+     "type": "string",
+     "minLength": 1,
+     "description": "変更後の文",
+     "x-prompt": {
+      "read": {
+       "means": "印を付ける変更後の文である。"
+      },
+      "write": [
+       {
+        "id": "verbatim",
+        "rule": "変更後の文をそのまま返す式を書く。",
+        "why": "印の位置で、読み手は何が変わったかを見る。",
+        "test": "値が変更後の原文と同じかを見る。"
+       }
+      ]
+     }
+    },
+    "before": {
+     "type": "string",
+     "minLength": 1,
+     "description": "変更前の文",
+     "x-prompt": {
+      "read": {
+       "means": "開いたときに出す、変更前の原文である。"
+      },
+      "write": [
+       {
+        "id": "verbatim",
+        "rule": "変更前の原文をそのまま返す式を書く。",
+        "why": "要約すると、何が変わったかが読めない。",
+        "test": "値が変更前の原文と同じかを見る。"
+       }
+      ]
+     }
+    },
+    "why": {
+     "type": "string",
+     "minLength": 1,
+     "description": "変更の理由",
+     "x-prompt": {
+      "read": {
+       "means": "開いたときに出す、変更の理由である。"
+      },
+      "write": [
+       {
+        "id": "what-matched",
+        "rule": "何と食い違い、何に合わせたかを書いた欄を指す。",
+        "why": "理由から、あとで改訂してよいかを判定する。",
+        "test": "値に、食い違っていた相手が書かれているかを見る。"
+       }
+      ]
+     }
+    },
+    "id": {
+     "type": "string",
+     "minLength": 1,
+     "description": "印の場所の名前",
+     "x-prompt": {
+      "read": {
+       "means": "印の場所の名前にする式である。jump の行き先になる。",
+       "when": "sd- を前に付けて id にする。"
+      },
+      "write": [
+       {
+        "id": "unique",
+        "rule": "印ごとに違う値を返す式を書く。",
+        "why": "同じ名前が2つあると、jump が最初の1つにしか行けない。",
+        "test": "式が、印ごとに違う値を返すかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "jump": {
+   "type": "object",
+   "description": "押すと、ページの中の場所へ移る",
+   "x-prompt": {
+    "read": {
+     "means": "ページの中の別の場所へ移るためのリンクである。閉じた面やタブの中なら開いてから移る。"
+    },
+    "write": [
+     {
+      "id": "existing-place",
+      "rule": "tabs か mark の id が返す値を、to に渡す。",
+      "why": "行き先が無いと、押しても何も起きない。",
+      "test": "to の値と同じ id が、ページの中にあるかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "label",
+    "to"
+   ],
+   "properties": {
+    "label": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1
+      },
+      {
+       "type": "object",
+       "required": [
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     ],
+     "description": "リンクの文字",
+     "x-prompt": {
+      "read": {
+       "means": "押す文字である。",
+       "parse": "文字列なら JMESPath の式、{\"text\": …} なら決まった文字である。"
+      },
+      "write": [
+       {
+        "id": "say-where",
+        "rule": "行き先の名前を書く。",
+        "why": "読み手は、押す前に行き先を知りたい。",
+        "test": "文字から行き先が分かるかを見る。"
+       }
+      ]
+     }
+    },
+    "to": {
+     "type": "string",
+     "minLength": 1,
+     "description": "行き先",
+     "x-prompt": {
+      "read": {
+       "means": "行き先の場所の名前を返す式である。"
+      },
+      "write": [
+       {
+        "id": "same-as-id",
+        "rule": "tabs ・ mark の id と同じ値を返す式を書く。",
+        "why": "sd- を前に付けた id で行き先を探す。",
+        "test": "値が、行き先の id の式の値と同じかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "choose": {
+   "type": "object",
+   "description": "選択肢を並べ、1つを選ばせる",
+   "x-prompt": {
+    "read": {
+     "means": "承認 ・ 差し戻しのように、1つを選ぶ部品である。選んだ値は send が送る。"
+    },
+    "write": [
+     {
+      "id": "few-options",
+      "rule": "選択肢を2つから5つにする。",
+      "why": "多いと、読み手が全部を読み比べることになる。",
+      "test": "options が2つから5つかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "name",
+    "options"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "description": "答えの名前",
+     "x-prompt": {
+      "read": {
+       "means": "送る答えの名前を返す式である。"
+      },
+      "write": [
+       {
+        "id": "unique-name",
+        "rule": "ページの中で、答えごとに違う名前を返す式を書く。",
+        "why": "同じ名前が2つあると、送るときに片方が消える。",
+        "test": "名前がページの中で重ならないかを見る。"
+       }
+      ]
+     }
+    },
+    "options": {
+     "type": "array",
+     "minItems": 2,
+     "maxItems": 5,
+     "description": "選択肢",
+     "x-prompt": {
+      "read": {
+       "means": "選択肢の並びで、value は送る値、label は画面の文字である。"
+      },
+      "write": [
+       {
+        "id": "ascii-value",
+        "rule": "value は英小文字とハイフンで書き、label に画面の文字を書く。",
+        "why": "機械が分岐する値と、人が読む文字を分ける。",
+        "test": "value が英小文字とハイフンだけかを見る。"
+       }
+      ]
+     },
+     "items": {
+      "type": "object",
+      "required": [
+       "value",
+       "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "value": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+       },
+       "label": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    }
+   }
+  },
+  "write": {
+   "type": "object",
+   "description": "文を書く欄を出す",
+   "x-prompt": {
+    "read": {
+     "means": "差し戻しの理由のように、文を書いてもらう欄である。書いた文は send が送る。"
+    },
+    "write": [
+     {
+      "id": "say-what-to-write",
+      "rule": "label に、何を書くかを書く。",
+      "why": "空の欄だけでは、読み手は何を書くか分からない。",
+      "test": "label から、書く内容が分かるかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "name",
+    "label"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "description": "答えの名前",
+     "x-prompt": {
+      "read": {
+       "means": "送る答えの名前を返す式である。"
+      },
+      "write": [
+       {
+        "id": "unique-name",
+        "rule": "ページの中で、答えごとに違う名前を返す式を書く。",
+        "why": "同じ名前が2つあると、送るときに片方が消える。",
+        "test": "名前がページの中で重ならないかを見る。"
+       }
+      ]
+     }
+    },
+    "label": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1
+      },
+      {
+       "type": "object",
+       "required": [
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     ],
+     "description": "欄の見出し",
+     "x-prompt": {
+      "read": {
+       "means": "欄の上に出す見出しである。",
+       "parse": "文字列なら JMESPath の式、{\"text\": …} なら決まった文字である。"
+      },
+      "write": [
+       {
+        "id": "say-what-to-write",
+        "rule": "何を書くかを書く。",
+        "why": "読み手は見出しで、何を書くかを知る。",
+        "test": "見出しから、書く内容が分かるかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "send": {
+   "type": "object",
+   "description": "選んだ値と書いた文を、まとめて送る",
+   "x-prompt": {
+    "read": {
+     "means": "ページの choose と write の値を1つの JSON にまとめて送る部品である。配るサーバーが無ければ、貼る形で出す。"
+    },
+    "write": [
+     {
+      "id": "one-per-page",
+      "rule": "1ページに1つだけ置く。",
+      "why": "送る部品が2つあると、どちらで送ったかが分からない。",
+      "test": "ページの send が1つかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "label",
+    "to"
+   ],
+   "properties": {
+    "label": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1
+      },
+      {
+       "type": "object",
+       "required": [
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     ],
+     "description": "ボタンの文字",
+     "x-prompt": {
+      "read": {
+       "means": "押すボタンの文字である。",
+       "parse": "文字列なら JMESPath の式、{\"text\": …} なら決まった文字である。"
+      },
+      "write": [
+       {
+        "id": "verb",
+        "rule": "何をするボタンかを動詞で書く。",
+        "why": "読み手は、押す前に何が起きるかを知りたい。",
+        "test": "文字が動詞で終わるかを見る。"
+       }
+      ]
+     }
+    },
+    "to": {
+     "type": "string",
+     "pattern": "^[a-z0-9][a-z0-9/_-]*$",
+     "description": "送り先",
+     "x-prompt": {
+      "read": {
+       "means": "ページを配るサーバーの中の、送り先のパスである。",
+       "parse": "式ではなく、そのままの文字である。"
+      },
+      "write": [
+       {
+        "id": "relative",
+        "rule": "ページからの相対パスを書く。",
+        "why": "ほかのサイトへは送らない。",
+        "test": "値が / や http で始まらないかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "embed": {
+   "type": "object",
+   "description": "別の文書を、その文書の見た目のまま埋める",
+   "x-prompt": {
+    "read": {
+     "means": "別の文書の HTML を、ページと見た目が混ざらない枠に入れて描く部品である。枠の中の script は動かない。"
+    },
+    "write": [
+     {
+      "id": "whole-document",
+      "rule": "1枚で完結する HTML を返す欄にだけ使う。",
+      "why": "枠の中には、ページのトークンも script も届かない。",
+      "test": "値が、それだけで読める HTML かを見る。"
+     }
+    ]
+   },
+   "required": [
+    "html",
+    "title"
+   ],
+   "properties": {
+    "html": {
+     "type": "string",
+     "minLength": 1,
+     "description": "埋める HTML",
+     "x-prompt": {
+      "read": {
+       "means": "枠に入れる HTML を返す式である。"
+      },
+      "write": [
+       {
+        "id": "points-to-html",
+        "rule": "HTML の文字列を返す式を書く。",
+        "why": "値はそのまま枠の中の文書になる。",
+        "test": "式が HTML の文字列を返すかを見る。"
+       }
+      ]
+     }
+    },
+    "title": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1
+      },
+      {
+       "type": "object",
+       "required": [
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     ],
+     "description": "枠の名前",
+     "x-prompt": {
+      "read": {
+       "means": "読み上げで使う、枠の名前である。",
+       "parse": "文字列なら JMESPath の式、{\"text\": …} なら決まった文字である。"
+      },
+      "write": [
+       {
+        "id": "say-what",
+        "rule": "何の文書かを書く。",
+        "why": "目で見ない読み手は、この名前で枠を知る。",
+        "test": "名前から、何の文書かが分かるかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "svg": {
+   "type": "object",
+   "description": "SVG の図を埋める",
+   "x-prompt": {
+    "read": {
+     "means": "SVG の文字列を、そのままページに埋める部品である。script とイベントの属性を含むものは断る。"
+    },
+    "write": [
+     {
+      "id": "checked-figure",
+      "rule": "検査を通した SVG を返す欄にだけ使う。",
+      "why": "script を含む SVG は、ページごと描かずに止まる。",
+      "test": "値が <svg で始まり、script を含まないかを見る。"
+     }
+    ]
+   },
+   "required": [
+    "value"
+   ],
+   "properties": {
+    "value": {
+     "type": "string",
+     "minLength": 1,
+     "description": "SVG の文字列",
+     "x-prompt": {
+      "read": {
+       "means": "埋める SVG の文字列である。"
+      },
+      "write": [
+       {
+        "id": "points-to-value",
+        "rule": "描く値を指す式を書く。",
+        "why": "部品は、式が返した値だけを描く。",
+        "test": "式が、描きたい値を返すかを get で確かめる。"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+}

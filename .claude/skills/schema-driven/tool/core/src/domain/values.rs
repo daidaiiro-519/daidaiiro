@@ -29,7 +29,7 @@ fn non_empty(value: &str, invariant: &'static str, what: &str) -> Result<String,
     }
 }
 
-/// VO-1 パス。インスタンスのファイルの場所。
+/// パス。インスタンスのファイルの場所。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InstancePath(String);
 
@@ -42,7 +42,7 @@ impl InstancePath {
     }
 }
 
-/// VO-2 スキーマ。インスタンスの形と注釈を書いた JSON Schema のファイルのパス。
+/// スキーマ。インスタンスの形と注釈を書いた JSON Schema のファイルのパス。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemaPath(String);
 
@@ -55,7 +55,7 @@ impl SchemaPath {
     }
 }
 
-/// VO-5 検証エラー。スキーマを満たさないプロパティと、その理由。未記入は含めない。
+/// 検証エラー。スキーマを満たさないプロパティと、その理由。未記入は含めない。
 /// 処理の失敗を表す Rust のエラー型ではなく、検証の結果として返すデータである（std::error::Error を実装しない）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationError {
@@ -80,7 +80,7 @@ impl ValidationError {
     }
 }
 
-/// VO-6 ハッシュ値。ファイルの内容の sha256 を16進の文字列で表す。
+/// ハッシュ値。ファイルの内容の sha256 を16進の文字列で表す。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Hash(String);
 
@@ -103,7 +103,7 @@ impl Hash {
     }
 }
 
-/// VO-7 JSON Patch（RFC 6902）。インスタンスへ適用する操作の並び。
+/// JSON Patch（RFC 6902）。インスタンスへ適用する操作の並び。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonPatch(String);
 
@@ -124,7 +124,7 @@ impl JsonPatch {
         non_empty(value, "VO-7.INV-1", "操作の並び").map(Self)
     }
 
-    /// OP-1 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。
+    /// 適用する。JSON Patch を JSON の値に適用して、新しい値を求める。
     pub fn apply(&self, target: &JsonValue) -> Result<JsonValue, PatchError> {
         let patch: json_patch::Patch = serde_json::from_str(&self.0)
             .map_err(|error| PatchError(format!("JSON Patch として読めない: {error}")))?;
@@ -136,7 +136,7 @@ impl JsonPatch {
     }
 }
 
-/// VO-10 JSON の値。インスタンスのファイルに書いてある JSON。
+/// JSON の値。インスタンスのファイルに書いてある JSON。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonValue(String);
 
@@ -148,7 +148,7 @@ impl JsonValue {
         &self.0
     }
 
-    /// OP-1 ハッシュ値を求める。JSON の値の sha256。
+    /// ハッシュ値を求める。JSON の値の sha256。
     pub fn hash(&self) -> Hash {
         let digest = Sha256::digest(self.0.as_bytes());
         let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
@@ -156,7 +156,7 @@ impl JsonValue {
     }
 }
 
-/// VO-12 未記入。スキーマの必須のプロパティが、インスタンスに無いこと（JSON Schema の required の違反）。
+/// 未記入。スキーマの必須のプロパティが、インスタンスに無いこと（JSON Schema の required の違反）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unfilled(String);
 
@@ -169,7 +169,7 @@ impl Unfilled {
     }
 }
 
-/// 検査結果の状態（VO-9 検査結果の成分「状態」）。
+/// 検査結果の状態（検査結果の成分「状態」）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Status {
     /// 合格
@@ -190,8 +190,8 @@ impl Status {
     }
 }
 
-/// VO-3 参照。x-ref を付けたプロパティに書いた値 ・ どの注釈の参照か ・ 指す先の種類の並び（ACDR 0151）。
-/// 宣言の VO-3（指す先 ・ x-ref の値 ・ 指す先の種類）は、宣言を移すときにこの形へ直す。
+/// 参照。x-ref を付けたプロパティに書いた値 ・ どの注釈の参照か ・ 指す先の種類の並び。
+/// 宣言の参照（指す先 ・ x-ref の値 ・ 指す先の種類）は、宣言を移すときにこの形へ直す。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reference {
     written: String,
@@ -220,7 +220,7 @@ impl Reference {
     }
 }
 
-/// VO-4 導出値。導いた値と宣言した値。
+/// 導出値。導いた値と宣言した値。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Derived {
     derived: serde_json::Value,
@@ -231,7 +231,7 @@ impl Derived {
     pub fn new(derived: serde_json::Value, declared: serde_json::Value) -> Self {
         Self { derived, declared }
     }
-    /// OP-1 導出値を確かめる。同じなら合格、違えばずれ。
+    /// 導出値を確かめる。同じなら合格、違えばずれ。
     pub fn compare(&self) -> Status {
         if self.derived == self.declared {
             Status::Pass
@@ -241,7 +241,7 @@ impl Derived {
     }
 }
 
-/// VO-8 ずれ。ずれと出た検査の名前と、その指す先。
+/// ずれ。ずれと出た検査の名前と、その指す先。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Drift {
     check: String,
@@ -263,7 +263,7 @@ impl Drift {
     }
 }
 
-/// VO-11 承認したインスタンス。パスとハッシュ値の組。
+/// 承認したインスタンス。パスとハッシュ値の組。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApprovedInstance {
     path: String,
@@ -283,7 +283,7 @@ impl ApprovedInstance {
     }
 }
 
-/// 生成した HTML の断片（3c）。作れるのは、文字をエスケープするか、部品のプレースホルダーを置換するかだけである。
+/// 生成した HTML の断片。作れるのは、文字をエスケープするか、部品のプレースホルダーを置換するかだけである。
 /// 具体は HTML の文字列を自分で作らない ── エスケープ漏れを型で防ぐ。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Html(String);

@@ -1,4 +1,4 @@
-//! 取得のアダプタ（ポート Query の実装）。jmespath の crate はここにだけ現れる（ACDR 0122）。
+//! 取得のアダプタ（ポート Query の実装）。jmespath の crate はここにだけ現れる。
 
 use jmespath::{ErrorReason, JmespathError, Rcvar, Runtime, Variable};
 use schema_driven_core::ports::outbound::{Functions, Query, QueryError};

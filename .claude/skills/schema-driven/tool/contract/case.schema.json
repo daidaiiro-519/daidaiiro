@@ -1,0 +1,225 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1",
+ "$id": "case.schema.json",
+ "title": "共通ツールの試験データ",
+ "description": "abstract スキーマの版ごとに、共通ツールの振る舞いを固定する試験データ1件。呼ぶツールと引数、置いておくファイル、期待する終了コードと欄の値を持つ。公開した版の試験データは書き換えず、足すだけにする。",
+ "x-prompt": {
+  "read": {
+   "means": "共通ツールを1回呼んだときの、期待する振る舞いである。",
+   "when": "エンジンの新しい版を公開する前に、扱う全部の版の試験データを実行して読む。"
+  },
+  "write": [
+   {
+    "id": "one-call",
+    "rule": "1件の試験データには、ツールの呼び出しを1回だけ書く。",
+    "why": "落ちたときに、どの呼び出しの振る舞いが変わったかが分かる。",
+    "test": "tool が1つかを見る。"
+   },
+   {
+    "id": "never-rewrite",
+    "rule": "公開した版の試験データは書き換えず、新しい試験データを足す。",
+    "why": "書き換えると、古い版の振る舞いが変わっても試験が検出しなくなる。",
+    "test": "公開した版のディレクトリのファイルに、変更が無いかを見る。"
+   }
+  ]
+ },
+ "x-generates": "tool/contract/<版>/<名前>.json",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "kind",
+  "id",
+  "tool",
+  "args",
+  "expect"
+ ],
+ "properties": {
+  "$schema": {
+   "type": "string",
+   "description": "このインスタンスが従うスキーマ",
+   "x-prompt": {
+    "read": {
+     "means": "スキーマのファイルへの相対パスである。"
+    },
+    "write": [
+     {
+      "id": "relative",
+      "rule": "../case.schema.json と書く。",
+      "why": "試験データは版のディレクトリの下に置く。",
+      "test": "パスでスキーマに着くかを見る。"
+     }
+    ]
+   }
+  },
+  "kind": {
+   "const": "contract-case",
+   "description": "共通ツールの試験データであることを表す",
+   "x-prompt": {
+    "read": {
+     "means": "共通ツールの試験データであることを表す。"
+    },
+    "write": [
+     {
+      "id": "const",
+      "rule": "contract-case と書く。",
+      "why": "基盤はこの値で、インスタンスの種類を判定する。",
+      "test": "値が contract-case かを見る。"
+     }
+    ]
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+   "description": "試験データの名前",
+   "x-prompt": {
+    "read": {
+     "means": "試験データの名前で、ファイル名と同じである。",
+     "shown": "落ちたときに、この名前が出る。"
+    },
+    "write": [
+     {
+      "id": "tool-and-case",
+      "rule": "ツールの名前と、確かめる振る舞いを英小文字とハイフンで書く。",
+      "why": "落ちたときに、名前だけで何の振る舞いかが分かる。",
+      "bad": "case-3",
+      "good": "delete-bare-path",
+      "test": "名前にツールの名前が入っているかを見る。"
+     }
+    ]
+   }
+  },
+  "tool": {
+   "type": "string",
+   "minLength": 1,
+   "description": "呼ぶ共通ツールの名前",
+   "x-prompt": {
+    "read": {
+     "means": "呼ぶ共通ツールの名前である。"
+    },
+    "write": [
+     {
+      "id": "common-tool",
+      "rule": "共通ツールの名前を、CLI に渡す綴りのまま書く。",
+      "why": "試験はこの名前で CLI を呼ぶ。",
+      "test": "schema-driven --json のツールの一覧にあるかを見る。"
+     }
+    ]
+   }
+  },
+  "args": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "string"
+   },
+   "description": "ツールの引数（名前と値）",
+   "x-prompt": {
+    "read": {
+     "means": "ツールに渡す引数の名前と値である。",
+     "parse": "名前は -- を付けずに書き、試験は --名前 値 の形で渡す。"
+    },
+    "write": [
+     {
+      "id": "relative-paths",
+      "rule": "ファイルのパスは、試験を実行するディレクトリからの相対パスで書く。",
+      "why": "試験は毎回、新しい一時ディレクトリで実行する。",
+      "test": "パスが / で始まっていないかを見る。"
+     }
+    ]
+   }
+  },
+  "files": {
+   "type": "object",
+   "additionalProperties": true,
+   "description": "実行の前に置いておくファイル（パスと JSON の内容）",
+   "x-prompt": {
+    "read": {
+     "means": "実行の前に、一時ディレクトリに置いておくファイルである。",
+     "parse": "キーはパスで、値はそのファイルに書く JSON である。"
+    },
+    "write": [
+     {
+      "id": "minimum",
+      "rule": "その振る舞いを確かめるのに必要なファイルだけを置く。",
+      "why": "余分なファイルがあると、何が結果に効いたかが分からなくなる。",
+      "test": "1つ消すと、結果が変わるかを見る。"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "code",
+    "fields"
+   ],
+   "description": "期待する終了コードと欄の値",
+   "properties": {
+    "code": {
+     "type": "integer"
+    },
+    "fields": {
+     "type": "object"
+    }
+   },
+   "x-prompt": {
+    "read": {
+     "means": "期待する終了コードと、出力の JSON の欄の値である。",
+     "parse": "fields のキーは出力の JSON の JSON Pointer で、その場所の値が同じかだけを比べる。"
+    },
+    "write": [
+     {
+      "id": "compare-fields",
+      "rule": "比べる欄だけを fields に書き、出力の全体を書かない。",
+      "why": "全体を比べると、関係の無い欄が変わっただけで落ちる。",
+      "test": "fields の各欄が、確かめる振る舞いに関係するかを見る。"
+     },
+     {
+      "id": "no-hash",
+      "rule": "ハッシュ値のように、入力の細部で変わる欄は書かない。",
+      "why": "振る舞いが同じでも、値が変わって落ちる。",
+      "test": "fields に hash の欄が無いかを見る。"
+     }
+    ]
+   }
+  },
+  "skill": {
+   "type": "boolean",
+   "description": "一時ディレクトリを Skill のフォルダとしてエンジンに渡すか",
+   "x-prompt": {
+    "read": {
+     "means": "true なら、エンジンを --skill . で起動する。",
+     "when": "固有のツールの宣言と境界を確かめる試験データで読む。"
+    },
+    "write": [
+     {
+      "id": "only-for-declared",
+      "rule": "固有のツールを呼ぶ試験データにだけ true と書く。",
+      "why": "共通ツールの試験は、Skill のフォルダが無くても動くことを確かめる。",
+      "test": "tool が共通ツールの名前なら、skill が無いかを見る。"
+     }
+    ]
+   }
+  },
+  "stub": {
+   "type": "string",
+   "minLength": 1,
+   "description": "見本の実行ファイルを置くパス",
+   "x-prompt": {
+    "read": {
+     "means": "見本の実行ファイルを、一時ディレクトリのこのパスに置く。",
+     "parse": "files の中の $STUB はこのパスに、$STUB_SHA256 はその SHA-256 に置き換わる。"
+    },
+    "write": [
+     {
+      "id": "inside-skill",
+      "rule": "Skill のフォルダの中の相対パスを書く。",
+      "why": "エンジンは Skill のフォルダの外のコマンドを断る。",
+      "test": "/ で始まらず、.. を含まないかを見る。"
+     }
+    ]
+   }
+  }
+ }
+}

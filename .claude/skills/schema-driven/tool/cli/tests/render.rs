@@ -1,66 +1,21 @@
-//! UC-6 ページを描画する（3d）。具体のデザインを受け取り、契約を通ったデータだけを、同じ入力から同じページへ描画する。
+//! ページを描画する。部品のカタログで、契約を通ったデータだけを、同じ入力から同じページへ描画する。
+
+mod common;
 
 use schema_driven_adapters::inbound::tools::Toolbox;
-use schema_driven_adapters::outbound::document_design::DocumentDesign;
+use schema_driven_adapters::outbound::catalog::Catalog;
 use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
 use schema_driven_core::application::renders::Renders;
-use schema_driven_core::domain::values::Html;
-use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
 use serde_json::{json, Map, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
-/// テスト用の小さな具体のデザイン。
-struct Mini;
-
-/// Mini のデザインシステム。テンプレートは色を使わないので、トークンは最小にする。
-const MINI_SYSTEM: &str = r##"{"scope": ":root",
- "tokens": {"base": {"color": {"ink-900": "#111d1a", "mist-100": "#e6eeeb"}},
-            "semantic": {"light": {"ink": "ink-900"}, "dark": {"ink": "mist-100"}}, "component": {}},
- "components": [{"name": "pill", "states": {"default": {"text": "ink"}}}]}"##;
-
-impl Design for Mini {
-    fn design_system(&self) -> &str {
-        MINI_SYSTEM
-    }
-    fn components(&self) -> Vec<(String, Value)> {
-        vec![(
-            "pill".into(),
-            json!({"type": "object", "required": ["value"]}),
-        )]
-    }
-    fn parts(&self) -> &str {
-        r#"<template id="page"><main><h1>{{title}}</h1>{{sections}}</main></template>
-<template id="section"><section><h2>{{heading}}</h2>{{body}}</section></template>
-<template id="pill"><b>{{text}}</b></template>"#
-    }
-    fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {
-        renderer.part(
-            "page",
-            &[
-                ("title", renderer.text(&frame.title)),
-                ("sections", frame.sections.clone()),
-            ],
-        )
-    }
-    fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String> {
-        renderer.part(
-            "section",
-            &[("heading", renderer.text(heading)), ("body", body)],
-        )
-    }
-    fn render(&self, _: &str, input: &Value, renderer: &mut dyn Renderer) -> Result<Html, String> {
-        let text = renderer.node(&input["value"])?;
-        renderer.part("pill", &[("text", text)])
-    }
-}
-
 /// 一時ディレクトリに、スキーマ ・ インスタンス ・ ページテンプレートを置く。
-fn setup(name: &str) -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sd-render-{name}-{}", std::process::id()));
+fn setup(name: &str) -> common::Scratch {
+    let root = common::Scratch::new(&format!("sd-render-{name}"));
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(root.join("declarations")).unwrap();
     fs::create_dir_all(root.join("pages")).unwrap();
@@ -96,7 +51,7 @@ fn setup(name: &str) -> PathBuf {
     write(
         "pages/thing.json",
         json!({"kind": "thing", "sections": [
-        {"heading": "タグ", "body": [{"component": "pill", "each": "this.tags", "value": "@"}]}]}),
+        {"heading": "タグ", "body": [{"component": "badges", "value": "this.tags"}]}]}),
     );
     root
 }
@@ -110,23 +65,12 @@ fn args(root: &Path) -> Map<String, Value> {
 }
 
 fn render(root: &Path) -> (i32, Value) {
-    render_with(root, Some(Arc::new(Mini)))
-}
-
-fn render_with(root: &Path, concrete: Option<Arc<dyn Design>>) -> (i32, Value) {
     let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
     let (instances, checks) = (
         Instances::new(files.clone(), files.clone(), query.clone()),
         Checks::new(files.clone(), files.clone(), query.clone()),
     );
-    let renders = Renders::new(
-        files.clone(),
-        files,
-        query,
-        Arc::new(DocumentDesign),
-        concrete,
-        None,
-    );
+    let renders = Renders::new(files.clone(), files, query, Arc::new(Catalog));
     Toolbox::base().with_render(Arc::new(renders)).dispatch(
         "render",
         &args(root),
@@ -154,14 +98,16 @@ fn snapshot(root: &Path, dirs: &[&str]) -> Vec<(String, Vec<u8>)> {
 }
 
 #[test]
-fn concrete_kinds_use_the_concrete_design_and_documents_the_fixed_design() {
+fn concrete_kinds_use_their_page_template_and_documents_the_fixed_one() {
     let root = setup("kinds");
     let (code, out) = render(&root);
     assert_eq!(code, 0, "{out}");
     let page = fs::read_to_string(root.join("out/T-1.html")).unwrap();
-    assert_eq!(
-        page,
-        "<main><h1>&lt;甲&gt;</h1><section><h2>タグ</h2><b>a</b><b>b</b></section></main>"
+    assert!(page.contains("<h1>&lt;甲&gt;</h1>"), "{page}");
+    assert!(
+        page.contains("<h2>タグ</h2>")
+            && page.contains(r#"<span class="sd-badge">a</span><span class="sd-badge">b</span>"#),
+        "{page}"
     );
     let document = fs::read_to_string(root.join("out/D-1.html")).unwrap();
     assert!(
@@ -189,7 +135,7 @@ fn concrete_kinds_use_the_concrete_design_and_documents_the_fixed_design() {
         designs,
         vec![
             ("D-1.html".to_owned(), "document".to_owned()),
-            ("T-1.html".to_owned(), "concrete".to_owned())
+            ("T-1.html".to_owned(), "catalog".to_owned())
         ]
     );
     fs::remove_dir_all(&root).unwrap();
@@ -206,7 +152,7 @@ fn kinds_without_a_template_stop_rendering_and_nothing_is_written() {
     .unwrap();
     let (code, out) = render(&root);
     assert_eq!(code, 1, "{out}");
-    assert_eq!(out["reason"], "デザインテンプレートが無い種類がある");
+    assert_eq!(out["reason"], "ページテンプレートが無い種類がある");
     assert!(
         out["detail"].as_str().unwrap().contains("kind other"),
         "{out}"
@@ -280,10 +226,11 @@ fn page_template_violations_stop_rendering() {
 }
 
 #[test]
-fn without_any_concrete_design_documents_still_render() {
+fn without_page_templates_documents_still_render() {
     let root = setup("document-only");
     fs::remove_file(root.join("declarations/T-1.json")).unwrap();
-    let (code, out) = render_with(&root, None);
+    fs::remove_file(root.join("pages/thing.json")).unwrap();
+    let (code, out) = render(&root);
     assert_eq!(code, 0, "{out}");
     assert!(root.join("out/D-1.html").exists());
     fs::remove_dir_all(&root).unwrap();
@@ -304,7 +251,7 @@ fn document_blocks_render_by_information_type_and_escape_text() {
             {"type": "quote", "text": "A schema", "source": "json-schema-core:2057"},
             {"type": "bars", "items": [{"label": "甲", "value": 2}, {"label": "乙", "value": 4}]}]}]});
     fs::write(root.join("declarations/D-1.json"), document.to_string()).unwrap();
-    let (code, out) = render_with(&root, None);
+    let (code, out) = render(&root);
     assert_eq!(code, 0, "{out}");
     let page = fs::read_to_string(root.join("out/D-1.html")).unwrap();
     assert!(page.contains("<h1>&lt;比較&gt;</h1>"), "{page}");
@@ -355,7 +302,7 @@ fn render_document(name: &str, document: Value) -> Result<String, Value> {
     let root = setup(name);
     fs::remove_file(root.join("declarations/T-1.json")).unwrap();
     fs::write(root.join("declarations/D-1.json"), document.to_string()).unwrap();
-    let (code, out) = render_with(&root, None);
+    let (code, out) = render(&root);
     let result = if code == 0 {
         Ok(fs::read_to_string(root.join("out/D-1.html")).unwrap())
     } else {

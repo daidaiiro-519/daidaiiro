@@ -1,4 +1,4 @@
-//! 描画の文脈（page.schema.json の context、ACDR 0133）のテスト（テストレベル component）。
+//! 描画の文脈（page.schema.json の context）のテスト。
 //! this ・ schema ・ derived ・ links ・ referrers ・ instances の6つの形を確かめる。
 
 use schema_driven_core::application::context::contexts;

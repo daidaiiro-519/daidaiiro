@@ -1,0 +1,330 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "schema-driven/tools@v1",
+ "title": "固有のツールの宣言",
+ "description": "Skill ・ Agent が共通ツールのほかに足すツールの宣言。宣言したツールは、エンジンが Skill のフォルダの中の別の実行ファイルとして呼ぶ。ツールの中で何が正しいかは、ここには書かず、提供側も保証しない。",
+ "x-prompt": {
+  "read": {
+   "means": "Skill のフォルダの tools.json に置く、固有のツールの宣言である。",
+   "parse": "エンジンは標準入力に {\"tool\", \"args\"} の JSON を渡し、標準出力に ok を持つ JSON を1つ受け取る。",
+   "when": "エンジンを --skill <Skill のフォルダ> で起動したときに読む。"
+  },
+  "write": [
+   {
+    "id": "declarations-first",
+    "rule": "ツールを足す前に、x-derive ・ x-view ・ ページテンプレートの宣言で書けないかを先に確かめる。",
+    "why": "宣言で書ければ、別の実行ファイルを持たずに済み、版の保証の中に入る。",
+    "test": "足すツールごとに、宣言で書けない理由を1文で言えるかを見る。"
+   },
+   {
+    "id": "one-json-out",
+    "rule": "ツールは標準出力に、ok を持つ JSON を1つだけ書く。",
+    "why": "エンジンは JSON として読めない出力を失敗として返す。",
+    "test": "ツールを実行して、出力が JSON のオブジェクト1つかを見る。"
+   },
+   {
+    "id": "exit-codes",
+    "rule": "終了コードは 0 成功、1 失敗、2 使い方の誤りにする。",
+    "why": "共通ツールと同じ決まりにしておくと、呼ぶ側が同じ読み方で済む。",
+    "test": "失敗する入力で、終了コードが 1 になるかを見る。"
+   }
+  ]
+ },
+ "x-generates": "<Skill のフォルダ>/tools.json",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "$schema",
+  "kind",
+  "tools"
+ ],
+ "properties": {
+  "$schema": {
+   "const": "schema-driven/tools@v1",
+   "description": "このインスタンスが従う、abstract スキーマの宣言の形",
+   "x-prompt": {
+    "read": {
+     "means": "宣言の形の版である。"
+    },
+    "write": [
+     {
+      "id": "this-urn",
+      "rule": "schema-driven/tools@v1 と書く。",
+      "why": "エンジンは、この値で宣言の形を判定する。",
+      "test": "値がこの文字列と同じかを見る。"
+     }
+    ]
+   }
+  },
+  "kind": {
+   "const": "tools",
+   "description": "固有のツールの宣言であることを表す",
+   "x-prompt": {
+    "read": {
+     "means": "固有のツールの宣言であることを表す。"
+    },
+    "write": [
+     {
+      "id": "const",
+      "rule": "tools と書く。",
+      "why": "基盤はこの値で、インスタンスの種類を判定する。",
+      "test": "値が tools かを見る。"
+     }
+    ]
+   }
+  },
+  "tools": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/tool"
+   },
+   "description": "足すツールの並び",
+   "x-prompt": {
+    "read": {
+     "means": "足すツールの並びである。",
+     "shown": "共通ツールのあとに、この順で一覧に並ぶ。"
+    },
+    "write": [
+     {
+      "id": "unique-names",
+      "rule": "名前は、共通ツールとも互いとも重ならないようにする。",
+      "why": "重なった名前は、エンジンが宣言ごと断る。",
+      "test": "schema-driven --json の一覧に、同じ名前が無いかを見る。"
+     }
+    ]
+   }
+  }
+ },
+ "$defs": {
+  "tool": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "ツール1つ",
+   "required": [
+    "name",
+    "description",
+    "args",
+    "command",
+    "sha256"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9-]*$",
+     "description": "ツールの名前",
+     "x-prompt": {
+      "read": {
+       "means": "CLI と MCP でツールを呼ぶ名前である。"
+      },
+      "write": [
+       {
+        "id": "verb-name",
+        "rule": "英小文字とハイフンで、何をするツールかが分かる名前にする。",
+        "why": "読み手は一覧の名前で、どのツールを使うかを決める。",
+        "bad": "tool1",
+        "good": "aggregate",
+        "test": "名前から、何をするツールかが分かるかを見る。"
+       }
+      ]
+     }
+    },
+    "description": {
+     "type": "string",
+     "minLength": 1,
+     "description": "ツールの説明",
+     "x-prompt": {
+      "read": {
+       "means": "ツールが何をし、何を返すかの説明である。",
+       "shown": "ツールの一覧に出る。"
+      },
+      "write": [
+       {
+        "id": "what-and-returns",
+        "rule": "何をし、何を返すかを書く。",
+        "why": "AI は説明を読んで、どのツールを呼ぶかを決める。",
+        "test": "説明に、返すものが書かれているかを見る。"
+       }
+      ]
+     }
+    },
+    "args": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/arg"
+     },
+     "description": "ツールの引数",
+     "x-prompt": {
+      "read": {
+       "means": "ツールが受け取る引数の並びで、値はどれも文字列である。"
+      },
+      "write": [
+       {
+        "id": "all-args",
+        "rule": "ツールが読む引数を、すべて並べる。",
+        "why": "宣言に無い引数は、エンジンが呼ぶ前に断る。",
+        "test": "ツールが読む引数が、すべて並んでいるかを見る。"
+       }
+      ]
+     }
+    },
+    "command": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "起動するコマンド（実行ファイルと、その引数）",
+     "x-prompt": {
+      "read": {
+       "means": "起動する実行ファイルと、その引数の配列である。",
+       "parse": "先頭は Skill のフォルダからの相対パスで、シェルを通さずに起動する。"
+      },
+      "write": [
+       {
+        "id": "inside-skill",
+        "rule": "先頭には、Skill のフォルダの中の実行ファイルを相対パスで書く。",
+        "why": "絶対パスと .. を含むパスは、エンジンが断る。",
+        "test": "先頭が / で始まらず、.. を含まないかを見る。"
+       },
+       {
+        "id": "no-shell",
+        "rule": "シェルの書き方（| ・ > ・ && など）を書かない。",
+        "why": "シェルを通さずに起動するので、記号はそのまま引数として渡る。",
+        "test": "配列の要素に、シェルの記号だけのものが無いかを見る。"
+       }
+      ]
+     }
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$",
+     "description": "実行ファイルの SHA-256",
+     "x-prompt": {
+      "read": {
+       "means": "command の先頭の実行ファイルの SHA-256 で、16進の小文字である。",
+       "when": "エンジンは呼ぶたびに、実行ファイルの SHA-256 と比べる。"
+      },
+      "write": [
+       {
+        "id": "rebuild-updates",
+        "rule": "実行ファイルを作り直したら、その SHA-256 を書き直す。",
+        "why": "合わないと、エンジンは呼ばずに断る。",
+        "test": "実行ファイルの SHA-256 と同じかを見る。"
+       }
+      ]
+     }
+    },
+    "timeout_seconds": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 300,
+     "description": "制限時間（秒）。既定は 30",
+     "x-prompt": {
+      "read": {
+       "means": "ツールの制限時間で、秒で数える。",
+       "when": "書かなければ 30秒で、超えるとエンジンが止めて失敗として返す。"
+      },
+      "write": [
+       {
+        "id": "only-if-longer",
+        "rule": "30秒で終わらないツールにだけ、300 までの値を書く。",
+        "why": "長くすると、止まったツールを待つ時間も長くなる。",
+        "test": "書いた値が、実際にかかる時間より少し長い程度かを見る。"
+       }
+      ]
+     }
+    },
+    "env": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+     },
+     "description": "ツールへ渡す環境変数の名前",
+     "x-prompt": {
+      "read": {
+       "means": "ツールへ渡す環境変数の名前の並びで、ほかの環境変数は渡さない。"
+      },
+      "write": [
+       {
+        "id": "only-needed",
+        "rule": "ツールが読む環境変数の名前だけを書く。",
+        "why": "渡す環境変数が多いと、秘密の値まで渡ることがある。",
+        "test": "書いた名前を、ツールが実際に読んでいるかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "arg": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "description"
+   ],
+   "description": "引数1つ",
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9-]*$",
+     "description": "引数の名前",
+     "x-prompt": {
+      "read": {
+       "means": "引数の名前で、CLI では --名前 で渡す。"
+      },
+      "write": [
+       {
+        "id": "lowercase",
+        "rule": "英小文字とハイフンで書く。",
+        "why": "CLI の引数の名前として、そのまま使う。",
+        "test": "英小文字とハイフンだけかを見る。"
+       }
+      ]
+     }
+    },
+    "description": {
+     "type": "string",
+     "minLength": 1,
+     "description": "引数の説明",
+     "x-prompt": {
+      "read": {
+       "means": "引数に何を渡すかの説明である。",
+       "shown": "MCP のツールの入力の説明に出る。"
+      },
+      "write": [
+       {
+        "id": "what-to-pass",
+        "rule": "何を渡すかを書く。",
+        "why": "AI は説明を読んで、引数の値を決める。",
+        "test": "説明から、渡す値の形が分かるかを見る。"
+       }
+      ]
+     }
+    },
+    "required": {
+     "type": "boolean",
+     "description": "必須か",
+     "x-prompt": {
+      "read": {
+       "means": "この引数が必須かである。",
+       "when": "書かなければ必須ではない。"
+      },
+      "write": [
+       {
+        "id": "only-required",
+        "rule": "ツールが値無しでは動かない引数にだけ true と書く。",
+        "why": "必須の引数が無いと、エンジンが呼ぶ前に断る。",
+        "test": "値を渡さずに呼んだとき、ツールが動かないかを見る。"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+}

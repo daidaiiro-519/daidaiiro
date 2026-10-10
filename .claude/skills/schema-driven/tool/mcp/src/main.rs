@@ -1,5 +1,5 @@
 //! MCP の実行ファイル。アダプタを作り、ツールの一覧（adapters の tools）を MCP のツールとして出す。
-//! rmcp と tokio はこの crate にだけ現れる（ACDR 0122）。
+//! rmcp と tokio はこの crate にだけ現れる。
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
@@ -8,17 +8,29 @@ use rmcp::model::{
 use rmcp::service::{MaybeSendFuture, RequestContext};
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
 use schema_driven_adapters::inbound::tools;
-use schema_driven_adapters::outbound::document_design::DocumentDesign;
-use schema_driven_adapters::outbound::fs::{master_root, FileSystem};
+use schema_driven_adapters::outbound::catalog::Catalog;
+use schema_driven_adapters::outbound::fs::FileSystem;
 use schema_driven_adapters::outbound::jmespath::Jmespath;
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
 use schema_driven_core::application::renders::Renders;
-use schema_driven_core::application::transcriptions::Transcriptions;
 use std::future::Future;
 use std::sync::Arc;
 
-struct Server;
+/// MCP のサーバー。--skill で渡した Skill のフォルダがあれば、その宣言したツールも出す。
+struct Server {
+    skill: Option<String>,
+}
+
+impl Server {
+    fn toolbox(&self) -> tools::Toolbox {
+        let toolbox = tools::Toolbox::base();
+        match &self.skill {
+            Some(dir) => toolbox.with_skill(dir),
+            None => toolbox,
+        }
+    }
+}
 
 impl ServerHandler for Server {
     fn get_info(&self) -> ServerConfig {
@@ -32,10 +44,18 @@ impl ServerHandler for Server {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + MaybeSendFuture + '_ {
-        let list = tools::Toolbox::base()
+        let toolbox = self.toolbox();
+        let list = toolbox
             .list()
             .iter()
             .map(|tool| Tool::new(tool.name, tool.description, tools::input_schema(tool)))
+            .chain(toolbox.declared().iter().map(|tool| {
+                Tool::new(
+                    tool.name.clone(),
+                    tool.description.clone(),
+                    tools::declared_input_schema(tool),
+                )
+            }))
             .collect();
         std::future::ready(Ok(ListToolsResult::with_all_items(list)))
     }
@@ -46,23 +66,23 @@ impl ServerHandler for Server {
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<CallToolResponse, ErrorData>> + MaybeSendFuture + '_ {
         let (files, query) = (Arc::new(FileSystem), Arc::new(Jmespath));
-        let use_cases = Instances::new(files.clone(), files.clone(), query.clone());
+        let mut use_cases = Instances::new(files.clone(), files.clone(), query.clone());
         let args = request.arguments.unwrap_or_default();
-        let checks = Checks::new(files.clone(), files.clone(), query.clone());
-        // 基盤だけで使うときは、具体のデザインが無いので、基盤の文書だけを描画する
-        let renders = Renders::new(
-            files.clone(),
-            files.clone(),
-            query,
-            Arc::new(DocumentDesign),
-            None,
-            None,
+        let mut checks = Checks::new(files.clone(), files.clone(), query.clone());
+        // 部品の見た目と操作は、基盤のカタログだけが持つ
+        let mut renders = Renders::new(files.clone(), files.clone(), query, Arc::new(Catalog));
+        // スキーマの名前は、--skill の Skill から引く
+        if let Some(dir) = &self.skill {
+            use_cases = use_cases.with_skill(dir);
+            checks = checks.with_skill(dir);
+            renders = renders.with_skill(dir);
+        }
+        let (code, out) = self.toolbox().with_render(Arc::new(renders)).dispatch(
+            &request.name,
+            &args,
+            &use_cases,
+            &checks,
         );
-        let transcriptions = Transcriptions::new(files, master_root());
-        let (code, out) = tools::Toolbox::base()
-            .with_render(Arc::new(renders))
-            .with_transcriptions(Arc::new(transcriptions))
-            .dispatch(&request.name, &args, &use_cases, &checks);
         let content = vec![ContentBlock::text(out.to_string())];
         let result = if code == 0 {
             CallToolResult::success(content)
@@ -75,7 +95,12 @@ impl ServerHandler for Server {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let service = match Server.serve(rmcp::transport::stdio()).await {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let skill = match args.as_slice() {
+        [flag, dir, ..] if flag == "--skill" => Some(dir.clone()),
+        _ => None,
+    };
+    let service = match (Server { skill }).serve(rmcp::transport::stdio()).await {
         Ok(service) => service,
         Err(error) => {
             eprintln!("schema-driven-mcp: 起動できない: {error}");

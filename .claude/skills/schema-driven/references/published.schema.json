@@ -1,0 +1,140 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "schema-driven/published@v1",
+ "title": "公開の記録",
+ "description": "公開した版のスキーマの名前と指紋。check-schemas が、いまのスキーマと比べて、公開した版の書き換えと消失を指摘する。",
+ "x-prompt": {
+  "read": {
+   "means": "このフォルダのスキーマのうち、公開した版の名前と指紋の一覧である。",
+   "when": "check-schemas が、同じフォルダのスキーマと比べるときに読む。"
+  },
+  "write": [
+   {
+    "id": "on-release",
+    "rule": "公開するときに、check-schemas が返した unpublished の名前と指紋をそのまま足す。",
+    "why": "公開したあとの版は、記録に入っていないと書き換えを検出できない。",
+    "test": "公開した名前が、すべて記録にあるかを見る。"
+   },
+   {
+    "id": "never-edit",
+    "rule": "足した記録を書き換えず、消さない。",
+    "why": "記録を直すと、公開した版の書き換えが見えなくなる。",
+    "test": "前の記録の行が、そのまま残っているかを見る。"
+   }
+  ]
+ },
+ "x-generates": "<スキーマのフォルダ>/published.json",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "$schema",
+  "kind",
+  "schemas"
+ ],
+ "properties": {
+  "$schema": {
+   "const": "schema-driven/published@v1",
+   "description": "このインスタンスが従うスキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "公開の記録の形の名前である。"
+    },
+    "write": [
+     {
+      "id": "this-name",
+      "rule": "schema-driven/published@v1 と書く。",
+      "why": "エンジンは、この名前で自分が持つスキーマを引く。",
+      "test": "値がこの名前と同じかを見る。"
+     }
+    ]
+   }
+  },
+  "kind": {
+   "const": "published",
+   "description": "公開の記録であることを表す",
+   "x-prompt": {
+    "read": {
+     "means": "公開の記録であることを表す。"
+    },
+    "write": [
+     {
+      "id": "const",
+      "rule": "published と書く。",
+      "why": "基盤はこの値で、インスタンスの種類を判定する。",
+      "test": "値が published かを見る。"
+     }
+    ]
+   }
+  },
+  "schemas": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/record"
+   },
+   "description": "公開した版の並び",
+   "x-prompt": {
+    "read": {
+     "means": "公開した版ごとの、名前と指紋の並びである。"
+    },
+    "write": [
+     {
+      "id": "append-only",
+      "rule": "新しく公開した版を、並びの終わりに足す。",
+      "why": "足すだけにすると、いつ何を公開したかが並びに残る。",
+      "test": "前の行が並びの頭から同じ順で残っているかを見る。"
+     }
+    ]
+   }
+  }
+ },
+ "$defs": {
+  "record": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "sha256"
+   ],
+   "description": "公開した版1つ",
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*@v[0-9]+$",
+     "description": "公開したスキーマの名前",
+     "x-prompt": {
+      "read": {
+       "means": "公開したスキーマの $id である。"
+      },
+      "write": [
+       {
+        "id": "as-returned",
+        "rule": "check-schemas が返した名前を、そのまま書く。",
+        "why": "名前が違うと、比べる相手が見つからない。",
+        "test": "名前が、フォルダのスキーマの $id と同じかを見る。"
+       }
+      ]
+     }
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$",
+     "description": "公開したときの指紋",
+     "x-prompt": {
+      "read": {
+       "means": "公開したときのスキーマの指紋で、キーの順と空白に左右されない SHA-256 である。"
+      },
+      "write": [
+       {
+        "id": "as-returned",
+        "rule": "check-schemas が返した指紋を、そのまま書く。",
+        "why": "手で求めると、求め方の違いで一致しない。",
+        "test": "値が 64 桁の16進の小文字かを見る。"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+}

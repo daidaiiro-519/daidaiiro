@@ -1,10 +1,9 @@
-//! x-view の文の型（references/view.schema.json、ACDR 0129）のテスト。
+//! x-view の文の型（references/view.schema.json）のテスト。
 //! 文の型の {…} は普通の JMESPath で、jmespath のアダプタを通して評価するので、アダプタと組み合わせて確かめる。
 
 use schema_driven_adapters::outbound::jmespath::Jmespath;
 use schema_driven_core::application::view::{Instance, ViewEngine};
 use schema_driven_core::domain::schema::Schema;
-use schema_driven_core::ports::outbound::Functions;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -108,73 +107,13 @@ fn quote_wraps_each_element() {
     );
 }
 
-/// 具体が足す関数の例（ACDR 0132）。基盤は中身を知らない。
-struct Concrete;
-
-impl Functions for Concrete {
-    fn names(&self) -> Vec<String> {
-        vec!["shout".into()]
-    }
-    fn call(&self, name: &str, args: &[Value]) -> Result<Value, String> {
-        match (name, args.first()) {
-            ("shout", Some(Value::String(text))) => Ok(Value::String(format!("{text}!"))),
-            ("shout", Some(Value::Array(elements))) => Ok(Value::Array(
-                elements
-                    .iter()
-                    .map(|element| json!(format!("{}!", element.as_str().unwrap_or_default())))
-                    .collect(),
-            )),
-            _ => Err(format!("{name} に渡せない値")),
-        }
-    }
-}
-
 #[test]
-fn function_outside_base_is_error_until_concrete_adds_it() {
+fn a_function_outside_the_base_is_an_error() {
     let schema = json!({"$defs": {"c": {"x-view": {"text": "{clause(s)}"}}}});
     let view_engine = engine(schema, vec![]);
     assert!(view_engine
         .render("t.schema.json", "/$defs/c", &json!({"s": "値は空"}))
         .is_err());
-}
-
-#[test]
-fn concrete_functions_work_in_text_parts_and_nested_view() {
-    let view_engine = engine(
-        json!({"$defs": {
-            "inner": {"x-view": {"text": "{shout(a)}"}},
-            "outer": {"x-view": {
-                "parts": {"p": "{shout(b)}"},
-                "text": "{view('/$defs/inner', @)} {part('p', @)} {tags | shout(@) | join('', @)}"}}}}),
-        vec![],
-    )
-    .with_functions(Arc::new(Concrete))
-    .unwrap();
-    assert_eq!(
-        render(
-            &view_engine,
-            "/$defs/outer",
-            json!({"a": "甲", "b": "乙", "tags": ["x", "y"]})
-        ),
-        "甲! 乙! x!y!"
-    );
-}
-
-struct Collides;
-
-impl Functions for Collides {
-    fn names(&self) -> Vec<String> {
-        vec!["name".into()]
-    }
-    fn call(&self, _: &str, _: &[Value]) -> Result<Value, String> {
-        Ok(Value::Null)
-    }
-}
-
-#[test]
-fn concrete_cannot_replace_base_function() {
-    let view_engine = engine(json!({}), vec![]);
-    assert!(view_engine.with_functions(Arc::new(Collides)).is_err());
 }
 
 #[test]

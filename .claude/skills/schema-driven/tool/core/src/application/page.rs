@@ -1,5 +1,5 @@
-//! ページの生成（3c。page.schema.json、ボード schema-driven-build の論点5、ACDR 0132 ・ 0133）。
-//! 節を並べ、show ・ each を適用し、式を描画の文脈で評価し、コンポーネントの描画は具体の Design を呼び出す。
+//! ページの生成（page.schema.json）。
+//! 節を並べ、show ・ each を適用し、式を描画の文脈で評価し、部品の描画はカタログ（ポート Design）を呼び出す。
 //! 文字は必ずエスケープし、部品のプレースホルダーと渡した名前が合わなければエラーにする。
 
 use crate::application::view::{to_text, truthy, ViewEngine, ViewError};
@@ -56,7 +56,7 @@ fn slots_of(template: &str) -> BTreeSet<String> {
     out
 }
 
-/// ページテンプレートと具体のデザインから、ページを生成する。
+/// ページテンプレートと部品のカタログから、ページを生成する。
 pub struct PageRenderer {
     engine: ViewEngine,
     design: Arc<dyn Design>,
@@ -88,7 +88,6 @@ impl PageRenderer {
         let mut run = Run {
             page_renderer: self,
             schema,
-            tones: page.get("tones").cloned().unwrap_or(Value::Null),
             current: context.clone(),
         };
         let err = ViewError;
@@ -152,7 +151,6 @@ impl PageRenderer {
 struct Run<'renderer> {
     page_renderer: &'renderer PageRenderer,
     schema: &'renderer str,
-    tones: Value,
     current: Value,
 }
 
@@ -266,17 +264,9 @@ impl Renderer for Run<'_> {
     fn tokens(&self) -> Html {
         Html::trusted(self.page_renderer.tokens.clone())
     }
-
-    fn tone(&self, table: &str, value: &Value) -> Option<String> {
-        self.tones
-            .get(table)
-            .and_then(|tones| tones.get(to_text(value)))
-            .and_then(Value::as_str)
-            .map(str::to_owned)
-    }
 }
 
-/// ページテンプレートのコンポーネントを、具体が登録した名前と入力の形で検査する。見つかった順に返す。
+/// ページテンプレートの部品を、カタログの名前と入力の形で検査する。見つかった順に返す。
 pub fn page_errors(design: &dyn Design, page: &Value) -> Vec<String> {
     let shapes: BTreeMap<String, Value> = design.components().into_iter().collect();
     let mut out = Vec::new();
@@ -323,8 +313,9 @@ fn walk(value: &Value, at: &str, shapes: &BTreeMap<String, Value>, out: &mut Vec
     }
 }
 
-/// 基盤の文書（references/document.schema.json）の決まったページテンプレート。何も指定が無いときに使う（UC-6）。
-/// 題は x-view の label（title）、題の上に badges、題の下に lead。目次 ・ 節とブロック ・ 出どころは、コンポーネント document が描画する。
+/// 基盤の文書（references/document.schema.json）の決まったページテンプレート。何も指定が無いときに使う。
+/// 題は x-view の label（title）、題の上に badges、題の下に lead。目次 ・ 節とブロック ・ 出どころは、部品 document が描画する。
+/// 節の見出しを空にして、部品 document の出力をそのまま置く。
 pub fn document_page_template() -> Value {
     serde_json::json!({
         "kind": "document",
@@ -332,6 +323,6 @@ pub fn document_page_template() -> Value {
             "badges": [{"component": "badges", "show": "this.badges", "value": "this.badges"}],
             "lead": {"component": "inline", "show": "this.lead", "value": "this.lead"}
         },
-        "sections": [{"heading": "文書", "body": [{"component": "document", "value": "this"}]}]
+        "sections": [{"heading": "", "body": [{"component": "document", "value": "this"}]}]
     })
 }

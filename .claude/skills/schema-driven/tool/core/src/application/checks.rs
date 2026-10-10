@@ -1,10 +1,11 @@
-//! 検査と承認のユースケース（UC-4 ・ 5 ・ 8）。ディレクトリのインスタンスを読み、ドメインサービス 検査する と
+//! 検査と承認のユースケース。ディレクトリのインスタンスを読み、ドメインサービス 検査する と
 //! 集約 承認記録 を使う。
 
 use crate::application::instances::{Instances, UseCaseError};
 use crate::application::paths;
 use crate::domain::approval::ApprovalRecord;
 use crate::domain::check::{check, Doc, Finding};
+use crate::domain::published;
 use crate::domain::schema::Schema;
 use crate::domain::schema_rules::{check_schemas, SchemaFinding};
 use crate::domain::values::{
@@ -45,12 +46,14 @@ pub struct Deleted {
     pub remaining: Vec<Finding>,
 }
 
-/// 具体のスキーマの検査の結果（ボード schema-driven-build の論点6 D）。
+/// 具体のスキーマの検査の結果。
 #[derive(Debug, Clone, PartialEq)]
 pub struct SchemasChecked {
     /// 検査したスキーマのファイルの名前
     pub schemas: Vec<String>,
     pub findings: Vec<SchemaFinding>,
+    /// まだ公開の記録に無い名前と、その指紋
+    pub unpublished: Vec<published::Unpublished>,
 }
 
 pub struct Checks {
@@ -75,6 +78,12 @@ impl Checks {
         }
     }
 
+    /// スキーマの名前を引く Skill のフォルダを渡す。
+    pub fn with_skill(mut self, dir: &str) -> Self {
+        self.instances = self.instances.with_skill(dir);
+        self
+    }
+
     pub(crate) fn load_dir(
         &self,
         dir: &str,
@@ -97,7 +106,7 @@ impl Checks {
                 .ok_or_else(|| {
                     UseCaseError::new("スキーマが分からない", format!("{path} に $schema が無い"))
                 })?;
-            let schema = paths::join(paths::parent(&path), relative);
+            let schema = self.instances.schema_path(&path, relative)?;
             if !schemas.contains_key(&schema) {
                 let loaded_schema = self.instances.load_schema(&schema)?;
                 schemas.insert(schema.clone(), loaded_schema);
@@ -176,21 +185,36 @@ impl CheckUseCases for Checks {
             .files
             .list(dir)
             .map_err(|error| UseCaseError::new("読めない", error.0))?;
-        let mut schemas = Vec::new();
+        let (mut schemas, mut named) = (Vec::new(), Vec::new());
         for path in list {
             let name = path.rsplit('/').next().unwrap_or(&path).to_owned();
-            if !name.ends_with(".schema.json") {
-                continue;
+            if name.ends_with(".schema.json") {
+                let (_, value) = self.instances.read_json(&path)?;
+                named.push((name.clone(), value.clone()));
+                schemas.push((name, value));
+            } else if name.ends_with(".json") && name != published::RECORD_FILE {
+                // メタスキーマのように .schema.json で終わらないスキーマも、名前を持てば指紋の対象にする
+                let (_, value) = self.instances.read_json(&path)?;
+                if value.get("$id").is_some() {
+                    named.push((name, value));
+                }
             }
-            let (_, value) = self.instances.read_json(&path)?;
-            schemas.push((name, value));
         }
-        let findings = check_schemas(&schemas, &|expression: &str| {
+        let mut findings = check_schemas(&schemas, &|expression: &str| {
             self.query.parse(expression).map_err(|error| error.0)
         });
+        let record_path = format!("{}/{}", dir.trim_end_matches('/'), published::RECORD_FILE);
+        let record = if self.files.exists(&record_path) {
+            Some(self.instances.read_json(&record_path)?.1)
+        } else {
+            None
+        };
+        let (changed, unpublished) = published::check(&named, record.as_ref());
+        findings.extend(changed);
         Ok(SchemasChecked {
             schemas: schemas.into_iter().map(|(name, _)| name).collect(),
             findings,
+            unpublished,
         })
     }
 
@@ -277,7 +301,12 @@ impl CheckUseCases for Checks {
         let (_, value) = self.instances.read_json(path)?;
         let id = value.get("id").and_then(Value::as_str).map(str::to_owned);
         self.files.remove(path).map_err(Instances::write_error)?;
-        let (checked, _) = self.run(paths::parent(path))?;
+        // ディレクトリの無いパスは、いまのディレクトリにある
+        let dir = match paths::parent(path) {
+            "" => ".",
+            dir => dir,
+        };
+        let (checked, _) = self.run(dir)?;
         let remaining = match id {
             Some(id) => checked
                 .findings

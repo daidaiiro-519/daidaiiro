@@ -1,16 +1,18 @@
-//! 2回目（検査と承認）のテスト（テストレベル system）。CLI を一時ディレクトリで実行して確かめる。
+//! 2回目（検査と承認）のテスト。CLI を一時ディレクトリで実行して確かめる。
 //! テストの名前は、テスト条件の ID を含む。
+
+mod common;
 
 use serde_json::{json, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 const BIN: &str = env!("CARGO_BIN_EXE_schema-driven");
 
 /// スキーマ（thing）と、インスタンスを置くディレクトリ declarations を用意する。
-fn workdir(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("schema-driven-r2-{name}-{}", std::process::id()));
+fn workdir(name: &str) -> common::Scratch {
+    let dir = common::Scratch::new(&format!("schema-driven-r2-{name}"));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("schema")).unwrap();
     fs::create_dir_all(dir.join("declarations")).unwrap();
@@ -84,7 +86,7 @@ fn drifts(out: &Value) -> Vec<Value> {
         .collect()
 }
 
-// ── UC-5 ディレクトリのインスタンスを検査する
+// ── ディレクトリのインスタンスを検査する
 
 #[test]
 fn uc_5_m_check_returns_validation_and_findings() {
@@ -127,7 +129,7 @@ fn uc_5_ext_2_empty_directory_ends() {
     assert_eq!(out["findings"], json!([]));
 }
 
-// ── UC-8 承認を記録する
+// ── 承認を記録する
 
 #[test]
 fn uc_8_m_approve_records_paths_and_hashes() {
@@ -201,7 +203,7 @@ fn uc_8_ext_5_unfilled_is_rejected() {
     assert_eq!(out["reason"], "未記入のプロパティがある");
 }
 
-// ── UC-4 インスタンスを削除する
+// ── インスタンスを削除する
 
 #[test]
 fn uc_4_m_delete_reports_remaining_references() {

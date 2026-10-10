@@ -1,4 +1,4 @@
-//! ページの生成（3c。ボード schema-driven-build の論点5 C、ACDR 0132 ・ 0133）のテスト。
+//! ページの生成のテスト。
 //! テスト用の小さな具体（MiniDesign）が、ポート Design にコンポーネントと部品の実装を渡す。
 //! 基盤は節を並べ、show ・ each を適用し、式を描画の文脈で評価し、文字をエスケープし、プレースホルダーの過不足をエラーにする。
 
@@ -9,7 +9,7 @@ use schema_driven_core::application::view::{Instance, ViewEngine};
 use schema_driven_core::domain::check::Doc;
 use schema_driven_core::domain::schema::Schema;
 use schema_driven_core::domain::values::{Html, JsonValue};
-use schema_driven_core::ports::outbound::{Design, Frame, Functions, Renderer};
+use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -97,14 +97,8 @@ impl Design for MiniDesign {
         match name {
             "pill" => {
                 let text = renderer.node(&input["value"])?;
-                let tone = match input.get("tone").and_then(Value::as_str) {
-                    Some(table) => {
-                        let raw = renderer.value(&input["value"])?;
-                        renderer.tone(table, &raw).unwrap_or_else(|| "plain".into())
-                    }
-                    None => "plain".into(),
-                };
-                renderer.part("pill", &[("tone", renderer.text(&tone)), ("text", text)])
+                let tone = input.get("tone").and_then(Value::as_str).unwrap_or("plain");
+                renderer.part("pill", &[("tone", renderer.text(tone)), ("text", text)])
             }
             "table" => {
                 let rows = renderer.value(&input["rows"])?;
@@ -132,18 +126,6 @@ impl Design for MiniDesign {
     }
 }
 
-/// 具体が足す関数の例。
-struct Shout;
-
-impl Functions for Shout {
-    fn names(&self) -> Vec<String> {
-        vec!["shout".into()]
-    }
-    fn call(&self, _: &str, args: &[Value]) -> Result<Value, String> {
-        Ok(json!(format!("{}!", args[0].as_str().unwrap_or(""))))
-    }
-}
-
 fn uc_schema() -> Value {
     json!({"x-view": {"label": "header.name"},
            "properties": {"rules": {"x-ref": {"to": "rule"}}}})
@@ -162,12 +144,8 @@ fn instances() -> Vec<Value> {
     ]
 }
 
-/// UC-1 のページを生成する。
-fn render_uc(
-    page: Value,
-    design: MiniDesign,
-    extra: Option<Arc<dyn Functions>>,
-) -> Result<String, String> {
+/// 見本のインスタンス（UC-1）のページを生成する。
+fn render_uc(page: Value, design: MiniDesign) -> Result<String, String> {
     let uc = Schema::new("uc.schema.json", uc_schema(), vec![]);
     let rule = Schema::new("rule.schema.json", rule_schema(), vec![]);
     let values = instances();
@@ -195,7 +173,7 @@ fn render_uc(
             },
         })
         .collect();
-    let mut engine = ViewEngine::new(
+    let engine = ViewEngine::new(
         Arc::new(Jmespath),
         vec![
             (
@@ -209,9 +187,6 @@ fn render_uc(
         ],
         list,
     );
-    if let Some(functions) = extra {
-        engine = engine.with_functions(functions).map_err(|error| error.0)?;
-    }
     let renderer = PageRenderer::new(engine, Arc::new(design)).map_err(|error| error.0)?;
     renderer
         .render(&page, &ctx, "uc.schema.json")
@@ -224,7 +199,7 @@ fn frame_title_comes_from_label_and_sections_follow_show() {
     let page = json!({"kind": "uc", "head": {"lead": "this.header.level"}, "sections": [
         {"heading": "出る節", "body": [{"text": "固定"}]},
         {"heading": "出ない節", "show": "this.steps", "body": [{"text": "x"}]}]});
-    let html = render_uc(page, mini(), None).unwrap();
+    let html = render_uc(page, mini()).unwrap();
     assert_eq!(
         html,
         "<main><h1>注文 &lt;する&gt;</h1><p>user</p><section><h2>出る節</h2>固定</section></main>"
@@ -234,7 +209,7 @@ fn frame_title_comes_from_label_and_sections_follow_show() {
 #[test]
 fn expression_nodes_are_escaped_and_arrays_joined() {
     let page = json!({"kind": "uc", "sections": [{"heading": "h", "body": ["this.header.name", "this.tags"]}]});
-    let html = render_uc(page, mini(), None).unwrap();
+    let html = render_uc(page, mini()).unwrap();
     assert!(
         html.contains("<section><h2>h</h2>注文 &lt;する&gt;甲 ・ 乙</section>"),
         "{html}"
@@ -243,13 +218,13 @@ fn expression_nodes_are_escaped_and_arrays_joined() {
 
 #[test]
 fn component_each_and_show_are_applied_by_the_base() {
-    let page = json!({"kind": "uc", "tones": {"t": {"甲": "accent"}}, "sections": [{"heading": "h", "body": [
-        {"component": "pill", "each": "this.tags", "value": "@", "tone": "t"},
+    let page = json!({"kind": "uc", "sections": [{"heading": "h", "body": [
+        {"component": "pill", "each": "this.tags", "value": "@", "tone": "accent"},
         {"component": "pill", "show": "this.steps", "value": "'出ない'"}]}]});
-    let html = render_uc(page, mini(), None).unwrap();
+    let html = render_uc(page, mini()).unwrap();
     assert!(
         html.contains(
-            r#"<span class="pill accent">甲</span><span class="pill plain">乙</span></section>"#
+            r#"<span class="pill accent">甲</span><span class="pill accent">乙</span></section>"#
         ),
         "{html}"
     );
@@ -261,21 +236,13 @@ fn table_renders_column_nodes_against_each_row() {
         {"component": "table", "rows": "links[?at=='/rules'].target",
          "cols": [{"head": "ルール", "value": "name(@)"},
                   {"head": "バッジ", "value": {"component": "pill", "value": "@"}}]}]}]});
-    let html = render_uc(page, mini(), None).unwrap();
+    let html = render_uc(page, mini()).unwrap();
     assert!(
         html.contains(
             r#"<table><tr><th>ルール</th><th>バッジ</th></tr><tr><td>在庫がある</td><td><span class="pill plain">R-1</span></td></tr><tr><td>支払える</td><td><span class="pill plain">R-2</span></td></tr></table>"#
         ),
         "{html}"
     );
-}
-
-#[test]
-fn concrete_functions_are_usable_in_page_expressions() {
-    let page =
-        json!({"kind": "uc", "sections": [{"heading": "h", "body": ["shout(this.header.level)"]}]});
-    let html = render_uc(page, mini(), Some(Arc::new(Shout))).unwrap();
-    assert!(html.contains("user!"), "{html}");
 }
 
 #[test]
@@ -286,7 +253,7 @@ fn part_slots_must_match_exactly() {
 <template id="lead"><p>{{text}}</p></template>"#,
     };
     let page = json!({"kind": "uc", "sections": [{"heading": "h", "body": [{"text": "x"}]}]});
-    let err = render_uc(page, missing, None).unwrap_err();
+    let err = render_uc(page, missing).unwrap_err();
     assert!(err.contains("badges"), "{err}");
 }
 
@@ -296,7 +263,7 @@ fn unknown_component_is_an_error() {
         json!({"kind": "uc", "sections": [{"heading": "h", "body": [{"component": "nope"}]}]});
     // 具体に渡す前に、基盤が登録されていない名前を止める
     assert_eq!(
-        render_uc(page, mini(), None).unwrap_err(),
+        render_uc(page, mini()).unwrap_err(),
         "知らないコンポーネント: nope"
     );
 }

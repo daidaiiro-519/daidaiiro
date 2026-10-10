@@ -1,5 +1,5 @@
-//! 集約 インスタンス（AGG-1）。パス ・ スキーマ ・ JSON の値 ・ ハッシュ値を持つ。
-//! INV-1：ハッシュ値は、JSON の値の sha256 である（作成と更新のあとに成り立つ）。
+//! 集約 インスタンス。パス ・ スキーマ ・ JSON の値 ・ ハッシュ値を持つ。
+//! 不変条件：ハッシュ値は、JSON の値の sha256 である（作成と更新のあとに成り立つ）。
 
 use crate::domain::schema::{Schema, SchemaError, Validation};
 use crate::domain::values::{
@@ -10,13 +10,13 @@ use std::fmt;
 /// コマンドを拒んだ理由（宣言の拒否の理由）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Reject {
-    /// TERM-37 パスにインスタンスが既にある
+    /// パスにインスタンスが既にある
     AlreadyExists,
-    /// TERM-38 JSON Patch を適用できない
+    /// JSON Patch を適用できない
     CannotApply(String),
-    /// TERM-52 ほかの更新と競合した
+    /// ほかの更新と競合した
     Conflict,
-    /// TERM-39 検証を通過しない
+    /// 検証を通過しない
     Invalid(Vec<ValidationError>),
     /// スキーマから検証器を作れない
     BrokenSchema(String),
@@ -45,7 +45,7 @@ pub struct Instance {
 }
 
 impl Instance {
-    /// 読み込んだ内容からインスタンスを作る。ハッシュ値は内容から求める（INV-1）。
+    /// 読み込んだ内容からインスタンスを作る。ハッシュ値は内容から求める。
     pub fn load(path: InstancePath, schema: SchemaPath, value: JsonValue) -> Self {
         let hash = value.hash();
         Self {
@@ -56,8 +56,8 @@ impl Instance {
         }
     }
 
-    /// CMD-1 作成する。BR-1：パスにインスタンスが既にあれば拒む。
-    /// 必須のプロパティは置かない（未記入として残す。ACDR 0118）。スキーマのパスは `$schema` に持つ。
+    /// 作成する。パスにインスタンスが既にあれば拒む。
+    /// 必須のプロパティは置かない（未記入として残す）。スキーマのパスは `$schema` に持つ。
     pub fn create(path: InstancePath, schema: SchemaPath, exists: bool) -> Result<Self, Reject> {
         if exists {
             return Err(Reject::AlreadyExists);
@@ -66,8 +66,8 @@ impl Instance {
         Ok(Self::load(path, schema, value))
     }
 
-    /// CMD-2 更新する。BR-1：読んだ時点のハッシュ値が今と違えば拒む。
-    /// 適用したあとに、未記入以外の検証エラーがあれば拒む（ACDR 0118）。
+    /// 更新する。読んだ時点のハッシュ値が今と違えば拒む。
+    /// 適用したあとに、未記入以外の検証エラーがあれば拒む。
     pub fn update(
         &self,
         patch: &JsonPatch,

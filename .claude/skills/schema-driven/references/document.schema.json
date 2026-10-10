@@ -1,15 +1,71 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "document.schema.json",
+ "x-abstract": "schema-driven/abstract@v1",
+ "$id": "schema-driven/document@v1",
  "title": "文書",
- "description": "何も指定が無いときに使う、基盤の文書の契約。文書は、節の並びで、節は情報の種類ごとのブロックの並びである。この契約に合うインスタンスは、基盤の決まったデザインで描画する。具体がスキーマとデザインテンプレートを持つときは、そちらを使う",
+ "description": "何も指定が無いときに使う、基盤の文書の契約。文書は、節の並びで、節は情報の種類ごとのブロックの並びである。この契約に合うインスタンスは、部品のカタログの document で描画する。",
  "x-generates": "<文書の名前>.json",
  "x-view": {
   "label": "title"
  },
  "x-prompt": {
-  "read": "上から、題 ・ 前置き ・ 節の順に読む。節の中のブロックは、上から順にページに並ぶ。ブロックの type が、その情報の種類と見せ方を決める。",
-  "write": "伝えたいことを、読み手が上から読む順の節に分け、節ごとに情報の種類に合うブロックを選んで並べる。手順：(1) title に文書の名前を書く。(2) lead に、この文書で何が分かるかを1〜2文で書く。(3) sections に節を並べ、heading に節の中身を表す名詞句を書く。(4) blocks には、情報の種類からブロックを選ぶ ── 結論と理由は paragraph、項目と値は properties、比べるものは table、前と後は change、順序は steps、状態は status、量は bars、原文は quote、注意は note、詳細は fold、図は figure、コードは code。文の中では、読み手に必ず見てほしい数や語だけを **強調** にし、コマンド ・ 識別子は `コード` にする。出どころは sources に並べ、文の中から [文字](#source-ID) で指す。誤り：見た目で選ばない（表にしたいから table、ではなく、比べるものだから table）。1つのブロックに2つの種類を混ぜない。"
+  "read": {
+   "means": "部品のカタログの document で描画する、文書1つである。",
+   "parse": "ブロックの type が、その情報の種類と見せ方を決める。",
+   "shown": "上から題 ・ 前置き ・ 節の順に並び、節の中のブロックは上から並ぶ。"
+  },
+  "write": [
+   {
+    "id": "sections-in-reading-order",
+    "rule": "伝えたいことを、読み手が上から読む順の節に分ける。",
+    "why": "節はその順にページに並ぶ。",
+    "test": "先頭の節だけで、何の文書かが分かるかを見る。"
+   },
+   {
+    "id": "title-and-lead",
+    "rule": "title に文書の名前を、lead にこの文書で何が分かるかを1〜2文で書く。",
+    "why": "読み手は題と前置きで、読むかどうかを決める。",
+    "test": "title と lead があるかを見る。"
+   },
+   {
+    "id": "block-by-kind",
+    "rule": "ブロックは、見た目ではなく情報の種類で選ぶ。",
+    "why": "type が見せ方を決めるので、種類と合わないと読み手が誤って読む。",
+    "bad": "表にしたいから table にする。",
+    "good": "比べるものだから table にする。",
+    "test": "ブロックごとに、情報の種類を1語で言えるかを見る。"
+   },
+   {
+    "id": "kind-table",
+    "rule": "結論と理由は paragraph、項目と値は properties、比べるものは table、前と後は change、順序は steps にする。",
+    "why": "種類とブロックの対応が決まっていると、同じ種類の情報が同じ形で出る。",
+    "test": "対応と違うブロックが無いかを見る。"
+   },
+   {
+    "id": "kind-table-2",
+    "rule": "状態は status、量は bars、原文は quote、注意は note、詳細は fold、図は figure、コードは code にする。",
+    "why": "種類とブロックの対応が決まっていると、同じ種類の情報が同じ形で出る。",
+    "test": "対応と違うブロックが無いかを見る。"
+   },
+   {
+    "id": "one-kind-per-block",
+    "rule": "1つのブロックに、2つの種類を混ぜない。",
+    "why": "混ぜると、どちらの見せ方でも読みにくくなる。",
+    "test": "ブロックごとに、情報の種類が1つかを見る。"
+   },
+   {
+    "id": "emphasis-and-code",
+    "rule": "文の中では、必ず見てほしい数や語だけを **強調** にし、コマンドと識別子は `コード` にする。",
+    "why": "強調が多いと、どれも目立たなくなる。",
+    "test": "1つの文に、強調が2つ以上無いかを見る。"
+   },
+   {
+    "id": "sources",
+    "rule": "出どころは sources に並べ、文の中から [文字](#source-ID) で指す。",
+    "why": "根拠の場所が文から分かる。",
+    "test": "文の中の #source- の指す先が、sources にあるかを見る。"
+   }
+  ]
  },
  "type": "object",
  "additionalProperties": false,
@@ -23,16 +79,34 @@
    "type": "string",
    "description": "このスキーマへの相対パス",
    "x-prompt": {
-    "read": "文書の契約の場所。",
-    "write": "document.schema.json への相対パスを書く。"
+    "read": {
+     "means": "文書の契約の場所である。"
+    },
+    "write": [
+     {
+      "id": "relative-path",
+      "rule": "document.schema.json への相対パスを書く。",
+      "why": "基盤はこのパスでスキーマを読む。",
+      "test": "インスタンスの場所から、パスでスキーマに着くかを見る。"
+     }
+    ]
    }
   },
   "kind": {
    "const": "document",
    "description": "インスタンスの種類",
    "x-prompt": {
-    "read": "基盤の文書であることを表す。",
-    "write": "document と書く。"
+    "read": {
+     "means": "基盤の文書であることを表す。"
+    },
+    "write": [
+     {
+      "id": "document",
+      "rule": "document と書く。",
+      "why": "基盤はこの値で、文書の決まったページテンプレートで描画するかを決める。",
+      "test": "値が document かを見る。"
+     }
+    ]
    }
   },
   "id": {
@@ -43,8 +117,23 @@
     "hidden": true
    },
    "x-prompt": {
-    "read": "ほかの文書はこの ID で指す。",
-    "write": "ほかから指すときだけ書く。英数とハイフンで書く。"
+    "read": {
+     "means": "ほかの文書がこの文書を指すときの ID である。"
+    },
+    "write": [
+     {
+      "id": "only-when-referenced",
+      "rule": "ほかから指すときだけ書く。",
+      "why": "指されない ID は、読み手に何も伝えない。",
+      "test": "この ID を指す文書があるかを見る。"
+     },
+     {
+      "id": "ascii",
+      "rule": "英数とハイフンで書く。",
+      "why": "文の中の #source- と同じく、リンクの名前として使う。",
+      "test": "英数とハイフンだけかを見る。"
+     }
+    ]
    }
   },
   "title": {
@@ -52,8 +141,20 @@
    "minLength": 1,
    "description": "文書の題",
    "x-prompt": {
-    "read": "ページの題になる。",
-    "write": "文書の中身を表す名詞句を書く。「〜について」のような言い回しにしない。"
+    "read": {
+     "means": "文書の名前である。",
+     "shown": "ページの題になる。"
+    },
+    "write": [
+     {
+      "id": "noun-phrase",
+      "rule": "文書の中身を表す名詞句を書く。",
+      "why": "読み手は題で、何の文書かを判断する。",
+      "bad": "設定について",
+      "good": "設定の項目と既定値",
+      "test": "「〜について」で終わっていないかを見る。"
+     }
+    ]
    }
   },
   "lead": {
@@ -61,8 +162,18 @@
    "minLength": 1,
    "description": "前置き",
    "x-prompt": {
-    "read": "題の下に出る。この文書で何が分かるか。",
-    "write": "読み手が最初に知るべきことを1〜2文で書く。"
+    "read": {
+     "means": "この文書で何が分かるかである。",
+     "shown": "題の下に出る。"
+    },
+    "write": [
+     {
+      "id": "first-thing",
+      "rule": "読み手が最初に知るべきことを、1〜2文で書く。",
+      "why": "読み手は前置きで、読み進めるかを決める。",
+      "test": "2文以内かを見る。"
+     }
+    ]
    }
   },
   "badges": {
@@ -73,8 +184,17 @@
    },
    "description": "題の上に並べる短い分類",
    "x-prompt": {
-    "read": "文書の分類や日付として読む。",
-    "write": "日付 ・ 種類のような短い語だけを書く。文は書かない。"
+    "read": {
+     "means": "文書の分類や日付である。"
+    },
+    "write": [
+     {
+      "id": "short-words",
+      "rule": "日付 ・ 種類のような短い語だけを書き、文は書かない。",
+      "why": "バッジは題の横に並び、長いと題が読めなくなる。",
+      "test": "1つのバッジが語1つかを見る。"
+     }
+    ]
    }
   },
   "sections": {
@@ -85,8 +205,18 @@
    },
    "description": "節の並び",
    "x-prompt": {
-    "read": "上から順に節として並べる。節が4つ以上なら、題の下に目次が出る。",
-    "write": "読み手が判断に使う順に並べる。結論の節を先に置く。"
+    "read": {
+     "means": "文書の節の並びである。",
+     "shown": "上から順に節として並び、節が4つ以上なら題の下に目次が出る。"
+    },
+    "write": [
+     {
+      "id": "conclusion-first",
+      "rule": "読み手が判断に使う順に並べ、結論の節を先に置く。",
+      "why": "読み手は上から読み、判断できたところで読むのをやめる。",
+      "test": "先頭の節に結論があるかを見る。"
+     }
+    ]
    }
   },
   "sources": {
@@ -114,8 +244,24 @@
     }
    },
    "x-prompt": {
-    "read": "文書の末尾の出どころの一覧。文の中の [文字](#source-ID) が、ここの項目を指す。",
-    "write": "引用 ・ 数値 ・ 判断の根拠にしたものを1件ずつ書く。id は英数で付け、文の中から [文字](#source-ID) で指す。"
+    "read": {
+     "means": "文書の出どころの一覧である。",
+     "shown": "文書の末尾に出て、文の中の [文字](#source-ID) がここの項目を指す。"
+    },
+    "write": [
+     {
+      "id": "one-per-ground",
+      "rule": "引用 ・ 数値 ・ 判断の根拠にしたものを1件ずつ書く。",
+      "why": "根拠ごとに、文の中から指せるようにする。",
+      "test": "引用と数値に、指す先の出どころがあるかを見る。"
+     },
+     {
+      "id": "ascii-id",
+      "rule": "id は英数で付け、文の中から [文字](#source-ID) で指す。",
+      "why": "id がリンクの名前になる。",
+      "test": "id が英数だけかを見る。"
+     }
+    ]
    }
   }
  },
@@ -134,8 +280,17 @@
      "minLength": 1,
      "description": "節の見出し",
      "x-prompt": {
-      "read": "節の見出し。",
-      "write": "節の中身を表す名詞句を書く。"
+      "read": {
+       "means": "節の見出しである。"
+      },
+      "write": [
+       {
+        "id": "noun-phrase",
+        "rule": "節の中身を表す名詞句を書く。",
+        "why": "読み手は見出しで、読むかどうかを決める。",
+        "test": "見出しが名詞で終わっているかを見る。"
+       }
+      ]
      }
     },
     "blocks": {
@@ -146,8 +301,18 @@
      },
      "description": "ブロックの並び",
      "x-prompt": {
-      "read": "上から順に並べる。",
-      "write": "情報の種類ごとに、1つずつブロックにする。"
+      "read": {
+       "means": "節の中身のブロックの並びである。",
+       "shown": "上から順に並ぶ。"
+      },
+      "write": [
+       {
+        "id": "one-block-per-kind",
+        "rule": "情報の種類ごとに、1つずつブロックにする。",
+        "why": "種類ごとに見せ方が決まっている。",
+        "test": "1つのブロックに、2つの種類が無いかを見る。"
+       }
+      ]
      }
     }
    }
@@ -214,14 +379,56 @@
    "description": "結論と理由。段落",
    "properties": {
     "type": {
-     "const": "paragraph"
+     "const": "paragraph",
+     "description": "ブロックが段落であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが段落であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "paragraph と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が paragraph かを見る。"
+       }
+      ]
+     }
     },
     "text": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "段落の文",
+     "x-prompt": {
+      "read": {
+       "means": "結論と理由を述べる段落の文である。"
+      },
+      "write": [
+       {
+        "id": "conclusion-then-reason",
+        "rule": "結論を先に書き、理由をそのあとに書く。",
+        "why": "読み手は最初の文で、続きを読むかを決める。",
+        "test": "最初の文が結論かを見る。"
+       }
+      ]
+     }
     },
     "strong": {
      "type": "boolean",
-     "description": "結論として強く出す"
+     "description": "結論として強く出す",
+     "x-prompt": {
+      "read": {
+       "means": "この段落を結論として強く出す指定である。",
+       "shown": "true なら、ほかの段落より目立つ形で出る。"
+      },
+      "write": [
+       {
+        "id": "one-per-section",
+        "rule": "節の結論にあたる段落にだけ true と書く。",
+        "why": "強く出す段落が多いと、どれが結論か分からなくなる。",
+        "test": "1つの節に true が2つ以上無いかを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -235,7 +442,21 @@
    "description": "属性。1つのものの項目と値",
    "properties": {
     "type": {
-     "const": "properties"
+     "const": "properties",
+     "description": "ブロックが属性であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが属性であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "properties と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が properties かを見る。"
+       }
+      ]
+     }
     },
     "rows": {
      "type": "array",
@@ -255,6 +476,21 @@
         "$ref": "#/$defs/text"
        }
       }
+     },
+     "description": "項目と値の組の並び",
+     "x-prompt": {
+      "read": {
+       "means": "1つのものの、項目と値の組の並びである。",
+       "shown": "左に項目、右に値の2列で出る。"
+      },
+      "write": [
+       {
+        "id": "one-thing",
+        "rule": "1つのものについての項目だけを並べる。",
+        "why": "2つのものの項目が混ざると、比べる表と区別できない。",
+        "test": "すべての行が、同じ1つのものの項目かを見る。"
+       }
+      ]
      }
     }
    }
@@ -270,10 +506,39 @@
    "description": "比べるもの。行が比べる対象、列が比べる観点",
    "properties": {
     "type": {
-     "const": "table"
+     "const": "table",
+     "description": "ブロックが比べる表であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが比べる表であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "table と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が table かを見る。"
+       }
+      ]
+     }
     },
     "caption": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "表の題",
+     "x-prompt": {
+      "read": {
+       "means": "表が何を比べているかの題である。",
+       "shown": "表の上に出る。"
+      },
+      "write": [
+       {
+        "id": "what-is-compared",
+        "rule": "何を何の観点で比べた表かを、名詞句で書く。",
+        "why": "題が無いと、読み手が行と列から何の表かを推し量ることになる。",
+        "test": "題から、行と列の意味が分かるかを見る。"
+       }
+      ]
+     }
     },
     "columns": {
      "type": "array",
@@ -303,7 +568,27 @@
        }
       ]
      },
-     "description": "列。文字か、{label, align}。数の列は align: right"
+     "description": "列。文字か、{label, align}。数の列は align: right",
+     "x-prompt": {
+      "read": {
+       "means": "表の列の見出しの並びで、列は比べる観点である。",
+       "parse": "文字ならそのまま見出しで、{label, align} なら align で寄せ方が決まる。"
+      },
+      "write": [
+       {
+        "id": "viewpoints",
+        "rule": "列には、比べる観点を並べる。",
+        "why": "行が比べる対象、列が比べる観点という形が決まっている。",
+        "test": "列の見出しが、すべて観点の名前かを見る。"
+       },
+       {
+        "id": "numbers-right",
+        "rule": "数の列は align を right にする。",
+        "why": "桁がそろい、大小を比べやすくなる。",
+        "test": "数の列に align: right があるかを見る。"
+       }
+      ]
+     }
     },
     "rows": {
      "type": "array",
@@ -313,12 +598,40 @@
       "items": {
        "$ref": "#/$defs/cell"
       }
+     },
+     "description": "行。比べる対象ごとのセルの並び",
+     "x-prompt": {
+      "read": {
+       "means": "比べる対象ごとの行で、セルの並びは列の並びに対応する。"
+      },
+      "write": [
+       {
+        "id": "cells-match-columns",
+        "rule": "1行のセルの数を、列の数とそろえる。",
+        "why": "数が違うと、セルがどの観点の値かが分からなくなる。",
+        "test": "各行のセルの数が、列の数と同じかを見る。"
+       }
+      ]
      }
     },
     "emphasis": {
      "type": "integer",
      "minimum": 0,
-     "description": "強調する行の番号（0から）。推す案など"
+     "description": "強調する行の番号（0から）。推す案など",
+     "x-prompt": {
+      "read": {
+       "means": "強調する行の番号で、0から数える。",
+       "shown": "その行がほかの行より目立つ形で出る。"
+      },
+      "write": [
+       {
+        "id": "only-recommended",
+        "rule": "推す案のように、読み手に先に見てほしい行があるときだけ書く。",
+        "why": "強調の理由が無い行を目立たせると、読み手が誤って判断する。",
+        "test": "強調した理由を1文で言えるかを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -332,7 +645,21 @@
    "description": "変化。何が、前から後へどう変わるか",
    "properties": {
     "type": {
-     "const": "change"
+     "const": "change",
+     "description": "ブロックが変化であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが変化であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "change と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が change かを見る。"
+       }
+      ]
+     }
     },
     "rows": {
      "type": "array",
@@ -356,6 +683,21 @@
         "$ref": "#/$defs/text"
        }
       }
+     },
+     "description": "変化の並び。何が、前から後へどう変わるか",
+     "x-prompt": {
+      "read": {
+       "means": "変わるものごとの、前と後の組の並びである。",
+       "shown": "what ごとに、before と after が並んで出る。"
+      },
+      "write": [
+       {
+        "id": "same-what",
+        "rule": "before と after には、同じ what の前と後を書く。",
+        "why": "違うものの前と後を並べると、変化として読めない。",
+        "test": "before と after が、同じものについての値かを見る。"
+       }
+      ]
      }
     }
    }
@@ -370,13 +712,42 @@
    "description": "順序。番号の付いた手順と、途中の分かれ道",
    "properties": {
     "type": {
-     "const": "steps"
+     "const": "steps",
+     "description": "ブロックが順序であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが順序であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "steps と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が steps かを見る。"
+       }
+      ]
+     }
     },
     "items": {
      "type": "array",
      "minItems": 1,
      "items": {
       "$ref": "#/$defs/step"
+     },
+     "description": "手順の並び",
+     "x-prompt": {
+      "read": {
+       "means": "番号の付いた手順の並びである。",
+       "shown": "上から番号の付いた手順として出る。"
+      },
+      "write": [
+       {
+        "id": "in-order",
+        "rule": "行う順に並べる。",
+        "why": "番号は並びの順に付く。",
+        "test": "上から順に行えば終わるかを見る。"
+       }
+      ]
      }
     }
    }
@@ -389,10 +760,38 @@
    ],
    "properties": {
     "actor": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "その手順を行う人やシステム",
+     "x-prompt": {
+      "read": {
+       "means": "その手順を行う人やシステムである。"
+      },
+      "write": [
+       {
+        "id": "who",
+        "rule": "手順を行う人やシステムを、名前で書く。",
+        "why": "誰が行うかで、読み手が自分の手順かを判断する。",
+        "test": "名前が1つかを見る。"
+       }
+      ]
+     }
     },
     "text": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "手順の中身",
+     "x-prompt": {
+      "read": {
+       "means": "その手順で行うことである。"
+      },
+      "write": [
+       {
+        "id": "one-action",
+        "rule": "1つの手順には、1つの行いを書く。",
+        "why": "2つの行いがあると、途中で止まったときにどこまで済んだかが分からない。",
+        "test": "文の述部が1つかを見る。"
+       }
+      ]
+     }
     },
     "branches": {
      "type": "array",
@@ -418,6 +817,20 @@
         "$ref": "#/$defs/text"
        }
       }
+     },
+     "description": "途中の分かれ道",
+     "x-prompt": {
+      "read": {
+       "means": "この手順から分かれる道で、条件と、そのときの手順を持つ。"
+      },
+      "write": [
+       {
+        "id": "condition-and-steps",
+        "rule": "分かれる条件と、そのときの手順を組にして書く。",
+        "why": "条件だけでは、分かれたあとに何をするかが分からない。",
+        "test": "各分かれ道に、条件と手順の両方があるかを見る。"
+       }
+      ]
      }
     }
    }
@@ -432,7 +845,21 @@
    "description": "状態。項目ごとの進み具合",
    "properties": {
     "type": {
-     "const": "status"
+     "const": "status",
+     "description": "ブロックが状態であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが状態であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "status と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が status かを見る。"
+       }
+      ]
+     }
     },
     "items": {
      "type": "array",
@@ -460,6 +887,21 @@
         "$ref": "#/$defs/text"
        }
       }
+     },
+     "description": "項目ごとの状態",
+     "x-prompt": {
+      "read": {
+       "means": "項目ごとの進み具合である。",
+       "parse": "state は done ・ doing ・ todo ・ blocked のどれかである。"
+      },
+      "write": [
+       {
+        "id": "blocked-with-note",
+        "rule": "blocked の項目には、止まっている理由を note に書く。",
+        "why": "理由が無いと、読み手が何を待っているかを判断できない。",
+        "test": "blocked の項目に note があるかを見る。"
+       }
+      ]
      }
     }
    }
@@ -474,10 +916,40 @@
    "description": "量。項目ごとの数を棒で比べる",
    "properties": {
     "type": {
-     "const": "bars"
+     "const": "bars",
+     "description": "ブロックが量であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが量であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "bars と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が bars かを見る。"
+       }
+      ]
+     }
     },
     "unit": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "数の単位",
+     "x-prompt": {
+      "read": {
+       "means": "棒の数の単位である。"
+      },
+      "write": [
+       {
+        "id": "unit",
+        "rule": "数の単位を書く。",
+        "why": "単位が無いと、数の大きさが読めない。",
+        "bad": "数",
+        "good": "件",
+        "test": "単位が数の意味を表しているかを見る。"
+       }
+      ]
+     }
     },
     "items": {
      "type": "array",
@@ -498,6 +970,21 @@
         "minimum": 0
        }
       }
+     },
+     "description": "項目と数の並び",
+     "x-prompt": {
+      "read": {
+       "means": "比べる項目と、その数の並びである。",
+       "shown": "項目ごとに、数に比例した長さの棒で出る。"
+      },
+      "write": [
+       {
+        "id": "same-unit",
+        "rule": "同じ単位で比べられる数だけを並べる。",
+        "why": "単位の違う数を棒で並べると、長さの比べ方が意味を持たない。",
+        "test": "すべての数が unit の単位かを見る。"
+       }
+      ]
      }
     },
     "target": {
@@ -516,6 +1003,20 @@
        "type": "number",
        "minimum": 0
       }
+     },
+     "x-prompt": {
+      "read": {
+       "means": "目標などの基準の値である。",
+       "shown": "棒の上に基準線として出る。"
+      },
+      "write": [
+       {
+        "id": "only-with-target",
+        "rule": "比べる基準の値があるときだけ書く。",
+        "why": "基準が無いのに線を引くと、読み手が目標と誤って読む。",
+        "test": "基準の出どころを1文で言えるかを見る。"
+       }
+      ]
      }
     }
    }
@@ -531,13 +1032,55 @@
    "description": "根拠。原文の引用と出どころ",
    "properties": {
     "type": {
-     "const": "quote"
+     "const": "quote",
+     "description": "ブロックが引用であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが引用であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "quote と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が quote かを見る。"
+       }
+      ]
+     }
     },
     "text": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "引用した原文",
+     "x-prompt": {
+      "read": {
+       "means": "原文から引用した文である。"
+      },
+      "write": [
+       {
+        "id": "verbatim",
+        "rule": "原文を、1文字も変えずに書く。",
+        "why": "言い換えた時点で、引用ではなくなる。",
+        "test": "原文を検索して、同じ文が見つかるかを見る。"
+       }
+      ]
+     }
     },
     "source": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "引用の出どころ",
+     "x-prompt": {
+      "read": {
+       "means": "引用した原文の出どころである。"
+      },
+      "write": [
+       {
+        "id": "findable",
+        "rule": "読み手が原文を開ける形で、出どころを書く。",
+        "why": "開けない出どころは、引用を確かめられない。",
+        "test": "書いた出どころから、原文に着くかを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -551,16 +1094,59 @@
    "description": "注意。読み手が見落とすと困ること",
    "properties": {
     "type": {
-     "const": "note"
+     "const": "note",
+     "description": "ブロックが注意であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが注意であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "note と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が note かを見る。"
+       }
+      ]
+     }
     },
     "level": {
      "enum": [
       "info",
       "warning"
-     ]
+     ],
+     "description": "注意の強さ",
+     "x-prompt": {
+      "read": {
+       "means": "注意の強さで、info か warning のどちらかである。",
+       "shown": "強さによって、見た目の強さが変わる。"
+      },
+      "write": [
+       {
+        "id": "warning-for-loss",
+        "rule": "見落とすと損や誤りが出るときだけ warning にする。",
+        "why": "warning が多いと、本当に強い注意が目立たない。",
+        "test": "warning の注意に、見落としたときの損があるかを見る。"
+       }
+      ]
+     }
     },
     "text": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "注意の中身",
+     "x-prompt": {
+      "read": {
+       "means": "読み手が見落とすと困ることである。"
+      },
+      "write": [
+       {
+        "id": "what-to-do",
+        "rule": "何に注意し、どうすればよいかを書く。",
+        "why": "注意だけでは、読み手が次に何をするかが分からない。",
+        "test": "読み手がする行いが書かれているかを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -575,16 +1161,59 @@
    "description": "詳細。畳んでおき、開くと読める",
    "properties": {
     "type": {
-     "const": "fold"
+     "const": "fold",
+     "description": "ブロックが畳んだ詳細であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが畳んだ詳細であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "fold と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が fold かを見る。"
+       }
+      ]
+     }
     },
     "summary": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "畳んだときに見える見出し",
+     "x-prompt": {
+      "read": {
+       "means": "畳んだときに見える見出しである。",
+       "shown": "押すと、中のブロックが開く。"
+      },
+      "write": [
+       {
+        "id": "what-is-inside",
+        "rule": "中に何があるかを、開かなくても分かる名詞句で書く。",
+        "why": "読み手は見出しで、開くかどうかを決める。",
+        "test": "見出しから、中の情報の種類が分かるかを見る。"
+       }
+      ]
+     }
     },
     "blocks": {
      "type": "array",
      "minItems": 1,
      "items": {
       "$ref": "#/$defs/block"
+     },
+     "description": "畳む中身のブロックの並び",
+     "x-prompt": {
+      "read": {
+       "means": "畳んでおく中身のブロックの並びである。"
+      },
+      "write": [
+       {
+        "id": "details-only",
+        "rule": "判断に必須でない詳細だけを畳む。",
+        "why": "判断に必須なものを畳むと、読み手が開かずに判断する。",
+        "test": "畳んだ中身を読まなくても、節の結論が分かるかを見る。"
+       }
+      ]
      }
     }
    }
@@ -611,20 +1240,76 @@
    ],
    "properties": {
     "type": {
-     "const": "figure"
+     "const": "figure",
+     "description": "ブロックが図であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが図であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "figure と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が figure かを見る。"
+       }
+      ]
+     }
     },
     "src": {
      "type": "string",
      "pattern": "\\.svg$",
-     "description": "SVG のファイルへの相対パス"
+     "description": "SVG のファイルへの相対パス",
+     "x-prompt": {
+      "read": {
+       "means": "図の SVG のファイルへの相対パスである。"
+      },
+      "write": [
+       {
+        "id": "src-or-svg",
+        "rule": "SVG をファイルで置くときに書き、svg と一緒に書かない。",
+        "why": "2つあると、どちらを出すかが決まらない。",
+        "test": "src と svg のどちらか一方だけがあるかを見る。"
+       }
+      ]
+     }
     },
     "svg": {
      "type": "string",
      "pattern": "^\\s*<svg",
-     "description": "SVG の文字列。script やイベントの属性（on…）は書けない"
+     "description": "SVG の文字列。script やイベントの属性（on…）は書けない",
+     "x-prompt": {
+      "read": {
+       "means": "図の SVG の文字列である。",
+       "shown": "ページにそのまま埋め込まれる。"
+      },
+      "write": [
+       {
+        "id": "no-script",
+        "rule": "script やイベントの属性（on…）を含めない。",
+        "why": "埋め込んだページで、図の中のコードが動いてしまう。",
+        "test": "文字列に <script と on で始まる属性が無いかを見る。"
+       }
+      ]
+     }
     },
     "caption": {
-     "$ref": "#/$defs/text"
+     "$ref": "#/$defs/text",
+     "description": "図が示すものの1文",
+     "x-prompt": {
+      "read": {
+       "means": "図が示すものの説明である。",
+       "shown": "図の下に出る。"
+      },
+      "write": [
+       {
+        "id": "one-sentence",
+        "rule": "図が何を示すかを1文で書く。",
+        "why": "読み手は説明で、図のどこを見るかを決める。",
+        "test": "1文かを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -638,13 +1323,56 @@
    "description": "コード ・ JSON ・ コマンド",
    "properties": {
     "type": {
-     "const": "code"
+     "const": "code",
+     "description": "ブロックがコードであることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックがコードであることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "code と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が code かを見る。"
+       }
+      ]
+     }
     },
     "language": {
-     "type": "string"
+     "type": "string",
+     "description": "コードの言語",
+     "x-prompt": {
+      "read": {
+       "means": "コードの言語の名前である。"
+      },
+      "write": [
+       {
+        "id": "name",
+        "rule": "json ・ rust ・ sh のように、言語の名前を小文字で書く。",
+        "why": "書き方が揃っていると、言語ごとに見つけられる。",
+        "test": "小文字だけかを見る。"
+       }
+      ]
+     }
     },
     "text": {
-     "type": "string"
+     "type": "string",
+     "description": "コードの本文",
+     "x-prompt": {
+      "read": {
+       "means": "コード ・ JSON ・ コマンドの本文である。",
+       "shown": "等幅の文字で、そのまま出る。"
+      },
+      "write": [
+       {
+        "id": "only-needed",
+        "rule": "読み手に見せたい部分だけを書く。",
+        "why": "長いコードは、見せたい行を探すことになる。",
+        "test": "省いても伝わる行が無いかを見る。"
+       }
+      ]
+     }
     }
    }
   },
@@ -658,13 +1386,41 @@
    "description": "順序の無い項目の並び",
    "properties": {
     "type": {
-     "const": "list"
+     "const": "list",
+     "description": "ブロックが項目の並びであることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが項目の並びであることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "list と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が list かを見る。"
+       }
+      ]
+     }
     },
     "items": {
      "type": "array",
      "minItems": 1,
      "items": {
       "$ref": "#/$defs/text"
+     },
+     "description": "順序の無い項目の並び",
+     "x-prompt": {
+      "read": {
+       "means": "順序の無い項目の並びである。"
+      },
+      "write": [
+       {
+        "id": "no-order",
+        "rule": "順序に意味があるなら、list ではなく steps にする。",
+        "why": "list は順序を示さない。",
+        "test": "並べ替えても意味が変わらないかを見る。"
+       }
+      ]
      }
     }
    }
@@ -708,7 +1464,21 @@
    "description": "時系列。時刻と出来事。途中の分かれ道（外れた見立てなど）も書ける",
    "properties": {
     "type": {
-     "const": "timeline"
+     "const": "timeline",
+     "description": "ブロックが時系列であることを表す",
+     "x-prompt": {
+      "read": {
+       "means": "このブロックが時系列であることを表す。"
+      },
+      "write": [
+       {
+        "id": "const",
+        "rule": "timeline と書く。",
+        "why": "基盤はこの値で、ブロックの見せ方を選ぶ。",
+        "test": "値が timeline かを見る。"
+       }
+      ]
+     }
     },
     "items": {
      "type": "array",
@@ -732,6 +1502,21 @@
         "$ref": "#/$defs/step/properties/branches"
        }
       }
+     },
+     "description": "時刻と出来事の並び",
+     "x-prompt": {
+      "read": {
+       "means": "時刻と出来事の並びで、途中の分かれ道も持てる。",
+       "shown": "時刻の順に上から出る。"
+      },
+      "write": [
+       {
+        "id": "chronological",
+        "rule": "時刻の早い順に並べる。",
+        "why": "時系列は順に読まれる。",
+        "test": "時刻が早い順になっているかを見る。"
+       }
+      ]
      }
     }
    }

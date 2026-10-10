@@ -1,9 +1,11 @@
-//! デザインテンプレートを持つものは、デザインシステムを持つ（ボード board-on-schema-driven の論点5）。
+//! 部品のカタログは、デザインシステムに従う。
 //! 基盤は、デザインシステム（トークンの3層と部品ごとの状態）を検査し、トークンから CSS の変数を作る。
 //! 契約を満たさないデザインでは、1ページも描画しない。
 
+mod common;
+
 use schema_driven_adapters::inbound::tools::Toolbox;
-use schema_driven_adapters::outbound::document_design::DocumentDesign;
+use schema_driven_adapters::outbound::catalog::Catalog;
 use schema_driven_adapters::outbound::{fs::FileSystem, jmespath::Jmespath};
 use schema_driven_core::application::checks::Checks;
 use schema_driven_core::application::instances::Instances;
@@ -12,10 +14,10 @@ use schema_driven_core::domain::Html;
 use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
 use serde_json::{json, Map, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
-/// テスト用の具体のデザイン。テンプレートとデザインシステムを差し替えられる。
+/// テスト用のカタログ。テンプレートとデザインシステムを差し替えられる。
 struct Probe {
     parts: String,
     system: String,
@@ -83,8 +85,8 @@ fn probe(pill_style: &str, system: Value) -> Arc<dyn Design> {
     })
 }
 
-fn setup(name: &str) -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sd-design-{name}-{}", std::process::id()));
+fn setup(name: &str) -> common::Scratch {
+    let root = common::Scratch::new(&format!("sd-design-{name}"));
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(root.join("declarations")).unwrap();
     fs::create_dir_all(root.join("pages")).unwrap();
@@ -111,14 +113,7 @@ fn render(root: &Path, design: Arc<dyn Design>) -> (i32, Value) {
         Instances::new(files.clone(), files.clone(), query.clone()),
         Checks::new(files.clone(), files.clone(), query.clone()),
     );
-    let renders = Renders::new(
-        files.clone(),
-        files,
-        query,
-        Arc::new(DocumentDesign),
-        Some(design),
-        None,
-    );
+    let renders = Renders::new(files.clone(), files, query, design);
     let path = |dir: &str| root.join(dir).to_string_lossy().into_owned();
     let args: Map<String, Value> =
         json!({"dir": path("declarations"), "pages": path("pages"), "out": path("out")})
@@ -249,9 +244,10 @@ fn a_state_must_use_a_defined_token() {
 }
 
 #[test]
-fn the_base_document_design_follows_its_own_design_system() {
+fn the_catalog_follows_its_own_design_system() {
     let root = setup("document");
     fs::remove_file(root.join("declarations/T-1.json")).unwrap();
+    fs::remove_file(root.join("pages/thing.json")).unwrap();
     fs::write(
         root.join("declarations/document.schema.json"),
         include_str!("../../../references/document.schema.json"),
@@ -264,7 +260,7 @@ fn the_base_document_design_follows_its_own_design_system() {
         .to_string(),
     )
     .unwrap();
-    let (code, out) = render(&root, probe("background:var(--pill-bg)", system()));
+    let (code, out) = render(&root, Arc::new(Catalog));
     assert_eq!(code, 0, "{out}");
     let page = fs::read_to_string(root.join("out/D-1.html")).unwrap();
     assert!(

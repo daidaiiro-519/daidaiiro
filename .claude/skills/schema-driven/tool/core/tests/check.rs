@@ -1,4 +1,4 @@
-//! ドメインサービス 検査する のテスト（テストレベル component）。
+//! ドメインサービス 検査する のテスト。
 //! references/annotations.schema.json の各キーについて、合格とずれの両方を確かめる。
 
 use schema_driven_core::domain::check::{check, Approved, Doc, Finding, Status};

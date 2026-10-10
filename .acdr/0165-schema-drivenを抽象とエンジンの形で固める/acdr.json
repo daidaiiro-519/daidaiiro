@@ -1,0 +1,275 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0165",
+ "title": "schema-driven を abstract スキーマとエンジンの形で固める",
+ "date": "2026-10-10",
+ "status": "accepted",
+ "decision": "schema-driven は、版ごとに振る舞いを保証する abstract スキーマとエンジンを持ち、Skill ・ Agent は JSON だけを持つ。",
+ "why": "ボード skill-roles で、ソースのコピーをやめ（Q3）、見た目と操作は基盤のカタログが持ち（Q6）、インスタンスは名前でスキーマを指す（Q7）と決めた。いまの基盤は、ソースのコピー ・ Skill が Rust で書くデザイン ・ 相対パス ・ 登録していない urn を前提にしたままで、決めたことと食い違っている。配り方（署名と導入時の確かめ）は、別の記録で決める。",
+ "shift": [
+  {
+   "what": "Skill が持つもの",
+   "from": "基盤のソースのコピーと、Rust で書くデザインと関数とツール",
+   "to": "concrete スキーマ ・ インスタンス ・ ページテンプレート ・ tools.json の JSON だけ"
+  },
+  {
+   "what": "ページの見た目と操作",
+   "from": "Skill ごとの Rust のデザイン",
+   "to": "基盤の部品のカタログ1か所（12の部品）"
+  },
+  {
+   "what": "インスタンスがスキーマを指す書き方",
+   "from": "Skill の置き場所への相対パスと、登録していない urn:schema-driven:abstract:v1",
+   "to": "「<Skill の名前>/<種類>@<版>」の名前。版は x-abstract に書く"
+  },
+  {
+   "what": "公開した版の守り方",
+   "from": "人の約束だけ",
+   "to": "公開の記録（published.json）の指紋と、いまの中身を check-schemas が比べる"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ブレストボードの Skill を例に、Skill が持つものの量を変更前と変更後で並べた図。",
+ "alternatives": [
+  {
+   "option": "ソースのコピーを残し、Skill が Rust でデザインを書く形を続ける",
+   "why_not": "Q3 でソースのコピーをやめた。コピーは Skill ごとに古い版のまま残り、基盤の版で振る舞いを保証できない"
+  },
+  {
+   "option": "部品を Skill が宣言で足せるようにする（Mustache の HTML 片）",
+   "why_not": "同じ働きの部品が Skill ごとに違う形になる。4つのページの操作は6つの型に収まり、足す場面が無かった（Q6）"
+  },
+  {
+   "option": "インスタンスの $schema に tag や https の URI を書く",
+   "why_not": "ドメインかメールアドレスを公開し続ける必要がある。他人のスキーマと混ぜる場面が無いので、得るものが無い（Q7）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "abstract スキーマ（版ごとに振る舞いを保証する契約）とエンジンを持つ",
+     "before": "description: AI が扱うデータを、Markdown ではなく JSON Schema とそのインスタンスで持つときに使う基盤の Skill。スキーマからインスタンスを作成し、x-prompt を受け取り、JMESPath 式で取得し、JSON Patch で更新し、注釈 x-ref と x-derive で参照と導出値を検査し、承認を記録し、ページを描画する。具体の Skill は、この基盤の実装を転写して、自分のスキーマとデザインで使う。",
+     "why": "転写の仕組みを外し、Q3 で決めた abstract とエンジンを配る形を説明に書いた"
+    },
+    {
+     "find": "それを版ごとに守るエンジン（共通ツール9つ）",
+     "before": "| 基盤（この Skill） | 作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画 ・ 転写の仕組みと、具体のスキーマが従う契約（`references/meta-schema.json` ・ `references/annotations.schema.json` ・ `references/view.schema.json`） |\n| 具体（基盤の上に作る Skill） | 自分のスキーマ ・ ページテンプレート ・ デザインとそのデザインシステム ・ 足したい関数とツール |",
+     "why": "使う側が持つのは JSON だけになった。デザイン ・ 関数 ・ ツールを足す口は外した"
+    },
+    {
+     "find": "使う側はコードを持たない。",
+     "before": "具体のデザインが無くても、**文書**だけは描画できる。基盤が文書の契約（`references/document.schema.json`）と決まったデザイン（`references/document-design/`）を持つからである。",
+     "why": "文書の決まったデザインは、部品のカタログの部品 document になった"
+    },
+    {
+     "find": "スキーマの根に、次の3つを書く。",
+     "before": "スキーマの書き方の決まりは、`references/meta-schema.json` が持つ。プロパティごとに `x-prompt`（`read` と `write`）を書き、参照には `x-ref`、導出値には `x-derive` を付ける（`references/annotations.schema.json`）。",
+     "why": "$schema は仕様どおり標準の 2020-12 にし、版は x-abstract、名前は $id に書く（Q7）"
+    },
+    {
+     "find": "インスタンスを読むツールは、",
+     "before": "（無い。インスタンスの $schema は、ファイルからの相対パスでスキーマを指していた）",
+     "why": "名前を引く先を、エンジンが持つスキーマと --skill の Skill だけにした（Q7）"
+    },
+    {
+     "find": "スキーマのフォルダに公開の記録",
+     "before": "（無い）",
+     "why": "公開した版の書き換えを、人の約束でなく指紋で検出する（Q7）"
+    },
+    {
+     "find": "ページテンプレートは、節の並びと、節ごとに置く部品と、値を取る JMESPath 式だけを書いた JSON である",
+     "before": "### Step 5: 描画して読む\n| 具体の種類 | 具体のページテンプレート（`--pages`）とデザイン |",
+     "why": "見た目と操作は部品のカタログが持ち、ページテンプレートは部品を並べるだけになった（Q6）"
+    },
+    {
+     "find": "Step 7: 固有のツールを宣言する",
+     "before": "### Step 7: 具体の Skill を作るとき、基盤を転写する\n\n```\nschema-driven transcribe --to <具体の Skill のディレクトリ>\nschema-driven check-copy --to <具体の Skill のディレクトリ>\n```\n\n基盤の実装と `references` を、具体の Skill の `tool/schema-driven/` の下へ写す。何を写すかは `references/implementation.json` が持つ。**写した複製は具体の持ち物である。** 2回目からは基盤の新しい版への更新になり、具体が変えたファイルは上書きしない。基盤と具体の両方が変えたファイルは、基盤の新しい版を隣（`<ファイル名>.schema-driven-new`）に置くので、見比べて合わせ、終わったら消す。\n\n具体のコードが使ってよいのは、基盤が外へ出しているものだけである。何が外へ出ているかは `references/implementation.json` が持つ。",
+     "why": "ソースのコピーをやめたので、転写の手順を消し、固有の処理を宣言する手順に置き換えた（Q3）"
+    },
+    {
+     "find": "ページテンプレートを、カタログの部品で書き、render で描画する",
+     "before": "| 2 | 基盤を転写し、具体のデザインとデザインシステムを作って、基盤の render で描画する | いまの画面と並べて描画し、目で見比べる |",
+     "why": "移す段階からも、転写と Rust のデザインを外した"
+    },
+    {
+     "find": "公開した版のスキーマを、消さず書き換えない",
+     "before": "（無い）",
+     "why": "版の名前で引くので、同じ名前で中身が変わると前に書いたインスタンスが別のスキーマで検査される"
+    }
+   ]
+  },
+  {
+   "key": "catalog",
+   "tab": "catalog.schema.json",
+   "file": ".claude/skills/schema-driven/references/catalog.schema.json",
+   "marks": [
+    {
+     "find": "\"$id\": \"schema-driven/catalog@v1\"",
+     "before": "（無い。新しいファイルである）",
+     "why": "部品の名前と入力の形を JSON Schema で書いた。エンジンは $defs のキーを部品の名前として読む（Q6）"
+    }
+   ]
+  },
+  {
+   "key": "contract",
+   "tab": "contract.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/domain/contract.rs",
+   "marks": [
+    {
+     "find": "pub const V1: &str = \"schema-driven/abstract@v1\";",
+     "before": "（無い。新しいファイルである）",
+     "why": "登録していない urn は RFC 8141 で有効な URN でないので、名前の形にした（Q7）"
+    }
+   ]
+  },
+  {
+   "key": "instances",
+   "tab": "instances.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "インスタンスの読み書きのユースケースと、削除のコマンド。",
+     "before": "//! インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。",
+     "why": "宣言の番号をコメントから外した"
+    },
+    {
+     "find": "use crate::domain::contract;",
+     "before": "//! インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。",
+     "why": "エンジンが持つスキーマを名前で引くため"
+    },
+    {
+     "find": "skill: Option<String>,",
+     "before": "（無い。足した行である）",
+     "why": "名前を引く Skill のフォルダを持つ（Q7）"
+    },
+    {
+     "find": "skill: None,",
+     "before": "（無い。足した行である）",
+     "why": "名前を、--skill の Skill の references から $id で引く。ほかの Skill の名前と、同じ名前の重なりは止める（Q7）"
+    },
+    {
+     "find": "contract::builtin_file(path),",
+     "before": "（無い。足した行である）",
+     "why": "エンジンが持つスキーマは、--skill が無くても引ける"
+    },
+    {
+     "find": "Some(name) if schema_name::is_name(name) => SchemaPath::new(name),",
+     "before": "        // インスタンスの $schema には、インスタンスのファイルからの相対パスを書く\n        let stored = SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str()))\n            .map_err(invalid)?;",
+     "why": "スキーマが名前を持てば、インスタンスの $schema に名前を書く"
+    },
+    {
+     "find": "let schema = self.schema_path(path, schema)?;",
+     "before": "        let schema = paths::join(paths::parent(path), schema);",
+     "why": "update も、名前からスキーマを引く"
+    }
+   ]
+  },
+  {
+   "key": "renders",
+   "tab": "renders.rs",
+   "file": ".claude/skills/schema-driven/tool/core/src/application/renders.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 部品の見た目と操作は、基盤の部品のカタログ（ポート Design）だけが持つ。",
+     "before": "//! UC-6 ページを描画する（3d）。具体のデザインを受け取り、契約を通ったデータだけを、同じ入力から同じページへ描画する。\n//! 基盤の文書（kind が document）は、基盤の決まったデザインで描画する。何も指定が無いときに使う。\n//! 具体のスキーマの種類は、具体のページテンプレートとデザインで描画する。どちらでもない種類があれば、何も書かずに失敗する。",
+     "why": "Skill が渡すデザインを外し、カタログ1つで描く（Q6）"
+    },
+    {
+     "find": "use crate::ports::outbound::{Design, Files, Query, Schemas, WriteIf};",
+     "before": "use crate::ports::outbound::{Design, Files, Functions, Query, Schemas, WriteIf};",
+     "why": "Skill が足す関数（Functions）の口を外した"
+    },
+    {
+     "find": "具体のページテンプレートなら catalog",
+     "before": "    /// 使ったデザイン。具体のページテンプレートとデザインなら concrete、基盤の文書の決まったデザインなら document",
+     "why": "使った描き方の名前を、カタログに合わせた"
+    },
+    {
+     "find": "/// 描画のユースケース。部品のカタログを持つ。",
+     "before": "/// 描画のユースケース。基盤の文書の決まったデザインと、具体のデザイン（あれば）と、具体が追加した関数を持つ。\n    document_design: Arc<dyn Design>,\n    design: Option<Arc<dyn Design>>,\n    functions: Option<Arc<dyn Functions>>,",
+     "why": "同上"
+    },
+    {
+     "find": "catalog: Arc<dyn Design>,",
+     "before": "/// 描画のユースケース。基盤の文書の決まったデザインと、具体のデザイン（あれば）と、具体が追加した関数を持つ。\n    document_design: Arc<dyn Design>,\n    design: Option<Arc<dyn Design>>,\n    functions: Option<Arc<dyn Functions>>,",
+     "why": "文書のデザインと Skill のデザインを、カタログ1つにまとめた"
+    },
+    {
+     "find": "/// スキーマの名前を引く Skill のフォルダを渡す。",
+     "before": "        document_design: Arc<dyn Design>,\n        design: Option<Arc<dyn Design>>,\n        functions: Option<Arc<dyn Functions>>,\n            document_design,\n            design,\n            functions,\n    /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約に違反があれば失敗する。\n    /// ページテンプレートのコンポーネントは具体のデザインが持つので、具体のデザインが無ければ読まない。\n        let Some(design) = &self.design else {\n            return Ok(BTreeMap::new());\n        };\n        let reader = Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());",
+     "why": "描画するインスタンスも、名前でスキーマを引く（Q7）"
+    },
+    {
+     "find": "let design = &self.catalog;",
+     "before": "        document_design: Arc<dyn Design>,\n        design: Option<Arc<dyn Design>>,\n        functions: Option<Arc<dyn Functions>>,\n            document_design,\n            design,\n            functions,\n    /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約に違反があれば失敗する。\n    /// ページテンプレートのコンポーネントは具体のデザインが持つので、具体のデザインが無ければ読まない。\n        let Some(design) = &self.design else {\n            return Ok(BTreeMap::new());\n        };\n        let reader = Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());",
+     "why": "ページテンプレートは、いつもカタログで検査する"
+    },
+    {
+     "find": "Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());",
+     "before": "        document_design: Arc<dyn Design>,\n        design: Option<Arc<dyn Design>>,\n        functions: Option<Arc<dyn Functions>>,\n            document_design,\n            design,\n            functions,\n    /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約に違反があれば失敗する。\n    /// ページテンプレートのコンポーネントは具体のデザインが持つので、具体のデザインが無ければ読まない。\n        let Some(design) = &self.design else {\n            return Ok(BTreeMap::new());\n        };\n        let reader = Instances::new(self.files.clone(), self.schemas.clone(), self.query.clone());",
+     "why": "同上（名前を引く Skill を渡す）"
+    },
+    {
+     "find": "部品のカタログ：{finding}",
+     "before": "        // デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない\n        let mut findings = Vec::new();\n        for (label, design) in std::iter::once((\"基盤の文書のデザイン\", &self.document_design))\n            .chain(self.design.iter().map(|design| (\"具体のデザイン\", design)))\n        {\n            let names: Vec<String> = design\n                .components()\n                .map(|(name, _)| name)\n            findings.extend(\n                design_system::check(design.design_system(), design.parts(), &names)\n                    .into_iter()\n                    .map(|finding| format!(\"{label}：{finding}\")),\n            );\n        }\n        let checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());\n        // 契約を通ったデータだけを描画する（未記入は止めない。ACDR 0118）",
+     "why": "カタログがデザインシステムに従っているかを検査する"
+    },
+    {
+     "find": "let mut checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());",
+     "before": "        // デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない\n        let mut findings = Vec::new();\n        for (label, design) in std::iter::once((\"基盤の文書のデザイン\", &self.document_design))\n            .chain(self.design.iter().map(|design| (\"具体のデザイン\", design)))\n        {\n            let names: Vec<String> = design\n                .components()\n                .map(|(name, _)| name)\n            findings.extend(\n                design_system::check(design.design_system(), design.parts(), &names)\n                    .into_iter()\n                    .map(|finding| format!(\"{label}：{finding}\")),\n            );\n        }\n        let checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());\n        // 契約を通ったデータだけを描画する（未記入は止めない。ACDR 0118）",
+     "why": "検査も、名前でスキーマを引く"
+    },
+    {
+     "find": "// 契約を通ったデータだけを描画する（未記入は止めない）",
+     "before": "        // デザインテンプレートを持つものは、デザインシステムを持つ。満たさなければ1ページも書かない\n        let mut findings = Vec::new();\n        for (label, design) in std::iter::once((\"基盤の文書のデザイン\", &self.document_design))\n            .chain(self.design.iter().map(|design| (\"具体のデザイン\", design)))\n        {\n            let names: Vec<String> = design\n                .components()\n                .map(|(name, _)| name)\n            findings.extend(\n                design_system::check(design.design_system(), design.parts(), &names)\n                    .into_iter()\n                    .map(|finding| format!(\"{label}：{finding}\")),\n            );\n        }\n        let checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());\n        // 契約を通ったデータだけを描画する（未記入は止めない。ACDR 0118）",
+     "why": "決めた記録の番号をコメントから外した"
+    },
+    {
+     "find": "let renderer = PageRenderer::new(engine, self.catalog.clone())",
+     "before": "        let mut engine = ViewEngine::new(self.query.clone(), schemas.into_iter().collect(), list);\n        if let Some(functions) = &self.functions {\n            engine = engine\n                .with_functions(functions.clone())\n                .map_err(|error| UseCaseError::new(\"関数を追加できない\", error.0))?;\n        }\n        let document_renderer = PageRenderer::new(engine.clone(), self.document_design.clone())\n            .map_err(|error| UseCaseError::new(\"文書のデザインを読めない\", error.0))?;\n        let concrete_renderer = match &self.design {\n            Some(design) => Some(\n                PageRenderer::new(engine.clone(), design.clone())\n                    .map_err(|error| UseCaseError::new(\"デザインを読めない\", error.0))?,\n            ),\n            None => None,\n        };",
+     "why": "文書と Skill のページを、同じカタログの描き手で描く"
+    },
+    {
+     "find": "renderer.render(&document_template, &ctx[doc_index], &instance.schema),",
+     "before": "                    document_renderer.render(&document_template, &ctx[doc_index], &instance.schema),\n            } else if let (Some(renderer), Some(page_template)) =\n                (&concrete_renderer, templates.get(kind))\n            {\n                    \"concrete\",",
+     "why": "同上"
+    },
+    {
+     "find": "} else if let Some(page_template) = templates.get(kind) {",
+     "before": "                    document_renderer.render(&document_template, &ctx[doc_index], &instance.schema),\n            } else if let (Some(renderer), Some(page_template)) =\n                (&concrete_renderer, templates.get(kind))\n            {\n                    \"concrete\",",
+     "why": "Skill のデザインが無くても、ページテンプレートがあれば描ける"
+    },
+    {
+     "find": "\"catalog\",",
+     "before": "                    document_renderer.render(&document_template, &ctx[doc_index], &instance.schema),\n            } else if let (Some(renderer), Some(page_template)) =\n                (&concrete_renderer, templates.get(kind))\n            {\n                    \"concrete\",",
+     "why": "使った描き方の名前を、カタログに合わせた"
+    },
+    {
+     "find": "\"ページテンプレートが無い種類がある\",",
+     "before": "                \"デザインテンプレートが無い種類がある\",\n                    \"次のインスタンスは、基盤の文書でもなく、具体のページテンプレートとデザインも無い：{}\",",
+     "why": "デザインが無いことではなく、ページテンプレートが無いことが止める理由になった"
+    },
+    {
+     "find": "その種類のページテンプレートも無い",
+     "before": "                \"デザインテンプレートが無い種類がある\",\n                    \"次のインスタンスは、基盤の文書でもなく、具体のページテンプレートとデザインも無い：{}\",",
+     "why": "同上"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "a1bb7fb0d1b1e00c049733a0d1c4196bd5439e6078f61334eb6fe340e5e1f24c",
+  "catalog": "6eabca07f266348df3faa5146407d1d5228b3a77d056604d854d9282c4cd65d2",
+  "contract": "7633948c691654e25bb9efe11009c94711d235970e65473e19d181b1af17700b",
+  "instances": "cadc6a71180af1399eabc0a88424954cbedb462e1ff48b708080eeb6051c2799",
+  "renders": "8489e8f9a35cf51da7c79692c11084b42ee4f2f416d93b2f57b824888048165f"
+ }
+}

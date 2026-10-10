@@ -55,8 +55,7 @@ pub trait Files: Send + Sync {
 }
 
 /// スキーマの供給元。スキーマが `$ref` で指す先のスキーマを、ファイル名と内容の組で返す。
-/// 基盤のアダプタは同じディレクトリから読む。外のスキーマを使いたい Skill は、自分のアダプタで取得して渡す
-/// （基盤はネットワークに出ない。ACDR 0122）。
+/// 基盤のアダプタは同じディレクトリから読む（基盤はネットワークに出ない）。
 pub trait Schemas: Send + Sync {
     fn referenced(&self, schema_path: &str) -> Result<Vec<(String, String)>, ReadError>;
 }
@@ -73,17 +72,17 @@ impl fmt::Display for QueryError {
 
 impl std::error::Error for QueryError {}
 
-/// JMESPath に足す基盤の関数（view.schema.json の functions、ACDR 0129 ・ 0132）。
+/// JMESPath に足す基盤の関数（view.schema.json の functions）。
 pub const FUNCTIONS: [&str; 6] = ["name", "label", "map", "view", "part", "quote"];
 
-/// JMESPath に足す関数の名前と中身。基盤の6つは core が持ち、具体はこれを実装して自分の関数を足す（ACDR 0132）。
+/// JMESPath に足す関数の名前と中身。基盤の6つは core が持つ。
 /// Query のアダプタは、names() の名前を登録して呼び出しを渡すだけにする。
 pub trait Functions: Send + Sync {
     fn names(&self) -> Vec<String>;
     fn call(&self, name: &str, args: &[serde_json::Value]) -> Result<serde_json::Value, String>;
 }
 
-/// 取得（JMESPath 式で値を取り出す）。差し替えられるように trait にする（ACDR 0122）。
+/// 取得（JMESPath 式で値を取り出す）。差し替えられるように trait にする。
 pub trait Query: Send + Sync {
     /// 式を JSON の値に当て、結果を JSON の値で返す。何も指さなければ `null` を返す。
     fn search(
@@ -93,7 +92,7 @@ pub trait Query: Send + Sync {
     ) -> Result<serde_json::Value, QueryError>;
     /// 式が JMESPath として読めるかだけを見る（評価はしない）。
     fn parse(&self, expression: &str) -> Result<(), QueryError>;
-    /// functions の関数（基盤の関数と、具体が足した関数）を追加して、式を JSON の値で評価する。
+    /// functions の関数（基盤の関数）を追加して、式を JSON の値で評価する。
     fn evaluate(
         &self,
         expression: &str,
@@ -102,7 +101,7 @@ pub trait Query: Send + Sync {
     ) -> Result<serde_json::Value, QueryError>;
 }
 
-/// ページのレイアウトに渡すもの（3c）。題は文字、ほかは基盤が生成した HTML。
+/// ページのレイアウトに渡すもの。題は文字、ほかは基盤が生成した HTML。
 #[derive(Debug, Clone, Default)]
 pub struct Frame {
     pub title: String,
@@ -111,7 +110,7 @@ pub struct Frame {
     pub sections: crate::domain::values::Html,
 }
 
-/// 基盤がコンポーネントに渡す API（3c）。式の評価 ・ 要素の描画 ・ プレースホルダーの置換 ・ エスケープを持つ。
+/// 基盤がコンポーネントに渡す API。式の評価 ・ 要素の描画 ・ プレースホルダーの置換 ・ エスケープを持つ。
 pub trait Renderer {
     /// 今の位置に式を当てた値。{"text": …} なら、その文字。
     fn value(&mut self, expr: &serde_json::Value) -> Result<serde_json::Value, String>;
@@ -133,13 +132,11 @@ pub trait Renderer {
     fn text(&self, text: &str) -> crate::domain::values::Html;
     /// SVG の文字列をページに埋め込む。script ・ イベントの属性（on…）・ javascript: を含むなら断る。
     fn svg(&self, svg: &str) -> Result<crate::domain::values::Html, String>;
-    /// ページテンプレートの tones の表を引く。
-    fn tone(&self, table: &str, value: &serde_json::Value) -> Option<String>;
     /// デザインシステムのトークンから作った CSS の変数（明 ・ OS の暗 ・ 明示の暗）。ページの style に置く。
     fn tokens(&self) -> crate::domain::values::Html;
 }
 
-/// 具体が実装を渡すデザイン（3c。ボード schema-driven-build の論点5、ACDR 0132）。
+/// 具体が実装を渡すデザイン。
 /// コンポーネントの一覧 ・ 部品の HTML ・ ページと節のレイアウトを具体が持ち、基盤は中身を知らない。
 pub trait Design: Send + Sync {
     /// コンポーネントの名前と、入力の形（JSON Schema）。
@@ -147,7 +144,7 @@ pub trait Design: Send + Sync {
     /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）。
     fn parts(&self) -> &str;
     /// デザインシステム（references/design-system.schema.json に従う JSON）。
-    /// デザインテンプレートを持つものは、デザインシステムを持つ（ボード board-on-schema-driven の論点5）。
+    /// 部品のカタログが従うデザインシステム。
     fn design_system(&self) -> &str;
     /// ページのレイアウト。
     fn page(

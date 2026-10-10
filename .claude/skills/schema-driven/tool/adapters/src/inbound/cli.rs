@@ -14,6 +14,14 @@ pub fn run(
     run_in(&Toolbox::base(), args, instances, checks)
 }
 
+/// 先頭の `--skill <Skill のフォルダ>` を取り出す。残りの引数と一緒に返す。
+pub fn split_skill(args: &[String]) -> (Option<String>, Vec<String>) {
+    match args {
+        [flag, dir, rest @ ..] if flag == "--skill" => (Some(dir.clone()), rest.to_vec()),
+        _ => (None, args.to_vec()),
+    }
+}
+
 /// 引数を読み、ツールの一覧（具体のツールを追加したものでもよい）から呼び出す。
 pub fn run_in(
     toolbox: &Toolbox,
@@ -27,6 +35,9 @@ pub fn run_in(
     let Some((command, rest)) = args.split_first() else {
         // 動詞なしの --json は、ツールの一覧を返す（ほかの Skill の CLI と同じ）
         if as_json {
+            if let Some(failure) = toolbox.declaration_failure() {
+                return failure;
+            }
             // skill_root は、この実行ファイルを置いた Skill のディレクトリ（<Skill>/bin/ の1つ上）
             return (0, toolbox.catalog(&master_root()));
         }

@@ -1,5 +1,5 @@
-//! 集約 承認記録（AGG-2）。ディレクトリと、承認したインスタンス（パスとハッシュ値の組）を持つ。
-//! INV-1：承認したインスタンスは1件以上。
+//! 集約 承認記録。ディレクトリと、承認したインスタンス（パスとハッシュ値の組）を持つ。
+//! 不変条件：承認したインスタンスは1件以上。
 
 use crate::domain::check::Approved;
 use crate::domain::values::{
@@ -11,13 +11,13 @@ use std::fmt;
 /// 承認を拒んだ理由。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalReject {
-    /// BR-1：TERM-53 検証を通過しないインスタンスがある
+    /// 検証を通過しないインスタンスがある
     InvalidInstances,
-    /// BR-2：TERM-55 参照と導出値のずれがある
+    /// 参照と導出値のずれがある
     Drift,
-    /// BR-3：TERM-65 未記入のプロパティがある
+    /// 未記入のプロパティがある
     Unfilled,
-    /// INV-1：承認するインスタンスが無い
+    /// 承認するインスタンスが無い
     Empty,
 }
 
@@ -47,7 +47,7 @@ pub struct ApprovalRecord {
 }
 
 impl ApprovalRecord {
-    /// CMD-1 承認を記録する。検査で使ったパスとハッシュ値の並びを、そのまま記録する。
+    /// 承認を記録する。検査で使ったパスとハッシュ値の並びを、そのまま記録する。
     pub fn record(
         directory: InstancePath,
         errors: &[ValidationError],
@@ -81,7 +81,7 @@ impl ApprovalRecord {
             .collect()
     }
 
-    /// 前の承認記録と、承認するインスタンスの並びが同じか（UC-8 EXT-2：変化が無い）。
+    /// 前の承認記録と、承認するインスタンスの並びが同じか（変化が無い）。
     pub fn same_as(&self, instances: &[ApprovedInstance]) -> bool {
         self.instances == instances
     }

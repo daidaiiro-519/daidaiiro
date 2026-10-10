@@ -1,44 +1,383 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "meta-schema.json",
- "title": "メタスキーマ（基盤が具体のスキーマに求める契約）",
- "description": "基盤の上に作るもの（具体）が書くスキーマを検査するスキーマ。スキーマの中身（プロパティの名前と意味）は具体が決め、基盤はこの契約と注釈だけを読む。ここで見るのは構造の契約（説明と案内 ・ kind ・ 具体の注釈の申告の形）で、注釈の形（すべての深さ）・ 文の型 ・ 申告していない注釈 ・ 参照される種類の id は、基盤のツール check-schemas の処理が見る",
+ "$id": "schema-driven/abstract@v1",
+ "title": "abstract スキーマ v1 のメタスキーマ",
+ "description": "concrete スキーマが従う契約の版 v1。concrete スキーマは $schema にこの $id を書いて、使う版を示す。中身（プロパティの名前と意味）は concrete スキーマが決め、基盤はこの契約と注釈だけを読む。",
  "x-prompt": {
-  "read": "具体のスキーマは、このメタスキーマに従う。従っていれば、基盤のツール（検証 ・ x-prompt ・ 検査 ・ 描画）が、中身を知らないまま使える。",
-  "write": "具体のスキーマを書くときに、次を守る。(1) スキーマに title と description を書く。(2) インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。(3) 書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt（read と write）を書く。(4) 基盤に無い注釈を使うなら、根の x-annotations に名前と仕様のスキーマを書く。誤り：x-prompt を入れ子の奥の葉ごとに書かない（親の x-prompt が覆う）。"
+  "read": {
+   "means": "concrete スキーマを書く人が従う契約で、従っていれば基盤のツールが中身を知らずに使える。",
+   "when": "concrete スキーマを書く前と、check-schemas の指摘を直すときに読む。"
+  },
+  "write": [
+   {
+    "id": "declare-version",
+    "rule": "根の $schema に標準の 2020-12 の URI を、x-abstract に schema-driven/abstract@v1 を書く。",
+    "why": "基盤は x-abstract で版を判定し、その版の契約で検査する。",
+    "test": "根の x-abstract が、この版の名前と同じかを見る。"
+   },
+   {
+    "id": "name-and-description",
+    "rule": "スキーマに title と description を書く。",
+    "why": "check-schemas と描画が、スキーマの名前と説明を読む。",
+    "test": "根に title と description があるかを見る。"
+   },
+   {
+    "id": "generates-kind",
+    "rule": "インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。",
+    "why": "基盤は kind でインスタンスの種類を判定し、描画のしかたを選ぶ。",
+    "test": "x-generates を持つスキーマの根に、kind の const があるかを見る。"
+   },
+   {
+    "id": "prompt-per-unit",
+    "rule": "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。",
+    "why": "create と prompt は、書く単位ごとの x-prompt を返す。",
+    "test": "check-schemas の指摘が0件かを見る。"
+   },
+   {
+    "id": "no-prompt-on-leaf",
+    "rule": "入れ子の奥の葉には x-prompt を書かない。",
+    "why": "親の x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。",
+    "test": "x-prompt を持つ葉の親が、同じ決まりを持っていないかを見る。",
+    "bad": "verification.passed[].option に x-prompt を書く。",
+    "good": "verification.passed の x-prompt に、option の書き方も書く。"
+   },
+   {
+    "id": "list-as-array",
+    "rule": "並びになる値は、文字列に詰めず配列の型にする。",
+    "why": "型で配列にしておけば、インスタンスを書く人が文字列に詰めることができない。",
+    "test": "区切りの記号で並びを書かせる文字列の欄が無いかを見る。"
+   },
+   {
+    "id": "declare-annotations",
+    "rule": "基盤に無い注釈を使うときだけ、根の x-annotations に名前と仕様のスキーマを書く。",
+    "why": "x-annotations に無い x- で始まるキーは、check-schemas が違反にする。",
+    "test": "x- で始まるキーが、基盤の注釈か x-annotations にあるかを見る。"
+   }
+  ]
  },
  "type": "object",
- "required": ["title", "description"],
+ "required": [
+  "$schema",
+  "x-abstract",
+  "title",
+  "description"
+ ],
  "properties": {
-  "title": {"type": "string", "minLength": 1, "description": "スキーマの名前",
-   "x-prompt": {"read": "このスキーマが表すものの名前として読む。", "write": "インスタンスが何であるかを、名詞で書く（例：ユースケース、意思決定の記録）。"}},
-  "description": {"type": "string", "minLength": 1, "description": "スキーマの説明",
-   "x-prompt": {"read": "インスタンスが何で、何を書かないかを読む。", "write": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を1〜3文で書く。"}},
-  "x-generates": {"type": "string", "minLength": 1, "description": "このスキーマが作るインスタンスの置き場所",
-   "x-prompt": {"read": "このスキーマのインスタンスは、この置き場所に作られる。これを持つスキーマは、根に kind を持つ。", "write": "インスタンスのファイルの置き場所を、番号や名前の部分を <…> にして書く（例：decls/UC-<番号>.json）。インスタンスを作らない部品のスキーマ（共通の $defs だけを持つものなど）には書かない。"}},
-  "x-annotations": {"type": "object", "description": "具体が足す注釈の名前と、その仕様のスキーマ",
-   "propertyNames": {"pattern": "^x-"},
-   "additionalProperties": {"type": "string", "minLength": 1},
-   "examples": [{"x-test-spec": "test-spec.schema.json"}],
-   "x-prompt": {"read": "ここに書かれた注釈は、具体が足したもので、基盤は形を検査しない（仕様のスキーマが検査する）。ここに無い x- で始まるキーは、基盤の検査で違反になる。", "write": "基盤の注釈（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-generates）に無い注釈を使うときだけ書く。キーに注釈の名前、値にその仕様のスキーマのファイル名を書く。"}},
-  "properties": {"$ref": "#/$defs/fields"},
-  "$defs": {"type": "object", "additionalProperties": {"$ref": "#/$defs/shape"}}
+  "$schema": {
+   "const": "https://json-schema.org/draft/2020-12/schema",
+   "description": "JSON Schema の dialect",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが従う JSON Schema の dialect である。"
+    },
+    "write": [
+     {
+      "id": "standard-dialect",
+      "rule": "https://json-schema.org/draft/2020-12/schema と書く。",
+      "why": "JSON Schema の仕様は、$schema にスキーム付きの URI を求める。",
+      "test": "値がこの URI と同じかを見る。"
+     }
+    ]
+   }
+  },
+  "x-abstract": {
+   "const": "schema-driven/abstract@v1",
+   "description": "使う abstract スキーマの版",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが従う abstract スキーマの版である。"
+    },
+    "write": [
+     {
+      "id": "this-version",
+      "rule": "schema-driven/abstract@v1 と書く。",
+      "why": "基盤はこの値で、どの版の契約で検査するかを決める。",
+      "test": "値がこの文字列と同じかを見る。"
+     }
+    ]
+   }
+  },
+  "$id": {
+   "type": "string",
+   "pattern": "^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*@v[0-9]+$",
+   "description": "スキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "インスタンスが $schema で指す、このスキーマの名前である。",
+     "parse": "<Skill の名前>/<種類>@<版> の形で、版は v と数字である。"
+    },
+    "write": [
+     {
+      "id": "skill-kind-version",
+      "rule": "<Skill の名前>/<種類>@<版> の形で書く。",
+      "why": "エンジンは --skill の Skill の中から、この名前でスキーマを引く。",
+      "test": "頭が、このスキーマを持つ Skill のフォルダの名前かを見る。"
+     },
+     {
+      "id": "never-reuse",
+      "rule": "公開した版の中身を変えるときは、版を上げた新しい名前で足す。",
+      "why": "同じ名前で中身が変わると、前に書いたインスタンスが別のスキーマで検査される。",
+      "test": "公開した版の名前の中身が、公開した時と同じかを見る。"
+     }
+    ]
+   }
+  },
+  "title": {
+   "type": "string",
+   "minLength": 1,
+   "description": "スキーマの名前",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマが表すものの名前である。",
+     "shown": "描画したページの題と、check-schemas の出力に出る。"
+    },
+    "write": [
+     {
+      "id": "noun",
+      "rule": "インスタンスが何であるかを、名詞で書く。",
+      "why": "読む人は題だけで、何のインスタンスかを判断する。",
+      "test": "題が名詞で終わっているかを見る。",
+      "bad": "意思決定を記録するためのもの",
+      "good": "意思決定の記録"
+     }
+    ]
+   }
+  },
+  "description": {
+   "type": "string",
+   "minLength": 1,
+   "description": "スキーマの説明",
+   "x-prompt": {
+    "read": {
+     "means": "インスタンスが何で、何を書かないかの説明である。"
+    },
+    "write": [
+     {
+      "id": "what-and-not",
+      "rule": "インスタンスが何であるかと、書かないもの（ほかのスキーマが持つもの）を書く。",
+      "why": "書かないものが分からないと、ほかのスキーマと同じことを2か所に書く。",
+      "test": "説明に、書かないものが1つ以上あるかを見る。"
+     }
+    ]
+   }
+  },
+  "x-generates": {
+   "type": "string",
+   "minLength": 1,
+   "description": "このスキーマが作るインスタンスの置き場所",
+   "x-prompt": {
+    "read": {
+     "means": "このスキーマのインスタンスが作られる置き場所である。",
+     "parse": "<…> の部分は、番号や名前が入る場所である。"
+    },
+    "write": [
+     {
+      "id": "placeholder",
+      "rule": "番号や名前の部分を <…> にして、インスタンスのファイルの置き場所を書く。",
+      "why": "読む人とツールが、同じ置き場所に作る。",
+      "test": "<…> 以外の部分が、実際の置き場所と同じかを見る。"
+     },
+     {
+      "id": "only-for-instances",
+      "rule": "インスタンスを作らない部品のスキーマには書かない。",
+      "why": "書くと、作られないインスタンスの kind を探すことになる。",
+      "test": "$defs だけを持つスキーマに x-generates が無いかを見る。"
+     }
+    ]
+   }
+  },
+  "x-annotations": {
+   "type": "object",
+   "description": "具体が足す注釈の名前と、その仕様のスキーマ",
+   "propertyNames": {
+    "pattern": "^x-"
+   },
+   "additionalProperties": {
+    "type": "string",
+    "minLength": 1
+   },
+   "x-prompt": {
+    "read": {
+     "means": "concrete スキーマが足した注釈の名前と、その仕様のスキーマのファイル名である。"
+    },
+    "write": [
+     {
+      "id": "only-new-annotations",
+      "rule": "基盤の注釈（x-prompt ・ x-view ・ x-ref ・ x-derive ・ x-generates）に無い注釈を使うときだけ書く。",
+      "why": "ここに無い x- で始まるキーは、基盤の検査で違反になる。",
+      "test": "書いた名前が、基盤の注釈と重なっていないかを見る。"
+     }
+    ]
+   }
+  },
+  "x-prompt": {
+   "$ref": "#/$defs/prompt"
+  },
+  "properties": {
+   "$ref": "#/$defs/fields"
+  },
+  "$defs": {
+   "type": "object",
+   "additionalProperties": {
+    "$ref": "#/$defs/shape"
+   }
+  }
  },
- "if": {"required": ["x-generates"]},
+ "if": {
+  "required": [
+   "x-generates"
+  ]
+ },
  "then": {
-  "required": ["properties"],
-  "properties": {"properties": {"required": ["kind"], "properties": {"kind": {"required": ["const"]}}}}
+  "required": [
+   "properties",
+   "$id"
+  ],
+  "properties": {
+   "properties": {
+    "required": [
+     "kind"
+    ],
+    "properties": {
+     "kind": {
+      "required": [
+       "const"
+      ]
+     }
+    }
+   }
+  }
  },
  "$defs": {
-  "shape": {"type": "object", "description": "$defs の形1つ。プロパティを持つなら、その書く単位に説明と案内を求める",
-   "properties": {"properties": {"$ref": "#/$defs/fields"}}},
-  "fields": {"type": "object", "description": "書く単位の並び",
-   "properties": {"$schema": true},
-   "additionalProperties": {"$ref": "#/$defs/field"}},
-  "field": {"type": "object", "description": "書く単位1つ", "required": ["description", "x-prompt"],
+  "shape": {
+   "type": "object",
+   "description": "$defs の形1つ。プロパティを持つなら、その書く単位に説明と案内を求める",
    "properties": {
-    "description": {"type": "string", "minLength": 1},
-    "x-prompt": {"type": "object", "required": ["read", "write"], "additionalProperties": false,
-     "properties": {"read": {"type": "string", "minLength": 1}, "write": {"type": "string", "minLength": 1}}}}}
+    "properties": {
+     "$ref": "#/$defs/fields"
+    }
+   }
+  },
+  "fields": {
+   "type": "object",
+   "description": "書く単位の並び",
+   "properties": {
+    "$schema": true
+   },
+   "additionalProperties": {
+    "$ref": "#/$defs/field"
+   }
+  },
+  "field": {
+   "type": "object",
+   "description": "書く単位1つ",
+   "required": [
+    "description",
+    "x-prompt"
+   ],
+   "properties": {
+    "description": {
+     "type": "string",
+     "minLength": 1
+    },
+    "x-prompt": {
+     "$ref": "#/$defs/prompt"
+    }
+   }
+  },
+  "prompt": {
+   "type": "object",
+   "description": "x-prompt。read は値の読み方を観点ごとに、write は書くときの決まりを1件ずつ持つ",
+   "required": [
+    "read",
+    "write"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "read": {
+     "$ref": "#/$defs/reading"
+    },
+    "write": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/rule"
+     }
+    }
+   }
+  },
+  "reading": {
+   "type": "object",
+   "description": "値の読み方。観点ごとに1文",
+   "required": [
+    "means"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "means": {
+     "$ref": "#/$defs/sentence",
+     "description": "何を表すか"
+    },
+    "shown": {
+     "$ref": "#/$defs/sentence",
+     "description": "どこにどう出るか"
+    },
+    "parse": {
+     "$ref": "#/$defs/sentence",
+     "description": "値をどう解くか"
+    },
+    "when": {
+     "$ref": "#/$defs/sentence",
+     "description": "いつ、何のために読むか"
+    }
+   }
+  },
+  "rule": {
+   "type": "object",
+   "description": "書くときの決まり1件",
+   "required": [
+    "id",
+    "rule",
+    "why",
+    "test"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "rule": {
+     "$ref": "#/$defs/sentence"
+    },
+    "why": {
+     "$ref": "#/$defs/sentence"
+    },
+    "test": {
+     "$ref": "#/$defs/sentence"
+    },
+    "bad": {
+     "type": "string",
+     "minLength": 1
+    },
+    "good": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "dependentRequired": {
+    "bad": [
+     "good"
+    ],
+    "good": [
+     "bad"
+    ]
+   }
+  },
+  "sentence": {
+   "type": "string",
+   "minLength": 1,
+   "maxLength": 120
+  }
  }
 }

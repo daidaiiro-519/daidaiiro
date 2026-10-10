@@ -1,10 +1,10 @@
-//! スキーマ（VO-2 が指す JSON Schema）による検証と、x-prompt の取り出し。入出力を持たない。
+//! スキーマ（JSON Schema）による検証と、x-prompt の取り出し。入出力を持たない。
 
 use crate::domain::values::{Unfilled, ValidationError};
 use serde_json::Value;
 use std::fmt;
 
-/// 検証結果（情報の別名 TERM-9）。未記入は検証エラーと分けて返す（ACDR 0118）。
+/// 検証結果。未記入は検証エラーと分けて返す。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Validation {
     pub errors: Vec<ValidationError>,
@@ -153,7 +153,18 @@ impl Schema {
     /// インスタンスを検証する。必須のプロパティが無いことは未記入として分ける。
     pub fn validate(&self, instance: &Value) -> Result<Validation, SchemaError> {
         let mut registry = jsonschema::Registry::new();
+        // どのスキーマも、ファイル名の URI の下に置く。根の $id（名前）は、その URI を基準に解ける
+        for (file, meta) in crate::domain::contract::meta_schemas() {
+            if self.root.get("$id") != meta.get("$id") {
+                registry = registry
+                    .add(format!("{BASE}{file}"), meta)
+                    .map_err(|error| SchemaError(error.to_string()))?;
+            }
+        }
         for (name, value) in &self.siblings {
+            if value.get("$id").is_some() && value.get("$id") == self.root.get("$id") {
+                continue;
+            }
             registry = registry
                 .add(format!("{BASE}{name}"), value.clone())
                 .map_err(|error| SchemaError(error.to_string()))?;

@@ -1,16 +1,18 @@
-//! 1回目（インスタンスの読み書き）のテスト（テストレベル system）。
+//! 1回目（インスタンスの読み書き）のテスト。
 //! CLI のバイナリを一時ディレクトリで実行して確かめる。テストの名前は、テスト条件の ID を含む。
+
+mod common;
 
 use serde_json::{json, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 const BIN: &str = env!("CARGO_BIN_EXE_schema-driven");
 
 /// テストごとの一時ディレクトリ。スキーマ（$ref で隣のスキーマを指す）を置いておく。
-fn workdir(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("schema-driven-{name}-{}", std::process::id()));
+fn workdir(name: &str) -> common::Scratch {
+    let dir = common::Scratch::new(&format!("schema-driven-{name}"));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("schema")).unwrap();
     fs::write(
@@ -102,7 +104,7 @@ fn set_readonly(path: &Path, readonly: bool) {
     fs::set_permissions(path, permissions).unwrap();
 }
 
-// ── 集約 インスタンス（AGG-1）
+// ── 集約 インスタンス
 
 #[test]
 fn agg_1_cmd_1_ok_1_create_records_path_and_schema() {
@@ -176,7 +178,7 @@ fn agg_1_inv_1_hash_is_sha256_of_content() {
     assert_eq!(out["hash"], sha256(&read(&dir)));
 }
 
-// ── UC-1 インスタンスを作成する
+// ── インスタンスを作成する
 
 #[test]
 fn uc_1_m_create_returns_unfilled_with_prompt() {
@@ -247,7 +249,7 @@ fn uc_1_ext_3_unwritable_directory_fails() {
     assert_eq!(out["reason"], "書けない");
 }
 
-// ── UC-2 値を取得する
+// ── 値を取得する
 
 #[test]
 fn uc_2_m_get_returns_value() {
@@ -294,7 +296,7 @@ fn uc_2_ext_3_query_matching_nothing_returns_null() {
     assert_eq!(out["found"], false);
 }
 
-// ── UC-3 インスタンスを更新する
+// ── インスタンスを更新する
 
 #[test]
 fn uc_3_m_update_returns_validation_result() {
@@ -381,7 +383,7 @@ fn uc_3_ext_6_unwritable_file_fails() {
     assert_eq!(read(&dir), before);
 }
 
-// ── UC-7 x-prompt を受け取る
+// ── x-prompt を受け取る
 
 #[test]
 fn uc_7_m_prompt_returns_x_prompt() {

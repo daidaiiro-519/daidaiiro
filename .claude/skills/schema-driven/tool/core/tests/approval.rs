@@ -1,4 +1,4 @@
-//! 集約 承認記録（AGG-2）・ 値オブジェクト VO-3 ・ 4 ・ 11 ・ ドメインサービス 検査する（DS-1）のテスト（テストレベル component）。
+//! 集約 承認記録・ 値オブジェクト ・ ドメインサービス 検査するのテスト。
 //! テストの名前は、テスト条件の ID を含む。
 
 use schema_driven_core::domain::approval::{ApprovalRecord, ApprovalReject};

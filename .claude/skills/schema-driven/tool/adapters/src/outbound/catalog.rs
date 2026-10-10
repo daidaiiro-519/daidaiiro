@@ -1,25 +1,32 @@
-//! 基盤の文書（references/document.schema.json）の決まったデザイン（ポート Design の実装）。
-//! 何も指定が無いときに、文書のインスタンスを描画する（UC-6）。ブロックの type ごとに部品を選び、
-//! プレースホルダーに値を入れるだけで、表現を推し量らない。部品の HTML と CSS は references/document-design が持つ。
+//! 部品のカタログ（ポート Design の実装）。
+//! 部品の名前と入力の形は references/catalog.schema.json が持ち、部品の HTML ・ CSS ・ JS は
+//! references/catalog-design が持つ。プレースホルダーに値を入れるだけで、表現を推し量らない。
+//! 基盤の文書（document.schema.json）も、このカタログの部品 document で描く。
 
 use schema_driven_core::domain::Html;
 use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::sync::OnceLock;
 
-const PARTS: &str = include_str!("../../../../references/document-design/parts.html");
-const STYLE: &str = include_str!("../../../../references/document-design/document.css");
+const CATALOG: &str = include_str!("../../../../references/catalog.schema.json");
+const PARTS: &str = include_str!("../../../../references/catalog-design/parts.html");
+const STYLE: &str = include_str!("../../../../references/catalog-design/catalog.css");
+const SCRIPT: &str = include_str!("../../../../references/catalog-design/catalog.js");
 const DESIGN_SYSTEM: &str =
-    include_str!("../../../../references/document-design/design-system.json");
+    include_str!("../../../../references/catalog-design/design-system.json");
 
 /// 節がこの数以上なら、題の下に目次を出す。
 const TABLE_OF_CONTENTS_FROM: usize = 4;
 
-pub struct DocumentDesign;
+pub struct Catalog;
 
 fn parts_with_style() -> &'static str {
     static PARTS_WITH_STYLE: OnceLock<String> = OnceLock::new();
-    PARTS_WITH_STYLE.get_or_init(|| PARTS.replace("/*STYLE*/", STYLE))
+    PARTS_WITH_STYLE.get_or_init(|| {
+        PARTS
+            .replace("/*STYLE*/", STYLE)
+            .replace("/*SCRIPT*/", SCRIPT)
+    })
 }
 
 fn text_of(value: &Value, key: &str) -> String {
@@ -108,7 +115,7 @@ fn inline(renderer: &dyn Renderer, text: &str) -> Result<Html, String> {
     Ok(html)
 }
 
-impl DocumentDesign {
+impl Catalog {
     fn blocks_html(&self, renderer: &dyn Renderer, blocks: &[Value]) -> Result<Html, String> {
         let mut html = Html::default();
         for block in blocks {
@@ -447,22 +454,16 @@ impl DocumentDesign {
     }
 }
 
-impl Design for DocumentDesign {
+impl Design for Catalog {
+    /// カタログの $defs のキーが部品の名前で、値が入力の形である。
     fn components(&self) -> Vec<(String, Value)> {
-        vec![
-            (
-                "document".into(),
-                json!({"type": "object", "required": ["value"]}),
-            ),
-            (
-                "badges".into(),
-                json!({"type": "object", "required": ["value"]}),
-            ),
-            (
-                "inline".into(),
-                json!({"type": "object", "required": ["value"]}),
-            ),
-        ]
+        let catalog: Value = serde_json::from_str(CATALOG).unwrap_or(Value::Null);
+        catalog["$defs"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .map(|(name, shape)| (name.clone(), shape.clone()))
+            .collect()
     }
 
     fn parts(&self) -> &str {
@@ -491,14 +492,19 @@ impl Design for DocumentDesign {
         )
     }
 
-    /// 文書の節は、コンポーネント document が見出しごと描画するので、ページテンプレートの節は中身だけを返す。
-    fn section(
-        &self,
-        _heading: &str,
-        body: Html,
-        _renderer: &dyn Renderer,
-    ) -> Result<Html, String> {
-        Ok(body)
+    /// 見出しの無い節（基盤の文書の決まったページテンプレート）は中身だけを返す。文書は部品 document が見出しごと描く。
+    fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String> {
+        if heading.is_empty() {
+            return Ok(body);
+        }
+        renderer.part(
+            "section",
+            &[
+                ("anchor", renderer.text(&format!("sd-section-{heading}"))),
+                ("heading", renderer.text(heading)),
+                ("blocks", body),
+            ],
+        )
     }
 
     fn render(
@@ -507,9 +513,9 @@ impl Design for DocumentDesign {
         input: &Value,
         renderer: &mut dyn Renderer,
     ) -> Result<Html, String> {
-        let value = renderer.value(&input["value"])?;
         match name {
             "badges" => {
+                let value = renderer.value(&input["value"])?;
                 let mut badges = Html::default();
                 for badge in value.as_array().map(Vec::as_slice).unwrap_or(&[]) {
                     badges.push(renderer.part(
@@ -519,9 +525,151 @@ impl Design for DocumentDesign {
                 }
                 Ok(badges)
             }
-            "inline" => inline(renderer, value.as_str().unwrap_or("")),
-            "document" => self.document_html(renderer, &value),
-            other => Err(format!("文書のデザインは {other} を描画できない")),
+            "inline" => {
+                let value = renderer.value(&input["value"])?;
+                inline(renderer, value.as_str().unwrap_or(""))
+            }
+            "document" => {
+                let value = renderer.value(&input["value"])?;
+                self.document_html(renderer, &value)
+            }
+            "tabs" => tabs(renderer, input),
+            "fold" => {
+                let summary = renderer.node(&input["label"])?;
+                let blocks = nodes(renderer, &input["body"])?;
+                renderer.part("fold", &[("summary", summary), ("blocks", blocks)])
+            }
+            "mark" => {
+                let attrs = id_attr(renderer, &input["id"], None)?;
+                let after = renderer.node(&input["after"])?;
+                let before = renderer.node(&input["before"])?;
+                let why = renderer.node(&input["why"])?;
+                renderer.part(
+                    "mark",
+                    &[
+                        ("attrs", attrs),
+                        ("after", after),
+                        ("before", before),
+                        ("why", why),
+                    ],
+                )
+            }
+            "jump" => {
+                let label = renderer.node(&input["label"])?;
+                let to = text_value(renderer, &input["to"])?;
+                renderer.part(
+                    "jump",
+                    &[("to", renderer.text(&format!("sd-{to}"))), ("label", label)],
+                )
+            }
+            "choose" => {
+                let name = text_value(renderer, &input["name"])?;
+                let mut options = Html::default();
+                for option in list_of(input, "options") {
+                    options.push(renderer.part(
+                        "option",
+                        &[
+                            ("value", renderer.text(&text_of(option, "value"))),
+                            ("label", renderer.text(&text_of(option, "label"))),
+                        ],
+                    )?);
+                }
+                renderer.part(
+                    "choose",
+                    &[("name", renderer.text(&name)), ("options", options)],
+                )
+            }
+            "write" => {
+                let name = text_value(renderer, &input["name"])?;
+                let label = renderer.node(&input["label"])?;
+                renderer.part("write", &[("name", renderer.text(&name)), ("label", label)])
+            }
+            "send" => {
+                let label = renderer.node(&input["label"])?;
+                renderer.part(
+                    "send",
+                    &[
+                        ("to", renderer.text(&text_of(input, "to"))),
+                        ("label", label),
+                    ],
+                )
+            }
+            "embed" => {
+                let html = text_value(renderer, &input["html"])?;
+                let title = renderer.node(&input["title"])?;
+                renderer.part("embed", &[("title", title), ("html", renderer.text(&html))])
+            }
+            "svg" => {
+                let value = text_value(renderer, &input["value"])?;
+                let svg = renderer.svg(&value)?;
+                renderer.part("svg", &[("svg", svg)])
+            }
+            other => Err(format!("カタログに部品 {other} が無い")),
         }
     }
+}
+
+/// 式を評価し、文字にする。文字列でなければ JSON の文字にする。
+fn text_value(renderer: &mut dyn Renderer, expr: &Value) -> Result<String, String> {
+    Ok(match renderer.value(expr)? {
+        Value::String(text) => text,
+        Value::Null => String::new(),
+        other => other.to_string(),
+    })
+}
+
+/// body の並びを、今の位置のまま描く。
+fn nodes(renderer: &mut dyn Renderer, body: &Value) -> Result<Html, String> {
+    let mut html = Html::default();
+    for node in body.as_array().map(Vec::as_slice).unwrap_or(&[]) {
+        html.push(renderer.node(node)?);
+    }
+    Ok(html)
+}
+
+/// 式 id を評価して、 id="sd-…" の属性にする。at があれば、その位置で評価する。式が無ければ空。
+fn id_attr(renderer: &mut dyn Renderer, expr: &Value, at: Option<&Value>) -> Result<Html, String> {
+    if expr.is_null() {
+        return Ok(Html::default());
+    }
+    let id = match at {
+        Some(at) => renderer.node_at(expr, at)?,
+        None => renderer.node(expr)?,
+    };
+    renderer.part("attr-id", &[("id", id)])
+}
+
+/// 並びの要素ごとにタブと面を作る。label ・ id ・ body は要素を今の位置にして描く。
+fn tabs(renderer: &mut dyn Renderer, input: &Value) -> Result<Html, String> {
+    let items = renderer.value(&input["items"])?;
+    let (mut tabs, mut panes) = (Html::default(), Html::default());
+    for (index, item) in items
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or(&[])
+        .iter()
+        .enumerate()
+    {
+        let label = renderer.node_at(&input["label"], item)?;
+        tabs.push(renderer.part(
+            "tab",
+            &[
+                (
+                    "selected",
+                    renderer.text(if index == 0 { "true" } else { "false" }),
+                ),
+                ("label", label),
+            ],
+        )?);
+        let mut attrs = id_attr(renderer, &input["id"], Some(item))?;
+        if index > 0 {
+            attrs.push(renderer.part("attr-hidden", &[])?);
+        }
+        let mut body = Html::default();
+        for node in input["body"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
+            body.push(renderer.node_at(node, item)?);
+        }
+        panes.push(renderer.part("tab-pane", &[("attrs", attrs), ("body", body)])?);
+    }
+    renderer.part("tabs", &[("tabs", tabs), ("panes", panes)])
 }

@@ -1,13 +1,14 @@
 //! ツールの一覧。CLI と MCP は、この一覧と `dispatch` から作る（呼び出し方を2か所に書かない）。
 
+use crate::outbound::process;
+use schema_driven_core::application::declared::{read_declarations, DeclaredTool};
 use schema_driven_core::application::instances::{UnfilledWithPrompt, UseCaseError};
 use schema_driven_core::domain::Finding;
 use schema_driven_core::domain::Unfilled;
 use schema_driven_core::domain::ValidationError;
-use schema_driven_core::ports::inbound::{
-    CheckUseCases, InstanceUseCases, RenderUseCases, TranscriptionUseCases,
-};
+use schema_driven_core::ports::inbound::{CheckUseCases, InstanceUseCases, RenderUseCases};
 use serde_json::{json, Map, Value};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 /// ツール1つ：名前 ・ 説明 ・ 引数（名前 ・ 説明 ・ 必須か）。
@@ -21,17 +22,17 @@ pub struct ToolDef {
 pub const TOOLS: &[ToolDef] = &[
     ToolDef {
         name: "create",
-        description: "スキーマから、必須のプロパティを持たないインスタンスを作成し、未記入のプロパティと x-prompt を返す（UC-1）",
+        description: "スキーマから、必須のプロパティを持たないインスタンスを作成し、未記入のプロパティと x-prompt を返す",
         args: &[("schema", "スキーマのファイルのパス", true), ("path", "作成するインスタンスのパス", true)],
     },
     ToolDef {
         name: "get",
-        description: "JMESPath 式でインスタンスから値を取得する（UC-2）",
+        description: "JMESPath 式でインスタンスから値を取得する",
         args: &[("path", "インスタンスのパス", true), ("query", "JMESPath 式", true)],
     },
     ToolDef {
         name: "update",
-        description: "インスタンスへ JSON Patch を適用し、未記入以外の検証エラーが無いときだけ書く（UC-3）",
+        description: "インスタンスへ JSON Patch を適用し、未記入以外の検証エラーが無いときだけ書く",
         args: &[
             ("path", "インスタンスのパス", true),
             ("patch", "JSON Patch（RFC 6902）の文字列", true),
@@ -40,47 +41,37 @@ pub const TOOLS: &[ToolDef] = &[
     },
     ToolDef {
         name: "delete",
-        description: "インスタンスのファイルを削除し、まだそれを指している参照を返す（UC-4）",
+        description: "インスタンスのファイルを削除し、まだそれを指している参照を返す",
         args: &[("path", "インスタンスのパス", true)],
     },
     ToolDef {
         name: "prompt",
-        description: "プロパティ（JSON Pointer）の x-prompt を返す（UC-7）",
+        description: "プロパティ（JSON Pointer）の x-prompt を返す",
         args: &[("schema", "スキーマのファイルのパス", true), ("property", "プロパティの JSON Pointer", true)],
     },
     ToolDef {
         name: "check",
-        description: "ディレクトリのインスタンスを検証し、x-ref と x-derive の検査をする（UC-5）",
+        description: "ディレクトリのインスタンスを検証し、x-ref と x-derive の検査をする",
         args: &[("dir", "インスタンスのディレクトリ", true)],
     },
     ToolDef {
         name: "check-schemas",
-        description: "ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマ（references/meta-schema.json）と注釈の仕様で、すべての深さまで検査する",
+        description: "ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマ（references/meta-schema.json）と注釈の仕様で、すべての深さまで検査する。公開の記録（published.json）があれば、公開した版の書き換えと消失も指摘し、まだ記録に無い名前を指紋つきで返す",
         args: &[("dir", "スキーマのディレクトリ", true)],
     },
     ToolDef {
         name: "approve",
-        description: "検査を通ったディレクトリのインスタンスのパスとハッシュ値を、承認記録（approval.json）へ書く（UC-8）",
+        description: "検査を通ったディレクトリのインスタンスのパスとハッシュ値を、承認記録（approval.json）へ書く",
         args: &[("dir", "インスタンスのディレクトリ", true)],
     },
     ToolDef {
         name: "render",
-        description: "ディレクトリのインスタンスをページへ描画する（UC-6）。kind が document なら基盤の文書の契約と決まったデザインで、具体の種類なら具体のページテンプレートとデザインで描画する。どちらでもない種類があれば、1ページも書かずに失敗する。検証エラーがあれば描画しない。同じ入力からは同じページを書く",
+        description: "ディレクトリのインスタンスをページへ描画する。kind が document なら基盤の文書の契約で、そのほかの種類はその種類のページテンプレートで、部品のカタログを使って描画する。ページテンプレートの無い種類があれば、1ページも書かずに失敗する。検証エラーがあれば描画しない。同じ入力からは同じページを書く",
         args: &[
             ("dir", "インスタンスのディレクトリ", true),
             ("pages", "具体のページテンプレートのディレクトリ。無ければ、kind が document のインスタンスだけを描画できる", false),
             ("out", "ページを書き出すディレクトリ", true),
         ],
-    },
-    ToolDef {
-        name: "transcribe",
-        description: "基盤の正本（core ・ adapters ・ references）を、利用側の Skill の tool/schema-driven/ へ転写する（UC-9）。2回目からは基盤の新しい版へ更新する。具体が変えたファイルは上書きせず、基盤も変えていたら新しい版を隣（.schema-driven-new）に置く",
-        args: &[("to", "利用側の Skill のディレクトリ", true)],
-    },
-    ToolDef {
-        name: "check-copy",
-        description: "利用側の Skill の複製と、基盤の正本の差分を検査する（UC-10）。基盤の版の差と、ファイルごとの差（正本が新しくなった ・ 具体が変えた ・ 衝突 など）を返す。複製は書き換えない",
-        args: &[("to", "利用側の Skill のディレクトリ", true)],
     },
 ];
 
@@ -147,19 +138,16 @@ fn misuse_in(list: &[ToolDef], detail: &str) -> (i32, Value) {
     )
 }
 
-/// 具体が追加するツール（ボード schema-driven-build の論点5 C）。引数の検査は基盤が行ってから call を呼び出す。
-pub trait ExtraTools {
-    fn tools(&self) -> Vec<ToolDef>;
-    /// ツールを呼び出す。返すのは終了コードと結果の JSON（基盤のツールと同じ形）。
-    fn call(&self, name: &str, args: &Map<String, Value>) -> (i32, Value);
-}
-
-/// 基盤のツールの一覧に、具体のツールを追加したもの。CLI と MCP はこれから作る。
+/// 共通ツールと、Skill が宣言したツールの一覧。CLI と MCP はこれから作る。
 pub struct Toolbox {
     list: Vec<ToolDef>,
-    extra: Option<Arc<dyn ExtraTools>>,
     render: Option<Arc<dyn RenderUseCases>>,
-    transcriptions: Option<Arc<dyn TranscriptionUseCases>>,
+    /// --skill で渡した Skill のフォルダ
+    skill: Option<PathBuf>,
+    /// その Skill の tools.json で宣言したツール
+    declared: Vec<DeclaredTool>,
+    /// 宣言が契約に合わないときの理由。あれば、どのツールも呼ばずにこれを返す
+    declaration_error: Option<String>,
 }
 
 impl Toolbox {
@@ -167,42 +155,48 @@ impl Toolbox {
     pub fn base() -> Self {
         Self {
             list: TOOLS.to_vec(),
-            extra: None,
             render: None,
-            transcriptions: None,
+            skill: None,
+            declared: Vec::new(),
+            declaration_error: None,
         }
     }
 
-    /// 転写と差分の検査のユースケースを渡す。正本の場所は、渡す側（実行ファイル）が決める。
-    pub fn with_transcriptions(mut self, transcriptions: Arc<dyn TranscriptionUseCases>) -> Self {
-        self.transcriptions = Some(transcriptions);
+    /// Skill のフォルダを渡す。そのフォルダの tools.json で宣言したツールを、共通ツールのあとに並べる。
+    pub fn with_skill(mut self, dir: &str) -> Self {
+        let path = PathBuf::from(dir);
+        let reserved: Vec<&str> = self.list.iter().map(|tool| tool.name).collect();
+        match process::load_declarations(&path) {
+            Ok(None) => {}
+            Ok(Some(value)) => match read_declarations(&value, &reserved) {
+                Ok(declared) => self.declared = declared,
+                Err(error) => self.declaration_error = Some(error),
+            },
+            Err(error) => self.declaration_error = Some(error),
+        }
+        self.skill = Some(path);
         self
     }
 
-    /// 描画のユースケース（具体のデザインを持つもの）を渡す。渡さなければ、render は理由を返して失敗する。
+    /// 宣言が契約に合わないとき、その失敗を返す。
+    pub fn declaration_failure(&self) -> Option<(i32, Value)> {
+        self.declaration_error.as_ref().map(|error| {
+            (
+                1,
+                json!({"ok": false, "reason": "宣言が契約に合わない", "detail": error, "errors": []}),
+            )
+        })
+    }
+
+    /// 宣言したツール。
+    pub fn declared(&self) -> &[DeclaredTool] {
+        &self.declared
+    }
+
+    /// 描画のユースケースを渡す。渡さなければ、render は理由を返して失敗する。
     pub fn with_render(mut self, render: Arc<dyn RenderUseCases>) -> Self {
         self.render = Some(render);
         self
-    }
-
-    /// 具体のツールを、基盤のツールのあとに追加する。基盤のツールと同じ名前は追加できない。
-    pub fn with(extra: Arc<dyn ExtraTools>) -> Result<Self, String> {
-        let mut list = TOOLS.to_vec();
-        for tool in extra.tools() {
-            if list.iter().any(|base| base.name == tool.name) {
-                return Err(format!(
-                    "基盤のツールと同じ名前は追加できない: {}",
-                    tool.name
-                ));
-            }
-            list.push(tool);
-        }
-        Ok(Self {
-            list,
-            extra: Some(extra),
-            render: None,
-            transcriptions: None,
-        })
     }
 
     pub fn list(&self) -> &[ToolDef] {
@@ -222,6 +216,14 @@ impl Toolbox {
                     .collect();
                 json!({"name": tool.name, "summary": tool.description, "args": args})
             })
+            .chain(self.declared.iter().map(|tool| {
+                let args: Vec<Value> = tool
+                    .args
+                    .iter()
+                    .map(|arg| json!({"name": arg.name, "required": arg.required}))
+                    .collect();
+                json!({"name": tool.name, "summary": tool.description, "args": args})
+            }))
             .collect();
         json!({"ok": true, "findings": [], "data": {"tools": tools, "skill_root": skill_root}})
     }
@@ -235,6 +237,12 @@ impl Toolbox {
         instances: &dyn InstanceUseCases,
         checks: &dyn CheckUseCases,
     ) -> (i32, Value) {
+        if let Some(failure) = self.declaration_failure() {
+            return failure;
+        }
+        if let Some(tool) = self.declared.iter().find(|tool| tool.name == name) {
+            return self.call_declared(tool, args);
+        }
         let Some(tool) = self.list.iter().find(|tool| tool.name == name) else {
             return misuse_in(&self.list, &format!("知らないツール: {name}"));
         };
@@ -253,39 +261,6 @@ impl Toolbox {
                 }
                 _ => {}
             }
-        }
-        if name == "transcribe" || name == "check-copy" {
-            let Some(transcriptions) = &self.transcriptions else {
-                return (
-                    1,
-                    json!({"ok": false, "reason": "転写のユースケースが渡されていない", "detail": "transcribe と check-copy は、Toolbox に転写のユースケース（Transcriptions）を渡したツールで使う"}),
-                );
-            };
-            let to = args.get("to").and_then(Value::as_str).unwrap_or_default();
-            return if name == "transcribe" {
-                match transcriptions.transcribe(to) {
-                    Ok(done) => (
-                        0,
-                        json!({"ok": true, "from_version": done.from_version, "to_version": done.to_version, "written": done.written, "removed": done.removed, "kept": done.kept, "conflicts": done.conflicts}),
-                    ),
-                    Err(error) => failed(error),
-                }
-            } else {
-                match transcriptions.check_copy(to) {
-                    Ok(report) => {
-                        let differences: Vec<Value> = report
-                            .differences
-                            .iter()
-                            .map(|difference| json!({"path": difference.path, "kind": difference.kind}))
-                            .collect();
-                        (
-                            0,
-                            json!({"ok": true, "copy_version": report.copy_version, "master_version": report.master_version, "differences": differences}),
-                        )
-                    }
-                    Err(error) => failed(error),
-                }
-            };
         }
         if name == "render" {
             let arg = |key: &str| args.get(key).and_then(Value::as_str).unwrap_or_default();
@@ -306,11 +281,6 @@ impl Toolbox {
                 }
                 Err(error) => failed(error),
             };
-        }
-        if !TOOLS.iter().any(|tool| tool.name == name) {
-            if let Some(extra) = &self.extra {
-                return extra.call(name, args);
-            }
         }
         call_base(name, args, instances, checks)
     }
@@ -357,7 +327,12 @@ fn call_base(
                 .iter()
                 .map(|finding| json!({"schema": finding.schema, "at": finding.at, "rule": finding.rule, "message": finding.message}))
                 .collect();
-            json!({"ok": true, "schemas": checked.schemas, "findings": list})
+            let unpublished: Vec<Value> = checked
+                .unpublished
+                .iter()
+                .map(|item| json!({"name": item.name, "sha256": item.sha256}))
+                .collect();
+            json!({"ok": true, "schemas": checked.schemas, "findings": list, "unpublished": unpublished})
         }),
         "approve" => checks.approve(arg("dir")).map(|approved| {
             let list: Vec<Value> = approved.instances.iter().map(|(path, hash)| json!({"path": path, "hash": hash})).collect();
@@ -370,4 +345,62 @@ fn call_base(
         Ok(value) => (0, value),
         Err(error) => failed(error),
     }
+}
+
+impl Toolbox {
+    /// 宣言したツールの引数を確かめてから、別の実行ファイルとして呼ぶ。
+    fn call_declared(&self, tool: &DeclaredTool, args: &Map<String, Value>) -> (i32, Value) {
+        let name = &tool.name;
+        for key in args.keys() {
+            if !tool.args.iter().any(|arg| &arg.name == key) {
+                return self.misuse_all(&format!("{name} は引数 {key} を受け付けない"));
+            }
+        }
+        for arg in &tool.args {
+            match args.get(&arg.name) {
+                None if arg.required => {
+                    return self.misuse_all(&format!("{name} の引数 {} が無い", arg.name))
+                }
+                Some(value) if !value.is_string() => {
+                    return self.misuse_all(&format!("{name} の引数 {} は文字列で渡す", arg.name))
+                }
+                _ => {}
+            }
+        }
+        let skill = self.skill.clone().unwrap_or_else(|| PathBuf::from("."));
+        process::run_declared(&skill, tool, args)
+    }
+
+    /// 使い方の誤り。共通ツールと宣言したツールの名前を並べて返す。
+    fn misuse_all(&self, detail: &str) -> (i32, Value) {
+        let names: Vec<&str> = self
+            .list
+            .iter()
+            .map(|tool| tool.name)
+            .chain(self.declared.iter().map(|tool| tool.name.as_str()))
+            .collect();
+        (
+            2,
+            json!({"ok": false, "reason": "使い方が違う", "detail": detail, "tools": names}),
+        )
+    }
+}
+
+/// 宣言したツールの引数を JSON Schema で表す（MCP の inputSchema）。
+pub fn declared_input_schema(tool: &DeclaredTool) -> Map<String, Value> {
+    let mut properties = Map::new();
+    for arg in &tool.args {
+        properties.insert(
+            arg.name.clone(),
+            json!({"type": "string", "description": arg.description}),
+        );
+    }
+    let required: Vec<&str> = tool
+        .args
+        .iter()
+        .filter(|arg| arg.required)
+        .map(|arg| arg.name.as_str())
+        .collect();
+    let schema = json!({"type": "object", "properties": properties, "required": required, "additionalProperties": false});
+    schema.as_object().cloned().unwrap_or_default()
 }

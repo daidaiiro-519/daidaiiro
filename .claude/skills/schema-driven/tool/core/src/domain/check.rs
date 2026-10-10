@@ -1,4 +1,4 @@
-//! ドメインサービス 検査する（DS-1）。インスタンスの集まりについて、注釈 x-ref と x-derive を
+//! ドメインサービス 検査する。インスタンスの集まりについて、注釈 x-ref と x-derive を
 //! references/annotations.schema.json の仕様どおりに適用する。読むのは注釈と、インスタンスの id と kind だけ。
 
 use crate::domain::schema::Schema;
@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub use crate::domain::values::Status;
 
-/// 検査結果1件（VO-9）。
+/// 検査結果1件。
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Finding {
     pub status: Status,
@@ -42,7 +42,7 @@ struct Link {
     owner: Value,
     owner_at: String,
     xref: Value,
-    /// VO-3 参照
+    /// 参照
     reference: Reference,
     targets: Vec<Target>,
 }
@@ -267,7 +267,7 @@ impl Checker<'_> {
                         reference,
                         targets: Vec::new(),
                     }),
-                    // VO-3.INV-1：書いた値が空の参照は、指す先を探さずにずれとして返す
+                    // 書いた値が空の参照は、指す先を探さずにずれとして返す
                     Err(_) => {
                         let from = format!("{}{at}", self.label(doc));
                         self.push(

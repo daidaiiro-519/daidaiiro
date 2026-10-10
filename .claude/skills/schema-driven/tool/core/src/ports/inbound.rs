@@ -3,42 +3,33 @@
 use crate::application::checks::{Approved as ApprovedOutcome, Checked, Deleted, SchemasChecked};
 use crate::application::instances::{Created, Got, Prompted, Updated, UseCaseError};
 use crate::application::renders::Rendered;
-use crate::application::transcriptions::{CopyReport, Transcribed};
 
-/// インスタンスの読み書きのユースケース（UC-1 ・ 2 ・ 3 ・ 7 と、集約の削除のコマンド）。
+/// インスタンスの読み書きのユースケースと、削除のコマンド。
 pub trait InstanceUseCases {
-    /// UC-1 インスタンスを作成する
+    /// インスタンスを作成する
     fn create(&self, schema: &str, path: &str) -> Result<Created, UseCaseError>;
-    /// UC-2 値を取得する
+    /// 値を取得する
     fn get(&self, path: &str, query: &str) -> Result<Got, UseCaseError>;
-    /// UC-3 インスタンスを更新する。`hash` は呼ぶ側が読んだ時点のハッシュ値（無ければ、このユースケースが読んだ時点）
+    /// インスタンスを更新する。`hash` は呼ぶ側が読んだ時点のハッシュ値（無ければ、このユースケースが読んだ時点）
     fn update(&self, path: &str, patch: &str, hash: Option<&str>) -> Result<Updated, UseCaseError>;
-    /// UC-7 x-prompt を受け取る
+    /// x-prompt を受け取る
     fn prompt(&self, schema: &str, property: &str) -> Result<Prompted, UseCaseError>;
 }
 
-/// 検査と承認のユースケース（UC-4 ・ 5 ・ 8）。
+/// 検査と承認のユースケース。
 pub trait CheckUseCases {
-    /// UC-5 ディレクトリのインスタンスを検査する
+    /// ディレクトリのインスタンスを検査する
     fn check(&self, dir: &str) -> Result<Checked, UseCaseError>;
-    /// ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマと注釈の仕様で検査する（ボード schema-driven-build の論点6 D）
+    /// ディレクトリの具体のスキーマ（*.schema.json）を、メタスキーマと注釈の仕様で検査する
     fn check_schemas(&self, dir: &str) -> Result<SchemasChecked, UseCaseError>;
-    /// UC-8 承認を記録する
+    /// 承認を記録する
     fn approve(&self, dir: &str) -> Result<ApprovedOutcome, UseCaseError>;
-    /// UC-4 インスタンスを削除する（消したインスタンスを、まだ指している参照を返す）
+    /// インスタンスを削除する（消したインスタンスを、まだ指している参照を返す）
     fn delete(&self, path: &str) -> Result<Deleted, UseCaseError>;
 }
 
-/// 描画のユースケース（UC-6）。具体のデザインを持つものだけが実装する。
+/// 描画のユースケース。
 pub trait RenderUseCases {
-    /// UC-6 ページを描画する。dir のインスタンスを、pages のページテンプレートで、out へ描画する
+    /// ページを描画する。dir のインスタンスを、pages のページテンプレートで、out へ描画する
     fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError>;
-}
-
-/// 転写と差分の検査のユースケース（UC-9 ・ 10）。skill は利用側の Skill のディレクトリ。
-pub trait TranscriptionUseCases {
-    /// UC-9 基盤の複製を転写する
-    fn transcribe(&self, skill: &str) -> Result<Transcribed, UseCaseError>;
-    /// UC-10 複製と正本の差分を検査する（複製は書き換えない）
-    fn check_copy(&self, skill: &str) -> Result<CopyReport, UseCaseError>;
 }

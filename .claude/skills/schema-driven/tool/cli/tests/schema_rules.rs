@@ -1,4 +1,6 @@
-//! 具体のスキーマの検査（references/meta-schema.json と、すべての深さの注釈。ボード schema-driven-build の論点6 D）のテスト。
+//! 具体のスキーマの検査（references/meta-schema.json と、すべての深さの注釈）のテスト。
+
+mod common;
 
 use schema_driven_adapters::outbound::jmespath::Jmespath;
 use schema_driven_core::domain::schema_rules::{check_schemas, SchemaFinding};
@@ -23,8 +25,8 @@ fn rules(findings: &[SchemaFinding]) -> Vec<&str> {
 }
 
 fn field(extra: Value) -> Value {
-    let mut base =
-        json!({"type": "string", "description": "説明", "x-prompt": {"read": "r", "write": "w"}});
+    let mut base = json!({"type": "string", "description": "説明", "x-prompt": {"read": {"means": "見本の欄である。"},
+              "write": [{"id": "one", "rule": "値を1つ書く。", "why": "見本である。", "test": "値があるかを見る。"}]}});
     for (key, value) in extra.as_object().unwrap() {
         base[key] = value.clone();
     }
@@ -33,7 +35,7 @@ fn field(extra: Value) -> Value {
 
 /// 決まりに従っている具体のスキーマ。
 fn good() -> Value {
-    json!({"title": "用語集", "description": "語の一覧", "x-generates": "declarations/GLO-<番号>.json",
+    json!({"$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1", "$id": "lexicon/glossary@v1", "title": "用語集", "description": "語の一覧", "x-generates": "declarations/GLO-<番号>.json",
            "x-view": {"label": "header.name"},
            "properties": {
                "kind": field(json!({"const": "glossary"})),
@@ -112,7 +114,7 @@ fn undeclared_annotations_are_findings_and_declared_ones_pass() {
 fn referenced_kinds_must_have_id() {
     let mut glossary = good();
     glossary["properties"].as_object_mut().unwrap().remove("id");
-    let use_case = json!({"title": "ユースケース", "description": "やり取り", "x-generates": "declarations/UC-<番号>.json",
+    let use_case = json!({"$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1", "$id": "lexicon/use-case@v1", "title": "ユースケース", "description": "やり取り", "x-generates": "declarations/UC-<番号>.json",
                     "properties": {
                         "kind": field(json!({"const": "use_case"})),
                         "id": field(json!({})),
@@ -138,7 +140,7 @@ fn check_schemas_tool_reads_a_directory_of_schemas() {
     use schema_driven_core::application::checks::Checks;
     use schema_driven_core::application::instances::Instances;
     use std::sync::Arc;
-    let dir = std::env::temp_dir().join(format!("sd-check-schemas-{}", std::process::id()));
+    let dir = common::Scratch::new("sd-check-schemas");
     std::fs::create_dir_all(&dir).unwrap();
     let mut bad = good();
     bad["properties"]["terms"]["x-foo"] = json!(1);
