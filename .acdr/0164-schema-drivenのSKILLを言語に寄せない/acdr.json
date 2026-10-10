@@ -1,0 +1,108 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0164",
+ "title": "schema-driven の SKILL.md を言語に寄せない",
+ "date": "2026-10-10",
+ "status": "accepted",
+ "decision": "schema-driven の SKILL.md は言語に寄らない手順と決まりだけを持ち、実装の言語での中身は references/implementation.json が持つ",
+ "why": "SKILL.md の手順に、crate ・ clippy ・ cargo のような Rust の語と、決めた記録の番号が混ざっていた。実装の言語を替えると、手順の本文まで書き直すことになる。",
+ "figure": "flow.svg",
+ "figure_caption": "SKILL.md を1枚に縮めた図。色の付いた行が、読む途中で引っかかる所。",
+ "alternatives": [
+  {
+   "option": "Rust の中身を SKILL.md の末尾の節に寄せる",
+   "why_not": "SKILL.md の中に残るので、言語を替えるときに SKILL.md を書き直すことは変わらない"
+  },
+  {
+   "option": "implementation.json を基盤の文書のスキーマ（document.schema.json）で書く",
+   "why_not": "見出しと段落の形しか検査されず、差し替えた中身の書き漏れが通る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "schema_driven_skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "基盤の実装を具体の Skill へ転写し",
+     "before": "基盤の crate を具体の Skill へ転写し、基盤の新しい版へ更新する",
+     "why": "crate は Rust の語である"
+    },
+    {
+     "find": "ツールは、CLI と MCP の両方から、同じ名前と引数で呼べる。起動のしかたは",
+     "before": "ツールは、CLI `bin/schema-driven` と MCP `bin/schema-driven-mcp` の両方から、同じ名前と引数で呼べる。一覧は次で取れる。",
+     "why": "実行ファイルの場所は言語とビルドのしかたで変わる。起動のしかたを持つファイルの名前だけを書く"
+    },
+    {
+     "find": "基盤の実装と",
+     "before": "基盤の `tool/core` ・ `tool/adapters` ・ `references` を、具体の Skill の `tool/schema-driven/` の下へ同じ並びで写す。",
+     "why": "写す場所の並びは実装の構成で変わる。implementation.json の transcribe へ移した"
+    },
+    {
+     "find": "具体のコードが使ってよいのは、基盤が外へ出しているものだけである。",
+     "before": "具体のコードが使ってよいのは、crate が外へ出しているものだけである（ACDR 0144）。 と、crate ごとの表",
+     "why": "決まりだけを残し、crate と型の表は implementation.json の public_api へ移した。記録の番号は書かない"
+    },
+    {
+     "find": "具体がデザインを渡すときは、デザインシステム（",
+     "before": "具体が `Design` を渡すときは、`design_system()` でデザインシステム（`references/design-system.schema.json` に従う JSON）も渡す。テンプレートの CSS は、色をすべてトークンの変数（`var(--名前)`）から引き、ページのテンプレートには `renderer.tokens()` が返す CSS の変数を置く。",
+     "why": "型と関数の名前は implementation.json の design へ移した"
+    },
+    {
+     "find": "具体のコードから、基盤の内部を使わない",
+     "before": "具体のコードから、基盤の内部（feature `internals` で開くもの）を使わない",
+     "why": "feature は Rust の仕組みである。implementation.json の internal へ移した"
+    },
+    {
+     "find": "基盤の中心（domain と application）は、ファイルを直接扱わない",
+     "before": "core ではファイルを直接扱わない。入出力は ports の trait を通し、`tool/core/clippy.toml` が `std::fs` を禁じる（ACDR 0121）",
+     "why": "守り方は implementation.json の rules へ移した。記録の番号は書かない"
+    },
+    {
+     "find": "基盤はネットワークに出ない",
+     "before": "版は `tool/Cargo.lock` の1か所で決める。基盤はネットワークに出ない（ACDR 0122）",
+     "why": "Cargo.lock は Rust の語である。守り方は implementation.json の rules へ移した"
+    },
+    {
+     "find": "実装の言語での使い方（構成",
+     "before": "tool/core ・ tool/adapters ・ tool/cli ・ tool/mcp ・ テストの行と、cargo test のコマンド",
+     "why": "構成は implementation.json、コマンドは tool.json が持つ"
+    }
+   ]
+  },
+  {
+   "key": "implementation",
+   "tab": "references/implementation.json",
+   "file": ".claude/skills/schema-driven/references/implementation.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"kind\":\"implementation\"",
+     "before": "（無かった）",
+     "why": "SKILL.md から外した Rust の中身を1つに置く。言語を替えるときは、このファイルを差し替える"
+    }
+   ]
+  },
+  {
+   "key": "implementation_schema",
+   "tab": "references/implementation.schema.json",
+   "file": ".claude/skills/schema-driven/references/implementation.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": " \"required\": [\"kind\", \"language\", \"layout\", \"transcribe\", \"public_api\", \"design\", \"rules\"],",
+     "before": "（無かった）",
+     "why": "差し替えた中身が項目を書き漏らしたら、検査で止める"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "schema_driven_skill": "259f8097f8a5b36952cab1fb40c81653ff0990c31caccb332fb7b09435ae6bcc",
+  "implementation": "65c625ae17094708ddc2ccb3026a526c202bf72edb74915f80ebc8ac1a3ee3b6",
+  "implementation_schema": "97231fc84d5be4d3f2fdd0f5c35d51e48a1b4d214a86c08857f6c748bc9442a0"
+ }
+}

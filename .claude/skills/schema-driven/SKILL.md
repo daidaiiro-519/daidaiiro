@@ -1,6 +1,6 @@
 ---
 name: schema-driven
-description: AI が扱うデータを、Markdown ではなく JSON Schema とそのインスタンスで持つときに使う基盤の Skill。スキーマからインスタンスを作成し、x-prompt を受け取り、JMESPath 式で取得し、JSON Patch で更新し、注釈 x-ref と x-derive で参照と導出値を検査し、承認を記録し、ページを描画する。具体の Skill（acdr ・ ブレストボードなど）は、この基盤の crate を転写して、自分のスキーマとデザインで使う。
+description: AI が扱うデータを、Markdown ではなく JSON Schema とそのインスタンスで持つときに使う基盤の Skill。スキーマからインスタンスを作成し、x-prompt を受け取り、JMESPath 式で取得し、JSON Patch で更新し、注釈 x-ref と x-derive で参照と導出値を検査し、承認を記録し、ページを描画する。具体の Skill は、この基盤の実装を転写して、自分のスキーマとデザインで使う。
 version: 0.1.0
 ---
 
@@ -29,7 +29,7 @@ AI が扱うデータを、**JSON Schema とそのインスタンスで持つ**�
 - 検査を通ったインスタンスのパスとハッシュ値を、承認記録へ書く
 - 検証を通ったインスタンスを、ページへ描画する
 - 具体のスキーマが、基盤の契約に従っているかを検査する
-- 基盤の crate を具体の Skill へ転写し、基盤の新しい版へ更新する
+- 基盤の実装を具体の Skill へ転写し、基盤の新しい版へ更新する
 
 ---
 
@@ -63,7 +63,7 @@ JSON Schema と、それに従うインスタンスのディレクトリ。イ�
 
 ## 実行手順
 
-ツールは、CLI `bin/schema-driven` と MCP `bin/schema-driven-mcp` の両方から、同じ名前と引数で呼べる。一覧は次で取れる。
+ツールは、CLI と MCP の両方から、同じ名前と引数で呼べる。起動のしかたは `tool.json` と `mcp.json` が持つ。一覧は次で取れる。
 
 ```
 schema-driven --json
@@ -141,16 +141,11 @@ schema-driven transcribe --to <具体の Skill のディレクトリ>
 schema-driven check-copy --to <具体の Skill のディレクトリ>
 ```
 
-基盤の `tool/core` ・ `tool/adapters` ・ `references` を、具体の Skill の `tool/schema-driven/` の下へ同じ並びで写す。**写した複製は具体の持ち物である。** 2回目からは基盤の新しい版への更新になり、具体が変えたファイルは上書きしない。基盤と具体の両方が変えたファイルは、基盤の新しい版を隣（`<ファイル名>.schema-driven-new`）に置くので、見比べて合わせ、終わったら消す。
+基盤の実装と `references` を、具体の Skill の `tool/schema-driven/` の下へ写す。何を写すかは `references/implementation.json` が持つ。**写した複製は具体の持ち物である。** 2回目からは基盤の新しい版への更新になり、具体が変えたファイルは上書きしない。基盤と具体の両方が変えたファイルは、基盤の新しい版を隣（`<ファイル名>.schema-driven-new`）に置くので、見比べて合わせ、終わったら消す。
 
-具体のコードが使ってよいのは、crate が外へ出しているものだけである（ACDR 0144）。
+具体のコードが使ってよいのは、基盤が外へ出しているものだけである。何が外へ出ているかは `references/implementation.json` が持つ。
 
-| crate | 使ってよいもの |
-|---|---|
-| `schema-driven-core` | `ports`（`Design` ・ `Renderer` ・ `Functions` ・ `Files` など）、`application` の4つのユースケース（`instances` ・ `checks` ・ `renders` ・ `transcriptions`）とその結果、`domain` の直下の値（`Finding` ・ `Html` ・ `Hash` など） |
-| `schema-driven-adapters` | `Toolbox` と `ExtraTools`（具体のツールを足す）、CLI の `run_in`、ファイルシステム ・ JMESPath ・ 文書のデザインの実装 |
-
-具体が `Design` を渡すときは、`design_system()` でデザインシステム（`references/design-system.schema.json` に従う JSON）も渡す。テンプレートの CSS は、色をすべてトークンの変数（`var(--名前)`）から引き、ページのテンプレートには `renderer.tokens()` が返す CSS の変数を置く。
+具体がデザインを渡すときは、デザインシステム（`references/design-system.schema.json` に従う JSON）も渡す。テンプレートの CSS は、色をすべてトークンの変数（`var(--名前)`）から引く。
 
 ---
 
@@ -175,9 +170,9 @@ schema-driven check-copy --to <具体の Skill のディレクトリ>
 - **検証エラーのあるインスタンスを、描画や承認で先へ進めない**。基盤はどちらも止める
 - **デザインテンプレートを持つものは、デザインシステムを持つ**。トークン（基礎 → 意味 → 部品の3層と明暗）と、部品ごとの状態（通常 ・ 押した ・ 焦点 ・ 無効 など）の決まりを持ち、テンプレートの CSS に色の直値を書かない。状態の色は、部品をまたいで同じ意味のトークンを使う
 - **具体の種類を、基盤の文書の契約へ押し込まない**。決まったデザインがあるものは、具体がスキーマとページテンプレートとデザインを持つ
-- **具体のコードから、基盤の内部（feature `internals` で開くもの）を使わない**。基盤を更新したときに、具体のビルドが壊れる
-- **core ではファイルを直接扱わない**。入出力は ports の trait を通し、`tool/core/clippy.toml` が `std::fs` を禁じる（ACDR 0121）
-- **版は `tool/Cargo.lock` の1か所で決める**。基盤はネットワークに出ない（ACDR 0122）
+- **具体のコードから、基盤の内部を使わない**。基盤を更新したときに、具体のビルドが壊れる
+- **基盤の中心（domain と application）は、ファイルを直接扱わない**。入出力はポートを通す。どう禁じるかは `references/implementation.json` が持つ
+- **基盤はネットワークに出ない**。依存の版は1か所で決める
 
 ---
 
@@ -192,7 +187,6 @@ schema-driven check-copy --to <具体の Skill のディレクトリ>
 | `references/document.schema.json` | 基盤の文書の契約（14種類のブロック） |
 | `references/design-system.schema.json` | デザインシステムの契約（トークンの3層と、部品ごとの状態）。描画の前に基盤が検査する |
 | `references/document-design/` | 文書の決まったデザイン（`parts.html` ・ `document.css` ・ `design-system.json`） |
-| `tool/core/` | domain ・ application ・ ports。何にも依存しない |
-| `tool/adapters/` | 入ってくる側（CLI と MCP の受け口、ツールの一覧）と、出ていく側（ファイルシステム ・ JMESPath ・ 文書のデザイン） |
-| `tool/cli/` ・ `tool/mcp/` | 実行ファイル。アダプタとユースケースをつなぐ |
-| `tool/cli/tests/` ・ `tool/core/tests/` | テスト。`cargo test --manifest-path tool/Cargo.toml` で実行する |
+| `references/implementation.json` | 実装の言語での使い方（構成 ・ 転写で写すもの ・ 具体のコードが使ってよいもの ・ 実装の決まり）。言語を替えるときは中身を差し替える |
+| `references/implementation.schema.json` | `implementation.json` の形。差し替えた中身が、どの項目も持っているかを検査する |
+| `tool.json` ・ `mcp.json` | 起動 ・ ビルド（build）・ テスト（test）・ 整形の検査（format）のコマンド |

@@ -1,0 +1,110 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "implementation.schema.json",
+ "title": "基盤の実装",
+ "description": "SKILL.md が言語に寄らない言葉で書いたことを、いまの実装の言語でどう使うかを持つ。実装の言語を替えるときは、インスタンスの中身を差し替える。手順と決まりそのものは SKILL.md が持ち、ここには書かない。",
+ "x-prompt": {
+  "read": "SKILL.md が「references/implementation.json が持つ」と書いた所の、実装の言語での中身として読む。",
+  "write": "SKILL.md の手順と決まりを書き直さない。この言語で、どこに何があり、何を使い、決まりをどう守るかだけを書く。"
+ },
+ "x-generates": "references/implementation.json",
+ "type": "object",
+ "required": ["kind", "language", "layout", "transcribe", "public_api", "design", "rules"],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "description": "このインスタンスが従うスキーマ",
+   "x-prompt": {"read": "スキーマのファイルへの相対パスとして読む。", "write": "implementation.schema.json と書く。"}
+  },
+  "kind": {
+   "const": "implementation",
+   "description": "基盤の実装であることを表す",
+   "x-prompt": {"read": "基盤の実装の説明であることを表す。", "write": "implementation と書く。"}
+  },
+  "language": {
+   "type": "string",
+   "minLength": 1,
+   "description": "実装の言語",
+   "x-prompt": {"read": "この中身が、どの言語の実装のものかを読む。", "write": "言語の名前を小文字で書く（例：rust）。"}
+  },
+  "layout": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/place"},
+   "description": "実装の構成",
+   "x-prompt": {"read": "Skill のディレクトリの中で、どこに何があるかを読む。", "write": "実装を置いたディレクトリごとに、場所と中身を1件ずつ書く。テストの場所も含める。"}
+  },
+  "transcribe": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"type": "string", "minLength": 1},
+   "description": "転写で写す場所",
+   "x-prompt": {"read": "transcribe が具体の Skill の tool/schema-driven/ の下へ写す場所として読む。", "write": "Skill のディレクトリからの相対パスで、写すディレクトリを並べる。"}
+  },
+  "public_api": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/unit"},
+   "description": "具体のコードが使ってよいもの",
+   "x-prompt": {"read": "具体のコードは、ここに並んだものだけを使う。ここに無いものは基盤の内部である。", "write": "外へ出している単位（パッケージ ・ モジュールなど）ごとに、使ってよいものを並べる。内部をどう閉じているかは internal に書く。"}
+  },
+  "internal": {
+   "type": "string",
+   "minLength": 1,
+   "description": "基盤の内部をどう閉じているか",
+   "x-prompt": {"read": "具体のコードから内部を使えなくしている仕組みとして読む。", "write": "言語の仕組みの名前と、それで閉じているものを1文で書く。閉じていないなら書かない。"}
+  },
+  "design": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/entry"},
+   "description": "具体がデザインを渡すときの入り口",
+   "x-prompt": {"read": "具体のデザインとデザインシステムを基盤へ渡す入り口として読む。", "write": "型や関数の名前と、それで何を渡すか ・ 何が返るかを1件ずつ書く。"}
+  },
+  "rules": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/rule"},
+   "description": "SKILL.md の決まりと、この言語での守り方",
+   "x-prompt": {"read": "SKILL.md のガードレールの決まりが、この言語ではどの仕組みで守られているかを読む。", "write": "SKILL.md の決まりの文と、それを守る仕組み（設定ファイル ・ ツール）を組にして書く。"}
+  }
+ },
+ "$defs": {
+  "place": {
+   "type": "object",
+   "required": ["path", "holds"],
+   "additionalProperties": false,
+   "properties": {
+    "path": {"type": "string", "minLength": 1, "description": "Skill のディレクトリからの相対パス", "x-prompt": {"read": "場所として読む。", "write": "末尾を / にしてディレクトリを書く。"}},
+    "holds": {"type": "string", "minLength": 1, "description": "そこに何があるか", "x-prompt": {"read": "その場所の中身として読む。", "write": "何があり、何に依存するかを1文で書く。"}}
+   }
+  },
+  "unit": {
+   "type": "object",
+   "required": ["unit", "allowed"],
+   "additionalProperties": false,
+   "properties": {
+    "unit": {"type": "string", "minLength": 1, "description": "外へ出している単位の名前", "x-prompt": {"read": "具体のコードが依存する単位として読む。", "write": "パッケージやモジュールの名前を書く。"}},
+    "allowed": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "description": "その単位で使ってよいもの", "x-prompt": {"read": "1件ずつ、使ってよいものとして読む。", "write": "名前と、必要なら括弧で中身の例を書く。"}}
+   }
+  },
+  "entry": {
+   "type": "object",
+   "required": ["name", "role"],
+   "additionalProperties": false,
+   "properties": {
+    "name": {"type": "string", "minLength": 1, "description": "型や関数の名前", "x-prompt": {"read": "コードに現れる名前として読む。", "write": "コードに書く名前をそのまま書く。"}},
+    "role": {"type": "string", "minLength": 1, "description": "それで何を渡すか ・ 何が返るか", "x-prompt": {"read": "その名前の役目として読む。", "write": "何を渡し、何が返るかを1文で書く。"}}
+   }
+  },
+  "rule": {
+   "type": "object",
+   "required": ["rule", "enforced_by"],
+   "additionalProperties": false,
+   "properties": {
+    "rule": {"type": "string", "minLength": 1, "description": "SKILL.md の決まり", "x-prompt": {"read": "SKILL.md のガードレールの決まりとして読む。", "write": "SKILL.md の文を言い換えずに書く。"}},
+    "enforced_by": {"type": "string", "minLength": 1, "description": "この言語での守り方", "x-prompt": {"read": "決まりを守る仕組みとして読む。", "write": "設定ファイルやツールの名前と、それが何を禁じる ・ 決めるかを1文で書く。"}}
+   }
+  }
+ }
+}
