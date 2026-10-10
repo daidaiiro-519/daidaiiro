@@ -1,0 +1,517 @@
+<title>書き方の決まりを、構造化した x-prompt と Skill で持ち、承認を経て育てる</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="writing-prompts" data-round="2"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　書き方の決まりを、構造化した x-prompt と Skill で持ち、承認を経て育てる　/　Round 2</p><h1>書き方の決まりを、構造化した x-prompt と Skill で持ち、承認を経て育てる</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>x-prompt の形<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>決まりの置き場所<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="wait"><span class="tn">Q3</span>決まりの育て方<span class="st wait">待ち</span></button><button data-t="p4" aria-selected="false" class="wait"><span class="tn">Q4</span>既存の写し方と時期<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>書き方の決まりを、AI が読める構造で各 Skill の中に1回ずつ置き、利用者の承認を経て置き換えながら育てる形を決める。</p></div><div class="front"><h3>いま見るのは 2 件だけである</h3><ol><li><button class="jump" data-go="p2">Q2　決まりの置き場所</button><br><span class="why">round 1 の答えが差し戻され、Skill の中だけに置く形へ直した。</span></li><li><button class="jump" data-go="p1">Q1　x-prompt の形</button><br><span class="why">欄の名前の根拠を、ほかの Skill に頼らない形へ直した。</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q1</span></td><td>x-prompt を、AI が読みやすい構造としてどんな形で持つか</td><td><span class="st now">いま見る</span></td><td><b>read は1文ずつの配列、write は決まりの配列にし、決まり1件を id ・ rule ・ why ・ test の4つの欄で持つ。</b></td></tr><tr><td><span class="n">Q2</span></td><td>書き方の決まりを、どこに1回だけ置くか</td><td><span class="st now">いま見る</span></td><td><b>Skill が書くときに使う決まりは、すべてその Skill の中に置き、ほかの Skill から読まない。</b></td></tr><tr><td><span class="n">Q3</span></td><td>利用者の指摘から決まりをどう足し、置き換え、外すか</td><td><span class="st wait">待ち</span></td><td><b>論点1（決まりの形）と論点2（置き場所）が決着したら、指摘を決まりにする条件 ・ 承認の経路 ・ 外す条件 ・ 数の上限 ・ 2つの Skill に同じ決まりが出たときの扱いを出す。</b></td></tr><tr><td><span class="n">Q4</span></td><td>既存の x-prompt と SKILL.md の決まりを、いつ、どの順で新しい形へ写すか</td><td><span class="st wait">待ち</span></td><td><b>論点1 ・ 論点2 ・ 論点3 と、別のセッションが進めている基盤への移行が決着したら、既存の188件と SKILL.md の決まりを写す順を出す。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>x-prompt を、AI が読みやすい構造としてどんな形で持つか</h2></div><div class="ans"><span class="lead">read は1文ずつの配列、write は決まりの配列にし、決まり1件を id ・ rule ・ why ・ test の4つの欄で持つ。</span><ul><li>例を示すときだけ、bad と good を対で足す。</li><li>rule ・ why ・ test と、read の各項目は1文にする。</li><li>複数の文を書いてよい文字列は、bad と good だけにする。</li><li>形は meta-schema が検証し、1文かどうかは正規表現で見る。</li><li>id の重なりは JSON Schema で書けないので、check-schemas が見る。</li><li>1つの x-prompt に置く決まりの数の上限は、論点3で決める。</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="1" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="1" data-ix="1">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="1" data-ix="2">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="1" data-ix="3">コード</button></div><div data-g="1" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#5f5a52;--panel:#f2efe8;--line:#d8d3c7;--key:#2f6f5e;--new:#9a5b2c}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#a49d94;--panel:#211f18;--line:#38342a;--key:#6fbfa4;--new:#d99b62}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--panel);color:var(--ink);font:15px/1.7 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+h2{font-size:.95rem;margin:0 0 .6rem;color:var(--key)}
+.wrap{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1rem 1.1rem;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--muted);font-weight:600}
+td:first-child{font-weight:700;white-space:nowrap}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em}
+.new{color:var(--new);font-weight:700;font-size:.8rem;margin-left:.3rem}
+p.note{margin:.8rem 0 0;color:var(--muted);font-size:.85rem}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media (max-width:700px){.pair{grid-template-columns:1fr}}
+.col{min-width:0}
+.lab{font-size:.8rem;font-weight:700;margin:0 0 .3rem}
+.lab.b{color:var(--muted)} .lab.a{color:var(--key)}
+pre{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:.3rem;padding:.6rem;white-space:pre-wrap;word-break:break-all;font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace}&lt;/style&gt;
+&lt;div class=wrap&gt;&lt;p class=lab style=&quot;font-size:.9rem;color:var(--ink)&quot;&gt;schema-driven/references/meta-schema.json の根の x-prompt&lt;/p&gt;&lt;div class=pair&gt;&lt;div class=col&gt;&lt;p class=&quot;lab b&quot;&gt;変更前&lt;/p&gt;&lt;pre&gt;{
+ &amp;quot;x-prompt&amp;quot;: {
+  &amp;quot;read&amp;quot;: &amp;quot;具体のスキーマは、このメタスキーマに従う。従っていれば、基盤のツール（検証 ・ x-prompt ・ 検査 ・ 描画）が、中身を知らないまま使える。&amp;quot;,
+  &amp;quot;write&amp;quot;: &amp;quot;具体のスキーマを書くときに、次を守る。(1) スキーマに title と description を書く。(2) インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。(3) 書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt（read と write）を書く。(4) 基盤に無い注釈を使うなら、根の x-annotations に名前と仕様のスキーマを書く。誤り：x-prompt を入れ子の奥の葉ごとに書かない（親の x-prompt が覆う）。&amp;quot;
+ }
+}&lt;/pre&gt;&lt;/div&gt;&lt;div class=col&gt;&lt;p class=&quot;lab a&quot;&gt;変更後&lt;/p&gt;&lt;pre&gt;{
+ &amp;quot;x-prompt&amp;quot;: {
+  &amp;quot;read&amp;quot;: [
+   &amp;quot;具体のスキーマは、このメタスキーマに従う。&amp;quot;,
+   &amp;quot;従っていれば、基盤のツール（検証 ・ x-prompt ・ 検査 ・ 描画）が中身を知らずに使える。&amp;quot;
+  ],
+  &amp;quot;write&amp;quot;: [
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;name-and-description&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;スキーマに title と description を書く。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;check-schemas と描画が、スキーマの名前と説明を読む。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;根に title と description が在るかを見る。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;generates-kind&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;インスタンスを作るスキーマには x-generates を書き、根の properties に kind（const）を置く。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;基盤は kind でインスタンスの種類を判定し、描画のしかたを選ぶ。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;x-generates を持つスキーマの根に、kind の const が在るかを見る。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;prompt-per-unit&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;create と prompt は、書く単位ごとの x-prompt を返す。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;check-schemas の指摘が0件かを見る。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;no-prompt-on-leaf&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;入れ子の奥の葉には x-prompt を書かない。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;親の x-prompt が葉まで案内するので、葉にも書くと同じ決まりが2か所に並ぶ。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;x-prompt を持つ葉の親が、同じ決まりを持っていないかを見る。&amp;quot;,
+    &amp;quot;bad&amp;quot;: &amp;quot;verification.passed[].option に x-prompt を書く。&amp;quot;,
+    &amp;quot;good&amp;quot;: &amp;quot;verification.passed の x-prompt に、option の書き方も書く。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;declare-annotations&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;基盤に無い注釈を使うときだけ、根の x-annotations に名前と仕様のスキーマを書く。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;x-annotations に無い x- で始まるキーは、check-schemas が違反にする。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;x- で始まるキーが、基盤の5つか x-annotations に在るかを見る。&amp;quot;
+   }
+  ]
+ }
+}&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;"></iframe><p class="note-s">meta-schema の根の x-prompt を、新しい形へ書き直した姿。</p></div><div data-g="1" data-ixp="1" hidden><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#5f5a52;--panel:#f2efe8;--line:#d8d3c7;--key:#2f6f5e;--new:#9a5b2c}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#a49d94;--panel:#211f18;--line:#38342a;--key:#6fbfa4;--new:#d99b62}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--panel);color:var(--ink);font:15px/1.7 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+h2{font-size:.95rem;margin:0 0 .6rem;color:var(--key)}
+.wrap{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1rem 1.1rem;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--muted);font-weight:600}
+td:first-child{font-weight:700;white-space:nowrap}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em}
+.new{color:var(--new);font-weight:700;font-size:.8rem;margin-left:.3rem}
+p.note{margin:.8rem 0 0;color:var(--muted);font-size:.85rem}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media (max-width:700px){.pair{grid-template-columns:1fr}}
+.col{min-width:0}
+.lab{font-size:.8rem;font-weight:700;margin:0 0 .3rem}
+.lab.b{color:var(--muted)} .lab.a{color:var(--key)}
+pre{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:.3rem;padding:.6rem;white-space:pre-wrap;word-break:break-all;font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace}&lt;/style&gt;
+&lt;div class=wrap&gt;&lt;p class=lab style=&quot;font-size:.9rem;color:var(--ink)&quot;&gt;brainstorming-board/references/board.schema.json の $defs/answer の x-prompt&lt;/p&gt;&lt;div class=pair&gt;&lt;div class=col&gt;&lt;p class=&quot;lab b&quot;&gt;変更前&lt;/p&gt;&lt;pre&gt;{
+ &amp;quot;x-prompt&amp;quot;: {
+  &amp;quot;read&amp;quot;: &amp;quot;1文の決定と、下位の決定を読む。&amp;quot;,
+  &amp;quot;write&amp;quot;: &amp;quot;text に1文で言い切り、details に1文ずつ下位の決定を書く。&amp;quot;
+ }
+}&lt;/pre&gt;&lt;/div&gt;&lt;div class=col&gt;&lt;p class=&quot;lab a&quot;&gt;変更後&lt;/p&gt;&lt;pre&gt;{
+ &amp;quot;x-prompt&amp;quot;: {
+  &amp;quot;read&amp;quot;: [
+   &amp;quot;text は1文の決定で、答えの見出しとして太字で出る。&amp;quot;,
+   &amp;quot;details は下位の決定で、1項目ずつ箇条で出る。&amp;quot;
+  ],
+  &amp;quot;write&amp;quot;: [
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;one-sentence-decision&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;text には、何を採るかを1文で言い切る。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;承認者は text を読んで「この決定を覆すか」に答える。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;text の句点が1つだけかを見る。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;one-meaning-per-item&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;details は意味ごとに項目を分け、1項目を1文にする。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;1項目に2つの決定があると、片方だけを差し戻せない。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;各項目の句点を数え、2つ以上ある項目を分ける。&amp;quot;,
+    &amp;quot;bad&amp;quot;: &amp;quot;「形は meta-schema が検証する。id の重なりは check-schemas が見る。」を1項目に書く。&amp;quot;,
+    &amp;quot;good&amp;quot;: &amp;quot;「形は meta-schema が検証する。」と「id の重なりは check-schemas が見る。」の2項目に分ける。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;table-not-prose&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;対比 ・ 条件 ・ 3つ以上の並びは、details の文に詰めず、完成イメージの表に置く。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;文に並べると、読み手が頭の中で表を作り直すことになる。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;details の1項目に、3つ以上並べた語が無いかを見る。&amp;quot;
+   },
+   {
+    &amp;quot;id&amp;quot;: &amp;quot;keep-points&amp;quot;,
+    &amp;quot;rule&amp;quot;: &amp;quot;短くするときは、決定 ・ 条件 ・ 数値を消さず、項目か表へ移す。&amp;quot;,
+    &amp;quot;why&amp;quot;: &amp;quot;読む量を減らしても、承認の判断に必要な情報は減らさない。&amp;quot;,
+    &amp;quot;test&amp;quot;: &amp;quot;直す前の決定 ・ 条件 ・ 数値を並べ、直した後のどこに在るかを1つずつ示す。&amp;quot;
+   }
+  ]
+ }
+}&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;"></iframe><p class="note-s">ボードの答えの欄（$defs/answer）に、利用者の指摘を決まりとして入れた姿。</p></div><div data-g="1" data-ixp="2" hidden><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#5f5a52;--panel:#f2efe8;--line:#d8d3c7;--key:#2f6f5e;--new:#9a5b2c}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#a49d94;--panel:#211f18;--line:#38342a;--key:#6fbfa4;--new:#d99b62}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--panel);color:var(--ink);font:15px/1.7 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+h2{font-size:.95rem;margin:0 0 .6rem;color:var(--key)}
+.wrap{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1rem 1.1rem;overflow-x:auto}
+table{border-collapse:collapse;width:100%;}
+th,td{border-bottom:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--muted);font-weight:600}
+td:first-child{font-weight:700}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em}
+.new{color:var(--new);font-weight:700;font-size:.8rem;margin-left:.3rem}
+p.note{margin:.8rem 0 0;color:var(--muted);font-size:.85rem}
+@media (max-width:640px){table,tbody,tr,td{display:block;width:100%}thead{display:none}tr{border:1px solid var(--line);border-radius:.3rem;padding:.4rem .6rem;margin:0 0 .6rem}td{border:0;padding:.2rem 0}td::before{content:attr(data-l);display:block;font-size:.75rem;color:var(--muted);font-weight:600}}&lt;/style&gt;
+&lt;div class=wrap&gt;&lt;h2&gt;決まり1件の欄と、それぞれが必要な理由&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;欄&lt;/th&gt;&lt;th&gt;必須か&lt;/th&gt;&lt;th&gt;何に使うか&lt;/th&gt;&lt;th&gt;無いと何が起きるか&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td data-l=&#39;欄&#39;&gt;&lt;code&gt;id&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;必須か&#39;&gt;必須&lt;/td&gt;&lt;td data-l=&#39;何に使うか&#39;&gt;置き換え ・ 外すときに、決まり1件を指す&lt;/td&gt;&lt;td data-l=&#39;無いと何が起きるか&#39;&gt;ACDR の差分で、どの決まりを変えたかを名前で示せない&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td data-l=&#39;欄&#39;&gt;&lt;code&gt;rule&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;必須か&#39;&gt;必須&lt;/td&gt;&lt;td data-l=&#39;何に使うか&#39;&gt;AI が書くときに守ること&lt;/td&gt;&lt;td data-l=&#39;無いと何が起きるか&#39;&gt;決まりそのものが無い&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td data-l=&#39;欄&#39;&gt;&lt;code&gt;why&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;必須か&#39;&gt;必須&lt;/td&gt;&lt;td data-l=&#39;何に使うか&#39;&gt;文面に無い場合への当てはめと、外してよいかの判定&lt;/td&gt;&lt;td data-l=&#39;無いと何が起きるか&#39;&gt;決まりが減らなくなる（論点3）&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td data-l=&#39;欄&#39;&gt;&lt;code&gt;test&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;必須か&#39;&gt;必須&lt;/td&gt;&lt;td data-l=&#39;何に使うか&#39;&gt;出す前に、AI が自分の出力を確かめる操作&lt;/td&gt;&lt;td data-l=&#39;無いと何が起きるか&#39;&gt;守ったかどうかを、書き手も承認者も判定できない&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td data-l=&#39;欄&#39;&gt;&lt;code&gt;bad&lt;/code&gt; ・ &lt;code&gt;good&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;必須か&#39;&gt;任意（対）&lt;/td&gt;&lt;td data-l=&#39;何に使うか&#39;&gt;文面だけでは解釈が分かれる決まりの例&lt;/td&gt;&lt;td data-l=&#39;無いと何が起きるか&#39;&gt;例が片方だけだと、何と何を比べるかが決まらない&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;p class=note&gt;名前は英語の一般の語にする。&lt;code&gt;check&lt;/code&gt; は基盤のツールの名前（check ・ check-schemas ・ check-copy）と重なるので、&lt;code&gt;test&lt;/code&gt; にする。&lt;/p&gt;&lt;/div&gt;"></iframe><p class="note-s">決まり1件の欄ごとに、何に使い、無いと何が起きるかを並べた表。</p></div><div data-g="1" data-ixp="3" hidden><pre><code>&quot;field&quot;: {
+ &quot;type&quot;: &quot;object&quot;, &quot;required&quot;: [&quot;description&quot;, &quot;x-prompt&quot;],
+ &quot;properties&quot;: {
+  &quot;description&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: 1},
+  &quot;x-prompt&quot;: {&quot;$ref&quot;: &quot;#/$defs/prompt&quot;}
+ }
+},
+&quot;prompt&quot;: {
+ &quot;type&quot;: &quot;object&quot;, &quot;required&quot;: [&quot;read&quot;, &quot;write&quot;], &quot;additionalProperties&quot;: false,
+ &quot;properties&quot;: {
+  &quot;read&quot;:  {&quot;type&quot;: &quot;array&quot;, &quot;minItems&quot;: 1, &quot;items&quot;: {&quot;$ref&quot;: &quot;#/$defs/sentence&quot;}},
+  &quot;write&quot;: {&quot;type&quot;: &quot;array&quot;, &quot;minItems&quot;: 1, &quot;items&quot;: {&quot;$ref&quot;: &quot;#/$defs/rule&quot;}}
+ }
+},
+&quot;rule&quot;: {
+ &quot;type&quot;: &quot;object&quot;, &quot;required&quot;: [&quot;id&quot;, &quot;rule&quot;, &quot;why&quot;, &quot;test&quot;], &quot;additionalProperties&quot;: false,
+ &quot;properties&quot;: {
+  &quot;id&quot;:   {&quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;},
+  &quot;rule&quot;: {&quot;$ref&quot;: &quot;#/$defs/sentence&quot;},
+  &quot;why&quot;:  {&quot;$ref&quot;: &quot;#/$defs/sentence&quot;},
+  &quot;test&quot;: {&quot;$ref&quot;: &quot;#/$defs/sentence&quot;},
+  &quot;bad&quot;:  {&quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: 1},
+  &quot;good&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;minLength&quot;: 1}
+ },
+ &quot;dependentRequired&quot;: {&quot;bad&quot;: [&quot;good&quot;], &quot;good&quot;: [&quot;bad&quot;]}
+},
+&quot;sentence&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;^[^。]+。$&quot;, &quot;maxLength&quot;: 120}</code></pre><p class="note-s">meta-schema が x-prompt の形を検証する定義で、1文は句点1つと120字までで見る。</p></div></div></div></details><details open><summary>根拠（10件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">x-prompt を構造にすること</span></td><td>「結論やユーザに承認してもらう内容がまだ冗長な様気がします。文章が長すぎます。大事なのは散文のような文章の中にも構造化できるものがあると思ってる。例えば表にした方がわかりやすかったり、箇条書きで文脈や意味ごとに区切ったり、そういうライティングの見せ方っていうのは認知負荷を下げるんだけども情報としてのポイントは落とさず伝えるということが大事です。これはそもそもスキーマのxーpromptにも書くし、スキルの方にも書くべき内容です。そして、x-promptにもそれが言えるんですよね。ここってあなたが書く時に注意しないといけないことや内容を書いておくものです。これはあなたが何をポイントに書かないとダメなのかを育てていかないといけない。もちろんそこは私も承認する部分ではあるが、自己改善していくものです。さらにいうのであれば、そこに書くのも古いものに追記という更新はノイズになるので、必ずその時の決められてたプロンプトのみにして、最新である必要がります。かつ、そのプロンプト自体も散文ではだめです。たとえはここはAIが読みやすい形式である必要があります。」</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-10）</small></td></tr><tr><td><span class="part">このボードで決める範囲</span></td><td>「おねがい」（要件を言い直し、このボードを提案したあとの返事）</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-10）</small></td></tr><tr><td><span class="part">read と write を配列にすること</span></td><td>いまの x-prompt は9ファイルに188件あり、read と write はどれも文字列である。376の文字列のうち151が2文以上で、最長は479字ある。「手順：(1) …」のように、手順の構造を文字列の中に書いたものがある。</td><td><span class="kind k-fact">実測</span><small>.claude/skills/*/references/*.json（2026-10-10 に数えた）</small></td></tr><tr><td><span class="part">決まりの形を meta-schema の1か所で決めること</span></td><td>「統一感とは、複数のものを抽象化した1つの概念（上位概念）が在ること。」── 基盤 ・ スキーマ ・ 欄のどこに置く決まりも、同じ1つの形にする。</td><td><span class="kind k-given">前提</span><small>meta-thinking-advisor の criteria.json：sense-of-unity（原典ではなく、原典から作った判断基準）</small></td></tr><tr><td><span class="part">why を必須にすること</span></td><td>「ルールも、一度増えると減らない不可逆な過程である。」── 理由が書いていない決まりは、外してよいかを誰も判定できない。</td><td><span class="kind k-given">前提</span><small>meta-thinking-advisor の criteria.json：rules-increase</small></td></tr><tr><td><span class="part">test を必須にすること</span></td><td>「出す前に、読み手の判断基準で自己点検する」── test は、その点検を決まりごとの操作にしたものである。</td><td><span class="kind k-rule">決まり</span><small>CLAUDE.md 運用ルール（出力の前に、読み手の判断基準で自己点検する）</small></td></tr><tr><td><span class="part">1文を句点1つと120字までで見ること</span></td><td>基盤の検証で試した。2文の rule は pattern で断られ、121字の why は maxLength で断られた。bad だけを書くと good が未記入として返った。120字は、ボードの inspect の1文の上限と同じである。</td><td><span class="kind k-fact">実測</span><small>brainstorming-board update（2026-10-10、scratchpad の試験用スキーマ）・ tool/board/src/inspect.rs:18</small></td></tr><tr><td><span class="part">検証を書き換える場所が2か所で済むこと</span></td><td>prompt は x-prompt の値をそのまま返す。形を見ているのは、meta-schema の field と、check-schemas の read と write の検査だけである。</td><td><span class="kind k-fact">実測</span><small>schema-driven/tool/core/src/domain/schema.rs:211 ・ schema_rules.rs:217</small></td></tr><tr><td><span class="part">この論点を最初に決めること</span></td><td>目的は利用者が決めている（読む量を減らし、ポイントは落とさない ・ AI が書くときに見る点を育てる）。4つの論点はどれもその手段で、決まり1件の形がほかの3つの前提になる。</td><td><span class="kind k-given">前提</span><small>meta-thinking-advisor の criteria.json：means-and-ends ・ matryoshka</small></td></tr><tr><td><span class="part">欄の名前に check を使わないこと</span></td><td>基盤の CLI には check ・ check-schemas ・ check-copy の3つのツールがある。</td><td><span class="kind k-fact">実測</span><small>brainstorming-board --json（2026-10-10）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（6件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>read と write は文字列のまま、文の数と長さだけを制限する</b></td><td>「手順：(1) …」のような構造が文字列の中に残り、決まり1件ずつを置き換える単位が決まらない。</td></tr><tr><td><b>決まりが1件だけなら、文字列で書いてもよいとする</b></td><td>形が2つになり、読む側と検査が分岐する。1件が2件に増えるたびに、形の書き換えが起きる。</td></tr><tr><td><b>欄の名前を do と check にする</b></td><td>check は基盤のツールの名前と重なり、x-prompt の欄とツールのどちらを指すかが文脈で変わる。</td></tr><tr><td><b>read も決まりの形（id ・ rule ・ why ・ test）にする</b></td><td>read は値の意味を伝える事実で、守るものではないので、why と test が空の欄として並ぶ。</td></tr><tr><td><b>決まりに履歴の欄（足した日 ・ 版）を持たせる</b></td><td>利用者が「古いものに追記という更新はノイズ」と決めており、履歴は git と ACDR が持つ。</td></tr><tr><td><b>決まりを別のファイルに集め、x-prompt は id で指すだけにする</b></td><td>欄の決まりを読むたびに2つのファイルを開くことになり、指す先が消えても欄の側では気づけない。</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>書き方の決まりを、どこに1回だけ置くか</h2></div><div class="ans"><span class="lead">Skill が書くときに使う決まりは、すべてその Skill の中に置き、ほかの Skill から読まない。</span><ul><li>欄の決まりは、その Skill のスキーマの欄の x-prompt に置く。</li><li>インスタンス全体の決まりは、そのスキーマの根の x-prompt に置く。</li><li>スキーマの外の出力と手順の決まりは、その Skill の SKILL.md の表に置く。</li><li>構造化データに共通の決まりは、基盤の references/writing-rules.json に置き、転写で各 Skill の tool/schema-driven/ へ写す。</li><li>転写した複製は Skill の持ち物なので、実行時に基盤の Skill を読まない。</li><li>doc-writing-skills は Skill の外にあり、人が読む文書に Orchestrator が当てる。</li><li>同じ決まりの複製どうしは、check-copy で基盤との差を見て揃える。</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="2" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="2" data-ix="1">コード</button><button class="ix-tab" role="tab" aria-selected="false" data-g="2" data-ix="2">コード</button></div><div data-g="2" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;style&gt;:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#5f5a52;--panel:#f2efe8;--line:#d8d3c7;--key:#2f6f5e;--new:#9a5b2c}
+@media (prefers-color-scheme:dark){:root{--paper:#16150f;--ink:#ece7dc;--muted:#a49d94;--panel:#211f18;--line:#38342a;--key:#6fbfa4;--new:#d99b62}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--panel);color:var(--ink);font:15px/1.7 &quot;Hiragino Kaku Gothic ProN&quot;,&quot;Yu Gothic&quot;,system-ui,sans-serif}
+h2{font-size:.95rem;margin:0 0 .6rem;color:var(--key)}
+.wrap{background:var(--paper);border:1px solid var(--line);border-radius:.35rem;padding:1rem 1.1rem;overflow-x:auto}
+table{border-collapse:collapse;width:100%;}
+th,td{border-bottom:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--muted);font-weight:600}
+td:first-child{font-weight:700}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em}
+.new{color:var(--new);font-weight:700;font-size:.8rem;margin-left:.3rem}
+p.note{margin:.8rem 0 0;color:var(--muted);font-size:.85rem}
+@media (max-width:640px){table,tbody,tr,td{display:block;width:100%}thead{display:none}tr{border:1px solid var(--line);border-radius:.3rem;padding:.4rem .6rem;margin:0 0 .6rem}td{border:0;padding:.2rem 0}td::before{content:attr(data-l);display:block;font-size:.75rem;color:var(--muted);font-weight:600}}
+tr.out td{color:var(--muted)} tr.out td:first-child{color:var(--new)}&lt;/style&gt;
+&lt;div class=wrap&gt;&lt;h2&gt;決まりを置く場所&lt;/h2&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;どこか&lt;/th&gt;&lt;th&gt;当てはまる範囲&lt;/th&gt;&lt;th&gt;置き場所&lt;/th&gt;&lt;th&gt;利用者の指摘から置く決まり（例）&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;&lt;tr&gt;&lt;td data-l=&#39;どこか&#39;&gt;Skill の中&lt;/td&gt;&lt;td data-l=&#39;当てはまる範囲&#39;&gt;欄1つ&lt;/td&gt;&lt;td data-l=&#39;置き場所&#39;&gt;スキーマの欄の x-prompt&lt;/td&gt;&lt;td data-l=&#39;決まりの例&#39;&gt;details は意味ごとに項目を分け、1項目を1文にする&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-l=&#39;どこか&#39;&gt;Skill の中&lt;/td&gt;&lt;td data-l=&#39;当てはまる範囲&#39;&gt;インスタンス全体&lt;/td&gt;&lt;td data-l=&#39;置き場所&#39;&gt;スキーマの根の x-prompt&lt;/td&gt;&lt;td data-l=&#39;決まりの例&#39;&gt;承認者が読むのは5つの欄だけにする&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-l=&#39;どこか&#39;&gt;Skill の中&lt;/td&gt;&lt;td data-l=&#39;当てはまる範囲&#39;&gt;スキーマの外の出力と手順&lt;/td&gt;&lt;td data-l=&#39;置き場所&#39;&gt;SKILL.md の表&lt;/td&gt;&lt;td data-l=&#39;決まりの例&#39;&gt;出す直前に、散文の段落が残っていないかを点検する&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-l=&#39;どこか&#39;&gt;Skill の中（転写した複製）&lt;/td&gt;&lt;td data-l=&#39;当てはまる範囲&#39;&gt;構造化データすべて&lt;/td&gt;&lt;td data-l=&#39;置き場所&#39;&gt;&lt;code&gt;tool/schema-driven/references/writing-rules.json&lt;/code&gt;&lt;/td&gt;&lt;td data-l=&#39;決まりの例&#39;&gt;3つ以上並ぶものは、1つの文字列に詰めず配列にする&lt;/td&gt;&lt;/tr&gt;&lt;tr class=out&gt;&lt;td data-l=&#39;どこか&#39;&gt;Skill の外（Orchestrator の側）&lt;/td&gt;&lt;td data-l=&#39;当てはまる範囲&#39;&gt;人が読む文書&lt;/td&gt;&lt;td data-l=&#39;置き場所&#39;&gt;doc-writing-skills&lt;/td&gt;&lt;td data-l=&#39;決まりの例&#39;&gt;Orchestrator がゲート1と10の判定を当てる。Skill はここから決まりを読まない&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;
+&lt;p class=note&gt;Skill が読むのは、上の4行（自分の中）だけである。&lt;/p&gt;&lt;/div&gt;"></iframe><p class="note-s">決まりの置き場所で、Skill の中の4行と、Skill の外の1行を分けた表。</p></div><div data-g="2" data-ixp="1" hidden><pre><code>.claude/skills/brainstorming-board/
+├── SKILL.md                      ← スキーマの外の出力と手順の決まり
+├── references/
+│   ├── board.schema.json         ← 根と欄の x-prompt
+│   └── answer.schema.json
+└── tool/schema-driven/           ← 基盤を転写した複製（この Skill の持ち物）
+    ├── transcription.json        ← 写した版と、ファイルごとのハッシュ値
+    └── references/
+        ├── meta-schema.json      ← 決まり1件の形（論点1）
+        └── writing-rules.json    ← 構造化データに共通の決まり（新しく置く）
+
+$ schema-driven check-copy --to .claude/skills/brainstorming-board
+  → 複製と基盤の正本の差を、ファイルごとに返す（正本が新しくなった ・ 具体が変えた ・ 衝突）</code></pre><p class="note-s">ブレストボードの Skill の中だけで、すべての決まりがそろう姿。</p></div><div data-g="2" data-ixp="2" hidden><pre><code>$ brainstorming-board prompt --schema board.schema.json --property /topics/0/answer
+{
+ &quot;ok&quot;: true,
+ &quot;prompt&quot;: {
+  &quot;common&quot;: {
+   &quot;from&quot;: &quot;tool/schema-driven/references/writing-rules.json&quot;,
+   &quot;write&quot;: [
+    {&quot;id&quot;: &quot;one-thing-per-value&quot;, &quot;rule&quot;: &quot;1つの値に、1つのことだけを書く。&quot;, …},
+    {&quot;id&quot;: &quot;list-as-array&quot;, &quot;rule&quot;: &quot;3つ以上並ぶものは、1つの文字列に詰めず配列にする。&quot;, …}
+   ]
+  },
+  &quot;root&quot;: {
+   &quot;from&quot;: &quot;board.schema.json#&quot;,
+   &quot;write&quot;: [
+    {&quot;id&quot;: &quot;five-parts&quot;, &quot;rule&quot;: &quot;承認者が読むのは、問い ・ 答え ・ 完成イメージ ・ 根拠 ・ 採らなかった案の5つだけにする。&quot;, …}
+   ]
+  },
+  &quot;property&quot;: {
+   &quot;from&quot;: &quot;board.schema.json#/$defs/answer&quot;,
+   &quot;read&quot;: [&quot;text は1文の決定で、答えの見出しとして太字で出る。&quot;, …],
+   &quot;write&quot;: [
+    {&quot;id&quot;: &quot;one-sentence-decision&quot;, …},
+    {&quot;id&quot;: &quot;one-meaning-per-item&quot;, …},
+    {&quot;id&quot;: &quot;table-not-prose&quot;, …},
+    {&quot;id&quot;: &quot;keep-points&quot;, …}
+   ]
+  }
+ }
+}</code></pre><p class="note-s">prompt が、基盤 ・ スキーマの根 ・ 欄の決まりを書き写さずに合わせて返す姿。</p></div></div></div></details><details open><summary>根拠（8件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">決まりを Skill の中に置くこと</span></td><td>「あとこれドックライティングに依存しすぎだ。。私いつも言ってるよね？スキルは外部依存しないって。」</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-10）</small></td></tr><tr><td><span class="part">x-prompt と SKILL.md の両方に決まりを持つこと</span></td><td>「これはそもそもスキーマのxーpromptにも書くし、スキルの方にも書くべき内容です。」</td><td><span class="kind k-rule">決まり</span><small>利用者（2026-10-10）</small></td></tr><tr><td><span class="part">共通の決まりを転写で各 Skill へ写すこと</span></td><td>転写は tool/core ・ tool/adapters ・ references を、Skill の tool/schema-driven/ へ同じ並びで写す。写した複製は具体の持ち物で、基盤は具体が変えたファイルを上書きしない。</td><td><span class="kind k-rule">決まり</span><small>ACDR 0143（accepted）</small></td></tr><tr><td><span class="part">references が実際に写っていること</span></td><td>brainstorming-board の tool/schema-driven/references/ に meta-schema.json など6つがあり、transcription.json がファイルごとのハッシュ値を持つ。</td><td><span class="kind k-fact">実測</span><small>.claude/skills/brainstorming-board/tool/schema-driven/（2026-10-10）</small></td></tr><tr><td><span class="part">複製どうしを check-copy で揃えること</span></td><td>check-copy は、複製と基盤の正本の差をファイルごとに返し、複製は書き換えない。</td><td><span class="kind k-rule">決まり</span><small>schema-driven/tool/adapters/src/inbound/tools.rs:81 ・ ACDR 0143</small></td></tr><tr><td><span class="part">doc-writing-skills を Skill の外に置くこと</span></td><td>配線表で doc-writing-skills を呼ぶのは、人が読む文書を書くときの Orchestrator である。</td><td><span class="kind k-rule">決まり</span><small>skill-wiring.json（request「日本語の文書として、論・構造・文調・語彙に判定を適用してもらう」）</small></td></tr><tr><td><span class="part">SKILL.md が欄の決まりを書き写さないこと</span></td><td>board.schema.json の根の x-prompt と SKILL.md の出力形式が、承認者に見せる5つの欄の決まりを2か所に持っている。</td><td><span class="kind k-fact">実測</span><small>.claude/skills/brainstorming-board/references/board.schema.json ・ SKILL.md</small></td></tr><tr><td><span class="part">置く決まりの形</span></td><td>どの置き場所でも、決まりは論点1の形で持つ。</td><td><span class="kind k-given">前提</span><small>論点1</small></td></tr></table></div></div></details><details open><summary>採らなかった案（5件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>Skill が doc-writing-skills の判定基準を読む</b></td><td>Skill がほかの Skill に依存し、doc-writing-skills を変えると関係の無い Skill の出力が変わる。</td></tr><tr><td><b>共通の決まりを、各 Skill の SKILL.md に手で書き写す</b></td><td>写した先を検査する仕組みが無く、ずれても気づけない。</td></tr><tr><td><b>共通の決まりを、各スキーマの根の x-prompt に書き写す</b></td><td>インスタンス全体の決まりと共通の決まりが1つの欄に混ざり、check-copy の対象にもならない。</td></tr><tr><td><b>共通の決まりを、meta-schema の根の x-prompt に置く</b></td><td>スキーマを書く人への案内とインスタンスを書く決まりが、1つの欄に入る。</td></tr><tr><td><b>同じ決まりを、x-prompt と SKILL.md の両方に同じ文で書く</b></td><td>片方だけが直されたときに、どちらが正しいかを検出できない。</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>利用者の指摘から決まりをどう足し、置き換え、外すか</h2></div><p class="waiting">論点1（決まりの形）と論点2（置き場所）が決着したら、指摘を決まりにする条件 ・ 承認の経路 ・ 外す条件 ・ 数の上限 ・ 2つの Skill に同じ決まりが出たときの扱いを出す。</p></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>既存の x-prompt と SKILL.md の決まりを、いつ、どの順で新しい形へ写すか</h2></div><p class="waiting">論点1 ・ 論点2 ・ 論点3 と、別のセッションが進めている基盤への移行が決着したら、既存の188件と SKILL.md の決まりを写す順を出す。</p></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 2</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
