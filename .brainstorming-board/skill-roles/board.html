@@ -348,115 +348,539 @@ background:var(--card);color:var(--muted);cursor:pointer}
 <text class="note" x="268" y="262" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">部品とトークン</text>
 <text class="label" x="190" y="297" text-anchor="end" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">各 Skill</text>
 <text class="note" x="200" y="298" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ページテンプレート（部品の並び）だけ</text>
-</svg></figure><p class="note-s">見た目と操作のコードを持つ場所。いまは18か所に分かれ、Q6 の答えでは基盤のカタログ1か所になる（行数は 2026-10-10 に実物を数えた）。</p></div><div data-g="6" data-ixp="1" hidden><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;ja&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;ページ部品シミュレーター&lt;/title&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+</svg></figure><p class="note-s">見た目と操作のコードを持つ場所。いまは18か所に分かれ、Q6 の答えでは基盤のカタログ1か所になる（行数は 2026-10-10 に実物を数えた）。</p></div><div data-g="6" data-ixp="1" hidden><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;ja&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;title&gt;スキーマ駆動の流れ&lt;/title&gt;
 &lt;style&gt;
-:root{--bg:#fbfaf7;--fg:#22262c;--soft:#5b6370;--line:#d7d3ca;--card:#fff;--accent:#1f6f5c;--accent-bg:#e2f0eb;--chg:#fff1c7;--chg-line:#9a6b00;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#15181d;--fg:#e7ebf1;--soft:#a3acb9;--line:#39404b;--card:#1c2129;--accent:#6fc7ad;--accent-bg:#1d3a33;--chg:#3d3214;--chg-line:#e2b54a;color-scheme:dark}}
-body{margin:0;padding:12px 16px;background:var(--bg);color:var(--fg);font:14px/1.6 system-ui,&quot;Noto Sans JP&quot;,sans-serif}
-h3{font-size:14px;margin:0 0 6px}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
-.seg button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:4px 10px;font:inherit;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
-.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.page{border:1px solid var(--line);background:var(--card);padding:10px;min-width:0}
-.page&gt;.ttl{font-weight:600;margin-bottom:6px}
-.src{max-height:220px;font:12px/1.5 ui-monospace,monospace;white-space:pre;overflow-x:auto;background:var(--bg);border:1px solid var(--line);padding:8px;color:var(--soft)}
-/* カタログの部品：見た目と振る舞いはここ1か所 */
-.c-tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
-.c-tabs button{border:0;background:none;color:var(--soft);padding:4px 8px;font:inherit;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
-.c-tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
-.c-fold summary{cursor:pointer;color:var(--accent)}
-.c-mark{background:var(--chg);border-bottom:2px solid var(--chg-line);cursor:pointer}
-.c-pop{display:block;border-left:3px solid var(--chg-line);padding:2px 8px;margin:4px 0;font-size:13px;color:var(--soft)}
-.c-choose button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:3px 10px;font:inherit;cursor:pointer;margin-right:4px}
-.c-choose button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
-.c-jump{border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
-/* いまの形：ACDR が自分の部品を持つ */
-.own .c-tabs{border:0;gap:6px}
-.own .c-tabs button{border:1px solid var(--line);border-radius:12px;margin:0}
-.own .c-tabs button[aria-selected=true]{background:var(--fg);color:var(--card);border-color:var(--fg)}
-.own .c-mark{background:none;border-bottom:2px dotted var(--soft)}
-.own .c-pop{border-left:0;background:var(--bg);padding:6px}
-.note{color:var(--soft);font-size:13px}
-textarea{width:100%;box-sizing:border-box;min-height:200px;font:12px/1.5 ui-monospace,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);padding:8px}
-.run{border:1px solid var(--accent);background:var(--accent);color:var(--bg);padding:4px 12px;font:inherit;cursor:pointer;margin:6px 6px 0 0}
-.ghost{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:4px 12px;font:inherit;cursor:pointer;margin:6px 6px 0 0}
-.ng{color:#b3261e}@media (prefers-color-scheme:dark){.ng{color:#ff8a80}}
-.res{font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;margin-top:6px}
-input[type=color]{width:36px;height:26px;border:1px solid var(--line);background:none;padding:0}
+:root{--bg:#f7f6f2;--fg:#1f242b;--soft:#59616d;--faint:#8a919c;--line:#d8d4ca;--card:#fff;--code:#f0eee8;--accent:#1f6a58;--accent-bg:#dcefe8;--q6:#7a4a00;--q6-bg:#fbefd6;--ng:#a3261b;--chg:#fff0c2;--chg-line:#946300;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--fg:#e6eaf0;--soft:#a9b1bd;--faint:#7c8591;--line:#363d48;--card:#1b2028;--code:#20262f;--accent:#6cc5aa;--accent-bg:#183a31;--q6:#f0c060;--q6-bg:#3a2d10;--ng:#ff8c80;--chg:#3b3113;--chg-line:#e0b24a;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#14171c;--fg:#e6eaf0;--soft:#a9b1bd;--faint:#7c8591;--line:#363d48;--card:#1b2028;--code:#20262f;--accent:#6cc5aa;--accent-bg:#183a31;--q6:#f0c060;--q6-bg:#3a2d10;--ng:#ff8c80;--chg:#3b3113;--chg-line:#e0b24a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.65 system-ui,&quot;Noto Sans JP&quot;,sans-serif;padding-inline:16px;padding-block:16px 40px;max-width:1100px;margin:0 auto}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:0 0 8px}
+.lead{color:var(--soft);margin:0 0 12px}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:3px;white-space:nowrap;vertical-align:1px}
+.real{background:var(--accent-bg);color:var(--accent)}.q6{background:var(--q6-bg);color:var(--q6)}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.steps button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:6px 12px;cursor:pointer;border-radius:4px}
+.steps button[aria-selected=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px}
+@media (max-width:720px){.grid{grid-template-columns:minmax(0,1fr)}}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{text-align:left;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer}
+.item[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.item b{display:block;font-family:ui-monospace,monospace;font-size:13px}
+.item span.s{color:var(--soft);font-size:13px}
+pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:4px;padding:10px;font:12px/1.5 ui-monospace,monospace;overflow:auto;max-height:340px;white-space:pre}
+.cap{color:var(--soft);font-size:13px;margin:8px 0 6px}
+.who{font-size:13px;margin:8px 0 0;padding:8px 10px;border-left:3px solid var(--line);background:var(--bg)}
+.run{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.run button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:4px 10px;border-radius:4px;cursor:pointer}
+.run button.done{border-color:var(--accent);color:var(--accent)}
+.run button.cur{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.code1{color:var(--accent)}.code1.ng{color:var(--ng)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:10px}
+.seg button{font:inherit;border:0;background:var(--card);color:var(--fg);padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+th{background:var(--bg);font-weight:600}
+td code{font:12px ui-monospace,monospace;overflow-wrap:anywhere}
+.tw table{min-width:560px}
+.tw{overflow-x:auto}
+textarea{width:100%;box-sizing:border-box;min-height:180px;font:12px/1.5 ui-monospace,monospace;background:var(--code);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px}
+.btn{font:inherit;border:1px solid var(--accent);background:var(--accent);color:var(--bg);padding:4px 12px;border-radius:4px;cursor:pointer}
+.msg{font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;margin-top:6px}.msg.ng{color:var(--ng)}
+/* ここから下が「カタログの部品」── 基盤のエンジンが持つ見た目 */
+.view{border:1px dashed var(--line);border-radius:6px;padding:12px;background:var(--bg)}
+.view{--p-accent:var(--accent)}
+.view section+section{margin-top:12px}
+.view h3{font-size:14px;margin:0 0 4px;border-bottom:1px solid var(--line);padding-bottom:2px}
+.p-text{margin:0}
+.p-tabs [role=tablist]{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid var(--line);margin-bottom:6px}
+.p-tabs [role=tab]{font:inherit;border:0;background:none;color:var(--soft);padding:3px 8px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.p-tabs [role=tab][aria-selected=true]{color:var(--fg);font-weight:600;border-bottom-color:var(--p-accent)}
+.p-mark{background:var(--chg);border-bottom:2px solid var(--chg-line);cursor:pointer}
+.p-pop{border-left:3px solid var(--chg-line);padding:2px 8px;margin:4px 0;font-size:13px;color:var(--soft)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;color:var(--soft);margin:2px 0 10px}
+.flow b{font-weight:600;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:1px 6px}
+input[type=color]{width:40px;height:26px;border:1px solid var(--line);background:none;padding:0;vertical-align:middle}
 &lt;/style&gt;&lt;/head&gt;&lt;body&gt;
-&lt;div class=&quot;bar&quot;&gt;
- &lt;span class=&quot;seg&quot; id=&quot;mode&quot;&gt;&lt;button data-m=&quot;now&quot; aria-pressed=&quot;false&quot;&gt;いまの形&lt;/button&gt;&lt;button data-m=&quot;q6&quot; aria-pressed=&quot;true&quot;&gt;Q6 の答え&lt;/button&gt;&lt;/span&gt;
- &lt;label class=&quot;note&quot;&gt;アクセントの色 &lt;input type=&quot;color&quot; id=&quot;acc&quot; value=&quot;#1f6f5c&quot;&gt;&lt;/label&gt;
-&lt;/div&gt;
-&lt;p class=&quot;note&quot; id=&quot;say&quot;&gt;&lt;/p&gt;
-&lt;div class=&quot;cols&quot;&gt;
- &lt;div class=&quot;page&quot; id=&quot;board&quot;&gt;&lt;div class=&quot;ttl&quot;&gt;ブレストボード&lt;/div&gt;&lt;div class=&quot;body&quot;&gt;&lt;/div&gt;&lt;/div&gt;
- &lt;div class=&quot;page&quot; id=&quot;acdr&quot;&gt;&lt;div class=&quot;ttl&quot;&gt;ACDR&lt;/div&gt;&lt;div class=&quot;body&quot;&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;/div&gt;
-&lt;h3 style=&quot;margin-top:14px&quot;&gt;ACDR のページテンプレートを書き換えて試す&lt;/h3&gt;
-&lt;p class=&quot;note&quot;&gt;AI が書くのはこの JSON だけである。部品の名前を変えたり、入力を消したりして「check して描く」を押す。&lt;/p&gt;
-&lt;textarea id=&quot;tpl&quot; spellcheck=&quot;false&quot;&gt;&lt;/textarea&gt;
-&lt;div&gt;&lt;button class=&quot;run&quot; id=&quot;run&quot;&gt;check して描く&lt;/button&gt;&lt;button class=&quot;ghost&quot; data-ex=&quot;badname&quot;&gt;例：カタログに無い部品&lt;/button&gt;&lt;button class=&quot;ghost&quot; data-ex=&quot;missing&quot;&gt;例：入力の欠け&lt;/button&gt;&lt;button class=&quot;ghost&quot; data-ex=&quot;html&quot;&gt;例：値に HTML&lt;/button&gt;&lt;button class=&quot;ghost&quot; data-ex=&quot;reset&quot;&gt;元に戻す&lt;/button&gt;&lt;/div&gt;
-&lt;div class=&quot;res&quot; id=&quot;res&quot;&gt;&lt;/div&gt;
+&lt;h1&gt;スキーマ駆動の流れ&lt;/h1&gt;
+&lt;p class=&quot;lead&quot;&gt;提供側が配る abstract から、Skill が用意するもの、インスタンスを作る手順、ページを描くまでを順に追う。&lt;span class=&quot;tag real&quot;&gt;実測&lt;/span&gt; はいまの基盤で実行した出力、&lt;span class=&quot;tag q6&quot;&gt;Q6 の答え&lt;/span&gt; はまだ作っていないもの。&lt;/p&gt;
+&lt;div class=&quot;steps&quot; role=&quot;tablist&quot; id=&quot;steps&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;stage&quot;&gt;&lt;/div&gt;
 &lt;script&gt;
-(function(){
-/* カタログ：部品の名前 → 描き方と振る舞い。基盤が1か所で持つ */
-var CAT={
- tabs:function(p){var w=el(&quot;div&quot;),bar=el(&quot;div&quot;,&quot;c-tabs&quot;),panes=[];
-  p.items.forEach(function(it,i){var b=el(&quot;button&quot;);b.textContent=it.label;b.setAttribute(&quot;aria-selected&quot;,i===0);
-   var pane=el(&quot;div&quot;);pane.hidden=i!==0;it.body.forEach(function(n){pane.appendChild(draw(n))});panes.push(pane);
-   b.onclick=function(){bar.querySelectorAll(&quot;button&quot;).forEach(function(x,j){x.setAttribute(&quot;aria-selected&quot;,j===i);panes[j].hidden=j!==i})};
-   bar.appendChild(b)});w.appendChild(bar);panes.forEach(function(x){w.appendChild(x)});return w},
- text:function(p){var d=el(&quot;div&quot;);d.textContent=p.text;return d},
- fold:function(p){var d=el(&quot;details&quot;,&quot;c-fold&quot;),s=el(&quot;summary&quot;);s.textContent=p.label;d.appendChild(s);var x=el(&quot;div&quot;,&quot;note&quot;);x.textContent=p.text;d.appendChild(x);return d},
- mark:function(p){var w=el(&quot;div&quot;),m=el(&quot;span&quot;,&quot;c-mark&quot;),pop=el(&quot;span&quot;,&quot;c-pop&quot;);m.textContent=p.after;pop.textContent=&quot;変更前：&quot;+p.before+&quot; ／ なぜ：&quot;+p.why;
-  m.onclick=function(){pop.hidden=!pop.hidden};w.appendChild(m);w.appendChild(pop);return w},
- choose:function(p){var d=el(&quot;div&quot;,&quot;c-choose&quot;);p.options.forEach(function(o){var b=el(&quot;button&quot;);b.textContent=o;b.setAttribute(&quot;aria-pressed&quot;,&quot;false&quot;);
-  b.onclick=function(){d.querySelectorAll(&quot;button&quot;).forEach(function(x){x.setAttribute(&quot;aria-pressed&quot;,x===b)})};d.appendChild(b)});return d},
- jump:function(p){var b=el(&quot;button&quot;,&quot;c-jump&quot;);b.textContent=p.label+&quot; へ移る&quot;;b.onclick=function(){
-  var t=b.closest(&quot;.page&quot;).querySelectorAll(&quot;.c-tabs button&quot;)[p.to];if(t)t.click()};return b}
+var REAL={
+ &quot;schema&quot;: {
+  &quot;$schema&quot;: &quot;urn:schema-driven:abstract:v1&quot;,
+  &quot;title&quot;: &quot;決定の記録&quot;,
+  &quot;description&quot;: &quot;決めたことと、変更前後の差分を持つ記録&quot;,
+  &quot;x-generates&quot;: &quot;records/&lt;番号&gt;.json&quot;,
+  &quot;x-prompt&quot;: {
+   &quot;read&quot;: {
+    &quot;means&quot;: &quot;決定1件の記録である。&quot;
+   },
+   &quot;write&quot;: [
+    {
+     &quot;id&quot;: &quot;one-purpose&quot;,
+     &quot;rule&quot;: &quot;目的が同じ変更を1件にまとめる。&quot;,
+     &quot;why&quot;: &quot;同じ目的を分けると、承認が細切れになる。&quot;,
+     &quot;test&quot;: &quot;変更がすべて同じ目的に属するかを見る。&quot;
+    }
+   ]
+  },
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+   &quot;kind&quot;,
+   &quot;decision&quot;,
+   &quot;changes&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+   &quot;$schema&quot;: {
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;description&quot;: &quot;従うスキーマ&quot;,
+    &quot;x-prompt&quot;: {
+     &quot;read&quot;: {
+      &quot;means&quot;: &quot;このインスタンスが従うスキーマへのパスである。&quot;
+     },
+     &quot;write&quot;: [
+      {
+       &quot;id&quot;: &quot;by-create&quot;,
+       &quot;rule&quot;: &quot;create が書いた値を変えない。&quot;,
+       &quot;why&quot;: &quot;基盤はこの値でスキーマを引く。&quot;,
+       &quot;test&quot;: &quot;値が create の書いたままかを見る。&quot;
+      }
+     ]
+    }
+   },
+   &quot;kind&quot;: {
+    &quot;const&quot;: &quot;record&quot;,
+    &quot;description&quot;: &quot;種類&quot;,
+    &quot;x-prompt&quot;: {
+     &quot;read&quot;: {
+      &quot;means&quot;: &quot;決定の記録であることを表す。&quot;
+     },
+     &quot;write&quot;: [
+      {
+       &quot;id&quot;: &quot;const&quot;,
+       &quot;rule&quot;: &quot;record と書く。&quot;,
+       &quot;why&quot;: &quot;基盤はこの値で種類を判定する。&quot;,
+       &quot;test&quot;: &quot;値が record かを見る。&quot;
+      }
+     ]
+    }
+   },
+   &quot;decision&quot;: {
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;minLength&quot;: 1,
+    &quot;description&quot;: &quot;決めたこと&quot;,
+    &quot;x-prompt&quot;: {
+     &quot;read&quot;: {
+      &quot;means&quot;: &quot;承認してほしい決定の1文である。&quot;
+     },
+     &quot;write&quot;: [
+      {
+       &quot;id&quot;: &quot;no-means&quot;,
+       &quot;rule&quot;: &quot;何を採るかを書き、手段を書かない。&quot;,
+       &quot;why&quot;: &quot;手段は下の変更が示す。&quot;,
+       &quot;bad&quot;: &quot;sed で置き換える&quot;,
+       &quot;good&quot;: &quot;段を段階に直す&quot;,
+       &quot;test&quot;: &quot;文に手段の語が無いかを見る。&quot;
+      }
+     ]
+    }
+   },
+   &quot;changes&quot;: {
+    &quot;type&quot;: &quot;array&quot;,
+    &quot;minItems&quot;: 1,
+    &quot;description&quot;: &quot;変更の並び&quot;,
+    &quot;x-prompt&quot;: {
+     &quot;read&quot;: {
+      &quot;means&quot;: &quot;どこを、何から何に、なぜ変えたかの並びである。&quot;
+     },
+     &quot;write&quot;: [
+      {
+       &quot;id&quot;: &quot;with-why&quot;,
+       &quot;rule&quot;: &quot;変更ごとに理由を書く。&quot;,
+       &quot;why&quot;: &quot;理由の無い変更は承認できない。&quot;,
+       &quot;test&quot;: &quot;どの変更にも why があるかを見る。&quot;
+      }
+     ]
+    },
+    &quot;items&quot;: {
+     &quot;type&quot;: &quot;object&quot;,
+     &quot;required&quot;: [
+      &quot;file&quot;,
+      &quot;from&quot;,
+      &quot;to&quot;,
+      &quot;why&quot;
+     ],
+     &quot;additionalProperties&quot;: false,
+     &quot;properties&quot;: {
+      &quot;file&quot;: {
+       &quot;type&quot;: &quot;string&quot;,
+       &quot;description&quot;: &quot;ファイル&quot;,
+       &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+         &quot;means&quot;: &quot;変更したファイルのパスである。&quot;
+        },
+        &quot;write&quot;: [
+         {
+          &quot;id&quot;: &quot;path&quot;,
+          &quot;rule&quot;: &quot;リポジトリの根からのパスを書く。&quot;,
+          &quot;why&quot;: &quot;読み手がそのまま開ける。&quot;,
+          &quot;test&quot;: &quot;パスが実在するかを見る。&quot;
+         }
+        ]
+       }
+      },
+      &quot;from&quot;: {
+       &quot;type&quot;: &quot;string&quot;,
+       &quot;description&quot;: &quot;変更前&quot;,
+       &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+         &quot;means&quot;: &quot;変更前の原文である。&quot;
+        },
+        &quot;write&quot;: [
+         {
+          &quot;id&quot;: &quot;verbatim&quot;,
+          &quot;rule&quot;: &quot;原文をそのまま書く。&quot;,
+          &quot;why&quot;: &quot;要約すると何が変わったかが読めない。&quot;,
+          &quot;test&quot;: &quot;原文と1文字ずつ同じかを見る。&quot;
+         }
+        ]
+       }
+      },
+      &quot;to&quot;: {
+       &quot;type&quot;: &quot;string&quot;,
+       &quot;description&quot;: &quot;変更後&quot;,
+       &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+         &quot;means&quot;: &quot;変更後の文である。&quot;
+        },
+        &quot;write&quot;: [
+         {
+          &quot;id&quot;: &quot;verbatim&quot;,
+          &quot;rule&quot;: &quot;変更後の文をそのまま書く。&quot;,
+          &quot;why&quot;: &quot;差分として並べる。&quot;,
+          &quot;test&quot;: &quot;ファイルの中身と同じかを見る。&quot;
+         }
+        ]
+       }
+      },
+      &quot;why&quot;: {
+       &quot;type&quot;: &quot;string&quot;,
+       &quot;description&quot;: &quot;なぜ&quot;,
+       &quot;x-prompt&quot;: {
+        &quot;read&quot;: {
+         &quot;means&quot;: &quot;その変更の理由である。&quot;
+        },
+        &quot;write&quot;: [
+         {
+          &quot;id&quot;: &quot;what-matched&quot;,
+          &quot;rule&quot;: &quot;何と食い違い、何に合わせたかを書く。&quot;,
+          &quot;why&quot;: &quot;あとで決定を改訂してよいかを判定できる。&quot;,
+          &quot;test&quot;: &quot;食い違っていた相手が書かれているかを見る。&quot;
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ &quot;meta_rule&quot;: {
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;description&quot;: &quot;書くときの決まり1件&quot;,
+  &quot;required&quot;: [
+   &quot;id&quot;,
+   &quot;rule&quot;,
+   &quot;why&quot;,
+   &quot;test&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+   &quot;id&quot;: {
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;pattern&quot;: &quot;^[a-z0-9]+(-[a-z0-9]+)*$&quot;
+   },
+   &quot;rule&quot;: {
+    &quot;$ref&quot;: &quot;#/$defs/sentence&quot;
+   },
+   &quot;why&quot;: {
+    &quot;$ref&quot;: &quot;#/$defs/sentence&quot;
+   },
+   &quot;test&quot;: {
+    &quot;$ref&quot;: &quot;#/$defs/sentence&quot;
+   },
+   &quot;bad&quot;: {
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;minLength&quot;: 1
+   },
+   &quot;good&quot;: {
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;minLength&quot;: 1
+   }
+  },
+  &quot;dependentRequired&quot;: {
+   &quot;bad&quot;: [
+    &quot;good&quot;
+   ],
+   &quot;good&quot;: [
+    &quot;bad&quot;
+   ]
+  }
+ },
+ &quot;meta_prompt&quot;: {
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;description&quot;: &quot;x-prompt。read は値の読み方を観点ごとに、write は書くときの決まりを1件ずつ持つ&quot;,
+  &quot;required&quot;: [
+   &quot;read&quot;,
+   &quot;write&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+   &quot;read&quot;: {
+    &quot;$ref&quot;: &quot;#/$defs/reading&quot;
+   },
+   &quot;write&quot;: {
+    &quot;type&quot;: &quot;array&quot;,
+    &quot;minItems&quot;: 1,
+    &quot;items&quot;: {
+     &quot;$ref&quot;: &quot;#/$defs/rule&quot;
+    }
+   }
+  }
+ },
+ &quot;steps&quot;: [
+  {
+   &quot;label&quot;: &quot;スキーマを検査する&quot;,
+   &quot;cmd&quot;: &quot;schema-driven check-schemas --dir schemas&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;schemas\&quot;:[\&quot;record.schema.json\&quot;],\&quot;findings\&quot;:[]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;&quot;,
+   &quot;patch&quot;: null
+  },
+  {
+   &quot;label&quot;: &quot;インスタンスを作る&quot;,
+   &quot;cmd&quot;: &quot;schema-driven create --schema schemas/record.schema.json --path records/0001.json&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;path\&quot;:\&quot;records/0001.json\&quot;,\&quot;hash\&quot;:\&quot;2d59847f15fd4fefc36e42e812de8606c5b4f65570faa268cdee9e8d0e04a77a\&quot;,\&quot;unfilled\&quot;:[{\&quot;property\&quot;:\&quot;/changes\&quot;,\&quot;prompt\&quot;:{\&quot;read\&quot;:{\&quot;means\&quot;:\&quot;どこを、何から何に、なぜ変えたかの並びである。\&quot;},\&quot;write\&quot;:[{\&quot;id\&quot;:\&quot;with-why\&quot;,\&quot;rule\&quot;:\&quot;変更ごとに理由を書く。\&quot;,\&quot;why\&quot;:\&quot;理由の無い変更は承認できない。\&quot;,\&quot;test\&quot;:\&quot;どの変更にも why があるかを見る。\&quot;}]}},{\&quot;property\&quot;:\&quot;/decision\&quot;,\&quot;prompt\&quot;:{\&quot;read\&quot;:{\&quot;means\&quot;:\&quot;承認してほしい決定の1文である。\&quot;},\&quot;write\&quot;:[{\&quot;id\&quot;:\&quot;no-means\&quot;,\&quot;rule\&quot;:\&quot;何を採るかを書き、手段を書かない。\&quot;,\&quot;why\&quot;:\&quot;手段は下の変更が示す。\&quot;,\&quot;bad\&quot;:\&quot;sed で置き換える\&quot;,\&quot;good\&quot;:\&quot;段を段階に直す\&quot;,\&quot;test\&quot;:\&quot;文に手段の語が無いかを見る。\&quot;}]}},{\&quot;property\&quot;:\&quot;/kind\&quot;,\&quot;prompt\&quot;:{\&quot;read\&quot;:{\&quot;means\&quot;:\&quot;決定の記録であることを表す。\&quot;},\&quot;write\&quot;:[{\&quot;id\&quot;:\&quot;const\&quot;,\&quot;rule\&quot;:\&quot;record と書く。\&quot;,\&quot;why\&quot;:\&quot;基盤はこの値で種類を判定する。\&quot;,\&quot;test\&quot;:\&quot;値が record かを見る。\&quot;}]}}]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;}&quot;,
+   &quot;patch&quot;: null
+  },
+  {
+   &quot;label&quot;: &quot;欄の案内を引く&quot;,
+   &quot;cmd&quot;: &quot;schema-driven prompt --schema schemas/record.schema.json --property /decision&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;prompt\&quot;:{\&quot;read\&quot;:{\&quot;means\&quot;:\&quot;承認してほしい決定の1文である。\&quot;},\&quot;write\&quot;:[{\&quot;id\&quot;:\&quot;no-means\&quot;,\&quot;rule\&quot;:\&quot;何を採るかを書き、手段を書かない。\&quot;,\&quot;why\&quot;:\&quot;手段は下の変更が示す。\&quot;,\&quot;bad\&quot;:\&quot;sed で置き換える\&quot;,\&quot;good\&quot;:\&quot;段を段階に直す\&quot;,\&quot;test\&quot;:\&quot;文に手段の語が無いかを見る。\&quot;}]}}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;}&quot;,
+   &quot;patch&quot;: null
+  },
+  {
+   &quot;label&quot;: &quot;書く（why を忘れた）&quot;,
+   &quot;cmd&quot;: &quot;schema-driven update --path records/0001.json --patch &#39;…&#39;&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;hash\&quot;:\&quot;9d3db64efa269764a23037a291310dd7297fc9b6d126b51c001cd4d66ccc5822\&quot;,\&quot;changed\&quot;:true,\&quot;errors\&quot;:[],\&quot;unfilled\&quot;:[{\&quot;property\&quot;:\&quot;/changes/0/why\&quot;,\&quot;prompt\&quot;:{\&quot;read\&quot;:{\&quot;means\&quot;:\&quot;その変更の理由である。\&quot;},\&quot;write\&quot;:[{\&quot;id\&quot;:\&quot;what-matched\&quot;,\&quot;rule\&quot;:\&quot;何と食い違い、何に合わせたかを書く。\&quot;,\&quot;why\&quot;:\&quot;あとで決定を改訂してよいかを判定できる。\&quot;,\&quot;test\&quot;:\&quot;食い違っていた相手が書かれているかを見る。\&quot;}]}}]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;,\&quot;kind\&quot;:\&quot;record\&quot;,\&quot;decision\&quot;:\&quot;段を段階に直す\&quot;,\&quot;changes\&quot;:[{\&quot;file\&quot;:\&quot;SKILL.md\&quot;,\&quot;from\&quot;:\&quot;段の順に作業する\&quot;,\&quot;to\&quot;:\&quot;段階の順に作業する\&quot;}]}&quot;,
+   &quot;patch&quot;: [
+    {
+     &quot;op&quot;: &quot;add&quot;,
+     &quot;path&quot;: &quot;/kind&quot;,
+     &quot;value&quot;: &quot;record&quot;
+    },
+    {
+     &quot;op&quot;: &quot;add&quot;,
+     &quot;path&quot;: &quot;/decision&quot;,
+     &quot;value&quot;: &quot;段を段階に直す&quot;
+    },
+    {
+     &quot;op&quot;: &quot;add&quot;,
+     &quot;path&quot;: &quot;/changes&quot;,
+     &quot;value&quot;: [
+      {
+       &quot;file&quot;: &quot;SKILL.md&quot;,
+       &quot;from&quot;: &quot;段の順に作業する&quot;,
+       &quot;to&quot;: &quot;段階の順に作業する&quot;
+      }
+     ]
+    }
+   ]
+  },
+  {
+   &quot;label&quot;: &quot;この状態で承認しようとする&quot;,
+   &quot;cmd&quot;: &quot;schema-driven approve --dir records&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:false,\&quot;reason\&quot;:\&quot;未記入のプロパティがある\&quot;,\&quot;detail\&quot;:\&quot;\&quot;,\&quot;errors\&quot;:[]}&quot;,
+   &quot;code&quot;: 1,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;,\&quot;kind\&quot;:\&quot;record\&quot;,\&quot;decision\&quot;:\&quot;段を段階に直す\&quot;,\&quot;changes\&quot;:[{\&quot;file\&quot;:\&quot;SKILL.md\&quot;,\&quot;from\&quot;:\&quot;段の順に作業する\&quot;,\&quot;to\&quot;:\&quot;段階の順に作業する\&quot;}]}&quot;,
+   &quot;patch&quot;: null
+  },
+  {
+   &quot;label&quot;: &quot;why を書き足す&quot;,
+   &quot;cmd&quot;: &quot;schema-driven update --path records/0001.json --patch &#39;…&#39;&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;hash\&quot;:\&quot;384a84013f6e08899adf46969458a22281911a2456cb287ceb46af95db0ddfb9\&quot;,\&quot;changed\&quot;:true,\&quot;errors\&quot;:[],\&quot;unfilled\&quot;:[]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;,\&quot;kind\&quot;:\&quot;record\&quot;,\&quot;decision\&quot;:\&quot;段を段階に直す\&quot;,\&quot;changes\&quot;:[{\&quot;file\&quot;:\&quot;SKILL.md\&quot;,\&quot;from\&quot;:\&quot;段の順に作業する\&quot;,\&quot;to\&quot;:\&quot;段階の順に作業する\&quot;,\&quot;why\&quot;:\&quot;段は一般の語ではないので、ふだんの語に合わせる\&quot;}]}&quot;,
+   &quot;patch&quot;: [
+    {
+     &quot;op&quot;: &quot;add&quot;,
+     &quot;path&quot;: &quot;/changes/0/why&quot;,
+     &quot;value&quot;: &quot;段は一般の語ではないので、ふだんの語に合わせる&quot;
+    }
+   ]
+  },
+  {
+   &quot;label&quot;: &quot;検査する&quot;,
+   &quot;cmd&quot;: &quot;schema-driven check --dir records&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;instances\&quot;:[{\&quot;path\&quot;:\&quot;records/0001.json\&quot;,\&quot;hash\&quot;:\&quot;384a84013f6e08899adf46969458a22281911a2456cb287ceb46af95db0ddfb9\&quot;,\&quot;errors\&quot;:[],\&quot;unfilled\&quot;:[]}],\&quot;findings\&quot;:[]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;,\&quot;kind\&quot;:\&quot;record\&quot;,\&quot;decision\&quot;:\&quot;段を段階に直す\&quot;,\&quot;changes\&quot;:[{\&quot;file\&quot;:\&quot;SKILL.md\&quot;,\&quot;from\&quot;:\&quot;段の順に作業する\&quot;,\&quot;to\&quot;:\&quot;段階の順に作業する\&quot;,\&quot;why\&quot;:\&quot;段は一般の語ではないので、ふだんの語に合わせる\&quot;}]}&quot;,
+   &quot;patch&quot;: null
+  },
+  {
+   &quot;label&quot;: &quot;承認する&quot;,
+   &quot;cmd&quot;: &quot;schema-driven approve --dir records&quot;,
+   &quot;out&quot;: &quot;{\&quot;ok\&quot;:true,\&quot;changed\&quot;:true,\&quot;instances\&quot;:[{\&quot;path\&quot;:\&quot;records/0001.json\&quot;,\&quot;hash\&quot;:\&quot;384a84013f6e08899adf46969458a22281911a2456cb287ceb46af95db0ddfb9\&quot;}]}&quot;,
+   &quot;code&quot;: 0,
+   &quot;inst&quot;: &quot;{\&quot;$schema\&quot;:\&quot;../schemas/record.schema.json\&quot;,\&quot;kind\&quot;:\&quot;record\&quot;,\&quot;decision\&quot;:\&quot;段を段階に直す\&quot;,\&quot;changes\&quot;:[{\&quot;file\&quot;:\&quot;SKILL.md\&quot;,\&quot;from\&quot;:\&quot;段の順に作業する\&quot;,\&quot;to\&quot;:\&quot;段階の順に作業する\&quot;,\&quot;why\&quot;:\&quot;段は一般の語ではないので、ふだんの語に合わせる\&quot;}]}&quot;,
+   &quot;patch&quot;: null
+  }
+ ],
+ &quot;render_now&quot;: &quot;{\&quot;ok\&quot;:false,\&quot;reason\&quot;:\&quot;デザインテンプレートが無い種類がある\&quot;,\&quot;detail\&quot;:\&quot;次のインスタンスは、基盤の文書でもなく、具体のページテンプレートとデザインも無い：records/0001.json（kind record）\&quot;,\&quot;errors\&quot;:[]}&quot;
 };
-function el(t,c){var e=document.createElement(t);if(c)e.className=c;return e}
-function draw(n){return CAT[n.component](n)}
-/* 2つの Skill のページテンプレート（部品の名前と、値だけ） */
-var PAGES={
- board:{component:&quot;tabs&quot;,items:[
-  {label:&quot;現在地&quot;,body:[{component:&quot;text&quot;,text:&quot;いま見る論点：Q6&quot;},{component:&quot;jump&quot;,label:&quot;Q6&quot;,to:1}]},
-  {label:&quot;Q6&quot;,body:[{component:&quot;text&quot;,text:&quot;答え：見た目と操作は基盤のカタログが持つ&quot;},{component:&quot;fold&quot;,label:&quot;裏づけ&quot;,text:&quot;4つのページの操作は5つの型に収まった&quot;},{component:&quot;choose&quot;,options:[&quot;承認&quot;,&quot;差し戻し&quot;]}]}]},
- acdr:{component:&quot;tabs&quot;,items:[
-  {label:&quot;SKILL.md&quot;,body:[{component:&quot;mark&quot;,after:&quot;段階の順に作業する&quot;,before:&quot;段の順に作業する&quot;,why:&quot;段は一般の語ではない&quot;}]},
-  {label:&quot;implementation.json&quot;,body:[{component:&quot;mark&quot;,after:&quot;\&quot;transcribe\&quot; を外す&quot;,before:&quot;\&quot;transcribe\&quot;: {…}&quot;,why:&quot;ソースのコピーをやめた&quot;}]}]}
-};
-var mode=&quot;q6&quot;;
-function render(){[&quot;board&quot;,&quot;acdr&quot;].forEach(function(k){var b=document.querySelector(&quot;#&quot;+k+&quot; .body&quot;);b.innerHTML=&quot;&quot;;b.appendChild(draw(PAGES[k]))});
- document.getElementById(&quot;acdr&quot;).classList.toggle(&quot;own&quot;,mode===&quot;now&quot;);
- document.getElementById(&quot;say&quot;).textContent=mode===&quot;now&quot;
-  ?&quot;いまの形：ACDR は自分の部品を持つので、同じ「タブ」と「開閉」が別の形になる。色を変えても、ACDR のタブには当たらない。&quot;
-  :&quot;Q6 の答え：2つのページは同じカタログの部品で描く。タブ ・ 開閉 ・ 跳ぶ ・ 選ぶ は、どの Skill でも同じ形と同じ操作になる。&quot;;}
-var REQ={tabs:[&quot;items&quot;],text:[&quot;text&quot;],fold:[&quot;label&quot;,&quot;text&quot;],mark:[&quot;after&quot;,&quot;before&quot;,&quot;why&quot;],choose:[&quot;options&quot;],jump:[&quot;label&quot;,&quot;to&quot;]};
-function check(n,at,out){if(!n||typeof n!==&quot;object&quot;){out.push(at+&quot;：部品ではない&quot;);return}
- if(!CAT[n.component]){out.push(at+&quot;/component：\&quot;&quot;+n.component+&quot;\&quot; はカタログに無い（使える部品：&quot;+Object.keys(CAT).join(&quot; ・ &quot;)+&quot;）&quot;);return}
- REQ[n.component].forEach(function(k){if(n[k]===undefined)out.push(at+&quot;/&quot;+k+&quot;：&quot;+n.component+&quot; に必ず渡す入力が無い&quot;)});
- if(n.items)n.items.forEach(function(it,i){(it.body||[]).forEach(function(c,j){check(c,at+&quot;/items/&quot;+i+&quot;/body/&quot;+j,out)})})}
-var ORIG=JSON.stringify(PAGES.acdr,null,1),tpl=document.getElementById(&quot;tpl&quot;),res=document.getElementById(&quot;res&quot;);tpl.value=ORIG;
-function run(){var t,out=[];try{t=JSON.parse(tpl.value)}catch(e){res.className=&quot;res ng&quot;;res.textContent=&quot;$ schema-driven check\nNG  JSON として読めない：&quot;+e.message;return}
- check(t,&quot;&quot;,out);if(out.length){res.className=&quot;res ng&quot;;res.textContent=&quot;$ schema-driven check\nNG  &quot;+out.length+&quot;件。描かずに止めた\n&quot;+out.map(function(x){return&quot;    &quot;+x}).join(&quot;\n&quot;);return}
- PAGES.acdr=t;render();res.className=&quot;res&quot;;res.textContent=&quot;$ schema-driven check\nOK  検出なし。上の ACDR のページを描き直した&quot;+(tpl.value.indexOf(&quot;&lt;&quot;)&gt;=0?&quot;\n    値の HTML は文字として出し、見た目は変えていない&quot;:&quot;&quot;);}
-document.getElementById(&quot;run&quot;).onclick=run;
-document.querySelectorAll(&quot;[data-ex]&quot;).forEach(function(b){b.onclick=function(){var t=JSON.parse(ORIG);
- if(b.dataset.ex===&quot;badname&quot;)t.items[0].body[0].component=&quot;changeMarker&quot;;
- if(b.dataset.ex===&quot;missing&quot;)delete t.items[0].body[0].why;
- if(b.dataset.ex===&quot;html&quot;)t.items[0].body[0].after=&quot;&lt;b style=\&quot;color:red\&quot;&gt;赤くしたい&lt;/b&gt;&quot;;
- tpl.value=JSON.stringify(t,null,1);run()}});
-document.querySelectorAll(&quot;#mode button&quot;).forEach(function(b){b.onclick=function(){mode=b.dataset.m;
- document.querySelectorAll(&quot;#mode button&quot;).forEach(function(x){x.setAttribute(&quot;aria-pressed&quot;,x===b)});render()}});
-document.getElementById(&quot;acc&quot;).oninput=function(e){document.documentElement.style.setProperty(&quot;--accent&quot;,e.target.value)};
-if(location.hash===&quot;#now&quot;){mode=&quot;now&quot;;document.querySelectorAll(&quot;#mode button&quot;).forEach(function(x){x.setAttribute(&quot;aria-pressed&quot;,x.dataset.m===&quot;now&quot;)})}
-render();
-})();
-&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
-"></iframe><p class="note-s">触れるシミュレーター。色を1か所変えると2つの Skill のページが両方変わる。下のページテンプレートを書き換えると、カタログに無い部品や入力の欠けを check が止める。</p></div></div></div></details><details open><summary>根拠（10件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">問いが立った理由</span></td><td>ソースのコピーをやめ、作られた Skill は宣言と concrete スキーマだけを持つ</td><td><span class="kind k-rule">決まり</span><small>論点3（2026-10-10 承認）</small></td></tr><tr><td><span class="part">写しを消す時期</span></td><td>既存の Skill は、提供側の3つを作ったあとに決まった順で移す</td><td><span class="kind k-rule">決まり</span><small>論点5（2026-10-10 承認）</small></td></tr><tr><td><span class="part">カタログの最初の組</span></td><td>4つのページで承認する人がする操作を部品のコードから並べると、タブで面を切り替える ・ 一覧から箇所へ跳ぶ ・ 開いて閉じる ・ 選んで送る ・ 別の文書を埋める ・ SVG を埋める の6つの型に収まり、Skill 固有の操作は無かった</td><td><span class="kind k-fact">実測</span><small>board.js ・ parts.html ・ acdr.js ・ advisor の view.template.html（2026-10-10）</small></td></tr><tr><td><span class="part">見た目を1か所に置くこと</span></td><td>15の Skill が持つ view.css と view.template.html は、15件とも同じ中身だった</td><td><span class="kind k-fact">実測</span><small>md5sum（2026-10-10）</small></td></tr><tr><td><span class="part">同じ働きの部品をそろえること</span></td><td>達成基準：「3.2.4 一貫した識別性」 ・ レベル：AA ・ 何を求めるか：ページ一式の中で、同じ機能のコンポーネントはいつも同じように識別できる</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 predictable</small></td></tr><tr><td><span class="part">Skill ごとに見た目を変えないこと</span></td><td>種類：internal consistency ・ 何との一貫性か：1つの製品の中、または製品群の中</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 consistency-and-standards</small></td></tr><tr><td><span class="part">監査からカタログを作ること</span></td><td>方法：サイトの中ですでに使われているやり方から1つを選ぶ ・ 原典の例：見出しをすべて太字にする</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 interface-audit</small></td></tr><tr><td><span class="part">部品を足す口を先に開けないこと</span></td><td>非対称性：「『ない』と『ある』の非対称性」 ・ 強い側：「ある」のほうが強い ・ 放っておくとどうなるか：一度「ある」になったものは、「ない」へなかなか戻らない</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-10）── 判断基準 do-not-mix</small></td></tr><tr><td><span class="part">カタログを JSON Schema の文書で書くこと</span></td><td>Because A2UI catalogs are represented as JSON Schema documents, catalog definitions should include both `$id` (used by JSON Schema tooling) and `catalogId` (used by A2UI SDKs and catalog negotiation), and both fields should be set to the same URI.</td><td><span class="kind k-src">原典</span><small>A2UI v0.9.1 a2ui_protocol.md:316（sources/、2026-10-10 取得）</small></td></tr><tr><td><span class="part">読む人</span></td><td>どの Skill のページも、承認する同じ1人が読む</td><td><span class="kind k-given">前提</span><small>CLAUDE.md の「1人作業」</small></td></tr></table></div></div></details><details open><summary>採らなかった案（8件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>B：Skill が部品を宣言で足す（入力の JSON Schema と Mustache の HTML 片）</b></td><td>同じ働きの部品を Skill ごとに別の HTML で書けるので、タブや開閉の形がそろわず、直す場所も Skill ごとに分かれる</td></tr><tr><td><b>C：描画を、宣言した別の実行ファイルに任せる</b></td><td>見た目と操作がすべて Skill の中に入り、基盤のトークンも試験も届かない</td></tr><tr><td><b>D：Skill が Web Components（JS）を持つ</b></td><td>C と同じく、部品の形と操作が Skill ごとになり、基盤から直せない</td></tr><tr><td><b>E：Handlebars のテンプレートと helper</b></td><td>helper でロジックを Skill ごとに足せるので、表示の条件まで Skill ごとに分かれる。正式な仕様書も確認できない</td></tr><tr><td><b>A に、C を予備の口として今から足す</b></td><td>いま Skill 固有の操作は1つも無い。一度開けた口は閉じにくく、使わない部品が増える</td></tr><tr><td><b>A2UI の仕様をそのまま採る</b></td><td>全体が早期プレビューで、JSON Pointer を相対パスへ広げている。エージェントの出力を信頼しない描画側のための形で、この基盤の目的と違う</td></tr><tr><td><b>Skill がトークンを自由に上書きできる</b></td><td>変更の印や承認済みの色が Skill ごとに変わり、色で状態を読めなくなる</td></tr><tr><td><b>部品の名前と入力の形を、A2UI の基本カタログに合わせる</b></td><td>採るのは、カタログを JSON Schema で書き、AI の出力をカタログに限って検査する考え方だけである。名前を合わせても値の取り出し方は合わず、他の標準の版に縛られる</td></tr></table></div></div></details><div class="form" data-topic="Q6"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 1</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+function h(t,a,c){var e=document.createElement(t);if(a)for(var k in a){if(k===&quot;text&quot;)e.textContent=a[k];else if(k===&quot;html&quot;)e.innerHTML=a[k];else e.setAttribute(k,a[k]);}(c||[]).forEach(function(x){if(x)e.appendChild(typeof x===&quot;string&quot;?document.createTextNode(x):x)});return e}
+function pre(v){return h(&quot;pre&quot;,{text:typeof v===&quot;string&quot;?v:JSON.stringify(v,null,1)})}
+function pretty(s){try{return JSON.stringify(JSON.parse(s),null,1)}catch(e){return s}}
+function esc(s){return String(s).replace(/[&amp;&lt;&gt;&quot;]/g,function(c){return{&quot;&amp;&quot;:&quot;&amp;amp;&quot;,&quot;&lt;&quot;:&quot;&amp;lt;&quot;,&quot;&gt;&quot;:&quot;&amp;gt;&quot;,&#39;&quot;&#39;:&quot;&amp;quot;&quot;}[c]})}
+
+/* ---- abstract（提供側）の中身 ---- */
+var CATALOG={&quot;$schema&quot;:&quot;urn:schema-driven:abstract:v1&quot;,&quot;$id&quot;:&quot;urn:schema-driven:abstract:v1:catalog&quot;,&quot;title&quot;:&quot;部品のカタログ&quot;,
+ &quot;parts&quot;:{
+  &quot;tabs&quot;:{&quot;description&quot;:&quot;並びの要素ごとにタブを1枚出し、押すと面を切り替える&quot;,
+   &quot;input&quot;:{&quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;items&quot;,&quot;label&quot;,&quot;body&quot;],&quot;properties&quot;:{&quot;items&quot;:{&quot;$ref&quot;:&quot;page#/$defs/expr&quot;,&quot;description&quot;:&quot;タブにする並び&quot;},&quot;label&quot;:{&quot;$ref&quot;:&quot;page#/$defs/expr&quot;,&quot;description&quot;:&quot;タブの名前（要素から取る）&quot;},&quot;body&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;description&quot;:&quot;タブの中に置く部品&quot;}}},
+   &quot;x-prompt&quot;:{&quot;read&quot;:{&quot;means&quot;:&quot;同じ種類のものを1つずつ見比べるための切り替えである。&quot;},&quot;write&quot;:[{&quot;id&quot;:&quot;same-kind&quot;,&quot;rule&quot;:&quot;同じ種類のものの並びにだけ使う。&quot;,&quot;why&quot;:&quot;種類が違うものをタブに分けると、読み手が全部を開いて探すことになる。&quot;,&quot;test&quot;:&quot;items の要素が、すべて同じ形かを見る。&quot;}]}},
+  &quot;mark&quot;:{&quot;description&quot;:&quot;変更後の文に印を付け、押すと変更前と理由が開く&quot;,
+   &quot;input&quot;:{&quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;after&quot;,&quot;before&quot;,&quot;why&quot;],&quot;properties&quot;:{&quot;after&quot;:{&quot;$ref&quot;:&quot;page#/$defs/expr&quot;},&quot;before&quot;:{&quot;$ref&quot;:&quot;page#/$defs/expr&quot;},&quot;why&quot;:{&quot;$ref&quot;:&quot;page#/$defs/expr&quot;}}},
+   &quot;x-prompt&quot;:{&quot;read&quot;:{&quot;means&quot;:&quot;変更前と理由を開ける、変更の印である。&quot;},&quot;write&quot;:[{&quot;id&quot;:&quot;with-why&quot;,&quot;rule&quot;:&quot;why に、変更の理由の欄を渡す。&quot;,&quot;why&quot;:&quot;理由の無い印は、押しても判断の材料にならない。&quot;,&quot;test&quot;:&quot;why の式が、空でない値を返すかを見る。&quot;}]}},
+  &quot;…&quot;:&quot;ほかに fold ・ choose ・ jump ・ embed ・ svg と、文書の14のブロック&quot;}};
+var PAGE={&quot;$schema&quot;:&quot;urn:schema-driven:abstract:v1:page&quot;,&quot;kind&quot;:&quot;record&quot;,&quot;sections&quot;:[
+ {&quot;heading&quot;:&quot;決めたこと&quot;,&quot;body&quot;:[&quot;this.decision&quot;]},
+ {&quot;heading&quot;:&quot;変更&quot;,&quot;body&quot;:[{&quot;component&quot;:&quot;tabs&quot;,&quot;items&quot;:&quot;this.changes&quot;,&quot;label&quot;:&quot;file&quot;,&quot;body&quot;:[{&quot;component&quot;:&quot;mark&quot;,&quot;after&quot;:&quot;to&quot;,&quot;before&quot;:&quot;from&quot;,&quot;why&quot;:&quot;why&quot;}]}]}]};
+var TOKENS={&quot;locked&quot;:{&quot;state.changed&quot;:&quot;変更の印の地の色&quot;,&quot;state.changed-line&quot;:&quot;変更の印の線の色&quot;,&quot;state.approved&quot;:&quot;承認済みの色&quot;,&quot;text.body&quot;:&quot;本文の色&quot;},&quot;allowed&quot;:{&quot;accent&quot;:&quot;選んだタブの線 ・ 強調の色&quot;}};
+var ABSTRACT=[
+ {f:&quot;meta-schema.json&quot;,tag:&quot;real&quot;,s:&quot;concrete スキーマの書き方の決まり（urn:schema-driven:abstract:v1）&quot;,who:&quot;Skill がスキーマを書くとき、check-schemas がこれで検査する。各欄に description と x-prompt が無いと断る。&quot;,body:{&quot;$defs.rule（x-prompt の write の1件）&quot;:REAL.meta_rule}},
+ {f:&quot;page.schema.json&quot;,tag:&quot;real&quot;,s:&quot;ページテンプレートの形（節 ・ 部品 ・ JMESPath の式）&quot;,who:&quot;Skill がページテンプレートを書くとき、check がこれで検査する。Q6 で、component がカタログの名前を指す形に変わる。&quot;,body:{&quot;sections の1つ&quot;:{&quot;heading&quot;:&quot;見出し&quot;,&quot;show&quot;:&quot;出す条件（JMESPath）&quot;,&quot;body&quot;:[&quot;JMESPath の式&quot;, {&quot;component&quot;:&quot;カタログの部品の名前&quot;,&quot;…&quot;:&quot;その部品の入力&quot;}]}}},
+ {f:&quot;catalog.schema.json&quot;,tag:&quot;q6&quot;,s:&quot;部品のカタログ（名前 ・ 入力の形 ・ 使う場面）&quot;,who:&quot;Skill のページテンプレートが部品を名前で呼ぶ。check は、カタログに無い名前や入力の欠けを止める。&quot;,body:CATALOG},
+ {f:&quot;トークン（design-system.schema.json に従う）&quot;,tag:&quot;q6&quot;,s:&quot;色 ・ 余白 ・ 字の大きさ。意味を持つものは基盤だけが持つ&quot;,who:&quot;エンジンが CSS の変数にしてページに置く。Skill が上書きしてよいのは allowed の名前だけで、それ以外は check-schemas が断る。&quot;,body:TOKENS},
+ {f:&quot;tools.schema.json&quot;,tag:&quot;real&quot;,s:&quot;固有のツールの宣言の形&quot;,who:&quot;Skill が共通ツールのほかにツールを足すとき、tools.json をこれに合わせて書く。&quot;,body:{&quot;tools&quot;:[{&quot;name&quot;:&quot;aggregate&quot;,&quot;description&quot;:&quot;…&quot;,&quot;args&quot;:[],&quot;command&quot;:[&quot;bin/aggregate&quot;],&quot;sha256&quot;:&quot;…&quot;}]}},
+ {f:&quot;エンジン（署名付きの実行ファイル）&quot;,tag:&quot;real&quot;,s:&quot;共通ツール9つ。Q6 で、カタログの部品の HTML ・ CSS ・ JS がこの中に入る&quot;,who:&quot;Skill はこれを呼ぶだけで、中身を持たない。&quot;,body:{&quot;create&quot;:&quot;スキーマから、未記入のインスタンスを作る&quot;,&quot;get&quot;:&quot;値を JMESPath で読む&quot;,&quot;update&quot;:&quot;JSON Patch で書き、検証に通るときだけ保存する&quot;,&quot;delete&quot;:&quot;インスタンスを消す&quot;,&quot;prompt&quot;:&quot;欄の x-prompt を返す&quot;,&quot;check&quot;:&quot;インスタンスとページテンプレートを検査する&quot;,&quot;check-schemas&quot;:&quot;concrete スキーマを abstract で検査する&quot;,&quot;approve&quot;:&quot;検査に通ったインスタンスの承認を記録する&quot;,&quot;render&quot;:&quot;インスタンスとページテンプレートから HTML を描く&quot;}},
+ {f:&quot;contract/v1/*.json（試験データ）&quot;,tag:&quot;real&quot;,s:&quot;共通ツールの振る舞いを版ごとに固定する17件。Q6 で部品ごとの描画の試験が加わる&quot;,who:&quot;提供側が、エンジンを公開する前に全部の版の試験データを実行する。&quot;,body:{&quot;id&quot;:&quot;create-returns-unfilled&quot;,&quot;tool&quot;:&quot;create&quot;,&quot;expect&quot;:{&quot;code&quot;:0,&quot;fields&quot;:{&quot;/ok&quot;:true}}}}
+];
+var CONCRETE=[
+ {f:&quot;schemas/record.schema.json&quot;,tag:&quot;real&quot;,s:&quot;concrete スキーマ。インスタンスの形と、欄ごとの x-prompt&quot;,who:&quot;$schema で abstract v1 に従うと宣言する。利用者が育てる。&quot;,body:REAL.schema},
+ {f:&quot;pages/record.json&quot;,tag:&quot;q6&quot;,s:&quot;ページテンプレート。どの部品を、どの順に、どの値で並べるか&quot;,who:&quot;HTML ・ CSS ・ JS は書かない。部品はカタログの名前で呼ぶ。&quot;,body:PAGE},
+ {f:&quot;tokens.json（任意）&quot;,tag:&quot;q6&quot;,s:&quot;許された名前のトークンだけを上書きする&quot;,who:&quot;書かなければ基盤の値のまま。&quot;,body:{&quot;accent&quot;:&quot;#7a4cc2&quot;}},
+ {f:&quot;tools.json（任意）&quot;,tag:&quot;real&quot;,s:&quot;固有のツールの宣言&quot;,who:&quot;必要なときだけ置く。&quot;,body:{&quot;$schema&quot;:&quot;urn:schema-driven:abstract:v1:tools&quot;,&quot;kind&quot;:&quot;tools&quot;,&quot;tools&quot;:[&quot;…&quot;]}},
+ {f:&quot;records/*.json&quot;,tag:&quot;real&quot;,s:&quot;インスタンス。③ で作る&quot;,who:&quot;AI が create ・ update で書き、利用者が approve で承認する。&quot;,body:&quot;（③ で作る）&quot;},
+ {f:&quot;持たないもの&quot;,tag:&quot;q6&quot;,s:&quot;HTML ・ CSS ・ JS ・ Rust のコード、エンジンのソースの写し&quot;,who:&quot;見た目と操作は基盤のカタログが持つ。&quot;,body:&quot;—&quot;}
+];
+
+/* ---- エンジンの render（Q6 の答えの振る舞いをこのページで再現したもの） ---- */
+function ev(expr,ctx){var parts=expr.split(&quot;.&quot;),v;if(parts[0]===&quot;this&quot;){v=ctx.root;parts.shift()}else v=ctx.item;
+ for(var i=0;i&lt;parts.length;i++){if(v==null)return null;v=v[parts[i]]}return v==null?null:v}
+function check(page){var out=[];function node(n,at){if(typeof n===&quot;string&quot;)return;var p=CATALOG.parts[n.component];
+ if(!p||n.component===&quot;…&quot;){out.push(at+&quot;/component：\&quot;&quot;+n.component+&quot;\&quot; はカタログに無い&quot;);return}
+ p.input.required.forEach(function(k){if(n[k]===undefined)out.push(at+&quot;/&quot;+k+&quot;：&quot;+n.component+&quot; に必ず渡す入力が無い&quot;)});
+ (n.body||[]).forEach(function(c,i){node(c,at+&quot;/body/&quot;+i)})}
+ (page.sections||[]).forEach(function(s,i){(s.body||[]).forEach(function(n,j){node(n,&quot;/sections/&quot;+i+&quot;/body/&quot;+j)})});return out}
+function render(page,inst,trace){var html=&quot;&quot;;
+ function node(n,ctx,depth){
+  if(typeof n===&quot;string&quot;){var v=ev(n,ctx);trace.push([n,v,&quot;text&quot;,&#39;&lt;p class=&quot;p-text&quot;&gt;&#39;+esc(v)+&quot;&lt;/p&gt;&quot;]);return&#39;&lt;p class=&quot;p-text&quot;&gt;&#39;+esc(v==null?&quot;&quot;:v)+&quot;&lt;/p&gt;&quot;}
+  if(n.component===&quot;tabs&quot;){var items=ev(n.items,ctx)||[];var tabs=&quot;&quot;,panes=&quot;&quot;;
+   trace.push([n.items,items.length+&quot; 件の並び&quot;,&quot;tabs&quot;,&quot;タブを &quot;+items.length+&quot; 枚&quot;]);
+   items.forEach(function(it,i){var c={root:ctx.root,item:it};var lab=ev(n.label,c);trace.push([&quot;  &quot;+n.label,lab,&quot;tabs のタブ名&quot;,&quot;&lt;button role=tab&gt;&quot;+esc(lab)+&quot;&lt;/button&gt;&quot;]);
+    tabs+=&#39;&lt;button role=&quot;tab&quot; aria-selected=&quot;&#39;+(i===0)+&#39;&quot; data-i=&quot;&#39;+i+&#39;&quot;&gt;&#39;+esc(lab)+&quot;&lt;/button&gt;&quot;;
+    panes+=&#39;&lt;div class=&quot;p-pane&quot; data-i=&quot;&#39;+i+&#39;&quot;&#39;+(i?&quot; hidden&quot;:&quot;&quot;)+&quot;&gt;&quot;+n.body.map(function(b){return node(b,c,depth+1)}).join(&quot;&quot;)+&quot;&lt;/div&gt;&quot;});
+   return&#39;&lt;div class=&quot;p-tabs&quot;&gt;&lt;div role=&quot;tablist&quot;&gt;&#39;+tabs+&quot;&lt;/div&gt;&quot;+panes+&quot;&lt;/div&gt;&quot;}
+  if(n.component===&quot;mark&quot;){var a=ev(n.after,ctx),b=ev(n.before,ctx),w=ev(n.why,ctx);
+   var out=&#39;&lt;div&gt;&lt;span class=&quot;p-mark&quot; tabindex=&quot;0&quot;&gt;&#39;+esc(a)+&#39;&lt;/span&gt;&lt;div class=&quot;p-pop&quot;&gt;変更前：&#39;+esc(b)+&quot; ／ なぜ：&quot;+esc(w)+&quot;&lt;/div&gt;&lt;/div&gt;&quot;;
+   trace.push([&quot;  &quot;+n.after+&quot; ・ &quot;+n.before+&quot; ・ &quot;+n.why,a+&quot; ・ &quot;+b+&quot; ・ &quot;+w,&quot;mark&quot;,&#39;&lt;span class=&quot;p-mark&quot;&gt;&#39;+esc(a)+&quot;&lt;/span&gt; と、開く欄&quot;]);return out}
+  return&quot;&quot;}
+ page.sections.forEach(function(s){html+=&quot;&lt;section&gt;&lt;h3&gt;&quot;+esc(s.heading)+&quot;&lt;/h3&gt;&quot;+s.body.map(function(n){return node(n,{root:inst,item:null},0)}).join(&quot;&quot;)+&quot;&lt;/section&gt;&quot;});return html}
+/* カタログの部品の操作（基盤の JS） */
+function wire(root){root.querySelectorAll(&quot;.p-tabs&quot;).forEach(function(t){var bs=t.querySelectorAll(&quot;[role=tab]&quot;),ps=t.querySelectorAll(&quot;.p-pane&quot;);
+ bs.forEach(function(b,i){b.onclick=function(){bs.forEach(function(x,j){x.setAttribute(&quot;aria-selected&quot;,j===i);ps[j].hidden=j!==i})}})});
+ root.querySelectorAll(&quot;.p-mark&quot;).forEach(function(m){var p=m.nextElementSibling;m.onclick=function(){p.hidden=!p.hidden}})}
+
+/* ---- 段ごとの面 ---- */
+function picker(list,cap){var wrap=h(&quot;div&quot;,{class:&quot;grid&quot;}),left=h(&quot;div&quot;,{class:&quot;list&quot;}),right=h(&quot;div&quot;);
+ function show(i){left.querySelectorAll(&quot;.item&quot;).forEach(function(x,j){x.setAttribute(&quot;aria-pressed&quot;,j===i)});var it=list[i];right.innerHTML=&quot;&quot;;
+  right.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[h(&quot;span&quot;,{class:&quot;tag &quot;+it.tag,text:it.tag===&quot;real&quot;?&quot;実測&quot;:&quot;Q6 の答え&quot;}),&quot; &quot;+it.f]));
+  right.appendChild(pre(it.body));right.appendChild(h(&quot;div&quot;,{class:&quot;who&quot;},[h(&quot;b&quot;,{text:&quot;どう使われるか　&quot;}),it.who]))}
+ list.forEach(function(it,i){var b=h(&quot;button&quot;,{class:&quot;item&quot;},[h(&quot;b&quot;,{text:it.f}),h(&quot;span&quot;,{class:&quot;s&quot;},[h(&quot;span&quot;,{class:&quot;tag &quot;+it.tag,text:it.tag===&quot;real&quot;?&quot;実測&quot;:&quot;Q6&quot;}),&quot; &quot;+it.s])]);b.onclick=function(){show(i)};left.appendChild(b)});
+ wrap.appendChild(left);wrap.appendChild(right);show(0);return h(&quot;div&quot;,null,[cap,wrap])}
+
+function s1(){return picker(ABSTRACT,h(&quot;div&quot;,null,[h(&quot;h2&quot;,{text:&quot;① abstract：提供側が配り、版ごとに振る舞いを保証するもの&quot;}),h(&quot;p&quot;,{class:&quot;cap&quot;,text:&quot;左を押すと中身と、どう使われるかが出る。Skill はこれを書き換えない。書き換えると動かない。&quot;})]))}
+function s2(){return picker(CONCRETE,h(&quot;div&quot;,null,[h(&quot;h2&quot;,{text:&quot;② 作る先（Skill）が用意するもの&quot;}),h(&quot;p&quot;,{class:&quot;cap&quot;,text:&quot;Skill のフォルダに置くのは JSON だけである。見た目と操作のコードは持たない。&quot;})]))}
+function s3(){var box=h(&quot;div&quot;),run=h(&quot;div&quot;,{class:&quot;run&quot;}),out=h(&quot;div&quot;);var cur=-1;
+ box.appendChild(h(&quot;h2&quot;,{text:&quot;③ インスタンスを作る（AI が書き、利用者が承認する）&quot;}));
+ box.appendChild(h(&quot;p&quot;,{class:&quot;cap&quot;},[&quot;ボタンを順に押す。出力はすべて、いまの基盤で実行した結果である &quot;,h(&quot;span&quot;,{class:&quot;tag real&quot;,text:&quot;実測&quot;})]));
+ function show(i){cur=i;run.querySelectorAll(&quot;button&quot;).forEach(function(b,j){b.className=j&lt;i?&quot;done&quot;:j===i?&quot;cur&quot;:&quot;&quot;});var s=REAL.steps[i];out.innerHTML=&quot;&quot;;
+  var g=h(&quot;div&quot;,{class:&quot;grid&quot;}),l=h(&quot;div&quot;),r=h(&quot;div&quot;);
+  l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;,text:&quot;実行したコマンド&quot;}));l.appendChild(pre(&quot;$ &quot;+s.cmd+(s.patch?&quot;\n\n--patch の中身：\n&quot;+JSON.stringify(s.patch,null,1):&quot;&quot;)));
+  l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[&quot;出力（終了コード &quot;,h(&quot;b&quot;,{class:&quot;code1&quot;+(s.code?&quot; ng&quot;:&quot;&quot;),text:String(s.code)}),&quot;）&quot;]));l.appendChild(pre(pretty(s.out)));
+  r.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;,text:&quot;records/0001.json のいまの中身&quot;}));r.appendChild(pre(s.inst?pretty(s.inst):&quot;（まだ無い）&quot;));
+  var note={0:&quot;concrete スキーマが abstract v1 の決まりを守っているかを見る。&quot;,1:&quot;空のインスタンスができ、未記入の欄ごとに x-prompt が返る。AI はこれを読んで書く。&quot;,2:&quot;1つの欄の書き方の決まりを引く。&quot;,3:&quot;why が無いので、エラーではなく「未記入」として案内が返る。保存はされる。&quot;,4:&quot;未記入が残っているので、承認は止まる。&quot;,5:&quot;未記入が0件になった。&quot;,6:&quot;検証エラーも未記入も0件。&quot;,7:&quot;承認を approval.json に記録した。&quot;}[i];
+  r.appendChild(h(&quot;div&quot;,{class:&quot;who&quot;,text:note}));g.appendChild(l);g.appendChild(r);out.appendChild(g)}
+ REAL.steps.forEach(function(s,i){var b=h(&quot;button&quot;,{text:(i+1)+&quot;. &quot;+s.label});b.onclick=function(){show(i)};run.appendChild(b)});
+ box.appendChild(run);box.appendChild(out);show(0);return box}
+function s4(){var box=h(&quot;div&quot;),mode=&quot;q6&quot;;
+ box.appendChild(h(&quot;h2&quot;,{text:&quot;④ 描く（render）&quot;}));
+ var seg=h(&quot;div&quot;,{class:&quot;seg&quot;}),body=h(&quot;div&quot;);
+ [[&quot;now&quot;,&quot;いまの基盤&quot;],[&quot;q6&quot;,&quot;Q6 の答え&quot;]].forEach(function(m){var b=h(&quot;button&quot;,{text:m[1],&quot;aria-pressed&quot;:m[0]===mode});b.onclick=function(){mode=m[0];seg.querySelectorAll(&quot;button&quot;).forEach(function(x){x.setAttribute(&quot;aria-pressed&quot;,x===b)});draw()};seg.appendChild(b)});
+ box.appendChild(seg);box.appendChild(body);
+ var inst=JSON.parse(REAL.steps[REAL.steps.length-1].inst);inst.changes.push({&quot;file&quot;:&quot;implementation.json&quot;,&quot;from&quot;:&quot;\&quot;transcribe\&quot;: {…}&quot;,&quot;to&quot;:&quot;（transcribe を外した）&quot;,&quot;why&quot;:&quot;ソースのコピーをやめたので、コピーの手順が無くなった&quot;});
+ function draw(){body.innerHTML=&quot;&quot;;
+  if(mode===&quot;now&quot;){body.appendChild(h(&quot;p&quot;,{class:&quot;cap&quot;},[&quot;同じインスタンスと、節だけのページテンプレートで render を実行した結果 &quot;,h(&quot;span&quot;,{class:&quot;tag real&quot;,text:&quot;実測&quot;})]));
+   body.appendChild(pre(&quot;$ schema-driven render --dir records --pages pages --out out\n\n&quot;+pretty(REAL.render_now)));
+   body.appendChild(h(&quot;div&quot;,{class:&quot;who&quot;,text:&quot;いまの基盤では、具体の種類を描くには Rust で Design を実装した「デザイン」が必要になる。ソースのコピーをやめたので、Skill はそれを用意できない。Q6 はこの穴を埋める。&quot;}));return}
+  body.appendChild(h(&quot;div&quot;,{class:&quot;flow&quot;},[h(&quot;b&quot;,{text:&quot;インスタンス&quot;}),&quot;＋&quot;,h(&quot;b&quot;,{text:&quot;ページテンプレート&quot;}),&quot;→ check →&quot;,h(&quot;b&quot;,{text:&quot;式を評価&quot;}),&quot;→&quot;,h(&quot;b&quot;,{text:&quot;カタログの部品を選ぶ&quot;}),&quot;→&quot;,h(&quot;b&quot;,{text:&quot;部品の HTML に値を入れる&quot;}),&quot;→&quot;,h(&quot;b&quot;,{text:&quot;トークンと部品の操作を付ける&quot;}),&quot;→ ページ&quot;]));
+  var g=h(&quot;div&quot;,{class:&quot;grid&quot;}),l=h(&quot;div&quot;),r=h(&quot;div&quot;);
+  l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;,text:&quot;インスタンス（書き換えて「描き直す」を押せる）&quot;}));var ta=h(&quot;textarea&quot;);ta.value=JSON.stringify(inst,null,1);l.appendChild(ta);
+  l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;,text:&quot;ページテンプレート（書き換えてもよい）&quot;}));var tp=h(&quot;textarea&quot;);tp.value=JSON.stringify(PAGE,null,1);l.appendChild(tp);
+  var btn=h(&quot;button&quot;,{class:&quot;btn&quot;,text:&quot;描き直す&quot;});l.appendChild(btn);var msg=h(&quot;div&quot;,{class:&quot;msg&quot;});l.appendChild(msg);
+  var view=h(&quot;div&quot;,{class:&quot;view&quot;}),tw=h(&quot;div&quot;,{class:&quot;tw&quot;});r.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[&quot;描いたページ（タブと印は押せる）&quot;,h(&quot;span&quot;,{class:&quot;tag q6&quot;,text:&quot;Q6 の答え&quot;})]));r.appendChild(view);
+  r.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;,text:&quot;エンジンが何をしたか&quot;}));r.appendChild(tw);
+  function go(){var i,p;try{i=JSON.parse(ta.value);p=JSON.parse(tp.value)}catch(e){msg.className=&quot;msg ng&quot;;msg.textContent=&quot;JSON として読めない：&quot;+e.message;return}
+   var errs=check(p);if(errs.length){msg.className=&quot;msg ng&quot;;msg.textContent=&quot;$ schema-driven check\nNG  &quot;+errs.length+&quot;件。描かずに止めた\n&quot;+errs.map(function(x){return&quot;    &quot;+x}).join(&quot;\n&quot;);view.innerHTML=&quot;&quot;;tw.innerHTML=&quot;&quot;;return}
+   var tr=[];view.innerHTML=render(p,i,tr);wire(view);msg.className=&quot;msg&quot;;msg.textContent=&quot;$ schema-driven check\nOK  検出なし。描いた&quot;;
+   var t=h(&quot;table&quot;,null,[h(&quot;tr&quot;,null,[h(&quot;th&quot;,{text:&quot;式&quot;}),h(&quot;th&quot;,{text:&quot;値&quot;}),h(&quot;th&quot;,{text:&quot;部品&quot;}),h(&quot;th&quot;,{text:&quot;出したもの&quot;})])]);
+   tr.forEach(function(x){t.appendChild(h(&quot;tr&quot;,null,[h(&quot;td&quot;,null,[h(&quot;code&quot;,{text:x[0]})]),h(&quot;td&quot;,{text:typeof x[1]===&quot;string&quot;?x[1]:JSON.stringify(x[1])}),h(&quot;td&quot;,{text:x[2]}),h(&quot;td&quot;,null,[h(&quot;code&quot;,{text:x[3]})])]))});
+   tw.innerHTML=&quot;&quot;;tw.appendChild(t)}
+  btn.onclick=go;g.appendChild(l);g.appendChild(r);body.appendChild(g);go()}
+ draw();return box}
+function s5(){var box=h(&quot;div&quot;);box.appendChild(h(&quot;h2&quot;,{text:&quot;⑤ 見た目を直す ・ 部品が足りないとき&quot;}));
+ var view=h(&quot;div&quot;,{class:&quot;view&quot;});var inst=JSON.parse(REAL.steps[REAL.steps.length-1].inst);view.innerHTML=render(PAGE,inst,[]);wire(view);
+ var g=h(&quot;div&quot;,{class:&quot;grid&quot;}),l=h(&quot;div&quot;),r=h(&quot;div&quot;);
+ var c1=h(&quot;input&quot;,{type:&quot;color&quot;,value:&quot;#1f6a58&quot;});var m1=h(&quot;div&quot;,{class:&quot;msg&quot;});
+ c1.oninput=function(){view.style.setProperty(&quot;--p-accent&quot;,c1.value);m1.className=&quot;msg&quot;;m1.textContent=&#39;tokens.json：{&quot;accent&quot;: &quot;&#39;+c1.value+&#39;&quot;}\n→ 許された名前なので通る。選んだタブの線の色が変わる&#39;};
+ var b2=h(&quot;button&quot;,{class:&quot;btn&quot;,text:&quot;state.changed を上書きしてみる&quot;});var m2=h(&quot;div&quot;,{class:&quot;msg&quot;});
+ b2.onclick=function(){m2.className=&quot;msg ng&quot;;m2.textContent=&#39;tokens.json：{&quot;state.changed&quot;: &quot;#ff0000&quot;}\n$ schema-driven check-schemas\nNG  state.changed は基盤だけが持つトークンで、Skill から上書きできない\n    上書きしてよい名前：accent&#39;};
+ var b3=h(&quot;button&quot;,{class:&quot;btn&quot;,text:&quot;カタログに無い部品 timeline2 を使ってみる&quot;});var m3=h(&quot;div&quot;,{class:&quot;msg&quot;});
+ b3.onclick=function(){var p=JSON.parse(JSON.stringify(PAGE));p.sections[1].body[0].component=&quot;timeline2&quot;;m3.className=&quot;msg ng&quot;;m3.textContent=&quot;$ schema-driven check\nNG  &quot;+check(p).join(&quot;\n    &quot;)+&quot;\n\n→ Skill の側では足せない。基盤のカタログに足す依頼を出し、版を上げたエンジンで使えるようになる&quot;};
+ l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[&quot;Skill の tokens.json で accent を変える &quot;,c1]));l.appendChild(m1);
+ l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[b2]));l.appendChild(m2);l.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[b3]));l.appendChild(m3);
+ l.appendChild(h(&quot;div&quot;,{class:&quot;who&quot;,text:&quot;基盤の側でカタログの部品やトークンを直すと、エンジンの版を上げた時点で、全部の Skill のページに同じ直しが入る。&quot;}));
+ r.appendChild(h(&quot;div&quot;,{class:&quot;cap&quot;},[&quot;描いたページ &quot;,h(&quot;span&quot;,{class:&quot;tag q6&quot;,text:&quot;Q6 の答え&quot;})]));r.appendChild(view);
+ g.appendChild(l);g.appendChild(r);box.appendChild(g);return box}
+
+var STAGES=[[&quot;① abstract&quot;,s1],[&quot;② 作る先が用意するもの&quot;,s2],[&quot;③ 作る&quot;,s3],[&quot;④ 描く&quot;,s4],[&quot;⑤ 直す ・ 足す&quot;,s5]];
+var steps=document.getElementById(&quot;steps&quot;),stage=document.getElementById(&quot;stage&quot;);
+STAGES.forEach(function(s,i){var b=h(&quot;button&quot;,{role:&quot;tab&quot;,text:s[0],&quot;aria-selected&quot;:i===0});b.onclick=function(){steps.querySelectorAll(&quot;button&quot;).forEach(function(x){x.setAttribute(&quot;aria-selected&quot;,x===b)});stage.innerHTML=&quot;&quot;;stage.appendChild(h(&quot;div&quot;,{class:&quot;panel&quot;},[s[1]()]))};steps.appendChild(b)});
+var start=(location.hash.match(/^#s([1-5])$/)||[])[1];steps.children[start?start-1:0].click();
+&lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;"></iframe><p class="note-s">触れるシミュレーター。abstract に何があり、Skill が何を用意し、どう作られ、どう描かれるかを順に追う。③ はいまの基盤で実行した出力、④ の Q6 の答えは描き方を再現したもの。</p></div></div></div></details><details open><summary>根拠（10件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">問いが立った理由</span></td><td>ソースのコピーをやめ、作られた Skill は宣言と concrete スキーマだけを持つ</td><td><span class="kind k-rule">決まり</span><small>論点3（2026-10-10 承認）</small></td></tr><tr><td><span class="part">写しを消す時期</span></td><td>既存の Skill は、提供側の3つを作ったあとに決まった順で移す</td><td><span class="kind k-rule">決まり</span><small>論点5（2026-10-10 承認）</small></td></tr><tr><td><span class="part">カタログの最初の組</span></td><td>4つのページで承認する人がする操作を部品のコードから並べると、タブで面を切り替える ・ 一覧から箇所へ跳ぶ ・ 開いて閉じる ・ 選んで送る ・ 別の文書を埋める ・ SVG を埋める の6つの型に収まり、Skill 固有の操作は無かった</td><td><span class="kind k-fact">実測</span><small>board.js ・ parts.html ・ acdr.js ・ advisor の view.template.html（2026-10-10）</small></td></tr><tr><td><span class="part">見た目を1か所に置くこと</span></td><td>15の Skill が持つ view.css と view.template.html は、15件とも同じ中身だった</td><td><span class="kind k-fact">実測</span><small>md5sum（2026-10-10）</small></td></tr><tr><td><span class="part">同じ働きの部品をそろえること</span></td><td>達成基準：「3.2.4 一貫した識別性」 ・ レベル：AA ・ 何を求めるか：ページ一式の中で、同じ機能のコンポーネントはいつも同じように識別できる</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 predictable</small></td></tr><tr><td><span class="part">Skill ごとに見た目を変えないこと</span></td><td>種類：internal consistency ・ 何との一貫性か：1つの製品の中、または製品群の中</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 consistency-and-standards</small></td></tr><tr><td><span class="part">監査からカタログを作ること</span></td><td>方法：サイトの中ですでに使われているやり方から1つを選ぶ ・ 原典の例：見出しをすべて太字にする</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-10）── 判断基準 interface-audit</small></td></tr><tr><td><span class="part">部品を足す口を先に開けないこと</span></td><td>非対称性：「『ない』と『ある』の非対称性」 ・ 強い側：「ある」のほうが強い ・ 放っておくとどうなるか：一度「ある」になったものは、「ない」へなかなか戻らない</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-10）── 判断基準 do-not-mix</small></td></tr><tr><td><span class="part">カタログを JSON Schema の文書で書くこと</span></td><td>Because A2UI catalogs are represented as JSON Schema documents, catalog definitions should include both `$id` (used by JSON Schema tooling) and `catalogId` (used by A2UI SDKs and catalog negotiation), and both fields should be set to the same URI.</td><td><span class="kind k-src">原典</span><small>A2UI v0.9.1 a2ui_protocol.md:316（sources/、2026-10-10 取得）</small></td></tr><tr><td><span class="part">読む人</span></td><td>どの Skill のページも、承認する同じ1人が読む</td><td><span class="kind k-given">前提</span><small>CLAUDE.md の「1人作業」</small></td></tr></table></div></div></details><details open><summary>採らなかった案（8件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>B：Skill が部品を宣言で足す（入力の JSON Schema と Mustache の HTML 片）</b></td><td>同じ働きの部品を Skill ごとに別の HTML で書けるので、タブや開閉の形がそろわず、直す場所も Skill ごとに分かれる</td></tr><tr><td><b>C：描画を、宣言した別の実行ファイルに任せる</b></td><td>見た目と操作がすべて Skill の中に入り、基盤のトークンも試験も届かない</td></tr><tr><td><b>D：Skill が Web Components（JS）を持つ</b></td><td>C と同じく、部品の形と操作が Skill ごとになり、基盤から直せない</td></tr><tr><td><b>E：Handlebars のテンプレートと helper</b></td><td>helper でロジックを Skill ごとに足せるので、表示の条件まで Skill ごとに分かれる。正式な仕様書も確認できない</td></tr><tr><td><b>A に、C を予備の口として今から足す</b></td><td>いま Skill 固有の操作は1つも無い。一度開けた口は閉じにくく、使わない部品が増える</td></tr><tr><td><b>A2UI の仕様をそのまま採る</b></td><td>全体が早期プレビューで、JSON Pointer を相対パスへ広げている。エージェントの出力を信頼しない描画側のための形で、この基盤の目的と違う</td></tr><tr><td><b>Skill がトークンを自由に上書きできる</b></td><td>変更の印や承認済みの色が Skill ごとに変わり、色で状態を読めなくなる</td></tr><tr><td><b>部品の名前と入力の形を、A2UI の基本カタログに合わせる</b></td><td>採るのは、カタログを JSON Schema で書き、AI の出力をカタログに限って検査する考え方だけである。名前を合わせても値の取り出し方は合わず、他の標準の版に縛られる</td></tr></table></div></div></details><div class="form" data-topic="Q6"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 1</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
   var ROOT=document.getElementById("root");
   var tabs=document.querySelectorAll("#tabs button");
 
