@@ -1,4 +1,4 @@
-"""教材の動画9本ぶんのスライドを、企画デッキと同じ型で組む。
+"""教材の動画7本ぶんのスライドを、企画デッキと同じ型で組む。
 
 中身（見出し・リード・読み上げ）は lesson-0N-*.json が持ち、
 図は本ごとの *_visuals.py が持つ。ここは並べるだけである。
@@ -28,7 +28,8 @@ import end_visuals as EV         # 終わりに
 import bridge_visuals as BV      # 動画のつなぎ（導入とまとめ）
 import v1_visuals as V1          # 1本目（組み直した図）
 
-V.cover = DV.t_cover
+import summary_visuals as SM
+V.cover = SM.cover
 
 FIG = {
  # はじめに
@@ -38,7 +39,7 @@ FIG = {
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
  'L1-S0': V1.ask, # 1本目　原因を知る
  'L1-S1': V1.symptoms, 'L1-S2': V1.ends,
- 'L1-S3': V1.fit, 'T2-S3B': V1.goal_line, 'L1-S4': V1.three, 'L1-S5': V1.order,
+ 'L1-S3': V1.fit, 'T2-S3B': WV.t2_goal, 'L1-S4': V1.three, 'L1-S5': V1.order,
  # 2本目　意味を決める
  'T2-S1': WV.t2_three_returns, 'T2-S2': WV.t2_sorting, 'T2-S3': WV.t2_ambiguous,
  'T2-S4': WV.t2_pick, 'T2-S5': WV.t2_after,
@@ -46,19 +47,14 @@ FIG = {
  'L3-S1': SV.s3_mixed, 'L3-S2': SV.s3_ranges, 'L3-S3': SV.s3_two_roles,
  'L3-S4': SV.s3_draw_line, 'L3-S5': SV.s3_after,
  # 4本目　条件を決める
- 'L4-S1': DV.t4_missing, 'L4-S2': DV.t4_unwritten, 'L4-S3': DV.t4_layers,
+ 'L4-S1': RV.s4_missing, 'L4-S2': RV.s4_unwritten, 'L4-S3': RV.s4_layers,
  'L4-S4': RV.s4_effect, 'L4-S5': RV.s4_after,
- # 5本目　出力のばらつきを直す
- 'L5-S1': DV.t6_symptoms, 'L5-S2': FV.f5_order, 'L5-S3': DV.t6_one_at_a_time,
- 'L5-S4': DV.t6_two_goals, 'L5-SE': BV.I['L5-SE'],
- # 6本目　目的レベルを確かめる
- 'L6-S2': DV.t5_swap, 'L6-S3': HV.h5_axis,
- 'L6-S4': DV.t5_three_and_height2, 'L6-S6': V.l6_reproducible,
- # 終わりに
- 'E-S1': EV.e_recap, 'E-S3': EV.e_next,
+ # 最終の本編　具体と抽象を振り返る
+ 'F-S0': SM.opening, 'F-S1': SM.changed, 'F-S2': SM.meaning, 'F-S3': SM.values,
+ 'F-S4': SM.thinking, 'F-S5': SM.purpose, 'F-S6': SM.next_course,
  # 動画のつなぎ（導入とまとめ）
- 'L1-IN': BV.I['L1-IN'], 'T2-S0': BV.I['T2-S0'], 'T2-SE': BV.I['T2-SE'], 'L3-S0': BV.I['L3-S0'], 'L3-SE': BV.I['L3-SE'],
- 'L4-S0': BV.I['L4-S0'], 'L4-SE': BV.I['L4-SE'], 'L5-S0': BV.I['L5-S0'], 'L6-S0': BV.I['L6-S0'],
+ 'L1-IN': BV.I['L1-IN'], 'T2-S0': WV.t2_intro, 'T2-SE': WV.t2_end, 'L3-S0': SV.s3_intro, 'L3-SE': SV.s3_end,
+ 'L4-S0': BV.I['L4-S0'], 'L4-SE': RV.s4_end,
 }
 
 # 本の題。表紙の大見出しは短い名前だけにし、扱う問いは副題（各 JSON の title の ── の後）に1行で書く。
@@ -69,8 +65,7 @@ TITLES = {
  3: ('意味を決める', '意味を決める'),
  4: ('範囲を決める', '範囲を決める'),
  5: ('条件を決める', '条件を決める'),
- 6: ('出力のばらつきを直す', '出力のばらつきを直す'),
- 7: ('目的レベルを確かめる', '目的レベルを確かめる'),
+ 6: ('具体と抽象を振り返る', '具体と抽象を振り返る'),
 }
 # 本編ではない3本。0は3つの教材に共通する前置きで、1と8が教材1の前後である
 ENDS = {0: 'オリエンテーション', 1: 'はじめに', 8: '終わりに'}
