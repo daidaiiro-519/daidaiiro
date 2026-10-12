@@ -1,0 +1,476 @@
+//! スキーマ（JSON Schema）による検証と、x-prompt の取り出し。入出力を持たない。
+
+use crate::domain::values::{Unfilled, ValidationError};
+use serde_json::Value;
+use std::fmt;
+
+/// 検証結果。未記入は検証エラーと分けて返す。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Validation {
+    pub errors: Vec<ValidationError>,
+    pub unfilled: Vec<Unfilled>,
+}
+
+/// スキーマそのものが壊れていて、検証器を作れない。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SchemaError(pub String);
+
+impl fmt::Display for SchemaError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "スキーマが壊れている：{}", self.0)
+    }
+}
+
+impl std::error::Error for SchemaError {}
+
+/// 読み込んだスキーマ。本体と、`$ref` の先になる同じディレクトリのスキーマを持つ。
+pub struct Schema {
+    name: String,
+    root: Value,
+    siblings: Vec<(String, Value)>,
+}
+
+const BASE: &str = "file:///schemas/";
+
+/// 値を、JSON の書き方のまま短い文字にする。
+fn shown(value: &Value) -> String {
+    value.to_string()
+}
+
+/// 並びを「 ・ 」でつなぐ。
+fn joined(items: impl IntoIterator<Item = String>) -> String {
+    items.into_iter().collect::<Vec<_>>().join(" ・ ")
+}
+
+/// 検証エラーの理由を、日本語の文にする。キーワードと、スキーマが決めた値（上限 ・ 候補 ・ 型）は、そのまま残す。
+/// エラーの種類は jsonschema の ValidationErrorKind の全部を並べる。版が上がって種類が増えたら、コンパイルが止まる。
+fn reason_of(error: &jsonschema::ValidationError) -> String {
+    use jsonschema::error::{TypeKind, ValidationErrorKind as Kind};
+    let value = shown(error.instance());
+    match error.kind() {
+        Kind::Type {
+            kind: TypeKind::Single(expected),
+        } => {
+            format!("型が {expected} でない（値：{value}）")
+        }
+        Kind::Type {
+            kind: TypeKind::Multiple(expected),
+        } => format!(
+            "型が {} のどれでもない（値：{value}）",
+            joined(expected.iter().map(|json_type| json_type.to_string()))
+        ),
+        Kind::Enum { options } => format!(
+            "enum の候補（{}）のどれでもない（値：{value}）",
+            joined(options.as_array().into_iter().flatten().map(shown))
+        ),
+        Kind::Constant { expected_value } => {
+            format!("const の {} と違う（値：{value}）", shown(expected_value))
+        }
+        Kind::Required { property } => format!("必須のプロパティ {} が無い", shown(property)),
+        Kind::MinLength { limit } => format!("文字数が minLength の {limit} より少ない"),
+        Kind::MaxLength { limit } => format!("文字数が maxLength の {limit} より多い"),
+        Kind::Minimum { limit } => format!("値が minimum の {limit} より小さい（値：{value}）"),
+        Kind::Maximum { limit } => format!("値が maximum の {limit} より大きい（値：{value}）"),
+        Kind::ExclusiveMinimum { limit } => {
+            format!("値が exclusiveMinimum の {limit} 以下（値：{value}）")
+        }
+        Kind::ExclusiveMaximum { limit } => {
+            format!("値が exclusiveMaximum の {limit} 以上（値：{value}）")
+        }
+        Kind::MultipleOf { multiple_of } => {
+            format!("値が multipleOf の {multiple_of} の倍数でない（値：{value}）")
+        }
+        Kind::Pattern { pattern } => format!("pattern の {pattern} に合わない（値：{value}）"),
+        Kind::Format { format } => format!("format の {format} に合わない（値：{value}）"),
+        Kind::MinItems { limit } => format!("要素の数が minItems の {limit} より少ない"),
+        Kind::MaxItems { limit } => format!("要素の数が maxItems の {limit} より多い"),
+        Kind::AdditionalItems { limit } => {
+            format!("要素の数が items で決めた {limit} 個を超えている（additionalItems）")
+        }
+        Kind::UniqueItems => "同じ要素が2つ以上ある（uniqueItems）".to_owned(),
+        Kind::Contains => "contains のスキーマに合う要素が無い".to_owned(),
+        Kind::MinProperties { limit } => {
+            format!("プロパティの数が minProperties の {limit} より少ない")
+        }
+        Kind::MaxProperties { limit } => {
+            format!("プロパティの数が maxProperties の {limit} より多い")
+        }
+        Kind::AdditionalProperties { unexpected } => format!(
+            "スキーマに無いプロパティがある：{}（additionalProperties）",
+            joined(unexpected.iter().cloned())
+        ),
+        Kind::UnevaluatedProperties { unexpected } => format!(
+            "どのスキーマにも無いプロパティがある：{}（unevaluatedProperties）",
+            joined(unexpected.iter().cloned())
+        ),
+        Kind::UnevaluatedItems { unexpected } => format!(
+            "どのスキーマにも合わない要素がある：{}（unevaluatedItems）",
+            joined(unexpected.iter().cloned())
+        ),
+        Kind::PropertyNames { error } => {
+            format!(
+                "プロパティの名前が propertyNames に合わない：{}",
+                reason_of(error)
+            )
+        }
+        Kind::AnyOf { .. } => "anyOf のどのスキーマにも合わない".to_owned(),
+        Kind::OneOfNotValid { .. } => "oneOf のどのスキーマにも合わない".to_owned(),
+        Kind::OneOfMultipleValid { .. } => "oneOf のスキーマの2つ以上に合う".to_owned(),
+        Kind::Not { .. } => "not のスキーマに合う（合ってはいけない）".to_owned(),
+        Kind::FalseSchema => "スキーマが false なので、どの値も受け付けない".to_owned(),
+        Kind::ContentEncoding { content_encoding } => {
+            format!("contentEncoding の {content_encoding} に合わない")
+        }
+        Kind::ContentMediaType { content_media_type } => {
+            format!("contentMediaType の {content_media_type} に合わない")
+        }
+        Kind::FromUtf8 { .. } => "UTF-8 として読めない".to_owned(),
+        Kind::Custom { keyword, message } => format!("{keyword}：{message}"),
+        Kind::BacktrackLimitExceeded { error } => format!("pattern を評価できない：{error}"),
+        Kind::RegexEngineFailure { message } => format!("pattern を評価できない：{message}"),
+        Kind::Referencing(error) => format!("$ref の先を読めない：{error}"),
+    }
+}
+
+impl Schema {
+    /// contains の誤りを、合う要素の数と minContains ・ maxContains で言い分ける。
+    /// 検証器はどちらの誤りも同じ種類（Contains）で返すので、要素を数え直す。数えられなければ None。
+    fn contains_reason(&self, error: &jsonschema::ValidationError) -> Option<String> {
+        if !matches!(
+            error.kind(),
+            jsonschema::error::ValidationErrorKind::Contains
+        ) {
+            return None;
+        }
+        let path = error.schema_path().to_string();
+        let parent = path.rsplit_once('/').map_or("", |(parent, _)| parent);
+        let keywords = self.root.pointer(parent)?;
+        let validator = jsonschema::validator_for(keywords.get("contains")?).ok()?;
+        let matched = error
+            .instance()
+            .as_array()?
+            .iter()
+            .filter(|item| validator.is_valid(item))
+            .count();
+        let min = keywords
+            .get("minContains")
+            .and_then(Value::as_u64)
+            .unwrap_or(1);
+        if let Some(max) = keywords.get("maxContains").and_then(Value::as_u64) {
+            if matched as u64 > max {
+                return Some(format!(
+                    "contains に合う要素が {matched} 個あり、maxContains の {max} を超えている"
+                ));
+            }
+        }
+        if matched == 0 && min == 1 {
+            return Some("contains のスキーマに合う要素が無い".to_owned());
+        }
+        Some(format!(
+            "contains に合う要素が {matched} 個で、minContains の {min} より少ない"
+        ))
+    }
+
+    /// `name` はスキーマのファイル名、`siblings` は同じディレクトリのスキーマ（ファイル名と内容）。
+    pub fn new(name: &str, root: Value, siblings: Vec<(String, Value)>) -> Self {
+        Self {
+            name: name.to_owned(),
+            root,
+            siblings,
+        }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn root(&self) -> &Value {
+        &self.root
+    }
+
+    /// インスタンスを検証する。必須のプロパティが無いことは未記入として分ける。
+    pub fn validate(&self, instance: &Value) -> Result<Validation, SchemaError> {
+        let mut registry = jsonschema::Registry::new();
+        // どのスキーマも、ファイル名の URI の下に置く。根の $id（名前）は、その URI を基準に解ける
+        for (file, meta) in crate::domain::contract::meta_schemas() {
+            if self.root.get("$id") != meta.get("$id") {
+                registry = registry
+                    .add(format!("{BASE}{file}"), meta)
+                    .map_err(|error| SchemaError(error.to_string()))?;
+            }
+        }
+        for (name, value) in &self.siblings {
+            if value.get("$id").is_some() && value.get("$id") == self.root.get("$id") {
+                continue;
+            }
+            registry = registry
+                .add(format!("{BASE}{name}"), value.clone())
+                .map_err(|error| SchemaError(error.to_string()))?;
+        }
+        let registry = registry
+            .prepare()
+            .map_err(|error| SchemaError(error.to_string()))?;
+        let validator = jsonschema::options()
+            .offline()
+            .with_registry(&registry)
+            .with_base_uri(format!("{BASE}{}", self.name))
+            .build(&self.root)
+            .map_err(|error| SchemaError(error.to_string()))?;
+        let mut out = Validation::default();
+        for error in validator.iter_errors(instance) {
+            let at = error.instance_path().to_string();
+            if let jsonschema::error::ValidationErrorKind::Required { property } = error.kind() {
+                let name = property
+                    .as_str()
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| property.to_string());
+                let pointer = format!("{at}/{}", name.replace('~', "~0").replace('/', "~1"));
+                if let Ok(unfilled) = Unfilled::new(&pointer) {
+                    out.unfilled.push(unfilled);
+                }
+            } else if let Ok(validation_error) = ValidationError::new(
+                &at,
+                &self
+                    .contains_reason(&error)
+                    .unwrap_or_else(|| reason_of(&error)),
+            ) {
+                out.errors.push(validation_error);
+            }
+        }
+        out.unfilled
+            .sort_by(|left, right| left.property().cmp(right.property()));
+        Ok(out)
+    }
+
+    /// プロパティ（JSON Pointer）の x-prompt を返す。プロパティがスキーマに無いか、x-prompt を持たなければ None。
+    pub fn prompt(&self, pointer: &str) -> Option<Value> {
+        let mut node = &self.root;
+        let mut doc = &self.root;
+        for raw in pointer.split('/').skip(1) {
+            let segment = raw.replace("~1", "/").replace("~0", "~");
+            let (resolved_node, resolved_doc) = self.resolve(node, doc);
+            node = resolved_node;
+            doc = resolved_doc;
+            node = if segment.chars().all(|character| character.is_ascii_digit())
+                && node.get("items").is_some()
+            {
+                node.get("items")?
+            } else {
+                node.get("properties")?.get(&segment)?
+            };
+        }
+        if pointer.is_empty() {
+            return None;
+        }
+        if let Some(prompt) = node.get("x-prompt") {
+            return Some(prompt.clone());
+        }
+        let (resolved_node, _) = self.resolve(node, doc);
+        resolved_node.get("x-prompt").cloned()
+    }
+
+    /// `$ref` をたどる。同じファイル（`#/…`）と、同じディレクトリのスキーマ（`名前#/…`）だけを解く。
+    pub(crate) fn resolve<'schema>(
+        &'schema self,
+        mut node: &'schema Value,
+        mut doc: &'schema Value,
+    ) -> (&'schema Value, &'schema Value) {
+        for _ in 0..16 {
+            let Some(reference) = node.get("$ref").and_then(Value::as_str) else {
+                break;
+            };
+            let (file, frag) = reference.split_once('#').unwrap_or((reference, ""));
+            if !file.is_empty() {
+                match self
+                    .siblings
+                    .iter()
+                    .find(|(file_name, _)| file_name == file)
+                {
+                    Some((_, sibling)) => doc = sibling,
+                    None => break,
+                }
+            }
+            match doc.pointer(frag) {
+                Some(target) => node = target,
+                None => break,
+            }
+        }
+        (node, doc)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // 検証エラーの文。jsonschema の英語の文ではなく、キーワードと値を残した日本語の文で返す。
+    // AI エージェントとデータの持ち主は、この文を読んで直す。
+
+    use crate::domain::schema::Schema;
+    use serde_json::{json, Value};
+
+    /// スキーマでインスタンスを検証し、エラーの（場所, 理由）を返す。
+    fn reasons(schema: Value, instance: Value) -> Vec<(String, String)> {
+        let validation = Schema::new("test.schema.json", schema, vec![])
+            .validate(&instance)
+            .unwrap();
+        validation
+            .errors
+            .iter()
+            .map(|error| (error.property().to_owned(), error.reason().to_owned()))
+            .collect()
+    }
+
+    fn reason(schema: Value, instance: Value) -> String {
+        let all = reasons(schema, instance);
+        assert_eq!(all.len(), 1, "{all:?}");
+        all[0].1.clone()
+    }
+
+    #[test]
+    fn type_names_the_expected_type_and_the_value() {
+        assert_eq!(
+            reason(json!({"type": "string"}), json!(1)),
+            "型が string でない（値：1）"
+        );
+        assert_eq!(
+            reason(json!({"type": ["string", "null"]}), json!(1)),
+            "型が null ・ string のどれでもない（値：1）"
+        );
+    }
+
+    #[test]
+    fn values_out_of_the_allowed_set() {
+        assert_eq!(
+            reason(json!({"enum": ["a", "b"]}), json!("c")),
+            "enum の候補（\"a\" ・ \"b\"）のどれでもない（値：\"c\"）"
+        );
+        assert_eq!(
+            reason(json!({"const": "document"}), json!("thing")),
+            "const の \"document\" と違う（値：\"thing\"）"
+        );
+    }
+
+    #[test]
+    fn lengths_and_numbers_keep_the_limit() {
+        assert_eq!(
+            reason(json!({"minLength": 1}), json!("")),
+            "文字数が minLength の 1 より少ない"
+        );
+        assert_eq!(
+            reason(json!({"maxLength": 2}), json!("abc")),
+            "文字数が maxLength の 2 より多い"
+        );
+        assert_eq!(
+            reason(json!({"minimum": 1}), json!(0)),
+            "値が minimum の 1 より小さい（値：0）"
+        );
+        assert_eq!(
+            reason(json!({"maximum": 1}), json!(2)),
+            "値が maximum の 1 より大きい（値：2）"
+        );
+        assert_eq!(
+            reason(json!({"minItems": 1}), json!([])),
+            "要素の数が minItems の 1 より少ない"
+        );
+        assert_eq!(
+            reason(json!({"uniqueItems": true}), json!([1, 1])),
+            "同じ要素が2つ以上ある（uniqueItems）"
+        );
+    }
+
+    #[test]
+    fn unknown_properties_are_listed_by_name() {
+        assert_eq!(
+            reason(
+                json!({"type": "object", "properties": {"heading": {}}, "additionalProperties": false}),
+                json!({"heading": "a", "body": [], "note": 1})
+            ),
+            "スキーマに無いプロパティがある：body ・ note（additionalProperties）"
+        );
+    }
+
+    #[test]
+    fn patterns_and_formats_name_the_rule() {
+        assert_eq!(
+            reason(json!({"pattern": "^UC-[0-9]+$"}), json!("X")),
+            "pattern の ^UC-[0-9]+$ に合わない（値：\"X\"）"
+        );
+    }
+
+    #[test]
+    fn combinations_say_how_many_branches_matched() {
+        let branches = json!({"oneOf": [{"type": "string"}, {"type": "integer"}]});
+        assert_eq!(
+            reason(branches.clone(), json!(true)),
+            "oneOf のどのスキーマにも合わない"
+        );
+        assert_eq!(
+            reason(
+                json!({"oneOf": [{"type": "integer"}, {"minimum": 0}]}),
+                json!(1)
+            ),
+            "oneOf のスキーマの2つ以上に合う"
+        );
+        assert_eq!(
+            reason(json!({"anyOf": [{"type": "string"}]}), json!(1)),
+            "anyOf のどのスキーマにも合わない"
+        );
+    }
+
+    #[test]
+    fn the_place_stays_a_json_pointer() {
+        let all = reasons(
+            json!({"type": "object", "properties": {"sections": {"type": "array", "items": {"type": "string"}}}}),
+            json!({"sections": ["a", 2]}),
+        );
+        assert_eq!(
+            all,
+            vec![(
+                "/sections/1".to_owned(),
+                "型が string でない（値：2）".to_owned()
+            )]
+        );
+    }
+
+    #[test]
+    fn contains_tells_too_many_from_too_few() {
+        assert_eq!(
+            reason(
+                json!({"type": "array", "contains": {"const": "open"}}),
+                json!(["done"])
+            ),
+            "contains のスキーマに合う要素が無い"
+        );
+        assert_eq!(
+            reason(
+                json!({"type": "array", "contains": {"const": "open"}, "maxContains": 1}),
+                json!(["open", "open"])
+            ),
+            "contains に合う要素が 2 個あり、maxContains の 1 を超えている"
+        );
+        assert_eq!(
+            reason(
+                json!({"type": "array", "contains": {"const": "open"}, "minContains": 2}),
+                json!(["open", "done"])
+            ),
+            "contains に合う要素が 1 個で、minContains の 2 より少ない"
+        );
+        assert_eq!(
+            reason(
+                json!({"type": "array", "contains": {"const": "open"}, "minContains": 1, "maxContains": 2}),
+                json!(["open", "open", "open"])
+            ),
+            "contains に合う要素が 3 個あり、maxContains の 2 を超えている"
+        );
+    }
+
+    // 基盤のエラー型は、Display と std::error::Error を実装する（Rust API Guidelines の C-GOOD-ERR）。
+    // Display の文は短く、句点で終えない。`?` と同じ From で Box<dyn Error> へ渡せることも確かめる。
+    #[test]
+    fn schema_error_describes_itself() {
+        let message = Box::<dyn std::error::Error>::from(crate::domain::schema::SchemaError(
+            "$ref の先が無い".into(),
+        ))
+        .to_string();
+        assert_eq!(message, "スキーマが壊れている：$ref の先が無い");
+    }
+}

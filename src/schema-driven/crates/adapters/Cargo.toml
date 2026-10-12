@@ -1,0 +1,26 @@
+[package]
+name = "schema-driven-adapters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# adapters から core への一方向だけを持つ。rmcp ・ tokio ・ jmespath はここにだけ現れる。
+# MCP からネットワークに出る機能を外す
+[dependencies]
+schema-driven-core = { path = "../core" }
+serde_json.workspace = true
+jmespath = "0.5.0"
+rmcp = { version = "3.5.0", default-features = false, features = ["server", "macros", "transport-io"] }
+tokio = { version = "1.53.2", features = ["rt", "io-std"] }
+
+[dev-dependencies]
+rmcp = { version = "3.5.0", default-features = false, features = ["client", "transport-child-process"] }
+tokio = { version = "1.53.2", features = ["rt", "macros", "process"] }
+
+[[bin]]
+name = "schema-driven"
+path = "src/bin/schema-driven.rs"
+
+[[bin]]
+name = "schema-driven-mcp"
+path = "src/bin/schema-driven-mcp.rs"

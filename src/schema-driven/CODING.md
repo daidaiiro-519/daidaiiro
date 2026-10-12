@@ -13,18 +13,17 @@
 | 層 | 持つもの | 依存してよい先 |
 |---|---|---|
 | domain | 業務の規則（スキーマの契約 ・ 検証 ・ 参照 ・ 導出値 ・ 公開の記録 ・ デザインシステムの検査） | 無し |
-| application | ユースケース（作る ・ 取る ・ 更新する ・ 消す ・ 検査する ・ 承認する ・ 描画する ・ 宣言したツールを起動する） | domain ・ port |
+| application | ユースケース（作る ・ 取る ・ 更新する ・ 消す ・ 検査する ・ 承認する ・ 描画する） | domain ・ port |
 | port | 出ていく側の trait。application が定義し、adapters が実装する | domain |
 | inbound adapter | CLI と MCP の受け口と、ツールの一覧と振り分け | application |
-| outbound adapter | port の実装（ファイル ・ JMESPath ・ 部品のカタログ ・ 別の実行ファイルの起動） | port ・ domain |
+| outbound adapter | port の実装（ファイル ・ JMESPath ・ 部品のカタログ） | port ・ domain |
 | 起動時の結合 | outbound adapter を application へ渡し、受け口に渡す | adapters の中のすべて |
 
 | 規則 | なぜ | 検査 |
 |---|---|---|
-| port と呼ぶのは、application が定義して adapters が実装する、出ていく側の trait だけにする | core が自分で実装する trait まで port と呼ぶと、どれが外との境界なのかがコードから読めなくなる | core の中に、port の trait への `impl … for` が0件 |
-| application が自分で実装するものは trait にせず、型と関数として公開する。差し替える実装が2つ以上あるときだけ trait にする | 実装が1つしかない trait は、読む人に「差し替えがある」と思わせ、呼び出しを追う手間だけが増える | core の中で定義と実装が core にある trait が0件 |
-| 業務の規則は domain と application に置く。宣言したツールの SHA-256 の照合 ・ 制限時間 ・ 出力の形の確認も application が持ち、起動そのものだけを port の向こうに置く | 同じ判定がアダプタにもあると、片方だけ直したときに CLI と MCP で結果が食い違う。判定がアダプタにあると、代役を渡して単体テストで確かめられない | adapters の中に、同じ規則の判定（SHA-256 の比較 ・ 時間の上限）が0件 |
-| inbound adapter は application だけを呼ぶ。outbound adapter を直に呼ばない | 受け口が出ていく側を直に呼ぶと、業務の規則（SHA-256 の照合など）が application を通らなくなる | `adapters/src/inbound/` に `outbound::` が0件 |
+| port と呼ぶのは、application が定義して adapters が実装する、出ていく側の trait だけにする。port のメソッドが引数として受け取るコールバック（JMESPath に足す関数 ・ 描画の部品）は、core が実装して ports.rs に並べ、doc コメントに「port ではない」と書く | core が自分で実装する trait まで port と呼ぶと、どれが外との境界なのかがコードから読めなくなる | core の中に、port の trait への `impl … for` が0件（`src/tests.rs` のテストの代役を除く） |
+| application が自分で実装するものは trait にせず、型と関数として公開する。差し替える実装が2つ以上あるときだけ trait にする | 実装が1つしかない trait は、読む人に「差し替えがある」と思わせ、呼び出しを追う手間だけが増える | core の中で定義と実装が core にある trait が0件（ports.rs のコールバックの2つを除く） |
+| inbound adapter は application だけを呼ぶ。outbound adapter を直に呼ばない | 受け口が出ていく側を直に呼ぶと、業務の規則が application を通らなくなる | `adapters/src/inbound/` に `outbound::` が0件 |
 | 起動時の結合は、adapters の1か所（`compose`）に置く。CLI と MCP の実行ファイルは、それを呼ぶ | 結合が2か所にあると、片方だけ直したときに CLI と MCP で振る舞いが食い違う | 結合を書いた関数が1つだけ |
 | domain と application は、ファイル ・ 通信 ・ 時刻に直接触らない | 中心が入出力に触ると、入出力の代役を渡して単体テストで確かめられなくなる | `crates/core/clippy.toml` が `std::fs` ・ `std::net` ・ `std::process` ・ `std::time::SystemTime` を禁じ、clippy が0件 |
 
@@ -46,30 +45,31 @@ src/schema-driven/
       clippy.toml
       src/
         lib.rs
+        embedded.rs   取り込んだスキーマを名前で引く
         domain/
         application/
-        ports.rs
+        ports.rs      出ていく側の port と、port が受け取るコールバック
+        tests.rs      単体テストが共有する代役（port をメモリ上で実装したもの）
     adapters/         inbound ・ outbound ・ 起動時の結合（ライブラリ）と実行ファイル
       catalog/        部品のカタログ。build.rs が取り込み、ファイル名で引く
       build.rs
       src/
         lib.rs
         compose.rs
+        tests.rs      単体テストが共有する補助（作業用のフォルダ）
         inbound/      tools.rs ・ cli.rs ・ mcp.rs
-        outbound/     fs.rs ・ jmespath.rs ・ catalog.rs ・ process.rs
+        outbound/     fs.rs ・ jmespath.rs ・ catalog.rs
         bin/          schema-driven.rs ・ schema-driven-mcp.rs
       tests/          結合テストと、少数の端から端までのテスト
         support/      テストの補助（作業用のフォルダ ・ 値の表を回す関数）
-    probe/            宣言したツールの境界を試す見本の実行ファイルと、その試験（配らない）
 ```
 
 | 規則 | なぜ | 検査 |
 |---|---|---|
-| crate は core と adapters の2つと、配らない probe だけにする。層ごとに crate を分けない | 層ごとに crate を分けても、守りたい依存の向きは core と adapters の境界で Cargo が強制できる。crate が増えると、同じ設定と依存の宣言を何か所にも書くことになる | ワークスペースのメンバーが3つ |
+| crate は core と adapters の2つにする。層ごとに crate を分けない | 層ごとに crate を分けても、守りたい依存の向きは core と adapters の境界で Cargo が強制できる。crate が増えると、同じ設定と依存の宣言を何か所にも書くことになる | ワークスペースのメンバーが2つ |
 | 実行ファイル（`src/bin/`）は、`compose` と受け口を呼ぶだけにする。`impl` も分岐も書かない | 実行ファイルに処理を書くと、結合テストから呼べず（The Book 11.3 :237）、CLI と MCP で同じ処理を2回書くことになる | `src/bin/` に `impl` ・ `match` ・ `if` が0件 |
 | 取り込むファイルは、それを使う層の crate が持つ。スキーマは core、カタログは adapters。build.rs がフォルダから一覧を作り、コードはファイルの場所を書かない | ファイルの場所を相対パスで書くと、ソースのファイルを動かしただけで壊れる。使わない層の crate が持つと、core が表示の部品まで抱えることになる | `include_str!` と `include_bytes!` が build.rs の出力の外に0件。`../` を含む文字列のパスが0件 |
 | core は、adapters ・ rmcp ・ tokio ・ jmespath に依存しない | core が外の技術に依存すると、その技術を替えるときに業務の規則まで直すことになる | `cargo tree -p schema-driven-core` にそれらが現れない |
-| 配る crate は probe とテストの補助に依存しない | 配る実行ファイルに、テストのためのものが入る | core と adapters の `[dependencies]` に probe が無い |
 
 ---
 
@@ -80,8 +80,8 @@ Rust API Guidelines（flexibility）は「When designing a trait, decide early o
 | 規則 | なぜ | 検査 |
 |---|---|---|
 | port の trait は、定義するときに、ジェネリクスの境界として使うか dyn で使うかを決め、doc コメントの1行目に書く | 後から dyn とジェネリクスを混ぜて使うと、同じ trait の呼び方が場所によって変わり、読み手が毎回確かめることになる | port の trait の doc コメントに「ジェネリクスで使う」か「dyn で使う」がある |
-| 1つの実行ファイルの中で実装が1つに決まる port（ファイル ・ スキーマの読み込み ・ JMESPath ・ 別の実行ファイルの起動）は、ジェネリクスの境界で使う | 実装が1つに決まるのに dyn で渡すと、実行時に呼び先を探す負荷がかかり、型の上でも実装が1つだと読めない（The Book 18.2 :119） | 該当する port が `dyn` で使われていない |
-| 外から実装を足す port（部品のカタログ）と、その引数（描画の部品）だけを dyn で使う | 実装を足していくものは、型が実行時に決まるので dyn が合う（The Book 18.2 :15） | `dyn` の使用が、その2つの trait だけ |
+| 1つの実行ファイルの中で実装が1つに決まる port（ファイル ・ スキーマの読み込み ・ JMESPath）は、ジェネリクスの境界で使う | 実装が1つに決まるのに dyn で渡すと、実行時に呼び先を探す負荷がかかり、型の上でも実装が1つだと読めない（The Book 18.2 :119） | 該当する port が `dyn` で使われていない |
+| 外から実装を足す port（部品のカタログ）と、port のメソッドが受け取るコールバック（JMESPath に足す関数 ・ 描画の部品）だけを dyn で使う | 実装を足していくものは、型が実行時に決まるので dyn が合う（The Book 18.2 :15） | `dyn` の使用が、Design ・ Functions ・ Renderer の3つの trait だけ |
 | 値の制約は型で表す（newtype）。bool や Option で意味を運ばない（API Guidelines の C-NEWTYPE ・ C-CUSTOM-TYPE） | bool や Option で意味を運ぶと、呼ぶ側が値の意味を取り違えてもコンパイラが止めない | レビューで見る（機械の検査は無い） |
 
 最後の規則は機械で見られないので、レビューでだけ見る。この1件だけを例外にする。
@@ -100,14 +100,13 @@ The Rust Programming Language 11.3 は、単体テストを「in the src directo
 | inbound adapter | CLI と MCP の変換（引数 ↔ 呼び出し、結果 ↔ 出力）の単体テスト。同じ表で両方を確かめる | 同じファイルの `#[cfg(test)] mod tests` |
 | 共通ツールの約束 | 公開 API の振り分け（`Toolbox::dispatch`）を、値の表で1回ずつ確かめる結合テスト | `crates/adapters/tests/` |
 | 実行ファイル | 起動して確かめる端から端までのテスト。CLI と MCP で代表の数件だけ | `crates/adapters/tests/` |
-| 宣言したツールの境界 | probe を宣言したツールとして起動し、SHA-256 ・ 制限時間 ・ 出力の上限を確かめる | `crates/probe/tests/` |
 
 | 規則 | なぜ | 検査 |
 |---|---|---|
 | テストの本体に、分岐 ・ ループ ・ 確かめる対象と同じ計算を書かない。期待値は前もって計算した値を並べる | テストの中に処理があると、そのテスト自体の正しさを別に確かめることになる | `#[test]` の関数の本体に `if` ・ `for` ・ `while` ・ `match` が0件 |
 | テストの中で、ビルド（`cargo build`）・ 外部コマンド（`sha256sum` ・ `certutil`）を起動しない。実行ファイルの場所は `CARGO_BIN_EXE_<名前>` を使う | テストの結果が、ビルドのやり方や OS ごとのコマンドの有無に左右される | `tests/` と `mod tests` に `env!("CARGO")` ・ `sha256sum` ・ `certutil` が0件 |
 | プロトコルのクライアントを手で書かない。MCP を起動して確かめるときは、使っている MCP のライブラリのクライアントを使う | 手で書いたクライアントは、製品の MCP と同じ間違いをしても見つけられない。テストの中にプロトコルの実装が1つ増える | `tests/` に JSON-RPC の文字列（`"jsonrpc"`）が0件 |
-| テストの補助は `tests/support/` の1か所に置く。同じ補助を2か所に書かない | 同じ補助が2か所にあると、片方だけ直したときにテストどうしで前提が食い違う | `struct Scratch` などの補助の定義が1つだけ |
+| テストの補助は、結合テストは `tests/support/`、単体テストは crate の `src/tests.rs` の、それぞれ1か所に置く。同じ補助を2か所に書かない | 同じ補助が2か所にあると、片方だけ直したときにテストどうしで前提が食い違う | 補助の型（作業用のフォルダなど）の定義が、`tests/support/` と `src/tests.rs` の中だけにある |
 | 製品のコードに、テストのためだけの関数 ・ 分岐 ・ pub を足さない。`#[cfg(test)]` は `mod tests` にだけ付ける | テストのためのコードが配る実行ファイルに入り、テストの都合で製品の公開 API が広がる | `#[cfg(test)]` が `mod tests` の外に0件 |
 | 結合テストから core の domain と application を直に呼ばない。結合テストは公開 API（振り分け）だけを使う | 結合テストが中の型に結びつくと、中を直すたびに結合テストまで壊れる。中の確かめは単体テストが持つ | `crates/adapters/tests/` に `schema_driven_core::domain` ・ `schema_driven_core::application` が0件 |
 

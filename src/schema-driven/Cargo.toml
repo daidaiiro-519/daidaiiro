@@ -1,10 +1,14 @@
-# ヘキサゴナル。core は何にも依存せず、adapters が core のポートを呼び、実装する。
-# 版は Cargo.lock の1か所で決める。
+# ヘキサゴナル。core（domain ・ application ・ 出ていく側の port）は外の技術に依存しない。
+# adapters が core の application を呼び、core の port を実装し、起動時に両方を結ぶ。
+# 版は Cargo.lock の1か所で決める。共通の依存の宣言は [workspace.dependencies] に1か所で書く。
 [workspace]
-members = ["files", "core", "adapters", "cli", "mcp", "stub"]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+
+[workspace.dependencies]
+serde_json = { version = "1.0.151", features = ["preserve_order"] }

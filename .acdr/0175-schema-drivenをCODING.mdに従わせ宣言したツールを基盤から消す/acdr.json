@@ -1,0 +1,187 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0175",
+ "title": "schema-driven を CODING.md に従わせ、宣言したツールを基盤から消す",
+ "date": "2026-10-13",
+ "status": "accepted",
+ "decision": "schema-driven を CODING.md の規則に従う形に作り直し、基盤から、Skill が宣言した実行ファイルを起動する仕組みをなくす。",
+ "why": "ACDR 0174 で、schema-driven のコーディング規則を CODING.md に置いた。いまのコードは、規則が無いまま別々の時期に作ったので、6つの crate に分かれ、MCP の受け口が実行ファイルの中にあり、起動時の結合が2か所にあり、テストの中に MCP のクライアントや cargo build があった。あわせて、基盤が Skill の実行ファイルを宣言から起動する仕組み（tools.json）をなくすと決めた。Skill は concrete 側の能力を自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON とスキーマの操作だけを、scripts/schema-driven で行う。起動の仕組みは、宣言して使う Skill が1つも無く、止まるまで返らない serve は制限時間に収まらず例外になっていた。安全の確かめ（SHA-256）は、呼ぶたびではなく、配布物を入れるときに行えば足りる。これにより、ボード skill-roles の論点3 ・ 4（Skill の能力も基盤が同じ一覧で出す）と、ボード brainstorming-board-migration の論点4（advance と inspect を tools.json で宣言する）を改める。ACDR 0165 の「Skill ・ Agent は JSON だけを持つ」も、Skill が自分の実行ファイルを持つ形に改める。",
+ "shift": [
+  {
+   "what": "crate",
+   "from": "files ・ core ・ adapters ・ cli ・ mcp ・ stub の6つ",
+   "to": "crates/core と crates/adapters の2つ。スキーマは core の build.rs、カタログは adapters の build.rs が取り込む"
+  },
+  {
+   "what": "受け口と起動時の結合",
+   "from": "MCP の受け口は mcp の main.rs にあり、結合は cli と mcp の main.rs に1つずつ",
+   "to": "受け口は adapters/src/inbound に並び、結合は compose の1か所。実行ファイル（src/bin）は呼ぶだけで、11行と9行"
+  },
+  {
+   "what": "Skill の能力の呼び方",
+   "from": "基盤が tools.json の宣言から Skill の実行ファイルを起動し、SHA-256 ・ 制限時間 ・ 出力の上限を守る",
+   "to": "Skill が自分の実行ファイルを直接呼ぶ。基盤は基盤の能力だけを持ち、tools.json の型 ・ 起動の仕組み ・ 試験用の実行ファイルを消した"
+  },
+  {
+   "what": "port と trait",
+   "from": "core が自分で実装する trait も port と呼び、決まり無く Arc<dyn …> で渡す",
+   "to": "port は出ていく側の4つ（Files ・ Schemas ・ Query はジェネリクス、Design は dyn）。port が受け取るコールバック（Functions ・ Renderer）は core が実装し、ports.rs に並べる"
+  },
+  {
+   "what": "テスト",
+   "from": "24ファイルが tests/ にあり、テストの中に MCP のクライアント ・ cargo build ・ 外部コマンド",
+   "to": "単体テストは同じファイルに122件、振り分けの結合テストが99件、実行ファイルを起動するテストが6件（MCP は rmcp のクライアント）。宣言したツールの試験20件は仕組みと一緒に消した"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "schema-driven の構成を、同じ観点の5行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "基盤が Skill の実行ファイルを起動する仕組みを残す",
+   "why_not": "使っている Skill が無く、止まるまで返らないツールは制限時間に収まらない。Agent Skills の仕様でも、Skill は scripts/ の実行ファイルを手順から直接呼ぶ。基盤が他人のコードを起動する責任を持つ理由が無い"
+  },
+  {
+   "option": "MCP の受け口を別の crate に残し、rmcp と tokio を adapters から外す",
+   "why_not": "受け口はどちらも adapters の inbound に並べる、と CODING.md で決めた。core が rmcp と tokio に依存しないことは、依存の向きの検査で確かめている"
+  },
+  {
+   "option": "Functions と Renderer を application に置く",
+   "why_not": "port のメソッドの引数の型なので、application に置くと ports.rs が application に依存する。引数の型は serde_json と domain だけで書けるので、ports.rs に並べ、port ではないと doc コメントに書いた"
+  },
+  {
+   "option": "宣言したツールの試験を残す",
+   "why_not": "確かめる仕組みそのものを消したので、確かめる相手が無い"
+  },
+  {
+   "option": "描画のユースケースを渡さない Toolbox の試験（toolbox_without_a_render_use_case_says_why）を残す",
+   "why_not": "Toolbox が描画のユースケースを必ず受け取る形にしたので、その状態が型の上で起きない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "coding",
+   "tab": "CODING.md",
+   "file": "src/schema-driven/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "crate は core と adapters の2つにする",
+     "before": "crate は core と adapters の2つと、配らない probe だけにする",
+     "why": "宣言したツールの仕組みを消したので、試験用の実行ファイルの crate（probe）も要らなくなった"
+    },
+    {
+     "find": "port のメソッドが引数として受け取るコールバック",
+     "before": "port と呼ぶのは、application が定義して adapters が実装する、出ていく側の trait だけにする",
+     "why": "core が実装してアダプタへ渡すコールバック（Functions ・ Renderer）の置き場所と、port ではないことを書いた"
+    },
+    {
+     "find": "単体テストは crate の",
+     "before": "テストの補助は tests/support/ の1か所に置く",
+     "why": "単体テストは tests/support/ を読めないので、単体テストの補助は crate の src/tests.rs の1か所にした"
+    },
+    {
+     "find": "Design ・ Functions ・ Renderer の3つの trait だけ",
+     "before": "dyn の使用が、その2つの trait だけ",
+     "why": "port が受け取るコールバックの2つも dyn で使うので、検査を3つにした"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "使う側は、基盤の能力をそのまま使い、自分の能力は自分の実行ファイルとして持つ。",
+     "before": "使う側はコードを持たない。見た目と操作は基盤の部品のカタログが持ち、固有の処理は宣言した別の実行ファイルが持つ。",
+     "why": "Skill は concrete 側の能力を自分の実行ファイルとして持ち、直接呼ぶ。基盤はそれを起動しない"
+    },
+    {
+     "find": "出力形式",
+     "before": "### Step 7: 固有のツールを宣言する（tools.json の宣言と、起動の境界の表）",
+     "why": "基盤から宣言したツールを起動する仕組みを消した"
+    }
+   ]
+  },
+  {
+   "key": "compose",
+   "tab": "compose.rs",
+   "file": "src/schema-driven/crates/adapters/src/compose.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "pub fn toolbox(skill: Option<&str>) -> Engine {",
+     "before": "（無い。新しいファイルである）",
+     "why": "起動時の結合を1か所にした。CLI と MCP の実行ファイルは、どちらもこれを呼ぶ"
+    }
+   ]
+  },
+  {
+   "key": "bin-cli",
+   "tab": "bin/schema-driven.rs",
+   "file": "src/schema-driven/crates/adapters/src/bin/schema-driven.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "let (code, out) = cli::run(&args, compose::toolbox);",
+     "before": "cli/src/main.rs が、アダプタとユースケースを自分で作って結合していた",
+     "why": "実行ファイルは、結合と受け口を呼ぶだけにした"
+    }
+   ]
+  },
+  {
+   "key": "bin-mcp",
+   "tab": "bin/schema-driven-mcp.rs",
+   "file": "src/schema-driven/crates/adapters/src/bin/schema-driven-mcp.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "std::process::exit(mcp::serve(&args, compose::toolbox));",
+     "before": "mcp/src/main.rs に、MCP の受け口（ServerHandler の実装）と結合が書いてあった",
+     "why": "受け口は inbound/mcp.rs に移し、実行ファイルは呼ぶだけにした"
+    }
+   ]
+  },
+  {
+   "key": "mcp",
+   "tab": "inbound/mcp.rs",
+   "file": "src/schema-driven/crates/adapters/src/inbound/mcp.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "impl<F, S, Q> ServerHandler for",
+     "before": "mcp/src/main.rs の中にあった",
+     "why": "MCP の受け口を、CLI の受け口と同じ inbound に並べた"
+    }
+   ]
+  },
+  {
+   "key": "ports",
+   "tab": "ports.rs",
+   "file": "src/schema-driven/crates/core/src/ports.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "pub trait Functions: Send + Sync {",
+     "before": "application/view.rs と application/page.rs にあった",
+     "why": "port の引数の型なので ports.rs に並べ、ports.rs が application に依存しないようにした"
+    }
+   ]
+  },
+  {
+   "key": "gitignore",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "src/schema-driven/crates/core/schemas/ と crates/adapters/catalog/",
+     "before": "src/schema-driven/schemas/ と catalog/",
+     "why": "正本の置き場所が crate の中に移った"
+    }
+   ]
+  }
+ ]
+}
