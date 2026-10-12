@@ -1,0 +1,258 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0169",
+ "title": "schema-driven を新しい契約だけの基盤にする",
+ "date": "2026-10-12",
+ "status": "accepted",
+ "decision": "schema-driven を、新しい契約だけを持つ基盤にする。正本はすべてソースの側に置き、Skill には配布物を作る段で入れる。",
+ "why": "schema-driven は、すべての Skill の土台になる基盤である。ACDR 0165 ・ 0166 で、エンジンは名前でスキーマを引く形になった。一方で Skill のフォルダは、契約の版3（tool.json の contract 3、bin/、mcp.json、references/、Skill の中の tool/）のままだった。エンジンにも、名前でない $schema をファイルからの相対パスとして読む分岐が残っていた。新しい契約の形はまだ一度も配っていないので、古い形を読む理由が無い。土台が古い形のままだと、その上に Skill を移す作業が始められない。ソースを Skill の外の src/<Skill>/ に置き、実行ファイルを配布物の段で scripts/ に入れる形は、ボード skills-creator-rebuild の論点4で決めた。基盤のスキーマとカタログは、エンジンがビルドのときに取り込むソースの一部で、実行するときに Skill の assets/ を読む者はいない。だから正本をソースの側に置き、Skill へは配布物の段で同梱する。tool.json は、skills-creator が作る Skill が、使う abstract の版とエンジンの場所を書く宣言で、型も skills-creator が持つ。schema-driven はそのエンジン自身で、skills-creator が作るものではないので、tool.json を持たない。基盤のスキーマを references/ に置くとしたボード schema-driven-build の論点6 ・ 7は、この決定で改める。基盤の実装は Rust だけで、署名付きの実行ファイル1つで配る（ボード skill-roles の論点3）。エンジンを別の言語で作り直す前提が無いので、言語を替えるための試験データの JSON と implementation.json も残さない。",
+ "shift": [
+  {
+   "what": "schema-driven の Skill のフォルダが持つもの",
+   "from": "SKILL.md ・ tool.json（contract 3）・ mcp.json ・ .gitignore ・ references/ ・ tool/（Rust のソースと MCP）・ bin/",
+   "to": "SKILL.md ・ LICENSE ・ assets/ ・ scripts/。assets/ と scripts/ は配布物の段で入り、git では追跡しない"
+  },
+  {
+   "what": "正本の置き場所",
+   "from": "Skill のフォルダの tool/（コード）と references/（基盤のスキーマとカタログ）",
+   "to": "src/schema-driven/ の schemas/（基盤のスキーマ9件）・ catalog/（部品のカタログ）・ コード（core ・ adapters ・ cli ・ mcp ・ stub）・ 試験"
+  },
+  {
+   "what": "tool.json",
+   "from": "契約の版3（起動 ・ ビルド ・ 試験のコマンド）",
+   "to": "置かない。skills-creator が作る Skill の宣言で、schema-driven は指される側のエンジン自身である"
+  },
+  {
+   "what": "インスタンスの $schema",
+   "from": "名前なら assets/ から引き、名前でなければファイルからの相対パスとして読む",
+   "to": "名前だけを読み、名前でなければ「スキーマの名前でない」で断る"
+  },
+  {
+   "what": "名前（$id）の無いスキーマからの create",
+   "from": "インスタンスに、スキーマへの相対パスを書いて作る",
+   "to": "「スキーマの名前が無い」で断る"
+  },
+  {
+   "what": "SKILL.md の手順",
+   "from": "Step 8 に、既存の Skill を移す手順と「新しいツールは古い形も読む」がある",
+   "to": "Step 8 を消す。移すあいだの確かめは skills-creator の移す試験が持つ"
+  },
+  {
+   "what": "版ごとの振る舞いの試験",
+   "from": "contract/v1/ の JSON の試験データ19件と、その形 case.schema.json と、読んで実行する contract.rs",
+   "to": "Rust の試験 cli/tests/tools.rs の19件。ファイルの名前に版を付けない。振る舞いを変えるときは abstract スキーマの版を上げる"
+  },
+  {
+   "what": "実装の構成を書く implementation.json と型 schema-driven/implementation@v1",
+   "from": "「実装の言語を替えるときは中身を差し替える」ためにある",
+   "to": "消す。構成は Cargo.toml、ファイルを直接扱わない決まりは core/clippy.toml が持つ"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "schema-driven を、同じ観点の7行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "tool.json を、skills-creator の型 skills-creator/tool@v1 で持つ",
+   "why_not": "tool.json は skills-creator が作る Skill の宣言で、型も skills-creator が持つ。土台の基盤が、上に載る skills-creator の型に従うことになり、作る側と作られる側が逆になる"
+  },
+  {
+   "option": "基盤の側に自分の宣言の型を作り、tool.json をそれに従わせる",
+   "why_not": "書く中身は自分自身を指す command だけで、読む者がいない。型を1つ増やすだけになる"
+  },
+  {
+   "option": "基盤のスキーマとカタログの正本を Skill の assets/ に置き、ソースから取り込む",
+   "why_not": "エンジンがビルドのときに取り込むソースの一部で、実行するときに Skill の assets/ を読む者はいない。ソースが Skill のフォルダを参照する向きになる"
+  },
+  {
+   "option": "名前でない $schema をパスとして読む分岐を残す",
+   "why_not": "新しい契約の形は一度も配っていないので、パスで書いたインスタンスを新しいエンジンで読む場面が無い。既にあるボードと ACDR の記録は、それぞれ古い形の Skill の実行ファイルが読む"
+  },
+  {
+   "option": "基盤のスキーマを references/ に残す",
+   "why_not": "references/ は AI が必要なときに読む文書の置き場所で、スキーマは assets/ に置くと決めた（ボード skills-creator-rebuild の論点2、ACDR 0166）"
+  },
+  {
+   "option": "書き方の誤りの検査「パイプの右が関数でない」を、古い書き方の名残として消す",
+   "why_not": "{name|upper} は JMESPath として正しく読めてしまい、upper というプロパティを引いて黙って空になる。移行のためではなく、書き間違いを止める検査なので残し、名前から「古い」を外した"
+  },
+  {
+   "option": "MCP の crate を消す",
+   "why_not": "基盤は共通ツールを CLI と MCP に同じ一覧で出すと決めた（ボード skill-roles の論点4）。ACDR 0167 で型に入れないとしたのは MCP の登録で、サーバーではない"
+  },
+  {
+   "option": "版ごとの試験を、JSON の試験データのまま残す",
+   "why_not": "JSON にしたのは、別の言語のエンジンでも同じ試験データを通すためだった。その前提が無いと、形のスキーマと実行役を余分に持つだけになる"
+  },
+  {
+   "option": "ソースの側の置き場所も assets/ と呼ぶ",
+   "why_not": "assets/ は Skill に置くときの Agent Skills の名前である。ソースの側では、スキーマとカタログという中身の名前で分ける"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "の契約）と、それを版ごとに守るエンジン",
+     "before": "abstract スキーマ（references/ の契約）",
+     "why": "基盤のスキーマを assets/ に移した。references/ は AI が読む文書の置き場所である"
+    },
+    {
+     "find": "の両方から、同じ名前と引数で呼べる。MCP の登録はツールごとに形が違うので、導入するときに行う。",
+     "before": "ツールは、CLI と MCP の両方から、同じ名前と引数で呼べる。起動のしかたは tool.json と mcp.json が持つ。一覧は次で取れる。",
+     "why": "実行ファイルの置き場所を、Skill のフォルダからの相対パス scripts/ にした。MCP の登録は Skill に持たず、導入するときにツールごとに行う"
+    },
+    {
+     "find": "断って「スキーマの名前でない」を返す。パスでは引かない",
+     "before": "インスタンスのファイルからの相対パス。名前で指す形にする前に、承認時のスキーマの写しを指していた記録のため",
+     "why": "パスで読むのは、名前で指す前の記録のための互換だった。新しい契約は配っていないので、名前だけにした"
+    },
+    {
+     "find": "出力形式",
+     "before": "### Step 8: 既存の Skill を基盤の上へ移すとき、段階の順に作業する（段階の表と、既存のインスタンスの扱いの表。「新しいツールは古い形も読み、状態の変更と描画を受け持つ」を含む）",
+     "why": "Step 8 は移行のためだけの手順で、古い形も読むことを前提にしていた。基盤は新しい契約だけを持つ"
+    },
+    {
+     "find": "だけは、ツールの一覧を",
+     "before": "{\"ok\": true, \"findings\": [], \"data\": {\"tools\": […], \"skill_root\": …}}",
+     "why": "skill_root は、版3 のほかの Skill の CLI と同じ形にするための欄で、読む側がいない"
+    },
+    {
+     "find": "基盤の中心は、ファイルを直接扱わない",
+     "before": "- 移しているあいだ、古い実装が読むスキーマのファイルを書き換えない（…）\n- 同じ目的の変更を、段階ごとの記録に分けない（…）\n- 基盤の中心は、ファイルを直接扱わない。入出力はポートを通す。どう禁じるかは references/implementation.json が持つ",
+     "why": "移行のためのガードレール2件を、Step 8 と一緒に消した。implementation.json は実装のソースの根へ移したので、Skill の中から指さない"
+    }
+   ]
+  },
+  {
+   "key": "instances-rs",
+   "tab": "instances.rs",
+   "file": "src/schema-driven/core/src/application/instances.rs",
+   "before": "//! インスタンスの読み書きのユースケースと、削除のコマンド。\n//! トランザクションスクリプトとして、出ていく側のポートを直接使う。\n\nuse crate::application::paths;\nuse crate::domain::contract;\nuse crate::domain::instance::{Instance, Reject};\nuse crate::domain::schema::Schema;\nuse crate::domain::schema_name;\nuse crate::domain::values::{\n    Hash, InstancePath, JsonPatch, JsonValue, SchemaPath, ValidationError,\n};\nuse crate::ports::inbound::InstanceUseCases;\nuse crate::ports::outbound::{Files, Query, Schemas, WriteError, WriteIf};\nuse serde_json::Value;\nuse std::fmt;\nuse std::sync::Arc;\n\n/// ユースケースが失敗した理由。`reason` は用語集の語（拒否の理由 ・ 失敗の種類）で書く。\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct UseCaseError {\n    pub reason: String,\n    pub detail: String,\n    pub errors: Vec<ValidationError>,\n}\n\nimpl UseCaseError {\n    pub(crate) fn new(reason: &str, detail: impl Into<String>) -> Self {\n        Self {\n            reason: reason.to_owned(),\n            detail: detail.into(),\n            errors: Vec::new(),\n        }\n    }\n}\n\n/// 理由を先に置き、詳しい説明があれば「：」のあとに続ける。\nimpl fmt::Display for UseCaseError {\n    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {\n        if self.detail.is_empty() {\n            formatter.write_str(&self.reason)\n        } else {\n            write!(formatter, \"{}：{}\", self.reason, self.detail)\n        }\n    }\n}\n\nimpl std::error::Error for UseCaseError {}\n\n/// 未記入のプロパティと、その x-prompt。\n#[derive(Debug, Clone, PartialEq)]\npub struct UnfilledWithPrompt {\n    pub property: String,\n    pub prompt: Option<Value>,\n}\n\n#[derive(Debug, Clone, PartialEq)]\npub struct Created {\n    pub path: String,\n    pub hash: String,\n    pub unfilled: Vec<UnfilledWithPrompt>,\n}\n\n#[derive(Debug, Clone, PartialEq)]\npub struct Got {\n    pub value: Value,\n    pub found: bool,\n}\n\n#[derive(Debug, Clone, PartialEq)]\npub struct Updated {\n    pub hash: String,\n    pub changed: bool,\n    pub errors: Vec<ValidationError>,\n    pub unfilled: Vec<UnfilledWithPrompt>,\n}\n\n#[derive(Debug, Clone, PartialEq)]\npub struct Prompted {\n    pub prompt: Value,\n}\n\n/// インスタンスの読み書きのユースケースの実装。ファイル ・ スキーマの供給元 ・ 取得は、ポートで受け取る。\npub struct Instances {\n    files: Arc<dyn Files>,\n    schemas: Arc<dyn Schemas>,\n    query: Arc<dyn Query>,\n    /// --skill で渡した Skill のフォルダ。スキーマの名前は、この Skill の assets から引く\n    skill: Option<String>,\n}\n\nimpl Instances {\n    pub fn new(files: Arc<dyn Files>, schemas: Arc<dyn Schemas>, query: Arc<dyn Query>) -> Self {\n        Self {\n            files,\n            schemas,\n            query,\n            skill: None,\n        }\n    }\n\n    /// スキーマの名前を引く Skill のフォルダを渡す。\n    pub fn with_skill(mut self, dir: &str) -> Self {\n        self.skill = Some(dir.trim_end_matches('/').to_owned());\n        self\n    }\n\n    /// インスタンスの $schema の値から、スキーマのファイルのパスを決める。\n    /// 名前なら --skill の Skill の assets から $id で引き、名前でなければファイルからの相対パスとして読む。\n    pub(crate) fn schema_path(&self, instance: &str, value: &str) -> Result<String, UseCaseError> {\n        let Some(owner) = schema_name::owner(value) else {\n            return Ok(paths::join(paths::parent(instance), value));\n        };\n        // エンジンが持つスキーマは、--skill を渡さなくても引ける\n        if contract::builtin_file(value).is_some() {\n            return Ok(value.to_owned());\n        }\n        let refuse = |detail: String| UseCaseError::new(\"スキーマの名前を引けない\", detail);\n        let Some(dir) = &self.skill else {\n            return Err(refuse(format!(\n                \"{value} を引くには、--skill に Skill {owner} のフォルダを渡す\"\n            )));\n        };\n        let skill = dir.rsplit('/').next().unwrap_or(dir);\n        if owner != skill {\n            return Err(refuse(format!(\n                \"{value} は Skill {owner} のスキーマで、Skill {skill} のものではない。Skill {owner} を --skill に渡して検査する\"\n            )));\n        }\n        let assets = format!(\"{dir}/assets\");\n        let mut found = Vec::new();\n        for path in self\n            .files\n            .list_tree(&assets)\n            .map_err(|error| UseCaseError::new(\"読めない\", error.0))?\n        {\n            if !path.ends_with(\".schema.json\") {\n                continue;\n            }\n            let (_, schema) = self.read_json(&path)?;\n            if schema.get(\"$id\").and_then(Value::as_str) == Some(value) {\n                found.push(path);\n            }\n        }\n        match found.len() {\n            1 => Ok(found.remove(0)),\n            0 => Err(refuse(format!(\n                \"{value} を $id に持つスキーマが、Skill {skill} の assets に無い\"\n            ))),\n            _ => {\n                let names: Vec<&str> = found\n                    .iter()\n                    .map(|path| path.rsplit('/').next().unwrap_or(path))\n                    .collect();\n                Err(UseCaseError::new(\n                    \"同じ名前のスキーマが2つ以上ある\",\n                    format!(\"{value}：{}\", names.join(\" ・ \")),\n                ))\n            }\n        }\n    }\n\n    pub(crate) fn read_json(&self, path: &str) -> Result<(String, Value), UseCaseError> {\n        let text = self\n            .files\n            .read(path)\n            .map_err(|error| UseCaseError::new(\"読めない\", error.0))?;\n        let value = serde_json::from_str(&text)\n            .map_err(|error| UseCaseError::new(\"JSON として読めない\", error.to_string()))?;\n        Ok((text, value))\n    }\n\n    pub(crate) fn load_schema(&self, path: &str) -> Result<Schema, UseCaseError> {\n        if let (Some(file), Some(root)) = (\n            contract::builtin_file(path),\n            contract::abstract_schema(path),\n        ) {\n            return Ok(Schema::new(file, root, contract::builtin_files()));\n        }\n        let (_, root) = self.read_json(path)?;\n        let name = path.rsplit('/').next().unwrap_or(path);\n        let siblings = self\n            .schemas\n            .referenced(path)\n            .unwrap_or_default()\n            .into_iter()\n            .filter_map(|(file_name, text)| {\n                serde_json::from_str(&text)\n                    .ok()\n                    .map(|schema| (file_name, schema))\n            })\n            .collect();\n        Ok(Schema::new(name, root, siblings))\n    }\n\n    fn with_prompts(\n        schema: &Schema,\n        unfilled: &[crate::domain::values::Unfilled],\n    ) -> Vec<UnfilledWithPrompt> {\n        unfilled\n            .iter()\n            .map(|unfilled| UnfilledWithPrompt {\n                property: unfilled.property().to_owned(),\n                prompt: schema.prompt(unfilled.property()),\n            })\n            .collect()\n    }\n\n    pub(crate) fn write_error(error: WriteError) -> UseCaseError {\n        match error {\n            WriteError::Conflict => UseCaseError::new(\"ほかの更新と競合した\", \"\"),\n            WriteError::Unwritable(detail) => UseCaseError::new(\"書けない\", detail),\n        }\n    }\n}\n\nfn reject(reject: Reject) -> UseCaseError {\n    match reject {\n        Reject::AlreadyExists => UseCaseError::new(\"パスにインスタンスが既にある\", \"\"),\n        Reject::CannotApply(detail) => UseCaseError::new(\"JSON Patch を適用できない\", detail),\n        Reject::Conflict => UseCaseError::new(\"ほかの更新と競合した\", \"\"),\n        Reject::Invalid(errors) => UseCaseError {\n            errors,\n            ..UseCaseError::new(\"検証を通過しない\", \"\")\n        },\n        Reject::BrokenSchema(detail) => UseCaseError::new(\"スキーマが壊れている\", detail),\n    }\n}\n\nfn invalid(error: crate::domain::values::InvalidValue) -> UseCaseError {\n    UseCaseError::new(\"値が不正である\", error.to_string())\n}\n\nimpl InstanceUseCases for Instances {\n    fn create(&self, schema: &str, path: &str) -> Result<Created, UseCaseError> {\n        let schema_path = SchemaPath::new(schema).map_err(invalid)?;\n        let instance_path = InstancePath::new(path).map_err(invalid)?;\n        let loaded = self.load_schema(schema)?;\n        // スキーマが名前（$id）を持てば名前を、持たなければインスタンスのファイルからの相対パスを書く\n        let stored = match loaded.root().get(\"$id\").and_then(Value::as_str) {\n            Some(name) if schema_name::is_name(name) => SchemaPath::new(name),\n            _ => SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str())),\n        }\n        .map_err(invalid)?;\n        let instance =\n            Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;\n        self.files\n            .write(path, instance.value().as_str(), WriteIf::Absent)\n            .map_err(|error| match error {\n                WriteError::Conflict => reject(Reject::AlreadyExists),\n                other => Self::write_error(other),\n            })?;\n        let parsed: Value = serde_json::from_str(instance.value().as_str()).unwrap_or(Value::Null);\n        let validation = loaded\n            .validate(&parsed)\n            .map_err(|error| UseCaseError::new(\"スキーマが壊れている\", error.0))?;\n        Ok(Created {\n            path: path.to_owned(),\n            hash: instance.hash().as_str().to_owned(),\n            unfilled: Self::with_prompts(&loaded, &validation.unfilled),\n        })\n    }\n\n    fn get(&self, path: &str, query: &str) -> Result<Got, UseCaseError> {\n        if query.is_empty() {\n            return Err(UseCaseError::new(\n                \"JMESPath 式が読めない\",\n                \"JMESPath 式が空である\",\n            ));\n        }\n        let (_, value) = self.read_json(path)?;\n        let found = self\n            .query\n            .search(query, &value)\n            .map_err(|error| UseCaseError::new(\"JMESPath 式が読めない\", error.0))?;\n        Ok(Got {\n            found: !found.is_null(),\n            value: found,\n        })\n    }\n\n    fn update(&self, path: &str, patch: &str, hash: Option<&str>) -> Result<Updated, UseCaseError> {\n        let patch =\n            JsonPatch::new(patch).map_err(|_| UseCaseError::new(\"JSON Patch が空である\", \"\"))?;\n        let instance_path = InstancePath::new(path).map_err(invalid)?;\n        let (text, value) = self.read_json(path)?;\n        let schema = value\n            .get(\"$schema\")\n            .and_then(Value::as_str)\n            .ok_or_else(|| {\n                UseCaseError::new(\"スキーマが分からない\", \"インスタンスに $schema が無い\")\n            })?;\n        let schema = self.schema_path(path, schema)?;\n        let loaded = self.load_schema(&schema)?;\n        let instance = Instance::load(\n            instance_path,\n            SchemaPath::new(&schema).map_err(invalid)?,\n            JsonValue::new(&text),\n        );\n        let read = match hash {\n            Some(hash) => Hash::new(hash).map_err(invalid)?,\n            None => instance.hash().clone(),\n        };\n        let (next, validation) = instance.update(&patch, &read, &loaded).map_err(reject)?;\n        let changed = next.hash() != instance.hash();\n        if changed {\n            self.files\n                .write(\n                    path,\n                    next.value().as_str(),\n                    WriteIf::Unchanged(instance.hash().clone()),\n                )\n                .map_err(Self::write_error)?;\n        }\n        Ok(Updated {\n            hash: next.hash().as_str().to_owned(),\n            changed,\n            errors: validation.errors.clone(),\n            unfilled: Self::with_prompts(&loaded, &validation.unfilled),\n        })\n    }\n\n    fn prompt(&self, schema: &str, property: &str) -> Result<Prompted, UseCaseError> {\n        let loaded = self.load_schema(schema)?;\n        loaded\n            .prompt(property)\n            .map(|prompt| Prompted { prompt })\n            .ok_or_else(|| {\n                UseCaseError::new(\n                    \"x-prompt を持つプロパティがスキーマに無い\",\n                    property.to_owned(),\n                )\n            })\n    }\n}\n",
+   "marks": [
+    {
+     "find": "use crate::application::paths;",
+     "why": "パスの計算を使わなくなったので、paths の取り込みを消した",
+     "before": "use crate::application::paths;"
+    },
+    {
+     "find": "let skill = dir.rsplit(['/', '\\\\']).next().unwrap_or(dir);",
+     "before": "let skill = dir.rsplit('/').next().unwrap_or(dir);",
+     "why": "Windows の区切り \\ でも、Skill のフォルダの名前を取り出せるようにした"
+    },
+    {
+     "find": "\"スキーマの名前でない\",",
+     "why": "名前でない $schema を、ファイルからの相対パスとして読むのをやめ、断る。あわせて、--skill の末尾の区切りを、Windows の \\ でも外す",
+     "before": "self.skill = Some(dir.trim_end_matches('/').to_owned());\n…\nreturn Ok(paths::join(paths::parent(instance), value));"
+    },
+    {
+     "find": "\"スキーマの名前が無い\",",
+     "why": "名前（$id）の無いスキーマから作ると、インスタンスにパスを書くことになる。作らずに断る",
+     "before": "_ => SchemaPath::new(&paths::relative(paths::parent(path), schema_path.as_str())),"
+    }
+   ]
+  },
+  {
+   "key": "mcp-json",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/schema-driven/scripts/schema-driven-mcp\",",
+     "before": "\"command\": \"${CLAUDE_PROJECT_DIR:-.}/.claude/skills/schema-driven/bin/schema-driven-mcp\",",
+     "why": "MCP のサーバーの実行ファイルが、bin/ から配布物の段で入る scripts/ に移った。登録はこのリポジトリへ導入したときの形として残す"
+    }
+   ]
+  },
+  {
+   "key": "wiring",
+   "tab": "skill-wiring.json",
+   "file": "skill-wiring.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "基盤の契約（abstract スキーマ）と、スキーマ ・ インスタンス ・ ページテンプレート ・ 固有のツールの宣言の書き方を引いてもらう",
+     "why": "依頼文の「転写の手順」と「既存の Skill を移す手順」は、schema-driven に無くなった",
+     "before": "\"request\": \"基盤の契約（meta-schema）・ 転写の手順 ・ 既存の Skill を基盤の上へ移す手順と、インスタンスの扱いを引いてもらう\","
+    }
+   ]
+  },
+  {
+   "key": "migration-rs",
+   "tab": "migration.rs",
+   "file": "src/skills-creator/tests/migration.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "const BASE: &str = \"schema-driven\";",
+     "before": "（無い。全 Skill の tool.json を読んでいた）",
+     "why": "schema-driven は skills-creator が作る Skill ではないので、tool.json を持たない。基盤のフォルダの名前を1か所に書く"
+    },
+    {
+     "find": "let engine = skills.join(BASE).join(\"scripts/schema-driven\");",
+     "before": "let engine = skills.join(\"schema-driven/bin/schema-driven\");",
+     "why": "エンジンの実行ファイルの置き場所が bin/ から scripts/ になった。schema-driven はもう版3 ではないので、その基準のファイル baseline-v3/schema-driven.json も消した"
+    },
+    {
+     "find": ".filter(|name| name != BASE)",
+     "before": "（無い。SKILL.md を持つフォルダをすべて対象にしていた）",
+     "why": "基盤を、移す試験の対象から外す。tool.json を読まずに済む"
+    }
+   ]
+  },
+  {
+   "key": "type-v1-rs",
+   "tab": "type_v1.rs",
+   "file": "src/skills-creator/tests/type_v1.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "manifest().join(\"../../.claude/skills/schema-driven/scripts/schema-driven\")",
+     "why": "エンジンの実行ファイルの置き場所が bin/ から scripts/ になった",
+     "before": ".unwrap_or_else(|_| manifest().join(\"../../.claude/skills/schema-driven/bin/schema-driven\"))"
+    }
+   ]
+  },
+  {
+   "key": "gitignore",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/.claude/skills/schema-driven/assets/",
+     "before": "（無い）",
+     "why": "基盤のスキーマとカタログの正本は src/schema-driven/schemas/ と catalog/ にあり、Skill の assets/ は配布物の段で入れる写しなので、追跡しない"
+    }
+   ]
+  },
+  {
+   "key": "abstract-v1-tools",
+   "tab": "tools.rs",
+   "file": "src/schema-driven/cli/tests/tools.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "fn update_refuses_an_invalid_value()",
+     "before": "（contract/v1/ の JSON の試験データ19件と、それを読んで実行する contract.rs）",
+     "why": "同じ19件を Rust の試験にした。置くファイル ・ 引数 ・ 期待する終了コードと欄は、元の試験データと同じである"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "skill": "d946bf5c4b0fa7667874bedcde1a30823c41c408df31fc559f643bc45642e0f1",
+  "instances-rs": "fa4dfede6de88ade5adb0b698b0a9378ea67fd53b9ac1b4822b007bdcae46aae",
+  "mcp-json": "199c375bc610b55ea750de91b546cc58e0682f863a319d68deeaeecf9d5815fe",
+  "wiring": "7d2dc5418a1b69bf300d8d05fdf24049951bb19e48bb3d711ff3033198ba2c84",
+  "migration-rs": "8bab7166d95274ee62428805972c1718674b227bd287db4d3227282523724d86",
+  "type-v1-rs": "b8b9a447f80f8ba2fc908ada78b90eddc4f2abf65aeb3129e8af3a45f9c8074e",
+  "gitignore": "b2bf4573afe0fc45264610899fe4461ff493bb33c095715524e27a0264658d60",
+  "abstract-v1-tools": "6680c8bc1b84823d81485e5f780c41f51c9fc6e0830cb123d2d2bf6a51696c99"
+ }
+}

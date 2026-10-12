@@ -10,6 +10,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// 基盤の Skill。skills-creator が作るものではないので、tool.json を持たず、この試験の対象にしない
+const BASE: &str = "schema-driven";
+
 fn repo() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -55,7 +58,7 @@ fn every_skill_keeps_passing_while_moving() {
     let skills = repo.join(".claude/skills");
     let baselines = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/baseline-v3");
     let new_check = env!("CARGO_BIN_EXE_skills-creator");
-    let engine = skills.join("schema-driven/bin/schema-driven");
+    let engine = skills.join(BASE).join("scripts/schema-driven");
     let own_skill = skills.join("skills-creator");
     let frozen = frozen_check();
     let mut wrong = Vec::new();
@@ -66,6 +69,7 @@ fn every_skill_keeps_passing_while_moving() {
         .flatten()
         .filter(|e| e.path().join("SKILL.md").is_file())
         .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|name| name != BASE)
         .collect();
     names.sort();
     for name in &names {

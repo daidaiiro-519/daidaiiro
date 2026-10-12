@@ -15,7 +15,9 @@ fn manifest() -> PathBuf {
 fn engine() -> PathBuf {
     std::env::var("SC_ENGINE")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| manifest().join("../../.claude/skills/schema-driven/bin/schema-driven"))
+        .unwrap_or_else(|_| {
+            manifest().join("../../.claude/skills/schema-driven/scripts/schema-driven")
+        })
 }
 
 /// 型のスキーマを持つ skills-creator の Skill のフォルダ。SC_SELF で替えられる

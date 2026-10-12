@@ -1,7 +1,7 @@
 ---
 name: schema-driven
 description: AI が扱うデータを、Markdown ではなく JSON Schema とそのインスタンスで持つときに使う基盤の Skill。abstract スキーマ（版ごとに振る舞いを保証する契約）とエンジンを持つ。Skill ・ Agent は、abstract に従う concrete スキーマ ・ インスタンス ・ ページテンプレート ・ 固有のツールの宣言だけを持ち、エンジンの共通ツールで作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画する。
-version: 0.1.0
+license: MIT
 ---
 
 # 構造化データを正本として持つ基盤の Skill：schema-driven
@@ -14,7 +14,7 @@ AI が扱うデータを、**JSON Schema とそのインスタンスで持つ**�
 
 | 誰が | 何を持つか |
 |---|---|
-| 基盤（この Skill） | abstract スキーマ（`references/` の契約）と、それを版ごとに守るエンジン（共通ツール9つ）と、版ごとの試験データ |
+| 基盤（この Skill） | abstract スキーマ（`assets/` の契約）と、それを版ごとに守るエンジン（共通ツール9つ） |
 | 使う側（基盤の上に作る Skill ・ Agent） | concrete スキーマ ・ インスタンス ・ ページテンプレート ・ 固有のツールの宣言（`tools.json`、任意） |
 
 **使う側はコードを持たない。** 見た目と操作は基盤の部品のカタログが持ち、固有の処理は宣言した別の実行ファイルが持つ。abstract スキーマを書き換えると、エンジンが扱えなくなる。
@@ -63,15 +63,15 @@ concrete スキーマと、それに従うインスタンスのディレクト�
 
 ## 実行手順
 
-ツールは、CLI と MCP の両方から、同じ名前と引数で呼べる。起動のしかたは `tool.json` と `mcp.json` が持つ。一覧は次で取れる。
+ツールは、CLI の実行ファイル `scripts/schema-driven` と、MCP のサーバー `scripts/schema-driven-mcp` の両方から、同じ名前と引数で呼べる。MCP の登録はツールごとに形が違うので、導入するときに行う。一覧は次で取れる。
 
 ```
-schema-driven --json
+scripts/schema-driven --json
 ```
 
 ### Step 1: concrete スキーマを書き、abstract に従っているかを検査する
 
-スキーマの根に、次の3つを書く。書き方の決まりは `references/meta-schema.json` が持つ。
+スキーマの根に、次の3つを書く。書き方の決まりは `assets/meta-schema.json` が持つ。
 
 | 欄 | 書くもの |
 |---|---|
@@ -79,17 +79,17 @@ schema-driven --json
 | `x-abstract` | 従う abstract の版 `schema-driven/abstract@v1` |
 | `$id` | このスキーマの名前「<Skill の名前>/<種類>@<版>」。インスタンスを作るスキーマ（`x-generates` を持つもの）は必ず書く |
 
-プロパティごとに `description` と `x-prompt`（`read` と `write`）を書き、参照には `x-ref`、導出値には `x-derive` を付ける（`references/annotations.schema.json`）。
+プロパティごとに `description` と `x-prompt`（`read` と `write`）を書き、参照には `x-ref`、導出値には `x-derive` を付ける（`assets/annotations.schema.json`）。
 
 ほかのスキーマの定義を使うときは、`$ref` をファイル名ではなく名前で書く。同じ Skill のスキーマなら、`$id` を基準に JSON Schema の規則で解けるので、「<種類>@<版>」だけでよい（例：`term@v1#/$defs/short`）。ファイル名を変えても、参照は切れない。
 
 ```
-schema-driven check-schemas --dir <スキーマのディレクトリ>
+scripts/schema-driven check-schemas --dir <スキーマのディレクトリ>
 ```
 
 `findings` が空なら、契約に従っている。版を書いていないスキーマと、エンジンが扱わない版のスキーマは、検査せずに指摘する。
 
-スキーマのフォルダに公開の記録 `published.json`（`references/published.schema.json`）があれば、check-schemas は公開した版の指紋といまの中身を比べる。
+スキーマのフォルダに公開の記録 `published.json`（`assets/published.schema.json`）があれば、check-schemas は公開した版の指紋といまの中身を比べる。
 
 | 状態 | check-schemas の返し方 |
 |---|---|
@@ -102,8 +102,8 @@ schema-driven check-schemas --dir <スキーマのディレクトリ>
 ### Step 2: インスタンスを作成し、x-prompt を読む
 
 ```
-schema-driven create --schema <スキーマ> --path <インスタンス>
-schema-driven prompt --schema <スキーマ> --property /<プロパティ>
+scripts/schema-driven create --schema <スキーマ> --path <インスタンス>
+scripts/schema-driven prompt --schema <スキーマ> --property /<プロパティ>
 ```
 
 create は、必須のプロパティを空のままにしてインスタンスを作り、未記入のプロパティを x-prompt と一緒に返す。インスタンスの `$schema` には、スキーマの名前を書く。**x-prompt の `write` の決まりに従って値を決める。**
@@ -115,14 +115,14 @@ create は、必須のプロパティを空のままにしてインスタンス�
 | `schema-driven/…` | エンジンが持つスキーマ（文書 ・ ページテンプレート ・ カタログ ・ 宣言など）。`--skill` を渡さなくても引ける |
 | `--skill` の Skill の名前で始まるもの | その Skill の `assets` の下の `*.schema.json` のうち、`$id` が同じもの |
 | ほかの Skill の名前で始まるもの | どの Skill のスキーマかを返して止める。その Skill を `--skill` に渡して検査し直す |
-| 名前の形でない値 | インスタンスのファイルからの相対パス。名前で指す形にする前に、承認時のスキーマの写しを指していた記録のため |
+| 名前の形でない値 | 断って「スキーマの名前でない」を返す。パスでは引かない |
 
 同じ名前のスキーマが2つあれば、どちらも使わずに止める。
 
 ### Step 3: JSON Patch で更新する
 
 ```
-schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash <読んだ時点のハッシュ値>]
+scripts/schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash <読んだ時点のハッシュ値>]
 ```
 
 未記入以外の検証エラーがあれば、書かずに `errors` を返す。直して、もう一度送る。未記入が残っているときは書いて、残りを x-prompt と一緒に返す。
@@ -130,28 +130,28 @@ schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash 
 値を読むときは get を使う。
 
 ```
-schema-driven get --path <インスタンス> --query '<JMESPath 式>'
+scripts/schema-driven get --path <インスタンス> --query '<JMESPath 式>'
 ```
 
 ### Step 4: ディレクトリを検査する
 
 ```
-schema-driven check --dir <インスタンスのディレクトリ>
+scripts/schema-driven check --dir <インスタンスのディレクトリ>
 ```
 
 **終了コード 0 は、検査を最後まで実行できたことだけを示す。** 合格かどうかは、`instances` の `errors` と `unfilled`、`findings` の `status`（合格 ・ ずれ ・ 確かめ直し など）で見る。
 
 ### Step 5: ページテンプレートを書き、描画する
 
-ページテンプレートは、節の並びと、節ごとに置く部品と、値を取る JMESPath 式だけを書いた JSON である（`references/page.schema.json`）。部品は、部品のカタログ（`references/catalog.schema.json`）の名前で呼ぶ。**HTML ・ CSS ・ JS は書かない。**
+ページテンプレートは、節の並びと、節ごとに置く部品と、値を取る JMESPath 式だけを書いた JSON である（`assets/page.schema.json`）。部品は、部品のカタログ（`assets/catalog.schema.json`）の名前で呼ぶ。**HTML ・ CSS ・ JS は書かない。**
 
 ```
-schema-driven render --dir <インスタンスのディレクトリ> --out <出力> [--pages <ページテンプレートのディレクトリ>]
+scripts/schema-driven render --dir <インスタンスのディレクトリ> --out <出力> [--pages <ページテンプレートのディレクトリ>]
 ```
 
 | インスタンスの kind | 描画のしかた |
 |---|---|
-| `document` | 基盤の文書の契約（`references/document.schema.json`）を、カタログの部品 document で描く |
+| `document` | 基盤の文書の契約（`assets/document.schema.json`）を、カタログの部品 document で描く |
 | そのほかの種類 | その種類のページテンプレート（`--pages`）が並べた部品で描く |
 | ページテンプレートが無い種類 | 1ページも書かずに失敗する |
 
@@ -162,18 +162,18 @@ schema-driven render --dir <インスタンスのディレクトリ> --out <出�
 ### Step 6: 承認を記録する
 
 ```
-schema-driven approve --dir <インスタンスのディレクトリ>
+scripts/schema-driven approve --dir <インスタンスのディレクトリ>
 ```
 
 検証エラー ・ ずれ ・ 未記入が1件でもあれば、承認記録を書かない。
 
 ### Step 7: 固有のツールを宣言する
 
-共通ツールで足りない処理だけを、Skill のフォルダの `tools.json`（`references/tools.schema.json`）で宣言する。宣言する前に、x-derive ・ x-view ・ ページテンプレートで書けないかを確かめる。
+共通ツールで足りない処理だけを、Skill のフォルダの `tools.json`（`assets/tools.schema.json`）で宣言する。宣言する前に、x-derive ・ x-view ・ ページテンプレートで書けないかを確かめる。
 
 ```
-schema-driven --skill <Skill のフォルダ> --json
-schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <値>
+scripts/schema-driven --skill <Skill のフォルダ> --json
+scripts/schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <値>
 ```
 
 宣言したツールは、Skill のフォルダの中の別の実行ファイルである。言語は問わない。エンジンは次の境界を守って起動する。
@@ -188,23 +188,6 @@ schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <�
 
 宣言したツールの中身が正しいかは、基盤は保証しない。使う側が自分の試験で確かめる。
 
-### Step 8: 既存の Skill を基盤の上へ移すとき、段階の順に作業する
-
-自前の実装を持つ Skill を基盤の上へ移すことは、1つの目的である。**決定の記録は1件にし、承認を受けたら、その記録と適用の差分を1つのコミットに入れる。** 作業は次の段階の順に進め、段階ごとに「確かめること」を通してから次へ進む。
-
-| 段階 | すること | 確かめること |
-|---|---|---|
-| 1 | concrete スキーマを、abstract の版に従う形で書く | check-schemas の指摘が0件。見本のインスタンスで、通すものと断るものの両方を確かめる |
-| 2 | ページテンプレートを、カタログの部品で書き、render で描画する | いまの画面と並べて描画し、目で見比べる。カタログに無い部品が必要なら、基盤のカタログに足すことを先に決める |
-| 3 | 固有の処理を `tools.json` で宣言し、古い実装を消し、SKILL.md を書き直す | `--skill` を渡したツールの一覧に、共通ツールと宣言したツールが並ぶ。古い形のインスタンスが残るなら、新しいツールでその状態を変えて描画できる |
-
-既存のインスタンスは、性質で扱いを分ける。
-
-| インスタンス | 扱い |
-|---|---|
-| 書き換えてよいもの | 移行のツールで新しい形へ写す。古いファイルは残さない。戻すときは、写す前のコミットから取り出す |
-| 承認時点の姿を保持するもの | 写さない。古い形のスキーマを残し、新しいスキーマは根の `kind` の有無で古いものと区別する。新しいツールは古い形も読み、状態の変更と描画を受け持つ |
-
 ---
 
 ## 出力形式
@@ -217,7 +200,7 @@ schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <�
 | 1 | 拒否した ・ 失敗した | `{"ok": false, "reason": …, "detail": …, "errors": […]}` |
 | 2 | 使い方が違う | `{"ok": false, "reason": "使い方が違う", "detail": …, "tools": […]}` |
 
-動詞なしの `--json` だけは、ツールの一覧を `{"ok": true, "findings": [], "data": {"tools": […], "skill_root": …}}` で返す。
+動詞なしの `--json` だけは、ツールの一覧を `{"ok": true, "findings": [], "data": {"tools": […]}}` で返す。
 
 ---
 
@@ -232,10 +215,7 @@ schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <�
 - **ページの見た目と操作を、使う側で持たない**。足りない部品は基盤のカタログに足す。同じ働きの部品が Skill ごとに違う形になると、読み手はページを替えるたびに見方を覚え直す
 - **部品のカタログは、デザインシステムに従う**。トークン（基礎 → 意味 → 部品の3層と明暗）と、部品ごとの状態（通常 ・ 押した ・ 焦点 ・ 無効 など）の決まりを持ち、CSS に色の直値を書かない
 - **使う側の種類を、基盤の文書の契約へ押し込まない**。決まった並びがあるものは、使う側がスキーマとページテンプレートを持つ
-- **公開した版の試験データを書き換えない**。足すだけにする。書き換えると、古い版の振る舞いが変わっても試験が検出しない
-- **移しているあいだ、古い実装が読むスキーマのファイルを書き換えない**。新しいスキーマは別のファイルにする ── 書き換えると、移し終わるまで古い実装でインスタンスを作れなくなる
-- **同じ目的の変更を、段階ごとの記録に分けない**。承認する側が、1つの目的を何度にも分けて判断することになる
-- **基盤の中心は、ファイルを直接扱わない**。入出力はポートを通す。どう禁じるかは `references/implementation.json` が持つ
+- **基盤の中心は、ファイルを直接扱わない**。入出力はポートを通す
 - **基盤はネットワークに出ない**。依存の版は1か所で決める
 
 ---
@@ -244,16 +224,13 @@ schema-driven --skill <Skill のフォルダ> <ツールの名前> --<引数> <�
 
 | 場所 | 中身 |
 |---|---|
-| `references/meta-schema.json` | abstract スキーマ v1（`schema-driven/abstract@v1`）。concrete スキーマが従う契約で、check-schemas が検査する |
-| `references/annotations.schema.json` | 注釈 x-ref（指される側の数の決まり inverse を含む）と x-derive の仕様 |
-| `references/view.schema.json` | x-view の書き方と、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote） |
-| `references/page.schema.json` | ページテンプレートの形と、描画の文脈 |
-| `references/catalog.schema.json` | 部品のカタログ。部品の名前 ・ 入力の形 ・ 使う場面 |
-| `references/catalog-design/` | 部品の HTML ・ CSS ・ 操作と、カタログが従うデザインシステム |
-| `references/document.schema.json` | 基盤の文書の契約（14種類のブロック） |
-| `references/design-system.schema.json` | デザインシステムの契約（トークンの3層と、部品ごとの状態）。描画の前に基盤が検査する |
-| `references/tools.schema.json` | 固有のツールの宣言（`tools.json`）の形 |
-| `references/published.schema.json` | 公開の記録（`published.json`）の形。公開した版の名前と指紋 |
-| `references/implementation.json` | 実装の言語での中身（構成 ・ カタログの実装 ・ 版ごとの試験データ ・ 実装の決まり）。言語を替えるときは中身を差し替える |
-| `references/implementation.schema.json` | `implementation.json` の形。差し替えた中身が、どの項目も持っているかを検査する |
-| `tool.json` ・ `mcp.json` | 起動 ・ ビルド（build）・ テスト（test）・ 整形の検査（format）のコマンド |
+| `assets/meta-schema.json` | abstract スキーマ v1（`schema-driven/abstract@v1`）。concrete スキーマが従う契約で、check-schemas が検査する |
+| `assets/annotations.schema.json` | 注釈 x-ref（指される側の数の決まり inverse を含む）と x-derive の仕様 |
+| `assets/view.schema.json` | x-view の書き方と、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote） |
+| `assets/page.schema.json` | ページテンプレートの形と、描画の文脈 |
+| `assets/catalog.schema.json` | 部品のカタログ。部品の名前 ・ 入力の形 ・ 使う場面 |
+| `assets/catalog-design/` | 部品の HTML ・ CSS ・ 操作と、カタログが従うデザインシステム |
+| `assets/document.schema.json` | 基盤の文書の契約（14種類のブロック） |
+| `assets/design-system.schema.json` | デザインシステムの契約（トークンの3層と、部品ごとの状態）。描画の前に基盤が検査する |
+| `assets/tools.schema.json` | 固有のツールの宣言（`tools.json`）の形 |
+| `assets/published.schema.json` | 公開の記録（`published.json`）の形。公開した版の名前と指紋 |
