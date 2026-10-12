@@ -3,22 +3,18 @@
  "kind": "board",
  "id": "concrete-schema-roles",
  "title": "concrete スキーマを書くための枠と案内と検査をだれが持つか",
- "round": 1,
+ "round": 2,
  "queue": [
   {
-   "topic": "Q1",
-   "why": "利用者と3つの層の整理が合ったので、契約と責務として決められる"
-  },
-  {
-   "topic": "Q2",
-   "why": "Q1 の層の上で、②を③と同じ道筋に載せられるかを、試作で確かめられた"
+   "topic": "Q3",
+   "why": "②を③と同じ道筋で基盤が扱うと決まったので、creator に何を持たせるかを目的から決められる"
   }
  ],
  "topics": [
   {
    "id": "Q1",
    "name": "3つの層と、concrete スキーマの契約と責務",
-   "status": "open",
+   "status": "settled",
    "question": "abstract スキーマ ・ concrete スキーマ ・ エンティティのインスタンスのそれぞれについて、中身をだれが書き、基盤が何を出すか。concrete スキーマはどんな契約を守り、どんな責務を持つか",
    "answer": {
     "text": "基盤は②（concrete スキーマ）の中身も③（エンティティ）の値も作らず、どちらにも同じ共通ツールで、枠 ・ 書き方の案内 ・ 契約の検査だけを出す。②は abstract の契約を守り、何を表し ・ 持ち ・ どう書かせ ・ どう見せるかを自分で決める。",
@@ -97,6 +93,12 @@
      "basis": "meta-schema.json の $id の x-prompt は never-reuse（一度使った名前を使い回さない）を持ち、その判定はエンジンの check-schemas が公開の記録の指紋で行う。作法は meta-schema に、判定はエンジンに分かれている",
      "tag": "measured",
      "source": "src/schema-driven/schemas/meta-schema.json と core/src/domain/schema_rules.rs を読んだ（2026-10-12）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「Q1とQ2は承認します」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点1 ・ 論点2の承認、2026-10-12）"
     }
    ],
    "rejected": [
@@ -144,7 +146,7 @@
   {
    "id": "Q2",
    "name": "②を③と同じ道筋で扱えるか",
-   "status": "open",
+   "status": "settled",
    "question": "concrete スキーマ（②）を、エンティティのインスタンス（③）と同じ「スキーマのインスタンス」として、同じ共通ツール ・ 同じ引数で、枠 ・ 案内 ・ 書き進め ・ 検査ができるようにするか",
    "answer": {
     "text": "する。エンジンに、x-abstract を持つ文書はその abstract を自分のスキーマとして扱う、という規則を1つ持たせる。②は create ・ prompt ・ update ・ get ・ delete ・ check-schemas で、③と同じように扱う。",
@@ -223,6 +225,12 @@
      "basis": "check と approve は *.schema.json を対象にしない。②に対しては、試作で approve が「承認するインスタンスが無い」を返し、render は0ページだった",
      "tag": "measured",
      "source": "試作で試した（2026-10-12）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「Q1とQ2は承認します」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点1 ・ 論点2の承認、2026-10-12）"
     }
    ],
    "rejected": [
@@ -265,10 +273,95 @@
   {
    "id": "Q3",
    "name": "creator の役割",
-   "status": "waiting",
-   "question": "skills-creator と agents creator は、何の目的で何を持つか",
+   "status": "open",
+   "question": "skills-creator と agents creator は、何の目的で、何を持つか",
    "answer": {
-    "text": "②の扱いが決まったら、目的（Agent Skills ・ Agent の形にすること）から書く。"
+    "text": "creator の目的は、基盤の上に作るものを Agent Skills ・ Agent の形にして、どの AI ツールでも呼べて手順どおりに動く状態で配れるようにすることで、持つのはその形の雛形と検査だけにする。",
+    "details": [
+     "skills-creator の雛形は SKILL.md ・ tool.json ・ REFERENCE.md の3つにする。スキーマ ・ ページテンプレート ・ tools.json の雛形は消す",
+     "scaffold は②を置かない。②は、作る人が基盤の create で作る。scaffold が基盤の create を呼んで包むこともしない",
+     "check は、SKILL.md ・ tool.json ・ フォルダの並び ・ 配る前の確かめを見る。assets/ の②は、いまと同じく基盤の check-schemas の結果を返す",
+     "agents creator も同じ形にし、Agent としての形の雛形と検査だけを持つ",
+     "ボード skills-creator-rebuild の論点2（scaffold はスキーマの雛形を置く）は、この答えで改める"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "skills-creator が持つもの ・ 見るものの、いまと変更後。",
+     "text": "skills-creator の scaffold が置くもの\n\n  いま（assets/templates/ の雛形6つ）\n    SKILL.md.tmpl ・ tool.json.tmpl ・ REFERENCE.md.tmpl      Agent Skills の形\n    schema.json.tmpl ・ page.json.tmpl ・ tools.json.tmpl     基盤の契約（abstract ・ page ・ tools）の写し\n\n  変更後（雛形3つ）\n    SKILL.md.tmpl ・ tool.json.tmpl ・ REFERENCE.md.tmpl      Agent Skills の形だけ\n    ②（スキーマ ・ ページテンプレート ・ tools.json）は、作る人が基盤の create で作る\n\nskills-creator の check が見るもの\n\n  SKILL.md（Agent Skills の仕様 ・ 本文の決まり）・ tool.json ・ フォルダの並び ・ 配る前の確かめ\n  assets/ の②は、基盤の check-schemas の結果をそのまま返す（いまと同じ）\n\nagents creator（これから作る）\n  Agent としての形だけを持つ。②は、同じく基盤の create と check-schemas に任せる"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "creator の役割を、残りものではなく目的から書くこと",
+     "basis": "対応：手段だけでなく、その目的を考える ・ 理由：N対1 の関係があるので、目的を考えると複数の手段が見えてきて、視野を広げて選択肢を増やす考え方につながる",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 means-and-ends"
+    },
+    {
+     "supports": "creator が基盤の契約を受け入れ、写しを持たないこと",
+     "basis": "条件：上流の提供内容が、下流のニーズを十分に満たす ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる",
+     "tag": "primary",
+     "source": "ddd-advisor の回答（2026-10-12）── 判断基準 conformist"
+    },
+    {
+     "supports": "scaffold が基盤の create を包まないこと",
+     "basis": "非対称性：「『ない』と『ある』の非対称性」 ・ 強い側：「ある」のほうが強い ・ 放っておくとどうなるか：一度「ある」になったものは、「ない」へなかなか戻らない",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 do-not-mix"
+    },
+    {
+     "supports": "②を基盤の create で作ること",
+     "basis": "②は create ・ prompt ・ update ・ get ・ delete ・ check-schemas で、③と同じように扱う",
+     "tag": "rule",
+     "source": "論点2（2026-10-12 決着）"
+    },
+    {
+     "supports": "消す雛形が基盤の契約の写しであること",
+     "basis": "skills-creator の雛形6つのうち、schema.json.tmpl ・ page.json.tmpl ・ tools.json.tmpl は、基盤の契約（abstract ・ page ・ tools）の形を写したものである",
+     "tag": "measured",
+     "source": ".claude/skills/skills-creator/assets/templates/ を読んだ（2026-10-12）"
+    },
+    {
+     "supports": "creator の目的",
+     "basis": "skills-creator の description：「Agent Skills の公開の仕様に従う Skill を作るときと、作った Skill がどの AI ツールでも呼ばれて手順どおりに動くかを確かめるときに使う」",
+     "tag": "measured",
+     "source": ".claude/skills/skills-creator/SKILL.md の先頭の欄（2026-10-12）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "scaffold が基盤の create を呼んで、②の枠も置く",
+     "reason": "②を作る入口が、基盤と creator の2つになる。中身は基盤の create と同じである"
+    },
+    {
+     "option": "スキーマ ・ ページテンプレート ・ tools.json の雛形を、基盤の版に合わせて直して残す",
+     "reason": "基盤の版を上げるたびに、creator の写しも直すことになる"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "creator は形の雛形と検査だけを持つ",
+      "cost": "skills-creator の雛形3つと、scaffold の --kind ・ --pages ・ --tools と、その試験データを消す"
+     }
+    ],
+    "assumptions": [
+     "Agent の形（agents creator が持つもの）は、agents creator のボードで決める"
+    ],
+    "out_of_scope": [
+     {
+      "item": "Agent としての形の中身",
+      "treatment": "later",
+      "note": "agents creator のボードで決める。この答えは、形だけを持つという分け方を決めるだけで、中身に左右されない"
+     },
+     {
+      "item": "外の作業：schema-driven に規則を入れ、skills-creator の雛形と scaffold を直す ACDR を出す",
+      "treatment": "later"
+     }
+    ]
    }
   }
  ],
