@@ -273,12 +273,12 @@
    "status": "open",
    "question": "共有のデザインシステムと基盤のエンジンを、使う Skill へどう届け、版の食い違いをどう見つけるか",
    "answer": {
-    "text": "skills-creator の配布物を作る手順が、各 Skill のフォルダへ、入口 ・ その Skill の実行ファイル ・ 基盤のエンジンの写し ・ 共有のデザインシステムの写しを入れる。写しごとの版と SHA-256 を記録し、全 Skill の版が1つであることを検査する。",
+    "text": "skills-creator の配布物を作る手順が、各 Skill のフォルダへ、入口 ・ 基盤のエンジンの写し ・ 共有のデザインシステムの写しを入れる。写しごとの版と SHA-256 を記録し、全 Skill の版が1つであることを検査する。",
     "details": [
      "配布物を作る手順は skills-creator が持つ。creator は Agent Skills としての形と、配る前の検査を持つと決めてある",
      "写しにするのは、基盤のエンジン（scripts/schema-driven）と、共有のデザインシステム（assets/design-system/）である。どちらも git では追跡せず、配布物の段で入れる",
      "その Skill の正本（SKILL.md ・ スキーマ ・ ページテンプレート ・ その Skill だけが使う部品）は、Skill のフォルダで git で追跡する",
-     "その Skill の実行ファイル（入口と固有の処理）は、ソースを src/<Skill>/ に置き、配布物の段でビルドして scripts/ に入れる",
+     "入口（その Skill だけの能力を中に持つ）は、ソースを src/<Skill>/ に置き、配布物の段でビルドして scripts/ に入れる。その Skill の実行ファイルは入口の1つだけである",
      "配布物の段で、写しごとの版と SHA-256 を、Skill のフォルダの dist.json に書く。check の配布物の段は、dist.json と中身が合うかを見る",
      "リポジトリの全 Skill について、エンジンの版と共有のデザインシステムの版がそれぞれ1つであることを検査する",
      "このリポジトリの中で使うときも、同じ手順で各 Skill のフォルダへ入れる。手で写さない",
@@ -290,7 +290,7 @@
      "kind": "code",
      "language": "text",
      "caption": "配布物の段で作る、1つの Skill のフォルダと検査。",
-     "text": "配布物の段で作る、1つの Skill のフォルダ\n\n  .claude/skills/brainstorming-board/\n    SKILL.md ・ LICENSE ・ tool.json         正本（git で追跡する）\n    assets/board.schema.json ・ pages/       その Skill の正本（git で追跡する）\n    assets/catalog/                          その Skill だけが使う部品（git で追跡する）\n    assets/design-system/                    共有のデザインシステムの写し（配布物の段で入る）\n    scripts/brainstorming-board              入口（配布物の段で入る）\n    scripts/schema-driven                    基盤のエンジンの写し（配布物の段で入る）\n    scripts/advance など                     その Skill の実行ファイル（配布物の段で入る）\n    dist.json                                写しごとの版と SHA-256（配布物の段で書く）\n\n  検査\n    skills-creator check --level dist        dist.json の SHA-256 が中身と合う\n    リポジトリの全 Skill を見る検査          エンジンと共有のデザインシステムの版が、全 Skill で1つ"
+     "text": "配布物の段で作る、1つの Skill のフォルダ\n\n  .claude/skills/brainstorming-board/\n    SKILL.md ・ LICENSE ・ tool.json         正本（git で追跡する）\n    assets/board.schema.json ・ pages/       その Skill の正本（git で追跡する）\n    assets/catalog/                          その Skill だけが使う部品（git で追跡する）\n    assets/design-system/                    共有のデザインシステムの写し（配布物の段で入る）\n    scripts/brainstorming-board              入口。その Skill だけの能力も中に持つ（配布物の段で入る）\n    scripts/schema-driven                    基盤のエンジンの写し。入口とは別の実行ファイル（配布物の段で入る）\n    dist.json                                写しごとの版と SHA-256（配布物の段で書く）\n\n  検査\n    skills-creator check --level dist        dist.json の SHA-256 が中身と合う\n    リポジトリの全 Skill を見る検査          エンジンと共有のデザインシステムの版が、全 Skill で1つ"
     }
    ],
    "grounds": [
@@ -381,6 +381,7 @@
      "その Skill だけの能力（例：ブレストボードの advance ・ inspect ・ serve）は、入口が実行する。JSON の読み書きは基盤を呼ぶ",
      "SKILL.md は基盤のコマンドを書かない。基盤の呼び方が変わっても、直すのは入口の中だけである",
      "--skill は基盤の内部の引数として残す。呼ぶのは入口だけである",
+     "基盤のエンジンは入口に取り込まず、別の実行ファイル（scripts/schema-driven）のまま呼ぶ。基盤だけを新しくするときは、その写しを差し替えるだけで済み、入口はどの言語で書いてもよい",
      "入口は、その Skill のコードで、言語は問わない。このリポジトリでは Rust で書き、ソースは src/<Skill>/ に置く。雛形は skills-creator の scaffold が置く",
      "SKILL.md の手順が scripts/schema-driven を直接呼ぶ、という決まりは、この答えで改める"
     ]
@@ -419,6 +420,18 @@
      "source": "ACDR 0175（承認）"
     },
     {
+     "supports": "基盤のエンジンを別の実行ファイルのまま呼ぶこと",
+     "basis": "「スキーマ駆動の部分のbinの内容が変わったら中身を差し替えるだけで済まなくならない？」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
+    },
+    {
+     "supports": "基盤をライブラリとして取り込まないこと",
+     "basis": "実行ファイルは、基盤をライブラリとして取り込まず、scripts/schema-driven を実行ファイルとして呼ぶ",
+     "tag": "rule",
+     "source": "ボード skills-creator-rebuild の論点4（決着）"
+    },
+    {
      "supports": "改める決まり",
      "basis": "SKILL.md の手順は、エンジンを Skill のフォルダからの相対パス（scripts/schema-driven）で呼ぶ",
      "tag": "rule",
@@ -439,6 +452,14 @@
     {
      "option": "基盤が、Skill の能力も呼べる入口になる（やめた宣言したツールの形）",
      "reason": "入口の持ち主が基盤になり、Skill の能力の形を基盤が知ることになる"
+    },
+    {
+     "option": "基盤のエンジンをライブラリとして入口に取り込み、実行ファイルを1つにする",
+     "reason": "基盤だけを新しくするたびに全 Skill の入口をビルドし直すことになり、入口を Rust でしか書けなくなる。基盤をライブラリとして取り込まない決まり（ボード skills-creator-rebuild の論点4）にも反する"
+    },
+    {
+     "option": "その Skill だけの能力を、入口とは別の実行ファイル（scripts/advance など）に分ける",
+     "reason": "SKILL.md が呼ぶ先が増え、入口を1つにした意味が薄れる"
     },
     {
      "option": "エンジンが自分の置き場所から Skill のフォルダを決め、SKILL.md から直接呼ぶ",
