@@ -16,16 +16,19 @@ on:
 permissions:
   contents: read
 
+# ランナーの image は版で固定する（-latest は予告して別の版へ移る）。
+# actions は Node.js 24 で動く版を使う（Node.js 20 は非推奨）。
+
 jobs:
   build:
     strategy:
       fail-fast: true
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             ext: tar.gz
-          - os: windows-latest
+          - os: windows-2025
             target: x86_64-pc-windows-msvc
             ext: zip
           - os: macos-14
@@ -36,7 +39,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: ビルドのツールを用意する
         run: |
           case "${{ matrix.target }}" in
@@ -82,7 +85,7 @@ jobs:
           mkdir -p release
           if [ "${{ matrix.ext }}" = zip ]; then (cd dist && 7z a -tzip "../release/$name.zip" schema-driven >/dev/null)
           else tar -czf "release/$name.tar.gz" -C dist schema-driven; fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: schema-driven-${{ matrix.target }}
           path: release/
@@ -92,9 +95,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
-          - os: windows-latest
+          - os: windows-2025
             target: x86_64-pc-windows-msvc
           - os: macos-14
             target: universal2-apple-darwin
@@ -103,8 +106,8 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: schema-driven-${{ matrix.target }}
           path: release
@@ -120,14 +123,14 @@ jobs:
   publish:
     if: github.ref_type == 'tag'
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # 証明は、鍵を持たない GitHub の artifact attestations で付ける。証明に必要な権限は、このジョブだけに渡す
     permissions:
       contents: write
       id-token: write
       attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: schema-driven-*
           path: release
@@ -152,9 +155,9 @@ jobs:
   receive:
     if: github.ref_type == 'tag'
     needs: publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 試験 ── 公開した Release から版を指して取り直し、受け取る側の手順を通す
         env:
           GH_TOKEN: ${{ github.token }}

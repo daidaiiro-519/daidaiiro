@@ -1,0 +1,101 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0179",
+ "title": "公開のワークフローのランナーと actions の版を固定する",
+ "date": "2026-10-13",
+ "status": "accepted",
+ "decision": "基盤の公開のワークフローは、ランナーの image を版で固定し、actions は Node.js 24 で動く版を使う。",
+ "why": "schema-driven-v0.1.0 の公開のとき、GitHub が2つの予告を出した。1つは、checkout ・ upload-artifact ・ download-artifact の v4 が Node.js 20 を対象にしていること。Node.js 20 は非推奨で、いまは Node.js 24 で強制して動かしている。もう1つは、ubuntu-latest が 2026-10-19 から Ubuntu 26.04 へ移り、2026-11-19 までに移り終えること（actions/runner-images の issue 14748）。どちらも、いまは動くが、予告どおりに変わった時点で、こちらが何も変えていないのに公開が壊れうる。公開は ACDR 0177 で、テストした版がそのまま配る版になるよう決めたので、ランナーと actions も、こちらが選んだ版で動かす。",
+ "shift": [
+  {
+   "what": "ランナーの image",
+   "from": "ubuntu-latest ・ windows-latest ・ macos-14",
+   "to": "ubuntu-24.04 ・ windows-2025 ・ macos-14。上げるときは、こちらで版を変えて workflow_dispatch で通す"
+  },
+  {
+   "what": "actions の版",
+   "from": "checkout@v4 ・ upload-artifact@v4 ・ download-artifact@v4（Node.js 20）",
+   "to": "checkout@v7 ・ upload-artifact@v7 ・ download-artifact@v8（Node.js 24）。attest@v4 はもとから Node.js 24"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "公開のワークフローを動かすランナーと actions の、変更前と変更後。",
+ "alternatives": [
+  {
+   "option": "何もせず、予告どおりに変わってから直す",
+   "why_not": "変わった時点で公開が壊れても、こちらの変更が無いので原因を探す手間が増える。公開の途中で壊れると、版を上げて出し直すことになる"
+  },
+  {
+   "option": "actions を commit の SHA で固定する",
+   "why_not": "更新を追う手間が大きい。今回の目的は、予告された変化の前に、こちらで選んだ版へ移ることである。SHA での固定は、供給の安全の決定として別に決める"
+  },
+  {
+   "option": "ubuntu-26.04 へ先に移る",
+   "why_not": "Ubuntu 26.04 での musl のビルドを、まだ一度も試していない。いま通っている 24.04 に固定し、移るときは別に試す"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "workflow",
+   "tab": "schema-driven.yml",
+   "file": ".github/workflows/schema-driven.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# ランナーの image は版で固定する（-latest は予告して別の版へ移る）。",
+     "before": "（無い）",
+     "why": "固定する理由を、ワークフローの中に書いた"
+    },
+    {
+     "find": "- os: ubuntu-24.04",
+     "before": "- os: ubuntu-latest",
+     "why": "ubuntu-latest は 2026-10-19 から Ubuntu 26.04 へ移る。いま通っている 24.04 に固定した"
+    },
+    {
+     "find": "- os: windows-2025",
+     "before": "- os: windows-latest",
+     "why": "Windows も、-latest が別の版へ移るときに、こちらの変更なしで壊れないようにした"
+    },
+    {
+     "find": "- uses: actions/checkout@v7",
+     "before": "- uses: actions/checkout@v4",
+     "why": "v4 は Node.js 20 を対象にする。v5 以降が Node.js 24 で、最新の v7 にした"
+    },
+    {
+     "find": "- uses: actions/upload-artifact@v7",
+     "before": "- uses: actions/upload-artifact@v4",
+     "why": "v6 以降が Node.js 24。v7 で増えたのは、zip にせず1ファイルを上げる任意の設定で、使い方は変わらない"
+    },
+    {
+     "find": "- uses: actions/download-artifact@v8",
+     "before": "- uses: actions/download-artifact@v4",
+     "why": "v7 以降が Node.js 24。v8 は、ハッシュが合わないときに既定で失敗する。配布物を取り違えないので、こちらの意図に合う"
+    },
+    {
+     "find": "runs-on: ubuntu-24.04",
+     "before": "runs-on: ubuntu-latest",
+     "why": "publish と receive のランナーも同じ版に固定した"
+    },
+    {
+     "find": "- os: ubuntu-24.04",
+     "before": "- os: ubuntu-latest",
+     "why": "verify のランナーも、build と同じ版に固定した"
+    },
+    {
+     "find": "runs-on: ubuntu-24.04",
+     "before": "runs-on: ubuntu-latest",
+     "why": "receive のランナーも同じ版に固定した。checkout も v7 にした"
+    },
+    {
+     "find": "- uses: actions/download-artifact@v8",
+     "before": "- uses: actions/download-artifact@v4",
+     "why": "publish が配布物を集めるところも v8 にした。ハッシュが合わなければここで止まる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "workflow": "cc3bf5c22d1db8efd912b7f1f9d94fe4099a5e2b0399aab4305196f3f31de4ac"
+ }
+}
