@@ -133,6 +133,44 @@ fn reason_of(error: &jsonschema::ValidationError) -> String {
 }
 
 impl Schema {
+    /// contains の誤りを、合う要素の数と minContains ・ maxContains で言い分ける。
+    /// 検証器はどちらの誤りも同じ種類（Contains）で返すので、要素を数え直す。数えられなければ None。
+    fn contains_reason(&self, error: &jsonschema::ValidationError) -> Option<String> {
+        if !matches!(
+            error.kind(),
+            jsonschema::error::ValidationErrorKind::Contains
+        ) {
+            return None;
+        }
+        let path = error.schema_path().to_string();
+        let parent = path.rsplit_once('/').map_or("", |(parent, _)| parent);
+        let keywords = self.root.pointer(parent)?;
+        let validator = jsonschema::validator_for(keywords.get("contains")?).ok()?;
+        let matched = error
+            .instance()
+            .as_array()?
+            .iter()
+            .filter(|item| validator.is_valid(item))
+            .count();
+        let min = keywords
+            .get("minContains")
+            .and_then(Value::as_u64)
+            .unwrap_or(1);
+        if let Some(max) = keywords.get("maxContains").and_then(Value::as_u64) {
+            if matched as u64 > max {
+                return Some(format!(
+                    "contains に合う要素が {matched} 個あり、maxContains の {max} を超えている"
+                ));
+            }
+        }
+        if matched == 0 && min == 1 {
+            return Some("contains のスキーマに合う要素が無い".to_owned());
+        }
+        Some(format!(
+            "contains に合う要素が {matched} 個で、minContains の {min} より少ない"
+        ))
+    }
+
     /// `name` はスキーマのファイル名、`siblings` は同じディレクトリのスキーマ（ファイル名と内容）。
     pub fn new(name: &str, root: Value, siblings: Vec<(String, Value)>) -> Self {
         Self {
@@ -190,7 +228,12 @@ impl Schema {
                 if let Ok(unfilled) = Unfilled::new(&pointer) {
                     out.unfilled.push(unfilled);
                 }
-            } else if let Ok(validation_error) = ValidationError::new(&at, &reason_of(&error)) {
+            } else if let Ok(validation_error) = ValidationError::new(
+                &at,
+                &self
+                    .contains_reason(&error)
+                    .unwrap_or_else(|| reason_of(&error)),
+            ) {
                 out.errors.push(validation_error);
             }
         }

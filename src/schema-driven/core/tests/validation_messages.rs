@@ -127,3 +127,33 @@ fn the_place_stays_a_json_pointer() {
         )]
     );
 }
+
+#[test]
+fn contains_tells_too_many_from_too_few() {
+    let schema = |extra: Value| {
+        let mut base = json!({"type": "array", "contains": {"const": "open"}});
+        for (key, value) in extra.as_object().unwrap() {
+            base[key] = value.clone();
+        }
+        base
+    };
+    assert_eq!(
+        reason(schema(json!({})), json!(["done"])),
+        "contains のスキーマに合う要素が無い"
+    );
+    assert_eq!(
+        reason(schema(json!({"maxContains": 1})), json!(["open", "open"])),
+        "contains に合う要素が 2 個あり、maxContains の 1 を超えている"
+    );
+    assert_eq!(
+        reason(schema(json!({"minContains": 2})), json!(["open", "done"])),
+        "contains に合う要素が 1 個で、minContains の 2 より少ない"
+    );
+    assert_eq!(
+        reason(
+            schema(json!({"minContains": 1, "maxContains": 2})),
+            json!(["open", "open", "open"])
+        ),
+        "contains に合う要素が 3 個あり、maxContains の 2 を超えている"
+    );
+}

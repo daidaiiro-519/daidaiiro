@@ -136,3 +136,23 @@ fn a_concrete_schema_is_written_with_update_and_then_makes_entities() {
         json!({"$schema": "demo/term@v1"})
     );
 }
+
+#[test]
+fn check_schemas_returns_how_to_write_a_missing_field() {
+    let dir = common::Scratch::new("concrete-findings");
+    assert_eq!(create_schema(&dir).0, 0);
+    let (code, out) = run(&dir, &["check-schemas", "--dir", "demo/assets"]);
+    assert_eq!(code, 0, "{out}");
+    let title = out["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["at"] == "/title")
+        .unwrap_or_else(|| panic!("/title の指摘が無い：{out}"));
+    assert!(
+        title["prompt"]["write"]
+            .as_array()
+            .is_some_and(|rules| !rules.is_empty()),
+        "{title}"
+    );
+}

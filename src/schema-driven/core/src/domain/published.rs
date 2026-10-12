@@ -91,6 +91,7 @@ pub fn check(
                     "{name} の中身が、公開したときと違う。中身を変えるなら、元に戻して {} の新しい名前で足す",
                     next_version(name)
                 ),
+                prompt: None,
             }),
             None => unpublished.push(Unpublished {
                 name: name.to_owned(),
@@ -104,6 +105,7 @@ pub fn check(
             at: "/schemas".into(),
             rule: "公開した版が無い".into(),
             message: format!("{name} は公開した版なのに、このフォルダに無い。公開した版は消さない"),
+            prompt: None,
         });
     }
     (findings, unpublished)

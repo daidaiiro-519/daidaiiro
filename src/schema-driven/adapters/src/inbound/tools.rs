@@ -325,7 +325,13 @@ fn call_base(
             let list: Vec<Value> = checked
                 .findings
                 .iter()
-                .map(|finding| json!({"schema": finding.schema, "at": finding.at, "rule": finding.rule, "message": finding.message}))
+                .map(|finding| {
+                    let mut out = json!({"schema": finding.schema, "at": finding.at, "rule": finding.rule, "message": finding.message});
+                    if let Some(prompt) = &finding.prompt {
+                        out["prompt"] = prompt.clone();
+                    }
+                    out
+                })
                 .collect();
             let unpublished: Vec<Value> = checked
                 .unpublished

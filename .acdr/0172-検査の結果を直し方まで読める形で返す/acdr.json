@@ -1,0 +1,176 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0172",
+ "title": "検査の結果を、直し方まで読める形で返す",
+ "date": "2026-10-12",
+ "status": "accepted",
+ "decision": "検査の結果は、何がどれだけ契約を外れたかと、直し方の案内まで返す。",
+ "why": "基盤の check は、配列の要素が maxContains を超えたときも、contains に合う要素が無いと返していた。JSON Schema を検証する crate（jsonschema）が、どちらの誤りも同じ種類で返すためである。要素が多すぎるのに無いと言われると、読んだ人も AI も逆の向きに直す。check-schemas の指摘も、どこが何かだけで、直し方は別に prompt を引かないと分からなかった。ボード concrete-schema-roles で、指摘から案内まで引けるかは作るときに確かめるとしていた。書き方の作法の正本は meta-schema の x-prompt なので、指摘にその案内を添える。",
+ "shift": [
+  {
+   "what": "contains の誤りの文",
+   "from": "要素が多すぎても少なすぎても「contains のスキーマに合う要素が無い」",
+   "to": "合う要素を数え直し、maxContains を超えた ・ minContains より少ない ・ 1つも無い、を言い分ける"
+  },
+  {
+   "what": "check-schemas の指摘",
+   "from": "schema ・ at ・ rule ・ message だけを返す",
+   "to": "欠けた欄や誤った値の指摘には、meta-schema のその欄の x-prompt を prompt として添える"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "検査の結果を、同じ観点の3行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "jsonschema が返す誤りの場所（maxContains か minContains か）だけで文を分ける",
+   "why_not": "maxContains だけを書いたスキーマでは、合う要素が0個のときも同じ場所で返る。場所だけでは、多すぎるか無いかを言い分けられない"
+  },
+  {
+   "option": "指摘に案内を添えず、prompt ツールで引いてもらう",
+   "why_not": "指摘のたびに、どの欄の案内を引くかを読み手が決めることになる。案内の正本は同じ meta-schema なので、添えても二重にならない"
+  },
+  {
+   "option": "エンジンの検査の決まり（x-ref の指す先など）の指摘にも案内を添える",
+   "why_not": "その作法は meta-schema の根の x-prompt にまとめて書いてあり、どの1件かを指摘から決められない。いまは欄の指摘だけに添える"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "schema",
+   "tab": "schema.rs",
+   "file": "src/schema-driven/core/src/domain/schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn contains_reason(&self, error: &jsonschema::ValidationError) -> Option<String> {",
+     "before": "（無い）",
+     "why": "jsonschema は maxContains ・ minContains の誤りも Contains として返すので、合う要素を数え直して言い分ける"
+    },
+    {
+     "find": ".contains_reason(&error)",
+     "before": "} else if let Ok(validation_error) = ValidationError::new(&at, &reason_of(&error)) {",
+     "why": "contains の誤りだけ、数え直した文を使う。ほかの誤りの文は変えない"
+    }
+   ]
+  },
+  {
+   "key": "rules",
+   "tab": "schema_rules.rs",
+   "file": "src/schema-driven/core/src/domain/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub prompt: Option<Value>,",
+     "before": "（無い）",
+     "why": "指摘に、直し方の案内を添える欄を足した"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: meta.prompt(unfilled.property()),",
+     "before": "（無い）",
+     "why": "欠けた欄の指摘に、meta-schema のその欄の x-prompt を添える"
+    },
+    {
+     "find": "prompt: meta.prompt(error.property()),",
+     "before": "（無い）",
+     "why": "値が契約に合わない指摘にも、その欄の x-prompt を添える"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    }
+   ]
+  },
+  {
+   "key": "published",
+   "tab": "published.rs",
+   "file": "src/schema-driven/core/src/domain/published.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    },
+    {
+     "find": "prompt: None,",
+     "before": "（無い）",
+     "why": "案内の無い指摘は prompt を持たない。欄を足したので、指摘を作る所すべてに書いた"
+    }
+   ]
+  },
+  {
+   "key": "tools",
+   "tab": "tools.rs（受け口）",
+   "file": "src/schema-driven/adapters/src/inbound/tools.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "if let Some(prompt) = &finding.prompt {",
+     "before": "\"check-schemas\" の指摘は {\"schema\", \"at\", \"rule\", \"message\"} だけを返していた",
+     "why": "案内のある指摘だけ、prompt を足して返す"
+    }
+   ]
+  },
+  {
+   "key": "messages",
+   "tab": "validation_messages.rs",
+   "file": "src/schema-driven/core/tests/validation_messages.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn contains_tells_too_many_from_too_few() {",
+     "before": "（無い）",
+     "why": "無い ・ 多すぎる ・ 少なすぎる ・ 両方を書いたときの4通りの文を固定する"
+    }
+   ]
+  },
+  {
+   "key": "concrete",
+   "tab": "concrete_schema.rs",
+   "file": "src/schema-driven/cli/tests/concrete_schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn check_schemas_returns_how_to_write_a_missing_field() {",
+     "before": "（無い）",
+     "why": "作ったばかりの②の /title の指摘に、書き方の案内が添わることを固定する"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "schema": "17041c3cd6814ab58e9488858d4e60ccfeeb4a20287613c4b6ee6ca71a840b0f",
+  "rules": "8806e204d378dcab14bb265bb79a29c888aa3a83825667d8553f60645c98a3fb",
+  "published": "690c4460f91ee911565e158361ca92779d6ca6f594ef7cc1dab954182f65d7a0",
+  "tools": "8e5013ca734fed785e3120dc3144d3e2e08cc274840cbcf90d5f3952c38c3a23",
+  "messages": "f53b8818200b5bbfe30877ce5f5ae84305061d8405e6c9be2794c8798dd1bf55",
+  "concrete": "09b682ce4bf945d2365122ce4a9d9034380c24b177ed9194d9377fabf5d9d43a"
+ }
+}

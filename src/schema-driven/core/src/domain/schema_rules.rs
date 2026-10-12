@@ -39,6 +39,8 @@ pub struct SchemaFinding {
     /// 破った契約
     pub rule: String,
     pub message: String,
+    /// 直し方の案内（契約の欄の x-prompt）。案内の無い指摘は None
+    pub prompt: Option<Value>,
 }
 
 fn parse_json(text: &str) -> Value {
@@ -199,6 +201,7 @@ fn walk(
             at,
             rule: rule.to_owned(),
             message,
+            prompt: None,
         })
     };
     match value {
@@ -371,6 +374,7 @@ pub fn check_schemas(
                     at: "/x-abstract".into(),
                     rule: "版が無い".into(),
                     message: format!("x-abstract に、従う版 {} を書く", contract::V1),
+                    prompt: None,
                 });
                 continue;
             }
@@ -383,6 +387,7 @@ pub fn check_schemas(
                         "{written} はこのエンジンが扱う版ではない（扱うのは {}）。新しい版なら、エンジンを新しくする",
                         contract::V1
                     ),
+                    prompt: None,
                 });
                 continue;
             }
@@ -395,6 +400,7 @@ pub fn check_schemas(
                         at: unfilled.property().to_owned(),
                         rule: "メタスキーマ".into(),
                         message: format!("{} が無い", unfilled.property()),
+                        prompt: meta.prompt(unfilled.property()),
                     });
                 }
                 for error in &validation.errors {
@@ -403,6 +409,7 @@ pub fn check_schemas(
                         at: error.property().to_owned(),
                         rule: "メタスキーマ".into(),
                         message: error.reason().to_owned(),
+                        prompt: meta.prompt(error.property()),
                     });
                 }
             }
@@ -411,6 +418,7 @@ pub fn check_schemas(
                 at: String::new(),
                 rule: "メタスキーマ".into(),
                 message: format!("検査できない（{}）", error.0),
+                prompt: None,
             }),
         }
         let declared: BTreeSet<String> = schema
@@ -431,6 +439,7 @@ pub fn check_schemas(
                         at: "/properties/$schema/const".into(),
                         rule: "インスタンスが指す名前".into(),
                         message: format!("{named} は、このスキーマの $id {id} と違う"),
+                        prompt: None,
                     });
                 }
             }
@@ -448,6 +457,7 @@ pub fn check_schemas(
                     at: "/properties/id".into(),
                     rule: "参照される種類の id".into(),
                     message: format!("{kind} はほかのスキーマの x-ref が指すので、id を持つ"),
+                    prompt: None,
                 });
             }
         }
