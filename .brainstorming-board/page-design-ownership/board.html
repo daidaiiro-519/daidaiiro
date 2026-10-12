@@ -1,0 +1,342 @@
+<title>ページのデザインシステムと部品のカタログをだれが持つか</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="page-design-ownership" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　ページのデザインシステムと部品のカタログをだれが持つか　/　Round 1</p><h1>ページのデザインシステムと部品のカタログをだれが持つか</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q1</span>基盤と concrete の分け目<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q2</span>そろえる役の持ち主<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="wait"><span class="tn">Q3</span>届け方と版<span class="st wait">待ち</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>concrete が表現を足しても基盤を直さず、複数の Skill の頁を同じ見た目で読めるように、ページのデザインシステムと部品のカタログの持ち主と、基盤に残すものを決める。</p></div><div class="front"><h3>いま見るのは 2 件だけである</h3><ol><li><button class="jump" data-go="p1">Q1　基盤と concrete の分け目</button><br><span class="why">カタログを基盤が持つ形が、基盤のコンセプト（契約は基盤、中身は concrete）から外れていると分かった</span></li><li><button class="jump" data-go="p2">Q2　そろえる役の持ち主</button><br><span class="why">見た目をそろえる方針はそのままに、そろえる役の持ち主だけを決め直せる</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q1</span></td><td>ページのデザインシステムと部品のカタログのうち、何を基盤の変わらない契約にし、何を concrete の中身にするか</td><td><span class="st now">いま見る</span></td><td><b>基盤は、部品1つが守る形 ・ トークンが守る形とコントラストの下限 ・ 描画の仕組み ・ 検査だけを持ち、部品の一覧と見た目 ・ 操作と、トークンの値は concrete が持つ。</b></td></tr><tr><td><span class="n">Q2</span></td><td>ボード ・ ACDR ・ アドバイザーの回答の頁を同じ見た目にそろえる役を、だれが持つか</td><td><span class="st now">いま見る</span></td><td><b>デザインシステムだけを持つ1つの Skill がそろえる役を持ち、トークンの値と共有の部品の正本を、版を付けて上流として公開する。使う Skill は、それを上書きせずに使う。</b></td></tr><tr><td><span class="n">Q3</span></td><td>共有のデザインシステムと基盤のエンジンを、使う Skill へどう届け、版の食い違いをどう見つけるか</td><td><span class="st wait">待ち</span></td><td><b>そろえる役の持ち主が決まったら出す。基盤の配布物を作る手順と一緒に決める。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>ページのデザインシステムと部品のカタログのうち、何を基盤の変わらない契約にし、何を concrete の中身にするか</h2></div><div class="ans"><span class="lead">基盤は、部品1つが守る形 ・ トークンが守る形とコントラストの下限 ・ 描画の仕組み ・ 検査だけを持ち、部品の一覧と見た目 ・ 操作と、トークンの値は concrete が持つ。</span><ul><li>基盤は、部品の名前もトークンの名前も持たない。concrete が部品を足しても、基盤は変わらない</li><li>カタログの契約は、部品1つの書き方の形（名前 ・ 入力の形 ・ 説明 ・ 状態ごとの振る舞い）の枠だけにする。部品12の名前と入力の形は、基盤から concrete へ移す</li><li>トークンの契約は、トークンが守る形の検査（形式 ・ 参照 ・ 循環）と、コントラストの下限（文字 4.5:1、部品の境界 3:1）だけにする。どの2色を比べるかは、concrete が宣言する。トークンの層の分け方は契約にしない</li><li>描画の仕組みは、ページテンプレートと、concrete が渡すカタログからページを作る。基盤の中のカタログの実装は持たない</li><li>文書の決まった見た目は持たない。ページテンプレートの指定が無い種類は、描かずに「指定が無い」と返す</li><li>基盤の試験は、試験用の小さなカタログで描く</li><li>移す順は、基盤の中でカタログをアダプタとして分け、基盤のコードが部品の名前を参照していないことを確かめてから、外へ移す</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図 ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="1" data-ix="0">図</button><button class="ix-tab" role="tab" aria-selected="false" data-g="1" data-ix="1">コード</button></div><div data-g="1" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 860 446" style="min-width:640px" role="img" aria-label="基盤と concrete の分け目" class="dsvg"><style data-dsvg="dark">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-ink-soft:#9DADA8}}:root[data-theme="dark"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-accent-bg:#173330;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-ink-soft:#9DADA8}</style>
+<text class="title" x="20" y="28" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">基盤と concrete の分け目</text>
+<text class="label" x="20" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">もの</text>
+<text class="label" x="250" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">いま</text>
+<text class="label" x="560" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">変更後</text>
+<rect class="box" x="20" y="68" width="220" height="28" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">部品1つが守る形</text>
+<rect class="box" x="250" y="68" width="300" height="28" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">部品の一覧の中にまぎれる</text>
+<rect class="box focus" x="560" y="68" width="280" height="28" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（カタログの枠）</text>
+<rect class="box" x="20" y="108" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="127" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">部品の一覧と</text><text class="label" x="30" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">見た目 ・ 操作</text>
+<rect class="box warn" x="250" y="108" width="300" height="46" fill="#F0E2CD" stroke="#8F5410" stroke-width="1.5" rx="5"/><text class="label" x="260" y="127" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（12個を取り込む）</text>
+<rect class="box focus" x="560" y="108" width="280" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="127" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">デザインシステムの</text><text class="label" x="570" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">concrete</text>
+<rect class="box" x="20" y="166" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="185" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">トークンの値と層</text>
+<rect class="box warn" x="250" y="166" width="300" height="46" fill="#F0E2CD" stroke="#8F5410" stroke-width="1.5" rx="5"/><text class="label" x="260" y="185" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（design-system.json）</text>
+<rect class="box focus" x="560" y="166" width="280" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="185" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">デザインシステムの</text><text class="label" x="570" y="203" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">concrete</text>
+<rect class="box" x="20" y="224" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="243" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">トークンが守る形と</text><text class="label" x="30" y="261" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">コントラストの下限</text>
+<rect class="box" x="250" y="224" width="300" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="243" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤</text>
+<rect class="box focus" x="560" y="224" width="280" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="243" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（どの2色を比べるかは</text><text class="label" x="570" y="261" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">concrete が宣言する）</text>
+<rect class="box" x="20" y="282" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="301" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">描画の仕組み</text>
+<rect class="box" x="250" y="282" width="300" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="301" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤</text>
+<rect class="box focus" x="560" y="282" width="280" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="301" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（concrete の</text><text class="label" x="570" y="319" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">カタログを受け取る）</text>
+<rect class="box" x="20" y="340" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="359" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">文書の決まった見た目</text>
+<rect class="box warn" x="250" y="340" width="300" height="46" fill="#F0E2CD" stroke="#8F5410" stroke-width="1.5" rx="5"/><text class="label" x="260" y="359" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤（使う Skill は無い）</text>
+<rect class="box focus" x="560" y="340" width="280" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="570" y="359" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">持たない。指定が無ければ</text><text class="label" x="570" y="377" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">描かずにそう返す</text>
+<path class="link" d="M20,402 H840" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<text class="note" x="20" y="426" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">基盤のコードは、部品やトークンの名前を1つも知らない。concrete が部品を足しても基盤は変わらない</text>
+</svg></figure><p class="note-s">基盤と concrete の分け目の、いまと変更後。</p></div><div data-g="1" data-ixp="1" hidden><pre><code>いまの基盤（2026-10-13 実測）
+
+  取り込んでいる中身
+    crates/adapters/catalog/   parts.html ・ catalog.css ・ catalog.js ・ design-system.json
+    crates/core/schemas/catalog.schema.json   部品12の名前と入力の形
+      説明：「部品の見た目と操作はエンジンが持ち、Skill は持たない」
+  部品の名前を基盤のコードが参照している所
+    core/src/application/page.rs ・ renders.rs   文書（document）の決まった見た目の箇所だけ
+      （document ・ badges ・ inline）
+  操作の部品
+    send   ページに書かれた送り先へ、回答を POST するだけ。エンジンの API は呼ばない
+  文書の決まった見た目（schema-driven/document@v1）
+    使っているのは基盤の試験だけ。ほかに使う Skill は無い
+  カタログを受け取る port
+    port の Design は、部品の名前と入力の形を実行時に受け取る形で、名前を型として持たない</code></pre><p class="note-s">いまの基盤を調べた結果。</p></div></div></div></details><details open><summary>根拠（10件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">見た目と部品の中身を基盤から出すこと</span></td><td>「そもそもデザインシステムはconcrateのもちものでは？？」「その仕組みで行くとconcrateが増えてカタログの部品の表現が増えるたびに修正がいることになるじゃん。」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-13）</small></td></tr><tr><td><span class="part">部品を足すたびに基盤を直す形を切り出すこと</span></td><td>条件：ある処理を変えるたびに、必ず2つの文脈を両方とも変更している ・ 対応：その処理がどちらの文脈の責任でもないなら、独立した文脈として切り出す</td><td><span class="kind k-src">原典</span><small>ddd-advisor の回答（2026-10-13）── 判断基準 bounded-context</small></td></tr><tr><td><span class="part">部品の一覧を基盤が閉じて持たないこと</span></td><td>抽象の設計：悪い抽象 ・ あとから新しい顧客のタイプが加わったとき：すぐに破綻する</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 object-orientation</small></td></tr><tr><td><span class="part">トークンの層の分け方を契約にしないこと</span></td><td>Group：特定の分類に属する token の集まり（例：Brand ・ Alert ・ Layout）。design token を論理的にまとめ、token のファイルに階層を与える。group の作り方は任意である。</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 group</small></td></tr><tr><td><span class="part">どの2色を比べるかを concrete が宣言すること</span></td><td>対応：ツールは、group をもとに token の type や目的を推し量らない（SHOULD NOT）</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 group</small></td></tr><tr><td><span class="part">コントラストの下限を基盤に置くこと</span></td><td>達成基準：「1.4.3 コントラスト (最低限)」 ・ レベル：AA ・ 何を求めるか：テキストと文字画像のコントラスト比を 4.5:1 以上にする。例外は下の表</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 distinguishable</small></td></tr><tr><td><span class="part">使う Skill が無いいまのうちに、文書の決まった見た目を外すこと</span></td><td>非対称性：「『ない』と『ある』の非対称性」 ・ 強い側：「ある」のほうが強い ・ 放っておくとどうなるか：一度「ある」になったものは、「ない」へなかなか戻らない</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 do-not-mix</small></td></tr><tr><td><span class="part">基盤の中で分けてから外へ移すこと</span></td><td>対応：業務ロジックをよく理解していないときや、変更が多いときは、広い範囲で区切る ・ 理由：誤って分割した文脈の修正は高くつく。論理的な境界の再定義は、物理的な境界の変更よりはるかに容易である</td><td><span class="kind k-src">原典</span><small>ddd-advisor の回答（2026-10-13）── 判断基準 bounded-context</small></td></tr><tr><td><span class="part">基盤が部品の名前を型として持っていないこと</span></td><td>port の Design は部品の名前と入力の形を実行時に受け取り、部品の名前を参照するのは文書の決まった見た目の箇所（page.rs ・ renders.rs）だけである。send はページの送り先へ POST するだけで、エンジンの API を呼ばない</td><td><span class="kind k-fact">実測</span><small>src/schema-driven を読んだ（2026-10-13）</small></td></tr><tr><td><span class="part">同じ形をほかの層でも決めていること</span></td><td>基盤は②（concrete スキーマ）の中身も③（エンティティ）の値も作らず、どちらにも同じ共通ツールで、枠 ・ 書き方の案内 ・ 契約の検査だけを出す</td><td><span class="kind k-rule">決まり</span><small>ボード concrete-schema-roles の論点1（決着）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>いまのまま、基盤が部品の一覧と見た目を持つ</b></td><td>concrete が新しい表現を必要とするたびに、基盤を直して配り直すことになる</td></tr><tr><td><b>部品12の名前と入力の形を、基盤のカタログの契約として残す</b></td><td>部品を足すたびに基盤を直す形が、契約の層に残る</td></tr><tr><td><b>文書の決まった見た目を、何も指定が無いときのために基盤に残す</b></td><td>使う Skill が無い。残すと、基盤の文書だけ別の見た目になるか、基盤が見た目を持つ形に戻る</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>ボード ・ ACDR ・ アドバイザーの回答の頁を同じ見た目にそろえる役を、だれが持つか</h2></div><div class="ans"><span class="lead">デザインシステムだけを持つ1つの Skill がそろえる役を持ち、トークンの値と共有の部品の正本を、版を付けて上流として公開する。使う Skill は、それを上書きせずに使う。</span><ul><li>共有のデザインシステムの持ち主は、各 Skill ではなく、デザインシステムだけを持つ1つの Skill である</li><li>使う Skill（ボード ・ ACDR ・ アドバイザーの回答の頁）は、共有の部品とトークンを上書きしない</li><li>1つの Skill だけが使う部品は、共有の部品と別の名前で、その Skill のカタログに足してよい。同じ名前の上書きはしない</li><li>共有のデザインシステムは、部品の名前と入力の形を、版の付いた公開の契約として出す</li><li>図のデザインシステム（design-svg）とページのデザインシステムを1つの Skill にまとめるかは、図と頁の見た目をそろえるかで決める</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="ex"><div data-g="2" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 860 272" style="min-width:640px" role="img" aria-label="そろえる役をだれが持つか" class="dsvg"><style data-dsvg="dark">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E;--dsvg-ink-soft:#9DADA8}}:root[data-theme="dark"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E;--dsvg-ink-soft:#9DADA8}</style>
+<text class="title" x="20" y="28" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">そろえる役をだれが持つか</text>
+<text class="label" x="20" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">だれ</text>
+<text class="label" x="250" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">持つもの</text>
+<text class="label" x="560" y="58" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">ほかとの関係</text>
+<rect class="box focus" x="20" y="68" width="220" height="46" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="label" x="30" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">デザインシステムの</text><text class="label" x="30" y="105" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">Skill（1つ）</text>
+<rect class="box" x="250" y="68" width="300" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">トークンの値 ・ 共有の部品の一覧</text><text class="label" x="260" y="105" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">と見た目 ・ 操作（正本）</text>
+<rect class="box" x="560" y="68" width="280" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="570" y="87" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">上流。版を付けて</text><text class="label" x="570" y="105" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">公開する</text>
+<rect class="box" x="20" y="126" width="220" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">ボード ・ ACDR ・</text><text class="label" x="30" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">アドバイザーの回答の頁</text>
+<rect class="box" x="250" y="126" width="300" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">ページテンプレートと、</text><text class="label" x="260" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">自分だけが使う部品</text>
+<rect class="box" x="560" y="126" width="280" height="46" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="570" y="145" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">下流。共有の部品と</text><text class="label" x="570" y="163" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">トークンを上書きしない</text>
+<rect class="box" x="20" y="184" width="220" height="28" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="30" y="203" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤</text>
+<rect class="box" x="250" y="184" width="300" height="28" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="260" y="203" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">枠 ・ 描画の仕組み ・ 検査</text>
+<rect class="box" x="560" y="184" width="280" height="28" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="label" x="570" y="203" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">どちらの中身も知らない</text>
+<path class="link" d="M20,228 H840" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<text class="note" x="20" y="252" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">自分だけが使う部品は、共有の部品と別の名前で足す。同じ名前の上書きはしない</text>
+</svg></figure><p class="note-s">そろえる役の持ち主と、使う Skill と、基盤の関係。</p></div></div></div></details><details open><summary>根拠（9件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">そろえる役を1人で持つこと</span></td><td>対応：どれほど大きく複雑でも、一人の設計者が一度に全体像を作る ・ 理由：一人でいっぺんに考えると、上位概念と組で考えることになり、統一感が自然に出るから</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 sense-of-unity</small></td></tr><tr><td><span class="part">その1人が基盤である必要は無いこと</span></td><td>「手段の目的化：手段にすぎないものが、いつのまにか目的として扱われること。昔からあって今も起きる、システムプロジェクトに共通の落とし穴である。」</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 is-it-really-the-goal</small></td></tr><tr><td><span class="part">各 Skill がばらばらに持たないこと</span></td><td>種類：internal consistency ・ 何との一貫性か：1つの製品の中、または製品群の中</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 consistency-and-standards</small></td></tr><tr><td><span class="part">同じ機能の部品を同じに見せること</span></td><td>達成基準：「3.2.4 一貫した識別性」 ・ レベル：AA ・ 何を求めるか：ページ一式の中で、同じ機能のコンポーネントはいつも同じように識別できる</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 predictable</small></td></tr><tr><td><span class="part">使う Skill が上流を受け入れて従うこと</span></td><td>条件：上流の提供内容が、下流のニーズを十分に満たす ・ 対応：下流が上流のモデルを受け入れ、従属を選択できる</td><td><span class="kind k-src">原典</span><small>ddd-advisor の回答（2026-10-13）── 判断基準 conformist</small></td></tr><tr><td><span class="part">版を付けて公開すること</span></td><td>得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる</td><td><span class="kind k-src">原典</span><small>ddd-advisor の回答（2026-10-13）── 判断基準 open-host-service</small></td></tr><tr><td><span class="part">使う Skill が拡張できる場所に置くこと</span></td><td>プロダクトチームが使い、拡張できる、オープンでアクセスしやすい場所に公開する。よくある置き場所は wiki やブランドのスタイルガイドである。</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 design-pattern-library</small></td></tr><tr><td><span class="part">同じ名前の上書きをしないこと</span></td><td>対応：同じパスでは、こちら側の定義を優先する</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-13）── 判断基準 group</small></td></tr><tr><td><span class="part">見た目をそろえる方針</span></td><td>ブレストボード ・ ACDR ・ アドバイザーの回答の頁 ・ 基盤の文書を1つのデザインシステムにそろえる</td><td><span class="kind k-rule">決まり</span><small>ボード brainstorming-board-migration の論点3（決着。持ち主を基盤とした部分を、この論点で改める）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>各 Skill が自分のデザインシステムを持つ</b></td><td>同じ機能の部品が Skill ごとに違う見た目になり、そろえる方針が守れない</td></tr><tr><td><b>使う Skill が、共有の部品やトークンを同じ名前で上書きしてよい</b></td><td>上書きのたびに見た目が分かれ、そろえる役が意味を持たなくなる</td></tr><tr><td><b>Skill だけが使う部品も、すべて共有のデザインシステムに入れる</b></td><td>足すたびに直す場所が、基盤からデザインシステムの Skill へ移っただけになる</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>共有のデザインシステムと基盤のエンジンを、使う Skill へどう届け、版の食い違いをどう見つけるか</h2></div><p class="waiting">そろえる役の持ち主が決まったら出す。基盤の配布物を作る手順と一緒に決める。</p></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 2</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
