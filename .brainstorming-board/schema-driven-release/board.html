@@ -1,0 +1,381 @@
+<title>基盤 schema-driven を自分で Skill にして公開する</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="schema-driven-release" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　基盤 schema-driven を自分で Skill にして公開する　/　Round 1</p><h1>基盤 schema-driven を自分で Skill にして公開する</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q0</span>完成の条件<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q1</span>Skill のフォルダを作る手順<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q2</span>版<span class="st now">いま見る</span></button><button data-t="p4" aria-selected="false" class="now"><span class="tn">Q3</span>3つの OS 向けの公開<span class="st now">いま見る</span></button><button data-t="p5" aria-selected="false" class="now"><span class="tn">Q4</span>古い形の公開との切り分け<span class="st now">いま見る</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>schema-driven を完成させる残りとして、基盤が自分で Skill のフォルダを作り、版を決め、3つの OS 向けに署名を付けて公開し、受け取る側が確かめられるようにする仕組みを決める。</p></div><div class="front"><h3>いま見るのは 5 件だけである</h3><ol><li><button class="jump" data-go="p1">Q0　完成の条件</button><br><span class="why">アドバイザーが、完成の条件が論点に無いと指摘した。ほかの論点はこの条件を満たすための手段である</span></li><li><button class="jump" data-go="p2">Q1　Skill のフォルダを作る手順</button><br><span class="why">いまは scripts/ と assets/ を手で写していて、手順がどこにも無い</span></li><li><button class="jump" data-go="p3">Q2　版</button><br><span class="why">エンジンが版を答えず、公開の前に版を確かめられない</span></li><li><button class="jump" data-go="p4">Q3　3つの OS 向けの公開</button><br><span class="why">利用者が、基盤の公開は基盤の持ち物だと確かめた</span></li><li><button class="jump" data-go="p5">Q4　古い形の公開との切り分け</button><br><span class="why">古い release.yml が、基盤の tag とまとめ公開の両方で基盤を拾う</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q0</span></td><td>schema-driven が完成したと言えるのは、何が観測できたときか</td><td><span class="st now">いま見る</span></td><td><b>新しく公開した schema-driven-v&lt;版&gt; を、受け取る側の手順で1回通せたときに完成とする。手順は、版を指して取得し、SHA-256 と証明を照合し、展開して置き、実行ファイルに版を答えさせて一致を確かめる、の4つである。</b></td></tr><tr><td><span class="n">Q1</span></td><td>基盤の Skill のフォルダ（scripts/ と assets/）を、ソースから作る手順を、どこに何で持つか</td><td><span class="st now">いま見る</span></td><td><b>src/schema-driven の workspace に、製品に入らないツールの crate として xtask を置く。cargo xtask skill --out &lt;Skill のフォルダ&gt; が、ビルドから dist.json までを行う。</b></td></tr><tr><td><span class="n">Q2</span></td><td>基盤の版を、どこで1か所に決め、どう確かめるか</td><td><span class="st now">いま見る</span></td><td><b>版の正本は src/schema-driven/Cargo.toml の [workspace.package] version の1か所に置く。CLI の --version ・ MCP の serverInfo.version ・ dist.json はそこから取り、公開の前に出どころの違う4つの値を比べる。</b></td></tr><tr><td><span class="n">Q3</span></td><td>3つの OS 向けにビルドし、署名を付けて公開する流れを、どこに持ち、受け取る側との境目をどこに置くか</td><td><span class="st now">いま見る</span></td><td><b>基盤専用のワークフロー .github/workflows/schema-driven.yml が、tag schema-driven-v&lt;版&gt; で動く。中身は、3つの OS のビルド ・ 別のランナーでの確かめ ・ 証明を付けた公開 ・ 公開後の受け取りの確かめである。境目は、受け取る側ができる4つの行為で約束する。</b></td></tr><tr><td><span class="n">Q4</span></td><td>古い形の release.yml ・ install スクリプト ・ 公開済みの v1.0.0 を、基盤の公開とどう切り分けるか</td><td><span class="st now">いま見る</span></td><td><b>古い release.yml からは、基盤の tag と、まとめ公開（v&lt;版&gt;）の対象の両方で schema-driven を外す。install スクリプトは今は変えず、公開済みの v1.0.0 も残す。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q0</span><h2>schema-driven が完成したと言えるのは、何が観測できたときか</h2></div><div class="ans"><span class="lead">新しく公開した schema-driven-v&lt;版&gt; を、受け取る側の手順で1回通せたときに完成とする。手順は、版を指して取得し、SHA-256 と証明を照合し、展開して置き、実行ファイルに版を答えさせて一致を確かめる、の4つである。</span><ul><li>この4つを、基盤専用のワークフローの最後の段が、公開した Release に対して実際に行う。skills-creator を使わずに確かめる</li><li>まっさらな clone で cargo xtask skill を1回実行すると、Skill のフォルダ（scripts/ ・ assets/ ・ dist.json）がそろい、git で追跡しているファイルに差分が出ない</li><li>dist.json の SHA-256 は、xtask とは別の実装（sha256sum ・ certutil）で照合して全件一致する</li><li>tag ・ CLI の --version ・ MCP の serverInfo.version ・ dist.json の4つが同じ版を示す。違う tag を付けると、公開の前にワークフローが止まる</li><li>3つの OS で、ビルドしたのとは別のランナーで展開した場所から、--version ・ check-schemas ・ MCP の tools/list（9つの名前）が通る</li><li>証明の照合は、正しい配布物で通り、1バイト変えた配布物で止まる</li><li>CODING.md の検査の順（fmt ・ clippy ・ cargo tree ・ grep ・ test）が、手順を足したあとも0件で通る</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="ex"><div data-g="1" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 760 400" style="min-width:600px" role="img" aria-label="基盤が自分で Skill のフォルダを作り、公開し、受け取る側が確かめる流れ" class="dsvg"><style data-dsvg="dark">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-fd4b2714-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-fd4b2714-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs>
+<text class="title" x="20" y="28" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">基盤が自分で作り、公開し、受け取る側が確かめる</text>
+<text class="label" x="20" y="62" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">基盤のリポジトリ（schema-driven の持ち物）</text>
+<rect class="box" x="20" y="74" width="200" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="120.0" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">src/schema-driven</text>
+<text class="note" x="120.0" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ソース ・ スキーマの正本</text>
+<text class="note" x="120.0" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">版は Cargo.toml の1か所</text>
+<rect class="box focus" x="280" y="74" width="200" height="84" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="380.0" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">cargo xtask skill</text>
+<text class="note" x="380.0" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ビルドして置く</text>
+<text class="note" x="380.0" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">dist.json を書く</text>
+<rect class="box" x="540" y="74" width="200" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="640.0" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">Skill のフォルダ</text>
+<text class="note" x="640.0" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">scripts/ の実行ファイル2つ</text>
+<text class="note" x="640.0" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">assets/ ・ dist.json</text>
+<path class="flow" d="M220,116 H278" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-fd4b2714-arrow-5B6B66)"/><path class="flow" d="M480,116 H538" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-fd4b2714-arrow-5B6B66)"/>
+<text class="note" x="20" y="186" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">tag schema-driven-v&lt;版&gt; で、基盤専用のワークフローが同じ手順を3つの OS で動かす</text>
+<rect class="box" x="20" y="200" width="200" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="120.0" y="222" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">3つの OS でビルド</text>
+<text class="note" x="120.0" y="242" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">xtask で Skill のフォルダ</text>
+<text class="note" x="120.0" y="259" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">別の実装で SHA-256</text>
+<rect class="box" x="280" y="200" width="200" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="380.0" y="222" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">別のランナーで確かめる</text>
+<text class="note" x="380.0" y="242" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">--version ・ check-schemas</text>
+<text class="note" x="380.0" y="259" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">MCP の tools/list</text>
+<rect class="box focus" x="540" y="200" width="200" height="84" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="640.0" y="222" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">Release へ公開</text>
+<text class="note" x="640.0" y="242" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">配布物 ・ SHA256SUMS</text>
+<text class="note" x="640.0" y="259" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">証明（attestation）</text>
+<path class="flow" d="M220,242 H278" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-fd4b2714-arrow-5B6B66)"/><path class="flow" d="M480,242 H538" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-fd4b2714-arrow-5B6B66)"/>
+<path class="link" d="M20,306 H740" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<text class="label" x="20" y="330" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">受け取る側（基盤はだれかを知らない）がすること</text>
+<text class="note" x="20" y="354" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">版を指して取得する → SHA-256 と証明を照合する（ワークフローと tag まで縛る）</text>
+<text class="note" x="20" y="374" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">→ 展開して置く → --version に答えさせ、指した版と一致することを確かめる</text>
+</svg></figure><p class="note-s">完成の条件が観測する流れ。最後の行が、受け取る側の手順である。</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">受け取る側の行為を完成の条件にすること</span></td><td>作り手視点：「モノ」を語る ・ 使い手視点：「コト」を語る</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 user-perspective</small></td></tr><tr><td><span class="part">公開の仕組みを作ること自体を目的にしないこと</span></td><td>見えるようになったデータや情報を、誰かユーザーが使ったときに、はじめて見える化の効果が出る。この「使ってどうするか」を考えることが上位目的を考えることであり、ユーザーの立場から物事を見ることである。</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 is-it-really-the-goal</small></td></tr><tr><td><span class="part">完了を観測できる項目で並べること</span></td><td>終了基準：活動の完了を宣言するために、何を達成しなければならないかを定義する基準。</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 entry-exit-criteria</small></td></tr><tr><td><span class="part">版を同じ出どころの値どうしで比べないこと</span></td><td>入力から期待値を計算するのはよくある解決である。問題になるのは、その計算に SUT が持つはずの処理を複製したときである。</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 conditional-test-logic</small></td></tr><tr><td><span class="part">公開した版がそのまま配る版であること</span></td><td>ベストプラクティス：「ソフトウェアをプログラムでデプロイする」 ・ 期待される成果：テストした版がそのままデプロイする版で、デプロイは毎回同じように行われる。ワークロードの設定を外に出し、変えずにいろいろな環境へデプロイできる。環境のあいだで何も変わっていないことを、パッケージの暗号の署名で確かめる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 sec-11</small></td></tr><tr><td><span class="part">いまは完成していないこと</span></td><td>scripts/ と assets/ を手で写している。エンジンは --version に「知らないツール」と答える。新しい契約では一度も公開していない</td><td><span class="kind k-fact">実測</span><small>このリポジトリ（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>skills-creator で基盤を受け取れたら完成とする</b></td><td>基盤の完成が上の Skill に依存する。基盤は上の Skill を知らない、という向きに反する</td></tr><tr><td><b>Release に配布物が並んだら完成とする</b></td><td>モノが並んだことしか示さない。受け取る側が照合して動かせるかは確かめていない</td></tr><tr><td><b>ローカルで cargo test が通ったら完成とする</b></td><td>手で写す手順と、3つの OS と、署名が、どれも確かめられないまま残る</td></tr></table></div></div></details><div class="form" data-topic="Q0"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>基盤の Skill のフォルダ（scripts/ と assets/）を、ソースから作る手順を、どこに何で持つか</h2></div><div class="ans"><span class="lead">src/schema-driven の workspace に、製品に入らないツールの crate として xtask を置く。cargo xtask skill --out &lt;Skill のフォルダ&gt; が、ビルドから dist.json までを行う。</span><ul><li>xtask は workspace の根の xtask/ に置く。crates/ の外なので、製品の crate（core と adapters）とは並びが分かれる</li><li>xtask の仕事は3つに分ける ── build（cargo build を呼ぶ。--target を渡せばその OS 向け）・ skill（置く ・ SHA-256 を取る ・ dist.json を書く）・ verify（展開した場所で起動を確かめる）</li><li>skill は、scripts/ へ実行ファイル2つ、assets/ へ crates/core/schemas/ の写し、Skill のフォルダの根へ dist.json を置く。SKILL.md と LICENSE は git で追跡したまま触らない</li><li>置き先は --out で受け取り、xtask の中に .claude/ への道を書かない</li><li>dist.json は、名前 ・ 版 ・ target ・ abstract スキーマの $id ・ ファイルごとの SHA-256 を持つ。形はスキーマ（xtask/dist.schema.json）で決める</li><li>verify は rmcp のクライアントで tools/list を呼ぶ。ワークフローに JSON-RPC を手で書かない</li><li>CODING.md の crate の規則を「製品の crate は core と adapters の2つ。xtask はツールの crate で、製品の crate は xtask に依存しない」へ直し、検査も合わせる</li><li>このリポジトリの中で使うときも、cargo xtask skill --out .claude/skills/schema-driven で作る。手で写さない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="2" data-ix="0">コード</button><button class="ix-tab" role="tab" aria-selected="false" data-g="2" data-ix="1">コード</button></div><div data-g="2" data-ixp="0"><pre><code>src/schema-driven/
+  Cargo.toml                 [workspace] members = [&quot;crates/*&quot;, &quot;xtask&quot;]
+  .cargo/config.toml         [alias] xtask = &quot;run --package xtask --&quot;
+  CODING.md                  crate の規則に xtask の1行を足す
+  crates/core                製品（エンジンの中身）
+  crates/adapters            製品（CLI と MCP の実行ファイル）
+  xtask/                     ツール（製品に入らない）
+    src/main.rs              build ・ skill ・ verify
+    dist.schema.json         dist.json の形
+
+呼び方
+  cargo xtask skill --out ../../.claude/skills/schema-driven
+  cargo xtask skill --out dist/schema-driven --target x86_64-pc-windows-msvc
+  cargo xtask verify --dir dist/schema-driven
+
+できる Skill のフォルダ
+  SKILL.md ・ LICENSE          git で追跡（xtask は触らない）
+  scripts/schema-driven        実行ファイル
+  scripts/schema-driven-mcp    実行ファイル
+  assets/*.schema.json         crates/core/schemas/ の写し（7つ）
+  dist.json                    版 ・ target ・ $id ・ SHA-256</code></pre><p class="note-s">変更後の src/schema-driven と、手順の呼び方。</p></div><div data-g="2" data-ixp="1" hidden><pre><code>{
+  &quot;$schema&quot;: &quot;schema-driven/dist@v1&quot;,
+  &quot;name&quot;: &quot;schema-driven&quot;,
+  &quot;version&quot;: &quot;0.1.0&quot;,
+  &quot;target&quot;: &quot;x86_64-unknown-linux-musl&quot;,
+  &quot;abstract&quot;: [&quot;schema-driven/abstract@v1&quot;, &quot;schema-driven/catalog@v1&quot;, &quot;…&quot;],
+  &quot;files&quot;: [
+    {&quot;path&quot;: &quot;scripts/schema-driven&quot;, &quot;sha256&quot;: &quot;…&quot;},
+    {&quot;path&quot;: &quot;assets/meta-schema.json&quot;, &quot;sha256&quot;: &quot;…&quot;}
+  ]
+}</code></pre><p class="note-s">dist.json の例。</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">xtask を cargo だけで動くツールにすること</span></td><td>cargo-xtask は cargo と rustc のほかにツールを入れずに動く、と書いている</td><td><span class="kind k-src">原典</span><small>sources/raw.githubusercontent.com_matklad_cargo-xtask_master_README.md:7（第三者、commit 1559f86e）</small></td></tr><tr><td><span class="part">公開の作業に使った例があること</span></td><td>rust-analyzer が Releasing に xtask を使っている</td><td><span class="kind k-src">原典</span><small>sources/raw.githubusercontent.com_matklad_cargo-xtask_master_README.md:118（第三者）</small></td></tr><tr><td><span class="part">scripts/ に実行できるものを置き、assets/ にスキーマを置くこと</span></td><td>scripts/ は実行できるコード、assets/ はスキーマのようなデータファイルを置く場所である</td><td><span class="kind k-src">原典</span><small>sources/agentskills.io_specification.md:217 ・ :241</small></td></tr><tr><td><span class="part">crate の規則を直す必要があること</span></td><td>members が crates/* なので、crates/ に足すと製品の crate が3つになり、規則「core と adapters の2つ」の検査が落ちる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 （見解1への指摘）</small></td></tr><tr><td><span class="part">置く仕事を、ビルドと分けて試験すること</span></td><td>条件：第一象限（コンポーネントテスト ・ コンポーネント統合テスト） ・ 対応：自動化して CI プロセスに含めるべきである</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 test-automation</small></td></tr><tr><td><span class="part">いまは手で写していること</span></td><td>scripts/ と assets/ は git で無視しており、作業のたびに手で写している。手順はどこにも無い</td><td><span class="kind k-fact">実測</span><small>このリポジトリ（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（5件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>シェルスクリプトか Makefile</b></td><td>Windows で別に書くことになる。ツールは Rust だけで書く決まりにも反する</td></tr><tr><td><b>ワークフローの中だけに手順を書く</b></td><td>このリポジトリの中では手で写すまま残る。CI と手元で別の手順になる</td></tr><tr><td><b>エンジンの実行ファイルに配る仕事を足す</b></td><td>利用者に配る実行ファイルに、配る側だけが使うコードが入る</td></tr><tr><td><b>build.rs で置く</b></td><td>ビルドのたびに Skill のフォルダへ書く。OUT_DIR の外へ書くことになる</td></tr><tr><td><b>xtask を crates/ の下に置く</b></td><td>製品の crate と同じ並びに入り、crate の規則と検査が製品とツールを区別できない</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>基盤の版を、どこで1か所に決め、どう確かめるか</h2></div><div class="ans"><span class="lead">版の正本は src/schema-driven/Cargo.toml の [workspace.package] version の1か所に置く。CLI の --version ・ MCP の serverInfo.version ・ dist.json はそこから取り、公開の前に出どころの違う4つの値を比べる。</span><ul><li>CLI に --version を足す。MCP の serverInfo.version は、すでに CARGO_PKG_VERSION を返している</li><li>公開の前に比べる4つ ── tag の名前 ・ cargo metadata で読んだ Cargo.toml の版 ・ ビルドした実行ファイルが答える --version ・ dist.json の version</li><li>4つのどれかが違えば、公開の前にワークフローが止まる</li><li>エンジンの版と、abstract スキーマの $id の版（schema-driven/abstract@v1 など）は別の軸である。dist.json に両方を書く</li><li>公開した版は配布物と tag を変えられない。誤りが見つかったら、版を上げて出し直す</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="3" data-ixp="0"><pre><code>tag                  schema-driven-v0.1.0        → 0.1.0
+Cargo.toml           cargo metadata で読む       → 0.1.0
+実行ファイル         scripts/schema-driven --version → 0.1.0
+dist.json            &quot;version&quot;                   → 0.1.0
+
+どれか1つでも違えば、公開しない</code></pre><p class="note-s">版を比べる4つの出どころ。</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">members が workspace の版を継げること</span></td><td>members は {key}.workspace = true で [workspace.package] のキーを継ぐ。継げるキーに version が在る</td><td><span class="kind k-src">原典</span><small>sources/doc.rust-lang.org_cargo_reference_workspaces.html:311-313 ・ :328 ・ :350</small></td></tr><tr><td><span class="part">ビルドした実行ファイルが版を答えられること</span></td><td>env!(&quot;CARGO_PKG_VERSION&quot;) でコンパイル時に版を取れる</td><td><span class="kind k-src">原典</span><small>sources/doc.rust-lang.org_cargo_reference_environment-variables.html:344 ・ :352</small></td></tr><tr><td><span class="part">比べる相手を、同じ出どころにしないこと</span></td><td>原因：Manual Result Verification ・ 見え方：SUT が誤った結果を返すと分かっている場合でも、テストはほぼ毎回成功する ・ 根本の原因：テストが Self-Checking Test でなく、エラーか例外が投げられたときにしか失敗しない。そのため誤った安心感を与えることがある ・ 直し方：Test Method に、Assertion Method の呼び出しなどの結果の検証の処理を入れ、すべてのテストを self-checking にする</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 manual-intervention</small></td></tr><tr><td><span class="part">版で戻せるようにすること</span></td><td>ベストプラクティス：「バージョン管理を使用する」 ・ 望ましい成果：チームが一緒にコードを扱え、マージしても一貫性が崩れず、変更が消えない。正しいバージョニングで、エラーをたやすく元に戻せる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 ops-05</small></td></tr><tr><td><span class="part">いまは版を答えないこと</span></td><td>scripts/schema-driven --version は「知らないツール: --version」で終了コード 2 を返す</td><td><span class="kind k-fact">実測</span><small>このリポジトリ（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>tag と Cargo.toml だけを比べる</b></td><td>ビルドした実行ファイルが実際に答える版と、dist.json の版を確かめない</td></tr><tr><td><b>版を tag から決め、Cargo.toml を書き換えてビルドする</b></td><td>手元のビルドと公開のビルドで版の出どころが変わる</td></tr><tr><td><b>エンジンの版と abstract スキーマの版を1つにまとめる</b></td><td>エンジンを直すたびに、変えていないスキーマの $id が変わる。concrete スキーマの x-abstract が全部ずれる</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>3つの OS 向けにビルドし、署名を付けて公開する流れを、どこに持ち、受け取る側との境目をどこに置くか</h2></div><div class="ans"><span class="lead">基盤専用のワークフロー .github/workflows/schema-driven.yml が、tag schema-driven-v&lt;版&gt; で動く。中身は、3つの OS のビルド ・ 別のランナーでの確かめ ・ 証明を付けた公開 ・ 公開後の受け取りの確かめである。境目は、受け取る側ができる4つの行為で約束する。</span><ul><li>build：3つの OS で cargo xtask build と skill を動かす。dist.json を別の実装（sha256sum ・ certutil）で照合する。macOS は lipo -archs で2つの側が入っていることを、Linux は静的リンクであることを、Windows は C の実行時ライブラリを取り込んで（+crt-static）ほかの DLL に依存しないことを確かめる</li><li>verify：ビルドしなかったランナーで配布物を展開し、cargo xtask verify で --version ・ check-schemas（assets/）・ MCP の tools/list を確かめる</li><li>publish：Q2 の4つの版を比べ、SHA256SUMS を作り、actions/attest で証明を付け、bundle を Release に並べて公開する。証明を付ける権限はこのジョブだけに渡す</li><li>receive：公開した Release から版を指して取り直す。gh attestation verify に --repo ・ --bundle ・ --signer-workflow（このワークフロー）・ --source-ref（この tag）を付けて照合する。1バイト変えた配布物で止まることも確かめる。展開して --version を比べる</li><li>workflow_dispatch でも動かせるようにし、そのときは publish と receive を飛ばす。tag を付ける前に build と verify を1回通す</li><li>配布物の名前は schema-driven-&lt;版&gt;-&lt;target&gt;.tar.gz（Windows は .zip）にし、古い形の &lt;名前&gt;-&lt;target&gt; と重ならないようにする</li><li>基盤が約束する4つの行為 ── 版を指して取得できる ・ SHA-256 と証明で照合できる（どのワークフローがどの tag で作ったかまで）・ 展開すればそのまま動く ・ --version で版を答える</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="4" data-ixp="0"><pre><code># .github/workflows/schema-driven.yml
+on:
+  push:
+    tags: [&quot;schema-driven-v*&quot;]
+  workflow_dispatch: {}          # build と verify だけを通す
+
+jobs:
+  build:    # linux-musl ・ windows-msvc ・ macOS universal2
+    run: cargo xtask build --target $T &amp;&amp; cargo xtask skill --out dist/schema-driven
+  verify:   # ビルドしなかったランナーで展開して確かめる
+    run: cargo xtask verify --dir schema-driven
+  publish:  # tag のときだけ。4つの版を比べ、SHA256SUMS と証明を付けて公開
+    permissions: { contents: write, id-token: write, attestations: write }
+  receive:  # 公開した Release から取り直して、受け取る側の手順を通す
+    run: |
+      gh attestation verify $FILE --repo daidaiiro-519/daidaiiro --bundle attestation.sigstore.json \
+        --signer-workflow daidaiiro-519/daidaiiro/.github/workflows/schema-driven.yml \
+        --source-ref refs/tags/$TAG</code></pre><p class="note-s">基盤専用のワークフローの構造（中身は試作で書く）。</p></div></div></div></details><details open><summary>根拠（8件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">SHA-256 だけでなく証明で照合すること</span></td><td>OS イメージ ・ コンテナイメージ ・ コードのアーティファクトは、ダイジェストやハッシュで整合性を確かめられる形で配られることが多い。受け取った側がペイロードのハッシュを計算し、公開された値と同じかを見れば、改ざんされていないことは分かる。しかし、ペイロードが元の送り手から来たか（データの来歴）までは分からない。来歴まで確かめるには、アーティファクトへのデジタル署名用に、信頼できる機関が出した証明書がいる。この件には実装手順の節が無い。</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 sec-06</small></td></tr><tr><td><span class="part">照合をワークフローと tag まで縛ること</span></td><td>同じリポジトリの古い release.yml も証明を付ける権限を持つので、--repo と --bundle だけの照合では、そちらが付けた証明でも通る</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 （見解3への指摘）</small></td></tr><tr><td><span class="part">--bundle を使っても --repo か --owner が必要なこと</span></td><td>MarkFlagsOneRequired(&quot;owner&quot;, &quot;repo&quot;)</td><td><span class="kind k-src">原典</span><small>sources/raw.githubusercontent.com_cli_cli_trunk_pkg_cmd_attestation_verify_verify.go:242（commit 54a671d9）</small></td></tr><tr><td><span class="part">証明を付ける権限</span></td><td>ジョブの権限に id-token: write と attestations: write が必要である。出力 bundle-path に証明のファイルのパスが入る</td><td><span class="kind k-src">原典</span><small>sources/raw.githubusercontent.com_actions_attest_main_README.md:68-69 ・ :170（commit 7d8b1cac）</small></td></tr><tr><td><span class="part">公開の手順そのものを試験すること</span></td><td>対応：デプロイプロセスのテストを、デプロイで起きる変更のテストと同じくらい大事に扱う</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 ops-06</small></td></tr><tr><td><span class="part">別のランナーで確かめること</span></td><td>原因：Resource Optimism（外部のリソースに頼るテストの結果が、実行する時と場所で変わる） ・ 見え方：ある環境では成功するのに、別の環境では失敗する ・ 根本の原因：ある環境で使えるリソースが、別の環境では使えない</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 erratic-test</small></td></tr><tr><td><span class="part">publish の段で比べる版</span></td><td>公開の前に、tag ・ Cargo.toml ・ --version ・ dist.json の4つを比べる</td><td><span class="kind k-rule">決まり</span><small>このボードの論点2</small></td></tr><tr><td><span class="part">署名の方式を原典と実測で決める決まり</span></td><td>署名の方式と制限時間の値は、作るときに原典と実測で決める</td><td><span class="kind k-rule">決まり</span><small>ボード skill-roles の論点3（決着）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（5件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>古い release.yml に基盤の段を足す</b></td><td>古い形の Skill の段と混ざり、基盤の tag で古い段も動く。基盤の公開が skills-creator の置いた仕組みに乗ったまま残る</td></tr><tr><td><b>SHA256SUMS だけで照合する</b></td><td>同じ Release から取るので、来歴を確かめない</td></tr><tr><td><b>--repo と --bundle だけで証明を照合する</b></td><td>同じリポジトリの別のワークフローが付けた証明でも通る</td></tr><tr><td><b>ビルドしたランナーで起動を確かめるだけにする</b></td><td>Rust のツールが入った環境で動いたことしか示さない。Windows の C の実行時ライブラリのような依存を見落とす</td></tr><tr><td><b>tag のときだけ動かす</b></td><td>最初の公開が、ワークフローの最初の試験になる</td></tr></table></div></div></details><div class="form" data-topic="Q3"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>古い形の release.yml ・ install スクリプト ・ 公開済みの v1.0.0 を、基盤の公開とどう切り分けるか</h2></div><div class="ans"><span class="lead">古い release.yml からは、基盤の tag と、まとめ公開（v&lt;版&gt;）の対象の両方で schema-driven を外す。install スクリプトは今は変えず、公開済みの v1.0.0 も残す。</span><ul><li>release.yml の on.push.tags に、含める行の後ろへ &#39;!schema-driven-v*&#39; を足す。否定は、含める行の後ろに置いたときだけ効く</li><li>release.yml の plan で、v&lt;版&gt; のときの対象の一覧から schema-driven を外す。外さないと、scripts/ も assets/ も無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる</li><li>古い install スクリプトは、基盤の tag を拾っても、配布物の名前が違うので「取得できない」で止まる。導入したと誤って出ることは無い</li><li>install スクリプトの作り直しと、ほかの Skill の公開は、skills-creator の作業で行う</li><li>v1.0.0 と skills-creator-v1.0.0 は消さない。新しい契約では使わない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 差分</summary><div><div class="ex"><div data-g="5" data-ixp="0"><div class="diff"><div><h4>変更前</h4><pre><code>on:
+  push:
+    tags: [&quot;v*&quot;, &quot;*-v*&quot;]
+…
+            v[0-9]*) skills=&quot;$(ls .claude/skills | tr &#39;\n&#39; &#39; &#39;)&quot; ;;</code></pre></div><div><h4>変更後</h4><pre><code>on:
+  push:
+    tags: [&quot;v*&quot;, &quot;*-v*&quot;, &quot;!schema-driven-v*&quot;]
+…
+            v[0-9]*) skills=&quot;$(ls .claude/skills | grep -vx schema-driven | tr &#39;\n&#39; &#39; &#39;)&quot; ;;</code></pre></div></div><p class="note-s">release.yml に足す2か所。</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">否定のパターンで tag を外せること</span></td><td>含めると除くを両方したいときは tags に ! を書く。否定は肯定の後に置いたときだけ除き、順序に依存する</td><td><span class="kind k-src">原典</span><small>sources/docs.github.com_en_actions_reference_workflows-and-actions_workflow-syntax.md:261 ・ :321-322</small></td></tr><tr><td><span class="part">tag の除外だけでは足りないこと</span></td><td>v&lt;版&gt; のまとめ公開では ls .claude/skills に schema-driven が入り、エンジンの無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 （見解4への指摘）・ qa-advisor の回答（2026-10-13）── 判断基準 （見解4の穴）</small></td></tr><tr><td><span class="part">いまの install スクリプトが古い形を前提にすること</span></td><td>install.sh は $dest/$name/bin/$name-mcp を MCP に登録する</td><td><span class="kind k-fact">実測</span><small>install.sh:105（2026-10-13）</small></td></tr><tr><td><span class="part">公開済みの版</span></td><td>v1.0.0 と skills-creator-v1.0.0 を 2026-09-29 に公開している</td><td><span class="kind k-fact">実測</span><small>gh release list（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>tag の除外の1行だけを足す</b></td><td>まとめ公開の経路に schema-driven が残る</td></tr><tr><td><b>古い release.yml と install スクリプトを今消す</b></td><td>ほかの Skill はまだ古い形で、それらを公開する経路が無くなる</td></tr><tr><td><b>v1.0.0 を消す</b></td><td>公開した版は変えない決まり（immutable releases）を自分で破る。新しい契約で使わないなら、残しても困らない</td></tr></table></div></div></details><div class="form" data-topic="Q4"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 5</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>

@@ -1,0 +1,552 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "kind": "board",
+ "id": "schema-driven-release",
+ "title": "基盤 schema-driven を自分で Skill にして公開する",
+ "round": 1,
+ "intro": "schema-driven を完成させる残りとして、基盤が自分で Skill のフォルダを作り、版を決め、3つの OS 向けに署名を付けて公開し、受け取る側が確かめられるようにする仕組みを決める。",
+ "queue": [
+  {
+   "topic": "Q0",
+   "why": "アドバイザーが、完成の条件が論点に無いと指摘した。ほかの論点はこの条件を満たすための手段である"
+  },
+  {
+   "topic": "Q1",
+   "why": "いまは scripts/ と assets/ を手で写していて、手順がどこにも無い"
+  },
+  {
+   "topic": "Q2",
+   "why": "エンジンが版を答えず、公開の前に版を確かめられない"
+  },
+  {
+   "topic": "Q3",
+   "why": "利用者が、基盤の公開は基盤の持ち物だと確かめた"
+  },
+  {
+   "topic": "Q4",
+   "why": "古い release.yml が、基盤の tag とまとめ公開の両方で基盤を拾う"
+  }
+ ],
+ "topics": [
+  {
+   "id": "Q0",
+   "name": "完成の条件",
+   "status": "open",
+   "question": "schema-driven が完成したと言えるのは、何が観測できたときか",
+   "answer": {
+    "text": "新しく公開した schema-driven-v<版> を、受け取る側の手順で1回通せたときに完成とする。手順は、版を指して取得し、SHA-256 と証明を照合し、展開して置き、実行ファイルに版を答えさせて一致を確かめる、の4つである。",
+    "details": [
+     "この4つを、基盤専用のワークフローの最後の段が、公開した Release に対して実際に行う。skills-creator を使わずに確かめる",
+     "まっさらな clone で cargo xtask skill を1回実行すると、Skill のフォルダ（scripts/ ・ assets/ ・ dist.json）がそろい、git で追跡しているファイルに差分が出ない",
+     "dist.json の SHA-256 は、xtask とは別の実装（sha256sum ・ certutil）で照合して全件一致する",
+     "tag ・ CLI の --version ・ MCP の serverInfo.version ・ dist.json の4つが同じ版を示す。違う tag を付けると、公開の前にワークフローが止まる",
+     "3つの OS で、ビルドしたのとは別のランナーで展開した場所から、--version ・ check-schemas ・ MCP の tools/list（9つの名前）が通る",
+     "証明の照合は、正しい配布物で通り、1バイト変えた配布物で止まる",
+     "CODING.md の検査の順（fmt ・ clippy ・ cargo tree ・ grep ・ test）が、手順を足したあとも0件で通る"
+    ]
+   },
+   "images": [
+    {
+     "kind": "figure",
+     "caption": "完成の条件が観測する流れ。最後の行が、受け取る側の手順である。",
+     "svg": "<svg viewBox=\"0 0 760 400\" style=\"min-width:600px\" role=\"img\" aria-label=\"基盤が自分で Skill のフォルダを作り、公開し、受け取る側が確かめる流れ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-fd4b2714-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-fd4b2714-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<text class=\"title\" x=\"20\" y=\"28\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">基盤が自分で作り、公開し、受け取る側が確かめる</text>\n<text class=\"label\" x=\"20\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">基盤のリポジトリ（schema-driven の持ち物）</text>\n<rect class=\"box\" x=\"20\" y=\"74\" width=\"200\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"120.0\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">src/schema-driven</text>\n<text class=\"note\" x=\"120.0\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">ソース ・ スキーマの正本</text>\n<text class=\"note\" x=\"120.0\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">版は Cargo.toml の1か所</text>\n<rect class=\"box focus\" x=\"280\" y=\"74\" width=\"200\" height=\"84\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label focus\" x=\"380.0\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">cargo xtask skill</text>\n<text class=\"note\" x=\"380.0\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">ビルドして置く</text>\n<text class=\"note\" x=\"380.0\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">dist.json を書く</text>\n<rect class=\"box\" x=\"540\" y=\"74\" width=\"200\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"640.0\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Skill のフォルダ</text>\n<text class=\"note\" x=\"640.0\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">scripts/ の実行ファイル2つ</text>\n<text class=\"note\" x=\"640.0\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">assets/ ・ dist.json</text>\n<path class=\"flow\" d=\"M220,116 H278\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-fd4b2714-arrow-5B6B66)\"/><path class=\"flow\" d=\"M480,116 H538\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-fd4b2714-arrow-5B6B66)\"/>\n<text class=\"note\" x=\"20\" y=\"186\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">tag schema-driven-v&lt;版&gt; で、基盤専用のワークフローが同じ手順を3つの OS で動かす</text>\n<rect class=\"box\" x=\"20\" y=\"200\" width=\"200\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"120.0\" y=\"222\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">3つの OS でビルド</text>\n<text class=\"note\" x=\"120.0\" y=\"242\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">xtask で Skill のフォルダ</text>\n<text class=\"note\" x=\"120.0\" y=\"259\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">別の実装で SHA-256</text>\n<rect class=\"box\" x=\"280\" y=\"200\" width=\"200\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"380.0\" y=\"222\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">別のランナーで確かめる</text>\n<text class=\"note\" x=\"380.0\" y=\"242\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">--version ・ check-schemas</text>\n<text class=\"note\" x=\"380.0\" y=\"259\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">MCP の tools/list</text>\n<rect class=\"box focus\" x=\"540\" y=\"200\" width=\"200\" height=\"84\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label focus\" x=\"640.0\" y=\"222\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">Release へ公開</text>\n<text class=\"note\" x=\"640.0\" y=\"242\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">配布物 ・ SHA256SUMS</text>\n<text class=\"note\" x=\"640.0\" y=\"259\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">証明（attestation）</text>\n<path class=\"flow\" d=\"M220,242 H278\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-fd4b2714-arrow-5B6B66)\"/><path class=\"flow\" d=\"M480,242 H538\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-fd4b2714-arrow-5B6B66)\"/>\n<path class=\"link\" d=\"M20,306 H740\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"label\" x=\"20\" y=\"330\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">受け取る側（基盤はだれかを知らない）がすること</text>\n<text class=\"note\" x=\"20\" y=\"354\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">版を指して取得する → SHA-256 と証明を照合する（ワークフローと tag まで縛る）</text>\n<text class=\"note\" x=\"20\" y=\"374\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">→ 展開して置く → --version に答えさせ、指した版と一致することを確かめる</text>\n</svg>"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "受け取る側の行為を完成の条件にすること",
+     "basis": "作り手視点：「モノ」を語る ・ 使い手視点：「コト」を語る",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 user-perspective"
+    },
+    {
+     "supports": "公開の仕組みを作ること自体を目的にしないこと",
+     "basis": "見えるようになったデータや情報を、誰かユーザーが使ったときに、はじめて見える化の効果が出る。この「使ってどうするか」を考えることが上位目的を考えることであり、ユーザーの立場から物事を見ることである。",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 is-it-really-the-goal"
+    },
+    {
+     "supports": "完了を観測できる項目で並べること",
+     "basis": "終了基準：活動の完了を宣言するために、何を達成しなければならないかを定義する基準。",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 entry-exit-criteria"
+    },
+    {
+     "supports": "版を同じ出どころの値どうしで比べないこと",
+     "basis": "入力から期待値を計算するのはよくある解決である。問題になるのは、その計算に SUT が持つはずの処理を複製したときである。",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 conditional-test-logic"
+    },
+    {
+     "supports": "公開した版がそのまま配る版であること",
+     "basis": "ベストプラクティス：「ソフトウェアをプログラムでデプロイする」 ・ 期待される成果：テストした版がそのままデプロイする版で、デプロイは毎回同じように行われる。ワークロードの設定を外に出し、変えずにいろいろな環境へデプロイできる。環境のあいだで何も変わっていないことを、パッケージの暗号の署名で確かめる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 sec-11"
+    },
+    {
+     "supports": "いまは完成していないこと",
+     "basis": "scripts/ と assets/ を手で写している。エンジンは --version に「知らないツール」と答える。新しい契約では一度も公開していない",
+     "tag": "measured",
+     "source": "このリポジトリ（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "skills-creator で基盤を受け取れたら完成とする",
+     "reason": "基盤の完成が上の Skill に依存する。基盤は上の Skill を知らない、という向きに反する"
+    },
+    {
+     "option": "Release に配布物が並んだら完成とする",
+     "reason": "モノが並んだことしか示さない。受け取る側が照合して動かせるかは確かめていない"
+    },
+    {
+     "option": "ローカルで cargo test が通ったら完成とする",
+     "reason": "手で写す手順と、3つの OS と、署名が、どれも確かめられないまま残る"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "受け取る側の4つの手順を、基盤のワークフローが公開後に通す",
+      "cost": "ワークフローに、公開した Release から取り直して確かめる段が1つ増える"
+     }
+    ],
+    "assumptions": [
+     "受け取る側の環境に gh が在る。無い環境での扱いは受け取る側（skills-creator）が決める"
+    ],
+    "out_of_scope": [
+     {
+      "item": "skills-creator が実際に基盤を受け取る手順",
+      "treatment": "later",
+      "note": "skills-creator の作業で作る。この条件は、受け取る側が誰でも同じ4つの手順で通る"
+     },
+     {
+      "item": "外の作業：Q1〜Q4 を試作し、workflow_dispatch と最初の tag で、この条件を実際に通す",
+      "treatment": "later"
+     },
+     {
+      "item": "macOS の Apple の署名と公証",
+      "treatment": "later",
+      "note": "公開の経路は変わらない。利用者が増えたときに足す"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1",
+   "name": "Skill のフォルダを作る手順",
+   "status": "open",
+   "question": "基盤の Skill のフォルダ（scripts/ と assets/）を、ソースから作る手順を、どこに何で持つか",
+   "answer": {
+    "text": "src/schema-driven の workspace に、製品に入らないツールの crate として xtask を置く。cargo xtask skill --out <Skill のフォルダ> が、ビルドから dist.json までを行う。",
+    "details": [
+     "xtask は workspace の根の xtask/ に置く。crates/ の外なので、製品の crate（core と adapters）とは並びが分かれる",
+     "xtask の仕事は3つに分ける ── build（cargo build を呼ぶ。--target を渡せばその OS 向け）・ skill（置く ・ SHA-256 を取る ・ dist.json を書く）・ verify（展開した場所で起動を確かめる）",
+     "skill は、scripts/ へ実行ファイル2つ、assets/ へ crates/core/schemas/ の写し、Skill のフォルダの根へ dist.json を置く。SKILL.md と LICENSE は git で追跡したまま触らない",
+     "置き先は --out で受け取り、xtask の中に .claude/ への道を書かない",
+     "dist.json は、名前 ・ 版 ・ target ・ abstract スキーマの $id ・ ファイルごとの SHA-256 を持つ。形はスキーマ（xtask/dist.schema.json）で決める",
+     "verify は rmcp のクライアントで tools/list を呼ぶ。ワークフローに JSON-RPC を手で書かない",
+     "CODING.md の crate の規則を「製品の crate は core と adapters の2つ。xtask はツールの crate で、製品の crate は xtask に依存しない」へ直し、検査も合わせる",
+     "このリポジトリの中で使うときも、cargo xtask skill --out .claude/skills/schema-driven で作る。手で写さない"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "変更後の src/schema-driven と、手順の呼び方。",
+     "text": "src/schema-driven/\n  Cargo.toml                 [workspace] members = [\"crates/*\", \"xtask\"]\n  .cargo/config.toml         [alias] xtask = \"run --package xtask --\"\n  CODING.md                  crate の規則に xtask の1行を足す\n  crates/core                製品（エンジンの中身）\n  crates/adapters            製品（CLI と MCP の実行ファイル）\n  xtask/                     ツール（製品に入らない）\n    src/main.rs              build ・ skill ・ verify\n    dist.schema.json         dist.json の形\n\n呼び方\n  cargo xtask skill --out ../../.claude/skills/schema-driven\n  cargo xtask skill --out dist/schema-driven --target x86_64-pc-windows-msvc\n  cargo xtask verify --dir dist/schema-driven\n\nできる Skill のフォルダ\n  SKILL.md ・ LICENSE          git で追跡（xtask は触らない）\n  scripts/schema-driven        実行ファイル\n  scripts/schema-driven-mcp    実行ファイル\n  assets/*.schema.json         crates/core/schemas/ の写し（7つ）\n  dist.json                    版 ・ target ・ $id ・ SHA-256"
+    },
+    {
+     "kind": "code",
+     "language": "json",
+     "caption": "dist.json の例。",
+     "text": "{\n  \"$schema\": \"schema-driven/dist@v1\",\n  \"name\": \"schema-driven\",\n  \"version\": \"0.1.0\",\n  \"target\": \"x86_64-unknown-linux-musl\",\n  \"abstract\": [\"schema-driven/abstract@v1\", \"schema-driven/catalog@v1\", \"…\"],\n  \"files\": [\n    {\"path\": \"scripts/schema-driven\", \"sha256\": \"…\"},\n    {\"path\": \"assets/meta-schema.json\", \"sha256\": \"…\"}\n  ]\n}"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "xtask を cargo だけで動くツールにすること",
+     "basis": "cargo-xtask は cargo と rustc のほかにツールを入れずに動く、と書いている",
+     "tag": "primary",
+     "source": "sources/raw.githubusercontent.com_matklad_cargo-xtask_master_README.md:7（第三者、commit 1559f86e）"
+    },
+    {
+     "supports": "公開の作業に使った例があること",
+     "basis": "rust-analyzer が Releasing に xtask を使っている",
+     "tag": "primary",
+     "source": "sources/raw.githubusercontent.com_matklad_cargo-xtask_master_README.md:118（第三者）"
+    },
+    {
+     "supports": "scripts/ に実行できるものを置き、assets/ にスキーマを置くこと",
+     "basis": "scripts/ は実行できるコード、assets/ はスキーマのようなデータファイルを置く場所である",
+     "tag": "primary",
+     "source": "sources/agentskills.io_specification.md:217 ・ :241"
+    },
+    {
+     "supports": "crate の規則を直す必要があること",
+     "basis": "members が crates/* なので、crates/ に足すと製品の crate が3つになり、規則「core と adapters の2つ」の検査が落ちる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解1への指摘）"
+    },
+    {
+     "supports": "置く仕事を、ビルドと分けて試験すること",
+     "basis": "条件：第一象限（コンポーネントテスト ・ コンポーネント統合テスト） ・ 対応：自動化して CI プロセスに含めるべきである",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 test-automation"
+    },
+    {
+     "supports": "いまは手で写していること",
+     "basis": "scripts/ と assets/ は git で無視しており、作業のたびに手で写している。手順はどこにも無い",
+     "tag": "measured",
+     "source": "このリポジトリ（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "シェルスクリプトか Makefile",
+     "reason": "Windows で別に書くことになる。ツールは Rust だけで書く決まりにも反する"
+    },
+    {
+     "option": "ワークフローの中だけに手順を書く",
+     "reason": "このリポジトリの中では手で写すまま残る。CI と手元で別の手順になる"
+    },
+    {
+     "option": "エンジンの実行ファイルに配る仕事を足す",
+     "reason": "利用者に配る実行ファイルに、配る側だけが使うコードが入る"
+    },
+    {
+     "option": "build.rs で置く",
+     "reason": "ビルドのたびに Skill のフォルダへ書く。OUT_DIR の外へ書くことになる"
+    },
+    {
+     "option": "xtask を crates/ の下に置く",
+     "reason": "製品の crate と同じ並びに入り、crate の規則と検査が製品とツールを区別できない"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "workspace の根の xtask/ に、build ・ skill ・ verify の3つを持つ",
+      "cost": "CODING.md の crate の規則と検査を直す。dist.json のスキーマを1つ足す"
+     }
+    ],
+    "assumptions": [
+     "Agent Skills の仕様は、scripts/ に置くコードの例に Python ・ Bash ・ JavaScript を挙げるだけで、実行ファイルには触れていない。実行できるコードとして置けると読む（推測）"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：xtask を試作し、Q3 のワークフローの build と verify から呼ぶ",
+      "treatment": "later"
+     },
+     {
+      "item": "ほかの Skill の入口を作る手順",
+      "treatment": "out",
+      "note": "skills-creator の持ち物。基盤の手順は上の Skill を知らない"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q2",
+   "name": "版",
+   "status": "open",
+   "question": "基盤の版を、どこで1か所に決め、どう確かめるか",
+   "answer": {
+    "text": "版の正本は src/schema-driven/Cargo.toml の [workspace.package] version の1か所に置く。CLI の --version ・ MCP の serverInfo.version ・ dist.json はそこから取り、公開の前に出どころの違う4つの値を比べる。",
+    "details": [
+     "CLI に --version を足す。MCP の serverInfo.version は、すでに CARGO_PKG_VERSION を返している",
+     "公開の前に比べる4つ ── tag の名前 ・ cargo metadata で読んだ Cargo.toml の版 ・ ビルドした実行ファイルが答える --version ・ dist.json の version",
+     "4つのどれかが違えば、公開の前にワークフローが止まる",
+     "エンジンの版と、abstract スキーマの $id の版（schema-driven/abstract@v1 など）は別の軸である。dist.json に両方を書く",
+     "公開した版は配布物と tag を変えられない。誤りが見つかったら、版を上げて出し直す"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "版を比べる4つの出どころ。",
+     "text": "tag                  schema-driven-v0.1.0        → 0.1.0\nCargo.toml           cargo metadata で読む       → 0.1.0\n実行ファイル         scripts/schema-driven --version → 0.1.0\ndist.json            \"version\"                   → 0.1.0\n\nどれか1つでも違えば、公開しない"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "members が workspace の版を継げること",
+     "basis": "members は {key}.workspace = true で [workspace.package] のキーを継ぐ。継げるキーに version が在る",
+     "tag": "primary",
+     "source": "sources/doc.rust-lang.org_cargo_reference_workspaces.html:311-313 ・ :328 ・ :350"
+    },
+    {
+     "supports": "ビルドした実行ファイルが版を答えられること",
+     "basis": "env!(\"CARGO_PKG_VERSION\") でコンパイル時に版を取れる",
+     "tag": "primary",
+     "source": "sources/doc.rust-lang.org_cargo_reference_environment-variables.html:344 ・ :352"
+    },
+    {
+     "supports": "比べる相手を、同じ出どころにしないこと",
+     "basis": "原因：Manual Result Verification ・ 見え方：SUT が誤った結果を返すと分かっている場合でも、テストはほぼ毎回成功する ・ 根本の原因：テストが Self-Checking Test でなく、エラーか例外が投げられたときにしか失敗しない。そのため誤った安心感を与えることがある ・ 直し方：Test Method に、Assertion Method の呼び出しなどの結果の検証の処理を入れ、すべてのテストを self-checking にする",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 manual-intervention"
+    },
+    {
+     "supports": "版で戻せるようにすること",
+     "basis": "ベストプラクティス：「バージョン管理を使用する」 ・ 望ましい成果：チームが一緒にコードを扱え、マージしても一貫性が崩れず、変更が消えない。正しいバージョニングで、エラーをたやすく元に戻せる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-05"
+    },
+    {
+     "supports": "いまは版を答えないこと",
+     "basis": "scripts/schema-driven --version は「知らないツール: --version」で終了コード 2 を返す",
+     "tag": "measured",
+     "source": "このリポジトリ（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "tag と Cargo.toml だけを比べる",
+     "reason": "ビルドした実行ファイルが実際に答える版と、dist.json の版を確かめない"
+    },
+    {
+     "option": "版を tag から決め、Cargo.toml を書き換えてビルドする",
+     "reason": "手元のビルドと公開のビルドで版の出どころが変わる"
+    },
+    {
+     "option": "エンジンの版と abstract スキーマの版を1つにまとめる",
+     "reason": "エンジンを直すたびに、変えていないスキーマの $id が変わる。concrete スキーマの x-abstract が全部ずれる"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "Cargo.toml の1か所を正本にし、4つの出どころを公開の前に比べる",
+      "cost": "CLI に --version を足す。比べる段をワークフローに1つ置く"
+     }
+    ],
+    "assumptions": [
+     "継いだ版がそのまま CARGO_PKG_VERSION に入る。原典の2か所をつないだ推測なので、--version を足すときに実測で確かめる"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：--version を足し、Q3 の publish の段で4つの版を比べる",
+      "treatment": "later"
+     },
+     {
+      "item": "版をいつ上げるかの決まり（semver の読み方）",
+      "treatment": "later",
+      "note": "最初の公開は 0.1.0 で出す。比べる仕組みは、上げ方の決まりに依存しない"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q3",
+   "name": "3つの OS 向けの公開",
+   "status": "open",
+   "question": "3つの OS 向けにビルドし、署名を付けて公開する流れを、どこに持ち、受け取る側との境目をどこに置くか",
+   "answer": {
+    "text": "基盤専用のワークフロー .github/workflows/schema-driven.yml が、tag schema-driven-v<版> で動く。中身は、3つの OS のビルド ・ 別のランナーでの確かめ ・ 証明を付けた公開 ・ 公開後の受け取りの確かめである。境目は、受け取る側ができる4つの行為で約束する。",
+    "details": [
+     "build：3つの OS で cargo xtask build と skill を動かす。dist.json を別の実装（sha256sum ・ certutil）で照合する。macOS は lipo -archs で2つの側が入っていることを、Linux は静的リンクであることを、Windows は C の実行時ライブラリを取り込んで（+crt-static）ほかの DLL に依存しないことを確かめる",
+     "verify：ビルドしなかったランナーで配布物を展開し、cargo xtask verify で --version ・ check-schemas（assets/）・ MCP の tools/list を確かめる",
+     "publish：Q2 の4つの版を比べ、SHA256SUMS を作り、actions/attest で証明を付け、bundle を Release に並べて公開する。証明を付ける権限はこのジョブだけに渡す",
+     "receive：公開した Release から版を指して取り直す。gh attestation verify に --repo ・ --bundle ・ --signer-workflow（このワークフロー）・ --source-ref（この tag）を付けて照合する。1バイト変えた配布物で止まることも確かめる。展開して --version を比べる",
+     "workflow_dispatch でも動かせるようにし、そのときは publish と receive を飛ばす。tag を付ける前に build と verify を1回通す",
+     "配布物の名前は schema-driven-<版>-<target>.tar.gz（Windows は .zip）にし、古い形の <名前>-<target> と重ならないようにする",
+     "基盤が約束する4つの行為 ── 版を指して取得できる ・ SHA-256 と証明で照合できる（どのワークフローがどの tag で作ったかまで）・ 展開すればそのまま動く ・ --version で版を答える"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "yaml",
+     "caption": "基盤専用のワークフローの構造（中身は試作で書く）。",
+     "text": "# .github/workflows/schema-driven.yml\non:\n  push:\n    tags: [\"schema-driven-v*\"]\n  workflow_dispatch: {}          # build と verify だけを通す\n\njobs:\n  build:    # linux-musl ・ windows-msvc ・ macOS universal2\n    run: cargo xtask build --target $T && cargo xtask skill --out dist/schema-driven\n  verify:   # ビルドしなかったランナーで展開して確かめる\n    run: cargo xtask verify --dir schema-driven\n  publish:  # tag のときだけ。4つの版を比べ、SHA256SUMS と証明を付けて公開\n    permissions: { contents: write, id-token: write, attestations: write }\n  receive:  # 公開した Release から取り直して、受け取る側の手順を通す\n    run: |\n      gh attestation verify $FILE --repo daidaiiro-519/daidaiiro --bundle attestation.sigstore.json \\\n        --signer-workflow daidaiiro-519/daidaiiro/.github/workflows/schema-driven.yml \\\n        --source-ref refs/tags/$TAG"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "SHA-256 だけでなく証明で照合すること",
+     "basis": "OS イメージ ・ コンテナイメージ ・ コードのアーティファクトは、ダイジェストやハッシュで整合性を確かめられる形で配られることが多い。受け取った側がペイロードのハッシュを計算し、公開された値と同じかを見れば、改ざんされていないことは分かる。しかし、ペイロードが元の送り手から来たか（データの来歴）までは分からない。来歴まで確かめるには、アーティファクトへのデジタル署名用に、信頼できる機関が出した証明書がいる。この件には実装手順の節が無い。",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 sec-06"
+    },
+    {
+     "supports": "照合をワークフローと tag まで縛ること",
+     "basis": "同じリポジトリの古い release.yml も証明を付ける権限を持つので、--repo と --bundle だけの照合では、そちらが付けた証明でも通る",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解3への指摘）"
+    },
+    {
+     "supports": "--bundle を使っても --repo か --owner が必要なこと",
+     "basis": "MarkFlagsOneRequired(\"owner\", \"repo\")",
+     "tag": "primary",
+     "source": "sources/raw.githubusercontent.com_cli_cli_trunk_pkg_cmd_attestation_verify_verify.go:242（commit 54a671d9）"
+    },
+    {
+     "supports": "証明を付ける権限",
+     "basis": "ジョブの権限に id-token: write と attestations: write が必要である。出力 bundle-path に証明のファイルのパスが入る",
+     "tag": "primary",
+     "source": "sources/raw.githubusercontent.com_actions_attest_main_README.md:68-69 ・ :170（commit 7d8b1cac）"
+    },
+    {
+     "supports": "公開の手順そのものを試験すること",
+     "basis": "対応：デプロイプロセスのテストを、デプロイで起きる変更のテストと同じくらい大事に扱う",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-06"
+    },
+    {
+     "supports": "別のランナーで確かめること",
+     "basis": "原因：Resource Optimism（外部のリソースに頼るテストの結果が、実行する時と場所で変わる） ・ 見え方：ある環境では成功するのに、別の環境では失敗する ・ 根本の原因：ある環境で使えるリソースが、別の環境では使えない",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 erratic-test"
+    },
+    {
+     "supports": "publish の段で比べる版",
+     "basis": "公開の前に、tag ・ Cargo.toml ・ --version ・ dist.json の4つを比べる",
+     "tag": "rule",
+     "source": "このボードの論点2"
+    },
+    {
+     "supports": "署名の方式を原典と実測で決める決まり",
+     "basis": "署名の方式と制限時間の値は、作るときに原典と実測で決める",
+     "tag": "rule",
+     "source": "ボード skill-roles の論点3（決着）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "古い release.yml に基盤の段を足す",
+     "reason": "古い形の Skill の段と混ざり、基盤の tag で古い段も動く。基盤の公開が skills-creator の置いた仕組みに乗ったまま残る"
+    },
+    {
+     "option": "SHA256SUMS だけで照合する",
+     "reason": "同じ Release から取るので、来歴を確かめない"
+    },
+    {
+     "option": "--repo と --bundle だけで証明を照合する",
+     "reason": "同じリポジトリの別のワークフローが付けた証明でも通る"
+    },
+    {
+     "option": "ビルドしたランナーで起動を確かめるだけにする",
+     "reason": "Rust のツールが入った環境で動いたことしか示さない。Windows の C の実行時ライブラリのような依存を見落とす"
+    },
+    {
+     "option": "tag のときだけ動かす",
+     "reason": "最初の公開が、ワークフローの最初の試験になる"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "基盤専用のワークフローに build ・ verify ・ publish ・ receive の4段を置く",
+      "cost": "ワークフローを1つ足す。最初の公開の前に workflow_dispatch で1回通す"
+     }
+    ],
+    "assumptions": [
+     "公開リポジトリなので、artifact attestations は Sigstore の公開のインスタンスで署名する（sources/raw.githubusercontent.com_actions_attest_main_README.md:13）",
+     "macOS の x86_64 の側は、起動できるランナーが無ければ lipo -archs で入っていることまでを確かめる"
+    ],
+    "out_of_scope": [
+     {
+      "item": "受け取る側に gh が無いときの扱い",
+      "treatment": "later",
+      "note": "受け取る側（skills-creator）が決める。基盤は bundle を並べて照合できる形にするところまでを約束する"
+     },
+     {
+      "item": "ネットワーク無しでの照合（trusted root を別に持つ形）",
+      "treatment": "later",
+      "note": "いまの受け取る側はネットワークに出られる"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q4",
+   "name": "古い形の公開との切り分け",
+   "status": "open",
+   "question": "古い形の release.yml ・ install スクリプト ・ 公開済みの v1.0.0 を、基盤の公開とどう切り分けるか",
+   "answer": {
+    "text": "古い release.yml からは、基盤の tag と、まとめ公開（v<版>）の対象の両方で schema-driven を外す。install スクリプトは今は変えず、公開済みの v1.0.0 も残す。",
+    "details": [
+     "release.yml の on.push.tags に、含める行の後ろへ '!schema-driven-v*' を足す。否定は、含める行の後ろに置いたときだけ効く",
+     "release.yml の plan で、v<版> のときの対象の一覧から schema-driven を外す。外さないと、scripts/ も assets/ も無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる",
+     "古い install スクリプトは、基盤の tag を拾っても、配布物の名前が違うので「取得できない」で止まる。導入したと誤って出ることは無い",
+     "install スクリプトの作り直しと、ほかの Skill の公開は、skills-creator の作業で行う",
+     "v1.0.0 と skills-creator-v1.0.0 は消さない。新しい契約では使わない"
+    ]
+   },
+   "images": [
+    {
+     "kind": "diff",
+     "language": "yaml",
+     "caption": "release.yml に足す2か所。",
+     "before": "on:\n  push:\n    tags: [\"v*\", \"*-v*\"]\n…\n            v[0-9]*) skills=\"$(ls .claude/skills | tr '\\n' ' ')\" ;;",
+     "after": "on:\n  push:\n    tags: [\"v*\", \"*-v*\", \"!schema-driven-v*\"]\n…\n            v[0-9]*) skills=\"$(ls .claude/skills | grep -vx schema-driven | tr '\\n' ' ')\" ;;"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "否定のパターンで tag を外せること",
+     "basis": "含めると除くを両方したいときは tags に ! を書く。否定は肯定の後に置いたときだけ除き、順序に依存する",
+     "tag": "primary",
+     "source": "sources/docs.github.com_en_actions_reference_workflows-and-actions_workflow-syntax.md:261 ・ :321-322"
+    },
+    {
+     "supports": "tag の除外だけでは足りないこと",
+     "basis": "v<版> のまとめ公開では ls .claude/skills に schema-driven が入り、エンジンの無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解4への指摘）・ qa-advisor の回答（2026-10-13）── 判断基準 （見解4の穴）"
+    },
+    {
+     "supports": "いまの install スクリプトが古い形を前提にすること",
+     "basis": "install.sh は $dest/$name/bin/$name-mcp を MCP に登録する",
+     "tag": "measured",
+     "source": "install.sh:105（2026-10-13）"
+    },
+    {
+     "supports": "公開済みの版",
+     "basis": "v1.0.0 と skills-creator-v1.0.0 を 2026-09-29 に公開している",
+     "tag": "measured",
+     "source": "gh release list（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "tag の除外の1行だけを足す",
+     "reason": "まとめ公開の経路に schema-driven が残る"
+    },
+    {
+     "option": "古い release.yml と install スクリプトを今消す",
+     "reason": "ほかの Skill はまだ古い形で、それらを公開する経路が無くなる"
+    },
+    {
+     "option": "v1.0.0 を消す",
+     "reason": "公開した版は変えない決まり（immutable releases）を自分で破る。新しい契約で使わないなら、残しても困らない"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "tag と plan の2か所で schema-driven を外し、ほかは触らない",
+      "cost": "release.yml を2行直す"
+     }
+    ],
+    "assumptions": [
+     "release.yml には、署名を足す未コミットの変更が乗っている。2行を足す順番は、その変更の持ち主と合わせる"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：release.yml に2行を足し、基盤の tag で古いワークフローが動かないことを確かめる",
+      "treatment": "later"
+     },
+     {
+      "item": "install スクリプトの作り直し",
+      "treatment": "later",
+      "note": "skills-creator の作業で行う。基盤の配布物は名前が違うので、古い install が誤って入れることは無い"
+     }
+    ]
+   }
+  }
+ ]
+}
