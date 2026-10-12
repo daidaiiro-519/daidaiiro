@@ -3,7 +3,7 @@
  "kind": "board",
  "id": "skills-creator-on-base",
  "title": "skills-creator を新しい形の基盤の上で作り直す",
- "round": 3,
+ "round": 4,
  "intro": "完成した基盤 schema-driven の上で、どの AI ツールでも呼ばれて手順どおりに動く Skill を作れるように、skills-creator の役割 ・ 作られる Skill の入口 ・ 基盤のエンジンの入れ方 ・ 自身の作りと、完成の条件を決める。古い skills-creator のボードは過去の構成のものとして参照しない。",
  "queue": [
   {
@@ -16,7 +16,7 @@
   },
   {
    "topic": "Q2",
-   "why": "利用者が、作られる Skill はソースを scripts/ に持ち、配る仕組みは無いと確かめた"
+   "why": "入口の名前を、tool.json に代わって言語から切り離す窓口にする"
   },
   {
    "topic": "Q3",
@@ -42,6 +42,7 @@
      "基盤のエンジンを入れる操作は、壊した例で止まる ── 1バイト変えた配布物 ・ 違う版 ・ gh が無いか古い環境",
      "入れたあとのフォルダで、起動しないエンジンや、スキーマの abstract の版を扱えないエンジンを置くと、check の該当項目が不合格になる",
      "Claude Code と Codex の両方で、リポジトリに置いた skills-creator が依頼に応じて呼ばれ、SKILL.md の手順（scaffold と check）を実行して期待の結果を返す",
+     "練習用の Skill の入口が、GitHub Actions の Linux ・ macOS ・ Windows（PowerShell）で scripts/<Skill名> として起動する",
      "CODING.md の検査の順がすべて0件で通る"
     ]
    },
@@ -250,33 +251,52 @@
    "id": "Q2",
    "name": "入口",
    "status": "open",
-   "question": "作られる Skill の入口を、どこにどう置き、どう基盤のエンジンを呼ぶか",
+   "question": "作られる Skill の入口を、どこにどう置き、SKILL.md からどう呼び、どう基盤のエンジンを呼ぶか",
    "answer": {
-    "text": "作られる Skill の入口は、作った人が scripts/ にソースのまま置き、自分のファイルの場所から隣の scripts/bin/schema-driven を決めて呼ぶ。scaffold が出す入口の雛形は、最初は Python の1つにする。",
+    "text": "入口は、拡張子の無い scripts/<Skill名> と、Windows で起動する scripts/<Skill名>.cmd の2つで1つの名前にし、SKILL.md は scripts/<Skill名> とだけ書く。",
     "details": [
-     "入口のソースは scripts/<Skill名>.<拡張子> に置く。そのまま実行できる言語を前提にし、ビルドの手順を Skill の中に持たない",
-     "基盤のエンジン（実行ファイル）だけは scripts/bin/ に置く",
-     "入口は、作業ディレクトリでも PATH でもなく、自分のファイルの場所から Skill のフォルダとエンジンを決める",
+     "入口の名前は、SKILL.md やドキュメントが言語に依存せずに参照するための、共通の窓口である。tool.json が持っていた役目を、入口のファイル自身が持つ",
+     "scripts/<Skill名> は、1行目で実行のしかた（#!/usr/bin/env python3 など）を指定した入口のソースで、作った人が持つ。macOS ・ Linux ・ WSL ・ Git Bash で動く",
+     "scripts/<Skill名>.cmd は、上の入口を Windows の実行環境で起動するだけの数行で、PowerShell と CMD で使われる",
+     "入口を別の言語で書き直すときは、この2つを差し替えるだけで、SKILL.md もドキュメントも変わらない",
+     "基盤のエンジン（実行ファイル）は scripts/bin/ に置く。入口は、作業ディレクトリでも PATH でもなく、自分のファイルの場所から Skill のフォルダとエンジンを決める",
      "基盤の操作は scripts/bin/schema-driven --skill <自分のフォルダ> へ渡し、終了コード ・ 標準出力 ・ 標準エラーを変えずに返す。Skill の能力は入口の中で行う",
      "自分の能力を持たない Skill は、入口を置かず、SKILL.md から scripts/bin/schema-driven を直接呼んでよい",
-     "雛形を Python にするのは、Agent Skills の仕様が scripts/ の例の先頭に挙げ、多くの環境でソースのまま動くからである。ほかの言語の雛形は、必要になったときに足す",
-     "言語に依存する具体（実行のコマンド ・ 必要な版）は雛形の references に置き、SKILL.md には書かない"
+     "scaffold が出す入口の雛形は、最初は Python の1つにする。ほかの言語の雛形は、必要になったときに足す"
     ]
    },
    "images": [
     {
      "kind": "code",
      "language": "text",
-     "caption": "作られる Skill のフォルダの例。",
-     "text": ".claude/skills/practice/\n  SKILL.md\n  assets/term.schema.json         concrete スキーマ\n  scripts/practice.py              入口（ソースのまま。作った人が持つ）\n  scripts/bin/schema-driven       基盤のエンジン（skills-creator が照合して入れる）\n  scripts/bin/schema-driven-mcp\n\n$ python3 scripts/practice.py prompt --schema practice/term@v1 --property /name\n  → scripts/bin/schema-driven --skill .claude/skills/practice prompt … をそのまま呼ぶ"
+     "caption": "作られる Skill のフォルダと、SKILL.md からの呼び方。",
+     "text": ".claude/skills/practice/\n  SKILL.md                        手順は「scripts/practice <操作>」とだけ書く\n  assets/term.schema.json         concrete スキーマ\n  scripts/practice                入口（1行目 #!/usr/bin/env python3。作った人が持つ）\n  scripts/practice.cmd            Windows で入口を起動する数行\n  scripts/bin/schema-driven       基盤のエンジン（skills-creator が照合して入れる）\n  scripts/bin/schema-driven-mcp\n\n$ scripts/practice prompt --schema practice/term@v1 --property /name\n  → scripts/bin/schema-driven --skill .claude/skills/practice prompt … をそのまま呼ぶ\n$ scripts/practice tally\n  → 入口の中で行う（practice の能力）"
     }
    ],
    "grounds": [
+    {
+     "supports": "入口の名前を、言語から切り離す窓口にすること",
+     "basis": "「だよね、skill.mdやドキュメントからの参照から依存性を分離するための共通インターフェースとしておいていたんだよね？」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
+    },
     {
      "supports": "入口のソースを scripts/ に持つこと",
      "basis": "「このスキルクリエーターから作成されるものに関してはスキルを利用する人がそのskillフォルダのscript配下にソースコードを持つイメージで特に配布とかの概念はあまりない認識あってる？」",
      "tag": "primary",
      "source": "利用者の言葉（2026-10-13）"
+    },
+    {
+     "supports": "Claude Code は Windows で Git Bash か PowerShell を使うこと",
+     "basis": "Without Git for Windows**, Claude Code runs shell commands via the [PowerShell tool]",
+     "tag": "primary",
+     "source": "sources/code.claude.com_docs_en_setup.md:126（2026-10-13 取得）"
+    },
+    {
+     "supports": "Codex は Windows で PowerShell の上で動くこと",
+     "basis": "The app can run natively in PowerShell with a Windows sandbox instead of",
+     "tag": "primary",
+     "source": "sources/developers.openai.com_codex_windows.md:12（2026-10-13 取得）"
     },
     {
      "supports": "scripts/ の例に挙がる言語",
@@ -295,51 +315,50 @@
      "basis": "基盤のエンジンは入口に取り込まず、別の実行ファイルのまま呼ぶ。Skill を作る人が、入口をどの言語で書いてもよいようにするためである",
      "tag": "rule",
      "source": "ボード page-design-ownership の論点4（決着）"
-    },
-    {
-     "supports": "実行ファイルを scripts/bin/ に置くこと",
-     "basis": "「バイナリならscripts/binの方がいいかもね。」",
-     "tag": "primary",
-     "source": "利用者の言葉（2026-10-13）"
     }
    ],
    "rejected": [
     {
-     "option": "1回目の答え：入口を scripts/bin/<Skill名> の実行ファイルにし、ソースは src/<Skill名>/ に置いてビルドする。雛形は Rust",
-     "reason": "作る人が scripts/ にソースを持つ形に変えた。ビルドの手順を作る人に負わせない。利用者の言葉「このスキルクリエーターから作成されるものに関してはスキルを利用する人がそのskillフォルダのscript配下にソースコードを持つイメージで特に配布とかの概念はあまりない認識あってる？」"
+     "option": "2回目の答え：入口を scripts/<Skill名>.py のように言語の拡張子付きで置き、SKILL.md から python3 で呼ぶ",
+     "reason": "SKILL.md が言語に寄り、入口を別の言語にすると SKILL.md も直すことになる。利用者の言葉「だよね、skill.mdやドキュメントからの参照から依存性を分離するための共通インターフェースとしておいていたんだよね？」"
     },
     {
-     "option": "雛形を Rust にする",
-     "reason": "ソースのままでは動かず、作る人がビルドすることになる。ツールを Rust で書く決まりは、私たちが管理するツールのためのものである"
+     "option": "1回目の答え：入口を scripts/bin/<Skill名> の実行ファイルにし、ソースは src/<Skill名>/ に置いてビルドする",
+     "reason": "作る人が scripts/ にソースを持つ形に変えた。利用者の言葉「このスキルクリエーターから作成されるものに関してはスキルを利用する人がそのskillフォルダのscript配下にソースコードを持つイメージで特に配布とかの概念はあまりない認識あってる？」"
     },
     {
-     "option": "作業ディレクトリから Skill のフォルダを決める",
-     "reason": "別の場所から呼ばれたとき、別の Skill のフォルダを渡す"
+     "option": "拡張子の無い scripts/<Skill名> の1つだけにする",
+     "reason": "PowerShell は1行目の実行のしかたを読まないので、Windows でそのまま動かす Codex と、Git for Windows の無い Claude Code で動かない"
     },
     {
-     "option": "PATH から schema-driven を探す",
-     "reason": "自分の写しではない版のエンジンを呼ぶ"
+     "option": "tool.json に起動のコマンドを書き、SKILL.md は tool.json の欄を参照する",
+     "reason": "窓口が2つ（tool.json と入口）になり、AI が手順を読むたびに tool.json を引くことになる"
+    },
+    {
+     "option": "作業ディレクトリや PATH から相手を決める",
+     "reason": "別の Skill のフォルダや、自分の写しではない版のエンジンを呼ぶ"
     }
    ],
    "verification": {
     "passed": [
      {
-      "option": "入口は scripts/ にソースのまま置き、エンジンは scripts/bin/ に置く",
-      "cost": "page-design-ownership の論点4（入口を配布物の段でビルドする）を、作られる Skill については読み替える"
+      "option": "scripts/<Skill名> と scripts/<Skill名>.cmd の2つで1つの名前にする",
+      "cost": "scaffold が2つのファイルを置く。page-design-ownership の論点4（入口を配布物の段でビルドする）を、作られる Skill については読み替える"
      }
     ],
     "assumptions": [
-     "作られる Skill を使う環境には、入口の言語の実行環境（Python の雛形なら python3）がある"
+     "作られる Skill を使う環境には、入口の言語の実行環境（Python の雛形なら python3、Windows では py か python）がある"
     ],
     "out_of_scope": [
      {
-      "item": "外の作業：Python の入口の雛形を作り、練習用の Skill で確かめる",
-      "treatment": "later"
+      "item": "外の作業：PowerShell で scripts/<Skill名> と打ったときに .cmd が動くかを、GitHub Actions の windows-2025 で確かめる",
+      "treatment": "later",
+      "note": "動かなければ、SKILL.md の書き方を変えずに済む別の手を論点として出す"
      },
      {
       "item": "Python 以外の言語の雛形",
       "treatment": "later",
-      "note": "必要になったときに足す。入口の決まり（場所 ・ 渡し方）は言語に依存しない"
+      "note": "必要になったときに足す。入口の名前と渡し方は言語に依存しない"
      }
     ]
    }
