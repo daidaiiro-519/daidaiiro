@@ -23,6 +23,10 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - Q4 の決着：固有に残すのは advance（回を進め、論点ごとの changes を書く）・ inspect（本文を読む3つの判定）・ serve（直接呼ぶ。宣言しない）の3つ。inspect のうち3つはボードのスキーマ（maxContains ・ if/then）へ移す。init ・ migrate ・ render ・ 部品 board ・ transcribe ・ check-copy は消す
 - 試作とアドバイザーの回答は、そのセッションの作業用の領域（proto/ ・ q4b-*.json）にだけある
 
+## 止めていること（2026-10-12）
+
+schema-driven の残り（カタログの新しいデザインシステム ・ 配布の手順 ・ Windows の確かめ）と、ACDR 0172（検査の文と指摘の案内）・ 0173（試験を CLI と MCP の両方で）は止めてある（0172 ・ 0173 は作業ツリーにあり未コミット）。理由：Rust のアーキテクチャと実装の規則がどこにも無く（ボード schema-driven-build の Q3 で先送り、no-more-spaghetti は 0123 で廃止、implementation.json は 0169 で消した）、crate 構成 ・ テスト（5,500行、テストの中に MCP クライアント等の実装）・ trait の使い方が場当たりになっていた。次：1次情報（Rust Book 11章 ・ Cargo Book ・ API Guidelines ・ AGENTS.md）を fact-check で取り、ボード「Rust で書くツールのアーキテクチャと実装の規則」を出す。規則は CODING.md 相当を共通契約にする案（コーディングの Skill の concrete スキーマのインスタンスとして持ち、HTML ・ md に描画）を利用者が出した。
+
 ## 次にすること（順番）
 
 1. Q5 の承認 → ボードを決着させる
