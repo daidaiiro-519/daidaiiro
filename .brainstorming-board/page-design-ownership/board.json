@@ -3,15 +3,23 @@
  "kind": "board",
  "id": "page-design-ownership",
  "title": "ページのデザインシステムと部品のカタログをだれが持つか",
- "round": 1,
+ "round": 2,
  "queue": [
   {
    "topic": "Q1",
-   "why": "カタログを基盤が持つ形が、基盤のコンセプト（契約は基盤、中身は concrete）から外れていると分かった"
+   "why": "カタログを基盤が持つ形が、基盤のコンセプトから外れていると分かった"
   },
   {
    "topic": "Q2",
    "why": "見た目をそろえる方針はそのままに、そろえる役の持ち主だけを決め直せる"
+  },
+  {
+   "topic": "Q3",
+   "why": "利用者が、届け方と版も合わせて決めることにした"
+  },
+  {
+   "topic": "Q4",
+   "why": "利用者が、Skill の入口を Skill が持ち、基盤はその内側で呼ぶ形を出した"
   }
  ],
  "topics": [
@@ -262,10 +270,202 @@
   {
    "id": "Q3",
    "name": "届け方と版",
-   "status": "waiting",
+   "status": "open",
    "question": "共有のデザインシステムと基盤のエンジンを、使う Skill へどう届け、版の食い違いをどう見つけるか",
    "answer": {
-    "text": "そろえる役の持ち主が決まったら出す。基盤の配布物を作る手順と一緒に決める。"
+    "text": "skills-creator の配布物を作る手順が、各 Skill のフォルダへ、入口 ・ その Skill の実行ファイル ・ 基盤のエンジンの写し ・ 共有のデザインシステムの写しを入れる。写しごとの版と SHA-256 を記録し、全 Skill の版が1つであることを検査する。",
+    "details": [
+     "配布物を作る手順は skills-creator が持つ。creator は Agent Skills としての形と、配る前の検査を持つと決めてある",
+     "写しにするのは、基盤のエンジン（scripts/schema-driven）と、共有のデザインシステム（assets/design-system/）である。どちらも git では追跡せず、配布物の段で入れる",
+     "その Skill の正本（SKILL.md ・ スキーマ ・ ページテンプレート ・ その Skill だけが使う部品）は、Skill のフォルダで git で追跡する",
+     "その Skill の実行ファイル（入口と固有の処理）は、ソースを src/<Skill>/ に置き、配布物の段でビルドして scripts/ に入れる",
+     "配布物の段で、写しごとの版と SHA-256 を、Skill のフォルダの dist.json に書く。check の配布物の段は、dist.json と中身が合うかを見る",
+     "リポジトリの全 Skill について、エンジンの版と共有のデザインシステムの版がそれぞれ1つであることを検査する",
+     "このリポジトリの中で使うときも、同じ手順で各 Skill のフォルダへ入れる。手で写さない",
+     "呼ぶたびの SHA-256 の照合はしない。配るとき ・ 入れるときに1回だけ確かめる"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "配布物の段で作る、1つの Skill のフォルダと検査。",
+     "text": "配布物の段で作る、1つの Skill のフォルダ\n\n  .claude/skills/brainstorming-board/\n    SKILL.md ・ LICENSE ・ tool.json         正本（git で追跡する）\n    assets/board.schema.json ・ pages/       その Skill の正本（git で追跡する）\n    assets/catalog/                          その Skill だけが使う部品（git で追跡する）\n    assets/design-system/                    共有のデザインシステムの写し（配布物の段で入る）\n    scripts/brainstorming-board              入口（配布物の段で入る）\n    scripts/schema-driven                    基盤のエンジンの写し（配布物の段で入る）\n    scripts/advance など                     その Skill の実行ファイル（配布物の段で入る）\n    dist.json                                写しごとの版と SHA-256（配布物の段で書く）\n\n  検査\n    skills-creator check --level dist        dist.json の SHA-256 が中身と合う\n    リポジトリの全 Skill を見る検査          エンジンと共有のデザインシステムの版が、全 Skill で1つ"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "写しの版を記録して食い違いを検査すること",
+     "basis": "観点：結果 ・ 一人で、いっぺんに付ける：自動的に統一感が出る。統一感のない名前を付けるほうが難しい ・ 5人が別々に、違うタイミングで1つずつ付ける：まったく脈絡のない5つの名前の寄せ集めが簡単にできる",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 sense-of-unity"
+    },
+    {
+     "supports": "版を付けて公開し、使う側が移る時期を選べること",
+     "basis": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる",
+     "tag": "primary",
+     "source": "ddd-advisor の回答（2026-10-13）── 判断基準 open-host-service"
+    },
+    {
+     "supports": "外すものを説明付きで知らせること",
+     "basis": "値：文字列 ・ 意味：deprecated である。文字列が、その説明になる",
+     "tag": "primary",
+     "source": "ux-advisor の回答（2026-10-13）── 判断基準 design-token"
+    },
+    {
+     "supports": "配布物を作る手順を skills-creator が持つこと",
+     "basis": "creator の目的は、基盤の上に作るものを Agent Skills ・ Agent の形にして、どの AI ツールでも呼べて手順どおりに動く状態で配れるようにすることで、持つのはその形の雛形と検査だけにする",
+     "tag": "rule",
+     "source": "ボード concrete-schema-roles の論点3（決着）"
+    },
+    {
+     "supports": "実行ファイルのソースを Skill の外に置き、配布物の段で入れること",
+     "basis": "その実行ファイルは Rust で書き、ソースを src/skills-creator/ に置く。配布物を作る段で、実行ファイルを OS ごとにビルドして scripts/ に入れる",
+     "tag": "rule",
+     "source": "ボード skills-creator-rebuild の論点4（決着）"
+    },
+    {
+     "supports": "手で写す形をやめること",
+     "basis": "いまは .claude/skills/schema-driven/scripts と assets を、作業のたびに手で写している。写し忘れると、古い実行ファイルのまま検査が通る",
+     "tag": "measured",
+     "source": "このセッションの作業（2026-10-12〜13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "使う Skill が、共有のデザインシステムの Skill のフォルダを実行時に直接読む",
+     "reason": "Skill は自分のフォルダだけで動く形で配る。ほかの Skill の置き場所を前提にすると、置き場所がツールごとに違うときに動かない"
+    },
+    {
+     "option": "写しの版を記録しない",
+     "reason": "Skill ごとに写した時期が違うと、版の違う見た目やエンジンが並んでも見つけられない"
+    },
+    {
+     "option": "呼ぶたびに SHA-256 を照合する",
+     "reason": "写しは配るとき ・ 入れるときにしか変わらない。そのときに1回確かめれば足りる"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "skills-creator が配布物を作り、版と SHA-256 を dist.json に記録して検査する",
+      "cost": "skills-creator に配布物を作る手順を足す。古い dist は凍結したものをやめる"
+     }
+    ],
+    "assumptions": [
+     "3つの OS ごとのビルドと公開（GitHub Release など）は、この手順の外の公開の作業で扱う"
+    ],
+    "out_of_scope": [
+     {
+      "item": "3つの OS ごとのビルドと、その確かめ（Windows を含む）",
+      "treatment": "later",
+      "note": "公開の作業で決める。この答えは、どの OS の実行ファイルを入れても同じ手順で動く"
+     },
+     {
+      "item": "外の作業：skills-creator に配布物を作る手順を足し、schema-driven と skills-creator で通す",
+      "treatment": "later"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q4",
+   "name": "Skill の入口",
+   "status": "open",
+   "question": "AI が Skill を使うとき、何を呼ぶか。基盤の能力と、その Skill だけの能力を、どこから呼ぶか",
+   "answer": {
+    "text": "各 Skill は自分の入口の実行ファイルを1つ持ち、SKILL.md の手順はその入口だけを呼ぶ。入口は、基盤の能力を自分のフォルダを渡して基盤へ渡し、その Skill だけの能力は自分で実行する。",
+    "details": [
+     "入口は scripts/<Skill の名前> に置く。--json で、できることの一覧を返す",
+     "基盤の能力（作成 ・ 取得 ・ 更新 ・ 検査 ・ 承認 ・ 描画など）は、入口が scripts/schema-driven に、入口の1つ上のフォルダ（その Skill のフォルダ）を渡して呼ぶ",
+     "その Skill だけの能力（例：ブレストボードの advance ・ inspect ・ serve）は、入口が実行する。JSON の読み書きは基盤を呼ぶ",
+     "SKILL.md は基盤のコマンドを書かない。基盤の呼び方が変わっても、直すのは入口の中だけである",
+     "--skill は基盤の内部の引数として残す。呼ぶのは入口だけである",
+     "入口は、その Skill のコードで、言語は問わない。このリポジトリでは Rust で書き、ソースは src/<Skill>/ に置く。雛形は skills-creator の scaffold が置く",
+     "SKILL.md の手順が scripts/schema-driven を直接呼ぶ、という決まりは、この答えで改める"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "ブレストボードの入口と、その中で起きること。",
+     "text": "ブレストボードの例\n\n  SKILL.md の手順（AI が打つのは、この Skill の入口だけ）\n    scripts/brainstorming-board --json                       できることの一覧\n    scripts/brainstorming-board create --path .brainstorming-board/foo/board.json\n    scripts/brainstorming-board check  --dir  .brainstorming-board/foo\n    scripts/brainstorming-board render --dir  .brainstorming-board/foo\n    scripts/brainstorming-board advance --board .brainstorming-board/foo\n\n  入口の中で起きること\n    create ・ check ・ render など（基盤の能力）\n      → scripts/schema-driven --skill <入口の1つ上のフォルダ> create …\n        スキーマ ・ ページテンプレート ・ カタログは、その Skill の assets/ から読む\n    advance など（その Skill だけの能力）\n      → Skill 自身の処理。JSON の読み書きは scripts/schema-driven を呼ぶ\n\n  基盤の呼び方が変わったとき\n    直すのは入口の中だけ。SKILL.md の手順は変わらない"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "Skill が入口を持ち、基盤をその内側で呼ぶこと",
+     "basis": "「それさ、そのSkillsがラップして呼び出すようにしてくれないかな？」「そうしないとさ、スキーマ駆動の部分のbinの内容が変わったら中身を差し替えるだけで済まなくならない？インターフェースはそのSkillsの呼び出しにした方がいいと思わない？」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
+    },
+    {
+     "supports": "公開する入口と中身を分けること",
+     "basis": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる",
+     "tag": "primary",
+     "source": "ddd-advisor の回答（2026-10-13）── 判断基準 open-host-service"
+    },
+    {
+     "supports": "呼ぶ側が中身を知らずに済むこと",
+     "basis": "大事なのは、起きたことが単なる効率化ではなく、考えなくてよいことが増えたという点である。アプリケーションの開発者や利用者は、どの物理サーバーを使っているか、CPU の型番は何か、ディスクがどこにつながっているか、を意識しなくてよくなった。これは、抽象化によって複雑さが隠された状態である。",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 it-evolution-abstraction"
+    },
+    {
+     "supports": "Skill の能力を Skill の実行ファイルとして持つこと",
+     "basis": "Skill は自分の能力を自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON とスキーマの操作だけを scripts/schema-driven で行う",
+     "tag": "rule",
+     "source": "ACDR 0175（承認）"
+    },
+    {
+     "supports": "改める決まり",
+     "basis": "SKILL.md の手順は、エンジンを Skill のフォルダからの相対パス（scripts/schema-driven）で呼ぶ",
+     "tag": "rule",
+     "source": "ボード skills-creator-rebuild の論点2（決着。この答えで改める）"
+    },
+    {
+     "supports": "入口の雛形を skills-creator が置くこと",
+     "basis": "creator の目的は、基盤の上に作るものを Agent Skills ・ Agent の形にして、どの AI ツールでも呼べて手順どおりに動く状態で配れるようにすることで、持つのはその形の雛形と検査だけにする",
+     "tag": "rule",
+     "source": "ボード concrete-schema-roles の論点3（決着）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "SKILL.md の手順が、基盤（scripts/schema-driven）と Skill の実行ファイルを、それぞれ直接呼ぶ",
+     "reason": "基盤の呼び方が変わるたびに、全 Skill の SKILL.md を書き直すことになる。AI が基盤の引数まで知ることになる"
+    },
+    {
+     "option": "基盤が、Skill の能力も呼べる入口になる（やめた宣言したツールの形）",
+     "reason": "入口の持ち主が基盤になり、Skill の能力の形を基盤が知ることになる"
+    },
+    {
+     "option": "エンジンが自分の置き場所から Skill のフォルダを決め、SKILL.md から直接呼ぶ",
+     "reason": "引数は減るが、SKILL.md が基盤の CLI に依存したまま残る"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "各 Skill が入口を1つ持ち、基盤は入口の内側で呼ぶ",
+      "cost": "Skill ごとに入口の実行ファイルを1つ書く。skills-creator に入口の雛形を足す"
+     }
+    ],
+    "assumptions": [
+     "入口が基盤の能力を渡すとき、引数と返す JSON は基盤のものをそのまま通す"
+    ],
+    "out_of_scope": [
+     {
+      "item": "入口が基盤の能力のうちどれを出すか（全部か、その Skill が使うものだけか）",
+      "treatment": "later",
+      "note": "入口の雛形を作るときに決める。どちらでも、SKILL.md が呼ぶのは入口だけで、この答えは変わらない"
+     },
+     {
+      "item": "外の作業：skills-creator に入口の雛形を足し、ブレストボードを移すときに使う",
+      "treatment": "later"
+     }
+    ]
    }
   }
  ],
