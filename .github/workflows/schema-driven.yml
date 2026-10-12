@@ -1,0 +1,176 @@
+# 基盤 schema-driven を、3つの OS 向けの Skill のフォルダにして、証明を付けて Release へ公開する（daidaiiro-519/daidaiiro）。
+# 基盤の持ち物である。上の Skill の公開は、このワークフローの外で行う。
+#
+# tag schema-driven-v<版> で動く。版は src/schema-driven/Cargo.toml の [workspace.package] の version の1か所で決める。
+# workflow_dispatch では build と verify だけを通す（tag を付ける前に1回通すため）。
+#
+# 流れ：build（3つの OS で cargo xtask skill）→ verify（ビルドしなかったランナーで展開して cargo xtask verify）
+#       → publish（SHA256SUMS と証明を付けて公開）→ receive（公開した Release から取り直し、受け取る側の手順を通す）
+name: schema-driven
+
+on:
+  push:
+    tags: ["schema-driven-v*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: zip
+          - os: macos-14
+            target: universal2-apple-darwin
+            ext: tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: ビルドのツールを用意する
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl) sudo apt-get update && sudo apt-get install -y musl-tools
+                                       rustup target add x86_64-unknown-linux-musl ;;
+            universal2-apple-darwin)   rustup target add aarch64-apple-darwin x86_64-apple-darwin ;;
+            *)                         rustup target add "${{ matrix.target }}" ;;
+          esac
+      - name: Skill のフォルダを作る ── SKILL.md と LICENSE を写し、残りは cargo xtask skill が置く
+        run: |
+          out="$GITHUB_WORKSPACE/dist/schema-driven"
+          mkdir -p "$out"
+          cp .claude/skills/schema-driven/SKILL.md .claude/skills/schema-driven/LICENSE "$out/"
+          (cd src/schema-driven && cargo xtask skill --out "$out" --target "${{ matrix.target }}")
+      - name: 試験 ── dist.json の SHA-256 を、xtask とは別の実装で照合する
+        working-directory: dist/schema-driven
+        run: |
+          sums="$(jq -r '.files[] | "\(.sha256)  \(.path)"' dist.json)"
+          if command -v sha256sum >/dev/null; then printf '%s\n' "$sums" | sha256sum -c -
+          else printf '%s\n' "$sums" | shasum -a 256 -c -; fi
+      - name: 試験 ── 利用者の環境のライブラリに依存しない
+        working-directory: dist/schema-driven/scripts/bin
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-musl)
+              for b in schema-driven schema-driven-mcp; do file "$b" | grep -q "static" || { file "$b"; exit 1; }; done ;;
+            universal2-apple-darwin)
+              for b in schema-driven schema-driven-mcp; do
+                archs="$(lipo -archs "$b")"
+                [ "$archs" = "x86_64 arm64" ] || [ "$archs" = "arm64 x86_64" ] || { echo "$b: $archs"; exit 1; }
+              done ;;
+            x86_64-pc-windows-msvc)
+              # C の実行時ライブラリを取り込んでいれば、VCRUNTIME の DLL の名前は実行ファイルに現れない
+              for b in schema-driven.exe schema-driven-mcp.exe; do
+                if grep -qai "vcruntime140" "$b"; then echo "$b が VCRUNTIME に依存する"; exit 1; fi
+              done ;;
+          esac
+      - name: 梱包する ── 名前は schema-driven-<版>-<target>
+        run: |
+          version="$(jq -r .version dist/schema-driven/dist.json)"
+          name="schema-driven-$version-${{ matrix.target }}"
+          mkdir -p release
+          if [ "${{ matrix.ext }}" = zip ]; then (cd dist && 7z a -tzip "../release/$name.zip" schema-driven >/dev/null)
+          else tar -czf "release/$name.tar.gz" -C dist schema-driven; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: schema-driven-${{ matrix.target }}
+          path: release/
+
+  verify:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-14
+            target: universal2-apple-darwin
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: schema-driven-${{ matrix.target }}
+          path: release
+      - name: 試験 ── ビルドしなかったランナーで展開し、版 ・ check-schemas ・ MCP のツールの一覧を確かめる
+        run: |
+          place="$RUNNER_TEMP/unpacked" && mkdir -p "$place"
+          for f in release/*; do
+            case "$f" in *.zip) 7z x -o"$place" "$f" >/dev/null ;; *) tar -xzf "$f" -C "$place" ;; esac
+          done
+          tag=""; [ "$GITHUB_REF_TYPE" = tag ] && tag="--tag $GITHUB_REF_NAME"
+          (cd src/schema-driven && cargo xtask verify --dir "$place/schema-driven" $tag)
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: verify
+    runs-on: ubuntu-latest
+    # 証明は、鍵を持たない GitHub の artifact attestations で付ける。証明に必要な権限は、このジョブだけに渡す
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: schema-driven-*
+          path: release
+          merge-multiple: true
+      - name: SHA-256 の一覧を作る
+        run: (cd release && sha256sum *.tar.gz *.zip > SHA256SUMS)
+      - name: 配布物と照合の一覧に、出所の証明を付ける
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: "release/*"
+      - name: 証明の bundle を配布物に並べる
+        run: cp "${{ steps.attest.outputs.bundle-path }}" release/attestation.sigstore.json
+      - name: 下書きに全部を付けてから公開する ── 公開した版は、配布物と tag を変えられない
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --draft --title "$GITHUB_REF_NAME" \
+            --notes "基盤 schema-driven の Skill のフォルダ（3つの OS）。受け取る側は、SHA256SUMS と attestation.sigstore.json で照合する：gh attestation verify <配布物> --repo $GITHUB_REPOSITORY --bundle attestation.sigstore.json --signer-workflow $GITHUB_REPOSITORY/.github/workflows/schema-driven.yml --source-ref refs/tags/$GITHUB_REF_NAME"
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+
+  receive:
+    if: github.ref_type == 'tag'
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 試験 ── 公開した Release から版を指して取り直し、受け取る側の手順を通す
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#schema-driven-v}"
+          file="schema-driven-$version-x86_64-unknown-linux-musl.tar.gz"
+          got="$RUNNER_TEMP/got" && mkdir -p "$got" && cd "$got"
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p "$file" -p SHA256SUMS -p attestation.sigstore.json
+          sha256sum -c --ignore-missing SHA256SUMS
+          verify() {
+            gh attestation verify "$1" --repo "$GITHUB_REPOSITORY" --bundle attestation.sigstore.json \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/schema-driven.yml" \
+              --source-ref "refs/tags/$GITHUB_REF_NAME"
+          }
+          verify "$file"
+          # 1バイト変えた配布物は、証明の照合で止まる
+          cp "$file" tampered.tar.gz && printf 'x' >> tampered.tar.gz
+          if verify tampered.tar.gz; then echo "書き換えた配布物が照合を通った"; exit 1; fi
+          tar -xzf "$file"
+          (cd "$GITHUB_WORKSPACE/src/schema-driven" && cargo xtask verify --dir "$got/schema-driven" --tag "$GITHUB_REF_NAME")

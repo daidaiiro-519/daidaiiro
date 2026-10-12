@@ -263,7 +263,7 @@ pub fn cli(scratch: &Scratch, args: &[&str]) -> (i32, Value) {
 
 /// MCP の実行ファイルを、作業用のフォルダをいまのフォルダにして起動し、rmcp のクライアントで1回の接続の中で呼ぶ。
 /// 先にツールの一覧を取り、続けて calls（ツールの名前と引数）を順に呼ぶ。返すのは
-/// `{"tools": [名前…], "calls": [{"isError": …, "body": 結果の文字を JSON として読んだもの}…]}`。
+/// `{"version": serverInfo の版, "tools": [名前…], "calls": [{"isError": …, "body": 結果の文字を JSON として読んだもの}…]}`。
 pub fn mcp(scratch: &Scratch, calls: &[(&str, Value)]) -> Value {
     use rmcp::model::CallToolRequestParams;
     use rmcp::transport::TokioChildProcess;
@@ -278,6 +278,11 @@ pub fn mcp(scratch: &Scratch, calls: &[(&str, Value)]) -> Value {
         command.current_dir(scratch.root());
         let transport = TokioChildProcess::new(command).unwrap();
         let client = ().serve(transport).await.unwrap();
+        let version = client
+            .peer_info()
+            .and_then(|info| info.server_info.clone())
+            .map(|server| server.version)
+            .unwrap_or_default();
         let tools: Vec<Value> = client
             .list_all_tools()
             .await
@@ -302,7 +307,7 @@ pub fn mcp(scratch: &Scratch, calls: &[(&str, Value)]) -> Value {
             }));
         }
         client.cancel().await.unwrap();
-        serde_json::json!({"tools": tools, "calls": results})
+        serde_json::json!({"version": version, "tools": tools, "calls": results})
     })
 }
 

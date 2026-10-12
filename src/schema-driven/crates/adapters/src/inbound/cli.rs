@@ -1,4 +1,5 @@
 //! CLI の受け口。`[--skill <Skill のフォルダ>] <ツール> --引数 値 …` をツールの一覧の呼び出しへ変換する。
+//! `--version` だけを渡すと、エンジンの名前と版を返す。版は Cargo.toml の [workspace.package] の1か所から来る。
 
 use crate::inbound::tools::{self, Toolbox};
 use schema_driven_core::ports::{Files, Query, Schemas};
@@ -10,6 +11,11 @@ pub fn split_skill(args: &[String]) -> (Option<&str>, &[String]) {
         [flag, dir, rest @ ..] if flag == "--skill" => (Some(dir.as_str()), rest),
         _ => (None, args),
     }
+}
+
+/// エンジンの名前と版を data で返す。MCP の serverInfo と同じ値である。
+pub fn version() -> Value {
+    serde_json::json!({"ok": true, "findings": [], "data": {"name": "schema-driven", "version": env!("CARGO_PKG_VERSION")}})
 }
 
 /// 引数を読み、compose でツールの一覧を組んで呼び出し、終了コードと出力を返す。
@@ -29,6 +35,9 @@ pub fn call<F: Files, S: Schemas, Q: Query>(
     // 出力はもともとすべて JSON なので、--json はどこにあっても受け付けて取り除く
     let as_json = args.iter().any(|arg| arg == "--json");
     let args: Vec<&String> = args.iter().filter(|arg| *arg != "--json").collect();
+    if args.len() == 1 && args[0] == "--version" {
+        return (0, version());
+    }
     let Some((command, rest)) = args.split_first() else {
         // 動詞なしの --json は、ツールの一覧を返す
         if as_json {
@@ -109,6 +118,19 @@ mod tests {
             run(&["get", "--path", "missing.json", "--query", "id", "--json"]),
             run(&["get", "--path", "missing.json", "--query", "id"])
         );
+    }
+
+    #[test]
+    fn version_alone_returns_the_name_and_the_version() {
+        let (code, out) = run(&["--version"]);
+        assert_eq!(code, 0, "{out}");
+        assert_eq!(out["data"]["name"], "schema-driven");
+        assert_eq!(out["data"]["version"], env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
+    fn version_after_a_tool_name_is_a_misuse() {
+        assert_eq!(run(&["get", "--version"]).0, 2);
     }
 
     #[test]

@@ -3,7 +3,7 @@
 mod support;
 
 use serde_json::json;
-use support::{eq, expect, mcp, Scratch};
+use support::{cli, eq, expect, mcp, Scratch};
 
 /// スキーマ t を置いた作業用のフォルダ。
 fn workdir(name: &str) -> Scratch {
@@ -77,5 +77,18 @@ fn mcp_reports_a_failed_tool_as_an_error_result() {
             ("/calls/0/body/ok", eq(false)),
             ("/calls/0/body/reason", eq("読めない")),
         ],
+    );
+}
+
+#[test]
+fn mcp_and_cli_answer_the_same_version() {
+    let scratch = workdir("version");
+    let (code, from_cli) = cli(&scratch, &["--version"]);
+    assert_eq!(code, 0, "{from_cli}");
+    let out = mcp(&scratch, &[]);
+    expect(
+        "MCP",
+        &out,
+        &[("/version", eq(from_cli["data"]["version"].clone()))],
     );
 }

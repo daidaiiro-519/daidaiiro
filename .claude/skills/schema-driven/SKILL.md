@@ -62,10 +62,11 @@ concrete スキーマと、それに従うインスタンスのディレクト�
 
 ## 実行手順
 
-ツールは、CLI の実行ファイル `scripts/schema-driven` と、MCP のサーバー `scripts/schema-driven-mcp` の両方から、同じ名前と引数で呼べる。MCP の登録はツールごとに形が違うので、導入するときに行う。一覧は次で取れる。
+ツールは、CLI の実行ファイル `scripts/bin/schema-driven` と、MCP のサーバー `scripts/bin/schema-driven-mcp` の両方から、同じ名前と引数で呼べる。MCP の登録はツールごとに形が違うので、導入するときに行う。一覧と版は次で取れる。
 
 ```
-scripts/schema-driven --json
+scripts/bin/schema-driven --json
+scripts/bin/schema-driven --version
 ```
 
 ### Step 1: concrete スキーマを書き、abstract に従っているかを検査する
@@ -73,9 +74,9 @@ scripts/schema-driven --json
 concrete スキーマは、abstract スキーマのインスタンスである。インスタンスと同じ共通ツールで作り、書き進める。中身（何を持つか）は、作る側が決める。
 
 ```
-scripts/schema-driven create --schema schema-driven/abstract@v1 --path <Skill のフォルダ>/assets/<種類>.schema.json
-scripts/schema-driven prompt --schema schema-driven/abstract@v1 --property /<欄>
-scripts/schema-driven update --path <スキーマ> --patch '<JSON Patch>'
+scripts/bin/schema-driven create --schema schema-driven/abstract@v1 --path <Skill のフォルダ>/assets/<種類>.schema.json
+scripts/bin/schema-driven prompt --schema schema-driven/abstract@v1 --property /<欄>
+scripts/bin/schema-driven update --path <スキーマ> --patch '<JSON Patch>'
 ```
 
 create は、根に `$schema` と `x-abstract` を書いて枠を作り、未記入の欄を x-prompt と一緒に返す。根に置く3つの欄は次のとおりで、書き方の決まりは `assets/meta-schema.json` が持つ。
@@ -93,7 +94,7 @@ create は、根に `$schema` と `x-abstract` を書いて枠を作り、未記
 ほかのスキーマの定義を使うときは、`$ref` をファイル名ではなく名前で書く。同じ Skill のスキーマなら、`$id` を基準に JSON Schema の規則で解けるので、「<種類>@<版>」だけでよい（例：`term@v1#/$defs/short`）。ファイル名を変えても、参照は切れない。
 
 ```
-scripts/schema-driven check-schemas --dir <スキーマのディレクトリ>
+scripts/bin/schema-driven check-schemas --dir <スキーマのディレクトリ>
 ```
 
 `findings` が空なら、契約に従っている。版を書いていないスキーマと、エンジンが扱わない版のスキーマは、検査せずに指摘する。
@@ -111,8 +112,8 @@ scripts/schema-driven check-schemas --dir <スキーマのディレクトリ>
 ### Step 2: インスタンスを作成し、x-prompt を読む
 
 ```
-scripts/schema-driven create --schema <スキーマ> --path <インスタンス>
-scripts/schema-driven prompt --schema <スキーマ> --property /<プロパティ>
+scripts/bin/schema-driven create --schema <スキーマ> --path <インスタンス>
+scripts/bin/schema-driven prompt --schema <スキーマ> --property /<プロパティ>
 ```
 
 create は、必須のプロパティを空のままにしてインスタンスを作り、未記入のプロパティを x-prompt と一緒に返す。インスタンスの `$schema` には、スキーマの名前を書く。**x-prompt の `write` の決まりに従って値を決める。**
@@ -132,7 +133,7 @@ create は、必須のプロパティを空のままにしてインスタンス�
 ### Step 3: JSON Patch で更新する
 
 ```
-scripts/schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash <読んだ時点のハッシュ値>]
+scripts/bin/schema-driven update --path <インスタンス> --patch '<JSON Patch>' [--hash <読んだ時点のハッシュ値>]
 ```
 
 未記入以外の検証エラーがあれば、書かずに `errors` を返す。直して、もう一度送る。未記入が残っているときは書いて、残りを x-prompt と一緒に返す。
@@ -140,13 +141,13 @@ scripts/schema-driven update --path <インスタンス> --patch '<JSON Patch>' 
 値を読むときは get を使う。
 
 ```
-scripts/schema-driven get --path <インスタンス> --query '<JMESPath 式>'
+scripts/bin/schema-driven get --path <インスタンス> --query '<JMESPath 式>'
 ```
 
 ### Step 4: ディレクトリを検査する
 
 ```
-scripts/schema-driven check --dir <インスタンスのディレクトリ>
+scripts/bin/schema-driven check --dir <インスタンスのディレクトリ>
 ```
 
 **終了コード 0 は、検査を最後まで実行できたことだけを示す。** 合格かどうかは、`instances` の `errors` と `unfilled`、`findings` の `status`（合格 ・ ずれ ・ 確かめ直し など）で見る。
@@ -176,7 +177,7 @@ scripts/schema-driven check --dir <インスタンスのディレクトリ>
 ページテンプレートは、節の並びと、節ごとに置く部品と、値を取る JMESPath 式だけを書いた JSON である（`assets/page.schema.json`）。部品は、カタログの部品の名前で呼ぶ。**HTML ・ CSS ・ JS は書かない。**
 
 ```
-scripts/schema-driven --skill <Skill のフォルダ> render --dir <インスタンスのディレクトリ> --pages <ページテンプレートのディレクトリ> --out <出力>
+scripts/bin/schema-driven --skill <Skill のフォルダ> render --dir <インスタンスのディレクトリ> --pages <ページテンプレートのディレクトリ> --out <出力>
 ```
 
 | 状態 | render の返し方 |
@@ -192,7 +193,7 @@ scripts/schema-driven --skill <Skill のフォルダ> render --dir <インスタ
 ### Step 6: 承認を記録する
 
 ```
-scripts/schema-driven approve --dir <インスタンスのディレクトリ>
+scripts/bin/schema-driven approve --dir <インスタンスのディレクトリ>
 ```
 
 検証エラー ・ ずれ ・ 未記入が1件でもあれば、承認記録を書かない。
@@ -232,6 +233,8 @@ scripts/schema-driven approve --dir <インスタンスのディレクトリ>
 
 | 場所 | 中身 |
 |---|---|
+| `scripts/bin/` | エンジンの実行ファイル（CLI と MCP）。OS ごとにビルドしたもの |
+| `dist.json` | このフォルダの中身の記録。エンジンの版 ・ target ・ `assets/` のスキーマの名前 ・ ファイルごとの SHA-256（`schema-driven/dist@v1`） |
 | `assets/meta-schema.json` | abstract スキーマ v1（`schema-driven/abstract@v1`）。concrete スキーマが従う契約で、check-schemas が検査する |
 | `assets/annotations.schema.json` | 注釈 x-ref（指される側の数の決まり inverse を含む）と x-derive の仕様 |
 | `assets/view.schema.json` | x-view の書き方と、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote） |

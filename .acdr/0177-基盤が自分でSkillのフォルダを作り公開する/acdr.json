@@ -1,0 +1,419 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0177",
+ "title": "基盤が自分で Skill のフォルダを作り公開する",
+ "date": "2026-10-13",
+ "status": "accepted",
+ "decision": "基盤 schema-driven は、自分のソースから自分の Skill のフォルダを作り、自分のワークフローで3つの OS 向けに証明を付けて公開し、受け取る側の手順を公開した Release で通せたときに完成とする。",
+ "why": "ボード schema-driven-release の論点0〜4で決めた。いままで基盤の Skill のフォルダの scripts/ と assets/ は、作業のたびに手で写していた。エンジンは版を答えず、公開の仕組み（release.yml と install スクリプト）は、skills-creator の dist が置いた古い形のままで、新しい形の基盤を公開できなかった。基盤の公開が上の Skill の置いた仕組みに乗っていたことは、上の Skill が基盤を使うという依存の向きとも逆だった。論点3の「基盤のエンジンの写し」を、上の Skill が版を指して受け取れる形にするのが、schema-driven の完成の残りである。",
+ "shift": [
+  {
+   "what": "基盤の Skill のフォルダ",
+   "from": "scripts/ と assets/ を手で写す。手順はどこにも無い",
+   "to": "cargo xtask skill --out <フォルダ> が、ビルドから scripts/bin/ ・ assets/ ・ dist.json までを作る"
+  },
+  {
+   "what": "実行ファイルの置き場所",
+   "from": "scripts/schema-driven ・ scripts/schema-driven-mcp",
+   "to": "scripts/bin/schema-driven ・ scripts/bin/schema-driven-mcp。scripts/ の直下は読めるスクリプトのために空ける"
+  },
+  {
+   "what": "版",
+   "from": "エンジンは版を答えない（--version は誤用）",
+   "to": "Cargo.toml の [workspace.package] の version の1か所。--version ・ serverInfo ・ dist.json がそこから取り、公開の前に tag と合わせて比べる"
+  },
+  {
+   "what": "公開",
+   "from": "skills-creator の dist が置いた release.yml が、古い形（tool/ と bin/）を前提に全 Skill を公開する",
+   "to": "基盤専用の .github/workflows/schema-driven.yml が、tag schema-driven-v<版> で build ・ verify ・ publish ・ receive を行う"
+  },
+  {
+   "what": "受け取る側との境目",
+   "from": "決まっていない",
+   "to": "版を指して取得できる ・ SHA-256 と証明で照合できる（ワークフローと tag まで）・ 展開すればそのまま動く ・ --version で版を答える、の4つの行為"
+  },
+  {
+   "what": "古い形の公開の仕組み",
+   "from": "release.yml ・ install.sh ・ install.ps1",
+   "to": "消す。新しい形の導入は skills-creator の作業で作る"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "基盤が自分で Skill のフォルダを作り、3つの OS 向けに公開し、受け取る側が確かめる流れ。",
+ "alternatives": [
+  {
+   "option": "skills-creator の配る手順で基盤も公開する",
+   "why_not": "基盤の公開が上の Skill に依存する。基盤は上の Skill を知らない、という向きに反する"
+  },
+  {
+   "option": "シェルスクリプトか Makefile で Skill のフォルダを作る",
+   "why_not": "Windows で別に書くことになり、ツールは Rust だけで書く決まりにも反する"
+  },
+  {
+   "option": "ワークフローの中だけに手順を書く",
+   "why_not": "手元では手で写す作業が残り、CI と手元で手順が分かれる"
+  },
+  {
+   "option": "エンジンの実行ファイルに、配る仕事を足す",
+   "why_not": "利用者に配る実行ファイルに、配る側だけが使うコードが入る"
+  },
+  {
+   "option": "古い release.yml に、基盤の tag の除外と、まとめ公開からの除外を足して残す",
+   "why_not": "古い形はまだ配布していないので、残すための手当てをしなくてよい。残すと基盤の tag でも動き、同じ tag の Release を2つのワークフローが作ろうとする"
+  },
+  {
+   "option": "SHA256SUMS だけで照合する",
+   "why_not": "同じ Release から取るので、来歴（どのワークフローが作ったか）を確かめない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "workflow",
+   "tab": "schema-driven.yml",
+   "file": ".github/workflows/schema-driven.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "tags: [\"schema-driven-v*\"]",
+     "why": "基盤の公開を、基盤専用のワークフローに置いた。tag は ACDR 0042 の <Skill の名前>-v<版> に従う",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "workflow_dispatch: {}",
+     "why": "tag を付ける前に build と verify を1回通すため。最初の公開がワークフローの最初の試験にならないようにする",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "cargo xtask skill --out \"$out\" --target \"${{ matrix.target }}\"",
+     "why": "手元と同じ手順で、3つの OS 向けの Skill のフォルダを作る",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "sums=\"$(jq -r '.files[] | \"\\(.sha256)  \\(.path)\"' dist.json)\"",
+     "why": "dist.json の SHA-256 を、xtask とは別の実装で照合する。同じ関数で照合すると、計算を誤っていても通る",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "# C の実行時ライブラリを取り込んでいれば、VCRUNTIME の DLL の名前は実行ファイルに現れない",
+     "why": "ビルドしたランナーには Rust と VC の実行時ライブラリが入っているので、起動できても利用者の環境で動くとは言えない",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "cargo xtask verify --dir \"$place/schema-driven\" $tag",
+     "why": "ビルドしなかったランナーで展開し、版 ・ check-schemas ・ MCP のツールの一覧を確かめる",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "subject-path: \"release/*\"",
+     "why": "SHA-256 は改ざんが無いことしか示さない。来歴を示すため、配布物と照合の一覧に証明を付ける",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "--signer-workflow \"$GITHUB_REPOSITORY/.github/workflows/schema-driven.yml\"",
+     "why": "--repo と --bundle だけでは、同じリポジトリの別のワークフローが付けた証明でも通る。署名したワークフローと tag まで縛る",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "if verify tampered.tar.gz; then echo \"書き換えた配布物が照合を通った\"; exit 1; fi",
+     "why": "照合が、正しい配布物で通るだけでなく、書き換えた配布物で止まることを確かめる",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "(cd \"$GITHUB_WORKSPACE/src/schema-driven\" && cargo xtask verify --dir \"$got/schema-driven\" --tag \"$GITHUB_REF_NAME\")",
+     "why": "完成の条件（論点0）。公開した Release から版を指して取り直し、展開して、版の一致まで確かめる",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "xtask",
+   "tab": "xtask/src/lib.rs",
+   "file": "src/schema-driven/xtask/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn perform(args: &[String]) -> (i32, Value) {",
+     "why": "入口（main.rs）は結果を出すだけにし、振り分けを試験できる側に置く",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "pub fn version_mismatches(expected: &str, sources: &[(&str, &str)]) -> Vec<String> {",
+     "why": "tag ・ --version ・ serverInfo ・ dist.json を、Cargo.toml の版と1つずつ比べる。違う出どころの値どうしで比べる",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "fn target_dir() -> Result<PathBuf, String> {",
+     "why": "CARGO_TARGET_DIR や設定でビルドの出力先が変わっても、cargo に聞いて正しい場所から写す",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "/// universal2-apple-darwin は、2つの CPU 向けにビルドしてから lipo で1つにまとめる。",
+     "why": "macOS 向けの配布物を1つにする。古いワークフローと同じ形を、手元でも使える手順に移した",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "pub fn skill(out: &Path, target: Option<&str>) -> Result<Value, String> {",
+     "why": "手で写していた scripts/ と assets/ を、ソースから作る。dist.json に版と SHA-256 を書く",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "pub fn verify(dir: &Path, tag: Option<&str>) -> Result<Vec<String>, String> {",
+     "why": "展開した場所で、SHA-256 ・ 起動 ・ check-schemas ・ MCP のツールの一覧 ・ 版を確かめる。check-schemas は基盤の abstract スキーマに所見を出すので、所見の数ではなく動くことを見る",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "xtask-main",
+   "tab": "xtask/src/main.rs",
+   "file": "src/schema-driven/xtask/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let (code, out) = xtask::perform(&args);",
+     "why": "入口は結果を出して終了コードを返すだけにする",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "dist-schema",
+   "tab": "dist.schema.json",
+   "file": "src/schema-driven/xtask/dist.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$id\": \"schema-driven/dist@v1\",",
+     "why": "Skill のフォルダに書く dist.json の形を決める。JSON はスキーマを持つ決まりに従う",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "\"description\": \"assets/ に置いた基盤のスキーマの名前（$id）。エンジンの版とは別の軸の版を持つ\",",
+     "why": "エンジンの版と abstract スキーマの版は別の軸なので、両方を書く",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "xtask-cargo",
+   "tab": "xtask/Cargo.toml",
+   "file": "src/schema-driven/xtask/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "publish = false",
+     "why": "製品に入らないツールの crate である",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "cargo-config",
+   "tab": ".cargo/config.toml",
+   "file": "src/schema-driven/.cargo/config.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "xtask = \"run --quiet --package xtask --\"",
+     "why": "cargo xtask <作業> で呼べるようにする（cargo-xtask の README :72 の形）",
+     "before": "（無い。新しく作るファイル）"
+    },
+    {
+     "find": "rustflags = [\"-C\", \"target-feature=+crt-static\"]",
+     "why": "Windows の実行ファイルが、利用者の環境の VC の実行時ライブラリに依存しないようにする",
+     "before": "（無い。新しく作るファイル）"
+    }
+   ]
+  },
+  {
+   "key": "workspace",
+   "tab": "Cargo.toml",
+   "file": "src/schema-driven/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"crates/*\", \"xtask\"]",
+     "before": "members = [\"crates/*\"]（コメントは「版は Cargo.lock の1か所で決める。」）",
+     "why": "xtask を crates/ の外に置き、製品の crate と並びで分ける。コメントに、xtask の役割と、基盤の版の正本を [workspace.package] の version の1か所にすることを書いた"
+    }
+   ]
+  },
+  {
+   "key": "cli",
+   "tab": "inbound/cli.rs",
+   "file": "src/schema-driven/crates/adapters/src/inbound/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "if args.len() == 1 && args[0] == \"--version\" {",
+     "why": "エンジンが版を答えるようにした。MCP の serverInfo.version と同じ値を返す",
+     "before": "（無い。--version は「知らないツール」で終了コード 2）"
+    },
+    {
+     "find": "fn version_alone_returns_the_name_and_the_version() {",
+     "why": "--version の変換を単体で確かめる",
+     "before": "（無い）"
+    },
+    {
+     "find": "--version` だけを渡すと、エンジンの名前と版を返す。",
+     "before": "（無い）",
+     "why": "受け口の説明に、--version を足した"
+    },
+    {
+     "find": "pub fn version() -> Value {",
+     "before": "（無い）",
+     "why": "版の出力を1つの関数に置く。値は Cargo.toml から来る CARGO_PKG_VERSION である"
+    }
+   ]
+  },
+  {
+   "key": "mcp-test",
+   "tab": "tests/mcp.rs",
+   "file": "src/schema-driven/crates/adapters/tests/mcp.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "fn mcp_and_cli_answer_the_same_version() {",
+     "why": "CLI と MCP の2つの受け口が、同じ版を答えることを起動して確かめる",
+     "before": "（無い）"
+    },
+    {
+     "find": "use support::{cli, eq, expect, mcp, Scratch};",
+     "before": "（無い）",
+     "why": "CLI の版と比べるため、CLI を起動する補助を使う"
+    }
+   ]
+  },
+  {
+   "key": "support",
+   "tab": "tests/support/mod.rs",
+   "file": "src/schema-driven/crates/adapters/tests/support/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map(|server| server.version)",
+     "why": "MCP の初期化で受け取った serverInfo の版を、試験の結果に入れる",
+     "before": "（無い。serverInfo の版を結果に入れていなかった）"
+    },
+    {
+     "find": "\"version\": serverInfo の版",
+     "before": "（無い）",
+     "why": "返す値に版が増えたことを、説明に書いた"
+    },
+    {
+     "find": "serde_json::json!({\"version\": version, \"tools\": tools, \"calls\": results})",
+     "before": "（無い）",
+     "why": "受け取った版を、結果に入れて返す"
+    }
+   ]
+  },
+  {
+   "key": "coding",
+   "tab": "CODING.md",
+   "file": "src/schema-driven/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "製品の crate は core と adapters の2つにする。",
+     "why": "xtask を足すとメンバーが3つになり、元の検査「メンバーが2つ」が落ちる。製品の crate とツールの crate を分けて書いた",
+     "before": "crate は core と adapters の2つにする。層ごとに crate を分けない（検査：ワークスペースのメンバーが2つ）"
+    },
+    {
+     "find": "製品に入らない作業（Skill のフォルダを作る ・ 確かめる）は、ワークスペースの根の xtask に置く。",
+     "why": "ツールの crate の置き場所と、製品の crate が依存しないことを規則にした",
+     "before": "（無い）"
+    },
+    {
+     "find": "基盤の版は、Cargo.toml の [workspace.package] の version の1か所に書く。",
+     "why": "版の正本を1か所にする決まりを、検査と一緒に書いた",
+     "before": "（無い）"
+    },
+    {
+     "find": "置き方と比べ方（引数 ・ SHA-256 ・ 版の比較 ・ dist.json の形）の単体テスト。",
+     "why": "xtask の試験の置き場所を決めた。ビルドと起動はワークフローが確かめる",
+     "before": "（無い）"
+    },
+    {
+     "find": "cargo xtask skill --out <Skill のフォルダ>",
+     "why": "検査の順に、Skill のフォルダを作って確かめる段を足した",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "一覧と版は次で取れる。",
+     "why": "実行ファイルを scripts/bin/ へ移し、版を取れるようにした",
+     "before": "一覧は次で取れる。"
+    },
+    {
+     "find": "このフォルダの中身の記録。",
+     "why": "Skill のフォルダに dist.json を置くようにした",
+     "before": "（無い）"
+    }
+   ]
+  },
+  {
+   "key": "mcp-json",
+   "tab": ".mcp.json",
+   "file": ".mcp.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "/.claude/skills/schema-driven/scripts/bin/schema-driven-mcp",
+     "why": "実行ファイルを scripts/bin/ へ移した",
+     "before": "/.claude/skills/schema-driven/scripts/schema-driven-mcp"
+    }
+   ]
+  },
+  {
+   "key": "gitignore",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 基盤の Skill のフォルダの scripts/bin/ ・ assets/ ・ dist.json は、cargo xtask skill がソースから作る（src/schema-driven/xtask/）",
+     "why": "手で写す形をやめ、作る手順の名前を書いた。dist.json も追跡しない",
+     "before": "# 基盤のスキーマの正本は src/schema-driven/crates/core/schemas/。Skill の assets/ へは配布物を作る段で入れる"
+    }
+   ]
+  },
+  {
+   "key": "sc-test",
+   "tab": "skills-creator/tests/type_v1.rs",
+   "file": "src/skills-creator/tests/type_v1.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "schema-driven/scripts/bin/schema-driven",
+     "why": "基盤の実行ファイルの置き場所が scripts/bin/ に変わった",
+     "before": "schema-driven/scripts/schema-driven"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "workflow": "f5422f0ebb8c9b592aeceeb1301196eadfcce60ef8c90ba926027789fe7c4c39",
+  "xtask": "ab42a2c1b6f845193f62fdef279f481ad4bb1b0055ac44455ee86e059456d754",
+  "xtask-main": "f5f2f6379ab4776572d4e64740bf67f315554f15185e8a81e6e98f666ffdd547",
+  "dist-schema": "bfccf44d516f13eb2076d32fa55f1ae54df3e8ad8c2ec48fcb23f2f55df68075",
+  "xtask-cargo": "2d925e4f6ab1b3faaa7644e72ee84278556fa907fbd709f0d08407b149ac3a6f",
+  "cargo-config": "0866a7ea3fb5da73e83639a04ca29fbd362a910a8f84e113166cb9cf6003ddae",
+  "workspace": "b85c8816e0e8ec019d1159056e8c5fd88b4dd5282bdf488854fe9246f6b98e28",
+  "cli": "7c314f695131fa0bd51009bdfc010613f004e732df8b7edd76a53b5296ead4a3",
+  "mcp-test": "dbf1af77e6a2af7dff7c4eb969815931e5210f9b788da6e44836b694bfd90e89",
+  "support": "9e87fd9c7b45840dd1aa8d959aae3f8012bcf1414cced2e5e87f33210a335d24",
+  "coding": "3b9a5abe0d5d9fc848a602c07a460e7b4739e077797b4947957c79321dd29beb",
+  "skill": "0fa0c866d11e711c5b4dedaa43353278cb0e65dd98e4629d38971a8bce4e8a07",
+  "mcp-json": "80d45df32d8dd118336128fdb3036a5141f791a63e32a39f0e613bd5f1b10f2b",
+  "gitignore": "673ce0d1dc556393bf9bf1b4752a9d0fa4def955485df75e13e401c7818392c4",
+  "sc-test": "21778ccd56cead996f64f4dbbb4a27df371f332edfed98f678c6486b20047e86"
+ }
+}

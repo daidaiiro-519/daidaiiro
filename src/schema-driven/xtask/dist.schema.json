@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema-driven/dist@v1",
+  "title": "基盤の Skill のフォルダの中身の記録",
+  "description": "cargo xtask skill が、作った Skill のフォルダの根に書く。受け取る側は、版と SHA-256 をこれで確かめる。",
+  "x-prompt": {"read": "版 ・ target ・ abstract スキーマの名前 ・ ファイルごとの SHA-256 を読む。", "write": "手で書かない。cargo xtask skill が書く。"},
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "name", "version", "target", "abstract", "files"],
+  "properties": {
+    "$schema": {
+      "description": "このファイルが従うスキーマの名前",
+      "x-prompt": {"read": "schema-driven/dist@v1 である。", "write": "schema-driven/dist@v1 を書く。"},
+      "const": "schema-driven/dist@v1"
+    },
+    "name": {
+      "description": "Skill の名前",
+      "x-prompt": {"read": "基盤の Skill の名前である。", "write": "schema-driven を書く。"},
+      "const": "schema-driven"
+    },
+    "version": {
+      "description": "エンジンの版。Cargo.toml の [workspace.package] の version と同じ",
+      "x-prompt": {"read": "scripts/bin/schema-driven --version が答える版と同じである。", "write": "Cargo.toml の版を書く。"},
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "target": {
+      "description": "実行ファイルをビルドした target（Rust の target の名前。macOS は universal2-apple-darwin）",
+      "x-prompt": {"read": "どの OS と CPU 向けの実行ファイルかを読む。", "write": "ビルドした target を書く。"},
+      "type": "string",
+      "minLength": 1
+    },
+    "abstract": {
+      "description": "assets/ に置いた基盤のスキーマの名前（$id）。エンジンの版とは別の軸の版を持つ",
+      "x-prompt": {"read": "concrete スキーマの x-abstract に書ける名前の一覧として読む。", "write": "assets/ のスキーマの $id を並べる。"},
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "files": {
+      "description": "Skill のフォルダに置いたファイルと、その SHA-256。SKILL.md と LICENSE は git で追跡するので入れない",
+      "x-prompt": {"read": "path は Skill のフォルダの根からの相対パスである。", "write": "置いたファイルごとに1件書く。"},
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}

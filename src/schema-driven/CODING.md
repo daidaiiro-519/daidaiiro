@@ -35,9 +35,10 @@ The Rust Programming Language 11.3 は「Rust projects that provide a binary hav
 
 ```
 src/schema-driven/
-  Cargo.toml          ワークスペース（メンバーは crates/*）
+  Cargo.toml          ワークスペース（メンバーは crates/* と xtask）。基盤の版の1か所（[workspace.package] の version）
   Cargo.lock          依存の版の1か所
   CODING.md           この規則
+  .cargo/config.toml  cargo xtask の alias と、Windows の実行ファイルの設定
   crates/
     core/             domain ・ application ・ port（ライブラリ）
       schemas/        基盤のスキーマ。build.rs が取り込み、名前（$id）で引く
@@ -60,11 +61,17 @@ src/schema-driven/
         bin/          schema-driven.rs ・ schema-driven-mcp.rs
       tests/          結合テストと、少数の端から端までのテスト
         support/      テストの補助（作業用のフォルダ ・ 値の表を回す関数）
+  xtask/              ツール（製品に入らない）。基盤の Skill のフォルダを作り（skill）、確かめる（verify）
+    dist.schema.json  Skill のフォルダに書く dist.json の形（schema-driven/dist@v1）
+    src/main.rs       入口。lib.rs の perform を呼ぶだけ
+    src/lib.rs
 ```
 
 | 規則 | なぜ | 検査 |
 |---|---|---|
-| crate は core と adapters の2つにする。層ごとに crate を分けない | 層ごとに crate を分けても、守りたい依存の向きは core と adapters の境界で Cargo が強制できる。crate が増えると、同じ設定と依存の宣言を何か所にも書くことになる | ワークスペースのメンバーが2つ |
+| 製品の crate は core と adapters の2つにする。層ごとに crate を分けない | 層ごとに crate を分けても、守りたい依存の向きは core と adapters の境界で Cargo が強制できる。crate が増えると、同じ設定と依存の宣言を何か所にも書くことになる | `crates/` の下が core と adapters の2つ |
+| 製品に入らない作業（Skill のフォルダを作る ・ 確かめる）は、ワークスペースの根の xtask に置く。製品の crate は xtask に依存しない | 配る側だけが使うコードを製品の crate に置くと、利用者に配る実行ファイルに入る。`crates/` の下に置くと、製品とツールの区別が並びから読めない | ワークスペースのメンバーが `crates/*` と `xtask` だけ。`cargo tree -p schema-driven-adapters` に xtask が現れない |
+| 基盤の版は、Cargo.toml の [workspace.package] の version の1か所に書く。実行ファイル（`--version` ・ MCP の serverInfo）と dist.json は、そこから取る | 版を2か所に書くと、公開した版と実行ファイルが答える版が食い違っても気づけない | `version = "` で始まる行が、Cargo.toml の [workspace.package] の1行だけ（依存の宣言を除く）。`cargo xtask verify --tag` が4つの版を比べる |
 | 実行ファイル（`src/bin/`）は、`compose` と受け口を呼ぶだけにする。`impl` も分岐も書かない | 実行ファイルに処理を書くと、結合テストから呼べず（The Book 11.3 :237）、CLI と MCP で同じ処理を2回書くことになる | `src/bin/` に `impl` ・ `match` ・ `if` が0件 |
 | 取り込むファイルは、それを使う層の crate が持つ。基盤のスキーマは core が持つ。build.rs がフォルダから一覧を作り、コードはファイルの場所を書かない。部品のカタログは concrete（Skill）が持つので、取り込まない | ファイルの場所を相対パスで書くと、ソースのファイルを動かしただけで壊れる。使わない層の crate が持つと、その crate が使わないものまで抱えることになる | `include_str!` と `include_bytes!` が build.rs の出力の外に0件。`../` を含む文字列のパスが0件 |
 | core は、adapters ・ rmcp ・ tokio ・ jmespath に依存しない | core が外の技術に依存すると、その技術を替えるときに業務の規則まで直すことになる | `cargo tree -p schema-driven-core` にそれらが現れない |
@@ -98,6 +105,7 @@ The Rust Programming Language 11.3 は、単体テストを「in the src directo
 | inbound adapter | CLI と MCP の変換（引数 ↔ 呼び出し、結果 ↔ 出力）の単体テスト。同じ表で両方を確かめる | 同じファイルの `#[cfg(test)] mod tests` |
 | 共通ツールの約束 | 公開 API の振り分け（`Toolbox::dispatch`）を、値の表で1回ずつ確かめる結合テスト | `crates/adapters/tests/` |
 | 実行ファイル | 起動して確かめる端から端までのテスト。CLI と MCP で代表の数件だけ | `crates/adapters/tests/` |
+| xtask | 置き方と比べ方（引数 ・ SHA-256 ・ 版の比較 ・ dist.json の形）の単体テスト。ビルドと起動は、ワークフローが3つの OS で動かして確かめる | 同じファイルの `#[cfg(test)] mod tests` |
 
 | 規則 | なぜ | 検査 |
 |---|---|---|
@@ -121,6 +129,7 @@ The Rust Programming Language 11.3 は、単体テストを「in the src directo
 | 3 | 依存の向き | `cargo tree -p schema-driven-core` に adapters ・ rmcp ・ tokio ・ jmespath が無い |
 | 4 | この規則の grep の検査 | 各規則の「検査」の欄 |
 | 5 | テスト | `cargo test --workspace --locked` |
+| 6 | Skill のフォルダ | `cargo xtask skill --out <Skill のフォルダ>` のあと `cargo xtask verify --dir <Skill のフォルダ>` |
 
 ---
 
@@ -132,5 +141,7 @@ The Rust Programming Language 11.3 は、単体テストを「in the src directo
 | The Rust Programming Language 18.2 Trait Objects（同） | :11 ・ :15 enum と trait object、:119 同じ型ならジェネリクス、:240–249 動的ディスパッチの実行時の負荷 |
 | The Cargo Book：Package Layout ・ Cargo Targets ・ Workspaces ・ Build Scripts（2026-10-12 取得） | 標準の配置、`CARGO_BIN_EXE_<name>`、`crates/` の平らな置き方、build.rs と OUT_DIR |
 | Rust API Guidelines（rust-lang/api-guidelines、2026-10-12 取得） | flexibility.md :163（trait を object か境界かで先に決める）、C-GENERIC ・ C-OBJECT ・ C-NEWTYPE ・ C-CUSTOM-TYPE |
+| cargo-xtask の README（matklad/cargo-xtask、第三者、2026-10-13 取得） | :7 cargo と rustc のほかにツールを入れずに動く、:72 alias、:118 rust-analyzer が公開に使う |
+| The Cargo Book：Workspaces ・ Environment Variables（2026-10-13 取得） | `version.workspace = true` で [workspace.package] の版を継ぐ、`CARGO_PKG_VERSION` |
 | ddd-advisor の回答（2026-10-12） | ports-and-adapters ・ layered-architecture：port の定義、起動時の結合、受け口の置き場所 |
 | qa-advisor の回答（2026-10-12） | test-levels ・ test-pyramid ・ conditional-test-logic ・ test-logic-in-production ・ hard-to-test-code：テストの型と置き場所、テストに書かないもの |
