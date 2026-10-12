@@ -23,9 +23,13 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - Q4 の決着：固有に残すのは advance（回を進め、論点ごとの changes を書く）・ inspect（本文を読む3つの判定）・ serve（直接呼ぶ。宣言しない）の3つ。inspect のうち3つはボードのスキーマ（maxContains ・ if/then）へ移す。init ・ migrate ・ render ・ 部品 board ・ transcribe ・ check-copy は消す
 - 試作とアドバイザーの回答は、そのセッションの作業用の領域（proto/ ・ q4b-*.json）にだけある
 
-## 止めていること（2026-10-12）
+## いまの作業（2026-10-13）
 
-schema-driven の残り（カタログの新しいデザインシステム ・ 配布の手順 ・ Windows の確かめ）と、ACDR 0172（検査の文と指摘の案内）・ 0173（試験を CLI と MCP の両方で）は止めてある（0172 ・ 0173 は作業ツリーにあり未コミット）。理由：Rust のアーキテクチャと実装の規則がどこにも無く（ボード schema-driven-build の Q3 で先送り、no-more-spaghetti は 0123 で廃止、implementation.json は 0169 で消した）、crate 構成 ・ テスト（5,500行、テストの中に MCP クライアント等の実装）・ trait の使い方が場当たりになっていた。次：1次情報（Rust Book 11章 ・ Cargo Book ・ API Guidelines ・ AGENTS.md）を fact-check で取り、ボード「Rust で書くツールのアーキテクチャと実装の規則」を出す。規則は CODING.md 相当を共通契約にする案（コーディングの Skill の concrete スキーマのインスタンスとして持ち、HTML ・ md に描画）を利用者が出した。
+- ACDR 0174（src/schema-driven/CODING.md：アーキテクチャ ・ crate ・ trait ・ テスト ・ 検査の順）と 0172（検査の文と check-schemas の案内）は承認 ・ コミット済み。
+- 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち直接呼ぶ。基盤から「宣言したツール（tools.json）を起動する仕組み」を消す（skill-roles Q3 ・ Q4 と brainstorming-board-migration Q4 を改める）。JSON ・ スキーマの操作は scripts/schema-driven を使う。
+- 進行中：schema-driven を CODING.md に従わせる組み直し（crates/core ・ crates/adapters、files ・ cli ・ mcp ・ stub をなくす、宣言したツールを消す、port の整理、テストの移し替え）。終わったら ACDR 1件。
+- 0173（CLI と MCP の両方で19件）は取り下げる予定。退避した試験の変更（git stash の1件）と未コミットの .acdr/0173-… を消す許可を、組み直しの報告のときにもらう。
+- 0174 の CODING.md の probe と宣言したツールの行は、組み直しの ACDR で消す。
 
 ## 次にすること（順番）
 
