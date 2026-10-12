@@ -54,7 +54,8 @@ jobs:
       - name: 試験 ── dist.json の SHA-256 を、xtask とは別の実装で照合する
         working-directory: dist/schema-driven
         run: |
-          sums="$(jq -r '.files[] | "\(.sha256)  \(.path)"' dist.json)"
+          # Windows の jq は行末に CR を付けるので外す
+          sums="$(jq -r '.files[] | "\(.sha256)  \(.path)"' dist.json | tr -d '\r')"
           if command -v sha256sum >/dev/null; then printf '%s\n' "$sums" | sha256sum -c -
           else printf '%s\n' "$sums" | shasum -a 256 -c -; fi
       - name: 試験 ── 利用者の環境のライブラリに依存しない
@@ -76,7 +77,7 @@ jobs:
           esac
       - name: 梱包する ── 名前は schema-driven-<版>-<target>
         run: |
-          version="$(jq -r .version dist/schema-driven/dist.json)"
+          version="$(jq -r .version dist/schema-driven/dist.json | tr -d '\r')"
           name="schema-driven-$version-${{ matrix.target }}"
           mkdir -p release
           if [ "${{ matrix.ext }}" = zip ]; then (cd dist && 7z a -tzip "../release/$name.zip" schema-driven >/dev/null)
