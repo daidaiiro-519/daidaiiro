@@ -9,7 +9,7 @@ metadata:
 
 利用者の目標：schema-driven ・ brainstorming-board ・ skills-creator ・ agents creator ・ acdr の5つを、まず仕上げる。
 
-新しい形で完成したのは schema-driven（ACDR 0165 ・ 0166）と skills-creator（ACDR 0167）の2つ。0167 まで承認 ・ 適用 ・ コミット済み。push はしていない。0162（acdr の新しい記録の形）は proposed のまま止めてある。
+新しい形になったのは skills-creator（ACDR 0167）だけで、それも未完成（tools.json が無く、scripts/ の実行ファイルは手元でビルドしたもので git に無い。配る手段が無い）。schema-driven はエンジンとしては動くが、Skill としては版3 のまま（bin/ ・ mcp.json ・ references/ ・ tool/）。ほかの15の Skill も版3。0167 まで承認 ・ 適用 ・ コミット済み。push はしていない。0162（acdr の新しい記録の形）は proposed のまま止めてある。
 
 いまはボード `.brainstorming-board/brainstorming-board-migration/`（Artifact https://claude.ai/artifact/PiuRFBbVVjvX8Uinis2kV9）の5回目。
 
@@ -26,7 +26,7 @@ metadata:
 ## 次にすること（順番）
 
 1. Q5 の承認 → ボードを決着させる
-2. schema-driven の ACDR：カタログに部品を4つ足し、9つ変え、トークンを入れる。check が maxContains の超過を「contains のスキーマに合う要素が無い」と返す誤りも直す
+2. schema-driven の ACDR（Skill 自身を新しい形へ移すことも含めるかを決める）：カタログに部品を4つ足し、9つ変え、トークンを入れる。check が maxContains の超過を「contains のスキーマに合う要素が無い」と返す誤りも直す
 3. advance ・ inspect ・ serve を `src/brainstorming-board/` に Rust で作り、ブレストボードを移す ACDR を出して適用する。移したら `src/skills-creator/tests/baseline-v3/brainstorming-board.json` を消す
 4. acdr を新しい形で作り直す（0162 もここで扱う）
 5. agents creator：新しい形のブレストボードを試す1枚目として作る（最初の論点は「Agent」が何を指すか）
