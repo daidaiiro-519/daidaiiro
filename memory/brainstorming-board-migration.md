@@ -27,8 +27,8 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 
 - ACDR 0174（CODING.md）・ 0172（検査の文と案内）・ 0175（CODING.md に従わせる。crates/core と crates/adapters、宣言したツールの仕組みを基盤から消した）は承認 ・ コミット済み。0173 は取り下げて消した。
 - 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON ・ スキーマの操作は scripts/schema-driven を使う。
-- 進行中：schema-driven の残り #1 カタログを、ボード brainstorming-board-migration の論点2 ・ 3 のデザインシステムにする（部品4つを足し9つを変える、トークン2層 ・ 19の名前、主役 #0d5c55、内側 #edf2ef）。終わったら ACDR。図の色をトークンに結ぶのは design-svg の別の作業。
-- schema-driven の残り：#3 配布物を作る手順（ボードで決める）、#5 Windows の確かめ（道具を入れる ・ CI ・ 配布のとき のどれか、利用者の返事待ち）。
+- ボード page-design-ownership（Artifact https://claude.ai/artifact/K2wt1s8HphJVBqrnWasdLo）Q1〜Q4 決着（2026-10-13）：Q1 基盤は部品1つの形 ・ トークンの形とコントラストの下限 ・ 描画の仕組み ・ 検査だけ、部品の一覧と見た目とトークンの値は concrete、文書の決まった見た目は持たない。Q2 そろえる役はデザインシステムだけを持つ1つの Skill（名前と design-svg とまとめるかは後で）。Q3 skills-creator の配布物の手順が入口 ・ エンジンの写し ・ 共有デザインシステムの写しを各 Skill へ入れ、dist.json に版と SHA-256、全 Skill で版が1つかを検査。Windows を含む3 OS は公開の作業へ。Q4 各 Skill は入口 scripts/<Skill名> を1つ持ち SKILL.md はそれだけを呼ぶ、Skill 固有の能力は入口の中、エンジンは別の実行ファイル（入口の言語を選べるように）。
+- 次の順：①schema-driven の ACDR（カタログの中身と文書の見た目を外し、Skill のフォルダのカタログを受け取る、トークンの層を契約から外す）②skills-creator の ACDR（入口の雛形 ・ 配布物の手順 ・ 雛形3つ ・ 試験名の版を外す ・ tools.json の項目を外す）③デザインシステムの Skill ④ブレストボードを移す。
 
 ## 次にすること（順番）
 
