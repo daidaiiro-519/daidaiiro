@@ -3,7 +3,7 @@
  "kind": "board",
  "id": "skills-creator-on-base",
  "title": "skills-creator を新しい形の基盤の上で作り直す",
- "round": 4,
+ "round": 5,
  "intro": "完成した基盤 schema-driven の上で、どの AI ツールでも呼ばれて手順どおりに動く Skill を作れるように、skills-creator の役割 ・ 作られる Skill の入口 ・ 基盤のエンジンの入れ方 ・ 自身の作りと、完成の条件を決める。古い skills-creator のボードは過去の構成のものとして参照しない。",
  "queue": [
   {
@@ -24,7 +24,7 @@
   },
   {
    "topic": "Q4",
-   "why": "いまのコードは基盤の CODING.md と違う形のまま"
+   "why": "利用者が、skills-creator 自体も実行ファイルで提供するかを確かめた"
   }
  ],
  "topics": [
@@ -37,6 +37,7 @@
     "text": "skills-creator 自身を基盤と同じ形で作り、練習用の Skill を1件作ってエンジンを入れ、壊した例では止まり、Claude Code と Codex の両方で手順どおりに動いたときに完成とする。",
     "details": [
      "skills-creator 自身は、基盤と同じく私たちが src/skills-creator でソースを管理し、xtask で自分の Skill のフォルダを作る",
+     "skills-creator 自身を tag skills-creator-v<版> で3つの OS 向けに公開し、取り直して確かめる",
      "練習用の Skill は、自分の能力を1つ持つ入口（scripts/ のソース）と、基盤の操作を1つ使う手順を持つものにする",
      "練習用の Skill で、scaffold の直後は「記入欄が残っている」項目だけが不合格になり、記入欄を埋めると全項目が合格になる",
      "基盤のエンジンを入れる操作は、壊した例で止まる ── 1バイト変えた配布物 ・ 違う版 ・ gh が無いか古い環境",
@@ -484,28 +485,38 @@
   },
   {
    "id": "Q4",
-   "name": "skills-creator 自身の作り",
+   "name": "skills-creator 自身の作りと公開",
    "status": "open",
-   "question": "skills-creator のコードをどう組み、自分の Skill のフォルダをどう作るか",
+   "question": "skills-creator のコードをどう組み、実行ファイルをどう置き、どう公開するか",
    "answer": {
-    "text": "src/skills-creator を基盤と同じ CODING.md ・ ヘキサゴナル（core と adapters）・ xtask の形で作り直し、ソースは基盤と同じく私たちが管理する。xtask は自分の Skill のフォルダを作る。",
+    "text": "skills-creator は基盤と同じく、私たちがソースを管理して実行ファイル scripts/bin/skills-creator として置き、専用のワークフローで3つの OS 向けに証明付きで公開する。",
     "details": [
      "src/skills-creator/CODING.md を置き、基盤の CODING.md と同じ規則（層 ・ crate ・ 試験 ・ 検査の順）に従う",
      "crate は core（domain ・ application ・ port）と adapters（CLI の受け口 ・ ファイル ・ 基盤のエンジンの呼び出し ・ Release の取得と照合）の2つ",
-     "xtask は skills-creator をビルドして自分の Skill のフォルダへ置き、基盤のエンジンはビルドした skills-creator の engine で入れる。エンジンを入れる手順を xtask と skills-creator の2か所に書かない",
-     "いまのコード（check.rs など）と、古い形との移り方の試験（migration.rs ・ baseline-v3）は残さずに作り直す",
-     "雛形（SKILL.md ・ スキーマ ・ 入口のソース）と型のスキーマは、Skill のフォルダの assets/ に置く"
+     "版の正本は Cargo.toml の [workspace.package] の version の1か所にし、--version で答える",
+     "xtask は skills-creator をビルドして scripts/bin/skills-creator に置き、基盤のエンジンはビルドした skills-creator の engine で入れる。エンジンを入れる手順を2か所に書かない",
+     "SKILL.md は scripts/bin/skills-creator <操作> と書く。実行ファイルは言語に依存しないので、.cmd の窓口はいらない",
+     "公開は、基盤のワークフローを写した .github/workflows/skills-creator.yml が行う",
+     "tag skills-creator-v<版> で、build ・ verify ・ publish ・ receive の4段を通す",
+     "私たちが管理するものが3つになったら、公開のワークフローを共通の1本にまとめる",
+     "いまのコード（check.rs など）と、古い形との移り方の試験（migration.rs ・ baseline-v3）は残さずに作り直す"
     ]
    },
    "images": [
     {
      "kind": "code",
      "language": "text",
-     "caption": "作り直したあとの src/skills-creator と、自分のフォルダの作り方。",
-     "text": "src/skills-creator/\n  Cargo.toml          workspace（crates/* と xtask）。版の1か所\n  CODING.md\n  crates/core         domain ・ application ・ port\n  crates/adapters     CLI ・ ファイル ・ エンジンの呼び出し ・ Release の取得と照合\n  xtask/              ビルドして置き、skills-creator engine でエンジンを入れる\n\n$ cd src/skills-creator && cargo xtask skill --engine 0.1.0\n  1. cargo build（skills-creator の入口）\n  2. scripts/bin/skills-creator を置く\n  3. ビルドした skills-creator で engine .claude/skills/skills-creator --version 0.1.0"
+     "caption": "作り直したあとの src/skills-creator と、自分のフォルダの作り方と、公開。",
+     "text": "src/skills-creator/\n  Cargo.toml          workspace（crates/* と xtask）。版の1か所\n  CODING.md\n  crates/core         domain ・ application ・ port\n  crates/adapters     CLI ・ ファイル ・ エンジンの呼び出し ・ Release の取得と照合\n  xtask/              ビルドして置き、skills-creator engine でエンジンを入れる\n\n$ cd src/skills-creator && cargo xtask skill --out ../../.claude/skills/skills-creator --engine 0.1.0\n  1. cargo build（skills-creator）\n  2. scripts/bin/skills-creator を置く\n  3. ビルドした skills-creator で engine … --version 0.1.0\n\ntag skills-creator-v0.1.0 → .github/workflows/skills-creator.yml\n  build（3つの OS）→ verify（別のランナー）→ publish（証明）→ receive（取り直し）"
     }
    ],
    "grounds": [
+    {
+     "supports": "skills-creator を実行ファイルで置くこと",
+     "basis": "「スキルクリエーター自体のスクリプトはバイナリで提供するわけではないんですかね？」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
+    },
     {
      "supports": "基盤と同じ設計標準にそろえること",
      "basis": "ベストプラクティス：「設計標準を共有する」 ・ 望ましい成果：設計標準がチームの間で共有されている。設計標準は文書として残り、ベストプラクティスが変わるたびに書き直される",
@@ -513,10 +524,22 @@
      "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-05"
     },
     {
+     "supports": "公開の手順を、基盤と同じ4段で試すこと",
+     "basis": "対応：抜けや誤りのあるデプロイ手順、設定ミスなどを本番の前に見つけ、復旧手順も試す",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-06"
+    },
+    {
      "supports": "エンジンを入れる手順を1か所に置くこと",
-     "basis": "xtask がフォルダも作ると、手順が xtask と skills-creator の2か所に分かれる",
+     "basis": "xtask がエンジンの取得と照合も行うと、手順が xtask と skills-creator の2か所に分かれる",
      "tag": "primary",
      "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解4の条件）"
+    },
+    {
+     "supports": "基盤の公開の形",
+     "basis": "tag schema-driven-v<版> で、3つの OS のビルド ・ 別のランナーでの確かめ ・ 証明を付けた公開 ・ 公開後の受け取りの確かめを行う",
+     "tag": "rule",
+     "source": "ボード schema-driven-release の論点3（決着）"
     },
     {
      "supports": "古い形を残さないこと",
@@ -533,6 +556,14 @@
    ],
    "rejected": [
     {
+     "option": "これまでの答え：自分の Skill のフォルダを作るところまでにし、公開を決めない",
+     "reason": "ほかの人やリポジトリで skills-creator を使うには、実行ファイルを公開する必要がある。利用者の言葉「スキルクリエーター自体のスクリプトはバイナリで提供するわけではないんですかね？」"
+    },
+    {
+     "option": "公開のワークフローを、いま共通の1本にする",
+     "reason": "私たちが管理するものは2つで、共通にする形を決める材料が足りない。3つ目が出たときにまとめる"
+    },
+    {
      "option": "いまの1つの crate のまま直す",
      "reason": "基盤と規則が分かれ、check のような判定と入出力が同じ所に混ざったまま残る"
     },
@@ -548,20 +579,25 @@
    "verification": {
     "passed": [
      {
-      "option": "基盤と同じ形で作り直し、xtask はビルドだけにする",
-      "cost": "src/skills-creator をほぼ書き直す"
+      "option": "基盤と同じ形で作り直し、実行ファイルで置き、専用のワークフローで公開する",
+      "cost": "src/skills-creator をほぼ書き直す。基盤のワークフローを写して skills-creator 用に直す"
      }
     ],
     "assumptions": [],
     "out_of_scope": [
      {
-      "item": "外の作業：src/skills-creator を作り直し、CODING.md の検査の順を0件で通す",
+      "item": "外の作業：src/skills-creator を作り直し、CODING.md の検査の順を0件で通し、tag skills-creator-v0.1.0 で4段を通す",
       "treatment": "later"
      },
      {
       "item": "skills-creator の MCP サーバー",
       "treatment": "later",
-      "note": "SKILL.md は入口を CLI で呼ぶ。MCP が必要になったら、基盤と同じく受け口を1つ足す"
+      "note": "SKILL.md は実行ファイルを CLI で呼ぶ。MCP が必要になったら、基盤と同じく受け口を1つ足す"
+     },
+     {
+      "item": "公開のワークフローの共通化",
+      "treatment": "later",
+      "note": "私たちが管理するものが3つになったときに行う"
      }
     ]
    }
