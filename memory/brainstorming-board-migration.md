@@ -25,11 +25,10 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 
 ## いまの作業（2026-10-13）
 
-- ACDR 0174（src/schema-driven/CODING.md：アーキテクチャ ・ crate ・ trait ・ テスト ・ 検査の順）と 0172（検査の文と check-schemas の案内）は承認 ・ コミット済み。
-- 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち直接呼ぶ。基盤から「宣言したツール（tools.json）を起動する仕組み」を消す（skill-roles Q3 ・ Q4 と brainstorming-board-migration Q4 を改める）。JSON ・ スキーマの操作は scripts/schema-driven を使う。
-- 進行中：schema-driven を CODING.md に従わせる組み直し（crates/core ・ crates/adapters、files ・ cli ・ mcp ・ stub をなくす、宣言したツールを消す、port の整理、テストの移し替え）。終わったら ACDR 1件。
-- 0173（CLI と MCP の両方で19件）は取り下げる予定。退避した試験の変更（git stash の1件）と未コミットの .acdr/0173-… を消す許可を、組み直しの報告のときにもらう。
-- 0174 の CODING.md の probe と宣言したツールの行は、組み直しの ACDR で消す。
+- ACDR 0174（CODING.md）・ 0172（検査の文と案内）・ 0175（CODING.md に従わせる。crates/core と crates/adapters、宣言したツールの仕組みを基盤から消した）は承認 ・ コミット済み。0173 は取り下げて消した。
+- 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON ・ スキーマの操作は scripts/schema-driven を使う。
+- 進行中：schema-driven の残り #1 カタログを、ボード brainstorming-board-migration の論点2 ・ 3 のデザインシステムにする（部品4つを足し9つを変える、トークン2層 ・ 19の名前、主役 #0d5c55、内側 #edf2ef）。終わったら ACDR。図の色をトークンに結ぶのは design-svg の別の作業。
+- schema-driven の残り：#3 配布物を作る手順（ボードで決める）、#5 Windows の確かめ（道具を入れる ・ CI ・ 配布のとき のどれか、利用者の返事待ち）。
 
 ## 次にすること（順番）
 
