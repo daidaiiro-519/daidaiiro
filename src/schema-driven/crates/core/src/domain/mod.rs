@@ -5,6 +5,7 @@ pub use schema_rules::SchemaFinding;
 pub use values::{Hash, Html, JsonValue, Status, Unfilled, ValidationError};
 
 pub mod approval;
+pub mod catalog;
 pub mod check;
 pub mod contract;
 pub mod design_system;

@@ -1,13 +1,17 @@
-//! 部品のカタログ（schemas/catalog.schema.json）。
-//! 具体の種類は、ページテンプレートでカタログの部品を並べるだけで描ける。具体はコードを持たない。
+//! 部品のカタログは、Skill のフォルダの assets/catalog/ にあり、基盤は中身を持たない。
+//! 基盤は、カタログが枠（schema-driven/catalog@v1）とデザインシステムの契約に従うかを見て、
+//! 部品の入力を同じ名前のプレースホルダーへ入れるだけである。Skill が部品を足しても、基盤は変わらない。
 //! 公開 API の振り分け（render）を、--skill に Skill example を渡して呼ぶ。
 
 mod support;
 
 use serde_json::{json, Value};
-use support::{call, contains_all, contains_none, eq, has, run, Scratch};
+use support::{
+    call, catalog_schema, contains_all, contains_none, design_system, eq, has, put_catalog, run,
+    Scratch, PARTS,
+};
 
-/// スキーマの名前を引く Skill。
+/// スキーマの名前を引き、カタログを読む Skill。
 const SKILL: Option<&str> = Some("./example");
 
 /// render の引数。
@@ -19,18 +23,16 @@ fn field(description: &str) -> Value {
                         "write": [{"id": "one", "rule": "値を1つ書く。", "why": "見本である。", "test": "値があるかを見る。"}]}})
 }
 
-/// 決定の記録を1件持つ作業用のフォルダを作る。スキーマは Skill example の assets に置く。page はページテンプレート。
+/// 決定の記録を1件持つ作業用のフォルダを作る。スキーマとカタログは Skill example の assets に置く。page はページテンプレート。
 fn skill(name: &str, page: Value, decision: &str) -> Scratch {
     let scratch = Scratch::new(&format!("catalog-{name}"));
-    let change = json!({"type": "object", "required": ["file", "from", "to", "why"],
-        "additionalProperties": false,
-        "properties": {"file": field("ファイル"), "from": field("変更前"), "to": field("変更後"), "why": field("なぜ")}});
+    put_catalog(&scratch, "example");
     scratch.put(
         "example/assets/record.schema.json",
         &json!({
             "$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1", "$id": "example/record@v1", "title": "決定の記録", "description": "見本",
             "x-generates": "records/<番号>.json",
-            "type": "object", "required": ["kind", "decision", "changes"],
+            "type": "object", "required": ["kind", "decision", "files"],
             "properties": {
                 "$schema": field("従うスキーマ"),
                 "kind": {"const": "record", "description": "種類",
@@ -38,10 +40,9 @@ fn skill(name: &str, page: Value, decision: &str) -> Scratch {
                                       "write": [{"id": "const", "rule": "record と書く。", "why": "種類を判定する。", "test": "値が record かを見る。"}]}},
                 "decision": field("決めたこと"),
                 "figure": field("図"),
-                "target": field("対象の文書"),
-                "changes": {"type": "array", "items": change, "description": "変更",
-                            "x-prompt": {"read": {"means": "変更の並びである。"},
-                                         "write": [{"id": "with-why", "rule": "変更ごとに理由を書く。", "why": "承認の材料になる。", "test": "why があるかを見る。"}]}}
+                "files": {"type": "array", "items": {"type": "string"}, "description": "変えるファイル",
+                          "x-prompt": {"read": {"means": "変えるファイルの並びである。"},
+                                       "write": [{"id": "path", "rule": "パスを書く。", "why": "読み手が開く。", "test": "パスかを見る。"}]}}
             }
         }),
     );
@@ -59,28 +60,16 @@ fn skill(name: &str, page: Value, decision: &str) -> Scratch {
 fn record(decision: &str, figure: &str) -> Value {
     json!({
         "$schema": "example/record@v1", "kind": "record", "decision": decision,
-        "figure": figure,
-        "target": "<p>対象の文書</p><script>alert(1)</script>",
-        "changes": [
-            {"file": "SKILL.md", "from": "段の順に作業する", "to": "段階の順に作業する", "why": "段は一般の語ではない"},
-            {"file": "implementation.json", "from": "copy", "to": "（外した）", "why": "ソースのコピーをやめた"}
-        ]
+        "figure": figure, "files": ["SKILL.md", "implementation.json"]
     })
 }
 
 fn page() -> Value {
-    json!({"$schema": "schema-driven/page@v1", "kind": "record", "sections": [
-        {"heading": "決めたこと", "body": ["this.decision", {"component": "svg", "value": "this.figure"}]},
-        {"heading": "変更", "body": [
-            {"component": "jump", "label": {"text": "2件目へ"}, "to": "'implementation.json'"},
-            {"component": "tabs", "items": "this.changes", "label": "file", "id": "file",
-             "body": [{"component": "mark", "after": "to", "before": "from", "why": "why"}]}]},
-        {"heading": "対象", "body": [{"component": "fold", "label": {"text": "開く"},
-            "body": [{"component": "embed", "html": "this.target", "title": {"text": "対象の文書"}}]}]},
-        {"heading": "回答", "body": [
-            {"component": "choose", "name": "'verdict'", "options": [{"value": "approved", "label": "承認"}, {"value": "returned", "label": "差し戻し"}]},
-            {"component": "write", "name": "'reason'", "label": {"text": "理由"}},
-            {"component": "send", "label": {"text": "送る"}, "to": "answer"}]}
+    json!({"$schema": "schema-driven/page@v1", "kind": "record", "head": {"lead": "this.decision"}, "sections": [
+        {"heading": "決めたこと", "body": ["this.decision", {"component": "figure", "svg": "this.figure"}]},
+        {"heading": "変えるファイル", "body": [
+            {"component": "list", "items": [
+                {"component": "pill", "each": "this.files", "text": "@", "tone": {"text": "file"}}]}]}
     ]})
 }
 
@@ -90,84 +79,37 @@ fn drawn(scratch: &Scratch) -> String {
     scratch.read("out/0001.html")
 }
 
-/// カタログは部品の名前を並べる。12の部品を、ページテンプレートで使えば検査を通って描ける。
-/// page() が9つ（svg ・ jump ・ tabs ・ mark ・ fold ・ embed ・ choose ・ write ・ send）、ここで足す3つ（document ・ badges ・ inline）。
 #[test]
-fn the_catalog_names_every_part() {
-    let scratch = skill("names", page(), "x");
-    run(&scratch, SKILL, &[call("render", ARGS, 0, &[])]);
+fn a_concrete_kind_is_drawn_with_the_skill_catalog_only() {
+    let page = drawn(&skill("draw", page(), "段を段階に直す"));
+    contains_all(
+        "0001.html",
+        &page,
+        &[
+            r#"<p class="lead">段を段階に直す</p>"#,
+            r#"<figure><svg viewBox="0 0 10 10">"#,
+            r#"<ul><span class="pill file">SKILL.md</span><span class="pill file">implementation.json</span></ul>"#,
+            r#"@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ink:var(--mist);--paper:var(--night);color-scheme:dark}}"#,
+        ],
+    );
+}
+
+#[test]
+fn a_part_the_skill_adds_is_drawn_without_changing_the_base() {
+    let scratch = skill("added", page(), "x");
+    let mut schema = catalog_schema();
+    schema["$defs"]["note"] = json!({"type": "object", "description": "注意", "required": ["text"],
+        "properties": {"text": {}}, "x-states": {"default": "押せない"}});
+    scratch.put("example/assets/catalog/catalog.schema.json", &schema);
+    scratch.put_text(
+        "example/assets/catalog/parts.html",
+        &format!(r#"{PARTS}<template id="note"><aside>{{{{text}}}}</aside></template>"#),
+    );
     scratch.put(
         "pages/record.json",
-        &json!({"kind": "record", "sections": [{"heading": "h", "body": [
-            {"component": "document", "value": "this"},
-            {"component": "badges", "value": "this.changes[].file"},
-            {"component": "inline", "value": "this.decision"}]}]}),
+        &json!({"kind": "record", "sections": [{"heading": "h", "body": [{"component": "note", "text": "this.decision"}]}]}),
     );
-    run(&scratch, SKILL, &[call("render", ARGS, 0, &[])]);
-}
-
-#[test]
-fn a_concrete_kind_is_drawn_with_the_catalog_only() {
-    let scratch = skill("draw", page(), "段を段階に直す");
-    run(
-        &scratch,
-        SKILL,
-        &[call(
-            "render",
-            ARGS,
-            0,
-            &[("/pages/0/design", eq("catalog"))],
-        )],
-    );
-    contains_all(
-        "0001.html",
-        &scratch.read("out/0001.html"),
-        &[
-            "段を段階に直す",
-            r#"role="tab""#,
-            "SKILL.md",
-            "implementation.json",
-            "段階の順に作業する",
-            "段は一般の語ではない",
-            "<svg viewBox",
-            r#"value="approved""#,
-            "<textarea",
-        ],
-    );
-}
-
-#[test]
-fn the_parts_carry_their_behaviour_in_the_page() {
-    let page = drawn(&skill("behaviour", page(), "段を段階に直す"));
-    assert_eq!(
-        page.matches("<script>").count(),
-        1,
-        "部品の操作は1つの script にまとまる"
-    );
-    contains_all(
-        "0001.html",
-        &page,
-        &[
-            r#"data-sd-part="tabs""#,
-            r#"data-sd-part="mark""#,
-            r#"data-sd-to="sd-implementation.json""#,
-            r#"id="sd-implementation.json""#,
-        ],
-    );
-}
-
-#[test]
-fn hidden_panes_stay_hidden_whatever_their_display() {
-    let page = drawn(&skill("hidden", page(), "隠す"));
-    contains_all(
-        "0001.html",
-        &page,
-        &[
-            // 部品の display が hidden を打ち消さない
-            ".sd-doc [hidden]{display:none!important}",
-            r#"<div class="sd-pane" role="tabpanel" id="sd-implementation.json" hidden>"#,
-        ],
-    );
+    contains_all("0001.html", &drawn(&scratch), &["<aside>x</aside>"]);
 }
 
 #[test]
@@ -182,23 +124,24 @@ fn values_are_text_even_when_they_hold_html() {
 }
 
 #[test]
-fn an_embedded_document_cannot_run_scripts() {
-    let page = drawn(&skill("embed", page(), "埋める"));
-    contains_all(
-        "0001.html",
-        &page,
-        &[
-            // 埋めた文書は script を動かせない枠に入る
-            r#"sandbox="""#,
-            "srcdoc=\"&lt;p&gt;対象の文書&lt;/p&gt;&lt;script&gt;",
-        ],
+fn an_svg_with_a_script_is_refused() {
+    let scratch = skill("svg", page(), "x");
+    scratch.put(
+        "records/0001.json",
+        &record("x", "<svg><script>alert(1)</script></svg>"),
     );
+    run(
+        &scratch,
+        SKILL,
+        &[call("render", ARGS, 1, &[("/detail", has("script"))])],
+    );
+    assert!(!scratch.exists("out"), "1ページも書かない");
 }
 
 #[test]
 fn a_part_missing_from_the_catalog_is_refused() {
     let mut bad = page();
-    bad["sections"][1]["body"][1]["component"] = json!("changeMarker");
+    bad["sections"][1]["body"][0]["component"] = json!("changeMarker");
     let scratch = skill("unknown", bad, "x");
     run(
         &scratch,
@@ -211,26 +154,62 @@ fn a_part_missing_from_the_catalog_is_refused() {
 #[test]
 fn a_missing_input_is_refused() {
     let mut bad = page();
-    bad["sections"][1]["body"][1]["body"][0]
+    bad["sections"][1]["body"][0]["items"][0]
         .as_object_mut()
         .unwrap()
-        .remove("why");
+        .remove("text");
     let scratch = skill("missing", bad, "x");
     run(
         &scratch,
         SKILL,
-        &[call("render", ARGS, 1, &[("/detail", has("why"))])],
+        &[call("render", ARGS, 1, &[("/detail", has("text"))])],
     );
 }
 
 #[test]
-fn an_svg_with_a_script_is_refused() {
-    let scratch = skill("svg", page(), "x");
-    scratch.put(
-        "records/0001.json",
-        &record("x", "<svg><script>alert(1)</script></svg>"),
+fn a_catalog_outside_the_frame_is_refused() {
+    let scratch = skill("frame", page(), "x");
+    let mut schema = catalog_schema();
+    schema["$defs"]["pill"]
+        .as_object_mut()
+        .unwrap()
+        .remove("x-states");
+    scratch.put("example/assets/catalog/catalog.schema.json", &schema);
+    run(
+        &scratch,
+        SKILL,
+        &[call(
+            "render",
+            ARGS,
+            1,
+            &[
+                ("/reason", eq("部品のカタログが契約を満たさない")),
+                ("/detail", has("x-states")),
+            ],
+        )],
     );
-    run(&scratch, SKILL, &[call("render", ARGS, 1, &[])]);
+    assert!(!scratch.exists("out"), "1ページも書かない");
+}
+
+#[test]
+fn a_design_system_below_the_contrast_floor_is_refused() {
+    let scratch = skill("contrast", page(), "x");
+    let mut system = design_system();
+    system["dark"]["ink"] = json!("{night}");
+    scratch.put("example/assets/catalog/design-system.json", &system);
+    run(
+        &scratch,
+        SKILL,
+        &[call(
+            "render",
+            ARGS,
+            1,
+            &[
+                ("/reason", eq("部品のカタログが契約を満たさない")),
+                ("/detail", has("暗：ink と paper のコントラストが 1.00:1")),
+            ],
+        )],
+    );
 }
 
 #[test]

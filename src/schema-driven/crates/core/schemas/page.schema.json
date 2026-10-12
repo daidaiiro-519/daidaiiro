@@ -3,12 +3,12 @@
  "x-abstract": "schema-driven/abstract@v1",
  "$id": "schema-driven/page@v1",
  "title": "ページテンプレート",
- "description": "ある kind のインスタンスを、人が読むページにするときの並び。ページテンプレートは、節の並びと、節ごとの部品と、値を取る JMESPath 式だけを書く。HTML は書かない（見た目と操作は部品のカタログが持つ）。値は、基盤が用意する描画の文脈から取る",
+ "description": "ある kind のインスタンスを、人が読むページにするときの並び。ページテンプレートは、節の並びと、節ごとの部品と、値を取る JMESPath 式だけを書く。HTML は書かない（見た目と操作は、Skill のフォルダの assets/catalog/ にある部品のカタログが持つ）。値は、基盤が用意する描画の文脈から取る",
  "x-prompt": {
   "read": {
    "means": "1つの kind のインスタンスを、ページにするための型である。",
    "parse": "body の文字列は JMESPath 式で描画の文脈から値を取り、オブジェクトは component の名前のコンポーネントにその入力を渡す。",
-   "shown": "ページの上から head（見出しのバッジと前置き）、sections（節）の順に並び、各節の body は上から並ぶ。"
+   "shown": "カタログのページのテンプレート（page）に、題 ・ head の値 ・ sections（節）を入れて1ページにする。各節の body は上から並ぶ。"
   },
   "write": [
    {
@@ -19,9 +19,9 @@
    },
    {
     "id": "head",
-    "rule": "head に、ページの先頭に出すバッジと前置きを書く。",
+    "rule": "head に、カタログのページのテンプレートのプレースホルダーの名前ごとに、ページの先頭に出す値を書く。",
     "why": "読み手は先頭で、このページが何かを判断する。",
-    "test": "head に badges か lead があるかを見る。"
+    "test": "head のキーが、カタログの page のプレースホルダーにあるかを見る。"
    },
    {
     "id": "sections-in-reading-order",
@@ -81,10 +81,10 @@
   },
   "head": {
    "$ref": "#/$defs/head",
-   "description": "ページの先頭（バッジと前置き）",
+   "description": "ページの先頭に出す値。キーはカタログのページのテンプレート（page）のプレースホルダーの名前",
    "x-prompt": {
     "read": {
-     "means": "ページの先頭に出すバッジと前置きである。"
+     "means": "ページの先頭に出す値である。"
     },
     "write": [
      {
@@ -489,64 +489,50 @@
   },
   "head": {
    "type": "object",
-   "additionalProperties": false,
-   "description": "ページの先頭。題はインスタンスの名前（スキーマの x-view が決める）で、ここでは札と前置きを書く",
-   "properties": {
-    "badges": {
-     "type": "array",
-     "items": {
+   "description": "ページの先頭。題はインスタンスの名前（スキーマの x-view が決める）で、ここではカタログのページのテンプレート（page）のプレースホルダーへ入れる値を書く。title ・ tokens ・ style ・ script ・ sections は基盤が入れるので書かない",
+   "propertyNames": {
+    "type": "string",
+    "pattern": "^[a-z][a-z0-9_]*$",
+    "not": {
+     "enum": [
+      "title",
+      "tokens",
+      "style",
+      "script",
+      "sections"
+     ]
+    }
+   },
+   "additionalProperties": {
+    "anyOf": [
+     {
       "$ref": "#/$defs/node"
      },
-     "description": "題の横に並べるバッジ",
-     "x-prompt": {
-      "read": {
-       "means": "題の横に並べるバッジの並びである。"
-      },
-      "write": [
-       {
-        "id": "short",
-        "rule": "状態や種類のような、短い分類の値だけを置く。",
-        "why": "バッジは題の横に並び、長いと題が読めなくなる。",
-        "test": "1つのバッジが語1つかを見る。"
-       }
-      ]
+     {
+      "type": "array",
+      "items": {
+       "$ref": "#/$defs/node"
+      }
      }
-    },
-    "lead": {
-     "$ref": "#/$defs/node",
-     "description": "題の下の前置き",
-     "x-prompt": {
-      "read": {
-       "means": "題の下の前置きである。"
-      },
-      "write": [
-       {
-        "id": "one-or-two",
-        "rule": "このインスタンスが何かを、1〜2文で表す値を置く。",
-        "why": "読み手は前置きで、読み進めるかを決める。",
-        "test": "2文以内かを見る。"
-       }
-      ]
-     }
-    }
+    ]
    },
    "x-prompt": {
     "read": {
      "means": "ページの先頭の部分である。",
-     "shown": "題の横に badges、題の下に lead が出る。"
+     "shown": "キーと同じ名前の、カタログの page のプレースホルダーに入る。並びは上から順につなぐ。"
     },
     "write": [
      {
-      "id": "badges",
-      "rule": "badges には、読み手が最初に知るべき分類のバッジを置く。",
-      "why": "読み手は先頭で、このページの扱い方を判断する。",
-      "test": "バッジだけで、状態や種類が分かるかを見る。"
+      "id": "placeholder-names",
+      "rule": "キーには、カタログの page のプレースホルダーの名前を書く。",
+      "why": "page に無い名前は、置く場所が無いので描画の前に断られる。",
+      "test": "キーが、page の {{…}} にあるかを見る。"
      },
      {
-      "id": "lead",
-      "rule": "lead には、このインスタンスが何かを1〜2文で表す値を置く。",
-      "why": "題だけでは中身が分からないことがある。",
-      "test": "lead を読んで、何のインスタンスかが分かるかを見る。"
+      "id": "decide-first",
+      "rule": "読み手が最初に知るべき分類と前置きだけを置く。",
+      "why": "読み手は先頭で、このページの扱い方を判断する。",
+      "test": "先頭だけで、何のページかが分かるかを見る。"
      }
     ]
    }
@@ -719,22 +705,22 @@
      }
     }
    },
-   "description": "部品の呼び出し。カタログ（catalog.schema.json）の部品の名前で選び、その部品の入力を書く。どの名前があり、どんな入力を受け付けるかは、カタログが決める",
+   "description": "部品の呼び出し。Skill のカタログ（assets/catalog/catalog.schema.json）の部品の名前で選び、その部品の入力を書く。どの名前があり、どんな入力を受け付けるかは、カタログが決める",
    "x-prompt": {
     "read": {
      "means": "部品のカタログの部品の呼び出しである。",
-     "parse": "component の名前でカタログの部品を選び、受け付ける入力の形はカタログの $defs が決める。"
+     "parse": "component の名前でカタログの部品を選び、受け付ける入力の形はカタログの $defs が決める。入力の値は、同じ名前のプレースホルダーへ入る。"
     },
     "write": [
      {
       "id": "catalog-only",
       "rule": "カタログの部品の中から、出したいものの意味に合うものを選ぶ。",
       "why": "カタログに無い名前は、描画の前に断られる。",
-      "test": "名前が、catalog.schema.json の $defs にあるかを見る。"
+      "test": "名前が、Skill のカタログの $defs にあるかを見る。"
      },
      {
       "id": "no-own-parts",
-      "rule": "足りない部品は、ページテンプレートではなく基盤のカタログに足す依頼を出す。",
+      "rule": "足りない部品は、ページテンプレートではなく Skill のカタログ（assets/catalog/）に足す。",
       "why": "見た目と操作は、カタログが1か所で持つ。",
       "test": "ページテンプレートに、見た目の決まりを書いていないかを見る。"
      }

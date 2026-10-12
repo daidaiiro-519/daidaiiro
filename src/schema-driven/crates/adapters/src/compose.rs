@@ -2,7 +2,7 @@
 //! CLI と MCP の実行ファイルは、どちらもこれを呼ぶ。
 
 use crate::inbound::tools::Toolbox;
-use crate::outbound::catalog::Catalog;
+use crate::outbound::catalog::SkillCatalog;
 use crate::outbound::fs::FileSystem;
 use crate::outbound::jmespath::Jmespath;
 use schema_driven_core::application::checks::Checks;
@@ -17,8 +17,13 @@ pub type Engine = Toolbox<FileSystem, FileSystem, Jmespath>;
 pub fn toolbox(skill: Option<&str>) -> Engine {
     let instances = Instances::new(FileSystem, FileSystem, Jmespath);
     let checks = Checks::new(FileSystem, FileSystem, Jmespath);
-    // 部品の見た目と操作は、基盤のカタログだけが持つ
-    let renders = Renders::new(FileSystem, FileSystem, Jmespath, Arc::new(Catalog));
+    // 部品の見た目と操作は、--skill の Skill のフォルダのカタログが持つ。基盤はカタログの中身を持たない
+    let renders = Renders::new(
+        FileSystem,
+        FileSystem,
+        Jmespath,
+        Arc::new(SkillCatalog::new(skill)),
+    );
     match skill {
         Some(dir) => Toolbox::new(
             instances.with_skill(dir),

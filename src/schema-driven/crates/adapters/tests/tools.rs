@@ -4,7 +4,7 @@
 mod support;
 
 use serde_json::{json, Value};
-use support::{call, eq, run, Scratch};
+use support::{call, eq, has, put_catalog, run, Scratch};
 
 /// Skill のフォルダ。スキーマの名前は contract/<種類>@v1 にする。
 const SKILL: Option<&str> = Some("./contract");
@@ -219,12 +219,13 @@ fn prompt_returns_the_v1_form() {
 }
 
 #[test]
-fn render_draws_a_concrete_kind_with_the_catalog() {
+fn render_draws_a_concrete_kind_with_the_skill_catalog() {
     let scratch = word_skill_with_instance("render");
+    put_catalog(&scratch, "contract");
     scratch.put(
         "contract/pages/word.json",
         &json!({"kind": "word", "sections": [{"heading": "語", "body": [
-            {"component": "tabs", "items": "[this]", "label": "text", "body": ["text"]}
+            {"component": "pill", "text": "this.text"}
         ]}]}),
     );
     run(
@@ -238,7 +239,10 @@ fn render_draws_a_concrete_kind_with_the_catalog() {
                 ("out", "./contract/out"),
             ],
             0,
-            &[("/ok", eq(true)), ("/pages/0/design", eq("catalog"))],
+            &[
+                ("/ok", eq(true)),
+                ("/pages/0/path", eq("./contract/out/w.html")),
+            ],
         )],
     );
 }
@@ -246,6 +250,7 @@ fn render_draws_a_concrete_kind_with_the_catalog() {
 #[test]
 fn render_refuses_a_part_missing_from_the_catalog() {
     let scratch = word_skill_with_instance("render-missing-part");
+    put_catalog(&scratch, "contract");
     scratch.put(
         "contract/pages/word.json",
         &json!({"kind": "word", "sections": [{"heading": "語", "body": [
@@ -274,6 +279,7 @@ fn render_refuses_a_part_missing_from_the_catalog() {
 #[test]
 fn render_refuses_an_unknown_kind() {
     let scratch = word_skill_with_instance("render-unknown-kind");
+    put_catalog(&scratch, "contract");
     run(
         &scratch,
         SKILL,
@@ -281,7 +287,28 @@ fn render_refuses_an_unknown_kind() {
             "render",
             &[("dir", "./contract"), ("out", "./contract/out")],
             1,
-            &[("/ok", eq(false))],
+            &[
+                ("/ok", eq(false)),
+                ("/reason", eq("ページテンプレートの指定が無い種類がある")),
+            ],
+        )],
+    );
+}
+
+#[test]
+fn render_refuses_without_the_skill_catalog() {
+    let scratch = word_skill_with_instance("render-no-catalog");
+    run(
+        &scratch,
+        SKILL,
+        &[call(
+            "render",
+            &[("dir", "./contract"), ("out", "./contract/out")],
+            1,
+            &[
+                ("/reason", eq("部品のカタログを読めない")),
+                ("/detail", has("assets/catalog")),
+            ],
         )],
     );
 }

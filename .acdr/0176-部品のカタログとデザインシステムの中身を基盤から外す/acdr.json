@@ -1,0 +1,224 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0176",
+ "title": "部品のカタログとデザインシステムの中身を基盤から外す",
+ "date": "2026-10-13",
+ "status": "accepted",
+ "decision": "基盤は、部品1つが守る形 ・ トークンが守る形とコントラストの下限 ・ 描画の仕組み ・ 検査だけを持ち、部品の一覧と見た目 ・ 操作とトークンの値は、Skill のフォルダのカタログから受け取る。",
+ "why": "ボード page-design-ownership の論点1で決めた。いままで基盤は、部品12の一覧と見た目 ・ 操作 ・ トークンの値を実行ファイルに取り込んでいた。そのため、Skill が新しい表現の部品を必要とするたびに、基盤を直して配り直すことになっていた。これは、基盤は契約と同じ操作を出し、中身は concrete が持つ、という基盤の考え方から外れていた。文書の決まった見た目（schema-driven/document@v1）は、使う Skill が無かった。これで、ボード skill-roles の論点6 ・ ボード brainstorming-board-migration の論点3（持ち主を基盤とした部分）・ ボード schema-driven-build の論点7 を改める。取り込んでいたカタログの中身は、のちにデザインシステムの Skill の種にする。消す前の最後のコミットは a4076162 である。",
+ "shift": [
+  {
+   "what": "部品の一覧と見た目 ・ 操作",
+   "from": "基盤が12の部品（parts.html ・ catalog.css ・ catalog.js）を取り込む",
+   "to": "Skill のフォルダの assets/catalog/ から、描画のたびに読む。基盤は部品の名前を持たない"
+  },
+  {
+   "what": "カタログの契約（schema-driven/catalog@v1）",
+   "from": "部品12の名前と入力の形",
+   "to": "部品1つが守る形の枠（type ・ description ・ properties ・ x-states）。部品の一覧は Skill の catalog.schema.json が持つ"
+  },
+  {
+   "what": "デザインシステムの契約（schema-driven/design-system@v1）",
+   "from": "基礎 ・ 意味 ・ 部品の3層のトークンを求める",
+   "to": "形式 ・ 参照 ・ 循環しないこと ・ 宣言した組のコントラスト（文字 4.5:1、部品の境界 3:1）だけ。比べる組は Skill のデザインシステムが宣言する"
+  },
+  {
+   "what": "何も指定が無いときの描画",
+   "from": "kind が document のインスタンスを、決まったページテンプレートと見た目で描く",
+   "to": "持たない。ページテンプレートの指定が無い種類があれば、描かずに「指定が無い」と返す"
+  },
+  {
+   "what": "port の Design",
+   "from": "部品の一覧 ・ 部品の HTML ・ レイアウトを返すメソッドと、描画のコールバック（Renderer）",
+   "to": "カタログの中身（スキーマ ・ 部品の HTML ・ CSS ・ JS ・ デザインシステム）を返す1つのメソッドだけ。描画の仕組みは基盤の中にある"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "基盤と concrete の分け目を、いまと変更後で並べた図。",
+ "alternatives": [
+  {
+   "option": "部品12の名前と入力の形を、基盤のカタログの契約として残す",
+   "why_not": "部品を足すたびに基盤を直す形が、契約の層に残る"
+  },
+  {
+   "option": "トークンの層の分け方（基礎 ・ 意味 ・ 部品）を契約に残す",
+   "why_not": "Design Tokens の形式では group の作り方は任意である。層を契約にすると、Skill のデザインシステムの作り方まで基盤が決めることになる"
+  },
+  {
+   "option": "文書の決まった見た目を、何も指定が無いときのために残す",
+   "why_not": "使う Skill が無い。残すと、基盤が見た目を持つ形に戻る"
+  },
+  {
+   "option": "カタログの中身を、デザインシステムの Skill を作るまで基盤に残す",
+   "why_not": "基盤から外すことと、デザインシステムの Skill を作ることは別の目的である。中身は git の履歴（a4076162）から取り出せる"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "catalog-schema",
+   "tab": "catalog.schema.json",
+   "file": "src/schema-driven/crates/core/schemas/catalog.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"title\": \"部品のカタログの枠\",",
+     "before": "\"title\": \"部品のカタログ\",（$defs に部品12：document ・ badges ・ inline ・ tabs ・ fold ・ mark ・ jump ・ choose ・ write ・ send ・ embed ・ svg）",
+     "why": "部品の一覧を基盤から外し、部品1つが守る形の枠にした"
+    }
+   ]
+  },
+  {
+   "key": "ds-schema",
+   "tab": "design-system.schema.json",
+   "file": "src/schema-driven/crates/core/schemas/design-system.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "基盤は、形式 ・ 参照（{名前} の参照先があるか）・ 循環しないこと ・ コントラストの下限",
+     "before": "部品のカタログが従うデザインシステム。基盤はこれを検査し、トークンから CSS の変数を作る。",
+     "why": "基盤が確かめることを、形式 ・ 参照 ・ 循環 ・ コントラストの下限の4つにした"
+    },
+    {
+     "find": "\"contrast\"",
+     "before": "\"components\"",
+     "why": "部品ごとの欄をやめ、比べる色の組を Skill が宣言する欄にした"
+    },
+    {
+     "find": "\"$ref\": \"#/$defs/tokens\",",
+     "before": "\"type\": \"object\",（基礎 ・ 意味 ・ 部品の層を求める形）",
+     "why": "トークンの層の分け方を契約から外した"
+    },
+    {
+     "find": "\"tokens\": {",
+     "before": "\"refs\": {",
+     "why": "トークンの値と参照（{名前}）の書き方だけを決めた"
+    }
+   ]
+  },
+  {
+   "key": "ports",
+   "tab": "ports.rs",
+   "file": "src/schema-driven/crates/core/src/ports.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::values::Hash;",
+     "before": "use crate::domain::values::{Hash, Html};",
+     "why": "描画の部品を返す port をやめたので、Html を使わなくなった"
+    },
+    {
+     "find": "/// 部品のカタログの中身。concrete（Skill）が持つファイルの文字で、基盤は部品の名前も見た目も持たない。",
+     "before": "/// ページのレイアウトに渡すもの。題は文字、ほかは基盤が生成した HTML。",
+     "why": "Design は、Skill のカタログの中身を返すだけにした"
+    },
+    {
+     "find": "/// dyn で使う。core が実装し、port のメソッドの引数としてアダプタへ渡すコールバックで、port ではない。基盤がコンポーネントに渡す API。",
+     "before": "（描画のコールバック Renderer の定義）",
+     "why": "描画の仕組みを基盤の中に置いたので、アダプタへ渡すコールバックが必要でなくなった"
+    }
+   ]
+  },
+  {
+   "key": "outbound",
+   "tab": "outbound/catalog.rs",
+   "file": "src/schema-driven/crates/adapters/src/outbound/catalog.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 部品のカタログを、Skill のフォルダから読む（ポート Design の実装）。",
+     "before": "//! 部品のカタログ（ポート Design の実装）。（部品12の HTML を取り込んで描いていた）",
+     "why": "基盤の中のカタログの実装をやめ、Skill のフォルダの assets/catalog/ から読む"
+    }
+   ]
+  },
+  {
+   "key": "coding",
+   "tab": "CODING.md",
+   "file": "src/schema-driven/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "部品のカタログとデザインシステムの検査",
+     "before": "業務の規則（スキーマの契約 ・ 検証 ・ 参照 ・ 導出値 ・ 公開の記録 ・ デザインシステムの検査）",
+     "why": "domain が、Skill のカタログを検査するようにした"
+    },
+    {
+     "find": "部品のカタログは concrete（Skill）が持つので、取り込まない",
+     "before": "取り込むファイルは、それを使う層の crate が持つ。スキーマは core、カタログは adapters。",
+     "why": "取り込むのは基盤のスキーマだけになった。adapters の catalog/ と build.rs も外し、ファイルから読む adapter にした"
+    },
+    {
+     "find": "port のメソッドが受け取るコールバック（JMESPath に足す関数）だけを dyn で使う",
+     "before": "port のメソッドが受け取るコールバック（JMESPath に足す関数 ・ 描画の部品）だけを dyn で使う",
+     "why": "描画のコールバックが無くなった"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "自分の能力を持つ実行ファイル（任意）",
+     "before": "concrete スキーマ ・ インスタンス ・ ページテンプレート ・ 自分の能力を持つ実行ファイル（任意）",
+     "why": "使う側の持ち物に、部品のカタログを足した"
+    },
+    {
+     "find": "使う側の Skill のフォルダの部品のカタログでページへ描画する",
+     "before": "検証を通ったインスタンスを、ページテンプレートと部品のカタログでページへ描画する",
+     "why": "描画は、使う側のカタログで行う"
+    },
+    {
+     "find": "明示されなければ、どの種類にもページテンプレートの指定が無い。",
+     "before": "明示されなければ、kind が document のインスタンスだけを描画できる",
+     "why": "文書の決まった見た目を外した"
+    },
+    {
+     "find": "エンジンが持つスキーマ（ページテンプレート ・ カタログの枠 ・ デザインシステムなど）",
+     "before": "エンジンが持つスキーマ（文書 ・ ページテンプレート ・ カタログなど）",
+     "why": "組み込みのスキーマから文書を外し、カタログを枠にした"
+    },
+    {
+     "find": "Step 5: カタログを置き、ページテンプレートを書き、描画する",
+     "before": "Step 5: ページテンプレートを書き、描画する",
+     "why": "描画の前に、Skill のフォルダにカタログを置く手順を足した"
+    },
+    {
+     "find": "ページテンプレートに、HTML ・ CSS ・ 色の値を書かない",
+     "before": "ページの見た目と操作を、使う側で持たない。足りない部品は基盤のカタログに足す。",
+     "why": "見た目は使う側のカタログが持つので、ガードレールを、ページテンプレートに見た目を書かない決まりに直した"
+    },
+    {
+     "find": "部品のカタログの枠。使う側の部品の一覧",
+     "before": "部品のカタログ。部品の名前 ・ 入力の形 ・ 使う場面",
+     "why": "参照の表を、カタログの枠の説明に直した"
+    }
+   ]
+  },
+  {
+   "key": "gitignore",
+   "tab": ".gitignore",
+   "file": ".gitignore",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# 基盤のスキーマの正本は src/schema-driven/crates/core/schemas/。Skill の assets/ へは配布物を作る段で入れる",
+     "before": "# 基盤のスキーマとカタログの正本は src/schema-driven/schemas/ と catalog/。Skill の assets/ へは配布物を作る段で入れる",
+     "why": "カタログが基盤から無くなった。ACDR 0175 で場所が crates/ に変わったのに、直し忘れていた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "catalog-schema": "99502c4aa926618d7a60a8258146cc8fd816a945e4e2e17b38a9d23a43bb775d",
+  "ds-schema": "c6ca9ba0d2dcd448a9c1fe208c1b5997cd7278e5e2f482dc260b2ffbf7968efd",
+  "ports": "46d2d53fc49f037536ba93415cd1ad1f07a03c19d63bd5891b8a74b59cc3bd4f",
+  "outbound": "f491e49aa33f6ba347889e518d7d3006a2f6f276a57f240b5afe907f875a371d",
+  "coding": "21d0032e83dda71b14e1154435a0c8ff1e085b43545b0ef2e64817b7af41bf26",
+  "skill": "b9318a8fe418ecafc7cbe91d6eb1ca608d175313fd371c11d98998eb5a85bf1f",
+  "gitignore": "4554acf0c5a379096ea9de665bd0d1cb8ce7132adf00304ed2b9aa11c0fa1334"
+ }
+}

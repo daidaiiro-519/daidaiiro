@@ -1,7 +1,7 @@
 //! 出ていく側のポート。application が定義し、adapters が実装する。
 //! core はファイルにも JMESPath の実装にも部品のカタログにも直接触れず、この trait を通す。
 
-use crate::domain::values::{Hash, Html};
+use crate::domain::values::Hash;
 use serde_json::Value;
 use std::fmt;
 use std::sync::Arc;
@@ -94,36 +94,26 @@ pub trait Query: Clone + Send + Sync + 'static {
     ) -> Result<serde_json::Value, QueryError>;
 }
 
-/// ページのレイアウトに渡すもの。題は文字、ほかは基盤が生成した HTML。
-#[derive(Debug, Clone, Default)]
-pub struct Frame {
-    pub title: String,
-    pub badges: Html,
-    pub lead: Html,
-    pub sections: Html,
+/// 部品のカタログの中身。concrete（Skill）が持つファイルの文字で、基盤は部品の名前も見た目も持たない。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Catalog {
+    /// 部品の一覧のスキーマ（schemas/catalog.schema.json の枠に従う JSON）
+    pub schema: String,
+    /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）
+    pub parts: String,
+    /// 部品の見た目（CSS）。無ければ空
+    pub style: String,
+    /// 部品の操作（JS）。無ければ空
+    pub script: String,
+    /// デザインシステム（schemas/design-system.schema.json に従う JSON）
+    pub design_system: String,
 }
 
-/// dyn で使う。部品のカタログ。外から実装を足していくので、型は実行時に決まる。
-/// コンポーネントの一覧 ・ 部品の HTML ・ ページと節のレイアウトを具体が持ち、基盤は中身を知らない。
+/// dyn で使う。部品のカタログの供給元。外から実装を足していくので、型は実行時に決まる。
+/// カタログの中身は concrete が持ち、基盤は描画のたびにここから受け取る。基盤の中にカタログの中身は無い。
 pub trait Design: Send + Sync {
-    /// コンポーネントの名前と、入力の形（JSON Schema）。
-    fn components(&self) -> Vec<(String, serde_json::Value)>;
-    /// 部品の HTML（<template id="…"> の並び。プレースホルダーは {{名前}}）。
-    fn parts(&self) -> &str;
-    /// デザインシステム（schemas/design-system.schema.json に従う JSON）。
-    /// 部品のカタログが従うデザインシステム。
-    fn design_system(&self) -> &str;
-    /// ページのレイアウト。
-    fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String>;
-    /// 節のレイアウト。
-    fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String>;
-    /// コンポーネント1つを描画する。show と each は基盤が適用してから呼び出す。
-    fn render(
-        &self,
-        name: &str,
-        input: &serde_json::Value,
-        renderer: &mut dyn Renderer,
-    ) -> Result<Html, String>;
+    /// カタログを読む。無いか読めなければ、その理由を返す。
+    fn catalog(&self) -> Result<Catalog, ReadError>;
 }
 
 /// dyn で使う。core が実装し、port のメソッドの引数としてアダプタへ渡すコールバックで、port ではない。JMESPath に足す関数の名前と中身。基盤の6つは core が持つ。
@@ -131,25 +121,6 @@ pub trait Design: Send + Sync {
 pub trait Functions: Send + Sync {
     fn names(&self) -> Vec<String>;
     fn call(&self, name: &str, args: &[Value]) -> Result<Value, String>;
-}
-
-/// dyn で使う。core が実装し、port のメソッドの引数としてアダプタへ渡すコールバックで、port ではない。基盤がコンポーネントに渡す API。
-/// 式の評価 ・ 要素の描画 ・ プレースホルダーの置換 ・ エスケープを持つ。
-pub trait Renderer {
-    /// 今の位置に式を当てた値。{"text": …} なら、その文字。
-    fn value(&mut self, expr: &Value) -> Result<Value, String>;
-    /// ページテンプレートの要素を、今の位置で描画する。
-    fn node(&mut self, node: &Value) -> Result<Html, String>;
-    /// ページテンプレートの要素を、at を今の位置にして描画する（表の列を行ごとに評価するときなど）。
-    fn node_at(&mut self, node: &Value, at: &Value) -> Result<Html, String>;
-    /// 部品のプレースホルダーを置換する。プレースホルダーと、渡した名前が1つでも合わなければエラー。
-    fn part(&self, id: &str, slots: &[(&str, Html)]) -> Result<Html, String>;
-    /// 文字をエスケープする。
-    fn text(&self, text: &str) -> Html;
-    /// SVG の文字列をページに埋め込む。script ・ イベントの属性（on…）・ javascript: を含むなら断る。
-    fn svg(&self, svg: &str) -> Result<Html, String>;
-    /// デザインシステムのトークンから作った CSS の変数（明 ・ OS の暗 ・ 明示の暗）。ページの style に置く。
-    fn tokens(&self) -> Html;
 }
 
 #[cfg(test)]

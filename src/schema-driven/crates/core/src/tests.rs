@@ -1,13 +1,12 @@
 //! core の単体テストが共有する代役。ポートをメモリ上で実装する（core の中のテストの補助は、ここ1か所に置く）。
 //! - MemoryFiles：ファイルを、パス → 中身の表で持つ Files と Schemas
 //! - TableQuery：式（文字列）→ 答えの関数 の表で答える Query。表に無い式は「読めない」にする
-//! - TestDesign：部品の HTML とデザインシステムを差し替えられる、小さな部品のカタログ
+//! - small_catalog ・ TestDesign：試験用の小さな部品のカタログと、それを渡す Design
 
-use crate::domain::values::{Html, JsonValue};
+use crate::domain::values::JsonValue;
 use crate::ports::Functions;
-use crate::ports::Renderer;
 use crate::ports::{
-    Design, Files, Frame, Query, QueryError, ReadError, Schemas, WriteError, WriteIf,
+    Catalog, Design, Files, Query, QueryError, ReadError, Schemas, WriteError, WriteIf,
 };
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -186,100 +185,49 @@ pub fn join(separator: &str, value: &Value) -> Value {
     Value::String(parts.join(separator))
 }
 
-/// 小さな部品のカタログ。部品の HTML とデザインシステムはデータで、Rust はプレースホルダーに値を入れるだけ。
-/// コンポーネントは pill（value ・ tone）と table（rows ・ cols）。
-pub struct TestDesign {
-    pub parts: String,
-    pub system: String,
+/// 試験用の小さな部品のカタログ。部品は pill（text ・ tone）・ list（items）・ figure（svg）の3つで、
+/// ページのテンプレートは head の lead を {{lead}} に置く。部品の名前は、試験のこのカタログだけが持つ。
+pub fn small_catalog() -> Catalog {
+    Catalog {
+        schema: json!({
+            "$schema": "schema-driven/catalog@v1", "$id": "example/catalog@v1",
+            "$defs": {
+                "pill": {"type": "object", "description": "短い分類", "required": ["text"],
+                         "properties": {"text": {}, "tone": {"type": "string"}},
+                         "x-states": {"default": "押せない"}},
+                "list": {"type": "object", "description": "並び", "required": ["items"],
+                         "properties": {"items": {"type": "array"}},
+                         "x-states": {"default": "押せない"}},
+                "figure": {"type": "object", "description": "図", "required": ["svg"],
+                           "properties": {"svg": {"type": "string", "contentMediaType": "image/svg+xml"}},
+                           "x-states": {"default": "押せない"}}
+            }
+        })
+        .to_string(),
+        parts: r#"<template id="page"><style>{{tokens}}{{style}}</style><script>{{script}}</script><main><h1>{{title}}</h1><p>{{lead}}</p>{{sections}}</main></template>
+<template id="section"><section><h2>{{heading}}</h2>{{body}}</section></template>
+<template id="pill"><b class="pill {{tone}}">{{text}}</b></template>
+<template id="list"><ul>{{items}}</ul></template>
+<template id="figure"><figure>{{svg}}</figure></template>"#
+            .to_owned(),
+        style: ".pill{color:var(--ink)}".to_owned(),
+        script: "/* 操作 */".to_owned(),
+        design_system: json!({
+            "scope": ":root",
+            "tokens": {"ink": "#111d1a", "paper": "#f7f8f7"},
+            "contrast": [{"foreground": "ink", "background": "paper", "use": "text"}]
+        })
+        .to_string(),
+    }
 }
 
+/// 部品のカタログの供給元の代役。None なら「カタログが無い」を返す。
+pub struct TestDesign(pub Option<Catalog>);
+
 impl Design for TestDesign {
-    fn design_system(&self) -> &str {
-        &self.system
-    }
-
-    fn components(&self) -> Vec<(String, Value)> {
-        vec![
-            (
-                "pill".into(),
-                json!({"type": "object", "required": ["value"],
-                       "properties": {"component": {}, "show": {}, "each": {}, "value": {}, "tone": {"type": "string"}},
-                       "additionalProperties": false}),
-            ),
-            (
-                "table".into(),
-                json!({"type": "object", "required": ["rows", "cols"],
-                       "properties": {"component": {}, "show": {}, "each": {}, "rows": {"type": "string"},
-                                      "cols": {"type": "array"}},
-                       "additionalProperties": false}),
-            ),
-        ]
-    }
-
-    fn parts(&self) -> &str {
-        &self.parts
-    }
-
-    /// ページの部品に {{tokens}} があれば、トークンの CSS の変数も渡す。
-    fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {
-        let lead = if frame.lead.as_str().is_empty() {
-            Html::default()
-        } else {
-            renderer.part("lead", &[("text", frame.lead.clone())])?
-        };
-        let mut slots = vec![
-            ("title", renderer.text(&frame.title)),
-            ("badges", frame.badges.clone()),
-            ("lead", lead),
-            ("sections", frame.sections.clone()),
-        ];
-        if self.parts.contains("{{tokens}}") {
-            slots.push(("tokens", renderer.tokens()));
-        }
-        renderer.part("page", &slots)
-    }
-
-    fn section(&self, heading: &str, body: Html, renderer: &dyn Renderer) -> Result<Html, String> {
-        renderer.part(
-            "section",
-            &[("heading", renderer.text(heading)), ("body", body)],
-        )
-    }
-
-    fn render(
-        &self,
-        name: &str,
-        input: &Value,
-        renderer: &mut dyn Renderer,
-    ) -> Result<Html, String> {
-        match name {
-            "pill" => {
-                let text = renderer.node(&input["value"])?;
-                let tone = input.get("tone").and_then(Value::as_str).unwrap_or("plain");
-                renderer.part("pill", &[("tone", renderer.text(tone)), ("text", text)])
-            }
-            "table" => {
-                let rows = renderer.value(&input["rows"])?;
-                let cols = input["cols"].as_array().cloned().unwrap_or_default();
-                let mut head = Html::default();
-                for column in &cols {
-                    head.push(renderer.part(
-                        "th",
-                        &[("text", renderer.text(column["head"].as_str().unwrap_or("")))],
-                    )?);
-                }
-                let mut body = Html::default();
-                for row in rows.as_array().cloned().unwrap_or_default() {
-                    let mut cells = Html::default();
-                    for column in &cols {
-                        let cell = renderer.node_at(&column["value"], &row)?;
-                        cells.push(renderer.part("td", &[("text", cell)])?);
-                    }
-                    body.push(renderer.part("tr", &[("cells", cells)])?);
-                }
-                renderer.part("table", &[("head", head), ("body", body)])
-            }
-            other => Err(format!("TestDesign は {other} を描画できない")),
-        }
+    fn catalog(&self) -> Result<Catalog, ReadError> {
+        self.0
+            .clone()
+            .ok_or_else(|| ReadError("カタログが無い".into()))
     }
 }

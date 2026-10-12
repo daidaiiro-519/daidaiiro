@@ -1,15 +1,15 @@
 //! ページを描画する。契約を通ったデータだけを、同じ入力から同じページへ描画する。
-//! 部品の見た目と操作は、基盤の部品のカタログ（ポート Design）だけが持つ。
-//! 基盤の文書（kind が document）は、決まったページテンプレートで描画する。何も指定が無いときに使う。
-//! 具体のスキーマの種類は、具体のページテンプレートがカタログの部品を並べて描画する。どちらでもない種類があれば、何も書かずに失敗する。
+//! 部品の見た目と操作は、concrete が渡す部品のカタログ（ポート Design）だけが持ち、基盤はカタログの中身を持たない。
+//! インスタンスの種類ごとに、その種類のページテンプレートがカタログの部品を並べて描画する。
+//! ページテンプレートの指定が無い種類があれば、何も書かずに「指定が無い」と返す。
 
 use crate::application::checks::Checks;
 use crate::application::context::contexts;
 use crate::application::instances::{write_error, Instances, UseCaseError};
-use crate::application::page::{document_page_template, page_errors, PageRenderer};
+use crate::application::page::{page_errors, PageRenderer, Parts};
 use crate::application::view::{Instance, ViewEngine};
+use crate::domain::catalog;
 use crate::domain::check::Doc;
-use crate::domain::design_system;
 use crate::domain::schema::Schema;
 use crate::domain::values::{JsonValue, ValidationError};
 use crate::ports::{Design, Files, Query, Schemas, WriteIf};
@@ -23,8 +23,6 @@ pub struct RenderedPage {
     pub path: String,
     /// 内容が変わったか（変わっていなければ書いていない）
     pub changed: bool,
-    /// 使ったページテンプレート。具体のページテンプレートなら catalog、基盤の文書の決まったページテンプレートなら document
-    pub design: String,
 }
 
 /// 描画の結果。
@@ -33,24 +31,24 @@ pub struct Rendered {
     pub pages: Vec<RenderedPage>,
 }
 
-/// 描画のユースケース。部品のカタログを持つ。
+/// 描画のユースケース。部品のカタログの供給元を持つ。
 #[derive(Clone)]
 pub struct Renders<F, S, Q> {
     files: F,
     schemas: S,
     query: Q,
-    catalog: Arc<dyn Design>,
+    design: Arc<dyn Design>,
     /// スキーマの名前を引く Skill のフォルダ
     skill: Option<String>,
 }
 
 impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
-    pub fn new(files: F, schemas: S, query: Q, catalog: Arc<dyn Design>) -> Self {
+    pub fn new(files: F, schemas: S, query: Q, design: Arc<dyn Design>) -> Self {
         Self {
             files,
             schemas,
             query,
-            catalog,
+            design,
             skill: None,
         }
     }
@@ -62,8 +60,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
     }
 
     /// ページテンプレートのディレクトリを読み、kind → テンプレートにする。契約とカタログに違反があれば失敗する。
-    fn templates(&self, dir: &str) -> Result<BTreeMap<String, Value>, UseCaseError> {
-        let design = &self.catalog;
+    fn templates(&self, dir: &str, parts: &Parts) -> Result<BTreeMap<String, Value>, UseCaseError> {
         if dir.is_empty() {
             return Ok(BTreeMap::new());
         }
@@ -102,7 +99,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
                 Err(error) => problems.push(format!("{path}: {}", error.0)),
             }
             problems.extend(
-                page_errors(&**design, &value)
+                page_errors(parts, &value)
                     .into_iter()
                     .map(|error| format!("{path}: {error}")),
             );
@@ -129,24 +126,25 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
 impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
     /// ページを描画する。dir のインスタンスを、pages のページテンプレートで、out へ描画する
     pub fn render(&self, dir: &str, pages: &str, out: &str) -> Result<Rendered, UseCaseError> {
-        // カタログはデザインシステムに従う。満たさなければ1ページも書かない
-        let names: Vec<String> = self
-            .catalog
-            .components()
-            .into_iter()
-            .map(|(name, _)| name)
-            .collect();
-        let findings: Vec<String> =
-            design_system::check(self.catalog.design_system(), self.catalog.parts(), &names)
-                .into_iter()
-                .map(|finding| format!("部品のカタログ：{finding}"))
-                .collect();
+        // カタログは concrete が渡す。無いか、枠とデザインシステムに従わなければ1ページも書かない
+        let given = self
+            .design
+            .catalog()
+            .map_err(|error| UseCaseError::new("部品のカタログを読めない", error.0))?;
+        let findings = catalog::check(
+            &given.schema,
+            &given.parts,
+            &given.style,
+            &given.design_system,
+        );
         if !findings.is_empty() {
             return Err(UseCaseError::new(
-                "デザインシステムが契約を満たさない",
+                "部品のカタログが契約を満たさない",
                 findings.join("\n"),
             ));
         }
+        let parts = Parts::new(&given)
+            .map_err(|error| UseCaseError::new("部品のカタログを読めない", error))?;
         let mut checks = Checks::new(self.files.clone(), self.schemas.clone(), self.query.clone());
         if let Some(dir) = &self.skill {
             checks = checks.with_skill(dir);
@@ -175,7 +173,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
             error.errors = errors;
             return Err(error);
         }
-        let templates = self.templates(pages)?;
+        let templates = self.templates(pages, &parts)?;
         let ctx = {
             let docs: Vec<Doc> = loaded
                 .iter()
@@ -196,9 +194,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
             })
             .collect();
         let engine = ViewEngine::new(self.query.clone(), schemas.into_iter().collect(), list);
-        let renderer = PageRenderer::new(engine, self.catalog.clone())
-            .map_err(|error| UseCaseError::new("部品のカタログを読めない", error.0))?;
-        let document_template = document_page_template();
+        let renderer = PageRenderer::new(engine, parts);
         // すべて生成してから書く（途中で失敗したときに、一部だけ書いた状態を残さない）
         let (mut generated, mut missing) = (Vec::new(), Vec::new());
         for (doc_index, instance) in loaded.iter().enumerate() {
@@ -207,42 +203,29 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
                 .get("kind")
                 .and_then(Value::as_str)
                 .unwrap_or("");
-            let (html, design) = if kind == "document" {
-                (
-                    renderer.render(&document_template, &ctx[doc_index], &instance.schema),
-                    "document",
-                )
-            } else if let Some(page_template) = templates.get(kind) {
-                (
-                    renderer.render(page_template, &ctx[doc_index], &instance.schema),
-                    "catalog",
-                )
-            } else {
+            let Some(page_template) = templates.get(kind) else {
                 missing.push(format!("{}（kind {kind}）", instance.path));
                 continue;
             };
+            let html = renderer.render(page_template, &ctx[doc_index], &instance.schema);
             let html = html.map_err(|error| {
                 UseCaseError::new("描画できない", format!("{}: {}", instance.path, error.0))
             })?;
             let name = instance.path.rsplit('/').next().unwrap_or(&instance.path);
             let stem = name.strip_suffix(".json").unwrap_or(name);
-            generated.push((
-                format!("{}/{stem}.html", out.trim_end_matches('/')),
-                html,
-                design,
-            ));
+            generated.push((format!("{}/{stem}.html", out.trim_end_matches('/')), html));
         }
         if !missing.is_empty() {
             return Err(UseCaseError::new(
-                "ページテンプレートが無い種類がある",
+                "ページテンプレートの指定が無い種類がある",
                 format!(
-                    "次のインスタンスは、基盤の文書でもなく、その種類のページテンプレートも無い：{}",
+                    "次のインスタンスの種類には、ページテンプレートの指定が無い：{}",
                     missing.join("、")
                 ),
             ));
         }
         let mut written = Vec::new();
-        for (path, html, design) in generated {
+        for (path, html) in generated {
             let changed = match self.files.read(&path) {
                 Ok(current) if current == html.as_str() => false,
                 Ok(current) => {
@@ -262,11 +245,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
                     true
                 }
             };
-            written.push(RenderedPage {
-                path,
-                changed,
-                design: design.to_owned(),
-            });
+            written.push(RenderedPage { path, changed });
         }
         Ok(Rendered { pages: written })
     }
@@ -274,34 +253,14 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
 
 #[cfg(test)]
 mod tests {
-    //! 描画のユースケースのテスト。部品のカタログは、デザインシステムに従う。
-    //! 契約を満たさないカタログでは、1ページも書かない。
+    //! 描画のユースケースのテスト。部品のカタログは、試験用の小さなカタログ（crate::tests::small_catalog）を代役が渡す。
+    //! カタログが無いか、契約を満たさないか、ページテンプレートの指定が無い種類があれば、1ページも書かない。
 
     use super::Renders;
-    use crate::tests::{at, Answer, MemoryFiles, TableQuery, TestDesign};
-    use serde_json::{json, Value};
+    use crate::ports::Catalog;
+    use crate::tests::{at, small_catalog, Answer, MemoryFiles, TableQuery, TestDesign};
+    use serde_json::json;
     use std::sync::Arc;
-
-    fn parts(pill_style: &str) -> String {
-        format!(
-            r#"<template id="page"><style>{{{{tokens}}}}</style><main><h1>{{{{title}}}}</h1>{{{{badges}}}}{{{{lead}}}}{{{{sections}}}}</main></template>
-<template id="section"><section><h2>{{{{heading}}}}</h2>{{{{body}}}}</section></template>
-<template id="pill"><b class="{{{{tone}}}}" style="{pill_style}">{{{{text}}}}</b></template>"#
-        )
-    }
-
-    fn system() -> Value {
-        json!({
-            "scope": ":root",
-            "tokens": {
-                "base": {"color": {"teal-700": "#0d5c55", "teal-300": "#6cc9b8", "paper-100": "#eef1ef", "night-900": "#0e1614"}},
-                "semantic": {"light": {"bg": "paper-100", "key": "teal-700"}, "dark": {"bg": "night-900", "key": "teal-300"}},
-                "component": {"pill-bg": "key"}
-            },
-            "components": [{"name": "pill", "states": {"default": {"background": "pill-bg", "text": "bg"}}},
-                           {"name": "table", "states": {"default": {"text": "bg"}}}]
-        })
-    }
 
     fn answers() -> Vec<(&'static str, Answer)> {
         vec![
@@ -324,51 +283,80 @@ mod tests {
             ),
             (
                 "pages/thing.json",
-                json!({"kind": "thing", "sections": [{"heading": "タグ", "body": [{"component": "pill", "each": "this.tags", "value": "@"}]}]}),
+                json!({"kind": "thing", "sections": [{"heading": "タグ", "body": [{"component": "pill", "each": "this.tags", "text": "@"}]}]}),
             ),
         ])
     }
 
     fn renders(
         files: &MemoryFiles,
-        pill_style: &str,
+        catalog: Option<Catalog>,
     ) -> Renders<MemoryFiles, MemoryFiles, TableQuery> {
-        let design = TestDesign {
-            parts: parts(pill_style),
-            system: system().to_string(),
-        };
         Renders::new(
             files.clone(),
             files.clone(),
             TableQuery::new(answers()),
-            Arc::new(design),
+            Arc::new(TestDesign(catalog)),
         )
         .with_skill("skills/example")
     }
 
     #[test]
-    fn a_catalog_that_follows_its_design_system_writes_the_page() {
+    fn the_given_catalog_writes_the_page() {
         let files = files();
-        let done = renders(&files, "background:var(--pill-bg)")
+        let done = renders(&files, Some(small_catalog()))
             .render("declarations", "pages", "out")
             .unwrap();
         assert_eq!(done.pages.len(), 1);
         assert_eq!(done.pages[0].path, "out/T-1.html");
         assert_eq!(
             files.get("out/T-1.html").unwrap(),
-            "<style>:root{--night-900:#0e1614;--paper-100:#eef1ef;--teal-300:#6cc9b8;--teal-700:#0d5c55;--bg:#eef1ef;--key:#0d5c55;--pill-bg:var(--key)}\n@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){--bg:#0e1614;--key:#6cc9b8;color-scheme:dark}}\n:root[data-theme=\"dark\"]{--bg:#0e1614;--key:#6cc9b8;color-scheme:dark}</style><main><h1>T-1</h1><section><h2>タグ</h2><b class=\"plain\" style=\"background:var(--pill-bg)\">a</b></section></main>"
+            "<style>:root{--ink:#111d1a;--paper:#f7f8f7}.pill{color:var(--ink)}</style><script>/* 操作 */</script><main><h1>T-1</h1><p></p><section><h2>タグ</h2><b class=\"pill \">a</b></section></main>"
         );
+    }
+
+    #[test]
+    fn without_a_catalog_no_page_is_written() {
+        let files = files();
+        let before = files.paths();
+        let error = renders(&files, None)
+            .render("declarations", "pages", "out")
+            .unwrap_err();
+        assert_eq!(error.reason, "部品のカタログを読めない");
+        assert_eq!(error.detail, "カタログが無い");
+        assert_eq!(files.paths(), before, "1ページも書かない");
     }
 
     #[test]
     fn a_catalog_that_breaks_its_design_system_writes_no_page() {
         let files = files();
         let before = files.paths();
-        let error = renders(&files, "background:#ff0000")
+        let mut broken = small_catalog();
+        broken.style = ".pill{color:#ff0000}".to_owned();
+        let error = renders(&files, Some(broken))
             .render("declarations", "pages", "out")
             .unwrap_err();
-        assert_eq!(error.reason, "デザインシステムが契約を満たさない");
+        assert_eq!(error.reason, "部品のカタログが契約を満たさない");
         assert!(error.detail.contains("色の直値"), "{}", error.detail);
+        assert_eq!(files.paths(), before, "1ページも書かない");
+    }
+
+    #[test]
+    fn a_kind_without_a_page_template_is_not_drawn() {
+        let files = files();
+        files.put(
+            "declarations/O-1.json",
+            &json!({"$schema": "example/thing@v1", "kind": "other", "id": "O-1"}).to_string(),
+        );
+        let before = files.paths();
+        let error = renders(&files, Some(small_catalog()))
+            .render("declarations", "pages", "out")
+            .unwrap_err();
+        assert_eq!(error.reason, "ページテンプレートの指定が無い種類がある");
+        assert_eq!(
+            error.detail,
+            "次のインスタンスの種類には、ページテンプレートの指定が無い：declarations/O-1.json（kind other）"
+        );
         assert_eq!(files.paths(), before, "1ページも書かない");
     }
 }

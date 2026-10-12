@@ -42,7 +42,6 @@ mod tests {
                     "schema-driven/design-system@v1",
                     "design-system.schema.json"
                 ),
-                ("schema-driven/document@v1", "document.schema.json"),
                 ("schema-driven/abstract@v1", "meta-schema.json"),
                 ("schema-driven/page@v1", "page.schema.json"),
                 ("schema-driven/published@v1", "published.schema.json"),

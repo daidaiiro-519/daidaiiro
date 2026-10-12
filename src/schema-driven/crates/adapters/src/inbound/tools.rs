@@ -62,10 +62,10 @@ pub const TOOLS: &[ToolDef] = &[
     },
     ToolDef {
         name: "render",
-        description: "ディレクトリのインスタンスをページへ描画する。kind が document なら基盤の文書の契約で、そのほかの種類はその種類のページテンプレートで、部品のカタログを使って描画する。ページテンプレートの無い種類があれば、1ページも書かずに失敗する。検証エラーがあれば描画しない。同じ入力からは同じページを書く",
+        description: "ディレクトリのインスタンスを、種類ごとのページテンプレートと、--skill の Skill のフォルダの assets/catalog/ にある部品のカタログでページへ描画する。カタログが無いか契約を満たさないとき、ページテンプレートの指定が無い種類があるときは、1ページも書かずに失敗する。検証エラーがあれば描画しない。同じ入力からは同じページを書く",
         args: &[
             ("dir", "インスタンスのディレクトリ", true),
-            ("pages", "具体のページテンプレートのディレクトリ。無ければ、kind が document のインスタンスだけを描画できる", false),
+            ("pages", "ページテンプレートのディレクトリ。無ければ、どの種類にもページテンプレートの指定が無い", false),
             ("out", "ページを書き出すディレクトリ", true),
         ],
     },
@@ -242,7 +242,7 @@ impl<F: Files, S: Schemas, Q: Query> Toolbox<F, S, Q> {
                 let pages: Vec<Value> = done
                     .pages
                     .iter()
-                    .map(|page| json!({"path": page.path, "changed": page.changed, "design": page.design}))
+                    .map(|page| json!({"path": page.path, "changed": page.changed}))
                     .collect();
                 json!({"ok": true, "pages": pages})
             }),

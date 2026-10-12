@@ -1,9 +1,9 @@
-//! 結合テストと端から端までのテストの補助。作業用のフォルダ、値の表を回す関数、実行ファイルの起動を、ここ1か所に置く。
+//! 結合テストと端から端までのテストの補助。作業用のフォルダ、値の表を回す関数、実行ファイルの起動、試験用の小さなカタログを、ここ1か所に置く。
 //! 表を回す関数が assert を持つので、各テストの本体は表を並べるだけにする。
 #![allow(dead_code)]
 
 use schema_driven_adapters::compose;
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -71,6 +71,10 @@ impl Scratch {
 
     pub fn remove(&self, rel: &str) {
         fs::remove_file(self.at(rel)).unwrap();
+    }
+
+    pub fn remove_dir(&self, rel: &str) {
+        fs::remove_dir_all(self.at(rel)).unwrap();
     }
 
     pub fn set_readonly(&self, rel: &str, readonly: bool) {
@@ -300,4 +304,56 @@ pub fn mcp(scratch: &Scratch, calls: &[(&str, Value)]) -> Value {
         client.cancel().await.unwrap();
         serde_json::json!({"tools": tools, "calls": results})
     })
+}
+
+/// 試験用の小さな部品のカタログ（部品の一覧のスキーマ）。部品は pill（text ・ tone）・ list（items）・ figure（svg）の3つ。
+/// 部品の名前は、試験のこのカタログだけが持つ。
+pub fn catalog_schema() -> Value {
+    json!({
+        "$schema": "schema-driven/catalog@v1", "$id": "example/catalog@v1",
+        "$defs": {
+            "pill": {"type": "object", "description": "短い分類", "required": ["text"],
+                     "properties": {"text": {}, "tone": {"type": "object"}},
+                     "x-states": {"default": "押せない"}},
+            "list": {"type": "object", "description": "並び", "required": ["items"],
+                     "properties": {"items": {"type": "array"}},
+                     "x-states": {"default": "押せない"}},
+            "figure": {"type": "object", "description": "図", "required": ["svg"],
+                       "properties": {"svg": {"type": "string", "contentMediaType": "image/svg+xml"}},
+                       "x-states": {"default": "押せない"}}
+        }
+    })
+}
+
+/// 試験用の小さなデザインシステム。文字 ink と背景 paper の組を宣言する。
+pub fn design_system() -> Value {
+    json!({
+        "scope": ":root",
+        "tokens": {"ink": "#111d1a", "paper": "#f7f8f7", "night": "#0e1614", "mist": "#e6eeeb"},
+        "dark": {"ink": "{mist}", "paper": "{night}"},
+        "contrast": [{"foreground": "ink", "background": "paper", "use": "text"}]
+    })
+}
+
+/// 試験用の小さな部品の HTML。ページのテンプレートは head の lead を {{lead}} に置く。
+pub const PARTS: &str = r#"<template id="page"><!doctype html><html><head><title>{{title}}</title><style>{{tokens}}{{style}}</style></head><body><h1>{{title}}</h1><p class="lead">{{lead}}</p>{{sections}}<script>{{script}}</script></body></html></template>
+<template id="section"><section><h2>{{heading}}</h2>{{body}}</section></template>
+<template id="pill"><span class="pill {{tone}}">{{text}}</span></template>
+<template id="list"><ul>{{items}}</ul></template>
+<template id="figure"><figure>{{svg}}</figure></template>"#;
+
+/// Skill のフォルダ（`./…`）の assets/catalog/ に、試験用の小さなカタログを置く。
+pub fn put_catalog(scratch: &Scratch, skill: &str) {
+    let dir = format!("{}/assets/catalog", skill.trim_end_matches('/'));
+    scratch.put(&format!("{dir}/catalog.schema.json"), &catalog_schema());
+    scratch.put_text(&format!("{dir}/parts.html"), PARTS);
+    scratch.put_text(
+        &format!("{dir}/catalog.css"),
+        ".pill{color:var(--ink);background:var(--paper)}",
+    );
+    scratch.put_text(
+        &format!("{dir}/catalog.js"),
+        "document.documentElement.dataset.ready = '1';",
+    );
+    scratch.put(&format!("{dir}/design-system.json"), &design_system());
 }

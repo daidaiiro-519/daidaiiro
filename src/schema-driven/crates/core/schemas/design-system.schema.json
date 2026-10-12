@@ -3,30 +3,24 @@
  "x-abstract": "schema-driven/abstract@v1",
  "$id": "schema-driven/design-system@v1",
  "title": "デザインシステム",
- "description": "部品のカタログが従うデザインシステム。基盤はこれを検査し、トークンから CSS の変数を作る。",
+ "description": "部品のカタログが従うトークンの値（Skill のフォルダの assets/catalog/design-system.json）。基盤は、形式 ・ 参照（{名前} の参照先があるか）・ 循環しないこと ・ コントラストの下限（文字 4.5:1、部品の境界 3:1）だけを検査し、トークンから CSS の変数を作る。トークンの名前と層の分け方は concrete が決め、どの2色を比べるかは contrast に宣言する。",
  "x-prompt": {
   "read": {
-   "means": "部品のカタログの見た目を決める、トークンと部品の状態の決まりである。",
-   "parse": "トークンは基礎 → 意味 → 部品の3層で、意味は明と暗の両方を持ち、部品ごとの状態はその状態で使うトークンの名前を持つ。"
+   "means": "部品のカタログの見た目を決めるトークンの値と、コントラストを確かめる色の組である。",
+   "parse": "tokens が明の値、dark が暗で替える値である。値が {名前} なら、ほかのトークンを指す。"
   },
   "write": [
    {
-    "id": "raw-values-in-base",
-    "rule": "色 ・ 寸法の生の値は、基礎にだけ書く。",
-    "why": "生の値が2か所にあると、片方だけ直ることがある。",
-    "test": "意味と部品に、生の値が無いかを見る。"
+    "id": "refer-by-name",
+    "rule": "同じ値を2か所に書かず、{名前} でほかのトークンを指す。",
+    "why": "同じ値が2か所にあると、片方だけ直ることがある。",
+    "test": "同じ色の値が、tokens に2回以上出ていないかを見る。"
    },
    {
-    "id": "refer-by-layer",
-    "rule": "意味は基礎の名前だけを、部品は意味か基礎の名前（または calc()）だけを指す。",
-    "why": "層を跨いだ参照が決まっていると、どこを直せば何が変わるかが分かる。",
-    "test": "参照の向きが、部品 → 意味 → 基礎になっているかを見る。"
-   },
-   {
-    "id": "all-components",
-    "rule": "カタログの部品は、すべて components に状態ごと書く。",
-    "why": "書かれていない部品は、状態の色が決まらない。",
-    "test": "テンプレートの部品が、すべて components にあるかを見る。"
+    "id": "declare-pairs",
+    "rule": "文字とその背景、部品の境界とその背景の組を、すべて contrast に書く。",
+    "why": "基盤は、宣言された組だけを比べる。書かれていない組は、読めない色でも止まらない。",
+    "test": "CSS で color と background を組にしているトークンが、contrast にあるかを見る。"
    }
   ]
  },
@@ -34,12 +28,12 @@
  "required": [
   "scope",
   "tokens",
-  "components"
+  "contrast"
  ],
  "additionalProperties": false,
  "properties": {
   "$schema": {
-   "type": "string"
+   "const": "schema-driven/design-system@v1"
   },
   "scope": {
    "type": "string",
@@ -60,171 +54,58 @@
    }
   },
   "tokens": {
-   "type": "object",
-   "required": [
-    "base",
-    "semantic",
-    "component"
-   ],
-   "additionalProperties": false,
-   "description": "トークンの3層",
+   "$ref": "#/$defs/tokens",
+   "minProperties": 1,
+   "description": "トークンの名前と値（明）。値は生の値か、{名前} でほかのトークンを指す",
    "x-prompt": {
     "read": {
-     "means": "3層のトークンである。",
-     "parse": "基礎 → 意味 → 部品の順に参照する。"
+     "means": "トークンの名前と、明のときの値である。"
     },
     "write": [
      {
-      "id": "no-raw-across-layers",
-      "rule": "層を跨いで生の値を書かない。",
-      "why": "生の値が基礎の外にあると、配色を替えたときに取り残される。",
-      "test": "意味と部品の値が、すべてトークンの名前かを見る。"
+      "id": "lowercase-hex",
+      "rule": "色は # と小文字の16進（#rgb か #rrggbb）で書く。",
+      "why": "コントラストは、この形の色だけを計算できる。",
+      "test": "色の値が # と小文字の16進かを見る。"
      }
     ]
-   },
-   "properties": {
-    "base": {
-     "type": "object",
-     "description": "生の値だけを持つ層。グループ（color ・ space など）ごとに、名前と値を持つ",
-     "x-prompt": {
-      "read": {
-       "means": "生の値を持つ、ただ1つの層である。"
-      },
-      "write": [
-       {
-        "id": "lowercase-hex",
-        "rule": "色は小文字の16進で書く。",
-        "why": "書き方が揃っていると、同じ色を見つけられる。",
-        "test": "色の値が # と小文字の16進かを見る。"
-       }
-      ]
-     },
-     "minProperties": 1,
-     "additionalProperties": {
-      "type": "object",
-      "minProperties": 1,
-      "propertyNames": {
-       "$ref": "#/$defs/key"
-      },
-      "additionalProperties": {
-       "type": "string",
-       "minLength": 1
-      }
-     }
-    },
-    "semantic": {
-     "type": "object",
-     "required": [
-      "light",
-      "dark"
-     ],
-     "additionalProperties": false,
-     "description": "役割の名前に、基礎の名前を割り当てる層。明と暗は同じ名前の集まりを持つ",
-     "x-prompt": {
-      "read": {
-       "means": "役割の名前で引く層である。",
-       "when": "テンプレートは、主にこの層の名前を使う。"
-      },
-      "write": [
-       {
-        "id": "light-and-dark",
-        "rule": "明と暗に同じ名前を書く。",
-        "why": "片方に無い名前は、その配色で色を失う。",
-        "test": "明と暗の名前の集まりが同じかを見る。"
-       }
-      ]
-     },
-     "properties": {
-      "light": {
-       "$ref": "#/$defs/refs"
-      },
-      "dark": {
-       "$ref": "#/$defs/refs"
-      }
-     }
-    },
-    "component": {
-     "type": "object",
-     "description": "部品ごとの値。意味か基礎の名前、または calc() を持つ",
-     "x-prompt": {
-      "read": {
-       "means": "部品に固有の値の層である。"
-      },
-      "write": [
-       {
-        "id": "no-raw",
-        "rule": "生の値を書かない。",
-        "why": "生の値は基礎にだけ置く。",
-        "test": "値が、すべてトークンの名前か calc() かを見る。"
-       }
-      ]
-     },
-     "propertyNames": {
-      "$ref": "#/$defs/key"
-     },
-     "additionalProperties": {
-      "type": "string",
-      "minLength": 1
-     }
-    }
    }
   },
-  "components": {
-   "type": "array",
-   "description": "部品の一覧と、部品ごとの状態の決まり",
+  "dark": {
+   "$ref": "#/$defs/tokens",
+   "description": "暗のときに替える値。名前は tokens にあるものだけを書く",
    "x-prompt": {
     "read": {
-     "means": "部品ごとの、状態とその状態で使うトークンである。"
+     "means": "暗のときに値を替えるトークンである。書いていない名前は、明の値のままになる。"
     },
     "write": [
      {
-      "id": "same-state-same-meaning",
-      "rule": "同じ状態（押した ・ 焦点 など）は、部品をまたいで同じ意味のトークンを使う。",
-      "why": "部品ごとに違うと、読み手が状態を色で判断できない。",
-      "test": "同じ状態の部品が、同じ意味のトークンを指しているかを見る。"
+      "id": "only-known",
+      "rule": "tokens にある名前だけを書く。",
+      "why": "明に無い名前は、明のときに値が無い。",
+      "test": "名前が、すべて tokens にあるかを見る。"
      }
     ]
-   },
+   }
+  },
+  "contrast": {
+   "type": "array",
    "items": {
-    "type": "object",
-    "required": [
-     "name",
-     "states"
-    ],
-    "additionalProperties": false,
-    "properties": {
-     "name": {
-      "type": "string",
-      "minLength": 1
-     },
-     "states": {
-      "type": "object",
-      "required": [
-       "default"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "default": {
-        "$ref": "#/$defs/state"
-       },
-       "hover": {
-        "$ref": "#/$defs/state"
-       },
-       "pressed": {
-        "$ref": "#/$defs/state"
-       },
-       "selected": {
-        "$ref": "#/$defs/state"
-       },
-       "focus": {
-        "$ref": "#/$defs/state"
-       },
-       "disabled": {
-        "$ref": "#/$defs/state"
-       }
-      }
+    "$ref": "#/$defs/pair"
+   },
+   "description": "コントラストを確かめる色の組。明と暗の両方で確かめる",
+   "x-prompt": {
+    "read": {
+     "means": "基盤がコントラストの下限を確かめる、前景と背景の組である。"
+    },
+    "write": [
+     {
+      "id": "text-and-border",
+      "rule": "文字の組は use を text、部品の境界の組は use を border にする。",
+      "why": "下限が違う（文字 4.5:1、部品の境界 3:1）。",
+      "test": "use が、組の使い方と合うかを見る。"
      }
-    }
+    ]
    }
   }
  },
@@ -234,22 +115,40 @@
    "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
    "description": "CSS の変数の名前になる。先頭の -- は書かない"
   },
-  "refs": {
+  "tokens": {
    "type": "object",
-   "minProperties": 1,
    "propertyNames": {
     "$ref": "#/$defs/key"
    },
    "additionalProperties": {
-    "$ref": "#/$defs/key"
+    "type": "string",
+    "minLength": 1
    }
   },
-  "state": {
+  "pair": {
    "type": "object",
-   "minProperties": 1,
-   "description": "見た目の性質（background ・ text ・ border ・ outline など）と、使うトークンの名前",
-   "additionalProperties": {
-    "$ref": "#/$defs/key"
+   "required": [
+    "foreground",
+    "background",
+    "use"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "foreground": {
+     "$ref": "#/$defs/key",
+     "description": "前景（文字か境界）のトークン"
+    },
+    "background": {
+     "$ref": "#/$defs/key",
+     "description": "背景のトークン"
+    },
+    "use": {
+     "enum": [
+      "text",
+      "border"
+     ],
+     "description": "text は文字（下限 4.5:1）、border は部品の境界（下限 3:1）"
+    }
    }
   }
  }
