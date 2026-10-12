@@ -1,0 +1,276 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "kind": "board",
+ "id": "coding-rules",
+ "title": "Rust で書くツールのアーキテクチャと実装の規則",
+ "round": 1,
+ "queue": [
+  {
+   "topic": "Q1",
+   "why": "症状（受け口が2か所、テストに実装 など）から直す前に、規則が何を防ぐかを決める必要がある"
+  },
+  {
+   "topic": "Q2",
+   "why": "規則の中身を書く前に、正本の置き場所と、人と AI の読み方を決める必要がある"
+  }
+ ],
+ "topics": [
+  {
+   "id": "Q1",
+   "name": "規則が防ぐもの",
+   "status": "open",
+   "question": "規則が無いまま作ると何が崩れるか。規則は、何を防ぐためにあるか",
+   "answer": {
+    "text": "規則は、同じ役割が2か所以上にある ・ 依存が層を飛ばす ・ テストと実装の境界が崩れる ・ 名前と中身が食い違う、の4つの崩れを防ぐためにあり、どの規則もこのどれを防ぐかと、それを機械でどう見つけるかを持つ。",
+    "details": [
+     "4つの崩れは、規則が無いまま、別々の時期に、その場で決めた結果としていまの schema-driven に出ている（完成イメージの「コード」の一覧）",
+     "規則の1件は、防ぐ崩れが4つのどれかを書く。どれも防がない規則は置かない",
+     "規則の1件は、崩れを機械で見つける検査（clippy ・ crate の依存の向き ・ grep ・ 試験）を持つ。検査を持てない規則は置かない",
+     "4つの崩れは言語に依らない。Rust の具体（crate ・ trait ・ #[cfg(test)]）は、規則の中身の側に書く"
+    ]
+   },
+   "images": [
+    {
+     "kind": "figure",
+     "caption": "規則が防ぐ4つの崩れと、いまの例と、機械で見る方法。",
+     "svg": "<svg viewBox=\"0 0 860 368\" style=\"min-width:640px\" role=\"img\" aria-label=\"規則が防ぐ4つの崩れ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.warn{fill:var(--dsvg-warn-bg,#F0E2CD);stroke:var(--dsvg-warn,#8F5410)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-warn-bg:#33281A;--dsvg-warn:#D9A35F;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8}</style>\n<text class=\"title\" x=\"20\" y=\"28\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">規則が防ぐ4つの崩れ</text>\n<text class=\"label\" x=\"20\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">崩れ</text>\n<text class=\"label\" x=\"250\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">いまの例（schema-driven）</text>\n<text class=\"label\" x=\"560\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">機械で見る方法</text>\n<rect class=\"box warn\" x=\"20\" y=\"68\" width=\"220\" height=\"46\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ役割が</text><text class=\"label\" x=\"30\" y=\"105\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">2か所以上にある</text>\n<rect class=\"box\" x=\"250\" y=\"68\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">受け口が main.rs と adapters に分かれる</text><text class=\"label\" x=\"260\" y=\"105\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">起動時の結合が cli と mcp に1つずつ</text>\n<rect class=\"box\" x=\"560\" y=\"68\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">同じ定義の数を数える</text>\n<rect class=\"box warn\" x=\"20\" y=\"126\" width=\"220\" height=\"46\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">依存が層を</text><text class=\"label\" x=\"30\" y=\"163\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">飛ばす</text>\n<rect class=\"box\" x=\"250\" y=\"126\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">受け口が出ていく側を直に呼ぶ</text><text class=\"label\" x=\"260\" y=\"163\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">core が取り込みの crate に頼る</text>\n<rect class=\"box\" x=\"560\" y=\"126\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">crate の依存の向き</text><text class=\"label\" x=\"570\" y=\"163\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（cargo tree）と use の検査</text>\n<rect class=\"box warn\" x=\"20\" y=\"184\" width=\"220\" height=\"46\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">テストと実装の</text><text class=\"label\" x=\"30\" y=\"221\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">境界が崩れる</text>\n<rect class=\"box\" x=\"250\" y=\"184\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">テストの中に MCP のクライアント</text><text class=\"label\" x=\"260\" y=\"221\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ cargo build ・ 外部コマンド</text>\n<rect class=\"box\" x=\"560\" y=\"184\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">tests/ の禁止事項を</text><text class=\"label\" x=\"570\" y=\"221\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">grep で検査</text>\n<rect class=\"box warn\" x=\"20\" y=\"242\" width=\"220\" height=\"46\" fill=\"#F0E2CD\" stroke=\"#8F5410\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">名前と中身が</text><text class=\"label\" x=\"30\" y=\"279\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">食い違う</text>\n<rect class=\"box\" x=\"250\" y=\"242\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">core が自分で実装する trait を</text><text class=\"label\" x=\"260\" y=\"279\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">port と呼ぶ ・ 説明と実物が違う</text>\n<rect class=\"box\" x=\"560\" y=\"242\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">port の trait の impl が</text><text class=\"label\" x=\"570\" y=\"279\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">core に無いことを検査</text>\n<path class=\"link\" d=\"M20,304 H840\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"note\" x=\"20\" y=\"328\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">4つとも、規則が無いまま、別々の時期に、その場で決めた結果である</text>\n<text class=\"note\" x=\"20\" y=\"348\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">規則の1件ごとに「どの崩れを防ぐか」と「何で機械に見させるか」を持たせる</text>\n</svg>"
+    },
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "いまの schema-driven を数えた結果。",
+     "text": "いまの schema-driven を数えた結果（2026-10-12）\n\n  同じ役割が2か所以上\n    MCP の受け口       mcp/src/main.rs（114行）  ／ CLI の受け口は adapters/src/inbound/cli.rs\n    起動時の結合   cli/src/main.rs と mcp/src/main.rs に1つずつ\n    テストの run 関数  8ファイルに別々 ／ 作業用フォルダの型は cli と mcp に1つずつ\n  依存が層を飛ばす\n    adapters/src/inbound/tools.rs が adapters/src/outbound/process.rs を直に呼ぶ\n    core（domain ・ application）が取り込みの crate files に頼る\n  テストと実装の境界\n    製品のコード 6,599行 ／ テストのコード 5,500行\n    テストの中に MCP のクライアント ・ cargo build ・ sha256sum と certutil の起動\n    #[cfg(test)] の単体テストを持つファイルは1つだけ\n  名前と中身\n    core/src/ports/inbound.rs の3つの trait は core 自身が実装している（port ではない）\n    ワークスペースの Cargo.toml の「core は何にも依存せず」と、実物（files に依存）が違う"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "いまの崩れが、規則の無いまま別々に作った結果であること",
+     "basis": "観点：システム開発でいえば ・ 一人で、いっぺんに付ける：一人の設計者が一度に全体像を作る ・ 5人が別々に、違うタイミングで1つずつ付ける：異なる企業や担当者が、それぞれ独立した状況で開発する。統一性の欠如はこれで生じる",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 sense-of-unity"
+    },
+    {
+     "supports": "症状から直さず、何を防ぐかを先に定義すること",
+     "basis": "対応：問題がもう与えられているように見えても、一度話を上流に戻し、問題を定義し直してから解決に向かう ・ 理由：どんな仕事にも問題発見と問題解決の側面がある",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 matryoshka"
+    },
+    {
+     "supports": "どの規則も防ぐ崩れを持つこと",
+     "basis": "ルールが増えると、「とにかくルールを守ることが目的になる」という、手段の目的化が起きやすくなる。これが組織の川下化をさらに速める。",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 rules-increase"
+    },
+    {
+     "supports": "いまの崩れの数え方",
+     "basis": "MCP の受け口は mcp/src/main.rs にあり、CLI の受け口は adapters/src/inbound/cli.rs にある。起動時の結合は cli/src/main.rs と mcp/src/main.rs に1つずつある。製品のコードは 6,599 行、テストのコードは 5,500 行で、#[cfg(test)] を持つファイルは1つだけである",
+     "tag": "measured",
+     "source": "src/schema-driven を数えた（2026-10-12）"
+    },
+    {
+     "supports": "テストと実装の境界の崩れ",
+     "basis": "原因：Test Dependency in Production ・ 場面：どの場合も ・ 直し方：型の定義のように害の無さそうなものでも、製品のコードがテストコードを当てにしないよう、依存を気を付けて管理しなければならない",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-12）── 判断基準 test-logic-in-production"
+    },
+    {
+     "supports": "テストの本体に処理を書かないこと",
+     "basis": "原典が示す簡単な答えは、Test Methods を、それ自体のテストを必要としないほど単純に保つことである。",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-12）── 判断基準 conditional-test-logic"
+    },
+    {
+     "supports": "規則の本人の問題意識",
+     "basis": "「とはいえこれ何の規則もないまま進んでいくとスパゲッティ化していくのでやめたいです。現にちょっとディレクトリ汚染が始まってるし、Rustらしからぬわけのわからないテストの書き方にもなっています。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "見つかった症状を1つずつ直す",
+     "reason": "何を防ぐかが無いまま直すと、別の場所で同じ崩れが起きても見つけられない"
+    },
+    {
+     "option": "Rust のベストプラクティスを一覧にして、そのまま規則にする",
+     "reason": "どの崩れを防ぐかが分からない規則は、守ること自体が目的になる"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "4つの崩れを定義し、規則は防ぐ崩れと検査を持つ",
+      "cost": "規則の1件ごとに、検査を用意する"
+     }
+    ],
+    "assumptions": [
+     "4つの崩れで、いま見つかっている症状はすべて説明できる"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：構成 ・ trait ・ テストの規則を、この4つの崩れのどれかを防ぐものとして書く",
+      "treatment": "later"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q2",
+   "name": "規則の持ち方",
+   "status": "open",
+   "question": "規則の正本をどこに、どんな形で持ち、人と AI はそれをどう読むか",
+   "answer": {
+    "text": "規則の正本は、各リポジトリに1か所、コーディングの Skill の concrete スキーマに従う JSON として持つ。人には HTML と CODING.md を、AI の入口にはリポジトリの根の AGENTS.md を、正本から作って渡す。",
+    "details": [
+     "規則の型（何を書けるか）は、コーディングの Skill（use-case-driven-coding）の assets/ に concrete スキーマとして置く。基盤は持たない",
+     "規則の中身（正本）は、各リポジトリの .coding-rules/rules.json に1か所だけ置く。このリポジトリの Rust のツールの規則も、その1つである",
+     "人が読む HTML と CODING.md は、正本から描画する。手で書き換えない",
+     "AI の入口は、リポジトリの根の AGENTS.md にする。AGENTS.md には規則を書き写さず、正本と描画したものへの案内を書く",
+     "規則の1件は、規則 ・ なぜ（防ぐ崩れ）・ 検査 ・ 出典を必ず持つ。JSON にするのは、この4つを欄として必ず書かせ、機械で読めるようにするためである",
+     "型の欄の形は、規則の中身（構成 ・ trait ・ テスト）が出そろってから取り出して決める",
+     "型は言語に依らない形にし、Rust の規則は中身として書く。いま書くのは Rust の規則だけにする"
+    ]
+   },
+   "images": [
+    {
+     "kind": "figure",
+     "caption": "規則の型 ・ 正本 ・ AI の入口 ・ 人が読むものの置き場所。",
+     "svg": "<svg viewBox=\"0 0 860 368\" style=\"min-width:640px\" role=\"img\" aria-label=\"規則の持ち方\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E;--dsvg-ink-soft:#9DADA8}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-box-fill:#16211E;--dsvg-ink-soft:#9DADA8}</style>\n<text class=\"title\" x=\"20\" y=\"28\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">規則の持ち方</text>\n<text class=\"label\" x=\"20\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">何</text>\n<text class=\"label\" x=\"250\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">どこに置くか</text>\n<text class=\"label\" x=\"560\" y=\"58\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">だれが読むか</text>\n<rect class=\"box focus\" x=\"20\" y=\"68\" width=\"220\" height=\"46\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">規則の型</text>\n<rect class=\"box\" x=\"250\" y=\"68\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">コーディングの Skill の</text><text class=\"label\" x=\"260\" y=\"105\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">assets/（concrete スキーマ）</text>\n<rect class=\"box\" x=\"560\" y=\"68\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"87\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">規則を書く人 ・ AI</text><text class=\"label\" x=\"570\" y=\"105\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（何を書けるか）</text>\n<rect class=\"box focus\" x=\"20\" y=\"126\" width=\"220\" height=\"46\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">規則の中身（正本）</text>\n<rect class=\"box\" x=\"250\" y=\"126\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">各リポジトリの</text><text class=\"label\" x=\"260\" y=\"163\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">JSON のインスタンス 1か所</text>\n<rect class=\"box\" x=\"560\" y=\"126\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"145\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">コーディングの Skill</text><text class=\"label\" x=\"570\" y=\"163\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（機械で読む）</text>\n<rect class=\"box\" x=\"20\" y=\"184\" width=\"220\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI の入口</text>\n<rect class=\"box\" x=\"250\" y=\"184\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">リポジトリの根の AGENTS.md</text>\n<rect class=\"box\" x=\"560\" y=\"184\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"203\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">どの AI ツールも</text><text class=\"label\" x=\"570\" y=\"221\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（正本への案内）</text>\n<rect class=\"box\" x=\"20\" y=\"242\" width=\"220\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"30\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">人が読むもの</text>\n<rect class=\"box\" x=\"250\" y=\"242\" width=\"300\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"260\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">正本から描画した</text><text class=\"label\" x=\"260\" y=\"279\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">HTML と CODING.md</text>\n<rect class=\"box\" x=\"560\" y=\"242\" width=\"280\" height=\"46\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"570\" y=\"261\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">人</text>\n<path class=\"link\" d=\"M20,304 H840\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"note\" x=\"20\" y=\"328\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">正本は1か所。AGENTS.md と CODING.md と HTML は、正本から作る写しで、手で書き換えない</text>\n<text class=\"note\" x=\"20\" y=\"348\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">規則の1件は「規則 ・ なぜ（防ぐ崩れ）・ 検査 ・ 出典」を必ず持つ</text>\n</svg>"
+    },
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "規則の1件の見本。",
+     "text": "規則の1件の見本（形は、規則の中身が出そろってから決める。ここでは欄だけ）\n\n  規則   実行ファイルの main.rs は、adapters の受け口を呼ぶだけにする\n  なぜ   同じ役割が2か所以上にある崩れを防ぐ（受け口と起動時の結合を1か所にする）\n  検査   cli/src と mcp/src に impl … for が0件であることを、grep で見る\n  出典   The Rust Programming Language 11.3 :243 ・ ddd-advisor の ports-and-adapters"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "正本を1か所にし、人と AI が同じ規則を読むこと",
+     "basis": "「CODING.mdというものを共通契約とするようなファイルを作成するのはどうかな？」「もちろんschema駆動なんで、CODING.mdは描画された成果物だけどね。極論言ったらmdである必要もなくて、人間が見る分にはHTMLでいいんだけどね。なんならAIが見る分にはJsonでいいんだけどね。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    },
+    {
+     "supports": "JSON にする理由を、形ではなく欄の必須に置くこと",
+     "basis": "「手段の目的化：手段にすぎないものが、いつのまにか目的として扱われること。昔からあって今も起きる、システムプロジェクトに共通の落とし穴である。」",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 is-it-really-the-goal"
+    },
+    {
+     "supports": "型の形を、中身が出そろってから決めること",
+     "basis": "決めること：共通にする範囲 ・ 中身：どこまでを共通のものとしてまとめるか",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-12）── 判断基準 object-orientation"
+    },
+    {
+     "supports": "AGENTS.md を AI の入口にすること",
+     "basis": "Think of AGENTS.md as a README for agents: a dedicated, predictable place to provide context and instructions to help AI coding agents work on your project.",
+     "tag": "primary",
+     "source": "agentsmd/agents.md README.md :7（2026-10-12 取得、原文と照合）"
+    },
+    {
+     "supports": "AGENTS.md をリポジトリの根に置くこと",
+     "basis": "Create an AGENTS.md file at the root of the repository.",
+     "tag": "primary",
+     "source": "https://agents.md/（2026-10-12 取得、原文と照合）"
+    },
+    {
+     "supports": "AGENTS.md に規則の形を求めないこと",
+     "basis": "No. AGENTS.md is just standard Markdown. Use any headings you like; the agent simply parses the text you provide.",
+     "tag": "primary",
+     "source": "https://agents.md/（2026-10-12 取得、原文と照合）"
+    },
+    {
+     "supports": "型をコーディングの Skill が持つこと",
+     "basis": "コーディングの Skill の名前は use-case-driven-coding と承認した",
+     "tag": "rule",
+     "source": "ボード usecase-modeling-coding の Q8（承認済み）"
+    },
+    {
+     "supports": "基盤が型を持たないこと",
+     "basis": "基盤は②（concrete スキーマ）の中身も③（エンティティ）の値も作らない",
+     "tag": "rule",
+     "source": "ボード concrete-schema-roles の Q1（決着）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "規則を AGENTS.md や CODING.md に、Markdown で直に書く",
+     "reason": "欄を必ず書かせられず、防ぐ崩れと検査の無い規則が混ざる。機械でも読めない"
+    },
+    {
+     "option": "AGENTS.md に規則を書き写す",
+     "reason": "正本と2か所になり、片方だけ直したときに食い違う"
+    },
+    {
+     "option": "規則の型を基盤（schema-driven）に置く",
+     "reason": "基盤は中身（コーディング）を知らない、と決めた"
+    },
+    {
+     "option": "型の欄の形を先に決める",
+     "reason": "中身が出そろう前に共通にする範囲を決めると、中身が形に合わせて歪む"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "正本は JSON 1か所、型はコーディングの Skill、AGENTS.md は案内",
+      "cost": "コーディングの Skill のフォルダを、型を置くためだけに先に作る"
+     }
+    ],
+    "assumptions": [
+     "規則は、まず Rust で書くツールだけを対象にする。ほかの言語の規則は、そのとき同じ型で中身を足す"
+    ],
+    "out_of_scope": [
+     {
+      "item": "AGENTS.md を正本から描画するか、案内だけを手で書くか",
+      "treatment": "later",
+      "note": "型の欄を決めるときに決める。どちらでも正本は1か所で、この答えは変わらない"
+     },
+     {
+      "item": "外の作業：構成 ・ trait ・ テストの規則を、この形で書く",
+      "treatment": "later"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q3",
+   "name": "crate とモジュールの構成",
+   "status": "waiting",
+   "question": "ヘキサゴナルを、crate ・ モジュール ・ 実行ファイルにどう写すか",
+   "answer": {
+    "text": "規則が防ぐものと持ち方が決まったら出す。ddd-advisor の回答（core と adapters の2つ、受け口と起動時の結合は adapters、main.rs は呼ぶだけ）が材料にある"
+   }
+  },
+  {
+   "id": "Q4",
+   "name": "trait の使い方",
+   "status": "waiting",
+   "question": "どこを port の trait にし、ジェネリクスと dyn をどう使い分けるか",
+   "answer": {
+    "text": "crate とモジュールの構成が決まったら出す"
+   }
+  },
+  {
+   "id": "Q5",
+   "name": "テストの置き方",
+   "status": "waiting",
+   "question": "どの種類のテストを、どこに、どの粒度で置き、テストに何を書かないか",
+   "answer": {
+    "text": "構成と trait の使い方が決まったら出す。qa-advisor の回答（単体は同じファイル、約束は dispatch の結合テスト、端から端までは少数）が材料にある"
+   }
+  },
+  {
+   "id": "Q6",
+   "name": "規則の型と検査の関門",
+   "status": "waiting",
+   "question": "規則の型の欄と、検査を1つの関門にまとめる手順をどうするか",
+   "answer": {
+    "text": "構成 ・ trait ・ テストの規則が出そろったら出す"
+   }
+  }
+ ],
+ "intro": "どの Skill ・ どのプロダクトのコードも同じ規則で書き、スパゲッティにしないために、Rust で書くツールのアーキテクチャと実装の規則と、その持ち方を決める。"
+}
