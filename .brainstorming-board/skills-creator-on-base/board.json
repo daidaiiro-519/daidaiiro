@@ -5,33 +5,12 @@
  "title": "skills-creator を新しい形の基盤の上で作り直す",
  "round": 5,
  "intro": "完成した基盤 schema-driven の上で、どの AI ツールでも呼ばれて手順どおりに動く Skill を作れるように、skills-creator の役割 ・ 作られる Skill の入口 ・ 基盤のエンジンの入れ方 ・ 自身の作りと、完成の条件を決める。古い skills-creator のボードは過去の構成のものとして参照しない。",
- "queue": [
-  {
-   "topic": "Q0",
-   "why": "アドバイザーが、完成の条件が上位目的（どの AI ツールでも動く）に届いていないと指摘した"
-  },
-  {
-   "topic": "Q1",
-   "why": "いまの scaffold と check が、tool.json と宣言したツールを前提にしている"
-  },
-  {
-   "topic": "Q2",
-   "why": "入口の名前を、tool.json に代わって言語から切り離す窓口にする"
-  },
-  {
-   "topic": "Q3",
-   "why": "配る仕組みは無いが、基盤のエンジンだけは実行ファイルで入れる"
-  },
-  {
-   "topic": "Q4",
-   "why": "利用者が、skills-creator 自体も実行ファイルで提供するかを確かめた"
-  }
- ],
+ "queue": [],
  "topics": [
   {
    "id": "Q0",
    "name": "完成の条件",
-   "status": "open",
+   "status": "settled",
    "question": "skills-creator が完成したと言えるのは、何が観測できたときか",
    "answer": {
     "text": "skills-creator 自身を基盤と同じ形で作り、練習用の Skill を1件作ってエンジンを入れ、壊した例では止まり、Claude Code と Codex の両方で手順どおりに動いたときに完成とする。",
@@ -102,6 +81,12 @@
      "basis": "codex-cli 0.162.1",
      "tag": "measured",
      "source": "codex --version（2026-10-13）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「いいと思うよ！」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点0〜4の承認、2026-10-13）"
     }
    ],
    "rejected": [
@@ -153,7 +138,7 @@
   {
    "id": "Q1",
    "name": "役割と持ち物",
-   "status": "open",
+   "status": "settled",
    "question": "skills-creator は何を作り、何を検査するか",
    "answer": {
     "text": "skills-creator は、新しい Skill の雛形と基盤のエンジンを置く scaffold、エンジンを別の版に入れ替える engine、Skill のフォルダを検査する check を持つ。tool.json と、作った Skill を配る手順は持たない。",
@@ -212,6 +197,12 @@
      "basis": "15の Skill を新しい形へ移すとき、既にあるフォルダを直すきっかけが必ず起きる",
      "tag": "primary",
      "source": "usecase-advisor の回答（2026-10-13）── 判断基準 （見解1への指摘）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「いいと思うよ！」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点0〜4の承認、2026-10-13）"
     }
    ],
    "rejected": [
@@ -251,7 +242,7 @@
   {
    "id": "Q2",
    "name": "入口",
-   "status": "open",
+   "status": "settled",
    "question": "作られる Skill の入口を、どこにどう置き、SKILL.md からどう呼び、どう基盤のエンジンを呼ぶか",
    "answer": {
     "text": "入口は、拡張子の無い scripts/<Skill名> と、Windows で起動する scripts/<Skill名>.cmd の2つで1つの名前にし、SKILL.md は scripts/<Skill名> とだけ書く。",
@@ -316,6 +307,12 @@
      "basis": "基盤のエンジンは入口に取り込まず、別の実行ファイルのまま呼ぶ。Skill を作る人が、入口をどの言語で書いてもよいようにするためである",
      "tag": "rule",
      "source": "ボード page-design-ownership の論点4（決着）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「いいと思うよ！」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点0〜4の承認、2026-10-13）"
     }
    ],
    "rejected": [
@@ -367,7 +364,7 @@
   {
    "id": "Q3",
    "name": "基盤のエンジンを入れる",
-   "status": "open",
+   "status": "settled",
    "question": "作られる Skill のフォルダに、基盤のエンジンをどう入れ、どう入れ替えるか",
    "answer": {
     "text": "skills-creator は、基盤のエンジンを版を指して Release から取り、SHA-256 と証明を照合してから scripts/bin/ に入れる。記録のファイルは置かず、途中で失敗したらフォルダを元のまま残す。",
@@ -432,6 +429,12 @@
      "basis": "gh version 2.46.0 で gh attestation を呼ぶと unknown command \"attestation\" で終わる",
      "tag": "measured",
      "source": "このリポジトリの手元（2026-10-13）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「いいと思うよ！」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点0〜4の承認、2026-10-13）"
     }
    ],
    "rejected": [
@@ -486,7 +489,7 @@
   {
    "id": "Q4",
    "name": "skills-creator 自身の作りと公開",
-   "status": "open",
+   "status": "settled",
    "question": "skills-creator のコードをどう組み、実行ファイルをどう置き、どう公開するか",
    "answer": {
     "text": "skills-creator は基盤と同じく、私たちがソースを管理して実行ファイル scripts/bin/skills-creator として置き、専用のワークフローで3つの OS 向けに証明付きで公開する。",
@@ -552,6 +555,12 @@
      "basis": "1つの crate（main.rs ・ check.rs 637行 ・ read.rs ・ scaffold.rs ・ engine.rs）で、CODING.md もヘキサゴナルの分け方も無い",
      "tag": "measured",
      "source": "src/skills-creator（2026-10-13）"
+    },
+    {
+     "supports": "この答え",
+     "basis": "「いいと思うよ！」",
+     "tag": "primary",
+     "source": "利用者の言葉（論点0〜4の承認、2026-10-13）"
     }
    ],
    "rejected": [
