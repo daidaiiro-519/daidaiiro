@@ -26,9 +26,11 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 ## いまの作業（2026-10-13）
 
 - ACDR 0174（CODING.md）・ 0172（検査の文と案内）・ 0175（CODING.md に従わせる。crates/core と crates/adapters、宣言したツールの仕組みを基盤から消した）は承認 ・ コミット済み。0173 は取り下げて消した。
-- 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON ・ スキーマの操作は scripts/schema-driven を使う。
+- 決めたこと：Skill の能力は Skill が自分の実行ファイルとして持ち、SKILL.md の手順から直接呼ぶ。JSON ・ スキーマの操作は scripts/bin/schema-driven を使う。
 - ボード page-design-ownership（Artifact https://claude.ai/artifact/K2wt1s8HphJVBqrnWasdLo）Q1〜Q4 決着（2026-10-13）：Q1 基盤は部品1つの形 ・ トークンの形とコントラストの下限 ・ 描画の仕組み ・ 検査だけ、部品の一覧と見た目とトークンの値は concrete、文書の決まった見た目は持たない。Q2 そろえる役はデザインシステムだけを持つ1つの Skill（名前と design-svg とまとめるかは後で）。Q3 skills-creator の配布物の手順が入口 ・ エンジンの写し ・ 共有デザインシステムの写しを各 Skill へ入れ、dist.json に版と SHA-256、全 Skill で版が1つかを検査。Windows を含む3 OS は公開の作業へ。Q4 各 Skill は入口 scripts/<Skill名> を1つ持ち SKILL.md はそれだけを呼ぶ、Skill 固有の能力は入口の中、エンジンは別の実行ファイル（入口の言語を選べるように）。
-- 次の順：①schema-driven の ACDR（カタログの中身と文書の見た目を外し、Skill のフォルダのカタログを受け取る、トークンの層を契約から外す）②skills-creator の ACDR（入口の雛形 ・ 配布物の手順 ・ 雛形3つ ・ 試験名の版を外す ・ tools.json の項目を外す）③デザインシステムの Skill ④ブレストボードを移す。
+- ACDR 0176（カタログの中身を基盤から外す）・ 0177（7af0c675、基盤が自分で Skill のフォルダを作り公開する）承認 ・ コミット済み。ボード schema-driven-release（Artifact https://claude.ai/artifact/VDq8apjsXH3XW2bAXp7MjD）Q0〜Q4 決着。基盤の Skill のフォルダは `cd src/schema-driven && cargo xtask skill --out ../../.claude/skills/schema-driven` で作る（実行ファイルは scripts/bin/）。公開は .github/workflows/schema-driven.yml（tag schema-driven-v<版>）。古い release.yml ・ install スクリプトは消した（未コミットだった署名の変更は scratchpad の rel-old/ に退避、セッションが終わると消える）。
+- schema-driven の残り：GitHub で workflow_dispatch を1回通し、tag schema-driven-v0.1.0 を付けて完成の条件（ボードの Q0）を通す。push と tag は利用者の判断。
+- 次の順：①上の公開を通す ②skills-creator の ACDR（入口の雛形 ・ 配布物の手順 ・ 入口を scripts/bin/ に揃えるか ・ 雛形3つ ・ 試験名の版を外す ・ tools.json の項目を外す）③デザインシステムの Skill ④ブレストボードを移す。
 
 ## 次にすること（順番）
 
