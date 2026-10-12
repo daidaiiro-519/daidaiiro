@@ -1,0 +1,543 @@
+{
+ "$schema": "../../.claude/skills/brainstorming-board/references/board.schema.json",
+ "kind": "board",
+ "id": "skills-creator-on-base",
+ "title": "skills-creator を新しい形の基盤の上で作り直す",
+ "round": 1,
+ "intro": "完成した基盤 schema-driven の上で、どの AI ツールでも呼ばれて手順どおりに動く Skill を作れるように、skills-creator の役割 ・ 入口 ・ 配る手順 ・ 自身の作りと、完成の条件を決める。古い skills-creator のボードは過去の構成のものとして参照しない。",
+ "queue": [
+  {
+   "topic": "Q0",
+   "why": "アドバイザーが、完成の条件が上位目的（どの AI ツールでも動く）に届いていないと指摘した"
+  },
+  {
+   "topic": "Q1",
+   "why": "いまの scaffold と check が、tool.json と宣言したツールを前提にしている"
+  },
+  {
+   "topic": "Q2",
+   "why": "入口を持つと決めたが、置き場所と呼び方が決まっていない"
+  },
+  {
+   "topic": "Q3",
+   "why": "配る手順を skills-creator の持ち物と決めたが、中身が決まっていない"
+  },
+  {
+   "topic": "Q4",
+   "why": "いまのコードは基盤の CODING.md と違う形のまま"
+  }
+ ],
+ "topics": [
+  {
+   "id": "Q0",
+   "name": "完成の条件",
+   "status": "open",
+   "question": "skills-creator が完成したと言えるのは、何が観測できたときか",
+   "answer": {
+    "text": "skills-creator 自身を1件目にして、作る ・ 確かめる ・ 配るが通り、壊した例では止まり、Claude Code と Codex の両方で SKILL.md の手順どおりに動いたときに完成とする。",
+    "details": [
+     "1件目は skills-creator 自身にする。入口が基盤の操作を渡し（concrete スキーマを作る）、自分の能力（scaffold と check）も行うので、15の Skill の形を代表する",
+     "最初の1回は、配布済みの skills-creator がまだ無い。ソースからビルドした skills-creator で、自分自身に配る手順を通す",
+     "配る手順のあとの check（dist）が全項目合格になる",
+     "壊した例で、該当する項目が不合格になる ── 1バイト変えた写し ・ 版の違う写し ・ target の違う写し ・ 入口を消したフォルダ",
+     "gh が無いか古いときは、配る手順が照合の前で止まる",
+     "練習用の Skill で、scaffold の直後は「記入欄が残っている」項目だけが不合格になり、記入欄を埋めると全項目が合格になる",
+     "workflow_dispatch で3つの OS でビルドし、ビルドしなかったランナーで check（dist）が合格する",
+     "Claude Code と Codex の両方で、リポジトリに置いた skills-creator が依頼に応じて呼ばれ、SKILL.md の手順（scaffold と check）を実行して期待の結果を返す",
+     "CODING.md の検査の順がすべて0件で通る"
+    ]
+   },
+   "images": [
+    {
+     "kind": "figure",
+     "caption": "Skill を作る人が skills-creator で作り、確かめ、配る流れ。下の2行は、2件目の Skill を移すときに決める。",
+     "svg": "<svg viewBox=\"0 0 760 430\" style=\"min-width:600px\" role=\"img\" aria-label=\"Skill を作る人が skills-creator で作り、確かめ、配る流れ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-095efa6d-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-095efa6d-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<text class=\"title\" x=\"20\" y=\"28\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Skill を作る人が skills-creator で作り、確かめ、配る</text>\n<text class=\"label\" x=\"20\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">書いたその場</text>\n<rect class=\"box\" x=\"20\" y=\"74\" width=\"165\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"102.5\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">scaffold</text>\n<text class=\"note\" x=\"102.5\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SKILL.md の雛形</text>\n<text class=\"note\" x=\"102.5\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">スキーマ ・ 入口のソース</text>\n<rect class=\"box\" x=\"205\" y=\"74\" width=\"165\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"287.5\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">書いて試す</text>\n<text class=\"note\" x=\"287.5\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">手順と入口の能力を書く</text>\n<text class=\"note\" x=\"287.5\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">dist を手元で動かす</text>\n<rect class=\"box focus\" x=\"390\" y=\"74\" width=\"165\" height=\"84\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label focus\" x=\"472.5\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">check（source）</text>\n<text class=\"note\" x=\"472.5\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SKILL.md の型 ・ スキーマ</text>\n<text class=\"note\" x=\"472.5\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">入口のソースがある</text>\n<rect class=\"box\" x=\"575\" y=\"74\" width=\"165\" height=\"84\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"657.5\" y=\"96\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">既にある Skill</text>\n<text class=\"note\" x=\"657.5\" y=\"116\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">scaffold は断る</text>\n<text class=\"note\" x=\"657.5\" y=\"133\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">check から直す</text>\n<path class=\"flow\" d=\"M185,116 H203\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/><path class=\"flow\" d=\"M370,116 H388\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/><path class=\"link\" d=\"M575,116 H557\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"label\" x=\"20\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">配る段</text>\n<rect class=\"box focus\" x=\"20\" y=\"204\" width=\"165\" height=\"96\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label focus\" x=\"102.5\" y=\"226\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">dist</text>\n<text class=\"note\" x=\"102.5\" y=\"246\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">入口をビルド</text>\n<text class=\"note\" x=\"102.5\" y=\"263\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のエンジンを版で取得</text>\n<text class=\"note\" x=\"102.5\" y=\"280\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SHA-256 と証明を照合</text>\n<rect class=\"box\" x=\"205\" y=\"204\" width=\"165\" height=\"96\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"287.5\" y=\"226\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">Skill のフォルダ</text>\n<text class=\"note\" x=\"287.5\" y=\"246\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">入口（scripts/bin/）</text>\n<text class=\"note\" x=\"287.5\" y=\"263\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">エンジンの写し</text>\n<text class=\"note\" x=\"287.5\" y=\"280\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">dist.json</text>\n<rect class=\"box focus\" x=\"390\" y=\"204\" width=\"165\" height=\"96\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/>\n<text class=\"label focus\" x=\"472.5\" y=\"226\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#0D5C55\">check（dist）</text>\n<text class=\"note\" x=\"472.5\" y=\"246\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SHA-256 ・ 版 ・ target</text>\n<text class=\"note\" x=\"472.5\" y=\"263\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">入口が基盤の操作を渡す</text>\n<rect class=\"box\" x=\"575\" y=\"204\" width=\"165\" height=\"96\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/>\n<text class=\"label\" x=\"657.5\" y=\"226\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">AI ツールで確かめる</text>\n<text class=\"note\" x=\"657.5\" y=\"246\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Claude Code と Codex</text>\n<text class=\"note\" x=\"657.5\" y=\"263\" text-anchor=\"middle\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">手順どおりに動くか</text>\n<path class=\"flow\" d=\"M185,252 H203\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/><path class=\"flow\" d=\"M370,252 H388\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/><path class=\"flow\" d=\"M555,252 H573\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/>\n<path class=\"flow\" d=\"M472,158 V180 H102 V202\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-095efa6d-arrow-5B6B66)\"/>\n<path class=\"link\" d=\"M20,326 H740\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n<text class=\"label\" x=\"20\" y=\"350\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">後で決める（2件目の Skill を移すとき）</text>\n<text class=\"note\" x=\"20\" y=\"374\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">上の Skill の Release への公開と導入 ・ 全 Skill で基盤の版が1つの検査 ・ 基盤の版を指定する1か所</text>\n<text class=\"note\" x=\"20\" y=\"396\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">共有のデザインシステムの写し（その Skill ができるまで dist.json に「写していない」と書く）</text>\n</svg>"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "どの AI ツールでも動くことを、完成の条件の中心にすること",
+     "basis": "使い手視点：製品やシステムを、それを使う人（ユーザー）が何を実現したいかから見ること。システム開発の現場で目的を考えることは、そのまま使い手視点で考えることになる。",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 user-perspective"
+    },
+    {
+     "supports": "1件目を、15の Skill の形を代表するものにすること",
+     "basis": "PoC（Proof of Concept）：まずやってみて、次の意思決定に必要な知見を得るための手段。仮説は正しいか、どこがボトルネックか、何が想定外かを、早く安く学ぶのが目的で、成果物の完成度はゴールではない。",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 poc-fatigue"
+    },
+    {
+     "supports": "壊した例で止まることも確かめること",
+     "basis": "使い方：ポジティブシナリオとネガティブシナリオの両方を説明する",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 acceptance-criteria"
+    },
+    {
+     "supports": "配る手順を、本番に近い環境で、失敗の場合も含めて試すこと",
+     "basis": "対応：抜けや誤りのあるデプロイ手順、設定ミスなどを本番の前に見つけ、復旧手順も試す",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-06"
+    },
+    {
+     "supports": "最初の1回はソースからビルドした skills-creator で通すこと",
+     "basis": "対応：ライフサイクルを持つ要素をすべて挙げ、その状態を変えるイベントを探す ・ 理由：システムはすべてのトリガーに反応しなければならず、これでシステムの境界がはっきりする",
+     "tag": "primary",
+     "source": "usecase-advisor の回答（2026-10-13）── 判断基準 trigger"
+    },
+    {
+     "supports": "Codex がリポジトリの Skill を読むこと",
+     "basis": "For repositories, Codex scans `.agents/skills` in every directory from your current working directory up to the repository root.",
+     "tag": "primary",
+     "source": "sources/developers.openai.com_codex_skills.md:135（2026-10-13 取得）"
+    },
+    {
+     "supports": "Codex がシンボリックリンクに従うこと",
+     "basis": "Codex supports symlinked skill folders and follows the symlink target when scanning these locations.",
+     "tag": "primary",
+     "source": "sources/developers.openai.com_codex_skills.md:146"
+    },
+    {
+     "supports": "手元に Codex があること",
+     "basis": "codex-cli 0.162.1",
+     "tag": "measured",
+     "source": "codex --version（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "agents creator の枠を1件目にする",
+     "reason": "枠は自分の能力を持たないので、入口が自分の能力を行う形を試せない"
+    },
+    {
+     "option": "scaffold ・ check ・ 配る手順 ・ エンジンの受け取りが通ったら完成とする",
+     "reason": "手段がそろったことしか見ない。どの AI ツールでも呼ばれて動くことを、一度も観測しない"
+    },
+    {
+     "option": "正しい Skill が合格することだけを確かめる",
+     "reason": "何でも合格にする check でも完成と判定される"
+    },
+    {
+     "option": "上の Skill を Release へ公開し、受け取りまで通すことを条件に入れる",
+     "reason": "新しい形の Skill が1件のあいだは、公開の仕組みを決める材料が足りない。3つの OS で配る手順と check が通ることまでを条件にする"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "skills-creator 自身で、正と負の両方と、2つの AI ツールを通す",
+      "cost": "練習用の Skill と、壊した例のフィクスチャを用意する。Codex での確かめは、手で依頼して結果を見る"
+     }
+    ],
+    "assumptions": [
+     "Codex で確かめるときは、試すリポジトリの .agents/skills に、Skill のフォルダへのシンボリックリンクを置く"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：Q1〜Q4 を試作し、skills-creator 自身でこの条件を通す",
+      "treatment": "later"
+     },
+     {
+      "item": "Claude Code と Codex 以外の AI ツール",
+      "treatment": "later",
+      "note": "手元に無い。条件は、どの AI ツールでも同じ手順で確かめられる"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1",
+   "name": "役割と持ち物",
+   "status": "open",
+   "question": "skills-creator は何を作り、何をどの段で検査するか",
+   "answer": {
+    "text": "skills-creator は、新しい Skill の雛形を置く scaffold と、書いたその場（source）と配ったあと（dist）の2段で検査する check と、配る手順（dist）を持つ。tool.json はやめる。",
+    "details": [
+     "scaffold は、まだ無いフォルダにだけ置く。置くのは SKILL.md の雛形、concrete スキーマの雛形（基盤の create で作る）、入口のソースの雛形（src/<Skill名>/）である",
+     "既にある Skill を直すときは、scaffold を使わず、check の結果から直す",
+     "check は、どの項目も既定を「判定不能」にし、確かめた分岐からだけ合格を出す。不合格か判定不能が1件でもあれば、終了コードを0以外にする",
+     "source の段は、SKILL.md の型 ・ 記入欄が残っていない ・ concrete スキーマが1件以上ある ・ 基盤の check-schemas が通る、を見る",
+     "source の段は、入口のソースがビルドの印（Rust なら Cargo.toml）を持つことと、古い形のファイル（tool.json など）が無いことも見る",
+     "dist の段は、dist.json が型に合う ・ 記録したファイルの SHA-256 が合い記録に無いファイルも無い ・ target が一致する、を見る",
+     "dist の段は、入口とエンジンが --version で記録した版を答えることと、入口に渡した基盤の操作がエンジンを直に呼んだ結果と同じになることも見る",
+     "dist の段で前提（実行ファイル）が欠けていれば、対象外ではなく不合格にする",
+     "共有のデザインシステムは、その Skill ができるまで、理由を付けた対象外として報告する",
+     "「呼ばれるか」は check では判定しない。AI ツールで実際に確かめる（Q0）",
+     "全 Skill で基盤の版が1つかは、1つのフォルダを見る check では比べる相手が無いので、check に入れない"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "check の結果の例（配ったあとの段）。",
+     "text": "$ scripts/bin/skills-creator check .claude/skills/skills-creator --level dist\n  source.skill.frontmatter   合格\n  source.skill.placeholders  合格\n  source.schemas.check       合格\n  source.entry.source        合格（src/skills-creator/Cargo.toml）\n  dist.files                 合格（7件、記録に無いファイル 0件）\n  dist.entry                 合格（skills-creator 0.1.0）\n  dist.engine                合格（schema-driven 0.1.0）\n  dist.target                合格（x86_64-unknown-linux-gnu）\n  dist.delegate              合格（prompt の結果がエンジンと同じ）\n  dist.design                対象外（共有のデザインシステムの Skill がまだ無い）\n終了コード 0"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "check の既定を合格にしないこと",
+     "basis": "原因：Manual Result Verification ・ 見え方：SUT が誤った結果を返すと分かっている場合でも、テストはほぼ毎回成功する ・ 根本の原因：テストが Self-Checking Test でなく、エラーか例外が投げられたときにしか失敗しない。そのため誤った安心感を与えることがある",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 manual-intervention"
+    },
+    {
+     "supports": "いまの check が、判定しなかった項目を合格にしていること",
+     "basis": "結果を置かなかった項目を、最後の段ですべて合格にしている。dist の段で実行ファイルが無いと、3項目が対象外になる",
+     "tag": "measured",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 （src/skills-creator/src/check.rs:226-231 ・ :546-556 の実測）"
+    },
+    {
+     "supports": "段を2つに分けること",
+     "basis": "観点：適用できる作業成果物 ・ 静的テスト：実行不可能な作業成果物に適用できる ・ 動的テスト：実行可能な作業成果物にだけ適用できる",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 static-testing"
+    },
+    {
+     "supports": "失敗すれば止まる検査を、配る手順に組み込むこと",
+     "basis": "ベストプラクティス：「デプロイの一部として機能テストを統合する」 ・ 望ましい成果：オートメーションでユニットテストと統合テストを動かし、コードが思ったとおりに動くことを確かめる。テストはデプロイのプロセスに組み込まれ、失敗すればデプロイが止まる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 rel-08"
+    },
+    {
+     "supports": "呼ばれるかを AI ツールで確かめること",
+     "basis": "Claude Code と Codex の両方で、SKILL.md の手順どおりに動いたときに完成とする",
+     "tag": "rule",
+     "source": "このボードの論点0"
+    },
+    {
+     "supports": "既にある Skill を直すきっかけを扱うこと",
+     "basis": "15の Skill を新しい形へ移すとき、既にあるフォルダを直すきっかけが必ず起きる",
+     "tag": "primary",
+     "source": "usecase-advisor の回答（2026-10-13）── 判断基準 （見解1への指摘）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "tool.json を残す",
+     "reason": "宣言したツールの仕組みは基盤から消した。言語に依存する具体は、入口の雛形の側に置く"
+    },
+    {
+     "option": "判定しなかった項目を合格にする（いまの形）",
+     "reason": "誤りがあっても合格が出る"
+    },
+    {
+     "option": "全 Skill の版の一致を check の項目にする",
+     "reason": "1つのフォルダしか見ない check では比べる相手が無く、必ず合格する"
+    },
+    {
+     "option": "scaffold が既にあるフォルダを上書きする",
+     "reason": "書いた手順や能力が消える"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "scaffold ・ check（2段）・ dist の3つを持ち、check の既定を判定不能にする",
+      "cost": "いまの check.rs を書き直す。項目ごとに、正と負のフィクスチャを用意する"
+     }
+    ],
+    "assumptions": [],
+    "out_of_scope": [
+     {
+      "item": "外の作業：check を書き直し、項目ごとに正と負のフィクスチャで確かめる",
+      "treatment": "later"
+     },
+     {
+      "item": "全 Skill で基盤の版が1つの検査",
+      "treatment": "later",
+      "note": "2件目の Skill を移すときに、リポジトリの側の検査として決める"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q2",
+   "name": "入口",
+   "status": "open",
+   "question": "入口の実行ファイルをどこに置き、どう基盤のエンジンを呼び、雛形をどの言語で出すか",
+   "answer": {
+    "text": "入口は scripts/bin/<Skill名> に置き、自分の実行ファイルの場所から Skill のフォルダと隣のエンジンを決め、基盤の操作はそのまま渡して結果を変えずに返す。雛形は Rust だけを出す。",
+    "details": [
+     "入口とエンジンは、どちらも scripts/bin/ に置く。Windows では .exe が付く",
+     "入口は、作業ディレクトリでも PATH でもなく、自分の実行ファイルの場所から Skill のフォルダと scripts/bin/schema-driven を決める",
+     "基盤の操作（create ・ get ・ check など）は scripts/bin/schema-driven --skill <自分のフォルダ> へ渡し、終了コード ・ 標準出力 ・ 標準エラーを変えずに返す",
+     "Skill の能力は、入口の中で行う",
+     "入口の雛形は、いまは Rust だけを出す。言語ごとの雛形を選ぶ仕組みは、2つ目の言語が必要になったときに作る",
+     "言語に依存する具体（ビルドのコマンド ・ crate の名前）は、入口の雛形の references に置き、SKILL.md には書かない",
+     "作る人が書いて試すときは、配る手順を手元で動かして、入口とエンジンをフォルダに入れる（Q3）"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "入口が基盤の操作を渡す例と、自分の能力を行う例。",
+     "text": ".claude/skills/skills-creator/\n  SKILL.md\n  scripts/bin/skills-creator      入口\n  scripts/bin/schema-driven       基盤のエンジンの写し\n  assets/ ・ dist.json\n\n$ scripts/bin/skills-creator prompt --schema skills-creator/skill@v1 --property /name\n  → scripts/bin/schema-driven --skill .claude/skills/skills-creator prompt … をそのまま呼ぶ\n$ scripts/bin/skills-creator check <フォルダ>\n  → 入口の中で行う（skills-creator の能力）"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "入口が作業ディレクトリと PATH に頼らないこと",
+     "basis": "作業ディレクトリからフォルダを決めると、別の場所から呼ばれたときに別の Skill のフォルダを渡す。PATH からエンジンを探すと、自分の写しではない版を呼ぶ",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解2への指摘）"
+    },
+    {
+     "supports": "入口とエンジンを別の実行ファイルにすること",
+     "basis": "基盤のエンジンは入口に取り込まず、別の実行ファイルのまま呼ぶ。Skill を作る人が、入口をどの言語で書いてもよいようにするためである",
+     "tag": "rule",
+     "source": "ボード page-design-ownership の論点4（決着）"
+    },
+    {
+     "supports": "実行ファイルを scripts/bin/ に置くこと",
+     "basis": "「バイナリならscripts/binの方がいいかもね。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
+    },
+    {
+     "supports": "書いて試すときに入口をフォルダへ入れる手段",
+     "basis": "配る手順は、手元でも動かせる（dist <Skill のフォルダ> --engine <版>）",
+     "tag": "rule",
+     "source": "このボードの論点3"
+    },
+    {
+     "supports": "言語ごとの雛形の仕組みを、いまは作らないこと",
+     "basis": "対応：何から作るかの優先順位を、上位目的を指針にして付ける ・ 理由：上位目的を考えないと、優先順位が適切に付かないまま進み、余計なコストや工数がかかるから",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 is-it-really-the-goal"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "入口を scripts/<Skill名>（scripts/ の直下）に置く",
+     "reason": "基盤の実行ファイルを scripts/bin/ に置くと決めた。OS ごとに違う実行ファイルと、読めるスクリプトが同じ並びに混ざる"
+    },
+    {
+     "option": "作業ディレクトリから Skill のフォルダを決める",
+     "reason": "別の場所から呼ばれたとき、別の Skill のフォルダを渡す"
+    },
+    {
+     "option": "PATH から schema-driven を探す",
+     "reason": "自分の写しではない版のエンジンを呼ぶ"
+    },
+    {
+     "option": "最初から5つの言語の雛形を出す",
+     "reason": "1件目で確かめるのは Rust の入口だけで、ほかの言語の雛形は試す相手が無い"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "scripts/bin/ に入口とエンジンを並べ、入口は自分の場所から相手を決める",
+      "cost": "page-design-ownership の論点4の「scripts/<Skill名>」を scripts/bin/ へ読み替える"
+     }
+    ],
+    "assumptions": [],
+    "out_of_scope": [
+     {
+      "item": "外の作業：入口の雛形（Rust）を作り、skills-creator 自身の入口で確かめる",
+      "treatment": "later"
+     },
+     {
+      "item": "Rust 以外の言語の雛形",
+      "treatment": "later",
+      "note": "必要になったときに足す。入口の決まり（場所 ・ 渡し方）は言語に依存しない"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q3",
+   "name": "配る手順",
+   "status": "open",
+   "question": "上の Skill のフォルダに入口と基盤のエンジンの写しをどう入れ、何を記録し、失敗したらどうするか",
+   "answer": {
+    "text": "配る手順は、入口をビルドし、基盤のエンジンを版を指して Release から取り、SHA-256 と証明を照合してから、入口 ・ エンジン ・ dist.json をまとめて置く。途中で失敗したら、フォルダを元のまま残す。",
+    "details": [
+     "呼び方は scripts/bin/skills-creator dist <Skill のフォルダ> --engine <基盤の版> [--target <target>]",
+     "基盤の配布物は、schema-driven-v<版> の Release から取り、SHA256SUMS と証明（署名したワークフローと tag まで縛る）を照合する",
+     "照合には gh の attestation を使う。gh が無いか古いときは、照合の前で止める。照合を飛ばす旗は作らない",
+     "作業用のフォルダで全部をそろえて確かめてから、Skill のフォルダへ移す。途中で失敗したら、Skill のフォルダは元のまま残し、どの段で止まったかを返す",
+     "dist.json の型は skills-creator が持つ（skills-creator/dist@v1）。Skill の名前 ・ 版 ・ target ・ 入口の SHA-256 ・ 写しごとの名前と版と取得元の配布物の SHA-256 を記録する",
+     "共有のデザインシステムは、その Skill ができるまで写さず、dist.json に「写していない」と理由を書く",
+     "基盤の版を指定する1か所 ・ 全 Skill の版の一致 ・ 上の Skill の Release への公開と導入は、2件目の Skill を移すときに決める"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "json",
+     "caption": "上の Skill の dist.json の例。",
+     "text": "{\n  \"$schema\": \"skills-creator/dist@v1\",\n  \"name\": \"skills-creator\",\n  \"version\": \"0.1.0\",\n  \"target\": \"x86_64-unknown-linux-gnu\",\n  \"entry\": {\"path\": \"scripts/bin/skills-creator\", \"sha256\": \"…\"},\n  \"copies\": [\n    {\"name\": \"schema-driven\", \"version\": \"0.1.0\",\n     \"from\": \"schema-driven-0.1.0-x86_64-unknown-linux-musl.tar.gz\", \"sha256\": \"…\"}\n  ],\n  \"design\": {\"copied\": false, \"reason\": \"共有のデザインシステムの Skill がまだ無い\"},\n  \"files\": [{\"path\": \"scripts/bin/schema-driven\", \"sha256\": \"…\"}]\n}"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "ハッシュだけでなく証明で照合すること",
+     "basis": "OS イメージ ・ コンテナイメージ ・ コードのアーティファクトは、ダイジェストやハッシュで整合性を確かめられる形で配られることが多い。受け取った側がペイロードのハッシュを計算し、公開された値と同じかを見れば、改ざんされていないことは分かる。しかし、ペイロードが元の送り手から来たか（データの来歴）までは分からない。来歴まで確かめるには、アーティファクトへのデジタル署名用に、信頼できる機関が出した証明書がいる。この件には実装手順の節が無い。",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 sec-06"
+    },
+    {
+     "supports": "基盤の dist.json の型を使わないこと",
+     "basis": "schema-driven/dist@v1 は name を schema-driven に固定し、欄の追加を禁じているので、上の Skill の記録は型の検査に必ず落ちる",
+     "tag": "measured",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ・qa-advisor の回答（2026-10-13）── 判断基準 （xtask/dist.schema.json の実測）"
+    },
+    {
+     "supports": "途中で失敗したときの約束",
+     "basis": "対応：処理がどこまで進んだかをログに残すことを、候補として必ず検討する ・ 理由：最もよく見られる最低保証である。回復したシステムはログで取引を再開し、利害関係者はログでトラブルを解く",
+     "tag": "primary",
+     "source": "usecase-advisor の回答（2026-10-13）── 判断基準 minimal-guarantee"
+    },
+    {
+     "supports": "照合を飛ばす旗を作らないこと",
+     "basis": "原因：Test Hook ・ 何が起きているか：SUT の中の条件の処理が、本物（real）のコードを動かすか、テストのための処理を動かすかを切り替える",
+     "tag": "primary",
+     "source": "qa-advisor の回答（2026-10-13）── 判断基準 test-logic-in-production"
+    },
+    {
+     "supports": "公開と版の一致を後に回すこと",
+     "basis": "新しい形の Skill が1件しか無いあいだは、全 Skill の版の一致を検査する対象が無い",
+     "tag": "primary",
+     "source": "meta-thinking-advisor の回答（2026-10-13）── 判断基準 （今決めなくてよい論点）"
+    },
+    {
+     "supports": "手元の gh が attestation を持たないこと",
+     "basis": "gh version 2.46.0 で gh attestation を呼ぶと unknown command \"attestation\" で終わる",
+     "tag": "measured",
+     "source": "このリポジトリの手元（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "基盤の dist.json の型（schema-driven/dist@v1）に欄を足して使う",
+     "reason": "基盤の契約を上の Skill の都合で変えることになる。基盤は上の Skill を知らない"
+    },
+    {
+     "option": "gh が無ければ SHA-256 だけで進む",
+     "reason": "同じ Release から取るので、来歴を確かめない"
+    },
+    {
+     "option": "Skill のフォルダへ直接書きながら進める",
+     "reason": "途中で失敗すると、照合していない写しや、中身と食い違う dist.json が残る"
+    },
+    {
+     "option": "手元でビルドした基盤のエンジンを写す",
+     "reason": "公開して照合した版と、配る Skill の中のエンジンが別物になる"
+    },
+    {
+     "option": "上の Skill ごとに公開のワークフローを複製する",
+     "reason": "15件の写しになり、雛形を直しても既存のものに届かない。公開は2件目のときに、共通の1本として決める"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "版を指して Release から取り、照合してから、作業用のフォルダから移す",
+      "cost": "手元の gh を attestation が使える版へ上げる"
+     }
+    ],
+    "assumptions": [
+     "配る手順を動かす環境は、ネットワークに出られ、gh が使える"
+    ],
+    "out_of_scope": [
+     {
+      "item": "外の作業：配る手順を作り、壊した例（1バイト ・ 版 ・ target）で止まることを確かめる",
+      "treatment": "later"
+     },
+     {
+      "item": "基盤の版を指定する1か所 ・ 全 Skill の版の一致 ・ 上の Skill の公開と導入",
+      "treatment": "later",
+      "note": "2件目の Skill を移すときに決める。この答えは、版を引数で受け取るので、指定の置き場所が決まっても形が変わらない"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q4",
+   "name": "skills-creator 自身の作り",
+   "status": "open",
+   "question": "skills-creator のコードをどう組み、自分の Skill のフォルダをどう作るか",
+   "answer": {
+    "text": "src/skills-creator を基盤と同じ CODING.md ・ ヘキサゴナル（core と adapters）・ xtask の形で作り直す。xtask は skills-creator をビルドし、その配る手順で自分のフォルダを作る。",
+    "details": [
+     "src/skills-creator/CODING.md を置き、基盤の CODING.md と同じ規則（層 ・ crate ・ 試験 ・ 検査の順）に従う",
+     "crate は core（domain ・ application ・ port）と adapters（CLI の受け口 ・ ファイル ・ 基盤のエンジンの呼び出し ・ Release の取得と照合）の2つ",
+     "xtask は cargo のビルドだけを行い、フォルダを作る仕事は skills-creator の dist を呼ぶ。配る手順を xtask と skills-creator の2か所に書かない",
+     "いまのコード（check.rs など）と、古い形との移り方の試験（migration.rs ・ baseline-v3）は残さずに作り直す",
+     "雛形（SKILL.md ・ スキーマ ・ 入口のソース）と型のスキーマは、Skill のフォルダの assets/ に置く"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "作り直したあとの src/skills-creator と、自分のフォルダの作り方。",
+     "text": "src/skills-creator/\n  Cargo.toml          workspace（crates/* と xtask）。版の1か所\n  CODING.md\n  crates/core         domain ・ application ・ port\n  crates/adapters     CLI ・ ファイル ・ エンジンの呼び出し ・ Release の取得と照合\n  xtask/              ビルドしてから、skills-creator dist を呼ぶ\n\n$ cd src/skills-creator && cargo xtask skill --engine 0.1.0\n  1. cargo build（skills-creator の入口）\n  2. ビルドした skills-creator で dist .claude/skills/skills-creator --engine 0.1.0"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "基盤と同じ設計標準にそろえること",
+     "basis": "ベストプラクティス：「設計標準を共有する」 ・ 望ましい成果：設計標準がチームの間で共有されている。設計標準は文書として残り、ベストプラクティスが変わるたびに書き直される",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 ops-05"
+    },
+    {
+     "supports": "配る手順を1か所に置くこと",
+     "basis": "xtask がフォルダも作ると、配る手順が xtask と skills-creator の2か所に分かれる",
+     "tag": "primary",
+     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解4の条件）"
+    },
+    {
+     "supports": "古い形を残さないこと",
+     "basis": "「まだ一回も配布をしていない」ので後方互換は求めない",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    },
+    {
+     "supports": "いまのコードの形",
+     "basis": "1つの crate（main.rs ・ check.rs 637行 ・ read.rs ・ scaffold.rs ・ engine.rs）で、CODING.md もヘキサゴナルの分け方も無い",
+     "tag": "measured",
+     "source": "src/skills-creator（2026-10-13）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "いまの1つの crate のまま直す",
+     "reason": "基盤と規則が分かれ、check のような判定と入出力が同じ所に混ざったまま残る"
+    },
+    {
+     "option": "xtask にフォルダを作る仕事も持たせる（基盤と同じ形）",
+     "reason": "skills-creator の配る手順と同じことを2か所に書く。上の Skill には xtask が無いので、手順が分かれる"
+    },
+    {
+     "option": "古い移り方の試験を残す",
+     "reason": "古い形は考慮しないと決めた"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "基盤と同じ形で作り直し、xtask はビルドだけにする",
+      "cost": "src/skills-creator をほぼ書き直す"
+     }
+    ],
+    "assumptions": [],
+    "out_of_scope": [
+     {
+      "item": "外の作業：src/skills-creator を作り直し、CODING.md の検査の順を0件で通す",
+      "treatment": "later"
+     },
+     {
+      "item": "skills-creator の MCP サーバー",
+      "treatment": "later",
+      "note": "SKILL.md は入口を CLI で呼ぶ。MCP が必要になったら、基盤と同じく受け口を1つ足す"
+     }
+    ]
+   }
+  }
+ ]
+}

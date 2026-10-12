@@ -1,0 +1,373 @@
+<title>skills-creator を新しい形の基盤の上で作り直す</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="skills-creator-on-base" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　skills-creator を新しい形の基盤の上で作り直す　/　Round 1</p><h1>skills-creator を新しい形の基盤の上で作り直す</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q0</span>完成の条件<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q1</span>役割と持ち物<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q2</span>入口<span class="st now">いま見る</span></button><button data-t="p4" aria-selected="false" class="now"><span class="tn">Q3</span>配る手順<span class="st now">いま見る</span></button><button data-t="p5" aria-selected="false" class="now"><span class="tn">Q4</span>skills-creator 自身の作り<span class="st now">いま見る</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>完成した基盤 schema-driven の上で、どの AI ツールでも呼ばれて手順どおりに動く Skill を作れるように、skills-creator の役割 ・ 入口 ・ 配る手順 ・ 自身の作りと、完成の条件を決める。古い skills-creator のボードは過去の構成のものとして参照しない。</p></div><div class="front"><h3>いま見るのは 5 件だけである</h3><ol><li><button class="jump" data-go="p1">Q0　完成の条件</button><br><span class="why">アドバイザーが、完成の条件が上位目的（どの AI ツールでも動く）に届いていないと指摘した</span></li><li><button class="jump" data-go="p2">Q1　役割と持ち物</button><br><span class="why">いまの scaffold と check が、tool.json と宣言したツールを前提にしている</span></li><li><button class="jump" data-go="p3">Q2　入口</button><br><span class="why">入口を持つと決めたが、置き場所と呼び方が決まっていない</span></li><li><button class="jump" data-go="p4">Q3　配る手順</button><br><span class="why">配る手順を skills-creator の持ち物と決めたが、中身が決まっていない</span></li><li><button class="jump" data-go="p5">Q4　skills-creator 自身の作り</button><br><span class="why">いまのコードは基盤の CODING.md と違う形のまま</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q0</span></td><td>skills-creator が完成したと言えるのは、何が観測できたときか</td><td><span class="st now">いま見る</span></td><td><b>skills-creator 自身を1件目にして、作る ・ 確かめる ・ 配るが通り、壊した例では止まり、Claude Code と Codex の両方で SKILL.md の手順どおりに動いたときに完成とする。</b></td></tr><tr><td><span class="n">Q1</span></td><td>skills-creator は何を作り、何をどの段で検査するか</td><td><span class="st now">いま見る</span></td><td><b>skills-creator は、新しい Skill の雛形を置く scaffold と、書いたその場（source）と配ったあと（dist）の2段で検査する check と、配る手順（dist）を持つ。tool.json はやめる。</b></td></tr><tr><td><span class="n">Q2</span></td><td>入口の実行ファイルをどこに置き、どう基盤のエンジンを呼び、雛形をどの言語で出すか</td><td><span class="st now">いま見る</span></td><td><b>入口は scripts/bin/&lt;Skill名&gt; に置き、自分の実行ファイルの場所から Skill のフォルダと隣のエンジンを決め、基盤の操作はそのまま渡して結果を変えずに返す。雛形は Rust だけを出す。</b></td></tr><tr><td><span class="n">Q3</span></td><td>上の Skill のフォルダに入口と基盤のエンジンの写しをどう入れ、何を記録し、失敗したらどうするか</td><td><span class="st now">いま見る</span></td><td><b>配る手順は、入口をビルドし、基盤のエンジンを版を指して Release から取り、SHA-256 と証明を照合してから、入口 ・ エンジン ・ dist.json をまとめて置く。途中で失敗したら、フォルダを元のまま残す。</b></td></tr><tr><td><span class="n">Q4</span></td><td>skills-creator のコードをどう組み、自分の Skill のフォルダをどう作るか</td><td><span class="st now">いま見る</span></td><td><b>src/skills-creator を基盤と同じ CODING.md ・ ヘキサゴナル（core と adapters）・ xtask の形で作り直す。xtask は skills-creator をビルドし、その配る手順で自分のフォルダを作る。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q0</span><h2>skills-creator が完成したと言えるのは、何が観測できたときか</h2></div><div class="ans"><span class="lead">skills-creator 自身を1件目にして、作る ・ 確かめる ・ 配るが通り、壊した例では止まり、Claude Code と Codex の両方で SKILL.md の手順どおりに動いたときに完成とする。</span><ul><li>1件目は skills-creator 自身にする。入口が基盤の操作を渡し（concrete スキーマを作る）、自分の能力（scaffold と check）も行うので、15の Skill の形を代表する</li><li>最初の1回は、配布済みの skills-creator がまだ無い。ソースからビルドした skills-creator で、自分自身に配る手順を通す</li><li>配る手順のあとの check（dist）が全項目合格になる</li><li>壊した例で、該当する項目が不合格になる ── 1バイト変えた写し ・ 版の違う写し ・ target の違う写し ・ 入口を消したフォルダ</li><li>gh が無いか古いときは、配る手順が照合の前で止まる</li><li>練習用の Skill で、scaffold の直後は「記入欄が残っている」項目だけが不合格になり、記入欄を埋めると全項目が合格になる</li><li>workflow_dispatch で3つの OS でビルドし、ビルドしなかったランナーで check（dist）が合格する</li><li>Claude Code と Codex の両方で、リポジトリに置いた skills-creator が依頼に応じて呼ばれ、SKILL.md の手順（scaffold と check）を実行して期待の結果を返す</li><li>CODING.md の検査の順がすべて0件で通る</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図</summary><div><div class="ex"><div data-g="1" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 760 430" style="min-width:600px" role="img" aria-label="Skill を作る人が skills-creator で作り、確かめ、配る流れ" class="dsvg"><style data-dsvg="dark">.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-095efa6d-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme="dark"] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg="marker"><marker id="dsvg-095efa6d-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker></defs>
+<text class="title" x="20" y="28" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">Skill を作る人が skills-creator で作り、確かめ、配る</text>
+<text class="label" x="20" y="62" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">書いたその場</text>
+<rect class="box" x="20" y="74" width="165" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="102.5" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">scaffold</text>
+<text class="note" x="102.5" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">SKILL.md の雛形</text>
+<text class="note" x="102.5" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">スキーマ ・ 入口のソース</text>
+<rect class="box" x="205" y="74" width="165" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="287.5" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">書いて試す</text>
+<text class="note" x="287.5" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">手順と入口の能力を書く</text>
+<text class="note" x="287.5" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">dist を手元で動かす</text>
+<rect class="box focus" x="390" y="74" width="165" height="84" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="472.5" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">check（source）</text>
+<text class="note" x="472.5" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">SKILL.md の型 ・ スキーマ</text>
+<text class="note" x="472.5" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">入口のソースがある</text>
+<rect class="box" x="575" y="74" width="165" height="84" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="657.5" y="96" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">既にある Skill</text>
+<text class="note" x="657.5" y="116" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">scaffold は断る</text>
+<text class="note" x="657.5" y="133" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">check から直す</text>
+<path class="flow" d="M185,116 H203" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/><path class="flow" d="M370,116 H388" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/><path class="link" d="M575,116 H557" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<text class="label" x="20" y="192" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">配る段</text>
+<rect class="box focus" x="20" y="204" width="165" height="96" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="102.5" y="226" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">dist</text>
+<text class="note" x="102.5" y="246" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">入口をビルド</text>
+<text class="note" x="102.5" y="263" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">基盤のエンジンを版で取得</text>
+<text class="note" x="102.5" y="280" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">SHA-256 と証明を照合</text>
+<rect class="box" x="205" y="204" width="165" height="96" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="287.5" y="226" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">Skill のフォルダ</text>
+<text class="note" x="287.5" y="246" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">入口（scripts/bin/）</text>
+<text class="note" x="287.5" y="263" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">エンジンの写し</text>
+<text class="note" x="287.5" y="280" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">dist.json</text>
+<rect class="box focus" x="390" y="204" width="165" height="96" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/>
+<text class="label focus" x="472.5" y="226" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#0D5C55">check（dist）</text>
+<text class="note" x="472.5" y="246" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">SHA-256 ・ 版 ・ target</text>
+<text class="note" x="472.5" y="263" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">入口が基盤の操作を渡す</text>
+<rect class="box" x="575" y="204" width="165" height="96" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/>
+<text class="label" x="657.5" y="226" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">AI ツールで確かめる</text>
+<text class="note" x="657.5" y="246" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">Claude Code と Codex</text>
+<text class="note" x="657.5" y="263" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">手順どおりに動くか</text>
+<path class="flow" d="M185,252 H203" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/><path class="flow" d="M370,252 H388" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/><path class="flow" d="M555,252 H573" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/>
+<path class="flow" d="M472,158 V180 H102 V202" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-095efa6d-arrow-5B6B66)"/>
+<path class="link" d="M20,326 H740" fill="none" stroke="#5B6B66" stroke-width="1"/>
+<text class="label" x="20" y="350" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">後で決める（2件目の Skill を移すとき）</text>
+<text class="note" x="20" y="374" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">上の Skill の Release への公開と導入 ・ 全 Skill で基盤の版が1つの検査 ・ 基盤の版を指定する1か所</text>
+<text class="note" x="20" y="396" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">共有のデザインシステムの写し（その Skill ができるまで dist.json に「写していない」と書く）</text>
+</svg></figure><p class="note-s">Skill を作る人が skills-creator で作り、確かめ、配る流れ。下の2行は、2件目の Skill を移すときに決める。</p></div></div></div></details><details open><summary>根拠（8件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">どの AI ツールでも動くことを、完成の条件の中心にすること</span></td><td>使い手視点：製品やシステムを、それを使う人（ユーザー）が何を実現したいかから見ること。システム開発の現場で目的を考えることは、そのまま使い手視点で考えることになる。</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 user-perspective</small></td></tr><tr><td><span class="part">1件目を、15の Skill の形を代表するものにすること</span></td><td>PoC（Proof of Concept）：まずやってみて、次の意思決定に必要な知見を得るための手段。仮説は正しいか、どこがボトルネックか、何が想定外かを、早く安く学ぶのが目的で、成果物の完成度はゴールではない。</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 poc-fatigue</small></td></tr><tr><td><span class="part">壊した例で止まることも確かめること</span></td><td>使い方：ポジティブシナリオとネガティブシナリオの両方を説明する</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 acceptance-criteria</small></td></tr><tr><td><span class="part">配る手順を、本番に近い環境で、失敗の場合も含めて試すこと</span></td><td>対応：抜けや誤りのあるデプロイ手順、設定ミスなどを本番の前に見つけ、復旧手順も試す</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 ops-06</small></td></tr><tr><td><span class="part">最初の1回はソースからビルドした skills-creator で通すこと</span></td><td>対応：ライフサイクルを持つ要素をすべて挙げ、その状態を変えるイベントを探す ・ 理由：システムはすべてのトリガーに反応しなければならず、これでシステムの境界がはっきりする</td><td><span class="kind k-src">原典</span><small>usecase-advisor の回答（2026-10-13）── 判断基準 trigger</small></td></tr><tr><td><span class="part">Codex がリポジトリの Skill を読むこと</span></td><td>For repositories, Codex scans `.agents/skills` in every directory from your current working directory up to the repository root.</td><td><span class="kind k-src">原典</span><small>sources/developers.openai.com_codex_skills.md:135（2026-10-13 取得）</small></td></tr><tr><td><span class="part">Codex がシンボリックリンクに従うこと</span></td><td>Codex supports symlinked skill folders and follows the symlink target when scanning these locations.</td><td><span class="kind k-src">原典</span><small>sources/developers.openai.com_codex_skills.md:146</small></td></tr><tr><td><span class="part">手元に Codex があること</span></td><td>codex-cli 0.162.1</td><td><span class="kind k-fact">実測</span><small>codex --version（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（4件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>agents creator の枠を1件目にする</b></td><td>枠は自分の能力を持たないので、入口が自分の能力を行う形を試せない</td></tr><tr><td><b>scaffold ・ check ・ 配る手順 ・ エンジンの受け取りが通ったら完成とする</b></td><td>手段がそろったことしか見ない。どの AI ツールでも呼ばれて動くことを、一度も観測しない</td></tr><tr><td><b>正しい Skill が合格することだけを確かめる</b></td><td>何でも合格にする check でも完成と判定される</td></tr><tr><td><b>上の Skill を Release へ公開し、受け取りまで通すことを条件に入れる</b></td><td>新しい形の Skill が1件のあいだは、公開の仕組みを決める材料が足りない。3つの OS で配る手順と check が通ることまでを条件にする</td></tr></table></div></div></details><div class="form" data-topic="Q0"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>skills-creator は何を作り、何をどの段で検査するか</h2></div><div class="ans"><span class="lead">skills-creator は、新しい Skill の雛形を置く scaffold と、書いたその場（source）と配ったあと（dist）の2段で検査する check と、配る手順（dist）を持つ。tool.json はやめる。</span><ul><li>scaffold は、まだ無いフォルダにだけ置く。置くのは SKILL.md の雛形、concrete スキーマの雛形（基盤の create で作る）、入口のソースの雛形（src/&lt;Skill名&gt;/）である</li><li>既にある Skill を直すときは、scaffold を使わず、check の結果から直す</li><li>check は、どの項目も既定を「判定不能」にし、確かめた分岐からだけ合格を出す。不合格か判定不能が1件でもあれば、終了コードを0以外にする</li><li>source の段は、SKILL.md の型 ・ 記入欄が残っていない ・ concrete スキーマが1件以上ある ・ 基盤の check-schemas が通る、を見る</li><li>source の段は、入口のソースがビルドの印（Rust なら Cargo.toml）を持つことと、古い形のファイル（tool.json など）が無いことも見る</li><li>dist の段は、dist.json が型に合う ・ 記録したファイルの SHA-256 が合い記録に無いファイルも無い ・ target が一致する、を見る</li><li>dist の段は、入口とエンジンが --version で記録した版を答えることと、入口に渡した基盤の操作がエンジンを直に呼んだ結果と同じになることも見る</li><li>dist の段で前提（実行ファイル）が欠けていれば、対象外ではなく不合格にする</li><li>共有のデザインシステムは、その Skill ができるまで、理由を付けた対象外として報告する</li><li>「呼ばれるか」は check では判定しない。AI ツールで実際に確かめる（Q0）</li><li>全 Skill で基盤の版が1つかは、1つのフォルダを見る check では比べる相手が無いので、check に入れない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="2" data-ixp="0"><pre><code>$ scripts/bin/skills-creator check .claude/skills/skills-creator --level dist
+  source.skill.frontmatter   合格
+  source.skill.placeholders  合格
+  source.schemas.check       合格
+  source.entry.source        合格（src/skills-creator/Cargo.toml）
+  dist.files                 合格（7件、記録に無いファイル 0件）
+  dist.entry                 合格（skills-creator 0.1.0）
+  dist.engine                合格（schema-driven 0.1.0）
+  dist.target                合格（x86_64-unknown-linux-gnu）
+  dist.delegate              合格（prompt の結果がエンジンと同じ）
+  dist.design                対象外（共有のデザインシステムの Skill がまだ無い）
+終了コード 0</code></pre><p class="note-s">check の結果の例（配ったあとの段）。</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">check の既定を合格にしないこと</span></td><td>原因：Manual Result Verification ・ 見え方：SUT が誤った結果を返すと分かっている場合でも、テストはほぼ毎回成功する ・ 根本の原因：テストが Self-Checking Test でなく、エラーか例外が投げられたときにしか失敗しない。そのため誤った安心感を与えることがある</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 manual-intervention</small></td></tr><tr><td><span class="part">いまの check が、判定しなかった項目を合格にしていること</span></td><td>結果を置かなかった項目を、最後の段ですべて合格にしている。dist の段で実行ファイルが無いと、3項目が対象外になる</td><td><span class="kind k-fact">実測</span><small>qa-advisor の回答（2026-10-13）── 判断基準 （src/skills-creator/src/check.rs:226-231 ・ :546-556 の実測）</small></td></tr><tr><td><span class="part">段を2つに分けること</span></td><td>観点：適用できる作業成果物 ・ 静的テスト：実行不可能な作業成果物に適用できる ・ 動的テスト：実行可能な作業成果物にだけ適用できる</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 static-testing</small></td></tr><tr><td><span class="part">失敗すれば止まる検査を、配る手順に組み込むこと</span></td><td>ベストプラクティス：「デプロイの一部として機能テストを統合する」 ・ 望ましい成果：オートメーションでユニットテストと統合テストを動かし、コードが思ったとおりに動くことを確かめる。テストはデプロイのプロセスに組み込まれ、失敗すればデプロイが止まる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 rel-08</small></td></tr><tr><td><span class="part">呼ばれるかを AI ツールで確かめること</span></td><td>Claude Code と Codex の両方で、SKILL.md の手順どおりに動いたときに完成とする</td><td><span class="kind k-rule">決まり</span><small>このボードの論点0</small></td></tr><tr><td><span class="part">既にある Skill を直すきっかけを扱うこと</span></td><td>15の Skill を新しい形へ移すとき、既にあるフォルダを直すきっかけが必ず起きる</td><td><span class="kind k-src">原典</span><small>usecase-advisor の回答（2026-10-13）── 判断基準 （見解1への指摘）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（4件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>tool.json を残す</b></td><td>宣言したツールの仕組みは基盤から消した。言語に依存する具体は、入口の雛形の側に置く</td></tr><tr><td><b>判定しなかった項目を合格にする（いまの形）</b></td><td>誤りがあっても合格が出る</td></tr><tr><td><b>全 Skill の版の一致を check の項目にする</b></td><td>1つのフォルダしか見ない check では比べる相手が無く、必ず合格する</td></tr><tr><td><b>scaffold が既にあるフォルダを上書きする</b></td><td>書いた手順や能力が消える</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>入口の実行ファイルをどこに置き、どう基盤のエンジンを呼び、雛形をどの言語で出すか</h2></div><div class="ans"><span class="lead">入口は scripts/bin/&lt;Skill名&gt; に置き、自分の実行ファイルの場所から Skill のフォルダと隣のエンジンを決め、基盤の操作はそのまま渡して結果を変えずに返す。雛形は Rust だけを出す。</span><ul><li>入口とエンジンは、どちらも scripts/bin/ に置く。Windows では .exe が付く</li><li>入口は、作業ディレクトリでも PATH でもなく、自分の実行ファイルの場所から Skill のフォルダと scripts/bin/schema-driven を決める</li><li>基盤の操作（create ・ get ・ check など）は scripts/bin/schema-driven --skill &lt;自分のフォルダ&gt; へ渡し、終了コード ・ 標準出力 ・ 標準エラーを変えずに返す</li><li>Skill の能力は、入口の中で行う</li><li>入口の雛形は、いまは Rust だけを出す。言語ごとの雛形を選ぶ仕組みは、2つ目の言語が必要になったときに作る</li><li>言語に依存する具体（ビルドのコマンド ・ crate の名前）は、入口の雛形の references に置き、SKILL.md には書かない</li><li>作る人が書いて試すときは、配る手順を手元で動かして、入口とエンジンをフォルダに入れる（Q3）</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="3" data-ixp="0"><pre><code>.claude/skills/skills-creator/
+  SKILL.md
+  scripts/bin/skills-creator      入口
+  scripts/bin/schema-driven       基盤のエンジンの写し
+  assets/ ・ dist.json
+
+$ scripts/bin/skills-creator prompt --schema skills-creator/skill@v1 --property /name
+  → scripts/bin/schema-driven --skill .claude/skills/skills-creator prompt … をそのまま呼ぶ
+$ scripts/bin/skills-creator check &lt;フォルダ&gt;
+  → 入口の中で行う（skills-creator の能力）</code></pre><p class="note-s">入口が基盤の操作を渡す例と、自分の能力を行う例。</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">入口が作業ディレクトリと PATH に頼らないこと</span></td><td>作業ディレクトリからフォルダを決めると、別の場所から呼ばれたときに別の Skill のフォルダを渡す。PATH からエンジンを探すと、自分の写しではない版を呼ぶ</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 （見解2への指摘）</small></td></tr><tr><td><span class="part">入口とエンジンを別の実行ファイルにすること</span></td><td>基盤のエンジンは入口に取り込まず、別の実行ファイルのまま呼ぶ。Skill を作る人が、入口をどの言語で書いてもよいようにするためである</td><td><span class="kind k-rule">決まり</span><small>ボード page-design-ownership の論点4（決着）</small></td></tr><tr><td><span class="part">実行ファイルを scripts/bin/ に置くこと</span></td><td>「バイナリならscripts/binの方がいいかもね。」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-13）</small></td></tr><tr><td><span class="part">書いて試すときに入口をフォルダへ入れる手段</span></td><td>配る手順は、手元でも動かせる（dist &lt;Skill のフォルダ&gt; --engine &lt;版&gt;）</td><td><span class="kind k-rule">決まり</span><small>このボードの論点3</small></td></tr><tr><td><span class="part">言語ごとの雛形の仕組みを、いまは作らないこと</span></td><td>対応：何から作るかの優先順位を、上位目的を指針にして付ける ・ 理由：上位目的を考えないと、優先順位が適切に付かないまま進み、余計なコストや工数がかかるから</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 is-it-really-the-goal</small></td></tr></table></div></div></details><details open><summary>採らなかった案（4件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>入口を scripts/&lt;Skill名&gt;（scripts/ の直下）に置く</b></td><td>基盤の実行ファイルを scripts/bin/ に置くと決めた。OS ごとに違う実行ファイルと、読めるスクリプトが同じ並びに混ざる</td></tr><tr><td><b>作業ディレクトリから Skill のフォルダを決める</b></td><td>別の場所から呼ばれたとき、別の Skill のフォルダを渡す</td></tr><tr><td><b>PATH から schema-driven を探す</b></td><td>自分の写しではない版のエンジンを呼ぶ</td></tr><tr><td><b>最初から5つの言語の雛形を出す</b></td><td>1件目で確かめるのは Rust の入口だけで、ほかの言語の雛形は試す相手が無い</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>上の Skill のフォルダに入口と基盤のエンジンの写しをどう入れ、何を記録し、失敗したらどうするか</h2></div><div class="ans"><span class="lead">配る手順は、入口をビルドし、基盤のエンジンを版を指して Release から取り、SHA-256 と証明を照合してから、入口 ・ エンジン ・ dist.json をまとめて置く。途中で失敗したら、フォルダを元のまま残す。</span><ul><li>呼び方は scripts/bin/skills-creator dist &lt;Skill のフォルダ&gt; --engine &lt;基盤の版&gt; [--target &lt;target&gt;]</li><li>基盤の配布物は、schema-driven-v&lt;版&gt; の Release から取り、SHA256SUMS と証明（署名したワークフローと tag まで縛る）を照合する</li><li>照合には gh の attestation を使う。gh が無いか古いときは、照合の前で止める。照合を飛ばす旗は作らない</li><li>作業用のフォルダで全部をそろえて確かめてから、Skill のフォルダへ移す。途中で失敗したら、Skill のフォルダは元のまま残し、どの段で止まったかを返す</li><li>dist.json の型は skills-creator が持つ（skills-creator/dist@v1）。Skill の名前 ・ 版 ・ target ・ 入口の SHA-256 ・ 写しごとの名前と版と取得元の配布物の SHA-256 を記録する</li><li>共有のデザインシステムは、その Skill ができるまで写さず、dist.json に「写していない」と理由を書く</li><li>基盤の版を指定する1か所 ・ 全 Skill の版の一致 ・ 上の Skill の Release への公開と導入は、2件目の Skill を移すときに決める</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="4" data-ixp="0"><pre><code>{
+  &quot;$schema&quot;: &quot;skills-creator/dist@v1&quot;,
+  &quot;name&quot;: &quot;skills-creator&quot;,
+  &quot;version&quot;: &quot;0.1.0&quot;,
+  &quot;target&quot;: &quot;x86_64-unknown-linux-gnu&quot;,
+  &quot;entry&quot;: {&quot;path&quot;: &quot;scripts/bin/skills-creator&quot;, &quot;sha256&quot;: &quot;…&quot;},
+  &quot;copies&quot;: [
+    {&quot;name&quot;: &quot;schema-driven&quot;, &quot;version&quot;: &quot;0.1.0&quot;,
+     &quot;from&quot;: &quot;schema-driven-0.1.0-x86_64-unknown-linux-musl.tar.gz&quot;, &quot;sha256&quot;: &quot;…&quot;}
+  ],
+  &quot;design&quot;: {&quot;copied&quot;: false, &quot;reason&quot;: &quot;共有のデザインシステムの Skill がまだ無い&quot;},
+  &quot;files&quot;: [{&quot;path&quot;: &quot;scripts/bin/schema-driven&quot;, &quot;sha256&quot;: &quot;…&quot;}]
+}</code></pre><p class="note-s">上の Skill の dist.json の例。</p></div></div></div></details><details open><summary>根拠（6件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">ハッシュだけでなく証明で照合すること</span></td><td>OS イメージ ・ コンテナイメージ ・ コードのアーティファクトは、ダイジェストやハッシュで整合性を確かめられる形で配られることが多い。受け取った側がペイロードのハッシュを計算し、公開された値と同じかを見れば、改ざんされていないことは分かる。しかし、ペイロードが元の送り手から来たか（データの来歴）までは分からない。来歴まで確かめるには、アーティファクトへのデジタル署名用に、信頼できる機関が出した証明書がいる。この件には実装手順の節が無い。</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 sec-06</small></td></tr><tr><td><span class="part">基盤の dist.json の型を使わないこと</span></td><td>schema-driven/dist@v1 は name を schema-driven に固定し、欄の追加を禁じているので、上の Skill の記録は型の検査に必ず落ちる</td><td><span class="kind k-fact">実測</span><small>platform-advisor の回答（2026-10-13）── 判断基準 ・qa-advisor の回答（2026-10-13）── 判断基準 （xtask/dist.schema.json の実測）</small></td></tr><tr><td><span class="part">途中で失敗したときの約束</span></td><td>対応：処理がどこまで進んだかをログに残すことを、候補として必ず検討する ・ 理由：最もよく見られる最低保証である。回復したシステムはログで取引を再開し、利害関係者はログでトラブルを解く</td><td><span class="kind k-src">原典</span><small>usecase-advisor の回答（2026-10-13）── 判断基準 minimal-guarantee</small></td></tr><tr><td><span class="part">照合を飛ばす旗を作らないこと</span></td><td>原因：Test Hook ・ 何が起きているか：SUT の中の条件の処理が、本物（real）のコードを動かすか、テストのための処理を動かすかを切り替える</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-13）── 判断基準 test-logic-in-production</small></td></tr><tr><td><span class="part">公開と版の一致を後に回すこと</span></td><td>新しい形の Skill が1件しか無いあいだは、全 Skill の版の一致を検査する対象が無い</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-13）── 判断基準 （今決めなくてよい論点）</small></td></tr><tr><td><span class="part">手元の gh が attestation を持たないこと</span></td><td>gh version 2.46.0 で gh attestation を呼ぶと unknown command &quot;attestation&quot; で終わる</td><td><span class="kind k-fact">実測</span><small>このリポジトリの手元（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（5件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>基盤の dist.json の型（schema-driven/dist@v1）に欄を足して使う</b></td><td>基盤の契約を上の Skill の都合で変えることになる。基盤は上の Skill を知らない</td></tr><tr><td><b>gh が無ければ SHA-256 だけで進む</b></td><td>同じ Release から取るので、来歴を確かめない</td></tr><tr><td><b>Skill のフォルダへ直接書きながら進める</b></td><td>途中で失敗すると、照合していない写しや、中身と食い違う dist.json が残る</td></tr><tr><td><b>手元でビルドした基盤のエンジンを写す</b></td><td>公開して照合した版と、配る Skill の中のエンジンが別物になる</td></tr><tr><td><b>上の Skill ごとに公開のワークフローを複製する</b></td><td>15件の写しになり、雛形を直しても既存のものに届かない。公開は2件目のときに、共通の1本として決める</td></tr></table></div></div></details><div class="form" data-topic="Q3"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>skills-creator のコードをどう組み、自分の Skill のフォルダをどう作るか</h2></div><div class="ans"><span class="lead">src/skills-creator を基盤と同じ CODING.md ・ ヘキサゴナル（core と adapters）・ xtask の形で作り直す。xtask は skills-creator をビルドし、その配る手順で自分のフォルダを作る。</span><ul><li>src/skills-creator/CODING.md を置き、基盤の CODING.md と同じ規則（層 ・ crate ・ 試験 ・ 検査の順）に従う</li><li>crate は core（domain ・ application ・ port）と adapters（CLI の受け口 ・ ファイル ・ 基盤のエンジンの呼び出し ・ Release の取得と照合）の2つ</li><li>xtask は cargo のビルドだけを行い、フォルダを作る仕事は skills-creator の dist を呼ぶ。配る手順を xtask と skills-creator の2か所に書かない</li><li>いまのコード（check.rs など）と、古い形との移り方の試験（migration.rs ・ baseline-v3）は残さずに作り直す</li><li>雛形（SKILL.md ・ スキーマ ・ 入口のソース）と型のスキーマは、Skill のフォルダの assets/ に置く</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="5" data-ixp="0"><pre><code>src/skills-creator/
+  Cargo.toml          workspace（crates/* と xtask）。版の1か所
+  CODING.md
+  crates/core         domain ・ application ・ port
+  crates/adapters     CLI ・ ファイル ・ エンジンの呼び出し ・ Release の取得と照合
+  xtask/              ビルドしてから、skills-creator dist を呼ぶ
+
+$ cd src/skills-creator &amp;&amp; cargo xtask skill --engine 0.1.0
+  1. cargo build（skills-creator の入口）
+  2. ビルドした skills-creator で dist .claude/skills/skills-creator --engine 0.1.0</code></pre><p class="note-s">作り直したあとの src/skills-creator と、自分のフォルダの作り方。</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">基盤と同じ設計標準にそろえること</span></td><td>ベストプラクティス：「設計標準を共有する」 ・ 望ましい成果：設計標準がチームの間で共有されている。設計標準は文書として残り、ベストプラクティスが変わるたびに書き直される</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 ops-05</small></td></tr><tr><td><span class="part">配る手順を1か所に置くこと</span></td><td>xtask がフォルダも作ると、配る手順が xtask と skills-creator の2か所に分かれる</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-13）── 判断基準 （見解4の条件）</small></td></tr><tr><td><span class="part">古い形を残さないこと</span></td><td>「まだ一回も配布をしていない」ので後方互換は求めない</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-12）</small></td></tr><tr><td><span class="part">いまのコードの形</span></td><td>1つの crate（main.rs ・ check.rs 637行 ・ read.rs ・ scaffold.rs ・ engine.rs）で、CODING.md もヘキサゴナルの分け方も無い</td><td><span class="kind k-fact">実測</span><small>src/skills-creator（2026-10-13）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>いまの1つの crate のまま直す</b></td><td>基盤と規則が分かれ、check のような判定と入出力が同じ所に混ざったまま残る</td></tr><tr><td><b>xtask にフォルダを作る仕事も持たせる（基盤と同じ形）</b></td><td>skills-creator の配る手順と同じことを2か所に書く。上の Skill には xtask が無いので、手順が分かれる</td></tr><tr><td><b>古い移り方の試験を残す</b></td><td>古い形は考慮しないと決めた</td></tr></table></div></div></details><div class="form" data-topic="Q4"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 5</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
