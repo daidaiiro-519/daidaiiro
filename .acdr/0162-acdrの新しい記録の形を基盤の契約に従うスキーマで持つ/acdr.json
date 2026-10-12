@@ -1,0 +1,87 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0162",
+ "title": "acdr の新しい記録の形を、基盤の契約に従うスキーマで持つ",
+ "date": "2026-10-08",
+ "status": "proposed",
+ "decision": "acdr は、新しい記録の形を基盤の契約（meta-schema）に従うスキーマ record.schema.json で持ち、それより前の記録は acdr.schema.json の形のまま残す",
+ "why": "ボード acdr-redesign で、判定の面 ・ どう変わるか ・ 学び ・ コミットの単位を決めた。いまの acdr.schema.json は基盤の契約に従っておらず（kind ・ 欄ごとの案内が無い）、どう変わるかは文しか書けず、学びの欄もコミットの欄も無い。描画しない古い欄も書けてしまう。いまの acdr のツールは acdr.schema.json を読み続けるので、書き換えずに別のファイルとして足す。",
+ "shift": [
+  {
+   "what": "記録の契約",
+   "from": "acdr.schema.json の1つ。基盤の契約に従わない",
+   "to": "新しい記録は record.schema.json（kind は acdr、欄ごとに description と x-prompt）。kind を持たない記録は acdr.schema.json のまま"
+  },
+  {
+   "what": "どう変わるかの書き方",
+   "from": "from と to は文だけ",
+   "to": "文 ・ 短い語 ・ 並び（配列）・ 置き換えの組（rows）・ null（足しただけ ・ なくしただけ）"
+  },
+  {
+   "what": "書ける欄",
+   "from": "描画しない how ・ applies_to ・ after_approval ・ lede ・ intro も書ける。学びとコミットの欄は無い",
+   "to": "古い欄は書けない。対象のファイルごとに学びの欄、記録ごとに commit の欄がある"
+  },
+  {
+   "what": "状態の語",
+   "from": "提案 ── 承認前。適用してはならない ／ 承認 ／ 差し替え済み",
+   "to": "承認待ち ／ 承認済み ／ 差し替え済み"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "kind を持たない記録は acdr.schema.json のまま残り、次の記録から record.schema.json に従う。",
+ "alternatives": [
+  {
+   "option": "acdr.schema.json を新しい形に書き換える",
+   "why_not": "いまの acdr のツールが同じファイルを読むので、作り直しが終わるまで記録が作れなくなる。それより前の記録も、新しい形の検査に落ちる"
+  },
+  {
+   "option": "それより前の記録も新しい形へ写す",
+   "why_not": "承認済みの記録は承認時点の姿を保持する。写すと、その決まりに反する"
+  },
+  {
+   "option": "from と to を文のままにし、描画で並びを判定する",
+   "why_not": "試すと、0155 の「論点1 ・ 4」を2つの項目に割った。並びは書き手が配列で書く"
+  },
+  {
+   "option": "境目を番号（0156 まで）で書く",
+   "why_not": "作り直しが終わるまでのあいだも、ほかのセッションが古い形の記録を起こす（0157〜0161）。kind の有無で分ければ、番号に依らない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "record_schema",
+   "tab": "references/record.schema.json",
+   "file": ".claude/skills/acdr/references/record.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"const\": \"acdr\"",
+     "before": "（無かった）",
+     "why": "基盤の契約は、インスタンスを作るスキーマに x-generates と、根の kind（const）を求める。kind が acdr の記録だけが、この形に従う"
+    },
+    {
+     "find": "\"title\": \"承認待ち\"",
+     "before": "提案 ── 承認前。適用してはならない",
+     "why": "状態は、待っているのか済んだのかが語から分かる言い方にする（ボード acdr-redesign で決めた判定の面）"
+    },
+    {
+     "find": "\"commit\": {",
+     "before": "（無かった）",
+     "why": "記録1件をコミット1つにし、承認して適用したコミットを記録に書く。差分の面を、そのコミットの親との差で描き直せる"
+    },
+    {
+     "find": "\"rows\": {",
+     "before": "（無かった）",
+     "why": "どう変わるかを、文 ・ 短い語 ・ 並び ・ 置き換えの組 ・ null で書けるようにする。並びは書き手が配列で書き、描画は文字列から並びを判定しない"
+    },
+    {
+     "find": "\"lesson\": {",
+     "before": "（無かった）",
+     "why": "コードの差分に「学ぶ」を足すための欄。行 ・ 仕組み ・ 領域ごとの層（レベル ・ 本文 ・ 記号の分解 ・ 原典の引用 ・ 確かめる問い）を持つ。言語の名前と領域の名前は持たない"
+    }
+   ]
+  }
+ ]
+}

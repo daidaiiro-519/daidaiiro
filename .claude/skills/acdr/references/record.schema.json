@@ -1,0 +1,709 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "record.schema.json",
+ "title": "意思決定の記録",
+ "description": "決定1件を、判定の面（決めたこと ・ なぜ ・ どう変わるか ・ 比較した案）と、差分の面（対象のファイルごとの変更箇所と理由、コードの学び）で持つ。変更後の中身は対象のファイルが持ち、ここには書かない。kind を持たない記録（この形より前のもの）は、acdr.schema.json の形のまま残す。",
+ "x-prompt": {
+  "read": "承認者は判定の面だけを読んで「この決定を適用してよいか」に答え、何を変えたかを確かめるときに差分の面を開く。承認のあとに「改訂してよいか」を読むときも、判定の面で答える。",
+  "write": "決定は1件だけにする。2件あるなら記録を分ける。承認したら、その記録と適用の差分を1つのコミットに入れる。"
+ },
+ "x-generates": ".acdr/<番号>-<短い名詞句>/acdr.json",
+ "x-view": {
+  "label": "title"
+ },
+ "type": "object",
+ "required": [
+  "kind",
+  "id",
+  "title",
+  "date",
+  "status",
+  "decision",
+  "why",
+  "shift",
+  "alternatives"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "description": "このインスタンスが従うスキーマ",
+   "x-prompt": {
+    "read": "スキーマのファイルへの相対パスとして読む。",
+    "write": "acdr.json から見た record.schema.json の相対パスを書く。"
+   },
+   "type": "string"
+  },
+  "kind": {
+   "description": "インスタンスの種類",
+   "x-prompt": {
+    "read": "意思決定の記録であることを示す。",
+    "write": "acdr と書く。"
+   },
+   "const": "acdr"
+  },
+  "id": {
+   "description": "記録の番号（置き場所のフォルダ名の先頭の4桁）",
+   "x-prompt": {
+    "read": "記録を指すときの番号として読む。画面では「ACDR 0157」のように出る。",
+    "write": "置き場所のフォルダ名の先頭と同じ4桁の数字を書く。"
+   },
+   "type": "string",
+   "pattern": "^[0-9]{4}$"
+  },
+  "title": {
+   "description": "記録の題",
+   "x-prompt": {
+    "read": "ページの見出しとして読む。",
+    "write": "決めたことを短い名詞句で書く。"
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "date": {
+   "description": "決めた日",
+   "x-prompt": {
+    "read": "提案した日として読む。",
+    "write": "YYYY-MM-DD で書く。"
+   },
+   "type": "string",
+   "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+  },
+  "status": {
+   "description": "承認の状態",
+   "x-prompt": {
+    "read": "画面では語（承認待ち ・ 承認済み ・ 差し替え済み）で出る。承認待ちの記録を、正本へ適用してはならない。",
+    "write": "起こしたときは proposed。承認を受けたら accepted。後の記録が置き換えたら superseded にして、置き換えた記録の番号を superseded_by に書く。"
+   },
+   "oneOf": [
+    {
+     "const": "proposed",
+     "title": "承認待ち"
+    },
+    {
+     "const": "accepted",
+     "title": "承認済み"
+    },
+    {
+     "const": "superseded",
+     "title": "差し替え済み"
+    }
+   ]
+  },
+  "decision": {
+   "description": "決めたこと（1件）",
+   "x-prompt": {
+    "read": "承認者が最初に読む1文として読む。",
+    "write": "何を採るかを1文で書く。手段は書かない（手段は差分の面の変更箇所と理由が示す）。2つ目の決定が入るなら、記録を分ける。"
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "why": {
+   "description": "なぜ決める必要があるか",
+   "x-prompt": {
+    "read": "何と食い違っていて、何に合わせたかとして読む。",
+    "write": "何と食い違っていて、何に合わせたかを4行までで書く。"
+   },
+   "type": "string",
+   "minLength": 1
+  },
+  "figure": {
+   "description": "どう変わるかの図（同じフォルダの SVG のファイル名）",
+   "x-prompt": {
+    "read": "どう変わるかの節の上に出る図として読む。",
+    "write": "図が必要なときだけ、design-svg で検査した SVG を同じフォルダに置き、そのファイル名を書く。この Skill は図を描かない。"
+   },
+   "type": "string",
+   "pattern": "\\.svg$"
+  },
+  "figure_caption": {
+   "description": "図が示すもの",
+   "x-prompt": {
+    "read": "図の下の1文として読む。",
+    "write": "図が示すものを1文で書く。色だけで区別を伝えない。"
+   },
+   "type": "string"
+  },
+  "shift": {
+   "description": "どう変わるか（使う側から見た変化）",
+   "x-prompt": {
+    "read": "1件ごとに、変更前の枠 → 変更後の枠の行で出る。枠の中身は、短い語 ・ 並び ・ 文のどれかで描画が決める。",
+    "write": "使う側から見た変化を、3件までを目安に書く。from と to は、並びなら配列、短い語どうしなら短い文字列で書く。文字列の中の「 ・ 」区切りは並びとして扱わない。変わらないこと（残したもの ・ 扱わないもの）は書かない。"
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/change"
+   }
+  },
+  "alternatives": {
+   "description": "比較した案と、採らなかった理由",
+   "x-prompt": {
+    "read": "案ごとのカードで出る。どれも反証を通過しなかった案で、未解決の懸念ではない。",
+    "write": "比べた案ごとに、案と採らなかった理由（何が成立しないか）を1文で書く。"
+   },
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/alternative"
+   }
+  },
+  "superseded_by": {
+   "description": "この記録を置き換えた記録の番号",
+   "x-prompt": {
+    "read": "状態が superseded のときに、後の記録を指す。",
+    "write": "状態を superseded にしたときだけ、置き換えた記録の4桁の番号を書く。"
+   },
+   "type": "string",
+   "pattern": "^[0-9]{4}$"
+  },
+  "supersedes": {
+   "description": "この記録が置き換えた記録の番号",
+   "x-prompt": {
+    "read": "前の決定を置き換えたことを示す。",
+    "write": "前の記録を置き換えるときだけ、その4桁の番号を書く。前の記録の状態も superseded にする。"
+   },
+   "type": "string",
+   "pattern": "^[0-9]{4}$"
+  },
+  "commit": {
+   "description": "承認して適用したコミット",
+   "x-prompt": {
+    "read": "この記録と適用の差分を入れたコミットとして読む。差分の面は、このコミットの親との差で描き直せる。",
+    "write": "承認して適用し、コミットしたあとに、そのコミットのハッシュを書く。"
+   },
+   "type": "string",
+   "pattern": "^[0-9a-f]{7,40}$"
+  },
+  "docs": {
+   "description": "差分の面に並ぶ対象のファイル",
+   "x-prompt": {
+    "read": "ファイルごとのタブになる。中身はファイルの種類で決まる（コードは統合差分、Markdown と HTML は描画した見た目に印）。",
+    "write": "変える正本のファイルを1件ずつ書く。新しく作る決定で変えるファイルが無いなら、空にする。"
+   },
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/doc"
+   }
+  },
+  "seal": {
+   "description": "承認時点の対象のファイルの sha256",
+   "x-prompt": {
+    "read": "承認済みの記録は、この時点の姿を保持する。ファイルが変わったあとで描き直すと、承認時点の姿が失われる。",
+    "write": "手で書かない。承認後の最初の描画が書く。"
+   },
+   "type": "object",
+   "additionalProperties": {
+    "type": "string",
+    "pattern": "^[0-9a-f]{64}$"
+   }
+  }
+ },
+ "$defs": {
+  "change": {
+   "type": "object",
+   "required": [
+    "what"
+   ],
+   "additionalProperties": false,
+   "description": "どう変わるかの1件",
+   "x-prompt": {
+    "read": "見出し（what）の下に、変更前の枠 → 変更後の枠が1行か、組の数だけ並ぶ。",
+    "write": "from と to を書くか、置き換えの組が複数あるなら rows に書く。どちらか一方だけにする。"
+   },
+   "properties": {
+    "what": {
+     "description": "何が変わるか（見出し）",
+     "x-prompt": {
+      "read": "行の上の見出しとして読む。",
+      "write": "使う側から見たものの名前を短く書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "from": {
+     "description": "変更前",
+     "x-prompt": {
+      "read": "変更前の枠に出る。null なら「（無かった）」の点線の枠になる。",
+      "write": "文、短い語、または並び（配列）で書く。足しただけなら null にする。"
+     },
+     "$ref": "#/$defs/side"
+    },
+    "to": {
+     "description": "変更後",
+     "x-prompt": {
+      "read": "変更後の枠に出る。null なら「（なくなる）」の点線の枠になる。",
+      "write": "from と同じ形で書く。from と to が両方とも並びなら、なくなる項目と新しく入る項目に印が付く。なくしただけなら null にする。"
+     },
+     "$ref": "#/$defs/side"
+    },
+    "count": {
+     "description": "件数",
+     "x-prompt": {
+      "read": "変更後の枠の右に出る。",
+      "write": "置き換えた箇所の数などを「92件」のように書く。"
+     },
+     "type": "string"
+    },
+    "rows": {
+     "description": "置き換えの組の並び",
+     "x-prompt": {
+      "read": "同じ見出しの下に、同じ形の行が重なる。",
+      "write": "語の置き換えが複数あるときに、組ごとに from ・ to ・ count を書く。"
+     },
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/pair"
+     }
+    },
+    "note": {
+     "description": "補足",
+     "x-prompt": {
+      "read": "行の下に小さく出る。",
+      "write": "枠に入らない補足があるときだけ、1文で書く。"
+     },
+     "type": "string"
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "from",
+      "to"
+     ],
+     "not": {
+      "required": [
+       "rows"
+      ]
+     }
+    },
+    {
+     "required": [
+      "rows"
+     ],
+     "not": {
+      "anyOf": [
+       {
+        "required": [
+         "from"
+        ]
+       },
+       {
+        "required": [
+         "to"
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "side": {
+   "description": "変更前か変更後の枠の中身",
+   "oneOf": [
+    {
+     "type": "string",
+     "minLength": 1
+    },
+    {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    {
+     "type": "null"
+    }
+   ]
+  },
+  "pair": {
+   "type": "object",
+   "required": [
+    "from",
+    "to"
+   ],
+   "additionalProperties": false,
+   "description": "置き換えの組1つ",
+   "x-prompt": {
+    "read": "変更前の語 → 変更後の語の1行として読む。",
+    "write": "置き換えた語と、置き換えた先の語と、件数を書く。"
+   },
+   "properties": {
+    "from": {
+     "description": "変更前の語",
+     "x-prompt": {
+      "read": "変更前の枠に出る。",
+      "write": "置き換えた語を書く。廃語などの語そのものを示すなら「」で囲む。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "to": {
+     "description": "変更後の語",
+     "x-prompt": {
+      "read": "変更後の枠に出る。",
+      "write": "置き換えた先の語を書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "count": {
+     "description": "件数",
+     "x-prompt": {
+      "read": "変更後の枠の右に出る。",
+      "write": "置き換えた箇所の数を「92件」のように書く。"
+     },
+     "type": "string"
+    }
+   }
+  },
+  "alternative": {
+   "type": "object",
+   "required": [
+    "option",
+    "why_not"
+   ],
+   "additionalProperties": false,
+   "description": "比較した案1つ",
+   "x-prompt": {
+    "read": "案と、採らなかった理由のカードとして読む。",
+    "write": "案を名詞句で、採らなかった理由を1文で書く。"
+   },
+   "properties": {
+    "option": {
+     "description": "案",
+     "x-prompt": {
+      "read": "カードの見出しとして読む。",
+      "write": "比べた案を名詞句で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "why_not": {
+     "description": "採らなかった理由",
+     "x-prompt": {
+      "read": "何が成立しないかとして読む。",
+      "write": "その案で何が成立しないかを1文で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "doc": {
+   "type": "object",
+   "required": [
+    "file",
+    "marks"
+   ],
+   "additionalProperties": false,
+   "description": "対象のファイル1件",
+   "x-prompt": {
+    "read": "差分の面のタブ1つとして読む。",
+    "write": "ファイルのパスと、変更箇所ごとの3つ組（どこ ・ 何から ・ なぜ）を書く。コードのファイルには、学びを足してよい。"
+   },
+   "properties": {
+    "file": {
+     "description": "リポジトリの根からの相対パス",
+     "x-prompt": {
+      "read": "タブの名前と、変更前を git から取るときのパスとして読む。",
+      "write": "リポジトリの根からの相対パスを書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "rev": {
+     "description": "変更前を取る git の版",
+     "x-prompt": {
+      "read": "変更前を git show <rev>:<パス> で取る。無ければ HEAD。",
+      "write": "HEAD 以外から取るときだけ書く。"
+     },
+     "type": "string"
+    },
+    "marks": {
+     "description": "変更箇所と理由",
+     "x-prompt": {
+      "read": "変更箇所ごとに印が付き、押すと変更前と理由が開く。",
+      "write": "変更1件ごとに、どこ ・ 変更前の原文 ・ なぜを書く。理由が書けない変更は記録に入れない。"
+     },
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/mark"
+     }
+    },
+    "learning": {
+     "description": "コードの学び",
+     "x-prompt": {
+      "read": "コードの差分の「学ぶ」で、行ごとのカードとして出る。",
+      "write": "手で書かない。学習の Skill が、学ぶ人のレベルに合わせて書く。"
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/lesson"
+     }
+    }
+   }
+  },
+  "mark": {
+   "type": "object",
+   "required": [
+    "find",
+    "why"
+   ],
+   "additionalProperties": false,
+   "description": "変更1件の3つ組",
+   "x-prompt": {
+    "read": "どこ ・ 何から ・ なぜの3つとして読む。",
+    "write": "find は描画したあとの本文に現れる文字列で書く（記法を含めない）。before は原文を要約せずに書く。"
+   },
+   "properties": {
+    "find": {
+     "description": "どこ（描画したあとの本文に現れる文字列）",
+     "x-prompt": {
+      "read": "この文字列の位置に印が付く。",
+      "write": "変更後の本文にそのまま現れる文字列を書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "before": {
+     "description": "変更前の原文（平文）",
+     "x-prompt": {
+      "read": "印を押すと開く変更前として読む。コードでは統合差分の - の行が示すので省いてよい。",
+      "write": "変更前の原文をそのまま書く。新しく足した箇所なら「（無かった）」と書く。"
+     },
+     "type": "string"
+    },
+    "why": {
+     "description": "なぜ（平文）",
+     "x-prompt": {
+      "read": "何と食い違っていて、何に合わせたかとして読む。",
+      "write": "変更の言い換えではなく、何と何を合わせたかを書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  },
+  "lesson": {
+   "type": "object",
+   "required": [
+    "line",
+    "concept",
+    "layers"
+   ],
+   "additionalProperties": false,
+   "description": "コードの1行ぶんの学び",
+   "x-prompt": {
+    "read": "行番号から学びのカードへつながる。カードは領域ごとの層を持つ。",
+    "write": "学ぶ人のレベルの設定に合わせて、領域ごとの層を書く。"
+   },
+   "properties": {
+    "line": {
+     "description": "変更後のファイルの行番号",
+     "x-prompt": {
+      "read": "この行の学びとして読む。",
+      "write": "変更後のファイルの行番号を書く。"
+     },
+     "type": "integer",
+     "minimum": 1
+    },
+    "concept": {
+     "description": "この行で使っている仕組みの名前",
+     "x-prompt": {
+      "read": "カードの見出しとして読む。",
+      "write": "仕組みを短い名詞句で書く。原典の識別子はそのまま使う（例：trait）。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "layers": {
+     "description": "領域ごとの解説",
+     "x-prompt": {
+      "read": "領域ごとに、そのレベルの深さで出る。熟練の層は畳んで出る。",
+      "write": "学ぶ人が設定した領域ごとに1つずつ書く。"
+     },
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/layer"
+     }
+    }
+   }
+  },
+  "layer": {
+   "type": "object",
+   "required": [
+    "area",
+    "level"
+   ],
+   "additionalProperties": false,
+   "description": "1つの領域の解説",
+   "x-prompt": {
+    "read": "領域の名前とレベルを見出しに、本文 ・ 記号の分解 ・ 原典の引用 ・ 確かめる問いを読む。",
+    "write": "入門の領域は手厚く書き、書き方の領域なら tokens で1行を記号に分ける。熟練の領域は1行にする。"
+   },
+   "properties": {
+    "area": {
+     "description": "領域の名前",
+     "x-prompt": {
+      "read": "層の見出しとして読む。",
+      "write": "学ぶ人の設定にある領域の名前を書く（例：書き方（文法）、所有権と借用）。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "level": {
+     "description": "この領域のレベル",
+     "x-prompt": {
+      "read": "解説の深さとして読む。",
+      "write": "学ぶ人の設定のレベルを書く。"
+     },
+     "oneOf": [
+      {
+       "const": "beginner",
+       "title": "入門"
+      },
+      {
+       "const": "standard",
+       "title": "標準"
+      },
+      {
+       "const": "expert",
+       "title": "熟練"
+      }
+     ]
+    },
+    "body": {
+     "description": "解説の本文",
+     "x-prompt": {
+      "read": "この行でその仕組みがどう使われているかとして読む。",
+      "write": "この行に当てはめて書く。一般論だけにしない。"
+     },
+     "type": "string"
+    },
+    "tokens": {
+     "description": "1行を記号の単位に分けた解説",
+     "x-prompt": {
+      "read": "記号と、その意味の並びとして読む。",
+      "write": "書き方の領域が入門のときに、1行を記号の単位に分けて、1つずつ意味を書く。"
+     },
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/token"
+     }
+    },
+    "quote": {
+     "description": "この層の原典の引用",
+     "x-prompt": {
+      "read": "層の本文の根拠として読む。",
+      "write": "本文が原典の記述に依るときに、取得して照合した原文を書く。"
+     },
+     "$ref": "#/$defs/quote"
+    },
+    "question": {
+     "description": "確かめる問い",
+     "x-prompt": {
+      "read": "開くと答えが出る問いとして読む。",
+      "write": "この行を理解したかを確かめる問いを1つ書く。"
+     },
+     "type": "string"
+    },
+    "answer": {
+     "description": "確かめる問いの答え",
+     "x-prompt": {
+      "read": "問いを開いたときに出る。",
+      "write": "問いの答えを1〜2文で書く。"
+     },
+     "type": "string"
+    }
+   }
+  },
+  "token": {
+   "type": "object",
+   "required": [
+    "code",
+    "meaning"
+   ],
+   "additionalProperties": false,
+   "description": "記号1つの解説",
+   "x-prompt": {
+    "read": "コードの一部と、その意味として読む。",
+    "write": "コードの一部をそのまま書き、その意味を1文で書く。"
+   },
+   "properties": {
+    "code": {
+     "description": "コードの一部",
+     "x-prompt": {
+      "read": "行の中の記号の並びとして読む。",
+      "write": "行の中の文字列をそのまま書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "meaning": {
+     "description": "意味",
+     "x-prompt": {
+      "read": "その記号が、この行で何をしているかとして読む。",
+      "write": "この行で何をしているかを1文で書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "quote": {
+     "description": "この記号の原典の引用",
+     "x-prompt": {
+      "read": "記号の意味の根拠として読む。",
+      "write": "意味が原典の記述に依るときに、取得して照合した原文を書く。"
+     },
+     "$ref": "#/$defs/quote"
+    }
+   }
+  },
+  "quote": {
+   "type": "object",
+   "required": [
+    "text",
+    "source"
+   ],
+   "additionalProperties": false,
+   "description": "原典の引用（原文を取得して照合したものだけ）",
+   "x-prompt": {
+    "read": "原典の原文のまま読む。出どころから原典を開ける。",
+    "write": "原文を取得し、文字列で照合した引用だけを書く。要約しない。"
+   },
+   "properties": {
+    "text": {
+     "description": "原文",
+     "x-prompt": {
+      "read": "原典の文そのものとして読む。",
+      "write": "原文の文字列をそのまま書く。"
+     },
+     "type": "string",
+     "minLength": 1
+    },
+    "source": {
+     "description": "出どころの URL",
+     "x-prompt": {
+      "read": "原典を開くリンクとして読む。",
+      "write": "原文を取得した URL を書く。"
+     },
+     "type": "string",
+     "pattern": "^https?://"
+    },
+    "title": {
+     "description": "出どころの名前",
+     "x-prompt": {
+      "read": "リンクの文字として読む。",
+      "write": "原典の名前と章 ・ 節を書く（例：The Rust Programming Language 13.1）。"
+     },
+     "type": "string"
+    }
+   }
+  }
+ }
+}
