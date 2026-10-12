@@ -23,9 +23,11 @@ def boxes(svg):
 
 def rects(svg, fill=False):
     out = []
-    for m in re.finditer(r'<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)" rx="[\d.]+" fill="([^"]+)"', svg):
+    for m in re.finditer(r'<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)" rx="[\d.]+" fill="([^"]+)"[^>]*>', svg):
         box = (float(m[1]), float(m[2]), float(m[1]) + float(m[3]), float(m[2]) + float(m[4]))
-        out.append(box + (m[5],) if fill else box)
+        stroke = re.search(r'\bstroke="([^"]+)"', m[0])
+        role = (m[5], stroke[1] if stroke else 'none')
+        out.append(box + (role,) if fill else box)
     return out
 
 def circles(svg):
@@ -57,7 +59,7 @@ def check(name, svg):
             if near < r * r and not (abs(cx - ccx) ** 2 + abs(cy - ccy) ** 2 < (r * 0.8) ** 2):
                 bad.append(f'円の縁に掛かる [{s}]')
     # 同じ段に並ぶ箱は、幅・高さ・間隔を揃える ── 揃っていないと、揺らぎとして見える
-    # 役割（塗り）が同じ箱どうしで見る ── 役割が違う箱は、幅が違ってよい
+    # 役割（塗りと枠線）が同じ箱どうしで見る ── 役割が違う箱は、幅が違ってよい
     # 別の枠に入った箱は、同じ高さでも別の段である。いちばん内側の囲む枠ごとに分ける
     all_r = rects(svg, fill=True)
     def parent(r):

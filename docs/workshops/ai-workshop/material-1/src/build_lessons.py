@@ -28,13 +28,23 @@ import end_visuals as EV         # 終わりに
 import bridge_visuals as BV      # 動画のつなぎ（導入とまとめ）
 import v1_visuals as V1          # 1本目（組み直した図）
 
+import orientation_current_visuals as OV
 import summary_visuals as SM
 V.cover = SM.cover
 
 FIG = {
- # はじめに
- 'I0-S0A': IV.i0_why, 'I0-S0B': IV.i0_scene, 'I0-S0C': IV.i0_dig, 'I0-S1': IV.i0_case,
- 'I0-S2': IV.i0_usecases, 'I0-S3': IV.i0_usecase, 'I0-S3B': IV.i0_next2, 'I0-S3C': IV.i0_next3, 'I0-S4': IV.i0_journey, 'I0-S5': IV.i0_base, 'I0-SE': IV.i0_effect, 'I0-SP': IV.i0_flow, 'I0-SB': IV.i0_books,
+ # オリエンテーション（確認済みの正式版）
+ 'I0-CONTEXT': OV.FIG['I0-CONTEXT'],
+ 'I0-ACTION-02': OV.FIG['I0-ACTION-02'],
+ 'I0-ACTION-03': OV.FIG['I0-ACTION-03'],
+ 'I0-ACTION-04': OV.FIG['I0-ACTION-04'],
+ 'I0-ACTION-05': OV.FIG['I0-ACTION-05'],
+ 'I0-ACTION-06': OV.FIG['I0-ACTION-06'],
+ 'I0-ACTION-07': OV.FIG['I0-ACTION-07'],
+ 'I0-ACTION-08': OV.FIG['I0-ACTION-08'],
+ 'I0-ACTION-09': OV.FIG['I0-ACTION-09'],
+ 'I0-ACTION-10': OV.FIG['I0-ACTION-10'],
+ 'I0-SUMMARY': OV.FIG['I0-SUMMARY'],
  # 教材1のはじめに
  'M1-S1': IV.i1_goal, 'M1-S2': IV.m1_task, 'M1-S3': IV.m1_map,
  'L1-S0': V1.ask, # 1本目　原因を知る
@@ -124,11 +134,14 @@ def build(lesson_path):
     out = []
     for i, s in enumerate(slides, 1):
         heading = 'h1' if i == 1 else 'h2'
+        title_html = esc(s['title'])
+        if no == 0:
+            title_html = title_html.replace('。仕事全体', '。<br>仕事全体')
         out.append(
             f'<section class="slide {s["cls"]}" aria-label="{i}: {esc(s["title"])}">\n'
             f'<div class="kicker"><span class="ws-mark" aria-hidden="true"></span>'
-            f'<span class="ws-kicker-label">{no}本目　{esc(name)}　／　{i - 1}／{len(slides) - 1}</span></div>\n'
-            f'<{heading}>{esc(s["title"])}</{heading}>\n'
+            f'<span class="ws-kicker-label">{no}本目　{esc(name)}　／　{i if no == 0 else i - 1}／{len(slides) if no == 0 else len(slides) - 1}</span></div>\n'
+            f'<{heading}>{title_html}</{heading}>\n'
             f'<p class="ws-intro">{esc(s["intro"])}</p>\n'
             f'<div class="body">{s["body"]}</div>\n</section>')
     suffix = template[template.index('<div class="chrome">'):]
