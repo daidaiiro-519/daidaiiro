@@ -3,7 +3,7 @@
  "kind": "board",
  "id": "schema-driven-release",
  "title": "基盤 schema-driven を自分で Skill にして公開する",
- "round": 1,
+ "round": 2,
  "intro": "schema-driven を完成させる残りとして、基盤が自分で Skill のフォルダを作り、版を決め、3つの OS 向けに署名を付けて公開し、受け取る側が確かめられるようにする仕組みを決める。",
  "queue": [
   {
@@ -24,7 +24,7 @@
   },
   {
    "topic": "Q4",
-   "why": "古い release.yml が、基盤の tag とまとめ公開の両方で基盤を拾う"
+   "why": "古い形は考慮しないと決めたが、古い release.yml が基盤の tag でも動く"
   }
  ],
  "topics": [
@@ -136,14 +136,15 @@
    "id": "Q1",
    "name": "Skill のフォルダを作る手順",
    "status": "open",
-   "question": "基盤の Skill のフォルダ（scripts/ と assets/）を、ソースから作る手順を、どこに何で持つか",
+   "question": "基盤の Skill のフォルダ（scripts/bin/ と assets/）を、ソースから作る手順を、どこに何で持つか",
    "answer": {
     "text": "src/schema-driven の workspace に、製品に入らないツールの crate として xtask を置く。cargo xtask skill --out <Skill のフォルダ> が、ビルドから dist.json までを行う。",
     "details": [
      "xtask は workspace の根の xtask/ に置く。crates/ の外なので、製品の crate（core と adapters）とは並びが分かれる",
      "xtask の仕事は3つに分ける ── build（cargo build を呼ぶ。--target を渡せばその OS 向け）・ skill（置く ・ SHA-256 を取る ・ dist.json を書く）・ verify（展開した場所で起動を確かめる）",
-     "skill は、scripts/ へ実行ファイル2つ、assets/ へ crates/core/schemas/ の写し、Skill のフォルダの根へ dist.json を置く。SKILL.md と LICENSE は git で追跡したまま触らない",
+     "skill は、scripts/bin/ へ実行ファイル2つ、assets/ へ crates/core/schemas/ の写し、Skill のフォルダの根へ dist.json を置く。SKILL.md と LICENSE は git で追跡したまま触らない",
      "置き先は --out で受け取り、xtask の中に .claude/ への道を書かない",
+     "ビルドした実行ファイルは scripts/bin/ に置き、scripts/ の直下は人や AI が読める言語で書いたスクリプトのために空けておく。SKILL.md ・ .mcp.json の呼び先も scripts/bin/ へ直す",
      "dist.json は、名前 ・ 版 ・ target ・ abstract スキーマの $id ・ ファイルごとの SHA-256 を持つ。形はスキーマ（xtask/dist.schema.json）で決める",
      "verify は rmcp のクライアントで tools/list を呼ぶ。ワークフローに JSON-RPC を手で書かない",
      "CODING.md の crate の規則を「製品の crate は core と adapters の2つ。xtask はツールの crate で、製品の crate は xtask に依存しない」へ直し、検査も合わせる",
@@ -155,13 +156,13 @@
      "kind": "code",
      "language": "text",
      "caption": "変更後の src/schema-driven と、手順の呼び方。",
-     "text": "src/schema-driven/\n  Cargo.toml                 [workspace] members = [\"crates/*\", \"xtask\"]\n  .cargo/config.toml         [alias] xtask = \"run --package xtask --\"\n  CODING.md                  crate の規則に xtask の1行を足す\n  crates/core                製品（エンジンの中身）\n  crates/adapters            製品（CLI と MCP の実行ファイル）\n  xtask/                     ツール（製品に入らない）\n    src/main.rs              build ・ skill ・ verify\n    dist.schema.json         dist.json の形\n\n呼び方\n  cargo xtask skill --out ../../.claude/skills/schema-driven\n  cargo xtask skill --out dist/schema-driven --target x86_64-pc-windows-msvc\n  cargo xtask verify --dir dist/schema-driven\n\nできる Skill のフォルダ\n  SKILL.md ・ LICENSE          git で追跡（xtask は触らない）\n  scripts/schema-driven        実行ファイル\n  scripts/schema-driven-mcp    実行ファイル\n  assets/*.schema.json         crates/core/schemas/ の写し（7つ）\n  dist.json                    版 ・ target ・ $id ・ SHA-256"
+     "text": "src/schema-driven/\n  Cargo.toml                 [workspace] members = [\"crates/*\", \"xtask\"]\n  .cargo/config.toml         [alias] xtask = \"run --package xtask --\"\n  CODING.md                  crate の規則に xtask の1行を足す\n  crates/core                製品（エンジンの中身）\n  crates/adapters            製品（CLI と MCP の実行ファイル）\n  xtask/                     ツール（製品に入らない）\n    src/main.rs              build ・ skill ・ verify\n    dist.schema.json         dist.json の形\n\n呼び方\n  cargo xtask skill --out ../../.claude/skills/schema-driven\n  cargo xtask skill --out dist/schema-driven --target x86_64-pc-windows-msvc\n  cargo xtask verify --dir dist/schema-driven\n\nできる Skill のフォルダ\n  SKILL.md ・ LICENSE          git で追跡（xtask は触らない）\n  scripts/bin/schema-driven      実行ファイル（OS ごと）\n  scripts/bin/schema-driven-mcp  実行ファイル（OS ごと）\n  assets/*.schema.json         crates/core/schemas/ の写し（7つ）\n  dist.json                    版 ・ target ・ $id ・ SHA-256"
     },
     {
      "kind": "code",
      "language": "json",
      "caption": "dist.json の例。",
-     "text": "{\n  \"$schema\": \"schema-driven/dist@v1\",\n  \"name\": \"schema-driven\",\n  \"version\": \"0.1.0\",\n  \"target\": \"x86_64-unknown-linux-musl\",\n  \"abstract\": [\"schema-driven/abstract@v1\", \"schema-driven/catalog@v1\", \"…\"],\n  \"files\": [\n    {\"path\": \"scripts/schema-driven\", \"sha256\": \"…\"},\n    {\"path\": \"assets/meta-schema.json\", \"sha256\": \"…\"}\n  ]\n}"
+     "text": "{\n  \"$schema\": \"schema-driven/dist@v1\",\n  \"name\": \"schema-driven\",\n  \"version\": \"0.1.0\",\n  \"target\": \"x86_64-unknown-linux-musl\",\n  \"abstract\": [\"schema-driven/abstract@v1\", \"schema-driven/catalog@v1\", \"…\"],\n  \"files\": [\n    {\"path\": \"scripts/bin/schema-driven\", \"sha256\": \"…\"},\n    {\"path\": \"assets/meta-schema.json\", \"sha256\": \"…\"}\n  ]\n}"
     }
    ],
    "grounds": [
@@ -182,6 +183,18 @@
      "basis": "scripts/ は実行できるコード、assets/ はスキーマのようなデータファイルを置く場所である",
      "tag": "primary",
      "source": "sources/agentskills.io_specification.md:217 ・ :241"
+    },
+    {
+     "supports": "scripts/ の下にフォルダを作ってよいこと",
+     "basis": "A skill directory may contain any files and directories beyond the required `SKILL.md`. The conventions below are recommendations for organizing common types of content.",
+     "tag": "primary",
+     "source": "sources/agentskills.io_specification.md:213"
+    },
+    {
+     "supports": "実行ファイルを scripts/bin/ に分けること",
+     "basis": "「バイナリならscripts/binの方がいいかもね。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-13）"
     },
     {
      "supports": "crate の規則を直す必要があること",
@@ -220,6 +233,10 @@
      "reason": "ビルドのたびに Skill のフォルダへ書く。OUT_DIR の外へ書くことになる"
     },
     {
+     "option": "実行ファイルを scripts/ の直下に置く（1回目の答え）",
+     "reason": "仕様が scripts/ の例に挙げるのは Python ・ Bash ・ JavaScript で、OS ごとに違う実行ファイルと、読めるスクリプトが同じ並びに混ざる。利用者の言葉「バイナリならscripts/binの方がいいかもね。」"
+    },
+    {
      "option": "xtask を crates/ の下に置く",
      "reason": "製品の crate と同じ並びに入り、crate の規則と検査が製品とツールを区別できない"
     }
@@ -232,7 +249,8 @@
      }
     ],
     "assumptions": [
-     "Agent Skills の仕様は、scripts/ に置くコードの例に Python ・ Bash ・ JavaScript を挙げるだけで、実行ファイルには触れていない。実行できるコードとして置けると読む（推測）"
+     "Agent Skills の仕様は、scripts/ に置くコードの例に Python ・ Bash ・ JavaScript を挙げるだけで、実行ファイルには触れていない。実行できるコードとして置けると読む（推測）",
+     "ボード page-design-ownership の論点4は、入口を scripts/<Skill名> と書いている。上の Skill の入口も実行ファイルなら scripts/bin/ に揃えるかは、skills-creator の作業で決め直す"
     ],
     "out_of_scope": [
      {
@@ -267,7 +285,7 @@
      "kind": "code",
      "language": "text",
      "caption": "版を比べる4つの出どころ。",
-     "text": "tag                  schema-driven-v0.1.0        → 0.1.0\nCargo.toml           cargo metadata で読む       → 0.1.0\n実行ファイル         scripts/schema-driven --version → 0.1.0\ndist.json            \"version\"                   → 0.1.0\n\nどれか1つでも違えば、公開しない"
+     "text": "tag                  schema-driven-v0.1.0        → 0.1.0\nCargo.toml           cargo metadata で読む       → 0.1.0\n実行ファイル         scripts/bin/schema-driven --version → 0.1.0\ndist.json            \"version\"                   → 0.1.0\n\nどれか1つでも違えば、公開しない"
     }
    ],
    "grounds": [
@@ -467,83 +485,70 @@
    "status": "open",
    "question": "古い形の release.yml ・ install スクリプト ・ 公開済みの v1.0.0 を、基盤の公開とどう切り分けるか",
    "answer": {
-    "text": "古い release.yml からは、基盤の tag と、まとめ公開（v<版>）の対象の両方で schema-driven を外す。install スクリプトは今は変えず、公開済みの v1.0.0 も残す。",
+    "text": "古い形は考慮しない。基盤の公開は、基盤専用のワークフローだけで行う。",
     "details": [
-     "release.yml の on.push.tags に、含める行の後ろへ '!schema-driven-v*' を足す。否定は、含める行の後ろに置いたときだけ効く",
-     "release.yml の plan で、v<版> のときの対象の一覧から schema-driven を外す。外さないと、scripts/ も assets/ も無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる",
-     "古い install スクリプトは、基盤の tag を拾っても、配布物の名前が違うので「取得できない」で止まる。導入したと誤って出ることは無い",
-     "install スクリプトの作り直しと、ほかの Skill の公開は、skills-creator の作業で行う",
-     "v1.0.0 と skills-creator-v1.0.0 は消さない。新しい契約では使わない"
+     "古い形を残すための手当て（tag の除外 ・ まとめ公開の対象から外す ・ 配布物の名前を分ける）はしない",
+     "ただし古い release.yml は tag の形 *-v* で動くので、残したまま schema-driven-v<版> を付けると、同じ tag の Release を2つのワークフローが作ろうとして片方が落ちる",
+     "この衝突は、古い release.yml を消して避ける。install スクリプトも古い形だけのものなので一緒に消し、新しい形の導入は skills-creator の作業で作る"
     ]
    },
    "images": [
     {
-     "kind": "diff",
-     "language": "yaml",
-     "caption": "release.yml に足す2か所。",
-     "before": "on:\n  push:\n    tags: [\"v*\", \"*-v*\"]\n…\n            v[0-9]*) skills=\"$(ls .claude/skills | tr '\\n' ' ')\" ;;",
-     "after": "on:\n  push:\n    tags: [\"v*\", \"*-v*\", \"!schema-driven-v*\"]\n…\n            v[0-9]*) skills=\"$(ls .claude/skills | grep -vx schema-driven | tr '\\n' ' ')\" ;;"
+     "kind": "code",
+     "language": "text",
+     "caption": "変更後の .github/workflows と、リポジトリの根。",
+     "text": ".github/workflows/\n  schema-driven.yml     基盤専用（tag schema-driven-v*）\n  release.yml           消す\n\nリポジトリの根\n  install.sh            消す\n  install.ps1           消す"
     }
    ],
    "grounds": [
     {
-     "supports": "否定のパターンで tag を外せること",
-     "basis": "含めると除くを両方したいときは tags に ! を書く。否定は肯定の後に置いたときだけ除き、順序に依存する",
+     "supports": "古い形を考慮しないこと",
+     "basis": "「古い形はまだ配布してないし考慮しなくていいと思うよ。」",
      "tag": "primary",
-     "source": "sources/docs.github.com_en_actions_reference_workflows-and-actions_workflow-syntax.md:261 ・ :321-322"
+     "source": "利用者の言葉（2026-10-13）"
     },
     {
-     "supports": "tag の除外だけでは足りないこと",
-     "basis": "v<版> のまとめ公開では ls .claude/skills に schema-driven が入り、エンジンの無い schema-driven-any を梱包するか、在らない tool/Cargo.toml のビルドで落ちる",
-     "tag": "primary",
-     "source": "platform-advisor の回答（2026-10-13）── 判断基準 （見解4への指摘）・ qa-advisor の回答（2026-10-13）── 判断基準 （見解4の穴）"
+     "supports": "古い release.yml が基盤の tag でも動くこと",
+     "basis": "on.push.tags が [\"v*\", \"*-v*\"] で、schema-driven-v0.1.0 も当たる",
+     "tag": "measured",
+     "source": ".github/workflows/release.yml:13（2026-10-13）"
     },
     {
-     "supports": "いまの install スクリプトが古い形を前提にすること",
+     "supports": "古い install スクリプトが古い形だけのものであること",
      "basis": "install.sh は $dest/$name/bin/$name-mcp を MCP に登録する",
      "tag": "measured",
      "source": "install.sh:105（2026-10-13）"
-    },
-    {
-     "supports": "公開済みの版",
-     "basis": "v1.0.0 と skills-creator-v1.0.0 を 2026-09-29 に公開している",
-     "tag": "measured",
-     "source": "gh release list（2026-10-13）"
     }
    ],
    "rejected": [
     {
-     "option": "tag の除外の1行だけを足す",
-     "reason": "まとめ公開の経路に schema-driven が残る"
+     "option": "tag と plan の2か所で schema-driven を外し、ほかは触らない（1回目の答え）",
+     "reason": "古い形を残すための手当てである。利用者の言葉「古い形はまだ配布してないし考慮しなくていいと思うよ。」"
     },
     {
-     "option": "古い release.yml と install スクリプトを今消す",
-     "reason": "ほかの Skill はまだ古い形で、それらを公開する経路が無くなる"
-    },
-    {
-     "option": "v1.0.0 を消す",
-     "reason": "公開した版は変えない決まり（immutable releases）を自分で破る。新しい契約で使わないなら、残しても困らない"
+     "option": "古い release.yml を残したまま、何もしない",
+     "reason": "基盤の tag で古いワークフローも動き、同じ tag の Release を作ろうとして片方が落ちる"
     }
    ],
    "verification": {
     "passed": [
      {
-      "option": "tag と plan の2か所で schema-driven を外し、ほかは触らない",
-      "cost": "release.yml を2行直す"
+      "option": "古い release.yml と install スクリプトを消す",
+      "cost": "作業ツリーに乗っている未コミットの変更（署名を足すもの）も一緒に消える"
      }
     ],
     "assumptions": [
-     "release.yml には、署名を足す未コミットの変更が乗っている。2行を足す順番は、その変更の持ち主と合わせる"
+     "ほかの Skill はまだ古い形だが、新しい形へ移すまで公開しない"
     ],
     "out_of_scope": [
      {
-      "item": "外の作業：release.yml に2行を足し、基盤の tag で古いワークフローが動かないことを確かめる",
+      "item": "外の作業：古い release.yml と install スクリプトを消し、基盤の tag で基盤のワークフローだけが動くことを確かめる",
       "treatment": "later"
      },
      {
-      "item": "install スクリプトの作り直し",
+      "item": "新しい形の Skill の導入の仕方",
       "treatment": "later",
-      "note": "skills-creator の作業で行う。基盤の配布物は名前が違うので、古い install が誤って入れることは無い"
+      "note": "skills-creator の作業で作る"
      }
     ]
    }
