@@ -252,8 +252,16 @@ impl InstanceUseCases for Instances {
                 ))
             }
         };
-        let instance =
-            Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;
+        // abstract から作るのは concrete スキーマで、$schema に dialect を、x-abstract に版を書く
+        let instance = if stored.as_str() == contract::ABSTRACT_V1 {
+            if self.files.exists(path) {
+                return Err(reject(Reject::AlreadyExists));
+            }
+            let start = serde_json::json!({"$schema": contract::DIALECT, "x-abstract": contract::ABSTRACT_V1});
+            Instance::load(instance_path, stored, JsonValue::new(&start.to_string()))
+        } else {
+            Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?
+        };
         self.files
             .write(path, instance.value().as_str(), WriteIf::Absent)
             .map_err(|error| match error {
@@ -294,12 +302,9 @@ impl InstanceUseCases for Instances {
             JsonPatch::new(patch).map_err(|_| UseCaseError::new("JSON Patch が空である", ""))?;
         let instance_path = InstancePath::new(path).map_err(invalid)?;
         let (text, value) = self.read_json(path)?;
-        let schema = value
-            .get("$schema")
-            .and_then(Value::as_str)
-            .ok_or_else(|| {
-                UseCaseError::new("スキーマが分からない", "インスタンスに $schema が無い")
-            })?;
+        let schema = contract::schema_of(&value).ok_or_else(|| {
+            UseCaseError::new("スキーマが分からない", "インスタンスに $schema が無い")
+        })?;
         let schema = self.schema_path(path, schema)?;
         let loaded = self.load_schema(&schema)?;
         let instance = Instance::load(

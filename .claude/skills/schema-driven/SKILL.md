@@ -71,13 +71,23 @@ scripts/schema-driven --json
 
 ### Step 1: concrete スキーマを書き、abstract に従っているかを検査する
 
-スキーマの根に、次の3つを書く。書き方の決まりは `assets/meta-schema.json` が持つ。
+concrete スキーマは、abstract スキーマのインスタンスである。インスタンスと同じ共通ツールで作り、書き進める。中身（何を持つか）は、作る側が決める。
+
+```
+scripts/schema-driven create --schema schema-driven/abstract@v1 --path <Skill のフォルダ>/assets/<種類>.schema.json
+scripts/schema-driven prompt --schema schema-driven/abstract@v1 --property /<欄>
+scripts/schema-driven update --path <スキーマ> --patch '<JSON Patch>'
+```
+
+create は、根に `$schema` と `x-abstract` を書いて枠を作り、未記入の欄を x-prompt と一緒に返す。根に置く3つの欄は次のとおりで、書き方の決まりは `assets/meta-schema.json` が持つ。
 
 | 欄 | 書くもの |
 |---|---|
 | `$schema` | JSON Schema の標準の dialect `https://json-schema.org/draft/2020-12/schema` |
 | `x-abstract` | 従う abstract の版 `schema-driven/abstract@v1` |
 | `$id` | このスキーマの名前「<Skill の名前>/<種類>@<版>」。インスタンスを作るスキーマ（`x-generates` を持つもの）は必ず書く |
+
+`$id` は create のあとに書く。インスタンスを作るスキーマは、根の `properties` に `kind` と `$schema` を置き、`$schema` の `const` に自分の `$id` を書く。
 
 プロパティごとに `description` と `x-prompt`（`read` と `write`）を書き、参照には `x-ref`、導出値には `x-derive` を付ける（`assets/annotations.schema.json`）。
 
@@ -115,6 +125,7 @@ create は、必須のプロパティを空のままにしてインスタンス�
 | `schema-driven/…` | エンジンが持つスキーマ（文書 ・ ページテンプレート ・ カタログ ・ 宣言など）。`--skill` を渡さなくても引ける |
 | `--skill` の Skill の名前で始まるもの | その Skill の `assets` の下の `*.schema.json` のうち、`$id` が同じもの |
 | ほかの Skill の名前で始まるもの | どの Skill のスキーマかを返して止める。その Skill を `--skill` に渡して検査し直す |
+| JSON Schema の dialect（concrete スキーマ） | `x-abstract` に書いた abstract スキーマ。エンジンが持つので、`--skill` を渡さなくても引ける |
 | 名前の形でない値 | 断って「スキーマの名前でない」を返す。パスでは引かない |
 
 同じ名前のスキーマが2つあれば、どちらも使わずに止める。

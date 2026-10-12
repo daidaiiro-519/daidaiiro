@@ -38,6 +38,7 @@ fn good() -> Value {
     json!({"$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1", "$id": "lexicon/glossary@v1", "title": "用語集", "description": "語の一覧", "x-generates": "declarations/GLO-<番号>.json",
            "x-view": {"label": "header.name"},
            "properties": {
+               "$schema": field(json!({"const": "lexicon/glossary@v1"})),
                "kind": field(json!({"const": "glossary"})),
                "id": field(json!({"pattern": "^GLO-[0-9]+$", "x-view": {"hidden": true}})),
                "terms": field(json!({"type": "array", "items": {"type": "object", "properties": {
@@ -116,6 +117,7 @@ fn referenced_kinds_must_have_id() {
     glossary["properties"].as_object_mut().unwrap().remove("id");
     let use_case = json!({"$schema": "https://json-schema.org/draft/2020-12/schema", "x-abstract": "schema-driven/abstract@v1", "$id": "lexicon/use-case@v1", "title": "ユースケース", "description": "やり取り", "x-generates": "declarations/UC-<番号>.json",
                     "properties": {
+                        "$schema": field(json!({"const": "lexicon/use-case@v1"})),
                         "kind": field(json!({"const": "use_case"})),
                         "id": field(json!({})),
                         "terms": field(json!({"x-ref": {"to": "glossary", "item": true}}))}});
@@ -161,4 +163,26 @@ fn check_schemas_tool_reads_a_directory_of_schemas() {
     assert_eq!(out["schemas"], json!(["glossary.schema.json"]));
     assert_eq!(out["findings"][0]["rule"], "申告していない注釈");
     assert_eq!(out["findings"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn generating_schemas_must_name_themselves_in_the_instance_schema() {
+    let mut missing = good();
+    missing["properties"]
+        .as_object_mut()
+        .unwrap()
+        .remove("$schema");
+    assert_eq!(
+        rules(&run(vec![("glossary.schema.json", missing)])),
+        vec!["メタスキーマ"]
+    );
+    let mut other = good();
+    other["properties"]["$schema"]["const"] = json!("lexicon/other@v1");
+    let findings = run(vec![("glossary.schema.json", other)]);
+    assert_eq!(
+        rules(&findings),
+        vec!["インスタンスが指す名前"],
+        "{findings:?}"
+    );
+    assert_eq!(findings[0].at, "/properties/$schema/const");
 }

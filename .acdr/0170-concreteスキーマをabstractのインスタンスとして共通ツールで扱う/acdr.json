@@ -1,0 +1,222 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0170",
+ "title": "concrete スキーマを abstract のインスタンスとして共通ツールで扱う",
+ "date": "2026-10-12",
+ "status": "accepted",
+ "decision": "concrete スキーマを abstract スキーマのインスタンスとして扱い、エンティティのインスタンスと同じ共通ツール ・ 同じ引数で、枠 ・ 書き方の案内 ・ 書き進め ・ 検査ができるようにする。",
+ "why": "ボード concrete-schema-roles の論点1 ・ 論点2で決めた。基盤は concrete スキーマ（②）の中身も、エンティティ（③）の値も作らない。どちらにも、同じ共通ツールで枠 ・ 案内 ・ 検査だけを出す。いまのエンジンは、②を check-schemas で検査するだけだった。create を abstract に向けると $schema に abstract の名前が入り、update は②を「スキーマの名前でない」で断った。②の枠と案内は、skills-creator の雛形が基盤の契約を写して持っていて、雛形にしか無い決まり（インスタンスの $schema 欄の const）もあった。作法の正本を meta-schema 1か所にし、②を③と同じ道筋に載せるため、エンジンに文書のスキーマを決める規則を1つ足す。",
+ "shift": [
+  {
+   "what": "文書が従うスキーマを決める規則",
+   "from": "$schema の名前だけを見る",
+   "to": "$schema が JSON Schema の dialect なら、x-abstract に書いた abstract を、その文書のスキーマにする"
+  },
+  {
+   "what": "abstract から create したとき",
+   "from": "ファイルのパスしか受け付けず、$schema に abstract の名前を書く",
+   "to": "schema-driven/abstract@v1 の名前で受け付け、$schema に dialect を、x-abstract に版を書く"
+  },
+  {
+   "what": "②を update ・ prompt するとき",
+   "from": "update は断り、prompt は abstract を名前で引けない",
+   "to": "③と同じ引数で、書き進めと書き方の案内ができる"
+  },
+  {
+   "what": "インスタンスの $schema 欄の const",
+   "from": "skills-creator の雛形にだけ書いてある",
+   "to": "abstract（meta-schema）の決まり generates-schema-name にし、check-schemas が、const が $id と同じかを検査する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "concrete スキーマの扱いを、同じ観点の5行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "②の枠を作るツールを、共通ツールに足す",
+   "why_not": "責務の置き場所は同じ基盤で、違いは公開する入口が増えることだけである（ボード concrete-schema-roles の論点2）"
+  },
+  {
+   "option": "②の枠は各 creator が作り、雛形だけ基盤から受け取る",
+   "why_not": "abstract の形の写しが creator ごとに増え、版を変えるたびに全部を直すことになる"
+  },
+  {
+   "option": "②のためだけの引数を create などに足す",
+   "why_not": "入口の数が同じでも、中身は②専用の入口になる"
+  },
+  {
+   "option": "$schema 欄の const が $id と同じことを、JSON Schema だけで検査する",
+   "why_not": "2つの欄の値が等しいことは JSON Schema のキーワードで書けない。const があることは meta-schema で、値が等しいことはエンジンで検査する"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "contract",
+   "tab": "contract.rs",
+   "file": "src/schema-driven/core/src/domain/contract.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub fn schema_of(value: &Value) -> Option<&str> {",
+     "before": "（無い。$schema の名前だけを見ていた）",
+     "why": "②は $schema に dialect を、x-abstract に版を書くので、そのときは x-abstract を文書のスキーマにする。規則はこの1か所に置く"
+    },
+    {
+     "find": "(ABSTRACT_V1, \"meta-schema.json\", META_V1),",
+     "before": "const BUILTINS: [(&str, &str, &str); 8] = [",
+     "why": "abstract を、ほかの組み込みのスキーマと同じく名前で引けるようにした。create と prompt に schema-driven/abstract@v1 を渡せる"
+    }
+   ]
+  },
+  {
+   "key": "instances",
+   "tab": "instances.rs",
+   "file": "src/schema-driven/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let instance = if stored.as_str() == contract::ABSTRACT_V1 {",
+     "before": "let instance =\n    Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?;",
+     "why": "abstract から作るのは②で、$schema には dialect を、x-abstract には版を書く。$schema に abstract の名前を書くと、②の決まりと食い違う"
+    },
+    {
+     "find": "let schema = contract::schema_of(&value).ok_or_else(|| {",
+     "before": "let schema = value\n    .get(\"$schema\")\n    .and_then(Value::as_str)",
+     "why": "update が②を断らないよう、文書のスキーマを規則1つで決める"
+    }
+   ]
+  },
+  {
+   "key": "checks",
+   "tab": "checks.rs",
+   "file": "src/schema-driven/core/src/application/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "use crate::domain::contract;",
+     "before": "（無い）",
+     "why": "文書のスキーマを決める規則を、update と同じ1か所から使う"
+    },
+    {
+     "find": "let name = contract::schema_of(&value).ok_or_else(|| {",
+     "before": "let name = value\n    .get(\"$schema\")\n    .and_then(Value::as_str)",
+     "why": "check も update と同じ規則で、文書のスキーマを決める"
+    }
+   ]
+  },
+  {
+   "key": "schema-rules",
+   "tab": "schema_rules.rs",
+   "file": "src/schema-driven/core/src/domain/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "rule: \"インスタンスが指す名前\".into(),",
+     "before": "（無い）",
+     "why": "$schema 欄の const が $id と同じことは JSON Schema で書けないので、check-schemas が検査する"
+    }
+   ]
+  },
+  {
+   "key": "meta-schema",
+   "tab": "meta-schema.json",
+   "file": "src/schema-driven/schemas/meta-schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"id\": \"generates-schema-name\",",
+     "before": "（無い。決まりは skills-creator の雛形にだけ書いてあった）",
+     "why": "作法の正本を meta-schema 1か所にした。create と prompt が、この作法を書く人へ返す"
+    },
+    {
+     "find": "\"$schema\": {",
+     "before": "\"required\": [\n \"kind\"\n]",
+     "why": "インスタンスを作るスキーマは、properties に $schema を置き、const を書くことを求める"
+    }
+   ]
+  },
+  {
+   "key": "skill",
+   "tab": "schema-driven/SKILL.md",
+   "file": ".claude/skills/schema-driven/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "concrete スキーマは、abstract スキーマのインスタンスである。",
+     "before": "スキーマの根に、次の3つを書く。書き方の決まりは assets/meta-schema.json が持つ。",
+     "why": "②を create ・ prompt ・ update で作り、書き進める手順を書いた"
+    },
+    {
+     "find": "は create のあとに書く。インスタンスを作るスキーマは、根の",
+     "before": "（無い）",
+     "why": "abstract に足した決まり generates-schema-name を、手順にも書いた"
+    },
+    {
+     "find": "に書いた abstract スキーマ。エンジンが持つので、",
+     "before": "（無い）",
+     "why": "文書のスキーマを決める規則を、名前の引き方の表に足した"
+    }
+   ]
+  },
+  {
+   "key": "concrete-schema-rs",
+   "tab": "concrete_schema.rs",
+   "file": "src/schema-driven/cli/tests/concrete_schema.rs",
+   "before": "",
+   "marks": [
+    {
+     "find": "fn a_concrete_schema_is_written_with_update_and_then_makes_entities() {",
+     "before": "（無い）",
+     "why": "abstract から②を作り、update で書き進め、check-schemas を通し、その②から③を作るまでを固定する"
+    }
+   ]
+  },
+  {
+   "key": "schema-rules-test",
+   "tab": "schema_rules.rs（試験）",
+   "file": "src/schema-driven/cli/tests/schema_rules.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": field(json!({\"const\": \"lexicon/glossary@v1\"})),",
+     "before": "（無い）",
+     "why": "見本のスキーマを、足した決まりに合わせた"
+    },
+    {
+     "find": "\"$schema\": field(json!({\"const\": \"lexicon/use-case@v1\"})),",
+     "before": "（無い）",
+     "why": "見本のスキーマを、足した決まりに合わせた"
+    },
+    {
+     "find": "fn generating_schemas_must_name_themselves_in_the_instance_schema() {",
+     "before": "（無い）",
+     "why": "const が無いときはメタスキーマの指摘、$id と違うときは「インスタンスが指す名前」の指摘が出ることを固定する"
+    }
+   ]
+  },
+  {
+   "key": "abstract-schema-test",
+   "tab": "abstract_schema.rs",
+   "file": "src/schema-driven/cli/tests/abstract_schema.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "\"$schema\": field(json!({\"const\": \"lexicon/glossary@v1\"})),",
+     "before": "（無い）",
+     "why": "見本のスキーマを、足した決まりに合わせた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "contract": "a40836be073d1321748656af5ab6f7dcbcca344719da3eba6c3bffe32a6b7fc8",
+  "instances": "f66620a72e1e3b95d7b40c6cfd4ae79024684ca224caf6ef176f47c7c439e1a4",
+  "checks": "b266ce770aa3a7a9a0fb277232e1e1af57138abce24c266cba077d5c2011cca5",
+  "schema-rules": "ec42041b6cbf5c32a6a6638b91f764cf5355c5183037275638f305a577a21d5e",
+  "meta-schema": "8848c4caec1a9febcf79bab9e765d071f203630502648b359f38c60101924c7b",
+  "skill": "bdea95f1a913af0730d76b9ad7580657f0481939f25b0ca15cce11e9d6392cb5",
+  "concrete-schema-rs": "e1ed54dfdceb93aebba3a3501eb9980ff6e51c6b03436dc63954b7d5d9578949",
+  "schema-rules-test": "37439d6561d8db39362f901c425186d0a8acf087887cf3773077cb1ff138c849",
+  "abstract-schema-test": "59bcba967b1ca11410ea53b4c2dc3021fc0cebe63e66da87a55a1fbd6049d4a4"
+ }
+}

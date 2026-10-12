@@ -122,6 +122,7 @@ ACDR は Any Change Decision Record である。決めたことを、変更前�
 | [0166](0166-schema-drivenが名前を引く場所をassetsにする/index.html) | schema-driven が名前を引く場所を assets にする | **承認** | 2026-10-11 |
 | [0167](0167-skills-creatorを型のスキーマと実行ファイルの形で作り直す/index.html) | skills-creator を型のスキーマと実行ファイルの形で作り直す | **承認** | 2026-10-11 |
 | [0169](0169-schema-drivenを新しい契約だけの基盤にする/index.html) | schema-driven を新しい契約だけの基盤にする | **承認** | 2026-10-12 |
+| [0170](0170-concreteスキーマをabstractのインスタンスとして共通ツールで扱う/index.html) | concrete スキーマを abstract のインスタンスとして共通ツールで扱う | **承認** | 2026-10-12 |
 | [0118](0118-DDDとユースケースの全画像ノートを判断基準へ対応付ける/index.html) | DDDとユースケースの全画像ノートを判断基準へ対応付ける | **差し替え済み**（0119） | 2026-10-05 |
 | [0119](0119-advisorの判断基準を原典の頁の索引で照らして直す/index.html) | advisor の判断基準を、原典の頁の索引で照らして直す | **承認** | 2026-10-07 |
 | [0127](0127-具体と抽象の助言役を作る/index.html) | 具体と抽象の助言役 meta-thinking-advisor を作る | **承認** | 2026-10-07 |

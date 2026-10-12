@@ -46,6 +46,7 @@ fn good() -> Value {
     json!({"$schema": DIALECT, "x-abstract": V1, "$id": "lexicon/glossary@v1", "title": "用語集", "description": "語の一覧", "x-prompt": prompt(),
            "x-generates": "declarations/GLO-<番号>.json",
            "properties": {
+               "$schema": field(json!({"const": "lexicon/glossary@v1"})),
                "kind": field(json!({"const": "glossary"})),
                "word": field(json!({}))},
            "required": ["kind", "word"]})

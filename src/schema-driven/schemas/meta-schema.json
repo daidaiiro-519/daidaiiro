@@ -28,6 +28,12 @@
     "test": "x-generates を持つスキーマの根に、kind の const があるかを見る。"
    },
    {
+    "id": "generates-schema-name",
+    "rule": "インスタンスを作るスキーマは、根の properties に $schema を置き、const にこのスキーマの $id を書く。",
+    "why": "インスタンスの $schema に、このスキーマの名前以外が書かれるのを、書いたその場で止める。",
+    "test": "properties.$schema.const が $id と同じかを見る。"
+   },
+   {
     "id": "prompt-per-unit",
     "rule": "書く単位（最上位のプロパティと、$defs の各形のプロパティ）ごとに description と x-prompt を書く。",
     "why": "create と prompt は、書く単位ごとの x-prompt を返す。",
@@ -236,10 +242,16 @@
   "properties": {
    "properties": {
     "required": [
-     "kind"
+     "kind",
+     "$schema"
     ],
     "properties": {
      "kind": {
+      "required": [
+       "const"
+      ]
+     },
+     "$schema": {
       "required": [
        "const"
       ]

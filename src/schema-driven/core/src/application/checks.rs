@@ -5,6 +5,7 @@ use crate::application::instances::{Instances, UseCaseError};
 use crate::application::paths;
 use crate::domain::approval::ApprovalRecord;
 use crate::domain::check::{check, Doc, Finding};
+use crate::domain::contract;
 use crate::domain::published;
 use crate::domain::schema::Schema;
 use crate::domain::schema_rules::{check_schemas, SchemaFinding};
@@ -100,12 +101,9 @@ impl Checks {
                 continue;
             }
             let (text, value) = self.instances.read_json(&path)?;
-            let name = value
-                .get("$schema")
-                .and_then(Value::as_str)
-                .ok_or_else(|| {
-                    UseCaseError::new("スキーマが分からない", format!("{path} に $schema が無い"))
-                })?;
+            let name = contract::schema_of(&value).ok_or_else(|| {
+                UseCaseError::new("スキーマが分からない", format!("{path} に $schema が無い"))
+            })?;
             let schema = self.instances.schema_path(&path, name)?;
             if !schemas.contains_key(&schema) {
                 let loaded_schema = self.instances.load_schema(&schema)?;

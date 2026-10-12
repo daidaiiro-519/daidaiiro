@@ -12,6 +12,22 @@ const PREFIX: &str = "schema-driven/abstract@";
 /// v1 のメタスキーマ。
 pub(crate) const META_V1: &str = include_str!("../../../schemas/meta-schema.json");
 
+/// abstract スキーマ v1 の名前（meta-schema.json の `$id`）。
+pub const ABSTRACT_V1: &str = "schema-driven/abstract@v1";
+
+/// concrete スキーマの `$schema` に書く JSON Schema の dialect。
+pub const DIALECT: &str = "https://json-schema.org/draft/2020-12/schema";
+
+/// 文書が従うスキーマの名前。concrete スキーマは `$schema` に dialect を、`x-abstract` に abstract の版を書くので、`x-abstract` を返す。
+pub fn schema_of(value: &Value) -> Option<&str> {
+    let named = value.get("$schema")?.as_str()?;
+    if named == DIALECT {
+        value.get("x-abstract")?.as_str()
+    } else {
+        Some(named)
+    }
+}
+
 /// 固有のツールの宣言の形の名前（tools.schema.json の `$id`）。
 pub const TOOLS_V1: &str = "schema-driven/tools@v1";
 
@@ -46,7 +62,8 @@ pub(crate) fn meta_schemas() -> Vec<(&'static str, Value)> {
 }
 
 /// エンジンが持つスキーマ（名前 ・ ファイル名 ・ 中身）。インスタンスの `$schema` がこの名前なら、--skill を渡さなくても、ファイルではなくこれで検証する。
-const BUILTINS: [(&str, &str, &str); 8] = [
+const BUILTINS: [(&str, &str, &str); 9] = [
+    (ABSTRACT_V1, "meta-schema.json", META_V1),
     (TOOLS_V1, "tools.schema.json", TOOLS_SCHEMA_V1),
     (
         "schema-driven/annotations@v1",

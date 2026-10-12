@@ -413,6 +413,22 @@ pub fn check_schemas(
             .map(|annotations| annotations.keys().cloned().collect())
             .unwrap_or_default();
         walk(schema, "", name, &declared, &shapes, false, parse, &mut out);
+        if schema.get("x-generates").is_some() {
+            let id = schema.get("$id").and_then(Value::as_str);
+            let named = schema
+                .pointer("/properties/$schema/const")
+                .and_then(Value::as_str);
+            if let (Some(id), Some(named)) = (id, named) {
+                if id != named {
+                    out.push(SchemaFinding {
+                        schema: name.clone(),
+                        at: "/properties/$schema/const".into(),
+                        rule: "インスタンスが指す名前".into(),
+                        message: format!("{named} は、このスキーマの $id {id} と違う"),
+                    });
+                }
+            }
+        }
         let kind = schema
             .pointer("/properties/kind/const")
             .and_then(Value::as_str);
