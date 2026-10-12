@@ -3,8 +3,13 @@
  "kind": "board",
  "id": "brainstorming-board-migration",
  "title": "ブレストボードを基盤の上へ移す",
- "round": 5,
- "queue": [],
+ "round": 6,
+ "queue": [
+  {
+   "topic": "Q5",
+   "why": "ツールの分け方が決まり、古いツールを消したあとに既にあるボードがどうなるかを決められるようになった"
+  }
+ ],
  "topics": [
   {
    "id": "Q1",
@@ -848,10 +853,114 @@
   {
    "id": "Q5",
    "name": "既にあるボード",
-   "status": "waiting",
-   "question": "既にある34個のボードの board.json を、新しい形（スキーマの名前で指す・変更の記録を持つ）へ写すか、そのまま残すか",
+   "status": "open",
+   "question": "既にある34枚のボードを、新しい形（スキーマの名前で指し、変更の記録を持つ形）へ写すか、そのまま残すか",
    "answer": {
-    "text": "ページの形と固有のツールが決まったら出す。"
+    "text": "既にあるボードは写さずに残し、新しい形は、次に決める agents creator のボードを新しく1枚作って確かめる。",
+    "details": [
+     "決着した28枚は写さない。board.json とページはいまのまま残す",
+     "論点が開いたまま止まっている usecase-modeling-coding と skill-types も写さない。続けるときは、新しい形のボードを作り直す",
+     "別のセッションが使っている material-1-video-feedback と workshop-story-base は、そのセッションで決着するまで古い形のまま使う",
+     "古いボードのスキーマ references/board.schema.json は、いまの場所に残して書き換えない。既にある board.json の $schema がそこを指しているからである",
+     "新しい形の確認は、agents creator のボードを新しい形で作って行う。基盤の create ・ check ・ render と advance ・ inspect ・ serve を通し、回を2回進めて changes が出ることを確かめる",
+     "確かめたあとで、ブレストボードを移す ACDR を決着させる"
+    ]
+   },
+   "images": [
+    {
+     "kind": "code",
+     "language": "text",
+     "caption": "既にあるボードの扱いと、新しい形を確かめるボード。",
+     "text": "既にあるボードの扱い（2026-10-12 に34枚を数えた）\n\n  ボード                                   いま                     変更後\n  決着した28枚                             古い形 ・ 古いスキーマ   そのまま残す（書き換えない）\n  論点が開いたまま止まっている2枚          古い形 ・ 古いスキーマ   そのまま残す\n    （usecase-modeling-coding ・ skill-types）\n  別のセッションが使っている2枚            古い形 ・ 古いスキーマ   そのセッションで決着するまで古い形のまま\n    （material-1-video-feedback ・ workshop-story-base）\n  承認済みで状態だけ open の1枚            古い形 ・ 古いスキーマ   状態を決着に直して残す\n    （advisor-answer）\n  このボード                               古い形                   Q5 の決着で閉じる\n\n古いスキーマ references/board.schema.json   いまの場所に残し、書き換えない\n                                            （30枚の $schema がここを指している）\n\n新しい形の確認   agents creator のボードを新しい形で1枚作る\n                 基盤の create ・ check ・ render と、advance ・ inspect ・ serve を\n                 1回ずつ通し、回を2回進めて changes が出ることを確かめる"
+    }
+   ],
+   "grounds": [
+    {
+     "supports": "既にあるボードを写さず、新しいボード1枚で確かめること",
+     "basis": "「たぶんだけど、新しい形式で問題なく作成できるかは1件で確認したいです。対象は次にやらなければいけない内容のブレストを新規で作成したいです。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    },
+    {
+     "supports": "決着したボードを写さないこと",
+     "basis": "「今のブレストボードでもうすんでいるものを移行する必要はなくないですか？」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    },
+    {
+     "supports": "確かめるボードを agents creator にすること",
+     "basis": "「おそらくですが、SkillsCreatorやAgentsCreatorを対象にするのがいいのかなと思ってる。」",
+     "tag": "primary",
+     "source": "利用者の言葉（2026-10-12）"
+    },
+    {
+     "supports": "写す対象の数",
+     "basis": "34枚のうち、全部の論点が決着したものは28枚。開いた論点が残るのは6枚（このボード ・ advisor-answer ・ usecase-modeling-coding ・ skill-types ・ material-1-video-feedback ・ workshop-story-base）",
+     "tag": "measured",
+     "source": ".brainstorming-board/*/board.json の論点の状態を数えた（2026-10-12）"
+    },
+    {
+     "supports": "古いスキーマを消さないこと",
+     "basis": "既にある board.json の $schema は、どれも ../../.claude/skills/brainstorming-board/references/board.schema.json を指している。消すと、その JSON はスキーマを持たなくなる",
+     "tag": "measured",
+     "source": ".brainstorming-board/*/board.json の $schema を読んだ（2026-10-12）"
+    },
+    {
+     "supports": "skills-creator ではなく agents creator のボードで確かめること",
+     "basis": "skills-creator の作り直しのボードは Q1〜Q4 が決着し、ACDR 0167 で適用まで済んでいる。決めることが残っていないので、新しいボードを作っても、回を進める ・ 回答を受ける流れを通せない",
+     "tag": "measured",
+     "source": "ボード skills-creator-rebuild と ACDR 0167 の状態（2026-10-12）"
+    }
+   ],
+   "rejected": [
+    {
+     "option": "34枚を全部、新しい形へ写す",
+     "reason": "決着したボードは、もう回を進めることも回答を受けることも無い。写しても使う場面が無い"
+    },
+    {
+     "option": "論点が開いている2枚（usecase-modeling-coding ・ skill-types）を写す",
+     "reason": "どちらも止まっていて、続けるかがまだ決まっていない。続けるときに新しく作れば足りる"
+    },
+    {
+     "option": "古いスキーマも一緒に消す",
+     "reason": "既にある30枚の board.json がスキーマを持たなくなる"
+    },
+    {
+     "option": "skills-creator のボードを新しく作って確かめる",
+     "reason": "skills-creator は決めることが残っていないので、回を進める流れを通せない"
+    }
+   ],
+   "verification": {
+    "passed": [
+     {
+      "option": "既にあるボードは残し、agents creator のボード1枚で確かめる",
+      "cost": "新しい形を試すのは、ツールを作ったあとになる。agents creator のボードを始める前に、ツールの作成が済んでいる必要がある"
+     }
+    ],
+    "assumptions": [
+     "agents creator は、ブレストボードを移したあとに決める作業である"
+    ],
+    "out_of_scope": [
+     {
+      "item": "別のセッションの2枚が、ブレストボードを移す ACDR の適用より先に決着しない場合",
+      "treatment": "later",
+      "note": "移す ACDR を適用する前に2枚の状態を確かめる。開いていれば、そのセッションと時期を合わせる"
+     },
+     {
+      "item": "advisor-answer の Q4 が承認済みなのに、状態が open のままであること",
+      "treatment": "later",
+      "note": "この論点とは別に、状態を決着に直す"
+     },
+     {
+      "item": "agents creator で「Agent」が何を指すか",
+      "treatment": "later",
+      "note": "agents creator のボードの最初の論点にする"
+     },
+     {
+      "item": "外の作業：advance ・ inspect ・ serve を作り、agents creator のボードを新しい形で作って、回を2回進める",
+      "treatment": "later"
+     }
+    ]
    }
   }
  ],
