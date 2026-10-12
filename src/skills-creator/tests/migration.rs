@@ -5,6 +5,9 @@
 //! 配る skills-creator は版3 を知らない。振り分けは、この試験だけが持つ。
 //! 最後の版3 の Skill を移したら、この試験の版3 の側と、src/skills-creator-v3/ と、tests/baseline-v3/ を消す。
 
+mod common;
+
+use common::{repo, skills};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,13 +15,6 @@ use std::process::Command;
 
 /// 基盤の Skill。skills-creator が作るものではないので、tool.json を持たず、この試験の対象にしない
 const BASE: &str = "schema-driven";
-
-fn repo() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .unwrap()
-}
 
 fn read_json(path: &Path) -> Value {
     serde_json::from_str(
@@ -55,7 +51,7 @@ fn frozen_check() -> PathBuf {
 #[test]
 fn every_skill_keeps_passing_while_moving() {
     let repo = repo();
-    let skills = repo.join(".claude/skills");
+    let skills = skills();
     let baselines = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/baseline-v3");
     let new_check = env!("CARGO_BIN_EXE_skills-creator");
     let engine = skills.join(BASE).join("scripts/schema-driven");

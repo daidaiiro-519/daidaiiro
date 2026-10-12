@@ -9,12 +9,6 @@ pub const V1: &str = "schema-driven/abstract@v1";
 /// 版の名前の前半。これで始まるのに知らない版は、検査で知らない版として返す。
 const PREFIX: &str = "schema-driven/abstract@";
 
-/// v1 のメタスキーマ。
-pub(crate) const META_V1: &str = include_str!("../../../schemas/meta-schema.json");
-
-/// abstract スキーマ v1 の名前（meta-schema.json の `$id`）。
-pub const ABSTRACT_V1: &str = "schema-driven/abstract@v1";
-
 /// concrete スキーマの `$schema` に書く JSON Schema の dialect。
 pub const DIALECT: &str = "https://json-schema.org/draft/2020-12/schema";
 
@@ -30,9 +24,6 @@ pub fn schema_of(value: &Value) -> Option<&str> {
 
 /// 固有のツールの宣言の形の名前（tools.schema.json の `$id`）。
 pub const TOOLS_V1: &str = "schema-driven/tools@v1";
-
-/// 固有のツールの宣言の形。
-pub(crate) const TOOLS_SCHEMA_V1: &str = include_str!("../../../schemas/tools.schema.json");
 
 /// concrete スキーマが従う版。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,75 +48,28 @@ pub fn version_of(schema: &Value) -> Version {
 pub(crate) fn meta_schemas() -> Vec<(&'static str, Value)> {
     vec![(
         "meta-schema.json",
-        serde_json::from_str(META_V1).unwrap_or(Value::Null),
+        serde_json::from_str(schema_driven_files::schema_text(V1)).unwrap_or(Value::Null),
     )]
 }
 
-/// エンジンが持つスキーマ（名前 ・ ファイル名 ・ 中身）。インスタンスの `$schema` がこの名前なら、--skill を渡さなくても、ファイルではなくこれで検証する。
-const BUILTINS: [(&str, &str, &str); 9] = [
-    (ABSTRACT_V1, "meta-schema.json", META_V1),
-    (TOOLS_V1, "tools.schema.json", TOOLS_SCHEMA_V1),
-    (
-        "schema-driven/annotations@v1",
-        "annotations.schema.json",
-        include_str!("../../../schemas/annotations.schema.json"),
-    ),
-    (
-        "schema-driven/catalog@v1",
-        "catalog.schema.json",
-        include_str!("../../../schemas/catalog.schema.json"),
-    ),
-    (
-        "schema-driven/design-system@v1",
-        "design-system.schema.json",
-        include_str!("../../../schemas/design-system.schema.json"),
-    ),
-    (
-        "schema-driven/document@v1",
-        "document.schema.json",
-        include_str!("../../../schemas/document.schema.json"),
-    ),
-    (
-        "schema-driven/page@v1",
-        "page.schema.json",
-        include_str!("../../../schemas/page.schema.json"),
-    ),
-    (
-        "schema-driven/published@v1",
-        "published.schema.json",
-        include_str!("../../../schemas/published.schema.json"),
-    ),
-    (
-        "schema-driven/view@v1",
-        "view.schema.json",
-        include_str!("../../../schemas/view.schema.json"),
-    ),
-];
-
-/// エンジンが持つスキーマを、名前で返す。
+/// エンジンが持つスキーマを、名前で返す。インスタンスの `$schema` がこの名前なら、--skill を渡さなくても、ファイルではなくこれで検証する。
 pub fn abstract_schema(name: &str) -> Option<Value> {
-    BUILTINS
-        .iter()
-        .find(|(builtin, _, _)| *builtin == name)
-        .and_then(|(_, _, text)| serde_json::from_str(text).ok())
+    schema_driven_files::schema(name).and_then(|schema| serde_json::from_str(schema.text).ok())
 }
 
 /// エンジンが持つスキーマのファイル名と中身。同じフォルダの $ref を解くために、まとめて渡す。
 pub(crate) fn builtin_files() -> Vec<(String, Value)> {
-    BUILTINS
+    schema_driven_files::SCHEMAS
         .iter()
-        .filter_map(|(_, file, text)| {
-            serde_json::from_str(text)
+        .filter_map(|schema| {
+            serde_json::from_str(schema.text)
                 .ok()
-                .map(|value| ((*file).to_owned(), value))
+                .map(|value| (schema.file.to_owned(), value))
         })
         .collect()
 }
 
 /// エンジンが持つスキーマのファイル名。名前でなければ None。
 pub(crate) fn builtin_file(name: &str) -> Option<&'static str> {
-    BUILTINS
-        .iter()
-        .find(|(builtin, _, _)| *builtin == name)
-        .map(|(_, file, _)| *file)
+    schema_driven_files::schema(name).map(|schema| schema.file)
 }

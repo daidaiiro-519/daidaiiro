@@ -26,7 +26,7 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 ## 次にすること（順番）
 
 1. Q5 の承認 → ボードを決着させる
-2. ボード concrete-schema-roles（Artifact https://claude.ai/artifact/5BwJynkVP75zgTFBrU1chE、1回目）の Q1（3つの層と②の契約と責務）・ Q2（②を③と同じ道筋で扱う＝案 A、規則1つ）と Q3（creator は Agent Skills ・ Agent の形の雛形と検査だけを持つ）まで全部決着（2026-10-12）。ACDR 0170（規則と abstract の決まり）承認・コミット済み。次は skills-creator の ACDR（雛形3つ・scaffold の --kind 等を外す・試験名から版を外す）。決着したら schema-driven の ACDR（規則と abstract の決まり）。そのあと skills-creator を仕上げる ACDR（tools.json、type_v1.rs と data/skill-v1 の名前から版を外す＝ボード skills-creator-rebuild 論点3の改め直し）。そのあと schema-driven のカタログの ACDR：カタログに部品を4つ足し、9つ変え、トークンを入れる。check が maxContains の超過を「contains のスキーマに合う要素が無い」と返す誤りも直す
+2. ボード concrete-schema-roles（Artifact https://claude.ai/artifact/5BwJynkVP75zgTFBrU1chE、1回目）の Q1（3つの層と②の契約と責務）・ Q2（②を③と同じ道筋で扱う＝案 A、規則1つ）と Q3（creator は Agent Skills ・ Agent の形の雛形と検査だけを持つ）まで全部決着（2026-10-12）。ACDR 0170（規則と abstract の決まり）・ 0171（取り込むファイルを crate files の build.rs がフォルダから一覧にし、名前で引く。相対パスをなくした）承認・コミット済み。次は skills-creator の ACDR（雛形3つ・scaffold の --kind 等を外す・試験名から版を外す）。決着したら schema-driven の ACDR（規則と abstract の決まり）。そのあと skills-creator を仕上げる ACDR（tools.json、type_v1.rs と data/skill-v1 の名前から版を外す＝ボード skills-creator-rebuild 論点3の改め直し）。そのあと schema-driven のカタログの ACDR：カタログに部品を4つ足し、9つ変え、トークンを入れる。check が maxContains の超過を「contains のスキーマに合う要素が無い」と返す誤りも直す
 3. advance ・ inspect ・ serve を `src/brainstorming-board/` に Rust で作り、ブレストボードを移す ACDR を出して適用する。移したら `src/skills-creator/tests/baseline-v3/brainstorming-board.json` を消す
 4. acdr を新しい形で作り直す（0162 もここで扱う）
 5. agents creator：新しい形のブレストボードを試す1枚目として作る（最初の論点は「Agent」が何を指すか）

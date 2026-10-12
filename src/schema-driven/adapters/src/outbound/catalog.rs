@@ -8,12 +8,6 @@ use schema_driven_core::ports::outbound::{Design, Frame, Renderer};
 use serde_json::Value;
 use std::sync::OnceLock;
 
-const CATALOG: &str = include_str!("../../../schemas/catalog.schema.json");
-const PARTS: &str = include_str!("../../../catalog/parts.html");
-const STYLE: &str = include_str!("../../../catalog/catalog.css");
-const SCRIPT: &str = include_str!("../../../catalog/catalog.js");
-const DESIGN_SYSTEM: &str = include_str!("../../../catalog/design-system.json");
-
 /// 節がこの数以上なら、題の下に目次を出す。
 const TABLE_OF_CONTENTS_FROM: usize = 4;
 
@@ -22,9 +16,9 @@ pub struct Catalog;
 fn parts_with_style() -> &'static str {
     static PARTS_WITH_STYLE: OnceLock<String> = OnceLock::new();
     PARTS_WITH_STYLE.get_or_init(|| {
-        PARTS
-            .replace("/*STYLE*/", STYLE)
-            .replace("/*SCRIPT*/", SCRIPT)
+        schema_driven_files::catalog("parts.html")
+            .replace("/*STYLE*/", schema_driven_files::catalog("catalog.css"))
+            .replace("/*SCRIPT*/", schema_driven_files::catalog("catalog.js"))
     })
 }
 
@@ -456,7 +450,9 @@ impl Catalog {
 impl Design for Catalog {
     /// カタログの $defs のキーが部品の名前で、値が入力の形である。
     fn components(&self) -> Vec<(String, Value)> {
-        let catalog: Value = serde_json::from_str(CATALOG).unwrap_or(Value::Null);
+        let catalog: Value =
+            serde_json::from_str(schema_driven_files::schema_text("schema-driven/catalog@v1"))
+                .unwrap_or(Value::Null);
         catalog["$defs"]
             .as_object()
             .into_iter()
@@ -470,7 +466,7 @@ impl Design for Catalog {
     }
 
     fn design_system(&self) -> &str {
-        DESIGN_SYSTEM
+        schema_driven_files::catalog("design-system.json")
     }
 
     fn page(&self, frame: &Frame, renderer: &dyn Renderer) -> Result<Html, String> {

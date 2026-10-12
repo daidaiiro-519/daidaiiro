@@ -7,9 +7,6 @@ use crate::domain::schema::Schema;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 
-const ANNOTATIONS: &str = include_str!("../../../schemas/annotations.schema.json");
-const VIEW: &str = include_str!("../../../schemas/view.schema.json");
-
 /// 基盤の注釈。これと、根の x-annotations に申告したもののほかは、違反にする。
 const BASE_ANNOTATIONS: [&str; 7] = [
     "x-abstract",
@@ -329,13 +326,22 @@ pub fn check_schemas(
     schemas: &[(String, Value)],
     parse: &dyn Fn(&str) -> Result<(), String>,
 ) -> Vec<SchemaFinding> {
-    let meta_v1 = Schema::new("meta-schema.json", parse_json(contract::META_V1), vec![]);
+    let meta_v1 = Schema::new(
+        "meta-schema.json",
+        parse_json(schema_driven_files::schema_text(contract::V1)),
+        vec![],
+    );
     let sib = vec![
         (
             "annotations.schema.json".to_owned(),
-            parse_json(ANNOTATIONS),
+            parse_json(schema_driven_files::schema_text(
+                "schema-driven/annotations@v1",
+            )),
         ),
-        ("view.schema.json".to_owned(), parse_json(VIEW)),
+        (
+            "view.schema.json".to_owned(),
+            parse_json(schema_driven_files::schema_text("schema-driven/view@v1")),
+        ),
     ];
     let shape =
         |reference: &str| Schema::new("shape.json", json!({"$ref": reference}), sib.clone());

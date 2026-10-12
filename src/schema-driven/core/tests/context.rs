@@ -173,7 +173,8 @@ fn derived_key_is_place_from_root_for_nested_objects() {
 
 #[test]
 fn contexts_match_the_context_shape_in_page_schema() {
-    let page: Value = serde_json::from_str(include_str!("../../schemas/page.schema.json")).unwrap();
+    let page: Value =
+        serde_json::from_str(schema_driven_files::schema_text("schema-driven/page@v1")).unwrap();
     let shape = Schema::new(
         "context.schema.json",
         json!({"$ref": "page.schema.json#/$defs/context"}),

@@ -1,0 +1,410 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0171",
+ "title": "取り込むファイルをフォルダから一覧にして名前で引く",
+ "date": "2026-10-12",
+ "status": "accepted",
+ "decision": "基盤が実行ファイルへ取り込むファイルは、フォルダの中から一覧を作って名前で引き、ソースのコードにファイルの場所を書かない。",
+ "why": "基盤のスキーマとカタログを取り込む include_str! が、21か所 ・ 6ファイルに、../../../schemas/… の相対パスで書かれていた。../ の数はソースのファイルの深さで決まるので、ソースのファイルを1つ動かすだけで壊れる。同じファイルを別々の場所から別々の数の ../ で指してもいた。組み込みのスキーマの表（名前 ・ ファイル名 ・ 中身の9行）も、各スキーマの $id を手で写したもので、同じ弱さを持っていた。利用者が、相対パスは変更に弱すぎると指摘し、比べた5つの方法から、フォルダから一覧を作る方法を選んだ。skills-creator の試験も、../../ を3か所に書いていた。",
+ "shift": [
+  {
+   "what": "取り込むファイルの指し方",
+   "from": "使う所ごとに include_str!(\"../../../schemas/…\") を書く（21か所）",
+   "to": "crate files の build.rs が schemas/ と catalog/ の中から一覧を作り、使う側は名前（$id）かファイル名で引く"
+  },
+  {
+   "what": "組み込みのスキーマの表",
+   "from": "名前 ・ ファイル名 ・ 中身を手で9行並べる",
+   "to": "各スキーマの $id から作る。$id の無いスキーマがあればビルドを止める"
+  },
+  {
+   "what": "何を取り込んだかの確かめ方",
+   "from": "コードの include_str! を読む",
+   "to": "取り込んだ一覧（名前とファイル名）を固定する試験 files/tests/files.rs"
+  },
+  {
+   "what": "skills-creator の試験が指すリポジトリの中の場所",
+   "from": "それぞれの試験が ../../ を書く",
+   "to": "tests/common/mod.rs の repo() と skills() の1か所から取る"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "ファイルの指し方を、同じ観点の5行で、変更前と変更後に並べた図。",
+ "alternatives": [
+  {
+   "option": "使う所ごとに CARGO_MANIFEST_DIR を基準に書く",
+   "why_not": "ソースのファイルを動かしても壊れなくなるが、同じファイルを複数の所に書くのは変わらず、schemas/ を動かすと全部を直す"
+  },
+  {
+   "option": "定数だけを持つ crate に、ファイルを1行ずつ書く",
+   "why_not": "パスは1か所になるが、ファイルを足すたびに1行足し、組み込みのスキーマの表は手で並べたまま残る"
+  },
+  {
+   "option": "外部の crate でフォルダを丸ごと取り込む",
+   "why_not": "依存が1つ増える。API と保守の状況を原文で確かめていない"
+  },
+  {
+   "option": "取り込まず、実行するときに Skill の assets/ から読む",
+   "why_not": "実行ファイル1つで動く形が崩れ、版ごとの中身を実行ファイルに固定する決まりにも反する"
+  },
+  {
+   "option": ".cargo/config.toml の [env] で、根の場所を変数として渡す",
+   "why_not": "Cargo はこの設定を、コマンドを実行した場所から探す。--manifest-path で別の場所から指す呼び方では読まれない（原文では未確認）"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "build",
+   "tab": "files/build.rs",
+   "file": "src/schema-driven/files/build.rs",
+   "marks": [
+    {
+     "find": "let root = PathBuf::from(std::env::var(\"CARGO_MANIFEST_DIR\").unwrap()).join(\"..\");",
+     "before": "（無い。21か所の include_str! が、それぞれのソースのファイルから ../../../schemas/… を指していた）",
+     "why": "取り込むファイルの場所は、この1か所のフォルダ名（schemas/ ・ catalog/）だけにする。どのファイルを取り込むかは、フォルダの中から決める"
+    }
+   ],
+   "before": ""
+  },
+  {
+   "key": "lib",
+   "tab": "files/lib.rs",
+   "file": "src/schema-driven/files/src/lib.rs",
+   "marks": [
+    {
+     "find": "pub fn schema(name: &str) -> Option<&'static Schema> {",
+     "before": "（無い）",
+     "why": "使う側は、スキーマを名前（$id）で、カタログをファイル名で引く。場所を知らない"
+    }
+   ],
+   "before": ""
+  },
+  {
+   "key": "files-test",
+   "tab": "files/tests/files.rs",
+   "file": "src/schema-driven/files/tests/files.rs",
+   "marks": [
+    {
+     "find": "fn every_schema_is_taken_in_under_its_own_name() {",
+     "before": "（無い）",
+     "why": "何を取り込んだかがコードから見えない弱さを、一覧を固定する試験で補う"
+    }
+   ],
+   "before": ""
+  },
+  {
+   "key": "files-cargo",
+   "tab": "files/Cargo.toml",
+   "file": "src/schema-driven/files/Cargo.toml",
+   "marks": [
+    {
+     "find": "[build-dependencies]",
+     "before": "（無い）",
+     "why": "スキーマの $id を読むために、ワークスペースが既に使っている serde_json だけを使う。新しい依存は足さない"
+    }
+   ],
+   "before": ""
+  },
+  {
+   "key": "ws",
+   "tab": "Cargo.toml",
+   "file": "src/schema-driven/Cargo.toml",
+   "marks": [
+    {
+     "find": "members = [\"files\", \"core\", \"adapters\", \"cli\", \"mcp\", \"stub\"]",
+     "before": "members = [\"core\", \"adapters\", \"cli\", \"mcp\", \"stub\"]",
+     "why": "取り込みを受け持つ crate files を足した"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "core-cargo",
+   "tab": "core/Cargo.toml",
+   "file": "src/schema-driven/core/Cargo.toml",
+   "marks": [
+    {
+     "find": "schema-driven-files = { path = \"../files\" }",
+     "before": "（無い）",
+     "why": "core は取り込んだスキーマを files から引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "adapters-cargo",
+   "tab": "adapters/Cargo.toml",
+   "file": "src/schema-driven/adapters/Cargo.toml",
+   "marks": [
+    {
+     "find": "schema-driven-files = { path = \"../files\" }",
+     "before": "（無い）",
+     "why": "adapters は取り込んだカタログを files から引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "cli-cargo",
+   "tab": "cli/Cargo.toml",
+   "file": "src/schema-driven/cli/Cargo.toml",
+   "marks": [
+    {
+     "find": "schema-driven-files = { path = \"../files\" }",
+     "before": "（無い）",
+     "why": "試験も、取り込んだファイルを files から引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "contract",
+   "tab": "contract.rs",
+   "file": "src/schema-driven/core/src/domain/contract.rs",
+   "marks": [
+    {
+     "find": "pub(crate) const META_V1: &str = include_str!(\"../../../schemas/meta-schema.json\");",
+     "before": "pub(crate) const META_V1: &str = include_str!(\"../../../schemas/meta-schema.json\");\npub const ABSTRACT_V1: &str = \"schema-driven/abstract@v1\";",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く。ABSTRACT_V1 は V1 と同じ値の重複だったので消した"
+    },
+    {
+     "find": "pub(crate) const TOOLS_SCHEMA_V1: &str = include_str!(\"../../../schemas/tools.schema.json\");",
+     "before": "pub(crate) const TOOLS_SCHEMA_V1: &str = include_str!(\"../../../schemas/tools.schema.json\");",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "serde_json::from_str(schema_driven_files::schema_text(V1)).unwrap_or(Value::Null),",
+     "before": "serde_json::from_str(META_V1).unwrap_or(Value::Null),\n…\nconst BUILTINS: [(&str, &str, &str); 9] = [ …（名前 ・ ファイル名 ・ 中身を手で9行） ];",
+     "why": "相対パスで取り込んだ定数をやめ、取り込む一覧から名前で引く。組み込みのスキーマの表は各スキーマの $id の写しだったので消し、files がスキーマ自身から作る一覧を使う"
+    },
+    {
+     "find": "schema_driven_files::schema(name).map(|schema| schema.file)",
+     "before": "BUILTINS\n    .iter()\n    .find(|(builtin, _, _)| *builtin == name)\n    .map(|(_, file, _)| *file)",
+     "why": "手で並べた表をやめ、取り込む一覧から名前でファイル名を引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "instances",
+   "tab": "instances.rs",
+   "file": "src/schema-driven/core/src/application/instances.rs",
+   "marks": [
+    {
+     "find": "let instance = if stored.as_str() == contract::V1 {",
+     "before": "let instance = if stored.as_str() == contract::ABSTRACT_V1 {",
+     "why": "同じ値の重複だった ABSTRACT_V1 を消し、V1 にそろえた"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "rules",
+   "tab": "schema_rules.rs",
+   "file": "src/schema-driven/core/src/domain/schema_rules.rs",
+   "marks": [
+    {
+     "find": "const ANNOTATIONS: &str = include_str!(\"../../../schemas/annotations.schema.json\");",
+     "before": "const ANNOTATIONS: &str = include_str!(\"../../../schemas/annotations.schema.json\");\nconst VIEW: &str = include_str!(\"../../../schemas/view.schema.json\");",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "parse_json(schema_driven_files::schema_text(contract::V1)),",
+     "before": "let meta_v1 = Schema::new(\"meta-schema.json\", parse_json(contract::META_V1), vec![]);",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "renders",
+   "tab": "renders.rs",
+   "file": "src/schema-driven/core/src/application/renders.rs",
+   "marks": [
+    {
+     "find": "const PAGE_SCHEMA: &str = include_str!(\"../../../schemas/page.schema.json\");",
+     "before": "const PAGE_SCHEMA: &str = include_str!(\"../../../schemas/page.schema.json\");",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "serde_json::from_str(schema_driven_files::schema_text(\"schema-driven/page@v1\"))",
+     "before": "serde_json::from_str(PAGE_SCHEMA).unwrap_or(Value::Null),",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "design",
+   "tab": "design_system.rs",
+   "file": "src/schema-driven/core/src/domain/design_system.rs",
+   "marks": [
+    {
+     "find": "const DESIGN_SYSTEM: &str = include_str!(\"../../../schemas/design-system.schema.json\");",
+     "before": "const DESIGN_SYSTEM: &str = include_str!(\"../../../schemas/design-system.schema.json\");",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "\"schema-driven/design-system@v1\",",
+     "before": "serde_json::from_str(DESIGN_SYSTEM).unwrap_or(Value::Null),",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "catalog",
+   "tab": "catalog.rs",
+   "file": "src/schema-driven/adapters/src/outbound/catalog.rs",
+   "marks": [
+    {
+     "find": "const CATALOG: &str = include_str!(\"../../../schemas/catalog.schema.json\");",
+     "before": "const CATALOG ・ PARTS ・ STYLE ・ SCRIPT ・ DESIGN_SYSTEM の5つの include_str!（../../../schemas/ と ../../../catalog/）",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "schema_driven_files::catalog(\"parts.html\")",
+     "before": "PARTS\n    .replace(\"/*STYLE*/\", STYLE)\n    .replace(\"/*SCRIPT*/\", SCRIPT)",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "serde_json::from_str(schema_driven_files::schema_text(\"schema-driven/catalog@v1\"))",
+     "before": "let catalog: Value = serde_json::from_str(CATALOG).unwrap_or(Value::Null);",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    },
+    {
+     "find": "schema_driven_files::catalog(\"design-system.json\")",
+     "before": "DESIGN_SYSTEM",
+     "why": "ソースのファイルの深さで ../ の数が決まる相対パスをやめ、取り込む一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "t-catalog",
+   "tab": "catalog.rs（試験）",
+   "file": "src/schema-driven/cli/tests/catalog.rs",
+   "marks": [
+    {
+     "find": "const CATALOG: &str = include_str!(\"../../schemas/catalog.schema.json\");",
+     "before": "const CATALOG: &str = include_str!(\"../../schemas/catalog.schema.json\");",
+     "why": "試験も同じ一覧から名前で引く"
+    },
+    {
+     "find": "serde_json::from_str(schema_driven_files::schema_text(\"schema-driven/catalog@v1\")).unwrap();",
+     "before": "let catalog: Value = serde_json::from_str(CATALOG).unwrap();",
+     "why": "試験も同じ一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "t-sdam",
+   "tab": "structured_data_as_master.rs",
+   "file": "src/schema-driven/cli/tests/structured_data_as_master.rs",
+   "marks": [
+    {
+     "find": "schema_driven_files::schema_text(\"schema-driven/document@v1\"),",
+     "before": "include_str!(\"../../schemas/document.schema.json\"),",
+     "why": "試験も同じ一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "t-context",
+   "tab": "context.rs",
+   "file": "src/schema-driven/core/tests/context.rs",
+   "marks": [
+    {
+     "find": "serde_json::from_str(schema_driven_files::schema_text(\"schema-driven/page@v1\")).unwrap();",
+     "before": "let page: Value = serde_json::from_str(include_str!(\"../../schemas/page.schema.json\")).unwrap();",
+     "why": "試験も同じ一覧から名前で引く"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "sc-common",
+   "tab": "common/mod.rs",
+   "file": "src/skills-creator/tests/common/mod.rs",
+   "marks": [
+    {
+     "find": "pub fn repo() -> PathBuf {",
+     "before": "（無い。migration.rs と type_v1.rs が、それぞれ ../../ を書いていた）",
+     "why": "リポジトリの根を1か所で決め、そこからの名前で Skill の置き場所を指す"
+    }
+   ],
+   "before": ""
+  },
+  {
+   "key": "sc-migration",
+   "tab": "migration.rs",
+   "file": "src/skills-creator/tests/migration.rs",
+   "marks": [
+    {
+     "find": "use common::{repo, skills};",
+     "before": "（無い）",
+     "why": "リポジトリの根と Skill の置き場所を、共通の1か所から取る"
+    },
+    {
+     "find": "fn repo() -> PathBuf {",
+     "before": "fn repo() -> PathBuf {\n    PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"../..\") …",
+     "why": "同じ関数を common に移した"
+    },
+    {
+     "find": "let skills = skills();",
+     "before": "let skills = repo.join(\".claude/skills\");",
+     "why": "Skill の置き場所を、共通の1か所から取る"
+    }
+   ],
+   "rev": "HEAD"
+  },
+  {
+   "key": "sc-type",
+   "tab": "type_v1.rs",
+   "file": "src/skills-creator/tests/type_v1.rs",
+   "marks": [
+    {
+     "find": "mod common;",
+     "before": "（無い）",
+     "why": "リポジトリの根と Skill の置き場所を、共通の1か所から取る"
+    },
+    {
+     "find": ".unwrap_or_else(|_| common::skills().join(\"schema-driven/scripts/schema-driven\"))",
+     "before": "manifest().join(\"../../.claude/skills/schema-driven/scripts/schema-driven\")",
+     "why": "../../ を書かずに、Skill の置き場所からの名前で指す"
+    },
+    {
+     "find": ".unwrap_or_else(|_| common::skills().join(\"skills-creator\"))",
+     "before": ".unwrap_or_else(|_| manifest().join(\"../../.claude/skills/skills-creator\"))",
+     "why": "../../ を書かずに、Skill の置き場所からの名前で指す"
+    }
+   ],
+   "rev": "HEAD"
+  }
+ ],
+ "seal": {
+  "build": "70871d388babbcbe28d8626b6f3261e1b1516747a240ed35dca3ec5b1afc3489",
+  "lib": "a4a1b139f919aabfca7c04ba0b52a92d7363e24a326fbd43c23b97aa9750009d",
+  "files-test": "9c63e01d4ce9dc9b4dba48107cafc97abfb756c572c3e2295d7136e96aa410aa",
+  "files-cargo": "e16694e66e3689f4ef0891a9e088960ff0e40ee3eb0f07b7b638863e1e0507e8",
+  "ws": "9360bf764001ed14311d457a8f072ca5ab1f46c9eeade10748b8a5558ac778dd",
+  "core-cargo": "4a92e38d61fad6d7e14c7cda4bdf88e3577b84192cf5b39367bdb5bdbf0af68d",
+  "adapters-cargo": "5277c7eb32426217bc485dcf0b7ebced56a1266d465b89195659be6eb76fd38a",
+  "cli-cargo": "289b700df6aebf5a8f772d61e07ac36307da9db6fd3160759694493592eae2d7",
+  "contract": "33fba8539a7fe2d22abe3b221bf910b821b0b6788570a93a9190aa9353d5e450",
+  "instances": "3a5a9437203f52bd6586bb3b70ca439112e382defa33eccc719df690f134196b",
+  "rules": "88bcda62efaa08da00117d1c3e50fd9b5315b1a30e83e658ee97a064d7946f53",
+  "renders": "98372eabac916285d428d8a2e8ce21161a3c24fec0013a3192d1b46f18108b26",
+  "design": "ed280b077d301112da51451d0f7cd2561bf2b107f8e1e4f2d4aea695866c80e2",
+  "catalog": "ea828a10ee10a80505103996c5f6500769cb1a45102851a950719bffa9c18cd3",
+  "t-catalog": "7ec4da2576ce43e9121b570ce6a90d64855c5a0ef7eaa67aa247f0f357fdc956",
+  "t-sdam": "78c2142ca7abe4da28e359c300af196ec0b02389e3d18020746a993d3da55d94",
+  "t-context": "2fcf9754de5df808e674f1817b32087b1ba04b00f1d1c5f7f9950acf09d66749",
+  "sc-common": "f85e7260fcd9bc584bdec61e127652ba0b57510a0836463afca02a4c8a302f00",
+  "sc-migration": "908cc8680e54c120daefa4e30ccf3224b90e0098f3a5d69124affc0f5e5b2daa",
+  "sc-type": "3371eadc554b1477d606dce417112ff34d69e83e25016cce6a6c8f5210df599a"
+ }
+}

@@ -8,8 +8,6 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-const CATALOG: &str = include_str!("../../schemas/catalog.schema.json");
-
 fn field(description: &str) -> Value {
     json!({"type": "string", "description": description,
            "x-prompt": {"read": {"means": "見本の欄である。"},
@@ -100,7 +98,8 @@ fn html(dir: &Path) -> String {
 
 #[test]
 fn the_catalog_names_every_part() {
-    let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+    let catalog: Value =
+        serde_json::from_str(schema_driven_files::schema_text("schema-driven/catalog@v1")).unwrap();
     assert_eq!(catalog["$id"], "schema-driven/catalog@v1");
     let names: Vec<&str> = catalog["$defs"]
         .as_object()

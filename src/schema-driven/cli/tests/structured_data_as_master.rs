@@ -19,7 +19,7 @@ fn workdir(name: &str) -> common::Scratch {
     fs::create_dir_all(dir.join("declarations")).unwrap();
     fs::write(
         dir.join(SCHEMA),
-        include_str!("../../schemas/document.schema.json"),
+        schema_driven_files::schema_text("schema-driven/document@v1"),
     )
     .unwrap();
     dir

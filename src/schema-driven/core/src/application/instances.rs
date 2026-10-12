@@ -253,11 +253,12 @@ impl InstanceUseCases for Instances {
             }
         };
         // abstract から作るのは concrete スキーマで、$schema に dialect を、x-abstract に版を書く
-        let instance = if stored.as_str() == contract::ABSTRACT_V1 {
+        let instance = if stored.as_str() == contract::V1 {
             if self.files.exists(path) {
                 return Err(reject(Reject::AlreadyExists));
             }
-            let start = serde_json::json!({"$schema": contract::DIALECT, "x-abstract": contract::ABSTRACT_V1});
+            let start =
+                serde_json::json!({"$schema": contract::DIALECT, "x-abstract": contract::V1});
             Instance::load(instance_path, stored, JsonValue::new(&start.to_string()))
         } else {
             Instance::create(instance_path, stored, self.files.exists(path)).map_err(reject)?

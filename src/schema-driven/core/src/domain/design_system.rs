@@ -6,8 +6,6 @@ use crate::domain::schema::Schema;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const DESIGN_SYSTEM: &str = include_str!("../../../schemas/design-system.schema.json");
-
 /// 読み込んだデザインシステム。トークンの名前は CSS の変数の名前（先頭の -- を除く）。
 struct Tokens {
     scope: String,
@@ -165,7 +163,10 @@ pub fn check(system_text: &str, parts: &str, components: &[String]) -> Vec<Strin
     };
     let shape = Schema::new(
         "design-system.schema.json",
-        serde_json::from_str(DESIGN_SYSTEM).unwrap_or(Value::Null),
+        serde_json::from_str(schema_driven_files::schema_text(
+            "schema-driven/design-system@v1",
+        ))
+        .unwrap_or(Value::Null),
         vec![],
     );
     match shape.validate(&system) {

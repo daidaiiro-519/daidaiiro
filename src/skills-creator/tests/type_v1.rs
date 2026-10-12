@@ -1,6 +1,8 @@
 //! 型 v1 の試験。試験データ（tests/data/skill-v1/）を check に通し、
 //! 終了コードと、落ちた項目 id の集合の両方を期待と照らす。
 
+mod common;
+
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
@@ -15,16 +17,14 @@ fn manifest() -> PathBuf {
 fn engine() -> PathBuf {
     std::env::var("SC_ENGINE")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            manifest().join("../../.claude/skills/schema-driven/scripts/schema-driven")
-        })
+        .unwrap_or_else(|_| common::skills().join("schema-driven/scripts/schema-driven"))
 }
 
 /// 型のスキーマを持つ skills-creator の Skill のフォルダ。SC_SELF で替えられる
 fn own_skill() -> PathBuf {
     std::env::var("SC_SELF")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| manifest().join("../../.claude/skills/skills-creator"))
+        .unwrap_or_else(|_| common::skills().join("skills-creator"))
 }
 
 pub fn run(args: &[&str]) -> (i32, Value) {

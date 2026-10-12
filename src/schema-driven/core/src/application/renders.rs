@@ -18,8 +18,6 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-const PAGE_SCHEMA: &str = include_str!("../../../schemas/page.schema.json");
-
 /// 書いたページ1枚。
 #[derive(Debug, Clone, PartialEq)]
 pub struct RenderedPage {
@@ -81,7 +79,8 @@ impl Renders {
         }
         let shape = Schema::new(
             "page.schema.json",
-            serde_json::from_str(PAGE_SCHEMA).unwrap_or(Value::Null),
+            serde_json::from_str(schema_driven_files::schema_text("schema-driven/page@v1"))
+                .unwrap_or(Value::Null),
             vec![],
         );
         let list = self
