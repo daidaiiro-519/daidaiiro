@@ -1,0 +1,113 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0174",
+ "title": "schema-driven のコーディング規則を CODING.md に置く",
+ "date": "2026-10-12",
+ "status": "accepted",
+ "decision": "schema-driven のコードは、src/schema-driven/CODING.md に書いたアーキテクチャ ・ crate とフォルダ ・ trait ・ テスト ・ 検査の順の規則に従う。",
+ "why": "schema-driven のコードには、ヘキサゴナルで作るという大枠（ボード schema-driven-build の論点1）しか無かった。規則を書く場所は、コーディングの Skill の形として先送りしていた。その Skill は無く、実装の決まりを書いた implementation.json も ACDR 0169 で消した。規則が無いまま別々の時期に作った結果、受け口と起動時の結合が2か所に分かれ、入ってくる側が出ていく側を直に呼び、テストの中に実装（5,500行のうち MCP のクライアントや cargo build）が入った。利用者は、コーディングの Skill より先に、CODING.md だけを作って schema-driven の規則を書き、型（スキーマ）は後で定義して移す、と決めた。CODING.md を置いたフォルダより下がそれに従い、近いものが優先する。AGENTS.md と同じ決まり方である。規則の中身は、原文と照合した原典（The Rust Programming Language ・ The Cargo Book ・ Rust API Guidelines）から書いた。ddd-advisor と qa-advisor の回答も使った。どの規則も、なぜ（守らないと何が起きるか）と、機械で見る検査を持つ。",
+ "shift": [
+  {
+   "what": "schema-driven のコーディング規則",
+   "from": "どこにも無い（大枠のヘキサゴナルだけ）",
+   "to": "src/schema-driven/CODING.md。規則の1件は、なぜと機械の検査を持つ"
+  },
+  {
+   "what": "crate",
+   "from": "files ・ core ・ adapters ・ cli ・ mcp ・ stub の6つ",
+   "to": "core ・ adapters と、配らない probe の3つ。crates/ の下に平らに置く"
+  },
+  {
+   "what": "CLI と MCP の受け口と起動時の結合",
+   "from": "受け口は adapters と mcp の main.rs に分かれ、結合は cli と mcp に1つずつ",
+   "to": "受け口は adapters/src/inbound、結合は adapters の compose 1か所。実行ファイルは呼ぶだけ"
+  },
+  {
+   "what": "port の trait",
+   "from": "core が自分で実装する trait も port と呼び、決まり無く Arc<dyn …> で渡す",
+   "to": "出ていく側だけを port と呼ぶ。ジェネリクスで使うか dyn で使うかを定義のときに決める"
+  },
+  {
+   "what": "テスト",
+   "from": "24ファイルがすべて tests/。テストの中に MCP のクライアント ・ cargo build ・ 外部コマンド",
+   "to": "単体は同じファイルの #[cfg(test)]、約束は振り分けの結合テスト、実行ファイルは少数の端から端まで。テストに実装を書かない"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "規則が無かったいまと、規則が求める形を、同じ観点の6行で並べた図。",
+ "alternatives": [
+  {
+   "option": "コーディングの Skill と規則の型（スキーマ）を先に作る",
+   "why_not": "Skill は基盤（schema-driven）の上に作るので、基盤が規則に従っていない間は作れない。型は後から定義して、CODING.md の中身を移せばよい"
+  },
+  {
+   "option": "言語ごとの規則（Rust の書き方）にする",
+   "why_not": "規則は作るもののアーキテクチャと技術スタックで決まり、言語では決まらない。同じ Rust でも、基盤と使い捨ての変換では規則が違う"
+  },
+  {
+   "option": "層ごとに crate を分ける（domain ・ application ・ 各アダプタ）",
+   "why_not": "ヘキサゴナルが求めるのは論理的な境界で、層を物理的に分ける理由にならない（ddd-advisor の回答、layered-architecture）。crate は依存の向きを Cargo で強制できる core と adapters の2つで足りる"
+  },
+  {
+   "option": "取り込みの crate（files）を残す",
+   "why_not": "業務の知識（スキーマ）と表示の部品（カタログ）を1つの crate に混ぜ、core がそれに頼る。取り込みは、使う層の crate の build.rs が持つ。フォルダから一覧を作って名前で引く仕組み（ACDR 0171）はそのまま移す"
+  },
+  {
+   "option": "MCP を起動して確かめるとき、JSON-RPC を手で書いたクライアントを使い続ける",
+   "why_not": "テストの中にプロトコルの実装を持つことになる。rmcp 3.5.0 は client と transport-child-process の feature を持つ（取得していない依存 tokio-stream と process-wrap を、規則に従わせる作業のときに取得する）"
+  },
+  {
+   "option": "機械で見られない規則も置く",
+   "why_not": "検査の無い規則は守ること自体が目的になる。例外は、値の制約を型で表す1件だけで、レビューで見ると明記した"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "coding",
+   "tab": "CODING.md",
+   "file": "src/schema-driven/CODING.md",
+   "before": "",
+   "marks": [
+    {
+     "find": "このファイルを置いたフォルダ",
+     "before": "（無い。新しいファイルである）",
+     "why": "CODING.md を置いたフォルダより下が従い、近いものが優先する。AGENTS.md と同じ決まり方である"
+    },
+    {
+     "find": "守らないと何が起きるか",
+     "before": "（無い。新しいファイルである）",
+     "why": "どの規則も、守らないと何が起きるかと、それを機械でどう見るかを持つ。CLAUDE.md の運用ルールの表（ルール ・ なぜ ・ 適用方法）と同じ形にした"
+    },
+    {
+     "find": "ポートとアダプタ（ヘキサゴナル）で作る。",
+     "before": "（無い。新しいファイルである）",
+     "why": "層ごとの持ち物と依存してよい先。ボード schema-driven-build の論点1の大枠を、層の表にした"
+    },
+    {
+     "find": "crate は core と adapters の2つと、配らない probe だけにする。",
+     "before": "（無い。新しいファイルである）",
+     "why": "crate とフォルダの形。The Cargo Book の crates/ の平らな置き方と、The Book の「main.rs は薄く」に合わせた"
+    },
+    {
+     "find": "port の trait は、定義するときに",
+     "before": "（無い。新しいファイルである）",
+     "why": "trait の使い方。Rust API Guidelines の「object か境界かを先に決める」に合わせた"
+    },
+    {
+     "find": "テストの本体に、分岐",
+     "before": "（無い。新しいファイルである）",
+     "why": "テストに書かないもの。qa-advisor の回答（conditional-test-logic ・ test-logic-in-production）に合わせた"
+    },
+    {
+     "find": "静的な検査を、動くテストより前に置く。",
+     "before": "（無い。新しいファイルである）",
+     "why": "検査の順。qa-advisor の回答（static-testing）に合わせた"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "coding": "2b1a8b87d0aa38a73795a74acf826c763d7cef638be3fa7e987e39ce9f7a7974"
+ }
+}
