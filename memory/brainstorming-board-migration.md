@@ -31,7 +31,9 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - ACDR 0176（カタログの中身を基盤から外す）・ 0177（7af0c675、基盤が自分で Skill のフォルダを作り公開する）承認 ・ コミット済み。ボード schema-driven-release（Artifact https://claude.ai/artifact/VDq8apjsXH3XW2bAXp7MjD）Q0〜Q4 決着。基盤の Skill のフォルダは `cd src/schema-driven && cargo xtask skill --out ../../.claude/skills/schema-driven` で作る（実行ファイルは scripts/bin/）。公開は .github/workflows/schema-driven.yml（tag schema-driven-v<版>）。古い release.yml ・ install スクリプトは消した（未コミットだった署名の変更は scratchpad の rel-old/ に退避、セッションが終わると消える）。
 - schema-driven は完成（2026-10-13）：tag schema-driven-v0.1.0 で 3 OS の build ・ verify ・ publish ・ receive が通り、Release https://github.com/daidaiiro-519/daidaiiro/releases/tag/schema-driven-v0.1.0 に配布物3つ ・ SHA256SUMS ・ 証明がある。
 - ボード skills-creator-on-base（Artifact https://claude.ai/artifact/ApJveJNsRA9PMZrvPeEiMD）Q0〜Q4 決着（2026-10-13）。古い skills-creator のボードは参照しない。要点：作られる Skill はソースを scripts/ に持ち、配る仕組みは持たない。入口は scripts/<Skill名>（拡張子なし、1行目で実行のしかた）と scripts/<Skill名>.cmd。基盤のエンジンだけ skills-creator の scaffold ・ engine が版を指して Release から取り、SHA-256 と証明を照合して scripts/bin/ に入れる（記録のファイルは置かない）。skills-creator 自身は基盤と同じ形（CODING.md ・ core と adapters ・ xtask）で作り直し、scripts/bin/skills-creator として置き、tag skills-creator-v<版> で公開。tool.json ・ engine.json は無し。
-- 次の順：①skills-creator を作り直す ACDR（試作 → 完成の条件：練習用の Skill ・ 壊した例 ・ Claude Code と Codex ・ Windows の PowerShell で .cmd ・ 3 OS の公開）②デザインシステムの Skill ③ブレストボードを移す（15の Skill を src/ 側にするか scripts/ 側にするかもここで決める）。手元の gh は 2.46 で attestation が無いので上げる必要がある。
+- skills-creator は完成（2026-10-16）：ACDR 0180（作り直し）・ 0181（基盤の Windows の不具合を直して schema-driven 0.1.1）。tag skills-creator-v0.1.0 で 3 OS の build ・ verify ・ publish ・ receive が通り、Release に配布物3つ ・ SHA256SUMS ・ 証明がある。Claude Code と Codex で SKILL.md の手順どおりに動き、Windows の PowerShell ・ cmd ・ Git Bash で入口（scripts/<名前> と .cmd）が動くことを実測した。
+- 残りの小さなこと：利用者の Windows に python3 が無いと、Git Bash から入口の1行目（#!/usr/bin/env python3）が動かない。入口の雛形の注意書きをどうするかは未決。手元の gh は 2.46 で attestation が無い（scratchpad に 2.102.0 を取って使った）。
+- 次の順：①デザインシステムの Skill ②ブレストボードを移す（15の Skill を src/ 側にするか scripts/ 側にするかもここで決める）③agents creator ④acdr。
 
 ## 次にすること（順番）
 
