@@ -122,11 +122,12 @@ jobs:
           $practice = Join-Path $env:RUNNER_TEMP 'pwsh-practice'
           & $creator scaffold $practice | Out-Host
           if ($LASTEXITCODE -ne 0) { throw "scaffold が失敗した" }
+          # Skill の名前はフォルダの名前で決まるので、入口は scripts\pwsh-practice（と .cmd）である
           Push-Location $practice
-          & .\scripts\practice prompt --schema schema-driven/abstract@v1 --property /title | Out-Host
+          & .\scripts\pwsh-practice prompt --schema schema-driven/abstract@v1 --property /title | Out-Host
           $code = $LASTEXITCODE
           Pop-Location
-          if ($code -ne 0) { throw "PowerShell から scripts\practice を起動できない（終了コード $code）" }
+          if ($code -ne 0) { throw "PowerShell から scripts\pwsh-practice を起動できない（終了コード $code）" }
 
   publish:
     if: github.ref_type == 'tag'
