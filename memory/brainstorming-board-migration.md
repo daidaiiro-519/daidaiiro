@@ -33,7 +33,15 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - ボード skills-creator-on-base（Artifact https://claude.ai/artifact/ApJveJNsRA9PMZrvPeEiMD）Q0〜Q4 決着（2026-10-13）。古い skills-creator のボードは参照しない。要点：作られる Skill はソースを scripts/ に持ち、配る仕組みは持たない。入口は scripts/<Skill名>（拡張子なし、1行目で実行のしかた）と scripts/<Skill名>.cmd。基盤のエンジンだけ skills-creator の scaffold ・ engine が版を指して Release から取り、SHA-256 と証明を照合して scripts/bin/ に入れる（記録のファイルは置かない）。skills-creator 自身は基盤と同じ形（CODING.md ・ core と adapters ・ xtask）で作り直し、scripts/bin/skills-creator として置き、tag skills-creator-v<版> で公開。tool.json ・ engine.json は無し。
 - skills-creator は完成（2026-10-16）：ACDR 0180（作り直し）・ 0181（基盤の Windows の不具合を直して schema-driven 0.1.1）。tag skills-creator-v0.1.0 で 3 OS の build ・ verify ・ publish ・ receive が通り、Release に配布物3つ ・ SHA256SUMS ・ 証明がある。Claude Code と Codex で SKILL.md の手順どおりに動き、Windows の PowerShell ・ cmd ・ Git Bash で入口（scripts/<名前> と .cmd）が動くことを実測した。
 - 残りの小さなこと：利用者の Windows に python3 が無いと、Git Bash から入口の1行目（#!/usr/bin/env python3）が動かない。入口の雛形の注意書きをどうするかは未決。手元の gh は 2.46 で attestation が無い（scratchpad に 2.102.0 を取って使った）。
-- 次の順：①デザインシステムの Skill ②ブレストボードを移す（15の Skill を src/ 側にするか scripts/ 側にするかもここで決める）③agents creator ④acdr。
+- 次の順：①brainstorming ②agents creator ③acdr。共有のデザインシステムの Skill は作らない（ux-advisor が完成イメージとしてデザインシステムを出し、各 Skill が持つ。2026-10-16 利用者の決定）。
+
+## brainstorming の現在地（2026-10-17）
+
+- 名前を brainstorming に変え、新しいボードは `.brainstorming/` に新しい形だけで作る。古い `.brainstorming-board/` は移さない（2026-10-16 利用者の決定）。
+- ボード `.brainstorming-board/brainstorming-on-base/`（古いツールで作った。Artifact https://claude.ai/artifact/48KWG81WUhsam5WpiirDjS、ローカル 8752）の1回目。Q0 完成の条件（18件）・ Q1 ボードの中身 ・ Q2 画面とデザインシステム ・ Q3 Skill の作り ・ Q4 AI のチャットの内蔵、の5つが回答待ち。
+- アドバイザーの回答と CLI の原文 ・ 実測は、ボードの sources/advisors/ と sources/ai-cli/ にある。
+- 試作の画面：アプリ https://claude.ai/artifact/U4UvC4GPvBhxjVrWY4qEz1 ・ 論点 https://claude.ai/artifact/M73AEfCEP3GTi1u1e3211V（生成の台本はセッションの作業用の領域にだけあり、HTML はボードの Q2 に入っている）。
+- 次：回答を受けて決着させ、ACDR を出し、src/brainstorming/ を作る。
 
 ## 次にすること（順番）
 

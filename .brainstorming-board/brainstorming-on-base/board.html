@@ -1,0 +1,1028 @@
+<title>brainstorming を新しい形の基盤の上で作り直す</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"><style>:root{--amber-100:#f0e2cd;--amber-400:#d9a35f;--amber-700:#8f5410;--amber-900:#33281a;--bw-accent:3px;--bw-hair:1px;--bw-solid:2px;--fog-300:#93a29d;--fs-2xs:.72rem;--fs-3xs:.66rem;--fs-sm:.88rem;--fs-xs:.8rem;--ink-600:#556561;--ink-700:#5b6b66;--ink-800:#3c4a46;--ink-900:#111d1a;--mist-100:#e6eeeb;--night-550:#354642;--night-600:#2a3936;--night-700:#22302d;--night-800:#16211e;--night-900:#0e1614;--night-960:#080d0c;--paper-000:#f8faf9;--paper-100:#eef1ef;--paper-200:#e7ecea;--paper-300:#dfe7e4;--paper-350:#dae1df;--paper-400:#ccd8d4;--paper-500:#b9c7c2;--plum-300:#d094c2;--plum-700:#7a3b6d;--rd-lg:.6rem;--sand-100:#f8f3e8;--sand-400:#d9b77e;--sand-700:#6e5738;--sand-900:#241d14;--sh-dark:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--sh-light:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--snow-200:#c2cec9;--snow-400:#9dada8;--sp-1:.2rem;--sp-2:.35rem;--sp-3:.45rem;--sp-4:.6rem;--sp-5:.7rem;--sp-7:1.2rem;--teal-100:#d5e6e3;--teal-300:#6cc9b8;--teal-700:#0d5c55;--teal-900:#173330;--tr-wide:.04em;--card:#f8faf9;--dim:#556561;--ink:#111d1a;--key:#0d5c55;--key-soft:#d5e6e3;--line:#ccd8d4;--move:#7a3b6d;--muted:#5b6b66;--panel:#e7ecea;--paper:#eef1ef;--pop:#f8f3e8;--popline:#d9b77e;--rule:#b9c7c2;--rule-soft:#dfe7e4;--shadow:0 1px 0 rgba(17,29,26,.06),0 8px 22px -18px rgba(17,29,26,.5);--src-o:#7a3b6d;--sub:#3c4a46;--sunk:#dae1df;--warn:#8f5410;--warn-soft:#f0e2cd;--nest-guide:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#16211e;--dim:#9dada8;--ink:#e6eeeb;--key:#6cc9b8;--key-soft:#173330;--line:#2a3936;--move:#d094c2;--muted:#93a29d;--panel:#22302d;--paper:#0e1614;--pop:#241d14;--popline:#6e5738;--rule:#354642;--rule-soft:#22302d;--shadow:0 1px 0 rgba(0,0,0,.4),0 10px 26px -18px #000;--src-o:#d094c2;--sub:#c2cec9;--sunk:#080d0c;--warn:#d9a35f;--warn-soft:#33281a;color-scheme:dark}</style><style>/* ブレストボードの見た目。色 ・ 寸法 ・ 字寸は、デザインシステム（design-system.json）のトークンを var(--名前) で引き、直値を書かない。
+   トークンの変数は schema-driven の基盤が design-system.json から作り、ページの先頭に置く。
+   部品の状態（押した ・ 焦点 ・ 無効）は、どの部品も同じ意味のトークンを使う。 */
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+font-size:15px;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.4rem 1.15rem 6rem;display:flex;flex-direction:column;gap:2rem}
+h1,h2,h3{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:2rem;letter-spacing:.02em;line-height:1.4}
+h2{font-size:1.22rem}h3{font-size:1rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.16em;
+text-transform:uppercase;color:var(--muted)}
+.thesis{font-size:1.05rem;max-width:46rem;color:var(--muted)}
+.thesis b{color:var(--ink);font-weight:700}
+header{display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--rule);padding-bottom:1.6rem}
+
+/* ── タブ ── */
+#tabs{display:flex;gap:.35rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);
+padding-bottom:.5rem;position:sticky;top:0;background:var(--paper);z-index:5;padding-top:.5rem}
+#tabs button{font:inherit;font-size:.85rem;padding:.4rem .8rem;border-radius:.3rem .3rem 0 0;
+border:1px solid var(--rule-soft);border-bottom:0;background:var(--card);color:var(--muted);
+cursor:pointer;display:flex;gap:.4rem;align-items:center}
+#tabs button[aria-selected="true"]{background:var(--key);border-color:var(--key);
+color:var(--paper);font-weight:700}
+#tabs .tn{font-family:"JetBrains Mono",monospace;font-size:.7rem;opacity:.85}
+.st{font-size:.66rem;font-weight:700;letter-spacing:.05em;border-radius:.2rem;
+padding:.02em .4em;border:1px solid currentColor;white-space:nowrap}
+.st.open{color:var(--warn)}.st.done{color:var(--key)}.st.wait{color:var(--dim)}
+.st.now{background:var(--key);color:var(--paper);padding:.1rem .4rem}
+#tabs button.wait{opacity:.5}
+#tabs button.now{border-color:var(--key);border-width:2px;font-weight:700}
+.front{background:var(--key-soft);border:2px solid var(--key);border-radius:.4rem;
+  padding:.9rem 1rem;margin:1rem 0}
+.front h3{margin:0 0 .5rem;font-size:.95rem;color:var(--key)}
+.front ol{margin:0;padding-left:1.2rem}
+.front li{margin:.35rem 0}
+.front .jump{background:none;border:none;color:var(--key);font-weight:700;
+  text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;font-family:inherit}
+.front .why{color:var(--muted);font-size:.84rem}
+.waiting{color:var(--dim);font-size:.84rem;margin:.6rem 0 0}
+#tabs button[aria-selected="true"] .st{color:var(--paper)}
+
+/* ── 論点 ── */
+.q{background:var(--card);border:1px solid var(--rule-soft);border-radius:.6rem;box-shadow:var(--shadow);
+padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:1.2rem}
+.qh{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+.qid{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.1em;color:var(--key);
+background:var(--key-soft);padding:.12rem .5rem;border-radius:.25rem}
+.ans{background:var(--key-soft);border-left:4px solid var(--key);border-radius:.35rem;padding:.9rem 1.05rem}
+.ans .big{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--key);
+border:2px solid var(--key);border-radius:.2rem;padding:0 .4em;margin-right:.5rem}
+.note{background:var(--sunk);border-left:3px solid var(--dim);border-radius:.3rem;
+padding:.7rem .95rem;font-size:.9rem;color:var(--muted)}
+.note b{color:var(--ink)}
+figure{margin:0;background:var(--card);border:1px solid var(--rule-soft);border-radius:.45rem;
+padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font-size:.82rem;color:var(--muted)}
+.figs{display:grid;gap:1rem;grid-template-columns:1fr}
+.ex{margin:1rem 0;padding:.9rem 1.1rem;border:1px solid var(--rule);border-left:3px solid var(--key);border-radius:6px;background:var(--card)}
+.ex h3{margin:1.1rem 0 .4rem;font-size:.95rem}
+.ex h3:first-child{margin-top:0}
+.ex pre{overflow-x:auto;margin:.3rem 0;padding:.7rem .9rem;background:var(--sunk);border-radius:4px}
+.ex pre code{font-size:.82rem;line-height:1.6;white-space:pre}
+details{border:1px solid var(--rule-soft);border-radius:.4rem;background:var(--paper)}
+details+details{margin-top:.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-size:.87rem;font-weight:700;color:var(--key)}
+details>div{padding:0 .9rem .9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.87rem;margin:.4rem 0;
+background:var(--card);border-radius:.3rem;overflow:hidden}
+th,td{border:1px solid var(--rule);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;font-size:.78rem;letter-spacing:.03em;color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--sunk);
+padding:.06rem .3rem;border-radius:.2rem}
+ul.plain{margin:.4rem 0;padding-left:1.2rem;font-size:.9rem}
+ul.plain li{margin:.3rem 0}
+.lead-s{display:block}
+.sub-s{margin-top:.25rem;font-size:.92em;color:var(--sub)}
+.part{display:inline-block;font-size:.78rem;font-weight:700;color:var(--key);
+background:var(--key-soft);border-radius:.25rem;padding:.1em .5em}
+.kind{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:.66rem;font-weight:700;
+padding:.04em .4em;border-radius:.2rem;border:1px solid currentColor;white-space:nowrap}
+.k-fact{color:var(--key)}.k-given{color:var(--warn)}.k-src{color:var(--src-o)}
+.k-rule{color:var(--muted)}.k-open{color:var(--dim)}
+.kind+small{display:block;color:var(--muted);font-size:.78rem;line-height:1.6;margin-top:.2rem}
+.n{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--key);border:1px solid var(--key);
+border-radius:2px;padding:0 .4em;display:inline-block}
+.n.out{color:var(--dim);border-color:var(--dim)}
+.cost{color:var(--muted)}
+
+/* ── 回答 ── */
+.form{display:flex;flex-direction:column;gap:.8rem;border-top:1px solid var(--rule);padding-top:1.1rem}
+.verdicts{display:flex;gap:.6rem;flex-wrap:wrap}
+.vb{font:inherit;font-size:.92rem;padding:.5rem 1.2rem;border-radius:.35rem;cursor:pointer;
+border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.vb[aria-pressed="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.reasons{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.rb{font:inherit;font-size:.8rem;padding:.2rem .6rem;border-radius:1rem;cursor:pointer;
+border:1px dashed var(--rule);background:transparent;color:var(--muted)}
+.rb:hover{color:var(--ink);border-color:var(--key)}
+label{font-size:.82rem;color:var(--muted);font-weight:700}
+textarea{font:inherit;font-size:.9rem;width:100%;min-height:4.5rem;padding:.6rem .7rem;
+border-radius:.35rem;border:1px solid var(--rule);background:var(--paper);color:var(--ink);resize:vertical}
+.send{display:flex;flex-direction:column;gap:.7rem;background:var(--card);
+border:1px solid var(--rule-soft);border-radius:.6rem;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.sb{font:inherit;font-size:.95rem;font-weight:700;padding:.6rem 1.4rem;border-radius:.35rem;
+cursor:pointer;border:1px solid var(--key);background:var(--key);color:var(--paper);align-self:flex-start}
+.sb:disabled{opacity:.45;cursor:not-allowed}
+.note-s{font-size:.82rem;color:var(--muted)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.74rem;white-space:pre-wrap;word-break:break-all;
+background:var(--sunk);border:1px solid var(--rule);border-radius:.35rem;padding:.7rem;
+max-height:16rem;overflow:auto}
+footer{font-size:.76rem;color:var(--dim);border-top:1px solid var(--rule);padding-top:1rem}
+footer a{color:inherit}
+.ex pre,.figs pre,details pre{background:var(--card);
+border:var(--bw-hair) solid var(--rule)}
+
+/* ── 入れ子の折り畳み ── 上位と同じ見た目だと、どちらが親なのかが読めない ──
+   **「折り畳みの中の折り畳み」で当てる** ── 外側の階級で当てると、
+   外側が別の階級になった瞬間に、入れ子が上位と同じ姿で出る（実際に出た）。
+   **地は変えない** ── 濃さを上げるのは当て木と字だけで足りる */
+details details{margin:var(--sp-3) 0 var(--sp-1);border:0;
+border-left:var(--nest-guide) solid var(--key);border-radius:0;background:none}
+details details>summary{padding:var(--sp-2) var(--sp-4);font-size:var(--fs-xs);
+font-weight:700;color:var(--key)}
+/* ── 携帯の幅 ──
+   **タブを縦に積むと、中身が画面の外へ押し出される** ── 実測で、10件のタブが
+   画面の9割を占めた。横1行の帯にして、名前は落とす（名前は現在地の一覧が持つ）。 */
+@media (max-width:40rem){
+  .wrap{padding:var(--sp-7) var(--sp-5) 4rem;gap:var(--sp-7)}
+  h1{font-size:1.35rem}
+  h2{font-size:1.05rem}
+  .thesis{font-size:var(--fs-sm)}
+  header{padding-bottom:var(--sp-7);gap:var(--sp-4)}
+
+  /* タブ ── 横1行で、はみ出した分は指で送る */
+  #tabs{flex-wrap:nowrap;overflow-x:auto;gap:var(--sp-2);scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  /* **名前を落とすのに font-size:0 を当てる** ── 名前は素のテキスト節点なので、
+     選択子で掴めない。番号と状態は、自分の字寸を持つので残る */
+  #tabs button{flex:0 0 auto;font-size:0;padding:var(--sp-2) var(--sp-4);gap:var(--sp-2)}
+  #tabs button[data-t="p0"]{font-size:var(--fs-xs)}
+  #tabs .tn{font-size:var(--fs-2xs);opacity:1}
+  .st{font-size:var(--fs-3xs)}
+
+  /* 論点の面 ── 余白を詰める */
+  .q{padding:var(--sp-7) var(--sp-5);gap:var(--sp-7);border-radius:var(--rd-lg)}
+  .front{padding:var(--sp-5) var(--sp-5)}
+  table{font-size:var(--fs-xs)}
+  /* 3列以上の表は、詰めると読めなくなる ── 幅を保って、帯ごと送る */
+  .scroll table:has(th:nth-child(3)){min-width:32rem}
+  .ex pre code{font-size:var(--fs-2xs)}
+  /* 図 ── 縮めると読めなくなるので、幅を保って図ごと送る */
+  figure{overflow-x:auto}
+  figure svg{min-width:26rem}
+  /* 送れることを示す ── 帯が動くと分かる細い軌道を出す */
+  .scroll::-webkit-scrollbar,figure::-webkit-scrollbar{height:var(--sp-1)}
+  .scroll::-webkit-scrollbar-thumb,figure::-webkit-scrollbar-thumb{
+    background:var(--rule);border-radius:var(--rd-lg)}
+}
+
+
+/* ── 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） ── */
+.ix-tabs{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.ix-tab{font:inherit;font-size:var(--fs-xs);padding:.25rem .8rem;border-radius:1rem;border:1px solid var(--rule);
+background:var(--card);color:var(--muted);cursor:pointer}
+.ix-tab[aria-selected="true"]{background:var(--key);border-color:var(--key);color:var(--paper);font-weight:700}
+.ix-ui{width:100%;height:36rem;border:1px solid var(--rule);border-radius:.35rem;background:var(--card)}
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:var(--sp-4)}
+.diff>div{min-width:0}
+.diff h4{margin:0 0 var(--sp-2);font-size:var(--fs-xs);color:var(--muted)}
+.ex pre code{background:none;padding:0;border-radius:0}
+
+/* ── 答え ── */
+.ans .lead{display:block;font-weight:700;margin-bottom:var(--sp-3)}
+.ans ul{margin:0;padding-left:1.2rem}
+.ans li{margin:var(--sp-1) 0}
+
+/* ── 焦点 ── どの部品も key の外枠で示す */
+#tabs button:focus-visible,.vb:focus-visible,.rb:focus-visible,.sb:focus-visible,.ix-tab:focus-visible,
+.jump:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+</style><div id="root" data-board="brainstorming-on-base" data-round="1"><div class="wrap"><header><p class="eyebrow">Brainstorm　/　brainstorming を新しい形の基盤の上で作り直す　/　Round 1</p><h1>brainstorming を新しい形の基盤の上で作り直す</h1><p class="thesis">論点ごとにタブが1枚ある。<b>答えられる問いだけが回答欄を持つ</b> ── まだ前提が片付いていない問いは、なぜ閉じているかだけを書いてある。</p></header><div id="tabs" role="tablist"><button data-t="p0" aria-selected="true">現在地</button><button data-t="p1" aria-selected="false" class="now"><span class="tn">Q0</span>完成の条件<span class="st now">いま見る</span></button><button data-t="p2" aria-selected="false" class="now"><span class="tn">Q1</span>ボードの中身<span class="st now">いま見る</span></button><button data-t="p3" aria-selected="false" class="now"><span class="tn">Q2</span>画面とデザインシステム<span class="st now">いま見る</span></button><button data-t="p4" aria-selected="false" class="now"><span class="tn">Q3</span>Skill の作り<span class="st now">いま見る</span></button><button data-t="p5" aria-selected="false" class="now"><span class="tn">Q4</span>AI のチャットの内蔵<span class="st now">いま見る</span></button></div><div id="p0"><section class="q"><div class="qh"><span class="qid">現在地</span><h2>論点の一覧</h2></div><div class="note"><p>完成した基盤 schema-driven と skills-creator の上で、古い brainstorming-board を brainstorming として作り直すために、完成の条件 ・ ボードの中身 ・ 画面とデザインシステム ・ Skill の作り ・ 画面に内蔵する AI のチャットを決める。古い .brainstorming-board/ のボードは移さず、決まったことだけを材料にする。</p></div><div class="front"><h3>いま見るのは 5 件だけである</h3><ol><li><button class="jump" data-go="p1">Q0　完成の条件</button><br><span class="why">ほかの4つの論点の答えを、どの確かめで完成と言うかを先に決めるため</span></li><li><button class="jump" data-go="p2">Q1　ボードの中身</button><br><span class="why">画面 ・ Skill の作り ・ チャットの答えが、どれもボードの中身の形を前提にするため</span></li><li><button class="jump" data-go="p3">Q2　画面とデザインシステム</button><br><span class="why">試作の画面2つと ux-advisor のデザインシステムがそろったため</span></li><li><button class="jump" data-go="p4">Q3　Skill の作り</button><br><span class="why">skills-creator が完成し、私たちが管理する Skill の作りの形が決まったため</span></li><li><button class="jump" data-go="p5">Q4　AI のチャットの内蔵</button><br><span class="why">3つの CLI の原文と実測と、platform-advisor の回答がそろったため</span></li></ol></div><div class="scroll"><table><tr><th>#</th><th>論点</th><th>状態</th><th>いまの答え</th></tr><tr><td><span class="n">Q0</span></td><td>新しい brainstorming が完成したと言える条件を、何で判定するか</td><td><span class="st now">いま見る</span></td><td><b>性質ごとに正しい場合と壊した場合を組にした18件の確かめがすべて合格したら完成とし、合否は残ったファイル ・ 画面 ・ 回答で決める。</b></td></tr><tr><td><span class="n">Q1</span></td><td>ボードの中身（concrete スキーマ）を、どの単位のインスタンスに分け、完成イメージの6種類をどんな形で持つか</td><td><span class="st now">いま見る</span></td><td><b>1枚のボードを1つのインスタンスにして論点をその中に持ち、回答と回の記録は別のインスタンスとして追記だけで持ち、完成イメージは6種類の形をスキーマで決める。</b></td></tr><tr><td><span class="n">Q2</span></td><td>画面をどう見せ、見た目（デザインシステム）をどこに持つか</td><td><span class="st now">いま見る</span></td><td><b>2つの試作（論点の画面とアプリの画面）を見た目の正本にし、ux-advisor が出したデザインシステムを brainstorming の assets/catalog/ に持ち、基盤の design-system@v1 へは機械で移す。</b></td></tr><tr><td><span class="n">Q3</span></td><td>brainstorming の Skill を、どのファイルで作り、どのコマンドで使い、データをどこに置くか</td><td><span class="st now">いま見る</span></td><td><b>brainstorming は src/brainstorming/ の Rust で作り、advance ・ inspect ・ serve を自分の能力に持ち、データを .brainstorming/&lt;ボード&gt;/ に置く。</b></td></tr><tr><td><span class="n">Q4</span></td><td>画面の「AI に聞く」を、どう動かし、文脈と Skill の使い方をどう渡し、どこまで書き換えさせるか</td><td><span class="st now">いま見る</span></td><td><b>serve が、ログイン済みの Claude Code ・ Codex ・ Kiro を子のプロセスとして呼んで出来事を画面へ中継し、書き換えの範囲は CLI の権限と serve の検査の2つで守る。</b></td></tr></table></div></section></div><div id="p1" hidden><section class="q"><div class="qh"><span class="qid">Q0</span><h2>新しい brainstorming が完成したと言える条件を、何で判定するか</h2></div><div class="ans"><span class="lead">性質ごとに正しい場合と壊した場合を組にした18件の確かめがすべて合格したら完成とし、合否は残ったファイル ・ 画面 ・ 回答で決める。</span><ul><li>18件は、qa-advisor が出した15件に、meta-thinking-advisor の2件とチャットの1件を足したものである</li><li>1件ごとに、合格する例と不合格になる例を1つ以上置く。何も検査しない実装が通らないようにするためである</li><li>期待値を前もって計算できるもの（スキーマ ・ advance ・ inspect ・ 回答の形）は単体テストで見る</li><li>本物の入出力が必要なもの（serve の書き込み ・ 入口からエンジンへの受け渡し）は作業用フォルダの試験と cargo xtask verify で見る</li><li>人の操作と AI ツールでの実行は、受け入れとして手で数件だけ行い、合否は残ったファイルで決める</li><li>AI ツールでの受け入れは CI に入れない。同じ入力でも結果が変わり、落ちたときに欠陥か揺らぎかを決められないためである</li><li>完成までを1つの目的として扱い、段に分けない</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="1" data-ixp="0"><pre><code> 1 論点の形             → 答え ・ 根拠の出どころ ・ 採らなかった案の理由が欠けたら不合格（スキーマ）
+ 2 完成イメージの6種類   → 表の種類 ・ 言語の無いコード ・ 終了コードの無い実行例は不合格（スキーマ）
+ 3 在る種類だけをタブ    → 0種類 ・ 1種類 ・ 6種類で、無い種類のタブが出たら不合格（render）
+ 4 書き手の検証を描かない → 目印の文字列が HTML に現れたら不合格（render）
+ 5 コントラストの下限    → 文字 4.5:1 ・ 境界 3:1 を割るトークンは不合格（基盤の検査）
+ 6 advance の変わったところ → 何も変えずに進めて0件。全部を変わったと書く実装を検出（単体）
+ 7 回の記録は書き換えない → 進める前後で前の回のバイト列が変わったら不合格（単体）
+ 8 inspect             → 長すぎる1文 ・ 出どころの無い前提 ・ 行き先の無い下流を1件ずつ検出（単体）
+ 9 回答の形             → どこが違うかが空の差し戻し ・ 無い論点 ・ 前の回への回答は不合格（スキーマ ・ serve）
+10 serve               → 不合格の回答はファイルを書かない。127.0.0.1 以外では受けない（作業用フォルダ）
+11 画面の操作           → 理由の無い差し戻しは送れない（ヘッドレスブラウザ）
+12 入口からエンジンへ    → エンジンが失敗したら入口も 0 を返さない。.cmd でも同じ（xtask verify）
+13 置き場所             → .brainstorming/ にだけ作り、.brainstorming-board/ は1バイトも変えない（xtask verify）
+14 AI ツールで1枚を作る  → Claude Code と Codex で2回分の回と承認 ・ 差し戻しが残る。入口を通らない書き込みを検出（受け入れ）
+15 目視                → ライト ・ ダーク ・ 358px の3枚と日付が残る（手で確認）
+16 差し戻しが次の回に効く → 1回目に差し戻した所だけが2回目で直り、変わったところに出る（受け入れ）
+17 全文を読まずに決められる → 答えの1文 ・ 変わったところ ・ 完成イメージだけで回答を送れる（受け入れ）
+18 AI に聞く            → 論点を直させると serve の検査の結果が出て、範囲の外の変更は検出される（受け入れ ・ serve）</code></pre><p class="note-s">18件の確かめ。左が見る性質、→ の右が「壊した場合に不合格になる例」と見る層。</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">完成の条件を、正しい場合と壊した場合の組の一覧にすること</span></td><td>見解0は受け入れテストの1件として採り、完成の条件はそれだけにせず、層ごとの終了基準と、正しい場合と壊した場合の両方の期待値を持つ試験の一覧に置き換える。</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-16）。回答の JSON は sources/advisors/qa.json</small></td></tr><tr><td><span class="part">16と17を足すこと</span></td><td>いまの見解0は画面と回が動くことを確かめるが、利用者がずれを見つけて正せたかを確かめず、手段の目的化が起きている。</td><td><span class="kind k-src">原典</span><small>meta-thinking-advisor の回答（2026-10-16）。回答の JSON は sources/advisors/meta.json</small></td></tr><tr><td><span class="part">AI ツールでの受け入れを CI に入れないこと</span></td><td>AI ツールの実行は鍵とネットワークに依存し、同じ入力でも結果が変わりうる。</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（比較した案 C）</small></td></tr><tr><td><span class="part">段に分けないこと</span></td><td>同じ目的の変更を段階や小さな単位に分けない。いまの対象に残りがあるうちは、次の対象へ進まない</td><td><span class="kind k-rule">決まり</span><small>利用者の決まり（ACDR は目的ごとに1件 ・ 完成するまで次へ進まない）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>見解0（1枚を作って回を2回進め、Claude Code と Codex で動いたら完成）をそのまま条件にする</b></td><td>合格の筋書きが1本だけになり、advance が全部を変わったと書く実装や、inspect が何も見つけない実装でも通る</td></tr><tr><td><b>Claude Code と Codex での実行まで含めて、すべてを CI で自動にする</b></td><td>同じ入力でも結果が変わりうるので CI が時々落ち、落ちた試験を抜くことになる</td></tr><tr><td><b>ボードと画面までを1段目、チャットを2段目の完成にする</b></td><td>同じ目的を段に分けることになり、1段目の完成のあとに残りを持ったまま次へ進む形になる</td></tr></table></div></div></details><div class="form" data-topic="Q0"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p2" hidden><section class="q"><div class="qh"><span class="qid">Q1</span><h2>ボードの中身（concrete スキーマ）を、どの単位のインスタンスに分け、完成イメージの6種類をどんな形で持つか</h2></div><div class="ans"><span class="lead">1枚のボードを1つのインスタンスにして論点をその中に持ち、回答と回の記録は別のインスタンスとして追記だけで持ち、完成イメージは6種類の形をスキーマで決める。</span><ul><li>ボードは、題 ・ 状態 ・ 優先の印 ・ ほかのボードへのつながりを持つ。サイドバーとダッシュボードは、この3つから作る</li><li>ボードの状態は、いま答える ・ 進行中 ・ 保留 ・ 決着の4つである</li><li>論点は、問い ・ 答え（1文と詳しい決まり）・ 完成イメージ ・ 根拠 ・ 採らなかった案と、描画しない書き手の検証を持つ</li><li>回答は回の番号と論点の id を持つ別のインスタンスで、serve が書く。serve はボードを書かない</li><li>回の記録 rounds/&lt;n&gt; は、advance が回を進めたときの写しで、書き換えない</li><li>この回で変わったところは、理由と一緒にボードの中に持ち、advance だけが書き換える</li><li>図は SVG、画面は1枚の HTML を持つ</li><li>コードは言語 ・ 本文 ・ 強調する行を持つ</li><li>差分はファイルの場所と変更前 ・ 変更後を持ち、統合か並べるかを選べる</li><li>フォルダ構成は、行ごとに場所 ・ 説明 ・ 印（足す ・ 消す ・ 変える）を持つ</li><li>実行例は、コマンド ・ 出力 ・ 終了コードを持つ</li><li>表は完成イメージに入れない。変化の要約は差分か図で見せる</li><li>チャットの記録は、ボードのフォルダの外に serve だけが書く（論点4）</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図 ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="2" data-ix="0">図</button><button class="ix-tab" role="tab" aria-selected="false" data-g="2" data-ix="1">コード</button></div><div data-g="2" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 740 470" style="min-width:600px" role="img" aria-label="ボードの中身" class="dsvg"><style data-dsvg="dark">.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .grid{stroke:var(--dsvg-line,#7C8C86)}.dsvg .label.small{fill:var(--dsvg-ink,#111D1A);font-size:10px}.dsvg .note.small{fill:var(--dsvg-ink-soft,#5B6B66);font-size:10px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E}}:root[data-theme="dark"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330;--dsvg-accent:#6CC9B8;--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E}</style><rect class="boundary" x="8" y="34" width="724" height="272" fill="none" stroke="#5B6B66" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/><text class="note" x="14" y="24" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">.brainstorming/&lt;ボード&gt;/ ── AI が Skill の入口を通して書き換えてよい範囲</text><rect class="box focus" x="24" y="50" width="200" height="108" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="title focus" x="36" y="72" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#0D5C55">ボード</text><line class="grid" x1="24" y1="82" x2="224" y2="82" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="36" y="100" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">インスタンス1つ</text><text class="note small" x="36" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">題 ・ 状態 ・ 優先の印</text><text class="note small" x="36" y="136" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">ほかのボードへのつながり</text><rect class="box" x="262" y="50" width="200" height="108" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="274" y="72" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">論点</text><line class="grid" x1="262" y1="82" x2="462" y2="82" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="274" y="100" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">エンティティ（id）</text><text class="note small" x="274" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">問い ・ 答え ・ 根拠</text><text class="note small" x="274" y="136" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">書き手の検証（描画しない）</text><rect class="box" x="500" y="50" width="216" height="108" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="512" y="72" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">完成イメージ</text><line class="grid" x1="500" y1="82" x2="716" y2="82" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="512" y="100" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">6種類</text><text class="note small" x="512" y="118" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">図 ・ 画面 ・ コード ・ 差分</text><text class="note small" x="512" y="136" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">フォルダ構成 ・ 実行例</text><rect class="box" x="24" y="186" width="200" height="108" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="36" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">回の記録</text><line class="grid" x1="24" y1="218" x2="224" y2="218" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="36" y="236" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">rounds/&lt;n&gt;</text><text class="note small" x="36" y="254" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">回を進めたときの写し</text><text class="note small" x="36" y="272" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">書き換えない</text><rect class="box" x="262" y="186" width="200" height="108" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="274" y="208" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">回答</text><line class="grid" x1="262" y1="218" x2="462" y2="218" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="274" y="236" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">別のインスタンス</text><text class="note small" x="274" y="254" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">追記だけ</text><text class="note small" x="274" y="272" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">回の番号 ・ 論点の id</text><path class="link" d="M224,104 H262" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="228" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1</text><text class="label small" x="246" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">多</text><path class="link" d="M462,104 H500" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="466" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1</text><text class="label small" x="484" y="98" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">多</text><path class="link" d="M124,158 V186" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="130" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 対 多</text><path class="link" d="M362,158 V186" fill="none" stroke="#5B6B66" stroke-width="1"/><text class="label small" x="368" y="176" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">1 対 多</text><text class="note" x="14" y="336" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ボードのフォルダの外 ── serve だけが書く</text><rect class="box" x="24" y="346" width="240" height="108" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="36" y="368" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">チャットの記録</text><line class="grid" x1="24" y1="378" x2="264" y2="378" fill="none" stroke="#7C8C86" stroke-width="1"/><text class="label small" x="36" y="396" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#111D1A">ボードごと ・ AI ごとに1つ</text><text class="note small" x="36" y="414" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">セッションの ID ・ やりとり</text><text class="note small" x="36" y="432" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="10" fill="#5B6B66">AI が書き換えたら検出する</text><text class="note" x="290" y="380" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">変わったところ（理由付き）は</text><text class="note" x="290" y="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">ボードの中に持ち、advance だけが書く。</text><text class="note" x="290" y="420" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">serve はボードを書かない。</text></svg></figure><p class="note-s">ボードの中身。点線の中が、AI が Skill の入口を通して書き換えてよい範囲。</p></div><div data-g="2" data-ixp="1" hidden><pre><code>{&quot;kind&quot;: &quot;tree&quot;,
+ &quot;rows&quot;: [
+  {&quot;path&quot;: &quot;.claude/skills/brainstorming/SKILL.md&quot;, &quot;note&quot;: &quot;手順。scripts/bin/brainstorming だけを呼ぶ&quot;, &quot;mark&quot;: &quot;add&quot;},
+  {&quot;path&quot;: &quot;.claude/skills/brainstorming-board/&quot;, &quot;note&quot;: &quot;古い Skill。過去の記録のために残す&quot;}
+ ]}
+
+{&quot;kind&quot;: &quot;run&quot;,
+ &quot;command&quot;: &quot;scripts/bin/brainstorming advance --board .brainstorming/agents-creator&quot;,
+ &quot;output&quot;: &quot;回 2 を作った。変わったところ：Q1 の答え（差し戻しの理由：…）&quot;,
+ &quot;exit&quot;: 0}</code></pre><p class="note-s">フォルダ構成と実行例の完成イメージを、インスタンスに書いた例。</p></div></div></div></details><details open><summary>根拠（4件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">ボードを1つのインスタンスにし、回答と回の記録を別に持つこと</span></td><td>1枚のボードを1つの集約（ルートはボード、論点は内側のエンティティ、答え ・ 完成イメージ ・ 根拠 ・ 採らなかった案は値オブジェクト、書き手の検証の記録は論点の内側）とし、回答は回の番号を持つ別のインスタンスに、過去の回は追記だけの凍結した記録に、「この回で変わったところ」はボードの内側に理由つきで置く</td><td><span class="kind k-src">原典</span><small>ddd-advisor の回答（2026-10-16）。回答の JSON は sources/advisors/ddd.json</small></td></tr><tr><td><span class="part">完成イメージの6種類と、表を入れないこと</span></td><td>「表なんている？？？」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr><tr><td><span class="part">ボードの状態と優先の印</span></td><td>「承認と未承認、保留とかのステータスを分けて見やすいように一覧にして、かつダッシュボードでそのサマリーと未承認で今空いているもの中で、優先して決めないといけないものをダッシュボードで見せる」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr><tr><td><span class="part">古いボードを移さないこと</span></td><td>「これから新規で作成するブレストだけにしたい…内容だけ拝借して、新しい形式で」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（4件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>論点を1つずつ別のインスタンスにする</b></td><td>論点の状態と並びはほかの論点の状態に依存するので、別々に書き換えると食い違った状態が生じる</td></tr><tr><td><b>回答をボードの中に持つ</b></td><td>書き手と serve が同時に書いたときに、片方の書き込みが消える</td></tr><tr><td><b>変わったところを毎回の描画で計算し、ボードに持たない</b></td><td>なぜ変わったか（差し戻しの理由）が残らない</td></tr><tr><td><b>完成イメージに表の種類を足す</b></td><td>利用者が必要ないと決めた。変化の要約は差分か図で見せる</td></tr></table></div></div></details><div class="form" data-topic="Q1"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p3" hidden><section class="q"><div class="qh"><span class="qid">Q2</span><h2>画面をどう見せ、見た目（デザインシステム）をどこに持つか</h2></div><div class="ans"><span class="lead">2つの試作（論点の画面とアプリの画面）を見た目の正本にし、ux-advisor が出したデザインシステムを brainstorming の assets/catalog/ に持ち、基盤の design-system@v1 へは機械で移す。</span><ul><li>見る順は、現在地 → 問いと答えの1文 → この回で変わったところ → 完成イメージ → 置いた前提 → 確かめてほしい箇所 → 裏づけ → 回答である</li><li>アプリの画面は、サイドバー（状態ごとのまとまり）・ ダッシュボード（サマリー ・ 先に決めるもの ・ 最近の動き）・ 論点の画面 ・ AI に聞くチャットを持つ</li><li>完成イメージは、6種類ごとに部品を持ち、在る種類だけをタブにする</li><li>コードはエディタ風（行番号と、強調する行の帯）にし、実行例はターミナル風の暗い窓にする</li><li>差分の + と − 、フォルダ構成の足す ・ 消す ・ 変えるは、色だけでなく記号と言葉でも示す</li><li>トークンは Design Tokens 形式を正本にし、基盤の design-system@v1 の形へ機械で移したものを検査に通す</li><li>コードの配色は editor のトークンに置き、本文のトークンと分ける</li><li>共有のデザインシステムの Skill は作らない。見た目は各 Skill が持つ</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── UI</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="3" data-ix="0">UI</button><button class="ix-tab" role="tab" aria-selected="false" data-g="3" data-ix="1">UI</button></div><div data-g="3" data-ixp="0"><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;title&gt;brainstorming の画面の試作&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;&lt;link rel=&quot;stylesheet&quot; href=&quot;https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Shippori+Mincho:wght@600&amp;family=Zen+Kaku+Gothic+New:wght@400;700&amp;display=swap&quot;&gt;
+&lt;style&gt;
+:root {
+  --base-paper-000: #f8faf9;
+  --base-paper-100: #eef1ef;
+  --base-paper-200: #e7ecea;
+  --base-paper-300: #dfe7e4;
+  --base-paper-400: #ccd8d4;
+  --base-ink-600: #556561;
+  --base-ink-700: #5b6b66;
+  --base-ink-800: #3c4a46;
+  --base-ink-900: #111d1a;
+  --base-night-600: #2a3936;
+  --base-night-700: #22302d;
+  --base-night-800: #16211e;
+  --base-night-900: #0e1614;
+  --base-snow-100: #e6eeeb;
+  --base-snow-200: #c2cec9;
+  --base-snow-400: #9dada8;
+  --base-snow-500: #93a29d;
+  --base-teal-100: #d5e6e3;
+  --base-teal-300: #6cc9b8;
+  --base-teal-700: #0d5c55;
+  --base-teal-900: #173330;
+  --base-amber-100: #f0e2cd;
+  --base-amber-400: #d9a35f;
+  --base-amber-700: #8f5410;
+  --base-amber-900: #33281a;
+  --base-sand-100: #f8f3e8;
+  --base-sand-400: #d9b77e;
+  --base-sand-700: #6e5738;
+  --base-sand-900: #241d14;
+  --base-plum-300: #d094c2;
+  --base-plum-700: #7a3b6d;
+  --base-rose-100: #f6e0df;
+  --base-rose-300: #f0a3a0;
+  --base-rose-700: #a3262a;
+  --base-rose-900: #3a1c1d;
+  --color-surface-page: var(--base-paper-100);
+  --color-surface-block: var(--base-paper-000);
+  --color-surface-literal: var(--base-paper-100);
+  --color-surface-answer: var(--base-teal-100);
+  --color-surface-notice: var(--base-sand-100);
+  --color-surface-added: var(--base-teal-100);
+  --color-surface-removed: var(--base-rose-100);
+  --color-text-body: var(--base-ink-900);
+  --color-text-sub: var(--base-ink-800);
+  --color-text-key: var(--base-teal-700);
+  --color-text-on-key: var(--base-paper-000);
+  --color-text-warn: var(--base-amber-700);
+  --color-text-source: var(--base-plum-700);
+  --color-text-added: var(--base-teal-700);
+  --color-text-removed: var(--base-rose-700);
+  --color-syntax-keyword: var(--base-teal-700);
+  --color-syntax-string: var(--base-amber-700);
+  --color-syntax-literal: var(--base-plum-700);
+  --color-syntax-comment: var(--base-ink-700);
+  --color-key: var(--base-teal-700);
+  --color-line-control: var(--base-ink-700);
+  --color-line-block: var(--base-paper-400);
+  --color-line-notice: var(--base-sand-400);
+  --color-mark-added: var(--base-teal-700);
+  --color-mark-removed: var(--base-rose-700);
+  --color-mark-changed: var(--base-amber-700);
+  --color-state-focus: var(--base-teal-700);
+  --color-state-target: var(--base-amber-700);
+  --font-literal: &quot;JetBrains Mono&quot;, &quot;Zen Kaku Gothic New&quot;, monospace;
+  --size-literal: 13px;
+  --type-literal-font-size: var(--size-literal);
+  --type-literal-line-height: 1.6;
+  --editor-bg: #ffffff; --editor-fg: #1f2328; --editor-gutter: #59636e; --editor-line: #d1d9e0;
+  --editor-keyword: #cf222e; --editor-string: #0a3069; --editor-comment: #59636e; --editor-hl: #fff8c5; --editor-hl-mark: #9a6700;
+  --font-body: &quot;Zen Kaku Gothic New&quot;, &quot;Hiragino Sans&quot;, sans-serif;
+  --font-head: &quot;Shippori Mincho&quot;, &quot;Hiragino Mincho ProN&quot;, serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme=&quot;light&quot;]) {
+  --color-surface-page: var(--base-night-900);
+  --color-surface-block: var(--base-night-800);
+  --color-surface-literal: var(--base-night-900);
+  --color-surface-answer: var(--base-teal-900);
+  --color-surface-notice: var(--base-sand-900);
+  --color-surface-added: var(--base-teal-900);
+  --color-surface-removed: var(--base-rose-900);
+  --color-text-body: var(--base-snow-100);
+  --color-text-sub: var(--base-snow-200);
+  --color-text-key: var(--base-teal-300);
+  --color-text-on-key: var(--base-night-800);
+  --color-text-warn: var(--base-amber-400);
+  --color-text-source: var(--base-plum-300);
+  --color-text-added: var(--base-teal-300);
+  --color-text-removed: var(--base-rose-300);
+  --color-syntax-keyword: var(--base-teal-300);
+  --color-syntax-string: var(--base-amber-400);
+  --color-syntax-literal: var(--base-plum-300);
+  --color-syntax-comment: var(--base-snow-400);
+  --color-key: var(--base-teal-300);
+  --color-line-control: var(--base-snow-500);
+  --color-line-block: var(--base-night-600);
+  --color-line-notice: var(--base-sand-700);
+  --color-mark-added: var(--base-teal-300);
+  --color-mark-removed: var(--base-rose-300);
+  --color-mark-changed: var(--base-amber-400);
+  --color-state-focus: var(--base-teal-300);
+  --color-state-target: var(--base-amber-400);
+  --editor-bg: #0d1117; --editor-fg: #e6edf3; --editor-gutter: #8b949e; --editor-line: #3d444d;
+  --editor-keyword: #ff7b72; --editor-string: #a5d6ff; --editor-comment: #8b949e; --editor-hl: #2e2a1b; --editor-hl-mark: #d29922;
+  color-scheme: dark; } }
+:root[data-theme=&quot;dark&quot;] {
+  --color-surface-page: var(--base-night-900);
+  --color-surface-block: var(--base-night-800);
+  --color-surface-literal: var(--base-night-900);
+  --color-surface-answer: var(--base-teal-900);
+  --color-surface-notice: var(--base-sand-900);
+  --color-surface-added: var(--base-teal-900);
+  --color-surface-removed: var(--base-rose-900);
+  --color-text-body: var(--base-snow-100);
+  --color-text-sub: var(--base-snow-200);
+  --color-text-key: var(--base-teal-300);
+  --color-text-on-key: var(--base-night-800);
+  --color-text-warn: var(--base-amber-400);
+  --color-text-source: var(--base-plum-300);
+  --color-text-added: var(--base-teal-300);
+  --color-text-removed: var(--base-rose-300);
+  --color-syntax-keyword: var(--base-teal-300);
+  --color-syntax-string: var(--base-amber-400);
+  --color-syntax-literal: var(--base-plum-300);
+  --color-syntax-comment: var(--base-snow-400);
+  --color-key: var(--base-teal-300);
+  --color-line-control: var(--base-snow-500);
+  --color-line-block: var(--base-night-600);
+  --color-line-notice: var(--base-sand-700);
+  --color-mark-added: var(--base-teal-300);
+  --color-mark-removed: var(--base-rose-300);
+  --color-mark-changed: var(--base-amber-400);
+  --color-state-focus: var(--base-teal-300);
+  --color-state-target: var(--base-amber-400);
+  --editor-bg: #0d1117; --editor-fg: #e6edf3; --editor-gutter: #8b949e; --editor-line: #3d444d;
+  --editor-keyword: #ff7b72; --editor-string: #a5d6ff; --editor-comment: #8b949e; --editor-hl: #2e2a1b; --editor-hl-mark: #d29922;
+  color-scheme: dark; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-surface-page);color:var(--color-text-body);font:15px/1.8 var(--font-body)}
+.wrap{max-width:920px;margin:0 auto;padding-block:20px 60px;padding-inline:16px;display:flex;flex-direction:column;gap:14px}
+.crumb{font-size:12px;color:var(--color-text-sub)}
+h1{font:600 26px/1.4 var(--font-head);margin:0;text-wrap:balance}
+.now{display:flex;flex-wrap:wrap;align-items:center;gap:8px} .now b{font-size:14px}
+.chip{border:1px solid var(--color-line-control);border-radius:999px;padding:1px 10px;font-size:12px;color:var(--color-text-sub)}
+.chip.on{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key);font-weight:700}
+.block{background:var(--color-surface-block);border:1px solid var(--color-line-block);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.block&gt;h2{font-size:13px;margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-line-block)}
+.lbl{font-size:11px;color:var(--color-text-sub);letter-spacing:.06em}
+.q{font:600 19px/1.6 var(--font-head);margin:0}
+.ans{background:var(--color-surface-answer);border-left:4px solid var(--color-key);border-radius:8px;padding:10px 14px}
+.ans .lbl{color:var(--color-text-key);font-weight:700} .ans p{margin:2px 0 6px;font-weight:700}
+details summary{cursor:pointer;font-size:13px} details[open] summary{margin-bottom:6px}
+.notice{background:var(--color-surface-notice);border:1px solid var(--color-line-notice);border-radius:10px;padding:6px 14px;font-size:13px}
+.notice a{color:var(--color-text-key)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:inherit;font-size:13px;border:1px solid var(--color-line-control);background:transparent;color:var(--color-text-body);border-radius:999px;padding:2px 14px;cursor:pointer}
+.tabs button[aria-selected=&quot;true&quot;]{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key)}
+.tabs button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+.cap{font-size:13px;color:var(--color-text-sub);margin:0}
+.lit{background:var(--color-surface-literal);border-radius:8px;padding:10px 12px;overflow-x:auto;font:var(--size-literal)/1.6 var(--font-literal)}
+.head{font:12px var(--font-body);color:var(--color-text-sub);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+table.code,table.diff{border-collapse:collapse;width:100%}
+.code td,.diff td{padding:0 6px;vertical-align:top;white-space:pre-wrap;word-break:break-all}
+.code .ln{color:var(--color-syntax-comment);text-align:right;user-select:none;width:2.5em}
+.code tr.hl .tx{box-shadow:inset 3px 0 var(--color-key)}
+.k{color:var(--color-syntax-keyword);font-weight:700} .s{color:var(--color-syntax-string)} .c{color:var(--color-syntax-comment)}
+.diff .sg{width:1.5em;user-select:none;text-align:center;font-weight:700}
+.diff tr.da{background:var(--color-surface-added)} .diff tr.da .sg{color:var(--color-mark-added)}
+.diff tr.dr{background:var(--color-surface-removed)} .diff tr.dr .sg{color:var(--color-mark-removed)}
+.stat{font:12px var(--font-literal)} .stat .a{color:var(--color-text-added)} .stat .r{color:var(--color-text-removed)}
+ul.tree{list-style:none;margin:0;padding:0}
+ul.tree li{display:grid;grid-template-columns:minmax(12em,auto) auto 1fr;gap:4px 12px;align-items:baseline;padding:1px 0 1px calc(var(--depth)*1.4em)}
+ul.tree .nm{font:var(--size-literal) var(--font-literal)}
+ul.tree .ds{font:13px var(--font-body);color:var(--color-text-sub)}
+.mk{font:12px var(--font-body);font-weight:700;border-radius:4px;padding:0 6px;white-space:nowrap}
+.mk-a{color:var(--color-mark-added);background:var(--color-surface-added)} .mk-r{color:var(--color-mark-removed);background:var(--color-surface-removed)} .mk-c{color:var(--color-mark-changed);background:var(--color-surface-notice)}
+.run .cmd::before{content:&quot;$ &quot;;color:var(--color-syntax-comment);user-select:none} .run .cmd{font-weight:700}
+.run .out{color:var(--color-text-sub);margin:4px 0} .run .code{font:12px var(--font-body);color:var(--color-text-sub)}
+.screen iframe{width:100%;height:160px;border:1px solid var(--color-line-block);border-radius:8px;background:#fff}
+.fig svg{max-width:100%;height:auto}
+ol.num{margin:0;padding-left:1.6em} ol.num li::marker{color:var(--color-text-key);font-weight:700}
+.check li a{color:var(--color-text-key)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btns button{font:inherit;font-weight:700;border:1px solid var(--color-line-control);background:transparent;color:var(--color-text-body);border-radius:8px;padding:6px 18px;cursor:pointer} .btns button.primary{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key)} .btns button:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+textarea{display:block;width:100%;max-width:100%;resize:vertical;min-height:70px;font:inherit;border:1px solid var(--color-line-control);border-radius:8px;background:var(--color-surface-block);color:var(--color-text-body);padding:6px}
+.figbox{background:var(--color-surface-literal);border-radius:8px;padding:12px;overflow-x:auto}
+.editor{border:1px solid var(--editor-line);border-radius:8px;overflow:hidden;background:var(--editor-bg);color:var(--editor-fg)}
+.etab{display:flex;align-items:center;gap:10px;padding:0 8px 0 0;background:var(--editor-bg);border-bottom:1px solid var(--editor-line);font:12px var(--font-body);color:var(--editor-gutter)}
+.etab .file{border-right:1px solid var(--editor-line);border-bottom:2px solid var(--editor-hl-mark);padding:6px 14px;font:12px var(--font-literal);color:var(--editor-fg)}
+.etab .lang{margin-left:auto}
+.copy{font:12px var(--font-body);border:1px solid var(--editor-line);background:transparent;color:var(--editor-fg);border-radius:6px;padding:1px 10px;cursor:pointer}
+.note{font:12px var(--font-body);color:var(--editor-gutter);padding:5px 12px;border-bottom:1px solid var(--editor-line)} .note b{color:var(--editor-hl-mark)}
+.escroll{overflow-x:auto}
+.editor table.code{font:var(--size-literal)/1.7 var(--font-literal);width:max-content;min-width:100%}
+.editor .code td{white-space:pre;word-break:normal;padding:0 14px 0 10px}
+.editor .code .ln{padding:0 10px;color:var(--editor-gutter)}
+.editor .code tr.hl td{background:var(--editor-hl)}
+.editor .code tr.hl .ln{color:var(--editor-fg);box-shadow:inset 3px 0 var(--editor-hl-mark)}
+.editor .code tr.hl .tx{box-shadow:none}
+.term{border-radius:8px;overflow:hidden;background:#0e1614;color:#e6eeeb;font:var(--size-literal)/1.7 var(--font-literal)}
+.tbar{display:flex;align-items:center;gap:12px;padding:6px 12px;background:#22302d;font:12px var(--font-body);color:#c2cec9}
+.dots{display:flex;gap:6px} .dots i{width:10px;height:10px;border-radius:50%;background:#556561;display:block}
+.tbody{padding:10px 14px;overflow-x:auto}
+.term .cmd{white-space:pre;color:#e6eeeb;font-weight:700} .term .ps{color:#6cc9b8;margin-right:.6em;user-select:none}
+.term .out{margin:4px 0;color:#c2cec9;white-space:pre-wrap;font:inherit}
+.term .exit{font:12px var(--font-body);color:#6cc9b8}
+.editor .k{color:var(--editor-keyword);font-weight:400} .editor .s{color:var(--editor-string)} .editor .c{color:var(--editor-comment)}
+@media (max-width:560px){ ul.tree li{grid-template-columns:1fr auto} ul.tree .ds{grid-column:1/-1;padding-left:1em} }
+
+[hidden]{display:none !important}
+.app{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}
+.app.with-chat{grid-template-columns:270px minmax(0,1fr) 360px}
+.side{background:var(--color-surface-block);border-right:1px solid var(--color-line-block);padding:14px 10px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;border-bottom:1px solid var(--color-line-block)}
+.logo{width:32px;height:32px;flex:none} .bn{font:600 17px/1.2 var(--font-head)} .bs{font:11px var(--font-literal);color:var(--color-text-sub)}
+.ic{width:16px;height:16px;flex:none}
+.side .home{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--color-text-body);text-decoration:none;padding:6px 8px;border-radius:8px}
+.side .home:hover{background:var(--color-surface-page)} .side .home.cur{background:var(--color-surface-answer);color:var(--color-text-key)}
+.gi{display:inline-flex} .gi .ic{width:14px;height:14px} .g-answer{color:var(--color-text-key)} .g-working{color:var(--color-text-warn)} .g-hold,.g-done{color:var(--color-text-sub)}
+.grp ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.gh,.grp summary{font-size:12px;font-weight:700;color:var(--color-text-sub);display:flex;align-items:center;gap:6px;padding:2px 8px;cursor:default}
+.grp summary{cursor:pointer}
+.gc{margin-left:auto;font-weight:400}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block} .d-answer{background:var(--color-key)} .d-working{background:var(--color-mark-changed)} .d-hold{background:var(--color-line-control)} .d-done{background:var(--color-line-block)}
+.bitem{display:grid;grid-template-columns:1fr auto;gap:0 6px;padding:6px 8px;border-radius:8px;color:var(--color-text-body);text-decoration:none;font-size:13px;line-height:1.5}
+.bitem:hover{background:var(--color-surface-page)} .bitem.cur{background:var(--color-surface-answer)}
+.bitem .bm{grid-column:1;font-size:11px;color:var(--color-text-sub)} .bitem .cnt{grid-row:1/3;grid-column:2;align-self:center;background:var(--color-key);color:var(--color-text-on-key);border-radius:999px;font-size:11px;padding:0 7px;font-weight:700}
+.main{min-width:0}
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{background:var(--color-surface-block);border:1px solid var(--color-line-block);border-radius:10px;padding:10px 14px} .tile.t-answer{border-color:var(--color-key);box-shadow:inset 3px 0 var(--color-key)}
+.tn{font:600 26px var(--font-head);font-variant-numeric:tabular-nums} .tn small{font-size:13px;margin-left:2px} .tl{font-size:12px;color:var(--color-text-sub)}
+ol.prio{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pr{display:flex;gap:10px;align-items:flex-start} .pn{flex:none;width:24px;height:24px;border-radius:50%;background:var(--color-key);color:var(--color-text-on-key);display:grid;place-items:center;font-size:12px;font-weight:700}
+.pb{min-width:0} .pt{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline} .pt a{font-weight:700;color:var(--color-text-key)} .pbd{font-size:12px;color:var(--color-text-sub)}
+.pw{font-size:13px} .pm{font-size:12px;color:var(--color-text-sub);display:flex;gap:10px} .flag{color:var(--color-text-warn);font-weight:700}
+ul.log{margin:0;padding-left:1.2em;font-size:13px} ul.log span{color:var(--color-text-sub);margin-right:8px}
+.ask{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:700;border:1px solid var(--color-key);color:var(--color-text-on-key);background:var(--color-key);border-radius:999px;padding:3px 14px 3px 10px;cursor:pointer} .ask:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+.chat{border-left:1px solid var(--color-line-block);background:var(--color-surface-block);display:flex;flex-direction:column;height:100vh;position:sticky;top:0}
+.ch{display:flex;align-items:center;gap:10px;padding:12px 12px 10px} .chi{width:30px;height:30px;border-radius:8px;background:var(--color-surface-answer);color:var(--color-text-key);display:grid;place-items:center} .chi .ic{width:17px;height:17px}
+.cht{display:flex;flex-direction:column;line-height:1.3} .cht b{font-size:15px} .cht span{font-size:11px;color:var(--color-text-sub)}
+.iconbtn{margin-left:auto;width:30px;height:30px;display:grid;place-items:center;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--color-text-sub);cursor:pointer} .iconbtn:hover{background:var(--color-surface-page);border-color:var(--color-line-block)}
+.agent{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 12px 10px;border-bottom:1px solid var(--color-line-block)}
+.sel{position:relative;display:inline-flex;align-items:center} .sel select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13px;font-weight:700;color:var(--color-text-body);background:var(--color-surface-block);border:1px solid var(--color-line-control);border-radius:8px;padding:4px 30px 4px 26px;cursor:pointer}
+.sel .on{position:absolute;left:10px;width:8px;height:8px;border-radius:50%;background:var(--color-mark-added);pointer-events:none} .sel .chev{position:absolute;right:8px;width:14px;height:14px;pointer-events:none;color:var(--color-text-sub)}
+.agent-note{font-size:11px;color:var(--color-text-sub)}
+.ctx{padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap} .cchip{display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--color-surface-page);border:1px solid var(--color-line-block);color:var(--color-text-body);border-radius:6px;padding:1px 8px} .cchip .ic{width:13px;height:13px;color:var(--color-text-key)}
+.msgs{flex:1;overflow:auto;padding:6px 12px 12px;display:flex;flex-direction:column;gap:14px;font-size:14px}
+.who{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px} .who time{color:var(--color-text-sub)}
+.av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700} .av-me{background:var(--color-surface-answer);color:var(--color-text-key)} .av-ai{background:var(--color-key);color:var(--color-text-on-key)} .av .ic{width:13px;height:13px}
+.msg.me{align-self:flex-end;max-width:88%} .msg.me .who{justify-content:flex-end} .msg.me .bubble{background:var(--color-surface-answer);border-radius:12px 12px 4px 12px}
+.msg.ai .bubble{background:var(--color-surface-page);border-radius:4px 12px 12px 12px}
+.bubble{padding:8px 12px;line-height:1.7}
+.work{border:1px solid var(--color-line-block);border-radius:8px;padding:6px 10px;margin-bottom:6px} .wt{font-size:11px;font-weight:700;color:var(--color-text-sub);margin-bottom:2px}
+.work ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px} .work li{display:flex;align-items:center;gap:6px;font-size:12px} .work li .ic{width:13px;height:13px;color:var(--color-text-sub)} .work li span{color:var(--color-text-sub);min-width:3em}
+.work code{font:12px var(--font-literal);color:var(--color-text-body)} .work li.ok .ic,.work li.ok span{color:var(--color-text-key)}
+.cand{border:1px solid var(--color-line-notice);background:var(--color-surface-notice);border-radius:10px;padding:10px 12px} .cand-h{display:flex;align-items:center;gap:6px;font-size:13px} .cand-h .ic{width:15px;height:15px;color:var(--color-text-warn)}
+.cand p{margin:4px 0 8px;font-size:13px} .cand-b{display:flex;gap:8px}
+.btn{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--color-line-control);background:var(--color-surface-block);color:var(--color-text-body);border-radius:8px;padding:3px 14px;cursor:pointer} .btn.primary{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px 0;border-top:1px solid var(--color-line-block)} .quick button{font:inherit;font-size:12px;border:1px solid var(--color-line-block);background:var(--color-surface-page);color:var(--color-text-body);border-radius:999px;padding:1px 10px;cursor:pointer}
+.composer{margin:8px 12px 12px;border:1px solid var(--color-line-control);border-radius:10px;background:var(--color-surface-block);padding:6px 8px} .composer:focus-within{outline:3px solid var(--color-state-focus);outline-offset:1px}
+.composer textarea{border:0;outline:0;padding:2px;min-height:44px;background:transparent} .cbar{display:flex;align-items:center;gap:8px} .hint{font-size:11px;color:var(--color-text-sub)}
+.send{margin-left:auto;width:32px;height:32px;border-radius:8px;border:0;background:var(--color-key);color:var(--color-text-on-key);display:grid;place-items:center;cursor:pointer} .send .ic{width:16px;height:16px}
+.chat button:focus-visible,.sel select:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+.menu{display:none}
+@media (max-width:980px){ .app.with-chat{grid-template-columns:270px minmax(0,1fr)} .chat{position:fixed;inset:auto 0 0 auto;width:min(380px,100%);max-width:100%;height:70vh;box-shadow:0 0 0 1px var(--color-line-block);z-index:3} }
+@media (max-width:720px){ .app,.app.with-chat{grid-template-columns:minmax(0,1fr)} .chat{inset:auto 0 0 0;width:100%} .side{display:none;position:fixed;inset:0;z-index:4;height:100%} .side.open{display:flex} .menu{display:inline-block;font:inherit;font-size:13px;border:1px solid var(--color-line-control);background:transparent;color:var(--color-text-body);border-radius:8px;padding:2px 10px;margin:12px 16px 0} .sum{grid-template-columns:repeat(2,minmax(0,1fr))} }
+&lt;/style&gt;
+&lt;div class=&quot;app&quot;&gt;
+&lt;nav class=&quot;side&quot; aria-label=&quot;ボードの一覧&quot;&gt;&lt;div class=&quot;brand&quot;&gt;&lt;svg class=&quot;logo&quot; viewBox=&quot;0 0 32 32&quot; aria-hidden=&quot;true&quot;&gt;&lt;rect width=&quot;32&quot; height=&quot;32&quot; rx=&quot;8&quot; fill=&quot;var(--color-key)&quot;/&gt;&lt;g fill=&quot;none&quot; stroke=&quot;var(--color-text-on-key)&quot; stroke-width=&quot;2.2&quot; stroke-linecap=&quot;round&quot;&gt;&lt;path d=&quot;M10 22c0-5 2-8 6-8s6-3 6-6&quot;/&gt;&lt;path d=&quot;M16 14c3 0 6 2 6 8&quot;/&gt;&lt;/g&gt;&lt;g fill=&quot;var(--color-text-on-key)&quot;&gt;&lt;circle cx=&quot;10&quot; cy=&quot;23&quot; r=&quot;2.4&quot;/&gt;&lt;circle cx=&quot;22&quot; cy=&quot;8&quot; r=&quot;2.4&quot;/&gt;&lt;circle cx=&quot;22&quot; cy=&quot;23&quot; r=&quot;2.4&quot;/&gt;&lt;/g&gt;&lt;/svg&gt;&lt;div&gt;&lt;div class=&quot;bn&quot;&gt;brainstorming&lt;/div&gt;&lt;div class=&quot;bs&quot;&gt;.brainstorming/&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;a href=&quot;#&quot; class=&quot;home cur&quot; data-home&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;1.5&quot;/&gt;&lt;rect x=&quot;14&quot; y=&quot;3&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;1.5&quot;/&gt;&lt;rect x=&quot;3&quot; y=&quot;14&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;1.5&quot;/&gt;&lt;rect x=&quot;14&quot; y=&quot;14&quot; width=&quot;7&quot; height=&quot;7&quot; rx=&quot;1.5&quot;/&gt;&lt;/svg&gt;ダッシュボード&lt;/a&gt;&lt;div class=&quot;grp&quot;&gt;&lt;div class=&quot;gh&quot;&gt;&lt;span class=&quot;gi g-answer&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M22 12h-6l-2 3h-4l-2-3H2&quot;/&gt;&lt;path d=&quot;M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;いま答える&lt;span class=&quot;gc&quot;&gt;2&lt;/span&gt;&lt;/div&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem cur&quot; data-board=&quot;skills-creator-on-base&quot;&gt;&lt;span class=&quot;bt&quot;&gt;skills-creator を新しい形の基盤の上で作り直す&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;Q2 入口&lt;/span&gt;&lt;span class=&quot;cnt&quot;&gt;1&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem&quot; data-board=&quot;brainstorming-on-base&quot;&gt;&lt;span class=&quot;bt&quot;&gt;ブレインストーミングを新しい形で作り直す&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;Q0 完成の条件 ほか&lt;/span&gt;&lt;span class=&quot;cnt&quot;&gt;3&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;div class=&quot;grp&quot;&gt;&lt;div class=&quot;gh&quot;&gt;&lt;span class=&quot;gi g-working&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/&gt;&lt;path d=&quot;M12 7v5l3 2&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;進行中&lt;span class=&quot;gc&quot;&gt;1&lt;/span&gt;&lt;/div&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem&quot; data-board=&quot;agents-creator&quot;&gt;&lt;span class=&quot;bt&quot;&gt;agents creator の Agent が何を指すか&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;AI が組み直し中&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;div class=&quot;grp&quot;&gt;&lt;div class=&quot;gh&quot;&gt;&lt;span class=&quot;gi g-hold&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/&gt;&lt;path d=&quot;M10 9v6M14 9v6&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;保留&lt;span class=&quot;gc&quot;&gt;1&lt;/span&gt;&lt;/div&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem&quot; data-board=&quot;repo-skill-layout&quot;&gt;&lt;span class=&quot;bt&quot;&gt;15の Skill を src/ と scripts/ のどちらで持つか&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;brainstorming の後&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;details class=&quot;grp&quot;&gt;&lt;summary&gt;&lt;span class=&quot;gi g-done&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/&gt;&lt;path d=&quot;m8 12 3 3 5-6&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;決着&lt;span class=&quot;gc&quot;&gt;2&lt;/span&gt;&lt;/summary&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem&quot; data-board=&quot;schema-driven-release&quot;&gt;&lt;span class=&quot;bt&quot;&gt;基盤 schema-driven を自分で Skill にして公開する&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;論点 5件&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#&quot; class=&quot;bitem&quot; data-board=&quot;page-design-ownership&quot;&gt;&lt;span class=&quot;bt&quot;&gt;ページのデザインシステムをだれが持つか&lt;/span&gt;&lt;span class=&quot;bm&quot;&gt;論点 4件&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/details&gt;&lt;/nav&gt;
+&lt;div class=&quot;main&quot;&gt;&lt;button class=&quot;menu&quot; type=&quot;button&quot; data-menu&gt;ボードの一覧&lt;/button&gt;&lt;div class=&quot;wrap dash&quot; data-view=&quot;dash&quot;&gt;
+ &lt;div class=&quot;crumb&quot;&gt;.brainstorming/&lt;/div&gt;
+ &lt;h1&gt;ブレインストーミング&lt;/h1&gt;
+ &lt;section class=&quot;sum&quot; aria-label=&quot;サマリー&quot;&gt;
+  &lt;div class=&quot;tile t-answer&quot;&gt;&lt;div class=&quot;tn&quot;&gt;2&lt;small&gt;枚&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;tl&quot;&gt;いま答える（論点 4件）&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;tile&quot;&gt;&lt;div class=&quot;tn&quot;&gt;1&lt;small&gt;枚&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;tl&quot;&gt;進行中&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;tile&quot;&gt;&lt;div class=&quot;tn&quot;&gt;1&lt;small&gt;枚&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;tl&quot;&gt;保留&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;tile&quot;&gt;&lt;div class=&quot;tn&quot;&gt;2&lt;small&gt;枚&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;tl&quot;&gt;決着&lt;/div&gt;&lt;/div&gt;
+ &lt;/section&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;先に決めるもの&lt;/h2&gt;&lt;p class=&quot;cap&quot;&gt;ほかのボードや論点が答えを待っている順 → 優先の印 → 回答を待っている日数、で並べる。&lt;/p&gt;&lt;ol class=&quot;prio&quot;&gt;&lt;li class=&quot;pr&quot;&gt;&lt;span class=&quot;pn&quot;&gt;1&lt;/span&gt;&lt;div class=&quot;pb&quot;&gt;&lt;div class=&quot;pt&quot;&gt;&lt;a href=&quot;#&quot; data-board=&quot;brainstorming-on-base&quot;&gt;Q0 完成の条件&lt;/a&gt;&lt;span class=&quot;pbd&quot;&gt;brainstorming-on-base&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;pw&quot;&gt;ほかの 3 枚がこの答えを待っている&lt;/div&gt;&lt;div class=&quot;pm&quot;&gt;&lt;span class=flag&gt;★ 優先の印&lt;/span&gt;&lt;span&gt;回答を待って 2日&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/li&gt;&lt;li class=&quot;pr&quot;&gt;&lt;span class=&quot;pn&quot;&gt;2&lt;/span&gt;&lt;div class=&quot;pb&quot;&gt;&lt;div class=&quot;pt&quot;&gt;&lt;a href=&quot;#&quot; data-board=&quot;skills-creator-on-base&quot;&gt;Q2 入口&lt;/a&gt;&lt;span class=&quot;pbd&quot;&gt;skills-creator-on-base&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;pw&quot;&gt;agents creator のボードがこの答えを待っている&lt;/div&gt;&lt;div class=&quot;pm&quot;&gt;&lt;span&gt;回答を待って 1日&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/li&gt;&lt;li class=&quot;pr&quot;&gt;&lt;span class=&quot;pn&quot;&gt;3&lt;/span&gt;&lt;div class=&quot;pb&quot;&gt;&lt;div class=&quot;pt&quot;&gt;&lt;a href=&quot;#&quot; data-board=&quot;brainstorming-on-base&quot;&gt;Q3 Skill の作り&lt;/a&gt;&lt;span class=&quot;pbd&quot;&gt;brainstorming-on-base&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;pw&quot;&gt;Q0 の答えを待っている（前提が開いている）&lt;/div&gt;&lt;div class=&quot;pm&quot;&gt;&lt;span&gt;回答を待って 2日&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/li&gt;&lt;/ol&gt;&lt;/section&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;最近の動き&lt;/h2&gt;&lt;ul class=&quot;log&quot;&gt;&lt;li&gt;&lt;span&gt;今日&lt;/span&gt;skills-creator-on-base ・ 第4回を出した（変わったところ 1か所）&lt;/li&gt;&lt;li&gt;&lt;span&gt;昨日&lt;/span&gt;schema-driven-release ・ 全論点が決着&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;
+&lt;/div&gt;&lt;div class=&quot;wrap&quot; data-view=&quot;board&quot; hidden&gt;
+ &lt;div class=&quot;crumb&quot;&gt;第4回 ・ ボード skills-creator-on-base&lt;/div&gt;
+ &lt;h1&gt;skills-creator を新しい形の基盤の上で作り直す&lt;/h1&gt;
+ &lt;div class=&quot;now&quot;&gt;&lt;b&gt;この回で答える論点：1件&lt;/b&gt;&lt;span class=&quot;chip&quot;&gt;Q0 決着&lt;/span&gt;&lt;span class=&quot;chip&quot;&gt;Q1 決着&lt;/span&gt;&lt;span class=&quot;chip on&quot;&gt;Q2 いま答える&lt;/span&gt;&lt;span class=&quot;chip&quot;&gt;Q3 まだ&lt;/span&gt;&lt;button class=&quot;ask&quot; type=&quot;button&quot; data-open-chat&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z&quot;/&gt;&lt;path d=&quot;M8.5 12h.01M12 12h.01M15.5 12h.01&quot;/&gt;&lt;/svg&gt;AI に聞く&lt;/button&gt;&lt;/div&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;Q2 ・ 問いと答え&lt;/h2&gt;
+  &lt;div class=&quot;lbl&quot;&gt;問い&lt;/div&gt;&lt;p class=&quot;q&quot;&gt;作られる Skill の入口を、どこにどう置き、SKILL.md からどう呼ぶか&lt;/p&gt;
+  &lt;div class=&quot;ans&quot;&gt;&lt;div class=&quot;lbl&quot;&gt;答え（承認してほしいこと）&lt;/div&gt;&lt;p&gt;入口は、拡張子の無い scripts/&amp;lt;Skill名&amp;gt; と、Windows で起動する scripts/&amp;lt;Skill名&amp;gt;.cmd の2つで1つの名前にし、SKILL.md は scripts/&amp;lt;Skill名&amp;gt; とだけ書く。&lt;/p&gt;
+  &lt;details&gt;&lt;summary&gt;答えの詳しい決まり（8件）&lt;/summary&gt;&lt;ol class=&quot;num&quot;&gt;&lt;li&gt;入口の名前は、SKILL.md を言語から切り離す窓口である&lt;/li&gt;&lt;li&gt;基盤の操作は scripts/bin/schema-driven へそのまま渡す&lt;/li&gt;&lt;/ol&gt;&lt;/details&gt;&lt;/div&gt;
+ &lt;/section&gt;
+ &lt;div class=&quot;notice&quot;&gt;この回で変わったところ：&lt;a href=&quot;#tab-diff&quot;&gt;1か所 ── 入口の拡張子をやめた&lt;/a&gt;&lt;/div&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;完成イメージ&lt;/h2&gt;
+  &lt;div class=&quot;tabs&quot; role=&quot;tablist&quot;&gt;
+   &lt;button role=&quot;tab&quot; aria-selected=&quot;true&quot; data-t=&quot;fig&quot;&gt;図&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;screen&quot;&gt;画面&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;code&quot;&gt;コード&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;diff&quot; id=&quot;tab-diff&quot;&gt;差分&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;tree&quot;&gt;フォルダ構成&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;run&quot;&gt;実行例&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;pane fig&quot; data-p=&quot;fig&quot;&gt;&lt;p class=&quot;cap&quot;&gt;私たちがソースを管理するものと、作られる Skill が持つもの。&lt;/p&gt;&lt;div class=&quot;figbox&quot;&gt;&lt;svg viewBox=&quot;0 0 760 360&quot; style=&quot;min-width:600px&quot; role=&quot;img&quot; aria-label=&quot;私たちが持つものと、作られる Skill が持つもの&quot; class=&quot;dsvg&quot;&gt;&lt;style data-dsvg=&quot;dark&quot;&gt;.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-38a210f3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=&quot;light&quot;]) .dsvg,.dsvg:root:not([data-theme=&quot;light&quot;]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}:root[data-theme=&quot;dark&quot;] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}&lt;/style&gt;&lt;defs data-dsvg=&quot;marker&quot;&gt;&lt;marker id=&quot;dsvg-38a210f3-arrow-5B6B66&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;9&quot; refY=&quot;5&quot; markerWidth=&quot;7&quot; markerHeight=&quot;7&quot; orient=&quot;auto-start-reverse&quot;&gt;&lt;path d=&quot;M0,0 L10,5 L0,10 z&quot; fill=&quot;#5B6B66&quot;/&gt;&lt;/marker&gt;&lt;/defs&gt;
+&lt;text class=&quot;title&quot; x=&quot;20&quot; y=&quot;28&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;13&quot; font-weight=&quot;700&quot; fill=&quot;#111D1A&quot;&gt;私たちが持つものと、作られる Skill が持つもの&lt;/text&gt;
+&lt;text class=&quot;label&quot; x=&quot;20&quot; y=&quot;62&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;私たちがソースを管理し、ビルドして公開する&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;20&quot; y=&quot;74&quot; width=&quot;220&quot; height=&quot;84&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;130.0&quot; y=&quot;96&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;schema-driven（基盤）&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;130.0&quot; y=&quot;116&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;src/schema-driven&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;130.0&quot; y=&quot;133&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;Release に証明付きで公開&lt;/text&gt;
+&lt;rect class=&quot;box focus&quot; x=&quot;270&quot; y=&quot;74&quot; width=&quot;220&quot; height=&quot;84&quot; fill=&quot;#D5E6E3&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;2&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label focus&quot; x=&quot;380.0&quot; y=&quot;96&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#0D5C55&quot;&gt;skills-creator&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;380.0&quot; y=&quot;116&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;src/skills-creator&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;380.0&quot; y=&quot;133&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scaffold ・ engine ・ check&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M240,116 H268&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;254&quot; y=&quot;108&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;使う&lt;/text&gt;
+&lt;text class=&quot;label&quot; x=&quot;20&quot; y=&quot;196&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;作った人が持つ（配る仕組みは持たない）&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;20&quot; y=&quot;208&quot; width=&quot;470&quot; height=&quot;96&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;255.0&quot; y=&quot;230&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;作られる Skill のフォルダ&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;255.0&quot; y=&quot;250&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;SKILL.md ・ assets/ のスキーマ ・ scripts/ の入口（ソースのまま）&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;255.0&quot; y=&quot;267&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scripts/bin/ に照合した基盤のエンジン&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M380,158 V206&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;390&quot; y=&quot;186&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scaffold と engine が置く&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;530&quot; y=&quot;208&quot; width=&quot;210&quot; height=&quot;96&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;635.0&quot; y=&quot;230&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;AI ツール&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;635.0&quot; y=&quot;250&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;Claude Code ・ Codex&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;635.0&quot; y=&quot;267&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;SKILL.md の手順を実行&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M530,256 H492&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;path class=&quot;link&quot; d=&quot;M20,326 H740&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;20&quot; y=&quot;348&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;基盤のエンジンだけは実行ファイルで入れる。版を指して Release から取り、SHA-256 と証明を照合してから置く&lt;/text&gt;
+&lt;/svg&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane screen&quot; data-p=&quot;screen&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口の結果を表示する画面の見本（触れる）。&lt;/p&gt;&lt;iframe title=&quot;practice の画面の見本&quot; sandbox srcdoc=&quot;&amp;lt;!doctype html&amp;gt;&amp;lt;meta charset=utf-8&amp;gt;&amp;lt;body style=&amp;quot;font:14px sans-serif;margin:12px&amp;quot;&amp;gt;&amp;lt;b&amp;gt;practice の画面の見本&amp;lt;/b&amp;gt;&amp;lt;p&amp;gt;入口が返した結果をここに表示する。&amp;lt;/p&amp;gt;&amp;lt;button&amp;gt;実行する&amp;lt;/button&amp;gt;&amp;lt;/body&amp;gt;&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;code&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口の雛形。&lt;/p&gt;&lt;div class=&quot;editor&quot;&gt;&lt;div class=&quot;etab&quot;&gt;&lt;span class=&quot;file&quot;&gt;scripts/practice&lt;/span&gt;&lt;span class=&quot;lang&quot;&gt;Python&lt;/span&gt;&lt;button class=&quot;copy&quot; type=&quot;button&quot;&gt;コピー&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;note&quot;&gt;&lt;b&gt;強調 8–10 行&lt;/b&gt; ── 基盤の操作を、エンジンへそのまま渡す所&lt;/div&gt;&lt;div class=&quot;escroll&quot;&gt;&lt;table class=&quot;code&quot;&gt;&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;1&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;c&quot;&gt;#!/usr/bin/env python3&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;2&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; os, subprocess, sys&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;3&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;4&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;HERE = os.path.dirname(os.path.abspath(__file__))&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;5&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;ENGINE = os.path.join(HERE, &lt;span class=&quot;s&quot;&gt;&quot;bin&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;schema-driven&quot;&lt;/span&gt;)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;6&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;BASE = {&lt;span class=&quot;s&quot;&gt;&quot;create&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;get&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;check&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;prompt&quot;&lt;/span&gt;}&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;7&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;8&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; main(argv):&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;9&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; argv &lt;span class=&quot;k&quot;&gt;and&lt;/span&gt; argv[0] &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; BASE:&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;10&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; subprocess.run([ENGINE, &lt;span class=&quot;s&quot;&gt;&quot;--skill&quot;&lt;/span&gt;, os.path.dirname(HERE), *argv]).returncode&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;diff&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;2回目の答えからの変化。&lt;/p&gt;&lt;div class=&quot;lit&quot;&gt;&lt;div class=&quot;head&quot;&gt;&lt;span&gt;practice/scripts/&lt;/span&gt;&lt;span class=&quot;stat&quot;&gt;&lt;span class=&quot;a&quot;&gt;+2&lt;/span&gt; &lt;span class=&quot;r&quot;&gt;−1&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;&lt;table class=&quot;diff&quot;&gt;&lt;tr class=&quot;dn&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;そのまま&quot;&gt;&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;scripts/&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;dr&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;消す&quot;&gt;-&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice.py           入口（言語の拡張子付き）&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;da&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;足す&quot;&gt;+&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice              入口（拡張子なし、1行目で実行のしかた）&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;da&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;足す&quot;&gt;+&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice.cmd          Windows で入口を起動する&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;dn&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;そのまま&quot;&gt;&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  bin/schema-driven     基盤のエンジン&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;tree&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;作られる Skill のフォルダ。&lt;/p&gt;&lt;div class=&quot;lit&quot;&gt;&lt;ul class=&quot;tree&quot;&gt;&lt;li class=&quot;t&quot; style=&quot;--depth:0&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;SKILL.md&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;手順は「scripts/practice &amp;lt;操作&amp;gt;」とだけ書く&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;assets/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice.schema.json&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;concrete スキーマ&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;scripts/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;ta&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice&lt;/span&gt;&lt;span class=&quot;mk mk-a&quot;&gt;+ 足す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;入口（ソースのまま。作った人が持つ）&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;ta&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice.cmd&lt;/span&gt;&lt;span class=&quot;mk mk-a&quot;&gt;+ 足す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;Windows で入口を起動する数行&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;tr&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;&lt;s&gt;practice.py&lt;/s&gt;&lt;/span&gt;&lt;span class=&quot;mk mk-r&quot;&gt;− 消す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;拡張子付きの入口はやめる&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;bin/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;tc&quot; style=&quot;--depth:3&quot;&gt;&lt;span class=&quot;nm&quot;&gt;schema-driven&lt;/span&gt;&lt;span class=&quot;mk mk-c&quot;&gt;~ 変える&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;照合した基盤のエンジン（0.1.1 へ入れ替え）&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;run&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口から基盤の操作を呼ぶ例。&lt;/p&gt;&lt;div class=&quot;term&quot;&gt;&lt;div class=&quot;tbar&quot;&gt;&lt;span class=&quot;dots&quot; aria-hidden=&quot;true&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;/span&gt;&lt;span class=&quot;where&quot;&gt;~/.claude/skills/practice&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;tbody&quot;&gt;&lt;div class=&quot;cmd&quot;&gt;&lt;span class=&quot;ps&quot; aria-hidden=&quot;true&quot;&gt;$&lt;/span&gt;scripts/practice prompt --schema practice/term@v1 --property /name&lt;/div&gt;&lt;pre class=&quot;out&quot;&gt;{&quot;ok&quot;:true,&quot;prompt&quot;:{&quot;read&quot;:{&quot;means&quot;:&quot;用語の名前である。&quot;}}&lt;/pre&gt;&lt;div class=&quot;exit&quot;&gt;終了コード 0&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+ &lt;/section&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;置いた前提&lt;/h2&gt;&lt;ol class=&quot;num&quot;&gt;&lt;li&gt;作られる Skill を使う環境には、入口の言語の実行環境（Python の雛形なら python3）がある&lt;/li&gt;&lt;/ol&gt;&lt;/section&gt;
+ &lt;section class=&quot;block check&quot;&gt;&lt;h2&gt;確かめてほしい箇所（2件）&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot;&gt;完成イメージのフォルダ構成&lt;/a&gt; ── 入口とエンジンの置き場所が分かれていてよいか&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#&quot;&gt;置いた前提の1つ目&lt;/a&gt; ── python3 を前提にしてよいか&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;
+ &lt;details class=&quot;block&quot;&gt;&lt;summary&gt;&lt;b&gt;裏づけ&lt;/b&gt; ── 主張3つ ・ 根拠7件 ・ 採らなかった案5件&lt;/summary&gt;&lt;p class=&quot;cap&quot;&gt;（主張ごとに根拠と採らなかった案を束ねる）&lt;/p&gt;&lt;/details&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;回答&lt;/h2&gt;&lt;div class=&quot;btns&quot;&gt;&lt;button class=&quot;primary&quot;&gt;このまま進める&lt;/button&gt;&lt;button&gt;差し戻す&lt;/button&gt;&lt;/div&gt;&lt;textarea placeholder=&quot;書き足し（書かなくても進む）&quot;&gt;&lt;/textarea&gt;&lt;/section&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;aside class=&quot;chat&quot; hidden aria-label=&quot;AI チャット&quot;&gt;
+ &lt;div class=&quot;ch&quot;&gt;&lt;span class=&quot;chi&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z&quot;/&gt;&lt;path d=&quot;M8.5 12h.01M12 12h.01M15.5 12h.01&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;div class=&quot;cht&quot;&gt;&lt;b&gt;AI に聞く&lt;/b&gt;&lt;span&gt;この論点のボードを読み書きする&lt;/span&gt;&lt;/div&gt;&lt;button class=&quot;iconbtn&quot; type=&quot;button&quot; data-close-chat aria-label=&quot;閉じる&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M6 6l12 12M18 6 6 18&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+ &lt;div class=&quot;agent&quot;&gt;&lt;label class=&quot;sel&quot;&gt;&lt;span class=&quot;on&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;select aria-label=&quot;使う AI&quot;&gt;&lt;option&gt;Claude Code&lt;/option&gt;&lt;option&gt;Codex&lt;/option&gt;&lt;option&gt;Kiro&lt;/option&gt;&lt;/select&gt;&lt;svg class=&quot;chev&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;m6 9 6 6 6-6&quot;/&gt;&lt;/svg&gt;&lt;/label&gt;&lt;span class=&quot;agent-note&quot;&gt;ログイン済み ・ 書き換えはボードのフォルダだけ&lt;/span&gt;&lt;/div&gt;
+ &lt;div class=&quot;ctx&quot;&gt;&lt;span class=&quot;cchip&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;rect x=&quot;3&quot; y=&quot;4&quot; width=&quot;18&quot; height=&quot;16&quot; rx=&quot;2&quot;/&gt;&lt;path d=&quot;M3 9h18M9 9v11&quot;/&gt;&lt;/svg&gt;skills-creator-on-base&lt;/span&gt;&lt;span class=&quot;cchip&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M4 6h16M4 12h10M4 18h7&quot;/&gt;&lt;/svg&gt;Q2 入口&lt;/span&gt;&lt;/div&gt;
+ &lt;div class=&quot;msgs&quot;&gt;
+  &lt;div class=&quot;msg me&quot;&gt;&lt;div class=&quot;who&quot;&gt;&lt;span class=&quot;av av-me&quot;&gt;あ&lt;/span&gt;&lt;b&gt;あなた&lt;/b&gt;&lt;time&gt;10:42&lt;/time&gt;&lt;/div&gt;&lt;div class=&quot;bubble&quot;&gt;Windows で python3 が無い人のために、置いた前提に一言足して。&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;msg ai&quot;&gt;&lt;div class=&quot;who&quot;&gt;&lt;span class=&quot;av av-ai&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;b&gt;Claude Code&lt;/b&gt;&lt;time&gt;10:42&lt;/time&gt;&lt;/div&gt;
+   &lt;div class=&quot;work&quot;&gt;&lt;div class=&quot;wt&quot;&gt;作業の記録&lt;/div&gt;&lt;ul&gt;
+    &lt;li&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z&quot;/&gt;&lt;circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;3&quot;/&gt;&lt;/svg&gt;&lt;span&gt;読んだ&lt;/span&gt;&lt;code&gt;board.json ・ Q2&lt;/code&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M12 20h9&quot;/&gt;&lt;path d=&quot;M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z&quot;/&gt;&lt;/svg&gt;&lt;span&gt;直した&lt;/span&gt;&lt;code&gt;Q2 ・ 置いた前提（1件足した）&lt;/code&gt;&lt;/li&gt;
+    &lt;li class=&quot;ok&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;m5 12 5 5 9-10&quot;/&gt;&lt;/svg&gt;&lt;span&gt;検査&lt;/span&gt;&lt;code&gt;check 合格&lt;/code&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+   &lt;div class=&quot;bubble&quot;&gt;置いた前提に「Windows で python3 が無い環境では、Git Bash から入口の1行目が動かない。PowerShell と cmd は .cmd が py か python を使う」を足しました。画面を描き直しています。&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;cand&quot;&gt;&lt;div class=&quot;cand-h&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M12 3v7M8.5 6.5h7M8.5 17h7&quot;/&gt;&lt;rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;2&quot;/&gt;&lt;/svg&gt;&lt;b&gt;変わったところの候補&lt;/b&gt;&lt;/div&gt;&lt;p&gt;置いた前提の2つ目を足した。理由を確かめて、この回の「変わったところ」に確定する。&lt;/p&gt;&lt;div class=&quot;cand-b&quot;&gt;&lt;button class=&quot;btn primary&quot; type=&quot;button&quot;&gt;確かめる&lt;/button&gt;&lt;button class=&quot;btn&quot; type=&quot;button&quot;&gt;取り消す&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+ &lt;/div&gt;
+ &lt;div class=&quot;quick&quot;&gt;&lt;button type=&quot;button&quot;&gt;答えを短く&lt;/button&gt;&lt;button type=&quot;button&quot;&gt;前提を足す&lt;/button&gt;&lt;button type=&quot;button&quot;&gt;反証して&lt;/button&gt;&lt;/div&gt;
+ &lt;form class=&quot;composer&quot; onsubmit=&quot;event.preventDefault()&quot;&gt;&lt;textarea rows=&quot;2&quot; aria-label=&quot;AI への依頼&quot; placeholder=&quot;この論点について聞く・直してほしいことを書く&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;cbar&quot;&gt;&lt;span class=&quot;hint&quot;&gt;Enter で送る ・ Shift+Enter で改行&lt;/span&gt;&lt;button class=&quot;send&quot; type=&quot;submit&quot; aria-label=&quot;送る&quot;&gt;&lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M22 2 11 13&quot;/&gt;&lt;path d=&quot;M22 2 15 22l-4-9-9-4z&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;&lt;/form&gt;
+&lt;/aside&gt;
+&lt;/div&gt;
+&lt;script&gt;
+document.querySelectorAll(&#39;.tabs button&#39;).forEach(b=&gt;b.addEventListener(&#39;click&#39;,()=&gt;{
+ document.querySelectorAll(&#39;.tabs button&#39;).forEach(x=&gt;x.setAttribute(&#39;aria-selected&#39;,x===b));
+ document.querySelectorAll(&#39;.pane&#39;).forEach(p=&gt;p.hidden=p.dataset.p!==b.dataset.t);
+}));
+document.querySelectorAll(&#39;.copy&#39;).forEach(b=&gt;b.addEventListener(&#39;click&#39;,()=&gt;{const t=[...document.querySelectorAll(&#39;.editor .tx&#39;)].map(x=&gt;x.textContent).join(String.fromCharCode(10));navigator.clipboard.writeText(t).then(()=&gt;b.textContent=&#39;コピーした&#39;,()=&gt;{});}));
+document.querySelector(&#39;.notice a&#39;).addEventListener(&#39;click&#39;,e=&gt;{e.preventDefault();document.getElementById(&#39;tab-diff&#39;).click();document.getElementById(&#39;tab-diff&#39;).focus();});
+&lt;/script&gt;
+&lt;script&gt;
+const app=document.querySelector(&#39;.app&#39;),chat=document.querySelector(&#39;.chat&#39;),side=document.querySelector(&#39;.side&#39;);
+function show(v){document.querySelectorAll(&#39;[data-view]&#39;).forEach(x=&gt;x.hidden=x.dataset.view!==v);document.querySelector(&#39;[data-home]&#39;).classList.toggle(&#39;cur&#39;,v===&#39;dash&#39;);side.classList.remove(&#39;open&#39;);window.scrollTo(0,0);}
+document.querySelector(&#39;[data-home]&#39;).addEventListener(&#39;click&#39;,e=&gt;{e.preventDefault();show(&#39;dash&#39;);});
+document.querySelectorAll(&#39;[data-board]&#39;).forEach(a=&gt;a.addEventListener(&#39;click&#39;,e=&gt;{e.preventDefault();show(&#39;board&#39;);}));
+document.querySelectorAll(&#39;[data-open-chat]&#39;).forEach(b=&gt;b.addEventListener(&#39;click&#39;,()=&gt;{chat.hidden=false;app.classList.add(&#39;with-chat&#39;);}));
+document.querySelector(&#39;[data-close-chat]&#39;).addEventListener(&#39;click&#39;,()=&gt;{chat.hidden=true;app.classList.remove(&#39;with-chat&#39;);});
+document.querySelector(&#39;[data-menu]&#39;).addEventListener(&#39;click&#39;,()=&gt;side.classList.toggle(&#39;open&#39;));
+&lt;/script&gt;"></iframe><p class="note-s">アプリの画面の試作。サイドバーで論点を選び、ダッシュボードで先に決めるものを見る。「AI に聞く」でチャットが開く。</p></div><div data-g="3" data-ixp="1" hidden><iframe class="ix-ui" title="描画した UI" srcdoc="&lt;title&gt;brainstorming の画面の試作&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;&lt;link rel=&quot;stylesheet&quot; href=&quot;https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Shippori+Mincho:wght@600&amp;family=Zen+Kaku+Gothic+New:wght@400;700&amp;display=swap&quot;&gt;
+&lt;style&gt;
+:root {
+  --base-paper-000: #f8faf9;
+  --base-paper-100: #eef1ef;
+  --base-paper-200: #e7ecea;
+  --base-paper-300: #dfe7e4;
+  --base-paper-400: #ccd8d4;
+  --base-ink-600: #556561;
+  --base-ink-700: #5b6b66;
+  --base-ink-800: #3c4a46;
+  --base-ink-900: #111d1a;
+  --base-night-600: #2a3936;
+  --base-night-700: #22302d;
+  --base-night-800: #16211e;
+  --base-night-900: #0e1614;
+  --base-snow-100: #e6eeeb;
+  --base-snow-200: #c2cec9;
+  --base-snow-400: #9dada8;
+  --base-snow-500: #93a29d;
+  --base-teal-100: #d5e6e3;
+  --base-teal-300: #6cc9b8;
+  --base-teal-700: #0d5c55;
+  --base-teal-900: #173330;
+  --base-amber-100: #f0e2cd;
+  --base-amber-400: #d9a35f;
+  --base-amber-700: #8f5410;
+  --base-amber-900: #33281a;
+  --base-sand-100: #f8f3e8;
+  --base-sand-400: #d9b77e;
+  --base-sand-700: #6e5738;
+  --base-sand-900: #241d14;
+  --base-plum-300: #d094c2;
+  --base-plum-700: #7a3b6d;
+  --base-rose-100: #f6e0df;
+  --base-rose-300: #f0a3a0;
+  --base-rose-700: #a3262a;
+  --base-rose-900: #3a1c1d;
+  --color-surface-page: var(--base-paper-100);
+  --color-surface-block: var(--base-paper-000);
+  --color-surface-literal: var(--base-paper-100);
+  --color-surface-answer: var(--base-teal-100);
+  --color-surface-notice: var(--base-sand-100);
+  --color-surface-added: var(--base-teal-100);
+  --color-surface-removed: var(--base-rose-100);
+  --color-text-body: var(--base-ink-900);
+  --color-text-sub: var(--base-ink-800);
+  --color-text-key: var(--base-teal-700);
+  --color-text-on-key: var(--base-paper-000);
+  --color-text-warn: var(--base-amber-700);
+  --color-text-source: var(--base-plum-700);
+  --color-text-added: var(--base-teal-700);
+  --color-text-removed: var(--base-rose-700);
+  --color-syntax-keyword: var(--base-teal-700);
+  --color-syntax-string: var(--base-amber-700);
+  --color-syntax-literal: var(--base-plum-700);
+  --color-syntax-comment: var(--base-ink-700);
+  --color-key: var(--base-teal-700);
+  --color-line-control: var(--base-ink-700);
+  --color-line-block: var(--base-paper-400);
+  --color-line-notice: var(--base-sand-400);
+  --color-mark-added: var(--base-teal-700);
+  --color-mark-removed: var(--base-rose-700);
+  --color-mark-changed: var(--base-amber-700);
+  --color-state-focus: var(--base-teal-700);
+  --color-state-target: var(--base-amber-700);
+  --font-literal: &quot;JetBrains Mono&quot;, &quot;Zen Kaku Gothic New&quot;, monospace;
+  --size-literal: 13px;
+  --type-literal-font-size: var(--size-literal);
+  --type-literal-line-height: 1.6;
+  --editor-bg: #ffffff; --editor-fg: #1f2328; --editor-gutter: #59636e; --editor-line: #d1d9e0;
+  --editor-keyword: #cf222e; --editor-string: #0a3069; --editor-comment: #59636e; --editor-hl: #fff8c5; --editor-hl-mark: #9a6700;
+  --font-body: &quot;Zen Kaku Gothic New&quot;, &quot;Hiragino Sans&quot;, sans-serif;
+  --font-head: &quot;Shippori Mincho&quot;, &quot;Hiragino Mincho ProN&quot;, serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme=&quot;light&quot;]) {
+  --color-surface-page: var(--base-night-900);
+  --color-surface-block: var(--base-night-800);
+  --color-surface-literal: var(--base-night-900);
+  --color-surface-answer: var(--base-teal-900);
+  --color-surface-notice: var(--base-sand-900);
+  --color-surface-added: var(--base-teal-900);
+  --color-surface-removed: var(--base-rose-900);
+  --color-text-body: var(--base-snow-100);
+  --color-text-sub: var(--base-snow-200);
+  --color-text-key: var(--base-teal-300);
+  --color-text-on-key: var(--base-night-800);
+  --color-text-warn: var(--base-amber-400);
+  --color-text-source: var(--base-plum-300);
+  --color-text-added: var(--base-teal-300);
+  --color-text-removed: var(--base-rose-300);
+  --color-syntax-keyword: var(--base-teal-300);
+  --color-syntax-string: var(--base-amber-400);
+  --color-syntax-literal: var(--base-plum-300);
+  --color-syntax-comment: var(--base-snow-400);
+  --color-key: var(--base-teal-300);
+  --color-line-control: var(--base-snow-500);
+  --color-line-block: var(--base-night-600);
+  --color-line-notice: var(--base-sand-700);
+  --color-mark-added: var(--base-teal-300);
+  --color-mark-removed: var(--base-rose-300);
+  --color-mark-changed: var(--base-amber-400);
+  --color-state-focus: var(--base-teal-300);
+  --color-state-target: var(--base-amber-400);
+  --editor-bg: #0d1117; --editor-fg: #e6edf3; --editor-gutter: #8b949e; --editor-line: #3d444d;
+  --editor-keyword: #ff7b72; --editor-string: #a5d6ff; --editor-comment: #8b949e; --editor-hl: #2e2a1b; --editor-hl-mark: #d29922;
+  color-scheme: dark; } }
+:root[data-theme=&quot;dark&quot;] {
+  --color-surface-page: var(--base-night-900);
+  --color-surface-block: var(--base-night-800);
+  --color-surface-literal: var(--base-night-900);
+  --color-surface-answer: var(--base-teal-900);
+  --color-surface-notice: var(--base-sand-900);
+  --color-surface-added: var(--base-teal-900);
+  --color-surface-removed: var(--base-rose-900);
+  --color-text-body: var(--base-snow-100);
+  --color-text-sub: var(--base-snow-200);
+  --color-text-key: var(--base-teal-300);
+  --color-text-on-key: var(--base-night-800);
+  --color-text-warn: var(--base-amber-400);
+  --color-text-source: var(--base-plum-300);
+  --color-text-added: var(--base-teal-300);
+  --color-text-removed: var(--base-rose-300);
+  --color-syntax-keyword: var(--base-teal-300);
+  --color-syntax-string: var(--base-amber-400);
+  --color-syntax-literal: var(--base-plum-300);
+  --color-syntax-comment: var(--base-snow-400);
+  --color-key: var(--base-teal-300);
+  --color-line-control: var(--base-snow-500);
+  --color-line-block: var(--base-night-600);
+  --color-line-notice: var(--base-sand-700);
+  --color-mark-added: var(--base-teal-300);
+  --color-mark-removed: var(--base-rose-300);
+  --color-mark-changed: var(--base-amber-400);
+  --color-state-focus: var(--base-teal-300);
+  --color-state-target: var(--base-amber-400);
+  --editor-bg: #0d1117; --editor-fg: #e6edf3; --editor-gutter: #8b949e; --editor-line: #3d444d;
+  --editor-keyword: #ff7b72; --editor-string: #a5d6ff; --editor-comment: #8b949e; --editor-hl: #2e2a1b; --editor-hl-mark: #d29922;
+  color-scheme: dark; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-surface-page);color:var(--color-text-body);font:15px/1.8 var(--font-body)}
+.wrap{max-width:920px;margin:0 auto;padding-block:20px 60px;padding-inline:16px;display:flex;flex-direction:column;gap:14px}
+.crumb{font-size:12px;color:var(--color-text-sub)}
+h1{font:600 26px/1.4 var(--font-head);margin:0;text-wrap:balance}
+.now{display:flex;flex-wrap:wrap;align-items:center;gap:8px} .now b{font-size:14px}
+.chip{border:1px solid var(--color-line-control);border-radius:999px;padding:1px 10px;font-size:12px;color:var(--color-text-sub)}
+.chip.on{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key);font-weight:700}
+.block{background:var(--color-surface-block);border:1px solid var(--color-line-block);border-radius:10px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.block&gt;h2{font-size:13px;margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-line-block)}
+.lbl{font-size:11px;color:var(--color-text-sub);letter-spacing:.06em}
+.q{font:600 19px/1.6 var(--font-head);margin:0}
+.ans{background:var(--color-surface-answer);border-left:4px solid var(--color-key);border-radius:8px;padding:10px 14px}
+.ans .lbl{color:var(--color-text-key);font-weight:700} .ans p{margin:2px 0 6px;font-weight:700}
+details summary{cursor:pointer;font-size:13px} details[open] summary{margin-bottom:6px}
+.notice{background:var(--color-surface-notice);border:1px solid var(--color-line-notice);border-radius:10px;padding:6px 14px;font-size:13px}
+.notice a{color:var(--color-text-key)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:inherit;font-size:13px;border:1px solid var(--color-line-control);background:transparent;color:var(--color-text-body);border-radius:999px;padding:2px 14px;cursor:pointer}
+.tabs button[aria-selected=&quot;true&quot;]{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key)}
+.tabs button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+.cap{font-size:13px;color:var(--color-text-sub);margin:0}
+.lit{background:var(--color-surface-literal);border-radius:8px;padding:10px 12px;overflow-x:auto;font:var(--size-literal)/1.6 var(--font-literal)}
+.head{font:12px var(--font-body);color:var(--color-text-sub);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+table.code,table.diff{border-collapse:collapse;width:100%}
+.code td,.diff td{padding:0 6px;vertical-align:top;white-space:pre-wrap;word-break:break-all}
+.code .ln{color:var(--color-syntax-comment);text-align:right;user-select:none;width:2.5em}
+.code tr.hl .tx{box-shadow:inset 3px 0 var(--color-key)}
+.k{color:var(--color-syntax-keyword);font-weight:700} .s{color:var(--color-syntax-string)} .c{color:var(--color-syntax-comment)}
+.diff .sg{width:1.5em;user-select:none;text-align:center;font-weight:700}
+.diff tr.da{background:var(--color-surface-added)} .diff tr.da .sg{color:var(--color-mark-added)}
+.diff tr.dr{background:var(--color-surface-removed)} .diff tr.dr .sg{color:var(--color-mark-removed)}
+.stat{font:12px var(--font-literal)} .stat .a{color:var(--color-text-added)} .stat .r{color:var(--color-text-removed)}
+ul.tree{list-style:none;margin:0;padding:0}
+ul.tree li{display:grid;grid-template-columns:minmax(12em,auto) auto 1fr;gap:4px 12px;align-items:baseline;padding:1px 0 1px calc(var(--depth)*1.4em)}
+ul.tree .nm{font:var(--size-literal) var(--font-literal)}
+ul.tree .ds{font:13px var(--font-body);color:var(--color-text-sub)}
+.mk{font:12px var(--font-body);font-weight:700;border-radius:4px;padding:0 6px;white-space:nowrap}
+.mk-a{color:var(--color-mark-added);background:var(--color-surface-added)} .mk-r{color:var(--color-mark-removed);background:var(--color-surface-removed)} .mk-c{color:var(--color-mark-changed);background:var(--color-surface-notice)}
+.run .cmd::before{content:&quot;$ &quot;;color:var(--color-syntax-comment);user-select:none} .run .cmd{font-weight:700}
+.run .out{color:var(--color-text-sub);margin:4px 0} .run .code{font:12px var(--font-body);color:var(--color-text-sub)}
+.screen iframe{width:100%;height:160px;border:1px solid var(--color-line-block);border-radius:8px;background:#fff}
+.fig svg{max-width:100%;height:auto}
+ol.num{margin:0;padding-left:1.6em} ol.num li::marker{color:var(--color-text-key);font-weight:700}
+.check li a{color:var(--color-text-key)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btns button{font:inherit;font-weight:700;border:1px solid var(--color-line-control);background:transparent;color:var(--color-text-body);border-radius:8px;padding:6px 18px;cursor:pointer} .btns button.primary{background:var(--color-key);border-color:var(--color-key);color:var(--color-text-on-key)} .btns button:focus-visible{outline:3px solid var(--color-state-focus);outline-offset:2px}
+textarea{display:block;width:100%;max-width:100%;resize:vertical;min-height:70px;font:inherit;border:1px solid var(--color-line-control);border-radius:8px;background:var(--color-surface-block);color:var(--color-text-body);padding:6px}
+.figbox{background:var(--color-surface-literal);border-radius:8px;padding:12px;overflow-x:auto}
+.editor{border:1px solid var(--editor-line);border-radius:8px;overflow:hidden;background:var(--editor-bg);color:var(--editor-fg)}
+.etab{display:flex;align-items:center;gap:10px;padding:0 8px 0 0;background:var(--editor-bg);border-bottom:1px solid var(--editor-line);font:12px var(--font-body);color:var(--editor-gutter)}
+.etab .file{border-right:1px solid var(--editor-line);border-bottom:2px solid var(--editor-hl-mark);padding:6px 14px;font:12px var(--font-literal);color:var(--editor-fg)}
+.etab .lang{margin-left:auto}
+.copy{font:12px var(--font-body);border:1px solid var(--editor-line);background:transparent;color:var(--editor-fg);border-radius:6px;padding:1px 10px;cursor:pointer}
+.note{font:12px var(--font-body);color:var(--editor-gutter);padding:5px 12px;border-bottom:1px solid var(--editor-line)} .note b{color:var(--editor-hl-mark)}
+.escroll{overflow-x:auto}
+.editor table.code{font:var(--size-literal)/1.7 var(--font-literal);width:max-content;min-width:100%}
+.editor .code td{white-space:pre;word-break:normal;padding:0 14px 0 10px}
+.editor .code .ln{padding:0 10px;color:var(--editor-gutter)}
+.editor .code tr.hl td{background:var(--editor-hl)}
+.editor .code tr.hl .ln{color:var(--editor-fg);box-shadow:inset 3px 0 var(--editor-hl-mark)}
+.editor .code tr.hl .tx{box-shadow:none}
+.term{border-radius:8px;overflow:hidden;background:#0e1614;color:#e6eeeb;font:var(--size-literal)/1.7 var(--font-literal)}
+.tbar{display:flex;align-items:center;gap:12px;padding:6px 12px;background:#22302d;font:12px var(--font-body);color:#c2cec9}
+.dots{display:flex;gap:6px} .dots i{width:10px;height:10px;border-radius:50%;background:#556561;display:block}
+.tbody{padding:10px 14px;overflow-x:auto}
+.term .cmd{white-space:pre;color:#e6eeeb;font-weight:700} .term .ps{color:#6cc9b8;margin-right:.6em;user-select:none}
+.term .out{margin:4px 0;color:#c2cec9;white-space:pre-wrap;font:inherit}
+.term .exit{font:12px var(--font-body);color:#6cc9b8}
+.editor .k{color:var(--editor-keyword);font-weight:400} .editor .s{color:var(--editor-string)} .editor .c{color:var(--editor-comment)}
+@media (max-width:560px){ ul.tree li{grid-template-columns:1fr auto} ul.tree .ds{grid-column:1/-1;padding-left:1em} }
+&lt;/style&gt;
+&lt;div class=&quot;wrap&quot;&gt;
+ &lt;div class=&quot;crumb&quot;&gt;第4回 ・ ボード skills-creator-on-base&lt;/div&gt;
+ &lt;h1&gt;skills-creator を新しい形の基盤の上で作り直す&lt;/h1&gt;
+ &lt;div class=&quot;now&quot;&gt;&lt;b&gt;この回で答える論点：1件&lt;/b&gt;&lt;span class=&quot;chip&quot;&gt;Q0 決着&lt;/span&gt;&lt;span class=&quot;chip&quot;&gt;Q1 決着&lt;/span&gt;&lt;span class=&quot;chip on&quot;&gt;Q2 いま答える&lt;/span&gt;&lt;span class=&quot;chip&quot;&gt;Q3 まだ&lt;/span&gt;&lt;/div&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;Q2 ・ 問いと答え&lt;/h2&gt;
+  &lt;div class=&quot;lbl&quot;&gt;問い&lt;/div&gt;&lt;p class=&quot;q&quot;&gt;作られる Skill の入口を、どこにどう置き、SKILL.md からどう呼ぶか&lt;/p&gt;
+  &lt;div class=&quot;ans&quot;&gt;&lt;div class=&quot;lbl&quot;&gt;答え（承認してほしいこと）&lt;/div&gt;&lt;p&gt;入口は、拡張子の無い scripts/&amp;lt;Skill名&amp;gt; と、Windows で起動する scripts/&amp;lt;Skill名&amp;gt;.cmd の2つで1つの名前にし、SKILL.md は scripts/&amp;lt;Skill名&amp;gt; とだけ書く。&lt;/p&gt;
+  &lt;details&gt;&lt;summary&gt;答えの詳しい決まり（8件）&lt;/summary&gt;&lt;ol class=&quot;num&quot;&gt;&lt;li&gt;入口の名前は、SKILL.md を言語から切り離す窓口である&lt;/li&gt;&lt;li&gt;基盤の操作は scripts/bin/schema-driven へそのまま渡す&lt;/li&gt;&lt;/ol&gt;&lt;/details&gt;&lt;/div&gt;
+ &lt;/section&gt;
+ &lt;div class=&quot;notice&quot;&gt;この回で変わったところ：&lt;a href=&quot;#tab-diff&quot;&gt;1か所 ── 入口の拡張子をやめた&lt;/a&gt;&lt;/div&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;完成イメージ&lt;/h2&gt;
+  &lt;div class=&quot;tabs&quot; role=&quot;tablist&quot;&gt;
+   &lt;button role=&quot;tab&quot; aria-selected=&quot;true&quot; data-t=&quot;fig&quot;&gt;図&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;screen&quot;&gt;画面&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;code&quot;&gt;コード&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;diff&quot; id=&quot;tab-diff&quot;&gt;差分&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;tree&quot;&gt;フォルダ構成&lt;/button&gt;&lt;button role=&quot;tab&quot; aria-selected=&quot;false&quot; data-t=&quot;run&quot;&gt;実行例&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;pane fig&quot; data-p=&quot;fig&quot;&gt;&lt;p class=&quot;cap&quot;&gt;私たちがソースを管理するものと、作られる Skill が持つもの。&lt;/p&gt;&lt;div class=&quot;figbox&quot;&gt;&lt;svg viewBox=&quot;0 0 760 360&quot; style=&quot;min-width:600px&quot; role=&quot;img&quot; aria-label=&quot;私たちが持つものと、作られる Skill が持つもの&quot; class=&quot;dsvg&quot;&gt;&lt;style data-dsvg=&quot;dark&quot;&gt;.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label.focus{fill:var(--dsvg-accent,#0D5C55);font-size:12px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-38a210f3-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=&quot;light&quot;]) .dsvg,.dsvg:root:not([data-theme=&quot;light&quot;]){--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=&quot;dark&quot;] .dsvg{--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}&lt;/style&gt;&lt;defs data-dsvg=&quot;marker&quot;&gt;&lt;marker id=&quot;dsvg-38a210f3-arrow-5B6B66&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;9&quot; refY=&quot;5&quot; markerWidth=&quot;7&quot; markerHeight=&quot;7&quot; orient=&quot;auto-start-reverse&quot;&gt;&lt;path d=&quot;M0,0 L10,5 L0,10 z&quot; fill=&quot;#5B6B66&quot;/&gt;&lt;/marker&gt;&lt;/defs&gt;
+&lt;text class=&quot;title&quot; x=&quot;20&quot; y=&quot;28&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;13&quot; font-weight=&quot;700&quot; fill=&quot;#111D1A&quot;&gt;私たちが持つものと、作られる Skill が持つもの&lt;/text&gt;
+&lt;text class=&quot;label&quot; x=&quot;20&quot; y=&quot;62&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;私たちがソースを管理し、ビルドして公開する&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;20&quot; y=&quot;74&quot; width=&quot;220&quot; height=&quot;84&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;130.0&quot; y=&quot;96&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;schema-driven（基盤）&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;130.0&quot; y=&quot;116&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;src/schema-driven&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;130.0&quot; y=&quot;133&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;Release に証明付きで公開&lt;/text&gt;
+&lt;rect class=&quot;box focus&quot; x=&quot;270&quot; y=&quot;74&quot; width=&quot;220&quot; height=&quot;84&quot; fill=&quot;#D5E6E3&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;2&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label focus&quot; x=&quot;380.0&quot; y=&quot;96&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#0D5C55&quot;&gt;skills-creator&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;380.0&quot; y=&quot;116&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;src/skills-creator&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;380.0&quot; y=&quot;133&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scaffold ・ engine ・ check&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M240,116 H268&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;254&quot; y=&quot;108&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;使う&lt;/text&gt;
+&lt;text class=&quot;label&quot; x=&quot;20&quot; y=&quot;196&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;作った人が持つ（配る仕組みは持たない）&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;20&quot; y=&quot;208&quot; width=&quot;470&quot; height=&quot;96&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;255.0&quot; y=&quot;230&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;作られる Skill のフォルダ&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;255.0&quot; y=&quot;250&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;SKILL.md ・ assets/ のスキーマ ・ scripts/ の入口（ソースのまま）&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;255.0&quot; y=&quot;267&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scripts/bin/ に照合した基盤のエンジン&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M380,158 V206&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;390&quot; y=&quot;186&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;scaffold と engine が置く&lt;/text&gt;
+&lt;rect class=&quot;box&quot; x=&quot;530&quot; y=&quot;208&quot; width=&quot;210&quot; height=&quot;96&quot; fill=&quot;#F8FAF9&quot; stroke=&quot;#0D5C55&quot; stroke-width=&quot;1.5&quot; rx=&quot;5&quot;/&gt;
+&lt;text class=&quot;label&quot; x=&quot;635.0&quot; y=&quot;230&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;12&quot; fill=&quot;#111D1A&quot;&gt;AI ツール&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;635.0&quot; y=&quot;250&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;Claude Code ・ Codex&lt;/text&gt;
+&lt;text class=&quot;note&quot; x=&quot;635.0&quot; y=&quot;267&quot; text-anchor=&quot;middle&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;SKILL.md の手順を実行&lt;/text&gt;
+&lt;path class=&quot;flow&quot; d=&quot;M530,256 H492&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1.5&quot; marker-end=&quot;url(#dsvg-38a210f3-arrow-5B6B66)&quot;/&gt;
+&lt;path class=&quot;link&quot; d=&quot;M20,326 H740&quot; fill=&quot;none&quot; stroke=&quot;#5B6B66&quot; stroke-width=&quot;1&quot;/&gt;
+&lt;text class=&quot;note&quot; x=&quot;20&quot; y=&quot;348&quot; font-family=&quot;Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif&quot; font-size=&quot;11&quot; fill=&quot;#5B6B66&quot;&gt;基盤のエンジンだけは実行ファイルで入れる。版を指して Release から取り、SHA-256 と証明を照合してから置く&lt;/text&gt;
+&lt;/svg&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane screen&quot; data-p=&quot;screen&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口の結果を表示する画面の見本（触れる）。&lt;/p&gt;&lt;iframe title=&quot;practice の画面の見本&quot; sandbox srcdoc=&quot;&amp;lt;!doctype html&amp;gt;&amp;lt;meta charset=utf-8&amp;gt;&amp;lt;body style=&amp;quot;font:14px sans-serif;margin:12px&amp;quot;&amp;gt;&amp;lt;b&amp;gt;practice の画面の見本&amp;lt;/b&amp;gt;&amp;lt;p&amp;gt;入口が返した結果をここに表示する。&amp;lt;/p&amp;gt;&amp;lt;button&amp;gt;実行する&amp;lt;/button&amp;gt;&amp;lt;/body&amp;gt;&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;code&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口の雛形。&lt;/p&gt;&lt;div class=&quot;editor&quot;&gt;&lt;div class=&quot;etab&quot;&gt;&lt;span class=&quot;file&quot;&gt;scripts/practice&lt;/span&gt;&lt;span class=&quot;lang&quot;&gt;Python&lt;/span&gt;&lt;button class=&quot;copy&quot; type=&quot;button&quot;&gt;コピー&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;note&quot;&gt;&lt;b&gt;強調 8–10 行&lt;/b&gt; ── 基盤の操作を、エンジンへそのまま渡す所&lt;/div&gt;&lt;div class=&quot;escroll&quot;&gt;&lt;table class=&quot;code&quot;&gt;&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;1&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;c&quot;&gt;#!/usr/bin/env python3&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;2&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; os, subprocess, sys&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;3&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;4&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;HERE = os.path.dirname(os.path.abspath(__file__))&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;5&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;ENGINE = os.path.join(HERE, &lt;span class=&quot;s&quot;&gt;&quot;bin&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;schema-driven&quot;&lt;/span&gt;)&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;6&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;BASE = {&lt;span class=&quot;s&quot;&gt;&quot;create&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;get&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;check&quot;&lt;/span&gt;, &lt;span class=&quot;s&quot;&gt;&quot;prompt&quot;&lt;/span&gt;}&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;7&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;8&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; main(argv):&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;9&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; argv &lt;span class=&quot;k&quot;&gt;and&lt;/span&gt; argv[0] &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; BASE:&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;hl&quot;&gt;&lt;td class=&quot;ln&quot; aria-hidden=&quot;true&quot;&gt;10&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; subprocess.run([ENGINE, &lt;span class=&quot;s&quot;&gt;&quot;--skill&quot;&lt;/span&gt;, os.path.dirname(HERE), *argv]).returncode&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;diff&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;2回目の答えからの変化。&lt;/p&gt;&lt;div class=&quot;lit&quot;&gt;&lt;div class=&quot;head&quot;&gt;&lt;span&gt;practice/scripts/&lt;/span&gt;&lt;span class=&quot;stat&quot;&gt;&lt;span class=&quot;a&quot;&gt;+2&lt;/span&gt; &lt;span class=&quot;r&quot;&gt;−1&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;&lt;table class=&quot;diff&quot;&gt;&lt;tr class=&quot;dn&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;そのまま&quot;&gt;&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;scripts/&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;dr&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;消す&quot;&gt;-&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice.py           入口（言語の拡張子付き）&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;da&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;足す&quot;&gt;+&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice              入口（拡張子なし、1行目で実行のしかた）&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;da&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;足す&quot;&gt;+&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  practice.cmd          Windows で入口を起動する&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class=&quot;dn&quot;&gt;&lt;td class=&quot;sg&quot; aria-label=&quot;そのまま&quot;&gt;&lt;/td&gt;&lt;td class=&quot;tx&quot;&gt;  bin/schema-driven     基盤のエンジン&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;tree&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;作られる Skill のフォルダ。&lt;/p&gt;&lt;div class=&quot;lit&quot;&gt;&lt;ul class=&quot;tree&quot;&gt;&lt;li class=&quot;t&quot; style=&quot;--depth:0&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;SKILL.md&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;手順は「scripts/practice &amp;lt;操作&amp;gt;」とだけ書く&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;assets/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice.schema.json&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;concrete スキーマ&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:1&quot;&gt;&lt;span class=&quot;nm&quot;&gt;scripts/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;ta&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice&lt;/span&gt;&lt;span class=&quot;mk mk-a&quot;&gt;+ 足す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;入口（ソースのまま。作った人が持つ）&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;ta&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;practice.cmd&lt;/span&gt;&lt;span class=&quot;mk mk-a&quot;&gt;+ 足す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;Windows で入口を起動する数行&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;tr&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;&lt;s&gt;practice.py&lt;/s&gt;&lt;/span&gt;&lt;span class=&quot;mk mk-r&quot;&gt;− 消す&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;拡張子付きの入口はやめる&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;t&quot; style=&quot;--depth:2&quot;&gt;&lt;span class=&quot;nm&quot;&gt;bin/&lt;/span&gt;&lt;/li&gt;
+&lt;li class=&quot;tc&quot; style=&quot;--depth:3&quot;&gt;&lt;span class=&quot;nm&quot;&gt;schema-driven&lt;/span&gt;&lt;span class=&quot;mk mk-c&quot;&gt;~ 変える&lt;/span&gt;&lt;span class=&quot;ds&quot;&gt;照合した基盤のエンジン（0.1.1 へ入れ替え）&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pane&quot; data-p=&quot;run&quot; hidden&gt;&lt;p class=&quot;cap&quot;&gt;入口から基盤の操作を呼ぶ例。&lt;/p&gt;&lt;div class=&quot;term&quot;&gt;&lt;div class=&quot;tbar&quot;&gt;&lt;span class=&quot;dots&quot; aria-hidden=&quot;true&quot;&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;/span&gt;&lt;span class=&quot;where&quot;&gt;~/.claude/skills/practice&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;tbody&quot;&gt;&lt;div class=&quot;cmd&quot;&gt;&lt;span class=&quot;ps&quot; aria-hidden=&quot;true&quot;&gt;$&lt;/span&gt;scripts/practice prompt --schema practice/term@v1 --property /name&lt;/div&gt;&lt;pre class=&quot;out&quot;&gt;{&quot;ok&quot;:true,&quot;prompt&quot;:{&quot;read&quot;:{&quot;means&quot;:&quot;用語の名前である。&quot;}}}&lt;/pre&gt;&lt;div class=&quot;exit&quot;&gt;終了コード 0&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+ &lt;/section&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;置いた前提&lt;/h2&gt;&lt;ol class=&quot;num&quot;&gt;&lt;li&gt;作られる Skill を使う環境には、入口の言語の実行環境（Python の雛形なら python3）がある&lt;/li&gt;&lt;/ol&gt;&lt;/section&gt;
+ &lt;section class=&quot;block check&quot;&gt;&lt;h2&gt;確かめてほしい箇所（2件）&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#&quot;&gt;完成イメージのフォルダ構成&lt;/a&gt; ── 入口とエンジンの置き場所が分かれていてよいか&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#&quot;&gt;置いた前提の1つ目&lt;/a&gt; ── python3 を前提にしてよいか&lt;/li&gt;&lt;/ul&gt;&lt;/section&gt;
+ &lt;details class=&quot;block&quot;&gt;&lt;summary&gt;&lt;b&gt;裏づけ&lt;/b&gt; ── 主張3つ ・ 根拠7件 ・ 採らなかった案5件&lt;/summary&gt;&lt;p class=&quot;cap&quot;&gt;（主張ごとに根拠と採らなかった案を束ねる）&lt;/p&gt;&lt;/details&gt;
+ &lt;section class=&quot;block&quot;&gt;&lt;h2&gt;回答&lt;/h2&gt;&lt;div class=&quot;btns&quot;&gt;&lt;button class=&quot;primary&quot;&gt;このまま進める&lt;/button&gt;&lt;button&gt;差し戻す&lt;/button&gt;&lt;/div&gt;&lt;textarea placeholder=&quot;書き足し（書かなくても進む）&quot;&gt;&lt;/textarea&gt;&lt;/section&gt;
+&lt;/div&gt;
+&lt;script&gt;
+document.querySelectorAll(&#39;.tabs button&#39;).forEach(b=&gt;b.addEventListener(&#39;click&#39;,()=&gt;{
+ document.querySelectorAll(&#39;.tabs button&#39;).forEach(x=&gt;x.setAttribute(&#39;aria-selected&#39;,x===b));
+ document.querySelectorAll(&#39;.pane&#39;).forEach(p=&gt;p.hidden=p.dataset.p!==b.dataset.t);
+}));
+document.querySelectorAll(&#39;.copy&#39;).forEach(b=&gt;b.addEventListener(&#39;click&#39;,()=&gt;{const t=[...document.querySelectorAll(&#39;.editor .tx&#39;)].map(x=&gt;x.textContent).join(String.fromCharCode(10));navigator.clipboard.writeText(t).then(()=&gt;b.textContent=&#39;コピーした&#39;,()=&gt;{});}));
+document.querySelector(&#39;.notice a&#39;).addEventListener(&#39;click&#39;,e=&gt;{e.preventDefault();document.getElementById(&#39;tab-diff&#39;).click();document.getElementById(&#39;tab-diff&#39;).focus();});
+&lt;/script&gt;
+"></iframe><p class="note-s">論点の画面の試作。完成イメージの6種類をタブで切り替える。</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">試作の見る順と2層のトークンを残し、6種類の部品に分けること</span></td><td>試作の見る順 ・ 1つの枠の問いと答え ・ 変わったところの帯 ・ 2層のトークンは残し、べた書きの「コード」の枠を、字面（等幅）と説明（本文の書体）を分けた6つの部品に分け、色だけに頼らない記号と言葉の印を持たせ、トークンは Design Tokens 形式を正本にして design-system@v1 へ機械で移す。</td><td><span class="kind k-src">原典</span><small>ux-advisor の回答（2026-10-16）。回答の JSON は sources/advisors/ux.json</small></td></tr><tr><td><span class="part">design-system@v1 へ移したトークンが基盤の形の検査に合格すること</span></td><td>移した版を基盤の check に通し、形の検査に合格した。参照 ・ 循環 ・ コントラストは render のときに検査する</td><td><span class="kind k-fact">実測</span><small>実測（2026-10-16、scripts/bin/schema-driven check）</small></td></tr><tr><td><span class="part">サイドバーとダッシュボードを、ボードの状態 ・ 優先の印から作ること</span></td><td>ボードは、題 ・ 状態 ・ 優先の印 ・ ほかのボードへのつながりを持つ</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1</small></td></tr><tr><td><span class="part">共有のデザインシステムの Skill を作らないこと</span></td><td>「UxAdvisorって完成イメージでデザインシステムをださないっけ？？」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr><tr><td><span class="part">サイドバーとダッシュボード</span></td><td>「サイドバーをつけて一覧から選択できるのと承認と未承認、保留とかのステータスを分けて見やすいように一覧にして」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（3件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>共有のデザインシステムの Skill を作り、各 Skill がそれを参照する</b></td><td>ux-advisor が設計相談の完成イメージとしてデザインシステムを出すので、同じものを2か所に持つことになる</td></tr><tr><td><b>古い brainstorming-board の tokens.json と board.css をそのまま移す</b></td><td>基盤の design-system@v1 の契約と形が違い、基盤のコントラストの検査を通らない</td></tr><tr><td><b>基盤の design-system@v1 を Design Tokens 形式に書き換える</b></td><td>完成した基盤の契約を変えることになり、この Skill を作る目的の外に出る</td></tr></table></div></div></details><div class="form" data-topic="Q2"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p4" hidden><section class="q"><div class="qh"><span class="qid">Q3</span><h2>brainstorming の Skill を、どのファイルで作り、どのコマンドで使い、データをどこに置くか</h2></div><div class="ans"><span class="lead">brainstorming は src/brainstorming/ の Rust で作り、advance ・ inspect ・ serve を自分の能力に持ち、データを .brainstorming/&lt;ボード&gt;/ に置く。</span><ul><li>src/brainstorming/ は、skills-creator と同じく CODING.md ・ core ・ adapters ・ xtask の形にする</li><li>SKILL.md は scripts/bin/brainstorming だけを呼ぶ。言語に依存するコマンドを書かない</li><li>create ・ get ・ update ・ check などの基盤の操作は、scripts/bin/schema-driven へそのまま渡し、終了コードを変えずに返す</li><li>advance は回を進め、前の回と比べて変わったところを理由と一緒に書き、回の記録を残す</li><li>inspect は、1文の長さ ・ 前提にした論点の出どころ ・ 下流の行き先を検査する</li><li>serve は 127.0.0.1 で画面を配り、回答を受けてインスタンスとして書き、AI のチャットを中継する</li><li>ボードの置き場所は引数かボードの名前から決め、作業フォルダからは決めない</li><li>3つの OS 向けに、証明付きで公開する（skills-creator と同じワークフローの形）</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── コード</summary><div><div class="ex"><div data-g="4" data-ixp="0"><pre><code>src/brainstorming/                      ソース（Rust）
+  CODING.md ・ crates/core ・ crates/adapters ・ xtask
+
+.claude/skills/brainstorming/
+  SKILL.md                              手順は scripts/bin/brainstorming だけを呼ぶ
+  assets/*.schema.json                  ボード ・ 回答 ・ 回の記録の concrete スキーマ
+  assets/catalog/                       部品 ・ デザインシステム（Design Tokens 形式から移したもの）
+  scripts/bin/brainstorming             advance ・ inspect ・ serve と、基盤の操作の受け渡し
+  scripts/bin/schema-driven             照合した基盤のエンジン
+
+.brainstorming/&lt;ボード&gt;/                 データ（論点4のチャットの記録はこの外）
+
+$ scripts/bin/brainstorming advance --board .brainstorming/agents-creator
+$ scripts/bin/brainstorming serve --board .brainstorming/agents-creator --port 0</code></pre><p class="note-s">Skill とデータのフォルダ構成。</p></div></div></div></details><details open><summary>根拠（5件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">私たちが管理する Skill を src/ に Rust で持つこと</span></td><td>私たちがソースを管理する Skill（基盤と skills-creator）は src/&lt;名前&gt;/ に Rust で置き、実行ファイルを scripts/bin/ に置き、3つの OS 向けに証明付きで公開する</td><td><span class="kind k-rule">決まり</span><small>ボード skills-creator-on-base（決着）と ACDR 0180</small></td></tr><tr><td><span class="part">advance ・ serve が書くものと書かないもの</span></td><td>回答は serve が書き、serve はボードを書かない。変わったところは advance だけが書き換える</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1</small></td></tr><tr><td><span class="part">ツールを Rust で書くこと</span></td><td>私たちが管理するツールは Rust だけで書く</td><td><span class="kind k-rule">決まり</span><small>利用者の決まり</small></td></tr><tr><td><span class="part">名前を brainstorming にし、.brainstorming/ に置くこと</span></td><td>「この際なんでbrainstormingにしたいな」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr><tr><td><span class="part">置き場所を作業フォルダから決めないこと</span></td><td>置き場所は引数かボードの名前から決め、current_dir を使わない（skills-creator の CODING.md と同じ規則）</td><td><span class="kind k-src">原典</span><small>qa-advisor の回答（2026-10-16）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（2件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>作られる Skill と同じく、入口のソースを scripts/ に Python で持つ</b></td><td>私たちが管理するツールは Rust で書く決まりと、src/ に置く形に合わない</td></tr><tr><td><b>advance ・ inspect ・ serve を基盤のエンジンに足す</b></td><td>基盤はどの Skill にも共通の操作だけを持つ。ボードに固有の能力を入れると、基盤がこの Skill を知ることになる</td></tr></table></div></div></details><div class="form" data-topic="Q3"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><div id="p5" hidden><section class="q"><div class="qh"><span class="qid">Q4</span><h2>画面の「AI に聞く」を、どう動かし、文脈と Skill の使い方をどう渡し、どこまで書き換えさせるか</h2></div><div class="ans"><span class="lead">serve が、ログイン済みの Claude Code ・ Codex ・ Kiro を子のプロセスとして呼んで出来事を画面へ中継し、書き換えの範囲は CLI の権限と serve の検査の2つで守る。</span><ul><li>会話の続きは、各 CLI のセッションの再開（Claude は --session-id と --resume、Codex は exec resume、Kiro は --resume-id）を使う</li><li>ボードの中身を写した context.json は作らない。AI がボードを直した時点で古くなるためである</li><li>毎回の依頼の頭には、ボードのフォルダ ・ 回の番号 ・ 論点の id だけを付け、中身は AI が Skill のコマンドで読む</li><li>新しいセッションの最初の依頼に「.claude/skills/brainstorming/SKILL.md を読み、その手順で scripts/bin/brainstorming を使う」を必ず入れる</li><li>子のプロセスの作業フォルダはリポジトリの根にし、標準入力から依頼を渡し、シェルを通さずに起動する</li><li>AI に許すのは Skill のコマンドの実行とボードのフォルダの書き換えだけで、権限を外す旗は使わない</li><li>serve は起動の前にボードのフォルダを写し、終わったら check と、ボードの外の変更の検査を自分で走らせる</li><li>範囲の外の変更があれば差分を見せ、写しへ戻すかを利用者が選ぶ。黙って戻さない</li><li>止めるときは子孫のプロセスまで止める（Linux ・ WSL はプロセスグループ、Windows はジョブオブジェクト）</li><li>時間切れは、全体の時間と、出来事が来ない時間の2つで決める</li><li>チャットの記録（セッションの ID とやりとり）は、ボードのフォルダの外に serve だけが書く</li><li>再開できないとき（別のマシン ・ 期限切れ）は新しいセッションで始め、チャットの記録とボードを読ませる</li><li>serve は 127.0.0.1 だけで待ち受け、起動ごとの合言葉を最初の1回で cookie へ移し、Host と Origin を検査する</li><li>出来事の名前は CLI ごとに違うので、serve が共通の形（文字 ・ 読んだ ・ 直した ・ 検査 ・ 終わり ・ 失敗）に直す</li></ul></div><details class="image" open><summary>この答えの完成イメージ ── 図 ・ コード</summary><div><div class="ex"><div class="ix-tabs" role="tablist"><button class="ix-tab" role="tab" aria-selected="true" data-g="5" data-ix="0">図</button><button class="ix-tab" role="tab" aria-selected="false" data-g="5" data-ix="1">コード</button></div><div data-g="5" data-ixp="0"><figure class="fig-top"><svg viewBox="0 0 830 454" width="100%" style="max-width:830px;min-width:640px" role="img" aria-label="AI に聞くときの流れ" class="dsvg"><style data-dsvg="dark">.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .grid{stroke:var(--dsvg-line,#7C8C86)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .flow.warn{stroke:var(--dsvg-warn,#8F5410)}.dsvg .note.warn{fill:var(--dsvg-warn,#8F5410);font-size:11px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg #dsvg-b9116f40-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-b9116f40-arrow-8F5410 path{fill:var(--dsvg-warn,#8F5410)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsvg,.dsvg:root:not([data-theme="light"]){--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8;--dsvg-warn:#D9A35F}}:root[data-theme="dark"] .dsvg{--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-line:#62756F;--dsvg-accent-bg:#173330;--dsvg-ink-soft:#9DADA8;--dsvg-warn:#D9A35F}</style><defs data-dsvg="marker"><marker id="dsvg-b9116f40-arrow-5B6B66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B66"/></marker><marker id="dsvg-b9116f40-arrow-8F5410" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8F5410"/></marker></defs><rect class="box" x="20" y="16" width="160" height="34" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="100" y="37" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">あなた（画面）</text><line class="grid" x1="100" y1="50" x2="100" y2="376" fill="none" stroke="#7C8C86" stroke-width="1"/><rect class="box focus" x="230" y="16" width="160" height="34" fill="#D5E6E3" stroke="#0D5C55" stroke-width="2" rx="5"/><text class="title" x="310" y="37" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">serve</text><line class="grid" x1="310" y1="50" x2="310" y2="376" fill="none" stroke="#7C8C86" stroke-width="1"/><rect class="box" x="440" y="16" width="160" height="34" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="520" y="37" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">AI の CLI</text><line class="grid" x1="520" y1="50" x2="520" y2="376" fill="none" stroke="#7C8C86" stroke-width="1"/><rect class="box" x="650" y="16" width="160" height="34" fill="#F8FAF9" stroke="#0D5C55" stroke-width="1.5" rx="5"/><text class="title" x="730" y="37" text-anchor="middle" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="13" font-weight="700" fill="#111D1A">ボード（入口）</text><line class="grid" x1="730" y1="50" x2="730" y2="376" fill="none" stroke="#7C8C86" stroke-width="1"/><path class="flow" d="M102,90 L307,90" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="110" text-anchor="start" y="83" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">1 依頼を送る</text><path class="flow" d="M312,128 L727,128" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="320" text-anchor="start" y="121" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">2 起動の前に写す</text><path class="flow" d="M312,166 L517,166" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="320" text-anchor="start" y="159" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">3 CLI を起動する</text><path class="flow" d="M522,204 L727,204" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="530" text-anchor="start" y="197" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">4 入口で読み書き</text><path class="flow" d="M518,242 L313,242" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="510" text-anchor="end" y="235" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">5 出来事を送る</text><path class="flow" d="M308,280 L103,280" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="300" text-anchor="end" y="273" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">6 共通の形で中継</text><path class="flow" d="M312,318 L727,318" fill="none" stroke="#5B6B66" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-5B6B66)"/><text class="label" x="320" text-anchor="start" y="311" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="12" fill="#111D1A">7 check を走らせる</text><path class="flow warn" d="M308,356 L103,356" fill="none" stroke="#8F5410" stroke-width="1.5" marker-end="url(#dsvg-b9116f40-arrow-8F5410)"/><text class="note warn" x="300" text-anchor="end" y="349" font-weight="700" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#8F5410">8 検査の結果を出す</text><text class="note" x="20" y="400" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">3：新しいセッションなら「SKILL.md を読む」1文を付け、続きならセッションの ID で再開する</text><text class="note" x="20" y="420" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">7：AI の「検査した」は使わず、serve が自分で検査する。範囲の外の変更も探す</text><text class="note" x="20" y="440" font-family="Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif" font-size="11" fill="#5B6B66">8：範囲の外の変更が在れば、2 の写しへ戻すかをあなたに聞く</text></svg></figure><p class="note-s">「AI に聞く」で依頼を送ってから、検査の結果が出るまで。</p></div><div data-g="5" data-ixp="1" hidden><pre><code># 新しいセッション（Claude Code は ID を serve が決める）
+claude -p --output-format stream-json --session-id &lt;UUID&gt; \
+  --allowedTools &quot;Bash(.claude/skills/brainstorming/scripts/bin/brainstorming:*)&quot; \
+  --permission-mode dontAsk
+codex exec --json --sandbox workspace-write -C &lt;リポジトリの根&gt; -
+kiro-cli chat --agent-engine v2 --output-format stream-json --trust-tools &lt;限ったツール&gt;
+
+# 続き
+claude -p --output-format stream-json --resume &lt;UUID&gt; …
+codex exec resume --json &lt;thread.started の thread_id&gt; -
+kiro-cli chat --agent-engine v2 --output-format stream-json --resume-id &lt;metadata の sessionId&gt; …
+
+# 新しいセッションの最初の依頼の頭
+.claude/skills/brainstorming/SKILL.md を読み、その手順で scripts/bin/brainstorming を使って作業する。
+対象は .brainstorming/agents-creator/、回は 2、論点は Q1。</code></pre><p class="note-s">serve が子のプロセスとして呼ぶコマンド（依頼の文は標準入力で渡す）。</p></div></div></div></details><details open><summary>根拠（13件）</summary><div><div class="scroll"><table><tr><th>結論のどこを支えるか</th><th>もとにしたこと</th><th>その出どころ</th></tr><tr><td><span class="part">Codex が AGENTS.md と .agents/skills/ を自動で読むこと</span></td><td>試験用のリポジトリで codex exec に聞くと、AGENTS.md の合言葉を答え、Skill の一覧に .agents/skills/ の probe-skill が在った</td><td><span class="kind k-fact">実測</span><small>sources/ai-cli/measured/probe/codex-probe.jsonl（codex-cli 0.163.0、2026-10-17）</small></td></tr><tr><td><span class="part">Codex の thread_id で再開できること</span></td><td>thread.started の thread_id を codex exec resume に渡すと同じ thread_id で続き、入力のトークンが 15401 から 30925 に増えた</td><td><span class="kind k-fact">実測</span><small>sources/ai-cli/measured/probe/codex-resume.jsonl</small></td></tr><tr><td><span class="part">Kiro の stream-json に --agent-engine v2 が必要なこと</span></td><td>--output-format stream-json is not supported on the v1 engine. Pass --agent-engine v2 (or v3).</td><td><span class="kind k-fact">実測</span><small>sources/ai-cli/measured/probe/README.md（kiro-cli 2.21.1、2026-10-17）</small></td></tr><tr><td><span class="part">Kiro のセッションの ID の場所と、--resume-id と一緒に使えること</span></td><td>metadata と runFinished の sessionId に ID が出て、その ID を --resume-id に渡すと、前の回で覚えさせた 4821 を答えた</td><td><span class="kind k-fact">実測</span><small>sources/ai-cli/measured/probe/kiro1.jsonl ・ kiro2.jsonl</small></td></tr><tr><td><span class="part">CLI ごとに Skill を探すフォルダが違うこと（だから最初の依頼で SKILL.md を指す）</span></td><td>Codex は .agents/skills/、Kiro は .kiro/skills/ の probe-skill を答えた。このリポジトリの Skill は .claude/skills/ にだけ在る</td><td><span class="kind k-fact">実測</span><small>sources/ai-cli/measured/probe/README.md</small></td></tr><tr><td><span class="part">Claude Code が作業フォルダの Skill を読むこと</span></td><td>Without it, `claude -p` discovers and loads them as an interactive session would, including anything configured in the working directory or `~/.claude`.</td><td><span class="kind k-src">原典</span><small>sources/ai-cli/code.claude.com_docs_en_headless.md:37（2026-10-17 取得）</small></td></tr><tr><td><span class="part">Claude Code の ID を呼ぶ側が決められること</span></td><td>| `--session-id` | Use a specific session ID for the conversation (must be a valid UUID) |</td><td><span class="kind k-src">原典</span><small>sources/ai-cli/code.claude.com_docs_en_cli-reference.md:128</small></td></tr><tr><td><span class="part">Codex の書き換えの許し方</span></td><td>For non-interactive runs, use `codex exec --sandbox workspace-write`.</td><td><span class="kind k-src">原典</span><small>sources/ai-cli/developers.openai.com_codex_agent-approvals-security.md:369</small></td></tr><tr><td><span class="part">serve の側に写し ・ 検査 ・ 戻す操作と、止め方と時間切れを足すこと</span></td><td>3つの CLI は権限の仕組みも細かさも揃っておらず、利用者の設定も引き継ぐ見込みがあるので、「ボードのフォルダだけを書き換える」を CLI の旗だけでは保証できない。判断基準は、許可を必要なものだけに絞ることに加えて、許可を超える操作を外側のガードレールで止めること、変更が失敗したときの戻し方を前もって決めることを求めている（sec-03 ・ ops-06）。</td><td><span class="kind k-src">原典</span><small>platform-advisor の回答（2026-10-17）。回答の JSON は sources/advisors/platform.json</small></td></tr><tr><td><span class="part">チャットの記録をボードのフォルダの外に置くこと</span></td><td>点線の中が、AI が Skill の入口を通して書き換えてよい範囲</td><td><span class="kind k-rule">決まり</span><small>このボードの論点1</small></td></tr><tr><td><span class="part">最初の依頼で指すコマンドと、serve が中継すること</span></td><td>SKILL.md は scripts/bin/brainstorming だけを呼ぶ。serve は AI のチャットを中継する</td><td><span class="kind k-rule">決まり</span><small>このボードの論点3</small></td></tr><tr><td><span class="part">チャットの窓の見た目</span></td><td>AI に聞くチャットを、アプリの画面に持つ</td><td><span class="kind k-rule">決まり</span><small>このボードの論点2</small></td></tr><tr><td><span class="part">方式 A（CLI を子のプロセスとして呼ぶ）</span></td><td>「Aで使ってみたいですよね」</td><td><span class="kind k-src">原典</span><small>利用者の言葉（2026-10-16）</small></td></tr></table></div></div></details><details open><summary>採らなかった案（6件）</summary><div><div class="scroll"><table><tr><th>案</th><th>採らなかった理由</th></tr><tr><td><b>ボードごとに context.json を作り、ボードの中身を写して毎回渡す</b></td><td>AI がボードを直した時点で写しが古くなり、正本が2つになる</td></tr><tr><td><b>各 CLI が自分で Skill を見つける仕組みだけに頼る</b></td><td>Codex は .agents/skills/、Kiro は .kiro/skills/ を探し、このリポジトリの .claude/skills/ の Skill を見つけない（実測）</td></tr><tr><td><b>CLI の権限の旗だけで、書き換えの範囲を守る</b></td><td>3つの CLI で権限の仕組みも細かさも違い、利用者の設定を引き継ぐかも CLI ごとに違う</td></tr><tr><td><b>権限を外す旗で、聞かれずに動かす</b></td><td>AI がリポジトリのどこでも書き換えられるようになる</td></tr><tr><td><b>ボードごとの使い捨ての作業コピーで動かし、終わったら取り込む</b></td><td>いまは写しと検査で足りる。ボードの外への書き換えがたびたび見つかったときに移る先として残す</td></tr><tr><td><b>コンテナの中で CLI を動かす</b></td><td>利用者がログイン済みの CLI をそのまま使う前提と合わない</td></tr></table></div></div></details><div class="form" data-topic="Q4"><div class="verdicts"><button class="vb" data-v="approved" aria-pressed="false">承認する</button><button class="vb" data-v="returned" aria-pressed="false">差し戻す</button><button class="vb" data-v="unanswered" aria-pressed="false">まだ答えない</button></div><div><label>差し戻す理由（自由に書けます）</label><div class="reasons"><button class="rb" data-r="もっと単純に">もっと単純に</button><button class="rb" data-r="前提が違う">前提が違う</button><button class="rb" data-r="別の道も見たい">別の道も見たい</button></div><textarea class="reason" placeholder="ボタンで理由を入れられる。当てはまらない理由は、そのまま書く"></textarea></div><div><label>書き足し（承認でも差し戻しでも、書かなくても進みます）</label><textarea class="note-in" placeholder="気づいたこと、引っかかったこと、別の角度"></textarea></div></div></section></div><section class="send"><h2>送る</h2><p class="note-s">入っているのは <b><span id="cnt">0</span> / 5</b> 件。論点に対して決定は1つなので、論点ごとに1件だけ入る。</p><button class="sb" id="go" disabled>まとめて送る</button><p class="note-s"><b>送信では、こちらのターンは始まらない。</b>送ったあと、チャットで一言もらう必要がある。配るサーバーで開いていないなら、下に出る文字列をそのまま貼る。</p><div class="out" id="out" hidden></div></section><footer>© 2026 daidaiiro　<a href="https://opensource.org/licenses/MIT">MIT License</a></footer></div></div><script>(function(){
+  var ROOT=document.getElementById("root");
+  var tabs=document.querySelectorAll("#tabs button");
+
+  /* UI の完成イメージは、中身の高さに合わせる ── 隠れている間は高さが測れないので、見えたときに測り直す */
+  function fit(){
+    document.querySelectorAll("iframe.ix-ui").forEach(function(f){
+      try{
+        var d=f.contentDocument;
+        if(!d||!d.documentElement||f.offsetParent===null) return;
+        var h=d.documentElement.scrollHeight;
+        if(h>0) f.style.height=(h+2)+"px";
+      }catch(e){}
+    });
+  }
+  document.querySelectorAll("iframe.ix-ui").forEach(function(f){f.addEventListener("load",fit)});
+  tabs.forEach(function(b){
+    b.addEventListener("click",function(){
+      tabs.forEach(function(o){
+        o.setAttribute("aria-selected","false");
+        document.getElementById(o.dataset.t).hidden=true;
+      });
+      b.setAttribute("aria-selected","true");
+      document.getElementById(b.dataset.t).hidden=false;
+      fit();
+      /* 携帯ではタブが横1行なので、選んだタブを並びの中央へ送る */
+      b.scrollIntoView({inline:"center",block:"nearest"});
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+  });
+
+  /* 現在地の「いま見る論点」から、その論点のタブへ移る */
+  document.querySelectorAll(".jump").forEach(function(j){
+    j.addEventListener("click",function(){
+      var t=document.querySelector('#tabs button[data-t="'+j.dataset.go+'"]');
+      if(t) t.click();
+    });
+  });
+
+  /* 完成イメージの切り替え（図 ・ コード ・ UI ・ 差分） */
+  document.querySelectorAll(".ix-tab").forEach(function(b){
+    b.addEventListener("click",function(){
+      var g=b.dataset.g;
+      document.querySelectorAll('.ix-tab[data-g="'+g+'"]').forEach(function(x){
+        x.setAttribute("aria-selected",x===b?"true":"false");
+      });
+      document.querySelectorAll('[data-ixp][data-g="'+g+'"]').forEach(function(p){
+        p.hidden=p.dataset.ixp!==b.dataset.ix;
+      });
+      fit();
+    });
+  });
+
+  /* 回答 ── 論点ごとに1件だけ入る */
+  var state={};
+  document.querySelectorAll(".form").forEach(function(f){
+    var topic=f.dataset.topic;
+    f.querySelectorAll(".vb").forEach(function(b){
+      b.addEventListener("click",function(){
+        f.querySelectorAll(".vb").forEach(function(o){o.setAttribute("aria-pressed","false")});
+        b.setAttribute("aria-pressed","true");
+        state[topic]=b.dataset.v; count();
+      });
+    });
+    f.querySelectorAll(".rb").forEach(function(b){
+      b.addEventListener("click",function(){
+        var t=f.querySelector(".reason");
+        t.value=(t.value?t.value.replace(/\s*$/,"")+"／":"")+b.dataset.r; t.focus();
+      });
+    });
+  });
+  function count(){
+    var n=Object.keys(state).length;
+    document.getElementById("cnt").textContent=n;
+    document.getElementById("go").disabled=(n===0);
+  }
+  /* 送る ── answer.schema.json の形のインスタンスを作る */
+  document.getElementById("go").addEventListener("click",function(){
+    var answers=[];
+    document.querySelectorAll(".form").forEach(function(f){
+      var topic=f.dataset.topic;
+      if(!state[topic]) return;
+      var a={topic:ROOT.dataset.board+"."+topic, verdict:state[topic]};
+      var r=f.querySelector(".reason").value.trim();
+      var nt=f.querySelector(".note-in").value.trim();
+      if(state[topic]==="returned"&&r) a.reason=r;
+      if(nt) a.note=nt;
+      answers.push(a);
+    });
+    var round=Number(ROOT.dataset.round);
+    var sheet={kind:"answer", id:round+"-"+Date.now(), board:ROOT.dataset.board, round:round, answers:answers};
+    var txt=JSON.stringify(sheet,null,2);
+    var out=document.getElementById("out"); out.hidden=false; out.textContent=txt;
+    fetch("/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:txt})
+      .then(function(r){return r.json().then(function(j){
+        out.textContent=(r.ok?"送りました。"+(j.next||"")+"\n\n":"受け取られませんでした。貼ってください。\n\n")+txt;})})
+      .catch(function(){ /* 配るサーバーが無ければ、貼る形のまま */ });
+    out.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+})();
+</script>
