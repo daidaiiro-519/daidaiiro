@@ -1,0 +1,1002 @@
+{
+ "kind": "design",
+ "question": "新しい brainstorming のボードの画面とデザインシステムを、以前の触れる試作（Q2-0）とスタイルタイル（Q3-0）を土台に、どう組み立てるか。完成イメージを6種類（図 ・ 画面 ・ コード ・ 差分 ・ フォルダ構成 ・ 実行例）の部品で見せる形を含め、基盤の design-system@v1 の契約にトークンをどう合わせるか",
+ "premises": [
+  {
+   "name": "使う人",
+   "value": "ボードを承認する人は1人（リポジトリの持ち主）で、AI が作ったもののうち自分の意図からずれた所だけを早く見つけて正す。問いは「この答えを、このまま進めてよいか」の1つ。ペルソナは調査から作ったものではなく、相談の材料に書かれた像に拠る仮定である",
+   "source": "相談の材料（br-brief.md）"
+  },
+  {
+   "name": "すでにある見た目の決まり",
+   "value": "古いボードで決めた2層のトークン（基礎と意味、明と暗）・ 主役の色 青緑 #0d5c55 ・ 書体3つ（Zen Kaku Gothic New ・ Shippori Mincho ・ JetBrains Mono）を慣習として最初に寄せる。共有のデザインシステムの Skill は作らない",
+   "source": "相談の材料（利用者の決定 2026-10-16 と古いボードの決まり）"
+  },
+  {
+   "name": "見る順",
+   "value": "現在地 → 問いと答えの1文 → この回で変わったところ → 完成イメージ → 置いた前提 → 確かめてほしい箇所 → 裏づけ → 回答。この順は古いボードで決着したものとして変えない",
+   "source": "相談の材料"
+  },
+  {
+   "name": "完成イメージに表を入れない",
+   "value": "利用者の決定である。変化の要約は差分か図で見せる。この回答のデザインシステムの欄にある表は、回答の中の説明であり、ボードの画面の部品ではない",
+   "source": "相談の材料（利用者の決定 2026-10-16）"
+  },
+  {
+   "name": "暗いときの値（モード）",
+   "value": "Design Tokens の判断基準は、明と暗のようなモードの持ち方を扱っていない。この回答では、明と同じパスで値だけを替えるファイルを別に置く形にしたが、これは判断基準の範囲外の選択である",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "文字の大きさ",
+   "value": "字面の文字を 12px から 13px にし、本文を 15px のままにした。大きさの値そのものは判断基準が決めていない",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "基盤の契約を Design Tokens 形式へ寄せるか",
+   "value": "未判定。基盤のエンジンの契約の変更であり、体験と完成イメージの判断基準の範囲外である。この回答は、いまの design-system@v1 のまま、brainstorming の中で変換する形で設計する",
+   "source": "判断基準の範囲外"
+  },
+  {
+   "name": "画面の部品の安全",
+   "value": "触れる HTML を iframe で埋めるときの隔離（sandbox の許可の範囲）は、判断基準の範囲外である",
+   "source": "判断基準の範囲外"
+  }
+ ],
+ "conclusion": {
+  "stance": "adopt",
+  "headline": "試作の見る順 ・ 1つの枠の問いと答え ・ 変わったところの帯 ・ 2層のトークンは残し、べた書きの「コード」の枠を、字面（等幅）と説明（本文の書体）を分けた6つの部品に分け、色だけに頼らない記号と言葉の印を持たせ、トークンは Design Tokens 形式を正本にして design-system@v1 へ機械で移す。",
+  "because": "試作で見にくかったのは、フォルダ構成 ・ 説明の文 ・ 実行の手順が1つの等幅の枠に混ざり、どこが名前でどこが説明かを読み手が覚えて区別するしかなかったからである。部品ごとに字面と説明を別の列と書体にすれば、画面の中で見て分かる形になり、差分の + − ・ フォルダ構成の足す ・ 消す ・ 変える を記号と言葉で示せば色に頼らずに済む。"
+ },
+ "figure": {
+  "caption": "ボードの画面の構成（1列。上から見る順に並べる）。実線は見る順、破線は押すと移る先である",
+  "nodes": [
+   {
+    "id": "head",
+    "label": "現在地：ボード名 ・ 第n回 ・ 論点のチップ（決着 ／ いま答える ／ まだ）",
+    "role": "1行"
+   },
+   {
+    "id": "qa",
+    "label": "問いと答え（1つの枠）：問い ・ 答えの1文 ・ 詳しい決まり（閉じる。変わった行に「変わった」の印と前の回の文）",
+    "role": "枠"
+   },
+   {
+    "id": "band",
+    "label": "この回で変わったところ：n か所 ── 押すと移って光る",
+    "role": "帯"
+   },
+   {
+    "id": "image",
+    "label": "完成イメージ：在る種類だけのタブ（図 ・ 画面 ・ コード ・ 差分 ・ フォルダ構成 ・ 実行例 の決まった順）と、タブごとの1文の説明",
+    "role": "枠"
+   },
+   {
+    "id": "parts",
+    "label": "6つの部品：image-figure ・ image-screen ・ image-code ・ image-diff ・ image-tree ・ image-run",
+    "role": "部品"
+   },
+   {
+    "id": "premise",
+    "label": "置いた前提（番号付き）",
+    "role": "枠"
+   },
+   {
+    "id": "check",
+    "label": "確かめてほしい箇所（3件まで。押すと移って光る）",
+    "role": "枠"
+   },
+   {
+    "id": "proof",
+    "label": "裏づけ（閉じる）：主張ごとの束 ・ 根拠の種別のバッジと出どころ ・ 採らなかった案",
+    "role": "枠"
+   },
+   {
+    "id": "reply",
+    "label": "回答：このまま進める ／ 差し戻す（どこが違うかが必須）・ 書き足し ・ 送る → 送った状態",
+    "role": "枠"
+   }
+  ],
+  "edges": [
+   {
+    "from": "head",
+    "to": "qa"
+   },
+   {
+    "from": "qa",
+    "to": "band"
+   },
+   {
+    "from": "band",
+    "to": "image"
+   },
+   {
+    "from": "image",
+    "to": "parts",
+    "label": "タブで1つを開く"
+   },
+   {
+    "from": "image",
+    "to": "premise"
+   },
+   {
+    "from": "premise",
+    "to": "check"
+   },
+   {
+    "from": "check",
+    "to": "proof"
+   },
+   {
+    "from": "proof",
+    "to": "reply"
+   },
+   {
+    "from": "band",
+    "to": "qa",
+    "label": "変わった行へ移る",
+    "dashed": true
+   },
+   {
+    "from": "band",
+    "to": "parts",
+    "label": "変わった部品へ移る",
+    "dashed": true
+   },
+   {
+    "from": "check",
+    "to": "parts",
+    "label": "確かめる行へ移る",
+    "dashed": true
+   },
+   {
+    "from": "check",
+    "to": "premise",
+    "label": "確かめる前提へ移る",
+    "dashed": true
+   }
+  ]
+ },
+ "steps": [
+  {
+   "do": "この案件の原則を4つに決める",
+   "detail": "①承認する人の問い1つに答える順に並べる ②字面は等幅、説明は本文の書体で別の列に置く ③意味は記号と言葉で持たせ、色は補助にする ④在るものだけを見せる（無い種類のタブ ・ 0件の節を出さない）。次の手順の判断は、この4つで「no」と言えるかで決める"
+  },
+  {
+   "do": "試作から残すものを決める",
+   "detail": "見る順 ・ 現在地のチップ ・ 1つの枠の問いと答え（答えは1文、詳しい決まりと裏づけは閉じる）・ 変わった行の「変わった」の印と前の回の文 ・ 1行の帯（押すと移って光る）・ 番号付きの前提 ・ 3件までの確かめてほしい箇所 ・ 主張ごとの裏づけ ・ 知らない語の ⓘ ・ 回答の2択と、差し戻すときの必須の欄 ・ 節を同じ形の枠にそろえた面1段の構成 ・ 2層のトークンと青緑の主役の色。どれも原則①④に合い、利用者が承認した形である"
+  },
+  {
+   "do": "試作から直すものを決める",
+   "detail": "①「コード」のタブに、フォルダ構成 ・ 説明の文 ・ 実行の手順を等幅でべた書きしていた所を、6つの部品に分ける ②主役の色を選ぶ切り替えと「内側の面 A ・ A2 ・ B」の切り替えを外す（決着済み）③CSS で :root を何度も上書きしていた所を、design-system.json 1つから基盤が作る変数に置き換える ④意味の層で同じ値を名前違いで書いていた所（key ・ text-key ・ state-focus など）を、基礎の層を指す参照にする ⑤画面のタブの iframe の高さ 520px の決め打ちをやめ、高さを入力にする ⑥タブを矢印キーで移れ、焦点の外枠が見える形にする"
+  },
+  {
+   "do": "完成イメージの6つの部品を、共通の枠と固有の形で作る",
+   "detail": "共通：タブは在る種類だけを決まった順に出し、同じ種類が2つ以上ならタブに件数を添え、開いた枠の先頭に「何を見せるか」の1文を置く。固有の形は、デザインシステムの欄の「完成イメージの6つの部品」の表のとおり。字面（コード ・ 差分の行 ・ パス ・ コマンド ・ 出力）だけを等幅の書体と surface.literal の面に置き、説明は本文の書体で別の列か行に置く"
+  },
+  {
+   "do": "部品のカタログを catalog@v1 の形で書く",
+   "detail": "部品の名前は意味で付ける（board-position ・ question-answer ・ change-band ・ image-tabs ・ image-figure ・ image-screen ・ image-code ・ image-diff ・ image-tree ・ image-run ・ premise-list ・ check-list ・ proof-claim ・ reply-form ・ term-help）。部品ごとに x-states に default ・ hover ・ selected ・ focus など、パターンの一覧の振る舞いを書く。parts.html に同じ id のテンプレートを置く"
+  },
+  {
+   "do": "トークンを Design Tokens 形式で正本にし、design-system@v1 へ機械で移す",
+   "detail": "正本は assets/catalog/ に置く Design Tokens 形式の2つのファイル（明 ・ 暗。暗は同じパスで値だけを替える）。移す規則は「パスの . を - に」「色の $value は hex の小文字」「{a.b} の参照は {a-b}」「dimension は値と単位をつないだ文字列」「typography は5つのトークンに分ける」「$extensions の works.daidaiiro.contrast を contrast へ」。$type と $description は design-system@v1 に置き場所が無いので落ちる。移した結果を検査に通し、正本と移した結果の両方を版の管理に入れる"
+  },
+  {
+   "do": "コントラストを組ごとに確かめる",
+   "detail": "29の組（文字 24 ・ 部品の境界 5）を明と暗の両方で計算し、全部が下限を満たした（表のとおり）。節の枠の線（line.block ・ line.notice）は装飾として組に入れず、部品の境界（ボタン ・ 入力欄 ・ タブ ・ 焦点）だけを 3:1 で確かめる"
+  },
+  {
+   "do": "触れる試作で、利用者に確かめる",
+   "detail": "6つの部品を1枚のボード（例：このボード自身の続き）に入れた試作を作り、利用者に説明なしで1回の承認をしてもらい、どこで止まったかを見る。原則で決まらないこと（差分を並べる表示がいるか ・ フォルダ構成のどこまでを最初から開くか ・ 13px の字面が読めるか）は、ここで決める"
+  }
+ ],
+ "design_system": [
+  {
+   "kind": "para",
+   "text": "見た目の方向（スタイルタイル）：古いボードで青緑と苔緑を見比べて青緑に絞った方向をそのまま使う。紙に近い淡い灰緑の面に、節ごとの白い枠を1段で並べ、見出しだけを明朝（Shippori Mincho）、本文をゴシック（Zen Kaku Gothic New）、字面を等幅（JetBrains Mono。日本語の注釈はゴシックで描く）にする。主役の色は「いま答える」「押した」「答え」に限り、変わったところは砂色の帯と琥珀の印、消すことは薔薇色で示す。"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "意味のトークン",
+    "明（基礎の層）",
+    "暗（基礎の層）",
+    "使う所"
+   ],
+   "rows": [
+    [
+     "surface.page",
+     "#eef1ef（paper.100）",
+     "#0e1614（night.900）",
+     "ページの背景"
+    ],
+    [
+     "surface.block",
+     "#f8faf9（paper.000）",
+     "#16211e（night.800）",
+     "節の枠の面"
+    ],
+    [
+     "surface.literal",
+     "#eef1ef（paper.100）",
+     "#0e1614（night.900）",
+     "コード ・ 差分 ・ フォルダ構成 ・ 実行例の面（字面をそのまま見せる所）"
+    ],
+    [
+     "surface.answer",
+     "#d5e6e3（teal.100）",
+     "#173330（teal.900）",
+     "答えの面"
+    ],
+    [
+     "surface.notice",
+     "#f8f3e8（sand.100）",
+     "#241d14（sand.900）",
+     "この回で変わったところの帯の面"
+    ],
+    [
+     "surface.added",
+     "#d5e6e3（teal.100）",
+     "#173330（teal.900）",
+     "差分の足した行の面"
+    ],
+    [
+     "surface.removed",
+     "#f6e0df（rose.100）",
+     "#3a1c1d（rose.900）",
+     "差分の消した行の面"
+    ],
+    [
+     "text.body",
+     "#111d1a（ink.900）",
+     "#e6eeeb（snow.100）",
+     "本文"
+    ],
+    [
+     "text.sub",
+     "#3c4a46（ink.800）",
+     "#c2cec9（snow.200）",
+     "補足の文字"
+    ],
+    [
+     "text.key",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "リンク ・ 答えのラベル"
+    ],
+    [
+     "text.on-key",
+     "#f8faf9（paper.000）",
+     "#16211e（night.800）",
+     "主役の色の上の文字"
+    ],
+    [
+     "text.warn",
+     "#8f5410（amber.700）",
+     "#d9a35f（amber.400）",
+     "変わった印 ・ エラー出力のラベル"
+    ],
+    [
+     "text.source",
+     "#7a3b6d（plum.700）",
+     "#d094c2（plum.300）",
+     "原典のバッジ"
+    ],
+    [
+     "text.added",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "差分の + の記号"
+    ],
+    [
+     "text.removed",
+     "#a3262a（rose.700）",
+     "#f0a3a0（rose.300）",
+     "差分の − の記号 ・ 0 以外の終了コード"
+    ],
+    [
+     "syntax.keyword",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "コードのキーワード"
+    ],
+    [
+     "syntax.string",
+     "#8f5410（amber.700）",
+     "#d9a35f（amber.400）",
+     "コードの文字列"
+    ],
+    [
+     "syntax.literal",
+     "#7a3b6d（plum.700）",
+     "#d094c2（plum.300）",
+     "コードの数 ・ 真偽値"
+    ],
+    [
+     "syntax.comment",
+     "#5b6b66（ink.700）",
+     "#9dada8（snow.400）",
+     "コードの注釈 ・ 行番号"
+    ],
+    [
+     "key",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "主役の色（押した状態 ・ いまの論点）"
+    ],
+    [
+     "line.control",
+     "#5b6b66（ink.700）",
+     "#93a29d（snow.500）",
+     "ボタン ・ 入力欄 ・ タブの枠"
+    ],
+    [
+     "line.block",
+     "#ccd8d4（paper.400）",
+     "#2a3936（night.600）",
+     "節の枠（装飾）"
+    ],
+    [
+     "line.notice",
+     "#d9b77e（sand.400）",
+     "#6e5738（sand.700）",
+     "帯の枠（装飾）"
+    ],
+    [
+     "mark.added",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "フォルダ構成の「足す」の印の面"
+    ],
+    [
+     "mark.removed",
+     "#a3262a（rose.700）",
+     "#f0a3a0（rose.300）",
+     "フォルダ構成の「消す」の印の面"
+    ],
+    [
+     "mark.changed",
+     "#8f5410（amber.700）",
+     "#d9a35f（amber.400）",
+     "フォルダ構成の「変える」の印の面"
+    ],
+    [
+     "state.focus",
+     "#0d5c55（teal.700）",
+     "#6cc9b8（teal.300）",
+     "焦点の外枠"
+    ],
+    [
+     "state.target",
+     "#8f5410（amber.700）",
+     "#d9a35f（amber.400）",
+     "移った先の外枠"
+    ]
+   ]
+  },
+  {
+   "kind": "para",
+   "text": "トークン（Design Tokens 形式。明の正本の抜粋。基礎の層は teal と rose だけを載せ、意味の層は完成イメージの部品に使うものを載せた。全量は 28 の意味のトークンで、br-tokens.light.json に置いた）"
+  },
+  {
+   "kind": "code",
+   "text": "{\n  \"base\": {\n    \"$type\": \"color\",\n    \"$description\": \"基礎の層。色の値はここにだけ書く\",\n    \"teal\": {\n      \"100\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.8353,\n            0.902,\n            0.8902\n          ],\n          \"hex\": \"#d5e6e3\"\n        }\n      },\n      \"300\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.4235,\n            0.7882,\n            0.7216\n          ],\n          \"hex\": \"#6cc9b8\"\n        }\n      },\n      \"700\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.051,\n            0.3608,\n            0.3333\n          ],\n          \"hex\": \"#0d5c55\"\n        }\n      },\n      \"900\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.0902,\n            0.2,\n            0.1882\n          ],\n          \"hex\": \"#173330\"\n        }\n      }\n    },\n    \"rose\": {\n      \"100\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.9647,\n            0.8784,\n            0.8745\n          ],\n          \"hex\": \"#f6e0df\"\n        }\n      },\n      \"300\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.9412,\n            0.6392,\n            0.6275\n          ],\n          \"hex\": \"#f0a3a0\"\n        }\n      },\n      \"700\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.6392,\n            0.149,\n            0.1647\n          ],\n          \"hex\": \"#a3262a\"\n        }\n      },\n      \"900\": {\n        \"$value\": {\n          \"colorSpace\": \"srgb\",\n          \"components\": [\n            0.2275,\n            0.1098,\n            0.1137\n          ],\n          \"hex\": \"#3a1c1d\"\n        }\n      }\n    }\n  },\n  \"color\": {\n    \"$type\": \"color\",\n    \"$description\": \"意味の層（明）。値は基礎の層を指す\",\n    \"surface\": {\n      \"block\": {\n        \"$value\": \"{base.paper.000}\",\n        \"$description\": \"節の枠の面\"\n      },\n      \"literal\": {\n        \"$value\": \"{base.paper.100}\",\n        \"$description\": \"コード ・ 差分 ・ フォルダ構成 ・ 実行例の面（字面をそのまま見せる所）\"\n      },\n      \"added\": {\n        \"$value\": \"{base.teal.100}\",\n        \"$description\": \"差分の足した行の面\"\n      },\n      \"removed\": {\n        \"$value\": \"{base.rose.100}\",\n        \"$description\": \"差分の消した行の面\"\n      }\n    },\n    \"text\": {\n      \"body\": {\n        \"$value\": \"{base.ink.900}\",\n        \"$description\": \"本文\"\n      },\n      \"added\": {\n        \"$value\": \"{base.teal.700}\",\n        \"$description\": \"差分の + の記号\"\n      },\n      \"removed\": {\n        \"$value\": \"{base.rose.700}\",\n        \"$description\": \"差分の − の記号 ・ 0 以外の終了コード\"\n      }\n    },\n    \"syntax\": {\n      \"keyword\": {\n        \"$value\": \"{base.teal.700}\",\n        \"$description\": \"コードのキーワード\"\n      }\n    },\n    \"mark\": {\n      \"added\": {\n        \"$value\": \"{base.teal.700}\",\n        \"$description\": \"フォルダ構成の「足す」の印の面\"\n      }\n    }\n  },\n  \"font\": {\n    \"$type\": \"fontFamily\",\n    \"body\": {\n      \"$value\": [\n        \"Zen Kaku Gothic New\",\n        \"system-ui\",\n        \"sans-serif\"\n      ]\n    },\n    \"heading\": {\n      \"$value\": [\n        \"Shippori Mincho\",\n        \"serif\"\n      ]\n    },\n    \"literal\": {\n      \"$value\": [\n        \"JetBrains Mono\",\n        \"Zen Kaku Gothic New\",\n        \"monospace\"\n      ],\n      \"$description\": \"字面を見せる所だけに使う。日本語は Zen Kaku Gothic New で描く\"\n    }\n  },\n  \"size\": {\n    \"$type\": \"dimension\",\n    \"body\": {\n      \"$value\": {\n        \"value\": 15,\n        \"unit\": \"px\"\n      }\n    },\n    \"literal\": {\n      \"$value\": {\n        \"value\": 13,\n        \"unit\": \"px\"\n      }\n    },\n    \"space-3\": {\n      \"$value\": {\n        \"value\": 0.45,\n        \"unit\": \"rem\"\n      }\n    },\n    \"space-5\": {\n      \"$value\": {\n        \"value\": 0.7,\n        \"unit\": \"rem\"\n      }\n    },\n    \"space-7\": {\n      \"$value\": {\n        \"value\": 1.2,\n        \"unit\": \"rem\"\n      }\n    },\n    \"radius\": {\n      \"$value\": {\n        \"value\": 0.6,\n        \"unit\": \"rem\"\n      }\n    },\n    \"line-hair\": {\n      \"$value\": {\n        \"value\": 1,\n        \"unit\": \"px\"\n      }\n    },\n    \"line-solid\": {\n      \"$value\": {\n        \"value\": 2,\n        \"unit\": \"px\"\n      }\n    },\n    \"line-accent\": {\n      \"$value\": {\n        \"value\": 3,\n        \"unit\": \"px\"\n      }\n    }\n  },\n  \"type\": {\n    \"$type\": \"typography\",\n    \"body\": {\n      \"$value\": {\n        \"fontFamily\": \"{font.body}\",\n        \"fontSize\": \"{size.body}\",\n        \"fontWeight\": 400,\n        \"letterSpacing\": {\n          \"value\": 0,\n          \"unit\": \"px\"\n        },\n        \"lineHeight\": 1.85\n      }\n    },\n    \"literal\": {\n      \"$value\": {\n        \"fontFamily\": \"{font.literal}\",\n        \"fontSize\": \"{size.literal}\",\n        \"fontWeight\": 400,\n        \"letterSpacing\": {\n          \"value\": 0,\n          \"unit\": \"px\"\n        },\n        \"lineHeight\": 1.6\n      }\n    }\n  },\n  \"$extensions\": {\n    \"works.daidaiiro.contrast\": [\n      {\n        \"foreground\": \"color.text.added\",\n        \"background\": \"color.surface.added\",\n        \"use\": \"text\"\n      },\n      {\n        \"foreground\": \"color.text.body\",\n        \"background\": \"color.surface.added\",\n        \"use\": \"text\"\n      },\n      {\n        \"foreground\": \"color.text.removed\",\n        \"background\": \"color.surface.removed\",\n        \"use\": \"text\"\n      },\n      {\n        \"foreground\": \"color.text.body\",\n        \"background\": \"color.surface.removed\",\n        \"use\": \"text\"\n      }\n    ]\n  }\n}"
+  },
+  {
+   "kind": "para",
+   "text": "暗の正本の抜粋（明と同じパスで、値だけを替える。全量は br-tokens.dark.json）"
+  },
+  {
+   "kind": "code",
+   "text": "{\n  \"color\": {\n    \"surface\": {\n      \"added\": {\n        \"$value\": \"{base.teal.900}\"\n      },\n      \"removed\": {\n        \"$value\": \"{base.rose.900}\"\n      }\n    },\n    \"text\": {\n      \"added\": {\n        \"$value\": \"{base.teal.300}\"\n      },\n      \"removed\": {\n        \"$value\": \"{base.rose.300}\"\n      }\n    }\n  }\n}"
+  },
+  {
+   "kind": "para",
+   "text": "design-system@v1 へ移した形の抜粋（全量は br-design-system.v1.json）。パスの . を - に替えるので、v1 のキーの形（小文字の英数字とハイフン）に収まり、Design Tokens の名前に使えない { } . も出ない"
+  },
+  {
+   "kind": "code",
+   "text": "{\n  \"$schema\": \"schema-driven/design-system@v1\",\n  \"scope\": \":root\",\n  \"tokens\": {\n    \"base-teal-700\": \"#0d5c55\",\n    \"base-rose-700\": \"#a3262a\",\n    \"color-surface-added\": \"{base-teal-100}\",\n    \"color-text-added\": \"{base-teal-700}\",\n    \"color-text-removed\": \"{base-rose-700}\",\n    \"font-literal\": \"\\\"JetBrains Mono\\\", \\\"Zen Kaku Gothic New\\\", monospace\",\n    \"type-literal-font-size\": \"{size-literal}\",\n    \"type-literal-line-height\": \"1.6\"\n  },\n  \"dark\": {\n    \"color-surface-added\": \"{base-teal-900}\",\n    \"color-text-added\": \"{base-teal-300}\"\n  },\n  \"contrast\": [\n    {\n      \"foreground\": \"color-text-added\",\n      \"background\": \"color-surface-added\",\n      \"use\": \"text\"\n    },\n    {\n      \"foreground\": \"color-text-body\",\n      \"background\": \"color-surface-added\",\n      \"use\": \"text\"\n    }\n  ]\n}"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "Design Tokens 形式",
+    "design-system@v1",
+    "合い方"
+   ],
+   "rows": [
+    [
+     "group と token のパス（color.text.body）",
+     "平らなキー（color-text-body）",
+     "合う。. を - に替えるだけで、キーの形に収まる"
+    ],
+    [
+     "参照 {color.text.body}",
+     "参照 {color-text-body}",
+     "合う。参照先があるか ・ 循環しないかは、両方とも検査する"
+    ],
+    [
+     "色の $value（colorSpace ・ components ・ hex）",
+     "# と小文字の16進の文字列",
+     "合う。hex を必ず書き、それを移す"
+    ],
+    [
+     "dimension の $value（value と unit）",
+     "文字列（13px）",
+     "合う。つないだ文字列にする"
+    ],
+    [
+     "typography（composite）",
+     "置き場所が無い",
+     "分けて移す。5つの sub-value を別のキーにする"
+    ],
+    [
+     "$type ・ $description",
+     "置き場所が無い",
+     "落ちる。正本にだけ残る"
+    ],
+    [
+     "暗の値",
+     "dark（同じキーで値を替える）",
+     "合う。暗のファイルの同じパスを dark へ移す"
+    ],
+    [
+     "コントラストの組",
+     "contrast",
+     "Design Tokens 形式には無いので、正本の $extensions（works.daidaiiro.contrast）に置いて移す"
+    ]
+   ]
+  },
+  {
+   "kind": "table",
+   "head": [
+    "使う所",
+    "前景 ／ 背景",
+    "比（明）",
+    "比（暗）",
+    "下限"
+   ],
+   "rows": [
+    [
+     "本文",
+     "text.body ／ surface.block",
+     "16.50",
+     "14.01",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "補足の文字",
+     "text.sub ／ surface.block",
+     "8.86",
+     "10.21",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "リンク",
+     "text.key ／ surface.block",
+     "7.48",
+     "8.41",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "「答え」のラベル",
+     "text.key ／ surface.answer",
+     "6.07",
+     "6.88",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "答えの文",
+     "text.body ／ surface.answer",
+     "13.39",
+     "11.46",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "変わったところの帯の文",
+     "text.body ／ surface.notice",
+     "15.63",
+     "14.11",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "変わった印",
+     "text.warn ／ surface.notice",
+     "5.51",
+     "7.42",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "原典のバッジ",
+     "text.source ／ surface.block",
+     "7.49",
+     "6.85",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "押したボタン ・ 選んだタブの文字",
+     "text.on-key ／ key",
+     "7.48",
+     "8.41",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "コード ・ 出力の文字",
+     "text.body ／ surface.literal",
+     "15.20",
+     "15.56",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "フォルダ構成の説明の列",
+     "text.sub ／ surface.literal",
+     "8.17",
+     "11.34",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "キーワード",
+     "syntax.keyword ／ surface.literal",
+     "6.89",
+     "9.34",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "文字列",
+     "syntax.string ／ surface.literal",
+     "5.36",
+     "8.18",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "数 ・ 真偽値",
+     "syntax.literal ／ surface.literal",
+     "6.91",
+     "7.61",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "注釈 ・ 行番号",
+     "syntax.comment ／ surface.literal",
+     "4.94",
+     "7.85",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "エラー出力のラベル",
+     "text.warn ／ surface.literal",
+     "5.36",
+     "8.18",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "差分の + と記号の列",
+     "text.added ／ surface.added",
+     "6.07",
+     "6.88",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "足した行の文字",
+     "text.body ／ surface.added",
+     "13.39",
+     "11.46",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "差分の − と記号の列",
+     "text.removed ／ surface.removed",
+     "5.80",
+     "7.66",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "消した行の文字",
+     "text.body ／ surface.removed",
+     "13.71",
+     "13.05",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "「足す」の印の文字",
+     "text.on-key ／ mark.added",
+     "7.48",
+     "8.41",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "「消す」の印の文字",
+     "text.on-key ／ mark.removed",
+     "6.99",
+     "8.23",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "「変える」の印の文字",
+     "text.on-key ／ mark.changed",
+     "5.82",
+     "7.36",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "0 以外の終了コード",
+     "text.removed ／ surface.block",
+     "6.99",
+     "8.23",
+     "4.5 以上 ・ 満たす"
+    ],
+    [
+     "ボタン ・ 入力欄 ・ タブの枠",
+     "line.control ／ surface.block",
+     "5.36",
+     "6.22",
+     "3 以上 ・ 満たす"
+    ],
+    [
+     "チップの枠",
+     "line.control ／ surface.page",
+     "4.94",
+     "6.90",
+     "3 以上 ・ 満たす"
+    ],
+    [
+     "焦点の外枠",
+     "state.focus ／ surface.block",
+     "7.48",
+     "8.41",
+     "3 以上 ・ 満たす"
+    ],
+    [
+     "コードの中の焦点の外枠",
+     "state.focus ／ surface.literal",
+     "6.89",
+     "9.34",
+     "3 以上 ・ 満たす"
+    ],
+    [
+     "移った先の外枠",
+     "state.target ／ surface.block",
+     "5.82",
+     "7.36",
+     "3 以上 ・ 満たす"
+    ]
+   ]
+  },
+  {
+   "kind": "para",
+   "text": "パターンの一覧（部品 ・ 振る舞い ・ 使う理由）。部品の名前は catalog@v1 の $defs のキーになる"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "部品",
+    "振る舞い（状態）",
+    "使う理由"
+   ],
+   "rows": [
+    [
+     "board-position",
+     "default：ボード名 ・ 第n回 ・ 論点ごとのチップ。selected：いま答える論点は主役の色で塗り「いま答える」と文字でも書く",
+     "どこにいるかを1行で見せ、次に見る所を迷わせない"
+    ],
+    [
+     "question-answer",
+     "default：問い ・ 答えの1文を開き、詳しい決まりは閉じる。changed：変わった行に「変わった」の印と前の回の文を並べる。target：帯から移ったときに外枠で光る",
+     "承認の対象を1つの枠に収め、詳しさは開いた人にだけ見せる"
+    ],
+    [
+     "change-band",
+     "default：「この回で変わったところ：n か所」と1件目の題。pressed：その行へ移り、移った先を state.target の外枠で光らせる。0件のときは出さない",
+     "前の回との違いだけを見れば済むようにする"
+    ],
+    [
+     "image-tabs",
+     "default：在る種類だけを決まった順に出す。selected：主役の色で塗り、aria-selected。focus：外枠。矢印キーで隣のタブへ、Tab で開いた枠へ移る。1種類だけならタブを出さず、種類の名前を見出しにする",
+     "6種類の見せ方を、同じ場所 ・ 同じ操作で切り替える"
+    ],
+    [
+     "image-figure",
+     "default：説明の1文 ・ SVG ・ 図が言うことのテキスト。狭い幅では枠の中だけで横に動かせる",
+     "構造と関係を見せる。SVG は design-svg で解決した class の図だけを使う"
+    ],
+    [
+     "image-screen",
+     "default：説明の1文 ・ 題の付いた iframe（高さは入力）。opened：「別の窓で開く」で全体を開く。focus：iframe の外枠",
+     "触れて確かめる。見本であることを説明の1文で言う"
+    ],
+    [
+     "image-code",
+     "default：ファイルのパスと言語の見出し ・ 行番号 ・ 色付けした字面。highlighted：指定した行に面の色と左の線と「▶」を付ける。hover：コピーのボタンを出す（焦点でも出る）。copied：「写した」と2秒出す",
+     "書く予定のコードを、行番号で指し示せる形で見せる"
+    ],
+    [
+     "image-diff",
+     "default：ファイルのパス ・ 「+n −m」・ 塊ごとの見出し ・ 記号の列（+ − 空白）・ 古い行番号と新しい行番号。split：並べる表示（広い幅だけ）。collapsed：変わらない行を「… n 行 変わらない」にたたむ",
+     "Git の差分と同じ形で、どこをどう変えるかを見せる"
+    ],
+    [
+     "image-tree",
+     "default：左の列に木（字下げの線は CSS で描く）、右の列に説明。marked：足す ・ 消す ・ 変える の印（記号と言葉）。消す名前には取り消し線。collapsed：フォルダを閉じる",
+     "置き場所と、そこに何が入るかを、名前と説明を分けて見せる"
+    ],
+    [
+     "image-run",
+     "default：実行する場所 ・ $ の付いたコマンド ・ 出力 ・ 終了コード。stderr の行は左の列に「エラー出力」と書く。終了コードは「終了コード 0」と文字で書き、0 以外は text.removed",
+     "コマンドを打ったら何が出て、成功したかを見せる"
+    ],
+    [
+     "premise-list",
+     "default：番号付きの前提。target：確かめてほしい箇所から移ったときに光る",
+     "番号で指し示せるようにする"
+    ],
+    [
+     "check-list",
+     "default：3件まで。各件は移る先のリンクと問いの1文",
+     "利用者が見る所を3つに絞る"
+    ],
+    [
+     "proof-claim",
+     "default：閉じる。opened：主張ごとに根拠を2件まで見せ、残りは「ほかの根拠 n件」で閉じる。根拠の種別（原典 ・ 実測 ・ 決まり）は文字のバッジ",
+     "疑ったときにだけ、主張から根拠へたどれるようにする"
+    ],
+    [
+     "reply-form",
+     "default：2択（このまま進める ／ 差し戻す）。selected：押した方を主役の色。error：差し戻すのに「どこが違うか」が空なら、欄の上に文で知らせる。sent：「送った。次の回で反映する」を出す",
+     "承認か差し戻しかを1回で送る"
+    ],
+    [
+     "term-help",
+     "default：語の後ろに ⓘ。focus ・ hover：語の説明を出す。Esc で消える。出た説明の上にポインタを動かせる",
+     "知らない語を、別の頁へ行かずに確かめる"
+    ]
+   ]
+  },
+  {
+   "kind": "para",
+   "text": "完成イメージの6つの部品の入力と見せ方（インスタンスの形の案。名前は concrete スキーマを書くときに決め直してよい）"
+  },
+  {
+   "kind": "table",
+   "head": [
+    "部品",
+    "入力",
+    "見せ方",
+    "色だけに頼らない印",
+    "幅 358px のとき"
+   ],
+   "rows": [
+    [
+     "image-figure（図）",
+     "caption（何を見せるか1文）・ svg（image/svg+xml）・ alt（図が言うことを1〜2文）",
+     "caption を上に、SVG を枠の幅で",
+     "図の中のラベルの文字",
+     "SVG は縮め、文字が小さくなりすぎるなら枠の中だけで横に動かす"
+    ],
+    [
+     "image-screen（画面）",
+     "caption ・ html（srcdoc に入れる）・ title ・ height",
+     "題の付いた iframe と「別の窓で開く」",
+     "「試作の見本」と caption で言う",
+     "iframe も幅 358px で描く。中の HTML がその幅で崩れないことを試作の側で確かめる"
+    ],
+    [
+     "image-code（コード）",
+     "caption ・ path ・ language ・ text ・ start（最初の行番号）・ highlight（行の範囲）",
+     "見出しにパスと言語。行番号の列は選べず読み上げない。字面は等幅 13px、注釈の日本語はゴシック",
+     "強調する行は左の線と「▶」",
+     "長い行は折り返し、折り返した行頭に「↪」。ページは横に動かない"
+    ],
+    [
+     "image-diff（差分）",
+     "caption ・ text（Git の unified diff）。描く側が path ・ 塊 ・ 行に分ける",
+     "パスと「+n −m」。行ごとに古い行番号 ・ 新しい行番号 ・ 記号の列 ・ 字面",
+     "+ と − を独立した列の文字として残す",
+     "1列の表示に固定し、長い行は折り返す"
+    ],
+    [
+     "image-tree（フォルダ構成）",
+     "caption ・ root ・ entries（path ・ kind：dir ／ file ・ mark：add ／ remove ／ change ／ none ・ note）",
+     "左の列にパスの名前（等幅）、右の列に note（本文の書体）。凡例は在る印だけ",
+     "印は「+ 足す」「− 消す」「~ 変える」の文字のバッジ。消す名前は取り消し線",
+     "note を名前の下の行へ回す"
+    ],
+    [
+     "image-run（実行例）",
+     "caption ・ steps（cwd ・ command ・ output：stream と text の並び ・ exit_code ・ note）",
+     "cwd を小さく上に。$ と command（等幅 ・ 太字）、その下に出力、最後に終了コード",
+     "$ は選べない文字。stderr は「エラー出力」のラベル。終了コードは数字を文字で書く",
+     "出力の長い行は折り返す。コピーはコマンドだけを写す"
+    ]
+   ]
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "recognition-rather-than-recall",
+   "quote": "対応：情報を思い出させる（「recall」させる）のではなく、画面の中で見て分かるようにする"
+  },
+  {
+   "criterion": "aesthetic-and-minimalist-design",
+   "quote": "対応：UI に載せる内容と見た目を、欠かせないものだけに集中させる"
+  },
+  {
+   "criterion": "visibility-of-system-status",
+   "quote": "対応：システムの状態を、はっきりした形でユーザーへ伝える"
+  },
+  {
+   "criterion": "consistency-and-standards",
+   "quote": "種類：external consistency ・ 何との一貫性か：確立した業界の慣習"
+  },
+  {
+   "criterion": "match-between-the-system-and-the-real-world",
+   "quote": "対応：語の定義を調べなくても、意味が伝わるようにする"
+  },
+  {
+   "criterion": "wireframing",
+   "quote": "解決策を定め始めるときに、装飾よりも中身と関係を優先するために使う。"
+  },
+  {
+   "criterion": "design-pattern-library",
+   "quote": "パターンの使われ方と、利用者の操作に対してパターンがどう応答すべきかを、言葉か図で示す。例は、load・hover・click の各時点でボタンがどう描画されるかである。エンドユーザーにとって良い理由を示すデータがあれば添える。"
+  },
+  {
+   "criterion": "style-tiles",
+   "quote": "ステークホルダーのフィードバックを集めて直すことを繰り返し、最後は1つのスタイルタイルに絞る。それがプロジェクトの視覚言語になる"
+  },
+  {
+   "criterion": "design-principles",
+   "quote": "対応：ほかの点では興味を引く提案にも「no」と言えるようにする"
+  },
+  {
+   "criterion": "distinguishable",
+   "quote": "達成基準：「1.4.1 色の用途」 ・ レベル：A ・ 何を求めるか：情報 ・ 動作 ・ 反応の促し ・ 要素の判別を、色という視覚的手段だけで伝えない"
+  },
+  {
+   "criterion": "distinguishable",
+   "quote": "達成基準：「1.4.3 コントラスト (最低限)」 ・ レベル：AA ・ 何を求めるか：テキストと文字画像のコントラスト比を 4.5:1 以上にする。例外は下の表"
+  },
+  {
+   "criterion": "distinguishable",
+   "quote": "達成基準：「1.4.11 非テキストのコントラスト」 ・ レベル：AA ・ 何を求めるか：ユーザインタフェース コンポーネントとその状態 (state) を見分ける部分と、理解に必要なグラフィックに、隣の色と 3:1 以上のコントラスト比を持たせる"
+  },
+  {
+   "criterion": "distinguishable",
+   "quote": "達成基準：「1.4.10 リフロー」 ・ レベル：AA ・ 何を求めるか：幅 320 CSS ピクセル相当（横スクロールのコンテンツでは高さ 256 CSS ピクセル相当）で、情報と機能を失わず、2 次元スクロールなしで示せる"
+  },
+  {
+   "criterion": "distinguishable",
+   "quote": "使うためか意味をつかむために 2 次元のレイアウトが必要な部分は除く。例は、映像、ゲーム、データテーブル、プレゼンテーション、理解に必要な地図や図解、操作中にツールバーを出しておくインタフェースである"
+  },
+  {
+   "criterion": "adaptable",
+   "quote": "達成基準：「1.3.1 情報及び関係性」 ・ レベル：A ・ 何を求めるか：見た目で伝えている情報 ・ 構造 ・ 関係性を、プログラムが解釈できる形にするか、テキストで示す"
+  },
+  {
+   "criterion": "text-alternatives",
+   "quote": "達成基準：「1.1.1 非テキストコンテンツ」 ・ レベル：A ・ 何を求めるか：利用者に見せる非テキストコンテンツごとに、目的の等しいテキストによる代替を付ける。下の6つの場合は扱いが変わる"
+  },
+  {
+   "criterion": "keyboard-accessible",
+   "quote": "達成基準：「2.1.1 キーボード」 ・ レベル：A ・ 何を求めるか：どの機能も、キーを押すタイミングを問わずにキーボードインタフェースで操作できる。終点だけでなく動きの軌跡に依存する入力が根本的な機能に必要なら除く"
+  },
+  {
+   "criterion": "navigable",
+   "quote": "達成基準：「2.4.7 フォーカスの可視化」 ・ レベル：AA ・ 何を求めるか：ユーザインタフェースのうちキーボードで操作できるものには、フォーカスインジケータを表示する操作モードを持たせる"
+  },
+  {
+   "criterion": "design-token",
+   "quote": "対応：`{` ・ `}` ・ `.` を名前のどこにも入れない（MUST NOT） ・ 理由：alias の書き方が、この3文字を使う"
+  },
+  {
+   "criterion": "design-token",
+   "quote": "対応：値の理解に欠かせない情報は置かず、任意のメタデータに限る（SHOULD）"
+  },
+  {
+   "criterion": "group",
+   "quote": "対応：group 名と token 名を `.` で連結したものがパスになる"
+  },
+  {
+   "criterion": "alias",
+   "quote": "原典は4つを挙げる。デザインの選択を表すこと、ファイルの中で同じ値を繰り返さずに済ませること（DRY）、token どうしに意味の上の関係を作ること、関係する値の一貫性を保つことである。"
+  },
+  {
+   "criterion": "type",
+   "quote": "対応：type を明示していない token は無効とし、値からほかの type を推測しない（MUST）"
+  },
+  {
+   "criterion": "type",
+   "quote": "対応：`hex` に代わりに使う色を、6桁の CSS の hex 表記で書ける（任意）"
+  },
+  {
+   "criterion": "composite-token",
+   "quote": "Composite (Design) Token：値が、名前の付いた複数の子の値でできている design token。type は composite type のどれかになる。いつも一緒に当てる、関係の深いスタイルのプロパティに向く。"
+  },
+  {
+   "criterion": "prototyping",
+   "quote": "プロトタイプを利用者に渡し、説明をせずにやりとりを観察する。"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "（推測）種類の違う完成イメージを、1つの等幅の枠にべた書きする",
+   "risk": "パス ・ 説明 ・ コマンド ・ 出力の区別を、読み手が字下げと位置から覚えて読むことになり、意図からずれた所を見落とす。説明の日本語が等幅の書体の代わりの書体で描かれ、列もそろわない",
+   "alternative": "6つの部品に分け、字面だけを等幅の面に置き、説明は本文の書体で別の列か行に置く"
+  },
+  {
+   "name": "差分やフォルダ構成の印を色だけで示す",
+   "risk": "色を見分けにくい人や、白黒で印刷したときに、足した ・ 消した ・ 変えたが分からない",
+   "alternative": "+ − ~ の記号と「足す ・ 消す ・ 変える」の言葉を印にし、色は補助にする"
+  },
+  {
+   "name": "意味のトークンに同じ値を名前違いで直接書く（試作の key ・ text-key ・ state-focus がどれも #0d5c55）",
+   "risk": "主役の色を変えたとき、一部だけが変わって残る",
+   "alternative": "値は基礎の層にだけ書き、意味の層は基礎の層を参照する"
+  },
+  {
+   "name": "（推測）CSS で :root の変数を何度も上書きして見た目を決める",
+   "risk": "どの値が効いているかを、最後の上書きまで読まないと決められない。基盤のコントラストの検査が見ている値と、画面の値がずれる",
+   "alternative": "design-system.json 1つから基盤が作る変数だけを使い、カタログの CSS には色と寸法の値を書かない"
+  },
+  {
+   "name": "（推測）在らない種類のタブを、空のまま出す",
+   "risk": "押しても何も無いタブで、読み手が欠けを疑って時間を使う",
+   "alternative": "在る種類だけをタブにし、1種類だけならタブを出さない"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "AI がフォルダ構成や実行例を image-code の text に書いてしまう",
+   "check": "インスタンスの検査で、image-code の text に「├」「└」「│」で始まる行や「$ 」で始まる行があれば落とす"
+  },
+  {
+   "breaks": "AI が部品の CSS に色や寸法の値を直接書く",
+   "check": "assets/catalog/catalog.css に #[0-9a-f]{3,6} ・ rgb( ・ 数値の px と rem が無いことを検査する（var(--…) だけを許す）"
+  },
+  {
+   "breaks": "AI が新しい意味のトークンを足して、contrast の組を書き忘れる",
+   "check": "CSS で color と background に使っているトークンの組が、すべて正本の $extensions の組にあるかを検査する（design-system@v1 の declare-pairs と同じ）"
+  },
+  {
+   "breaks": "AI が正本（Design Tokens 形式）と design-system.json の片方だけを直す",
+   "check": "移す処理を検査で走らせ、移した結果と design-system.json が同じであることを確かめる"
+  },
+  {
+   "breaks": "AI が完成イメージに表を入れる",
+   "check": "ボードの concrete スキーマで、完成イメージの種類を6つの列挙に限り、HTML の <table> を image-screen の外に置けないようにする"
+  }
+ ],
+ "next": [
+  "この回答のデザインシステムを、brainstorming のボードの論点2の材料として渡す",
+  "6つの部品を入れた1枚の試作を作り、利用者に説明なしで1回の承認をしてもらう",
+  "Design Tokens 形式の正本から design-system@v1 へ移す処理を、基盤の検査に通して確かめる",
+  "基盤の契約を Design Tokens 形式へ寄せるかを、別の論点として立てる"
+ ],
+ "related": [
+  {
+   "criterion": "usability-testing",
+   "relation": "原則で決まらないこと（並べる差分 ・ 開いておく深さ ・ 字面の大きさ）を、試作で確かめる方法"
+  },
+  {
+   "criterion": "task-flow-analysis",
+   "relation": "承認と差し戻しの流れを、判断点つきで図にして障害を探すときに使う"
+  },
+  {
+   "criterion": "user-control-and-freedom",
+   "relation": "回答を送る前に選び直せること、送ったあとの取り消しを決めるときに使う"
+  },
+  {
+   "criterion": "error-prevention",
+   "relation": "差し戻すときの必須の欄を、送る前に確かめる形の根拠"
+  },
+  {
+   "criterion": "comparative-analysis",
+   "relation": "差分 ・ フォルダ構成 ・ 実行例の見せ方を、ほかの道具の慣習と比べて詰めるときに使う"
+  },
+  {
+   "criterion": "visual-preference-testing",
+   "relation": "見た目の方向をもう一度選び直すときの方法。いまは青緑に絞った方向を使うので行わない"
+  }
+ ]
+}

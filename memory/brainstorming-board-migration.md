@@ -39,7 +39,8 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 
 - 名前を brainstorming に変え、新しいボードは `.brainstorming/` に新しい形だけで作る。古い `.brainstorming-board/` は移さない（2026-10-16 利用者の決定）。
 - ボード `.brainstorming-board/brainstorming-on-base/`（古いツールで作った。Artifact https://claude.ai/artifact/48KWG81WUhsam5WpiirDjS、ローカル 8752）の1回目。Q0 完成の条件（18件）・ Q1 ボードの中身 ・ Q2 画面とデザインシステム ・ Q3 Skill の作り ・ Q4 AI のチャットの内蔵、の5つが回答待ち。
-- アドバイザーの回答と CLI の原文 ・ 実測は、ボードの sources/advisors/ と sources/ai-cli/ にある。
+- アドバイザーの回答はボードの advisors/、CLI の実測は measured/、原文の取り直し方（meta.json）と調べのまとめは sources/ にある（原文そのものは追跡しない）。
+- ボードの本体は `.brainstorming/<ボード>.json`、回の記録 ・ 回答 ・ 図は `.brainstorming/<ボード>/`（基盤の check と render が直下しか読まないため。2026-10-17 利用者の選択）。
 - 試作の画面：アプリ https://claude.ai/artifact/U4UvC4GPvBhxjVrWY4qEz1 ・ 論点 https://claude.ai/artifact/M73AEfCEP3GTi1u1e3211V（生成の台本はセッションの作業用の領域にだけあり、HTML はボードの Q2 に入っている）。
 - 次：回答を受けて決着させ、ACDR を出し、src/brainstorming/ を作る。
 
