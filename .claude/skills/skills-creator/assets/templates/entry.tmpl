@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""{{name}} の入口。SKILL.md はこの入口だけを呼ぶ。
+
+基盤の操作（create ・ get ・ update ・ delete ・ prompt ・ check ・ check-schemas ・ approve ・ render）は、
+隣の scripts/bin/schema-driven へそのまま渡し、終了コード ・ 標準出力 ・ 標準エラーを変えずに返す。
+この Skill の能力は、OWN に「操作の名前: 関数」を足して、この入口の中で行う。
+実行には Python 3 が必要である。Windows では scripts/{{name}}.cmd がこの入口を起動する。
+"""
+
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SKILL = os.path.dirname(HERE)
+ENGINE = os.path.join(HERE, "bin", "schema-driven" + (".exe" if os.name == "nt" else ""))
+BASE = {"create", "get", "update", "delete", "prompt", "check", "check-schemas", "approve", "render"}
+
+# この Skill の能力。関数は残りの引数を受け取り、終了コードを返す。
+OWN = {}
+
+
+def main(argv):
+    if argv and argv[0] in BASE:
+        return subprocess.run([ENGINE, "--skill", SKILL, *argv]).returncode
+    if argv and argv[0] in OWN:
+        return OWN[argv[0]](argv[1:])
+    names = sorted(BASE) + sorted(OWN)
+    print('{"ok": false, "reason": "使い方が違う", "commands": %s}' % str(names).replace("'", '"'))
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

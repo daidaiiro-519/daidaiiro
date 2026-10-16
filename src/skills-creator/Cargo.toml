@@ -1,17 +1,15 @@
-# skills-creator の実行ファイル。配る Skill の中身には入らず、配布物を作る段でビルドして scripts/ に入れる。
-[package]
-name = "skills-creator"
-version = "1.0.0"
+# ヘキサゴナル。core（domain ・ application ・ 出ていく側の port）は外の技術に依存しない。
+# adapters が core の application を呼び、core の port を実装し、起動時に両方を結ぶ。
+# xtask は製品に入らないツールの crate で、skills-creator の Skill のフォルダを作る。
+# skills-creator の版は [workspace.package] の version の1か所で決める。依存の版は Cargo.lock の1か所で決める。
+[workspace]
+members = ["crates/*", "xtask"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
 edition = "2021"
 license = "MIT"
-publish = false
 
-[[bin]]
-name = "skills-creator"
-path = "src/main.rs"
-
-[dependencies]
-serde_json = "1"
-yaml-rust2 = "0.13"
-regex = "1"
-sha2 = "0.10"
+[workspace.dependencies]
+serde_json = { version = "1.0.151", features = ["preserve_order"] }

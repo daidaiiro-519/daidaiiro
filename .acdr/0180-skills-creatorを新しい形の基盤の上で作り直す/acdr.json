@@ -1,0 +1,593 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0180",
+ "title": "skills-creator を新しい形の基盤の上で作り直す",
+ "date": "2026-10-13",
+ "status": "accepted",
+ "decision": "skills-creator は、新しい Skill の雛形と照合した基盤のエンジンを置き、Skill のフォルダを9つの項目で検査し、基盤と同じ形で作って3つの OS 向けに公開する。作られる Skill はソースを scripts/ に持ち、配る仕組みは持たない。",
+ "why": "ボード skills-creator-on-base の論点0〜4で決めた。いままでの skills-creator は、tool.json と宣言したツールを前提に scaffold と check を持ち、判定しなかった項目を合格にしていた。宣言したツールの仕組みは ACDR 0175 で基盤から消し、古い形は配布していないので考慮しないと決めたので、その前提で作り直す。消したのは、古いコード（src/skills-creator/src と tests）と、凍結していた src/skills-creator-v3 である。Skill のフォルダの tool.json ・ assets/tool.schema.json ・ 古い雛形5つも消した。手元で、Claude Code と Codex の両方が skills-creator を呼び、SKILL.md の手順どおりに動いた。scaffold の直後は、記入欄の2項目（SKILL.md と concrete スキーマ）だけが不合格になった。ボードの論点0は「記入欄の項目だけ」と書いたが、基盤の create が作る concrete スキーマは title と description が空なので、schemas.check も記入欄として不合格になる。",
+ "shift": [
+  {
+   "what": "作られる Skill",
+   "from": "tool.json で固有のツールを宣言し、SKILL.md は scripts/schema-driven を呼ぶ",
+   "to": "入口 scripts/<Skill名>（ソースのまま。Windows は .cmd）と、照合した基盤のエンジン scripts/bin/schema-driven を持つ。SKILL.md は入口だけを呼ぶ"
+  },
+  {
+   "what": "check",
+   "from": "判定しなかった項目を合格にする。tool.json と配布物の段を見る",
+   "to": "9つの項目。どれも既定は判定不能で、確かめた分岐からだけ合格を置く"
+  },
+  {
+   "what": "基盤のエンジン",
+   "from": "手で写す",
+   "to": "scaffold と engine が、版を指して Release から取り、SHA-256 と証明を照合してから置く。gh が無いか古ければ止める"
+  },
+  {
+   "what": "skills-creator のコード",
+   "from": "1つの crate（版 1.0.0）と、凍結した src/skills-creator-v3",
+   "to": "基盤と同じ CODING.md ・ core と adapters ・ xtask（版 0.1.0）。.github/workflows/skills-creator.yml で公開する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "私たちがソースを管理するものと、作られる Skill が持つもの。",
+ "alternatives": [
+  {
+   "option": "作られる Skill にも配る手順（入口のビルドと dist.json）を持たせる",
+   "why_not": "作られる Skill は作った人がソースを持ち、配り方も決める。skills-creator が持つと、使う人の言語とビルドを縛る"
+  },
+  {
+   "option": "入口を言語の拡張子付き（scripts/<Skill名>.py）にする",
+   "why_not": "SKILL.md が言語に依存し、入口を書き直すたびに SKILL.md も直すことになる"
+  },
+  {
+   "option": "tool.json ・ engine.json を残す",
+   "why_not": "宣言したツールは基盤から消した。版はエンジン自身が答え、照合は入れるときに1回だけと決めてある"
+  },
+  {
+   "option": "いまの1つの crate を直して使う",
+   "why_not": "判定と入出力が同じ所に混ざり、代役で壊した場合を確かめられない"
+  },
+  {
+   "option": "gh が無いときは SHA-256 だけで進む",
+   "why_not": "同じ Release から取るので、来歴を確かめない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "CODING-md0",
+   "tab": "CODING.md",
+   "file": "src/skills-creator/CODING.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "skills-creator のコーディング規則",
+     "before": "（無い。新しく作るファイル）",
+     "why": "基盤と同じ設計標準に従い、port の一覧 ・ 外のプログラムの呼び方 ・ 試験の置き場所だけを skills-creator に合わせて書く（ボードの論点4）"
+    }
+   ]
+  },
+  {
+   "key": "config-toml1",
+   "tab": "config.toml",
+   "file": "src/skills-creator/.cargo/config.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# cargo xtask <作業> で、ツールの crate（xtask/）を動かす。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "cargo xtask の呼び方と、Windows の実行ファイルが VC の実行時ライブラリに依存しない設定を、基盤と同じに置く"
+    }
+   ]
+  },
+  {
+   "key": "Cargo-toml2",
+   "tab": "core/Cargo.toml",
+   "file": "src/skills-creator/crates/core/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "[package]",
+     "before": "（無い。新しく作るファイル）",
+     "why": "core は外の技術に依存しない。SKILL.md の読み取りと SHA-256 の照合に使う crate だけを持つ"
+    }
+   ]
+  },
+  {
+   "key": "clippy-toml3",
+   "tab": "core/clippy.toml",
+   "file": "src/skills-creator/crates/core/clippy.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# core（domain と application）はファイル ・ 通信 ・ 別のプロセス ・ 時刻に直接触らない。入出力は ports の trait を通す",
+     "before": "（無い。新しく作るファイル）",
+     "why": "core がファイル ・ 通信 ・ プロセス ・ 時刻に直接触ることを、基盤と同じ禁止で止める"
+    }
+   ]
+  },
+  {
+   "key": "lib-rs4",
+   "tab": "src/lib.rs",
+   "file": "src/skills-creator/crates/core/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! skills-creator の中心。domain（SKILL.md の読み取り ・ check の項目 ・ 公開された基盤の名前と照合）と、",
+     "before": "（無い。新しく作るファイル）",
+     "why": "中心を domain ・ application ・ port に分ける（ボードの論点4）"
+    }
+   ]
+  },
+  {
+   "key": "ports-rs5",
+   "tab": "src/ports.rs",
+   "file": "src/skills-creator/crates/core/src/ports.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 出ていく側の port。application が定義し、adapters が実装する。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "外との境界を3つの port（Files ・ Programs ・ Releases）にする。gh と tar と基盤のエンジンは、この向こうにある"
+    }
+   ]
+  },
+  {
+   "key": "mod-rs6",
+   "tab": "domain/mod.rs",
+   "file": "src/skills-creator/crates/core/src/domain/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 業務の規則。入出力に触らない。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "業務の規則を3つ（SKILL.md の読み取り ・ check の項目 ・ 公開された基盤の名前と照合）に分ける"
+    }
+   ]
+  },
+  {
+   "key": "skill_md-rs7",
+   "tab": "domain/skill_md.rs",
+   "file": "src/skills-creator/crates/core/src/domain/skill_md.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! SKILL.md を読み取り、型 skills-creator/skill@v1 のインスタンスにする。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "古い read.rs を移した。AI の名前の一覧の検査（警告）はやめ、Skill の名前の決まりを足した"
+    }
+   ]
+  },
+  {
+   "key": "report-rs8",
+   "tab": "domain/report.rs",
+   "file": "src/skills-creator/crates/core/src/domain/report.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! check の項目と結果。どの項目も既定は「判定不能」で、確かめた分岐からだけ合格を置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "どの項目も既定を判定不能にし、確かめた分岐からだけ合格を置く（ボードの論点1、qa-advisor の指摘）"
+    }
+   ]
+  },
+  {
+   "key": "release-rs9",
+   "tab": "domain/release.rs",
+   "file": "src/skills-creator/crates/core/src/domain/release.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 公開された基盤（schema-driven）の配布物の名前と、SHA-256 の照合。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "基盤の配布物の名前を、基盤のワークフローが決めた形に合わせて作る。SHA256SUMS から照合する値を引く"
+    }
+   ]
+  },
+  {
+   "key": "mod-rs10",
+   "tab": "application/mod.rs",
+   "file": "src/skills-creator/crates/core/src/application/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ユースケース。port を通して入出力し、domain の規則で判定する。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "ユースケースが使う port の組を1つにまとめる"
+    }
+   ]
+  },
+  {
+   "key": "engine-rs11",
+   "tab": "application/engine.rs",
+   "file": "src/skills-creator/crates/core/src/application/engine.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 基盤のエンジンを、Skill のフォルダの scripts/bin/ に入れる（入れ替える）。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "基盤のエンジンを版を指して取り、SHA-256 と証明を照合してから置く。失敗したらフォルダを元のまま残す（ボードの論点3）"
+    }
+   ]
+  },
+  {
+   "key": "scaffold-rs12",
+   "tab": "application/scaffold.rs",
+   "file": "src/skills-creator/crates/core/src/application/scaffold.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 新しい Skill の雛形を置く。まだ無いフォルダにだけ置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "雛形 ・ 入口 ・ 照合したエンジン ・ スキーマの雛形を、作業用のフォルダでそろえてから移す（ボードの論点1と論点2）"
+    }
+   ]
+  },
+  {
+   "key": "check-rs13",
+   "tab": "application/check.rs",
+   "file": "src/skills-creator/crates/core/src/application/check.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! Skill のフォルダを、項目ごとに検査する。どの項目も既定は「判定不能」で、確かめた分岐からだけ合格を置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "9つの項目を検査する。SKILL.md の型は基盤のエンジンに判定させ、入口は基盤の操作を同じ結果で渡すかを見る"
+    }
+   ]
+  },
+  {
+   "key": "tests-rs14",
+   "tab": "src/tests.rs",
+   "file": "src/skills-creator/crates/core/src/tests.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 単体テストが共有する代役。port をメモリ上で実装する。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "port の代役を1か所に置き、正しい場合と壊した場合の両方を単体テストで確かめる"
+    }
+   ]
+  },
+  {
+   "key": "Cargo-toml15",
+   "tab": "adapters/Cargo.toml",
+   "file": "src/skills-creator/crates/adapters/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "[package]",
+     "before": "（無い。新しく作るファイル）",
+     "why": "adapters は core だけに依存し、外のプログラムはここからだけ起動する"
+    }
+   ]
+  },
+  {
+   "key": "lib-rs16",
+   "tab": "src/lib.rs",
+   "file": "src/skills-creator/crates/adapters/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! skills-creator の外側。受け口（CLI）と、port の実装と、起動時の結合を持つ。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "受け口 ・ port の実装 ・ 起動時の結合を持つ"
+    }
+   ]
+  },
+  {
+   "key": "mod-rs17",
+   "tab": "inbound/mod.rs",
+   "file": "src/skills-creator/crates/adapters/src/inbound/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 受け口。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "受け口は CLI だけ。MCP は必要になったら足す"
+    }
+   ]
+  },
+  {
+   "key": "cli-rs18",
+   "tab": "inbound/cli.rs",
+   "file": "src/skills-creator/crates/adapters/src/inbound/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! CLI の受け口。`<操作> <Skill のフォルダ> --引数 値 …` を読み、application を呼び、JSON と終了コードを返す。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "scaffold ・ engine ・ check と --version を受け付ける。旗を読み違えたら終了コード 2"
+    }
+   ]
+  },
+  {
+   "key": "mod-rs19",
+   "tab": "outbound/mod.rs",
+   "file": "src/skills-creator/crates/adapters/src/outbound/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! port の実装。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "port の実装を3つに分ける"
+    }
+   ]
+  },
+  {
+   "key": "fs-rs20",
+   "tab": "outbound/fs.rs",
+   "file": "src/skills-creator/crates/adapters/src/outbound/fs.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! port の Files の実装。本物のファイルシステムを使う。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Files の実装。作業用のフォルダを、実行ごとに別の名前で作る"
+    }
+   ]
+  },
+  {
+   "key": "process-rs21",
+   "tab": "outbound/process.rs",
+   "file": "src/skills-creator/crates/adapters/src/outbound/process.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! port の Programs の実装。実行ファイルを起動し、終了コードと出力を返す。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Programs の実装。終了コードと出力をそのまま返す"
+    }
+   ]
+  },
+  {
+   "key": "release-rs22",
+   "tab": "outbound/release.rs",
+   "file": "src/skills-creator/crates/adapters/src/outbound/release.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! port の Releases の実装。gh で Release から取り、gh attestation で証明を照合し、tar で展開する。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "gh で取り、gh attestation で照合し、tar で展開する。gh が無いか古ければ止め、照合を飛ばす経路は持たない。証明のキャッシュは作業用のフォルダに置く（Codex の sandbox で、ホームのキャッシュが読み取り専用だった）"
+    }
+   ]
+  },
+  {
+   "key": "compose-rs23",
+   "tab": "src/compose.rs",
+   "file": "src/skills-creator/crates/adapters/src/compose.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 起動時の結合。port の実装を application に渡す。結合はここ1か所に置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "結合を1か所に置く。skills-creator 自身のフォルダは、実行ファイルの場所から決める"
+    }
+   ]
+  },
+  {
+   "key": "skills-creator-rs24",
+   "tab": "bin/skills-creator.rs",
+   "file": "src/skills-creator/crates/adapters/src/bin/skills-creator.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! skills-creator の CLI。結合と受け口を呼ぶだけ。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "実行ファイルは結合と受け口を呼ぶだけにする"
+    }
+   ]
+  },
+  {
+   "key": "mod-rs25",
+   "tab": "support/mod.rs",
+   "file": "src/skills-creator/crates/adapters/tests/support/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! 端から端までのテストの補助。作業用のフォルダと、実行ファイルの起動を、ここ1か所に置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "端から端までの試験の補助を1か所に置く"
+    }
+   ]
+  },
+  {
+   "key": "cli-rs26",
+   "tab": "tests/cli.rs",
+   "file": "src/skills-creator/crates/adapters/tests/cli.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! CLI の実行ファイルを端から端まで確かめる。基盤のエンジンと gh を使わないものだけを置く。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "実行ファイルを起動して、基盤のエンジンと gh を使わずに確かめられることだけを確かめる"
+    }
+   ]
+  },
+  {
+   "key": "Cargo-toml27",
+   "tab": "xtask/Cargo.toml",
+   "file": "src/skills-creator/xtask/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "[package]",
+     "before": "（無い。新しく作るファイル）",
+     "why": "製品に入らないツールの crate。エンジンを入れる手順は持たない"
+    }
+   ]
+  },
+  {
+   "key": "main-rs28",
+   "tab": "src/main.rs",
+   "file": "src/skills-creator/xtask/src/main.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! cargo xtask の入口。作業は lib.rs の perform が行い、ここは結果を出して終了コードを返すだけにする。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "入口は結果を出すだけにする"
+    }
+   ]
+  },
+  {
+   "key": "lib-rs29",
+   "tab": "src/lib.rs",
+   "file": "src/skills-creator/xtask/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! skills-creator の Skill のフォルダを作り（skill）、確かめる（verify）ツール。製品の実行ファイルには入らない。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "skills-creator をビルドして置き、エンジンはビルドした skills-creator の engine で入れる。verify は自分の check と、練習用の Skill の scaffold と check を確かめる"
+    }
+   ]
+  },
+  {
+   "key": "skills-creator-yml30",
+   "tab": "skills-creator.yml",
+   "file": ".github/workflows/skills-creator.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# skills-creator を、3つの OS 向けの Skill のフォルダにして、証明を付けて Release へ公開する（daidaiiro-519/daidaiiro）。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "基盤のワークフローを写した。verify で練習用の Skill を3つの OS で確かめ、Windows では PowerShell から入口の .cmd を起動する"
+    }
+   ]
+  },
+  {
+   "key": "entry-tmpl31",
+   "tab": "entry.tmpl",
+   "file": ".claude/skills/skills-creator/assets/templates/entry.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "#!/usr/bin/env python3",
+     "before": "（無い。新しく作るファイル）",
+     "why": "入口の雛形（Python）。基盤の操作は隣のエンジンへそのまま渡し、Skill の能力は OWN に足す（ボードの論点2）"
+    }
+   ]
+  },
+  {
+   "key": "entry-cmd-tmpl32",
+   "tab": "entry.cmd.tmpl",
+   "file": ".claude/skills/skills-creator/assets/templates/entry.cmd.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "@echo off",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Windows で入口を起動する。PowerShell は1行目の実行のしかたを読まないため（ボードの論点2）"
+    }
+   ]
+  },
+  {
+   "key": "ws",
+   "tab": "Cargo.toml",
+   "file": "src/skills-creator/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "members = [\"crates/*\", \"xtask\"]",
+     "before": "name = \"skills-creator\"（1つの crate、版 1.0.0）",
+     "why": "1つの crate をやめ、core ・ adapters ・ xtask の workspace にした。版は [workspace.package] の1か所（0.1.0 から始める）"
+    }
+   ]
+  },
+  {
+   "key": "skillmd",
+   "tab": "skills-creator/SKILL.md",
+   "file": ".claude/skills/skills-creator/SKILL.md",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "新しい Skill のフォルダに、SKILL.md の雛形 ・ 入口 ・ 基盤のエンジン ・ concrete スキーマの雛形を置く（scaffold）",
+     "before": "新しい Skill のフォルダに、SKILL.md の雛形 ・ tool.json ・ スキーマの雛形を置く（scaffold）",
+     "why": "scaffold が置くものを、新しい形（入口と照合したエンジン）にした"
+    },
+    {
+     "find": "Skill のフォルダの基盤のエンジンを、版を指して入れ替える（engine）",
+     "before": "（無い。新しく作るファイル）",
+     "why": "エンジンを入れ替える操作を足した"
+    },
+    {
+     "find": "どの項目も、確かめるまでは判定不能である。",
+     "before": "合格は、不合格が0件かつ判定不能が0件のときだけである。",
+     "why": "確かめていない項目を合格にしないことを、出力形式に書いた"
+    }
+   ]
+  },
+  {
+   "key": "tmpl",
+   "tab": "SKILL.md.tmpl",
+   "file": ".claude/skills/skills-creator/assets/templates/SKILL.md.tmpl",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "操作はすべて、入口",
+     "before": "scripts/schema-driven --skill . create --schema assets/{{kind}}.schema.json --path {{インスタンスの置き場所}}",
+     "why": "雛形の手順を、入口だけを呼ぶ形にした。SKILL.md が言語に依存しない（ボードの論点2）"
+    }
+   ]
+  },
+  {
+   "key": "type",
+   "tab": "skill.schema.json",
+   "file": ".claude/skills/skills-creator/assets/skill.schema.json",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "check の skill.type が合格かを見る",
+     "before": "check の skill.fields が合格かを見る（ほか skill.sections ・ skill.body.paths など）",
+     "why": "check の項目を skill.type にまとめたので、型の案内の参照先を直した"
+    },
+    {
+     "find": "check の skill.type が合格かを見る",
+     "before": "check の skill.fields が合格かを見る（ほか skill.sections ・ skill.body.paths など）",
+     "why": "frontmatter の欄の案内（name ・ description ・ 任意の欄）の参照先も、skill.type に直した"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "CODING-md0": "5e66f53df11543909fcc1b362a77955a237bb20dbc7a3d1859a102e43fc599a3",
+  "config-toml1": "0866a7ea3fb5da73e83639a04ca29fbd362a910a8f84e113166cb9cf6003ddae",
+  "Cargo-toml2": "5eee05a13b81157b2e721222bfc1bc614b6f774e84536dba108ffc4e260b4b21",
+  "clippy-toml3": "006da6d6f266749e6f9e064d35b45cff98ad031150d9143185e965b3539d54b0",
+  "lib-rs4": "6caee1c80229d791c0cd463a34c5301051904ff1301e00a8f51a4b3cb50b1a61",
+  "ports-rs5": "03bd6d2a4b0818678786f644f125864d3fef2ef2d3305b7fa88e4d0f1db0c8d1",
+  "mod-rs6": "e778fa52f818d89f9926d520de60b9526ca64a171ee4b80c7afda5166a7ebbfa",
+  "skill_md-rs7": "2aaf22b5d0d5c497a8b49465102d10c0b0ddfc687013874d4ee9a757650c2f37",
+  "report-rs8": "aa7ebd5eb022f7a393120ff71be05514e8795e1e4caae6a51dcdaebf2d09070d",
+  "release-rs9": "e5b955b137257c33e5ffdc81a89ad42c2494ed690adae6bc2f59cf510c88357b",
+  "mod-rs10": "dce132d8f03cac787665f5dd997339a29f368ab8179a37bd35899cb5c016ad5e",
+  "engine-rs11": "3596d7f36b6014c7027ddaee23e15f8582c2cf749ab51cba893c6d002b9664fe",
+  "scaffold-rs12": "ce2e9777742fa54c7d1fefa8b91de3ab48c8e2ee304cbf601acaf2311ed29d85",
+  "check-rs13": "8bcfb1e053483cf6ee1ff20a9c07ff2525d95197c8c4243f357f7e74714637a6",
+  "tests-rs14": "aef5aa644cdbfe881a1ededa5b90ea4158d0391397b7a0279da6b626fd20cf53",
+  "Cargo-toml15": "f79d9cd03176043427c033e7b71b8b66be2599c79663c8bc241501abf6df54e7",
+  "lib-rs16": "bfaaea0987e12ef950da9eb7abbe1f1a531f598f37ef2e1c74d09d0c579e0848",
+  "mod-rs17": "39cc3535d5953aaeeec304a7e12b9e84d24b850777d39061f851b393df51d831",
+  "cli-rs18": "7cbd4219384bf33a454b16a353bd3f7e249e76c04adec96ff44b9c52a82eeb72",
+  "mod-rs19": "45f4ecd446e1b4055e3ca72cb132e313ffdc734c9cf2bcf74deca44cdd2dca53",
+  "fs-rs20": "caf15a6b35e209e3089066bf82629dc86cf701d8ffaeb64233edaf4de19a7a61",
+  "process-rs21": "d46ccf6c75f00e3231d5d8014408c89a93c97e5c0a4cf389034f3d9afccb058a",
+  "release-rs22": "e3d812b24c7e9f58b61429e4b516908bd782e7fe195fe211e9d9add0706efb2a",
+  "compose-rs23": "948e9d624db7d963a40cc3d228a69687f19cb9c01a9c1e52a5733fe46aa22d85",
+  "skills-creator-rs24": "28da789f618689b0e8daf3105887c467b3179626758490f97d72642abe399397",
+  "mod-rs25": "c403d80413f876f9bc8ccbda495be86c094d35f3e7df4f3a60cd6d0d85a5d2f1",
+  "cli-rs26": "02c2e3018dacdec0268f08178e7f8e6098ed07aa52c5eb00df00cfc8f3461225",
+  "Cargo-toml27": "2666c9f12ba0db95489f408de777bee2eba5147822e63d7a159225eb0b847da0",
+  "main-rs28": "f5f2f6379ab4776572d4e64740bf67f315554f15185e8a81e6e98f666ffdd547",
+  "lib-rs29": "afb6bc58892b8e123b463cb4d9d732ed7af5198e92db5c67b3639f675927dca0",
+  "skills-creator-yml30": "184d55a10422cc0c73ff2ce5bbf62d2e3336b3a94e9a9768f2bdadc0b490d98c",
+  "entry-tmpl31": "c2697e7e82727518df51d68647cf2748a49f56ea40a4b44bbeaeb4426f3781b7",
+  "entry-cmd-tmpl32": "b85006d5d9c33e7c85a2407253d5672fe3d6aa66ab1b2b1a1bd3aa09d61adec1",
+  "ws": "d84d1d8dd2386284a32123fc5881031a44741b5b617f70fbb78f97222635658a",
+  "skillmd": "2657b30ff2f39a575a93fad9dac6dc439bdb003edea9990ef689c46da3b301d9",
+  "tmpl": "96502ef142ba97203c3d22af5acaa0acbf300631a5928694cac323eaeb7cdf36",
+  "type": "8240d8665e08f4ffca4650800c9a3f13850aa449fc68b27a14d76294008007f7"
+ }
+}
