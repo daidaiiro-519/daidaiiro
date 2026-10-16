@@ -1,0 +1,144 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0182",
+ "title": "Windows と WSL の開発環境を作るスクリプトを置く",
+ "date": "2026-10-16",
+ "status": "accepted",
+ "decision": "Windows と WSL（Ubuntu 26.04）の開発環境を、このリポジトリに置いたスクリプトから、同じ構成で作れるようにする。",
+ "why": "2026-10-16 に、WSL と同じ開発環境を Windows に手で入れた。その手順は会話の記録と、セッションの一時フォルダの ps1 にしか無く、WSL の側は手順の記録がそもそも無い。2つの環境は別々に決めたので、Java の版の指定 ・ Rust と uv を mise の一覧に載せるか ・ Kotlin を入れるかが食い違っている。作り直すときに会話を読み返して手で再現するのをやめ、リポジトリのスクリプトを実行すれば同じ構成になる状態に一致させる。",
+ "shift": [
+  {
+   "what": "開発環境の作り方の置き場所",
+   "from": "会話の記録と、手で入れた結果だけ",
+   "to": "リポジトリの dev-env/wsl/setup.sh と dev-env/windows/setup.ps1"
+  },
+  {
+   "what": "2つの環境の言語の指定",
+   "from": "WSL は Java を corretto-25.0.4.8.1 に固定し Kotlin を入れる。Windows は corretto-25 で、Rust と uv も mise の一覧に載せる",
+   "to": "どちらも mise の node@24 ・ go ・ java@corretto-25 ・ ruby ・ dotnet ・ uv ・ rust@stable。Rust の中身は公式の rustup"
+  },
+  {
+   "what": "入れるツールの出どころ",
+   "from": "そのときどきで選んだ",
+   "to": "各開発元の公式の配布物（winget ・ 公式の apt リポジトリ ・ 公式のインストーラー）。原典の取得と照合の記録は sources/ に置く"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "開発環境の作り方の置き場所の、変更前と変更後。",
+ "alternatives": [
+  {
+   "option": "手順を docs/ に文書として書く",
+   "why_not": "読んだ人が手で写すので、写し間違いと抜けが起きる。スクリプトなら、空の Ubuntu のコンテナで最初から最後まで実行して確かめられる"
+  },
+  {
+   "option": "dotfiles などの別のリポジトリに置く",
+   "why_not": "入れるものは、このリポジトリの作業（Skill のビルド ・ 図の描画 ・ AI の CLI）のための環境である。別のリポジトリに置くと、このリポジトリの変更と一緒に直されない"
+  },
+  {
+   "option": "1本のスクリプトで Windows と WSL の両方を作る",
+   "why_not": "Windows は PowerShell と winget、WSL は bash と apt で、実行する場所も言語も違う。1本にすると、分岐が本体の大半になる"
+  },
+  {
+   "option": "Dev Container や Nix で環境を宣言する",
+   "why_not": "Windows の側で必要とするのは、Build Tools ・ Docker Desktop ・ PowerShell 7 のような、Windows に直接入れるものである。コンテナの中の環境では作れない"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "wsl",
+   "tab": "dev-env/wsl/setup.sh",
+   "file": "dev-env/wsl/setup.sh",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# WSL（Ubuntu 26.04）に、このリポジトリで使う開発環境を入れる",
+     "before": "（無い。新しく作るファイル）",
+     "why": "WSL の環境を作る手順の記録が無かった。いまの WSL に入っているものを棚卸しし、その一覧を手順にした"
+    },
+    {
+     "find": "# コンテナで試すときは SKIP_DOCKER=1 を付けて、Docker と /etc/wsl.conf の手順を飛ばす。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "空の Ubuntu 26.04 のコンテナで最初から最後まで実行して確かめるため。コンテナでは systemd と Docker を動かせない"
+    },
+    {
+     "find": "    graphviz poppler-utils xvfb libicu78 \\",
+     "before": "（無い。新しく作るファイル）",
+     "why": "いまの WSL では libicu が入っておらず、.NET が起動しない。Ubuntu 26.04 のパッケージ名は libicu78 である（apt-cache で確かめた）"
+    },
+    {
+     "find": "# 2. GitHub CLI（GitHub の公式の apt リポジトリ。手順は cli/cli の docs/install_linux.md のまま）",
+     "before": "（無い。新しく作るファイル）",
+     "why": "いまの WSL は Ubuntu の gh 2.46.0 で、Windows の 2.102.0 より古い。公式の apt リポジトリに替えて、2つの環境の版を揃える。コマンドは原典の行をそのまま写した"
+    },
+    {
+     "find": "# Windows 側の mise の設定（/mnt/c のホーム）を、WSL の mise に読ませない。activate より前に置く",
+     "before": "（無い。新しく作るファイル）",
+     "why": "WSL で /mnt/c の下へ移動すると、mise が Windows の設定ファイルを読み、「missing: rust@stable」と警告した。activate のあとに置くと、起動した直後の1回は効かない（実測）"
+    },
+    {
+     "find": "mise use -g node@24 go@latest java@corretto-25 ruby@latest dotnet@latest uv@latest rust@stable",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Windows と同じ指定にする。いまの WSL で実行すると、Java は 25 系の最新へ上がり、Rust と uv が mise の一覧に載る。Kotlin は使わないので入れない"
+    },
+    {
+     "find": "mise exec -- npx -y playwright install --with-deps chromium",
+     "before": "（無い。新しく作るファイル）",
+     "why": "このリポジトリの決まりで、図はヘッドレスブラウザで描画して目視してから出す。そのための Chromium である"
+    },
+    {
+     "find": "have kiro-cli || curl -fsSL https://cli.kiro.dev/install | bash",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Claude Code ・ Codex ・ Kiro の3つを、各社の公式のインストーラーで入れる。入っていれば入れ直さない"
+    }
+   ]
+  },
+  {
+   "key": "windows",
+   "tab": "dev-env/windows/setup.ps1",
+   "file": "dev-env/windows/setup.ps1",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "# Windows に、WSL と同じ基盤の開発環境を入れる",
+     "before": "（無い。新しく作るファイル）",
+     "why": "2026-10-16 に Windows で実行した ps1 を、リポジトリへ移す。実行の途中で直した3点（rustup の部品の入れ方 ・ uv の python.exe ・ go install のあとの mise reshim）も入っている"
+    },
+    {
+     "find": "Install-Winget 'Microsoft.VisualStudio.2022.BuildTools' @(",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Windows の Rust はリンカに MSVC を使う。rustup の公式文書が推奨する Desktop development with C++ のワークロード（Microsoft.VisualStudio.Workload.VCTools）を入れる"
+    },
+    {
+     "find": "Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force",
+     "before": "（無い。新しく作るファイル）",
+     "why": "Windows の既定の実行ポリシーではプロファイルが読み込まれず、PowerShell を開くたびにエラーが出た。自分のユーザーだけを RemoteSigned にする"
+    },
+    {
+     "find": "pwsh -NoProfile -Command {",
+     "before": "（無い。新しく作るファイル）",
+     "why": "mise を有効にする1行は、PowerShell 7 のプロファイルにだけ書く。5.1 に書くと、開くたびに chpwd の警告が出た"
+    },
+    {
+     "find": "if (-not (Test-Command claude))   { irm https://claude.ai/install.ps1 | iex }",
+     "before": "（無い。新しく作るファイル）",
+     "why": "一時フォルダの版は、実行するたびに3つの CLI を入れ直していた。入っていれば飛ばし、何度実行しても同じ結果にする"
+    },
+    {
+     "find": "    $wslHome = (wsl.exe -e sh -c 'printf %s \"$HOME\"') -replace '/', '\\'",
+     "before": "（無い。新しく作るファイル）",
+     "why": "一時フォルダの版は WSL のホームを /home/daidaiiro と書いていた。WSL に聞いて引くようにし、WSL に config が無いときは写さない"
+    },
+    {
+     "find": "Write-Host '  Docker Desktop を一度起動し、Settings → Resources → WSL integration で Ubuntu をオフにする'",
+     "before": "（無い。新しく作るファイル）",
+     "why": "WSL の Ubuntu には Docker CE が直接入っている。Docker Desktop の連携をオンのままにすると、WSL の docker が Docker Desktop の側へ切り替わることがある"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "wsl": "3407748f6a438472ac87a1e9cbe46b25cd5dafb1601262519f2a40e595155bd8",
+  "windows": "4829d533f1d5539281d5e6a86f7ad5bd36eff00cf4f515948959570625019935"
+ }
+}
