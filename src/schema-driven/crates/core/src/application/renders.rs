@@ -211,7 +211,7 @@ impl<F: Files, S: Schemas, Q: Query> Renders<F, S, Q> {
             let html = html.map_err(|error| {
                 UseCaseError::new("描画できない", format!("{}: {}", instance.path, error.0))
             })?;
-            let name = instance.path.rsplit('/').next().unwrap_or(&instance.path);
+            let name = crate::domain::path::file_name(&instance.path);
             let stem = name.strip_suffix(".json").unwrap_or(name);
             generated.push((format!("{}/{stem}.html", out.trim_end_matches('/')), html));
         }

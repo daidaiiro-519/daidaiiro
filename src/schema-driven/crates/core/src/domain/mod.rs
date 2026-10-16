@@ -10,6 +10,7 @@ pub mod check;
 pub mod contract;
 pub mod design_system;
 pub mod instance;
+pub mod path;
 pub mod published;
 pub mod schema;
 pub mod schema_name;

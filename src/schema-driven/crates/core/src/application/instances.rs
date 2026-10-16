@@ -152,7 +152,7 @@ impl<F: Files, S: Schemas, Q: Query> Instances<F, S, Q> {
             _ => {
                 let names: Vec<&str> = found
                     .iter()
-                    .map(|path| path.rsplit('/').next().unwrap_or(path))
+                    .map(|path| crate::domain::path::file_name(path))
                     .collect();
                 Err(UseCaseError::new(
                     "同じ名前のスキーマが2つ以上ある",
@@ -180,7 +180,7 @@ impl<F: Files, S: Schemas, Q: Query> Instances<F, S, Q> {
             return Ok(Schema::new(file, root, contract::builtin_files()));
         }
         let (_, root) = self.read_json(path)?;
-        let name = path.rsplit('/').next().unwrap_or(path);
+        let name = crate::domain::path::file_name(path);
         let siblings = self
             .schemas
             .referenced(path)

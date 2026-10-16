@@ -371,6 +371,40 @@ fn mcp(binary: &Path) -> Result<(String, Vec<String>), String> {
     })
 }
 
+/// --skill の Skill のフォルダのスキーマを名前（$id）で引いて、インスタンスを検査できるかを確かめる。
+/// Windows では経路の区切りが `\` なので、ここでスキーマの URI が壊れたことがある。
+fn skill_schema_by_name(cli: &Path) -> Result<Vec<String>, String> {
+    let work = std::env::temp_dir().join(format!("schema-driven-verify-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&work);
+    let write = |rel: &str, value: Value| {
+        let path = work.join(rel);
+        fs::create_dir_all(path.parent().expect("親のフォルダ"))
+            .and_then(|_| fs::write(&path, value.to_string()))
+            .map_err(|error| format!("{} を書けない：{error}", path.display()))
+    };
+    write(
+        "example/assets/t.schema.json",
+        json!({"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "example/t@v1",
+               "type": "object", "properties": {"$schema": {"type": "string"}}}),
+    )?;
+    write("instances/a.json", json!({"$schema": "example/t@v1"}))?;
+    let answer: Value = serde_json::from_str(&run(Command::new(cli)
+        .arg("--skill")
+        .arg(work.join("example"))
+        .arg("check")
+        .arg("--dir")
+        .arg(work.join("instances")))?)
+    .map_err(|error| format!("check の出力が JSON でない：{error}"))?;
+    let _ = fs::remove_dir_all(&work);
+    let errors = &answer["instances"][0]["errors"];
+    Ok(match answer["ok"] == json!(true) && errors == &json!([]) {
+        true => vec![],
+        false => vec![format!(
+            "--skill のスキーマを名前で引いて検査できない：{answer}"
+        )],
+    })
+}
+
 /// 展開した Skill のフォルダを確かめ、所見の文を返す。0件なら合格である。
 pub fn verify(dir: &Path, tag: Option<&str>) -> Result<Vec<String>, String> {
     let recorded = read_json(&dir.join("dist.json"))?;
@@ -401,6 +435,8 @@ pub fn verify(dir: &Path, tag: Option<&str>) -> Result<Vec<String>, String> {
     if checked["ok"] != json!(true) {
         findings.push(format!("check-schemas が assets/ を読めない：{checked}"));
     }
+
+    findings.extend(skill_schema_by_name(&cli)?);
 
     let (served, tools) = mcp(&dir.join(format!("scripts/bin/{}{suffix}", BINARIES[1])))?;
     if tools != TOOLS {

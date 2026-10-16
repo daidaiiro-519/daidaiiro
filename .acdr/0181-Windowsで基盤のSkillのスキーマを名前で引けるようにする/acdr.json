@@ -1,0 +1,179 @@
+{
+ "$schema": "acdr.schema.json",
+ "no": "ACDR 0181",
+ "title": "Windows で基盤の Skill のスキーマを名前で引けるようにする",
+ "date": "2026-10-16",
+ "status": "accepted",
+ "decision": "基盤は、Windows でも --skill の Skill のスキーマを名前で引いて検査できるようにし、版 0.1.1 として公開し直す。skills-creator は 0.1.1 のエンジンを入れる。",
+ "why": "skills-creator の公開のワークフロー（run 38898991107）で、Windows の verify だけが落ちた。skills-creator の check は、SKILL.md の型を判定させるために基盤のエンジンを --skill 付きで呼ぶ。基盤は、スキーマのファイル名を経路の / だけで区切って取っていたので、Windows では file:///schemas/assets\\skill.schema.json という不正な URI を作り、「スキーマが壊れている」で止まった。同じ書き方が core の5か所にあった。基盤の公開の確かめは --skill の道を通っていなかったので、0.1.0 の公開では見つからなかった。",
+ "shift": [
+  {
+   "what": "スキーマのファイル名の取り方",
+   "from": "経路を / だけで区切る（core の5か所）",
+   "to": "/ と \\ の両方で区切る関数（domain/path.rs）を1つ置き、5か所がそれを使う"
+  },
+  {
+   "what": "基盤の公開の確かめ（xtask verify）",
+   "from": "--skill の道を通らない",
+   "to": "作業用の Skill のフォルダにスキーマを置き、--skill でスキーマを名前で引いてインスタンスを検査する。3つの OS で通す"
+  },
+  {
+   "what": "基盤の版",
+   "from": "0.1.0",
+   "to": "0.1.1（不具合の修正）"
+  },
+  {
+   "what": "skills-creator が入れるエンジンの版",
+   "from": "0.1.0",
+   "to": "0.1.1"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "Windows で --skill のスキーマを名前で引くときの、変更前と変更後。",
+ "alternatives": [
+  {
+   "option": "skills-creator の側で、--skill に渡す経路の区切りを / に直してから呼ぶ",
+   "why_not": "基盤の不具合を上の Skill が回り込むことになる。ほかの上の Skill も同じ回り込みを書くことになる"
+  },
+  {
+   "option": "経路を Path で扱うように core を書き直す",
+   "why_not": "core はファイルに触らず、経路を文字列として受け取る。ファイル名を取るだけなので、区切りを2つ見る関数で足りる"
+  },
+  {
+   "option": "版を 0.1.0 のまま直す",
+   "why_not": "公開した版は配布物を変えられない。0.1.0 の配布物は Windows で壊れたまま残る"
+  }
+ ],
+ "supersedes": "",
+ "docs": [
+  {
+   "key": "path",
+   "tab": "domain/path.rs",
+   "file": "src/schema-driven/crates/core/src/domain/path.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "//! ファイルの経路の文字列から、最後のファイル名を取る。",
+     "before": "（無い。新しく作るファイル）",
+     "why": "ファイル名の取り方を1か所にし、Windows の区切りも見る。Windows の経路を含む表で単体試験をする"
+    }
+   ]
+  },
+  {
+   "key": "mod",
+   "tab": "domain/mod.rs",
+   "file": "src/schema-driven/crates/core/src/domain/mod.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "pub mod path;",
+     "before": "（無い）",
+     "why": "新しい module を足した"
+    }
+   ]
+  },
+  {
+   "key": "inst",
+   "tab": "application/instances.rs",
+   "file": "src/schema-driven/crates/core/src/application/instances.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": ".map(|path| crate::domain::path::file_name(path))",
+     "before": ".map(|path| path.rsplit('/').next().unwrap_or(path))",
+     "why": "同じ名前のスキーマが2つあるときの一覧も、ファイル名だけを出す"
+    },
+    {
+     "find": "let name = crate::domain::path::file_name(path);",
+     "before": "let name = path.rsplit('/').next().unwrap_or(path);",
+     "why": "Windows で落ちた箇所。スキーマの URI の名前に、経路の残りが入らないようにする"
+    }
+   ]
+  },
+  {
+   "key": "checks",
+   "tab": "application/checks.rs",
+   "file": "src/schema-driven/crates/core/src/application/checks.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let name = crate::domain::path::file_name(&path);",
+     "before": "let name = path.rsplit('/').next().unwrap_or(&path);",
+     "why": "Windows では承認の記録のファイルを、名前で検出できなかった"
+    },
+    {
+     "find": "let name = crate::domain::path::file_name(&path).to_owned();",
+     "before": "let name = path.rsplit('/').next().unwrap_or(&path).to_owned();",
+     "why": "check-schemas が返すスキーマの名前にも、経路の残りが入らないようにする"
+    }
+   ]
+  },
+  {
+   "key": "renders",
+   "tab": "application/renders.rs",
+   "file": "src/schema-driven/crates/core/src/application/renders.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "let name = crate::domain::path::file_name(&instance.path);",
+     "before": "let name = instance.path.rsplit('/').next().unwrap_or(&instance.path);",
+     "why": "描画したページの名前にも、経路の残りが入らないようにする"
+    }
+   ]
+  },
+  {
+   "key": "xtask",
+   "tab": "xtask/src/lib.rs",
+   "file": "src/schema-driven/xtask/src/lib.rs",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "findings.extend(skill_schema_by_name(&cli)?);",
+     "before": "（無い）",
+     "why": "公開の確かめに、--skill の道を足した"
+    },
+    {
+     "find": "fn skill_schema_by_name(cli: &Path) -> Result<Vec<String>, String> {",
+     "before": "（無い）",
+     "why": "作業用の Skill のフォルダ（example）にスキーマを置き、名前で引いてインスタンスを検査する。Windows では \\ を含む経路を通る"
+    }
+   ]
+  },
+  {
+   "key": "ws",
+   "tab": "Cargo.toml",
+   "file": "src/schema-driven/Cargo.toml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "version = \"0.1.1\"",
+     "before": "version = \"0.1.0\"",
+     "why": "不具合の修正なので、3つ目の数字を上げる"
+    }
+   ]
+  },
+  {
+   "key": "scwf",
+   "tab": "skills-creator.yml",
+   "file": ".github/workflows/skills-creator.yml",
+   "rev": "HEAD",
+   "marks": [
+    {
+     "find": "ENGINE_VERSION: \"0.1.1\"",
+     "before": "ENGINE_VERSION: \"0.1.0\"",
+     "why": "skills-creator のフォルダに、直した基盤を入れる"
+    }
+   ]
+  }
+ ],
+ "seal": {
+  "path": "72c6f1339ae17eb7e7982b90283ca85e7679392d2b508b7f1feac6676496c215",
+  "mod": "5b66204233f89bc282140c11ea85508a1b2541568e22daddfe89707d41e70435",
+  "inst": "99d0548b410d65bbcd78abef52316e2da4df50c4ffd7d42017365cd8f60a6766",
+  "checks": "5aba322326c73e813b67907444cc2dbe01526c7512ccd984eb6252e6d207d56a",
+  "renders": "97449492c439b458955c089d2c5df43412e454a84edecdafc1b638de38e90a8a",
+  "xtask": "61d4c70feb69bf11c6198b7f8a8712433e4cc56a79ec09527cff31fa7029dccd",
+  "ws": "78e9d4cc33c211a3ca9772de29a20d9fe06465ca0092c8b1b7c517a797b92cc5",
+  "scwf": "c1cc60d2e13d795983dd37791fc4fa6810ba5415d3b46a1362d43a3ba0be3fda"
+ }
+}

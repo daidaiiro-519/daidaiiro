@@ -96,7 +96,7 @@ impl<F: Files, S: Schemas, Q: Query> Checks<F, S, Q> {
         let mut loaded = Vec::new();
         let mut schemas = BTreeMap::new();
         for path in list {
-            let name = path.rsplit('/').next().unwrap_or(&path);
+            let name = crate::domain::path::file_name(&path);
             if !name.ends_with(".json") || name.ends_with(".schema.json") || name == APPROVAL_FILE {
                 continue;
             }
@@ -187,7 +187,7 @@ impl<F: Files, S: Schemas, Q: Query> Checks<F, S, Q> {
             .map_err(|error| UseCaseError::new("読めない", error.0))?;
         let (mut schemas, mut named) = (Vec::new(), Vec::new());
         for path in list {
-            let name = path.rsplit('/').next().unwrap_or(&path).to_owned();
+            let name = crate::domain::path::file_name(&path).to_owned();
             if name.ends_with(".schema.json") {
                 let (_, value) = self.instances.read_json(&path)?;
                 named.push((name.clone(), value.clone()));
