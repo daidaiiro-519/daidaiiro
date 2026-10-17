@@ -124,3 +124,9 @@ table('q7-keywords','x- キーワードの表：置く場所 ・ 検証の種類
 # 第38回：利用者の指摘で、q1-model を持ち主（基盤 ・ Skill ・ 基盤の外）の枠で描き直した（このファイルの外で直接書いた）。
 
 # 第40回：Concrete の持ち主を Skill から区切られた文脈へ広げた（q1-model ・ q1-scaffold ・ q1-boundary はこのファイルの外で直接書いた）。
+
+# 第44回：単体で使う Skill と、harness の中で使う Skill の例（acdr）
+table('q1-product','acdr を単体で使うときと、harness の中で使うときのプロダクト ・ 文脈 ・ Concrete',["使われ方","プロダクト","区切られた文脈","Concrete"],[200,140,230,340],[
+ ["acdr を単体で配って使う","acdr","acdr の1つ","acdr のスキーマと、使う人が書く acdr.json"],
+ ["このリポジトリの中で使う","このリポジトリ","acdr ・ brainstorming など18","各 Skill のスキーマと instance、文脈の地図"],
+ ["どちらでも同じもの","──","──","名前 acdr/<種類>@<版> と acdr/terms@v1"]],emph=(0,),row_h=34)
