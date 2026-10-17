@@ -1,0 +1,20 @@
+{
+  "measured": "2026-10-17",
+  "source": "src/schema-driven（schema-driven 0.1.2 の作業ツリー）を読んで洗い出した。出どころは各群の files",
+  "commands": ["create", "get", "update", "delete", "prompt", "check", "check-schemas", "approve", "render", "--version"],
+  "groups": [
+    {"id": "M", "count": 26, "what": "Concrete スキーマの形（meta-schema の制約）", "checked_by": ["check-schemas", "update"], "files": ["crates/core/schemas/meta-schema.json"]},
+    {"id": "S", "count": 12, "what": "Concrete スキーマの検査（版 ・ 申告していない x- ・ x- の形 ・ 式 ・ $schema.const と $id ・ 参照される種類の id）", "checked_by": ["check-schemas"], "files": ["crates/core/src/domain/schema_rules.rs"]},
+    {"id": "P", "count": 5, "what": "公開した版（書き換えない ・ 消さない ・ 末尾に足す）", "checked_by": ["check-schemas（P1 ・ P2 だけ）"], "files": ["crates/core/src/domain/published.rs", "crates/core/schemas/published.schema.json"]},
+    {"id": "W ・ F", "count": 17, "what": "meta-schema の x-prompt の write（宣言）。多くは M ・ S が強制する", "checked_by": ["一部だけ"], "files": ["crates/core/schemas/meta-schema.json"]},
+    {"id": "I", "count": 18, "what": "instance（名前の解決 ・ 作成 ・ ハッシュによる更新 ・ Patch のあとの検証 ・ 未記入）", "checked_by": ["create", "get", "update", "delete", "prompt", "check", "approve", "render"], "files": ["crates/core/src/application/instances.rs", "crates/core/src/domain/instance.rs"]},
+    {"id": "R ・ D", "count": 13, "what": "x-ref の指す先と数の制約 ・ x-derive の導出値", "checked_by": ["check", "approve"], "files": ["crates/core/src/domain/check.rs"]},
+    {"id": "A", "count": 6, "what": "承認", "checked_by": ["approve"], "files": ["crates/core/src/domain/approval.rs", "crates/core/src/application/checks.rs"]},
+    {"id": "V", "count": 21, "what": "描画（カタログ ・ デザインシステム ・ ページテンプレート ・ 失敗なら1ページも書かない）", "checked_by": ["render"], "files": ["crates/core/src/application/renders.rs", "crates/core/src/domain/catalog.rs", "crates/core/src/domain/design_system.rs"]},
+    {"id": "U", "count": 5, "what": "呼び出し方（引数の名前と数）", "checked_by": ["すべて"], "files": ["crates/adapters/src/inbound/tools.rs"]}
+  ],
+  "total_rows": 123,
+  "total_unique": 115,
+  "unchecked": ["W7 葉に x-prompt を書かない", "W8 並びは配列", "F5 title は名詞", "F6 description に書かないもの", "F7 x-generates の置き場所", "F8 $defs だけのスキーマは x-generates を持たない", "F9 x-annotations に基盤の名前を申告しない", "P3 published.json の形", "P4 記録1件の形", "P5 書き換えない ・ 消さない ・ 末尾に足す", "I12 hash は内容の sha256（比べる処理が無い）", "annotations.schema.json の根の write"],
+  "facts": ["check は検証エラーや参照のずれがあっても ok:true を返し、findings に出すだけである", "render は check ・ approve の結果も、x-ref ・ x-derive のずれも見ない", "delete は、参照が残っていても消す"]
+}

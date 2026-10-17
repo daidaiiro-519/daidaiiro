@@ -1,0 +1,97 @@
+{
+  "kind": "design",
+  "question": "Semantic Domain Schema の Q1（ドメインモデル）を、概念モデル ・ 不変条件の表 ・ コマンド（エンジンの能力）の表の3つでどう組み直すか",
+  "premises": [
+    {"name": "3段", "value": "Abstract スキーマ → Concrete スキーマ → instance。create は Abstract から Concrete の雛形を、Concrete から instance を作る", "source": "ボード Q1 の決まっている前提"},
+    {"name": "Concrete の持ち主", "value": "Concrete は1つの区切られた文脈（Skill か Agent）が持つ。harness ・ 開発基盤は文脈の地図と instance だけを持つ", "source": "ボード 第42回 ・ 第43回"},
+    {"name": "term の置き場所", "value": "<名前>/terms@v1 の $defs に置き、欄は $ref で指す。案で、確認待ち（未判定）", "source": "依頼文"},
+    {"name": "実装の行の番号", "value": "M ・ S ・ I などの群の中の番号の割り当ては依頼文の要約から推した。群の範囲は依頼文どおり、群の中の番号の区切りは推測", "source": "判断基準の範囲外"},
+    {"name": "Scan ・ Query ・ Index", "value": "いまのエンジンに無い。取得は JMESPath の get だけ", "source": "コーディネーターの補足"}
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "概念は9つ（集約は Concrete スキーマ ・ instance ・ view の3つ）に絞り、不変条件は概念ごとに22行、エンジンの能力は11（いまある9・無い2）で、各能力をどの集約へのコマンドかクエリかで並べる。",
+    "because": "集約のコマンドは不変条件に違反した状態になることを防ぎ、クエリは状態を変更しない。この2つで並べると、115件の実装の行が、どの概念のどの不変条件を守る手段かに1対1で収まる。対訳 ・ x- の書き表し ・ エンジンの部品は不変条件を持たないので、概念から外す。"
+  },
+  "figure": {
+    "caption": "9つの概念と3つの集約の境界。集約の間は名前（$id ・ $schema ・ $ref）で参照する",
+    "nodes": [
+      {"id": "abs", "label": "Abstract スキーマ（版）", "role": "値オブジェクト"},
+      {"id": "con", "label": "Concrete スキーマ", "role": "集約のルート"},
+      {"id": "pub", "label": "公開した版", "role": "Concrete の内側の値オブジェクト"},
+      {"id": "rule", "label": "rule", "role": "Concrete の内側のエンティティ"},
+      {"id": "term", "label": "term", "role": "terms の Concrete の内側の値オブジェクト"},
+      {"id": "ins", "label": "instance", "role": "集約のルート"},
+      {"id": "apr", "label": "承認の記録", "role": "instance の内側のエンティティ"},
+      {"id": "view", "label": "view（描画の契約）", "role": "集約のルート"},
+      {"id": "res", "label": "検証結果", "role": "クエリの返り値（値オブジェクト）"}
+    ],
+    "edges": [
+      {"from": "con", "to": "abs", "label": "$schema ・ x-abstract で版を指す", "dashed": true},
+      {"from": "con", "to": "pub", "label": "持つ"},
+      {"from": "con", "to": "rule", "label": "持つ"},
+      {"from": "con", "to": "term", "label": "欄が $ref で指す", "dashed": true},
+      {"from": "ins", "to": "con", "label": "$schema の名前で指す", "dashed": true},
+      {"from": "ins", "to": "apr", "label": "持つ"},
+      {"from": "view", "to": "con", "label": "x-view を読む", "dashed": true},
+      {"from": "res", "to": "rule", "label": "rule ごとに1件", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {"option": "A：概念9 ・ 集約3、不変条件は概念ごとに束ね、実装の行は手段として対応づける", "effect": "不変条件の1行ごとに検査するコマンドが1つ決まり、未検査の行が表の上で見える", "chosen": true},
+    {"option": "B：いまの27件の表を残し、列（対訳 ・ x- ・ 部品）を足して分類する", "effect": "用語集 ・ 書き表し ・ 部品の3つの仕事が1つの表に残る。不変条件とコマンドの置き場所が無いまま", "chosen": false},
+    {"option": "C：115件の実装の行をそのまま不変条件の表にする", "effect": "U（呼び出し方）や式の形のような手段が、ドメインの約束と同じ重さで並ぶ。版を足すたびに表が実装に合わせて変わる", "chosen": false},
+    {"option": "D：Abstract ・ Concrete ・ instance を1つの集約にする", "effect": "instance の更新のたびにスキーマ全体の整合を守ることになり、集約を小さく保てない。文脈ごとの持ち主の境界も消える", "chosen": false},
+    {"option": "E：エンジンの能力を Validator と Resolver の2つで表す", "effect": "作成 ・ 取得 ・ 更新 ・ 削除 ・ 案内 ・ 承認 ・ 描画がどの集約への操作かを書く場所が無くなる。検証と解決は能力の一部である", "chosen": false}
+  ],
+  "steps": [
+    {"do": "概念を9つに絞る", "detail": "残す：Abstract スキーマ（版）・ Concrete スキーマ ・ 公開した版 ・ rule ・ term ・ instance ・ 承認の記録 ・ 検証結果 ・ view。外す：英日の対訳 → Q5（用語集）、x-ref ・ x-derive ・ x-prompt などの書き表し → Q7、Semantic Schema Validator ・ Semantic Schema Resolver ・ validator → Q3（エンジンの部品）、区切られた文脈 ・ 文脈の地図 → Q6（スキーマの構成）、未記入 ・ ハッシュ ・ findings → それぞれ instance ・ 承認の記録 ・ 検証結果の属性"},
+    {"do": "集約の境界を3つに引く", "detail": "Concrete スキーマ集約（ルート＝スキーマ文書。rule ・ 公開した版を内側に持ち、$id で識別）・ instance 集約（ルート＝instance 文書。承認の記録を内側に持つ）・ view 集約（ページテンプレート ・ カタログ ・ デザインシステム）。Abstract の版と term は名前で参照される値。集約の間は名前で参照し、1回の操作で変えるのは1つの集約だけにする"},
+    {"do": "不変条件を概念ごとに22行に束ねる", "detail": "1行＝概念が常に満たすこと1つ。実装の行（M ・ S ・ P ・ I ・ R ・ D ・ A ・ V）は、その行を検査する手段として右の列に置く。U1〜U5 は呼び出し方（アプリケーションの入口の約束）なので不変条件に入れず、Q3 のコマンドの契約へ回す"},
+    {"do": "未検査の12件を2つに分ける", "detail": "機械で決まるもの（published の形と追記のみ ・ x-generates の置き場所 ・ 葉に x-prompt を書かない ・ x-annotations に基盤の名前を申告しない ・ 並びは配列）は不変条件にして check-schemas に検査を足す。意味の判断が要るもの（title は名詞 など）は Abstract の x-prompt.write の rule として残し、Semantic Schema Validator の rule に回す。検査を持たない行は不変条件の表に置かない"},
+    {"do": "エンジンの能力を集約への操作として並べる", "detail": "能力は 作成 ・ 取得 ・ 更新 ・ 削除 ・ 案内 ・ 検証 ・ 解決 ・ 承認 ・ 描画 ・ 公開 ・ 索引。状態を変えるもの（作成 ・ 更新 ・ 削除 ・ 承認 ・ 公開）はコマンド、変えないもの（取得 ・ 案内 ・ 検証 ・ 描画）はクエリ。解決はコマンドではなく、作成 ・ 更新 ・ 検証 ・ 描画が中で使う能力。公開（版を末尾に足す）と索引（Scan ・ Query ・ Index）はいま無い"},
+    {"do": "完成の条件を3つの表と meta-schema ・ エンジンの対応で決める", "detail": "①概念の表の各行が abstract@v1 の meta-schema の構造（根 ・ $defs ・ x-generates の kind）のどこか1か所に対応する ②不変条件の表の各行が meta-schema の x-prompt.write の rule（id ・ rule ・ why ・ test）1件と、エンジンの検査1つと、その試験1件を持つ ③115件の実装の行（U を除く）がどれか1つの不変条件に属し、属さない行が0件 ④能力の表の各行が CLI ・ MCP のツール1つに対応し、無い能力は「無い」と書かれている。4つとも機械で数えて0件の差なら完成"}
+  ],
+  "grounds": [
+    {"criterion": "aggregate", "quote": "構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ。集約の状態は、コマンドを実行したときにだけ変わる"},
+    {"criterion": "aggregate", "quote": "対応：一貫性を保証する対象を、集約の業務ロジックが必要とするデータだけに限定し、集約をできるだけ小さく設計する ・ 理由：集約の全体が1つのトランザクションの単位なので、大きくすると不必要に複雑になり、性能やスケーラビリティが低下しやすい"},
+    {"criterion": "aggregate", "quote": "対応：他の集約は、オブジェクトそのものではなく ID で参照する ・ 理由：境界の外側であることを明確に表現し、集約ごとに固有のトランザクション境界を持たせる"},
+    {"criterion": "aggregate", "quote": "対応：後から更新するプロセスは、元の状態が既に変わったことを検知したら、最新の状態を取得し直して再実行する ・ 理由：複数のプロセスが同じ集約を変更するとき、先に更新したプロセスの変更を、後のプロセスが上書きしないようにする"},
+    {"criterion": "domain-model", "quote": "対応：データベースの操作や外部との通信といった技術的な関心事を、ドメインモデルから完全に分離する ・ 理由：業務ロジックは本質的に複雑なので、それ以上の不必要な複雑さを持ち込まない"},
+    {"criterion": "domain-model", "quote": "対応：業務ロジックに焦点を合わせ、オブジェクトを区切られた文脈の同じ言葉の用語に対応させる ・ 理由：ソースコードが同じ言葉で書かれ、業務エキスパートが頭に描くモデルを表現する"},
+    {"criterion": "value-object", "quote": "性質：不変 ・ 内容：フィールドを変更すると別の値になってしまうので、変更せず、別のインスタンスを生成する"},
+    {"criterion": "entity", "quote": "対応：よほど特殊な場合を除き、識別する値を、その個体が存在する間は変更しない"},
+    {"criterion": "ubiquitous-language", "quote": "対応：用語集は、ユースケースや Gherkin のテストなど、振る舞いを表す手法と組み合わせる ・ 理由：用語集はモノ ・ プロセス ・ 役割などの名詞の整理に役立つ。振る舞いは動詞の一覧ではなく、業務ルール ・ 前提条件 ・ 制約で、用語集の形では表せない"},
+    {"criterion": "cqrs", "quote": "対応：クエリは、読み取りモデルもコマンド実行モデルも変更しない ・ 理由：クエリは、永続化された状態を変更できない"},
+    {"criterion": "cqrs", "quote": "対応：コマンドは、成功したか失敗したかを常に呼び出し側へ知らせ、失敗ならその理由も返す ・ 理由：呼び出し側は、妥当性の検証の失敗か技術的な問題かを知り、コマンドを直す方法を知る必要がある"}
+  ],
+  "cautions": [
+    {"name": "用語集と概念モデルの混同（いまの27件）", "risk": "対訳 ・ x- ・ 部品 ・ 記録が同じ表に並び、どれが不変条件を持つかが読めない。利用者が「何を整理したものか」を判定できない", "alternative": "概念の表は不変条件を持つものだけにし、対訳は Q5、書き表しは Q7、部品は Q3 に置く"},
+    {"name": "（推測）検査を持たない不変条件", "risk": "表に載っているのにどのコマンドも検査しない行は、守られている保証が無い（P3〜P5 と未検査の12件）", "alternative": "検査を足すか、x-prompt.write の案内に下げ、不変条件の表から外す"},
+    {"name": "（推測）解決をコマンドとして数える", "risk": "Resolver を1つの能力として前に出すと、作成 ・ 更新 ・ 検証のどこで解決に失敗したかが結果に出ない", "alternative": "解決は各能力の中の手順とし、失敗は呼んだ能力の結果（error）として返す"}
+  ],
+  "ai_cautions": [
+    {"breaks": "不変条件の表に、実装の行（M12 など）をそのまま1行として書き写す", "check": "不変条件の文に x- ・ $ で始まる語や行番号が入っていないかを grep で数える"},
+    {"breaks": "能力の表に、いま無い Scan ・ Index をある能力として書く", "check": "能力の表の各行の「いまのコマンド」が CLI の --help に在るかを照合する"},
+    {"breaks": "U1〜U5 を不変条件に数える", "check": "不変条件の表の対応列に U が出ないことを確かめる"}
+  ],
+  "records": [
+    {"target": "ボード Q1 の答え", "content": "概念の表9行 ・ 不変条件の表22行 ・ 能力の表11行に置き換え、いまの27件の表は外す"},
+    {"target": "Q3 ・ Q5 ・ Q7", "content": "外した項目（部品 ・ 対訳 ・ x- の書き表し）と U1〜U5 を、それぞれの論点の入力として渡す"}
+  ],
+  "next": [
+    "115件の実装の行を22の不変条件へ1件ずつ割り当て、どれにも属さない行を数える",
+    "P3〜P5 と機械で決まる未検査の5件に check-schemas の検査を足す",
+    "意味の判断が要る未検査の行を x-prompt.write の rule へ移す",
+    "公開と索引（Scan ・ Query ・ Index）を、能力の表に「無い」として載せ、作るかを Q3 で決める",
+    "term を terms@v1 の $defs に置く案を利用者に確認する"
+  ],
+  "related": [
+    {"criterion": "domain-model", "relation": "概念ごとの不変条件を中心に置く理由"},
+    {"criterion": "aggregate", "relation": "集約の境界と、コマンドが不変条件を守る形"},
+    {"criterion": "value-object", "relation": "公開した版 ・ Abstract の版 ・ term を値として扱う理由"},
+    {"criterion": "entity", "relation": "$id を変えない理由"},
+    {"criterion": "ubiquitous-language", "relation": "用語集を概念モデルから分ける理由"},
+    {"criterion": "cqrs", "relation": "能力をコマンドとクエリに分ける理由"}
+  ]
+}
