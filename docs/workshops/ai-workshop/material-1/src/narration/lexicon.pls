@@ -3,4 +3,5 @@
 <lexicon version="1.0" xmlns="http://www.w3.org/2005/01/pronunciation-lexicon"
          alphabet="ipa" xml:lang="ja-JP">
   <lexeme><grapheme>Kiro</grapheme><alias>キロ</alias></lexeme>
+  <lexeme><grapheme>成果物</grapheme><alias>せいかぶつ</alias></lexeme>
 </lexicon>

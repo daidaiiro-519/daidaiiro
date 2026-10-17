@@ -1,0 +1,63 @@
+{
+ "no": "ACDR 0186",
+ "title": "成果物の読みの補正",
+ "date": "2026-10-17",
+ "status": "accepted",
+ "decision": "オリエンテーションの「成果物」を「せいかぶつ」と読む音声へ修正します。",
+ "why": "利用者から成果物の読み間違いを指摘されました。原稿の表記を維持し、読みの辞書で補正します。",
+ "shift": [
+  {
+   "what": "成果物の読み",
+   "from": "音声合成に読みを任せる",
+   "to": "辞書で「せいかぶつ」と指定する"
+  },
+  {
+   "what": "合成済み音声",
+   "from": "原稿と声が同じなら、以前の音声を再利用する",
+   "to": "辞書の変更に合わせて保存先を分け、該当する七枚を再合成する"
+  }
+ ],
+ "figure": "flow.svg",
+ "figure_caption": "原稿の表記を変えず、辞書で読みを指定します。",
+ "alternatives": [
+  {
+   "option": "原稿をひらがなへ変更する",
+   "why_not": "人が読む原稿まで読み仮名になり、表記と読みの補正が混在します。"
+  },
+  {
+   "option": "辞書だけを更新する",
+   "why_not": "現在の再利用判定には辞書が含まれず、以前の音声が使われます。"
+  }
+ ],
+ "docs": [
+  {
+   "key": "lexicon",
+   "tab": "読みの辞書",
+   "file": "docs/workshops/ai-workshop/material-1/src/narration/lexicon.pls",
+   "marks": [
+    {
+     "find": "成果物",
+     "before": "追加前は記述がありません。",
+     "why": "成果物をせいかぶつと読ませる指定を追加します。"
+    }
+   ]
+  },
+  {
+   "key": "cache",
+   "tab": "音声の保存先",
+   "file": "docs/workshops/ai-workshop/material-1/src/build_narration.py",
+   "marks": [
+    {
+     "find": "HEAD = {'voice': 'Takumi'",
+     "before": "{'voice': 'Takumi', 'engine': 'neural', 'format': 'mp3', 'cache': 'cache', 'lexicons': ['aiworkshop']}  # 辞書は narration/lexicon.pls",
+     "why": "辞書の更新前に作った音声を再利用しないよう、保存先の名前を変更します。"
+    }
+   ]
+  }
+ ],
+ "seal_note": "2026年10月17日、利用者の読み間違いの指摘を受け、音声作成の依頼の範囲で補正しました。",
+ "seal": {
+  "lexicon": "2f2a69ec18d260a799aa426e6e5f30f0f34c2268816059f36936acea3d137253",
+  "cache": "ce8f39fbfd80ef5c1dc35f85f6b291e4a5da4a61bdfa17e01780a9adb6b894eb"
+ }
+}
