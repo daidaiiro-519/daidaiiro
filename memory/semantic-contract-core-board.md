@@ -1,6 +1,6 @@
 ---
 name: semantic-contract-core-board
-description: 構想 Semantic Contract Core v0.3 を、いまの基盤 schema-driven とどう関係させるかを決めるボードの現在地
+description: Abstract スキーマの基盤 Semantic Schema Core（いまの schema-driven を改める）を決めるボード semantic-contract-core の現在地
 metadata:
   type: project
 ---
@@ -15,8 +15,8 @@ metadata:
 
 ## 次にすること
 
-第31回まで出した（2026-10-17）。Q5 用語は決着（英語と日本語の対：Resolver 解決器 ・ validator 検証器 ・ Semantic Validator 意味検証器 ・ Schema Validator スキーマ検証器 ・ validation result 検証結果 ・ capability 能力 ・ inbound adapter 入力アダプター ・ outbound adapter 出力アダプター ・ rule ルール。Interpreter は使わない）。Q0 ・ Q1〜Q4 の名前は第31回で揃えた。いま答えを待っているのは Q0。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない。
+第41回まで出した（2026-10-17）。基盤の名前は Semantic Schema Core に決めた（利用者が OK）。このボードは Abstract スキーマの基盤だけを決め、開発基盤（コード生成 ・ 言語の Adapter ・ AI の修正ループ、ボード ai-driven-process の話）は上に載る Concrete の側に置く。Q0 ・ Q5 は決着。いま答えを待っているのは Q1 の確認3つ（Concrete の意味 ・ 注釈の呼び名を x- keyword に ・ ユビキタス言語を <文脈>/terms@v1 の $defs と $ref で）。Q6 ・ Q7 ・ Q2〜Q4 は Q1 待ち。Q1 が決まったら Q6 ・ Q7 の vocabulary ・ x-term ・ x-vocabularies を terms@v1 に置き換える。いまのエンジンは別のスキーマへの $ref を解決できない（実測）。実装の名前（schema-driven の CLI ・ MCP）を Semantic Schema Core に改めるのは、別の ACDR で決める。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない。
 
 決まったこと：基盤のインターフェースはコマンドと protocol（CLI ・ MCP）。インバウンド ・ アウトバウンドのアダプターを差し替えて、手元でもクラウドでも同じ振る舞い（クラウドは後で載せる）。HTTP などの API は Concrete が持つ。WASM は外した。
 
-持ち越し：AI ごとの許可の設定は、いま brainstorming（Concrete）が一時に持つ（ACDR 0188）。Q3 で Agents 契約が決まったら形を基盤へ移す。ボードの更新は figures/board_r<回>.py と apply_patch.py（引数の上限を超えないように分けて渡す）。
+持ち越し：ACDR 0191（長いパッチをファイルで渡す、schema-driven 0.1.2）は承認待ちで、作業ツリーにある。AI ごとの許可の設定は、いま brainstorming（Concrete）が一時に持つ（ACDR 0188）。ボードの更新は figures/board_r<回>.py と apply_patch.py（引数の上限を超えないように分けて渡す）。
