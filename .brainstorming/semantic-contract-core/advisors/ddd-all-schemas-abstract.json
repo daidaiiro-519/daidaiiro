@@ -1,0 +1,79 @@
+{
+  "kind": "judgment",
+  "question": "Semantic Schema Core で「基盤が定義するスキーマは、すべて Semantic Domain Schema（Abstract スキーマ）の一員である（一員6つ）」とする判断は正しいか",
+  "premises": [
+    {"name": "Semantic Domain Schema", "value": "Abstract スキーマの仕様。JSON Schema に意味の宣言（x-prompt）と検証（rule）を足した形", "source": "ボード semantic-contract-core（第48回・第51回）"},
+    {"name": "3段", "value": "Abstract → Concrete → instance。Concrete は区切られた文脈（Skill か Agent）が持つ", "source": "ボード semantic-contract-core"},
+    {"name": "集約と値オブジェクト", "value": "集約は Concrete スキーマ ・ instance ・ 承認の記録。view と Abstract は値オブジェクト", "source": "ボード semantic-contract-core（Q1）"},
+    {"name": "承認の記録 ・ 公開の記録を Skill ・ Agent が読むか", "value": "未判定。読むなら公開する契約、読まないなら基盤の内側の形になり、条件の1つが変わる", "source": "相談の文に記述が無い"},
+    {"name": "エンジンが書く記録に意味の検証をかける効果", "value": "判断基準の範囲外。x-prompt は書き手が AI のときに働くので、エンジンが書く記録には機械の検証で足りる可能性がある（推測）", "source": "判断基準の範囲外"}
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "6つすべてを Semantic Domain Schema の形で書き、意味の検証を与えることは採る。ただし「意味の検証を持つ＝Abstract の段に在る」とはせず、段と公開の範囲を一員ごとに書き分けることを条件にする",
+    "because": "「Abstract」が「意味の検証を持つ形」と「区切られた文脈が従う契約（Concrete の1つ上の段）」の2つの意味で使われ、後者の3段がページテンプレート以下の5つでは成り立たない。さらに承認の記録は基盤の集約なので、その形を公開する契約に含めると内部の変更が契約の版を上げる。"
+  },
+  "figure": {
+    "caption": "推す形：形（Semantic Domain Schema）は6つ共通、段と書き手は一員ごとに違う",
+    "nodes": [
+      {"id": "sds", "label": "Semantic Domain Schema の形（x-prompt ・ rule）", "role": "共通"},
+      {"id": "a1", "label": "Concrete スキーマの形 @vN", "role": "公開する契約"},
+      {"id": "a2", "label": "ページテンプレート ・ カタログ ・ デザインシステムの形 @vN（各々）", "role": "公開する契約"},
+      {"id": "a3", "label": "公開の記録 ・ 承認の記録の形", "role": "基盤の内側"},
+      {"id": "c", "label": "Concrete スキーマ（Skill ・ Agent）"},
+      {"id": "i", "label": "instance"},
+      {"id": "v", "label": "view（Skill ・ Agent が書く。値オブジェクト）"},
+      {"id": "r", "label": "公開の記録 ・ 承認の記録（エンジンが書く）"}
+    ],
+    "edges": [
+      {"from": "a1", "to": "sds", "label": "形に従う"},
+      {"from": "a2", "to": "sds", "label": "形に従う"},
+      {"from": "a3", "to": "sds", "label": "形に従う"},
+      {"from": "c", "to": "a1", "label": "3段の2段目"},
+      {"from": "i", "to": "c", "label": "3段の3段目"},
+      {"from": "v", "to": "a2", "label": "2段（Concrete を挟まない）"},
+      {"from": "r", "to": "a3", "label": "2段 ・ 基盤の集約", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {"option": "A：相談の判断のまま（6つとも Abstract、従うもの6つを Concrete と同じ並びに置く）", "effect": "意味の検証は6つに揃う。一方で「Abstract → Concrete → instance」が Concrete スキーマの形でしか成り立たず、Concrete の定義（区切られた文脈が持つ）とエンジンが書く記録がぶつかる。承認の記録の形を変えると、Skill ・ Agent に関係が無くても契約の版が上がる", "chosen": false},
+    {"option": "B：Abstract は Concrete スキーマの形1つだけ、残り5つは形の検証だけ（いまの実装の形）", "effect": "3段は1本で整合する。一方で view と記録に意味の検証が無く、新しい構想（どのスキーマにも意味の検証）を満たさない。検証の仕組みが2種類に分かれる", "chosen": false},
+    {"option": "C：6つとも Semantic Domain Schema の形で書き、段（3段か2段か）・書き手・公開するかを一員ごとの欄にする。公開する4つは一員ごとに版付けし、記録2つは基盤の内側の形として公開の契約に含めない", "effect": "意味の検証は6つに揃い、Validator は1つで済む。3段は Concrete スキーマの形に限って成り立ち、view は2段、記録は基盤の集約の形として扱える。内側の記録の形を変えても Skill ・ Agent の契約は変わらない", "chosen": true},
+    {"option": "D：6つを1つの版（名前@vN）で一緒に版付けする", "effect": "組み合わせの検査は要らない。一方でデザインシステムの形だけを変えても全 Skill ・ Agent が新しい版へ移る必要があり、版を並行して出す利点が消える", "chosen": false}
+  ],
+  "path": [
+    {"ask": "1. すべて Abstract で整合するか（Abstract が1つのモデルとの比較）", "answer": "意味の検証を全部に与える点は、1つのモデル（B）より良い。壊れるのは語の意味である。Abstract が「意味の検証を持つ形」と「Concrete の上の段」の両方を指すと、後者の3段がページテンプレート以下の5つで成り立たない。段を一員ごとの欄にすれば整合する"},
+    {"ask": "2. エンジンが書く記録を Concrete と同じ並びに置いてよいか", "answer": "置かない。Concrete は区切られた文脈が持つものなので、エンジンが書く記録はその定義から外れる。承認の記録は基盤の集約であり、その形は基盤の内側のモデルである。Skill ・ Agent が記録を読むと決まった場合だけ、公開する契約へ移す"},
+    {"ask": "3. view と値オブジェクトの関係はどうなるか", "answer": "矛盾しない。基盤のどの command も view を変えないので、基盤の側では値オブジェクトのままである。書くのは Skill ・ Agent で、所有も Skill ・ Agent の側に在る。段は Abstract の一員 → view の2段で、Concrete を挟まない。view を Concrete と呼ばない"},
+    {"ask": "4. 版付けは一緒か一員ごとか", "answer": "公開する4つは一員ごと（例：page-template@v2）にする。Skill ・ Agent は使う一員の版だけを宣言する。ページテンプレートが Concrete スキーマを指す整合は、版の組ではなく rule で検査する。記録2つの形はエンジンの版に付け、公開の契約の版に含めない"},
+    {"ask": "5. 直すべき点", "answer": "ボードの文「基盤が定義するスキーマは、すべて Abstract の一員」を「すべて Semantic Domain Schema の形で書く」に直し、一員の表に「段 ・ 書き手 ・ 公開するか ・ 版」の4列を足す。「Abstract スキーマは名前@vN で決まる値オブジェクト」は一員ごとの名前@vN に直す"}
+  ],
+  "grounds": [
+    {"criterion": "ubiquitous-language", "quote": "対応：使い方が一貫しない用語を見つけたら、その理由を質問する ・ 理由：異なるモデルの混在なら意味を決める文脈を特定し、同義語なら共通の意味を表す1つの用語を提案できる"},
+    {"criterion": "model", "quote": "対応：モデルで解決しようとしている課題、つまり目的を明確にする ・ 理由：役に立つモデルは、目的に合う内容だけを表す。目的の無いモデルは無い"},
+    {"criterion": "open-host-service", "quote": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる"},
+    {"criterion": "open-host-service", "quote": "得られること：版の並行提供 ・ 内容：公開された言葉の異なる版を並行して提供すると、利用する側が新しい版へ段階的に移行しやすくなる"},
+    {"criterion": "aggregate", "quote": "対応：集約の状態は集約内部の業務ロジックだけが変更できるようにし、外部には参照だけを許可する ・ 理由：関連する業務ロジックを、すべて集約自身の1か所に実装できる"},
+    {"criterion": "value-object", "quote": "性質：不変 ・ 内容：フィールドを変更すると別の値になってしまうので、変更せず、別のインスタンスを生成する"},
+    {"criterion": "shared-kernel", "quote": "対応：共有する範囲を、どちらの文脈にも実装が必須になる部分に限定する"}
+  ],
+  "cautions": [
+    {"name": "1つの語に2つの意味（Abstract ＝ 意味の検証を持つ形 ／ Concrete の上の段）", "risk": "「Concrete は区切られた文脈が持つ」と「承認の記録の形も Abstract」が並ぶと、エンジンが書く記録を Concrete と呼ぶ文やコードが生じ、3段の不変条件が成り立たなくなる", "alternative": "Semantic Domain Schema を形の名前、Abstract を段の名前として分け、一員の表に段の列を置く"},
+    {"name": "基盤の内側の形を公開する契約に含める", "risk": "承認の記録の形を変えるたびに契約の版が上がり、関係の無い Skill ・ Agent まで移行を求められる", "alternative": "記録2つの形はエンジンの版に付ける。Skill ・ Agent が読むと決めたときだけ公開の一員にする"},
+    {"name": "（推測）6つを1つの版で束ねる", "risk": "1つの一員の変更が全員の移行になり、版を並行して出せない", "alternative": "一員ごとに名前@vN を持たせ、一員どうしの整合は rule で検査する"}
+  ],
+  "ai_cautions": [
+    {"breaks": "view や記録を「Concrete」と書く", "check": "ボード ・ 仕様 ・ コードで「Concrete」を検索し、Skill ・ Agent が持つ Concrete スキーマ以外を指す箇所が0件かを確かめる"},
+    {"breaks": "公開の契約の版に、記録2つの形を含める", "check": "Skill ・ Agent が宣言する一員の版の一覧に、公開の記録 ・ 承認の記録の形が無いことを不変条件の表の1行にして検査する"}
+  ],
+  "next": [
+    "ボードの「すべて Abstract の一員」を「すべて Semantic Domain Schema の形で書く」に直す",
+    "一員6つの表に、段 ・ 書き手 ・ 公開するか ・ 版の4列を足す",
+    "承認の記録 ・ 公開の記録を Skill ・ Agent が読むかを利用者に確認する",
+    "公開する4つの一員に、それぞれ名前@vN を付ける"
+  ],
+  "related": [
+    {"criterion": "bounded-context", "relation": "Concrete と view を Skill ・ Agent の側の所有物とする根拠"},
+    {"criterion": "design-heuristics", "relation": "一員を分けすぎない判断（形は1つ、段と版だけを分ける）"}
+  ]
+}

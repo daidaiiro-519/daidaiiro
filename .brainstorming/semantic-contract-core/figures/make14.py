@@ -9,7 +9,7 @@ def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
 o = ['<svg viewBox="0 0 960 480" style="min-width:860px" role="img" aria-label="Semantic Schema Core の9つの概念と3つの集約">']
-o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Domain Schema（Abstract の一員6つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
+o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Abstract Schema（一員6つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="208"/><text class="title" x="30" y="134">Concrete スキーマの集約</text>')
 chip(o, 30, 150, 396, "Concrete スキーマ（集約のルート）", "box focus")
 chip(o, 30, 190, 396, "rule（id ・ rule ・ why ・ test）")
@@ -19,7 +19,7 @@ o.append('<path class="flow" d="M250,110 V64"/><text class="note" x="262" y="92"
 o.append('<rect class="area" x="16" y="370" width="424" height="80"/><text class="title" x="30" y="394">instance の集約</text>')
 chip(o, 30, 406, 396, "instance（集約のルート）", "box focus")
 o.append('<path class="flow" d="M250,370 V318"/><text class="note" x="262" y="350">$schema で指す</text>')
-o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに Semantic Domain Schema で検証する</text>')
+o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに Semantic Abstract Schema で検証する</text>')
 o.append('<path class="flow" d="M526,165 H440"/><text class="note" x="483" y="157" text-anchor="middle">x-view を読む</text>')
 o.append('<rect class="area" x="526" y="238" width="418" height="80"/><text class="title" x="540" y="262">承認の記録の集約</text>')
 chip(o, 540, 274, 390, "承認の記録（フォルダ1つに1件）", "box focus")
@@ -37,7 +37,7 @@ INV = [
  ("4", "Concrete スキーマ", "title と description を持つ", "M", "check-schemas"),
  ("5", "Concrete スキーマ", ["instance を作る Concrete は、", "kind と $schema の const を持つ"], ["M ・ F7", "（F7 は未検査）"], "check-schemas"),
  ("6", "Concrete スキーマ", ["書く単位ごとに description と", "x-prompt を持ち、葉には書かない"], ["M ・ S4 ・ W7", "（W7 は未検査）"], "check-schemas"),
- ("7", "Concrete スキーマ", ["申告していない x- を使わず、", "基盤の名前を申告しない"], ["S3 ・ F9", "（F9 は未検査）"], "check-schemas"),
+ ("7", "Concrete スキーマ", ["x- を定義できるのは Abstract だけで、", "文脈は x- を定義しない"], ["S3 ・ F9", "（F9 は未検査）"], "check-schemas"),
  ("8", "Concrete スキーマ", ["参照 ・ 導出 ・ 描画の宣言は、", "読める形である"], "S6〜S10", "check-schemas"),
  ("9", "Concrete スキーマ", "参照される種類は id を持つ", "S12", "check-schemas"),
  ("10", "rule", ["id ・ rule ・ why ・ test を持ち、", "id はスキーマの中で一意である"], "M22〜M26 ・ S5", "check-schemas"),
@@ -98,3 +98,16 @@ CAP = [
 table('q1-capabilities', 'エンジンの能力11と、いまのコマンドと、対象と、守る不変条件',
       ["能力", "いまのコマンド", "対象", "種別", "守る不変条件"], [110, 200, 270, 90, 170],
       [list(r) for r in CAP], emph=(0,), row_h=46)
+
+# ── 第52回：Semantic Abstract Schema の一員6つ ──
+MEM = [
+ ("メタスキーマ", ["x- キーワードの定義と、", "スキーマの書き方"], "定義する", "する", "一員ごとに名前@vN", "──"),
+ ("ページテンプレートの形", ["kind ごとの節 ・ 部品 ・", "値を取る式"], "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
+ ("部品のカタログの形", "部品の一覧の枠", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
+ ("デザインシステムの形", "トークンの形", "使う", "する", "一員ごとに名前@vN", "メタスキーマの版"),
+ ("公開の記録の形", ["公開した版の名前と指紋"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
+ ("承認の記録の形", ["承認した instance の", "パスとハッシュ"], "使う", ["しない", "（文脈が読むなら、する）"], "エンジンの版", "メタスキーマの版"),
+]
+table('q6-abstract', 'Semantic Abstract Schema の一員6つ：基盤が持ち、基盤だけが変えるスキーマ',
+      ["一員", "何の形か", "x- を", "公開するか", "版", "従う x- 定義の版"], [200, 220, 90, 190, 160, 160],
+      [list(r) for r in MEM], emph=(0,), row_h=46)
