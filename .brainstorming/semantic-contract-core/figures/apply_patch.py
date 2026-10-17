@@ -7,7 +7,12 @@ old = json.loads(pathlib.Path(board_path).read_text())
 ops = []
 for op in patch:
     if op["path"] == "/topics":
-        for i, (a, b) in enumerate(zip(old["topics"], op["value"])):
+        new = op["value"]
+        if len(new) < len(old["topics"]):
+            sys.exit("論点が減るパッチは扱わない（remove を手で書く）")
+        for i in range(len(old["topics"]), len(new)):
+            ops.append({"op": "add", "path": f"/topics/{i}", "value": new[i]})
+        for i, (a, b) in enumerate(zip(old["topics"], new)):
             for k in sorted(set(a) | set(b)):
                 if k == "images" and k in a and k in b and len(a[k]) == len(b[k]):
                     for j, (x, y) in enumerate(zip(a[k], b[k])):

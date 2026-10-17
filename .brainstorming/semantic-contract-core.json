@@ -4,11 +4,15 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 25,
+  "round": 26,
   "queue": [
     {
       "topic": "Q0",
       "why": "抽象の仕様 ・ 技術選定 ・ エンジン ・ インターフェースは、どれも基盤の目的と設計原則で決まるため"
+    },
+    {
+      "topic": "Q5",
+      "why": "ほかの論点の答えは、どれもこの名前で書くため。構想 v0.3 の名前は検討中の案なので、ここで決める"
     }
   ],
   "topics": [
@@ -77,14 +81,14 @@
         {
           "supports": "5つの設計原則",
           "basis": "設計原則：1 宣言と解釈の分離（Vocabulary と Interpreter）／2 既存技術は「部品」として利用（表現を制限しない）／3 言語非依存の意味モデル（実装は Rust を第一候補）／4 拡張可能な表現モデル（既存標準を超えた独自表現も可能）／5 検証可能で実用に耐える（再現性・適合性・可搬性）",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "従属させないための方針",
           "basis": "従属させないための方針：既存仕様をそのまま正本としない／私たちの抽象モデルを既存仕様に合わせない／必要な部分のみマッピング・アダプタで利用／独自の拡張要素を自由に定義できる／将来の標準変更にも影響を受けない設計にする",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "基盤から AI を呼ぶ向きのインターフェースが、全体構成図に無いこと",
@@ -143,14 +147,14 @@
         {
           "supports": "目的を Schema駆動基盤の定義に合わせること",
           "basis": "2 Schema駆動基盤（Semantic Contract Core）：意味・構造・関係・制約を統合し、解釈可能で検証可能な基盤",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "基盤の中心が私たちの表現能力 ・ 抽象モデルであること",
           "basis": "既存技術を「部品」として活用し、私たちの表現能力・抽象モデルを中心に据えた Schema 駆動基盤と開発の全体像",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "機械の検証と意味の検証の両方を目的に入れること",
@@ -275,11 +279,141 @@
       ]
     },
     {
+      "id": "Q5",
+      "name": "用語",
+      "status": "open",
+      "checks": [
+        {
+          "target": "validator",
+          "ask": "検証する側の名前を validator にしてよいか",
+          "view": "validator にする。標準の仕様が使う語である",
+          "basis": [
+            "JSON Schema の仕様",
+            "SHACL の仕様"
+          ],
+          "why": "構想 v0.3 の Interpreter に込めた意味（解釈 ・ 調停）を残したいか"
+        },
+        {
+          "target": "アダプター",
+          "ask": "インバウンド ・ アウトバウンドでよいか",
+          "view": "コードのフォルダ名と同じにする",
+          "basis": [
+            "基盤のコード",
+            "Cockburn の原文"
+          ],
+          "why": "原文の primary ・ secondary（driving ・ driven）に合わせたいか"
+        },
+        {
+          "target": "部品の名前",
+          "ask": "Semantic Interpreter を Semantic Validator にしてよいか",
+          "view": "Schema Validator と並べて Semantic Validator にする",
+          "basis": [
+            "名前の対応"
+          ],
+          "why": "ルールごとに validator を選ぶ役を、名前で分けたいか"
+        }
+      ],
+      "question": "基盤で使う名前（検証する側 ・ 検証の結果 ・ できることの宣言 ・ アダプター ・ 書くときの条件 ・ 意味を検証する部品）を何にするか",
+      "answer": {
+        "text": "名前は、標準の仕様と基盤のコードが使う語に揃え、構想 v0.3 の名前は候補として扱う。検証する側は validator、結果は検証結果、宣言は capability、アダプターはインバウンド ・ アウトバウンド、書くときの条件はルール、意味を検証する部品は Semantic Validator とする。",
+        "details": [
+          "validator：検証する側（エンジン ・ AI ・ 人）。JSON Schema と SHACL の仕様が使う語",
+          "検証結果：検証の結果（validation result）。値は verified ・ violated ・ unverified ・ unsupported ・ error の5つ",
+          "capability：validator が何を検証できるかの宣言。MCP の仕様が、接続の最初に宣言し合う意味で使う",
+          "インバウンドアダプター ・ アウトバウンドアダプター：基盤を呼ばれる側と、基盤から外を呼ぶ側。基盤のコードのフォルダ名 inbound ・ outbound と同じにする",
+          "ルール：スキーマに書く条件1件（id ・ rule ・ why ・ test）。基盤のスキーマのキーが rule である",
+          "Semantic Validator：意味のルールごとに validator を選んで検証する部品。構造を検証する Schema Validator と並べる",
+          "承認されたら、ほかの論点の名前をこの表に揃える"
+        ]
+      },
+      "images": [
+        {
+          "kind": "figure",
+          "name": "名前の対応",
+          "caption": "決める名前と、構想 v0.3 の候補と、出どころ。",
+          "svg": "<svg viewBox=\"0 0 780 470\" style=\"min-width:660px\" role=\"img\" aria-label=\"決める名前と、構想 v0.3 の候補と、出どころ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">何の名前か</text><text class=\"note\" x=\"196\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">構想 v0.3（候補）</text><text class=\"note\" x=\"372\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">決める名前</text><text class=\"note\" x=\"572\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出どころ</text>\n<rect class=\"box\" x=\"16\" y=\"32\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証する側</text>\n<rect class=\"boundary\" x=\"192\" y=\"32\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Interpreter</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"32\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">validator</text>\n<rect class=\"box\" x=\"568\" y=\"32\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">JSON Schema ・ SHACL の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"92\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証の結果</text>\n<rect class=\"boundary\" x=\"192\" y=\"92\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">outcome</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"92\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">検証結果</text>\n<rect class=\"box\" x=\"568\" y=\"92\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SHACL の validation result</text>\n<rect class=\"box\" x=\"16\" y=\"152\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">できることの宣言</text>\n<rect class=\"boundary\" x=\"192\" y=\"152\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Capability</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"152\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">capability</text>\n<rect class=\"box\" x=\"568\" y=\"152\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">MCP の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"212\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ばれる側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"212\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"212\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">インバウンドアダプター</text>\n<rect class=\"box\" x=\"568\" y=\"212\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの inbound</text>\n<rect class=\"box\" x=\"16\" y=\"272\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ぶ側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"272\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"272\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">アウトバウンドアダプター</text>\n<rect class=\"box\" x=\"568\" y=\"272\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの outbound</text>\n<rect class=\"box\" x=\"16\" y=\"332\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">書くときの条件</text>\n<rect class=\"boundary\" x=\"192\" y=\"332\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Constraint</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"332\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ルール</text>\n<rect class=\"box\" x=\"568\" y=\"332\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のスキーマのキー rule</text>\n<rect class=\"box\" x=\"16\" y=\"392\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">意味を検証する部品</text>\n<rect class=\"boundary\" x=\"192\" y=\"392\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Semantic Interpreter</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"392\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Semantic Validator</text>\n<rect class=\"box\" x=\"568\" y=\"392\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Schema Validator と並べる</text>\n</svg>\n"
+        }
+      ],
+      "grounds": [
+        {
+          "supports": "名前をこのブレストで決めること",
+          "basis": "あのね？構想を原典としているん見たいなんだけど、それってまだ検討段階のものですよ？？\n別にそれ私がCodexの方でブレストした内容の話で、この辺の名称も今回のブレストでちゃんと決めないといけないものだからね？？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "一般的な語かで決めること",
+          "basis": "ルールごとの Interpreterと必要な Capabilityに関してはその英語での表現が一般的かって話ですよね。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "outcome も見直すこと",
+          "basis": "outcomeもだよね。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "アダプターの呼び方",
+          "basis": "普通にインバウンドとアウトバウンドじゃね？",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "JSON Schema の仕様が validator と呼ぶこと",
+          "basis": "For example, an implementation that is a validator SHOULD assume the",
+          "tag": "primary",
+          "source": "JSON Schema 2020-12 のコア（draft-bhutton-json-schema-01:1468、2026-10-17 取得）"
+        },
+        {
+          "supports": "SHACL の仕様が validation result と呼ぶこと",
+          "basis": "Each validation result has exactly one value for the property <code>sh:focusNode</code>",
+          "tag": "primary",
+          "source": "SHACL（www.w3.org/TR/shacl:2520、2026-10-17 取得）"
+        },
+        {
+          "supports": "MCP の仕様が capability を宣言し合う意味で使うこと",
+          "basis": "Client and server capabilities establish which optional protocol features will be available during the session.",
+          "tag": "primary",
+          "source": "MCP の仕様（2025-06-18 basic/lifecycle:147〜148、2026-10-17 取得、fact-check で取得）"
+        },
+        {
+          "supports": "Cockburn の原文の呼び方",
+          "basis": "In implementation, ports and adapters show up in two flavors, which I'll call <i style=\"mso-bidi-font-style:normal\">primary</i> and <i style=\"mso-bidi-font-style:normal\">secondary</i>, for soon-to-be-obvious reasons. They could be also called",
+          "tag": "primary",
+          "source": "Alistair Cockburn「Hexagonal architecture」（alistair.cockburn.us/hexagonal-architecture、1975〜1979行、2026-10-17 取得）"
+        }
+      ],
+      "rejected": [
+        {
+          "option": "検証する側を Interpreter と呼ぶ（構想 v0.3）",
+          "reason": "JSON Schema と SHACL の仕様に無い語で、何をするものかが名前から分からない"
+        },
+        {
+          "option": "検証する側を検証器と呼ぶ",
+          "reason": "技術用語を訳し直した語で、仕様の語と対応が取れない"
+        },
+        {
+          "option": "検証の結果を outcome と呼ぶ（構想 v0.3）",
+          "reason": "SHACL ・ JSON Schema とも一般には使わない"
+        },
+        {
+          "option": "アダプターを primary ・ secondary（driving ・ driven）と呼ぶ",
+          "reason": "原文の呼び方だが、基盤のコードは inbound ・ outbound で、同じものに2つの名前が付く"
+        },
+        {
+          "option": "書くときの条件を制約（Constraint）と呼ぶ（構想 v0.3）",
+          "reason": "SHACL の制約は構造の条件を指す。基盤のルールは意味の検証（test）も含み、スキーマのキーも rule である"
+        }
+      ]
+    },
+    {
       "id": "Q1",
       "name": "抽象の仕様",
       "status": "waiting",
       "depends": [
-        "Q0"
+        "Q0",
+        "Q5"
       ],
       "question": "抽象の5つの仕様（Semantic Model ・ Vocabulary Spec ・ JSON Representation ・ Constraint Spec ・ Interpreter Protocol）を、いまの abstract@v1 でどこまで持ち、何を足すか",
       "answer": {
@@ -328,12 +462,22 @@
           "text": "{\n  \"kind\": \"vocabulary\",\n  \"id\": \"urn:example:vocab:time:1\",\n  \"terms\": {\n    \"DurationSeconds\": {\n      \"description\": \"秒で表す経過時間\",\n      \"valueSchema\": {\n        \"type\": \"integer\",\n        \"minimum\": 0\n      },\n      \"meaning\": {\n        \"quantity\": \"duration\",\n        \"unit\": \"s\"\n      },\n      \"requires\": [\n        \"validate-structure\"\n      ]\n    }\n  },\n  \"_note\": \"独自形式の試案。JSON-LDやJSON Schemaの正式な規格ではない。\"\n}"
         }
       ],
+      "rejected": [
+        {
+          "option": "abstract@v1 を書き換えて足す",
+          "reason": "公開した版の中身が変わり、前に書いたインスタンスが別のスキーマで検査される"
+        },
+        {
+          "option": "表現モデルと抽象の仕様を、別々に正本として持つ",
+          "reason": "同じものに2つの名前が付き、どちらが正しいかを毎回検証することになる"
+        }
+      ],
       "grounds": [
         {
           "supports": "5つの仕様",
           "basis": "Abstract Schema Layer（言語非依存の仕様・契約）：Semantic Model（意味の最小単位）Entity / Property / Type 等／Vocabulary Spec（語彙仕様）識別子・意味・階層・関係／JSON Representation（共通 JSON 形式）拡張可能なスキーマ記述／Constraint Spec（制約仕様）構造・値・関係・意味制約／Interpreter Protocol（解釈プロトコル）能力表明・検証インターフェース",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "書くルールが、すでに1件ずつ id を持つこと",
@@ -359,16 +503,6 @@
           "tag": "measured",
           "source": "measured/v03-experiment/README.md（2026-10-17）"
         }
-      ],
-      "rejected": [
-        {
-          "option": "abstract@v1 を書き換えて足す",
-          "reason": "公開した版の中身が変わり、前に書いたインスタンスが別のスキーマで検査される"
-        },
-        {
-          "option": "表現モデルと抽象の仕様を、別々に正本として持つ",
-          "reason": "同じものに2つの名前が付き、どちらが正しいかを毎回検証することになる"
-        }
       ]
     },
     {
@@ -377,7 +511,8 @@
       "status": "waiting",
       "depends": [
         "Q0",
-        "Q1"
+        "Q1",
+        "Q5"
       ],
       "question": "JSON Schema ・ JSON-LD ・ SHACL ・ RDF/SPARQL のうち、標準として使うものはどれで、ほかの概念のうち構想に要るものを基盤の概念としてどう持つか",
       "answer": {
@@ -409,18 +544,6 @@
           "text": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"schema-driven/vocabulary@v1\",\n  \"title\": \"語彙（案）\",\n  \"description\": \"スキーマをまたいで同じ意味で使う語。JSON-LD と SHACL の概念を参考に自前の形で持ち、x- の拡張として基盤のコマンドが検証する。標準へは投影しない。\",\n  \"type\": \"object\",\n  \"required\": [\"id\", \"terms\"],\n  \"properties\": {\n    \"id\": { \"description\": \"共通の識別子（JSON-LD の @id にあたる）\", \"type\": \"string\", \"format\": \"uri\" },\n    \"context\": {\n      \"description\": \"手元の名前と共通の語の対応付け（JSON-LD の @context にあたる）\",\n      \"type\": \"object\",\n      \"additionalProperties\": { \"type\": \"string\", \"format\": \"uri\" }\n    },\n    \"protected\": {\n      \"description\": \"再定義を断る語（JSON-LD の @protected にあたる）\",\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    },\n    \"terms\": {\n      \"type\": \"object\",\n      \"additionalProperties\": {\n        \"type\": \"object\",\n        \"required\": [\"description\"],\n        \"properties\": {\n          \"description\": { \"type\": \"string\" },\n          \"shape\": { \"$ref\": \"#/$defs/shape\" },\n          \"by\": { \"description\": \"Interpreter\", \"enum\": [\"engine\", \"check\", \"ai\", \"human\"] }\n        }\n      }\n    }\n  },\n  \"$defs\": {\n    \"shape\": {\n      \"description\": \"ノードと関係の制約（SHACL の Shape にあたる）\",\n      \"type\": \"object\",\n      \"properties\": {\n        \"path\": { \"description\": \"参照をたどる経路（SHACL の sh:path にあたる）\", \"type\": \"string\" },\n        \"count\": {\n          \"type\": \"object\",\n          \"properties\": { \"min\": { \"type\": \"integer\" }, \"max\": { \"type\": \"integer\" } }\n        },\n        \"closed\": { \"description\": \"書いていない欄を許さないか（SHACL の sh:closed にあたる）\", \"type\": \"boolean\" }\n      }\n    }\n  }\n}"
         }
       ],
-      "checks": [
-        {
-          "target": "自前の概念",
-          "ask": "3つの技術から参考にする概念は、この一覧で足りているか",
-          "view": "足りている。語彙 ・ 制約 ・ 関係の3つに当てられる",
-          "basis": [
-            "4つの技術の位置づけ",
-            "公開仕様の互換"
-          ],
-          "why": "Concrete で何を表したいかで、要る概念が変わる"
-        }
-      ],
       "grounds": [
         {
           "supports": "概念として要るかで決めること",
@@ -437,14 +560,14 @@
         {
           "supports": "4つの技術の位置づけ",
           "basis": "標準技術アダプター（部品として利用）：JSON Schema 構造・値制約（Draft 2020-12 など）／JSON-LD 意味を持つ識別子・Context（RDF との相互運用）／SHACL 関係・制約・検証結果（RDF グラフ上の制約）／その他の技術・ライブラリ（RDF/グラフ、SPARQL など）（必要に応じて選択的に利用）",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "公開仕様の互換",
           "basis": "公開仕様・契約（言語非依存）：JSON / JSON Schema 互換／JSON-LD / Context／SHACL 互換マッピング／独自拡張（自由な表現）",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "SHACL の検証結果が必ず持つ項目",
@@ -500,6 +623,18 @@
           "option": "実例が出るまで、これらの概念を持たない",
           "reason": "構想に要る概念を後回しにすると、抽象の仕様を後から書き換えることになる"
         }
+      ],
+      "checks": [
+        {
+          "target": "自前の概念",
+          "ask": "3つの技術から参考にする概念は、この一覧で足りているか",
+          "view": "足りている。語彙 ・ 制約 ・ 関係の3つに当てられる",
+          "basis": [
+            "4つの技術の位置づけ",
+            "公開仕様の互換"
+          ],
+          "why": "Concrete で何を表したいかで、要る概念が変わる"
+        }
       ]
     },
     {
@@ -509,7 +644,8 @@
       "depends": [
         "Q0",
         "Q1",
-        "Q2"
+        "Q2",
+        "Q5"
       ],
       "question": "エンジンの6つの部品といまのエンジンをどう対応させ、意味を検証する Interpreter に AI を入れる Agents 契約は何を約束するか",
       "answer": {
@@ -626,12 +762,24 @@
           "text": "{\n  \"claude\": {\n    \"description\": \"Claude Code に許すこと\",\n    \"type\": \"object\",\n    \"additionalProperties\": false,\n    \"required\": [\n      \"allow\"\n    ],\n    \"properties\": {\n      \"allow\": {\n        \"description\": \"許すツール\",\n        \"x-prompt\": {\n          \"read\": {\n            \"means\": \"--allowedTools に渡すツールの名前である。${entry} は brainstorming の実行ファイル（リポジトリの根から）に置き換わる。\"\n          },\n          \"write\": [\n            {\n              \"id\": \"entry-kept\",\n              \"rule\": \"Bash(${entry}:*) を必ず入れる。\",\n              \"why\": \"無いと、AI がボードを update で直せない。\",\n              \"test\": \"値の中に Bash(${entry}:*) があるかを見る。\"\n            },\n            {\n              \"id\": \"paths-from-root\",\n              \"rule\": \"Bash で許すコマンドは、リポジトリの根からの経路で書く。\",\n              \"why\": \"AI はリポジトリの根で動く。\",\n              \"test\": \"経路のファイルがあるかを見る。\"\n            }\n          ]\n        },\n        \"type\": \"array\",\n        \"minItems\": 1,\n        \"uniqueItems\": true,\n        \"contains\": {\n          \"const\": \"Bash(${entry}:*)\"\n        },\n        \"items\": {\n          \"type\": \"string\",\n          \"minLength\": 1,\n          \"pattern\": \"^(?!.*(dangerously|bypass)).*$\"\n        }\n      }\n    }\n  },\n  \"codex\": {\n    \"description\": \"Codex に許すこと\",\n    \"type\": \"object\",\n    \"additionalProperties\": false,\n    \"required\": [\n      \"sandbox\"\n    ],\n    \"properties\": {\n      \"sandbox\": {\n        \"description\": \"sandbox\",\n        \"x-prompt\": {\n          \"read\": {\n            \"means\": \"Codex の --sandbox に渡す値である（続きでは -c sandbox_mode に渡す）。\"\n          },\n          \"write\": [\n            {\n              \"id\": \"two\",\n              \"rule\": \"read-only か workspace-write を書く。\",\n              \"why\": \"ボードを直すには workspace-write が要る。\",\n              \"test\": \"値を見る。\"\n            }\n          ]\n        },\n        \"enum\": [\n          \"read-only\",\n          \"workspace-write\"\n        ]\n      }\n    }\n  },\n  \"kiro\": {\n    \"description\": \"Kiro に許すこと\",\n    \"type\": \"object\",\n    \"additionalProperties\": false,\n    \"required\": [\n      \"trust\"\n    ],\n    \"properties\": {\n      \"trust\": {\n        \"description\": \"信頼するツール\",\n        \"x-prompt\": {\n          \"read\": {\n            \"means\": \"--trust-tools に , でつないで渡すツールの名前である。\"\n          },\n          \"write\": [\n            {\n              \"id\": \"verified\",\n              \"rule\": \"fs_read だけを書く。\",\n              \"why\": \"help の出力で確かめた読むツールは fs_read だけである。\",\n              \"test\": \"値を見る。\"\n            }\n          ]\n        },\n        \"type\": \"array\",\n        \"uniqueItems\": true,\n        \"items\": {\n          \"enum\": [\n            \"fs_read\"\n          ]\n        }\n      }\n    }\n  },\n  \"guide\": {\n    \"description\": \"使い方の文\",\n    \"type\": \"array\",\n    \"items\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  }\n}"
         }
       ],
+      "checks": [
+        {
+          "target": "許可の設定",
+          "ask": "AI ごとの許可の設定を Agents 契約の約束に入れ、Skill には値だけを残すことでよいか",
+          "view": "入れる。どの Skill から AI を呼んでも同じ形が要る",
+          "basis": [
+            "ACDR 0188",
+            "利用者の言葉"
+          ],
+          "why": "Skill ごとに許可を変えられる幅を、どれだけ残すか"
+        }
+      ],
       "grounds": [
         {
           "supports": "6つの部品",
           "basis": "Semantic Contract Core（Rust 実装）：Vocabulary Resolver 識別子・語彙解決／Schema Validator 構造・値の検証／Semantic Interpreter 意味の解釈・調停／Relation / Graph Engine 関係・グラフ処理／Constraint Engine 制約・検証／Contract Registry スキーマ・語彙管理",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "関係と制約を分けないこと",
@@ -741,18 +889,6 @@
           "option": "6つの部品をそれぞれ crate に分ける",
           "reason": "関係と制約は同じ解決を使い、同じ言葉の中のモジュールの切り方である。crate は依存の向きを強制したい境界にだけ使う"
         }
-      ],
-      "checks": [
-        {
-          "target": "許可の設定",
-          "ask": "AI ごとの許可の設定を Agents 契約の約束に入れ、Skill には値だけを残すことでよいか",
-          "view": "入れる。どの Skill から AI を呼んでも同じ形が要る",
-          "basis": [
-            "ACDR 0188",
-            "利用者の言葉"
-          ],
-          "why": "Skill ごとに許可を変えられる幅を、どれだけ残すか"
-        }
       ]
     },
     {
@@ -763,7 +899,8 @@
         "Q0",
         "Q1",
         "Q2",
-        "Q3"
+        "Q3",
+        "Q5"
       ],
       "question": "やりとりの中身（protocol）と、それを運ぶインターフェース（JSON I/O ・ CLI/IPC ・ HTTP/REST ・ WASM Component）、いまの基盤からの移し方と完成の条件をどうするか",
       "answer": {
@@ -851,8 +988,8 @@
         {
           "supports": "外部インターフェース",
           "basis": "外部インターフェース（言語非依存）：JSON I/O（ファイル・ストリーム）／CLI / IPC（ローカル連携）／HTTP / REST（リモート連携）／WebAssembly Component（将来対応）",
-          "tag": "primary",
-          "source": "構想 v0.3 の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
+          "tag": "assumption",
+          "source": "構想 v0.3（利用者が Codex でブレストした検討中の案） の全体構成図（images/semantic-contract-core-overview-illustrated.png。画像の文字を書き写した）"
         },
         {
           "supports": "いまの外部インターフェース",
@@ -1016,6 +1153,14 @@
     }
   ],
   "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 6か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "利用者の指摘で、構想 v0.3 を検討中の案として扱い直し、名前を決める論点 Q5「用語」を足した"
+    },
     {
       "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 23か所）"
@@ -1209,58 +1354,18 @@
   "changes": [
     {
       "topic": "Q0",
-      "part": "details",
-      "summary": "詳しい決まりを9件書き直した"
-    },
-    {
-      "topic": "Q0",
-      "part": "images",
-      "summary": "完成イメージを4件書き直した"
-    },
-    {
-      "topic": "Q0",
       "part": "grounds",
-      "summary": "根拠を5件足して4件消した"
+      "summary": "根拠を4件書き直した"
     },
     {
-      "topic": "Q0",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "details",
-      "summary": "詳しい決まりを2件書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "images",
-      "summary": "完成イメージを4件書き直した"
+      "topic": "Q5",
+      "part": "added",
+      "summary": "論点を足した"
     },
     {
       "topic": "Q1",
       "part": "grounds",
-      "summary": "根拠を3件書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "answer",
-      "summary": "答えの1文を書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "details",
-      "summary": "詳しい決まりを5件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "images",
-      "summary": "完成イメージを2件書き直した"
+      "summary": "根拠を1件書き直した"
     },
     {
       "topic": "Q2",
@@ -1268,54 +1373,9 @@
       "summary": "根拠を2件書き直した"
     },
     {
-      "topic": "Q2",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
-    },
-    {
-      "topic": "Q3",
-      "part": "question",
-      "summary": "問いを書き直した"
-    },
-    {
-      "topic": "Q3",
-      "part": "answer",
-      "summary": "答えの1文を書き直した"
-    },
-    {
-      "topic": "Q3",
-      "part": "details",
-      "summary": "詳しい決まりを8件書き直した"
-    },
-    {
-      "topic": "Q3",
-      "part": "images",
-      "summary": "完成イメージを4件書き直した"
-    },
-    {
       "topic": "Q3",
       "part": "grounds",
       "summary": "根拠を1件書き直した"
-    },
-    {
-      "topic": "Q3",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "answer",
-      "summary": "答えの1文を書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "details",
-      "summary": "詳しい決まりを4件書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "images",
-      "summary": "完成イメージを2件書き直した"
     },
     {
       "topic": "Q4",
