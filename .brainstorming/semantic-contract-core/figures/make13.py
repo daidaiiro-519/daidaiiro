@@ -49,11 +49,11 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("keyword definition","x- キーワードの定義","形 ・ 置く場所 ・ 検証の仕方の1行","無い"),
 ("validation kind","検証の種類","機械的かセマンティックか","02:25 の2区分"),
 ("base contract schema","基盤の契約のスキーマ","抽象スキーマを組み立てるスキーマ","無い"),
-("Concrete schema","具体スキーマ","Skill が書き、x- の値を使う","Concrete Schema"),
+("Concrete schema","具体スキーマ","文脈が書き、x- のまま使う","Concrete Schema"),
 ("instance","インスタンス","Concrete スキーマに従う JSON の1件","Instance"),
 ("prompt","書き方の案内","読み方と書くときの rule","無い"),
 ("rule","ルール","スキーマに書く条件の1件","Constraint"),
-("ubiquitous language","ユビキタス言語","Skill ごとの terms@v1 に置く語","Vocabulary"),
+("ubiquitous language","ユビキタス言語","文脈ごとの terms@v1 に置く語","Vocabulary"),
 ("term","語","$defs の1件。欄が $ref で指す","Term（未決）"),
 ("relation","関係","値がほかのインスタンスを指す","Relation"),
 ("derived value","導出値","答えから1つに決まる値","無い"),
@@ -70,7 +70,7 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("schema name and version","スキーマの名前と版","所有者 ・ 種類 ・ 版の名前","protocol version など"),
 ("published record","公開の記録","公開した版の名前と指紋","Contract Registry"),
 ("approval","承認","人が確かめた記録（層の外）","承認（04:42）")]
-OWN=['基盤', '基盤', '基盤', '基盤', '基盤', '基盤', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill', 'Skill（値）', 'Skill（値）', '基盤 ・ 外（AI ・ 人）', '基盤', '基盤', '基盤（形）', '基盤', '基盤', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤（形）・ Skill', '基盤', '基盤', '基盤の外（人）']
+OWN=['基盤', '基盤', '基盤', '基盤', '基盤', '基盤', '文脈', '文脈', '文脈', '文脈', '文脈', '文脈', '文脈（値）', '文脈（値）', '基盤 ・ 外（AI ・ 人）', '基盤', '基盤', '基盤（形）', '基盤', '基盤', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤（形）・ 文脈', '基盤', '基盤', '基盤の外（人）']
 table('q1-concepts','抽象の層の概念27件の名前と持ち主と、構想 v0.3 との対応',["英語","日本語","持ち主","何を表すか","構想 v0.3（参考）"],[230,170,170,280,180],[[c[0],c[1],o,c[2],c[3]] for c,o in zip(C,OWN)],emph=(0,),row_h=34)
 
 # ── Q1 採らない構想 v0.3 の概念 ──
@@ -84,14 +84,14 @@ N=[(["Semantic Model","（Entity ・ Property ・ Type）"],["docs 自身が Ent
 table('q1-notadopted','構想 v0.3 から採らない概念と理由',["構想 v0.3 の概念","採らない理由"],[320,500],[[a,b] for a,b in N],emph=(),row_h=48)
 
 # ── Q6 スキーマの一覧 ──
-S=[("meta-schema.json","abstract@v1","Concrete スキーマの形","Skill"),
-("annotations.schema.json","annotations@v1","x- キーワードの形","Skill（値）"),
-("view.schema.json","view@v1","x- キーワードの形","Skill（値）"),
-("（足す）x-term の形","（Q7 で決める）","x- キーワードの形","Skill（値）"),
-("page.schema.json","page@v1","Skill が書くファイルの形","Skill"),
-("catalog.schema.json","catalog@v1","Skill が書くファイルの形","Skill"),
-("design-system.schema.json","design-system@v1","Skill が書くファイルの形","Skill"),
-("（足す）vocabulary.schema.json","vocabulary@v1","Skill が書くファイルの形","Skill"),
+S=[("meta-schema.json","abstract@v1","Concrete スキーマの形","文脈"),
+("annotations.schema.json","annotations@v1","x- キーワードの形","文脈（値）"),
+("view.schema.json","view@v1","x- キーワードの形","文脈（値）"),
+("（足す）x-term の形","（Q7 で決める）","x- キーワードの形","文脈（値）"),
+("page.schema.json","page@v1","文脈が書くファイルの形","文脈"),
+("catalog.schema.json","catalog@v1","文脈が書くファイルの形","文脈"),
+("design-system.schema.json","design-system@v1","文脈が書くファイルの形","文脈"),
+("（足す）vocabulary.schema.json","vocabulary@v1","文脈が書くファイルの形","文脈"),
 ("published.schema.json","published@v1","基盤の記録の形","基盤のコマンド")]
 table('q6-schemas','基盤の契約のスキーマの一覧と、4つの群',["ファイル","$id（schema-driven/…）","群","インスタンスを書く人"],[250,190,220,160],[list(s) for s in S],emph=(0,),row_h=34,note="validation result と capability の形は抽象スキーマに置かず、protocol（Q4）に置く")
 
@@ -122,3 +122,5 @@ K=[("x-abstract","根","機械的","Schema Validator","description の文を直�
 table('q7-keywords','x- キーワードの表：置く場所 ・ 検証の種類 ・ validator ・ 扱い',["x- キーワード","置く場所","検証の種類","validator","扱い"],[170,150,100,190,230],[list(k) for k in K],emph=(0,),row_h=34)
 # はみ出した項目を2行に分け、列を広げた。
 # 第38回：利用者の指摘で、q1-model を持ち主（基盤 ・ Skill ・ 基盤の外）の枠で描き直した（このファイルの外で直接書いた）。
+
+# 第40回：Concrete の持ち主を Skill から区切られた文脈へ広げた（q1-model ・ q1-scaffold ・ q1-boundary はこのファイルの外で直接書いた）。
