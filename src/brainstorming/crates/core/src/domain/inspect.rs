@@ -109,6 +109,17 @@ pub fn inspect(board: &Value) -> Vec<String> {
                 "{id}：1文が{length}字ある（{SENTENCE_MAX}字まで）── {head}…"
             ));
         }
+        for (n, image) in list(topic, "images").iter().enumerate() {
+            let language = text(image, "language").to_ascii_lowercase();
+            if text(image, "kind") == "code"
+                && matches!(language.as_str(), "text" | "plain" | "txt" | "")
+            {
+                out.push(format!(
+                    "{id}：完成イメージ {} のコードの言語が「{language}」。ファイルの本文でないなら、図などほかの種類にする",
+                    n + 1
+                ));
+            }
+        }
         if text(topic, "status") == "open" {
             if list(topic, "images").is_empty() {
                 out.push(format!("{id}：完成イメージが無い"));
@@ -208,6 +219,24 @@ mod tests {
         let got: Vec<Vec<String>> = cases.iter().map(|(b, _)| inspect(b)).collect();
         let want: Vec<Vec<String>> = cases.into_iter().map(|(_, w)| w).collect();
         assert_eq!(got, want);
+    }
+
+    #[test]
+    fn code_that_is_not_a_file_is_reported() {
+        let mut not_code = ok_topic("Q1", "open");
+        not_code["images"] =
+            json!([{"kind": "code", "caption": "c", "language": "text", "text": "a  b"}]);
+        let mut real_code = ok_topic("Q1", "open");
+        real_code["images"] =
+            json!([{"kind": "code", "caption": "c", "language": "rust", "text": "fn main() {}"}]);
+        assert_eq!(
+            inspect(&board(vec![not_code], &["Q1"])),
+            vec!["Q1：完成イメージ 1 のコードの言語が「text」。ファイルの本文でないなら、図などほかの種類にする"]
+        );
+        assert_eq!(
+            inspect(&board(vec![real_code], &["Q1"])),
+            Vec::<String>::new()
+        );
     }
 
     #[test]

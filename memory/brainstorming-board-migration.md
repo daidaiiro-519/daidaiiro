@@ -43,6 +43,7 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - ボードの本体は `.brainstorming/<ボード>.json`、回の記録 ・ 回答 ・ 図は `.brainstorming/<ボード>/`（基盤の check と render が直下しか読まないため。2026-10-17 利用者の選択）。
 - 試作の画面：アプリ https://claude.ai/artifact/U4UvC4GPvBhxjVrWY4qEz1 ・ 論点 https://claude.ai/artifact/M73AEfCEP3GTi1u1e3211V（生成の台本はセッションの作業用の領域にだけあり、HTML はボードの Q2 に入っている）。
 - brainstorming は完成（2026-10-17）：ACDR 0183 承認（19debd24）、tag brainstorming-v0.1.0 で 3 OS の build ・ verify ・ publish ・ receive が通った。受け入れの記録はボード brainstorming-on-base の measured/acceptance/。
-- 利用者の提案（2026-10-17）：AI の CLI を呼ぶ能力（adapter）を基盤 schema-driven に持たせ、ACDR やほかの Skill でも使う。基盤の検証を「スキーマで機械的に見るもの」と「意味の検証」に分ける考え。ボード `.brainstorming/agents-in-base.json`（新しい brainstorming の1枚目。Artifact https://claude.ai/artifact/QSqk1bZeebog1dNZMA3bAJ、ローカル serve 8763）の第3回（2026-10-17）。Q0 できるようになること がいま答える論点で、Q1〜Q5 は前提待ち。やらせたいことの型（検証＝別の文脈のレビュー、会話＝同じセッション）と、判断する役の持ち込みを入れ、6つの論点に全体の図を足した。
+- 利用者の提案（2026-10-17）：AI の CLI を呼ぶ能力（adapter）を基盤 schema-driven に持たせ、ACDR やほかの Skill でも使う。基盤の検証を「スキーマで機械的に見るもの」と「意味の検証」に分ける考え。ボード `.brainstorming/agents-in-base.json`（新しい brainstorming の1枚目。Artifact https://claude.ai/artifact/QSqk1bZeebog1dNZMA3bAJ、ローカル serve 8763）の第4回（2026-10-17）。Q0 できるようになること がいま答える論点で、Q1〜Q5 は前提待ち。やらせたいことの型（検証＝別の文脈のレビュー、会話＝同じセッション）と、判断する役の持ち込みを入れ、6つの論点に全体の図を足した。
 - 残る別の目的：ワークフローを3本から共通の1本にまとめる（skills-creator.yml の注記「私たちが管理するものが3つになったら」）。古い brainstorming-board の Skill と .mcp.json の登録の扱い。
+- brainstorming 0.1.2（2026-10-17）：AI に聞くの作業中の表示（段階 ・ 経過時間）、止まった理由の区別（止めるボタン／つながりが切れた）、返事ごとのトークンとキャッシュの割合、完成イメージの種類の選び方を x-prompt に足し、inspect が言語 text のコードを見つける。
 - brainstorming 0.1.1（2026-10-17、利用者の判断で ACDR なし）：render は作り途中のボードを飛ばして描く ・ advance と回答とチャットの検査は対象のボードの分だけ数える ・ --schema の名前を Skill の中の場所に直す ・ Kiro はチャットで読むだけ。

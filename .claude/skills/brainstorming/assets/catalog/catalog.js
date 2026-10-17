@@ -293,10 +293,40 @@
       if (actions && actions.length) { var row = el("div", "cand-b"); actions.forEach(function (a) { var b = el("button", "btn" + (a.primary ? " primary" : ""), a.label); b.type = "button"; b.addEventListener("click", a.run); row.appendChild(b); }); c.appendChild(row); }
       msgs.appendChild(c); msgs.scrollTop = msgs.scrollHeight;
     }
-    function busy(on) { submit.disabled = on; stop.hidden = !on; }
+    // 作業中の表示：動く印 ・ いま何をしているか ・ 経過時間。終わるまで会話の末尾に置く
+    var running = null, runTimer = null, runStart = 0;
+    var mmss = function (ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); };
+    function runState(text) {
+      if (!running) return;
+      $("[data-run-text]", running).textContent = text;
+      msgs.appendChild(running); msgs.scrollTop = msgs.scrollHeight;
+    }
+    function busy(on) {
+      submit.disabled = on; stop.hidden = !on; input.setAttribute("aria-busy", String(on));
+      $$("[data-open-chat]").forEach(function (b) { b.classList.toggle("is-busy", on); });
+      if (on) {
+        running = el("div", "running"); running.setAttribute("role", "status");
+        var dots = el("span", "rdots"); dots.setAttribute("aria-hidden", "true"); dots.appendChild(el("i")); dots.appendChild(el("i")); dots.appendChild(el("i"));
+        running.appendChild(dots); running.appendChild(el("span", "rtext", "AI に依頼を送っている")); $(".rtext", running).setAttribute("data-run-text", "");
+        var tm = el("time", "rtime", "0:00"); running.appendChild(tm);
+        runStart = Date.now(); runTimer = setInterval(function () { tm.textContent = mmss(Date.now() - runStart); }, 1000);
+        msgs.appendChild(running); msgs.scrollTop = msgs.scrollHeight;
+      } else {
+        clearInterval(runTimer); if (running) running.remove(); running = null;
+      }
+    }
+    function addUsage(m, u) {
+      if (!u || !u.input) return;
+      var pct = Math.round((u.cached / u.input) * 100);
+      var line = el("div", "usage", "入力 " + u.input.toLocaleString() + "（キャッシュから " + pct + "%）・ 出力 " + u.output.toLocaleString());
+      m.root.appendChild(line);
+    }
     function handle(ev) {
-      if (ev.type === "text") { addText(current, ev.text); }
-      else if (ev.type === "work") { addWork(current, ev); }
+      var WORKING = { read: "読んでいる", edit: "直している", run: "実行している" };
+      if (ev.type === "text") { addText(current, ev.text); runState("返事を書いている"); }
+      else if (ev.type === "work") { addWork(current, ev); runState((WORKING[ev.act] || "作業している") + "：" + String(ev.target || "").split("\n")[0].slice(0, 60)); }
+      else if (ev.type === "phase") { runState(ev.text); }
+      else if (ev.type === "usage") { addUsage(current, ev); }
       else if (ev.type === "check") { addWork(current, { act: "check", target: ev.target || "check", ok: ev.ok }); }
       else if (ev.type === "outside") {
         addNotice("outside", "ボードの外が変わった", ev.files.join(" ・ "), [
@@ -354,7 +384,7 @@
           $$(".msg, .cand", msgs).forEach(function (n) { n.remove(); });
           ((j.data && j.data.messages) || []).forEach(function (m) {
             if (m.role === "user") addMine(m.text, m.at);
-            else if (m.role === "assistant") { var a = aiMessage(m.at); addText(a, m.text || ""); }
+            else if (m.role === "assistant") { var a = aiMessage(m.at); addText(a, m.text || ""); addUsage(a, m.usage); }
             else if (m.role === "work") { var w = aiMessage(m.at); (m.items || []).forEach(function (it) { addWork(w, it); }); }
             else if (m.role === "notice") addNotice("notice", "serve の知らせ", m.text || "", []);
           });

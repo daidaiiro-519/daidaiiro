@@ -18,8 +18,15 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Duration;
+
+/// 止める合図の理由。0 は止めない。
+pub const RUNNING: u8 = 0;
+/// 画面の「止める」が押された。
+pub const STOPPED_BY_USER: u8 = 1;
+/// 画面とのつながりが切れた（読み込み直した ・ タブを閉じた）。
+pub const DISCONNECTED: u8 = 2;
 
 /// チャットの記録に残すやりとりの数の上限。
 pub const KEEP: usize = 200;
@@ -145,7 +152,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     root: &Path,
     request: &Turn,
     limits: &Limits,
-    cancel: &AtomicBool,
+    cancel: &AtomicU8,
     sink: &mut impl FnMut(Value),
 ) -> Result<(), String> {
     let agent = Agent::parse(&request.agent).ok_or("AI の名前が違う")?;
@@ -193,6 +200,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     messages.push(json!({"role": "user", "text": request.text, "at": env.clock.now()}));
     sink(json!({"type": "start", "run": run_id, "agent": agent.name(), "new": session.is_empty()}));
 
+    sink(json!({"type": "phase", "text": format!("{} を起動している", agent.program())}));
     let mut started = agents.start(&plan, &repo)?;
     let (begin, mut last) = (env.clock.elapsed_ms(), env.clock.elapsed_ms());
     let (mut said, mut items, mut found_session, mut failure) = (
@@ -201,10 +209,16 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         String::new(),
         None::<String>,
     );
+    let mut usage: Option<Value> = None;
     loop {
-        if cancel.load(Ordering::SeqCst) {
+        let reason = cancel.load(Ordering::SeqCst);
+        if reason != RUNNING {
             started.stop();
-            failure = Some("止めた".to_owned());
+            failure = Some(match reason {
+                STOPPED_BY_USER => "画面の「止める」で止めた".to_owned(),
+                _ => "画面とのつながりが切れたので止めた（画面を読み込み直したか、閉じたとき）"
+                    .to_owned(),
+            });
             break;
         }
         let now = env.clock.elapsed_ms();
@@ -245,6 +259,13 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
                             })
                         }
                         Event::Done(true, _) => {}
+                        Event::Usage(input, cached, output) => {
+                            usage =
+                                Some(json!({"input": input, "cached": cached, "output": output}));
+                            sink(
+                                json!({"type": "usage", "input": input, "cached": cached, "output": output}),
+                            );
+                        }
                     }
                 }
             }
@@ -262,6 +283,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     }
 
     // 4. serve が自分で検査する
+    sink(json!({"type": "phase", "text": "serve が検査している"}));
     let check = check_board(env, skill, root, &board_file, &request.board);
     let (ok, target) = match &check {
         Ok(0) => (true, "check 合格".to_owned()),
@@ -301,6 +323,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
 
     // 6. 描き直しと記録
     if env.files.read(&board_file).ok().as_deref() != Some(before_board.as_str()) {
+        sink(json!({"type": "phase", "text": "画面を描き直している"}));
         match render::run(env, skill, root) {
             Ok(_) => sink(json!({"type": "changed", "run": run_id})),
             Err(error) => {
@@ -317,7 +340,11 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         messages.push(json!({"role": "work", "items": items, "at": at}));
     }
     if !said.is_empty() {
-        messages.push(json!({"role": "assistant", "text": said, "at": at}));
+        let mut message = json!({"role": "assistant", "text": said, "at": at});
+        if let Some(used) = &usage {
+            message["usage"] = used.clone();
+        }
+        messages.push(message);
     }
     messages.extend(
         notices
@@ -392,7 +419,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("前提を足して"),
             &Limits::default(),
-            &AtomicBool::new(false),
+            &AtomicU8::new(RUNNING),
             &mut |e| got.push(e),
         )
         .unwrap();
@@ -414,7 +441,10 @@ mod tests {
             ],
             0,
         );
-        assert_eq!(kinds(&got), vec!["start", "work", "text", "check", "done"]);
+        assert_eq!(
+            kinds(&got),
+            vec!["start", "phase", "work", "text", "usage", "phase", "check", "done"]
+        );
         let log = env
             .read_json(Path::new("/r/.brainstorming/.chat/b/codex.json"))
             .unwrap();
@@ -442,7 +472,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("続き"),
             &Limits::default(),
-            &AtomicBool::new(false),
+            &AtomicU8::new(RUNNING),
             &mut |_| {},
         )
         .unwrap();
@@ -476,7 +506,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("x"),
             &Limits::default(),
-            &AtomicBool::new(false),
+            &AtomicU8::new(RUNNING),
             &mut |e| got.push(e),
         )
         .unwrap();
@@ -491,7 +521,7 @@ mod tests {
     #[test]
     fn a_failing_cli_and_a_stop_both_end_with_an_error_event() {
         let (got, _) = events(&[], 3);
-        assert_eq!(kinds(&got), vec!["start", "check", "error", "done"]);
+        assert_eq!(kinds(&got), vec!["start", "phase", "phase", "check", "error", "done"]);
         let env = env_with_git(MemoryFiles::with(&[("/r/.brainstorming/b.json", BOARD)]));
         let mut stopped = Vec::new();
         turn(
@@ -501,7 +531,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("x"),
             &Limits::default(),
-            &AtomicBool::new(true),
+            &AtomicU8::new(STOPPED_BY_USER),
             &mut |e| stopped.push(e),
         )
         .unwrap();
@@ -510,7 +540,7 @@ mod tests {
                 .iter()
                 .find(|e| text(e, "type") == "error")
                 .map(|e| e["text"].clone()),
-            Some(json!("止めた"))
+            Some(json!("画面の「止める」で止めた"))
         );
     }
 
@@ -530,7 +560,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("x"),
             &limits,
-            &AtomicBool::new(false),
+            &AtomicU8::new(RUNNING),
             &mut |e| got.push(e),
         )
         .unwrap();
@@ -562,7 +592,7 @@ mod tests {
             Path::new("/r/.brainstorming"),
             &request("x"),
             &Limits::default(),
-            &AtomicBool::new(false),
+            &AtomicU8::new(RUNNING),
             &mut |_| {},
         )
         .unwrap();

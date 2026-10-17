@@ -196,6 +196,12 @@ pub enum Event {
     Denied(String),
     /// 終わり。ok は成功したか、text は失敗の説明
     Done(bool, String),
+    /// 使ったトークン（入力の合計 ・ うちキャッシュから読んだ分 ・ 出力）
+    Usage(u64, u64, u64),
+}
+
+fn n(value: &Value, pointer: &str) -> u64 {
+    value.pointer(pointer).and_then(Value::as_u64).unwrap_or(0)
 }
 
 fn s<'v>(value: &'v Value, pointer: &str) -> &'v str {
@@ -264,17 +270,26 @@ fn claude(value: &Value, root: &str) -> Vec<Event> {
                 _ => None,
             })
             .collect(),
-        ("result", _) => vec![Event::Done(
-            !value
-                .get("is_error")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            if value.get("is_error").and_then(Value::as_bool) == Some(true) {
-                s(value, "/result").to_owned()
-            } else {
-                String::new()
-            },
-        )],
+        ("result", _) => vec![
+            Event::Usage(
+                n(value, "/usage/input_tokens")
+                    + n(value, "/usage/cache_creation_input_tokens")
+                    + n(value, "/usage/cache_read_input_tokens"),
+                n(value, "/usage/cache_read_input_tokens"),
+                n(value, "/usage/output_tokens"),
+            ),
+            Event::Done(
+                !value
+                    .get("is_error")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+                if value.get("is_error").and_then(Value::as_bool) == Some(true) {
+                    s(value, "/result").to_owned()
+                } else {
+                    String::new()
+                },
+            ),
+        ],
         _ => vec![],
     }
 }
@@ -302,7 +317,14 @@ fn codex(value: &Value, root: &str) -> Vec<Event> {
                 .collect(),
             _ => vec![],
         },
-        "turn.completed" => vec![Event::Done(true, String::new())],
+        "turn.completed" => vec![
+            Event::Usage(
+                n(value, "/usage/input_tokens"),
+                n(value, "/usage/cached_input_tokens"),
+                n(value, "/usage/output_tokens"),
+            ),
+            Event::Done(true, String::new()),
+        ],
         "turn.failed" => vec![Event::Done(false, s(value, "/error/message").to_owned())],
         "error" => vec![Event::Done(false, s(value, "/message").to_owned())],
         _ => vec![],
@@ -492,8 +514,11 @@ mod tests {
             ),
             (
                 Agent::Claude,
-                r#"{"type":"result","subtype":"success","is_error":false,"result":"x"}"#,
-                vec![Event::Done(true, String::new())],
+                r#"{"type":"result","subtype":"success","is_error":false,"result":"x","usage":{"input_tokens":28,"cache_creation_input_tokens":50380,"cache_read_input_tokens":694918,"output_tokens":9780}}"#,
+                vec![
+                    Event::Usage(745326, 694918, 9780),
+                    Event::Done(true, String::new()),
+                ],
             ),
             (
                 Agent::Codex,

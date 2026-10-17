@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Component, Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -261,7 +261,7 @@ pub struct Server<F, P, C, A> {
     pub port: u16,
     pub token: String,
     pub limits: Limits,
-    running: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    running: Mutex<HashMap<String, Arc<AtomicU8>>>,
 }
 
 impl<F, P, C, A> Server<F, P, C, A>
@@ -336,7 +336,8 @@ where
                         .lock()
                         .ok()
                         .and_then(|map| map.get(board).cloned());
-                    flag.iter().for_each(|f| f.store(true, Ordering::SeqCst));
+                    flag.iter()
+                        .for_each(|f| f.store(chat::STOPPED_BY_USER, Ordering::SeqCst));
                     ok(json!({"stopping": flag.is_some()}))
                 }
                 Err(response) => response,
@@ -386,7 +387,7 @@ where
             agent: text(&input, "agent").to_owned(),
             text: text(&input, "text").to_owned(),
         };
-        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel = Arc::new(AtomicU8::new(chat::RUNNING));
         {
             let Ok(mut map) = self.running.lock() else {
                 return;
@@ -409,7 +410,12 @@ where
                     .and_then(|_| stream.flush())
                     .is_ok();
             if !alive {
-                cancel.store(true, Ordering::SeqCst);
+                let _ = cancel.compare_exchange(
+                    chat::RUNNING,
+                    chat::DISCONNECTED,
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                );
             }
         };
         if let Err(reason) = chat::turn(
