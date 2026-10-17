@@ -108,7 +108,23 @@ pub fn inspect(board: &Value) -> Vec<String> {
                 "{id}：1文が{length}字ある（{SENTENCE_MAX}字まで）── {head}…"
             ));
         }
-        for (n, image) in list(topic, "images").iter().enumerate() {
+        let images = list(topic, "images");
+        if images.len() > 1 {
+            let unnamed: Vec<String> = images
+                .iter()
+                .enumerate()
+                .filter(|(_, image)| text(image, "name").trim().is_empty())
+                .map(|(n, _)| (n + 1).to_string())
+                .collect();
+            if !unnamed.is_empty() {
+                out.push(format!(
+                    "{id}：完成イメージが{}枚あるのに、{} 枚目に名前（name）が無い。タブで見分けられない",
+                    images.len(),
+                    unnamed.join(" ・ ")
+                ));
+            }
+        }
+        for (n, image) in images.iter().enumerate() {
             let language = text(image, "language").to_ascii_lowercase();
             if text(image, "kind") == "code"
                 && matches!(language.as_str(), "text" | "plain" | "txt" | "")
@@ -164,6 +180,19 @@ mod tests {
             inspect(&board(vec![ok_topic("Q1", "open")], &["Q1"])),
             Vec::<String>::new()
         );
+    }
+
+    #[test]
+    fn two_or_more_images_need_names_to_tell_the_tabs_apart() {
+        let mut topic = ok_topic("Q1", "settled");
+        topic["images"] = json!([{"kind": "figure", "name": "全体"}, {"kind": "figure"}]);
+        let found = inspect(&board(vec![topic.clone()], &[]));
+        assert_eq!(
+            found,
+            vec!["Q1：完成イメージが2枚あるのに、2 枚目に名前（name）が無い。タブで見分けられない"]
+        );
+        topic["images"][1]["name"] = json!("担い手");
+        assert!(inspect(&board(vec![topic], &[])).is_empty());
     }
 
     #[test]

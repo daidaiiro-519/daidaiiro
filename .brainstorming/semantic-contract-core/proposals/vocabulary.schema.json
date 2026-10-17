@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema-driven/vocabulary@v1",
+  "title": "語彙（案）",
+  "description": "スキーマをまたいで同じ意味で使う語。JSON-LD と SHACL の概念を自前の形で持ち、標準へは写して相互運用する。",
+  "type": "object",
+  "required": ["id", "terms"],
+  "properties": {
+    "id": { "description": "共通の識別子（JSON-LD の @id にあたる）", "type": "string", "format": "uri" },
+    "context": {
+      "description": "手元の名前と共通の語の対応付け（JSON-LD の @context にあたる）",
+      "type": "object",
+      "additionalProperties": { "type": "string", "format": "uri" }
+    },
+    "protected": {
+      "description": "再定義を断る語（JSON-LD の @protected にあたる）",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "terms": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": { "type": "string" },
+          "shape": { "$ref": "#/$defs/shape" },
+          "by": { "description": "確かめる担い手", "enum": ["engine", "check", "ai", "human"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "shape": {
+      "description": "ノードと関係の制約（SHACL の Shape にあたる）",
+      "type": "object",
+      "properties": {
+        "path": { "description": "参照をたどる経路（SHACL の sh:path にあたる）", "type": "string" },
+        "count": {
+          "type": "object",
+          "properties": { "min": { "type": "integer" }, "max": { "type": "integer" } }
+        },
+        "closed": { "description": "書いていない欄を許さないか（SHACL の sh:closed にあたる）", "type": "boolean" }
+      }
+    }
+  }
+}
