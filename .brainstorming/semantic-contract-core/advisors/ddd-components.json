@@ -1,0 +1,470 @@
+{
+  "kind": "judgment",
+  "question": "構想 Semantic Contract Core v0.3 の全体構成図の ① Abstract Schema Layer（5つの仕様と公開仕様の4つ）と ② Semantic Contract Core（6つの部品と表現モデルの5つ）を、いまの基盤 schema-driven の実物と1つずつ照らすと、どれが同じで何が足りないか。6つの部品の切り方は区切られた文脈 ・ モジュールとして筋が通っているか。Agents 契約はどの部品に属するか。表現モデルと Abstract Schema Layer が2か所に分かれている理由と、同じものが2か所にならない置き方は何か",
+  "premises": [
+    {
+      "name": "読んだ材料",
+      "value": "v0.3 の images/semantic-contract-core-overview-illustrated.png（全体構成図）・ docs/10 ・ 13 ・ 14 ・ 16、examples/protocol、schema-driven の SKILL.md と assets/ の7つ、core の domain/ ・ application/ ・ ports.rs ・ embedded.rs、adapters の inbound/ ・ outbound/、前の回答 advisors/ddd.json、ボード agents-in-base の Q0〜Q5",
+      "source": "リポジトリの中のファイル"
+    },
+    {
+      "name": "6つの部品の出どころ",
+      "value": "② の6つの部品（Vocabulary Resolver ・ Schema Validator ・ Semantic Interpreter ・ Relation/Graph Engine ・ Constraint Engine ・ Contract Registry）は全体構成図にだけ在り、docs には定義が無い。docs/13 の crate 分割案は resolver ・ validator（構造検証 ・ 制約検証）・ relations ・ interpreter（Capability 照合と実行調停）・ protocol で、Constraint Engine を validator の中に置く。図と docs/13 で切り方が違う",
+      "source": "v0.3 images/semantic-contract-core-overview-illustrated.png、docs/13"
+    },
+    {
+      "name": "判定の語",
+      "value": "同じ＝v0.3 の項目と同じ役目のものが基盤に在る／一部ある＝役目の一部だけ在る／無い＝基盤に無い／基盤だけにある＝v0.3 の図に置き場所が無い",
+      "source": "この回答の取り決め"
+    },
+    {
+      "name": "対応 ①-1 Semantic Model（意味の最小単位 Entity/Property/Type 等）",
+      "value": "一部ある。基盤は意味の最小単位を独自に持たず、JSON Schema のプロパティと型をそのまま使う。インスタンスを見分けるのは id と kind だけで、検査はこの2つと注釈だけを読む。Entity ・ Property ・ Type を基盤の語として宣言する場所は無い",
+      "source": ".claude/skills/schema-driven/assets/meta-schema.json（$defs の shape ・ fields ・ field）、assets/annotations.schema.json（description）、src/schema-driven/crates/core/src/domain/check.rs（冒頭の注釈）"
+    },
+    {
+      "name": "対応 ①-2 Vocabulary Spec（識別子 ・ 意味 ・ 階層 ・ 関係）",
+      "value": "一部ある。識別子はスキーマの名前「<Skill の名前>/<種類>@<版>」だけを持つ。意味はプロパティごとの x-prompt の read.means で書くが、Skill をまたいで語の意味を1か所で宣言する場所は無い。階層と、語どうしの関係は無い。x-annotations は注釈のキーの登録で、語の登録ではない",
+      "source": "src/schema-driven/crates/core/src/domain/schema_name.rs、.claude/skills/schema-driven/assets/meta-schema.json（x-prompt ・ x-annotations）"
+    },
+    {
+      "name": "対応 ①-3 JSON Representation（共通 JSON 形式、拡張可能なスキーマ記述）",
+      "value": "同じ。concrete スキーマは JSON Schema 2020-12 の dialect で書き、x- で始まる注釈で拡張する。基盤に無い注釈は根の x-annotations に名前と仕様のスキーマを書いて足す。abstract スキーマ自身もこの形で書いてある",
+      "source": ".claude/skills/schema-driven/assets/meta-schema.json（$schema ・ x-abstract ・ x-annotations）、src/schema-driven/crates/core/src/domain/contract.rs（DIALECT ・ V1）"
+    },
+    {
+      "name": "対応 ①-4 Constraint Spec（構造 ・ 値 ・ 関係 ・ 意味制約）",
+      "value": "一部ある。構造と値は JSON Schema、関係は x-ref（指される数の決まり inverse を含む）、答えから値を決める決まりは x-derive が持つ。意味の制約は x-prompt の write（rule ・ why ・ test）として書くが、エンジンはこれを検査しない（書く AI と人が読む）",
+      "source": ".claude/skills/schema-driven/assets/annotations.schema.json（x-ref ・ x-derive）、assets/meta-schema.json（x-prompt の write）"
+    },
+    {
+      "name": "対応 ①-5 Interpreter Protocol（能力表明 ・ 検証インターフェース）",
+      "value": "一部ある。検証の結果の形はツール共通の出力（ok ・ reason ・ detail ・ errors ・ findings、終了コード 0/1/2）として決まっている。能力表明は無い。check-schemas が「エンジンが扱わない版」を検査せずに指摘するのが、版の単位での対応可否に当たるだけである。外から Interpreter を足す口も無い",
+      "source": ".claude/skills/schema-driven/SKILL.md（出力形式 ・ Step 1）、src/schema-driven/crates/adapters/src/inbound/tools.rs"
+    },
+    {
+      "name": "対応 公開仕様-1 JSON / JSON Schema 互換",
+      "value": "同じ。検証は jsonschema crate で JSON Schema 2020-12 をそのまま使う。$ref は名前（$id）で引き、JSON Schema の規則で解く",
+      "source": "src/schema-driven/crates/core/src/domain/schema.rs、domain/contract.rs、.claude/skills/schema-driven/SKILL.md（Step 1）"
+    },
+    {
+      "name": "対応 公開仕様-2 JSON-LD / Context",
+      "value": "無い。@context ・ @id にあたるものは無い。スキーマの名前は URI ではなく「<Skill の名前>/<種類>@<版>」の文字列である",
+      "source": "src/schema-driven/crates/core/src/domain/schema_name.rs"
+    },
+    {
+      "name": "対応 公開仕様-3 SHACL 互換マッピング",
+      "value": "無い。x-ref の inverse（指される数の決まり）は SHACL の数の制約に近い働きをするが、SHACL への対応表は無い",
+      "source": ".claude/skills/schema-driven/assets/annotations.schema.json（x-ref の inverse）"
+    },
+    {
+      "name": "対応 公開仕様-4 独自拡張（自由な表現）",
+      "value": "同じ。x-abstract ・ x-generates ・ x-annotations ・ x-prompt ・ x-ref ・ x-derive ・ x-view を基盤の注釈として持ち、使う側は x-annotations で足せる。申告していない x- のキーは check-schemas が違反にする",
+      "source": ".claude/skills/schema-driven/assets/meta-schema.json、assets/annotations.schema.json、assets/view.schema.json、src/schema-driven/crates/core/src/domain/schema_rules.rs"
+    },
+    {
+      "name": "対応 ②-1 Vocabulary Resolver（識別子 ・ 語彙解決）",
+      "value": "一部ある。解決するのはスキーマの名前だけである。インスタンスの $schema から、エンジンが持つスキーマ ・ --skill の Skill のスキーマ ・ x-abstract の abstract の順に引き、ほかの Skill の名前なら止める。語（Vocabulary）の解決は無い",
+      "source": "src/schema-driven/crates/core/src/domain/schema_name.rs（is_name ・ owner）、application/instances.rs、domain/contract.rs、embedded.rs、ports.rs（Schemas）"
+    },
+    {
+      "name": "対応 ②-2 Schema Validator（構造 ・ 値の検証）",
+      "value": "同じ。インスタンスの検証は Schema、concrete スキーマが abstract の版に従うかの検査は check_schemas が持つ。update は検証エラーがあれば書かない",
+      "source": "src/schema-driven/crates/core/src/domain/schema.rs（Schema ・ Validation）、domain/schema_rules.rs（check_schemas）、application/instances.rs"
+    },
+    {
+      "name": "対応 ②-3 Semantic Interpreter（意味の解釈 ・ 調停）",
+      "value": "無い。いまの解釈は x-ref と x-derive の検査だけで、エンジンに組み込まれた1つである。複数の Interpreter を照らし合わせて振り分ける（調停する）ものは無い。意味の検証は agents-in-base Q2 で足すと決めたが、まだ実装は無い",
+      "source": "src/schema-driven/crates/core/src/domain/check.rs、.brainstorming/agents-in-base.json（Q2）"
+    },
+    {
+      "name": "対応 ②-4 Relation/Graph Engine（関係 ・ グラフ処理）",
+      "value": "一部ある。x-ref を解いて参照と指す先の組（GraphLink）と導出値（GraphDerived）を作る Graph を持ち、検査と描画が同じ解決を使う。範囲はディレクトリのインスタンスの集まりで、RDF のグラフや問い合わせは無い",
+      "source": "src/schema-driven/crates/core/src/domain/check.rs（Graph ・ GraphLink ・ GraphDerived ・ graph）、application/context.rs"
+    },
+    {
+      "name": "対応 ②-5 Constraint Engine（制約 ・ 検証）",
+      "value": "一部ある。x-ref の指される数と x-derive の導出値を検査する Checker が当たる。ただし関係の解決と同じ Checker の中にあり、別の部品ではない。意味の制約（x-prompt の write）は検査しない。デザインシステムのコントラストの下限も制約の検査だが、描画の側に在る",
+      "source": "src/schema-driven/crates/core/src/domain/check.rs（Checker ・ check）、domain/design_system.rs（check）"
+    },
+    {
+      "name": "対応 ②-6 Contract Registry（スキーマ ・ 語彙管理）",
+      "value": "一部ある。abstract の版（abstract@v1）と、実行ファイルに取り込んだ基盤のスキーマを名前で引く。公開した版の指紋を published.json に記録し、書き換えと消失を指摘する。語彙の管理は無い",
+      "source": "src/schema-driven/crates/core/src/domain/contract.rs、embedded.rs、domain/published.rs、.claude/skills/schema-driven/assets/published.schema.json"
+    },
+    {
+      "name": "対応 表現モデル-1 Abstract Schema（拡張可能な共通モデル）",
+      "value": "同じ。abstract スキーマ v1 が、concrete スキーマの従う契約である。concrete スキーマは abstract のインスタンスとして、インスタンスと同じ道具で作る。① の Semantic Model ・ JSON Representation と同じファイルが受け持つ",
+      "source": ".claude/skills/schema-driven/assets/meta-schema.json、src/schema-driven/crates/core/src/domain/contract.rs"
+    },
+    {
+      "name": "対応 表現モデル-2 Vocabulary（独自の語彙定義）",
+      "value": "無い。①-2 と同じく、語の意味を1か所で宣言する場所が無い",
+      "source": ".claude/skills/schema-driven/assets/meta-schema.json（x-prompt の read.means だけ）"
+    },
+    {
+      "name": "対応 表現モデル-3 Relation Model（ドメインに応じた関係表現）",
+      "value": "一部ある。x-ref の to ・ inverse が関係を宣言する。関係に種類（名前）を付ける欄は無く、「指す」の1種類だけである",
+      "source": ".claude/skills/schema-driven/assets/annotations.schema.json（x-ref）"
+    },
+    {
+      "name": "対応 表現モデル-4 Constraint Model（複合的な制約表現）",
+      "value": "一部ある。JSON Schema の制約 ・ x-ref の inverse ・ x-derive の組み合わせで書ける。意味の制約は x-prompt の write の文として持つ",
+      "source": ".claude/skills/schema-driven/assets/annotations.schema.json、assets/meta-schema.json"
+    },
+    {
+      "name": "対応 表現モデル-5 Interpretation Model（宣言と解釈の分離）",
+      "value": "一部ある。宣言（スキーマと注釈）と解釈（エンジン）は分かれている。値を人が読む文にする x-view と、読み方 ・ 書き方の決まり x-prompt（read ・ write）が、宣言側の解釈の手がかりである。どの決まりをどの Interpreter が見るかを書く欄（agents-in-base Q2 の by）はまだ無い",
+      "source": ".claude/skills/schema-driven/assets/view.schema.json、assets/meta-schema.json（x-prompt）、src/schema-driven/crates/core/src/application/view.rs"
+    },
+    {
+      "name": "対応 基盤だけにある-1 インスタンスの作成と更新",
+      "value": "インスタンスをハッシュ値付きで持ち、作成は未記入と x-prompt を返し、更新は JSON Patch を検証してから書く。読んだ時点のハッシュ値で重なりを止める。v0.3 の図には、インスタンスを書き進める操作の置き場所が無い",
+      "source": "src/schema-driven/crates/core/src/domain/instance.rs、domain/values.rs（Hash ・ JsonPatch ・ Unfilled）、application/instances.rs、ports.rs（WriteIf）"
+    },
+    {
+      "name": "対応 基盤だけにある-2 承認記録",
+      "value": "検証エラー ・ ずれ ・ 未記入が無いときだけ、インスタンスのパスとハッシュ値を approval.json へ書く。承認のあとに指す先が変わると check が「確かめ直し」を返す",
+      "source": "src/schema-driven/crates/core/src/domain/approval.rs、application/checks.rs、domain/values.rs（Status ・ Drift）"
+    },
+    {
+      "name": "対応 基盤だけにある-3 描画（ページテンプレート ・ 部品のカタログ ・ デザインシステム ・ x-view）",
+      "value": "インスタンスをページテンプレートと使う側のカタログで HTML にする。v0.3 は Renderer を Runtime（基盤の外）に置く（docs/10）ので、いまの基盤とは置き場所が逆である",
+      "source": ".claude/skills/schema-driven/assets/page.schema.json ・ catalog.schema.json ・ design-system.schema.json ・ view.schema.json、src/schema-driven/crates/core/src/application/page.rs ・ renders.rs ・ view.rs、domain/catalog.rs ・ design_system.rs"
+    },
+    {
+      "name": "対応 基盤だけにある-4 Agents 契約（AI をプロセスで呼ぶ契約と意味の検証）",
+      "value": "いまは無く、agents-in-base で足すと決めた（基盤 0.2.0）。利用者の補足のとおり、v0.3 の図には AI の CLI を呼ぶ口（出ていく側）が無い。図の外部インターフェース（JSON I/O ・ CLI/IPC ・ HTTP/REST ・ WASM）は、どれも外から基盤を呼ぶ向きである",
+      "source": ".brainstorming/agents-in-base.json（Q1 ・ Q2 ・ Q3）、v0.3 images/semantic-contract-core-overview-illustrated.png"
+    },
+    {
+      "name": "対応 外部インターフェース",
+      "value": "JSON I/O と CLI は同じ（どのツールも標準出力へ JSON を1つ書く）。IPC の代わりに MCP のサーバーを持つ。HTTP/REST と WASM Component は無い",
+      "source": "src/schema-driven/crates/adapters/src/inbound/cli.rs ・ inbound/mcp.rs ・ inbound/tools.rs、.claude/skills/schema-driven/SKILL.md（出力形式）"
+    },
+    {
+      "name": "業務領域としての扱い",
+      "value": "前の回答と同じく、ここでの業務は AI が扱うデータの意味を宣言し、検証し、使う仕事とみなす。所有者は1人なので、チームの数で文脈を分ける契機は当てはまらない",
+      "source": "advisors/ddd.json、CLAUDE.md（1人作業）"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "① と ② の20項目のうち、基盤と同じものは5つで、残りは一部あるか無い。6つの部品は1つの区切られた文脈の中のモジュールとしてなら筋が通るが、Relation/Graph と Constraint を分けることと Semantic Interpreter に AI の呼び出しまで持たせることは採らず、表現モデルは ① の公開された言葉に対する内部のモデルとして、正本を ① の1か所に置く。",
+    "because": "区切られた文脈は同じ言葉の一貫性を保つ境界で、6つの部品はどれも abstract@v1 という1つの言葉を使うので、文脈ではなくモジュールの切り方である。同じデータを操作するユースケースを分けない決まりから、x-ref の解決と数の検査を1つの Checker が持ついまの形のほうが正しく、表現モデルを ① と別に書けば同じものに2つの名前が付く。"
+  },
+  "figure": {
+    "caption": "v0.3 の部品といまの基盤の置き場所。① は公開された言葉で正本、② の表現モデルはそれに対する内部のモデル。Agents 契約は、意味の検証（Semantic Interpreter）と、AI の CLI を呼ぶ出ていく側のポートとアダプターに分かれる。",
+    "nodes": [
+      {
+        "id": "spec",
+        "label": "① Abstract Schema Layer（公開された言葉・正本）\n実物：assets/meta-schema.json ・ annotations ・ view",
+        "role": "公開"
+      },
+      {
+        "id": "model",
+        "label": "② 表現モデル（内部のモデル）\n実物：domain/values.rs ・ schema.rs など",
+        "role": "内部"
+      },
+      {
+        "id": "registry",
+        "label": "Contract Registry\n実物：contract.rs ・ embedded.rs ・ published.rs ・ schema_name.rs",
+        "role": "部品"
+      },
+      {
+        "id": "validator",
+        "label": "Schema Validator\n実物：schema.rs ・ schema_rules.rs",
+        "role": "部品"
+      },
+      {
+        "id": "checker",
+        "label": "Relation/Graph ＋ Constraint（1つにまとめる）\n実物：check.rs（Graph ・ Checker）",
+        "role": "部品"
+      },
+      {
+        "id": "interp",
+        "label": "Semantic Interpreter（意味の検証）\n実物：無い（agents-in-base Q2）",
+        "role": "足す"
+      },
+      {
+        "id": "port",
+        "label": "AI の CLI を呼ぶポート\n実物：無い（ports.rs に足す）",
+        "role": "足す"
+      },
+      {
+        "id": "adapter",
+        "label": "AI の CLI のアダプター（Claude Code ・ Codex ・ Kiro）\n実物：無い（adapters/outbound に足す）",
+        "role": "足す"
+      },
+      {
+        "id": "render",
+        "label": "描画（page ・ renders ・ catalog ・ design_system）\n基盤だけにある",
+        "role": "基盤だけ"
+      },
+      {
+        "id": "inbound",
+        "label": "外部インターフェース（JSON I/O ・ CLI ・ MCP）\n実物：adapters/inbound",
+        "role": "入口"
+      }
+    ],
+    "edges": [
+      {
+        "from": "spec",
+        "to": "model",
+        "label": "ビルドのときに取り込む（embedded.rs）"
+      },
+      {
+        "from": "registry",
+        "to": "spec",
+        "label": "名前と版で引く"
+      },
+      {
+        "from": "validator",
+        "to": "registry",
+        "label": "スキーマを引く"
+      },
+      {
+        "from": "checker",
+        "to": "validator",
+        "label": "検証を通ったインスタンスを読む"
+      },
+      {
+        "from": "interp",
+        "to": "checker",
+        "label": "Graph を読む"
+      },
+      {
+        "from": "interp",
+        "to": "port",
+        "label": "AI を呼ぶ"
+      },
+      {
+        "from": "adapter",
+        "to": "port",
+        "label": "実装する"
+      },
+      {
+        "from": "render",
+        "to": "checker",
+        "label": "同じ Graph を使う"
+      },
+      {
+        "from": "inbound",
+        "to": "validator",
+        "label": "ツールを呼ぶ"
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "option": "案1：6つの部品を、それぞれ別の区切られた文脈にする",
+      "effect": "6つとも abstract@v1 の同じ言葉を使うので、文脈の境界が言葉の境界にならない。x-ref の解決と数の検査が別の文脈に分かれ、1つの注釈の変更で2つの文脈を同時に直すことになる",
+      "chosen": false
+    },
+    {
+      "option": "案2：6つの部品を1つの文脈の中のモジュールにし、Relation/Graph と Constraint は1つにまとめる",
+      "effect": "いまの check.rs の形（Graph と Checker を同じモジュールに置き、検査と描画が同じ解決を使う）を保てる。Semantic Interpreter だけは使う言葉（守れている ・ 守れていない ・ 判断できない）が違うので、別のモジュールに置ける",
+      "chosen": true
+    },
+    {
+      "option": "案3：Semantic Interpreter に、AI の CLI の起動 ・ 権限 ・ 時間切れまで持たせる",
+      "effect": "意味の検証の決まりと、プロセスを起動する技術が1つのモジュールに混ざる。CLI を入れ替えるたびに意味の検証のコードを直すことになる",
+      "chosen": false
+    },
+    {
+      "option": "案4：Agents 契約を、意味の検証（Semantic Interpreter）と、AI の CLI を呼ぶ出ていく側のポートとアダプターに分ける",
+      "effect": "意味の検証はポートだけを見るので、CLI の違い（Claude Code の --json-schema ・ Codex の --output-schema ・ Kiro の取り出し）はアダプターに閉じる。agents-in-base Q1 の「AI の呼び出し ・ 意味の検証 ・ いまの操作を別のモジュールに分ける」と同じ形になる",
+      "chosen": true
+    },
+    {
+      "option": "案5：表現モデルと Abstract Schema Layer を、図のとおり2か所に別々に書く",
+      "effect": "Abstract Schema と Semantic Model、Vocabulary と Vocabulary Spec、Constraint Model と Constraint Spec が、同じものに別の名前が付いた組になる。どちらが正本かを毎回確かめることになる",
+      "chosen": false
+    },
+    {
+      "option": "案6：① を公開された言葉として正本を1か所に置き、② の表現モデルは ① を取り込んだ内部の型として名前を変えずに持つ",
+      "effect": "いまの基盤の形（assets/meta-schema.json を正本にし、build.rs と embedded.rs がビルドのときに取り込む）と同じになる。内部の型を変えても、① の版を保てる限り使う側に影響しない",
+      "chosen": true
+    }
+  ],
+  "path": [
+    {
+      "ask": "6つの部品は、別々の区切られた文脈か",
+      "answer": "違う。区切られた文脈は同じ言葉の一貫性を保つ境界で、6つはどれも abstract@v1 の同じ言葉を使う。1つの文脈の中のモジュールの切り方として評価する"
+    },
+    {
+      "ask": "モジュールとして、6つの切り方に無理は無いか",
+      "answer": "Relation/Graph と Constraint の分け方に無理がある。x-ref の inverse は関係でもあり数の制約でもあり、同じ Graph を読む。いまの check.rs はこれを1つの Checker に置いている。docs/13 の crate 分割案も制約を validator の中に置き、Constraint Engine を独立させていない"
+    },
+    {
+      "ask": "いまのエンジンの切り方と何が違うか",
+      "answer": "いまのエンジンは、集約（インスタンス ・ 承認記録）・ ドメインサービス（検査する ・ 具体のスキーマを検査する）・ 値オブジェクトで domain を切り、application はユースケース（instances ・ checks ・ renders）で切り、ファイル ・ JMESPath ・ カタログはポートとアダプターの外に出している。v0.3 の6つは技術の働き（解決 ・ 検証 ・ 解釈 ・ 関係 ・ 制約 ・ 登録）で切っており、作成 ・ 更新 ・ 承認 ・ 描画の置き場所が無い"
+    },
+    {
+      "ask": "Agents 契約はどの部品に属するか",
+      "answer": "2つに分かれる。意味の検証（x-prompt の決まり1件ごとの判定と、その記録）は Semantic Interpreter に属する。AI の CLI をプロセスで呼ぶ部分（起動 ・ 権限の型 ・ 時間切れ ・ 子孫まで止める処理）は、どの部品でもなく、ports.rs に足す出ていく側のポートと adapters/outbound のアダプターである。決まりごとの by と x-context は ① の Interpreter Protocol（能力表明）と独自拡張に当たる。会話（同じセッションの続き）は Q1 のとおり Skill に残す"
+    },
+    {
+      "ask": "v0.3 にその置き場所はあるか",
+      "answer": "無い。図の外部インターフェースは4つとも外から基盤を呼ぶ向きで、基盤から AI を呼ぶ向きの口が無い。これが利用者の補足の「足りない部分」の具体の形である"
+    },
+    {
+      "ask": "表現モデルと Abstract Schema Layer が2か所にある理由は何か",
+      "answer": "docs/13 が「semantic-model は内部型（外部仕様ではない）」とし、言語非依存の仕様を Rust の型に従わせないと決めているためである。① は外へ出す公開された言葉、② の表現モデルはエンジンの中のモデルとして分けている。この分け方そのものは、公開インターフェースを内部のモデルから分ける決まりに合う"
+    },
+    {
+      "ask": "同じものが2か所にならない置き方は何か",
+      "answer": "正本は ① の JSON（いまの assets/meta-schema.json と注釈のスキーマ）の1か所にし、② はそれをビルドのときに取り込んで使う。② には ① と同じ概念を別の名前で書かない。図の表現モデルの5つの名前は、① の名前に合わせて1つに決める"
+    }
+  ],
+  "grounds": [
+    {
+      "criterion": "bounded-context",
+      "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：細かく分割しすぎない ・ 理由：細かく分けすぎると、文脈どうしを組み合わせて全体を組み立てる作業がやっかいになる"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：同じデータを操作するユースケースの集まりを、複数の文脈に分散させない ・ 理由：誤った分割では、1つの変更要求のために複数の文脈を同時に修正し、同時に配置する調整が必要になる"
+    },
+    {
+      "criterion": "bounded-context",
+      "quote": "対応：業務ロジックをよく理解していないときや、変更が多いときは、広い範囲で区切る ・ 理由：誤って分割した文脈の修正は高くつく。論理的な境界の再定義は、物理的な境界の変更よりはるかに容易である"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う"
+    },
+    {
+      "criterion": "ubiquitous-language",
+      "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+    },
+    {
+      "criterion": "model",
+      "quote": "対応：モデルの境界を定め、境界を広げすぎない ・ 理由：境界を広げすぎると、モデルは役に立たなくなる。その境界が区切られた文脈である"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：外部に公開するインターフェースを、内部のモデルから分離する ・ 理由：上流のモデルを変更しても下流に影響しない。公開するモデルと内部の実装を、別々の時期に変更できる"
+    },
+    {
+      "criterion": "open-host-service",
+      "quote": "対応：内部モデルを変更するときは、下流が使用中の公開された言葉を維持できるかを確認する ・ 理由：下流への影響を考慮せずに内部を変更できるのは、公開された言葉を維持できる場合だけである"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "quote": "アダプター：インフラストラクチャ層が、ポートの抽象的なインターフェースを個々の技術で実装したもの。ポートとアダプターを組み合わせる最大の狙いは、業務ロジックを基盤の層から分離することである。"
+    },
+    {
+      "criterion": "domain-service",
+      "quote": "業務サービス（英語は Services）：業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト。集約や値オブジェクトの中では不自然になる業務ロジックの置き場所で、ほとんどの場合、いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする。"
+    },
+    {
+      "criterion": "model-translation",
+      "quote": "モデルの変換：上流のモデルが下流にとって都合の悪い場合に、区切られた文脈のモデルを変換して上流と下流を接続する処理。下流と上流のどちらか一方で実施することも、両方で実施することもある。"
+    },
+    {
+      "criterion": "design-heuristics",
+      "quote": "対応：最初は広い範囲、または複数の業務領域を囲む範囲を境界として区切る ・ 理由：広く区切れば、境界やモデルの対象範囲が誤っていても比較的安全である。誤って分けた文脈を後で直すのは、かなり高くつく"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "同じものに2つの名前（同義語）",
+      "risk": "図の表現モデル（Abstract Schema ・ Vocabulary ・ Constraint Model ・ Interpretation Model）と ① の仕様（Semantic Model ・ Vocabulary Spec ・ Constraint Spec ・ Interpreter Protocol）が、別々に書かれて食い違う。どちらを直せばよいかが毎回決まらない",
+      "alternative": "① の名前を1つに決めて正本にし、② の表現モデルは「① を取り込んだ内部の型」とだけ書く。図の表現モデルの欄は、① の名前で呼ぶ"
+    },
+    {
+      "name": "同じデータを操作するものを別のモジュールに分ける",
+      "risk": "Relation/Graph Engine と Constraint Engine を分けると、x-ref の inverse を変えるたびに2つを同時に直すことになる。検査と描画が同じ Graph を使ういまの約束も崩れる",
+      "alternative": "Relation/Graph と Constraint を1つのモジュール（いまの check.rs）に置き、図では1つの部品として描く"
+    },
+    {
+      "name": "（推測）技術の働きだけで部品を切り、ユースケースの置き場所を失う",
+      "risk": "6つの部品の図だけを見て作り直すと、作成 ・ 更新 ・ 承認 ・ 描画（基盤だけにあるもの）の置き場所が無くなり、いまの操作が抜け落ちる",
+      "alternative": "6つの部品は domain の中のモジュールの名前として使い、application のユースケース（instances ・ checks ・ renders）といまのポートはそのまま残す"
+    },
+    {
+      "name": "（推測）意味の検証と AI の起動を1つの部品に混ぜる",
+      "risk": "Semantic Interpreter が Claude Code ・ Codex ・ Kiro の起動の違いを知ることになり、CLI を足すたびに意味の検証のコードを直す",
+      "alternative": "AI の CLI を呼ぶ部分は ports.rs の出ていく側のポートと adapters/outbound のアダプターにし、Semantic Interpreter はポートだけを見る"
+    }
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "対応表を書き写すときに、Relation/Graph Engine と Constraint Engine を別のモジュールとして実装してしまう",
+      "check": "core/src/domain の下で、x-ref を解く関数と inverse を数える関数が別のファイルに在るかを grep で見る。在れば1つにまとめる"
+    },
+    {
+      "breaks": "AI の CLI の名前（claude ・ codex ・ kiro）やその引数が、domain や application のコードに入る",
+      "check": "core/src の下を claude ・ codex ・ kiro ・ --json-schema ・ --output-schema で grep し、1件も無いことを CI で確かめる"
+    },
+    {
+      "breaks": "① の仕様の JSON と、② の Rust の型に、同じ概念を別の名前で書く",
+      "check": "assets/*.json の $defs のキーと、domain の型名 ・ モジュール名を並べた対応表を作り、同じ概念に2つの名前が無いかを見る"
+    },
+    {
+      "breaks": "Agents 契約を足すときに、check ・ approve ・ render の結果が AI の有無で変わる",
+      "check": "agents-in-base Q5 のとおり、CLI を PATH から外しネットワークを切った状態で check ・ approve ・ render の出力が同じかを試験で確かめる"
+    }
+  ],
+  "referrals": [
+    {
+      "suspect": "構想 v0.3 の作者（全体構成図と docs/13 の食い違い）",
+      "why": "図は Constraint Engine を独立の部品にし、docs/13 の crate 分割案は制約検証を validator の中に置く。図にだけ在る6つの部品の定義が docs に無いので、どちらが意図かを確かめる必要がある"
+    },
+    {
+      "suspect": "構想 v0.3 の作者（Renderer の置き場所）",
+      "why": "v0.3 は Renderer を Runtime（基盤の外）に置くが、いまの基盤は描画を基盤の中に持つ。この違いは6つの部品の対応では決まらず、別の論点として扱う必要がある"
+    }
+  ],
+  "next": [
+    "対応表の20項目を、同じ ・ 一部ある ・ 無い ・ 基盤だけにある の印付きでボードの論点に載せる",
+    "Relation/Graph Engine と Constraint Engine を1つの部品にする案を、反証にかける",
+    "Agents 契約を、Semantic Interpreter と、出ていく側のポートとアダプターに分けた図をボードに載せる",
+    "図の外部インターフェースに、基盤から AI の CLI を呼ぶ向きの口が無いことを、v0.3 に足りない部分として記録する",
+    "① の仕様と ② の表現モデルの名前を、1つの概念に1つの名前で並べた用語集を作る",
+    "描画を基盤に持つか Runtime に出すかを、別の論点として立てる"
+  ],
+  "related": [
+    {
+      "criterion": "ubiquitous-language",
+      "relation": "表現モデルと ① の仕様が同義語の組になっている指摘の根拠"
+    },
+    {
+      "criterion": "open-host-service",
+      "relation": "① を公開された言葉、② を内部のモデルとして分ける根拠"
+    },
+    {
+      "criterion": "ports-and-adapters",
+      "relation": "AI の CLI の呼び出しをポートとアダプターに置く根拠"
+    },
+    {
+      "criterion": "domain-service",
+      "relation": "いまの check.rs ・ schema_rules.rs が状態を持たないドメインサービスである根拠"
+    },
+    {
+      "criterion": "model-translation",
+      "relation": "標準技術アダプター（JSON-LD ・ SHACL）を、内部のモデルと標準の間の変換として置く根拠"
+    },
+    {
+      "criterion": "design-heuristics",
+      "relation": "業務知識が少ないうちは部品を細かく分けない根拠"
+    },
+    {
+      "criterion": "model",
+      "relation": "1つのモジュールの境界を広げすぎない根拠"
+    }
+  ]
+}

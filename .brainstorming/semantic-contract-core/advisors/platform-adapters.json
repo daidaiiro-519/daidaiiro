@@ -1,0 +1,247 @@
+{
+  "kind": "judgment",
+  "question": "構想 Semantic Contract Core v0.3 の「標準技術アダプター（部品として利用）」に並ぶ4つの技術（JSON Schema ・ JSON-LD ・ SHACL ・ RDF/SPARQL）を、いまの基盤 schema-driven 0.1.1 で、エンジンに組み込むか ・ 外の実装をプロセスで呼ぶか ・ 使わないかを、非機能（信頼性 ・ セキュリティ境界 ・ 運用 ・ 性能 ・ 配布）の面で何を材料に決めるか。あわせて、「既存技術を部品として使い、従属させない」を守るアダプターの境界と、いまの基盤が jsonschema に任せている範囲をどう評価するか。",
+  "premises": [
+    {
+      "name": "対象の規模と社会的影響",
+      "value": "1人で使う開発の基盤で、手元のマシンで動く。モデルシステムは「社会的影響が殆ど無いシステム」に近いと仮定する。ただし基盤は3 OS で Release に出して配っているので、配った先の利用者が居る前提も残す（未判定）。前の回答（advisors/platform.json）と同じ仮定である",
+      "source": "CLAUDE.md（1人作業）・ .github/workflows/schema-driven.yml"
+    },
+    {
+      "name": "いまの基盤の約束",
+      "value": "基盤はネットワークに出ない。依存の版は Cargo.lock の1か所で決める。3 OS で配り、Release に SHA256SUMS と証明（actions/attest）を付ける。core は std::fs ・ std::net ・ std::process ・ SystemTime を clippy で禁じる。基盤は使う側の実行ファイルを起動しない",
+      "source": ".claude/skills/schema-driven/SKILL.md ・ src/schema-driven/CODING.md ・ crates/core/clippy.toml ・ .github/workflows/schema-driven.yml"
+    },
+    {
+      "name": "いまの依存（実物）",
+      "value": "core に jsonschema 0.58.5（default-features = false）・ json-patch 4.2.0 ・ sha2、adapters に jmespath 0.5.0 ・ rmcp 3.5.0（server ・ macros ・ transport-io だけ）・ tokio。Cargo.lock に reqwest ・ hyper ・ ureq は無い（HTTP のクライアントを持たない）。jsonschema は domain の schema.rs と check.rs から直に呼ばれ、port を通っていない。検証は jsonschema::options().offline() で組み、$ref の先は同じフォルダのスキーマと基盤のスキーマを Registry に入れて解く。配布物の実行ファイルは schema-driven が約 9.7 MB、schema-driven-mcp が約 12.9 MB（Linux）",
+      "source": "src/schema-driven/Cargo.toml ・ crates/core/Cargo.toml ・ crates/adapters/Cargo.toml ・ Cargo.lock ・ crates/core/src/domain/schema.rs ・ .claude/skills/schema-driven/scripts/bin/"
+    },
+    {
+      "name": "jsonschema に任せていない範囲",
+      "value": "x-ref（参照）・ x-derive（導出値）の検査は domain/check.rs、x-prompt の取り出しは domain/schema.rs が自前で持つ。abstract への準拠と公開した版の指紋（published.json）も自前である。基盤のスキーマ（crates/core/schemas）は $vocabulary を1つも宣言していない",
+      "source": "crates/core/src/domain/check.rs ・ schema.rs ・ crates/core/schemas/"
+    },
+    {
+      "name": "原典で確かめたこと（別の担当の照合）",
+      "value": "JSON Schema では、認識しないキーワードは annotation として集められる（draft-bhutton-json-schema-01.txt:261）。$vocabulary を true で宣言すると、その語彙を認識しない実装は処理を拒否しなければならない（同:1421）。JSON-LD 1.1 の Privacy Considerations は、外の Context を取りに行くと処理系の動きが外へ見え、中間者攻撃の機会を与えうるとし、documentLoader でローカルの版を持つよう勧める（www.w3.org_TR_json-ld11 の 12章）。SHACL は SHACL Core と、SPARQL-based constraints を足した SHACL-SPARQL に分かれる（www.w3.org_TR_shacl:1056〜1059）。SHACL の検証結果で必ず持つのは sh:focusNode ・ sh:resultSeverity ・ sh:sourceConstraintComponent の3つだけ（同:2513）",
+      "source": ".brainstorming/semantic-contract-core/sources/README.md ・ 原文の該当行"
+    },
+    {
+      "name": "Rust の候補の実物",
+      "value": "構想が挙げる json-ld ・ oxigraph の crate と、SHACL の Rust の実装、外のプロセスとして呼ぶ SHACL の実装（Python や Java の処理系）は、版 ・ 依存の数 ・ ネットワークに出る機能の有無 ・ 3 OS でのビルド ・ 配布物の大きさを、まだ1つも測っていない。構想自身も「具体的な互換・成熟度はPoCで確認」と書く。この回答はそれらの数字を仮定せず、測る項目として扱う（未判定）",
+      "source": "sources/v0.3/docs/13_rust-engine-language-neutral-protocol.md（Rustで検討する既存技術）"
+    },
+    {
+      "name": "判断基準の範囲外",
+      "value": "port と adapter のどちらに jsonschema を置くか（アプリケーション内部の層の配置と依存の向き）は platform-advisor の範囲外で、判定しない。ここでは「取り替えられること」「外へ出ないこと」「写せなかったものを報告すること」という非機能の条件だけを示す。各 crate の成熟度、RDF と JSON の往復で何が失われるかも、判断基準にも水準にも無い",
+      "source": "判断基準の範囲外"
+    }
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "いまの判断材料では、JSON Schema はエンジンに組み込んだまま続け、JSON-LD ・ SHACL ・ RDF/SPARQL は依存として入れずに、考え方（識別子 ・ 名前の対応付け ・ 検証結果の形）だけを自前の形に写すのが、ネットワークに出ない ・ 3 OS で配る ・ 版を1か所で決める、という約束を崩さない選び方だが、関係の検証を SHACL に任せる必要がいつ出るかが未判定なので、それまでは条件付きである。",
+    "because": "判断基準は、外のパッケージの入手元を1か所で管理して使う前に確かめること、変更を小さく戻せる形にすること、選択をベンチマークのデータで決めることを求める。JSON-LD ・ SHACL ・ RDF の実装は、どれも依存 ・ 外へ出る機能 ・ 大きさをまだ測っておらず、いま入れると約束（ネットワークに出ない ・ 版の1か所）を確かめないまま増やすことになる。"
+  },
+  "figure": {
+    "caption": "アダプターの境界。正本は元の JSON と自前の契約で、各技術は「写せたもの」と「写せなかったもの」を返す部品として、エンジンの外側に並ぶ。外へ出る道（リモートの Context ・ 外のプロセス）は境界で断るか、前の回答の Interpreter の手順（登録 ・ 指紋 ・ 時間切れ ・ fail-closed）に乗せる。",
+    "nodes": [
+      {"id": "source", "label": "元の JSON と自前の契約（正本）", "role": "データ"},
+      {"id": "engine", "label": "基盤のエンジン（ネットワークに出ない）", "role": "境界"},
+      {"id": "js", "label": "JSON Schema（jsonschema を組み込み、offline）", "role": "部品"},
+      {"id": "own", "label": "自前の検査（x-ref ・ x-derive ・ x-prompt ・ 指紋）", "role": "部品"},
+      {"id": "ld", "label": "JSON-LD（Context はローカルの版だけ）", "role": "部品（後で決める）"},
+      {"id": "shacl", "label": "SHACL（RDF への射影が前提）", "role": "部品（後で決める）"},
+      {"id": "rdf", "label": "RDF/SPARQL のストア", "role": "部品（いまは入れない）"},
+      {"id": "remote", "label": "リモートの Context ・ ネットワーク", "role": "外"},
+      {"id": "proc", "label": "外の実装（別言語のプロセス）", "role": "外"},
+      {"id": "report", "label": "写した結果の報告（写せた ・ 写せなかった ・ 扱えない）", "role": "出力"}
+    ],
+    "edges": [
+      {"from": "engine", "to": "source", "label": "読む（置き換えない）"},
+      {"from": "engine", "to": "js", "label": "構造と値の制約を任せる"},
+      {"from": "engine", "to": "own", "label": "JSON Schema に無い意味を検査する"},
+      {"from": "engine", "to": "ld", "label": "名前を IRI へ対応付ける（使うとき）", "dashed": true},
+      {"from": "ld", "to": "remote", "label": "取りに行かない（断って報告）", "dashed": true},
+      {"from": "engine", "to": "shacl", "label": "関係の制約を任せる（使うとき）", "dashed": true},
+      {"from": "shacl", "to": "rdf", "label": "グラフを要る", "dashed": true},
+      {"from": "engine", "to": "proc", "label": "呼ぶなら Interpreter の手順で", "dashed": true},
+      {"from": "js", "to": "report", "label": "検証の結果"},
+      {"from": "own", "to": "report", "label": "検査の結果"},
+      {"from": "shacl", "to": "report", "label": "検証結果を自前の形へ写す", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {
+      "option": "JSON Schema：エンジンに組み込む（いまの jsonschema 0.58.5 を続ける）",
+      "effect": "依存は増えない。offline() と default-features = false で $ref をネットワークへ取りに行かず、版は Cargo.lock の1か所で決まっている。保守の主体は外（crate の作者）で、0.x の版なので小さい版の上げでも ValidationErrorKind が変わりうる。reason_of がその種類ごとに日本語の理由を組むので、上げるたびに理由の文が変わらないかを確かめる必要がある。いま採る候補",
+      "chosen": true
+    },
+    {
+      "option": "JSON Schema：外の実装をプロセスで呼ぶ",
+      "effect": "基盤は使う側の実行ファイルを起動しない約束と、core が std::process を禁じる約束の両方に触れる。3 OS それぞれに別の処理系を入れてもらう手間が増え、Release の SHA-256 と証明の外に依存が出る。いまある組み込みの実装より得るものが無い。採らない候補",
+      "chosen": false
+    },
+    {
+      "option": "JSON-LD：エンジンに組み込む（Context の展開まで）",
+      "effect": "名前を IRI へ対応付ける処理（展開）を部品として持てる。ただし原典は外の Context を取りに行くことを中間者攻撃と外への露出の恐れとして挙げ、documentLoader でローカルの版を持つよう勧めている。組み込むなら、リモートの Context を取りに行く機能を外した構成で入れ、ローカルの Context だけを読ませ、取りに行けない Context を「扱えない」と報告する必要がある。crate の依存の数と、HTTP のクライアントを外せるかはまだ測っていない。後で決める",
+      "chosen": false
+    },
+    {
+      "option": "JSON-LD：依存は入れず、@id ・ @context ・ @protected の考え方だけを自前の契約に写す",
+      "effect": "依存 ・ ネットワーク ・ 配布の大きさが変わらない。構想 docs/12 の採用案（「参考」「応用」）とも合う。代わりに、JSON-LD の処理系と同じ展開の結果になる保証は無いので、RDF との相互運用が要るときにこの選択を見直す。いま採る候補",
+      "chosen": true
+    },
+    {
+      "option": "SHACL：エンジンに組み込む",
+      "effect": "SHACL は RDF グラフの上で動くので、JSON から RDF へ写すアダプターと RDF の実装を一緒に入れることになり、依存と配布物の大きさが2段で増える。SHACL-SPARQL まで要るなら SPARQL の処理系も要る。Rust の実装の成熟度と、SHACL Core のどこまでに対応するかは未確認。後で決める",
+      "chosen": false
+    },
+    {
+      "option": "SHACL：外の実装をプロセスで呼ぶ",
+      "effect": "成熟した実装を使えるが、別言語の処理系を3 OS で入れてもらう前提になり、基盤の配布物の SHA-256 と証明の外に出る。呼ぶなら前の回答の Interpreter の手順（登録 ・ 指紋 ・ 許可の上限 ・ 時間切れ ・ fail-closed）に乗せる必要があり、その手順はまだ決まっていない。後で決める",
+      "chosen": false
+    },
+    {
+      "option": "SHACL：いまは使わず、検証結果の形（focus ・ path ・ 原因の制約 ・ 重さ）だけを自前の検査の出力に写す",
+      "effect": "依存が増えない。x-ref の検査の結果を、SHACL の Validation Report の必須の3項目（sh:focusNode ・ sh:resultSeverity ・ sh:sourceConstraintComponent）に対応が付く形で返しておけば、後で SHACL を部品として足したときに結果を同じ形で並べられる。いま採る候補",
+      "chosen": true
+    },
+    {
+      "option": "RDF/SPARQL：エンジンに組み込む（RDF のストアと SPARQL の処理系）",
+      "effect": "関係の問い合わせができるが、配布物の大きさと依存が最も増える候補で、構想自身も RDF への全面移行を「未決／当面不要」とする。いまの x-ref の検査で足りない関係の検証が具体的に出てから、その例でベンチマークを取って決める。いまは採らない",
+      "chosen": false
+    }
+  ],
+  "path": [
+    {
+      "ask": "その技術を入れると、基盤はネットワークに出るか",
+      "answer": "JSON Schema は offline() で出ない（いまの実物）。JSON-LD はリモートの Context を取りに行く機能を持ちうるので、外した構成で入れられるかを確かめるまで決めない。SHACL ・ RDF は依存の中身をまだ測っていない。出る恐れが残るものは、約束を崩すので入れない"
+    },
+    {
+      "ask": "依存の版を Cargo.lock の1か所で決められ、3 OS の Release の SHA-256 と証明の中に収まるか",
+      "answer": "組み込む crate なら収まる。外のプロセスで呼ぶ実装は収まらない（別の処理系を利用者が入れる）。だから外のプロセスは、Interpreter の手順（登録と指紋）が決まるまで選ばない"
+    },
+    {
+      "ask": "保守の主体が外にあるとき、版を上げる変更を小さく戻せるか",
+      "answer": "jsonschema は依存を1つにまとめていて、上げても Cargo.lock を戻せば戻る。ただし reason_of がエラーの種類に頼るので、版を上げる変更は「理由の文が変わらない」試験と組で出す。新しく足す技術も、1つずつ別の変更で足し、戻せる形にする"
+    },
+    {
+      "ask": "入れる前に、配布の大きさと速さを測ったか",
+      "answer": "JSON-LD ・ SHACL ・ RDF の候補は1つも測っていない。いまの実行ファイル（約 9.7 MB と 12.9 MB）を基準に、候補ごとに3 OS でビルドして大きさと検査にかかる時間を測ってから決める。測るまでは「後で決める」に置く"
+    },
+    {
+      "ask": "写せなかった意味を、成功として扱わずに報告できるか",
+      "answer": "いまの基盤は、JSON Schema で書けない意味を x-ref ・ x-derive の自前の検査で持ち、通らなければ合格にしない。ただし x-ref などは $vocabulary を宣言していないので、ほかの JSON Schema の実装では annotation として黙って読み飛ばされる。基盤の外でも fail-closed にしたいなら、独自の語彙を true で宣言するかを決める（後で決める）"
+    },
+    {
+      "ask": "以上から、いま採る ・ 後で決める ・ 採らないはどれか",
+      "answer": "いま採る候補：JSON Schema の組み込みを続ける ・ JSON-LD と SHACL は考え方と結果の形だけを自前に写す。後で決める：JSON-LD の組み込み（ローカルの Context だけ）・ SHACL（組み込みか外のプロセスか）・ $vocabulary の宣言 ・ jsonschema を取り替えられる位置へ移すか。採らない候補：JSON Schema を外のプロセスで呼ぶ ・ いまの時点の RDF/SPARQL のストア。どれも決めつけではなく、測った数字と関係の検証の具体例が出たら見直す"
+    }
+  ],
+  "examples": [
+    "jsonschema に任せている範囲：型 ・ required ・ enum ・ const ・ minLength などの構造と値の制約、同じフォルダと基盤のスキーマへの $ref の解決。required の欠けは「未記入」として分けて返す",
+    "jsonschema に任せていない範囲：x-ref の参照先が在るか、x-derive の導出値が合うか、x-prompt の取り出し、abstract への準拠、公開した版の指紋。原典は、複雑な振る舞いは annotation をもとにアプリケーションへ任せるほうがよいと書いており（draft-bhutton-json-schema-01.txt:747）、いまの分け方はそれに沿う",
+    "構想の例「Gateway が3分連続で不達なら Sensor の警告状態へ遷移」は、JSON Schema の部品では構造だけを検証し、時間の制約は「扱えない」と報告する。いまの基盤には時間の制約を検査する部品が無いので、合格と返してはならない"
+  ],
+  "grounds": [
+    {
+      "criterion": "sec-11",
+      "quote": "ベストプラクティス：「パッケージと依存関係のサービスを一元化する」 ・ 何をするか：ビルダーのチームに、ソフトウェアのパッケージとほかの依存先を取ってくる一元化したサービスを渡す。書くソフトウェアに入る前にパッケージを確かめられ、組織で使うソフトウェアを調べるデータの元にもなる"
+    },
+    {
+      "criterion": "sec-06",
+      "quote": "ベストプラクティス：「ソフトウェアの整合性を検証する」 ・ 何をするか：ワークロードが使うソフトウェアのアーティファクト（イメージを含む）の整合性を、暗号の技術で確かめる。実行環境で不正に変えられることに備えて、自分のソフトウェアに暗号の技術で署名する"
+    },
+    {
+      "criterion": "sec-06",
+      "quote": "ベストプラクティス：「脆弱性管理を実行する」 ・ 何をするか：コード ・ 依存関係 ・ インフラストラクチャの脆弱性を頻繁に調べてパッチを当て、新しい脅威から守る"
+    },
+    {
+      "criterion": "rel-03",
+      "quote": "ベストプラクティス：「API ごとにサービス契約を提供する」 ・ 何をするか：サービス契約とは、API プロデューサーとコンシューマーの間で取り決め、機械が読める API 定義で書き表した契約である。契約のバージョニング戦略があれば、コンシューマーは今の API を使い続けながら、準備ができたときに新しい API へ移れる。契約が守られている限り、プロデューサーはいつでもデプロイでき、サービスチームは好きな技術スタックで契約の条件を満たせる"
+    },
+    {
+      "criterion": "rel-05",
+      "quote": "ベストプラクティス：「クライアントタイムアウトを設定する」 ・ 何をするか：接続とリクエストのタイムアウトをきちんと決め、筋道立てて確かめる。最初から入っている値を当てにしない。その値は、ワークロードの事情を何も知らずに決められているからである"
+    },
+    {
+      "criterion": "ops-05",
+      "quote": "ベストプラクティス：「小規模かつ可逆的な変更を頻繁に行う」 ・ メリット：小さな変更を頻繁にデプロイすると開発が速くなる。小さいので、意図しない結果が出たかが見分けやすく、戻すのも楽である。戻せる変更なら復旧が簡単で、変更を入れるリスクも、失敗したときの影響も小さい"
+    },
+    {
+      "criterion": "perf-01",
+      "quote": "ベストプラクティス：「ベンチマークを使用してアーキテクチャに関する意思決定を行う」 ・ 目指す姿：いまのワークロードの性能をベンチマークで測り、クラウドでの性能をつかんで、そのデータで意思決定する"
+    },
+    {
+      "criterion": "perf-01",
+      "quote": "ベストプラクティス：「トレードオフが顧客とアーキテクチャの効率にどのように影響するかを評価する」 ・ 目指す姿：性能の改善策ごとに、顧客とワークロードの効率性に響く選択肢を見つける。例：key-value データストアで性能が上がるなら、その結果整合性が顧客にどう響くかを評価する"
+    },
+    {
+      "criterion": "ops-07",
+      "quote": "ベストプラクティス：「本稼働ワークロード用のサポートプランを作成する」 ・ 望ましい成果：本稼働ワークロードが頼るソフトウェアとサービスのサポートプランが入っている。サービスレベルのニーズに合うサポートプランを選んでいる。サポートプラン ・ サポートレベル ・ サポートの頼み方が文書にある"
+    }
+  ],
+  "grade_grounds": [
+    {
+      "grade": "e-8",
+      "quote": "項番：E.8.1.1 ・ メトリクス：通信制御 ・ モデルシステム：社会的影響が殆ど無いシステム ・ 選択レベル：1：有り ・ 選択時の条件：踏み台攻撃等の脅威や、情報の持ち出しを抑止するために、不正な通信を遮断等のネットワーク制御を実施する必要がある。[-] 踏み台等の脅威を許容する場合"
+    },
+    {
+      "grade": "e-5",
+      "quote": "項番：E.5.2.1 ・ メトリクス：システム上の対策における操作制限度 ・ モデルシステム：社会的影響が殆ど無いシステム ・ 選択レベル：1：必要最小限のプログラムの実行、コマンドの操作、ファイルへのアクセスのみを許可 ・ 選択時の条件：不正なソフトウェアがインストールされる、不要なアクセス経路（ポート等）を利用可能にしている等により、情報漏洩の脅威が現実のものとなってしまうため、これらの情報等への不要なアクセス方法を制限する必要がある。（操作を制限することにより利便性や、可用性に影響する可能性がある）[-] 重要情報等への攻撃の拠点とならない端末等に関しては、運用による対策で対処する場合"
+    }
+  ],
+  "cautions": [
+    {
+      "name": "部品の crate を既定の機能のまま入れる",
+      "risk": "JSON-LD などの crate は、リモートの文書を取りに行く機能を既定で持ちうる。既定のまま入れると、基盤が「ネットワークに出ない」約束を、コードを1行も書かずに破る",
+      "alternative": "（推測）default-features = false で入れ、要る機能だけを足す。足したあとに cargo tree で HTTP のクライアントが依存に無いことを確かめ、リモートの Context は断って「扱えない」と報告する"
+    },
+    {
+      "name": "部品が写せなかった意味を黙って落とす",
+      "risk": "JSON Schema の実装は、知らないキーワードを annotation として読み飛ばす。SHACL へ写すときも、写せない制約は消える。どちらも結果は「合格」に見え、v0.3 の Fail-closed on required semantics に違反する",
+      "alternative": "（推測）部品ごとに「写せた ・ 写せなかった ・ 扱えない」を結果に並べ、必須の意味が1つでも写せなかったら合格にしない。基盤の外でも同じにしたいなら、独自の語彙を $vocabulary で true と宣言するかを決める"
+    },
+    {
+      "name": "部品の出力の形を、公開の契約にそのまま出す",
+      "risk": "reason_of が jsonschema の ValidationErrorKind に合わせて理由を組んでいるように、部品の型や文言が出力へ漏れると、部品を取り替えたり版を上げたりするたびに公開の出力が変わる。構想の Stable public contract に違反する",
+      "alternative": "（推測）出力は基盤の findings の形に写してから返し、部品の型の名前や文言を出さない。版を上げる変更は、同じ入力で findings が変わらない試験と組で出す"
+    },
+    {
+      "name": "外の実装をプロセスで呼ぶ道を、手順を決めずに開ける",
+      "risk": "SHACL などを別言語の処理系で呼ぶと、基盤の配布物の SHA-256 と証明の外にあるプログラムを、時間切れも許可の上限も無く起動することになる",
+      "alternative": "前の回答の Interpreter の手順（登録 ・ 指紋 ・ 許可の上限 ・ 時間切れ ・ fail-closed）が決まるまで、外のプロセスで呼ぶ部品を足さない"
+    }
+  ],
+  "related": [
+    {"criterion": "sec-03", "relation": "外の実装をプロセスで呼ぶときに与える許可の上限（前の回答の根拠）"},
+    {"criterion": "ops-06", "relation": "部品を足す ・ 版を上げる変更の失敗に備える"},
+    {"criterion": "rel-08", "relation": "部品の版を上げる変更を、自動の試験を通して出す"}
+  ],
+  "ai_cautions": [
+    {
+      "breaks": "JSON-LD ・ SHACL ・ RDF の crate を足すときに、default-features を外し忘れ、HTTP のクライアントが依存に入る",
+      "check": "src/schema-driven で cargo tree -e normal を取り、reqwest ・ hyper ・ ureq ・ isahc が0件であることを CI で確かめる"
+    },
+    {
+      "breaks": "部品を呼ぶ処理を core に書き、外のプロセスやファイルを core から直に扱う",
+      "check": "crates/core の clippy（disallowed-methods ・ disallowed-types）が0件で通ることを CI で確かめる"
+    },
+    {
+      "breaks": "jsonschema の版を上げたときに、reason_of の理由の文や未記入の分け方が変わったことに気づかない",
+      "check": "型 ・ enum ・ const ・ required ・ contains の失敗を1つずつ持つ入力と、期待する findings の組を試験に置き、版を上げる変更でその試験が通ることを確かめる"
+    },
+    {
+      "breaks": "JSON Schema で書けない制約（時間の制約など）を持つ契約を、部品が無いまま合格と返す",
+      "check": "扱える部品が無い制約を1つ持つ契約の例を置き、検査の結果が合格にならず、「扱えない」の指摘が1件以上あることを試験で確かめる"
+    }
+  ],
+  "next": [
+    "JSON-LD ・ SHACL ・ RDF の Rust の候補ごとに、3 OS でビルドした配布物の大きさと、依存に HTTP のクライアントが入るかを測る",
+    "x-ref の検査で足りない関係の検証の具体例を、ボードの論点として1つ以上書き出す",
+    "x-ref ・ x-derive ・ x-prompt を独自の語彙として $vocabulary で宣言するかを、ボードの論点に足す",
+    "jsonschema を取り替えられる位置へ移すかどうかを、層の配置の判断として ddd-advisor に尋ねる",
+    "外のプロセスで呼ぶ部品を足す前に、Interpreter の手順（agents-in-base の Q1 ・ Q4）が決まっているかを確かめる"
+  ]
+}
