@@ -72,6 +72,8 @@ pub struct Request {
     pub text: String,
     /// この依頼の ID。ロックの持ち主になる。空なら環境変数を渡さない
     pub run: String,
+    /// リポジトリの根からの、原文を取得して照合する道具（fact-check）の実行ファイル。在れば AI に使わせる
+    pub checker: Option<String>,
 }
 
 /// 依頼の文。新しいセッションの最初の依頼には、Skill の使い方を指す1文を必ず入れる。
@@ -82,6 +84,14 @@ pub fn prompt(request: &Request, new_session: bool) -> String {
             "{} を読み、その手順で {} を使って作業する。ボードの JSON は {} の update で直し、ファイルを直接書き換えない。シェルで実行してよいのは {} で始まるコマンドだけで、ほかのファイルは読むツールで読む。\n",
             request.skill_md, request.entry, request.entry, request.entry
         ));
+    }
+    if new_session && request.writable {
+        if let Some(checker) = &request.checker {
+            out.push_str(&format!(
+                "外の原典は WebSearch で探し、{checker} で原文を取得して照合する（{checker} で始まるコマンドも実行してよい）。原文は {} の sources/ に置く。\n",
+                request.board_dir
+            ));
+        }
     }
     if new_session && !request.writable {
         out.push_str(&format!(
@@ -138,7 +148,11 @@ pub fn plan(
                 "Read",
                 "Grep",
                 "Glob",
+                "WebSearch",
             ]));
+            if let Some(checker) = &request.checker {
+                args.push(format!("Bash({checker}:*)"));
+            }
             args.push(format!("Bash({}:*)", request.entry));
             Plan {
                 program: agent.program().to_owned(),
@@ -426,7 +440,26 @@ mod tests {
             topic: "Q1".to_owned(),
             text: "前提を足して".to_owned(),
             run: "R1".to_owned(),
+            checker: None,
         }
+    }
+
+    #[test]
+    fn claude_may_search_the_web_and_check_sources_when_the_checker_is_there() {
+        let with = Request {
+            checker: Some(".claude/skills/fact-check/bin/fact-check".to_owned()),
+            ..request()
+        };
+        let args = plan(Agent::Claude, None, "U", "/r", &with).args;
+        assert!(args.contains(&"WebSearch".to_owned()));
+        assert!(!args.contains(&"WebFetch".to_owned()));
+        assert!(args.contains(&"Bash(.claude/skills/fact-check/bin/fact-check:*)".to_owned()));
+        assert!(prompt(&with, true)
+            .contains(".claude/skills/fact-check/bin/fact-check で原文を取得して照合する"));
+        let without = plan(Agent::Claude, None, "U", "/r", &request()).args;
+        assert!(without.contains(&"WebSearch".to_owned()));
+        assert!(!without.join(" ").contains("fact-check"));
+        assert!(!prompt(&request(), true).contains("原文を取得して照合する"));
     }
 
     #[test]

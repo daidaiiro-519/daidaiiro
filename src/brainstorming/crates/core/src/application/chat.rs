@@ -287,6 +287,10 @@ fn work<F: Files, P: Programs, C: Clock, A: Agents>(
         topic: request.topic.clone(),
         text: instruction,
         run: run_id.to_owned(),
+        checker: env
+            .files
+            .exists(&skill.checker())
+            .then(|| relative(&skill.checker(), &repo)),
     };
     let plan = agent::plan(
         agent,
