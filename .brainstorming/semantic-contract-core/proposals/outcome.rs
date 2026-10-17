@@ -1,23 +1,23 @@
-//! 決まり1件を確かめた結果（案）。どれが確かめても（エンジン ・ 決まりごとの検査 ・ AI）、、この5つのどれかを返す。
+//! ルール1件を検証した結果（案）。どの Interpreter（エンジン ・ ルールごとの検査 ・ AI）も、この5つのどれかを返す。
 
-/// 決まり1件の結果。
+/// ルール1件の結果。
 pub enum Outcome {
-    /// 合格。確かめたものの範囲での合格に限る
+    /// 合格。検証した Interpreter の範囲での合格に限る
     Verified,
-    /// 違反。決まりの id ・ 場所 ・ 引用を、基盤が機械で確かめたものだけ
+    /// 違反。ルールの id ・ 場所 ・ 引用を、基盤が機械で検証したものだけ
     Violated { at: String, quote: String },
-    /// 確かめるものはあるが、合否を決められなかった。AI の「守れている」もここ
+    /// Interpreter はあるが、合否を決められなかった。AI の「守れている」もここ
     Unverified { reason: String },
-    /// 確かめるものが無い。要る能力を返す
+    /// Interpreter が無い。必要な Capability を返す
     Unsupported { needs: Vec<String> },
     /// 時間切れ ・ 読めない応答など、処理の失敗。記録を作らない
     Error { reason: String },
 }
 
-/// 決まりが必須かどうか。
+/// ルールが必須かどうか。
 pub struct Required(pub bool);
 
-/// 必須の決まりに合格以外が1件でもあれば、全体を成功にしない。
+/// 必須のルールに合格以外が1件でもあれば、全体を成功にしない。
 pub fn overall(results: &[(Required, Outcome)]) -> bool {
     results
         .iter()
