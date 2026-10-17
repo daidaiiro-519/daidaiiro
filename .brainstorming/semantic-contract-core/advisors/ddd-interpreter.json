@@ -1,0 +1,275 @@
+{
+ "$schema": "answer.schema.json",
+ "kind": "judgment",
+ "question": "Schema 駆動の基盤で、構想 v0.3 の「Interpreter」（解釈する）と「validator」（検証する）を、別の役割 ・ 別の概念として分けるべきか。分けるなら区切られた文脈ごと分けるのか、同じ文脈の中のモジュールとして分けるのか。名前と関係は何にするか",
+ "premises": [
+  {
+   "name": "読んだ材料",
+   "value": "構想 v0.3 の docs/11 ・ 13 ・ 14 ・ 15 ・ 17、ボードの Q5 と Q0、基盤の core の domain/check.rs ・ domain/values.rs ・ application/context.rs、assets/meta-schema.json の x-prompt、前の回答 advisors/ddd.json ・ ddd-components.json",
+   "source": "リポジトリの中のファイル"
+  },
+  {
+   "name": "v0.3 の Interpreter の用法①：語彙ごとに検証するもの",
+   "value": "docs/11:20「InterpreterはVocabulary・Concrete Schemaを解決し、対応するCapabilityに従って解釈／検証する」。docs/14:32「非対応の制約は別Interpreterへ」、14:42「時間・状態のInterpreterが利用可能ならそこで検証する」。docs/13:33 の Interpreter Protocol の outcome は conformant ・ nonconformant ・ unsupported ・ unverified ・ error で、合否を返す。外から足す Interpreter は、ルールを検証して合否を返すもの、つまり validator と同じ働きをする",
+   "source": "v0.3 docs/11 ・ 13 ・ 14"
+  },
+  {
+   "name": "v0.3 の Interpreter の用法②：選んで実行を調停するもの",
+   "value": "docs/13:24 の crate 分割案で semantic-interpreter は「Capability照合と実行調停」。構造検証 ・ 制約検証は semantic-validator（13:22）、ID と Vocabulary の解決は semantic-resolver（13:21）と、別の crate にしている。docs/11:40「語彙ごとのInterpreterへ委譲できる仕組み」も、この調停を指す",
+   "source": "v0.3 docs/11 ・ 13"
+  },
+  {
+   "name": "v0.3 の Interpreter の用法③：実行時に Schema を動かすもの",
+   "value": "docs/15:21「Runtime application: 個別Interpreter」。docs/11:14 は Schema駆動Runtime（UI ・ フォーム ・ Workflow を処理する実行側）を「開発基盤とは別の境界」としている",
+   "source": "v0.3 docs/11 ・ 15"
+  },
+  {
+   "name": "v0.3 自身も、解釈と検証を分ける余地を残している",
+   "value": "docs/14:64 は expressible ・ interpretable ・ verifiable ・ executable の区別を Capability に書く案を検討中とし、docs/17:34 は「構造検証、意味解釈、実装検査の責務と結果ステータスの仕様」を未決にしている。v0.3 は、Interpreter という1語に、検証 ・ 調停 ・ 実行の3つを載せたまま、分け方を決めていない",
+   "source": "v0.3 docs/14 ・ 17"
+  },
+  {
+   "name": "基盤の実物での「解釈」と「検証」",
+   "value": "domain/check.rs の graph() は、参照 x-ref の指す先を解決し、導出値 x-derive を計算した結果を返す（「検査と同じ解決を使う」）。check() は、それを使って合格 ・ ずれ ・ 確かめ直しの検査結果を返す。graph() は application/context.rs の描画の文脈でも使い、描画は Q5 で Semantic Validator の外に置いている。解決した結果は、検証と描画の2つが使う",
+   "source": "src/schema-driven/crates/core/src/domain/check.rs:785〜797、application/context.rs:3 ・ 12"
+  },
+  {
+   "name": "AI が意味を読み取ること",
+   "value": "AI がルールの rule ・ test を読んで判定するとき、意味を読み取る作業は AI の中で行われ、基盤に返るのは判定だけである。JSON Schema の実装がキーワードを読むのも同じで、その実装の中で行われる。基盤から見ると、どちらも validator である",
+   "source": "Q5 の answer、meta-schema.json の x-prompt.write（id ・ rule ・ why ・ test）"
+  },
+  {
+   "name": "区切られた文脈を分けるかの判定に要る、業務エキスパートの言葉",
+   "value": "判断基準は、文脈の境界を業務エキスパートのとらえ方で決めるとする。ここでは利用者が業務エキスパートにあたり、利用者の言葉は「Semantic Validator の中に Schema Validator がある」である。利用者が解釈を別の文脈の言葉として扱っているかは確かめていない（未判定）",
+   "source": "Q5 の grounds の利用者の言葉（2026-10-17）"
+  }
+ ],
+ "conclusion": {
+  "stance": "adopt",
+  "headline": "解釈と検証は役割として分けるが、区切られた文脈は分けない。解釈の部分は Interpreter ではなく Resolver と呼び、Semantic Validator の手前に置いて Semantic Validator と描画の両方が使うモジュールにし、ルール1件の合否を出す側だけを validator と呼ぶ。",
+  "because": "v0.3 の Interpreter は検証 ・ 調停 ・ 実行の3つを1語に載せており、同じ言葉の「1つの用語に1つの意味」に反するので、役割ごとに既存の語へ分ける。一方、解決と検証は参照 ・ 導出値 ・ ルール ・ インスタンスという同じ言葉で話せて競合するモデルが無く、別の文脈にすると1つのルールの変更が2つの文脈にまたがるので、文脈は1つのままモジュールで分ける。"
+ },
+ "figure": {
+  "caption": "1つの区切られた文脈（Schema 駆動の基盤）の中で、Resolver が解決した結果を Semantic Validator と描画が使う。Semantic Validator はルールごとに validator を選んで合否を集める。実行時に Schema を動かす v0.3 の用法③は別の文脈である",
+  "nodes": [
+   {
+    "id": "instances",
+    "label": "スキーマとインスタンス（ルール id ・ rule ・ why ・ test）",
+    "role": "入力"
+   },
+   {
+    "id": "resolver",
+    "label": "Resolver：x-ref の指す先 ・ x-derive の導出値 ・ 語彙を解決する（いまの graph()）",
+    "role": "解釈"
+   },
+   {
+    "id": "sv",
+    "label": "Semantic Validator：ルールごとに validator を選び、検証結果を5つの値で返す",
+    "role": "検証の全体"
+   },
+   {
+    "id": "schema-validator",
+    "label": "Schema Validator（JSON Schema の実装）",
+    "role": "validator"
+   },
+   {
+    "id": "engine",
+    "label": "基盤のエンジン（関係 ・ 制約）",
+    "role": "validator"
+   },
+   {
+    "id": "ai",
+    "label": "AI ・ 人（意味の判断。AI の判定だけでは verified にしない）",
+    "role": "validator"
+   },
+   {
+    "id": "render",
+    "label": "描画（render）",
+    "role": "Semantic Validator の外"
+   },
+   {
+    "id": "runtime",
+    "label": "Schema駆動Runtime（UI ・ Workflow の実行。v0.3 の用法③）",
+    "role": "別の区切られた文脈"
+   }
+  ],
+  "edges": [
+   {
+    "from": "instances",
+    "to": "resolver",
+    "label": "読む"
+   },
+   {
+    "from": "resolver",
+    "to": "sv",
+    "label": "解決した結果を渡す"
+   },
+   {
+    "from": "resolver",
+    "to": "render",
+    "label": "解決した結果を渡す"
+   },
+   {
+    "from": "sv",
+    "to": "schema-validator",
+    "label": "ルールを渡し、合否を受け取る"
+   },
+   {
+    "from": "sv",
+    "to": "engine",
+    "label": "ルールを渡し、合否を受け取る"
+   },
+   {
+    "from": "sv",
+    "to": "ai",
+    "label": "ルールを渡し、合否を受け取る"
+   },
+   {
+    "from": "instances",
+    "to": "runtime",
+    "label": "別の文脈が読む",
+    "dashed": true
+   }
+  ]
+ },
+ "comparison": [
+  {
+   "option": "A：Interpreter と validator を別の区切られた文脈に分ける",
+   "effect": "解決と検証は同じ参照 ・ 導出値 ・ ルールの言葉を使い、モデルが競合しない。x-ref の書き方を1つ変えると、解決と検証の2つの文脈を同時に直すことになる。文脈どうしの変換も要る",
+   "chosen": false
+  },
+  {
+   "option": "B：分けずに、Interpreter（または validator）1語で解釈も検証も呼ぶ（v0.3 のまま）",
+   "effect": "1語に検証 ・ 調停 ・ 実行の3つの意味が載り、どれを指すかが前後関係でしか決まらない。いまも graph() の解決結果を描画が使っており、検証の部品の名前で描画の入力を呼ぶことになる",
+   "chosen": false
+  },
+  {
+   "option": "C：同じ文脈の中で、解決を Resolver、合否を validator、検証の全体を Semantic Validator として分け、Interpreter の語は使わない",
+   "effect": "1語に1つの意味になる。Resolver は検証と描画が共有し、validator を足しても Resolver は変わらない。v0.3 の docs/13 の resolver ・ validator の切り方とも一致する",
+   "chosen": true
+  },
+  {
+   "option": "D：同じ文脈の中で分けるが、解決の部分を Interpreter と呼ぶ",
+   "effect": "v0.3 では Interpreter が外から足す検証の部品（docs/14:32 ・ 42）と調停（docs/13:24）を指すので、v0.3 を読んだ人が別のものと取り違える。JSON Schema の仕様が使う語は解決（resolve）である",
+   "chosen": false
+  }
+ ],
+ "path": [
+  {
+   "ask": "v0.3 の Interpreter は、解釈 ・ 調停 ・ 委譲 ・ 検証のどれをするものとして書かれているか",
+   "answer": "1つに決まっていない。外から足すものとしては、ルールを検証して合否（outcome）を返す（docs/11:20、13:33、14:32 ・ 42）── これは validator の働きである。エンジンの中の semantic-interpreter は Capability 照合と実行調停（docs/13:24）── これは Q5 で Semantic Validator の働きの一部にしたもの。docs/15:21 では実行時に Schema を動かすもの。語彙の解決は Interpreter ではなく semantic-resolver（docs/13:21）に分けている"
+  },
+  {
+   "ask": "1つの語が複数の意味で使われているとき、同じ言葉ではどうするか",
+   "answer": "使い方が一貫しない用語は理由を確かめ、同義語なら1つの用語にまとめ、別のモデルの混在なら文脈を特定する。用法①は validator の同義語、用法②は Semantic Validator の働き、用法③は別の文脈（Schema駆動Runtime）である。Interpreter の語は、どれにも残さない"
+  },
+  {
+   "ask": "解釈（インスタンスの参照 ・ 導出値 ・ 語彙を解決する）と検証（ルールに照らして合否を出す）は、別の責務 ・ 別の変更理由を持つか",
+   "answer": "持つ。解決は参照と導出値の書き方 ・ 語彙の仕様が変わったときに変わり、検証は validator やルールを足したときに変わる。基盤でも graph() の結果を描画が使っており、解決には検証以外の使い手が在る"
+  },
+  {
+   "ask": "それは別の区切られた文脈か",
+   "answer": "別の文脈ではない。どちらもスキーマ ・ インスタンス ・ 参照 ・ 導出値 ・ ルールを同じ意味で使い、競合するモデルが無い。別の文脈にすると x-ref の変更が2つの文脈にまたがる。業務知識が固まっていない段階なので、広く区切ったまま、文脈の中のモジュールとして分ける"
+  },
+  {
+   "ask": "名前と関係をどうするか",
+   "answer": "Resolver：インスタンスとスキーマから、参照の指す先 ・ 導出値 ・ 語彙を解決する。Semantic Validator：Resolver の結果を受け取り、ルールごとに validator を選んで検証結果を返す。validator：ルール1件の合否を出す側（Schema Validator ・ 基盤のエンジン ・ AI ・ 人）。描画も Resolver の結果を使う"
+  }
+ ],
+ "grounds": [
+  {
+   "criterion": "ubiquitous-language",
+   "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"
+  },
+  {
+   "criterion": "ubiquitous-language",
+   "quote": "条件：同義語を使用しない ・ 内容：2つの用語を同じ意味で使わない。同義語は最初は問題に見えないが、言葉が違えば、ほとんどの場合、意図も違う"
+  },
+  {
+   "criterion": "ubiquitous-language",
+   "quote": "対応：使い方が一貫しない用語を見つけたら、その理由を質問する ・ 理由：異なるモデルの混在なら意味を決める文脈を特定し、同義語なら共通の意味を表す1つの用語を提案できる"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "対応：同じデータを操作するユースケースの集まりを、複数の文脈に分散させない ・ 理由：誤った分割では、1つの変更要求のために複数の文脈を同時に修正し、同時に配置する調整が必要になる"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "対応：業務ロジックをよく理解していないときや、変更が多いときは、広い範囲で区切る ・ 理由：誤って分割した文脈の修正は高くつく。論理的な境界の再定義は、物理的な境界の変更よりはるかに容易である"
+  },
+  {
+   "criterion": "bounded-context",
+   "quote": "1つの文脈が複数の業務領域を含むとき：物理的な境界は1つだが、内部には業務領域ごとの論理的な境界（名前空間 ・ モジュール ・ パッケージ）が存在する"
+  },
+  {
+   "criterion": "design-heuristics",
+   "quote": "対応：最初は広い範囲、または複数の業務領域を囲む範囲を境界として区切る ・ 理由：広く区切れば、境界やモデルの対象範囲が誤っていても比較的安全である。誤って分けた文脈を後で直すのは、かなり高くつく"
+  },
+  {
+   "criterion": "model",
+   "quote": "対応：モデルで解決しようとしている課題、つまり目的を明確にする ・ 理由：役に立つモデルは、目的に合う内容だけを表す。目的の無いモデルは無い"
+  }
+ ],
+ "cautions": [
+  {
+   "name": "1つのソースコードで、Interpreter を検証 ・ 調停 ・ 実行の3つの意味で使い分ける（v0.3 のまま）",
+   "risk": "どの意味かが前後関係でしか決まらず、まちがった使い方が入り込む。外から足す部品が、合否を返すものか、Schema を実行するものかが名前から分からない",
+   "alternative": "合否を返すものは validator、選んで集めるのは Semantic Validator、解決は Resolver と、役割ごとに1語を当てる。実行時に Schema を動かすものは別の文脈の言葉として扱う"
+  },
+  {
+   "name": "（推測）解決と検証を、別の区切られた文脈 ・ 別のプロセスに分ける",
+   "risk": "x-ref ・ x-derive の仕様を1つ変えるたびに、2つの文脈を同時に直して同時に配置することになる",
+   "alternative": "1つの文脈の中のモジュール（core の domain の別ファイル）として分け、業務知識が固まってから分け直すかを決める"
+  },
+  {
+   "name": "（推測）解決の結果を Semantic Validator の中に閉じ込める",
+   "risk": "描画が検証の部品に依存し、検証の変更が描画を壊す。いまの graph() は check と同じ checker を通して解決しているので、この形に近い",
+   "alternative": "Resolver を Semantic Validator の手前に置き、Semantic Validator と描画の両方がその結果を受け取る形にする"
+  }
+ ],
+ "ai_cautions": [
+  {
+   "breaks": "AI がボードや仕様を書くとき、v0.3 の文を写して Interpreter の語を残す",
+   "check": "ボードの Q0〜Q5 の answer と details を Interpreter で検索し、0件であることを確かめる（rejected の欄と出典の引用は除く）"
+  },
+  {
+   "breaks": "AI が実装するとき、解決の処理を検証の構造体（いまの checker）の中に置いたままにし、描画からも検証の型を呼ぶ",
+   "check": "application/context.rs が domain/check.rs の検査の関数 ・ 型を import していないかを grep で確かめ、解決の関数は解決のモジュールから import していることを確かめる"
+  },
+  {
+   "breaks": "AI が AI の判定を、意味を解釈する別の部品として扱い、validator の検証結果の外で返す",
+   "check": "AI の判定が、ほかの validator と同じ検証結果の5つの値で返り、AI だけの判定が verified になっていないかを、検証結果のテストで確かめる"
+  }
+ ],
+ "referrals": [
+  {
+   "suspect": "ボードの Q0 の details（「Interpreter：構造と値は JSON Schema の実装、関係と制約は基盤のエンジン、意味は Semantic Interpreter（AI も Interpreter の1つ）」）",
+   "why": "Q5 で validator にした役割を、Q0 がまだ Interpreter と Semantic Interpreter の語で書いており、Q5 が承認されたら名前が食い違う"
+  }
+ ],
+ "next": [
+  "Q5 の表に Resolver（参照 ・ 導出値 ・ 語彙を解決する。Semantic Validator と描画が使う）を足す",
+  "Q5 の rejected に「解決の部分を Interpreter と呼ぶ」と「解釈と検証を別の区切られた文脈にする」を理由付きで足す",
+  "v0.3 の用法③（実行時に Schema を動かす）を、Schema駆動Runtime の別の文脈として Q5 の範囲の外にあると書く",
+  "利用者に、解釈を別の文脈の言葉として扱いたいか（v0.3 の interpretable と verifiable を別の Capability にしたいか）を確かめる",
+  "Q5 の承認のあとで、Q0 の details の Interpreter ・ Semantic Interpreter を validator ・ Semantic Validator ・ Resolver に直す"
+ ],
+ "related": [
+  {
+   "criterion": "domain-service",
+   "relation": "Semantic Validator がルールごとに validator を選んで結果を集める働きは、状態を持たずに複数の部品の呼び出しをまとめるので、業務サービスとして置ける"
+  },
+  {
+   "criterion": "ports-and-adapters",
+   "relation": "外から足す validator（AI ・ 外部プロセス）は、Semantic Validator が定義するポートの実装として足す"
+  }
+ ]
+}
