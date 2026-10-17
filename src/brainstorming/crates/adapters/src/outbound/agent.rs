@@ -104,6 +104,7 @@ impl Agents for RealAgents {
         let mut command = Command::new(&program);
         command
             .args(&plan.args)
+            .envs(plan.env.iter().map(|(k, v)| (k, v)))
             .current_dir(cwd)
             .stdin(if plan.stdin.is_some() {
                 Stdio::piped()
@@ -161,6 +162,7 @@ mod tests {
             program: "sh".to_owned(),
             args: args.iter().map(|a| (*a).to_owned()).collect(),
             stdin: stdin.map(str::to_owned),
+            env: vec![],
         }
     }
 
@@ -210,6 +212,7 @@ mod tests {
             program: "no-such-cli-xyz".to_owned(),
             args: vec![],
             stdin: None,
+            env: vec![],
         };
         assert!(RealAgents.start(&missing, Path::new("/")).is_err());
         assert!(!RealAgents.found("no-such-cli-xyz"));

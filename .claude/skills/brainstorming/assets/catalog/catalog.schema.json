@@ -6,19 +6,13 @@
   "$defs": {
     "sidebar": {
       "type": "object",
-      "description": "ボードの一覧。状態（いま答える ・ 進行中 ・ 保留 ・ 決着）ごとにまとめる",
+      "description": "ボードの一覧。ステータス（回答待ち ・ 更新中 ・ 保留 ・ 決着）ごとにまとめる。更新中は serve で開いたときだけ、ロックから画面が並べ直す",
       "properties": {
         "answer_count": {
           "description": "answer_count"
         },
         "answer": {
           "description": "answer"
-        },
-        "working_count": {
-          "description": "working_count"
-        },
-        "working": {
-          "description": "working"
         },
         "hold_count": {
           "description": "hold_count"
@@ -51,25 +45,20 @@
         },
         "sub": {
           "description": "sub"
-        },
-        "open": {
-          "description": "open"
         }
       },
       "required": [],
       "x-states": {
-        "default": "題と、答える論点の数を出す",
+        "default": "題と、回答待ちの論点か保留 ・ 決着の日付を出す",
         "hover": "背景を内側の面の色にする",
-        "selected": "いま開いているボードを答えの面の色にする（aria-current）"
+        "selected": "いま開いているボードを答えの面の色にする（aria-current）",
+        "busy": "更新中なら、何をしているかと経過時間を出す"
       }
     },
     "board-head": {
       "type": "object",
-      "description": "ボードのページの先頭。回 ・ 題 ・ 目的 ・ 論点のチップ ・ AI に聞くボタン",
+      "description": "ボードのページの先頭。題 ・ ボードのステータス ・ 最終更新の日 ・ 目的 ・ 更新中の帯 ・ 保留の切り替え ・ AI に聞く ・ 論点のタブ",
       "properties": {
-        "round": {
-          "description": "round"
-        },
         "id": {
           "description": "id"
         },
@@ -79,21 +68,41 @@
         "intro": {
           "description": "intro"
         },
+        "opened": {
+          "description": "opened"
+        },
+        "status": {
+          "description": "status"
+        },
+        "status_label": {
+          "description": "status_label"
+        },
+        "held": {
+          "description": "held"
+        },
+        "held_since": {
+          "description": "held_since"
+        },
         "chips": {
           "description": "chips"
         }
       },
       "required": [],
       "x-states": {
-        "default": "中身をそのまま出す"
+        "default": "中身をそのまま出す",
+        "busy": "更新中は帯に何をしているかと経過時間と止めるを出し、回答 ・ 送る ・ AI に聞くを止める",
+        "disabled": "保留のあいだは回答と送るを止め、帯に保留を解くを出す"
       }
     },
     "topic-chip": {
       "type": "object",
-      "description": "論点1つを開くチップ",
+      "description": "論点1つを開くタブ。番号と名前とステータスを出す",
       "properties": {
         "id": {
           "description": "id"
+        },
+        "name": {
+          "description": "name"
         },
         "status": {
           "description": "status"
@@ -104,14 +113,14 @@
       },
       "required": [],
       "x-states": {
-        "default": "論点の id と状態を出す",
-        "selected": "押すとその論点の面を開き、主役の色で塗る",
+        "default": "論点の番号 ・ 名前 ・ ステータスを出す",
+        "selected": "下線と太字で示す。ステータスの見た目は変えない",
         "focus": "焦点の輪を出す"
       }
     },
     "changes-band": {
       "type": "object",
-      "description": "この回で変わったところの帯",
+      "description": "送った回答で変わったところの帯",
       "properties": {
         "count": {
           "description": "count"
@@ -516,7 +525,7 @@
     },
     "answer-form": {
       "type": "object",
-      "description": "回答の欄（このまま進める ・ 差し戻す ・ まだ答えない）",
+      "description": "回答の欄（承認 ・ 差し戻し）。選んだ回答は、送る欄でまとめて送る",
       "properties": {
         "id": {
           "description": "id"
@@ -524,9 +533,20 @@
       },
       "required": [],
       "x-states": {
-        "default": "送るボタンは押せない",
+        "default": "何も選んでいない",
         "selected": "回答を1つ選ぶと、必要な欄を開く",
-        "disabled": "差し戻しでどこが違うかが空なら送れない",
+        "disabled": "更新中と保留のあいだは選べない",
+        "error": "選んでいたあとに答えが直ったら、選択を外して知らせる"
+      }
+    },
+    "send-bar": {
+      "type": "object",
+      "description": "回答をボードでまとめて送る欄。送ると AI がボードの更新を始める",
+      "properties": {},
+      "required": [],
+      "x-states": {
+        "default": "選んだ回答の数を出す。1件も選んでいなければ送れない",
+        "disabled": "更新中 ・ 保留のあいだと、差し戻しでどこが違うかが空なら送れない",
         "pressed": "serve へ送り、送れなければ貼る文字列を出す"
       }
     },
@@ -561,16 +581,13 @@
     },
     "summary-tiles": {
       "type": "object",
-      "description": "ダッシュボードのサマリー（状態ごとの枚数）",
+      "description": "ダッシュボードのサマリー（ステータスごとの枚数）",
       "properties": {
         "answer": {
           "description": "answer"
         },
         "open_topics": {
           "description": "open_topics"
-        },
-        "working": {
-          "description": "working"
         },
         "hold": {
           "description": "hold"

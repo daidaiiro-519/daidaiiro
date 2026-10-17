@@ -82,6 +82,9 @@ impl Clock for RealClock {
     fn uuid(&self) -> String {
         uuid(random())
     }
+    fn epoch_secs(&self) -> u64 {
+        seconds().max(0) as u64
+    }
 }
 
 #[cfg(test)]

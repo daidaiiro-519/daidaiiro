@@ -19,7 +19,7 @@ fn version_answers_the_name_and_the_version() {
 fn no_arguments_list_own_commands_and_base_operations() {
     let (code, out) = cli(&["--json"]);
     assert_eq!(code, 0, "{out}");
-    assert_eq!(out["data"]["commands"].as_array().map(Vec::len), Some(5));
+    assert_eq!(out["data"]["commands"].as_array().map(Vec::len), Some(6));
     assert_eq!(out["data"]["base"][2], "update");
 }
 
@@ -39,7 +39,7 @@ fn inspect_reads_a_board_from_disk_and_exits_1_on_findings() {
     assert_eq!(code, 1, "{out}");
     assert_eq!(
         out["findings"][0],
-        "いま答える論点があるのに、queue に いま見る論点が無い"
+        "回答待ちの論点があるのに、queue に いま見る論点が無い"
     );
 }
 

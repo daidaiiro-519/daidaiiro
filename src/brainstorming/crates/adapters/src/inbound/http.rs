@@ -1,13 +1,13 @@
-//! serve の受け口。127.0.0.1 だけで待ち受け、描いたページを配り、回答と AI のチャットを受ける。
+//! serve の受け口。127.0.0.1 だけで待ち受け、描いたページを配り、回答の送信と AI のチャットを受ける。
 //!
 //! 守ること：
 //! - 起動ごとに作る合言葉を URL で1回だけ受け、HttpOnly ・ SameSite=Strict の cookie へ移す。合言葉の無い要求は断る
 //! - Host が 127.0.0.1:<番号> か localhost:<番号> でなければ断る（DNS リバインディング）
 //! - 書き換える要求は POST だけで受け、Origin が同じでなければ断る
-//! - AI の CLI はボード1枚につき同時に1つ
+//! - AI の CLI はボード1枚につき同時に1つ（ボードのロックのファイルで、ほかの serve と CLI にも効かせる）
 
-use brainstorming_core::application::chat::{self, Limits, Turn};
-use brainstorming_core::application::{answer, Env, Skill};
+use brainstorming_core::application::chat::{self, Kind, Limits, Turn};
+use brainstorming_core::application::{hold, status, Env, Skill};
 use brainstorming_core::domain::agent::Agent;
 use brainstorming_core::domain::board::{text, Layout};
 use brainstorming_core::ports::{Agents, Clock, Files, Programs};
@@ -321,11 +321,19 @@ where
                     Err(reason) => fail(reason),
                 }
             }
-            ("POST", "/api/answer") => match Self::body(request)
-                .map(|input| answer::submit(&self.env, &self.skill, &self.root, &input))
-            {
-                Ok(Ok(data)) => ok(data),
-                Ok(Err(reason)) => fail(reason),
+            ("GET", "/api/status") => ok(json!({"boards": status::boards(&self.env, &self.root)})),
+            ("POST", "/api/hold") => match Self::body(request) {
+                Ok(input) => match hold::set(
+                    &self.env,
+                    &self.skill,
+                    &self.root,
+                    text(&input, "board"),
+                    input.get("hold").and_then(Value::as_bool).unwrap_or(false),
+                    text(&input, "why"),
+                ) {
+                    Ok(data) => ok(data),
+                    Err(reason) => fail(reason),
+                },
                 Err(response) => response,
             },
             ("POST", "/api/chat/stop") => match Self::body(request) {
@@ -375,8 +383,8 @@ where
         }
     }
 
-    /// チャットの要求に、出来事を1行ずつ送って答える。
-    fn chat(&self, request: &Request, stream: &mut TcpStream) {
+    /// チャットと回答の送信の要求に、出来事を1行ずつ送って答える。send なら回答を書いてから AI がボードを更新する。
+    fn chat(&self, request: &Request, stream: &mut TcpStream, send: bool) {
         let input = match Self::body(request) {
             Ok(input) => input,
             Err(response) => return write(stream, &response),
@@ -386,6 +394,18 @@ where
             topic: text(&input, "topic").to_owned(),
             agent: text(&input, "agent").to_owned(),
             text: text(&input, "text").to_owned(),
+            kind: if send {
+                Kind::Send {
+                    round: input.get("round").and_then(Value::as_u64).unwrap_or(0),
+                    answers: input
+                        .get("answers")
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default(),
+                }
+            } else {
+                Kind::Ask
+            },
         };
         let cancel = Arc::new(AtomicU8::new(chat::RUNNING));
         {
@@ -441,11 +461,12 @@ where
         let Some(request) = read_request(&mut stream) else {
             return write(&mut stream, &Response::refuse(400, "要求を読めない"));
         };
-        if request.method == "POST" && request.path == "/api/chat" {
+        if request.method == "POST" && (request.path == "/api/chat" || request.path == "/api/send")
+        {
             if let Err(response) = guard(&request, self.port, &self.token) {
                 return write(&mut stream, &response);
             }
-            return self.chat(&request, &mut stream);
+            return self.chat(&request, &mut stream, request.path == "/api/send");
         }
         let response = self.answer(&request);
         write(&mut stream, &response);
@@ -504,11 +525,11 @@ mod tests {
 
     #[test]
     fn requests_are_read_with_query_and_body() {
-        let raw = "POST /api/answer?board=a%2Db&x=1 HTTP/1.1\r\nHost: 127.0.0.1:9\r\nContent-Length: 2\r\n\r\n{}";
+        let raw = "POST /api/send?board=a%2Db&x=1 HTTP/1.1\r\nHost: 127.0.0.1:9\r\nContent-Length: 2\r\n\r\n{}";
         let got = read_request(&mut raw.as_bytes()).unwrap();
         assert_eq!(
             (got.method.as_str(), got.path.as_str()),
-            ("POST", "/api/answer")
+            ("POST", "/api/send")
         );
         assert_eq!(got.query.get("board").map(String::as_str), Some("a-b"));
         assert_eq!(
@@ -534,7 +555,7 @@ mod tests {
             (
                 request(
                     "POST",
-                    "/api/answer",
+                    "/api/send",
                     &[
                         ("host", "127.0.0.1:9"),
                         cookie,
@@ -547,7 +568,7 @@ mod tests {
             (
                 request(
                     "POST",
-                    "/api/answer",
+                    "/api/send",
                     &[
                         ("host", "127.0.0.1:9"),
                         cookie,
@@ -560,7 +581,7 @@ mod tests {
             (
                 request(
                     "POST",
-                    "/api/answer",
+                    "/api/send",
                     &[
                         ("host", "127.0.0.1:9"),
                         cookie,

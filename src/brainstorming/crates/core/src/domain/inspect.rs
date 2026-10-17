@@ -39,7 +39,7 @@ pub fn inspect(board: &Value) -> Vec<String> {
     let open: Vec<&Value> = all.iter().filter(|t| text(t, "status") == "open").collect();
     if open.len() > OPEN_MAX {
         out.push(format!(
-            "いま答える論点が{}件ある（{OPEN_MAX}件まで）",
+            "回答待ちの論点が{}件ある（{OPEN_MAX}件まで）",
             open.len()
         ));
     }
@@ -48,23 +48,22 @@ pub fn inspect(board: &Value) -> Vec<String> {
         .map(|q| text(q, "topic"))
         .collect();
     if !open.is_empty() && queue.is_empty() {
-        out.push("いま答える論点があるのに、queue に いま見る論点が無い".to_owned());
+        out.push("回答待ちの論点があるのに、queue に いま見る論点が無い".to_owned());
     }
     for id in &queue {
         match all.iter().find(|t| text(t, "id") == *id) {
             Some(t) if text(t, "status") != "open" => out.push(format!(
-                "{id}：queue にあるが、いま答える論点（open）でない"
+                "{id}：queue にあるが、回答待ちの論点（open）でない"
             )),
             None => out.push(format!("{id}：queue が指す論点が無い")),
             _ => {}
         }
     }
-    let status = text(board, "status");
-    if status == "done" && all.iter().any(|t| text(t, "status") != "settled") {
-        out.push("状態が決着（done）なのに、決着していない論点がある".to_owned());
+    if board.get("status").is_some() {
+        out.push("ボードの status は書かない（ステータスは論点の状態と保留から導く）".to_owned());
     }
-    if status == "answer" && open.is_empty() {
-        out.push("状態が いま答える（answer）なのに、いま答える論点が無い".to_owned());
+    if open.is_empty() && !all.is_empty() && all.iter().any(|t| text(t, "status") != "settled") {
+        out.push("回答待ちの論点が無いのに、決着していない論点がある（前提が片付いた論点を open にする）".to_owned());
     }
     for topic in all {
         let id = text(topic, "id");
@@ -78,7 +77,7 @@ pub fn inspect(board: &Value) -> Vec<String> {
                     .any(|t| text(t, "id") == dep && text(t, "status") != "settled")
             {
                 out.push(format!(
-                    "{id}：前提にした {dep} が決着していないのに、いま答える論点にしている"
+                    "{id}：前提にした {dep} が決着していないのに、回答待ちの論点にしている"
                 ));
             }
         }
@@ -156,7 +155,7 @@ mod tests {
             .iter()
             .map(|q| json!({"topic": q, "why": "w"}))
             .collect();
-        json!({"id": "b", "status": "answer", "queue": queue, "topics": topics})
+        json!({"id": "b", "queue": queue, "topics": topics})
     }
 
     #[test]
@@ -206,13 +205,13 @@ mod tests {
             ),
             (
                 board(vec![ok_topic("Q1", "open")], &[]),
-                vec!["いま答える論点があるのに、queue に いま見る論点が無い".to_owned()],
+                vec!["回答待ちの論点があるのに、queue に いま見る論点が無い".to_owned()],
             ),
             (
                 board(vec![ok_topic("Q1", "waiting")], &["Q1"]),
                 vec![
-                    "Q1：queue にあるが、いま答える論点（open）でない".to_owned(),
-                    "状態が いま答える（answer）なのに、いま答える論点が無い".to_owned(),
+                    "Q1：queue にあるが、回答待ちの論点（open）でない".to_owned(),
+                    "回答待ちの論点が無いのに、決着していない論点がある（前提が片付いた論点を open にする）".to_owned(),
                 ],
             ),
         ];
@@ -246,7 +245,7 @@ mod tests {
         let found = inspect(&board(vec![ok_topic("Q1", "open"), q2], &["Q1", "Q2"]));
         assert_eq!(
             found,
-            vec!["Q2：前提にした Q1 が決着していないのに、いま答える論点にしている"]
+            vec!["Q2：前提にした Q1 が決着していないのに、回答待ちの論点にしている"]
         );
     }
 
@@ -254,7 +253,7 @@ mod tests {
     fn too_many_open_topics_are_reported() {
         let many: Vec<Value> = (0..6).map(|n| ok_topic(&format!("Q{n}"), "open")).collect();
         let found = inspect(&board(many, &["Q0"]));
-        assert_eq!(found, vec!["いま答える論点が6件ある（5件まで）"]);
+        assert_eq!(found, vec!["回答待ちの論点が6件ある（5件まで）"]);
     }
 
     #[test]

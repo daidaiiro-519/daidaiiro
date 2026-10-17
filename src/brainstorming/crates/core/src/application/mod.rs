@@ -4,8 +4,11 @@ pub mod advance;
 pub mod answer;
 pub mod chat;
 pub mod engine;
+pub mod hold;
 pub mod inspect;
+pub mod lock;
 pub mod render;
+pub mod status;
 pub mod tokens;
 
 use crate::ports::{Clock, Files, Programs};

@@ -29,7 +29,7 @@ mod tests {
         assert_eq!(out["ok"], false);
         assert_eq!(
             out["findings"][0],
-            "いま答える論点があるのに、queue に いま見る論点が無い"
+            "回答待ちの論点があるのに、queue に いま見る論点が無い"
         );
     }
 }

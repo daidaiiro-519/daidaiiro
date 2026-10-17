@@ -25,12 +25,14 @@ license: MIT
 | 受け取る情報 | 解釈 ・ 既定値 |
 |---|---|
 | テーマ | 1〜2文で確かめてから始める。論点はこちらで立てる |
-| 回答（承認 ・ 差し戻し ・ 書き足し） | 画面から送られ、`.brainstorming/<ボード>/answers/` に1件ずつ残る。チャットで「回答した」と言われたら読む |
+| 回答（承認 ・ 差し戻し ・ 書き足し） | 画面の「送る」でボードごとにまとめて届き、`.brainstorming/<ボード>/answers/` に1件ずつ残る。送られると serve が AI を起動し、Step 5 を行わせる |
 | データの置き場所 | リポジトリの根の `.brainstorming/`。ボードの本体は `.brainstorming/<ボード>.json` |
 
 ## 実行手順
 
 使うのは、この Skill のフォルダの実行ファイル `scripts/bin/brainstorming` だけである。ボードの JSON は手で書き換えず、`update` で直す（書いたその場でスキーマの検査が走る）。どの操作も JSON を1つ返し、終了コードは 0 正常 ／ 1 不合格 ・ 失敗 ／ 2 使い方の誤りである。
+
+1枚のボードで AI が動くのは1つだけである。`update` と `advance` はボードのロック（`.brainstorming/.serve/locks/<ボード>.json`）を取り、ほかの AI が動いていれば断る。ターミナルから取ったロックは `advance` で外れる。`advance` をせずにやめるときは `unlock --board .brainstorming/<ボード>.json` で外す。
 
 ```
 scripts/bin/brainstorming            操作の一覧
@@ -71,7 +73,7 @@ scripts/bin/brainstorming inspect --board .brainstorming/<ボード>.json
 scripts/bin/brainstorming check --dir .brainstorming
 ```
 
-inspect は形では見られない決まり（1文は120字まで ・ 答えが指す論点は depends に書く ・ いま答える論点には完成イメージと試す行き先がある ・ いま見る論点は前提が決着している ・ 一度に開く論点は5件まで）を見る。check は形と参照を見る。どちらも0件にしてから出す。check の終了コード 0 は実行できたことだけを示すので、`instances` の `errors` と `findings` で合否を見る。
+inspect は形では見られない決まり（1文は120字まで ・ 答えが指す論点は depends に書く ・ 回答待ちの論点には完成イメージと試す行き先がある ・ いま見る論点は前提が決着している ・ 一度に開く論点は5件まで）を見る。check は形と参照を見る。どちらも0件にしてから出す。check の終了コード 0 は実行できたことだけを示すので、`instances` の `errors` と `findings` で合否を見る。
 
 ### Step 4: 回として出し、画面で見せる
 
@@ -81,7 +83,7 @@ scripts/bin/brainstorming render --dir .brainstorming
 scripts/bin/brainstorming serve --dir .brainstorming --port 0
 ```
 
-advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。2回目からは、前の回と欄ごとに比べて「この回で変わったところ」を書き、差し戻しの言葉を理由に入れる。前の回で承認された論点は決着になる。render は全部のボードとダッシュボードを `.brainstorming/site/` に描く。serve は出力の `url` を利用者に渡す（合言葉付きの URL で、最初の1回だけ使う）。
+advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。2回目からは、前の回と欄ごとに比べて変わったところ（画面では「送った回答で変わったところ」）を書き、差し戻しの言葉を理由に入れる。前の回で承認された論点は決着になる。render は全部のボードとダッシュボードを `.brainstorming/site/` に描く。serve は出力の `url` を利用者に渡す（合言葉付きの URL で、最初の1回だけ使う）。
 
 ### Step 5: 回答を受けて、直して、次の回を出す
 
@@ -91,13 +93,13 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 |---|---|
 | 承認（approve） | その論点の `status` を `settled` にする。前提がすべて決着した論点を `open` にし、`queue` に、なぜいま開いたかと一緒に並べる |
 | 差し戻し（return） | まず既存の答えを直せるかを確かめ、「どこが違うか」の所だけを直す。答えが動いていない欄は書き直さない |
-| まだ答えない（hold） | その論点は変えない |
+| 選ばれなかった論点 | その論点は変えない（回答待ちのまま残る） |
 
 直したら Step 3 から繰り返す。advance は、承認と差し戻しの言葉を読んで、この回で変わったところに理由を付ける。
 
 ### Step 6: 決着させる
 
-答えが下流の論点か外の作業で使われたら決着にしてよい。答えられる問いが尽きたら、ボードの `status` を `done` にする。止めるなら `hold` にする。保留は正当な着地点である。
+答えが下流の論点か外の作業で使われたら決着にしてよい。論点がすべて決着すると、ボードのステータスは決着になる。ボードのステータスは論点の状態と保留とロックから導くので、ボードに `status` を書かない。保留は利用者が画面で決める（`hold` に日付が入る）。保留は正当な着地点である。
 
 ## 出力形式
 
@@ -106,9 +108,11 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 | 伝えること | 書き方 |
 |---|---|
 | 画面の場所 | serve の `url`、または `site/<ボード>.html` |
-| いま答える論点 | 論点の id と名前、なぜいま開いたか |
-| この回で変わったところ | 何か所か。中身は画面が示すので、チャットに並べない |
+| 回答待ちの論点 | 論点の id と名前、なぜいま開いたか |
+| 送った回答で変わったところ | 何か所か。中身は画面が示すので、チャットに並べない |
 | 検査 | inspect と check が0件だったこと |
+
+回の番号（第N回）は、記録と比べるための内部の数え方なので、利用者に伝えない。
 
 ## ガードレール
 
@@ -119,6 +123,8 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 - **回の記録 `rounds/` と回答 `answers/` を書き換えない**。比べる相手と利用者の言葉が変わる
 - **ボードのフォルダの外を書き換えない**。画面の「AI に聞く」から呼ばれたときは、serve が作業の前後を比べて、外の変更を利用者に知らせる。比べ方では変えた者を区別できないので、AI の作業の記録に出てくるもの ・ ほかのボード ・ 記録に無いものに分けて知らせる
 - **AI の「検査した」で合格としない**。inspect と check の結果で決める
+- **ボードに `status` を書かない**。ステータスは論点の状態 ・ 保留 ・ ロックから導く。手で書くと、回答したのに回答待ちのまま見えるような食い違いが出る
+- **ロックを残したまま作業をやめない**。`advance` か `unlock` で外す。残すと、画面の「送る」と「AI に聞く」が止まったままになる
 - **画面の AI に聞くで、Kiro は読むだけにする**。手元の Kiro はシェルのコマンドを絞れないので、ボードを直すのは Claude Code と Codex だけである
 - **扱わない範囲に扱いを付けずに承認を求めない**。`verification.out_of_scope` に、対象外 ・ 後で決める ・ 解消済みのどれかを付ける
 
@@ -134,5 +140,5 @@ advance は回の記録 `rounds/<回>.json` を残す（書き換えない）。
 | `assets/tokens.schema.json` | デザイントークンの正本の形（Design Tokens 形式） |
 | `assets/pages/` | ボードとダッシュボードのページテンプレート |
 | `assets/catalog/` | 部品のカタログ（parts.html ・ catalog.schema.json ・ catalog.css ・ catalog.js）と、トークンの正本（light.tokens.json ・ dark.tokens.json）から作った design-system.json |
-| `scripts/bin/brainstorming` | この Skill の実行ファイル（advance ・ inspect ・ render ・ serve ・ tokens と、基盤の操作の受け渡し） |
+| `scripts/bin/brainstorming` | この Skill の実行ファイル（advance ・ inspect ・ render ・ serve ・ tokens ・ unlock と、基盤の操作の受け渡し） |
 | `scripts/bin/schema-driven` | 照合して入れた基盤のエンジン |

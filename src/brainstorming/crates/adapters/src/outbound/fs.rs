@@ -38,6 +38,24 @@ impl Files for RealFiles {
         }
         fs::write(path, text).map_err(|error| said(path, error))
     }
+    fn create_new(&self, path: &Path, text: &str) -> Result<bool, String> {
+        use std::io::Write;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| said(parent, error))?;
+        }
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+        {
+            Ok(mut file) => file
+                .write_all(text.as_bytes())
+                .map(|_| true)
+                .map_err(|error| said(path, error)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(false),
+            Err(error) => Err(said(path, error)),
+        }
+    }
     fn exists(&self, path: &Path) -> bool {
         path.exists()
     }

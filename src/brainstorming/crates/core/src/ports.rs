@@ -10,6 +10,8 @@ pub trait Files {
     fn read_bytes(&self, path: &Path) -> Result<Vec<u8>, String>;
     /// 書く。親のフォルダが無ければ作る。
     fn write(&self, path: &Path, text: &str) -> Result<(), String>;
+    /// 無いときだけ書く（あるか無いかの確かめと書くことを一度に行う）。書いたら true、すでにあれば false。
+    fn create_new(&self, path: &Path, text: &str) -> Result<bool, String>;
     fn exists(&self, path: &Path) -> bool;
     /// フォルダの直下のファイルとフォルダ。名前の順に並べる。無ければ空。
     fn list(&self, dir: &Path) -> Vec<PathBuf>;
@@ -43,6 +45,8 @@ pub trait Clock {
     fn elapsed_ms(&self) -> u64;
     /// 新しい UUID（v4）
     fn uuid(&self) -> String;
+    /// いまの時刻（1970-01-01 からの秒）。ロックの古さを数えるのに使う
+    fn epoch_secs(&self) -> u64;
 }
 
 /// 起動した AI の CLI から次に来るもの。

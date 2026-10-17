@@ -1,4 +1,4 @@
-// brainstorming の部品の操作。ページは基盤の render が作り、serve で開いたときだけ回答の送信と AI のチャットが動く。
+// brainstorming の部品の操作。ページは基盤の render が作り、serve で開いたときだけ、ステータスの読み直し ・ 回答の送信 ・ AI のチャットが動く。
 (function () {
   "use strict";
   var body = document.body;
@@ -28,7 +28,7 @@
     if (!chips.length) return;
     chips.forEach(function (c) { c.setAttribute("aria-selected", String(c.getAttribute("data-topic") === id)); });
     $$("[data-topic-panel]").forEach(function (p) { p.hidden = p.getAttribute("data-topic-panel") !== id; });
-    var ctx = $("[data-ctx-topic]"); if (ctx) { var chip = $('.chip[data-topic="' + id + '"]'); ctx.textContent = chip ? chip.textContent : id; }
+    var ctx = $("[data-ctx-topic]"); if (ctx) { var chip = $('.chip[data-topic="' + id + '"]'); ctx.textContent = chip ? ($(".qn", chip) || chip).textContent : id; }
     if (focusPart) {
       var panel = $('[data-topic-panel="' + id + '"]');
       var target = panel && ($('[data-part="' + focusPart + '"]', panel) || panel);
@@ -46,7 +46,7 @@
     var chips = $$(".chip[data-topic]");
     if (!chips.length) return;
     var hash = (location.hash.match(/^#(?:topic-)?(Q[0-9]+)$/) || [])[1];
-    var open = chips.filter(function (c) { return c.getAttribute("data-status") === "open"; })[0];
+    var open = chips.filter(function (c) { return c.getAttribute("data-status") === "answer"; })[0];
     openTopic(hash || (open || chips[0]).getAttribute("data-topic"));
   })();
 
@@ -186,44 +186,164 @@
     $(".dsrc", box).replaceWith(table);
   });
 
-  // ── 回答 ──
+  // ── ステータスと、更新中 ・ 保留の帯 ──
+  // ステータスは serve の /api/status から導く。AI が動いているあいだ（送った ・ AI に聞いた ・ ターミナルから直している）は更新中で、回答 ・ 送る ・ AI に聞くを止める。
   function postJSON(url, data) {
     return fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
   }
-  $$("[data-answer-form]").forEach(function (form) {
-    var decision = null;
-    var send = $("[data-send]", form), msg = $("[data-msg]", form), paste = $("[data-paste]", form);
-    var field = function (name) { return $('[data-field="' + name + '"]', form).value.trim(); };
-    function update() {
-      $$(".fld[data-for]", form).forEach(function (f) { f.hidden = !decision || f.getAttribute("data-for").split(" ").indexOf(decision) < 0; });
-      var ok = decision && (decision !== "return" || field("where"));
-      send.disabled = !ok;
-      msg.textContent = decision === "return" && !field("where") ? "どこが違うかを書くと送れる。" : "";
+  var store = {
+    get: function (k) { try { return JSON.parse(sessionStorage.getItem(k) || "null"); } catch (e) { return null; } },
+    set: function (k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 残せない枠では残さない */ } },
+    drop: function (k) { try { sessionStorage.removeItem(k); } catch (e) { /* 同上 */ } }
+  };
+  var mmss = function (ms) { var s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); };
+  var LABEL = { answer: "回答待ち", updating: "更新中", hold: "保留", done: "決着", waiting: "前提待ち" };
+  function paintBadge(badge, st, label) {
+    if (!badge) return;
+    badge.setAttribute("data-status", st);
+    var use = $("use", badge); if (use) use.setAttribute("href", "#st-" + st);
+    var sl = $(".sl", badge); if (sl) sl.textContent = label || LABEL[st];
+  }
+  var head = $("[data-board-head]");
+  var boardBadge = $("[data-board-status]"), firstLabel = boardBadge ? $(".sl", boardBadge).textContent : "";
+  var firstStatus = boardBadge ? boardBadge.getAttribute("data-status") : "";
+  var held = !!head && head.getAttribute("data-held") === "true";
+  var locked = false, sending = false, chatRunning = false;
+  var banner = $("[data-banner]"), bannerTimer = null;
+  function setBanner(kind, text, startMs, action) {
+    if (!banner) return;
+    clearInterval(bannerTimer);
+    if (!kind) { banner.hidden = true; return; }
+    banner.hidden = false; banner.setAttribute("data-kind", kind);
+    $("[data-banner-text]", banner).textContent = text;
+    var tm = $("[data-banner-time]", banner);
+    if (startMs) { var tickNow = function () { tm.textContent = "経過 " + mmss(Date.now() - startMs); }; tickNow(); bannerTimer = setInterval(tickNow, 1000); } else tm.textContent = "";
+    var btn = $("[data-banner-action]", banner);
+    btn.hidden = !action;
+    if (action) { btn.textContent = action.label; btn.onclick = action.run; }
+  }
+  var listeners = [];
+  function changed() { listeners.forEach(function (f) { f(); }); }
+  function setLocked(on, label, startMs) {
+    locked = on;
+    if (on) {
+      paintBadge(boardBadge, "updating");
+      var own = sending || chatRunning;
+      setBanner("updating", (label || "AI が動いている") + "。終わるとこの画面を描き直す。", startMs || Date.now(),
+        own ? { label: "止める", run: function () { postJSON("/api/chat/stop", { board: boardId }); } } : null);
+    } else {
+      paintBadge(boardBadge, firstStatus, firstLabel);
+      showHold();
+    }
+    changed();
+  }
+  function showHold() {
+    if (held) {
+      setBanner("hold", "このボードは保留（" + (head.getAttribute("data-held-since") || "") + " から）。解くと、回答を選んで送れる。", 0,
+        served ? { label: "保留を解く", run: function () { postJSON("/api/hold", { board: boardId, hold: false }).then(reloadKeep); } } : null);
+    } else setBanner(null);
+  }
+  var holdToggle = $("[data-hold-toggle]");
+  if (holdToggle && served && !held && firstStatus !== "done") {
+    holdToggle.hidden = false; holdToggle.textContent = "保留にする";
+    holdToggle.addEventListener("click", function () { postJSON("/api/hold", { board: boardId, hold: true }).then(function (r) { return r.json(); }).then(function (j) { if (j.ok) reloadKeep(); else setBanner("hold", j.reason || "保留にできなかった", 0, null); }); });
+  }
+  function reloadKeep() {
+    var chatBox = $("[data-chat]");
+    store.set("bs-chat-open-" + boardId, !!(chatBox && !chatBox.hidden));
+    location.reload();
+  }
+  showHold();
+
+  // ── 回答：論点ごとに選ぶだけ。送るのはボードでまとめて1回 ──
+  var round = Number(body.getAttribute("data-round"));
+  var PICKS = "bs-picks-" + boardId + "-" + round;
+  var picks = {}, saved = store.get(PICKS) || {};
+  var forms = $$("[data-answer-form]");
+  function sig(topic) {
+    var ans = $('[data-topic-panel="' + topic + '"] .ans'), t = ans ? ans.textContent : "", h = 0;
+    for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+    return String(h);
+  }
+  var FIELDS = ["where", "reason", "note"];
+  forms.forEach(function (form) {
+    var topic = form.getAttribute("data-topic");
+    var field = function (n) { return $('[data-field="' + n + '"]', form); };
+    function apply() {
+      var p = picks[topic], off = locked || held;
+      $$("[data-decision]", form).forEach(function (b) { b.setAttribute("aria-pressed", String(!!p && p.decision === b.getAttribute("data-decision"))); b.disabled = off; });
+      $$(".fld[data-for]", form).forEach(function (f) { f.hidden = !p || f.getAttribute("data-for").split(" ").indexOf(p.decision) < 0; });
+      $$("textarea", form).forEach(function (t) { t.disabled = off; });
+    }
+    function read() {
+      var p = picks[topic];
+      if (p) FIELDS.forEach(function (k) { p[k] = field(k).value.trim(); });
+      store.set(PICKS, picks); apply(); changed();
+    }
+    var before = saved[topic];
+    if (before && before.sig === sig(topic)) {
+      picks[topic] = before;
+      FIELDS.forEach(function (k) { if (before[k]) field(k).value = before[k]; });
+    } else if (before) {
+      $("[data-reset]", form).hidden = false; // 選んでいたあとに答えが直った
     }
     $$("[data-decision]", form).forEach(function (b) {
       b.addEventListener("click", function () {
-        decision = b.getAttribute("data-decision");
-        $$("[data-decision]", form).forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-        update();
+        var d = b.getAttribute("data-decision");
+        if (picks[topic] && picks[topic].decision === d) delete picks[topic]; else picks[topic] = { decision: d, sig: sig(topic) };
+        $("[data-reset]", form).hidden = true;
+        read();
       });
     });
-    $$("textarea", form).forEach(function (t) { t.addEventListener("input", update); });
-    send.addEventListener("click", function () {
-      var data = { board: boardId, round: Number(body.getAttribute("data-round")), topic: form.getAttribute("data-topic"), decision: decision };
-      ["where", "reason", "note"].forEach(function (k) { if (field(k)) data[k] = field(k); });
-      var showPaste = function (why) {
-        paste.hidden = false;
-        paste.textContent = JSON.stringify(data, null, 1);
-        msg.textContent = why + " 下の文字列を、AI とのチャットに貼る。";
-      };
-      if (!served) { showPaste("serve で開いていないので送れない。"); return; }
-      send.disabled = true; msg.textContent = "送っている…";
-      postJSON("/api/answer", data).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); }).then(function (res) {
-        if (res[0]) msg.textContent = "送った。AI に「回答した」と一言伝えると、次の回へ進む。";
-        else showPaste("受け取られなかった（" + (res[1].reason || "") + "）。");
-      }, function () { showPaste("serve に届かなかった。"); });
-    });
+    $$("textarea", form).forEach(function (t) { t.addEventListener("input", read); });
+    listeners.push(apply);
+    apply();
   });
+  store.set(PICKS, picks);
+
+  var bar = $("[data-sendbar]");
+  var agentOf = function () { var sel = $("[data-agent]"); return sel ? sel.value : "claude"; };
+  if (bar) {
+    var sendBtn = $("[data-send-all]", bar), sum = $("[data-send-sum]", bar), sendMsg = $("[data-send-msg]", bar), paste = $("[data-paste]", bar);
+    var sendState = function () {
+      var list = Object.keys(picks), ap = 0, rt = 0, missing = [];
+      list.forEach(function (t) { if (picks[t].decision === "approve") ap++; else { rt++; if (!picks[t].where) missing.push(t); } });
+      sum.textContent = list.length ? "承認 " + ap + "件 ・ 差し戻し " + rt + "件 ・ 選んでいない " + (forms.length - list.length) + "件" : "まだ選んでいない";
+      var kiro = agentOf() === "kiro";
+      sendBtn.disabled = !list.length || missing.length > 0 || locked || held || kiro;
+      sendMsg.textContent = missing.length ? missing.join(" ・ ") + "：差し戻すときは、どこが違うかを書く"
+        : held ? "保留のあいだは送れない"
+        : locked && !sending ? "更新が終わると送れる"
+        : kiro && list.length ? "Kiro は読むだけなので送れない。AI に聞くの窓で Claude Code か Codex を選ぶ" : "";
+    };
+    listeners.push(sendState); sendState();
+    var sel = $("[data-agent]"); if (sel) sel.addEventListener("change", sendState);
+    sendBtn.addEventListener("click", function () {
+      var answers = Object.keys(picks).map(function (t) {
+        var p = picks[t], a = { topic: t, decision: p.decision };
+        FIELDS.forEach(function (k) { if (p[k]) a[k] = p[k]; });
+        return a;
+      });
+      var data = { board: boardId, round: round, agent: agentOf(), answers: answers };
+      if (!served) {
+        paste.hidden = false; paste.textContent = JSON.stringify(data, null, 1);
+        sendMsg.textContent = "serve で開いていないので送れない。下の文字列を、AI とのチャットに貼る。";
+        return;
+      }
+      if (!window.bsStream) return;
+      sending = true; setLocked(true, "送った回答をもとに、AI がボードを更新している", Date.now());
+      var said = "回答を送った：" + ["approve", "return"].map(function (d) {
+        var ids = answers.filter(function (a) { return a.decision === d; }).map(function (a) { return a.topic; });
+        return ids.length ? (d === "approve" ? "承認 " : "差し戻し ") + ids.join(" ・ ") : "";
+      }).filter(Boolean).join("、");
+      window.bsStream("/api/send", data, said, function (result) {
+        sending = false;
+        if (result.changed) { store.drop(PICKS); reloadKeep(); return; }
+        setLocked(false);
+        sendMsg.textContent = result.error || "ボードは変わらなかった。";
+      });
+    });
+  }
 
   // ── AI に聞く ──
   var app = $(".app"), chat = $("[data-chat]");
@@ -295,15 +415,13 @@
     }
     // 作業中の表示：動く印 ・ いま何をしているか ・ 経過時間。終わるまで会話の末尾に置く
     var running = null, runTimer = null, runStart = 0;
-    var mmss = function (ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); };
     function runState(text) {
       if (!running) return;
       $("[data-run-text]", running).textContent = text;
       msgs.appendChild(running); msgs.scrollTop = msgs.scrollHeight;
     }
     function busy(on) {
-      submit.disabled = on; stop.hidden = !on; input.setAttribute("aria-busy", String(on));
-      $$("[data-open-chat]").forEach(function (b) { b.classList.toggle("is-busy", on); });
+      stop.hidden = !on; input.setAttribute("aria-busy", String(on));
       if (on) {
         running = el("div", "running"); running.setAttribute("role", "status");
         var dots = el("span", "rdots"); dots.setAttribute("aria-hidden", "true"); dots.appendChild(el("i")); dots.appendChild(el("i")); dots.appendChild(el("i"));
@@ -321,6 +439,7 @@
       var line = el("div", "usage", "入力 " + u.input.toLocaleString() + "（キャッシュから " + pct + "%）・ 出力 " + u.output.toLocaleString());
       m.root.appendChild(line);
     }
+    var result = null;
     function handle(ev) {
       var WORKING = { read: "読んでいる", edit: "直している", run: "実行している" };
       if (ev.type === "text") { addText(current, ev.text); runState("返事を書いている"); }
@@ -343,19 +462,17 @@
           addNotice("outside", "ボードの外が変わった", (ev.ran ? "AI の作業の記録に無い。AI が実行したコマンドか、同じ時間のほかの作業が変えた：" : "AI の作業の記録に無い。同じ時間のほかの作業が変えた：") + unknown.join(" ・ "), []);
         }
       }
-      else if (ev.type === "changed") {
-        addNotice("changed", "ボードが書き換わった", "画面を描き直した。変わったところは次の回で確かめる。", [{ label: "読み込み直す", primary: true, run: function () { location.reload(); } }]);
-      }
-      else if (ev.type === "error") { addNotice("error", "止まった", ev.text, []); }
+      else if (ev.type === "changed") { if (result) result.changed = true; runState("ボードが書き換わった。終わったら画面を描き直す"); }
+      else if (ev.type === "error") { if (result) result.error = ev.text; addNotice("error", "止まった", ev.text, []); }
       msgs.scrollTop = msgs.scrollHeight;
     }
-    function ask(text) {
-      if (!text.trim() || !served) return;
-      addMine(text); current = aiMessage(); busy(true);
+    // AI に聞くと回答を送るの両方が使う。出来事を1行ずつ読み、終わったら done に結果を渡す
+    window.bsStream = function (url, payload, mine, done) {
+      chatRunning = url === "/api/chat";
+      addMine(mine); current = aiMessage(); busy(true); result = { changed: false, error: "" };
+      if (!chatRunning) { /* 送るは、帯で進み具合を出す */ } else setLocked(true, "AI が質問に答えている", Date.now());
       controller = window.AbortController ? new AbortController() : null;
-      var topic = ($(".chip[aria-selected=true]") || {}).getAttribute ? $(".chip[aria-selected=true]").getAttribute("data-topic") : "";
-      fetch("/api/chat", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, signal: controller && controller.signal,
-        body: JSON.stringify({ board: boardId, topic: topic, agent: select.value, text: text }) })
+      fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, signal: controller && controller.signal, body: JSON.stringify(payload) })
         .then(function (r) {
           if (!r.ok || !r.body) { return r.json().then(function (j) { handle({ type: "error", text: j.reason || "受け取られなかった" }); }); }
           var reader = r.body.getReader(), dec = new TextDecoder(), buf = "";
@@ -371,15 +488,33 @@
           return pump();
         })
         .catch(function () { handle({ type: "error", text: "serve とのつながりが切れた" }); })
-        .then(function () { busy(false); });
+        .then(function () {
+          var got = result; busy(false); chatRunning = false;
+          if (done) done(got);
+          else if (got.changed) reloadKeep();
+          else setLocked(false);
+        });
+    };
+    function ask(text) {
+      if (!text.trim() || !served || locked) return;
+      var topic = ($(".chip[aria-selected=true]") || {}).getAttribute ? $(".chip[aria-selected=true]").getAttribute("data-topic") : "";
+      window.bsStream("/api/chat", { board: boardId, topic: topic, agent: select.value, text: text }, text, null);
     }
-    function openChat() { chat.hidden = false; app.classList.add("with-chat"); input.focus(); }
-    $$("[data-open-chat]").forEach(function (b) { b.addEventListener("click", openChat); });
-    $("[data-close-chat]", chat).addEventListener("click", function () { chat.hidden = true; app.classList.remove("with-chat"); });
-    $("[data-composer]", chat).addEventListener("submit", function (e) { e.preventDefault(); var t = input.value; input.value = ""; ask(t); });
+    var openButtons = $$("[data-open-chat]");
+    listeners.push(function () {
+      if (holdToggle) holdToggle.disabled = locked;
+      submit.disabled = !served || locked;
+      $$("[data-say]", chat).forEach(function (b) { b.disabled = !served || locked; });
+      input.placeholder = locked && !chatRunning ? "更新が終わると聞ける" : "この論点について聞く・直してほしいことを書く";
+    });
+    function openChat() { chat.hidden = false; app.classList.add("with-chat"); input.focus(); store.set("bs-chat-open-" + boardId, true); }
+    openButtons.forEach(function (b) { b.addEventListener("click", openChat); });
+    $("[data-close-chat]", chat).addEventListener("click", function () { chat.hidden = true; app.classList.remove("with-chat"); store.set("bs-chat-open-" + boardId, false); });
+    $("[data-composer]", chat).addEventListener("submit", function (e) { e.preventDefault(); if (locked) return; var t = input.value; input.value = ""; ask(t); });
     input.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("[data-composer]", chat).requestSubmit(); } });
     $$("[data-say]", chat).forEach(function (b) { b.addEventListener("click", function () { ask(b.getAttribute("data-say")); }); });
     stop.addEventListener("click", function () { postJSON("/api/chat/stop", { board: boardId }); if (controller) controller.abort(); });
+    if (store.get("bs-chat-open-" + boardId)) { chat.hidden = false; app.classList.add("with-chat"); }
     if (served) {
       $("[data-offline]", chat).hidden = true;
       fetch("/api/agents", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
@@ -404,6 +539,44 @@
       submit.disabled = true; note.textContent = "serve で開くと使える";
     }
   }
+  changed();
+
+  // ── ステータスを serve から読み直す（3秒ごと）。サイドバーとサマリーも、ロックから並べ直す ──
+  var rev = null;
+  function paintSide(all) {
+    var groups = {};
+    $$(".side [data-group]").forEach(function (g) { groups[g.getAttribute("data-group")] = g; });
+    $$("[data-board-row]").forEach(function (li) {
+      var id = li.getAttribute("data-board-row"), b = all[id];
+      if (!b || !groups[b.status]) return;
+      var list = $("ul", groups[b.status]);
+      if (li.parentNode !== list) list.appendChild(li);
+      var run = $("[data-run]", li);
+      if (b.status === "updating" && b.lock) {
+        run.hidden = false; run.textContent = b.lock.label + " ・ " + mmss(Date.now() - (Date.parse(b.lock.since) || Date.now()));
+      } else run.hidden = true;
+    });
+    Object.keys(groups).forEach(function (k) {
+      var n = $$("[data-board-row]", groups[k]).length, gc = $("[data-gc]", groups[k]);
+      if (gc) gc.textContent = n + "枚";
+      var tile = $('[data-tile="' + k + '"] .tn'); if (tile) tile.firstChild.nodeValue = String(n);
+    });
+  }
+  function paintBoard(b) {
+    if (rev === null) rev = b.rev;
+    var busyNow = b.status === "updating";
+    if (busyNow && !locked) setLocked(true, b.lock ? b.lock.label : "", b.lock ? Date.parse(b.lock.since) : Date.now());
+    if (!busyNow && locked && !sending && !chatRunning) setLocked(false);
+    if (!busyNow && b.rev !== rev && !sending && !chatRunning) reloadKeep();
+  }
+  function poll() {
+    fetch("/api/status", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
+      var all = (j.data && j.data.boards) || {};
+      paintSide(all);
+      if (boardId && all[boardId]) paintBoard(all[boardId]);
+    }, function () {}).then(function () { setTimeout(poll, 3000); });
+  }
+  if (served) poll();
 
   // ── ダッシュボード：先に決めるものと最近の動き ──
   if (page === "dashboard") {

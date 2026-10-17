@@ -34,7 +34,6 @@
     "kind",
     "id",
     "title",
-    "status",
     "round",
     "topics"
   ],
@@ -127,27 +126,64 @@
       "type": "string",
       "minLength": 1
     },
-    "status": {
-      "description": "ボードの状態",
+    "hold": {
+      "description": "保留",
       "x-prompt": {
         "read": {
-          "means": "いま答える ・ 進行中 ・ 保留 ・ 決着のどれかである。"
+          "means": "利用者がボード全体を止めた決定である。あるあいだは回答を受けない。"
         },
         "write": [
           {
-            "id": "by-queue",
-            "rule": "いま答える論点があれば answer、AI が作り直しているあいだは working、止めているなら hold、論点がすべて決着したら done にする。",
-            "why": "サイドバーとダッシュボードはこの値でまとめる。",
-            "test": "answer なのに queue が空でないか、done なのに決着していない論点が無いかを見る。"
+            "id": "by-user",
+            "rule": "利用者が画面の「保留にする」で書き、「保留を解く」で消す。AI は書かない。",
+            "why": "保留は利用者の決定で、論点の状態からは導けない。",
+            "test": "date があるかを見る。"
           }
         ]
       },
-      "enum": [
-        "answer",
-        "working",
-        "hold",
-        "done"
-      ]
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date"
+      ],
+      "properties": {
+        "date": {
+          "description": "保留にした日",
+          "x-prompt": {
+            "read": {
+              "means": "保留にした日である。"
+            },
+            "write": [
+              {
+                "id": "today",
+                "rule": "保留にした日を書く。",
+                "why": "ダッシュボードに、いつから止めているかを出す。",
+                "test": "日付の形かを見る。"
+              }
+            ]
+          },
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "why": {
+          "description": "保留にした理由",
+          "x-prompt": {
+            "read": {
+              "means": "止めた理由である。"
+            },
+            "write": [
+              {
+                "id": "optional",
+                "rule": "利用者が書いたときだけ入れる。",
+                "why": "再開するかを決めるときに読む。",
+                "test": "空の文字でないかを見る。"
+              }
+            ]
+          },
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "flag": {
       "description": "優先の印",
@@ -561,15 +597,15 @@
             "open",
             "settled"
           ],
-          "description": "前提待ち ・ いま答える ・ 決着",
+          "description": "前提待ち ・ 回答待ち ・ 決着",
           "x-prompt": {
             "read": {
-              "means": "前提待ち ・ いま答える ・ 決着である。"
+              "means": "前提待ち（waiting）・ 回答待ち（open）・ 決着（settled）である。画面のステータスはこの値から導く。"
             },
             "write": [
               {
                 "id": "by-flow",
-                "rule": "前提が片付いていなければ waiting、いま答えるなら open、承認されたら settled にする。",
+                "rule": "前提が片付いていなければ waiting、AI が開いて利用者の回答を待つなら open、承認されて更新したら settled にする。",
                 "why": "画面は open の論点にだけ回答欄を出す。",
                 "test": "queue と合っているかを見る。"
               }

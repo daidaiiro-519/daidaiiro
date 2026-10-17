@@ -194,7 +194,7 @@ pub fn advance(
                         "承認されて決着した"
                     }
                     "settled" => "決着にした",
-                    "open" => "いま答える論点にした",
+                    "open" => "回答待ちにした",
                     _ => "前提待ちにした",
                 };
                 changes.push(change(topic_id, "status", line.to_owned(), None));
@@ -214,30 +214,21 @@ pub fn advance(
         .filter(|t| text(t, "status") == "open")
         .map(|t| text(t, "id").to_owned())
         .collect();
-    let all_settled = topics(&board)
-        .iter()
-        .all(|t| text(t, "status") == "settled");
-    let status = match text(current, "status") {
-        "hold" => "hold",
-        _ if !open.is_empty() => "answer",
-        _ if all_settled => "done",
-        _ => "working",
-    };
     let queue: Vec<Value> = list(&board, "queue")
         .iter()
         .filter(|q| open.iter().any(|o| o == text(q, "topic")))
         .cloned()
         .collect();
     let line = if prev_round.is_some() {
-        format!("第{next}回を出した（変わったところ {}か所）", changes.len())
+        format!("ボードを更新した（変わったところ {}か所）", changes.len())
     } else {
-        format!("第{next}回を出した")
+        "ボードを出した".to_owned()
     };
     let mut log = vec![json!({"date": today, "text": line})];
     log.extend(list(&board, "log").iter().cloned());
     let count = changes.len();
     let object = board.as_object_mut().ok_or("ボードがオブジェクトでない")?;
-    object.insert("status".to_owned(), json!(status));
+    object.remove("status");
     object.insert("round".to_owned(), json!(next));
     object.insert("opened".to_owned(), json!(today));
     object.insert("queue".to_owned(), Value::Array(queue));
@@ -269,7 +260,7 @@ mod tests {
     }
 
     fn board(round: u64, topics: Vec<Value>) -> Value {
-        json!({"$schema": "brainstorming/board@v1", "kind": "board", "id": "b", "title": "t", "status": "answer",
+        json!({"$schema": "brainstorming/board@v1", "kind": "board", "id": "b", "title": "t",
                "round": round, "queue": [{"topic": "Q1", "why": "w"}], "topics": topics})
     }
 
@@ -295,7 +286,7 @@ mod tests {
         assert_eq!((done.round, done.changes), (1, 0));
         assert_eq!(done.board["opened"], "2026-10-17");
         assert_eq!(done.record["id"], "1");
-        assert_eq!(done.board["log"][0]["text"], "第1回を出した");
+        assert_eq!(done.board["log"][0]["text"], "ボードを出した");
     }
 
     #[test]
@@ -344,7 +335,7 @@ mod tests {
         let answers = [answer("Q1", 1, "approve", "", "")];
         let done = advance(&first, Some(&record(&first)), &answers, "d", "t").unwrap();
         assert_eq!(done.board["topics"][0]["status"], "settled");
-        assert_eq!(done.board["status"], "done");
+        assert_eq!(done.board.get("status"), None);
         assert_eq!(done.board["queue"], json!([]));
         assert_eq!(done.board["changes"][0]["summary"], "承認されて決着した");
     }

@@ -1,5 +1,7 @@
 //! 回答を受ける。画面から来た値を確かめ、回答のインスタンス（brainstorming/answer@v1）にする。
-//! 差し戻しは「どこが違うか」が無ければ受けない。いまの回のいま答える論点にだけ答えられる。
+//! 差し戻しは「どこが違うか」が無ければ受けない。いまの回の回答待ちの論点にだけ答えられる。
+//! 選べるのは承認と差し戻しの2つだけである。選ばなかった論点は、更新のあとも回答待ちに残る。
+//! （hold は過去の回答を読むために形に残してあるが、新しくは受けない）
 
 use crate::domain::board::{round, text, topic};
 use serde_json::{json, Value};
@@ -17,18 +19,15 @@ pub fn accept(
     }
     let answered = input.get("round").and_then(Value::as_u64).unwrap_or(0);
     if answered != round(board) {
-        return Err(format!(
-            "第{answered}回への回答は受けない（いまは第{}回）",
-            round(board)
-        ));
+        return Err("ボードがこの画面のあとに更新された。読み込み直してから送る".to_owned());
     }
     let topic_id = text(input, "topic");
     let target = topic(board, topic_id).ok_or(format!("論点 {topic_id} が無い"))?;
     if text(target, "status") != "open" {
-        return Err(format!("{topic_id} は いま答える論点でない"));
+        return Err(format!("{topic_id} は回答待ちの論点でない"));
     }
     let decision = text(input, "decision");
-    if !matches!(decision, "approve" | "return" | "hold") {
+    if !matches!(decision, "approve" | "return") {
         return Err(format!("回答の値が違う：{decision}"));
     }
     let field = |key: &str| text(input, key).trim().to_owned();
@@ -89,13 +88,14 @@ mod tests {
                 input("Q1", 2, "return", "  "),
                 "差し戻すときは、どこが違うかを書く",
             ),
-            (input("Q2", 2, "approve", ""), "Q2 は いま答える論点でない"),
+            (input("Q2", 2, "approve", ""), "Q2 は回答待ちの論点でない"),
             (input("Q9", 2, "approve", ""), "論点 Q9 が無い"),
             (
                 input("Q1", 1, "approve", ""),
-                "第1回への回答は受けない（いまは第2回）",
+                "ボードがこの画面のあとに更新された。読み込み直してから送る",
             ),
             (input("Q1", 2, "maybe", ""), "回答の値が違う：maybe"),
+            (input("Q1", 2, "hold", ""), "回答の値が違う：hold"),
             (
                 json!({"board": "x", "round": 2, "topic": "Q1", "decision": "approve"}),
                 "回答のボードが違う",

@@ -1,6 +1,8 @@
-//! AI に聞くユースケース。serve が、ログイン済みの AI の CLI を子のプロセスとして呼び、出来事を共通の形で画面へ送る。
+//! AI を動かすユースケース。serve が、ログイン済みの AI の CLI を子のプロセスとして呼び、出来事を共通の形で画面へ送る。
+//! 依頼は2種類ある。AI に聞く（ask）と、回答を送る（send）である。送ると、回答を書いてから AI がボードを更新する。
 //!
 //! 1回の依頼で行うこと：
+//! 0. ボードのロックを取る（取れなければ断る）。終わったら外す。動いているあいだは beat を書き直す
 //! 1. 起動の前に、ボードの本体とフォルダを .serve/runs/<run>/ へ写し、リポジトリのファイルの指紋を取る
 //! 2. 新しいセッションなら Skill の使い方を指す1文を付けて、続きならセッションの ID で起動する
 //! 3. 出来事を共通の形にして画面へ送る。止める指示 ・ 全体の時間 ・ 出来事が来ない時間で止める
@@ -9,7 +11,7 @@
 //! 6. ボードが変わっていれば描き直し、やりとりをチャットの記録に残す
 
 use crate::application::engine::check_board;
-use crate::application::{relative, render, Env, Skill};
+use crate::application::{answer, lock, relative, render, Env, Skill};
 use crate::domain::agent::{self, Agent, Event, Request};
 use crate::domain::board::{list, pretty, round, text, valid_id, Layout};
 use crate::domain::scope::{outside, porcelain, sort_out, Sorted};
@@ -52,6 +54,15 @@ impl Default for Limits {
     }
 }
 
+/// 依頼の種類。
+#[derive(Clone, Debug, PartialEq)]
+pub enum Kind {
+    /// AI に聞く。text が依頼の文
+    Ask,
+    /// 回答を送る。回答を書いてから、AI がボードを更新する
+    Send { round: u64, answers: Vec<Value> },
+}
+
 /// 画面からの依頼。
 #[derive(Clone, Debug, PartialEq)]
 pub struct Turn {
@@ -59,6 +70,29 @@ pub struct Turn {
     pub topic: String,
     pub agent: String,
     pub text: String,
+    pub kind: Kind,
+}
+
+/// serve が beat を書き直す間隔（ミリ秒）。domain::lock::SERVE_STALE より十分短くする。
+const BEAT_MS: u64 = 10_000;
+
+/// 送った回答の要約（チャットの記録に残す文）。
+fn sent_summary(answers: &[Value]) -> String {
+    let pick = |decision: &str| -> Vec<String> {
+        answers
+            .iter()
+            .filter(|a| text(a, "decision") == decision)
+            .map(|a| text(a, "topic").to_owned())
+            .collect()
+    };
+    let mut parts = Vec::new();
+    for (decision, label) in [("approve", "承認"), ("return", "差し戻し")] {
+        let ids = pick(decision);
+        if !ids.is_empty() {
+            parts.push(format!("{label} {}", ids.join(" ・ ")));
+        }
+    }
+    format!("回答を送った：{}", parts.join("、"))
 }
 
 fn chat_log<F: Files, P: Programs, C: Clock>(
@@ -143,7 +177,7 @@ fn snapshot<F: Files>(files: &F, layout: &Layout, board: &str, run: &Path) -> Re
     copy_into(files, &layout.board_dir(board), &run.join("dir"))
 }
 
-/// 1回の依頼を行う。出来事は sink へ1つずつ渡す。
+/// 1回の依頼を行う。出来事は sink へ1つずつ渡す。ボードのロックを取ってから動かし、終わったら外す。
 #[allow(clippy::too_many_arguments)]
 pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     env: &Env<F, P, C>,
@@ -159,18 +193,62 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
     if !valid_id(&request.board) {
         return Err("ボードの名前が違う".to_owned());
     }
-    if request.text.trim().is_empty() {
-        return Err("依頼が空".to_owned());
-    }
+    let what = match &request.kind {
+        Kind::Ask if request.text.trim().is_empty() => return Err("依頼が空".to_owned()),
+        Kind::Ask => "ask",
+        Kind::Send { .. } if agent == Agent::Kiro => {
+            return Err(
+                "Kiro は読むだけなので、回答を送ってもボードを更新できない。Claude Code か Codex を選んで送る"
+                    .to_owned(),
+            )
+        }
+        Kind::Send { .. } => "send",
+    };
     if !agents.found(agent.program()) {
         return Err(format!("{} が見つからない（PATH に無い）", agent.program()));
     }
     let layout = Layout::new(root);
+    let run_id = env.clock.uuid();
+    lock::acquire(env, &layout, &request.board, &run_id, what)?;
+    let done = work(
+        env, agents, skill, root, request, agent, &run_id, limits, cancel, sink,
+    );
+    lock::release(env, &layout, &request.board, &run_id);
+    done
+}
+
+#[allow(clippy::too_many_arguments)]
+fn work<F: Files, P: Programs, C: Clock, A: Agents>(
+    env: &Env<F, P, C>,
+    agents: &A,
+    skill: &Skill,
+    root: &Path,
+    request: &Turn,
+    agent: Agent,
+    run_id: &str,
+    limits: &Limits,
+    cancel: &AtomicU8,
+    sink: &mut impl FnMut(Value),
+) -> Result<(), String> {
+    let layout = Layout::new(root);
     let repo = layout.repo();
     let board_file = layout.board_file(&request.board);
+    let (said_by_user, instruction) = match &request.kind {
+        Kind::Ask => (request.text.clone(), request.text.clone()),
+        Kind::Send { round, answers } => {
+            answer::submit_all(env, skill, root, &request.board, *round, answers)?;
+            let summary = sent_summary(answers);
+            let instruction = format!(
+                "画面から回答を送った（{}）。{}/ にある第{round}回への回答を読み、{} の Step 5 のとおりにボードを直し、Step 3 の inspect と check を0件にしてから、advance と render まで行う。",
+                summary.trim_start_matches("回答を送った："),
+                relative(&layout.answers(&request.board), &repo),
+                relative(&skill.skill_md(), &repo),
+            );
+            (summary, instruction)
+        }
+    };
     let board = env.read_json(&board_file)?;
-    let run_id = env.clock.uuid();
-    let run_dir = layout.runs().join(&run_id);
+    let run_dir = layout.runs().join(run_id);
     snapshot(&env.files, &layout, &request.board, &run_dir)?;
     let before_board = env.files.read(&board_file)?;
     let before = fingerprint(env, &repo);
@@ -187,7 +265,8 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         writable: agent != Agent::Kiro,
         round: round(&board),
         topic: request.topic.clone(),
-        text: request.text.clone(),
+        text: instruction,
+        run: run_id.to_owned(),
     };
     let plan = agent::plan(
         agent,
@@ -197,7 +276,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         &ask,
     );
     let mut messages: Vec<Value> = list(&log, "messages").to_vec();
-    messages.push(json!({"role": "user", "text": request.text, "at": env.clock.now()}));
+    messages.push(json!({"role": "user", "text": said_by_user, "at": env.clock.now()}));
     sink(json!({"type": "start", "run": run_id, "agent": agent.name(), "new": session.is_empty()}));
 
     sink(json!({"type": "phase", "text": format!("{} を起動している", agent.program())}));
@@ -210,7 +289,12 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         None::<String>,
     );
     let mut usage: Option<Value> = None;
+    let mut beaten = begin;
     loop {
+        if env.clock.elapsed_ms().saturating_sub(beaten) > BEAT_MS {
+            lock::beat(env, &layout, &request.board, run_id);
+            beaten = env.clock.elapsed_ms();
+        }
         let reason = cancel.load(Ordering::SeqCst);
         if reason != RUNNING {
             started.stop();
@@ -282,6 +366,17 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         }
     }
 
+    // 送ったのに回が進んでいなければ、更新しなかったと知らせる
+    if let Kind::Send { round: sent, .. } = &request.kind {
+        let now = env.read_json(&board_file).map(|b| round(&b)).unwrap_or(0);
+        if failure.is_none() && now <= *sent {
+            failure = Some(
+                "AI がボードを更新しなかった（送った回答は残っている。もう一度送るか、AI に聞いて確かめる）"
+                    .to_owned(),
+            );
+        }
+    }
+
     // 4. serve が自分で検査する
     sink(json!({"type": "phase", "text": "serve が検査している"}));
     let check = check_board(env, skill, root, &board_file, &request.board);
@@ -298,7 +393,7 @@ pub fn turn<F: Files, P: Programs, C: Clock, A: Agents>(
         layout.board_file(&request.board),
         layout.board_dir(&request.board),
         layout.chat_dir(),
-        layout.runs(),
+        layout.serve_dir(),
         layout.site(),
         layout.dashboard(),
     ]
@@ -450,6 +545,7 @@ mod tests {
             topic: "Q1".to_owned(),
             agent: "codex".to_owned(),
             text: text.to_owned(),
+            kind: Kind::Ask,
         }
     }
 
@@ -473,6 +569,109 @@ mod tests {
 
     fn kinds(events: &[Value]) -> Vec<String> {
         events.iter().map(|e| text(e, "type").to_owned()).collect()
+    }
+
+    const OPEN_BOARD: &str = r#"{"$schema":"brainstorming/board@v1","kind":"board","id":"b","title":"t","round":2,"topics":[{"id":"Q1","status":"open"}]}"#;
+
+    fn send(agent: &str) -> Turn {
+        Turn {
+            agent: agent.to_owned(),
+            text: String::new(),
+            kind: Kind::Send {
+                round: 2,
+                answers: vec![json!({"topic": "Q1", "decision": "approve"})],
+            },
+            ..request("")
+        }
+    }
+
+    fn run_turn(
+        env: &crate::tests::Env3,
+        agents: &FakeAgents,
+        turn_req: &Turn,
+    ) -> (Result<(), String>, Vec<Value>) {
+        let mut got = Vec::new();
+        let done = turn(
+            env,
+            agents,
+            &skill(),
+            Path::new("/r/.brainstorming"),
+            turn_req,
+            &Limits::default(),
+            &AtomicU8::new(RUNNING),
+            &mut |e| got.push(e),
+        );
+        (done, got)
+    }
+
+    #[test]
+    fn sending_writes_the_answers_tells_the_ai_and_says_when_the_board_was_not_updated() {
+        let env = env_with_git(MemoryFiles::with(&[(
+            "/r/.brainstorming/b.json",
+            OPEN_BOARD,
+        )]));
+        let agents = FakeAgents::new(&[], 0);
+        let (done, got) = run_turn(&env, &agents, &send("codex"));
+        done.unwrap();
+        assert!(env
+            .files
+            .exists(Path::new("/r/.brainstorming/b/answers/2-Q1-1.json")));
+        let told = agents.started().stdin.unwrap_or_default();
+        assert!(told.contains("画面から回答を送った（承認 Q1）"));
+        assert!(told.contains(".brainstorming/b/answers/ にある第2回への回答を読み"));
+        assert_eq!(agents.started().env[0].1, "U1");
+        let errors: Vec<&str> = got
+            .iter()
+            .filter(|e| text(e, "type") == "error")
+            .map(|e| text(e, "text"))
+            .collect();
+        assert_eq!(
+            errors,
+            vec!["AI がボードを更新しなかった（送った回答は残っている。もう一度送るか、AI に聞いて確かめる）"]
+        );
+        let log = env
+            .read_json(Path::new("/r/.brainstorming/.chat/b/codex.json"))
+            .unwrap();
+        assert_eq!(list(&log, "messages")[0]["text"], "回答を送った：承認 Q1");
+        assert!(!env
+            .files
+            .exists(Path::new("/r/.brainstorming/.serve/locks/b.json")));
+    }
+
+    #[test]
+    fn a_board_that_is_locked_refuses_both_asking_and_sending() {
+        let env = env_with_git(MemoryFiles::with(&[(
+            "/r/.brainstorming/b.json",
+            OPEN_BOARD,
+        )]));
+        lock::acquire(
+            &env,
+            &Layout::new(Path::new("/r/.brainstorming")),
+            "b",
+            "cli",
+            "cli",
+        )
+        .unwrap();
+        let agents = FakeAgents::new(&[], 0);
+        let (asked, _) = run_turn(&env, &agents, &request("聞く"));
+        assert!(asked
+            .unwrap_err()
+            .starts_with("このボードは更新中（ターミナルの AI が直している"));
+        let (sent, _) = run_turn(&env, &agents, &send("codex"));
+        assert!(sent.is_err());
+        assert!(!env
+            .files
+            .exists(Path::new("/r/.brainstorming/b/answers/2-Q1-1.json")));
+    }
+
+    #[test]
+    fn kiro_cannot_send_because_it_only_reads() {
+        let env = env_with_git(MemoryFiles::with(&[(
+            "/r/.brainstorming/b.json",
+            OPEN_BOARD,
+        )]));
+        let (sent, _) = run_turn(&env, &FakeAgents::new(&[], 0), &send("kiro"));
+        assert!(sent.unwrap_err().starts_with("Kiro は読むだけなので"));
     }
 
     #[test]

@@ -11,47 +11,33 @@
    "answer": [
     {
      "component": "board-link",
-     "each": "instances[?kind=='board' && status=='answer']",
+     "each": "instances[?kind=='board' && !hold && (length(topics) == `0` || length(topics[?status!='settled']) > `0`)]",
      "id": "id",
      "title": "title",
-     "sub": "join(' ・ ', topics[?status=='open'].join(' ', [id, name]))",
-     "open": "length(topics[?status=='open'])"
-    }
-   ],
-   "working": [
-    {
-     "component": "board-link",
-     "each": "instances[?kind=='board' && status=='working']",
-     "id": "id",
-     "title": "title",
-     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
-     "open": "length(topics[?status=='open'])"
+     "sub": "join('', [join(' ・ ', topics[?status=='open'].join(' ', [id, name])), ' ・ ', to_string(length(topics[?status=='open'])), '件'])"
     }
    ],
    "hold": [
     {
      "component": "board-link",
-     "each": "instances[?kind=='board' && status=='hold']",
+     "each": "instances[?kind=='board' && hold]",
      "id": "id",
      "title": "title",
-     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
-     "open": "length(topics[?status=='open'])"
+     "sub": "join('', [hold.date, ' に保留'])"
     }
    ],
    "done": [
     {
      "component": "board-link",
-     "each": "instances[?kind=='board' && status=='done']",
+     "each": "instances[?kind=='board' && !hold && length(topics) > `0` && length(topics[?status!='settled']) == `0`]",
      "id": "id",
      "title": "title",
-     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
-     "open": "length(topics[?status=='open'])"
+     "sub": "join('', [opened || '', ' に決着'])"
     }
    ],
-   "answer_count": "length(instances[?kind=='board' && status=='answer'])",
-   "working_count": "length(instances[?kind=='board' && status=='working'])",
-   "hold_count": "length(instances[?kind=='board' && status=='hold'])",
-   "done_count": "length(instances[?kind=='board' && status=='done'])"
+   "answer_count": "length(instances[?kind=='board' && !hold && (length(topics) == `0` || length(topics[?status!='settled']) > `0`)])",
+   "hold_count": "length(instances[?kind=='board' && hold])",
+   "done_count": "length(instances[?kind=='board' && !hold && length(topics) > `0` && length(topics[?status!='settled']) == `0`])"
   },
   "chat": {
    "component": "chat-panel",
@@ -65,24 +51,29 @@
    "body": [
     {
      "component": "board-head",
-     "round": "this.round",
      "id": "this.id",
      "title": "this.title",
      "intro": "this.intro || ''",
+     "opened": "this.opened || ''",
+     "status": "this.hold && 'hold' || (length(this.topics) > `0` && length(this.topics[?status!='settled']) == `0`) && 'done' || 'answer'",
+     "status_label": "this.hold && '保留' || (length(this.topics) > `0` && length(this.topics[?status!='settled']) == `0`) && '決着' || join('', ['回答待ち ', to_string(length(this.topics[?status=='open'])), '件'])",
+     "held": "this.hold && 'true' || ''",
+     "held_since": "this.hold.date || ''",
      "chips": [
       {
        "component": "topic-chip",
        "each": "this.topics",
        "id": "id",
-       "status": "status",
-       "label": "status=='open' && 'いま答える' || status=='settled' && '決着' || '前提待ち'"
+       "name": "name",
+       "status": "status=='open' && 'answer' || status=='settled' && 'done' || 'waiting'",
+       "label": "status=='open' && '回答待ち' || status=='settled' && '決着' || '前提待ち'"
       }
      ]
     }
    ]
   },
   {
-   "heading": "この回で変わったところ",
+   "heading": "送った回答で変わったところ",
    "show": "length(this.changes || `[]`) > `0`",
    "body": [
     {
@@ -109,8 +100,8 @@
      "component": "topic-panel",
      "each": "this.topics",
      "id": "id",
-     "status": "status",
-     "status_label": "status=='open' && 'いま答える' || status=='settled' && '決着' || '前提待ち'",
+     "status": "status=='open' && 'answer' || status=='settled' && 'done' || 'waiting'",
+     "status_label": "status=='open' && '回答待ち' || status=='settled' && '決着' || '前提待ち'",
      "question": "question",
      "answer": "answer.text",
      "details": [
@@ -273,6 +264,15 @@
        "id": "id"
       }
      ]
+    }
+   ]
+  },
+  {
+   "heading": "回答を送る",
+   "show": "length(this.topics[?status=='open']) > `0`",
+   "body": [
+    {
+     "component": "send-bar"
     }
    ]
   }

@@ -14,7 +14,7 @@
 
 | 層 | 持つもの | 依存してよい先 |
 |---|---|---|
-| domain | 業務の規則（ボードの置き場所 ・ 回を進めて変わったところを書く ・ 本文の検査 ・ 回答の受け取り ・ AI の CLI の呼び方と出来事の共通の形 ・ 範囲の外の変更 ・ トークンを移す） | 無し |
+| domain | 業務の規則（ボードの置き場所 ・ 回を進めて変わったところを書く ・ 本文の検査 ・ 回答の受け取り ・ ステータスを導く ・ ボードのロック ・ AI の CLI の呼び方と出来事の共通の形 ・ 範囲の外の変更 ・ トークンを移す） | 無し |
 | application | ユースケース（advance ・ inspect ・ render ・ answer ・ chat ・ tokens と、基盤のエンジンの呼び方） | domain ・ port |
 | port | 出ていく側の trait（Files ・ Programs ・ Clock ・ Agents と Running）。application が定義し、adapters が実装する | domain |
 | inbound adapter | CLI の受け口（操作の一覧と振り分け）と、serve の HTTP の受け口 | application |
@@ -32,6 +32,8 @@
 | AI の CLI は、シェルを通さずに起動し、権限を外す旗を使わない | シェルを通すと依頼の文がコマンドとして読まれる。権限を外すと、AI がリポジトリのどこでも書き換えられる | `domain/agent.rs` の試験が `dangerously` ・ `bypass` ・ `trust-all-tools` ・ `yolo` を含まないことを確かめる。`sh -c` ・ `cmd /C` の文字列が `outbound/agent.rs` に0件 |
 | AI の「検査した」で合格としない。作業が終わったら serve が自分で check を走らせ、書き換えてよい範囲の外の変更を探す | AI が検査したと言っても、した保証が無い | `application/chat.rs` の試験が、check の出来事と outside の出来事を確かめる |
 | serve は 127.0.0.1 だけで待ち受け、起動ごとの合言葉 ・ Host ・ Origin を確かめる | ほかのページや別の名前の解決から、手元のボードと AI の CLI を動かされる | `inbound/http.rs` の試験と、`cargo xtask verify` の serve の確かめ |
+| 1枚のボードで AI が動くのは1つだけにする。ロックは `.brainstorming/.serve/locks/<ボード>.json` のファイルで持ち、serve の依頼（送る ・ AI に聞く ・ 保留）と CLI の `update` ・ `advance` が取る。serve が起動した AI には環境変数 `BRAINSTORMING_RUN` で依頼の ID を渡し、その AI が呼ぶ CLI は同じロックの下で書く | AI どうしは互いの文脈を持たないので、同時に動くと片方の直しを上書きする。メモリで持つと、別の serve とターミナルの AI に効かない | `application/lock.rs` ・ `application/chat.rs` の試験（2つ目の持ち主を断る ・ 依頼の ID なら通す ・ 古いロックを引き継ぐ） |
+| 画面のステータスは保存した事実（論点の open ・ settled、ボードの hold、ロック）から導き、ボードに status を書かない | 導ける値を手で書くと、回答したのに回答待ちのまま見えるような食い違いが出る | `domain/status.rs` の試験（移る条件の表の各行）と、inspect の「ボードの status は書かない」 |
 
 ---
 

@@ -12,6 +12,13 @@
 </style>
 </head>
 <body data-page="{{page}}" data-board="{{board}}" data-round="{{round}}">
+<svg class="sprite" aria-hidden="true" focusable="false"><defs>
+<symbol id="st-answer" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+<symbol id="st-waiting" viewBox="0 0 24 24"><path d="M6 2h12M6 22h12"/><path d="M7 2c0 5 10 5 10 10S7 17 7 22M17 2c0 5-10 5-10 10s10 5 10 10"/></symbol>
+<symbol id="st-updating" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="st-hold" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></symbol>
+<symbol id="st-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+</defs></svg>
 <div class="app">
 {{side}}
 <main class="main" id="main">
@@ -33,30 +40,32 @@
 <template id="sidebar"><nav class="side" id="side" aria-label="ボードの一覧">
  <a class="brand" href="dashboard.html"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="logo-bg"/><g class="logo-line" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M10 22c0-5 2-8 6-8s6-3 6-6"/><path d="M16 14c3 0 6 2 6 8"/></g><g class="logo-dot"><circle cx="10" cy="23" r="2.4"/><circle cx="22" cy="8" r="2.4"/><circle cx="22" cy="23" r="2.4"/></g></svg><span><span class="bn">brainstorming</span><span class="bs">.brainstorming/</span></span></a>
  <a class="home" href="dashboard.html" data-home><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>ダッシュボード</a>
- <div class="grp" data-group="answer"><div class="gh"><svg class="ic g-answer" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>いま答える<span class="gc">{{answer_count}}</span></div><ul>{{answer}}</ul></div>
- <div class="grp" data-group="working"><div class="gh"><svg class="ic g-working" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>進行中<span class="gc">{{working_count}}</span></div><ul>{{working}}</ul></div>
- <div class="grp" data-group="hold"><div class="gh"><svg class="ic g-hold" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>保留<span class="gc">{{hold_count}}</span></div><ul>{{hold}}</ul></div>
- <details class="grp" data-group="done"><summary class="gh"><svg class="ic g-done" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>決着<span class="gc">{{done_count}}</span></summary><ul>{{done}}</ul></details>
+ <div class="grp" data-group="answer"><div class="gh"><span class="status" data-status="answer"><svg class="ic" aria-hidden="true"><use href="#st-answer"/></svg><span class="sl">回答待ち</span></span><span class="gc" data-gc>{{answer_count}}枚</span></div><ul>{{answer}}</ul></div>
+ <div class="grp" data-group="updating"><div class="gh"><span class="status" data-status="updating"><svg class="ic" aria-hidden="true"><use href="#st-updating"/></svg><span class="sl">更新中</span></span><span class="gc" data-gc>0枚</span></div><ul></ul></div>
+ <div class="grp" data-group="hold"><div class="gh"><span class="status" data-status="hold"><svg class="ic" aria-hidden="true"><use href="#st-hold"/></svg><span class="sl">保留</span></span><span class="gc" data-gc>{{hold_count}}枚</span></div><ul>{{hold}}</ul></div>
+ <details class="grp" data-group="done"><summary class="gh"><span class="status" data-status="done"><svg class="ic" aria-hidden="true"><use href="#st-done"/></svg><span class="sl">決着</span></span><span class="gc" data-gc>{{done_count}}枚</span></summary><ul>{{done}}</ul></details>
 </nav></template>
 
-<template id="board-link"><li><a class="bitem" href="{{id}}.html" data-board-link="{{id}}"><span class="bt">{{title}}</span><span class="bm">{{sub}}</span><span class="cnt" data-n="{{open}}">{{open}}</span></a></li></template>
+<template id="board-link"><li data-board-row="{{id}}"><a class="bitem" href="{{id}}.html" data-board-link="{{id}}"><span class="bt">{{title}}</span><span class="bm" data-sub>{{sub}}</span><span class="bm brun" data-run hidden></span></a></li></template>
 
-<template id="board-head"><header class="head">
- <div class="crumb">第{{round}}回 ・ ボード {{id}}</div>
- <h1>{{title}}</h1>
+<template id="board-head"><header class="head" data-board-head data-held="{{held}}" data-held-since="{{held_since}}">
+ <div class="crumb">ボード {{id}} ・ 最終更新 {{opened}}</div>
+ <div class="htitle"><h1>{{title}}</h1><span class="status" data-status="{{status}}" data-board-status><svg class="ic" aria-hidden="true"><use href="#st-{{status}}"/></svg><span class="sl">{{status_label}}</span></span></div>
  <p class="intro">{{intro}}</p>
- <div class="now" role="tablist" aria-label="論点">{{chips}}<button class="ask" type="button" data-open-chat><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>AI に聞く</button></div>
+ <div class="banner" data-banner role="status" hidden><span class="rdots" aria-hidden="true"><i></i><i></i><i></i></span><span class="btext" data-banner-text></span><time class="rtime" data-banner-time></time><button class="btn" type="button" data-banner-action hidden></button></div>
+ <div class="hbar"><button class="ghost" type="button" data-hold-toggle hidden></button><button class="ask" type="button" data-open-chat><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>AI に聞く</button></div>
+ <div class="now" role="tablist" aria-label="論点">{{chips}}</div>
 </header></template>
 
-<template id="topic-chip"><button class="chip" type="button" role="tab" data-topic="{{id}}" data-status="{{status}}" aria-selected="false" aria-controls="topic-{{id}}">{{id}} {{label}}</button></template>
+<template id="topic-chip"><button class="chip" type="button" role="tab" data-topic="{{id}}" data-status="{{status}}" aria-selected="false" aria-controls="topic-{{id}}"><span class="qn">{{id}} {{name}}</span><span class="status" data-status="{{status}}"><svg class="ic" aria-hidden="true"><use href="#st-{{status}}"/></svg><span class="sl">{{label}}</span></span></button></template>
 
-<template id="changes-band"><div class="notice" data-changes><b>この回で変わったところ（{{count}}か所）</b><ul class="changes">{{items}}</ul></div></template>
+<template id="changes-band"><div class="notice" data-changes><b>送った回答で変わったところ（{{count}}か所）</b><ul class="changes">{{items}}</ul></div></template>
 
 <template id="change-item"><li><button class="link" type="button" data-jump="{{topic}}" data-part="{{part}}">{{topic}} ・ {{part_label}}</button> ── {{summary}}<span class="why" data-show-if="{{reason}}">（理由：{{reason}}）</span></li></template>
 
 <template id="topic-panel"><article class="topic" id="topic-{{id}}" data-topic-panel="{{id}}" data-status="{{status}}" role="tabpanel" hidden>
  <section class="block">
-  <h2>{{id}} ・ 問いと答え<span class="st" data-status="{{status}}">{{status_label}}</span></h2>
+  <h2>{{id}} ・ 問いと答え<span class="status" data-status="{{status}}"><svg class="ic" aria-hidden="true"><use href="#st-{{status}}"/></svg><span class="sl">{{status_label}}</span></span></h2>
   <div class="lbl">問い</div><p class="q">{{question}}</p>
   <div class="ans" data-part="answer"><div class="lbl">答え（承認してほしいこと）</div><p>{{answer}}</p>{{details}}</div>
  </section>
@@ -103,15 +112,21 @@
 <template id="rejected-row"><li><b>{{option}}</b><div>{{reason}}</div></li></template>
 
 <template id="answer-form"><section class="block answer" data-answer-form data-topic="{{id}}"><h2>回答</h2>
+ <p class="msg" data-reset hidden>答えが直ったので、選んでいた回答を外した。直った答えを読んで、もう一度選ぶ。</p>
  <div class="btns" role="radiogroup" aria-label="回答">
-  <button type="button" class="primary" data-decision="approve" aria-pressed="false">このまま進める</button>
-  <button type="button" data-decision="return" aria-pressed="false">差し戻す</button>
-  <button type="button" data-decision="hold" aria-pressed="false">まだ答えない</button>
+  <button type="button" data-decision="approve" aria-pressed="false">承認</button>
+  <button type="button" data-decision="return" aria-pressed="false">差し戻し</button>
  </div>
  <label class="fld" data-for="return" hidden>どこが違うか（差し戻すときは必ず書く）<textarea rows="2" data-field="where"></textarea></label>
- <label class="fld" data-for="return hold" hidden>理由<textarea rows="2" data-field="reason"></textarea></label>
+ <label class="fld" data-for="return" hidden>理由<textarea rows="2" data-field="reason"></textarea></label>
  <label class="fld">書き足し（書かなくても進む）<textarea rows="2" data-field="note"></textarea></label>
- <div class="sendrow"><button type="button" class="primary" data-send disabled>送る</button><span class="msg" data-msg role="status"></span></div>
+ <p class="msg">選んだ回答は、画面の下の「送る」でまとめて送る。</p>
+</section></template>
+
+<template id="send-bar"><section class="sendbar" data-sendbar aria-label="回答を送る">
+ <div class="sbody"><b data-send-sum>まだ選んでいない</b><span class="note">選んでいない論点は、更新のあとも同じ答えのまま回答待ちに残る。</span></div>
+ <button type="button" class="primary" data-send-all disabled>送る</button>
+ <span class="msg" data-send-msg role="status"></span>
  <pre class="paste" data-paste hidden></pre>
 </section></template>
 
@@ -127,13 +142,13 @@
 <template id="dash-head"><header class="head"><div class="crumb">.brainstorming/</div><h1>{{title}}</h1></header></template>
 
 <template id="summary-tiles"><section class="sum" aria-label="サマリー">
- <a class="tile t-answer" href="#prio"><span class="tn">{{answer}}<small>枚</small></span><span class="tl">いま答える（論点 {{open_topics}}件）</span></a>
- <div class="tile"><span class="tn">{{working}}<small>枚</small></span><span class="tl">進行中</span></div>
- <div class="tile"><span class="tn">{{hold}}<small>枚</small></span><span class="tl">保留</span></div>
- <div class="tile"><span class="tn">{{done}}<small>枚</small></span><span class="tl">決着</span></div>
+ <a class="tile t-answer" href="#prio" data-tile="answer"><span class="tn">{{answer}}<small>枚</small></span><span class="tl">回答待ち（論点 {{open_topics}}件）</span></a>
+ <div class="tile" data-tile="updating"><span class="tn">0<small>枚</small></span><span class="tl">更新中</span></div>
+ <div class="tile" data-tile="hold"><span class="tn">{{hold}}<small>枚</small></span><span class="tl">保留</span></div>
+ <div class="tile" data-tile="done"><span class="tn">{{done}}<small>枚</small></span><span class="tl">決着</span></div>
 </section></template>
 
-<template id="priority-list"><section class="block" id="prio"><h2>先に決めるもの</h2><p class="cap">ほかのボードが答えを待っている数 → 優先の印 → 回答を待っている日数、の順に並べる。</p><ol class="prio" data-prio>{{boards}}</ol><p class="empty" data-prio-empty hidden>いま答える論点は無い。</p></section></template>
+<template id="priority-list"><section class="block" id="prio"><h2>先に決めるもの</h2><p class="cap">ほかのボードが答えを待っている数 → 優先の印 → 回答を待っている日数、の順に並べる。</p><ol class="prio" data-prio>{{boards}}</ol><p class="empty" data-prio-empty hidden>回答待ちの論点は無い。</p></section></template>
 
 <template id="priority-board"><li class="prsrc" data-board="{{id}}" data-flag="{{flag}}" data-opened="{{opened}}" data-waits="{{waits}}" data-title="{{title}}">{{topics}}</li></template>
 

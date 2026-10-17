@@ -45,7 +45,12 @@ pub struct Plan {
     pub program: String,
     pub args: Vec<String>,
     pub stdin: Option<String>,
+    /// 子のプロセスに足す環境変数。ロックの持ち主を、AI が呼ぶ brainstorming へ伝えるのに使う
+    pub env: Vec<(String, String)>,
 }
+
+/// AI が呼ぶ brainstorming に、どの依頼の中で動いているかを伝える環境変数の名前。
+pub const RUN_VAR: &str = "BRAINSTORMING_RUN";
 
 /// 何についての依頼か。
 #[derive(Clone, Debug, PartialEq)]
@@ -65,6 +70,8 @@ pub struct Request {
     pub round: u64,
     pub topic: String,
     pub text: String,
+    /// この依頼の ID。ロックの持ち主になる。空なら環境変数を渡さない
+    pub run: String,
 }
 
 /// 依頼の文。新しいセッションの最初の依頼には、Skill の使い方を指す1文を必ず入れる。
@@ -107,6 +114,11 @@ pub fn plan(
     request: &Request,
 ) -> Plan {
     let text = prompt(request, session.is_none());
+    let env: Vec<(String, String)> = if request.run.is_empty() {
+        vec![]
+    } else {
+        vec![(RUN_VAR.to_owned(), request.run.clone())]
+    };
     let own = |args: &[&str]| {
         args.iter()
             .map(|a| (*a).to_owned())
@@ -132,6 +144,7 @@ pub fn plan(
                 program: agent.program().to_owned(),
                 args,
                 stdin: Some(text),
+                env: env.clone(),
             }
         }
         Agent::Codex => {
@@ -159,6 +172,7 @@ pub fn plan(
                 program: agent.program().to_owned(),
                 args,
                 stdin: Some(text),
+                env: env.clone(),
             }
         }
         Agent::Kiro => {
@@ -178,6 +192,7 @@ pub fn plan(
                 program: agent.program().to_owned(),
                 args,
                 stdin: None,
+                env,
             }
         }
     }
@@ -410,7 +425,19 @@ mod tests {
             round: 2,
             topic: "Q1".to_owned(),
             text: "前提を足して".to_owned(),
+            run: "R1".to_owned(),
         }
+    }
+
+    #[test]
+    fn the_run_id_is_passed_to_the_ai_as_an_environment_variable() {
+        let made = plan(Agent::Claude, None, "U", "/r", &request());
+        assert_eq!(made.env, vec![(RUN_VAR.to_owned(), "R1".to_owned())]);
+        let none = Request {
+            run: String::new(),
+            ..request()
+        };
+        assert!(plan(Agent::Codex, None, "U", "/r", &none).env.is_empty());
     }
 
     #[test]

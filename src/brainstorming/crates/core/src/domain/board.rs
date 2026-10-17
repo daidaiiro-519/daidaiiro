@@ -9,6 +9,7 @@
 //!   <ボード>/figures/           図
 //!   .chat/<ボード>/<AI>.json    チャットの記録（serve だけが書く）
 //!   .serve/runs/<run>/          AI が作業する前の写し
+//!   .serve/locks/<ボード>.json  ボードのロック（AI が動いているあいだ）
 //!   site/                       描いたページ
 //! ```
 
@@ -58,6 +59,14 @@ impl Layout {
     }
     pub fn chat_dir(&self) -> PathBuf {
         self.root.join(".chat")
+    }
+    /// serve と CLI が使う作業の置き場所（写し ・ ロック ・ 描画の写し）。
+    pub fn serve_dir(&self) -> PathBuf {
+        self.root.join(".serve")
+    }
+    /// ボードのロック。
+    pub fn lock(&self, id: &str) -> PathBuf {
+        self.serve_dir().join("locks").join(format!("{id}.json"))
     }
     pub fn runs(&self) -> PathBuf {
         self.root.join(".serve").join("runs")

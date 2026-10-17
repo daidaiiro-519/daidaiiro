@@ -49,6 +49,12 @@ impl Files for MemoryFiles {
             .insert(path.to_path_buf(), text.as_bytes().to_vec());
         Ok(())
     }
+    fn create_new(&self, path: &Path, text: &str) -> Result<bool, String> {
+        if self.inner.borrow().contains_key(path) {
+            return Ok(false);
+        }
+        self.write(path, text).map(|_| true)
+    }
     fn exists(&self, path: &Path) -> bool {
         self.inner
             .borrow()
@@ -168,7 +174,13 @@ impl Clock for FakeClock {
         self.ids.set(self.ids.get() + 1);
         format!("U{}", self.ids.get())
     }
+    fn epoch_secs(&self) -> u64 {
+        EPOCH
+    }
 }
+
+/// FakeClock の epoch_secs。
+pub const EPOCH: u64 = 1_792_200_000;
 
 pub type Env3 = Env<MemoryFiles, FakePrograms, FakeClock>;
 
@@ -248,6 +260,7 @@ impl FakeAgents {
             program: String::new(),
             args: vec![],
             stdin: None,
+            env: vec![],
         })
     }
 }
