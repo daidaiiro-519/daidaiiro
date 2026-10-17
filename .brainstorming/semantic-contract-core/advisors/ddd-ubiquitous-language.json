@@ -1,0 +1,61 @@
+{
+  "kind": "judgment",
+  "question": "Semantic Schema-Driven 基盤で同じ言葉（Ubiquitous Language）を機械で守る形：案A（語を $defs に登録して $ref で指す）・案B（語を glossary の instance に置き x- キーワードで指す）・案C（登録しない）のどれを採るか。1か所の terms に全 Skill の語を置くべきか。基盤の概念名を vocabulary から ubiquitous language に変えるべきか",
+  "premises": [
+    {"name": "Skill と区切られた文脈", "value": "1つの Skill を1つの区切られた文脈として扱う。Skill ごとに版を付けて公開し、Skill ごとに concrete スキーマを持つので、物理的な境界と所有権の境界は Skill の単位と一致する", "source": "ACDR 0042（公開の単位は Skill ごと）と依頼の前提からの推測。判断基準の範囲外"},
+    {"name": "$ref が解決しないときの振る舞い", "value": "未判定。JSON Schema 2020-12 では解決できない $ref の扱いは実装に依存する。基盤のエンジンが検証の前に止めるかは、crates/core のコードで確かめる必要がある", "source": "判断基準の範囲外（推測）"},
+    {"name": "基盤（abstract@v1）の位置", "value": "基盤は語を持たず、語を登録する機構（$defs ・ $ref の規則 ・ 検査）だけを持つ。業務の語を持つのは各 Skill である", "source": "依頼の前提（Abstract → Concrete → instance の3段）"}
+  ],
+  "conclusion": {
+    "stance": "conditional",
+    "headline": "案Aを採る。ただし terms は1か所に全 Skill の語を置かず、区切られた文脈（Skill）ごとに <skill>/terms@v1 として分け、Skill の間で渡す語だけを公開された言葉として別に置く",
+    "because": "同じ言葉が通用する範囲は区切られた文脈の内側に限られるので、全 Skill の語を1か所に置くと同じ語の2つの意味がぶつかる。文脈の内側では、語の定義（型 ・ 書式 ・ 説明）と欄が $ref で1つにつながる案Aだけが、変換を挟まずに語をスキーマと instance まで通せる。"
+  },
+  "comparison": [
+    {"option": "案A'：Skill ごとの <skill>/terms@v1 の $defs に語を登録し、その Skill の concrete の欄は $ref で指す。Skill の間で渡す語は、渡す側の Skill が公開された言葉として別の $defs に置く", "effect": "文脈の内側で語の定義が1か所になり、欄と語の対応を validator で検査できる。同じ語が Skill ごとに別の意味を持てる。版は terms の $id（@v1）で管理する", "chosen": true},
+    {"option": "案A（そのまま）：1つの domain/terms@v1 に全 Skill の語を置く", "effect": "壊れるもの：2つの Skill が同じ語を別の意味で使うと、1語1意味を守るために名前の先頭に文脈名を付けるか（判断基準が好ましくないとする方法）、どちらかの意味を捨てることになる。1つの terms を全 Skill のチームで変えることになり、モデルの共有を全体へ広げた状態になる", "chosen": false},
+    {"option": "案B：語を glossary の instance に置き、欄から x-term で指して基盤が照合する", "effect": "壊れるもの：語の意味（glossary）と欄の型 ・ 書式（concrete）が2か所に分かれ、欄の定義は語から変換して書き写したものになる。x- キーワードは注釈なので、JSON Schema の検証では型の不一致を止められず、照合は基盤の独自コードに依存する", "chosen": false},
+    {"option": "案C：語を登録せず説明文だけにする", "effect": "壊れるもの：同義語と1語2意味を機械で検出できず、欄ごとに語を書き直すたびに意味がずれる。同じ言葉がスキーマとコードで正しく使われているかを確かめる手段が無くなる", "chosen": false}
+  ],
+  "path": [
+    {"ask": "同じ言葉はどの範囲で一貫させるものか", "answer": "区切られた文脈の内側。組織全体で統一した言葉ではない。したがって全 Skill を覆う1つの terms は、同じ言葉の単位として誤っている"},
+    {"ask": "Skill の間で同じ語を使いたいときはどうするか", "answer": "モデルの共有は例外的な連係方法なので、既定にしない。渡す側の Skill が、内部の語から分けた公開された言葉（連係の用途に特化した $defs）を出し、受ける側が $ref で指す。共有するなら境界を越えて渡すデータ構造だけに限る"},
+    {"ask": "文脈の内側で、語と欄をどうつなぐか", "answer": "欄が語を自分で定義すると、語から欄への変換が1回入る。$ref なら変換が無く、語の定義を直せばすべての欄に届く。案Aが案Bより変換が少ない"},
+    {"ask": "基盤の概念名は何にするか", "answer": "vocabulary は JSON Schema の $vocabulary（キーワードの集まり）と衝突するので、基盤の概念名には使わない。ubiquitous language（判断基準の訳語では「同じ言葉」）を使い、名前と一緒に「区切られた文脈ごと」であることを定義に書く"}
+  ],
+  "grounds": [
+    {"criterion": "ubiquitous-language", "quote": "同じ言葉（Ubiquitous Language）：事業活動を表現するために、プロジェクトの関係者全員が使う単一の言語。業務エキスパートの発想や考え方をそのまま表現する。ドメイン駆動設計の土台の手法で、通用する範囲は区切られた文脈の内側に限られる。"},
+    {"criterion": "ubiquitous-language", "quote": "組織全体で統一した言葉という意味ではなく、広い範囲で通用する共通言語でもない。通用する範囲は区切られた文脈の内側に限られ、同じ言葉は文脈ごとのモデルを表すことに焦点を合わせる。モデルに解く課題があるのと同じく、同じ言葉を定義して使うには、通用する範囲をはっきり決めた区切られた文脈が欠かせない"},
+    {"criterion": "ubiquitous-language", "quote": "条件：1つの用語に1つの意味 ・ 内容：あいまいな用語を残さない。人どうしの会話なら前後関係でどちらの意味か分かるが、ソフトウェアはあいまいさをうまく扱えない"},
+    {"criterion": "ubiquitous-language", "quote": "対応：要件定義 ・ 会話 ・ 文書 ・ テスト ・ 図 ・ ソースコードなど、あらゆるところで同じ言葉を使用する ・ 理由：一貫して使うと、業務知識が行き渡り、事業活動の共通理解が育つ"},
+    {"criterion": "ubiquitous-language", "quote": "開発者向けの形式へ変えること自体は悪くない。しかし変換は知識の共有を損なう。変換で情報が欠け、事業課題を解くのに欠かせない業務知識がソフトウェア開発者まで届かない。"},
+    {"criterion": "bounded-context", "quote": "文脈を表す語を名前に付けて（販売促進の見込み客 ・ 営業の見込み客）、2つのモデルを1つのソースコードに入れるやり方も好ましくない。理由は2つある。1つの語を2つの意味で使い分けるのは負荷が大きく、まちがった使い方が必ず入り込む。会話ではいちいち前置きを付けないので、同じ言葉の考え方とも合わない。"},
+    {"criterion": "bounded-context", "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"},
+    {"criterion": "shared-kernel", "quote": "対応：理想としては、連係の契約と、境界を越えて渡すデータ構造だけを共有する"},
+    {"criterion": "shared-kernel", "quote": "別々のチームが実装する文脈でモデルを共有すると、共有部分を事実上複数のチームで開発することになり、1つの文脈を所有できるのは1つのチームだけという原則に反する"},
+    {"criterion": "open-host-service", "quote": "公開された言葉（英語は Published Language）：共用サービスが外部に提供する通信規約（プロトコル）。内部で使用する同じ言葉には一致させず、連係の用途に特化した言葉として定義し、利用する側が使用しやすい形にする。"},
+    {"criterion": "ubiquitous-language", "quote": "対応：用語集は、ユースケースや Gherkin のテストなど、振る舞いを表す手法と組み合わせる ・ 理由：用語集はモノ ・ プロセス ・ 役割などの名詞の整理に役立つ。振る舞いは動詞の一覧ではなく、業務ルール ・ 前提条件 ・ 制約で、用語集の形では表せない"},
+    {"criterion": "ubiquitous-language", "quote": "対応：道具や文書化に頼らず、毎日の会話の中で実際に使用する ・ 理由：道具は補助手段にすぎず、文書化は会話のかわりにならない。アジャイルソフトウェア開発宣言の「プロセスやツールよりも個人と対話」に沿う"}
+  ],
+  "cautions": [
+    {"name": "全 Skill の語を1つの terms に集める", "risk": "同じ語が Skill ごとに別の意味を持つとき、名前に文脈名を付けるか片方の意味を捨てることになり、1語1意味と各 Skill の業務の見方の両方は守れない", "alternative": "terms を Skill ごとに分け、Skill の間で渡す語だけを渡す側の公開された言葉として置く"},
+    {"name": "共有の terms を既定の置き場にする", "risk": "モデルの共有は例外的な連係方法であり、共有した $defs の変更がすべての Skill に即時に届き、どの Skill のチームも変更できる状態になる", "alternative": "共有するのは境界を越えて渡すデータ構造だけに限り、共有した $defs を変えたら共有するすべての Skill の検査を走らせる"},
+    {"name": "（推測）terms に振る舞いまで書こうとする", "risk": "業務ルール ・ 前提条件 ・ 制約は用語集の形では表せず、$defs に説明文として押し込むと検査できない記述が増える", "alternative": "terms は名詞と値（型 ・ 書式 ・ 単位）に限り、振る舞いはユースケースや Gherkin のテストなど別の手法に置く"}
+  ],
+  "ai_cautions": [
+    {"breaks": "concrete の欄が $ref を使わず type を直接書き、terms を経由しない欄が増える。$ref が解決しないことは検出できても、$ref を使っていない欄は検出できない", "check": "schema_rules に「concrete の葉の欄は、自 Skill の terms か、他 Skill の公開された言葉への $ref でなければならない」という規則を足し、check で欄ごとに結果を返す"},
+    {"breaks": "AI が別の Skill の terms の内部の $defs を直接 $ref で指し、公開された言葉を経由しない", "check": "$ref の先の $id が自 Skill の terms か、相手の Skill が公開と宣言した $defs だけであることを検査する"},
+    {"breaks": "同じ terms の中に同義語（意味が同じで名前が違う $defs）を足す", "check": "terms の $defs どうしで、型 ・ 書式 ・ 単位が完全に一致する組を一覧に出し、人が統合するかを決める"}
+  ],
+  "next": [
+    "1つの Skill（lexicon）を選び、glossary の語を <skill>/terms@v1 の $defs へ移し、concrete の欄を $ref に書き換える試作を作る",
+    "エンジンが解決できない $ref を検証の前に止めるかを、crates/core のテストで確かめる",
+    "Skill の間で同じ語を使っている箇所を洗い出し、公開された言葉として出すか、各 Skill で別の語として持つかを1件ずつ決める",
+    "基盤の概念名を ubiquitous language に変える決定を ACDR に書き、vocabulary を $vocabulary の意味だけに限ると定義に書く"
+  ],
+  "related": [
+    {"criterion": "bounded-context", "relation": "terms を分ける単位（Skill）が、同じ言葉の一貫性を保つ境界である"},
+    {"criterion": "shared-kernel", "relation": "Skill の間で terms を共有するときの範囲と変更の扱い"},
+    {"criterion": "open-host-service", "relation": "Skill の間で渡す語を、内部の terms から分けて公開された言葉として出す"}
+  ]
+}

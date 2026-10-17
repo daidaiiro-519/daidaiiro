@@ -26,7 +26,7 @@ def table(name, label, heads, widths, rows, emph=(1,), row_h=40, note=None):
 def chip(o,x,y,w,t,cls="box"): o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+8}" y="{y+20}">{e(t)}</text>')
 o=['<svg viewBox="0 0 920 620" style="min-width:820px" role="img" aria-label="抽象の層の概念と、群どうしの関係">']
 groups=[("宣言（Abstract スキーマ）",20,["Abstract schema","domain schema","x- keyword","x- キーワードの定義","検証の種類","base contract schema"]),
-        ("使う側（Concrete スキーマ）",170,["Concrete schema","instance","prompt","rule","vocabulary ・ term","relation","derived value"]),
+        ("使う側（Concrete スキーマ）",170,["Concrete schema","instance","prompt","rule","ubiquitous language ・ term","relation","derived value"]),
         ("検証",320,["Semantic Validator","Schema Validator","validator","Resolver","capability","validation result"])]
 for title,y,items in groups:
     o.append(f'<rect class="area" x="16" y="{y}" width="888" height="130"/><text class="title" x="30" y="{y+24}">{e(title)}</text>')
@@ -53,8 +53,8 @@ C=[("Abstract schema","抽象スキーマ","基盤の契約の1つの版","Abstr
 ("instance","インスタンス","Concrete スキーマに従う JSON の1件","Instance"),
 ("prompt","書き方の案内","読み方と書くときの rule","無い"),
 ("rule","ルール","スキーマに書く条件の1件","Constraint"),
-("vocabulary","語彙","Skill をまたいで使う term の集まり","Vocabulary"),
-("term","語","意味 ・ 値の形 ・ 単位を持つ1件","Term（未決）"),
+("ubiquitous language","ユビキタス言語","Skill ごとの terms@v1 に置く語","Vocabulary"),
+("term","語","$defs の1件。欄が $ref で指す","Term（未決）"),
 ("relation","関係","値がほかのインスタンスを指す","Relation"),
 ("derived value","導出値","答えから1つに決まる値","無い"),
 ("validator","検証器","rule 1件の合否を出す側","Interpreter"),
