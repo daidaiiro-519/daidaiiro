@@ -4,7 +4,7 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 26,
+  "round": 27,
   "queue": [
     {
       "topic": "Q0",
@@ -285,44 +285,26 @@
       "checks": [
         {
           "target": "validator",
-          "ask": "検証する側の名前を validator にしてよいか",
+          "ask": "ルール1件を検証する側の名前を validator にしてよいか",
           "view": "validator にする。標準の仕様が使う語である",
           "basis": [
             "JSON Schema の仕様",
             "SHACL の仕様"
           ],
           "why": "構想 v0.3 の Interpreter に込めた意味（解釈 ・ 調停）を残したいか"
-        },
-        {
-          "target": "アダプター",
-          "ask": "インバウンド ・ アウトバウンドでよいか",
-          "view": "コードのフォルダ名と同じにする",
-          "basis": [
-            "基盤のコード",
-            "Cockburn の原文"
-          ],
-          "why": "原文の primary ・ secondary（driving ・ driven）に合わせたいか"
-        },
-        {
-          "target": "部品の名前",
-          "ask": "Semantic Interpreter を Semantic Validator にしてよいか",
-          "view": "Schema Validator と並べて Semantic Validator にする",
-          "basis": [
-            "名前の対応"
-          ],
-          "why": "ルールごとに validator を選ぶ役を、名前で分けたいか"
         }
       ],
-      "question": "基盤で使う名前（検証する側 ・ 検証の結果 ・ できることの宣言 ・ アダプター ・ 書くときの条件 ・ 意味を検証する部品）を何にするか",
+      "question": "基盤で使う名前（ルール1件を検証する側 ・ 検証の全体 ・ 検証の結果 ・ できることの宣言 ・ アダプター ・ 書くときの条件）を何にするか",
       "answer": {
-        "text": "名前は、標準の仕様と基盤のコードが使う語に揃え、構想 v0.3 の名前は候補として扱う。検証する側は validator、結果は検証結果、宣言は capability、アダプターはインバウンド ・ アウトバウンド、書くときの条件はルール、意味を検証する部品は Semantic Validator とする。",
+        "text": "名前は、標準の仕様と基盤のコードが使う語に揃え、構想 v0.3 の名前は候補として扱う。コード ・ 仕様に識別子として出る語は英語、ふつうの名詞はカタカナにする。いま作るのは Semantic Validator で、その中に Schema Validator を持つ。",
         "details": [
-          "validator：検証する側（エンジン ・ AI ・ 人）。JSON Schema と SHACL の仕様が使う語",
+          "validator：ルール1件を検証する側（エンジン ・ AI ・ 人）の一般名。JSON Schema と SHACL の仕様が使う語",
+          "Semantic Validator：いま作る検証の全体。ルールごとにどの validator で検証するかを選び、結果を検証結果で返す。基盤のうちの検証の部分の名前で、作成 ・ 更新 ・ 承認 ・ 描画は含まない",
+          "Schema Validator：Semantic Validator の中の、構造と値の検証（JSON Schema）",
           "検証結果：検証の結果（validation result）。値は verified ・ violated ・ unverified ・ unsupported ・ error の5つ",
           "capability：validator が何を検証できるかの宣言。MCP の仕様が、接続の最初に宣言し合う意味で使う",
-          "インバウンドアダプター ・ アウトバウンドアダプター：基盤を呼ばれる側と、基盤から外を呼ぶ側。基盤のコードのフォルダ名 inbound ・ outbound と同じにする",
+          "inbound アダプター ・ outbound アダプター：基盤を呼ばれる側と、基盤から外を呼ぶ側。基盤のコードのフォルダ名 inbound ・ outbound と同じにする",
           "ルール：スキーマに書く条件1件（id ・ rule ・ why ・ test）。基盤のスキーマのキーが rule である",
-          "Semantic Validator：意味のルールごとに validator を選んで検証する部品。構造を検証する Schema Validator と並べる",
           "承認されたら、ほかの論点の名前をこの表に揃える"
         ]
       },
@@ -331,7 +313,7 @@
           "kind": "figure",
           "name": "名前の対応",
           "caption": "決める名前と、構想 v0.3 の候補と、出どころ。",
-          "svg": "<svg viewBox=\"0 0 780 470\" style=\"min-width:660px\" role=\"img\" aria-label=\"決める名前と、構想 v0.3 の候補と、出どころ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">何の名前か</text><text class=\"note\" x=\"196\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">構想 v0.3（候補）</text><text class=\"note\" x=\"372\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">決める名前</text><text class=\"note\" x=\"572\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出どころ</text>\n<rect class=\"box\" x=\"16\" y=\"32\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証する側</text>\n<rect class=\"boundary\" x=\"192\" y=\"32\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Interpreter</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"32\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">validator</text>\n<rect class=\"box\" x=\"568\" y=\"32\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">JSON Schema ・ SHACL の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"92\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証の結果</text>\n<rect class=\"boundary\" x=\"192\" y=\"92\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">outcome</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"92\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">検証結果</text>\n<rect class=\"box\" x=\"568\" y=\"92\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SHACL の validation result</text>\n<rect class=\"box\" x=\"16\" y=\"152\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">できることの宣言</text>\n<rect class=\"boundary\" x=\"192\" y=\"152\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Capability</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"152\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">capability</text>\n<rect class=\"box\" x=\"568\" y=\"152\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">MCP の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"212\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ばれる側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"212\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"212\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">インバウンドアダプター</text>\n<rect class=\"box\" x=\"568\" y=\"212\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの inbound</text>\n<rect class=\"box\" x=\"16\" y=\"272\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ぶ側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"272\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"272\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">アウトバウンドアダプター</text>\n<rect class=\"box\" x=\"568\" y=\"272\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの outbound</text>\n<rect class=\"box\" x=\"16\" y=\"332\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">書くときの条件</text>\n<rect class=\"boundary\" x=\"192\" y=\"332\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Constraint</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"332\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ルール</text>\n<rect class=\"box\" x=\"568\" y=\"332\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のスキーマのキー rule</text>\n<rect class=\"box\" x=\"16\" y=\"392\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">意味を検証する部品</text>\n<rect class=\"boundary\" x=\"192\" y=\"392\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Semantic Interpreter</text>\n\n<rect class=\"box focus\" x=\"372\" y=\"392\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Semantic Validator</text>\n<rect class=\"box\" x=\"568\" y=\"392\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Schema Validator と並べる</text>\n</svg>\n"
+          "svg": "<svg viewBox=\"0 0 780 520\" style=\"min-width:660px\" role=\"img\" aria-label=\"決める名前と、構想 v0.3 の候補と、出どころ\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-ink-soft:#9DADA8;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink:#E6EEEB;--dsvg-accent-bg:#173330}</style>\n<text class=\"note\" x=\"20\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">何の名前か</text><text class=\"note\" x=\"196\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">構想 v0.3（候補）</text><text class=\"note\" x=\"372\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">決める名前</text><text class=\"note\" x=\"572\" y=\"22\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">出どころ</text>\n<rect class=\"box\" x=\"16\" y=\"32\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">ルール1件を検証する側</text>\n<rect class=\"boundary\" x=\"192\" y=\"32\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Interpreter</text>\n<rect class=\"box focus\" x=\"372\" y=\"32\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">validator</text>\n<rect class=\"box\" x=\"568\" y=\"32\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"62\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">JSON Schema ・ SHACL の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"92\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証の全体</text>\n<rect class=\"boundary\" x=\"192\" y=\"92\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Semantic Interpreter</text>\n<rect class=\"box focus\" x=\"372\" y=\"92\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Semantic Validator</text>\n<rect class=\"box\" x=\"568\" y=\"92\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">いま作るもの</text>\n<rect class=\"box\" x=\"16\" y=\"152\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">その中の構造と値の検証</text>\n<rect class=\"boundary\" x=\"192\" y=\"152\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Schema Validator</text>\n<rect class=\"box focus\" x=\"372\" y=\"152\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">Schema Validator</text>\n<rect class=\"box\" x=\"568\" y=\"152\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"182\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">そのまま</text>\n<rect class=\"box\" x=\"16\" y=\"212\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">検証の結果</text>\n<rect class=\"boundary\" x=\"192\" y=\"212\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">outcome</text>\n<rect class=\"box focus\" x=\"372\" y=\"212\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">検証結果</text>\n<rect class=\"box\" x=\"568\" y=\"212\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"242\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">SHACL の validation result</text>\n<rect class=\"box\" x=\"16\" y=\"272\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">できることの宣言</text>\n<rect class=\"boundary\" x=\"192\" y=\"272\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Capability</text>\n<rect class=\"box focus\" x=\"372\" y=\"272\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">capability</text>\n<rect class=\"box\" x=\"568\" y=\"272\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"302\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">MCP の仕様</text>\n<rect class=\"box\" x=\"16\" y=\"332\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ばれる側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"332\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n<rect class=\"box focus\" x=\"372\" y=\"332\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">inbound アダプター</text>\n<rect class=\"box\" x=\"568\" y=\"332\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの inbound</text>\n<rect class=\"box\" x=\"16\" y=\"392\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">呼ぶ側のアダプター</text>\n<rect class=\"boundary\" x=\"192\" y=\"392\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">（無し）</text>\n<rect class=\"box focus\" x=\"372\" y=\"392\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">outbound アダプター</text>\n<rect class=\"box\" x=\"568\" y=\"392\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"422\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のコードの outbound</text>\n<rect class=\"box\" x=\"16\" y=\"452\" width=\"170\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"28\" y=\"482\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">書くときの条件</text>\n<rect class=\"boundary\" x=\"192\" y=\"452\" width=\"170\" height=\"50\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"note\" x=\"204\" y=\"482\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">Constraint</text>\n<rect class=\"box focus\" x=\"372\" y=\"452\" width=\"190\" height=\"50\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title\" x=\"384\" y=\"482\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ルール</text>\n<rect class=\"box\" x=\"568\" y=\"452\" width=\"196\" height=\"50\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"note\" x=\"578\" y=\"482\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">基盤のスキーマのキー rule</text>\n</svg>\n"
         }
       ],
       "grounds": [
@@ -382,6 +364,18 @@
           "basis": "In implementation, ports and adapters show up in two flavors, which I'll call <i style=\"mso-bidi-font-style:normal\">primary</i> and <i style=\"mso-bidi-font-style:normal\">secondary</i>, for soon-to-be-obvious reasons. They could be also called",
           "tag": "primary",
           "source": "Alistair Cockburn「Hexagonal architecture」（alistair.cockburn.us/hexagonal-architecture、1975〜1979行、2026-10-17 取得）"
+        },
+        {
+          "supports": "検証の全体を Semantic Validator にし、中に Schema Validator を持つこと",
+          "basis": "validatorとSemantic Validatorだけど、今回作成しようとしているものってSemantic Validatorだよね？この中に通常のSchemaValidatorがあるようなイメージです。",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
+        },
+        {
+          "supports": "アダプターの名前を英語にすること",
+          "basis": "英語でいいよ、その形で Q5 を直してお願い",
+          "tag": "primary",
+          "source": "利用者の言葉（2026-10-17）"
         }
       ],
       "rejected": [
@@ -404,6 +398,14 @@
         {
           "option": "書くときの条件を制約（Constraint）と呼ぶ（構想 v0.3）",
           "reason": "SHACL の制約は構造の条件を指す。基盤のルールは意味の検証（test）も含み、スキーマのキーも rule である"
+        },
+        {
+          "option": "Semantic Interpreter を、ルールごとに validator を選ぶ独立した部品にする（構想 v0.3）",
+          "reason": "選ぶのは Semantic Validator の働きの一部で、部品を分けると同じ検証の全体に2つの名前が付く"
+        },
+        {
+          "option": "アダプターをカタカナ（インバウンドアダプター ・ アウトバウンドアダプター）で書く",
+          "reason": "コードのフォルダ名と読み替えが要り、表のほかの識別子（validator ・ capability）と揃わない"
         }
       ]
     },
@@ -1155,6 +1157,14 @@
   "log": [
     {
       "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 7か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "利用者の指摘で、Q5 の検証の全体を Semantic Validator（中に Schema Validator）にし、アダプターを英語の inbound ・ outbound アダプターにした"
+    },
+    {
+      "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 6か所）"
     },
     {
@@ -1353,34 +1363,39 @@
   "opened": "2026-10-17",
   "changes": [
     {
-      "topic": "Q0",
-      "part": "grounds",
-      "summary": "根拠を4件書き直した"
+      "topic": "Q5",
+      "part": "question",
+      "summary": "問いを書き直した"
     },
     {
       "topic": "Q5",
-      "part": "added",
-      "summary": "論点を足した"
+      "part": "answer",
+      "summary": "答えの1文を書き直した"
     },
     {
-      "topic": "Q1",
-      "part": "grounds",
-      "summary": "根拠を1件書き直した"
+      "topic": "Q5",
+      "part": "details",
+      "summary": "詳しい決まりを4件足して3件消した"
     },
     {
-      "topic": "Q2",
-      "part": "grounds",
-      "summary": "根拠を2件書き直した"
+      "topic": "Q5",
+      "part": "images",
+      "summary": "完成イメージを1件書き直した"
     },
     {
-      "topic": "Q3",
-      "part": "grounds",
-      "summary": "根拠を1件書き直した"
+      "topic": "Q5",
+      "part": "checks",
+      "summary": "確かめてほしい箇所を1件足して3件消した"
     },
     {
-      "topic": "Q4",
+      "topic": "Q5",
       "part": "grounds",
-      "summary": "根拠を1件書き直した"
+      "summary": "根拠を2件足した"
+    },
+    {
+      "topic": "Q5",
+      "part": "rejected",
+      "summary": "採らなかった案を2件足した"
     }
   ]
 }
