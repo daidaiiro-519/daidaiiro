@@ -8,7 +8,7 @@ table, e = T['table'], T['e']
 def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
-o = ['<svg viewBox="0 0 960 500" style="min-width:860px" role="img" aria-label="Semantic Schema Core の9つの概念と3つの集約">']
+o = ['<svg viewBox="0 0 960 480" style="min-width:860px" role="img" aria-label="Semantic Schema Core の9つの概念と3つの集約">']
 o.append('<rect class="box" x="120" y="16" width="260" height="48"/><text class="label" x="132" y="37">Abstract スキーマ（版）</text><text class="note" x="132" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="208"/><text class="title" x="30" y="134">Concrete スキーマの集約</text>')
 chip(o, 30, 150, 396, "Concrete スキーマ（集約のルート）", "box focus")
@@ -16,16 +16,16 @@ chip(o, 30, 190, 396, "rule（id ・ rule ・ why ・ test）")
 chip(o, 30, 230, 396, "公開した版（値オブジェクト）")
 chip(o, 30, 270, 396, "term（terms@v1 の $defs。欄は $ref で指す）")
 o.append('<path class="flow" d="M250,110 V64"/><text class="note" x="262" y="92">x-abstract で申告する</text>')
-o.append('<rect class="area" x="16" y="370" width="424" height="118"/><text class="title" x="30" y="394">instance の集約</text>')
+o.append('<rect class="area" x="16" y="370" width="424" height="80"/><text class="title" x="30" y="394">instance の集約</text>')
 chip(o, 30, 406, 396, "instance（集約のルート）", "box focus")
-chip(o, 30, 446, 396, "承認の記録（承認した時点のハッシュ）")
 o.append('<path class="flow" d="M250,370 V318"/><text class="note" x="262" y="350">$schema で指す</text>')
-o.append('<rect class="area" x="540" y="110" width="404" height="118"/><text class="title" x="554" y="134">view の集約</text>')
-chip(o, 554, 150, 376, "view（集約のルート）", "box focus")
-o.append('<text class="note" x="554" y="206">ページテンプレート ・ カタログ ・ デザインシステム</text>')
-o.append('<path class="flow" d="M540,165 H440"/><text class="note" x="490" y="157" text-anchor="middle">x-view を読む</text>')
-o.append('<rect class="box" x="526" y="406" width="418" height="70"/><text class="label" x="540" y="428">検証結果（値オブジェクト。保存しない）</text><text class="note" x="540" y="448">rule 1件ごとに、5つの値のどれか1つ</text><text class="note" x="540" y="466">verified ・ violated ・ unverified ・ unsupported ・ error</text>')
-o.append('<path class="flow" d="M440,421 H526"/><text class="note" x="483" y="413" text-anchor="middle">検証で返る</text>')
+o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに page ・ catalog ・ design-system で検証する</text>')
+o.append('<path class="flow" d="M526,165 H440"/><text class="note" x="483" y="157" text-anchor="middle">x-view を読む</text>')
+o.append('<rect class="area" x="526" y="238" width="418" height="80"/><text class="title" x="540" y="262">承認の記録の集約</text>')
+chip(o, 540, 274, 390, "承認の記録（フォルダ1つに1件）", "box focus")
+o.append('<path class="flow" d="M640,318 V395 H440"/><text class="note" x="652" y="350">パスとハッシュで指す</text>')
+o.append('<rect class="box" x="526" y="404" width="418" height="70"/><text class="label" x="540" y="426">検証結果（値オブジェクト。保存しない）</text><text class="note" x="540" y="446">rule 1件ごとに、5つの値のどれか1つ</text><text class="note" x="540" y="464">verified ・ violated ・ unverified ・ unsupported ・ error</text>')
+o.append('<path class="flow" d="M440,430 H526"/><text class="note" x="483" y="424" text-anchor="middle">検証で返る</text>')
 o.append('</svg>')
 open('q1-domain.src.svg', 'w').write('\n'.join(o))
 

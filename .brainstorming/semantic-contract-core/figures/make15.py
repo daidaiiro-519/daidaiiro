@@ -18,50 +18,47 @@ for k, t in enumerate(["create ・ get", "update ・ delete", "prompt", "check �
 o.append('<text class="note" x="244" y="420">読む → 集約のコマンド →</text><text class="note" x="244" y="438">保存する → 結果を返す</text>')
 o.append('<rect class="area" x="494" y="16" width="290" height="438"/><text class="title" x="508" y="40">ドメイン層</text>')
 o.append('<text class="note" x="508" y="62">集約</text>')
-chip(o, 508, 72, 262, "Concrete スキーマ", "box focus"); chip(o, 508, 108, 262, "instance", "box focus"); chip(o, 508, 144, 262, "view", "box focus")
+chip(o, 508, 72, 262, "Concrete スキーマ", "box focus"); chip(o, 508, 108, 262, "instance", "box focus"); chip(o, 508, 144, 262, "承認の記録", "box focus")
 o.append('<text class="note" x="508" y="196">ドメインサービス</text>')
 chip(o, 508, 206, 262, "Semantic Schema Validator"); chip(o, 508, 242, 262, "Semantic Schema Resolver"); chip(o, 508, 278, 262, "Semantic Schema Renderer")
 o.append('<text class="note" x="508" y="330">ポート（trait）</text>')
-chip(o, 508, 340, 262, "リポジトリ3つ", "boundary"); chip(o, 508, 376, 262, "技術のポート5つ", "boundary")
-o.append('<text class="note" x="508" y="436">値オブジェクトもここに置く</text>')
+chip(o, 508, 340, 262, "リポジトリ4つ", "boundary"); chip(o, 508, 376, 262, "RuleValidator（rule の判定を頼む）", "boundary")
+o.append('<text class="note" x="508" y="428">値オブジェクトもここに置く</text><text class="note" x="508" y="446">ライブラリ：JSON Schema の実装 ・ JMESPath</text>')
 o.append('<rect class="area" x="828" y="16" width="170" height="438"/><text class="title" x="842" y="40">outbound adapter</text>')
-for k, t in enumerate(["ファイル", "JSON Schema の実装", "JMESPath", "カタログ", "AI の CLI"]):
+for k, t in enumerate(["ファイル（JSON）", "Claude Code", "Codex", "Kiro", "GitHub Copilot"]):
     chip(o, 842, 200 + 40 * k, 142, t)
-o.append('<path class="flow" d="M186,235 H230"/><path class="flow" d="M450,235 H494"/><path class="flow" d="M828,375 H784"/>')
+o.append('<path class="flow" d="M186,235 H230"/><path class="flow" d="M450,235 H494"/><path class="flow" d="M828,355 H784"/>')
 o.append('</svg>')
 open('q3-layers.src.svg', 'w').write('\n'.join(o))
 
 # ── command ごとの表 ──
 CMD = [
- ("create", "コマンド", "instance", "Validator ・ Resolver", ["InstanceRepository ・", "ConcreteSchemaRepository ・ JsonSchema"]),
- ("get", "クエリ", "instance", "Resolver", ["InstanceRepository ・", "ConcreteSchemaRepository ・ Query"]),
- ("update", "コマンド", "instance（JSON Patch）", "Validator ・ Resolver", ["InstanceRepository ・", "ConcreteSchemaRepository ・ JsonSchema"]),
- ("delete", "コマンド", "instance", "Resolver（指される数）", "InstanceRepository"),
- ("prompt", "クエリ", "Concrete スキーマ", "──", "ConcreteSchemaRepository"),
- ("check", "クエリ", "──", "Validator ・ Resolver", ["InstanceRepository ・ ConcreteSchemaRepository ・", "JsonSchema ・ Query ・ Agents"]),
- ("check-schemas", "クエリ", ["Concrete スキーマ", "（自身の検査）"], "──", ["ConcreteSchemaRepository ・", "AbstractSpec ・ JsonSchema"]),
- ("approve", "コマンド", ["instance", "（承認の記録）"], "Validator", ["InstanceRepository ・ ConcreteSchemaRepository ・", "JsonSchema ・ Agents"]),
- ("render", "クエリ", "──", "Renderer ・ Resolver", ["InstanceRepository ・ ConcreteSchemaRepository ・", "ViewRepository ・ Design"]),
- ("publish（無い）", "コマンド", ["Concrete スキーマ", "（公開した版）"], "──", ["ConcreteSchemaRepository ・", "AbstractSpec"]),
- ("走査 ・ 索引（無い）", "クエリ", "──", "Resolver", ["InstanceRepository ・", "ConcreteSchemaRepository ・ Query"]),
+ ("create", "変える", "instance", "Validator ・ Resolver", ["ConcreteSchemaRepository（読む）・", "InstanceRepository（保存する）"]),
+ ("get", "変えない", "──", "Resolver", "InstanceRepository（読む）"),
+ ("update", "変える", "instance", "Validator ・ Resolver", ["ConcreteSchemaRepository（読む）・", "InstanceRepository（読む ・ 保存する）"]),
+ ("delete", "変える", "instance", "Resolver（指される数）", "InstanceRepository（読む ・ 一覧 ・ 消す）"),
+ ("prompt", "変えない", "──", "──", "ConcreteSchemaRepository（読む）"),
+ ("check", "変えない", "──", "Validator ・ Resolver", ["ConcreteSchemaRepository ・ InstanceRepository ・", "RuleValidator"]),
+ ("check-schemas", "変えない", "──", "──（Concrete の集約の検査）", "ConcreteSchemaRepository（一覧 ・ 読む）"),
+ ("approve", "変える", "承認の記録", "Validator ・ Resolver", ["check のポートと", "ApprovalRepository（読む ・ 保存する）"]),
+ ("render", "変えない", "──", "Renderer ・ Resolver", ["ViewRepository ・ ConcreteSchemaRepository ・", "InstanceRepository（どれも読む）"]),
+ ("publish（無い）", "変える", "Concrete スキーマ", "──", ["ConcreteSchemaRepository", "（読む ・ 公開の記録を足す）"]),
+ ("走査 ・ 索引（無い）", "変えない", "──", "Resolver", ["InstanceRepository（一覧 ・ 読む）・", "ConcreteSchemaRepository（読む）"]),
 ]
-table('q3-commands', 'command ごとの種類と、使う集約 ・ ドメインサービス ・ ポート',
-      ["command", "種類", "集約", "ドメインサービス", "ポート"], [160, 90, 190, 190, 420],
+table('q3-commands', 'command ごとの、状態を変えるかと、保存する集約 ・ 使うドメインサービス ・ 呼ぶポート',
+      ["command", "状態を変えるか", "保存する集約", "ドメインサービス", "呼ぶポート"], [160, 120, 150, 210, 400],
       [list(r) for r in CMD], emph=(0,), row_h=46)
 
 # ── ポートの表 ──
 PORT = [
- ("ConcreteSchemaRepository", "リポジトリ", "新しく作る"),
- ("InstanceRepository", "リポジトリ", "新しく作る。保存は読んだ時点のハッシュで排他する"),
- ("ViewRepository", "リポジトリ", "新しく作る"),
- ("AbstractSpec", "技術", "いまの Schemas の名前を変える"),
- ("JsonSchema", "技術", "新しく作る（いまは domain が jsonschema を直接に呼ぶ）"),
- ("Query", "技術", "いまのまま（JMESPath）"),
- ("Design", "技術", "いまのまま（カタログ）"),
- ("Agents", "技術", "新しく作る（AI の validator を呼ぶ）"),
+ ("ConcreteSchemaRepository", "読む（$ref の先を含む）・ 一覧 ・ 保存する ・ 公開の記録を足す", "ファイル（JSON）"),
+ ("InstanceRepository", "読む ・ 一覧 ・ 保存する（読んだ時点のハッシュで排他）・ 消す", "ファイル（JSON）"),
+ ("ApprovalRepository", "読む ・ 保存する", "ファイル（JSON）"),
+ ("ViewRepository", "ページテンプレート ・ カタログ ・ デザインシステムを読む", "ファイル（JSON）"),
+ ("RuleValidator", "rule の判定を外の validator に頼む（約束は Agents 契約）", ["Claude Code ・ Codex ・", "Kiro ・ GitHub Copilot"]),
 ]
-table('q3-ports', 'ポート8つ：集約ごとのリポジトリ3つと技術のポート5つ',
-      ["ポート", "種類", "いまとの差"], [250, 110, 480], [list(r) for r in PORT], emph=(0,), row_h=34)
+table('q3-ports', 'ユースケースが呼ぶポート5つと、それを実装するアダプター',
+      ["ポート", "操作（ユースケースの言葉）", "アダプター（技術）"], [230, 470, 220], [list(r) for r in PORT], emph=(0,), row_h=46)
 
 # ── 構想 v0.3 との対応 ──
 V = [
@@ -69,7 +66,7 @@ V = [
  ("Vocabulary Resolver", "Resolver の $ref → term"),
  ("Contract Registry", "Concrete スキーマの集約（公開した版）と ConcreteSchemaRepository"),
  ("Relation/Graph Engine ・ Constraint Engine", "Resolver の x-ref と Validator の rule"),
- ("Semantic Interpreter", "Validator の中の AI の validator（Agents）"),
+ ("Semantic Interpreter", "Validator が RuleValidator のポートで呼ぶ AI の validator"),
  ("Verification Engine", "Validator の全体（検証結果の5つの値）"),
  ("（無い）", "Semantic Schema Renderer"),
 ]

@@ -1,0 +1,116 @@
+{
+  "kind": "design",
+  "question": "Semantic Schema Core のポート ・ 集約 ・ スキーマの位置づけをどう組むか。ポートは「ユースケースの中で呼ぶ抽象インターフェース、技術はアダプター」でよいか（ddd5 の答えの組み直し）",
+  "premises": [
+    {"name": "前の回答（ddd5）の誤り", "value": "ポートを「リポジトリ3つ＋技術のポート5つ（AbstractSpec ・ JsonSchema ・ Query ・ Design ・ Agents）」とした。いまの実装の trait 名（Files ・ Schemas ・ Query ・ Design ・ Functions）を技術名のままポートへ写した誤りである。AbstractSpec は Schemas（$ref の先のスキーマを読む）の改名で、Abstract の仕様とは無関係だった。JsonSchema と Query はライブラリ、Design は view を読むリポジトリ、Agents は rule の判定のポートの約束であり、どれもポートの名前ではない", "source": "scratchpad/ddd5/answer.json と、利用者の指摘"},
+    {"name": "Abstract の置き場所", "value": "Abstract スキーマ（Semantic Domain Schema の版）は、build.rs が schemas/ から実行ファイルへ取り込み、$id で引く。外の基盤から読まない", "source": "src/schema-driven/crates/core/src/embedded.rs"},
+    {"name": "承認の記録の形", "value": "フォルダ1つに1件で、そのフォルダの複数の instance を、パスとハッシュ値の組で記録する", "source": "src/schema-driven/crates/core/src/domain/approval.rs"},
+    {"name": "view を変える command", "value": "いまの command には無い。ページテンプレート ・ カタログ ・ デザインシステムは Skill が書き、エンジンは読むだけ", "source": "page.schema.json の説明と command の一覧"},
+    {"name": "ライブラリをポートにするか", "value": "判断基準の範囲外。判断基準が挙げる基盤コンポーネントは、データベース ・ 外部サービス ・ UI フレームワーク ・ メッセージ通信基盤などで、プロセスの中で計算だけをするライブラリには触れていない。この点の判定は推測である", "source": "判断基準の範囲外"}
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "利用者の理解は判断基準どおりで、ポートは ConcreteSchemaRepository ・ InstanceRepository ・ ApprovalRepository ・ ViewRepository ・ RuleValidator の5つにし、集約は Concrete スキーマ ・ instance ・ 承認の記録の3つ、Abstract と view は値オブジェクトにする。",
+    "because": "ポートは業務ロジック層が定義し、アダプターが個々の技術で実装するものなので、名前はユースケースが頼む内容で付け、技術名を付けない。承認の記録は複数の instance を ID で指すので instance の内側に置けず、Abstract と view はどの command も変えないので、状態の一貫性を守る集約にする理由が無い。"
+  },
+  "figure": {
+    "caption": "ユースケース（command）が複数のポートを呼び、アダプターがポートを技術で実装する。ライブラリはドメインの内側で使う。",
+    "nodes": [
+      {"id": "in", "label": "inbound adapter：CLI ・ MCP", "role": "adapter"},
+      {"id": "uc", "label": "アプリケーション層：command ごとのユースケース", "role": "application"},
+      {"id": "dom", "label": "業務ロジック層：集約3つ ・ 値オブジェクト（Abstract ・ view）・ ドメインサービス（JSON Schema の検証 ・ JMESPath を内側で使う）", "role": "domain"},
+      {"id": "port", "label": "ポート：ConcreteSchemaRepository ・ InstanceRepository ・ ApprovalRepository ・ ViewRepository ・ RuleValidator", "role": "domain"},
+      {"id": "fs", "label": "アダプター：ファイル（JSON）", "role": "adapter"},
+      {"id": "ai", "label": "アダプター：Claude Code ・ Codex ・ Kiro ・ GitHub Copilot の CLI（Agents 契約）", "role": "adapter"}
+    ],
+    "edges": [
+      {"from": "in", "to": "uc", "label": "呼ぶ"},
+      {"from": "uc", "to": "dom", "label": "コマンドを実行する"},
+      {"from": "uc", "to": "port", "label": "複数のポートを呼ぶ"},
+      {"from": "fs", "to": "port", "label": "4つのリポジトリを実装する", "dashed": true},
+      {"from": "ai", "to": "port", "label": "RuleValidator を実装する", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {"option": "ポート：リポジトリ4つ ＋ RuleValidator（推す）", "effect": "名前がユースケースの頼む内容になり、ファイルを DB へ、AI の CLI を別の CLI へ替えても、アダプターだけが替わる", "chosen": true},
+    {"option": "ポート：ddd5 の「リポジトリ3つ ＋ 技術のポート5つ」", "effect": "技術名がポートになり、技術を替えるとポートの名前と業務ロジック層が替わる。AbstractSpec は Abstract と無関係な $ref の読み出しで、Design は view のリポジトリと重複する", "chosen": false},
+    {"option": "ポート：JSON Schema の検証と JMESPath もポートにする", "effect": "JSON Schema のキーワードの意味は、この基盤の業務ロジックそのものなので、それをポートの外へ出すと業務ロジック層が検証の意味を持たなくなる（推測）", "chosen": false},
+    {"option": "ポート：Abstract の版を読むポートを置く", "effect": "Abstract は実行ファイルに取り込んでいて、実装するアダプターに当たる基盤が無い。技術を替える場面の無いポートが1つ増える", "chosen": false},
+    {"option": "承認の記録を instance の内側に置く", "effect": "1件の承認が、フォルダの複数の instance を指す。内側に置くと、1回の承認で複数の集約を1つのトランザクションで変えることになる", "chosen": false},
+    {"option": "view を集約にする（Q1 の案）", "effect": "どの command も view を変えないので、コマンドで守る不変条件が無い。読むときの検証（page@v1 ・ catalog@v1 ・ design-system@v1）で足りる", "chosen": false},
+    {"option": "Abstract を集約にする", "effect": "Semantic Schema Core のコマンドは Abstract を変えない。版は値として比べるだけで、ID で追う状態の変化が無い", "chosen": false}
+  ],
+  "path": [
+    {"ask": "ポート＝ユースケースの中で呼ぶ抽象インターフェース、技術はアダプター、でよいか", "answer": "よい。判断基準ではポートは業務ロジック層が定義し、インフラストラクチャ層が実装する。アダプターはそれを個々の技術で実装したもの。呼ぶのはアプリケーション層（別の呼び方はユースケース層）で、1つのユースケースが Load と Save のように複数を呼ぶ"},
+    {"ask": "JSON Schema の検証ライブラリと JMESPath はポートか", "answer": "ポートにしない（推測）。外の基盤とつながらず、計算だけをする。ただし $ref のリモート取得はライブラリで行わず、ConcreteSchemaRepository を通す"},
+    {"ask": "Abstract は集約か", "answer": "条件1：Core のコマンドが Abstract を変えるか ── 変えない（いま）。条件2：Abstract の新しい版の公開まで Core のコマンドで扱うか ── 扱わない（いま）。両方「いいえ」なので値オブジェクト。どちらかが「はい」になれば、版の書き換えを禁じる不変条件を持つ集約にし、AbstractRepository を足す"},
+    {"ask": "承認の記録は instance の内側か", "answer": "内側にしない。承認時のハッシュ値と比べて古さを検出できるので、instance とは結果的に整合していればよく、別の集約にして instance を ID（パス）で参照する"},
+    {"ask": "公開の記録はどこか", "answer": "Concrete スキーマの集約の内側。ルートは Skill のスキーマの組（kind）にし、公開した版を書き換えない不変条件を、保存と同じトランザクションで守る"}
+  ],
+  "steps": [
+    {"do": "ポートを5つ定義する", "detail": "ConcreteSchemaRepository（読む〔$ref の先を含む〕・一覧 ・ 保存する ・ 公開の記録を足す）・ InstanceRepository（読む ・ 一覧 ・ 保存する〔版の条件付き〕・ 消す）・ ApprovalRepository（読む ・ 保存する）・ ViewRepository（ページテンプレート ・ カタログ ・ デザインシステムを読む）・ RuleValidator（rule の判定を頼む。約束は Agents 契約）"},
+    {"do": "アダプターを技術ごとに置く", "detail": "リポジトリ4つはファイル（JSON）のアダプター、RuleValidator は Claude Code ・ Codex ・ Kiro ・ GitHub Copilot の CLI ごとのアダプター"},
+    {"do": "ライブラリをドメインの内側で使う", "detail": "JSON Schema の検証ライブラリは Validator、JMESPath は Resolver と Renderer の内側で使い、ポートの一覧へ入れない"},
+    {"do": "集約を3つにする", "detail": "Concrete スキーマ（ルート：kind、内側：スキーマ ・ rule ・ 公開の記録）・ instance（ルート：パス）・ 承認の記録（ルート：フォルダ、instance をパスとハッシュ値で参照）"},
+    {"do": "Abstract と view を値オブジェクトにする", "detail": "Abstract は実行ファイルの中の版、view は ViewRepository が読んで基盤のスキーマで検証した値"},
+    {"do": "command ごとに呼ぶポートを決める", "detail": "下の表のとおり。どの command も保存する集約は1つにする"}
+  ],
+  "code": [
+    {"kind": "table", "head": ["command", "呼ぶポート（操作）", "保存する集約"], "rows": [
+      ["create", "ConcreteSchemaRepository（読む）・ InstanceRepository（保存する）", "instance"],
+      ["get", "InstanceRepository（読む）", "なし"],
+      ["update", "ConcreteSchemaRepository（読む）・ InstanceRepository（読む ・ 保存する）", "instance"],
+      ["delete", "InstanceRepository（読む ・ 一覧 ・ 消す）", "instance"],
+      ["prompt", "ConcreteSchemaRepository（読む）。Concrete の書き方は Abstract の値だけ", "なし"],
+      ["check", "ConcreteSchemaRepository（読む）・ InstanceRepository（一覧 ・ 読む）・ RuleValidator", "なし"],
+      ["check-schemas", "ConcreteSchemaRepository（一覧 ・ 読む）。Abstract の値で検証", "なし"],
+      ["approve", "check のポート ＋ ApprovalRepository（読む ・ 保存する）", "承認の記録"],
+      ["render", "ViewRepository（読む）・ ConcreteSchemaRepository（読む）・ InstanceRepository（読む）", "なし"],
+      ["publish", "ConcreteSchemaRepository（読む ・ 公開の記録を足す）", "Concrete スキーマ"],
+      ["走査と索引", "InstanceRepository（一覧 ・ 読む）・ ConcreteSchemaRepository（読む）", "なし"]
+    ]},
+    {"kind": "table", "head": ["スキーマ", "位置づけ", "検証する対象 ・ 使い方"], "rows": [
+      ["meta-schema.json（abstract@v1）", "(a) Semantic Domain Schema の本体", "Concrete を検証する（check-schemas）・ Concrete の雛形を作る ・ 根の x-prompt で書き方を案内する（prompt）"],
+      ["annotations.schema.json（annotations@v1）", "(a) Semantic Domain Schema の一部", "Concrete に書く x-ref ・ x-derive の形と意味"],
+      ["view.schema.json（view@v1）", "(a) Semantic Domain Schema の一部", "Concrete に書く x-view の形"],
+      ["page.schema.json（page@v1）", "(b) 基盤が持つ別のスキーマ", "view の値（ページテンプレート）を ViewRepository が読むときに検証する"],
+      ["catalog.schema.json（catalog@v1）", "(b) 基盤が持つ別のスキーマ", "view の値（部品の一覧）を検証する"],
+      ["design-system.schema.json（design-system@v1）", "(b) 基盤が持つ別のスキーマ", "view の値（トークン）を検証する"],
+      ["published.schema.json（published@v1）", "(c) 記録の形", "Concrete スキーマの集約の内側の公開の記録"],
+      ["approval.json（スキーマのファイル無し）", "(c) 記録の形", "承認の記録の集約。形はコードの型だけ"]
+    ]}
+  ],
+  "grounds": [
+    {"criterion": "ports-and-adapters", "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"},
+    {"criterion": "ports-and-adapters", "quote": "アダプター：インフラストラクチャ層が、ポートの抽象的なインターフェースを個々の技術で実装したもの。ポートとアダプターを組み合わせる最大の狙いは、業務ロジックを基盤の層から分離することである。"},
+    {"criterion": "ports-and-adapters", "quote": "ポートとアダプターの層：アプリケーション層 ・ 別の呼び方：サービス層 ・ ユースケース層"},
+    {"criterion": "aggregate", "quote": "業務ロジックを集約に集めると、アプリケーション層の役割は、集約の生成 ・ 操作の実行 ・ 永続化 ・ 結果の返却だけになる。"},
+    {"criterion": "aggregate", "quote": "集約：1つのトランザクション境界にまとめたエンティティの階層構造。集約自身もエンティティで、ID を持ち状態が変化する。状態が変わるので一貫性を保つのは難しく、目標はデータの一貫性の保証にある。そのため内部と外部の間に明確な境界を定義する。"},
+    {"criterion": "aggregate", "quote": "問い：結果的に整合していればよい情報か ・ 「はい」なら：境界の外側（例：別の集約）に置き、ID で参照する"},
+    {"criterion": "aggregate", "quote": "対応：1つのトランザクションで変更する集約は1つにし、複数の集約の状態は集約ごとに別々にコミットする ・ 理由：一貫性を維持する境界の定義が、正しいことを保証する"},
+    {"criterion": "value-object", "quote": "性質：不変 ・ 内容：フィールドを変更すると別の値になってしまうので、変更せず、別のインスタンスを生成する"},
+    {"criterion": "entity", "quote": "観点：変更 ・ 値オブジェクト：不変。値を変えるときは別のインスタンスを生成する ・ エンティティ：不変ではない。状態が変化する"},
+    {"criterion": "domain-service", "quote": "問い：複数の集約を参照する計算のロジックか ・ 「はい」なら：業務サービスで記述すると、わかりやすくなる"}
+  ],
+  "cautions": [
+    {"name": "（推測）技術名をポートの名前にする", "risk": "技術を替えるとポートが替わり、業務ロジック層が技術に依存する。ddd5 がこの形だった", "alternative": "ポートの名前を、ユースケースが頼む内容（集約のリポジトリ ・ rule の判定）で付け、技術名はアダプターの名前にだけ使う"},
+    {"name": "（推測）複数の集約にまたがる記録を、1つの集約の内側に置く", "risk": "承認1回で複数の instance を同じトランザクションで変えることになる", "alternative": "承認の記録を別の集約にし、instance をパスとハッシュ値で参照する"}
+  ],
+  "ai_cautions": [
+    {"breaks": "いまの実装の trait 名（Files ・ Schemas ・ Query ・ Design ・ Functions）をポートへ写す", "check": "ポートの trait 名を一覧にし、どれも Repository か RuleValidator で終わるか、技術名（Json ・ Query ・ Agents ・ Files）を含まないかを grep で確かめる"},
+    {"breaks": "1つの command が2つの集約を保存する", "check": "command ごとに、呼ぶ Repository の保存する操作が1つ以下かを、アプリケーション層のテストで確かめる"}
+  ],
+  "referrals": [
+    {"suspect": "ボードの Q1（集約3つ：Concrete スキーマ ・ instance ・ view）", "why": "この回答は view を値オブジェクトへ、承認の記録を集約へ替える。Q1 の概念9と集約の表を直す必要がある疑い"}
+  ],
+  "next": [
+    "Q1 の集約の表を、Concrete スキーマ ・ instance ・ 承認の記録の3つに直す",
+    "Q3 のポートの表を、5つのポートとそのアダプターで書き直す",
+    "承認の記録の形を approval.schema.json として書くかを、ボードの論点に足す",
+    "Abstract の新しい版の公開を Core のコマンドで扱うかを、利用者に確かめる"
+  ],
+  "related": [
+    {"criterion": "layered-architecture", "relation": "アプリケーション層（サービス層）の位置づけ"},
+    {"criterion": "domain-service", "relation": "ライブラリを内側で使う Validator ・ Resolver ・ Renderer の置き場所"}
+  ]
+}
