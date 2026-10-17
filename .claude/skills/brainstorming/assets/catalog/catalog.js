@@ -132,9 +132,15 @@
   // ── 完成イメージのタブ ──
   $$("section[data-part=images]").forEach(function (block) {
     var tabs = $$(".tabs button", block), panes = $$(".pane", block);
+    // タブは画像の並び順、面は種類ごとの順に並ぶので、種類と、その種類の中での順番で対応させる
+    var seen = {};
+    var paneOf = tabs.map(function (t) {
+      var kind = t.getAttribute("data-kind"), n = seen[kind] = (seen[kind] || 0) + 1;
+      return panes.filter(function (p) { return p.getAttribute("data-pane") === kind; })[n - 1] || null;
+    });
     function show(i) {
       tabs.forEach(function (t, j) { t.setAttribute("aria-selected", String(i === j)); });
-      panes.forEach(function (p, j) { p.hidden = i !== j; });
+      panes.forEach(function (p) { p.hidden = p !== paneOf[i]; });
     }
     tabs.forEach(function (t, i) { t.addEventListener("click", function () { show(i); }); });
     if (tabs.length) show(0); else block.hidden = true;
