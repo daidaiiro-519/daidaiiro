@@ -15,6 +15,8 @@ metadata:
 
 ## 次にすること
 
-第13回まで出した（2026-10-17）。いま見る論点は Q0 目的と設計原則（回答待ち）。Q0 の目的は「意味 ・ 構造 ・ 関係 ・ 制約を1つの契約（Schema）に宣言し、その契約でインスタンスを解釈して検証する。機械で決まる検証も意味の判断が要る検証も同じ契約から行い、同じ形の結果で返す」。標準は JSON Schema だけ、x- の拡張は基盤の契約で基盤のコマンドが確かめ、標準へは写さない（第9・10回）。Agents 契約で呼ぶ AI は Claude Code ・ Codex ・ Kiro ・ GitHub Copilot（Copilot CLI 1.0.98 を WSL に npm で入れ、help を measured/copilot-cli/ に保存）。
+第26回まで出した（2026-10-17）。いま見る論点は Q0 目的と設計原則と、Q5 用語（validator ・ 検証結果 ・ capability ・ インバウンド ・ アウトバウンドアダプター ・ ルール ・ Semantic Validator を提案）。Q1〜Q4 は Q0 と Q5 が前提。構想 v0.3 は利用者が Codex でブレストした検討中の案で、原典ではない（根拠の種類は「前提」）。Q5 が承認されたら、ほかの論点の名前をその表に揃える（いまの Interpreter ・ outcome ・ inbound などは仮の名前）。
 
-持ち越し：AI ごとの許可の設定は、いま brainstorming（Concrete）が一時に持つ（ACDR 0188、.brainstorming/.settings/agents.json と brainstorming/agents@v1）。Q3 で Agents 契約が決まったら、形を基盤（Abstract）へ移し、brainstorming には値だけを残す。組み立ては figures/board_r<回>.py。
+決まったこと：基盤のインターフェースはコマンドと protocol（CLI ・ MCP）。インバウンド ・ アウトバウンドのアダプターを差し替えて、手元でもクラウドでも同じ振る舞い（クラウドは後で載せる）。HTTP などの API は Concrete が持つ。WASM は外した。
+
+持ち越し：AI ごとの許可の設定は、いま brainstorming（Concrete）が一時に持つ（ACDR 0188）。Q3 で Agents 契約が決まったら形を基盤へ移す。ボードの更新は figures/board_r<回>.py と apply_patch.py（引数の上限を超えないように分けて渡す）。
