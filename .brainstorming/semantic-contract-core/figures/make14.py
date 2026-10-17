@@ -35,14 +35,14 @@ INV = [
  ("2", "Concrete スキーマ", ["1つの Abstract の版を申告し、", "その版の契約を満たす"], "M（版の行）", "check-schemas"),
  ("3", "Concrete スキーマ", ["$id は <名>/<種類>@v<n> で、", "文脈の中で一意で、変えない"], "M（$id）・ S11", "check-schemas"),
  ("4", "Concrete スキーマ", "title と description を持つ", "M", "check-schemas"),
- ("5", "Concrete スキーマ", ["instance を作る Concrete は、", "kind と $schema の const を持つ"], "M ・ F7（未検査）", ["check-schemas", "置き場所は検査を足す"]),
- ("6", "Concrete スキーマ", ["書く単位ごとに description と", "x-prompt を持ち、葉には書かない"], "M ・ S4 ・ W7（未検査）", ["check-schemas", "葉は検査を足す"]),
- ("7", "Concrete スキーマ", ["申告していない x- を使わず、", "基盤の名前を申告しない"], "S3 ・ F9（未検査）", ["check-schemas", "申告は検査を足す"]),
+ ("5", "Concrete スキーマ", ["instance を作る Concrete は、", "kind と $schema の const を持つ"], ["M ・ F7", "（F7 は未検査）"], "check-schemas"),
+ ("6", "Concrete スキーマ", ["書く単位ごとに description と", "x-prompt を持ち、葉には書かない"], ["M ・ S4 ・ W7", "（W7 は未検査）"], "check-schemas"),
+ ("7", "Concrete スキーマ", ["申告していない x- を使わず、", "基盤の名前を申告しない"], ["S3 ・ F9", "（F9 は未検査）"], "check-schemas"),
  ("8", "Concrete スキーマ", ["参照 ・ 導出 ・ 描画の宣言は、", "読める形である"], "S6〜S10", "check-schemas"),
  ("9", "Concrete スキーマ", "参照される種類は id を持つ", "S12", "check-schemas"),
  ("10", "rule", ["id ・ rule ・ why ・ test を持ち、", "id はスキーマの中で一意である"], "M22〜M26 ・ S5", "check-schemas"),
- ("11", "term", ["欄の意味は term への $ref で決まり、", "1つの term を2つの意味で使わない"], "いま無い", "検査を足す"),
- ("12", "公開した版", ["書き換えない ・ 消さない ・", "末尾に足すだけ"], "P1〜P5", ["check-schemas", "P3〜P5 は検査を足す"]),
+ ("11", "term", ["欄の意味は term への $ref で決まり、", "1つの term を2つの意味で使わない"], "いま無い", "（いま無い）"),
+ ("12", "公開した版", ["書き換えない ・ 消さない ・", "末尾に足すだけ"], ["P1〜P5", "（P3〜P5 は未検査）"], "check-schemas"),
  ("13", "instance", ["$schema の名前で、", "Concrete 1つに解決する"], "I1〜I4", ["create ・ update ・", "check"]),
  ("14", "instance", "同じ場所に2つ作らない", "I6", "create"),
  ("15", "instance", ["更新は、読んだ時点のハッシュと", "一致するときだけ成り立つ"], "I8", "update"),
@@ -51,12 +51,35 @@ INV = [
  ("18", "instance", ["関係の数の制約（covered_by ・", "unique ・ inverse）を満たす"], "R6〜R10", "check"),
  ("19", "instance", ["x-derive の宣言値が導出値と", "一致し、expect を満たす"], "D1 ・ D2", "check"),
  ("20", "承認の記録", ["検証エラー ・ ずれ ・ 未記入が無いときだけ", "承認し、承認した時点のハッシュを持つ"], "A1〜A6 ・ R11", "approve ・ check"),
- ("21", "検証結果", ["rule 1件ごとに5つの値のどれかを返し、", "検証できなかった rule も返す"], "いま無い", "検査を足す"),
+ ("21", "検証結果", ["rule 1件ごとに5つの値のどれかを返し、", "検証できなかった rule も返す"], "いま無い", "（いま無い）"),
  ("22", "view", ["形とコントラストを満たし、", "失敗したら1ページも書かない"], "V1〜V21", "render"),
 ]
-table('q1-invariants', 'Semantic Domain Schema の不変条件22行と、実現する実装の行と、検査するコマンド',
-      ["#", "概念", "不変条件", "実装の行", "検査"], [40, 140, 340, 170, 170],
-      [list(r) for r in INV], emph=(1,), row_h=46)
+# 概念ごとに固めて並べる。概念の欄は、その概念の行をまたぐ1つの枠にする
+def grouped(name, label, heads, widths, rows, row_h=46):
+    X=[16]
+    for w in widths[:-1]: X.append(X[-1]+w+8)
+    W=X[-1]+widths[-1]+16; H=32+len(rows)*(row_h+6)+8
+    o=[f'<svg viewBox="0 0 {W} {H}" style="min-width:{min(W,900)}px" role="img" aria-label="{e(label)}">']
+    for x,h in zip(X,heads): o.append(f'<text class="note" x="{x+4}" y="22">{e(h)}</text>')
+    i=0
+    while i<len(rows):
+        j=i
+        while j+1<len(rows) and rows[j+1][1]==rows[i][1]: j+=1
+        y=32+i*(row_h+6); h=(j-i+1)*(row_h+6)-6
+        o.append(f'<rect class="box focus" x="{X[1]}" y="{y}" width="{widths[1]}" height="{h}"/><text class="title" x="{X[1]+10}" y="{y+h//2+5}">{e(rows[i][1])}</text>')
+        i=j+1
+    for i,r in enumerate(rows):
+        y=32+i*(row_h+6)
+        for c in (0,2,3,4):
+            cell=r[c]; lines=cell if isinstance(cell,list) else [cell]
+            o.append(f'<rect class="box" x="{X[c]}" y="{y}" width="{widths[c]}" height="{row_h}"/>')
+            if len(lines)==1: o.append(f'<text class="label" x="{X[c]+10}" y="{y+row_h//2+5}">{e(lines[0])}</text>')
+            else:
+                for k,l in enumerate(lines): o.append(f'<text class="label" x="{X[c]+10}" y="{y+row_h//2-4+16*k}">{e(l)}</text>')
+    o.append('</svg>'); open(name+'.src.svg','w').write('\n'.join(o))
+grouped('q1-invariants', 'Semantic Domain Schema の不変条件22行を概念ごとに固めた表と、実現する実装の行と、検査する command',
+      ["#", "概念", "不変条件", "実装の行", "command"], [40, 140, 340, 170, 170],
+      [list(r) for r in INV])
 
 # ── エンジンの能力の表 ──
 CAP = [
