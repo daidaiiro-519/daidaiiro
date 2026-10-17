@@ -1,0 +1,83 @@
+{
+  "kind": "design",
+  "question": "Semantic Schema Core のエンジンを、どの層とどの部品で組むか（ボード semantic-contract-core の Q3）。層の切り方 ・ ドメインサービスの数 ・ command ごとに使う集約とドメインサービスとポート ・ ポートの一覧 ・ 構想 v0.3 の部品との対応",
+  "premises": [
+    {"name": "概念と集約", "value": "Q1 の案のとおり、集約は Concrete スキーマ（rule ・ 公開した版を内側）・ instance（承認の記録を内側）・ view の3つ。Abstract スキーマ（版）は基盤が持つ仕様で、集約ではなく読むだけの値として扱う", "source": "scratchpad/ddd4/answer.json"},
+    {"name": "業務ロジックの実装方法", "value": "集約が不変条件を守るドメインモデルで実装する", "source": "Q1 の案"},
+    {"name": "永続化モデル", "value": "いまはファイル（JSON）1つ。走査と索引の結果を別のファイルへ保存するかは未判定", "source": "src/schema-driven の実装。未判定の部分は判断基準の範囲外"},
+    {"name": "AI の扱い", "value": "AI は validator の1つで、outbound adapter（Agents 契約）で呼ぶ", "source": "ボードの Q3 の答え"}
+  ],
+  "conclusion": {
+    "stance": "adopt",
+    "headline": "ポートとアダプターで4つの層に分け、ドメインサービスは Semantic Schema Validator ・ Semantic Schema Resolver ・ Semantic Schema Renderer の3つにし、Concrete スキーマの検査は Concrete スキーマの集約自身のコマンドへ移し、ポートは集約ごとのリポジトリ3つと技術のポート5つにする。",
+    "because": "業務ロジックがドメインモデルなのでポートとアダプターを選ぶ。複数の集約を参照するロジック（検証 ・ 解決 ・ 描画）だけをドメインサービスにし、集約1つで閉じるもの（CRUD ・ 承認 ・ 公開 ・ Concrete の検査）は集約のコマンドとリポジトリで扱う。"
+  },
+  "figure": {
+    "caption": "依存はアダプターからアプリケーション層へ、アプリケーション層からドメイン層へ向かう。ドメイン層はポートを定義し、アダプターがそれを実装する。",
+    "nodes": [
+      {"id": "in", "label": "inbound adapter：CLI ・ MCP", "role": "adapter"},
+      {"id": "app", "label": "アプリケーション層：command ごとの関数", "role": "application"},
+      {"id": "agg", "label": "集約：Concrete スキーマ ・ instance ・ view", "role": "domain"},
+      {"id": "svc", "label": "ドメインサービス：Validator ・ Resolver ・ Renderer", "role": "domain"},
+      {"id": "port", "label": "ポート：リポジトリ3つ ・ 技術のポート5つ", "role": "domain"},
+      {"id": "out", "label": "outbound adapter：ファイル ・ JSON Schema の実装 ・ JMESPath ・ カタログ ・ AI の CLI", "role": "adapter"}
+    ],
+    "edges": [
+      {"from": "in", "to": "app", "label": "command を呼ぶ"},
+      {"from": "app", "to": "agg", "label": "リポジトリで読み、コマンドを実行して保存する"},
+      {"from": "app", "to": "svc", "label": "検証 ・ 解決 ・ 描画を頼む"},
+      {"from": "svc", "to": "port", "label": "技術のポートを使う"},
+      {"from": "out", "to": "port", "label": "実装する", "dashed": true}
+    ]
+  },
+  "comparison": [
+    {"option": "層：ポートとアダプター（ドメイン ・ アプリケーション ・ ポート ・ アダプター）", "effect": "集約とドメインサービスが jsonschema ・ jmespath ・ ファイル ・ AI の CLI を知らずに済み、テストでアダプターを差し替えられる", "chosen": true},
+    {"option": "層：レイヤードアーキテクチャ（上から下への依存）", "effect": "ドメイン層がデータアクセス層に依存するので、いまの schema.rs のように JSON Schema の実装をドメイン層が直接に呼ぶ形が残り、標準の部品を取り替えると集約まで変わる", "chosen": false},
+    {"option": "層：CQRS（索引を読み取りモデルとして保存）", "effect": "永続化モデルが2つになり、投影とチェックポイントの仕組みが要る。いまの走査は保存せずに毎回組めるので、複雑さだけが増える", "chosen": false},
+    {"option": "ドメインサービス3つ（Validator ・ Resolver ・ Renderer）、Concrete の検査は集約のコマンド", "effect": "サービスはどれも複数の集約を参照するものだけになる。Concrete の不変条件は Concrete を変更する経路のすべてで守られる", "chosen": true},
+    {"option": "Concrete の検査（schema_rules）を Validator に含める", "effect": "Validator が instance の検証と Concrete の検査という2つの対象を持つ。Concrete を更新 ・ 公開するコマンドが Validator を呼び忘れると、不変条件に違反した Concrete が保存される", "chosen": false},
+    {"option": "Resolver を Validator に含める", "effect": "get と render が x-derive の値を得るために Validator を呼ぶことになり、検証結果の5つの値を返さない command が検証の部品に依存する", "chosen": false},
+    {"option": "描画を view の集約のメソッドにする", "effect": "view が instance と Concrete の状態を読むことになり、集約が他の集約をオブジェクトで参照する。描画は Renderer とする", "chosen": false},
+    {"option": "ポート：集約ごとのリポジトリ3つ ＋ 技術のポート5つ（AbstractSpec ・ JsonSchema ・ Query ・ Design ・ Agents）", "effect": "アプリケーション層の関数が、読む → コマンド → 保存 → 結果の形にそろう。走査はリポジトリの一覧で行う", "chosen": true},
+    {"option": "ポート：いまの Files をアプリケーション層とドメイン層から直接に使う", "effect": "パスと集約の対応がアプリケーション層の関数ごとに散り、ハッシュ値による排他（WriteIf）を呼ぶ側が毎回組む", "chosen": false},
+    {"option": "ポート：走査 ・ 索引のための専用のポートを足す", "effect": "索引を保存する前提になり、上の CQRS と同じく永続化モデルが2つになる", "chosen": false}
+  ],
+  "steps": [
+    {"do": "層を4つに分ける", "detail": "ドメイン層（集約3つ ・ 値オブジェクト ・ ドメインサービス3つ ・ ポートの trait）、アプリケーション層（command ごとの関数）、inbound adapter（CLI ・ MCP）、outbound adapter（ファイル ・ JSON Schema の実装 ・ JMESPath ・ カタログ ・ AI の CLI）。crate は core と adapters の2つで、依存の向きをビルドで守る"},
+    {"do": "ドメインサービスを3つにする", "detail": "Semantic Schema Validator：instance と Concrete の rule と x-ref の指す先を参照し、rule ごとに validator を選んで検証結果の5つの値で返す（いまの check.rs の検査と schema.rs の JSON Schema の検証）。Semantic Schema Resolver：$schema→Concrete ・ $ref→term ・ x-ref→指す先 ・ x-derive の導出（いまの check.rs の解決）。Semantic Schema Renderer：instance ・ Concrete ・ view を参照してページを組む（いまの renders.rs の判断の部分）"},
+    {"do": "集約1つで閉じる操作を集約のコマンドにする", "detail": "Concrete スキーマ：作成 ・ 更新 ・ 公開 ・ 自身の検査（いまの schema_rules.rs）。instance：作成 ・ JSON Patch の適用 ・ 削除の可否 ・ 承認（検証結果を引数に受け、verified でなければ拒否）。view：作成 ・ 更新"},
+    {"do": "command ごとの表を作る", "detail": "create：instance ・ Validator ・ Resolver ／ InstanceRepo ・ ConcreteRepo ・ JsonSchema。get（クエリ）：instance ・ Resolver ／ InstanceRepo ・ ConcreteRepo ・ Query。update：instance ・ Validator ・ Resolver ／ InstanceRepo ・ ConcreteRepo ・ JsonSchema。delete：instance ・ Resolver（指される数を数える）／ InstanceRepo。prompt（クエリ）：Concrete ／ ConcreteRepo。check（クエリ）：Validator ・ Resolver ／ InstanceRepo ・ ConcreteRepo ・ JsonSchema ・ Query ・ Agents。check-schemas（クエリ）：Concrete の自身の検査 ／ ConcreteRepo ・ AbstractSpec ・ JsonSchema。approve：instance ・ Validator ／ InstanceRepo ・ ConcreteRepo ・ JsonSchema ・ Agents。render（クエリ）：Renderer ・ Resolver ／ InstanceRepo ・ ConcreteRepo ・ ViewRepo ・ Design。publish：Concrete ／ ConcreteRepo ・ AbstractSpec。走査 ・ 索引（クエリ）：Resolver ／ InstanceRepo ・ ConcreteRepo ・ Query"},
+    {"do": "ポートを8つにする", "detail": "リポジトリ：ConcreteSchemaRepository ・ InstanceRepository ・ ViewRepository（読む ・ 保存 ・ 一覧。保存は読んだ時点のハッシュ値で排他する。いまの Files はファイルのアダプターの中へ移す）。技術：AbstractSpec（いまの Schemas。Abstract スキーマの版を読む）・ JsonSchema（JSON Schema の検証の実装）・ Query（JMESPath）・ Design（カタログ）・ Agents（AI の validator を呼ぶ）。Functions はポートではなくコールバックのまま残す"},
+    {"do": "構想 v0.3 の部品との対応を参考として記録する", "detail": "Schema Validator → Validator の中の JSON Schema の validator（JsonSchema のポート）。Vocabulary Resolver → Resolver の $ref→term。Contract Registry → Concrete スキーマの集約（公開した版）と ConcreteSchemaRepository。Relation/Graph Engine と Constraint Engine → Resolver の x-ref と Validator の rule（指される数は Validator）。Semantic Interpreter → Validator の中の AI の validator（Agents のポート）。Verification Engine → Validator の全体（検証結果の5つの値）。Renderer に当たる部品は構想に無い"}
+  ],
+  "grounds": [
+    {"criterion": "ports-and-adapters", "quote": "条件：業務ロジックがドメインモデル ・ 対応：ポートとアダプターを選択する ・ 理由：業務ロジックを技術的な関心事から切り離せる。レイヤードアーキテクチャでも実装はできるが、集約と値オブジェクトを基盤から独立させるには工夫をしなければならない"},
+    {"criterion": "ports-and-adapters", "quote": "ポート：業務ロジック層が定義する抽象的なインターフェースで、インフラストラクチャ層が実装する。業務ロジック層は、基盤のコンポーネントを直接には参照せず、ポートを介して連係する。"},
+    {"criterion": "layered-architecture", "quote": "条件：業務ロジックがドメインモデル ・ 対応：ポートとアダプターを選ぶ。レイヤードアーキテクチャでも実装はできるが、ポートとアダプターのほうがずっと適する ・ 理由：集約と値オブジェクトは基盤から独立し、基盤の知識を持つべきでないが、トップダウンの依存のままそれを満たすには工夫をしなければならない"},
+    {"criterion": "cqrs", "quote": "条件：永続化モデルが一つで、上のどちらでもない ・ 対応：実装方法に応じてレイヤードアーキテクチャかポートとアダプターを選択する ・ 理由：CQRS などの複雑な手段は、本当に必要なときの最後の手段とする"},
+    {"criterion": "cqrs", "quote": "対応：クエリは、読み取りモデルもコマンド実行モデルも変更しない ・ 理由：クエリは、永続化された状態を変更できない"},
+    {"criterion": "domain-service", "quote": "業務サービス（英語は Services）：業務ロジックだけを書き、自分の状態は持たないステートレスなオブジェクト。集約や値オブジェクトの中では不自然になる業務ロジックの置き場所で、ほとんどの場合、いろいろなコンポーネントの呼び出しをまとめて何かの計算や分析をする。"},
+    {"criterion": "aggregate", "quote": "Escalate は、リポジトリから最新の状態の集約を読み込み、コマンドを実行して保存し、結果を返す。並行処理の例外を検査する箇所が、集約の状態を一貫させるうえで最も重要である。"},
+    {"criterion": "aggregate", "quote": "構成するもの：コマンド ・ 役割：集約が公開する状態変更のメソッド。外部から渡された内容を検証し、業務ルールと不変条件に違反した状態になることを防ぐ。集約の状態は、コマンドを実行したときにだけ変わる"}
+  ],
+  "cautions": [
+    {"name": "ドメイン層が技術の実装を直接に呼ぶ（いまの schema.rs が jsonschema を使う形）", "risk": "JSON Schema の実装を取り替えると集約とサービスまで変わり、テストで差し替えられない", "alternative": "JsonSchema のポートをドメイン層に定義し、jsonschema を使う実装を adapters の crate に置く"},
+    {"name": "（推測）すべての検査を1つの Validator に集める", "risk": "Concrete の不変条件が、Concrete を変える経路から外れたサービスにだけ在り、呼び忘れで違反した状態が保存される", "alternative": "集約1つの不変条件は集約のコマンドの中で検査し、Validator は instance と複数の集約を参照する検証だけを持つ"}
+  ],
+  "ai_cautions": [
+    {"breaks": "ドメイン層の module が adapters の crate や jsonschema ・ jmespath の crate を use する", "check": "core の Cargo.toml の dependencies に jsonschema ・ jmespath ・ adapters が無いことを cargo metadata で確かめる"},
+    {"breaks": "クエリの command（get ・ check ・ check-schemas ・ prompt ・ render ・ 走査）がリポジトリの保存を呼ぶ", "check": "アプリケーション層のクエリの関数から save と remove への呼び出しが無いことを grep で検出する"},
+    {"breaks": "集約が他の集約をオブジェクトで持つ（view が instance を持つなど）", "check": "集約の struct のフィールドに他の集約の型が無く、ID の値オブジェクトだけであることを型の一覧で確かめる"}
+  ],
+  "next": [
+    "command ごとの表をボードの Q3 の答えへ載せる",
+    "Concrete の検査を Concrete の集約のコマンドへ移す案を、check-schemas の振る舞いが変わらないことと組で示す",
+    "JsonSchema ・ Agents ・ リポジトリ3つの trait の形を ports.rs の案として書く",
+    "索引を保存するかを Q1 の能力の「走査と索引」で決め、保存するときだけ CQRS を検討し直す"
+  ],
+  "related": [
+    {"criterion": "domain-model", "relation": "業務ロジックの実装方法をドメインモデルとした前提"},
+    {"criterion": "layered-architecture", "relation": "除外した層の切り方"},
+    {"criterion": "cqrs", "relation": "索引を保存するときに検討し直す技術方式"}
+  ]
+}
