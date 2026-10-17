@@ -9,7 +9,7 @@ def chip(o, x, y, w, t, cls="box"):
     o.append(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="30"/><text class="label" x="{x+10}" y="{y+20}">{e(t)}</text>')
 
 o = ['<svg viewBox="0 0 960 480" style="min-width:860px" role="img" aria-label="Semantic Schema Core の9つの概念と3つの集約">']
-o.append('<rect class="box" x="120" y="16" width="260" height="48"/><text class="label" x="132" y="37">Abstract スキーマ（版）</text><text class="note" x="132" y="55">値オブジェクト。名前@vN で決まる</text>')
+o.append('<rect class="box" x="90" y="16" width="340" height="48"/><text class="label" x="102" y="37">Semantic Domain Schema（Abstract の一員6つ）</text><text class="note" x="102" y="55">値オブジェクト。名前@vN で決まる</text>')
 o.append('<rect class="area" x="16" y="110" width="424" height="208"/><text class="title" x="30" y="134">Concrete スキーマの集約</text>')
 chip(o, 30, 150, 396, "Concrete スキーマ（集約のルート）", "box focus")
 chip(o, 30, 190, 396, "rule（id ・ rule ・ why ・ test）")
@@ -19,7 +19,7 @@ o.append('<path class="flow" d="M250,110 V64"/><text class="note" x="262" y="92"
 o.append('<rect class="area" x="16" y="370" width="424" height="80"/><text class="title" x="30" y="394">instance の集約</text>')
 chip(o, 30, 406, 396, "instance（集約のルート）", "box focus")
 o.append('<path class="flow" d="M250,370 V318"/><text class="note" x="262" y="350">$schema で指す</text>')
-o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに page ・ catalog ・ design-system で検証する</text>')
+o.append('<rect class="box" x="526" y="110" width="418" height="70"/><text class="label" x="540" y="132">view（値オブジェクト）</text><text class="note" x="540" y="152">ページテンプレート ・ カタログ ・ デザインシステム</text><text class="note" x="540" y="170">読むときに Semantic Domain Schema で検証する</text>')
 o.append('<path class="flow" d="M526,165 H440"/><text class="note" x="483" y="157" text-anchor="middle">x-view を読む</text>')
 o.append('<rect class="area" x="526" y="238" width="418" height="80"/><text class="title" x="540" y="262">承認の記録の集約</text>')
 chip(o, 540, 274, 390, "承認の記録（フォルダ1つに1件）", "box focus")
