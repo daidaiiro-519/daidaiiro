@@ -1,0 +1,241 @@
+{
+  "$schema": "brainstorming/round@v1",
+  "kind": "round",
+  "id": "1",
+  "board": "memo-place",
+  "round": 1,
+  "at": "2026-10-16T16:42:34Z",
+  "snapshot": {
+    "$schema": "brainstorming/board@v1",
+    "kind": "board",
+    "id": "memo-place",
+    "title": "このリポジトリの作業メモの置き場所",
+    "intro": "このリポジトリで作業するときのメモを、どこに、どんなファイルの形で置くかを決める。",
+    "status": "answer",
+    "queue": [
+      {
+        "topic": "Q0",
+        "why": "前提の無い論点で、Q1 のファイルの形はこの答えの場所に置くことを前提にしているから。"
+      }
+    ],
+    "log": [
+      {
+        "date": "2026-10-16",
+        "text": "第1回を出した"
+      },
+      {
+        "date": "2026-10-17",
+        "text": "ボードを作り、Q0 置き場所を開いた。Q1 ファイルの形は Q0 待ち。"
+      }
+    ],
+    "topics": [
+      {
+        "id": "Q0",
+        "name": "置き場所",
+        "status": "open",
+        "question": "このリポジトリの作業メモを、どこに置くか。",
+        "answer": {
+          "text": "リポジトリの根に notes/ を作り、作業メモはそこに置いてコミットする。",
+          "details": [
+            "notes/ は README.md と .brainstorming/ と並べ、リポジトリの根の直下に置く。",
+            "メモは git で管理し、ブランチと一緒に動かす。",
+            "README.md には作業メモを書かない。"
+          ]
+        },
+        "images": [
+          {
+            "kind": "tree",
+            "caption": "作業メモを notes/ に置いたときのリポジトリの根の形。",
+            "rows": [
+              {
+                "path": "acc-claude/",
+                "depth": 0,
+                "note": "リポジトリの根。"
+              },
+              {
+                "path": "README.md",
+                "depth": 1,
+                "note": "訪れた人向けの説明。作業メモは書かない。"
+              },
+              {
+                "path": "notes/",
+                "depth": 1,
+                "mark": "add",
+                "note": "作業メモを置く。コミットする。"
+              },
+              {
+                "path": ".brainstorming/",
+                "depth": 1,
+                "note": "論点のボード。作業メモとは分ける。"
+              }
+            ]
+          }
+        ],
+        "assumptions": [
+          "作業メモはリポジトリの履歴に残ってよく、ほかの人に見えてもよい。",
+          "メモに秘密（鍵 ・ 合言葉）は書かない。"
+        ],
+        "checks": [
+          {
+            "target": "答えの「コミットする」",
+            "ask": "作業メモが履歴に残り、リポジトリを見る人に見えてよいかを確かめてほしい。"
+          },
+          {
+            "target": "完成イメージの notes/ という名前",
+            "ask": "フォルダの名前が notes/ でよいかを確かめてほしい。"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "根に notes/ を足すだけで済むこと",
+            "basis": "リポジトリにあるのは README.md だけで、docs/ も .gitignore も無い。",
+            "tag": "measured",
+            "source": "リポジトリの根のファイル一覧（2026-10-17 に Glob で確認）"
+          },
+          {
+            "supports": "README.md に作業メモを書かないこと",
+            "basis": "README.md の中身は「# 練習のリポジトリ」の1行で、訪れた人向けの題である。",
+            "tag": "measured",
+            "source": "README.md"
+          },
+          {
+            "supports": ".git/info/exclude で隠す案を外したこと",
+            "basis": ".git/info/exclude は .git/ の中にあり、コミットされず、clone した先には届かない。",
+            "tag": "rule",
+            "source": "git の仕組み（.git/ の中身は作業ツリーとしてコミットされない）"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "README.md に作業メモを書き足す",
+            "reason": "訪れた人向けの説明に途中の考えが混ざり、README.md が読めなくなる。"
+          },
+          {
+            "option": ".notes/ を作り .git/info/exclude で git から外す",
+            "reason": "メモが手元の1台にしか残らず、履歴にも残らないので、ほかの機械や人に渡せない。"
+          },
+          {
+            "option": "リポジトリの外（ホームの ~/notes/ など）に置く",
+            "reason": "メモとコミットの結び付きが切れ、どのメモがこのリポジトリのものかが分からなくなる。"
+          },
+          {
+            "option": "docs/notes/ に置く",
+            "reason": "docs/ がまだ無く、中身の無い段を1つ増やすだけになる。"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "根の notes/ にコミットして置く",
+              "cost": "メモが履歴と公開範囲に入る。秘密を書かない決まりが要る。"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "リポジトリを公開するかどうか",
+              "treatment": "out",
+              "note": "このボードでは決めない。"
+            },
+            {
+              "item": "古いメモを消すか残すかの決まり",
+              "treatment": "later",
+              "note": "メモが増えてから決める。"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Q1",
+        "name": "ファイルの形",
+        "status": "waiting",
+        "depends": [
+          "Q0"
+        ],
+        "question": "Q0 の notes/ に置く作業メモを、どんなファイルの形で書くか。",
+        "answer": {
+          "text": "Q0 の notes/ に、1回の作業ごとに notes/YYYY-MM-DD-<話題>.md の Markdown を1つ作る。",
+          "details": [
+            "ファイル名は日付と、小文字の英数字とハイフンの話題でつくる。",
+            "本文は題の見出しのあと「やったこと」「分かったこと」「次にやること」の3つの見出しを置く。",
+            "front matter は付けない。日付と話題はファイル名が持つ。"
+          ]
+        },
+        "images": [
+          {
+            "kind": "code",
+            "caption": "1回の作業のメモを1つのファイルに書いた例。",
+            "path": "notes/2026-10-17-memo-place.md",
+            "language": "markdown",
+            "text": "# 作業メモの置き場所を決める\n\n## やったこと\n- .brainstorming/memo-place.json を作った\n\n## 分かったこと\n- リポジトリには README.md しかない\n\n## 次にやること\n- Q0 の回答を待つ\n",
+            "highlight": [
+              3,
+              6,
+              9
+            ],
+            "note": "どのメモにも置く3つの見出しである。"
+          }
+        ],
+        "assumptions": [
+          "Q0 の答えのとおり、メモは notes/ に置いてコミットする。",
+          "メモは手で書き、道具で読み取らない。"
+        ],
+        "checks": [
+          {
+            "target": "ファイル名の notes/YYYY-MM-DD-<話題>.md",
+            "ask": "日付と話題でファイルを分ける形でよいかを確かめてほしい。"
+          },
+          {
+            "target": "完成イメージの3つの見出し",
+            "ask": "メモに毎回置く見出しがこの3つでよいかを確かめてほしい。"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "日付を先頭に置くこと",
+            "basis": "YYYY-MM-DD の形の名前は、文字の順に並べると日付の順になる。",
+            "tag": "rule",
+            "source": "ISO 8601 の日付の書き方"
+          },
+          {
+            "supports": "1回の作業ごとに分けること",
+            "basis": "Q0 でメモはコミットしてブランチと一緒に動かすと決めた。1つのファイルに追記すると、ブランチを合わせるたびに同じ末尾で衝突する。",
+            "tag": "assumption",
+            "source": "Q0 の答え"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "notes/log.md の1つのファイルに追記していく",
+            "reason": "ブランチごとに同じ末尾へ書き足すので、合わせるたびに衝突し、ファイルも際限なく長くなる。"
+          },
+          {
+            "option": "話題ごとに notes/<話題>.md を作り、書き足していく",
+            "reason": "いつの作業かがファイル名から分からなくなり、話題の名前を毎回決めなおすことになる。"
+          },
+          {
+            "option": "JSON や YAML の決まった形で書く",
+            "reason": "手で書くのが重く、差分も読みにくい。メモを道具で読む予定も無い。"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "日付と話題の名前の Markdown を1回ごとに作る",
+              "cost": "ファイルの数が増える。片付けの決まりはあとで要る。"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "notes/ の中を一覧する索引のファイル",
+              "treatment": "later",
+              "note": "メモが増えてから決める。"
+            }
+          ]
+        }
+      }
+    ],
+    "round": 1,
+    "opened": "2026-10-16",
+    "changes": []
+  }
+}

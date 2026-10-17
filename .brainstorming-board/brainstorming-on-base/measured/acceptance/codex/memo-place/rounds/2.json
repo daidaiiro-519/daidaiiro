@@ -1,0 +1,215 @@
+{
+  "$schema": "brainstorming/round@v1",
+  "kind": "round",
+  "id": "2",
+  "board": "memo-place",
+  "round": 2,
+  "at": "2026-10-16T16:44:30Z",
+  "snapshot": {
+    "$schema": "brainstorming/board@v1",
+    "kind": "board",
+    "id": "memo-place",
+    "title": "このリポジトリの作業メモをどこに置くか",
+    "intro": "作業メモの置き場所と、そこに残すファイルの形を決める。",
+    "status": "answer",
+    "queue": [
+      {
+        "topic": "Q1",
+        "why": "第1回で Q0 の置き場所が承認され、ファイルの形を決める前提が決着したため。"
+      }
+    ],
+    "topics": [
+      {
+        "id": "Q0",
+        "name": "置き場所",
+        "status": "settled",
+        "question": "このリポジトリの作業メモをどこに置くか。",
+        "answer": {
+          "text": "リポジトリ直下の notes/ に作業メモを集める。",
+          "details": [
+            "notes/ は作業の経緯・調査・次の一手を残す場所にする。",
+            "README.md はリポジトリの入口に保ち、メモ本文を追記しない。",
+            "ファイルの命名と本文は下流の論点で決める。"
+          ]
+        },
+        "images": [
+          {
+            "kind": "tree",
+            "caption": "作業メモ用の notes/ を直下に追加する構成。",
+            "rows": [
+              {
+                "path": "README.md",
+                "depth": 0,
+                "note": "既存のリポジトリの入口"
+              },
+              {
+                "path": "notes/",
+                "depth": 0,
+                "mark": "add",
+                "note": "作業メモの置き場所。中のファイルの形は次に決める。"
+              },
+              {
+                "path": ".brainstorming/",
+                "depth": 0,
+                "note": "意思決定ボードの保管場所"
+              }
+            ]
+          }
+        ],
+        "depends": [],
+        "assumptions": [
+          "作業メモはリポジトリと一緒に共有・履歴管理する。"
+        ],
+        "checks": [
+          {
+            "target": "notes/",
+            "ask": "作業メモを直下の専用フォルダに集める方針を承認できるか。"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "新しい専用フォルダを設ける判断",
+            "basis": "README.md の内容は「# 練習のリポジトリ」で、既存のメモ用ディレクトリは無い。",
+            "tag": "measured",
+            "source": "README.md:1 とリポジトリ直下の ls -la（作成前に確認）"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "README.md に作業メモを追記する",
+            "reason": "作業が増えるたびに入口の説明と経緯が混ざり、概要を探しにくくなる。"
+          },
+          {
+            "option": ".brainstorming/ に作業メモも置く",
+            "reason": "決定用のボード・回の記録と通常の作業記録が混ざり、用途の境界が崩れる。"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "notes/ に集約する",
+              "cost": "フォルダは1つ増えるが、入口と経緯を分けられるため採用する。"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "notes/ の実ファイル作成と README のリンク追加",
+              "treatment": "later",
+              "note": "ボードの決着後の実装で行う。"
+            }
+          ],
+          "history": [
+            "README 追記・専用 notes/・ボード内混在の3案を反証し、専用 notes/ だけを残した。"
+          ]
+        }
+      },
+      {
+        "id": "Q1",
+        "name": "ファイルの形",
+        "status": "open",
+        "question": "Q0 の置き場所を前提に、作業メモをどのファイル形式と単位で残すか。",
+        "answer": {
+          "text": "Q0 の notes/ に、日付と作業名を付けた1作業1 Markdown ファイルを置く。",
+          "details": [
+            "ファイル名は YYYY-MM-DD-短い作業名.md とし、同じ作業の続きは同じファイルへ追記する。",
+            "本文の見出しは目的・作業記録・決まったこと・次にやることにそろえる。",
+            "Q0 の承認後にこの答えを開き、置き場所が変わればパスを合わせる。"
+          ]
+        },
+        "images": [
+          {
+            "kind": "code",
+            "caption": "Q0 が承認された場合の Markdown メモの完成例。",
+            "path": "notes/2026-10-17-memo-place.md",
+            "language": "markdown",
+            "text": "# 作業メモの置き場所\n\n## 目的\n作業の経緯を後から確認できるようにする。\n\n## 作業記録\n- README と直下の構成を確認した。\n\n## 決まったこと\n- 承認後に決定事項と理由を記す。\n\n## 次にやること\n- [ ] 承認された構成でメモを作成する。"
+          }
+        ],
+        "depends": [
+          "Q0"
+        ],
+        "assumptions": [
+          "Q0 の notes/ 案が承認される場合の仮案である。",
+          "メモは人がエディタで読み書きする。"
+        ],
+        "checks": [
+          {
+            "target": "Markdown の完成例",
+            "ask": "1作業1ファイルと4つの見出しで経緯を追えるか。"
+          }
+        ],
+        "grounds": [
+          {
+            "supports": "Markdown を使う判断",
+            "basis": "既存の入口が README.md であり、追加の専用アプリを必要としないテキスト形式に合わせられる。",
+            "tag": "primary",
+            "source": "README.md"
+          },
+          {
+            "supports": "パスを notes/ とする前提",
+            "basis": "専用 notes/ に集めるという未承認の答えを仮に採用する。",
+            "tag": "assumption",
+            "source": "memo-place の Q0"
+          }
+        ],
+        "rejected": [
+          {
+            "option": "notes/memo.md の1ファイルに全作業を追記する",
+            "reason": "異なる作業の続きが混ざり、作業単位で参照・見直ししにくくなる。"
+          },
+          {
+            "option": "1作業1 JSON ファイルにする",
+            "reason": "自由な調査記録やコード断片を書くたびに構文の制約が増え、人が読み書きする用途に余分な負担がある。"
+          }
+        ],
+        "verification": {
+          "passed": [
+            {
+              "option": "1作業1 Markdown ファイル",
+              "cost": "ファイルは増えるが、日付と作業名で識別でき、作業ごとの経緯を閉じ込められる。"
+            }
+          ],
+          "out_of_scope": [
+            {
+              "item": "メモの自動生成や検索ツールの導入",
+              "treatment": "out",
+              "note": "今回の置き場所・形の決定には含めない。"
+            },
+            {
+              "item": "外の作業：notes/2026-10-17-memo-place.md を作成し、完成例の4見出しで実際の作業記録を書いて読み返す",
+              "treatment": "later",
+              "note": "Q1 の承認後にファイルの形を試す行き先とする。"
+            }
+          ],
+          "history": [
+            "単一 Markdown・作業別 Markdown・作業別 JSON を反証し、作業別 Markdown だけを残した。"
+          ]
+        }
+      }
+    ],
+    "round": 2,
+    "opened": "2026-10-16",
+    "changes": [
+      {
+        "topic": "Q0",
+        "part": "status",
+        "summary": "承認されて決着した"
+      },
+      {
+        "topic": "Q1",
+        "part": "status",
+        "summary": "いま答える論点にした"
+      }
+    ],
+    "log": [
+      {
+        "date": "2026-10-16",
+        "text": "第2回を出した（変わったところ 2か所）"
+      },
+      {
+        "date": "2026-10-16",
+        "text": "第1回を出した"
+      }
+    ]
+  }
+}

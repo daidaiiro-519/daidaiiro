@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-abstract": "schema-driven/abstract@v1",
+  "$id": "brainstorming/tokens@v1",
+  "title": "デザイントークン（Design Tokens 形式）",
+  "description": "画面の見た目の正本。Design Tokens 形式（2025.10）の明と暗の2つのファイルで持ち、明と暗は同じパスで値だけを替える。brainstorming tokens が design-system.json（schema-driven/design-system@v1）へ移す。",
+  "x-prompt": {
+    "read": {
+      "means": "ux-advisor が設計相談で出したデザインシステムのトークンである。"
+    },
+    "write": [
+      {
+        "id": "source-of-truth",
+        "rule": "色や寸法を直すときは、このファイルだけを直してから brainstorming tokens を実行する。",
+        "why": "design-system.json を手で直すと、正本と食い違う。",
+        "test": "brainstorming tokens --check が差を出さないかを見る。"
+      },
+      {
+        "id": "same-paths",
+        "rule": "暗のファイルには、明と同じパスで値を替えるトークンだけを書く。",
+        "why": "明に無いパスは、明のときに値が無い。",
+        "test": "暗のパスが、すべて明にあるかを見る。"
+      }
+    ]
+  },
+  "type": "object",
+  "required": [
+    "$schema"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "brainstorming/tokens@v1",
+      "description": "従うスキーマの名前",
+      "x-prompt": {
+        "read": {
+          "means": "このファイルが従う型の名前である。"
+        },
+        "write": [
+          {
+            "id": "this-name",
+            "rule": "brainstorming/tokens@v1 と書く。",
+            "why": "エンジンは名前で型を引く。",
+            "test": "値を見る。"
+          }
+        ]
+      }
+    },
+    "$extensions": {
+      "type": "object",
+      "description": "Design Tokens 形式に無いもの。works.daidaiiro.contrast にコントラストを確かめる組を置く",
+      "x-prompt": {
+        "read": {
+          "means": "形式に無い情報の置き場所である。"
+        },
+        "write": [
+          {
+            "id": "contrast-pairs",
+            "rule": "文字と背景 ・ 部品の境界と背景の組を works.daidaiiro.contrast に並べる。",
+            "why": "基盤は宣言された組だけを比べる。",
+            "test": "CSS で組にしているトークンが並んでいるかを見る。"
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/group"
+  },
+  "$defs": {
+    "group": {
+      "type": "object",
+      "description": "トークンの群か、トークン1つ（$value を持つ）",
+      "properties": {
+        "$type": {
+          "enum": [
+            "color",
+            "dimension",
+            "fontFamily",
+            "fontWeight",
+            "number",
+            "typography"
+          ],
+          "description": "トークンの型。群に書くと中のトークンに及ぶ",
+          "x-prompt": {
+            "read": {
+              "means": "トークンの型である。"
+            },
+            "write": [
+              {
+                "id": "on-group",
+                "rule": "同じ型のトークンをまとめた群に1回書く。",
+                "why": "トークンごとに書くと、片方だけ違う型になる。",
+                "test": "群の中に別の型のトークンが無いかを見る。"
+              }
+            ]
+          }
+        },
+        "$description": {
+          "type": "string",
+          "description": "何に使うかの説明",
+          "x-prompt": {
+            "read": {
+              "means": "トークンか群の説明である。"
+            },
+            "write": [
+              {
+                "id": "when-unclear",
+                "rule": "名前だけでは使い道が分からないときに書く。",
+                "why": "全部に書くと、読むべき説明が埋もれる。",
+                "test": "名前と同じことを繰り返していないかを見る。"
+              }
+            ]
+          }
+        },
+        "$value": {
+          "description": "トークンの値。{群.名前} でほかのトークンを指せる",
+          "x-prompt": {
+            "read": {
+              "means": "トークンの値である。"
+            },
+            "write": [
+              {
+                "id": "base-only-literals",
+                "rule": "色の値は基礎の層（base）にだけ書き、意味の層は {base.…} で指す。",
+                "why": "同じ色を2か所に書くと、片方だけ直ることがある。",
+                "test": "base の外に色の値が無いかを見る。"
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/group"
+      }
+    }
+  }
+}

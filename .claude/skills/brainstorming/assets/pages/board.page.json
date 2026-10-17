@@ -1,0 +1,280 @@
+{
+ "$schema": "schema-driven/page@v1",
+ "kind": "board",
+ "head": {
+  "page": {
+   "text": "board"
+  },
+  "board": "this.id",
+  "side": {
+   "component": "sidebar",
+   "answer": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='answer']",
+     "id": "id",
+     "title": "title",
+     "sub": "join(' ・ ', topics[?status=='open'].join(' ', [id, name]))",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "working": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='working']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "hold": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='hold']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "done": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='done']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "answer_count": "length(instances[?kind=='board' && status=='answer'])",
+   "working_count": "length(instances[?kind=='board' && status=='working'])",
+   "hold_count": "length(instances[?kind=='board' && status=='hold'])",
+   "done_count": "length(instances[?kind=='board' && status=='done'])"
+  },
+  "chat": {
+   "component": "chat-panel",
+   "board": "this.id"
+  },
+  "round": "this.round"
+ },
+ "sections": [
+  {
+   "heading": "ボード",
+   "body": [
+    {
+     "component": "board-head",
+     "round": "this.round",
+     "id": "this.id",
+     "title": "this.title",
+     "intro": "this.intro || ''",
+     "chips": [
+      {
+       "component": "topic-chip",
+       "each": "this.topics",
+       "id": "id",
+       "status": "status",
+       "label": "status=='open' && 'いま答える' || status=='settled' && '決着' || '前提待ち'"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "この回で変わったところ",
+   "show": "length(this.changes || `[]`) > `0`",
+   "body": [
+    {
+     "component": "changes-band",
+     "count": "length(this.changes)",
+     "items": [
+      {
+       "component": "change-item",
+       "each": "this.changes",
+       "topic": "topic",
+       "part": "part",
+       "part_label": "part=='question' && '問い' || part=='answer' && '答え' || part=='details' && '詳しい決まり' || part=='images' && '完成イメージ' || part=='assumptions' && '置いた前提' || part=='checks' && '確かめてほしい箇所' || part=='grounds' && '根拠' || part=='rejected' && '採らなかった案' || part=='status' && '状態' || part=='added' && '足した論点' || part",
+       "summary": "summary",
+       "reason": "reason || ''"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "論点",
+   "body": [
+    {
+     "component": "topic-panel",
+     "each": "this.topics",
+     "id": "id",
+     "status": "status",
+     "status_label": "status=='open' && 'いま答える' || status=='settled' && '決着' || '前提待ち'",
+     "question": "question",
+     "answer": "answer.text",
+     "details": [
+      {
+       "component": "details-list",
+       "show": "length(answer.details || `[]`) > `0`",
+       "count": "length(answer.details)",
+       "items": [
+        {
+         "component": "list-item",
+         "each": "answer.details",
+         "text": "@"
+        }
+       ]
+      }
+     ],
+     "images": [
+      {
+       "component": "images-block",
+       "show": "length(images || `[]`) > `0`",
+       "tabs": [
+        {
+         "component": "image-tab",
+         "each": "images",
+         "kind": "kind",
+         "label": "kind=='figure' && '図' || kind=='screen' && '画面' || kind=='code' && 'コード' || kind=='diff' && '差分' || kind=='tree' && 'フォルダ構成' || kind=='run' && '実行例'"
+        }
+       ],
+       "panes": [
+        {
+         "component": "image-figure",
+         "each": "images[?kind=='figure']",
+         "caption": "caption",
+         "svg": "svg"
+        },
+        {
+         "component": "image-screen",
+         "each": "images[?kind=='screen']",
+         "caption": "caption",
+         "html": "html",
+         "height": "height || `360`"
+        },
+        {
+         "component": "image-code",
+         "each": "images[?kind=='code']",
+         "caption": "caption",
+         "path": "path || ''",
+         "language": "language",
+         "highlight": "join(',', (highlight || `[]`)[].to_string(@))",
+         "note": "note || ''",
+         "text": "text"
+        },
+        {
+         "component": "image-diff",
+         "each": "images[?kind=='diff']",
+         "caption": "caption",
+         "path": "path",
+         "layout": "layout || 'unified'",
+         "before": "before",
+         "after": "after"
+        },
+        {
+         "component": "image-tree",
+         "each": "images[?kind=='tree']",
+         "caption": "caption",
+         "rows": [
+          {
+           "component": "tree-row",
+           "each": "rows",
+           "path": "path",
+           "depth": "depth",
+           "note": "note || ''",
+           "mark": "mark || ''",
+           "mark_label": "mark=='add' && '+ 足す' || mark=='remove' && '− 消す' || mark=='change' && '~ 変える' || ''"
+          }
+         ]
+        },
+        {
+         "component": "image-run",
+         "each": "images[?kind=='run']",
+         "caption": "caption",
+         "cwd": "cwd || ''",
+         "command": "command",
+         "output": "output || ''",
+         "exit": "exit"
+        }
+       ]
+      }
+     ],
+     "assumptions": [
+      {
+       "component": "numbered-block",
+       "show": "length(assumptions || `[]`) > `0`",
+       "part": {
+        "text": "assumptions"
+       },
+       "heading": {
+        "text": "置いた前提"
+       },
+       "items": [
+        {
+         "component": "list-item",
+         "each": "assumptions",
+         "text": "@"
+        }
+       ]
+      }
+     ],
+     "checks": [
+      {
+       "component": "numbered-block",
+       "show": "length(checks || `[]`) > `0`",
+       "part": {
+        "text": "checks"
+       },
+       "heading": {
+        "text": "確かめてほしい箇所"
+       },
+       "items": [
+        {
+         "component": "check-item",
+         "each": "checks",
+         "target": "target",
+         "ask": "ask"
+        }
+       ]
+      }
+     ],
+     "support": [
+      {
+       "component": "support-block",
+       "show": "length(grounds || `[]`) > `0` || length(rejected || `[]`) > `0`",
+       "grounds_count": "length(grounds || `[]`)",
+       "rejected_count": "length(rejected || `[]`)",
+       "grounds": [
+        {
+         "component": "ground-row",
+         "each": "grounds",
+         "supports": "supports",
+         "basis": "basis",
+         "tag": "tag",
+         "tag_label": "tag=='measured' && '実測' || tag=='primary' && '原典' || tag=='rule' && '決まり' || tag=='assumption' && '前提' || tag=='unverified' && '未確認'",
+         "source": "source"
+        }
+       ],
+       "rejected": [
+        {
+         "component": "rejected-row",
+         "each": "rejected",
+         "option": "option",
+         "reason": "reason"
+        }
+       ]
+      }
+     ],
+     "form": [
+      {
+       "component": "answer-form",
+       "show": "status=='open'",
+       "id": "id"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-abstract": "schema-driven/abstract@v1",
+  "$id": "brainstorming/dashboard@v1",
+  "title": "ダッシュボード",
+  "description": "全部のボードのまとめを描くための1枚。中身は描画のときに .brainstorming/ のボードから数える。.brainstorming/dashboard.json に置く。",
+  "x-prompt": {
+    "read": {
+      "means": "ダッシュボードのページを描くための印である。"
+    },
+    "write": [
+      {
+        "id": "no-copies",
+        "rule": "ボードの中身を写さない。",
+        "why": "写すとボードを直したときに古くなる。",
+        "test": "title と kind のほかに値が無いかを見る。"
+      }
+    ]
+  },
+  "x-generates": ".brainstorming/dashboard.json",
+  "x-view": {
+    "label": "title"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "title"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "従うスキーマの名前",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスが従う型の名前である。"
+        },
+        "write": [
+          {
+            "id": "this-name",
+            "rule": "brainstorming/dashboard@v1 と書く。",
+            "why": "エンジンは、この名前で型のスキーマを引く。",
+            "test": "値がこの文字列と同じかを見る。"
+          }
+        ]
+      },
+      "const": "brainstorming/dashboard@v1"
+    },
+    "kind": {
+      "description": "インスタンスの種類",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスの種類である。"
+        },
+        "write": [
+          {
+            "id": "const",
+            "rule": "dashboard と書く。",
+            "why": "ページテンプレートと参照は kind で選ぶ。",
+            "test": "値が同じかを見る。"
+          }
+        ]
+      },
+      "const": "dashboard"
+    },
+    "id": {
+      "description": "名前",
+      "x-prompt": {
+        "read": {
+          "means": "dashboard である。"
+        },
+        "write": [
+          {
+            "id": "const",
+            "rule": "dashboard と書く。",
+            "why": "ファイル名と同じにする。",
+            "test": "値を見る。"
+          }
+        ]
+      },
+      "const": "dashboard"
+    },
+    "title": {
+      "description": "題",
+      "x-prompt": {
+        "read": {
+          "means": "ダッシュボードの題である。"
+        },
+        "write": [
+          {
+            "id": "short",
+            "rule": "短く書く。",
+            "why": "ページの先頭に出る。",
+            "test": "40字までかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

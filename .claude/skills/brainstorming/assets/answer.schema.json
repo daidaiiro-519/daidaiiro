@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-abstract": "schema-driven/abstract@v1",
+  "$id": "brainstorming/answer@v1",
+  "title": "回答",
+  "description": "画面から送られた、論点1つへの回答。serve が .brainstorming/<ボード>/answers/ に1件ずつ書き、書き換えない。",
+  "x-prompt": {
+    "read": {
+      "means": "利用者が論点1つに出した回答である。"
+    },
+    "write": [
+      {
+        "id": "one-per-topic",
+        "rule": "論点1つに1件書く。",
+        "why": "論点に対して決定は1つである。",
+        "test": "同じ回の同じ論点に2件無いかを見る。"
+      }
+    ]
+  },
+  "x-generates": ".brainstorming/<ボード>/answers/<回>-<論点>-<連番>.json",
+  "x-view": {
+    "label": "join(' ', [board, topic])"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "kind",
+    "id",
+    "board",
+    "round",
+    "topic",
+    "decision",
+    "at"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "従うスキーマの名前",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスが従う型の名前である。"
+        },
+        "write": [
+          {
+            "id": "this-name",
+            "rule": "brainstorming/answer@v1 と書く。",
+            "why": "エンジンは、この名前で型のスキーマを引く。",
+            "test": "値がこの文字列と同じかを見る。"
+          }
+        ]
+      },
+      "const": "brainstorming/answer@v1"
+    },
+    "kind": {
+      "description": "インスタンスの種類",
+      "x-prompt": {
+        "read": {
+          "means": "このインスタンスの種類である。"
+        },
+        "write": [
+          {
+            "id": "const",
+            "rule": "answer と書く。",
+            "why": "ページテンプレートと参照は kind で選ぶ。",
+            "test": "値が同じかを見る。"
+          }
+        ]
+      },
+      "const": "answer"
+    },
+    "id": {
+      "description": "回答の名前",
+      "x-prompt": {
+        "read": {
+          "means": "回答のファイル名である。"
+        },
+        "write": [
+          {
+            "id": "file-name",
+            "rule": "<回>-<論点>-<連番> と書く。",
+            "why": "同じ論点に回答し直しても上書きしない。",
+            "test": "ファイル名と同じかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^[0-9]+-Q[0-9]+-[0-9]+$"
+    },
+    "board": {
+      "description": "ボードの id",
+      "x-prompt": {
+        "read": {
+          "means": "回答したボードである。"
+        },
+        "write": [
+          {
+            "id": "by-id",
+            "rule": "ボードの id を書く。",
+            "why": "回答を描画しないボードへ戻す。",
+            "test": "ボードがあるかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "round": {
+      "description": "回答した回",
+      "x-prompt": {
+        "read": {
+          "means": "回答した回の番号である。"
+        },
+        "write": [
+          {
+            "id": "current",
+            "rule": "そのときの回の番号を書く。",
+            "why": "前の回への回答を区別する。",
+            "test": "ボードの round 以下かを見る。"
+          }
+        ]
+      },
+      "type": "integer",
+      "minimum": 1
+    },
+    "topic": {
+      "description": "論点の id",
+      "x-prompt": {
+        "read": {
+          "means": "回答した論点である。"
+        },
+        "write": [
+          {
+            "id": "open-only",
+            "rule": "いま答える論点の id を書く。",
+            "why": "決着した論点への回答は使わない。",
+            "test": "論点の状態が open かを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^Q[0-9]+$"
+    },
+    "decision": {
+      "description": "回答",
+      "x-prompt": {
+        "read": {
+          "means": "承認 ・ 差し戻し ・ まだ答えないのどれかである。"
+        },
+        "write": [
+          {
+            "id": "three",
+            "rule": "approve ・ return ・ hold のどれかを書く。",
+            "why": "advance はこの値で論点を進める。",
+            "test": "値が3つのどれかかを見る。"
+          }
+        ]
+      },
+      "enum": [
+        "approve",
+        "return",
+        "hold"
+      ]
+    },
+    "where": {
+      "description": "どこが違うか",
+      "x-prompt": {
+        "read": {
+          "means": "差し戻すときに指す箇所である。"
+        },
+        "write": [
+          {
+            "id": "required-on-return",
+            "rule": "差し戻すときは必ず書く。",
+            "why": "どこが違うかが無い差し戻しは、次の回で直せない。",
+            "test": "decision が return のとき、空でないかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "description": "理由",
+      "x-prompt": {
+        "read": {
+          "means": "差し戻しや保留の理由である。"
+        },
+        "write": [
+          {
+            "id": "as-said",
+            "rule": "利用者の言葉のまま書く。",
+            "why": "advance は、変わったところの理由にこの言葉を入れる。",
+            "test": "言い換えていないかを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1
+    },
+    "note": {
+      "description": "書き足し",
+      "x-prompt": {
+        "read": {
+          "means": "承認でも差し戻しでも書ける補足である。"
+        },
+        "write": [
+          {
+            "id": "optional",
+            "rule": "書かなくてよい。",
+            "why": "補足だけのために回答を分けない。",
+            "test": "―"
+          }
+        ]
+      },
+      "type": "string",
+      "minLength": 1
+    },
+    "at": {
+      "description": "送った時刻",
+      "x-prompt": {
+        "read": {
+          "means": "回答を送った時刻である。"
+        },
+        "write": [
+          {
+            "id": "by-serve",
+            "rule": "serve が書く。",
+            "why": "同じ論点の回答の新しい順を決める。",
+            "test": "時刻の形かを見る。"
+          }
+        ]
+      },
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "return",
+            "x-prompt": {
+              "read": {
+                "means": "decisionである。"
+              },
+              "write": [
+                {
+                  "id": "as-described",
+                  "rule": "説明のとおりに書く。",
+                  "why": "読み手とツールは説明のとおりに読む。",
+                  "test": "説明と合っているかを見る。"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "where"
+        ]
+      }
+    }
+  ]
+}

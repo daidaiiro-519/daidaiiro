@@ -42,19 +42,8 @@ ACDR 0169（2026-10-12、1712d68c）で schema-driven を新しい契約だけ�
 - アドバイザーの回答はボードの advisors/、CLI の実測は measured/、原文の取り直し方（meta.json）と調べのまとめは sources/ にある（原文そのものは追跡しない）。
 - ボードの本体は `.brainstorming/<ボード>.json`、回の記録 ・ 回答 ・ 図は `.brainstorming/<ボード>/`（基盤の check と render が直下しか読まないため。2026-10-17 利用者の選択）。
 - 試作の画面：アプリ https://claude.ai/artifact/U4UvC4GPvBhxjVrWY4qEz1 ・ 論点 https://claude.ai/artifact/M73AEfCEP3GTi1u1e3211V（生成の台本はセッションの作業用の領域にだけあり、HTML はボードの Q2 に入っている）。
-- 次：回答を受けて決着させ、ACDR を出し、src/brainstorming/ を作る。
-
-## 次にすること（順番）
-
-1. Q5 の承認 → ボードを決着させる
-2. ボード concrete-schema-roles（Artifact https://claude.ai/artifact/5BwJynkVP75zgTFBrU1chE、1回目）の Q1（3つの層と②の契約と責務）・ Q2（②を③と同じ道筋で扱う＝案 A、規則1つ）と Q3（creator は Agent Skills ・ Agent の形の雛形と検査だけを持つ）まで全部決着（2026-10-12）。ACDR 0170（規則と abstract の決まり）・ 0171（取り込むファイルを crate files の build.rs がフォルダから一覧にし、名前で引く。相対パスをなくした）承認・コミット済み。次は skills-creator の ACDR（雛形3つ・scaffold の --kind 等を外す・試験名から版を外す）。決着したら schema-driven の ACDR（規則と abstract の決まり）。そのあと skills-creator を仕上げる ACDR（tools.json、type_v1.rs と data/skill-v1 の名前から版を外す＝ボード skills-creator-rebuild 論点3の改め直し）。そのあと schema-driven のカタログの ACDR：カタログに部品を4つ足し、9つ変え、トークンを入れる。check が maxContains の超過を「contains のスキーマに合う要素が無い」と返す誤りも直す
-3. advance ・ inspect ・ serve を `src/brainstorming-board/` に Rust で作り、ブレストボードを移す ACDR を出して適用する。移したら `src/skills-creator/tests/baseline-v3/brainstorming-board.json` を消す
-4. acdr を新しい形で作り直す（0162 もここで扱う）
-5. agents creator：新しい形のブレストボードを試す1枚目として作る（最初の論点は「Agent」が何を指すか）
-6. 残りの Skill を移す。アドバイザーは最後に Agent にする
-7. 配布物（tools.json の OS ごとの SHA-256 ・ accept と dist ・ release.yml ・ インストールの台本。作業ツリーに未コミットの変更あり）と、スキーマの無い JSON の洗い出し
-
-## 移すときに使うもの
-
-- 移す試験：`cd src/skills-creator && cargo test`。版3 の Skill を移したら、その Skill の baseline を消す（消し忘れると試験が落ちる）
-- 古い skills-creator は `src/skills-creator-v3/` に凍結してある
+- 2026-10-17：ボードは5つとも承認・決着。src/brainstorming/（core ・ adapters ・ xtask、試験76件）と .claude/skills/brainstorming/（SKILL.md ・ assets/ のスキーマ6 ・ ページ2 ・ カタログ）を作業ツリーで作った（未コミット）。ACDR 0183（Artifact https://claude.ai/artifact/Pom4jdrh1TDeb3FB1ELrLe、proposed）を出して承認待ち。画面の見本は Artifact https://claude.ai/artifact/HBnM941bs4qric1JLAc9XH。
+- 受け入れの記録はボード brainstorming-on-base の measured/acceptance/（Claude Code と Codex で回を2回、serve の AI に聞くを3つの CLI で）。
+- 3 OS の確かめは一時ブランチ probe-brainstorming（push で動く設定）で実行中。承認後に消す。作業フォルダの git worktree は scratchpad の probe-wt。
+- 承認されたら：状態を accepted にして描き直し、main へコミット ・ push、tag brainstorming-v0.1.0 で公開、probe-brainstorming を消す。
+- 残る別の目的：ワークフローを3本から共通の1本にまとめる（skills-creator.yml の注記「私たちが管理するものが3つになったら」）。古い brainstorming-board の Skill と .mcp.json の登録の扱い。

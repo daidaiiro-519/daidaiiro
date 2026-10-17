@@ -1,0 +1,136 @@
+{
+ "$schema": "schema-driven/page@v1",
+ "kind": "dashboard",
+ "head": {
+  "page": {
+   "text": "dashboard"
+  },
+  "board": {
+   "text": ""
+  },
+  "side": {
+   "component": "sidebar",
+   "answer": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='answer']",
+     "id": "id",
+     "title": "title",
+     "sub": "join(' ・ ', topics[?status=='open'].join(' ', [id, name]))",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "working": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='working']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "hold": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='hold']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "done": [
+    {
+     "component": "board-link",
+     "each": "instances[?kind=='board' && status=='done']",
+     "id": "id",
+     "title": "title",
+     "sub": "join('', ['論点 ', to_string(length(topics)), '件'])",
+     "open": "length(topics[?status=='open'])"
+    }
+   ],
+   "answer_count": "length(instances[?kind=='board' && status=='answer'])",
+   "working_count": "length(instances[?kind=='board' && status=='working'])",
+   "hold_count": "length(instances[?kind=='board' && status=='hold'])",
+   "done_count": "length(instances[?kind=='board' && status=='done'])"
+  },
+  "chat": {
+   "text": ""
+  },
+  "round": {
+   "text": ""
+  }
+ },
+ "sections": [
+  {
+   "heading": "ダッシュボード",
+   "body": [
+    {
+     "component": "dash-head",
+     "title": "this.title"
+    },
+    {
+     "component": "summary-tiles",
+     "answer": "length(instances[?kind=='board' && status=='answer'])",
+     "open_topics": "length(instances[?kind=='board' && status=='answer'].topics[] | [?status=='open'])",
+     "working": "length(instances[?kind=='board' && status=='working'])",
+     "hold": "length(instances[?kind=='board' && status=='hold'])",
+     "done": "length(instances[?kind=='board' && status=='done'])"
+    }
+   ]
+  },
+  {
+   "heading": "先に決めるもの",
+   "body": [
+    {
+     "component": "priority-list",
+     "boards": [
+      {
+       "component": "priority-board",
+       "each": "instances[?kind=='board' && status=='answer']",
+       "id": "id",
+       "title": "title",
+       "flag": "flag || `false`",
+       "opened": "opened || ''",
+       "waits": "join(' ', waits_for || `[]`)",
+       "topics": [
+        {
+         "component": "priority-topic",
+         "each": "topics[?status=='open']",
+         "id": "id",
+         "name": "name",
+         "question": "question"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "heading": "最近の動き",
+   "body": [
+    {
+     "component": "activity-log",
+     "boards": [
+      {
+       "component": "activity-board",
+       "each": "instances[?kind=='board']",
+       "id": "id",
+       "title": "title",
+       "items": [
+        {
+         "component": "activity-item",
+         "each": "log || `[]`",
+         "date": "date",
+         "text": "text"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

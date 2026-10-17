@@ -1,0 +1,146 @@
+<template id="page"><!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{title}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Shippori+Mincho:wght@600&amp;family=Zen+Kaku+Gothic+New:wght@400;700&amp;display=swap">
+<style>
+{{tokens}}
+{{style}}
+</style>
+</head>
+<body data-page="{{page}}" data-board="{{board}}" data-round="{{round}}">
+<div class="app">
+{{side}}
+<main class="main" id="main">
+<button class="menu" type="button" data-menu aria-controls="side" aria-expanded="false">ボードの一覧</button>
+<div class="wrap">
+{{sections}}
+</div>
+</main>
+{{chat}}
+</div>
+<script>
+{{script}}
+</script>
+</body>
+</html></template>
+
+<template id="section"><section class="sec" aria-label="{{heading}}">{{body}}</section></template>
+
+<template id="sidebar"><nav class="side" id="side" aria-label="ボードの一覧">
+ <a class="brand" href="dashboard.html"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="logo-bg"/><g class="logo-line" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M10 22c0-5 2-8 6-8s6-3 6-6"/><path d="M16 14c3 0 6 2 6 8"/></g><g class="logo-dot"><circle cx="10" cy="23" r="2.4"/><circle cx="22" cy="8" r="2.4"/><circle cx="22" cy="23" r="2.4"/></g></svg><span><span class="bn">brainstorming</span><span class="bs">.brainstorming/</span></span></a>
+ <a class="home" href="dashboard.html" data-home><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>ダッシュボード</a>
+ <div class="grp" data-group="answer"><div class="gh"><svg class="ic g-answer" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>いま答える<span class="gc">{{answer_count}}</span></div><ul>{{answer}}</ul></div>
+ <div class="grp" data-group="working"><div class="gh"><svg class="ic g-working" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>進行中<span class="gc">{{working_count}}</span></div><ul>{{working}}</ul></div>
+ <div class="grp" data-group="hold"><div class="gh"><svg class="ic g-hold" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>保留<span class="gc">{{hold_count}}</span></div><ul>{{hold}}</ul></div>
+ <details class="grp" data-group="done"><summary class="gh"><svg class="ic g-done" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>決着<span class="gc">{{done_count}}</span></summary><ul>{{done}}</ul></details>
+</nav></template>
+
+<template id="board-link"><li><a class="bitem" href="{{id}}.html" data-board-link="{{id}}"><span class="bt">{{title}}</span><span class="bm">{{sub}}</span><span class="cnt" data-n="{{open}}">{{open}}</span></a></li></template>
+
+<template id="board-head"><header class="head">
+ <div class="crumb">第{{round}}回 ・ ボード {{id}}</div>
+ <h1>{{title}}</h1>
+ <p class="intro">{{intro}}</p>
+ <div class="now" role="tablist" aria-label="論点">{{chips}}<button class="ask" type="button" data-open-chat><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>AI に聞く</button></div>
+</header></template>
+
+<template id="topic-chip"><button class="chip" type="button" role="tab" data-topic="{{id}}" data-status="{{status}}" aria-selected="false" aria-controls="topic-{{id}}">{{id}} {{label}}</button></template>
+
+<template id="changes-band"><div class="notice" data-changes><b>この回で変わったところ（{{count}}か所）</b><ul class="changes">{{items}}</ul></div></template>
+
+<template id="change-item"><li><button class="link" type="button" data-jump="{{topic}}" data-part="{{part}}">{{topic}} ・ {{part_label}}</button> ── {{summary}}<span class="why" data-show-if="{{reason}}">（理由：{{reason}}）</span></li></template>
+
+<template id="topic-panel"><article class="topic" id="topic-{{id}}" data-topic-panel="{{id}}" data-status="{{status}}" role="tabpanel" hidden>
+ <section class="block">
+  <h2>{{id}} ・ 問いと答え<span class="st" data-status="{{status}}">{{status_label}}</span></h2>
+  <div class="lbl">問い</div><p class="q">{{question}}</p>
+  <div class="ans" data-part="answer"><div class="lbl">答え（承認してほしいこと）</div><p>{{answer}}</p>{{details}}</div>
+ </section>
+ {{images}}
+ {{assumptions}}
+ {{checks}}
+ {{support}}
+ {{form}}
+</article></template>
+
+<template id="details-list"><details data-part="details"><summary>答えの詳しい決まり（{{count}}件）</summary><ol class="num">{{items}}</ol></details></template>
+
+<template id="list-item"><li>{{text}}</li></template>
+
+<template id="images-block"><section class="block" data-part="images"><h2>完成イメージ</h2><div class="tabs" role="tablist" aria-label="完成イメージ">{{tabs}}</div>{{panes}}</section></template>
+
+<template id="image-tab"><button type="button" role="tab" aria-selected="false" data-kind="{{kind}}">{{label}}</button></template>
+
+<template id="image-figure"><div class="pane" data-pane="figure" hidden><p class="cap">{{caption}}</p><div class="figbox">{{svg}}</div></div></template>
+
+<template id="image-screen"><div class="pane" data-pane="screen" hidden><p class="cap">{{caption}}</p><iframe class="screen" title="{{caption}}" sandbox="allow-scripts" data-height="{{height}}" srcdoc="{{html}}"></iframe></div></template>
+
+<template id="image-code"><div class="pane" data-pane="code" hidden><p class="cap">{{caption}}</p><div class="editor" data-code data-language="{{language}}" data-highlight="{{highlight}}"><div class="etab"><span class="file">{{path}}</span><span class="lang">{{language}}</span><button class="copy" type="button" data-copy>コピー</button></div><div class="enote" data-show-if="{{note}}"><b>強調した行</b> ── {{note}}</div><div class="escroll"><pre class="src">{{text}}</pre></div></div></div></template>
+
+<template id="image-diff"><div class="pane" data-pane="diff" hidden><p class="cap">{{caption}}</p><div class="diffbox" data-diff data-layout="{{layout}}"><div class="dhead"><span class="file">{{path}}</span><span class="stat" data-stat></span></div><div class="dsrc"><pre class="before" data-before>{{before}}</pre><pre class="after" data-after>{{after}}</pre></div></div></div></template>
+
+<template id="image-tree"><div class="pane" data-pane="tree" hidden><p class="cap">{{caption}}</p><ul class="tree">{{rows}}</ul></div></template>
+
+<template id="tree-row"><li data-mark="{{mark}}" style="--depth:{{depth}}"><span class="nm">{{path}}</span><span class="mk" data-show-if="{{mark_label}}">{{mark_label}}</span><span class="ds">{{note}}</span></li></template>
+
+<template id="image-run"><div class="pane" data-pane="run" hidden><p class="cap">{{caption}}</p><div class="term"><div class="tbar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="where">{{cwd}}</span></div><div class="tbody"><div class="cmd"><span class="ps" aria-hidden="true">$</span>{{command}}</div><pre class="out">{{output}}</pre><div class="exit">終了コード {{exit}}</div></div></div></div></template>
+
+<template id="numbered-block"><section class="block" data-part="{{part}}"><h2>{{heading}}</h2><ol class="num">{{items}}</ol></section></template>
+
+<template id="check-item"><li><b>{{target}}</b> ── {{ask}}</li></template>
+
+<template id="support-block"><details class="block support" data-part="grounds"><summary><b>裏づけ</b> ── 根拠 {{grounds_count}}件 ・ 採らなかった案 {{rejected_count}}件</summary>
+ <h3>根拠</h3><ul class="grounds">{{grounds}}</ul>
+ <h3>採らなかった案</h3><ul class="rejected" data-part="rejected">{{rejected}}</ul>
+</details></template>
+
+<template id="ground-row"><li><div class="gs">{{supports}}</div><blockquote>{{basis}}</blockquote><div class="gsrc"><span class="tag" data-tag="{{tag}}">{{tag_label}}</span>{{source}}</div></li></template>
+
+<template id="rejected-row"><li><b>{{option}}</b><div>{{reason}}</div></li></template>
+
+<template id="answer-form"><section class="block answer" data-answer-form data-topic="{{id}}"><h2>回答</h2>
+ <div class="btns" role="radiogroup" aria-label="回答">
+  <button type="button" class="primary" data-decision="approve" aria-pressed="false">このまま進める</button>
+  <button type="button" data-decision="return" aria-pressed="false">差し戻す</button>
+  <button type="button" data-decision="hold" aria-pressed="false">まだ答えない</button>
+ </div>
+ <label class="fld" data-for="return" hidden>どこが違うか（差し戻すときは必ず書く）<textarea rows="2" data-field="where"></textarea></label>
+ <label class="fld" data-for="return hold" hidden>理由<textarea rows="2" data-field="reason"></textarea></label>
+ <label class="fld">書き足し（書かなくても進む）<textarea rows="2" data-field="note"></textarea></label>
+ <div class="sendrow"><button type="button" class="primary" data-send disabled>送る</button><span class="msg" data-msg role="status"></span></div>
+ <pre class="paste" data-paste hidden></pre>
+</section></template>
+
+<template id="chat-panel"><aside class="chat" hidden aria-label="AI に聞く" data-chat>
+ <div class="ch"><span class="chi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></span><div class="cht"><b>AI に聞く</b><span>この論点のボードを読み書きする</span></div><button class="iconbtn" type="button" data-close-chat aria-label="閉じる"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+ <div class="agent"><label class="sel"><span class="on" data-agent-state aria-hidden="true"></span><select aria-label="使う AI" data-agent><option value="claude">Claude Code</option><option value="codex">Codex</option><option value="kiro">Kiro</option></select><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label><span class="agent-note" data-agent-note>書き換えはボードのフォルダだけ</span></div>
+ <div class="ctx"><span class="cchip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg><span data-ctx-board>{{board}}</span></span><span class="cchip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg><span data-ctx-topic></span></span></div>
+ <div class="msgs" data-msgs aria-live="polite"><p class="empty" data-offline>serve で開くと、ここから AI に依頼できる。</p></div>
+ <div class="quick" data-quick><button type="button" data-say="この論点の答えを、1文で短くして。">答えを短く</button><button type="button" data-say="この論点の置いた前提に、抜けているものを足して。">前提を足す</button><button type="button" data-say="この論点の答えを反証して、崩れる所があれば直して。">反証して</button></div>
+ <form class="composer" data-composer><textarea rows="2" aria-label="AI への依頼" placeholder="この論点について聞く・直してほしいことを書く" data-input></textarea><div class="cbar"><span class="hint">Enter で送る ・ Shift+Enter で改行</span><button class="stop" type="button" data-stop hidden>止める</button><button class="send" type="submit" aria-label="送る" data-submit><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></form>
+</aside></template>
+
+<template id="dash-head"><header class="head"><div class="crumb">.brainstorming/</div><h1>{{title}}</h1></header></template>
+
+<template id="summary-tiles"><section class="sum" aria-label="サマリー">
+ <a class="tile t-answer" href="#prio"><span class="tn">{{answer}}<small>枚</small></span><span class="tl">いま答える（論点 {{open_topics}}件）</span></a>
+ <div class="tile"><span class="tn">{{working}}<small>枚</small></span><span class="tl">進行中</span></div>
+ <div class="tile"><span class="tn">{{hold}}<small>枚</small></span><span class="tl">保留</span></div>
+ <div class="tile"><span class="tn">{{done}}<small>枚</small></span><span class="tl">決着</span></div>
+</section></template>
+
+<template id="priority-list"><section class="block" id="prio"><h2>先に決めるもの</h2><p class="cap">ほかのボードが答えを待っている数 → 優先の印 → 回答を待っている日数、の順に並べる。</p><ol class="prio" data-prio>{{boards}}</ol><p class="empty" data-prio-empty hidden>いま答える論点は無い。</p></section></template>
+
+<template id="priority-board"><li class="prsrc" data-board="{{id}}" data-flag="{{flag}}" data-opened="{{opened}}" data-waits="{{waits}}" data-title="{{title}}">{{topics}}</li></template>
+
+<template id="priority-topic"><div class="pr" data-topic="{{id}}"><span class="pn"></span><div class="pb"><div class="pt"><a href="#" data-to-topic="{{id}}">{{id}} {{name}}</a><span class="pbd"></span></div><div class="pw">{{question}}</div><div class="pm"><span class="flag" hidden>優先の印</span><span class="wait"></span></div></div></div></template>
+
+<template id="activity-log"><section class="block"><h2>最近の動き</h2><ul class="log" data-log>{{boards}}</ul></section></template>
+
+<template id="activity-board"><li class="logsrc" data-board="{{id}}" data-title="{{title}}" hidden>{{items}}</li></template>
+
+<template id="activity-item"><span class="ev" data-date="{{date}}">{{text}}</span></template>

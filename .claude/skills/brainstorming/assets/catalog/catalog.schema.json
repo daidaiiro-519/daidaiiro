@@ -1,0 +1,696 @@
+{
+  "$schema": "schema-driven/catalog@v1",
+  "$id": "brainstorming/catalog@v1",
+  "title": "brainstorming の部品",
+  "description": "ボードとダッシュボードのページを作る部品。見た目は catalog.css、操作は catalog.js が持つ。",
+  "$defs": {
+    "sidebar": {
+      "type": "object",
+      "description": "ボードの一覧。状態（いま答える ・ 進行中 ・ 保留 ・ 決着）ごとにまとめる",
+      "properties": {
+        "answer_count": {
+          "description": "answer_count"
+        },
+        "answer": {
+          "description": "answer"
+        },
+        "working_count": {
+          "description": "working_count"
+        },
+        "working": {
+          "description": "working"
+        },
+        "hold_count": {
+          "description": "hold_count"
+        },
+        "hold": {
+          "description": "hold"
+        },
+        "done_count": {
+          "description": "done_count"
+        },
+        "done": {
+          "description": "done"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "状態ごとにボードを並べる。決着は閉じている",
+        "selected": "幅が狭いときは、ボードの一覧ボタンで開く"
+      }
+    },
+    "board-link": {
+      "type": "object",
+      "description": "サイドバーのボード1枚",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "title": {
+          "description": "title"
+        },
+        "sub": {
+          "description": "sub"
+        },
+        "open": {
+          "description": "open"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "題と、答える論点の数を出す",
+        "hover": "背景を内側の面の色にする",
+        "selected": "いま開いているボードを答えの面の色にする（aria-current）"
+      }
+    },
+    "board-head": {
+      "type": "object",
+      "description": "ボードのページの先頭。回 ・ 題 ・ 目的 ・ 論点のチップ ・ AI に聞くボタン",
+      "properties": {
+        "round": {
+          "description": "round"
+        },
+        "id": {
+          "description": "id"
+        },
+        "title": {
+          "description": "title"
+        },
+        "intro": {
+          "description": "intro"
+        },
+        "chips": {
+          "description": "chips"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "topic-chip": {
+      "type": "object",
+      "description": "論点1つを開くチップ",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "status": {
+          "description": "status"
+        },
+        "label": {
+          "description": "label"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "論点の id と状態を出す",
+        "selected": "押すとその論点の面を開き、主役の色で塗る",
+        "focus": "焦点の輪を出す"
+      }
+    },
+    "changes-band": {
+      "type": "object",
+      "description": "この回で変わったところの帯",
+      "properties": {
+        "count": {
+          "description": "count"
+        },
+        "items": {
+          "description": "items"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "change-item": {
+      "type": "object",
+      "description": "変わったところ1つ。押すとその論点のその欄へ移って光る",
+      "properties": {
+        "topic": {
+          "description": "topic"
+        },
+        "part": {
+          "description": "part"
+        },
+        "part_label": {
+          "description": "part_label"
+        },
+        "summary": {
+          "description": "summary"
+        },
+        "reason": {
+          "description": "reason"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "論点と欄と、何が変わったかを出す",
+        "pressed": "その論点を開き、変わった欄まで移して光らせる"
+      }
+    },
+    "topic-panel": {
+      "type": "object",
+      "description": "論点1つの面（問いと答え ・ 完成イメージ ・ 置いた前提 ・ 確かめてほしい箇所 ・ 裏づけ ・ 回答）",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "status": {
+          "description": "status"
+        },
+        "status_label": {
+          "description": "status_label"
+        },
+        "question": {
+          "description": "question"
+        },
+        "answer": {
+          "description": "answer"
+        },
+        "details": {
+          "description": "details"
+        },
+        "images": {
+          "description": "images"
+        },
+        "assumptions": {
+          "description": "assumptions"
+        },
+        "checks": {
+          "description": "checks"
+        },
+        "support": {
+          "description": "support"
+        },
+        "form": {
+          "description": "form"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "details-list": {
+      "type": "object",
+      "description": "答えの詳しい決まり（開閉）",
+      "properties": {
+        "count": {
+          "description": "count"
+        },
+        "items": {
+          "description": "items"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "閉じている",
+        "selected": "開くと詳しい決まりを出す"
+      }
+    },
+    "list-item": {
+      "type": "object",
+      "description": "並びの1行",
+      "properties": {
+        "text": {
+          "description": "text"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "images-block": {
+      "type": "object",
+      "description": "完成イメージ。在る種類だけをタブにする",
+      "properties": {
+        "tabs": {
+          "description": "tabs"
+        },
+        "panes": {
+          "description": "panes"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "image-tab": {
+      "type": "object",
+      "description": "完成イメージのタブ1つ",
+      "properties": {
+        "kind": {
+          "description": "kind"
+        },
+        "label": {
+          "description": "label"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "種類の名前を出す",
+        "selected": "その種類の面を開き、主役の色で塗る",
+        "focus": "焦点の輪を出す"
+      }
+    },
+    "image-figure": {
+      "type": "object",
+      "description": "完成イメージの図",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "svg": {
+          "description": "検査した SVG",
+          "contentMediaType": "image/svg+xml"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "image-screen": {
+      "type": "object",
+      "description": "完成イメージの画面（触れる HTML を分けた枠で描く）",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "height": {
+          "description": "height"
+        },
+        "html": {
+          "description": "html"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "image-code": {
+      "type": "object",
+      "description": "完成イメージのコード（エディタ風。行番号と強調する行の帯）",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "language": {
+          "description": "language"
+        },
+        "highlight": {
+          "description": "highlight"
+        },
+        "path": {
+          "description": "path"
+        },
+        "note": {
+          "description": "note"
+        },
+        "text": {
+          "description": "text"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "行番号を付け、強調する行に帯を引く",
+        "pressed": "コピーを押すと本文を写し、「コピーした」と出す"
+      }
+    },
+    "image-diff": {
+      "type": "object",
+      "description": "完成イメージの差分（Git の差分の形。並べる表示も選べる）",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "layout": {
+          "description": "layout"
+        },
+        "path": {
+          "description": "path"
+        },
+        "before": {
+          "description": "before"
+        },
+        "after": {
+          "description": "after"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "足した行と消した行を記号と色で示す",
+        "selected": "layout が split なら左右に並べる。幅が狭いと統合に戻す"
+      }
+    },
+    "image-tree": {
+      "type": "object",
+      "description": "完成イメージのフォルダ構成",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "rows": {
+          "description": "rows"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "tree-row": {
+      "type": "object",
+      "description": "フォルダ構成の1行（名前 ・ 印 ・ 説明）",
+      "properties": {
+        "mark": {
+          "description": "mark"
+        },
+        "depth": {
+          "description": "depth"
+        },
+        "path": {
+          "description": "path"
+        },
+        "mark_label": {
+          "description": "mark_label"
+        },
+        "note": {
+          "description": "note"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "image-run": {
+      "type": "object",
+      "description": "完成イメージの実行例（ターミナル風）",
+      "properties": {
+        "caption": {
+          "description": "caption"
+        },
+        "cwd": {
+          "description": "cwd"
+        },
+        "command": {
+          "description": "command"
+        },
+        "output": {
+          "description": "output"
+        },
+        "exit": {
+          "description": "exit"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "numbered-block": {
+      "type": "object",
+      "description": "番号付きの並びの節（置いた前提 ・ 確かめてほしい箇所）",
+      "properties": {
+        "part": {
+          "description": "part"
+        },
+        "heading": {
+          "description": "heading"
+        },
+        "items": {
+          "description": "items"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "check-item": {
+      "type": "object",
+      "description": "確かめてほしい箇所1つ",
+      "properties": {
+        "target": {
+          "description": "target"
+        },
+        "ask": {
+          "description": "ask"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "support-block": {
+      "type": "object",
+      "description": "裏づけ（根拠と採らなかった案。開閉）",
+      "properties": {
+        "grounds_count": {
+          "description": "grounds_count"
+        },
+        "rejected_count": {
+          "description": "rejected_count"
+        },
+        "grounds": {
+          "description": "grounds"
+        },
+        "rejected": {
+          "description": "rejected"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "閉じている",
+        "selected": "開くと根拠と採らなかった案を出す"
+      }
+    },
+    "ground-row": {
+      "type": "object",
+      "description": "根拠1つ（支えるところ ・ もとにしたこと ・ 種別と出どころ）",
+      "properties": {
+        "supports": {
+          "description": "supports"
+        },
+        "basis": {
+          "description": "basis"
+        },
+        "tag": {
+          "description": "tag"
+        },
+        "tag_label": {
+          "description": "tag_label"
+        },
+        "source": {
+          "description": "source"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "rejected-row": {
+      "type": "object",
+      "description": "採らなかった案1つ",
+      "properties": {
+        "option": {
+          "description": "option"
+        },
+        "reason": {
+          "description": "reason"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "answer-form": {
+      "type": "object",
+      "description": "回答の欄（このまま進める ・ 差し戻す ・ まだ答えない）",
+      "properties": {
+        "id": {
+          "description": "id"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "送るボタンは押せない",
+        "selected": "回答を1つ選ぶと、必要な欄を開く",
+        "disabled": "差し戻しでどこが違うかが空なら送れない",
+        "pressed": "serve へ送り、送れなければ貼る文字列を出す"
+      }
+    },
+    "chat-panel": {
+      "type": "object",
+      "description": "AI に聞くチャットの窓",
+      "properties": {
+        "board": {
+          "description": "board"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "閉じている",
+        "selected": "AI に聞くを押すと開き、serve に出来事を流してもらう",
+        "disabled": "serve で開いていなければ、使えないと知らせる",
+        "busy": "AI が作業しているあいだは送るボタンの代わりに止めるボタンを出す"
+      }
+    },
+    "dash-head": {
+      "type": "object",
+      "description": "ダッシュボードの先頭",
+      "properties": {
+        "title": {
+          "description": "title"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "summary-tiles": {
+      "type": "object",
+      "description": "ダッシュボードのサマリー（状態ごとの枚数）",
+      "properties": {
+        "answer": {
+          "description": "answer"
+        },
+        "open_topics": {
+          "description": "open_topics"
+        },
+        "working": {
+          "description": "working"
+        },
+        "hold": {
+          "description": "hold"
+        },
+        "done": {
+          "description": "done"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "priority-list": {
+      "type": "object",
+      "description": "先に決めるものの並び",
+      "properties": {
+        "boards": {
+          "description": "boards"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "priority-board": {
+      "type": "object",
+      "description": "先に決めるものの元になるボード1枚（画面で並べ替える）",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "flag": {
+          "description": "flag"
+        },
+        "opened": {
+          "description": "opened"
+        },
+        "waits": {
+          "description": "waits"
+        },
+        "title": {
+          "description": "title"
+        },
+        "topics": {
+          "description": "topics"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "priority-topic": {
+      "type": "object",
+      "description": "先に決めるものの論点1つ",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "name": {
+          "description": "name"
+        },
+        "question": {
+          "description": "question"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "activity-log": {
+      "type": "object",
+      "description": "最近の動き",
+      "properties": {
+        "boards": {
+          "description": "boards"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "activity-board": {
+      "type": "object",
+      "description": "最近の動きの元になるボード1枚",
+      "properties": {
+        "id": {
+          "description": "id"
+        },
+        "title": {
+          "description": "title"
+        },
+        "items": {
+          "description": "items"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    },
+    "activity-item": {
+      "type": "object",
+      "description": "出来事1つ",
+      "properties": {
+        "date": {
+          "description": "date"
+        },
+        "text": {
+          "description": "text"
+        }
+      },
+      "required": [],
+      "x-states": {
+        "default": "中身をそのまま出す"
+      }
+    }
+  }
+}
