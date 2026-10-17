@@ -29,6 +29,7 @@ BAND = 96   # 字幕の帯の高さ。2行が収まる高さにする
 FONTS = Path(os.environ.get('SUB_FONTS', Path.home() / '.local' / 'share' / 'fonts'))
 LINE = 22   # 字幕の1行の文字数の目安。2行を超える文は、読点で2つの字幕に分ける
 FPS = 30
+PACING = json.loads((HERE / 'video-pacing.json').read_text()) if (HERE / 'video-pacing.json').exists() else {}
 
 
 def ffmpeg(args, workdir, fonts=False):
@@ -75,18 +76,21 @@ def _split(text, start, end):
     return _split(a, start, mid) + _split(b, mid, end)
 
 
-def subtitles(ids, dur):
+def subtitles(ids, dur, pacing=None):
     """枚ごとの文の時刻を、通しの時刻へずらして WebVTT にする。"""
     cues, offset = [], 0
     for sid in ids:
         item = dur[sid]
+        gap = (pacing or {}).get('slides', {}).get(sid, {})
+        leading = gap.get('beforeMs', 0)
+        trailing = gap.get('afterMs', 0)
         marks = [json.loads(l) for l in (NARR / item['marks']).read_text().splitlines() if l.strip()]
         sents = [m for m in marks if m['type'] == 'sentence']
         for k, m in enumerate(sents):
             end = sents[k + 1]['time'] if k + 1 < len(sents) else item['durationMs']
             for text, a, b in _split(m['value'], m['time'], end - 80):
-                cues.append((offset + a, offset + b, '\n'.join(_wrap(text))))
-        offset += item['durationMs']
+                cues.append((offset + leading + a, offset + leading + b, '\n'.join(_wrap(text))))
+        offset += leading + item['durationMs'] + trailing
     body = '\n'.join(f'{n}\n{_ts(a)} --> {_ts(b)}\n{t}\n' for n, (a, b, t) in enumerate(cues, 1))
     return 'WEBVTT\n\n' + body
 
@@ -105,6 +109,9 @@ def build(stem, no, ids, dur):
     work = WORK / stem
     work.mkdir(parents=True, exist_ok=True)
     parts = []
+    pacing = PACING.get(stem, {})
+    timeline = []
+    offset = 0
     for i, sid in enumerate(ids, 1):
         if sid not in dur:
             raise SystemExit(f'音声が無い: {sid} ── slide-deck-speech Skill を先に実行する')
@@ -113,19 +120,44 @@ def build(stem, no, ids, dur):
             raise SystemExit(f'画像が無い: {png}')
         mp3 = NARR / dur[sid]['audio']
         part = work / f'{i:02d}.mp4'
-        # 映像の長さは音声に合わせる。-shortest ではなく音声の長さで切る
+        gap = pacing.get('slides', {}).get(sid, {})
+        leading = gap.get('beforeMs', 0)
+        trailing = gap.get('afterMs', 0)
+        duration = dur[sid]['durationMs'] + leading + trailing
+        filters = []
+        if leading or trailing:
+            # 無音は音声の前後へ加え、発話そのものは切らない。
+            filters += ['-af', f'adelay={leading}:all=1,apad=pad_dur={trailing / 1000:.3f}']
+        transition = pacing.get('transitionMs', 0) / 2000
+        if transition:
+            sys.path.insert(0, str(HERE.parents[1] / 'proposal' / 'src'))
+            from theme import T
+            color = '0x' + T['ground'].lstrip('#')
+            fades = []
+            if i > 1:
+                fades.append(f'fade=t=in:st=0:d={transition}:color={color}')
+            if i < len(ids):
+                fades.append(f'fade=t=out:st={duration / 1000 - transition}:d={transition}:color={color}')
+            if fades:
+                filters += ['-vf', ','.join(fades)]
+        timeline.append(dict(number=i, id=sid, startSeconds=offset / 1000,
+                             narrationStartSeconds=(offset + leading) / 1000,
+                             durationSeconds=duration / 1000,
+                             voiceDurationSeconds=dur[sid]['durationMs'] / 1000))
+        offset += duration
+        # 映像の長さは、音声と明示した間の合計で固定する。
         ffmpeg(['-y', '-loop', '1', '-i', str(png.relative_to(ROOT)),
-                '-i', str(mp3.relative_to(ROOT)),
+                '-i', str(mp3.relative_to(ROOT))] + filters + [
                 '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
                 '-pix_fmt', 'yuv420p', '-r', str(FPS), '-s', SIZE,
                 '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2',
-                '-t', f'{dur[sid]["durationMs"] / 1000:.3f}',
+                '-t', f'{duration / 1000:.3f}',
                 str(part.relative_to(ROOT))], ROOT)
         parts.append(part)
     lst = work / 'parts.txt'
     lst.write_text(''.join(f"file '{p.name}'\n" for p in parts))
     vtt = OUT / f'{stem}.vtt'
-    vtt.write_text(subtitles(ids, dur))
+    vtt.write_text(subtitles(ids, dur, pacing))
     if not any(FONTS.glob('NotoSansJP*')):
         raise SystemExit(f'字幕の書体が無い: {FONTS} に Noto Sans JP を置くか、SUB_FONTS で場所を指定する')
     sys.path.insert(0, str(HERE.parents[1] / 'proposal' / 'src'))
@@ -140,7 +172,9 @@ def build(stem, no, ids, dur):
             '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
             '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2',
             str((OUT / f'{stem}.mp4').relative_to(ROOT))], ROOT, fonts=True)
-    total = sum(dur[s]['durationMs'] for s in ids) / 1000
+    total = offset / 1000
+    if pacing:
+        (OUT / f'{stem}-timeline.json').write_text(json.dumps(dict(seconds=total, slides=timeline), ensure_ascii=False, indent=2) + '\n')
     print(f'{stem}.mp4　{len(ids)}枚　{int(total // 60)}分{int(total % 60):02d}秒')
     return total
 

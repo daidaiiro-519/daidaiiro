@@ -1,0 +1,581 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>オリエンテーションの原稿と遷移の改善</title>
+<style>:root{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;line-height:1.85}
+.wrap{max-width:var(--w-3);margin:0 auto;padding:var(--sp-28) var(--sp-23) var(--sp-32)}
+h1{font-size:var(--fs-17);margin:0 0 var(--sp-8);letter-spacing:var(--tr-1)}
+.lede{font-size:var(--fs-13);border-left:var(--bw-3) solid var(--move);padding:var(--sp-14) 0 var(--sp-14) var(--sp-19);
+margin:var(--sp-21) 0 var(--sp-28);background:var(--panel);max-width:var(--w-2)}
+h2{font-size:var(--fs-14);margin:var(--sp-29) 0 var(--sp-18);padding-bottom:var(--sp-8);border-bottom:var(--bw-1) solid var(--line)}
+h3{font-size:var(--fs-12);margin:var(--sp-26) 0 var(--sp-13);color:var(--move)}
+table{border-collapse:collapse;width:100%;margin:var(--sp-19) 0;font-size:var(--fs-11)}
+th,td{border:var(--bw-1) solid var(--line);padding:var(--sp-11) var(--sp-15);text-align:left;vertical-align:top}
+th{background:var(--chipbg);font-weight:700}
+code{background:var(--chipbg);padding:var(--sp-2) var(--sp-8);border-radius:var(--rd-1);font-size:var(--fs-8)}
+pre{background:var(--chipbg);padding:var(--sp-17) var(--sp-19);border-radius:var(--rd-3);overflow-x:auto;font-size:var(--fs-6)}
+.scroll{overflow-x:auto}
+.scroll td code,.scroll th code{overflow-wrap:anywhere}
+.gone{color:var(--gone)}
+#bar{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:var(--bw-2) solid var(--move);
+padding:var(--sp-13) var(--sp-19);display:flex;gap:var(--sp-17);align-items:center;flex-wrap:wrap;font-size:var(--fs-10);
+margin:0 0 var(--sp-15);border-radius:var(--rd-4) var(--rd-4) 0 0}
+#bar button{font:inherit;padding:var(--sp-6) var(--sp-17);border-radius:var(--rd-2);border:var(--bw-1) solid var(--move);
+background:transparent;color:var(--move);cursor:pointer}
+#bar button:hover{background:var(--move);color:var(--paper)}
+#tabs{display:flex;gap:var(--sp-10);flex-wrap:wrap;margin:var(--sp-21) 0 0;border-bottom:var(--bw-2) solid var(--line)}
+.tab{font:inherit;font-size:var(--fs-11);padding:var(--sp-12) var(--sp-20);border:var(--bw-1) solid var(--line);
+border-bottom:0;border-radius:var(--rd-3) var(--rd-3) 0 0;background:var(--chipbg);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:700;
+box-shadow:0 var(--bw-2) 0 0 var(--paper)}
+.tab .n{font-size:var(--fs-3);color:var(--move);margin-left:var(--sp-9);font-weight:700}
+.pane{border:var(--bw-1) solid var(--line);border-top:0;background:var(--paper)}
+.pane.md .doc{padding:var(--sp-23) var(--sp-27)}
+.pane.md h1{font-size:var(--fs-15);margin-top:0}
+.pane.html{padding:0}
+.pane.html iframe{display:block;width:100%;border:0;background:var(--paper)}
+.lane{font-size:var(--fs-4);color:var(--ink);padding:var(--sp-9) var(--sp-19);border-bottom:var(--bw-1) solid var(--line);
+background:var(--chipbg);display:flex;gap:var(--sp-15);align-items:center;flex-wrap:wrap}
+.lane .how{margin-left:auto}
+.idx{border:var(--bw-1) solid var(--line);border-left:var(--bw-3) solid var(--move);border-radius:var(--rd-2);
+background:var(--index-bg);margin:var(--sp-15) var(--sp-19);padding:0 var(--sp-19) var(--sp-13)}
+.idx summary{cursor:pointer;font-size:var(--fs-9);padding:var(--sp-12) 0;font-weight:700;color:var(--move)}
+.idx ol{margin:0 0 var(--sp-8);padding-left:var(--sp-25);font-size:var(--fs-9)}
+.idx li{margin:var(--sp-9) 0}
+.idx button.go{font:inherit;font-size:var(--fs-5);padding:var(--sp-1) var(--sp-13);
+border:var(--bw-1) solid var(--move);border-radius:var(--rd-1);background:transparent;color:var(--move);cursor:pointer}
+.idx button.go:hover{background:var(--move);color:var(--paper)}
+.idx .w{color:var(--ink)}
+.idx .at{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-6);color:var(--muted)}
+.idx .at code{background:var(--paper);overflow-wrap:anywhere}
+.idx .at .lbl{font-weight:700}
+
+
+.code{overflow-x:auto;background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-3);
+font-size:var(--fs-5);line-height:1.7}
+.code table{border-collapse:collapse;width:100%;margin:0;font-size:inherit}
+.code td{border:0;padding:0;vertical-align:top;white-space:pre;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.code td.ln{width:var(--sp-30);min-width:var(--sp-30);text-align:right;padding:0 var(--sp-17) 0 var(--sp-13);
+color:var(--muted);background:var(--panel);user-select:none;border-right:var(--bw-1) solid var(--line);
+position:sticky;left:0}
+.code td.cd{padding:0 var(--sp-18)}
+.code td.cd code{background:none;padding:0;border-radius:0;font-size:inherit;font-family:inherit;white-space:inherit}
+.code tr:has(mark.chg) td.ln{background:var(--chipbg);color:var(--move);font-weight:700}
+.code .t-c{color:var(--muted);font-style:italic}
+.code .t-s{color:var(--key)}
+.code .t-k{color:var(--move);font-weight:700}
+.code .t-n{color:var(--gone)}
+.code mark.chg{display:inline-block;width:100%}
+.code td.popcell{white-space:normal;padding:var(--sp-6) var(--sp-18) var(--sp-13) var(--sp-31)}
+.code .pop{white-space:normal;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;max-width:var(--w-1)}
+.code tr.poprow td{background:var(--paper)}
+.lane.code-lane b{color:var(--move)}
+.code.diff td.mk{width:var(--sp-25);min-width:var(--sp-25);text-align:center;color:var(--muted)}
+.code.diff tr.ra td{background:var(--add-bg)}
+.code.diff tr.ra td.mk{color:var(--key);font-weight:700}
+.code.diff tr.rd td{background:var(--del-bg)}
+.code.diff tr.rd td.mk{color:var(--gone);font-weight:700}
+.code.diff tr.hh td{background:var(--panel);color:var(--muted);font-size:var(--fs-3);
+padding:var(--sp-7) var(--sp-18);border-top:var(--bw-1) solid var(--line);border-bottom:var(--bw-1) solid var(--line)}
+.code.diff tr.hh td.cd{white-space:normal}
+.code.diff .nowhy{color:var(--gone);font-weight:700}
+.code.diff td.popcell{padding-left:var(--sp-33)}
+
+
+/* 上部の節は、契約の共通の描画（.rv）が組む。ここが持つのは、その変数を acdr のトークンへ対応づけることだけである */
+.rv{--band:var(--panel);--accent:var(--move);--accent-soft:var(--chipbg);--warn:var(--gone);--warn-soft:var(--chipbg);
+--radius:var(--rd-4);--gap:var(--sp-19);max-width:var(--w-2);margin:0 0 var(--sp-27)}
+/* 対比を付ける ── 頁は一段暗い背景色、節の枠は白い背景色。枠の境目で、どこからどこまでが1つの節かが分かる */
+body{background:var(--panel)}
+.rv .block,.rv .card{background:var(--paper)}
+/* acdr 全体の見出しと表の指定を、囲みの中では外す ── 共通の描画の見た目にそろえる */
+.rv h1{border:0;padding:0}
+.rv h2{border:0;padding:0;margin:0 0 var(--sp-2)}
+.rv table{margin:0}
+.rv th,.rv td{border:0;border-bottom:var(--bw-1) solid var(--line)}
+.rv th{background:none;font-weight:600;color:var(--muted)}
+.rv figure svg{display:block}
+.pane.md .doc{overflow-wrap:anywhere}
+.lede{display:none}
+.bridge{max-width:var(--w-2);font-size:var(--fs-10);color:var(--ink);margin:0 0 var(--sp-15)}
+/* 差分の側も、上の節と同じく白い枠に入れる ── 頁と同じ色の上に直に置くと、どこからどこまでが差分かが見えない */
+.diffs{background:var(--paper);border:var(--bw-1) solid var(--line);border-radius:var(--rd-4);padding:0 var(--sp-19) var(--sp-19)}
+.diffs #bar{margin:0 calc(-1 * var(--sp-19)) var(--sp-15)}
+</style>
+<style id="markcss-live">
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</style>
+<script type="text/plain" id="markcss">:root,:host{--paper:#fbfaf7;--ink:#1c1a17;--muted:#6b665d;--panel:#f2efe8;--chipbg:#e7e3d9;--move:#9a5b2c;--key:#2f6f5e;--line:#d8d3c7;--gone:#8a3a3a;--sp-1:.05rem;--sp-2:.08rem;--sp-3:.1rem;--sp-4:.12rem;--sp-5:.15rem;--sp-6:.2rem;--sp-7:.25rem;--sp-8:.3rem;--sp-9:.35rem;--sp-10:.4rem;--sp-11:.42rem;--sp-12:.45rem;--sp-13:.5rem;--sp-14:.55rem;--sp-15:.6rem;--sp-16:.65rem;--sp-17:.7rem;--sp-18:.8rem;--sp-19:.9rem;--sp-20:.95rem;--sp-21:1rem;--sp-22:1.1rem;--sp-23:1.2rem;--sp-24:1.3rem;--sp-25:1.4rem;--sp-26:1.6rem;--sp-27:1.8rem;--sp-28:2rem;--sp-29:2.4rem;--sp-30:3.2rem;--sp-31:3.9rem;--sp-32:5rem;--sp-33:5.6rem;--fs-1:.62rem;--fs-2:.76rem;--fs-3:.78rem;--fs-4:.8rem;--fs-5:.82rem;--fs-6:.84rem;--fs-7:.86rem;--fs-8:.88em;--fs-9:.88rem;--fs-10:.9rem;--fs-11:.93rem;--fs-12:1rem;--fs-13:1.06rem;--fs-14:1.12rem;--fs-15:1.25rem;--fs-16:1.35rem;--fs-17:1.5rem;--tr-1:.02em;--tr-2:.1em;--rd-1:.2rem;--rd-2:.25rem;--rd-3:.3rem;--rd-4:.35rem;--rd-5:999px;--bw-1:1px;--bw-2:2px;--bw-3:4px;--w-1:62rem;--w-2:68rem;--w-3:92rem;--pop-bg:rgba(154,91,44,.07);--pre-bg:rgba(128,128,128,.12);--add-bg:rgba(47,111,94,.10);--del-bg:rgba(138,58,58,.10);--index-bg:rgba(154,91,44,.07);--mark-bg:rgba(154,91,44,.22);}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]),:host:not([data-theme="light"]){--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}}:root[data-theme="dark"],:host[data-theme="dark"]{--paper:#16150f;--ink:#ece7dc;--muted:#98918a;--panel:#211f18;--chipbg:#2b281f;--move:#d99b62;--key:#6fbfa4;--line:#38342a;--gone:#d97b7b;}
+mark.chg[data-acdr]{background:var(--mark-bg);color:inherit;border-bottom:var(--bw-2) solid var(--move);
+cursor:pointer;padding:0 var(--sp-3)}
+mark.chg[data-acdr]::after{content:"変";font-size:var(--fs-1);vertical-align:super;color:var(--move);
+font-weight:700;margin-left:var(--sp-4)}
+mark.chg[data-acdr]:focus-visible{outline:var(--bw-2) solid var(--move);outline-offset:var(--bw-2)}
+.pop{display:block;margin:var(--sp-15) 0 var(--sp-19);padding:var(--sp-17) var(--sp-19);border:var(--bw-1) solid var(--move);
+border-radius:var(--rd-3);background:var(--pop-bg);font-size:var(--fs-10);line-height:1.7;
+font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif}
+.pop[hidden]{display:none!important}
+.pop>b{color:var(--move);display:block;margin:var(--sp-13) 0 var(--sp-5)}
+.pop>b:first-child{margin-top:0}
+.pop pre{white-space:pre-wrap;word-break:break-word;font-size:var(--fs-5);margin:0;
+color:inherit;opacity:.8;background:var(--pre-bg);padding:var(--sp-13) var(--sp-15);border-radius:var(--rd-1)}
+
+</script>
+
+<div class="wrap">
+<style>.rv{--accent:#9a5b00;--accent-soft:#f8ecd8;--band:#f5f0e6;--ink:#262019;--line:#e3d8c6;--muted:#665b4c;--paper:#ffffff;--surface:#faf6ef;--warn:#9a3412;--warn-soft:#fdeee6;}@media (prefers-color-scheme:dark){.rv{--accent:#f2b35c;--accent-soft:#3d2f1a;--band:#16130f;--ink:#efe8dc;--line:#4a3f30;--muted:#b3a58f;--paper:#1c1812;--surface:#26201a;--warn:#f0a07a;--warn-soft:#3a241c;}}/* 描画の規則（ボード view-design-tokens）。.rv の囲みの中だけに適用される ── 他の頁に埋め込んでも混ざらない。
+   色は var(--役割) だけで参照し、色の直値を書かない。字の大きさと余白は固定の値で持つ */
+.rv header{margin:0 0 16px}.rv .eyebrow{color:var(--muted);font-size:12px;margin:0}
+.rv h1{font-size:22px;line-height:1.5;margin:4px 0 0}
+.rv h2{font-size:14px;color:var(--accent);margin:0 0 4px;letter-spacing:.02em}
+.rv h3,.rv h4,.rv h5,.rv h6{font-size:17px;margin:10px 0 4px;line-height:1.55}
+.rv .block,.rv .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;margin:0 0 14px}
+.rv .card{border:2px solid var(--accent)}.rv .cardhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rv .lead{font-size:16px;font-weight:500;margin:6px 0 2px}.rv .claim{margin:2px 0 8px;color:var(--ink)}
+.rv p{margin:0;overflow-wrap:anywhere}.rv .unit p+p{margin-top:6px}
+.rv .unit{border-top:1px dashed var(--line);margin-top:14px;padding-top:12px}
+.rv .ulabel{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin:0 0 4px}
+/* 表 */
+.rv .scroll{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+.rv table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}
+.rv th{background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.rv td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;min-width:6em}
+.rv tbody tr:last-child td{border-bottom:none}
+.rv tbody tr:nth-child(even) td{background:var(--surface)}
+.rv td:first-child{min-width:7.5em}
+/* コードブロック */
+.rv pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.rv pre.code{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,'BIZ UDGothic',monospace;color:var(--ink)}
+/* そのほか */
+.rv ul{margin:0;padding-left:1.3em}.rv li{overflow-wrap:anywhere}
+.rv ol.steps{list-style:none;counter-reset:s;margin:8px 0 0;padding:0}.rv ol.steps li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+.rv ol.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--paper);font-size:13px;display:flex;align-items:center;justify-content:center}
+.rv figure{margin:8px 0 0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--paper);overflow-x:auto}.rv figure svg{max-width:100%;height:auto}
+.rv .item{border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+/* 旧い型から引き継ぐ部品 */
+.rv .desc{color:var(--muted);font-size:12px;margin:0 0 8px}
+.rv .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.rv .tag.neg{background:var(--warn-soft);color:var(--warn)}
+.rv .sub{margin:0}
+.rv .nest{border-left:3px solid var(--accent-soft);padding-left:12px;margin:6px 0}
+.rv .nest p,.rv .nest ul,.rv .nest ol,.rv .nest .scroll{margin:4px 0}
+.rv .topic>h2{font-size:17px;color:var(--ink);margin:0}
+.rv .unit .scroll,.rv .unit figure,.rv .unit pre{margin-top:8px}
+.rv figcaption{color:var(--muted);font-size:12px}
+.rv ol.steps .lead{font-size:15px;margin:0}
+.rv th:first-child{min-width:7.5em}
+@media (max-width:480px){.rv h1{font-size:19px}.rv th,.rv td{padding:8px 10px}}
+</style><div class="rv"><header><p class="eyebrow">意思決定の記録 ・ ACDR 0185 ・ 2026-10-17 ・ <span class="tag">承認</span></p><h1>オリエンテーションの原稿と遷移の改善</h1></header><section class="card"><div class="cardhead"><h2>決めたこと</h2></div><p class="lead">比較ページで確認した原稿と切り替えの方針を、正式なオリエンテーションに採用します。</p></section><section class="block"><h2>なぜ決める必要があるか</h2><p>各枚の冒頭で説明を始め直すため重複が多く、7枚目の予告と8枚目の内容も食い違っていました。境目の無音が短く、映像も瞬時に変わっていました。</p></section><section class="block"><h2>どう変わるか</h2><figure><figcaption>原稿のつながりと動画の切り替えを改善します。</figcaption><svg class="ws-visual" viewBox="0 0 1112 140" role="img" aria-label="話のつながりと映像の切り替えの変更前後"><rect x="0" y="0" width="500" height="132" rx="12" fill="#fffaf2" stroke="#6f7a63" stroke-width="2"/><text x="22" y="34.0" font-size="18" fill="#59605a" font-weight="700" text-anchor="start">変更前</text><text x="22" y="73" font-size="20" fill="#252b29" font-weight="400" text-anchor="start">各枚で説明を始め直す</text><text x="22" y="103" font-size="20" fill="#252b29" font-weight="400" text-anchor="start">短い無音と瞬時の画面切替</text><path d="M516 66 H588 M580 59 l8 7 -8 7" stroke="#6f7a63" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="604" y="0" width="508" height="132" rx="12" fill="#fffaf2" stroke="#6f7a63" stroke-width="2"/><text x="626" y="34.0" font-size="18" fill="#59605a" font-weight="700" text-anchor="start">変更後</text><text x="626" y="73" font-size="20" fill="#252b29" font-weight="400" text-anchor="start">前の説明を受けて話を進める</text><text x="626" y="103" font-size="20" fill="#252b29" font-weight="400" text-anchor="start">区切りの間と短いフェード</text></svg></figure></section><section class="block"><h2>変更前と変更後</h2><div class="scroll"><table><thead><tr><th>何が</th><th>変更前</th><th>変更後</th></tr></thead><tbody><tr><td>ナレーション</td><td>各枚で振り返りと予告を繰り返す説明</td><td>前の説明を受けて進み、予告が次の枚と対応する説明</td></tr><tr><td>動画の遷移</td><td>音声の長さで画面を直結する</td><td>話の区切りに応じた間と、背景色への短いフェードを設ける</td></tr></tbody></table></div></section><section class="block"><h2>比較した案と、採らなかった理由</h2><div class="scroll"><table><thead><tr><th>案</th><th>採らなかった理由</th></tr></thead><tbody><tr><td>映像のフェードだけを加える</td><td>重複や予告の食い違いが残り、話の筋を追いにくい状態が続きます。</td></tr><tr><td>原稿だけを修正し画面を直結する</td><td>聞き手が説明を受け止め、次の図を見るための間を調整できません。</td></tr></tbody></table></div></section></div><p class="bridge">ここから下は、この決定で<b>変わるファイルごとの差分</b>である。タブでファイルを切り替える。</p>
+<p class="lede"></p>
+
+<section class="diffs">
+<div id="bar"><b>変更 18 件</b>
+<button id="oa">すべて開く</button><button id="ca">すべて閉じる</button></div>
+<div id="tabs" role="tablist"><button class="tab" role="tab" data-t="script">読み上げ原稿<span class="n">11</span></button><button class="tab" role="tab" data-t="lesson-00-start">lesson-00-start.json<span class="n">1</span></button><button class="tab" role="tab" data-t="build_videos">build_videos.py<span class="n">5</span></button><button class="tab" role="tab" data-t="video-pacing">video-pacing.json<span class="n">1</span></button></div>
+<section class="pane md" data-k="script" hidden><div class="lane"><b>Markdown を描画した文書</b><span class="how">変更箇所 11 件</span></div><details class="idx" open><summary>このファイルの変更 11 件</summary><ol><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>資料やツール、アプリなどを、以前より手軽に作れるようになりました。作成にかかる時</code><button class="go" data-i="1">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>例えば、計画書や説明資料、報告資料を作る仕事です。図の左では、人が情報を整理し、</code><button class="go" data-i="2">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>例えば資料なら、元の情報と合っているか、仕事に必要な内容が含まれているかを確認し</code><button class="go" data-i="3">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>図の左のように、資料ごとに形式や詳しさが違うと、確認したい内容を探すところから始</code><button class="go" data-i="4">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>その進め方を表したのが、この図です。左から、今回の案件の情報を入力し、中央のAg</code><button class="go" data-i="5">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>一つ目は、目的の把握です。何のための作業で、何をどこまで作る必要があるかを考えま</code><button class="go" data-i="6">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>例えば、資料を作る仕事です。誰が何の判断に使うのかを考え、そのために必要な内容や</code><button class="go" data-i="7">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>教材全体の土台は、細谷功さんの『システム開発と「具体と抽象」』です。与えられた仕</code><button class="go" data-i="8">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>十月から十二月は準備期間です。ナレッジ共有ポータルで教材を順に見ながら、自分がA</code><button class="go" data-i="9">その箇所へ移動</button></div></li><li><div class="w">前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。</div><div class="at"><span class="lbl">場所</span><code>AIでさまざまなものを作れるようになった今、その力を、仕事で使える成果物につなげ</code><button class="go" data-i="10">その箇所へ移動</button></div></li></ol></details><div class="doc"><h1>オリエンテーション　AIを、自分の仕事で使い続けるために ── 目的と言葉を明確にし、Agents・Skillsで実現する</h1>
+<p>枚数 12（表紙1・本編11）　読み上げ 4768字</p>
+<h2>01　仕事の目的を、AIで達成できるようになるためのワークショップです</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました。
+
+部内でもAIの活用を進めるために、使い方を知るだけでなく、仕事で実現したいことに合わせて活用できるようになる機会を設けたいと考え、このワークショップを企画しました。
+
+何を実現したいのか。そのために何が必要なのか。それをAIに説明し、実行した結果を確かめます。まずは、この考え方を学びます。そのうえで、AgentsやSkillsを使い、自分の仕事で実践していきます。
+
+目指すのは、皆さんが自分の仕事の目的を、AIで達成できるようになることです。
+
+では、今の仕事では、AIによって何が変わっているでしょうか。そこから振り返ってみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました。この力を、皆さんが仕事で実現したいことに合わせて使えるようになるために、今回のワークショップを企画しました。</mark></p>
+<p>学ぶのは、AIの使い方と、その前提となる考え方です。何を実現したいのか。そのために何が必要なのかを考え、AIに説明します。そして、AgentsやSkillsを使って実行し、結果を確かめるところまで、自分の仕事で実践していきます。</p>
+<p>目指すのは、皆さんが自分の仕事の目的を、AIで達成できるようになることです。ここでは、そのために何を学び、どのように実践するのかをご紹介します。</p>
+<p>まずは、AIによって私たちの仕事がどう変わったかを考えてみましょう。</p>
+<h2>02　AIで成果物を作りやすくなりました。仕事全体の生産性も上がっていますか？</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="AIを使うことで、資料やツール、アプリなどを、以前より手軽に作れるようになりました。作成にかかる時間も短くなり、これまで自分では作れなかったものも作れるようになりました。こうした変化を感じる方もいるのではないでしょうか。
+
+では、その効果は、仕事全体で見ても、期待したほどの工数削減や、案件の進む速さにつながっているでしょうか。
+
+その違いを考えるために、まず、皆さんの仕事のどこでAIを使い、作業がどう変わったかを振り返ってみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">資料やツール、アプリなどを、以前より手軽に作れるようになりました。作成にかかる時間が短くなっただけでなく、これまで自分では作れなかったものも試せるようになっています。皆さんにも、こうした実感があるのではないでしょうか。</mark></p>
+<p>では、その変化は、自分の作業を終えるまでの工数や、案件が進む速さにも、期待したほどつながっているでしょうか。</p>
+<p>作成が速くなったことと、仕事全体が速く進むこと。その関係を考えるために、まず、普段の作業のどこをAIが担うようになったかを見てみます。</p>
+<h2>03　あなたの仕事のどこでAIを使い、作業はどう変わりましたか？</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、成果物を作りやすくなったことが、仕事全体にも効果をもたらしているかを問いかけました。そのことを考えるために、普段の作業がどう変わったかを見てみましょう。
+
+図の左は、人が作成していた仕事の例です。計画書や説明資料、報告資料を作るために、情報を整理して文章を書いていました。開発でも、要件をもとに設計書を書き、コードやテストを作成していました。
+
+右は、こうした作成の一部をAIが担う例です。さまざまな成果物を短時間で作れるようになり、一つの案だけでなく、複数の案や関連する資料も作りやすくなりました。重ねた資料は、作成できる量が増えることを表しています。
+
+皆さんも、資料を追加したり、設計や実装の案を試したりすることが、以前より手軽になっていませんか。
+
+では、作成する時間が短くなったあと、仕事で使うまでの時間はどうでしょうか。次は、作成したものの確認や修正に目を向けてみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">例えば、計画書や説明資料、報告資料を作る仕事です。図の左では、人が情報を整理し、文章にしています。開発でも、要件をもとに設計書を書き、コードやテストを作成していました。</mark></p>
+<p>右は、その作成の一部をAIが担う例です。一つの案を作るだけでなく、複数の案を比較したり、関連する資料を追加したりすることも、以前より手軽になりました。重ねた資料は、短時間で作れるものの種類や量が増えたことを表しています。</p>
+<p>皆さんの仕事でも、資料の案を作ったり、設計や実装の方法を試したりしやすくなっていませんか。</p>
+<p>ただ、成果物ができた時点で、仕事のすべてが終わるわけではありません。実際に使うには、その内容を確認し、必要なら修正する作業があります。</p>
+<h2>04　作成は速くなった。確認や修正まで含めると、どうでしょうか？</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、AIによってさまざまな成果物を短時間で作れるようになった変化を見ました。ここでは、作成したものを確かめ、仕事で使うまでを見てみましょう。
+
+計画書や説明資料、報告資料なら、元の情報と合っているか、仕事に必要な内容が含まれているかを確認します。開発では、設計書やコード、テストが、要件や仕様を満たしているかを確かめます。成果物どうしで内容が食い違っていないかも、確認が必要ですね。不足が見つかれば修正し、その内容をもう一度確認します。
+
+AIを使うと、こうしたさまざまな成果物を、短時間で作れるようになります。資料のページ数やコードの量だけでなく、作成する成果物の種類や数も増えることがあります。その分、読む量や、仕様・記録と照らし合わせる対象が増えることもあります。作成する時間は短くなっても、確認や修正まで含む時間が、同じように減るとは限りません。
+
+皆さんの仕事では、どうでしょうか。作成が速くなったあと、どんな確認や修正に時間を使っていますか。必要なレビューやテストもありますから、確認が残ることだけでAIの効果がないとは言えません。
+
+では、その確認では、何を基準に問題ないと判断しているでしょうか。次は、何を作り、何を確かめれば完了かを、自分で説明できるか考えてみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">例えば資料なら、元の情報と合っているか、仕事に必要な内容が含まれているかを確認します。開発では、設計書やコード、テストが要件や仕様を満たしているかを確かめます。成果物どうしで内容が食い違っていないかも、確認が必要ですね。</mark></p>
+<p>不足があれば修正し、修正した内容をもう一度確認します。図の下の矢印は、この流れを示しています。</p>
+<p>AIで作成しやすくなると、資料のページ数やコードの量に加え、成果物の種類や数が増えることもあります。その分、読んだり、要件や記録と照らし合わせたりする対象も増えます。作成の時間が短くなっても、確認や修正まで含む時間が、同じように減るとは限りません。</p>
+<p>必要なレビューやテストは、これからも大切です。そのうえで、確認したい内容を探すだけで時間がかかったり、何を基準に問題ないと判断するか迷ったりすることはないでしょうか。確認の負担を考えるには、成果物の量だけでなく、内容と示し方にも目を向ける必要があります。</p>
+<h2>05　その成果物は、確認・判断ができる形になっていますか？</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、AIで作成する成果物が増えると、確認する対象も増えることを見ました。ここでは、量に加えて、どのような内容や形で作られているかにも目を向けてみましょう。
+
+資料ごとに形式や詳しさが違うと、確認したい内容がどこにあるかを探す必要があります。形式を決めていても、情報量が多ければ、読むだけで時間がかかります。欄が埋まっていることと、必要な内容を把握して判断できることは、同じではありません。
+
+そこで、そもそも何のために使い、何を確認して判断する成果物なのかを考えます。その目的に合わせて、何を含めるか、どこまでの範囲や詳しさが必要か、どのように示すかを決めたいですね。
+
+図の右は、承認に使う資料の例です。何を決めるのか、その根拠は何か、満たす条件や未確認の点は何かが分かり、必要な詳細も確認できる形を示しています。開発の設計書やコード、テストでも、要件との対応や確認すべき点が分かることが大切です。すべてを同じ形式にするという意味ではなく、その成果物で何を確かめたいかに合わせて考えます。
+
+ただ短くしたり、資料の数を減らしたりすればよいわけではありません。判断に必要な情報を残し、人が確認できる内容と示し方にすることが大切です。
+
+こうした目的や必要な内容、確認の条件を、自分で説明し、AIにも伝えられるでしょうか。このワークショップでは、その前提を言葉にし、AIで繰り返し使える仕組みにする方法を学びます。次は、その実現したい姿を見てみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">図の左のように、資料ごとに形式や詳しさが違うと、確認したい内容を探すところから始めなければなりません。形式を決めていても、情報量が多ければ、読むだけで時間がかかります。欄が埋まっていても、必要な内容を把握し、判断できるとは限らないわけです。</mark></p>
+<p>そこで考えたいのが、その成果物を何のために使い、何を確かめたいのかです。目的に合わせて、含める内容、対象の範囲、必要な詳しさ、示し方を決めます。</p>
+<p>右は、承認に使う資料の例です。何を決めるのか、その根拠は何か、満たす条件や未確認の点は何かを確認でき、必要なら詳細も調べられる形です。設計書やコード、テストでも、要件との対応や確認すべき点が分かることが大切ですね。</p>
+<p>ただ短くしたり、すべてを同じ形式にしたりすればよいわけではありません。判断に必要な情報を残し、人が確認できる内容と示し方にすることが大切です。</p>
+<p>では、何のために、何をどこまで作り、何を確かめればよいのか。皆さん自身が説明し、AIにも伝えられるでしょうか。このワークショップでは、それを言葉にするところから、AIで実行し、繰り返し使えるようにするところまでを学びます。</p>
+<h2>06　AIで必要な成果物を作り、条件と手順を再利用・改善する</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、確認や判断に使うために、何を、どこまで、どのように作るかを決めることをお話ししました。このワークショップでは、その前提をAIに伝え、同じ種類の作業で条件や手順を再利用できるようにすることを目指します。
+
+図の左は、今回の案件の情報です。対象や変更点、記録、要件や仕様など、作業に必要な情報を入力します。
+
+中央のAgentは、目的に合わせて作業を進めるAIです。その下にあるSkillには、作業の目的、必要な内容、確認条件や手順を記録します。AgentがそのSkillを使って、仕事に必要な成果物を作ります。資料や設計書、コード、テストなど、図には作成するものの例を示しています。毎回すべてを作るのではなく、その仕事に必要なものを作成します。
+
+人は、出力が決めた条件を満たしているか、今回の情報に合っているかを確認して使います。合わないところが見つかれば、出力を修正し、必要に応じてSkillに記録した条件や手順も改善します。
+
+同じ種類の作業を繰り返すときは、記録した条件や手順を使い、今回の案件の情報や変更点を伝えます。目的や必要な条件が変わった場合は、記録した内容も見直します。毎回すべてを説明し直す代わりに、繰り返し使う内容を記録しておくわけですね。これは、目指す使い方を示した図です。実際にAIを実行した結果ではありません。
+
+では、この進め方を自分の仕事に合わせるには、何を学べばよいでしょうか。目的や必要な内容を考え、言葉の意味を明確にし、それを仕組みにして改善する方法を、三つの教材で学びます。まずは、身近な一つの作業を例に見ていきましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">その進め方を表したのが、この図です。左から、今回の案件の情報を入力し、中央のAgentがSkillを使って作業を進め、必要な成果物を作ります。そして、右にいる人が内容を確認して使います。</mark></p>
+<p>Agentは、目的に合わせて作業を進めるAIです。その下のSkillには、作業の目的、必要な内容、確認条件や手順を記録しておきます。資料や設計書、コード、テストなど、図には成果物の例を並べていますが、毎回すべてを作るという意味ではありません。その仕事に必要なものを作ります。</p>
+<p>人は、出力が決めた条件を満たしているか、今回の情報に合っているかを確かめます。合わないところがあれば出力を修正し、必要に応じてSkillの条件や手順も改善します。下を戻る矢印が、その流れです。</p>
+<p>同じ種類の作業を繰り返すときは、記録した条件や手順を使い、今回の案件の情報や変更点を伝えます。目的や必要な条件が変わった場合は、Skillの内容も見直します。毎回すべてを説明し直さずに、繰り返し使う内容を記録しておくわけです。</p>
+<p>これは、目指す使い方を示した図で、実際の実行結果ではありません。この進め方を自分の仕事で実現するために、三つの教材を用意しています。</p>
+<h2>07　3つの教材で、AIを自分の仕事に合わせて使う方法を学びます</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、AgentがSkillを使って必要な成果物を作り、人が確認して改善する姿を見ました。では、それを自分の仕事で実現するために、何を学ぶのでしょうか。このワークショップでは、三つの教材で、その考え方と使い方を学びます。
+
+教材1は、目的の把握です。何のための作業で、何をどこまで作る必要があるかを考えます。成果物を増やすこと自体を目的にせず、仕事で使うために必要な内容や条件を説明できるようにします。
+
+教材2は、言葉の定義です。必要な内容や条件を表す言葉が、何を指しているかを明確にします。同じ言葉でも、人や業務によって意味が違うことがあります。自分の仕事で使う意味を定義し、チームで使う場合は、その違いも確かめます。
+
+図の下では、この二つで考えた目的や内容、言葉の意味、確認条件が、Skillに記録する前提へつながっています。
+
+教材3は、仕組みの構築です。ここでAgentsやSkillsなどの使い方を学び、決めた条件や手順を使ってAIが作業を進めるようにします。実際に使い、出力を確認して、合わないところを改善する方法も扱います。
+
+AgentsやSkillsの使い方を知るだけでなく、何を記録し、何を確かめるかを、自分の仕事に合わせて考えられるようになることが大切です。三つの教材は、先ほどの完成像を実現するためにつながっています。
+
+教材では、身近な一つの作業を例に考え方を学びます。その詳しい説明は、教材の「はじめに」で行います。ここでは、学んだ方法を皆さんの仕事で使うと、どのようなことができるようになるかを見てみましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">一つ目は、目的の把握です。何のための作業で、何をどこまで作る必要があるかを考えます。成果物を増やすこと自体を目的にせず、仕事で使うために必要な内容や条件を説明できるようにします。</mark></p>
+<p>二つ目は、言葉の定義です。必要な内容や条件を表す言葉が、何を指しているかを明確にします。同じ言葉でも、人や業務によって意味が違うことがあります。自分の仕事で使う意味を定義し、チームで使う場合は、その違いも確かめます。</p>
+<p>この二つで考えた目的や内容、言葉の意味、確認条件が、図の下にあるSkillに記録する前提になります。</p>
+<p>三つ目は、仕組みの構築です。AgentsやSkillsなどの使い方を学び、決めた条件や手順を使ってAIが作業を進めるようにします。実際に使い、出力を確かめて改善する方法も扱います。</p>
+<p>使い方とあわせて、何を記録し、何を確かめるかを、自分の仕事に合わせて考えられるようになることが大切です。教材では、身近な一つの作業を例に学びます。題材の詳しい説明は教材の「はじめに」で行いますので、ここでは、皆さんの仕事にどう活かせるかを見てみましょう。</p>
+<h2>08　学んだ方法を、資料作成や開発の仕事で使えるようになる</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="三つの教材で学んだ方法は、皆さん自身の仕事でAIを使うときにも活かせます。ここでは、資料作成と設計・開発を例に、できるようになりたいことを見てみましょう。
+
+資料を作るときは、誰が何の判断に使うのかを考え、そのために必要な内容や詳しさをAIに伝えます。出力を確認するときも、必要な情報があるか、根拠は確かか、詳細を確認できるかという観点で確かめられるようにします。見た目や形式だけでなく、仕事で使える内容になっているかを判断するわけですね。
+
+設計や開発では、変更の目的や対象範囲、満たす要件や仕様、品質の条件を説明し、AIに伝えます。そして、設計書、コード、テストが、その条件に対応しているかを確かめます。個々の成果物ができているだけでなく、成果物どうしで内容が合っているかも確認します。
+
+繰り返し使う条件や手順は、Skillなどに記録します。同じ種類の作業を繰り返すときは、今回の案件の情報を伝え、Agentが記録した内容を使って作業を進めるようにします。使ってみて合わないところは改善します。
+
+身につけていただきたいのは、特定の作業だけをAIで実行する方法ではありません。自分の仕事で何が必要かを考え、AIに伝え、出力を確認し、条件や手順を再利用できるようにする方法です。必要なレビューを続けながら、作成の速さを、仕事で使える成果物につなげていきたいですね。
+
+こうした使い方を考えるために、教材ではどんな考え方を土台にしているのでしょうか。続いて、参考にした書籍と、教材との関係をご紹介します。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">例えば、資料を作る仕事です。誰が何の判断に使うのかを考え、そのために必要な内容や詳しさをAIに伝えます。出力も、必要な情報があるか、根拠は確かか、詳細を確認できるかという観点で確かめます。見た目や形式に加えて、仕事で使える内容かどうかを判断できるようにするわけです。</mark></p>
+<p>設計や開発なら、変更の目的や対象範囲、満たす要件や仕様、品質の条件を説明してAIに伝えます。そして、設計書、コード、テストがその条件に対応しているか、成果物どうしで内容が合っているかを確認します。</p>
+<p>どちらも、何が必要かを考え、AIに伝え、結果を確かめるという点は共通です。繰り返し使う条件や手順はSkillなどに記録し、同じ種類の作業で使います。今回の案件の情報を伝え、Agentが記録した内容を使って作業を進めるようにし、合わないところは改善します。</p>
+<p>特定の作業のやり方だけでなく、自分の仕事に合わせて考え、実行し、改善する方法を身につけていただきたいと考えています。そのために、教材ではAIの操作方法とあわせて、仕事の目的や言葉の意味を考える方法も扱います。この考え方の参考にしたのが、次の三冊です。</p>
+<h2>09　目的を見極め、業務の意味を言葉にするための3冊です</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="先ほど、学んだ方法を資料作成や設計・開発に活かす姿を見ました。ここで、教材の土台となる三冊をご紹介します。AIの操作方法に加えて、その前提となる考え方も学んでいただきたいと考え、この三冊を参考にしました。
+
+教材全体の土台は、細谷功さんの『システム開発と「具体と抽象」』です。この書籍は、与えられた仕事をどう実行するかだけでなく、そもそも何を実現すべきかを考える視点を扱っています。AIの使い方を覚える前に、何のための仕事かを考え、その目的を実際の作業や条件に具体化する力が必要だと考え、参考にしました。教材では、具体と抽象を往復しながら、自分の仕事に合う目的を見極め、AIに伝えられる内容にする考え方を取り入れています。
+
+図の下の左にある、『ユースケース実践ガイド』は、システムの操作や機能からではなく、使う人が何を達成したいかを中心に、必要な振る舞いを考える本です。細かな手順の目的と、仕事として達成したい目的を区別する方法があるため、教材1の参考にしました。AIに何かを作ってもらうときも、手順を並べる前に、誰が何をできればよいのか、その仕事に合う目的の大きさはどこかを考えます。本書の考え方を、そのために取り入れています。
+
+下の右にある、『ドメイン駆動設計をはじめよう』では、業務を理解し、その内容を関係者が同じ言葉で表しながら、設計や実装につなげます。同じ用語でも、扱う業務が違えば意味も変わります。そこで、言葉が通用する範囲を明確にする考え方を、教材2の参考にしました。自分たちの仕事の前提や判断を言葉にし、その意味を人にもAIにも伝えるためです。用語集を作るだけで終わらせず、実際の作業で意味が通じるかを確かめていきます。
+
+こうして考えた目的や言葉の意味を、AIで使える条件や手順として記録し、実行と改善へつなげる方法を教材3で学びます。書籍を先に読んでいただく必要はありません。教材だけでも学べるようにしていますので、考え方をさらに深めたいときに参考にしてください。
+
+では、教材で学び、自分の仕事で試していくために、どのように学習と実践を進めるのでしょうか。続いて、その進め方をご紹介します。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">教材全体の土台は、細谷功さんの『システム開発と「具体と抽象」』です。与えられた仕事をどう実行するかだけでなく、そもそも何を実現すべきかを考える視点を扱っています。</mark></p>
+<p>何のための仕事かを考え、その目的を実際の作業や条件に具体化します。教材では、具体と抽象を往復しながら、自分の仕事に合う目的を見極める考え方を取り入れています。大きな目的にすればよいのではなく、その仕事に合う目的の大きさを考えることが大切です。</p>
+<p>下の左にある『ユースケース実践ガイド』は、使う人が何を達成したいかを中心に、システムに必要な振る舞いを考える書籍です。細かな手順の目的と、仕事として達成したい目的を区別する方法があり、教材1の参考にしました。AIに作業を任せるときも、手順を並べる前に、誰が何をできればよいのかを考えるためです。</p>
+<p>右の『ドメイン駆動設計をはじめよう』は、業務を理解し、その内容を関係者が同じ言葉で表しながら、設計や実装につなげる考え方を扱っています。同じ用語でも、業務が違えば意味も変わります。そこで、言葉が通用する範囲を明確にする考え方を、教材2の参考にしました。用語集を作るだけでなく、自分たちの仕事の前提や判断を、人にもAIにも伝えるためです。</p>
+<p>教材3では、こうして考えた目的や言葉の意味を、AIで使う条件や手順として記録し、実行と改善へつなげます。書籍を先に読んでいただく必要はありません。教材だけでも学べるようにしていますので、さらに深めたいときに参考にしてください。</p>
+<p>こうした考え方と使い方を、教材で学び、自分の仕事で試していきます。その学習と実践は、次のような日程で進めます。</p>
+<h2>10　教材で学び、自分の仕事で試し、目的を達成できたかを確かめます</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="ここからは、学習と実践の進め方をご紹介します。教材で考え方と使い方を学び、自分の仕事でAIを使い、目的を達成できたかを確かめる流れです。
+
+図の左、十月から十二月は準備期間です。ナレッジ共有ポータルで教材を順に見ながら、自分がAIで実現したい目的を考えます。教材1から順に公開し、教材2と教材3も十二月までに公開する予定です。学んだことを自分の仕事に当てはめ、何を実現したいか、何が変われば達成と言えるかを考えてみてください。
+
+十二月中にワークショップへの参加を受け付け、一月から三月の三か月で実践します。参加者は先着十五名です。教材で学んだことをもとに、自分で決めた目的を達成する仕組みをAIで作ります。
+
+作成したら、実際の仕事で使い、出力や進め方を確認して改善します。必要な内容が得られているか、確認や判断に使えるか、記録した条件や手順が目的に合っているかを確かめることも、実践に含まれます。
+
+三月の最終共有会では、作った仕組みと、実際に使って何が変わったかを共有します。作れたことだけで終わらず、最初に決めた目的を達成できたかを確かめたいですね。
+
+参加者には、KiroのアカウントとAWS環境を発行します。自分で使う仕組みか、チームでも使う仕組みかも、目的に合わせて考えます。
+
+最後に、このワークショップで身につけたいことを振り返りましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">十月から十二月は準備期間です。ナレッジ共有ポータルで教材を順に見ながら、自分がAIで実現したいことを考えます。教材1から順に公開し、教材2と教材3も十二月までに公開する予定です。何を実現したいかに加えて、何が変われば達成と言えるかも考えてみてください。</mark></p>
+<p>十二月中にワークショップへの参加を受け付け、一月から三月の三か月で実践します。参加者は先着十五名です。自分で決めた目的に合わせて、AIで使う仕組みを作ります。参加者には、KiroのアカウントとAWS環境を発行します。</p>
+<p>仕組みができたら、実際の仕事で使ってみます。必要な内容が得られているか、確認や判断に使えるかを確かめ、条件や手順を改善します。自分だけで使うか、チームでも使うかは、目的に合わせて考えます。</p>
+<p>三月の最終共有会では、作った仕組みと、実際に使って何が変わったかを共有します。作れたことだけで終わらず、最初に決めた目的を達成できたかまで確かめたいと考えています。</p>
+<p>このように、教材で学んだことを、実際の仕事で試し、確かめるところまでがワークショップです。最後に、そこで身につけたいことを振り返りましょう。</p>
+<h2>11　AIで作れる力を、仕事で使える成果物につなげましょう</h2>
+<p><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="ここまで、このワークショップで学ぶ内容と、実践の進め方をご紹介しました。
+
+AIを使うと、さまざまな成果物を短時間で作れます。その力を仕事で活かすために、何のために、何をどこまで作るのかを考え、必要な内容や確認条件を言葉にします。そして、AgentsやSkillsを使って実行し、出力を確認して改善します。
+
+三つの教材で、この考え方と使い方を学び、ワークショップでは自分の仕事で試します。作れたことだけで終わらず、必要な内容を確認して使えるか、自分が実現したい目的を達成できたかを確かめていきましょう。
+
+皆さんの仕事で、AIを使って実現したいことは何でしょうか。それを考えながら、教材を見ていただきたいと思います。
+
+それでは、教材の「はじめに」へ進みましょう。" data-w="前の枚の結びを受けて説明を進め、次の枚の内容と予告を合わせます。">AIでさまざまなものを作れるようになった今、その力を、仕事で使える成果物につなげていきたいと考えています。</mark></p>
+<p>そのために、何のために、何をどこまで作るのかを考え、必要な内容や確認条件を言葉にします。そして、AgentsやSkillsを使って実行し、出力を確かめて改善します。図の三つの教材は、そのための考え方と使い方を学ぶものです。</p>
+<p>ワークショップでは、それを皆さん自身の仕事で試します。必要な内容を確認して使えるか、実現したかった目的を達成できたかまで、確かめていきましょう。</p>
+<p>皆さんは、自分の仕事で、AIを使って何を実現したいでしょうか。そのことを考えながら、教材を見ていただければと思います。</p>
+<p>続く教材の「はじめに」では、教材1で扱う作業の例と、学ぶ内容をご紹介します。</p></div></section><section class="pane code-pane" data-k="lesson-00-start" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 1 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">前後の説明の重複と予告の食い違いを直し、聞き手が一続きの話として理解できる原稿にします。</div><div class="at"><span class="lbl">場所</span><code>      &quot;narration&quot;: &quot;AIを使うことで、これまで難しかったこと</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="json"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 6 ／ 新 6 @@</td></tr><tr class="r"><td class="ln">6</td><td class="ln">6</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">7</td><td class="ln">7</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-CONTEXT&quot;,</code></td></tr><tr class="r"><td class="ln">8</td><td class="ln">8</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;仕事の目的を、AIで達成できるようになるためのワークショップです&quot;,</code></td></tr><tr class="rd"><td class="ln">9</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました。\n\n部内でもAIの活用を進めるために、使い方を知るだけでなく、仕事で実現したいことに合わせて活用できるようになる機会を設けたいと考え、このワークショップを企画しました。\n\n何を実現したいのか。そのために何が必要なのか。それをAIに説明し、実行した結果を確かめます。まずは、この考え方を学びます。そのうえで、AgentsやSkillsを使い、自分の仕事で実践していきます。\n\n目指すのは、皆さんが自分の仕事の目的を、AIで達成できるようになることです。\n\nでは、今の仕事では、AIによって何が変わっているでしょうか。そこから振り返ってみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">9</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="      &quot;narration&quot;: &quot;AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました。\n\n部内でもAIの活用を進めるために、使い方を知るだけでなく、仕事で実現したいことに合わせて活用できるようになる機会を設けたいと考え、このワークショップを企画しました。\n\n何を実現したいのか。そのために何が必要なのか。それをAIに説明し、実行した結果を確かめます。まずは、この考え方を学びます。そのうえで、AgentsやSkillsを使い、自分の仕事で実践していきます。\n\n目指すのは、皆さんが自分の仕事の目的を、AIで達成できるようになることです。\n\nでは、今の仕事では、AIによって何が変わっているでしょうか。そこから振り返ってみましょう。&quot;" data-w="前後の説明の重複と予告の食い違いを直し、聞き手が一続きの話として理解できる原稿にします。">      &quot;narration&quot;: &quot;AIを使うことで、これまで難しかったことも、自分で実現できるようになってきました。この力を、皆さんが仕事で実現したいことに合わせて使えるようになるために、今回のワークショップを企画しました。\n\n学ぶのは、AIの使い方と、その前提となる考え方です。何を実現したいのか。そのために何が必要なのかを考え、AIに説明します。そして、AgentsやSkillsを使って実行し、結果を確かめるところまで、自分の仕事で実践していきます。\n\n目指すのは、皆さんが自分の仕事の目的を、AIで達成できるようになることです。ここでは、そのために何を学び、どのように実践するのかをご紹介します。\n\nまずは、AIによって私たちの仕事がどう変わったかを考えてみましょう。&quot;</mark></code></td></tr><tr class="r"><td class="ln">10</td><td class="ln">10</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">11</td><td class="ln">11</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">12</td><td class="ln">12</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">02</span>&quot;,</code></td></tr><tr class="r"><td class="ln">13</td><td class="ln">13</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;AIで成果物を作りやすくなりました。仕事全体の生産性も上がっていますか？&quot;,</code></td></tr><tr class="rd"><td class="ln">14</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;AIを使うことで、資料やツール、アプリなどを、以前より手軽に作れるようになりました。作成にかかる時間も短くなり、これまで自分では作れなかったものも作れるようになりました。こうした変化を感じる方もいるのではないでしょうか。\n\nでは、その効果は、仕事全体で見ても、期待したほどの工数削減や、案件の進む速さにつながっているでしょうか。\n\nその違いを考えるために、まず、皆さんの仕事のどこでAIを使い、作業がどう変わったかを振り返ってみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">14</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;資料やツール、アプリなどを、以前より手軽に作れるようになりました。作成にかかる時間が短くなっただけでなく、これまで自分では作れなかったものも試せるようになっています。皆さんにも、こうした実感があるのではないでしょうか。\n\nでは、その変化は、自分の作業を終えるまでの工数や、案件が進む速さにも、期待したほどつながっているでしょうか。\n\n作成が速くなったことと、仕事全体が速く進むこと。その関係を考えるために、まず、普段の作業のどこをAIが担うようになったかを見てみます。&quot;</code></td></tr><tr class="r"><td class="ln">15</td><td class="ln">15</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">16</td><td class="ln">16</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">17</td><td class="ln">17</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">03</span>&quot;,</code></td></tr><tr class="r"><td class="ln">18</td><td class="ln">18</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;あなたの仕事のどこでAIを使い、作業はどう変わりましたか？&quot;,</code></td></tr><tr class="rd"><td class="ln">19</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、成果物を作りやすくなったことが、仕事全体にも効果をもたらしているかを問いかけました。そのことを考えるために、普段の作業がどう変わったかを見てみましょう。\n\n図の左は、人が作成していた仕事の例です。計画書や説明資料、報告資料を作るために、情報を整理して文章を書いていました。開発でも、要件をもとに設計書を書き、コードやテストを作成していました。\n\n右は、こうした作成の一部をAIが担う例です。さまざまな成果物を短時間で作れるようになり、一つの案だけでなく、複数の案や関連する資料も作りやすくなりました。重ねた資料は、作成できる量が増えることを表しています。\n\n皆さんも、資料を追加したり、設計や実装の案を試したりすることが、以前より手軽になっていませんか。\n\nでは、作成する時間が短くなったあと、仕事で使うまでの時間はどうでしょうか。次は、作成したものの確認や修正に目を向けてみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">19</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;例えば、計画書や説明資料、報告資料を作る仕事です。図の左では、人が情報を整理し、文章にしています。開発でも、要件をもとに設計書を書き、コードやテストを作成していました。\n\n右は、その作成の一部をAIが担う例です。一つの案を作るだけでなく、複数の案を比較したり、関連する資料を追加したりすることも、以前より手軽になりました。重ねた資料は、短時間で作れるものの種類や量が増えたことを表しています。\n\n皆さんの仕事でも、資料の案を作ったり、設計や実装の方法を試したりしやすくなっていませんか。\n\nただ、成果物ができた時点で、仕事のすべてが終わるわけではありません。実際に使うには、その内容を確認し、必要なら修正する作業があります。&quot;</code></td></tr><tr class="r"><td class="ln">20</td><td class="ln">20</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">21</td><td class="ln">21</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">22</td><td class="ln">22</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">04</span>&quot;,</code></td></tr><tr class="r"><td class="ln">23</td><td class="ln">23</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;作成は速くなった。確認や修正まで含めると、どうでしょうか？&quot;,</code></td></tr><tr class="rd"><td class="ln">24</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、AIによってさまざまな成果物を短時間で作れるようになった変化を見ました。ここでは、作成したものを確かめ、仕事で使うまでを見てみましょう。\n\n計画書や説明資料、報告資料なら、元の情報と合っているか、仕事に必要な内容が含まれているかを確認します。開発では、設計書やコード、テストが、要件や仕様を満たしているかを確かめます。成果物どうしで内容が食い違っていないかも、確認が必要ですね。不足が見つかれば修正し、その内容をもう一度確認します。\n\nAIを使うと、こうしたさまざまな成果物を、短時間で作れるようになります。資料のページ数やコードの量だけでなく、作成する成果物の種類や数も増えることがあります。その分、読む量や、仕様・記録と照らし合わせる対象が増えることもあります。作成する時間は短くなっても、確認や修正まで含む時間が、同じように減るとは限りません。\n\n皆さんの仕事では、どうでしょうか。作成が速くなったあと、どんな確認や修正に時間を使っていますか。必要なレビューやテストもありますから、確認が残ることだけでAIの効果がないとは言えません。\n\nでは、その確認では、何を基準に問題ないと判断しているでしょうか。次は、何を作り、何を確かめれば完了かを、自分で説明できるか考えてみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">24</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;例えば資料なら、元の情報と合っているか、仕事に必要な内容が含まれているかを確認します。開発では、設計書やコード、テストが要件や仕様を満たしているかを確かめます。成果物どうしで内容が食い違っていないかも、確認が必要ですね。\n\n不足があれば修正し、修正した内容をもう一度確認します。図の下の矢印は、この流れを示しています。\n\nAIで作成しやすくなると、資料のページ数やコードの量に加え、成果物の種類や数が増えることもあります。その分、読んだり、要件や記録と照らし合わせたりする対象も増えます。作成の時間が短くなっても、確認や修正まで含む時間が、同じように減るとは限りません。\n\n必要なレビューやテストは、これからも大切です。そのうえで、確認したい内容を探すだけで時間がかかったり、何を基準に問題ないと判断するか迷ったりすることはないでしょうか。確認の負担を考えるには、成果物の量だけでなく、内容と示し方にも目を向ける必要があります。&quot;</code></td></tr><tr class="r"><td class="ln">25</td><td class="ln">25</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">26</td><td class="ln">26</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">27</td><td class="ln">27</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">05</span>&quot;,</code></td></tr><tr class="r"><td class="ln">28</td><td class="ln">28</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;その成果物は、確認・判断ができる形になっていますか？&quot;,</code></td></tr><tr class="rd"><td class="ln">29</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、AIで作成する成果物が増えると、確認する対象も増えることを見ました。ここでは、量に加えて、どのような内容や形で作られているかにも目を向けてみましょう。\n\n資料ごとに形式や詳しさが違うと、確認したい内容がどこにあるかを探す必要があります。形式を決めていても、情報量が多ければ、読むだけで時間がかかります。欄が埋まっていることと、必要な内容を把握して判断できることは、同じではありません。\n\nそこで、そもそも何のために使い、何を確認して判断する成果物なのかを考えます。その目的に合わせて、何を含めるか、どこまでの範囲や詳しさが必要か、どのように示すかを決めたいですね。\n\n図の右は、承認に使う資料の例です。何を決めるのか、その根拠は何か、満たす条件や未確認の点は何かが分かり、必要な詳細も確認できる形を示しています。開発の設計書やコード、テストでも、要件との対応や確認すべき点が分かることが大切です。すべてを同じ形式にするという意味ではなく、その成果物で何を確かめたいかに合わせて考えます。\n\nただ短くしたり、資料の数を減らしたりすればよいわけではありません。判断に必要な情報を残し、人が確認できる内容と示し方にすることが大切です。\n\nこうした目的や必要な内容、確認の条件を、自分で説明し、AIにも伝えられるでしょうか。このワークショップでは、その前提を言葉にし、AIで繰り返し使える仕組みにする方法を学びます。次は、その実現したい姿を見てみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">29</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;図の左のように、資料ごとに形式や詳しさが違うと、確認したい内容を探すところから始めなければなりません。形式を決めていても、情報量が多ければ、読むだけで時間がかかります。欄が埋まっていても、必要な内容を把握し、判断できるとは限らないわけです。\n\nそこで考えたいのが、その成果物を何のために使い、何を確かめたいのかです。目的に合わせて、含める内容、対象の範囲、必要な詳しさ、示し方を決めます。\n\n右は、承認に使う資料の例です。何を決めるのか、その根拠は何か、満たす条件や未確認の点は何かを確認でき、必要なら詳細も調べられる形です。設計書やコード、テストでも、要件との対応や確認すべき点が分かることが大切ですね。\n\nただ短くしたり、すべてを同じ形式にしたりすればよいわけではありません。判断に必要な情報を残し、人が確認できる内容と示し方にすることが大切です。\n\nでは、何のために、何をどこまで作り、何を確かめればよいのか。皆さん自身が説明し、AIにも伝えられるでしょうか。このワークショップでは、それを言葉にするところから、AIで実行し、繰り返し使えるようにするところまでを学びます。&quot;</code></td></tr><tr class="r"><td class="ln">30</td><td class="ln">30</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">31</td><td class="ln">31</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">32</td><td class="ln">32</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">06</span>&quot;,</code></td></tr><tr class="r"><td class="ln">33</td><td class="ln">33</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;AIで必要な成果物を作り、条件と手順を再利用・改善する&quot;,</code></td></tr><tr class="rd"><td class="ln">34</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、確認や判断に使うために、何を、どこまで、どのように作るかを決めることをお話ししました。このワークショップでは、その前提をAIに伝え、同じ種類の作業で条件や手順を再利用できるようにすることを目指します。\n\n図の左は、今回の案件の情報です。対象や変更点、記録、要件や仕様など、作業に必要な情報を入力します。\n\n中央のAgentは、目的に合わせて作業を進めるAIです。その下にあるSkillには、作業の目的、必要な内容、確認条件や手順を記録します。AgentがそのSkillを使って、仕事に必要な成果物を作ります。資料や設計書、コード、テストなど、図には作成するものの例を示しています。毎回すべてを作るのではなく、その仕事に必要なものを作成します。\n\n人は、出力が決めた条件を満たしているか、今回の情報に合っているかを確認して使います。合わないところが見つかれば、出力を修正し、必要に応じてSkillに記録した条件や手順も改善します。\n\n同じ種類の作業を繰り返すときは、記録した条件や手順を使い、今回の案件の情報や変更点を伝えます。目的や必要な条件が変わった場合は、記録した内容も見直します。毎回すべてを説明し直す代わりに、繰り返し使う内容を記録しておくわけですね。これは、目指す使い方を示した図です。実際にAIを実行した結果ではありません。\n\nでは、この進め方を自分の仕事に合わせるには、何を学べばよいでしょうか。目的や必要な内容を考え、言葉の意味を明確にし、それを仕組みにして改善する方法を、三つの教材で学びます。まずは、身近な一つの作業を例に見ていきましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">34</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;その進め方を表したのが、この図です。左から、今回の案件の情報を入力し、中央のAgentがSkillを使って作業を進め、必要な成果物を作ります。そして、右にいる人が内容を確認して使います。\n\nAgentは、目的に合わせて作業を進めるAIです。その下のSkillには、作業の目的、必要な内容、確認条件や手順を記録しておきます。資料や設計書、コード、テストなど、図には成果物の例を並べていますが、毎回すべてを作るという意味ではありません。その仕事に必要なものを作ります。\n\n人は、出力が決めた条件を満たしているか、今回の情報に合っているかを確かめます。合わないところがあれば出力を修正し、必要に応じてSkillの条件や手順も改善します。下を戻る矢印が、その流れです。\n\n同じ種類の作業を繰り返すときは、記録した条件や手順を使い、今回の案件の情報や変更点を伝えます。目的や必要な条件が変わった場合は、Skillの内容も見直します。毎回すべてを説明し直さずに、繰り返し使う内容を記録しておくわけです。\n\nこれは、目指す使い方を示した図で、実際の実行結果ではありません。この進め方を自分の仕事で実現するために、三つの教材を用意しています。&quot;</code></td></tr><tr class="r"><td class="ln">35</td><td class="ln">35</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">36</td><td class="ln">36</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">37</td><td class="ln">37</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">07</span>&quot;,</code></td></tr><tr class="r"><td class="ln">38</td><td class="ln">38</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;3つの教材で、AIを自分の仕事に合わせて使う方法を学びます&quot;,</code></td></tr><tr class="rd"><td class="ln">39</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、AgentがSkillを使って必要な成果物を作り、人が確認して改善する姿を見ました。では、それを自分の仕事で実現するために、何を学ぶのでしょうか。このワークショップでは、三つの教材で、その考え方と使い方を学びます。\n\n教材1は、目的の把握です。何のための作業で、何をどこまで作る必要があるかを考えます。成果物を増やすこと自体を目的にせず、仕事で使うために必要な内容や条件を説明できるようにします。\n\n教材2は、言葉の定義です。必要な内容や条件を表す言葉が、何を指しているかを明確にします。同じ言葉でも、人や業務によって意味が違うことがあります。自分の仕事で使う意味を定義し、チームで使う場合は、その違いも確かめます。\n\n図の下では、この二つで考えた目的や内容、言葉の意味、確認条件が、Skillに記録する前提へつながっています。\n\n教材3は、仕組みの構築です。ここでAgentsやSkillsなどの使い方を学び、決めた条件や手順を使ってAIが作業を進めるようにします。実際に使い、出力を確認して、合わないところを改善する方法も扱います。\n\nAgentsやSkillsの使い方を知るだけでなく、何を記録し、何を確かめるかを、自分の仕事に合わせて考えられるようになることが大切です。三つの教材は、先ほどの完成像を実現するためにつながっています。\n\n教材では、身近な一つの作業を例に考え方を学びます。その詳しい説明は、教材の「はじめに」で行います。ここでは、学んだ方法を皆さんの仕事で使うと、どのようなことができるようになるかを見てみましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">39</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;一つ目は、目的の把握です。何のための作業で、何をどこまで作る必要があるかを考えます。成果物を増やすこと自体を目的にせず、仕事で使うために必要な内容や条件を説明できるようにします。\n\n二つ目は、言葉の定義です。必要な内容や条件を表す言葉が、何を指しているかを明確にします。同じ言葉でも、人や業務によって意味が違うことがあります。自分の仕事で使う意味を定義し、チームで使う場合は、その違いも確かめます。\n\nこの二つで考えた目的や内容、言葉の意味、確認条件が、図の下にあるSkillに記録する前提になります。\n\n三つ目は、仕組みの構築です。AgentsやSkillsなどの使い方を学び、決めた条件や手順を使ってAIが作業を進めるようにします。実際に使い、出力を確かめて改善する方法も扱います。\n\n使い方とあわせて、何を記録し、何を確かめるかを、自分の仕事に合わせて考えられるようになることが大切です。教材では、身近な一つの作業を例に学びます。題材の詳しい説明は教材の「はじめに」で行いますので、ここでは、皆さんの仕事にどう活かせるかを見てみましょう。&quot;</code></td></tr><tr class="r"><td class="ln">40</td><td class="ln">40</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">41</td><td class="ln">41</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">42</td><td class="ln">42</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">08</span>&quot;,</code></td></tr><tr class="r"><td class="ln">43</td><td class="ln">43</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;学んだ方法を、資料作成や開発の仕事で使えるようになる&quot;,</code></td></tr><tr class="rd"><td class="ln">44</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;三つの教材で学んだ方法は、皆さん自身の仕事でAIを使うときにも活かせます。ここでは、資料作成と設計・開発を例に、できるようになりたいことを見てみましょう。\n\n資料を作るときは、誰が何の判断に使うのかを考え、そのために必要な内容や詳しさをAIに伝えます。出力を確認するときも、必要な情報があるか、根拠は確かか、詳細を確認できるかという観点で確かめられるようにします。見た目や形式だけでなく、仕事で使える内容になっているかを判断するわけですね。\n\n設計や開発では、変更の目的や対象範囲、満たす要件や仕様、品質の条件を説明し、AIに伝えます。そして、設計書、コード、テストが、その条件に対応しているかを確かめます。個々の成果物ができているだけでなく、成果物どうしで内容が合っているかも確認します。\n\n繰り返し使う条件や手順は、Skillなどに記録します。同じ種類の作業を繰り返すときは、今回の案件の情報を伝え、Agentが記録した内容を使って作業を進めるようにします。使ってみて合わないところは改善します。\n\n身につけていただきたいのは、特定の作業だけをAIで実行する方法ではありません。自分の仕事で何が必要かを考え、AIに伝え、出力を確認し、条件や手順を再利用できるようにする方法です。必要なレビューを続けながら、作成の速さを、仕事で使える成果物につなげていきたいですね。\n\nこうした使い方を考えるために、教材ではどんな考え方を土台にしているのでしょうか。続いて、参考にした書籍と、教材との関係をご紹介します。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">44</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;例えば、資料を作る仕事です。誰が何の判断に使うのかを考え、そのために必要な内容や詳しさをAIに伝えます。出力も、必要な情報があるか、根拠は確かか、詳細を確認できるかという観点で確かめます。見た目や形式に加えて、仕事で使える内容かどうかを判断できるようにするわけです。\n\n設計や開発なら、変更の目的や対象範囲、満たす要件や仕様、品質の条件を説明してAIに伝えます。そして、設計書、コード、テストがその条件に対応しているか、成果物どうしで内容が合っているかを確認します。\n\nどちらも、何が必要かを考え、AIに伝え、結果を確かめるという点は共通です。繰り返し使う条件や手順はSkillなどに記録し、同じ種類の作業で使います。今回の案件の情報を伝え、Agentが記録した内容を使って作業を進めるようにし、合わないところは改善します。\n\n特定の作業のやり方だけでなく、自分の仕事に合わせて考え、実行し、改善する方法を身につけていただきたいと考えています。そのために、教材ではAIの操作方法とあわせて、仕事の目的や言葉の意味を考える方法も扱います。この考え方の参考にしたのが、次の三冊です。&quot;</code></td></tr><tr class="r"><td class="ln">45</td><td class="ln">45</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">46</td><td class="ln">46</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">47</td><td class="ln">47</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">09</span>&quot;,</code></td></tr><tr class="r"><td class="ln">48</td><td class="ln">48</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;目的を見極め、業務の意味を言葉にするための3冊です&quot;,</code></td></tr><tr class="rd"><td class="ln">49</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;先ほど、学んだ方法を資料作成や設計・開発に活かす姿を見ました。ここで、教材の土台となる三冊をご紹介します。AIの操作方法に加えて、その前提となる考え方も学んでいただきたいと考え、この三冊を参考にしました。\n\n教材全体の土台は、細谷功さんの『システム開発と「具体と抽象」』です。この書籍は、与えられた仕事をどう実行するかだけでなく、そもそも何を実現すべきかを考える視点を扱っています。AIの使い方を覚える前に、何のための仕事かを考え、その目的を実際の作業や条件に具体化する力が必要だと考え、参考にしました。教材では、具体と抽象を往復しながら、自分の仕事に合う目的を見極め、AIに伝えられる内容にする考え方を取り入れています。\n\n図の下の左にある、『ユースケース実践ガイド』は、システムの操作や機能からではなく、使う人が何を達成したいかを中心に、必要な振る舞いを考える本です。細かな手順の目的と、仕事として達成したい目的を区別する方法があるため、教材1の参考にしました。AIに何かを作ってもらうときも、手順を並べる前に、誰が何をできればよいのか、その仕事に合う目的の大きさはどこかを考えます。本書の考え方を、そのために取り入れています。\n\n下の右にある、『ドメイン駆動設計をはじめよう』では、業務を理解し、その内容を関係者が同じ言葉で表しながら、設計や実装につなげます。同じ用語でも、扱う業務が違えば意味も変わります。そこで、言葉が通用する範囲を明確にする考え方を、教材2の参考にしました。自分たちの仕事の前提や判断を言葉にし、その意味を人にもAIにも伝えるためです。用語集を作るだけで終わらせず、実際の作業で意味が通じるかを確かめていきます。\n\nこうして考えた目的や言葉の意味を、AIで使える条件や手順として記録し、実行と改善へつなげる方法を教材3で学びます。書籍を先に読んでいただく必要はありません。教材だけでも学べるようにしていますので、考え方をさらに深めたいときに参考にしてください。\n\nでは、教材で学び、自分の仕事で試していくために、どのように学習と実践を進めるのでしょうか。続いて、その進め方をご紹介します。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">49</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;教材全体の土台は、細谷功さんの『システム開発と「具体と抽象」』です。与えられた仕事をどう実行するかだけでなく、そもそも何を実現すべきかを考える視点を扱っています。\n\n何のための仕事かを考え、その目的を実際の作業や条件に具体化します。教材では、具体と抽象を往復しながら、自分の仕事に合う目的を見極める考え方を取り入れています。大きな目的にすればよいのではなく、その仕事に合う目的の大きさを考えることが大切です。\n\n下の左にある『ユースケース実践ガイド』は、使う人が何を達成したいかを中心に、システムに必要な振る舞いを考える書籍です。細かな手順の目的と、仕事として達成したい目的を区別する方法があり、教材1の参考にしました。AIに作業を任せるときも、手順を並べる前に、誰が何をできればよいのかを考えるためです。\n\n右の『ドメイン駆動設計をはじめよう』は、業務を理解し、その内容を関係者が同じ言葉で表しながら、設計や実装につなげる考え方を扱っています。同じ用語でも、業務が違えば意味も変わります。そこで、言葉が通用する範囲を明確にする考え方を、教材2の参考にしました。用語集を作るだけでなく、自分たちの仕事の前提や判断を、人にもAIにも伝えるためです。\n\n教材3では、こうして考えた目的や言葉の意味を、AIで使う条件や手順として記録し、実行と改善へつなげます。書籍を先に読んでいただく必要はありません。教材だけでも学べるようにしていますので、さらに深めたいときに参考にしてください。\n\nこうした考え方と使い方を、教材で学び、自分の仕事で試していきます。その学習と実践は、次のような日程で進めます。&quot;</code></td></tr><tr class="r"><td class="ln">50</td><td class="ln">50</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">51</td><td class="ln">51</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">52</td><td class="ln">52</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-ACTION-<span class="t-n">10</span>&quot;,</code></td></tr><tr class="r"><td class="ln">53</td><td class="ln">53</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;教材で学び、自分の仕事で試し、目的を達成できたかを確かめます&quot;,</code></td></tr><tr class="rd"><td class="ln">54</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;ここからは、学習と実践の進め方をご紹介します。教材で考え方と使い方を学び、自分の仕事でAIを使い、目的を達成できたかを確かめる流れです。\n\n図の左、十月から十二月は準備期間です。ナレッジ共有ポータルで教材を順に見ながら、自分がAIで実現したい目的を考えます。教材1から順に公開し、教材2と教材3も十二月までに公開する予定です。学んだことを自分の仕事に当てはめ、何を実現したいか、何が変われば達成と言えるかを考えてみてください。\n\n十二月中にワークショップへの参加を受け付け、一月から三月の三か月で実践します。参加者は先着十五名です。教材で学んだことをもとに、自分で決めた目的を達成する仕組みをAIで作ります。\n\n作成したら、実際の仕事で使い、出力や進め方を確認して改善します。必要な内容が得られているか、確認や判断に使えるか、記録した条件や手順が目的に合っているかを確かめることも、実践に含まれます。\n\n三月の最終共有会では、作った仕組みと、実際に使って何が変わったかを共有します。作れたことだけで終わらず、最初に決めた目的を達成できたかを確かめたいですね。\n\n参加者には、KiroのアカウントとAWS環境を発行します。自分で使う仕組みか、チームでも使う仕組みかも、目的に合わせて考えます。\n\n最後に、このワークショップで身につけたいことを振り返りましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">54</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;十月から十二月は準備期間です。ナレッジ共有ポータルで教材を順に見ながら、自分がAIで実現したいことを考えます。教材1から順に公開し、教材2と教材3も十二月までに公開する予定です。何を実現したいかに加えて、何が変われば達成と言えるかも考えてみてください。\n\n十二月中にワークショップへの参加を受け付け、一月から三月の三か月で実践します。参加者は先着十五名です。自分で決めた目的に合わせて、AIで使う仕組みを作ります。参加者には、KiroのアカウントとAWS環境を発行します。\n\n仕組みができたら、実際の仕事で使ってみます。必要な内容が得られているか、確認や判断に使えるかを確かめ、条件や手順を改善します。自分だけで使うか、チームでも使うかは、目的に合わせて考えます。\n\n三月の最終共有会では、作った仕組みと、実際に使って何が変わったかを共有します。作れたことだけで終わらず、最初に決めた目的を達成できたかまで確かめたいと考えています。\n\nこのように、教材で学んだことを、実際の仕事で試し、確かめるところまでがワークショップです。最後に、そこで身につけたいことを振り返りましょう。&quot;</code></td></tr><tr class="r"><td class="ln">55</td><td class="ln">55</td><td class="mk"> </td><td class="cd"><code>    },</code></td></tr><tr class="r"><td class="ln">56</td><td class="ln">56</td><td class="mk"> </td><td class="cd"><code>    {</code></td></tr><tr class="r"><td class="ln">57</td><td class="ln">57</td><td class="mk"> </td><td class="cd"><code>      &quot;id&quot;: &quot;I0-SUMMARY&quot;,</code></td></tr><tr class="r"><td class="ln">58</td><td class="ln">58</td><td class="mk"> </td><td class="cd"><code>      &quot;heading&quot;: &quot;AIで作れる力を、仕事で使える成果物につなげましょう&quot;,</code></td></tr><tr class="rd"><td class="ln">59</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>      &quot;narration&quot;: &quot;ここまで、このワークショップで学ぶ内容と、実践の進め方をご紹介しました。\n\nAIを使うと、さまざまな成果物を短時間で作れます。その力を仕事で活かすために、何のために、何をどこまで作るのかを考え、必要な内容や確認条件を言葉にします。そして、AgentsやSkillsを使って実行し、出力を確認して改善します。\n\n三つの教材で、この考え方と使い方を学び、ワークショップでは自分の仕事で試します。作れたことだけで終わらず、必要な内容を確認して使えるか、自分が実現したい目的を達成できたかを確かめていきましょう。\n\n皆さんの仕事で、AIを使って実現したいことは何でしょうか。それを考えながら、教材を見ていただきたいと思います。\n\nそれでは、教材の「はじめに」へ進みましょう。&quot;</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">59</td><td class="mk">+</td><td class="cd"><code>      &quot;narration&quot;: &quot;AIでさまざまなものを作れるようになった今、その力を、仕事で使える成果物につなげていきたいと考えています。\n\nそのために、何のために、何をどこまで作るのかを考え、必要な内容や確認条件を言葉にします。そして、AgentsやSkillsを使って実行し、出力を確かめて改善します。図の三つの教材は、そのための考え方と使い方を学ぶものです。\n\nワークショップでは、それを皆さん自身の仕事で試します。必要な内容を確認して使えるか、実現したかった目的を達成できたかまで、確かめていきましょう。\n\n皆さんは、自分の仕事で、AIを使って何を実現したいでしょうか。そのことを考えながら、教材を見ていただければと思います。\n\n続く教材の「はじめに」では、教材1で扱う作業の例と、学ぶ内容をご紹介します。&quot;</code></td></tr><tr class="r"><td class="ln">60</td><td class="ln">60</td><td class="mk"> </td><td class="cd"><code>    }</code></td></tr><tr class="r"><td class="ln">61</td><td class="ln">61</td><td class="mk"> </td><td class="cd"><code>  ]</code></td></tr><tr class="r"><td class="ln">62</td><td class="ln">62</td><td class="mk"> </td><td class="cd"><code>}</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="build_videos" hidden><div class="lane code-lane"><b>Git の差分</b><span class="how">変更箇所 5 件 ／ すべてに理由がある</span></div><details class="idx" open><summary>このファイルの変更 6 件</summary><ol><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>PACING = json.loads((HERE / &#x27;video-pacin</code><button class="go" data-i="0">その箇所へ移動</button></div></li><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>def subtitles(ids, dur, pacing=None):</code><button class="go" data-i="1">その箇所へ移動</button></div></li><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>        gap = (pacing or {}).get(&#x27;slides</code><button class="go" data-i="2">その箇所へ移動</button></div></li><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>    pacing = PACING.get(stem, {})</code><button class="go" data-i="3">その箇所へ移動</button></div></li><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>        gap = pacing.get(&#x27;slides&#x27;, {}).g</code><button class="go" data-i="4">その箇所へ移動</button></div></li><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>    total = offset / 1000</code><button class="go" data-i="5">その箇所へ移動</button></div></li></ol></details><div class="code diff" data-lang="python"><table><tbody><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 29 ／ 新 29 @@</td></tr><tr class="r"><td class="ln">29</td><td class="ln">29</td><td class="mk"> </td><td class="cd"><code>FONTS = Path(os.environ.get(&<span class="t-c">#x27;SUB_FONTS&#x27;, Path.home() / &#x27;.local&#x27; / &#x27;share&#x27; / &#x27;fonts&#x27;))</span></code></td></tr><tr class="r"><td class="ln">30</td><td class="ln">30</td><td class="mk"> </td><td class="cd"><code>LINE = <span class="t-n">22</span>   <span class="t-c"># 字幕の1行の文字数の目安。2行を超える文は、読点で2つの字幕に分ける</span></code></td></tr><tr class="r"><td class="ln">31</td><td class="ln">31</td><td class="mk"> </td><td class="cd"><code>FPS = <span class="t-n">30</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">32</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="追加前は記述がありません。" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。">PACING = json.loads((HERE / &<span class="t-c">#x27;video-pacing.json&#x27;).read_text()) if (HERE / &#x27;video-pacing.json&#x27;).exists() else {}</span></mark></code></td></tr><tr class="r"><td class="ln">32</td><td class="ln">33</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">33</td><td class="ln">34</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">34</td><td class="ln">35</td><td class="mk"> </td><td class="cd"><code><span class="t-k">def</span> ffmpeg(args, workdir, fonts=<span class="t-k">False</span>):</code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 75 ／ 新 76 @@</td></tr><tr class="r"><td class="ln">75</td><td class="ln">76</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">return</span> _split(a, start, mid) + _split(b, mid, end)</code></td></tr><tr class="r"><td class="ln">76</td><td class="ln">77</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="r"><td class="ln">77</td><td class="ln">78</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="rd"><td class="ln">78</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code><span class="t-k">def</span> subtitles(ids, dur):</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">79</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="def subtitles(ids, dur):" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。"><span class="t-k">def</span> subtitles(ids, dur, pacing=<span class="t-k">None</span>):</mark></code></td></tr><tr class="r"><td class="ln">79</td><td class="ln">80</td><td class="mk"> </td><td class="cd"><code>    &quot;&quot;&quot;枚ごとの文の時刻を、通しの時刻へずらして WebVTT にする。&quot;&quot;&quot;</code></td></tr><tr class="r"><td class="ln">80</td><td class="ln">81</td><td class="mk"> </td><td class="cd"><code>    cues, offset = [], <span class="t-n">0</span></code></td></tr><tr class="r"><td class="ln">81</td><td class="ln">82</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">for</span> sid <span class="t-k">in</span> ids:</code></td></tr><tr class="r"><td class="ln">82</td><td class="ln">83</td><td class="mk"> </td><td class="cd"><code>        item = dur[sid]</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">84</td><td class="mk">+</td><td class="cd"><code>        gap = (pacing <span class="t-k">or</span> {}).get(&<span class="t-c">#x27;slides&#x27;, {}).get(sid, {})</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">85</td><td class="mk">+</td><td class="cd"><code>        leading = gap.get(&<span class="t-c">#x27;beforeMs&#x27;, 0)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">86</td><td class="mk">+</td><td class="cd"><code>        trailing = gap.get(&<span class="t-c">#x27;afterMs&#x27;, 0)</span></code></td></tr><tr class="r"><td class="ln">83</td><td class="ln">87</td><td class="mk"> </td><td class="cd"><code>        marks = [json.loads(l) <span class="t-k">for</span> l <span class="t-k">in</span> (NARR / item[&<span class="t-c">#x27;marks&#x27;]).read_text().splitlines() if l.strip()]</span></code></td></tr><tr class="r"><td class="ln">84</td><td class="ln">88</td><td class="mk"> </td><td class="cd"><code>        sents = [m <span class="t-k">for</span> m <span class="t-k">in</span> marks <span class="t-k">if</span> m[&<span class="t-c">#x27;type&#x27;] == &#x27;sentence&#x27;]</span></code></td></tr><tr class="r"><td class="ln">85</td><td class="ln">89</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">for</span> k, m <span class="t-k">in</span> enumerate(sents):</code></td></tr><tr class="r"><td class="ln">86</td><td class="ln">90</td><td class="mk"> </td><td class="cd"><code>            end = sents[k + <span class="t-n">1</span>][&<span class="t-c">#x27;time&#x27;] if k + 1 &lt; len(sents) else item[&#x27;durationMs&#x27;]</span></code></td></tr><tr class="r"><td class="ln">87</td><td class="ln">91</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">for</span> text, a, b <span class="t-k">in</span> _split(m[&<span class="t-c">#x27;value&#x27;], m[&#x27;time&#x27;], end - 80):</span></code></td></tr><tr class="rd"><td class="ln">88</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>                cues.append((offset + a, offset + b, &<span class="t-c">#x27;\n&#x27;.join(_wrap(text))))</span></code></td></tr><tr class="rd"><td class="ln">89</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        offset += item[&<span class="t-c">#x27;durationMs&#x27;]</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">92</td><td class="mk">+</td><td class="cd"><code>                cues.append((offset + leading + a, offset + leading + b, &<span class="t-c">#x27;\n&#x27;.join(_wrap(text))))</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">93</td><td class="mk">+</td><td class="cd"><code>        offset += leading + item[&<span class="t-c">#x27;durationMs&#x27;] + trailing</span></code></td></tr><tr class="r"><td class="ln">90</td><td class="ln">94</td><td class="mk"> </td><td class="cd"><code>    body = &<span class="t-c">#x27;\n&#x27;.join(f&#x27;{n}\n{_ts(a)} --&gt; {_ts(b)}\n{t}\n&#x27; for n, (a, b, t) in enumerate(cues, 1))</span></code></td></tr><tr class="r"><td class="ln">91</td><td class="ln">95</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">return</span> &<span class="t-c">#x27;WEBVTT\n\n&#x27; + body</span></code></td></tr><tr class="r"><td class="ln">92</td><td class="ln">96</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 105 ／ 新 109 @@</td></tr><tr class="r"><td class="ln">105</td><td class="ln">109</td><td class="mk"> </td><td class="cd"><code>    work = WORK / stem</code></td></tr><tr class="r"><td class="ln">106</td><td class="ln">110</td><td class="mk"> </td><td class="cd"><code>    work.mkdir(parents=<span class="t-k">True</span>, exist_ok=<span class="t-k">True</span>)</code></td></tr><tr class="r"><td class="ln">107</td><td class="ln">111</td><td class="mk"> </td><td class="cd"><code>    parts = []</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">112</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="追加前は記述がありません。" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。">    pacing = PACING.get(stem, {})</mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">113</td><td class="mk">+</td><td class="cd"><code>    timeline = []</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">114</td><td class="mk">+</td><td class="cd"><code>    offset = <span class="t-n">0</span></code></td></tr><tr class="r"><td class="ln">108</td><td class="ln">115</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">for</span> i, sid <span class="t-k">in</span> enumerate(ids, <span class="t-n">1</span>):</code></td></tr><tr class="r"><td class="ln">109</td><td class="ln">116</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">if</span> sid <span class="t-k">not</span> <span class="t-k">in</span> dur:</code></td></tr><tr class="r"><td class="ln">110</td><td class="ln">117</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">raise</span> SystemExit(f&<span class="t-c">#x27;音声が無い: {sid} ── slide-deck-speech Skill を先に実行する&#x27;)</span></code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 113 ／ 新 120 @@</td></tr><tr class="r"><td class="ln">113</td><td class="ln">120</td><td class="mk"> </td><td class="cd"><code>            <span class="t-k">raise</span> SystemExit(f&<span class="t-c">#x27;画像が無い: {png}&#x27;)</span></code></td></tr><tr class="r"><td class="ln">114</td><td class="ln">121</td><td class="mk"> </td><td class="cd"><code>        mp3 = NARR / dur[sid][&<span class="t-c">#x27;audio&#x27;]</span></code></td></tr><tr class="r"><td class="ln">115</td><td class="ln">122</td><td class="mk"> </td><td class="cd"><code>        part = work / f&<span class="t-c">#x27;{i:02d}.mp4&#x27;</span></code></td></tr><tr class="rd"><td class="ln">116</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>        <span class="t-c"># 映像の長さは音声に合わせる。-shortest ではなく音声の長さで切る</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">123</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="        # 映像の長さは音声に合わせる。-shortest ではなく音声の長さで切る" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。">        gap = pacing.get(&<span class="t-c">#x27;slides&#x27;, {}).get(sid, {})</span></mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">124</td><td class="mk">+</td><td class="cd"><code>        leading = gap.get(&<span class="t-c">#x27;beforeMs&#x27;, 0)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">125</td><td class="mk">+</td><td class="cd"><code>        trailing = gap.get(&<span class="t-c">#x27;afterMs&#x27;, 0)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">126</td><td class="mk">+</td><td class="cd"><code>        duration = dur[sid][&<span class="t-c">#x27;durationMs&#x27;] + leading + trailing</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">127</td><td class="mk">+</td><td class="cd"><code>        filters = []</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">128</td><td class="mk">+</td><td class="cd"><code>        <span class="t-k">if</span> leading <span class="t-k">or</span> trailing:</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">129</td><td class="mk">+</td><td class="cd"><code>            <span class="t-c"># 無音は音声の前後へ加え、発話そのものは切らない。</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">130</td><td class="mk">+</td><td class="cd"><code>            filters += [&<span class="t-c">#x27;-af&#x27;, f&#x27;adelay={leading}:all=1,apad=pad_dur={trailing / 1000:.3f}&#x27;]</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">131</td><td class="mk">+</td><td class="cd"><code>        transition = pacing.get(&<span class="t-c">#x27;transitionMs&#x27;, 0) / 2000</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">132</td><td class="mk">+</td><td class="cd"><code>        <span class="t-k">if</span> transition:</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">133</td><td class="mk">+</td><td class="cd"><code>            sys.path.insert(<span class="t-n">0</span>, str(HERE.parents[<span class="t-n">1</span>] / &<span class="t-c">#x27;proposal&#x27; / &#x27;src&#x27;))</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">134</td><td class="mk">+</td><td class="cd"><code>            <span class="t-k">from</span> theme <span class="t-k">import</span> T</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">135</td><td class="mk">+</td><td class="cd"><code>            color = &<span class="t-c">#x27;0x&#x27; + T[&#x27;ground&#x27;].lstrip(&#x27;#&#x27;)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">136</td><td class="mk">+</td><td class="cd"><code>            fades = []</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">137</td><td class="mk">+</td><td class="cd"><code>            <span class="t-k">if</span> i &gt; <span class="t-n">1</span>:</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">138</td><td class="mk">+</td><td class="cd"><code>                fades.append(f&<span class="t-c">#x27;fade=t=in:st=0:d={transition}:color={color}&#x27;)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">139</td><td class="mk">+</td><td class="cd"><code>            <span class="t-k">if</span> i &lt; len(ids):</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">140</td><td class="mk">+</td><td class="cd"><code>                fades.append(f&<span class="t-c">#x27;fade=t=out:st={duration / 1000 - transition}:d={transition}:color={color}&#x27;)</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">141</td><td class="mk">+</td><td class="cd"><code>            <span class="t-k">if</span> fades:</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">142</td><td class="mk">+</td><td class="cd"><code>                filters += [&<span class="t-c">#x27;-vf&#x27;, &#x27;,&#x27;.join(fades)]</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">143</td><td class="mk">+</td><td class="cd"><code>        timeline.append(dict(number=i, id=sid, startSeconds=offset / <span class="t-n">1000</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">144</td><td class="mk">+</td><td class="cd"><code>                             narrationStartSeconds=(offset + leading) / <span class="t-n">1000</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">145</td><td class="mk">+</td><td class="cd"><code>                             durationSeconds=duration / <span class="t-n">1000</span>,</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">146</td><td class="mk">+</td><td class="cd"><code>                             voiceDurationSeconds=dur[sid][&<span class="t-c">#x27;durationMs&#x27;] / 1000))</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">147</td><td class="mk">+</td><td class="cd"><code>        offset += duration</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">148</td><td class="mk">+</td><td class="cd"><code>        <span class="t-c"># 映像の長さは、音声と明示した間の合計で固定する。</span></code></td></tr><tr class="r"><td class="ln">117</td><td class="ln">149</td><td class="mk"> </td><td class="cd"><code>        ffmpeg([&<span class="t-c">#x27;-y&#x27;, &#x27;-loop&#x27;, &#x27;1&#x27;, &#x27;-i&#x27;, str(png.relative_to(ROOT)),</span></code></td></tr><tr class="rd"><td class="ln">118</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>                &<span class="t-c">#x27;-i&#x27;, str(mp3.relative_to(ROOT)),</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">150</td><td class="mk">+</td><td class="cd"><code>                &<span class="t-c">#x27;-i&#x27;, str(mp3.relative_to(ROOT))] + filters + [</span></code></td></tr><tr class="r"><td class="ln">119</td><td class="ln">151</td><td class="mk"> </td><td class="cd"><code>                &<span class="t-c">#x27;-c:v&#x27;, &#x27;libx264&#x27;, &#x27;-preset&#x27;, &#x27;medium&#x27;, &#x27;-crf&#x27;, &#x27;20&#x27;,</span></code></td></tr><tr class="r"><td class="ln">120</td><td class="ln">152</td><td class="mk"> </td><td class="cd"><code>                &<span class="t-c">#x27;-pix_fmt&#x27;, &#x27;yuv420p&#x27;, &#x27;-r&#x27;, str(FPS), &#x27;-s&#x27;, SIZE,</span></code></td></tr><tr class="r"><td class="ln">121</td><td class="ln">153</td><td class="mk"> </td><td class="cd"><code>                &<span class="t-c">#x27;-c:a&#x27;, &#x27;aac&#x27;, &#x27;-b:a&#x27;, &#x27;128k&#x27;, &#x27;-ar&#x27;, &#x27;48000&#x27;, &#x27;-ac&#x27;, &#x27;2&#x27;,</span></code></td></tr><tr class="rd"><td class="ln">122</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>                &<span class="t-c">#x27;-t&#x27;, f&#x27;{dur[sid][&quot;durationMs&quot;] / 1000:.3f}&#x27;,</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">154</td><td class="mk">+</td><td class="cd"><code>                &<span class="t-c">#x27;-t&#x27;, f&#x27;{duration / 1000:.3f}&#x27;,</span></code></td></tr><tr class="r"><td class="ln">123</td><td class="ln">155</td><td class="mk"> </td><td class="cd"><code>                str(part.relative_to(ROOT))], ROOT)</code></td></tr><tr class="r"><td class="ln">124</td><td class="ln">156</td><td class="mk"> </td><td class="cd"><code>        parts.append(part)</code></td></tr><tr class="r"><td class="ln">125</td><td class="ln">157</td><td class="mk"> </td><td class="cd"><code>    lst = work / &<span class="t-c">#x27;parts.txt&#x27;</span></code></td></tr><tr class="r"><td class="ln">126</td><td class="ln">158</td><td class="mk"> </td><td class="cd"><code>    lst.write_text(&<span class="t-c">#x27;&#x27;.join(f&quot;file &#x27;{p.name}&#x27;\n&quot; for p in parts))</span></code></td></tr><tr class="r"><td class="ln">127</td><td class="ln">159</td><td class="mk"> </td><td class="cd"><code>    vtt = OUT / f&<span class="t-c">#x27;{stem}.vtt&#x27;</span></code></td></tr><tr class="rd"><td class="ln">128</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>    vtt.write_text(subtitles(ids, dur))</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">160</td><td class="mk">+</td><td class="cd"><code>    vtt.write_text(subtitles(ids, dur, pacing))</code></td></tr><tr class="r"><td class="ln">129</td><td class="ln">161</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">if</span> <span class="t-k">not</span> any(FONTS.glob(&<span class="t-c">#x27;NotoSansJP*&#x27;)):</span></code></td></tr><tr class="r"><td class="ln">130</td><td class="ln">162</td><td class="mk"> </td><td class="cd"><code>        <span class="t-k">raise</span> SystemExit(f&<span class="t-c">#x27;字幕の書体が無い: {FONTS} に Noto Sans JP を置くか、SUB_FONTS で場所を指定する&#x27;)</span></code></td></tr><tr class="r"><td class="ln">131</td><td class="ln">163</td><td class="mk"> </td><td class="cd"><code>    sys.path.insert(<span class="t-n">0</span>, str(HERE.parents[<span class="t-n">1</span>] / &<span class="t-c">#x27;proposal&#x27; / &#x27;src&#x27;))</span></code></td></tr><tr class="hh"><td class="ln"></td><td class="ln"></td><td class="mk"></td><td class="cd">@@ 旧 140 ／ 新 172 @@</td></tr><tr class="r"><td class="ln">140</td><td class="ln">172</td><td class="mk"> </td><td class="cd"><code>            &<span class="t-c">#x27;-c:v&#x27;, &#x27;libx264&#x27;, &#x27;-preset&#x27;, &#x27;medium&#x27;, &#x27;-crf&#x27;, &#x27;20&#x27;, &#x27;-pix_fmt&#x27;, &#x27;yuv420p&#x27;,</span></code></td></tr><tr class="r"><td class="ln">141</td><td class="ln">173</td><td class="mk"> </td><td class="cd"><code>            &<span class="t-c">#x27;-c:a&#x27;, &#x27;aac&#x27;, &#x27;-b:a&#x27;, &#x27;128k&#x27;, &#x27;-ar&#x27;, &#x27;48000&#x27;, &#x27;-ac&#x27;, &#x27;2&#x27;,</span></code></td></tr><tr class="r"><td class="ln">142</td><td class="ln">174</td><td class="mk"> </td><td class="cd"><code>            str((OUT / f&<span class="t-c">#x27;{stem}.mp4&#x27;).relative_to(ROOT))], ROOT, fonts=True)</span></code></td></tr><tr class="rd"><td class="ln">143</td><td class="ln"></td><td class="mk">-</td><td class="cd"><code>    total = sum(dur[s][&<span class="t-c">#x27;durationMs&#x27;] for s in ids) / 1000</span></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">175</td><td class="mk">+</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="    total = sum(dur[s][&#x27;durationMs&#x27;] for s in ids) / 1000" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。">    total = offset / <span class="t-n">1000</span></mark></code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">176</td><td class="mk">+</td><td class="cd"><code>    <span class="t-k">if</span> pacing:</code></td></tr><tr class="ra"><td class="ln"></td><td class="ln">177</td><td class="mk">+</td><td class="cd"><code>        (OUT / f&<span class="t-c">#x27;{stem}-timeline.json&#x27;).write_text(json.dumps(dict(seconds=total, slides=timeline), ensure_ascii=False, indent=2) + &#x27;\n&#x27;)</span></code></td></tr><tr class="r"><td class="ln">144</td><td class="ln">178</td><td class="mk"> </td><td class="cd"><code>    print(f&<span class="t-c">#x27;{stem}.mp4　{len(ids)}枚　{int(total // 60)}分{int(total % 60):02d}秒&#x27;)</span></code></td></tr><tr class="r"><td class="ln">145</td><td class="ln">179</td><td class="mk"> </td><td class="cd"><code>    <span class="t-k">return</span> total</code></td></tr><tr class="r"><td class="ln">146</td><td class="ln">180</td><td class="mk"> </td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section><section class="pane code-pane" data-k="video-pacing" hidden><div class="lane code-lane"><b>コードの全文</b><span class="how">変更前を取得できないので、全文を置く</span></div><details class="idx" open><summary>このファイルの変更 1 件</summary><ol><li><div class="w">発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。</div><div class="at"><span class="lbl">場所</span><code>{</code><button class="go" data-i="0">その箇所へ移動</button></div></li></ol></details><div class="code" data-lang="json"><table><tbody><tr id="L1"><td class="ln">1</td><td class="cd"><code><mark class="chg" data-acdr="1" tabindex="0" role="button" aria-expanded="false" data-b="追加前は記述がありません。" data-w="発話を切らずに前後の間と短いフェードを加え、字幕と各枚の時刻も同じ間に合わせます。">{</mark></code></td></tr><tr id="L2"><td class="ln">2</td><td class="cd"><code>  &quot;<span class="t-n">00</span>-start&quot;: {</code></td></tr><tr id="L3"><td class="ln">3</td><td class="cd"><code>    &quot;transitionMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L4"><td class="ln">4</td><td class="cd"><code>    &quot;slides&quot;: {</code></td></tr><tr id="L5"><td class="ln">5</td><td class="cd"><code>      &quot;START-COVER&quot;: {</code></td></tr><tr id="L6"><td class="ln">6</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">0</span>,</code></td></tr><tr id="L7"><td class="ln">7</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">350</span></code></td></tr><tr id="L8"><td class="ln">8</td><td class="cd"><code>      },</code></td></tr><tr id="L9"><td class="ln">9</td><td class="cd"><code>      &quot;I0-CONTEXT&quot;: {</code></td></tr><tr id="L10"><td class="ln">10</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L11"><td class="ln">11</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">350</span></code></td></tr><tr id="L12"><td class="ln">12</td><td class="cd"><code>      },</code></td></tr><tr id="L13"><td class="ln">13</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">02</span>&quot;: {</code></td></tr><tr id="L14"><td class="ln">14</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L15"><td class="ln">15</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">300</span></code></td></tr><tr id="L16"><td class="ln">16</td><td class="cd"><code>      },</code></td></tr><tr id="L17"><td class="ln">17</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">03</span>&quot;: {</code></td></tr><tr id="L18"><td class="ln">18</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L19"><td class="ln">19</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">300</span></code></td></tr><tr id="L20"><td class="ln">20</td><td class="cd"><code>      },</code></td></tr><tr id="L21"><td class="ln">21</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">04</span>&quot;: {</code></td></tr><tr id="L22"><td class="ln">22</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L23"><td class="ln">23</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">350</span></code></td></tr><tr id="L24"><td class="ln">24</td><td class="cd"><code>      },</code></td></tr><tr id="L25"><td class="ln">25</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">05</span>&quot;: {</code></td></tr><tr id="L26"><td class="ln">26</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L27"><td class="ln">27</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr id="L28"><td class="ln">28</td><td class="cd"><code>      },</code></td></tr><tr id="L29"><td class="ln">29</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">06</span>&quot;: {</code></td></tr><tr id="L30"><td class="ln">30</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L31"><td class="ln">31</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">350</span></code></td></tr><tr id="L32"><td class="ln">32</td><td class="cd"><code>      },</code></td></tr><tr id="L33"><td class="ln">33</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">07</span>&quot;: {</code></td></tr><tr id="L34"><td class="ln">34</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L35"><td class="ln">35</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">400</span></code></td></tr><tr id="L36"><td class="ln">36</td><td class="cd"><code>      },</code></td></tr><tr id="L37"><td class="ln">37</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">08</span>&quot;: {</code></td></tr><tr id="L38"><td class="ln">38</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">250</span>,</code></td></tr><tr id="L39"><td class="ln">39</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">500</span></code></td></tr><tr id="L40"><td class="ln">40</td><td class="cd"><code>      },</code></td></tr><tr id="L41"><td class="ln">41</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">09</span>&quot;: {</code></td></tr><tr id="L42"><td class="ln">42</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">300</span>,</code></td></tr><tr id="L43"><td class="ln">43</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">450</span></code></td></tr><tr id="L44"><td class="ln">44</td><td class="cd"><code>      },</code></td></tr><tr id="L45"><td class="ln">45</td><td class="cd"><code>      &quot;I0-ACTION-<span class="t-n">10</span>&quot;: {</code></td></tr><tr id="L46"><td class="ln">46</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">300</span>,</code></td></tr><tr id="L47"><td class="ln">47</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">450</span></code></td></tr><tr id="L48"><td class="ln">48</td><td class="cd"><code>      },</code></td></tr><tr id="L49"><td class="ln">49</td><td class="cd"><code>      &quot;I0-SUMMARY&quot;: {</code></td></tr><tr id="L50"><td class="ln">50</td><td class="cd"><code>        &quot;beforeMs&quot;: <span class="t-n">300</span>,</code></td></tr><tr id="L51"><td class="ln">51</td><td class="cd"><code>        &quot;afterMs&quot;: <span class="t-n">0</span></code></td></tr><tr id="L52"><td class="ln">52</td><td class="cd"><code>      }</code></td></tr><tr id="L53"><td class="ln">53</td><td class="cd"><code>    }</code></td></tr><tr id="L54"><td class="ln">54</td><td class="cd"><code>  }</code></td></tr><tr id="L55"><td class="ln">55</td><td class="cd"><code>}</code></td></tr><tr id="L56"><td class="ln">56</td><td class="cd"><code>&nbsp;</code></td></tr></tbody></table></div></section>
+</section>
+</div>
+<script>
+(function(){
+  var MARKCSS = document.getElementById("markcss").textContent;
+
+  /* 対象の文書も、同じ名前の変数（--move など）を持っていることがある。
+     印と欄にだけ、この道具の値を直に持たせる ── 文書の側の見た目は変えない */
+  var VARS = (MARKCSS.match(/--[\w-]+(?=:)/g) || []).filter(function(v, i, a){ return a.indexOf(v) === i; });
+  function ownVars(el){
+    var cs = getComputedStyle(document.documentElement);
+    VARS.forEach(function(v){ var x = cs.getPropertyValue(v); if (x) el.style.setProperty(v, x.trim()); });
+  }
+
+  /* 印を1つ、押せるようにする。iframe の中でも Shadow の中でも同じ手順で動く。
+     **この道具が付けた印（data-acdr）だけを扱う。** 対象の文書が自分の印を
+     同じ class で持っていることがある（brainstorming-board のボード） */
+  function wire(root, doc){
+    root.querySelectorAll("mark.chg[data-acdr]").forEach(function(m){
+      var p = doc.createElement("div");
+      /* **初めから開いて出す。** 閉じて出すと、どこが変わったかを1件ずつ押して探すことになる */
+      p.className = "pop"; p.hidden = false;
+      var b1 = doc.createElement("b"); b1.textContent = "変更前";
+      var pre = doc.createElement("pre"); pre.textContent = m.dataset.b;
+      var b2 = doc.createElement("b"); b2.textContent = "なぜ";
+      var w = doc.createElement("div"); w.textContent = m.dataset.w;
+      p.appendChild(b1); p.appendChild(pre); p.appendChild(b2); p.appendChild(w);
+      /* コードの面は表でできている。<td> の隣へ <div> を置くと行の中に入り、
+         表のレイアウトから外れて見えなくなる ── 行を1つ挿入する */
+      var row = m.closest("tr");
+      if (row && row.closest(".code")) {
+        var tr = doc.createElement("tr");
+        tr.className = "poprow";
+        var td = doc.createElement("td");
+        td.colSpan = row.children.length || 2; td.className = "popcell";
+        td.appendChild(p);
+        tr.appendChild(td);
+        if (row.nextSibling) row.parentNode.insertBefore(tr, row.nextSibling);
+        else row.parentNode.appendChild(tr);
+      } else {
+        /* 表のセルの中の印は、セルの中へ置く。<td> の隣へ置くと、列が1つ増えて見える */
+        var cell = m.closest("td,th");
+        if (cell) cell.appendChild(p);
+        else {
+          var host = m.closest("li") || m.parentNode;
+          if (host.nextSibling) host.parentNode.insertBefore(p, host.nextSibling);
+          else host.parentNode.appendChild(p);
+        }
+      }
+      function tg(){
+        var opening = p.hidden;
+        p.hidden = !opening;
+        m.setAttribute("aria-expanded", opening ? "true" : "false");
+        resizeAll();
+      }
+      /* 対象の文書の script も、同じ印に開閉を付けていることがある。
+         捕捉の段で受けて止め、この道具の開閉だけを動かす */
+      m.addEventListener("click", function(e){ e.stopImmediatePropagation(); tg(); }, true);
+      m.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); }
+      });
+      m.setAttribute("aria-expanded", "true");
+      if (doc !== document) { ownVars(m); ownVars(p); }
+      /* 印を囲む畳まれた節も開く。タブ（hidden）は開かない ── 面の切り替えが壊れる */
+      for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+        if (e.tagName === "DETAILS") e.open = true;
+      }
+    });
+  }
+
+  var frames = [];
+  function resizeAll(){
+    frames.forEach(function(f){
+      try {
+        var d = f.contentDocument;
+        if (d && d.body) f.style.height = (d.documentElement.scrollHeight + 8) + "px";
+      } catch(e){}
+    });
+  }
+
+  /* HTML の面を立てる。iframe が空のままなら Shadow DOM へ切り替える */
+  document.querySelectorAll(".pane.html").forEach(function(pane){
+    var tpl = pane.querySelector("template");
+    var src = tpl.innerHTML;
+    var fr = document.createElement("iframe");
+    fr.setAttribute("title", pane.dataset.tab || "");
+    fr.srcdoc = '<!doctype html><meta charset="utf-8">'
+              + '<style>' + MARKCSS + '</style>' + src;
+    pane.appendChild(fr);
+    frames.push(fr);
+    var done = false;
+    fr.addEventListener("load", function(){
+      var d = fr.contentDocument;
+      if (!d || !d.body || !d.body.firstChild) return;
+      done = true;
+      wire(d, d);
+      resizeAll();
+      /* 中の高さは、字が載ってから決まる。変わるたびに測り直す */
+      if (window.ResizeObserver) {
+        new ResizeObserver(resizeAll).observe(d.documentElement);
+      }
+      /* 中のタブを押しても測り直す。中の作りに依らず動作する */
+      d.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+      [80, 300, 900].forEach(function(t){ setTimeout(resizeAll, t); });
+      pane.querySelector(".how").textContent = "iframe で置いた";
+    });
+    setTimeout(function(){
+      if (done) return;
+      /* 載ったのに load を取り逃していないかを、もう一度見る */
+      try {
+        var d2 = fr.contentDocument;
+        if (d2 && d2.body && d2.body.firstChild) {
+          done = true; wire(d2, d2); resizeAll();
+          if (window.ResizeObserver) new ResizeObserver(resizeAll).observe(d2.documentElement);
+          d2.addEventListener("click", function(){ setTimeout(resizeAll, 0); });
+          pane.querySelector(".how").textContent = "iframe で置いた";
+          return;
+        }
+      } catch(e){}
+      /* 届かなかった。Shadow DOM へ切り替える */
+      fr.remove();
+      frames = frames.filter(function(x){ return x !== fr; });
+      var holder = document.createElement("div");
+      pane.appendChild(holder);
+      var sh = holder.attachShadow({mode:"open"});
+      var st = document.createElement("style");
+      st.textContent = MARKCSS + "\n" + (tpl.dataset.shadowcss || "");
+      sh.appendChild(st);
+      var box = document.createElement("div");
+      box.innerHTML = src;
+      sh.appendChild(box);
+      wire(sh, document);
+      pane.querySelector(".how").textContent = "Shadow DOM で置いた";
+    }, 2500);
+  });
+
+  /* 印を、見える状態にする。
+
+     **内側のタブの作り方を、こちらは知らない。**
+     設計ノートは <input type="radio"> と :checked ~ #panel で切り替えていた。
+     JS で切り替える作りもある。**どちらでも動くように、
+     切り替えを1つずつ試し、印が出たところで止める。** */
+  /* **見えているかを offsetParent で判定しない。**
+     閉じた <details> の中でも、Chromium は offsetParent を返す。
+     checkVisibility が在ればそれを使う */
+  function shown(m){
+    return m.checkVisibility ? m.checkVisibility() : !!m.offsetParent;
+  }
+
+  function reveal(m){
+    if (shown(m)) return true;
+    var n = m;
+    while (n && n.nodeType === 1) { if (n.hidden) n.hidden = false; n = n.parentNode; }
+    /* **印が住んでいる根から探す。**
+       Shadow の中の印に対して document を探すと、切り替えが1つも見つからない */
+    var scope = m.getRootNode ? m.getRootNode() : m.ownerDocument;
+    for (var e = m.parentNode; e && e.nodeType === 1; e = e.parentNode) {
+      if (e.tagName === "DETAILS") e.open = true;
+    }
+    if (shown(m)) return true;
+    var ins = scope.querySelectorAll('input[type="radio"],input[type="checkbox"]');
+    for (var i = 0; i < ins.length; i++) {
+      var was = ins[i].checked;
+      ins[i].checked = true;
+      if (shown(m)) return true;
+      ins[i].checked = was;
+    }
+    return shown(m);
+  }
+
+  /* 一覧の「その箇所へ移動」。印を開いて、そこまで運ぶ */
+  document.querySelectorAll(".idx button.go").forEach(function(b){
+    b.onclick = function(){
+      var pane = b.closest(".pane");
+      var i = +b.dataset.i;
+      var fr = pane.querySelector("iframe");
+      var root = fr ? fr.contentDocument : null;
+      if (!root) {
+        var h = Array.prototype.find.call(pane.querySelectorAll("div"),
+          function(x){ return x.shadowRoot; });
+        root = h ? h.shadowRoot : pane;
+      }
+      var m = root.querySelectorAll("mark.chg[data-acdr]")[i];
+      if (!m) return;
+      var shown = reveal(m);
+      if (m.getAttribute("aria-expanded") !== "true") m.click();
+      b.textContent = shown ? "その箇所へ移動" : "表示されていない箇所";
+      setTimeout(function(){
+        var y = 0, e = m;
+        while (e && e.offsetParent) { y += e.offsetTop; e = e.offsetParent; }
+        if (fr) window.scrollTo({top: fr.getBoundingClientRect().top + window.scrollY + y - 60,
+                                 behavior: "smooth"});
+        else m.scrollIntoView({block: "center", behavior: "smooth"});
+      }, 60);
+    };
+  });
+
+  /* マークダウンのファイル */
+  document.querySelectorAll(".pane.md, .pane.code-pane")
+          .forEach(function(p){ wire(p, document); });
+
+  function allPops(){
+    var out = Array.prototype.slice.call(document.querySelectorAll(".pop"));
+    frames.forEach(function(f){
+      try { out = out.concat(Array.prototype.slice.call(f.contentDocument.querySelectorAll(".pop"))); }
+      catch(e){}
+    });
+    document.querySelectorAll(".pane.html div").forEach(function(h){
+      if (h.shadowRoot) out = out.concat(Array.prototype.slice.call(h.shadowRoot.querySelectorAll(".pop")));
+    });
+    return out;
+  }
+  document.getElementById("oa").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = false; }); resizeAll(); };
+  document.getElementById("ca").onclick = function(){
+    allPops().forEach(function(p){ p.hidden = true; }); resizeAll(); };
+
+  var tabs = document.querySelectorAll(".tab");
+  function sel(k){
+    tabs.forEach(function(t){ t.setAttribute("aria-selected", t.dataset.t === k ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function(p){ p.hidden = (p.dataset.k !== k); });
+    resizeAll();
+  }
+  tabs.forEach(function(t){ t.onclick = function(){ sel(t.dataset.t); }; });
+  if (tabs.length) sel(tabs[0].dataset.t);
+  window.addEventListener("resize", resizeAll);
+})();
+</script>
