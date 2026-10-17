@@ -4,7 +4,7 @@
   "id": "semantic-contract-core",
   "title": "基盤 schema-driven はどう変わるか（構想 v0.3 と Agents 契約）",
   "intro": "構想 v0.3 の全体構成図の層に沿って、基盤 schema-driven で何が変わり、何が足りていて、何が足りず、何が本当に必要かを、依存の順に決める。",
-  "round": 5,
+  "round": 6,
   "queue": [
     {
       "topic": "Q0",
@@ -309,10 +309,20 @@
           "AI は「決定的でない」と宣言する担い手で、決まりの id ・ 場所 ・ 引用を基盤が確かめた指摘だけを違反にし、それ以外は unverified にする",
           "Agents 契約が約束するもの：protocol の版 ・ 能力の宣言 ・ 応答の形 ・ 形を満たさない応答は error ・ 結果の出どころ ・ 書く操作は再試行しない",
           "AI の CLI を呼ぶ処理（起動 ・ 権限の型 ・ 時間切れ ・ 子孫まで止める）は6つの部品の外で、エンジンの外へ出ていく口に置く",
-          "作成 ・ 更新 ・ 承認 ・ 描画は、6つの部品に無い基盤の持ち物として残す"
+          "作成 ・ 更新 ・ 承認 ・ 描画は、6つの部品に無い基盤の持ち物として残す",
+          "実装は Rust にする。1つの workspace にし、版と Cargo.lock を1か所で決める",
+          "crate で分けるのは、破られたら困る境界である（core と adapters、取り替えたい標準の部品）。Cargo.toml に書いた crate しか使えないので、依存の向きをビルドが守る",
+          "1つの部品の中は module で分ける。module は見える範囲を決めるが、同じ crate の中の module どうしの依存の向きはビルドが止めない",
+          "ポート（ファイル ・ プログラム ・ AI の起動）は trait にし、adapters が実物で満たす。trait は Rust の中だけの約束なので、外の担い手との契約にはしない",
+          "結果の5つの語は enum にする。match はすべての場合を尽くさないとビルドが通らないので、unverified や unsupported の扱い忘れをビルドの時点で止める"
         ]
       },
       "images": [
+        {
+          "kind": "figure",
+          "caption": "Rust の構成：workspace ・ crate ・ module ・ trait ・ feature と、外への契約。",
+          "svg": "<svg viewBox=\"0 0 780 470\" style=\"min-width:660px\" role=\"img\" aria-label=\"Rust の構成と、外への契約\" class=\"dsvg\"><style data-dsvg=\"dark\">.dsvg .area{stroke:var(--dsvg-line,#7C8C86)}.dsvg .title{fill:var(--dsvg-ink,#111D1A);font-size:13px;font-weight:700}.dsvg .box{fill:var(--dsvg-box-fill,#F8FAF9);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .label{fill:var(--dsvg-ink,#111D1A);font-size:12px}.dsvg .note{fill:var(--dsvg-ink-soft,#5B6B66);font-size:11px}.dsvg .flow{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .box.focus{fill:var(--dsvg-accent-bg,#D5E6E3);stroke:var(--dsvg-accent,#0D5C55)}.dsvg .title.focus{fill:var(--dsvg-accent,#0D5C55);font-size:13px;font-weight:700}.dsvg .boundary{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg .link{stroke:var(--dsvg-ink-soft,#5B6B66)}.dsvg #dsvg-f640009e-arrow-5B6B66 path{fill:var(--dsvg-ink-soft,#5B6B66)}@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]) .dsvg,.dsvg:root:not([data-theme=\"light\"]){--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}}:root[data-theme=\"dark\"] .dsvg{--dsvg-line:#62756F;--dsvg-ink:#E6EEEB;--dsvg-box-fill:#16211E;--dsvg-accent:#6CC9B8;--dsvg-ink-soft:#9DADA8;--dsvg-accent-bg:#173330}</style><defs data-dsvg=\"marker\"><marker id=\"dsvg-f640009e-arrow-5B6B66\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" fill=\"#5B6B66\"/></marker></defs>\n<rect class=\"area\" x=\"10\" y=\"10\" width=\"560\" height=\"450\" fill=\"none\" stroke=\"#7C8C86\" stroke-width=\"1\" rx=\"8\"/><text class=\"title\" x=\"24\" y=\"34\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">workspace（版と Cargo.lock は1か所）</text>\n<rect class=\"box\" x=\"26\" y=\"48\" width=\"528\" height=\"170\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：core（入出力に触らない）</text>\n<rect class=\"box\" x=\"42\" y=\"86\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module domain</text><text class=\"note\" x=\"200\" y=\"108\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">宣言 ・ 結果の5つの語（enum）・ 決まりの判定</text>\n<rect class=\"box\" x=\"42\" y=\"128\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module application</text><text class=\"note\" x=\"200\" y=\"150\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">作成 ・ 更新 ・ 検査 ・ 承認 ・ 描画の手順</text>\n<rect class=\"box\" x=\"42\" y=\"170\" width=\"496\" height=\"34\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">module ports</text><text class=\"note\" x=\"200\" y=\"192\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">trait：Files ・ Programs ・ Agents（AI を起動する）</text>\n<path class=\"flow\" d=\"M290,262 V222\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" marker-end=\"url(#dsvg-f640009e-arrow-5B6B66)\"/><text class=\"note\" x=\"300\" y=\"246\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">adapters → core の一方向だけ（ビルドが守る）</text>\n<rect class=\"box\" x=\"26\" y=\"266\" width=\"528\" height=\"180\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"title\" x=\"40\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">crate：adapters（trait を実物で満たす）</text>\n<rect class=\"box\" x=\"42\" y=\"304\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">口</text><text class=\"note\" x=\"170\" y=\"327\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">CLI ・ MCP ・ HTTP ・ WASM Component</text>\n<rect class=\"box\" x=\"42\" y=\"348\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外へ出ていく口</text><text class=\"note\" x=\"170\" y=\"371\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">AI の CLI を起動する（Agents 契約）</text>\n<rect class=\"box\" x=\"42\" y=\"392\" width=\"496\" height=\"36\" fill=\"#F8FAF9\" stroke=\"#0D5C55\" stroke-width=\"1.5\" rx=\"5\"/><text class=\"label\" x=\"54\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">標準の部品</text><text class=\"note\" x=\"170\" y=\"415\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"11\" fill=\"#5B6B66\">jsonschema ・ json-ld など。feature で能力を選ぶ</text>\n<rect class=\"box focus\" x=\"590\" y=\"48\" width=\"180\" height=\"170\" fill=\"#D5E6E3\" stroke=\"#0D5C55\" stroke-width=\"2\" rx=\"5\"/><text class=\"title focus\" x=\"604\" y=\"72\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#0D5C55\">外への契約</text>\n<text class=\"label\" x=\"604\" y=\"100\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol</text>\n<text class=\"label\" x=\"604\" y=\"122\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（JSON Schema）</text>\n<text class=\"label\" x=\"604\" y=\"144\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">crate や trait は</text>\n<text class=\"label\" x=\"604\" y=\"166\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">外へ出さない</text>\n<rect class=\"boundary\" x=\"590\" y=\"266\" width=\"180\" height=\"180\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\" rx=\"5\"/><text class=\"title\" x=\"604\" y=\"290\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#111D1A\">ほかの言語</text>\n<text class=\"label\" x=\"604\" y=\"318\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">TypeScript ・ Python</text>\n<text class=\"label\" x=\"604\" y=\"340\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">・ Go の担い手は</text>\n<text class=\"label\" x=\"604\" y=\"362\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">protocol でつなぐ</text>\n<text class=\"label\" x=\"604\" y=\"384\" font-family=\"Noto Sans JP, Hiragino Kaku Gothic ProN, sans-serif\" font-size=\"12\" fill=\"#111D1A\">（WASM でも使える）</text>\n<path class=\"link\" d=\"M680,220 V264\" fill=\"none\" stroke=\"#5B6B66\" stroke-width=\"1\"/>\n</svg>"
+        },
         {
           "kind": "figure",
           "caption": "決まりを確かめる担い手と、返す結果。",
@@ -368,6 +378,36 @@
           "basis": "Status::Pass => \"合格\",",
           "tag": "primary",
           "source": "基盤のエンジン src/schema-driven/crates/core/src/domain/values.rs"
+        },
+        {
+          "supports": "crate はコンパイルの最小の単位であること",
+          "basis": "<p>A <em>crate</em> is the smallest amount of code that the Rust compiler considers at a",
+          "tag": "primary",
+          "source": "The Rust Programming Language 7.1（ch07-01:186、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "workspace で package を一緒に管理すること",
+          "basis": "<p>A <em>workspace</em> is a collection of one or more packages, called <em>workspace",
+          "tag": "primary",
+          "source": "The Cargo Book の Workspaces（workspaces:189、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "module の中は既定で外から見えないこと",
+          "basis": "module is private by default. Private items are internal implementation details",
+          "tag": "primary",
+          "source": "The Rust Programming Language 7.2（ch07-02:273、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "trait が型の機能を定めること",
+          "basis": "<p>A <em>trait</em> defines the functionality a particular type has and can share with",
+          "tag": "primary",
+          "source": "The Rust Programming Language 10.2（ch10-02:187、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "match はすべての場合を尽くすこと",
+          "basis": "pattern we forgot! Matches in Rust are <em>exhaustive</em>: We must exhaust every last",
+          "tag": "primary",
+          "source": "The Rust Programming Language 6.2（ch06-02:465、2026-10-17 取得、fact-check で照合）"
         }
       ],
       "rejected": [
@@ -382,6 +422,10 @@
         {
           "option": "AI を呼ぶ処理を Semantic Interpreter の中に置く",
           "reason": "プロセスの起動と止め方は外へ出ていく口の仕事で、解釈と変わる理由が違う"
+        },
+        {
+          "option": "6つの部品をそれぞれ crate に分ける",
+          "reason": "関係と制約は同じ解決を使い、同じ言葉の中のモジュールの切り方である。crate は依存の向きを強制したい境界にだけ使う"
         }
       ]
     },
@@ -405,6 +449,8 @@
           "HTTP で受けるときは、受ける範囲と認証を口の側で決める。手元だけで受ける形は、brainstorming の serve と同じ守りを使える",
           "WASM Component：2つの使い道がある。エンジンをほかの言語の中で使うことと、外から足す担い手を閉じた環境で動かすことである",
           "WASM の部品は、WIT で宣言した受け取りと返しの関数でだけ外とやりとりするので、担い手に与える能力を宣言で絞れる",
+          "Rust は WASM の両側に道具がある。部品を作る側は wit-bindgen（Rust を含む）、動かす側は wasmtime を crate として埋め込める",
+          "標準の部品の能力は、crate の feature で選ぶ。外へ取りに行く能力（HTTP のローダーなど）は既定で外す",
           "試験は、入力と期待結果の JSON の組で持ち、どの口とどの言語の実装も同じ試験を通す",
           "基盤は足すだけの版で出す。abstract@v1 に従う Skill は、手を入れなくても今までと同じ結果を返す",
           "測り方：公開した版を書き換えないと書けない決まり ・ 結果の語へ写せないもの ・ 確かめられないのに合格と返したもの ・ 足す前と後で結果が変わったものが、どれも0件"
@@ -465,6 +511,24 @@
           "source": "Component Model の文書（component-model.bytecodealliance.org/design/why-component-model.html、2026-10-17 取得）"
         },
         {
+          "supports": "wit-bindgen は WASM へコンパイルされる側を作り、Rust を含むこと",
+          "basis": "The `wit-bindgen` repository is currently focused on **guest** programs which",
+          "tag": "primary",
+          "source": "wit-bindgen の README（main、32〜34行、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "wasmtime を Rust の crate として埋め込めること",
+          "basis": "* **[Rust]** - the [`wasmtime` crate]",
+          "tag": "primary",
+          "source": "wasmtime の README（main、141行、2026-10-17 取得、fact-check で照合）"
+        },
+        {
+          "supports": "feature が任意の依存と条件付きのコンパイルを表すこと",
+          "basis": "A package defines a set of",
+          "tag": "primary",
+          "source": "The Cargo Book の Features（features:189〜190、2026-10-17 取得、fact-check で照合）"
+        },
+        {
           "supports": "言語に依存しない口にするための、いまとの差",
           "basis": "いまの基盤は、CLI と MCP の両方で同じ名前と引数を受け、標準出力の JSON と終了コードで返し、スキーマを $id の名前で引き、core が入出力に触らない。ここまでは言語に依存しない。差は、(1) 各ツールの出力の形が SKILL.md の表にだけあり JSON Schema で無い、(2) 出力に protocol の版が無い（エンジンの版だけ）、(3) findings の status の値が「合格」「確かめ直し」などの日本語の文字列で、v0.3 の5つの outcome との対応が無い、(4) 試験が Rust の #[test] と Rust のコードの値の表にあり、別の言語の実装が同じ試験を使えない（v0.3 の Conformance Suite にあたる、入力と期待する出力の JSON の組が無い）、(5) 指紋の「キーの順と空白に左右されない」の正規化の規則、文字列 ・ 数値 ・ 日時の扱い、基盤の6つの関数（name ・ label ・ map ・ view ・ part ・ quote）の意味が、別の言語で同じに作れる粒度で書かれていない、の5つである",
           "tag": "primary",
@@ -494,6 +558,14 @@
     }
   ],
   "log": [
+    {
+      "date": "2026-10-17",
+      "text": "ボードを更新した（変わったところ 6か所）"
+    },
+    {
+      "date": "2026-10-17",
+      "text": "実装の言語 Rust の仕組み（workspace ・ crate ・ module ・ trait ・ feature ・ enum）を Q3 ・ Q4 に足した。CODING.md の土台にする"
+    },
     {
       "date": "2026-10-17",
       "text": "ボードを更新した（変わったところ 17か所）"
@@ -538,89 +610,34 @@
   "opened": "2026-10-17",
   "changes": [
     {
-      "topic": "Q0",
+      "topic": "Q3",
       "part": "details",
-      "summary": "詳しい決まりを2件足して1件消した"
+      "summary": "詳しい決まりを5件足した"
     },
     {
-      "topic": "Q0",
-      "part": "images",
-      "summary": "完成イメージを1件書き直した"
-    },
-    {
-      "topic": "Q1",
-      "part": "details",
-      "summary": "詳しい決まりを1件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "question",
-      "summary": "問いを書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "answer",
-      "summary": "答えの1文を書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "details",
-      "summary": "詳しい決まりを7件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "images",
-      "summary": "完成イメージを1件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "checks",
-      "summary": "確かめてほしい箇所を1件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "grounds",
-      "summary": "根拠を4件書き直した"
-    },
-    {
-      "topic": "Q2",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "question",
-      "summary": "問いを書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "answer",
-      "summary": "答えの1文を書き直した"
-    },
-    {
-      "topic": "Q4",
-      "part": "details",
-      "summary": "詳しい決まりを7件足して6件消した"
-    },
-    {
-      "topic": "Q4",
+      "topic": "Q3",
       "part": "images",
       "summary": "完成イメージを1件足した"
     },
     {
+      "topic": "Q3",
+      "part": "grounds",
+      "summary": "根拠を5件足した"
+    },
+    {
+      "topic": "Q3",
+      "part": "rejected",
+      "summary": "採らなかった案を1件足した"
+    },
+    {
       "topic": "Q4",
-      "part": "checks",
-      "summary": "確かめてほしい箇所を2件足した"
+      "part": "details",
+      "summary": "詳しい決まりを2件足した"
     },
     {
       "topic": "Q4",
       "part": "grounds",
-      "summary": "根拠を4件足して1件消した"
-    },
-    {
-      "topic": "Q4",
-      "part": "rejected",
-      "summary": "採らなかった案を書き直した"
+      "summary": "根拠を3件足した"
     }
   ]
 }
