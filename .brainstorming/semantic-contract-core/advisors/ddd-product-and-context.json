@@ -1,0 +1,77 @@
+{
+ "kind": "judgment",
+ "question": "harness ・ 開発基盤（と単体で配る Skill ・ Agent）をプロダクトとし、その中で使う Skill ・ Agent を区切られた文脈とみる見方は正しいか。Concrete スキーマを持つ単位と名前の先頭、ユビキタス言語（terms@v1）を置く単位を決める（ボード semantic-contract-core の Q1）",
+ "premises": [
+  {"name": "所有権の境界は判定に使えない", "value": "Skill ・ Agent ・ harness をすべて1人が持つので、チームの単位では文脈を分けられない。判定はモデルの境界（同じ言葉が一貫する範囲）と物理的な境界（開発 ・ 変更 ・ バージョン管理の単位）で行う", "source": "依頼の前提。判断基準の範囲外"},
+  {"name": "プロダクトという語", "value": "判断基準は「プロダクト」を定義しない。ここでは利用者の語のまま「利用者へ渡すもの」とし、harness ・ 開発基盤と、単体で配る Skill ・ Agent を指す。判断基準の「システム全体」にあたると読む", "source": "利用者の指摘と、判断基準 context-map からの読み。判断基準の範囲外"},
+  {"name": "Agent Skills の公開の仕様", "value": "版を付けて配る単位は Skill ごと（v1.0.0 公開済み、ACDR 0042）。エンジンは <Skill の名前>/<種類>@<版> を Skill の assets から読む", "source": "依頼の補足の事実"}
+ ],
+ "conclusion": {"stance": "adopt", "headline": "利用者の見方を採る。プロダクト（harness ・ 開発基盤）はシステム全体で、その中の Skill ・ Agent が区切られた文脈、配線表がその文脈の地図にあたる。Concrete の名前の先頭は文脈＝Skill ・ Agent の名前（いまのエンジンの規則のまま）、terms は Skill ・ Agent ごとに置く", "because": "判断基準では、区切られた文脈はシステム全体をサービスやサブシステムに物理的に分け、各々を他と分離して開発 ・ 変更 ・ バージョン管理する単位で、システム全体はその連係を文脈の地図で表す。Skill ・ Agent は版を付けて独立に変える単位なので文脈の物理的な境界に合い、harness は複数の文脈を組み合わせたシステム全体に合う。Skill を単体で配るときは、文脈が1つだけのプロダクトになるだけで、文脈の境界も名前も変わらない。"},
+ "figure": {
+  "caption": "プロダクト（システム全体）の中の文脈（Skill ・ Agent）と、名前 ・ terms の持ち主",
+  "nodes": [
+   {"id": "h", "label": "プロダクト：harness（このリポジトリ）。skill-wiring.json ＝文脈の地図", "role": "システム全体"},
+   {"id": "core", "label": "schema-driven（abstract@v1 ・ schema-driven/terms@v1）", "role": "文脈（上流）"},
+   {"id": "acdr", "label": "acdr（acdr/record@v1 ・ acdr/terms@v1）", "role": "文脈"},
+   {"id": "router", "label": "skill-router（skill-router/wiring@v1 ・ skill-router/terms@v1）", "role": "文脈"},
+   {"id": "solo", "label": "プロダクト：acdr を単体で配る", "role": "文脈が1つのシステム全体"}
+  ],
+  "edges": [
+   {"from": "h", "to": "acdr", "label": "含む"},
+   {"from": "h", "to": "router", "label": "含み、wiring@v1 の instance を書く"},
+   {"from": "acdr", "to": "core", "label": "公開された言葉（abstract@v1）に従う"},
+   {"from": "router", "to": "core", "label": "公開された言葉（abstract@v1）に従う"},
+   {"from": "solo", "to": "acdr", "label": "同じ文脈 ・ 同じ名前", "dashed": true}
+  ]
+ },
+ "comparison": [
+  {"option": "タスク1：プロダクト（harness ・ 開発基盤 ・ 単体で配る Skill）をシステム全体、その中の Skill ・ Agent を区切られた文脈とみる", "effect": "判断基準の3つの境界（モデル ・ 物理 ・ 所有権）と文脈の地図の関係にそのまま合う。単体で配る Skill は「文脈が1つのシステム全体」で、二面は矛盾しない", "chosen": true},
+  {"option": "タスク1 対案：Skill ・ Agent をプロダクトとし、文脈を Skill をまたいで別に設計する（前の回答の読み）", "effect": "壊れるもの：版を独立に上げる2つの Skill が1つの文脈を分け持つので、1つの変更要求のたびに複数の Skill を同時に修正し同時に配置する調整が要る", "chosen": false},
+  {"option": "タスク1 対案：harness 全体を1つの文脈とみる", "effect": "壊れるもの：acdr の「節」と ddd-advisor の「判断基準」のように Skill ごとに別の言葉が1つの文脈に入り、競合するモデルが同じ文脈に入る", "chosen": false},
+  {"option": "タスク2 案A：プロダクト（harness）の名前を先頭にする", "effect": "壊れるもの：同じ Skill を2つの harness で使うと名前が2つになり、単体で配る Skill には先頭が無い。harness の版を上げるたびに Skill の instance の $schema が変わる", "chosen": false},
+  {"option": "タスク2 案B：区切られた文脈＝Skill ・ Agent の名前を先頭にする（<Skill か Agent の名前>/<種類>@<版>）", "effect": "いまのエンジンの規則と Skill の assets の置き場をそのまま使える。どのプロダクトに組み込んでも名前が変わらない", "chosen": true},
+  {"option": "タスク2 案C：両方を持つ（<harness>/<Skill>/<種類>@<版>）", "effect": "壊れるもの：名前が組み込み先で変わるので、instance を別の harness へ持ち出せない。版の持ち主が harness と Skill の2つになる", "chosen": false},
+  {"option": "タスク3：terms@v1 は Skill ・ Agent ごとに1つ置く。複数の Skill が使う語（Skill ・ Concrete ・ instance など）は上流の schema-driven/terms@<版> だけが持ち、ほかは版付きの名前で $ref する", "effect": "文脈ごとに語の意味が1つに定まり、またがる語の定義は1か所になる。共有は境界を越えて渡す語に限る", "chosen": true},
+  {"option": "タスク3 対案：harness ごとに terms を1つ置き、中の Skill がそれを $ref する", "effect": "壊れるもの：同じ言葉の範囲が文脈を越えてシステム全体に広がり、Skill を単体で配ると $ref 先が無くなる", "chosen": false},
+  {"option": "タスク4：harness ・ 開発基盤をプロダクト（システム全体）とし、その中の Skill ・ Agent を文脈とみる。harness が持つのは文脈の地図（skill-wiring.json）と、各 Skill のスキーマに従う instance だけ", "effect": "harness は下流として各 Skill の公開された言葉に従い、独自のスキーマを持たない。harness だけの言葉が要るときは、それを新しい Skill ・ Agent（文脈）として切り出す（推測）", "chosen": true}
+ ],
+ "path": [
+  {"ask": "Skill ・ Agent を文脈と呼べるか", "answer": "呼べる。独立に開発 ・ 変更 ・ バージョン管理する単位で、それぞれの言葉が内側で一貫するなら、3つの境界がそろう。ただし文脈は種類ではなく言葉の一貫で決まるので、Skill ごとに確かめる"},
+  {"ask": "プロダクトと文脈の関係は", "answer": "プロダクトはシステム全体で、複数の文脈を含みうる（harness）。1つの文脈は複数のプロダクトに組み込まれうる（acdr を単体でも harness でも使う）が、文脈の境界と版は文脈の側が持つ"},
+  {"ask": "名前の先頭はどちらか", "answer": "文脈＝Skill ・ Agent。プロダクトは組み込む側で、Skill の版や語を決めない"},
+  {"ask": "文脈をまたぐ語はどこに置くか", "answer": "上流の1つの文脈（schema-driven）の terms に置き、下流は従う。1人が複数の文脈を持つので、共有する場合は最小の範囲を独立したモジュールにする"},
+  {"ask": "harness が持つ Concrete は", "answer": "文脈の地図（配線表）と、各 Skill のスキーマに従う instance。どちらも名前の先頭は、そのスキーマを持つ Skill"}
+ ],
+ "grounds": [
+  {"criterion": "bounded-context", "quote": "区切られた文脈：1つの同じ言葉を小さな複数の同じ言葉へ分割し、各々を、それが通用する明確な文脈へ配分したもの。同じ言葉の一貫性を維持するための境界であり、用語の意味 ・ 業務方針 ・ 業務ルールが一貫するのは、その内側に限られる。"},
+  {"criterion": "bounded-context", "quote": "区分：区切られた文脈 ・ 発見か設計か：設計する ・ 何に従って決まるか：モデルの境界をどこに置くかは設計判断であり、事業活動を区切られた文脈に分けるのは設計の戦略的な意思決定である。ソフトウェア技術者が、プロジェクトの目的と制約条件に応じて決める"},
+  {"criterion": "bounded-context", "quote": "境界：物理的な境界 ・ 何を区切るか：システムを実装する単位。独立したサービスかプロジェクトとして実装し、他の文脈と分離して開発 ・ 変更 ・ バージョン管理する"},
+  {"criterion": "context-map", "quote": "区切られた文脈は、システム全体をサービスやサブシステムなどに物理的に分ける。それぞれのライフサイクルは他から切り離され、モデルを独立して実装し進化させられる。"},
+  {"criterion": "bounded-context", "quote": "マイクロサービスはどれも区切られた文脈である。逆は成立せず、マイクロサービスでない区切られた文脈もある。区切られた文脈はモデルの一貫性を維持できる最も広い有効な境界を、マイクロサービスは最も小さい有効な境界を示す"},
+  {"criterion": "bounded-context", "quote": "対応：同じデータを操作するユースケースの集まりを、複数の文脈に分散させない ・ 理由：誤った分割では、1つの変更要求のために複数の文脈を同時に修正し、同時に配置する調整が必要になる"},
+  {"criterion": "bounded-context", "quote": "対応：競合するモデルは、同じ区切られた文脈の中に実装しない ・ 理由：区切られた文脈は、同じ言葉とモデルの一貫性を保つ境界である"},
+  {"criterion": "ubiquitous-language", "quote": "組織全体で統一した言葉という意味ではなく、広い範囲で通用する共通言語でもない。通用する範囲は区切られた文脈の内側に限られ、同じ言葉は文脈ごとのモデルを表すことに焦点を合わせる。モデルに解く課題があるのと同じく、同じ言葉を定義して使うには、通用する範囲をはっきり決めた区切られた文脈が欠かせない"},
+  {"criterion": "shared-kernel", "quote": "条件：1つのチームが複数の文脈を所有している ・ 対応：文脈の境界を明確に定義する手段として、モデルの共有を使用する ・ 理由：良きパートナーのように必要に応じて臨機応変に同期するやり方では、文脈の境界が不明確になることがある"},
+  {"criterion": "context-map", "quote": "文脈の地図：区切られた文脈どうしの連係方法を、システム全体の関係として表現したもの。文脈の地図（Context Map）と呼ぶ。システム全体をどの文脈に分割し、それらをどう連係させるかを描く。"},
+  {"criterion": "subdomain", "quote": "業務領域：事業活動の領域全体を細分化したもの。サブドメインとも呼ぶ。技術的な見方では、強く関連するユースケースの集まりである。"}
+ ],
+ "cautions": [
+  {"name": "Skill という種類だけで文脈と決める", "risk": "毎回同時に変える2つの Skill が別の文脈になり、同時修正 ・ 同時配置の調整が続く", "alternative": "同時に変える Skill は1つに合わせるか、共有する語を上流の terms に切り出す"},
+  {"name": "1つの文脈の terms を、Skill ごとに複製する", "risk": "同じ語の定義が2か所で食い違い、変更のたびに不一致が起きる（事例の Lead の二重実装と同じ形）", "alternative": "またがる語は上流の1つの terms だけが持ち、ほかは版付きの名前で $ref する"},
+  {"name": "（推測）harness が Skill のスキーマに独自の欄を足す", "risk": "従う関係が崩れ、Skill の版を上げると harness の instance が壊れる", "alternative": "足したい語や欄は新しい Skill ・ Agent として切り出し、文脈の地図に載せる"}
+ ],
+ "ai_cautions": [
+  {"breaks": "前の回答の「文脈は Skill をまたいで別に設計する」をボードに残したまま Q1 を書き直す", "check": "ボードの Q1 から「文脈」「プロダクト」を含む文を抜き出し、Skill ・ Agent を文脈、harness をプロダクトとしているかを grep で確かめる"},
+  {"breaks": "skills-creator の scaffold が、上流の語（Concrete ・ instance など）を各 Skill の terms へ複製する", "check": "全 Skill の terms@v1 の $defs のキーを集め、2つ以上の terms に同じキーが在れば検出する検査を check に足す"}
+ ],
+ "related": [
+  {"criterion": "open-host-service", "relation": "基盤が abstract@v1 と terms を公開された言葉として出し、各 Skill がそれに従う連係（前回の回答）"},
+  {"criterion": "conformist", "relation": "Skill を作る文脈の言葉を、各 Skill がそのまま受け入れる側の連係"}
+ ],
+ "next": [
+  "ボードの Q1 の前提を「プロダクト＝harness ・ 開発基盤と単体で配る Skill ・ Agent、区切られた文脈＝その中の Skill ・ Agent」へ書き直す",
+  "名前の規則 <Skill か Agent の名前>/<種類>@<版> を、文脈の名前の規則として Q1 に書く",
+  "Skill を作る作業の語（Skill ・ Agent ・ abstract ・ Concrete ・ instance）を schema-driven/terms@v1 に置く案を ACDR に起こす",
+  "skill-wiring.json を文脈の地図とみなし、Skill どうしの連係方法（公開された言葉 ・ 従属）を書き足す案をボードに出す"
+ ]
+}
